@@ -1,0 +1,10 @@
+**/dist/**
+**/node_modules/**
+**/coverage/**
+pnpm-lock.yaml
+
+# Documentos rectores: se editan a mano, Prettier no debe reformatearlos.
+SPEC.md
+MVP.md
+Claude.md
+CLAUDE.md
