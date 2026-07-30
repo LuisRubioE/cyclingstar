@@ -1,0 +1,7 @@
+packages:
+  - 'apps/*'
+  - 'packages/*'
+
+# Catálogo de versiones centralizado (una sola fuente de verdad por dependencia).
+catalog:
+  zod: ^3.23.8
