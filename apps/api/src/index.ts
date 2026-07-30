@@ -1,6 +1,14 @@
+import { buildApp } from './app.js'
+
 /**
- * apps/api: monolito Fastify que sirve API y estáticos de Vite (SPEC 12).
- * Paso 3: solo andamiaje. El servidor Fastify con pino, validación Zod en los bordes,
- * manejo uniforme de errores y /health llega en el Paso 7.
+ * Punto de arranque del servicio `web` de Railway: `node apps/api/dist/index.js` (SPEC 12).
+ * Escucha en el puerto que inyecta la plataforma (PORT) y en 0.0.0.0.
  */
-export const API_PACKAGE = '@cyclingstar/api' as const
+const app = buildApp({ logger: true })
+const port = Number(process.env.PORT ?? 3000)
+const host = '0.0.0.0'
+
+app.listen({ port, host }).catch((err: unknown) => {
+  app.log.error(err)
+  process.exitCode = 1
+})
