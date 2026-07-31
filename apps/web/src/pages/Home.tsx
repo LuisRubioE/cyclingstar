@@ -1,43 +1,64 @@
 import { useQuery } from '@tanstack/react-query'
+import { Link } from 'react-router-dom'
+import { authClient } from '../auth/client'
 import { fetchHealth } from '../api/health'
 
 export function Home() {
   const health = useQuery({ queryKey: ['health'], queryFn: fetchHealth })
+  const { data: session } = authClient.useSession()
 
   return (
-    <section className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Bienvenido a Cycling Star</h1>
-        <p className="mt-1 text-slate-600">
-          Un mundo ciclista persistente. Todavía estamos construyendo los cimientos.
+    <section className="space-y-10">
+      <div className="space-y-4">
+        <h1 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+          Race. Train. Rise.
+        </h1>
+        <p className="max-w-xl text-slate-600">
+          A persistent cycling world where your rider trains, gets called up, and races a full
+          season. We're still laying the foundations.
         </p>
+        {!session && (
+          <div className="flex gap-3">
+            <Link
+              to="/register"
+              className="rounded-lg bg-indigo-600 px-4 py-2.5 font-medium text-white transition hover:bg-indigo-500"
+            >
+              Create account
+            </Link>
+            <Link
+              to="/login"
+              className="rounded-lg border border-slate-300 px-4 py-2.5 font-medium text-slate-700 transition hover:bg-slate-100"
+            >
+              Log in
+            </Link>
+          </div>
+        )}
       </div>
 
-      <div className="rounded-lg border border-slate-200 bg-white p-4">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-          Estado del sistema
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+          System status
         </h2>
 
-        {health.isPending && <p className="mt-2 text-slate-500">Consultando…</p>}
-
-        {health.isError && (
-          <p className="mt-2 text-red-600">No se pudo contactar con el servidor.</p>
-        )}
+        {health.isPending && <p className="mt-3 text-slate-500">Checking…</p>}
+        {health.isError && <p className="mt-3 text-red-600">Could not reach the server.</p>}
 
         {health.data && (
-          <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-            <dt className="text-slate-500">Servidor</dt>
-            <dd className="font-medium">{health.data.ok ? 'En línea' : 'Con problemas'}</dd>
+          <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+            <dt className="text-slate-500">Server</dt>
+            <dd className="font-medium text-slate-900">{health.data.ok ? 'Online' : 'Degraded'}</dd>
 
-            <dt className="text-slate-500">Versión del motor</dt>
-            <dd className="font-medium">{health.data.engineVersion}</dd>
+            <dt className="text-slate-500">Engine version</dt>
+            <dd className="font-medium text-slate-900">{health.data.engineVersion}</dd>
 
-            <dt className="text-slate-500">Día del mundo</dt>
-            <dd className="font-medium">{health.data.gameDay ?? 'el mundo aún no ha empezado'}</dd>
+            <dt className="text-slate-500">World day</dt>
+            <dd className="font-medium text-slate-900">
+              {health.data.gameDay ?? 'the world has not started yet'}
+            </dd>
 
-            <dt className="text-slate-500">Base de datos</dt>
-            <dd className="font-medium">
-              {health.data.migrationsApplied ? 'lista' : 'sin migrar'}
+            <dt className="text-slate-500">Database</dt>
+            <dd className="font-medium text-slate-900">
+              {health.data.migrationsApplied ? 'ready' : 'not migrated'}
             </dd>
           </dl>
         )}
