@@ -67,6 +67,8 @@ Paso 4. Railway. En el proyecto Hobby existente: provisionar Postgres, crear el 
 
 Paso 5. Integración continua. GitHub Actions con typecheck y tests en cada pull request; despliegue automático a Railway al fusionar en `main` (integración nativa de Railway con GitHub). Hecho cuando: un PR con un test roto queda bloqueado y un merge despliega solo.
 
+> Nota operativa (jul. 2026): en repositorios privados del plan gratuito de GitHub las reglas de protección de rama no se aplican (solo son efectivas en repos públicos o con GitHub Team). Por eso el bloqueo *duro* de fusionar un PR en rojo queda pendiente y se retoma en la beta (Paso 47), donde ya conviene pagar Team. Mientras tanto la CI sí corre y marca rojo/verde en cada PR, y `Wait for CI` en Railway impide desplegar código roto; con un solo mantenedor, la disciplina de "no fusiono en rojo" cubre el resto.
+
 ### Fase 1 - Esqueleto de aplicación (pasos 6 a 9, 3 o 4 sesiones)
 
 Paso 6. Base de datos fundacional. En `packages/db`: Drizzle con las tablas `worlds`, `users`, `game_state`, `tick_log` (SPEC 11); flujo de migraciones con drizzle-kit; las migraciones se ejecutan al arrancar el servicio, antes de escuchar, protegidas con un advisory lock. Hecho cuando: el despliegue en Railway crea las tablas solo.
