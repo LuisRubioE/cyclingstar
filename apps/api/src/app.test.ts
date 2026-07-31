@@ -3,7 +3,7 @@ import { buildApp } from './app.js'
 
 // serveWeb: false para probar el comportamiento de la API de forma determinista,
 // independientemente de si la web está compilada.
-const app = buildApp({ migrationsApplied: true, serveWeb: false })
+const app = buildApp({ migrationsApplied: true, serveWeb: false, tickIntervalMinutes: 360 })
 
 afterAll(async () => {
   await app.close()
@@ -18,6 +18,7 @@ describe('api: /health', () => {
       engineVersion: 1,
       gameDay: null,
       migrationsApplied: true,
+      tickIntervalMinutes: 360,
     })
   })
 

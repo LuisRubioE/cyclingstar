@@ -3,7 +3,8 @@ import { z } from 'zod'
 /**
  * Validación Zod de las variables de entorno en el borde de arranque (CLAUDE.md).
  * PORT lo inyecta Railway; DATABASE_URL es obligatoria desde el Paso 6.
- * APP_URL y SESSION_SECRET los usa better-auth desde el Paso 9.
+ * APP_URL y SESSION_SECRET los usa better-auth (Paso 9).
+ * ADMIN_TOKEN protege /admin/tick; TICK_INTERVAL_MINUTES parametriza el reloj (Paso 10).
  */
 const envSchema = z.object({
   DATABASE_URL: z.string().min(1, 'DATABASE_URL es obligatoria'),
@@ -11,17 +12,38 @@ const envSchema = z.object({
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
   APP_URL: z.string().url('APP_URL debe ser una URL válida'),
   SESSION_SECRET: z.string().min(16, 'SESSION_SECRET debe tener al menos 16 caracteres'),
+  ADMIN_TOKEN: z.string().min(16, 'ADMIN_TOKEN debe tener al menos 16 caracteres'),
+  TICK_INTERVAL_MINUTES: z.coerce.number().int().positive().default(360),
 })
 
 export type Env = z.infer<typeof envSchema>
 
-export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
-  const parsed = envSchema.safeParse(source)
-  if (!parsed.success) {
-    const issues = parsed.error.issues
+/**
+ * Entorno mínimo del proceso de tick (servicio cron): no necesita APP_URL ni secretos de
+ * sesión, así que su servicio en Railway solo requiere DATABASE_URL.
+ */
+const tickEnvSchema = z.object({
+  DATABASE_URL: z.string().min(1, 'DATABASE_URL es obligatoria'),
+  TICK_INTERVAL_MINUTES: z.coerce.number().int().positive().default(360),
+})
+
+export type TickEnv = z.infer<typeof tickEnvSchema>
+
+function parse<T>(schema: z.ZodType<T>, source: NodeJS.ProcessEnv): T {
+  const result = schema.safeParse(source)
+  if (!result.success) {
+    const issues = result.error.issues
       .map((issue) => `${issue.path.join('.') || '(raíz)'}: ${issue.message}`)
       .join('; ')
     throw new Error(`Variables de entorno inválidas: ${issues}`)
   }
-  return parsed.data
+  return result.data
+}
+
+export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
+  return parse(envSchema, source)
+}
+
+export function loadTickEnv(source: NodeJS.ProcessEnv = process.env): TickEnv {
+  return parse(tickEnvSchema, source)
 }
