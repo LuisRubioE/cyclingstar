@@ -5,6 +5,7 @@
 - Cada sesión implementa UN paso de MVP.md. Lee el paso y sus secciones del SPEC antes de proponer un plan. No escribas código sin plan aprobado.
 
 ## Código
+- La interfaz de usuario (apps/web, textos visibles) va en INGLÉS en el MVP. Traducciones/i18n son post-MVP. Los comentarios de código y las docs internas siguen en español.
 - TypeScript estricto en todo. Prohibido `any`. Zod en todos los bordes de entrada.
 - Monorepo pnpm: apps/api (Fastify), apps/web (React+Vite+Tailwind), packages/engine, packages/db (Drizzle), packages/shared.
 - packages/engine es puro: jamás importa de db, jamás usa Date.now() ni Math.random(). Todo azar viene del RNG sembrado con subflujos nominales.

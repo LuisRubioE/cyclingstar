@@ -1,25 +1,25 @@
 import { Route, Routes } from 'react-router-dom'
 import { Header } from './components/Header'
 import { ProtectedRoute } from './components/ProtectedRoute'
-import { Acceso } from './pages/Acceso'
-import { Cuenta } from './pages/Cuenta'
+import { Account } from './pages/Account'
 import { Home } from './pages/Home'
-import { Registro } from './pages/Registro'
+import { Login } from './pages/Login'
+import { Register } from './pages/Register'
 
 export function App() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <Header />
-      <main className="mx-auto max-w-3xl px-4 py-8">
+      <main className="mx-auto max-w-3xl px-4 py-10">
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/registro" element={<Registro />} />
-          <Route path="/acceso" element={<Acceso />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/login" element={<Login />} />
           <Route
-            path="/cuenta"
+            path="/account"
             element={
               <ProtectedRoute>
-                <Cuenta />
+                <Account />
               </ProtectedRoute>
             }
           />

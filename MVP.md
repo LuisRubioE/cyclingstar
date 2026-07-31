@@ -39,7 +39,7 @@ Dentro del MVP:
 Fuera del MVP (v1.1 y siguientes):
 
 - Equipos fundados por usuarios y capa de manager. Nota de coherencia: esto no cancela la decisión de diseño; es secuencia. Con 20 a 50 usuarios no hay masa para poblar plantillas humanas, y el andamiaje NPC existe exactamente para este arranque. La fundación de equipos es lo primero de v1.1.
-- Mercado entre usuarios, selecciones nacionales y Mundial jugable, carreras en directo (SSE), PWA con notificaciones, monetización, idiomas adicionales al español, clima y abanicos, política de dosificación en CRI.
+- Mercado entre usuarios, selecciones nacionales y Mundial jugable, carreras en directo (SSE), PWA con notificaciones, monetización, idiomas adicionales al inglés (i18n; la UI del MVP es en inglés), clima y abanicos, política de dosificación en CRI.
 
 Nota de moderación: al no haber equipos de usuarios ni ningún campo de texto libre (los nombres salen del generador), el MVP no necesita sistema de moderación. La primera dependencia real de moderación llega con v1.1.
 
@@ -79,7 +79,9 @@ Paso 8. Web base. Vite, React, Tailwind, TanStack Query y React Router; layout c
 
 Paso 9. Autenticación. better-auth con correo y contraseña, cookies de sesión respaldadas en Postgres, páginas de registro y acceso, guarda de rutas protegidas. Hecho cuando: dos usuarios distintos pueden registrarse, salir y volver a entrar.
 
-> Nota de implementación (Paso 9): la tabla `users` (SPEC 11) es la tabla de usuario de better-auth; se le añadieron los campos que este requiere (`name`, `email_verified`, `image`, `updated_at`) manteniendo `id` en uuid en todo el modelo, y better-auth aporta `sessions`, `accounts` y `verifications`. La contraseña cifrada vive en `accounts.password`, por lo que la columna `users.password_hash` queda sin uso; se conservó (nullable) en lugar de forzar una migración de borrado frágil, y se puede retirar más adelante en un paso dedicado. Requiere la variable de entorno `APP_URL` (baseURL de better-auth) además de `SESSION_SECRET`.
+> Nota de implementación (Paso 9): la tabla `users` (SPEC 11) es la tabla de usuario de better-auth; se le añadieron los campos que este requiere (`name`, `email_verified`, `image`, `updated_at`) manteniendo `id` en uuid en todo el modelo, y better-auth aporta `sessions`, `accounts` y `verifications`. La contraseña cifrada vive en `accounts.password`, por lo que la columna `users.password_hash` queda sin uso; se conservó (nullable) en lugar de forzar una migración de borrado frágil, y se puede retirar más adelante en un paso dedicado. Requiere la variable de entorno `APP_URL` (baseURL de better-auth) además de `SESSION_SECRET`. La UI de registro no pide nombre (el login es solo email + contraseña; el nombre lo rellena el sistema).
+
+Paso 9-bis (pendiente, requiere dominio propio). Envío de correos con un proveedor (p. ej. Resend) para: verificación real de email en el registro (rechazar correos falsos) y recuperación de contraseña ("forgot password"). Bloqueado hasta tener un dominio propio verificado por DNS (el remitente de pruebas de Resend solo envía al propio dueño de la cuenta). Encaja de forma natural junto a la compra de dominio del Paso 42. Hecho cuando: un usuario recibe el correo de verificación y puede restablecer su contraseña por email.
 
 ### Fase 2 - El reloj del mundo (pasos 10 a 12, 2 o 3 sesiones)
 

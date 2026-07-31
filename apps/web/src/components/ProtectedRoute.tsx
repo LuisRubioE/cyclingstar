@@ -7,7 +7,7 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
   const { data, isPending } = authClient.useSession()
 
   if (isPending) {
-    return <p className="text-slate-500">Cargando…</p>
+    return <p className="text-slate-500">Loading…</p>
   }
   if (!data) {
     return <Navigate to="/acceso" replace />
