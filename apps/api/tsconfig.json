@@ -7,5 +7,5 @@
     "tsBuildInfoFile": "dist/.tsbuildinfo"
   },
   "include": ["src"],
-  "references": [{ "path": "../../packages/db" }]
+  "references": [{ "path": "../../packages/db" }, { "path": "../../packages/engine" }]
 }
