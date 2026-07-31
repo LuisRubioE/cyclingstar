@@ -3,7 +3,13 @@ import { parseHealth } from './health'
 
 describe('web: cliente tipado de /health', () => {
   it('parsea una respuesta válida contra el contrato compartido', () => {
-    const payload = { ok: true, engineVersion: 1, gameDay: null, migrationsApplied: true }
+    const payload = {
+      ok: true,
+      engineVersion: 1,
+      gameDay: null,
+      migrationsApplied: true,
+      tickIntervalMinutes: 360,
+    }
     expect(parseHealth(payload)).toEqual(payload)
   })
 

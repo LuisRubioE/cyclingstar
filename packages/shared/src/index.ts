@@ -5,12 +5,15 @@ import { z } from 'zod'
  * El cliente de la web valida contra este esquema; la API tipa su respuesta con él.
  */
 
-/** Respuesta de GET /health (SPEC 12, Pasos 7-8). */
+export * from './time.js'
+
+/** Respuesta de GET /health (SPEC 12, Pasos 7-12). */
 export const healthSchema = z.object({
   ok: z.boolean(),
   engineVersion: z.number().int(),
   gameDay: z.number().int().nullable(),
   migrationsApplied: z.boolean(),
+  tickIntervalMinutes: z.number().int().positive(),
 })
 
 export type Health = z.infer<typeof healthSchema>

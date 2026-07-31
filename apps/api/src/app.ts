@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import fastifyStatic from '@fastify/static'
-import { type Database, gameState } from '@cyclingstar/db'
+import { type Database, type TickSummary, gameState } from '@cyclingstar/db'
 import { ENGINE_VERSION } from '@cyclingstar/engine'
 import type { Health } from '@cyclingstar/shared'
 import Fastify, {
@@ -20,12 +20,18 @@ export interface AppDeps {
   db?: Database
   /** Si las migraciones se aplicaron al arrancar (SPEC 12). */
   migrationsApplied?: boolean
+  /** Minutos reales por día de juego (TICK_INTERVAL_MINUTES); lo reporta /health. */
+  tickIntervalMinutes?: number
   /** Config del logger pino de Fastify. */
   logger?: FastifyServerOptions['logger']
   /** Servir la web compilada. Por defecto se autodetecta si existe la build de Vite. */
   serveWeb?: boolean
   /** Instancia de better-auth; si está, se monta en /api/auth/* (Paso 9). */
   auth?: Auth
+  /** Token que protege POST /admin/tick (Paso 10). */
+  adminToken?: string
+  /** Ejecutor del tick manual para POST /admin/tick (Paso 10). */
+  onAdminTick?: () => Promise<TickSummary>
 }
 
 /** Carpeta de la web compilada (apps/web/dist). Vacía de index.html hasta el Paso 8. */
@@ -75,8 +81,23 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
       engineVersion: ENGINE_VERSION,
       gameDay,
       migrationsApplied: deps.migrationsApplied ?? false,
+      tickIntervalMinutes: deps.tickIntervalMinutes ?? 360,
     }
   })
+
+  // Tick manual protegido (Paso 10): recuperación y desarrollo (SPEC 12).
+  if (deps.onAdminTick) {
+    const onAdminTick = deps.onAdminTick
+    const adminToken = deps.adminToken
+    app.post('/admin/tick', async (request, reply) => {
+      const provided = request.headers['x-admin-token']
+      if (!adminToken || provided !== adminToken) {
+        return reply.status(401).send({ ok: false, error: 'no_autorizado' })
+      }
+      const summary = await onAdminTick()
+      return reply.send({ ok: true, ...summary })
+    })
+  }
 
   // Montaje de better-auth en /api/auth/* (Paso 9). Reconstruye una Request web a partir
   // de la petición de Fastify y reenvía la respuesta, preservando las cookies de sesión.

@@ -23,4 +23,4 @@
 
 ## Estilo de trabajo
 - Commits pequeños con el numero de paso. Rama por fase.
-- Si una decision no esta en SPEC.md, no la inventes: propon opciones y espera.
+- Modo autónomo por lotes (autorizado por el usuario, jul. 2026): implementar, verificar (typecheck/build/test/lint), PR, esperar CI verde y fusionar a main en cadena, sin pedir aprobación paso a paso. Pausar y avisar SOLO para lo que requiere al usuario: clics en Railway, cuentas/compras externas, verificación visual en producción, o decisiones de producto grandes. Las decisiones razonables no cubiertas por SPEC se toman y se documentan (en vez de esperar).
