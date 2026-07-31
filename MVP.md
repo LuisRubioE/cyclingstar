@@ -79,6 +79,8 @@ Paso 8. Web base. Vite, React, Tailwind, TanStack Query y React Router; layout c
 
 Paso 9. Autenticación. better-auth con correo y contraseña, cookies de sesión respaldadas en Postgres, páginas de registro y acceso, guarda de rutas protegidas. Hecho cuando: dos usuarios distintos pueden registrarse, salir y volver a entrar.
 
+> Nota de implementación (Paso 9): la tabla `users` (SPEC 11) es la tabla de usuario de better-auth; se le añadieron los campos que este requiere (`name`, `email_verified`, `image`, `updated_at`) manteniendo `id` en uuid en todo el modelo, y better-auth aporta `sessions`, `accounts` y `verifications`. La contraseña cifrada vive en `accounts.password`, por lo que la columna `users.password_hash` queda sin uso; se conservó (nullable) en lugar de forzar una migración de borrado frágil, y se puede retirar más adelante en un paso dedicado. Requiere la variable de entorno `APP_URL` (baseURL de better-auth) además de `SESSION_SECRET`.
+
 ### Fase 2 - El reloj del mundo (pasos 10 a 12, 2 o 3 sesiones)
 
 Paso 10. El tick. `scripts/tick.ts` según SPEC 2 y 11: `pg_advisory_lock`, cálculo de días de juego pendientes contra la hora real, una transacción por día (de momento solo avanza la fecha y registra en `tick_log`), y endpoint `POST /admin/tick` protegido con `ADMIN_TOKEN`. Hecho cuando: dos ejecuciones simultáneas del script no duplican días.
