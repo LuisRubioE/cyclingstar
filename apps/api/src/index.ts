@@ -1,14 +1,22 @@
+import { runMigrations } from '@cyclingstar/db'
 import { buildApp } from './app.js'
+import { loadEnv } from './env.js'
 
 /**
- * Punto de arranque del servicio `web` de Railway: `node apps/api/dist/index.js` (SPEC 12).
- * Escucha en el puerto que inyecta la plataforma (PORT) y en 0.0.0.0.
+ * Arranque del servicio `web` de Railway: `node apps/api/dist/index.js` (SPEC 12).
+ * Aplica las migraciones (con advisory lock) ANTES de escuchar, y luego levanta Fastify
+ * en el puerto que inyecta la plataforma (PORT) y en 0.0.0.0.
  */
-const app = buildApp({ logger: true })
-const port = Number(process.env.PORT ?? 3000)
-const host = '0.0.0.0'
+async function main(): Promise<void> {
+  const env = loadEnv()
 
-app.listen({ port, host }).catch((err: unknown) => {
-  app.log.error(err)
+  await runMigrations(env.DATABASE_URL)
+
+  const app = buildApp({ logger: true })
+  await app.listen({ port: env.PORT, host: '0.0.0.0' })
+}
+
+main().catch((err: unknown) => {
+  console.error(err)
   process.exitCode = 1
 })

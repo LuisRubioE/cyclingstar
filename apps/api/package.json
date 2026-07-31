@@ -10,6 +10,8 @@
     "clean": "tsc -b --clean"
   },
   "dependencies": {
-    "fastify": "^5.11.0"
+    "@cyclingstar/db": "workspace:*",
+    "fastify": "^5.11.0",
+    "zod": "catalog:"
   }
 }

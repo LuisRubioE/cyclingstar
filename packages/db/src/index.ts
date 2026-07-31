@@ -1,6 +1,8 @@
 /**
  * packages/db: capa de datos con Drizzle (SPEC 11). Migraciones solo con drizzle-kit.
- * Paso 3: solo andamiaje. Las tablas fundacionales (worlds, users, game_state, tick_log)
- * y el flujo de migraciones llegan en el Paso 6.
+ * Paso 6: esquema fundacional (worlds, users, game_state, tick_log) y el arrancador de
+ * migraciones con advisory lock.
  */
-export const DB_PACKAGE = '@cyclingstar/db' as const
+export * from './schema.js'
+export { createDb, type Database, type DbClient } from './client.js'
+export { runMigrations } from './migrate.js'
