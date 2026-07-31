@@ -11,7 +11,10 @@
   },
   "dependencies": {
     "@cyclingstar/db": "workspace:*",
+    "@cyclingstar/engine": "workspace:*",
+    "@fastify/static": "^10.1.2",
     "fastify": "^5.11.0",
+    "fastify-type-provider-zod": "^7.0.0",
     "zod": "catalog:"
   }
 }

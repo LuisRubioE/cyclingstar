@@ -4,4 +4,4 @@ packages:
 
 # Catálogo de versiones centralizado (una sola fuente de verdad por dependencia).
 catalog:
-  zod: ^3.25.76
+  zod: ^4.1.5
