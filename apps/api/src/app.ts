@@ -13,6 +13,7 @@ import Fastify, {
   type FastifyServerOptions,
 } from 'fastify'
 import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod'
+import type { Auth } from './auth.js'
 
 export interface AppDeps {
   /** Base de datos (opcional en tests). Cuando está, /health lee la fecha de juego. */
@@ -23,6 +24,8 @@ export interface AppDeps {
   logger?: FastifyServerOptions['logger']
   /** Servir la web compilada. Por defecto se autodetecta si existe la build de Vite. */
   serveWeb?: boolean
+  /** Instancia de better-auth; si está, se monta en /api/auth/* (Paso 9). */
+  auth?: Auth
 }
 
 /** Carpeta de la web compilada (apps/web/dist). Vacía de index.html hasta el Paso 8. */
@@ -34,7 +37,9 @@ const webRoot = fileURLToPath(new URL('../../web/dist', import.meta.url))
  * servido de los estáticos de apps/web (latente hasta que exista la build) y /health.
  */
 export function buildApp(deps: AppDeps = {}): FastifyInstance {
-  const app = Fastify({ logger: deps.logger ?? false })
+  // trustProxy: detrás del proxy de Railway (TLS terminado), para resolver bien
+  // protocolo (https), host e IP de cliente a partir de las cabeceras X-Forwarded-*.
+  const app = Fastify({ logger: deps.logger ?? false, trustProxy: true })
 
   // Zod como validador/serializador en los bordes: las rutas futuras validan su
   // entrada y salida con esquemas Zod.
@@ -72,6 +77,47 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
       migrationsApplied: deps.migrationsApplied ?? false,
     }
   })
+
+  // Montaje de better-auth en /api/auth/* (Paso 9). Reconstruye una Request web a partir
+  // de la petición de Fastify y reenvía la respuesta, preservando las cookies de sesión.
+  if (deps.auth) {
+    const auth = deps.auth
+    app.route({
+      method: ['GET', 'POST'],
+      url: '/api/auth/*',
+      async handler(request, reply) {
+        const url = new URL(request.url, `${request.protocol}://${request.host}`)
+        const headers = new Headers()
+        for (const [key, value] of Object.entries(request.headers)) {
+          if (key.toLowerCase() === 'content-length') continue
+          if (Array.isArray(value)) {
+            for (const v of value) headers.append(key, v)
+          } else if (value != null) {
+            headers.append(key, value)
+          }
+        }
+        const init: RequestInit = { method: request.method, headers }
+        const hasBody = request.method !== 'GET' && request.method !== 'HEAD'
+        if (hasBody && request.body != null) {
+          init.body = JSON.stringify(request.body)
+        }
+        const webRequest = new Request(url, init)
+
+        const response = await auth.handler(webRequest)
+
+        reply.status(response.status)
+        for (const [key, value] of response.headers.entries()) {
+          if (key.toLowerCase() === 'set-cookie') continue
+          reply.header(key, value)
+        }
+        for (const cookie of response.headers.getSetCookie()) {
+          reply.header('set-cookie', cookie)
+        }
+        const body = await response.text()
+        return reply.send(body.length > 0 ? body : null)
+      },
+    })
+  }
 
   // Servido de la web: por defecto se activa si existe una build con index.html.
   const serveWeb = deps.serveWeb ?? existsSync(join(webRoot, 'index.html'))
