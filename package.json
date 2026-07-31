@@ -8,8 +8,8 @@
     "node": ">=22"
   },
   "scripts": {
-    "build": "tsc -b",
-    "typecheck": "tsc -b",
+    "build": "tsc -b && pnpm --filter @cyclingstar/web build",
+    "typecheck": "tsc -b && pnpm --filter @cyclingstar/web typecheck",
     "clean": "tsc -b --clean",
     "test": "vitest run",
     "test:watch": "vitest",

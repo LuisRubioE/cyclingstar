@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url'
 import fastifyStatic from '@fastify/static'
 import { type Database, gameState } from '@cyclingstar/db'
 import { ENGINE_VERSION } from '@cyclingstar/engine'
+import type { Health } from '@cyclingstar/shared'
 import Fastify, {
   type FastifyError,
   type FastifyInstance,
@@ -20,6 +21,8 @@ export interface AppDeps {
   migrationsApplied?: boolean
   /** Config del logger pino de Fastify. */
   logger?: FastifyServerOptions['logger']
+  /** Servir la web compilada. Por defecto se autodetecta si existe la build de Vite. */
+  serveWeb?: boolean
 }
 
 /** Carpeta de la web compilada (apps/web/dist). Vacía de index.html hasta el Paso 8. */
@@ -53,7 +56,7 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
     reply.status(statusCode).send({ ok: false, error: error.message })
   })
 
-  app.get('/health', async () => {
+  app.get('/health', async (): Promise<Health> => {
     let gameDay: number | null = null
     if (deps.db) {
       const rows = await deps.db
@@ -70,8 +73,9 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
     }
   })
 
-  // Servido de la web: solo si existe una build con index.html (llega en el Paso 8).
-  if (existsSync(join(webRoot, 'index.html'))) {
+  // Servido de la web: por defecto se activa si existe una build con index.html.
+  const serveWeb = deps.serveWeb ?? existsSync(join(webRoot, 'index.html'))
+  if (serveWeb) {
     void app.register(fastifyStatic, { root: webRoot })
     app.setNotFoundHandler((request, reply) => {
       const isApiPath = request.url.startsWith('/api') || request.url.startsWith('/health')

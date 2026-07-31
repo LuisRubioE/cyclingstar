@@ -1,7 +1,9 @@
 import { afterAll, describe, expect, it } from 'vitest'
 import { buildApp } from './app.js'
 
-const app = buildApp({ migrationsApplied: true })
+// serveWeb: false para probar el comportamiento de la API de forma determinista,
+// independientemente de si la web está compilada.
+const app = buildApp({ migrationsApplied: true, serveWeb: false })
 
 afterAll(async () => {
   await app.close()
