@@ -87,7 +87,9 @@ Paso 9-bis (pendiente, requiere dominio propio). Envío de correos con un provee
 
 Paso 10. El tick. `scripts/tick.ts` según SPEC 2 y 11: `pg_advisory_lock`, cálculo de días de juego pendientes contra la hora real, una transacción por día (de momento solo avanza la fecha y registra en `tick_log`), y endpoint `POST /admin/tick` protegido con `ADMIN_TOKEN`. Hecho cuando: dos ejecuciones simultáneas del script no duplican días.
 
-Paso 11. Cron en Railway. Segundo servicio del mismo repositorio, comando `node dist/scripts/tick.js`, Cron Schedule `0 */6 * * *`; el proceso corre y termina. Hecho cuando: `tick_log` muestra cuatro entradas diarias sin intervención durante 48 horas.
+Paso 11. Cron en Railway. Segundo servicio del mismo repositorio, comando `node apps/api/dist/tick/main.js`, Cron Schedule `0 */6 * * *`; el proceso corre y termina. Hecho cuando: `tick_log` muestra cuatro entradas diarias sin intervención durante 48 horas.
+
+> Nota operativa (Paso 11): como `railway.json` fija el arranque del servicio web para todo el repositorio, el servicio `tick` usa su propio archivo de configuración `railway.tick.json` (start command `node apps/api/dist/tick/main.js`, cron `0 */6 * * *`, restart NEVER). En Railway se apunta el servicio `tick` a ese archivo con el ajuste "Railway Config File" (Config as code). El servicio `tick` necesita `DATABASE_URL` (referencia al Postgres).
 
 Paso 12. Utilidades de tiempo. En `packages/shared`: conversión día de juego a fecha legible, día de temporada, cuenta regresiva al próximo tick en la cabecera de la web. Hecho cuando: la UI muestra "Día 37, temporada 1" y el contador al próximo tick.
 
