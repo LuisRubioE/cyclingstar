@@ -6,6 +6,9 @@ pnpm-lock.yaml
 # Migraciones generadas por drizzle-kit: no reformatear.
 packages/db/drizzle/**
 
+# Datasets de nombres (datos, no código).
+packages/db/data/**
+
 # Documentos rectores: se editan a mano, Prettier no debe reformatearlos.
 SPEC.md
 MVP.md

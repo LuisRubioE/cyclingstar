@@ -1,0 +1,6 @@
+{
+  "country": "AU",
+  "male": ["Jack", "Oliver", "William", "Noah", "Thomas", "James", "Lucas", "Henry", "Ethan", "Charlie", "Liam", "Cooper", "Max", "Alexander", "Mason", "Samuel", "Benjamin", "Harrison", "Hunter", "Jacob", "Lachlan", "Riley", "Daniel", "Joshua", "Isaac", "Xavier", "Leo", "George", "Aiden", "Angus"],
+  "female": ["Charlotte", "Olivia", "Amelia", "Isla", "Mia", "Ava", "Grace", "Chloe", "Ella", "Sophie", "Emily", "Zoe", "Ruby", "Lily", "Sophia", "Willow", "Isabella", "Matilda", "Evie", "Harper", "Scarlett", "Hannah", "Georgia", "Sienna", "Emma"],
+  "surnames": ["Smith", "Jones", "Williams", "Brown", "Wilson", "Taylor", "Johnson", "White", "Martin", "Anderson", "Thompson", "Nguyen", "Ryan", "Lee", "Walker", "Harris", "King", "Robinson", "Watson", "Kelly", "Roberts", "Thomas", "Evans", "Campbell", "Young", "Wright", "Green", "Hall", "Baker", "Edwards", "Clark", "Scott", "Hill", "Mitchell", "Moore", "Turner", "Cooper", "Murphy", "Davis", "Bell", "Ward", "Morgan", "Cook", "Bailey", "Phillips"]
+}

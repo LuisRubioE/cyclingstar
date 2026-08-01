@@ -5,6 +5,7 @@ import { z } from 'zod'
  * El cliente de la web valida contra este esquema; la API tipa su respuesta con él.
  */
 
+export * from './rng.js'
 export * from './time.js'
 
 /** Respuesta de GET /health (SPEC 12, Pasos 7-12). */

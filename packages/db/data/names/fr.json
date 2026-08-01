@@ -1,0 +1,6 @@
+{
+  "country": "FR",
+  "male": ["Jean", "Pierre", "Michel", "Alain", "Philippe", "Nicolas", "Christophe", "Daniel", "Bernard", "Éric", "Patrick", "Julien", "Thomas", "David", "Sébastien", "Laurent", "Frédéric", "Stéphane", "Olivier", "Pascal", "Maxime", "Antoine", "Alexandre", "Vincent", "Christian", "Guillaume", "Romain", "François", "Gérard", "Jérôme"],
+  "female": ["Marie", "Nathalie", "Isabelle", "Sylvie", "Catherine", "Françoise", "Martine", "Christine", "Sophie", "Céline", "Sandrine", "Valérie", "Nicole", "Julie", "Aurélie", "Stéphanie", "Camille", "Émilie", "Chloé", "Léa", "Anne", "Manon", "Laurence", "Monique", "Virginie"],
+  "surnames": ["Martin", "Bernard", "Thomas", "Petit", "Robert", "Richard", "Durand", "Dubois", "Moreau", "Laurent", "Simon", "Michel", "Lefebvre", "Leroy", "Roux", "David", "Bertrand", "Morel", "Fournier", "Girard", "Bonnet", "Dupont", "Lambert", "Fontaine", "Rousseau", "Vincent", "Muller", "Lefevre", "Faure", "André", "Mercier", "Blanc", "Guérin", "Boyer", "Garnier", "Chevalier", "François", "Legrand", "Gauthier", "Garcia", "Perrin", "Robin", "Clément", "Morin", "Nicolas"]
+}
