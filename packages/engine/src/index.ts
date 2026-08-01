@@ -12,8 +12,8 @@ export { stageRng, stageSeed, type StageSeedParts } from './stage/rng.js'
 export { blockProbability, rollHazard } from './stage/hazard.js'
 export { simulateStage } from './stage/simulate.js'
 export { EventLog } from './stage/events.js'
-export { analyzeFlat, type FlatStats } from './sim/analyze.js'
-export { campaignSeeds, flatScenario, type Scenario } from './sim/scenarios.js'
+export { analyzeFlat, analyzeMountain, type FlatStats, type MountainStats } from './sim/analyze.js'
+export { campaignSeeds, flatScenario, queenScenario, type Scenario } from './sim/scenarios.js'
 export {
   advanceGroup,
   createGroup,

@@ -234,19 +234,31 @@ export const STAGE = {
   bridgeGapMaxSeconds: 150,
   lambdaClimbAttack: 0.1,
   lambdaDropBase: 0.9,
+  // Descuelgue: λ = lambdaDropBase · max(0, P75 - perfil) / denom. El denominador traduce el
+  // déficit en puntos de atributo a una intensidad humana; se calibra al Montecarlo de montaña.
+  dropDeficitDenom: 12,
+  dropDeficitTolerance: 2,
+  // Un descolgado rueda solo a su tope (contrarreloj improvisada), perdiendo tiempo bloque a bloque.
+  shedCommit: 0.7,
   // 6.10 — Fuga: consolida si el compromiso del pelotón < 0.25 durante 2 km.
   breakawayCommitThreshold: 0.25,
   breakawayConsolidateKm: 2,
   // La fuga rueda a tempo cooperando (conserva), con cooperación variable por etapa: unas se
   // entienden y aguantan, otras se miran y las cazan. Esa varianza produce el 2-8% de fugas.
   breakawayCommitMin: 0.5,
-  breakawayCommitMax: 0.67,
+  breakawayCommitMax: 0.65,
   // Control del boquete (leash): los sprinters dejan a la fuga una ventaja máxima que se cierra
   // linealmente hasta el punto de captura (finish - 12 km). El pelotón regula en lazo cerrado:
   // tempo de mantenimiento + ganancia proporcional al exceso sobre el boquete deseado.
   chaseMaxLeashSeconds: 150,
   chaseHoldCommit: 0.62,
   chaseGain: 0.006,
+  // Control de la general en etapas sin llegada masiva: el pelotón limita el boquete a este
+  // tempo (no captura); la subida final decide. Calibra el % de fugas que ganan en montaña.
+  gcControlLeash: 265,
+  // Compromiso de los favoritos en la subida decisiva: tempo duro que descuelga poco a poco
+  // (no máximo, o el grupo llegaría junto). Calibra la caza de la fuga y el estiramiento.
+  climbRaceCommit: 0.85,
   breakawayScoreTac: 0.4,
   breakawayScoreLla: 0.3,
   breakawayScoreRng: 0.3,
@@ -260,6 +272,9 @@ export const STAGE = {
   // 6.9 — El pelotón como controlador (decisiones cada 10 bloques, con histéresis).
   // El ritmo del pelotón lo marca su cuarto delantero de punteros, no todo el bloque (6.4).
   pelotonPaceFraction: 0.25,
+  // En subida el ritmo lo imponen los más fuertes (atacan): fracción menor -> más selección.
+  // Calibra el estiramiento del grupo de cabeza en montaña (brechas 1-4 min).
+  climbPaceFraction: 0.12,
   decisionEveryBlocks: 10,
   chaseFeasibleSecondsPerKm: 8,
   chaseCatchTargetKm: 12,

@@ -1,10 +1,10 @@
 /**
- * Simulador de consola: `pnpm sim [runs]` (SPEC 6.17, Paso 25). Corre una campaña Montecarlo de
- * la etapa llana y compara los estadísticos con los rangos objetivo del balance. Solo lectura:
- * no toca base de datos ni red.
+ * Simulador de consola: `pnpm sim [runs]` (SPEC 6.17, Pasos 25-26). Corre las campañas Montecarlo
+ * de la etapa llana y de la etapa reina y compara los estadísticos con los rangos objetivo del
+ * balance. Solo lectura: no toca base de datos ni red.
  */
-import { analyzeFlat } from './analyze.js'
-import { campaignSeeds, flatScenario } from './scenarios.js'
+import { analyzeFlat, analyzeMountain } from './analyze.js'
+import { campaignSeeds, flatScenario, queenScenario } from './scenarios.js'
 
 interface Target {
   label: string
@@ -20,36 +20,62 @@ function line(t: Target): string {
   return `  ${mark} ${t.label.padEnd(34)} ${t.value.toFixed(1)}${t.unit}  (objetivo ${t.min}-${t.max}${t.unit})`
 }
 
+function report(name: string, runs: number, targets: Target[], extra?: string): boolean {
+  console.log(`\nEscenario "${name}" — ${runs} simulaciones\n`)
+  for (const t of targets) console.log(line(t))
+  if (extra) console.log(`\n  ${extra}`)
+  return targets.every((t) => t.value >= t.min && t.value <= t.max)
+}
+
 function main(): void {
   const runs = Number(process.argv[2] ?? 500)
-  const scenario = flatScenario()
-  const seeds = campaignSeeds(scenario.name, runs)
-  const stats = analyzeFlat(scenario, seeds)
 
-  const targets: Target[] = [
-    { label: 'Gana la fuga', value: stats.breakawayWinPct, min: 2, max: 8, unit: '%' },
+  const flat = flatScenario()
+  const flatStats = analyzeFlat(flat, campaignSeeds(flat.name, runs))
+  const flatOk = report(
+    'llana-180',
+    flatStats.runs,
+    [
+      { label: 'Gana la fuga', value: flatStats.breakawayWinPct, min: 2, max: 8, unit: '%' },
+      {
+        label: 'Gana el mejor sprinter',
+        value: flatStats.bestSprinterWinPct,
+        min: 30,
+        max: 45,
+        unit: '%',
+      },
+      {
+        label: 'Captura mediana (km a meta)',
+        value: flatStats.medianCatchKmToFinish,
+        min: 8,
+        max: 25,
+        unit: '',
+      },
+    ],
+    `Capturas: ${flatStats.capturePct.toFixed(0)}% de las etapas`,
+  )
+
+  const queen = queenScenario()
+  const mtnStats = analyzeMountain(queen, campaignSeeds(queen.name, runs))
+  const mtnOk = report('reina-150', mtnStats.runs, [
     {
-      label: 'Gana el mejor sprinter',
-      value: stats.bestSprinterWinPct,
-      min: 30,
+      label: 'Gana la fuga (montaña)',
+      value: mtnStats.breakawayWinPct,
+      min: 25,
       max: 45,
       unit: '%',
     },
     {
-      label: 'Captura mediana (km a meta)',
-      value: stats.medianCatchKmToFinish,
-      min: 8,
-      max: 25,
+      label: 'Brecha 1º-10º (s)',
+      value: mtnStats.medianTop10GapSeconds,
+      min: 60,
+      max: 240,
       unit: '',
     },
-  ]
+  ])
 
-  console.log(`\nEscenario "${scenario.name}" — ${stats.runs} simulaciones\n`)
-  for (const t of targets) console.log(line(t))
-  console.log(`\n  Capturas: ${stats.capturePct.toFixed(0)}% de las etapas\n`)
-
-  const allOk = targets.every((t) => t.value >= t.min && t.value <= t.max)
-  process.exit(allOk ? 0 : 1)
+  console.log('')
+  process.exit(flatOk && mtnOk ? 0 : 1)
 }
 
 main()

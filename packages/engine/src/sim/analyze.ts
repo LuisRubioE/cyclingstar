@@ -50,3 +50,35 @@ export function analyzeFlat(scenario: Scenario, seeds: string[]): FlatStats {
     medianCatchKmToFinish: median(catchKmToFinish),
   }
 }
+
+export interface MountainStats {
+  runs: number
+  /** % de etapas que gana la fuga en montaña (objetivo 25-45%). */
+  breakawayWinPct: number
+  /** Brecha mediana entre el 1º y el 10º del día, en segundos (objetivo 60-240). */
+  medianTop10GapSeconds: number
+}
+
+/** Corre la etapa reina y agrega los invariantes de montaña (SPEC 6.17). */
+export function analyzeMountain(scenario: Scenario, seeds: string[]): MountainStats {
+  let breakawayWins = 0
+  const top10Gaps: number[] = []
+
+  for (const seed of seeds) {
+    const out = simulateStage(scenario.input, seed)
+    const formed = out.events.find((e) => e.tipo === 'fuga_formada')
+    const caught = out.events.find((e) => e.tipo === 'fuga_cazada')
+    const winner = out.results[0]?.riderId
+    if (winner && formed?.protagonistas.includes(winner) && !caught) breakawayWins += 1
+    if (out.results.length >= 10) {
+      top10Gaps.push(out.results[9]!.tiempoS - out.results[0]!.tiempoS)
+    }
+  }
+
+  const runs = seeds.length
+  return {
+    runs,
+    breakawayWinPct: (100 * breakawayWins) / runs,
+    medianTop10GapSeconds: median(top10Gaps),
+  }
+}

@@ -105,7 +105,13 @@ export function sampleProfile(profile: StageProfile, dx: number = STAGE.dx): Blo
   for (const banner of profile.banners ?? []) {
     const idx = Math.min(n - 1, Math.max(0, Math.floor(banner.km / dx)))
     const block = blocks[idx]
-    if (block) block.banner = banner.tipo
+    if (!block) continue
+    block.banner = banner.tipo
+    // La cima puntúa según la categoría derivada de la dureza del puerto que corona (SPEC 6.2).
+    if (banner.tipo === 'cima') {
+      const { segment } = locate(banner.km)
+      block.climbCategory = segment.tramos ? deriveClimbCategory(segment.tramos) : null
+    }
   }
 
   return blocks
