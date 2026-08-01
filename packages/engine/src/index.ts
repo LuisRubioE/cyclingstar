@@ -10,6 +10,8 @@ export { BANISTER, CREATION, ENGINE_VERSION, HEALTH, MORALE, STAGE, TRAINING } f
 export { deriveClimbCategory, isWall, sampleProfile, stageLengthKm } from './stage/sample.js'
 export { stageRng, stageSeed, type StageSeedParts } from './stage/rng.js'
 export { blockProbability, rollHazard } from './stage/hazard.js'
+export { simulateStage } from './stage/simulate.js'
+export { EventLog } from './stage/events.js'
 export {
   advanceGroup,
   createGroup,
