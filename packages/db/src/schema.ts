@@ -1,10 +1,16 @@
 import { sql } from 'drizzle-orm'
 import {
   boolean,
+  char,
   check,
   customType,
+  index,
   integer,
+  jsonb,
+  pgEnum,
   pgTable,
+  primaryKey,
+  real,
   text,
   timestamp,
   uuid,
@@ -127,3 +133,100 @@ export const tickLog = pgTable('tick_log', {
   ok: boolean('ok').notNull(),
   notes: text('notes'),
 })
+
+// ---- El ciclista (SPEC 3 y 11), Paso 15 ----
+
+export const archetypeEnum = pgEnum('rider_archetype', [
+  'escalada',
+  'velocidad',
+  'clasicas',
+  'crono',
+  'fondo',
+])
+export const genderEnum = pgEnum('gender', ['M', 'F'])
+export const healthEnum = pgEnum('rider_health', ['sano', 'molestias', 'enfermo', 'lesionado'])
+export const attributeEnum = pgEnum('rider_attribute', [
+  'RES',
+  'REC',
+  'LLA',
+  'MON',
+  'COL',
+  'CRI',
+  'SPR',
+  'DES',
+  'PAV',
+  'TAC',
+])
+
+/** El ciclista (SPEC 11). `team_id` queda sin FK hasta que exista `teams`. */
+export const riders = pgTable(
+  'riders',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    worldId: uuid('world_id')
+      .notNull()
+      .references(() => worlds.id),
+    userId: uuid('user_id').references(() => users.id), // null = NPC
+    teamId: uuid('team_id'),
+    name: text('name').notNull(),
+    country: char('country', { length: 2 }).notNull(),
+    gender: genderEnum('gender').notNull(),
+    birthSeason: integer('birth_season').notNull(),
+    archetype: archetypeEnum('archetype').notNull(),
+    retiredAt: integer('retired_at'),
+    money: integer('money').notNull().default(0),
+    fame: real('fame').notNull().default(0),
+    morale: real('morale').notNull().default(50),
+    teamTrust: real('team_trust').notNull().default(50),
+    ctl: real('ctl').notNull().default(0),
+    atl: real('atl').notNull().default(0),
+    health: healthEnum('health').notNull().default('sano'),
+    healthUntilDay: integer('health_until_day'),
+    faceSeed: text('face_seed').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('riders_user_idx').on(t.userId),
+    index('riders_team_idx').on(t.teamId),
+    index('riders_world_fame_idx').on(t.worldId, t.fame),
+  ],
+)
+
+/** Atributos visibles del corredor (escala interna [1,99]); PK compuesta. */
+export const riderAttrs = pgTable(
+  'rider_attrs',
+  {
+    riderId: uuid('rider_id')
+      .notNull()
+      .references(() => riders.id, { onDelete: 'cascade' }),
+    attr: attributeEnum('attr').notNull(),
+    value: real('value').notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.riderId, t.attr] })],
+)
+
+/** Atributos ocultos: techos (genoma), talento, fragilidad, edades (SPEC 3.4). */
+export const riderHidden = pgTable('rider_hidden', {
+  riderId: uuid('rider_id')
+    .primaryKey()
+    .references(() => riders.id, { onDelete: 'cascade' }),
+  talent: real('talent').notNull(),
+  ceilings: jsonb('ceilings').notNull().$type<Record<string, number>>(),
+  fragility: real('fragility').notNull(),
+  peakAge: integer('peak_age').notNull(),
+  declineAge: integer('decline_age').notNull(),
+})
+
+/** Registro de variaciones de atributos: flechas de tendencia; se purga a 60 días (SPEC 11). */
+export const riderAttrLog = pgTable(
+  'rider_attr_log',
+  {
+    riderId: uuid('rider_id')
+      .notNull()
+      .references(() => riders.id, { onDelete: 'cascade' }),
+    gameDay: integer('game_day').notNull(),
+    attr: attributeEnum('attr').notNull(),
+    delta: real('delta').notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.riderId, t.gameDay, t.attr] })],
+)

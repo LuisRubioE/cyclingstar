@@ -13,5 +13,11 @@ export {
   regenerateName,
   type CountryNames,
   type GeneratedName,
-  type Gender,
 } from './names.js'
+export {
+  createRider,
+  getCurrentWorld,
+  getRiderForUser,
+  type CreateRiderInput,
+  type RiderHiddenInput,
+} from './riders.js'
