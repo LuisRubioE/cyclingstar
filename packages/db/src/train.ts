@@ -40,28 +40,59 @@ export async function trainWorldDay(
   const currentSeason = seasonPosition(gameDay).season
   const riderRows = await tx.select().from(riders).where(eq(riders.worldId, worldId))
 
+  // Lecturas en lote para no hacer O(corredores) consultas por día (Paso 41, rendimiento del tick):
+  // atributos, genoma y órdenes del día del mundo entero en tres consultas.
+  const attrRows = await tx
+    .select({ riderId: riderAttrs.riderId, attr: riderAttrs.attr, value: riderAttrs.value })
+    .from(riderAttrs)
+    .innerJoin(riders, eq(riders.id, riderAttrs.riderId))
+    .where(eq(riders.worldId, worldId))
+  const attrsByRider = new Map<string, Record<Attribute, number>>()
+  for (const row of attrRows) {
+    let rec = attrsByRider.get(row.riderId)
+    if (!rec) {
+      rec = {} as Record<Attribute, number>
+      for (const a of ATTRIBUTES) rec[a] = 0
+      attrsByRider.set(row.riderId, rec)
+    }
+    rec[row.attr] = row.value
+  }
+
+  const hiddenRows = await tx
+    .select({
+      riderId: riderHidden.riderId,
+      talent: riderHidden.talent,
+      ceilings: riderHidden.ceilings,
+      fragility: riderHidden.fragility,
+      peakAge: riderHidden.peakAge,
+      declineAge: riderHidden.declineAge,
+    })
+    .from(riderHidden)
+    .innerJoin(riders, eq(riders.id, riderHidden.riderId))
+    .where(eq(riders.worldId, worldId))
+  const hiddenByRider = new Map(hiddenRows.map((h) => [h.riderId, h]))
+
+  const orderRows = await tx
+    .select()
+    .from(trainingOrders)
+    .where(eq(trainingOrders.gameDay, gameDay))
+  const ordersByRider = new Map(orderRows.map((o) => [o.riderId, o]))
+
+  // Los logs se acumulan y se insertan en lote al final.
+  const dailyLogValues: (typeof riderDailyLog.$inferInsert)[] = []
+  const attrLogValues: (typeof riderAttrLog.$inferInsert)[] = []
+
   for (const rider of riderRows) {
     // Quien ha corrido hoy no entrena: la carrera ya fue su carga (Paso 30).
     if (skip.has(rider.id)) continue
-    const hiddenRows = await tx
-      .select()
-      .from(riderHidden)
-      .where(eq(riderHidden.riderId, rider.id))
-      .limit(1)
-    const hidden = hiddenRows[0]
+    const hidden = hiddenByRider.get(rider.id)
     if (!hidden) continue
 
-    const attrRows = await tx.select().from(riderAttrs).where(eq(riderAttrs.riderId, rider.id))
-    const attributes = {} as Record<Attribute, number>
-    for (const attr of ATTRIBUTES) attributes[attr] = 0
-    for (const row of attrRows) attributes[row.attr] = row.value
+    const attributes =
+      attrsByRider.get(rider.id) ??
+      (Object.fromEntries(ATTRIBUTES.map((a) => [a, 0])) as Record<Attribute, number>)
 
-    const orderRows = await tx
-      .select()
-      .from(trainingOrders)
-      .where(and(eq(trainingOrders.riderId, rider.id), eq(trainingOrders.gameDay, gameDay)))
-      .limit(1)
-    const order = orderRows[0]
+    const order = ordersByRider.get(rider.id)
     const choice = order
       ? { session: order.session, intensity: order.intensity }
       : defaultCoachPlan(gameDay)
@@ -108,24 +139,37 @@ export async function trainWorldDay(
           .update(riderAttrs)
           .set({ value: after })
           .where(and(eq(riderAttrs.riderId, rider.id), eq(riderAttrs.attr, attr)))
-        await tx
-          .insert(riderAttrLog)
-          .values({ riderId: rider.id, gameDay, attr, delta: after - before })
-          .onConflictDoNothing()
+        attrLogValues.push({ riderId: rider.id, gameDay, attr, delta: after - before })
       }
     }
 
-    await tx
-      .insert(riderDailyLog)
-      .values({
-        riderId: rider.id,
-        gameDay,
-        tss: result.log.tss,
-        ctl: result.log.ctl,
-        atl: result.log.atl,
-        tsb: result.log.tsb,
-        activity: result.log.activity,
-      })
-      .onConflictDoNothing()
+    dailyLogValues.push({
+      riderId: rider.id,
+      gameDay,
+      tss: result.log.tss,
+      ctl: result.log.ctl,
+      atl: result.log.atl,
+      tsb: result.log.tsb,
+      activity: result.log.activity,
+    })
+  }
+
+  // Inserción en lote de los logs (en trozos para no exceder el límite de parámetros de Postgres).
+  await insertChunked(dailyLogValues, 1000, (chunk) =>
+    tx.insert(riderDailyLog).values(chunk).onConflictDoNothing(),
+  )
+  await insertChunked(attrLogValues, 2000, (chunk) =>
+    tx.insert(riderAttrLog).values(chunk).onConflictDoNothing(),
+  )
+}
+
+/** Inserta un array en lotes para no exceder el límite de parámetros de Postgres. */
+async function insertChunked<T>(
+  rows: T[],
+  size: number,
+  insert: (chunk: T[]) => Promise<unknown>,
+): Promise<void> {
+  for (let i = 0; i < rows.length; i += size) {
+    await insert(rows.slice(i, i + size))
   }
 }
