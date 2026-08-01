@@ -5,18 +5,29 @@ import { fileURLToPath } from 'node:url'
 import fastifyStatic from '@fastify/static'
 import {
   type Database,
+  type StageOrderRow,
   type TickSummary,
   type TrainingOrderRow,
+  addToRoster,
   createRider,
   gameState,
   generateName,
   getCurrentWorld,
   getDailyLog,
   getRiderForUser,
+  getStageOrders,
   getTrainingOrders,
+  setStageOrders,
   setTrainingOrders,
 } from '@cyclingstar/db'
-import { ENGINE_VERSION, formStars, freshnessBar, generateRiderGenome } from '@cyclingstar/engine'
+import {
+  ENGINE_VERSION,
+  TEST_TOUR,
+  formStars,
+  freshnessBar,
+  generateRiderGenome,
+  renderAltimetrySvg,
+} from '@cyclingstar/engine'
 import { type Health, isKnownCountry, seasonPosition } from '@cyclingstar/shared'
 import Fastify, {
   type FastifyError,
@@ -320,6 +331,65 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
           order.gameDay <= world.currentDay + TRAINING_HORIZON_DAYS,
       )
       await setTrainingOrders(db, rider.id, valid)
+      return { ok: true, saved: valid.length }
+    })
+
+    // --- Convocatorias y órdenes de etapa (Paso 29) ------------------------------------
+    const TEST_TOUR_ID = 'test-tour'
+    const stageOrderSchema = z.object({
+      stageDay: z.number().int().positive(),
+      role: z.enum([
+        'lider',
+        'sprinter',
+        'lanzador',
+        'gregario',
+        'cazaetapas',
+        'marcador',
+        'libre',
+      ]),
+      targetRiderId: z.string().uuid().nullable(),
+      mentality: z.enum(['reservon', 'oportunista', 'combativo', 'supercombativo']),
+      effort: z.enum(['ahorrar', 'normal', 'a_tope']),
+      triggerKm: z.number().int().nonnegative().nullable(),
+      contestSprints: z.boolean(),
+      contestClimbs: z.boolean(),
+    })
+    const putStageOrdersSchema = z.object({
+      orders: z.array(stageOrderSchema).max(TEST_TOUR.length),
+    })
+
+    // La vuelta de prueba: sus etapas con altimetría y las órdenes actuales del corredor.
+    app.get('/api/races/test-tour', async (request, reply) => {
+      const userId = await currentUserId(request)
+      if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
+      const rider = await getRiderForUser(db, userId)
+      const stages = TEST_TOUR.map((stage) => ({
+        day: stage.day,
+        name: stage.name,
+        kind: stage.kind,
+        timeTrial: stage.timeTrial ?? false,
+        km: Math.round(stage.profile.segments.reduce((sum, s) => sum + s.km, 0)),
+        altimetry: renderAltimetrySvg(stage.profile),
+      }))
+      if (!rider) return { stages, orders: [], roster: [] }
+      // El corredor se convoca a la vuelta de prueba al visitarla (roster mínimo hasta los NPC).
+      await addToRoster(db, TEST_TOUR_ID, rider.id)
+      const orders = await getStageOrders(db, TEST_TOUR_ID, rider.id)
+      const roster = [{ id: rider.id, name: rider.name }]
+      return { stages, orders, roster }
+    })
+
+    app.put('/api/races/test-tour/orders', async (request, reply) => {
+      const userId = await currentUserId(request)
+      if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
+      const parsed = putStageOrdersSchema.safeParse(request.body)
+      if (!parsed.success) return reply.status(400).send({ ok: false, error: 'validacion' })
+      const rider = await getRiderForUser(db, userId)
+      if (!rider) return reply.status(409).send({ ok: false, error: 'sin_ciclista' })
+      const validDays = new Set(TEST_TOUR.map((s) => s.day))
+      const valid: StageOrderRow[] = parsed.data.orders.filter((o) => validDays.has(o.stageDay))
+      await addToRoster(db, TEST_TOUR_ID, rider.id)
+      await setStageOrders(db, TEST_TOUR_ID, rider.id, valid)
       return { ok: true, saved: valid.length }
     })
   }
