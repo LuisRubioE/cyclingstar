@@ -1,10 +1,19 @@
+import { randomUUID } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import fastifyStatic from '@fastify/static'
-import { type Database, type TickSummary, gameState } from '@cyclingstar/db'
-import { ENGINE_VERSION } from '@cyclingstar/engine'
-import type { Health } from '@cyclingstar/shared'
+import {
+  type Database,
+  type TickSummary,
+  createRider,
+  gameState,
+  generateName,
+  getCurrentWorld,
+  getRiderForUser,
+} from '@cyclingstar/db'
+import { ENGINE_VERSION, generateRiderGenome } from '@cyclingstar/engine'
+import { type Health, isKnownCountry, seasonPosition } from '@cyclingstar/shared'
 import Fastify, {
   type FastifyError,
   type FastifyInstance,
@@ -13,7 +22,22 @@ import Fastify, {
   type FastifyServerOptions,
 } from 'fastify'
 import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod'
+import { z } from 'zod'
 import type { Auth } from './auth.js'
+
+/** Convierte las cabeceras de una petición Fastify en un objeto Headers estándar. */
+function toWebHeaders(request: FastifyRequest): Headers {
+  const headers = new Headers()
+  for (const [key, value] of Object.entries(request.headers)) {
+    if (key.toLowerCase() === 'content-length') continue
+    if (Array.isArray(value)) {
+      for (const v of value) headers.append(key, v)
+    } else if (value != null) {
+      headers.append(key, value)
+    }
+  }
+  return headers
+}
 
 export interface AppDeps {
   /** Base de datos (opcional en tests). Cuando está, /health lee la fecha de juego. */
@@ -108,16 +132,7 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
       url: '/api/auth/*',
       async handler(request, reply) {
         const url = new URL(request.url, `${request.protocol}://${request.host}`)
-        const headers = new Headers()
-        for (const [key, value] of Object.entries(request.headers)) {
-          if (key.toLowerCase() === 'content-length') continue
-          if (Array.isArray(value)) {
-            for (const v of value) headers.append(key, v)
-          } else if (value != null) {
-            headers.append(key, value)
-          }
-        }
-        const init: RequestInit = { method: request.method, headers }
+        const init: RequestInit = { method: request.method, headers: toWebHeaders(request) }
         const hasBody = request.method !== 'GET' && request.method !== 'HEAD'
         if (hasBody && request.body != null) {
           init.body = JSON.stringify(request.body)
@@ -137,6 +152,97 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
         const body = await response.text()
         return reply.send(body.length > 0 ? body : null)
       },
+    })
+  }
+
+  // Creación y consulta del ciclista (SPEC 3, Pasos 14-16). Requiere auth y base de datos.
+  if (deps.auth && deps.db) {
+    const auth = deps.auth
+    const db = deps.db
+
+    const genderSchema = z.enum(['M', 'F'])
+    const nameQuerySchema = z.object({
+      country: z.string().length(2),
+      gender: genderSchema,
+      seed: z.string().min(1),
+    })
+    const createRiderSchema = z.object({
+      vocation: z.enum(['escalada', 'velocidad', 'clasicas', 'crono', 'fondo']),
+      gender: genderSchema,
+      country: z.string().length(2),
+      nameSeed: z.string().min(1),
+    })
+
+    const currentUserId = async (request: FastifyRequest): Promise<string | null> => {
+      const session = await auth.api.getSession({ headers: toWebHeaders(request) })
+      return session?.user.id ?? null
+    }
+
+    // País por IP (Paso 14): tras Cloudflare, cabecera CF-IPCountry. Sin ella, null (selector).
+    app.get('/api/geo/country', (request) => {
+      const raw = request.headers['cf-ipcountry']
+      const code = typeof raw === 'string' ? raw.toUpperCase() : null
+      return { country: code && isKnownCountry(code) ? code : null }
+    })
+
+    // Generación de nombre (Paso 13/15): server-side, respeta la lista de bloqueo.
+    app.get('/api/names/generate', (request, reply) => {
+      const parsed = nameQuerySchema.safeParse(request.query)
+      if (!parsed.success) {
+        return reply.status(400).send({ ok: false, error: 'validacion' })
+      }
+      const { country, gender, seed } = parsed.data
+      if (!isKnownCountry(country)) {
+        return reply.status(400).send({ ok: false, error: 'pais_desconocido' })
+      }
+      return generateName(seed, { country: country.toLowerCase(), gender })
+    })
+
+    // El ciclista del usuario (o null si aún no ha creado uno).
+    app.get('/api/riders/me', async (request, reply) => {
+      const userId = await currentUserId(request)
+      if (!userId) {
+        return reply.status(401).send({ ok: false, error: 'no_autorizado' })
+      }
+      return { rider: await getRiderForUser(db, userId) }
+    })
+
+    // Crear el ciclista (SPEC 3.5). El genoma lo genera el servidor (no lo controla el cliente).
+    app.post('/api/riders', async (request, reply) => {
+      const userId = await currentUserId(request)
+      if (!userId) {
+        return reply.status(401).send({ ok: false, error: 'no_autorizado' })
+      }
+      const parsed = createRiderSchema.safeParse(request.body)
+      if (!parsed.success) {
+        return reply.status(400).send({ ok: false, error: 'validacion' })
+      }
+      const { vocation, gender, country, nameSeed } = parsed.data
+      if (!isKnownCountry(country)) {
+        return reply.status(400).send({ ok: false, error: 'pais_desconocido' })
+      }
+      if (await getRiderForUser(db, userId)) {
+        return reply.status(409).send({ ok: false, error: 'ya_tienes_ciclista' })
+      }
+      const world = await getCurrentWorld(db)
+      if (!world) {
+        return reply.status(409).send({ ok: false, error: 'mundo_no_inicializado' })
+      }
+      const name = generateName(nameSeed, { country: country.toLowerCase(), gender })
+      const genome = generateRiderGenome(randomUUID(), vocation)
+      const created = await createRider(db, {
+        worldId: world.worldId,
+        userId,
+        name: name.fullName,
+        country: country.toUpperCase(),
+        gender,
+        archetype: vocation,
+        birthSeason: seasonPosition(world.currentDay).season,
+        faceSeed: randomUUID(),
+        attributes: genome.attributes,
+        hidden: genome.hidden,
+      })
+      return reply.status(201).send({ ok: true, id: created.id })
     })
   }
 

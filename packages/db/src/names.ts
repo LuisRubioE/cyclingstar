@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { seededRng } from '@cyclingstar/shared'
+import { type Gender, seededRng } from '@cyclingstar/shared'
 
 /**
  * Servicio de nombres (SPEC 3.6). Genera nombre y apellido de forma determinista a partir
@@ -8,8 +8,6 @@ import { seededRng } from '@cyclingstar/shared'
  * evita colisiones con la lista de bloqueo de profesionales reales. Función regenerar
  * incluida. Node-only (lee JSON de packages/db/data); usa el RNG puro de @cyclingstar/shared.
  */
-
-export type Gender = 'M' | 'F'
 
 export interface CountryNames {
   country: string

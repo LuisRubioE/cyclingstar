@@ -122,7 +122,11 @@ importers:
         specifier: ^0.31.10
         version: 0.31.10
 
-  packages/engine: {}
+  packages/engine:
+    dependencies:
+      '@cyclingstar/shared':
+        specifier: workspace:*
+        version: link:../shared
 
   packages/shared:
     dependencies:

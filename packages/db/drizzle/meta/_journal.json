@@ -15,6 +15,13 @@
       "when": 1785507097598,
       "tag": "0001_dry_tag",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1785571898262,
+      "tag": "0002_normal_micromacro",
+      "breakpoints": true
     }
   ]
 }
