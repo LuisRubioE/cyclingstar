@@ -18,10 +18,12 @@ export {
   getRunStageDays,
   getStageResults,
   getStageSnapshot,
+  teamsClassification,
   type GcRow,
   type PointsRow,
   type StageResultRow,
   type StageSnapshotRow,
+  type TeamGcRow,
 } from './results.js'
 export {
   generateName,

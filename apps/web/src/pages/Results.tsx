@@ -4,6 +4,7 @@ import { useState } from 'react'
 import {
   type PointsEntry,
   type StageReplay,
+  type TeamGcEntry,
   advanceWorld,
   fetchResults,
   fetchStageReplay,
@@ -28,7 +29,13 @@ function TimeTable({
   rows,
   limit = 10,
 }: {
-  rows: { riderId: string; name: string; country: string; tiempoTotalS: number }[]
+  rows: {
+    riderId: string
+    name: string
+    country: string
+    teamName?: string | null
+    tiempoTotalS: number
+  }[]
   limit?: number
 }) {
   const leader = rows[0]?.tiempoTotalS ?? 0
@@ -41,9 +48,32 @@ function TimeTable({
             <td className="w-6 py-1" aria-hidden>
               {flag(r.country)}
             </td>
-            <td className="py-1 text-slate-700">{r.name}</td>
+            <td className="py-1 text-slate-700">
+              {r.name}
+              {r.teamName && <span className="ml-2 text-xs text-slate-400">{r.teamName}</span>}
+            </td>
             <td className="py-1 text-right tabular-nums text-slate-500">
               {relTime(r.tiempoTotalS, leader, i === 0)}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )
+}
+
+/** Clasificación por equipos: suma de los 3 mejores de cada equipo, relativa al primero. */
+function TeamsTable({ rows }: { rows: TeamGcEntry[] }) {
+  const leader = rows[0]?.tiempoTotalS ?? 0
+  return (
+    <table className="w-full text-sm">
+      <tbody>
+        {rows.slice(0, 10).map((r, i) => (
+          <tr key={r.teamName} className="border-b border-slate-100">
+            <td className="w-7 py-1 text-slate-400 tabular-nums">{i + 1}</td>
+            <td className="py-1 text-slate-700">{r.teamName}</td>
+            <td className="py-1 text-right tabular-nums text-slate-500">
+              {i === 0 ? formatTime(r.tiempoTotalS) : `+${formatTime(r.tiempoTotalS - leader)}`}
             </td>
           </tr>
         ))}
@@ -115,7 +145,12 @@ function StageReplayView({ day }: { day: number }) {
                     <td className="w-6 py-1" aria-hidden>
                       {flag(r.country)}
                     </td>
-                    <td className="py-1 text-slate-700">{r.name}</td>
+                    <td className="py-1 text-slate-700">
+                      {r.name}
+                      {r.teamName && (
+                        <span className="ml-2 text-xs text-slate-400">{r.teamName}</span>
+                      )}
+                    </td>
                     <td className="py-1 text-right tabular-nums text-slate-500">
                       {relTime(r.tiempoS, leader, i === 0)}
                     </td>
@@ -198,6 +233,13 @@ export function Results() {
               <PointsTable rows={data.kom} />
             </div>
           )}
+        </div>
+      )}
+
+      {data.teamsGc.length > 0 && (
+        <div className={cardClass}>
+          <h2 className={headClass}>Teams classification</h2>
+          <TeamsTable rows={data.teamsGc} />
         </div>
       )}
 
