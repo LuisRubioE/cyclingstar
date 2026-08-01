@@ -11,6 +11,13 @@ export { raceWorldDay } from './race.js'
 export { planWorld, seedWorld, type RiderPlan, type TeamPlan, type WorldPlan } from './world.js'
 export { ensureTestTourField } from './npc.js'
 export {
+  ensureHumanTeams,
+  getRacePrefs,
+  runCallups,
+  setRacePref,
+  type RacePrefRow,
+} from './callups.js'
+export {
   getGcThroughStage,
   getKomClassification,
   getPointsClassification,
