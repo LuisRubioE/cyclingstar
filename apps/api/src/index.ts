@@ -31,6 +31,14 @@ async function main(): Promise<void> {
         worldSeed: 'cyclingstar',
         engineVersion: ENGINE_VERSION,
       }),
+    onAdminAdvance: (days) =>
+      runTick(env.DATABASE_URL, {
+        now: new Date(),
+        msPerGameDay,
+        worldSeed: 'cyclingstar',
+        engineVersion: ENGINE_VERSION,
+        forceDays: days,
+      }),
     logger: { level: env.LOG_LEVEL },
   })
   await app.listen({ port: env.PORT, host: '0.0.0.0' })

@@ -78,6 +78,8 @@ export interface AppDeps {
   adminToken?: string
   /** Ejecutor del tick manual para POST /admin/tick (Paso 10). */
   onAdminTick?: () => Promise<TickSummary>
+  /** Avance forzado de N días de juego para pruebas: POST /admin/advance (Paso 32). */
+  onAdminAdvance?: (days: number) => Promise<TickSummary>
 }
 
 /** Carpeta de la web compilada (apps/web/dist). Vacía de index.html hasta el Paso 8. */
@@ -141,6 +143,22 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
         return reply.status(401).send({ ok: false, error: 'no_autorizado' })
       }
       const summary = await onAdminTick()
+      return reply.send({ ok: true, ...summary })
+    })
+  }
+
+  // Avance forzado de días para pruebas (Paso 32): POST /admin/advance?days=N. Ignora el tiempo
+  // real y procesa N días de juego (carreras + entrenamiento). Protegido por ADMIN_TOKEN.
+  if (deps.onAdminAdvance) {
+    const onAdminAdvance = deps.onAdminAdvance
+    const adminToken = deps.adminToken
+    app.post<{ Querystring: { days?: string } }>('/admin/advance', async (request, reply) => {
+      const provided = request.headers['x-admin-token']
+      if (!adminToken || provided !== adminToken) {
+        return reply.status(401).send({ ok: false, error: 'no_autorizado' })
+      }
+      const days = Math.min(30, Math.max(1, Number(request.query.days ?? 1) || 1))
+      const summary = await onAdminAdvance(days)
       return reply.send({ ok: true, ...summary })
     })
   }
