@@ -35,11 +35,14 @@ export async function trainWorldDay(
   worldId: string,
   gameDay: number,
   worldSeed: string,
+  skip: Set<string> = new Set(),
 ): Promise<void> {
   const currentSeason = seasonPosition(gameDay).season
   const riderRows = await tx.select().from(riders).where(eq(riders.worldId, worldId))
 
   for (const rider of riderRows) {
+    // Quien ha corrido hoy no entrena: la carrera ya fue su carga (Paso 30).
+    if (skip.has(rider.id)) continue
     const hiddenRows = await tx
       .select()
       .from(riderHidden)

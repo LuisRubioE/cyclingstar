@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
+import { raceWorldDay } from './race.js'
 import { gameState, tickLog, worlds } from './schema.js'
 import { trainWorldDay } from './train.js'
 
@@ -101,9 +102,10 @@ export async function runTick(databaseUrl: string, opts: RunTickOptions): Promis
       let daysProcessed = 0
       while (day < target) {
         const next = day + 1
-        // Una transacción por día de juego (SPEC 2, 11): entrenamientos y avance de fecha.
+        // Una transacción por día de juego (SPEC 2, 11): carreras, entrenamientos y avance de fecha.
         await db.transaction(async (tx) => {
-          await trainWorldDay(tx, genesis.worldId, next, opts.worldSeed)
+          const raced = await raceWorldDay(tx, genesis.worldId, next, opts.worldSeed)
+          await trainWorldDay(tx, genesis.worldId, next, opts.worldSeed, raced)
           await tx
             .update(gameState)
             .set({ currentDay: next, lastProcessedDay: next })

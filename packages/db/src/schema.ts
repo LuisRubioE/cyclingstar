@@ -313,6 +313,52 @@ export const stageOrders = pgTable(
   (t) => [primaryKey({ columns: [t.riderId, t.raceId, t.stageDay] })],
 )
 
+/** Resultados de una etapa ya corrida por el motor (SPEC 6.15, Paso 30). */
+export const stageResults = pgTable(
+  'stage_results',
+  {
+    raceId: text('race_id').notNull(),
+    stageDay: integer('stage_day').notNull(),
+    riderId: uuid('rider_id')
+      .notNull()
+      .references(() => riders.id, { onDelete: 'cascade' }),
+    puesto: integer('puesto').notNull(),
+    tiempoS: integer('tiempo_s').notNull(),
+    bonificacionS: integer('bonificacion_s').notNull().default(0),
+    puntosVolante: integer('puntos_volante').notNull().default(0),
+    puntosMontana: integer('puntos_montana').notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.raceId, t.stageDay, t.riderId] })],
+)
+
+/** Clasificación general de una carrera, acumulada etapa a etapa (SPEC 6.15, Paso 30). */
+export const raceGc = pgTable(
+  'race_gc',
+  {
+    raceId: text('race_id').notNull(),
+    riderId: uuid('rider_id')
+      .notNull()
+      .references(() => riders.id, { onDelete: 'cascade' }),
+    tiempoTotalS: integer('tiempo_total_s').notNull().default(0),
+    puntosVolante: integer('puntos_volante').notNull().default(0),
+    puntosMontana: integer('puntos_montana').notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.raceId, t.riderId] })],
+)
+
+/** Snapshot de entrada de una etapa, para regenerar el replay bajo demanda (SPEC 6.1, Paso 30). */
+export const stageSnapshots = pgTable(
+  'stage_snapshots',
+  {
+    raceId: text('race_id').notNull(),
+    stageDay: integer('stage_day').notNull(),
+    seed: text('seed').notNull(),
+    engineVersion: integer('engine_version').notNull(),
+    input: jsonb('input').notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.raceId, t.stageDay] })],
+)
+
 /** Registro diario de carga y forma para la gráfica y la auditoría (SPEC 4, 11). */
 export const riderDailyLog = pgTable(
   'rider_daily_log',

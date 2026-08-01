@@ -36,6 +36,13 @@
       "when": 1785592360433,
       "tag": "0004_groovy_the_fallen",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1785592870538,
+      "tag": "0005_smart_spot",
+      "breakpoints": true
     }
   ]
 }
