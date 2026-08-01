@@ -9,6 +9,17 @@
 export { BANISTER, CREATION, ENGINE_VERSION, HEALTH, MORALE, STAGE, TRAINING } from './constants.js'
 export { deriveClimbCategory, isWall, sampleProfile, stageLengthKm } from './stage/sample.js'
 export { stageRng, stageSeed, type StageSeedParts } from './stage/rng.js'
+export { blockProbability, rollHazard } from './stage/hazard.js'
+export {
+  advanceGroup,
+  createGroup,
+  gapSeconds,
+  isCapture,
+  mergeGroups,
+  percentile75,
+  type Group,
+  type GroupInit,
+} from './stage/group.js'
 export {
   accLimit,
   blockCost,
