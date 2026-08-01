@@ -390,6 +390,32 @@ export const stageSnapshots = pgTable(
   (t) => [primaryKey({ columns: [t.raceId, t.stageDay] })],
 )
 
+export const txnKindEnum = pgEnum('txn_kind', [
+  'salario',
+  'premio',
+  'staff',
+  'patrocinador',
+  'otro',
+])
+
+/** Libro de transacciones del corredor (SPEC 9, Paso 38). El saldo es la suma de sus entradas. */
+export const transactions = pgTable(
+  'transactions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    riderId: uuid('rider_id')
+      .notNull()
+      .references(() => riders.id, { onDelete: 'cascade' }),
+    gameDay: integer('game_day').notNull(),
+    kind: txnKindEnum('kind').notNull(),
+    /** Cantidad con signo: positiva ingreso, negativa gasto. */
+    amount: integer('amount').notNull(),
+    note: text('note').notNull().default(''),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('transactions_rider_idx').on(t.riderId, t.gameDay)],
+)
+
 export const contractRoleEnum = pgEnum('contract_role', ['lider', 'colider', 'gregario', 'libre'])
 export const offerStatusEnum = pgEnum('offer_status', [
   'pendiente',

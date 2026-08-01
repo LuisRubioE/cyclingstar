@@ -4,6 +4,7 @@ import { ProtectedRoute } from './components/ProtectedRoute'
 import { Account } from './pages/Account'
 import { Calendar } from './pages/Calendar'
 import { CreateRider } from './pages/CreateRider'
+import { Finances } from './pages/Finances'
 import { Home } from './pages/Home'
 import { Login } from './pages/Login'
 import { Market } from './pages/Market'
@@ -71,6 +72,14 @@ export function App() {
             element={
               <ProtectedRoute>
                 <Market />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/finances"
+            element={
+              <ProtectedRoute>
+                <Finances />
               </ProtectedRoute>
             }
           />

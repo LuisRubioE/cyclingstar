@@ -11,8 +11,9 @@ import {
   stageTss,
 } from '@cyclingstar/engine'
 import { ATTRIBUTES, type Attribute } from '@cyclingstar/shared'
-import { and, eq } from 'drizzle-orm'
+import { and, asc, eq } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
+import { awardRacePrizes } from './economy.js'
 import { ensureTestTourField } from './npc.js'
 import {
   raceGc,
@@ -254,6 +255,29 @@ export async function raceWorldDay(
         .values({ riderId: result.riderId, gameDay, attr, delta: after - before })
         .onConflictDoNothing()
     }
+  }
+
+  // Premios de la carrera (SPEC 9, Paso 38): al ganador de etapa y, en la última, a la general.
+  // La vuelta de prueba es de nivel WorldTour.
+  const stageWinner = output.results.find((r) => r.puesto === 1)
+  if (stageWinner) {
+    const lastDay = Math.max(...TEST_TOUR.map((s) => s.day))
+    const gcOrder = (
+      await tx
+        .select({ riderId: raceGc.riderId })
+        .from(raceGc)
+        .where(eq(raceGc.raceId, TEST_TOUR_ID))
+        .orderBy(asc(raceGc.tiempoTotalS))
+    ).map((r) => r.riderId)
+    await awardRacePrizes(
+      tx,
+      gameDay,
+      'WT',
+      'Test tour',
+      stageWinner.riderId,
+      stage.day === lastDay,
+      gcOrder,
+    )
   }
 
   return raced
