@@ -24,3 +24,13 @@ export {
   type RiderHiddenInput,
 } from './riders.js'
 export { getTrainingOrders, setTrainingOrders, type TrainingOrderRow } from './training.js'
+export {
+  addToRoster,
+  getStageOrders,
+  isOnRoster,
+  setStageOrders,
+  type Effort,
+  type Mentality,
+  type StageOrderRow,
+  type StageRole,
+} from './raceOrders.js'

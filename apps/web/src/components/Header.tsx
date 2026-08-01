@@ -38,6 +38,9 @@ export function Header() {
               <Link to="/training" className="text-slate-600 hover:text-slate-900">
                 Training
               </Link>
+              <Link to="/race-orders" className="text-slate-600 hover:text-slate-900">
+                Orders
+              </Link>
               <Link to="/rider" className="font-medium text-slate-700 hover:text-slate-900">
                 My rider
               </Link>

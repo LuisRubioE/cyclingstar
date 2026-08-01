@@ -5,6 +5,7 @@ import { Account } from './pages/Account'
 import { CreateRider } from './pages/CreateRider'
 import { Home } from './pages/Home'
 import { Login } from './pages/Login'
+import { RaceOrders } from './pages/RaceOrders'
 import { Register } from './pages/Register'
 import { RiderProfile } from './pages/RiderProfile'
 import { RoutesPage } from './pages/Routes'
@@ -49,6 +50,14 @@ export function App() {
             element={
               <ProtectedRoute>
                 <Training />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/race-orders"
+            element={
+              <ProtectedRoute>
+                <RaceOrders />
               </ProtectedRoute>
             }
           />

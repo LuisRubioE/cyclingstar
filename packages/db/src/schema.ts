@@ -262,6 +262,57 @@ export const trainingOrders = pgTable(
   (t) => [primaryKey({ columns: [t.riderId, t.gameDay] })],
 )
 
+export const stageRoleEnum = pgEnum('stage_role', [
+  'lider',
+  'sprinter',
+  'lanzador',
+  'gregario',
+  'cazaetapas',
+  'marcador',
+  'libre',
+])
+export const mentalityEnum = pgEnum('stage_mentality', [
+  'reservon',
+  'oportunista',
+  'combativo',
+  'supercombativo',
+])
+export const effortEnum = pgEnum('stage_effort', ['ahorrar', 'normal', 'a_tope'])
+
+/** Convocatorias: qué corredores corren una carrera (SPEC 6.11, Paso 29). */
+export const raceRosters = pgTable(
+  'race_rosters',
+  {
+    raceId: text('race_id').notNull(),
+    riderId: uuid('rider_id')
+      .notNull()
+      .references(() => riders.id, { onDelete: 'cascade' }),
+  },
+  (t) => [primaryKey({ columns: [t.raceId, t.riderId] })],
+)
+
+/** Órdenes de etapa del piloto automático, encolables por toda la vuelta (SPEC 6.18, Paso 29). */
+export const stageOrders = pgTable(
+  'stage_orders',
+  {
+    riderId: uuid('rider_id')
+      .notNull()
+      .references(() => riders.id, { onDelete: 'cascade' }),
+    raceId: text('race_id').notNull(),
+    stageDay: integer('stage_day').notNull(),
+    role: stageRoleEnum('role').notNull(),
+    // Objetivo para roles que lo requieren (lanzador, gregario, marcador). Sin FK: puede ser NPC.
+    targetRiderId: uuid('target_rider_id'),
+    mentality: mentalityEnum('mentality').notNull(),
+    effort: effortEnum('effort').notNull(),
+    // Disparador: atacar en el km indicado (nulo = sin disparador explícito).
+    triggerKm: integer('trigger_km'),
+    contestSprints: boolean('contest_sprints').notNull().default(false),
+    contestClimbs: boolean('contest_climbs').notNull().default(false),
+  },
+  (t) => [primaryKey({ columns: [t.riderId, t.raceId, t.stageDay] })],
+)
+
 /** Registro diario de carga y forma para la gráfica y la auditoría (SPEC 4, 11). */
 export const riderDailyLog = pgTable(
   'rider_daily_log',
