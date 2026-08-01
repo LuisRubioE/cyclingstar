@@ -5,7 +5,7 @@
  */
 import type { StageProfile } from '../stage/types.js'
 
-export type StageKind = 'llana' | 'media' | 'reina' | 'cri'
+export type StageKind = 'llana' | 'media' | 'reina' | 'cri' | 'clasica'
 
 export interface TourStage {
   day: number

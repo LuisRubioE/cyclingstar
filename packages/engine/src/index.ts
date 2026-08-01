@@ -38,6 +38,14 @@ export {
 } from './routes/altimetry.js'
 export { TEST_TOUR, type StageKind, type TourStage } from './routes/testTour.js'
 export {
+  SEASON_CALENDAR,
+  type CalendarRace,
+  type CalendarStage,
+  type RaceFormat,
+  type RaceLevel,
+  type StageSpec,
+} from './routes/calendar.js'
+export {
   generateNpcRider,
   sampleNpcAge,
   type Division,
