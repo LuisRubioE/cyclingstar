@@ -10,11 +10,15 @@ export { runTick, targetGameDay, type RunTickOptions, type TickSummary } from '.
 export { raceWorldDay } from './race.js'
 export { ensureTestTourField, fillerRiderSpec, type FillerSpec } from './npc.js'
 export {
+  getGcThroughStage,
+  getKomClassification,
+  getPointsClassification,
   getRaceGc,
   getRunStageDays,
   getStageResults,
   getStageSnapshot,
   type GcRow,
+  type PointsRow,
   type StageResultRow,
   type StageSnapshotRow,
 } from './results.js'

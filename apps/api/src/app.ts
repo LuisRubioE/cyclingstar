@@ -14,6 +14,9 @@ import {
   generateName,
   getCurrentWorld,
   getDailyLog,
+  getGcThroughStage,
+  getKomClassification,
+  getPointsClassification,
   getRaceGc,
   getRiderForUser,
   getRunStageDays,
@@ -430,6 +433,8 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
       const userId = await currentUserId(request)
       if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
       const gc = await getRaceGc(db, TEST_TOUR_ID)
+      const points = await getPointsClassification(db, TEST_TOUR_ID)
+      const kom = await getKomClassification(db, TEST_TOUR_ID)
       const run = new Set(await getRunStageDays(db, TEST_TOUR_ID))
       const stages = TEST_TOUR.map((stage) => ({
         day: stage.day,
@@ -438,7 +443,7 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
         km: Math.round(stage.profile.segments.reduce((sum, s) => sum + s.km, 0)),
         run: run.has(stage.day),
       }))
-      return { gc, stages }
+      return { gc, points, kom, stages }
     })
 
     // Replay de una etapa: se regenera desde el snapshot sellado (SPEC 6.1).
@@ -478,7 +483,9 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
           .filter((e) => ['fuga_formada', 'fuga_cazada', 'banner', 'meta'].includes(e.tipo))
           .map((e) => ({ km: e.km, label: MARKER_LABEL[e.tipo] ?? '•' }))
         const altimetry = renderAltimetrySvg(stage.profile, { markers })
-        return { day, name: stage.name, km, run: true, altimetry, results, chronicle }
+        // La general tal como quedó tras esta etapa (no solo la final).
+        const gc = await getGcThroughStage(db, TEST_TOUR_ID, day)
+        return { day, name: stage.name, km, run: true, altimetry, results, chronicle, gc }
       },
     )
 
