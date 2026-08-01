@@ -2,6 +2,7 @@ export interface GcEntry {
   riderId: string
   name: string
   country: string
+  teamName: string | null
   tiempoTotalS: number
   puntosVolante: number
   puntosMontana: number
@@ -12,6 +13,12 @@ export interface PointsEntry {
   name: string
   country: string
   puntos: number
+}
+
+export interface TeamGcEntry {
+  teamName: string
+  tiempoTotalS: number
+  riderCount: number
 }
 
 export interface StageStatus {
@@ -26,6 +33,7 @@ export interface RaceResults {
   gc: GcEntry[]
   points: PointsEntry[]
   kom: PointsEntry[]
+  teamsGc: TeamGcEntry[]
   stages: StageStatus[]
 }
 
@@ -40,6 +48,7 @@ export interface StageResultEntry {
   riderId: string
   name: string
   country: string
+  teamName: string | null
   puesto: number
   tiempoS: number
   bonificacionS: number
@@ -51,6 +60,7 @@ export interface StageGcEntry {
   riderId: string
   name: string
   country: string
+  teamName: string | null
   tiempoTotalS: number
 }
 

@@ -25,6 +25,7 @@ import {
   getStageSnapshot,
   getTrainingOrders,
   setStageOrders,
+  teamsClassification,
   setTrainingOrders,
 } from '@cyclingstar/db'
 import {
@@ -435,6 +436,7 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
       const gc = await getRaceGc(db, TEST_TOUR_ID)
       const points = await getPointsClassification(db, TEST_TOUR_ID)
       const kom = await getKomClassification(db, TEST_TOUR_ID)
+      const teamsGc = teamsClassification(gc)
       const run = new Set(await getRunStageDays(db, TEST_TOUR_ID))
       const stages = TEST_TOUR.map((stage) => ({
         day: stage.day,
@@ -443,7 +445,7 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
         km: Math.round(stage.profile.segments.reduce((sum, s) => sum + s.km, 0)),
         run: run.has(stage.day),
       }))
-      return { gc, points, kom, stages }
+      return { gc, points, kom, teamsGc, stages }
     })
 
     // Replay de una etapa: se regenera desde el snapshot sellado (SPEC 6.1).
