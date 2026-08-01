@@ -1,4 +1,4 @@
-import type { Gender, PublicRider, Vocation } from '@cyclingstar/shared'
+import { type Gender, type PublicRider, type Vocation, isKnownCountry } from '@cyclingstar/shared'
 
 export interface GeneratedName {
   firstName: string
@@ -6,12 +6,35 @@ export interface GeneratedName {
   fullName: string
 }
 
-/** País preseleccionado por IP (Paso 14), o null si no hay cabecera de país. */
+/**
+ * País preseleccionado por geolocalización de IP (Paso 14, SPEC 3.6). Se resuelve desde el
+ * navegador con una API pública gratuita (sin Cloudflare); si nuestro servidor recibe la
+ * cabecera CF-IPCountry (por si algún día hay proxy delante), se usa como primera opción.
+ * La IP no se persiste. Devuelve null si no se puede determinar (el selector es editable).
+ */
 export async function fetchGeoCountry(): Promise<string | null> {
-  const res = await fetch('/api/geo/country')
-  if (!res.ok) return null
-  const data = (await res.json()) as { country: string | null }
-  return data.country
+  // 1) Cabecera del servidor (CF-IPCountry) si existe.
+  try {
+    const res = await fetch('/api/geo/country')
+    if (res.ok) {
+      const data = (await res.json()) as { country: string | null }
+      if (data.country && isKnownCountry(data.country)) return data.country.toUpperCase()
+    }
+  } catch {
+    // sigue con la API pública
+  }
+
+  // 2) API pública de geolocalización por IP (país + coordenadas), desde el navegador.
+  try {
+    const res = await fetch('https://ipwho.is/?fields=success,country_code')
+    if (!res.ok) return null
+    const data = (await res.json()) as { success?: boolean; country_code?: string }
+    if (data.success === false || !data.country_code) return null
+    const code = data.country_code.toUpperCase()
+    return isKnownCountry(code) ? code : null
+  } catch {
+    return null
+  }
 }
 
 export async function fetchGeneratedName(params: {

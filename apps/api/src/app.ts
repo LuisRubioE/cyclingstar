@@ -6,11 +6,14 @@ import fastifyStatic from '@fastify/static'
 import {
   type Database,
   type TickSummary,
+  type TrainingOrderRow,
   createRider,
   gameState,
   generateName,
   getCurrentWorld,
   getRiderForUser,
+  getTrainingOrders,
+  setTrainingOrders,
 } from '@cyclingstar/db'
 import { ENGINE_VERSION, generateRiderGenome } from '@cyclingstar/engine'
 import { type Health, isKnownCountry, seasonPosition } from '@cyclingstar/shared'
@@ -243,6 +246,66 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
         hidden: genome.hidden,
       })
       return reply.status(201).send({ ok: true, id: created.id })
+    })
+
+    // --- Planificador de entrenamiento (Paso 18) ---
+    const TRAINING_HORIZON_DAYS = 28
+
+    const orderSchema = z.object({
+      gameDay: z.number().int().positive(),
+      session: z.enum([
+        'descanso_total',
+        'descanso_activo',
+        'fondo',
+        'umbral',
+        'puertos',
+        'sprint',
+        'crono',
+        'bajada_paves',
+        'gimnasio',
+        'video_tactica',
+        'viaje',
+      ]),
+      intensity: z.enum(['suave', 'normal', 'fuerte']),
+    })
+    const putOrdersSchema = z.object({ orders: z.array(orderSchema).max(TRAINING_HORIZON_DAYS) })
+
+    app.get('/api/riders/me/orders', async (request, reply) => {
+      const userId = await currentUserId(request)
+      if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
+      const rider = await getRiderForUser(db, userId)
+      const world = await getCurrentWorld(db)
+      if (!rider || !world)
+        return {
+          currentDay: world?.currentDay ?? 0,
+          horizonDays: TRAINING_HORIZON_DAYS,
+          orders: [],
+        }
+      const orders = await getTrainingOrders(
+        db,
+        rider.id,
+        world.currentDay + 1,
+        world.currentDay + TRAINING_HORIZON_DAYS,
+      )
+      return { currentDay: world.currentDay, horizonDays: TRAINING_HORIZON_DAYS, orders }
+    })
+
+    app.put('/api/riders/me/orders', async (request, reply) => {
+      const userId = await currentUserId(request)
+      if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
+      const parsed = putOrdersSchema.safeParse(request.body)
+      if (!parsed.success) return reply.status(400).send({ ok: false, error: 'validacion' })
+      const rider = await getRiderForUser(db, userId)
+      const world = await getCurrentWorld(db)
+      if (!rider || !world) return reply.status(409).send({ ok: false, error: 'sin_ciclista' })
+      // Solo días futuros dentro del horizonte (SPEC 5.2: cola de 7 a 28 días).
+      const valid: TrainingOrderRow[] = parsed.data.orders.filter(
+        (order) =>
+          order.gameDay > world.currentDay &&
+          order.gameDay <= world.currentDay + TRAINING_HORIZON_DAYS,
+      )
+      await setTrainingOrders(db, rider.id, valid)
+      return { ok: true, saved: valid.length }
     })
   }
 

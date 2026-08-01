@@ -230,3 +230,51 @@ export const riderAttrLog = pgTable(
   },
   (t) => [primaryKey({ columns: [t.riderId, t.gameDay, t.attr] })],
 )
+
+// ---- Entrenamiento (SPEC 5 y 11), Pasos 18-20 ----
+
+export const sessionEnum = pgEnum('training_session', [
+  'descanso_total',
+  'descanso_activo',
+  'fondo',
+  'umbral',
+  'puertos',
+  'sprint',
+  'crono',
+  'bajada_paves',
+  'gimnasio',
+  'video_tactica',
+  'viaje',
+])
+export const intensityEnum = pgEnum('training_intensity', ['suave', 'normal', 'fuerte'])
+
+/** Órdenes de entrenamiento encoladas por el jugador (SPEC 5.1, 5.2). */
+export const trainingOrders = pgTable(
+  'training_orders',
+  {
+    riderId: uuid('rider_id')
+      .notNull()
+      .references(() => riders.id, { onDelete: 'cascade' }),
+    gameDay: integer('game_day').notNull(),
+    session: sessionEnum('session').notNull(),
+    intensity: intensityEnum('intensity').notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.riderId, t.gameDay] })],
+)
+
+/** Registro diario de carga y forma para la gráfica y la auditoría (SPEC 4, 11). */
+export const riderDailyLog = pgTable(
+  'rider_daily_log',
+  {
+    riderId: uuid('rider_id')
+      .notNull()
+      .references(() => riders.id, { onDelete: 'cascade' }),
+    gameDay: integer('game_day').notNull(),
+    tss: real('tss').notNull(),
+    ctl: real('ctl').notNull(),
+    atl: real('atl').notNull(),
+    tsb: real('tsb').notNull(),
+    activity: text('activity').notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.riderId, t.gameDay] })],
+)

@@ -6,6 +6,22 @@
  * Paso 15: creación del genoma del ciclista (SPEC 3.4-3.5). El contrato simulateStage() y la
  * física llegan a partir del Paso 21.
  */
-export { CREATION, ENGINE_VERSION } from './constants.js'
+export { BANISTER, CREATION, ENGINE_VERSION, HEALTH, MORALE } from './constants.js'
 export { generateRiderGenome, type RiderGenome, type RiderHidden } from './creation.js'
+export {
+  applyDailyLoad,
+  eff0,
+  fitnessFactor,
+  formIndex,
+  formStars,
+  freshnessBar,
+  illnessProbability,
+  mForm,
+  mHealth,
+  mMorale,
+  regressMorale,
+  tauFatigue,
+  tsbFactor,
+  type Load,
+} from './banister.js'
 export * from './random.js'
