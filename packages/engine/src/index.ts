@@ -10,10 +10,31 @@ export { BANISTER, CREATION, ENGINE_VERSION, HEALTH, MORALE, STAGE, TRAINING } f
 export { deriveClimbCategory, isWall, sampleProfile, stageLengthKm } from './stage/sample.js'
 export { stageRng, stageSeed, type StageSeedParts } from './stage/rng.js'
 export { blockProbability, rollHazard } from './stage/hazard.js'
-export { simulateStage } from './stage/simulate.js'
+export { simulateStage, stageTss } from './stage/simulate.js'
+export { simulateTimeTrial } from './stage/timetrial.js'
+export { crashLambda, rollCrash, type CrashOutcome } from './stage/crash.js'
+export {
+  markingMargin,
+  resolveMarking,
+  wheelProbability,
+  type MarkingOutcome,
+} from './stage/marcaje.js'
 export { EventLog } from './stage/events.js'
-export { analyzeFlat, analyzeMountain, type FlatStats, type MountainStats } from './sim/analyze.js'
-export { campaignSeeds, flatScenario, queenScenario, type Scenario } from './sim/scenarios.js'
+export {
+  analyzeFlat,
+  analyzeMountain,
+  analyzeTimeTrial,
+  type FlatStats,
+  type MountainStats,
+  type TimeTrialStats,
+} from './sim/analyze.js'
+export {
+  campaignSeeds,
+  flatScenario,
+  queenScenario,
+  timeTrialScenario,
+  type Scenario,
+} from './sim/scenarios.js'
 export {
   advanceGroup,
   createGroup,

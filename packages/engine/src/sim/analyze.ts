@@ -82,3 +82,34 @@ export function analyzeMountain(scenario: Scenario, seeds: string[]): MountainSt
     medianTop10GapSeconds: median(top10Gaps),
   }
 }
+
+export interface TimeTrialStats {
+  runs: number
+  /** Brecha percentil 90 a 10 del campo, mediana en segundos (objetivo 120-240). */
+  medianP90MinusP10Seconds: number
+  /** % de cronos que gana un especialista (id que empieza por "cri-"). */
+  specialistWinPct: number
+}
+
+function percentile(sorted: number[], p: number): number {
+  if (sorted.length === 0) return 0
+  return sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * p))]!
+}
+
+/** Corre la contrarreloj y agrega el invariante de crono (SPEC 6.17). */
+export function analyzeTimeTrial(scenario: Scenario, seeds: string[]): TimeTrialStats {
+  const spreads: number[] = []
+  let specialistWins = 0
+  for (const seed of seeds) {
+    const out = simulateStage(scenario.input, seed)
+    const times = out.results.map((r) => r.tiempoS).sort((a, b) => a - b)
+    spreads.push(percentile(times, 0.9) - percentile(times, 0.1))
+    if (out.results[0]?.riderId.startsWith('cri-')) specialistWins += 1
+  }
+  const runs = seeds.length
+  return {
+    runs,
+    medianP90MinusP10Seconds: median(spreads),
+    specialistWinPct: (100 * specialistWins) / runs,
+  }
+}

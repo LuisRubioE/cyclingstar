@@ -4,11 +4,14 @@
  * bit a bit. La campaña completa de calibración se lanza con `pnpm sim`.
  */
 import { describe, expect, it } from 'vitest'
+import type { Attribute } from '@cyclingstar/shared'
 import { advanceGroup, createGroup } from '../stage/group.js'
 import { accLimit, blockSeconds } from '../stage/physics.js'
-import type { Block } from '../stage/types.js'
-import { analyzeFlat, analyzeMountain } from './analyze.js'
-import { campaignSeeds, flatScenario, queenScenario } from './scenarios.js'
+import { simulateStage } from '../stage/simulate.js'
+import { stageSeed } from '../stage/rng.js'
+import type { Block, StageRider } from '../stage/types.js'
+import { analyzeFlat, analyzeMountain, analyzeTimeTrial } from './analyze.js'
+import { campaignSeeds, flatScenario, queenScenario, timeTrialScenario } from './scenarios.js'
 
 const flat: Block = { tipo: 'llano', g: 0, estrellas: 0 }
 
@@ -45,6 +48,69 @@ describe('invariantes de montaña (6.17)', () => {
   it('una etapa reina produce brechas de 1 a 4 minutos entre el 1º y el 10º del día', () => {
     expect(stats.medianTop10GapSeconds).toBeGreaterThanOrEqual(60)
     expect(stats.medianTop10GapSeconds).toBeLessThanOrEqual(240)
+  })
+})
+
+describe('contrarreloj (6.17)', () => {
+  const scenario = timeTrialScenario()
+  const stats = analyzeTimeTrial(scenario, campaignSeeds(scenario.name, 120))
+
+  it('la brecha p90-p10 de una CRI de 40 km mide entre 2 y 4 minutos', () => {
+    expect(stats.medianP90MinusP10Seconds).toBeGreaterThanOrEqual(120)
+    expect(stats.medianP90MinusP10Seconds).toBeLessThanOrEqual(240)
+  })
+
+  it('la gana un especialista de crono', () => {
+    expect(stats.specialistWinPct).toBeGreaterThan(90)
+  })
+})
+
+describe('caídas en pavés (6.17)', () => {
+  it('una etapa de pavés deja entre un 5% y un 12% de bajas por caída', () => {
+    const eff = (base: number): Record<Attribute, number> => ({
+      RES: base,
+      REC: base,
+      LLA: base,
+      MON: base,
+      COL: base,
+      CRI: base,
+      SPR: base,
+      DES: base,
+      PAV: 55,
+      TAC: base,
+    })
+    const field: StageRider[] = Array.from({ length: 40 }, (_, i) => ({
+      riderId: `r-${i}`,
+      eff0: eff(55),
+      energy: 100,
+      matches: 4,
+      tsb: 0,
+      orders: { role: 'libre', mentality: 'reservon', contestSprints: false, contestClimbs: false },
+      gcDeficitSeconds: 0,
+      fragility: 1,
+    }))
+    const profile = {
+      segments: [
+        { km: 20, tipo: 'llano' as const },
+        { km: 30, tipo: 'paves' as const, estrellas: 4 },
+        { km: 10, tipo: 'llano' as const },
+      ],
+    }
+    let crashedFraction = 0
+    const runs = 80
+    for (let s = 0; s < runs; s++) {
+      const seed = stageSeed({
+        worldSeed: `pave-${s}`,
+        raceId: 'pave',
+        stageDay: 1,
+        engineVersion: 1,
+      })
+      const out = simulateStage({ profile, riders: field }, seed)
+      crashedFraction += new Set(out.incidents.map((i) => i.riderId)).size / field.length
+    }
+    const rate = (100 * crashedFraction) / runs
+    expect(rate).toBeGreaterThanOrEqual(5)
+    expect(rate).toBeLessThanOrEqual(12)
   })
 })
 

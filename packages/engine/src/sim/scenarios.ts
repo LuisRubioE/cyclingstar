@@ -133,6 +133,25 @@ export function queenScenario(): Scenario {
   }
 }
 
+/**
+ * Contrarreloj individual de 40 km llanos (SPEC 6.13, 6.17): 8 especialistas y 32 corredores de
+ * crono correcto. El mejor especialista gana y la brecha p90-p10 mide 2-4 minutos.
+ */
+export function timeTrialScenario(): Scenario {
+  const riders: StageRider[] = []
+  for (let i = 0; i < 8; i++) {
+    riders.push(rider(`cri-${i}`, { eff0: eff(60, { CRI: 80 + (i % 5), RES: 72, LLA: 68 }) }))
+  }
+  for (let i = 0; i < 32; i++) {
+    riders.push(rider(`pel-${i}`, { eff0: eff(58, { CRI: 66 + (i % 10), RES: 64, LLA: 62 }) }))
+  }
+  return {
+    name: 'cri-40',
+    input: { profile: { segments: [{ km: 40, tipo: 'llano' }] }, riders, timeTrial: true },
+    bestSprinterId: 'cri-4', // el especialista con CRI más alto (80 + 4)
+  }
+}
+
 /** Semillas deterministas de una campaña de N etapas del mismo escenario. */
 export function campaignSeeds(scenario: string, n: number): string[] {
   return Array.from({ length: n }, (_, i) =>

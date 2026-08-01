@@ -89,6 +89,8 @@ export interface StageRider {
   orders: StageOrders
   /** Desventaja del corredor en la general, en segundos (para 6.9). */
   gcDeficitSeconds: number
+  /** Fragilidad oculta (SPEC 3.4): escala la probabilidad de lesión al caer. Por defecto 1. */
+  fragility?: number
 }
 
 /** Entrada completa del motor (SPEC 6.1). */
@@ -136,4 +138,6 @@ export interface StageOutput {
   results: StageResult[]
   workUnits: Map<string, number>
   incidents: Incident[]
+  /** Versión del motor con que se generó (sellada para replays reproducibles, SPEC 6.1). */
+  engineVersion: number
 }
