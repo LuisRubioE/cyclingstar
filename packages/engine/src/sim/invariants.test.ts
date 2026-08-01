@@ -7,8 +7,8 @@ import { describe, expect, it } from 'vitest'
 import { advanceGroup, createGroup } from '../stage/group.js'
 import { accLimit, blockSeconds } from '../stage/physics.js'
 import type { Block } from '../stage/types.js'
-import { analyzeFlat } from './analyze.js'
-import { campaignSeeds, flatScenario } from './scenarios.js'
+import { analyzeFlat, analyzeMountain } from './analyze.js'
+import { campaignSeeds, flatScenario, queenScenario } from './scenarios.js'
 
 const flat: Block = { tipo: 'llano', g: 0, estrellas: 0 }
 
@@ -30,6 +30,21 @@ describe('invariantes de llano (6.17)', () => {
     expect(stats.capturePct).toBeGreaterThan(85)
     expect(stats.medianCatchKmToFinish).toBeGreaterThanOrEqual(8)
     expect(stats.medianCatchKmToFinish).toBeLessThanOrEqual(25)
+  })
+})
+
+describe('invariantes de montaña (6.17)', () => {
+  const scenario = queenScenario()
+  const stats = analyzeMountain(scenario, campaignSeeds(scenario.name, 120))
+
+  it('la fuga gana entre el 25% y el 45% de las etapas de montaña', () => {
+    expect(stats.breakawayWinPct).toBeGreaterThanOrEqual(25)
+    expect(stats.breakawayWinPct).toBeLessThanOrEqual(45)
+  })
+
+  it('una etapa reina produce brechas de 1 a 4 minutos entre el 1º y el 10º del día', () => {
+    expect(stats.medianTop10GapSeconds).toBeGreaterThanOrEqual(60)
+    expect(stats.medianTop10GapSeconds).toBeLessThanOrEqual(240)
   })
 })
 

@@ -54,6 +54,8 @@ export interface Block {
   estrellas: number
   /** Banner cruzado en este bloque, si lo hay (SPEC 6.11). */
   banner?: BannerType
+  /** Categoría de la cima, si el banner es una cima (derivada del segmento, SPEC 6.2). */
+  climbCategory?: ClimbCategory
 }
 
 /** Categoría de una cima, derivada del score de dureza (SPEC 6.2). */

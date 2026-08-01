@@ -1,14 +1,16 @@
 /**
- * Simulación de una etapa completa, bloque a bloque (SPEC 6.16). El Paso 24 cubre la etapa
- * llana de principio a fin: fase de fuga y su sociología (6.10), controlador del pelotón con
- * histéresis (6.9), disputa de banners (6.11), y los últimos 2 km con el sprint (6.12).
+ * Simulación de una etapa completa, bloque a bloque (SPEC 6.16).
+ * - Paso 24: etapa llana de principio a fin (fuga 6.10, controlador 6.9, banners 6.11, sprint 6.12).
+ * - Paso 26: montaña: descuelgue en los puertos (6.8), muros con COL (6.4), cimas puntuables y
+ *   finales en alto donde la ley de velocidad integra las diferencias sola.
  * Puro y determinista: todo el azar entra por los subflujos nominales del RNG (6.1).
  */
-import { normal } from '../random.js'
+import { normal, type Rng } from '../random.js'
 import { STAGE } from '../constants.js'
 import { EventLog } from './events.js'
 import { type Group, advanceGroup, createGroup, gapSeconds, percentile75 } from './group.js'
 import { blockCost, blockPerfil, effNow, erosion } from './physics.js'
+import { rollHazard } from './hazard.js'
 import { sampleProfile, stageLengthKm } from './sample.js'
 import { stageRng } from './rng.js'
 import type { Block, Incident, StageInput, StageOutput, StageResult, StageRider } from './types.js'
@@ -27,6 +29,9 @@ interface RiderSim {
   bonusS: number
   sprintPts: number
   climbPts: number
+  matches: number
+  /** Bloques que resta el impulso de un cerillo gastado (+10 al terreno, SPEC 6.6). */
+  climbBoostBlocks: number
   incident: Incident | null
 }
 
@@ -44,11 +49,17 @@ function isSprinter(r: StageRider): boolean {
   return r.orders.role === 'sprinter' || r.eff0.SPR >= 70
 }
 
-/** Perfil efectivo de un corredor en un bloque, ya con la erosión del momento (SPEC 6.4, 6.7). */
+/**
+ * Perfil efectivo de un corredor en un bloque, ya con la erosión del momento (SPEC 6.4, 6.7).
+ * En los muros (subida corta y empinada) manda COL en vez de MON; un cerillo activo suma +10.
+ */
 function riderPerfil(sim: RiderSim, block: Block): number {
   const e = erosion(sim.energy, sim.energy0, sim.input.eff0.RES)
   const eff = effNow(sim.input.eff0, e)
-  return blockPerfil(eff, block)
+  const useCol = block.tipo === 'subida' && block.g >= STAGE.wallMinGradient
+  let perfil = blockPerfil(eff, block, useCol)
+  if (sim.climbBoostBlocks > 0 && block.tipo === 'subida') perfil += STAGE.matchBonus
+  return perfil
 }
 
 /**
@@ -64,13 +75,17 @@ function pacemakerP75(members: RiderSim[], block: Block, fraction: number): numb
 }
 
 export function simulateStage(input: StageInput, seed: string): StageOutput {
-  const rng = stageRng(seed)
+  const streams = stageRng(seed)
+  // Subflujos nominales creados UNA vez: reutilizarlos preserva la secuencia (SPEC 6.1).
+  const rngBreak = streams('breakaway')
+  const rngSprint = streams('sprint')
+  const rngHazard = streams('hazard')
+
   const blocks = sampleProfile(input.profile)
   const totalKm = stageLengthKm(input.profile)
   const n = blocks.length
   const log = new EventLog()
 
-  // Estado por corredor.
   const sims = new Map<string, RiderSim>()
   for (const r of input.riders) {
     sims.set(r.riderId, {
@@ -83,35 +98,33 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       bonusS: 0,
       sprintPts: 0,
       climbPts: 0,
+      matches: r.matches,
+      climbBoostBlocks: 0,
       incident: null,
     })
   }
   const membersOf = (groupId: string): RiderSim[] =>
     [...sims.values()].filter((s) => s.groupId === groupId && s.finishTs === null)
 
-  // Grupos: arranca todo el mundo en el pelotón.
   let peloton = createGroup(
     PELOTON,
     input.riders.map((r) => r.riderId),
-    {
-      compromiso: STAGE.commitIdle,
-    },
+    { compromiso: STAGE.commitIdle },
   )
   let breakaway: Group | null = null
+  // Grupos de descolgados: cada uno rueda a su propia velocidad (SPEC 6.3, 6.8).
+  const shed: Group[] = []
+  let shedCounter = 0
 
-  // Contadores del controlador (6.9) y de la consolidación de la fuga (6.10).
   let lowCommitKm = 0
   let chaseAbandoned = false
   let consolidated = false
   let caught = false
-  // La fuga arranca pegada al pelotón (gap 0); no puede "cazarse" hasta separarse de verdad.
   let separated = false
 
   const kmAt = (i: number): number => (i + 0.5) * STAGE.dx
 
   // --- Formación de la fuga (SPEC 6.10) ---------------------------------------------------
-  // Los candidatos saltan y forman UNA fuga (la sociología emergente detallada llega con el
-  // balance del Paso 25; aquí basta una fuga coherente).
   {
     const scored = input.riders
       .filter(isBreakawayCandidate)
@@ -120,18 +133,17 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
         score:
           STAGE.breakawayScoreTac * r.eff0.TAC +
           STAGE.breakawayScoreLla * r.eff0.LLA +
-          STAGE.breakawayScoreRng * 100 * rng('breakaway')(),
+          STAGE.breakawayScoreRng * 100 * rngBreak(),
       }))
       .sort((a, b) => b.score - a.score)
-    const size = Math.min(scored.length, 3 + Math.floor(rng('breakaway')() * 4)) // 3..6
+    const size = Math.min(scored.length, 3 + Math.floor(rngBreak() * 4)) // 3..6
     const fugados = scored.slice(0, size).map((s) => s.r.riderId)
     if (fugados.length >= 2) {
       for (const id of fugados) sims.get(id)!.groupId = BREAKAWAY
       peloton = { ...peloton, riderIds: peloton.riderIds.filter((id) => !fugados.includes(id)) }
-      // Cooperación de la fuga variable por etapa (SPEC 6.10): fija su ritmo a tempo.
       const coop =
         STAGE.breakawayCommitMin +
-        (STAGE.breakawayCommitMax - STAGE.breakawayCommitMin) * rng('breakaway')()
+        (STAGE.breakawayCommitMax - STAGE.breakawayCommitMin) * rngBreak()
       breakaway = createGroup(BREAKAWAY, fugados, {
         tS: peloton.tS,
         vActual: peloton.vActual,
@@ -140,7 +152,12 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       log.emit(0, breakaway.tS, 'fuga_formada', 'breakaway_formed', fugados)
     }
   }
-  const hasSprinters = input.riders.some(isSprinter)
+  // Los sprinters solo cazan si la meta es llana (una llegada masiva que puedan disputar): en un
+  // final en alto no persiguen, y la fuga vive o muere en la subida (SPEC 6.9).
+  const finishFlat = blocks
+    .slice(Math.max(0, n - STAGE.finalBlocks))
+    .every((b) => b.tipo === 'llano' || b.tipo === 'descenso')
+  const chasingSprinters = input.riders.some(isSprinter) && finishFlat
 
   // --- Bucle principal (SPEC 6.16) --------------------------------------------------------
   for (let i = 0; i < n; i++) {
@@ -148,13 +165,16 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
     const km = kmAt(i)
     const isFinal = n - i <= STAGE.finalBlocks
 
+    // Caduca el impulso de cerillo de todos los corredores en carrera.
+    for (const s of sims.values()) if (s.climbBoostBlocks > 0) s.climbBoostBlocks -= 1
+
     // Controlador del pelotón cada 10 bloques, con histéresis (SPEC 6.9).
     if (breakaway && !caught && i % STAGE.decisionEveryBlocks === 0) {
-      const gap = peloton.tS - breakaway.tS // segundos que la fuga saca al pelotón
+      const gap = peloton.tS - breakaway.tS
       const kmRestantes = totalKm - km
       let target: number = STAGE.commitIdle
-      if (hasSprinters && !chaseAbandoned) {
-        // Boquete deseado: mengua linealmente hasta el punto de captura (finish - 12 km).
+      if (chasingSprinters && !chaseAbandoned) {
+        // Los sprinters quieren capturar en meta: el boquete deseado mengua a 0 en finish - 12 km.
         const frac = Math.min(
           1,
           Math.max(
@@ -163,21 +183,28 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
           ),
         )
         const desiredGap = STAGE.chaseMaxLeashSeconds * frac
-        const err = gap - desiredGap // s por encima del boquete deseado
+        const err = gap - desiredGap
         const cierreNecesario = gap / Math.max(1, kmRestantes - STAGE.chaseCatchTargetKm)
         if (cierreNecesario > STAGE.chaseFeasibleSecondsPerKm) {
           chaseAbandoned = true
           log.emit(km, peloton.tS, 'caza_abandonada', 'sprinters_give_up', [])
         } else {
-          // Lazo cerrado: tempo de mantenimiento más ganancia sobre el exceso de boquete.
           target = Math.min(1, Math.max(0.1, STAGE.chaseHoldCommit + STAGE.chaseGain * err))
         }
+      } else {
+        // Control de la general: en el llano el pelotón rueda a tempo para limitar el boquete (no
+        // capturar); pero en cuanto empieza a subir, los favoritos atacan a tope y la subida
+        // decide (SPEC 6.9). Boquete deseado constante fuera de la subida.
+        const err = gap - STAGE.gcControlLeash
+        target =
+          block.tipo === 'subida'
+            ? STAGE.climbRaceCommit
+            : Math.min(1, Math.max(0.1, STAGE.chaseHoldCommit + STAGE.chaseGain * err))
       }
       peloton = {
         ...peloton,
         compromiso: peloton.compromiso + (target - peloton.compromiso) * STAGE.commitHysteresis,
       }
-      // Consolidación de la fuga: compromiso bajo durante 2 km seguidos (SPEC 6.10).
       if (!consolidated) {
         if (peloton.compromiso < STAGE.breakawayCommitThreshold) {
           lowCommitKm += STAGE.decisionEveryBlocks * STAGE.dx
@@ -191,13 +218,12 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       }
     }
 
-    // Avance físico de cada grupo y gasto de energía de sus corredores.
+    // Avance físico de un grupo y gasto de energía de sus corredores.
     const advance = (group: Group, members: RiderSim[], paceFraction: number): Group => {
       if (members.length === 0) return group
       const p75 = pacemakerP75(members, block, paceFraction)
       const next = advanceGroup(group, block, p75, { isFinal })
       members.forEach((m, idx) => {
-        // Los punteros relevan (shelter bajo, se vacían); el resto va protegido.
         const relaying = idx / members.length < paceFraction
         const shelter = relaying ? STAGE.shelterRelay : STAGE.shelterProtected
         const cost = blockCost(block, group.compromiso, shelter)
@@ -207,32 +233,62 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       return next
     }
 
-    // El pelotón lo tiran sus punteros más fuertes; la fuga, sus relevadores (coop).
-    peloton = advance(peloton, membersOf(PELOTON), STAGE.pelotonPaceFraction)
-    if (breakaway && !caught) {
-      breakaway = advance(breakaway, membersOf(BREAKAWAY), breakaway.coop)
+    // Descuelgue en los puertos (SPEC 6.8): quien no aguanta el P75 del grupo se cae o quema un
+    // cerillo. Fuera de subida no pasa nada, así que el llano queda intacto.
+    const shatter = (group: Group, members: RiderSim[], paceFraction: number): void => {
+      if (block.tipo !== 'subida') return
+      const pace = pacemakerP75(members, block, paceFraction)
+      for (const m of members) {
+        const deficit = pace - riderPerfil(m, block)
+        if (deficit <= STAGE.dropDeficitTolerance) continue
+        const lambda = (STAGE.lambdaDropBase * deficit) / STAGE.dropDeficitDenom
+        if (!rollHazard(rngHazard, lambda)) continue
+        if (m.matches > 0 && m.input.orders.mentality !== 'reservon') {
+          m.matches -= 1
+          m.climbBoostBlocks = STAGE.matchBonusBlocks
+        } else {
+          shedCounter += 1
+          const gid = `shed-${shedCounter}`
+          m.groupId = gid
+          shed.push(
+            createGroup(gid, [m.input.riderId], {
+              tS: group.tS,
+              vActual: group.vActual,
+              compromiso: STAGE.shedCommit,
+            }),
+          )
+        }
+      }
     }
 
-    // Captura: el boquete cayó a 5 s o menos, pero solo tras haberse abierto de verdad (SPEC 6.3).
-    if (breakaway && !caught) {
-      const gap = gapSeconds(peloton, breakaway)
-      if (gap > STAGE.captureGapSeconds) separated = true
+    // En subida mandan los más fuertes (fracción menor): el grupo se estira y se descuelga.
+    const onClimb = block.tipo === 'subida'
+    const pelFrac = onClimb ? STAGE.climbPaceFraction : STAGE.pelotonPaceFraction
+    const brkFrac = onClimb ? STAGE.climbPaceFraction : (breakaway?.coop ?? STAGE.climbPaceFraction)
+
+    shatter(peloton, membersOf(PELOTON), pelFrac)
+    if (breakaway && !caught) shatter(breakaway, membersOf(BREAKAWAY), brkFrac)
+
+    peloton = advance(peloton, membersOf(PELOTON), pelFrac)
+    if (breakaway && !caught) breakaway = advance(breakaway, membersOf(BREAKAWAY), brkFrac)
+    for (let g = 0; g < shed.length; g++) {
+      shed[g] = advance(shed[g]!, membersOf(shed[g]!.id), 1)
     }
-    if (
-      breakaway &&
-      !caught &&
-      separated &&
-      gapSeconds(peloton, breakaway) <= STAGE.captureGapSeconds
-    ) {
-      caught = true
-      for (const m of membersOf(BREAKAWAY)) m.groupId = PELOTON
-      peloton = {
-        ...peloton,
-        riderIds: [...peloton.riderIds, ...breakaway.riderIds],
-        tS: Math.min(peloton.tS, breakaway.tS),
+
+    // Captura de la fuga por el pelotón (SPEC 6.3).
+    if (breakaway && !caught) {
+      if (gapSeconds(peloton, breakaway) > STAGE.captureGapSeconds) separated = true
+      if (separated && gapSeconds(peloton, breakaway) <= STAGE.captureGapSeconds) {
+        caught = true
+        for (const m of membersOf(BREAKAWAY)) m.groupId = PELOTON
+        peloton = {
+          ...peloton,
+          riderIds: [...peloton.riderIds, ...breakaway.riderIds],
+          tS: Math.min(peloton.tS, breakaway.tS),
+        }
+        log.emit(km, peloton.tS, 'fuga_cazada', 'breakaway_caught', breakaway.riderIds)
+        breakaway = null
       }
-      log.emit(km, peloton.tS, 'fuga_cazada', 'breakaway_caught', breakaway.riderIds)
-      breakaway = null
     }
 
     // Disputa de banners (SPEC 6.11): el primer grupo en pasar se lleva los puntos.
@@ -240,82 +296,85 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       const frontIsBreak = breakaway !== null && !caught && breakaway.tS <= peloton.tS
       const front = frontIsBreak ? membersOf(BREAKAWAY) : membersOf(PELOTON)
       const frontTs = frontIsBreak ? breakaway!.tS : peloton.tS
-      disputeBanner(front, block, km, frontTs, log, rng('sprint'))
+      disputeBanner(front, block, km, frontTs, log, rngSprint)
     }
   }
 
-  // --- Sprint final y resultados (SPEC 6.12, 6.15) ---------------------------------------
-  const incidents: Incident[] = []
-  finishStage(sims, peloton, breakaway, caught, log, rng('sprint'), totalKm)
+  // --- Meta y resultados (SPEC 6.12, 6.15) -----------------------------------------------
+  const allGroups: Group[] = [peloton, ...(breakaway && !caught ? [breakaway] : []), ...shed]
+  finishStage(sims, allGroups, log, rngSprint, totalKm)
 
   const results = buildResults(sims)
   const workUnits = new Map<string, number>()
   for (const [id, s] of sims) workUnits.set(id, s.work)
 
-  return { events: log.toArray(), results, workUnits, incidents }
+  return { events: log.toArray(), results, workUnits, incidents: [] }
 }
 
-/** Mini sprint por los puntos de un banner (SPEC 6.11). El mejor SPR del grupo se los lleva. */
+/** Mini sprint por los puntos de un banner (SPEC 6.11). El mejor del grupo se los lleva. */
 function disputeBanner(
   members: RiderSim[],
   block: Block,
   km: number,
   tS: number,
   log: EventLog,
-  rngSprint: () => number,
+  rngSprint: Rng,
 ): void {
   const interested = members.filter((m) =>
     block.banner === 'meta_volante' ? m.input.orders.contestSprints : m.input.orders.contestClimbs,
   )
   const contenders = interested.length > 0 ? interested : members
   if (contenders.length === 0) return
-  const table = block.banner === 'meta_volante' ? STAGE.sprintPoints : STAGE.climbPoints.cat4
+  const isSprint = block.banner === 'meta_volante'
+  const table = isSprint ? STAGE.sprintPoints : climbTable(block)
   const ranked = contenders
-    .map((m) => ({ m, score: m.input.eff0.SPR * (0.9 + 0.2 * rngSprint()) }))
+    .map((m) => ({
+      m,
+      // La volante la define SPR; la cima, el perfil de escalador (MON/COL).
+      score:
+        (isSprint ? m.input.eff0.SPR : Math.max(m.input.eff0.MON, m.input.eff0.COL)) *
+        (0.9 + 0.2 * rngSprint()),
+    }))
     .sort((a, b) => b.score - a.score)
   ranked.forEach(({ m }, idx) => {
     const pts = table[idx] ?? 0
     if (pts <= 0) return
     for (const c of contenders) c.energy = Math.max(0, c.energy - STAGE.bannerCost)
-    if (block.banner === 'meta_volante') m.sprintPts += pts
+    if (isSprint) m.sprintPts += pts
     else m.climbPts += pts
   })
   const winner = ranked[0]?.m
   if (winner) {
-    log.emit(
-      km,
-      tS,
-      'banner',
-      block.banner === 'meta_volante' ? 'sprint_intermediate' : 'climb_kom',
-      [winner.input.riderId],
-    )
+    log.emit(km, tS, 'banner', isSprint ? 'sprint_intermediate' : 'climb_kom', [
+      winner.input.riderId,
+    ])
   }
+}
+
+/** Puntos de una cima según su categoría, derivada de la dureza local (SPEC 6.2, 6.11). */
+function climbTable(block: Block): readonly number[] {
+  const cat = block.climbCategory
+  if (cat === 'HC') return STAGE.climbPoints.HC
+  if (cat === 'cat1') return STAGE.climbPoints.cat1
+  if (cat === 'cat2') return STAGE.climbPoints.cat2
+  if (cat === 'cat3') return STAGE.climbPoints.cat3
+  return STAGE.climbPoints.cat4
 }
 
 /** Cierra la etapa: sprint del grupo de cabeza y tiempos de todos (SPEC 6.12). */
 function finishStage(
   sims: Map<string, RiderSim>,
-  peloton: Group,
-  breakaway: Group | null,
-  caught: boolean,
+  groups: Group[],
   log: EventLog,
-  rngSprint: () => number,
+  rngSprint: Rng,
   totalKm: number,
 ): void {
-  const groups: { group: Group; members: RiderSim[] }[] = []
-  const pelotonMembers = [...sims.values()].filter((s) => s.groupId === PELOTON)
-  groups.push({ group: peloton, members: pelotonMembers })
-  if (breakaway && !caught) {
-    groups.push({
-      group: breakaway,
-      members: [...sims.values()].filter((s) => s.groupId === BREAKAWAY),
-    })
-  }
-  // El grupo de cabeza es el de menor reloj.
-  groups.sort((a, b) => a.group.tS - b.group.tS)
+  const withMembers = groups
+    .map((group) => ({ group, members: [...sims.values()].filter((s) => s.groupId === group.id) }))
+    .filter((g) => g.members.length > 0)
+  withMembers.sort((a, b) => a.group.tS - b.group.tS)
 
-  groups.forEach(({ group, members }, gi) => {
-    // Sprint del grupo: todos comparten el tiempo del grupo (SPEC 6.12).
+  withMembers.forEach(({ group, members }, gi) => {
     const ranked = members
       .map((m) => {
         const e = erosion(m.energy, m.energy0, m.input.eff0.RES)
@@ -325,7 +384,6 @@ function finishStage(
       })
       .sort((a, b) => b.score - a.score)
     ranked.forEach(({ m }, idx) => {
-      // Micro-desempate por orden de sprint dentro del mismo tiempo de grupo.
       m.finishTs = group.tS + idx * 1e-3
     })
     if (gi === 0 && ranked[0]) {
