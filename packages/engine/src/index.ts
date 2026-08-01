@@ -62,6 +62,14 @@ export {
   type TeamPhilosophy,
 } from './world/callups.js'
 export {
+  ageMarketK,
+  offerSalary,
+  offerSeasons,
+  releaseClause,
+  type ContractRole,
+  type OfferInput,
+} from './world/contracts.js'
+export {
   analyzeFlat,
   analyzeMountain,
   analyzeTimeTrial,

@@ -44,6 +44,9 @@ export function Header() {
               <Link to="/objectives" className="text-slate-600 hover:text-slate-900">
                 Objectives
               </Link>
+              <Link to="/market" className="text-slate-600 hover:text-slate-900">
+                Market
+              </Link>
               <Link to="/race-orders" className="text-slate-600 hover:text-slate-900">
                 Orders
               </Link>

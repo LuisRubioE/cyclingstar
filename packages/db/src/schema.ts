@@ -390,6 +390,58 @@ export const stageSnapshots = pgTable(
   (t) => [primaryKey({ columns: [t.raceId, t.stageDay] })],
 )
 
+export const contractRoleEnum = pgEnum('contract_role', ['lider', 'colider', 'gregario', 'libre'])
+export const offerStatusEnum = pgEnum('offer_status', [
+  'pendiente',
+  'aceptada',
+  'rechazada',
+  'expirada',
+])
+
+/** Contrato vigente de un corredor con su equipo (SPEC 7.2, Paso 36). Uno por corredor. */
+export const contracts = pgTable(
+  'contracts',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    riderId: uuid('rider_id')
+      .notNull()
+      .references(() => riders.id, { onDelete: 'cascade' }),
+    teamId: uuid('team_id')
+      .notNull()
+      .references(() => teams.id, { onDelete: 'cascade' }),
+    role: contractRoleEnum('role').notNull().default('libre'),
+    /** Salario semanal en moneda del juego. */
+    salary: integer('salary').notNull(),
+    startSeason: integer('start_season').notNull(),
+    /** Última temporada cubierta (inclusive). */
+    endSeason: integer('end_season').notNull(),
+    releaseClause: integer('release_clause').notNull().default(0),
+  },
+  (t) => [index('contracts_rider_idx').on(t.riderId), index('contracts_team_idx').on(t.teamId)],
+)
+
+/** Oferta de contrato a un corredor (bandeja de ofertas, SPEC 7.2, Paso 36). */
+export const offers = pgTable(
+  'offers',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    riderId: uuid('rider_id')
+      .notNull()
+      .references(() => riders.id, { onDelete: 'cascade' }),
+    teamId: uuid('team_id')
+      .notNull()
+      .references(() => teams.id, { onDelete: 'cascade' }),
+    season: integer('season').notNull(),
+    role: contractRoleEnum('role').notNull(),
+    salary: integer('salary').notNull(),
+    seasons: integer('seasons').notNull(),
+    releaseClause: integer('release_clause').notNull().default(0),
+    createdDay: integer('created_day').notNull(),
+    status: offerStatusEnum('status').notNull().default('pendiente'),
+  },
+  (t) => [index('offers_rider_status_idx').on(t.riderId, t.status)],
+)
+
 /** Deseos de calendario del corredor: qué carreras marca como objetivo (SPEC 7.2, Paso 35). */
 export const riderRacePrefs = pgTable(
   'rider_race_prefs',
