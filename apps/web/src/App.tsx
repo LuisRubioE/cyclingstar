@@ -7,6 +7,7 @@ import { Home } from './pages/Home'
 import { Login } from './pages/Login'
 import { RaceOrders } from './pages/RaceOrders'
 import { Register } from './pages/Register'
+import { Results } from './pages/Results'
 import { RiderProfile } from './pages/RiderProfile'
 import { RoutesPage } from './pages/Routes'
 import { Training } from './pages/Training'
@@ -58,6 +59,14 @@ export function App() {
             element={
               <ProtectedRoute>
                 <RaceOrders />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/results"
+            element={
+              <ProtectedRoute>
+                <Results />
               </ProtectedRoute>
             }
           />
