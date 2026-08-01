@@ -481,6 +481,20 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
         return { day, name: stage.name, km, run: true, altimetry, results, chronicle }
       },
     )
+
+    // Avance del mundo desde la web para pruebas (Paso 32): un usuario con sesión adelanta N días
+    // de juego con un clic, sin consola ni token. Herramienta temporal de la fase alfa; el tick
+    // automático (cron) la sustituye en producción (SPEC Paso 43).
+    if (deps.onAdminAdvance) {
+      const onAdminAdvance = deps.onAdminAdvance
+      app.post<{ Querystring: { days?: string } }>('/api/world/advance', async (request, reply) => {
+        const userId = await currentUserId(request)
+        if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
+        const days = Math.min(10, Math.max(1, Number(request.query.days ?? 1) || 1))
+        const summary = await onAdminAdvance(days)
+        return { ok: true, currentDay: summary.currentDay, daysProcessed: summary.daysProcessed }
+      })
+    }
   }
 
   // Servido de la web: por defecto se activa si existe una build con index.html.
