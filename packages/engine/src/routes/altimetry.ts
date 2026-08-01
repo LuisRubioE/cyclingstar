@@ -1,0 +1,112 @@
+/**
+ * Generador de altimetrías: de un perfil de autoría a un SVG de la etapa (SPEC, Paso 28).
+ * Puro y determinista. La elevación se integra de las pendientes de los tramos; los banners se
+ * marcan sobre la curva y la categoría de cada cima se DERIVA de la dureza del puerto (SPEC 6.2).
+ */
+import { deriveClimbCategory } from '../stage/sample.js'
+import { defaultGradient } from '../stage/sample.js'
+import type { ClimbCategory, Ramp, StageProfile } from '../stage/types.js'
+
+export interface ElevationPoint {
+  km: number
+  elevM: number
+}
+
+/** Perfil de elevación (m) integrando las pendientes de los tramos a lo largo del recorrido. */
+export function elevationProfile(profile: StageProfile): ElevationPoint[] {
+  const points: ElevationPoint[] = [{ km: 0, elevM: 0 }]
+  let km = 0
+  let elev = 0
+  for (const segment of profile.segments) {
+    const ramps: Ramp[] = segment.tramos ?? [{ km: segment.km, g: defaultGradient(segment.tipo) }]
+    let covered = 0
+    for (const ramp of ramps) {
+      km += ramp.km
+      // g% = g metros por cada 100 m = g·10 m por km.
+      elev += ramp.g * ramp.km * 10
+      points.push({ km, elevM: elev })
+      covered += ramp.km
+    }
+    // Si los tramos no cubren el segmento, el resto rueda a la pendiente por defecto.
+    const remainder = segment.km - covered
+    if (remainder > 0.001) {
+      km += remainder
+      elev += defaultGradient(segment.tipo) * remainder * 10
+      points.push({ km, elevM: elev })
+    }
+  }
+  return points
+}
+
+/** Categoría de la cima que corona un banner en `bannerKm` (o null si no es puntuable). */
+function climbCategoryAt(profile: StageProfile, bannerKm: number): ClimbCategory {
+  let start = 0
+  for (const segment of profile.segments) {
+    const end = start + segment.km
+    if (bannerKm <= end + 0.001) {
+      return segment.tramos ? deriveClimbCategory(segment.tramos) : null
+    }
+    start = end
+  }
+  return null
+}
+
+export interface AltimetryOptions {
+  width?: number
+  height?: number
+  /** Título opcional mostrado arriba a la izquierda. */
+  title?: string
+}
+
+const PAD = 24
+
+/** Etiqueta de un banner: la categoría de la cima o el icono de la meta volante. */
+function bannerLabel(profile: StageProfile, kind: 'meta_volante' | 'cima', km: number): string {
+  if (kind === 'meta_volante') return 'MV'
+  const cat = climbCategoryAt(profile, km)
+  return cat ?? 'cima'
+}
+
+/**
+ * Renderiza la altimetría de una etapa como un SVG autocontenido (SPEC Paso 28). El área bajo la
+ * curva es el relieve; las líneas verticales marcan los banners con su categoría derivada.
+ */
+export function renderAltimetrySvg(profile: StageProfile, options: AltimetryOptions = {}): string {
+  const width = options.width ?? 720
+  const height = options.height ?? 200
+  const points = elevationProfile(profile)
+  const totalKm = points[points.length - 1]?.km ?? 1
+  const minElev = Math.min(...points.map((p) => p.elevM), 0)
+  const maxElev = Math.max(...points.map((p) => p.elevM), 1)
+  const spanElev = Math.max(1, maxElev - minElev)
+
+  const toX = (km: number): number => PAD + (km / Math.max(1, totalKm)) * (width - 2 * PAD)
+  const toY = (elev: number): number =>
+    height - PAD - ((elev - minElev) / spanElev) * (height - 2 * PAD)
+
+  const curve = points.map((p) => `${toX(p.km).toFixed(1)},${toY(p.elevM).toFixed(1)}`).join(' ')
+  const area = `${toX(0).toFixed(1)},${(height - PAD).toFixed(1)} ${curve} ${toX(totalKm).toFixed(1)},${(height - PAD).toFixed(1)}`
+
+  const bannerMarks = (profile.banners ?? [])
+    .map((b) => {
+      const x = toX(b.km).toFixed(1)
+      const label = bannerLabel(profile, b.tipo, b.km)
+      const color = b.tipo === 'cima' ? '#dc2626' : '#16a34a'
+      return `<line x1="${x}" y1="${PAD}" x2="${x}" y2="${height - PAD}" stroke="${color}" stroke-width="1" stroke-dasharray="3 3" opacity="0.7"/><text x="${x}" y="${PAD - 6}" fill="${color}" font-size="11" text-anchor="middle" font-family="sans-serif">${label}</text>`
+    })
+    .join('')
+
+  const titleText = options.title
+    ? `<text x="${PAD}" y="${PAD - 8}" fill="#334155" font-size="12" font-family="sans-serif" font-weight="600">${options.title}</text>`
+    : ''
+
+  return [
+    `<svg viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Altimetría${options.title ? ` ${options.title}` : ''}">`,
+    `<polygon points="${area}" fill="#6366f1" opacity="0.18"/>`,
+    `<polyline points="${curve}" fill="none" stroke="#4f46e5" stroke-width="2"/>`,
+    bannerMarks,
+    titleText,
+    `<text x="${width - PAD}" y="${height - 6}" fill="#94a3b8" font-size="10" font-family="sans-serif" text-anchor="end">${Math.round(totalKm)} km</text>`,
+    `</svg>`,
+  ].join('')
+}

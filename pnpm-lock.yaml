@@ -68,6 +68,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@cyclingstar/engine':
+        specifier: workspace:*
+        version: link:../../packages/engine
       '@cyclingstar/shared':
         specifier: workspace:*
         version: link:../../packages/shared

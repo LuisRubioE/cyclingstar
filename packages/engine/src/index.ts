@@ -21,6 +21,13 @@ export {
 } from './stage/marcaje.js'
 export { EventLog } from './stage/events.js'
 export {
+  elevationProfile,
+  renderAltimetrySvg,
+  type AltimetryOptions,
+  type ElevationPoint,
+} from './routes/altimetry.js'
+export { TEST_TOUR, type StageKind, type TourStage } from './routes/testTour.js'
+export {
   analyzeFlat,
   analyzeMountain,
   analyzeTimeTrial,

@@ -7,6 +7,7 @@ import { Home } from './pages/Home'
 import { Login } from './pages/Login'
 import { Register } from './pages/Register'
 import { RiderProfile } from './pages/RiderProfile'
+import { RoutesPage } from './pages/Routes'
 import { Training } from './pages/Training'
 
 export function App() {
@@ -16,6 +17,7 @@ export function App() {
       <main className="mx-auto max-w-3xl px-4 py-10">
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/routes" element={<RoutesPage />} />
           <Route path="/register" element={<Register />} />
           <Route path="/login" element={<Login />} />
           <Route
