@@ -54,6 +54,31 @@ export const CREATION = {
   declineOffsetMax: 6,
 } as const
 
+/**
+ * Generación del mundo NPC (SPEC 10). Atributos ~ clamp(N(mu_rol_div, 8), 20, 95); el mu base por
+ * división y los descensos por categoría de atributo modelan el nivel de cada corredor. Los techos
+ * de los jóvenes dejan margen de mejora; los veteranos ya están hechos.
+ */
+export const NPC = {
+  // mu del atributo primario de la vocación por división (World Tour, Pro Series, Continental).
+  divisionPrimaryMu: { WT: 78, PRS: 68, CON: 60 },
+  adjacentDrop: 10,
+  restDrop: 22,
+  attrSd: 8,
+  attrMin: 20,
+  attrMax: 95,
+  // Techos por edad (SPEC 10): joven (<= 23) crece; veterano no.
+  youngAge: 23,
+  ceilingBoostMin: 5,
+  ceilingBoostMax: 30,
+  ceilingMax: 96,
+  // Distribución de edades 18..38 sesgada a 24..30 (media de una Beta reescalada).
+  ageMin: 18,
+  ageMax: 38,
+  ageBetaAlpha: 4,
+  ageBetaBeta: 4,
+} as const
+
 /** Modelo de Banister: forma como consecuencia contable de la carga (SPEC 4). */
 export const BANISTER = {
   tauFitness: 42,

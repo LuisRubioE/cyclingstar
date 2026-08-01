@@ -10,7 +10,7 @@ import {
   stageSeed,
   stageTss,
 } from '@cyclingstar/engine'
-import { ATTRIBUTES, type Attribute, seasonPosition } from '@cyclingstar/shared'
+import { ATTRIBUTES, type Attribute } from '@cyclingstar/shared'
 import { and, eq } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import { ensureTestTourField } from './npc.js'
@@ -65,8 +65,8 @@ export async function raceWorldDay(
   const stage = stageForDay(gameDay)
   if (!stage) return new Set()
 
-  // Rellena el pelotón con NPC si hace falta, para que la etapa sea una carrera de verdad (Paso 32).
-  await ensureTestTourField(tx, worldId, worldSeed, TEST_TOUR_FIELD, seasonPosition(gameDay).season)
+  // Convoca NPC del mundo si hace falta, para que la etapa sea una carrera de verdad (Paso 32/33).
+  await ensureTestTourField(tx, worldId, TEST_TOUR_FIELD)
 
   // Corredores convocados a la vuelta que pertenecen a este mundo.
   const roster = await tx

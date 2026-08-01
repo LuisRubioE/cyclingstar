@@ -1,0 +1,254 @@
+import { randomUUID } from 'node:crypto'
+import { type Division, type NpcGenome, generateNpcRider, sampleNpcAge } from '@cyclingstar/engine'
+import {
+  ATTRIBUTES,
+  type Attribute,
+  VOCATIONS,
+  type Vocation,
+  seededRng,
+} from '@cyclingstar/shared'
+import { eq, sql } from 'drizzle-orm'
+import { drizzle } from 'drizzle-orm/postgres-js'
+import { riderAttrs, riderHidden, riders, teams } from './schema.js'
+import { generateName } from './names.js'
+
+/**
+ * Génesis del mundo NPC (SPEC 10, Paso 33). Equipos en tres divisiones y ~1.600 corredores,
+ * reproducibles desde `worldSeed`. `planWorld` es el plan puro (determinista, testeable);
+ * `seedWorld` lo inserta por lotes. Debut a los 20; en la génesis (temporada 0) birthSeason = 20-edad.
+ */
+
+type Db = ReturnType<typeof drizzle>
+type Tx = Parameters<Parameters<Db['transaction']>[0]>[0]
+
+const DEBUT_AGE = 20
+type Philosophy = 'general' | 'sprints' | 'clasicas' | 'cantera' | 'equilibrado'
+
+interface DivisionPlan {
+  division: Division
+  teams: number
+  roster: number
+  budgetBase: number
+}
+const DIVISIONS: DivisionPlan[] = [
+  { division: 'WT', teams: 18, roster: 14, budgetBase: 5_000_000 },
+  { division: 'PRS', teams: 15, roster: 12, budgetBase: 2_000_000 },
+  { division: 'CON', teams: 24, roster: 10, budgetBase: 700_000 },
+]
+const TARGET_POPULATION = 1600
+
+const COUNTRIES = [
+  'FR',
+  'IT',
+  'ES',
+  'BE',
+  'GB',
+  'DE',
+  'NL',
+  'US',
+  'CO',
+  'DK',
+  'NO',
+  'PT',
+  'SI',
+  'AU',
+]
+const PHILOSOPHIES: Philosophy[] = ['general', 'sprints', 'clasicas', 'cantera', 'equilibrado']
+const TEAM_PREFIX = [
+  'Alpe',
+  'Vento',
+  'Astra',
+  'Borealis',
+  'Corsa',
+  'Meridian',
+  'Solaris',
+  'Zenith',
+  'Aquila',
+  'Ferro',
+  'Lumen',
+  'Verde',
+  'Onda',
+  'Tramo',
+  'Cima',
+  'Rueda',
+]
+const TEAM_SUFFIX = [
+  'Racing',
+  'Cycling',
+  'ProTeam',
+  'Squadra',
+  'Collective',
+  'Continental',
+  'Devo',
+  'Sport',
+]
+
+function pick<T>(arr: readonly T[], rng: () => number): T {
+  return arr[Math.floor(rng() * arr.length)]!
+}
+
+export interface TeamPlan {
+  id: string
+  name: string
+  division: Division
+  budget: number
+  philosophy: Philosophy
+  jerseySeed: string
+  facilities: number
+}
+
+export interface RiderPlan {
+  id: string
+  teamId: string | null
+  name: string
+  country: string
+  gender: 'M'
+  archetype: Vocation
+  birthSeason: number
+  attributes: Record<Attribute, number>
+  hidden: NpcGenome['hidden']
+}
+
+export interface WorldPlan {
+  teams: TeamPlan[]
+  riders: RiderPlan[]
+}
+
+function buildRider(
+  worldSeed: string,
+  index: number,
+  division: Division,
+  teamId: string | null,
+): RiderPlan {
+  const seed = `${worldSeed}:rider:${index}`
+  const rng = seededRng(`${seed}:meta`)
+  const archetype = pick(VOCATIONS, rng)
+  const country = pick(COUNTRIES, rng)
+  const age = sampleNpcAge(`${seed}:age`)
+  const genome = generateNpcRider(`${seed}:genome`, { division, vocation: archetype, age })
+  const name = generateName(`${seed}:name`, { country, gender: 'M' }).fullName
+  return {
+    id: randomUUID(),
+    teamId,
+    name,
+    country,
+    gender: 'M',
+    archetype,
+    // Génesis en temporada 0: birthSeason = 20 - edad (envejece un año por temporada).
+    birthSeason: DEBUT_AGE - age,
+    attributes: genome.attributes,
+    hidden: genome.hidden,
+  }
+}
+
+/** Plan completo y reproducible del mundo: equipos y corredores (SPEC 10). Puro y determinista. */
+export function planWorld(worldSeed: string): WorldPlan {
+  const teamPlans: TeamPlan[] = []
+  const riderPlans: RiderPlan[] = []
+  let riderIndex = 0
+
+  for (const div of DIVISIONS) {
+    for (let t = 0; t < div.teams; t++) {
+      const seed = `${worldSeed}:team:${div.division}:${t}`
+      const rng = seededRng(seed)
+      const id = randomUUID()
+      const name = `${pick(TEAM_PREFIX, rng)} ${pick(TEAM_SUFFIX, rng)}`
+      const budget = Math.round(div.budgetBase * (0.6 + 0.8 * rng()))
+      const facilities = 0.9 + rng() * 0.3 // K_inst [0.90, 1.20]
+      teamPlans.push({
+        id,
+        name,
+        division: div.division,
+        budget,
+        philosophy: pick(PHILOSOPHIES, rng),
+        jerseySeed: `${seed}:jersey`,
+        facilities,
+      })
+      for (let r = 0; r < div.roster; r++) {
+        riderPlans.push(buildRider(worldSeed, riderIndex++, div.division, id))
+      }
+    }
+  }
+
+  // Agentes libres (sin equipo) para el mercado, hasta ~1.600 corredores.
+  while (riderPlans.length < TARGET_POPULATION) {
+    riderPlans.push(buildRider(worldSeed, riderIndex++, 'CON', null))
+  }
+
+  return { teams: teamPlans, riders: riderPlans }
+}
+
+/** Inserta por lotes el plan del mundo. Idempotente: no hace nada si el mundo ya tiene equipos. */
+export async function seedWorld(tx: Tx, worldId: string, worldSeed: string): Promise<void> {
+  const existing = await tx
+    .select({ n: sql<number>`count(*)::int` })
+    .from(teams)
+    .where(eq(teams.worldId, worldId))
+  if ((existing[0]?.n ?? 0) > 0) return
+
+  const plan = planWorld(worldSeed)
+
+  await insertChunked(
+    plan.teams.map((t) => ({
+      id: t.id,
+      worldId,
+      name: t.name,
+      division: t.division,
+      budget: t.budget,
+      philosophy: t.philosophy,
+      jerseySeed: t.jerseySeed,
+      facilities: t.facilities,
+    })),
+    200,
+    (chunk) => tx.insert(teams).values(chunk),
+  )
+
+  await insertChunked(
+    plan.riders.map((r) => ({
+      id: r.id,
+      worldId,
+      userId: null,
+      teamId: r.teamId,
+      name: r.name,
+      country: r.country,
+      gender: r.gender,
+      birthSeason: r.birthSeason,
+      archetype: r.archetype,
+      faceSeed: `${r.id}:face`,
+      ctl: 45,
+      atl: 45,
+      morale: 60,
+    })),
+    400,
+    (chunk) => tx.insert(riders).values(chunk),
+  )
+
+  const attrValues = plan.riders.flatMap((r) =>
+    ATTRIBUTES.map((attr) => ({ riderId: r.id, attr, value: r.attributes[attr] })),
+  )
+  await insertChunked(attrValues, 2000, (chunk) => tx.insert(riderAttrs).values(chunk))
+
+  await insertChunked(
+    plan.riders.map((r) => ({
+      riderId: r.id,
+      talent: r.hidden.talent,
+      ceilings: r.hidden.ceilings,
+      fragility: r.hidden.fragility,
+      peakAge: r.hidden.peakAge,
+      declineAge: r.hidden.declineAge,
+    })),
+    500,
+    (chunk) => tx.insert(riderHidden).values(chunk),
+  )
+}
+
+/** Inserta un array en lotes para no exceder el límite de parámetros de Postgres. */
+async function insertChunked<T>(
+  rows: T[],
+  size: number,
+  insert: (chunk: T[]) => Promise<unknown>,
+): Promise<void> {
+  for (let i = 0; i < rows.length; i += size) {
+    await insert(rows.slice(i, i + size))
+  }
+}

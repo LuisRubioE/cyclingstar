@@ -158,6 +158,37 @@ export const attributeEnum = pgEnum('rider_attribute', [
   'TAC',
 ])
 
+export const divisionEnum = pgEnum('team_division', ['WT', 'PRS', 'CON'])
+export const teamNameStatusEnum = pgEnum('team_name_status', ['pendiente', 'aprobado', 'rechazado'])
+export const philosophyEnum = pgEnum('team_philosophy', [
+  'general',
+  'sprints',
+  'clasicas',
+  'cantera',
+  'equilibrado',
+])
+
+/** Equipos NPC y de usuarios en tres divisiones (SPEC 7.1, 11, Paso 33). */
+export const teams = pgTable(
+  'teams',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    worldId: uuid('world_id')
+      .notNull()
+      .references(() => worlds.id),
+    name: text('name').notNull(),
+    nameStatus: teamNameStatusEnum('name_status').notNull().default('aprobado'),
+    ownerUserId: uuid('owner_user_id').references(() => users.id), // null = NPC
+    division: divisionEnum('division').notNull(),
+    budget: integer('budget').notNull().default(0),
+    philosophy: philosophyEnum('philosophy').notNull(),
+    jerseySeed: text('jersey_seed').notNull(),
+    facilities: real('facilities').notNull().default(1),
+    pointsSeason: integer('points_season').notNull().default(0),
+  },
+  (t) => [index('teams_world_division_idx').on(t.worldId, t.division)],
+)
+
 /** El ciclista (SPEC 11). `team_id` queda sin FK hasta que exista `teams`. */
 export const riders = pgTable(
   'riders',
