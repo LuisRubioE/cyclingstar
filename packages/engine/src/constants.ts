@@ -3,8 +3,8 @@
  * Cada constante se documenta con su intención y todo cambio se anota en docs/balance.md
  * con la razón y la corrida de Montecarlo que lo justifica.
  *
- * Paso 3: solo se fija la convención y la versión del motor. Las constantes del SPEC 6
- * (ley de velocidad, drafting, cerillos, erosión, intensidades...) se poblarán en el Paso 21.
+ * Paso 21: se pueblan las constantes del SPEC 6 (STAGE): resolución, ley de velocidad,
+ * drafting, cerillos, erosión, intensidades de riesgo y finales.
  */
 
 /**
@@ -118,4 +118,192 @@ export const TRAINING = {
   // Enfermedad: días fuera (SPEC 4.3).
   illDaysMin: 2,
   illDaysMax: 6,
+} as const
+
+/**
+ * Motor de etapa por bloques de 100 metros (SPEC 6). Todo el azar entra por intensidades
+ * `λ` (eventos/km), nunca por probabilidades por bloque: p_bloque = 1 - exp(-λ·dx) (6.8).
+ * Las aceleraciones se expresan en km/h por segundo, jamás por bloque (misma doctrina de
+ * invariancia de resolución). Cada perilla se anota en docs/balance.md.
+ */
+export const STAGE = {
+  // Paso de integración fijo: 0.1 km = 100 m. Una etapa de 180 km son 1.800 bloques (6.1).
+  dx: 0.1,
+
+  // 6.4 — Ley de velocidad.
+  // w(g) = clamp((g - 2) / 6, 0.15, 1.0): peso del atributo de subida frente al de llano.
+  wGradientOffset: 2,
+  wGradientScale: 6,
+  wMin: 0.15,
+  wMax: 1.0,
+  // Muro: subida total <= 2,5 km con g >= 8 -> el atributo de subida es COL en vez de MON.
+  wallMaxKm: 2.5,
+  wallMinGradient: 8,
+  // Rompepiernas rueda como llano pero con g = 1.5 en la ley (6.4).
+  rollingGradient: 1.5,
+  // Paves: 0.6·eff(PAV) + 0.4·eff(LLA).
+  pavesPavWeight: 0.6,
+  pavesLlaWeight: 0.4,
+  // vRef(g) km/h: subida clamp(44 - 2.7·g, 14, 44) | llano 44 | paves 38 | descenso 55.
+  vRefFlat: 44,
+  vRefClimbBase: 44,
+  vRefClimbSlope: 2.7,
+  vRefClimbMin: 14,
+  vRefPaves: 38,
+  vRefDescent: 55,
+  // ritmo(c) = 0.90 + 0.35·c, con c = compromiso del grupo (0 tempo, 1 a bloque).
+  rhythmBase: 0.9,
+  rhythmScale: 0.35,
+  // v_objetivo = vRef(g)·(P75/75)^0.34·ritmo(c).
+  p75Reference: 75,
+  p75Exponent: 0.34,
+  // Inercia: aceleraciones acotadas en km/h por segundo, asimétricas (6.4).
+  accPedal: 0.4,
+  accGrav: 1.5,
+  accGravGradient: -2,
+  accFinal: 1.5,
+  decMax: 3.0,
+  matchAccMultiplier: 2.5,
+  // Velocidad inicial del grupo tras la salida neutralizada (6.3).
+  initialSpeed: 35,
+  captureGapSeconds: 5,
+
+  // 6.5 — Coste, tanque y drafting.
+  // costeBase paves: 0.55 + 0.06·estrellas.
+  costPavesBase: 0.55,
+  costPavesStars: 0.06,
+  // costeBase por pendiente: g<=-3 -> 0.10 | -3<g<0 -> lerp(0.10, 0.30) | g>=0 -> 0.30 + 0.11·g.
+  costDescentFloor: 0.1,
+  costFlatBase: 0.3,
+  costClimbSlope: 0.11,
+  costDescentGradient: -3,
+  // draftMax por terreno: llano 0.32 | descenso 0.25 | paves 0.18 | subida clamp(0.32 - 0.028·g, 0.08, 0.32).
+  draftFlat: 0.32,
+  draftDescent: 0.25,
+  draftPaves: 0.18,
+  draftClimbBase: 0.32,
+  draftClimbSlope: 0.028,
+  draftClimbMin: 0.08,
+  // shelter_i: protegido 0.9 | rotando/trabajando 0.4 | fugado que releva 0.5 | solo 0.0.
+  shelterProtected: 0.9,
+  shelterWorking: 0.4,
+  shelterRelay: 0.5,
+  shelterAlone: 0.0,
+  // coste = dx·costeBase·ritmo(c)^1.6·(1 - draftMax·shelter).
+  costRhythmExponent: 1.6,
+
+  // 6.6 — Cerillos (esfuerzos supraumbral discretos).
+  // comp = 0.50·max(MON,COL) + 0.30·RES + 0.20·LLA; cerillos = 2 + (comp>=55)+(>=72)+(>=88).
+  matchCompMonWeight: 0.5,
+  matchCompResWeight: 0.3,
+  matchCompLlaWeight: 0.2,
+  matchBase: 2,
+  matchThresholds: [55, 72, 88],
+  matchMin: 1,
+  matchTsbPenaltyThreshold: -25,
+  matchCost: 5,
+  matchBonus: 10,
+  matchBonusBlocks: 5,
+  // Vaciado profundo: quien termina con E < 0.12·E0 arranca con un cerillo menos (6.6).
+  matchDepletionThreshold: 0.12,
+
+  // 6.7 — Erosión por vaciado (durabilidad).
+  // depl = clamp(1 - E/E0, 0, 1); umbral = 0.35 + 0.40·RES/100.
+  erosionThresholdBase: 0.35,
+  erosionThresholdResScale: 0.4,
+  erosionExponent: 1.2,
+  // coefErosion por atributo.
+  erosionCoef: {
+    SPR: 0.45,
+    COL: 0.35,
+    MON: 0.3,
+    LLA: 0.25,
+    CRI: 0.25,
+    PAV: 0.2,
+    TAC: 0.15,
+    DES: 0.1,
+  },
+  // Pájara: E <= 0 -> atributos físicos · 0.55 y descuelgue automático.
+  bonkFactor: 0.55,
+
+  // 6.8 — Intensidades de riesgo (eventos/km). Ajustables desde docs/balance.md.
+  lambdaBreakawayAttack: 1.2,
+  lambdaCounterAttack: 0.02,
+  lambdaBridge: 0.08,
+  bridgeGapMinSeconds: 30,
+  bridgeGapMaxSeconds: 150,
+  lambdaClimbAttack: 0.1,
+  lambdaDropBase: 0.9,
+  // 6.10 — Fuga: consolida si el compromiso del pelotón < 0.25 durante 2 km.
+  breakawayCommitThreshold: 0.25,
+  breakawayConsolidateKm: 2,
+  breakawayScoreTac: 0.4,
+  breakawayScoreLla: 0.3,
+  breakawayScoreRng: 0.3,
+  breakawaySkipSprThreshold: 70,
+  breakawaySkipEnergyFraction: 0.4,
+  breakawayTensionPerKm: 0.4,
+  breakawayTensionThreshold: 6,
+  breakawayTensionCoopFactor: 0.7,
+  breakawayTensionAttackFactor: 3,
+
+  // 6.9 — El pelotón como controlador (decisiones cada 10 bloques, con histéresis).
+  decisionEveryBlocks: 10,
+  chaseFeasibleSecondsPerKm: 8,
+  chaseCatchTargetKm: 12,
+  commitHysteresis: 0.4,
+  commitIdle: 0.1,
+  gcThreatFraction: 0.6,
+
+  // 6.11 — Banners: metas volantes y cimas puntuables.
+  bannerCost: 2,
+  // Derivación de categoría de cima: score = sum(km_i·g_i^2) con g_i > 2.
+  climbScoreMinGradient: 2,
+  climbCatThresholds: { cat4: 40, cat3: 120, cat2: 300, cat1: 600, hc: 1000 },
+  sprintPoints: [20, 15, 12, 10, 8, 6, 4, 2],
+  climbPoints: {
+    HC: [20, 15, 12, 10, 8, 6, 4, 2],
+    cat1: [10, 8, 6, 4, 2, 1],
+    cat2: [5, 3, 2, 1],
+    cat3: [2, 1],
+    cat4: [1],
+  },
+
+  // 6.12 — Últimos 2 km (20 bloques) y finales.
+  finalBlocks: 20,
+  sprintScoreNoiseSd: 0.045,
+  lambdaLateAttack: 0.5,
+  lateAttackKm: 3,
+  bigGroupThreshold: 25,
+  hilltopFinishKm: 3,
+  hilltopFinishGradient: 5,
+
+  // 6.13 — CRI/cronoescalada/CRE.
+  ttCommitment: 0.85,
+  ttNoiseSd: 0.006,
+  ttCompositeCri: 0.75,
+  ttCompositeLla: 0.15,
+  ttCompositeRes: 0.1,
+  teamTtShelter: 0.5,
+  teamTtPaceRider: 4,
+  teamTtPaceFactor: 0.98,
+
+  // 6.14 — Caídas e incidentes.
+  crashBaseFlat: 0.025,
+  crashBaseMedium: 0.018,
+  crashBaseMountain: 0.022,
+  crashBasePaves: 0.07,
+  crashBaseTt: 0.008,
+  crashErosionScale: 0.5,
+  crashSkillScale: 0.35,
+  // severidad: 60% sin daño (30-90 s) | 30% rasguños (eff -3%, 3-6 d) | 9% leve (5-15 d) | 1% grave (20-60 d).
+  crashSeverity: {
+    none: 0.6,
+    scratches: 0.3,
+    minor: 0.09,
+    major: 0.01,
+  },
+
+  // 6.15 — Bonificaciones de tiempo en meta.
+  timeBonuses: [10, 6, 4],
 } as const
