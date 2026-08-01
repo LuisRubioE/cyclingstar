@@ -2,6 +2,7 @@ import { Route, Routes } from 'react-router-dom'
 import { Header } from './components/Header'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { Account } from './pages/Account'
+import { Calendar } from './pages/Calendar'
 import { CreateRider } from './pages/CreateRider'
 import { Home } from './pages/Home'
 import { Login } from './pages/Login'
@@ -20,6 +21,7 @@ export function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/routes" element={<RoutesPage />} />
+          <Route path="/calendar" element={<Calendar />} />
           <Route path="/register" element={<Register />} />
           <Route path="/login" element={<Login />} />
           <Route

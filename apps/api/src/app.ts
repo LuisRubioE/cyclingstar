@@ -31,6 +31,7 @@ import {
 import {
   ENGINE_VERSION,
   type AltimetryMarker,
+  SEASON_CALENDAR,
   type StageInput,
   TEST_TOUR,
   formStars,
@@ -429,6 +430,27 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
       banner: 'banner',
       meta: 'finish',
     }
+    // Calendario de temporada autorizado (Paso 34): 28 carreras con sus etapas cargadas.
+    app.get('/api/calendar', async () => {
+      const races = SEASON_CALENDAR.map((race) => ({
+        id: race.id,
+        name: race.name,
+        level: race.level,
+        format: race.format,
+        startDay: race.startDay,
+        openTo: race.openTo,
+        stages: race.stages.map((stage) => ({
+          index: stage.index,
+          name: stage.name,
+          label: stage.label,
+          kind: stage.kind,
+          km: Math.round(stage.profile.segments.reduce((sum, s) => sum + s.km, 0)),
+          timeTrial: stage.timeTrial ?? false,
+        })),
+      }))
+      return { races }
+    })
+
     // General de la vuelta + estado de cada etapa (corrida o no).
     app.get('/api/races/test-tour/results', async (request, reply) => {
       const userId = await currentUserId(request)
