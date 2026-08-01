@@ -8,6 +8,7 @@ import { Finances } from './pages/Finances'
 import { Home } from './pages/Home'
 import { Login } from './pages/Login'
 import { Market } from './pages/Market'
+import { News } from './pages/News'
 import { Objectives } from './pages/Objectives'
 import { RaceOrders } from './pages/RaceOrders'
 import { Register } from './pages/Register'
@@ -25,6 +26,7 @@ export function App() {
           <Route path="/" element={<Home />} />
           <Route path="/routes" element={<RoutesPage />} />
           <Route path="/calendar" element={<Calendar />} />
+          <Route path="/news" element={<News />} />
           <Route path="/register" element={<Register />} />
           <Route path="/login" element={<Login />} />
           <Route

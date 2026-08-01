@@ -11,9 +11,10 @@ import {
   stageTss,
 } from '@cyclingstar/engine'
 import { ATTRIBUTES, type Attribute } from '@cyclingstar/shared'
-import { and, asc, eq } from 'drizzle-orm'
+import { and, asc, eq, inArray } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import { awardRacePrizes } from './economy.js'
+import { emitNews } from './news.js'
 import { ensureTestTourField } from './npc.js'
 import {
   raceGc,
@@ -269,15 +270,53 @@ export async function raceWorldDay(
         .where(eq(raceGc.raceId, TEST_TOUR_ID))
         .orderBy(asc(raceGc.tiempoTotalS))
     ).map((r) => r.riderId)
-    await awardRacePrizes(
-      tx,
-      gameDay,
-      'WT',
-      'Test tour',
-      stageWinner.riderId,
-      stage.day === lastDay,
-      gcOrder,
+    const isFinal = stage.day === lastDay
+    await awardRacePrizes(tx, gameDay, 'WT', 'Test tour', stageWinner.riderId, isFinal, gcOrder)
+
+    // Noticias de la etapa (Paso 39): ganador, líder de la montaña y, en la última, la general.
+    const RACE_NAME = 'Test tour'
+    const komLeader = [...output.results]
+      .filter((r) => r.puntosMontana > 0)
+      .sort((a, b) => b.puntosMontana - a.puntosMontana)[0]
+    const brokeAway =
+      output.events.some((e) => e.tipo === 'fuga_formada') &&
+      !output.events.some((e) => e.tipo === 'fuga_cazada')
+    const nameIds = [stageWinner.riderId, komLeader?.riderId, gcOrder[0]].filter(
+      (id): id is string => Boolean(id),
     )
+    const nameRows = await tx
+      .select({ id: riders.id, name: riders.name })
+      .from(riders)
+      .where(inArray(riders.id, nameIds))
+    const nameOf = (id: string): string => nameRows.find((r) => r.id === id)?.name ?? 'A rider'
+    const seedBase = `${gameDay}:${stage.day}`
+
+    await emitNews(tx, {
+      worldId,
+      gameDay,
+      kind: brokeAway ? 'breakaway_win' : 'stage_win',
+      seed: `win:${seedBase}`,
+      data: { rider: nameOf(stageWinner.riderId), race: RACE_NAME, stage: stage.day },
+    })
+    if (komLeader && (stage.kind === 'reina' || stage.kind === 'media')) {
+      await emitNews(tx, {
+        worldId,
+        gameDay,
+        kind: 'kom',
+        seed: `kom:${seedBase}`,
+        data: { rider: nameOf(komLeader.riderId), race: RACE_NAME, stage: stage.day },
+      })
+    }
+    const gcWinnerId = gcOrder[0]
+    if (isFinal && gcWinnerId) {
+      await emitNews(tx, {
+        worldId,
+        gameDay,
+        kind: 'gc_win',
+        seed: `gc:${seedBase}`,
+        data: { rider: nameOf(gcWinnerId), race: RACE_NAME },
+      })
+    }
   }
 
   return raced

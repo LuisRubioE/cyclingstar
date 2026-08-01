@@ -71,6 +71,13 @@
       "when": 1785618935904,
       "tag": "0009_watery_fabian_cortez",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1785619392071,
+      "tag": "0010_dapper_living_tribunal",
+      "breakpoints": true
     }
   ]
 }
