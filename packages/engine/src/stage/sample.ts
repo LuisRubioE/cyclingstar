@@ -23,6 +23,11 @@ const DEFAULT_GRADIENT: Record<SegmentTerrain, number> = {
   paves: 0,
 }
 
+/** Pendiente por defecto de un tipo de terreno (para la altimetría cuando no hay tramos). */
+export function defaultGradient(tipo: SegmentTerrain): number {
+  return DEFAULT_GRADIENT[tipo]
+}
+
 /** Mapa del terreno de autoría al terreno físico de la ley de velocidad (SPEC 6.4). */
 function blockTerrain(tipo: SegmentTerrain): BlockTerrain {
   switch (tipo) {
