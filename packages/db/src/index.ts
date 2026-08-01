@@ -19,6 +19,5 @@ export {
   getCurrentWorld,
   getRiderForUser,
   type CreateRiderInput,
-  type PublicRider,
   type RiderHiddenInput,
 } from './riders.js'

@@ -60,6 +60,17 @@ export const VOCATION_PROFILES: Record<Vocation, VocationProfile> = {
 export const GENDERS = ['M', 'F'] as const
 export type Gender = (typeof GENDERS)[number]
 
+/** Vista pública del ciclista propio (contrato api/web). Valores internos solo para estrellas. */
+export interface PublicRider {
+  id: string
+  name: string
+  country: string
+  gender: Gender
+  archetype: Vocation
+  birthSeason: number
+  attributes: Record<Attribute, number>
+}
+
 /**
  * Mapeo a estrellas de media en media (SPEC 3.2): stars(x) = clamp(round(x/10)/2, 0.5, 5).
  * El jugador ve estrellas, jamás el número interno.

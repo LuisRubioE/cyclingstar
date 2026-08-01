@@ -2,9 +2,11 @@ import { Route, Routes } from 'react-router-dom'
 import { Header } from './components/Header'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { Account } from './pages/Account'
+import { CreateRider } from './pages/CreateRider'
 import { Home } from './pages/Home'
 import { Login } from './pages/Login'
 import { Register } from './pages/Register'
+import { RiderProfile } from './pages/RiderProfile'
 
 export function App() {
   return (
@@ -20,6 +22,22 @@ export function App() {
             element={
               <ProtectedRoute>
                 <Account />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/create"
+            element={
+              <ProtectedRoute>
+                <CreateRider />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/rider"
+            element={
+              <ProtectedRoute>
+                <RiderProfile />
               </ProtectedRoute>
             }
           />

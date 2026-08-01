@@ -22,7 +22,7 @@ export function Register() {
       setError(result.error.message ?? 'Could not create your account.')
       return
     }
-    navigate('/account')
+    navigate('/rider')
   }
 
   return (

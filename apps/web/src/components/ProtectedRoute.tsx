@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { Navigate } from 'react-router-dom'
 import { authClient } from '../auth/client'
 
-/** Guarda de rutas: exige sesión iniciada; si no, redirige a /acceso. */
+/** Guarda de rutas: exige sesión iniciada; si no, redirige a /login. */
 export function ProtectedRoute({ children }: { children: ReactNode }) {
   const { data, isPending } = authClient.useSession()
 
@@ -10,7 +10,7 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
     return <p className="text-slate-500">Loading…</p>
   }
   if (!data) {
-    return <Navigate to="/acceso" replace />
+    return <Navigate to="/login" replace />
   }
   return <>{children}</>
 }

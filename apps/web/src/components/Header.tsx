@@ -31,8 +31,8 @@ export function Header() {
 
         <nav className="flex items-center gap-4 text-sm">
           {data ? (
-            <Link to="/account" className="font-medium text-slate-700 hover:text-slate-900">
-              My account
+            <Link to="/rider" className="font-medium text-slate-700 hover:text-slate-900">
+              My rider
             </Link>
           ) : (
             <>

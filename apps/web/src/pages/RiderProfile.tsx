@@ -1,0 +1,69 @@
+import {
+  ATTRIBUTES,
+  ATTRIBUTE_LABELS,
+  COUNTRIES,
+  VOCATION_LABELS,
+  stars,
+} from '@cyclingstar/shared'
+import { useQuery } from '@tanstack/react-query'
+import { Link } from 'react-router-dom'
+import { fetchMyRider } from '../api/rider'
+import { StarRating } from '../components/StarRating'
+
+export function RiderProfile() {
+  const {
+    data: rider,
+    isPending,
+    isError,
+  } = useQuery({ queryKey: ['rider', 'me'], queryFn: fetchMyRider })
+
+  if (isPending) return <p className="text-slate-500">Loading…</p>
+  if (isError) return <p className="text-red-600">Could not load your rider.</p>
+
+  if (!rider) {
+    return (
+      <section className="mx-auto max-w-md space-y-4 text-center">
+        <h1 className="text-2xl font-bold tracking-tight">No rider yet</h1>
+        <p className="text-slate-600">Create your rider to enter the world.</p>
+        <Link
+          to="/create"
+          className="inline-block rounded-lg bg-indigo-600 px-4 py-2.5 font-medium text-white transition hover:bg-indigo-500"
+        >
+          Create your rider
+        </Link>
+      </section>
+    )
+  }
+
+  const country = COUNTRIES.find((c) => c.code === rider.country)
+
+  return (
+    <section className="space-y-8">
+      <header className="flex items-center gap-3">
+        <span className="text-3xl" aria-hidden>
+          {country?.flag ?? '🏳️'}
+        </span>
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">{rider.name}</h1>
+          <p className="text-sm text-slate-500">
+            {VOCATION_LABELS[rider.archetype]} · {country?.name ?? rider.country}
+          </p>
+        </div>
+      </header>
+
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-400">Attributes</h2>
+        <dl className="mt-3 grid grid-cols-1 gap-x-8 gap-y-3 sm:grid-cols-2">
+          {ATTRIBUTES.map((attr) => (
+            <div key={attr} className="flex items-center justify-between gap-4">
+              <dt className="text-sm text-slate-600">{ATTRIBUTE_LABELS[attr]}</dt>
+              <dd>
+                <StarRating value={stars(rider.attributes[attr] ?? 0)} />
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+    </section>
+  )
+}

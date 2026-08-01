@@ -1,4 +1,10 @@
-import { type Attribute, ATTRIBUTES, type Gender, type Vocation } from '@cyclingstar/shared'
+import {
+  type Attribute,
+  ATTRIBUTES,
+  type Gender,
+  type PublicRider,
+  type Vocation,
+} from '@cyclingstar/shared'
 import { eq } from 'drizzle-orm'
 import type { Database } from './client.js'
 import { gameState, riderAttrs, riderHidden, riders } from './schema.js'
@@ -28,17 +34,6 @@ export interface CreateRiderInput {
   faceSeed: string
   attributes: Record<Attribute, number>
   hidden: RiderHiddenInput
-}
-
-export interface PublicRider {
-  id: string
-  name: string
-  country: string
-  gender: Gender
-  archetype: Vocation
-  birthSeason: number
-  /** Valores internos [1,99]; la web solo los renderiza como estrellas, nunca como número. */
-  attributes: Record<Attribute, number>
 }
 
 /** Mundo actual y día de juego (o null si aún no hubo génesis). */
