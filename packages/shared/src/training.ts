@@ -1,0 +1,122 @@
+import type { Attribute } from './rider.js'
+
+/**
+ * Catálogo de sesiones de entrenamiento (SPEC 5.1) y plan por defecto del entrenador.
+ * Puro y compartido: la web lo usa en el planificador y el tick para calcular carga y ganancias.
+ */
+
+export const INTENSITIES = ['suave', 'normal', 'fuerte'] as const
+export type Intensity = (typeof INTENSITIES)[number]
+
+export const INTENSITY_LABELS: Record<Intensity, string> = {
+  suave: 'Easy',
+  normal: 'Normal',
+  fuerte: 'Hard',
+}
+
+export const SESSIONS = [
+  'descanso_total',
+  'descanso_activo',
+  'fondo',
+  'umbral',
+  'puertos',
+  'sprint',
+  'crono',
+  'bajada_paves',
+  'gimnasio',
+  'video_tactica',
+  'viaje',
+] as const
+export type Session = (typeof SESSIONS)[number]
+
+export interface SessionInfo {
+  label: string
+  /** Carga TSS por intensidad. En sesiones de intensidad fija los tres valores coinciden. */
+  tss: Record<Intensity, number>
+  /** Ganancia base G (puntos internos/día) por atributo, intensidad normal (SPEC 5.1). */
+  gains: Partial<Record<Attribute, number>>
+  /** Si la intensidad (suave/normal/fuerte) altera la carga. */
+  variableIntensity: boolean
+}
+
+function fixed(value: number): Record<Intensity, number> {
+  return { suave: value, normal: value, fuerte: value }
+}
+
+export const SESSION_CATALOG: Record<Session, SessionInfo> = {
+  descanso_total: { label: 'Full rest', tss: fixed(0), gains: {}, variableIntensity: false },
+  descanso_activo: { label: 'Active rest', tss: fixed(25), gains: {}, variableIntensity: false },
+  fondo: {
+    label: 'Endurance ride',
+    tss: { suave: 70, normal: 90, fuerte: 110 },
+    gains: { RES: 0.45, LLA: 0.15 },
+    variableIntensity: true,
+  },
+  umbral: {
+    label: 'Threshold',
+    tss: { suave: 85, normal: 105, fuerte: 125 },
+    gains: { LLA: 0.4, COL: 0.2 },
+    variableIntensity: true,
+  },
+  puertos: {
+    label: 'Climbing',
+    tss: { suave: 90, normal: 115, fuerte: 140 },
+    gains: { MON: 0.45, RES: 0.15 },
+    variableIntensity: true,
+  },
+  sprint: {
+    label: 'Sprint intervals',
+    tss: { suave: 60, normal: 75, fuerte: 90 },
+    gains: { SPR: 0.45, COL: 0.1 },
+    variableIntensity: true,
+  },
+  crono: {
+    label: 'Time-trial work',
+    tss: { suave: 60, normal: 80, fuerte: 100 },
+    gains: { CRI: 0.45 },
+    variableIntensity: true,
+  },
+  bajada_paves: {
+    label: 'Descending & cobbles',
+    tss: { suave: 55, normal: 70, fuerte: 85 },
+    gains: { DES: 0.3, PAV: 0.3 },
+    variableIntensity: true,
+  },
+  gimnasio: { label: 'Gym', tss: fixed(50), gains: { SPR: 0.2 }, variableIntensity: false },
+  video_tactica: {
+    label: 'Video & tactics',
+    tss: fixed(10),
+    gains: { TAC: 0.3 },
+    variableIntensity: false,
+  },
+  viaje: { label: 'Travel', tss: fixed(15), gains: {}, variableIntensity: false },
+}
+
+export interface TrainingChoice {
+  session: Session
+  intensity: Intensity
+}
+
+/**
+ * Plan del entrenador por defecto cuando no hay orden del jugador (SPEC 5.2): razonable,
+ * nunca óptimo. Rota una microsemana según el día de juego.
+ */
+const DEFAULT_WEEK: TrainingChoice[] = [
+  { session: 'fondo', intensity: 'normal' },
+  { session: 'umbral', intensity: 'normal' },
+  { session: 'descanso_activo', intensity: 'normal' },
+  { session: 'puertos', intensity: 'normal' },
+  { session: 'descanso_activo', intensity: 'normal' },
+  { session: 'fondo', intensity: 'fuerte' },
+  { session: 'descanso_total', intensity: 'normal' },
+]
+
+export function defaultCoachPlan(gameDay: number): TrainingChoice {
+  const index = ((gameDay % 7) + 7) % 7
+  return DEFAULT_WEEK[index] ?? { session: 'descanso_activo', intensity: 'normal' }
+}
+
+/** Carga TSS de una elección de entrenamiento. */
+export function sessionTss(choice: TrainingChoice): number {
+  return SESSION_CATALOG[choice.session].tss[choice.intensity]
+}

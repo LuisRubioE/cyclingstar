@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 import { gameState, tickLog, worlds } from './schema.js'
+import { trainWorldDay } from './train.js'
 
 /**
  * El tick: el reloj del mundo (SPEC 2). 1 día de juego = 6 horas reales por defecto
@@ -48,7 +49,7 @@ type Db = ReturnType<typeof drizzle>
 async function ensureGenesis(
   db: Db,
   opts: RunTickOptions,
-): Promise<{ worldCreatedAt: Date; currentDay: number }> {
+): Promise<{ worldId: string; worldCreatedAt: Date; currentDay: number }> {
   const state = await db.select().from(gameState).limit(1)
   const existing = state[0]
   if (existing) {
@@ -57,7 +58,7 @@ async function ensureGenesis(
     if (!w) {
       throw new Error('game_state referencia un mundo inexistente')
     }
-    return { worldCreatedAt: w.createdAt, currentDay: existing.currentDay }
+    return { worldId: w.id, worldCreatedAt: w.createdAt, currentDay: existing.currentDay }
   }
 
   const inserted = await db
@@ -74,7 +75,7 @@ async function ensureGenesis(
     currentDay: 0,
     lastProcessedDay: 0,
   })
-  return { worldCreatedAt: world.createdAt, currentDay: 0 }
+  return { worldId: world.id, worldCreatedAt: world.createdAt, currentDay: 0 }
 }
 
 /**
@@ -100,8 +101,9 @@ export async function runTick(databaseUrl: string, opts: RunTickOptions): Promis
       let daysProcessed = 0
       while (day < target) {
         const next = day + 1
-        // Una transacción por día de juego (SPEC 2). De momento solo avanza la fecha.
+        // Una transacción por día de juego (SPEC 2, 11): entrenamientos y avance de fecha.
         await db.transaction(async (tx) => {
+          await trainWorldDay(tx, genesis.worldId, next, opts.worldSeed)
           await tx
             .update(gameState)
             .set({ currentDay: next, lastProcessedDay: next })

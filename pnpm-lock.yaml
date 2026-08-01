@@ -108,6 +108,9 @@ importers:
 
   packages/db:
     dependencies:
+      '@cyclingstar/engine':
+        specifier: workspace:*
+        version: link:../engine
       '@cyclingstar/shared':
         specifier: workspace:*
         version: link:../shared

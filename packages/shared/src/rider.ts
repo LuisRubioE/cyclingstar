@@ -60,6 +60,10 @@ export const VOCATION_PROFILES: Record<Vocation, VocationProfile> = {
 export const GENDERS = ['M', 'F'] as const
 export type Gender = (typeof GENDERS)[number]
 
+/** Estados de salud (SPEC 3.3, 4.3). */
+export const HEALTH_STATES = ['sano', 'molestias', 'enfermo', 'lesionado'] as const
+export type HealthState = (typeof HEALTH_STATES)[number]
+
 /** Vista pública del ciclista propio (contrato api/web). Valores internos solo para estrellas. */
 export interface PublicRider {
   id: string

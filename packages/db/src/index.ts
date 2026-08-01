@@ -17,7 +17,10 @@ export {
 export {
   createRider,
   getCurrentWorld,
+  getDailyLog,
   getRiderForUser,
   type CreateRiderInput,
+  type DailyLogRow,
   type RiderHiddenInput,
 } from './riders.js'
+export { getTrainingOrders, setTrainingOrders, type TrainingOrderRow } from './training.js'

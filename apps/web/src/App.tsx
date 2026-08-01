@@ -7,6 +7,7 @@ import { Home } from './pages/Home'
 import { Login } from './pages/Login'
 import { Register } from './pages/Register'
 import { RiderProfile } from './pages/RiderProfile'
+import { Training } from './pages/Training'
 
 export function App() {
   return (
@@ -38,6 +39,14 @@ export function App() {
             element={
               <ProtectedRoute>
                 <RiderProfile />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/training"
+            element={
+              <ProtectedRoute>
+                <Training />
               </ProtectedRoute>
             }
           />

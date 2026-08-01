@@ -53,3 +53,69 @@ export const CREATION = {
   declineOffsetMin: 3,
   declineOffsetMax: 6,
 } as const
+
+/** Modelo de Banister: forma como consecuencia contable de la carga (SPEC 4). */
+export const BANISTER = {
+  tauFitness: 42,
+  // tauFatiga = base + scale * (1 - REC/100): 5 días si REC=100, 10 si REC=0.
+  tauFatigueBase: 5,
+  tauFatigueRecScale: 5,
+  // Estado inicial de un neoprofesional.
+  initialCtl: 45,
+  initialAtl: 45,
+  // fitF = clamp(CTL / fitnessCap, 0, 1).
+  fitnessCap: 95,
+  // M_form = base + scale * formIndex, en [0.92, 1.05].
+  mFormBase: 0.92,
+  mFormScale: 0.13,
+  // Barra de frescura: clamp(base + slope * TSB, 0, 100).
+  freshnessBase: 55,
+  freshnessSlope: 1.1,
+} as const
+
+/** Salud y enfermedad (SPEC 4.2, 4.3). */
+export const HEALTH = {
+  mSano: 1.0,
+  mMolestias: 0.96,
+  mEnfermo: 0.9,
+  // p_enfermo_dia = base * fragilidad * exp(max(0, -TSB - tsbOffset) / tsbScale).
+  illnessBase: 0.002,
+  illnessTsbOffset: 22,
+  illnessTsbScale: 9,
+} as const
+
+/** Moral (SPEC 4.2, 4.4). M_moral = base + scale * MOR/100; regresión diaria a la media. */
+export const MORALE = {
+  mMoralBase: 0.98,
+  mMoralScale: 0.04,
+  mean: 60,
+  regression: 0.03,
+} as const
+
+/** Progresión por entrenamiento y decaimientos (SPEC 5.2, 5.5). */
+export const TRAINING = {
+  // K_talento = base + talento/100, en [0.6, 1.6].
+  kTalentBase: 0.6,
+  // K_intensidad.
+  kIntSuave: 0.7,
+  kIntNormal: 1.0,
+  kIntFuerte: 1.25,
+  // K_ready: entrenar reventado apenas rinde.
+  kReadyTsbThreshold: -30,
+  kReadyLow: 0.25,
+  // K_dim: ganancias decrecientes hacia el techo personal.
+  kDimCap: 1.2,
+  kDimExponent: 1.3,
+  kDimDenomFloor: 10,
+  kDimCeilingRef: 30,
+  // Decaimientos (SPEC 5.5).
+  detrainingCtlThreshold: 35,
+  detrainingLoss: 0.03,
+  ageDecayBase: 0.02,
+  ageDecaySlope: 0.004,
+  trainedDecayFactor: 0.4,
+  desPavDecayFactor: 0.25,
+  // Enfermedad: días fuera (SPEC 4.3).
+  illDaysMin: 2,
+  illDaysMax: 6,
+} as const

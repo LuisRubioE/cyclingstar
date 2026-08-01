@@ -31,9 +31,14 @@ export function Header() {
 
         <nav className="flex items-center gap-4 text-sm">
           {data ? (
-            <Link to="/rider" className="font-medium text-slate-700 hover:text-slate-900">
-              My rider
-            </Link>
+            <>
+              <Link to="/training" className="text-slate-600 hover:text-slate-900">
+                Training
+              </Link>
+              <Link to="/rider" className="font-medium text-slate-700 hover:text-slate-900">
+                My rider
+              </Link>
+            </>
           ) : (
             <>
               <Link to="/login" className="text-slate-600 hover:text-slate-900">
