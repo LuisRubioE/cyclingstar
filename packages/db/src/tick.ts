@@ -35,6 +35,11 @@ export interface RunTickOptions {
   msPerGameDay: number
   worldSeed: string
   engineVersion: number
+  /**
+   * Fuerza avanzar exactamente estos días de juego, ignorando el tiempo real (pruebas y staging
+   * acelerado, SPEC Paso 43). Sin él, el mundo avanza según el tiempo transcurrido.
+   */
+  forceDays?: number
 }
 
 /** Día objetivo del mundo según el tiempo real transcurrido desde su creación. */
@@ -96,7 +101,10 @@ export async function runTick(databaseUrl: string, opts: RunTickOptions): Promis
     }
     try {
       const genesis = await ensureGenesis(db, opts)
-      const target = targetGameDay(genesis.worldCreatedAt, opts.now, opts.msPerGameDay)
+      const target =
+        opts.forceDays != null
+          ? genesis.currentDay + opts.forceDays
+          : targetGameDay(genesis.worldCreatedAt, opts.now, opts.msPerGameDay)
 
       let day = genesis.currentDay
       let daysProcessed = 0
