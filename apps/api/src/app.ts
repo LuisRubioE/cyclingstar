@@ -16,7 +16,9 @@ import {
   getContract,
   getCurrentWorld,
   getDailyLog,
+  getGlobalNews,
   getLedger,
+  getRiderNews,
   getGcThroughStage,
   getKomClassification,
   getOffers,
@@ -374,6 +376,19 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
       if (!rider) return reply.status(409).send({ ok: false, error: 'sin_ciclista' })
       await setRacePref(db, rider.id, parsed.data.raceId, parsed.data.wanted)
       return { ok: true }
+    })
+
+    // Feed de noticias del mundo (Paso 39). Público (como el calendario); si hay sesión con
+    // ciclista, incluye también sus noticias personales.
+    app.get('/api/news', async (request) => {
+      const world = await getCurrentWorld(db)
+      if (!world) return { news: [] }
+      const userId = await currentUserId(request)
+      const rider = userId ? await getRiderForUser(db, userId) : null
+      const items = rider
+        ? await getRiderNews(db, world.worldId, rider.id)
+        : await getGlobalNews(db, world.worldId)
+      return { news: items }
     })
 
     // Libro de transacciones y saldo (Paso 38).

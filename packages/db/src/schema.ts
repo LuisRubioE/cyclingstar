@@ -390,6 +390,30 @@ export const stageSnapshots = pgTable(
   (t) => [primaryKey({ columns: [t.raceId, t.stageDay] })],
 )
 
+export const newsScopeEnum = pgEnum('news_scope', ['global', 'personal'])
+
+/** Feed de noticias del mundo, global o personal de un corredor (SPEC, Paso 39). */
+export const news = pgTable(
+  'news',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    worldId: uuid('world_id')
+      .notNull()
+      .references(() => worlds.id),
+    gameDay: integer('game_day').notNull(),
+    scope: newsScopeEnum('scope').notNull().default('global'),
+    /** Corredor protagonista para el feed personal (null en noticias solo globales). */
+    riderId: uuid('rider_id').references(() => riders.id, { onDelete: 'cascade' }),
+    kind: text('kind').notNull(),
+    text: text('text').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('news_world_day_idx').on(t.worldId, t.gameDay),
+    index('news_rider_idx').on(t.riderId),
+  ],
+)
+
 export const txnKindEnum = pgEnum('txn_kind', [
   'salario',
   'premio',

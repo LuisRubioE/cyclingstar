@@ -9,6 +9,7 @@ import { seededRng } from '@cyclingstar/shared'
 import { and, desc, eq, inArray, isNotNull, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import type { Database } from './client.js'
+import { emitNews } from './news.js'
 import { contracts, offers, riderAttrs, riders, teams } from './schema.js'
 
 /**
@@ -181,6 +182,24 @@ export async function acceptOffer(db: Database, riderId: string, offerId: string
     })
     await tx.update(riders).set({ teamId: offer.teamId }).where(eq(riders.id, riderId))
     await tx.update(offers).set({ status: 'aceptada' }).where(eq(offers.id, offerId))
+
+    // Noticia del fichaje (Paso 39), personal del corredor.
+    const info = await tx
+      .select({ worldId: riders.worldId, rider: riders.name, team: teams.name })
+      .from(riders)
+      .innerJoin(teams, eq(teams.id, offer.teamId))
+      .where(eq(riders.id, riderId))
+      .limit(1)
+    if (info[0]) {
+      await emitNews(tx, {
+        worldId: info[0].worldId,
+        gameDay: offer.createdDay,
+        kind: 'contract',
+        seed: `contract:${offerId}`,
+        data: { rider: info[0].rider, team: info[0].team },
+        riderId,
+      })
+    }
     // Las demás ofertas pendientes caducan.
     await tx
       .update(offers)

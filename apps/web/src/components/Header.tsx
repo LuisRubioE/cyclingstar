@@ -36,6 +36,9 @@ export function Header() {
           <Link to="/calendar" className="text-slate-600 hover:text-slate-900">
             Calendar
           </Link>
+          <Link to="/news" className="text-slate-600 hover:text-slate-900">
+            News
+          </Link>
           {data ? (
             <>
               <Link to="/training" className="text-slate-600 hover:text-slate-900">
