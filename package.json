@@ -11,6 +11,7 @@
     "build": "tsc -b && pnpm --filter @cyclingstar/web build",
     "typecheck": "tsc -b && pnpm --filter @cyclingstar/web typecheck",
     "clean": "tsc -b --clean",
+    "sim": "pnpm --filter @cyclingstar/engine build && node packages/engine/dist/sim/cli.js",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint .",

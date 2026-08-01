@@ -237,6 +237,16 @@ export const STAGE = {
   // 6.10 — Fuga: consolida si el compromiso del pelotón < 0.25 durante 2 km.
   breakawayCommitThreshold: 0.25,
   breakawayConsolidateKm: 2,
+  // La fuga rueda a tempo cooperando (conserva), con cooperación variable por etapa: unas se
+  // entienden y aguantan, otras se miran y las cazan. Esa varianza produce el 2-8% de fugas.
+  breakawayCommitMin: 0.5,
+  breakawayCommitMax: 0.67,
+  // Control del boquete (leash): los sprinters dejan a la fuga una ventaja máxima que se cierra
+  // linealmente hasta el punto de captura (finish - 12 km). El pelotón regula en lazo cerrado:
+  // tempo de mantenimiento + ganancia proporcional al exceso sobre el boquete deseado.
+  chaseMaxLeashSeconds: 150,
+  chaseHoldCommit: 0.62,
+  chaseGain: 0.006,
   breakawayScoreTac: 0.4,
   breakawayScoreLla: 0.3,
   breakawayScoreRng: 0.3,
@@ -248,6 +258,8 @@ export const STAGE = {
   breakawayTensionAttackFactor: 3,
 
   // 6.9 — El pelotón como controlador (decisiones cada 10 bloques, con histéresis).
+  // El ritmo del pelotón lo marca su cuarto delantero de punteros, no todo el bloque (6.4).
+  pelotonPaceFraction: 0.25,
   decisionEveryBlocks: 10,
   chaseFeasibleSecondsPerKm: 8,
   chaseCatchTargetKm: 12,
