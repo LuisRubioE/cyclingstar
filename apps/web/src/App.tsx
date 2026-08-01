@@ -6,6 +6,7 @@ import { Calendar } from './pages/Calendar'
 import { CreateRider } from './pages/CreateRider'
 import { Finances } from './pages/Finances'
 import { Home } from './pages/Home'
+import { HowToPlay } from './pages/HowToPlay'
 import { Login } from './pages/Login'
 import { Market } from './pages/Market'
 import { News } from './pages/News'
@@ -29,6 +30,7 @@ export function App() {
           <Route path="/calendar" element={<Calendar />} />
           <Route path="/news" element={<News />} />
           <Route path="/rankings" element={<Rankings />} />
+          <Route path="/how-to-play" element={<HowToPlay />} />
           <Route path="/register" element={<Register />} />
           <Route path="/login" element={<Login />} />
           <Route
