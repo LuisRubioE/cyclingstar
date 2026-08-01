@@ -18,12 +18,14 @@ import {
   getKomClassification,
   getPointsClassification,
   getRaceGc,
+  getRacePrefs,
   getRiderForUser,
   getRunStageDays,
   getStageOrders,
   getStageResults,
   getStageSnapshot,
   getTrainingOrders,
+  setRacePref,
   setStageOrders,
   teamsClassification,
   setTrainingOrders,
@@ -311,6 +313,7 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
       intensity: z.enum(['suave', 'normal', 'fuerte']),
     })
     const putOrdersSchema = z.object({ orders: z.array(orderSchema).max(TRAINING_HORIZON_DAYS) })
+    const putRacePrefSchema = z.object({ raceId: z.string(), wanted: z.boolean() })
 
     app.get('/api/riders/me/orders', async (request, reply) => {
       const userId = await currentUserId(request)
@@ -344,6 +347,28 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
         ? { stars: formStars(latest.ctl, latest.tsb), freshness: freshnessBar(latest.tsb) }
         : null
       return { log, form }
+    })
+
+    // Objetivos de calendario del corredor y su convocatoria (Paso 35).
+    app.get('/api/riders/me/race-prefs', async (request, reply) => {
+      const userId = await currentUserId(request)
+      if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
+      const rider = await getRiderForUser(db, userId)
+      const world = await getCurrentWorld(db)
+      if (!rider || !world) return { races: [] }
+      const season = seasonPosition(world.currentDay).season
+      return { races: await getRacePrefs(db, rider.id, season) }
+    })
+
+    app.put('/api/riders/me/race-prefs', async (request, reply) => {
+      const userId = await currentUserId(request)
+      if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
+      const parsed = putRacePrefSchema.safeParse(request.body)
+      if (!parsed.success) return reply.status(400).send({ ok: false, error: 'validacion' })
+      const rider = await getRiderForUser(db, userId)
+      if (!rider) return reply.status(409).send({ ok: false, error: 'sin_ciclista' })
+      await setRacePref(db, rider.id, parsed.data.raceId, parsed.data.wanted)
+      return { ok: true }
     })
 
     app.put('/api/riders/me/orders', async (request, reply) => {

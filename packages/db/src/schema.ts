@@ -390,6 +390,38 @@ export const stageSnapshots = pgTable(
   (t) => [primaryKey({ columns: [t.raceId, t.stageDay] })],
 )
 
+/** Deseos de calendario del corredor: qué carreras marca como objetivo (SPEC 7.2, Paso 35). */
+export const riderRacePrefs = pgTable(
+  'rider_race_prefs',
+  {
+    riderId: uuid('rider_id')
+      .notNull()
+      .references(() => riders.id, { onDelete: 'cascade' }),
+    raceId: text('race_id').notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.riderId, t.raceId] })],
+)
+
+/** Decisiones de convocatoria por carrera y temporada (SPEC 6.18, Paso 35). */
+export const raceCallups = pgTable(
+  'race_callups',
+  {
+    riderId: uuid('rider_id')
+      .notNull()
+      .references(() => riders.id, { onDelete: 'cascade' }),
+    raceId: text('race_id').notNull(),
+    season: integer('season').notNull(),
+    decidedDay: integer('decided_day').notNull(),
+    selected: boolean('selected').notNull(),
+    /** El corredor había marcado la carrera como objetivo. */
+    wanted: boolean('wanted').notNull().default(false),
+  },
+  (t) => [
+    primaryKey({ columns: [t.riderId, t.raceId, t.season] }),
+    index('race_callups_rider_idx').on(t.riderId),
+  ],
+)
+
 /** Registro diario de carga y forma para la gráfica y la auditoría (SPEC 4, 11). */
 export const riderDailyLog = pgTable(
   'rider_daily_log',
