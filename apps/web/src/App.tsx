@@ -10,6 +10,7 @@ import { Login } from './pages/Login'
 import { Market } from './pages/Market'
 import { News } from './pages/News'
 import { Objectives } from './pages/Objectives'
+import { Rankings } from './pages/Rankings'
 import { RaceOrders } from './pages/RaceOrders'
 import { Register } from './pages/Register'
 import { Results } from './pages/Results'
@@ -27,6 +28,7 @@ export function App() {
           <Route path="/routes" element={<RoutesPage />} />
           <Route path="/calendar" element={<Calendar />} />
           <Route path="/news" element={<News />} />
+          <Route path="/rankings" element={<Rankings />} />
           <Route path="/register" element={<Register />} />
           <Route path="/login" element={<Login />} />
           <Route

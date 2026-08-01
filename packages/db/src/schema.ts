@@ -207,6 +207,7 @@ export const riders = pgTable(
     retiredAt: integer('retired_at'),
     money: integer('money').notNull().default(0),
     fame: real('fame').notNull().default(0),
+    seasonPoints: integer('season_points').notNull().default(0),
     morale: real('morale').notNull().default(50),
     teamTrust: real('team_trust').notNull().default(50),
     ctl: real('ctl').notNull().default(0),
@@ -388,6 +389,34 @@ export const stageSnapshots = pgTable(
     input: jsonb('input').notNull(),
   },
   (t) => [primaryKey({ columns: [t.raceId, t.stageDay] })],
+)
+
+export const palmaresKindEnum = pgEnum('palmares_kind', ['gc', 'stage', 'kom', 'points'])
+
+/** Palmarés permanente: logros de un corredor por temporada (SPEC, Paso 40). No se reinicia. */
+export const palmares = pgTable(
+  'palmares',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    worldId: uuid('world_id')
+      .notNull()
+      .references(() => worlds.id),
+    riderId: uuid('rider_id')
+      .notNull()
+      .references(() => riders.id, { onDelete: 'cascade' }),
+    season: integer('season').notNull(),
+    raceId: text('race_id').notNull(),
+    raceName: text('race_name').notNull(),
+    kind: palmaresKindEnum('kind').notNull(),
+    /** Detalle opcional (p. ej. número de etapa). */
+    detail: text('detail').notNull().default(''),
+    gameDay: integer('game_day').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('palmares_rider_idx').on(t.riderId),
+    index('palmares_race_idx').on(t.worldId, t.raceId),
+  ],
 )
 
 export const newsScopeEnum = pgEnum('news_scope', ['global', 'personal'])

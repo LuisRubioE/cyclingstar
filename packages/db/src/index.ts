@@ -29,6 +29,14 @@ export {
 export { runRollover } from './rollover.js'
 export { emitNews, getGlobalNews, getRiderNews, type NewsItem } from './news.js'
 export {
+  getPalmares,
+  getRaceHistory,
+  getRanking,
+  type PalmaresRow,
+  type RaceHonour,
+  type RankingRow,
+} from './ranking.js'
+export {
   awardRacePrizes,
   creditRider,
   getLedger,

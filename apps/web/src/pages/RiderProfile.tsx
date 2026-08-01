@@ -8,6 +8,7 @@ import {
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { fetchForm } from '../api/form'
+import { fetchPalmares, palmaresLabel } from '../api/rankings'
 import { fetchMyRider } from '../api/rider'
 import { FormChart } from '../components/FormChart'
 import { StarRating } from '../components/StarRating'
@@ -19,6 +20,7 @@ export function RiderProfile() {
     isError,
   } = useQuery({ queryKey: ['rider', 'me'], queryFn: fetchMyRider })
   const formQuery = useQuery({ queryKey: ['rider', 'form'], queryFn: fetchForm })
+  const palmaresQuery = useQuery({ queryKey: ['rider', 'palmares'], queryFn: fetchPalmares })
 
   if (isPending) return <p className="text-slate-500">Loading…</p>
   if (isError) return <p className="text-red-600">Could not load your rider.</p>
@@ -91,6 +93,24 @@ export function RiderProfile() {
           ))}
         </dl>
       </div>
+
+      {palmaresQuery.data && palmaresQuery.data.length > 0 && (
+        <div>
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-400">Palmarès</h2>
+          <ul className="mt-3 space-y-1.5">
+            {palmaresQuery.data.map((p, i) => (
+              <li key={i} className="flex items-center gap-3 text-sm">
+                <span className="w-20 shrink-0 text-slate-400">Season {p.season + 1}</span>
+                <span className="font-medium text-slate-700">{p.raceName}</span>
+                <span className="text-slate-500">
+                  {palmaresLabel(p.kind)}
+                  {p.detail && ` · ${p.detail}`}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </section>
   )
 }

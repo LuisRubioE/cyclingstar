@@ -39,6 +39,9 @@ export function Header() {
           <Link to="/news" className="text-slate-600 hover:text-slate-900">
             News
           </Link>
+          <Link to="/rankings" className="text-slate-600 hover:text-slate-900">
+            Rankings
+          </Link>
           {data ? (
             <>
               <Link to="/training" className="text-slate-600 hover:text-slate-900">
