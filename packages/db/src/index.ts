@@ -7,3 +7,11 @@ export * from './schema.js'
 export { createDb, type Database, type DbClient } from './client.js'
 export { runMigrations } from './migrate.js'
 export { runTick, targetGameDay, type RunTickOptions, type TickSummary } from './tick.js'
+export {
+  generateName,
+  isBlockedName,
+  regenerateName,
+  type CountryNames,
+  type GeneratedName,
+  type Gender,
+} from './names.js'

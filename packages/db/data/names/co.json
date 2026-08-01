@@ -1,0 +1,6 @@
+{
+  "country": "CO",
+  "male": ["Juan", "Carlos", "Luis", "José", "Andrés", "Jorge", "Diego", "David", "Santiago", "Sebastián", "Julián", "Camilo", "Daniel", "Fernando", "Miguel", "Alejandro", "Óscar", "Felipe", "Jhon", "Cristian", "Nicolás", "Mateo", "Gabriel", "Álvaro", "Édison", "Wilson", "Manuel", "Rafael", "Germán", "Esteban"],
+  "female": ["María", "Luz", "Ana", "Martha", "Claudia", "Sandra", "Diana", "Paula", "Andrea", "Carolina", "Angela", "Laura", "Adriana", "Johana", "Daniela", "Valentina", "Natalia", "Isabella", "Camila", "Gloria", "Mónica", "Yuliana", "Sofía", "Marcela", "Liliana"],
+  "surnames": ["Rodríguez", "Gómez", "González", "Martínez", "García", "López", "Hernández", "Sánchez", "Ramírez", "Díaz", "Torres", "Vargas", "Muñoz", "Moreno", "Ortiz", "Rojas", "Jiménez", "Gutiérrez", "Castro", "Ruiz", "Álvarez", "Suárez", "Romero", "Pérez", "Cardona", "Ospina", "Castillo", "Restrepo", "Giraldo", "Mesa", "Arias", "Quintero", "Marín", "Sepúlveda", "Bernal", "Franco", "Correa", "Guerrero", "Herrera", "Zapata", "Osorio", "Aguirre", "Cortés", "Molina", "Valencia"]
+}

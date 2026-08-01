@@ -1,0 +1,6 @@
+{
+  "country": "ES",
+  "male": ["Antonio", "José", "Manuel", "Francisco", "David", "Juan", "Javier", "Daniel", "José Antonio", "Carlos", "Jesús", "Alejandro", "Miguel", "José Luis", "Pablo", "Rafael", "Sergio", "Fernando", "Ángel", "Pedro", "Jorge", "Alberto", "Luis", "Adrián", "Álvaro", "Diego", "Iván", "Rubén", "Óscar", "Marcos"],
+  "female": ["María Carmen", "María", "Carmen", "Josefa", "Ana María", "Isabel", "María Dolores", "María Pilar", "María Teresa", "Ana", "Laura", "Cristina", "Marta", "Francisca", "Antonia", "Dolores", "María Ángeles", "Elena", "Pilar", "Sara", "Paula", "Lucía", "Rosa María", "Concepción", "Mercedes"],
+  "surnames": ["García", "Rodríguez", "González", "Fernández", "López", "Martínez", "Sánchez", "Pérez", "Gómez", "Martín", "Jiménez", "Ruiz", "Hernández", "Díaz", "Moreno", "Muñoz", "Álvarez", "Romero", "Alonso", "Gutiérrez", "Navarro", "Torres", "Domínguez", "Vázquez", "Ramos", "Gil", "Ramírez", "Serrano", "Blanco", "Suárez", "Molina", "Morales", "Ortega", "Delgado", "Castro", "Ortiz", "Rubio", "Marín", "Sanz", "Núñez", "Iglesias", "Medina", "Garrido", "Cortés", "Castillo"]
+}

@@ -1,0 +1,6 @@
+{
+  "country": "DE",
+  "male": ["Peter", "Michael", "Thomas", "Andreas", "Wolfgang", "Klaus", "Jürgen", "Stefan", "Günter", "Christian", "Frank", "Martin", "Uwe", "Hans", "Manfred", "Werner", "Bernd", "Matthias", "Dieter", "Alexander", "Markus", "Jan", "Lukas", "Felix", "Sebastian", "Florian", "Tobias", "Daniel", "Maximilian", "Jonas"],
+  "female": ["Ursula", "Sabine", "Monika", "Petra", "Susanne", "Karin", "Andrea", "Gabriele", "Claudia", "Renate", "Brigitte", "Birgit", "Angelika", "Nicole", "Julia", "Katrin", "Sandra", "Stefanie", "Anna", "Christina", "Marie", "Sophie", "Laura", "Lena", "Hannah"],
+  "surnames": ["Müller", "Schmidt", "Schneider", "Fischer", "Weber", "Meyer", "Wagner", "Becker", "Schulz", "Hoffmann", "Schäfer", "Koch", "Bauer", "Richter", "Klein", "Wolf", "Schröder", "Neumann", "Schwarz", "Zimmermann", "Braun", "Krüger", "Hofmann", "Hartmann", "Lange", "Schmitt", "Werner", "Schmitz", "Krause", "Meier", "Lehmann", "Schmid", "Schulze", "Maier", "Köhler", "Herrmann", "König", "Walter", "Mayer", "Huber", "Kaiser", "Fuchs", "Peters", "Lang", "Scholz"]
+}

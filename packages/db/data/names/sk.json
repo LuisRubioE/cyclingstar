@@ -1,0 +1,6 @@
+{
+  "country": "SK",
+  "male": ["Milan", "Peter", "Ján", "Jozef", "Martin", "Tomáš", "Michal", "Marek", "Pavol", "Ladislav", "Štefan", "Miroslav", "Juraj", "Róbert", "František", "Marián", "Vladimír", "Lukáš", "Dušan", "Jaroslav", "Matej", "Andrej", "Patrik", "Filip", "Daniel", "Adam", "Stanislav", "Rastislav", "Ivan", "Dávid"],
+  "female": ["Mária", "Anna", "Zuzana", "Katarína", "Jana", "Eva", "Helena", "Martina", "Monika", "Lucia", "Veronika", "Michaela", "Alžbeta", "Andrea", "Barbora", "Simona", "Ľudmila", "Marta", "Kristína", "Natália", "Emília", "Viktória", "Nikola", "Dominika", "Terézia"],
+  "surnames": ["Horváth", "Kováč", "Varga", "Tóth", "Nagy", "Baláž", "Szabó", "Molnár", "Balog", "Lukáč", "Kováčik", "Novák", "Hudák", "Kráľ", "Kučera", "Poláček", "Gajdoš", "Michalík", "Bartoš", "Blaško", "Farkaš", "Šimko", "Danko", "Sabo", "Mráz", "Fábry", "Holub", "Jánošík", "Kollár", "Krajčí", "Ondrej", "Beňo", "Marek", "Chovanec", "Dobrota", "Gaži", "Halás", "Adamec", "Slávik", "Vlk", "Zeman", "Fico", "Gabčo", "Krupa", "Sokol"]
+}

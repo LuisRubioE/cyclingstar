@@ -1,0 +1,6 @@
+{
+  "country": "IT",
+  "male": ["Giuseppe", "Giovanni", "Antonio", "Marco", "Francesco", "Luigi", "Mario", "Roberto", "Andrea", "Salvatore", "Alessandro", "Luca", "Stefano", "Paolo", "Angelo", "Vincenzo", "Domenico", "Franco", "Bruno", "Giorgio", "Matteo", "Lorenzo", "Davide", "Riccardo", "Simone", "Fabio", "Michele", "Carlo", "Pietro", "Sergio"],
+  "female": ["Maria", "Anna", "Giuseppina", "Rosa", "Angela", "Giovanna", "Teresa", "Lucia", "Carmela", "Caterina", "Francesca", "Paola", "Laura", "Elena", "Chiara", "Giulia", "Sara", "Federica", "Silvia", "Valentina", "Rita", "Franca", "Antonietta", "Concetta", "Martina"],
+  "surnames": ["Rossi", "Russo", "Ferrari", "Esposito", "Bianchi", "Romano", "Colombo", "Bruno", "Ricci", "Marino", "Greco", "Gallo", "Conti", "De Luca", "Costa", "Mancini", "Giordano", "Rizzo", "Lombardi", "Moretti", "Barbieri", "Fontana", "Santoro", "Mariani", "Rinaldi", "Caruso", "Ferrara", "Galli", "Martini", "Leone", "Longo", "Gentile", "Martinelli", "Vitale", "Lombardo", "Serra", "Coppola", "De Santis", "D'Angelo", "Marchetti", "Parisi", "Villa", "Conte", "Ferretti", "Bianco"]
+}

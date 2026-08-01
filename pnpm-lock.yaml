@@ -108,6 +108,9 @@ importers:
 
   packages/db:
     dependencies:
+      '@cyclingstar/shared':
+        specifier: workspace:*
+        version: link:../shared
       drizzle-orm:
         specifier: ^0.45.2
         version: 0.45.2(kysely@0.29.4)(postgres@3.4.9)

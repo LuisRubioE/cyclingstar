@@ -1,0 +1,6 @@
+{
+  "country": "SI",
+  "male": ["Franc", "Janez", "Ivan", "Anton", "Marko", "Andrej", "Jožef", "Peter", "Milan", "Luka", "Jože", "Stanislav", "Aleš", "Tomaž", "Matej", "Bojan", "Robert", "Marjan", "Miha", "Rok", "David", "Jan", "Nejc", "Žan", "Blaž", "Gregor", "Boštjan", "Dušan", "Simon", "Matic"],
+  "female": ["Marija", "Ana", "Maja", "Irena", "Mojca", "Nina", "Nataša", "Barbara", "Tanja", "Andreja", "Katja", "Petra", "Mateja", "Sara", "Eva", "Vida", "Marjeta", "Tina", "Špela", "Jožica", "Anja", "Urša", "Lara", "Zala", "Nika"],
+  "surnames": ["Novak", "Horvat", "Kovačič", "Krajnc", "Zupančič", "Potočnik", "Kovač", "Mlakar", "Kos", "Vidmar", "Golob", "Turk", "Božič", "Bizjak", "Korošec", "Zupan", "Kralj", "Kotnik", "Hribar", "Kavčič", "Zajc", "Petek", "Kolar", "Rozman", "Žagar", "Bertoncelj", "Košir", "Oblak", "Jereb", "Vidic", "Blatnik", "Furlan", "Jamnik", "Klemenčič", "Lah", "Pavlič", "Šuštar", "Fras", "Habjan", "Jerman", "Sever", "Pirc", "Erjavec", "Rus", "Marolt"]
+}

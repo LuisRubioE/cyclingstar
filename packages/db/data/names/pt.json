@@ -1,0 +1,6 @@
+{
+  "country": "PT",
+  "male": ["João", "José", "António", "Manuel", "Francisco", "Carlos", "Pedro", "Luís", "Fernando", "Jorge", "Paulo", "Rui", "Miguel", "Nuno", "Ricardo", "André", "Tiago", "Bruno", "Diogo", "Hugo", "Vítor", "Gonçalo", "Rafael", "Daniel", "Duarte", "Marco", "Sérgio", "Filipe", "Alexandre", "Guilherme"],
+  "female": ["Maria", "Ana", "Beatriz", "Mariana", "Matilde", "Inês", "Leonor", "Carolina", "Sofia", "Margarida", "Rita", "Catarina", "Joana", "Diana", "Marta", "Sara", "Teresa", "Isabel", "Helena", "Cristina", "Fernanda", "Patrícia", "Luísa", "Constança", "Alice"],
+  "surnames": ["Silva", "Santos", "Ferreira", "Pereira", "Oliveira", "Costa", "Rodrigues", "Martins", "Jesus", "Sousa", "Fernandes", "Gonçalves", "Gomes", "Lopes", "Marques", "Alves", "Almeida", "Ribeiro", "Pinto", "Carvalho", "Teixeira", "Moreira", "Correia", "Mendes", "Nunes", "Soares", "Vieira", "Monteiro", "Cardoso", "Rocha", "Neves", "Coelho", "Cruz", "Cunha", "Pires", "Ramos", "Reis", "Simões", "Antunes", "Matos", "Fonseca", "Machado", "Araújo", "Barbosa", "Tavares"]
+}
