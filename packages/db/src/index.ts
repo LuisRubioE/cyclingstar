@@ -26,6 +26,7 @@ export {
   type ContractRow,
   type OfferRow,
 } from './contracts.js'
+export { runRollover } from './rollover.js'
 export {
   getGcThroughStage,
   getKomClassification,
