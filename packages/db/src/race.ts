@@ -10,9 +10,10 @@ import {
   stageSeed,
   stageTss,
 } from '@cyclingstar/engine'
-import { ATTRIBUTES, type Attribute } from '@cyclingstar/shared'
+import { ATTRIBUTES, type Attribute, seasonPosition } from '@cyclingstar/shared'
 import { and, eq } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
+import { ensureTestTourField } from './npc.js'
 import {
   raceGc,
   raceRosters,
@@ -35,6 +36,8 @@ import {
 
 const TEST_TOUR_ID = 'test-tour'
 const ENGINE_VERSION_NUM = 1
+/** Tamaño del pelotón de la vuelta de prueba (humanos + NPC de relleno). */
+const TEST_TOUR_FIELD = 30
 
 type Db = ReturnType<typeof drizzle>
 type Tx = Parameters<Parameters<Db['transaction']>[0]>[0]
@@ -61,6 +64,9 @@ export async function raceWorldDay(
 ): Promise<Set<string>> {
   const stage = stageForDay(gameDay)
   if (!stage) return new Set()
+
+  // Rellena el pelotón con NPC si hace falta, para que la etapa sea una carrera de verdad (Paso 32).
+  await ensureTestTourField(tx, worldId, worldSeed, TEST_TOUR_FIELD, seasonPosition(gameDay).season)
 
   // Corredores convocados a la vuelta que pertenecen a este mundo.
   const roster = await tx

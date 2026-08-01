@@ -8,6 +8,7 @@ export { createDb, type Database, type DbClient } from './client.js'
 export { runMigrations } from './migrate.js'
 export { runTick, targetGameDay, type RunTickOptions, type TickSummary } from './tick.js'
 export { raceWorldDay } from './race.js'
+export { ensureTestTourField, fillerRiderSpec, type FillerSpec } from './npc.js'
 export {
   getRaceGc,
   getRunStageDays,
