@@ -4,6 +4,7 @@ import postgres from 'postgres'
 import { runCallups } from './callups.js'
 import { runMarket } from './contracts.js'
 import { raceWorldDay } from './race.js'
+import { runRollover } from './rollover.js'
 import { gameState, tickLog, worlds } from './schema.js'
 import { trainWorldDay } from './train.js'
 import { seedWorld } from './world.js'
@@ -118,6 +119,8 @@ export async function runTick(databaseUrl: string, opts: RunTickOptions): Promis
         const next = day + 1
         // Una transacción por día de juego (SPEC 2, 11): carreras, entrenamientos y avance de fecha.
         await db.transaction(async (tx) => {
+          // Al cruzar a una temporada nueva, primero el rollover (retiros, neopros, ascensos).
+          await runRollover(tx, genesis.worldId, next, opts.worldSeed)
           const raced = await raceWorldDay(tx, genesis.worldId, next, opts.worldSeed)
           await trainWorldDay(tx, genesis.worldId, next, opts.worldSeed, raced)
           await runCallups(tx, genesis.worldId, next, opts.worldSeed)
