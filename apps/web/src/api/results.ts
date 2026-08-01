@@ -1,9 +1,17 @@
 export interface GcEntry {
   riderId: string
   name: string
+  country: string
   tiempoTotalS: number
   puntosVolante: number
   puntosMontana: number
+}
+
+export interface PointsEntry {
+  riderId: string
+  name: string
+  country: string
+  puntos: number
 }
 
 export interface StageStatus {
@@ -16,6 +24,8 @@ export interface StageStatus {
 
 export interface RaceResults {
   gc: GcEntry[]
+  points: PointsEntry[]
+  kom: PointsEntry[]
   stages: StageStatus[]
 }
 
@@ -29,11 +39,19 @@ export interface ChronicleEntry {
 export interface StageResultEntry {
   riderId: string
   name: string
+  country: string
   puesto: number
   tiempoS: number
   bonificacionS: number
   puntosVolante: number
   puntosMontana: number
+}
+
+export interface StageGcEntry {
+  riderId: string
+  name: string
+  country: string
+  tiempoTotalS: number
 }
 
 export interface StageReplay {
@@ -44,6 +62,7 @@ export interface StageReplay {
   altimetry: string
   results?: StageResultEntry[]
   chronicle?: ChronicleEntry[]
+  gc?: StageGcEntry[]
 }
 
 export async function fetchResults(): Promise<RaceResults> {
