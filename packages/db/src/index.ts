@@ -9,6 +9,15 @@ export { runMigrations } from './migrate.js'
 export { runTick, targetGameDay, type RunTickOptions, type TickSummary } from './tick.js'
 export { raceWorldDay } from './race.js'
 export {
+  getRaceGc,
+  getRunStageDays,
+  getStageResults,
+  getStageSnapshot,
+  type GcRow,
+  type StageResultRow,
+  type StageSnapshotRow,
+} from './results.js'
+export {
   generateName,
   isBlockedName,
   regenerateName,

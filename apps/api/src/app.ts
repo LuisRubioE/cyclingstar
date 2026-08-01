@@ -14,19 +14,26 @@ import {
   generateName,
   getCurrentWorld,
   getDailyLog,
+  getRaceGc,
   getRiderForUser,
+  getRunStageDays,
   getStageOrders,
+  getStageResults,
+  getStageSnapshot,
   getTrainingOrders,
   setStageOrders,
   setTrainingOrders,
 } from '@cyclingstar/db'
 import {
   ENGINE_VERSION,
+  type AltimetryMarker,
+  type StageInput,
   TEST_TOUR,
   formStars,
   freshnessBar,
   generateRiderGenome,
   renderAltimetrySvg,
+  simulateStage,
 } from '@cyclingstar/engine'
 import { type Health, isKnownCountry, seasonPosition } from '@cyclingstar/shared'
 import Fastify, {
@@ -392,6 +399,70 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
       await setStageOrders(db, TEST_TOUR_ID, rider.id, valid)
       return { ok: true, saved: valid.length }
     })
+
+    // --- Resultados y replay (Paso 31) --------------------------------------------------
+    const MARKER_LABEL: Record<string, string> = {
+      fuga_formada: 'break',
+      fuga_cazada: 'caught',
+      banner: 'banner',
+      meta: 'finish',
+    }
+    // General de la vuelta + estado de cada etapa (corrida o no).
+    app.get('/api/races/test-tour/results', async (request, reply) => {
+      const userId = await currentUserId(request)
+      if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
+      const gc = await getRaceGc(db, TEST_TOUR_ID)
+      const run = new Set(await getRunStageDays(db, TEST_TOUR_ID))
+      const stages = TEST_TOUR.map((stage) => ({
+        day: stage.day,
+        name: stage.name,
+        kind: stage.kind,
+        km: Math.round(stage.profile.segments.reduce((sum, s) => sum + s.km, 0)),
+        run: run.has(stage.day),
+      }))
+      return { gc, stages }
+    })
+
+    // Replay de una etapa: se regenera desde el snapshot sellado (SPEC 6.1).
+    app.get<{ Params: { day: string } }>(
+      '/api/races/test-tour/stages/:day',
+      async (request, reply) => {
+        const userId = await currentUserId(request)
+        if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
+        const day = Number(request.params.day)
+        const stage = TEST_TOUR.find((s) => s.day === day)
+        if (!stage) return reply.status(404).send({ ok: false, error: 'no_encontrado' })
+
+        const snapshot = await getStageSnapshot(db, TEST_TOUR_ID, day)
+        const results = await getStageResults(db, TEST_TOUR_ID, day)
+        const km = Math.round(stage.profile.segments.reduce((sum, s) => sum + s.km, 0))
+        if (!snapshot) {
+          return {
+            day,
+            name: stage.name,
+            km,
+            run: false,
+            altimetry: renderAltimetrySvg(stage.profile),
+          }
+        }
+
+        // Regenera los eventos ejecutando el motor con la misma entrada y semilla.
+        const output = simulateStage(snapshot.input as StageInput, snapshot.seed)
+        const nameOf = new Map(results.map((r) => [r.riderId, r.name]))
+        const chronicle = output.events.map((e) => ({
+          km: Math.round(e.km),
+          tS: Math.round(e.tS),
+          plantilla: e.plantilla,
+          protagonists: e.protagonistas.map((id) => nameOf.get(id) ?? id),
+        }))
+        // Momentos clave sobre la altimetría: fuga, captura, banners y meta.
+        const markers: AltimetryMarker[] = output.events
+          .filter((e) => ['fuga_formada', 'fuga_cazada', 'banner', 'meta'].includes(e.tipo))
+          .map((e) => ({ km: e.km, label: MARKER_LABEL[e.tipo] ?? '•' }))
+        const altimetry = renderAltimetrySvg(stage.profile, { markers })
+        return { day, name: stage.name, km, run: true, altimetry, results, chronicle }
+      },
+    )
   }
 
   // Servido de la web: por defecto se activa si existe una build con index.html.

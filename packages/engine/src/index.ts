@@ -23,6 +23,7 @@ export { EventLog } from './stage/events.js'
 export {
   elevationProfile,
   renderAltimetrySvg,
+  type AltimetryMarker,
   type AltimetryOptions,
   type ElevationPoint,
 } from './routes/altimetry.js'
