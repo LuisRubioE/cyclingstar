@@ -6,7 +6,16 @@
  * Paso 15: creación del genoma del ciclista (SPEC 3.4-3.5).
  * Paso 21: andamiaje del motor de etapa (SPEC 6.1-6.2): tipos, subflujos de RNG y muestreo.
  */
-export { BANISTER, CREATION, ENGINE_VERSION, HEALTH, MORALE, STAGE, TRAINING } from './constants.js'
+export {
+  BANISTER,
+  CREATION,
+  ENGINE_VERSION,
+  HEALTH,
+  MORALE,
+  NPC,
+  STAGE,
+  TRAINING,
+} from './constants.js'
 export { deriveClimbCategory, isWall, sampleProfile, stageLengthKm } from './stage/sample.js'
 export { stageRng, stageSeed, type StageSeedParts } from './stage/rng.js'
 export { blockProbability, rollHazard } from './stage/hazard.js'
@@ -28,6 +37,14 @@ export {
   type ElevationPoint,
 } from './routes/altimetry.js'
 export { TEST_TOUR, type StageKind, type TourStage } from './routes/testTour.js'
+export {
+  generateNpcRider,
+  sampleNpcAge,
+  type Division,
+  type NpcGenome,
+  type NpcHidden,
+} from './world/npc.js'
+export { renderJerseySvg } from './world/jersey.js'
 export {
   analyzeFlat,
   analyzeMountain,

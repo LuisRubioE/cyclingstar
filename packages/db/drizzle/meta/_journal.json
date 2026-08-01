@@ -43,6 +43,13 @@
       "when": 1785592870538,
       "tag": "0005_smart_spot",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1785613639261,
+      "tag": "0006_gorgeous_guardsmen",
+      "breakpoints": true
     }
   ]
 }

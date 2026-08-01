@@ -4,6 +4,7 @@ import postgres from 'postgres'
 import { raceWorldDay } from './race.js'
 import { gameState, tickLog, worlds } from './schema.js'
 import { trainWorldDay } from './train.js'
+import { seedWorld } from './world.js'
 
 /**
  * El tick: el reloj del mundo (SPEC 2). 1 día de juego = 6 horas reales por defecto
@@ -101,6 +102,9 @@ export async function runTick(databaseUrl: string, opts: RunTickOptions): Promis
     }
     try {
       const genesis = await ensureGenesis(db, opts)
+      // Génesis del mundo NPC (SPEC 10, Paso 33): equipos y ~1.600 corredores. Idempotente, así
+      // que rellena también un mundo creado antes de este paso; solo hace trabajo una vez.
+      await db.transaction((tx) => seedWorld(tx, genesis.worldId, opts.worldSeed))
       const target =
         opts.forceDays != null
           ? genesis.currentDay + opts.forceDays
