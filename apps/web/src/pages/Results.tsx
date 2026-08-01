@@ -1,7 +1,8 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import {
   type StageReplay,
+  advanceWorld,
   fetchResults,
   fetchStageReplay,
   formatTime,
@@ -67,8 +68,18 @@ function StageReplayView({ day }: { day: number }) {
 
 /** Resultados y replay de la vuelta de prueba: general, etapas y crónica (Paso 31). */
 export function Results() {
+  const queryClient = useQueryClient()
   const { data, isPending, isError } = useQuery({ queryKey: ['results'], queryFn: fetchResults })
   const [openDay, setOpenDay] = useState<number | null>(null)
+
+  const advance = useMutation({
+    mutationFn: (days: number) => advanceWorld(days),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['results'] })
+      void queryClient.invalidateQueries({ queryKey: ['replay'] })
+      void queryClient.invalidateQueries({ queryKey: ['health'] })
+    },
+  })
 
   if (isPending) return <p className="text-slate-500">Loading…</p>
   if (isError) return <p className="text-red-600">Could not load results.</p>
@@ -77,7 +88,28 @@ export function Results() {
 
   return (
     <section className="space-y-6">
-      <h1 className="text-2xl font-bold tracking-tight">Results · Test tour</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold tracking-tight">Results · Test tour</h1>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => advance.mutate(1)}
+            disabled={advance.isPending}
+            className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
+          >
+            +1 day
+          </button>
+          <button
+            onClick={() => advance.mutate(5)}
+            disabled={advance.isPending}
+            className="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-indigo-500 disabled:opacity-60"
+          >
+            {advance.isPending ? 'Advancing…' : 'Run the tour (+5 days)'}
+          </button>
+        </div>
+      </div>
+      <p className="text-xs text-slate-400">
+        Alpha testing tool: advances the game clock so stages run now instead of waiting real time.
+      </p>
 
       {data.gc.length > 0 && (
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">

@@ -58,6 +58,13 @@ export async function fetchStageReplay(day: number): Promise<StageReplay> {
   return (await res.json()) as StageReplay
 }
 
+/** Adelanta el mundo N días de juego (herramienta de pruebas de la alfa). */
+export async function advanceWorld(days: number): Promise<{ currentDay: number | null }> {
+  const res = await fetch(`/api/world/advance?days=${days}`, { method: 'POST' })
+  if (!res.ok) throw new Error('Could not advance the world.')
+  return (await res.json()) as { currentDay: number | null }
+}
+
 /** Formatea segundos como h:mm:ss o mm:ss. */
 export function formatTime(seconds: number): string {
   const h = Math.floor(seconds / 3600)
