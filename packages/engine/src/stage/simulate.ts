@@ -51,9 +51,16 @@ function riderPerfil(sim: RiderSim, block: Block): number {
   return blockPerfil(eff, block)
 }
 
-/** P75 del perfil de un grupo, que marca su ritmo (SPEC 6.4). */
-function groupP75(members: RiderSim[], block: Block): number {
-  return percentile75(members.map((m) => riderPerfil(m, block)))
+/**
+ * P75 del perfil de quienes marcan el ritmo (SPEC 6.4). No lo marca todo el grupo, sino su
+ * fracción más fuerte al frente: los relevadores del pelotón o de la fuga. Cuando esos punteros
+ * se erosionan, el P75 cae y el grupo afloja aunque quiera (SPEC 6.9).
+ */
+function pacemakerP75(members: RiderSim[], block: Block, fraction: number): number {
+  if (members.length === 0) return 0
+  const perfils = members.map((m) => riderPerfil(m, block)).sort((a, b) => b - a)
+  const k = Math.max(1, Math.ceil(fraction * perfils.length))
+  return percentile75(perfils.slice(0, k))
 }
 
 export function simulateStage(input: StageInput, seed: string): StageOutput {
@@ -121,10 +128,14 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
     if (fugados.length >= 2) {
       for (const id of fugados) sims.get(id)!.groupId = BREAKAWAY
       peloton = { ...peloton, riderIds: peloton.riderIds.filter((id) => !fugados.includes(id)) }
+      // Cooperación de la fuga variable por etapa (SPEC 6.10): fija su ritmo a tempo.
+      const coop =
+        STAGE.breakawayCommitMin +
+        (STAGE.breakawayCommitMax - STAGE.breakawayCommitMin) * rng('breakaway')()
       breakaway = createGroup(BREAKAWAY, fugados, {
         tS: peloton.tS,
         vActual: peloton.vActual,
-        compromiso: 0.85,
+        compromiso: coop,
       })
       log.emit(0, breakaway.tS, 'fuga_formada', 'breakaway_formed', fugados)
     }
@@ -143,13 +154,23 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       const kmRestantes = totalKm - km
       let target: number = STAGE.commitIdle
       if (hasSprinters && !chaseAbandoned) {
-        const margen = Math.max(1, kmRestantes - STAGE.chaseCatchTargetKm)
-        const cierreNecesario = gap / margen // s/km que hay que recortar
-        if (cierreNecesario <= STAGE.chaseFeasibleSecondsPerKm) {
-          target = Math.min(1, cierreNecesario / STAGE.chaseFeasibleSecondsPerKm)
-        } else {
+        // Boquete deseado: mengua linealmente hasta el punto de captura (finish - 12 km).
+        const frac = Math.min(
+          1,
+          Math.max(
+            0,
+            (kmRestantes - STAGE.chaseCatchTargetKm) / (totalKm - STAGE.chaseCatchTargetKm),
+          ),
+        )
+        const desiredGap = STAGE.chaseMaxLeashSeconds * frac
+        const err = gap - desiredGap // s por encima del boquete deseado
+        const cierreNecesario = gap / Math.max(1, kmRestantes - STAGE.chaseCatchTargetKm)
+        if (cierreNecesario > STAGE.chaseFeasibleSecondsPerKm) {
           chaseAbandoned = true
           log.emit(km, peloton.tS, 'caza_abandonada', 'sprinters_give_up', [])
+        } else {
+          // Lazo cerrado: tempo de mantenimiento más ganancia sobre el exceso de boquete.
+          target = Math.min(1, Math.max(0.1, STAGE.chaseHoldCommit + STAGE.chaseGain * err))
         }
       }
       peloton = {
@@ -171,18 +192,14 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
     }
 
     // Avance físico de cada grupo y gasto de energía de sus corredores.
-    const advance = (group: Group, members: RiderSim[], relayFraction: number): Group => {
+    const advance = (group: Group, members: RiderSim[], paceFraction: number): Group => {
       if (members.length === 0) return group
-      const p75 = groupP75(members, block)
+      const p75 = pacemakerP75(members, block, paceFraction)
       const next = advanceGroup(group, block, p75, { isFinal })
       members.forEach((m, idx) => {
-        // En el pelotón casi todos van protegidos; en la fuga, los primeros relevan.
-        const shelter =
-          group.id === BREAKAWAY
-            ? idx / members.length < relayFraction
-              ? STAGE.shelterRelay
-              : STAGE.shelterProtected
-            : STAGE.shelterProtected
+        // Los punteros relevan (shelter bajo, se vacían); el resto va protegido.
+        const relaying = idx / members.length < paceFraction
+        const shelter = relaying ? STAGE.shelterRelay : STAGE.shelterProtected
         const cost = blockCost(block, group.compromiso, shelter)
         m.energy = Math.max(0, m.energy - cost)
         m.work += cost
@@ -190,7 +207,8 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       return next
     }
 
-    peloton = advance(peloton, membersOf(PELOTON), 0)
+    // El pelotón lo tiran sus punteros más fuertes; la fuga, sus relevadores (coop).
+    peloton = advance(peloton, membersOf(PELOTON), STAGE.pelotonPaceFraction)
     if (breakaway && !caught) {
       breakaway = advance(breakaway, membersOf(BREAKAWAY), breakaway.coop)
     }
