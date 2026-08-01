@@ -54,6 +54,14 @@ export {
 } from './world/npc.js'
 export { renderJerseySvg } from './world/jersey.js'
 export {
+  callupScore,
+  raceVocationFit,
+  selectSquad,
+  type CallupCandidate,
+  type SquadSelection,
+  type TeamPhilosophy,
+} from './world/callups.js'
+export {
   analyzeFlat,
   analyzeMountain,
   analyzeTimeTrial,
