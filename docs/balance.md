@@ -96,3 +96,32 @@ de la general en el pelotón, 6 baroudeurs que forman la fuga, 3 sprinters y 27 
   puntuales, los tramos de recuperación de un puerto irregular reagrupan sin penalización y lavan la
   selección, así que el puerto irregular no produce (todavía) mayor brecha que el regular. Queda
   anotado para cuando el motor incorpore el coste de los cambios de ritmo; no se fuerza en CI.
+
+## Paso 27 — Cierre del motor (SPEC 6.13, 6.14, 6.18, 6.17)
+
+Cierra la Fase 5: contrarreloj, caídas, TSS del gasto, sellado de `engine_version` y el marcaje.
+
+### Resultados (N = 120/80, deterministas)
+
+| Invariante                                 | Objetivo  | Medido   | Estado |
+| ------------------------------------------ | --------- | -------- | ------ |
+| CRI 40 km: brecha p90-p10 de especialistas | 2 – 4 min | 2.85 min | ✓      |
+| CRI: la gana un especialista               | > 90 %    | 100 %    | ✓      |
+| Pavés: bajas por caída                     | 5 – 12 %  | 10.4 %   | ✓      |
+
+### Mecánica y giros de perilla
+
+1. **Contrarreloj (6.13)**: grupos de un corredor, sin rebufo ni hazards de ataque, compromiso fijo
+   `ttCommitment = 0.85`, perfil compuesto `0.75·CRI + 0.15·LLA + 0.10·RES` deslizando hacia MON en
+   subida, y ruido final `N(1, 0.006)`. La erosión castiga los recorridos largos.
+2. **Caídas (6.14)**: intensidad por bloque ponderada por terreno de riesgo
+   (`crashLambdaPaves = 0.0045`, `descenso = 0.0018`, `final = 0.0008`, `base = 0.00005`), modulada
+   por erosión y destreza (DES/PAV/TAC). Los λ de llano y final se bajaron para no castigar el
+   sprint (el mejor sprinter cayó del 40 % al 24 % con caídas altas; con estos valores vuelve a 34 %).
+3. **TSS del gasto (5.1)**: `stageTss(workUnits) = workUnits · 5`, para alimentar el Banister.
+4. **Sellado de `engine_version`**: la salida del motor lleva `engineVersion`, y la semilla ya lo
+   incorpora, de modo que los replays son reproducibles.
+5. **Marcaje (6.18, capa 4 "recortable")**: fórmulas puras `wheelProbability`, `markingMargin` y
+   `resolveMarking` con sus tests. La integración plena en la carrera (el invariante de "marcar al
+   favorito le resta 8-20 puntos de victoria") queda para cuando se conecten las órdenes en carrera;
+   por eso el SPEC la marca como recortable.

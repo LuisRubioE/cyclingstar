@@ -6,13 +6,15 @@
  * Puro y determinista: todo el azar entra por los subflujos nominales del RNG (6.1).
  */
 import { normal, type Rng } from '../random.js'
-import { STAGE } from '../constants.js'
+import { ENGINE_VERSION, STAGE } from '../constants.js'
 import { EventLog } from './events.js'
 import { type Group, advanceGroup, createGroup, gapSeconds, percentile75 } from './group.js'
 import { blockCost, blockPerfil, effNow, erosion } from './physics.js'
 import { rollHazard } from './hazard.js'
+import { rollCrash } from './crash.js'
 import { sampleProfile, stageLengthKm } from './sample.js'
 import { stageRng } from './rng.js'
+import { simulateTimeTrial } from './timetrial.js'
 import type { Block, Incident, StageInput, StageOutput, StageResult, StageRider } from './types.js'
 
 const PELOTON = 'peloton'
@@ -75,11 +77,16 @@ function pacemakerP75(members: RiderSim[], block: Block, fraction: number): numb
 }
 
 export function simulateStage(input: StageInput, seed: string): StageOutput {
+  // Contrarreloj: grupos de un corredor, sin drafting ni hazards de ataque (SPEC 6.13).
+  if (input.timeTrial) return simulateTimeTrial(input, seed)
+
   const streams = stageRng(seed)
   // Subflujos nominales creados UNA vez: reutilizarlos preserva la secuencia (SPEC 6.1).
   const rngBreak = streams('breakaway')
   const rngSprint = streams('sprint')
   const rngHazard = streams('hazard')
+  const rngCrash = streams('crash')
+  const incidents: Incident[] = []
 
   const blocks = sampleProfile(input.profile)
   const totalKm = stageLengthKm(input.profile)
@@ -275,6 +282,30 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       shed[g] = advance(shed[g]!, membersOf(shed[g]!.id), 1)
     }
 
+    // Caídas e incidentes (SPEC 6.14): en pavés, descensos y el embudo final. El caído pierde
+    // tiempo y sale del grupo; una lesión se arrastra días (lo consume el tick, no el motor).
+    const crashCheck = (group: Group): void => {
+      for (const m of membersOf(group.id)) {
+        const e = erosion(m.energy, m.energy0, m.input.eff0.RES)
+        const eff = effNow(m.input.eff0, e)
+        const out = rollCrash(rngCrash, block, isFinal, eff, e, m.input.fragility ?? 1)
+        if (!out) continue
+        incidents.push({ riderId: m.input.riderId, km, tipo: 'caida', ...out })
+        shedCounter += 1
+        const gid = `shed-${shedCounter}`
+        m.groupId = gid
+        shed.push(
+          createGroup(gid, [m.input.riderId], {
+            tS: group.tS + out.perdidaS,
+            vActual: group.vActual,
+            compromiso: STAGE.shedCommit,
+          }),
+        )
+      }
+    }
+    crashCheck(peloton)
+    if (breakaway && !caught) crashCheck(breakaway)
+
     // Captura de la fuga por el pelotón (SPEC 6.3).
     if (breakaway && !caught) {
       if (gapSeconds(peloton, breakaway) > STAGE.captureGapSeconds) separated = true
@@ -308,7 +339,12 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
   const workUnits = new Map<string, number>()
   for (const [id, s] of sims) workUnits.set(id, s.work)
 
-  return { events: log.toArray(), results, workUnits, incidents: [] }
+  return { events: log.toArray(), results, workUnits, incidents, engineVersion: ENGINE_VERSION }
+}
+
+/** TSS de etapa derivado del gasto de un corredor (workUnits), para el Banister (SPEC 5.1, 6.15). */
+export function stageTss(workUnits: number): number {
+  return workUnits * STAGE.tssPerWorkUnit
 }
 
 /** Mini sprint por los puntos de un banner (SPEC 6.11). El mejor del grupo se los lleva. */

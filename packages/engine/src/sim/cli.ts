@@ -3,8 +3,8 @@
  * de la etapa llana y de la etapa reina y compara los estadísticos con los rangos objetivo del
  * balance. Solo lectura: no toca base de datos ni red.
  */
-import { analyzeFlat, analyzeMountain } from './analyze.js'
-import { campaignSeeds, flatScenario, queenScenario } from './scenarios.js'
+import { analyzeFlat, analyzeMountain, analyzeTimeTrial } from './analyze.js'
+import { campaignSeeds, flatScenario, queenScenario, timeTrialScenario } from './scenarios.js'
 
 interface Target {
   label: string
@@ -74,8 +74,27 @@ function main(): void {
     },
   ])
 
+  const tt = timeTrialScenario()
+  const ttStats = analyzeTimeTrial(tt, campaignSeeds(tt.name, runs))
+  const ttOk = report('cri-40', ttStats.runs, [
+    {
+      label: 'Brecha p90-p10 (s)',
+      value: ttStats.medianP90MinusP10Seconds,
+      min: 120,
+      max: 240,
+      unit: '',
+    },
+    {
+      label: 'Gana un especialista',
+      value: ttStats.specialistWinPct,
+      min: 90,
+      max: 100,
+      unit: '%',
+    },
+  ])
+
   console.log('')
-  process.exit(flatOk && mtnOk ? 0 : 1)
+  process.exit(flatOk && mtnOk && ttOk ? 0 : 1)
 }
 
 main()

@@ -323,6 +323,12 @@ export const STAGE = {
   crashBaseTt: 0.008,
   crashErosionScale: 0.5,
   crashSkillScale: 0.35,
+  // Intensidad de caída por bloque (eventos/km), ponderada por terreno de riesgo (SPEC 6.14).
+  // Calibrada para que una etapa de pavés deje un 5-12% de bajas por caída.
+  crashLambdaBase: 0.00005,
+  crashLambdaDescent: 0.0018,
+  crashLambdaPaves: 0.0045,
+  crashLambdaFinal: 0.0008,
   // severidad: 60% sin daño (30-90 s) | 30% rasguños (eff -3%, 3-6 d) | 9% leve (5-15 d) | 1% grave (20-60 d).
   crashSeverity: {
     none: 0.6,
@@ -333,4 +339,18 @@ export const STAGE = {
 
   // 6.15 — Bonificaciones de tiempo en meta.
   timeBonuses: [10, 6, 4],
+
+  // 6.18 — Marcaje (capa 4). p_rueda = clamp(0.35 + (TAC_m-TAC_t)/80 - 0.10·extra, 0.15, 0.90).
+  markWheelBase: 0.35,
+  markWheelTacScale: 80,
+  markWheelExtraPenalty: 0.1,
+  markWheelMin: 0.15,
+  markWheelMax: 0.9,
+  // margen = (eff_m+10) - (eff_t+10) + 4; <0 cede 1.2·|margen| s; < -6 se suelta.
+  markDraftTolerance: 4,
+  markDropMargin: -6,
+  markGiveScale: 1.2,
+
+  // TSS de etapa derivado del gasto (workUnits) para alimentar el Banister (SPEC 5.1, 6.15).
+  tssPerWorkUnit: 5,
 } as const
