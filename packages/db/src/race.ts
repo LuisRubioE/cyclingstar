@@ -16,6 +16,7 @@ import { drizzle } from 'drizzle-orm/postgres-js'
 import { awardRacePrizes } from './economy.js'
 import { emitNews } from './news.js'
 import { ensureTestTourField } from './npc.js'
+import { addGcPoints, addStagePoints, recordPalmares } from './ranking.js'
 import {
   raceGc,
   raceRosters,
@@ -316,6 +317,38 @@ export async function raceWorldDay(
         seed: `gc:${seedBase}`,
         data: { rider: nameOf(gcWinnerId), race: RACE_NAME },
       })
+    }
+
+    // Ranking y palmarés (Paso 40): puntos por puesto y logros permanentes (nivel WT).
+    const season = Math.floor(gameDay / 364)
+    for (const r of output.results) {
+      await addStagePoints(tx, r.riderId, 'WT', r.puesto - 1)
+    }
+    await recordPalmares(tx, {
+      worldId,
+      riderId: stageWinner.riderId,
+      season,
+      raceId: TEST_TOUR_ID,
+      raceName: RACE_NAME,
+      kind: 'stage',
+      detail: `Stage ${stage.day}`,
+      gameDay,
+    })
+    if (isFinal) {
+      for (let i = 0; i < gcOrder.length; i++) {
+        await addGcPoints(tx, gcOrder[i]!, 'WT', i)
+      }
+      if (gcWinnerId) {
+        await recordPalmares(tx, {
+          worldId,
+          riderId: gcWinnerId,
+          season,
+          raceId: TEST_TOUR_ID,
+          raceName: RACE_NAME,
+          kind: 'gc',
+          gameDay,
+        })
+      }
     }
   }
 

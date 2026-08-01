@@ -133,8 +133,9 @@ export async function runRollover(
   // 1) Ascensos y descensos por la fuerza de la temporada que acaba.
   await promoteRelegate(tx, worldId)
 
-  // 2) Reinicio de puntos de temporada de los equipos.
+  // 2) Reinicio de puntos de temporada de equipos y corredores (el palmarés es permanente).
   await tx.update(teams).set({ pointsSeason: 0 }).where(eq(teams.worldId, worldId))
+  await tx.update(riders).set({ seasonPoints: 0 }).where(eq(riders.worldId, worldId))
 
   // 3) Contratos vencidos: liberan al corredor (el mercado lo re-fichará).
   await tx.delete(contracts).where(lt(contracts.endSeason, newSeason))

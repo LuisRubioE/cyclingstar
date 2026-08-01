@@ -18,6 +18,9 @@ import {
   getDailyLog,
   getGlobalNews,
   getLedger,
+  getPalmares,
+  getRaceHistory,
+  getRanking,
   getRiderNews,
   getGcThroughStage,
   getKomClassification,
@@ -376,6 +379,29 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
       if (!rider) return reply.status(409).send({ ok: false, error: 'sin_ciclista' })
       await setRacePref(db, rider.id, parsed.data.raceId, parsed.data.wanted)
       return { ok: true }
+    })
+
+    // Ranking individual de puntos de la temporada (Paso 40). Público.
+    app.get('/api/rankings', async () => {
+      const world = await getCurrentWorld(db)
+      if (!world) return { ranking: [] }
+      return { ranking: await getRanking(db, world.worldId) }
+    })
+
+    // Palmarés del corredor de la sesión (Paso 40).
+    app.get('/api/riders/me/palmares', async (request, reply) => {
+      const userId = await currentUserId(request)
+      if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
+      const rider = await getRiderForUser(db, userId)
+      if (!rider) return { palmares: [] }
+      return { palmares: await getPalmares(db, rider.id) }
+    })
+
+    // Historial de ganadores de la vuelta de prueba (Paso 40). Público.
+    app.get('/api/races/test-tour/history', async () => {
+      const world = await getCurrentWorld(db)
+      if (!world) return { history: [] }
+      return { history: await getRaceHistory(db, world.worldId, TEST_TOUR_ID) }
     })
 
     // Feed de noticias del mundo (Paso 39). Público (como el calendario); si hay sesión con
