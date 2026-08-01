@@ -16,6 +16,7 @@ import {
   getContract,
   getCurrentWorld,
   getDailyLog,
+  getLedger,
   getGcThroughStage,
   getKomClassification,
   getOffers,
@@ -373,6 +374,15 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
       if (!rider) return reply.status(409).send({ ok: false, error: 'sin_ciclista' })
       await setRacePref(db, rider.id, parsed.data.raceId, parsed.data.wanted)
       return { ok: true }
+    })
+
+    // Libro de transacciones y saldo (Paso 38).
+    app.get('/api/riders/me/ledger', async (request, reply) => {
+      const userId = await currentUserId(request)
+      if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
+      const rider = await getRiderForUser(db, userId)
+      if (!rider) return { balance: 0, entries: [] }
+      return getLedger(db, rider.id)
     })
 
     // Bandeja de ofertas y contrato vigente (Paso 36).

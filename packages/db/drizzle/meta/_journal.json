@@ -64,6 +64,13 @@
       "when": 1785617941660,
       "tag": "0008_stale_invaders",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1785618935904,
+      "tag": "0009_watery_fabian_cortez",
+      "breakpoints": true
     }
   ]
 }

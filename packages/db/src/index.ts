@@ -28,6 +28,14 @@ export {
 } from './contracts.js'
 export { runRollover } from './rollover.js'
 export {
+  awardRacePrizes,
+  creditRider,
+  getLedger,
+  runPayroll,
+  type Ledger,
+  type LedgerEntry,
+} from './economy.js'
+export {
   getGcThroughStage,
   getKomClassification,
   getPointsClassification,

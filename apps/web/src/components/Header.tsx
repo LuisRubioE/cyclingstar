@@ -47,6 +47,9 @@ export function Header() {
               <Link to="/market" className="text-slate-600 hover:text-slate-900">
                 Market
               </Link>
+              <Link to="/finances" className="text-slate-600 hover:text-slate-900">
+                Finances
+              </Link>
               <Link to="/race-orders" className="text-slate-600 hover:text-slate-900">
                 Orders
               </Link>

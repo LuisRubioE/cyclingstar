@@ -54,6 +54,7 @@ export {
 } from './world/npc.js'
 export { renderJerseySvg } from './world/jersey.js'
 export { neoproAge, shouldRetire } from './world/lifecycle.js'
+export { gcPrizes, stagePrize } from './world/prizes.js'
 export {
   callupScore,
   raceVocationFit,

@@ -3,6 +3,7 @@ import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 import { runCallups } from './callups.js'
 import { runMarket } from './contracts.js'
+import { runPayroll } from './economy.js'
 import { raceWorldDay } from './race.js'
 import { runRollover } from './rollover.js'
 import { gameState, tickLog, worlds } from './schema.js'
@@ -125,6 +126,7 @@ export async function runTick(databaseUrl: string, opts: RunTickOptions): Promis
           await trainWorldDay(tx, genesis.worldId, next, opts.worldSeed, raced)
           await runCallups(tx, genesis.worldId, next, opts.worldSeed)
           await runMarket(tx, genesis.worldId, next, opts.worldSeed)
+          await runPayroll(tx, genesis.worldId, next)
           await tx
             .update(gameState)
             .set({ currentDay: next, lastProcessedDay: next })
