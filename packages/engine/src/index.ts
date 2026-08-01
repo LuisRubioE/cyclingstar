@@ -9,6 +9,26 @@
 export { BANISTER, CREATION, ENGINE_VERSION, HEALTH, MORALE, STAGE, TRAINING } from './constants.js'
 export { deriveClimbCategory, isWall, sampleProfile, stageLengthKm } from './stage/sample.js'
 export { stageRng, stageSeed, type StageSeedParts } from './stage/rng.js'
+export {
+  accLimit,
+  blockCost,
+  blockPerfil,
+  blockSeconds,
+  climbWeight,
+  costBase,
+  draftMax,
+  effNow,
+  effNowAttr,
+  erosion,
+  depletion,
+  matchCount,
+  rhythm,
+  stepSpeed,
+  targetSpeed,
+  vRef,
+  type AccOptions,
+  type Eff,
+} from './stage/physics.js'
 export type {
   Banner,
   BannerType,
