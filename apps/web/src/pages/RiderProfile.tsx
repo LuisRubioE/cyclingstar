@@ -7,7 +7,9 @@ import {
 } from '@cyclingstar/shared'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
+import { fetchForm } from '../api/form'
 import { fetchMyRider } from '../api/rider'
+import { FormChart } from '../components/FormChart'
 import { StarRating } from '../components/StarRating'
 
 export function RiderProfile() {
@@ -16,6 +18,7 @@ export function RiderProfile() {
     isPending,
     isError,
   } = useQuery({ queryKey: ['rider', 'me'], queryFn: fetchMyRider })
+  const formQuery = useQuery({ queryKey: ['rider', 'form'], queryFn: fetchForm })
 
   if (isPending) return <p className="text-slate-500">Loading…</p>
   if (isError) return <p className="text-red-600">Could not load your rider.</p>
@@ -50,6 +53,30 @@ export function RiderProfile() {
           </p>
         </div>
       </header>
+
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-400">Form</h2>
+          {formQuery.data?.form && <StarRating value={formQuery.data.form.stars} />}
+        </div>
+        {formQuery.data?.form && (
+          <div className="mt-3">
+            <div className="flex items-center justify-between text-xs text-slate-500">
+              <span>Freshness</span>
+              <span>{Math.round(formQuery.data.form.freshness)}</span>
+            </div>
+            <div className="mt-1 h-2 overflow-hidden rounded-full bg-slate-200">
+              <div
+                className="h-full rounded-full bg-emerald-500"
+                style={{ width: `${formQuery.data.form.freshness}%` }}
+              />
+            </div>
+          </div>
+        )}
+        <div className="mt-4">
+          <FormChart points={formQuery.data?.log ?? []} />
+        </div>
+      </div>
 
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-400">Attributes</h2>

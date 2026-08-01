@@ -91,3 +91,31 @@ export const MORALE = {
   mean: 60,
   regression: 0.03,
 } as const
+
+/** Progresión por entrenamiento y decaimientos (SPEC 5.2, 5.5). */
+export const TRAINING = {
+  // K_talento = base + talento/100, en [0.6, 1.6].
+  kTalentBase: 0.6,
+  // K_intensidad.
+  kIntSuave: 0.7,
+  kIntNormal: 1.0,
+  kIntFuerte: 1.25,
+  // K_ready: entrenar reventado apenas rinde.
+  kReadyTsbThreshold: -30,
+  kReadyLow: 0.25,
+  // K_dim: ganancias decrecientes hacia el techo personal.
+  kDimCap: 1.2,
+  kDimExponent: 1.3,
+  kDimDenomFloor: 10,
+  kDimCeilingRef: 30,
+  // Decaimientos (SPEC 5.5).
+  detrainingCtlThreshold: 35,
+  detrainingLoss: 0.03,
+  ageDecayBase: 0.02,
+  ageDecaySlope: 0.004,
+  trainedDecayFactor: 0.4,
+  desPavDecayFactor: 0.25,
+  // Enfermedad: días fuera (SPEC 4.3).
+  illDaysMin: 2,
+  illDaysMax: 6,
+} as const

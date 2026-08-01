@@ -5,9 +5,9 @@ import {
   type PublicRider,
   type Vocation,
 } from '@cyclingstar/shared'
-import { eq } from 'drizzle-orm'
+import { desc, eq } from 'drizzle-orm'
 import type { Database } from './client.js'
-import { gameState, riderAttrs, riderHidden, riders } from './schema.js'
+import { gameState, riderAttrs, riderDailyLog, riderHidden, riders } from './schema.js'
 
 /**
  * Servicios de datos del ciclista (Paso 15). La creación inserta el corredor, sus atributos
@@ -109,4 +109,35 @@ export async function getRiderForUser(db: Database, userId: string): Promise<Pub
     birthSeason: rider.birthSeason,
     attributes,
   }
+}
+
+export interface DailyLogRow {
+  gameDay: number
+  ctl: number
+  atl: number
+  tsb: number
+  tss: number
+  activity: string
+}
+
+/** Serie diaria de carga/forma (SPEC 4, 11) para la gráfica del perfil, orden ascendente. */
+export async function getDailyLog(
+  db: Database,
+  riderId: string,
+  limitDays: number,
+): Promise<DailyLogRow[]> {
+  const rows = await db
+    .select({
+      gameDay: riderDailyLog.gameDay,
+      ctl: riderDailyLog.ctl,
+      atl: riderDailyLog.atl,
+      tsb: riderDailyLog.tsb,
+      tss: riderDailyLog.tss,
+      activity: riderDailyLog.activity,
+    })
+    .from(riderDailyLog)
+    .where(eq(riderDailyLog.riderId, riderId))
+    .orderBy(desc(riderDailyLog.gameDay))
+    .limit(limitDays)
+  return rows.reverse()
 }
