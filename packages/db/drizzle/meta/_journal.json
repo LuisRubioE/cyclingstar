@@ -57,6 +57,13 @@
       "when": 1785616598897,
       "tag": "0007_right_gambit",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1785617941660,
+      "tag": "0008_stale_invaders",
+      "breakpoints": true
     }
   ]
 }

@@ -8,14 +8,17 @@ import {
   type StageOrderRow,
   type TickSummary,
   type TrainingOrderRow,
+  acceptOffer,
   addToRoster,
   createRider,
   gameState,
   generateName,
+  getContract,
   getCurrentWorld,
   getDailyLog,
   getGcThroughStage,
   getKomClassification,
+  getOffers,
   getPointsClassification,
   getRaceGc,
   getRacePrefs,
@@ -25,6 +28,7 @@ import {
   getStageResults,
   getStageSnapshot,
   getTrainingOrders,
+  rejectOffer,
   setRacePref,
   setStageOrders,
   teamsClassification,
@@ -370,6 +374,43 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
       await setRacePref(db, rider.id, parsed.data.raceId, parsed.data.wanted)
       return { ok: true }
     })
+
+    // Bandeja de ofertas y contrato vigente (Paso 36).
+    app.get('/api/riders/me/offers', async (request, reply) => {
+      const userId = await currentUserId(request)
+      if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
+      const rider = await getRiderForUser(db, userId)
+      if (!rider) return { offers: [], contract: null }
+      return { offers: await getOffers(db, rider.id), contract: await getContract(db, rider.id) }
+    })
+
+    app.post<{ Params: { id: string } }>(
+      '/api/riders/me/offers/:id/accept',
+      async (request, reply) => {
+        const userId = await currentUserId(request)
+        if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
+        const rider = await getRiderForUser(db, userId)
+        if (!rider) return reply.status(409).send({ ok: false, error: 'sin_ciclista' })
+        try {
+          await acceptOffer(db, rider.id, request.params.id)
+        } catch {
+          return reply.status(409).send({ ok: false, error: 'oferta_no_disponible' })
+        }
+        return { ok: true }
+      },
+    )
+
+    app.post<{ Params: { id: string } }>(
+      '/api/riders/me/offers/:id/reject',
+      async (request, reply) => {
+        const userId = await currentUserId(request)
+        if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
+        const rider = await getRiderForUser(db, userId)
+        if (!rider) return reply.status(409).send({ ok: false, error: 'sin_ciclista' })
+        await rejectOffer(db, rider.id, request.params.id)
+        return { ok: true }
+      },
+    )
 
     app.put('/api/riders/me/orders', async (request, reply) => {
       const userId = await currentUserId(request)

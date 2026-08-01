@@ -18,6 +18,15 @@ export {
   type RacePrefRow,
 } from './callups.js'
 export {
+  acceptOffer,
+  getContract,
+  getOffers,
+  rejectOffer,
+  runMarket,
+  type ContractRow,
+  type OfferRow,
+} from './contracts.js'
+export {
   getGcThroughStage,
   getKomClassification,
   getPointsClassification,

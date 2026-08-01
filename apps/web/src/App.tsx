@@ -6,6 +6,7 @@ import { Calendar } from './pages/Calendar'
 import { CreateRider } from './pages/CreateRider'
 import { Home } from './pages/Home'
 import { Login } from './pages/Login'
+import { Market } from './pages/Market'
 import { Objectives } from './pages/Objectives'
 import { RaceOrders } from './pages/RaceOrders'
 import { Register } from './pages/Register'
@@ -62,6 +63,14 @@ export function App() {
             element={
               <ProtectedRoute>
                 <Objectives />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/market"
+            element={
+              <ProtectedRoute>
+                <Market />
               </ProtectedRoute>
             }
           />
