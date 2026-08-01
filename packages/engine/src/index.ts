@@ -3,10 +3,32 @@
  * Función pura y determinista: jamás importa de db, jamás usa Date.now() ni Math.random();
  * todo azar viene del RNG sembrado (CLAUDE.md, SPEC 6.1).
  *
- * Paso 15: creación del genoma del ciclista (SPEC 3.4-3.5). El contrato simulateStage() y la
- * física llegan a partir del Paso 21.
+ * Paso 15: creación del genoma del ciclista (SPEC 3.4-3.5).
+ * Paso 21: andamiaje del motor de etapa (SPEC 6.1-6.2): tipos, subflujos de RNG y muestreo.
  */
-export { BANISTER, CREATION, ENGINE_VERSION, HEALTH, MORALE, TRAINING } from './constants.js'
+export { BANISTER, CREATION, ENGINE_VERSION, HEALTH, MORALE, STAGE, TRAINING } from './constants.js'
+export { deriveClimbCategory, isWall, sampleProfile, stageLengthKm } from './stage/sample.js'
+export { stageRng, stageSeed, type StageSeedParts } from './stage/rng.js'
+export type {
+  Banner,
+  BannerType,
+  Block,
+  BlockTerrain,
+  ClimbCategory,
+  Incident,
+  Mentality,
+  RaceEvent,
+  Ramp,
+  Segment,
+  SegmentTerrain,
+  StageInput,
+  StageOrders,
+  StageOutput,
+  StageProfile,
+  StageResult,
+  StageRider,
+  StageRole,
+} from './stage/types.js'
 export {
   simulateRiderDay,
   type DailyLog,
