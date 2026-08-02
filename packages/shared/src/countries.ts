@@ -112,6 +112,7 @@ export const COUNTRIES: Country[] = [
   { code: 'GU', name: 'Guam', flag: '🇬🇺' },
   { code: 'BH', name: 'Bahrain', flag: '🇧🇭' },
   { code: 'XK', name: 'Kosovo', flag: '🇽🇰' },
+  { code: 'HN', name: 'Honduras', flag: '🇭🇳' },
 ]
 
 const CODES = new Set(COUNTRIES.map((c) => c.code))

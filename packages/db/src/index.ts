@@ -23,10 +23,10 @@ export {
   type TeamRiderRow,
 } from './browse.js'
 export {
-  backfillTeamCountries,
   planWorld,
+  reconcileTeams,
   seedWorld,
-  teamCountryFromSeed,
+  teamCountryByIndex,
   type RiderPlan,
   type TeamPlan,
   type WorldPlan,

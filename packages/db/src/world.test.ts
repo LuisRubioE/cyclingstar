@@ -1,6 +1,6 @@
 import { ATTRIBUTES, COUNTRIES } from '@cyclingstar/shared'
 import { describe, expect, it } from 'vitest'
-import { planWorld, teamCountryFromSeed } from './world.js'
+import { planWorld, teamCountryByIndex } from './world.js'
 
 /** El plan sin los UUID de cliente (que sí varían por ejecución). */
 function stableShape(seed: string) {
@@ -26,18 +26,18 @@ function stableShape(seed: string) {
 }
 
 describe('db: génesis del mundo (SPEC 10, Paso 33)', () => {
-  it('compone 236 equipos con cifras reales por división (18 WT + 18 PRS + 200 CON)', () => {
+  it('compone 221 equipos con el reparto real por división (18 WT + 18 PRS + 185 CON)', () => {
     const { teams } = planWorld('world-seed')
-    expect(teams).toHaveLength(18 + 18 + 200)
+    expect(teams).toHaveLength(18 + 18 + 185)
     expect(teams.filter((t) => t.division === 'WT')).toHaveLength(18)
     expect(teams.filter((t) => t.division === 'PRS')).toHaveLength(18)
-    expect(teams.filter((t) => t.division === 'CON')).toHaveLength(200)
+    expect(teams.filter((t) => t.division === 'CON')).toHaveLength(185)
   })
 
   it('genera al menos 3.200 corredores; los fichados tienen equipo, los libres no', () => {
     const { riders } = planWorld('world-seed')
     expect(riders.length).toBeGreaterThanOrEqual(3200)
-    const signed = 18 * 14 + 18 * 12 + 200 * 10
+    const signed = 18 * 14 + 18 * 12 + 185 * 10
     expect(riders.filter((r) => r.teamId !== null)).toHaveLength(signed)
     expect(riders.filter((r) => r.teamId === null).length).toBeGreaterThan(0)
   })
@@ -78,35 +78,60 @@ describe('db: génesis del mundo (SPEC 10, Paso 33)', () => {
     expect(new Set(names).size).toBe(names.length)
   })
 
-  it('cada equipo tiene una nacionalidad real (país con datos) y es reproducible', () => {
+  it('cada equipo tiene una nacionalidad real (país registrado) por índice de reparto', () => {
     const codes = new Set(COUNTRIES.map((c) => c.code))
-    const a = planWorld('world-seed').teams
-    const b = planWorld('world-seed').teams
-    for (let i = 0; i < a.length; i++) {
-      expect(codes.has(a[i]!.country)).toBe(true)
-      // Determinista: mismo país en dos planificaciones y desde la fórmula de semilla.
-      expect(a[i]!.country).toBe(b[i]!.country)
-      expect(a[i]!.country).toBe(teamCountryFromSeed(a[i]!.jerseySeed, a[i]!.division))
+    for (const t of planWorld('world-seed').teams) {
+      expect(codes.has(t.country)).toBe(true)
     }
   })
 
-  it('el WorldTour tira de potencias tradicionales (sin países exóticos)', () => {
+  it('respeta el reparto exacto de nacionalidades del Continental real', () => {
+    const con = planWorld('world-seed').teams.filter((t) => t.division === 'CON')
+    const tally: Record<string, number> = {}
+    for (const t of con) tally[t.country] = (tally[t.country] ?? 0) + 1
+    // Muestra representativa del reparto pedido.
+    expect(tally.CN).toBe(15)
+    expect(tally.IT).toBe(13)
+    expect(tally.FR).toBe(12)
+    expect(tally.PT).toBe(10)
+    expect(tally.JP).toBe(9)
+    expect(tally.DE).toBe(9)
+    expect(tally.US).toBe(8)
+    expect(tally.NL).toBe(8)
+    expect(tally.HK).toBe(1)
+    expect(tally.XK).toBe(1)
+    expect(tally.GU).toBe(1)
+    expect(con.length).toBe(185)
+  })
+
+  it('el WorldTour usa el reparto real (BE 3, FR 3, DE 2, NL 2, …)', () => {
     const wt = planWorld('world-seed').teams.filter((t) => t.division === 'WT')
-    const allowed = new Set([
-      'BE',
-      'FR',
-      'IT',
-      'NL',
-      'ES',
-      'GB',
-      'US',
-      'AU',
-      'DE',
-      'CH',
-      'KZ',
-      'AE',
-    ])
-    for (const t of wt) expect(allowed.has(t.country)).toBe(true)
+    const tally: Record<string, number> = {}
+    for (const t of wt) tally[t.country] = (tally[t.country] ?? 0) + 1
+    expect(tally).toEqual({
+      BE: 3,
+      FR: 3,
+      DE: 2,
+      NL: 2,
+      US: 1,
+      GB: 1,
+      CH: 1,
+      BH: 1,
+      AU: 1,
+      ES: 1,
+      AE: 1,
+      KZ: 1,
+    })
+  })
+
+  it('el país del equipo i coincide con teamCountryByIndex', () => {
+    const teams = planWorld('world-seed').teams
+    const idxByDiv: Record<string, number> = { WT: 0, PRS: 0, CON: 0 }
+    for (const t of teams) {
+      const i = idxByDiv[t.division]!
+      expect(t.country).toBe(teamCountryByIndex(t.division, i))
+      idxByDiv[t.division] = i + 1
+    }
   })
 
   it('cada equipo firmado tiene presupuesto positivo y un roster acorde a su división', () => {

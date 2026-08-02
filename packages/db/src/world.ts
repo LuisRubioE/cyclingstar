@@ -7,11 +7,11 @@ import {
   type Vocation,
   seededRng,
 } from '@cyclingstar/shared'
-import { and, eq, isNull } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import { riderAttrs, riderHidden, riders, teams } from './schema.js'
 import { generateUniqueName } from './names.js'
-import { makeUniqueTeamName } from './teamNames.js'
+import { makeLangTeamName } from './teamNameLang.js'
 
 /**
  * Génesis del mundo NPC (SPEC 10, Paso 33). Equipos en tres divisiones y ~1.600 corredores,
@@ -31,16 +31,115 @@ interface DivisionPlan {
   roster: number
   budgetBase: number
 }
-// Número de equipos por división acorde a la realidad (SPEC 7.1): 18 WorldTeams, 18 ProTeams y
-// ~200 Continental en todo el mundo. El Continental es tan numeroso en la vida real que domina la
-// población; es una constante para poder ajustarlo si el tick se vuelve pesado.
-const CON_TEAMS = 200
+/**
+ * Nacionalidad de los equipos por división, con el reparto REAL por país (SPEC 7.1). El equipo i de
+ * una división toma el país en la posición i de su lista. Continental es la distribución exacta del
+ * pelotón real (185 equipos); WorldTour (18) y ProTeams (18) son la reconstrucción de la temporada
+ * en curso (ajustable si cambia). Cada país existe en el registro de banderas/nombres.
+ */
+const dist = (pairs: [number, string][]): string[] =>
+  pairs.flatMap(([n, code]) => Array<string>(n).fill(code))
+
+const TEAM_DIST: Record<Division, string[]> = {
+  WT: dist([
+    [3, 'BE'],
+    [3, 'FR'],
+    [2, 'DE'],
+    [2, 'NL'],
+    [1, 'US'],
+    [1, 'GB'],
+    [1, 'CH'],
+    [1, 'BH'],
+    [1, 'AU'],
+    [1, 'ES'],
+    [1, 'AE'],
+    [1, 'KZ'],
+  ]),
+  PRS: dist([
+    [4, 'IT'],
+    [3, 'ES'],
+    [3, 'FR'],
+    [2, 'CH'],
+    [1, 'NO'],
+    [1, 'BE'],
+    [1, 'NL'],
+    [1, 'US'],
+    [1, 'JP'],
+    [1, 'TH'],
+  ]),
+  // Reparto exacto de los ~185 Continental reales por país.
+  CON: dist([
+    [15, 'CN'],
+    [13, 'IT'],
+    [12, 'FR'],
+    [10, 'PT'],
+    [9, 'JP'],
+    [9, 'DE'],
+    [8, 'NL'],
+    [8, 'US'],
+    [7, 'BE'],
+    [6, 'AT'],
+    [5, 'AU'],
+    [5, 'CZ'],
+    [4, 'TR'],
+    [4, 'CO'],
+    [4, 'DK'],
+    [4, 'PH'],
+    [3, 'ID'],
+    [3, 'RW'],
+    [3, 'KZ'],
+    [3, 'SI'],
+    [3, 'CH'],
+    [3, 'KR'],
+    [3, 'NO'],
+    [3, 'TH'],
+    [3, 'PL'],
+    [2, 'MY'],
+    [2, 'IR'],
+    [2, 'MX'],
+    [2, 'DZ'],
+    [1, 'KG'],
+    [1, 'ES'],
+    [1, 'CL'],
+    [1, 'GR'],
+    [1, 'NZ'],
+    [1, 'FI'],
+    [1, 'BO'],
+    [1, 'EE'],
+    [1, 'UZ'],
+    [1, 'MA'],
+    [1, 'ZA'],
+    [1, 'HU'],
+    [1, 'AE'],
+    [1, 'HN'],
+    [1, 'RO'],
+    [1, 'SE'],
+    [1, 'BR'],
+    [1, 'GB'],
+    [1, 'HK'],
+    [1, 'GT'],
+    [1, 'LT'],
+    [1, 'GU'],
+    [1, 'SK'],
+    [1, 'UA'],
+    [1, 'XK'],
+    [1, 'BH'],
+    [1, 'EC'],
+  ]),
+}
+
+/** Nacionalidad del equipo i de una división (con módulo, por si un mundo tiene equipos de más). */
+export function teamCountryByIndex(division: Division, index: number): string {
+  const arr = TEAM_DIST[division]
+  return arr[index % arr.length]!
+}
+
 const DIVISIONS: DivisionPlan[] = [
-  { division: 'WT', teams: 18, roster: 14, budgetBase: 5_000_000 },
-  { division: 'PRS', teams: 18, roster: 12, budgetBase: 2_000_000 },
-  { division: 'CON', teams: CON_TEAMS, roster: 10, budgetBase: 700_000 },
+  { division: 'WT', teams: TEAM_DIST.WT.length, roster: 14, budgetBase: 5_000_000 },
+  { division: 'PRS', teams: TEAM_DIST.PRS.length, roster: 12, budgetBase: 2_000_000 },
+  { division: 'CON', teams: TEAM_DIST.CON.length, roster: 10, budgetBase: 700_000 },
 ]
-// Con 2.468 corredores firmados (18·14 + 18·12 + 200·10), la meta deja ~730 agentes libres.
+// Firmados = 18·14 + 18·12 + 185·10 = 2.318; la meta deja ~880 agentes libres para el mercado.
 const TARGET_POPULATION = 3200
 
 /**
@@ -150,68 +249,13 @@ const COUNTRY_WEIGHTS: Record<string, number> = {
   GU: 1,
   BH: 1,
   XK: 1,
+  HN: 1,
 }
 const COUNTRIES = Object.entries(COUNTRY_WEIGHTS).flatMap(([code, w]) => Array(w).fill(code))
 const PHILOSOPHIES: Philosophy[] = ['general', 'sprints', 'clasicas', 'cantera', 'equilibrado']
 
-/**
- * Nacionalidad de los equipos por división, según la realidad. El WorldTour lo dominan las
- * potencias tradicionales; el ProSeries se reparte más; el Continental es mundial (reutiliza el
- * reparto ciclista de los corredores). Determinista por equipo desde su semilla de maillot.
- */
-const WT_TEAM_COUNTRY_WEIGHTS: Record<string, number> = {
-  BE: 4,
-  FR: 3,
-  IT: 3,
-  NL: 3,
-  ES: 2,
-  GB: 2,
-  US: 2,
-  AU: 2,
-  DE: 2,
-  CH: 1,
-  KZ: 1,
-  AE: 1,
-}
-const PRS_TEAM_COUNTRY_WEIGHTS: Record<string, number> = {
-  BE: 3,
-  FR: 3,
-  IT: 3,
-  ES: 2,
-  NL: 2,
-  GB: 2,
-  NO: 1,
-  DK: 1,
-  PT: 1,
-  PL: 1,
-  AT: 1,
-  CZ: 1,
-  US: 1,
-  AU: 1,
-  CO: 1,
-  KZ: 1,
-  TR: 1,
-  IL: 1,
-  JP: 1,
-  SI: 1,
-}
-const expand = (w: Record<string, number>): string[] =>
-  Object.entries(w).flatMap(([code, n]) => Array(n).fill(code))
-const TEAM_COUNTRY_POOL: Record<Division, string[]> = {
-  WT: expand(WT_TEAM_COUNTRY_WEIGHTS),
-  PRS: expand(PRS_TEAM_COUNTRY_WEIGHTS),
-  // El Continental es mundial: mismo reparto (ponderado por peso ciclista) que las nacionalidades
-  // de los corredores, así que aparecen equipos de casi cualquier federación.
-  CON: COUNTRIES,
-}
-
 function pick<T>(arr: readonly T[], rng: () => number): T {
   return arr[Math.floor(rng() * arr.length)]!
-}
-
-/** Nacionalidad determinista de un equipo (misma fórmula en la génesis y en el backfill). */
-export function teamCountryFromSeed(jerseySeed: string, division: Division): string {
-  return pick(TEAM_COUNTRY_POOL[division], seededRng(`${jerseySeed}:country`))
 }
 
 export interface TeamPlan {
@@ -284,14 +328,17 @@ export function planWorld(worldSeed: string): WorldPlan {
       const seed = `${worldSeed}:team:${div.division}:${t}`
       const rng = seededRng(seed)
       const id = randomUUID()
-      const name = makeUniqueTeamName(seed, usedTeamNames)
       const budget = Math.round(div.budgetBase * (0.6 + 0.8 * rng()))
       const facilities = 0.9 + rng() * 0.3 // K_inst [0.90, 1.20]
       const jerseySeed = `${seed}:jersey`
+      const country = teamCountryByIndex(div.division, t)
+      // Nombre ficticio en el idioma del país (romanizado). Mismo generador y orden que la
+      // reconciliación del tick, para que en un mundo nuevo esta no cambie nada.
+      const name = makeLangTeamName(jerseySeed, country, usedTeamNames)
       teamPlans.push({
         id,
         name,
-        country: teamCountryFromSeed(jerseySeed, div.division),
+        country,
         division: div.division,
         budget,
         philosophy: pick(PHILOSOPHIES, rng),
@@ -304,7 +351,7 @@ export function planWorld(worldSeed: string): WorldPlan {
     }
   }
 
-  // Agentes libres (sin equipo) para el mercado, hasta ~1.600 corredores.
+  // Agentes libres (sin equipo) para el mercado, hasta la población objetivo.
   while (riderPlans.length < TARGET_POPULATION) {
     riderPlans.push(buildRider(worldSeed, riderIndex++, 'CON', null, usedRiderNames))
   }
@@ -394,23 +441,57 @@ export async function seedWorld(tx: Tx, worldId: string, worldSeed: string): Pro
   )
 }
 
+const DIV_RANK: Record<Division, number> = { WT: 0, PRS: 1, CON: 2 }
+
+/** Índice del equipo dentro de su división, leído de su semilla de maillot (…:team:DIV:i:jersey). */
+function teamIndexFromSeed(jerseySeed: string): number {
+  const m = jerseySeed.match(/:team:[A-Z]+:(\d+):jersey$/)
+  return m ? Number.parseInt(m[1]!, 10) : 0
+}
+
 /**
- * Rellena la nacionalidad de los equipos que aún no la tienen (mundos anteriores a esta columna),
- * de forma determinista desde su semilla de maillot y su división. Idempotente: una vez con país,
- * no hace nada. Se ejecuta en el tick, como la reparación de nombres duplicados.
+ * Reconcilia los equipos NPC con el reparto real de nacionalidades y les da nombre en el idioma de
+ * su país (SPEC 7). Recorre los equipos bot en orden fijo (división, índice) —el mismo que la
+ * génesis— reconstruyendo el conjunto de nombres usados, así que la asignación es determinista y un
+ * punto fijo: tras aplicarla una vez, las siguientes ejecuciones no cambian nada (idempotente). Los
+ * equipos con dueño (humanos) no se tocan; sus nombres se reservan para no colisionar. Repara así
+ * los mundos anteriores a esta distribución en su siguiente tick.
  */
-export async function backfillTeamCountries(tx: Tx, worldId: string): Promise<number> {
+export async function reconcileTeams(tx: Tx, worldId: string): Promise<number> {
   const rows = await tx
-    .select({ id: teams.id, division: teams.division, jerseySeed: teams.jerseySeed })
+    .select({
+      id: teams.id,
+      division: teams.division,
+      jerseySeed: teams.jerseySeed,
+      ownerUserId: teams.ownerUserId,
+      name: teams.name,
+      country: teams.country,
+    })
     .from(teams)
-    .where(and(eq(teams.worldId, worldId), isNull(teams.country)))
+    .where(eq(teams.worldId, worldId))
+
+  const used = new Set<string>()
   for (const t of rows) {
-    await tx
-      .update(teams)
-      .set({ country: teamCountryFromSeed(t.jerseySeed, t.division) })
-      .where(eq(teams.id, t.id))
+    if (t.ownerUserId !== null) used.add(t.name.toLowerCase()) // los equipos humanos mandan
   }
-  return rows.length
+  const bots = rows
+    .filter((t) => t.ownerUserId === null)
+    .sort(
+      (a, b) =>
+        DIV_RANK[a.division] - DIV_RANK[b.division] ||
+        teamIndexFromSeed(a.jerseySeed) - teamIndexFromSeed(b.jerseySeed),
+    )
+
+  let changed = 0
+  for (const t of bots) {
+    const country = teamCountryByIndex(t.division, teamIndexFromSeed(t.jerseySeed))
+    const name = makeLangTeamName(t.jerseySeed, country, used)
+    if (t.country !== country || t.name !== name) {
+      await tx.update(teams).set({ country, name }).where(eq(teams.id, t.id))
+      changed++
+    }
+  }
+  return changed
 }
 
 /** Inserta un array en lotes para no exceder el límite de parámetros de Postgres. */
