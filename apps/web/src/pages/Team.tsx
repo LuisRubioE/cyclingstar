@@ -1,7 +1,7 @@
 import { COUNTRIES, VOCATION_LABELS, type Vocation } from '@cyclingstar/shared'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
-import { fetchTeam, fetchTeamControl, takeOverTeam } from '../api/browse'
+import { fetchTeam, fetchTeamControl, fetchTeamNews, takeOverTeam } from '../api/browse'
 import { Flag } from '../components/Flag'
 import { Jersey } from '../components/Jersey'
 import { RiderName } from '../components/RiderName'
@@ -22,6 +22,7 @@ export function Team() {
     queryFn: () => fetchTeam(id),
   })
   const { data: control } = useQuery({ queryKey: ['team-control'], queryFn: fetchTeamControl })
+  const teamNews = useQuery({ queryKey: ['team-news', id], queryFn: () => fetchTeamNews(id) })
   const takeOver = useMutation({
     mutationFn: takeOverTeam,
     onSuccess: () => {
@@ -119,6 +120,24 @@ export function Team() {
           </tbody>
         </table>
       </div>
+
+      {teamNews.data && teamNews.data.length > 0 && (
+        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <h2 className="border-b border-slate-100 px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
+            Recent news
+          </h2>
+          <ul className="divide-y divide-slate-100">
+            {teamNews.data.map((n, i) => (
+              <li key={i} className="flex gap-3 px-5 py-2.5 text-sm">
+                <span className="w-14 shrink-0 text-xs tabular-nums text-slate-400">
+                  Day {n.gameDay}
+                </span>
+                <span className="text-slate-700">{n.text}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </section>
   )
 }

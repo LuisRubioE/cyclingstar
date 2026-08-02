@@ -51,7 +51,7 @@ export {
   type OfferRow,
 } from './contracts.js'
 export { runRollover } from './rollover.js'
-export { emitNews, getGlobalNews, getRiderNews, type NewsItem } from './news.js'
+export { emitNews, getGlobalNews, getRiderNews, getTeamNews, type NewsItem } from './news.js'
 export {
   getAllTimeRecords,
   getHallOfFame,
