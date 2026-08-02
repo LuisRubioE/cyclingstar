@@ -91,7 +91,7 @@ export function Market() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Transfer market</h1>
         <p className="mt-1 text-sm text-slate-500">
-          Offers arrive at the end of the season. Sign the one that fits your ambitions — salary,
+          As a free agent you get offers regularly — sign the one that fits your ambitions. Salary,
           role and division all matter.
         </p>
       </div>
@@ -111,7 +111,7 @@ export function Market() {
 
       {data.offers.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">
-          No offers on the table right now. They land in the end-of-season window.
+          No offers on the table right now. New ones arrive as the world advances.
         </p>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
