@@ -110,6 +110,12 @@ export {
 export { getTrainingOrders, setTrainingOrders, type TrainingOrderRow } from './training.js'
 export { getRiderRaceDays } from './riderSchedule.js'
 export {
+  getRiderLastRaceReport,
+  type RiderRaceReport,
+  type RaceReportOrders,
+  type RaceReportEvent,
+} from './raceReport.js'
+export {
   addToRoster,
   getStageOrders,
   isOnRoster,
