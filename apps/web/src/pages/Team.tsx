@@ -5,6 +5,7 @@ import { fetchTeam, fetchTeamControl, takeOverTeam } from '../api/browse'
 import { Jersey } from '../components/Jersey'
 import { RiderName } from '../components/RiderName'
 import { RiderPortrait } from '../components/RiderPortrait'
+import { TeamManager } from '../components/TeamManager'
 
 function flag(country: string): string {
   return COUNTRIES.find((c) => c.code === country)?.flag ?? '🏳️'
@@ -94,11 +95,7 @@ export function Team() {
           )}
         </div>
       )}
-      {isMyTeam && data.human && control?.team?.ownedByMe && (
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
-          You manage this team.
-        </div>
-      )}
+      {isMyTeam && data.human && control?.team?.ownedByMe && <TeamManager team={data} />}
 
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <h2 className="border-b border-slate-100 px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
