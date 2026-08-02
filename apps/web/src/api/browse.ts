@@ -101,6 +101,18 @@ export async function fetchTeam(id: string): Promise<TeamDetail> {
   return ((await res.json()) as { team: TeamDetail }).team
 }
 
+export interface TeamNewsItem {
+  gameDay: number
+  kind: string
+  text: string
+}
+
+export async function fetchTeamNews(id: string): Promise<TeamNewsItem[]> {
+  const res = await fetch(`/api/teams/${id}/news`)
+  if (!res.ok) throw new Error('Could not load team news.')
+  return ((await res.json()) as { news: TeamNewsItem[] }).news
+}
+
 export async function fetchPublicRider(id: string): Promise<PublicRiderDetail> {
   const res = await fetch(`/api/riders/${id}`)
   if (!res.ok) throw new Error('Could not load the rider.')

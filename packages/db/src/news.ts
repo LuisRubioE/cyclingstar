@@ -3,7 +3,7 @@ import { renderNews } from '@cyclingstar/engine'
 import { and, desc, eq, or } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import type { Database } from './client.js'
-import { news } from './schema.js'
+import { news, riders } from './schema.js'
 
 /**
  * Feed de noticias (SPEC, Paso 39). El generador templado del motor redacta el titular; aquí se
@@ -53,6 +53,21 @@ export async function getGlobalNews(
     .select({ gameDay: news.gameDay, kind: news.kind, text: news.text, scope: news.scope })
     .from(news)
     .where(eq(news.worldId, worldId))
+    .orderBy(desc(news.gameDay), desc(news.createdAt))
+    .limit(limit)
+  return rows.map((r) => ({ ...r, personal: r.scope === 'personal' }))
+}
+
+/**
+ * Noticias de un equipo (#16): titulares cuyo protagonista corre hoy en el equipo (victorias de
+ * etapa, generales, fugas de sus corredores…). Sin columna nueva: se deriva del enlace corredor.
+ */
+export async function getTeamNews(db: Database, teamId: string, limit = 15): Promise<NewsItem[]> {
+  const rows = await db
+    .select({ gameDay: news.gameDay, kind: news.kind, text: news.text, scope: news.scope })
+    .from(news)
+    .innerJoin(riders, eq(riders.id, news.riderId))
+    .where(eq(riders.teamId, teamId))
     .orderBy(desc(news.gameDay), desc(news.createdAt))
     .limit(limit)
   return rows.map((r) => ({ ...r, personal: r.scope === 'personal' }))

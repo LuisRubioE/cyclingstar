@@ -31,6 +31,7 @@ import {
   getGlobalNews,
   getPublicRider,
   getTeamDetail,
+  getTeamNews,
   getTeams,
   getLedger,
   getPalmares,
@@ -792,6 +793,11 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
       const team = await getTeamDetail(db, request.params.id)
       if (!team) return reply.status(404).send({ ok: false, error: 'no_encontrado' })
       return { team }
+    })
+
+    // Noticias del equipo (#16): titulares de sus corredores.
+    app.get<{ Params: { id: string } }>('/api/teams/:id/news', async (request) => {
+      return { news: await getTeamNews(db, request.params.id) }
     })
 
     app.get<{ Params: { id: string } }>('/api/riders/:id', async (request, reply) => {
