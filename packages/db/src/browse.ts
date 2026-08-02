@@ -1,6 +1,7 @@
 import { ATTRIBUTES, type Attribute } from '@cyclingstar/shared'
 import { and, desc, eq, isNull, sql } from 'drizzle-orm'
 import type { Database } from './client.js'
+import { getSeasonRank } from './riders.js'
 import { riderAttrs, riders, teams } from './schema.js'
 
 /**
@@ -173,6 +174,8 @@ export interface PublicRiderDetail {
   teamId: string | null
   teamName: string | null
   seasonPoints: number
+  seasonRank: number
+  fieldSize: number
   fame: number
   attributes: Record<Attribute, number>
 }
@@ -190,6 +193,7 @@ export async function getPublicRider(
       country: riders.country,
       archetype: riders.archetype,
       birthSeason: riders.birthSeason,
+      worldId: riders.worldId,
       userId: riders.userId,
       teamId: riders.teamId,
       teamName: teams.name,
@@ -209,6 +213,7 @@ export async function getPublicRider(
   const attributes = {} as Record<Attribute, number>
   for (const a of ATTRIBUTES) attributes[a] = 0
   for (const row of attrRows) attributes[row.attr] = row.value
+  const rank = await getSeasonRank(db, r.worldId, r.seasonPoints)
   return {
     id: r.id,
     name: r.name,
@@ -219,6 +224,8 @@ export async function getPublicRider(
     teamId: r.teamId,
     teamName: r.teamName,
     seasonPoints: r.seasonPoints,
+    seasonRank: rank.seasonRank,
+    fieldSize: rank.fieldSize,
     fame: r.fame,
     attributes,
   }
