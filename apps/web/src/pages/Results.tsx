@@ -1,4 +1,3 @@
-import { COUNTRIES } from '@cyclingstar/shared'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import {
@@ -11,11 +10,8 @@ import {
   formatTime,
   narrate,
 } from '../api/results'
+import { Flag } from '../components/Flag'
 import { RiderName } from '../components/RiderName'
-
-function flag(country: string): string {
-  return COUNTRIES.find((c) => c.code === country)?.flag ?? '🏳️'
-}
 
 /** Tiempo del líder en absoluto; el resto relativo a él (+gap). */
 function relTime(seconds: number, leader: number, isLeader: boolean): string {
@@ -43,7 +39,7 @@ function TimeTable({ rows, limit = 20 }: { rows: TimeRow[]; limit?: number }) {
           <tr key={r.riderId} className="border-b border-slate-100 last:border-0">
             <td className="w-7 py-1 text-slate-400 tabular-nums">{i + 1}</td>
             <td className="w-6 py-1" aria-hidden>
-              {flag(r.country)}
+              <Flag code={r.country} size={16} />
             </td>
             <td className="py-1 text-slate-700">
               <RiderName riderId={r.riderId} name={r.name} isBot={r.isBot} />
@@ -88,7 +84,7 @@ function PointsTable({ rows }: { rows: PointsEntry[] }) {
           <tr key={r.riderId} className="border-b border-slate-100 last:border-0">
             <td className="w-7 py-1 text-slate-400 tabular-nums">{i + 1}</td>
             <td className="w-6 py-1" aria-hidden>
-              {flag(r.country)}
+              <Flag code={r.country} size={16} />
             </td>
             <td className="py-1 text-slate-700">
               <RiderName riderId={r.riderId} name={r.name} isBot={r.isBot} />
@@ -142,7 +138,7 @@ function StageReplayView({ day }: { day: number }) {
                   <tr key={r.riderId} className="border-b border-slate-100 last:border-0">
                     <td className="w-7 py-1 text-slate-400 tabular-nums">{r.puesto}</td>
                     <td className="w-6 py-1" aria-hidden>
-                      {flag(r.country)}
+                      <Flag code={r.country} size={16} />
                     </td>
                     <td className="py-1 text-slate-700">
                       <RiderName riderId={r.riderId} name={r.name} isBot={r.isBot} />

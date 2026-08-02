@@ -1,14 +1,8 @@
-import { COUNTRIES } from '@cyclingstar/shared'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { type TeamListItem, fetchTeams } from '../api/browse'
+import { Flag } from '../components/Flag'
 import { Jersey } from '../components/Jersey'
-
-/** Bandera de la nacionalidad del equipo (o mundo si aún no tiene país asignado). */
-function flagFor(country: string | null): string {
-  if (!country) return '🏳️'
-  return COUNTRIES.find((c) => c.code === country)?.flag ?? '🏳️'
-}
 
 const DIVISION_BADGE: Record<string, string> = {
   WT: 'bg-indigo-100 text-indigo-700',
@@ -37,9 +31,7 @@ function DivisionBlock({ division, teams }: { division: string; teams: TeamListI
           >
             <span className="flex items-center gap-2">
               <Jersey seed={t.jerseySeed} size={26} />
-              <span className="text-base" aria-hidden title={t.country ?? undefined}>
-                {flagFor(t.country)}
-              </span>
+              <Flag code={t.country} size={16} />
               <span
                 className={`rounded-full px-2 py-0.5 text-xs font-medium ${DIVISION_BADGE[t.division] ?? ''}`}
               >

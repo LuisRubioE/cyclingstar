@@ -1,12 +1,8 @@
-import { COUNTRIES } from '@cyclingstar/shared'
 import { useQuery } from '@tanstack/react-query'
 import { fetchHallOfFame } from '../api/rankings'
+import { Flag } from '../components/Flag'
 import { RiderName } from '../components/RiderName'
 import { RiderPortrait } from '../components/RiderPortrait'
-
-function flag(country: string): string {
-  return COUNTRIES.find((c) => c.code === country)?.flag ?? '🏳️'
-}
 
 /** Salón de la fama (#58/#62): corredores por palmarés total de todas las temporadas. */
 export function HallOfFame() {
@@ -52,7 +48,7 @@ export function HallOfFame() {
                   <td className="py-1.5">
                     <span className="flex items-center gap-2">
                       <RiderPortrait seed={r.riderId} size={24} />
-                      <span aria-hidden>{flag(r.country)}</span>
+                      <Flag code={r.country} size={16} />
                       <RiderName riderId={r.riderId} name={r.name} isBot={r.isBot} />
                     </span>
                   </td>
