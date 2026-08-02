@@ -1,7 +1,72 @@
+import { VOCATION_LABELS, type Vocation } from '@cyclingstar/shared'
 import { useQuery } from '@tanstack/react-query'
-import { type RaceHonour, fetchRaceHistory, fetchRankings } from '../api/rankings'
+import { Link } from 'react-router-dom'
+import {
+  type AwardWinner,
+  type RaceHonour,
+  type SeasonAwards,
+  fetchRaceHistory,
+  fetchRankings,
+  fetchSeasonAwards,
+} from '../api/rankings'
 import { Flag } from '../components/Flag'
 import { RiderName } from '../components/RiderName'
+
+const AWARD_META: { key: keyof SeasonAwards; title: string; hint: string }[] = [
+  { key: 'riderOfYear', title: 'Rider of the year', hint: 'Most season points' },
+  { key: 'bestSprinter', title: 'Best sprinter', hint: 'Top points · sprinter' },
+  { key: 'bestClimber', title: 'Best climber', hint: 'Top points · climber' },
+  { key: 'revelation', title: 'Revelation', hint: 'Best rider aged 23 or under' },
+]
+
+function AwardCard({
+  title,
+  hint,
+  winner,
+}: {
+  title: string
+  hint: string
+  winner: AwardWinner | null
+}) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{title}</p>
+      {winner ? (
+        <>
+          <p className="mt-1.5 flex items-center gap-2 text-sm font-bold text-slate-800">
+            <Flag code={winner.country} size={16} />
+            <Link to={`/riders/${winner.riderId}`} className="hover:underline">
+              <RiderName riderId={winner.riderId} name={winner.name} isBot={winner.isBot} />
+            </Link>
+          </p>
+          <p className="mt-0.5 text-xs text-slate-400">
+            {VOCATION_LABELS[winner.archetype as Vocation] ?? winner.archetype} ·{' '}
+            {winner.points.toLocaleString('en-US')} pts
+          </p>
+        </>
+      ) : (
+        <p className="mt-1.5 text-sm text-slate-400">—</p>
+      )}
+      <p className="mt-2 text-[11px] text-slate-400">{hint}</p>
+    </div>
+  )
+}
+
+function AwardsPanel({ awards }: { awards: SeasonAwards }) {
+  if (AWARD_META.every((m) => awards[m.key] === null)) return null
+  return (
+    <div>
+      <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+        Season awards
+      </h2>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {AWARD_META.map((m) => (
+          <AwardCard key={m.key} title={m.title} hint={m.hint} winner={awards[m.key]} />
+        ))}
+      </div>
+    </div>
+  )
+}
 
 function RollOfHonour({ history }: { history: RaceHonour[] }) {
   if (history.length === 0) return null
@@ -26,6 +91,7 @@ function RollOfHonour({ history }: { history: RaceHonour[] }) {
 export function Rankings() {
   const ranking = useQuery({ queryKey: ['rankings'], queryFn: fetchRankings })
   const history = useQuery({ queryKey: ['race-history'], queryFn: fetchRaceHistory })
+  const awards = useQuery({ queryKey: ['season-awards'], queryFn: fetchSeasonAwards })
 
   if (ranking.isPending) return <p className="text-slate-500">Loading…</p>
   if (ranking.isError) return <p className="text-red-600">Could not load the rankings.</p>
@@ -38,6 +104,8 @@ export function Rankings() {
           Individual points for the current season, and the roll of honour of past winners.
         </p>
       </div>
+
+      {awards.data && <AwardsPanel awards={awards.data} />}
 
       {history.data && <RollOfHonour history={history.data} />}
 

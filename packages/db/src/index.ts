@@ -57,11 +57,14 @@ export {
   getPalmares,
   getRaceHistory,
   getRanking,
+  getSeasonAwards,
   getSeasonWinners,
+  type AwardWinner,
   type HallOfFameRow,
   type PalmaresRow,
   type RaceHonour,
   type RankingRow,
+  type SeasonAwards,
 } from './ranking.js'
 export {
   awardRacePrizes,
