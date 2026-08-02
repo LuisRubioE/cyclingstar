@@ -30,6 +30,7 @@ import {
   getLedger,
   getPalmares,
   getRaceHistory,
+  getHallOfFame,
   getRanking,
   getRiderNews,
   getSeasonWinners,
@@ -473,6 +474,13 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
       const world = await getCurrentWorld(db)
       if (!world) return { ranking: [] }
       return { ranking: await getRanking(db, world.worldId) }
+    })
+
+    // Salón de la fama: palmarés acumulado de todas las temporadas (#58).
+    app.get('/api/hall-of-fame', async () => {
+      const world = await getCurrentWorld(db)
+      if (!world) return { riders: [] }
+      return { riders: await getHallOfFame(db, world.worldId, 40) }
     })
 
     // Palmarés del corredor de la sesión (Paso 40).
