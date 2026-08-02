@@ -1,4 +1,4 @@
-import { Route, Routes } from 'react-router-dom'
+import { Link, Route, Routes } from 'react-router-dom'
 import { Header } from './components/Header'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { Account } from './pages/Account'
@@ -11,6 +11,7 @@ import { Login } from './pages/Login'
 import { Market } from './pages/Market'
 import { News } from './pages/News'
 import { Objectives } from './pages/Objectives'
+import { Privacy } from './pages/Privacy'
 import { Race } from './pages/Race'
 import { Rankings } from './pages/Rankings'
 import { RaceOrders } from './pages/RaceOrders'
@@ -33,6 +34,7 @@ export function App() {
           <Route path="/news" element={<News />} />
           <Route path="/rankings" element={<Rankings />} />
           <Route path="/how-to-play" element={<HowToPlay />} />
+          <Route path="/privacy" element={<Privacy />} />
           <Route path="/register" element={<Register />} />
           <Route path="/login" element={<Login />} />
           <Route
@@ -109,6 +111,17 @@ export function App() {
           />
         </Routes>
       </main>
+      <footer className="mx-auto max-w-3xl px-4 py-8 text-xs text-slate-400">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-slate-200 pt-4">
+          <span>Cycling Star — a personal project</span>
+          <Link to="/how-to-play" className="hover:text-slate-600">
+            How to play
+          </Link>
+          <Link to="/privacy" className="hover:text-slate-600">
+            Privacy
+          </Link>
+        </div>
+      </footer>
     </div>
   )
 }
