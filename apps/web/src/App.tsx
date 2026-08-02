@@ -4,6 +4,8 @@ import { ProtectedRoute } from './components/ProtectedRoute'
 import { Account } from './pages/Account'
 import { AdminNames } from './pages/AdminNames'
 import { Calendar } from './pages/Calendar'
+import { Countries } from './pages/Countries'
+import { Country } from './pages/Country'
 import { CreateRider } from './pages/CreateRider'
 import { Finances } from './pages/Finances'
 import { Home } from './pages/Home'
@@ -37,6 +39,8 @@ export function App() {
           <Route path="/races/:raceId" element={<Race />} />
           <Route path="/teams" element={<Teams />} />
           <Route path="/teams/:id" element={<Team />} />
+          <Route path="/countries" element={<Countries />} />
+          <Route path="/countries/:code" element={<Country />} />
           <Route path="/riders/:id" element={<PublicRider />} />
           <Route path="/news" element={<News />} />
           <Route path="/rankings" element={<Rankings />} />

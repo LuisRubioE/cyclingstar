@@ -91,6 +91,78 @@ export async function getTeamDetail(db: Database, teamId: string): Promise<TeamD
   }
 }
 
+export interface CountrySummaryRow {
+  country: string
+  riderCount: number
+}
+
+/** Países con corredores en activo, con cuántos (para la lista de naciones, #7). */
+export async function getCountriesSummary(
+  db: Database,
+  worldId: string,
+): Promise<CountrySummaryRow[]> {
+  const rows = await db
+    .select({
+      country: riders.country,
+      riderCount: sql<number>`count(${riders.id})::int`,
+    })
+    .from(riders)
+    .where(and(eq(riders.worldId, worldId), isNull(riders.retiredAt)))
+    .groupBy(riders.country)
+    .orderBy(desc(sql`count(${riders.id})`))
+  return rows.map((r) => ({ country: r.country, riderCount: r.riderCount }))
+}
+
+export interface CountryRiderRow {
+  id: string
+  name: string
+  archetype: string
+  isBot: boolean
+  teamId: string | null
+  teamName: string | null
+  seasonPoints: number
+  fame: number
+}
+
+/** Corredores en activo de un país, ordenados por puntos de temporada (ranking nacional, #7). */
+export async function getCountryRiders(
+  db: Database,
+  worldId: string,
+  country: string,
+): Promise<CountryRiderRow[]> {
+  const rows = await db
+    .select({
+      id: riders.id,
+      name: riders.name,
+      archetype: riders.archetype,
+      userId: riders.userId,
+      teamId: riders.teamId,
+      teamName: teams.name,
+      seasonPoints: riders.seasonPoints,
+      fame: riders.fame,
+    })
+    .from(riders)
+    .leftJoin(teams, eq(teams.id, riders.teamId))
+    .where(
+      and(
+        eq(riders.worldId, worldId),
+        isNull(riders.retiredAt),
+        eq(riders.country, country.toUpperCase()),
+      ),
+    )
+    .orderBy(desc(riders.seasonPoints), desc(riders.fame))
+  return rows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    archetype: r.archetype,
+    isBot: r.userId === null,
+    teamId: r.teamId,
+    teamName: r.teamName,
+    seasonPoints: r.seasonPoints,
+    fame: r.fame,
+  }))
+}
+
 export interface PublicRiderDetail {
   id: string
   name: string

@@ -10,9 +10,13 @@ export { runTick, targetGameDay, type RunTickOptions, type TickSummary } from '.
 export { raceWorldDay } from './race.js'
 export { runCalendarDay } from './calendarRun.js'
 export {
+  getCountriesSummary,
+  getCountryRiders,
   getPublicRider,
   getTeamDetail,
   getTeams,
+  type CountryRiderRow,
+  type CountrySummaryRow,
   type PublicRiderDetail,
   type TeamDetail,
   type TeamListRow,
