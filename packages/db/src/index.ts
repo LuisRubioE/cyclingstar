@@ -103,6 +103,7 @@ export {
   type GeneratedName,
 } from './names.js'
 export { dedupeWorldNames, type DedupeResult } from './dedupeNames.js'
+export { getWorldHealth, type WorldHealth, type TickLogRow } from './adminStats.js'
 export { langForCountry, makeLangTeamName, teamNameCandidate, type LangId } from './teamNameLang.js'
 export {
   getAccountControl,
