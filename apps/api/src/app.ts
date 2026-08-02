@@ -44,6 +44,7 @@ import {
   getRiderLastRaceReport,
   getRiderRaceDays,
   getRiderSummary,
+  setRiderArchetype,
   getRunStageDays,
   getStageOrders,
   getStageResults,
@@ -380,6 +381,22 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
       const rider = await getRiderForUser(db, userId)
       if (!rider) return { report: null }
       return { report: await getRiderLastRaceReport(db, rider.id) }
+    })
+
+    // Cambiar la vocación declarada (la "etiqueta") del corredor. No toca techos ni atributos:
+    // el corredor decide luego alinear su entrenamiento; influye en las convocatorias por tipo.
+    const archetypeSchema = z.object({
+      archetype: z.enum(['escalada', 'velocidad', 'clasicas', 'crono', 'fondo']),
+    })
+    app.put('/api/riders/me/archetype', async (request, reply) => {
+      const userId = await currentUserId(request)
+      if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
+      const parsed = archetypeSchema.safeParse(request.body)
+      if (!parsed.success) return reply.status(400).send({ ok: false, error: 'validacion' })
+      const rider = await getRiderForUser(db, userId)
+      if (!rider) return reply.status(404).send({ ok: false, error: 'sin_ciclista' })
+      await setRiderArchetype(db, rider.id, parsed.data.archetype)
+      return { ok: true }
     })
 
     // --- Planificador de entrenamiento (Paso 18) ---

@@ -15,6 +15,7 @@ import { AttributeList } from '../components/AttributeList'
 import { FormChart } from '../components/FormChart'
 import { LastRaceReport } from '../components/LastRaceReport'
 import { RiderPortrait } from '../components/RiderPortrait'
+import { RoleEditor } from '../components/RoleEditor'
 import { StarRating } from '../components/StarRating'
 
 export function RiderProfile() {
@@ -67,6 +68,9 @@ export function RiderProfile() {
               on day {birthdayDayOfSeason(rider.id)} of the season
             </p>
           )}
+          <div className="mt-1.5">
+            <RoleEditor current={rider.archetype} />
+          </div>
         </div>
       </header>
 
