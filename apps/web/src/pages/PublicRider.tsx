@@ -63,6 +63,10 @@ export function PublicRider() {
       <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {[
           { label: 'Season points', value: data.seasonPoints.toLocaleString('en-US') },
+          {
+            label: 'Season rank',
+            value: data.fieldSize ? `#${data.seasonRank.toLocaleString('en-US')}` : '—',
+          },
           { label: 'Fame', value: Math.round(data.fame) },
         ].map((s) => (
           <div key={s.label} className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">

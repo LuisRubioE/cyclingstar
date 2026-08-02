@@ -157,6 +157,27 @@ export interface RiderSummary {
   fieldSize: number
 }
 
+/**
+ * Ranking de temporada por puntos entre los corredores en activo del mundo: puesto (cuántos tienen
+ * más puntos, +1) y tamaño del campo. Reutilizado por la ficha propia y la pública.
+ */
+export async function getSeasonRank(
+  db: Database,
+  worldId: string,
+  seasonPoints: number,
+): Promise<{ seasonRank: number; fieldSize: number }> {
+  const activeWorld = and(eq(riders.worldId, worldId), isNull(riders.retiredAt))
+  const betterRows = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(riders)
+    .where(and(activeWorld, gt(riders.seasonPoints, seasonPoints)))
+  const totalRows = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(riders)
+    .where(activeWorld)
+  return { seasonRank: (betterRows[0]?.n ?? 0) + 1, fieldSize: totalRows[0]?.n ?? 0 }
+}
+
 /** Estado del corredor para la cabecera del perfil: equipo, dinero, moral, fama, puntos y ranking. */
 export async function getRiderSummary(db: Database, riderId: string): Promise<RiderSummary | null> {
   const rows = await db
@@ -175,25 +196,15 @@ export async function getRiderSummary(db: Database, riderId: string): Promise<Ri
   const me = rows[0]
   if (!me) return null
 
-  // Ranking de temporada: cuántos corredores en activo tienen más puntos, +1; y el total.
-  const activeWorld = and(eq(riders.worldId, me.worldId), isNull(riders.retiredAt))
-  const betterRows = await db
-    .select({ n: sql<number>`count(*)::int` })
-    .from(riders)
-    .where(and(activeWorld, gt(riders.seasonPoints, me.seasonPoints)))
-  const totalRows = await db
-    .select({ n: sql<number>`count(*)::int` })
-    .from(riders)
-    .where(activeWorld)
-
+  const rank = await getSeasonRank(db, me.worldId, me.seasonPoints)
   return {
     teamName: me.teamName,
     money: me.money,
     morale: me.morale,
     fame: me.fame,
     seasonPoints: me.seasonPoints,
-    seasonRank: (betterRows[0]?.n ?? 0) + 1,
-    fieldSize: totalRows[0]?.n ?? 0,
+    seasonRank: rank.seasonRank,
+    fieldSize: rank.fieldSize,
   }
 }
 

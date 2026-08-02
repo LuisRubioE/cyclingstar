@@ -37,6 +37,8 @@ export interface PublicRiderDetail {
   teamId: string | null
   teamName: string | null
   seasonPoints: number
+  seasonRank: number
+  fieldSize: number
   fame: number
   attributes: Record<string, number>
 }
