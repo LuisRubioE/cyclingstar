@@ -125,7 +125,9 @@ function StageReplayView({ day }: { day: number }) {
                   <span className="w-14 shrink-0 text-right tabular-nums text-slate-400">
                     km {e.km}
                   </span>
-                  <span className="text-slate-700">{narrate(e.plantilla, e.protagonists)}</span>
+                  <span className="text-slate-700">
+                    {narrate(e.plantilla, e.protagonists, e.km)}
+                  </span>
                 </li>
               ))}
             </ol>
