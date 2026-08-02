@@ -1,5 +1,18 @@
 export type RaceLevel = 'WT' | 'PRS' | 'CON'
 export type RaceFormat = 'gran-vuelta' | 'una-semana' | 'un-dia'
+export type RaceClass = 'UWT' | 'Pro' | '1' | '2' | 'NC'
+
+const RACE_CLASS_LABEL: Record<RaceClass, string> = {
+  UWT: '.UWT',
+  Pro: '.Pro',
+  '1': '.1',
+  '2': '.2',
+  NC: '.NC',
+}
+
+export function raceClassLabel(cls: RaceClass): string {
+  return RACE_CLASS_LABEL[cls] ?? cls
+}
 
 export interface CalendarStageSummary {
   index: number
@@ -14,6 +27,7 @@ export interface CalendarRaceSummary {
   id: string
   name: string
   level: RaceLevel
+  raceClass: RaceClass
   format: RaceFormat
   startDay: number
   openTo: RaceLevel[]
