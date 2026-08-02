@@ -18,6 +18,8 @@ export const healthSchema = z.object({
   gameDay: z.number().int().nullable(),
   migrationsApplied: z.boolean(),
   tickIntervalMinutes: z.number().int().positive(),
+  /** Momento real (epoch ms) del próximo avance del mundo, anclado a la creación del mundo. */
+  nextTickAtMs: z.number().nullable().optional(),
 })
 
 export type Health = z.infer<typeof healthSchema>

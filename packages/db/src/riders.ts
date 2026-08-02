@@ -7,7 +7,15 @@ import {
 } from '@cyclingstar/shared'
 import { desc, eq } from 'drizzle-orm'
 import type { Database } from './client.js'
-import { gameState, riderAttrs, riderDailyLog, riderHidden, riders, teams } from './schema.js'
+import {
+  gameState,
+  riderAttrs,
+  riderDailyLog,
+  riderHidden,
+  riders,
+  teams,
+  worlds,
+} from './schema.js'
 
 /**
  * Servicios de datos del ciclista (Paso 15). La creación inserta el corredor, sus atributos
@@ -34,6 +42,19 @@ export interface CreateRiderInput {
   faceSeed: string
   attributes: Record<Attribute, number>
   hidden: RiderHiddenInput
+}
+
+/** Día actual y creación del mundo (epoch ms), para calcular la cuenta atrás del próximo avance. */
+export async function getWorldClock(
+  db: Database,
+): Promise<{ currentDay: number; createdAtMs: number } | null> {
+  const rows = await db
+    .select({ currentDay: gameState.currentDay, createdAt: worlds.createdAt })
+    .from(gameState)
+    .innerJoin(worlds, eq(worlds.id, gameState.worldId))
+    .limit(1)
+  const row = rows[0]
+  return row ? { currentDay: row.currentDay, createdAtMs: row.createdAt.getTime() } : null
 }
 
 /** Mundo actual y día de juego (o null si aún no hubo génesis). */
