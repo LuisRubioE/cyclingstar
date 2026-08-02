@@ -157,6 +157,29 @@ export async function getPointsClassification(db: Database, raceId: string): Pro
   return rows.filter((r) => r.puntos > 0)
 }
 
+export interface StageWinnerRow {
+  stageDay: number
+  name: string
+  country: string
+  teamName: string | null
+}
+
+/** Ganadores de cada etapa de una carrera (puesto 1), en orden de etapa (Paso 44). */
+export async function getStageWinners(db: Database, raceId: string): Promise<StageWinnerRow[]> {
+  return db
+    .select({
+      stageDay: stageResults.stageDay,
+      name: riders.name,
+      country: riders.country,
+      teamName: teams.name,
+    })
+    .from(stageResults)
+    .innerJoin(riders, eq(riders.id, stageResults.riderId))
+    .leftJoin(teams, eq(teams.id, riders.teamId))
+    .where(and(eq(stageResults.raceId, raceId), eq(stageResults.puesto, 1)))
+    .orderBy(asc(stageResults.stageDay))
+}
+
 /** Clasificación de la montaña (cimas) acumulada en toda la carrera. */
 export async function getKomClassification(db: Database, raceId: string): Promise<PointsRow[]> {
   const total = sql<number>`sum(${stageResults.puntosMontana})::int`

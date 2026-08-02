@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import {
   type CalendarRaceSummary,
   type RaceLevel,
@@ -56,9 +57,17 @@ function RaceCard({ race }: { race: CalendarRaceSummary }) {
       </button>
       {open && (
         <div className="border-t border-slate-100 px-4 py-3">
-          <p className="mb-2 text-xs text-slate-400">
-            {Math.round(totalKm)} km total · open to {race.openTo.join(', ')}
-          </p>
+          <div className="mb-2 flex items-center justify-between">
+            <p className="text-xs text-slate-400">
+              {Math.round(totalKm)} km total · open to {race.openTo.join(', ')}
+            </p>
+            <Link
+              to={`/races/${race.id}`}
+              className="text-xs font-medium text-indigo-600 hover:text-indigo-500"
+            >
+              View full race →
+            </Link>
+          </div>
           <ol className="space-y-1">
             {race.stages.map((stage) => (
               <li key={stage.index} className="flex items-center gap-3 text-sm">

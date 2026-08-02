@@ -11,6 +11,7 @@ import { Login } from './pages/Login'
 import { Market } from './pages/Market'
 import { News } from './pages/News'
 import { Objectives } from './pages/Objectives'
+import { Race } from './pages/Race'
 import { Rankings } from './pages/Rankings'
 import { RaceOrders } from './pages/RaceOrders'
 import { Register } from './pages/Register'
@@ -28,6 +29,7 @@ export function App() {
           <Route path="/" element={<Home />} />
           <Route path="/routes" element={<RoutesPage />} />
           <Route path="/calendar" element={<Calendar />} />
+          <Route path="/races/:raceId" element={<Race />} />
           <Route path="/news" element={<News />} />
           <Route path="/rankings" element={<Rankings />} />
           <Route path="/how-to-play" element={<HowToPlay />} />

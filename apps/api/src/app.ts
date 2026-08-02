@@ -34,6 +34,7 @@ import {
   getStageOrders,
   getStageResults,
   getStageSnapshot,
+  getStageWinners,
   getTrainingOrders,
   rejectOffer,
   setRacePref,
@@ -572,6 +573,37 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
         })),
       }))
       return { races }
+    })
+
+    // Página de una carrera del calendario: general de la temporada, ganadores de etapa e historial.
+    app.get<{ Params: { raceId: string } }>('/api/calendar/:raceId', async (request, reply) => {
+      const race = SEASON_CALENDAR.find((r) => r.id === request.params.raceId)
+      if (!race) return reply.status(404).send({ ok: false, error: 'no_encontrado' })
+      const world = await getCurrentWorld(db)
+      if (!world)
+        return {
+          race: { id: race.id, name: race.name, level: race.level },
+          gc: [],
+          stageWinners: [],
+          history: [],
+        }
+      const season = Math.floor(world.currentDay / 364)
+      const raceKey = `${race.id}:s${season}`
+      const gc = (await getRaceGc(db, raceKey)).slice(0, 20)
+      const stageWinners = await getStageWinners(db, raceKey)
+      const history = await getRaceHistory(db, world.worldId, race.id)
+      return {
+        race: {
+          id: race.id,
+          name: race.name,
+          level: race.level,
+          format: race.format,
+          stageCount: race.stages.length,
+        },
+        gc,
+        stageWinners,
+        history,
+      }
     })
 
     // General de la vuelta + estado de cada etapa (corrida o no).
