@@ -10,6 +10,8 @@ export interface OrdersResponse {
   currentDay: number
   horizonDays: number
   orders: TrainingOrder[]
+  /** Absolute game days within the horizon on which the rider has a race (#6). */
+  raceDays: number[]
 }
 
 export async function fetchOrders(): Promise<OrdersResponse> {

@@ -1,15 +1,8 @@
-import {
-  ATTRIBUTES,
-  ATTRIBUTE_LABELS,
-  COUNTRIES,
-  VOCATION_LABELS,
-  type Vocation,
-  stars,
-} from '@cyclingstar/shared'
+import { COUNTRIES, VOCATION_LABELS, type Vocation } from '@cyclingstar/shared'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
 import { fetchPublicRider } from '../api/browse'
-import { StarRating } from '../components/StarRating'
+import { AttributeList } from '../components/AttributeList'
 
 export function PublicRider() {
   const { id = '' } = useParams()
@@ -75,16 +68,8 @@ export function PublicRider() {
 
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-400">Attributes</h2>
-        <dl className="mt-3 grid grid-cols-1 gap-x-8 gap-y-3 sm:grid-cols-2">
-          {ATTRIBUTES.map((attr) => (
-            <div key={attr} className="flex items-center justify-between gap-4">
-              <dt className="text-sm text-slate-600">{ATTRIBUTE_LABELS[attr]}</dt>
-              <dd>
-                <StarRating value={stars(data.attributes[attr] ?? 0)} />
-              </dd>
-            </div>
-          ))}
-        </dl>
+        <p className="mt-1 text-xs text-slate-400">Tap an attribute to see what it does.</p>
+        <AttributeList attributes={data.attributes} />
       </div>
     </section>
   )

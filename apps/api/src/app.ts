@@ -33,6 +33,7 @@ import {
   getRaceGc,
   getRacePrefs,
   getRiderForUser,
+  getRiderRaceDays,
   getRiderSummary,
   getRunStageDays,
   getStageOrders,
@@ -341,6 +342,7 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
           currentDay: world?.currentDay ?? 0,
           horizonDays: TRAINING_HORIZON_DAYS,
           orders: [],
+          raceDays: [],
         }
       const orders = await getTrainingOrders(
         db,
@@ -348,7 +350,14 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
         world.currentDay + 1,
         world.currentDay + TRAINING_HORIZON_DAYS,
       )
-      return { currentDay: world.currentDay, horizonDays: TRAINING_HORIZON_DAYS, orders }
+      // Días con carrera: no se entrenan (la carrera es su carga).
+      const raceDays = await getRiderRaceDays(
+        db,
+        rider.id,
+        world.currentDay + 1,
+        world.currentDay + TRAINING_HORIZON_DAYS,
+      )
+      return { currentDay: world.currentDay, horizonDays: TRAINING_HORIZON_DAYS, orders, raceDays }
     })
 
     // Serie de forma para la gráfica del perfil (Paso 20).
