@@ -1,5 +1,8 @@
-import { and, eq, isNull } from 'drizzle-orm'
+import { isKnownCountry } from '@cyclingstar/shared'
+import { and, eq, isNull, ne, sql } from 'drizzle-orm'
+import { isNameBlocked } from './blocklist.js'
 import type { Database } from './client.js'
+import { isBlockedName } from './names.js'
 import { riders, teams, users } from './schema.js'
 
 /**
@@ -101,4 +104,89 @@ export async function takeOverBotTeam(db: Database, userId: string): Promise<Tak
     if (!team) return { ok: false, reason: 'equipo_ya_humano' as const }
     return { ok: true, teamId: team.id, teamName: team.name }
   })
+}
+
+export interface TeamEdit {
+  name?: string | undefined
+  country?: string | undefined
+  jerseySeed?: string | undefined
+}
+export type TeamEditResult =
+  | { ok: true }
+  | {
+      ok: false
+      reason:
+        | 'sin_equipo'
+        | 'nombre_invalido'
+        | 'nombre_bloqueado'
+        | 'nombre_repetido'
+        | 'pais_desconocido'
+    }
+
+/** ¿Otro equipo del mundo (no este) ya usa ese nombre? (sin distinción de mayúsculas). */
+async function isTeamNameTaken(
+  db: Database,
+  worldId: string,
+  name: string,
+  exceptTeamId: string,
+): Promise<boolean> {
+  const rows = await db
+    .select({ id: teams.id })
+    .from(teams)
+    .where(
+      and(
+        eq(teams.worldId, worldId),
+        ne(teams.id, exceptTeamId),
+        sql`lower(${teams.name}) = ${name.trim().toLowerCase()}`,
+      ),
+    )
+    .limit(1)
+  return rows.length > 0
+}
+
+/**
+ * Edita el equipo que gestiona el usuario (dueño): nombre, país y maillot. El nombre se valida
+ * como el de un corredor: no puede ser un nombre real bloqueado ni repetir el de otro equipo. El
+ * país debe existir en el juego. Solo el dueño puede editar su equipo (SPEC 7).
+ */
+export async function updateOwnedTeam(
+  db: Database,
+  userId: string,
+  edit: TeamEdit,
+): Promise<TeamEditResult> {
+  const owned = await db
+    .select({ id: teams.id, worldId: teams.worldId })
+    .from(teams)
+    .where(eq(teams.ownerUserId, userId))
+    .limit(1)
+  const team = owned[0]
+  if (!team) return { ok: false, reason: 'sin_equipo' }
+
+  const patch: { name?: string; country?: string; jerseySeed?: string } = {}
+
+  if (edit.name !== undefined) {
+    const name = edit.name.trim()
+    if (name.length < 2 || name.length > 40) return { ok: false, reason: 'nombre_invalido' }
+    if (isBlockedName(name) || (await isNameBlocked(db, 'team', name)))
+      return { ok: false, reason: 'nombre_bloqueado' }
+    if (await isTeamNameTaken(db, team.worldId, name, team.id))
+      return { ok: false, reason: 'nombre_repetido' }
+    patch.name = name
+  }
+
+  if (edit.country !== undefined) {
+    if (!isKnownCountry(edit.country)) return { ok: false, reason: 'pais_desconocido' }
+    patch.country = edit.country.toUpperCase()
+  }
+
+  if (edit.jerseySeed !== undefined) {
+    const seed = edit.jerseySeed.trim()
+    if (seed.length < 1 || seed.length > 120) return { ok: false, reason: 'nombre_invalido' }
+    patch.jerseySeed = seed
+  }
+
+  if (Object.keys(patch).length > 0) {
+    await db.update(teams).set(patch).where(eq(teams.id, team.id))
+  }
+  return { ok: true }
 }

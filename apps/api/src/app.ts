@@ -21,6 +21,7 @@ import {
   getAccountControl,
   setUserPremium,
   takeOverBotTeam,
+  updateOwnedTeam,
   listBlocked,
   removeBlocked,
   getContract,
@@ -375,6 +376,20 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
       return { ok: true, teamId: result.teamId, teamName: result.teamName }
     })
 
+    // El dueño edita su equipo: nombre (validado como el de un ciclista), país y maillot (SPEC 7).
+    app.put('/api/teams/me', async (request, reply) => {
+      const userId = await currentUserId(request)
+      if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
+      const parsed = teamEditSchema.safeParse(request.body)
+      if (!parsed.success) return reply.status(400).send({ ok: false, error: 'validacion' })
+      const result = await updateOwnedTeam(db, userId, parsed.data)
+      if (!result.ok) {
+        const status = result.reason === 'sin_equipo' ? 409 : 400
+        return reply.status(status).send({ ok: false, error: result.reason })
+      }
+      return { ok: true }
+    })
+
     // Crear el ciclista (SPEC 3.5). El genoma lo genera el servidor (no lo controla el cliente).
     app.post('/api/riders', async (request, reply) => {
       const userId = await currentUserId(request)
@@ -430,6 +445,18 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
     const archetypeSchema = z.object({
       archetype: z.enum(['escalada', 'velocidad', 'clasicas', 'crono', 'fondo']),
     })
+    const teamEditSchema = z
+      .object({
+        name: z.string().trim().min(2).max(40).optional(),
+        country: z.string().trim().length(2).optional(),
+        jerseySeed: z.string().trim().min(1).max(120).optional(),
+      })
+      .refine(
+        (v) => v.name !== undefined || v.country !== undefined || v.jerseySeed !== undefined,
+        {
+          message: 'nada_que_cambiar',
+        },
+      )
     app.put('/api/riders/me/archetype', async (request, reply) => {
       const userId = await currentUserId(request)
       if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })

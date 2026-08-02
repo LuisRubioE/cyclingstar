@@ -54,6 +54,25 @@ export async function takeOverTeam(): Promise<{ teamId: string; teamName: string
   return { teamId: body.teamId!, teamName: body.teamName! }
 }
 
+export interface TeamEdit {
+  name?: string | undefined
+  country?: string | undefined
+  jerseySeed?: string | undefined
+}
+
+/** Edita el equipo que gestiona el usuario. Lanza con el código de error del servidor. */
+export async function updateMyTeam(edit: TeamEdit): Promise<void> {
+  const res = await fetch('/api/teams/me', {
+    method: 'PUT',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(edit),
+  })
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { error?: string }
+    throw new Error(body.error ?? 'update_failed')
+  }
+}
+
 export interface PublicRiderDetail {
   id: string
   name: string

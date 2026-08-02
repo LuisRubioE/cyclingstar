@@ -99,8 +99,11 @@ export {
   getAccountControl,
   setUserPremium,
   takeOverBotTeam,
+  updateOwnedTeam,
   type AccountControl,
   type TakeOverResult,
+  type TeamEdit,
+  type TeamEditResult,
 } from './teamControl.js'
 export { isRiderNameTaken, generateUniqueRiderName } from './nameService.js'
 export {
