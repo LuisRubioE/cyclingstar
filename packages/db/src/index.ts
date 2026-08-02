@@ -74,11 +74,14 @@ export {
 } from './results.js'
 export {
   generateName,
+  generateUniqueName,
   isBlockedName,
   regenerateName,
   type CountryNames,
   type GeneratedName,
 } from './names.js'
+export { dedupeWorldNames, type DedupeResult } from './dedupeNames.js'
+export { isRiderNameTaken, generateUniqueRiderName } from './nameService.js'
 export {
   createRider,
   getCurrentWorld,

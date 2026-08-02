@@ -66,6 +66,18 @@ describe('db: génesis del mundo (SPEC 10, Paso 33)', () => {
     }
   })
 
+  it('no hay nombres de equipo repetidos (validación de duplicados)', () => {
+    const { teams } = planWorld('world-seed')
+    const names = teams.map((t) => t.name.toLowerCase())
+    expect(new Set(names).size).toBe(names.length)
+  })
+
+  it('no hay nombres de corredor repetidos, ni bots ni humanos (validación de duplicados)', () => {
+    const { riders } = planWorld('world-seed')
+    const names = riders.map((r) => r.name.toLowerCase())
+    expect(new Set(names).size).toBe(names.length)
+  })
+
   it('cada equipo firmado tiene presupuesto positivo y un roster acorde a su división', () => {
     const { teams, riders } = planWorld('world-seed')
     const rosterByTeam = new Map<string, number>()

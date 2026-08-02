@@ -3,6 +3,7 @@ import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 import { runCalendarDay } from './calendarRun.js'
 import { runCallups } from './callups.js'
+import { dedupeWorldNames } from './dedupeNames.js'
 import { runMarket } from './contracts.js'
 import { runPayroll } from './economy.js'
 import { raceWorldDay } from './race.js'
@@ -138,6 +139,10 @@ export async function runTick(databaseUrl: string, opts: RunTickOptions): Promis
         day = next
         daysProcessed += 1
       }
+
+      // Repara nombres duplicados de equipos y corredores (génesis previa a la validación y
+      // neoprofesionales del rollover). Idempotente: una vez limpio no hace ningún cambio.
+      await db.transaction((tx) => dedupeWorldNames(tx, genesis.worldId))
 
       const durationMs = Date.now() - startedAtMs
       await db.insert(tickLog).values({

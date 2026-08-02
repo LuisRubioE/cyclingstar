@@ -10,7 +10,8 @@ import {
 import { eq, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import { riderAttrs, riderHidden, riders, teams } from './schema.js'
-import { generateName } from './names.js'
+import { generateUniqueName } from './names.js'
+import { makeUniqueTeamName } from './teamNames.js'
 
 /**
  * Génesis del mundo NPC (SPEC 10, Paso 33). Equipos en tres divisiones y ~1.600 corredores,
@@ -54,34 +55,6 @@ const COUNTRIES = [
   'AU',
 ]
 const PHILOSOPHIES: Philosophy[] = ['general', 'sprints', 'clasicas', 'cantera', 'equilibrado']
-const TEAM_PREFIX = [
-  'Alpe',
-  'Vento',
-  'Astra',
-  'Borealis',
-  'Corsa',
-  'Meridian',
-  'Solaris',
-  'Zenith',
-  'Aquila',
-  'Ferro',
-  'Lumen',
-  'Verde',
-  'Onda',
-  'Tramo',
-  'Cima',
-  'Rueda',
-]
-const TEAM_SUFFIX = [
-  'Racing',
-  'Cycling',
-  'ProTeam',
-  'Squadra',
-  'Collective',
-  'Continental',
-  'Devo',
-  'Sport',
-]
 
 function pick<T>(arr: readonly T[], rng: () => number): T {
   return arr[Math.floor(rng() * arr.length)]!
@@ -119,6 +92,7 @@ function buildRider(
   index: number,
   division: Division,
   teamId: string | null,
+  usedNames: Set<string>,
 ): RiderPlan {
   const seed = `${worldSeed}:rider:${index}`
   const rng = seededRng(`${seed}:meta`)
@@ -126,7 +100,8 @@ function buildRider(
   const country = pick(COUNTRIES, rng)
   const age = sampleNpcAge(`${seed}:age`)
   const genome = generateNpcRider(`${seed}:genome`, { division, vocation: archetype, age })
-  const name = generateName(`${seed}:name`, { country, gender: 'M' }).fullName
+  // Nombre único en todo el mundo (ni bots ni humanos repetidos).
+  const name = generateUniqueName(`${seed}:name`, { country, gender: 'M' }, usedNames).fullName
   return {
     id: randomUUID(),
     teamId,
@@ -145,6 +120,8 @@ function buildRider(
 export function planWorld(worldSeed: string): WorldPlan {
   const teamPlans: TeamPlan[] = []
   const riderPlans: RiderPlan[] = []
+  const usedTeamNames = new Set<string>()
+  const usedRiderNames = new Set<string>()
   let riderIndex = 0
 
   for (const div of DIVISIONS) {
@@ -152,7 +129,7 @@ export function planWorld(worldSeed: string): WorldPlan {
       const seed = `${worldSeed}:team:${div.division}:${t}`
       const rng = seededRng(seed)
       const id = randomUUID()
-      const name = `${pick(TEAM_PREFIX, rng)} ${pick(TEAM_SUFFIX, rng)}`
+      const name = makeUniqueTeamName(seed, usedTeamNames)
       const budget = Math.round(div.budgetBase * (0.6 + 0.8 * rng()))
       const facilities = 0.9 + rng() * 0.3 // K_inst [0.90, 1.20]
       teamPlans.push({
@@ -165,14 +142,14 @@ export function planWorld(worldSeed: string): WorldPlan {
         facilities,
       })
       for (let r = 0; r < div.roster; r++) {
-        riderPlans.push(buildRider(worldSeed, riderIndex++, div.division, id))
+        riderPlans.push(buildRider(worldSeed, riderIndex++, div.division, id, usedRiderNames))
       }
     }
   }
 
   // Agentes libres (sin equipo) para el mercado, hasta ~1.600 corredores.
   while (riderPlans.length < TARGET_POPULATION) {
-    riderPlans.push(buildRider(worldSeed, riderIndex++, 'CON', null))
+    riderPlans.push(buildRider(worldSeed, riderIndex++, 'CON', null, usedRiderNames))
   }
 
   return { teams: teamPlans, riders: riderPlans }
