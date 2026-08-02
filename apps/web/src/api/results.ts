@@ -3,6 +3,7 @@ export interface GcEntry {
   name: string
   country: string
   teamName: string | null
+  isBot: boolean
   tiempoTotalS: number
   puntosVolante: number
   puntosMontana: number
@@ -12,6 +13,7 @@ export interface PointsEntry {
   riderId: string
   name: string
   country: string
+  isBot: boolean
   puntos: number
 }
 
@@ -49,6 +51,7 @@ export interface StageResultEntry {
   name: string
   country: string
   teamName: string | null
+  isBot: boolean
   puesto: number
   tiempoS: number
   bonificacionS: number
@@ -61,6 +64,7 @@ export interface StageGcEntry {
   name: string
   country: string
   teamName: string | null
+  isBot: boolean
   tiempoTotalS: number
 }
 

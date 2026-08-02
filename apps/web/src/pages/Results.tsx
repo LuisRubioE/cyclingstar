@@ -11,6 +11,7 @@ import {
   formatTime,
   narrate,
 } from '../api/results'
+import { RiderName } from '../components/RiderName'
 
 function flag(country: string): string {
   return COUNTRIES.find((c) => c.code === country)?.flag ?? '🏳️'
@@ -21,35 +22,31 @@ function relTime(seconds: number, leader: number, isLeader: boolean): string {
   return isLeader ? formatTime(seconds) : `+${formatTime(seconds - leader)}`
 }
 
-const cardClass = 'rounded-2xl border border-slate-200 bg-white p-5 shadow-sm'
 const headClass = 'mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400'
 
+type TimeRow = {
+  riderId: string
+  name: string
+  country: string
+  teamName?: string | null
+  isBot: boolean
+  tiempoTotalS: number
+}
+
 /** Tabla de una clasificación por tiempo (general de la carrera o de una etapa). */
-function TimeTable({
-  rows,
-  limit = 10,
-}: {
-  rows: {
-    riderId: string
-    name: string
-    country: string
-    teamName?: string | null
-    tiempoTotalS: number
-  }[]
-  limit?: number
-}) {
+function TimeTable({ rows, limit = 20 }: { rows: TimeRow[]; limit?: number }) {
   const leader = rows[0]?.tiempoTotalS ?? 0
   return (
     <table className="w-full text-sm">
       <tbody>
         {rows.slice(0, limit).map((r, i) => (
-          <tr key={r.riderId} className="border-b border-slate-100">
+          <tr key={r.riderId} className="border-b border-slate-100 last:border-0">
             <td className="w-7 py-1 text-slate-400 tabular-nums">{i + 1}</td>
             <td className="w-6 py-1" aria-hidden>
               {flag(r.country)}
             </td>
             <td className="py-1 text-slate-700">
-              {r.name}
+              <RiderName riderId={r.riderId} name={r.name} isBot={r.isBot} />
               {r.teamName && <span className="ml-2 text-xs text-slate-400">{r.teamName}</span>}
             </td>
             <td className="py-1 text-right tabular-nums text-slate-500">
@@ -68,10 +65,10 @@ function TeamsTable({ rows }: { rows: TeamGcEntry[] }) {
   return (
     <table className="w-full text-sm">
       <tbody>
-        {rows.slice(0, 10).map((r, i) => (
-          <tr key={r.teamName} className="border-b border-slate-100">
+        {rows.slice(0, 15).map((r, i) => (
+          <tr key={r.teamName} className="border-b border-slate-100 last:border-0">
             <td className="w-7 py-1 text-slate-400 tabular-nums">{i + 1}</td>
-            <td className="py-1 text-slate-700">{r.teamName}</td>
+            <td className="py-1 font-medium text-slate-700">{r.teamName}</td>
             <td className="py-1 text-right tabular-nums text-slate-500">
               {i === 0 ? formatTime(r.tiempoTotalS) : `+${formatTime(r.tiempoTotalS - leader)}`}
             </td>
@@ -87,13 +84,15 @@ function PointsTable({ rows }: { rows: PointsEntry[] }) {
   return (
     <table className="w-full text-sm">
       <tbody>
-        {rows.slice(0, 8).map((r, i) => (
-          <tr key={r.riderId} className="border-b border-slate-100">
+        {rows.slice(0, 15).map((r, i) => (
+          <tr key={r.riderId} className="border-b border-slate-100 last:border-0">
             <td className="w-7 py-1 text-slate-400 tabular-nums">{i + 1}</td>
             <td className="w-6 py-1" aria-hidden>
               {flag(r.country)}
             </td>
-            <td className="py-1 text-slate-700">{r.name}</td>
+            <td className="py-1 text-slate-700">
+              <RiderName riderId={r.riderId} name={r.name} isBot={r.isBot} />
+            </td>
             <td className="py-1 text-right tabular-nums font-medium text-slate-600">{r.puntos}</td>
           </tr>
         ))}
@@ -139,17 +138,14 @@ function StageReplayView({ day }: { day: number }) {
             <h3 className={headClass}>Stage result</h3>
             <table className="w-full text-sm">
               <tbody>
-                {data.results?.slice(0, 10).map((r, i) => (
-                  <tr key={r.riderId} className="border-b border-slate-100">
+                {data.results?.slice(0, 12).map((r, i) => (
+                  <tr key={r.riderId} className="border-b border-slate-100 last:border-0">
                     <td className="w-7 py-1 text-slate-400 tabular-nums">{r.puesto}</td>
                     <td className="w-6 py-1" aria-hidden>
                       {flag(r.country)}
                     </td>
                     <td className="py-1 text-slate-700">
-                      {r.name}
-                      {r.teamName && (
-                        <span className="ml-2 text-xs text-slate-400">{r.teamName}</span>
-                      )}
+                      <RiderName riderId={r.riderId} name={r.name} isBot={r.isBot} />
                     </td>
                     <td className="py-1 text-right tabular-nums text-slate-500">
                       {relTime(r.tiempoS, leader, i === 0)}
@@ -161,7 +157,7 @@ function StageReplayView({ day }: { day: number }) {
           </div>
           <div>
             <h3 className={headClass}>GC after stage {day}</h3>
-            <TimeTable rows={data.gc ?? []} />
+            <TimeTable rows={(data.gc ?? []) as TimeRow[]} limit={12} />
           </div>
         </div>
       )}
@@ -169,11 +165,15 @@ function StageReplayView({ day }: { day: number }) {
   )
 }
 
-/** Resultados y replay de la vuelta de prueba: general, clasificaciones y crónica (Paso 31). */
+const TABS = ['Stages', 'GC', 'Points', 'Mountains', 'Teams'] as const
+type Tab = (typeof TABS)[number]
+
+/** Resultados de la vuelta de prueba con pestañas: etapas y clasificaciones (#12). */
 export function Results() {
   const queryClient = useQueryClient()
   const { data, isPending, isError } = useQuery({ queryKey: ['results'], queryFn: fetchResults })
   const [openDay, setOpenDay] = useState<number | null>(null)
+  const [tab, setTab] = useState<Tab>('Stages')
 
   const advance = useMutation({
     mutationFn: (days: number) => advanceWorld(days),
@@ -188,7 +188,7 @@ export function Results() {
   if (isError) return <p className="text-red-600">Could not load results.</p>
 
   return (
-    <section className="space-y-6">
+    <section className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold tracking-tight">Results · Test tour</h1>
         <div className="flex items-center gap-2">
@@ -208,73 +208,98 @@ export function Results() {
           </button>
         </div>
       </div>
-      <p className="text-xs text-slate-400">
-        Alpha testing tool: advances the game clock so stages run now instead of waiting real time.
-      </p>
 
-      {data.gc.length > 0 && (
-        <div className={cardClass}>
-          <h2 className={headClass}>General classification</h2>
-          <TimeTable rows={data.gc} limit={15} />
-        </div>
-      )}
-
-      {(data.points.length > 0 || data.kom.length > 0) && (
-        <div className="grid gap-4 sm:grid-cols-2">
-          {data.points.length > 0 && (
-            <div className={cardClass}>
-              <h2 className={headClass}>Points · sprints</h2>
-              <PointsTable rows={data.points} />
-            </div>
-          )}
-          {data.kom.length > 0 && (
-            <div className={cardClass}>
-              <h2 className={headClass}>Mountains · KOM</h2>
-              <PointsTable rows={data.kom} />
-            </div>
-          )}
-        </div>
-      )}
-
-      {data.teamsGc.length > 0 && (
-        <div className={cardClass}>
-          <h2 className={headClass}>Teams classification</h2>
-          <TeamsTable rows={data.teamsGc} />
-        </div>
-      )}
-
-      <div className="space-y-3">
-        {data.stages.map((stage) => (
-          <article
-            key={stage.day}
-            className="rounded-2xl border border-slate-200 bg-white shadow-sm"
+      {/* Pestañas */}
+      <div className="flex gap-1 overflow-x-auto border-b border-slate-200">
+        {TABS.map((t) => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className={`shrink-0 border-b-2 px-3 py-2 text-sm font-medium transition ${
+              tab === t
+                ? 'border-indigo-600 text-indigo-700'
+                : 'border-transparent text-slate-500 hover:text-slate-800'
+            }`}
           >
-            <button
-              onClick={() => setOpenDay(openDay === stage.day ? null : stage.day)}
-              className="flex w-full items-center justify-between gap-4 px-4 py-3 text-left"
-            >
-              <span className="text-sm font-semibold text-slate-800">{stage.name}</span>
-              <span className="flex items-center gap-3 text-xs text-slate-500">
-                {stage.km} km
-                <span
-                  className={
-                    stage.run
-                      ? 'rounded-full bg-emerald-100 px-2 py-0.5 font-medium text-emerald-700'
-                      : 'rounded-full bg-slate-100 px-2 py-0.5 text-slate-500'
-                  }
-                >
-                  {stage.run ? 'raced' : 'pending'}
-                </span>
-              </span>
-            </button>
-            {openDay === stage.day && (
-              <div className="border-t border-slate-100 p-4">
-                <StageReplayView day={stage.day} />
-              </div>
-            )}
-          </article>
+            {t}
+          </button>
         ))}
       </div>
+
+      {tab === 'Stages' && (
+        <div className="space-y-2.5">
+          {data.stages.map((stage) => (
+            <article
+              key={stage.day}
+              className="rounded-2xl border border-slate-200 bg-white shadow-sm"
+            >
+              <button
+                onClick={() => setOpenDay(openDay === stage.day ? null : stage.day)}
+                className="flex w-full items-center justify-between gap-4 px-4 py-3 text-left"
+              >
+                <span className="text-sm font-semibold text-slate-800">{stage.name}</span>
+                <span className="flex items-center gap-3 text-xs text-slate-500">
+                  {stage.km} km
+                  <span
+                    className={
+                      stage.run
+                        ? 'rounded-full bg-emerald-100 px-2 py-0.5 font-medium text-emerald-700'
+                        : 'rounded-full bg-slate-100 px-2 py-0.5 text-slate-500'
+                    }
+                  >
+                    {stage.run ? 'raced' : 'pending'}
+                  </span>
+                </span>
+              </button>
+              {openDay === stage.day && (
+                <div className="border-t border-slate-100 p-4">
+                  <StageReplayView day={stage.day} />
+                </div>
+              )}
+            </article>
+          ))}
+        </div>
+      )}
+
+      {tab === 'GC' && (
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          {data.gc.length > 0 ? (
+            <TimeTable rows={data.gc as TimeRow[]} limit={30} />
+          ) : (
+            <p className="text-sm text-slate-500">No general classification yet.</p>
+          )}
+        </div>
+      )}
+
+      {tab === 'Points' && (
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          {data.points.length > 0 ? (
+            <PointsTable rows={data.points} />
+          ) : (
+            <p className="text-sm text-slate-500">No points classification yet.</p>
+          )}
+        </div>
+      )}
+
+      {tab === 'Mountains' && (
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          {data.kom.length > 0 ? (
+            <PointsTable rows={data.kom} />
+          ) : (
+            <p className="text-sm text-slate-500">No mountains classification yet.</p>
+          )}
+        </div>
+      )}
+
+      {tab === 'Teams' && (
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          {data.teamsGc.length > 0 ? (
+            <TeamsTable rows={data.teamsGc} />
+          ) : (
+            <p className="text-sm text-slate-500">No teams classification yet.</p>
+          )}
+        </div>
+      )}
     </section>
   )
 }
