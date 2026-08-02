@@ -62,19 +62,19 @@ export function isBlockedName(fullName: string): boolean {
  * Índice ponderado por rango: los primeros elementos (más comunes) salen más. Peso 1/(i+1)
  * (Zipf), usando el RNG sembrado.
  */
-function weightedIndex(rng: () => number, length: number): number {
+function weightedIndex(rng: () => number, length: number, exp: number): number {
   let total = 0
-  for (let i = 0; i < length; i++) total += 1 / (i + 1)
+  for (let i = 0; i < length; i++) total += 1 / (i + 1) ** exp
   let threshold = rng() * total
   for (let i = 0; i < length; i++) {
-    threshold -= 1 / (i + 1)
+    threshold -= 1 / (i + 1) ** exp
     if (threshold <= 0) return i
   }
   return length - 1
 }
 
-function pick(list: string[], rng: () => number): string {
-  const value = list[weightedIndex(rng, list.length)]
+function pick(list: string[], rng: () => number, exp: number): string {
+  const value = list[weightedIndex(rng, list.length, exp)]
   if (value === undefined) {
     throw new Error('lista de nombres vacía')
   }
@@ -91,8 +91,10 @@ export function generateName(
 
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     const rng = seededRng(`${seed}:${opts.country}:${opts.gender}:${attempt}`)
-    const firstName = pick(firstNames, rng)
-    const surname = pick(data.surnames, rng)
+    // Nombre con algo de concentración (hay nombres comunes); apellido casi plano (más variedad,
+    // menos colisiones de nombre completo entre los ~1.600 corredores).
+    const firstName = pick(firstNames, rng, 0.7)
+    const surname = pick(data.surnames, rng, 0.35)
     const fullName = `${firstName} ${surname}`
     if (!isBlockedName(fullName)) {
       return { firstName, surname, fullName }
