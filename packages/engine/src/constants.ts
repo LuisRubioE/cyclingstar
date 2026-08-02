@@ -313,6 +313,9 @@ export const STAGE = {
   climbScoreMinGradient: 2,
   climbCatThresholds: { cat4: 40, cat3: 120, cat2: 300, cat1: 600, hc: 1000 },
   sprintPoints: [20, 15, 12, 10, 8, 6, 4, 2],
+  // Puntos de la clasificación por puntos que reparte la META de etapa (SPEC 6.11). El final de
+  // etapa es la fuente principal de la regularidad, por encima de las metas volantes intermedias.
+  finishPoints: [25, 20, 16, 14, 12, 10, 8, 7, 6, 5, 4, 3, 2, 1],
   climbPoints: {
     HC: [20, 15, 12, 10, 8, 6, 4, 2],
     cat1: [10, 8, 6, 4, 2, 1],

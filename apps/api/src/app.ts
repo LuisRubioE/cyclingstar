@@ -661,12 +661,40 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
         // Regenera los eventos ejecutando el motor con la misma entrada y semilla.
         const output = simulateStage(snapshot.input as StageInput, snapshot.seed)
         const nameOf = new Map(results.map((r) => [r.riderId, r.name]))
-        const chronicle = output.events.map((e) => ({
-          km: Math.round(e.km),
-          tS: Math.round(e.tS),
-          plantilla: e.plantilla,
-          protagonists: e.protagonistas.map((id) => nameOf.get(id) ?? id),
-        }))
+        // Orden narrativo: por km y, a igual km, primero la fuga/cima y al final la victoria.
+        const EVENT_ORDER: Record<string, number> = {
+          breakaway_formed: 0,
+          peloton_concedes: 1,
+          sprinters_give_up: 1,
+          sprint_intermediate: 2,
+          climb_kom: 3,
+          breakaway_caught: 4,
+          stage_win: 5,
+          stage_win_itt: 5,
+        }
+        const chronicle = output.events
+          .map((e) => ({
+            km: Math.round(e.km),
+            tS: Math.round(e.tS),
+            plantilla: e.plantilla,
+            protagonists: e.protagonistas.map((id) => nameOf.get(id) ?? id),
+          }))
+          .sort(
+            (a, b) =>
+              a.km - b.km ||
+              (EVENT_ORDER[a.plantilla] ?? 9) - (EVENT_ORDER[b.plantilla] ?? 9) ||
+              a.tS - b.tS,
+          )
+          // Quita duplicados exactos consecutivos (misma frase, mismos protagonistas y km).
+          .filter((e, i, arr) => {
+            const prev = arr[i - 1]
+            return (
+              !prev ||
+              prev.km !== e.km ||
+              prev.plantilla !== e.plantilla ||
+              prev.protagonists.join() !== e.protagonists.join()
+            )
+          })
         // Momentos clave sobre la altimetría: fuga, captura, banners y meta.
         const markers: AltimetryMarker[] = output.events
           .filter((e) => ['fuga_formada', 'fuga_cazada', 'banner', 'meta'].includes(e.tipo))

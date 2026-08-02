@@ -161,9 +161,10 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
   }
   // Los sprinters solo cazan si la meta es llana (una llegada masiva que puedan disputar): en un
   // final en alto no persiguen, y la fuga vive o muere en la subida (SPEC 6.9).
-  const finishFlat = blocks
-    .slice(Math.max(0, n - STAGE.finalBlocks))
-    .every((b) => b.tipo === 'llano' || b.tipo === 'descenso')
+  const finalStretch = blocks.slice(Math.max(0, n - STAGE.finalBlocks))
+  const finishFlat = finalStretch.every((b) => b.tipo === 'llano' || b.tipo === 'descenso')
+  // Final en alto: el tramo de meta trepa. El orden de meta lo decide entonces la escalada.
+  const finishUphill = finalStretch.some((b) => b.tipo === 'subida')
   const chasingSprinters = input.riders.some(isSprinter) && finishFlat
 
   // --- Bucle principal (SPEC 6.16) --------------------------------------------------------
@@ -322,18 +323,27 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       }
     }
 
-    // Disputa de banners (SPEC 6.11): el primer grupo en pasar se lleva los puntos.
-    if (block.banner) {
+    // Disputa de banners (SPEC 6.11).
+    if (block.banner === 'meta_volante') {
+      // Meta volante: solo el grupo de cabeza esprinta por los puntos.
       const frontIsBreak = breakaway !== null && !caught && breakaway.tS <= peloton.tS
       const front = frontIsBreak ? membersOf(BREAKAWAY) : membersOf(PELOTON)
       const frontTs = frontIsBreak ? breakaway!.tS : peloton.tS
       disputeBanner(front, block, km, frontTs, log, rngSprint)
+    } else if (block.banner === 'cima') {
+      // Cima: puntúan los primeros en coronar en TODO el pelotón, no solo el grupo de cabeza, así
+      // la clasificación de la montaña reparte entre varios escaladores (SPEC 6.11).
+      const groups = [peloton, ...(breakaway && !caught ? [breakaway] : []), ...shed]
+        .map((g) => ({ tS: g.tS, members: membersOf(g.id) }))
+        .filter((g) => g.members.length > 0)
+        .sort((a, b) => a.tS - b.tS)
+      disputeClimb(groups, block, km, log, rngSprint)
     }
   }
 
   // --- Meta y resultados (SPEC 6.12, 6.15) -----------------------------------------------
   const allGroups: Group[] = [peloton, ...(breakaway && !caught ? [breakaway] : []), ...shed]
-  finishStage(sims, allGroups, log, rngSprint, totalKm)
+  finishStage(sims, allGroups, log, rngSprint, totalKm, finishUphill)
 
   const results = buildResults(sims)
   const workUnits = new Map<string, number>()
@@ -387,6 +397,40 @@ function disputeBanner(
   }
 }
 
+/**
+ * Puntos de una cima repartidos por orden de coronación en todo el pelotón (SPEC 6.11): los grupos
+ * cruzan la cima en orden de tiempo; dentro de cada grupo corona antes el mejor escalador.
+ */
+function disputeClimb(
+  groups: { tS: number; members: RiderSim[] }[],
+  block: Block,
+  km: number,
+  log: EventLog,
+  rngSprint: Rng,
+): void {
+  const table = climbTable(block)
+  const ordered: RiderSim[] = []
+  for (const g of groups) {
+    const ranked = g.members
+      .map((m) => ({
+        m,
+        score: Math.max(m.input.eff0.MON, m.input.eff0.COL) * (0.9 + 0.2 * rngSprint()),
+      }))
+      .sort((a, b) => b.score - a.score)
+    for (const r of ranked) ordered.push(r.m)
+  }
+  ordered.forEach((m, idx) => {
+    const pts = table[idx] ?? 0
+    if (pts <= 0) return
+    m.energy = Math.max(0, m.energy - STAGE.bannerCost)
+    m.climbPts += pts
+  })
+  const winner = ordered[0]
+  if (winner) {
+    log.emit(km, groups[0]?.tS ?? 0, 'banner', 'climb_kom', [winner.input.riderId])
+  }
+}
+
 /** Puntos de una cima según su categoría, derivada de la dureza local (SPEC 6.2, 6.11). */
 function climbTable(block: Block): readonly number[] {
   const cat = block.climbCategory
@@ -397,13 +441,18 @@ function climbTable(block: Block): readonly number[] {
   return STAGE.climbPoints.cat4
 }
 
-/** Cierra la etapa: sprint del grupo de cabeza y tiempos de todos (SPEC 6.12). */
+/**
+ * Cierra la etapa: define el orden dentro de cada grupo y los tiempos (SPEC 6.12). En una llegada
+ * masiva manda el SPR; en un final en alto, la capacidad escaladora (MON/COL), así el ganador de
+ * una etapa de montaña es un escalador, coherente con quien corona primero.
+ */
 function finishStage(
   sims: Map<string, RiderSim>,
   groups: Group[],
   log: EventLog,
   rngSprint: Rng,
   totalKm: number,
+  finishUphill: boolean,
 ): void {
   const withMembers = groups
     .map((group) => ({ group, members: [...sims.values()].filter((s) => s.groupId === group.id) }))
@@ -415,7 +464,8 @@ function finishStage(
       .map((m) => {
         const e = erosion(m.energy, m.energy0, m.input.eff0.RES)
         const eff = effNow(m.input.eff0, e)
-        const score = eff.SPR * normal(rngSprint, 1, STAGE.sprintScoreNoiseSd)
+        const base = finishUphill ? Math.max(eff.MON, eff.COL) : eff.SPR
+        const score = base * normal(rngSprint, 1, STAGE.sprintScoreNoiseSd)
         return { m, score }
       })
       .sort((a, b) => b.score - a.score)
@@ -435,6 +485,9 @@ function buildResults(sims: Map<string, RiderSim>): StageResult[] {
     .sort((a, b) => a.finishTs! - b.finishTs!)
   finishers.forEach((s, idx) => {
     s.bonusS = STAGE.timeBonuses[idx] ?? 0
+    // La meta de etapa reparte puntos de regularidad (SPEC 6.11): la fuente principal de la
+    // clasificación por puntos, no solo las metas volantes intermedias.
+    s.sprintPts += STAGE.finishPoints[idx] ?? 0
   })
   return finishers.map((s, idx) => ({
     riderId: s.input.riderId,
