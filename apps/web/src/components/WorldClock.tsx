@@ -36,7 +36,6 @@ export function WorldClock({
     update()
     const id = window.setInterval(update, 1000)
     return () => window.clearInterval(id)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tickIntervalMinutes, nextTickAtMs])
 
   const dateLabel =
