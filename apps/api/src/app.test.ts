@@ -19,6 +19,7 @@ describe('api: /health', () => {
       gameDay: null,
       migrationsApplied: true,
       tickIntervalMinutes: 360,
+      nextTickAtMs: null,
     })
   })
 

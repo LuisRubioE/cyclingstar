@@ -13,7 +13,7 @@ import {
   addBlocked,
   type BlockedKind,
   createRider,
-  gameState,
+  getWorldClock,
   generateName,
   generateUniqueRiderName,
   getCountriesSummary,
@@ -151,19 +151,24 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
 
   app.get('/health', async (): Promise<Health> => {
     let gameDay: number | null = null
+    let nextTickAtMs: number | null = null
+    const tickIntervalMinutes = deps.tickIntervalMinutes ?? 360
     if (deps.db) {
-      const rows = await deps.db
-        .select({ currentDay: gameState.currentDay })
-        .from(gameState)
-        .limit(1)
-      gameDay = rows[0]?.currentDay ?? null
+      const clock = await getWorldClock(deps.db)
+      if (clock) {
+        gameDay = clock.currentDay
+        // Próximo avance: creación del mundo + (día+1) periodos (targetGameDay = floor(elapsed/ms)).
+        const msPerGameDay = tickIntervalMinutes * 60_000
+        nextTickAtMs = clock.createdAtMs + (clock.currentDay + 1) * msPerGameDay
+      }
     }
     return {
       ok: true,
       engineVersion: ENGINE_VERSION,
       gameDay,
       migrationsApplied: deps.migrationsApplied ?? false,
-      tickIntervalMinutes: deps.tickIntervalMinutes ?? 360,
+      tickIntervalMinutes,
+      nextTickAtMs,
     }
   })
 

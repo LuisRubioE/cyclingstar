@@ -4,6 +4,7 @@ import { authClient } from '../auth/client'
 import { fetchHealth } from '../api/health'
 import { fetchMyRider, fetchRiderSummary } from '../api/rider'
 import { Logo } from '../components/Logo'
+import { WorldClock } from '../components/WorldClock'
 
 /** Quick actions on the player dashboard (Paso 41): where a returning player goes next. */
 const ACTIONS = [
@@ -154,6 +155,15 @@ function PlayerHome({ name }: { name: string }) {
           <p className="text-sm text-slate-500">{summary.teamName}</p>
         ) : (
           <p className="text-sm text-slate-500">Free agent — waiting for an offer.</p>
+        )}
+        {health.data && (
+          <div className="mt-2">
+            <WorldClock
+              gameDay={health.data.gameDay}
+              tickIntervalMinutes={health.data.tickIntervalMinutes}
+              nextTickAtMs={health.data.nextTickAtMs ?? null}
+            />
+          </div>
         )}
       </div>
 

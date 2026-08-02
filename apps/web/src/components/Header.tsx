@@ -53,6 +53,7 @@ export function Header() {
             <WorldClock
               gameDay={health.data.gameDay}
               tickIntervalMinutes={health.data.tickIntervalMinutes}
+              nextTickAtMs={health.data.nextTickAtMs ?? null}
             />
           </div>
         )}
