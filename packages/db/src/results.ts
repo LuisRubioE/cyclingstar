@@ -73,6 +73,7 @@ export interface StageResultRow {
   name: string
   country: string
   teamName: string | null
+  isBot: boolean
   puesto: number
   tiempoS: number
   bonificacionS: number
@@ -91,6 +92,7 @@ export async function getStageResults(
       name: riders.name,
       country: riders.country,
       teamName: teams.name,
+      isBot: sql<boolean>`${riders.userId} is null`,
       puesto: stageResults.puesto,
       tiempoS: stageResults.tiempoS,
       bonificacionS: stageResults.bonificacionS,
@@ -115,6 +117,7 @@ export async function getGcThroughStage(
     name: string
     country: string
     teamName: string | null
+    isBot: boolean
     tiempoTotalS: number
   }[]
 > {
@@ -125,6 +128,7 @@ export async function getGcThroughStage(
       name: riders.name,
       country: riders.country,
       teamName: teams.name,
+      isBot: sql<boolean>`bool_and(${riders.userId} is null)`,
       tiempoTotalS: net,
     })
     .from(stageResults)
@@ -139,6 +143,7 @@ export interface PointsRow {
   riderId: string
   name: string
   country: string
+  isBot: boolean
   puntos: number
 }
 
@@ -150,6 +155,7 @@ export async function getPointsClassification(db: Database, raceId: string): Pro
       riderId: stageResults.riderId,
       name: riders.name,
       country: riders.country,
+      isBot: sql<boolean>`bool_and(${riders.userId} is null)`,
       puntos: total,
     })
     .from(stageResults)
@@ -196,6 +202,7 @@ export async function getKomClassification(db: Database, raceId: string): Promis
       riderId: stageResults.riderId,
       name: riders.name,
       country: riders.country,
+      isBot: sql<boolean>`bool_and(${riders.userId} is null)`,
       puntos: total,
     })
     .from(stageResults)
