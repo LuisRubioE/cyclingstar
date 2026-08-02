@@ -43,6 +43,11 @@ function RaceCard({ race }: { race: CalendarRaceSummary }) {
           </span>
         </div>
         <span className="flex items-center gap-3 text-xs text-slate-500">
+          {race.winner && (
+            <span className="hidden items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 font-medium text-amber-700 sm:inline-flex">
+              🏆 {race.winner}
+            </span>
+          )}
           {formatLabel(race.format)}
           <span className="tabular-nums">
             {race.stages.length === 1 ? '1 stage' : `${race.stages.length} stages`}
