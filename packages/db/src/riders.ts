@@ -7,7 +7,7 @@ import {
 } from '@cyclingstar/shared'
 import { desc, eq } from 'drizzle-orm'
 import type { Database } from './client.js'
-import { gameState, riderAttrs, riderDailyLog, riderHidden, riders } from './schema.js'
+import { gameState, riderAttrs, riderDailyLog, riderHidden, riders, teams } from './schema.js'
 
 /**
  * Servicios de datos del ciclista (Paso 15). La creación inserta el corredor, sus atributos
@@ -109,6 +109,31 @@ export async function getRiderForUser(db: Database, userId: string): Promise<Pub
     birthSeason: rider.birthSeason,
     attributes,
   }
+}
+
+export interface RiderSummary {
+  teamName: string | null
+  money: number
+  morale: number
+  fame: number
+  seasonPoints: number
+}
+
+/** Estado del corredor para la cabecera del perfil: equipo, dinero, moral, fama, puntos. */
+export async function getRiderSummary(db: Database, riderId: string): Promise<RiderSummary | null> {
+  const rows = await db
+    .select({
+      teamName: teams.name,
+      money: riders.money,
+      morale: riders.morale,
+      fame: riders.fame,
+      seasonPoints: riders.seasonPoints,
+    })
+    .from(riders)
+    .leftJoin(teams, eq(teams.id, riders.teamId))
+    .where(eq(riders.id, riderId))
+    .limit(1)
+  return rows[0] ?? null
 }
 
 export interface DailyLogRow {

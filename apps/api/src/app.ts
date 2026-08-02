@@ -30,6 +30,7 @@ import {
   getRaceGc,
   getRacePrefs,
   getRiderForUser,
+  getRiderSummary,
   getRunStageDays,
   getStageOrders,
   getStageResults,
@@ -417,6 +418,15 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
         ? await getRiderNews(db, world.worldId, rider.id)
         : await getGlobalNews(db, world.worldId)
       return { news: items }
+    })
+
+    // Estado del corredor (equipo, moral, dinero, fama, puntos) para la cabecera del perfil.
+    app.get('/api/riders/me/summary', async (request, reply) => {
+      const userId = await currentUserId(request)
+      if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
+      const rider = await getRiderForUser(db, userId)
+      if (!rider) return { summary: null }
+      return { summary: await getRiderSummary(db, rider.id) }
     })
 
     // Libro de transacciones y saldo (Paso 38).

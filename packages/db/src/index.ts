@@ -75,9 +75,11 @@ export {
   getCurrentWorld,
   getDailyLog,
   getRiderForUser,
+  getRiderSummary,
   type CreateRiderInput,
   type DailyLogRow,
   type RiderHiddenInput,
+  type RiderSummary,
 } from './riders.js'
 export { getTrainingOrders, setTrainingOrders, type TrainingOrderRow } from './training.js'
 export {

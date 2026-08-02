@@ -56,6 +56,21 @@ export async function fetchMyRider(): Promise<PublicRider | null> {
   return data.rider
 }
 
+export interface RiderSummary {
+  teamName: string | null
+  money: number
+  morale: number
+  fame: number
+  seasonPoints: number
+}
+
+export async function fetchRiderSummary(): Promise<RiderSummary | null> {
+  const res = await fetch('/api/riders/me/summary')
+  if (!res.ok) return null
+  const data = (await res.json()) as { summary: RiderSummary | null }
+  return data.summary
+}
+
 export interface CreateRiderBody {
   vocation: Vocation
   gender: Gender

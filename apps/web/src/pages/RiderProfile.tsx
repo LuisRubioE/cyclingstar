@@ -9,7 +9,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { fetchForm } from '../api/form'
 import { fetchPalmares, palmaresLabel } from '../api/rankings'
-import { fetchMyRider } from '../api/rider'
+import { fetchMyRider, fetchRiderSummary } from '../api/rider'
 import { FormChart } from '../components/FormChart'
 import { StarRating } from '../components/StarRating'
 
@@ -21,6 +21,7 @@ export function RiderProfile() {
   } = useQuery({ queryKey: ['rider', 'me'], queryFn: fetchMyRider })
   const formQuery = useQuery({ queryKey: ['rider', 'form'], queryFn: fetchForm })
   const palmaresQuery = useQuery({ queryKey: ['rider', 'palmares'], queryFn: fetchPalmares })
+  const summaryQuery = useQuery({ queryKey: ['rider', 'summary'], queryFn: fetchRiderSummary })
 
   if (isPending) return <p className="text-slate-500">Loading…</p>
   if (isError) return <p className="text-red-600">Could not load your rider.</p>
@@ -52,9 +53,34 @@ export function RiderProfile() {
           <h1 className="text-2xl font-bold tracking-tight">{rider.name}</h1>
           <p className="text-sm text-slate-500">
             {VOCATION_LABELS[rider.archetype]} · {country?.name ?? rider.country}
+            {summaryQuery.data?.teamName && <> · {summaryQuery.data.teamName}</>}
           </p>
         </div>
       </header>
+
+      {summaryQuery.data && (
+        <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {[
+            {
+              label: 'Season points',
+              value: summaryQuery.data.seasonPoints.toLocaleString('en-US'),
+            },
+            { label: 'Money', value: summaryQuery.data.money.toLocaleString('en-US') },
+            { label: 'Morale', value: Math.round(summaryQuery.data.morale) },
+            { label: 'Fame', value: Math.round(summaryQuery.data.fame) },
+          ].map((s) => (
+            <div
+              key={s.label}
+              className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm"
+            >
+              <dt className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                {s.label}
+              </dt>
+              <dd className="mt-0.5 text-lg font-bold tabular-nums text-slate-800">{s.value}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
 
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <div className="flex items-center justify-between">
