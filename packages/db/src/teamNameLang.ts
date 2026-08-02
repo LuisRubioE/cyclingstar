@@ -600,6 +600,7 @@ const COUNTRY_LANG: Record<string, LangId> = {
   DO: 'es',
   PY: 'es',
   CU: 'es',
+  HN: 'es',
   PT: 'pt',
   BR: 'pt',
   IT: 'it',
