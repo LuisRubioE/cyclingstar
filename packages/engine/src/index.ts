@@ -47,6 +47,14 @@ export {
 } from './routes/calendar.js'
 export { scheduledStageIndex, stageDayOfSeason } from './routes/schedule.js'
 export {
+  RACE_CLASSES,
+  RACE_CLASS_INFO,
+  classPrestige,
+  racePoints,
+  type RaceClass,
+  type RaceClassInfo,
+} from './routes/uci.js'
+export {
   generateNpcRider,
   sampleNpcAge,
   type Division,
