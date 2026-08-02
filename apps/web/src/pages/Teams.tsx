@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { type TeamListItem, fetchTeams } from '../api/browse'
+import { Jersey } from '../components/Jersey'
 
 const DIVISION_BADGE: Record<string, string> = {
   WT: 'bg-indigo-100 text-indigo-700',
@@ -28,6 +29,7 @@ function DivisionBlock({ division, teams }: { division: string; teams: TeamListI
             className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm transition hover:border-indigo-300"
           >
             <span className="flex items-center gap-2">
+              <Jersey seed={t.jerseySeed} size={26} />
               <span
                 className={`rounded-full px-2 py-0.5 text-xs font-medium ${DIVISION_BADGE[t.division] ?? ''}`}
               >
