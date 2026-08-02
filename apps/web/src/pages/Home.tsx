@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { authClient } from '../auth/client'
 import { fetchHealth } from '../api/health'
 import { fetchMyRider, fetchRiderSummary } from '../api/rider'
+import { fetchOrders } from '../api/training'
 import { Logo } from '../components/Logo'
 import { WorldClock } from '../components/WorldClock'
 
@@ -142,7 +143,13 @@ function NewPlayerHome() {
 function PlayerHome({ name }: { name: string }) {
   const summaryQuery = useQuery({ queryKey: ['rider', 'summary'], queryFn: fetchRiderSummary })
   const health = useQuery({ queryKey: ['health'], queryFn: fetchHealth })
+  const ordersQuery = useQuery({ queryKey: ['orders'], queryFn: fetchOrders })
   const summary = summaryQuery.data
+
+  const orders = ordersQuery.data
+  const nextRaceDay = orders && orders.raceDays.length > 0 ? Math.min(...orders.raceDays) : null
+  const daysToRace =
+    nextRaceDay != null && orders ? Math.max(0, nextRaceDay - orders.currentDay) : null
 
   return (
     <section className="space-y-8">
@@ -166,6 +173,27 @@ function PlayerHome({ name }: { name: string }) {
           </div>
         )}
       </div>
+
+      {orders && (
+        <Link
+          to="/race-orders"
+          className="flex items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 transition hover:border-amber-300"
+        >
+          <span className="flex items-center gap-2 text-sm font-medium text-amber-800">
+            <span className="text-lg" aria-hidden>
+              🏁
+            </span>
+            {daysToRace == null
+              ? `No race in the next ${orders.horizonDays} days`
+              : daysToRace === 0
+                ? 'You race today!'
+                : `Next race in ${daysToRace} day${daysToRace === 1 ? '' : 's'}`}
+          </span>
+          {daysToRace != null && (
+            <span className="text-xs font-medium text-amber-600">Set race orders →</span>
+          )}
+        </Link>
+      )}
 
       {summary && (
         <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
