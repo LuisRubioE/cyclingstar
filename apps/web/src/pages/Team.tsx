@@ -2,7 +2,9 @@ import { COUNTRIES, VOCATION_LABELS, type Vocation } from '@cyclingstar/shared'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
 import { fetchTeam } from '../api/browse'
+import { Jersey } from '../components/Jersey'
 import { RiderName } from '../components/RiderName'
+import { RiderPortrait } from '../components/RiderPortrait'
 
 function flag(country: string): string {
   return COUNTRIES.find((c) => c.code === country)?.flag ?? '🏳️'
@@ -28,11 +30,16 @@ export function Team() {
         <Link to="/teams" className="text-xs text-slate-400 hover:text-slate-600">
           ← Teams
         </Link>
-        <h1 className="mt-1 text-2xl font-bold tracking-tight">{data.name}</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          {DIVISION_LABEL[data.division] ?? data.division} · {data.pointsSeason} season points ·
-          budget {data.budget.toLocaleString('en-US')}
-        </p>
+        <div className="mt-1 flex items-center gap-3">
+          <Jersey seed={data.jerseySeed} size={44} />
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">{data.name}</h1>
+            <p className="mt-0.5 text-sm text-slate-500">
+              {DIVISION_LABEL[data.division] ?? data.division} · {data.pointsSeason} season points ·
+              budget {data.budget.toLocaleString('en-US')}
+            </p>
+          </div>
+        </div>
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -43,7 +50,10 @@ export function Team() {
           <tbody>
             {data.roster.map((r) => (
               <tr key={r.id} className="border-b border-slate-100 last:border-0">
-                <td className="w-6 py-1.5 pl-4" aria-hidden>
+                <td className="w-9 py-1.5 pl-4">
+                  <RiderPortrait seed={r.id} size={28} />
+                </td>
+                <td className="w-6 py-1.5" aria-hidden>
                   {flag(r.country)}
                 </td>
                 <td className="py-1.5">

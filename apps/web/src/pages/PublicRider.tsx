@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
 import { fetchPublicRider } from '../api/browse'
 import { AttributeList } from '../components/AttributeList'
+import { RiderPortrait } from '../components/RiderPortrait'
 
 export function PublicRider() {
   const { id = '' } = useParams()
@@ -18,6 +19,7 @@ export function PublicRider() {
   return (
     <section className="space-y-6">
       <header className="flex items-center gap-3">
+        <RiderPortrait seed={id} size={56} />
         <span className="text-3xl" aria-hidden>
           {country?.flag ?? '🏳️'}
         </span>

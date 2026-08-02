@@ -6,6 +6,7 @@ import { fetchPalmares, palmaresLabel } from '../api/rankings'
 import { fetchMyRider, fetchRiderSummary } from '../api/rider'
 import { AttributeList } from '../components/AttributeList'
 import { FormChart } from '../components/FormChart'
+import { RiderPortrait } from '../components/RiderPortrait'
 import { StarRating } from '../components/StarRating'
 
 export function RiderProfile() {
@@ -41,6 +42,7 @@ export function RiderProfile() {
   return (
     <section className="space-y-8">
       <header className="flex items-center gap-3">
+        <RiderPortrait seed={rider.id} size={56} />
         <span className="text-3xl" aria-hidden>
           {country?.flag ?? '🏳️'}
         </span>
