@@ -370,6 +370,23 @@ export const SEASON_CALENDAR: CalendarRace[] = [
     hilly(115),
     mountain(110),
   ]),
+  // Bloque de mitad de temporada (antes solo había carreras hasta el día 124 y luego nada hasta los
+  // campeonatos del 150). Nivel PRS/CON para no competir por los líderes WT con la vuelta italiana.
+  weekRace('race-norway', 'Race Norway', 'PRS', 134, [
+    flat(168),
+    hilly(175),
+    mountain(150),
+    rolling(160),
+    flat(155),
+  ]),
+  weekRace('race-austria', 'Race Austria', 'CON', 140, [
+    flat(160),
+    hilly(170),
+    mountain(148),
+    mountain(140),
+    flat(150),
+  ]),
+  oneDay('race-andorra', 'Race Andorra', 'PRS', 146, mountain(198)),
   oneDay('race-nationals', 'National Championships', 'CON', 150, flat(230)),
   oneDay('race-worlds', 'World Championship', 'WT', 155, classic(268)),
   weekRace('race-switzerland', 'Race Switzerland', 'WT', 158, [
@@ -429,6 +446,31 @@ export const SEASON_CALENDAR: CalendarRace[] = [
     mountain(148),
     itt(19),
     flat(150),
+  ]),
+  // Tramo de otoño asiático + clásicas (antes había un vacío de un mes entre Portugal y Lombardía).
+  weekRace('race-guangxi', 'Race Guangxi', 'WT', 250, [
+    flat(168),
+    flat(175),
+    hilly(160),
+    mountain(150),
+    flat(165),
+    flat(140),
+  ]),
+  oneDay('race-tuscany', 'Race Tuscany', 'PRS', 258, cobbles(184)),
+  oneDay('race-emilia', 'Race Emilia', 'PRS', 264, classic(215)),
+  weekRace('race-turkey', 'Race Turkey', 'PRS', 268, [
+    flat(170),
+    flat(182),
+    hilly(165),
+    mountain(150),
+    flat(160),
+    flat(155),
+  ]),
+  weekRace('race-japan', 'Race Japan', 'CON', 276, [
+    flat(150),
+    hilly(158),
+    mountain(140),
+    flat(145),
   ]),
   oneDay('race-lombardy', 'Race Lombardy', 'WT', 282, classic(252)),
 ]
