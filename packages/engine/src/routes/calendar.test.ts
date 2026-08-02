@@ -2,10 +2,10 @@ import { describe, expect, it } from 'vitest'
 import { SEASON_CALENDAR } from './calendar.js'
 
 describe('engine: calendario de temporada (SPEC 8, Paso 34)', () => {
-  it('tiene 28 carreras con id único', () => {
-    expect(SEASON_CALENDAR).toHaveLength(28)
+  it('tiene 36 carreras con id único', () => {
+    expect(SEASON_CALENDAR).toHaveLength(36)
     const ids = new Set(SEASON_CALENDAR.map((r) => r.id))
-    expect(ids.size).toBe(28)
+    expect(ids.size).toBe(36)
   })
 
   it('todas arrancan en días de competición (15..290) y están ordenadas por día', () => {
