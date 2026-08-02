@@ -89,6 +89,19 @@ export async function createRider(db: Database, input: CreateRiderInput): Promis
   })
 }
 
+/**
+ * Cambia la vocación declarada (la "etiqueta") del corredor. No toca techos ni atributos: el
+ * corredor decide luego alinear su entrenamiento; además influye en las convocatorias por tipo
+ * de carrera (la IA lee el archetype).
+ */
+export async function setRiderArchetype(
+  db: Database,
+  riderId: string,
+  archetype: Vocation,
+): Promise<void> {
+  await db.update(riders).set({ archetype }).where(eq(riders.id, riderId))
+}
+
 /** El ciclista del usuario (con atributos visibles), o null si aún no ha creado uno. */
 export async function getRiderForUser(db: Database, userId: string): Promise<PublicRider | null> {
   const riderRows = await db.select().from(riders).where(eq(riders.userId, userId)).limit(1)

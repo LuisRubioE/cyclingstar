@@ -104,6 +104,7 @@ export {
   getDailyLog,
   getRiderForUser,
   getRiderSummary,
+  setRiderArchetype,
   type CreateRiderInput,
   type DailyLogRow,
   type RiderHiddenInput,

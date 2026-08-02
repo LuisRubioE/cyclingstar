@@ -90,3 +90,13 @@ export async function createRider(body: CreateRiderBody): Promise<{ id: string }
   }
   return { id: data.id }
 }
+
+/** Cambia la vocación declarada del corredor (la etiqueta). */
+export async function setArchetype(archetype: Vocation): Promise<void> {
+  const res = await fetch('/api/riders/me/archetype', {
+    method: 'PUT',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ archetype }),
+  })
+  if (!res.ok) throw new Error('Could not change your role.')
+}
