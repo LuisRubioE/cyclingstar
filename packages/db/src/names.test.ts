@@ -1,7 +1,18 @@
+import { COUNTRIES } from '@cyclingstar/shared'
 import { describe, expect, it } from 'vitest'
 import { generateName, isBlockedName, regenerateName } from './names.js'
 
 describe('names: servicio de nombres (SPEC 3.6)', () => {
+  it('cada país registrado tiene dataset y genera nombres reales (M y F)', () => {
+    for (const { code } of COUNTRIES) {
+      for (const gender of ['M', 'F'] as const) {
+        const name = generateName(`check-${code}`, { country: code, gender })
+        expect(name.firstName.length, `${code} ${gender} firstName`).toBeGreaterThan(0)
+        expect(name.surname.length, `${code} ${gender} surname`).toBeGreaterThan(0)
+      }
+    }
+  })
+
   it('genera 1000 nombres españoles sin colisión con la lista de bloqueo', () => {
     for (let i = 0; i < 1000; i++) {
       const gender = i % 2 === 0 ? 'M' : 'F'

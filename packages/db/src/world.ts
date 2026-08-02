@@ -38,22 +38,43 @@ const DIVISIONS: DivisionPlan[] = [
 ]
 const TARGET_POPULATION = 1600
 
-const COUNTRIES = [
-  'FR',
-  'IT',
-  'ES',
-  'BE',
-  'GB',
-  'DE',
-  'NL',
-  'US',
-  'CO',
-  'DK',
-  'NO',
-  'PT',
-  'SI',
-  'AU',
-]
+/**
+ * Distribución de nacionalidades de los bots (SPEC 10). Ponderada por peso ciclista real: las
+ * potencias tradicionales aparecen más para que el pelotón sea creíble; el resto del mundo con
+ * federación entra con menos frecuencia. Se expande a un array plano para que `pick` sea uniforme.
+ */
+const COUNTRY_WEIGHTS: Record<string, number> = {
+  FR: 6,
+  IT: 6,
+  ES: 6,
+  BE: 6,
+  NL: 5,
+  GB: 4,
+  DE: 4,
+  CO: 4,
+  SI: 3,
+  DK: 3,
+  AU: 3,
+  US: 3,
+  CH: 3,
+  PT: 2,
+  NO: 2,
+  SK: 2,
+  // Wave 1 del despliegue mundial (#1).
+  AR: 2,
+  EC: 2,
+  KZ: 2,
+  PL: 2,
+  AT: 2,
+  CZ: 2,
+  IE: 1,
+  CA: 1,
+  NZ: 1,
+  SE: 1,
+  JP: 1,
+  MX: 1,
+}
+const COUNTRIES = Object.entries(COUNTRY_WEIGHTS).flatMap(([code, w]) => Array(w).fill(code))
 const PHILOSOPHIES: Philosophy[] = ['general', 'sprints', 'clasicas', 'cantera', 'equilibrado']
 
 function pick<T>(arr: readonly T[], rng: () => number): T {
