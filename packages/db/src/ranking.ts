@@ -1,5 +1,5 @@
 import { type RaceLevel, gcResultPoints, stageResultPoints } from '@cyclingstar/engine'
-import { and, desc, eq, sql } from 'drizzle-orm'
+import { type SQL, and, desc, eq, gte, isNull, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import type { Database } from './client.js'
 import { palmares, riders, teams } from './schema.js'
@@ -107,6 +107,74 @@ export async function getRanking(
     isBot: r.userId === null,
     points: r.points,
   }))
+}
+
+export interface AwardWinner {
+  riderId: string
+  name: string
+  country: string
+  isBot: boolean
+  archetype: string
+  points: number
+}
+
+export interface SeasonAwards {
+  /** Mejor de la temporada por puntos. */
+  riderOfYear: AwardWinner | null
+  /** Mejor esprínter (vocación velocidad). */
+  bestSprinter: AwardWinner | null
+  /** Mejor escalador (vocación escalada). */
+  bestClimber: AwardWinner | null
+  /** Revelación: mejor joven (≤23 años). */
+  revelation: AwardWinner | null
+}
+
+/** Corredor en activo con más puntos de temporada que cumpla el filtro extra (o null). */
+async function topRider(db: Database, worldId: string, extra?: SQL): Promise<AwardWinner | null> {
+  const where = extra
+    ? and(eq(riders.worldId, worldId), isNull(riders.retiredAt), extra)
+    : and(eq(riders.worldId, worldId), isNull(riders.retiredAt))
+  const rows = await db
+    .select({
+      riderId: riders.id,
+      name: riders.name,
+      country: riders.country,
+      userId: riders.userId,
+      archetype: riders.archetype,
+      points: riders.seasonPoints,
+    })
+    .from(riders)
+    .where(where)
+    .orderBy(desc(riders.seasonPoints), desc(riders.fame))
+    .limit(1)
+  const r = rows[0]
+  if (!r || r.points <= 0) return null
+  return {
+    riderId: r.riderId,
+    name: r.name,
+    country: r.country,
+    isBot: r.userId === null,
+    archetype: r.archetype,
+    points: r.points,
+  }
+}
+
+/**
+ * Premios de la temporada (#60): líderes actuales de cada categoría por puntos. `season` (0-indexed)
+ * define quién es joven para la revelación (≤23 años ⇒ birthSeason ≥ season − 3).
+ */
+export async function getSeasonAwards(
+  db: Database,
+  worldId: string,
+  season: number,
+): Promise<SeasonAwards> {
+  const [riderOfYear, bestSprinter, bestClimber, revelation] = await Promise.all([
+    topRider(db, worldId),
+    topRider(db, worldId, eq(riders.archetype, 'velocidad')),
+    topRider(db, worldId, eq(riders.archetype, 'escalada')),
+    topRider(db, worldId, gte(riders.birthSeason, season - 3)),
+  ])
+  return { riderOfYear, bestSprinter, bestClimber, revelation }
 }
 
 export interface PalmaresRow {

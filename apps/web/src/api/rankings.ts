@@ -29,6 +29,28 @@ export async function fetchRankings(): Promise<RankingRow[]> {
   return ((await res.json()) as { ranking: RankingRow[] }).ranking
 }
 
+export interface AwardWinner {
+  riderId: string
+  name: string
+  country: string
+  isBot: boolean
+  archetype: string
+  points: number
+}
+
+export interface SeasonAwards {
+  riderOfYear: AwardWinner | null
+  bestSprinter: AwardWinner | null
+  bestClimber: AwardWinner | null
+  revelation: AwardWinner | null
+}
+
+export async function fetchSeasonAwards(): Promise<SeasonAwards | null> {
+  const res = await fetch('/api/season-awards')
+  if (!res.ok) throw new Error('Could not load the season awards.')
+  return ((await res.json()) as { awards: SeasonAwards | null }).awards
+}
+
 export interface HallOfFameRow {
   riderId: string
   name: string

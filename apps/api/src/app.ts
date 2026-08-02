@@ -37,6 +37,7 @@ import {
   getRaceHistory,
   getHallOfFame,
   getRanking,
+  getSeasonAwards,
   getRiderNews,
   getSeasonWinners,
   getGcThroughStage,
@@ -561,6 +562,14 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
       const world = await getCurrentWorld(db)
       if (!world) return { ranking: [] }
       return { ranking: await getRanking(db, world.worldId) }
+    })
+
+    // Premios de la temporada (#60): líderes por categoría (mejor del año, sprinter, escalador, revelación).
+    app.get('/api/season-awards', async () => {
+      const world = await getCurrentWorld(db)
+      if (!world) return { awards: null }
+      const season = seasonPosition(world.currentDay).season
+      return { awards: await getSeasonAwards(db, world.worldId, season) }
     })
 
     // Salón de la fama: palmarés acumulado de todas las temporadas (#58).
