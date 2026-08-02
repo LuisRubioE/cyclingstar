@@ -56,6 +56,34 @@ export function targetGameDay(worldCreatedAt: Date, now: Date, msPerGameDay: num
   return Math.floor(elapsed / msPerGameDay)
 }
 
+/**
+ * Re-anclaje del reloj (SPEC 2): decide el nuevo `worlds.createdAt`, o null si no hace falta.
+ *
+ * El tick automático es puramente temporal (`targetGameDay = floor(transcurrido/msPerGameDay)`),
+ * así que un avance manual (`forceDays`) empuja `currentDay` por delante del tiempo real y deja el
+ * mundo "parado" hasta que el reloj de pared lo alcanza: la cuenta atrás al próximo tick pasaría de
+ * un intervalo (p. ej. 13 h en vez de 6 h). Re-anclamos `createdAt` a `ahora - día*msPerGameDay`
+ * para que el mundo quede justo en su día actual a día de hoy y la cadencia de 6 h se reanude desde
+ * aquí. Solo re-anclamos cuando algo desincronizó la cadencia:
+ *  - tras un avance forzado, o
+ *  - cuando el mundo arrancó el tick ya por delante del tiempo real (avances manuales previos).
+ * En un tick normal (ponerse al día con el tiempo real) NO tocamos el ancla, para no acumular
+ * deriva por el intervalo de sondeo.
+ */
+export function reanchorClock(params: {
+  forced: boolean
+  currentDayAtStart: number
+  target: number
+  finalDay: number
+  now: Date
+  msPerGameDay: number
+}): Date | null {
+  const { forced, currentDayAtStart, target, finalDay, now, msPerGameDay } = params
+  const aheadOfRealTime = !forced && currentDayAtStart > target
+  if (!forced && !aheadOfRealTime) return null
+  return new Date(now.getTime() - finalDay * msPerGameDay)
+}
+
 type Db = ReturnType<typeof drizzle>
 
 /** Génesis mínima: crea el mundo (ancla temporal) y el reloj en día 0 si aún no existen. */
@@ -138,6 +166,24 @@ export async function runTick(databaseUrl: string, opts: RunTickOptions): Promis
         })
         day = next
         daysProcessed += 1
+      }
+
+      // Re-ancla el reloj si un avance manual (o avances previos) dejó el mundo desincronizado del
+      // tiempo real, para que el próximo tick automático caiga a un intervalo justo y la cuenta
+      // atrás nunca supere un intervalo (ver reanchorClock).
+      const anchoredCreatedAt = reanchorClock({
+        forced: opts.forceDays != null,
+        currentDayAtStart: genesis.currentDay,
+        target,
+        finalDay: day,
+        now: opts.now,
+        msPerGameDay: opts.msPerGameDay,
+      })
+      if (anchoredCreatedAt) {
+        await db
+          .update(worlds)
+          .set({ createdAt: anchoredCreatedAt })
+          .where(eq(worlds.id, genesis.worldId))
       }
 
       // Repara nombres duplicados de equipos y corredores (génesis previa a la validación y
