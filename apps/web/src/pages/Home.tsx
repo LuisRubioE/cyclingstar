@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { authClient } from '../auth/client'
 import { fetchHealth } from '../api/health'
+import { Logo } from '../components/Logo'
 
 export function Home() {
   const health = useQuery({ queryKey: ['health'], queryFn: fetchHealth })
@@ -10,6 +11,7 @@ export function Home() {
   return (
     <section className="space-y-10">
       <div className="space-y-4">
+        <Logo size={96} className="mb-2" />
         <h1 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
           Race. Train. Rise.
         </h1>
