@@ -1,12 +1,8 @@
-import { COUNTRIES } from '@cyclingstar/shared'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
 import { fetchRace } from '../api/race'
+import { Flag } from '../components/Flag'
 import { RiderName } from '../components/RiderName'
-
-function flag(country: string): string {
-  return COUNTRIES.find((c) => c.code === country)?.flag ?? '🏳️'
-}
 
 function fmtTime(seconds: number): string {
   const h = Math.floor(seconds / 3600)
@@ -62,8 +58,8 @@ export function Race() {
               {data.gc.map((r, i) => (
                 <tr key={r.riderId} className="border-b border-slate-100 last:border-0">
                   <td className="w-7 py-1 text-slate-400 tabular-nums">{i + 1}</td>
-                  <td className="w-6 py-1" aria-hidden>
-                    {flag(r.country)}
+                  <td className="w-6 py-1">
+                    <Flag code={r.country} size={16} />
                   </td>
                   <td className="py-1 text-slate-700">
                     <RiderName riderId={r.riderId} name={r.name} isBot={r.isBot} />
@@ -88,7 +84,7 @@ export function Race() {
             {data.stageWinners.map((w) => (
               <li key={w.stageDay} className="flex items-center gap-3 text-sm">
                 <span className="w-16 shrink-0 text-slate-400">Stage {w.stageDay}</span>
-                <span aria-hidden>{flag(w.country)}</span>
+                <Flag code={w.country} size={16} />
                 <RiderName riderId={w.riderId} name={w.name} isBot={w.isBot} />
                 {w.teamName && <span className="text-xs text-slate-400">{w.teamName}</span>}
               </li>
@@ -104,7 +100,7 @@ export function Race() {
             {data.history.map((h) => (
               <li key={h.season} className="flex items-center gap-3 text-sm">
                 <span className="w-20 shrink-0 text-slate-400">Season {h.season + 1}</span>
-                <span aria-hidden>{flag(h.winnerCountry)}</span>
+                <Flag code={h.winnerCountry} size={16} />
                 <span className="font-medium text-slate-700">{h.winnerName}</span>
               </li>
             ))}

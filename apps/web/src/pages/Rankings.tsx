@@ -1,11 +1,7 @@
-import { COUNTRIES } from '@cyclingstar/shared'
 import { useQuery } from '@tanstack/react-query'
 import { type RaceHonour, fetchRaceHistory, fetchRankings } from '../api/rankings'
+import { Flag } from '../components/Flag'
 import { RiderName } from '../components/RiderName'
-
-function flag(country: string): string {
-  return COUNTRIES.find((c) => c.code === country)?.flag ?? '🏳️'
-}
 
 function RollOfHonour({ history }: { history: RaceHonour[] }) {
   if (history.length === 0) return null
@@ -18,7 +14,7 @@ function RollOfHonour({ history }: { history: RaceHonour[] }) {
         {history.map((h) => (
           <li key={h.season} className="flex items-center gap-3 text-sm">
             <span className="w-20 shrink-0 text-slate-400">Season {h.season + 1}</span>
-            <span aria-hidden>{flag(h.winnerCountry)}</span>
+            <Flag code={h.winnerCountry} size={16} />
             <span className="font-medium text-slate-700">{h.winnerName}</span>
           </li>
         ))}
@@ -59,8 +55,8 @@ export function Rankings() {
               {ranking.data.map((r, i) => (
                 <tr key={r.riderId} className="border-b border-slate-100 last:border-0">
                   <td className="w-8 py-1.5 pl-4 text-slate-400 tabular-nums">{i + 1}</td>
-                  <td className="w-6 py-1.5" aria-hidden>
-                    {flag(r.country)}
+                  <td className="w-6 py-1.5">
+                    <Flag code={r.country} size={16} />
                   </td>
                   <td className="py-1.5 text-slate-700">
                     <RiderName riderId={r.riderId} name={r.name} isBot={r.isBot} />

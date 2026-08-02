@@ -2,14 +2,12 @@ import { COUNTRIES, VOCATION_LABELS, type Vocation } from '@cyclingstar/shared'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
 import { fetchTeam, fetchTeamControl, takeOverTeam } from '../api/browse'
+import { Flag } from '../components/Flag'
 import { Jersey } from '../components/Jersey'
 import { RiderName } from '../components/RiderName'
 import { RiderPortrait } from '../components/RiderPortrait'
 import { TeamManager } from '../components/TeamManager'
 
-function flag(country: string): string {
-  return COUNTRIES.find((c) => c.code === country)?.flag ?? '🏳️'
-}
 const DIVISION_LABEL: Record<string, string> = {
   WT: 'World Tour',
   PRS: 'Pro Series',
@@ -47,11 +45,7 @@ export function Team() {
         </Link>
         <div className="mt-1 flex items-center gap-3">
           <Jersey seed={data.jerseySeed} size={44} />
-          {data.country && (
-            <span className="text-3xl" aria-hidden title={data.country}>
-              {flag(data.country)}
-            </span>
-          )}
+          {data.country && <Flag code={data.country} size={30} />}
           <div>
             <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
               {data.name}
@@ -108,8 +102,8 @@ export function Team() {
                 <td className="w-9 py-1.5 pl-4">
                   <RiderPortrait seed={r.id} size={28} />
                 </td>
-                <td className="w-6 py-1.5" aria-hidden>
-                  {flag(r.country)}
+                <td className="w-6 py-1.5">
+                  <Flag code={r.country} size={16} />
                 </td>
                 <td className="py-1.5">
                   <RiderName riderId={r.id} name={r.name} isBot={r.isBot} />

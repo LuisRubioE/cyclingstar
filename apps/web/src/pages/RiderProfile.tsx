@@ -12,6 +12,7 @@ import { fetchHealth } from '../api/health'
 import { fetchPalmares, palmaresLabel } from '../api/rankings'
 import { fetchMyRider, fetchRiderSummary } from '../api/rider'
 import { AttributeList } from '../components/AttributeList'
+import { Flag } from '../components/Flag'
 import { FormChart } from '../components/FormChart'
 import { LastRaceReport } from '../components/LastRaceReport'
 import { RiderPortrait } from '../components/RiderPortrait'
@@ -53,9 +54,7 @@ export function RiderProfile() {
     <section className="space-y-8">
       <header className="flex items-center gap-3">
         <RiderPortrait seed={rider.id} size={56} />
-        <span className="text-3xl" aria-hidden>
-          {country?.flag ?? '🏳️'}
-        </span>
+        <Flag code={rider.country} size={30} />
         <div>
           <h1 className="text-2xl font-bold tracking-tight">{rider.name}</h1>
           <p className="text-sm text-slate-500">

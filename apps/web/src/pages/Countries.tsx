@@ -2,6 +2,7 @@ import { COUNTRIES, VOCATION_LABELS, type Vocation } from '@cyclingstar/shared'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { fetchCountries } from '../api/browse'
+import { Flag } from '../components/Flag'
 
 /** Naciones (#7): países con corredores en activo; enlaza al ranking nacional de cada uno. */
 export function Countries() {
@@ -32,9 +33,7 @@ export function Countries() {
               className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm transition hover:border-indigo-300"
             >
               <span className="flex items-center gap-2">
-                <span className="text-xl" aria-hidden>
-                  {info?.flag ?? '🏳️'}
-                </span>
+                <Flag code={c.country} size={18} />
                 <span className="text-sm font-semibold text-slate-800">
                   {info?.name ?? c.country}
                 </span>

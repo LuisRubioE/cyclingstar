@@ -2,6 +2,7 @@ import { COUNTRIES } from '@cyclingstar/shared'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
 import { fetchCountryRiders } from '../api/browse'
+import { Flag } from '../components/Flag'
 import { RiderName } from '../components/RiderName'
 import { archetypeLabel } from './Countries'
 
@@ -24,9 +25,7 @@ export function Country() {
           ← All nations
         </Link>
         <h1 className="mt-1 flex items-center gap-2 text-2xl font-bold tracking-tight">
-          <span className="text-3xl" aria-hidden>
-            {info?.flag ?? '🏳️'}
-          </span>
+          <Flag code={code.toUpperCase()} size={28} />
           {info?.name ?? code.toUpperCase()}
         </h1>
         <p className="mt-1 text-sm text-slate-500">
