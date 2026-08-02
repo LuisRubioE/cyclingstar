@@ -14,6 +14,7 @@ import { WorldClock } from './WorldClock'
 const WORLD_LINKS = [
   { to: '/calendar', label: 'Calendar' },
   { to: '/teams', label: 'Teams' },
+  { to: '/countries', label: 'Nations' },
   { to: '/rankings', label: 'Rankings' },
   { to: '/news', label: 'News' },
 ]

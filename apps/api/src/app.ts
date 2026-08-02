@@ -16,6 +16,8 @@ import {
   gameState,
   generateName,
   generateUniqueRiderName,
+  getCountriesSummary,
+  getCountryRiders,
   listBlocked,
   removeBlocked,
   getContract,
@@ -676,6 +678,25 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
       const rider = await getPublicRider(db, request.params.id, season)
       if (!rider) return reply.status(404).send({ ok: false, error: 'no_encontrado' })
       return { rider }
+    })
+
+    // Naciones (#7): lista de países con corredores y ranking nacional por país. Público.
+    app.get('/api/countries', async () => {
+      const world = await getCurrentWorld(db)
+      if (!world) return { countries: [] }
+      return { countries: await getCountriesSummary(db, world.worldId) }
+    })
+
+    app.get<{ Params: { code: string } }>('/api/countries/:code', async (request, reply) => {
+      if (!isKnownCountry(request.params.code)) {
+        return reply.status(404).send({ ok: false, error: 'no_encontrado' })
+      }
+      const world = await getCurrentWorld(db)
+      if (!world) return { code: request.params.code.toUpperCase(), riders: [] }
+      return {
+        code: request.params.code.toUpperCase(),
+        riders: await getCountryRiders(db, world.worldId, request.params.code),
+      }
     })
 
     // Página de una carrera del calendario: general de la temporada, ganadores de etapa e historial.

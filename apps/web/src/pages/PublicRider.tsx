@@ -36,7 +36,13 @@ export function PublicRider() {
           </h1>
           <p className="text-sm text-slate-500">
             {VOCATION_LABELS[data.archetype as Vocation] ?? data.archetype} ·{' '}
-            {country?.name ?? data.country} · age {data.age}
+            <Link
+              to={`/countries/${data.country}`}
+              className="hover:text-indigo-600 hover:underline"
+            >
+              {country?.name ?? data.country}
+            </Link>{' '}
+            · age {data.age}
             {data.teamName && data.teamId && (
               <>
                 {' · '}
