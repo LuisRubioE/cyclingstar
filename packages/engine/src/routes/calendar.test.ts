@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { RACE_CLASSES } from './uci.js'
 import { SEASON_CALENDAR } from './calendar.js'
 
 describe('engine: calendario de temporada (SPEC 8, Paso 34)', () => {
@@ -6,6 +7,16 @@ describe('engine: calendario de temporada (SPEC 8, Paso 34)', () => {
     expect(SEASON_CALENDAR).toHaveLength(36)
     const ids = new Set(SEASON_CALENDAR.map((r) => r.id))
     expect(ids.size).toBe(36)
+  })
+
+  it('cada carrera lleva una clase UCI coherente con su nivel', () => {
+    for (const race of SEASON_CALENDAR) {
+      expect(RACE_CLASSES).toContain(race.raceClass)
+      if (race.level === 'WT') expect(race.raceClass).toBe('UWT')
+      if (race.level === 'PRS') expect(race.raceClass).toBe('Pro')
+    }
+    // El campeonato nacional está marcado como .NC.
+    expect(SEASON_CALENDAR.find((r) => r.id === 'race-nationals')?.raceClass).toBe('NC')
   })
 
   it('todas arrancan en días de competición (15..290) y están ordenadas por día', () => {

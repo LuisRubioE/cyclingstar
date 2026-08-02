@@ -23,7 +23,14 @@ export interface RaceHonour {
 }
 
 export interface RaceView {
-  race: { id: string; name: string; level: string; format?: string; stageCount?: number }
+  race: {
+    id: string
+    name: string
+    level: string
+    raceClass?: string
+    format?: string
+    stageCount?: number
+  }
   gc: GcRow[]
   stageWinners: StageWinner[]
   history: RaceHonour[]

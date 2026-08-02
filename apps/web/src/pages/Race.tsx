@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
+import { type RaceClass, raceClassLabel } from '../api/calendar'
 import { fetchRace } from '../api/race'
 import { Flag } from '../components/Flag'
 import { RiderName } from '../components/RiderName'
@@ -40,6 +41,7 @@ export function Race() {
         <h1 className="mt-1 text-2xl font-bold tracking-tight">{data.race.name}</h1>
         <p className="mt-1 text-sm text-slate-500">
           {data.race.level}
+          {data.race.raceClass ? ` · ${raceClassLabel(data.race.raceClass as RaceClass)}` : ''}
           {data.race.stageCount ? ` · ${data.race.stageCount} stages` : ''}
         </p>
       </div>

@@ -6,6 +6,7 @@ import {
   type RaceLevel,
   fetchCalendar,
   formatLabel,
+  raceClassLabel,
 } from '../api/calendar'
 
 const LEVEL_BADGE: Record<RaceLevel, string> = {
@@ -41,6 +42,12 @@ function RaceCard({ race }: { race: CalendarRaceSummary }) {
             className={`rounded-full px-2 py-0.5 text-xs font-medium ${LEVEL_BADGE[race.level]}`}
           >
             {race.level}
+          </span>
+          <span
+            className="rounded-full bg-slate-900/5 px-2 py-0.5 font-mono text-[11px] font-medium text-slate-500"
+            title="UCI race class"
+          >
+            {raceClassLabel(race.raceClass)}
           </span>
         </div>
         <span className="flex items-center gap-3 text-xs text-slate-500">

@@ -9,9 +9,17 @@
 import type { Division } from '../world/npc.js'
 import type { Segment, StageProfile } from '../stage/types.js'
 import type { StageKind } from './testTour.js'
+import type { RaceClass } from './uci.js'
 
 export type RaceLevel = 'WT' | 'PRS' | 'CON'
 export type RaceFormat = 'gran-vuelta' | 'una-semana' | 'un-dia'
+
+/** Clase UCI por defecto de una carrera según su nivel del MVP (WT→.UWT, PRS→.Pro, CON→.1). */
+function classFromLevel(level: RaceLevel): RaceClass {
+  if (level === 'WT') return 'UWT'
+  if (level === 'PRS') return 'Pro'
+  return '1'
+}
 
 /** Especificación de un tipo de etapa antes de nombrarla y numerarla. */
 export interface StageSpec {
@@ -32,6 +40,8 @@ export interface CalendarRace {
   id: string
   name: string
   level: RaceLevel
+  /** Clase UCI (.UWT/.Pro/.1/.2/.NC): fija prestigio y baremo de puntos (SPEC 8). */
+  raceClass: RaceClass
   format: RaceFormat
   /** Día de la temporada en que arranca (15..290). */
   startDay: number
@@ -185,11 +195,13 @@ function oneDay(
   level: RaceLevel,
   startDay: number,
   spec: StageSpec,
+  raceClass: RaceClass = classFromLevel(level),
 ): CalendarRace {
   return {
     id,
     name,
     level,
+    raceClass,
     format: 'un-dia',
     startDay,
     openTo: enrollmentFor(level),
@@ -204,11 +216,13 @@ function weekRace(
   level: RaceLevel,
   startDay: number,
   specs: StageSpec[],
+  raceClass: RaceClass = classFromLevel(level),
 ): CalendarRace {
   return {
     id,
     name,
     level,
+    raceClass,
     format: 'una-semana',
     startDay,
     openTo: enrollmentFor(level),
@@ -247,6 +261,7 @@ function grandTour(id: string, name: string, startDay: number): CalendarRace {
     id,
     name,
     level: 'WT',
+    raceClass: 'UWT',
     format: 'gran-vuelta',
     startDay,
     openTo: enrollmentFor('WT'),
@@ -286,6 +301,7 @@ function raceFrance(): CalendarRace {
     id: 'race-france',
     name: 'Race France',
     level: 'WT',
+    raceClass: 'UWT',
     format: 'gran-vuelta',
     startDay: 175,
     openTo: enrollmentFor('WT'),
@@ -387,7 +403,7 @@ export const SEASON_CALENDAR: CalendarRace[] = [
     flat(150),
   ]),
   oneDay('race-andorra', 'Race Andorra', 'PRS', 146, mountain(198)),
-  oneDay('race-nationals', 'National Championships', 'CON', 150, flat(230)),
+  oneDay('race-nationals', 'National Championships', 'CON', 150, flat(230), 'NC'),
   oneDay('race-worlds', 'World Championship', 'WT', 155, classic(268)),
   weekRace('race-switzerland', 'Race Switzerland', 'WT', 158, [
     flat(185),
