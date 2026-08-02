@@ -134,3 +134,27 @@ export async function fetchCountryRiders(code: string): Promise<CountryRider[]> 
   if (!res.ok) throw new Error('Could not load the country.')
   return ((await res.json()) as { riders: CountryRider[] }).riders
 }
+
+export interface FreeAgent {
+  id: string
+  name: string
+  country: string
+  archetype: string
+  age: number
+  isBot: boolean
+  seasonPoints: number
+  fame: number
+}
+
+export async function fetchFreeAgents(filters: {
+  country?: string
+  vocation?: string
+}): Promise<FreeAgent[]> {
+  const params = new URLSearchParams()
+  if (filters.country) params.set('country', filters.country)
+  if (filters.vocation) params.set('vocation', filters.vocation)
+  const qs = params.toString()
+  const res = await fetch(`/api/free-agents${qs ? `?${qs}` : ''}`)
+  if (!res.ok) throw new Error('Could not load free agents.')
+  return ((await res.json()) as { riders: FreeAgent[] }).riders
+}

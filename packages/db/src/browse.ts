@@ -1,4 +1,4 @@
-import { ATTRIBUTES, type Attribute } from '@cyclingstar/shared'
+import { ATTRIBUTES, type Attribute, type Vocation } from '@cyclingstar/shared'
 import { and, desc, eq, isNull, sql } from 'drizzle-orm'
 import type { Database } from './client.js'
 import { getSeasonRank } from './riders.js'
@@ -166,6 +166,57 @@ export async function getCountryRiders(
     isBot: r.userId === null,
     teamId: r.teamId,
     teamName: r.teamName,
+    seasonPoints: r.seasonPoints,
+    fame: r.fame,
+  }))
+}
+
+export interface FreeAgentRow {
+  id: string
+  name: string
+  country: string
+  archetype: string
+  age: number
+  isBot: boolean
+  seasonPoints: number
+  fame: number
+}
+
+/**
+ * Agentes libres (sin equipo, en activo): corredores fichables del mercado (#20). Filtrable por
+ * país y vocación, ordenado por fama y puntos. `season` (0-indexed) para calcular la edad.
+ */
+export async function getFreeAgents(
+  db: Database,
+  worldId: string,
+  season: number,
+  opts: { country?: string; archetype?: string; limit?: number } = {},
+): Promise<FreeAgentRow[]> {
+  const conds = [eq(riders.worldId, worldId), isNull(riders.retiredAt), isNull(riders.teamId)]
+  if (opts.country) conds.push(eq(riders.country, opts.country.toUpperCase()))
+  if (opts.archetype) conds.push(eq(riders.archetype, opts.archetype as Vocation))
+  const rows = await db
+    .select({
+      id: riders.id,
+      name: riders.name,
+      country: riders.country,
+      archetype: riders.archetype,
+      birthSeason: riders.birthSeason,
+      userId: riders.userId,
+      seasonPoints: riders.seasonPoints,
+      fame: riders.fame,
+    })
+    .from(riders)
+    .where(and(...conds))
+    .orderBy(desc(riders.fame), desc(riders.seasonPoints))
+    .limit(opts.limit ?? 120)
+  return rows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    country: r.country,
+    archetype: r.archetype,
+    age: 20 - r.birthSeason + season,
+    isBot: r.userId === null,
     seasonPoints: r.seasonPoints,
     fame: r.fame,
   }))

@@ -12,11 +12,13 @@ export { runCalendarDay } from './calendarRun.js'
 export {
   getCountriesSummary,
   getCountryRiders,
+  getFreeAgents,
   getPublicRider,
   getTeamDetail,
   getTeams,
   type CountryRiderRow,
   type CountrySummaryRow,
+  type FreeAgentRow,
   type PublicRiderDetail,
   type TeamDetail,
   type TeamListRow,
