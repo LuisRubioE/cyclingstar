@@ -120,3 +120,16 @@ export function defaultCoachPlan(gameDay: number): TrainingChoice {
 export function sessionTss(choice: TrainingChoice): number {
   return SESSION_CATALOG[choice.session].tss[choice.intensity]
 }
+
+/** Sesiones que entrenan un atributo, de mayor a menor ganancia (ayuda del perfil, #8). */
+export function sessionsForAttribute(attr: Attribute): Session[] {
+  return SESSIONS.filter((s) => (SESSION_CATALOG[s].gains[attr] ?? 0) > 0).sort(
+    (a, b) => (SESSION_CATALOG[b].gains[attr] ?? 0) - (SESSION_CATALOG[a].gains[attr] ?? 0),
+  )
+}
+
+/** Atributos que entrena una sesión, de mayor a menor ganancia (ayuda de entrenamiento, #7). */
+export function attributesTrainedBy(session: Session): Attribute[] {
+  const gains = SESSION_CATALOG[session].gains
+  return (Object.keys(gains) as Attribute[]).sort((a, b) => (gains[b] ?? 0) - (gains[a] ?? 0))
+}

@@ -32,6 +32,20 @@ export const ATTRIBUTE_LABELS: Record<Attribute, string> = {
   TAC: 'Tactics',
 }
 
+/** Qué es cada atributo y para qué sirve (ayuda del perfil, #8). */
+export const ATTRIBUTE_DESCRIPTIONS: Record<Attribute, string> = {
+  RES: 'Stamina over long distances. Keeps you strong deep into a race and resists fading in the finale.',
+  REC: 'How fast you shed fatigue between efforts and days. Higher recovery lets you absorb more training and race harder back-to-back.',
+  LLA: 'Power on flat roads. Matters for tempo on the flat, holding a wheel, and lead-outs.',
+  MON: 'Sustained climbing on long ascents — the key to winning mountain stages and grand tours.',
+  COL: 'Punch on short, steep climbs and walls, where accelerations decide the move.',
+  CRI: 'Solo effort against the clock: the decisive skill in time trials.',
+  SPR: 'Top-end speed for the bunch sprint and the final metres of any finish.',
+  DES: 'Handling and nerve on descents — extend a gap downhill or catch back on.',
+  PAV: 'Skill and strength over cobbles and rough roads, in the spring classics.',
+  TAC: 'Race intelligence: positioning, timing a move, reading the finish. Learned by racing, not just training.',
+}
+
 export const VOCATIONS = ['escalada', 'velocidad', 'clasicas', 'crono', 'fondo'] as const
 export type Vocation = (typeof VOCATIONS)[number]
 
