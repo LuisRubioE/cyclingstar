@@ -14,6 +14,7 @@ import { WorldClock } from './WorldClock'
 const WORLD_LINKS = [
   { to: '/calendar', label: 'Calendar' },
   { to: '/teams', label: 'Teams' },
+  { to: '/free-agents', label: 'Free agents' },
   { to: '/countries', label: 'Nations' },
   { to: '/rankings', label: 'Rankings' },
   { to: '/hall-of-fame', label: 'Hall of Fame' },

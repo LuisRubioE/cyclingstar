@@ -18,6 +18,7 @@ import {
   generateUniqueRiderName,
   getCountriesSummary,
   getCountryRiders,
+  getFreeAgents,
   getAccountControl,
   setUserPremium,
   takeOverBotTeam,
@@ -802,6 +803,24 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
         riders: await getCountryRiders(db, world.worldId, request.params.code),
       }
     })
+
+    // Agentes libres del mercado (#20): corredores en activo sin equipo, filtrable por país y vocación.
+    app.get<{ Querystring: { country?: string; vocation?: string } }>(
+      '/api/free-agents',
+      async (request) => {
+        const world = await getCurrentWorld(db)
+        if (!world) return { riders: [] }
+        const season = seasonPosition(world.currentDay).season
+        const country = request.query.country?.trim()
+        const vocation = request.query.vocation?.trim()
+        return {
+          riders: await getFreeAgents(db, world.worldId, season, {
+            ...(country ? { country } : {}),
+            ...(vocation ? { archetype: vocation } : {}),
+          }),
+        }
+      },
+    )
 
     // Página de una carrera del calendario: general de la temporada, ganadores de etapa e historial.
     app.get<{ Params: { raceId: string } }>('/api/calendar/:raceId', async (request, reply) => {
