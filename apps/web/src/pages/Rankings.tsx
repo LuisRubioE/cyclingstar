@@ -14,6 +14,7 @@ import {
 } from '../api/rankings'
 import { Flag } from '../components/Flag'
 import { RiderName } from '../components/RiderName'
+import { TeamLink } from '../components/TeamLink'
 
 function RankingTable({ rows }: { rows: RankingRow[] }) {
   if (rows.length === 0) {
@@ -34,7 +35,13 @@ function RankingTable({ rows }: { rows: RankingRow[] }) {
             </td>
             <td className="py-1.5 text-slate-700">
               <RiderName riderId={r.riderId} name={r.name} isBot={r.isBot} />
-              {r.teamName && <span className="ml-2 text-xs text-slate-400">{r.teamName}</span>}
+              {r.teamName && (
+                <TeamLink
+                  teamId={r.teamId}
+                  name={r.teamName}
+                  className="ml-2 text-xs text-slate-400"
+                />
+              )}
             </td>
             <td className="py-1.5 pr-4 text-right font-medium tabular-nums text-slate-600">
               {r.points}

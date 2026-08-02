@@ -35,8 +35,8 @@ export {
 } from './world.js'
 export { ensureTestTourField } from './npc.js'
 export {
-  ensureHumanTeams,
   getRacePrefs,
+  releaseUncontractedHumans,
   runCallups,
   setRacePref,
   type RacePrefRow,

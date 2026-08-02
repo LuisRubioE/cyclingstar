@@ -67,13 +67,18 @@ export function Header() {
             </NavLink>
           ))}
           {data ? (
-            <Link
-              to="/how-to-play"
-              className="text-slate-400 hover:text-slate-700"
-              title="How to play"
-            >
-              ?
-            </Link>
+            <>
+              <Link
+                to="/how-to-play"
+                className="text-slate-400 hover:text-slate-700"
+                title="How to play"
+              >
+                ?
+              </Link>
+              <NavLink to="/account" className={linkClass} title="Account settings">
+                Account
+              </NavLink>
+            </>
           ) : (
             <>
               <Link to="/how-to-play" className="text-slate-600 hover:text-slate-900">
@@ -132,6 +137,11 @@ export function Header() {
             >
               How to play
             </Link>
+            {data && (
+              <NavLink to="/account" className={linkClass} onClick={() => setOpen(false)}>
+                Account
+              </NavLink>
+            )}
             {!data && (
               <>
                 <Link

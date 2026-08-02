@@ -2,6 +2,7 @@ export interface RankingRow {
   riderId: string
   name: string
   country: string
+  teamId: string | null
   teamName: string | null
   isBot: boolean
   points: number

@@ -57,6 +57,7 @@ export async function fetchMyRider(): Promise<PublicRider | null> {
 }
 
 export interface RiderSummary {
+  teamId: string | null
   teamName: string | null
   money: number
   morale: number

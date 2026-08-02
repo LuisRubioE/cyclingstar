@@ -146,6 +146,7 @@ export async function getRiderForUser(db: Database, userId: string): Promise<Pub
 }
 
 export interface RiderSummary {
+  teamId: string | null
   teamName: string | null
   money: number
   morale: number
@@ -183,6 +184,7 @@ export async function getRiderSummary(db: Database, riderId: string): Promise<Ri
   const rows = await db
     .select({
       worldId: riders.worldId,
+      teamId: riders.teamId,
       teamName: teams.name,
       money: riders.money,
       morale: riders.morale,
@@ -198,6 +200,7 @@ export async function getRiderSummary(db: Database, riderId: string): Promise<Ri
 
   const rank = await getSeasonRank(db, me.worldId, me.seasonPoints)
   return {
+    teamId: me.teamId,
     teamName: me.teamName,
     money: me.money,
     morale: me.morale,

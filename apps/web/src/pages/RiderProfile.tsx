@@ -18,6 +18,7 @@ import { FormChart } from '../components/FormChart'
 import { LastRaceReport } from '../components/LastRaceReport'
 import { RiderPortrait } from '../components/RiderPortrait'
 import { RoleEditor } from '../components/RoleEditor'
+import { TeamLink } from '../components/TeamLink'
 import { StarRating } from '../components/StarRating'
 
 export function RiderProfile() {
@@ -60,7 +61,16 @@ export function RiderProfile() {
           <h1 className="text-2xl font-bold tracking-tight">{rider.name}</h1>
           <p className="text-sm text-slate-500">
             {VOCATION_LABELS[rider.archetype]} · {country?.name ?? rider.country}
-            {summaryQuery.data?.teamName && <> · {summaryQuery.data.teamName}</>}
+            {summaryQuery.data?.teamName && (
+              <>
+                {' · '}
+                <TeamLink
+                  teamId={summaryQuery.data.teamId}
+                  name={summaryQuery.data.teamName}
+                  className="text-slate-500"
+                />
+              </>
+            )}
           </p>
           {summaryQuery.data && summaryQuery.data.fieldSize > 0 && (
             <p className="mt-0.5 text-xs font-medium text-indigo-600">

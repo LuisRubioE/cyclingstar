@@ -144,6 +144,7 @@ export async function runMarket(
 
 export interface OfferRow {
   id: string
+  teamId: string
   teamName: string
   division: string
   role: string
@@ -157,6 +158,7 @@ export async function getOffers(db: Database, riderId: string): Promise<OfferRow
   return db
     .select({
       id: offers.id,
+      teamId: teams.id,
       teamName: teams.name,
       division: teams.division,
       role: offers.role,
@@ -220,6 +222,7 @@ export async function acceptOffer(db: Database, riderId: string, offerId: string
 }
 
 export interface ContractRow {
+  teamId: string
   teamName: string
   division: string
   role: string
@@ -232,6 +235,7 @@ export interface ContractRow {
 export async function getContract(db: Database, riderId: string): Promise<ContractRow | null> {
   const rows = await db
     .select({
+      teamId: teams.id,
       teamName: teams.name,
       division: teams.division,
       role: contracts.role,

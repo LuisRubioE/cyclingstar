@@ -74,6 +74,7 @@ export interface RankingRow {
   riderId: string
   name: string
   country: string
+  teamId: string | null
   teamName: string | null
   isBot: boolean
   points: number
@@ -90,6 +91,7 @@ export async function getRanking(
       riderId: riders.id,
       name: riders.name,
       country: riders.country,
+      teamId: riders.teamId,
       teamName: teams.name,
       userId: riders.userId,
       points: riders.seasonPoints,
@@ -103,6 +105,7 @@ export async function getRanking(
     riderId: r.riderId,
     name: r.name,
     country: r.country,
+    teamId: r.teamId,
     teamName: r.teamName,
     isBot: r.userId === null,
     points: r.points,
@@ -124,6 +127,7 @@ export async function getYoungRiders(
       riderId: riders.id,
       name: riders.name,
       country: riders.country,
+      teamId: riders.teamId,
       teamName: teams.name,
       userId: riders.userId,
       points: riders.seasonPoints,
@@ -143,6 +147,7 @@ export async function getYoungRiders(
     riderId: r.riderId,
     name: r.name,
     country: r.country,
+    teamId: r.teamId,
     teamName: r.teamName,
     isBot: r.userId === null,
     points: r.points,
