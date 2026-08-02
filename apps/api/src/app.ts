@@ -22,6 +22,7 @@ import {
   getRaceHistory,
   getRanking,
   getRiderNews,
+  getSeasonWinners,
   getGcThroughStage,
   getKomClassification,
   getOffers,
@@ -549,6 +550,10 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
     }
     // Calendario de temporada autorizado (Paso 34): 28 carreras con sus etapas cargadas.
     app.get('/api/calendar', async () => {
+      const world = await getCurrentWorld(db)
+      // La temporada de almacenamiento es 0-indexada (floor(día/364)), como en el tick.
+      const season = world ? Math.floor(world.currentDay / 364) : 0
+      const winners = world ? await getSeasonWinners(db, world.worldId, season) : {}
       const races = SEASON_CALENDAR.map((race) => ({
         id: race.id,
         name: race.name,
@@ -556,6 +561,7 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
         format: race.format,
         startDay: race.startDay,
         openTo: race.openTo,
+        winner: winners[race.id] ?? null,
         stages: race.stages.map((stage) => ({
           index: stage.index,
           name: stage.name,

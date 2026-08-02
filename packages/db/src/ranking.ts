@@ -118,6 +118,22 @@ export async function getPalmares(db: Database, riderId: string): Promise<Palmar
     .orderBy(desc(palmares.season), desc(palmares.gameDay))
 }
 
+/** Ganadores de la general por carrera en una temporada: raceId -> nombre (SPEC, Paso 44). */
+export async function getSeasonWinners(
+  db: Database,
+  worldId: string,
+  season: number,
+): Promise<Record<string, string>> {
+  const rows = await db
+    .select({ raceId: palmares.raceId, name: riders.name })
+    .from(palmares)
+    .innerJoin(riders, eq(riders.id, palmares.riderId))
+    .where(and(eq(palmares.worldId, worldId), eq(palmares.season, season), eq(palmares.kind, 'gc')))
+  const out: Record<string, string> = {}
+  for (const r of rows) out[r.raceId] = r.name
+  return out
+}
+
 export interface RaceHonour {
   season: number
   raceName: string

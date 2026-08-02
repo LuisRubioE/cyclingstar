@@ -17,6 +17,7 @@ export interface CalendarRaceSummary {
   format: RaceFormat
   startDay: number
   openTo: RaceLevel[]
+  winner: string | null
   stages: CalendarStageSummary[]
 }
 

@@ -45,6 +45,7 @@ export {
   type RaceLevel,
   type StageSpec,
 } from './routes/calendar.js'
+export { scheduledStageIndex, stageDayOfSeason } from './routes/schedule.js'
 export {
   generateNpcRider,
   sampleNpcAge,

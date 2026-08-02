@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
+import { runCalendarDay } from './calendarRun.js'
 import { runCallups } from './callups.js'
 import { runMarket } from './contracts.js'
 import { runPayroll } from './economy.js'
@@ -122,7 +123,9 @@ export async function runTick(databaseUrl: string, opts: RunTickOptions): Promis
         await db.transaction(async (tx) => {
           // Al cruzar a una temporada nueva, primero el rollover (retiros, neopros, ascensos).
           await runRollover(tx, genesis.worldId, next, opts.worldSeed)
-          const raced = await raceWorldDay(tx, genesis.worldId, next, opts.worldSeed)
+          const racedTest = await raceWorldDay(tx, genesis.worldId, next, opts.worldSeed)
+          const racedCal = await runCalendarDay(tx, genesis.worldId, next, opts.worldSeed)
+          const raced = new Set([...racedTest, ...racedCal])
           await trainWorldDay(tx, genesis.worldId, next, opts.worldSeed, raced)
           await runCallups(tx, genesis.worldId, next, opts.worldSeed)
           await runMarket(tx, genesis.worldId, next, opts.worldSeed)
