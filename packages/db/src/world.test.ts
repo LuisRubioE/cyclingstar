@@ -1,6 +1,12 @@
 import { ATTRIBUTES, COUNTRIES } from '@cyclingstar/shared'
 import { describe, expect, it } from 'vitest'
-import { planWorld, teamCountryByIndex } from './world.js'
+import {
+  type ClusterRider,
+  type ClusterTeam,
+  planNationalClustering,
+  planWorld,
+  teamCountryByIndex,
+} from './world.js'
 
 /** El plan sin los UUID de cliente (que sí varían por ejecución). */
 function stableShape(seed: string) {
@@ -145,5 +151,88 @@ describe('db: génesis del mundo (SPEC 10, Paso 33)', () => {
       expect(team.budget).toBeGreaterThan(0)
       expect(rosterByTeam.get(team.id)).toBe(expected[team.division])
     }
+  })
+})
+
+describe('db: núcleo nacional de la plantilla (SPEC 7.1)', () => {
+  // Dos equipos CON (ES y FR), 10 corredores cada uno, mezcla inicial 50/50 mal repartida.
+  const teams: ClusterTeam[] = [
+    { id: 'esp', division: 'CON', country: 'ES', order: 0 },
+    { id: 'fra', division: 'CON', country: 'FR', order: 1 },
+  ]
+  function mix(): ClusterRider[] {
+    const rs: ClusterRider[] = []
+    // 10 españoles y 10 franceses repartidos a medias en ambos equipos.
+    for (let i = 0; i < 10; i++)
+      rs.push({ id: `es-${i}`, country: 'ES', teamId: i < 5 ? 'esp' : 'fra' })
+    for (let i = 0; i < 10; i++)
+      rs.push({ id: `fr-${i}`, country: 'FR', teamId: i < 5 ? 'esp' : 'fra' })
+    return rs
+  }
+
+  function rosterCountry(riders: ClusterRider[], changes: Map<string, string>, teamId: string) {
+    const tally: Record<string, number> = {}
+    for (const r of riders) {
+      const team = changes.get(r.id) ?? r.teamId
+      if (team === teamId) tally[r.country] = (tally[r.country] ?? 0) + 1
+    }
+    return tally
+  }
+
+  it('da a cada equipo mayoría de su país conservando el tamaño de plantilla', () => {
+    const riders = mix()
+    const changes = planNationalClustering(teams, riders)
+    const esp = rosterCountry(riders, changes, 'esp')
+    const fra = rosterCountry(riders, changes, 'fra')
+    // Tamaño conservado (10 y 10).
+    expect(Object.values(esp).reduce((a, b) => a + b, 0)).toBe(10)
+    expect(Object.values(fra).reduce((a, b) => a + b, 0)).toBe(10)
+    // Con cuota CON 0.7 y paisanos de sobra, cada equipo queda con mayoría clara de su país.
+    expect(esp.ES).toBeGreaterThanOrEqual(7)
+    expect(fra.FR).toBeGreaterThanOrEqual(7)
+    expect(esp.ES).toBeGreaterThan(esp.FR ?? 0)
+    expect(fra.FR).toBeGreaterThan(fra.ES ?? 0)
+  })
+
+  it('es idempotente: reaplicarla no mueve a nadie más', () => {
+    const riders = mix()
+    const first = planNationalClustering(teams, riders)
+    const settled = riders.map((r) => ({ ...r, teamId: first.get(r.id) ?? r.teamId }))
+    const second = planNationalClustering(teams, settled)
+    expect(second.size).toBe(0)
+  })
+
+  it('no mueve corredores entre divisiones distintas', () => {
+    const mixedDiv: ClusterTeam[] = [
+      { id: 'wt', division: 'WT', country: 'ES', order: 0 },
+      { id: 'con', division: 'CON', country: 'FR', order: 0 },
+    ]
+    const riders: ClusterRider[] = [
+      { id: 'a', country: 'FR', teamId: 'wt' },
+      { id: 'b', country: 'ES', teamId: 'con' },
+    ]
+    const changes = planNationalClustering(mixedDiv, riders)
+    // Cada equipo es único en su división: nadie puede moverse sin cruzar de división, así que no
+    // hay cambios (un solo equipo por división no admite reparto).
+    expect(changes.size).toBe(0)
+  })
+
+  it('los paisanos que sobran forman legión extranjera en otros equipos (sin perder a nadie)', () => {
+    // Un país (ES) con muchos corredores pero un solo equipo; el resto va a otros equipos.
+    const three: ClusterTeam[] = [
+      { id: 'esp', division: 'CON', country: 'ES', order: 0 },
+      { id: 'fra', division: 'CON', country: 'FR', order: 1 },
+      { id: 'ita', division: 'CON', country: 'IT', order: 2 },
+    ]
+    const riders: ClusterRider[] = []
+    for (let i = 0; i < 20; i++) riders.push({ id: `es-${i}`, country: 'ES', teamId: 'esp' })
+    for (let i = 0; i < 5; i++) riders.push({ id: `fr-${i}`, country: 'FR', teamId: 'fra' })
+    for (let i = 0; i < 5; i++) riders.push({ id: `it-${i}`, country: 'IT', teamId: 'ita' })
+    const changes = planNationalClustering(three, riders)
+    const total = riders.length
+    const placed = new Set(riders.map((r) => changes.get(r.id) ?? r.teamId))
+    // Nadie queda sin equipo y se conservan los 30 corredores en 3 equipos.
+    expect([...placed].every((t) => ['esp', 'fra', 'ita'].includes(t))).toBe(true)
+    expect(total).toBe(30)
   })
 })

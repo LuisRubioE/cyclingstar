@@ -10,7 +10,7 @@ import { raceWorldDay } from './race.js'
 import { runRollover } from './rollover.js'
 import { gameState, tickLog, worlds } from './schema.js'
 import { trainWorldDay } from './train.js'
-import { reconcileTeams, seedWorld } from './world.js'
+import { clusterTeamNationalities, reconcileTeams, seedWorld } from './world.js'
 
 /**
  * El tick: el reloj del mundo (SPEC 2). 1 día de juego = 6 horas reales por defecto
@@ -191,6 +191,9 @@ export async function runTick(databaseUrl: string, opts: RunTickOptions): Promis
       await db.transaction((tx) => dedupeWorldNames(tx, genesis.worldId))
       // Reconcilia equipos NPC con el reparto real de nacionalidades y nombres por idioma. Idempotente.
       await db.transaction((tx) => reconcileTeams(tx, genesis.worldId))
+      // Da a cada equipo bot un núcleo nacional (mayoría de su país) reubicando corredores bot dentro
+      // de su división, sin cambiar nacionalidades ni tocar humanos. Idempotente (punto fijo).
+      await db.transaction((tx) => clusterTeamNationalities(tx, genesis.worldId))
 
       const durationMs = Date.now() - startedAtMs
       await db.insert(tickLog).values({

@@ -79,6 +79,12 @@ async function promoteRelegate(tx: Tx, worldId: string): Promise<void> {
   for (const t of relegateFromPRS) await setDivision(t.id, 'CON')
 }
 
+/**
+ * Cuota del núcleo nacional por división (debe casar con world.ts NATIONAL_CORE_SHARE): un neopro
+ * que entra en un equipo es, con esta probabilidad, del país del equipo; si no, del reparto general.
+ */
+const NATIONAL_CORE_SHARE: Record<Division, number> = { WT: 0.35, PRS: 0.5, CON: 0.7 }
+
 /** Inserta un neoprofesional (~20 años) en un equipo (o como agente libre si teamId es null). */
 async function insertNeopro(
   tx: Tx,
@@ -87,10 +93,13 @@ async function insertNeopro(
   teamId: string | null,
   seed: string,
   newSeason: number,
+  teamCountry?: string | null,
 ): Promise<void> {
   const rng = seededRng(`${seed}:meta`)
   const vocation: Vocation = pick(VOCATIONS, rng)
-  const country = pick(COUNTRIES, rng)
+  // Núcleo nacional: mayoría del país del equipo cuando ficha para uno (SPEC 7.1).
+  const country =
+    teamCountry && rng() < NATIONAL_CORE_SHARE[division] ? teamCountry : pick(COUNTRIES, rng)
   const age = neoproAge(rng)
   const genome = generateNpcRider(`${seed}:genome`, { division, vocation, age })
   const name = generateName(`${seed}:name`, { country, gender: 'M' }).fullName
@@ -201,6 +210,7 @@ export async function runRollover(
     .select({
       id: teams.id,
       division: teams.division,
+      country: teams.country,
       roster: sql<number>`count(${riders.id})::int`,
     })
     .from(teams)
@@ -208,10 +218,11 @@ export async function runRollover(
     .where(eq(teams.worldId, worldId))
     .groupBy(teams.id)
   const target: Record<Division, number> = { WT: 14, PRS: 12, CON: 10 }
-  const openSlots: { teamId: string; division: Division }[] = []
+  const openSlots: { teamId: string; division: Division; country: string | null }[] = []
   for (const g of gaps) {
     const div = g.division as Division
-    for (let i = g.roster; i < target[div]; i++) openSlots.push({ teamId: g.id, division: div })
+    for (let i = g.roster; i < target[div]; i++)
+      openSlots.push({ teamId: g.id, division: div, country: g.country })
   }
 
   for (let i = 0; i < needed; i++) {
@@ -225,6 +236,7 @@ export async function runRollover(
       teamId,
       `${worldSeed}:neopro:s${newSeason}:${i}`,
       newSeason,
+      slot?.country ?? null,
     )
   }
 }

@@ -25,10 +25,15 @@ export {
   type TeamRiderRow,
 } from './browse.js'
 export {
+  clusterTeamNationalities,
+  planNationalClustering,
   planWorld,
   reconcileTeams,
   seedWorld,
   teamCountryByIndex,
+  NATIONAL_CORE_SHARE,
+  type ClusterRider,
+  type ClusterTeam,
   type RiderPlan,
   type TeamPlan,
   type WorldPlan,
