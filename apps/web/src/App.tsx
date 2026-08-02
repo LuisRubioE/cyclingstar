@@ -8,6 +8,7 @@ import { Countries } from './pages/Countries'
 import { Country } from './pages/Country'
 import { CreateRider } from './pages/CreateRider'
 import { Finances } from './pages/Finances'
+import { HallOfFame } from './pages/HallOfFame'
 import { Home } from './pages/Home'
 import { HowToPlay } from './pages/HowToPlay'
 import { Login } from './pages/Login'
@@ -44,6 +45,7 @@ export function App() {
           <Route path="/riders/:id" element={<PublicRider />} />
           <Route path="/news" element={<News />} />
           <Route path="/rankings" element={<Rankings />} />
+          <Route path="/hall-of-fame" element={<HallOfFame />} />
           <Route path="/how-to-play" element={<HowToPlay />} />
           <Route path="/privacy" element={<Privacy />} />
           {/* Base secreta de admins: no enlazada; se protege con el ADMIN_TOKEN dentro. */}

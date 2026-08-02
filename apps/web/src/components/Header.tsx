@@ -16,6 +16,7 @@ const WORLD_LINKS = [
   { to: '/teams', label: 'Teams' },
   { to: '/countries', label: 'Nations' },
   { to: '/rankings', label: 'Rankings' },
+  { to: '/hall-of-fame', label: 'Hall of Fame' },
   { to: '/news', label: 'News' },
 ]
 

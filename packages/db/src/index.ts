@@ -43,10 +43,12 @@ export {
 export { runRollover } from './rollover.js'
 export { emitNews, getGlobalNews, getRiderNews, type NewsItem } from './news.js'
 export {
+  getHallOfFame,
   getPalmares,
   getRaceHistory,
   getRanking,
   getSeasonWinners,
+  type HallOfFameRow,
   type PalmaresRow,
   type RaceHonour,
   type RankingRow,

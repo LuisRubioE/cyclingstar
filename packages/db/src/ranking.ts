@@ -132,6 +132,44 @@ export async function getPalmares(db: Database, riderId: string): Promise<Palmar
     .orderBy(desc(palmares.season), desc(palmares.gameDay))
 }
 
+export interface HallOfFameRow {
+  riderId: string
+  name: string
+  country: string
+  isBot: boolean
+  gc: number
+  stage: number
+  kom: number
+  points: number
+  total: number
+}
+
+/** Salón de la fama (#58): corredores por palmarés total de todas las temporadas, con desglose. */
+export async function getHallOfFame(
+  db: Database,
+  worldId: string,
+  limit = 30,
+): Promise<HallOfFameRow[]> {
+  return db
+    .select({
+      riderId: palmares.riderId,
+      name: riders.name,
+      country: riders.country,
+      isBot: sql<boolean>`${riders.userId} is null`,
+      gc: sql<number>`count(*) filter (where ${palmares.kind} = 'gc')::int`,
+      stage: sql<number>`count(*) filter (where ${palmares.kind} = 'stage')::int`,
+      kom: sql<number>`count(*) filter (where ${palmares.kind} = 'kom')::int`,
+      points: sql<number>`count(*) filter (where ${palmares.kind} = 'points')::int`,
+      total: sql<number>`count(*)::int`,
+    })
+    .from(palmares)
+    .innerJoin(riders, eq(riders.id, palmares.riderId))
+    .where(eq(palmares.worldId, worldId))
+    .groupBy(palmares.riderId, riders.name, riders.country, riders.userId)
+    .orderBy(desc(sql`count(*)`))
+    .limit(limit)
+}
+
 /** Ganadores de la general por carrera en una temporada: raceId -> nombre (SPEC, Paso 44). */
 export async function getSeasonWinners(
   db: Database,
