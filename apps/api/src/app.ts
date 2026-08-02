@@ -40,6 +40,7 @@ import {
   getRaceGc,
   getRacePrefs,
   getRiderForUser,
+  getRiderLastRaceReport,
   getRiderRaceDays,
   getRiderSummary,
   getRunStageDays,
@@ -369,6 +370,15 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
         hidden: genome.hidden,
       })
       return reply.status(201).send({ ok: true, id: created.id })
+    })
+
+    // Informe personal de la última carrera: qué ordené vs qué pasó (backlog extra).
+    app.get('/api/riders/me/last-race', async (request, reply) => {
+      const userId = await currentUserId(request)
+      if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
+      const rider = await getRiderForUser(db, userId)
+      if (!rider) return { report: null }
+      return { report: await getRiderLastRaceReport(db, rider.id) }
     })
 
     // --- Planificador de entrenamiento (Paso 18) ---

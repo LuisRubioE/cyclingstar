@@ -6,6 +6,7 @@ import { fetchPalmares, palmaresLabel } from '../api/rankings'
 import { fetchMyRider, fetchRiderSummary } from '../api/rider'
 import { AttributeList } from '../components/AttributeList'
 import { FormChart } from '../components/FormChart'
+import { LastRaceReport } from '../components/LastRaceReport'
 import { RiderPortrait } from '../components/RiderPortrait'
 import { StarRating } from '../components/StarRating'
 
@@ -78,6 +79,8 @@ export function RiderProfile() {
           ))}
         </dl>
       )}
+
+      <LastRaceReport />
 
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <div className="flex items-center justify-between">
