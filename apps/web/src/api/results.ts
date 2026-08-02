@@ -108,27 +108,88 @@ export function formatTime(seconds: number): string {
   return h > 0 ? `${h}:${mm}:${ss}` : `${m}:${ss}`
 }
 
-/** Narra un evento del replay en inglés (i18n barato en el cliente, SPEC 6.15). */
-export function narrate(plantilla: string, who: string[]): string {
+/**
+ * Plantillas de crónica (#79): varias redacciones por evento para que el relato no repita siempre
+ * la misma frase. La variante es determinista (misma semilla ⇒ misma frase), así que re-renderizar
+ * la etapa cuenta la misma historia.
+ */
+const CHRONICLE: Record<string, ((n: string) => string)[]> = {
+  breakaway_formed: [
+    (n) => `${n} attack and open a gap`,
+    (n) => `${n} jump clear off the front`,
+    (n) => `A move goes clear — ${n} force the pace`,
+    (n) => `${n} slip away and the break is on`,
+  ],
+  peloton_concedes: [
+    () => 'The peloton lets the move go',
+    () => 'The bunch eases and grants the break its leash',
+    () => 'No panic behind — the peloton concedes the gap',
+    () => 'The favourites nod the move up the road',
+  ],
+  sprinters_give_up: [
+    () => "The sprinters' teams give up the chase",
+    () => 'The lead-out trains sit up — the catch looks unlikely',
+    () => 'Behind, the fast men wave the white flag',
+    () => 'The chase falters as the sprinters run out of legs',
+  ],
+  sprint_intermediate: [
+    (n) => `${n} takes the intermediate sprint`,
+    (n) => `${n} kicks first at the intermediate`,
+    (n) => `${n} grabs the bonus points at the sprint`,
+    (n) => `${n} pips the rest to the intermediate line`,
+  ],
+  climb_kom: [
+    (n) => `${n} crests the climb first`,
+    (n) => `${n} leads over the top for the KOM points`,
+    (n) => `${n} dances away to top the climb`,
+    (n) => `${n} is first to the summit`,
+  ],
+  breakaway_caught: [
+    () => 'The peloton reels the breakaway back in',
+    () => 'It all comes back together — the break is caught',
+    () => 'The elastic snaps: the bunch swallows the move',
+    () => 'Game over for the break as the peloton surges up',
+  ],
+  breakaway_consolidated: [
+    (n) => `${n} settle into a rhythm with a healthy lead`,
+    (n) => `The gap stabilises as ${n} commit to the move`,
+    (n) => `${n} build their advantage out front`,
+  ],
+  crash: [
+    (n) => `Chaos in the bunch — ${n} hit the deck`,
+    (n) => `A touch of wheels brings down ${n}`,
+    (n) => `Riders down: ${n} caught in a crash`,
+  ],
+  dropped: [
+    (n) => `${n} can't hold the pace and slip back`,
+    (n) => `The rhythm proves too much — ${n} are distanced`,
+    (n) => `${n} lose contact with the group`,
+  ],
+  stage_win: [
+    (n) => `${n} wins the stage`,
+    (n) => `${n} throws up the arms — stage victory`,
+    (n) => `${n} takes it at the line`,
+    (n) => `Nobody could answer ${n} — the stage is theirs`,
+  ],
+  stage_win_itt: [
+    (n) => `${n} wins the time trial`,
+    (n) => `${n} sets the best time against the clock`,
+    (n) => `${n} stops the clock fastest to take the TT`,
+  ],
+}
+
+function pickVariant(key: string, seed: number, names: string, count: number): number {
+  let h = 2166136261
+  const s = `${key}:${seed}:${names}`
+  for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619) >>> 0
+  return h % count
+}
+
+/** Narra un evento del replay en inglés, variando la frase de forma determinista (SPEC 6.15, #79). */
+export function narrate(plantilla: string, who: string[], seed = 0): string {
   const names = who.join(', ')
-  switch (plantilla) {
-    case 'breakaway_formed':
-      return `${names} attack and open a gap`
-    case 'peloton_concedes':
-      return 'The peloton lets the move go'
-    case 'sprinters_give_up':
-      return "The sprinters' teams give up the chase"
-    case 'sprint_intermediate':
-      return `${names} takes the intermediate sprint`
-    case 'climb_kom':
-      return `${names} crests the climb first`
-    case 'breakaway_caught':
-      return 'The peloton reels the breakaway back in'
-    case 'stage_win':
-      return `${names} wins the stage`
-    case 'stage_win_itt':
-      return `${names} wins the time trial`
-    default:
-      return plantilla
-  }
+  const options = CHRONICLE[plantilla]
+  if (!options) return plantilla
+  const variant = options[pickVariant(plantilla, seed, names, options.length)]!
+  return variant(names)
 }
