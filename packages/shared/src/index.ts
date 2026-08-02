@@ -6,6 +6,7 @@ import { z } from 'zod'
  */
 
 export * from './countries.js'
+export * from './regions.js'
 export * from './rider.js'
 export * from './rng.js'
 export * from './time.js'
