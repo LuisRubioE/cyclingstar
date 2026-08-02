@@ -27,6 +27,19 @@ export const COUNTRIES: Country[] = [
   { code: 'US', name: 'United States', flag: '🇺🇸' },
   { code: 'AU', name: 'Australia', flag: '🇦🇺' },
   { code: 'CH', name: 'Switzerland', flag: '🇨🇭' },
+  // Wave 1 of the rollout to all cycling-federation countries (#1), each with a real name pool.
+  { code: 'AR', name: 'Argentina', flag: '🇦🇷' },
+  { code: 'MX', name: 'Mexico', flag: '🇲🇽' },
+  { code: 'EC', name: 'Ecuador', flag: '🇪🇨' },
+  { code: 'PL', name: 'Poland', flag: '🇵🇱' },
+  { code: 'AT', name: 'Austria', flag: '🇦🇹' },
+  { code: 'IE', name: 'Ireland', flag: '🇮🇪' },
+  { code: 'CZ', name: 'Czechia', flag: '🇨🇿' },
+  { code: 'CA', name: 'Canada', flag: '🇨🇦' },
+  { code: 'NZ', name: 'New Zealand', flag: '🇳🇿' },
+  { code: 'SE', name: 'Sweden', flag: '🇸🇪' },
+  { code: 'JP', name: 'Japan', flag: '🇯🇵' },
+  { code: 'KZ', name: 'Kazakhstan', flag: '🇰🇿' },
 ]
 
 const CODES = new Set(COUNTRIES.map((c) => c.code))
