@@ -5,6 +5,7 @@ import { fetchHealth } from '../api/health'
 import { fetchMyRider, fetchRiderSummary } from '../api/rider'
 import { fetchOrders } from '../api/training'
 import { Logo } from '../components/Logo'
+import { TeamLink } from '../components/TeamLink'
 import { WorldClock } from '../components/WorldClock'
 
 /** Quick actions on the player dashboard (Paso 41): where a returning player goes next. */
@@ -159,7 +160,9 @@ function PlayerHome({ name }: { name: string }) {
         </p>
         <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">{name}</h1>
         {summary?.teamName ? (
-          <p className="text-sm text-slate-500">{summary.teamName}</p>
+          <p className="text-sm text-slate-500">
+            <TeamLink teamId={summary.teamId} name={summary.teamName} />
+          </p>
         ) : (
           <p className="text-sm text-slate-500">Free agent — waiting for an offer.</p>
         )}

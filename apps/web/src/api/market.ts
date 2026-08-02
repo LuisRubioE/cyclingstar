@@ -1,5 +1,6 @@
 export interface Offer {
   id: string
+  teamId: string
   teamName: string
   division: string
   role: string
@@ -9,6 +10,7 @@ export interface Offer {
 }
 
 export interface Contract {
+  teamId: string
   teamName: string
   division: string
   role: string

@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { TeamLink } from '../components/TeamLink'
 import { type Offer, fetchMarket, respondToOffer, roleLabel } from '../api/market'
 
 const DIVISION_BADGE: Record<string, string> = {
@@ -23,7 +24,11 @@ function OfferCard({
   return (
     <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="flex items-center gap-2">
-        <span className="text-sm font-semibold text-slate-800">{offer.teamName}</span>
+        <TeamLink
+          teamId={offer.teamId}
+          name={offer.teamName}
+          className="text-sm font-semibold text-slate-800"
+        />
         <span
           className={`rounded-full px-2 py-0.5 text-xs font-medium ${DIVISION_BADGE[offer.division] ?? ''}`}
         >
@@ -46,7 +51,12 @@ function OfferCard({
           </dd>
         </div>
         <div className="flex justify-between">
-          <dt className="text-slate-400">Buyout</dt>
+          <dt
+            className="cursor-help text-slate-400 underline decoration-dotted underline-offset-2"
+            title="Release clause: what another team must pay this team to sign you before your contract ends. A higher buyout means you're harder to poach."
+          >
+            Buyout
+          </dt>
           <dd className="tabular-nums">{offer.releaseClause.toLocaleString('en-US')}</dd>
         </div>
       </dl>
@@ -92,7 +102,12 @@ export function Market() {
         <h1 className="text-2xl font-bold tracking-tight">Transfer market</h1>
         <p className="mt-1 text-sm text-slate-500">
           As a free agent you get offers regularly — sign the one that fits your ambitions. Salary,
-          role and division all matter.
+          role and division all matter. You only join a team once you <strong>sign</strong>; until
+          then you stay a free agent.
+        </p>
+        <p className="mt-2 text-xs text-slate-400">
+          <strong>Buyout</strong> (release clause) is the fee another team must pay to sign you away
+          before your contract ends — the higher it is, the harder you are to poach.
         </p>
       </div>
 
@@ -102,8 +117,12 @@ export function Market() {
             Current contract
           </h2>
           <p className="text-sm text-slate-700">
-            <span className="font-semibold">{data.contract.teamName}</span> (
-            {data.contract.division}) · {roleLabel(data.contract.role)} ·{' '}
+            <TeamLink
+              teamId={data.contract.teamId}
+              name={data.contract.teamName}
+              className="font-semibold"
+            />{' '}
+            ({data.contract.division}) · {roleLabel(data.contract.role)} ·{' '}
             {money(data.contract.salary)} · through season {data.contract.endSeason + 1}
           </p>
         </div>

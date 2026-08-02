@@ -24,6 +24,17 @@ export function createAuth(db: Database, opts: { secret: string; baseURL: string
     emailAndPassword: {
       enabled: true,
     },
+    user: {
+      // Cambio de correo desde ajustes (SPEC 7): como aún no verificamos correos (sin envío de
+      // emails), el cambio se aplica directamente. El callback es un no-op para cubrir el caso de
+      // un correo ya verificado sin romper el flujo.
+      changeEmail: {
+        enabled: true,
+        sendChangeEmailVerification: async () => {
+          /* sin verificación por correo por ahora */
+        },
+      },
+    },
     advanced: {
       database: {
         generateId: false,

@@ -6,10 +6,10 @@ import {
   raceVocationFit,
   selectSquad,
 } from '@cyclingstar/engine'
-import { and, asc, eq, isNotNull, isNull, sql } from 'drizzle-orm'
+import { and, eq, isNotNull, isNull, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import type { Database } from './client.js'
-import { raceCallups, riderRacePrefs, riders, teams } from './schema.js'
+import { contracts, raceCallups, riderRacePrefs, riders, teams } from './schema.js'
 
 /**
  * IA de convocatorias en la capa de datos (Paso 35, SPEC 6.18, 7.2). Unos días antes de cada
@@ -33,28 +33,34 @@ function clampMorale(x: number): number {
 }
 
 /**
- * Puente provisional hasta los contratos (Paso 36): ficha a los corredores humanos sin equipo por
- * el equipo Continental con menos plantilla de su mundo, para que entren en las convocatorias.
+ * Un corredor humano es **agente libre** hasta que FIRMA una oferta en el mercado (Paso 36): solo
+ * entonces obtiene equipo y contrato (acceptOffer escribe ambos a la vez). Este reconcilio libera a
+ * cualquier humano cuyo `teamId` no esté respaldado por un contrato vigente. Repara dos casos:
+ *  - el puente provisional antiguo, que asignaba equipo sin contrato al pasar el tick (bug), y
+ *  - un contrato vencido, que devuelve al corredor a agencia libre para recibir nuevas ofertas.
+ * Idempotente: un humano con contrato vigente no se toca; uno ya libre tampoco.
  */
-export async function ensureHumanTeams(tx: Tx, worldId: string): Promise<void> {
-  const freeAgents = await tx
+export async function releaseUncontractedHumans(
+  tx: Tx,
+  worldId: string,
+  season: number,
+): Promise<void> {
+  const assigned = await tx
     .select({ id: riders.id })
     .from(riders)
-    .where(and(eq(riders.worldId, worldId), isNull(riders.teamId), isNotNull(riders.userId)))
-  if (freeAgents.length === 0) return
+    .where(and(eq(riders.worldId, worldId), isNotNull(riders.teamId), isNotNull(riders.userId)))
+  if (assigned.length === 0) return
 
-  for (const agent of freeAgents) {
-    const smallest = await tx
-      .select({ id: teams.id, n: sql<number>`count(${riders.id})::int` })
-      .from(teams)
-      .leftJoin(riders, eq(riders.teamId, teams.id))
-      .where(and(eq(teams.worldId, worldId), eq(teams.division, 'CON')))
-      .groupBy(teams.id)
-      .orderBy(asc(sql`count(${riders.id})`))
+  for (const r of assigned) {
+    const current = await tx
+      .select({ endSeason: contracts.endSeason })
+      .from(contracts)
+      .where(eq(contracts.riderId, r.id))
       .limit(1)
-    const teamId = smallest[0]?.id
-    if (!teamId) return // aún no hay génesis; se reintenta el próximo tick
-    await tx.update(riders).set({ teamId }).where(eq(riders.id, agent.id))
+    const hasValidContract = current[0] != null && current[0].endSeason >= season
+    if (!hasValidContract) {
+      await tx.update(riders).set({ teamId: null }).where(eq(riders.id, r.id))
+    }
   }
 }
 
@@ -65,9 +71,9 @@ export async function runCallups(
   gameDay: number,
   worldSeed: string,
 ): Promise<void> {
-  await ensureHumanTeams(tx, worldId)
-
   const season = Math.floor(gameDay / SEASON_DAYS)
+  await releaseUncontractedHumans(tx, worldId, season)
+
   const dayOfSeason = gameDay % SEASON_DAYS
   const due = SEASON_CALENDAR.filter((r) => r.startDay - CALLUP_LEAD_DAYS === dayOfSeason)
   if (due.length === 0) return
