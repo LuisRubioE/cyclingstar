@@ -106,6 +106,12 @@ export const COUNTRIES: Country[] = [
   { code: 'DO', name: 'Dominican Republic', flag: '🇩🇴' },
   { code: 'PY', name: 'Paraguay', flag: '🇵🇾' },
   { code: 'MK', name: 'North Macedonia', flag: '🇲🇰' },
+  // Wave 10 — territorios con federación UCI presentes en el pelotón Continental real.
+  { code: 'KG', name: 'Kyrgyzstan', flag: '🇰🇬' },
+  { code: 'HK', name: 'Hong Kong', flag: '🇭🇰' },
+  { code: 'GU', name: 'Guam', flag: '🇬🇺' },
+  { code: 'BH', name: 'Bahrain', flag: '🇧🇭' },
+  { code: 'XK', name: 'Kosovo', flag: '🇽🇰' },
 ]
 
 const CODES = new Set(COUNTRIES.map((c) => c.code))
