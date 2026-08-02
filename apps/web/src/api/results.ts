@@ -109,17 +109,17 @@ export function narrate(plantilla: string, who: string[]): string {
   const names = who.join(', ')
   switch (plantilla) {
     case 'breakaway_formed':
-      return `${names} form the breakaway`
+      return `${names} attack and open a gap`
     case 'peloton_concedes':
-      return 'The peloton lets the break go'
+      return 'The peloton lets the move go'
     case 'sprinters_give_up':
       return "The sprinters' teams give up the chase"
     case 'sprint_intermediate':
       return `${names} takes the intermediate sprint`
     case 'climb_kom':
-      return `${names} leads over the climb`
+      return `${names} crests the climb first`
     case 'breakaway_caught':
-      return 'The breakaway is caught'
+      return 'The peloton reels the breakaway back in'
     case 'stage_win':
       return `${names} wins the stage`
     case 'stage_win_itt':

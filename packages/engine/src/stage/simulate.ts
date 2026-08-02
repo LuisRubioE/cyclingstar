@@ -161,9 +161,10 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
   }
   // Los sprinters solo cazan si la meta es llana (una llegada masiva que puedan disputar): en un
   // final en alto no persiguen, y la fuga vive o muere en la subida (SPEC 6.9).
-  const finishFlat = blocks
-    .slice(Math.max(0, n - STAGE.finalBlocks))
-    .every((b) => b.tipo === 'llano' || b.tipo === 'descenso')
+  const finalStretch = blocks.slice(Math.max(0, n - STAGE.finalBlocks))
+  const finishFlat = finalStretch.every((b) => b.tipo === 'llano' || b.tipo === 'descenso')
+  // Final en alto: el tramo de meta trepa. El orden de meta lo decide entonces la escalada.
+  const finishUphill = finalStretch.some((b) => b.tipo === 'subida')
   const chasingSprinters = input.riders.some(isSprinter) && finishFlat
 
   // --- Bucle principal (SPEC 6.16) --------------------------------------------------------
@@ -342,7 +343,7 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
 
   // --- Meta y resultados (SPEC 6.12, 6.15) -----------------------------------------------
   const allGroups: Group[] = [peloton, ...(breakaway && !caught ? [breakaway] : []), ...shed]
-  finishStage(sims, allGroups, log, rngSprint, totalKm)
+  finishStage(sims, allGroups, log, rngSprint, totalKm, finishUphill)
 
   const results = buildResults(sims)
   const workUnits = new Map<string, number>()
@@ -440,13 +441,18 @@ function climbTable(block: Block): readonly number[] {
   return STAGE.climbPoints.cat4
 }
 
-/** Cierra la etapa: sprint del grupo de cabeza y tiempos de todos (SPEC 6.12). */
+/**
+ * Cierra la etapa: define el orden dentro de cada grupo y los tiempos (SPEC 6.12). En una llegada
+ * masiva manda el SPR; en un final en alto, la capacidad escaladora (MON/COL), así el ganador de
+ * una etapa de montaña es un escalador, coherente con quien corona primero.
+ */
 function finishStage(
   sims: Map<string, RiderSim>,
   groups: Group[],
   log: EventLog,
   rngSprint: Rng,
   totalKm: number,
+  finishUphill: boolean,
 ): void {
   const withMembers = groups
     .map((group) => ({ group, members: [...sims.values()].filter((s) => s.groupId === group.id) }))
@@ -458,7 +464,8 @@ function finishStage(
       .map((m) => {
         const e = erosion(m.energy, m.energy0, m.input.eff0.RES)
         const eff = effNow(m.input.eff0, e)
-        const score = eff.SPR * normal(rngSprint, 1, STAGE.sprintScoreNoiseSd)
+        const base = finishUphill ? Math.max(eff.MON, eff.COL) : eff.SPR
+        const score = base * normal(rngSprint, 1, STAGE.sprintScoreNoiseSd)
         return { m, score }
       })
       .sort((a, b) => b.score - a.score)
