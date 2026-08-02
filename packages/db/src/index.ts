@@ -61,6 +61,7 @@ export {
   getRiderBadges,
   getSeasonAwards,
   getSeasonWinners,
+  getYoungRiders,
   type AllTimeRecords,
   type AwardWinner,
   type Badge,
