@@ -28,3 +28,40 @@ describe('api: /health', () => {
     expect(res.json()).toEqual({ ok: false, error: 'no_encontrado' })
   })
 })
+
+describe('api: lista de bloqueo de nombres (admin)', () => {
+  // Un db mínimo basta: la comprobación del token ocurre antes de tocar la base.
+  const adminApp = buildApp({
+    migrationsApplied: true,
+    serveWeb: false,
+    tickIntervalMinutes: 360,
+    db: {} as never,
+    adminToken: 'x'.repeat(16),
+  })
+  afterAll(async () => {
+    await adminApp.close()
+  })
+
+  it('rechaza sin token', async () => {
+    const res = await adminApp.inject({ method: 'GET', url: '/api/admin/blocklist?kind=team' })
+    expect(res.statusCode).toBe(401)
+  })
+
+  it('rechaza con token incorrecto', async () => {
+    const res = await adminApp.inject({
+      method: 'GET',
+      url: '/api/admin/blocklist?kind=team',
+      headers: { 'x-admin-token': 'incorrecto' },
+    })
+    expect(res.statusCode).toBe(401)
+  })
+
+  it('rechaza un kind inválido aun con token correcto', async () => {
+    const res = await adminApp.inject({
+      method: 'GET',
+      url: '/api/admin/blocklist?kind=nope',
+      headers: { 'x-admin-token': 'x'.repeat(16) },
+    })
+    expect(res.statusCode).toBe(400)
+  })
+})

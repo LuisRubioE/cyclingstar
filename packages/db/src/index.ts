@@ -83,6 +83,16 @@ export {
 export { dedupeWorldNames, type DedupeResult } from './dedupeNames.js'
 export { isRiderNameTaken, generateUniqueRiderName } from './nameService.js'
 export {
+  addBlocked,
+  getBlockedSet,
+  isNameBlocked,
+  listBlocked,
+  normalizeBlocked,
+  removeBlocked,
+  type BlockedKind,
+  type BlockedNameRow,
+} from './blocklist.js'
+export {
   createRider,
   getCurrentWorld,
   getDailyLog,

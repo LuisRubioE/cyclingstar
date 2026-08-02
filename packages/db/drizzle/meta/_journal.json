@@ -85,6 +85,13 @@
       "when": 1785620299099,
       "tag": "0011_empty_cardiac",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1785662722822,
+      "tag": "0012_rare_warpath",
+      "breakpoints": true
     }
   ]
 }

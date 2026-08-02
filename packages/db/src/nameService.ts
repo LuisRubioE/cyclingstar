@@ -1,5 +1,6 @@
 import type { Gender } from '@cyclingstar/shared'
 import { and, eq, isNull, sql } from 'drizzle-orm'
+import { getBlockedSet, normalizeBlocked } from './blocklist.js'
 import type { Database } from './client.js'
 import { type GeneratedName, generateName, regenerateName, isBlockedName } from './names.js'
 import { riders } from './schema.js'
@@ -40,10 +41,13 @@ export async function generateUniqueRiderName(
   seed: string,
   opts: { country: string; gender: Gender },
 ): Promise<GeneratedName> {
+  // Lista de bloqueo de admins (ciclistas/famosos reales), además del bloqueo estático de pros.
+  const blocked = await getBlockedSet(db, 'rider')
   for (let iteration = 0; iteration < 40; iteration++) {
     const generated =
       iteration === 0 ? generateName(seed, opts) : regenerateName(seed, opts, iteration)
     if (isBlockedName(generated.fullName)) continue
+    if (blocked.has(normalizeBlocked(generated.fullName))) continue
     if (!(await isRiderNameTaken(db, worldId, generated.fullName))) return generated
   }
   throw new Error('no se pudo generar un nombre único para el corredor')
