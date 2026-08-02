@@ -474,16 +474,31 @@ export async function reconcileTeams(tx: Tx, worldId: string): Promise<number> {
   for (const t of rows) {
     if (t.ownerUserId !== null) used.add(t.name.toLowerCase()) // los equipos humanos mandan
   }
-  const bots = rows
-    .filter((t) => t.ownerUserId === null)
+  const bots = rows.filter((t) => t.ownerUserId === null)
+  const inRange = (t: (typeof bots)[number]) =>
+    teamIndexFromSeed(t.jerseySeed) < TEAM_DIST[t.division].length
+
+  // Poda de equipos NPC sobrantes: si un mundo se expandió a más equipos de los reales (p. ej. un
+  // Continental de 200 cuando el reparto son 185), los de índice fuera de rango se eliminan. Sus
+  // corredores pasan a agentes libres (team_id nulo); borrar el equipo arrastra contratos y ofertas
+  // (onDelete cascade). Nunca se podan equipos con dueño. Idempotente: una vez podados, no vuelven.
+  let changed = 0
+  for (const t of bots.filter((b) => !inRange(b))) {
+    await tx.update(riders).set({ teamId: null }).where(eq(riders.teamId, t.id))
+    await tx.delete(teams).where(eq(teams.id, t.id))
+    changed++
+  }
+
+  // Reconcilia los equipos en rango en orden fijo (división, índice) —el mismo que la génesis—, para
+  // que la asignación sea un punto fijo determinista (no-op en un mundo nuevo).
+  const keep = bots
+    .filter(inRange)
     .sort(
       (a, b) =>
         DIV_RANK[a.division] - DIV_RANK[b.division] ||
         teamIndexFromSeed(a.jerseySeed) - teamIndexFromSeed(b.jerseySeed),
     )
-
-  let changed = 0
-  for (const t of bots) {
+  for (const t of keep) {
     const country = teamCountryByIndex(t.division, teamIndexFromSeed(t.jerseySeed))
     const name = makeLangTeamName(t.jerseySeed, country, used)
     if (t.country !== country || t.name !== name) {
