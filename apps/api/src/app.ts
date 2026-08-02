@@ -40,6 +40,7 @@ import {
   getHallOfFame,
   getAllTimeRecords,
   getRanking,
+  getRiderBadges,
   getSeasonAwards,
   getRiderNews,
   getSeasonWinners,
@@ -805,6 +806,11 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
     // Noticias del equipo (#16): titulares de sus corredores.
     app.get<{ Params: { id: string } }>('/api/teams/:id/news', async (request) => {
       return { news: await getTeamNews(db, request.params.id) }
+    })
+
+    // Logros de un corredor (#95).
+    app.get<{ Params: { id: string } }>('/api/riders/:id/badges', async (request) => {
+      return { badges: await getRiderBadges(db, request.params.id) }
     })
 
     app.get<{ Params: { id: string } }>('/api/riders/:id', async (request, reply) => {

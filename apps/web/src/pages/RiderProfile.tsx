@@ -12,6 +12,7 @@ import { fetchHealth } from '../api/health'
 import { fetchPalmares, palmaresLabel } from '../api/rankings'
 import { fetchMyRider, fetchRiderSummary } from '../api/rider'
 import { AttributeList } from '../components/AttributeList'
+import { Badges } from '../components/Badges'
 import { Flag } from '../components/Flag'
 import { FormChart } from '../components/FormChart'
 import { LastRaceReport } from '../components/LastRaceReport'
@@ -78,6 +79,8 @@ export function RiderProfile() {
           </div>
         </div>
       </header>
+
+      <Badges riderId={rider.id} />
 
       {summaryQuery.data && (
         <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">

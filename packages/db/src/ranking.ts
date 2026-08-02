@@ -200,6 +200,92 @@ export async function getPalmares(db: Database, riderId: string): Promise<Palmar
     .orderBy(desc(palmares.season), desc(palmares.gameDay))
 }
 
+export interface Badge {
+  id: string
+  label: string
+  icon: string
+  desc: string
+}
+
+/**
+ * Logros de un corredor (#95), derivados de su palmarés permanente. Se devuelven solo los
+ * conseguidos; cada uno tiene su umbral. Sin estado nuevo: se calculan al vuelo.
+ */
+export async function getRiderBadges(db: Database, riderId: string): Promise<Badge[]> {
+  const rows = await db
+    .select({
+      gc: sql<number>`count(*) filter (where ${palmares.kind} = 'gc')::int`,
+      stage: sql<number>`count(*) filter (where ${palmares.kind} = 'stage')::int`,
+      kom: sql<number>`count(*) filter (where ${palmares.kind} = 'kom')::int`,
+      points: sql<number>`count(*) filter (where ${palmares.kind} = 'points')::int`,
+      total: sql<number>`count(*)::int`,
+    })
+    .from(palmares)
+    .where(eq(palmares.riderId, riderId))
+  const c = rows[0] ?? { gc: 0, stage: 0, kom: 0, points: 0, total: 0 }
+
+  const defs: { when: boolean; badge: Badge }[] = [
+    {
+      when: c.total >= 1,
+      badge: {
+        id: 'first_win',
+        label: 'First win',
+        icon: '🎉',
+        desc: 'Won your first race honour.',
+      },
+    },
+    {
+      when: c.stage >= 10,
+      badge: { id: 'stage_hunter', label: 'Stage hunter', icon: '🏁', desc: '10+ stage wins.' },
+    },
+    {
+      when: c.gc >= 1,
+      badge: {
+        id: 'overall_winner',
+        label: 'Overall winner',
+        icon: '🏆',
+        desc: 'Won a race overall.',
+      },
+    },
+    {
+      when: c.gc >= 5,
+      badge: {
+        id: 'grand_champion',
+        label: 'Grand champion',
+        icon: '👑',
+        desc: '5+ overall wins.',
+      },
+    },
+    {
+      when: c.kom >= 5,
+      badge: {
+        id: 'king_mountains',
+        label: 'King of the Mountains',
+        icon: '⛰️',
+        desc: '5+ mountains classifications.',
+      },
+    },
+    {
+      when: c.points >= 5,
+      badge: {
+        id: 'points_machine',
+        label: 'Points machine',
+        icon: '🟢',
+        desc: '5+ points classifications.',
+      },
+    },
+    {
+      when: c.total >= 25,
+      badge: { id: 'prolific', label: 'Prolific', icon: '⭐', desc: '25+ career honours.' },
+    },
+    {
+      when: c.total >= 50,
+      badge: { id: 'legend', label: 'Legend', icon: '🐐', desc: '50+ career honours.' },
+    },
+  ]
+  return defs.filter((d) => d.when).map((d) => d.badge)
+}
+
 export interface HallOfFameRow {
   riderId: string
   name: string
