@@ -109,6 +109,46 @@ export async function getRanking(
   }))
 }
 
+/**
+ * Clasificación de jóvenes de la temporada (#59, "maillot blanco"): corredores en activo de 23 años
+ * o menos, por puntos. `season` (0-indexed): joven ⇒ birthSeason ≥ season − 3.
+ */
+export async function getYoungRiders(
+  db: Database,
+  worldId: string,
+  season: number,
+  limit = 30,
+): Promise<RankingRow[]> {
+  const rows = await db
+    .select({
+      riderId: riders.id,
+      name: riders.name,
+      country: riders.country,
+      teamName: teams.name,
+      userId: riders.userId,
+      points: riders.seasonPoints,
+    })
+    .from(riders)
+    .leftJoin(teams, eq(teams.id, riders.teamId))
+    .where(
+      and(
+        eq(riders.worldId, worldId),
+        isNull(riders.retiredAt),
+        gte(riders.birthSeason, season - 3),
+      ),
+    )
+    .orderBy(desc(riders.seasonPoints))
+    .limit(limit)
+  return rows.map((r) => ({
+    riderId: r.riderId,
+    name: r.name,
+    country: r.country,
+    teamName: r.teamName,
+    isBot: r.userId === null,
+    points: r.points,
+  }))
+}
+
 export interface AwardWinner {
   riderId: string
   name: string

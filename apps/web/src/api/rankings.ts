@@ -29,6 +29,12 @@ export async function fetchRankings(): Promise<RankingRow[]> {
   return ((await res.json()) as { ranking: RankingRow[] }).ranking
 }
 
+export async function fetchYoungRankings(): Promise<RankingRow[]> {
+  const res = await fetch('/api/rankings/young')
+  if (!res.ok) throw new Error('Could not load the young riders ranking.')
+  return ((await res.json()) as { ranking: RankingRow[] }).ranking
+}
+
 export interface AwardWinner {
   riderId: string
   name: string

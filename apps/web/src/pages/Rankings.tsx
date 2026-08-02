@@ -1,16 +1,50 @@
 import { VOCATION_LABELS, type Vocation } from '@cyclingstar/shared'
 import { useQuery } from '@tanstack/react-query'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   type AwardWinner,
   type RaceHonour,
+  type RankingRow,
   type SeasonAwards,
   fetchRaceHistory,
   fetchRankings,
   fetchSeasonAwards,
+  fetchYoungRankings,
 } from '../api/rankings'
 import { Flag } from '../components/Flag'
 import { RiderName } from '../components/RiderName'
+
+function RankingTable({ rows }: { rows: RankingRow[] }) {
+  if (rows.length === 0) {
+    return (
+      <p className="p-6 text-center text-sm text-slate-500">
+        No points yet — they start rolling in once races are run.
+      </p>
+    )
+  }
+  return (
+    <table className="w-full text-sm">
+      <tbody>
+        {rows.map((r, i) => (
+          <tr key={r.riderId} className="border-b border-slate-100 last:border-0">
+            <td className="w-8 py-1.5 pl-4 text-slate-400 tabular-nums">{i + 1}</td>
+            <td className="w-6 py-1.5">
+              <Flag code={r.country} size={16} />
+            </td>
+            <td className="py-1.5 text-slate-700">
+              <RiderName riderId={r.riderId} name={r.name} isBot={r.isBot} />
+              {r.teamName && <span className="ml-2 text-xs text-slate-400">{r.teamName}</span>}
+            </td>
+            <td className="py-1.5 pr-4 text-right font-medium tabular-nums text-slate-600">
+              {r.points}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )
+}
 
 const AWARD_META: { key: keyof SeasonAwards; title: string; hint: string }[] = [
   { key: 'riderOfYear', title: 'Rider of the year', hint: 'Most season points' },
@@ -89,12 +123,24 @@ function RollOfHonour({ history }: { history: RaceHonour[] }) {
 }
 
 export function Rankings() {
+  const [tab, setTab] = useState<'overall' | 'young'>('overall')
   const ranking = useQuery({ queryKey: ['rankings'], queryFn: fetchRankings })
+  const young = useQuery({
+    queryKey: ['rankings-young'],
+    queryFn: fetchYoungRankings,
+    enabled: tab === 'young',
+  })
   const history = useQuery({ queryKey: ['race-history'], queryFn: fetchRaceHistory })
   const awards = useQuery({ queryKey: ['season-awards'], queryFn: fetchSeasonAwards })
 
   if (ranking.isPending) return <p className="text-slate-500">Loading…</p>
   if (ranking.isError) return <p className="text-red-600">Could not load the rankings.</p>
+
+  const active = tab === 'young' ? young.data : ranking.data
+  const tabClass = (t: 'overall' | 'young') =>
+    `rounded-lg px-3 py-1.5 text-sm font-medium transition ${
+      tab === t ? 'bg-indigo-600 text-white' : 'text-slate-600 hover:bg-slate-100'
+    }`
 
   return (
     <section className="space-y-5">
@@ -110,35 +156,18 @@ export function Rankings() {
       {history.data && <RollOfHonour history={history.data} />}
 
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <h2 className="border-b border-slate-100 px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
-          Season points
-        </h2>
-        {ranking.data.length === 0 ? (
-          <p className="p-6 text-center text-sm text-slate-500">
-            No points yet — they start rolling in once races are run.
-          </p>
+        <div className="flex items-center gap-1.5 border-b border-slate-100 px-3 py-2">
+          <button type="button" className={tabClass('overall')} onClick={() => setTab('overall')}>
+            Season points
+          </button>
+          <button type="button" className={tabClass('young')} onClick={() => setTab('young')}>
+            Young riders (U23)
+          </button>
+        </div>
+        {tab === 'young' && young.isPending ? (
+          <p className="p-6 text-center text-sm text-slate-500">Loading…</p>
         ) : (
-          <table className="w-full text-sm">
-            <tbody>
-              {ranking.data.map((r, i) => (
-                <tr key={r.riderId} className="border-b border-slate-100 last:border-0">
-                  <td className="w-8 py-1.5 pl-4 text-slate-400 tabular-nums">{i + 1}</td>
-                  <td className="w-6 py-1.5">
-                    <Flag code={r.country} size={16} />
-                  </td>
-                  <td className="py-1.5 text-slate-700">
-                    <RiderName riderId={r.riderId} name={r.name} isBot={r.isBot} />
-                    {r.teamName && (
-                      <span className="ml-2 text-xs text-slate-400">{r.teamName}</span>
-                    )}
-                  </td>
-                  <td className="py-1.5 pr-4 text-right font-medium tabular-nums text-slate-600">
-                    {r.points}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <RankingTable rows={active ?? []} />
         )}
       </div>
     </section>

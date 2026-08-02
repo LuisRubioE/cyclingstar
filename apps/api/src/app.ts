@@ -42,6 +42,7 @@ import {
   getRanking,
   getRiderBadges,
   getSeasonAwards,
+  getYoungRiders,
   getRiderNews,
   getSeasonWinners,
   getGcThroughStage,
@@ -572,6 +573,14 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
       const world = await getCurrentWorld(db)
       if (!world) return { ranking: [] }
       return { ranking: await getRanking(db, world.worldId) }
+    })
+
+    // Clasificación de jóvenes de la temporada (#59, maillot blanco).
+    app.get('/api/rankings/young', async () => {
+      const world = await getCurrentWorld(db)
+      if (!world) return { ranking: [] }
+      const season = seasonPosition(world.currentDay).season
+      return { ranking: await getYoungRiders(db, world.worldId, season) }
     })
 
     // Premios de la temporada (#60): líderes por categoría (mejor del año, sprinter, escalador, revelación).
