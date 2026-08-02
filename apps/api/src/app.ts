@@ -18,6 +18,9 @@ import {
   generateUniqueRiderName,
   getCountriesSummary,
   getCountryRiders,
+  getAccountControl,
+  setUserPremium,
+  takeOverBotTeam,
   listBlocked,
   removeBlocked,
   getContract,
@@ -213,6 +216,10 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
       value: z.string().trim().min(1).max(120),
       note: z.string().trim().max(200).optional(),
     })
+    const premiumSchema = z.object({
+      email: z.string().trim().email().max(200),
+      premium: z.boolean(),
+    })
 
     const requireAdmin = (request: FastifyRequest, reply: FastifyReply): boolean => {
       const provided = request.headers['x-admin-token']
@@ -244,6 +251,16 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
       const id = z.string().uuid().safeParse(request.params.id)
       if (!id.success) return reply.status(400).send({ ok: false, error: 'validacion' })
       await removeBlocked(db, id.data)
+      return { ok: true }
+    })
+
+    // Concede/retira premium por email (admin). Premium habilita tomar el control de un equipo bot.
+    app.post('/api/admin/premium', async (request, reply) => {
+      if (!requireAdmin(request, reply)) return
+      const parsed = premiumSchema.safeParse(request.body)
+      if (!parsed.success) return reply.status(400).send({ ok: false, error: 'validacion' })
+      const { updated } = await setUserPremium(db, parsed.data.email, parsed.data.premium)
+      if (!updated) return reply.status(404).send({ ok: false, error: 'usuario_no_encontrado' })
       return { ok: true }
     })
   }
@@ -336,6 +353,26 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
         return reply.status(401).send({ ok: false, error: 'no_autorizado' })
       }
       return { rider: await getRiderForUser(db, userId) }
+    })
+
+    // Estado de control de equipo del usuario: si es premium y si su equipo sigue siendo bot
+    // (reclamable) o ya es suyo. La web lo usa para mostrar el botón de "tomar control".
+    app.get('/api/me/team-control', async (request, reply) => {
+      const userId = await currentUserId(request)
+      if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
+      return { control: await getAccountControl(db, userId) }
+    })
+
+    // Un jugador premium toma el control del equipo bot en el que corre su ciclista (SPEC 7).
+    app.post('/api/teams/take-over', async (request, reply) => {
+      const userId = await currentUserId(request)
+      if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
+      const result = await takeOverBotTeam(db, userId)
+      if (!result.ok) {
+        const status = result.reason === 'no_premium' ? 403 : 409
+        return reply.status(status).send({ ok: false, error: result.reason })
+      }
+      return { ok: true, teamId: result.teamId, teamName: result.teamName }
     })
 
     // Crear el ciclista (SPEC 3.5). El genoma lo genera el servidor (no lo controla el cliente).

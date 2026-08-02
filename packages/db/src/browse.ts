@@ -57,6 +57,8 @@ export interface TeamDetail {
   budget: number
   pointsSeason: number
   jerseySeed: string
+  /** true si lo gestiona un jugador (tiene dueño); false si sigue siendo NPC. */
+  human: boolean
   roster: TeamRiderRow[]
 }
 
@@ -85,6 +87,7 @@ export async function getTeamDetail(db: Database, teamId: string): Promise<TeamD
     budget: team.budget,
     pointsSeason: team.pointsSeason,
     jerseySeed: team.jerseySeed,
+    human: team.ownerUserId !== null,
     roster: roster.map((r) => ({
       id: r.id,
       name: r.name,
