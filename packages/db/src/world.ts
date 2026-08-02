@@ -82,6 +82,12 @@ const COUNTRY_WEIGHTS: Record<string, number> = {
   ZA: 1,
   BR: 2,
   CL: 1,
+  // Wave 3.
+  VE: 1,
+  FI: 2,
+  HR: 2,
+  HU: 1,
+  RO: 1,
 }
 const COUNTRIES = Object.entries(COUNTRY_WEIGHTS).flatMap(([code, w]) => Array(w).fill(code))
 const PHILOSOPHIES: Philosophy[] = ['general', 'sprints', 'clasicas', 'cantera', 'equilibrado']
