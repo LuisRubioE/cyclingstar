@@ -180,6 +180,9 @@ export const teams = pgTable(
     name: text('name').notNull(),
     nameStatus: teamNameStatusEnum('name_status').notNull().default('aprobado'),
     ownerUserId: uuid('owner_user_id').references(() => users.id), // null = NPC
+    /** Nacionalidad del equipo (ISO-3166 alpha-2). Nullable durante la transición; la génesis y el
+     * backfill del tick la rellenan de forma determinista según la realidad por división. */
+    country: char('country', { length: 2 }),
     division: divisionEnum('division').notNull(),
     budget: integer('budget').notNull().default(0),
     philosophy: philosophyEnum('philosophy').notNull(),

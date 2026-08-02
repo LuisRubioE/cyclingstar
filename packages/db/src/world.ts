@@ -7,7 +7,7 @@ import {
   type Vocation,
   seededRng,
 } from '@cyclingstar/shared'
-import { eq, sql } from 'drizzle-orm'
+import { and, eq, isNull, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import { riderAttrs, riderHidden, riders, teams } from './schema.js'
 import { generateUniqueName } from './names.js'
@@ -143,13 +143,70 @@ const COUNTRY_WEIGHTS: Record<string, number> = {
 const COUNTRIES = Object.entries(COUNTRY_WEIGHTS).flatMap(([code, w]) => Array(w).fill(code))
 const PHILOSOPHIES: Philosophy[] = ['general', 'sprints', 'clasicas', 'cantera', 'equilibrado']
 
+/**
+ * Nacionalidad de los equipos por división, según la realidad. El WorldTour lo dominan las
+ * potencias tradicionales; el ProSeries se reparte más; el Continental es mundial (reutiliza el
+ * reparto ciclista de los corredores). Determinista por equipo desde su semilla de maillot.
+ */
+const WT_TEAM_COUNTRY_WEIGHTS: Record<string, number> = {
+  BE: 4,
+  FR: 3,
+  IT: 3,
+  NL: 3,
+  ES: 2,
+  GB: 2,
+  US: 2,
+  AU: 2,
+  DE: 2,
+  CH: 1,
+  KZ: 1,
+  AE: 1,
+}
+const PRS_TEAM_COUNTRY_WEIGHTS: Record<string, number> = {
+  BE: 3,
+  FR: 3,
+  IT: 3,
+  ES: 2,
+  NL: 2,
+  GB: 2,
+  NO: 1,
+  DK: 1,
+  PT: 1,
+  PL: 1,
+  AT: 1,
+  CZ: 1,
+  US: 1,
+  AU: 1,
+  CO: 1,
+  KZ: 1,
+  TR: 1,
+  IL: 1,
+  JP: 1,
+  SI: 1,
+}
+const expand = (w: Record<string, number>): string[] =>
+  Object.entries(w).flatMap(([code, n]) => Array(n).fill(code))
+const TEAM_COUNTRY_POOL: Record<Division, string[]> = {
+  WT: expand(WT_TEAM_COUNTRY_WEIGHTS),
+  PRS: expand(PRS_TEAM_COUNTRY_WEIGHTS),
+  // El Continental es mundial: mismo reparto (ponderado por peso ciclista) que las nacionalidades
+  // de los corredores, así que aparecen equipos de casi cualquier federación.
+  CON: COUNTRIES,
+}
+
 function pick<T>(arr: readonly T[], rng: () => number): T {
   return arr[Math.floor(rng() * arr.length)]!
+}
+
+/** Nacionalidad determinista de un equipo (misma fórmula en la génesis y en el backfill). */
+export function teamCountryFromSeed(jerseySeed: string, division: Division): string {
+  return pick(TEAM_COUNTRY_POOL[division], seededRng(`${jerseySeed}:country`))
 }
 
 export interface TeamPlan {
   id: string
   name: string
+  country: string
   division: Division
   budget: number
   philosophy: Philosophy
@@ -219,13 +276,15 @@ export function planWorld(worldSeed: string): WorldPlan {
       const name = makeUniqueTeamName(seed, usedTeamNames)
       const budget = Math.round(div.budgetBase * (0.6 + 0.8 * rng()))
       const facilities = 0.9 + rng() * 0.3 // K_inst [0.90, 1.20]
+      const jerseySeed = `${seed}:jersey`
       teamPlans.push({
         id,
         name,
+        country: teamCountryFromSeed(jerseySeed, div.division),
         division: div.division,
         budget,
         philosophy: pick(PHILOSOPHIES, rng),
-        jerseySeed: `${seed}:jersey`,
+        jerseySeed,
         facilities,
       })
       for (let r = 0; r < div.roster; r++) {
@@ -257,6 +316,7 @@ export async function seedWorld(tx: Tx, worldId: string, worldSeed: string): Pro
       id: t.id,
       worldId,
       name: t.name,
+      country: t.country,
       division: t.division,
       budget: t.budget,
       philosophy: t.philosophy,
@@ -304,6 +364,25 @@ export async function seedWorld(tx: Tx, worldId: string, worldSeed: string): Pro
     500,
     (chunk) => tx.insert(riderHidden).values(chunk),
   )
+}
+
+/**
+ * Rellena la nacionalidad de los equipos que aún no la tienen (mundos anteriores a esta columna),
+ * de forma determinista desde su semilla de maillot y su división. Idempotente: una vez con país,
+ * no hace nada. Se ejecuta en el tick, como la reparación de nombres duplicados.
+ */
+export async function backfillTeamCountries(tx: Tx, worldId: string): Promise<number> {
+  const rows = await tx
+    .select({ id: teams.id, division: teams.division, jerseySeed: teams.jerseySeed })
+    .from(teams)
+    .where(and(eq(teams.worldId, worldId), isNull(teams.country)))
+  for (const t of rows) {
+    await tx
+      .update(teams)
+      .set({ country: teamCountryFromSeed(t.jerseySeed, t.division) })
+      .where(eq(teams.id, t.id))
+  }
+  return rows.length
 }
 
 /** Inserta un array en lotes para no exceder el límite de parámetros de Postgres. */

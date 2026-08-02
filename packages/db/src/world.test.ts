@@ -1,6 +1,6 @@
-import { ATTRIBUTES } from '@cyclingstar/shared'
+import { ATTRIBUTES, COUNTRIES } from '@cyclingstar/shared'
 import { describe, expect, it } from 'vitest'
-import { planWorld } from './world.js'
+import { planWorld, teamCountryFromSeed } from './world.js'
 
 /** El plan sin los UUID de cliente (que sí varían por ejecución). */
 function stableShape(seed: string) {
@@ -76,6 +76,37 @@ describe('db: génesis del mundo (SPEC 10, Paso 33)', () => {
     const { riders } = planWorld('world-seed')
     const names = riders.map((r) => r.name.toLowerCase())
     expect(new Set(names).size).toBe(names.length)
+  })
+
+  it('cada equipo tiene una nacionalidad real (país con datos) y es reproducible', () => {
+    const codes = new Set(COUNTRIES.map((c) => c.code))
+    const a = planWorld('world-seed').teams
+    const b = planWorld('world-seed').teams
+    for (let i = 0; i < a.length; i++) {
+      expect(codes.has(a[i]!.country)).toBe(true)
+      // Determinista: mismo país en dos planificaciones y desde la fórmula de semilla.
+      expect(a[i]!.country).toBe(b[i]!.country)
+      expect(a[i]!.country).toBe(teamCountryFromSeed(a[i]!.jerseySeed, a[i]!.division))
+    }
+  })
+
+  it('el WorldTour tira de potencias tradicionales (sin países exóticos)', () => {
+    const wt = planWorld('world-seed').teams.filter((t) => t.division === 'WT')
+    const allowed = new Set([
+      'BE',
+      'FR',
+      'IT',
+      'NL',
+      'ES',
+      'GB',
+      'US',
+      'AU',
+      'DE',
+      'CH',
+      'KZ',
+      'AE',
+    ])
+    for (const t of wt) expect(allowed.has(t.country)).toBe(true)
   })
 
   it('cada equipo firmado tiene presupuesto positivo y un roster acorde a su división', () => {
