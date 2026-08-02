@@ -62,6 +62,8 @@ export interface RiderSummary {
   morale: number
   fame: number
   seasonPoints: number
+  seasonRank: number
+  fieldSize: number
 }
 
 export async function fetchRiderSummary(): Promise<RiderSummary | null> {

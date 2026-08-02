@@ -62,6 +62,12 @@ export function RiderProfile() {
             {VOCATION_LABELS[rider.archetype]} · {country?.name ?? rider.country}
             {summaryQuery.data?.teamName && <> · {summaryQuery.data.teamName}</>}
           </p>
+          {summaryQuery.data && summaryQuery.data.fieldSize > 0 && (
+            <p className="mt-0.5 text-xs font-medium text-indigo-600">
+              Season rank #{summaryQuery.data.seasonRank.toLocaleString('en-US')} of{' '}
+              {summaryQuery.data.fieldSize.toLocaleString('en-US')}
+            </p>
+          )}
           {healthQuery.data?.gameDay != null && (
             <p className="mt-0.5 text-xs text-slate-400">
               Age {riderAge(rider.birthSeason, currentSeason(healthQuery.data.gameDay))} · 🎂 born

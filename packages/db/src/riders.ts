@@ -5,7 +5,7 @@ import {
   type PublicRider,
   type Vocation,
 } from '@cyclingstar/shared'
-import { desc, eq } from 'drizzle-orm'
+import { and, desc, eq, gt, isNull, sql } from 'drizzle-orm'
 import type { Database } from './client.js'
 import {
   gameState,
@@ -151,12 +151,17 @@ export interface RiderSummary {
   morale: number
   fame: number
   seasonPoints: number
+  /** Puesto en el ranking de la temporada (por puntos) entre los corredores en activo del mundo. */
+  seasonRank: number
+  /** Corredores en activo del mundo (tamaño del ranking). */
+  fieldSize: number
 }
 
-/** Estado del corredor para la cabecera del perfil: equipo, dinero, moral, fama, puntos. */
+/** Estado del corredor para la cabecera del perfil: equipo, dinero, moral, fama, puntos y ranking. */
 export async function getRiderSummary(db: Database, riderId: string): Promise<RiderSummary | null> {
   const rows = await db
     .select({
+      worldId: riders.worldId,
       teamName: teams.name,
       money: riders.money,
       morale: riders.morale,
@@ -167,7 +172,29 @@ export async function getRiderSummary(db: Database, riderId: string): Promise<Ri
     .leftJoin(teams, eq(teams.id, riders.teamId))
     .where(eq(riders.id, riderId))
     .limit(1)
-  return rows[0] ?? null
+  const me = rows[0]
+  if (!me) return null
+
+  // Ranking de temporada: cuántos corredores en activo tienen más puntos, +1; y el total.
+  const activeWorld = and(eq(riders.worldId, me.worldId), isNull(riders.retiredAt))
+  const betterRows = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(riders)
+    .where(and(activeWorld, gt(riders.seasonPoints, me.seasonPoints)))
+  const totalRows = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(riders)
+    .where(activeWorld)
+
+  return {
+    teamName: me.teamName,
+    money: me.money,
+    morale: me.morale,
+    fame: me.fame,
+    seasonPoints: me.seasonPoints,
+    seasonRank: (betterRows[0]?.n ?? 0) + 1,
+    fieldSize: totalRows[0]?.n ?? 0,
+  }
 }
 
 export interface DailyLogRow {
