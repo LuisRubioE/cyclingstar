@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import { fetchHealth } from '../api/health'
 import { authClient } from '../auth/client'
+import { Logo } from './Logo'
 import { WorldClock } from './WorldClock'
 
 /**
@@ -41,7 +42,7 @@ export function Header() {
     <header className="border-b border-slate-200 bg-white">
       <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3.5">
         <Link to="/" className="flex items-center gap-2 text-lg font-semibold tracking-tight">
-          <span className="inline-block h-2.5 w-2.5 rounded-full bg-indigo-600" aria-hidden />
+          <Logo size={30} />
           Cycling Star
         </Link>
 

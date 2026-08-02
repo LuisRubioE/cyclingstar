@@ -23,8 +23,9 @@ type Db = ReturnType<typeof drizzle>
 type Tx = Parameters<Parameters<Db['transaction']>[0]>[0]
 
 const SEASON_DAYS = 364
-const MARKET_DAY = 360 // ventana de fin de temporada (SPEC 7.2)
 const ROSTER_TARGET: Record<Division, number> = { WT: 14, PRS: 12, CON: 10 }
+/** Intervalo mínimo entre tandas de ofertas a un agente libre (días de juego). */
+const FREE_AGENT_COOLDOWN_DAYS = 7
 
 /** Nivel del corredor como percentil [0,1]: media de sus 5 mejores atributos sobre 100. */
 async function riderRating(tx: Tx, riderId: string): Promise<number> {
@@ -56,14 +57,17 @@ function roleForRating(rating: number): ContractRole {
   return 'libre'
 }
 
-/** Genera la bandeja de ofertas de fin de temporada para los corredores humanos (idempotente). */
+/**
+ * Genera la bandeja de ofertas de los corredores humanos. Un **agente libre** (sin contrato
+ * vigente) recibe ofertas en cualquier momento, con un intervalo entre tandas; quien ya tiene
+ * contrato vigente aún no recibe (cambiar de equipo llegará con los equipos de usuarios).
+ */
 export async function runMarket(
   tx: Tx,
   worldId: string,
   gameDay: number,
   worldSeed: string,
 ): Promise<void> {
-  if (gameDay % SEASON_DAYS !== MARKET_DAY) return
   const season = Math.floor(gameDay / SEASON_DAYS)
 
   const humans = await tx
@@ -72,19 +76,26 @@ export async function runMarket(
     .where(and(eq(riders.worldId, worldId), isNotNull(riders.userId)))
 
   for (const human of humans) {
-    // No re-ofertar si ya tiene ofertas de esta temporada o un contrato que sigue vigente.
-    const already = await tx
-      .select({ n: sql<number>`count(*)::int` })
-      .from(offers)
-      .where(and(eq(offers.riderId, human.id), eq(offers.season, season)))
-    if ((already[0]?.n ?? 0) > 0) continue
-
+    // Con contrato vigente no recibe ofertas por ahora.
     const current = await tx
       .select({ endSeason: contracts.endSeason })
       .from(contracts)
       .where(eq(contracts.riderId, human.id))
       .limit(1)
-    if (current[0] && current[0].endSeason > season) continue // contrato aún vigente
+    if (current[0] && current[0].endSeason >= season) continue
+
+    // Agente libre: no re-ofertar si tiene ofertas pendientes o si la última tanda es reciente.
+    const pending = await tx
+      .select({ n: sql<number>`count(*)::int` })
+      .from(offers)
+      .where(and(eq(offers.riderId, human.id), eq(offers.status, 'pendiente')))
+    if ((pending[0]?.n ?? 0) > 0) continue
+    const last = await tx
+      .select({ d: sql<number | null>`max(${offers.createdDay})` })
+      .from(offers)
+      .where(eq(offers.riderId, human.id))
+    const lastDay = last[0]?.d ?? null
+    if (lastDay != null && gameDay - lastDay < FREE_AGENT_COOLDOWN_DAYS) continue
 
     const rating = await riderRating(tx, human.id)
     const age = 20 - human.birthSeason + season
@@ -107,7 +118,7 @@ export async function runMarket(
       .map((t) => ({ ...t, gap: ROSTER_TARGET[t.division as Division] - t.roster }))
       .sort((a, b) => b.gap - a.gap || b.budget - a.budget)
 
-    const rng = seededRng(`${worldSeed}:market:${human.id}:s${season}`)
+    const rng = seededRng(`${worldSeed}:market:${human.id}:d${gameDay}`)
     const count = rng() < 0.5 ? 2 : 3
     const chosen = ranked.slice(0, count)
     if (chosen.length === 0) continue
