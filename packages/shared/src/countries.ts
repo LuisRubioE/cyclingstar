@@ -79,6 +79,15 @@ export const COUNTRIES: Country[] = [
   { code: 'BO', name: 'Bolivia', flag: '🇧🇴' },
   { code: 'GE', name: 'Georgia', flag: '🇬🇪' },
   { code: 'IN', name: 'India', flag: '🇮🇳' },
+  // Wave 7.
+  { code: 'EG', name: 'Egypt', flag: '🇪🇬' },
+  { code: 'ET', name: 'Ethiopia', flag: '🇪🇹' },
+  { code: 'TH', name: 'Thailand', flag: '🇹🇭' },
+  { code: 'ID', name: 'Indonesia', flag: '🇮🇩' },
+  { code: 'PH', name: 'Philippines', flag: '🇵🇭' },
+  { code: 'CU', name: 'Cuba', flag: '🇨🇺' },
+  { code: 'PA', name: 'Panama', flag: '🇵🇦' },
+  { code: 'MD', name: 'Moldova', flag: '🇲🇩' },
 ]
 
 const CODES = new Set(COUNTRIES.map((c) => c.code))
