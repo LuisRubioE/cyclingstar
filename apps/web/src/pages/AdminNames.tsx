@@ -9,6 +9,7 @@ import {
   getAdminToken,
   removeBlocked,
   setAdminToken,
+  setPremium,
 } from '../api/admin'
 
 /**
@@ -91,7 +92,76 @@ export function AdminNames() {
           onExpired={lock}
         />
       </div>
+
+      <div>
+        <h2 className="text-sm font-semibold text-slate-800">Premium accounts</h2>
+        <p className="text-xs text-slate-400">
+          Premium players (admin + trusted, paid later) can take over the bot team their rider races
+          for and turn it into a player-managed team.
+        </p>
+        <PremiumPanel onExpired={lock} />
+      </div>
     </section>
+  )
+}
+
+function PremiumPanel({ onExpired }: { onExpired: () => void }) {
+  const [email, setEmail] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  async function apply(premium: boolean) {
+    const e = email.trim()
+    if (!e) return
+    setBusy(true)
+    setMsg(null)
+    setError(null)
+    try {
+      await setPremium(e, premium)
+      setMsg(`${premium ? 'Granted' : 'Removed'} premium for ${e}.`)
+      setEmail('')
+    } catch (err) {
+      if (err instanceof AdminAuthError) {
+        onExpired()
+        return
+      }
+      setError(err instanceof Error ? err.message : 'Something went wrong.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="mt-3 max-w-xl space-y-2">
+      <div className="flex gap-2">
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="player@email.com"
+          className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+        />
+        <button
+          type="button"
+          onClick={() => apply(true)}
+          disabled={busy || email.trim().length === 0}
+          className="rounded-lg bg-indigo-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-indigo-500 disabled:opacity-50"
+        >
+          Grant
+        </button>
+        <button
+          type="button"
+          onClick={() => apply(false)}
+          disabled={busy || email.trim().length === 0}
+          className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
+        >
+          Remove
+        </button>
+      </div>
+      {msg && <p className="text-sm text-emerald-600">{msg}</p>}
+      {error && <p className="text-sm text-red-600">{error}</p>}
+    </div>
   )
 }
 

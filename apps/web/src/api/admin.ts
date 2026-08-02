@@ -62,3 +62,12 @@ export async function addBlocked(
 export async function removeBlocked(id: string): Promise<void> {
   await request(`/api/admin/blocklist/${id}`, { method: 'DELETE' })
 }
+
+/** Concede o retira premium a una cuenta por email (habilita tomar el control de equipos bot). */
+export async function setPremium(email: string, premium: boolean): Promise<void> {
+  await request('/api/admin/premium', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ email: email.trim(), premium }),
+  })
+}

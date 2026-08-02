@@ -60,6 +60,9 @@ export const users = pgTable('users', {
   passwordHash: text('password_hash'),
   locale: text('locale').notNull().default('es'),
   isAdmin: boolean('is_admin').notNull().default(false),
+  // Cuenta premium: a futuro de pago; al principio, admin y personas de confianza. Habilita tomar
+  // el control de un equipo bot y convertirlo en equipo humano (SPEC 7).
+  premium: boolean('premium').notNull().default(false),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })

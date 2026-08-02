@@ -26,7 +26,32 @@ export interface TeamDetail {
   budget: number
   pointsSeason: number
   jerseySeed: string
+  human: boolean
   roster: TeamRider[]
+}
+
+export interface TeamControl {
+  premium: boolean
+  isAdmin: boolean
+  team: { id: string; name: string; isBot: boolean; ownedByMe: boolean } | null
+}
+
+export async function fetchTeamControl(): Promise<TeamControl | null> {
+  const res = await fetch('/api/me/team-control')
+  if (res.status === 401) return null
+  if (!res.ok) throw new Error('Could not load team control.')
+  return ((await res.json()) as { control: TeamControl | null }).control
+}
+
+export async function takeOverTeam(): Promise<{ teamId: string; teamName: string }> {
+  const res = await fetch('/api/teams/take-over', { method: 'POST' })
+  const body = (await res.json().catch(() => ({}))) as {
+    teamId?: string
+    teamName?: string
+    error?: string
+  }
+  if (!res.ok) throw new Error(body.error ?? 'take_over_failed')
+  return { teamId: body.teamId!, teamName: body.teamName! }
 }
 
 export interface PublicRiderDetail {

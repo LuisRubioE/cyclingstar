@@ -95,6 +95,13 @@ export {
   type GeneratedName,
 } from './names.js'
 export { dedupeWorldNames, type DedupeResult } from './dedupeNames.js'
+export {
+  getAccountControl,
+  setUserPremium,
+  takeOverBotTeam,
+  type AccountControl,
+  type TakeOverResult,
+} from './teamControl.js'
 export { isRiderNameTaken, generateUniqueRiderName } from './nameService.js'
 export {
   addBlocked,
