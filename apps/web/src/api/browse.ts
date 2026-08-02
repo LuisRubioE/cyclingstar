@@ -119,6 +119,19 @@ export async function fetchPublicRider(id: string): Promise<PublicRiderDetail> {
   return ((await res.json()) as { rider: PublicRiderDetail }).rider
 }
 
+export interface Badge {
+  id: string
+  label: string
+  icon: string
+  desc: string
+}
+
+export async function fetchRiderBadges(id: string): Promise<Badge[]> {
+  const res = await fetch(`/api/riders/${id}/badges`)
+  if (!res.ok) throw new Error('Could not load badges.')
+  return ((await res.json()) as { badges: Badge[] }).badges
+}
+
 export interface CountrySummary {
   country: string
   riderCount: number

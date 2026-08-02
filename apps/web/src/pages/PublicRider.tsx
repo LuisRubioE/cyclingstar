@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
 import { fetchPublicRider } from '../api/browse'
 import { AttributeList } from '../components/AttributeList'
+import { Badges } from '../components/Badges'
 import { Flag } from '../components/Flag'
 import { RiderPortrait } from '../components/RiderPortrait'
 
@@ -58,6 +59,8 @@ export function PublicRider() {
           </p>
         </div>
       </header>
+
+      <Badges riderId={id} />
 
       <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {[
