@@ -4,6 +4,7 @@ import { ATTRIBUTES, VOCATIONS, type Vocation, seededRng } from '@cyclingstar/sh
 import { and, eq, isNull, lt, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import { generateName } from './names.js'
+import { emitNews } from './news.js'
 import { contracts, riderAttrs, riderHidden, riders, teams } from './schema.js'
 
 /**
@@ -146,6 +147,8 @@ export async function runRollover(
   const npcs = await tx
     .select({
       id: riders.id,
+      name: riders.name,
+      fame: riders.fame,
       birthSeason: riders.birthSeason,
       teamId: riders.teamId,
       declineAge: riderHidden.declineAge,
@@ -156,6 +159,7 @@ export async function runRollover(
 
   const rng = seededRng(`${worldSeed}:rollover:s${newSeason}`)
   let retired = 0
+  const retirees: { id: string; name: string; fame: number; age: number }[] = []
   for (const npc of npcs) {
     const age = 20 - npc.birthSeason + newSeason
     if (shouldRetire(age, npc.declineAge, rng)) {
@@ -164,7 +168,23 @@ export async function runRollover(
         .set({ retiredAt: newSeason, teamId: null })
         .where(eq(riders.id, npc.id))
       retired++
+      retirees.push({ id: npc.id, name: npc.name, fame: npc.fame, age })
     }
+  }
+
+  // Anuncios de retirada (#24): solo los más renombrados, para no inundar el feed. Titular global.
+  const notable = retirees
+    .filter((r) => r.fame >= 40)
+    .sort((a, b) => b.fame - a.fame)
+    .slice(0, 6)
+  for (const r of notable) {
+    await emitNews(tx, {
+      worldId,
+      gameDay,
+      kind: 'retirement',
+      seed: `${worldSeed}:retire:${r.id}`,
+      data: { rider: r.name, detail: `at ${r.age}` },
+    })
   }
 
   // 5) Neoprofesionales para mantener la población (~1.600). Rellenan huecos de plantilla; el resto

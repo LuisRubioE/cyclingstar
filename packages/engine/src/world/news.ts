@@ -5,7 +5,8 @@
  */
 import { seededRng } from '@cyclingstar/shared'
 
-export type NewsKind = 'stage_win' | 'breakaway_win' | 'kom' | 'gc_win' | 'contract' | 'injury'
+export type NewsKind =
+  'stage_win' | 'breakaway_win' | 'kom' | 'gc_win' | 'contract' | 'injury' | 'retirement'
 
 export interface NewsData {
   rider?: string
@@ -46,6 +47,13 @@ const TEMPLATES: Record<NewsKind, ((d: NewsData) => string)[]> = {
     (d) => `${d.rider} crashes and will need time to recover.`,
     (d) => `Bad luck for ${d.rider}, down in a crash and forced out.`,
     (d) => `${d.rider} hits the deck — the medical report is awaited.`,
+  ],
+  retirement: [
+    (d) =>
+      `${d.rider} announces retirement${d.detail ? ` ${d.detail}` : ''}, bringing the curtain down on a long career.`,
+    (d) => `End of the road: ${d.rider} hangs up the wheels${d.detail ? ` ${d.detail}` : ''}.`,
+    (d) => `${d.rider} calls time on a career in the peloton${d.detail ? ` ${d.detail}` : ''}.`,
+    (d) => `The bunch says farewell to ${d.rider}, who retires${d.detail ? ` ${d.detail}` : ''}.`,
   ],
 }
 

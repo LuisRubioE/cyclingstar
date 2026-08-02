@@ -18,7 +18,15 @@ describe('engine: generador de noticias (Paso 39)', () => {
   })
 
   it('varía la redacción entre eventos distintos (no repite siempre la misma frase)', () => {
-    const kinds: NewsKind[] = ['stage_win', 'breakaway_win', 'kom', 'gc_win', 'contract', 'injury']
+    const kinds: NewsKind[] = [
+      'stage_win',
+      'breakaway_win',
+      'kom',
+      'gc_win',
+      'contract',
+      'injury',
+      'retirement',
+    ]
     for (const kind of kinds) {
       const seen = new Set<string>()
       for (let i = 0; i < 40; i++) {
