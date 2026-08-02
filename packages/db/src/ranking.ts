@@ -75,17 +75,23 @@ export interface RankingRow {
   name: string
   country: string
   teamName: string | null
+  isBot: boolean
   points: number
 }
 
 /** Ranking individual de la temporada por puntos (SPEC, Paso 40). */
-export async function getRanking(db: Database, worldId: string, limit = 50): Promise<RankingRow[]> {
-  return db
+export async function getRanking(
+  db: Database,
+  worldId: string,
+  limit = 100,
+): Promise<RankingRow[]> {
+  const rows = await db
     .select({
       riderId: riders.id,
       name: riders.name,
       country: riders.country,
       teamName: teams.name,
+      userId: riders.userId,
       points: riders.seasonPoints,
     })
     .from(riders)
@@ -93,6 +99,14 @@ export async function getRanking(db: Database, worldId: string, limit = 50): Pro
     .where(eq(riders.worldId, worldId))
     .orderBy(desc(riders.seasonPoints))
     .limit(limit)
+  return rows.map((r) => ({
+    riderId: r.riderId,
+    name: r.name,
+    country: r.country,
+    teamName: r.teamName,
+    isBot: r.userId === null,
+    points: r.points,
+  }))
 }
 
 export interface PalmaresRow {

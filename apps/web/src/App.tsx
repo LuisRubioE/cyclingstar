@@ -12,8 +12,11 @@ import { Market } from './pages/Market'
 import { News } from './pages/News'
 import { Objectives } from './pages/Objectives'
 import { Privacy } from './pages/Privacy'
+import { PublicRider } from './pages/PublicRider'
 import { Race } from './pages/Race'
 import { Rankings } from './pages/Rankings'
+import { Team } from './pages/Team'
+import { Teams } from './pages/Teams'
 import { RaceOrders } from './pages/RaceOrders'
 import { Register } from './pages/Register'
 import { Results } from './pages/Results'
@@ -31,6 +34,9 @@ export function App() {
           <Route path="/routes" element={<RoutesPage />} />
           <Route path="/calendar" element={<Calendar />} />
           <Route path="/races/:raceId" element={<Race />} />
+          <Route path="/teams" element={<Teams />} />
+          <Route path="/teams/:id" element={<Team />} />
+          <Route path="/riders/:id" element={<PublicRider />} />
           <Route path="/news" element={<News />} />
           <Route path="/rankings" element={<Rankings />} />
           <Route path="/how-to-play" element={<HowToPlay />} />
