@@ -1,7 +1,14 @@
-import { COUNTRIES, VOCATION_LABELS } from '@cyclingstar/shared'
+import {
+  COUNTRIES,
+  VOCATION_LABELS,
+  birthdayDayOfSeason,
+  currentSeason,
+  riderAge,
+} from '@cyclingstar/shared'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { fetchForm } from '../api/form'
+import { fetchHealth } from '../api/health'
 import { fetchPalmares, palmaresLabel } from '../api/rankings'
 import { fetchMyRider, fetchRiderSummary } from '../api/rider'
 import { AttributeList } from '../components/AttributeList'
@@ -19,6 +26,7 @@ export function RiderProfile() {
   const formQuery = useQuery({ queryKey: ['rider', 'form'], queryFn: fetchForm })
   const palmaresQuery = useQuery({ queryKey: ['rider', 'palmares'], queryFn: fetchPalmares })
   const summaryQuery = useQuery({ queryKey: ['rider', 'summary'], queryFn: fetchRiderSummary })
+  const healthQuery = useQuery({ queryKey: ['health'], queryFn: fetchHealth })
 
   if (isPending) return <p className="text-slate-500">Loading…</p>
   if (isError) return <p className="text-red-600">Could not load your rider.</p>
@@ -53,6 +61,12 @@ export function RiderProfile() {
             {VOCATION_LABELS[rider.archetype]} · {country?.name ?? rider.country}
             {summaryQuery.data?.teamName && <> · {summaryQuery.data.teamName}</>}
           </p>
+          {healthQuery.data?.gameDay != null && (
+            <p className="mt-0.5 text-xs text-slate-400">
+              Age {riderAge(rider.birthSeason, currentSeason(healthQuery.data.gameDay))} · 🎂 born
+              on day {birthdayDayOfSeason(rider.id)} of the season
+            </p>
+          )}
         </div>
       </header>
 
@@ -84,14 +98,18 @@ export function RiderProfile() {
 
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <div className="flex items-center justify-between">
-          <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-400">Form</h2>
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+            Form &amp; condition
+          </h2>
           {formQuery.data?.form && <StarRating value={formQuery.data.form.stars} />}
         </div>
         {formQuery.data?.form && (
           <div className="mt-3">
             <div className="flex items-center justify-between text-xs text-slate-500">
-              <span>Freshness</span>
-              <span>{Math.round(formQuery.data.form.freshness)}</span>
+              <span>Freshness — race readiness</span>
+              <span className="tabular-nums">
+                {Math.round(formQuery.data.form.freshness)} / 100
+              </span>
             </div>
             <div className="mt-1 h-2 overflow-hidden rounded-full bg-slate-200">
               <div
@@ -99,6 +117,12 @@ export function RiderProfile() {
                 style={{ width: `${formQuery.data.form.freshness}%` }}
               />
             </div>
+            <p className="mt-2 text-xs text-slate-500">
+              How rested you are today. <span className="font-medium">High</span> = fresh and
+              race-ready; <span className="font-medium">low</span> = fatigued from hard training.
+              Training hard lowers it short-term; easing off (rest / easy days) before a goal raises
+              it. Peaking = high fitness with high freshness.
+            </p>
           </div>
         )}
         <div className="mt-4">

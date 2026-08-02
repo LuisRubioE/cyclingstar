@@ -1,4 +1,4 @@
-import { COUNTRIES, VOCATION_LABELS, type Vocation } from '@cyclingstar/shared'
+import { COUNTRIES, VOCATION_LABELS, type Vocation, birthdayDayOfSeason } from '@cyclingstar/shared'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
 import { fetchPublicRider } from '../api/browse'
@@ -44,7 +44,7 @@ export function PublicRider() {
             >
               {country?.name ?? data.country}
             </Link>{' '}
-            · age {data.age}
+            · age {data.age} · 🎂 day {birthdayDayOfSeason(id)}
             {data.teamName && data.teamId && (
               <>
                 {' · '}

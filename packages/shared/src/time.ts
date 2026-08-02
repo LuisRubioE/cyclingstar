@@ -3,7 +3,27 @@
  * Temporada = 364 días de juego; 1 día de juego = TICK_INTERVAL_MINUTES reales (6h por defecto).
  */
 
+import { seededRng } from './rng.js'
+
 export const DAYS_PER_SEASON = 364
+
+/** Temporada 0-indexada del día de juego (convención del backend: floor(gameDay/364)). */
+export function currentSeason(gameDay: number): number {
+  return Math.floor(Math.max(0, gameDay) / DAYS_PER_SEASON)
+}
+
+/** Edad del corredor: debuta a los 20 y envejece una temporada por año (SPEC 3). */
+export function riderAge(birthSeason: number, season: number): number {
+  return 20 - birthSeason + season
+}
+
+/**
+ * Día de la temporada [1,364] en que el corredor cumple años. Determinista a partir de su semilla
+ * (id): solo cosmético (el envejecimiento sigue ocurriendo en el cierre de temporada).
+ */
+export function birthdayDayOfSeason(seed: string): number {
+  return 1 + Math.floor(seededRng(`bday:${seed}`)() * DAYS_PER_SEASON)
+}
 
 export interface SeasonPosition {
   season: number
