@@ -63,6 +63,29 @@ export async function removeBlocked(id: string): Promise<void> {
   await request(`/api/admin/blocklist/${id}`, { method: 'DELETE' })
 }
 
+export interface TickLogRow {
+  startedAt: string
+  daysProcessed: number
+  durationMs: number
+  ok: boolean
+  notes: string | null
+}
+
+export interface WorldHealth {
+  currentDay: number
+  season: number
+  worldCreatedAt: string | null
+  riders: { active: number; human: number; bots: number; retired: number; freeAgents: number }
+  teams: { total: number; human: number; wt: number; prs: number; con: number }
+  users: number
+  recentTicks: TickLogRow[]
+}
+
+export async function fetchWorldHealth(): Promise<WorldHealth> {
+  const data = await request<{ ok: boolean; health: WorldHealth }>('/api/admin/health')
+  return data.health
+}
+
 /** Concede o retira premium a una cuenta por email (habilita tomar el control de equipos bot). */
 export async function setPremium(email: string, premium: boolean): Promise<void> {
   await request('/api/admin/premium', {

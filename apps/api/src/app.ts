@@ -19,6 +19,7 @@ import {
   getCountriesSummary,
   getCountryRiders,
   getFreeAgents,
+  getWorldHealth,
   getAccountControl,
   setUserPremium,
   takeOverBotTeam,
@@ -257,6 +258,12 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
       if (!id.success) return reply.status(400).send({ ok: false, error: 'validacion' })
       await removeBlocked(db, id.data)
       return { ok: true }
+    })
+
+    // Salud del mundo para el panel de admin (#84): día, censo y últimos ticks. Solo lectura.
+    app.get('/api/admin/health', async (request, reply) => {
+      if (!requireAdmin(request, reply)) return
+      return { ok: true, health: await getWorldHealth(db) }
     })
 
     // Concede/retira premium por email (admin). Premium habilita tomar el control de un equipo bot.

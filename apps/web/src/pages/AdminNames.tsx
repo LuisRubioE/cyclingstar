@@ -6,6 +6,7 @@ import {
   addBlocked,
   clearAdminToken,
   fetchBlocklist,
+  fetchWorldHealth,
   getAdminToken,
   removeBlocked,
   setAdminToken,
@@ -77,6 +78,8 @@ export function AdminNames() {
           Lock
         </button>
       </div>
+
+      <HealthPanel onExpired={lock} />
 
       <div className="grid gap-8 lg:grid-cols-2">
         <BlocklistPanel
@@ -161,6 +164,59 @@ function PremiumPanel({ onExpired }: { onExpired: () => void }) {
       </div>
       {msg && <p className="text-sm text-emerald-600">{msg}</p>}
       {error && <p className="text-sm text-red-600">{error}</p>}
+    </div>
+  )
+}
+
+function Stat({ label, value }: { label: string; value: number | string }) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-3">
+      <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">{label}</p>
+      <p className="mt-0.5 text-lg font-bold tabular-nums text-slate-800">{value}</p>
+    </div>
+  )
+}
+
+function HealthPanel({ onExpired }: { onExpired: () => void }) {
+  const query = useQuery({ queryKey: ['admin-health'], queryFn: fetchWorldHealth, retry: false })
+  if (query.isError && query.error instanceof AdminAuthError) onExpired()
+  if (query.isPending) return <p className="text-sm text-slate-500">Loading world health…</p>
+  if (query.isError) return null
+  const h = query.data
+  return (
+    <div className="space-y-3">
+      <h2 className="text-sm font-semibold text-slate-800">World health</h2>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-6">
+        <Stat label="Game day" value={h.currentDay} />
+        <Stat label="Season" value={h.season + 1} />
+        <Stat label="Active riders" value={h.riders.active.toLocaleString('en-US')} />
+        <Stat label="Human riders" value={h.riders.human} />
+        <Stat label="Free agents" value={h.riders.freeAgents.toLocaleString('en-US')} />
+        <Stat label="Retired" value={h.riders.retired.toLocaleString('en-US')} />
+        <Stat label="Teams" value={h.teams.total} />
+        <Stat label="Player teams" value={h.teams.human} />
+        <Stat label="WT / PRS / CON" value={`${h.teams.wt}/${h.teams.prs}/${h.teams.con}`} />
+        <Stat label="Accounts" value={h.users} />
+      </div>
+      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+        <p className="border-b border-slate-100 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+          Recent ticks
+        </p>
+        <ul className="divide-y divide-slate-100 text-xs">
+          {h.recentTicks.length === 0 && (
+            <li className="px-3 py-2 text-slate-400">No ticks yet.</li>
+          )}
+          {h.recentTicks.map((t, i) => (
+            <li key={i} className="flex items-center justify-between gap-3 px-3 py-1.5">
+              <span className="text-slate-500">{new Date(t.startedAt).toLocaleString()}</span>
+              <span className="tabular-nums text-slate-500">
+                {t.ok ? '✓' : '✗'} {t.daysProcessed}d · {t.durationMs}ms
+                {t.notes ? ` · ${t.notes}` : ''}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
   )
 }
