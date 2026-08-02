@@ -2,6 +2,7 @@ import { COUNTRIES } from '@cyclingstar/shared'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
 import { fetchRace } from '../api/race'
+import { RiderName } from '../components/RiderName'
 
 function flag(country: string): string {
   return COUNTRIES.find((c) => c.code === country)?.flag ?? '🏳️'
@@ -65,7 +66,7 @@ export function Race() {
                     {flag(r.country)}
                   </td>
                   <td className="py-1 text-slate-700">
-                    {r.name}
+                    <RiderName riderId={r.riderId} name={r.name} isBot={r.isBot} />
                     {r.teamName && (
                       <span className="ml-2 text-xs text-slate-400">{r.teamName}</span>
                     )}
@@ -88,7 +89,7 @@ export function Race() {
               <li key={w.stageDay} className="flex items-center gap-3 text-sm">
                 <span className="w-16 shrink-0 text-slate-400">Stage {w.stageDay}</span>
                 <span aria-hidden>{flag(w.country)}</span>
-                <span className="text-slate-700">{w.name}</span>
+                <RiderName riderId={w.riderId} name={w.name} isBot={w.isBot} />
                 {w.teamName && <span className="text-xs text-slate-400">{w.teamName}</span>}
               </li>
             ))}

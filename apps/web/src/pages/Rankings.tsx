@@ -1,6 +1,7 @@
 import { COUNTRIES } from '@cyclingstar/shared'
 import { useQuery } from '@tanstack/react-query'
 import { type RaceHonour, fetchRaceHistory, fetchRankings } from '../api/rankings'
+import { RiderName } from '../components/RiderName'
 
 function flag(country: string): string {
   return COUNTRIES.find((c) => c.code === country)?.flag ?? '🏳️'
@@ -62,7 +63,7 @@ export function Rankings() {
                     {flag(r.country)}
                   </td>
                   <td className="py-1.5 text-slate-700">
-                    {r.name}
+                    <RiderName riderId={r.riderId} name={r.name} isBot={r.isBot} />
                     {r.teamName && (
                       <span className="ml-2 text-xs text-slate-400">{r.teamName}</span>
                     )}

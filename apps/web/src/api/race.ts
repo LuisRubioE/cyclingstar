@@ -3,14 +3,17 @@ export interface GcRow {
   name: string
   country: string
   teamName: string | null
+  isBot: boolean
   tiempoTotalS: number
 }
 
 export interface StageWinner {
   stageDay: number
+  riderId: string
   name: string
   country: string
   teamName: string | null
+  isBot: boolean
 }
 
 export interface RaceHonour {

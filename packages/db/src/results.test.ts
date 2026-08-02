@@ -7,6 +7,7 @@ function gc(riderId: string, teamName: string | null, tiempoTotalS: number): GcR
     name: riderId,
     country: 'FR',
     teamName,
+    isBot: true,
     tiempoTotalS,
     puntosVolante: 0,
     puntosMontana: 0,

@@ -9,18 +9,20 @@ export interface GcRow {
   name: string
   country: string
   teamName: string | null
+  isBot: boolean
   tiempoTotalS: number
   puntosVolante: number
   puntosMontana: number
 }
 
 export async function getRaceGc(db: Database, raceId: string): Promise<GcRow[]> {
-  return db
+  const rows = await db
     .select({
       riderId: raceGc.riderId,
       name: riders.name,
       country: riders.country,
       teamName: teams.name,
+      userId: riders.userId,
       tiempoTotalS: raceGc.tiempoTotalS,
       puntosVolante: raceGc.puntosVolante,
       puntosMontana: raceGc.puntosMontana,
@@ -30,6 +32,7 @@ export async function getRaceGc(db: Database, raceId: string): Promise<GcRow[]> 
     .leftJoin(teams, eq(teams.id, riders.teamId))
     .where(eq(raceGc.raceId, raceId))
     .orderBy(asc(raceGc.tiempoTotalS))
+  return rows.map(({ userId, ...r }) => ({ ...r, isBot: userId === null }))
 }
 
 export interface TeamGcRow {
@@ -159,25 +162,30 @@ export async function getPointsClassification(db: Database, raceId: string): Pro
 
 export interface StageWinnerRow {
   stageDay: number
+  riderId: string
   name: string
   country: string
   teamName: string | null
+  isBot: boolean
 }
 
 /** Ganadores de cada etapa de una carrera (puesto 1), en orden de etapa (Paso 44). */
 export async function getStageWinners(db: Database, raceId: string): Promise<StageWinnerRow[]> {
-  return db
+  const rows = await db
     .select({
       stageDay: stageResults.stageDay,
+      riderId: stageResults.riderId,
       name: riders.name,
       country: riders.country,
       teamName: teams.name,
+      userId: riders.userId,
     })
     .from(stageResults)
     .innerJoin(riders, eq(riders.id, stageResults.riderId))
     .leftJoin(teams, eq(teams.id, riders.teamId))
     .where(and(eq(stageResults.raceId, raceId), eq(stageResults.puesto, 1)))
     .orderBy(asc(stageResults.stageDay))
+  return rows.map(({ userId, ...r }) => ({ ...r, isBot: userId === null }))
 }
 
 /** Clasificación de la montaña (cimas) acumulada en toda la carrera. */

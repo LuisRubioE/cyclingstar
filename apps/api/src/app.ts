@@ -17,6 +17,9 @@ import {
   getCurrentWorld,
   getDailyLog,
   getGlobalNews,
+  getPublicRider,
+  getTeamDetail,
+  getTeams,
   getLedger,
   getPalmares,
   getRaceHistory,
@@ -583,6 +586,27 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
         })),
       }))
       return { races }
+    })
+
+    // Explorar el mundo (#13/#14/#15): equipos, ficha de equipo, ficha pública de corredor. Público.
+    app.get('/api/teams', async () => {
+      const world = await getCurrentWorld(db)
+      if (!world) return { teams: [] }
+      return { teams: await getTeams(db, world.worldId) }
+    })
+
+    app.get<{ Params: { id: string } }>('/api/teams/:id', async (request, reply) => {
+      const team = await getTeamDetail(db, request.params.id)
+      if (!team) return reply.status(404).send({ ok: false, error: 'no_encontrado' })
+      return { team }
+    })
+
+    app.get<{ Params: { id: string } }>('/api/riders/:id', async (request, reply) => {
+      const world = await getCurrentWorld(db)
+      const season = world ? Math.floor(world.currentDay / 364) : 0
+      const rider = await getPublicRider(db, request.params.id, season)
+      if (!rider) return reply.status(404).send({ ok: false, error: 'no_encontrado' })
+      return { rider }
     })
 
     // Página de una carrera del calendario: general de la temporada, ganadores de etapa e historial.

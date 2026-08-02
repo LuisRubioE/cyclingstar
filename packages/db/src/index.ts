@@ -9,6 +9,15 @@ export { runMigrations } from './migrate.js'
 export { runTick, targetGameDay, type RunTickOptions, type TickSummary } from './tick.js'
 export { raceWorldDay } from './race.js'
 export { runCalendarDay } from './calendarRun.js'
+export {
+  getPublicRider,
+  getTeamDetail,
+  getTeams,
+  type PublicRiderDetail,
+  type TeamDetail,
+  type TeamListRow,
+  type TeamRiderRow,
+} from './browse.js'
 export { planWorld, seedWorld, type RiderPlan, type TeamPlan, type WorldPlan } from './world.js'
 export { ensureTestTourField } from './npc.js'
 export {
