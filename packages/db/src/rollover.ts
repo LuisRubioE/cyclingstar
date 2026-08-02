@@ -17,7 +17,9 @@ type Db = ReturnType<typeof drizzle>
 type Tx = Parameters<Parameters<Db['transaction']>[0]>[0]
 
 const SEASON_DAYS = 364
-const TARGET_POPULATION = 1600
+// Debe casar con la meta de población de la génesis (world.ts): con cifras reales por división el
+// mundo ronda los ~3.200 corredores. Los neopros del rollover reponen bajas y mantienen ese tamaño.
+const TARGET_POPULATION = 3200
 const PROMO_RELEGATE = 2
 const COUNTRIES = [
   'FR',

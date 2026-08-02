@@ -7,7 +7,7 @@ import {
   type Vocation,
   seededRng,
 } from '@cyclingstar/shared'
-import { and, eq, isNull, sql } from 'drizzle-orm'
+import { and, eq, isNull } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import { riderAttrs, riderHidden, riders, teams } from './schema.js'
 import { generateUniqueName } from './names.js'
@@ -31,12 +31,17 @@ interface DivisionPlan {
   roster: number
   budgetBase: number
 }
+// Número de equipos por división acorde a la realidad (SPEC 7.1): 18 WorldTeams, 18 ProTeams y
+// ~200 Continental en todo el mundo. El Continental es tan numeroso en la vida real que domina la
+// población; es una constante para poder ajustarlo si el tick se vuelve pesado.
+const CON_TEAMS = 200
 const DIVISIONS: DivisionPlan[] = [
   { division: 'WT', teams: 18, roster: 14, budgetBase: 5_000_000 },
-  { division: 'PRS', teams: 15, roster: 12, budgetBase: 2_000_000 },
-  { division: 'CON', teams: 24, roster: 10, budgetBase: 700_000 },
+  { division: 'PRS', teams: 18, roster: 12, budgetBase: 2_000_000 },
+  { division: 'CON', teams: CON_TEAMS, roster: 10, budgetBase: 700_000 },
 ]
-const TARGET_POPULATION = 1600
+// Con 2.468 corredores firmados (18·14 + 18·12 + 200·10), la meta deja ~730 agentes libres.
+const TARGET_POPULATION = 3200
 
 /**
  * Distribución de nacionalidades de los bots (SPEC 10). Ponderada por peso ciclista real: las
@@ -301,18 +306,35 @@ export function planWorld(worldSeed: string): WorldPlan {
   return { teams: teamPlans, riders: riderPlans }
 }
 
-/** Inserta por lotes el plan del mundo. Idempotente: no hace nada si el mundo ya tiene equipos. */
+/**
+ * Inserta por lotes el plan del mundo. Idempotente y con top-up estructural: en un mundo nuevo
+ * inserta todo (equipos, plantillas y agentes libres); en un mundo ya sembrado añade solo los
+ * equipos que falten (identificados por su semilla de maillot, estable) y sus plantillas, sin
+ * duplicar ni tocar a los corredores existentes. Así, subir el número real de equipos por división
+ * hace que el mundo en marcha se complete en su siguiente tick. No repone agentes libres perdidos
+ * por bajas naturales: solo cubre el salto estructural.
+ */
 export async function seedWorld(tx: Tx, worldId: string, worldSeed: string): Promise<void> {
   const existing = await tx
-    .select({ n: sql<number>`count(*)::int` })
+    .select({ jerseySeed: teams.jerseySeed })
     .from(teams)
     .where(eq(teams.worldId, worldId))
-  if ((existing[0]?.n ?? 0) > 0) return
+  const existingSeeds = new Set(existing.map((r) => r.jerseySeed))
+  const fresh = existingSeeds.size === 0
 
   const plan = planWorld(worldSeed)
+  const newTeams = fresh ? plan.teams : plan.teams.filter((t) => !existingSeeds.has(t.jerseySeed))
+  if (newTeams.length === 0) return // ya está a la estructura objetivo
+
+  // En un mundo nuevo insertamos todos los corredores (incluidos los agentes libres); en un top-up
+  // solo las plantillas de los equipos nuevos.
+  const newTeamIds = new Set(newTeams.map((t) => t.id))
+  const newRiders = fresh
+    ? plan.riders
+    : plan.riders.filter((r) => r.teamId !== null && newTeamIds.has(r.teamId))
 
   await insertChunked(
-    plan.teams.map((t) => ({
+    newTeams.map((t) => ({
       id: t.id,
       worldId,
       name: t.name,
@@ -328,7 +350,7 @@ export async function seedWorld(tx: Tx, worldId: string, worldSeed: string): Pro
   )
 
   await insertChunked(
-    plan.riders.map((r) => ({
+    newRiders.map((r) => ({
       id: r.id,
       worldId,
       userId: null,
@@ -347,13 +369,13 @@ export async function seedWorld(tx: Tx, worldId: string, worldSeed: string): Pro
     (chunk) => tx.insert(riders).values(chunk),
   )
 
-  const attrValues = plan.riders.flatMap((r) =>
+  const attrValues = newRiders.flatMap((r) =>
     ATTRIBUTES.map((attr) => ({ riderId: r.id, attr, value: r.attributes[attr] })),
   )
   await insertChunked(attrValues, 2000, (chunk) => tx.insert(riderAttrs).values(chunk))
 
   await insertChunked(
-    plan.riders.map((r) => ({
+    newRiders.map((r) => ({
       riderId: r.id,
       talent: r.hidden.talent,
       ceilings: r.hidden.ceilings,

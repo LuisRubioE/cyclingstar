@@ -26,18 +26,18 @@ function stableShape(seed: string) {
 }
 
 describe('db: génesis del mundo (SPEC 10, Paso 33)', () => {
-  it('compone 57 equipos en tres divisiones (18 WT + 15 PRS + 24 CON)', () => {
+  it('compone 236 equipos con cifras reales por división (18 WT + 18 PRS + 200 CON)', () => {
     const { teams } = planWorld('world-seed')
-    expect(teams).toHaveLength(18 + 15 + 24)
+    expect(teams).toHaveLength(18 + 18 + 200)
     expect(teams.filter((t) => t.division === 'WT')).toHaveLength(18)
-    expect(teams.filter((t) => t.division === 'PRS')).toHaveLength(15)
-    expect(teams.filter((t) => t.division === 'CON')).toHaveLength(24)
+    expect(teams.filter((t) => t.division === 'PRS')).toHaveLength(18)
+    expect(teams.filter((t) => t.division === 'CON')).toHaveLength(200)
   })
 
-  it('genera al menos 1.600 corredores; los fichados tienen equipo, los libres no', () => {
+  it('genera al menos 3.200 corredores; los fichados tienen equipo, los libres no', () => {
     const { riders } = planWorld('world-seed')
-    expect(riders.length).toBeGreaterThanOrEqual(1600)
-    const signed = 18 * 14 + 15 * 12 + 24 * 10
+    expect(riders.length).toBeGreaterThanOrEqual(3200)
+    const signed = 18 * 14 + 18 * 12 + 200 * 10
     expect(riders.filter((r) => r.teamId !== null)).toHaveLength(signed)
     expect(riders.filter((r) => r.teamId === null).length).toBeGreaterThan(0)
   })
