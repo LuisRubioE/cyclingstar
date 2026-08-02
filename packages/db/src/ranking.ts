@@ -1,5 +1,5 @@
 import { type RaceLevel, gcResultPoints, stageResultPoints } from '@cyclingstar/engine'
-import { type SQL, and, desc, eq, gte, isNull, sql } from 'drizzle-orm'
+import { type SQL, and, asc, desc, eq, gte, isNull, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import type { Database } from './client.js'
 import { palmares, riders, teams } from './schema.js'
@@ -236,6 +236,95 @@ export async function getHallOfFame(
     .groupBy(palmares.riderId, riders.name, riders.country, riders.userId)
     .orderBy(desc(sql`count(*)`))
     .limit(limit)
+}
+
+export interface RecordEntry {
+  riderId: string
+  name: string
+  country: string
+  isBot: boolean
+  value: number
+  note: string
+}
+
+export interface AllTimeRecords {
+  /** Más victorias en el palmarés (cualquier tipo). */
+  mostWins: RecordEntry | null
+  /** Más victorias de general (grandes citas). */
+  mostGcWins: RecordEntry | null
+  /** Ganador de general más joven de la historia del mundo. */
+  youngestWinner: RecordEntry | null
+}
+
+/** Récords de todos los tiempos del mundo (#62), derivados del palmarés permanente. */
+export async function getAllTimeRecords(db: Database, worldId: string): Promise<AllTimeRecords> {
+  const mostWinsRows = await db
+    .select({
+      riderId: palmares.riderId,
+      name: riders.name,
+      country: riders.country,
+      userId: riders.userId,
+      value: sql<number>`count(*)::int`,
+    })
+    .from(palmares)
+    .innerJoin(riders, eq(riders.id, palmares.riderId))
+    .where(eq(palmares.worldId, worldId))
+    .groupBy(palmares.riderId, riders.name, riders.country, riders.userId)
+    .orderBy(desc(sql`count(*)`))
+    .limit(1)
+
+  const mostGcRows = await db
+    .select({
+      riderId: palmares.riderId,
+      name: riders.name,
+      country: riders.country,
+      userId: riders.userId,
+      value: sql<number>`count(*)::int`,
+    })
+    .from(palmares)
+    .innerJoin(riders, eq(riders.id, palmares.riderId))
+    .where(and(eq(palmares.worldId, worldId), eq(palmares.kind, 'gc')))
+    .groupBy(palmares.riderId, riders.name, riders.country, riders.userId)
+    .orderBy(desc(sql`count(*)`))
+    .limit(1)
+
+  const youngRows = await db
+    .select({
+      riderId: palmares.riderId,
+      name: riders.name,
+      country: riders.country,
+      userId: riders.userId,
+      age: sql<number>`(20 - ${riders.birthSeason} + ${palmares.season})`,
+      raceName: palmares.raceName,
+      season: palmares.season,
+    })
+    .from(palmares)
+    .innerJoin(riders, eq(riders.id, palmares.riderId))
+    .where(and(eq(palmares.worldId, worldId), eq(palmares.kind, 'gc')))
+    .orderBy(asc(sql`(20 - ${riders.birthSeason} + ${palmares.season})`))
+    .limit(1)
+
+  const entry = (
+    r: { riderId: string; name: string; country: string; userId: string | null },
+    value: number,
+    note: string,
+  ): RecordEntry => ({
+    riderId: r.riderId,
+    name: r.name,
+    country: r.country,
+    isBot: r.userId === null,
+    value,
+    note,
+  })
+
+  const mw = mostWinsRows[0]
+  const gc = mostGcRows[0]
+  const yw = youngRows[0]
+  return {
+    mostWins: mw ? entry(mw, mw.value, 'career wins') : null,
+    mostGcWins: gc ? entry(gc, gc.value, 'overall wins') : null,
+    youngestWinner: yw ? entry(yw, yw.age, `${yw.raceName}, season ${yw.season + 1}`) : null,
+  }
 }
 
 /** Ganadores de la general por carrera en una temporada: raceId -> nombre (SPEC, Paso 44). */

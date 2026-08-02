@@ -36,6 +36,7 @@ import {
   getPalmares,
   getRaceHistory,
   getHallOfFame,
+  getAllTimeRecords,
   getRanking,
   getSeasonAwards,
   getRiderNews,
@@ -577,6 +578,13 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
       const world = await getCurrentWorld(db)
       if (!world) return { riders: [] }
       return { riders: await getHallOfFame(db, world.worldId, 40) }
+    })
+
+    // Récords de todos los tiempos del mundo (#62).
+    app.get('/api/records', async () => {
+      const world = await getCurrentWorld(db)
+      if (!world) return { records: null }
+      return { records: await getAllTimeRecords(db, world.worldId) }
     })
 
     // Palmarés del corredor de la sesión (Paso 40).

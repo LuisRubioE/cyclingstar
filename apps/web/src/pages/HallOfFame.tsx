@@ -1,8 +1,42 @@
 import { useQuery } from '@tanstack/react-query'
-import { fetchHallOfFame } from '../api/rankings'
+import { Link } from 'react-router-dom'
+import { type RecordEntry, fetchHallOfFame, fetchRecords } from '../api/rankings'
 import { Flag } from '../components/Flag'
 import { RiderName } from '../components/RiderName'
 import { RiderPortrait } from '../components/RiderPortrait'
+
+function RecordCard({
+  title,
+  entry,
+  unit,
+}: {
+  title: string
+  entry: RecordEntry | null
+  unit: string
+}) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{title}</p>
+      {entry ? (
+        <>
+          <p className="mt-1.5 flex items-baseline gap-1.5">
+            <span className="text-2xl font-bold tabular-nums text-slate-800">{entry.value}</span>
+            <span className="text-xs text-slate-400">{unit}</span>
+          </p>
+          <p className="mt-0.5 flex items-center gap-1.5 text-sm text-slate-600">
+            <Flag code={entry.country} size={14} />
+            <Link to={`/riders/${entry.riderId}`} className="hover:underline">
+              <RiderName riderId={entry.riderId} name={entry.name} isBot={entry.isBot} />
+            </Link>
+          </p>
+          <p className="mt-0.5 text-[11px] text-slate-400">{entry.note}</p>
+        </>
+      ) : (
+        <p className="mt-1.5 text-sm text-slate-400">—</p>
+      )}
+    </div>
+  )
+}
 
 /** Salón de la fama (#58/#62): corredores por palmarés total de todas las temporadas. */
 export function HallOfFame() {
@@ -10,9 +44,13 @@ export function HallOfFame() {
     queryKey: ['hall-of-fame'],
     queryFn: fetchHallOfFame,
   })
+  const records = useQuery({ queryKey: ['records'], queryFn: fetchRecords })
 
   if (isPending) return <p className="text-slate-500">Loading…</p>
   if (isError) return <p className="text-red-600">Could not load the hall of fame.</p>
+
+  const rec = records.data
+  const hasRecords = rec && (rec.mostWins || rec.mostGcWins || rec.youngestWinner)
 
   return (
     <section className="space-y-5">
@@ -22,6 +60,19 @@ export function HallOfFame() {
           The most decorated riders of the world, by all-time wins across every season.
         </p>
       </div>
+
+      {hasRecords && (
+        <div>
+          <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+            All-time records
+          </h2>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <RecordCard title="Most wins" entry={rec.mostWins} unit="wins" />
+            <RecordCard title="Most overall wins" entry={rec.mostGcWins} unit="GC" />
+            <RecordCard title="Youngest overall winner" entry={rec.youngestWinner} unit="yrs" />
+          </div>
+        </div>
+      )}
 
       {data.length === 0 ? (
         <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center text-sm text-slate-500">
