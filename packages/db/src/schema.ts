@@ -13,6 +13,7 @@ import {
   real,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core'
 
@@ -568,4 +569,24 @@ export const riderDailyLog = pgTable(
     activity: text('activity').notNull(),
   },
   (t) => [primaryKey({ columns: [t.riderId, t.gameDay] })],
+)
+
+/**
+ * Lista de bloqueo curada por admins (equipos reales, ciclistas reales, personas famosas). Evita
+ * su uso en la generación y renombra los ya existentes. `value_norm` es el valor normalizado
+ * (minúsculas, sin espacios extra) sobre el que se compara y se garantiza unicidad por tipo.
+ */
+export const blockedNameKindEnum = pgEnum('blocked_name_kind', ['team', 'rider'])
+
+export const blockedNames = pgTable(
+  'blocked_names',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    kind: blockedNameKindEnum('kind').notNull(),
+    value: text('value').notNull(),
+    valueNorm: text('value_norm').notNull(),
+    note: text('note'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('blocked_names_kind_norm_idx').on(t.kind, t.valueNorm)],
 )

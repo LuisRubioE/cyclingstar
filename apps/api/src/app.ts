@@ -10,10 +10,14 @@ import {
   type TrainingOrderRow,
   acceptOffer,
   addToRoster,
+  addBlocked,
+  type BlockedKind,
   createRider,
   gameState,
   generateName,
   generateUniqueRiderName,
+  listBlocked,
+  removeBlocked,
   getContract,
   getCurrentWorld,
   getDailyLog,
@@ -185,6 +189,52 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
       const days = Math.min(30, Math.max(1, Number(request.query.days ?? 1) || 1))
       const summary = await onAdminAdvance(days)
       return reply.send({ ok: true, ...summary })
+    })
+  }
+
+  // Lista de bloqueo de nombres (equipos reales, ciclistas/famosos reales), curada por admins.
+  // Protegida por ADMIN_TOKEN (cabecera x-admin-token). "Base secreta" no enlazada en la web.
+  if (deps.db) {
+    const db = deps.db
+    const adminToken = deps.adminToken
+    const kindSchema = z.enum(['team', 'rider'])
+    const addSchema = z.object({
+      kind: kindSchema,
+      value: z.string().trim().min(1).max(120),
+      note: z.string().trim().max(200).optional(),
+    })
+
+    const requireAdmin = (request: FastifyRequest, reply: FastifyReply): boolean => {
+      const provided = request.headers['x-admin-token']
+      if (!adminToken || provided !== adminToken) {
+        reply.status(401).send({ ok: false, error: 'no_autorizado' })
+        return false
+      }
+      return true
+    }
+
+    app.get<{ Querystring: { kind?: string } }>('/api/admin/blocklist', async (request, reply) => {
+      if (!requireAdmin(request, reply)) return
+      const kind = kindSchema.safeParse(request.query.kind)
+      if (!kind.success) return reply.status(400).send({ ok: false, error: 'validacion' })
+      return { ok: true, items: await listBlocked(db, kind.data as BlockedKind) }
+    })
+
+    app.post('/api/admin/blocklist', async (request, reply) => {
+      if (!requireAdmin(request, reply)) return
+      const parsed = addSchema.safeParse(request.body)
+      if (!parsed.success) return reply.status(400).send({ ok: false, error: 'validacion' })
+      const { kind, value, note } = parsed.data
+      const { inserted } = await addBlocked(db, kind as BlockedKind, value, note ?? null)
+      return reply.status(inserted ? 201 : 200).send({ ok: true, inserted })
+    })
+
+    app.delete<{ Params: { id: string } }>('/api/admin/blocklist/:id', async (request, reply) => {
+      if (!requireAdmin(request, reply)) return
+      const id = z.string().uuid().safeParse(request.params.id)
+      if (!id.success) return reply.status(400).send({ ok: false, error: 'validacion' })
+      await removeBlocked(db, id.data)
+      return { ok: true }
     })
   }
 

@@ -2,6 +2,7 @@ import { Link, Route, Routes } from 'react-router-dom'
 import { Header } from './components/Header'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { Account } from './pages/Account'
+import { AdminNames } from './pages/AdminNames'
 import { Calendar } from './pages/Calendar'
 import { CreateRider } from './pages/CreateRider'
 import { Finances } from './pages/Finances'
@@ -41,6 +42,8 @@ export function App() {
           <Route path="/rankings" element={<Rankings />} />
           <Route path="/how-to-play" element={<HowToPlay />} />
           <Route path="/privacy" element={<Privacy />} />
+          {/* Base secreta de admins: no enlazada; se protege con el ADMIN_TOKEN dentro. */}
+          <Route path="/admin/names" element={<AdminNames />} />
           <Route path="/register" element={<Register />} />
           <Route path="/login" element={<Login />} />
           <Route

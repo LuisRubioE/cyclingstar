@@ -47,8 +47,16 @@ base idéntica; el script crea la extensión `citext` antes de restaurar (la usa
 | `DATABASE_URL`          | Conexión a Postgres (obligatoria).                                                                        |
 | `WORLD_SEED`            | Semilla del mundo; fija la generación reproducible (SPEC 10).                                             |
 | `TICK_INTERVAL_MINUTES` | Minutos reales por día de juego (por defecto 360 = 6 h). Bajarlo acelera el mundo para la alfa (Paso 43). |
-| `ADMIN_TOKEN`           | Protege `POST /admin/tick` y `POST /admin/advance`.                                                       |
+| `ADMIN_TOKEN`           | Protege `POST /admin/tick`, `POST /admin/advance` y la lista de bloqueo de nombres (`/admin/names`).      |
 | `BETTER_AUTH_SECRET`    | Secreto de sesión de better-auth.                                                                         |
+
+## Lista de bloqueo de nombres (admin)
+
+Nombres de equipos reales y de ciclistas / personas famosas reales que no deben usarse en el juego.
+Se gestionan desde la página **`/admin/names`** (no enlazada en la navegación): pega el `ADMIN_TOKEN`
+para desbloquearla y añade o quita nombres en dos listas (equipos y personas). Un nombre bloqueado
+nunca se genera, y cualquiera que ya exista se renombra automáticamente en el siguiente _tick_ del
+mundo (la reparación es idempotente). La comparación ignora mayúsculas y espacios sobrantes.
 
 ## Despliegue (Railway)
 
