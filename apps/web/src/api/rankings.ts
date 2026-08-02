@@ -69,6 +69,27 @@ export async function fetchHallOfFame(): Promise<HallOfFameRow[]> {
   return ((await res.json()) as { riders: HallOfFameRow[] }).riders
 }
 
+export interface RecordEntry {
+  riderId: string
+  name: string
+  country: string
+  isBot: boolean
+  value: number
+  note: string
+}
+
+export interface AllTimeRecords {
+  mostWins: RecordEntry | null
+  mostGcWins: RecordEntry | null
+  youngestWinner: RecordEntry | null
+}
+
+export async function fetchRecords(): Promise<AllTimeRecords | null> {
+  const res = await fetch('/api/records')
+  if (!res.ok) throw new Error('Could not load records.')
+  return ((await res.json()) as { records: AllTimeRecords | null }).records
+}
+
 export async function fetchRaceHistory(): Promise<RaceHonour[]> {
   const res = await fetch('/api/races/test-tour/history')
   if (!res.ok) throw new Error('Could not load the race history.')
