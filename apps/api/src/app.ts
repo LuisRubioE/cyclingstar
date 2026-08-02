@@ -13,6 +13,7 @@ import {
   createRider,
   gameState,
   generateName,
+  generateUniqueRiderName,
   getContract,
   getCurrentWorld,
   getDailyLog,
@@ -249,8 +250,9 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
       return { country: code && isKnownCountry(code) ? code : null }
     })
 
-    // Generación de nombre (Paso 13/15): server-side, respeta la lista de bloqueo.
-    app.get('/api/names/generate', (request, reply) => {
+    // Generación de nombre (Paso 13/15): server-side, respeta la lista de bloqueo y evita
+    // colisiones con corredores en activo del mundo (ni bots ni humanos repetidos).
+    app.get('/api/names/generate', async (request, reply) => {
       const parsed = nameQuerySchema.safeParse(request.query)
       if (!parsed.success) {
         return reply.status(400).send({ ok: false, error: 'validacion' })
@@ -259,7 +261,12 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
       if (!isKnownCountry(country)) {
         return reply.status(400).send({ ok: false, error: 'pais_desconocido' })
       }
-      return generateName(seed, { country: country.toLowerCase(), gender })
+      const world = await getCurrentWorld(db)
+      if (!world) return generateName(seed, { country: country.toLowerCase(), gender })
+      return generateUniqueRiderName(db, world.worldId, seed, {
+        country: country.toLowerCase(),
+        gender,
+      })
     })
 
     // El ciclista del usuario (o null si aún no ha creado uno).
@@ -292,7 +299,10 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
       if (!world) {
         return reply.status(409).send({ ok: false, error: 'mundo_no_inicializado' })
       }
-      const name = generateName(nameSeed, { country: country.toLowerCase(), gender })
+      const name = await generateUniqueRiderName(db, world.worldId, nameSeed, {
+        country: country.toLowerCase(),
+        gender,
+      })
       const genome = generateRiderGenome(randomUUID(), vocation)
       const created = await createRider(db, {
         worldId: world.worldId,

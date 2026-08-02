@@ -112,3 +112,25 @@ export function regenerateName(
 ): GeneratedName {
   return generateName(`${seed}#${iteration}`, opts)
 }
+
+/**
+ * Genera un nombre único frente a `used` (nombre completo normalizado), reintentando con
+ * variantes de la semilla. Muta `used` con el elegido. Puro; el espacio de nombres por país
+ * es enorme, así que unas pocas decenas de intentos bastan para cientos de corredores.
+ */
+export function generateUniqueName(
+  seed: string,
+  opts: { country: string; gender: Gender },
+  used: Set<string>,
+): GeneratedName {
+  for (let iteration = 0; iteration < 80; iteration++) {
+    const generated =
+      iteration === 0 ? generateName(seed, opts) : regenerateName(seed, opts, iteration)
+    const key = normalize(generated.fullName)
+    if (!used.has(key)) {
+      used.add(key)
+      return generated
+    }
+  }
+  throw new Error('no se pudo generar un nombre único')
+}
