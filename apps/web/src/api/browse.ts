@@ -1,6 +1,7 @@
 export interface TeamListItem {
   id: string
   name: string
+  country: string | null
   division: string
   budget: number
   pointsSeason: number
@@ -20,6 +21,7 @@ export interface TeamRider {
 export interface TeamDetail {
   id: string
   name: string
+  country: string | null
   division: string
   budget: number
   pointsSeason: number

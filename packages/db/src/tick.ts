@@ -10,7 +10,7 @@ import { raceWorldDay } from './race.js'
 import { runRollover } from './rollover.js'
 import { gameState, tickLog, worlds } from './schema.js'
 import { trainWorldDay } from './train.js'
-import { seedWorld } from './world.js'
+import { backfillTeamCountries, seedWorld } from './world.js'
 
 /**
  * El tick: el reloj del mundo (SPEC 2). 1 día de juego = 6 horas reales por defecto
@@ -189,6 +189,8 @@ export async function runTick(databaseUrl: string, opts: RunTickOptions): Promis
       // Repara nombres duplicados de equipos y corredores (génesis previa a la validación y
       // neoprofesionales del rollover). Idempotente: una vez limpio no hace ningún cambio.
       await db.transaction((tx) => dedupeWorldNames(tx, genesis.worldId))
+      // Rellena la nacionalidad de equipos de mundos anteriores a esa columna. Idempotente.
+      await db.transaction((tx) => backfillTeamCountries(tx, genesis.worldId))
 
       const durationMs = Date.now() - startedAtMs
       await db.insert(tickLog).values({

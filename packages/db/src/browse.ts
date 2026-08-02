@@ -12,6 +12,7 @@ import { riderAttrs, riders, teams } from './schema.js'
 export interface TeamListRow {
   id: string
   name: string
+  country: string | null
   division: string
   budget: number
   pointsSeason: number
@@ -25,6 +26,7 @@ export async function getTeams(db: Database, worldId: string): Promise<TeamListR
     .select({
       id: teams.id,
       name: teams.name,
+      country: teams.country,
       division: teams.division,
       budget: teams.budget,
       pointsSeason: teams.pointsSeason,
@@ -50,6 +52,7 @@ export interface TeamRiderRow {
 export interface TeamDetail {
   id: string
   name: string
+  country: string | null
   division: string
   budget: number
   pointsSeason: number
@@ -77,6 +80,7 @@ export async function getTeamDetail(db: Database, teamId: string): Promise<TeamD
   return {
     id: team.id,
     name: team.name,
+    country: team.country,
     division: team.division,
     budget: team.budget,
     pointsSeason: team.pointsSeason,

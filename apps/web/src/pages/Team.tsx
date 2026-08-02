@@ -32,11 +32,19 @@ export function Team() {
         </Link>
         <div className="mt-1 flex items-center gap-3">
           <Jersey seed={data.jerseySeed} size={44} />
+          {data.country && (
+            <span className="text-3xl" aria-hidden title={data.country}>
+              {flag(data.country)}
+            </span>
+          )}
           <div>
             <h1 className="text-2xl font-bold tracking-tight">{data.name}</h1>
             <p className="mt-0.5 text-sm text-slate-500">
-              {DIVISION_LABEL[data.division] ?? data.division} · {data.pointsSeason} season points ·
-              budget {data.budget.toLocaleString('en-US')}
+              {DIVISION_LABEL[data.division] ?? data.division}
+              {data.country
+                ? ` · ${COUNTRIES.find((c) => c.code === data.country)?.name ?? data.country}`
+                : ''}{' '}
+              · {data.pointsSeason} season points · budget {data.budget.toLocaleString('en-US')}
             </p>
           </div>
         </div>

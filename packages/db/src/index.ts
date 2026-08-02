@@ -22,7 +22,15 @@ export {
   type TeamListRow,
   type TeamRiderRow,
 } from './browse.js'
-export { planWorld, seedWorld, type RiderPlan, type TeamPlan, type WorldPlan } from './world.js'
+export {
+  backfillTeamCountries,
+  planWorld,
+  seedWorld,
+  teamCountryFromSeed,
+  type RiderPlan,
+  type TeamPlan,
+  type WorldPlan,
+} from './world.js'
 export { ensureTestTourField } from './npc.js'
 export {
   ensureHumanTeams,
