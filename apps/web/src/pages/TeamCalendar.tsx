@@ -50,11 +50,23 @@ function RaceRow({
           </span>
         )}
       </td>
-      <td className="px-2 py-2 text-right text-sm tabular-nums text-slate-700">
-        {total}
+      <td className="px-2 py-2 text-right text-sm tabular-nums">
+        <span
+          className={race.travelTier === 'intercontinental' ? 'text-rose-600' : 'text-slate-700'}
+        >
+          {total}
+        </span>
         <span className="ml-1 text-xs text-slate-400">
           ({race.travelPerRider}×{race.squad})
         </span>
+        {race.travelTier === 'intercontinental' && (
+          <span
+            className="ml-1 text-xs font-medium text-rose-500"
+            title="Overseas trip — expensive"
+          >
+            ✈
+          </span>
+        )}
       </td>
       <td className="px-3 py-2 text-right">
         <button
