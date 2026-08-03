@@ -45,7 +45,12 @@ export {
   type RaceLevel,
   type StageSpec,
 } from './routes/calendar.js'
-export { scheduledStageIndex, stageDayOfSeason } from './routes/schedule.js'
+export {
+  raceLastDay,
+  raceOngoingBefore,
+  scheduledStageIndex,
+  stageDayOfSeason,
+} from './routes/schedule.js'
 export {
   RACE_CLASSES,
   RACE_CLASS_INFO,

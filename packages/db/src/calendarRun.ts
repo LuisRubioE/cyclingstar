@@ -6,6 +6,7 @@ import {
   SEASON_CALENDAR,
   type TeamPhilosophy,
   formStars,
+  raceOngoingBefore,
   raceVocationFit,
   scheduledStageIndex,
   selectSquad,
@@ -79,20 +80,24 @@ async function convokeNationalField(
   worldId: string,
   race: CalendarRace,
   raceKey: string,
-): Promise<void> {
+  busy: Set<string>,
+): Promise<string[]> {
   const country = race.championshipCountry
-  if (!country) return
-  const best = await tx
+  if (!country) return []
+  const pool = await tx
     .select({ id: riders.id })
     .from(riders)
     .where(and(eq(riders.worldId, worldId), eq(riders.country, country), isNull(riders.retiredAt)))
     .orderBy(desc(riders.fame))
-    .limit(NATIONAL_FIELD_CAP)
-  if (best.length < NATIONAL_FIELD_MIN) return
+    .limit(NATIONAL_FIELD_CAP * 2)
+  // Un corredor que ya está corriendo otra carrera no puede estar en el campeonato ese día.
+  const best = pool.filter((r) => !busy.has(r.id)).slice(0, NATIONAL_FIELD_CAP)
+  if (best.length < NATIONAL_FIELD_MIN) return []
   await tx
     .insert(raceRosters)
     .values(best.map((r) => ({ raceId: raceKey, riderId: r.id })))
     .onConflictDoNothing()
+  return best.map((r) => r.id)
 }
 
 /**
@@ -149,7 +154,8 @@ async function convokeField(
   raceKey: string,
   worldSeed: string,
   season: number,
-): Promise<void> {
+  busy: Set<string>,
+): Promise<string[]> {
   const size = SQUAD_SIZE[race.format]
   const fieldCap = FIELD_CAP_BY_CLASS[race.raceClass] ?? FIELD_CAP
   const cap = Math.max(1, Math.floor(fieldCap / size))
@@ -176,7 +182,7 @@ async function convokeField(
     DIVISION_PRIORITY[race.raceClass],
     wildcardSlots,
   )
-  if (teamRows.length === 0) return
+  if (teamRows.length === 0) return []
   const teamIds = teamRows.map((t) => t.id)
 
   const candidates = await tx
@@ -195,6 +201,8 @@ async function convokeField(
   const byTeam = new Map<string, typeof candidates>()
   for (const c of candidates) {
     if (!c.teamId) continue
+    // Un corredor que ya está corriendo otra carrera no está disponible para esta.
+    if (busy.has(c.id)) continue
     const list = byTeam.get(c.teamId) ?? []
     list.push(c)
     byTeam.set(c.teamId, list)
@@ -243,7 +251,8 @@ async function convokeField(
       inArray(riders.country, countries),
       isNull(riders.retiredAt),
     ]
-    if (already.length > 0) conds.push(notInArray(riders.id, already))
+    const excluded = [...new Set([...already, ...busy])]
+    if (excluded.length > 0) conds.push(notInArray(riders.id, excluded))
     const fillers = await tx
       .select({ id: riders.id })
       .from(riders)
@@ -256,6 +265,7 @@ async function convokeField(
   if (rosterValues.length > 0) {
     await tx.insert(raceRosters).values(rosterValues).onConflictDoNothing()
   }
+  return rosterValues.map((v) => v.riderId)
 }
 
 /** Corre las etapas del calendario que tocan este día de juego. Devuelve quién corrió. */
@@ -269,6 +279,21 @@ export async function runCalendarDay(
   const dayOfSeason = gameDay % SEASON_DAYS
   const raced = new Set<string>()
 
+  // Corredores OCUPADOS hoy: los que ya están corriendo una carrera que arrancó antes y aún no
+  // termina (nadie puede estar en dos carreras a la vez). Los que empiecen carrera hoy se van
+  // añadiendo según se convocan, para que las carreras posteriores del día no los repitan.
+  const ongoingKeys = SEASON_CALENDAR.filter((r) => raceOngoingBefore(r, dayOfSeason)).map(
+    (r) => `${r.id}:s${season}`,
+  )
+  const busy = new Set<string>()
+  if (ongoingKeys.length > 0) {
+    const rows = await tx
+      .select({ riderId: raceRosters.riderId })
+      .from(raceRosters)
+      .where(inArray(raceRosters.raceId, ongoingKeys))
+    for (const row of rows) busy.add(row.riderId)
+  }
+
   for (const race of SEASON_CALENDAR) {
     const idx = scheduledStageIndex(race, dayOfSeason)
     if (idx == null) continue
@@ -281,8 +306,13 @@ export async function runCalendarDay(
         .where(eq(raceRosters.raceId, raceKey))
         .limit(1)
       if (existing.length === 0) {
-        if (race.championshipCountry) await convokeNationalField(tx, worldId, race, raceKey)
-        else await convokeField(tx, worldId, race, raceKey, worldSeed, season)
+        const enrolled = race.championshipCountry
+          ? await convokeNationalField(tx, worldId, race, raceKey, busy)
+          : await convokeField(tx, worldId, race, raceKey, worldSeed, season, busy)
+        for (const id of enrolled) busy.add(id)
+      } else {
+        // Ya estaba convocada (p.ej. reanudación): sus corredores también quedan ocupados hoy.
+        for (const row of existing) busy.add(row.riderId)
       }
     }
 
