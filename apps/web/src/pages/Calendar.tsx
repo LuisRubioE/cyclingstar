@@ -214,10 +214,21 @@ export function Calendar() {
   const nationals = data.races.filter((r) => r.championshipCountry)
   const others = data.races.filter((r) => !r.championshipCountry)
 
+  // Las carreras ya disputadas (día anterior a hoy) se atenúan para destacar lo que viene.
+  const isPast = (day: number) => data.dayOfSeason != null && day < data.dayOfSeason
+  const dim = (key: string, day: number, node: ReactElement) =>
+    isPast(day) ? (
+      <div key={key} className="opacity-55">
+        {node}
+      </div>
+    ) : (
+      node
+    )
+
   // Insertamos el grupo de campeonatos nacionales en su día dentro del orden cronológico.
   const items: { day: number; node: ReactElement }[] = others.map((race) => ({
     day: race.startDay,
-    node: <RaceCard key={race.id} race={race} />,
+    node: dim(race.id, race.startDay, <RaceCard key={race.id} race={race} />),
   }))
   if (nationals.length > 0) {
     items.push({
@@ -230,9 +241,24 @@ export function Calendar() {
   const nationCount = new Set(nationals.map((r) => r.championshipCountry)).size
 
   // Cabeceras de mes: el calendario es largo (400+ carreras), así que separamos por mes para ojear.
+  // Y un marcador "hoy" en su punto de la temporada para situarse de un vistazo.
+  const today = data.dayOfSeason
   const rows: ReactElement[] = []
   let lastMonth = -1
+  let todayMarked = false
   for (const it of items) {
+    if (today != null && !todayMarked && it.day > today) {
+      rows.push(
+        <div
+          key="today"
+          className="flex items-center gap-2 border-y border-brand-cyan/40 bg-brand-cyan/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-brand-navy"
+        >
+          <span className="inline-block h-2 w-2 rounded-full bg-brand-cyan" aria-hidden />
+          Today · GD {today}
+        </div>,
+      )
+      todayMarked = true
+    }
     const month = monthOfDay(it.day)
     if (month !== lastMonth) {
       rows.push(
