@@ -8,6 +8,7 @@ import {
   scheduledStageIndex,
   selectSquad,
 } from '@cyclingstar/engine'
+import { type Continent, continentForCountry } from '@cyclingstar/shared'
 import { and, desc, eq, inArray, isNull } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import { raceRosters, riderRacePrefs, riders, teams } from './schema.js'
@@ -59,6 +60,29 @@ async function convokeNationalField(
     .onConflictDoNothing()
 }
 
+/** Cuota de plazas de wildcard (equipos de fuera de la región) en una carrera regional. */
+const WILDCARD_FRACTION = 0.25
+
+/**
+ * Elige los equipos del pelotón entre los admitidos (ya ordenados por presupuesto desc). En una
+ * carrera regional, reserva la mayoría de plazas a equipos del continente y unas pocas de wildcard a
+ * equipos de fuera; si la región no llena su cupo, las wildcards completan. Sin región, los mejores
+ * por presupuesto. Pura y determinista (base de la reproducibilidad de la inscripción).
+ */
+export function selectFieldTeams<T extends { country: string | null }>(
+  eligible: T[],
+  cap: number,
+  region?: Continent,
+): T[] {
+  if (!region) return eligible.slice(0, cap)
+  const inRegion = eligible.filter((t) => continentForCountry(t.country ?? '') === region)
+  const outRegion = eligible.filter((t) => continentForCountry(t.country ?? '') !== region)
+  const wildcards = Math.min(outRegion.length, Math.max(1, Math.floor(cap * WILDCARD_FRACTION)))
+  const home = inRegion.slice(0, cap - wildcards)
+  const wild = outRegion.slice(0, cap - home.length)
+  return [...home, ...wild]
+}
+
 /** Convoca el pelotón de una carrera: los mejores equipos admitidos, con su escuadra (SPEC 6.18). */
 async function convokeField(
   tx: Tx,
@@ -69,13 +93,20 @@ async function convokeField(
   season: number,
 ): Promise<void> {
   const size = SQUAD_SIZE[race.format]
-  const maxTeams = Math.max(1, Math.floor(FIELD_CAP / size))
-  const teamRows = await tx
-    .select({ id: teams.id, philosophy: teams.philosophy, division: teams.division })
+  const cap = Math.max(1, Math.floor(FIELD_CAP / size))
+  const eligible = await tx
+    .select({
+      id: teams.id,
+      philosophy: teams.philosophy,
+      division: teams.division,
+      country: teams.country,
+    })
     .from(teams)
     .where(and(eq(teams.worldId, worldId), inArray(teams.division, race.openTo)))
     .orderBy(desc(teams.budget))
-    .limit(maxTeams)
+  // Carrera regional (circuito continental): preferencia a los equipos del continente y unas pocas
+  // plazas de wildcard para equipos de fuera. Sin región, se toman los mejores por presupuesto.
+  const teamRows = selectFieldTeams(eligible, cap, race.region)
   if (teamRows.length === 0) return
   const teamIds = teamRows.map((t) => t.id)
 

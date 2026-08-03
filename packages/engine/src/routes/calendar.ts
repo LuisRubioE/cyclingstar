@@ -6,7 +6,7 @@
  * 21 etapas; los perfiles se componen de constructores reutilizables (llana, media, reina, crono,
  * clásica de adoquines) para dar variedad sin imitar recorridos reales.
  */
-import { COUNTRIES } from '@cyclingstar/shared'
+import { COUNTRIES, type Continent } from '@cyclingstar/shared'
 import type { Division } from '../world/npc.js'
 import type { Segment, StageProfile } from '../stage/types.js'
 import type { StageKind } from './testTour.js'
@@ -48,6 +48,11 @@ export interface CalendarRace {
   startDay: number
   /** Divisiones cuyos equipos pueden inscribirse (SPEC 8). Vacío en carreras de campo nacional. */
   openTo: Division[]
+  /**
+   * Continente de una carrera del circuito continental: da preferencia a los equipos de la región,
+   * dejando algunas plazas de wildcard a equipos de fuera. Sin región = carrera abierta (global).
+   */
+  region?: Continent
   /**
    * Si está, la carrera es un campeonato nacional (.NC): el pelotón es individual, formado por los
    * mejores corredores de ESE país (no por equipos). Código de país ISO alpha-2.
@@ -222,13 +227,14 @@ function weekRace(
   level: RaceLevel,
   startDay: number,
   specs: StageSpec[],
-  raceClass: RaceClass = classFromLevel(level),
+  opts: { raceClass?: RaceClass; region?: Continent } = {},
 ): CalendarRace {
   return {
     id,
     name,
     level,
-    raceClass,
+    raceClass: opts.raceClass ?? classFromLevel(level),
+    ...(opts.region ? { region: opts.region } : {}),
     format: 'una-semana',
     startDay,
     openTo: enrollmentFor(level),
@@ -392,14 +398,14 @@ const BASE_RACES: CalendarRace[] = [
     itt(18),
     flat(154),
   ]),
-  weekRace('race-langkawi', 'Race Langkawi', 'CON', 70, [
-    flat(160),
-    flat(172),
-    mountain(148),
-    flat(168),
-    hilly(155),
-    flat(140),
-  ]),
+  weekRace(
+    'race-langkawi',
+    'Race Langkawi',
+    'CON',
+    70,
+    [flat(160), flat(172), mountain(148), flat(168), hilly(155), flat(140)],
+    { region: 'Asia' },
+  ),
   weekRace('race-basque-country', 'Race Basque Country', 'WT', 80, [
     hilly(165),
     hilly(178),
@@ -412,13 +418,14 @@ const BASE_RACES: CalendarRace[] = [
   oneDay('race-roubaix', 'Race Roubaix', 'WT', 95, cobbles(257)),
   oneDay('race-liege', 'Race Liège', 'WT', 105, classic(255)),
   grandTour('race-italy', 'Race Italy', 110),
-  weekRace('race-rwanda', 'Race Rwanda', 'CON', 120, [
-    hilly(120),
-    mountain(130),
-    flat(125),
-    hilly(115),
-    mountain(110),
-  ]),
+  weekRace(
+    'race-rwanda',
+    'Race Rwanda',
+    'CON',
+    120,
+    [hilly(120), mountain(130), flat(125), hilly(115), mountain(110)],
+    { region: 'Africa' },
+  ),
   // Bloque de mitad de temporada (antes solo había carreras hasta el día 124 y luego nada hasta los
   // campeonatos del 150). Nivel PRS/CON para no competir por los líderes WT con la vuelta italiana.
   weekRace('race-norway', 'Race Norway', 'PRS', 134, [
@@ -428,13 +435,14 @@ const BASE_RACES: CalendarRace[] = [
     rolling(160),
     flat(155),
   ]),
-  weekRace('race-austria', 'Race Austria', 'CON', 140, [
-    flat(160),
-    hilly(170),
-    mountain(148),
-    mountain(140),
-    flat(150),
-  ]),
+  weekRace(
+    'race-austria',
+    'Race Austria',
+    'CON',
+    140,
+    [flat(160), hilly(170), mountain(148), mountain(140), flat(150)],
+    { region: 'Europe' },
+  ),
   oneDay('race-andorra', 'Race Andorra', 'PRS', 146, mountain(198)),
   oneDay('race-worlds', 'World Championship', 'WT', 155, classic(268)),
   weekRace('race-switzerland', 'Race Switzerland', 'WT', 158, [
@@ -485,16 +493,23 @@ const BASE_RACES: CalendarRace[] = [
   oneDay('race-quebec', 'Race Québec', 'PRS', 210, classic(201)),
   oneDay('race-montreal', 'Race Montréal', 'PRS', 213, classic(209)),
   grandTour('race-spain', 'Race Spain', 225),
-  weekRace('race-portugal', 'Race Portugal', 'CON', 240, [
-    flat(170),
-    hilly(165),
-    mountain(155),
-    flat(178),
-    rolling(160),
-    mountain(148),
-    itt(19),
-    flat(150),
-  ]),
+  weekRace(
+    'race-portugal',
+    'Race Portugal',
+    'CON',
+    240,
+    [
+      flat(170),
+      hilly(165),
+      mountain(155),
+      flat(178),
+      rolling(160),
+      mountain(148),
+      itt(19),
+      flat(150),
+    ],
+    { region: 'Europe' },
+  ),
   // Tramo de otoño asiático + clásicas (antes había un vacío de un mes entre Portugal y Lombardía).
   weekRace('race-guangxi', 'Race Guangxi', 'WT', 250, [
     flat(168),
@@ -514,12 +529,16 @@ const BASE_RACES: CalendarRace[] = [
     flat(160),
     flat(155),
   ]),
-  weekRace('race-japan', 'Race Japan', 'CON', 276, [
-    flat(150),
-    hilly(158),
-    mountain(140),
-    flat(145),
-  ]),
+  weekRace(
+    'race-japan',
+    'Race Japan',
+    'CON',
+    276,
+    [flat(150), hilly(158), mountain(140), flat(145)],
+    {
+      region: 'Asia',
+    },
+  ),
   oneDay('race-lombardy', 'Race Lombardy', 'WT', 282, classic(252)),
 ]
 
