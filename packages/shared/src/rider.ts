@@ -98,9 +98,14 @@ export function stars(x: number): number {
 }
 
 /**
- * Estrellas de un ATRIBUTO (0..5, de media en media). Como en la realidad, no ves el número: un
- * corredor flojo en algo sale casi vacío (0), un especialista llena las 5 estrellas. Sin suelo 0.5.
+ * Estrellas ENTERAS de un atributo (0..5). Como en la realidad no ves el número: un flojo sale
+ * vacío, un especialista llena las 5. Bandas: 0-16→0, 17-33→1, 34-50→2, 51-66→3, 67-83→4, 84-100→5.
  */
 export function attrStars(x: number): number {
-  return Math.min(5, Math.max(0, Math.round(x / 10) / 2))
+  if (x < 17) return 0
+  if (x < 34) return 1
+  if (x < 51) return 2
+  if (x < 67) return 3
+  if (x < 84) return 4
+  return 5
 }
