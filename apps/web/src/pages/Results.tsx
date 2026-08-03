@@ -11,6 +11,7 @@ import {
   narrate,
 } from '../api/results'
 import { Flag } from '../components/Flag'
+import { Panel, SectionBar } from '../components/Panel'
 import { RiderName } from '../components/RiderName'
 
 /** Tiempo del líder en absoluto; el resto relativo a él (+gap). */
@@ -185,119 +186,106 @@ export function Results() {
   if (isPending) return <p className="text-slate-500">Loading…</p>
   if (isError) return <p className="text-red-600">Could not load results.</p>
 
+  const advanceButtons = (
+    <div className="flex items-center gap-2">
+      <button
+        onClick={() => advance.mutate(1)}
+        disabled={advance.isPending}
+        className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
+      >
+        +1 day
+      </button>
+      <button
+        onClick={() => advance.mutate(5)}
+        disabled={advance.isPending}
+        className="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-indigo-500 disabled:opacity-60"
+      >
+        {advance.isPending ? 'Advancing…' : 'Run the tour (+5 days)'}
+      </button>
+    </div>
+  )
+
+  const tabsRow = (
+    <div className="flex gap-1 overflow-x-auto">
+      {TABS.map((t) => (
+        <button
+          key={t}
+          onClick={() => setTab(t)}
+          className={`shrink-0 rounded px-2.5 py-1 text-sm font-medium transition ${
+            tab === t ? 'bg-white text-brand-cyan' : 'text-white/80 hover:bg-white/15'
+          }`}
+        >
+          {t}
+        </button>
+      ))}
+    </div>
+  )
+
   return (
-    <section className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold tracking-tight">Results · Test tour</h1>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => advance.mutate(1)}
-            disabled={advance.isPending}
-            className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
-          >
-            +1 day
-          </button>
-          <button
-            onClick={() => advance.mutate(5)}
-            disabled={advance.isPending}
-            className="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-indigo-500 disabled:opacity-60"
-          >
-            {advance.isPending ? 'Advancing…' : 'Run the tour (+5 days)'}
-          </button>
-        </div>
-      </div>
+    <section className="space-y-4">
+      <SectionBar action={advanceButtons}>Results · Test tour</SectionBar>
 
-      {/* Pestañas */}
-      <div className="flex gap-1 overflow-x-auto border-b border-slate-200">
-        {TABS.map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`shrink-0 border-b-2 px-3 py-2 text-sm font-medium transition ${
-              tab === t
-                ? 'border-indigo-600 text-indigo-700'
-                : 'border-transparent text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            {t}
-          </button>
-        ))}
-      </div>
-
-      {tab === 'Stages' && (
-        <div className="space-y-2.5">
-          {data.stages.map((stage) => (
-            <article
-              key={stage.day}
-              className="rounded-2xl border border-slate-200 bg-white shadow-sm"
-            >
-              <button
-                onClick={() => setOpenDay(openDay === stage.day ? null : stage.day)}
-                className="flex w-full items-center justify-between gap-4 px-4 py-3 text-left"
-              >
-                <span className="text-sm font-semibold text-slate-800">{stage.name}</span>
-                <span className="flex items-center gap-3 text-xs text-slate-500">
-                  {stage.km} km
-                  <span
-                    className={
-                      stage.run
-                        ? 'rounded-full bg-emerald-100 px-2 py-0.5 font-medium text-emerald-700'
-                        : 'rounded-full bg-slate-100 px-2 py-0.5 text-slate-500'
-                    }
-                  >
-                    {stage.run ? 'raced' : 'pending'}
+      <Panel title={tab} action={tabsRow} bodyClassName={tab === 'Stages' ? 'p-0' : 'p-4'}>
+        {tab === 'Stages' && (
+          <div>
+            {data.stages.map((stage) => (
+              <article key={stage.day} className="border-b border-slate-100 last:border-0">
+                <button
+                  onClick={() => setOpenDay(openDay === stage.day ? null : stage.day)}
+                  className="flex w-full items-center justify-between gap-4 px-4 py-3 text-left"
+                >
+                  <span className="text-sm font-semibold text-slate-800">{stage.name}</span>
+                  <span className="flex items-center gap-3 text-xs text-slate-500">
+                    {stage.km} km
+                    <span
+                      className={
+                        stage.run
+                          ? 'rounded-full bg-emerald-100 px-2 py-0.5 font-medium text-emerald-700'
+                          : 'rounded-full bg-slate-100 px-2 py-0.5 text-slate-500'
+                      }
+                    >
+                      {stage.run ? 'raced' : 'pending'}
+                    </span>
                   </span>
-                </span>
-              </button>
-              {openDay === stage.day && (
-                <div className="border-t border-slate-100 p-4">
-                  <StageReplayView day={stage.day} />
-                </div>
-              )}
-            </article>
-          ))}
-        </div>
-      )}
+                </button>
+                {openDay === stage.day && (
+                  <div className="border-t border-slate-100 p-4">
+                    <StageReplayView day={stage.day} />
+                  </div>
+                )}
+              </article>
+            ))}
+          </div>
+        )}
 
-      {tab === 'GC' && (
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          {data.gc.length > 0 ? (
+        {tab === 'GC' &&
+          (data.gc.length > 0 ? (
             <TimeTable rows={data.gc as TimeRow[]} limit={30} />
           ) : (
             <p className="text-sm text-slate-500">No general classification yet.</p>
-          )}
-        </div>
-      )}
+          ))}
 
-      {tab === 'Points' && (
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          {data.points.length > 0 ? (
+        {tab === 'Points' &&
+          (data.points.length > 0 ? (
             <PointsTable rows={data.points} />
           ) : (
             <p className="text-sm text-slate-500">No points classification yet.</p>
-          )}
-        </div>
-      )}
+          ))}
 
-      {tab === 'Mountains' && (
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          {data.kom.length > 0 ? (
+        {tab === 'Mountains' &&
+          (data.kom.length > 0 ? (
             <PointsTable rows={data.kom} />
           ) : (
             <p className="text-sm text-slate-500">No mountains classification yet.</p>
-          )}
-        </div>
-      )}
+          ))}
 
-      {tab === 'Teams' && (
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          {data.teamsGc.length > 0 ? (
+        {tab === 'Teams' &&
+          (data.teamsGc.length > 0 ? (
             <TeamsTable rows={data.teamsGc} />
           ) : (
             <p className="text-sm text-slate-500">No teams classification yet.</p>
-          )}
-        </div>
-      )}
+          ))}
+      </Panel>
     </section>
   )
 }

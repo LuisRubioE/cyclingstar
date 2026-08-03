@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { type TeamListItem, fetchTeams } from '../api/browse'
 import { Flag } from '../components/Flag'
 import { Jersey } from '../components/Jersey'
+import { Panel, SectionBar } from '../components/Panel'
 
 const DIVISION_BADGE: Record<string, string> = {
   WT: 'bg-indigo-100 text-indigo-700',
@@ -18,10 +19,7 @@ const DIVISION_LABEL: Record<string, string> = {
 function DivisionBlock({ division, teams }: { division: string; teams: TeamListItem[] }) {
   if (teams.length === 0) return null
   return (
-    <div>
-      <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
-        {DIVISION_LABEL[division] ?? division}
-      </h2>
+    <Panel title={DIVISION_LABEL[division] ?? division}>
       <div className="grid gap-2 sm:grid-cols-2">
         {teams.map((t) => (
           <Link
@@ -45,7 +43,7 @@ function DivisionBlock({ division, teams }: { division: string; teams: TeamListI
           </Link>
         ))}
       </div>
-    </div>
+    </Panel>
   )
 }
 
@@ -55,13 +53,9 @@ export function Teams() {
   if (isError) return <p className="text-red-600">Could not load teams.</p>
 
   return (
-    <section className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Teams</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          {data.length} teams across the three divisions.
-        </p>
-      </div>
+    <section className="space-y-4">
+      <SectionBar>Teams</SectionBar>
+      <p className="text-sm text-slate-500">{data.length} teams across the three divisions.</p>
       {['WT', 'PRS', 'CON'].map((div) => (
         <DivisionBlock key={div} division={div} teams={data.filter((t) => t.division === div)} />
       ))}

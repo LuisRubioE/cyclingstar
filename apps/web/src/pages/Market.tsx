@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Panel, SectionBar, InfoRow } from '../components/Panel'
 import { TeamLink } from '../components/TeamLink'
 import { type Offer, fetchMarket, respondToOffer, roleLabel } from '../api/market'
 
@@ -22,44 +23,45 @@ function OfferCard({
   busy: boolean
 }) {
   return (
-    <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="flex items-center gap-2">
+    <Panel
+      title={
         <TeamLink
           teamId={offer.teamId}
           name={offer.teamName}
-          className="text-sm font-semibold text-slate-800"
+          className="text-sm font-semibold text-white"
         />
+      }
+      action={
         <span
           className={`rounded-full px-2 py-0.5 text-xs font-medium ${DIVISION_BADGE[offer.division] ?? ''}`}
         >
           {offer.division}
         </span>
-      </div>
-      <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-sm text-slate-600">
-        <div className="flex justify-between">
-          <dt className="text-slate-400">Role</dt>
-          <dd>{roleLabel(offer.role)}</dd>
-        </div>
-        <div className="flex justify-between">
-          <dt className="text-slate-400">Salary</dt>
-          <dd className="tabular-nums">{money(offer.salary)}</dd>
-        </div>
-        <div className="flex justify-between">
-          <dt className="text-slate-400">Length</dt>
-          <dd className="tabular-nums">
+      }
+    >
+      <div className="text-sm">
+        <InfoRow label="Role">{roleLabel(offer.role)}</InfoRow>
+        <InfoRow label="Salary">
+          <span className="tabular-nums">{money(offer.salary)}</span>
+        </InfoRow>
+        <InfoRow label="Length">
+          <span className="tabular-nums">
             {offer.seasons} {offer.seasons === 1 ? 'season' : 'seasons'}
-          </dd>
-        </div>
-        <div className="flex justify-between">
-          <dt
-            className="cursor-help text-slate-400 underline decoration-dotted underline-offset-2"
-            title="Release clause: what another team must pay this team to sign you before your contract ends. A higher buyout means you're harder to poach."
-          >
-            Buyout
-          </dt>
-          <dd className="tabular-nums">{offer.releaseClause.toLocaleString('en-US')}</dd>
-        </div>
-      </dl>
+          </span>
+        </InfoRow>
+        <InfoRow
+          label={
+            <span
+              className="cursor-help underline decoration-dotted underline-offset-2"
+              title="Release clause: what another team must pay this team to sign you before your contract ends. A higher buyout means you're harder to poach."
+            >
+              Buyout
+            </span>
+          }
+        >
+          <span className="tabular-nums">{offer.releaseClause.toLocaleString('en-US')}</span>
+        </InfoRow>
+      </div>
       <div className="mt-3 flex gap-2">
         <button
           onClick={() => onRespond(offer.id, 'accept')}
@@ -76,7 +78,7 @@ function OfferCard({
           Decline
         </button>
       </div>
-    </article>
+    </Panel>
   )
 }
 
@@ -97,10 +99,10 @@ export function Market() {
   if (isError) return <p className="text-red-600">Could not load the market.</p>
 
   return (
-    <section className="space-y-6">
+    <section className="space-y-4">
+      <SectionBar>Transfer market</SectionBar>
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Transfer market</h1>
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="text-sm text-slate-500">
           As a free agent you get offers regularly — sign the one that fits your ambitions. Salary,
           role and division all matter. You only join a team once you <strong>sign</strong>; until
           then you stay a free agent.
@@ -112,10 +114,7 @@ export function Market() {
       </div>
 
       {data.contract && (
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
-            Current contract
-          </h2>
+        <Panel title="Current contract">
           <p className="text-sm text-slate-700">
             <TeamLink
               teamId={data.contract.teamId}
@@ -125,7 +124,7 @@ export function Market() {
             ({data.contract.division}) · {roleLabel(data.contract.role)} ·{' '}
             {money(data.contract.salary)} · through season {data.contract.endSeason + 1}
           </p>
-        </div>
+        </Panel>
       )}
 
       {data.offers.length === 0 ? (

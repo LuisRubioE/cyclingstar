@@ -4,6 +4,7 @@ import { Link, useParams } from 'react-router-dom'
 import { fetchTeam, fetchTeamControl, fetchTeamNews, takeOverTeam } from '../api/browse'
 import { Flag } from '../components/Flag'
 import { Jersey } from '../components/Jersey'
+import { Panel, SectionBar } from '../components/Panel'
 import { RiderName } from '../components/RiderName'
 import { TeamManager } from '../components/TeamManager'
 
@@ -38,35 +39,36 @@ export function Team() {
   const canTakeOver = isMyTeam && !data.human && control?.premium === true
 
   return (
-    <section className="space-y-6">
-      <div>
-        <Link to="/teams" className="text-xs text-slate-400 hover:text-slate-600">
-          ← Teams
-        </Link>
-        <div className="mt-1 flex items-center gap-3">
+    <section className="space-y-4">
+      <Link to="/teams" className="text-xs text-slate-400 hover:text-slate-600">
+        ← Teams
+      </Link>
+      <SectionBar
+        action={
+          <span
+            className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+              data.human ? 'bg-white/25 text-white' : 'bg-black/15 text-white'
+            }`}
+          >
+            {data.human ? 'Player-managed' : 'NPC'}
+          </span>
+        }
+      >
+        {data.name}
+      </SectionBar>
+      <Panel bodyClassName="p-4">
+        <div className="flex items-center gap-3">
           <Jersey seed={data.jerseySeed} size={44} />
           {data.country && <Flag code={data.country} size={30} />}
-          <div>
-            <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
-              {data.name}
-              <span
-                className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                  data.human ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-500'
-                }`}
-              >
-                {data.human ? 'Player-managed' : 'NPC'}
-              </span>
-            </h1>
-            <p className="mt-0.5 text-sm text-slate-500">
-              {DIVISION_LABEL[data.division] ?? data.division}
-              {data.country
-                ? ` · ${COUNTRIES.find((c) => c.code === data.country)?.name ?? data.country}`
-                : ''}{' '}
-              · {data.pointsSeason} season points · budget {data.budget.toLocaleString('en-US')}
-            </p>
-          </div>
+          <p className="text-sm text-slate-500">
+            {DIVISION_LABEL[data.division] ?? data.division}
+            {data.country
+              ? ` · ${COUNTRIES.find((c) => c.code === data.country)?.name ?? data.country}`
+              : ''}{' '}
+            · {data.pointsSeason} season points · budget {data.budget.toLocaleString('en-US')}
+          </p>
         </div>
-      </div>
+      </Panel>
 
       {canTakeOver && (
         <div className="rounded-2xl border border-indigo-200 bg-indigo-50 p-4">
@@ -91,10 +93,7 @@ export function Team() {
       )}
       {isMyTeam && data.human && control?.team?.ownedByMe && <TeamManager team={data} />}
 
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <h2 className="border-b border-slate-100 px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
-          Roster ({data.roster.length})
-        </h2>
+      <Panel title={`Roster (${data.roster.length})`} bodyClassName="p-0">
         <table className="w-full text-sm">
           <tbody>
             {data.roster.map((r) => (
@@ -115,13 +114,10 @@ export function Team() {
             ))}
           </tbody>
         </table>
-      </div>
+      </Panel>
 
       {teamNews.data && teamNews.data.length > 0 && (
-        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <h2 className="border-b border-slate-100 px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
-            Recent news
-          </h2>
+        <Panel title="Recent news" bodyClassName="p-0">
           <ul className="divide-y divide-slate-100">
             {teamNews.data.map((n, i) => (
               <li key={i} className="flex gap-3 px-5 py-2.5 text-sm">
@@ -132,7 +128,7 @@ export function Team() {
               </li>
             ))}
           </ul>
-        </div>
+        </Panel>
       )}
     </section>
   )

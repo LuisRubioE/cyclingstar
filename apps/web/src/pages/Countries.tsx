@@ -10,6 +10,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { type CountrySummary, fetchCountries } from '../api/browse'
 import { Flag } from '../components/Flag'
+import { Panel, SectionBar } from '../components/Panel'
 
 const CONTINENT_LABEL: Record<Continent, string> = {
   Europe: 'Europe',
@@ -55,25 +56,20 @@ export function Countries() {
   }
 
   return (
-    <section className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Nations</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Every country with riders in the game, by continent. Tap one for its national ranking.
-        </p>
-      </div>
+    <section className="space-y-4">
+      <SectionBar>Nations</SectionBar>
+      <p className="text-sm text-slate-500">
+        Every country with riders in the game, by continent. Tap one for its national ranking.
+      </p>
 
       {CONTINENTS.filter((cont) => (byContinent.get(cont)?.length ?? 0) > 0).map((cont) => (
-        <div key={cont}>
-          <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
-            {CONTINENT_LABEL[cont]}
-          </h2>
+        <Panel key={cont} title={CONTINENT_LABEL[cont]}>
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {byContinent.get(cont)!.map((c) => (
               <NationCard key={c.country} c={c} />
             ))}
           </div>
-        </div>
+        </Panel>
       ))}
     </section>
   )

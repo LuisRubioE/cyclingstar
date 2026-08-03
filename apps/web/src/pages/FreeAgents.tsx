@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { fetchFreeAgents } from '../api/browse'
 import { Flag } from '../components/Flag'
+import { Panel, SectionBar } from '../components/Panel'
 import { RiderName } from '../components/RiderName'
 
 /** Mercado de agentes libres (#20): corredores en activo sin equipo, con filtros por país y vocación. */
@@ -19,13 +20,11 @@ export function FreeAgents() {
     'rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200'
 
   return (
-    <section className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Free agents</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Active riders without a team, ranked by fame. Filter by nation or specialty.
-        </p>
-      </div>
+    <section className="space-y-4">
+      <SectionBar>Free agents</SectionBar>
+      <p className="text-sm text-slate-500">
+        Active riders without a team, ranked by fame. Filter by nation or specialty.
+      </p>
 
       <div className="flex flex-wrap gap-2">
         <select
@@ -75,7 +74,7 @@ export function FreeAgents() {
           No free agents match those filters.
         </p>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <Panel bodyClassName="p-0">
           <table className="w-full text-sm">
             <tbody>
               {data.map((r) => (
@@ -99,7 +98,7 @@ export function FreeAgents() {
               ))}
             </tbody>
           </table>
-        </div>
+        </Panel>
       )}
     </section>
   )

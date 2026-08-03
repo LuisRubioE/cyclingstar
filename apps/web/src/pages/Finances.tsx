@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { Panel, SectionBar } from '../components/Panel'
 import { fetchLedger, kindLabel, money } from '../api/finances'
 
 const KIND_TONE: Record<string, string> = {
@@ -16,20 +17,17 @@ export function Finances() {
   if (isError) return <p className="text-red-600">Could not load your finances.</p>
 
   return (
-    <section className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Finances</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Every salary payment and race prize is logged here. Your balance is the sum of the ledger.
-        </p>
-      </div>
+    <section className="space-y-4">
+      <SectionBar>Finances</SectionBar>
+      <p className="text-sm text-slate-500">
+        Every salary payment and race prize is logged here. Your balance is the sum of the ledger.
+      </p>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Balance</p>
-        <p className="mt-1 text-3xl font-bold tabular-nums text-slate-800">
+      <Panel title="Balance">
+        <p className="text-3xl font-bold tabular-nums text-slate-800">
           {data.balance.toLocaleString('en-US')}
         </p>
-      </div>
+      </Panel>
 
       {data.entries.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">
@@ -37,7 +35,7 @@ export function Finances() {
           racing.
         </p>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <Panel bodyClassName="p-0">
           <table className="w-full text-sm">
             <tbody>
               {data.entries.map((e, i) => (
@@ -54,7 +52,7 @@ export function Finances() {
               ))}
             </tbody>
           </table>
-        </div>
+        </Panel>
       )}
     </section>
   )

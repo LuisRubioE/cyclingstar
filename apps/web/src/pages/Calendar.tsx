@@ -9,6 +9,7 @@ import {
   raceClassLabel,
 } from '../api/calendar'
 import { Flag } from '../components/Flag'
+import { Panel, SectionBar } from '../components/Panel'
 
 const LEVEL_BADGE: Record<RaceLevel, string> = {
   WT: 'bg-indigo-100 text-indigo-700',
@@ -29,7 +30,7 @@ function RaceCard({ race }: { race: CalendarRaceSummary }) {
   const [open, setOpen] = useState(false)
   const totalKm = race.stages.reduce((sum, s) => sum + s.km, 0)
   return (
-    <article className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <article className="border-b border-slate-100 last:border-0">
       <button
         onClick={() => setOpen(!open)}
         className="flex w-full items-center justify-between gap-4 px-4 py-3 text-left"
@@ -99,7 +100,7 @@ function NationalChampsCard({ races }: { races: CalendarRaceSummary[] }) {
   const [open, setOpen] = useState(false)
   const day = races[0]?.startDay ?? 0
   return (
-    <article className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <article className="border-b border-slate-100 last:border-0">
       <button
         onClick={() => setOpen(!open)}
         className="flex w-full items-center justify-between gap-4 px-4 py-3 text-left"
@@ -163,15 +164,15 @@ export function Calendar() {
   items.sort((a, b) => a.day - b.day)
 
   return (
-    <section className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Season calendar</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          {others.length} races plus {nationals.length} national championships — grand tours, stage
-          races, one-day classics and every nation's title.
-        </p>
-      </div>
-      <div className="space-y-2.5">{items.map((it) => it.node)}</div>
+    <section className="space-y-4">
+      <SectionBar>Season calendar</SectionBar>
+      <p className="text-sm text-slate-500">
+        {others.length} races plus {nationals.length} national championships — grand tours, stage
+        races, one-day classics and every nation's title.
+      </p>
+      <Panel title="Races" bodyClassName="p-0">
+        {items.map((it) => it.node)}
+      </Panel>
     </section>
   )
 }
