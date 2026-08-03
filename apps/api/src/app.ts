@@ -26,7 +26,9 @@ import {
   updateOwnedTeam,
   listBlocked,
   removeBlocked,
+  enterRace,
   getContract,
+  getEnterableRaces,
   getCurrentWorld,
   getDailyLog,
   getGlobalNews,
@@ -48,6 +50,7 @@ import {
   getGcThroughStage,
   getKomClassification,
   getOffers,
+  withdrawRace,
   getPointsClassification,
   getRaceGc,
   getRacePrefs,
@@ -686,6 +689,45 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
         const rider = await getRiderForUser(db, userId)
         if (!rider) return reply.status(409).send({ ok: false, error: 'sin_ciclista' })
         await rejectOffer(db, rider.id, request.params.id)
+        return { ok: true }
+      },
+    )
+
+    // Auto-inscripción del agente libre a carreras continentales (economía de viajes). Lista lo que
+    // puede correr con el coste de viaje, y permite inscribirse/darse de baja hasta que empiece.
+    app.get('/api/riders/me/race-entries', async (request, reply) => {
+      const userId = await currentUserId(request)
+      if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
+      const rider = await getRiderForUser(db, userId)
+      const world = await getCurrentWorld(db)
+      if (!rider || !world) return { races: [] }
+      return { races: await getEnterableRaces(db, rider.id, world.currentDay) }
+    })
+
+    app.post<{ Params: { raceId: string } }>(
+      '/api/riders/me/race-entries/:raceId',
+      async (request, reply) => {
+        const userId = await currentUserId(request)
+        if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
+        const rider = await getRiderForUser(db, userId)
+        const world = await getCurrentWorld(db)
+        if (!rider || !world) return reply.status(409).send({ ok: false, error: 'sin_ciclista' })
+        const res = await enterRace(db, rider.id, request.params.raceId, world.currentDay)
+        if (!res.ok) return reply.status(409).send({ ok: false, error: res.error })
+        return { ok: true }
+      },
+    )
+
+    app.delete<{ Params: { raceId: string } }>(
+      '/api/riders/me/race-entries/:raceId',
+      async (request, reply) => {
+        const userId = await currentUserId(request)
+        if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
+        const rider = await getRiderForUser(db, userId)
+        const world = await getCurrentWorld(db)
+        if (!rider || !world) return reply.status(409).send({ ok: false, error: 'sin_ciclista' })
+        const res = await withdrawRace(db, rider.id, request.params.raceId, world.currentDay)
+        if (!res.ok) return reply.status(409).send({ ok: false, error: res.error })
         return { ok: true }
       },
     )

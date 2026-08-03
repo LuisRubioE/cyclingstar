@@ -17,9 +17,10 @@ import {
   countriesInContinent,
   raceAttendanceCost,
 } from '@cyclingstar/shared'
-import { and, desc, eq, inArray, isNull, notInArray, sql } from 'drizzle-orm'
+import { and, desc, eq, inArray, isNotNull, isNull, notInArray, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
-import { raceRosters, riderRacePrefs, riders, teams } from './schema.js'
+import { creditRider } from './economy.js'
+import { raceEntries, raceRosters, riderRacePrefs, riders, teams } from './schema.js'
 import { runOneStage } from './stageRun.js'
 
 /**
@@ -379,6 +380,70 @@ async function convokeField(
   return rosterValues.map((v) => v.riderId)
 }
 
+/**
+ * Auto-inscripción de agentes libres (Paso: economía de viajes). Un corredor humano SIN equipo que se
+ * inscribió a esta carrera entra en el pelotón si (a) no está ya ocupado en otra carrera hoy y (b) le
+ * llega el dinero para su propio viaje (transporte + hotel), que se le cobra del bolsillo. Devuelve
+ * los que finalmente entran. Sin equipo que pague: el viaje sale de su saldo, como en la realidad.
+ */
+async function convokeSelfEntries(
+  tx: Tx,
+  worldId: string,
+  race: CalendarRace,
+  raceKey: string,
+  busy: Set<string>,
+  season: number,
+  gameDay: number,
+): Promise<string[]> {
+  const rows = await tx
+    .select({
+      riderId: raceEntries.riderId,
+      residence: riders.residence,
+      country: riders.country,
+      money: riders.money,
+    })
+    .from(raceEntries)
+    .innerJoin(riders, eq(riders.id, raceEntries.riderId))
+    .where(
+      and(
+        eq(raceEntries.raceId, race.id),
+        eq(raceEntries.season, season),
+        eq(raceEntries.enrolled, false),
+        eq(riders.worldId, worldId),
+        isNull(riders.teamId),
+        isNotNull(riders.userId),
+        isNull(riders.retiredAt),
+      ),
+    )
+  const raceDays = race.stages.length
+  const enrolled: string[] = []
+  for (const r of rows) {
+    if (busy.has(r.riderId)) continue
+    const cost = raceAttendanceCost(r.residence ?? r.country, race.country ?? null, raceDays)
+    if (r.money < cost.money) continue // no le llega para el viaje: no puede ir
+    await tx
+      .insert(raceRosters)
+      .values({ raceId: raceKey, riderId: r.riderId })
+      .onConflictDoNothing()
+    if (cost.money > 0) {
+      await creditRider(tx, r.riderId, gameDay, 'viaje', -cost.money, `${race.name} · travel`)
+    }
+    await tx
+      .update(raceEntries)
+      .set({ enrolled: true })
+      .where(
+        and(
+          eq(raceEntries.riderId, r.riderId),
+          eq(raceEntries.raceId, race.id),
+          eq(raceEntries.season, season),
+        ),
+      )
+    busy.add(r.riderId)
+    enrolled.push(r.riderId)
+  }
+  return enrolled
+}
+
 /** Corre las etapas del calendario que tocan este día de juego. Devuelve quién corrió. */
 export async function runCalendarDay(
   tx: Tx,
@@ -421,6 +486,17 @@ export async function runCalendarDay(
           ? await convokeNationalField(tx, worldId, race, raceKey, busy, season)
           : await convokeField(tx, worldId, race, raceKey, worldSeed, season, busy)
         for (const id of enrolled) busy.add(id)
+        // Agentes libres humanos que se auto-inscribieron y pueden pagarse el viaje entran también.
+        const selfEntered = await convokeSelfEntries(
+          tx,
+          worldId,
+          race,
+          raceKey,
+          busy,
+          season,
+          gameDay,
+        )
+        for (const id of selfEntered) busy.add(id)
       } else {
         // Ya estaba convocada (p.ej. reanudación): sus corredores también quedan ocupados hoy.
         for (const row of existing) busy.add(row.riderId)

@@ -550,6 +550,26 @@ export const riderRacePrefs = pgTable(
   (t) => [primaryKey({ columns: [t.riderId, t.raceId] })],
 )
 
+/**
+ * Auto-inscripción de un agente libre a una carrera: un corredor humano SIN equipo puede inscribirse
+ * a una carrera que se pueda permitir; paga su propio viaje. Al convocarse la carrera, si le llega el
+ * dinero y no está ocupado, se le cobra el viaje y se le mete en el pelotón (enrolled=true).
+ */
+export const raceEntries = pgTable(
+  'race_entries',
+  {
+    riderId: uuid('rider_id')
+      .notNull()
+      .references(() => riders.id, { onDelete: 'cascade' }),
+    raceId: text('race_id').notNull(),
+    season: integer('season').notNull(),
+    createdDay: integer('created_day').notNull(),
+    /** Ya convocado y pagado el viaje (metido en el pelotón). */
+    enrolled: boolean('enrolled').notNull().default(false),
+  },
+  (t) => [primaryKey({ columns: [t.riderId, t.raceId, t.season] })],
+)
+
 /** Decisiones de convocatoria por carrera y temporada (SPEC 6.18, Paso 35). */
 export const raceCallups = pgTable(
   'race_callups',

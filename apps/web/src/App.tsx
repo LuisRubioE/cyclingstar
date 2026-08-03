@@ -14,6 +14,7 @@ import { Home } from './pages/Home'
 import { HowToPlay } from './pages/HowToPlay'
 import { Login } from './pages/Login'
 import { Market } from './pages/Market'
+import { RaceEntry } from './pages/RaceEntry'
 import { News } from './pages/News'
 import { Objectives } from './pages/Objectives'
 import { Privacy } from './pages/Privacy'
@@ -99,6 +100,14 @@ export function App() {
             element={
               <ProtectedRoute>
                 <Market />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/race-entry"
+            element={
+              <ProtectedRoute>
+                <RaceEntry />
               </ProtectedRoute>
             }
           />

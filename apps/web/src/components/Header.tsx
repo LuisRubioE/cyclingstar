@@ -27,6 +27,7 @@ const RIDER_LINKS = [
   { to: '/objectives', label: 'Objectives' },
   { to: '/race-orders', label: 'Orders' },
   { to: '/results', label: 'Results' },
+  { to: '/race-entry', label: 'Race entry' },
   { to: '/market', label: 'Market' },
   { to: '/finances', label: 'Finances' },
 ]
