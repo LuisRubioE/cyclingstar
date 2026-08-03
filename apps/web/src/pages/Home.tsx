@@ -15,6 +15,8 @@ const ACTIONS = [
   { to: '/objectives', label: 'Objectives', hint: 'Set your season goals', icon: '🎯' },
   { to: '/race-orders', label: 'Race orders', hint: 'How to ride the next race', icon: '📋' },
   { to: '/results', label: 'Results', hint: 'How the last races went', icon: '🏁' },
+  { to: '/race-entry', label: 'Race entry', hint: 'Enter races as a free agent', icon: '✈️' },
+  { to: '/team-calendar', label: 'Team calendar', hint: "Plan your team's season", icon: '🗓️' },
   { to: '/market', label: 'Market', hint: 'Offers and contracts', icon: '📝' },
   { to: '/finances', label: 'Finances', hint: 'Your money and ledger', icon: '💶' },
 ]
