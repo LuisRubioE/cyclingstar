@@ -125,3 +125,56 @@ Cierra la Fase 5: contrarreloj, caídas, TSS del gasto, sellado de `engine_versi
    `resolveMarking` con sus tests. La integración plena en la carrera (el invariante de "marcar al
    favorito le resta 8-20 puntos de victoria") queda para cuando se conecten las órdenes en carrera;
    por eso el SPEC la marca como recortable.
+
+## Economía de viajes, vivienda y equipo
+
+Sistema de economía de desplazamientos y finanzas de equipo. **Dos escalas de dinero conviven**: la
+del CORREDOR (salario semanal ~200-2.000, premios 60-5.000, viaje 40-220) y la del EQUIPO
+(`teams.budget`, en millones). Los costes de viaje y vivienda están en la escala del corredor; el
+presupuesto del equipo los absorbe por acumulación a lo largo de la temporada. Tuneado de forma
+**conservadora**: validado con génesis + 10 semanas de carreras en Postgres (presupuestos sanos y
+positivos en WT/Pro/Continental, sin quiebras), no con temporadas completas. Todas las constantes son
+perillas ajustables.
+
+### Viajes (`packages/shared/src/travel.ts`)
+
+- **Transporte fijo por tramo** (`TRANSPORT_COST`): casa `{0, 0d}`, continental `{40, 1d}`,
+  intercontinental `{150, 2d}`. Los días son "días de viaje" (sin entrenar) — modelados en el coste,
+  pero la penalización de entrenamiento aún NO se aplica en el tick (diferida: toca la progresión de
+  forma, sensible; mejor validar con el usuario delante).
+- **Hotel por día de carrera** (`HOTEL_PER_RACE_DAY = 8`): parte variable, proporcional a las etapas.
+- `raceAttendanceCost(from, to, raceDays) = transporte(tramo) + 8·raceDays`. Lo paga el EQUIPO (de su
+  presupuesto) por cada corredor que manda; un agente libre lo paga de su bolsillo al auto-inscribirse.
+
+### Vivienda (`residence` en `riders`)
+
+- Un corredor RESIDE en un país (base del equipo al fichar; su país si es agente libre). Vivir en el
+  país propio es gratis (casa familiar); fuera cuesta **`HOUSING_RENT_PER_WEEK = 6`** semanal.
+- Una oferta internacional puede cubrir el alquiler (`pay_housing`) a cambio de rebajar el salario por
+  ese importe: el corredor queda igual de caja y el equipo lo asume como reclamo de fichaje.
+
+### Finanzas del equipo (`packages/engine/src/world/teamEconomy.ts`, `runTeamFinances`)
+
+- **Patrocinio semanal** (`SPONSOR_INCOME_PER_WEEK`): WT 26.000, Pro 9.600, Continental 2.800. Ingreso
+  fijo al presupuesto.
+- **Masa salarial**: `AVG_WEEKLY_WAGE` (WT 900, Pro 450, CON 200) por corredor NPC (estimación, sin
+  contrato en la base) + salarios reales de los humanos + alquileres cubiertos. Se descuenta del
+  presupuesto cada semana. El patrocinio se dimensionó para cubrir a grandes rasgos una plantilla
+  completa, de modo que el margen y los VIAJES marcan la diferencia.
+- Sin ingresos por resultados ni gastos de staff todavía (diferidos).
+
+### Draft de calendario del equipo (`teamRacePlan`, `ownedTeamAttendance`)
+
+- Un equipo con dueño parte de su calendario NATURAL (`isNaturalRace`): un Continental corre las
+  continentales de su continente; un WorldTour las .WT; un ProTeam las .Pro. El manager solo guarda
+  EXCEPCIONES (`attend`): saltar una natural o añadir una de fuera. Los bots van en automático.
+
+### Diferido (con razón)
+
+- **Penalización de entrenamiento por días de viaje**: los días de viaje reducirían el entrenamiento;
+  toca la progresión de forma de todo el mundo (sensible), así que se deja para validar con el usuario.
+- **Decisión de bots por coste/beneficio**: el modelo `attendanceDecision` existe (valor esperado vs
+  coste), pero no se usa para que los bots SALTEN carreras: la composición continental (mayoría
+  regional + wildcards acotadas) ya está calibrada y no se quiere desestabilizar.
+- **Ingresos por resultados / ascensos por puntos**: el ascenso/descenso es por fuerza de plantilla
+  (fama), no por puntos de temporada; cambiarlo es una decisión de diseño pendiente.

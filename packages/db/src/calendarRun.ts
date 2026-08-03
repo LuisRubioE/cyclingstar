@@ -372,10 +372,14 @@ async function convokeField(
       eq(riders.worldId, worldId),
       inArray(riders.country, countries),
       isNull(riders.retiredAt),
+      // SOLO NPCs: el relleno son las "selecciones nacionales / equipos club" del continente. Un
+      // humano entra por convocatoria de su equipo o por auto-inscripción (que le cobra el viaje);
+      // si se colara aquí, correría gratis y saltaría su opt-in/economía de agente libre.
+      isNull(riders.userId),
     ]
     // Un equipo con dueño que decidió NO acudir (forcedOut) no aporta ni corredores de relleno: si el
     // manager saltó la carrera, ninguno de los suyos corre aquí (ni como individual del continente).
-    // Se preservan los agentes libres (team_id nulo), que sí pueden rellenar.
+    // Se preservan los agentes libres NPC (team_id nulo), que sí pueden rellenar.
     if (forcedOut.size > 0) {
       conds.push(or(isNull(riders.teamId), notInArray(riders.teamId, [...forcedOut]))!)
     }
