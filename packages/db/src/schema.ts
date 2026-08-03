@@ -571,10 +571,11 @@ export const raceEntries = pgTable(
 )
 
 /**
- * Calendario/plan de carreras de un EQUIPO gestionado por un humano (draft de calendario): el manager
- * elige a qué carreras acude su equipo esta temporada. Si un equipo con dueño tiene plan, corre
- * EXACTAMENTE sus carreras planificadas (entre las que su división admite); sin plan, va en automático
- * como los bots. Los bots no llevan plan (esta tabla solo tiene equipos humanos).
+ * Calendario del EQUIPO gestionado por un humano (draft de calendario). El manager parte del
+ * calendario NATURAL de su equipo (sus carreras de casa: un continental corre las de su continente,
+ * un WorldTour las .WT, etc.) y solo guarda EXCEPCIONES: quitar una carrera natural (attend=false) o
+ * añadir una que no lo es —viajar fuera— (attend=true). Sin fila = comportamiento natural. Los bots
+ * no llevan plan (van en automático); esta tabla solo tiene equipos con dueño.
  */
 export const teamRacePlan = pgTable(
   'team_race_plan',
@@ -585,6 +586,8 @@ export const teamRacePlan = pgTable(
     raceId: text('race_id').notNull(),
     season: integer('season').notNull(),
     createdDay: integer('created_day').notNull(),
+    /** Excepción sobre el calendario natural: true = añadir esta carrera, false = saltarla. */
+    attend: boolean('attend').notNull().default(true),
   },
   (t) => [primaryKey({ columns: [t.teamId, t.raceId, t.season] })],
 )

@@ -33,6 +33,14 @@ function RaceRow({
           {race.name}
         </Link>
         <span className="ml-2 font-mono text-[11px] text-slate-400">.{race.raceClass}</span>
+        {race.natural && (
+          <span
+            className="ml-2 rounded bg-slate-900/5 px-1.5 py-0.5 text-[10px] font-medium text-slate-500"
+            title="Home race — part of your team's natural calendar"
+          >
+            home
+          </span>
+        )}
       </td>
       <td className="px-2 py-2">
         {race.country && (
@@ -101,10 +109,10 @@ export function TeamCalendar() {
     <section className="space-y-4">
       <SectionBar>Race program · {data.teamName}</SectionBar>
       <p className="text-sm text-slate-500">
-        Plan which races your team will contest this season. Once you add any race, your team races{' '}
-        <strong>exactly</strong> its planned calendar and skips the rest; with an empty plan it
-        enters races automatically. Travel (transport + hotel) is charged to the team budget per
-        rider when each race convokes.
+        Your team's <strong>home races</strong> are planned by default — for a continental team,
+        every continental race in its region. <strong>Add</strong> races to travel further afield,
+        or <strong>Drop</strong> ones you want to skip. Travel (transport + hotel) is charged to the
+        team budget per rider when each race convokes.
       </p>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">

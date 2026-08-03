@@ -17,11 +17,12 @@ import {
   countriesInContinent,
   raceAttendanceCost,
 } from '@cyclingstar/shared'
-import { and, desc, eq, inArray, isNotNull, isNull, notInArray, sql } from 'drizzle-orm'
+import { and, desc, eq, inArray, isNotNull, isNull, notInArray, or, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import { creditRider } from './economy.js'
 import { raceEntries, raceRosters, riderRacePrefs, riders, teamRacePlan, teams } from './schema.js'
 import { runOneStage } from './stageRun.js'
+import { isNaturalRace } from './teamPlan.js'
 
 /**
  * El calendario corre en el tick (Paso 44). Cada carrera del calendario (SPEC 8) ejecuta sus etapas
@@ -240,23 +241,30 @@ async function convokeField(
     wildcardSlots,
     rotateBy,
   )
-  // Draft de calendario (equipos con dueño): un equipo humano CON plan esta temporada corre
-  // exactamente sus carreras planificadas —se le fuerza en las que eligió y se le saca de las que no—,
-  // dentro de las que su división admite. Sin equipos humanos (mundo bot puro) esto no cambia nada.
-  const planRows = await tx
-    .select({ teamId: teamRacePlan.teamId, raceId: teamRacePlan.raceId })
+  // Draft de calendario (equipos con dueño): cada equipo humano corre su calendario NATURAL (sus
+  // carreras de casa) salvo las excepciones que guarde el manager —saltar una natural o añadir una de
+  // fuera—. Se le fuerza dentro de las que le tocan y fuera de las que no. Sin equipos humanos (mundo
+  // bot puro) no hay overrides ni dueños, así que esto no cambia nada.
+  const overrideRows = await tx
+    .select({ teamId: teamRacePlan.teamId, attend: teamRacePlan.attend })
     .from(teamRacePlan)
-    .where(eq(teamRacePlan.season, season))
-  const plannedTeams = new Set(planRows.map((p) => p.teamId))
-  const draftedHere = new Set(planRows.filter((p) => p.raceId === race.id).map((p) => p.teamId))
+    .where(and(eq(teamRacePlan.season, season), eq(teamRacePlan.raceId, race.id)))
+  const overrideByTeam = new Map(overrideRows.map((o) => [o.teamId, o.attend]))
+  const forcedIn = new Set<string>()
+  const forcedOut = new Set<string>()
+  for (const t of eligible) {
+    if (!t.ownerUserId) continue // los bots van en automático
+    const natural = isNaturalRace(race, t.division, continentForCountry(t.country ?? ''))
+    const attend = overrideByTeam.has(t.id) ? overrideByTeam.get(t.id)! : natural
+    if (attend) forcedIn.add(t.id)
+    else forcedOut.add(t.id)
+  }
   let teamRows = auto
-  if (plannedTeams.size > 0) {
-    // Fuera los equipos con plan que NO eligieron esta carrera.
-    teamRows = auto.filter((t) => !(plannedTeams.has(t.id) && !draftedHere.has(t.id)))
-    // Dentro los equipos con plan que SÍ la eligieron y que su división admite (están en eligible).
+  if (forcedIn.size > 0 || forcedOut.size > 0) {
+    teamRows = auto.filter((t) => !forcedOut.has(t.id))
     const present = new Set(teamRows.map((t) => t.id))
     for (const t of eligible) {
-      if (draftedHere.has(t.id) && !present.has(t.id)) teamRows.push(t)
+      if (forcedIn.has(t.id) && !present.has(t.id)) teamRows.push(t)
     }
   }
   if (teamRows.length === 0) return []
@@ -373,6 +381,12 @@ async function convokeField(
       inArray(riders.country, countries),
       isNull(riders.retiredAt),
     ]
+    // Un equipo con dueño que decidió NO acudir (forcedOut) no aporta ni corredores de relleno: si el
+    // manager saltó la carrera, ninguno de los suyos corre aquí (ni como individual del continente).
+    // Se preservan los agentes libres (team_id nulo), que sí pueden rellenar.
+    if (forcedOut.size > 0) {
+      conds.push(or(isNull(riders.teamId), notInArray(riders.teamId, [...forcedOut]))!)
+    }
     const excluded = [...new Set([...already, ...busy])]
     if (excluded.length > 0) conds.push(notInArray(riders.id, excluded))
     const fillers = await tx

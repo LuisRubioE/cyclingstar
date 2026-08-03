@@ -9,6 +9,7 @@ export interface TeamCalendarRace {
   travelPerRider: number
   squad: number
   drafted: boolean
+  natural: boolean
 }
 
 export interface TeamCalendar {

@@ -1,0 +1,1 @@
+ALTER TABLE "team_race_plan" ADD COLUMN "attend" boolean DEFAULT true NOT NULL;
