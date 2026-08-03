@@ -202,6 +202,7 @@ export async function runCalendarDay(
       raceId: race.id,
       raceName: race.name,
       level: race.level,
+      raceClass: race.raceClass,
       season,
       stageDay: idx,
       kind: stage.kind,

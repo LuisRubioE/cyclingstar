@@ -1,4 +1,4 @@
-import { type RaceLevel, gcResultPoints, stageResultPoints } from '@cyclingstar/engine'
+import { type RaceClass, gcPointsByClass, stagePointsByClass } from '@cyclingstar/engine'
 import { type SQL, and, asc, desc, eq, gte, isNull, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import type { Database } from './client.js'
@@ -12,14 +12,14 @@ import { palmares, riders, teams } from './schema.js'
 type Db = ReturnType<typeof drizzle>
 type Tx = Parameters<Parameters<Db['transaction']>[0]>[0]
 
-/** Suma puntos de ranking al corredor por su puesto de etapa (0 = ganador). */
+/** Suma puntos de ranking al corredor por su puesto de etapa (0 = ganador), según la clase. */
 export async function addStagePoints(
   tx: Tx,
   riderId: string,
-  level: RaceLevel,
+  raceClass: RaceClass,
   placing: number,
 ): Promise<void> {
-  const pts = stageResultPoints(level, placing)
+  const pts = stagePointsByClass(raceClass, placing)
   if (pts > 0) {
     await tx
       .update(riders)
@@ -28,14 +28,14 @@ export async function addStagePoints(
   }
 }
 
-/** Suma puntos de ranking al corredor por su puesto en la general (0 = ganador). */
+/** Suma puntos de ranking al corredor por su puesto en la general (0 = ganador), según la clase. */
 export async function addGcPoints(
   tx: Tx,
   riderId: string,
-  level: RaceLevel,
+  raceClass: RaceClass,
   placing: number,
 ): Promise<void> {
-  const pts = gcResultPoints(level, placing)
+  const pts = gcPointsByClass(raceClass, placing)
   if (pts > 0) {
     await tx
       .update(riders)

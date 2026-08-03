@@ -1,4 +1,5 @@
 import {
+  type RaceClass,
   type RaceLevel,
   type StageInput,
   type StageOrders,
@@ -57,6 +58,8 @@ export interface StageRunSpec {
   raceId: string
   raceName: string
   level: RaceLevel
+  /** Clase de la carrera (.WT/.Pro/.1/.2/.NC): escala los puntos de ranking. */
+  raceClass: RaceClass
   season: number
   /** Número de etapa (1-based), usado como stageDay en el almacenamiento y para mostrar. */
   stageDay: number
@@ -338,7 +341,7 @@ async function awardOutcome(
   }
 
   for (const r of output.results) {
-    await addStagePoints(tx, r.riderId, spec.level, r.puesto - 1)
+    await addStagePoints(tx, r.riderId, spec.raceClass, r.puesto - 1)
   }
   await recordPalmares(tx, {
     worldId,
@@ -352,7 +355,7 @@ async function awardOutcome(
   })
   if (spec.isFinal) {
     for (let i = 0; i < gcOrder.length; i++) {
-      await addGcPoints(tx, gcOrder[i]!, spec.level, i)
+      await addGcPoints(tx, gcOrder[i]!, spec.raceClass, i)
     }
     if (gcWinnerId) {
       await recordPalmares(tx, {
