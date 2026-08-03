@@ -123,6 +123,12 @@ describe('engine: calendario de temporada (SPEC 8, Paso 34)', () => {
     expect(byId.get('race-spain')?.country).toBe('ES')
   })
 
+  it('TODAS las carreras llevan país (base del sistema de viajes)', () => {
+    for (const race of SEASON_CALENDAR) {
+      expect(race.country).toMatch(/^[A-Z]{2}$/)
+    }
+  })
+
   it('cubre los tres niveles y los tres formatos', () => {
     const levels = new Set(SEASON_CALENDAR.map((r) => r.level))
     expect(levels).toEqual(new Set(['WT', 'PRS', 'CON']))

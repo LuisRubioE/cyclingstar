@@ -52,6 +52,10 @@ const CONTINENT_BY_COUNTRY: Record<string, Continent> = {
   AZ: 'Europe',
   MK: 'Europe',
   XK: 'Europe',
+  BA: 'Europe',
+  AL: 'Europe',
+  AD: 'Europe',
+  CY: 'Europe',
   // Asia
   JP: 'Asia',
   KZ: 'Asia',
@@ -72,6 +76,8 @@ const CONTINENT_BY_COUNTRY: Record<string, Continent> = {
   KG: 'Asia',
   HK: 'Asia',
   BH: 'Asia',
+  OM: 'Asia',
+  TW: 'Asia',
   // África
   ZA: 'Africa',
   MA: 'Africa',
@@ -83,6 +89,10 @@ const CONTINENT_BY_COUNTRY: Record<string, Continent> = {
   NG: 'Africa',
   KE: 'Africa',
   TN: 'Africa',
+  BJ: 'Africa',
+  MU: 'Africa',
+  CM: 'Africa',
+  BF: 'Africa',
   // América
   CO: 'America',
   US: 'America',
