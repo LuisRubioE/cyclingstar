@@ -91,8 +91,16 @@ export interface PublicRider {
 
 /**
  * Mapeo a estrellas de media en media (SPEC 3.2): stars(x) = clamp(round(x/10)/2, 0.5, 5).
- * El jugador ve estrellas, jamás el número interno.
+ * El jugador ve estrellas, jamás el número interno. Suelo 0.5 (forma, siempre hay algo).
  */
 export function stars(x: number): number {
   return Math.min(5, Math.max(0.5, Math.round(x / 10) / 2))
+}
+
+/**
+ * Estrellas de un ATRIBUTO (0..5, de media en media). Como en la realidad, no ves el número: un
+ * corredor flojo en algo sale casi vacío (0), un especialista llena las 5 estrellas. Sin suelo 0.5.
+ */
+export function attrStars(x: number): number {
+  return Math.min(5, Math.max(0, Math.round(x / 10) / 2))
 }
