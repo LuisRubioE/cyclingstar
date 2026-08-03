@@ -55,17 +55,15 @@ const TEAM_DIST: Record<Division, string[]> = {
     [1, 'AE'],
     [1, 'KZ'],
   ]),
+  // ProTeams reales: 16 equipos con el reparto exacto por país (SPEC 7.1).
   PRS: dist([
-    [4, 'IT'],
-    [3, 'ES'],
+    [4, 'ES'],
+    [3, 'IT'],
     [3, 'FR'],
+    [2, 'US'],
     [2, 'CH'],
-    [1, 'NO'],
+    [1, 'HU'],
     [1, 'BE'],
-    [1, 'NL'],
-    [1, 'US'],
-    [1, 'JP'],
-    [1, 'TH'],
   ]),
   // Reparto exacto de los ~185 Continental reales por país.
   CON: dist([

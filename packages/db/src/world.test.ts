@@ -32,18 +32,18 @@ function stableShape(seed: string) {
 }
 
 describe('db: génesis del mundo (SPEC 10, Paso 33)', () => {
-  it('compone 221 equipos con el reparto real por división (18 WT + 18 PRS + 185 CON)', () => {
+  it('compone 219 equipos con el reparto real por división (18 WT + 16 PRS + 185 CON)', () => {
     const { teams } = planWorld('world-seed')
-    expect(teams).toHaveLength(18 + 18 + 185)
+    expect(teams).toHaveLength(18 + 16 + 185)
     expect(teams.filter((t) => t.division === 'WT')).toHaveLength(18)
-    expect(teams.filter((t) => t.division === 'PRS')).toHaveLength(18)
+    expect(teams.filter((t) => t.division === 'PRS')).toHaveLength(16)
     expect(teams.filter((t) => t.division === 'CON')).toHaveLength(185)
   })
 
   it('genera al menos 3.200 corredores; los fichados tienen equipo, los libres no', () => {
     const { riders } = planWorld('world-seed')
     expect(riders.length).toBeGreaterThanOrEqual(3200)
-    const signed = 18 * 14 + 18 * 12 + 185 * 10
+    const signed = 18 * 14 + 16 * 12 + 185 * 10
     expect(riders.filter((r) => r.teamId !== null)).toHaveLength(signed)
     expect(riders.filter((r) => r.teamId === null).length).toBeGreaterThan(0)
   })
@@ -128,6 +128,14 @@ describe('db: génesis del mundo (SPEC 10, Paso 33)', () => {
       AE: 1,
       KZ: 1,
     })
+  })
+
+  it('los ProTeams usan el reparto real (ES 4, IT 3, FR 3, US 2, CH 2, HU 1, BE 1)', () => {
+    const prs = planWorld('world-seed').teams.filter((t) => t.division === 'PRS')
+    const tally: Record<string, number> = {}
+    for (const t of prs) tally[t.country] = (tally[t.country] ?? 0) + 1
+    expect(tally).toEqual({ ES: 4, IT: 3, FR: 3, US: 2, CH: 2, HU: 1, BE: 1 })
+    expect(prs.length).toBe(16)
   })
 
   it('el país del equipo i coincide con teamCountryByIndex', () => {
