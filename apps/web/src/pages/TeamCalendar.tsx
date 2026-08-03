@@ -130,6 +130,37 @@ export function TeamCalendar() {
         </Panel>
       </div>
 
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <Panel title="Budget">
+          <p className="text-xl font-bold tabular-nums text-slate-800">
+            {data.budget.toLocaleString('en-US')}
+          </p>
+        </Panel>
+        <Panel title="Weekly income">
+          <p className="text-xl font-bold tabular-nums text-emerald-600">
+            +{data.weeklyIncome.toLocaleString('en-US')}
+          </p>
+        </Panel>
+        <Panel title="Weekly wages">
+          <p className="text-xl font-bold tabular-nums text-rose-600">
+            −{data.weeklyWages.toLocaleString('en-US')}
+          </p>
+        </Panel>
+        <Panel title="Weekly net">
+          <p
+            className={`text-xl font-bold tabular-nums ${data.weeklyNet >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}
+          >
+            {data.weeklyNet >= 0 ? '+' : '−'}
+            {Math.abs(data.weeklyNet).toLocaleString('en-US')}
+          </p>
+        </Panel>
+      </div>
+      <p className="text-xs text-slate-400">
+        Sponsors pay a fixed weekly income; wages are your riders' salaries (plus any housing you
+        cover). Travel is charged on top when each race convokes — so a busy calendar of far races
+        eats into the budget faster.
+      </p>
+
       {data.races.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">
           No upcoming races left to plan this season.
