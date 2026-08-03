@@ -542,10 +542,413 @@ const BASE_RACES: CalendarRace[] = [
   oneDay('race-lombardy', 'Race Lombardy', 'WT', 282, classic(252)),
 ]
 
+// --- Calendario real (estructura 2026) por tabla de datos, con nombres NEUTROS por geografía. ---
+// Solo se copian los HECHOS (fechas, clase, formato); los nombres de marca se sustituyen y los
+// perfiles de etapa son autoría propia. Día de temporada = día del año (temporada ≈ año no bisiesto).
+
+const MONTH_CUM = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334]
+/** Día del año (Ene 1 = 1) para una fecha (mes 1-based, día). */
+function doy(month: number, day: number): number {
+  return MONTH_CUM[month - 1]! + day
+}
+
+type Terrain = 'flat' | 'hilly' | 'mountain' | 'cobbles' | 'classic' | 'itt'
+
+interface RaceRow {
+  id: string
+  name: string
+  /** Fecha de arranque real (mes 1-based, día): fija el día de temporada. */
+  m: number
+  d: number
+  raceClass: RaceClass
+  region?: Continent
+  /** Nº de etapas si es vuelta por etapas; ausente/1 = carrera de un día. */
+  stages?: number
+  /** Terreno dominante para el perfil (autoría propia). */
+  terrain?: Terrain
+  /** Km de una carrera de un día (por defecto según terreno). */
+  km?: number
+}
+
+/** Perfil de una carrera de un día según su terreno. */
+function oneDaySpec(terrain: Terrain, km: number): StageSpec {
+  if (terrain === 'cobbles') return cobbles(km)
+  if (terrain === 'classic') return classic(km)
+  if (terrain === 'mountain') return mountain(km)
+  if (terrain === 'hilly') return hilly(km)
+  if (terrain === 'itt') return itt(km)
+  return flat(km)
+}
+
+/** Mezcla determinista de etapas para una vuelta de n etapas con sesgo de terreno (autoría propia). */
+function stageMix(n: number, terrain: Terrain): StageSpec[] {
+  const specs: StageSpec[] = []
+  for (let i = 0; i < n; i++) {
+    const first = i === 0
+    const last = i === n - 1
+    // Una crono hacia el final en vueltas de 6+ etapas (salvo terreno llano).
+    if (n >= 6 && i === n - 2 && terrain !== 'flat') {
+      specs.push(itt(22))
+      continue
+    }
+    if (first) {
+      specs.push(flat(180))
+      continue
+    }
+    if (last) {
+      specs.push(terrain === 'mountain' ? mountain(150) : flat(150))
+      continue
+    }
+    if (terrain === 'mountain') specs.push(i % 2 === 0 ? hilly(175) : mountain(160))
+    else if (terrain === 'hilly') specs.push(i % 2 === 0 ? flat(178) : hilly(172))
+    else specs.push(i % 2 === 0 ? flat(185) : hilly(170))
+  }
+  return specs
+}
+
+/** Construye una carrera del calendario real desde su fila de datos. */
+function buildRace(row: RaceRow): CalendarRace {
+  const startDay = doy(row.m, row.d)
+  const level: RaceLevel = row.raceClass === 'WT' ? 'WT' : row.raceClass === 'Pro' ? 'PRS' : 'CON'
+  const common = {
+    id: row.id,
+    name: row.name,
+    level,
+    raceClass: row.raceClass,
+    startDay,
+    openTo: enrollmentFor(level),
+    ...(row.region ? { region: row.region } : {}),
+  }
+  if (!row.stages || row.stages <= 1) {
+    const spec = oneDaySpec(row.terrain ?? 'flat', row.km ?? 210)
+    return { ...common, format: 'un-dia', stages: [{ ...spec, index: 1, name: row.name }] }
+  }
+  return {
+    ...common,
+    format: 'una-semana',
+    stages: stagesFrom(stageMix(row.stages, row.terrain ?? 'flat')),
+  }
+}
+
 /**
- * Calendario completo de la temporada (SPEC 8): las carreras base más los 92 campeonatos nacionales,
- * ordenado por día de arranque (invariante que asumen los consumidores).
+ * WorldTour real 2026 (35 carreras + las tres grandes vueltas), con nombres neutros por geografía y
+ * fechas reales. Solo hechos; los recorridos son autoría propia.
  */
-export const SEASON_CALENDAR: CalendarRace[] = [...BASE_RACES, ...NATIONAL_CHAMPIONSHIPS].sort(
-  (a, b) => a.startDay - b.startDay,
-)
+const WT_TABLE: RaceRow[] = [
+  {
+    id: 'race-down-under',
+    name: 'Race Down Under',
+    m: 1,
+    d: 20,
+    raceClass: 'WT',
+    stages: 6,
+    terrain: 'hilly',
+  },
+  {
+    id: 'race-great-ocean',
+    name: 'Race Great Ocean',
+    m: 2,
+    d: 1,
+    raceClass: 'WT',
+    terrain: 'hilly',
+  },
+  {
+    id: 'race-emirates',
+    name: 'Race Emirates',
+    m: 2,
+    d: 16,
+    raceClass: 'WT',
+    stages: 7,
+    terrain: 'flat',
+  },
+  {
+    id: 'race-opening-classic',
+    name: 'Race Opening Classic',
+    m: 2,
+    d: 28,
+    raceClass: 'WT',
+    terrain: 'cobbles',
+    km: 200,
+  },
+  {
+    id: 'race-white-roads',
+    name: 'Race White Roads',
+    m: 3,
+    d: 7,
+    raceClass: 'WT',
+    terrain: 'classic',
+    km: 215,
+  },
+  {
+    id: 'race-to-the-sun',
+    name: 'Race to the Sun',
+    m: 3,
+    d: 8,
+    raceClass: 'WT',
+    stages: 8,
+    terrain: 'mountain',
+  },
+  {
+    id: 'race-two-seas',
+    name: 'Race Two Seas',
+    m: 3,
+    d: 9,
+    raceClass: 'WT',
+    stages: 7,
+    terrain: 'hilly',
+  },
+  {
+    id: 'race-sanremo',
+    name: 'Race Sanremo',
+    m: 3,
+    d: 21,
+    raceClass: 'WT',
+    terrain: 'hilly',
+    km: 288,
+  },
+  {
+    id: 'race-catalonia',
+    name: 'Race Catalonia',
+    m: 3,
+    d: 23,
+    raceClass: 'WT',
+    stages: 7,
+    terrain: 'mountain',
+  },
+  {
+    id: 'race-bruges',
+    name: 'Race Bruges',
+    m: 3,
+    d: 25,
+    raceClass: 'WT',
+    terrain: 'cobbles',
+    km: 205,
+  },
+  {
+    id: 'race-harelbeke',
+    name: 'Race Harelbeke',
+    m: 3,
+    d: 27,
+    raceClass: 'WT',
+    terrain: 'cobbles',
+    km: 205,
+  },
+  {
+    id: 'race-wevelgem',
+    name: 'Race Wevelgem',
+    m: 3,
+    d: 29,
+    raceClass: 'WT',
+    terrain: 'cobbles',
+    km: 250,
+  },
+  {
+    id: 'race-across-flanders',
+    name: 'Race Across Flanders',
+    m: 4,
+    d: 1,
+    raceClass: 'WT',
+    terrain: 'cobbles',
+    km: 185,
+  },
+  {
+    id: 'race-flanders',
+    name: 'Race Flanders',
+    m: 4,
+    d: 5,
+    raceClass: 'WT',
+    terrain: 'cobbles',
+    km: 260,
+  },
+  {
+    id: 'race-basque-country',
+    name: 'Race Basque Country',
+    m: 4,
+    d: 6,
+    raceClass: 'WT',
+    stages: 6,
+    terrain: 'mountain',
+  },
+  {
+    id: 'race-roubaix',
+    name: 'Race Roubaix',
+    m: 4,
+    d: 12,
+    raceClass: 'WT',
+    terrain: 'cobbles',
+    km: 257,
+  },
+  {
+    id: 'race-amstel',
+    name: 'Race Amstel',
+    m: 4,
+    d: 19,
+    raceClass: 'WT',
+    terrain: 'hilly',
+    km: 254,
+  },
+  {
+    id: 'race-walloon-wall',
+    name: 'Race Walloon Wall',
+    m: 4,
+    d: 22,
+    raceClass: 'WT',
+    terrain: 'mountain',
+    km: 200,
+  },
+  {
+    id: 'race-liege',
+    name: 'Race Liège',
+    m: 4,
+    d: 26,
+    raceClass: 'WT',
+    terrain: 'classic',
+    km: 255,
+  },
+  {
+    id: 'race-romandy',
+    name: 'Race Romandy',
+    m: 4,
+    d: 28,
+    raceClass: 'WT',
+    stages: 6,
+    terrain: 'mountain',
+  },
+  {
+    id: 'race-frankfurt',
+    name: 'Race Frankfurt',
+    m: 5,
+    d: 1,
+    raceClass: 'WT',
+    terrain: 'hilly',
+    km: 205,
+  },
+  {
+    id: 'race-rhone-alpes',
+    name: 'Race Rhône-Alpes',
+    m: 6,
+    d: 7,
+    raceClass: 'WT',
+    stages: 8,
+    terrain: 'mountain',
+  },
+  {
+    id: 'race-copenhagen',
+    name: 'Race Copenhagen',
+    m: 6,
+    d: 14,
+    raceClass: 'WT',
+    terrain: 'flat',
+    km: 210,
+  },
+  {
+    id: 'race-switzerland',
+    name: 'Race Switzerland',
+    m: 6,
+    d: 17,
+    raceClass: 'WT',
+    stages: 8,
+    terrain: 'mountain',
+  },
+  {
+    id: 'race-san-sebastian',
+    name: 'Race San Sebastián',
+    m: 8,
+    d: 1,
+    raceClass: 'WT',
+    terrain: 'classic',
+    km: 220,
+  },
+  {
+    id: 'race-poland',
+    name: 'Race Poland',
+    m: 8,
+    d: 3,
+    raceClass: 'WT',
+    stages: 7,
+    terrain: 'hilly',
+  },
+  {
+    id: 'race-hamburg',
+    name: 'Race Hamburg',
+    m: 8,
+    d: 16,
+    raceClass: 'WT',
+    terrain: 'flat',
+    km: 216,
+  },
+  {
+    id: 'race-benelux',
+    name: 'Race Benelux',
+    m: 8,
+    d: 19,
+    raceClass: 'WT',
+    stages: 5,
+    terrain: 'flat',
+  },
+  {
+    id: 'race-brittany',
+    name: 'Race Brittany',
+    m: 8,
+    d: 30,
+    raceClass: 'WT',
+    terrain: 'hilly',
+    km: 190,
+  },
+  {
+    id: 'race-quebec',
+    name: 'Race Québec',
+    m: 9,
+    d: 11,
+    raceClass: 'WT',
+    terrain: 'hilly',
+    km: 201,
+  },
+  {
+    id: 'race-montreal',
+    name: 'Race Montréal',
+    m: 9,
+    d: 13,
+    raceClass: 'WT',
+    terrain: 'hilly',
+    km: 209,
+  },
+  {
+    id: 'race-lombardy',
+    name: 'Race Lombardy',
+    m: 10,
+    d: 10,
+    raceClass: 'WT',
+    terrain: 'classic',
+    km: 252,
+  },
+  {
+    id: 'race-guangxi',
+    name: 'Race Guangxi',
+    m: 10,
+    d: 13,
+    raceClass: 'WT',
+    stages: 6,
+    terrain: 'flat',
+  },
+]
+
+const WT_RACES: CalendarRace[] = [
+  ...WT_TABLE.map(buildRace),
+  grandTour('race-italy', 'Race Italy', doy(5, 8)),
+  grandTour('race-spain', 'Race Spain', doy(8, 22)),
+  { ...raceFrance(), startDay: doy(7, 4) },
+]
+
+/**
+ * Calendario completo de la temporada (SPEC 8): el WorldTour real (estructura 2026, nombres neutros)
+ * más las carreras base de menor categoría que aún no se han migrado y los 92 campeonatos nacionales.
+ * Se descartan de BASE_RACES las WT antiguas y cualquiera cuyo id ya use el WorldTour real. Ordenado
+ * por día de arranque (invariante que asumen los consumidores).
+ */
+const WT_IDS = new Set(WT_RACES.map((r) => r.id))
+export const SEASON_CALENDAR: CalendarRace[] = [
+  ...WT_RACES,
+  ...BASE_RACES.filter((r) => r.level !== 'WT' && !WT_IDS.has(r.id)),
+  ...NATIONAL_CHAMPIONSHIPS,
+].sort((a, b) => a.startDay - b.startDay)
