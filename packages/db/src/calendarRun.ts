@@ -65,6 +65,27 @@ const DIVISION_PRIORITY: Partial<Record<RaceClass, Division[]>> = {
   WT: ['WT', 'PRS', 'CON'],
   Pro: ['PRS', 'WT', 'CON'],
 }
+
+/**
+ * Plan de temporada de las tres grandes vueltas. Prestigio (0 = el mejor): el Tour se lleva a los
+ * mejores. Un equipo WorldTour (que las corre las tres) reparte su plantilla por aptitud en tres
+ * grupos DISJUNTOS —el mejor al Tour, el siguiente al Giro, el siguiente a la Vuelta, y así— de modo
+ * que cada gran vuelta corre con corredores distintos y los de la Vuelta llegan frescos (no son las
+ * sobras cansadas de las otras dos).
+ */
+const GRAND_TOUR_PRESTIGE: Record<string, number> = {
+  'race-france': 0,
+  'race-italy': 1,
+  'race-spain': 2,
+}
+/** Aptitud de gran vuelta por vocación (escaladores y fondistas primero, velocistas al final). */
+const GT_VOCATION_BONUS: Record<string, number> = {
+  escalada: 30,
+  fondo: 20,
+  crono: 10,
+  clasicas: 5,
+  velocidad: 0,
+}
 const YOUNG_AGE = 23
 /** Pelotón de un campeonato nacional: los mejores del país, y mínimo para que se dispute. */
 const NATIONAL_FIELD_CAP = 40
@@ -242,11 +263,11 @@ async function convokeField(
   )
   const raceFit = raceVocationFit(race.stages.map((s) => s.kind))
 
-  // Gestión de carga en grandes vueltas: nadie corre las 3 (sería contraproducente). La mayoría
-  // hace 1 y algunos 2. Al convocar una gran vuelta se cuentan las que cada corredor ya lleva esta
-  // temporada, para preferir a los frescos y descartar a quien ya ha corrido dos.
+  // Gran vuelta: prestigio de ESTA (Tour=0, Giro=1, Vuelta=2) y cuántas lleva ya cada corredor esta
+  // temporada (para las wildcards Pro, que a lo sumo corren una).
+  const gtRank = race.format === 'gran-vuelta' ? GRAND_TOUR_PRESTIGE[race.id] : undefined
   const gtCount = new Map<string, number>()
-  if (race.format === 'gran-vuelta') {
+  if (gtRank != null) {
     const gtKeys = SEASON_CALENDAR.filter(
       (r) => r.format === 'gran-vuelta' && `${r.id}:s${season}` !== raceKey,
     ).map((r) => `${r.id}:s${season}`)
@@ -258,16 +279,25 @@ async function convokeField(
       for (const row of rows) gtCount.set(row.riderId, (gtCount.get(row.riderId) ?? 0) + 1)
     }
   }
+  const gtSuit = (m: { fame: number; archetype: string }) =>
+    m.fame + (GT_VOCATION_BONUS[m.archetype] ?? 0)
 
   const rosterValues: { raceId: string; riderId: string }[] = []
   for (const team of teamRows) {
     let members = byTeam.get(team.id) ?? []
-    if (race.format === 'gran-vuelta') {
-      // Frescos = sin grandes vueltas aún; se tira de los que ya llevan una solo si faltan; los que
-      // ya llevan dos quedan fuera (nadie hace las tres).
-      const fresh = members.filter((m) => (gtCount.get(m.id) ?? 0) === 0)
-      const oneGt = members.filter((m) => (gtCount.get(m.id) ?? 0) === 1)
-      members = fresh.length >= size ? fresh : [...fresh, ...oneGt]
+    if (gtRank != null) {
+      if (team.division === 'WT') {
+        // Plan de temporada: los WorldTour corren las tres. Reparten su plantilla por aptitud en tres
+        // grupos disjuntos (los mejores al Tour); esta gran vuelta se lleva su tercio. Nadie repite,
+        // así que la Vuelta corre con gente fresca y distinta, no con las sobras.
+        const ranked = [...members].sort(
+          (a, b) => gtSuit(b) - gtSuit(a) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
+        )
+        members = ranked.filter((_, i) => i % 3 === gtRank)
+      } else {
+        // Wildcards (Pro): a lo sumo una gran vuelta; usa a los que aún no han corrido ninguna.
+        members = members.filter((m) => (gtCount.get(m.id) ?? 0) === 0)
+      }
     }
     if (members.length === 0) continue
     const cands: CallupCandidate[] = members.map((m) => ({
