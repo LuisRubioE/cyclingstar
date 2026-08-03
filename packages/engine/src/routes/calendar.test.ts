@@ -108,6 +108,21 @@ describe('engine: calendario de temporada (SPEC 8, Paso 34)', () => {
     }
   })
 
+  it('las carreras globales (WT/Pro) y los campeonatos llevan país; el NC coincide con su país', () => {
+    for (const race of SEASON_CALENDAR) {
+      if (race.championshipCountry) {
+        expect(race.country).toBe(race.championshipCountry)
+      } else if (race.level === 'WT' || race.level === 'PRS') {
+        expect(race.country).toMatch(/^[A-Z]{2}$/)
+      }
+    }
+    // Las grandes vueltas en su país real.
+    const byId = new Map(SEASON_CALENDAR.map((r) => [r.id, r]))
+    expect(byId.get('race-france')?.country).toBe('FR')
+    expect(byId.get('race-italy')?.country).toBe('IT')
+    expect(byId.get('race-spain')?.country).toBe('ES')
+  })
+
   it('cubre los tres niveles y los tres formatos', () => {
     const levels = new Set(SEASON_CALENDAR.map((r) => r.level))
     expect(levels).toEqual(new Set(['WT', 'PRS', 'CON']))

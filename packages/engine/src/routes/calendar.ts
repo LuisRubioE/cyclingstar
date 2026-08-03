@@ -51,6 +51,11 @@ export interface CalendarRace {
    * mejores corredores de ESE país (no por equipos). Código de país ISO alpha-2.
    */
   championshipCountry?: string
+  /**
+   * País donde se disputa (ISO alpha-2): base del sistema de viajes (coste de desplazamiento del
+   * corredor/equipo). Se abstrae a un solo país por carrera. Si falta, se cae al continente (region).
+   */
+  country?: string
   stages: CalendarStage[]
   /** Descansos tras estas etapas (solo grandes vueltas). */
   restAfter?: number[]
@@ -227,6 +232,7 @@ function grandTour(id: string, name: string, startDay: number): CalendarRace {
     format: 'gran-vuelta',
     startDay,
     openTo: enrollmentFor('WT'),
+    ...(RACE_COUNTRY[id] ? { country: RACE_COUNTRY[id] } : {}),
     stages: stagesFrom(specs),
     restAfter: [9, 15],
   }
@@ -267,6 +273,7 @@ function raceFrance(): CalendarRace {
     format: 'gran-vuelta',
     startDay: 175,
     openTo: enrollmentFor('WT'),
+    country: 'FR',
     stages: stagesFrom(specs),
     restAfter: [9, 15],
   }
@@ -308,6 +315,7 @@ function nationalChampionship(code: string, name: string): CalendarRace {
     startDay,
     openTo: [],
     championshipCountry: code,
+    country: code,
     stages: [{ ...classic(220), index: 1, name: raceName }],
   }
 }
@@ -335,6 +343,8 @@ interface RaceRow {
   d: number
   raceClass: RaceClass
   region?: Continent
+  /** País donde se disputa (ISO alpha-2). Si falta, se toma de RACE_COUNTRY por id. */
+  country?: string
   /** Nº de etapas si es vuelta por etapas; ausente/1 = carrera de un día. */
   stages?: number
   /** Terreno dominante para el perfil (autoría propia). */
@@ -380,9 +390,117 @@ function stageMix(n: number, terrain: Terrain): StageSpec[] {
 }
 
 /** Construye una carrera del calendario real desde su fila de datos. */
+/**
+ * País (ISO alpha-2) donde se disputa cada carrera global (WorldTour y ProSeries) y las grandes
+ * vueltas, por su geografía real (solo el hecho, no la marca). Base del sistema de viajes. Las
+ * continentales llevan su país en la propia fila (o, si falta, se usa el continente).
+ */
+const RACE_COUNTRY: Record<string, string> = {
+  // WorldTour + grandes vueltas
+  'race-down-under': 'AU',
+  'race-great-ocean': 'AU',
+  'race-emirates': 'AE',
+  'race-opening-classic': 'BE',
+  'race-white-roads': 'IT',
+  'race-to-the-sun': 'FR',
+  'race-two-seas': 'IT',
+  'race-sanremo': 'IT',
+  'race-catalonia': 'ES',
+  'race-bruges': 'BE',
+  'race-harelbeke': 'BE',
+  'race-wevelgem': 'BE',
+  'race-across-flanders': 'BE',
+  'race-flanders': 'BE',
+  'race-basque-country': 'ES',
+  'race-roubaix': 'FR',
+  'race-amstel': 'NL',
+  'race-walloon-wall': 'BE',
+  'race-liege': 'BE',
+  'race-romandy': 'CH',
+  'race-frankfurt': 'DE',
+  'race-italy': 'IT',
+  'race-rhone-alpes': 'FR',
+  'race-copenhagen': 'DK',
+  'race-switzerland': 'CH',
+  'race-france': 'FR',
+  'race-san-sebastian': 'ES',
+  'race-poland': 'PL',
+  'race-hamburg': 'DE',
+  'race-benelux': 'BE',
+  'race-spain': 'ES',
+  'race-brittany': 'FR',
+  'race-quebec': 'CA',
+  'race-montreal': 'CA',
+  'race-lombardy': 'IT',
+  'race-guangxi': 'CN',
+  // ProSeries
+  'race-arabia': 'SA',
+  'race-surf-coast': 'AU',
+  'race-valencia': 'ES',
+  'race-muscat': 'OM',
+  'race-oman': 'OM',
+  'race-figueira': 'PT',
+  'race-almeria': 'ES',
+  'race-algarve': 'PT',
+  'race-andalusia': 'ES',
+  'race-ardeche': 'FR',
+  'race-drome': 'FR',
+  'race-kuurne': 'BE',
+  'race-laigueglia': 'IT',
+  'race-nokere': 'BE',
+  'race-turin': 'IT',
+  'race-denain': 'FR',
+  'race-bredene': 'BE',
+  'race-navarre': 'ES',
+  'race-loire': 'FR',
+  'race-schelde': 'BE',
+  'race-hainan': 'CN',
+  'race-brabant': 'BE',
+  'race-alps': 'IT',
+  'race-turkiye': 'TR',
+  'race-morbihan': 'FR',
+  'race-leon': 'ES',
+  'race-hungary': 'HU',
+  'race-dunkerque': 'FR',
+  'race-hauts-de-france': 'FR',
+  'race-mayenne': 'FR',
+  'race-norway': 'NO',
+  'race-wallonia': 'BE',
+  'race-brussels': 'BE',
+  'race-franco-belgian': 'FR',
+  'race-belgium': 'BE',
+  'race-slovenia': 'SI',
+  'race-qinghai': 'CN',
+  'race-denmark': 'DK',
+  'race-burgos': 'ES',
+  'race-arctic': 'NO',
+  'race-czechia': 'CZ',
+  'race-germany': 'DE',
+  'race-britain': 'GB',
+  'race-maryland': 'US',
+  'race-prato': 'IT',
+  'race-peccioli': 'IT',
+  'race-fourmies': 'FR',
+  'race-namur': 'BE',
+  'race-luxembourg': 'LU',
+  'race-flandrien': 'BE',
+  'race-croatia': 'HR',
+  'race-langkawi': 'MY',
+  'race-emilia': 'IT',
+  'race-munster': 'DE',
+  'race-legnano': 'IT',
+  'race-varese': 'IT',
+  'race-piedmont': 'IT',
+  'race-tours': 'FR',
+  'race-veneto': 'IT',
+  'race-japan': 'JP',
+  'race-veneto-classic': 'IT',
+}
+
 function buildRace(row: RaceRow): CalendarRace {
   const startDay = doy(row.m, row.d)
   const level: RaceLevel = row.raceClass === 'WT' ? 'WT' : row.raceClass === 'Pro' ? 'PRS' : 'CON'
+  const country = row.country ?? RACE_COUNTRY[row.id]
   const common = {
     id: row.id,
     name: row.name,
@@ -391,6 +509,7 @@ function buildRace(row: RaceRow): CalendarRace {
     startDay,
     openTo: enrollmentFor(level),
     ...(row.region ? { region: row.region } : {}),
+    ...(country ? { country } : {}),
   }
   if (!row.stages || row.stages <= 1) {
     const spec = oneDaySpec(row.terrain ?? 'flat', row.km ?? 210)
