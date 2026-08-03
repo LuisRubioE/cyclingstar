@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom'
 import { type RecordEntry, fetchHallOfFame, fetchRecords } from '../api/rankings'
 import { Flag } from '../components/Flag'
 import { RiderName } from '../components/RiderName'
-import { RiderPortrait } from '../components/RiderPortrait'
 
 function RecordCard({
   title,
@@ -98,7 +97,6 @@ export function HallOfFame() {
                   <td className="w-8 py-1.5 pl-4 tabular-nums text-slate-400">{i + 1}</td>
                   <td className="py-1.5">
                     <span className="flex items-center gap-2">
-                      <RiderPortrait seed={r.riderId} size={24} />
                       <Flag code={r.country} size={16} />
                       <RiderName riderId={r.riderId} name={r.name} isBot={r.isBot} />
                     </span>

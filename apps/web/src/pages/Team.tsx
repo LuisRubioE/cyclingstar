@@ -5,7 +5,6 @@ import { fetchTeam, fetchTeamControl, fetchTeamNews, takeOverTeam } from '../api
 import { Flag } from '../components/Flag'
 import { Jersey } from '../components/Jersey'
 import { RiderName } from '../components/RiderName'
-import { RiderPortrait } from '../components/RiderPortrait'
 import { TeamManager } from '../components/TeamManager'
 
 const DIVISION_LABEL: Record<string, string> = {
@@ -100,10 +99,7 @@ export function Team() {
           <tbody>
             {data.roster.map((r) => (
               <tr key={r.id} className="border-b border-slate-100 last:border-0">
-                <td className="w-9 py-1.5 pl-4">
-                  <RiderPortrait seed={r.id} size={28} />
-                </td>
-                <td className="w-6 py-1.5">
+                <td className="w-6 py-1.5 pl-4">
                   <Flag code={r.country} size={16} />
                 </td>
                 <td className="py-1.5">

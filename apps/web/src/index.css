@@ -1,1 +1,17 @@
 @import 'tailwindcss';
+
+/* Paleta de marca estilo "manager" (cabeceras de panel en cian, barras de sección doradas,
+   cabecera oscura). Tokens de Tailwind v4 para usarlos como utilidades (bg-brand-cyan, etc.). */
+@theme {
+  --color-brand-navy: #123a5c;
+  --color-brand-navy-dark: #0b2740;
+  --color-brand-cyan: #1499bb;
+  --color-brand-cyan-light: #35bdda;
+  --color-brand-gold: #d99400;
+  --color-brand-gold-light: #eaa90c;
+}
+
+/* Fondo del tablero: gris azulado, para que las tarjetas blancas resalten como en un manager. */
+body {
+  background-color: #e8edf2;
+}
