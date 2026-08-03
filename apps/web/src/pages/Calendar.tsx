@@ -183,6 +183,27 @@ function NationalChampsCard({ races }: { races: CalendarRaceSummary[] }) {
   )
 }
 
+const MONTH_NAMES = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+]
+/** Último día (del año) de cada mes acumulado; convierte un día 1..365 en índice de mes 0..11. */
+const MONTH_END = [31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365]
+function monthOfDay(day: number): number {
+  for (let m = 0; m < MONTH_END.length; m++) if (day <= MONTH_END[m]!) return m
+  return 11
+}
+
 /** El calendario de la temporada: carreras base + los campeonatos nacionales, por día (Paso 34). */
 export function Calendar() {
   const { data, isPending, isError } = useQuery({ queryKey: ['calendar'], queryFn: fetchCalendar })
@@ -208,6 +229,25 @@ export function Calendar() {
 
   const nationCount = new Set(nationals.map((r) => r.championshipCountry)).size
 
+  // Cabeceras de mes: el calendario es largo (400+ carreras), así que separamos por mes para ojear.
+  const rows: ReactElement[] = []
+  let lastMonth = -1
+  for (const it of items) {
+    const month = monthOfDay(it.day)
+    if (month !== lastMonth) {
+      rows.push(
+        <div
+          key={`m-${month}`}
+          className="sticky top-0 z-10 border-b border-slate-200 bg-slate-50/95 px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-slate-400 backdrop-blur"
+        >
+          {MONTH_NAMES[month]}
+        </div>,
+      )
+      lastMonth = month
+    }
+    rows.push(it.node)
+  }
+
   return (
     <section className="space-y-4">
       <SectionBar>Season calendar</SectionBar>
@@ -216,7 +256,7 @@ export function Calendar() {
         stage races, one-day classics and every nation's Elite &amp; U23 titles.
       </p>
       <Panel title="Races" bodyClassName="p-0">
-        {items.map((it) => it.node)}
+        {rows}
       </Panel>
     </section>
   )
