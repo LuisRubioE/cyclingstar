@@ -48,6 +48,7 @@ export async function raceWorldDay(
     raceId: TEST_TOUR_ID,
     raceName: 'Test tour',
     level: 'WT',
+    raceClass: 'WT',
     season: Math.floor(gameDay / 364),
     stageDay: stage.day,
     kind: stage.kind,

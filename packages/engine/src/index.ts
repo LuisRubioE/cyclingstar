@@ -64,7 +64,12 @@ export {
 export { renderJerseySvg } from './world/jersey.js'
 export { neoproAge, shouldRetire } from './world/lifecycle.js'
 export { gcPrizes, stagePrize } from './world/prizes.js'
-export { gcResultPoints, stageResultPoints } from './world/points.js'
+export {
+  gcPointsByClass,
+  gcResultPoints,
+  stagePointsByClass,
+  stageResultPoints,
+} from './world/points.js'
 export { renderNews, type NewsData, type NewsKind } from './world/news.js'
 export {
   callupScore,
