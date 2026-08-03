@@ -13,6 +13,7 @@ import {
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { fetchOrders, saveOrders } from '../api/training'
+import { Panel, SectionBar } from '../components/Panel'
 
 const HORIZON = 7
 
@@ -97,17 +98,16 @@ export function Training() {
   const planByDay = new Map(plan.map((day) => [day.gameDay, day]))
 
   return (
-    <section className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Training plan</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Leave your orders for the week. Without orders, your coach picks a reasonable plan. On
-          race days you rest and race — no training.
-        </p>
-      </div>
+    <section className="space-y-4">
+      <SectionBar>Training plan</SectionBar>
+      <p className="text-sm text-slate-500">
+        Leave your orders for the week. Without orders, your coach picks a reasonable plan. On race
+        days you rest and race — no training.
+      </p>
 
-      <div className="space-y-2">
-        {days.map((gameDay) => {
+      <Panel title="Weekly plan">
+        <div className="space-y-2">
+          {days.map((gameDay) => {
           const position = seasonPosition(gameDay)
           if (raceDays.has(gameDay)) {
             return (
@@ -172,7 +172,8 @@ export function Training() {
             </div>
           )
         })}
-      </div>
+        </div>
+      </Panel>
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 

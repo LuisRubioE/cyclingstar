@@ -257,6 +257,17 @@ const COUNTRY_WEIGHTS: Record<string, number> = {
   BH: 1,
   XK: 1,
   HN: 1,
+  // Wave 11: naciones anfitrionas de carreras continentales (para que tengan corredores y campeonato).
+  AD: 1,
+  AL: 1,
+  BA: 1,
+  BF: 1,
+  BJ: 1,
+  CM: 1,
+  CY: 1,
+  MU: 1,
+  OM: 1,
+  TW: 1,
 }
 const COUNTRIES = Object.entries(COUNTRY_WEIGHTS).flatMap(([code, w]) => Array(w).fill(code))
 const PHILOSOPHIES: Philosophy[] = ['general', 'sprints', 'clasicas', 'cantera', 'equilibrado']

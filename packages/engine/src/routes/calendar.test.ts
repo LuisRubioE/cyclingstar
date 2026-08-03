@@ -3,11 +3,11 @@ import { RACE_CLASSES } from './uci.js'
 import { SEASON_CALENDAR } from './calendar.js'
 
 describe('engine: calendario de temporada (SPEC 8, Paso 34)', () => {
-  it('incluye el WorldTour real (36) y los 92 campeonatos nacionales, con id único', () => {
+  it('incluye el WorldTour real (36) y los 102 campeonatos nacionales, con id único', () => {
     const wt = SEASON_CALENDAR.filter((r) => r.level === 'WT')
     const nc = SEASON_CALENDAR.filter((r) => r.championshipCountry)
     expect(wt).toHaveLength(36) // 33 de un día/semana + 3 grandes vueltas
-    expect(nc).toHaveLength(92)
+    expect(nc).toHaveLength(102)
     const ids = SEASON_CALENDAR.map((r) => r.id)
     expect(new Set(ids).size).toBe(ids.length)
   })

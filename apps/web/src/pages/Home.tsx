@@ -5,6 +5,7 @@ import { fetchHealth } from '../api/health'
 import { fetchMyRider, fetchRiderSummary } from '../api/rider'
 import { fetchOrders } from '../api/training'
 import { Logo } from '../components/Logo'
+import { Panel, SectionBar, InfoRow } from '../components/Panel'
 import { TeamLink } from '../components/TeamLink'
 import { WorldClock } from '../components/WorldClock'
 
@@ -21,41 +22,32 @@ const ACTIONS = [
 function SystemStatus() {
   const health = useQuery({ queryKey: ['health'], queryFn: fetchHealth })
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-      <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-        System status
-      </h2>
-      {health.isPending && <p className="mt-3 text-slate-500">Checking…</p>}
-      {health.isError && <p className="mt-3 text-red-600">Could not reach the server.</p>}
+    <Panel title="System status">
+      {health.isPending && <p className="text-slate-500">Checking…</p>}
+      {health.isError && <p className="text-red-600">Could not reach the server.</p>}
       {health.data && (
-        <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
-          <dt className="text-slate-500">Server</dt>
-          <dd className="font-medium text-slate-900">{health.data.ok ? 'Online' : 'Degraded'}</dd>
-          <dt className="text-slate-500">Engine version</dt>
-          <dd className="font-medium text-slate-900">{health.data.engineVersion}</dd>
-          <dt className="text-slate-500">Game day</dt>
-          <dd className="font-medium text-slate-900">
+        <div>
+          <InfoRow label="Server">{health.data.ok ? 'Online' : 'Degraded'}</InfoRow>
+          <InfoRow label="Engine version">{health.data.engineVersion}</InfoRow>
+          <InfoRow label="Game day">
             {health.data.gameDay ?? 'the game has not started yet'}
-          </dd>
-          <dt className="text-slate-500">Database</dt>
-          <dd className="font-medium text-slate-900">
+          </InfoRow>
+          <InfoRow label="Database">
             {health.data.migrationsApplied ? 'ready' : 'not migrated'}
-          </dd>
-        </dl>
+          </InfoRow>
+        </div>
       )}
-    </div>
+    </Panel>
   )
 }
 
 /** Guest landing: hero + how-to-play + system status. */
 function GuestHome() {
   return (
-    <section className="space-y-10">
+    <section className="space-y-4">
       <div className="space-y-4">
         <Logo size={96} className="mb-2" />
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-          Race. Train. Rise.
-        </h1>
+        <SectionBar>Race. Train. Rise.</SectionBar>
         <p className="max-w-xl text-slate-600">
           A persistent cycling world where your rider trains, gets called up, races a full season,
           signs contracts and builds a palmarès — and the world keeps moving without you.
@@ -83,12 +75,10 @@ function GuestHome() {
 /** Logged in but no rider yet: a single clear next step. */
 function NewPlayerHome() {
   return (
-    <section className="space-y-8">
+    <section className="space-y-4">
       <div className="space-y-4">
         <Logo size={80} className="mb-2" />
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-          Welcome to Cycling Star
-        </h1>
+        <SectionBar>Welcome to Cycling Star</SectionBar>
         <p className="max-w-xl text-slate-600">
           You don't have a rider yet. Create one to enter the world — pick a specialty and a name,
           and you're on the start line.
@@ -153,12 +143,12 @@ function PlayerHome({ name }: { name: string }) {
     nextRaceDay != null && orders ? Math.max(0, nextRaceDay - orders.currentDay) : null
 
   return (
-    <section className="space-y-8">
-      <div>
+    <section className="space-y-4">
+      <div className="space-y-1">
         <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
           {health.data?.gameDay != null ? `Game day ${health.data.gameDay}` : 'Your world'}
         </p>
-        <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">{name}</h1>
+        <SectionBar>{name}</SectionBar>
         {summary?.teamName ? (
           <p className="text-sm text-slate-500">
             <TeamLink teamId={summary.teamId} name={summary.teamName} />
@@ -219,9 +209,8 @@ function PlayerHome({ name }: { name: string }) {
         </dl>
       )}
 
-      <div>
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-400">Next steps</h2>
-        <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <Panel title="Next steps">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {ACTIONS.map((a) => (
             <Link
               key={a.to}
@@ -238,7 +227,7 @@ function PlayerHome({ name }: { name: string }) {
             </Link>
           ))}
         </div>
-      </div>
+      </Panel>
 
       <Link
         to="/rider"

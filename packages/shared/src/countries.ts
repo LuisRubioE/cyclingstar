@@ -113,6 +113,17 @@ export const COUNTRIES: Country[] = [
   { code: 'BH', name: 'Bahrain', flag: '🇧🇭' },
   { code: 'XK', name: 'Kosovo', flag: '🇽🇰' },
   { code: 'HN', name: 'Honduras', flag: '🇭🇳' },
+  // Wave 11: naciones que albergan carreras del calendario continental (campeonato propio + nombres).
+  { code: 'AD', name: 'Andorra', flag: '🇦🇩' },
+  { code: 'AL', name: 'Albania', flag: '🇦🇱' },
+  { code: 'BA', name: 'Bosnia and Herzegovina', flag: '🇧🇦' },
+  { code: 'BF', name: 'Burkina Faso', flag: '🇧🇫' },
+  { code: 'BJ', name: 'Benin', flag: '🇧🇯' },
+  { code: 'CM', name: 'Cameroon', flag: '🇨🇲' },
+  { code: 'CY', name: 'Cyprus', flag: '🇨🇾' },
+  { code: 'MU', name: 'Mauritius', flag: '🇲🇺' },
+  { code: 'OM', name: 'Oman', flag: '🇴🇲' },
+  { code: 'TW', name: 'Taiwan', flag: '🇹🇼' },
 ]
 
 const CODES = new Set(COUNTRIES.map((c) => c.code))
