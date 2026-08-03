@@ -71,7 +71,7 @@ export async function runMarket(
   const season = Math.floor(gameDay / SEASON_DAYS)
 
   const humans = await tx
-    .select({ id: riders.id, birthSeason: riders.birthSeason })
+    .select({ id: riders.id, birthSeason: riders.birthSeason, country: riders.country })
     .from(riders)
     .where(and(eq(riders.worldId, worldId), isNotNull(riders.userId)))
 
@@ -101,12 +101,15 @@ export async function runMarket(
     const age = 20 - human.birthSeason + season
     const divisions = divisionsForRating(rating)
 
-    // Equipos que encajan, priorizando los que tienen hueco en plantilla.
+    // Equipos que encajan, priorizando los que tienen hueco en plantilla. Los equipos del MISMO país
+    // que el corredor tiran primero por él (los bots fichan sobre todo compatriotas), sin que sea
+    // exclusivo: un buen corredor también recibe ofertas de fuera.
     const teamRows = await tx
       .select({
         id: teams.id,
         division: teams.division,
         budget: teams.budget,
+        country: teams.country,
         roster: sql<number>`count(${riders.id})::int`,
       })
       .from(teams)
@@ -114,9 +117,14 @@ export async function runMarket(
       .where(and(eq(teams.worldId, worldId), inArray(teams.division, divisions)))
       .groupBy(teams.id)
       .orderBy(desc(teams.budget))
+    const SAME_COUNTRY_BONUS = 10
     const ranked = teamRows
-      .map((t) => ({ ...t, gap: ROSTER_TARGET[t.division as Division] - t.roster }))
-      .sort((a, b) => b.gap - a.gap || b.budget - a.budget)
+      .map((t) => ({
+        ...t,
+        gap: ROSTER_TARGET[t.division as Division] - t.roster,
+        homeBonus: t.country && t.country === human.country ? SAME_COUNTRY_BONUS : 0,
+      }))
+      .sort((a, b) => b.gap + b.homeBonus - (a.gap + a.homeBonus) || b.budget - a.budget)
 
     const rng = seededRng(`${worldSeed}:market:${human.id}:d${gameDay}`)
     const count = rng() < 0.5 ? 2 : 3
