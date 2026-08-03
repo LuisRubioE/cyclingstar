@@ -197,7 +197,7 @@ describe('db: núcleo nacional de la plantilla (SPEC 7.1)', () => {
     // Tamaño conservado (10 y 10).
     expect(Object.values(esp).reduce((a, b) => a + b, 0)).toBe(10)
     expect(Object.values(fra).reduce((a, b) => a + b, 0)).toBe(10)
-    // Con cuota CON 0.7 y paisanos de sobra, cada equipo queda con mayoría clara de su país.
+    // Con la cuota CON y paisanos de sobra, cada equipo queda con mayoría clara de su país.
     expect(esp.ES).toBeGreaterThanOrEqual(7)
     expect(fra.FR).toBeGreaterThanOrEqual(7)
     expect(esp.ES).toBeGreaterThan(esp.FR ?? 0)

@@ -520,7 +520,10 @@ export async function reconcileTeams(tx: Tx, worldId: string): Promise<number> {
  * equipo debería ser de su propio país (SPEC 7.1). Continental tiene una identidad nacional fuerte
  * (mayoría del país); ProTeams algo menos; WorldTour son los más internacionales.
  */
-export const NATIONAL_CORE_SHARE: Record<Division, number> = { WT: 0.35, PRS: 0.5, CON: 0.7 }
+// Cuota de "núcleo nacional" por división: los Continental reales son casi mononacionales (equipos
+// regionales/de desarrollo), los ProTeams tienen mayoría local con fichajes de fuera, y los
+// WorldTour son los más internacionales. Sube CON a 0.85 para que no parezcan legiones extranjeras.
+export const NATIONAL_CORE_SHARE: Record<Division, number> = { WT: 0.35, PRS: 0.55, CON: 0.85 }
 
 export interface ClusterTeam {
   id: string
@@ -577,22 +580,41 @@ export function planNationalClustering(
     const assignment = new Map<string, string>() // riderId → teamId destino
     const filled = new Map<string, number>() // teamId → plazas ya ocupadas
 
-    // Fase 1: núcleo nacional.
+    // Fase 1: núcleo nacional, repartido EQUITATIVAMENTE entre los equipos de un mismo país (round
+    // robin). Así, cuando un país tiene varios equipos y no le sobran paisanos, todos quedan a un
+    // nivel parecido en vez de llenar los primeros y dejar a los últimos como legión extranjera.
     const share = shareByDivision[division]
+    for (const t of teamsD) filled.set(t.id, 0)
+    const teamsByCountry = new Map<string, ClusterTeam[]>()
     for (const t of teamsD) {
-      const total = slots.get(t.id) ?? 0
-      const homeTarget = Math.min(total, Math.round(share * total))
-      const queue = byCountry.get(t.country)
+      const l = teamsByCountry.get(t.country)
+      if (l) l.push(t)
+      else teamsByCountry.set(t.country, [t])
+    }
+    for (const [country, cteams] of teamsByCountry) {
+      const queue = byCountry.get(country)
       if (!queue) continue
-      let placed = 0
-      for (const riderId of queue) {
-        if (placed >= homeTarget) break
-        if (taken.has(riderId)) continue
-        taken.add(riderId)
-        assignment.set(riderId, t.id)
-        placed++
+      const target = new Map(
+        cteams.map((t) => {
+          const total = slots.get(t.id) ?? 0
+          return [t.id, Math.min(total, Math.round(share * total))]
+        }),
+      )
+      let qi = 0
+      let progress = true
+      while (qi < queue.length && progress) {
+        progress = false
+        for (const t of cteams) {
+          if (qi >= queue.length) break
+          if ((filled.get(t.id) ?? 0) >= (target.get(t.id) ?? 0)) continue
+          const riderId = queue[qi]!
+          qi++
+          taken.add(riderId)
+          assignment.set(riderId, t.id)
+          filled.set(t.id, (filled.get(t.id) ?? 0) + 1)
+          progress = true
+        }
       }
-      filled.set(t.id, placed)
     }
 
     // Fase 2: rellenar huecos restantes con los que sobran (orden estable por id).
