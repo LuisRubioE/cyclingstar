@@ -1,5 +1,4 @@
 import {
-  CONFEDERATION,
   CONTINENTS,
   COUNTRIES,
   type Continent,
@@ -36,7 +35,7 @@ function NationCard({ c }: { c: CountrySummary }) {
   )
 }
 
-/** Naciones (#7): países con corredores en activo, agrupados por confederación continental UCI. */
+/** Naciones (#7): países con corredores en activo, agrupados por continente. */
 export function Countries() {
   const { data, isPending, isError } = useQuery({
     queryKey: ['countries'],
@@ -60,16 +59,14 @@ export function Countries() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Nations</h1>
         <p className="mt-1 text-sm text-slate-500">
-          Every country with riders in the world, by UCI confederation. Tap one for its national
-          ranking.
+          Every country with riders in the game, by continent. Tap one for its national ranking.
         </p>
       </div>
 
       {CONTINENTS.filter((cont) => (byContinent.get(cont)?.length ?? 0) > 0).map((cont) => (
         <div key={cont}>
-          <h2 className="mb-2 flex items-baseline gap-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+          <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
             {CONTINENT_LABEL[cont]}
-            <span className="font-normal normal-case text-slate-300">{CONFEDERATION[cont]}</span>
           </h2>
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {byContinent.get(cont)!.map((c) => (

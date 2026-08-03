@@ -33,9 +33,9 @@ function SystemStatus() {
           <dd className="font-medium text-slate-900">{health.data.ok ? 'Online' : 'Degraded'}</dd>
           <dt className="text-slate-500">Engine version</dt>
           <dd className="font-medium text-slate-900">{health.data.engineVersion}</dd>
-          <dt className="text-slate-500">World day</dt>
+          <dt className="text-slate-500">Game day</dt>
           <dd className="font-medium text-slate-900">
-            {health.data.gameDay ?? 'the world has not started yet'}
+            {health.data.gameDay ?? 'the game has not started yet'}
           </dd>
           <dt className="text-slate-500">Database</dt>
           <dd className="font-medium text-slate-900">
@@ -156,7 +156,7 @@ function PlayerHome({ name }: { name: string }) {
     <section className="space-y-8">
       <div>
         <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-          {health.data?.gameDay != null ? `World day ${health.data.gameDay}` : 'Your world'}
+          {health.data?.gameDay != null ? `Game day ${health.data.gameDay}` : 'Your world'}
         </p>
         <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">{name}</h1>
         {summary?.teamName ? (
@@ -187,10 +187,10 @@ function PlayerHome({ name }: { name: string }) {
               🏁
             </span>
             {daysToRace == null
-              ? `No race in the next ${orders.horizonDays} days`
+              ? `No race in the next ${orders.horizonDays} GD`
               : daysToRace === 0
                 ? 'You race today!'
-                : `Next race in ${daysToRace} day${daysToRace === 1 ? '' : 's'}`}
+                : `Next race in ${daysToRace} GD`}
           </span>
           {daysToRace != null && (
             <span className="text-xs font-medium text-amber-600">Set race orders →</span>

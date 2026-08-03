@@ -130,13 +130,21 @@ export function App() {
       </main>
       <footer className="mx-auto max-w-3xl px-4 py-8 text-xs text-slate-400">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-slate-200 pt-4">
-          <span>Cycling Star — a personal project</span>
-          <Link to="/how-to-play" className="hover:text-slate-600">
-            How to play
-          </Link>
-          <Link to="/privacy" className="hover:text-slate-600">
-            Privacy
-          </Link>
+          <div className="flex items-center gap-x-4">
+            <Link to="/how-to-play" className="hover:text-slate-600">
+              How to play
+            </Link>
+            <Link to="/privacy" className="hover:text-slate-600">
+              Privacy
+            </Link>
+          </div>
+          <p className="w-full leading-relaxed text-slate-400">
+            Cycling Star is a fictional cycling-manager simulation game. All teams, riders, races
+            and results shown here are computer-generated and made up — they are{' '}
+            <strong>not</strong> real people, real teams or real results, and the game is not
+            affiliated with, endorsed by, or connected to any real cycling organization, federation
+            or event.
+          </p>
         </div>
       </footer>
     </div>
