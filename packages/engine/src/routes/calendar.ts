@@ -15,13 +15,6 @@ import type { RaceClass } from './uci.js'
 export type RaceLevel = 'WT' | 'PRS' | 'CON'
 export type RaceFormat = 'gran-vuelta' | 'una-semana' | 'un-dia'
 
-/** Clase por defecto de una carrera según su nivel del MVP (WT→.WT, PRS→.Pro, CON→.1). */
-function classFromLevel(level: RaceLevel): RaceClass {
-  if (level === 'WT') return 'WT'
-  if (level === 'PRS') return 'Pro'
-  return '1'
-}
-
 /** Especificación de un tipo de etapa antes de nombrarla y numerarla. */
 export interface StageSpec {
   kind: StageKind
@@ -199,49 +192,6 @@ function stagesFrom(specs: StageSpec[]): CalendarStage[] {
   }))
 }
 
-/** Una carrera de un día (monumento, clásica, campeonato): una sola "etapa". */
-function oneDay(
-  id: string,
-  name: string,
-  level: RaceLevel,
-  startDay: number,
-  spec: StageSpec,
-  raceClass: RaceClass = classFromLevel(level),
-): CalendarRace {
-  return {
-    id,
-    name,
-    level,
-    raceClass,
-    format: 'un-dia',
-    startDay,
-    openTo: enrollmentFor(level),
-    stages: [{ ...spec, index: 1, name }],
-  }
-}
-
-/** Una carrera por etapas de una semana. */
-function weekRace(
-  id: string,
-  name: string,
-  level: RaceLevel,
-  startDay: number,
-  specs: StageSpec[],
-  opts: { raceClass?: RaceClass; region?: Continent } = {},
-): CalendarRace {
-  return {
-    id,
-    name,
-    level,
-    raceClass: opts.raceClass ?? classFromLevel(level),
-    ...(opts.region ? { region: opts.region } : {}),
-    format: 'una-semana',
-    startDay,
-    openTo: enrollmentFor(level),
-    stages: stagesFrom(specs),
-  }
-}
-
 /** Arco genérico de gran vuelta: 21 etapas variadas y dos descansos (tras la 9 y la 15). */
 function grandTour(id: string, name: string, startDay: number): CalendarRace {
   const specs = [
@@ -348,199 +298,6 @@ function nationalChampionship(code: string, name: string): CalendarRace {
 const NATIONAL_CHAMPIONSHIPS: CalendarRace[] = COUNTRIES.map((c) =>
   nationalChampionship(c.code, c.name),
 )
-
-/**
- * Carreras base del calendario del MVP (SPEC 8), con el esquema Race + Geografía, sin imitar
- * identidades reales.
- */
-const BASE_RACES: CalendarRace[] = [
-  // --- Una semana / grandes vueltas (WT) ---
-  weekRace('race-down-under', 'Race Down Under', 'WT', 16, [
-    flat(145),
-    flat(150),
-    hilly(148),
-    mountain(140),
-    flat(152),
-    flat(90),
-  ]),
-  weekRace('race-emirates', 'Race Emirates', 'WT', 30, [
-    flat(176),
-    flat(184),
-    itt(17),
-    mountain(150),
-    flat(170),
-    hilly(165),
-    flat(160),
-  ]),
-  weekRace('race-provence', 'Race Provence', 'PRS', 40, [
-    flat(170),
-    hilly(175),
-    mountain(155),
-    flat(140),
-  ]),
-  weekRace('race-riviera', 'Race Riviera', 'WT', 48, [
-    flat(166),
-    flat(188),
-    itt(15),
-    rolling(190),
-    mountain(160),
-    hilly(180),
-    flat(175),
-    flat(120),
-  ]),
-  oneDay('race-sanremo', 'Race Sanremo', 'WT', 55, rolling(288)),
-  weekRace('race-two-seas', 'Race Two Seas', 'WT', 62, [
-    flat(190),
-    flat(200),
-    rolling(210),
-    hilly(185),
-    mountain(158),
-    itt(18),
-    flat(154),
-  ]),
-  weekRace(
-    'race-langkawi',
-    'Race Langkawi',
-    'CON',
-    70,
-    [flat(160), flat(172), mountain(148), flat(168), hilly(155), flat(140)],
-    { region: 'Asia' },
-  ),
-  weekRace('race-basque-country', 'Race Basque Country', 'WT', 80, [
-    hilly(165),
-    hilly(178),
-    mountain(150),
-    rolling(160),
-    mountain(145),
-    itt(16),
-  ]),
-  oneDay('race-flanders', 'Race Flanders', 'WT', 88, cobbles(260)),
-  oneDay('race-roubaix', 'Race Roubaix', 'WT', 95, cobbles(257)),
-  oneDay('race-liege', 'Race Liège', 'WT', 105, classic(255)),
-  grandTour('race-italy', 'Race Italy', 110),
-  weekRace(
-    'race-rwanda',
-    'Race Rwanda',
-    'CON',
-    120,
-    [hilly(120), mountain(130), flat(125), hilly(115), mountain(110)],
-    { region: 'Africa' },
-  ),
-  // Bloque de mitad de temporada (antes solo había carreras hasta el día 124 y luego nada hasta los
-  // campeonatos del 150). Nivel PRS/CON para no competir por los líderes WT con la vuelta italiana.
-  weekRace('race-norway', 'Race Norway', 'PRS', 134, [
-    flat(168),
-    hilly(175),
-    mountain(150),
-    rolling(160),
-    flat(155),
-  ]),
-  weekRace(
-    'race-austria',
-    'Race Austria',
-    'CON',
-    140,
-    [flat(160), hilly(170), mountain(148), mountain(140), flat(150)],
-    { region: 'Europe' },
-  ),
-  oneDay('race-andorra', 'Race Andorra', 'PRS', 146, mountain(198)),
-  oneDay('race-worlds', 'World Championship', 'WT', 155, classic(268)),
-  weekRace('race-switzerland', 'Race Switzerland', 'WT', 158, [
-    flat(185),
-    hilly(178),
-    mountain(160),
-    itt(24),
-    mountain(152),
-    rolling(190),
-    flat(170),
-    mountain(148),
-  ]),
-  weekRace('race-alps', 'Race Alps', 'WT', 165, [
-    flat(178),
-    rolling(184),
-    mountain(155),
-    itt(20),
-    mountain(150),
-    hilly(172),
-    mountain(142),
-  ]),
-  weekRace('race-slovenia', 'Race Slovenia', 'PRS', 170, [
-    flat(160),
-    hilly(168),
-    mountain(150),
-    flat(155),
-    rolling(158),
-  ]),
-  raceFrance(),
-  weekRace('race-poland', 'Race Poland', 'PRS', 190, [
-    flat(195),
-    flat(200),
-    hilly(180),
-    itt(22),
-    mountain(158),
-    flat(165),
-  ]),
-  oneDay('race-san-sebastian', 'Race San Sebastián', 'PRS', 195, classic(220)),
-  weekRace('race-britain', 'Race Britain', 'PRS', 200, [
-    flat(180),
-    rolling(188),
-    hilly(175),
-    flat(190),
-    mountain(150),
-    flat(160),
-  ]),
-  oneDay('race-hamburg', 'Race Hamburg', 'PRS', 205, flat(216)),
-  oneDay('race-quebec', 'Race Québec', 'PRS', 210, classic(201)),
-  oneDay('race-montreal', 'Race Montréal', 'PRS', 213, classic(209)),
-  grandTour('race-spain', 'Race Spain', 225),
-  weekRace(
-    'race-portugal',
-    'Race Portugal',
-    'CON',
-    240,
-    [
-      flat(170),
-      hilly(165),
-      mountain(155),
-      flat(178),
-      rolling(160),
-      mountain(148),
-      itt(19),
-      flat(150),
-    ],
-    { region: 'Europe' },
-  ),
-  // Tramo de otoño asiático + clásicas (antes había un vacío de un mes entre Portugal y Lombardía).
-  weekRace('race-guangxi', 'Race Guangxi', 'WT', 250, [
-    flat(168),
-    flat(175),
-    hilly(160),
-    mountain(150),
-    flat(165),
-    flat(140),
-  ]),
-  oneDay('race-tuscany', 'Race Tuscany', 'PRS', 258, cobbles(184)),
-  oneDay('race-emilia', 'Race Emilia', 'PRS', 264, classic(215)),
-  weekRace('race-turkey', 'Race Turkey', 'PRS', 268, [
-    flat(170),
-    flat(182),
-    hilly(165),
-    mountain(150),
-    flat(160),
-    flat(155),
-  ]),
-  weekRace(
-    'race-japan',
-    'Race Japan',
-    'CON',
-    276,
-    [flat(150), hilly(158), mountain(140), flat(145)],
-    {
-      region: 'Asia',
-    },
-  ),
-  oneDay('race-lombardy', 'Race Lombardy', 'WT', 282, classic(252)),
-]
 
 // --- Calendario real (estructura 2026) por tabla de datos, con nombres NEUTROS por geografía. ---
 // Solo se copian los HECHOS (fechas, clase, formato); los nombres de marca se sustituyen y los
@@ -1304,15 +1061,437 @@ const PRO_TABLE: RaceRow[] = [
 const PRO_RACES: CalendarRace[] = PRO_TABLE.map(buildRace)
 
 /**
- * Calendario completo de la temporada (SPEC 8): WorldTour real + ProSeries real (estructura 2026,
- * nombres neutros) + las carreras continentales regionales que aún quedan por migrar + los 92
- * campeonatos nacionales. De BASE_RACES solo se conserva algún continental regional cuyo id no lo
- * use ya el WT/Pro real. Ordenado por día de arranque (invariante que asumen los consumidores).
+ * Circuitos continentales (.1/.2) por continente, selección representativa de la estructura 2026 con
+ * región para la inscripción (preferencia a equipos de la región + wildcards). Nombres neutros por
+ * geografía y fechas reales; recorridos de autoría propia.
  */
-const USED_IDS = new Set([...WT_RACES, ...PRO_RACES].map((r) => r.id))
+const CON_TABLE: RaceRow[] = [
+  // Europa
+  {
+    id: 'race-besseges',
+    name: 'Race Bessèges',
+    m: 2,
+    d: 4,
+    raceClass: '1',
+    region: 'Europe',
+    stages: 5,
+    terrain: 'hilly',
+  },
+  {
+    id: 'race-antalya',
+    name: 'Race Antalya',
+    m: 2,
+    d: 12,
+    raceClass: '2',
+    region: 'Europe',
+    stages: 4,
+    terrain: 'flat',
+  },
+  {
+    id: 'race-provence',
+    name: 'Race Provence',
+    m: 2,
+    d: 13,
+    raceClass: '1',
+    region: 'Europe',
+    stages: 3,
+    terrain: 'mountain',
+  },
+  {
+    id: 'race-romagna',
+    name: 'Race Romagna',
+    m: 3,
+    d: 25,
+    raceClass: '1',
+    region: 'Europe',
+    stages: 5,
+    terrain: 'hilly',
+  },
+  {
+    id: 'race-ardennes',
+    name: 'Race Ardennes',
+    m: 4,
+    d: 8,
+    raceClass: '2',
+    region: 'Europe',
+    stages: 5,
+    terrain: 'hilly',
+  },
+  {
+    id: 'race-galicia',
+    name: 'Race Galicia',
+    m: 4,
+    d: 14,
+    raceClass: '1',
+    region: 'Europe',
+    stages: 4,
+    terrain: 'mountain',
+  },
+  {
+    id: 'race-asturias',
+    name: 'Race Asturias',
+    m: 4,
+    d: 23,
+    raceClass: '1',
+    region: 'Europe',
+    stages: 3,
+    terrain: 'mountain',
+  },
+  {
+    id: 'race-hellas',
+    name: 'Race Hellas',
+    m: 5,
+    d: 6,
+    raceClass: '1',
+    region: 'Europe',
+    stages: 5,
+    terrain: 'hilly',
+  },
+  {
+    id: 'race-estonia',
+    name: 'Race Estonia',
+    m: 6,
+    d: 4,
+    raceClass: '1',
+    region: 'Europe',
+    stages: 3,
+    terrain: 'flat',
+  },
+  {
+    id: 'race-sibiu',
+    name: 'Race Sibiu',
+    m: 7,
+    d: 4,
+    raceClass: '1',
+    region: 'Europe',
+    stages: 4,
+    terrain: 'mountain',
+  },
+  {
+    id: 'race-austria',
+    name: 'Race Austria',
+    m: 7,
+    d: 8,
+    raceClass: '1',
+    region: 'Europe',
+    stages: 5,
+    terrain: 'mountain',
+  },
+  {
+    id: 'race-portugal',
+    name: 'Race Portugal',
+    m: 8,
+    d: 5,
+    raceClass: '1',
+    region: 'Europe',
+    stages: 10,
+    terrain: 'mountain',
+  },
+  {
+    id: 'race-romania',
+    name: 'Race Romania',
+    m: 9,
+    d: 9,
+    raceClass: '2',
+    region: 'Europe',
+    stages: 5,
+    terrain: 'hilly',
+  },
+  {
+    id: 'race-slovakia',
+    name: 'Race Slovakia',
+    m: 9,
+    d: 16,
+    raceClass: '1',
+    region: 'Europe',
+    stages: 5,
+    terrain: 'hilly',
+  },
+  {
+    id: 'race-holland',
+    name: 'Race Holland',
+    m: 10,
+    d: 13,
+    raceClass: '1',
+    region: 'Europe',
+    stages: 6,
+    terrain: 'flat',
+  },
+  // Asia
+  {
+    id: 'race-sharjah',
+    name: 'Race Sharjah',
+    m: 1,
+    d: 23,
+    raceClass: '2',
+    region: 'Asia',
+    stages: 5,
+    terrain: 'flat',
+  },
+  {
+    id: 'race-taiwan',
+    name: 'Race Taiwan',
+    m: 3,
+    d: 15,
+    raceClass: '1',
+    region: 'Asia',
+    stages: 5,
+    terrain: 'hilly',
+  },
+  {
+    id: 'race-thailand',
+    name: 'Race Thailand',
+    m: 3,
+    d: 24,
+    raceClass: '1',
+    region: 'Asia',
+    stages: 6,
+    terrain: 'flat',
+  },
+  {
+    id: 'race-kumano',
+    name: 'Race Kumano',
+    m: 5,
+    d: 7,
+    raceClass: '2',
+    region: 'Asia',
+    stages: 4,
+    terrain: 'mountain',
+  },
+  {
+    id: 'race-nippon',
+    name: 'Race Nippon',
+    m: 5,
+    d: 24,
+    raceClass: '2',
+    region: 'Asia',
+    stages: 8,
+    terrain: 'mountain',
+  },
+  {
+    id: 'race-korea',
+    name: 'Race Korea',
+    m: 8,
+    d: 31,
+    raceClass: '1',
+    region: 'Asia',
+    stages: 5,
+    terrain: 'hilly',
+  },
+  {
+    id: 'race-taihu',
+    name: 'Race Taihu',
+    m: 9,
+    d: 12,
+    raceClass: '1',
+    region: 'Asia',
+    stages: 5,
+    terrain: 'flat',
+  },
+  {
+    id: 'race-poyang',
+    name: 'Race Poyang',
+    m: 9,
+    d: 20,
+    raceClass: '2',
+    region: 'Asia',
+    stages: 6,
+    terrain: 'flat',
+  },
+  {
+    id: 'race-kyushu',
+    name: 'Race Kyushu',
+    m: 10,
+    d: 10,
+    raceClass: '1',
+    region: 'Asia',
+    stages: 3,
+    terrain: 'hilly',
+  },
+  // África
+  {
+    id: 'race-rwanda',
+    name: 'Race Rwanda',
+    m: 2,
+    d: 22,
+    raceClass: '1',
+    region: 'Africa',
+    stages: 8,
+    terrain: 'mountain',
+  },
+  {
+    id: 'race-algeria',
+    name: 'Race Algeria',
+    m: 4,
+    d: 17,
+    raceClass: '2',
+    region: 'Africa',
+    stages: 6,
+    terrain: 'hilly',
+  },
+  {
+    id: 'race-benin',
+    name: 'Race Benin',
+    m: 4,
+    d: 27,
+    raceClass: '2',
+    region: 'Africa',
+    stages: 5,
+    terrain: 'flat',
+  },
+  {
+    id: 'race-mauritius',
+    name: 'Race Mauritius',
+    m: 6,
+    d: 2,
+    raceClass: '2',
+    region: 'Africa',
+    stages: 4,
+    terrain: 'hilly',
+  },
+  {
+    id: 'race-cameroon',
+    name: 'Race Cameroon',
+    m: 6,
+    d: 3,
+    raceClass: '2',
+    region: 'Africa',
+    stages: 8,
+    terrain: 'hilly',
+  },
+  {
+    id: 'race-morocco',
+    name: 'Race Morocco',
+    m: 9,
+    d: 11,
+    raceClass: '2',
+    region: 'Africa',
+    stages: 8,
+    terrain: 'mountain',
+  },
+  {
+    id: 'race-faso',
+    name: 'Race Faso',
+    m: 10,
+    d: 30,
+    raceClass: '2',
+    region: 'Africa',
+    stages: 5,
+    terrain: 'flat',
+  },
+  // América
+  {
+    id: 'race-tachira',
+    name: 'Race Táchira',
+    m: 1,
+    d: 9,
+    raceClass: '2',
+    region: 'America',
+    stages: 9,
+    terrain: 'mountain',
+  },
+  {
+    id: 'race-colombia',
+    name: 'Race Colombia',
+    m: 2,
+    d: 3,
+    raceClass: '1',
+    region: 'America',
+    stages: 6,
+    terrain: 'mountain',
+  },
+  {
+    id: 'race-gila',
+    name: 'Race Gila',
+    m: 4,
+    d: 29,
+    raceClass: '2',
+    region: 'America',
+    stages: 5,
+    terrain: 'mountain',
+  },
+  {
+    id: 'race-guatemala',
+    name: 'Race Guatemala',
+    m: 4,
+    d: 29,
+    raceClass: '2',
+    region: 'America',
+    stages: 5,
+    terrain: 'mountain',
+  },
+  {
+    id: 'race-beauce',
+    name: 'Race Beauce',
+    m: 6,
+    d: 10,
+    raceClass: '2',
+    region: 'America',
+    stages: 5,
+    terrain: 'hilly',
+  },
+  {
+    id: 'race-venezuela',
+    name: 'Race Venezuela',
+    m: 7,
+    d: 12,
+    raceClass: '2',
+    region: 'America',
+    stages: 8,
+    terrain: 'mountain',
+  },
+  {
+    id: 'race-colombia-tour',
+    name: 'Race Colombia Tour',
+    m: 8,
+    d: 8,
+    raceClass: '2',
+    region: 'America',
+    stages: 9,
+    terrain: 'mountain',
+  },
+  {
+    id: 'race-philadelphia',
+    name: 'Race Philadelphia',
+    m: 8,
+    d: 30,
+    raceClass: '1',
+    region: 'America',
+    terrain: 'hilly',
+  },
+  {
+    id: 'race-ecuador',
+    name: 'Race Ecuador',
+    m: 9,
+    d: 7,
+    raceClass: '2',
+    region: 'America',
+    stages: 6,
+    terrain: 'mountain',
+  },
+  // Oceanía
+  {
+    id: 'race-victoria',
+    name: 'Race Victoria',
+    m: 2,
+    d: 4,
+    raceClass: '1',
+    region: 'Oceania',
+    stages: 5,
+    terrain: 'hilly',
+  },
+]
+
+const CON_RACES: CalendarRace[] = CON_TABLE.map(buildRace)
+
+/**
+ * Calendario completo de la temporada (SPEC 8): WorldTour real + ProSeries real + circuitos
+ * continentales representativos (estructura 2026, nombres neutros) + los 92 campeonatos nacionales.
+ * Ordenado por día de arranque (invariante que asumen los consumidores).
+ */
 export const SEASON_CALENDAR: CalendarRace[] = [
   ...WT_RACES,
   ...PRO_RACES,
-  ...BASE_RACES.filter((r) => r.level === 'CON' && r.region != null && !USED_IDS.has(r.id)),
+  ...CON_RACES,
   ...NATIONAL_CHAMPIONSHIPS,
 ].sort((a, b) => a.startDay - b.startDay)
