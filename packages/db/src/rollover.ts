@@ -6,6 +6,7 @@ import { drizzle } from 'drizzle-orm/postgres-js'
 import { generateName } from './names.js'
 import { emitNews } from './news.js'
 import { contracts, riderAttrs, riderHidden, riders, teams } from './schema.js'
+import { ROSTER_SIZE } from './world.js'
 
 /**
  * Rollover de temporada (SPEC 2, 11, Paso 37). Al cruzar el día 364 amanece una temporada nueva sin
@@ -20,7 +21,7 @@ type Tx = Parameters<Parameters<Db['transaction']>[0]>[0]
 const SEASON_DAYS = 364
 // Debe casar con la meta de población de la génesis (world.ts): con cifras reales por división el
 // mundo ronda los ~3.200 corredores. Los neopros del rollover reponen bajas y mantienen ese tamaño.
-const TARGET_POPULATION = 3200
+const TARGET_POPULATION = 3900
 const PROMO_RELEGATE = 2
 const COUNTRIES = [
   'FR',
@@ -217,7 +218,7 @@ export async function runRollover(
     .leftJoin(riders, and(eq(riders.teamId, teams.id), isNull(riders.retiredAt)))
     .where(eq(teams.worldId, worldId))
     .groupBy(teams.id)
-  const target: Record<Division, number> = { WT: 14, PRS: 12, CON: 10 }
+  const target = ROSTER_SIZE
   const openSlots: { teamId: string; division: Division; country: string | null }[] = []
   for (const g of gaps) {
     const div = g.division as Division

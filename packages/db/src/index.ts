@@ -29,6 +29,7 @@ export {
   planNationalClustering,
   planWorld,
   reconcileTeams,
+  renationalizeBotRosters,
   seedWorld,
   teamCountryByIndex,
   NATIONAL_CORE_SHARE,

@@ -134,13 +134,20 @@ export function teamCountryByIndex(division: Division, index: number): string {
   return arr[index % arr.length]!
 }
 
+/**
+ * Tamaño de plantilla por división. Realista: un WorldTour tiene ~28 corredores (necesita cubrir a
+ * la vez una gran vuelta de 8 y varias carreras más), un ProTeam ~20 y un Continental ~12. Compartido
+ * por la génesis y por el rollover (que rellena las plantillas hasta este tamaño cada temporada).
+ */
+export const ROSTER_SIZE: Record<Division, number> = { WT: 28, PRS: 20, CON: 12 }
+
 const DIVISIONS: DivisionPlan[] = [
-  { division: 'WT', teams: TEAM_DIST.WT.length, roster: 14, budgetBase: 5_000_000 },
-  { division: 'PRS', teams: TEAM_DIST.PRS.length, roster: 12, budgetBase: 2_000_000 },
-  { division: 'CON', teams: TEAM_DIST.CON.length, roster: 10, budgetBase: 700_000 },
+  { division: 'WT', teams: TEAM_DIST.WT.length, roster: ROSTER_SIZE.WT, budgetBase: 5_000_000 },
+  { division: 'PRS', teams: TEAM_DIST.PRS.length, roster: ROSTER_SIZE.PRS, budgetBase: 2_000_000 },
+  { division: 'CON', teams: TEAM_DIST.CON.length, roster: ROSTER_SIZE.CON, budgetBase: 700_000 },
 ]
-// Firmados = 18·14 + 18·12 + 185·10 = 2.318; la meta deja ~880 agentes libres para el mercado.
-const TARGET_POPULATION = 3200
+// Firmados = 18·28 + 16·20 + 185·12 = 3.044; la meta deja ~900 agentes libres para el mercado.
+const TARGET_POPULATION = 3900
 
 /**
  * Distribución de nacionalidades de los bots (SPEC 10). Ponderada por peso ciclista real: las
@@ -693,6 +700,83 @@ export async function clusterTeamNationalities(tx: Tx, worldId: string): Promise
     await tx.update(riders).set({ teamId }).where(eq(riders.id, riderId))
   }
   return changes.size
+}
+
+/**
+ * Renacionaliza plantillas bot: rebautiza a los corredores bot EXTRANJEROS sobrantes con el país (y
+ * un nombre nuevo de ese país) de su equipo, hasta alcanzar la cuota nacional de la división. La
+ * reagrupación (clusterTeamNationalities) solo REUBICA a los paisanos existentes; no puede crear más.
+ * Esto sí, y es lo que hace nacionales a los mundos creados antes del sesgo de nacionalidad (o con
+ * pocos paisanos): un equipo chino sin chinos pasa a tener mayoría china en el siguiente tick.
+ *
+ * No toca corredores humanos ni equipos con dueño. Idempotente: una vez el equipo llega a su cuota,
+ * no cambia a nadie. Los nombres duplicados que pueda crear los limpia dedupeWorldNames después.
+ * Devuelve cuántos corredores se renacionalizaron.
+ */
+export async function renationalizeBotRosters(
+  tx: Tx,
+  worldId: string,
+  worldSeed: string,
+  shareByDivision: Record<Division, number> = NATIONAL_CORE_SHARE,
+): Promise<number> {
+  const teamRows = await tx
+    .select({
+      id: teams.id,
+      division: teams.division,
+      country: teams.country,
+      ownerUserId: teams.ownerUserId,
+    })
+    .from(teams)
+    .where(eq(teams.worldId, worldId))
+  const botTeams = teamRows.filter(
+    (t): t is typeof t & { country: string } => t.ownerUserId === null && t.country !== null,
+  )
+  if (botTeams.length === 0) return 0
+  const teamById = new Map(botTeams.map((t) => [t.id, t]))
+
+  const riderRows = await tx
+    .select({
+      id: riders.id,
+      country: riders.country,
+      teamId: riders.teamId,
+      userId: riders.userId,
+      gender: riders.gender,
+    })
+    .from(riders)
+    .where(eq(riders.worldId, worldId))
+
+  const byTeam = new Map<string, typeof riderRows>()
+  for (const r of riderRows) {
+    if (r.userId !== null || !r.teamId || !teamById.has(r.teamId)) continue
+    const list = byTeam.get(r.teamId) ?? []
+    list.push(r)
+    byTeam.set(r.teamId, list)
+  }
+
+  const used = new Set<string>()
+  let changed = 0
+  for (const team of botTeams) {
+    const members = byTeam.get(team.id) ?? []
+    if (members.length === 0) continue
+    const target = Math.round((shareByDivision[team.division] ?? 0) * members.length)
+    const home = members.filter((m) => m.country === team.country).length
+    if (home >= target) continue
+    const need = target - home
+    const foreign = members
+      .filter((m) => m.country !== team.country)
+      .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+    for (let i = 0; i < need && i < foreign.length; i++) {
+      const r = foreign[i]!
+      const name = generateUniqueName(
+        `${worldSeed}:renat:${r.id}`,
+        { country: team.country, gender: r.gender === 'F' ? 'F' : 'M' },
+        used,
+      ).fullName
+      await tx.update(riders).set({ country: team.country, name }).where(eq(riders.id, r.id))
+      changed++
+    }
+  }
+  return changed
 }
 
 /** Inserta un array en lotes para no exceder el límite de parámetros de Postgres. */

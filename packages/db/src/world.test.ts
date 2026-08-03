@@ -40,10 +40,10 @@ describe('db: génesis del mundo (SPEC 10, Paso 33)', () => {
     expect(teams.filter((t) => t.division === 'CON')).toHaveLength(185)
   })
 
-  it('genera al menos 3.200 corredores; los fichados tienen equipo, los libres no', () => {
+  it('genera al menos 3.900 corredores; los fichados tienen equipo, los libres no', () => {
     const { riders } = planWorld('world-seed')
-    expect(riders.length).toBeGreaterThanOrEqual(3200)
-    const signed = 18 * 14 + 16 * 12 + 185 * 10
+    expect(riders.length).toBeGreaterThanOrEqual(3900)
+    const signed = 18 * 28 + 16 * 20 + 185 * 12
     expect(riders.filter((r) => r.teamId !== null)).toHaveLength(signed)
     expect(riders.filter((r) => r.teamId === null).length).toBeGreaterThan(0)
   })
@@ -156,7 +156,7 @@ describe('db: génesis del mundo (SPEC 10, Paso 33)', () => {
     for (const r of riders) {
       if (r.teamId) rosterByTeam.set(r.teamId, (rosterByTeam.get(r.teamId) ?? 0) + 1)
     }
-    const expected: Record<string, number> = { WT: 14, PRS: 12, CON: 10 }
+    const expected: Record<string, number> = { WT: 28, PRS: 20, CON: 12 }
     for (const team of teams) {
       expect(team.budget).toBeGreaterThan(0)
       expect(rosterByTeam.get(team.id)).toBe(expected[team.division])
