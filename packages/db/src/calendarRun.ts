@@ -1,6 +1,8 @@
 import {
   type CalendarRace,
   type CallupCandidate,
+  type Division,
+  type RaceClass,
   SEASON_CALENDAR,
   type TeamPhilosophy,
   formStars,
@@ -8,8 +10,8 @@ import {
   scheduledStageIndex,
   selectSquad,
 } from '@cyclingstar/engine'
-import { type Continent, continentForCountry } from '@cyclingstar/shared'
-import { and, desc, eq, inArray, isNull } from 'drizzle-orm'
+import { type Continent, continentForCountry, countriesInContinent } from '@cyclingstar/shared'
+import { and, desc, eq, inArray, isNull, notInArray } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import { raceRosters, riderRacePrefs, riders, teams } from './schema.js'
 import { runOneStage } from './stageRun.js'
@@ -27,8 +29,31 @@ type Tx = Parameters<Parameters<Db['transaction']>[0]>[0]
 
 const SEASON_DAYS = 364
 const SQUAD_SIZE = { 'gran-vuelta': 8, 'una-semana': 7, 'un-dia': 7 } as const
-/** Tope de corredores por pelotón, para acotar el cómputo del motor. */
+/**
+ * Tamaño objetivo del pelotón según la clase de carrera (acota el cómputo del motor y refleja la
+ * realidad de cada nivel): una .WT junta ~22 equipos (los 18 WorldTour + wildcards Pro), una .Pro
+ * ~20, y las continentales .1/.2 ~16-18 equipos regionales completados con corredores del continente.
+ */
+const FIELD_CAP_BY_CLASS: Record<RaceClass, number> = {
+  WT: 176,
+  Pro: 150,
+  '1': 130,
+  '2': 112,
+  NC: 40,
+}
+/** Tope por defecto si faltara la clase (no debería ocurrir). */
 const FIELD_CAP = 64
+/** Plazas de wildcard (fuera de la región) reservadas en una carrera continental. */
+const WILDCARD_FRACTION = 0.12
+/**
+ * Prioridad de división al llenar una carrera global (.WT/.Pro). En una .WT los equipos WorldTour
+ * entran primero (plaza garantizada) y el resto son wildcards Pro; en una .Pro el núcleo son los
+ * ProTeams, con WorldTour de invitados y Continental de relleno. Las continentales usan región.
+ */
+const DIVISION_PRIORITY: Partial<Record<RaceClass, Division[]>> = {
+  WT: ['WT', 'PRS', 'CON'],
+  Pro: ['PRS', 'WT', 'CON'],
+}
 const YOUNG_AGE = 23
 /** Pelotón de un campeonato nacional: los mejores del país, y mínimo para que se dispute. */
 const NATIONAL_FIELD_CAP = 40
@@ -60,30 +85,50 @@ async function convokeNationalField(
     .onConflictDoNothing()
 }
 
-/** Cuota de plazas de wildcard (equipos de fuera de la región) en una carrera regional. */
-const WILDCARD_FRACTION = 0.25
-
 /**
- * Elige los equipos del pelotón entre los admitidos (ya ordenados por presupuesto desc). En una
- * carrera regional, reserva la mayoría de plazas a equipos del continente y unas pocas de wildcard a
- * equipos de fuera; si la región no llena su cupo, las wildcards completan. Sin región, los mejores
- * por presupuesto. Pura y determinista (base de la reproducibilidad de la inscripción).
+ * Elige los equipos del pelotón entre los admitidos (ya ordenados por presupuesto desc).
+ *
+ * - Carrera global (.WT/.Pro, sin región): se ordena por prioridad de división. En una .WT los 18
+ *   equipos WorldTour entran garantizados y las plazas restantes son wildcards Pro; en una .Pro el
+ *   núcleo son los ProTeams, con algunos WorldTour de invitados. Refleja el acceso real por nivel.
+ * - Carrera regional (circuito continental .1/.2): mayoría de equipos del continente; solo si la
+ *   región no llena el cupo se completan plazas con equipos de fuera (wildcards). No se fuerzan
+ *   equipos extranjeros: una carrera americana la corren, sobre todo, equipos americanos.
+ *
+ * Pura y determinista (base de la reproducibilidad de la inscripción).
  */
-export function selectFieldTeams<T extends { country: string | null }>(
+export function selectFieldTeams<T extends { division?: Division; country: string | null }>(
   eligible: T[],
   cap: number,
   region?: Continent,
+  priority?: Division[],
 ): T[] {
-  if (!region) return eligible.slice(0, cap)
-  const inRegion = eligible.filter((t) => continentForCountry(t.country ?? '') === region)
-  const outRegion = eligible.filter((t) => continentForCountry(t.country ?? '') !== region)
-  const wildcards = Math.min(outRegion.length, Math.max(1, Math.floor(cap * WILDCARD_FRACTION)))
-  const home = inRegion.slice(0, cap - wildcards)
-  const wild = outRegion.slice(0, cap - home.length)
-  return [...home, ...wild]
+  if (region) {
+    const inRegion = eligible.filter((t) => continentForCountry(t.country ?? '') === region)
+    const outRegion = eligible.filter((t) => continentForCountry(t.country ?? '') !== region)
+    // La región es mayoría, pero se reserva ~1-2 plazas de wildcard: un ProTeam invitado o algún
+    // continental de fuera (como pasa de verdad en una .2). Si la región no llena, completan wildcards.
+    const wildcards = Math.min(outRegion.length, Math.max(1, Math.floor(cap * WILDCARD_FRACTION)))
+    const home = inRegion.slice(0, cap - wildcards)
+    const wild = outRegion.slice(0, cap - home.length)
+    return [...home, ...wild]
+  }
+  if (priority) {
+    const rank = (d?: Division) => {
+      const i = priority.indexOf(d as Division)
+      return i === -1 ? priority.length : i
+    }
+    return [...eligible].sort((a, b) => rank(a.division) - rank(b.division)).slice(0, cap)
+  }
+  return eligible.slice(0, cap)
 }
 
-/** Convoca el pelotón de una carrera: los mejores equipos admitidos, con su escuadra (SPEC 6.18). */
+/**
+ * Convoca el pelotón de una carrera con su escuadra (SPEC 6.18). Los equipos admitidos se eligen por
+ * nivel/región (selectFieldTeams). En una carrera continental (.1/.2), si los equipos regionales no
+ * llenan el pelotón objetivo, se completa con los mejores corredores del continente como entradas
+ * individuales (el equivalente a selecciones nacionales y equipos club de relleno de esas carreras).
+ */
 async function convokeField(
   tx: Tx,
   worldId: string,
@@ -93,7 +138,8 @@ async function convokeField(
   season: number,
 ): Promise<void> {
   const size = SQUAD_SIZE[race.format]
-  const cap = Math.max(1, Math.floor(FIELD_CAP / size))
+  const fieldCap = FIELD_CAP_BY_CLASS[race.raceClass] ?? FIELD_CAP
+  const cap = Math.max(1, Math.floor(fieldCap / size))
   const eligible = await tx
     .select({
       id: teams.id,
@@ -104,9 +150,9 @@ async function convokeField(
     .from(teams)
     .where(and(eq(teams.worldId, worldId), inArray(teams.division, race.openTo)))
     .orderBy(desc(teams.budget))
-  // Carrera regional (circuito continental): preferencia a los equipos del continente y unas pocas
-  // plazas de wildcard para equipos de fuera. Sin región, se toman los mejores por presupuesto.
-  const teamRows = selectFieldTeams(eligible, cap, race.region)
+  // Carrera regional (circuito continental): mayoría de equipos del continente, con wildcards solo si
+  // hace falta. Global (.WT/.Pro): por prioridad de división (WorldTour garantizado en las .WT).
+  const teamRows = selectFieldTeams(eligible, cap, race.region, DIVISION_PRIORITY[race.raceClass])
   if (teamRows.length === 0) return
   const teamIds = teamRows.map((t) => t.id)
 
@@ -162,6 +208,28 @@ async function convokeField(
     })
     for (const id of squad) rosterValues.push({ raceId: raceKey, riderId: id })
   }
+
+  // Relleno regional (solo circuito continental): si los equipos del continente no llenan el pelotón
+  // objetivo, se completa con los mejores corredores del continente que aún no están inscritos —el
+  // equivalente a las selecciones nacionales y equipos club que corren estas carreras en la realidad.
+  if (race.region && rosterValues.length < fieldCap) {
+    const already = rosterValues.map((v) => v.riderId)
+    const countries = countriesInContinent(race.region)
+    const conds = [
+      eq(riders.worldId, worldId),
+      inArray(riders.country, countries),
+      isNull(riders.retiredAt),
+    ]
+    if (already.length > 0) conds.push(notInArray(riders.id, already))
+    const fillers = await tx
+      .select({ id: riders.id })
+      .from(riders)
+      .where(and(...conds))
+      .orderBy(desc(riders.fame))
+      .limit(fieldCap - rosterValues.length)
+    for (const f of fillers) rosterValues.push({ raceId: raceKey, riderId: f.id })
+  }
+
   if (rosterValues.length > 0) {
     await tx.insert(raceRosters).values(rosterValues).onConflictDoNothing()
   }

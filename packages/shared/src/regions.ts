@@ -113,3 +113,10 @@ const CONTINENT_BY_COUNTRY: Record<string, Continent> = {
 export function continentForCountry(code: string): Continent | null {
   return CONTINENT_BY_COUNTRY[code.toUpperCase()] ?? null
 }
+
+/** Todos los países (código ISO) adscritos a un continente. Base del pelotón regional. */
+export function countriesInContinent(continent: Continent): string[] {
+  return Object.entries(CONTINENT_BY_COUNTRY)
+    .filter(([, c]) => c === continent)
+    .map(([code]) => code)
+}
