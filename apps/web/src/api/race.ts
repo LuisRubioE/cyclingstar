@@ -30,6 +30,7 @@ export interface RaceView {
     raceClass?: string
     format?: string
     stageCount?: number
+    country?: string | null
   }
   gc: GcRow[]
   stageWinners: StageWinner[]

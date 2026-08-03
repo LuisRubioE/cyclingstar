@@ -38,7 +38,10 @@ export function Race() {
         <Link to="/calendar" className="text-xs text-slate-400 hover:text-slate-600">
           ← Calendar
         </Link>
-        <h1 className="mt-1 text-2xl font-bold tracking-tight">{data.race.name}</h1>
+        <h1 className="mt-1 flex items-center gap-2 text-2xl font-bold tracking-tight">
+          {data.race.country && <Flag code={data.race.country} size={22} />}
+          {data.race.name}
+        </h1>
         <p className="mt-1 text-sm text-slate-500">
           {data.race.level}
           {data.race.raceClass ? ` · ${raceClassLabel(data.race.raceClass as RaceClass)}` : ''}

@@ -86,6 +86,18 @@ export function RiderProfile() {
             </div>
           </div>
           <InfoRow label="Nationality">{country?.name ?? rider.country}</InfoRow>
+          {summaryQuery.data && summaryQuery.data.residence !== summaryQuery.data.nationality && (
+            <InfoRow label="Lives in">
+              <span className="inline-flex items-center gap-1.5">
+                <Flag code={summaryQuery.data.residence} size={14} />
+                {COUNTRIES.find((c) => c.code === summaryQuery.data!.residence)?.name ??
+                  summaryQuery.data.residence}
+                <span className="text-xs text-slate-400">
+                  · {summaryQuery.data.housingCovered ? 'team covers rent' : 'you pay rent'}
+                </span>
+              </span>
+            </InfoRow>
+          )}
           <InfoRow label="Role">
             <RoleEditor current={rider.archetype} />
           </InfoRow>

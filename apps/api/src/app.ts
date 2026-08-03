@@ -959,7 +959,7 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
       const world = await getCurrentWorld(db)
       if (!world)
         return {
-          race: { id: race.id, name: race.name, level: race.level },
+          race: { id: race.id, name: race.name, level: race.level, country: race.country ?? null },
           gc: [],
           stageWinners: [],
           history: [],
@@ -977,6 +977,7 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
           raceClass: race.raceClass,
           format: race.format,
           stageCount: race.stages.length,
+          country: race.country ?? null,
         },
         gc,
         stageWinners,
