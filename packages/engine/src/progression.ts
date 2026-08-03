@@ -37,6 +37,8 @@ export interface RiderDayContext {
   choice: TrainingChoice
   kInst: number
   kStaff: number
+  /** Multiplicador por entrenar en grupo con compañeros (1 = solo/sin bonus). */
+  kGroup?: number
   rng: () => number
 }
 
@@ -121,8 +123,17 @@ export function simulateRiderDay(state: RiderDayState, ctx: RiderDayContext): Ri
       const gain = info.gains[attr]
       if (gain === undefined) continue
       const ceiling = ctx.ceilings[attr]
+      const kGroup = ctx.kGroup ?? 1
       const delta =
-        gain * kTal * kAg * kDim(attributes[attr], ceiling) * ctx.kInst * ctx.kStaff * kReady * kInt
+        gain *
+        kTal *
+        kAg *
+        kDim(attributes[attr], ceiling) *
+        ctx.kInst *
+        ctx.kStaff *
+        kGroup *
+        kReady *
+        kInt
       if (delta > 0) {
         attributes[attr] = Math.min(ceiling, attributes[attr] + delta)
         trainedToday.add(attr)

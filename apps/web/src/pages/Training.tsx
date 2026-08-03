@@ -32,7 +32,8 @@ function sessionEffect(session: Session, intensity: Intensity): string {
       : `Recovery — sheds fatigue (${info.tss[intensity]} TSS).`
   }
   const trains = attrs.map((a) => ATTRIBUTE_LABELS[a]).join(', ')
-  return `Trains ${trains} · ${info.tss[intensity]} TSS`
+  const group = info.group ? ' · Group session: +gains when teammates train it the same day' : ''
+  return `Trains ${trains} · ${info.tss[intensity]} TSS${group}`
 }
 
 export function Training() {
