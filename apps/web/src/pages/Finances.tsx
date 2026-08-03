@@ -1,6 +1,9 @@
+import { COUNTRIES, HOUSING_RENT_PER_WEEK } from '@cyclingstar/shared'
 import { useQuery } from '@tanstack/react-query'
+import { Flag } from '../components/Flag'
 import { Panel, SectionBar } from '../components/Panel'
 import { fetchLedger, kindLabel, money } from '../api/finances'
+import { fetchRiderSummary } from '../api/rider'
 
 const KIND_TONE: Record<string, string> = {
   salario: 'text-emerald-600',
@@ -10,6 +13,43 @@ const KIND_TONE: Record<string, string> = {
   viaje: 'text-rose-600',
   vivienda: 'text-rose-600',
   otro: 'text-slate-600',
+}
+
+function countryName(code: string): string {
+  return COUNTRIES.find((c) => c.code === code)?.name ?? code
+}
+
+/** Situación de vivienda del corredor: en casa (gratis), fuera pagando alquiler, o cubierto por el equipo. */
+function HousingCard() {
+  const { data } = useQuery({ queryKey: ['rider-summary'], queryFn: fetchRiderSummary })
+  if (!data) return null
+  const atHome = data.residence === data.nationality
+  return (
+    <Panel title="Housing">
+      <div className="flex items-center gap-2 text-sm">
+        <span>🏠</span>
+        <span className="text-slate-500">Lives in</span>
+        <Flag code={data.residence} size={16} />
+        <span className="font-medium text-slate-800">{countryName(data.residence)}</span>
+      </div>
+      <p className="mt-2 text-sm text-slate-600">
+        {atHome ? (
+          <>You live in your home country — the family home is free, no rent.</>
+        ) : data.housingCovered ? (
+          <>
+            You live abroad, but your team covers your rent as a contract extra — you pay{' '}
+            <span className="font-medium text-emerald-600">nothing</span>.
+          </>
+        ) : (
+          <>
+            You live away from home, so you pay{' '}
+            <span className="font-medium text-rose-600">{HOUSING_RENT_PER_WEEK}/week</span> in rent
+            (shown as Housing in the ledger).
+          </>
+        )}
+      </p>
+    </Panel>
+  )
 }
 
 export function Finances() {
@@ -30,6 +70,8 @@ export function Finances() {
           {data.balance.toLocaleString('en-US')}
         </p>
       </Panel>
+
+      <HousingCard />
 
       {data.entries.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">

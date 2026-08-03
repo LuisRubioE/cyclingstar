@@ -8,6 +8,7 @@ import {
 import { and, desc, eq, gt, isNull, sql } from 'drizzle-orm'
 import type { Database } from './client.js'
 import {
+  contracts,
   gameState,
   riderAttrs,
   riderDailyLog,
@@ -156,6 +157,12 @@ export interface RiderSummary {
   seasonRank: number
   /** Corredores en activo del mundo (tamaño del ranking). */
   fieldSize: number
+  /** Nacionalidad (país de origen, casa familiar). */
+  nationality: string
+  /** País de residencia actual (dónde vive/entrena). */
+  residence: string
+  /** El contrato cubre el alquiler de vivienda (el equipo lo paga). */
+  housingCovered: boolean
 }
 
 /**
@@ -190,9 +197,13 @@ export async function getRiderSummary(db: Database, riderId: string): Promise<Ri
       morale: riders.morale,
       fame: riders.fame,
       seasonPoints: riders.seasonPoints,
+      nationality: riders.country,
+      residence: riders.residence,
+      housingCovered: contracts.payHousing,
     })
     .from(riders)
     .leftJoin(teams, eq(teams.id, riders.teamId))
+    .leftJoin(contracts, eq(contracts.riderId, riders.id))
     .where(eq(riders.id, riderId))
     .limit(1)
   const me = rows[0]
@@ -208,6 +219,9 @@ export async function getRiderSummary(db: Database, riderId: string): Promise<Ri
     seasonPoints: me.seasonPoints,
     seasonRank: rank.seasonRank,
     fieldSize: rank.fieldSize,
+    nationality: me.nationality,
+    residence: me.residence ?? me.nationality,
+    housingCovered: me.housingCovered ?? false,
   }
 }
 

@@ -65,6 +65,9 @@ export interface RiderSummary {
   seasonPoints: number
   seasonRank: number
   fieldSize: number
+  nationality: string
+  residence: string
+  housingCovered: boolean
 }
 
 export async function fetchRiderSummary(): Promise<RiderSummary | null> {
