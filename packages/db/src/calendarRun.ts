@@ -43,8 +43,18 @@ const FIELD_CAP_BY_CLASS: Record<RaceClass, number> = {
 }
 /** Tope por defecto si faltara la clase (no debería ocurrir). */
 const FIELD_CAP = 64
-/** Plazas de wildcard (fuera de la región) reservadas en una carrera continental. */
+/** Plazas de wildcard (fuera de la región) reservadas por defecto en una carrera continental. */
 const WILDCARD_FRACTION = 0.12
+
+/** Hash entero estable de una cadena (para variar de forma determinista, p.ej. las wildcards). */
+function hashInt(s: string): number {
+  let h = 2166136261
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i)
+    h = Math.imul(h, 16777619)
+  }
+  return h >>> 0
+}
 /**
  * Prioridad de división al llenar una carrera global (.WT/.Pro). En una .WT los equipos WorldTour
  * entran primero (plaza garantizada) y el resto son wildcards Pro; en una .Pro el núcleo son los
@@ -102,13 +112,16 @@ export function selectFieldTeams<T extends { division?: Division; country: strin
   cap: number,
   region?: Continent,
   priority?: Division[],
+  wildcardSlots?: number,
 ): T[] {
   if (region) {
     const inRegion = eligible.filter((t) => continentForCountry(t.country ?? '') === region)
     const outRegion = eligible.filter((t) => continentForCountry(t.country ?? '') !== region)
-    // La región es mayoría, pero se reserva ~1-2 plazas de wildcard: un ProTeam invitado o algún
-    // continental de fuera (como pasa de verdad en una .2). Si la región no llena, completan wildcards.
-    const wildcards = Math.min(outRegion.length, Math.max(1, Math.floor(cap * WILDCARD_FRACTION)))
+    // La región es mayoría. Se reservan unas plazas de wildcard para equipos de fuera (un ProTeam
+    // invitado o continentales de otro continente): el número varía por carrera (unas atraen a varios,
+    // otras a ninguno), como en la realidad. Si la región no llena, las wildcards completan igual.
+    const reserve = wildcardSlots ?? Math.max(1, Math.floor(cap * WILDCARD_FRACTION))
+    const wildcards = Math.min(outRegion.length, reserve)
     const home = inRegion.slice(0, cap - wildcards)
     const wild = outRegion.slice(0, cap - home.length)
     return [...home, ...wild]
@@ -150,9 +163,19 @@ async function convokeField(
     .from(teams)
     .where(and(eq(teams.worldId, worldId), inArray(teams.division, race.openTo)))
     .orderBy(desc(teams.budget))
-  // Carrera regional (circuito continental): mayoría de equipos del continente, con wildcards solo si
-  // hace falta. Global (.WT/.Pro): por prioridad de división (WorldTour garantizado en las .WT).
-  const teamRows = selectFieldTeams(eligible, cap, race.region, DIVISION_PRIORITY[race.raceClass])
+  // Carrera regional (circuito continental): mayoría de equipos del continente. El nº de wildcards de
+  // fuera del continente varía por carrera (0..N) de forma determinista —unas atraen a varios equipos
+  // extranjeros, otras a ninguno—, y una .1 (más prestigio) atrae más que una .2. Global (.WT/.Pro):
+  // por prioridad de división (WorldTour garantizado en las .WT).
+  const maxWild = race.raceClass === '1' ? 6 : 4
+  const wildcardSlots = race.region ? hashInt(race.id) % (maxWild + 1) : undefined
+  const teamRows = selectFieldTeams(
+    eligible,
+    cap,
+    race.region,
+    DIVISION_PRIORITY[race.raceClass],
+    wildcardSlots,
+  )
   if (teamRows.length === 0) return
   const teamIds = teamRows.map((t) => t.id)
 

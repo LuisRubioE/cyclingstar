@@ -272,8 +272,12 @@ function raceFrance(): CalendarRace {
   }
 }
 
-/** Día de temporada en que se disputan la mayoría de campeonatos nacionales (fin de junio ciclista). */
-const NATIONALS_DAY = 150
+/**
+ * Día de temporada de la mayoría de campeonatos nacionales. En el ciclismo real casi todos se
+ * disputan el MISMO fin de semana (el último de junio; 2026 ≈ 27 jun = día 178), por eso comparten
+ * fecha. Las excepciones de calendario (hemisferio sur / Asia en enero) van en el mapa de abajo.
+ */
+const NATIONALS_DAY = 178
 
 /**
  * Naciones del hemisferio sur / Asia cuyo campeonato se corre en enero (verano austral / calendario
