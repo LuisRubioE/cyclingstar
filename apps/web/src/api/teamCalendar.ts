@@ -10,6 +10,7 @@ export interface TeamCalendarRace {
   squad: number
   drafted: boolean
   natural: boolean
+  travelTier: 'home' | 'continental' | 'intercontinental'
 }
 
 export interface TeamCalendar {

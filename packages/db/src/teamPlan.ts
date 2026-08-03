@@ -8,8 +8,10 @@ import {
 import {
   type Continent,
   HOUSING_RENT_PER_WEEK,
+  type TravelTier,
   continentForCountry,
   raceAttendanceCost,
+  travelTier,
   weeklyHousingCost,
 } from '@cyclingstar/shared'
 import { and, eq, isNotNull, isNull, sql } from 'drizzle-orm'
@@ -92,6 +94,8 @@ export interface TeamCalendarRace {
   drafted: boolean
   /** Es del calendario natural del equipo (viene marcada por defecto). */
   natural: boolean
+  /** Tramo de viaje desde la base del equipo: casa / continental / intercontinental. */
+  travelTier: TravelTier
 }
 
 export interface TeamCalendar {
@@ -203,6 +207,7 @@ export async function getTeamCalendar(
         squad: SQUAD_SIZE[r.format] ?? 7,
         drafted,
         natural,
+        travelTier: travelTier(team.country, r.country ?? null),
       }
     })
     .sort((a, b) => a.startDay - b.startDay)
