@@ -22,7 +22,7 @@ import { drizzle } from 'drizzle-orm/postgres-js'
 import { creditRider } from './economy.js'
 import { raceEntries, raceRosters, riderRacePrefs, riders, teamRacePlan, teams } from './schema.js'
 import { runOneStage } from './stageRun.js'
-import { isNaturalRace } from './teamPlan.js'
+import { ownedTeamAttendance } from './teamPlan.js'
 
 /**
  * El calendario corre en el tick (Paso 44). Cada carrera del calendario (SPEC 8) ejecuta sus etapas
@@ -250,15 +250,7 @@ async function convokeField(
     .from(teamRacePlan)
     .where(and(eq(teamRacePlan.season, season), eq(teamRacePlan.raceId, race.id)))
   const overrideByTeam = new Map(overrideRows.map((o) => [o.teamId, o.attend]))
-  const forcedIn = new Set<string>()
-  const forcedOut = new Set<string>()
-  for (const t of eligible) {
-    if (!t.ownerUserId) continue // los bots van en automático
-    const natural = isNaturalRace(race, t.division, continentForCountry(t.country ?? ''))
-    const attend = overrideByTeam.has(t.id) ? overrideByTeam.get(t.id)! : natural
-    if (attend) forcedIn.add(t.id)
-    else forcedOut.add(t.id)
-  }
+  const { forcedIn, forcedOut } = ownedTeamAttendance(eligible, race, overrideByTeam)
   let teamRows = auto
   if (forcedIn.size > 0 || forcedOut.size > 0) {
     teamRows = auto.filter((t) => !forcedOut.has(t.id))
