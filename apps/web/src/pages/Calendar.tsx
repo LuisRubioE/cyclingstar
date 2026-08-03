@@ -230,9 +230,24 @@ export function Calendar() {
   const nationCount = new Set(nationals.map((r) => r.championshipCountry)).size
 
   // Cabeceras de mes: el calendario es largo (400+ carreras), así que separamos por mes para ojear.
+  // Y un marcador "hoy" en su punto de la temporada para situarse de un vistazo.
+  const today = data.dayOfSeason
   const rows: ReactElement[] = []
   let lastMonth = -1
+  let todayMarked = false
   for (const it of items) {
+    if (today != null && !todayMarked && it.day > today) {
+      rows.push(
+        <div
+          key="today"
+          className="flex items-center gap-2 border-y border-brand-cyan/40 bg-brand-cyan/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-brand-navy"
+        >
+          <span className="inline-block h-2 w-2 rounded-full bg-brand-cyan" aria-hidden />
+          Today · GD {today}
+        </div>,
+      )
+      todayMarked = true
+    }
     const month = monthOfDay(it.day)
     if (month !== lastMonth) {
       rows.push(

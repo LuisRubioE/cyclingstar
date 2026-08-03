@@ -881,7 +881,8 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
           timeTrial: stage.timeTrial ?? false,
         })),
       }))
-      return { races }
+      // Día actual de la temporada (0..363) para marcar "hoy" en el calendario; null si no hay mundo.
+      return { races, dayOfSeason: world ? world.currentDay % 364 : null }
     })
 
     // Explorar el mundo (#13/#14/#15): equipos, ficha de equipo, ficha pública de corredor. Público.

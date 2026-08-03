@@ -39,6 +39,8 @@ export interface CalendarRaceSummary {
 
 export interface Calendar {
   races: CalendarRaceSummary[]
+  /** Día actual de la temporada (0..363), o null si aún no hay mundo. */
+  dayOfSeason: number | null
 }
 
 export async function fetchCalendar(): Promise<Calendar> {
