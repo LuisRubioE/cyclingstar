@@ -118,7 +118,6 @@ const CONTINENT_BY_COUNTRY: Record<string, Continent> = {
   NZ: 'Oceania',
   GU: 'Oceania',
   // Wave 12 (campeonatos nacionales de la lista real).
-  AF: 'Asia',
   AG: 'America',
   BB: 'America',
   BM: 'America',

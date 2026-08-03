@@ -269,7 +269,6 @@ const COUNTRY_WEIGHTS: Record<string, number> = {
   OM: 1,
   TW: 1,
   // Wave 12.
-  AF: 1,
   AG: 1,
   BB: 1,
   BM: 1,

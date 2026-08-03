@@ -125,7 +125,6 @@ export const COUNTRIES: Country[] = [
   { code: 'OM', name: 'Oman', flag: '🇴🇲' },
   { code: 'TW', name: 'Taiwan', flag: '🇹🇼' },
   // Wave 12: resto de naciones con campeonato nacional (lista real de NC).
-  { code: 'AF', name: 'Afghanistan', flag: '🇦🇫' },
   { code: 'AG', name: 'Antigua and Barbuda', flag: '🇦🇬' },
   { code: 'BB', name: 'Barbados', flag: '🇧🇧' },
   { code: 'BM', name: 'Bermuda', flag: '🇧🇲' },
@@ -172,6 +171,7 @@ export function isKnownCountry(code: string): boolean {
  * Los destinos son siempre países registrados.
  */
 export const COUNTRY_FALLBACK: Record<string, string> = {
+  AF: 'IR',
   LI: 'CH',
   SM: 'IT',
   VA: 'IT',
@@ -188,24 +188,24 @@ export const COUNTRY_FALLBACK: Record<string, string> = {
   YE: 'SA',
   KW: 'SA',
   LK: 'IN',
-  BD: 'IN',
+  BD: 'MY',
   NP: 'IN',
-  PK: 'IN',
-  BT: 'IN',
-  MV: 'IN',
+  PK: 'AE',
+  BT: 'TH',
+  MV: 'MY',
   MM: 'TH',
   KH: 'TH',
   BN: 'MY',
-  TL: 'ID',
-  KP: 'KR',
-  TM: 'UZ',
-  TJ: 'UZ',
+  TL: 'MO',
+  KP: 'CN',
+  TM: 'RU',
+  TJ: 'RU',
   GH: 'NG',
   SD: 'EG',
-  SS: 'EG',
+  SS: 'KE',
   LY: 'TN',
-  AO: 'PT',
-  MZ: 'PT',
+  AO: 'CV',
+  MZ: 'CV',
   CD: 'CM',
   CG: 'CM',
   GA: 'CM',
@@ -247,7 +247,7 @@ export const COUNTRY_FALLBACK: Record<string, string> = {
   BL: 'SX',
   MF: 'SX',
   PM: 'CA',
-  FK: 'AR',
+  FK: 'GB',
   GF: 'FR',
   GP: 'FR',
   MQ: 'FR',
@@ -275,9 +275,12 @@ export const COUNTRY_FALLBACK: Record<string, string> = {
  * Resuelve el país jugable de un código (p.ej. detectado por IP): el propio si está registrado, si
  * no su fallback más cercano, y null si es desconocido (el jugador lo elige a mano).
  */
+/** País por defecto cuando un código detectado no está registrado ni tiene fallback conocido. */
+export const DEFAULT_COUNTRY = 'FR'
+
 export function resolveCountry(code: string | null | undefined): string | null {
   if (!code) return null
   const up = code.toUpperCase()
   if (CODES.has(up)) return up
-  return COUNTRY_FALLBACK[up] ?? null
+  return COUNTRY_FALLBACK[up] ?? DEFAULT_COUNTRY
 }
