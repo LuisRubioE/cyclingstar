@@ -16,7 +16,10 @@ export interface TeamCalendar {
   teamId: string
   teamName: string
   teamCountry: string | null
-  hasPlan: boolean
+  budget: number
+  weeklyIncome: number
+  weeklyWages: number
+  weeklyNet: number
   races: TeamCalendarRace[]
 }
 

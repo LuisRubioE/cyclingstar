@@ -1,8 +1,20 @@
-import { type CalendarRace, SEASON_CALENDAR } from '@cyclingstar/engine'
-import { type Continent, continentForCountry, raceAttendanceCost } from '@cyclingstar/shared'
-import { and, eq } from 'drizzle-orm'
+import {
+  type CalendarRace,
+  type Division,
+  SEASON_CALENDAR,
+  SPONSOR_INCOME_PER_WEEK,
+  npcWageBill,
+} from '@cyclingstar/engine'
+import {
+  type Continent,
+  HOUSING_RENT_PER_WEEK,
+  continentForCountry,
+  raceAttendanceCost,
+  weeklyHousingCost,
+} from '@cyclingstar/shared'
+import { and, eq, isNotNull, isNull, sql } from 'drizzle-orm'
 import type { Database } from './client.js'
-import { teamRacePlan, teams } from './schema.js'
+import { contracts, riders, teamRacePlan, teams } from './schema.js'
 
 /**
  * Draft de calendario del equipo (lo hace el manager humano). El equipo parte de su calendario
@@ -56,17 +68,63 @@ export interface TeamCalendar {
   teamId: string
   teamName: string
   teamCountry: string | null
+  /** Presupuesto actual del equipo (cuenta viva de la economía). */
+  budget: number
+  /** Patrocinio semanal (ingreso fijo por división). */
+  weeklyIncome: number
+  /** Masa salarial semanal (NPC estimada + contratos humanos + alquileres cubiertos). */
+  weeklyWages: number
+  /** Saldo semanal antes de viajes (ingreso − salarios). Los viajes se cobran al convocar cada carrera. */
+  weeklyNet: number
   races: TeamCalendarRace[]
 }
 
 /** El equipo del que `userId` es dueño, o null. */
 async function ownedTeam(db: Database, userId: string) {
   const rows = await db
-    .select({ id: teams.id, name: teams.name, country: teams.country, division: teams.division })
+    .select({
+      id: teams.id,
+      name: teams.name,
+      country: teams.country,
+      division: teams.division,
+      budget: teams.budget,
+    })
     .from(teams)
     .where(eq(teams.ownerUserId, userId))
     .limit(1)
   return rows[0] ?? null
+}
+
+/** Finanzas semanales del equipo: patrocinio (ingreso) − masa salarial (NPC estimada + humanos). */
+async function teamWeeklyFinances(
+  db: Database,
+  teamId: string,
+  division: Division,
+): Promise<{ income: number; wages: number }> {
+  const npc = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(riders)
+    .where(and(eq(riders.teamId, teamId), isNull(riders.userId), isNull(riders.retiredAt)))
+  const humans = await db
+    .select({
+      salary: contracts.salary,
+      payHousing: contracts.payHousing,
+      residence: riders.residence,
+      nationality: riders.country,
+    })
+    .from(contracts)
+    .innerJoin(riders, eq(riders.id, contracts.riderId))
+    .where(and(eq(contracts.teamId, teamId), isNotNull(riders.userId)))
+  let humanCost = 0
+  for (const h of humans) {
+    const rent =
+      h.payHousing && weeklyHousingCost(h.residence, h.nationality) > 0 ? HOUSING_RENT_PER_WEEK : 0
+    humanCost += h.salary + rent
+  }
+  return {
+    income: SPONSOR_INCOME_PER_WEEK[division],
+    wages: npcWageBill(division, npc[0]?.n ?? 0) + humanCost,
+  }
 }
 
 /** Una carrera del calendario a la que un equipo de esta división puede acudir (no campeonato). */
@@ -119,7 +177,17 @@ export async function getTeamCalendar(
     })
     .sort((a, b) => a.startDay - b.startDay)
 
-  return { teamId: team.id, teamName: team.name, teamCountry: team.country, races }
+  const fin = await teamWeeklyFinances(db, team.id, team.division as Division)
+  return {
+    teamId: team.id,
+    teamName: team.name,
+    teamCountry: team.country,
+    budget: team.budget,
+    weeklyIncome: fin.income,
+    weeklyWages: fin.wages,
+    weeklyNet: fin.income - fin.wages,
+    races,
+  }
 }
 
 /**
