@@ -5,7 +5,12 @@ import {
   offerSeasons,
   releaseClause,
 } from '@cyclingstar/engine'
-import { HOUSING_RENT_PER_WEEK, residenceAfterSigning, seededRng } from '@cyclingstar/shared'
+import {
+  COUNTRIES,
+  HOUSING_RENT_PER_WEEK,
+  residenceAfterSigning,
+  seededRng,
+} from '@cyclingstar/shared'
 import { and, desc, eq, inArray, isNotNull, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import type { Database } from './client.js'
@@ -235,12 +240,19 @@ export async function acceptOffer(db: Database, riderId: string, offerId: string
       .where(eq(riders.id, riderId))
       .limit(1)
     if (info[0]) {
+      // Si el corredor se muda a otro país, la noticia lo cuenta (y si el equipo le cubre la vivienda).
+      const teamCountry = teamRow[0]?.country ?? null
+      const abroad = !!teamCountry && teamCountry !== (teamRow[0]?.nationality ?? null)
+      const countryName = COUNTRIES.find((c) => c.code === teamCountry)?.name ?? teamCountry
+      const detail = abroad
+        ? `, relocating to ${countryName}${offer.payHousing ? ' with housing covered' : ''}`
+        : ''
       await emitNews(tx, {
         worldId: info[0].worldId,
         gameDay: offer.createdDay,
         kind: 'contract',
         seed: `contract:${offerId}`,
-        data: { rider: info[0].rider, team: info[0].team },
+        data: { rider: info[0].rider, team: info[0].team, detail },
         riderId,
       })
     }

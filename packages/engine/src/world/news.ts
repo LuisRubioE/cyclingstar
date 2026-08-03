@@ -39,9 +39,9 @@ const TEMPLATES: Record<NewsKind, ((d: NewsData) => string)[]> = {
     (d) => `The ${d.race} is decided: ${d.rider} wins the general classification.`,
   ],
   contract: [
-    (d) => `${d.rider} signs for ${d.team}.`,
-    (d) => `${d.team} land the signature of ${d.rider}.`,
-    (d) => `Transfer done: ${d.rider} joins ${d.team}.`,
+    (d) => `${d.rider} signs for ${d.team}${d.detail ? d.detail : ''}.`,
+    (d) => `${d.team} land the signature of ${d.rider}${d.detail ? d.detail : ''}.`,
+    (d) => `Transfer done: ${d.rider} joins ${d.team}${d.detail ? d.detail : ''}.`,
   ],
   injury: [
     (d) => `${d.rider} crashes and will need time to recover.`,
