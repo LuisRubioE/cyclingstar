@@ -1,25 +1,16 @@
 /**
- * Modelo de regiones (SPEC 8, calendario UCI). Cada país pertenece a una de las cinco
- * confederaciones continentales de la UCI (UEC Europa, ACC Asia, CAC África, COPACI América, OCC
- * Oceanía). El calendario continental y las reglas de inscripción por región se apoyan en este mapa.
+ * Modelo de regiones (SPEC 8). Cada país se adscribe a uno de los cinco continentes; el calendario
+ * continental y las reglas de inscripción por región se apoyan en este mapa. Es pura geografía
+ * competitiva: sin nombres de federaciones ni siglas, solo el continente.
  */
 
 export type Continent = 'Europe' | 'Asia' | 'Africa' | 'America' | 'Oceania'
 
 export const CONTINENTS: Continent[] = ['Europe', 'Asia', 'Africa', 'America', 'Oceania']
 
-/** Nombre de la confederación continental de la UCI para cada continente. */
-export const CONFEDERATION: Record<Continent, string> = {
-  Europe: 'UEC',
-  Asia: 'ACC',
-  Africa: 'CAC',
-  America: 'COPACI',
-  Oceania: 'OCC',
-}
-
-/** Confederación a la que la UCI adscribe cada país (código ISO alpha-2 en mayúsculas). */
+/** Continente de cada país (código ISO alpha-2 en mayúsculas). */
 const CONTINENT_BY_COUNTRY: Record<string, Continent> = {
-  // Europa (UEC)
+  // Europa
   ES: 'Europe',
   FR: 'Europe',
   IT: 'Europe',
@@ -61,7 +52,7 @@ const CONTINENT_BY_COUNTRY: Record<string, Continent> = {
   AZ: 'Europe',
   MK: 'Europe',
   XK: 'Europe',
-  // Asia (ACC)
+  // Asia
   JP: 'Asia',
   KZ: 'Asia',
   KR: 'Asia',
@@ -81,7 +72,7 @@ const CONTINENT_BY_COUNTRY: Record<string, Continent> = {
   KG: 'Asia',
   HK: 'Asia',
   BH: 'Asia',
-  // África (CAC)
+  // África
   ZA: 'Africa',
   MA: 'Africa',
   ER: 'Africa',
@@ -92,7 +83,7 @@ const CONTINENT_BY_COUNTRY: Record<string, Continent> = {
   NG: 'Africa',
   KE: 'Africa',
   TN: 'Africa',
-  // América (COPACI)
+  // América
   CO: 'America',
   US: 'America',
   AR: 'America',
@@ -112,13 +103,13 @@ const CONTINENT_BY_COUNTRY: Record<string, Continent> = {
   DO: 'America',
   PY: 'America',
   HN: 'America',
-  // Oceanía (OCC)
+  // Oceanía
   AU: 'Oceania',
   NZ: 'Oceania',
   GU: 'Oceania',
 }
 
-/** Continente (confederación UCI) de un país, o null si no está registrado. */
+/** Continente de un país, o null si no está registrado. */
 export function continentForCountry(code: string): Continent | null {
   return CONTINENT_BY_COUNTRY[code.toUpperCase()] ?? null
 }

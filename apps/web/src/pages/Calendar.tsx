@@ -35,7 +35,7 @@ function RaceCard({ race }: { race: CalendarRaceSummary }) {
       >
         <div className="flex items-center gap-3">
           <span className="w-16 shrink-0 text-xs tabular-nums text-slate-400">
-            Day {race.startDay}
+            GD {race.startDay}
           </span>
           <span className="text-sm font-semibold text-slate-800">{race.name}</span>
           <span
@@ -45,7 +45,7 @@ function RaceCard({ race }: { race: CalendarRaceSummary }) {
           </span>
           <span
             className="rounded-full bg-slate-900/5 px-2 py-0.5 font-mono text-[11px] font-medium text-slate-500"
-            title="UCI race class"
+            title="Race class"
           >
             {raceClassLabel(race.raceClass)}
           </span>

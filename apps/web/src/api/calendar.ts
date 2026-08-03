@@ -1,9 +1,9 @@
 export type RaceLevel = 'WT' | 'PRS' | 'CON'
 export type RaceFormat = 'gran-vuelta' | 'una-semana' | 'un-dia'
-export type RaceClass = 'UWT' | 'Pro' | '1' | '2' | 'NC'
+export type RaceClass = 'WT' | 'Pro' | '1' | '2' | 'NC'
 
 const RACE_CLASS_LABEL: Record<RaceClass, string> = {
-  UWT: '.UWT',
+  WT: '.WT',
   Pro: '.Pro',
   '1': '.1',
   '2': '.2',

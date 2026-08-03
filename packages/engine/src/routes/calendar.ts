@@ -14,9 +14,9 @@ import type { RaceClass } from './uci.js'
 export type RaceLevel = 'WT' | 'PRS' | 'CON'
 export type RaceFormat = 'gran-vuelta' | 'una-semana' | 'un-dia'
 
-/** Clase UCI por defecto de una carrera según su nivel del MVP (WT→.UWT, PRS→.Pro, CON→.1). */
+/** Clase por defecto de una carrera según su nivel del MVP (WT→.WT, PRS→.Pro, CON→.1). */
 function classFromLevel(level: RaceLevel): RaceClass {
-  if (level === 'WT') return 'UWT'
+  if (level === 'WT') return 'WT'
   if (level === 'PRS') return 'Pro'
   return '1'
 }
@@ -40,7 +40,7 @@ export interface CalendarRace {
   id: string
   name: string
   level: RaceLevel
-  /** Clase UCI (.UWT/.Pro/.1/.2/.NC): fija prestigio y baremo de puntos (SPEC 8). */
+  /** Clase de carrera (.WT/.Pro/.1/.2/.NC): fija prestigio y baremo de puntos (SPEC 8). */
   raceClass: RaceClass
   format: RaceFormat
   /** Día de la temporada en que arranca (15..290). */
@@ -261,7 +261,7 @@ function grandTour(id: string, name: string, startDay: number): CalendarRace {
     id,
     name,
     level: 'WT',
-    raceClass: 'UWT',
+    raceClass: 'WT',
     format: 'gran-vuelta',
     startDay,
     openTo: enrollmentFor('WT'),
@@ -301,7 +301,7 @@ function raceFrance(): CalendarRace {
     id: 'race-france',
     name: 'Race France',
     level: 'WT',
-    raceClass: 'UWT',
+    raceClass: 'WT',
     format: 'gran-vuelta',
     startDay: 175,
     openTo: enrollmentFor('WT'),

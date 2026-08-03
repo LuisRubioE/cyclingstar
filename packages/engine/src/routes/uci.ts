@@ -1,34 +1,33 @@
 /**
- * Modelo de clases UCI (SPEC 8, sistema real). Cada carrera tiene una clase que fija su prestigio y
- * la escala de puntos que reparte. Las clases reales:
- *  - .UWT  UCI WorldTour (máxima categoría)
- *  - .Pro  ProSeries
- *  - .1    Clase 1 del circuito continental (un día o por etapas)
- *  - .2    Clase 2 del circuito continental
- *  - .NC   Campeonato nacional
+ * Modelo de clases de carrera (SPEC 8). Cada carrera tiene una clase que fija su prestigio y la
+ * escala de puntos que reparte. Las clases del juego (ficticio):
+ *  - .WT   máxima categoría (WorldTour)
+ *  - .Pro  segunda categoría
+ *  - .1    clase 1 del circuito continental (un día o por etapas)
+ *  - .2    clase 2 del circuito continental
+ *  - .NC   campeonato nacional
  * Puro y determinista: solo datos y una curva de puntos por posición. Nada de aleatoriedad.
  */
 
-export type RaceClass = 'UWT' | 'Pro' | '1' | '2' | 'NC'
+export type RaceClass = 'WT' | 'Pro' | '1' | '2' | 'NC'
 
-export const RACE_CLASSES: RaceClass[] = ['UWT', 'Pro', '1', '2', 'NC']
+export const RACE_CLASSES: RaceClass[] = ['WT', 'Pro', '1', '2', 'NC']
 
 export interface RaceClassInfo {
   id: RaceClass
-  /** Etiqueta con el punto delante, como la escribe la UCI (.UWT, .Pro, .1, .2, .NC). */
+  /** Etiqueta con el punto delante (.WT, .Pro, .1, .2, .NC). */
   label: string
   /** Peso relativo de prestigio (para valoración de IA, récords y desempates). */
   prestige: number
   /**
    * Puntos al GANADOR según formato: vuelta por etapas (GC) o carrera de un día. La curva por
-   * posición se deriva de este tope con `racePoints`. Valores inspirados en el baremo UCI real,
-   * comprimidos para el MVP.
+   * posición se deriva de este tope con `racePoints`.
    */
   winner: { stageRace: number; oneDay: number }
 }
 
 export const RACE_CLASS_INFO: Record<RaceClass, RaceClassInfo> = {
-  UWT: { id: 'UWT', label: '.UWT', prestige: 100, winner: { stageRace: 500, oneDay: 500 } },
+  WT: { id: 'WT', label: '.WT', prestige: 100, winner: { stageRace: 500, oneDay: 500 } },
   Pro: { id: 'Pro', label: '.Pro', prestige: 50, winner: { stageRace: 200, oneDay: 200 } },
   '1': { id: '1', label: '.1', prestige: 25, winner: { stageRace: 125, oneDay: 125 } },
   '2': { id: '2', label: '.2', prestige: 12, winner: { stageRace: 80, oneDay: 80 } },
@@ -36,9 +35,9 @@ export const RACE_CLASS_INFO: Record<RaceClass, RaceClassInfo> = {
 }
 
 /**
- * Fracción de los puntos del ganador que recibe cada posición (1-based). Escala decreciente al
- * estilo UCI (el 2.º ~70%, el 3.º ~52%, …), con una cola hasta el puesto 40. Devuelve 0 fuera de
- * rango. Determinista y monótona no creciente.
+ * Fracción de los puntos del ganador que recibe cada posición (1-based). Escala decreciente (el 2.º
+ * ~70%, el 3.º ~52%, …), con una cola hasta el puesto 40. Devuelve 0 fuera de rango. Determinista y
+ * monótona no creciente.
  */
 const POSITION_FRACTION = [
   1.0, 0.7, 0.52, 0.44, 0.38, 0.33, 0.28, 0.24, 0.2, 0.17, 0.15, 0.13, 0.11, 0.096, 0.084, 0.072,

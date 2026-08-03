@@ -106,7 +106,7 @@ export const COUNTRIES: Country[] = [
   { code: 'DO', name: 'Dominican Republic', flag: '🇩🇴' },
   { code: 'PY', name: 'Paraguay', flag: '🇵🇾' },
   { code: 'MK', name: 'North Macedonia', flag: '🇲🇰' },
-  // Wave 10 — territorios con federación UCI presentes en el pelotón Continental real.
+  // Wave 10 — territorios presentes en el pelotón Continental de referencia.
   { code: 'KG', name: 'Kyrgyzstan', flag: '🇰🇬' },
   { code: 'HK', name: 'Hong Kong', flag: '🇭🇰' },
   { code: 'GU', name: 'Guam', flag: '🇬🇺' },

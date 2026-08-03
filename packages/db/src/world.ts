@@ -41,9 +41,10 @@ const dist = (pairs: [number, string][]): string[] =>
   pairs.flatMap(([n, code]) => Array<string>(n).fill(code))
 
 const TEAM_DIST: Record<Division, string[]> = {
+  // WorldTour real: 18 equipos con el reparto exacto por país (SPEC 7.1).
   WT: dist([
     [3, 'BE'],
-    [3, 'FR'],
+    [2, 'FR'],
     [2, 'DE'],
     [2, 'NL'],
     [1, 'US'],
@@ -53,6 +54,7 @@ const TEAM_DIST: Record<Division, string[]> = {
     [1, 'AU'],
     [1, 'ES'],
     [1, 'AE'],
+    [1, 'NO'],
     [1, 'KZ'],
   ]),
   // ProTeams reales: 16 equipos con el reparto exacto por país (SPEC 7.1).

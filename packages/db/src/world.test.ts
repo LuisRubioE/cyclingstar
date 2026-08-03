@@ -110,13 +110,13 @@ describe('db: génesis del mundo (SPEC 10, Paso 33)', () => {
     expect(con.length).toBe(185)
   })
 
-  it('el WorldTour usa el reparto real (BE 3, FR 3, DE 2, NL 2, …)', () => {
+  it('el WorldTour usa el reparto real (BE 3, FR 2, DE 2, NL 2, NO 1, …)', () => {
     const wt = planWorld('world-seed').teams.filter((t) => t.division === 'WT')
     const tally: Record<string, number> = {}
     for (const t of wt) tally[t.country] = (tally[t.country] ?? 0) + 1
     expect(tally).toEqual({
       BE: 3,
-      FR: 3,
+      FR: 2,
       DE: 2,
       NL: 2,
       US: 1,
@@ -126,8 +126,10 @@ describe('db: génesis del mundo (SPEC 10, Paso 33)', () => {
       AU: 1,
       ES: 1,
       AE: 1,
+      NO: 1,
       KZ: 1,
     })
+    expect(wt.length).toBe(18)
   })
 
   it('los ProTeams usan el reparto real (ES 4, IT 3, FR 3, US 2, CH 2, HU 1, BE 1)', () => {

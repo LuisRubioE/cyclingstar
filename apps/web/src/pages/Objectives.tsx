@@ -76,7 +76,7 @@ export function Objectives() {
               {race.wanted ? '★' : '☆'}
             </button>
             <span className="w-14 shrink-0 text-xs tabular-nums text-slate-400">
-              Day {race.startDay}
+              GD {race.startDay}
             </span>
             <span className="text-sm font-semibold text-slate-800">{race.name}</span>
             <span

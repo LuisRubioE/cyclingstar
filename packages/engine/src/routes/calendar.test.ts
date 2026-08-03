@@ -9,10 +9,10 @@ describe('engine: calendario de temporada (SPEC 8, Paso 34)', () => {
     expect(ids.size).toBe(36)
   })
 
-  it('cada carrera lleva una clase UCI coherente con su nivel', () => {
+  it('cada carrera lleva una clase de carrera coherente con su nivel', () => {
     for (const race of SEASON_CALENDAR) {
       expect(RACE_CLASSES).toContain(race.raceClass)
-      if (race.level === 'WT') expect(race.raceClass).toBe('UWT')
+      if (race.level === 'WT') expect(race.raceClass).toBe('WT')
       if (race.level === 'PRS') expect(race.raceClass).toBe('Pro')
     }
     // El campeonato nacional está marcado como .NC.

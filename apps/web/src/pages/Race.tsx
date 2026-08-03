@@ -48,7 +48,7 @@ export function Race() {
 
       {notRun && (
         <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">
-          Not raced this season yet. Advance the world to its start day.
+          Not raced this season yet. It runs on its start GD.
         </p>
       )}
 
