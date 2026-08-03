@@ -12,6 +12,14 @@ describe('engine: calendario de temporada (SPEC 8, Paso 34)', () => {
     expect(new Set(ids).size).toBe(ids.length)
   })
 
+  it('tiene circuitos continentales con región en los cinco continentes', () => {
+    const regional = SEASON_CALENDAR.filter((r) => r.region != null)
+    const continents = new Set(regional.map((r) => r.region))
+    expect(continents).toEqual(new Set(['Europe', 'Asia', 'Africa', 'America', 'Oceania']))
+    // Todas las regionales son del circuito continental (.1/.2).
+    for (const r of regional) expect(['1', '2']).toContain(r.raceClass)
+  })
+
   it('el WorldTour arranca en las fechas reales (día del año)', () => {
     const byId = new Map(SEASON_CALENDAR.map((r) => [r.id, r]))
     // Ene 20 → 20; monumentos y grandes vueltas en su fecha real.
@@ -43,10 +51,10 @@ describe('engine: calendario de temporada (SPEC 8, Paso 34)', () => {
     expect(new Set(countries).size).toBe(nc.length)
   })
 
-  it('todas arrancan en días de competición (15..300) y están ordenadas por día', () => {
+  it('todas arrancan en días de competición (5..315) y están ordenadas por día', () => {
     for (const race of SEASON_CALENDAR) {
-      expect(race.startDay).toBeGreaterThanOrEqual(15)
-      expect(race.startDay).toBeLessThanOrEqual(300)
+      expect(race.startDay).toBeGreaterThanOrEqual(5)
+      expect(race.startDay).toBeLessThanOrEqual(315)
     }
     const days = SEASON_CALENDAR.map((r) => r.startDay)
     expect([...days].sort((a, b) => a - b)).toEqual(days)
