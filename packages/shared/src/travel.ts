@@ -58,7 +58,10 @@ export function raceAttendanceCost(
   raceDays: number,
 ): TravelCost {
   const transport = TRANSPORT_COST[travelTier(from, to)]
-  return { money: transport.money + HOTEL_PER_RACE_DAY * Math.max(0, raceDays), days: transport.days }
+  return {
+    money: transport.money + HOTEL_PER_RACE_DAY * Math.max(0, raceDays),
+    days: transport.days,
+  }
 }
 
 /** Igual, cuando el destino se conoce por continente (carrera regional/continental). */
@@ -68,5 +71,8 @@ export function raceAttendanceCostToContinent(
   raceDays: number,
 ): TravelCost {
   const transport = TRANSPORT_COST[travelTierByContinent(continentForCountry(from ?? ''), to)]
-  return { money: transport.money + HOTEL_PER_RACE_DAY * Math.max(0, raceDays), days: transport.days }
+  return {
+    money: transport.money + HOTEL_PER_RACE_DAY * Math.max(0, raceDays),
+    days: transport.days,
+  }
 }

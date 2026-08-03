@@ -786,6 +786,7 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
         level: race.level,
         raceClass: race.raceClass,
         championshipCountry: race.championshipCountry ?? null,
+        championshipCategory: race.championshipCategory ?? null,
         format: race.format,
         startDay: race.startDay,
         openTo: race.openTo,

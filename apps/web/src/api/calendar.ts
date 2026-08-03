@@ -29,6 +29,7 @@ export interface CalendarRaceSummary {
   level: RaceLevel
   raceClass: RaceClass
   championshipCountry: string | null
+  championshipCategory: 'elite' | 'u23' | null
   format: RaceFormat
   startDay: number
   openTo: RaceLevel[]

@@ -106,7 +106,9 @@ export function HallOfFame() {
                     <td className="py-1.5 text-right tabular-nums text-slate-600">
                       {r.stage || '—'}
                     </td>
-                    <td className="py-1.5 text-right tabular-nums text-slate-600">{r.kom || '—'}</td>
+                    <td className="py-1.5 text-right tabular-nums text-slate-600">
+                      {r.kom || '—'}
+                    </td>
                     <td className="py-1.5 text-right tabular-nums text-slate-600">
                       {r.points || '—'}
                     </td>

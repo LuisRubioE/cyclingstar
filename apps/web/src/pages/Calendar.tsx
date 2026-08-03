@@ -95,10 +95,63 @@ function RaceCard({ race }: { race: CalendarRaceSummary }) {
   )
 }
 
-/** Grupo plegable con los campeonatos nacionales (mismo día): banderas, ganador y enlace a cada uno. */
+/** Etiqueta corta de cada prueba del campeonato (Crono/Ruta, Elite/Sub-23). */
+function champEventLabel(r: CalendarRaceSummary): string {
+  const itt = r.stages[0]?.timeTrial ?? r.name.includes('ITT')
+  const u23 = r.championshipCategory === 'u23'
+  const discipline = itt ? 'ITT' : 'Road'
+  return u23 ? `U23 ${discipline}` : discipline
+}
+
+/** Nombre del país tal como aparece en el título de la carrera, sin el sufijo de la prueba. */
+function champCountryName(r: CalendarRaceSummary): string {
+  return r.name.replace(/ (U23 )?(ITT|Road) Championship$/, '')
+}
+
+const CHAMP_EVENT_ORDER = ['ITT', 'Road', 'U23 ITT', 'U23 Road']
+
+/** Una nación con sus 4 pruebas (Crono/Ruta × Elite/Sub-23), ordenadas y enlazadas. */
+function NationRow({ code, races }: { code: string; races: CalendarRaceSummary[] }) {
+  const name = champCountryName(races[0]!)
+  const events = [...races].sort(
+    (a, b) =>
+      CHAMP_EVENT_ORDER.indexOf(champEventLabel(a)) - CHAMP_EVENT_ORDER.indexOf(champEventLabel(b)),
+  )
+  return (
+    <div className="flex items-center gap-2 rounded px-1 py-1 hover:bg-slate-50">
+      <Flag code={code} size={16} />
+      <span className="w-32 shrink-0 truncate text-sm font-medium text-slate-700">{name}</span>
+      <div className="flex flex-wrap gap-1">
+        {events.map((r) => (
+          <Link
+            key={r.id}
+            to={`/races/${r.id}`}
+            title={r.winner ? `Winner: ${r.winner}` : champEventLabel(r)}
+            className="rounded bg-slate-900/5 px-1.5 py-0.5 text-[11px] font-medium text-slate-600 hover:bg-brand-cyan/15 hover:text-brand-navy"
+          >
+            {r.winner ? '🏆 ' : ''}
+            {champEventLabel(r)}
+          </Link>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/** Grupo plegable con los campeonatos nacionales (misma semana): 4 pruebas por país, agrupadas. */
 function NationalChampsCard({ races }: { races: CalendarRaceSummary[] }) {
   const [open, setOpen] = useState(false)
-  const day = races[0]?.startDay ?? 0
+  const day = Math.min(...races.map((r) => r.startDay))
+  const byCountry = new Map<string, CalendarRaceSummary[]>()
+  for (const r of races) {
+    const code = r.championshipCountry!
+    const list = byCountry.get(code)
+    if (list) list.push(r)
+    else byCountry.set(code, [r])
+  }
+  const nations = [...byCountry.entries()].sort(([, a], [, b]) =>
+    champCountryName(a[0]!).localeCompare(champCountryName(b[0]!)),
+  )
   return (
     <article className="border-b border-slate-100 last:border-0">
       <button
@@ -115,24 +168,14 @@ function NationalChampsCard({ races }: { races: CalendarRaceSummary[] }) {
             .NC
           </span>
         </div>
-        <span className="text-xs text-slate-500">{races.length} nations</span>
+        <span className="text-xs text-slate-500">
+          {nations.length} nations · Elite &amp; U23, ITT &amp; Road
+        </span>
       </button>
       {open && (
-        <div className="grid gap-x-4 gap-y-1 border-t border-slate-100 px-4 py-3 sm:grid-cols-2">
-          {races.map((r) => (
-            <Link
-              key={r.id}
-              to={`/races/${r.id}`}
-              className="flex items-center justify-between gap-2 rounded px-1 py-0.5 text-sm hover:bg-slate-50"
-            >
-              <span className="flex items-center gap-2">
-                {r.championshipCountry && <Flag code={r.championshipCountry} size={16} />}
-                <span className="text-slate-700">
-                  {r.name.replace(/ National Championship$/, '')}
-                </span>
-              </span>
-              {r.winner && <span className="truncate text-xs text-amber-700">🏆 {r.winner}</span>}
-            </Link>
+        <div className="grid gap-x-4 gap-y-0.5 border-t border-slate-100 px-4 py-3 sm:grid-cols-2">
+          {nations.map(([code, list]) => (
+            <NationRow key={code} code={code} races={list} />
           ))}
         </div>
       )}
@@ -157,18 +200,20 @@ export function Calendar() {
   }))
   if (nationals.length > 0) {
     items.push({
-      day: nationals[0]!.startDay,
+      day: Math.min(...nationals.map((r) => r.startDay)),
       node: <NationalChampsCard key="nc-group" races={nationals} />,
     })
   }
   items.sort((a, b) => a.day - b.day)
 
+  const nationCount = new Set(nationals.map((r) => r.championshipCountry)).size
+
   return (
     <section className="space-y-4">
       <SectionBar>Season calendar</SectionBar>
       <p className="text-sm text-slate-500">
-        {others.length} races plus {nationals.length} national championships — grand tours, stage
-        races, one-day classics and every nation's title.
+        {others.length} races plus national championships for {nationCount} nations — grand tours,
+        stage races, one-day classics and every nation's Elite &amp; U23 titles.
       </p>
       <Panel title="Races" bodyClassName="p-0">
         {items.map((it) => it.node)}

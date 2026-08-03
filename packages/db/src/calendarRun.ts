@@ -102,17 +102,23 @@ async function convokeNationalField(
   race: CalendarRace,
   raceKey: string,
   busy: Set<string>,
+  season: number,
 ): Promise<string[]> {
   const country = race.championshipCountry
   if (!country) return []
   const pool = await tx
-    .select({ id: riders.id })
+    .select({ id: riders.id, birthSeason: riders.birthSeason })
     .from(riders)
     .where(and(eq(riders.worldId, worldId), eq(riders.country, country), isNull(riders.retiredAt)))
     .orderBy(desc(riders.fame))
-    .limit(NATIONAL_FIELD_CAP * 2)
+    .limit(NATIONAL_FIELD_CAP * 3)
+  // El sub-23 solo admite corredores de 23 años o menos (edad = 20 - birthSeason + temporada).
+  const eligible =
+    race.championshipCategory === 'u23'
+      ? pool.filter((r) => 20 - r.birthSeason + season <= 23)
+      : pool
   // Un corredor que ya está corriendo otra carrera no puede estar en el campeonato ese día.
-  const best = pool.filter((r) => !busy.has(r.id)).slice(0, NATIONAL_FIELD_CAP)
+  const best = eligible.filter((r) => !busy.has(r.id)).slice(0, NATIONAL_FIELD_CAP)
   if (best.length < NATIONAL_FIELD_MIN) return []
   await tx
     .insert(raceRosters)
@@ -385,7 +391,7 @@ export async function runCalendarDay(
         .limit(1)
       if (existing.length === 0) {
         const enrolled = race.championshipCountry
-          ? await convokeNationalField(tx, worldId, race, raceKey, busy)
+          ? await convokeNationalField(tx, worldId, race, raceKey, busy, season)
           : await convokeField(tx, worldId, race, raceKey, worldSeed, season, busy)
         for (const id of enrolled) busy.add(id)
       } else {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { COUNTRIES, DEFAULT_COUNTRY, isKnownCountry, resolveCountry } from './countries.js'
+import { DEFAULT_COUNTRY, isKnownCountry, resolveCountry } from './countries.js'
 
 describe('shared: países y fallback de país', () => {
   it('todos los destinos de fallback son países registrados', () => {

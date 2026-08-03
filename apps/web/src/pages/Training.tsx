@@ -108,70 +108,70 @@ export function Training() {
       <Panel title="Weekly plan">
         <div className="space-y-2">
           {days.map((gameDay) => {
-          const position = seasonPosition(gameDay)
-          if (raceDays.has(gameDay)) {
+            const position = seasonPosition(gameDay)
+            if (raceDays.has(gameDay)) {
+              return (
+                <div
+                  key={gameDay}
+                  className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3"
+                >
+                  <span className="w-24 shrink-0 text-sm font-medium text-slate-500">
+                    Day {position.dayOfSeason}
+                  </span>
+                  <span className="text-sm font-semibold text-amber-700">🚴 Race day</span>
+                  <span className="text-xs text-amber-600">No training — you're racing.</span>
+                </div>
+              )
+            }
+            const day = planByDay.get(gameDay)
+            if (!day) return null
+            const info = SESSION_CATALOG[day.session]
             return (
               <div
                 key={gameDay}
-                className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3"
+                className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white p-3"
               >
-                <span className="w-24 shrink-0 text-sm font-medium text-slate-500">
-                  Day {position.dayOfSeason}
-                </span>
-                <span className="text-sm font-semibold text-amber-700">🚴 Race day</span>
-                <span className="text-xs text-amber-600">No training — you're racing.</span>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <span className="w-24 shrink-0 text-sm font-medium text-slate-500">
+                    Day {position.dayOfSeason}
+                  </span>
+                  <select
+                    value={day.session}
+                    onChange={(event) =>
+                      update(day.gameDay, { session: event.target.value as Session })
+                    }
+                    className="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                  >
+                    {SELECTABLE_SESSIONS.map((session) => (
+                      <option key={session} value={session}>
+                        {SESSION_CATALOG[session].label}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    value={day.intensity}
+                    disabled={!info.variableIntensity}
+                    onChange={(event) =>
+                      update(day.gameDay, { intensity: event.target.value as Intensity })
+                    }
+                    className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 disabled:bg-slate-100 disabled:text-slate-400"
+                  >
+                    {INTENSITIES.map((intensity) => (
+                      <option key={intensity} value={intensity}>
+                        {INTENSITY_LABELS[intensity]}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="w-16 shrink-0 text-right text-xs text-slate-400">
+                    {info.tss[day.intensity]} TSS
+                  </span>
+                </div>
+                <p className="pl-24 text-xs text-slate-500">
+                  {sessionEffect(day.session, day.intensity)}
+                </p>
               </div>
             )
-          }
-          const day = planByDay.get(gameDay)
-          if (!day) return null
-          const info = SESSION_CATALOG[day.session]
-          return (
-            <div
-              key={gameDay}
-              className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white p-3"
-            >
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                <span className="w-24 shrink-0 text-sm font-medium text-slate-500">
-                  Day {position.dayOfSeason}
-                </span>
-                <select
-                  value={day.session}
-                  onChange={(event) =>
-                    update(day.gameDay, { session: event.target.value as Session })
-                  }
-                  className="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
-                >
-                  {SELECTABLE_SESSIONS.map((session) => (
-                    <option key={session} value={session}>
-                      {SESSION_CATALOG[session].label}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  value={day.intensity}
-                  disabled={!info.variableIntensity}
-                  onChange={(event) =>
-                    update(day.gameDay, { intensity: event.target.value as Intensity })
-                  }
-                  className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 disabled:bg-slate-100 disabled:text-slate-400"
-                >
-                  {INTENSITIES.map((intensity) => (
-                    <option key={intensity} value={intensity}>
-                      {INTENSITY_LABELS[intensity]}
-                    </option>
-                  ))}
-                </select>
-                <span className="w-16 shrink-0 text-right text-xs text-slate-400">
-                  {info.tss[day.intensity]} TSS
-                </span>
-              </div>
-              <p className="pl-24 text-xs text-slate-500">
-                {sessionEffect(day.session, day.intensity)}
-              </p>
-            </div>
-          )
-        })}
+          })}
         </div>
       </Panel>
 
