@@ -214,10 +214,21 @@ export function Calendar() {
   const nationals = data.races.filter((r) => r.championshipCountry)
   const others = data.races.filter((r) => !r.championshipCountry)
 
+  // Las carreras ya disputadas (día anterior a hoy) se atenúan para destacar lo que viene.
+  const isPast = (day: number) => data.dayOfSeason != null && day < data.dayOfSeason
+  const dim = (key: string, day: number, node: ReactElement) =>
+    isPast(day) ? (
+      <div key={key} className="opacity-55">
+        {node}
+      </div>
+    ) : (
+      node
+    )
+
   // Insertamos el grupo de campeonatos nacionales en su día dentro del orden cronológico.
   const items: { day: number; node: ReactElement }[] = others.map((race) => ({
     day: race.startDay,
-    node: <RaceCard key={race.id} race={race} />,
+    node: dim(race.id, race.startDay, <RaceCard key={race.id} race={race} />),
   }))
   if (nationals.length > 0) {
     items.push({
