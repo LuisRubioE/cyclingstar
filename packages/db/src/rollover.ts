@@ -112,6 +112,8 @@ async function insertNeopro(
     teamId,
     name,
     country,
+    // Un neopro con equipo vive en el país del equipo (base); un agente libre, en el suyo (como génesis).
+    residence: (teamId ? (teamCountry ?? country) : country) ?? country,
     gender: 'M',
     birthSeason: newSeason - (age - 20),
     archetype: vocation,

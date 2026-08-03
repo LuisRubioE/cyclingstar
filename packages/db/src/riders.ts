@@ -80,6 +80,7 @@ export async function createRider(db: Database, input: CreateRiderInput): Promis
         userId: input.userId,
         name: input.name,
         country: input.country,
+        residence: input.country, // un corredor nuevo vive en su país hasta que fiche por un equipo
         gender: input.gender,
         birthSeason: input.birthSeason,
         archetype: input.archetype,

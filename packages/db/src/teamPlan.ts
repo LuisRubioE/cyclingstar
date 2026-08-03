@@ -46,6 +46,36 @@ export function isNaturalRace(
   )
 }
 
+/** Equipo elegible (mínimo) para resolver su asistencia según el plan. */
+export interface AttendanceTeam {
+  id: string
+  division: string
+  country: string | null
+  ownerUserId: string | null
+}
+
+/**
+ * Para una carrera, decide qué equipos CON DUEÑO se fuerzan dentro/fuera del pelotón según su
+ * calendario natural y las excepciones del manager (override teamId→attend). Los bots (sin dueño) se
+ * ignoran (van en automático). Pura y determinista: la usa la convocatoria y es testeable.
+ */
+export function ownedTeamAttendance(
+  teams: AttendanceTeam[],
+  race: CalendarRace,
+  overrides: Map<string, boolean>,
+): { forcedIn: Set<string>; forcedOut: Set<string> } {
+  const forcedIn = new Set<string>()
+  const forcedOut = new Set<string>()
+  for (const t of teams) {
+    if (!t.ownerUserId) continue
+    const natural = isNaturalRace(race, t.division, continentForCountry(t.country ?? ''))
+    const attend = overrides.has(t.id) ? overrides.get(t.id)! : natural
+    if (attend) forcedIn.add(t.id)
+    else forcedOut.add(t.id)
+  }
+  return { forcedIn, forcedOut }
+}
+
 export interface TeamCalendarRace {
   raceId: string
   name: string
