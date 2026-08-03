@@ -27,6 +27,29 @@ describe('db: selección del pelotón por nivel y región (SPEC 8)', () => {
     expect(chosen.map((t) => t.id)).toEqual(['wt1', 'wt2', 'prs1'])
   })
 
+  it('.WT: las wildcards Pro rotan por carrera (no siempre las mismas)', () => {
+    const eligible = [
+      team('wt1', 'BE', 'WT'),
+      team('wt2', 'FR', 'WT'),
+      ...Array.from({ length: 6 }, (_, i) => team(`prs${i}`, 'ES', 'PRS')),
+    ]
+    // Cupo 4: 2 WT garantizados + 2 wildcards Pro que dependen de la semilla de rotación.
+    const wildsFor = (seed: number) =>
+      selectFieldTeams(eligible, 4, undefined, ['WT', 'PRS', 'CON'], undefined, seed)
+        .filter((t) => t.division === 'PRS')
+        .map((t) => t.id)
+        .join(',')
+    // Los dos WT siempre entran, en cualquier semilla.
+    for (const seed of [0, 1, 2, 3]) {
+      const chosen = selectFieldTeams(eligible, 4, undefined, ['WT', 'PRS', 'CON'], undefined, seed)
+      expect(chosen.filter((t) => t.division === 'WT')).toHaveLength(2)
+      expect(chosen.filter((t) => t.division === 'PRS')).toHaveLength(2)
+    }
+    // Distintas semillas producen distintos conjuntos de wildcards (rotan, no son fijas).
+    const variety = new Set([0, 1, 2, 3].map(wildsFor))
+    expect(variety.size).toBeGreaterThan(1)
+  })
+
   it('.Pro: el núcleo son los ProTeams, con WorldTour de invitados', () => {
     const eligible = [
       team('wt1', 'BE', 'WT'),

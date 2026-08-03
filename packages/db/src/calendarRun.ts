@@ -118,6 +118,7 @@ export function selectFieldTeams<T extends { division?: Division; country: strin
   region?: Continent,
   priority?: Division[],
   wildcardSlots?: number,
+  rotateBy?: number,
 ): T[] {
   if (region) {
     const inRegion = eligible.filter((t) => continentForCountry(t.country ?? '') === region)
@@ -128,7 +129,7 @@ export function selectFieldTeams<T extends { division?: Division; country: strin
     const reserve = wildcardSlots ?? Math.max(1, Math.floor(cap * WILDCARD_FRACTION))
     const wildcards = Math.min(outRegion.length, reserve)
     const home = inRegion.slice(0, cap - wildcards)
-    const wild = outRegion.slice(0, cap - home.length)
+    const wild = rotatePick(outRegion, cap - home.length, rotateBy ?? 0)
     return [...home, ...wild]
   }
   if (priority) {
@@ -136,9 +137,29 @@ export function selectFieldTeams<T extends { division?: Division; country: strin
       const i = priority.indexOf(d as Division)
       return i === -1 ? priority.length : i
     }
-    return [...eligible].sort((a, b) => rank(a.division) - rank(b.division)).slice(0, cap)
+    // La división de máxima prioridad entra garantizada (los 18 WorldTour en una .WT). Las plazas de
+    // wildcard restantes NO son siempre los mismos ProTeams de más presupuesto: rotan por carrera
+    // dentro de una ventana de los mejores, así distintas carreras invitan a distintos equipos.
+    const guaranteed = eligible.filter((t) => rank(t.division) === 0).slice(0, cap)
+    const remaining = cap - guaranteed.length
+    if (remaining <= 0) return guaranteed
+    const pool = eligible.filter((t) => rank(t.division) > 0)
+    return [...guaranteed, ...rotatePick(pool, remaining, rotateBy ?? 0)]
   }
   return eligible.slice(0, cap)
+}
+
+/**
+ * Elige `n` equipos de un pool ORDENADO por presupuesto, rotando la ventana según `seed` para que no
+ * salgan siempre los mismos. Rota dentro de la franja de los mejores (~2·n), así los fuertes siguen
+ * favorecidos pero el conjunto invitado varía de carrera a carrera. Puro y determinista.
+ */
+function rotatePick<T>(pool: T[], n: number, seed: number): T[] {
+  if (n <= 0) return []
+  if (pool.length <= n) return pool.slice(0, n)
+  const window = Math.min(pool.length, 2 * n)
+  const offset = (seed % (window - n + 1)) >>> 0
+  return pool.slice(offset, offset + n)
 }
 
 /**
@@ -175,12 +196,15 @@ async function convokeField(
   // por prioridad de división (WorldTour garantizado en las .WT).
   const maxWild = race.raceClass === '1' ? 6 : 4
   const wildcardSlots = race.region ? hashInt(race.id) % (maxWild + 1) : undefined
+  // Semilla de rotación por carrera y temporada: las wildcards rotan año a año, no siempre las mismas.
+  const rotateBy = hashInt(`${raceKey}:wild`)
   const teamRows = selectFieldTeams(
     eligible,
     cap,
     race.region,
     DIVISION_PRIORITY[race.raceClass],
     wildcardSlots,
+    rotateBy,
   )
   if (teamRows.length === 0) return []
   const teamIds = teamRows.map((t) => t.id)
@@ -218,9 +242,33 @@ async function convokeField(
   )
   const raceFit = raceVocationFit(race.stages.map((s) => s.kind))
 
+  // Gestión de carga en grandes vueltas: nadie corre las 3 (sería contraproducente). La mayoría
+  // hace 1 y algunos 2. Al convocar una gran vuelta se cuentan las que cada corredor ya lleva esta
+  // temporada, para preferir a los frescos y descartar a quien ya ha corrido dos.
+  const gtCount = new Map<string, number>()
+  if (race.format === 'gran-vuelta') {
+    const gtKeys = SEASON_CALENDAR.filter(
+      (r) => r.format === 'gran-vuelta' && `${r.id}:s${season}` !== raceKey,
+    ).map((r) => `${r.id}:s${season}`)
+    if (gtKeys.length > 0) {
+      const rows = await tx
+        .select({ riderId: raceRosters.riderId })
+        .from(raceRosters)
+        .where(inArray(raceRosters.raceId, gtKeys))
+      for (const row of rows) gtCount.set(row.riderId, (gtCount.get(row.riderId) ?? 0) + 1)
+    }
+  }
+
   const rosterValues: { raceId: string; riderId: string }[] = []
   for (const team of teamRows) {
-    const members = byTeam.get(team.id) ?? []
+    let members = byTeam.get(team.id) ?? []
+    if (race.format === 'gran-vuelta') {
+      // Frescos = sin grandes vueltas aún; se tira de los que ya llevan una solo si faltan; los que
+      // ya llevan dos quedan fuera (nadie hace las tres).
+      const fresh = members.filter((m) => (gtCount.get(m.id) ?? 0) === 0)
+      const oneGt = members.filter((m) => (gtCount.get(m.id) ?? 0) === 1)
+      members = fresh.length >= size ? fresh : [...fresh, ...oneGt]
+    }
     if (members.length === 0) continue
     const cands: CallupCandidate[] = members.map((m) => ({
       riderId: m.id,
