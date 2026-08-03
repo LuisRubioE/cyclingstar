@@ -3,11 +3,11 @@ import { RACE_CLASSES } from './uci.js'
 import { SEASON_CALENDAR } from './calendar.js'
 
 describe('engine: calendario de temporada (SPEC 8, Paso 34)', () => {
-  it('incluye el WorldTour real (36) y los 92 campeonatos nacionales, con id único', () => {
+  it('incluye el WorldTour real (36) y 4 campeonatos por país (133 países), con id único', () => {
     const wt = SEASON_CALENDAR.filter((r) => r.level === 'WT')
     const nc = SEASON_CALENDAR.filter((r) => r.championshipCountry)
     expect(wt).toHaveLength(36) // 33 de un día/semana + 3 grandes vueltas
-    expect(nc).toHaveLength(92)
+    expect(nc).toHaveLength(133 * 4) // Elite/Sub-23 × Crono/Ruta
     const ids = SEASON_CALENDAR.map((r) => r.id)
     expect(new Set(ids).size).toBe(ids.length)
   })
@@ -39,16 +39,19 @@ describe('engine: calendario de temporada (SPEC 8, Paso 34)', () => {
     }
   })
 
-  it('cada campeonato nacional es de un día, con país y sin inscripción por división', () => {
+  it('cada campeonato nacional es de un día, con país, categoría y sin inscripción por división', () => {
     const nc = SEASON_CALENDAR.filter((r) => r.championshipCountry)
     for (const race of nc) {
       expect(race.format).toBe('un-dia')
       expect(race.championshipCountry).toMatch(/^[A-Z]{2}$/)
+      expect(['elite', 'u23']).toContain(race.championshipCategory)
       expect(race.openTo).toHaveLength(0)
     }
-    // Un país por campeonato, sin duplicados.
-    const countries = nc.map((r) => r.championshipCountry)
-    expect(new Set(countries).size).toBe(nc.length)
+    // 4 campeonatos por país (Elite/Sub-23 × Crono/Ruta), todos en la misma semana.
+    const byCountry = new Map<string, number>()
+    for (const r of nc)
+      byCountry.set(r.championshipCountry!, (byCountry.get(r.championshipCountry!) ?? 0) + 1)
+    for (const n of byCountry.values()) expect(n).toBe(4)
   })
 
   it('todas arrancan en días de competición (5..315) y están ordenadas por día', () => {
@@ -105,6 +108,27 @@ describe('engine: calendario de temporada (SPEC 8, Paso 34)', () => {
       if (race.level === 'WT') expect(race.openTo).toEqual(['WT', 'PRS'])
       if (race.level === 'PRS') expect(race.openTo).toEqual(['WT', 'PRS', 'CON'])
       if (race.level === 'CON') expect(race.openTo).toEqual(['PRS', 'CON'])
+    }
+  })
+
+  it('las carreras globales (WT/Pro) y los campeonatos llevan país; el NC coincide con su país', () => {
+    for (const race of SEASON_CALENDAR) {
+      if (race.championshipCountry) {
+        expect(race.country).toBe(race.championshipCountry)
+      } else if (race.level === 'WT' || race.level === 'PRS') {
+        expect(race.country).toMatch(/^[A-Z]{2}$/)
+      }
+    }
+    // Las grandes vueltas en su país real.
+    const byId = new Map(SEASON_CALENDAR.map((r) => [r.id, r]))
+    expect(byId.get('race-france')?.country).toBe('FR')
+    expect(byId.get('race-italy')?.country).toBe('IT')
+    expect(byId.get('race-spain')?.country).toBe('ES')
+  })
+
+  it('TODAS las carreras llevan país (base del sistema de viajes)', () => {
+    for (const race of SEASON_CALENDAR) {
+      expect(race.country).toMatch(/^[A-Z]{2}$/)
     }
   })
 

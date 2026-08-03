@@ -5,12 +5,17 @@ import { runCalendarDay } from './calendarRun.js'
 import { runCallups } from './callups.js'
 import { dedupeWorldNames } from './dedupeNames.js'
 import { runMarket } from './contracts.js'
-import { runPayroll } from './economy.js'
+import { runPayroll, runTeamFinances } from './economy.js'
 import { raceWorldDay } from './race.js'
 import { runRollover } from './rollover.js'
 import { gameState, tickLog, worlds } from './schema.js'
 import { trainWorldDay } from './train.js'
-import { clusterTeamNationalities, reconcileTeams, seedWorld } from './world.js'
+import {
+  clusterTeamNationalities,
+  reconcileTeams,
+  renationalizeBotRosters,
+  seedWorld,
+} from './world.js'
 
 /**
  * El tick: el reloj del mundo (SPEC 2). 1 día de juego = 6 horas reales por defecto
@@ -159,6 +164,7 @@ export async function runTick(databaseUrl: string, opts: RunTickOptions): Promis
           await runCallups(tx, genesis.worldId, next, opts.worldSeed)
           await runMarket(tx, genesis.worldId, next, opts.worldSeed)
           await runPayroll(tx, genesis.worldId, next)
+          await runTeamFinances(tx, genesis.worldId, next)
           await tx
             .update(gameState)
             .set({ currentDay: next, lastProcessedDay: next })
@@ -186,14 +192,17 @@ export async function runTick(databaseUrl: string, opts: RunTickOptions): Promis
           .where(eq(worlds.id, genesis.worldId))
       }
 
-      // Repara nombres duplicados de equipos y corredores (génesis previa a la validación y
-      // neoprofesionales del rollover). Idempotente: una vez limpio no hace ningún cambio.
-      await db.transaction((tx) => dedupeWorldNames(tx, genesis.worldId))
       // Reconcilia equipos NPC con el reparto real de nacionalidades y nombres por idioma. Idempotente.
       await db.transaction((tx) => reconcileTeams(tx, genesis.worldId))
       // Da a cada equipo bot un núcleo nacional (mayoría de su país) reubicando corredores bot dentro
       // de su división, sin cambiar nacionalidades ni tocar humanos. Idempotente (punto fijo).
       await db.transaction((tx) => clusterTeamNationalities(tx, genesis.worldId))
+      // Rebautiza a los extranjeros sobrantes de cada equipo bot con su país (mundos antiguos o con
+      // pocos paisanos donde reubicar no basta). Idempotente una vez alcanzada la cuota nacional.
+      await db.transaction((tx) => renationalizeBotRosters(tx, genesis.worldId, opts.worldSeed))
+      // Repara nombres duplicados de equipos y corredores (génesis, neopros del rollover y los
+      // renacionalizados). Idempotente: una vez limpio no hace ningún cambio.
+      await db.transaction((tx) => dedupeWorldNames(tx, genesis.worldId))
 
       const durationMs = Date.now() - startedAtMs
       await db.insert(tickLog).values({

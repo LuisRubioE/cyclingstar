@@ -5,7 +5,7 @@ import {
   offerSeasons,
   releaseClause,
 } from '@cyclingstar/engine'
-import { seededRng } from '@cyclingstar/shared'
+import { HOUSING_RENT_PER_WEEK, residenceAfterSigning, seededRng } from '@cyclingstar/shared'
 import { and, desc, eq, inArray, isNotNull, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import type { Database } from './client.js'
@@ -71,7 +71,7 @@ export async function runMarket(
   const season = Math.floor(gameDay / SEASON_DAYS)
 
   const humans = await tx
-    .select({ id: riders.id, birthSeason: riders.birthSeason })
+    .select({ id: riders.id, birthSeason: riders.birthSeason, country: riders.country })
     .from(riders)
     .where(and(eq(riders.worldId, worldId), isNotNull(riders.userId)))
 
@@ -101,12 +101,15 @@ export async function runMarket(
     const age = 20 - human.birthSeason + season
     const divisions = divisionsForRating(rating)
 
-    // Equipos que encajan, priorizando los que tienen hueco en plantilla.
+    // Equipos que encajan, priorizando los que tienen hueco en plantilla. Los equipos del MISMO país
+    // que el corredor tiran primero por él (los bots fichan sobre todo compatriotas), sin que sea
+    // exclusivo: un buen corredor también recibe ofertas de fuera.
     const teamRows = await tx
       .select({
         id: teams.id,
         division: teams.division,
         budget: teams.budget,
+        country: teams.country,
         roster: sql<number>`count(${riders.id})::int`,
       })
       .from(teams)
@@ -114,9 +117,14 @@ export async function runMarket(
       .where(and(eq(teams.worldId, worldId), inArray(teams.division, divisions)))
       .groupBy(teams.id)
       .orderBy(desc(teams.budget))
+    const SAME_COUNTRY_BONUS = 10
     const ranked = teamRows
-      .map((t) => ({ ...t, gap: ROSTER_TARGET[t.division as Division] - t.roster }))
-      .sort((a, b) => b.gap - a.gap || b.budget - a.budget)
+      .map((t) => ({
+        ...t,
+        gap: ROSTER_TARGET[t.division as Division] - t.roster,
+        homeBonus: t.country && t.country === human.country ? SAME_COUNTRY_BONUS : 0,
+      }))
+      .sort((a, b) => b.gap + b.homeBonus - (a.gap + a.homeBonus) || b.budget - a.budget)
 
     const rng = seededRng(`${worldSeed}:market:${human.id}:d${gameDay}`)
     const count = rng() < 0.5 ? 2 : 3
@@ -126,8 +134,14 @@ export async function runMarket(
     for (const team of chosen) {
       const division = team.division as Division
       const role = roleForRating(rating)
-      const salary = offerSalary({ division, pointsPercentile: rating, age, role })
+      const full = offerSalary({ division, pointsPercentile: rating, age, role })
       const seasons = offerSeasons(rating, rng)
+      // Fichaje internacional: el equipo puede asumir el alquiler de vivienda del corredor (se mudará
+      // a otro país) a cambio de rebajar el salario por el importe del alquiler. El corredor queda
+      // igual de caja (no paga alquiler) y gana certeza; el equipo lo usa como reclamo de fichaje.
+      const abroad = !!team.country && team.country !== human.country
+      const payHousing = abroad
+      const salary = payHousing ? Math.max(1, full - HOUSING_RENT_PER_WEEK) : full
       await tx.insert(offers).values({
         riderId: human.id,
         teamId: team.id,
@@ -137,6 +151,7 @@ export async function runMarket(
         seasons,
         releaseClause: releaseClause(salary, seasons),
         createdDay: gameDay,
+        payHousing,
       })
     }
   }
@@ -151,6 +166,8 @@ export interface OfferRow {
   salary: number
   seasons: number
   releaseClause: number
+  /** El equipo pagaría el alquiler de vivienda del corredor (fichaje internacional). */
+  payHousing: boolean
 }
 
 /** Ofertas pendientes de un corredor, con el equipo que las hace. */
@@ -165,6 +182,7 @@ export async function getOffers(db: Database, riderId: string): Promise<OfferRow
       salary: offers.salary,
       seasons: offers.seasons,
       releaseClause: offers.releaseClause,
+      payHousing: offers.payHousing,
     })
     .from(offers)
     .innerJoin(teams, eq(teams.id, offers.teamId))
@@ -192,8 +210,21 @@ export async function acceptOffer(db: Database, riderId: string, offerId: string
       startSeason: offer.season,
       endSeason: offer.season + offer.seasons - 1,
       releaseClause: offer.releaseClause,
+      payHousing: offer.payHousing,
     })
-    await tx.update(riders).set({ teamId: offer.teamId }).where(eq(riders.id, riderId))
+    // Al firmar, el corredor se muda al país del equipo (allí está la base y entrena con el grupo):
+    // si es extranjero, empieza a pagar alquiler (o el equipo lo asume). Movemos residencia con equipo.
+    const teamRow = await tx
+      .select({ country: teams.country, nationality: riders.country })
+      .from(riders)
+      .innerJoin(teams, eq(teams.id, offer.teamId))
+      .where(eq(riders.id, riderId))
+      .limit(1)
+    const residence = residenceAfterSigning(
+      teamRow[0]?.nationality ?? null,
+      teamRow[0]?.country ?? null,
+    )
+    await tx.update(riders).set({ teamId: offer.teamId, residence }).where(eq(riders.id, riderId))
     await tx.update(offers).set({ status: 'aceptada' }).where(eq(offers.id, offerId))
 
     // Noticia del fichaje (Paso 39), personal del corredor.

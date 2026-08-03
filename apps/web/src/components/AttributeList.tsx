@@ -4,8 +4,8 @@ import {
   ATTRIBUTE_LABELS,
   type Attribute,
   SESSION_CATALOG,
+  attrStars,
   sessionsForAttribute,
-  stars,
 } from '@cyclingstar/shared'
 import { useState } from 'react'
 import { StarRating } from './StarRating'
@@ -37,7 +37,7 @@ export function AttributeList({ attributes }: { attributes: Record<Attribute, nu
                 </span>
               </dt>
               <dd>
-                <StarRating value={stars(attributes[attr] ?? 0)} />
+                <StarRating value={attrStars(attributes[attr] ?? 0)} />
               </dd>
             </button>
             {isOpen && (

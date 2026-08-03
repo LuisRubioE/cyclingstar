@@ -52,6 +52,10 @@ const CONTINENT_BY_COUNTRY: Record<string, Continent> = {
   AZ: 'Europe',
   MK: 'Europe',
   XK: 'Europe',
+  BA: 'Europe',
+  AL: 'Europe',
+  AD: 'Europe',
+  CY: 'Europe',
   // Asia
   JP: 'Asia',
   KZ: 'Asia',
@@ -72,6 +76,8 @@ const CONTINENT_BY_COUNTRY: Record<string, Continent> = {
   KG: 'Asia',
   HK: 'Asia',
   BH: 'Asia',
+  OM: 'Asia',
+  TW: 'Asia',
   // África
   ZA: 'Africa',
   MA: 'Africa',
@@ -83,6 +89,10 @@ const CONTINENT_BY_COUNTRY: Record<string, Continent> = {
   NG: 'Africa',
   KE: 'Africa',
   TN: 'Africa',
+  BJ: 'Africa',
+  MU: 'Africa',
+  CM: 'Africa',
+  BF: 'Africa',
   // América
   CO: 'America',
   US: 'America',
@@ -107,9 +117,48 @@ const CONTINENT_BY_COUNTRY: Record<string, Continent> = {
   AU: 'Oceania',
   NZ: 'Oceania',
   GU: 'Oceania',
+  // Wave 12 (campeonatos nacionales de la lista real).
+  AG: 'America',
+  BB: 'America',
+  BM: 'America',
+  BZ: 'America',
+  CI: 'Africa',
+  CV: 'Africa',
+  DM: 'America',
+  GW: 'Africa',
+  JM: 'America',
+  JO: 'Asia',
+  KY: 'America',
+  LA: 'Asia',
+  LB: 'Asia',
+  LC: 'America',
+  MC: 'Europe',
+  ME: 'Europe',
+  ML: 'Africa',
+  MN: 'Asia',
+  MO: 'Asia',
+  MT: 'Europe',
+  NA: 'Africa',
+  PR: 'America',
+  SC: 'Africa',
+  SN: 'Africa',
+  SR: 'America',
+  SV: 'America',
+  SX: 'America',
+  SZ: 'Africa',
+  TT: 'America',
+  VC: 'America',
+  ZW: 'Africa',
 }
 
 /** Continente de un país, o null si no está registrado. */
 export function continentForCountry(code: string): Continent | null {
   return CONTINENT_BY_COUNTRY[code.toUpperCase()] ?? null
+}
+
+/** Todos los países (código ISO) adscritos a un continente. Base del pelotón regional. */
+export function countriesInContinent(continent: Continent): string[] {
+  return Object.entries(CONTINENT_BY_COUNTRY)
+    .filter(([, c]) => c === continent)
+    .map(([code]) => code)
 }

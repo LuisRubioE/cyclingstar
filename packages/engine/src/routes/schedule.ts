@@ -18,3 +18,16 @@ export function scheduledStageIndex(race: CalendarRace, dayOfSeason: number): nu
   }
   return null
 }
+
+/** Día de la temporada de la última etapa (fin de la carrera, contando descansos). */
+export function raceLastDay(race: CalendarRace): number {
+  return stageDayOfSeason(race, race.stages.length)
+}
+
+/**
+ * ¿La carrera está EN CURSO en `dayOfSeason` habiendo empezado antes? (arrancó en un día previo y aún
+ * no ha terminado). Sirve para saber qué corredores están ocupados y no pueden ir a otra carrera.
+ */
+export function raceOngoingBefore(race: CalendarRace, dayOfSeason: number): boolean {
+  return race.startDay < dayOfSeason && dayOfSeason <= raceLastDay(race)
+}

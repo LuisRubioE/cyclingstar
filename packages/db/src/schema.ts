@@ -208,6 +208,10 @@ export const riders = pgTable(
     teamId: uuid('team_id'),
     name: text('name').notNull(),
     country: char('country', { length: 2 }).notNull(),
+    /** País de RESIDENCIA (ISO alpha-2): base del coste de viajes y de la vivienda. Arranca en el
+     * país de nacimiento (casa familiar, gratis) y cambia al del equipo al firmar. Null = reside en
+     * su país (se resuelve a `country`). */
+    residence: char('residence', { length: 2 }),
     gender: genderEnum('gender').notNull(),
     birthSeason: integer('birth_season').notNull(),
     archetype: archetypeEnum('archetype').notNull(),
@@ -455,6 +459,8 @@ export const txnKindEnum = pgEnum('txn_kind', [
   'premio',
   'staff',
   'patrocinador',
+  'viaje',
+  'vivienda',
   'otro',
 ])
 
@@ -502,6 +508,8 @@ export const contracts = pgTable(
     /** Última temporada cubierta (inclusive). */
     endSeason: integer('end_season').notNull(),
     releaseClause: integer('release_clause').notNull().default(0),
+    /** El equipo asume el alquiler de vivienda del corredor (extra del contrato, no lo paga él). */
+    payHousing: boolean('pay_housing').notNull().default(false),
   },
   (t) => [index('contracts_rider_idx').on(t.riderId), index('contracts_team_idx').on(t.teamId)],
 )
@@ -524,6 +532,8 @@ export const offers = pgTable(
     releaseClause: integer('release_clause').notNull().default(0),
     createdDay: integer('created_day').notNull(),
     status: offerStatusEnum('status').notNull().default('pendiente'),
+    /** La oferta incluye que el equipo pague el alquiler de vivienda (a cambio de menos salario). */
+    payHousing: boolean('pay_housing').notNull().default(false),
   },
   (t) => [index('offers_rider_status_idx').on(t.riderId, t.status)],
 )
@@ -538,6 +548,48 @@ export const riderRacePrefs = pgTable(
     raceId: text('race_id').notNull(),
   },
   (t) => [primaryKey({ columns: [t.riderId, t.raceId] })],
+)
+
+/**
+ * Auto-inscripción de un agente libre a una carrera: un corredor humano SIN equipo puede inscribirse
+ * a una carrera que se pueda permitir; paga su propio viaje. Al convocarse la carrera, si le llega el
+ * dinero y no está ocupado, se le cobra el viaje y se le mete en el pelotón (enrolled=true).
+ */
+export const raceEntries = pgTable(
+  'race_entries',
+  {
+    riderId: uuid('rider_id')
+      .notNull()
+      .references(() => riders.id, { onDelete: 'cascade' }),
+    raceId: text('race_id').notNull(),
+    season: integer('season').notNull(),
+    createdDay: integer('created_day').notNull(),
+    /** Ya convocado y pagado el viaje (metido en el pelotón). */
+    enrolled: boolean('enrolled').notNull().default(false),
+  },
+  (t) => [primaryKey({ columns: [t.riderId, t.raceId, t.season] })],
+)
+
+/**
+ * Calendario del EQUIPO gestionado por un humano (draft de calendario). El manager parte del
+ * calendario NATURAL de su equipo (sus carreras de casa: un continental corre las de su continente,
+ * un WorldTour las .WT, etc.) y solo guarda EXCEPCIONES: quitar una carrera natural (attend=false) o
+ * añadir una que no lo es —viajar fuera— (attend=true). Sin fila = comportamiento natural. Los bots
+ * no llevan plan (van en automático); esta tabla solo tiene equipos con dueño.
+ */
+export const teamRacePlan = pgTable(
+  'team_race_plan',
+  {
+    teamId: uuid('team_id')
+      .notNull()
+      .references(() => teams.id, { onDelete: 'cascade' }),
+    raceId: text('race_id').notNull(),
+    season: integer('season').notNull(),
+    createdDay: integer('created_day').notNull(),
+    /** Excepción sobre el calendario natural: true = añadir esta carrera, false = saltarla. */
+    attend: boolean('attend').notNull().default(true),
+  },
+  (t) => [primaryKey({ columns: [t.teamId, t.raceId, t.season] })],
 )
 
 /** Decisiones de convocatoria por carrera y temporada (SPEC 6.18, Paso 35). */

@@ -26,7 +26,11 @@ import {
   updateOwnedTeam,
   listBlocked,
   removeBlocked,
+  draftRace,
+  enterRace,
   getContract,
+  getEnterableRaces,
+  getTeamCalendar,
   getCurrentWorld,
   getDailyLog,
   getGlobalNews,
@@ -48,6 +52,8 @@ import {
   getGcThroughStage,
   getKomClassification,
   getOffers,
+  undraftRace,
+  withdrawRace,
   getPointsClassification,
   getRaceGc,
   getRacePrefs,
@@ -80,7 +86,7 @@ import {
   renderAltimetrySvg,
   simulateStage,
 } from '@cyclingstar/engine'
-import { type Health, isKnownCountry, seasonPosition } from '@cyclingstar/shared'
+import { type Health, isKnownCountry, resolveCountry, seasonPosition } from '@cyclingstar/shared'
 import Fastify, {
   type FastifyError,
   type FastifyInstance,
@@ -338,7 +344,8 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
     app.get('/api/geo/country', (request) => {
       const raw = request.headers['cf-ipcountry']
       const code = typeof raw === 'string' ? raw.toUpperCase() : null
-      return { country: code && isKnownCountry(code) ? code : null }
+      // Resuelve al país jugable: el propio si existe, si no su fallback más cercano (Vaticano→Italia…).
+      return { country: resolveCountry(code) }
     })
 
     // Generación de nombre (Paso 13/15): server-side, respeta la lista de bloqueo y evita
@@ -689,6 +696,81 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
       },
     )
 
+    // Auto-inscripción del agente libre a carreras continentales (economía de viajes). Lista lo que
+    // puede correr con el coste de viaje, y permite inscribirse/darse de baja hasta que empiece.
+    app.get('/api/riders/me/race-entries', async (request, reply) => {
+      const userId = await currentUserId(request)
+      if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
+      const rider = await getRiderForUser(db, userId)
+      const world = await getCurrentWorld(db)
+      if (!rider || !world) return { races: [] }
+      return { races: await getEnterableRaces(db, rider.id, world.currentDay) }
+    })
+
+    app.post<{ Params: { raceId: string } }>(
+      '/api/riders/me/race-entries/:raceId',
+      async (request, reply) => {
+        const userId = await currentUserId(request)
+        if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
+        const rider = await getRiderForUser(db, userId)
+        const world = await getCurrentWorld(db)
+        if (!rider || !world) return reply.status(409).send({ ok: false, error: 'sin_ciclista' })
+        const res = await enterRace(db, rider.id, request.params.raceId, world.currentDay)
+        if (!res.ok) return reply.status(409).send({ ok: false, error: res.error })
+        return { ok: true }
+      },
+    )
+
+    app.delete<{ Params: { raceId: string } }>(
+      '/api/riders/me/race-entries/:raceId',
+      async (request, reply) => {
+        const userId = await currentUserId(request)
+        if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
+        const rider = await getRiderForUser(db, userId)
+        const world = await getCurrentWorld(db)
+        if (!rider || !world) return reply.status(409).send({ ok: false, error: 'sin_ciclista' })
+        const res = await withdrawRace(db, rider.id, request.params.raceId, world.currentDay)
+        if (!res.ok) return reply.status(409).send({ ok: false, error: res.error })
+        return { ok: true }
+      },
+    )
+
+    // Draft de calendario del EQUIPO (lo hace el manager): lista las carreras elegibles con el coste
+    // de viaje y permite añadir/quitar del plan. Solo para quien gestiona un equipo.
+    app.get('/api/teams/me/calendar', async (request, reply) => {
+      const userId = await currentUserId(request)
+      if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
+      const world = await getCurrentWorld(db)
+      if (!world) return { calendar: null }
+      return { calendar: await getTeamCalendar(db, userId, world.currentDay) }
+    })
+
+    app.post<{ Params: { raceId: string } }>(
+      '/api/teams/me/calendar/:raceId',
+      async (request, reply) => {
+        const userId = await currentUserId(request)
+        if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
+        const world = await getCurrentWorld(db)
+        if (!world) return reply.status(409).send({ ok: false, error: 'sin_mundo' })
+        const res = await draftRace(db, userId, request.params.raceId, world.currentDay)
+        if (!res.ok) return reply.status(409).send({ ok: false, error: res.error })
+        return { ok: true }
+      },
+    )
+
+    app.delete<{ Params: { raceId: string } }>(
+      '/api/teams/me/calendar/:raceId',
+      async (request, reply) => {
+        const userId = await currentUserId(request)
+        if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
+        const world = await getCurrentWorld(db)
+        if (!world) return reply.status(409).send({ ok: false, error: 'sin_mundo' })
+        const res = await undraftRace(db, userId, request.params.raceId, world.currentDay)
+        if (!res.ok) return reply.status(409).send({ ok: false, error: res.error })
+        return { ok: true }
+      },
+    )
+
     app.put('/api/riders/me/orders', async (request, reply) => {
       const userId = await currentUserId(request)
       if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
@@ -785,6 +867,7 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
         level: race.level,
         raceClass: race.raceClass,
         championshipCountry: race.championshipCountry ?? null,
+        championshipCategory: race.championshipCategory ?? null,
         format: race.format,
         startDay: race.startDay,
         openTo: race.openTo,

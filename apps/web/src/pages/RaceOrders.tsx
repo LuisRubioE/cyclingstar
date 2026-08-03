@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
+import { Panel, SectionBar } from '../components/Panel'
 import {
   type Effort,
   type Mentality,
@@ -79,22 +80,23 @@ export function RaceOrders() {
   const rivals = data.roster // por ahora solo tu corredor; los NPC llegan con la génesis del mundo
 
   return (
-    <section className="space-y-6">
-      <header className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Race orders · Test tour</h1>
-          <p className="text-sm text-slate-500">
-            Set your autopilot for all five stages, then save once.
-          </p>
-        </div>
-        <button
-          onClick={() => mutation.mutate()}
-          disabled={mutation.isPending}
-          className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-500 disabled:opacity-60"
-        >
-          {mutation.isPending ? 'Saving…' : 'Save all'}
-        </button>
-      </header>
+    <section className="space-y-4">
+      <SectionBar
+        action={
+          <button
+            onClick={() => mutation.mutate()}
+            disabled={mutation.isPending}
+            className="rounded-lg bg-white/20 px-4 py-1.5 text-sm font-medium text-white transition hover:bg-white/30 disabled:opacity-60"
+          >
+            {mutation.isPending ? 'Saving…' : 'Save all'}
+          </button>
+        }
+      >
+        Race orders · Test tour
+      </SectionBar>
+      <p className="text-sm text-slate-500">
+        Set your autopilot for all five stages, then save once.
+      </p>
       {mutation.isSuccess && <p className="text-sm text-emerald-600">Orders saved.</p>}
       {mutation.isError && <p className="text-sm text-red-600">Could not save your orders.</p>}
 
@@ -102,14 +104,11 @@ export function RaceOrders() {
         {data.stages.map((stage) => {
           const order = orders[stage.day] ?? defaultOrder(stage.day)
           return (
-            <article
+            <Panel
               key={stage.day}
-              className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+              title={stage.name}
+              action={<span className="text-xs text-white/90">{stage.km} km</span>}
             >
-              <div className="mb-2 flex items-baseline justify-between">
-                <h2 className="text-sm font-semibold text-slate-800">{stage.name}</h2>
-                <span className="text-xs text-slate-500">{stage.km} km</span>
-              </div>
               <div
                 className="mb-3 w-full overflow-x-auto"
                 dangerouslySetInnerHTML={{ __html: stage.altimetry }}
@@ -224,7 +223,7 @@ export function RaceOrders() {
                   </div>
                 </div>
               )}
-            </article>
+            </Panel>
           )
         })}
       </div>

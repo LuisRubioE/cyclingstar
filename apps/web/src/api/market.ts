@@ -7,6 +7,7 @@ export interface Offer {
   salary: number
   seasons: number
   releaseClause: number
+  payHousing: boolean
 }
 
 export interface Contract {

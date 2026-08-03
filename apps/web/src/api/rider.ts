@@ -1,4 +1,4 @@
-import { type Gender, type PublicRider, type Vocation, isKnownCountry } from '@cyclingstar/shared'
+import { type Gender, type PublicRider, type Vocation, resolveCountry } from '@cyclingstar/shared'
 
 export interface GeneratedName {
   firstName: string
@@ -18,7 +18,7 @@ export async function fetchGeoCountry(): Promise<string | null> {
     const res = await fetch('/api/geo/country')
     if (res.ok) {
       const data = (await res.json()) as { country: string | null }
-      if (data.country && isKnownCountry(data.country)) return data.country.toUpperCase()
+      if (data.country) return resolveCountry(data.country)
     }
   } catch {
     // sigue con la API pública
@@ -31,7 +31,7 @@ export async function fetchGeoCountry(): Promise<string | null> {
     const data = (await res.json()) as { success?: boolean; country_code?: string }
     if (data.success === false || !data.country_code) return null
     const code = data.country_code.toUpperCase()
-    return isKnownCountry(code) ? code : null
+    return resolveCountry(code)
   } catch {
     return null
   }
@@ -65,6 +65,9 @@ export interface RiderSummary {
   seasonPoints: number
   seasonRank: number
   fieldSize: number
+  nationality: string
+  residence: string
+  housingCovered: boolean
 }
 
 export async function fetchRiderSummary(): Promise<RiderSummary | null> {

@@ -16,7 +16,7 @@ import { Badges } from '../components/Badges'
 import { Flag } from '../components/Flag'
 import { FormChart } from '../components/FormChart'
 import { LastRaceReport } from '../components/LastRaceReport'
-import { RiderPortrait } from '../components/RiderPortrait'
+import { Panel, SectionBar, InfoRow } from '../components/Panel'
 import { RoleEditor } from '../components/RoleEditor'
 import { TeamLink } from '../components/TeamLink'
 import { StarRating } from '../components/StarRating'
@@ -52,81 +52,96 @@ export function RiderProfile() {
 
   const country = COUNTRIES.find((c) => c.code === rider.country)
 
+  const age =
+    healthQuery.data?.gameDay != null
+      ? riderAge(rider.birthSeason, currentSeason(healthQuery.data.gameDay))
+      : null
+
   return (
-    <section className="space-y-8">
-      <header className="flex items-center gap-3">
-        <RiderPortrait seed={rider.id} size={56} />
-        <Flag code={rider.country} size={30} />
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">{rider.name}</h1>
-          <p className="text-sm text-slate-500">
-            {VOCATION_LABELS[rider.archetype]} · {country?.name ?? rider.country}
-            {summaryQuery.data?.teamName && (
-              <>
-                {' · '}
-                <TeamLink
-                  teamId={summaryQuery.data.teamId}
-                  name={summaryQuery.data.teamName}
-                  className="text-slate-500"
-                />
-              </>
-            )}
-          </p>
-          {summaryQuery.data && summaryQuery.data.fieldSize > 0 && (
-            <p className="mt-0.5 text-xs font-medium text-indigo-600">
-              Season rank #{summaryQuery.data.seasonRank.toLocaleString('en-US')} of{' '}
-              {summaryQuery.data.fieldSize.toLocaleString('en-US')}
-            </p>
-          )}
-          {healthQuery.data?.gameDay != null && (
-            <p className="mt-0.5 text-xs text-slate-400">
-              Age {riderAge(rider.birthSeason, currentSeason(healthQuery.data.gameDay))} · 🎂 born
-              on day {birthdayDayOfSeason(rider.id)} of the season
-            </p>
-          )}
-          <div className="mt-1.5">
-            <RoleEditor current={rider.archetype} />
+    <section className="space-y-4">
+      <SectionBar>{rider.name}</SectionBar>
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        {/* Información personal */}
+        <Panel title="Personal information" className="lg:col-span-2">
+          <div className="mb-3 flex items-center gap-3">
+            <Flag code={rider.country} size={34} />
+            <div>
+              <p className="text-xl font-bold tracking-tight">{rider.name}</p>
+              <p className="text-sm text-slate-500">
+                {VOCATION_LABELS[rider.archetype]}
+                {summaryQuery.data?.teamName ? (
+                  <>
+                    {' · '}
+                    <TeamLink
+                      teamId={summaryQuery.data.teamId}
+                      name={summaryQuery.data.teamName}
+                      className="text-brand-cyan"
+                    />
+                  </>
+                ) : (
+                  ' · Free agent'
+                )}
+              </p>
+            </div>
           </div>
-        </div>
-      </header>
+          <InfoRow label="Nationality">{country?.name ?? rider.country}</InfoRow>
+          <InfoRow label="Role">
+            <RoleEditor current={rider.archetype} />
+          </InfoRow>
+          {age != null && (
+            <InfoRow label="Age">
+              {age} · born day {birthdayDayOfSeason(rider.id)} of the season
+            </InfoRow>
+          )}
+          {summaryQuery.data && summaryQuery.data.fieldSize > 0 && (
+            <InfoRow label="Season rank">
+              #{summaryQuery.data.seasonRank.toLocaleString('en-US')} of{' '}
+              {summaryQuery.data.fieldSize.toLocaleString('en-US')}
+            </InfoRow>
+          )}
+        </Panel>
+
+        {/* Resumen numérico */}
+        <Panel title="Summary" bodyClassName="p-0">
+          {summaryQuery.data ? (
+            <dl>
+              {[
+                {
+                  label: 'Season points',
+                  value: summaryQuery.data.seasonPoints.toLocaleString('en-US'),
+                },
+                { label: 'Money', value: `${summaryQuery.data.money.toLocaleString('en-US')} €` },
+                { label: 'Morale', value: `${Math.round(summaryQuery.data.morale)}%` },
+                { label: 'Fame', value: Math.round(summaryQuery.data.fame) },
+              ].map((s, i) => (
+                <div
+                  key={s.label}
+                  className={`flex items-baseline justify-between px-4 py-2 ${
+                    i % 2 === 0 ? 'bg-slate-50' : ''
+                  }`}
+                >
+                  <dt className="text-sm font-semibold text-slate-600">{s.label}</dt>
+                  <dd className="text-sm font-bold tabular-nums text-slate-800">{s.value}</dd>
+                </div>
+              ))}
+            </dl>
+          ) : (
+            <p className="p-4 text-sm text-slate-400">—</p>
+          )}
+        </Panel>
+      </div>
 
       <Badges riderId={rider.id} />
 
-      {summaryQuery.data && (
-        <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {[
-            {
-              label: 'Season points',
-              value: summaryQuery.data.seasonPoints.toLocaleString('en-US'),
-            },
-            { label: 'Money', value: summaryQuery.data.money.toLocaleString('en-US') },
-            { label: 'Morale', value: Math.round(summaryQuery.data.morale) },
-            { label: 'Fame', value: Math.round(summaryQuery.data.fame) },
-          ].map((s) => (
-            <div
-              key={s.label}
-              className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm"
-            >
-              <dt className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                {s.label}
-              </dt>
-              <dd className="mt-0.5 text-lg font-bold tabular-nums text-slate-800">{s.value}</dd>
-            </div>
-          ))}
-        </dl>
-      )}
-
       <LastRaceReport />
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-            Form &amp; condition
-          </h2>
-          {formQuery.data?.form && <StarRating value={formQuery.data.form.stars} />}
-        </div>
+      <Panel
+        title="Form & condition"
+        action={formQuery.data?.form && <StarRating value={formQuery.data.form.stars} />}
+      >
         {formQuery.data?.form && (
-          <div className="mt-3">
+          <div>
             <div className="flex items-center justify-between text-xs text-slate-500">
               <span>Freshness — race readiness</span>
               <span className="tabular-nums">
@@ -150,18 +165,16 @@ export function RiderProfile() {
         <div className="mt-4">
           <FormChart points={formQuery.data?.log ?? []} />
         </div>
-      </div>
+      </Panel>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-400">Attributes</h2>
-        <p className="mt-1 text-xs text-slate-400">Tap an attribute to see what it does.</p>
+      <Panel title="Attributes">
+        <p className="mb-1 text-xs text-slate-400">Tap an attribute to see what it does.</p>
         <AttributeList attributes={rider.attributes} />
-      </div>
+      </Panel>
 
       {palmaresQuery.data && palmaresQuery.data.length > 0 && (
-        <div>
-          <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-400">Palmarès</h2>
-          <ul className="mt-3 space-y-1.5">
+        <Panel title="Palmarès">
+          <ul className="space-y-1.5">
             {palmaresQuery.data.map((p, i) => (
               <li key={i} className="flex items-center gap-3 text-sm">
                 <span className="w-20 shrink-0 text-slate-400">Season {p.season + 1}</span>
@@ -173,7 +186,7 @@ export function RiderProfile() {
               </li>
             ))}
           </ul>
-        </div>
+        </Panel>
       )}
     </section>
   )

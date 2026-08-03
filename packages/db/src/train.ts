@@ -2,7 +2,9 @@ import { type RiderDayState, simulateRiderDay } from '@cyclingstar/engine'
 import {
   ATTRIBUTES,
   type Attribute,
+  type TrainingChoice,
   defaultCoachPlan,
+  groupTrainingMultiplier,
   seasonPosition,
   seededRng,
 } from '@cyclingstar/shared'
@@ -78,6 +80,26 @@ export async function trainWorldDay(
     .where(eq(trainingOrders.gameDay, gameDay))
   const ordersByRider = new Map(orderRows.map((o) => [o.riderId, o]))
 
+  // La elección de sesión de cada corredor que entrena hoy (orden del jugador o plan del entrenador).
+  const choiceByRider = new Map<string, TrainingChoice>()
+  for (const rider of riderRows) {
+    if (skip.has(rider.id)) continue
+    const order = ordersByRider.get(rider.id)
+    choiceByRider.set(
+      rider.id,
+      order ? { session: order.session, intensity: order.intensity } : defaultCoachPlan(gameDay),
+    )
+  }
+  // Pre-paso de entrenamiento en grupo: por equipo y sesión, cuántos compañeros la entrenan hoy.
+  // Un corredor gana bonus si varios del MISMO equipo hacen la MISMA sesión de grupo ese día.
+  const teamSessionCount = new Map<string, number>()
+  for (const rider of riderRows) {
+    const choice = choiceByRider.get(rider.id)
+    if (!choice || !rider.teamId) continue
+    const key = `${rider.teamId}:${choice.session}`
+    teamSessionCount.set(key, (teamSessionCount.get(key) ?? 0) + 1)
+  }
+
   // Los logs se acumulan y se insertan en lote al final.
   const dailyLogValues: (typeof riderDailyLog.$inferInsert)[] = []
   const attrLogValues: (typeof riderAttrLog.$inferInsert)[] = []
@@ -92,10 +114,12 @@ export async function trainWorldDay(
       attrsByRider.get(rider.id) ??
       (Object.fromEntries(ATTRIBUTES.map((a) => [a, 0])) as Record<Attribute, number>)
 
-    const order = ordersByRider.get(rider.id)
-    const choice = order
-      ? { session: order.session, intensity: order.intensity }
-      : defaultCoachPlan(gameDay)
+    const choice = choiceByRider.get(rider.id) ?? defaultCoachPlan(gameDay)
+    // Compañeros (sin contarse) haciendo la misma sesión hoy → bonus de grupo.
+    const mates = rider.teamId
+      ? (teamSessionCount.get(`${rider.teamId}:${choice.session}`) ?? 1) - 1
+      : 0
+    const kGroup = groupTrainingMultiplier(choice.session, mates)
 
     const state: RiderDayState = {
       attributes,
@@ -117,6 +141,7 @@ export async function trainWorldDay(
       choice,
       kInst: 1,
       kStaff: 1,
+      kGroup,
       rng: seededRng(`${worldSeed}:${rider.id}:${gameDay}`),
     })
 

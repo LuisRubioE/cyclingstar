@@ -14,6 +14,8 @@ import { Home } from './pages/Home'
 import { HowToPlay } from './pages/HowToPlay'
 import { Login } from './pages/Login'
 import { Market } from './pages/Market'
+import { RaceEntry } from './pages/RaceEntry'
+import { TeamCalendar } from './pages/TeamCalendar'
 import { News } from './pages/News'
 import { Objectives } from './pages/Objectives'
 import { Privacy } from './pages/Privacy'
@@ -31,9 +33,9 @@ import { Training } from './pages/Training'
 
 export function App() {
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
+    <div className="min-h-screen text-slate-900">
       <Header />
-      <main className="mx-auto max-w-3xl px-4 py-10">
+      <main className="mx-auto max-w-6xl px-3 py-5 sm:px-4">
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/routes" element={<RoutesPage />} />
@@ -103,6 +105,22 @@ export function App() {
             }
           />
           <Route
+            path="/race-entry"
+            element={
+              <ProtectedRoute>
+                <RaceEntry />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/team-calendar"
+            element={
+              <ProtectedRoute>
+                <TeamCalendar />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/finances"
             element={
               <ProtectedRoute>
@@ -128,7 +146,7 @@ export function App() {
           />
         </Routes>
       </main>
-      <footer className="mx-auto max-w-3xl px-4 py-8 text-xs text-slate-400">
+      <footer className="mx-auto max-w-6xl px-4 py-8 text-xs text-slate-400">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-slate-200 pt-4">
           <div className="flex items-center gap-x-4">
             <Link to="/how-to-play" className="hover:text-slate-600">

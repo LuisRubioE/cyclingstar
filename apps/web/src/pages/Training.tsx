@@ -13,8 +13,13 @@ import {
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { fetchOrders, saveOrders } from '../api/training'
+import { Panel, SectionBar } from '../components/Panel'
 
 const HORIZON = 7
+
+// "Travel" no se elige a mano: lo marca el sistema de viajes automáticamente los días de
+// desplazamiento a una carrera lejana (y el día de competición tampoco se entrena).
+const SELECTABLE_SESSIONS = SESSIONS.filter((s) => s !== 'viaje')
 
 interface DayPlan {
   gameDay: number
@@ -32,7 +37,8 @@ function sessionEffect(session: Session, intensity: Intensity): string {
       : `Recovery — sheds fatigue (${info.tss[intensity]} TSS).`
   }
   const trains = attrs.map((a) => ATTRIBUTE_LABELS[a]).join(', ')
-  return `Trains ${trains} · ${info.tss[intensity]} TSS`
+  const group = info.group ? ' · Group session: +gains when teammates train it the same day' : ''
+  return `Trains ${trains} · ${info.tss[intensity]} TSS${group}`
 }
 
 export function Training() {
@@ -92,82 +98,82 @@ export function Training() {
   const planByDay = new Map(plan.map((day) => [day.gameDay, day]))
 
   return (
-    <section className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Training plan</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Leave your orders for the week. Without orders, your coach picks a reasonable plan. On
-          race days you rest and race — no training.
-        </p>
-      </div>
+    <section className="space-y-4">
+      <SectionBar>Training plan</SectionBar>
+      <p className="text-sm text-slate-500">
+        Leave your orders for the week. Without orders, your coach picks a reasonable plan. On race
+        days you rest and race — no training.
+      </p>
 
-      <div className="space-y-2">
-        {days.map((gameDay) => {
-          const position = seasonPosition(gameDay)
-          if (raceDays.has(gameDay)) {
+      <Panel title="Weekly plan">
+        <div className="space-y-2">
+          {days.map((gameDay) => {
+            const position = seasonPosition(gameDay)
+            if (raceDays.has(gameDay)) {
+              return (
+                <div
+                  key={gameDay}
+                  className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3"
+                >
+                  <span className="w-24 shrink-0 text-sm font-medium text-slate-500">
+                    Day {position.dayOfSeason}
+                  </span>
+                  <span className="text-sm font-semibold text-amber-700">🚴 Race day</span>
+                  <span className="text-xs text-amber-600">No training — you're racing.</span>
+                </div>
+              )
+            }
+            const day = planByDay.get(gameDay)
+            if (!day) return null
+            const info = SESSION_CATALOG[day.session]
             return (
               <div
                 key={gameDay}
-                className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3"
+                className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white p-3"
               >
-                <span className="w-24 shrink-0 text-sm font-medium text-slate-500">
-                  Day {position.dayOfSeason}
-                </span>
-                <span className="text-sm font-semibold text-amber-700">🚴 Race day</span>
-                <span className="text-xs text-amber-600">No training — you're racing.</span>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <span className="w-24 shrink-0 text-sm font-medium text-slate-500">
+                    Day {position.dayOfSeason}
+                  </span>
+                  <select
+                    value={day.session}
+                    onChange={(event) =>
+                      update(day.gameDay, { session: event.target.value as Session })
+                    }
+                    className="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                  >
+                    {SELECTABLE_SESSIONS.map((session) => (
+                      <option key={session} value={session}>
+                        {SESSION_CATALOG[session].label}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    value={day.intensity}
+                    disabled={!info.variableIntensity}
+                    onChange={(event) =>
+                      update(day.gameDay, { intensity: event.target.value as Intensity })
+                    }
+                    className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 disabled:bg-slate-100 disabled:text-slate-400"
+                  >
+                    {INTENSITIES.map((intensity) => (
+                      <option key={intensity} value={intensity}>
+                        {INTENSITY_LABELS[intensity]}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="w-16 shrink-0 text-right text-xs text-slate-400">
+                    {info.tss[day.intensity]} TSS
+                  </span>
+                </div>
+                <p className="pl-24 text-xs text-slate-500">
+                  {sessionEffect(day.session, day.intensity)}
+                </p>
               </div>
             )
-          }
-          const day = planByDay.get(gameDay)
-          if (!day) return null
-          const info = SESSION_CATALOG[day.session]
-          return (
-            <div
-              key={gameDay}
-              className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white p-3"
-            >
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                <span className="w-24 shrink-0 text-sm font-medium text-slate-500">
-                  Day {position.dayOfSeason}
-                </span>
-                <select
-                  value={day.session}
-                  onChange={(event) =>
-                    update(day.gameDay, { session: event.target.value as Session })
-                  }
-                  className="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
-                >
-                  {SESSIONS.map((session) => (
-                    <option key={session} value={session}>
-                      {SESSION_CATALOG[session].label}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  value={day.intensity}
-                  disabled={!info.variableIntensity}
-                  onChange={(event) =>
-                    update(day.gameDay, { intensity: event.target.value as Intensity })
-                  }
-                  className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 disabled:bg-slate-100 disabled:text-slate-400"
-                >
-                  {INTENSITIES.map((intensity) => (
-                    <option key={intensity} value={intensity}>
-                      {INTENSITY_LABELS[intensity]}
-                    </option>
-                  ))}
-                </select>
-                <span className="w-16 shrink-0 text-right text-xs text-slate-400">
-                  {info.tss[day.intensity]} TSS
-                </span>
-              </div>
-              <p className="pl-24 text-xs text-slate-500">
-                {sessionEffect(day.session, day.intensity)}
-              </p>
-            </div>
-          )
-        })}
-      </div>
+          })}
+        </div>
+      </Panel>
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 

@@ -1,18 +1,28 @@
 import {
   type CalendarRace,
   type CallupCandidate,
+  type Division,
+  type RaceClass,
   SEASON_CALENDAR,
   type TeamPhilosophy,
   formStars,
+  raceOngoingBefore,
   raceVocationFit,
   scheduledStageIndex,
   selectSquad,
 } from '@cyclingstar/engine'
-import { type Continent, continentForCountry } from '@cyclingstar/shared'
-import { and, desc, eq, inArray, isNull } from 'drizzle-orm'
+import {
+  type Continent,
+  continentForCountry,
+  countriesInContinent,
+  raceAttendanceCost,
+} from '@cyclingstar/shared'
+import { and, desc, eq, inArray, isNotNull, isNull, notInArray, or, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
-import { raceRosters, riderRacePrefs, riders, teams } from './schema.js'
+import { creditRider } from './economy.js'
+import { raceEntries, raceRosters, riderRacePrefs, riders, teamRacePlan, teams } from './schema.js'
 import { runOneStage } from './stageRun.js'
+import { isNaturalRace } from './teamPlan.js'
 
 /**
  * El calendario corre en el tick (Paso 44). Cada carrera del calendario (SPEC 8) ejecuta sus etapas
@@ -27,8 +37,62 @@ type Tx = Parameters<Parameters<Db['transaction']>[0]>[0]
 
 const SEASON_DAYS = 364
 const SQUAD_SIZE = { 'gran-vuelta': 8, 'una-semana': 7, 'un-dia': 7 } as const
-/** Tope de corredores por pelotón, para acotar el cómputo del motor. */
+/**
+ * Tamaño objetivo del pelotón según la clase de carrera (acota el cómputo del motor y refleja la
+ * realidad de cada nivel): una .WT junta ~22 equipos (los 18 WorldTour + wildcards Pro), una .Pro
+ * ~20, y las continentales .1/.2 ~16-18 equipos regionales completados con corredores del continente.
+ */
+const FIELD_CAP_BY_CLASS: Record<RaceClass, number> = {
+  WT: 176,
+  Pro: 150,
+  '1': 130,
+  '2': 112,
+  NC: 40,
+}
+/** Tope por defecto si faltara la clase (no debería ocurrir). */
 const FIELD_CAP = 64
+/** Plazas de wildcard (fuera de la región) reservadas por defecto en una carrera continental. */
+const WILDCARD_FRACTION = 0.12
+
+/** Hash entero estable de una cadena (para variar de forma determinista, p.ej. las wildcards). */
+function hashInt(s: string): number {
+  let h = 2166136261
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i)
+    h = Math.imul(h, 16777619)
+  }
+  return h >>> 0
+}
+/**
+ * Prioridad de división al llenar una carrera global (.WT/.Pro). En una .WT los equipos WorldTour
+ * entran primero (plaza garantizada) y el resto son wildcards Pro; en una .Pro el núcleo son los
+ * ProTeams, con WorldTour de invitados y Continental de relleno. Las continentales usan región.
+ */
+const DIVISION_PRIORITY: Partial<Record<RaceClass, Division[]>> = {
+  WT: ['WT', 'PRS', 'CON'],
+  Pro: ['PRS', 'WT', 'CON'],
+}
+
+/**
+ * Plan de temporada de las tres grandes vueltas. Prestigio (0 = el mejor): el Tour se lleva a los
+ * mejores. Un equipo WorldTour (que las corre las tres) reparte su plantilla por aptitud en tres
+ * grupos DISJUNTOS —el mejor al Tour, el siguiente al Giro, el siguiente a la Vuelta, y así— de modo
+ * que cada gran vuelta corre con corredores distintos y los de la Vuelta llegan frescos (no son las
+ * sobras cansadas de las otras dos).
+ */
+const GRAND_TOUR_PRESTIGE: Record<string, number> = {
+  'race-france': 0,
+  'race-italy': 1,
+  'race-spain': 2,
+}
+/** Aptitud de gran vuelta por vocación (escaladores y fondistas primero, velocistas al final). */
+const GT_VOCATION_BONUS: Record<string, number> = {
+  escalada: 30,
+  fondo: 20,
+  crono: 10,
+  clasicas: 5,
+  velocidad: 0,
+}
 const YOUNG_AGE = 23
 /** Pelotón de un campeonato nacional: los mejores del país, y mínimo para que se dispute. */
 const NATIONAL_FIELD_CAP = 40
@@ -44,46 +108,100 @@ async function convokeNationalField(
   worldId: string,
   race: CalendarRace,
   raceKey: string,
-): Promise<void> {
+  busy: Set<string>,
+  season: number,
+): Promise<string[]> {
   const country = race.championshipCountry
-  if (!country) return
-  const best = await tx
-    .select({ id: riders.id })
+  if (!country) return []
+  const pool = await tx
+    .select({ id: riders.id, birthSeason: riders.birthSeason })
     .from(riders)
     .where(and(eq(riders.worldId, worldId), eq(riders.country, country), isNull(riders.retiredAt)))
     .orderBy(desc(riders.fame))
-    .limit(NATIONAL_FIELD_CAP)
-  if (best.length < NATIONAL_FIELD_MIN) return
+    .limit(NATIONAL_FIELD_CAP * 3)
+  // El sub-23 solo admite corredores de 23 años o menos (edad = 20 - birthSeason + temporada).
+  const eligible =
+    race.championshipCategory === 'u23'
+      ? pool.filter((r) => 20 - r.birthSeason + season <= 23)
+      : pool
+  // Un corredor que ya está corriendo otra carrera no puede estar en el campeonato ese día.
+  const best = eligible.filter((r) => !busy.has(r.id)).slice(0, NATIONAL_FIELD_CAP)
+  if (best.length < NATIONAL_FIELD_MIN) return []
   await tx
     .insert(raceRosters)
     .values(best.map((r) => ({ raceId: raceKey, riderId: r.id })))
     .onConflictDoNothing()
+  return best.map((r) => r.id)
 }
 
-/** Cuota de plazas de wildcard (equipos de fuera de la región) en una carrera regional. */
-const WILDCARD_FRACTION = 0.25
-
 /**
- * Elige los equipos del pelotón entre los admitidos (ya ordenados por presupuesto desc). En una
- * carrera regional, reserva la mayoría de plazas a equipos del continente y unas pocas de wildcard a
- * equipos de fuera; si la región no llena su cupo, las wildcards completan. Sin región, los mejores
- * por presupuesto. Pura y determinista (base de la reproducibilidad de la inscripción).
+ * Elige los equipos del pelotón entre los admitidos (ya ordenados por presupuesto desc).
+ *
+ * - Carrera global (.WT/.Pro, sin región): se ordena por prioridad de división. En una .WT los 18
+ *   equipos WorldTour entran garantizados y las plazas restantes son wildcards Pro; en una .Pro el
+ *   núcleo son los ProTeams, con algunos WorldTour de invitados. Refleja el acceso real por nivel.
+ * - Carrera regional (circuito continental .1/.2): mayoría de equipos del continente; solo si la
+ *   región no llena el cupo se completan plazas con equipos de fuera (wildcards). No se fuerzan
+ *   equipos extranjeros: una carrera americana la corren, sobre todo, equipos americanos.
+ *
+ * Pura y determinista (base de la reproducibilidad de la inscripción).
  */
-export function selectFieldTeams<T extends { country: string | null }>(
+export function selectFieldTeams<T extends { division?: Division; country: string | null }>(
   eligible: T[],
   cap: number,
   region?: Continent,
+  priority?: Division[],
+  wildcardSlots?: number,
+  rotateBy?: number,
 ): T[] {
-  if (!region) return eligible.slice(0, cap)
-  const inRegion = eligible.filter((t) => continentForCountry(t.country ?? '') === region)
-  const outRegion = eligible.filter((t) => continentForCountry(t.country ?? '') !== region)
-  const wildcards = Math.min(outRegion.length, Math.max(1, Math.floor(cap * WILDCARD_FRACTION)))
-  const home = inRegion.slice(0, cap - wildcards)
-  const wild = outRegion.slice(0, cap - home.length)
-  return [...home, ...wild]
+  if (region) {
+    const inRegion = eligible.filter((t) => continentForCountry(t.country ?? '') === region)
+    const outRegion = eligible.filter((t) => continentForCountry(t.country ?? '') !== region)
+    // La región es mayoría. Se reservan unas plazas de wildcard para equipos de fuera (un ProTeam
+    // invitado o continentales de otro continente): el número varía por carrera (unas atraen a varios,
+    // otras a ninguno), como en la realidad. Si la región no llena, las wildcards completan igual.
+    const reserve = wildcardSlots ?? Math.max(1, Math.floor(cap * WILDCARD_FRACTION))
+    const wildcards = Math.min(outRegion.length, reserve)
+    const home = inRegion.slice(0, cap - wildcards)
+    const wild = rotatePick(outRegion, cap - home.length, rotateBy ?? 0)
+    return [...home, ...wild]
+  }
+  if (priority) {
+    const rank = (d?: Division) => {
+      const i = priority.indexOf(d as Division)
+      return i === -1 ? priority.length : i
+    }
+    // La división de máxima prioridad entra garantizada (los 18 WorldTour en una .WT). Las plazas de
+    // wildcard restantes NO son siempre los mismos ProTeams de más presupuesto: rotan por carrera
+    // dentro de una ventana de los mejores, así distintas carreras invitan a distintos equipos.
+    const guaranteed = eligible.filter((t) => rank(t.division) === 0).slice(0, cap)
+    const remaining = cap - guaranteed.length
+    if (remaining <= 0) return guaranteed
+    const pool = eligible.filter((t) => rank(t.division) > 0)
+    return [...guaranteed, ...rotatePick(pool, remaining, rotateBy ?? 0)]
+  }
+  return eligible.slice(0, cap)
 }
 
-/** Convoca el pelotón de una carrera: los mejores equipos admitidos, con su escuadra (SPEC 6.18). */
+/**
+ * Elige `n` equipos de un pool ORDENADO por presupuesto, rotando la ventana según `seed` para que no
+ * salgan siempre los mismos. Rota dentro de la franja de los mejores (~2·n), así los fuertes siguen
+ * favorecidos pero el conjunto invitado varía de carrera a carrera. Puro y determinista.
+ */
+function rotatePick<T>(pool: T[], n: number, seed: number): T[] {
+  if (n <= 0) return []
+  if (pool.length <= n) return pool.slice(0, n)
+  const window = Math.min(pool.length, 2 * n)
+  const offset = (seed % (window - n + 1)) >>> 0
+  return pool.slice(offset, offset + n)
+}
+
+/**
+ * Convoca el pelotón de una carrera con su escuadra (SPEC 6.18). Los equipos admitidos se eligen por
+ * nivel/región (selectFieldTeams). En una carrera continental (.1/.2), si los equipos regionales no
+ * llenan el pelotón objetivo, se completa con los mejores corredores del continente como entradas
+ * individuales (el equivalente a selecciones nacionales y equipos club de relleno de esas carreras).
+ */
 async function convokeField(
   tx: Tx,
   worldId: string,
@@ -91,23 +209,65 @@ async function convokeField(
   raceKey: string,
   worldSeed: string,
   season: number,
-): Promise<void> {
+  busy: Set<string>,
+): Promise<string[]> {
   const size = SQUAD_SIZE[race.format]
-  const cap = Math.max(1, Math.floor(FIELD_CAP / size))
+  const fieldCap = FIELD_CAP_BY_CLASS[race.raceClass] ?? FIELD_CAP
+  const cap = Math.max(1, Math.floor(fieldCap / size))
   const eligible = await tx
     .select({
       id: teams.id,
       philosophy: teams.philosophy,
       division: teams.division,
       country: teams.country,
+      ownerUserId: teams.ownerUserId,
     })
     .from(teams)
     .where(and(eq(teams.worldId, worldId), inArray(teams.division, race.openTo)))
     .orderBy(desc(teams.budget))
-  // Carrera regional (circuito continental): preferencia a los equipos del continente y unas pocas
-  // plazas de wildcard para equipos de fuera. Sin región, se toman los mejores por presupuesto.
-  const teamRows = selectFieldTeams(eligible, cap, race.region)
-  if (teamRows.length === 0) return
+  // Carrera regional (circuito continental): mayoría de equipos del continente. El nº de wildcards de
+  // fuera del continente varía por carrera (0..N) de forma determinista —unas atraen a varios equipos
+  // extranjeros, otras a ninguno—, y una .1 (más prestigio) atrae más que una .2. Global (.WT/.Pro):
+  // por prioridad de división (WorldTour garantizado en las .WT).
+  const maxWild = race.raceClass === '1' ? 6 : 4
+  const wildcardSlots = race.region ? hashInt(race.id) % (maxWild + 1) : undefined
+  // Semilla de rotación por carrera y temporada: las wildcards rotan año a año, no siempre las mismas.
+  const rotateBy = hashInt(`${raceKey}:wild`)
+  const auto = selectFieldTeams(
+    eligible,
+    cap,
+    race.region,
+    DIVISION_PRIORITY[race.raceClass],
+    wildcardSlots,
+    rotateBy,
+  )
+  // Draft de calendario (equipos con dueño): cada equipo humano corre su calendario NATURAL (sus
+  // carreras de casa) salvo las excepciones que guarde el manager —saltar una natural o añadir una de
+  // fuera—. Se le fuerza dentro de las que le tocan y fuera de las que no. Sin equipos humanos (mundo
+  // bot puro) no hay overrides ni dueños, así que esto no cambia nada.
+  const overrideRows = await tx
+    .select({ teamId: teamRacePlan.teamId, attend: teamRacePlan.attend })
+    .from(teamRacePlan)
+    .where(and(eq(teamRacePlan.season, season), eq(teamRacePlan.raceId, race.id)))
+  const overrideByTeam = new Map(overrideRows.map((o) => [o.teamId, o.attend]))
+  const forcedIn = new Set<string>()
+  const forcedOut = new Set<string>()
+  for (const t of eligible) {
+    if (!t.ownerUserId) continue // los bots van en automático
+    const natural = isNaturalRace(race, t.division, continentForCountry(t.country ?? ''))
+    const attend = overrideByTeam.has(t.id) ? overrideByTeam.get(t.id)! : natural
+    if (attend) forcedIn.add(t.id)
+    else forcedOut.add(t.id)
+  }
+  let teamRows = auto
+  if (forcedIn.size > 0 || forcedOut.size > 0) {
+    teamRows = auto.filter((t) => !forcedOut.has(t.id))
+    const present = new Set(teamRows.map((t) => t.id))
+    for (const t of eligible) {
+      if (forcedIn.has(t.id) && !present.has(t.id)) teamRows.push(t)
+    }
+  }
+  if (teamRows.length === 0) return []
   const teamIds = teamRows.map((t) => t.id)
 
   const candidates = await tx
@@ -120,12 +280,16 @@ async function convokeField(
       atl: riders.atl,
       teamTrust: riders.teamTrust,
       birthSeason: riders.birthSeason,
+      residence: riders.residence,
+      country: riders.country,
     })
     .from(riders)
     .where(and(inArray(riders.teamId, teamIds), isNull(riders.retiredAt)))
   const byTeam = new Map<string, typeof candidates>()
   for (const c of candidates) {
     if (!c.teamId) continue
+    // Un corredor que ya está corriendo otra carrera no está disponible para esta.
+    if (busy.has(c.id)) continue
     const list = byTeam.get(c.teamId) ?? []
     list.push(c)
     byTeam.set(c.teamId, list)
@@ -141,9 +305,47 @@ async function convokeField(
   )
   const raceFit = raceVocationFit(race.stages.map((s) => s.kind))
 
+  // Gran vuelta: prestigio de ESTA (Tour=0, Giro=1, Vuelta=2) y cuántas lleva ya cada corredor esta
+  // temporada (para las wildcards Pro, que a lo sumo corren una).
+  const gtRank = race.format === 'gran-vuelta' ? GRAND_TOUR_PRESTIGE[race.id] : undefined
+  const gtCount = new Map<string, number>()
+  if (gtRank != null) {
+    const gtKeys = SEASON_CALENDAR.filter(
+      (r) => r.format === 'gran-vuelta' && `${r.id}:s${season}` !== raceKey,
+    ).map((r) => `${r.id}:s${season}`)
+    if (gtKeys.length > 0) {
+      const rows = await tx
+        .select({ riderId: raceRosters.riderId })
+        .from(raceRosters)
+        .where(inArray(raceRosters.raceId, gtKeys))
+      for (const row of rows) gtCount.set(row.riderId, (gtCount.get(row.riderId) ?? 0) + 1)
+    }
+  }
+  const gtSuit = (m: { fame: number; archetype: string }) =>
+    m.fame + (GT_VOCATION_BONUS[m.archetype] ?? 0)
+
+  // El equipo paga el VIAJE (transporte + hotel) de cada corredor que manda, según su residencia y el
+  // país de la carrera. Días de carrera = etapas (proxy del hotel). Se acumula por equipo y se cobra
+  // del presupuesto al final. Los rellenos regionales (individuales, sin equipo) no lo pagan aquí.
+  const raceDays = race.stages.length
+  const travelByTeam = new Map<string, number>()
   const rosterValues: { raceId: string; riderId: string }[] = []
   for (const team of teamRows) {
-    const members = byTeam.get(team.id) ?? []
+    let members = byTeam.get(team.id) ?? []
+    if (gtRank != null) {
+      if (team.division === 'WT') {
+        // Plan de temporada: los WorldTour corren las tres. Reparten su plantilla por aptitud en tres
+        // grupos disjuntos (los mejores al Tour); esta gran vuelta se lleva su tercio. Nadie repite,
+        // así que la Vuelta corre con gente fresca y distinta, no con las sobras.
+        const ranked = [...members].sort(
+          (a, b) => gtSuit(b) - gtSuit(a) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
+        )
+        members = ranked.filter((_, i) => i % 3 === gtRank)
+      } else {
+        // Wildcards (Pro): a lo sumo una gran vuelta; usa a los que aún no han corrido ninguna.
+        members = members.filter((m) => (gtCount.get(m.id) ?? 0) === 0)
+      }
+    }
     if (members.length === 0) continue
     const cands: CallupCandidate[] = members.map((m) => ({
       riderId: m.id,
@@ -160,11 +362,120 @@ async function convokeField(
       size,
       seed: `${worldSeed}:field:${raceKey}:${team.id}`,
     })
-    for (const id of squad) rosterValues.push({ raceId: raceKey, riderId: id })
+    const residenceById = new Map(members.map((m) => [m.id, m.residence ?? m.country]))
+    for (const id of squad) {
+      rosterValues.push({ raceId: raceKey, riderId: id })
+      const cost = raceAttendanceCost(residenceById.get(id) ?? null, race.country ?? null, raceDays)
+      if (cost.money > 0) travelByTeam.set(team.id, (travelByTeam.get(team.id) ?? 0) + cost.money)
+    }
   }
+
+  // Relleno regional (solo circuito continental): si los equipos del continente no llenan el pelotón
+  // objetivo, se completa con los mejores corredores del continente que aún no están inscritos —el
+  // equivalente a las selecciones nacionales y equipos club que corren estas carreras en la realidad.
+  if (race.region && rosterValues.length < fieldCap) {
+    const already = rosterValues.map((v) => v.riderId)
+    const countries = countriesInContinent(race.region)
+    const conds = [
+      eq(riders.worldId, worldId),
+      inArray(riders.country, countries),
+      isNull(riders.retiredAt),
+    ]
+    // Un equipo con dueño que decidió NO acudir (forcedOut) no aporta ni corredores de relleno: si el
+    // manager saltó la carrera, ninguno de los suyos corre aquí (ni como individual del continente).
+    // Se preservan los agentes libres (team_id nulo), que sí pueden rellenar.
+    if (forcedOut.size > 0) {
+      conds.push(or(isNull(riders.teamId), notInArray(riders.teamId, [...forcedOut]))!)
+    }
+    const excluded = [...new Set([...already, ...busy])]
+    if (excluded.length > 0) conds.push(notInArray(riders.id, excluded))
+    const fillers = await tx
+      .select({ id: riders.id })
+      .from(riders)
+      .where(and(...conds))
+      .orderBy(desc(riders.fame))
+      .limit(fieldCap - rosterValues.length)
+    for (const f of fillers) rosterValues.push({ raceId: raceKey, riderId: f.id })
+  }
+
   if (rosterValues.length > 0) {
     await tx.insert(raceRosters).values(rosterValues).onConflictDoNothing()
   }
+  // Cobra a cada equipo el viaje de los suyos (del presupuesto). Los equipos de casa apenas pagan
+  // (solo hotel), los que cruzan continente pagan más: el coste real de llevar la carrera a otro sitio.
+  for (const [teamId, money] of travelByTeam) {
+    if (money > 0) {
+      await tx
+        .update(teams)
+        .set({ budget: sql`${teams.budget} - ${money}` })
+        .where(eq(teams.id, teamId))
+    }
+  }
+  return rosterValues.map((v) => v.riderId)
+}
+
+/**
+ * Auto-inscripción de agentes libres (Paso: economía de viajes). Un corredor humano SIN equipo que se
+ * inscribió a esta carrera entra en el pelotón si (a) no está ya ocupado en otra carrera hoy y (b) le
+ * llega el dinero para su propio viaje (transporte + hotel), que se le cobra del bolsillo. Devuelve
+ * los que finalmente entran. Sin equipo que pague: el viaje sale de su saldo, como en la realidad.
+ */
+async function convokeSelfEntries(
+  tx: Tx,
+  worldId: string,
+  race: CalendarRace,
+  raceKey: string,
+  busy: Set<string>,
+  season: number,
+  gameDay: number,
+): Promise<string[]> {
+  const rows = await tx
+    .select({
+      riderId: raceEntries.riderId,
+      residence: riders.residence,
+      country: riders.country,
+      money: riders.money,
+    })
+    .from(raceEntries)
+    .innerJoin(riders, eq(riders.id, raceEntries.riderId))
+    .where(
+      and(
+        eq(raceEntries.raceId, race.id),
+        eq(raceEntries.season, season),
+        eq(raceEntries.enrolled, false),
+        eq(riders.worldId, worldId),
+        isNull(riders.teamId),
+        isNotNull(riders.userId),
+        isNull(riders.retiredAt),
+      ),
+    )
+  const raceDays = race.stages.length
+  const enrolled: string[] = []
+  for (const r of rows) {
+    if (busy.has(r.riderId)) continue
+    const cost = raceAttendanceCost(r.residence ?? r.country, race.country ?? null, raceDays)
+    if (r.money < cost.money) continue // no le llega para el viaje: no puede ir
+    await tx
+      .insert(raceRosters)
+      .values({ raceId: raceKey, riderId: r.riderId })
+      .onConflictDoNothing()
+    if (cost.money > 0) {
+      await creditRider(tx, r.riderId, gameDay, 'viaje', -cost.money, `${race.name} · travel`)
+    }
+    await tx
+      .update(raceEntries)
+      .set({ enrolled: true })
+      .where(
+        and(
+          eq(raceEntries.riderId, r.riderId),
+          eq(raceEntries.raceId, race.id),
+          eq(raceEntries.season, season),
+        ),
+      )
+    busy.add(r.riderId)
+    enrolled.push(r.riderId)
+  }
+  return enrolled
 }
 
 /** Corre las etapas del calendario que tocan este día de juego. Devuelve quién corrió. */
@@ -178,6 +489,21 @@ export async function runCalendarDay(
   const dayOfSeason = gameDay % SEASON_DAYS
   const raced = new Set<string>()
 
+  // Corredores OCUPADOS hoy: los que ya están corriendo una carrera que arrancó antes y aún no
+  // termina (nadie puede estar en dos carreras a la vez). Los que empiecen carrera hoy se van
+  // añadiendo según se convocan, para que las carreras posteriores del día no los repitan.
+  const ongoingKeys = SEASON_CALENDAR.filter((r) => raceOngoingBefore(r, dayOfSeason)).map(
+    (r) => `${r.id}:s${season}`,
+  )
+  const busy = new Set<string>()
+  if (ongoingKeys.length > 0) {
+    const rows = await tx
+      .select({ riderId: raceRosters.riderId })
+      .from(raceRosters)
+      .where(inArray(raceRosters.raceId, ongoingKeys))
+    for (const row of rows) busy.add(row.riderId)
+  }
+
   for (const race of SEASON_CALENDAR) {
     const idx = scheduledStageIndex(race, dayOfSeason)
     if (idx == null) continue
@@ -190,8 +516,24 @@ export async function runCalendarDay(
         .where(eq(raceRosters.raceId, raceKey))
         .limit(1)
       if (existing.length === 0) {
-        if (race.championshipCountry) await convokeNationalField(tx, worldId, race, raceKey)
-        else await convokeField(tx, worldId, race, raceKey, worldSeed, season)
+        const enrolled = race.championshipCountry
+          ? await convokeNationalField(tx, worldId, race, raceKey, busy, season)
+          : await convokeField(tx, worldId, race, raceKey, worldSeed, season, busy)
+        for (const id of enrolled) busy.add(id)
+        // Agentes libres humanos que se auto-inscribieron y pueden pagarse el viaje entran también.
+        const selfEntered = await convokeSelfEntries(
+          tx,
+          worldId,
+          race,
+          raceKey,
+          busy,
+          season,
+          gameDay,
+        )
+        for (const id of selfEntered) busy.add(id)
+      } else {
+        // Ya estaba convocada (p.ej. reanudación): sus corredores también quedan ocupados hoy.
+        for (const row of existing) busy.add(row.riderId)
       }
     }
 

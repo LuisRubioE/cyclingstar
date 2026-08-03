@@ -134,13 +134,20 @@ export function teamCountryByIndex(division: Division, index: number): string {
   return arr[index % arr.length]!
 }
 
+/**
+ * Tamaño de plantilla por división. Realista: un WorldTour tiene ~28 corredores (necesita cubrir a
+ * la vez una gran vuelta de 8 y varias carreras más), un ProTeam ~20 y un Continental ~12. Compartido
+ * por la génesis y por el rollover (que rellena las plantillas hasta este tamaño cada temporada).
+ */
+export const ROSTER_SIZE: Record<Division, number> = { WT: 28, PRS: 20, CON: 12 }
+
 const DIVISIONS: DivisionPlan[] = [
-  { division: 'WT', teams: TEAM_DIST.WT.length, roster: 14, budgetBase: 5_000_000 },
-  { division: 'PRS', teams: TEAM_DIST.PRS.length, roster: 12, budgetBase: 2_000_000 },
-  { division: 'CON', teams: TEAM_DIST.CON.length, roster: 10, budgetBase: 700_000 },
+  { division: 'WT', teams: TEAM_DIST.WT.length, roster: ROSTER_SIZE.WT, budgetBase: 5_000_000 },
+  { division: 'PRS', teams: TEAM_DIST.PRS.length, roster: ROSTER_SIZE.PRS, budgetBase: 2_000_000 },
+  { division: 'CON', teams: TEAM_DIST.CON.length, roster: ROSTER_SIZE.CON, budgetBase: 700_000 },
 ]
-// Firmados = 18·14 + 18·12 + 185·10 = 2.318; la meta deja ~880 agentes libres para el mercado.
-const TARGET_POPULATION = 3200
+// Firmados = 18·28 + 16·20 + 185·12 = 3.044; la meta deja ~900 agentes libres para el mercado.
+const TARGET_POPULATION = 3900
 
 /**
  * Distribución de nacionalidades de los bots (SPEC 10). Ponderada por peso ciclista real: las
@@ -250,6 +257,49 @@ const COUNTRY_WEIGHTS: Record<string, number> = {
   BH: 1,
   XK: 1,
   HN: 1,
+  // Wave 11: naciones anfitrionas de carreras continentales (para que tengan corredores y campeonato).
+  AD: 1,
+  AL: 1,
+  BA: 1,
+  BF: 1,
+  BJ: 1,
+  CM: 1,
+  CY: 1,
+  MU: 1,
+  OM: 1,
+  TW: 1,
+  // Wave 12.
+  AG: 1,
+  BB: 1,
+  BM: 1,
+  BZ: 1,
+  CI: 1,
+  CV: 1,
+  DM: 1,
+  GW: 1,
+  JM: 1,
+  JO: 1,
+  KY: 1,
+  LA: 1,
+  LB: 1,
+  LC: 1,
+  MC: 1,
+  ME: 1,
+  ML: 1,
+  MN: 1,
+  MO: 1,
+  MT: 1,
+  NA: 1,
+  PR: 1,
+  SC: 1,
+  SN: 1,
+  SR: 1,
+  SV: 1,
+  SX: 1,
+  SZ: 1,
+  TT: 1,
+  VC: 1,
+  ZW: 1,
 }
 const COUNTRIES = Object.entries(COUNTRY_WEIGHTS).flatMap(([code, w]) => Array(w).fill(code))
 const PHILOSOPHIES: Philosophy[] = ['general', 'sprints', 'clasicas', 'cantera', 'equilibrado']
@@ -408,6 +458,10 @@ export async function seedWorld(tx: Tx, worldId: string, worldSeed: string): Pro
     (chunk) => tx.insert(teams).values(chunk),
   )
 
+  // Residencia inicial: un corredor con equipo vive en el país del equipo (se ha mudado a la base y
+  // entrena con el grupo); un agente libre reside en su país. Los extranjeros de un equipo pagan
+  // alquiler desde el primer día (modelo de vivienda), lo que la mayoría no hace por el núcleo nacional.
+  const teamCountryById = new Map(plan.teams.map((t) => [t.id, t.country]))
   await insertChunked(
     newRiders.map((r) => ({
       id: r.id,
@@ -416,6 +470,7 @@ export async function seedWorld(tx: Tx, worldId: string, worldSeed: string): Pro
       teamId: r.teamId,
       name: r.name,
       country: r.country,
+      residence: (r.teamId ? teamCountryById.get(r.teamId) : null) ?? r.country,
       gender: r.gender,
       birthSeason: r.birthSeason,
       archetype: r.archetype,
@@ -520,7 +575,10 @@ export async function reconcileTeams(tx: Tx, worldId: string): Promise<number> {
  * equipo debería ser de su propio país (SPEC 7.1). Continental tiene una identidad nacional fuerte
  * (mayoría del país); ProTeams algo menos; WorldTour son los más internacionales.
  */
-export const NATIONAL_CORE_SHARE: Record<Division, number> = { WT: 0.35, PRS: 0.5, CON: 0.7 }
+// Cuota de "núcleo nacional" por división: los Continental reales son casi mononacionales (equipos
+// regionales/de desarrollo), los ProTeams tienen mayoría local con fichajes de fuera, y los
+// WorldTour son los más internacionales. Sube CON a 0.85 para que no parezcan legiones extranjeras.
+export const NATIONAL_CORE_SHARE: Record<Division, number> = { WT: 0.35, PRS: 0.55, CON: 0.85 }
 
 export interface ClusterTeam {
   id: string
@@ -577,22 +635,41 @@ export function planNationalClustering(
     const assignment = new Map<string, string>() // riderId → teamId destino
     const filled = new Map<string, number>() // teamId → plazas ya ocupadas
 
-    // Fase 1: núcleo nacional.
+    // Fase 1: núcleo nacional, repartido EQUITATIVAMENTE entre los equipos de un mismo país (round
+    // robin). Así, cuando un país tiene varios equipos y no le sobran paisanos, todos quedan a un
+    // nivel parecido en vez de llenar los primeros y dejar a los últimos como legión extranjera.
     const share = shareByDivision[division]
+    for (const t of teamsD) filled.set(t.id, 0)
+    const teamsByCountry = new Map<string, ClusterTeam[]>()
     for (const t of teamsD) {
-      const total = slots.get(t.id) ?? 0
-      const homeTarget = Math.min(total, Math.round(share * total))
-      const queue = byCountry.get(t.country)
+      const l = teamsByCountry.get(t.country)
+      if (l) l.push(t)
+      else teamsByCountry.set(t.country, [t])
+    }
+    for (const [country, cteams] of teamsByCountry) {
+      const queue = byCountry.get(country)
       if (!queue) continue
-      let placed = 0
-      for (const riderId of queue) {
-        if (placed >= homeTarget) break
-        if (taken.has(riderId)) continue
-        taken.add(riderId)
-        assignment.set(riderId, t.id)
-        placed++
+      const target = new Map(
+        cteams.map((t) => {
+          const total = slots.get(t.id) ?? 0
+          return [t.id, Math.min(total, Math.round(share * total))]
+        }),
+      )
+      let qi = 0
+      let progress = true
+      while (qi < queue.length && progress) {
+        progress = false
+        for (const t of cteams) {
+          if (qi >= queue.length) break
+          if ((filled.get(t.id) ?? 0) >= (target.get(t.id) ?? 0)) continue
+          const riderId = queue[qi]!
+          qi++
+          taken.add(riderId)
+          assignment.set(riderId, t.id)
+          filled.set(t.id, (filled.get(t.id) ?? 0) + 1)
+          progress = true
+        }
       }
-      filled.set(t.id, placed)
     }
 
     // Fase 2: rellenar huecos restantes con los que sobran (orden estable por id).
@@ -671,6 +748,83 @@ export async function clusterTeamNationalities(tx: Tx, worldId: string): Promise
     await tx.update(riders).set({ teamId }).where(eq(riders.id, riderId))
   }
   return changes.size
+}
+
+/**
+ * Renacionaliza plantillas bot: rebautiza a los corredores bot EXTRANJEROS sobrantes con el país (y
+ * un nombre nuevo de ese país) de su equipo, hasta alcanzar la cuota nacional de la división. La
+ * reagrupación (clusterTeamNationalities) solo REUBICA a los paisanos existentes; no puede crear más.
+ * Esto sí, y es lo que hace nacionales a los mundos creados antes del sesgo de nacionalidad (o con
+ * pocos paisanos): un equipo chino sin chinos pasa a tener mayoría china en el siguiente tick.
+ *
+ * No toca corredores humanos ni equipos con dueño. Idempotente: una vez el equipo llega a su cuota,
+ * no cambia a nadie. Los nombres duplicados que pueda crear los limpia dedupeWorldNames después.
+ * Devuelve cuántos corredores se renacionalizaron.
+ */
+export async function renationalizeBotRosters(
+  tx: Tx,
+  worldId: string,
+  worldSeed: string,
+  shareByDivision: Record<Division, number> = NATIONAL_CORE_SHARE,
+): Promise<number> {
+  const teamRows = await tx
+    .select({
+      id: teams.id,
+      division: teams.division,
+      country: teams.country,
+      ownerUserId: teams.ownerUserId,
+    })
+    .from(teams)
+    .where(eq(teams.worldId, worldId))
+  const botTeams = teamRows.filter(
+    (t): t is typeof t & { country: string } => t.ownerUserId === null && t.country !== null,
+  )
+  if (botTeams.length === 0) return 0
+  const teamById = new Map(botTeams.map((t) => [t.id, t]))
+
+  const riderRows = await tx
+    .select({
+      id: riders.id,
+      country: riders.country,
+      teamId: riders.teamId,
+      userId: riders.userId,
+      gender: riders.gender,
+    })
+    .from(riders)
+    .where(eq(riders.worldId, worldId))
+
+  const byTeam = new Map<string, typeof riderRows>()
+  for (const r of riderRows) {
+    if (r.userId !== null || !r.teamId || !teamById.has(r.teamId)) continue
+    const list = byTeam.get(r.teamId) ?? []
+    list.push(r)
+    byTeam.set(r.teamId, list)
+  }
+
+  const used = new Set<string>()
+  let changed = 0
+  for (const team of botTeams) {
+    const members = byTeam.get(team.id) ?? []
+    if (members.length === 0) continue
+    const target = Math.round((shareByDivision[team.division] ?? 0) * members.length)
+    const home = members.filter((m) => m.country === team.country).length
+    if (home >= target) continue
+    const need = target - home
+    const foreign = members
+      .filter((m) => m.country !== team.country)
+      .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+    for (let i = 0; i < need && i < foreign.length; i++) {
+      const r = foreign[i]!
+      const name = generateUniqueName(
+        `${worldSeed}:renat:${r.id}`,
+        { country: team.country, gender: r.gender === 'F' ? 'F' : 'M' },
+        used,
+      ).fullName
+      await tx.update(riders).set({ country: team.country, name }).where(eq(riders.id, r.id))
+      changed++
+    }
+  }
+  return changed
 }
 
 /** Inserta un array en lotes para no exceder el límite de parámetros de Postgres. */

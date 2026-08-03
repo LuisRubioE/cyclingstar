@@ -21,6 +21,8 @@ const KIND_LABEL: Record<string, string> = {
   premio: 'Prize',
   staff: 'Staff',
   patrocinador: 'Sponsor',
+  viaje: 'Travel',
+  vivienda: 'Housing',
   otro: 'Other',
 }
 
