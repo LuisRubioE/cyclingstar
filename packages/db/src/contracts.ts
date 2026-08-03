@@ -5,7 +5,7 @@ import {
   offerSeasons,
   releaseClause,
 } from '@cyclingstar/engine'
-import { residenceAfterSigning, seededRng } from '@cyclingstar/shared'
+import { HOUSING_RENT_PER_WEEK, residenceAfterSigning, seededRng } from '@cyclingstar/shared'
 import { and, desc, eq, inArray, isNotNull, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import type { Database } from './client.js'
@@ -134,8 +134,14 @@ export async function runMarket(
     for (const team of chosen) {
       const division = team.division as Division
       const role = roleForRating(rating)
-      const salary = offerSalary({ division, pointsPercentile: rating, age, role })
+      const full = offerSalary({ division, pointsPercentile: rating, age, role })
       const seasons = offerSeasons(rating, rng)
+      // Fichaje internacional: el equipo puede asumir el alquiler de vivienda del corredor (se mudará
+      // a otro país) a cambio de rebajar el salario por el importe del alquiler. El corredor queda
+      // igual de caja (no paga alquiler) y gana certeza; el equipo lo usa como reclamo de fichaje.
+      const abroad = !!team.country && team.country !== human.country
+      const payHousing = abroad
+      const salary = payHousing ? Math.max(1, full - HOUSING_RENT_PER_WEEK) : full
       await tx.insert(offers).values({
         riderId: human.id,
         teamId: team.id,
@@ -145,6 +151,7 @@ export async function runMarket(
         seasons,
         releaseClause: releaseClause(salary, seasons),
         createdDay: gameDay,
+        payHousing,
       })
     }
   }
@@ -159,6 +166,8 @@ export interface OfferRow {
   salary: number
   seasons: number
   releaseClause: number
+  /** El equipo pagaría el alquiler de vivienda del corredor (fichaje internacional). */
+  payHousing: boolean
 }
 
 /** Ofertas pendientes de un corredor, con el equipo que las hace. */
@@ -173,6 +182,7 @@ export async function getOffers(db: Database, riderId: string): Promise<OfferRow
       salary: offers.salary,
       seasons: offers.seasons,
       releaseClause: offers.releaseClause,
+      payHousing: offers.payHousing,
     })
     .from(offers)
     .innerJoin(teams, eq(teams.id, offers.teamId))
@@ -200,6 +210,7 @@ export async function acceptOffer(db: Database, riderId: string, offerId: string
       startSeason: offer.season,
       endSeason: offer.season + offer.seasons - 1,
       releaseClause: offer.releaseClause,
+      payHousing: offer.payHousing,
     })
     // Al firmar, el corredor se muda al país del equipo (allí está la base y entrena con el grupo):
     // si es extranjero, empieza a pagar alquiler (o el equipo lo asume). Movemos residencia con equipo.

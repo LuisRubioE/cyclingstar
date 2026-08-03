@@ -508,6 +508,8 @@ export const contracts = pgTable(
     /** Última temporada cubierta (inclusive). */
     endSeason: integer('end_season').notNull(),
     releaseClause: integer('release_clause').notNull().default(0),
+    /** El equipo asume el alquiler de vivienda del corredor (extra del contrato, no lo paga él). */
+    payHousing: boolean('pay_housing').notNull().default(false),
   },
   (t) => [index('contracts_rider_idx').on(t.riderId), index('contracts_team_idx').on(t.teamId)],
 )
@@ -530,6 +532,8 @@ export const offers = pgTable(
     releaseClause: integer('release_clause').notNull().default(0),
     createdDay: integer('created_day').notNull(),
     status: offerStatusEnum('status').notNull().default('pendiente'),
+    /** La oferta incluye que el equipo pague el alquiler de vivienda (a cambio de menos salario). */
+    payHousing: boolean('pay_housing').notNull().default(false),
   },
   (t) => [index('offers_rider_status_idx').on(t.riderId, t.status)],
 )

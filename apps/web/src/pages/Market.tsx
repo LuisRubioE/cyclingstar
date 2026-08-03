@@ -61,6 +61,20 @@ function OfferCard({
         >
           <span className="tabular-nums">{offer.releaseClause.toLocaleString('en-US')}</span>
         </InfoRow>
+        {offer.payHousing && (
+          <InfoRow
+            label={
+              <span
+                className="cursor-help underline decoration-dotted underline-offset-2"
+                title="This is an overseas move. The team covers your housing rent abroad, so the salary is a little lower but you pay no rent — you keep the same cash and lose the housing cost."
+              >
+                Housing
+              </span>
+            }
+          >
+            <span className="font-medium text-emerald-600">🏠 Team pays rent</span>
+          </InfoRow>
+        )}
       </div>
       <div className="mt-3 flex gap-2">
         <button

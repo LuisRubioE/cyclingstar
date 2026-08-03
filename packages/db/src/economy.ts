@@ -45,6 +45,7 @@ export async function runPayroll(tx: Tx, worldId: string, gameDay: number): Prom
     .select({
       riderId: contracts.riderId,
       salary: contracts.salary,
+      payHousing: contracts.payHousing,
       residence: riders.residence,
       nationality: riders.country,
     })
@@ -54,7 +55,8 @@ export async function runPayroll(tx: Tx, worldId: string, gameDay: number): Prom
   const week = Math.floor(gameDay / 7)
   for (const row of rows) {
     await creditRider(tx, row.riderId, gameDay, 'salario', row.salary, `Weekly salary · wk ${week}`)
-    const rent = weeklyHousingCost(row.residence, row.nationality)
+    // El corredor paga el alquiler solo si vive fuera de su país y el equipo NO lo cubre (contrato).
+    const rent = row.payHousing ? 0 : weeklyHousingCost(row.residence, row.nationality)
     if (rent > 0) {
       await creditRider(tx, row.riderId, gameDay, 'vivienda', -rent, `Housing rent · wk ${week}`)
     }
