@@ -6,6 +6,7 @@
  * 21 etapas; los perfiles se componen de constructores reutilizables (llana, media, reina, crono,
  * clásica de adoquines) para dar variedad sin imitar recorridos reales.
  */
+import { COUNTRIES } from '@cyclingstar/shared'
 import type { Division } from '../world/npc.js'
 import type { Segment, StageProfile } from '../stage/types.js'
 import type { StageKind } from './testTour.js'
@@ -45,8 +46,13 @@ export interface CalendarRace {
   format: RaceFormat
   /** Día de la temporada en que arranca (15..290). */
   startDay: number
-  /** Divisiones cuyos equipos pueden inscribirse (SPEC 8). */
+  /** Divisiones cuyos equipos pueden inscribirse (SPEC 8). Vacío en carreras de campo nacional. */
   openTo: Division[]
+  /**
+   * Si está, la carrera es un campeonato nacional (.NC): el pelotón es individual, formado por los
+   * mejores corredores de ESE país (no por equipos). Código de país ISO alpha-2.
+   */
+  championshipCountry?: string
   stages: CalendarStage[]
   /** Descansos tras estas etapas (solo grandes vueltas). */
   restAfter?: number[]
@@ -310,11 +316,38 @@ function raceFrance(): CalendarRace {
   }
 }
 
+/** Día de temporada en que se disputan todos los campeonatos nacionales (fin de junio ciclista). */
+const NATIONALS_DAY = 150
+
 /**
- * Las 28 carreras del calendario del MVP (SPEC 8), ordenadas por día de arranque. Nombres con el
- * esquema Race + Geografía, sin imitar identidades reales.
+ * Campeonato nacional de un país (.NC): carrera de un día, pelotón individual de ese país. El
+ * pelotón real lo arma la capa de datos con los mejores corredores de la nación (no por equipos).
  */
-export const SEASON_CALENDAR: CalendarRace[] = [
+function nationalChampionship(code: string, name: string): CalendarRace {
+  const raceName = `${name} National Championship`
+  return {
+    id: `nc-${code.toLowerCase()}`,
+    name: raceName,
+    level: 'CON',
+    raceClass: 'NC',
+    format: 'un-dia',
+    startDay: NATIONALS_DAY,
+    openTo: [],
+    championshipCountry: code,
+    stages: [{ ...classic(220), index: 1, name: raceName }],
+  }
+}
+
+/** Los 92 campeonatos nacionales, uno por país registrado (SPEC 8). */
+const NATIONAL_CHAMPIONSHIPS: CalendarRace[] = COUNTRIES.map((c) =>
+  nationalChampionship(c.code, c.name),
+)
+
+/**
+ * Carreras base del calendario del MVP (SPEC 8), con el esquema Race + Geografía, sin imitar
+ * identidades reales.
+ */
+const BASE_RACES: CalendarRace[] = [
   // --- Una semana / grandes vueltas (WT) ---
   weekRace('race-down-under', 'Race Down Under', 'WT', 16, [
     flat(145),
@@ -403,7 +436,6 @@ export const SEASON_CALENDAR: CalendarRace[] = [
     flat(150),
   ]),
   oneDay('race-andorra', 'Race Andorra', 'PRS', 146, mountain(198)),
-  oneDay('race-nationals', 'National Championships', 'CON', 150, flat(230), 'NC'),
   oneDay('race-worlds', 'World Championship', 'WT', 155, classic(268)),
   weekRace('race-switzerland', 'Race Switzerland', 'WT', 158, [
     flat(185),
@@ -490,3 +522,11 @@ export const SEASON_CALENDAR: CalendarRace[] = [
   ]),
   oneDay('race-lombardy', 'Race Lombardy', 'WT', 282, classic(252)),
 ]
+
+/**
+ * Calendario completo de la temporada (SPEC 8): las carreras base más los 92 campeonatos nacionales,
+ * ordenado por día de arranque (invariante que asumen los consumidores).
+ */
+export const SEASON_CALENDAR: CalendarRace[] = [...BASE_RACES, ...NATIONAL_CHAMPIONSHIPS].sort(
+  (a, b) => a.startDay - b.startDay,
+)
