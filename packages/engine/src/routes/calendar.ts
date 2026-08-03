@@ -272,6 +272,8 @@ function raceFrance(): CalendarRace {
   }
 }
 
+const MONTH_CUM = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334]
+
 /**
  * Día de temporada de la mayoría de campeonatos nacionales. En el ciclismo real casi todos se
  * disputan el MISMO fin de semana (el último de junio; 2026 ≈ 27 jun = día 178), por eso comparten
@@ -280,14 +282,13 @@ function raceFrance(): CalendarRace {
 const NATIONALS_DAY = 178
 
 /**
- * Naciones del hemisferio sur / Asia cuyo campeonato se corre en enero (verano austral / calendario
- * asiático), no a finales de junio. Fecha real (mes, día); el resto usa NATIONALS_DAY.
+ * Fecha real (mes, día) de los campeonatos que NO caen en el fin de semana de junio: hemisferio sur
+ * y algún calendario asiático corren en enero. Ampliable país a país; el resto usa NATIONALS_DAY.
  */
-// Día del año directo (todos en enero, así que día del año = día del mes).
-const NATIONALS_DATE_OVERRIDE: Record<string, number> = {
-  AU: 10, // Australia
-  NZ: 11, // Nueva Zelanda
-  TH: 17, // Tailandia
+const NATIONALS_DATE_OVERRIDE: Record<string, [number, number]> = {
+  AU: [1, 10], // Australia
+  NZ: [1, 11], // Nueva Zelanda
+  TH: [1, 17], // Tailandia
 }
 
 /**
@@ -296,7 +297,8 @@ const NATIONALS_DATE_OVERRIDE: Record<string, number> = {
  */
 function nationalChampionship(code: string, name: string): CalendarRace {
   const raceName = `${name} National Championship`
-  const startDay = NATIONALS_DATE_OVERRIDE[code] ?? NATIONALS_DAY
+  const override = NATIONALS_DATE_OVERRIDE[code]
+  const startDay = override ? doy(override[0], override[1]) : NATIONALS_DAY
   return {
     id: `nc-${code.toLowerCase()}`,
     name: raceName,
@@ -319,8 +321,6 @@ const NATIONAL_CHAMPIONSHIPS: CalendarRace[] = COUNTRIES.map((c) =>
 // Solo se copian los HECHOS (fechas, clase, formato); los nombres de marca se sustituyen y los
 // perfiles de etapa son autoría propia. Día de temporada = día del año (temporada ≈ año no bisiesto).
 
-const MONTH_CUM = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334]
-/** Día del año (Ene 1 = 1) para una fecha (mes 1-based, día). */
 function doy(month: number, day: number): number {
   return MONTH_CUM[month - 1]! + day
 }
