@@ -11,6 +11,7 @@ export * from './rider.js'
 export * from './rng.js'
 export * from './time.js'
 export * from './training.js'
+export * from './travel.js'
 
 /** Respuesta de GET /health (SPEC 12, Pasos 7-12). */
 export const healthSchema = z.object({
