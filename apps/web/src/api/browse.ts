@@ -16,6 +16,7 @@ export interface TeamRider {
   archetype: string
   isBot: boolean
   seasonPoints: number
+  foreign: boolean
 }
 
 export interface TeamDetail {
