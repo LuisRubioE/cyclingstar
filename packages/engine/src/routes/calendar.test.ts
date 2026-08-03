@@ -3,14 +3,23 @@ import { RACE_CLASSES } from './uci.js'
 import { SEASON_CALENDAR } from './calendar.js'
 
 describe('engine: calendario de temporada (SPEC 8, Paso 34)', () => {
-  it('tiene 35 carreras base + 92 campeonatos nacionales, con id único', () => {
+  it('incluye el WorldTour real (36) y los 92 campeonatos nacionales, con id único', () => {
+    const wt = SEASON_CALENDAR.filter((r) => r.level === 'WT')
     const nc = SEASON_CALENDAR.filter((r) => r.championshipCountry)
-    const base = SEASON_CALENDAR.filter((r) => !r.championshipCountry)
-    expect(base).toHaveLength(35)
+    expect(wt).toHaveLength(36) // 33 de un día/semana + 3 grandes vueltas
     expect(nc).toHaveLength(92)
-    expect(SEASON_CALENDAR).toHaveLength(127)
-    const ids = new Set(SEASON_CALENDAR.map((r) => r.id))
-    expect(ids.size).toBe(127)
+    const ids = SEASON_CALENDAR.map((r) => r.id)
+    expect(new Set(ids).size).toBe(ids.length)
+  })
+
+  it('el WorldTour arranca en las fechas reales (día del año)', () => {
+    const byId = new Map(SEASON_CALENDAR.map((r) => [r.id, r]))
+    // Ene 20 → 20; monumentos y grandes vueltas en su fecha real.
+    expect(byId.get('race-down-under')?.startDay).toBe(20)
+    expect(byId.get('race-flanders')?.startDay).toBe(31 + 28 + 31 + 5) // 5 abr
+    expect(byId.get('race-italy')?.startDay).toBe(31 + 28 + 31 + 30 + 8) // 8 may
+    expect(byId.get('race-france')?.startDay).toBe(181 + 4) // 4 jul
+    expect(byId.get('race-lombardy')?.startDay).toBe(273 + 10) // 10 oct
   })
 
   it('cada carrera lleva una clase de carrera coherente con su nivel', () => {
