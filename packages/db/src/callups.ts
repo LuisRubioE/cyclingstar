@@ -75,7 +75,10 @@ export async function runCallups(
   await releaseUncontractedHumans(tx, worldId, season)
 
   const dayOfSeason = gameDay % SEASON_DAYS
-  const due = SEASON_CALENDAR.filter((r) => r.startDay - CALLUP_LEAD_DAYS === dayOfSeason)
+  // Los campeonatos nacionales no se convocan por equipo (pelotón nacional), se excluyen aquí.
+  const due = SEASON_CALENDAR.filter(
+    (r) => !r.championshipCountry && r.startDay - CALLUP_LEAD_DAYS === dayOfSeason,
+  )
   if (due.length === 0) return
 
   // Solo deciden los equipos con al menos un corredor humano (los jugadores).
@@ -215,7 +218,8 @@ export async function getRacePrefs(
         .where(and(eq(raceCallups.riderId, riderId), eq(raceCallups.season, season)))
     ).map((r) => [r.raceId, r.selected]),
   )
-  return SEASON_CALENDAR.map((race) => {
+  // Los campeonatos nacionales no son objetivos de convocatoria de equipo: fuera de la lista.
+  return SEASON_CALENDAR.filter((race) => !race.championshipCountry).map((race) => {
     const sel = callups.get(race.id)
     return {
       raceId: race.id,

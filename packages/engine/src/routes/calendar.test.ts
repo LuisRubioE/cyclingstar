@@ -3,20 +3,35 @@ import { RACE_CLASSES } from './uci.js'
 import { SEASON_CALENDAR } from './calendar.js'
 
 describe('engine: calendario de temporada (SPEC 8, Paso 34)', () => {
-  it('tiene 36 carreras con id único', () => {
-    expect(SEASON_CALENDAR).toHaveLength(36)
+  it('tiene 35 carreras base + 92 campeonatos nacionales, con id único', () => {
+    const nc = SEASON_CALENDAR.filter((r) => r.championshipCountry)
+    const base = SEASON_CALENDAR.filter((r) => !r.championshipCountry)
+    expect(base).toHaveLength(35)
+    expect(nc).toHaveLength(92)
+    expect(SEASON_CALENDAR).toHaveLength(127)
     const ids = new Set(SEASON_CALENDAR.map((r) => r.id))
-    expect(ids.size).toBe(36)
+    expect(ids.size).toBe(127)
   })
 
   it('cada carrera lleva una clase de carrera coherente con su nivel', () => {
     for (const race of SEASON_CALENDAR) {
       expect(RACE_CLASSES).toContain(race.raceClass)
-      if (race.level === 'WT') expect(race.raceClass).toBe('WT')
-      if (race.level === 'PRS') expect(race.raceClass).toBe('Pro')
+      if (race.championshipCountry) expect(race.raceClass).toBe('NC')
+      else if (race.level === 'WT') expect(race.raceClass).toBe('WT')
+      else if (race.level === 'PRS') expect(race.raceClass).toBe('Pro')
     }
-    // El campeonato nacional está marcado como .NC.
-    expect(SEASON_CALENDAR.find((r) => r.id === 'race-nationals')?.raceClass).toBe('NC')
+  })
+
+  it('cada campeonato nacional es de un día, con país y sin inscripción por división', () => {
+    const nc = SEASON_CALENDAR.filter((r) => r.championshipCountry)
+    for (const race of nc) {
+      expect(race.format).toBe('un-dia')
+      expect(race.championshipCountry).toMatch(/^[A-Z]{2}$/)
+      expect(race.openTo).toHaveLength(0)
+    }
+    // Un país por campeonato, sin duplicados.
+    const countries = nc.map((r) => r.championshipCountry)
+    expect(new Set(countries).size).toBe(nc.length)
   })
 
   it('todas arrancan en días de competición (15..290) y están ordenadas por día', () => {
@@ -68,7 +83,8 @@ describe('engine: calendario de temporada (SPEC 8, Paso 34)', () => {
   })
 
   it('las reglas de inscripción respetan la jerarquía de divisiones', () => {
-    for (const race of SEASON_CALENDAR) {
+    // Los campeonatos nacionales tienen pelotón individual (openTo vacío): fuera de esta regla.
+    for (const race of SEASON_CALENDAR.filter((r) => !r.championshipCountry)) {
       if (race.level === 'WT') expect(race.openTo).toEqual(['WT', 'PRS'])
       if (race.level === 'PRS') expect(race.openTo).toEqual(['WT', 'PRS', 'CON'])
       if (race.level === 'CON') expect(race.openTo).toEqual(['PRS', 'CON'])

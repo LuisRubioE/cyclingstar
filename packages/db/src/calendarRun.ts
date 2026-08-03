@@ -29,6 +29,35 @@ const SQUAD_SIZE = { 'gran-vuelta': 8, 'una-semana': 7, 'un-dia': 7 } as const
 /** Tope de corredores por pelotón, para acotar el cómputo del motor. */
 const FIELD_CAP = 64
 const YOUNG_AGE = 23
+/** Pelotón de un campeonato nacional: los mejores del país, y mínimo para que se dispute. */
+const NATIONAL_FIELD_CAP = 40
+const NATIONAL_FIELD_MIN = 5
+
+/**
+ * Convoca un campeonato nacional (.NC): pelotón individual con los mejores corredores en activo del
+ * país (por fama, proxy de nivel), sin importar su equipo. Si la nación no reúne el mínimo, no se
+ * disputa esa temporada (roster vacío → la etapa no corre). Incluye a corredores humanos del país.
+ */
+async function convokeNationalField(
+  tx: Tx,
+  worldId: string,
+  race: CalendarRace,
+  raceKey: string,
+): Promise<void> {
+  const country = race.championshipCountry
+  if (!country) return
+  const best = await tx
+    .select({ id: riders.id })
+    .from(riders)
+    .where(and(eq(riders.worldId, worldId), eq(riders.country, country), isNull(riders.retiredAt)))
+    .orderBy(desc(riders.fame))
+    .limit(NATIONAL_FIELD_CAP)
+  if (best.length < NATIONAL_FIELD_MIN) return
+  await tx
+    .insert(raceRosters)
+    .values(best.map((r) => ({ raceId: raceKey, riderId: r.id })))
+    .onConflictDoNothing()
+}
 
 /** Convoca el pelotón de una carrera: los mejores equipos admitidos, con su escuadra (SPEC 6.18). */
 async function convokeField(
@@ -129,7 +158,10 @@ export async function runCalendarDay(
         .from(raceRosters)
         .where(eq(raceRosters.raceId, raceKey))
         .limit(1)
-      if (existing.length === 0) await convokeField(tx, worldId, race, raceKey, worldSeed, season)
+      if (existing.length === 0) {
+        if (race.championshipCountry) await convokeNationalField(tx, worldId, race, raceKey)
+        else await convokeField(tx, worldId, race, raceKey, worldSeed, season)
+      }
     }
 
     const stage = race.stages[idx - 1]

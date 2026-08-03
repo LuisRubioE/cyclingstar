@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { useState } from 'react'
+import { type ReactElement, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   type CalendarRaceSummary,
@@ -8,6 +8,7 @@ import {
   formatLabel,
   raceClassLabel,
 } from '../api/calendar'
+import { Flag } from '../components/Flag'
 
 const LEVEL_BADGE: Record<RaceLevel, string> = {
   WT: 'bg-indigo-100 text-indigo-700',
@@ -93,27 +94,84 @@ function RaceCard({ race }: { race: CalendarRaceSummary }) {
   )
 }
 
-/** El calendario de la temporada: las 28 carreras del MVP con sus etapas (Paso 34). */
+/** Grupo plegable con los campeonatos nacionales (mismo día): banderas, ganador y enlace a cada uno. */
+function NationalChampsCard({ races }: { races: CalendarRaceSummary[] }) {
+  const [open, setOpen] = useState(false)
+  const day = races[0]?.startDay ?? 0
+  return (
+    <article className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex w-full items-center justify-between gap-4 px-4 py-3 text-left"
+      >
+        <div className="flex items-center gap-3">
+          <span className="w-16 shrink-0 text-xs tabular-nums text-slate-400">GD {day}</span>
+          <span className="text-sm font-semibold text-slate-800">National Championships</span>
+          <span
+            className="rounded-full bg-slate-900/5 px-2 py-0.5 font-mono text-[11px] font-medium text-slate-500"
+            title="Race class"
+          >
+            .NC
+          </span>
+        </div>
+        <span className="text-xs text-slate-500">{races.length} nations</span>
+      </button>
+      {open && (
+        <div className="grid gap-x-4 gap-y-1 border-t border-slate-100 px-4 py-3 sm:grid-cols-2">
+          {races.map((r) => (
+            <Link
+              key={r.id}
+              to={`/races/${r.id}`}
+              className="flex items-center justify-between gap-2 rounded px-1 py-0.5 text-sm hover:bg-slate-50"
+            >
+              <span className="flex items-center gap-2">
+                {r.championshipCountry && <Flag code={r.championshipCountry} size={16} />}
+                <span className="text-slate-700">
+                  {r.name.replace(/ National Championship$/, '')}
+                </span>
+              </span>
+              {r.winner && <span className="truncate text-xs text-amber-700">🏆 {r.winner}</span>}
+            </Link>
+          ))}
+        </div>
+      )}
+    </article>
+  )
+}
+
+/** El calendario de la temporada: carreras base + los campeonatos nacionales, por día (Paso 34). */
 export function Calendar() {
   const { data, isPending, isError } = useQuery({ queryKey: ['calendar'], queryFn: fetchCalendar })
 
   if (isPending) return <p className="text-slate-500">Loading…</p>
   if (isError) return <p className="text-red-600">Could not load the calendar.</p>
 
+  const nationals = data.races.filter((r) => r.championshipCountry)
+  const others = data.races.filter((r) => !r.championshipCountry)
+
+  // Insertamos el grupo de campeonatos nacionales en su día dentro del orden cronológico.
+  const items: { day: number; node: ReactElement }[] = others.map((race) => ({
+    day: race.startDay,
+    node: <RaceCard key={race.id} race={race} />,
+  }))
+  if (nationals.length > 0) {
+    items.push({
+      day: nationals[0]!.startDay,
+      node: <NationalChampsCard key="nc-group" races={nationals} />,
+    })
+  }
+  items.sort((a, b) => a.day - b.day)
+
   return (
     <section className="space-y-5">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Season calendar</h1>
         <p className="mt-1 text-sm text-slate-500">
-          {data.races.length} races across the competition season — grand tours, stage races and
-          one-day classics.
+          {others.length} races plus {nationals.length} national championships — grand tours, stage
+          races, one-day classics and every nation's title.
         </p>
       </div>
-      <div className="space-y-2.5">
-        {data.races.map((race) => (
-          <RaceCard key={race.id} race={race} />
-        ))}
-      </div>
+      <div className="space-y-2.5">{items.map((it) => it.node)}</div>
     </section>
   )
 }
