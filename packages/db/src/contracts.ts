@@ -173,15 +173,24 @@ export interface OfferRow {
   releaseClause: number
   /** El equipo pagaría el alquiler de vivienda del corredor (fichaje internacional). */
   payHousing: boolean
+  /** País (ISO) al que se mudaría el corredor si es un fichaje internacional; null si se queda en casa. */
+  relocatesTo: string | null
 }
 
 /** Ofertas pendientes de un corredor, con el equipo que las hace. */
 export async function getOffers(db: Database, riderId: string): Promise<OfferRow[]> {
-  return db
+  const me = await db
+    .select({ country: riders.country })
+    .from(riders)
+    .where(eq(riders.id, riderId))
+    .limit(1)
+  const nationality = me[0]?.country ?? null
+  const rows = await db
     .select({
       id: offers.id,
       teamId: teams.id,
       teamName: teams.name,
+      teamCountry: teams.country,
       division: teams.division,
       role: offers.role,
       salary: offers.salary,
@@ -193,6 +202,10 @@ export async function getOffers(db: Database, riderId: string): Promise<OfferRow
     .innerJoin(teams, eq(teams.id, offers.teamId))
     .where(and(eq(offers.riderId, riderId), eq(offers.status, 'pendiente')))
     .orderBy(desc(offers.salary))
+  return rows.map(({ teamCountry, ...r }) => ({
+    ...r,
+    relocatesTo: teamCountry && teamCountry !== nationality ? teamCountry : null,
+  }))
 }
 
 /** Acepta una oferta: firma el contrato, mueve al corredor y cierra las demás ofertas. */

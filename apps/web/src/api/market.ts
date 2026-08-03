@@ -8,6 +8,7 @@ export interface Offer {
   seasons: number
   releaseClause: number
   payHousing: boolean
+  relocatesTo: string | null
 }
 
 export interface Contract {
