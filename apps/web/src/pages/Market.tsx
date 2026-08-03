@@ -1,4 +1,6 @@
+import { COUNTRIES } from '@cyclingstar/shared'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Flag } from '../components/Flag'
 import { Panel, SectionBar, InfoRow } from '../components/Panel'
 import { TeamLink } from '../components/TeamLink'
 import { type Offer, fetchMarket, respondToOffer, roleLabel } from '../api/market'
@@ -61,6 +63,14 @@ function OfferCard({
         >
           <span className="tabular-nums">{offer.releaseClause.toLocaleString('en-US')}</span>
         </InfoRow>
+        {offer.relocatesTo && (
+          <InfoRow label="Relocate to">
+            <span className="inline-flex items-center gap-1.5">
+              <Flag code={offer.relocatesTo} size={14} />
+              {COUNTRIES.find((c) => c.code === offer.relocatesTo)?.name ?? offer.relocatesTo}
+            </span>
+          </InfoRow>
+        )}
         {offer.payHousing && (
           <InfoRow
             label={
