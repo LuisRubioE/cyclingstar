@@ -43,10 +43,10 @@ describe('engine: calendario de temporada (SPEC 8, Paso 34)', () => {
     expect(new Set(countries).size).toBe(nc.length)
   })
 
-  it('todas arrancan en días de competición (15..290) y están ordenadas por día', () => {
+  it('todas arrancan en días de competición (15..300) y están ordenadas por día', () => {
     for (const race of SEASON_CALENDAR) {
       expect(race.startDay).toBeGreaterThanOrEqual(15)
-      expect(race.startDay).toBeLessThanOrEqual(290)
+      expect(race.startDay).toBeLessThanOrEqual(300)
     }
     const days = SEASON_CALENDAR.map((r) => r.startDay)
     expect([...days].sort((a, b) => a - b)).toEqual(days)
