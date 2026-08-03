@@ -80,7 +80,7 @@ import {
   renderAltimetrySvg,
   simulateStage,
 } from '@cyclingstar/engine'
-import { type Health, isKnownCountry, seasonPosition } from '@cyclingstar/shared'
+import { type Health, isKnownCountry, resolveCountry, seasonPosition } from '@cyclingstar/shared'
 import Fastify, {
   type FastifyError,
   type FastifyInstance,
@@ -338,7 +338,8 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
     app.get('/api/geo/country', (request) => {
       const raw = request.headers['cf-ipcountry']
       const code = typeof raw === 'string' ? raw.toUpperCase() : null
-      return { country: code && isKnownCountry(code) ? code : null }
+      // Resuelve al país jugable: el propio si existe, si no su fallback más cercano (Vaticano→Italia…).
+      return { country: resolveCountry(code) }
     })
 
     // Generación de nombre (Paso 13/15): server-side, respeta la lista de bloqueo y evita
