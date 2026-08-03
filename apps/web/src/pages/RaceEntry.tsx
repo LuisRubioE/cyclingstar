@@ -108,6 +108,29 @@ export function RaceEntry() {
             can afford and want to target. National championships you already qualify for
             automatically.
           </p>
+          {summary.data && (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <Panel title="Balance">
+                <p className="text-xl font-bold tabular-nums text-slate-800">
+                  {summary.data.money.toLocaleString('en-US')}
+                </p>
+              </Panel>
+              <Panel title="Committed travel">
+                <p className="text-xl font-bold tabular-nums text-rose-600">
+                  −
+                  {data
+                    .filter((r) => r.entered && !r.enrolled)
+                    .reduce((s, r) => s + r.travelMoney, 0)
+                    .toLocaleString('en-US')}
+                </p>
+              </Panel>
+              <Panel title="Races entered">
+                <p className="text-xl font-bold tabular-nums text-slate-800">
+                  {data.filter((r) => r.entered).length}
+                </p>
+              </Panel>
+            </div>
+          )}
           {data.length === 0 ? (
             <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">
               No upcoming continental races left to enter this season.
