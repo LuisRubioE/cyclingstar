@@ -5,7 +5,7 @@ import {
   offerSeasons,
   releaseClause,
 } from '@cyclingstar/engine'
-import { seededRng } from '@cyclingstar/shared'
+import { residenceAfterSigning, seededRng } from '@cyclingstar/shared'
 import { and, desc, eq, inArray, isNotNull, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import type { Database } from './client.js'
@@ -201,7 +201,19 @@ export async function acceptOffer(db: Database, riderId: string, offerId: string
       endSeason: offer.season + offer.seasons - 1,
       releaseClause: offer.releaseClause,
     })
-    await tx.update(riders).set({ teamId: offer.teamId }).where(eq(riders.id, riderId))
+    // Al firmar, el corredor se muda al país del equipo (allí está la base y entrena con el grupo):
+    // si es extranjero, empieza a pagar alquiler (o el equipo lo asume). Movemos residencia con equipo.
+    const teamRow = await tx
+      .select({ country: teams.country, nationality: riders.country })
+      .from(riders)
+      .innerJoin(teams, eq(teams.id, offer.teamId))
+      .where(eq(riders.id, riderId))
+      .limit(1)
+    const residence = residenceAfterSigning(
+      teamRow[0]?.nationality ?? null,
+      teamRow[0]?.country ?? null,
+    )
+    await tx.update(riders).set({ teamId: offer.teamId, residence }).where(eq(riders.id, riderId))
     await tx.update(offers).set({ status: 'aceptada' }).where(eq(offers.id, offerId))
 
     // Noticia del fichaje (Paso 39), personal del corredor.

@@ -7,6 +7,8 @@ const KIND_TONE: Record<string, string> = {
   premio: 'text-emerald-600',
   patrocinador: 'text-emerald-600',
   staff: 'text-rose-600',
+  viaje: 'text-rose-600',
+  vivienda: 'text-rose-600',
   otro: 'text-slate-600',
 }
 

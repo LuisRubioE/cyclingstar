@@ -226,6 +226,8 @@ export interface PublicRiderDetail {
   id: string
   name: string
   country: string
+  /** País de residencia (dónde vive/entrena). Igual a `country` si vive en su país. */
+  residence: string
   archetype: string
   age: number
   isBot: boolean
@@ -249,6 +251,7 @@ export async function getPublicRider(
       id: riders.id,
       name: riders.name,
       country: riders.country,
+      residence: riders.residence,
       archetype: riders.archetype,
       birthSeason: riders.birthSeason,
       worldId: riders.worldId,
@@ -276,6 +279,7 @@ export async function getPublicRider(
     id: r.id,
     name: r.name,
     country: r.country,
+    residence: r.residence ?? r.country,
     archetype: r.archetype,
     age: 20 - r.birthSeason + season,
     isBot: r.userId === null,

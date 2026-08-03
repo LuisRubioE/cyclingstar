@@ -16,6 +16,8 @@ export function PublicRider() {
   if (isError) return <p className="text-red-600">Could not load the rider.</p>
 
   const country = COUNTRIES.find((c) => c.code === data.country)
+  const abroad = data.residence && data.residence !== data.country
+  const residenceCountry = COUNTRIES.find((c) => c.code === data.residence)
 
   return (
     <section className="space-y-6">
@@ -53,6 +55,12 @@ export function PublicRider() {
                   {data.teamName}
                 </Link>
               </>
+            )}
+            {abroad && (
+              <span className="inline-flex items-center gap-1">
+                {' · '}🏠 lives in <Flag code={data.residence} size={12} />
+                {residenceCountry?.name ?? data.residence}
+              </span>
             )}
           </p>
         </div>

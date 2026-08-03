@@ -1,10 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import {
   HOTEL_PER_RACE_DAY,
+  HOUSING_RENT_PER_WEEK,
   TRANSPORT_COST,
+  attendanceDecision,
   raceAttendanceCost,
   raceAttendanceCostToContinent,
+  residenceAfterSigning,
   travelTier,
+  weeklyHousingCost,
 } from './travel.js'
 
 describe('shared: modelo de viajes (tramos + fijo/variable)', () => {
@@ -40,5 +44,35 @@ describe('shared: modelo de viajes (tramos + fijo/variable)', () => {
     const far = raceAttendanceCostToContinent('CO', 'Europe', 6)
     expect(near.money).toBeLessThan(far.money)
     expect(near.days).toBeLessThan(far.days)
+  })
+})
+
+describe('shared: vivienda y decisión de acudir', () => {
+  it('vivir en el propio país es gratis; fuera cuesta alquiler semanal', () => {
+    expect(weeklyHousingCost('ES', 'ES')).toBe(0)
+    expect(weeklyHousingCost('FR', 'ES')).toBe(HOUSING_RENT_PER_WEEK)
+    expect(weeklyHousingCost(null, 'ES')).toBe(0) // sin residencia conocida: no se cobra
+  })
+
+  it('al firmar, el corredor se muda al país del equipo (o mantiene residencia si no lo tiene)', () => {
+    expect(residenceAfterSigning('CO', 'FR')).toBe('FR') // colombiano que ficha por equipo francés
+    expect(residenceAfterSigning('CO', null)).toBe('CO') // equipo sin país: no se muda
+  })
+
+  it('la decisión es rentable si el valor esperado cubre el dinero del viaje', () => {
+    const cost = raceAttendanceCost('ES', 'FR', 5) // continental, 5 días
+    const rich = attendanceDecision(cost, 1000, cost.money + 50)
+    expect(rich.worthwhile).toBe(true)
+    expect(rich.affordable).toBe(true)
+    expect(rich.net).toBe(50)
+    const poorValue = attendanceDecision(cost, 1000, cost.money - 10)
+    expect(poorValue.worthwhile).toBe(false) // no compensa el viaje
+  })
+
+  it('un agente libre sin dinero no puede acudir aunque le compense deportivamente', () => {
+    const cost = raceAttendanceCost('CO', 'FR', 7) // intercontinental, caro
+    const broke = attendanceDecision(cost, cost.money - 1, cost.money + 100)
+    expect(broke.worthwhile).toBe(true) // deportivamente sí
+    expect(broke.affordable).toBe(false) // pero no le llega el dinero
   })
 })

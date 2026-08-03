@@ -458,6 +458,10 @@ export async function seedWorld(tx: Tx, worldId: string, worldSeed: string): Pro
     (chunk) => tx.insert(teams).values(chunk),
   )
 
+  // Residencia inicial: un corredor con equipo vive en el país del equipo (se ha mudado a la base y
+  // entrena con el grupo); un agente libre reside en su país. Los extranjeros de un equipo pagan
+  // alquiler desde el primer día (modelo de vivienda), lo que la mayoría no hace por el núcleo nacional.
+  const teamCountryById = new Map(plan.teams.map((t) => [t.id, t.country]))
   await insertChunked(
     newRiders.map((r) => ({
       id: r.id,
@@ -466,6 +470,7 @@ export async function seedWorld(tx: Tx, worldId: string, worldSeed: string): Pro
       teamId: r.teamId,
       name: r.name,
       country: r.country,
+      residence: (r.teamId ? teamCountryById.get(r.teamId) : null) ?? r.country,
       gender: r.gender,
       birthSeason: r.birthSeason,
       archetype: r.archetype,

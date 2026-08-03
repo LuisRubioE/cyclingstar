@@ -77,6 +77,7 @@ export interface PublicRiderDetail {
   id: string
   name: string
   country: string
+  residence: string
   archetype: string
   age: number
   isBot: boolean

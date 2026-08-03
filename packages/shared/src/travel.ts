@@ -76,3 +76,64 @@ export function raceAttendanceCostToContinent(
     days: transport.days,
   }
 }
+
+/*
+ * ── Vivienda ────────────────────────────────────────────────────────────────────────────────────
+ * Un corredor RESIDE en un país. En su propio país vive en casa de la familia: gratis. Al firmar por
+ * un equipo se muda al país del equipo (donde entrena con el resto); si ese país no es el suyo, paga
+ * ALQUILER semanal. Un equipo puede asumir ese alquiler como extra del contrato (el corredor acepta
+ * menos salario a cambio de que le paguen la vivienda). Todo puro: lo usan las ofertas y la nómina.
+ */
+
+/** Alquiler semanal de vivienda cuando el corredor reside fuera de su país (la casa familiar es gratis). */
+export const HOUSING_RENT_PER_WEEK = 6
+
+/** Coste semanal de vivienda de un corredor de nacionalidad `nationality` que reside en `residence`. */
+export function weeklyHousingCost(residence: string | null, nationality: string | null): number {
+  if (!residence || !nationality) return 0
+  return residence.toUpperCase() === nationality.toUpperCase() ? 0 : HOUSING_RENT_PER_WEEK
+}
+
+/**
+ * Dónde reside un corredor tras firmar por un equipo: se muda al país del equipo (allí está la base y
+ * entrena con el grupo). Si el equipo no tiene país conocido, mantiene su residencia actual.
+ */
+export function residenceAfterSigning(
+  current: string | null,
+  teamCountry: string | null,
+): string | null {
+  return teamCountry ?? current
+}
+
+/*
+ * ── Decisión de acudir a una carrera (coste/beneficio) ───────────────────────────────────────────
+ * Un equipo (bot o humano) solo manda corredores a una carrera si le compensa: el valor esperado
+ * (premios, puntos y fama, traducidos a dinero por quien llama) debe cubrir el coste en dinero del
+ * viaje. Un agente libre, además, está limitado por su bolsillo: si no le llega, no puede ir. El
+ * coste en DÍAS (viaje sin entrenar) lo informa la misma decisión para que el que llama lo aplique.
+ */
+
+export interface AttendanceDecision {
+  cost: TravelCost
+  /** El presupuesto disponible cubre el dinero del viaje. */
+  affordable: boolean
+  /** El valor esperado de acudir supera el dinero del viaje (net ≥ 0). */
+  worthwhile: boolean
+  /** Valor esperado − dinero del viaje (margen; negativo = pierde dinero yendo). */
+  net: number
+}
+
+/**
+ * Decide si acudir a una carrera dados el coste del viaje, el presupuesto disponible y el valor
+ * esperado (en dinero) de correrla. `worthwhile` = rentable; `affordable` = se lo puede permitir.
+ * Un bot va si es rentable y lo puede pagar; un agente libre, además, nunca por encima de su bolsillo.
+ * Pura y determinista.
+ */
+export function attendanceDecision(
+  cost: TravelCost,
+  budget: number,
+  expectedValue: number,
+): AttendanceDecision {
+  const net = expectedValue - cost.money
+  return { cost, affordable: cost.money <= budget, worthwhile: net >= 0, net }
+}

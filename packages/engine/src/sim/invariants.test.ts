@@ -66,7 +66,8 @@ describe('contrarreloj (6.17)', () => {
 })
 
 describe('caídas en pavés (6.17)', () => {
-  it('una etapa de pavés deja entre un 5% y un 12% de bajas por caída', () => {
+  // Monte Carlo de 80 etapas completas: pesado, con margen de tiempo holgado para runners lentos.
+  it('una etapa de pavés deja entre un 5% y un 12% de bajas por caída', { timeout: 30000 }, () => {
     const eff = (base: number): Record<Attribute, number> => ({
       RES: base,
       REC: base,

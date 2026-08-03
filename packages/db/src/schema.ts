@@ -208,6 +208,10 @@ export const riders = pgTable(
     teamId: uuid('team_id'),
     name: text('name').notNull(),
     country: char('country', { length: 2 }).notNull(),
+    /** País de RESIDENCIA (ISO alpha-2): base del coste de viajes y de la vivienda. Arranca en el
+     * país de nacimiento (casa familiar, gratis) y cambia al del equipo al firmar. Null = reside en
+     * su país (se resuelve a `country`). */
+    residence: char('residence', { length: 2 }),
     gender: genderEnum('gender').notNull(),
     birthSeason: integer('birth_season').notNull(),
     archetype: archetypeEnum('archetype').notNull(),
@@ -455,6 +459,8 @@ export const txnKindEnum = pgEnum('txn_kind', [
   'premio',
   'staff',
   'patrocinador',
+  'viaje',
+  'vivienda',
   'otro',
 ])
 
