@@ -16,6 +16,10 @@ import { fetchOrders, saveOrders } from '../api/training'
 
 const HORIZON = 7
 
+// "Travel" no se elige a mano: lo marca el sistema de viajes automáticamente los días de
+// desplazamiento a una carrera lejana (y el día de competición tampoco se entrena).
+const SELECTABLE_SESSIONS = SESSIONS.filter((s) => s !== 'viaje')
+
 interface DayPlan {
   gameDay: number
   session: Session
@@ -138,7 +142,7 @@ export function Training() {
                   }
                   className="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
                 >
-                  {SESSIONS.map((session) => (
+                  {SELECTABLE_SESSIONS.map((session) => (
                     <option key={session} value={session}>
                       {SESSION_CATALOG[session].label}
                     </option>
