@@ -5,7 +5,7 @@ import { runCalendarDay } from './calendarRun.js'
 import { runCallups } from './callups.js'
 import { dedupeWorldNames } from './dedupeNames.js'
 import { runMarket } from './contracts.js'
-import { runPayroll } from './economy.js'
+import { runPayroll, runTeamFinances } from './economy.js'
 import { raceWorldDay } from './race.js'
 import { runRollover } from './rollover.js'
 import { gameState, tickLog, worlds } from './schema.js'
@@ -164,6 +164,7 @@ export async function runTick(databaseUrl: string, opts: RunTickOptions): Promis
           await runCallups(tx, genesis.worldId, next, opts.worldSeed)
           await runMarket(tx, genesis.worldId, next, opts.worldSeed)
           await runPayroll(tx, genesis.worldId, next)
+          await runTeamFinances(tx, genesis.worldId, next)
           await tx
             .update(gameState)
             .set({ currentDay: next, lastProcessedDay: next })

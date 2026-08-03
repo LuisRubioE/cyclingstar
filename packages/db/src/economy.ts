@@ -1,10 +1,16 @@
-import { gcPrizes, stagePrize } from '@cyclingstar/engine'
+import {
+  type Division,
+  SPONSOR_INCOME_PER_WEEK,
+  gcPrizes,
+  npcWageBill,
+  stagePrize,
+} from '@cyclingstar/engine'
 import type { RaceLevel } from '@cyclingstar/engine'
-import { weeklyHousingCost } from '@cyclingstar/shared'
-import { and, desc, eq, inArray, isNotNull, sql } from 'drizzle-orm'
+import { HOUSING_RENT_PER_WEEK, weeklyHousingCost } from '@cyclingstar/shared'
+import { and, desc, eq, inArray, isNotNull, isNull, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import type { Database } from './client.js'
-import { contracts, riders, transactions } from './schema.js'
+import { contracts, riders, teams, transactions } from './schema.js'
 
 /**
  * Economía del corredor (SPEC 9, Paso 38). Salario semanal (desde el contrato), premios de carrera
@@ -59,6 +65,63 @@ export async function runPayroll(tx: Tx, worldId: string, gameDay: number): Prom
     const rent = row.payHousing ? 0 : weeklyHousingCost(row.residence, row.nationality)
     if (rent > 0) {
       await creditRider(tx, row.riderId, gameDay, 'vivienda', -rent, `Housing rent · wk ${week}`)
+    }
+  }
+}
+
+/**
+ * Finanzas semanales del EQUIPO: el presupuesto es una cuenta viva. Cada semana entra el patrocinio
+ * (por división) y salen la masa salarial de la plantilla —estimada para los NPC, real para los
+ * corredores humanos con contrato— y el alquiler de vivienda que el equipo asuma (contratos
+ * pay_housing de corredores que residen fuera de su país). El patrocinio se dimensiona para cubrir a
+ * grandes rasgos la nómina, de modo que el margen (y los viajes) marcan la diferencia. Sin libro por
+ * equipo: se ajusta el presupuesto directamente (los NPC no observan su economía al detalle).
+ */
+export async function runTeamFinances(tx: Tx, worldId: string, gameDay: number): Promise<void> {
+  if (gameDay % 7 !== 0) return
+  const teamRows = await tx
+    .select({ id: teams.id, division: teams.division })
+    .from(teams)
+    .where(eq(teams.worldId, worldId))
+
+  // Nº de corredores NPC en activo por equipo (masa salarial estimada).
+  const npcRows = await tx
+    .select({ teamId: riders.teamId, n: sql<number>`count(*)::int` })
+    .from(riders)
+    .where(and(eq(riders.worldId, worldId), isNull(riders.userId), isNull(riders.retiredAt)))
+    .groupBy(riders.teamId)
+  const npcByTeam = new Map(npcRows.map((r) => [r.teamId, r.n]))
+
+  // Salario y alquiler cubierto de los corredores humanos con contrato, por equipo.
+  const humanRows = await tx
+    .select({
+      teamId: contracts.teamId,
+      salary: contracts.salary,
+      payHousing: contracts.payHousing,
+      residence: riders.residence,
+      nationality: riders.country,
+    })
+    .from(contracts)
+    .innerJoin(riders, eq(riders.id, contracts.riderId))
+    .where(and(eq(riders.worldId, worldId), isNotNull(riders.userId)))
+  const humanCostByTeam = new Map<string, number>()
+  for (const r of humanRows) {
+    const rent =
+      r.payHousing && weeklyHousingCost(r.residence, r.nationality) > 0 ? HOUSING_RENT_PER_WEEK : 0
+    humanCostByTeam.set(r.teamId, (humanCostByTeam.get(r.teamId) ?? 0) + r.salary + rent)
+  }
+
+  for (const team of teamRows) {
+    const div = team.division as Division
+    const income = SPONSOR_INCOME_PER_WEEK[div]
+    const wages =
+      npcWageBill(div, npcByTeam.get(team.id) ?? 0) + (humanCostByTeam.get(team.id) ?? 0)
+    const net = income - wages
+    if (net !== 0) {
+      await tx
+        .update(teams)
+        .set({ budget: sql`${teams.budget} + ${net}` })
+        .where(eq(teams.id, team.id))
     }
   }
 }

@@ -11,8 +11,13 @@ import {
   scheduledStageIndex,
   selectSquad,
 } from '@cyclingstar/engine'
-import { type Continent, continentForCountry, countriesInContinent } from '@cyclingstar/shared'
-import { and, desc, eq, inArray, isNull, notInArray } from 'drizzle-orm'
+import {
+  type Continent,
+  continentForCountry,
+  countriesInContinent,
+  raceAttendanceCost,
+} from '@cyclingstar/shared'
+import { and, desc, eq, inArray, isNull, notInArray, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import { raceRosters, riderRacePrefs, riders, teams } from './schema.js'
 import { runOneStage } from './stageRun.js'
@@ -246,6 +251,8 @@ async function convokeField(
       atl: riders.atl,
       teamTrust: riders.teamTrust,
       birthSeason: riders.birthSeason,
+      residence: riders.residence,
+      country: riders.country,
     })
     .from(riders)
     .where(and(inArray(riders.teamId, teamIds), isNull(riders.retiredAt)))
@@ -288,6 +295,11 @@ async function convokeField(
   const gtSuit = (m: { fame: number; archetype: string }) =>
     m.fame + (GT_VOCATION_BONUS[m.archetype] ?? 0)
 
+  // El equipo paga el VIAJE (transporte + hotel) de cada corredor que manda, según su residencia y el
+  // país de la carrera. Días de carrera = etapas (proxy del hotel). Se acumula por equipo y se cobra
+  // del presupuesto al final. Los rellenos regionales (individuales, sin equipo) no lo pagan aquí.
+  const raceDays = race.stages.length
+  const travelByTeam = new Map<string, number>()
   const rosterValues: { raceId: string; riderId: string }[] = []
   for (const team of teamRows) {
     let members = byTeam.get(team.id) ?? []
@@ -321,7 +333,12 @@ async function convokeField(
       size,
       seed: `${worldSeed}:field:${raceKey}:${team.id}`,
     })
-    for (const id of squad) rosterValues.push({ raceId: raceKey, riderId: id })
+    const residenceById = new Map(members.map((m) => [m.id, m.residence ?? m.country]))
+    for (const id of squad) {
+      rosterValues.push({ raceId: raceKey, riderId: id })
+      const cost = raceAttendanceCost(residenceById.get(id) ?? null, race.country ?? null, raceDays)
+      if (cost.money > 0) travelByTeam.set(team.id, (travelByTeam.get(team.id) ?? 0) + cost.money)
+    }
   }
 
   // Relleno regional (solo circuito continental): si los equipos del continente no llenan el pelotón
@@ -348,6 +365,16 @@ async function convokeField(
 
   if (rosterValues.length > 0) {
     await tx.insert(raceRosters).values(rosterValues).onConflictDoNothing()
+  }
+  // Cobra a cada equipo el viaje de los suyos (del presupuesto). Los equipos de casa apenas pagan
+  // (solo hotel), los que cruzan continente pagan más: el coste real de llevar la carrera a otro sitio.
+  for (const [teamId, money] of travelByTeam) {
+    if (money > 0) {
+      await tx
+        .update(teams)
+        .set({ budget: sql`${teams.budget} - ${money}` })
+        .where(eq(teams.id, teamId))
+    }
   }
   return rosterValues.map((v) => v.riderId)
 }
