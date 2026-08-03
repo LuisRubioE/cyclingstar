@@ -57,6 +57,13 @@ export {
   type OfferRow,
 } from './contracts.js'
 export { enterRace, getEnterableRaces, withdrawRace, type EnterableRace } from './raceEntry.js'
+export {
+  draftRace,
+  getTeamCalendar,
+  undraftRace,
+  type TeamCalendar,
+  type TeamCalendarRace,
+} from './teamPlan.js'
 export { runRollover } from './rollover.js'
 export { emitNews, getGlobalNews, getRiderNews, getTeamNews, type NewsItem } from './news.js'
 export {

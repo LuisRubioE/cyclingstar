@@ -26,9 +26,11 @@ import {
   updateOwnedTeam,
   listBlocked,
   removeBlocked,
+  draftRace,
   enterRace,
   getContract,
   getEnterableRaces,
+  getTeamCalendar,
   getCurrentWorld,
   getDailyLog,
   getGlobalNews,
@@ -50,6 +52,7 @@ import {
   getGcThroughStage,
   getKomClassification,
   getOffers,
+  undraftRace,
   withdrawRace,
   getPointsClassification,
   getRaceGc,
@@ -727,6 +730,42 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
         const world = await getCurrentWorld(db)
         if (!rider || !world) return reply.status(409).send({ ok: false, error: 'sin_ciclista' })
         const res = await withdrawRace(db, rider.id, request.params.raceId, world.currentDay)
+        if (!res.ok) return reply.status(409).send({ ok: false, error: res.error })
+        return { ok: true }
+      },
+    )
+
+    // Draft de calendario del EQUIPO (lo hace el manager): lista las carreras elegibles con el coste
+    // de viaje y permite añadir/quitar del plan. Solo para quien gestiona un equipo.
+    app.get('/api/teams/me/calendar', async (request, reply) => {
+      const userId = await currentUserId(request)
+      if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
+      const world = await getCurrentWorld(db)
+      if (!world) return { calendar: null }
+      return { calendar: await getTeamCalendar(db, userId, world.currentDay) }
+    })
+
+    app.post<{ Params: { raceId: string } }>(
+      '/api/teams/me/calendar/:raceId',
+      async (request, reply) => {
+        const userId = await currentUserId(request)
+        if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
+        const world = await getCurrentWorld(db)
+        if (!world) return reply.status(409).send({ ok: false, error: 'sin_mundo' })
+        const res = await draftRace(db, userId, request.params.raceId, world.currentDay)
+        if (!res.ok) return reply.status(409).send({ ok: false, error: res.error })
+        return { ok: true }
+      },
+    )
+
+    app.delete<{ Params: { raceId: string } }>(
+      '/api/teams/me/calendar/:raceId',
+      async (request, reply) => {
+        const userId = await currentUserId(request)
+        if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
+        const world = await getCurrentWorld(db)
+        if (!world) return reply.status(409).send({ ok: false, error: 'sin_mundo' })
+        const res = await undraftRace(db, userId, request.params.raceId, world.currentDay)
         if (!res.ok) return reply.status(409).send({ ok: false, error: res.error })
         return { ok: true }
       },

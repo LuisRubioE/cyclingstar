@@ -20,7 +20,7 @@ import {
 import { and, desc, eq, inArray, isNotNull, isNull, notInArray, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import { creditRider } from './economy.js'
-import { raceEntries, raceRosters, riderRacePrefs, riders, teams } from './schema.js'
+import { raceEntries, raceRosters, riderRacePrefs, riders, teamRacePlan, teams } from './schema.js'
 import { runOneStage } from './stageRun.js'
 
 /**
@@ -219,6 +219,7 @@ async function convokeField(
       philosophy: teams.philosophy,
       division: teams.division,
       country: teams.country,
+      ownerUserId: teams.ownerUserId,
     })
     .from(teams)
     .where(and(eq(teams.worldId, worldId), inArray(teams.division, race.openTo)))
@@ -231,7 +232,7 @@ async function convokeField(
   const wildcardSlots = race.region ? hashInt(race.id) % (maxWild + 1) : undefined
   // Semilla de rotación por carrera y temporada: las wildcards rotan año a año, no siempre las mismas.
   const rotateBy = hashInt(`${raceKey}:wild`)
-  const teamRows = selectFieldTeams(
+  const auto = selectFieldTeams(
     eligible,
     cap,
     race.region,
@@ -239,6 +240,25 @@ async function convokeField(
     wildcardSlots,
     rotateBy,
   )
+  // Draft de calendario (equipos con dueño): un equipo humano CON plan esta temporada corre
+  // exactamente sus carreras planificadas —se le fuerza en las que eligió y se le saca de las que no—,
+  // dentro de las que su división admite. Sin equipos humanos (mundo bot puro) esto no cambia nada.
+  const planRows = await tx
+    .select({ teamId: teamRacePlan.teamId, raceId: teamRacePlan.raceId })
+    .from(teamRacePlan)
+    .where(eq(teamRacePlan.season, season))
+  const plannedTeams = new Set(planRows.map((p) => p.teamId))
+  const draftedHere = new Set(planRows.filter((p) => p.raceId === race.id).map((p) => p.teamId))
+  let teamRows = auto
+  if (plannedTeams.size > 0) {
+    // Fuera los equipos con plan que NO eligieron esta carrera.
+    teamRows = auto.filter((t) => !(plannedTeams.has(t.id) && !draftedHere.has(t.id)))
+    // Dentro los equipos con plan que SÍ la eligieron y que su división admite (están en eligible).
+    const present = new Set(teamRows.map((t) => t.id))
+    for (const t of eligible) {
+      if (draftedHere.has(t.id) && !present.has(t.id)) teamRows.push(t)
+    }
+  }
   if (teamRows.length === 0) return []
   const teamIds = teamRows.map((t) => t.id)
 

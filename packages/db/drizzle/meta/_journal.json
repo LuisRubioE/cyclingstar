@@ -127,6 +127,13 @@
       "when": 1785785120424,
       "tag": "0017_silky_spot",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1785787204524,
+      "tag": "0018_outstanding_cyclops",
+      "breakpoints": true
     }
   ]
 }

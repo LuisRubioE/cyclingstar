@@ -570,6 +570,25 @@ export const raceEntries = pgTable(
   (t) => [primaryKey({ columns: [t.riderId, t.raceId, t.season] })],
 )
 
+/**
+ * Calendario/plan de carreras de un EQUIPO gestionado por un humano (draft de calendario): el manager
+ * elige a qué carreras acude su equipo esta temporada. Si un equipo con dueño tiene plan, corre
+ * EXACTAMENTE sus carreras planificadas (entre las que su división admite); sin plan, va en automático
+ * como los bots. Los bots no llevan plan (esta tabla solo tiene equipos humanos).
+ */
+export const teamRacePlan = pgTable(
+  'team_race_plan',
+  {
+    teamId: uuid('team_id')
+      .notNull()
+      .references(() => teams.id, { onDelete: 'cascade' }),
+    raceId: text('race_id').notNull(),
+    season: integer('season').notNull(),
+    createdDay: integer('created_day').notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.teamId, t.raceId, t.season] })],
+)
+
 /** Decisiones de convocatoria por carrera y temporada (SPEC 6.18, Paso 35). */
 export const raceCallups = pgTable(
   'race_callups',

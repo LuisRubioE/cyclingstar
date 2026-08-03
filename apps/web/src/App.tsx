@@ -15,6 +15,7 @@ import { HowToPlay } from './pages/HowToPlay'
 import { Login } from './pages/Login'
 import { Market } from './pages/Market'
 import { RaceEntry } from './pages/RaceEntry'
+import { TeamCalendar } from './pages/TeamCalendar'
 import { News } from './pages/News'
 import { Objectives } from './pages/Objectives'
 import { Privacy } from './pages/Privacy'
@@ -108,6 +109,14 @@ export function App() {
             element={
               <ProtectedRoute>
                 <RaceEntry />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/team-calendar"
+            element={
+              <ProtectedRoute>
+                <TeamCalendar />
               </ProtectedRoute>
             }
           />
