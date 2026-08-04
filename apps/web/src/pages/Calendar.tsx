@@ -86,6 +86,11 @@ function RaceCard({ race }: { race: CalendarRaceSummary }) {
                   aria-hidden
                 />
                 <span className="text-slate-700">{stage.name}</span>
+                {stage.from && stage.to && (
+                  <span className="truncate text-slate-500">
+                    {stage.from === stage.to ? stage.from : `${stage.from} → ${stage.to}`}
+                  </span>
+                )}
                 <span className="ml-auto tabular-nums text-slate-400">{stage.km} km</span>
               </li>
             ))}

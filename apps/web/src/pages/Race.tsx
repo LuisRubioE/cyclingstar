@@ -77,6 +77,11 @@ export function Race() {
                     className={`inline-block h-2 w-2 shrink-0 rounded-full ${KIND_DOT[stage.kind] ?? 'bg-slate-300'}`}
                     aria-hidden
                   />
+                  {stage.from && stage.to && (
+                    <span className="text-slate-500">
+                      {stage.from === stage.to ? stage.from : `${stage.from} → ${stage.to}`}
+                    </span>
+                  )}
                   {stage.timeTrial && <span className="text-xs text-violet-500">ITT</span>}
                   <span className="ml-auto tabular-nums text-slate-400">{stage.km} km</span>
                 </div>

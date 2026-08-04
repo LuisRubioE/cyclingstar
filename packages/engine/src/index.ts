@@ -51,6 +51,7 @@ export {
   scheduledStageIndex,
   stageDayOfSeason,
 } from './routes/schedule.js'
+export { RACE_ROUTES, raceRoute, stageEndpoints } from './routes/raceRoutes.js'
 export {
   RACE_CLASSES,
   RACE_CLASS_INFO,
