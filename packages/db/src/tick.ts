@@ -12,6 +12,7 @@ import { gameState, tickLog, worlds } from './schema.js'
 import { trainWorldDay } from './train.js'
 import {
   clusterTeamNationalities,
+  reconcileBotResidences,
   reconcileTeams,
   renationalizeBotRosters,
   seedWorld,
@@ -211,6 +212,10 @@ export async function runTick(databaseUrl: string, opts: RunTickOptions): Promis
       // Rebautiza a los extranjeros sobrantes de cada equipo bot con su país (mundos antiguos o con
       // pocos paisanos donde reubicar no basta). Idempotente una vez alcanzada la cuota nacional.
       await db.transaction((tx) => renationalizeBotRosters(tx, genesis.worldId, opts.worldSeed))
+      // Un bot vive en el país de SU equipo: repara residencias que quedaron obsoletas al reubicar o
+      // renacionalizar plantillas (p.ej. un español que pasó de un equipo indonesio a uno español y
+      // "seguía viviendo" en Indonesia). Idempotente.
+      await db.transaction((tx) => reconcileBotResidences(tx, genesis.worldId))
       // Repara nombres duplicados de equipos y corredores (génesis, neopros del rollover y los
       // renacionalizados). Idempotente: una vez limpio no hace ningún cambio.
       await db.transaction((tx) => dedupeWorldNames(tx, genesis.worldId))

@@ -27,7 +27,9 @@ export {
 export {
   clusterTeamNationalities,
   planNationalClustering,
+  planResidenceRepairs,
   planWorld,
+  reconcileBotResidences,
   reconcileTeams,
   renationalizeBotRosters,
   seedWorld,

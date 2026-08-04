@@ -743,11 +743,71 @@ export async function clusterTeamNationalities(tx: Tx, worldId: string): Promise
     order: teamIndexFromSeed(t.jerseySeed),
   }))
 
+  // Al reubicar un bot a otro equipo, su residencia SIGUE al nuevo equipo (un bot vive en el país de
+  // su equipo). Si no, arrastraría la del equipo anterior: p.ej. un español que pasó de un equipo
+  // indonesio a uno español seguiría "viviendo" en Indonesia.
+  const countryByTeam = new Map(botTeams.map((t) => [t.id, t.country]))
   const changes = planNationalClustering(clusterTeams, movable)
   for (const [riderId, teamId] of changes) {
-    await tx.update(riders).set({ teamId }).where(eq(riders.id, riderId))
+    await tx
+      .update(riders)
+      .set({ teamId, residence: countryByTeam.get(teamId) ?? null })
+      .where(eq(riders.id, riderId))
   }
   return changes.size
+}
+
+/**
+ * Plan puro (testeable) de reparación de residencias de los BOT: un bot vive en el país de su equipo
+ * (invariante de la génesis). Los movimientos de plantilla —núcleo nacional, renacionalización— pueden
+ * dejar residencias obsoletas del equipo anterior; esto las devuelve a la del equipo actual. Solo bots
+ * con equipo (los humanos gestionan su residencia al fichar; los agentes libres no tienen equipo).
+ * Devuelve riderId → nueva residencia, solo de los que difieren (idempotente).
+ */
+export function planResidenceRepairs(
+  ridersIn: {
+    id: string
+    userId: string | null
+    teamId: string | null
+    residence: string | null
+  }[],
+  teamCountry: Map<string, string | null>,
+): Map<string, string> {
+  const repairs = new Map<string, string>()
+  for (const r of ridersIn) {
+    if (r.userId !== null || !r.teamId) continue
+    const country = teamCountry.get(r.teamId)
+    if (country && r.residence !== country) repairs.set(r.id, country)
+  }
+  return repairs
+}
+
+/**
+ * Repara la residencia de los corredores BOT para que coincida con el país de su equipo (invariante de
+ * la génesis). Arregla mundos donde un bot cambió de equipo sin actualizar residencia. No toca humanos
+ * (gestionan su residencia al fichar) ni agentes libres (sin equipo). Idempotente. Devuelve cuántos
+ * corredores se repararon.
+ */
+export async function reconcileBotResidences(tx: Tx, worldId: string): Promise<number> {
+  const teamRows = await tx
+    .select({ id: teams.id, country: teams.country })
+    .from(teams)
+    .where(eq(teams.worldId, worldId))
+  const teamCountry = new Map(teamRows.map((t) => [t.id, t.country]))
+  const riderRows = await tx
+    .select({
+      id: riders.id,
+      userId: riders.userId,
+      teamId: riders.teamId,
+      residence: riders.residence,
+    })
+    .from(riders)
+    .where(eq(riders.worldId, worldId))
+  const repairs = planResidenceRepairs(riderRows, teamCountry)
+  for (const [riderId, residence] of repairs) {
+    await tx.update(riders).set({ residence }).where(eq(riders.id, riderId))
+  }
+  return repairs.size
 }
 
 /**
@@ -820,7 +880,11 @@ export async function renationalizeBotRosters(
         { country: team.country, gender: r.gender === 'F' ? 'F' : 'M' },
         used,
       ).fullName
-      await tx.update(riders).set({ country: team.country, name }).where(eq(riders.id, r.id))
+      // Se renacionaliza al país del equipo: su residencia también es la de su equipo (vive allí).
+      await tx
+        .update(riders)
+        .set({ country: team.country, name, residence: team.country })
+        .where(eq(riders.id, r.id))
       changed++
     }
   }

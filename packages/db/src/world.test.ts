@@ -4,6 +4,7 @@ import {
   type ClusterRider,
   type ClusterTeam,
   planNationalClustering,
+  planResidenceRepairs,
   planWorld,
   teamCountryByIndex,
 } from './world.js'
@@ -244,5 +245,48 @@ describe('db: núcleo nacional de la plantilla (SPEC 7.1)', () => {
     // Nadie queda sin equipo y se conservan los 30 corredores en 3 equipos.
     expect([...placed].every((t) => ['esp', 'fra', 'ita'].includes(t))).toBe(true)
     expect(total).toBe(30)
+  })
+})
+
+describe('db: residencia de un bot = país de su equipo (invariante de la génesis)', () => {
+  const teamCountry = new Map<string, string | null>([
+    ['esp', 'ES'],
+    ['idn', 'ID'],
+    ['nocountry', null],
+  ])
+
+  it('repara al bot cuya residencia no coincide con la de su equipo (moved de un equipo indonesio a uno español)', () => {
+    const repairs = planResidenceRepairs(
+      [{ id: 'r1', userId: null, teamId: 'esp', residence: 'ID' }],
+      teamCountry,
+    )
+    expect(repairs.get('r1')).toBe('ES')
+  })
+
+  it('no toca al bot que ya vive en el país de su equipo (idempotente)', () => {
+    const repairs = planResidenceRepairs(
+      [{ id: 'r1', userId: null, teamId: 'esp', residence: 'ES' }],
+      teamCountry,
+    )
+    expect(repairs.has('r1')).toBe(false)
+  })
+
+  it('no toca a humanos (gestionan su residencia al fichar) ni a agentes libres (sin equipo)', () => {
+    const repairs = planResidenceRepairs(
+      [
+        { id: 'human', userId: 'u1', teamId: 'esp', residence: 'ID' },
+        { id: 'free', userId: null, teamId: null, residence: 'ID' },
+      ],
+      teamCountry,
+    )
+    expect(repairs.size).toBe(0)
+  })
+
+  it('no repara si el país del equipo es desconocido (no se inventa una residencia)', () => {
+    const repairs = planResidenceRepairs(
+      [{ id: 'r1', userId: null, teamId: 'nocountry', residence: 'ID' }],
+      teamCountry,
+    )
+    expect(repairs.size).toBe(0)
   })
 })
