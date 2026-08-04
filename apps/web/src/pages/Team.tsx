@@ -102,15 +102,9 @@ export function Team() {
                   <Flag code={r.country} size={16} />
                 </td>
                 <td className="py-1.5">
+                  {/* La bandera de cada corredor ya dice su nacionalidad; comparar con el país del
+                      equipo hace obvio quién es extranjero, así que no hace falta etiqueta "abroad". */}
                   <RiderName riderId={r.id} name={r.name} isBot={r.isBot} />
-                  {r.foreign && (
-                    <span
-                      className="ml-1.5 rounded bg-slate-900/5 px-1 py-0.5 text-[10px] font-medium text-slate-400"
-                      title="Foreign rider — lives away from home, pays housing rent"
-                    >
-                      abroad
-                    </span>
-                  )}
                 </td>
                 <td className="py-1.5 text-slate-500">
                   {VOCATION_LABELS[r.archetype as Vocation] ?? r.archetype}

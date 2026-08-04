@@ -7,7 +7,7 @@ import { dedupeWorldNames } from './dedupeNames.js'
 import { runMarket } from './contracts.js'
 import { runPayroll, runTeamFinances } from './economy.js'
 import { raceWorldDay } from './race.js'
-import { runRollover } from './rollover.js'
+import { backfillRosters, runRollover } from './rollover.js'
 import { gameState, tickLog, worlds } from './schema.js'
 import { trainWorldDay } from './train.js'
 import {
@@ -148,6 +148,17 @@ export async function runTick(databaseUrl: string, opts: RunTickOptions): Promis
         opts.forceDays != null
           ? genesis.currentDay + opts.forceDays
           : targetGameDay(genesis.worldCreatedAt, opts.now, opts.msPerGameDay)
+
+      // Completa plantillas NPC bajo mínimos hasta el tamaño actual (p.ej. un mundo creado con WT a
+      // 14 se sube a 28) sin regenerar el mundo. Idempotente: no hace nada cuando están al completo.
+      await db.transaction(async (tx) => {
+        await backfillRosters(
+          tx,
+          genesis.worldId,
+          opts.worldSeed,
+          Math.floor(genesis.currentDay / 364),
+        )
+      })
 
       let day = genesis.currentDay
       let daysProcessed = 0

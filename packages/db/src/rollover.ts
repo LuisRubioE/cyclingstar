@@ -135,6 +135,49 @@ async function insertNeopro(
   })
 }
 
+/**
+ * Rellena las plantillas NPC bajo mínimos hasta ROSTER_SIZE de su división. A diferencia del rollover
+ * (que limita los neopros al objetivo de población), esto completa SIEMPRE los huecos: sirve para
+ * mundos creados con plantillas más pequeñas (p.ej. WT a 14) que hay que subir al tamaño actual (28)
+ * sin regenerar el mundo. Idempotente: cuando todos los equipos están al completo no hace nada.
+ * Corre cada tick; el coste es una consulta de conteo cuando no hay huecos. Devuelve cuántos creó.
+ */
+export async function backfillRosters(
+  tx: Tx,
+  worldId: string,
+  worldSeed: string,
+  season: number,
+): Promise<number> {
+  const gaps = await tx
+    .select({
+      id: teams.id,
+      division: teams.division,
+      country: teams.country,
+      roster: sql<number>`count(${riders.id})::int`,
+    })
+    .from(teams)
+    .leftJoin(riders, and(eq(riders.teamId, teams.id), isNull(riders.retiredAt)))
+    .where(eq(teams.worldId, worldId))
+    .groupBy(teams.id)
+  let created = 0
+  for (const g of gaps) {
+    const div = g.division as Division
+    for (let i = g.roster; i < ROSTER_SIZE[div]; i++) {
+      await insertNeopro(
+        tx,
+        worldId,
+        div,
+        g.id,
+        `${worldSeed}:backfill:${g.id}:${i}`,
+        season,
+        g.country,
+      )
+      created++
+    }
+  }
+  return created
+}
+
 /** Corre el rollover cuando el mundo cruza a una temporada nueva (día 364, 728, ...). */
 export async function runRollover(
   tx: Tx,

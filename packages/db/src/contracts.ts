@@ -8,6 +8,7 @@ import {
 import {
   COUNTRIES,
   HOUSING_RENT_PER_WEEK,
+  continentForCountry,
   residenceAfterSigning,
   seededRng,
 } from '@cyclingstar/shared'
@@ -30,11 +31,6 @@ type Tx = Parameters<Parameters<Db['transaction']>[0]>[0]
 const SEASON_DAYS = 364
 const ROSTER_TARGET: Record<Division, number> = { WT: 14, PRS: 12, CON: 10 }
 /** Intervalo mínimo entre tandas de ofertas a un agente libre (días de juego). */
-// Tras vaciar la bandeja (aceptar/rechazar todas), un agente libre vuelve a recibir ofertas pronto —
-// en el siguiente tick o dos—, no dentro de una semana. La guardia de "ofertas pendientes" ya evita
-// que se acumulen mientras tiene alguna sin responder, así que este cooldown solo separa tandas.
-const FREE_AGENT_COOLDOWN_DAYS = 2
-
 /** Nivel del corredor como percentil [0,1]: media de sus 5 mejores atributos sobre 100. */
 async function riderRating(tx: Tx, riderId: string): Promise<number> {
   const rows = await tx
@@ -92,18 +88,15 @@ export async function runMarket(
       .limit(1)
     if (current[0] && current[0].endSeason >= season) continue
 
-    // Agente libre: no re-ofertar si tiene ofertas pendientes o si la última tanda es reciente.
+    // Agente libre: solo NO re-ofertamos mientras tenga ofertas pendientes sin leer (para no
+    // amontonarlas). En cuanto las rechaza (o expiran) y no le queda ninguna pendiente, en la
+    // siguiente pasada del mercado recibe una tanda nueva —puede repetirse algún equipo anterior—,
+    // así no se queda sin opciones por haber dicho que no.
     const pending = await tx
       .select({ n: sql<number>`count(*)::int` })
       .from(offers)
       .where(and(eq(offers.riderId, human.id), eq(offers.status, 'pendiente')))
     if ((pending[0]?.n ?? 0) > 0) continue
-    const last = await tx
-      .select({ d: sql<number | null>`max(${offers.createdDay})` })
-      .from(offers)
-      .where(eq(offers.riderId, human.id))
-    const lastDay = last[0]?.d ?? null
-    if (lastDay != null && gameDay - lastDay < FREE_AGENT_COOLDOWN_DAYS) continue
 
     const rating = await riderRating(tx, human.id)
     const age = 20 - human.birthSeason + season
@@ -125,18 +118,28 @@ export async function runMarket(
       .where(and(eq(teams.worldId, worldId), inArray(teams.division, divisions)))
       .groupBy(teams.id)
       .orderBy(desc(teams.budget))
-    const SAME_COUNTRY_BONUS = 10
     const ranked = teamRows
-      .map((t) => ({
-        ...t,
-        gap: ROSTER_TARGET[t.division as Division] - t.roster,
-        homeBonus: t.country && t.country === human.country ? SAME_COUNTRY_BONUS : 0,
-      }))
-      .sort((a, b) => b.gap + b.homeBonus - (a.gap + a.homeBonus) || b.budget - a.budget)
+      .map((t) => ({ ...t, gap: ROSTER_TARGET[t.division as Division] - t.roster }))
+      // Dentro de cada grupo (país/continente/resto) tiran primero los que tienen hueco y más presupuesto.
+      .sort((a, b) => b.gap - a.gap || b.budget - a.budget)
+
+    // Más ofertas del PROPIO PAÍS; si no hay suficientes equipos válidos del país, se completa con el
+    // CONTINENTE; y solo si aún faltan, con el resto del mundo. Un agente libre recibe sobre todo
+    // ofertas de casa (los bots fichan compatriotas), sin cerrarse a alguna de fuera.
+    const myContinent = continentForCountry(human.country ?? '')
+    const sameCountry = ranked.filter((t) => t.country && t.country === human.country)
+    const sameContinent = ranked.filter(
+      (t) => t.country !== human.country && continentForCountry(t.country ?? '') === myContinent,
+    )
+    const elsewhere = ranked.filter(
+      (t) => t.country !== human.country && continentForCountry(t.country ?? '') !== myContinent,
+    )
+    const ordered = [...sameCountry, ...sameContinent, ...elsewhere]
 
     const rng = seededRng(`${worldSeed}:market:${human.id}:d${gameDay}`)
-    const count = rng() < 0.5 ? 2 : 3
-    const chosen = ranked.slice(0, count)
+    // Más ofertas que antes: entre 3 y 5.
+    const count = 3 + (rng() < 0.6 ? 1 : 0) + (rng() < 0.35 ? 1 : 0)
+    const chosen = ordered.slice(0, count)
     if (chosen.length === 0) continue
 
     for (const team of chosen) {
@@ -144,11 +147,11 @@ export async function runMarket(
       const role = roleForRating(rating)
       const full = offerSalary({ division, pointsPercentile: rating, age, role })
       const seasons = offerSeasons(rating, rng)
-      // Fichaje internacional: el equipo puede asumir el alquiler de vivienda del corredor (se mudará
-      // a otro país) a cambio de rebajar el salario por el importe del alquiler. El corredor queda
-      // igual de caja (no paga alquiler) y gana certeza; el equipo lo usa como reclamo de fichaje.
+      // Fichaje internacional: el equipo de fuera A VECES asume el alquiler de vivienda del corredor
+      // (se mudará a otro país) a cambio de rebajar el salario por el importe del alquiler. El corredor
+      // queda igual de caja y gana certeza; unas ofertas de fuera lo cubren y otras no (como reclamo).
       const abroad = !!team.country && team.country !== human.country
-      const payHousing = abroad
+      const payHousing = abroad && rng() < 0.55
       const salary = payHousing ? Math.max(1, full - HOUSING_RENT_PER_WEEK) : full
       await tx.insert(offers).values({
         riderId: human.id,
