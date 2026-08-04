@@ -155,6 +155,13 @@
       "when": 1785858160260,
       "tag": "0021_add_roster_bib",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1785874695208,
+      "tag": "0022_team_training_orders",
+      "breakpoints": true
     }
   ]
 }

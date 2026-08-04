@@ -29,6 +29,7 @@ export interface RiderRaceReport {
   bonusS: number
   winnerName: string | null
   personalEvents: RaceReportEvent[]
+  story: RaceReportEvent[]
 }
 
 export async function fetchLastRace(): Promise<RiderRaceReport | null> {

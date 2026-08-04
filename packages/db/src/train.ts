@@ -16,6 +16,7 @@ import {
   riderDailyLog,
   riderHidden,
   riders,
+  teamTrainingOrders,
   trainingOrders,
 } from './schema.js'
 
@@ -88,14 +89,28 @@ export async function trainWorldDay(
     .where(eq(trainingOrders.gameDay, gameDay))
   const ordersByRider = new Map(orderRows.map((o) => [o.riderId, o]))
 
-  // La elección de sesión de cada corredor que entrena hoy (orden del jugador o plan del entrenador).
+  // Plan de entrenamiento sugerido por cada equipo hoy (lo fija el mánager para que la plantilla
+  // entrene junta). Se usa como fallback si el corredor no dejó una orden propia.
+  const teamOrderRows = await tx
+    .select()
+    .from(teamTrainingOrders)
+    .where(eq(teamTrainingOrders.gameDay, gameDay))
+  const teamPlanByTeam = new Map(teamOrderRows.map((o) => [o.teamId, o]))
+
+  // La elección de sesión de cada corredor que entrena hoy: su ORDEN propia, si no el PLAN DE EQUIPO
+  // (los del equipo se alinean y ganan el bonus de grupo) y, si no hay ninguno, el plan del entrenador.
   const choiceByRider = new Map<string, TrainingChoice>()
   for (const rider of riderRows) {
     if (skip.has(rider.id)) continue
     const order = ordersByRider.get(rider.id)
+    const teamPlan = rider.teamId ? teamPlanByTeam.get(rider.teamId) : undefined
     choiceByRider.set(
       rider.id,
-      order ? { session: order.session, intensity: order.intensity } : defaultCoachPlan(gameDay),
+      order
+        ? { session: order.session, intensity: order.intensity }
+        : teamPlan
+          ? { session: teamPlan.session, intensity: teamPlan.intensity }
+          : defaultCoachPlan(gameDay),
     )
   }
   // Pre-paso de entrenamiento en grupo: por equipo y sesión, cuántos compañeros la entrenan hoy.

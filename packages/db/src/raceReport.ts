@@ -44,6 +44,8 @@ export interface RiderRaceReport {
   bonusS: number
   winnerName: string | null
   personalEvents: RaceReportEvent[]
+  /** Cómo se decidió la etapa (fuga, si se cazó o llegó): resumen colectivo breve. */
+  story: RaceReportEvent[]
 }
 
 /** Día de juego absoluto de una etapa (para ordenar por recencia). */
@@ -123,6 +125,7 @@ export async function getRiderLastRaceReport(
   // Órdenes y crónica personal desde el snapshot sellado (re-simulación determinista).
   let orders: RaceReportOrders | null = null
   let personalEvents: RaceReportEvent[] = []
+  const story: RaceReportEvent[] = []
   const snapRows = await db
     .select({ seed: stageSnapshots.seed, input: stageSnapshots.input })
     .from(stageSnapshots)
@@ -151,6 +154,21 @@ export async function getRiderLastRaceReport(
         (e, i, arr) =>
           !arr[i - 1] || arr[i - 1]!.plantilla !== e.plantilla || arr[i - 1]!.km !== e.km,
       )
+    // Resumen colectivo: cómo se decidió la etapa (fuga formada, y si se cazó o llegó).
+    const formed = output.events.find((e) => e.tipo === 'fuga_formada')
+    const caught = output.events.find((e) => e.tipo === 'fuga_cazada')
+    if (formed) {
+      const n = formed.protagonistas.length
+      if (caught) {
+        story.push({ km: Math.round(formed.km), plantilla: `A ${n}-rider break went clear` })
+        story.push({ km: Math.round(caught.km), plantilla: 'The bunch reeled the break back in' })
+      } else {
+        story.push({
+          km: Math.round(formed.km),
+          plantilla: `A ${n}-rider break went clear and stayed away to the finish`,
+        })
+      }
+    }
   }
 
   return {
@@ -167,5 +185,6 @@ export async function getRiderLastRaceReport(
     bonusS: latest.bonificacionS,
     winnerName,
     personalEvents,
+    story,
   }
 }

@@ -168,7 +168,13 @@ export {
   type RiderHiddenInput,
   type RiderSummary,
 } from './riders.js'
-export { getTrainingOrders, setTrainingOrders, type TrainingOrderRow } from './training.js'
+export {
+  getTeamTrainingPlan,
+  getTrainingOrders,
+  setTeamTrainingPlan,
+  setTrainingOrders,
+  type TrainingOrderRow,
+} from './training.js'
 export { getRiderRaceDays, getRiderUpcomingRaces, type RiderUpcomingRace } from './riderSchedule.js'
 export {
   getRiderLastRaceReport,

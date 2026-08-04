@@ -12,7 +12,7 @@ import {
 } from '@cyclingstar/shared'
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
-import { fetchOrders, saveOrders } from '../api/training'
+import { fetchOrders, fetchTeamTraining, saveOrders, saveTeamTraining } from '../api/training'
 import { Panel, SectionBar } from '../components/Panel'
 
 const HORIZON = 7
@@ -43,12 +43,38 @@ function sessionEffect(session: Session, intensity: Intensity): string {
 
 export function Training() {
   const query = useQuery({ queryKey: ['orders'], queryFn: fetchOrders })
+  const team = useQuery({ queryKey: ['team-training'], queryFn: fetchTeamTraining })
   const [plan, setPlan] = useState<DayPlan[]>([])
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [teamMsg, setTeamMsg] = useState<string | null>(null)
 
   const raceDays = new Set(query.data?.raceDays ?? [])
+  const teamByDay = new Map((team.data?.plan ?? []).map((o) => [o.gameDay, o]))
+
+  function adoptTeamPlan() {
+    setSaved(false)
+    setPlan((current) =>
+      current.map((day) => {
+        const suggestion = teamByDay.get(day.gameDay)
+        return suggestion
+          ? { ...day, session: suggestion.session, intensity: suggestion.intensity }
+          : day
+      }),
+    )
+  }
+
+  async function publishTeamPlan() {
+    setTeamMsg(null)
+    try {
+      await saveTeamTraining(plan)
+      setTeamMsg('Published to your squad.')
+      await team.refetch()
+    } catch (err) {
+      setTeamMsg(err instanceof Error ? err.message : 'Could not publish.')
+    }
+  }
 
   useEffect(() => {
     if (!query.data) return
@@ -104,6 +130,37 @@ export function Training() {
         Leave your orders for the week. Without orders, your coach picks a reasonable plan. On race
         days you rest and race — no training.
       </p>
+
+      {team.data && (team.data.plan.length > 0 || team.data.canEdit) && (
+        <Panel title="Team training plan">
+          <p className="text-sm text-slate-600">
+            {team.data.canEdit
+              ? 'Publish a suggested session per day for your squad. Riders who train the same session on the same day get a group bonus, so a shared plan makes everyone improve faster.'
+              : `${team.data.teamName ?? 'Your team'} suggests a session per day. Train it together with your teammates for a group bonus.`}
+          </p>
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            {team.data.plan.length > 0 && (
+              <button
+                type="button"
+                onClick={adoptTeamPlan}
+                className="rounded-lg bg-brand-cyan/15 px-3 py-1.5 text-sm font-medium text-brand-navy transition hover:bg-brand-cyan/25"
+              >
+                Adopt team plan
+              </button>
+            )}
+            {team.data.canEdit && (
+              <button
+                type="button"
+                onClick={publishTeamPlan}
+                className="rounded-lg bg-slate-800 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-slate-700"
+              >
+                Publish my week as the team plan
+              </button>
+            )}
+            {teamMsg && <span className="text-sm text-emerald-600">{teamMsg}</span>}
+          </div>
+        </Panel>
+      )}
 
       <Panel title="Weekly plan">
         <div className="space-y-2">
@@ -169,6 +226,27 @@ export function Training() {
                 <p className="pl-24 text-xs text-slate-500">
                   {sessionEffect(day.session, day.intensity)}
                 </p>
+                {(() => {
+                  const suggestion = teamByDay.get(gameDay)
+                  if (!suggestion || suggestion.session === day.session) return null
+                  return (
+                    <p className="pl-24 text-xs text-brand-navy">
+                      Team session: {SESSION_CATALOG[suggestion.session].label}{' '}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          update(gameDay, {
+                            session: suggestion.session,
+                            intensity: suggestion.intensity,
+                          })
+                        }
+                        className="font-medium underline hover:text-brand-cyan"
+                      >
+                        train together
+                      </button>
+                    </p>
+                  )
+                })()}
               </div>
             )
           })}
