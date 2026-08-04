@@ -116,6 +116,11 @@ function champCountryName(r: CalendarRaceSummary): string {
 
 const CHAMP_EVENT_ORDER = ['ITT', 'Road', 'U23 ITT', 'U23 Road']
 
+/** Día de temporada del campeonato de una nación (la prueba de RUTA élite, la última de su semana). */
+function nationDay(races: CalendarRaceSummary[]): number {
+  return Math.max(...races.map((r) => r.startDay))
+}
+
 /** Una nación con sus 4 pruebas (Crono/Ruta × Elite/Sub-23), ordenadas y enlazadas. */
 function NationRow({ code, races }: { code: string; races: CalendarRaceSummary[] }) {
   const name = champCountryName(races[0]!)
@@ -125,8 +130,11 @@ function NationRow({ code, races }: { code: string; races: CalendarRaceSummary[]
   )
   return (
     <div className="flex items-center gap-2 rounded px-1 py-1 hover:bg-slate-50">
+      <span className="w-12 shrink-0 text-xs tabular-nums text-slate-400">
+        GD {nationDay(races)}
+      </span>
       <Flag code={code} size={16} />
-      <span className="w-32 shrink-0 truncate text-sm font-medium text-slate-700">{name}</span>
+      <span className="w-28 shrink-0 truncate text-sm font-medium text-slate-700">{name}</span>
       <div className="flex flex-wrap gap-1">
         {events.map((r) => (
           <Link
@@ -147,7 +155,6 @@ function NationRow({ code, races }: { code: string; races: CalendarRaceSummary[]
 /** Grupo plegable con los campeonatos nacionales (misma semana): 4 pruebas por país, agrupadas. */
 function NationalChampsCard({ races }: { races: CalendarRaceSummary[] }) {
   const [open, setOpen] = useState(false)
-  const day = Math.min(...races.map((r) => r.startDay))
   const byCountry = new Map<string, CalendarRaceSummary[]>()
   for (const r of races) {
     const code = r.championshipCountry!
@@ -155,9 +162,14 @@ function NationalChampsCard({ races }: { races: CalendarRaceSummary[] }) {
     if (list) list.push(r)
     else byCountry.set(code, [r])
   }
-  const nations = [...byCountry.entries()].sort(([, a], [, b]) =>
-    champCountryName(a[0]!).localeCompare(champCountryName(b[0]!)),
+  // Ordenadas por FECHA (no todas caen el mismo día: la mayoría a final de junio, y las del hemisferio
+  // sur en enero-febrero), así se ve que están repartidas y no amontonadas en una sola fecha.
+  const nations = [...byCountry.entries()].sort(
+    ([, a], [, b]) =>
+      nationDay(a) - nationDay(b) || champCountryName(a[0]!).localeCompare(champCountryName(b[0]!)),
   )
+  const days = nations.map(([, l]) => nationDay(l))
+  const range = `GD ${Math.min(...days)}–${Math.max(...days)}`
   return (
     <article className="border-b border-slate-100 last:border-0">
       <button
@@ -165,7 +177,7 @@ function NationalChampsCard({ races }: { races: CalendarRaceSummary[] }) {
         className="flex w-full items-center justify-between gap-4 px-4 py-3 text-left"
       >
         <div className="flex items-center gap-3">
-          <span className="w-16 shrink-0 text-xs tabular-nums text-slate-400">GD {day}</span>
+          <span className="shrink-0 text-xs tabular-nums text-slate-400">{range}</span>
           <span className="text-sm font-semibold text-slate-800">National Championships</span>
           <span
             className="rounded-full bg-slate-900/5 px-2 py-0.5 font-mono text-[11px] font-medium text-slate-500"
@@ -175,7 +187,7 @@ function NationalChampsCard({ races }: { races: CalendarRaceSummary[] }) {
           </span>
         </div>
         <span className="text-xs text-slate-500">
-          {nations.length} nations · Elite &amp; U23, ITT &amp; Road
+          {nations.length} nations · most late June, southern hemisphere in Jan–Feb
         </span>
       </button>
       {open && (

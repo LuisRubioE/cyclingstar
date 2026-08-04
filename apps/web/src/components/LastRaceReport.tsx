@@ -15,10 +15,14 @@ export function LastRaceReport() {
   const { data, isPending } = useQuery({ queryKey: ['rider', 'last-race'], queryFn: fetchLastRace })
   if (isPending || !data) return null
 
+  // Solo el 1º es "winner". El resto ve su diferencia; si llegó en el mismo grupo que el ganador la
+  // diferencia es 0 (mismo tiempo), lo normal en un esprint — eso NO es haber ganado.
   const gap =
-    data.timeGapToWinnerS > 0
-      ? `+${Math.floor(data.timeGapToWinnerS / 60)}:${String(data.timeGapToWinnerS % 60).padStart(2, '0')}`
-      : 'winner'
+    data.position === 1
+      ? 'winner'
+      : data.timeGapToWinnerS > 0
+        ? `+${Math.floor(data.timeGapToWinnerS / 60)}:${String(data.timeGapToWinnerS % 60).padStart(2, '0')}`
+        : '+0:00'
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
