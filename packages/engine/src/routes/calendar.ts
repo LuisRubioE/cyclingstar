@@ -79,16 +79,17 @@ function enrollmentFor(level: RaceLevel): Division[] {
   return ['PRS', 'CON']
 }
 
-/** Coloca banners: una cima al final de cada puerto y, si se pide, una meta volante intermedia. */
-function auto(segments: Segment[], sprintFrac?: number): StageProfile {
+/**
+ * Coloca banners a partir del terreno: una cima al final de cada puerto. NO inventa metas volantes /
+ * sprints intermedios: no todas las carreras los tienen y no tenemos el dato real de dónde caen, así
+ * que no los fabricamos (solo se marca lo que se deriva del propio recorrido: los puertos).
+ */
+function auto(segments: Segment[]): StageProfile {
   const banners = []
   let cum = 0
   for (const s of segments) {
     cum += s.km
     if (s.tipo === 'puerto') banners.push({ km: Math.round(cum), tipo: 'cima' as const })
-  }
-  if (sprintFrac != null) {
-    banners.push({ km: Math.round(cum * sprintFrac), tipo: 'meta_volante' as const })
   }
   banners.sort((a, b) => a.km - b.km)
   return { segments, banners }
@@ -96,18 +97,18 @@ function auto(segments: Segment[], sprintFrac?: number): StageProfile {
 
 // --- Constructores de etapa (km total + semilla -> perfil realista y detallado, ver profileGen). ---
 // La semilla hace que cada etapa dibuje siempre el mismo perfil, pero etapas distintas se vean
-// distintas. Los banners (cima en cada puerto + meta volante) los pone auto() a partir del terreno.
+// distintas. Los banners (una cima por puerto) los pone auto() a partir del terreno.
 
 const flat = (km: number, seed: string): StageSpec => ({
   kind: 'llana',
   label: 'Flat',
-  profile: auto(flatSegments(km, seed), 0.5),
+  profile: auto(flatSegments(km, seed)),
 })
 
 const hilly = (km: number, seed: string): StageSpec => ({
   kind: 'media',
   label: 'Hills',
-  profile: auto(hillySegments(km, seed), 0.5),
+  profile: auto(hillySegments(km, seed)),
 })
 
 const mountain = (km: number, seed: string): StageSpec => ({
@@ -126,13 +127,13 @@ const itt = (km: number, seed: string): StageSpec => ({
 const cobbles = (km: number, seed: string): StageSpec => ({
   kind: 'clasica',
   label: 'Cobbles',
-  profile: auto(cobblesSegments(km, seed), 0.6),
+  profile: auto(cobblesSegments(km, seed)),
 })
 
 const classic = (km: number, seed: string): StageSpec => ({
   kind: 'clasica',
   label: 'Classic',
-  profile: auto(classicSegments(km, seed), 0.55),
+  profile: auto(classicSegments(km, seed)),
 })
 
 /** Nombra y numera una lista de specs como las etapas de una carrera. */
