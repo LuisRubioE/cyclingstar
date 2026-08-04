@@ -48,3 +48,23 @@ export async function saveStageOrders(orders: StageOrder[]): Promise<void> {
   })
   if (!res.ok) throw new Error('Could not save your orders.')
 }
+
+export interface RaceOrders extends TestTour {
+  race: { id: string; name: string }
+}
+
+/** Órdenes del corredor para una carrera real a la que está convocado. */
+export async function fetchRaceOrders(raceKey: string): Promise<RaceOrders> {
+  const res = await fetch(`/api/my-orders?raceKey=${encodeURIComponent(raceKey)}`)
+  if (!res.ok) throw new Error('Could not load the race.')
+  return (await res.json()) as RaceOrders
+}
+
+export async function saveRaceOrders(raceKey: string, orders: StageOrder[]): Promise<void> {
+  const res = await fetch('/api/my-orders', {
+    method: 'PUT',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ raceKey, orders }),
+  })
+  if (!res.ok) throw new Error('Could not save your orders.')
+}

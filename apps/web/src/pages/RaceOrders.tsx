@@ -6,9 +6,10 @@ import {
   type Mentality,
   type StageOrder,
   type StageRole,
-  fetchTestTour,
-  saveStageOrders,
+  fetchRaceOrders,
+  saveRaceOrders,
 } from '../api/raceOrders'
+import { fetchMyUpcomingRaces } from '../api/rider'
 
 const ROLES: { value: StageRole; label: string }[] = [
   { value: 'libre', label: 'Free' },
@@ -48,12 +49,23 @@ function defaultOrder(stageDay: number): StageOrder {
 const selectClass =
   'rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm focus:border-indigo-500 focus:outline-none'
 
-/** Consola de órdenes de etapa: las cinco capas para las 5 etapas, en una sola visita (Paso 29). */
+/** Consola de órdenes de etapa: el piloto automático para tus próximas carreras inscritas (Paso 29). */
 export function RaceOrders() {
   const queryClient = useQueryClient()
+  const upcoming = useQuery({ queryKey: ['rider', 'upcoming'], queryFn: fetchMyUpcomingRaces })
+  const [selectedKey, setSelectedKey] = useState<string | null>(null)
+
+  // Por defecto, la carrera más próxima que aún no ha empezado (o la primera de la lista).
+  useEffect(() => {
+    if (selectedKey || !upcoming.data || upcoming.data.length === 0) return
+    const next = upcoming.data.find((r) => !r.ongoing) ?? upcoming.data[0]!
+    setSelectedKey(next.raceKey)
+  }, [upcoming.data, selectedKey])
+
   const { data, isPending, isError } = useQuery({
-    queryKey: ['race', 'test-tour'],
-    queryFn: fetchTestTour,
+    queryKey: ['race-orders', selectedKey],
+    queryFn: () => fetchRaceOrders(selectedKey!),
+    enabled: !!selectedKey,
   })
   const [orders, setOrders] = useState<Record<number, StageOrder>>({})
 
@@ -67,17 +79,28 @@ export function RaceOrders() {
   }, [data])
 
   const mutation = useMutation({
-    mutationFn: () => saveStageOrders(Object.values(orders)),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['race', 'test-tour'] }),
+    mutationFn: () => saveRaceOrders(selectedKey!, Object.values(orders)),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['race-orders', selectedKey] }),
   })
-
-  if (isPending) return <p className="text-slate-500">Loading…</p>
-  if (isError) return <p className="text-red-600">Could not load the race.</p>
 
   const update = (day: number, patch: Partial<StageOrder>): void =>
     setOrders((prev) => ({ ...prev, [day]: { ...prev[day]!, ...patch } }))
 
-  const rivals = data.roster // por ahora solo tu corredor; los NPC llegan con la génesis del mundo
+  if (upcoming.isPending) return <p className="text-slate-500">Loading…</p>
+  if (!upcoming.data || upcoming.data.length === 0) {
+    return (
+      <section className="space-y-4">
+        <SectionBar>Race orders</SectionBar>
+        <p className="text-sm text-slate-500">
+          You have no upcoming races yet. Once your team enters you in a race (or you enter one as a
+          free agent), it will appear here about two weeks before the start so you can set your
+          autopilot.
+        </p>
+      </section>
+    )
+  }
+
+  const rivals = data?.roster ?? [] // tus compañeros de equipo en esta carrera (objetivos de orden)
 
   return (
     <section className="space-y-4">
@@ -85,23 +108,38 @@ export function RaceOrders() {
         action={
           <button
             onClick={() => mutation.mutate()}
-            disabled={mutation.isPending}
+            disabled={mutation.isPending || !selectedKey}
             className="rounded-lg bg-white/20 px-4 py-1.5 text-sm font-medium text-white transition hover:bg-white/30 disabled:opacity-60"
           >
             {mutation.isPending ? 'Saving…' : 'Save all'}
           </button>
         }
       >
-        Race orders · Test tour
+        Race orders
       </SectionBar>
-      <p className="text-sm text-slate-500">
-        Set your autopilot for all five stages, then save once.
-      </p>
+      <label className="flex flex-col gap-1 text-xs font-medium text-slate-500">
+        Race
+        <select
+          className={`${selectClass} max-w-sm`}
+          value={selectedKey ?? ''}
+          onChange={(e) => setSelectedKey(e.target.value)}
+        >
+          {upcoming.data.map((r) => (
+            <option key={r.raceKey} value={r.raceKey}>
+              {r.raceName}
+              {r.ongoing ? ' (racing now)' : r.daysUntil > 0 ? ` (in ${r.daysUntil}d)` : ''}
+            </option>
+          ))}
+        </select>
+      </label>
+      <p className="text-sm text-slate-500">Set your autopilot for each stage, then save once.</p>
+      {isPending && <p className="text-sm text-slate-500">Loading the race…</p>}
+      {isError && <p className="text-sm text-red-600">Could not load the race.</p>}
       {mutation.isSuccess && <p className="text-sm text-emerald-600">Orders saved.</p>}
       {mutation.isError && <p className="text-sm text-red-600">Could not save your orders.</p>}
 
       <div className="space-y-4">
-        {data.stages.map((stage) => {
+        {(data?.stages ?? []).map((stage) => {
           const order = orders[stage.day] ?? defaultOrder(stage.day)
           return (
             <Panel

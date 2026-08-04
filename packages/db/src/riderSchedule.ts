@@ -49,6 +49,8 @@ export async function getRiderRaceDays(
 /** Una carrera próxima (o en curso) del corredor: nombre, clase, día de salida y cuánto falta. */
 export interface RiderUpcomingRace {
   raceId: string
+  /** Clave de almacenamiento de la carrera+temporada (`${raceId}:s${season}`), para órdenes/roster. */
+  raceKey: string
   raceName: string
   raceClass: string
   country: string | null
@@ -84,6 +86,7 @@ export async function getRiderUpcomingRaces(
     if (lastGameDay < currentDay) continue // ya terminó
     out.push({
       raceId: baseId,
+      raceKey: raceId,
       raceName: race.name,
       raceClass: race.raceClass,
       country: race.country ?? null,

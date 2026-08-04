@@ -1,6 +1,6 @@
 import { and, eq } from 'drizzle-orm'
 import type { Database } from './client.js'
-import { raceRosters, stageOrders } from './schema.js'
+import { raceRosters, riders, stageOrders } from './schema.js'
 
 /** Órdenes de etapa (Paso 29). Cola de las cinco capas por etapa de una carrera (SPEC 6.18). */
 
@@ -18,6 +18,27 @@ export interface StageOrderRow {
   triggerKm: number | null
   contestSprints: boolean
   contestClimbs: boolean
+}
+
+/** Compañeros de EQUIPO del corredor que están en el roster de la carrera (posibles objetivos de orden). */
+export async function getRosterTeammates(
+  db: Database,
+  raceId: string,
+  riderId: string,
+): Promise<{ id: string; name: string }[]> {
+  const me = await db
+    .select({ teamId: riders.teamId })
+    .from(riders)
+    .where(eq(riders.id, riderId))
+    .limit(1)
+  const teamId = me[0]?.teamId
+  if (!teamId) return [] // agente libre: corre sin equipo, sin compañeros a los que asignar
+  return db
+    .select({ id: riders.id, name: riders.name })
+    .from(raceRosters)
+    .innerJoin(riders, eq(riders.id, raceRosters.riderId))
+    .where(and(eq(raceRosters.raceId, raceId), eq(riders.teamId, teamId)))
+    .orderBy(riders.name)
 }
 
 /** ¿Está el corredor convocado a la carrera? (SPEC, Paso 29). */
