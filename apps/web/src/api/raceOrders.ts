@@ -49,8 +49,14 @@ export async function saveStageOrders(orders: StageOrder[]): Promise<void> {
   if (!res.ok) throw new Error('Could not save your orders.')
 }
 
-export interface RaceOrders extends TestTour {
+export interface RaceOrders {
   race: { id: string; name: string }
+  stages: RaceStage[]
+  orders: StageOrder[]
+  /** Compañeros de equipo en la carrera (objetivos de lanzador/gregario). */
+  teammates: RosterRider[]
+  /** Rivales en la carrera (a quién marcar/seguir), por fama. */
+  rivals: RosterRider[]
 }
 
 /** Órdenes del corredor para una carrera real a la que está convocado. */

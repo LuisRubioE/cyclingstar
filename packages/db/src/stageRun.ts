@@ -354,8 +354,12 @@ async function awardOutcome(
     })
   }
 
-  for (const r of output.results) {
-    await addStagePoints(tx, r.riderId, spec.raceClass, r.puesto - 1)
+  // En una carrera de UN DÍA la etapa ES la general: no se dan puntos de etapa (contarían doble con
+  // los de general de abajo). El resultado reparte en la escala de general (más prestigio que una etapa).
+  if (!isOneDay) {
+    for (const r of output.results) {
+      await addStagePoints(tx, r.riderId, spec.raceClass, r.puesto - 1)
+    }
   }
   // En una carrera de UN DÍA (etapa única = final) la victoria de etapa y la general son la MISMA:
   // no se registra honor de etapa (contaría doble en el palmarés); solo cuenta como victoria de general.

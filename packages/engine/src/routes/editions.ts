@@ -130,11 +130,11 @@ export const RACE_EDITIONS: Record<string, RaceEdition> = {
   'race-algarve': {
     restAfter: [],
     stages: [
-      { from: 'Vila Real de Santo Antonio', to: 'Tavira', km: 184, terrain: 'flat' },
-      { from: 'Portimao', to: 'Foia', km: 147, terrain: 'mountain' },
+      { from: 'Vila Real de Santo Antonio', to: 'Tavira', km: 183, terrain: 'hilly' },
+      { from: 'Portimao', to: 'Foia', km: 148, terrain: 'mountain' },
       { from: 'Vilamoura', to: 'Vilamoura', km: 20, terrain: 'itt' },
-      { from: 'Albufeira', to: 'Lagos', km: 175, terrain: 'hilly' },
-      { from: 'Faro', to: 'Malhao', km: 148, terrain: 'mountain' },
+      { from: 'Albufeira', to: 'Lagos', km: 176, terrain: 'hilly' },
+      { from: 'Faro', to: 'Malhao', km: 150, terrain: 'mountain' },
     ],
   },
   'race-alps': {

@@ -34,6 +34,33 @@ const EFFORTS: { value: Effort; label: string }[] = [
 ]
 const NEEDS_TARGET: StageRole[] = ['lanzador', 'gregario', 'marcador']
 
+const ROLE_DESC: Record<StageRole, string> = {
+  libre: 'Rides on instinct with no special job — a free role.',
+  lider: 'Your protected leader: teammates shelter and pace them, saving them for the finish.',
+  sprinter: 'Sits in for the finish and contests a bunch sprint.',
+  lanzador: 'Lead-out: delivers a teammate to the sprint at top speed, then swings off.',
+  gregario: 'Domestique: works for a teammate — shelters them, sets the pace, fetches bottles.',
+  cazaetapas: 'Stage hunter: gets in the breakaway to fight for the stage win.',
+  marcador: "Marker: shadows a RIVAL and follows their attacks so they can't get away.",
+}
+const MENTALITY_DESC: Record<Mentality, string> = {
+  reservon: 'Conservative — saves energy and only reacts.',
+  oportunista: 'Opportunist — takes a good chance when it appears.',
+  combativo: 'Aggressive — attacks and forces the race.',
+  supercombativo: 'Super-aggressive — attacks early and often (burns through energy).',
+}
+const EFFORT_DESC: Record<Effort, string> = {
+  ahorrar: 'Save — ride within yourself to keep energy for later.',
+  normal: 'Normal — a balanced effort for the day.',
+  a_tope: 'All-in — empty the tank today.',
+}
+/** El objetivo de una orden: un COMPAÑERO (lanzar/trabajar) o un RIVAL (marcar), según el rol. */
+function targetLabel(role: StageRole): string {
+  if (role === 'marcador') return 'Rival to mark'
+  if (role === 'lanzador') return 'Teammate to lead out'
+  return 'Teammate to work for'
+}
+
 function defaultOrder(stageDay: number): StageOrder {
   return {
     stageDay,
@@ -104,7 +131,8 @@ export function RaceOrders() {
     )
   }
 
-  const rivals = data?.roster ?? [] // tus compañeros de equipo en esta carrera (objetivos de orden)
+  const teammates = data?.teammates ?? []
+  const rivals = data?.rivals ?? []
 
   return (
     <section className="space-y-4">
@@ -175,11 +203,12 @@ export function RaceOrders() {
                         </option>
                       ))}
                     </select>
+                    <span className="font-normal text-slate-400">{ROLE_DESC[order.role]}</span>
                   </label>
 
                   {NEEDS_TARGET.includes(order.role) && (
                     <label className="flex flex-col gap-1 text-xs font-medium text-slate-500">
-                      Target
+                      {targetLabel(order.role)}
                       <select
                         className={selectClass}
                         value={order.targetRiderId ?? ''}
@@ -188,7 +217,7 @@ export function RaceOrders() {
                         }
                       >
                         <option value="">— none yet —</option>
-                        {rivals.map((r) => (
+                        {(order.role === 'marcador' ? rivals : teammates).map((r) => (
                           <option key={r.id} value={r.id}>
                             {r.name}
                           </option>
@@ -212,6 +241,9 @@ export function RaceOrders() {
                         </option>
                       ))}
                     </select>
+                    <span className="font-normal text-slate-400">
+                      {MENTALITY_DESC[order.mentality]}
+                    </span>
                   </label>
 
                   <label className="flex flex-col gap-1 text-xs font-medium text-slate-500">
@@ -227,6 +259,7 @@ export function RaceOrders() {
                         </option>
                       ))}
                     </select>
+                    <span className="font-normal text-slate-400">{EFFORT_DESC[order.effort]}</span>
                   </label>
 
                   <label className="flex flex-col gap-1 text-xs font-medium text-slate-500">
@@ -243,16 +276,19 @@ export function RaceOrders() {
                         })
                       }
                     />
+                    <span className="font-normal text-slate-400">
+                      Launch a move at this distance. Leave blank to let your mentality decide when.
+                    </span>
                   </label>
 
-                  <div className="flex items-end gap-4 text-sm text-slate-600">
+                  <div className="flex flex-col gap-1 text-sm text-slate-600">
                     <label className="flex items-center gap-1.5">
                       <input
                         type="checkbox"
                         checked={order.contestSprints}
                         onChange={(e) => update(stage.day, { contestSprints: e.target.checked })}
                       />
-                      Sprints
+                      Contest sprints
                     </label>
                     <label className="flex items-center gap-1.5">
                       <input
@@ -260,8 +296,11 @@ export function RaceOrders() {
                         checked={order.contestClimbs}
                         onChange={(e) => update(stage.day, { contestClimbs: e.target.checked })}
                       />
-                      KOMs
+                      Contest KOMs
                     </label>
+                    <span className="text-xs text-slate-400">
+                      Go for the intermediate-sprint or climb points on the way (costs energy).
+                    </span>
                   </div>
                 </div>
               )}
