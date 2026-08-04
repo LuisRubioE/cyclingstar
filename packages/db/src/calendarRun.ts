@@ -18,10 +18,18 @@ import {
   countriesInContinent,
   raceAttendanceCost,
 } from '@cyclingstar/shared'
-import { and, desc, eq, inArray, isNotNull, isNull, notInArray, or, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray, isNotNull, isNull, notInArray, or, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import { creditRider } from './economy.js'
-import { raceEntries, raceRosters, riderRacePrefs, riders, teamRacePlan, teams } from './schema.js'
+import {
+  raceEntries,
+  raceGc,
+  raceRosters,
+  riderRacePrefs,
+  riders,
+  teamRacePlan,
+  teams,
+} from './schema.js'
 import { runOneStage } from './stageRun.js'
 import { ownedTeamAttendance } from './teamPlan.js'
 
@@ -182,9 +190,12 @@ export function selectFieldTeams<T extends { division?: Division; country: strin
     }
     // La división de máxima prioridad entra garantizada (los 18 WorldTour en una .WT). Las plazas de
     // wildcard restantes NO son siempre los mismos ProTeams de más presupuesto: rotan por carrera
-    // dentro de una ventana de los mejores, así distintas carreras invitan a distintos equipos.
+    // dentro de una ventana de los mejores, así distintas carreras invitan a distintos equipos. El nº
+    // de wildcards se acota con `wildcardSlots` (2-4 en una .WT): no se llena el pelotón entero de
+    // invitados, como en la realidad —los WorldTour más unas pocas wildcards, no media parrilla Pro—.
     const guaranteed = eligible.filter((t) => rank(t.division) === 0).slice(0, cap)
-    const remaining = cap - guaranteed.length
+    let remaining = cap - guaranteed.length
+    if (wildcardSlots != null) remaining = Math.min(remaining, wildcardSlots)
     if (remaining <= 0) return guaranteed
     const pool = eligible.filter((t) => rank(t.division) > 0)
     return [...guaranteed, ...rotatePick(pool, remaining, rotateBy ?? 0)]
@@ -243,12 +254,20 @@ async function resolveFieldTeams(
     .from(teams)
     .where(and(eq(teams.worldId, worldId), inArray(teams.division, race.openTo)))
     .orderBy(desc(teams.budget))
-  // Carrera regional (circuito continental): mayoría de equipos del continente. El nº de wildcards de
-  // fuera del continente varía por carrera (0..N) de forma determinista —unas atraen a varios equipos
-  // extranjeros, otras a ninguno—, y una .1 (más prestigio) atrae más que una .2. Global (.WT/.Pro):
-  // por prioridad de división (WorldTour garantizado en las .WT).
-  const maxWild = race.raceClass === '1' ? 6 : 4
-  const wildcardSlots = race.region ? hashInt(race.id) % (maxWild + 1) : undefined
+  // Cupo de wildcards (equipos invitados fuera del núcleo), acotado y variable por carrera de forma
+  // determinista. Global (.WT/.Pro): los del núcleo entran garantizados (los 18 WorldTour en una .WT) y
+  // solo se invitan unas pocas wildcards —2-4 en una .WT (Down Under ~2), 3-5 en una .Pro—, no medio
+  // pelotón. Regional (.1/.2): la región es mayoría y se reservan 0..N plazas de fuera del continente,
+  // una .1 (más prestigio) atrae algo más que una .2.
+  let wildcardSlots: number | undefined
+  if (race.region) {
+    const maxWild = race.raceClass === '1' ? 4 : 3
+    wildcardSlots = hashInt(race.id) % (maxWild + 1)
+  } else if (race.raceClass === 'WT') {
+    wildcardSlots = 2 + (hashInt(`${race.id}:wild`) % 3)
+  } else if (race.raceClass === 'Pro') {
+    wildcardSlots = 3 + (hashInt(`${race.id}:wild`) % 3)
+  }
   // Semilla de rotación por carrera y temporada: las wildcards rotan año a año, no siempre las mismas.
   const rotateBy = hashInt(`${raceKey}:wild`)
   const auto = selectFieldTeams(
@@ -548,6 +567,8 @@ export interface StartlistRider {
   name: string
   country: string
   isBot: boolean
+  /** Dorsal asignado al congelar la escuadra (null en rosters antiguos sin dorsales). */
+  bib: number | null
 }
 /** Un equipo del pelotón; `riders` va lleno solo cuando la escuadra ya está congelada. */
 export interface StartlistTeam {
@@ -584,28 +605,25 @@ export async function predictStartlist(
 ): Promise<RaceStartlist> {
   const raceKey = `${race.id}:s${season}`
   return db.transaction(async (tx) => {
-    const roster = await tx
-      .select({ riderId: raceRosters.riderId })
+    // Cierre pasado: la escuadra está congelada. Mostramos los corredores reales, por equipo y dorsal.
+    const rows = await tx
+      .select({
+        id: riders.id,
+        name: riders.name,
+        country: riders.country,
+        userId: riders.userId,
+        teamId: riders.teamId,
+        teamName: teams.name,
+        teamCountry: teams.country,
+        teamDivision: teams.division,
+        bib: raceRosters.bib,
+      })
       .from(raceRosters)
+      .innerJoin(riders, eq(riders.id, raceRosters.riderId))
+      .leftJoin(teams, eq(teams.id, riders.teamId))
       .where(eq(raceRosters.raceId, raceKey))
-    if (roster.length > 0) {
-      // Cierre pasado: la escuadra está congelada. Mostramos los corredores reales agrupados por equipo.
-      const ids = roster.map((r) => r.riderId)
-      const rows = await tx
-        .select({
-          id: riders.id,
-          name: riders.name,
-          country: riders.country,
-          userId: riders.userId,
-          teamId: riders.teamId,
-          teamName: teams.name,
-          teamCountry: teams.country,
-          teamDivision: teams.division,
-        })
-        .from(riders)
-        .leftJoin(teams, eq(teams.id, riders.teamId))
-        .where(inArray(riders.id, ids))
-      const byTeam = new Map<string, StartlistTeam>()
+    if (rows.length > 0) {
+      const byTeam = new Map<string, StartlistTeam & { minBib: number }>()
       const freeAgents: StartlistRider[] = []
       for (const r of rows) {
         const rider: StartlistRider = {
@@ -613,6 +631,7 @@ export async function predictStartlist(
           name: r.name,
           country: r.country ?? '',
           isBot: r.userId == null,
+          bib: r.bib,
         }
         if (r.teamId && r.teamName) {
           let t = byTeam.get(r.teamId)
@@ -623,18 +642,38 @@ export async function predictStartlist(
               country: r.teamCountry,
               division: r.teamDivision as Division,
               riders: [],
+              minBib: Number.POSITIVE_INFINITY,
             }
             byTeam.set(r.teamId, t)
           }
           t.riders.push(rider)
+          if (rider.bib != null) t.minBib = Math.min(t.minBib, rider.bib)
         } else {
           freeAgents.push(rider)
         }
       }
-      const teamsList = [...byTeam.values()].sort((a, b) => a.name.localeCompare(b.name))
-      for (const t of teamsList) t.riders.sort((a, b) => a.name.localeCompare(b.name))
-      freeAgents.sort((a, b) => a.name.localeCompare(b.name))
-      return { frozen: true, teams: teamsList, freeAgents }
+      // Orden por dorsal (el equipo del dorsal más bajo primero; corredores por su número). Si un roster
+      // antiguo no tiene dorsales, se cae a orden alfabético.
+      const byBib = (a: StartlistRider, b: StartlistRider) =>
+        a.bib != null && b.bib != null ? a.bib - b.bib : a.name.localeCompare(b.name)
+      const teamsList = [...byTeam.values()].sort((a, b) =>
+        Number.isFinite(a.minBib) && Number.isFinite(b.minBib)
+          ? a.minBib - b.minBib
+          : a.name.localeCompare(b.name),
+      )
+      for (const t of teamsList) t.riders.sort(byBib)
+      freeAgents.sort(byBib)
+      return {
+        frozen: true,
+        teams: teamsList.map((t) => ({
+          id: t.id,
+          name: t.name,
+          country: t.country,
+          division: t.division,
+          riders: t.riders,
+        })),
+        freeAgents,
+      }
     }
     // Aún no congelada: previsión de equipos + agentes libres apuntados (sin nombrar corredores).
     const { teamRows } = await resolveFieldTeams(tx, worldId, race, raceKey, season)
@@ -666,9 +705,127 @@ export async function predictStartlist(
         name: r.name,
         country: r.country ?? '',
         isBot: false,
+        bib: null,
       })),
     }
   })
+}
+
+/**
+ * Asigna el dorsal (número de corredor) a la escuadra ya congelada de una carrera (SPEC 8), al estilo
+ * del ciclismo real: decenas por equipo. El equipo del campeón defensor (ganador de la general de la
+ * edición anterior) se lleva el bloque del 1 —su líder el dorsal 1—; si no hay edición previa, ese
+ * bloque queda vacío y el primer equipo empieza en el 11. El resto de equipos van 11-1X, 21-2X, 31-3X…
+ * por orden (división y presupuesto). Dentro de cada equipo, el corredor de más fama (el líder) lleva
+ * el x1. En un campeonato nacional (sin equipos) se numera 1..N por fama. Determinista.
+ */
+async function assignBibs(tx: Tx, race: CalendarRace, season: number): Promise<void> {
+  const raceKey = `${race.id}:s${season}`
+  const rows = await tx
+    .select({ riderId: raceRosters.riderId, fame: riders.fame, teamId: riders.teamId })
+    .from(raceRosters)
+    .innerJoin(riders, eq(riders.id, raceRosters.riderId))
+    .where(eq(raceRosters.raceId, raceKey))
+  if (rows.length === 0) return
+
+  const setBib = async (riderId: string, bib: number) => {
+    await tx
+      .update(raceRosters)
+      .set({ bib })
+      .where(and(eq(raceRosters.raceId, raceKey), eq(raceRosters.riderId, riderId)))
+  }
+
+  // Campeonato nacional: sin equipos, se numera por fama (el mejor, o el campeón defensor, el 1).
+  if (race.championshipCountry) {
+    const ordered = [...rows].sort((a, b) => b.fame - a.fame)
+    let n = 1
+    for (const r of ordered) await setBib(r.riderId, n++)
+    return
+  }
+
+  // Campeón defensor: ganador de la general de la edición del año pasado y su equipo actual.
+  let championTeamId: string | null = null
+  let championRiderId: string | null = null
+  if (season > 0) {
+    const prevKey = `${race.id}:s${season - 1}`
+    const winner = await tx
+      .select({ riderId: raceGc.riderId })
+      .from(raceGc)
+      .where(eq(raceGc.raceId, prevKey))
+      .orderBy(asc(raceGc.tiempoTotalS))
+      .limit(1)
+    championRiderId = winner[0]?.riderId ?? null
+    if (championRiderId) {
+      const tr = await tx
+        .select({ teamId: riders.teamId })
+        .from(riders)
+        .where(eq(riders.id, championRiderId))
+        .limit(1)
+      championTeamId = tr[0]?.teamId ?? null
+    }
+  }
+
+  // Agrupar por equipo; los agentes libres (sin equipo) se numeran al final.
+  const byTeam = new Map<string, { riderId: string; fame: number }[]>()
+  const freeAgents: { riderId: string; fame: number }[] = []
+  for (const r of rows) {
+    if (r.teamId) {
+      const list = byTeam.get(r.teamId) ?? []
+      list.push({ riderId: r.riderId, fame: r.fame })
+      byTeam.set(r.teamId, list)
+    } else {
+      freeAgents.push({ riderId: r.riderId, fame: r.fame })
+    }
+  }
+
+  // Orden de equipos: por prioridad de división (si aplica) y luego presupuesto; el campeón, primero.
+  const teamIds = [...byTeam.keys()]
+  const teamInfo =
+    teamIds.length > 0
+      ? await tx
+          .select({ id: teams.id, division: teams.division, budget: teams.budget })
+          .from(teams)
+          .where(inArray(teams.id, teamIds))
+      : []
+  const info = new Map(teamInfo.map((t) => [t.id, t]))
+  const priority = DIVISION_PRIORITY[race.raceClass]
+  const rankDiv = (d?: Division) => {
+    if (!priority) return 0
+    const i = priority.indexOf(d as Division)
+    return i === -1 ? priority.length : i
+  }
+  teamIds.sort((a, b) => {
+    const ra = rankDiv(info.get(a)?.division)
+    const rb = rankDiv(info.get(b)?.division)
+    if (ra !== rb) return ra - rb
+    return (info.get(b)?.budget ?? 0) - (info.get(a)?.budget ?? 0)
+  })
+  const championFirst = championTeamId != null && byTeam.has(championTeamId)
+  if (championFirst) {
+    teamIds.splice(teamIds.indexOf(championTeamId as string), 1)
+    teamIds.unshift(championTeamId as string)
+  }
+
+  // Decenas por equipo. El bloque del 1 (decena 0) es solo del campeón defensor; si no hay, se empieza
+  // en la decena 1 (dorsales 11-1X) y el bloque del 1 queda vacío.
+  let decade = championFirst ? 0 : 1
+  for (const teamId of teamIds) {
+    const members = byTeam.get(teamId)!
+    members.sort((a, b) => b.fame - a.fame) // el líder (más fama) primero → x1
+    if (teamId === championTeamId && championRiderId) {
+      const idx = members.findIndex((m) => m.riderId === championRiderId)
+      if (idx > 0) members.unshift(members.splice(idx, 1)[0]!)
+    }
+    const base = decade * 10
+    for (let i = 0; i < members.length; i++) await setBib(members[i]!.riderId, base + i + 1)
+    decade++
+  }
+
+  // Agentes libres: decenas siguientes, 9 por decena.
+  freeAgents.sort((a, b) => b.fame - a.fame)
+  for (let k = 0; k < freeAgents.length; k++) {
+    await setBib(freeAgents[k]!.riderId, (decade + Math.floor(k / 9)) * 10 + (k % 9) + 1)
+  }
 }
 
 /** Corredores ya comprometidos con otra carrera cuya ventana se solapa con la de `race` (misma temporada). */
@@ -739,6 +896,7 @@ async function freezeRaceRoster(
     : await convokeField(tx, worldId, race, raceKey, worldSeed, season, busy)
   for (const id of enrolled) busy.add(id)
   await convokeSelfEntries(tx, worldId, race, raceKey, busy, season, gameDay)
+  await assignBibs(tx, race, season)
 }
 
 /**

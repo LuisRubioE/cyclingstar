@@ -12,7 +12,7 @@ import {
   residenceAfterSigning,
   seededRng,
 } from '@cyclingstar/shared'
-import { and, desc, eq, inArray, isNotNull, sql } from 'drizzle-orm'
+import { and, desc, eq, gte, inArray, isNotNull, lt, or, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import type { Database } from './client.js'
 import { emitNews } from './news.js'
@@ -30,7 +30,12 @@ type Tx = Parameters<Parameters<Db['transaction']>[0]>[0]
 
 const SEASON_DAYS = 364
 const ROSTER_TARGET: Record<Division, number> = { WT: 14, PRS: 12, CON: 10 }
-/** Intervalo mínimo entre tandas de ofertas a un agente libre (días de juego). */
+/**
+ * Días de juego que una oferta sigue en la mesa antes de caducar si el corredor no decide. Da frescura
+ * al mercado (las ofertas viejas se retiran) y evita que un equipo cuya oferta se rechazó vuelva a
+ * ofertar de inmediato (puede reintentar pasado este plazo).
+ */
+const OFFER_TTL_DAYS = 21
 /** Nivel del corredor como percentil [0,1]: media de sus 5 mejores atributos sobre 100. */
 async function riderRating(tx: Tx, riderId: string): Promise<number> {
   const rows = await tx
@@ -63,8 +68,9 @@ function roleForRating(rating: number): ContractRole {
 
 /**
  * Genera la bandeja de ofertas de los corredores humanos. Un **agente libre** (sin contrato
- * vigente) recibe ofertas en cualquier momento, con un intervalo entre tandas; quien ya tiene
- * contrato vigente aún no recibe (cambiar de equipo llegará con los equipos de usuarios).
+ * vigente) mantiene siempre una cartera de 3-5 ofertas frescas: si rechaza una (o caduca), se rellena
+ * en la siguiente pasada; quien ya tiene contrato vigente aún no recibe (cambiar de equipo llegará con
+ * los equipos de usuarios).
  */
 export async function runMarket(
   tx: Tx,
@@ -88,15 +94,30 @@ export async function runMarket(
       .limit(1)
     if (current[0] && current[0].endSeason >= season) continue
 
-    // Agente libre: solo NO re-ofertamos mientras tenga ofertas pendientes sin leer (para no
-    // amontonarlas). En cuanto las rechaza (o expiran) y no le queda ninguna pendiente, en la
-    // siguiente pasada del mercado recibe una tanda nueva —puede repetirse algún equipo anterior—,
-    // así no se queda sin opciones por haber dicho que no.
+    // Caducan las ofertas pendientes que llevan demasiado tiempo sin decidir (frescura del mercado).
+    await tx
+      .update(offers)
+      .set({ status: 'expirada' })
+      .where(
+        and(
+          eq(offers.riderId, human.id),
+          eq(offers.status, 'pendiente'),
+          lt(offers.createdDay, gameDay - OFFER_TTL_DAYS),
+        ),
+      )
+
+    // Agente libre: mantenemos una CARTERA de ofertas frescas y la rellenamos hasta un objetivo (3-5).
+    // Así, al rechazar una (o al caducar), en la siguiente pasada entra otra en su lugar: no hace falta
+    // vaciarlas todas para volver a recibir. Si ya está en el objetivo, no añadimos más.
     const pending = await tx
       .select({ n: sql<number>`count(*)::int` })
       .from(offers)
       .where(and(eq(offers.riderId, human.id), eq(offers.status, 'pendiente')))
-    if ((pending[0]?.n ?? 0) > 0) continue
+    const pendingCount = pending[0]?.n ?? 0
+    const rng = seededRng(`${worldSeed}:market:${human.id}:d${gameDay}`)
+    const target = 3 + (rng() < 0.6 ? 1 : 0) + (rng() < 0.35 ? 1 : 0)
+    const need = target - pendingCount
+    if (need <= 0) continue
 
     const rating = await riderRating(tx, human.id)
     const age = 20 - human.birthSeason + season
@@ -136,10 +157,23 @@ export async function runMarket(
     )
     const ordered = [...sameCountry, ...sameContinent, ...elsewhere]
 
-    const rng = seededRng(`${worldSeed}:market:${human.id}:d${gameDay}`)
-    // Más ofertas que antes: entre 3 y 5.
-    const count = 3 + (rng() < 0.6 ? 1 : 0) + (rng() < 0.35 ? 1 : 0)
-    const chosen = ordered.slice(0, count)
+    // No repetimos un equipo que ya tiene oferta pendiente ni uno cuya oferta se rechazó hace poco (no
+    // spamear al que dijo que no); pasado OFFER_TTL_DAYS un equipo puede volver a intentarlo.
+    const usedRows = await tx
+      .select({ teamId: offers.teamId })
+      .from(offers)
+      .where(
+        and(
+          eq(offers.riderId, human.id),
+          or(
+            eq(offers.status, 'pendiente'),
+            and(eq(offers.status, 'rechazada'), gte(offers.createdDay, gameDay - OFFER_TTL_DAYS)),
+          ),
+        ),
+      )
+    const used = new Set(usedRows.map((r) => r.teamId))
+    // Rellenamos la cartera hasta el objetivo con equipos nuevos (los `need` que faltan).
+    const chosen = ordered.filter((t) => !used.has(t.id)).slice(0, need)
     if (chosen.length === 0) continue
 
     for (const team of chosen) {
