@@ -326,9 +326,9 @@ export const RACE_EDITIONS: Record<string, RaceEdition> = {
     stages: [
       { from: 'Madinat Zayed', to: 'Liwa', km: 144, terrain: 'flat' },
       { from: 'Al Hudayriat Island', to: 'Al Hudayriat Island', km: 12, terrain: 'itt' },
-      { from: 'Umm Al Quwain', to: 'Jebel Mobrah', km: 182, terrain: 'mountain' },
+      { from: 'Umm Al Quwain', to: 'Jebel Mobrah', km: 183, terrain: 'mountain' },
       { from: 'Fujairah', to: 'Fujairah', km: 182, terrain: 'flat' },
-      { from: 'Dubai', to: 'Hamdan Bin Mohammed Smart University', km: 165, terrain: 'flat' },
+      { from: 'Dubai', to: 'Hamdan Bin Mohammed Smart University', km: 166, terrain: 'flat' },
       { from: 'Al Ain', to: 'Jebel Hafeet', km: 168, terrain: 'mountain' },
       { from: 'Abu Dhabi', to: 'Abu Dhabi', km: 149, terrain: 'flat' },
     ],
@@ -583,11 +583,11 @@ export const RACE_EDITIONS: Record<string, RaceEdition> = {
   'race-switzerland': {
     restAfter: [],
     stages: [
-      { from: 'Sondrio', to: 'Sondrio', km: 144, terrain: 'hilly' },
-      { from: 'Locarno', to: 'Locarno', km: 158, terrain: 'hilly' },
-      { from: 'Bad Ragaz', to: 'Bad Ragaz', km: 157, terrain: 'hilly' },
-      { from: 'Aarburg', to: 'Aarburg', km: 24, terrain: 'itt' },
-      { from: 'Villars-sur-Ollon', to: 'Villars-sur-Ollon', km: 151, terrain: 'mountain' },
+      { from: 'Morbegno', to: 'Sondrio', km: 144, terrain: 'mountain' },
+      { from: 'Lugano', to: 'Bellinzona', km: 158, terrain: 'hilly' },
+      { from: 'Buchs', to: 'Sargans', km: 157, terrain: 'mountain' },
+      { from: 'Neundorf', to: 'Fulenbach', km: 24, terrain: 'itt' },
+      { from: 'Les Diablerets', to: 'Villars-sur-Ollon', km: 151, terrain: 'mountain' },
     ],
   },
   'race-tachira': {

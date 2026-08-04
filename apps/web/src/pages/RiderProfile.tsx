@@ -10,7 +10,8 @@ import { Link } from 'react-router-dom'
 import { fetchForm } from '../api/form'
 import { fetchHealth } from '../api/health'
 import { fetchPalmares, palmaresLabel } from '../api/rankings'
-import { fetchMyRider, fetchRiderSummary } from '../api/rider'
+import { type RaceClass, raceClassLabel } from '../api/calendar'
+import { fetchMyRider, fetchMyUpcomingRaces, fetchRiderSummary } from '../api/rider'
 import { AttributeList } from '../components/AttributeList'
 import { Badges } from '../components/Badges'
 import { Flag } from '../components/Flag'
@@ -30,6 +31,7 @@ export function RiderProfile() {
   const formQuery = useQuery({ queryKey: ['rider', 'form'], queryFn: fetchForm })
   const palmaresQuery = useQuery({ queryKey: ['rider', 'palmares'], queryFn: fetchPalmares })
   const summaryQuery = useQuery({ queryKey: ['rider', 'summary'], queryFn: fetchRiderSummary })
+  const upcomingQuery = useQuery({ queryKey: ['rider', 'upcoming'], queryFn: fetchMyUpcomingRaces })
   const healthQuery = useQuery({ queryKey: ['health'], queryFn: fetchHealth })
 
   if (isPending) return <p className="text-slate-500">Loading…</p>
@@ -145,6 +147,35 @@ export function RiderProfile() {
       </div>
 
       <Badges riderId={rider.id} />
+
+      {upcomingQuery.data && upcomingQuery.data.length > 0 && (
+        <Panel title="Upcoming races">
+          <ul className="divide-y divide-slate-100">
+            {upcomingQuery.data.map((r) => (
+              <li key={r.raceId} className="flex items-center justify-between gap-2 py-2">
+                <Link
+                  to={`/races/${r.raceId}`}
+                  className="flex min-w-0 items-center gap-2 text-sm font-medium text-slate-700 hover:text-indigo-600"
+                >
+                  {r.country && <Flag code={r.country} size={14} />}
+                  <span className="truncate">{r.raceName}</span>
+                  <span className="shrink-0 text-xs font-normal text-slate-400">
+                    {raceClassLabel(r.raceClass as RaceClass)}
+                    {r.stageCount > 1 ? ` · ${r.stageCount} stages` : ''}
+                  </span>
+                </Link>
+                <span className="shrink-0 text-xs text-slate-500">
+                  {r.ongoing
+                    ? 'Racing now'
+                    : r.daysUntil <= 0
+                      ? 'Starts today'
+                      : `in ${r.daysUntil} ${r.daysUntil === 1 ? 'day' : 'days'}`}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </Panel>
+      )}
 
       <LastRaceReport />
 

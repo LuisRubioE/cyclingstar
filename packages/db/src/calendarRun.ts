@@ -51,13 +51,17 @@ const SEASON_DAYS = 364
  * no el día de la salida. Coincide con la ventana en que se muestra la lista de inscritos.
  */
 export const ENROLL_LOCK_DAYS = 14
-const SQUAD_SIZE = { 'gran-vuelta': 8, 'una-semana': 7, 'un-dia': 7 } as const
 /**
- * Escuadra MÍNIMA que un equipo debe poder alinear para ser admitido en una carrera. Un equipo que no
- * reúne tantos corredores disponibles no se presenta (no vale meter «medio equipo» de 1-2 corredores);
+ * Tamaño de escuadra por carrera (SPEC 8): en una GRAN VUELTA son 8 fijos (mínimo y máximo); en el
+ * resto de carreras WorldTour/ProTeam, 7; en las CONTINENTALES (.1/.2), 6 como mucho y 5 como mínimo.
+ * Un equipo que no reúne el mínimo de corredores disponibles no se presenta (nada de «medio equipo»);
  * su plaza la ocupa otro equipo o el relleno individual del continente.
  */
-const MIN_SQUAD = { 'gran-vuelta': 6, 'una-semana': 5, 'un-dia': 5 } as const
+function squadFor(race: CalendarRace): { size: number; min: number } {
+  if (race.format === 'gran-vuelta') return { size: 8, min: 8 }
+  if (race.raceClass === '1' || race.raceClass === '2') return { size: 6, min: 5 }
+  return { size: 7, min: 7 }
+}
 /**
  * Tamaño objetivo del pelotón según la clase de carrera (acota el cómputo del motor y refleja la
  * realidad de cada nivel): una .WT junta ~22 equipos (los 18 WorldTour + wildcards Pro), una .Pro
@@ -92,7 +96,13 @@ function hashInt(s: string): number {
 const DIVISION_PRIORITY: Partial<Record<RaceClass, Division[]>> = {
   WT: ['WT', 'PRS', 'CON'],
   Pro: ['PRS', 'WT', 'CON'],
+  // Continentales (.1/.2): el NÚCLEO son los equipos Continental; los ProTeams entran como invitados
+  // limitados (no deben dominar una carrera continental por tener más presupuesto).
+  '1': ['CON', 'PRS'],
+  '2': ['CON', 'PRS'],
 }
+/** Fracción máxima de plazas «de casa» para equipos invitados de división superior en una continental. */
+const CONTINENTAL_GUEST_FRACTION = 0.3
 
 /**
  * Plan de temporada de las tres grandes vueltas. Prestigio (0 = el mejor): el Tour se lleva a los
@@ -176,19 +186,43 @@ export function selectFieldTeams<T extends { division?: Division; country: strin
   priority?: Division[],
   wildcardSlots?: number,
   rotateBy?: number,
+  homeCountry?: string | null,
 ): T[] {
   if (region) {
     const inRegion = eligible.filter((t) => continentForCountry(t.country ?? '') === region)
     const outRegion = eligible.filter((t) => continentForCountry(t.country ?? '') !== region)
-    // La región es mayoría y las wildcards de FUERA del continente están ACOTADAS a unas pocas plazas
-    // (un ProTeam invitado o continentales de otro continente), varía por carrera. Si la región no llena
-    // el cupo, NO se completa con más extranjeros: el pelotón lo terminan los corredores individuales del
-    // propio continente (relleno regional en convokeField), no un aluvión de equipos de otros continentes.
+    // Prioridad de casa: dentro del continente van PRIMERO los equipos del PAÍS de la carrera (por
+    // presupuesto), luego el resto del continente. Una carrera española la corren sobre todo españoles.
+    const homeFirst = (list: T[]) =>
+      homeCountry
+        ? [
+            ...list.filter((t) => t.country === homeCountry),
+            ...list.filter((t) => t.country !== homeCountry),
+          ]
+        : list
+    // Wildcards de FUERA del continente: acotadas a unas pocas plazas (varía por carrera). Si la región
+    // no llena el cupo, NO se completa con más extranjeros: el pelotón lo terminan corredores individuales
+    // del propio continente (relleno regional en convokeField), no un aluvión de equipos de otro continente.
     const reserve = wildcardSlots ?? Math.max(1, Math.floor(cap * WILDCARD_FRACTION))
     const wildcards = Math.min(outRegion.length, reserve)
-    const home = inRegion.slice(0, cap - wildcards)
     const wild = rotatePick(outRegion, wildcards, rotateBy ?? 0)
-    return [...home, ...wild]
+    const homeSlots = cap - wild.length
+
+    // Carrera continental: el NÚCLEO son los equipos de la división base (Continental); los de división
+    // superior (ProTeams) entran como invitados LIMITADOS, no como mayoría por tener más presupuesto.
+    const coreDiv = priority?.[0]
+    if (coreDiv) {
+      const core = homeFirst(inRegion.filter((t) => t.division === coreDiv))
+      const guests = homeFirst(inRegion.filter((t) => t.division !== coreDiv))
+      const guestCap = Math.min(
+        guests.length,
+        Math.max(1, Math.round(homeSlots * CONTINENTAL_GUEST_FRACTION)),
+      )
+      const guestPick = guests.slice(0, guestCap)
+      const corePick = core.slice(0, homeSlots - guestPick.length)
+      return [...corePick, ...guestPick, ...wild]
+    }
+    return [...homeFirst(inRegion).slice(0, homeSlots), ...wild]
   }
   if (priority) {
     const rank = (d?: Division) => {
@@ -205,7 +239,23 @@ export function selectFieldTeams<T extends { division?: Division; country: strin
     if (wildcardSlots != null) remaining = Math.min(remaining, wildcardSlots)
     if (remaining <= 0) return guaranteed
     const pool = eligible.filter((t) => rank(t.division) > 0)
-    return [...guaranteed, ...rotatePick(pool, remaining, rotateBy ?? 0)]
+    // Las wildcards prefieren la casa: primero un equipo del PAÍS de la carrera, luego del mismo
+    // CONTINENTE, y solo si sobran plazas se invita al resto (esas rotan por carrera para dar variedad).
+    const homeCont = homeCountry ? continentForCountry(homeCountry) : null
+    const own = homeCountry ? pool.filter((t) => t.country === homeCountry) : []
+    const near =
+      homeCont != null
+        ? pool.filter(
+            (t) => t.country !== homeCountry && continentForCountry(t.country ?? '') === homeCont,
+          )
+        : []
+    const priorityPool = [...own, ...near]
+    const wild = priorityPool.slice(0, remaining)
+    if (wild.length < remaining) {
+      const rest = pool.filter((t) => !priorityPool.includes(t))
+      wild.push(...rotatePick(rest, remaining - wild.length, rotateBy ?? 0))
+    }
+    return [...guaranteed, ...wild]
   }
   return eligible.slice(0, cap)
 }
@@ -247,7 +297,7 @@ async function resolveFieldTeams(
   raceKey: string,
   season: number,
 ): Promise<{ teamRows: FieldTeamRow[]; forcedOut: Set<string> }> {
-  const size = SQUAD_SIZE[race.format]
+  const { size } = squadFor(race)
   const fieldCap = FIELD_CAP_BY_CLASS[race.raceClass] ?? FIELD_CAP
   const cap = Math.max(1, Math.floor(fieldCap / size))
   const eligible = await tx
@@ -286,6 +336,7 @@ async function resolveFieldTeams(
     DIVISION_PRIORITY[race.raceClass],
     wildcardSlots,
     rotateBy,
+    race.country,
   )
   // Draft de calendario (equipos con dueño): cada equipo humano corre su calendario NATURAL (sus
   // carreras de casa) salvo las excepciones que guarde el manager —saltar una natural o añadir una de
@@ -323,8 +374,7 @@ async function convokeField(
   season: number,
   busy: Set<string>,
 ): Promise<string[]> {
-  const size = SQUAD_SIZE[race.format]
-  const minSquad = MIN_SQUAD[race.format]
+  const { size, min: minSquad } = squadFor(race)
   const fieldCap = FIELD_CAP_BY_CLASS[race.raceClass] ?? FIELD_CAP
   const { teamRows, forcedOut } = await resolveFieldTeams(tx, worldId, race, raceKey, season)
   if (teamRows.length === 0) return []
@@ -396,20 +446,20 @@ async function convokeField(
     let members = byTeam.get(team.id) ?? []
     if (gtRank != null) {
       if (team.division === 'WT') {
-        // Plan de temporada: los WorldTour corren las tres. Reparten su plantilla por aptitud en tres
-        // grupos disjuntos (los mejores al Tour); esta gran vuelta se lleva su tercio. Nadie repite,
-        // así que la Vuelta corre con gente fresca y distinta, no con las sobras. El reparto por
-        // paridad (i % 3) da esos tercios, pero solo es estable si la plantilla ordenada es la misma
-        // en las tres convocatorias; si algún corredor mejor está ocupado en otra carrera el día de
-        // salida de una gran vuelta pero no de otra, la paridad se desplaza y podría repetir. Por eso,
-        // además, excluimos a quien ya haya sido convocado a una gran vuelta anterior esta temporada
-        // (mismo dato que las wildcards Pro): garantiza que nadie corra dos grandes vueltas.
+        // Plan de temporada: los WorldTour corren las tres grandes vueltas. Reparten su plantilla (~28)
+        // por aptitud en tres grupos por prestigio (los mejores al Tour); esta gran vuelta se lleva su
+        // tercio FRESCO (quien aún no ha corrido otra grande esta temporada), para que la Vuelta corra
+        // con gente distinta y no con las sobras. Como la escuadra es de 8 fijos, si el tercio fresco no
+        // llega a 8 se completa con los mejores que aún no hayan corrido DOS grandes vueltas (se permite
+        // una segunda, nunca una tercera): así se garantiza el equipo de 8 sin que nadie corra las tres.
         const ranked = [...members].sort(
           (a, b) => gtSuit(b) - gtSuit(a) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
         )
-        members = ranked
+        const base = ranked
           .filter((_, i) => i % 3 === gtRank)
           .filter((m) => (gtCount.get(m.id) ?? 0) === 0)
+        const fill = ranked.filter((m) => !base.includes(m) && (gtCount.get(m.id) ?? 0) <= 1)
+        members = [...base, ...fill].slice(0, size)
       } else {
         // Wildcards (Pro): a lo sumo una gran vuelta; usa a los que aún no han corrido ninguna.
         members = members.filter((m) => (gtCount.get(m.id) ?? 0) === 0)
@@ -470,7 +520,12 @@ async function convokeField(
       .select({ id: riders.id })
       .from(riders)
       .where(and(...conds))
-      .orderBy(desc(riders.fame))
+      // Prioridad de casa: primero los corredores del PAÍS de la carrera, luego el resto del continente
+      // (ambos por fama). Así una carrera española la completan antes ciclistas españoles que de fuera.
+      .orderBy(
+        sql`case when ${riders.country} = ${race.country ?? null} then 0 else 1 end`,
+        desc(riders.fame),
+      )
       .limit(Math.min(fieldCap - rosterValues.length, maxFill))
     for (const f of fillers) rosterValues.push({ raceId: raceKey, riderId: f.id })
   }

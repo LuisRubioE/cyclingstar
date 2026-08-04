@@ -31,7 +31,13 @@ function NationCard({ c }: { c: CountrySummary }) {
         <Flag code={c.country} size={18} />
         <span className="text-sm font-semibold text-slate-800">{info?.name ?? c.country}</span>
       </span>
-      <span className="text-xs tabular-nums text-slate-400">{c.riderCount} riders</span>
+      <span className="text-right text-xs tabular-nums text-slate-400">
+        <span className="font-medium text-slate-600">
+          {c.totalPoints.toLocaleString('en-US')} pts
+        </span>
+        <span className="mx-1">·</span>
+        {c.riderCount} riders
+      </span>
     </Link>
   )
 }

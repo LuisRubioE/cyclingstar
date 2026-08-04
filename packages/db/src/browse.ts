@@ -20,8 +20,13 @@ export interface TeamListRow {
   riderCount: number
 }
 
-/** Todos los equipos del mundo, por división y puntos (#13). */
+/** Todos los equipos del mundo, por categoría (división) y, dentro de cada una, por puntos (#13). */
 export async function getTeams(db: Database, worldId: string): Promise<TeamListRow[]> {
+  // Los puntos del equipo se calculan EN VIVO como la suma de los puntos de su plantilla (la columna
+  // teams.points_season no se mantenía: siempre estaba a 0). Así se reflejan de verdad y se resetean
+  // solos al reiniciar los puntos de los corredores en el rollover.
+  const teamPoints = sql<number>`coalesce(sum(${riders.seasonPoints}), 0)::int`
+  const divisionRank = sql`case ${teams.division} when 'WT' then 0 when 'PRS' then 1 else 2 end`
   return db
     .select({
       id: teams.id,
@@ -29,7 +34,7 @@ export async function getTeams(db: Database, worldId: string): Promise<TeamListR
       country: teams.country,
       division: teams.division,
       budget: teams.budget,
-      pointsSeason: teams.pointsSeason,
+      pointsSeason: teamPoints,
       jerseySeed: teams.jerseySeed,
       riderCount: sql<number>`count(${riders.id})::int`,
     })
@@ -37,7 +42,7 @@ export async function getTeams(db: Database, worldId: string): Promise<TeamListR
     .leftJoin(riders, and(eq(riders.teamId, teams.id), isNull(riders.retiredAt)))
     .where(eq(teams.worldId, worldId))
     .groupBy(teams.id)
-    .orderBy(desc(teams.pointsSeason), desc(teams.budget))
+    .orderBy(divisionRank, desc(teamPoints), desc(teams.budget))
 }
 
 export interface TeamRiderRow {
@@ -81,13 +86,15 @@ export async function getTeamDetail(db: Database, teamId: string): Promise<TeamD
     .from(riders)
     .where(and(eq(riders.teamId, teamId), isNull(riders.retiredAt)))
     .orderBy(desc(riders.seasonPoints))
+  // Puntos del equipo = suma en vivo de los de su plantilla (la columna almacenada no se mantiene).
+  const pointsSeason = roster.reduce((sum, r) => sum + r.seasonPoints, 0)
   return {
     id: team.id,
     name: team.name,
     country: team.country,
     division: team.division,
     budget: team.budget,
-    pointsSeason: team.pointsSeason,
+    pointsSeason,
     jerseySeed: team.jerseySeed,
     human: team.ownerUserId !== null,
     roster: roster.map((r) => ({
@@ -105,23 +112,30 @@ export async function getTeamDetail(db: Database, teamId: string): Promise<TeamD
 export interface CountrySummaryRow {
   country: string
   riderCount: number
+  totalPoints: number
 }
 
-/** Países con corredores en activo, con cuántos (para la lista de naciones, #7). */
+/** Países con corredores en activo, con cuántos y su total de puntos de temporada (ranking, #7). */
 export async function getCountriesSummary(
   db: Database,
   worldId: string,
 ): Promise<CountrySummaryRow[]> {
+  const totalPoints = sql<number>`coalesce(sum(${riders.seasonPoints}), 0)::int`
   const rows = await db
     .select({
       country: riders.country,
       riderCount: sql<number>`count(${riders.id})::int`,
+      totalPoints,
     })
     .from(riders)
     .where(and(eq(riders.worldId, worldId), isNull(riders.retiredAt)))
     .groupBy(riders.country)
-    .orderBy(desc(sql`count(${riders.id})`))
-  return rows.map((r) => ({ country: r.country, riderCount: r.riderCount }))
+    .orderBy(desc(totalPoints), desc(sql`count(${riders.id})`))
+  return rows.map((r) => ({
+    country: r.country,
+    riderCount: r.riderCount,
+    totalPoints: r.totalPoints,
+  }))
 }
 
 export interface CountryRiderRow {

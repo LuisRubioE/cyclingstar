@@ -1002,11 +1002,11 @@ export const RACE_ROUTES: Record<string, [string, string][]> = {
   'race-sundvolden': [['Sundvollen', 'Norefjell']],
   'race-surf-coast': [['Geelong', 'Geelong']],
   'race-switzerland': [
-    ['Sondrio', 'Sondrio'],
-    ['Locarno', 'Locarno'],
-    ['Bad Ragaz', 'Bad Ragaz'],
-    ['Aarburg', 'Aarburg'],
-    ['Villars-sur-Ollon', 'Villars-sur-Ollon'],
+    ['Morbegno', 'Sondrio'],
+    ['Lugano', 'Bellinzona'],
+    ['Buchs', 'Sargans'],
+    ['Neundorf', 'Fulenbach'],
+    ['Les Diablerets', 'Villars-sur-Ollon'],
   ],
   'race-syedra': [['Alanya', 'Gazipasa']],
   'race-szekler': [

@@ -137,6 +137,7 @@ export async function fetchRiderBadges(id: string): Promise<Badge[]> {
 export interface CountrySummary {
   country: string
   riderCount: number
+  totalPoints: number
 }
 
 export interface CountryRider {

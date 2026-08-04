@@ -6,7 +6,16 @@
 import { seededRng } from '@cyclingstar/shared'
 
 export type NewsKind =
-  'stage_win' | 'breakaway_win' | 'kom' | 'gc_win' | 'contract' | 'injury' | 'retirement'
+  | 'stage_win'
+  | 'tt_win'
+  | 'breakaway_win'
+  | 'one_day_win'
+  | 'one_day_tt_win'
+  | 'kom'
+  | 'gc_win'
+  | 'contract'
+  | 'injury'
+  | 'retirement'
 
 export interface NewsData {
   rider?: string
@@ -23,10 +32,25 @@ const TEMPLATES: Record<NewsKind, ((d: NewsData) => string)[]> = {
     (d) => `${d.rider} times the sprint to perfection to win stage ${d.stage}.`,
     (d) => `No answer for ${d.rider}, who takes stage ${d.stage} of the ${d.race}.`,
   ],
+  tt_win: [
+    (d) => `${d.rider} sets the fastest time to win stage ${d.stage} of the ${d.race}.`,
+    (d) => `${d.rider} stops the clock quickest to take stage ${d.stage}.`,
+    (d) => `Best against the clock: ${d.rider} wins the stage ${d.stage} time trial.`,
+  ],
   breakaway_win: [
     (d) => `${d.rider} survives from the break to win stage ${d.stage} of the ${d.race}.`,
     (d) => `The peloton misjudges it — ${d.rider} holds on from the break on stage ${d.stage}.`,
     (d) => `A perfect raid: ${d.rider} wins stage ${d.stage} from the day's move.`,
+  ],
+  one_day_win: [
+    (d) => `${d.rider} wins the ${d.race}.`,
+    (d) => `${d.rider} times the finale to perfection to take the ${d.race}.`,
+    (d) => `A big win for ${d.rider}, first across the line at the ${d.race}.`,
+  ],
+  one_day_tt_win: [
+    (d) => `${d.rider} sets the fastest time to win the ${d.race}.`,
+    (d) => `${d.rider} stops the clock quickest to take the ${d.race}.`,
+    (d) => `Fastest against the clock, ${d.rider} takes the ${d.race}.`,
   ],
   kom: [
     (d) => `${d.rider} is first over the summit and leads the mountains at the ${d.race}.`,

@@ -169,7 +169,7 @@ export {
   type RiderSummary,
 } from './riders.js'
 export { getTrainingOrders, setTrainingOrders, type TrainingOrderRow } from './training.js'
-export { getRiderRaceDays } from './riderSchedule.js'
+export { getRiderRaceDays, getRiderUpcomingRaces, type RiderUpcomingRace } from './riderSchedule.js'
 export {
   getRiderLastRaceReport,
   type RiderRaceReport,

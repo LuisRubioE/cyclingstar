@@ -14,7 +14,6 @@ import { WorldClock } from './WorldClock'
 const WORLD_LINKS = [
   { to: '/calendar', label: 'Calendar' },
   { to: '/teams', label: 'Teams' },
-  { to: '/free-agents', label: 'Free agents' },
   { to: '/countries', label: 'Nations' },
   { to: '/rankings', label: 'Rankings' },
   { to: '/hall-of-fame', label: 'Hall of Fame' },
@@ -24,9 +23,7 @@ const WORLD_LINKS = [
 const RIDER_LINKS = [
   { to: '/rider', label: 'My rider' },
   { to: '/training', label: 'Training' },
-  { to: '/objectives', label: 'Objectives' },
   { to: '/race-orders', label: 'Orders' },
-  { to: '/results', label: 'Results' },
   { to: '/race-entry', label: 'Race entry' },
   { to: '/team-calendar', label: 'Team calendar' },
   { to: '/market', label: 'Market' },
