@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { type ReactElement, useState } from 'react'
+import { Fragment, type ReactElement, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   type CalendarRaceSummary,
@@ -80,19 +80,29 @@ function RaceCard({ race }: { race: CalendarRaceSummary }) {
           </div>
           <ol className="space-y-1">
             {race.stages.map((stage) => (
-              <li key={stage.index} className="flex items-center gap-3 text-sm">
-                <span
-                  className={`inline-block h-2 w-2 shrink-0 rounded-full ${KIND_DOT[stage.kind] ?? 'bg-slate-300'}`}
-                  aria-hidden
-                />
-                <span className="text-slate-700">{stage.name}</span>
-                {stage.from && stage.to && (
-                  <span className="truncate text-slate-500">
-                    {stage.from === stage.to ? stage.from : `${stage.from} → ${stage.to}`}
-                  </span>
+              <Fragment key={stage.index}>
+                <li className="flex items-center gap-3 text-sm">
+                  <span
+                    className={`inline-block h-2 w-2 shrink-0 rounded-full ${KIND_DOT[stage.kind] ?? 'bg-slate-300'}`}
+                    aria-hidden
+                  />
+                  <span className="text-slate-700">{stage.name}</span>
+                  {stage.from && stage.to && (
+                    <span className="truncate text-slate-500">
+                      {stage.from === stage.to ? stage.from : `${stage.from} → ${stage.to}`}
+                    </span>
+                  )}
+                  <span className="ml-auto tabular-nums text-slate-400">{stage.km} km</span>
+                </li>
+                {/* Día de descanso tras esta etapa (grandes vueltas y alguna vuelta por etapas). */}
+                {race.restAfter?.includes(stage.index) && (
+                  <li className="flex items-center gap-2 py-0.5 pl-5 text-xs font-medium uppercase tracking-wide text-slate-400">
+                    <span className="h-px w-4 bg-slate-200" />
+                    Rest day
+                    <span className="h-px flex-1 bg-slate-200" />
+                  </li>
                 )}
-                <span className="ml-auto tabular-nums text-slate-400">{stage.km} km</span>
-              </li>
+              </Fragment>
             ))}
           </ol>
         </div>
@@ -121,31 +131,47 @@ function nationDay(races: CalendarRaceSummary[]): number {
   return Math.max(...races.map((r) => r.startDay))
 }
 
-/** Una nación con sus 4 pruebas (Crono/Ruta × Elite/Sub-23), ordenadas y enlazadas. */
+/**
+ * Una nación con sus 4 pruebas (Crono/Ruta × Elite/Sub-23). No todas caen el mismo día: la crono va
+ * entre semana y la ruta el fin de semana, y según el país la Elite y el Sub-23 coinciden o no. Por
+ * eso se AGRUPAN por día (cada grupo con su GD), y así se ve de un vistazo qué pruebas comparten fecha.
+ */
 function NationRow({ code, races }: { code: string; races: CalendarRaceSummary[] }) {
   const name = champCountryName(races[0]!)
-  const events = [...races].sort(
+  const sorted = [...races].sort(
     (a, b) =>
+      a.startDay - b.startDay ||
       CHAMP_EVENT_ORDER.indexOf(champEventLabel(a)) - CHAMP_EVENT_ORDER.indexOf(champEventLabel(b)),
   )
+  const byDay = new Map<number, CalendarRaceSummary[]>()
+  for (const r of sorted) {
+    const list = byDay.get(r.startDay)
+    if (list) list.push(r)
+    else byDay.set(r.startDay, [r])
+  }
+  const days = [...byDay.keys()].sort((a, b) => a - b)
+  const span = days.length === 1 ? `GD ${days[0]}` : `GD ${days[0]}–${days[days.length - 1]}`
   return (
-    <div className="flex items-center gap-2 rounded px-1 py-1 hover:bg-slate-50">
-      <span className="w-12 shrink-0 text-xs tabular-nums text-slate-400">
-        GD {nationDay(races)}
-      </span>
+    <div className="flex items-start gap-2 rounded px-1 py-1 hover:bg-slate-50">
+      <span className="w-16 shrink-0 text-xs tabular-nums text-slate-400">{span}</span>
       <Flag code={code} size={16} />
-      <span className="w-28 shrink-0 truncate text-sm font-medium text-slate-700">{name}</span>
-      <div className="flex flex-wrap gap-1">
-        {events.map((r) => (
-          <Link
-            key={r.id}
-            to={`/races/${r.id}`}
-            title={r.winner ? `Winner: ${r.winner}` : champEventLabel(r)}
-            className="rounded bg-slate-900/5 px-1.5 py-0.5 text-[11px] font-medium text-slate-600 hover:bg-brand-cyan/15 hover:text-brand-navy"
-          >
-            {r.winner ? '🏆 ' : ''}
-            {champEventLabel(r)}
-          </Link>
+      <span className="w-24 shrink-0 truncate text-sm font-medium text-slate-700">{name}</span>
+      <div className="flex flex-wrap gap-x-3 gap-y-1">
+        {days.map((d) => (
+          <div key={d} className="flex items-center gap-1">
+            <span className="text-[10px] tabular-nums text-slate-300">GD {d}</span>
+            {byDay.get(d)!.map((r) => (
+              <Link
+                key={r.id}
+                to={`/races/${r.id}`}
+                title={r.winner ? `Winner: ${r.winner}` : champEventLabel(r)}
+                className="rounded bg-slate-900/5 px-1.5 py-0.5 text-[11px] font-medium text-slate-600 hover:bg-brand-cyan/15 hover:text-brand-navy"
+              >
+                {r.winner ? '🏆 ' : ''}
+                {champEventLabel(r)}
+              </Link>
+            ))}
+          </div>
         ))}
       </div>
     </div>

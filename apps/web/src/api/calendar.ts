@@ -38,6 +38,8 @@ export interface CalendarRaceSummary {
   startDay: number
   openTo: RaceLevel[]
   winner: string | null
+  /** Índices de etapa (1-based) tras los que hay un día de descanso; vacío si no tiene. */
+  restAfter: number[]
   stages: CalendarStageSummary[]
 }
 

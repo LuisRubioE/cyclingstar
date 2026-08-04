@@ -220,15 +220,38 @@ const NATIONALS_ROAD_OVERRIDE: Record<string, [number, number]> = {
   MY: [9, 13], // Malasia
 }
 
+/** Hash entero estable de una cadena (para variar de forma determinista por país). */
+function ncHash(s: string): number {
+  let h = 2166136261
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i)
+    h = Math.imul(h, 16777619)
+  }
+  return h >>> 0
+}
+
 /**
  * Campeonatos nacionales de un país: hasta 4 pruebas (Elite y Sub-23, en Crono y en Ruta) durante la
  * semana del campeonato. Cada una es de un día con pelotón individual del país (lo arma la capa de
- * datos con los mejores; el Sub-23 filtra por edad). Se escalonan: crono Elite, crono Sub-23, ruta
- * Sub-23 y ruta Elite, para que nadie coincida en dos el mismo día.
+ * datos con los mejores; el Sub-23 filtra por edad).
+ *
+ * Como en la realidad, la semana del campeonato reparte las CRONOS entre semana y las RUTAS el fin de
+ * semana, con hueco entre unas y otras (no cuatro pruebas en cuatro días seguidos). Que el Sub-23
+ * comparta día con la Elite o tenga el suyo propio VARÍA por país (las grandes federaciones lo
+ * separan; muchas pequeñas lo juntan): la RUTA Elite es el domingo ancla, y según el país las cronos
+ * y la ruta Sub-23 caen el mismo día que la Elite o un día antes. Determinista por código de país.
  */
 function nationalChampionships(code: string, name: string): CalendarRace[] {
   const override = NATIONALS_ROAD_OVERRIDE[code]
   const roadDay = override ? doy(override[0], override[1]) : NATIONALS_ROAD_DAY
+  // Tres patrones reales de reparto de la semana (por país):
+  //  0 → todo doblado: Elite y Sub-23 comparten día por disciplina (crono jueves, ruta domingo) = 2 días.
+  //  1 → ruta Sub-23 el sábado; cronos juntas el jueves = 3 días.
+  //  2 → todo separado: crono Elite miércoles, crono Sub-23 jueves, ruta Sub-23 sábado, ruta Elite domingo = 4 días.
+  const pattern = ncHash(code) % 3
+  const eliteIttDay = pattern === 2 ? roadDay - 4 : roadDay - 3 // crono Elite: jueves (miércoles si todo separado)
+  const u23IttDay = roadDay - 3 // crono Sub-23: jueves (casi siempre el mismo día que la Elite)
+  const u23RoadDay = pattern === 0 ? roadDay : roadDay - 1 // ruta Sub-23: domingo (con Elite) o sábado
   const base = (
     id: string,
     label: string,
@@ -253,18 +276,12 @@ function nationalChampionships(code: string, name: string): CalendarRace[] {
   }
   const cc = code.toLowerCase()
   return [
-    base(`nc-${cc}-itt`, 'ITT Championship', roadDay - 3, 'elite', itt(38, `nc-${cc}-itt`)),
-    base(
-      `nc-${cc}-u23-itt`,
-      'U23 ITT Championship',
-      roadDay - 2,
-      'u23',
-      itt(30, `nc-${cc}-u23-itt`),
-    ),
+    base(`nc-${cc}-itt`, 'ITT Championship', eliteIttDay, 'elite', itt(38, `nc-${cc}-itt`)),
+    base(`nc-${cc}-u23-itt`, 'U23 ITT Championship', u23IttDay, 'u23', itt(30, `nc-${cc}-u23-itt`)),
     base(
       `nc-${cc}-u23-road`,
       'U23 Road Championship',
-      roadDay - 1,
+      u23RoadDay,
       'u23',
       classic(180, `nc-${cc}-u23-road`),
     ),
