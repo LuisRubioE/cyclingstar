@@ -122,3 +122,68 @@ describe('simulateStage — etapa llana (Paso 24)', () => {
     expect(again.results[0]!.riderId).toBe(out.results[0]!.riderId)
   })
 })
+
+describe('trabajo de equipo (SPEC 6.18)', () => {
+  // Dos sprinters idénticos; solo uno lleva un tren de dos lanzadores que le lanzan en meta.
+  function leadOutInput(): StageInput {
+    const riders: StageRider[] = []
+    for (const id of ['spr-train', 'spr-alone']) {
+      riders.push(
+        rider(id, {
+          eff0: eff(55, { SPR: 82, LLA: 70 }),
+          orders: orders({ role: 'sprinter', contestSprints: false }),
+        }),
+      )
+    }
+    // Dos lanzadores para spr-train (buen llano para no descolgarse del grupo de meta).
+    for (let i = 0; i < 2; i++) {
+      riders.push(
+        rider(`lead-${i}`, {
+          eff0: eff(58, { LLA: 74 }),
+          orders: orders({ role: 'lanzador', targetRiderId: 'spr-train' }),
+        }),
+      )
+    }
+    for (let i = 0; i < 36; i++) riders.push(rider(`pel-${i}`, { eff0: eff(50 + (i % 6)) }))
+    return { profile: { segments: [{ km: 100, tipo: 'llano' }] }, riders }
+  }
+
+  it('un sprinter con tren de lanzadores gana la llegada masiva más que uno idéntico sin tren', { timeout: 30000 }, () => {
+    let train = 0
+    let alone = 0
+    for (let s = 0; s < 60; s++) {
+      const seed = stageSeed({ worldSeed: `lo-${s}`, raceId: 'lo', stageDay: 1, engineVersion: 1 })
+      const out = simulateStage(leadOutInput(), seed)
+      const posTrain = out.results.find((r) => r.riderId === 'spr-train')!.puesto
+      const posAlone = out.results.find((r) => r.riderId === 'spr-alone')!.puesto
+      if (posTrain < posAlone) train++
+      else alone++
+    }
+    // El tren no es garantía (piernas del día, ruido del sprint) pero inclina claramente la balanza.
+    expect(train).toBeGreaterThan(alone)
+    expect(train).toBeGreaterThanOrEqual(38) // ≳63% de las etapas
+  })
+
+  // Dos líderes idénticos; solo uno lleva tres gregarios que le arropan en el pelotón.
+  function domestiqueInput(): StageInput {
+    const riders: StageRider[] = []
+    for (let i = 0; i < 3; i++) {
+      riders.push(rider(`greg-${i}`, { orders: orders({ role: 'gregario', targetRiderId: 'cap-a' }) }))
+    }
+    for (let i = 0; i < 34; i++) riders.push(rider(`pel-${i}`, { eff0: eff(50 + (i % 6)) }))
+    // Los dos capitanes al final del campo: quedan fuera de la fracción que releva (25%), así ambos
+    // van protegidos y la única diferencia es la protección extra de los gregarios de cap-a.
+    for (const id of ['cap-a', 'cap-b']) {
+      riders.push(rider(id, { eff0: eff(62, { LLA: 66 }), orders: orders({ role: 'lider' }) }))
+    }
+    return { profile: { segments: [{ km: 120, tipo: 'llano' }] }, riders }
+  }
+
+  it('un líder arropado por gregarios gasta menos energía que uno idéntico sin equipo', () => {
+    const seed = stageSeed({ worldSeed: 'dom', raceId: 'dom', stageDay: 1, engineVersion: 1 })
+    const out = simulateStage(domestiqueInput(), seed)
+    const workA = out.workUnits.get('cap-a')!
+    const workB = out.workUnits.get('cap-b')!
+    expect(workA).toBeLessThan(workB)
+  })
+})
