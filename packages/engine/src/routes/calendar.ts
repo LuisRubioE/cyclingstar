@@ -751,7 +751,12 @@ function buildRace(row: RaceRow): CalendarRace {
     }
   }
   if (!row.stages || row.stages <= 1) {
-    const spec = oneDaySpec(row.terrain ?? 'flat', row.km ?? 210, row.id)
+    // Una clásica con rasgos reales autorizados (puertos y cotas de verdad) usa su altimetría fiel;
+    // el resto se genera por terreno. Sigue siendo una prueba de un día.
+    const terrain = row.terrain ?? 'flat'
+    const km = row.km ?? 210
+    const f = STAGE_FEATURES[row.id]?.[0]
+    const spec = f ? featureSpec(terrain, km, f, row.id) : oneDaySpec(terrain, km, row.id)
     return { ...common, format: 'un-dia', stages: [{ ...spec, index: 1, name: row.name }] }
   }
   return {
@@ -934,7 +939,7 @@ const WT_TABLE: RaceRow[] = [
     d: 26,
     raceClass: 'WT',
     terrain: 'classic',
-    km: 255,
+    km: 260,
   },
   {
     id: 'race-romandy',
