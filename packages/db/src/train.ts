@@ -42,6 +42,14 @@ export async function trainWorldDay(
   const currentSeason = seasonPosition(gameDay).season
   const riderRows = await tx.select().from(riders).where(eq(riders.worldId, worldId))
 
+  // Quien está de VIAJE hoy (vuelta de una carrera lejana) no entrena: el viaje le cuesta días de
+  // entrenamiento. Se suma al `skip` (que ya trae a quienes han corrido hoy).
+  const noTrain = new Set(skip)
+  for (const rider of riderRows) {
+    if (rider.travelUntilDay != null && rider.travelUntilDay >= gameDay) noTrain.add(rider.id)
+  }
+  skip = noTrain
+
   // Lecturas en lote para no hacer O(corredores) consultas por día (Paso 41, rendimiento del tick):
   // atributos, genoma y órdenes del día del mundo entero en tres consultas.
   const attrRows = await tx

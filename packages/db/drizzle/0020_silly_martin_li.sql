@@ -1,0 +1,1 @@
+ALTER TABLE "riders" ADD COLUMN "travel_until_day" integer;

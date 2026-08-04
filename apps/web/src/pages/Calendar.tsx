@@ -39,6 +39,7 @@ function RaceCard({ race }: { race: CalendarRaceSummary }) {
           <span className="w-16 shrink-0 text-xs tabular-nums text-slate-400">
             GD {race.startDay}
           </span>
+          {race.country && <Flag code={race.country} size={16} />}
           <span className="text-sm font-semibold text-slate-800">{race.name}</span>
           <span
             className={`rounded-full px-2 py-0.5 text-xs font-medium ${LEVEL_BADGE[race.level]}`}
@@ -183,71 +184,45 @@ function NationalChampsCard({ races }: { races: CalendarRaceSummary[] }) {
   )
 }
 
-const MONTH_NAMES = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
+type CalFilter = 'all' | 'WT' | 'Pro' | 'CON' | 'NC'
+const FILTERS: { key: CalFilter; label: string }[] = [
+  { key: 'all', label: 'All' },
+  { key: 'WT', label: 'WorldTour' },
+  { key: 'Pro', label: 'ProSeries' },
+  { key: 'CON', label: 'Continental' },
+  { key: 'NC', label: 'Championships' },
 ]
-/** Último día (del año) de cada mes acumulado; convierte un día 1..365 en índice de mes 0..11. */
-const MONTH_END = [31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365]
-function monthOfDay(day: number): number {
-  for (let m = 0; m < MONTH_END.length; m++) if (day <= MONTH_END[m]!) return m
-  return 11
+/** ¿Encaja la carrera en el filtro elegido? (los campeonatos van en su propio filtro). */
+function matchesFilter(race: CalendarRaceSummary, f: CalFilter): boolean {
+  if (f === 'all') return true
+  if (f === 'WT') return race.raceClass === 'WT'
+  if (f === 'Pro') return race.raceClass === 'Pro'
+  if (f === 'CON') return race.raceClass === '1' || race.raceClass === '2'
+  return false
 }
 
-/** El calendario de la temporada: carreras base + los campeonatos nacionales, por día (Paso 34). */
+/** El calendario de la temporada: carreras base + los campeonatos nacionales, filtrables (Paso 34). */
 export function Calendar() {
   const { data, isPending, isError } = useQuery({ queryKey: ['calendar'], queryFn: fetchCalendar })
+  const [filter, setFilter] = useState<CalFilter>('all')
 
   if (isPending) return <p className="text-slate-500">Loading…</p>
   if (isError) return <p className="text-red-600">Could not load the calendar.</p>
 
   const nationals = data.races.filter((r) => r.championshipCountry)
-  const others = data.races.filter((r) => !r.championshipCountry)
-
-  // Las carreras ya disputadas (día anterior a hoy) se atenúan para destacar lo que viene.
-  const isPast = (day: number) => data.dayOfSeason != null && day < data.dayOfSeason
-  const dim = (key: string, day: number, node: ReactElement) =>
-    isPast(day) ? (
-      <div key={key} className="opacity-55">
-        {node}
-      </div>
-    ) : (
-      node
-    )
-
-  // Insertamos el grupo de campeonatos nacionales en su día dentro del orden cronológico.
-  const items: { day: number; node: ReactElement }[] = others.map((race) => ({
-    day: race.startDay,
-    node: dim(race.id, race.startDay, <RaceCard key={race.id} race={race} />),
-  }))
-  if (nationals.length > 0) {
-    items.push({
-      day: Math.min(...nationals.map((r) => r.startDay)),
-      node: <NationalChampsCard key="nc-group" races={nationals} />,
-    })
-  }
-  items.sort((a, b) => a.day - b.day)
-
+  const others = data.races
+    .filter((r) => !r.championshipCountry && matchesFilter(r, filter))
+    .sort((a, b) => a.startDay - b.startDay)
   const nationCount = new Set(nationals.map((r) => r.championshipCountry)).size
 
-  // Cabeceras de mes: el calendario es largo (400+ carreras), así que separamos por mes para ojear.
-  // Y un marcador "hoy" en su punto de la temporada para situarse de un vistazo.
+  // Carreras ya disputadas (antes de hoy) atenuadas; un marcador "hoy" (por día de juego, no mes real)
+  // separa lo corrido de lo que viene. Los campeonatos nacionales tienen su propio filtro y NO se
+  // inyectan en la línea temporal (así no aparecen todos amontonados en su primera fecha).
   const today = data.dayOfSeason
   const rows: ReactElement[] = []
-  let lastMonth = -1
   let todayMarked = false
-  for (const it of items) {
-    if (today != null && !todayMarked && it.day > today) {
+  for (const race of others) {
+    if (today != null && !todayMarked && race.startDay > today) {
       rows.push(
         <div
           key="today"
@@ -259,31 +234,56 @@ export function Calendar() {
       )
       todayMarked = true
     }
-    const month = monthOfDay(it.day)
-    if (month !== lastMonth) {
-      rows.push(
-        <div
-          key={`m-${month}`}
-          className="sticky top-0 z-10 border-b border-slate-200 bg-slate-50/95 px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-slate-400 backdrop-blur"
-        >
-          {MONTH_NAMES[month]}
-        </div>,
-      )
-      lastMonth = month
-    }
-    rows.push(it.node)
+    const past = today != null && race.startDay < today
+    rows.push(
+      past ? (
+        <div key={race.id} className="opacity-55">
+          <RaceCard race={race} />
+        </div>
+      ) : (
+        <RaceCard key={race.id} race={race} />
+      ),
+    )
   }
 
   return (
     <section className="space-y-4">
       <SectionBar>Season calendar</SectionBar>
       <p className="text-sm text-slate-500">
-        {others.length} races plus national championships for {nationCount} nations — grand tours,
-        stage races, one-day classics and every nation's Elite &amp; U23 titles.
+        {data.races.length - nationals.length} races plus national championships for {nationCount}{' '}
+        nations — grand tours, stage races, one-day classics and every nation's Elite &amp; U23
+        titles.
       </p>
-      <Panel title="Races" bodyClassName="p-0">
-        {rows}
-      </Panel>
+
+      <div className="flex flex-wrap gap-2">
+        {FILTERS.map((f) => (
+          <button
+            key={f.key}
+            onClick={() => setFilter(f.key)}
+            className={`rounded-full px-3 py-1 text-sm font-medium transition ${
+              filter === f.key
+                ? 'bg-brand-navy text-white'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      {filter === 'NC' ? (
+        <Panel title="National championships" bodyClassName="p-0">
+          <NationalChampsCard races={nationals} />
+        </Panel>
+      ) : (
+        <Panel title="Races" bodyClassName="p-0">
+          {rows.length > 0 ? (
+            rows
+          ) : (
+            <p className="px-4 py-6 text-center text-sm text-slate-500">No races in this filter.</p>
+          )}
+        </Panel>
+      )}
     </section>
   )
 }

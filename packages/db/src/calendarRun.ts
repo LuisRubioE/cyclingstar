@@ -6,6 +6,7 @@ import {
   SEASON_CALENDAR,
   type TeamPhilosophy,
   formStars,
+  raceLastDay,
   raceOngoingBefore,
   raceVocationFit,
   scheduledStageIndex,
@@ -321,6 +322,8 @@ async function convokeField(
   // del presupuesto al final. Los rellenos regionales (individuales, sin equipo) no lo pagan aquí.
   const raceDays = race.stages.length
   const travelByTeam = new Map<string, number>()
+  // Días de viaje por corredor (vuelta de la carrera): buckets 1 (continental) / 2 (intercontinental).
+  const travelReturn = new Map<number, string[]>()
   const rosterValues: { raceId: string; riderId: string }[] = []
   for (const team of teamRows) {
     let members = byTeam.get(team.id) ?? []
@@ -359,6 +362,8 @@ async function convokeField(
       rosterValues.push({ raceId: raceKey, riderId: id })
       const cost = raceAttendanceCost(residenceById.get(id) ?? null, race.country ?? null, raceDays)
       if (cost.money > 0) travelByTeam.set(team.id, (travelByTeam.get(team.id) ?? 0) + cost.money)
+      if (cost.days > 0)
+        (travelReturn.get(cost.days) ?? travelReturn.set(cost.days, []).get(cost.days)!).push(id)
     }
   }
 
@@ -405,6 +410,17 @@ async function convokeField(
         .update(teams)
         .set({ budget: sql`${teams.budget} - ${money}` })
         .where(eq(teams.id, teamId))
+    }
+  }
+  // Marca los días de viaje de vuelta: el corredor no entrena hasta `último día de carrera + días de
+  // viaje`. Así el viaje lejano le cuesta días de entrenamiento (además del dinero al equipo).
+  const lastRaceDay = season * SEASON_DAYS + raceLastDay(race)
+  for (const [days, ids] of travelReturn) {
+    if (ids.length > 0) {
+      await tx
+        .update(riders)
+        .set({ travelUntilDay: lastRaceDay + days })
+        .where(inArray(riders.id, ids))
     }
   }
   return rosterValues.map((v) => v.riderId)
@@ -457,6 +473,13 @@ async function convokeSelfEntries(
       .onConflictDoNothing()
     if (cost.money > 0) {
       await creditRider(tx, r.riderId, gameDay, 'viaje', -cost.money, `${race.name} · travel`)
+    }
+    // Días de viaje de vuelta: el agente libre tampoco entrena hasta volver de una carrera lejana.
+    if (cost.days > 0) {
+      await tx
+        .update(riders)
+        .set({ travelUntilDay: season * SEASON_DAYS + raceLastDay(race) + cost.days })
+        .where(eq(riders.id, r.riderId))
     }
     await tx
       .update(raceEntries)

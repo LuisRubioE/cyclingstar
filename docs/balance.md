@@ -161,7 +161,11 @@ perillas ajustables.
   contrato en la base) + salarios reales de los humanos + alquileres cubiertos. Se descuenta del
   presupuesto cada semana. El patrocinio se dimensionó para cubrir a grandes rasgos una plantilla
   completa, de modo que el margen y los VIAJES marcan la diferencia.
-- Sin ingresos por resultados ni gastos de staff todavía (diferidos).
+- **Premios de carrera al EQUIPO** (`teamStagePrize`/`teamGcPrizes`, escala del presupuesto): ganar
+  etapas y generales da ingresos al equipo, no solo el patrocinio. Etapa WT 3.000 / Pro 1.500 /
+  CON 500; general WT 25.000 / Pro 12.000 / CON 4.000 al líder, decreciente. Van a todos los equipos
+  (NPC o humano); el corredor humano cobra además su premio personal (escala de corredor). Sin gastos
+  de staff todavía (diferido).
 
 ### Draft de calendario del equipo (`teamRacePlan`, `ownedTeamAttendance`)
 
@@ -169,12 +173,17 @@ perillas ajustables.
   continentales de su continente; un WorldTour las .WT; un ProTeam las .Pro. El manager solo guarda
   EXCEPCIONES (`attend`): saltar una natural o añadir una de fuera. Los bots van en automático.
 
+### Hecho después
+
+- **Penalización de entrenamiento por días de viaje** (`travel_until_day`): al ir a (o auto-inscribirse
+  en) una carrera lejana, los días de viaje de vuelta (fin de carrera +1 continental / +2
+  intercontinental) se marcan y `trainWorldDay` no entrena al corredor esos días. Las carreras de casa
+  no cuestan días. Validado: los corredores marcan sus días de viaje y ninguno se queda bloqueado.
+
 ### Diferido (con razón)
 
-- **Penalización de entrenamiento por días de viaje**: los días de viaje reducirían el entrenamiento;
-  toca la progresión de forma de todo el mundo (sensible), así que se deja para validar con el usuario.
 - **Decisión de bots por coste/beneficio**: el modelo `attendanceDecision` existe (valor esperado vs
   coste), pero no se usa para que los bots SALTEN carreras: la composición continental (mayoría
   regional + wildcards acotadas) ya está calibrada y no se quiere desestabilizar.
-- **Ingresos por resultados / ascensos por puntos**: el ascenso/descenso es por fuerza de plantilla
-  (fama), no por puntos de temporada; cambiarlo es una decisión de diseño pendiente.
+- **Ascensos por puntos**: el ascenso/descenso es por fuerza de plantilla (fama), no por puntos de
+  temporada; cambiarlo es una decisión de diseño pendiente.

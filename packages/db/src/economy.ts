@@ -4,6 +4,8 @@ import {
   gcPrizes,
   npcWageBill,
   stagePrize,
+  teamGcPrizes,
+  teamStagePrize,
 } from '@cyclingstar/engine'
 import type { RaceLevel } from '@cyclingstar/engine'
 import { HOUSING_RENT_PER_WEEK, weeklyHousingCost } from '@cyclingstar/shared'
@@ -140,14 +142,24 @@ export async function awardRacePrizes(
   gcOrder: string[],
 ): Promise<void> {
   const ids = [...new Set([stageWinnerId, ...gcOrder.slice(0, gcPrizes(level).length)])]
-  const humans = new Set(
-    (
+  const rows = await tx
+    .select({ id: riders.id, userId: riders.userId, teamId: riders.teamId })
+    .from(riders)
+    .where(inArray(riders.id, ids))
+  const humans = new Set(rows.filter((r) => r.userId != null).map((r) => r.id))
+  const teamByRider = new Map(rows.map((r) => [r.id, r.teamId]))
+
+  // Premio personal del CORREDOR humano (a su bolsillo) + premio de EQUIPO (a su presupuesto): los
+  // resultados dan ingresos al equipo, no solo el patrocinio. El de equipo va a todos (NPC o humano).
+  const creditTeam = async (riderId: string, amount: number) => {
+    const teamId = teamByRider.get(riderId)
+    if (teamId) {
       await tx
-        .select({ id: riders.id })
-        .from(riders)
-        .where(and(isNotNull(riders.userId), inArray(riders.id, ids)))
-    ).map((r) => r.id),
-  )
+        .update(teams)
+        .set({ budget: sql`${teams.budget} + ${amount}` })
+        .where(eq(teams.id, teamId))
+    }
+  }
 
   if (humans.has(stageWinnerId)) {
     await creditRider(
@@ -159,13 +171,16 @@ export async function awardRacePrizes(
       `${raceName} · stage win`,
     )
   }
+  await creditTeam(stageWinnerId, teamStagePrize(level))
   if (isFinalStage) {
     const prizes = gcPrizes(level)
+    const teamPrizes = teamGcPrizes(level)
     for (let i = 0; i < gcOrder.length && i < prizes.length; i++) {
       const riderId = gcOrder[i]!
       if (humans.has(riderId)) {
         await creditRider(tx, riderId, gameDay, 'premio', prizes[i]!, `${raceName} · GC #${i + 1}`)
       }
+      await creditTeam(riderId, teamPrizes[i]!)
     }
   }
 }
