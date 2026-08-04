@@ -34,18 +34,29 @@ function ttPerfil(eff: Eff, block: Block): number {
 export function simulateTimeTrial(input: StageInput, seed: string): StageOutput {
   const streams = stageRng(seed)
   const rngNoise = streams('tt')
+  const rngDay = streams('day')
   const blocks = sampleProfile(input.profile)
   const log = new EventLog()
   const workUnits = new Map<string, number>()
 
   const finishers = input.riders.map((rider) => {
+    // Piernas del día: escala el nivel efectivo del corredor esta crono (SPEC 6.7), como en carretera.
+    const dayFactor = Math.max(
+      1 - 3 * STAGE.dayFormSd,
+      Math.min(1 + 3 * STAGE.dayFormSd, normal(rngDay, 1, STAGE.dayFormSd)),
+    )
+    const eff0 = {} as Eff
+    for (const k in rider.eff0) {
+      const key = k as keyof Eff
+      eff0[key] = Math.max(0, Math.min(100, rider.eff0[key] * dayFactor))
+    }
     let energy = rider.energy
     let vActual: number = STAGE.initialSpeed
     let tS = 0
     let work = 0
     for (const block of blocks) {
-      const e = erosion(energy, rider.energy, rider.eff0.RES)
-      const eff = effNow(rider.eff0, e)
+      const e = erosion(energy, rider.energy, eff0.RES)
+      const eff = effNow(eff0, e)
       const perfil = ttPerfil(eff, block)
       const vObj = targetSpeed(block, perfil, STAGE.ttCommitment)
       const dtIn = blockSeconds(vActual)
