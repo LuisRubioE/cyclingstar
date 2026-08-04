@@ -224,6 +224,7 @@ interface FieldTeamRow {
   division: Division
   country: string | null
   ownerUserId: string | null
+  jerseySeed: string
 }
 
 /**
@@ -250,6 +251,7 @@ async function resolveFieldTeams(
       division: teams.division,
       country: teams.country,
       ownerUserId: teams.ownerUserId,
+      jerseySeed: teams.jerseySeed,
     })
     .from(teams)
     .where(and(eq(teams.worldId, worldId), inArray(teams.division, race.openTo)))
@@ -576,6 +578,8 @@ export interface StartlistTeam {
   name: string
   country: string | null
   division: Division
+  /** Semilla del maillot del equipo (para pintar su kit). */
+  jerseySeed: string
   riders: StartlistRider[]
 }
 /** Lista de inscritos de una carrera por empezar. */
@@ -616,6 +620,7 @@ export async function predictStartlist(
         teamName: teams.name,
         teamCountry: teams.country,
         teamDivision: teams.division,
+        teamJersey: teams.jerseySeed,
         bib: raceRosters.bib,
       })
       .from(raceRosters)
@@ -641,6 +646,7 @@ export async function predictStartlist(
               name: r.teamName,
               country: r.teamCountry,
               division: r.teamDivision as Division,
+              jerseySeed: r.teamJersey ?? '',
               riders: [],
               minBib: Number.POSITIVE_INFINITY,
             }
@@ -670,6 +676,7 @@ export async function predictStartlist(
           name: t.name,
           country: t.country,
           division: t.division,
+          jerseySeed: t.jerseySeed,
           riders: t.riders,
         })),
         freeAgents,
@@ -698,6 +705,7 @@ export async function predictStartlist(
         name: t.name,
         country: t.country,
         division: t.division,
+        jerseySeed: t.jerseySeed,
         riders: [],
       })),
       freeAgents: fa.map((r) => ({
@@ -872,7 +880,11 @@ async function lockUpcomingRosters(
       .from(raceRosters)
       .where(eq(raceRosters.raceId, raceKey))
       .limit(1)
-    if (already.length > 0) continue // ya congelada
+    if (already.length > 0) {
+      // Ya congelada: solo corrige si trae más equipos de los que admite el cupo actual.
+      await refreezeIfOverfilled(tx, worldId, worldSeed, race, season)
+      continue
+    }
     await freezeRaceRoster(tx, worldId, worldSeed, race, season, gameDay)
   }
 }
@@ -896,6 +908,43 @@ async function freezeRaceRoster(
     : await convokeField(tx, worldId, race, raceKey, worldSeed, season, busy)
   for (const id of enrolled) busy.add(id)
   await convokeSelfEntries(tx, worldId, race, raceKey, busy, season, gameDay)
+  await assignBibs(tx, race, season)
+}
+
+/**
+ * Corrige una escuadra ya congelada cuyo pelotón trae MÁS equipos de los que admite el cupo actual
+ * (p.ej. carreras congeladas antes de recortar las wildcards): vuelve a convocar solo los equipos con
+ * el cupo nuevo, preservando a los agentes libres ya inscritos (no se les recobra el viaje). No toca las
+ * carreras que ya cumplen el cupo (converge en una pasada) ni los campeonatos nacionales (sin equipos).
+ */
+async function refreezeIfOverfilled(
+  tx: Tx,
+  worldId: string,
+  worldSeed: string,
+  race: CalendarRace,
+  season: number,
+): Promise<void> {
+  if (race.championshipCountry) return
+  const raceKey = `${race.id}:s${season}`
+  const teamRiders = await tx
+    .select({ riderId: raceRosters.riderId, teamId: riders.teamId })
+    .from(raceRosters)
+    .innerJoin(riders, eq(riders.id, raceRosters.riderId))
+    .where(and(eq(raceRosters.raceId, raceKey), isNotNull(riders.teamId)))
+  const frozenTeams = new Set(teamRiders.map((r) => r.teamId))
+  if (frozenTeams.size === 0) return
+  const desired = await resolveFieldTeams(tx, worldId, race, raceKey, season)
+  if (frozenTeams.size <= desired.teamRows.length) return // ya cumple el cupo, nada que recortar
+
+  // Sobran equipos: borra las filas de los corredores CON equipo (preserva agentes libres) y reconvoca.
+  const ids = teamRiders.map((r) => r.riderId)
+  if (ids.length > 0) {
+    await tx
+      .delete(raceRosters)
+      .where(and(eq(raceRosters.raceId, raceKey), inArray(raceRosters.riderId, ids)))
+  }
+  const busy = await busyForRaceWindow(tx, race, season)
+  await convokeField(tx, worldId, race, raceKey, worldSeed, season, busy)
   await assignBibs(tx, race, season)
 }
 
@@ -926,7 +975,11 @@ export async function ensureRaceRosterFrozen(
       .from(raceRosters)
       .where(eq(raceRosters.raceId, raceKey))
       .limit(1)
-    if (already.length > 0) return
+    if (already.length > 0) {
+      // Ya congelada: corrige el exceso de equipos si lo hay (carreras congeladas antes del recorte).
+      await refreezeIfOverfilled(tx, worldId, worldSeed, race, season)
+      return
+    }
     await freezeRaceRoster(tx, worldId, worldSeed, race, season, gameDay)
   })
 }
