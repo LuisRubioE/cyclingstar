@@ -119,7 +119,11 @@ export function renderAltimetrySvg(profile: StageProfile, options: AltimetryOpti
     .slice()
     .sort((a, b) => a.km - b.km)
     .map((b) => {
-      const xn = toX(b.km)
+      // Blindaje: un banner nunca se dibuja fuera del recorrido. Si un dato tuviera la cima en un km
+      // mayor que la distancia de la etapa (p.ej. una errata al teclear un puerto), se ancla al final
+      // en vez de pintarse pasada la meta (que es lo que producía el "HC en el km 187" de una etapa de 185).
+      const km = Math.min(Math.max(b.km, 0), totalKm)
+      const xn = toX(km)
       const x = xn.toFixed(1)
       const label = bannerLabel(profile, b)
       const color = b.tipo === 'cima' ? '#dc2626' : '#16a34a'
