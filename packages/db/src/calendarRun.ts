@@ -63,6 +63,15 @@ function squadFor(race: CalendarRace): { size: number; min: number } {
   if (race.raceClass === '1' || race.raceClass === '2') return { size: 6, min: 5 }
   return { size: 7, min: 7 }
 }
+
+/**
+ * Condición de "apto para correr": excluye a los ENFERMOS y LESIONADOS (SPEC 6.14, 4.3). Un corredor
+ * con molestias leves sí puede tomar la salida (rinde algo peor por su eff), pero uno de baja se queda
+ * en casa hasta recuperarse. La recuperación la hace el entrenamiento del tick al pasar su healthUntilDay.
+ */
+function fitToRace() {
+  return notInArray(riders.health, ['enfermo', 'lesionado'])
+}
 /**
  * Tamaño objetivo del pelotón según la clase de carrera (acota el cómputo del motor y refleja la
  * realidad de cada nivel): una .WT junta ~22 equipos (los 18 WorldTour + wildcards Pro), una .Pro
@@ -148,7 +157,14 @@ async function convokeNationalField(
   const pool = await tx
     .select({ id: riders.id, birthSeason: riders.birthSeason, userId: riders.userId })
     .from(riders)
-    .where(and(eq(riders.worldId, worldId), eq(riders.country, country), isNull(riders.retiredAt)))
+    .where(
+      and(
+        eq(riders.worldId, worldId),
+        eq(riders.country, country),
+        isNull(riders.retiredAt),
+        fitToRace(),
+      ),
+    )
     .orderBy(desc(riders.fame))
     .limit(NATIONAL_FIELD_CAP * 3)
   // El sub-23 solo admite corredores de 23 años o menos (edad = 20 - birthSeason + temporada).
@@ -395,7 +411,7 @@ async function convokeField(
       country: riders.country,
     })
     .from(riders)
-    .where(and(inArray(riders.teamId, teamIds), isNull(riders.retiredAt)))
+    .where(and(inArray(riders.teamId, teamIds), isNull(riders.retiredAt), fitToRace()))
   const byTeam = new Map<string, typeof candidates>()
   for (const c of candidates) {
     if (!c.teamId) continue
@@ -504,6 +520,7 @@ async function convokeField(
       eq(riders.worldId, worldId),
       inArray(riders.country, countries),
       isNull(riders.retiredAt),
+      fitToRace(),
       // SOLO NPCs: el relleno son las "selecciones nacionales / equipos club" del continente. Un
       // humano entra por convocatoria de su equipo o por auto-inscripción (que le cobra el viaje);
       // si se colara aquí, correría gratis y saltaría su opt-in/economía de agente libre.
@@ -591,6 +608,7 @@ async function convokeSelfEntries(
         isNull(riders.teamId),
         isNotNull(riders.userId),
         isNull(riders.retiredAt),
+        fitToRace(),
       ),
     )
   const raceDays = race.stages.length

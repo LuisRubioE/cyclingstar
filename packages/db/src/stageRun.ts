@@ -14,7 +14,7 @@ import {
   stageTss,
 } from '@cyclingstar/engine'
 import { ATTRIBUTES, type Attribute } from '@cyclingstar/shared'
-import { and, asc, eq, inArray } from 'drizzle-orm'
+import { and, asc, eq, inArray, isNull } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import { awardRacePrizes } from './economy.js'
 import { emitNews } from './news.js'
@@ -85,7 +85,14 @@ export async function runOneStage(
     .select({ riderId: raceRosters.riderId })
     .from(raceRosters)
     .innerJoin(riders, eq(riders.id, raceRosters.riderId))
-    .where(and(eq(raceRosters.raceId, spec.raceKey), eq(riders.worldId, worldId)))
+    .where(
+      and(
+        eq(raceRosters.raceId, spec.raceKey),
+        eq(riders.worldId, worldId),
+        // Un corredor que abandonó en una etapa anterior está fuera del resto de la vuelta (SPEC 6.14).
+        isNull(raceRosters.abandonedDay),
+      ),
+    )
   const riderIds = roster.map((r) => r.riderId)
   if (riderIds.length === 0) return new Set()
 
@@ -303,8 +310,67 @@ export async function runOneStage(
     tx.insert(riderAttrLog).values(chunk).onConflictDoNothing(),
   )
 
+  // Consecuencias de las caídas (SPEC 6.14): una caída con baja deja al corredor LESIONADO varios días
+  // (rinde peor y puede perderse próximas carreras); las más graves obligan a ABANDONAR la vuelta.
+  await applyIncidents(tx, worldId, gameDay, spec.raceKey, output.incidents, riderById)
+
   await awardOutcome(tx, worldId, gameDay, spec, output)
   return raced
+}
+
+/** Umbral de baja (días) a partir del cual una caída obliga a abandonar la carrera. */
+const ABANDON_DAYS_THRESHOLD = 15
+
+/**
+ * Aplica las incidencias de la etapa (SPEC 6.14): marca al corredor LESIONADO hasta `gameDay+diasBaja`
+ * (sin acortar una baja mayor ya vigente) y, si la caída es grave, lo hace ABANDONAR la carrera
+ * (no toma la salida en las etapas siguientes). Emite una noticia de lesión por corredor afectado.
+ */
+async function applyIncidents<
+  R extends { name: string; health: string; healthUntilDay: number | null },
+>(
+  tx: Tx,
+  worldId: string,
+  gameDay: number,
+  raceKey: string,
+  incidents: Awaited<ReturnType<typeof simulateStage>>['incidents'],
+  riderById: Map<string, R>,
+): Promise<void> {
+  if (incidents.length === 0) return
+  // Peor incidencia por corredor (la de más días de baja manda).
+  const worst = new Map<string, (typeof incidents)[number]>()
+  for (const inc of incidents) {
+    const prev = worst.get(inc.riderId)
+    if (!prev || inc.diasBaja > prev.diasBaja) worst.set(inc.riderId, inc)
+  }
+  for (const [riderId, inc] of worst) {
+    if (inc.diasBaja <= 0) continue // un susto sin baja: solo pierde tiempo en la etapa, sin secuelas.
+    const rider = riderById.get(riderId)
+    const until = gameDay + inc.diasBaja
+    const currentUntil =
+      rider && (rider.health === 'lesionado' || rider.health === 'enfermo')
+        ? (rider.healthUntilDay ?? 0)
+        : 0
+    await tx
+      .update(riders)
+      .set({ health: 'lesionado', healthUntilDay: Math.max(currentUntil, until) })
+      .where(eq(riders.id, riderId))
+
+    const abandons = inc.severidad === 'major' || inc.diasBaja >= ABANDON_DAYS_THRESHOLD
+    if (abandons) {
+      await tx
+        .update(raceRosters)
+        .set({ abandonedDay: gameDay })
+        .where(and(eq(raceRosters.raceId, raceKey), eq(raceRosters.riderId, riderId)))
+    }
+    await emitNews(tx, {
+      worldId,
+      gameDay,
+      kind: 'injury',
+      seed: `injury:${raceKey}:${gameDay}:${riderId}`,
+      data: { rider: rider?.name ?? 'A rider' },
+    })
+  }
 }
 
 /** Premios, noticias, puntos y palmarés de la etapa (SPEC 9, Paso 38-40). */
