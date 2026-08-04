@@ -47,6 +47,8 @@ export interface RaceView {
     country?: string | null
   }
   stages: RaceStagePlan[]
+  /** Índices de etapa (1-based) tras los que hay día de descanso (vacío si no tiene). */
+  restAfter: number[]
   gc: GcRow[]
   stageWinners: StageWinner[]
   history: RaceHonour[]

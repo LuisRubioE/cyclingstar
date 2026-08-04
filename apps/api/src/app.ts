@@ -981,11 +981,15 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
           altimetry: renderAltimetrySvg(stage.profile),
         }
       })
+      // Días de descanso: índices de etapa (1-based) tras los que hay descanso (grandes vueltas y
+      // alguna carrera por etapas como la Volta a Portugal). Vacío en las que no tienen.
+      const restAfter = race.restAfter ?? []
       const world = await getCurrentWorld(db)
       if (!world)
         return {
           race: { id: race.id, name: race.name, level: race.level, country: race.country ?? null },
           stages: stagePlan,
+          restAfter,
           gc: [],
           stageWinners: [],
           history: [],
@@ -1006,6 +1010,7 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
           country: race.country ?? null,
         },
         stages: stagePlan,
+        restAfter,
         gc,
         stageWinners,
         history,
