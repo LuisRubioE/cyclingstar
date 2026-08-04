@@ -1,31 +1,294 @@
 /**
- * RASGOS REALES de las etapas (los puertos puntuables y los sprints intermedios de verdad), para las
- * carreras cuya edición está documentada al detalle. De aquí sale una altimetría FIEL: cada puerto en
- * su kilómetro real, con su longitud y pendiente (de las que el motor deriva su categoría), y cada
- * meta volante en su sitio. Las etapas sin rasgos aquí caen al perfil por terreno (verosímil, no real).
+ * RASGOS REALES de las etapas (puertos puntuables y sprints intermedios reales) para las carreras
+ * documentadas al detalle. De aquí sale una altimetría FIEL: cada puerto en su km real, con su longitud
+ * y pendiente (de las que el motor deriva su categoría), y cada meta volante en su sitio. Las etapas sin
+ * rasgos aquí caen al perfil por terreno (verosímil, no real).
  *
- * Clave: id de carrera → array indexado por etapa (0-based). Un hueco `null` = esa etapa aún no tiene
- * rasgos autorizados (usa el perfil por terreno). Se amplía carrera a carrera; no se inventan datos:
- * solo se anota lo verificado del recorrido real (con nota cuando un valor es aproximado).
+ * GENERADO por scratchpad/emit-features.mjs desde los datos verificados (feat-race-*.json). NO editar a
+ * mano. Un puerto solo se anota si tiene km de cima + longitud + pendiente (si no, se descarta: no se
+ * inventa su posición). Los km marcados como aproximados en la fuente se sitúan en su punto real estimado.
+ * Clave: id de carrera -> array indexado por etapa (0-based); null = etapa con perfil por terreno.
  */
 import type { StageFeatures } from './featureProfile.js'
 
 export const STAGE_FEATURES: Record<string, (StageFeatures | null)[]> = {
-  // O Gran Camiño 2025 (race-galicia). Puertos contrastados con crónicas y prensa (cyclingstage,
-  // Cyclingnews, Diario de Pontevedra, El Progreso). El km EXACTO de las metas volantes solo figura en
-  // el roadbook oficial / la ficha de PCS, así que donde no está verificado se sitúa en su punto real
-  // aproximado (comentado) y se corregirá si se dispone del dato exacto.
+  'race-france': [
+    null,
+    {
+      climbs: [
+        { name: 'Cote de Begues', summitKm: 93, lengthKm: 6.1, avgGradient: 6.5, category: 'cat3' },
+        {
+          name: "Cote de Santa Creu d'Olorda",
+          summitKm: 132,
+          lengthKm: 8.4,
+          avgGradient: 4.5,
+          category: 'cat3',
+        },
+        {
+          name: 'Cote du Chateau de Montjuic',
+          summitKm: 148,
+          lengthKm: 1.3,
+          avgGradient: 9.3,
+          category: 'cat4',
+        },
+        {
+          name: 'Cote du Chateau de Montjuic',
+          summitKm: 158,
+          lengthKm: 1.3,
+          avgGradient: 9.3,
+          category: 'cat4',
+        },
+        {
+          name: 'Cote du Chateau de Montjuic',
+          summitKm: 166,
+          lengthKm: 1.3,
+          avgGradient: 9.3,
+          category: 'cat4',
+        },
+      ],
+    },
+    {
+      climbs: [
+        {
+          name: 'Cote de Sant Feliu de Codines',
+          summitKm: 42,
+          lengthKm: 7.6,
+          avgGradient: 4.6,
+          category: 'cat3',
+        },
+        { name: 'Col de Toses', summitKm: 128, lengthKm: 9.3, avgGradient: 6.6, category: 'cat1' },
+        {
+          name: 'Col du Calvaire',
+          summitKm: 165,
+          lengthKm: 11.4,
+          avgGradient: 4.1,
+          category: 'cat3',
+        },
+        { name: 'Les Angles', summitKm: 196, lengthKm: 4.7, avgGradient: 4.6, category: 'cat3' },
+      ],
+    },
+    {
+      climbs: [
+        { name: 'Col de Bedos', summitKm: 40, lengthKm: 3.3, avgGradient: 4.4, category: 'cat4' },
+        { name: 'Col du Paradis', summitKm: 60, lengthKm: 5.8, avgGradient: 4.1, category: 'cat3' },
+        {
+          name: 'Col de Coudons',
+          summitKm: 118,
+          lengthKm: 10.7,
+          avgGradient: 5.5,
+          category: 'cat2',
+        },
+        {
+          name: 'Col de Montsegur',
+          summitKm: 146,
+          lengthKm: 6.9,
+          avgGradient: 6.6,
+          category: 'cat2',
+        },
+      ],
+    },
+    null,
+    {
+      climbs: [
+        {
+          name: 'Cote de Loucrup',
+          summitKm: 25,
+          lengthKm: 1.9,
+          avgGradient: 7.1,
+          category: 'cat4',
+        },
+        { name: 'Cote de Mauvezin', summitKm: 42, lengthKm: 3, avgGradient: 6.8, category: 'cat3' },
+        { name: "Col d'Aspin", summitKm: 118, lengthKm: 12, avgGradient: 6.5, category: 'cat1' },
+        {
+          name: 'Col du Tourmalet',
+          summitKm: 148,
+          lengthKm: 17.1,
+          avgGradient: 7.3,
+          category: 'HC',
+        },
+        {
+          name: 'Gavarnie-Gedre',
+          summitKm: 186,
+          lengthKm: 18.7,
+          avgGradient: 3.7,
+          category: 'cat2',
+        },
+      ],
+    },
+    null,
+    null,
+    {
+      climbs: [
+        { name: 'Suc au May', summitKm: 105, lengthKm: 3.9, avgGradient: 7.7, category: 'cat2' },
+        { name: 'Mont Bessou', summitKm: 161, lengthKm: 1, avgGradient: 8.5, category: 'cat4' },
+      ],
+    },
+    {
+      climbs: [
+        {
+          name: 'Cote de Pailherols',
+          summitKm: 68,
+          lengthKm: 3.3,
+          avgGradient: 6.5,
+          category: 'cat3',
+        },
+        {
+          name: 'Col de la Griffoul',
+          summitKm: 97,
+          lengthKm: 5.9,
+          avgGradient: 6.7,
+          category: 'cat2',
+        },
+        {
+          name: 'Col de Prat de Bouc',
+          summitKm: 104,
+          lengthKm: 3.2,
+          avgGradient: 5.8,
+          category: 'cat3',
+        },
+        { name: 'Cote de Murat', summitKm: 119, lengthKm: 6.6, avgGradient: 4.4, category: 'cat3' },
+        { name: 'Col de Pertus', summitKm: 152, lengthKm: 4.4, avgGradient: 8.5, category: 'cat1' },
+        {
+          name: 'Montee du Lioran',
+          summitKm: 164,
+          lengthKm: 0.9,
+          avgGradient: 7.4,
+          category: 'cat3',
+        },
+      ],
+    },
+    null,
+    null,
+    {
+      climbs: [
+        { name: 'Col des Croix', summitKm: 157, lengthKm: 5.1, avgGradient: 4.6, category: 'cat3' },
+        {
+          name: "Ballon d'Alsace",
+          summitKm: 176,
+          lengthKm: 8.9,
+          avgGradient: 6.8,
+          category: 'cat1',
+        },
+      ],
+    },
+    {
+      climbs: [
+        { name: 'Grand Ballon', summitKm: 52, lengthKm: 21.5, avgGradient: 4.8, category: 'cat1' },
+        { name: 'Col du Page', summitKm: 100, lengthKm: 9.8, avgGradient: 4.7, category: 'cat2' },
+        {
+          name: "Ballon d'Alsace",
+          summitKm: 125,
+          lengthKm: 8.9,
+          avgGradient: 6.9,
+          category: 'cat1',
+        },
+        { name: 'Col du Haag', summitKm: 143, lengthKm: 11.2, avgGradient: 7.3, category: 'cat1' },
+      ],
+    },
+    {
+      climbs: [
+        {
+          name: 'Col de la Croisette',
+          summitKm: 134,
+          lengthKm: 4.6,
+          avgGradient: 11.2,
+          category: 'cat1',
+        },
+        {
+          name: 'Plateau de Solaison',
+          summitKm: 184,
+          lengthKm: 11.3,
+          avgGradient: 9.1,
+          category: 'HC',
+        },
+      ],
+    },
+    null,
+    {
+      climbs: [
+        { name: 'Cote de Bassa', summitKm: 19, lengthKm: 1.5, avgGradient: 5.6, category: 'cat4' },
+        { name: 'Col des Pres', summitKm: 50, lengthKm: 3.5, avgGradient: 6.8, category: 'cat3' },
+        { name: 'Col de Couz', summitKm: 60, lengthKm: 8.6, avgGradient: 2.8, category: 'cat4' },
+      ],
+    },
+    {
+      climbs: [
+        { name: "Cote d'Engins", summitKm: 37, lengthKm: 11.4, avgGradient: 5.4, category: 'cat1' },
+        {
+          name: 'Cote de Monteynard',
+          summitKm: 92,
+          lengthKm: 9.7,
+          avgGradient: 5,
+          category: 'cat2',
+        },
+        {
+          name: 'Cote des Terrasses',
+          summitKm: 113,
+          lengthKm: 3.4,
+          avgGradient: 6.6,
+          category: 'cat3',
+        },
+        {
+          name: 'Cote de Saint-Leger-les-Melezes',
+          summitKm: 166,
+          lengthKm: 2.5,
+          avgGradient: 6.9,
+          category: 'cat3',
+        },
+        {
+          name: 'Orcieres-Merlette',
+          summitKm: 185,
+          lengthKm: 7.1,
+          avgGradient: 6.7,
+          category: 'cat1',
+        },
+      ],
+    },
+    {
+      climbs: [
+        { name: 'Col Bayard', summitKm: 9, lengthKm: 4.7, avgGradient: 7.2, category: 'cat2' },
+        { name: 'Col du Noyer', summitKm: 25, lengthKm: 7.2, avgGradient: 8.5, category: 'cat1' },
+        { name: "Col d'Ornon", summitKm: 99, lengthKm: 5.4, avgGradient: 6.4, category: 'cat2' },
+        { name: "Alpe d'Huez", summitKm: 128, lengthKm: 13.8, avgGradient: 8.1, category: 'HC' },
+      ],
+    },
+    {
+      climbs: [
+        {
+          name: 'Col de la Croix de Fer',
+          summitKm: 30,
+          lengthKm: 24,
+          avgGradient: 5.2,
+          category: 'HC',
+        },
+        {
+          name: 'Col du Telegraphe',
+          summitKm: 90,
+          lengthKm: 11.9,
+          avgGradient: 7.1,
+          category: 'cat1',
+        },
+        {
+          name: 'Col du Galibier',
+          summitKm: 110,
+          lengthKm: 17.7,
+          avgGradient: 6.9,
+          category: 'HC',
+        },
+        { name: 'Col de Sarenne', summitKm: 150, lengthKm: 12.8, avgGradient: 7.3, category: 'HC' },
+        { name: "Alpe d'Huez", summitKm: 171, lengthKm: 13.8, avgGradient: 8.1, category: 'HC' },
+      ],
+      sprints: [{ name: 'Saint-Julien-Mont-Denis', km: 78 }],
+    },
+  ],
   'race-galicia': [
-    // S1 Maia -> Matosinhos, 190 km (llana): Alto de Feitos y Alto de São Félix; sprint de Barroselas.
     {
       climbs: [
         { name: 'Alto de Feitos', summitKm: 51, lengthKm: 6, avgGradient: 4.2 },
         { name: 'Alto de Sao Felix', summitKm: 144, lengthKm: 1.3, avgGradient: 6.9 },
       ],
-      sprints: [{ name: 'Barroselas', km: 67 }], // km verificado (crónica de etapa)
+      sprints: [{ name: 'Barroselas', km: 67 }],
     },
-    // S2 Marin -> A Estrada, 133 km: 3 puertos de 3ª (San Antoniño, San Vicenzo x2) y 2 de 4ª (Santa
-    // Lucia, repecho de A Estrada), sobre un circuito final de dos pasos por meta.
     {
       climbs: [
         {
@@ -58,17 +321,12 @@ export const STAGE_FEATURES: Record<string, (StageFeatures | null)[]> = {
           category: 'cat3',
         },
       ],
-      // Meta volante de Barro (pronto, junto a San Antoniño) y paso por meta de A Estrada (2 vueltas):
-      // ambas confirmadas por prensa; el km exacto es aproximado (roadbook no accesible).
       sprints: [
         { name: 'Barro', km: 16 },
         { name: 'A Estrada', km: 74 },
       ],
     },
-    // S3 Ourense -> O Pereiro de Aguiar, 16 km: crono individual, sin puertos ni metas volantes.
     null,
-    // S4 A Pobra do Brollon -> O Cebreiro, 137 km (etapa reina): Catro Ventos (2ª), A Pintinidoira (1ª)
-    // y final en alto de O Cebreiro. Km de cima derivados de "a X km de meta" en las crónicas.
     {
       climbs: [
         {
@@ -88,13 +346,137 @@ export const STAGE_FEATURES: Record<string, (StageFeatures | null)[]> = {
         { name: 'O Cebreiro', summitKm: 135, lengthKm: 2.8, avgGradient: 6.5, category: 'cat3' },
       ],
     },
-    // S5 Betanzos -> Santiago de Compostela, 160 km (media montaña + sterrato): repecho inicial y el
-    // Alto de Lampai, subido dos veces en el circuito final. Km de los pasos por Lampai aproximados.
     {
       climbs: [
         { name: 'Repecho inicial', summitKm: 14, lengthKm: 4.2, avgGradient: 6.4 },
         { name: 'Alto de Lampai', summitKm: 105, lengthKm: 5.2, avgGradient: 5.4 },
         { name: 'Alto de Lampai', summitKm: 150, lengthKm: 5.2, avgGradient: 5.4 },
+      ],
+    },
+  ],
+  'race-italy': [
+    null,
+    {
+      climbs: [
+        { name: 'Byala Pass', summitKm: 138, lengthKm: 7.7, avgGradient: 4.6, category: 'cat3' },
+        { name: 'Vratnik Pass', summitKm: 151, lengthKm: 9.2, avgGradient: 4, category: 'cat3' },
+        {
+          name: 'Lyaskovets Monastery Pass',
+          summitKm: 210,
+          lengthKm: 3.9,
+          avgGradient: 6.8,
+          category: 'cat3',
+        },
+      ],
+    },
+    null,
+    null,
+    {
+      climbs: [
+        { name: 'Prestieri', summitKm: 27, lengthKm: 13.6, avgGradient: 4.8, category: 'cat3' },
+        {
+          name: 'Montagna Grande di Viggiano',
+          summitKm: 154,
+          lengthKm: 6.6,
+          avgGradient: 9.1,
+          category: 'cat2',
+        },
+      ],
+    },
+    null,
+    {
+      climbs: [
+        { name: 'Roccaraso', summitKm: 166, lengthKm: 6.9, avgGradient: 6.5, category: 'cat2' },
+        { name: 'Blockhaus', summitKm: 244, lengthKm: 13.6, avgGradient: 8.4, category: 'cat1' },
+      ],
+    },
+    null,
+    {
+      climbs: [
+        { name: 'Querciola', summitKm: 160, lengthKm: 11.3, avgGradient: 4.3, category: 'cat3' },
+        {
+          name: 'Corno alle Scale',
+          summitKm: 184,
+          lengthKm: 10.8,
+          avgGradient: 6.1,
+          category: 'cat1',
+        },
+      ],
+    },
+    null,
+    null,
+    null,
+    null,
+    {
+      climbs: [
+        {
+          name: 'Col du Saint-Barthelemy',
+          summitKm: 18,
+          lengthKm: 15.8,
+          avgGradient: 6.1,
+          category: 'cat1',
+        },
+        { name: 'Doues', summitKm: 62, lengthKm: 5.8, avgGradient: 6.2, category: 'cat3' },
+        { name: 'Lin Noir', summitKm: 82, lengthKm: 7.4, avgGradient: 7.9, category: 'cat1' },
+        { name: 'Verrogne', summitKm: 92, lengthKm: 5.6, avgGradient: 6.9, category: 'cat2' },
+        { name: 'Pila-Gressan', summitKm: 133, lengthKm: 16.5, avgGradient: 7.1, category: 'cat1' },
+      ],
+    },
+    null,
+    {
+      climbs: [
+        { name: 'Torre', summitKm: 32, lengthKm: 4.7, avgGradient: 5.6, category: 'cat3' },
+        { name: 'Leontica', summitKm: 44, lengthKm: 3, avgGradient: 8.5, category: 'cat2' },
+        { name: 'Torre', summitKm: 54, lengthKm: 4.7, avgGradient: 5.6, category: 'cat3' },
+        { name: 'Leontica', summitKm: 66, lengthKm: 3, avgGradient: 8.5, category: 'cat2' },
+        { name: 'Cari', summitKm: 113, lengthKm: 11.7, avgGradient: 7.9, category: 'cat1' },
+      ],
+    },
+    null,
+    {
+      climbs: [
+        {
+          name: "Muro di Ca' del Poggio",
+          summitKm: 162,
+          lengthKm: 1.1,
+          avgGradient: 12.3,
+          category: 'cat4',
+        },
+      ],
+    },
+    {
+      climbs: [
+        { name: 'Passo Duran', summitKm: 59, lengthKm: 12.1, avgGradient: 8.2, category: 'cat1' },
+        { name: 'Coi', summitKm: 73, lengthKm: 5.8, avgGradient: 9.7, category: 'cat2' },
+        {
+          name: 'Forcella Staulanza',
+          summitKm: 82,
+          lengthKm: 6.3,
+          avgGradient: 6.7,
+          category: 'cat2',
+        },
+        { name: 'Passo Giau', summitKm: 102, lengthKm: 9.9, avgGradient: 9.3, category: 'HC' },
+        {
+          name: 'Passo Falzarego',
+          summitKm: 122,
+          lengthKm: 10.1,
+          avgGradient: 5.6,
+          category: 'cat2',
+        },
+        {
+          name: 'Piani di Pezze',
+          summitKm: 151,
+          lengthKm: 4.9,
+          avgGradient: 9.7,
+          category: 'cat1',
+        },
+      ],
+    },
+    {
+      climbs: [
+        { name: 'Clauzetto', summitKm: 86, lengthKm: 6.9, avgGradient: 5.7, category: 'cat3' },
+        { name: 'Piancavallo', summitKm: 147, lengthKm: 11.1, avgGradient: 7, category: 'cat1' },
+        { name: 'Piancavallo', summitKm: 200, lengthKm: 14.5, avgGradient: 7.8, category: 'cat1' },
       ],
     },
   ],
