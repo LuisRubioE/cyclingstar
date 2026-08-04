@@ -86,6 +86,7 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
   const rngSprint = streams('sprint')
   const rngHazard = streams('hazard')
   const rngCrash = streams('crash')
+  const rngDay = streams('day')
   const incidents: Incident[] = []
 
   const blocks = sampleProfile(input.profile)
@@ -95,8 +96,19 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
 
   const sims = new Map<string, RiderSim>()
   for (const r of input.riders) {
+    // Piernas del día: un factor por corredor y etapa (acotado a ±3σ) escala su nivel efectivo, así
+    // un corredor algo inferior puede ganarle a uno mejor que tiene un mal día (SPEC 6.7).
+    const dayFactor = Math.max(
+      1 - 3 * STAGE.dayFormSd,
+      Math.min(1 + 3 * STAGE.dayFormSd, normal(rngDay, 1, STAGE.dayFormSd)),
+    )
+    const eff0 = {} as typeof r.eff0
+    for (const k in r.eff0) {
+      const key = k as keyof typeof r.eff0
+      eff0[key] = Math.max(0, Math.min(100, r.eff0[key] * dayFactor))
+    }
     sims.set(r.riderId, {
-      input: r,
+      input: { ...r, eff0 },
       energy0: r.energy,
       energy: r.energy,
       groupId: PELOTON,
