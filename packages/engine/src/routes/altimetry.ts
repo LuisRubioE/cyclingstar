@@ -5,7 +5,7 @@
  */
 import { deriveClimbCategory } from '../stage/sample.js'
 import { defaultGradient } from '../stage/sample.js'
-import type { ClimbCategory, Ramp, StageProfile } from '../stage/types.js'
+import type { Banner, ClimbCategory, Ramp, StageProfile } from '../stage/types.js'
 
 export interface ElevationPoint {
   km: number
@@ -68,11 +68,23 @@ export interface AltimetryOptions {
 
 const PAD = 24
 
-/** Etiqueta de un banner (en inglés): meta volante = sprint intermedio; cima = KOM o su categoría. */
-function bannerLabel(profile: StageProfile, kind: 'meta_volante' | 'cima', km: number): string {
-  if (kind === 'meta_volante') return 'Sprint'
-  const cat = climbCategoryAt(profile, km)
-  return cat ?? 'Summit'
+/** Nombre legible de una categoría de cima (en inglés): HC o "Cat N"; null = cima sin categoría. */
+function categoryLabel(cat: ClimbCategory): string {
+  if (cat === 'HC') return 'HC'
+  if (cat === 'cat1') return 'Cat 1'
+  if (cat === 'cat2') return 'Cat 2'
+  if (cat === 'cat3') return 'Cat 3'
+  if (cat === 'cat4') return 'Cat 4'
+  return 'Summit'
+}
+
+/**
+ * Etiqueta de un banner (en inglés): meta volante = sprint intermedio; cima = su categoría. La categoría
+ * es la REAL si el recorrido la trae en el banner (puertos con dato oficial); si no, se deriva del relieve.
+ */
+function bannerLabel(profile: StageProfile, banner: Banner): string {
+  if (banner.tipo === 'meta_volante') return 'Sprint'
+  return categoryLabel(banner.cat ?? climbCategoryAt(profile, banner.km))
 }
 
 /**
@@ -109,7 +121,7 @@ export function renderAltimetrySvg(profile: StageProfile, options: AltimetryOpti
     .map((b) => {
       const xn = toX(b.km)
       const x = xn.toFixed(1)
-      const label = bannerLabel(profile, b.tipo, b.km)
+      const label = bannerLabel(profile, b)
       const color = b.tipo === 'cima' ? '#dc2626' : '#16a34a'
       row = xn - prevX < 34 ? (row + 1) % 2 : 0
       prevX = xn

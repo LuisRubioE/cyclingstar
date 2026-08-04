@@ -46,10 +46,10 @@ describe('altimetría (Paso 28)', () => {
   it('el SVG etiqueta cada banner con su categoría derivada (los banners coronan el puerto)', () => {
     const reina = renderAltimetrySvg(TEST_TOUR.find((s) => s.kind === 'reina')!.profile)
     expect(reina).toContain('>HC<')
-    expect(reina).toContain('>cat2<')
+    expect(reina).toContain('>Cat 2<')
     const media = renderAltimetrySvg(TEST_TOUR.find((s) => s.kind === 'media')!.profile)
-    expect(media).toContain('>cat2<')
-    expect(media).toContain('>cat3<') // el banner cae en la cima, no en el llano
+    expect(media).toContain('>Cat 2<')
+    expect(media).toContain('>Cat 3<') // el banner cae en la cima, no en el llano
     expect(media).toContain('>Sprint<') // meta volante = sprint intermedio (etiqueta en inglés)
   })
 })

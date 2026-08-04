@@ -25,6 +25,8 @@ export type BannerType = 'meta_volante' | 'cima'
 export interface Banner {
   km: number
   tipo: BannerType
+  /** Categoría REAL de la cima (si el recorrido la trae del dato oficial); si no, se deriva. */
+  cat?: ClimbCategory
 }
 
 /**
