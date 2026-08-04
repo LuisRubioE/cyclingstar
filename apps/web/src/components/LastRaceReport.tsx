@@ -54,6 +54,29 @@ export function LastRaceReport() {
         ))}
       </dl>
 
+      <div className="mt-4">
+        <h3 className="text-xs font-semibold text-slate-500">How the stage unfolded</h3>
+        <ul className="mt-1 space-y-0.5 text-sm text-slate-600">
+          {data.story.map((e, i) => (
+            <li key={i} className="flex gap-2">
+              <span className="w-12 shrink-0 tabular-nums text-slate-400">km {e.km}</span>
+              <span>{e.plantilla}</span>
+            </li>
+          ))}
+          {data.story.length === 0 && (
+            <li className="text-slate-400">The bunch stayed together for a sprint finish.</li>
+          )}
+          {data.winnerName && (
+            <li className="flex gap-2">
+              <span className="w-12 shrink-0 tabular-nums text-slate-400">🏁</span>
+              <span>
+                <span className="font-medium text-slate-700">{data.winnerName}</span> took the win.
+              </span>
+            </li>
+          )}
+        </ul>
+      </div>
+
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         <div>
           <h3 className="text-xs font-semibold text-slate-500">Your orders</h3>
