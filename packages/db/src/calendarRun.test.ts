@@ -107,6 +107,44 @@ describe('db: selección del pelotón por nivel y región (SPEC 8)', () => {
     expect(foreign.length).toBe(1) // wildcards acotadas, no las 3 de fuera
   })
 
+  it('carrera continental: el núcleo son los Continental, los ProTeams son invitados limitados', () => {
+    const eligible = [
+      ...Array.from({ length: 10 }, (_, i) => team(`con${i}`, 'ES', 'CON')),
+      ...Array.from({ length: 8 }, (_, i) => team(`prs${i}`, 'ES', 'PRS')),
+    ]
+    // Europe, cupo 10, núcleo = CON: los ProTeams (más presupuesto) NO deben dominar; van acotados ~30%.
+    const chosen = selectFieldTeams(eligible, 10, 'Europe', ['CON', 'PRS'], 0, 0, 'ES')
+    expect(chosen).toHaveLength(10)
+    expect(chosen.filter((t) => t.division === 'PRS').length).toBeLessThanOrEqual(3)
+    expect(chosen.filter((t) => t.division === 'CON').length).toBeGreaterThanOrEqual(7)
+  })
+
+  it('carrera regional: los equipos del PAÍS de la carrera entran primero dentro del continente', () => {
+    const eligible = [
+      team('fr1', 'FR'),
+      team('es1', 'ES'),
+      team('fr2', 'FR'),
+      team('it1', 'IT'),
+      team('es2', 'ES'),
+    ]
+    // Europe, cupo 3, casa = ES: primero los españoles, luego el resto de Europa (sin wildcards, todos EU).
+    const chosen = selectFieldTeams(eligible, 3, 'Europe', undefined, 0, 0, 'ES')
+    expect(chosen.slice(0, 2).map((t) => t.id)).toEqual(['es1', 'es2'])
+  })
+
+  it('.WT: la wildcard prefiere un ProTeam del país de la carrera', () => {
+    const eligible = [
+      team('wt1', 'BE', 'WT'),
+      team('wt2', 'FR', 'WT'),
+      team('prs-es', 'ES', 'PRS'),
+      team('prs-fr', 'FR', 'PRS'),
+      team('prs-de', 'DE', 'PRS'),
+    ]
+    // .WT en Francia, cupo 3 (2 WT + 1 wildcard): la wildcard debe ser el ProTeam francés.
+    const chosen = selectFieldTeams(eligible, 3, undefined, ['WT', 'PRS', 'CON'], 1, 0, 'FR')
+    expect(chosen.filter((t) => t.division === 'PRS').map((t) => t.id)).toEqual(['prs-fr'])
+  })
+
   it('sin equipos de la región, entran solo las wildcards permitidas (no se llena de extranjeros)', () => {
     const eligible = [team('eu1', 'FR'), team('eu2', 'IT'), team('eu3', 'ES')]
     // Reserva de 2 wildcards: aunque el cupo sea 8 y no haya equipos de la región, solo entran 2 de
