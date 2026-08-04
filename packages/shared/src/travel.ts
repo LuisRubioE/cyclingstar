@@ -57,11 +57,12 @@ export function raceAttendanceCost(
   to: string | null,
   raceDays: number,
 ): TravelCost {
-  const transport = TRANSPORT_COST[travelTier(from, to)]
-  return {
-    money: transport.money + HOTEL_PER_RACE_DAY * Math.max(0, raceDays),
-    days: transport.days,
-  }
+  const tier = travelTier(from, to)
+  const transport = TRANSPORT_COST[tier]
+  // En CASA (misma nación) no hay coste de asistencia individual: ni transporte ni hotel (se duerme
+  // en casa / desplazamiento local). Así un corredor sin dinero SIEMPRE puede correr en su país.
+  const hotel = tier === 'home' ? 0 : HOTEL_PER_RACE_DAY * Math.max(0, raceDays)
+  return { money: transport.money + hotel, days: transport.days }
 }
 
 /** Igual, cuando el destino se conoce por continente (carrera regional/continental). */
@@ -70,11 +71,10 @@ export function raceAttendanceCostToContinent(
   to: Continent | null,
   raceDays: number,
 ): TravelCost {
-  const transport = TRANSPORT_COST[travelTierByContinent(continentForCountry(from ?? ''), to)]
-  return {
-    money: transport.money + HOTEL_PER_RACE_DAY * Math.max(0, raceDays),
-    days: transport.days,
-  }
+  const tier = travelTierByContinent(continentForCountry(from ?? ''), to)
+  const transport = TRANSPORT_COST[tier]
+  const hotel = tier === 'home' ? 0 : HOTEL_PER_RACE_DAY * Math.max(0, raceDays)
+  return { money: transport.money + hotel, days: transport.days }
 }
 
 /*

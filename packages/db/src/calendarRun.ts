@@ -115,24 +115,26 @@ async function convokeNationalField(
   const country = race.championshipCountry
   if (!country) return []
   const pool = await tx
-    .select({ id: riders.id, birthSeason: riders.birthSeason })
+    .select({ id: riders.id, birthSeason: riders.birthSeason, userId: riders.userId })
     .from(riders)
     .where(and(eq(riders.worldId, worldId), eq(riders.country, country), isNull(riders.retiredAt)))
     .orderBy(desc(riders.fame))
     .limit(NATIONAL_FIELD_CAP * 3)
   // El sub-23 solo admite corredores de 23 años o menos (edad = 20 - birthSeason + temporada).
-  const eligible =
-    race.championshipCategory === 'u23'
-      ? pool.filter((r) => 20 - r.birthSeason + season <= 23)
-      : pool
-  // Un corredor que ya está corriendo otra carrera no puede estar en el campeonato ese día.
-  const best = eligible.filter((r) => !busy.has(r.id)).slice(0, NATIONAL_FIELD_CAP)
+  const ageOk = (r: { birthSeason: number }) =>
+    race.championshipCategory !== 'u23' || 20 - r.birthSeason + season <= 23
+  const available = pool.filter((r) => ageOk(r) && !busy.has(r.id))
+  // Un JUGADOR siempre corre el campeonato de SU país (aunque tenga poca fama): se incluyen todos los
+  // humanos elegibles del país, y el resto del pelotón se completa con los mejores NPC hasta el cupo.
+  const humans = available.filter((r) => r.userId != null).map((r) => r.id)
+  const npcs = available.filter((r) => r.userId == null).map((r) => r.id)
+  const best = [...new Set([...humans, ...npcs])].slice(0, NATIONAL_FIELD_CAP)
   if (best.length < NATIONAL_FIELD_MIN) return []
   await tx
     .insert(raceRosters)
-    .values(best.map((r) => ({ raceId: raceKey, riderId: r.id })))
+    .values(best.map((riderId) => ({ raceId: raceKey, riderId })))
     .onConflictDoNothing()
-  return best.map((r) => r.id)
+  return best
 }
 
 /**
