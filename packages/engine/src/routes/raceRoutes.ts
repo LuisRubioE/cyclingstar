@@ -330,11 +330,10 @@ export const RACE_ROUTES: Record<string, [string, string][]> = {
   'race-dodecanese': [['Lindos', 'Rhodes']],
   'race-doubs': [['Pontarlier', 'Pontarlier']],
   'race-down-under': [
-    ['Adelaide', 'Adelaide'],
     ['Tanunda', 'Tanunda'],
     ['Norwood', 'Uraidla'],
     ['Henley Beach', 'Nairne'],
-    ['Brighton', 'Willunga'],
+    ['Brighton', 'Willunga Hill'],
     ['Stirling', 'Stirling'],
   ],
   'race-drome': [['Valence', 'Valence']],

@@ -313,12 +313,11 @@ export const RACE_EDITIONS: Record<string, RaceEdition> = {
   'race-down-under': {
     restAfter: [],
     stages: [
-      { from: 'Adelaide', to: 'Adelaide', km: 4, terrain: 'itt' },
-      { from: 'Tanunda', to: 'Tanunda', km: 121, terrain: 'flat' },
+      { from: 'Tanunda', to: 'Tanunda', km: 123, terrain: 'hilly' },
       { from: 'Norwood', to: 'Uraidla', km: 148, terrain: 'hilly' },
-      { from: 'Henley Beach', to: 'Nairne', km: 141, terrain: 'hilly' },
-      { from: 'Brighton', to: 'Willunga', km: 131, terrain: 'hilly' },
-      { from: 'Stirling', to: 'Stirling', km: 170, terrain: 'hilly' },
+      { from: 'Henley Beach', to: 'Nairne', km: 139, terrain: 'hilly' },
+      { from: 'Brighton', to: 'Willunga Hill', km: 178, terrain: 'hilly' },
+      { from: 'Stirling', to: 'Stirling', km: 165, terrain: 'hilly' },
     ],
   },
   'race-emirates': {
