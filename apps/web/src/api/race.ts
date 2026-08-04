@@ -65,6 +65,8 @@ export interface StartlistRider {
   name: string
   country: string
   isBot: boolean
+  /** Dorsal (número de corredor); null en rosters sin dorsales. */
+  bib: number | null
 }
 
 export interface StartlistTeam {

@@ -333,6 +333,10 @@ export const raceRosters = pgTable(
     riderId: uuid('rider_id')
       .notNull()
       .references(() => riders.id, { onDelete: 'cascade' }),
+    // Dorsal (número de corredor) asignado al congelar la escuadra: decenas por equipo (11-1X el
+    // primer equipo, 21-2X el segundo…), el 1 reservado al campeón defensor (SPEC 8). Null en rosters
+    // antiguos anteriores a los dorsales.
+    bib: integer('bib'),
   },
   (t) => [primaryKey({ columns: [t.raceId, t.riderId] })],
 )

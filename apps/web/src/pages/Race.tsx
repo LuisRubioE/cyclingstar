@@ -81,6 +81,9 @@ function Startlist({ data }: { data: RaceStartlist }) {
                       <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5 pl-1">
                         {t.riders.map((r) => (
                           <span key={r.id} className="flex items-center gap-1 text-sm">
+                            {r.bib != null && (
+                              <span className="tabular-nums text-xs text-slate-400">{r.bib}</span>
+                            )}
                             <Flag code={r.country} size={12} />
                             <RiderName riderId={r.id} name={r.name} isBot={r.isBot} />
                           </span>
