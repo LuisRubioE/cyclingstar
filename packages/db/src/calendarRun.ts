@@ -1077,12 +1077,8 @@ async function backfillWorldData(tx: Tx, worldId: string): Promise<void> {
     .select({ id: palmares.id, raceId: palmares.raceId })
     .from(palmares)
     .where(and(eq(palmares.worldId, worldId), eq(palmares.kind, 'stage')))
-  const stale = stageHonors
-    .filter((h) => {
-      const m = /^(.*):s\d+$/.exec(h.raceId)
-      return m != null && oneDayBases.has(m[1]!)
-    })
-    .map((h) => h.id)
+  // El palmarés guarda el id BASE de la carrera (sin sufijo :s{season}), así que se compara directo.
+  const stale = stageHonors.filter((h) => oneDayBases.has(h.raceId)).map((h) => h.id)
   if (stale.length > 0) await tx.delete(palmares).where(inArray(palmares.id, stale))
 
   const nullBib = await tx
