@@ -199,27 +199,36 @@ function rotatePick<T>(pool: T[], n: number, seed: number): T[] {
   return pool.slice(offset, offset + n)
 }
 
+/** Un equipo del pelotón elegido para una carrera (los campos que necesitan la convocatoria y la vista). */
+interface FieldTeamRow {
+  id: string
+  name: string
+  philosophy: string
+  division: Division
+  country: string | null
+  ownerUserId: string | null
+}
+
 /**
- * Convoca el pelotón de una carrera con su escuadra (SPEC 6.18). Los equipos admitidos se eligen por
- * nivel/región (selectFieldTeams). En una carrera continental (.1/.2), si los equipos regionales no
- * llenan el pelotón objetivo, se completa con los mejores corredores del continente como entradas
- * individuales (el equivalente a selecciones nacionales y equipos club de relleno de esas carreras).
+ * Resuelve QUÉ equipos forman el pelotón de una carrera (sin elegir aún los corredores): los admitidos
+ * por nivel/región (selectFieldTeams) más los overrides de los equipos con dueño (forcedIn/forcedOut).
+ * Determinista. Lo comparten la convocatoria real del tick (convokeField) y la previsión de inscritos
+ * (predictStartlist), para que la lista provisional coincida con lo que el día de salida ocurrirá.
  */
-async function convokeField(
+async function resolveFieldTeams(
   tx: Tx,
   worldId: string,
   race: CalendarRace,
   raceKey: string,
-  worldSeed: string,
   season: number,
-  busy: Set<string>,
-): Promise<string[]> {
+): Promise<{ teamRows: FieldTeamRow[]; forcedOut: Set<string> }> {
   const size = SQUAD_SIZE[race.format]
   const fieldCap = FIELD_CAP_BY_CLASS[race.raceClass] ?? FIELD_CAP
   const cap = Math.max(1, Math.floor(fieldCap / size))
   const eligible = await tx
     .select({
       id: teams.id,
+      name: teams.name,
       philosophy: teams.philosophy,
       division: teams.division,
       country: teams.country,
@@ -262,6 +271,27 @@ async function convokeField(
       if (forcedIn.has(t.id) && !present.has(t.id)) teamRows.push(t)
     }
   }
+  return { teamRows, forcedOut }
+}
+
+/**
+ * Convoca el pelotón de una carrera con su escuadra (SPEC 6.18). Los equipos admitidos se eligen por
+ * nivel/región (selectFieldTeams). En una carrera continental (.1/.2), si los equipos regionales no
+ * llenan el pelotón objetivo, se completa con los mejores corredores del continente como entradas
+ * individuales (el equivalente a selecciones nacionales y equipos club de relleno de esas carreras).
+ */
+async function convokeField(
+  tx: Tx,
+  worldId: string,
+  race: CalendarRace,
+  raceKey: string,
+  worldSeed: string,
+  season: number,
+  busy: Set<string>,
+): Promise<string[]> {
+  const size = SQUAD_SIZE[race.format]
+  const fieldCap = FIELD_CAP_BY_CLASS[race.raceClass] ?? FIELD_CAP
+  const { teamRows, forcedOut } = await resolveFieldTeams(tx, worldId, race, raceKey, season)
   if (teamRows.length === 0) return []
   const teamIds = teamRows.map((t) => t.id)
 
@@ -504,6 +534,53 @@ async function convokeSelfEntries(
     enrolled.push(r.riderId)
   }
   return enrolled
+}
+
+/** Lista provisional de inscritos de una carrera por empezar (equipos esperados + agentes libres). */
+export interface RaceStartlist {
+  teams: { id: string; name: string; country: string | null; division: Division }[]
+  freeAgents: { id: string; name: string; country: string }[]
+}
+
+/**
+ * Previsión de inscritos de una carrera aún por empezar: los EQUIPOS que se espera que acudan (misma
+ * elección determinista que hará el tick el día de salida) y los AGENTES LIBRES humanos ya auto-inscritos.
+ * Las escuadras (qué corredores lleva cada equipo) no se fijan hasta la salida, así que se listan los
+ * equipos, no sus corredores. Solo lectura.
+ */
+export async function predictStartlist(
+  db: Db,
+  worldId: string,
+  race: CalendarRace,
+  season: number,
+): Promise<RaceStartlist> {
+  const raceKey = `${race.id}:s${season}`
+  return db.transaction(async (tx) => {
+    const { teamRows } = await resolveFieldTeams(tx, worldId, race, raceKey, season)
+    const fa = await tx
+      .select({ id: riders.id, name: riders.name, country: riders.country })
+      .from(raceEntries)
+      .innerJoin(riders, eq(riders.id, raceEntries.riderId))
+      .where(
+        and(
+          eq(raceEntries.raceId, race.id),
+          eq(raceEntries.season, season),
+          eq(riders.worldId, worldId),
+          isNotNull(riders.userId),
+          isNull(riders.teamId),
+          isNull(riders.retiredAt),
+        ),
+      )
+    return {
+      teams: teamRows.map((t) => ({
+        id: t.id,
+        name: t.name,
+        country: t.country,
+        division: t.division,
+      })),
+      freeAgents: fa.map((r) => ({ id: r.id, name: r.name, country: r.country ?? '' })),
+    }
+  })
 }
 
 /** Corre las etapas del calendario que tocan este día de juego. Devuelve quién corrió. */
