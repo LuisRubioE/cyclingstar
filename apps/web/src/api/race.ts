@@ -29,9 +29,8 @@ export interface RaceStagePlan {
   kind: string
   km: number
   timeTrial: boolean
-  /** Ciudad de salida y de meta de la etapa, o null si no hay recorrido para el país. */
-  from: string | null
-  to: string | null
+  /** Altimetría de la etapa: SVG autocontenido del perfil (relieve, puertos y categorías). */
+  altimetry: string
 }
 
 export interface RaceView {

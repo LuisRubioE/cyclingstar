@@ -65,25 +65,26 @@ export function Race() {
 
       {data.stages.length > 0 && (
         <div className={card}>
-          <h2 className={head}>Route</h2>
-          <ol className="space-y-1.5">
+          <h2 className={head}>Stage profiles</h2>
+          <ol className="space-y-4">
             {data.stages.map((stage) => (
-              <li key={stage.index} className="flex items-center gap-3 text-sm">
-                <span className="w-14 shrink-0 text-slate-400">
-                  {data.stages.length === 1 ? 'Race' : `Stage ${stage.index}`}
-                </span>
-                <span
-                  className={`inline-block h-2 w-2 shrink-0 rounded-full ${KIND_DOT[stage.kind] ?? 'bg-slate-300'}`}
-                  aria-hidden
-                />
-                {stage.from && stage.to ? (
-                  <span className="text-slate-700">
-                    {stage.from} → {stage.to}
+              <li key={stage.index}>
+                <div className="mb-1 flex items-center gap-3 text-sm">
+                  <span className="font-medium text-slate-700">
+                    {data.stages.length === 1 ? stage.name : `Stage ${stage.index}`}
                   </span>
-                ) : (
-                  <span className="text-slate-500">{stage.name}</span>
-                )}
-                <span className="ml-auto tabular-nums text-slate-400">{stage.km} km</span>
+                  <span
+                    className={`inline-block h-2 w-2 shrink-0 rounded-full ${KIND_DOT[stage.kind] ?? 'bg-slate-300'}`}
+                    aria-hidden
+                  />
+                  {stage.timeTrial && <span className="text-xs text-violet-500">ITT</span>}
+                  <span className="ml-auto tabular-nums text-slate-400">{stage.km} km</span>
+                </div>
+                {/* Altimetría real de autoría de la carrera (relieve + puertos). SVG del backend. */}
+                <div
+                  className="w-full overflow-x-auto rounded-lg bg-slate-50 p-1"
+                  dangerouslySetInnerHTML={{ __html: stage.altimetry }}
+                />
               </li>
             ))}
           </ol>
