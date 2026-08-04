@@ -72,7 +72,7 @@ const PAD = 24
 function bannerLabel(profile: StageProfile, kind: 'meta_volante' | 'cima', km: number): string {
   if (kind === 'meta_volante') return 'Sprint'
   const cat = climbCategoryAt(profile, km)
-  return cat ?? 'KOM'
+  return cat ?? 'Summit'
 }
 
 /**
@@ -99,12 +99,22 @@ export function renderAltimetrySvg(profile: StageProfile, options: AltimetryOpti
   const curve = points.map((p) => `${toX(p.km).toFixed(1)},${toY(p.elevM).toFixed(1)}`).join(' ')
   const area = `${toX(0).toFixed(1)},${(height - PAD).toFixed(1)} ${curve} ${toX(totalKm).toFixed(1)},${(height - PAD).toFixed(1)}`
 
+  // Etiquetas de banners escalonadas: si dos caen muy juntas (p.ej. un sprint sobre un puerto) se
+  // colocan en filas distintas para que no se solapen y se lean las dos.
+  let prevX = -Infinity
+  let row = 0
   const bannerMarks = (profile.banners ?? [])
+    .slice()
+    .sort((a, b) => a.km - b.km)
     .map((b) => {
-      const x = toX(b.km).toFixed(1)
+      const xn = toX(b.km)
+      const x = xn.toFixed(1)
       const label = bannerLabel(profile, b.tipo, b.km)
       const color = b.tipo === 'cima' ? '#dc2626' : '#16a34a'
-      return `<line x1="${x}" y1="${PAD}" x2="${x}" y2="${height - PAD}" stroke="${color}" stroke-width="1" stroke-dasharray="3 3" opacity="0.7"/><text x="${x}" y="${PAD - 6}" fill="${color}" font-size="11" text-anchor="middle" font-family="sans-serif">${label}</text>`
+      row = xn - prevX < 34 ? (row + 1) % 2 : 0
+      prevX = xn
+      const labelY = PAD - 6 + row * 13 // fila 0 encima del gráfico, fila 1 justo debajo
+      return `<line x1="${x}" y1="${PAD}" x2="${x}" y2="${height - PAD}" stroke="${color}" stroke-width="1" stroke-dasharray="3 3" opacity="0.7"/><text x="${x}" y="${labelY}" fill="${color}" font-size="11" text-anchor="middle" font-family="sans-serif">${label}</text>`
     })
     .join('')
 
