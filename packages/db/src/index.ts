@@ -10,6 +10,7 @@ export { runTick, targetGameDay, type RunTickOptions, type TickSummary } from '.
 export { raceWorldDay } from './race.js'
 export {
   ENROLL_LOCK_DAYS,
+  ensureRaceRosterFrozen,
   predictStartlist,
   runCalendarDay,
   selectFieldTeams,

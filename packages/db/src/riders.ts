@@ -61,13 +61,18 @@ export async function getWorldClock(
 /** Mundo actual y día de juego (o null si aún no hubo génesis). */
 export async function getCurrentWorld(
   db: Database,
-): Promise<{ worldId: string; currentDay: number } | null> {
+): Promise<{ worldId: string; currentDay: number; worldSeed: string } | null> {
   const rows = await db
-    .select({ worldId: gameState.worldId, currentDay: gameState.currentDay })
+    .select({
+      worldId: gameState.worldId,
+      currentDay: gameState.currentDay,
+      worldSeed: worlds.worldSeed,
+    })
     .from(gameState)
+    .innerJoin(worlds, eq(worlds.id, gameState.worldId))
     .limit(1)
   const row = rows[0]
-  return row ? { worldId: row.worldId, currentDay: row.currentDay } : null
+  return row ? { worldId: row.worldId, currentDay: row.currentDay, worldSeed: row.worldSeed } : null
 }
 
 /** Crea un corredor con sus atributos y su genoma oculto (una transacción). */

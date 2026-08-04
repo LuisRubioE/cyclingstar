@@ -716,13 +716,61 @@ async function lockUpcomingRosters(
       .where(eq(raceRosters.raceId, raceKey))
       .limit(1)
     if (already.length > 0) continue // ya congelada
-    const busy = await busyForRaceWindow(tx, race, season)
-    const enrolled = race.championshipCountry
-      ? await convokeNationalField(tx, worldId, race, raceKey, busy, season)
-      : await convokeField(tx, worldId, race, raceKey, worldSeed, season, busy)
-    for (const id of enrolled) busy.add(id)
-    await convokeSelfEntries(tx, worldId, race, raceKey, busy, season, gameDay)
+    await freezeRaceRoster(tx, worldId, worldSeed, race, season, gameDay)
   }
+}
+
+/**
+ * Congela la escuadra de una carrera: convoca equipos (o campeonato nacional) más los agentes libres
+ * apuntados, evitando a los ya comprometidos con otra carrera solapada. Asume que aún no está congelada.
+ */
+async function freezeRaceRoster(
+  tx: Tx,
+  worldId: string,
+  worldSeed: string,
+  race: CalendarRace,
+  season: number,
+  gameDay: number,
+): Promise<void> {
+  const raceKey = `${race.id}:s${season}`
+  const busy = await busyForRaceWindow(tx, race, season)
+  const enrolled = race.championshipCountry
+    ? await convokeNationalField(tx, worldId, race, raceKey, busy, season)
+    : await convokeField(tx, worldId, race, raceKey, worldSeed, season, busy)
+  for (const id of enrolled) busy.add(id)
+  await convokeSelfEntries(tx, worldId, race, raceKey, busy, season, gameDay)
+}
+
+/**
+ * Garantiza que la escuadra de una carrera esté congelada si ya pasó el cierre de inscripciones
+ * (`ENROLL_LOCK_DAYS`). Sirve de red de seguridad para mostrar la lista bajo demanda: si el tick aún no
+ * la había congelado (p.ej. un mundo que ya estaba dentro de la ventana al desplegar), la congela ahora.
+ * Se serializa por carrera con un advisory lock para no convocar dos veces ni cobrar dos viajes si dos
+ * peticiones coinciden. Fuera de la ventana no hace nada. Idempotente.
+ */
+export async function ensureRaceRosterFrozen(
+  db: Db,
+  worldId: string,
+  worldSeed: string,
+  race: CalendarRace,
+  gameDay: number,
+): Promise<void> {
+  const season = Math.floor(gameDay / SEASON_DAYS)
+  const dayOfSeason = gameDay % SEASON_DAYS
+  const daysUntil = race.startDay - dayOfSeason
+  if (daysUntil <= 0 || daysUntil > ENROLL_LOCK_DAYS) return // aún no toca (o ya empezó)
+  const raceKey = `${race.id}:s${season}`
+  await db.transaction(async (tx) => {
+    // Serializa por carrera: una petición congela y las demás esperan y ven que ya está.
+    await tx.execute(sql`select pg_advisory_xact_lock(${hashInt(raceKey)})`)
+    const already = await tx
+      .select({ riderId: raceRosters.riderId })
+      .from(raceRosters)
+      .where(eq(raceRosters.raceId, raceKey))
+      .limit(1)
+    if (already.length > 0) return
+    await freezeRaceRoster(tx, worldId, worldSeed, race, season, gameDay)
+  })
 }
 
 /** Corre las etapas del calendario que tocan este día de juego. Devuelve quién corrió. */
