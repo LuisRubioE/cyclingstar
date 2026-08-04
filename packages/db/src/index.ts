@@ -178,6 +178,7 @@ export {
 } from './raceReport.js'
 export {
   addToRoster,
+  getRosterTeammates,
   getStageOrders,
   isOnRoster,
   setStageOrders,

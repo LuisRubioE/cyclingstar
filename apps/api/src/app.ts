@@ -10,6 +10,8 @@ import {
   type TrainingOrderRow,
   acceptOffer,
   addToRoster,
+  getRosterTeammates,
+  isOnRoster,
   addBlocked,
   type BlockedKind,
   createRider,
@@ -860,6 +862,58 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
       const valid: StageOrderRow[] = parsed.data.orders.filter((o) => validDays.has(o.stageDay))
       await addToRoster(db, TEST_TOUR_ID, rider.id)
       await setStageOrders(db, TEST_TOUR_ID, rider.id, valid)
+      return { ok: true, saved: valid.length }
+    })
+
+    // Órdenes del corredor para una carrera REAL del calendario a la que está convocado (raceKey
+    // = `${raceId}:s${season}`). Devuelve sus etapas con altimetría, las órdenes actuales y los
+    // compañeros de equipo en el roster (posibles objetivos). Solo si el corredor está convocado.
+    const raceForKey = (raceKey: string): (typeof SEASON_CALENDAR)[number] | null => {
+      const m = /^(.*):s\d+$/.exec(raceKey)
+      if (!m) return null
+      return SEASON_CALENDAR.find((r) => r.id === m[1]) ?? null
+    }
+    app.get<{ Querystring: { raceKey?: string } }>('/api/my-orders', async (request, reply) => {
+      const userId = await currentUserId(request)
+      if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
+      const rider = await getRiderForUser(db, userId)
+      const raceKey = request.query.raceKey ?? ''
+      const race = raceForKey(raceKey)
+      if (!rider || !race) return reply.status(404).send({ ok: false, error: 'no_encontrado' })
+      if (!(await isOnRoster(db, raceKey, rider.id))) {
+        return reply.status(403).send({ ok: false, error: 'no_convocado' })
+      }
+      const stages = race.stages.map((stage, i) => ({
+        day: i + 1,
+        name: `Stage ${i + 1}`,
+        kind: stage.kind,
+        timeTrial: stage.timeTrial ?? false,
+        km: Math.round(stage.profile.segments.reduce((sum, s) => sum + s.km, 0)),
+        altimetry: renderAltimetrySvg(stage.profile),
+      }))
+      const orders = await getStageOrders(db, raceKey, rider.id)
+      const roster = await getRosterTeammates(db, raceKey, rider.id)
+      return { race: { id: race.id, name: race.name }, stages, orders, roster }
+    })
+
+    const putMyOrdersSchema = z.object({
+      raceKey: z.string().min(1),
+      orders: z.array(stageOrderSchema).max(30),
+    })
+    app.put('/api/my-orders', async (request, reply) => {
+      const userId = await currentUserId(request)
+      if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
+      const parsed = putMyOrdersSchema.safeParse(request.body)
+      if (!parsed.success) return reply.status(400).send({ ok: false, error: 'validacion' })
+      const rider = await getRiderForUser(db, userId)
+      const race = raceForKey(parsed.data.raceKey)
+      if (!rider || !race) return reply.status(404).send({ ok: false, error: 'no_encontrado' })
+      if (!(await isOnRoster(db, parsed.data.raceKey, rider.id))) {
+        return reply.status(403).send({ ok: false, error: 'no_convocado' })
+      }
+      const validDays = new Set(race.stages.map((_, i) => i + 1))
+      const valid: StageOrderRow[] = parsed.data.orders.filter((o) => validDays.has(o.stageDay))
+      await setStageOrders(db, parsed.data.raceKey, rider.id, valid)
       return { ok: true, saved: valid.length }
     })
 

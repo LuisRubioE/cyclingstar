@@ -58,6 +58,7 @@ export async function fetchMyRider(): Promise<PublicRider | null> {
 
 export interface UpcomingRace {
   raceId: string
+  raceKey: string
   raceName: string
   raceClass: string
   country: string | null
