@@ -56,6 +56,26 @@ export async function fetchMyRider(): Promise<PublicRider | null> {
   return data.rider
 }
 
+export interface UpcomingRace {
+  raceId: string
+  raceName: string
+  raceClass: string
+  country: string | null
+  startGameDay: number
+  daysUntil: number
+  stageCount: number
+  ongoing: boolean
+}
+
+/** Próximas carreras (y en curso) del ciclista del jugador. */
+export async function fetchMyUpcomingRaces(): Promise<UpcomingRace[]> {
+  const res = await fetch('/api/riders/me/upcoming-races')
+  if (res.status === 401) return []
+  if (!res.ok) throw new Error('Could not load your upcoming races.')
+  const data = (await res.json()) as { races: UpcomingRace[] }
+  return data.races
+}
+
 export interface RiderSummary {
   teamId: string | null
   teamName: string | null

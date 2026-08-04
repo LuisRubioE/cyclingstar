@@ -1,4 +1,4 @@
-import { SEASON_CALENDAR, TEST_TOUR, stageDayOfSeason } from '@cyclingstar/engine'
+import { SEASON_CALENDAR, TEST_TOUR, raceLastDay, stageDayOfSeason } from '@cyclingstar/engine'
 import { eq } from 'drizzle-orm'
 import type { Database } from './client.js'
 import { raceRosters } from './schema.js'
@@ -44,4 +44,54 @@ export async function getRiderRaceDays(
     }
   }
   return [...days].sort((a, b) => a - b)
+}
+
+/** Una carrera próxima (o en curso) del corredor: nombre, clase, día de salida y cuánto falta. */
+export interface RiderUpcomingRace {
+  raceId: string
+  raceName: string
+  raceClass: string
+  country: string | null
+  startGameDay: number
+  daysUntil: number
+  stageCount: number
+  ongoing: boolean
+}
+
+/**
+ * Carreras a las que el corredor está inscrito y aún no han terminado (su convocatoria ya congelada en
+ * race_rosters ~2 semanas antes). Ordenadas por día de salida; incluye las que están en curso hoy.
+ */
+export async function getRiderUpcomingRaces(
+  db: Database,
+  riderId: string,
+  currentDay: number,
+): Promise<RiderUpcomingRace[]> {
+  const rosters = await db
+    .select({ raceId: raceRosters.raceId })
+    .from(raceRosters)
+    .where(eq(raceRosters.riderId, riderId))
+  const out: RiderUpcomingRace[] = []
+  for (const { raceId } of rosters) {
+    const m = /^(.*):s(\d+)$/.exec(raceId)
+    if (!m) continue // la vuelta de prueba (test-tour) no cuenta como carrera del calendario
+    const baseId = m[1]!
+    const season = Number(m[2])
+    const race = SEASON_CALENDAR.find((r) => r.id === baseId)
+    if (!race) continue
+    const startGameDay = season * SEASON_DAYS + race.startDay
+    const lastGameDay = season * SEASON_DAYS + raceLastDay(race)
+    if (lastGameDay < currentDay) continue // ya terminó
+    out.push({
+      raceId: baseId,
+      raceName: race.name,
+      raceClass: race.raceClass,
+      country: race.country ?? null,
+      startGameDay,
+      daysUntil: startGameDay - currentDay,
+      stageCount: race.stages.length,
+      ongoing: startGameDay <= currentDay && currentDay <= lastGameDay,
+    })
+  }
+  return out.sort((a, b) => a.startGameDay - b.startGameDay)
 }

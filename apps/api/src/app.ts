@@ -63,6 +63,7 @@ import {
   getRiderForUser,
   getRiderLastRaceReport,
   getRiderRaceDays,
+  getRiderUpcomingRaces,
   getRiderSummary,
   setRiderArchetype,
   getRunStageDays,
@@ -378,6 +379,16 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
         return reply.status(401).send({ ok: false, error: 'no_autorizado' })
       }
       return { rider: await getRiderForUser(db, userId) }
+    })
+
+    // Próximas carreras del ciclista del jugador (convocatorias ya congeladas + en curso).
+    app.get('/api/riders/me/upcoming-races', async (request, reply) => {
+      const userId = await currentUserId(request)
+      if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
+      const rider = await getRiderForUser(db, userId)
+      const world = await getCurrentWorld(db)
+      if (!rider || !world) return { races: [] }
+      return { races: await getRiderUpcomingRaces(db, rider.id, world.currentDay) }
     })
 
     // Estado de control de equipo del usuario: si es premium y si su equipo sigue siendo bot
