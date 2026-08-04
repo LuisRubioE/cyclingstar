@@ -9,6 +9,7 @@
 import { COUNTRIES, type Continent } from '@cyclingstar/shared'
 import type { Division } from '../world/npc.js'
 import type { Segment, StageProfile } from '../stage/types.js'
+import { type RaceEdition, RACE_EDITIONS } from './editions.js'
 import type { StageKind } from './testTour.js'
 import type { RaceClass } from './uci.js'
 
@@ -92,24 +93,6 @@ const flat = (km: number): StageSpec => ({
   label: 'Flat',
   profile: auto([{ km, tipo: 'llano' }], 0.5),
 })
-
-const rolling = (km: number): StageSpec => {
-  const fill = km - (6 + 30 + 6 + 15)
-  return {
-    kind: 'media',
-    label: 'Rolling',
-    profile: auto(
-      [
-        { km: fill, tipo: 'llano' },
-        { km: 6, tipo: 'puerto', tramos: [{ km: 6, g: 5 }] },
-        { km: 30, tipo: 'rompepiernas' },
-        { km: 6, tipo: 'puerto', tramos: [{ km: 6, g: 6 }] },
-        { km: 15, tipo: 'llano' },
-      ],
-      0.4,
-    ),
-  }
-}
 
 const hilly = (km: number): StageSpec => {
   const fill = km - (9 + 10 + 20 + 6 + 15)
@@ -199,33 +182,24 @@ function stagesFrom(specs: StageSpec[]): CalendarStage[] {
   }))
 }
 
-/** Arco genérico de gran vuelta: 21 etapas variadas y dos descansos (tras la 9 y la 15). */
-function grandTour(id: string, name: string, startDay: number): CalendarRace {
-  const specs = [
-    flat(198),
-    flat(205),
-    hilly(190),
-    flat(210),
-    mountain(180),
-    rolling(184),
-    flat(172),
-    hilly(196),
-    itt(32),
-    // descanso
-    mountain(175),
-    flat(188),
-    rolling(178),
-    mountain(168),
-    hilly(192),
-    flat(186),
-    // descanso
-    mountain(170),
-    mountain(142),
-    hilly(178),
-    itt(28),
-    mountain(148),
-    flat(120),
-  ]
+/** Etapas de una edición real: el terreno y la distancia de cada etapa vienen de la edición verificada. */
+function stagesFromEdition(edition: RaceEdition): CalendarStage[] {
+  return stagesFrom(edition.stages.map((s) => oneDaySpec(s.terrain, s.km)))
+}
+
+/**
+ * Gran vuelta reconstruida a su edición REAL (Tour/Giro/Vuelta 2026): perfil de cada etapa según el
+ * terreno real y los días de descanso reales (el Giro lleva tres por la salida desde Bulgaria). El
+ * "de dónde a dónde" de cada etapa sale de la misma edición (ver raceRoutes), así no se desincronizan.
+ */
+function editionGrandTour(
+  id: string,
+  name: string,
+  startDay: number,
+  country: string,
+): CalendarRace {
+  const edition = RACE_EDITIONS[id]
+  if (!edition) throw new Error(`Falta la edición real de ${id}`)
   return {
     id,
     name,
@@ -234,50 +208,9 @@ function grandTour(id: string, name: string, startDay: number): CalendarRace {
     format: 'gran-vuelta',
     startDay,
     openTo: enrollmentFor('WT'),
-    ...(RACE_COUNTRY[id] ? { country: RACE_COUNTRY[id] } : {}),
-    stages: stagesFrom(specs),
-    restAfter: [9, 15],
-  }
-}
-
-/** Race France: 21 etapas hechas a mano, con etapa de adoquines y dos cronos (SPEC 8). */
-function raceFrance(): CalendarRace {
-  const specs = [
-    flat(195), // Grand Départ
-    hilly(199),
-    flat(210),
-    cobbles(155), // etapa de pavé
-    itt(33),
-    rolling(180),
-    flat(170),
-    hilly(183),
-    mountain(155), // primer alto
-    // descanso
-    flat(190),
-    mountain(165),
-    rolling(178),
-    hilly(193),
-    mountain(152),
-    flat(188),
-    // descanso
-    mountain(168), // etapa reina (HC)
-    mountain(130), // corta y explosiva
-    hilly(175),
-    itt(26), // crono decisiva
-    mountain(145), // último alto
-    flat(128), // paseo final
-  ]
-  return {
-    id: 'race-france',
-    name: 'Race France',
-    level: 'WT',
-    raceClass: 'WT',
-    format: 'gran-vuelta',
-    startDay: 175,
-    openTo: enrollmentFor('WT'),
-    country: 'FR',
-    stages: stagesFrom(specs),
-    restAfter: [9, 15],
+    country,
+    stages: stagesFromEdition(edition),
+    restAfter: edition.restAfter,
   }
 }
 
@@ -770,6 +703,17 @@ function buildRace(row: RaceRow): CalendarRace {
     ...(row.region ? { region: row.region } : {}),
     ...(country ? { country } : {}),
   }
+  // Carrera por etapas reconstruida a su edición real (p.ej. la Volta a Portugal, con su día de
+  // descanso): el perfil y los descansos salen de la edición verificada, no de la mezcla genérica.
+  const edition = RACE_EDITIONS[row.id]
+  if (edition) {
+    return {
+      ...common,
+      format: 'una-semana',
+      stages: stagesFromEdition(edition),
+      restAfter: edition.restAfter,
+    }
+  }
   if (!row.stages || row.stages <= 1) {
     const spec = oneDaySpec(row.terrain ?? 'flat', row.km ?? 210)
     return { ...common, format: 'un-dia', stages: [{ ...spec, index: 1, name: row.name }] }
@@ -1086,9 +1030,9 @@ const WT_TABLE: RaceRow[] = [
 
 const WT_RACES: CalendarRace[] = [
   ...WT_TABLE.map(buildRace),
-  grandTour('race-italy', 'Race Italy', doy(5, 8)),
-  grandTour('race-spain', 'Race Spain', doy(8, 22)),
-  { ...raceFrance(), startDay: doy(7, 4) },
+  editionGrandTour('race-italy', 'Race Italy', doy(5, 8), 'IT'),
+  editionGrandTour('race-spain', 'Race Spain', doy(8, 22), 'ES'),
+  editionGrandTour('race-france', 'Race France', doy(7, 4), 'FR'),
 ]
 
 /**
