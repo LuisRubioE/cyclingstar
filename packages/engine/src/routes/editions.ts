@@ -150,11 +150,11 @@ export const RACE_EDITIONS: Record<string, RaceEdition> = {
   'race-andalusia': {
     restAfter: [],
     stages: [
-      { from: 'Benahavis', to: 'Pizarra', km: 150, terrain: 'hilly' },
-      { from: 'Torrox', to: 'Otura', km: 139, terrain: 'hilly' },
-      { from: 'Jaen', to: 'Lopera', km: 181, terrain: 'flat' },
-      { from: 'Montoro', to: 'Pozoblanco', km: 166, terrain: 'flat' },
-      { from: 'La Roda de Andalucia', to: 'Lucena', km: 168, terrain: 'hilly' },
+      { from: 'Benahavis', to: 'Pizarra', km: 151, terrain: 'mountain' },
+      { from: 'Torrox', to: 'Otura', km: 142, terrain: 'mountain' },
+      { from: 'Jaen', to: 'Lopera', km: 181, terrain: 'hilly' },
+      { from: 'Montoro', to: 'Pozoblanco', km: 167, terrain: 'hilly' },
+      { from: 'La Roda de Andalucia', to: 'Lucena', km: 163, terrain: 'hilly' },
     ],
   },
   'race-arabia': {
@@ -657,11 +657,11 @@ export const RACE_EDITIONS: Record<string, RaceEdition> = {
     stages: [
       { from: 'Lido di Camaiore', to: 'Lido di Camaiore', km: 12, terrain: 'itt' },
       { from: 'Camaiore', to: 'San Gimignano', km: 206, terrain: 'hilly' },
-      { from: 'Cortona', to: 'Magliano dei Marsi', km: 221, terrain: 'hilly' },
-      { from: 'Tagliacozzo', to: 'Martinsicuro', km: 213, terrain: 'hilly' },
+      { from: 'Cortona', to: 'Magliano dei Marsi', km: 225, terrain: 'hilly' },
+      { from: 'Tagliacozzo', to: 'Martinsicuro', km: 210, terrain: 'mountain' },
       { from: 'Marotta-Mondolfo', to: 'Mombaroccio', km: 186, terrain: 'hilly' },
-      { from: 'San Severino Marche', to: 'Camerino', km: 188, terrain: 'mountain' },
-      { from: 'Civitanova Marche', to: 'San Benedetto del Tronto', km: 142, terrain: 'flat' },
+      { from: 'San Severino Marche', to: 'Camerino', km: 189, terrain: 'mountain' },
+      { from: 'Civitanova Marche', to: 'San Benedetto del Tronto', km: 143, terrain: 'flat' },
     ],
   },
   'race-valencia': {
