@@ -32,6 +32,7 @@ import {
   getEnterableRaces,
   predictStartlist,
   ENROLL_LOCK_DAYS,
+  ensureRaceRosterFrozen,
   getTeamCalendar,
   getCurrentWorld,
   getDailyLog,
@@ -1040,6 +1041,9 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
         if (daysUntil <= 0 || daysUntil > ENROLL_LOCK_DAYS) {
           return { upcoming: false, daysUntil, teams: [], freeAgents: [] }
         }
+        // Dentro de la ventana la escuadra ya debe estar congelada; si el tick no la congeló aún
+        // (mundo ya dentro de la ventana al desplegar), la congela ahora para mostrar corredores reales.
+        await ensureRaceRosterFrozen(db, world.worldId, world.worldSeed, race, world.currentDay)
         const startlist = await predictStartlist(db, world.worldId, race, season)
         return { upcoming: true, daysUntil, ...startlist }
       },
