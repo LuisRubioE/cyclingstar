@@ -327,6 +327,9 @@ export const STAGE = {
   // 6.12 — Últimos 2 km (20 bloques) y finales.
   finalBlocks: 20,
   sprintScoreNoiseSd: 0.045,
+  // "Día" del corredor (SPEC 6.7): cada corredor rinde algo mejor o peor cada etapa (piernas del día),
+  // escalando su nivel efectivo. Aporta variación —no siempre gana el mismo— sin volverlo azar puro.
+  dayFormSd: 0.035,
   lambdaLateAttack: 0.5,
   lateAttackKm: 3,
   bigGroupThreshold: 25,

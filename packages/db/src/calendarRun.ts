@@ -22,6 +22,7 @@ import { and, asc, desc, eq, inArray, isNotNull, isNull, notInArray, or, sql } f
 import { drizzle } from 'drizzle-orm/postgres-js'
 import { creditRider } from './economy.js'
 import {
+  palmares,
   raceEntries,
   raceGc,
   raceRosters,
@@ -1000,7 +1001,12 @@ async function refreezeIfOverfilled(
   const frozenTeams = new Set(teamRows.map((r) => r.teamId))
   if (frozenTeams.size === 0) return
   const desired = await resolveFieldTeams(tx, worldId, race, raceKey, season)
-  if (frozenTeams.size <= desired.teamRows.length) return // ya cumple el cupo, nada que recortar
+  // Se recongela si SOBRAN equipos (más de los del cupo actual) o si algún equipo trae MENOS del
+  // mínimo (escuadras de 1-2, congeladas antes de la regla de mínimo). Si no, ya está bien: no se toca.
+  const perTeam = new Map<string, number>()
+  for (const r of teamRows) perTeam.set(r.teamId!, (perTeam.get(r.teamId!) ?? 0) + 1)
+  const undersized = [...perTeam.values()].some((n) => n < squadFor(race).min)
+  if (frozenTeams.size <= desired.teamRows.length && !undersized) return
 
   // Sobran equipos: borra todo el roster SALVO los agentes libres humanos (team nulo y con usuario) y
   // reconvoca equipos + relleno con las reglas nuevas. Así no se recobra el viaje a quien ya se inscribió.
@@ -1059,6 +1065,34 @@ export async function ensureRaceRosterFrozen(
 }
 
 /** Corre las etapas del calendario que tocan este día de juego. Devuelve quién corrió. */
+/**
+ * Corrige datos YA guardados de un mundo (idempotente): quita el honor de ETAPA de las carreras de un
+ * día (contaba doble con la general en el palmarés / Hall of Fame) y asigna dorsales a los rosters
+ * congelados que aún no los tengan (carreras congeladas antes de existir los dorsales). No-op cuando
+ * ya está todo bien, así que es barato correrlo cada tick.
+ */
+async function backfillWorldData(tx: Tx, worldId: string): Promise<void> {
+  const oneDayBases = new Set(SEASON_CALENDAR.filter((r) => r.stages.length === 1).map((r) => r.id))
+  const stageHonors = await tx
+    .select({ id: palmares.id, raceId: palmares.raceId })
+    .from(palmares)
+    .where(and(eq(palmares.worldId, worldId), eq(palmares.kind, 'stage')))
+  // El palmarés guarda el id BASE de la carrera (sin sufijo :s{season}), así que se compara directo.
+  const stale = stageHonors.filter((h) => oneDayBases.has(h.raceId)).map((h) => h.id)
+  if (stale.length > 0) await tx.delete(palmares).where(inArray(palmares.id, stale))
+
+  const nullBib = await tx
+    .selectDistinct({ raceId: raceRosters.raceId })
+    .from(raceRosters)
+    .where(isNull(raceRosters.bib))
+  for (const { raceId } of nullBib) {
+    const m = /^(.*):s(\d+)$/.exec(raceId)
+    if (!m) continue // la vuelta de prueba no lleva dorsales de calendario
+    const race = SEASON_CALENDAR.find((r) => r.id === m[1])
+    if (race) await assignBibs(tx, race, Number(m[2]))
+  }
+}
+
 export async function runCalendarDay(
   tx: Tx,
   worldId: string,
@@ -1068,6 +1102,9 @@ export async function runCalendarDay(
   const season = Math.floor(gameDay / SEASON_DAYS)
   const dayOfSeason = gameDay % SEASON_DAYS
   const raced = new Set<string>()
+
+  // Corrige datos viejos del mundo (palmarés de 1 día, dorsales faltantes). Idempotente.
+  await backfillWorldData(tx, worldId)
 
   // Corredores OCUPADOS hoy: los que ya están corriendo una carrera que arrancó antes y aún no
   // termina (nadie puede estar en dos carreras a la vez). Los que empiecen carrera hoy se van

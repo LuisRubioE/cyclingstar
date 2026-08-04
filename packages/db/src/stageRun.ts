@@ -43,6 +43,8 @@ type Tx = Parameters<Parameters<Db['transaction']>[0]>[0]
 
 const ENGINE_VERSION_NUM = 1
 const RACE_XP_BASE = 0.5
+/** El maillot de líder da alas: el líder de la general rinde ~4% por encima de su nivel efectivo. */
+const LEADER_JERSEY_BOOST = 1.04
 const STAGE_XP_ATTRS: Record<string, Attribute[]> = {
   llana: ['LLA', 'SPR'],
   media: ['MON', 'LLA'],
@@ -166,6 +168,19 @@ export async function runOneStage(
     riderState.set(riderId, { attributes, ctl: rider.ctl, atl: rider.atl, ceilings })
   }
   if (stageRiders.length === 0) return new Set()
+
+  // El maillot de líder "da alas": quien defiende la general (déficit 0) rinde un poco por encima de
+  // su nivel, como en el ciclismo real. Solo cuando existe jersey de verdad (hay una brecha en la
+  // general: alguien con déficit > 0), así que en la etapa 1 y en carreras de un día no aplica.
+  const hasLeaderJersey = stageRiders.some((r) => r.gcDeficitSeconds > 0)
+  if (hasLeaderJersey) {
+    for (const r of stageRiders) {
+      if (r.gcDeficitSeconds !== 0) continue
+      for (const attr of ATTRIBUTES) {
+        r.eff0[attr] = Math.min(100, r.eff0[attr] * LEADER_JERSEY_BOOST)
+      }
+    }
+  }
 
   const seed = stageSeed({
     worldSeed,
