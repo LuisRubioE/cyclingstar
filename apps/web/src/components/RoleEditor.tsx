@@ -34,16 +34,19 @@ export function RoleEditor({ current }: { current: Vocation }) {
 
   if (!open) {
     return (
-      <button
-        type="button"
-        onClick={() => {
-          setValue(current)
-          setOpen(true)
-        }}
-        className="text-xs font-medium text-indigo-600 hover:text-indigo-500"
-      >
-        Change role
-      </button>
+      <span className="flex items-center gap-2">
+        <span className="text-slate-700">{VOCATION_LABELS[current]}</span>
+        <button
+          type="button"
+          onClick={() => {
+            setValue(current)
+            setOpen(true)
+          }}
+          className="text-xs font-medium text-indigo-600 hover:text-indigo-500"
+        >
+          Change role
+        </button>
+      </span>
     )
   }
 
