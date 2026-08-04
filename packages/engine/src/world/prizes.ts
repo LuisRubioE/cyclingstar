@@ -22,3 +22,22 @@ export function gcPrizes(level: RaceLevel): number[] {
   const top = GC_TOP_PRIZE[level]
   return GC_SHARES.map((share) => Math.round(top * share))
 }
+
+/**
+ * Premio de EQUIPO (a la escala del presupuesto, no del corredor): los resultados dan ingresos al
+ * equipo, no solo el patrocinio. Un buen equipo gana carreras y engorda su presupuesto; uno flojo
+ * depende del patrocinio. Escalado para que una gran vuelta pese como ~una semana de patrocinio.
+ */
+const TEAM_STAGE_PRIZE: Record<RaceLevel, number> = { WT: 3000, PRS: 1500, CON: 500 }
+const TEAM_GC_TOP_PRIZE: Record<RaceLevel, number> = { WT: 25000, PRS: 12000, CON: 4000 }
+
+/** Premio de equipo por ganar una etapa, por nivel. */
+export function teamStagePrize(level: RaceLevel): number {
+  return TEAM_STAGE_PRIZE[level]
+}
+
+/** Premios de equipo de la general: array por puesto (0 = líder), decreciente. */
+export function teamGcPrizes(level: RaceLevel): number[] {
+  const top = TEAM_GC_TOP_PRIZE[level]
+  return GC_SHARES.map((share) => Math.round(top * share))
+}
