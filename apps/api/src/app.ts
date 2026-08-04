@@ -874,6 +874,9 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
         startDay: race.startDay,
         openTo: race.openTo,
         winner: winners[race.id] ?? null,
+        // Índices de etapa (1-based) tras los que hay descanso (grandes vueltas y alguna vuelta por
+        // etapas); vacío en las que no tienen. Permite marcar el descanso en la lista del calendario.
+        restAfter: race.restAfter ?? [],
         stages: race.stages.map((stage) => {
           // De dónde a dónde va la etapa: localidades reales del recorrido de autoría de la carrera.
           const ends = stageEndpoints(race.id, stage.index)
