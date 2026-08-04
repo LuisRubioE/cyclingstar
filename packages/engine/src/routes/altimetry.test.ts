@@ -50,6 +50,6 @@ describe('altimetría (Paso 28)', () => {
     const media = renderAltimetrySvg(TEST_TOUR.find((s) => s.kind === 'media')!.profile)
     expect(media).toContain('>cat2<')
     expect(media).toContain('>cat3<') // el banner cae en la cima, no en el llano
-    expect(media).toContain('>MV<')
+    expect(media).toContain('>Sprint<') // meta volante = sprint intermedio (etiqueta en inglés)
   })
 })

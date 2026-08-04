@@ -68,11 +68,11 @@ export interface AltimetryOptions {
 
 const PAD = 24
 
-/** Etiqueta de un banner: la categoría de la cima o el icono de la meta volante. */
+/** Etiqueta de un banner (en inglés): meta volante = sprint intermedio; cima = KOM o su categoría. */
 function bannerLabel(profile: StageProfile, kind: 'meta_volante' | 'cima', km: number): string {
-  if (kind === 'meta_volante') return 'MV'
+  if (kind === 'meta_volante') return 'Sprint'
   const cat = climbCategoryAt(profile, km)
-  return cat ?? 'cima'
+  return cat ?? 'Summit'
 }
 
 /**
@@ -86,7 +86,11 @@ export function renderAltimetrySvg(profile: StageProfile, options: AltimetryOpti
   const totalKm = points[points.length - 1]?.km ?? 1
   const minElev = Math.min(...points.map((p) => p.elevM), 0)
   const maxElev = Math.max(...points.map((p) => p.elevM), 1)
-  const spanElev = Math.max(1, maxElev - minElev)
+  // Escala vertical con un mínimo: si el desnivel de la etapa es pequeño (una llana ondula ~50-150 m)
+  // NO se estira a toda la altura, para que una etapa llana se vea llana y no como una montaña. Solo
+  // cuando el desnivel real supera este mínimo (media/alta montaña) crece el eje y se ve el relieve.
+  const MIN_ELEV_SPAN = 900
+  const spanElev = Math.max(MIN_ELEV_SPAN, maxElev - minElev)
 
   const toX = (km: number): number => PAD + (km / Math.max(1, totalKm)) * (width - 2 * PAD)
   const toY = (elev: number): number =>
@@ -95,12 +99,22 @@ export function renderAltimetrySvg(profile: StageProfile, options: AltimetryOpti
   const curve = points.map((p) => `${toX(p.km).toFixed(1)},${toY(p.elevM).toFixed(1)}`).join(' ')
   const area = `${toX(0).toFixed(1)},${(height - PAD).toFixed(1)} ${curve} ${toX(totalKm).toFixed(1)},${(height - PAD).toFixed(1)}`
 
+  // Etiquetas de banners escalonadas: si dos caen muy juntas (p.ej. un sprint sobre un puerto) se
+  // colocan en filas distintas para que no se solapen y se lean las dos.
+  let prevX = -Infinity
+  let row = 0
   const bannerMarks = (profile.banners ?? [])
+    .slice()
+    .sort((a, b) => a.km - b.km)
     .map((b) => {
-      const x = toX(b.km).toFixed(1)
+      const xn = toX(b.km)
+      const x = xn.toFixed(1)
       const label = bannerLabel(profile, b.tipo, b.km)
       const color = b.tipo === 'cima' ? '#dc2626' : '#16a34a'
-      return `<line x1="${x}" y1="${PAD}" x2="${x}" y2="${height - PAD}" stroke="${color}" stroke-width="1" stroke-dasharray="3 3" opacity="0.7"/><text x="${x}" y="${PAD - 6}" fill="${color}" font-size="11" text-anchor="middle" font-family="sans-serif">${label}</text>`
+      row = xn - prevX < 34 ? (row + 1) % 2 : 0
+      prevX = xn
+      const labelY = PAD - 6 + row * 13 // fila 0 encima del gráfico, fila 1 justo debajo
+      return `<line x1="${x}" y1="${PAD}" x2="${x}" y2="${height - PAD}" stroke="${color}" stroke-width="1" stroke-dasharray="3 3" opacity="0.7"/><text x="${x}" y="${labelY}" fill="${color}" font-size="11" text-anchor="middle" font-family="sans-serif">${label}</text>`
     })
     .join('')
 
