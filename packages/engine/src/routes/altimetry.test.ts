@@ -52,4 +52,18 @@ describe('altimetría (Paso 28)', () => {
     expect(media).toContain('>Cat 3<') // el banner cae en la cima, no en el llano
     expect(media).toContain('>Sprint<') // meta volante = sprint intermedio (etiqueta en inglés)
   })
+
+  it('un banner fuera del recorrido se ancla al final, nunca se dibuja pasada la meta', () => {
+    // Etapa de 100 km con una cima "en el km 120" (dato erróneo): debe pintarse en el borde derecho
+    // (x = width-PAD = 696 con los valores por defecto), no más allá.
+    const svg = renderAltimetrySvg({
+      segments: [{ km: 100, tipo: 'llano' }],
+      banners: [{ km: 120, tipo: 'cima' }],
+    })
+    expect(svg).toContain('x1="696.0"') // anclado a la meta
+    // Ninguna coordenada x de línea/etiqueta supera el borde derecho del área (696).
+    for (const m of svg.matchAll(/x1?="(\d+(?:\.\d+)?)"/g)) {
+      expect(Number(m[1])).toBeLessThanOrEqual(696)
+    }
+  })
 })
