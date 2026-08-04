@@ -10,6 +10,14 @@ import { COUNTRIES, type Continent } from '@cyclingstar/shared'
 import type { Division } from '../world/npc.js'
 import type { Segment, StageProfile } from '../stage/types.js'
 import { type RaceEdition, RACE_EDITIONS } from './editions.js'
+import {
+  classicSegments,
+  cobblesSegments,
+  flatSegments,
+  hillySegments,
+  ittSegments,
+  mountainSegments,
+} from './profileGen.js'
 import type { StageKind } from './testTour.js'
 import type { RaceClass } from './uci.js'
 
@@ -86,92 +94,46 @@ function auto(segments: Segment[], sprintFrac?: number): StageProfile {
   return { segments, banners }
 }
 
-// --- Constructores de etapa (km total -> perfil variado). Cada uno reserva un tramo de relleno. ---
+// --- Constructores de etapa (km total + semilla -> perfil realista y detallado, ver profileGen). ---
+// La semilla hace que cada etapa dibuje siempre el mismo perfil, pero etapas distintas se vean
+// distintas. Los banners (cima en cada puerto + meta volante) los pone auto() a partir del terreno.
 
-const flat = (km: number): StageSpec => ({
+const flat = (km: number, seed: string): StageSpec => ({
   kind: 'llana',
   label: 'Flat',
-  profile: auto([{ km, tipo: 'llano' }], 0.5),
+  profile: auto(flatSegments(km, seed), 0.5),
 })
 
-const hilly = (km: number): StageSpec => {
-  const fill = km - (9 + 10 + 20 + 6 + 15)
-  return {
-    kind: 'media',
-    label: 'Hills',
-    profile: auto(
-      [
-        { km: fill, tipo: 'llano' },
-        { km: 9, tipo: 'puerto', tramos: [{ km: 9, g: 6 }] },
-        { km: 10, tipo: 'descenso', tramos: [{ km: 10, g: -5 }] },
-        { km: 20, tipo: 'rompepiernas' },
-        { km: 6, tipo: 'puerto', tramos: [{ km: 6, g: 5 }] },
-        { km: 15, tipo: 'llano' },
-      ],
-      0.5,
-    ),
-  }
-}
+const hilly = (km: number, seed: string): StageSpec => ({
+  kind: 'media',
+  label: 'Hills',
+  profile: auto(hillySegments(km, seed), 0.5),
+})
 
-const mountain = (km: number): StageSpec => {
-  const fill = km - (12 + 15 + 8 + 18)
-  return {
-    kind: 'reina',
-    label: 'Summit finish',
-    profile: auto([
-      { km: fill, tipo: 'llano' },
-      { km: 12, tipo: 'puerto', tramos: [{ km: 12, g: 7 }] },
-      { km: 15, tipo: 'descenso', tramos: [{ km: 15, g: -6 }] },
-      { km: 8, tipo: 'rompepiernas' },
-      { km: 18, tipo: 'puerto', tramos: [{ km: 18, g: 8 }] }, // meta en alto (HC)
-    ]),
-  }
-}
+const mountain = (km: number, seed: string): StageSpec => ({
+  kind: 'reina',
+  label: 'Summit finish',
+  profile: auto(mountainSegments(km, seed)),
+})
 
-const itt = (km: number): StageSpec => ({
+const itt = (km: number, seed: string): StageSpec => ({
   kind: 'cri',
   label: 'ITT',
   timeTrial: true,
-  profile: { segments: [{ km, tipo: 'llano' }] },
+  profile: { segments: ittSegments(km, seed) },
 })
 
-const cobbles = (km: number): StageSpec => {
-  const fill = km - (4 + 20 + 5 + 15 + 3)
-  return {
-    kind: 'clasica',
-    label: 'Cobbles',
-    profile: auto(
-      [
-        { km: fill, tipo: 'llano' },
-        { km: 4, tipo: 'paves', estrellas: 3 },
-        { km: 20, tipo: 'llano' },
-        { km: 5, tipo: 'paves', estrellas: 5 },
-        { km: 15, tipo: 'llano' },
-        { km: 3, tipo: 'paves', estrellas: 4 },
-      ],
-      0.6,
-    ),
-  }
-}
+const cobbles = (km: number, seed: string): StageSpec => ({
+  kind: 'clasica',
+  label: 'Cobbles',
+  profile: auto(cobblesSegments(km, seed), 0.6),
+})
 
-const classic = (km: number): StageSpec => {
-  // Clásica dura de un día: sucesión de repechos y un puerto medio, final quebrado.
-  const fill = km - (8 + 25 + 6 + 12)
-  return {
-    kind: 'clasica',
-    label: 'Classic',
-    profile: auto(
-      [
-        { km: fill, tipo: 'llano' },
-        { km: 8, tipo: 'puerto', tramos: [{ km: 8, g: 6 }] },
-        { km: 25, tipo: 'rompepiernas' },
-        { km: 6, tipo: 'puerto', tramos: [{ km: 6, g: 8 }] },
-        { km: 12, tipo: 'rompepiernas' },
-      ],
-      0.55,
-    ),
-  }
-}
+const classic = (km: number, seed: string): StageSpec => ({
+  kind: 'clasica',
+  label: 'Classic',
+  profile: auto(classicSegments(km, seed), 0.55),
+})
 
 /** Nombra y numera una lista de specs como las etapas de una carrera. */
 function stagesFrom(specs: StageSpec[]): CalendarStage[] {
@@ -184,7 +146,10 @@ function stagesFrom(specs: StageSpec[]): CalendarStage[] {
 
 /** Etapas de una edición real: el terreno y la distancia de cada etapa vienen de la edición verificada. */
 function stagesFromEdition(edition: RaceEdition): CalendarStage[] {
-  return stagesFrom(edition.stages.map((s) => oneDaySpec(s.terrain, s.km)))
+  // Semilla estable por etapa (salida-meta-km): el perfil detallado es siempre el mismo para esa etapa.
+  return stagesFrom(
+    edition.stages.map((s) => oneDaySpec(s.terrain, s.km, `${s.from}|${s.to}|${s.km}`)),
+  )
 }
 
 /**
@@ -287,10 +252,22 @@ function nationalChampionships(code: string, name: string): CalendarRace[] {
   }
   const cc = code.toLowerCase()
   return [
-    base(`nc-${cc}-itt`, 'ITT Championship', roadDay - 3, 'elite', itt(38)),
-    base(`nc-${cc}-u23-itt`, 'U23 ITT Championship', roadDay - 2, 'u23', itt(30)),
-    base(`nc-${cc}-u23-road`, 'U23 Road Championship', roadDay - 1, 'u23', classic(180)),
-    base(`nc-${cc}-road`, 'Road Championship', roadDay, 'elite', classic(220)),
+    base(`nc-${cc}-itt`, 'ITT Championship', roadDay - 3, 'elite', itt(38, `nc-${cc}-itt`)),
+    base(
+      `nc-${cc}-u23-itt`,
+      'U23 ITT Championship',
+      roadDay - 2,
+      'u23',
+      itt(30, `nc-${cc}-u23-itt`),
+    ),
+    base(
+      `nc-${cc}-u23-road`,
+      'U23 Road Championship',
+      roadDay - 1,
+      'u23',
+      classic(180, `nc-${cc}-u23-road`),
+    ),
+    base(`nc-${cc}-road`, 'Road Championship', roadDay, 'elite', classic(220, `nc-${cc}-road`)),
   ]
 }
 
@@ -327,38 +304,39 @@ interface RaceRow {
   km?: number
 }
 
-/** Perfil de una carrera de un día según su terreno. */
-function oneDaySpec(terrain: Terrain, km: number): StageSpec {
-  if (terrain === 'cobbles') return cobbles(km)
-  if (terrain === 'classic') return classic(km)
-  if (terrain === 'mountain') return mountain(km)
-  if (terrain === 'hilly') return hilly(km)
-  if (terrain === 'itt') return itt(km)
-  return flat(km)
+/** Perfil de una carrera de un día según su terreno (semilla para el perfil detallado determinista). */
+function oneDaySpec(terrain: Terrain, km: number, seed: string): StageSpec {
+  if (terrain === 'cobbles') return cobbles(km, seed)
+  if (terrain === 'classic') return classic(km, seed)
+  if (terrain === 'mountain') return mountain(km, seed)
+  if (terrain === 'hilly') return hilly(km, seed)
+  if (terrain === 'itt') return itt(km, seed)
+  return flat(km, seed)
 }
 
 /** Mezcla determinista de etapas para una vuelta de n etapas con sesgo de terreno (autoría propia). */
-function stageMix(n: number, terrain: Terrain): StageSpec[] {
+function stageMix(n: number, terrain: Terrain, seedBase: string): StageSpec[] {
   const specs: StageSpec[] = []
   for (let i = 0; i < n; i++) {
     const first = i === 0
     const last = i === n - 1
+    const seed = `${seedBase}|${i}`
     // Una crono hacia el final en vueltas de 6+ etapas (salvo terreno llano).
     if (n >= 6 && i === n - 2 && terrain !== 'flat') {
-      specs.push(itt(22))
+      specs.push(itt(22, seed))
       continue
     }
     if (first) {
-      specs.push(flat(180))
+      specs.push(flat(180, seed))
       continue
     }
     if (last) {
-      specs.push(terrain === 'mountain' ? mountain(150) : flat(150))
+      specs.push(terrain === 'mountain' ? mountain(150, seed) : flat(150, seed))
       continue
     }
-    if (terrain === 'mountain') specs.push(i % 2 === 0 ? hilly(175) : mountain(160))
-    else if (terrain === 'hilly') specs.push(i % 2 === 0 ? flat(178) : hilly(172))
-    else specs.push(i % 2 === 0 ? flat(185) : hilly(170))
+    if (terrain === 'mountain') specs.push(i % 2 === 0 ? hilly(175, seed) : mountain(160, seed))
+    else if (terrain === 'hilly') specs.push(i % 2 === 0 ? flat(178, seed) : hilly(172, seed))
+    else specs.push(i % 2 === 0 ? flat(185, seed) : hilly(170, seed))
   }
   return specs
 }
@@ -715,13 +693,13 @@ function buildRace(row: RaceRow): CalendarRace {
     }
   }
   if (!row.stages || row.stages <= 1) {
-    const spec = oneDaySpec(row.terrain ?? 'flat', row.km ?? 210)
+    const spec = oneDaySpec(row.terrain ?? 'flat', row.km ?? 210, row.id)
     return { ...common, format: 'un-dia', stages: [{ ...spec, index: 1, name: row.name }] }
   }
   return {
     ...common,
     format: 'una-semana',
-    stages: stagesFrom(stageMix(row.stages, row.terrain ?? 'flat')),
+    stages: stagesFrom(stageMix(row.stages, row.terrain ?? 'flat', row.id)),
   }
 }
 
