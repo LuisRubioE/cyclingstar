@@ -117,6 +117,60 @@ export const RACE_EDITIONS: Record<string, RaceEdition> = {
       { from: 'Lisboa', to: 'Lisboa', km: 17, terrain: 'itt' },
     ],
   },
+  'race-algarve': {
+    restAfter: [],
+    stages: [
+      { from: 'Vila Real de Santo Antonio', to: 'Tavira', km: 184, terrain: 'flat' },
+      { from: 'Portimao', to: 'Foia', km: 147, terrain: 'mountain' },
+      { from: 'Vilamoura', to: 'Vilamoura', km: 20, terrain: 'itt' },
+      { from: 'Albufeira', to: 'Lagos', km: 175, terrain: 'hilly' },
+      { from: 'Faro', to: 'Malhao', km: 148, terrain: 'mountain' },
+    ],
+  },
+  'race-alps': {
+    restAfter: [],
+    stages: [
+      { from: 'Innsbruck', to: 'Innsbruck', km: 144, terrain: 'mountain' },
+      { from: 'Telfs', to: 'Martello', km: 148, terrain: 'mountain' },
+      { from: 'Laces', to: 'Arco', km: 175, terrain: 'mountain' },
+      { from: 'Arco', to: 'Trento', km: 168, terrain: 'mountain' },
+      { from: 'Trento', to: 'Bolzano', km: 129, terrain: 'mountain' },
+    ],
+  },
+  'race-andalusia': {
+    restAfter: [],
+    stages: [
+      { from: 'Benahavis', to: 'Pizarra', km: 150, terrain: 'hilly' },
+      { from: 'Torrox', to: 'Otura', km: 139, terrain: 'hilly' },
+      { from: 'Jaen', to: 'Lopera', km: 181, terrain: 'flat' },
+      { from: 'Montoro', to: 'Pozoblanco', km: 166, terrain: 'flat' },
+      { from: 'La Roda de Andalucia', to: 'Lucena', km: 168, terrain: 'hilly' },
+    ],
+  },
+  'race-arabia': {
+    restAfter: [],
+    stages: [
+      { from: 'AlUla Camel Cup Track', to: 'AlUla Camel Cup Track', km: 158, terrain: 'flat' },
+      {
+        from: 'Al Manshiyah Train Station',
+        to: 'Al Manshiyah Train Station',
+        km: 152,
+        terrain: 'flat',
+      },
+      { from: 'Winter Park', to: 'Bir Jaydah Mountain Wirkah', km: 142, terrain: 'hilly' },
+      { from: 'Winter Park', to: 'Hegra', km: 173, terrain: 'flat' },
+      { from: 'AlUla Old Town', to: 'Skyviews of Harrat Uwayrid', km: 164, terrain: 'hilly' },
+    ],
+  },
+  'race-arctic': {
+    restAfter: [],
+    stages: [
+      { from: 'Borkenes', to: 'Harstad', km: 182, terrain: 'hilly' },
+      { from: 'Tennevoll', to: 'Sorreisa', km: 167, terrain: 'hilly' },
+      { from: 'Husoy', to: 'Malselv', km: 182, terrain: 'mountain' },
+      { from: 'Tromso', to: 'Tromso', km: 135, terrain: 'hilly' },
+    ],
+  },
   'race-basque-country': {
     restAfter: [],
     stages: [
@@ -126,6 +180,16 @@ export const RACE_EDITIONS: Record<string, RaceEdition> = {
       { from: 'Galdakao', to: 'Galdakao', km: 167, terrain: 'hilly' },
       { from: 'Eibar', to: 'Eibar', km: 176, terrain: 'mountain' },
       { from: 'Antzuola', to: 'Bergara', km: 135, terrain: 'mountain' },
+    ],
+  },
+  'race-belgium': {
+    restAfter: [],
+    stages: [
+      { from: 'Scherpenheuvel-Zichem', to: 'Scherpenheuvel-Zichem', km: 188, terrain: 'hilly' },
+      { from: 'Merelbeke-Melle', to: 'Knokke-Heist', km: 198, terrain: 'flat' },
+      { from: 'Durbuy', to: 'Durbuy', km: 173, terrain: 'hilly' },
+      { from: 'Begijnendijk-Betekom', to: 'Aarschot', km: 184, terrain: 'flat' },
+      { from: 'Gingelom', to: 'Hoeilaart', km: 184, terrain: 'cobbles' },
     ],
   },
   'race-benelux': {
@@ -138,6 +202,27 @@ export const RACE_EDITIONS: Record<string, RaceEdition> = {
       { from: 'Leuven', to: 'Leuven', km: 178, terrain: 'hilly' },
     ],
   },
+  'race-britain': {
+    restAfter: [],
+    stages: [
+      { from: 'Woodbridge', to: 'Southwold', km: 168, terrain: 'flat' },
+      { from: 'Stowmarket', to: 'Stowmarket', km: 174, terrain: 'flat' },
+      { from: 'Milton Keynes', to: 'Ampthill', km: 123, terrain: 'hilly' },
+      { from: 'Atherstone', to: 'Burton Dassett', km: 187, terrain: 'hilly' },
+      { from: 'Pontypool', to: 'The Tumble', km: 134, terrain: 'mountain' },
+      { from: 'Newport', to: 'Cardiff', km: 112, terrain: 'hilly' },
+    ],
+  },
+  'race-burgos': {
+    restAfter: [],
+    stages: [
+      { from: 'Gumiel de Izan', to: 'Burgos', km: 165, terrain: 'hilly' },
+      { from: 'Arcos de la Llana', to: 'Pineda de la Sierra', km: 178, terrain: 'mountain' },
+      { from: 'Merindad de Montija', to: 'Corconte', km: 184, terrain: 'mountain' },
+      { from: 'Palazuelos de Muno', to: 'Briviesca', km: 178, terrain: 'flat' },
+      { from: 'Caleruega', to: 'Lagunas de Neila', km: 137, terrain: 'mountain' },
+    ],
+  },
   'race-catalonia': {
     restAfter: [],
     stages: [
@@ -148,6 +233,36 @@ export const RACE_EDITIONS: Record<string, RaceEdition> = {
       { from: "La Seu d'Urgell", to: 'Coll de Pal', km: 155, terrain: 'mountain' },
       { from: 'Berga', to: 'Queralt', km: 158, terrain: 'mountain' },
       { from: 'Barcelona', to: 'Barcelona', km: 95, terrain: 'hilly' },
+    ],
+  },
+  'race-croatia': {
+    restAfter: [],
+    stages: [
+      { from: 'Split', to: 'Sinj', km: 163, terrain: 'hilly' },
+      { from: 'Biograd na Moru', to: 'Novalja', km: 115, terrain: 'flat' },
+      { from: 'Gospic', to: 'Rijeka', km: 151, terrain: 'hilly' },
+      { from: 'Krk', to: 'Labin', km: 191, terrain: 'mountain' },
+      { from: 'Karlovac', to: 'Sveta Nedelja', km: 151, terrain: 'hilly' },
+      { from: 'Samobor', to: 'Zagreb', km: 157, terrain: 'flat' },
+    ],
+  },
+  'race-czechia': {
+    restAfter: [],
+    stages: [
+      { from: 'Prague', to: 'Karlovy Vary', km: 163, terrain: 'hilly' },
+      { from: 'Mlada Boleslav', to: 'Jested', km: 155, terrain: 'mountain' },
+      { from: 'Pardubice', to: 'Dlouhe strane', km: 171, terrain: 'mountain' },
+      { from: 'Kromeriz', to: 'Pustevny', km: 160, terrain: 'mountain' },
+    ],
+  },
+  'race-denmark': {
+    restAfter: [],
+    stages: [
+      { from: 'Nexo', to: 'Ronne', km: 178, terrain: 'hilly' },
+      { from: 'Rodovre', to: 'Gladsaxe', km: 111, terrain: 'flat' },
+      { from: 'Kerteminde', to: 'Kerteminde', km: 14, terrain: 'itt' },
+      { from: 'Svendborg', to: 'Vejle', km: 227, terrain: 'hilly' },
+      { from: 'Hobro', to: 'Silkeborg', km: 157, terrain: 'hilly' },
     ],
   },
   'race-down-under': {
@@ -173,6 +288,16 @@ export const RACE_EDITIONS: Record<string, RaceEdition> = {
       { from: 'Abu Dhabi', to: 'Abu Dhabi', km: 149, terrain: 'flat' },
     ],
   },
+  'race-germany': {
+    restAfter: [],
+    stages: [
+      { from: 'Essen', to: 'Essen', km: 3, terrain: 'itt' },
+      { from: 'Essen', to: 'Herford', km: 203, terrain: 'hilly' },
+      { from: 'Herford', to: 'Arnsberg', km: 190, terrain: 'hilly' },
+      { from: 'Arnsberg', to: 'Kassel', km: 176, terrain: 'hilly' },
+      { from: 'Halle', to: 'Magdeburg', km: 164, terrain: 'flat' },
+    ],
+  },
   'race-guangxi': {
     restAfter: [],
     stages: [
@@ -182,6 +307,97 @@ export const RACE_EDITIONS: Record<string, RaceEdition> = {
       { from: 'Bama', to: 'Jinchengjiang', km: 177, terrain: 'hilly' },
       { from: 'Yizhou', to: 'Nongla', km: 166, terrain: 'mountain' },
       { from: 'Nanning', to: 'Nanning', km: 134, terrain: 'flat' },
+    ],
+  },
+  'race-hainan': {
+    restAfter: [],
+    stages: [
+      { from: 'Qionghai', to: 'Qionghai', km: 90, terrain: 'flat' },
+      { from: 'Qionghai', to: 'Lingshui', km: 178, terrain: 'flat' },
+      { from: 'Lingshui', to: 'Baoting', km: 213, terrain: 'hilly' },
+      { from: 'Baoting', to: 'Dongfang', km: 191, terrain: 'hilly' },
+      { from: 'Changjiang', to: 'Sanya', km: 183, terrain: 'flat' },
+    ],
+  },
+  'race-hauts-de-france': {
+    restAfter: [],
+    stages: [
+      { from: 'Lagny-le-Sec', to: 'Laon', km: 178, terrain: 'hilly' },
+      { from: 'Glisy', to: 'Lievin', km: 188, terrain: 'flat' },
+      { from: 'La Sentinelle', to: 'Wallers-Arenberg', km: 156, terrain: 'cobbles' },
+      { from: 'Bergues', to: 'Cassel', km: 166, terrain: 'hilly' },
+      { from: 'Saint-Omer', to: 'Dunkerque', km: 184, terrain: 'flat' },
+    ],
+  },
+  'race-hungary': {
+    restAfter: [],
+    stages: [
+      { from: 'Gyula', to: 'Bekescsaba', km: 143, terrain: 'flat' },
+      { from: 'Szarvas', to: 'Paks', km: 206, terrain: 'flat' },
+      { from: 'Kaposvar', to: 'Szekszard', km: 152, terrain: 'hilly' },
+      { from: 'Mohacs', to: 'Pecs', km: 188, terrain: 'mountain' },
+      { from: 'Balatonalmadi', to: 'Veszprem', km: 147, terrain: 'hilly' },
+    ],
+  },
+  'race-langkawi': {
+    restAfter: [],
+    stages: [
+      { from: 'Shah Alam', to: 'Kampar', km: 193, terrain: 'flat' },
+      { from: 'Taiping', to: 'Gunung Jerai', km: 146, terrain: 'mountain' },
+      { from: 'Sungai Petani', to: 'Kuala Kangsar', km: 190, terrain: 'hilly' },
+      { from: 'Tambun', to: 'Cameron Highlands', km: 140, terrain: 'mountain' },
+      { from: 'Tapah', to: 'Genting Highlands', km: 126, terrain: 'mountain' },
+      { from: 'Pandan Indah', to: 'Rembau', km: 121, terrain: 'hilly' },
+      { from: 'Melaka', to: 'Batu Pahat', km: 159, terrain: 'flat' },
+      { from: 'Muar', to: 'Putrajaya', km: 184, terrain: 'flat' },
+    ],
+  },
+  'race-loire': {
+    restAfter: [],
+    stages: [
+      { from: 'Blois', to: 'Vouzon', km: 180, terrain: 'flat' },
+      { from: 'Chemery', to: 'Saint-Georges-sur-Cher', km: 189, terrain: 'hilly' },
+      { from: 'Moree', to: 'Montoire-sur-le-Loir', km: 195, terrain: 'hilly' },
+      { from: 'Romorantin', to: 'Romorantin', km: 189, terrain: 'flat' },
+      { from: 'Blois', to: 'Blois', km: 98, terrain: 'hilly' },
+    ],
+  },
+  'race-luxembourg': {
+    restAfter: [],
+    stages: [
+      { from: 'Luxembourg', to: 'Luxembourg', km: 153, terrain: 'hilly' },
+      { from: 'Remich', to: 'Mamer', km: 168, terrain: 'hilly' },
+      { from: 'Mertert', to: 'Vianden', km: 171, terrain: 'hilly' },
+      { from: 'Niederanven', to: 'Niederanven', km: 26, terrain: 'itt' },
+      { from: 'Mersch', to: 'Luxembourg', km: 176, terrain: 'hilly' },
+    ],
+  },
+  'race-mayenne': {
+    restAfter: [],
+    stages: [
+      { from: 'Laval', to: 'Laval', km: 5, terrain: 'itt' },
+      { from: 'Saint-Berthevin', to: 'Chateau-Gontier-sur-Mayenne', km: 172, terrain: 'hilly' },
+      { from: 'Aron', to: 'Pre-en-Pail-Saint-Samson', km: 215, terrain: 'hilly' },
+      { from: 'Cosse-le-Vivien', to: 'Laval', km: 148, terrain: 'flat' },
+    ],
+  },
+  'race-norway': {
+    restAfter: [],
+    stages: [
+      { from: 'Solakrossen', to: 'Solakrossen', km: 179, terrain: 'flat' },
+      { from: 'Egersund', to: 'Oltedal', km: 208, terrain: 'hilly' },
+      { from: 'Jorpeland', to: 'Heia', km: 142, terrain: 'hilly' },
+      { from: 'Stavanger', to: 'Stavanger', km: 130, terrain: 'hilly' },
+    ],
+  },
+  'race-oman': {
+    restAfter: [],
+    stages: [
+      { from: 'Ministry of Tourism', to: 'Bimmah Sink Hole', km: 171, terrain: 'flat' },
+      { from: 'Al Rustaq Fort', to: 'Yitti Hills', km: 191, terrain: 'hilly' },
+      { from: 'Samail', to: 'Misfat al Abriyeen', km: 191, terrain: 'hilly' },
+      { from: 'Al Sawadi Beach', to: 'Sohar', km: 147, terrain: 'flat' },
+      { from: 'Nizwa', to: 'Jabal al Akhdhar', km: 156, terrain: 'mountain' },
     ],
   },
   'race-poland': {
@@ -194,6 +410,19 @@ export const RACE_EDITIONS: Record<string, RaceEdition> = {
       { from: 'Opole', to: 'Kocierz Resort', km: 219, terrain: 'mountain' },
       { from: 'Bukovina Resort', to: 'Bukowina Tatrzanska', km: 126, terrain: 'mountain' },
       { from: 'Wieliczka', to: 'Wieliczka', km: 12, terrain: 'itt' },
+    ],
+  },
+  'race-qinghai': {
+    restAfter: [],
+    stages: [
+      { from: 'Xining', to: 'Xining', km: 121, terrain: 'flat' },
+      { from: 'Duoba', to: 'Huzhu', km: 151, terrain: 'hilly' },
+      { from: 'Huzhu', to: 'Menyuan', km: 220, terrain: 'hilly' },
+      { from: 'Menyuan', to: 'Qilian', km: 173, terrain: 'mountain' },
+      { from: 'Qilian', to: 'Gangcha', km: 169, terrain: 'hilly' },
+      { from: 'Gangcha', to: 'Gonghe', km: 233, terrain: 'hilly' },
+      { from: 'Gonghe', to: 'Haiyan', km: 137, terrain: 'hilly' },
+      { from: 'Xihaizhen', to: 'Xihaizhen', km: 121, terrain: 'hilly' },
     ],
   },
   'race-rhone-alpes': {
@@ -220,6 +449,16 @@ export const RACE_EDITIONS: Record<string, RaceEdition> = {
       { from: 'Lucens', to: 'Leysin', km: 178, terrain: 'mountain' },
     ],
   },
+  'race-slovenia': {
+    restAfter: [],
+    stages: [
+      { from: 'Velenje', to: 'Rogaska Slatina', km: 142, terrain: 'hilly' },
+      { from: 'Radlje ob Dravi', to: 'Ormoz', km: 177, terrain: 'hilly' },
+      { from: 'Maribor', to: 'Celje', km: 137, terrain: 'hilly' },
+      { from: 'Kranj', to: 'Kranjska Gora', km: 183, terrain: 'mountain' },
+      { from: 'Litija', to: 'Novo Mesto', km: 162, terrain: 'hilly' },
+    ],
+  },
   'race-switzerland': {
     restAfter: [],
     stages: [
@@ -243,6 +482,19 @@ export const RACE_EDITIONS: Record<string, RaceEdition> = {
       { from: 'Nice', to: 'Nice', km: 129, terrain: 'hilly' },
     ],
   },
+  'race-turkiye': {
+    restAfter: [],
+    stages: [
+      { from: 'Cesme', to: 'Selcuk', km: 149, terrain: 'flat' },
+      { from: 'Aydin', to: 'Marmaris', km: 153, terrain: 'hilly' },
+      { from: 'Marmaris', to: 'Kiran', km: 133, terrain: 'mountain' },
+      { from: 'Marmaris', to: 'Fethiye', km: 130, terrain: 'flat' },
+      { from: 'Patara', to: 'Kemer', km: 181, terrain: 'hilly' },
+      { from: 'Antalya', to: 'Feslikan', km: 128, terrain: 'mountain' },
+      { from: 'Antalya', to: 'Antalya', km: 153, terrain: 'hilly' },
+      { from: 'Ankara', to: 'Ankara', km: 105, terrain: 'flat' },
+    ],
+  },
   'race-two-seas': {
     restAfter: [],
     stages: [
@@ -253,6 +505,26 @@ export const RACE_EDITIONS: Record<string, RaceEdition> = {
       { from: 'Marotta-Mondolfo', to: 'Mombaroccio', km: 186, terrain: 'hilly' },
       { from: 'San Severino Marche', to: 'Camerino', km: 188, terrain: 'mountain' },
       { from: 'Civitanova Marche', to: 'San Benedetto del Tronto', km: 142, terrain: 'flat' },
+    ],
+  },
+  'race-valencia': {
+    restAfter: [],
+    stages: [
+      { from: 'Segorbe', to: 'Torreblanca', km: 160, terrain: 'hilly' },
+      { from: 'Carlet', to: 'Alginet', km: 18, terrain: 'itt' },
+      { from: 'Orihuela', to: 'San Vicente del Raspeig', km: 158, terrain: 'mountain' },
+      { from: 'La Nucia', to: 'Teulada Moraira', km: 172, terrain: 'hilly' },
+      { from: 'Betera', to: 'Valencia', km: 95, terrain: 'flat' },
+    ],
+  },
+  'race-wallonia': {
+    restAfter: [],
+    stages: [
+      { from: 'Manage', to: 'Lobbes', km: 181, terrain: 'hilly' },
+      { from: 'Jodoigne', to: 'Libramont-Chevigny', km: 192, terrain: 'hilly' },
+      { from: 'Habay', to: 'Vaux-sur-Sure', km: 177, terrain: 'hilly' },
+      { from: 'Dison', to: 'Eupen', km: 167, terrain: 'hilly' },
+      { from: 'Bassenge', to: 'Aubel', km: 177, terrain: 'hilly' },
     ],
   },
 }
