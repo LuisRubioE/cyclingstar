@@ -42,6 +42,7 @@ const DIVISION_ORDER = ['WT', 'PRS', 'CON']
  * salida, así que aquí van los equipos, no aún sus 7-8 corredores.
  */
 function Startlist({ data }: { data: RaceStartlist }) {
+  const frozen = data.frozen ?? false
   const byDivision = DIVISION_ORDER.map((div) => ({
     div,
     teams: data.teams.filter((t) => t.division === div),
@@ -50,7 +51,7 @@ function Startlist({ data }: { data: RaceStartlist }) {
     <div className={card}>
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-          Provisional startlist
+          {frozen ? 'Startlist' : 'Provisional startlist'}
         </h2>
         {data.daysUntil != null && (
           <span className="text-xs text-slate-400">
@@ -68,27 +69,50 @@ function Startlist({ data }: { data: RaceStartlist }) {
                 {DIVISION_LABEL[g.div] ?? g.div}{' '}
                 <span className="font-normal text-slate-400">({g.teams.length})</span>
               </h3>
-              <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
-                {g.teams.map((t) => (
-                  <span key={t.id} className="flex items-center gap-1.5 text-sm">
-                    {t.country && <Flag code={t.country} size={14} />}
-                    <TeamLink teamId={t.id} name={t.name} className="text-slate-700" />
-                  </span>
-                ))}
-              </div>
+              {frozen ? (
+                // Escuadra congelada: cada equipo con sus corredores reales.
+                <div className="mt-1 space-y-2">
+                  {g.teams.map((t) => (
+                    <div key={t.id}>
+                      <div className="flex items-center gap-1.5 text-sm font-medium">
+                        {t.country && <Flag code={t.country} size={14} />}
+                        <TeamLink teamId={t.id} name={t.name} className="text-slate-700" />
+                      </div>
+                      <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5 pl-1">
+                        {t.riders.map((r) => (
+                          <span key={r.id} className="flex items-center gap-1 text-sm">
+                            <Flag code={r.country} size={12} />
+                            <RiderName riderId={r.id} name={r.name} isBot={r.isBot} />
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                // Aún por congelar: solo los equipos previstos, sin nombrar corredores.
+                <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
+                  {g.teams.map((t) => (
+                    <span key={t.id} className="flex items-center gap-1.5 text-sm">
+                      {t.country && <Flag code={t.country} size={14} />}
+                      <TeamLink teamId={t.id} name={t.name} className="text-slate-700" />
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           ))}
           {data.freeAgents.length > 0 && (
             <div>
               <h3 className="text-xs font-semibold text-slate-500">
-                Free agents signed up{' '}
+                Free agents{frozen ? '' : ' signed up'}{' '}
                 <span className="font-normal text-slate-400">({data.freeAgents.length})</span>
               </h3>
               <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
                 {data.freeAgents.map((r) => (
                   <span key={r.id} className="flex items-center gap-1.5 text-sm">
                     <Flag code={r.country} size={14} />
-                    <RiderName riderId={r.id} name={r.name} isBot={false} />
+                    <RiderName riderId={r.id} name={r.name} isBot={r.isBot} />
                   </span>
                 ))}
               </div>
@@ -97,7 +121,9 @@ function Startlist({ data }: { data: RaceStartlist }) {
         </div>
       )}
       <p className="mt-3 text-xs text-slate-400">
-        Provisional — each team's squad of riders is named on the start day.
+        {frozen
+          ? 'Entries closed — these are the confirmed squads for the race.'
+          : 'Provisional — each team names its squad of riders when entries close, about two weeks out.'}
       </p>
     </div>
   )
