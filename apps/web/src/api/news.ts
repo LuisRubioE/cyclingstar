@@ -13,7 +13,10 @@ export async function fetchNews(): Promise<NewsItem[]> {
 
 const KIND_ICON: Record<string, string> = {
   stage_win: '🏆',
+  tt_win: '⏱️',
   breakaway_win: '🚀',
+  one_day_win: '🏆',
+  one_day_tt_win: '⏱️',
   kom: '⛰️',
   gc_win: '👑',
   contract: '✍️',

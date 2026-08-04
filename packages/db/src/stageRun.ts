@@ -313,10 +313,23 @@ async function awardOutcome(
   const nameOf = (id: string): string => nameRows.find((r) => r.id === id)?.name ?? 'A rider'
   const seedBase = `${spec.raceKey}:${gameDay}:${spec.stageDay}`
 
+  // En una carrera de UN DÍA (etapa única = final) la victoria de etapa y la general son la misma:
+  // se emite UNA sola noticia (la victoria en la carrera), con lenguaje de contrarreloj si es CRI.
+  const timeTrial = spec.timeTrial === true
+  const isOneDay = spec.isFinal && spec.stageDay === 1
+  const winKind = isOneDay
+    ? timeTrial
+      ? 'one_day_tt_win'
+      : 'one_day_win'
+    : brokeAway
+      ? 'breakaway_win'
+      : timeTrial
+        ? 'tt_win'
+        : 'stage_win'
   await emitNews(tx, {
     worldId,
     gameDay,
-    kind: brokeAway ? 'breakaway_win' : 'stage_win',
+    kind: winKind,
     seed: `win:${seedBase}`,
     data: { rider: nameOf(stageWinner.riderId), race: spec.raceName, stage: spec.stageDay },
   })
@@ -330,7 +343,8 @@ async function awardOutcome(
     })
   }
   const gcWinnerId = gcOrder[0]
-  if (spec.isFinal && gcWinnerId) {
+  // La general es un evento aparte solo en carreras POR ETAPAS; en las de un día ya la cuenta winKind.
+  if (spec.isFinal && gcWinnerId && !isOneDay) {
     await emitNews(tx, {
       worldId,
       gameDay,
@@ -343,16 +357,20 @@ async function awardOutcome(
   for (const r of output.results) {
     await addStagePoints(tx, r.riderId, spec.raceClass, r.puesto - 1)
   }
-  await recordPalmares(tx, {
-    worldId,
-    riderId: stageWinner.riderId,
-    season: spec.season,
-    raceId: spec.raceId,
-    raceName: spec.raceName,
-    kind: 'stage',
-    detail: `Stage ${spec.stageDay}`,
-    gameDay,
-  })
+  // En una carrera de UN DÍA (etapa única = final) la victoria de etapa y la general son la MISMA:
+  // no se registra honor de etapa (contaría doble en el palmarés); solo cuenta como victoria de general.
+  if (!isOneDay) {
+    await recordPalmares(tx, {
+      worldId,
+      riderId: stageWinner.riderId,
+      season: spec.season,
+      raceId: spec.raceId,
+      raceName: spec.raceName,
+      kind: 'stage',
+      detail: `Stage ${spec.stageDay}`,
+      gameDay,
+    })
+  }
   if (spec.isFinal) {
     for (let i = 0; i < gcOrder.length; i++) {
       await addGcPoints(tx, gcOrder[i]!, spec.raceClass, i)

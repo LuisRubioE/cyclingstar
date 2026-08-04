@@ -16,7 +16,7 @@ import { and, desc, eq, gte, inArray, isNotNull, lt, or, sql } from 'drizzle-orm
 import { drizzle } from 'drizzle-orm/postgres-js'
 import type { Database } from './client.js'
 import { emitNews } from './news.js'
-import { contracts, offers, riderAttrs, riders, teams } from './schema.js'
+import { contracts, gameState, offers, riderAttrs, riders, teams } from './schema.js'
 
 /**
  * Mercado de fichajes (SPEC 7.2, Paso 36). En la ventana de fin de temporada, los corredores sin
@@ -300,9 +300,11 @@ export async function acceptOffer(db: Database, riderId: string, offerId: string
       const detail = abroad
         ? `, relocating to ${countryName}${offer.payHousing ? ' with housing covered' : ''}`
         : ''
+      // El fichaje se fecha el día de la FIRMA (hoy), no el día en que llegó la oferta.
+      const clock = await tx.select({ currentDay: gameState.currentDay }).from(gameState).limit(1)
       await emitNews(tx, {
         worldId: info[0].worldId,
-        gameDay: offer.createdDay,
+        gameDay: clock[0]?.currentDay ?? offer.createdDay,
         kind: 'contract',
         seed: `contract:${offerId}`,
         data: { rider: info[0].rider, team: info[0].team, detail },
