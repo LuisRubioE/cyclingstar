@@ -225,6 +225,9 @@ export const riders = pgTable(
     atl: real('atl').notNull().default(0),
     health: healthEnum('health').notNull().default('sano'),
     healthUntilDay: integer('health_until_day'),
+    /** Día de juego hasta el que el corredor está de VIAJE (vuelta de una carrera lejana): no entrena
+     * esos días (el viaje le cuesta días de entrenamiento). Null = no está viajando. */
+    travelUntilDay: integer('travel_until_day'),
     faceSeed: text('face_seed').notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
