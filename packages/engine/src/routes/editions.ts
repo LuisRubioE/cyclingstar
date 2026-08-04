@@ -117,6 +117,16 @@ export const RACE_EDITIONS: Record<string, RaceEdition> = {
       { from: 'Lisboa', to: 'Lisboa', km: 17, terrain: 'itt' },
     ],
   },
+  'race-alentejo': {
+    restAfter: [],
+    stages: [
+      { from: 'Beja', to: 'Moura', km: 167, terrain: 'flat' },
+      { from: 'Castro Verde', to: 'Grandola', km: 172, terrain: 'flat' },
+      { from: 'Carvalhal', to: 'Arraiolos', km: 182, terrain: 'flat' },
+      { from: 'Monforte', to: 'Castelo de Vide', km: 148, terrain: 'hilly' },
+      { from: 'Estremoz', to: 'Evora', km: 152, terrain: 'hilly' },
+    ],
+  },
   'race-algarve': {
     restAfter: [],
     stages: [
@@ -171,6 +181,15 @@ export const RACE_EDITIONS: Record<string, RaceEdition> = {
       { from: 'Tromso', to: 'Tromso', km: 135, terrain: 'hilly' },
     ],
   },
+  'race-asturias': {
+    restAfter: [],
+    stages: [
+      { from: 'Oviedo', to: 'Llanes', km: 164, terrain: 'mountain' },
+      { from: 'Benia de Onis', to: 'Pola de Lena', km: 144, terrain: 'mountain' },
+      { from: 'Castropol', to: 'Vegadeo', km: 166, terrain: 'hilly' },
+      { from: 'Navia', to: 'Oviedo', km: 136, terrain: 'hilly' },
+    ],
+  },
   'race-basque-country': {
     restAfter: [],
     stages: [
@@ -200,6 +219,18 @@ export const RACE_EDITIONS: Record<string, RaceEdition> = {
       { from: 'Celles', to: 'Geraardsbergen', km: 185, terrain: 'cobbles' },
       { from: 'Riemst', to: 'Bilzen-Hoeselt', km: 196, terrain: 'hilly' },
       { from: 'Leuven', to: 'Leuven', km: 178, terrain: 'hilly' },
+    ],
+  },
+  'race-bretagne': {
+    restAfter: [],
+    stages: [
+      { from: 'Hirel', to: 'La Fresnais', km: 143, terrain: 'flat' },
+      { from: 'La Gouesniere', to: 'Le Cambout', km: 182, terrain: 'hilly' },
+      { from: 'Loudeac', to: 'Ploneour-Lanvern', km: 206, terrain: 'hilly' },
+      { from: 'Ploneour-Lanvern', to: 'Landevant', km: 205, terrain: 'hilly' },
+      { from: 'Erdeven', to: 'Guenrouet', km: 164, terrain: 'hilly' },
+      { from: 'Missillac', to: 'Le Pertre', km: 180, terrain: 'hilly' },
+      { from: 'Landebia', to: 'Plancoet', km: 159, terrain: 'hilly' },
     ],
   },
   'race-britain': {
@@ -233,6 +264,20 @@ export const RACE_EDITIONS: Record<string, RaceEdition> = {
       { from: "La Seu d'Urgell", to: 'Coll de Pal', km: 155, terrain: 'mountain' },
       { from: 'Berga', to: 'Queralt', km: 158, terrain: 'mountain' },
       { from: 'Barcelona', to: 'Barcelona', km: 95, terrain: 'hilly' },
+    ],
+  },
+  'race-colombia': {
+    restAfter: [],
+    stages: [
+      { from: 'Yopal', to: 'Yopal', km: 206, terrain: 'flat' },
+      { from: 'Yopal', to: 'Alto del Porvenir', km: 153, terrain: 'mountain' },
+      { from: 'Curisi', to: 'Toquilla', km: 33, terrain: 'itt' },
+      { from: 'Duitama', to: 'Duitama', km: 125, terrain: 'hilly' },
+      { from: 'Mosquera', to: 'Alto de La Linea', km: 232, terrain: 'mountain' },
+      { from: 'Armenia', to: 'Cali', km: 185, terrain: 'flat' },
+      { from: 'Cali', to: 'La Tebaida', km: 171, terrain: 'hilly' },
+      { from: 'Alvarado', to: 'Alto del Vino', km: 217, terrain: 'mountain' },
+      { from: 'Sopo', to: 'Bogota', km: 139, terrain: 'hilly' },
     ],
   },
   'race-croatia': {
@@ -288,6 +333,16 @@ export const RACE_EDITIONS: Record<string, RaceEdition> = {
       { from: 'Abu Dhabi', to: 'Abu Dhabi', km: 149, terrain: 'flat' },
     ],
   },
+  'race-galicia': {
+    restAfter: [],
+    stages: [
+      { from: 'Maia', to: 'Matosinhos', km: 190, terrain: 'flat' },
+      { from: 'Marin', to: 'A Estrada', km: 133, terrain: 'hilly' },
+      { from: 'Ourense', to: 'O Pereiro de Aguiar', km: 16, terrain: 'itt' },
+      { from: 'A Pobra do Brollon', to: 'O Cebreiro', km: 137, terrain: 'mountain' },
+      { from: 'Betanzos', to: 'Santiago de Compostela', km: 160, terrain: 'hilly' },
+    ],
+  },
   'race-germany': {
     restAfter: [],
     stages: [
@@ -296,6 +351,16 @@ export const RACE_EDITIONS: Record<string, RaceEdition> = {
       { from: 'Herford', to: 'Arnsberg', km: 190, terrain: 'hilly' },
       { from: 'Arnsberg', to: 'Kassel', km: 176, terrain: 'hilly' },
       { from: 'Halle', to: 'Magdeburg', km: 164, terrain: 'flat' },
+    ],
+  },
+  'race-gila': {
+    restAfter: [],
+    stages: [
+      { from: 'Tyrone', to: 'Tyrone', km: 26, terrain: 'itt' },
+      { from: 'Silver City', to: 'Mogollon', km: 117, terrain: 'mountain' },
+      { from: 'Fort Bayard', to: 'Fort Bayard', km: 123, terrain: 'hilly' },
+      { from: 'Silver City', to: 'Silver City', km: 45, terrain: 'flat' },
+      { from: 'Silver City', to: 'Silver City', km: 161, terrain: 'mountain' },
     ],
   },
   'race-guangxi': {
@@ -307,6 +372,21 @@ export const RACE_EDITIONS: Record<string, RaceEdition> = {
       { from: 'Bama', to: 'Jinchengjiang', km: 177, terrain: 'hilly' },
       { from: 'Yizhou', to: 'Nongla', km: 166, terrain: 'mountain' },
       { from: 'Nanning', to: 'Nanning', km: 134, terrain: 'flat' },
+    ],
+  },
+  'race-guatemala': {
+    restAfter: [],
+    stages: [
+      { from: 'Teculutan', to: 'Puerto Barrios', km: 172, terrain: 'flat' },
+      { from: 'Gualan', to: 'El Corcovado', km: 161, terrain: 'mountain' },
+      { from: 'Monjas', to: 'Fraijanes', km: 126, terrain: 'mountain' },
+      { from: 'Ciudad Vieja', to: 'Coatepeque', km: 192, terrain: 'flat' },
+      { from: 'Retalhuleu', to: 'San Rafael Pie de la Cuesta', km: 109, terrain: 'hilly' },
+      { from: 'Catarina', to: 'San Juan Ostuncalco', km: 91, terrain: 'mountain' },
+      { from: 'San Francisco El Alto', to: 'San Pedro', km: 134, terrain: 'mountain' },
+      { from: 'San Juan La Laguna', to: 'Tecpan', km: 128, terrain: 'mountain' },
+      { from: 'Chimaltenango', to: 'Antigua Guatemala', km: 200, terrain: 'mountain' },
+      { from: 'Villa Linda', to: 'Guatemala City', km: 121, terrain: 'flat' },
     ],
   },
   'race-hainan': {
@@ -337,6 +417,24 @@ export const RACE_EDITIONS: Record<string, RaceEdition> = {
       { from: 'Kaposvar', to: 'Szekszard', km: 152, terrain: 'hilly' },
       { from: 'Mohacs', to: 'Pecs', km: 188, terrain: 'mountain' },
       { from: 'Balatonalmadi', to: 'Veszprem', km: 147, terrain: 'hilly' },
+    ],
+  },
+  'race-istria': {
+    restAfter: [],
+    stages: [
+      { from: 'Vrsar', to: 'Vrsar', km: 2, terrain: 'itt' },
+      { from: 'Porec', to: 'Funtana', km: 142, terrain: 'hilly' },
+      { from: 'Novigrad', to: 'Motovun', km: 132, terrain: 'hilly' },
+      { from: 'Pazin', to: 'Umag', km: 118, terrain: 'hilly' },
+    ],
+  },
+  'race-kumano': {
+    restAfter: [],
+    stages: [
+      { from: 'Inami', to: 'Inami', km: 125, terrain: 'hilly' },
+      { from: 'Kozagawa', to: 'Kozagawa', km: 128, terrain: 'hilly' },
+      { from: 'Kumano', to: 'Kumano', km: 108, terrain: 'mountain' },
+      { from: 'Taiji', to: 'Taiji', km: 105, terrain: 'hilly' },
     ],
   },
   'race-langkawi': {
@@ -449,6 +547,29 @@ export const RACE_EDITIONS: Record<string, RaceEdition> = {
       { from: 'Lucens', to: 'Leysin', km: 178, terrain: 'mountain' },
     ],
   },
+  'race-rwanda': {
+    restAfter: [],
+    stages: [
+      { from: 'Rukomo', to: 'Rwamagana', km: 174, terrain: 'hilly' },
+      { from: 'Nyamata', to: 'Huye', km: 135, terrain: 'hilly' },
+      { from: 'Huye', to: 'Rusizi', km: 145, terrain: 'hilly' },
+      { from: 'Karongi', to: 'Rubavu', km: 127, terrain: 'hilly' },
+      { from: 'Rubavu', to: 'Rubavu', km: 82, terrain: 'flat' },
+      { from: 'Rubavu', to: 'Musanze', km: 84, terrain: 'mountain' },
+      { from: 'Musanze', to: 'Kigali', km: 147, terrain: 'hilly' },
+      { from: 'Kigali', to: 'Kigali', km: 84, terrain: 'hilly' },
+    ],
+  },
+  'race-sardegna': {
+    restAfter: [],
+    stages: [
+      { from: 'Castelsardo', to: 'Bosa', km: 190, terrain: 'hilly' },
+      { from: 'Oristano', to: 'Carbonia', km: 136, terrain: 'flat' },
+      { from: 'Cagliari', to: 'Tortoli', km: 168, terrain: 'hilly' },
+      { from: 'Arbatax', to: 'Nuoro', km: 154, terrain: 'mountain' },
+      { from: 'Nuoro', to: 'Olbia', km: 177, terrain: 'hilly' },
+    ],
+  },
   'race-slovenia': {
     restAfter: [],
     stages: [
@@ -467,6 +588,42 @@ export const RACE_EDITIONS: Record<string, RaceEdition> = {
       { from: 'Bad Ragaz', to: 'Bad Ragaz', km: 157, terrain: 'hilly' },
       { from: 'Aarburg', to: 'Aarburg', km: 24, terrain: 'itt' },
       { from: 'Villars-sur-Ollon', to: 'Villars-sur-Ollon', km: 151, terrain: 'mountain' },
+    ],
+  },
+  'race-tachira': {
+    restAfter: [],
+    stages: [
+      { from: 'San Cristobal', to: 'Socopo', km: 210, terrain: 'flat' },
+      { from: 'Socopo', to: 'San Cristobal', km: 210, terrain: 'hilly' },
+      { from: 'San Cristobal', to: 'San Cristobal', km: 117, terrain: 'hilly' },
+      { from: 'La Fria', to: 'Merida', km: 163, terrain: 'mountain' },
+      { from: 'Merida', to: 'Merida', km: 121, terrain: 'hilly' },
+      { from: 'El Vigia', to: 'La Grita', km: 166, terrain: 'mountain' },
+      { from: 'Tariba', to: 'San Cristobal', km: 151, terrain: 'hilly' },
+      { from: 'Abejales', to: 'Capacho', km: 155, terrain: 'hilly' },
+      { from: 'Junin', to: 'Junin', km: 134, terrain: 'hilly' },
+      { from: 'Urena', to: 'San Cristobal', km: 99, terrain: 'flat' },
+    ],
+  },
+  'race-taiwan': {
+    restAfter: [],
+    stages: [
+      { from: 'Taipei', to: 'Taipei', km: 81, terrain: 'flat' },
+      { from: 'Taoyuan', to: 'Jiaobanshan', km: 123, terrain: 'hilly' },
+      { from: 'Fo Guang Shan', to: 'Kaohsiung', km: 146, terrain: 'hilly' },
+      { from: 'Gaoshu', to: 'Liudui', km: 131, terrain: 'flat' },
+      { from: 'Luye', to: 'Liyu Lake', km: 154, terrain: 'hilly' },
+    ],
+  },
+  'race-thailand': {
+    restAfter: [],
+    stages: [
+      { from: 'Nong Khai', to: 'Nong Khai', km: 109, terrain: 'flat' },
+      { from: 'Phon Phisai', to: 'Nong Khai', km: 150, terrain: 'flat' },
+      { from: 'Nong Khai', to: 'Phu Foi Lom', km: 142, terrain: 'mountain' },
+      { from: 'Nong Khai', to: 'Tha Bo', km: 155, terrain: 'flat' },
+      { from: 'Si Chiang Mai', to: 'Si Chiang Mai', km: 136, terrain: 'flat' },
+      { from: 'Nong Khai', to: 'Nong Khai', km: 126, terrain: 'flat' },
     ],
   },
   'race-to-the-sun': {
