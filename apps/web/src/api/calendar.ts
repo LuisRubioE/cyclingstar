@@ -21,6 +21,9 @@ export interface CalendarStageSummary {
   kind: string
   km: number
   timeTrial: boolean
+  /** Ciudad de salida y de meta de la etapa (país anfitrión), o null si no hay recorrido. */
+  from: string | null
+  to: string | null
 }
 
 export interface CalendarRaceSummary {

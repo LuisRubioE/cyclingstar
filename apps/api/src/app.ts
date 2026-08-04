@@ -86,7 +86,13 @@ import {
   renderAltimetrySvg,
   simulateStage,
 } from '@cyclingstar/engine'
-import { type Health, isKnownCountry, resolveCountry, seasonPosition } from '@cyclingstar/shared'
+import {
+  type Health,
+  isKnownCountry,
+  resolveCountry,
+  seasonPosition,
+  stageEndpoints,
+} from '@cyclingstar/shared'
 import Fastify, {
   type FastifyError,
   type FastifyInstance,
@@ -873,14 +879,25 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
         startDay: race.startDay,
         openTo: race.openTo,
         winner: winners[race.id] ?? null,
-        stages: race.stages.map((stage) => ({
-          index: stage.index,
-          name: stage.name,
-          label: stage.label,
-          kind: stage.kind,
-          km: Math.round(stage.profile.segments.reduce((sum, s) => sum + s.km, 0)),
-          timeTrial: stage.timeTrial ?? false,
-        })),
+        stages: race.stages.map((stage) => {
+          // De dónde a dónde va la etapa: ciudades reales del país anfitrión, trazado determinista.
+          const ends = stageEndpoints(
+            race.id,
+            race.country ?? null,
+            race.stages.length,
+            stage.index,
+          )
+          return {
+            index: stage.index,
+            name: stage.name,
+            label: stage.label,
+            kind: stage.kind,
+            km: Math.round(stage.profile.segments.reduce((sum, s) => sum + s.km, 0)),
+            timeTrial: stage.timeTrial ?? false,
+            from: ends?.from ?? null,
+            to: ends?.to ?? null,
+          }
+        }),
       }))
       // Día actual de la temporada (0..363) para marcar "hoy" en el calendario; null si no hay mundo.
       return { races, dayOfSeason: world ? world.currentDay % 364 : null }
