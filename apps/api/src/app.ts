@@ -10,6 +10,7 @@ import {
   type TrainingOrderRow,
   acceptOffer,
   addToRoster,
+  getRaceRivals,
   getRosterTeammates,
   isOnRoster,
   addBlocked,
@@ -930,8 +931,9 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
         altimetry: renderAltimetrySvg(stage.profile),
       }))
       const orders = await getStageOrders(db, raceKey, rider.id)
-      const roster = await getRosterTeammates(db, raceKey, rider.id)
-      return { race: { id: race.id, name: race.name }, stages, orders, roster }
+      const teammates = await getRosterTeammates(db, raceKey, rider.id)
+      const rivals = await getRaceRivals(db, raceKey, rider.id)
+      return { race: { id: race.id, name: race.name }, stages, orders, teammates, rivals }
     })
 
     const putMyOrdersSchema = z.object({

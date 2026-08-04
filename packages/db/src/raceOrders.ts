@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm'
+import { and, desc, eq, isNull, ne, or } from 'drizzle-orm'
 import type { Database } from './client.js'
 import { raceRosters, riders, stageOrders } from './schema.js'
 
@@ -39,6 +39,33 @@ export async function getRosterTeammates(
     .innerJoin(riders, eq(riders.id, raceRosters.riderId))
     .where(and(eq(raceRosters.raceId, raceId), eq(riders.teamId, teamId)))
     .orderBy(riders.name)
+}
+
+/** RIVALES del corredor en la carrera (los de OTROS equipos), por fama desc: a quién marcar/seguir. */
+export async function getRaceRivals(
+  db: Database,
+  raceId: string,
+  riderId: string,
+  limit = 60,
+): Promise<{ id: string; name: string }[]> {
+  const me = await db
+    .select({ teamId: riders.teamId })
+    .from(riders)
+    .where(eq(riders.id, riderId))
+    .limit(1)
+  const teamId = me[0]?.teamId ?? null
+  // Rival = corredor del roster que NO es de tu equipo (los agentes libres de team nulo cuentan) y no
+  // eres tú. Si eres agente libre (sin equipo), rival es cualquier otro del pelotón.
+  const notMine = teamId
+    ? or(isNull(riders.teamId), ne(riders.teamId, teamId))!
+    : ne(riders.id, riderId)
+  return db
+    .select({ id: riders.id, name: riders.name })
+    .from(raceRosters)
+    .innerJoin(riders, eq(riders.id, raceRosters.riderId))
+    .where(and(eq(raceRosters.raceId, raceId), ne(riders.id, riderId), notMine))
+    .orderBy(desc(riders.fame))
+    .limit(limit)
 }
 
 /** ¿Está el corredor convocado a la carrera? (SPEC, Paso 29). */
