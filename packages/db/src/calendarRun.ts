@@ -37,6 +37,12 @@ type Db = ReturnType<typeof drizzle>
 type Tx = Parameters<Parameters<Db['transaction']>[0]>[0]
 
 const SEASON_DAYS = 364
+/**
+ * Cierre de inscripciones: días de juego antes de la salida en que se congela la escuadra de cada
+ * carrera (SPEC 8). Como en el ciclismo real, los equipos nombran a sus corredores ~2 semanas antes,
+ * no el día de la salida. Coincide con la ventana en que se muestra la lista de inscritos.
+ */
+export const ENROLL_LOCK_DAYS = 14
 const SQUAD_SIZE = { 'gran-vuelta': 8, 'una-semana': 7, 'un-dia': 7 } as const
 /**
  * Tamaño objetivo del pelotón según la clase de carrera (acota el cómputo del motor y refleja la
@@ -536,17 +542,39 @@ async function convokeSelfEntries(
   return enrolled
 }
 
-/** Lista provisional de inscritos de una carrera por empezar (equipos esperados + agentes libres). */
+/** Un corredor de la lista de inscritos (cuando la escuadra ya está congelada). */
+export interface StartlistRider {
+  id: string
+  name: string
+  country: string
+  isBot: boolean
+}
+/** Un equipo del pelotón; `riders` va lleno solo cuando la escuadra ya está congelada. */
+export interface StartlistTeam {
+  id: string
+  name: string
+  country: string | null
+  division: Division
+  riders: StartlistRider[]
+}
+/** Lista de inscritos de una carrera por empezar. */
 export interface RaceStartlist {
-  teams: { id: string; name: string; country: string | null; division: Division }[]
-  freeAgents: { id: string; name: string; country: string }[]
+  /**
+   * `true` cuando ya pasó el cierre de inscripciones (SPEC 8): la escuadra está congelada y los equipos
+   * traen a sus corredores reales. `false` mientras faltan más de `ENROLL_LOCK_DAYS`: solo se prevén los
+   * equipos que acudirán, no sus corredores (aún no elegidos).
+   */
+  frozen: boolean
+  teams: StartlistTeam[]
+  freeAgents: StartlistRider[]
 }
 
 /**
- * Previsión de inscritos de una carrera aún por empezar: los EQUIPOS que se espera que acudan (misma
- * elección determinista que hará el tick el día de salida) y los AGENTES LIBRES humanos ya auto-inscritos.
- * Las escuadras (qué corredores lleva cada equipo) no se fijan hasta la salida, así que se listan los
- * equipos, no sus corredores. Solo lectura.
+ * Inscritos de una carrera aún por empezar. Si ya pasó el cierre de inscripciones, devuelve la ESCUADRA
+ * CONGELADA real (los corredores que traerá cada equipo, más los agentes libres que entraron), leída de
+ * `race_rosters`. Si aún falta más de `ENROLL_LOCK_DAYS`, devuelve la PREVISIÓN: los equipos que se
+ * espera que acudan (misma elección determinista que hará el tick) y los agentes libres ya apuntados,
+ * sin nombrar corredores todavía. Solo lectura.
  */
 export async function predictStartlist(
   db: Db,
@@ -556,6 +584,59 @@ export async function predictStartlist(
 ): Promise<RaceStartlist> {
   const raceKey = `${race.id}:s${season}`
   return db.transaction(async (tx) => {
+    const roster = await tx
+      .select({ riderId: raceRosters.riderId })
+      .from(raceRosters)
+      .where(eq(raceRosters.raceId, raceKey))
+    if (roster.length > 0) {
+      // Cierre pasado: la escuadra está congelada. Mostramos los corredores reales agrupados por equipo.
+      const ids = roster.map((r) => r.riderId)
+      const rows = await tx
+        .select({
+          id: riders.id,
+          name: riders.name,
+          country: riders.country,
+          userId: riders.userId,
+          teamId: riders.teamId,
+          teamName: teams.name,
+          teamCountry: teams.country,
+          teamDivision: teams.division,
+        })
+        .from(riders)
+        .leftJoin(teams, eq(teams.id, riders.teamId))
+        .where(inArray(riders.id, ids))
+      const byTeam = new Map<string, StartlistTeam>()
+      const freeAgents: StartlistRider[] = []
+      for (const r of rows) {
+        const rider: StartlistRider = {
+          id: r.id,
+          name: r.name,
+          country: r.country ?? '',
+          isBot: r.userId == null,
+        }
+        if (r.teamId && r.teamName) {
+          let t = byTeam.get(r.teamId)
+          if (!t) {
+            t = {
+              id: r.teamId,
+              name: r.teamName,
+              country: r.teamCountry,
+              division: r.teamDivision as Division,
+              riders: [],
+            }
+            byTeam.set(r.teamId, t)
+          }
+          t.riders.push(rider)
+        } else {
+          freeAgents.push(rider)
+        }
+      }
+      const teamsList = [...byTeam.values()].sort((a, b) => a.name.localeCompare(b.name))
+      for (const t of teamsList) t.riders.sort((a, b) => a.name.localeCompare(b.name))
+      freeAgents.sort((a, b) => a.name.localeCompare(b.name))
+      return { frozen: true, teams: teamsList, freeAgents }
+    }
+    // Aún no congelada: previsión de equipos + agentes libres apuntados (sin nombrar corredores).
     const { teamRows } = await resolveFieldTeams(tx, worldId, race, raceKey, season)
     const fa = await tx
       .select({ id: riders.id, name: riders.name, country: riders.country })
@@ -572,15 +653,76 @@ export async function predictStartlist(
         ),
       )
     return {
+      frozen: false,
       teams: teamRows.map((t) => ({
         id: t.id,
         name: t.name,
         country: t.country,
         division: t.division,
+        riders: [],
       })),
-      freeAgents: fa.map((r) => ({ id: r.id, name: r.name, country: r.country ?? '' })),
+      freeAgents: fa.map((r) => ({
+        id: r.id,
+        name: r.name,
+        country: r.country ?? '',
+        isBot: false,
+      })),
     }
   })
+}
+
+/** Corredores ya comprometidos con otra carrera cuya ventana se solapa con la de `race` (misma temporada). */
+async function busyForRaceWindow(tx: Tx, race: CalendarRace, season: number): Promise<Set<string>> {
+  const start = race.startDay
+  const end = raceLastDay(race)
+  const overlappingKeys = SEASON_CALENDAR.filter(
+    (r) => r.id !== race.id && r.startDay <= end && start <= raceLastDay(r),
+  ).map((r) => `${r.id}:s${season}`)
+  const busy = new Set<string>()
+  if (overlappingKeys.length === 0) return busy
+  const rows = await tx
+    .select({ riderId: raceRosters.riderId })
+    .from(raceRosters)
+    .where(inArray(raceRosters.raceId, overlappingKeys))
+  for (const row of rows) busy.add(row.riderId)
+  return busy
+}
+
+/**
+ * Cierre de inscripciones (SPEC 8): cuando faltan `ENROLL_LOCK_DAYS` o menos para la salida se congela
+ * la escuadra de la carrera —equipos, sus corredores y agentes libres apuntados— en `race_rosters`,
+ * igual que en el ciclismo real, donde los equipos anuncian su alineación días antes y no el mismo día.
+ * Así la lista de inscritos que se muestra son corredores reales y el planificador de cada piloto ya
+ * sabe que tiene carrera. Se congela en el primer tick dentro de la ventana y en orden de salida, para
+ * que la carrera más próxima reserve antes a los corredores que comparte con otra que se solape.
+ * Idempotente: una carrera ya congelada no se vuelve a tocar (y el día de salida se reutiliza tal cual).
+ */
+async function lockUpcomingRosters(
+  tx: Tx,
+  worldId: string,
+  gameDay: number,
+  worldSeed: string,
+): Promise<void> {
+  const season = Math.floor(gameDay / SEASON_DAYS)
+  const dayOfSeason = gameDay % SEASON_DAYS
+  const upcoming = SEASON_CALENDAR.filter(
+    (r) => r.startDay > dayOfSeason && r.startDay - dayOfSeason <= ENROLL_LOCK_DAYS,
+  ).sort((a, b) => a.startDay - b.startDay)
+  for (const race of upcoming) {
+    const raceKey = `${race.id}:s${season}`
+    const already = await tx
+      .select({ riderId: raceRosters.riderId })
+      .from(raceRosters)
+      .where(eq(raceRosters.raceId, raceKey))
+      .limit(1)
+    if (already.length > 0) continue // ya congelada
+    const busy = await busyForRaceWindow(tx, race, season)
+    const enrolled = race.championshipCountry
+      ? await convokeNationalField(tx, worldId, race, raceKey, busy, season)
+      : await convokeField(tx, worldId, race, raceKey, worldSeed, season, busy)
+    for (const id of enrolled) busy.add(id)
+    await convokeSelfEntries(tx, worldId, race, raceKey, busy, season, gameDay)
+  }
 }
 
 /** Corre las etapas del calendario que tocan este día de juego. Devuelve quién corrió. */
@@ -659,6 +801,10 @@ export async function runCalendarDay(
     })
     for (const id of r) raced.add(id)
   }
+
+  // Cierre de inscripciones: congela la escuadra de las carreras que arrancan dentro de ~2 semanas.
+  // Va después del bucle de etapas para que las carreras convocadas hoy ya cuenten al calcular solapes.
+  await lockUpcomingRosters(tx, worldId, gameDay, worldSeed)
 
   return raced
 }

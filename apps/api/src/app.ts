@@ -31,6 +31,7 @@ import {
   getContract,
   getEnterableRaces,
   predictStartlist,
+  ENROLL_LOCK_DAYS,
   getTeamCalendar,
   getCurrentWorld,
   getDailyLog,
@@ -1021,11 +1022,10 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
       }
     })
 
-    // Lista provisional de inscritos de una carrera que está a punto de empezar (próximos días de juego):
-    // los equipos que se espera que acudan (misma elección que hará el tick) y los agentes libres ya
-    // apuntados. Las escuadras se nombran el día de salida; por eso es provisional. Vacía si la carrera
-    // no está próxima o ya se corrió esta temporada.
-    const STARTLIST_WINDOW_DAYS = 14
+    // Lista de inscritos de una carrera que está a punto de empezar (dentro de la ventana de cierre de
+    // inscripciones): una vez pasado el cierre (~2 semanas antes) la escuadra está congelada y trae a los
+    // corredores reales; antes, solo se prevén los equipos que acudirán. Vacía si la carrera no está
+    // próxima o ya se corrió esta temporada.
     app.get<{ Params: { raceId: string } }>(
       '/api/calendar/:raceId/startlist',
       async (request, reply) => {
@@ -1036,8 +1036,8 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
         const season = Math.floor(world.currentDay / 364)
         const dayOfSeason = world.currentDay % 364
         const daysUntil = race.startDay - dayOfSeason
-        // Solo si aún no ha empezado esta temporada y arranca dentro de la ventana.
-        if (daysUntil <= 0 || daysUntil > STARTLIST_WINDOW_DAYS) {
+        // Solo si aún no ha empezado esta temporada y arranca dentro de la ventana de cierre.
+        if (daysUntil <= 0 || daysUntil > ENROLL_LOCK_DAYS) {
           return { upcoming: false, daysUntil, teams: [], freeAgents: [] }
         }
         const startlist = await predictStartlist(db, world.worldId, race, season)

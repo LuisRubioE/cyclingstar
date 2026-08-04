@@ -34,10 +34,26 @@ export interface StageSprint {
   km: number
 }
 
+/**
+ * Muestra de ALTITUD REAL: a `km` de la salida el recorrido está a `elevM` metros. Una serie de estas
+ * (de PCS/La Flamme Rouge o de un GPX) define el trazado REAL: el motor integra la pendiente entre
+ * muestras consecutivas, así el relieve deja de ser un relleno sintético y reproduce la etapa de verdad.
+ */
+export interface StageElevation {
+  km: number
+  elevM: number
+}
+
 /** Rasgos reales de una etapa (los que definen su altimetría puntuable). */
 export interface StageFeatures {
   climbs?: StageClimb[]
   sprints?: StageSprint[]
+  /**
+   * Perfil de altitud REAL muestreado (km desde salida -> metros). Si viene (>= 2 muestras), el trazado
+   * se construye integrando estas muestras en vez del relleno ondulado sintético; los puertos y sprints
+   * siguen marcándose como banners. Las muestras deben ir en km creciente.
+   */
+  elevation?: StageElevation[]
 }
 
 const r2 = (n: number): number => Math.round(n * 100) / 100
@@ -115,16 +131,85 @@ function normalizeTotal(segments: Segment[], totalKm: number): Segment[] {
   return segments
 }
 
+/** Terreno físico de un tramo según su pendiente real (SPEC 6.4): sube, baja o llanea/rompepiernas. */
+function terrainForGradient(g: number): Segment['tipo'] {
+  if (g >= 3) return 'puerto'
+  if (g <= -3) return 'descenso'
+  return 'llano'
+}
+
+/** Cima/meta_volante de cada puerto y sprint; la categoría es la oficial o la derivada de la subida. */
+function bannersFromFeatures(climbs: StageClimb[], sprints: StageSprint[]): Banner[] {
+  const banners: Banner[] = []
+  for (const c of climbs)
+    banners.push({
+      km: Math.round(c.summitKm),
+      tipo: 'cima',
+      cat: c.category ?? deriveClimbCategory(climbRamps(c.lengthKm, c.avgGradient)),
+    })
+  for (const s of sprints) banners.push({ km: Math.round(s.km), tipo: 'meta_volante' })
+  banners.sort((a, b) => a.km - b.km || (a.tipo === 'cima' ? -1 : 1))
+  return banners
+}
+
 /**
- * Construye el perfil real de una etapa a partir de sus puertos y sprints. Coloca cada puerto en su
- * kilómetro, con un descenso detrás y relleno ondulado entre unos y otros; marca una cima en cada
- * puerto (su categoría la deriva el motor de los tramos) y un sprint en cada meta volante real.
+ * Trazado REAL a partir de muestras de altitud: entre dos muestras consecutivas la pendiente es
+ * (Δaltitud / Δdistancia), así el relieve reproduce el perfil de verdad (no un relleno inventado). Los
+ * puertos y sprints se marcan igual como banners (su categoría es la oficial o la derivada de la subida).
+ */
+function profileFromElevation(
+  totalKm: number,
+  elevation: StageElevation[],
+  climbs: StageClimb[],
+  sprints: StageSprint[],
+): StageProfile {
+  // Muestras dentro de [0, totalKm], en km creciente, sin duplicados de km (se queda la última).
+  const pts: StageElevation[] = []
+  for (const p of [...elevation].sort((a, b) => a.km - b.km)) {
+    const km = Math.min(totalKm, Math.max(0, p.km))
+    const prev = pts[pts.length - 1]
+    if (prev && km - prev.km < 0.02) prev.elevM = p.elevM
+    else pts.push({ km, elevM: p.elevM })
+  }
+  // Ancla los extremos a la salida (0) y a la meta (totalKm) manteniendo su altitud.
+  if (pts.length > 0 && pts[0]!.km > 0.02) pts.unshift({ km: 0, elevM: pts[0]!.elevM })
+  const lastPt = pts[pts.length - 1]
+  if (lastPt && lastPt.km < totalKm - 0.02) pts.push({ km: totalKm, elevM: lastPt.elevM })
+
+  const segments: Segment[] = []
+  for (let i = 0; i < pts.length - 1; i++) {
+    const a = pts[i]!
+    const b = pts[i + 1]!
+    const dk = b.km - a.km
+    if (dk < 0.02) continue
+    const g = r1((b.elevM - a.elevM) / (dk * 10))
+    segments.push({ km: r2(dk), tipo: terrainForGradient(g), tramos: [{ km: r2(dk), g }] })
+  }
+
+  return {
+    segments: normalizeTotal(segments, totalKm),
+    banners: bannersFromFeatures(climbs, sprints),
+  }
+}
+
+/**
+ * Construye el perfil real de una etapa. Si la etapa trae ALTITUD REAL muestreada (`elevation`), el
+ * trazado se integra de esas muestras (fiel de verdad). Si no, se reconstruye a partir de los puertos
+ * (cada uno en su km, con descenso y relleno ondulado entre unos y otros). En ambos casos se marca una
+ * cima en cada puerto (categoría oficial o derivada) y un sprint en cada meta volante real.
  */
 export function buildFeatureProfile(
   totalKm: number,
   features: StageFeatures,
   seed: string,
 ): StageProfile {
+  if (features.elevation && features.elevation.length >= 2)
+    return profileFromElevation(
+      totalKm,
+      features.elevation,
+      features.climbs ?? [],
+      features.sprints ?? [],
+    )
   const climbs = [...(features.climbs ?? [])].sort((a, b) => a.summitKm - b.summitKm)
   const segments: Segment[] = []
   const banners: Banner[] = []

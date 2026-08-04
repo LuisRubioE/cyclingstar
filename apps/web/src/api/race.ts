@@ -60,11 +60,20 @@ export async function fetchRace(raceId: string): Promise<RaceView> {
   return (await res.json()) as RaceView
 }
 
+export interface StartlistRider {
+  id: string
+  name: string
+  country: string
+  isBot: boolean
+}
+
 export interface StartlistTeam {
   id: string
   name: string
   country: string | null
   division: string
+  /** Corredores de la escuadra; lleno solo cuando ya está congelada (`frozen`). */
+  riders: StartlistRider[]
 }
 
 export interface RaceStartlist {
@@ -72,8 +81,10 @@ export interface RaceStartlist {
   upcoming: boolean
   /** Días de juego que faltan para la salida. */
   daysUntil?: number
+  /** La escuadra ya está congelada (cierre de inscripciones pasado): se muestran corredores reales. */
+  frozen?: boolean
   teams: StartlistTeam[]
-  freeAgents: { id: string; name: string; country: string }[]
+  freeAgents: StartlistRider[]
 }
 
 export async function fetchStartlist(raceId: string): Promise<RaceStartlist> {
