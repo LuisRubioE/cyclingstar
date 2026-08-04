@@ -13,8 +13,7 @@ import { WorldClock } from '../components/WorldClock'
 const ACTIONS = [
   { to: '/training', label: 'Training', hint: 'Plan your week', icon: '🚴' },
   { to: '/race-orders', label: 'Race orders', hint: 'How to ride the next race', icon: '📋' },
-  { to: '/race-entry', label: 'Race entry', hint: 'Enter races as a free agent', icon: '✈️' },
-  { to: '/team-calendar', label: 'Team calendar', hint: "Plan your team's season", icon: '🗓️' },
+  { to: '/races', label: 'Races', hint: 'Your race calendar & entries', icon: '🗓️' },
   { to: '/market', label: 'Market', hint: 'Offers and contracts', icon: '📝' },
   { to: '/finances', label: 'Finances', hint: 'Your money and ledger', icon: '💶' },
 ]

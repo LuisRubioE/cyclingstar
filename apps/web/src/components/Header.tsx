@@ -24,8 +24,7 @@ const RIDER_LINKS = [
   { to: '/rider', label: 'My rider' },
   { to: '/training', label: 'Training' },
   { to: '/race-orders', label: 'Orders' },
-  { to: '/race-entry', label: 'Race entry' },
-  { to: '/team-calendar', label: 'Team calendar' },
+  { to: '/races', label: 'Races' },
   { to: '/market', label: 'Market' },
   { to: '/finances', label: 'Finances' },
 ]
