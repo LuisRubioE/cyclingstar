@@ -30,7 +30,10 @@ type Tx = Parameters<Parameters<Db['transaction']>[0]>[0]
 const SEASON_DAYS = 364
 const ROSTER_TARGET: Record<Division, number> = { WT: 14, PRS: 12, CON: 10 }
 /** Intervalo mínimo entre tandas de ofertas a un agente libre (días de juego). */
-const FREE_AGENT_COOLDOWN_DAYS = 7
+// Tras vaciar la bandeja (aceptar/rechazar todas), un agente libre vuelve a recibir ofertas pronto —
+// en el siguiente tick o dos—, no dentro de una semana. La guardia de "ofertas pendientes" ya evita
+// que se acumulen mientras tiene alguna sin responder, así que este cooldown solo separa tandas.
+const FREE_AGENT_COOLDOWN_DAYS = 2
 
 /** Nivel del corredor como percentil [0,1]: media de sus 5 mejores atributos sobre 100. */
 async function riderRating(tx: Tx, riderId: string): Promise<number> {
