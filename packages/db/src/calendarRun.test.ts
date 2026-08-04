@@ -50,6 +50,18 @@ describe('db: selección del pelotón por nivel y región (SPEC 8)', () => {
     expect(variety.size).toBeGreaterThan(1)
   })
 
+  it('.WT: las wildcards se acotan (no se llena el pelotón de invitados)', () => {
+    const eligible = [
+      ...Array.from({ length: 18 }, (_, i) => team(`wt${i}`, 'BE', 'WT')),
+      ...Array.from({ length: 20 }, (_, i) => team(`prs${i}`, 'ES', 'PRS')),
+    ]
+    // Cupo amplio (25), pero solo 3 plazas de wildcard: 18 WT garantizados + 3 Pro, no 7.
+    const chosen = selectFieldTeams(eligible, 25, undefined, ['WT', 'PRS', 'CON'], 3, 0)
+    expect(chosen.filter((t) => t.division === 'WT')).toHaveLength(18)
+    expect(chosen.filter((t) => t.division === 'PRS')).toHaveLength(3)
+    expect(chosen).toHaveLength(21)
+  })
+
   it('.Pro: el núcleo son los ProTeams, con WorldTour de invitados', () => {
     const eligible = [
       team('wt1', 'BE', 'WT'),

@@ -182,9 +182,12 @@ export function selectFieldTeams<T extends { division?: Division; country: strin
     }
     // La división de máxima prioridad entra garantizada (los 18 WorldTour en una .WT). Las plazas de
     // wildcard restantes NO son siempre los mismos ProTeams de más presupuesto: rotan por carrera
-    // dentro de una ventana de los mejores, así distintas carreras invitan a distintos equipos.
+    // dentro de una ventana de los mejores, así distintas carreras invitan a distintos equipos. El nº
+    // de wildcards se acota con `wildcardSlots` (2-4 en una .WT): no se llena el pelotón entero de
+    // invitados, como en la realidad —los WorldTour más unas pocas wildcards, no media parrilla Pro—.
     const guaranteed = eligible.filter((t) => rank(t.division) === 0).slice(0, cap)
-    const remaining = cap - guaranteed.length
+    let remaining = cap - guaranteed.length
+    if (wildcardSlots != null) remaining = Math.min(remaining, wildcardSlots)
     if (remaining <= 0) return guaranteed
     const pool = eligible.filter((t) => rank(t.division) > 0)
     return [...guaranteed, ...rotatePick(pool, remaining, rotateBy ?? 0)]
@@ -243,12 +246,20 @@ async function resolveFieldTeams(
     .from(teams)
     .where(and(eq(teams.worldId, worldId), inArray(teams.division, race.openTo)))
     .orderBy(desc(teams.budget))
-  // Carrera regional (circuito continental): mayoría de equipos del continente. El nº de wildcards de
-  // fuera del continente varía por carrera (0..N) de forma determinista —unas atraen a varios equipos
-  // extranjeros, otras a ninguno—, y una .1 (más prestigio) atrae más que una .2. Global (.WT/.Pro):
-  // por prioridad de división (WorldTour garantizado en las .WT).
-  const maxWild = race.raceClass === '1' ? 6 : 4
-  const wildcardSlots = race.region ? hashInt(race.id) % (maxWild + 1) : undefined
+  // Cupo de wildcards (equipos invitados fuera del núcleo), acotado y variable por carrera de forma
+  // determinista. Global (.WT/.Pro): los del núcleo entran garantizados (los 18 WorldTour en una .WT) y
+  // solo se invitan unas pocas wildcards —2-4 en una .WT (Down Under ~2), 3-5 en una .Pro—, no medio
+  // pelotón. Regional (.1/.2): la región es mayoría y se reservan 0..N plazas de fuera del continente,
+  // una .1 (más prestigio) atrae algo más que una .2.
+  let wildcardSlots: number | undefined
+  if (race.region) {
+    const maxWild = race.raceClass === '1' ? 4 : 3
+    wildcardSlots = hashInt(race.id) % (maxWild + 1)
+  } else if (race.raceClass === 'WT') {
+    wildcardSlots = 2 + (hashInt(`${race.id}:wild`) % 3)
+  } else if (race.raceClass === 'Pro') {
+    wildcardSlots = 3 + (hashInt(`${race.id}:wild`) % 3)
+  }
   // Semilla de rotación por carrera y temporada: las wildcards rotan año a año, no siempre las mismas.
   const rotateBy = hashInt(`${raceKey}:wild`)
   const auto = selectFieldTeams(
