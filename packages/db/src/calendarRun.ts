@@ -6,11 +6,13 @@ import {
   SEASON_CALENDAR,
   type TeamPhilosophy,
   formStars,
+  gcPointsByClass,
   raceLastDay,
   raceOngoingBefore,
   raceVocationFit,
   scheduledStageIndex,
   selectSquad,
+  stagePointsByClass,
 } from '@cyclingstar/engine'
 import {
   type Continent,
@@ -28,6 +30,7 @@ import {
   raceRosters,
   riderRacePrefs,
   riders,
+  stageResults,
   teamRacePlan,
   teams,
 } from './schema.js'
@@ -1089,7 +1092,7 @@ export async function ensureRaceRosterFrozen(
  * congelados que aún no los tengan (carreras congeladas antes de existir los dorsales). No-op cuando
  * ya está todo bien, así que es barato correrlo cada tick.
  */
-async function backfillWorldData(tx: Tx, worldId: string): Promise<void> {
+async function backfillWorldData(tx: Tx, worldId: string, season: number): Promise<void> {
   const oneDayBases = new Set(SEASON_CALENDAR.filter((r) => r.stages.length === 1).map((r) => r.id))
   const stageHonors = await tx
     .select({ id: palmares.id, raceId: palmares.raceId })
@@ -1109,6 +1112,77 @@ async function backfillWorldData(tx: Tx, worldId: string): Promise<void> {
     const race = SEASON_CALENDAR.find((r) => r.id === m[1])
     if (race) await assignBibs(tx, race, Number(m[2]))
   }
+
+  // Rehace los puntos de ranking de la temporada: corrige el doble conteo viejo de las carreras de un día.
+  await recomputeSeasonPoints(tx, worldId, season)
+}
+
+/**
+ * Recalcula los puntos de ranking de la temporada desde cero (SPEC, Paso 40). Es la ÚNICA fuente de
+ * verdad de `seasonPoints` (etapa + general), así que rehacerla corrige de raíz el viejo bug del
+ * doble conteo de las carreras de un día (que sumaban puntos de etapa Y de general por la misma
+ * llegada). Idempotente y autocurativa: reproduce exactamente las reglas vivas (una carrera de un día
+ * solo da puntos de general; los de etapa solo en carreras por etapas; la general solo si la carrera
+ * ya terminó) con las mismas funciones puras, y solo escribe a los corredores cuyo total cambia.
+ */
+async function recomputeSeasonPoints(tx: Tx, worldId: string, season: number): Promise<void> {
+  // Solo hace falta si ya se corrió alguna carrera de un día esta temporada (la única fuente del doble
+  // conteo). Si no, no hay nada que corregir y nos ahorramos escanear resultados.
+  const oneDayKeys = SEASON_CALENDAR.filter((r) => r.stages.length === 1).map(
+    (r) => `${r.id}:s${season}`,
+  )
+  if (oneDayKeys.length === 0) return
+  const anyOneDayRun = await tx
+    .select({ riderId: stageResults.riderId })
+    .from(stageResults)
+    .where(inArray(stageResults.raceId, oneDayKeys))
+    .limit(1)
+  if (anyOneDayRun.length === 0) return
+
+  const totals = new Map<string, number>()
+  const add = (riderId: string, pts: number): void => {
+    if (pts !== 0) totals.set(riderId, (totals.get(riderId) ?? 0) + pts)
+  }
+  for (const race of SEASON_CALENDAR) {
+    const key = `${race.id}:s${season}`
+    const isOneDay = race.stages.length === 1
+    // Puntos de etapa: en carreras por etapas, por cada puesto de cada etapa. En las de un día NO
+    // (contarían doble con la general, que es la misma llegada).
+    if (!isOneDay) {
+      const sres = await tx
+        .select({ riderId: stageResults.riderId, puesto: stageResults.puesto })
+        .from(stageResults)
+        .where(eq(stageResults.raceId, key))
+      for (const row of sres) add(row.riderId, stagePointsByClass(race.raceClass, row.puesto - 1))
+    }
+    // Puntos de general: solo si la carrera ya TERMINÓ (existe resultado de su última etapa).
+    const finalRun = await tx
+      .select({ riderId: stageResults.riderId })
+      .from(stageResults)
+      .where(and(eq(stageResults.raceId, key), eq(stageResults.stageDay, race.stages.length)))
+      .limit(1)
+    if (finalRun.length > 0) {
+      const gc = await tx
+        .select({ riderId: raceGc.riderId })
+        .from(raceGc)
+        .where(eq(raceGc.raceId, key))
+        .orderBy(asc(raceGc.tiempoTotalS))
+      gc.forEach((row, i) => add(row.riderId, gcPointsByClass(race.raceClass, i)))
+    }
+  }
+
+  // Escribe solo las diferencias: en la primera pasada corrige a quien tenía el doble; después,
+  // como coincide con lo almacenado, no toca nada (idempotente y barato tras converger).
+  const stored = await tx
+    .select({ id: riders.id, seasonPoints: riders.seasonPoints })
+    .from(riders)
+    .where(eq(riders.worldId, worldId))
+  for (const r of stored) {
+    const correct = totals.get(r.id) ?? 0
+    if (correct !== r.seasonPoints) {
+      await tx.update(riders).set({ seasonPoints: correct }).where(eq(riders.id, r.id))
+    }
+  }
 }
 
 export async function runCalendarDay(
@@ -1121,8 +1195,8 @@ export async function runCalendarDay(
   const dayOfSeason = gameDay % SEASON_DAYS
   const raced = new Set<string>()
 
-  // Corrige datos viejos del mundo (palmarés de 1 día, dorsales faltantes). Idempotente.
-  await backfillWorldData(tx, worldId)
+  // Corrige datos viejos del mundo (palmarés de 1 día, dorsales faltantes, puntos de ranking). Idempotente.
+  await backfillWorldData(tx, worldId, season)
 
   // Corredores OCUPADOS hoy: los que ya están corriendo una carrera que arrancó antes y aún no
   // termina (nadie puede estar en dos carreras a la vez). Los que empiecen carrera hoy se van
