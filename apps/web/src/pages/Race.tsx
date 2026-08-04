@@ -1,7 +1,8 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Fragment } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { type RaceClass, raceClassLabel } from '../api/calendar'
+import { fetchRacePrefs, setRacePref } from '../api/objectives'
 import { type RaceStartlist, fetchRace, fetchStartlist } from '../api/race'
 import { Flag } from '../components/Flag'
 import { Jersey } from '../components/Jersey'
@@ -137,6 +138,7 @@ function Startlist({ data }: { data: RaceStartlist }) {
 
 export function Race() {
   const { raceId = '' } = useParams()
+  const queryClient = useQueryClient()
   const { data, isPending, isError } = useQuery({
     queryKey: ['race', raceId],
     queryFn: () => fetchRace(raceId),
@@ -145,6 +147,14 @@ export function Race() {
   const { data: startlist } = useQuery({
     queryKey: ['race', raceId, 'startlist'],
     queryFn: () => fetchStartlist(raceId),
+  })
+  // Objetivos del jugador: si su ciclista puede marcar esta carrera como objetivo (influye en la
+  // convocatoria y en la moral). Vacío si no ha iniciado sesión o no tiene ciclista.
+  const prefs = useQuery({ queryKey: ['race-prefs'], queryFn: fetchRacePrefs })
+  const myPref = prefs.data?.find((p) => p.raceId === raceId)
+  const targetMutation = useMutation({
+    mutationFn: (wanted: boolean) => setRacePref(raceId, wanted),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['race-prefs'] }),
   })
 
   if (isPending) return <p className="text-slate-500">Loading…</p>
@@ -168,6 +178,29 @@ export function Race() {
           {data.race.raceClass ? ` · ${raceClassLabel(data.race.raceClass as RaceClass)}` : ''}
           {data.race.stageCount ? ` · ${data.race.stageCount} stages` : ''}
         </p>
+        {myPref && (
+          <div className="mt-2 flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={() => targetMutation.mutate(!myPref.wanted)}
+              disabled={targetMutation.isPending}
+              className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition disabled:opacity-60 ${
+                myPref.wanted
+                  ? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+              title="Your team weighs your targeted races when picking squads (and missing one you targeted stings your morale)."
+            >
+              {myPref.wanted ? '★ Targeted' : '☆ Target this race'}
+            </button>
+            {myPref.callup === 'selected' && (
+              <span className="text-xs font-medium text-emerald-600">You're in the squad</span>
+            )}
+            {myPref.callup === 'not-selected' && (
+              <span className="text-xs text-slate-400">Not selected this time</span>
+            )}
+          </div>
+        )}
       </div>
 
       {notRun && (

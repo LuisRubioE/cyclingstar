@@ -18,7 +18,6 @@ import { RaceEntry } from './pages/RaceEntry'
 import { TeamCalendar } from './pages/TeamCalendar'
 import { MyRaces } from './pages/MyRaces'
 import { News } from './pages/News'
-import { Objectives } from './pages/Objectives'
 import { Privacy } from './pages/Privacy'
 import { PublicRider } from './pages/PublicRider'
 import { Race } from './pages/Race'
@@ -86,14 +85,6 @@ export function App() {
             element={
               <ProtectedRoute>
                 <Training />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/objectives"
-            element={
-              <ProtectedRoute>
-                <Objectives />
               </ProtectedRoute>
             }
           />

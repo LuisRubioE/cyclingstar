@@ -11,6 +11,7 @@ export interface RacePref {
 
 export async function fetchRacePrefs(): Promise<RacePref[]> {
   const res = await fetch('/api/riders/me/race-prefs')
+  if (res.status === 401) return [] // sin sesión: no hay objetivos que mostrar
   if (!res.ok) throw new Error('Could not load your objectives.')
   return ((await res.json()) as { races: RacePref[] }).races
 }
