@@ -167,12 +167,20 @@ export function RiderProfile() {
                     {r.stageCount > 1 ? ` · ${r.stageCount} stages` : ''}
                   </span>
                 </Link>
-                <span className="shrink-0 text-xs text-slate-500">
-                  {r.ongoing
-                    ? 'Racing now'
-                    : r.daysUntil <= 0
-                      ? 'Starts today'
-                      : `in ${r.daysUntil} ${r.daysUntil === 1 ? 'day' : 'days'}`}
+                <span className="flex shrink-0 items-center gap-3 text-xs text-slate-500">
+                  <Link
+                    to={`/race-orders?race=${encodeURIComponent(r.raceKey)}`}
+                    className="font-medium text-indigo-600 hover:underline"
+                  >
+                    Orders
+                  </Link>
+                  <span>
+                    {r.ongoing
+                      ? 'Racing now'
+                      : r.daysUntil <= 0
+                        ? 'Starts today'
+                        : `in ${r.daysUntil} ${r.daysUntil === 1 ? 'day' : 'days'}`}
+                  </span>
                 </span>
               </li>
             ))}

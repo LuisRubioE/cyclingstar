@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Panel, SectionBar } from '../components/Panel'
 import {
   type Effort,
@@ -53,14 +54,17 @@ const selectClass =
 export function RaceOrders() {
   const queryClient = useQueryClient()
   const upcoming = useQuery({ queryKey: ['rider', 'upcoming'], queryFn: fetchMyUpcomingRaces })
+  const [searchParams] = useSearchParams()
   const [selectedKey, setSelectedKey] = useState<string | null>(null)
 
-  // Por defecto, la carrera más próxima que aún no ha empezado (o la primera de la lista).
+  // Por defecto: la carrera del enlace (?race=), si no la más próxima que aún no ha empezado.
   useEffect(() => {
     if (selectedKey || !upcoming.data || upcoming.data.length === 0) return
-    const next = upcoming.data.find((r) => !r.ongoing) ?? upcoming.data[0]!
+    const requested = searchParams.get('race')
+    const fromLink = requested ? upcoming.data.find((r) => r.raceKey === requested) : undefined
+    const next = fromLink ?? upcoming.data.find((r) => !r.ongoing) ?? upcoming.data[0]!
     setSelectedKey(next.raceKey)
-  }, [upcoming.data, selectedKey])
+  }, [upcoming.data, selectedKey, searchParams])
 
   const { data, isPending, isError } = useQuery({
     queryKey: ['race-orders', selectedKey],
