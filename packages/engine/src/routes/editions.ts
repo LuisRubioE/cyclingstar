@@ -85,7 +85,7 @@ export const RACE_EDITIONS: Record<string, RaceEdition> = {
       { from: 'Falset', to: 'Roquetes', km: 171, terrain: 'hilly' },
       { from: 'Alcossebre', to: 'Castello', km: 177, terrain: 'cobbles' },
       { from: "Vall d'Alba", to: 'Valdelinares', km: 150, terrain: 'mountain' },
-      { from: 'Pucol', to: 'Xeraco', km: 176, terrain: 'flat' },
+      { from: 'Pucol', to: 'Xeraco', km: 167, terrain: 'flat' },
       { from: 'Villajoyosa', to: 'Alto de Aitana', km: 188, terrain: 'mountain' },
       { from: 'Alcaraz', to: 'Elche de la Sierra', km: 185, terrain: 'hilly' },
       { from: 'Cartagena', to: 'Lorca', km: 156, terrain: 'flat' },

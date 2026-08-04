@@ -4,9 +4,9 @@
  * y pendiente (de las que el motor deriva su categoría), y cada meta volante en su sitio. Las etapas sin
  * rasgos aquí caen al perfil por terreno (verosímil, no real).
  *
- * GENERADO por scratchpad/emit-features.mjs desde los datos verificados (feat-race-*.json). NO editar a
- * mano. Un puerto solo se anota si tiene km de cima + longitud + pendiente (si no, se descarta: no se
- * inventa su posición). Los km marcados como aproximados en la fuente se sitúan en su punto real estimado.
+ * Mantenido desde los datos VERIFICADOS de cada carrera (perfiles oficiales / PCS-La Flamme Rouge). Un
+ * puerto solo se anota si tiene km de cima + longitud + pendiente (si no, se descarta: no se inventa su
+ * posición). Los km de cima salen del eje del perfil real; la categoría es la OFICIAL (ESP -> 'HC').
  * Clave: id de carrera -> array indexado por etapa (0-based); null = etapa con perfil por terreno.
  */
 import type { StageFeatures } from './featureProfile.js'
@@ -477,6 +477,447 @@ export const STAGE_FEATURES: Record<string, (StageFeatures | null)[]> = {
         { name: 'Clauzetto', summitKm: 86, lengthKm: 6.9, avgGradient: 5.7, category: 'cat3' },
         { name: 'Piancavallo', summitKm: 147, lengthKm: 11.1, avgGradient: 7, category: 'cat1' },
         { name: 'Piancavallo', summitKm: 200, lengthKm: 14.5, avgGradient: 7.8, category: 'cat1' },
+      ],
+    },
+  ],
+  'race-spain': [
+    null,
+    {
+      climbs: [
+        {
+          name: 'Alto Chateauneuf-Grasse',
+          summitKm: 44.4,
+          lengthKm: 11.5,
+          avgGradient: 3.0,
+          category: 'cat3',
+        },
+        {
+          name: 'Col de Saint Andrieu',
+          summitKm: 106,
+          lengthKm: 4.3,
+          avgGradient: 5.2,
+          category: 'cat3',
+        },
+      ],
+    },
+    {
+      climbs: [
+        {
+          name: 'Col de Mont-Louis',
+          summitKm: 148.1,
+          lengthKm: 19.0,
+          avgGradient: 5.0,
+          category: 'cat1',
+        },
+        {
+          name: 'Font-Romeu',
+          summitKm: 166.7,
+          lengthKm: 9.8,
+          avgGradient: 4.9,
+          category: 'cat2',
+        },
+      ],
+    },
+    {
+      climbs: [
+        {
+          name: "Port d'Envalira",
+          summitKm: 26,
+          lengthKm: 24.4,
+          avgGradient: 5.0,
+          category: 'cat1',
+        },
+        {
+          name: 'Collada de Beixalis',
+          summitKm: 60,
+          lengthKm: 6.5,
+          avgGradient: 8.6,
+          category: 'cat1',
+        },
+        {
+          name: "Coll d'Ordino",
+          summitKm: 79.2,
+          lengthKm: 9.9,
+          avgGradient: 7.0,
+          category: 'cat1',
+        },
+        {
+          name: 'Alto de La Comella',
+          summitKm: 101,
+          lengthKm: 3.8,
+          avgGradient: 5.4,
+          category: 'cat3',
+        },
+      ],
+    },
+    {
+      climbs: [
+        {
+          name: 'Alto de Pauls',
+          summitKm: 147.5,
+          lengthKm: 3.9,
+          avgGradient: 6.6,
+          category: 'cat3',
+        },
+      ],
+    },
+    {
+      climbs: [
+        {
+          name: 'Puerto de La Serratella',
+          summitKm: 40,
+          lengthKm: 11.5,
+          avgGradient: 4.8,
+          category: 'cat2',
+        },
+        {
+          name: 'Coll de la Bandereta',
+          summitKm: 63,
+          lengthKm: 4.6,
+          avgGradient: 6.6,
+          category: 'cat3',
+        },
+        {
+          name: 'Alto del Desierto de las Palmas',
+          summitKm: 124,
+          lengthKm: 7.2,
+          avgGradient: 5.2,
+          category: 'cat2',
+        },
+        {
+          name: 'Alto del Bartolo',
+          summitKm: 151,
+          lengthKm: 9.1,
+          avgGradient: 7.2,
+          category: 'cat1',
+        },
+      ],
+    },
+    {
+      climbs: [
+        {
+          name: 'Puerto El Remolcador',
+          summitKm: 52.5,
+          lengthKm: 12,
+          avgGradient: 4.4,
+          category: 'cat2',
+        },
+        {
+          name: 'Alto de Zucaina',
+          summitKm: 66.5,
+          lengthKm: 5.3,
+          avgGradient: 4.8,
+          category: 'cat3',
+        },
+        {
+          name: 'Alto Fuente de Rubielos',
+          summitKm: 103.5,
+          lengthKm: 6.1,
+          avgGradient: 6.1,
+          category: 'cat3',
+        },
+        {
+          name: 'Puerto de San Rafael',
+          summitKm: 133.5,
+          lengthKm: 9.5,
+          avgGradient: 4.4,
+          category: 'cat2',
+        },
+        {
+          name: 'Aramon Valdelinares',
+          summitKm: 149.9,
+          lengthKm: 8.3,
+          avgGradient: 6.5,
+          category: 'cat1',
+        },
+      ],
+    },
+    {
+      climbs: [
+        {
+          name: 'Puerto de Barx',
+          summitKm: 147,
+          lengthKm: 8.6,
+          avgGradient: 3.8,
+          category: 'cat2',
+        },
+      ],
+    },
+    {
+      climbs: [
+        {
+          name: 'Puerto de Tarbena',
+          summitKm: 36.5,
+          lengthKm: 6.7,
+          avgGradient: 5.4,
+          category: 'cat2',
+        },
+        {
+          name: 'Puerto de El Miserat',
+          summitKm: 74.5,
+          lengthKm: 5,
+          avgGradient: 10.1,
+          category: 'cat1',
+        },
+        {
+          name: 'Port de Tollos',
+          summitKm: 91.3,
+          lengthKm: 4,
+          avgGradient: 5.7,
+          category: 'cat3',
+        },
+        {
+          name: 'Port de Tudons',
+          summitKm: 122.5,
+          lengthKm: 11.7,
+          avgGradient: 4,
+          category: 'cat2',
+        },
+        {
+          name: 'Port de Benifallim',
+          summitKm: 141,
+          lengthKm: 4.8,
+          avgGradient: 5.9,
+          category: 'cat3',
+        },
+        {
+          name: 'Alto de Aitana',
+          summitKm: 187.5,
+          lengthKm: 21,
+          avgGradient: 5.8,
+          category: 'cat1',
+        },
+      ],
+    },
+    {
+      climbs: [
+        {
+          name: 'Puerto del Peralejo',
+          summitKm: 47,
+          lengthKm: 4.9,
+          avgGradient: 4.5,
+          category: 'cat3',
+        },
+        {
+          name: 'Puerto de Ayna',
+          summitKm: 88,
+          lengthKm: 8.1,
+          avgGradient: 4.0,
+          category: 'cat3',
+        },
+        {
+          name: 'Puerto de Socovos',
+          summitKm: 154.5,
+          lengthKm: 9.8,
+          avgGradient: 3.5,
+          category: 'cat3',
+        },
+      ],
+    },
+    {
+      climbs: [
+        {
+          name: 'Alto del Morrion de Totana',
+          summitKm: 120,
+          lengthKm: 8.8,
+          avgGradient: 4.3,
+          category: 'cat3',
+        },
+      ],
+    },
+    {
+      climbs: [
+        {
+          name: 'Puerto Los Barrancos',
+          summitKm: 19,
+          lengthKm: 4.9,
+          avgGradient: 3.9,
+          category: 'cat3',
+        },
+        {
+          name: 'Puerto de la Virgen',
+          summitKm: 57.5,
+          lengthKm: 3.7,
+          avgGradient: 5.2,
+          category: 'cat3',
+        },
+        {
+          name: 'Collado Garcia',
+          summitKm: 88.5,
+          lengthKm: 18.9,
+          avgGradient: 2.4,
+          category: 'cat2',
+        },
+        {
+          name: 'Alto de Velefique',
+          summitKm: 135,
+          lengthKm: 11,
+          avgGradient: 7.0,
+          category: 'cat1',
+        },
+        {
+          name: 'Calar Alto',
+          summitKm: 166.5,
+          lengthKm: 17.1,
+          avgGradient: 5.6,
+          category: 'cat1',
+        },
+      ],
+    },
+    {
+      climbs: [
+        {
+          name: 'Venta de la Cebada',
+          summitKm: 25,
+          lengthKm: 14.1,
+          avgGradient: 5.1,
+          category: 'cat1',
+        },
+        {
+          name: 'Puerto Las Albunuelas',
+          summitKm: 43,
+          lengthKm: 2.3,
+          avgGradient: 9.2,
+          category: 'cat2',
+        },
+        {
+          name: 'Alto del Legionario',
+          summitKm: 100,
+          lengthKm: 9.3,
+          avgGradient: 3.4,
+          category: 'cat2',
+        },
+        {
+          name: 'Puerto de Granada',
+          summitKm: 154,
+          lengthKm: 6.7,
+          avgGradient: 6.1,
+          category: 'cat2',
+        },
+      ],
+    },
+    {
+      climbs: [
+        {
+          name: 'Puertoviejo',
+          summitKm: 90,
+          lengthKm: 11.3,
+          avgGradient: 5.3,
+          category: 'cat2',
+        },
+        {
+          name: 'Puerto de Locubin',
+          summitKm: 129,
+          lengthKm: 9,
+          avgGradient: 5.0,
+          category: 'cat2',
+        },
+        {
+          name: 'Sierra de La Pandera',
+          summitKm: 152.7,
+          lengthKm: 8.5,
+          avgGradient: 7.9,
+          category: 'cat1',
+        },
+      ],
+    },
+    {
+      climbs: [
+        {
+          name: 'Puerto del Mojon Blanco',
+          summitKm: 37,
+          lengthKm: 7.5,
+          avgGradient: 4.4,
+          category: 'cat3',
+        },
+        {
+          name: 'Alto de Villaviciosa de Cordoba',
+          summitKm: 126,
+          lengthKm: 8.4,
+          avgGradient: 3.5,
+          category: 'cat3',
+        },
+        {
+          name: 'Puerto Artafi',
+          summitKm: 156,
+          lengthKm: 5.9,
+          avgGradient: 5.5,
+          category: 'cat3',
+        },
+      ],
+    },
+    null,
+    null,
+    null,
+    {
+      climbs: [
+        {
+          name: 'Puerto de las Abejas',
+          summitKm: 88,
+          lengthKm: 14.4,
+          avgGradient: 4.3,
+          category: 'cat2',
+        },
+        {
+          name: 'Puerto de los Empedrados',
+          summitKm: 101,
+          lengthKm: 7.1,
+          avgGradient: 5.8,
+          category: 'cat3',
+        },
+        {
+          name: 'Puerto Cerro Mojon',
+          summitKm: 138,
+          lengthKm: 14.8,
+          avgGradient: 2.9,
+          category: 'cat3',
+        },
+        {
+          name: 'Penas Blancas',
+          summitKm: 205.1,
+          lengthKm: 18.7,
+          avgGradient: 6.5,
+          category: 'cat1',
+        },
+      ],
+    },
+    {
+      climbs: [
+        {
+          name: 'Puerto de Blancares',
+          summitKm: 52.5,
+          lengthKm: 9.3,
+          avgGradient: 3.4,
+          category: 'cat3',
+        },
+        {
+          name: 'Alto de Hazallanas',
+          summitKm: 90.5,
+          lengthKm: 7.1,
+          avgGradient: 9.5,
+          category: 'cat1',
+        },
+        {
+          name: 'Puerto de El Purche',
+          summitKm: 128.3,
+          lengthKm: 9.1,
+          avgGradient: 7.4,
+          category: 'cat1',
+        },
+        {
+          name: 'Alto de Hazallanas',
+          summitKm: 155.6,
+          lengthKm: 7.1,
+          avgGradient: 9.5,
+          category: 'cat1',
+        },
+        {
+          name: 'Collado del Alguacil',
+          summitKm: 187,
+          lengthKm: 8.3,
+          avgGradient: 9.8,
+          category: 'HC',
+        },
       ],
     },
   ],
