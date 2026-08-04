@@ -74,6 +74,8 @@ export interface StartlistTeam {
   name: string
   country: string | null
   division: string
+  /** Semilla del maillot del equipo (para pintar su kit). */
+  jerseySeed: string
   /** Corredores de la escuadra; lleno solo cuando ya está congelada (`frozen`). */
   riders: StartlistRider[]
 }

@@ -1055,7 +1055,7 @@ export const RACE_ROUTES: Record<string, [string, string][]> = {
     ['Bourges', 'Uchon'],
     ['Cormoranche-sur-Saone', 'Colombier-le-Vieux'],
     ['Barbentane', 'Apt'],
-    ['Nice', 'Isola-Village'],
+    ['Nice', 'Auron'],
     ['Nice', 'Nice'],
   ],
   'race-torres-vedras': [

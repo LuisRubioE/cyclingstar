@@ -86,7 +86,7 @@ describe('db: selección del pelotón por nivel y región (SPEC 8)', () => {
     expect(foreign).toHaveLength(1)
   })
 
-  it('carrera regional: si la región no llena el cupo, las wildcards completan', () => {
+  it('carrera regional: si la región no llena el cupo, NO se completa con más extranjeros', () => {
     const eligible = [
       team('as1', 'JP'),
       team('eu1', 'FR'),
@@ -97,17 +97,21 @@ describe('db: selección del pelotón por nivel y región (SPEC 8)', () => {
       team('af1', 'MA'),
       team('as5', 'ID'),
     ]
+    // Solo 5 asiáticos: el pelotón NO se rellena con los 3 extranjeros hasta el cupo. Las wildcards
+    // siguen acotadas (reserva por defecto ~1); el resto lo completarían corredores individuales del
+    // continente (relleno regional), no un aluvión de equipos de otros continentes.
     const chosen = selectFieldTeams(eligible, 8, 'Asia')
     const asians = chosen.filter((t) => ['JP', 'CN', 'KR', 'TH', 'ID'].includes(t.country))
     const foreign = chosen.filter((t) => !['JP', 'CN', 'KR', 'TH', 'ID'].includes(t.country))
-    expect(chosen).toHaveLength(8)
     expect(asians.length).toBe(5) // los 5 asiáticos disponibles
-    expect(foreign.length).toBe(3) // + 3 wildcards que completan
+    expect(foreign.length).toBe(1) // wildcards acotadas, no las 3 de fuera
   })
 
-  it('sin equipos de la región, las wildcards llenan lo que pueden', () => {
+  it('sin equipos de la región, entran solo las wildcards permitidas (no se llena de extranjeros)', () => {
     const eligible = [team('eu1', 'FR'), team('eu2', 'IT'), team('eu3', 'ES')]
-    const chosen = selectFieldTeams(eligible, 8, 'Oceania')
-    expect(chosen).toHaveLength(3)
+    // Reserva de 2 wildcards: aunque el cupo sea 8 y no haya equipos de la región, solo entran 2 de
+    // fuera (el resto lo completaría el relleno individual del continente), no los 3 disponibles.
+    const chosen = selectFieldTeams(eligible, 8, 'Oceania', undefined, 2)
+    expect(chosen).toHaveLength(2)
   })
 })

@@ -4,6 +4,7 @@ import { Link, useParams } from 'react-router-dom'
 import { type RaceClass, raceClassLabel } from '../api/calendar'
 import { type RaceStartlist, fetchRace, fetchStartlist } from '../api/race'
 import { Flag } from '../components/Flag'
+import { Jersey } from '../components/Jersey'
 import { RiderName } from '../components/RiderName'
 import { TeamLink } from '../components/TeamLink'
 
@@ -75,6 +76,7 @@ function Startlist({ data }: { data: RaceStartlist }) {
                   {g.teams.map((t) => (
                     <div key={t.id}>
                       <div className="flex items-center gap-1.5 text-sm font-medium">
+                        <Jersey seed={t.jerseySeed} size={18} />
                         {t.country && <Flag code={t.country} size={14} />}
                         <TeamLink teamId={t.id} name={t.name} className="text-slate-700" />
                       </div>
@@ -97,6 +99,7 @@ function Startlist({ data }: { data: RaceStartlist }) {
                 <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
                   {g.teams.map((t) => (
                     <span key={t.id} className="flex items-center gap-1.5 text-sm">
+                      <Jersey seed={t.jerseySeed} size={16} />
                       {t.country && <Flag code={t.country} size={14} />}
                       <TeamLink teamId={t.id} name={t.name} className="text-slate-700" />
                     </span>

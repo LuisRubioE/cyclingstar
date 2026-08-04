@@ -53,6 +53,12 @@ const SEASON_DAYS = 364
 export const ENROLL_LOCK_DAYS = 14
 const SQUAD_SIZE = { 'gran-vuelta': 8, 'una-semana': 7, 'un-dia': 7 } as const
 /**
+ * Escuadra MÍNIMA que un equipo debe poder alinear para ser admitido en una carrera. Un equipo que no
+ * reúne tantos corredores disponibles no se presenta (no vale meter «medio equipo» de 1-2 corredores);
+ * su plaza la ocupa otro equipo o el relleno individual del continente.
+ */
+const MIN_SQUAD = { 'gran-vuelta': 6, 'una-semana': 5, 'un-dia': 5 } as const
+/**
  * Tamaño objetivo del pelotón según la clase de carrera (acota el cómputo del motor y refleja la
  * realidad de cada nivel): una .WT junta ~22 equipos (los 18 WorldTour + wildcards Pro), una .Pro
  * ~20, y las continentales .1/.2 ~16-18 equipos regionales completados con corredores del continente.
@@ -174,13 +180,14 @@ export function selectFieldTeams<T extends { division?: Division; country: strin
   if (region) {
     const inRegion = eligible.filter((t) => continentForCountry(t.country ?? '') === region)
     const outRegion = eligible.filter((t) => continentForCountry(t.country ?? '') !== region)
-    // La región es mayoría. Se reservan unas plazas de wildcard para equipos de fuera (un ProTeam
-    // invitado o continentales de otro continente): el número varía por carrera (unas atraen a varios,
-    // otras a ninguno), como en la realidad. Si la región no llena, las wildcards completan igual.
+    // La región es mayoría y las wildcards de FUERA del continente están ACOTADAS a unas pocas plazas
+    // (un ProTeam invitado o continentales de otro continente), varía por carrera. Si la región no llena
+    // el cupo, NO se completa con más extranjeros: el pelotón lo terminan los corredores individuales del
+    // propio continente (relleno regional en convokeField), no un aluvión de equipos de otros continentes.
     const reserve = wildcardSlots ?? Math.max(1, Math.floor(cap * WILDCARD_FRACTION))
     const wildcards = Math.min(outRegion.length, reserve)
     const home = inRegion.slice(0, cap - wildcards)
-    const wild = rotatePick(outRegion, cap - home.length, rotateBy ?? 0)
+    const wild = rotatePick(outRegion, wildcards, rotateBy ?? 0)
     return [...home, ...wild]
   }
   if (priority) {
@@ -224,6 +231,7 @@ interface FieldTeamRow {
   division: Division
   country: string | null
   ownerUserId: string | null
+  jerseySeed: string
 }
 
 /**
@@ -250,6 +258,7 @@ async function resolveFieldTeams(
       division: teams.division,
       country: teams.country,
       ownerUserId: teams.ownerUserId,
+      jerseySeed: teams.jerseySeed,
     })
     .from(teams)
     .where(and(eq(teams.worldId, worldId), inArray(teams.division, race.openTo)))
@@ -315,6 +324,7 @@ async function convokeField(
   busy: Set<string>,
 ): Promise<string[]> {
   const size = SQUAD_SIZE[race.format]
+  const minSquad = MIN_SQUAD[race.format]
   const fieldCap = FIELD_CAP_BY_CLASS[race.raceClass] ?? FIELD_CAP
   const { teamRows, forcedOut } = await resolveFieldTeams(tx, worldId, race, raceKey, season)
   if (teamRows.length === 0) return []
@@ -405,7 +415,8 @@ async function convokeField(
         members = members.filter((m) => (gtCount.get(m.id) ?? 0) === 0)
       }
     }
-    if (members.length === 0) continue
+    // No se admite un equipo que no puede alinear la escuadra mínima (nada de «medio equipo»).
+    if (members.length < minSquad) continue
     const cands: CallupCandidate[] = members.map((m) => ({
       riderId: m.id,
       archetype: m.archetype,
@@ -431,9 +442,10 @@ async function convokeField(
     }
   }
 
-  // Relleno regional (solo circuito continental): si los equipos del continente no llenan el pelotón
-  // objetivo, se completa con los mejores corredores del continente que aún no están inscritos —el
-  // equivalente a las selecciones nacionales y equipos club que corren estas carreras en la realidad.
+  // Relleno regional (solo circuito continental): un puñado de corredores individuales del continente
+  // (el equivalente a las selecciones nacionales / equipos club de relleno), NO un pelotón entero de
+  // sueltos. Se acota a unas pocas escuadras para que la carrera la dominen los equipos, no los sueltos.
+  const maxFill = 2 * size
   if (race.region && rosterValues.length < fieldCap) {
     const already = rosterValues.map((v) => v.riderId)
     const countries = countriesInContinent(race.region)
@@ -459,7 +471,7 @@ async function convokeField(
       .from(riders)
       .where(and(...conds))
       .orderBy(desc(riders.fame))
-      .limit(fieldCap - rosterValues.length)
+      .limit(Math.min(fieldCap - rosterValues.length, maxFill))
     for (const f of fillers) rosterValues.push({ raceId: raceKey, riderId: f.id })
   }
 
@@ -576,6 +588,8 @@ export interface StartlistTeam {
   name: string
   country: string | null
   division: Division
+  /** Semilla del maillot del equipo (para pintar su kit). */
+  jerseySeed: string
   riders: StartlistRider[]
 }
 /** Lista de inscritos de una carrera por empezar. */
@@ -616,6 +630,7 @@ export async function predictStartlist(
         teamName: teams.name,
         teamCountry: teams.country,
         teamDivision: teams.division,
+        teamJersey: teams.jerseySeed,
         bib: raceRosters.bib,
       })
       .from(raceRosters)
@@ -641,6 +656,7 @@ export async function predictStartlist(
               name: r.teamName,
               country: r.teamCountry,
               division: r.teamDivision as Division,
+              jerseySeed: r.teamJersey ?? '',
               riders: [],
               minBib: Number.POSITIVE_INFINITY,
             }
@@ -670,6 +686,7 @@ export async function predictStartlist(
           name: t.name,
           country: t.country,
           division: t.division,
+          jerseySeed: t.jerseySeed,
           riders: t.riders,
         })),
         freeAgents,
@@ -698,6 +715,7 @@ export async function predictStartlist(
         name: t.name,
         country: t.country,
         division: t.division,
+        jerseySeed: t.jerseySeed,
         riders: [],
       })),
       freeAgents: fa.map((r) => ({
@@ -872,7 +890,11 @@ async function lockUpcomingRosters(
       .from(raceRosters)
       .where(eq(raceRosters.raceId, raceKey))
       .limit(1)
-    if (already.length > 0) continue // ya congelada
+    if (already.length > 0) {
+      // Ya congelada: solo corrige si trae más equipos de los que admite el cupo actual.
+      await refreezeIfOverfilled(tx, worldId, worldSeed, race, season)
+      continue
+    }
     await freezeRaceRoster(tx, worldId, worldSeed, race, season, gameDay)
   }
 }
@@ -896,6 +918,52 @@ async function freezeRaceRoster(
     : await convokeField(tx, worldId, race, raceKey, worldSeed, season, busy)
   for (const id of enrolled) busy.add(id)
   await convokeSelfEntries(tx, worldId, race, raceKey, busy, season, gameDay)
+  await assignBibs(tx, race, season)
+}
+
+/**
+ * Corrige una escuadra ya congelada cuyo pelotón trae MÁS equipos de los que admite el cupo actual
+ * (p.ej. carreras congeladas antes de recortar las wildcards y el relleno): vuelve a convocar equipos y
+ * relleno individual con las reglas nuevas, preservando solo a los agentes libres HUMANOS ya inscritos
+ * (para no recobrarles el viaje). No toca las carreras que ya cumplen el cupo (converge en una pasada)
+ * ni los campeonatos nacionales (sin equipos).
+ */
+async function refreezeIfOverfilled(
+  tx: Tx,
+  worldId: string,
+  worldSeed: string,
+  race: CalendarRace,
+  season: number,
+): Promise<void> {
+  if (race.championshipCountry) return
+  const raceKey = `${race.id}:s${season}`
+  const teamRows = await tx
+    .select({ teamId: riders.teamId })
+    .from(raceRosters)
+    .innerJoin(riders, eq(riders.id, raceRosters.riderId))
+    .where(and(eq(raceRosters.raceId, raceKey), isNotNull(riders.teamId)))
+  const frozenTeams = new Set(teamRows.map((r) => r.teamId))
+  if (frozenTeams.size === 0) return
+  const desired = await resolveFieldTeams(tx, worldId, race, raceKey, season)
+  if (frozenTeams.size <= desired.teamRows.length) return // ya cumple el cupo, nada que recortar
+
+  // Sobran equipos: borra todo el roster SALVO los agentes libres humanos (team nulo y con usuario) y
+  // reconvoca equipos + relleno con las reglas nuevas. Así no se recobra el viaje a quien ya se inscribió.
+  const toDelete = await tx
+    .select({ riderId: raceRosters.riderId })
+    .from(raceRosters)
+    .innerJoin(riders, eq(riders.id, raceRosters.riderId))
+    .where(
+      and(eq(raceRosters.raceId, raceKey), or(isNotNull(riders.teamId), isNull(riders.userId))),
+    )
+  const ids = toDelete.map((r) => r.riderId)
+  if (ids.length > 0) {
+    await tx
+      .delete(raceRosters)
+      .where(and(eq(raceRosters.raceId, raceKey), inArray(raceRosters.riderId, ids)))
+  }
+  const busy = await busyForRaceWindow(tx, race, season)
+  await convokeField(tx, worldId, race, raceKey, worldSeed, season, busy)
   await assignBibs(tx, race, season)
 }
 
@@ -926,7 +994,11 @@ export async function ensureRaceRosterFrozen(
       .from(raceRosters)
       .where(eq(raceRosters.raceId, raceKey))
       .limit(1)
-    if (already.length > 0) return
+    if (already.length > 0) {
+      // Ya congelada: corrige el exceso de equipos si lo hay (carreras congeladas antes del recorte).
+      await refreezeIfOverfilled(tx, worldId, worldSeed, race, season)
+      return
+    }
     await freezeRaceRoster(tx, worldId, worldSeed, race, season, gameDay)
   })
 }
