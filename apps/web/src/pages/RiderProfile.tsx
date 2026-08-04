@@ -157,6 +157,9 @@ export function RiderProfile() {
                   to={`/races/${r.raceId}`}
                   className="flex min-w-0 items-center gap-2 text-sm font-medium text-slate-700 hover:text-indigo-600"
                 >
+                  {r.bib != null && (
+                    <span className="shrink-0 tabular-nums text-xs text-slate-400">#{r.bib}</span>
+                  )}
                   {r.country && <Flag code={r.country} size={14} />}
                   <span className="truncate">{r.raceName}</span>
                   <span className="shrink-0 text-xs font-normal text-slate-400">

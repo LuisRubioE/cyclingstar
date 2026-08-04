@@ -58,6 +58,8 @@ export interface RiderUpcomingRace {
   daysUntil: number
   stageCount: number
   ongoing: boolean
+  /** Dorsal del corredor en esa carrera (null si aún no se asignó). */
+  bib: number | null
 }
 
 /**
@@ -70,11 +72,11 @@ export async function getRiderUpcomingRaces(
   currentDay: number,
 ): Promise<RiderUpcomingRace[]> {
   const rosters = await db
-    .select({ raceId: raceRosters.raceId })
+    .select({ raceId: raceRosters.raceId, bib: raceRosters.bib })
     .from(raceRosters)
     .where(eq(raceRosters.riderId, riderId))
   const out: RiderUpcomingRace[] = []
-  for (const { raceId } of rosters) {
+  for (const { raceId, bib } of rosters) {
     const m = /^(.*):s(\d+)$/.exec(raceId)
     if (!m) continue // la vuelta de prueba (test-tour) no cuenta como carrera del calendario
     const baseId = m[1]!
@@ -94,6 +96,7 @@ export async function getRiderUpcomingRaces(
       daysUntil: startGameDay - currentDay,
       stageCount: race.stages.length,
       ongoing: startGameDay <= currentDay && currentDay <= lastGameDay,
+      bib,
     })
   }
   return out.sort((a, b) => a.startGameDay - b.startGameDay)

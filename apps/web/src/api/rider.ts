@@ -66,6 +66,7 @@ export interface UpcomingRace {
   daysUntil: number
   stageCount: number
   ongoing: boolean
+  bib: number | null
 }
 
 /** Próximas carreras (y en curso) del ciclista del jugador. */

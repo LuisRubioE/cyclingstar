@@ -5,7 +5,6 @@ import { Account } from './pages/Account'
 import { AdminNames } from './pages/AdminNames'
 import { Calendar } from './pages/Calendar'
 import { Countries } from './pages/Countries'
-import { FreeAgents } from './pages/FreeAgents'
 import { Country } from './pages/Country'
 import { CreateRider } from './pages/CreateRider'
 import { Finances } from './pages/Finances'
@@ -26,7 +25,6 @@ import { Team } from './pages/Team'
 import { Teams } from './pages/Teams'
 import { RaceOrders } from './pages/RaceOrders'
 import { Register } from './pages/Register'
-import { Results } from './pages/Results'
 import { RiderProfile } from './pages/RiderProfile'
 import { RoutesPage } from './pages/Routes'
 import { Training } from './pages/Training'
@@ -42,7 +40,6 @@ export function App() {
           <Route path="/calendar" element={<Calendar />} />
           <Route path="/races/:raceId" element={<Race />} />
           <Route path="/teams" element={<Teams />} />
-          <Route path="/free-agents" element={<FreeAgents />} />
           <Route path="/teams/:id" element={<Team />} />
           <Route path="/countries" element={<Countries />} />
           <Route path="/countries/:code" element={<Country />} />
@@ -133,14 +130,6 @@ export function App() {
             element={
               <ProtectedRoute>
                 <RaceOrders />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/results"
-            element={
-              <ProtectedRoute>
-                <Results />
               </ProtectedRoute>
             }
           />
