@@ -63,16 +63,18 @@ describe('engine: calendario de temporada (SPEC 8, Paso 34)', () => {
     expect([...days].sort((a, b) => a - b)).toEqual(days)
   })
 
-  it('incluye las tres grandes vueltas con 21 etapas y dos descansos', () => {
+  it('incluye las tres grandes vueltas con 21 etapas y sus descansos reales (Giro 2026: 3)', () => {
     const grandTours = SEASON_CALENDAR.filter((r) => r.format === 'gran-vuelta')
     expect(grandTours.map((r) => r.id).sort()).toEqual(['race-france', 'race-italy', 'race-spain'])
     for (const gt of grandTours) {
       expect(gt.stages).toHaveLength(21)
-      expect(gt.restAfter).toHaveLength(2)
+      // Tour y Vuelta 2026: 2 descansos; Giro 2026: 3 (salida desde Bulgaria).
+      const expected = gt.id === 'race-italy' ? 3 : 2
+      expect(gt.restAfter).toHaveLength(expected)
     }
   })
 
-  it('Race France tiene una etapa de adoquines y dos cronos, con perfiles variados', () => {
+  it('Race France (edición 2026) tiene dos cronos y perfiles variados', () => {
     const france = SEASON_CALENDAR.find((r) => r.id === 'race-france')
     expect(france).toBeDefined()
     expect(france?.stages).toHaveLength(21)
@@ -80,7 +82,7 @@ describe('engine: calendario de temporada (SPEC 8, Paso 34)', () => {
     expect(kinds).toContain('llana')
     expect(kinds).toContain('reina')
     expect(kinds).toContain('cri')
-    expect(kinds).toContain('clasica')
+    // Tour 2026: crono por equipos (etapa 1) + crono individual (etapa 16) = 2 contrarreloj.
     expect(france?.stages.filter((s) => s.timeTrial)).toHaveLength(2)
   })
 

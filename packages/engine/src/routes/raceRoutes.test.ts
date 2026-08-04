@@ -6,21 +6,23 @@ import { RACE_ROUTES, raceRoute, stageEndpoints } from './raceRoutes.js'
 const routedRaces = SEASON_CALENDAR.filter((r) => !r.championshipCountry)
 
 describe('recorridos reales de carrera', () => {
-  it('cada carrera (no campeonato) tiene un recorrido con una localidad más que etapas', () => {
+  it('cada carrera (no campeonato) tiene un par [salida, meta] por etapa', () => {
     for (const race of routedRaces) {
       const route = RACE_ROUTES[race.id]
       expect(route, `${race.id} (${race.name}) necesita recorrido`).toBeDefined()
-      expect(route!.length, `${race.id} (${race.name}) debe encadenar etapas+1 localidades`).toBe(
-        race.stages.length + 1,
+      expect(route!.length, `${race.id} (${race.name}) debe tener un par por etapa`).toBe(
+        race.stages.length,
       )
     }
   })
 
   it('todas las localidades son cadenas ASCII no vacías', () => {
     for (const route of Object.values(RACE_ROUTES)) {
-      for (const town of route) {
-        expect(town.trim().length).toBeGreaterThan(0)
-        expect(/^[\x20-\x7e]+$/.test(town), `"${town}" debe ser ASCII`).toBe(true)
+      for (const [from, to] of route) {
+        for (const town of [from, to]) {
+          expect(town.trim().length).toBeGreaterThan(0)
+          expect(/^[\x20-\x7e]+$/.test(town), `"${town}" debe ser ASCII`).toBe(true)
+        }
       }
     }
   })
@@ -32,13 +34,14 @@ describe('recorridos reales de carrera', () => {
     }
   })
 
-  it('stageEndpoints encadena las etapas (meta de una = salida de la siguiente)', () => {
+  it('stageEndpoints devuelve la salida y meta de cada etapa', () => {
     const multi = routedRaces.find((r) => r.stages.length >= 3)!
     const s1 = stageEndpoints(multi.id, 1)
-    const s2 = stageEndpoints(multi.id, 2)
+    const last = stageEndpoints(multi.id, multi.stages.length)
     expect(s1).not.toBeNull()
-    expect(s2).not.toBeNull()
-    expect(s1!.to).toBe(s2!.from)
+    expect(last).not.toBeNull()
+    expect(typeof s1!.from).toBe('string')
+    expect(typeof last!.to).toBe('string')
   })
 
   it('devuelve null fuera de rango o para una carrera sin recorrido', () => {
