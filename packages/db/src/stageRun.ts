@@ -1,10 +1,12 @@
 import {
+  type AutoOrderRider,
   type RaceClass,
   type RaceLevel,
   type StageInput,
   type StageOrders,
   type StageRider,
   applyDailyLoad,
+  autoStageOrders,
   eff0,
   matchCount,
   simulateStage,
@@ -135,6 +137,20 @@ export async function runOneStage(
     }
   >()
 
+  // Órdenes automáticas para quien no trae plan del jugador: sin ellas el pelotón NPC correría todo
+  // "libre/reservón" y no se formarían fugas ni valdría el trabajo de equipo (SPEC 6.18). Se calcula
+  // por atributos base (determinista) y solo se usa como respaldo: una orden explícita siempre manda.
+  const zeroAttrs = (): Record<Attribute, number> =>
+    Object.fromEntries(ATTRIBUTES.map((a) => [a, 0])) as Record<Attribute, number>
+  const autoRiders: AutoOrderRider[] = riderIds
+    .filter((id) => riderById.has(id))
+    .map((id) => ({
+      riderId: id,
+      attrs: attrsByRider.get(id) ?? zeroAttrs(),
+      teamId: riderById.get(id)!.teamId ?? null,
+    }))
+  const autoOrders = autoStageOrders(autoRiders, { kind: spec.kind, timeTrial: spec.timeTrial })
+
   for (const riderId of riderIds) {
     const rider = riderById.get(riderId)
     if (!rider) continue
@@ -149,13 +165,21 @@ export async function runOneStage(
       effResolved[attr] = eff0(attributes[attr], rider.ctl, tsb, rider.health, rider.morale)
     }
     const o = ordersByRider.get(riderId)
-    const orders: StageOrders = {
-      role: o?.role ?? 'libre',
-      mentality: o?.mentality ?? 'reservon',
-      contestSprints: o?.contestSprints ?? false,
-      contestClimbs: o?.contestClimbs ?? false,
-      ...(o?.targetRiderId ? { targetRiderId: o.targetRiderId } : {}),
-    }
+    const auto = autoOrders.get(riderId)
+    const orders: StageOrders = o
+      ? {
+          role: o.role,
+          mentality: o.mentality,
+          contestSprints: o.contestSprints,
+          contestClimbs: o.contestClimbs,
+          ...(o.targetRiderId ? { targetRiderId: o.targetRiderId } : {}),
+        }
+      : (auto ?? {
+          role: 'libre',
+          mentality: 'reservon',
+          contestSprints: false,
+          contestClimbs: false,
+        })
     stageRiders.push({
       riderId,
       eff0: effResolved,
