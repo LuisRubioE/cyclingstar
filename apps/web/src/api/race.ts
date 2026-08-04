@@ -59,3 +59,25 @@ export async function fetchRace(raceId: string): Promise<RaceView> {
   if (!res.ok) throw new Error('Could not load the race.')
   return (await res.json()) as RaceView
 }
+
+export interface StartlistTeam {
+  id: string
+  name: string
+  country: string | null
+  division: string
+}
+
+export interface RaceStartlist {
+  /** La carrera está próxima a empezar (dentro de la ventana) y aún no se ha corrido. */
+  upcoming: boolean
+  /** Días de juego que faltan para la salida. */
+  daysUntil?: number
+  teams: StartlistTeam[]
+  freeAgents: { id: string; name: string; country: string }[]
+}
+
+export async function fetchStartlist(raceId: string): Promise<RaceStartlist> {
+  const res = await fetch(`/api/calendar/${raceId}/startlist`)
+  if (!res.ok) throw new Error('Could not load the startlist.')
+  return (await res.json()) as RaceStartlist
+}

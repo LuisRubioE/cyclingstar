@@ -8,7 +8,12 @@ export { createDb, type Database, type DbClient } from './client.js'
 export { runMigrations } from './migrate.js'
 export { runTick, targetGameDay, type RunTickOptions, type TickSummary } from './tick.js'
 export { raceWorldDay } from './race.js'
-export { runCalendarDay, selectFieldTeams } from './calendarRun.js'
+export {
+  predictStartlist,
+  runCalendarDay,
+  selectFieldTeams,
+  type RaceStartlist,
+} from './calendarRun.js'
 export {
   getCountriesSummary,
   getCountryRiders,

@@ -2,9 +2,10 @@ import { useQuery } from '@tanstack/react-query'
 import { Fragment } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { type RaceClass, raceClassLabel } from '../api/calendar'
-import { fetchRace } from '../api/race'
+import { type RaceStartlist, fetchRace, fetchStartlist } from '../api/race'
 import { Flag } from '../components/Flag'
 import { RiderName } from '../components/RiderName'
+import { TeamLink } from '../components/TeamLink'
 
 function fmtTime(seconds: number): string {
   const h = Math.floor(seconds / 3600)
@@ -28,11 +29,90 @@ const KIND_DOT: Record<string, string> = {
   clasica: 'bg-orange-500',
 }
 
+const DIVISION_LABEL: Record<string, string> = {
+  WT: 'WorldTour',
+  PRS: 'ProTeams',
+  CON: 'Continental',
+}
+const DIVISION_ORDER = ['WT', 'PRS', 'CON']
+
+/**
+ * Lista provisional de inscritos de una carrera a punto de empezar: los equipos que se espera que
+ * acudan (agrupados por división) y los agentes libres ya apuntados. Las escuadras se nombran el día de
+ * salida, así que aquí van los equipos, no aún sus 7-8 corredores.
+ */
+function Startlist({ data }: { data: RaceStartlist }) {
+  const byDivision = DIVISION_ORDER.map((div) => ({
+    div,
+    teams: data.teams.filter((t) => t.division === div),
+  })).filter((g) => g.teams.length > 0)
+  return (
+    <div className={card}>
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+          Provisional startlist
+        </h2>
+        {data.daysUntil != null && (
+          <span className="text-xs text-slate-400">
+            starts in {data.daysUntil} {data.daysUntil === 1 ? 'day' : 'days'}
+          </span>
+        )}
+      </div>
+      {data.teams.length === 0 && data.freeAgents.length === 0 ? (
+        <p className="text-sm text-slate-400">No entries yet.</p>
+      ) : (
+        <div className="space-y-3">
+          {byDivision.map((g) => (
+            <div key={g.div}>
+              <h3 className="text-xs font-semibold text-slate-500">
+                {DIVISION_LABEL[g.div] ?? g.div}{' '}
+                <span className="font-normal text-slate-400">({g.teams.length})</span>
+              </h3>
+              <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
+                {g.teams.map((t) => (
+                  <span key={t.id} className="flex items-center gap-1.5 text-sm">
+                    {t.country && <Flag code={t.country} size={14} />}
+                    <TeamLink teamId={t.id} name={t.name} className="text-slate-700" />
+                  </span>
+                ))}
+              </div>
+            </div>
+          ))}
+          {data.freeAgents.length > 0 && (
+            <div>
+              <h3 className="text-xs font-semibold text-slate-500">
+                Free agents signed up{' '}
+                <span className="font-normal text-slate-400">({data.freeAgents.length})</span>
+              </h3>
+              <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
+                {data.freeAgents.map((r) => (
+                  <span key={r.id} className="flex items-center gap-1.5 text-sm">
+                    <Flag code={r.country} size={14} />
+                    <RiderName riderId={r.id} name={r.name} isBot={false} />
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+      <p className="mt-3 text-xs text-slate-400">
+        Provisional — each team's squad of riders is named on the start day.
+      </p>
+    </div>
+  )
+}
+
 export function Race() {
   const { raceId = '' } = useParams()
   const { data, isPending, isError } = useQuery({
     queryKey: ['race', raceId],
     queryFn: () => fetchRace(raceId),
+  })
+  // Lista provisional de inscritos (solo devuelve algo si la carrera está próxima y no se ha corrido).
+  const { data: startlist } = useQuery({
+    queryKey: ['race', raceId, 'startlist'],
+    queryFn: () => fetchStartlist(raceId),
   })
 
   if (isPending) return <p className="text-slate-500">Loading…</p>
@@ -63,6 +143,8 @@ export function Race() {
           Not raced this season yet. It runs on its start GD.
         </p>
       )}
+
+      {startlist?.upcoming && <Startlist data={startlist} />}
 
       {data.stages.length > 0 && (
         <div className={card}>
