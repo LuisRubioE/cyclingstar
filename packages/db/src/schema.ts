@@ -308,6 +308,24 @@ export const trainingOrders = pgTable(
   (t) => [primaryKey({ columns: [t.riderId, t.gameDay] })],
 )
 
+/**
+ * Plan de entrenamiento SUGERIDO por el equipo (SPEC 6): el mánager fija una sesión por día para la
+ * plantilla, y los corredores pueden alinearse para ganar el bonus de grupo (entrenar juntos). Es
+ * orientativo: cada corredor sigue mandando sobre su propio plan.
+ */
+export const teamTrainingOrders = pgTable(
+  'team_training_orders',
+  {
+    teamId: uuid('team_id')
+      .notNull()
+      .references(() => teams.id, { onDelete: 'cascade' }),
+    gameDay: integer('game_day').notNull(),
+    session: sessionEnum('session').notNull(),
+    intensity: intensityEnum('intensity').notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.teamId, t.gameDay] })],
+)
+
 export const stageRoleEnum = pgEnum('stage_role', [
   'lider',
   'sprinter',

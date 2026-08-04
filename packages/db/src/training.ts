@@ -1,7 +1,7 @@
 import type { Intensity, Session } from '@cyclingstar/shared'
 import { and, eq, gte, inArray, lte } from 'drizzle-orm'
 import type { Database } from './client.js'
-import { trainingOrders } from './schema.js'
+import { teamTrainingOrders, trainingOrders } from './schema.js'
 
 /** Órdenes de entrenamiento (Paso 18). Cola de días futuros por corredor. */
 
@@ -48,6 +48,52 @@ export async function setTrainingOrders(
     await tx.insert(trainingOrders).values(
       orders.map((order) => ({
         riderId,
+        gameDay: order.gameDay,
+        session: order.session,
+        intensity: order.intensity,
+      })),
+    )
+  })
+}
+
+/** Plan de entrenamiento SUGERIDO por el equipo (una sesión por día para la plantilla). */
+export async function getTeamTrainingPlan(
+  db: Database,
+  teamId: string,
+  fromDay: number,
+  toDay: number,
+): Promise<TrainingOrderRow[]> {
+  return db
+    .select({
+      gameDay: teamTrainingOrders.gameDay,
+      session: teamTrainingOrders.session,
+      intensity: teamTrainingOrders.intensity,
+    })
+    .from(teamTrainingOrders)
+    .where(
+      and(
+        eq(teamTrainingOrders.teamId, teamId),
+        gte(teamTrainingOrders.gameDay, fromDay),
+        lte(teamTrainingOrders.gameDay, toDay),
+      ),
+    )
+}
+
+/** El mánager fija (o borra) la sesión sugerida del equipo por día (upsert por borrado + inserción). */
+export async function setTeamTrainingPlan(
+  db: Database,
+  teamId: string,
+  orders: TrainingOrderRow[],
+): Promise<void> {
+  if (orders.length === 0) return
+  const days = orders.map((order) => order.gameDay)
+  await db.transaction(async (tx) => {
+    await tx
+      .delete(teamTrainingOrders)
+      .where(and(eq(teamTrainingOrders.teamId, teamId), inArray(teamTrainingOrders.gameDay, days)))
+    await tx.insert(teamTrainingOrders).values(
+      orders.map((order) => ({
+        teamId,
         gameDay: order.gameDay,
         session: order.session,
         intensity: order.intensity,

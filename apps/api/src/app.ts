@@ -74,6 +74,8 @@ import {
   getStageSnapshot,
   getStageWinners,
   getTrainingOrders,
+  getTeamTrainingPlan,
+  setTeamTrainingPlan,
   rejectOffer,
   setRacePref,
   setStageOrders,
@@ -554,6 +556,42 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
         world.currentDay + TRAINING_HORIZON_DAYS,
       )
       return { currentDay: world.currentDay, horizonDays: TRAINING_HORIZON_DAYS, orders, raceDays }
+    })
+
+    // Plan de entrenamiento SUGERIDO por el equipo (para que la plantilla entrene junta y gane el
+    // bonus de grupo). Cualquier corredor del equipo lo LEE; solo el mánager (dueño) lo edita.
+    app.get('/api/me/team-training', async (request, reply) => {
+      const userId = await currentUserId(request)
+      if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
+      const rider = await getRiderForUser(db, userId)
+      const world = await getCurrentWorld(db)
+      const summary = rider ? await getRiderSummary(db, rider.id) : null
+      const teamId = summary?.teamId ?? null
+      if (!teamId || !world) return { plan: [], canEdit: false, teamName: null }
+      const control = await getAccountControl(db, userId)
+      const plan = await getTeamTrainingPlan(
+        db,
+        teamId,
+        world.currentDay + 1,
+        world.currentDay + TRAINING_HORIZON_DAYS,
+      )
+      return {
+        plan,
+        canEdit: control?.team?.ownedByMe ?? false,
+        teamName: summary?.teamName ?? null,
+      }
+    })
+
+    app.put('/api/me/team-training', async (request, reply) => {
+      const userId = await currentUserId(request)
+      if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
+      const parsed = putOrdersSchema.safeParse(request.body)
+      if (!parsed.success) return reply.status(400).send({ ok: false, error: 'validacion' })
+      const control = await getAccountControl(db, userId)
+      const teamId = control?.team?.ownedByMe ? control.team.id : null
+      if (!teamId) return reply.status(403).send({ ok: false, error: 'no_eres_manager' })
+      await setTeamTrainingPlan(db, teamId, parsed.data.orders)
+      return { ok: true, saved: parsed.data.orders.length }
     })
 
     // Serie de forma para la gráfica del perfil (Paso 20).
