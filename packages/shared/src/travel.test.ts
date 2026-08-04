@@ -35,8 +35,9 @@ describe('shared: modelo de viajes (tramos + fijo/variable)', () => {
     expect(longer.days).toBe(c.days)
   })
 
-  it('una carrera de un día en el propio país solo cuesta el hotel de ese día', () => {
-    expect(raceAttendanceCost('ES', 'ES', 1)).toEqual({ money: HOTEL_PER_RACE_DAY, days: 0 })
+  it('una carrera en el propio país no cuesta nada (ni transporte ni hotel): se duerme en casa', () => {
+    expect(raceAttendanceCost('ES', 'ES', 1)).toEqual({ money: 0, days: 0 })
+    expect(raceAttendanceCost('ES', 'ES', 7)).toEqual({ money: 0, days: 0 })
   })
 
   it('destino por continente: un americano a una carrera de América viaja como continental', () => {
