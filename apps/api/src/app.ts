@@ -975,10 +975,25 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
     app.get<{ Params: { raceId: string } }>('/api/calendar/:raceId', async (request, reply) => {
       const race = SEASON_CALENDAR.find((r) => r.id === request.params.raceId)
       if (!race) return reply.status(404).send({ ok: false, error: 'no_encontrado' })
+      // Recorrido planificado (determinista, no depende del mundo): de dónde a dónde va cada etapa.
+      const stagePlan = race.stages.map((stage) => {
+        const ends = stageEndpoints(race.id, race.country ?? null, race.stages.length, stage.index)
+        return {
+          index: stage.index,
+          name: stage.name,
+          label: stage.label,
+          kind: stage.kind,
+          km: Math.round(stage.profile.segments.reduce((sum, s) => sum + s.km, 0)),
+          timeTrial: stage.timeTrial ?? false,
+          from: ends?.from ?? null,
+          to: ends?.to ?? null,
+        }
+      })
       const world = await getCurrentWorld(db)
       if (!world)
         return {
           race: { id: race.id, name: race.name, level: race.level, country: race.country ?? null },
+          stages: stagePlan,
           gc: [],
           stageWinners: [],
           history: [],
@@ -998,6 +1013,7 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
           stageCount: race.stages.length,
           country: race.country ?? null,
         },
+        stages: stagePlan,
         gc,
         stageWinners,
         history,

@@ -19,6 +19,14 @@ function relTime(seconds: number, leader: number, isLeader: boolean): string {
 const card = 'rounded-2xl border border-slate-200 bg-white p-5 shadow-sm'
 const head = 'mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400'
 
+const KIND_DOT: Record<string, string> = {
+  llana: 'bg-emerald-400',
+  media: 'bg-amber-400',
+  reina: 'bg-rose-500',
+  cri: 'bg-violet-400',
+  clasica: 'bg-orange-500',
+}
+
 export function Race() {
   const { raceId = '' } = useParams()
   const { data, isPending, isError } = useQuery({
@@ -53,6 +61,33 @@ export function Race() {
         <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">
           Not raced this season yet. It runs on its start GD.
         </p>
+      )}
+
+      {data.stages.length > 0 && (
+        <div className={card}>
+          <h2 className={head}>Route</h2>
+          <ol className="space-y-1.5">
+            {data.stages.map((stage) => (
+              <li key={stage.index} className="flex items-center gap-3 text-sm">
+                <span className="w-14 shrink-0 text-slate-400">
+                  {data.stages.length === 1 ? 'Race' : `Stage ${stage.index}`}
+                </span>
+                <span
+                  className={`inline-block h-2 w-2 shrink-0 rounded-full ${KIND_DOT[stage.kind] ?? 'bg-slate-300'}`}
+                  aria-hidden
+                />
+                {stage.from && stage.to ? (
+                  <span className="text-slate-700">
+                    {stage.from} → {stage.to}
+                  </span>
+                ) : (
+                  <span className="text-slate-500">{stage.name}</span>
+                )}
+                <span className="ml-auto tabular-nums text-slate-400">{stage.km} km</span>
+              </li>
+            ))}
+          </ol>
+        </div>
       )}
 
       {data.gc.length > 0 && (
