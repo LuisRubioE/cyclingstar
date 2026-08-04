@@ -112,10 +112,12 @@ export function sampleProfile(profile: StageProfile, dx: number = STAGE.dx): Blo
     const block = blocks[idx]
     if (!block) continue
     block.banner = banner.tipo
-    // La cima puntúa según la categoría derivada de la dureza del puerto que corona (SPEC 6.2).
+    // La cima puntúa según su categoría: la REAL si el recorrido la trae (banner.cat, puertos con dato
+    // oficial), o la derivada de la dureza local del puerto que corona (SPEC 6.2).
     if (banner.tipo === 'cima') {
       const { segment } = locate(banner.km)
-      block.climbCategory = segment.tramos ? deriveClimbCategory(segment.tramos) : null
+      block.climbCategory =
+        banner.cat ?? (segment.tramos ? deriveClimbCategory(segment.tramos) : null)
     }
   }
 

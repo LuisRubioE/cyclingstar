@@ -10,6 +10,7 @@ import { COUNTRIES, type Continent } from '@cyclingstar/shared'
 import type { Division } from '../world/npc.js'
 import type { Segment, StageProfile } from '../stage/types.js'
 import { type RaceEdition, RACE_EDITIONS } from './editions.js'
+import { type StageFeatures, buildFeatureProfile } from './featureProfile.js'
 import {
   classicSegments,
   cobblesSegments,
@@ -18,6 +19,7 @@ import {
   ittSegments,
   mountainSegments,
 } from './profileGen.js'
+import { STAGE_FEATURES } from './stageFeatures.js'
 import type { StageKind } from './testTour.js'
 import type { RaceClass } from './uci.js'
 
@@ -145,11 +147,49 @@ function stagesFrom(specs: StageSpec[]): CalendarStage[] {
   }))
 }
 
-/** Etapas de una edición real: el terreno y la distancia de cada etapa vienen de la edición verificada. */
-function stagesFromEdition(edition: RaceEdition): CalendarStage[] {
+/** Tipo de etapa (color y etiqueta) según el terreno; base común del perfil por terreno y por rasgos. */
+const TERRAIN_KIND: Record<Terrain, { kind: StageKind; label: string; timeTrial?: boolean }> = {
+  flat: { kind: 'llana', label: 'Flat' },
+  hilly: { kind: 'media', label: 'Hills' },
+  mountain: { kind: 'reina', label: 'Summit finish' },
+  itt: { kind: 'cri', label: 'ITT', timeTrial: true },
+  cobbles: { kind: 'clasica', label: 'Cobbles' },
+  classic: { kind: 'clasica', label: 'Classic' },
+}
+
+/**
+ * Etapa construida con sus RASGOS REALES (puertos y sprints reales): el relieve reproduce la etapa
+ * de verdad, no un perfil inventado por terreno. El tipo/etiqueta (color en la web) sigue al terreno.
+ */
+function featureSpec(
+  terrain: Terrain,
+  km: number,
+  features: StageFeatures,
+  seed: string,
+): StageSpec {
+  const t = TERRAIN_KIND[terrain]
+  return {
+    kind: t.kind,
+    label: t.label,
+    ...(t.timeTrial ? { timeTrial: true } : {}),
+    profile: buildFeatureProfile(km, features, seed),
+  }
+}
+
+/**
+ * Etapas de una edición real: el terreno y la distancia de cada etapa vienen de la edición verificada.
+ * Si la etapa tiene RASGOS reales autorizados (STAGE_FEATURES: puertos y sprints de verdad), su perfil
+ * se construye a partir de ellos (altimetría fiel); si no, se genera por terreno (verosímil, no real).
+ */
+function stagesFromEdition(id: string, edition: RaceEdition): CalendarStage[] {
+  const features = STAGE_FEATURES[id]
   // Semilla estable por etapa (salida-meta-km): el perfil detallado es siempre el mismo para esa etapa.
   return stagesFrom(
-    edition.stages.map((s) => oneDaySpec(s.terrain, s.km, `${s.from}|${s.to}|${s.km}`)),
+    edition.stages.map((s, i) => {
+      const seed = `${s.from}|${s.to}|${s.km}`
+      const f = features?.[i]
+      return f ? featureSpec(s.terrain, s.km, f, seed) : oneDaySpec(s.terrain, s.km, seed)
+    }),
   )
 }
 
@@ -175,7 +215,7 @@ function editionGrandTour(
     startDay,
     openTo: enrollmentFor('WT'),
     country,
-    stages: stagesFromEdition(edition),
+    stages: stagesFromEdition(id, edition),
     restAfter: edition.restAfter,
   }
 }
@@ -706,7 +746,7 @@ function buildRace(row: RaceRow): CalendarRace {
     return {
       ...common,
       format: 'una-semana',
-      stages: stagesFromEdition(edition),
+      stages: stagesFromEdition(row.id, edition),
       restAfter: edition.restAfter,
     }
   }
