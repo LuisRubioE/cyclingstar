@@ -635,7 +635,7 @@ export const RACE_EDITIONS: Record<string, RaceEdition> = {
       { from: 'Bourges', to: 'Uchon', km: 195, terrain: 'mountain' },
       { from: 'Cormoranche-sur-Saone', to: 'Colombier-le-Vieux', km: 206, terrain: 'hilly' },
       { from: 'Barbentane', to: 'Apt', km: 179, terrain: 'hilly' },
-      { from: 'Nice', to: 'Isola-Village', km: 139, terrain: 'mountain' },
+      { from: 'Nice', to: 'Auron', km: 139, terrain: 'mountain' },
       { from: 'Nice', to: 'Nice', km: 129, terrain: 'hilly' },
     ],
   },
