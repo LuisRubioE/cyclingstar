@@ -112,23 +112,30 @@ export async function getTeamDetail(db: Database, teamId: string): Promise<TeamD
 export interface CountrySummaryRow {
   country: string
   riderCount: number
+  totalPoints: number
 }
 
-/** Países con corredores en activo, con cuántos (para la lista de naciones, #7). */
+/** Países con corredores en activo, con cuántos y su total de puntos de temporada (ranking, #7). */
 export async function getCountriesSummary(
   db: Database,
   worldId: string,
 ): Promise<CountrySummaryRow[]> {
+  const totalPoints = sql<number>`coalesce(sum(${riders.seasonPoints}), 0)::int`
   const rows = await db
     .select({
       country: riders.country,
       riderCount: sql<number>`count(${riders.id})::int`,
+      totalPoints,
     })
     .from(riders)
     .where(and(eq(riders.worldId, worldId), isNull(riders.retiredAt)))
     .groupBy(riders.country)
-    .orderBy(desc(sql`count(${riders.id})`))
-  return rows.map((r) => ({ country: r.country, riderCount: r.riderCount }))
+    .orderBy(desc(totalPoints), desc(sql`count(${riders.id})`))
+  return rows.map((r) => ({
+    country: r.country,
+    riderCount: r.riderCount,
+    totalPoints: r.totalPoints,
+  }))
 }
 
 export interface CountryRiderRow {
