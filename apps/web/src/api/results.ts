@@ -7,6 +7,8 @@ export interface GcEntry {
   tiempoTotalS: number
   puntosVolante: number
   puntosMontana: number
+  /** Abandonó la carrera: se muestra como DNF (fuera de la general). */
+  dnf?: boolean
 }
 
 export interface PointsEntry {

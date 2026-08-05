@@ -11,6 +11,7 @@ function gc(riderId: string, teamName: string | null, tiempoTotalS: number): GcR
     tiempoTotalS,
     puntosVolante: 0,
     puntosMontana: 0,
+    dnf: false,
   }
 }
 
@@ -48,5 +49,12 @@ describe('db: clasificación por equipos (SPEC)', () => {
     const table = teamsClassification(rows)
     expect(table).toHaveLength(1)
     expect(table[0]?.tiempoTotalS).toBe(360)
+  })
+
+  it('un abandono (DNF) no puntúa para la general por equipos', () => {
+    const dnf = (id: string, team: string, t: number): GcRow => ({ ...gc(id, team, t), dnf: true })
+    const rows: GcRow[] = [gc('a1', 'A', 100), gc('a2', 'A', 120), dnf('a3', 'A', 140)]
+    // Solo 2 clasificados en A (el tercero abandonó): no llega al mínimo de 3.
+    expect(teamsClassification(rows)).toHaveLength(0)
   })
 })
