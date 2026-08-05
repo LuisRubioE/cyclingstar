@@ -6228,4 +6228,54 @@ export const STAGE_FEATURES: Record<string, (StageFeatures | null)[]> = {
       ],
     },
   ],
+  // Race Pune (perfiles reales PCS 2026): carrera casi llana con un día ondulado (etapa 2). Los puertos
+  // y sprints caen en su km real; la etapa 1 lleva cotas pequeñas, la 3 sube al principio y llanea.
+  'race-pune': [
+    // Prólogo CRI llano (8 km), sin puertos ni sprints.
+    {},
+    // Etapa 1 Mulshi -> Haveli (88 km): rueda con tres repechos pequeños, final llano.
+    {
+      climbs: [
+        { name: 'Javan', summitKm: 28, lengthKm: 1.6, avgGradient: 5.7 },
+        { name: 'Shivane', summitKm: 48, lengthKm: 0.6, avgGradient: 8.3 },
+        { name: 'Chadanwadi', summitKm: 65, lengthKm: 2, avgGradient: 2.8 },
+      ],
+      sprints: [
+        { name: 'Nandgaon', km: 18.5 },
+        { name: 'Marunji', km: 72.5 },
+      ],
+    },
+    // Etapa 2 Pune -> Nanded City (105 km): la reina, con tres Cat 2, pero baja hasta la meta.
+    {
+      climbs: [
+        { name: 'Yewalewadi', summitKm: 11, lengthKm: 3.7, avgGradient: 7.4, category: 'cat2' },
+        { name: 'Kusagaon', summitKm: 73.5, lengthKm: 2.6, avgGradient: 5.4, category: 'cat2' },
+        { name: 'Kondhanpur', summitKm: 88.5, lengthKm: 1.8, avgGradient: 8.7, category: 'cat2' },
+      ],
+      sprints: [
+        { name: 'Chivhewadi', km: 29.5 },
+        { name: 'Kapurhol', km: 40 },
+      ],
+    },
+    // Etapa 3 Chandan Tekadi -> Baramati (135 km): dos puertos al principio y llano largo hasta meta.
+    {
+      climbs: [
+        { name: 'Panvadi Ghat', summitKm: 8.5, lengthKm: 2.2, avgGradient: 6.5, category: 'cat3' },
+        { name: 'Kaldari', summitKm: 15, lengthKm: 2.7, avgGradient: 3.7, category: 'cat4' },
+      ],
+      sprints: [
+        { name: 'Nira', km: 60 },
+        { name: 'Bramhandara', km: 75.5 },
+        { name: 'Jalgoan Kade Pathar', km: 98.5 },
+      ],
+    },
+    // Etapa 4 Pune -> Pune (95 km): llana, tres sprints urbanos.
+    {
+      sprints: [
+        { name: 'Dnge Chowk', km: 15 },
+        { name: 'Pcntda Circle', km: 36.5 },
+        { name: 'Shaniwar Wada', km: 73 },
+      ],
+    },
+  ],
 }
