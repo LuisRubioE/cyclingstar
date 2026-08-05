@@ -24,6 +24,7 @@ import { and, asc, desc, eq, inArray, isNotNull, isNull, notInArray, or, sql } f
 import { drizzle } from 'drizzle-orm/postgres-js'
 import { creditRider } from './economy.js'
 import {
+  gameState,
   palmares,
   raceEntries,
   raceGc,
@@ -1181,6 +1182,17 @@ async function recomputeSeasonPoints(tx: Tx, worldId: string, season: number): P
       await tx.update(riders).set({ seasonPoints: correct }).where(eq(riders.id, r.id))
     }
   }
+}
+
+/**
+ * TEMPORAL (quitar): fuerza el recálculo de los puntos de la temporada bajo demanda (al abrir la
+ * clasificación), por si el recálculo del tick aún no llegó al mundo (deploy/tick). Corrige el doble
+ * conteo viejo de las carreras de un día en el acto. Es idempotente y solo escribe diferencias.
+ */
+export async function recomputeWorldRanking(db: Db, worldId: string): Promise<void> {
+  const gs = await db.select({ currentDay: gameState.currentDay }).from(gameState).limit(1)
+  const season = Math.floor((gs[0]?.currentDay ?? 0) / SEASON_DAYS)
+  await db.transaction((tx) => recomputeSeasonPoints(tx, worldId, season))
 }
 
 export async function runCalendarDay(
