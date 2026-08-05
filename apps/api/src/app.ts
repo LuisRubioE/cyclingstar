@@ -64,6 +64,7 @@ import {
   getRaceGc,
   getRacePrefs,
   getRiderForUser,
+  getRiderHealth,
   getRiderLastRaceReport,
   getRiderRaceDays,
   getRiderUpcomingRaces,
@@ -606,7 +607,8 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
       const form = latest
         ? { stars: formStars(latest.ctl, latest.tsb), freshness: freshnessBar(latest.tsb) }
         : null
-      return { log, form }
+      const health = await getRiderHealth(db, rider.id)
+      return { log, form, health }
     })
 
     // Objetivos de calendario del corredor y su convocatoria (Paso 35).

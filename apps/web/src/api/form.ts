@@ -7,9 +7,16 @@ export interface FormPoint {
   activity: string
 }
 
+export type HealthState = 'sano' | 'molestias' | 'enfermo' | 'lesionado'
+export interface RiderHealth {
+  state: HealthState
+  untilDay: number | null
+}
+
 export interface FormResponse {
   log: FormPoint[]
   form: { stars: number; freshness: number } | null
+  health: RiderHealth | null
 }
 
 export async function fetchForm(): Promise<FormResponse> {
