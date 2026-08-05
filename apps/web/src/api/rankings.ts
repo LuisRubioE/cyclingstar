@@ -109,6 +109,13 @@ export async function fetchPalmares(): Promise<PalmaresRow[]> {
   return ((await res.json()) as { palmares: PalmaresRow[] }).palmares
 }
 
+/** Palmarés público de cualquier corredor (para su ficha). */
+export async function fetchRiderPalmares(id: string): Promise<PalmaresRow[]> {
+  const res = await fetch(`/api/riders/${id}/palmares`)
+  if (!res.ok) throw new Error('Could not load the palmarès.')
+  return ((await res.json()) as { palmares: PalmaresRow[] }).palmares
+}
+
 const KIND_LABEL: Record<string, string> = {
   gc: 'Overall win',
   stage: 'Stage win',
