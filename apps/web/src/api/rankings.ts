@@ -116,6 +116,24 @@ export async function fetchRiderPalmares(id: string): Promise<PalmaresRow[]> {
   return ((await res.json()) as { palmares: PalmaresRow[] }).palmares
 }
 
+export interface RiderResult {
+  raceId: string
+  raceName: string
+  raceClass: string
+  season: number
+  stageDay: number
+  stageCount: number
+  puesto: number
+  isOneDay: boolean
+}
+
+/** Últimos resultados públicos de cualquier corredor (sus puestos en carreras ya corridas). */
+export async function fetchRiderResults(id: string): Promise<RiderResult[]> {
+  const res = await fetch(`/api/riders/${id}/results`)
+  if (!res.ok) throw new Error('Could not load the results.')
+  return ((await res.json()) as { results: RiderResult[] }).results
+}
+
 const KIND_LABEL: Record<string, string> = {
   gc: 'Overall win',
   stage: 'Stage win',

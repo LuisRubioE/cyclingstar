@@ -67,6 +67,7 @@ import {
   getRiderHealth,
   getRiderLastRaceReport,
   getRiderRaceDays,
+  getRiderRecentResults,
   getRiderUpcomingRaces,
   getRiderSummary,
   setRiderArchetype,
@@ -1032,6 +1033,11 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
     // Palmarés público de cualquier corredor (lo que ha ganado): para ver el detalle desde su ficha.
     app.get<{ Params: { id: string } }>('/api/riders/:id/palmares', async (request) => {
       return { palmares: await getPalmares(db, request.params.id) }
+    })
+
+    // Últimos resultados públicos de cualquier corredor (sus puestos en carreras ya corridas).
+    app.get<{ Params: { id: string } }>('/api/riders/:id/results', async (request) => {
+      return { results: await getRiderRecentResults(db, request.params.id) }
     })
 
     app.get<{ Params: { id: string } }>('/api/riders/:id', async (request, reply) => {

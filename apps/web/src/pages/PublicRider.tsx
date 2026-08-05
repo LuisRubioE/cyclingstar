@@ -2,7 +2,7 @@ import { COUNTRIES, VOCATION_LABELS, type Vocation, birthdayDayOfSeason } from '
 import { useQuery } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
 import { fetchPublicRider } from '../api/browse'
-import { fetchRiderPalmares, palmaresLabel } from '../api/rankings'
+import { fetchRiderPalmares, fetchRiderResults, palmaresLabel } from '../api/rankings'
 import { AttributeList } from '../components/AttributeList'
 import { Badges } from '../components/Badges'
 import { Flag } from '../components/Flag'
@@ -16,6 +16,10 @@ export function PublicRider() {
   const palmaresQuery = useQuery({
     queryKey: ['public-rider', id, 'palmares'],
     queryFn: () => fetchRiderPalmares(id),
+  })
+  const resultsQuery = useQuery({
+    queryKey: ['public-rider', id, 'results'],
+    queryFn: () => fetchRiderResults(id),
   })
   if (isPending) return <p className="text-slate-500">Loading…</p>
   if (isError) return <p className="text-red-600">Could not load the rider.</p>
@@ -90,6 +94,35 @@ export function PublicRider() {
           </div>
         ))}
       </dl>
+
+      {resultsQuery.data && resultsQuery.data.length > 0 && (
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+            Recent results
+          </h2>
+          <ul className="mt-3 space-y-1.5">
+            {resultsQuery.data.map((r, i) => (
+              <li key={i} className="flex items-center gap-3 text-sm">
+                <span
+                  className={`w-8 shrink-0 text-right font-bold tabular-nums ${
+                    r.puesto === 1
+                      ? 'text-amber-500'
+                      : r.puesto <= 3
+                        ? 'text-slate-600'
+                        : 'text-slate-400'
+                  }`}
+                >
+                  {r.puesto}
+                </span>
+                <Link to={`/races/${r.raceId}`} className="font-medium text-slate-700 hover:underline">
+                  {r.raceName}
+                </Link>
+                {!r.isOneDay && <span className="text-xs text-slate-400">Stage {r.stageDay}</span>}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {palmaresQuery.data && palmaresQuery.data.length > 0 && (
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
