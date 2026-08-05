@@ -1091,7 +1091,8 @@ export async function ensureRaceRosterFrozen(
  * congelados que aún no los tengan (carreras congeladas antes de existir los dorsales). No-op cuando
  * ya está todo bien, así que es barato correrlo cada tick.
  */
-async function backfillWorldData(tx: Tx, worldId: string, season: number): Promise<void> {
+async function backfillWorldData(tx: Tx, worldId: string, gameDay: number): Promise<void> {
+  const season = Math.floor(gameDay / SEASON_DAYS)
   const oneDayBases = new Set(SEASON_CALENDAR.filter((r) => r.stages.length === 1).map((r) => r.id))
   const stageHonors = await tx
     .select({ id: palmares.id, raceId: palmares.raceId })
@@ -1114,6 +1115,97 @@ async function backfillWorldData(tx: Tx, worldId: string, season: number): Promi
 
   // Rehace los puntos de ranking de la temporada: corrige el doble conteo viejo de las carreras de un día.
   await recomputeSeasonPoints(tx, worldId, season)
+
+  // Deshace dobles inscripciones: un corredor en dos carreras que se solapan (nadie corre dos a la vez).
+  await dedupeOverlappingRosters(tx, worldId, gameDay)
+}
+
+/** Importancia de una clase de carrera para decidir en cuál se queda un corredor doblemente inscrito (0 = más). */
+const RACE_CLASS_RANK: Record<RaceClass, number> = { WT: 0, Pro: 1, '1': 2, '2': 3, NC: 4 }
+
+/**
+ * Auto-arreglo de dobles inscripciones (idempotente). Nadie puede correr dos carreras a la vez, pero
+ * rosters congelados por versiones antiguas (antes de que la protección de solapes fuera sólida) pueden
+ * tener a un corredor metido en dos carreras cuyas ventanas se solapan. Por cada corredor con solape se
+ * queda en la carrera MÁS importante (clase; a igualdad, la que arranca antes) y se le saca de las demás
+ * que AÚN NO HAN EMPEZADO —a una carrera ya en marcha no se le quita a nadie—. Reasigna dorsales de las
+ * carreras tocadas. No-op cuando no hay solapes, así que es barato correrlo cada tick.
+ */
+async function dedupeOverlappingRosters(tx: Tx, worldId: string, gameDay: number): Promise<void> {
+  const season = Math.floor(gameDay / SEASON_DAYS)
+  const dayOfSeason = gameDay % SEASON_DAYS
+  interface RaceMeta {
+    race: CalendarRace
+    key: string
+    start: number
+    last: number
+  }
+  const metaByKey = new Map<string, RaceMeta>()
+  for (const r of SEASON_CALENDAR) {
+    metaByKey.set(`${r.id}:s${season}`, {
+      race: r,
+      key: `${r.id}:s${season}`,
+      start: r.startDay,
+      last: raceLastDay(r),
+    })
+  }
+  const keys = [...metaByKey.keys()]
+  const rows = await tx
+    .select({ raceId: raceRosters.raceId, riderId: raceRosters.riderId })
+    .from(raceRosters)
+    .innerJoin(riders, eq(riders.id, raceRosters.riderId))
+    .where(and(eq(riders.worldId, worldId), inArray(raceRosters.raceId, keys)))
+
+  const racesByRider = new Map<string, string[]>()
+  for (const row of rows) {
+    const list = racesByRider.get(row.riderId) ?? []
+    list.push(row.raceId)
+    racesByRider.set(row.riderId, list)
+  }
+
+  const started = (m: RaceMeta) => dayOfSeason >= m.start // ya arrancó (o terminó): no se toca su roster
+  const overlaps = (a: RaceMeta, b: RaceMeta) => a.start <= b.last && b.start <= a.last
+  const removeByRace = new Map<string, Set<string>>()
+  for (const [riderId, rkeys] of racesByRider) {
+    if (rkeys.length < 2) continue
+    const metas = rkeys
+      .map((k) => metaByKey.get(k))
+      .filter((m): m is RaceMeta => m != null)
+      // Las ya empezadas van primero (no se pueden soltar); luego por importancia y salida más temprana.
+      .sort((a, b) => {
+        const sa = started(a) ? 0 : 1
+        const sb = started(b) ? 0 : 1
+        if (sa !== sb) return sa - sb
+        const ca = RACE_CLASS_RANK[a.race.raceClass] ?? 5
+        const cb = RACE_CLASS_RANK[b.race.raceClass] ?? 5
+        if (ca !== cb) return ca - cb
+        if (a.start !== b.start) return a.start - b.start
+        return a.key < b.key ? -1 : 1
+      })
+    const kept: RaceMeta[] = []
+    for (const m of metas) {
+      if (!kept.some((k) => overlaps(k, m))) {
+        kept.push(m)
+        continue
+      }
+      // Solapa con una que nos quedamos: si esta aún no empezó, se le saca; si ya empezó, no hay remedio.
+      if (started(m)) {
+        kept.push(m)
+        continue
+      }
+      const set = removeByRace.get(m.key) ?? new Set<string>()
+      set.add(riderId)
+      removeByRace.set(m.key, set)
+    }
+  }
+
+  for (const [key, ridersToRemove] of removeByRace) {
+    await tx
+      .delete(raceRosters)
+      .where(and(eq(raceRosters.raceId, key), inArray(raceRosters.riderId, [...ridersToRemove])))
+    const meta = metaByKey.get(key)
+    if (meta) await assignBibs(tx, meta.race, season) // renumera tras quitar corredores
+  }
 }
 
 /**
@@ -1205,8 +1297,8 @@ export async function runCalendarDay(
   const dayOfSeason = gameDay % SEASON_DAYS
   const raced = new Set<string>()
 
-  // Corrige datos viejos del mundo (palmarés de 1 día, dorsales faltantes, puntos de ranking). Idempotente.
-  await backfillWorldData(tx, worldId, season)
+  // Corrige datos viejos del mundo (palmarés de 1 día, dorsales faltantes, puntos, dobles inscripciones). Idempotente.
+  await backfillWorldData(tx, worldId, gameDay)
 
   // Corredores OCUPADOS hoy: los que ya están corriendo una carrera que arrancó antes y aún no
   // termina (nadie puede estar en dos carreras a la vez). Los que empiecen carrera hoy se van
