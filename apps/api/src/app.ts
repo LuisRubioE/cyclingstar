@@ -714,8 +714,14 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
       const userId = await currentUserId(request)
       if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
       const rider = await getRiderForUser(db, userId)
-      if (!rider) return { balance: 0, entries: [] }
-      return getLedger(db, rider.id)
+      if (!rider) return { balance: 0, entries: [], gameDay: null, salary: null }
+      const [ledger, world, contract] = await Promise.all([
+        getLedger(db, rider.id),
+        getCurrentWorld(db),
+        getContract(db, rider.id),
+      ])
+      // Para el aviso de "próximo sueldo": la nómina cae cada día de juego múltiplo de 7 (GD7, GD14…).
+      return { ...ledger, gameDay: world?.currentDay ?? null, salary: contract?.salary ?? null }
     })
 
     // Bandeja de ofertas y contrato vigente (Paso 36).
