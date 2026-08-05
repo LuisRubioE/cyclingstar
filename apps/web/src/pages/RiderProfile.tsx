@@ -9,7 +9,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { fetchForm } from '../api/form'
 import { fetchHealth } from '../api/health'
-import { fetchPalmares, palmaresLabel } from '../api/rankings'
+import { fetchPalmares, fetchRiderResults, palmaresLabel } from '../api/rankings'
 import { type RaceClass, raceClassLabel } from '../api/calendar'
 import { fetchMyRider, fetchMyUpcomingRaces, fetchRiderSummary } from '../api/rider'
 import { AttributeList } from '../components/AttributeList'
@@ -30,6 +30,11 @@ export function RiderProfile() {
   } = useQuery({ queryKey: ['rider', 'me'], queryFn: fetchMyRider })
   const formQuery = useQuery({ queryKey: ['rider', 'form'], queryFn: fetchForm })
   const palmaresQuery = useQuery({ queryKey: ['rider', 'palmares'], queryFn: fetchPalmares })
+  const resultsQuery = useQuery({
+    queryKey: ['rider', 'results', rider?.id],
+    queryFn: () => fetchRiderResults(rider!.id),
+    enabled: !!rider?.id,
+  })
   const summaryQuery = useQuery({ queryKey: ['rider', 'summary'], queryFn: fetchRiderSummary })
   const upcomingQuery = useQuery({ queryKey: ['rider', 'upcoming'], queryFn: fetchMyUpcomingRaces })
   const healthQuery = useQuery({ queryKey: ['health'], queryFn: fetchHealth })
@@ -268,6 +273,35 @@ export function RiderProfile() {
         <p className="mb-1 text-xs text-slate-400">Tap an attribute to see what it does.</p>
         <AttributeList attributes={rider.attributes} />
       </Panel>
+
+      {resultsQuery.data && resultsQuery.data.length > 0 && (
+        <Panel title="Últimos resultados">
+          <ul className="space-y-1.5">
+            {resultsQuery.data.map((r, i) => (
+              <li key={i} className="flex items-center gap-3 text-sm">
+                <span
+                  className={`w-8 shrink-0 text-right font-bold tabular-nums ${
+                    r.puesto === 1
+                      ? 'text-amber-500'
+                      : r.puesto <= 3
+                        ? 'text-slate-600'
+                        : 'text-slate-400'
+                  }`}
+                >
+                  {r.puesto}
+                </span>
+                <Link
+                  to={r.isOneDay ? `/races/${r.raceId}` : `/races/${r.raceId}/stages/${r.stageDay}`}
+                  className="font-medium text-slate-700 hover:underline"
+                >
+                  {r.raceName}
+                </Link>
+                {!r.isOneDay && <span className="text-xs text-slate-400">Etapa {r.stageDay}</span>}
+              </li>
+            ))}
+          </ul>
+        </Panel>
+      )}
 
       {palmaresQuery.data && palmaresQuery.data.length > 0 && (
         <Panel title="Palmarès">
