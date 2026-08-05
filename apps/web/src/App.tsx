@@ -20,6 +20,7 @@ import { News } from './pages/News'
 import { Privacy } from './pages/Privacy'
 import { PublicRider } from './pages/PublicRider'
 import { Race } from './pages/Race'
+import { StageReplay } from './pages/StageReplay'
 import { Rankings } from './pages/Rankings'
 import { Team } from './pages/Team'
 import { Teams } from './pages/Teams'
@@ -39,6 +40,7 @@ export function App() {
           <Route path="/routes" element={<RoutesPage />} />
           <Route path="/calendar" element={<Calendar />} />
           <Route path="/races/:raceId" element={<Race />} />
+          <Route path="/races/:raceId/stages/:day" element={<StageReplay />} />
           <Route path="/teams" element={<Teams />} />
           <Route path="/teams/:id" element={<Team />} />
           <Route path="/countries" element={<Countries />} />

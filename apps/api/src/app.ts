@@ -1257,6 +1257,74 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
       },
     )
 
+    // Crónica/journal de una etapa de CALENDARIO (pública): regenera los eventos desde el snapshot
+    // sellado y cuenta lo que pasó (fuga, caza, cimas, sprints, meta), aunque no hayas corrido tú.
+    app.get<{ Params: { raceId: string; day: string } }>(
+      '/api/races/:raceId/stages/:day',
+      async (request, reply) => {
+        const world = await getCurrentWorld(db)
+        if (!world) return reply.status(404).send({ ok: false, error: 'no_encontrado' })
+        const season = Math.floor(world.currentDay / 364)
+        const race = SEASON_CALENDAR.find((r) => r.id === request.params.raceId)
+        const day = Number(request.params.day)
+        const stage = race?.stages[day - 1]
+        if (!race || !stage) return reply.status(404).send({ ok: false, error: 'no_encontrado' })
+        const raceKey = `${race.id}:s${season}`
+        const km = Math.round(stage.profile.segments.reduce((sum, s) => sum + s.km, 0))
+        const snapshot = await getStageSnapshot(db, raceKey, day)
+        if (!snapshot) {
+          return {
+            day,
+            name: stage.name,
+            km,
+            run: false,
+            altimetry: renderAltimetrySvg(stage.profile),
+          }
+        }
+        const results = await getStageResults(db, raceKey, day)
+        const output = simulateStage(snapshot.input as StageInput, snapshot.seed)
+        const nameOf = new Map(results.map((r) => [r.riderId, r.name]))
+        const EVENT_ORDER: Record<string, number> = {
+          breakaway_formed: 0,
+          peloton_concedes: 1,
+          sprinters_give_up: 1,
+          sprint_intermediate: 2,
+          climb_kom: 3,
+          breakaway_caught: 4,
+          stage_win: 5,
+          stage_win_itt: 5,
+        }
+        const chronicle = output.events
+          .map((e) => ({
+            km: Math.round(e.km),
+            tS: Math.round(e.tS),
+            plantilla: e.plantilla,
+            protagonists: e.protagonistas.map((id) => nameOf.get(id) ?? id),
+          }))
+          .sort(
+            (a, b) =>
+              a.km - b.km ||
+              (EVENT_ORDER[a.plantilla] ?? 9) - (EVENT_ORDER[b.plantilla] ?? 9) ||
+              a.tS - b.tS,
+          )
+          .filter((e, i, arr) => {
+            const prev = arr[i - 1]
+            return (
+              !prev ||
+              prev.km !== e.km ||
+              prev.plantilla !== e.plantilla ||
+              prev.protagonists.join() !== e.protagonists.join()
+            )
+          })
+        const markers: AltimetryMarker[] = output.events
+          .filter((e) => ['fuga_formada', 'fuga_cazada', 'banner', 'meta'].includes(e.tipo))
+          .map((e) => ({ km: e.km, label: MARKER_LABEL[e.tipo] ?? '•' }))
+        const altimetry = renderAltimetrySvg(stage.profile, { markers })
+        const gc = await getGcThroughStage(db, raceKey, day)
+        return { day, name: stage.name, km, run: true, altimetry, results, chronicle, gc }
+      },
+    )
+
     // Avance del mundo desde la web para pruebas (Paso 32): un usuario con sesión adelanta N días
     // de juego con un clic, sin consola ni token. Herramienta temporal de la fase alfa; el tick
     // automático (cron) la sustituye en producción (SPEC Paso 43).
