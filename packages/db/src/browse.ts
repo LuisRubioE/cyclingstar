@@ -54,6 +54,8 @@ export interface TeamRiderRow {
   seasonPoints: number
   /** Extranjero en el equipo: su nacionalidad no es la del equipo (vive fuera de casa, paga alquiler). */
   foreign: boolean
+  /** Estado de salud (sano / molestias / enfermo / lesionado): el mánager ve quién no está disponible. */
+  health: string
 }
 
 export interface TeamDetail {
@@ -82,6 +84,7 @@ export async function getTeamDetail(db: Database, teamId: string): Promise<TeamD
       archetype: riders.archetype,
       userId: riders.userId,
       seasonPoints: riders.seasonPoints,
+      health: riders.health,
     })
     .from(riders)
     .where(and(eq(riders.teamId, teamId), isNull(riders.retiredAt)))
@@ -105,6 +108,7 @@ export async function getTeamDetail(db: Database, teamId: string): Promise<TeamD
       isBot: r.userId === null,
       seasonPoints: r.seasonPoints,
       foreign: team.country != null && r.country !== team.country,
+      health: r.health,
     })),
   }
 }
