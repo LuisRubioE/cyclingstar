@@ -82,7 +82,9 @@ export function simulateTimeTrial(input: StageInput, seed: string): StageOutput 
     estado: 'finish' as const,
   }))
   if (results[0]) {
-    log.emit(0, finishers[0]!.tS, 'meta', 'stage_win_itt', [results[0].riderId])
+    // El evento de mejor tiempo cae en META (final del recorrido), no en el km 0.
+    const finishKm = input.profile.segments.reduce((sum, seg) => sum + seg.km, 0)
+    log.emit(finishKm, finishers[0]!.tS, 'meta', 'stage_win_itt', [results[0].riderId])
   }
 
   return { events: log.toArray(), results, workUnits, incidents: [], engineVersion: ENGINE_VERSION }
