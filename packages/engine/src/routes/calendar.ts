@@ -921,7 +921,7 @@ const WT_TABLE: RaceRow[] = [
     d: 19,
     raceClass: 'WT',
     terrain: 'hilly',
-    km: 254,
+    km: 257,
   },
   {
     id: 'race-walloon-wall',
