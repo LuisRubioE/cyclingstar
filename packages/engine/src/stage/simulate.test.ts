@@ -148,27 +148,38 @@ describe('trabajo de equipo (SPEC 6.18)', () => {
     return { profile: { segments: [{ km: 100, tipo: 'llano' }] }, riders }
   }
 
-  it('un sprinter con tren de lanzadores gana la llegada masiva más que uno idéntico sin tren', { timeout: 30000 }, () => {
-    let train = 0
-    let alone = 0
-    for (let s = 0; s < 60; s++) {
-      const seed = stageSeed({ worldSeed: `lo-${s}`, raceId: 'lo', stageDay: 1, engineVersion: 1 })
-      const out = simulateStage(leadOutInput(), seed)
-      const posTrain = out.results.find((r) => r.riderId === 'spr-train')!.puesto
-      const posAlone = out.results.find((r) => r.riderId === 'spr-alone')!.puesto
-      if (posTrain < posAlone) train++
-      else alone++
-    }
-    // El tren no es garantía (piernas del día, ruido del sprint) pero inclina claramente la balanza.
-    expect(train).toBeGreaterThan(alone)
-    expect(train).toBeGreaterThanOrEqual(38) // ≳63% de las etapas
-  })
+  it(
+    'un sprinter con tren de lanzadores gana la llegada masiva más que uno idéntico sin tren',
+    { timeout: 30000 },
+    () => {
+      let train = 0
+      let alone = 0
+      for (let s = 0; s < 60; s++) {
+        const seed = stageSeed({
+          worldSeed: `lo-${s}`,
+          raceId: 'lo',
+          stageDay: 1,
+          engineVersion: 1,
+        })
+        const out = simulateStage(leadOutInput(), seed)
+        const posTrain = out.results.find((r) => r.riderId === 'spr-train')!.puesto
+        const posAlone = out.results.find((r) => r.riderId === 'spr-alone')!.puesto
+        if (posTrain < posAlone) train++
+        else alone++
+      }
+      // El tren no es garantía (piernas del día, ruido del sprint) pero inclina claramente la balanza.
+      expect(train).toBeGreaterThan(alone)
+      expect(train).toBeGreaterThanOrEqual(38) // ≳63% de las etapas
+    },
+  )
 
   // Dos líderes idénticos; solo uno lleva tres gregarios que le arropan en el pelotón.
   function domestiqueInput(): StageInput {
     const riders: StageRider[] = []
     for (let i = 0; i < 3; i++) {
-      riders.push(rider(`greg-${i}`, { orders: orders({ role: 'gregario', targetRiderId: 'cap-a' }) }))
+      riders.push(
+        rider(`greg-${i}`, { orders: orders({ role: 'gregario', targetRiderId: 'cap-a' }) }),
+      )
     }
     for (let i = 0; i < 34; i++) riders.push(rider(`pel-${i}`, { eff0: eff(50 + (i % 6)) }))
     // Los dos capitanes al final del campo: quedan fuera de la fracción que releva (25%), así ambos
