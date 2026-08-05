@@ -1,7 +1,7 @@
 import { SEASON_CALENDAR, TEST_TOUR, raceLastDay, stageDayOfSeason } from '@cyclingstar/engine'
 import { eq } from 'drizzle-orm'
 import type { Database } from './client.js'
-import { raceRosters } from './schema.js'
+import { raceRosters, stageResults } from './schema.js'
 
 /**
  * Días de juego en los que un corredor tiene carrera (#6): de sus convocatorias (race_rosters),
@@ -47,6 +47,62 @@ export async function getRiderRaceDays(
     }
   }
   return [...days].sort((a, b) => a - b)
+}
+
+/** Resultado del corredor en una etapa/carrera ya corrida: su puesto, para su ficha. */
+export interface RiderResult {
+  raceId: string
+  raceName: string
+  raceClass: string
+  season: number
+  /** Número de etapa (1-based). En una carrera de un día siempre 1. */
+  stageDay: number
+  stageCount: number
+  puesto: number
+  isOneDay: boolean
+}
+
+/**
+ * Últimos resultados del corredor (sus puestos en las etapas ya corridas), de la más reciente a la
+ * más antigua, para mostrar en su ficha. Resuelve nombre/clase/orden desde el calendario.
+ */
+export async function getRiderRecentResults(
+  db: Database,
+  riderId: string,
+  limit = 15,
+): Promise<RiderResult[]> {
+  const rows = await db
+    .select({
+      raceId: stageResults.raceId,
+      stageDay: stageResults.stageDay,
+      puesto: stageResults.puesto,
+    })
+    .from(stageResults)
+    .where(eq(stageResults.riderId, riderId))
+  const out: (RiderResult & { sortKey: number })[] = []
+  for (const r of rows) {
+    const m = /^(.*):s(\d+)$/.exec(r.raceId)
+    if (!m) continue // la vuelta de prueba no cuenta como carrera del calendario
+    const baseId = m[1]!
+    const season = Number(m[2])
+    const race = SEASON_CALENDAR.find((rc) => rc.id === baseId)
+    if (!race) continue
+    // Orden de recencia: temporada, día de salida de la carrera y número de etapa.
+    const sortKey = season * 1_000_000 + race.startDay * 100 + r.stageDay
+    out.push({
+      raceId: baseId,
+      raceName: race.name,
+      raceClass: race.raceClass,
+      season,
+      stageDay: r.stageDay,
+      stageCount: race.stages.length,
+      puesto: r.puesto,
+      isOneDay: race.stages.length === 1,
+      sortKey,
+    })
+  }
+  out.sort((a, b) => b.sortKey - a.sortKey)
+  return out.slice(0, limit).map(({ sortKey: _sortKey, ...r }) => r)
 }
 
 /** Una carrera próxima (o en curso) del corredor: nombre, clase, día de salida y cuánto falta. */
