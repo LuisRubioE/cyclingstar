@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, lte, sql } from 'drizzle-orm'
 import type { Database } from './client.js'
-import { raceGc, riders, stageResults, stageSnapshots, teams } from './schema.js'
+import { raceGc, raceRosters, riders, stageResults, stageSnapshots, teams } from './schema.js'
 
 /** Lecturas de resultados y clasificaciones para la web del replay (Paso 31, pulido). */
 
@@ -13,6 +13,8 @@ export interface GcRow {
   tiempoTotalS: number
   puntosVolante: number
   puntosMontana: number
+  /** Abandonó la carrera (caída grave): ya no está clasificado, se muestra como DNF al final. */
+  dnf: boolean
 }
 
 export async function getRaceGc(db: Database, raceId: string): Promise<GcRow[]> {
@@ -26,13 +28,23 @@ export async function getRaceGc(db: Database, raceId: string): Promise<GcRow[]> 
       tiempoTotalS: raceGc.tiempoTotalS,
       puntosVolante: raceGc.puntosVolante,
       puntosMontana: raceGc.puntosMontana,
+      abandonedDay: raceRosters.abandonedDay,
     })
     .from(raceGc)
     .innerJoin(riders, eq(riders.id, raceGc.riderId))
     .leftJoin(teams, eq(teams.id, riders.teamId))
+    .leftJoin(
+      raceRosters,
+      and(eq(raceRosters.raceId, raceGc.raceId), eq(raceRosters.riderId, raceGc.riderId)),
+    )
     .where(eq(raceGc.raceId, raceId))
-    .orderBy(asc(raceGc.tiempoTotalS))
-  return rows.map(({ userId, ...r }) => ({ ...r, isBot: userId === null }))
+    // Los que abandonaron caen al final (no están clasificados); el resto por tiempo.
+    .orderBy(sql`case when ${raceRosters.abandonedDay} is null then 0 else 1 end`, asc(raceGc.tiempoTotalS))
+  return rows.map(({ userId, abandonedDay, ...r }) => ({
+    ...r,
+    isBot: userId === null,
+    dnf: abandonedDay !== null,
+  }))
 }
 
 export interface TeamGcRow {
@@ -49,7 +61,7 @@ export interface TeamGcRow {
 export function teamsClassification(gc: GcRow[]): TeamGcRow[] {
   const byTeam = new Map<string, number[]>()
   for (const row of gc) {
-    if (!row.teamName) continue
+    if (!row.teamName || row.dnf) continue // un abandono no puntúa para la general por equipos
     const times = byTeam.get(row.teamName) ?? []
     times.push(row.tiempoTotalS)
     byTeam.set(row.teamName, times)
