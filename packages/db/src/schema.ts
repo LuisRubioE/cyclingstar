@@ -355,6 +355,9 @@ export const raceRosters = pgTable(
     // primer equipo, 21-2X el segundo…), el 1 reservado al campeón defensor (SPEC 8). Null en rosters
     // antiguos anteriores a los dorsales.
     bib: integer('bib'),
+    // Día de juego en que el corredor ABANDONÓ la carrera (caída grave/lesión). Null si sigue en
+    // carrera. Las etapas siguientes lo saltan: un abandono está fuera del resto de la vuelta (SPEC 6.14).
+    abandonedDay: integer('abandoned_day'),
   },
   (t) => [primaryKey({ columns: [t.raceId, t.riderId] })],
 )

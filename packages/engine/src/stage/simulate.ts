@@ -125,6 +125,24 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
   const membersOf = (groupId: string): RiderSim[] =>
     [...sims.values()].filter((s) => s.groupId === groupId && s.finishTs === null)
 
+  // Trabajo de equipo (SPEC 6.18): quién arropa a quién. Un líder con `targetRiderId` de sus gregarios
+  // gasta menos si los lleva en el grupo; un sprinter con lanzadores va mejor lanzado en la meta.
+  const domestiquesFor = new Map<string, string[]>()
+  const leadOutFor = new Map<string, string[]>()
+  for (const r of input.riders) {
+    const target = r.orders.targetRiderId
+    if (!target) continue
+    if (r.orders.role === 'gregario') {
+      const list = domestiquesFor.get(target) ?? []
+      list.push(r.riderId)
+      domestiquesFor.set(target, list)
+    } else if (r.orders.role === 'lanzador') {
+      const list = leadOutFor.get(target) ?? []
+      list.push(r.riderId)
+      leadOutFor.set(target, list)
+    }
+  }
+
   let peloton = createGroup(
     PELOTON,
     input.riders.map((r) => r.riderId),
@@ -243,10 +261,26 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       if (members.length === 0) return group
       const p75 = pacemakerP75(members, block, paceFraction)
       const next = advanceGroup(group, block, p75, { isFinal })
+      const idSet = new Set(members.map((m) => m.input.riderId))
       members.forEach((m, idx) => {
         const relaying = idx / members.length < paceFraction
         const shelter = relaying ? STAGE.shelterRelay : STAGE.shelterProtected
-        const cost = blockCost(block, group.compromiso, shelter)
+        let cost = blockCost(block, group.compromiso, shelter)
+        // Protección de gregarios: un líder arropado que no está relevando gasta menos según cuántos
+        // de sus gregarios lleve en el grupo (SPEC 6.18). Así fichar buen equipo rinde de verdad.
+        if (!relaying) {
+          const helpers = domestiquesFor.get(m.input.riderId)
+          if (helpers) {
+            const present = helpers.reduce((c, id) => c + (idSet.has(id) ? 1 : 0), 0)
+            if (present > 0) {
+              const protect = Math.min(
+                present * STAGE.domestiqueProtectPerHelper,
+                STAGE.domestiqueProtectMax,
+              )
+              cost *= 1 - protect
+            }
+          }
+        }
         m.energy = Math.max(0, m.energy - cost)
         m.work += cost
       })
@@ -355,7 +389,7 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
 
   // --- Meta y resultados (SPEC 6.12, 6.15) -----------------------------------------------
   const allGroups: Group[] = [peloton, ...(breakaway && !caught ? [breakaway] : []), ...shed]
-  finishStage(sims, allGroups, log, rngSprint, totalKm, finishUphill)
+  finishStage(sims, allGroups, log, rngSprint, totalKm, finishUphill, leadOutFor)
 
   const results = buildResults(sims)
   const workUnits = new Map<string, number>()
@@ -465,6 +499,7 @@ function finishStage(
   rngSprint: Rng,
   totalKm: number,
   finishUphill: boolean,
+  leadOutFor: Map<string, string[]>,
 ): void {
   const withMembers = groups
     .map((group) => ({ group, members: [...sims.values()].filter((s) => s.groupId === group.id) }))
@@ -472,12 +507,24 @@ function finishStage(
   withMembers.sort((a, b) => a.group.tS - b.group.tS)
 
   withMembers.forEach(({ group, members }, gi) => {
+    const idSet = new Set(members.map((m) => m.input.riderId))
     const ranked = members
       .map((m) => {
         const e = erosion(m.energy, m.energy0, m.input.eff0.RES)
         const eff = effNow(m.input.eff0, e)
         const base = finishUphill ? Math.max(eff.MON, eff.COL) : eff.SPR
-        const score = base * normal(rngSprint, 1, STAGE.sprintScoreNoiseSd)
+        let score = base * normal(rngSprint, 1, STAGE.sprintScoreNoiseSd)
+        // Tren de lanzadores: en una llegada masiva, un sprinter bien lanzado por su equipo remata
+        // mejor (SPEC 6.18). Solo cuentan los lanzadores que llegan en su mismo grupo de meta.
+        if (!finishUphill) {
+          const train = leadOutFor.get(m.input.riderId)
+          if (train) {
+            const present = train.reduce((c, id) => c + (idSet.has(id) ? 1 : 0), 0)
+            if (present > 0) {
+              score *= 1 + STAGE.leadOutBoostPerHelper * Math.min(present, STAGE.leadOutMaxHelpers)
+            }
+          }
+        }
         return { m, score }
       })
       .sort((a, b) => b.score - a.score)

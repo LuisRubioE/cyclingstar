@@ -37,8 +37,10 @@ export async function getRosterTeammates(
     .select({ id: riders.id, name: riders.name })
     .from(raceRosters)
     .innerJoin(riders, eq(riders.id, raceRosters.riderId))
-    .where(and(eq(raceRosters.raceId, raceId), eq(riders.teamId, teamId)))
-    .orderBy(riders.name)
+    // Excluye al propio corredor: no puede ser su propio objetivo (no te ayudas a ti mismo). Por fama
+    // desc, así el líder del equipo (el corredor de más nivel) aparece primero en la lista.
+    .where(and(eq(raceRosters.raceId, raceId), eq(riders.teamId, teamId), ne(riders.id, riderId)))
+    .orderBy(desc(riders.fame))
 }
 
 /** RIVALES del corredor en la carrera (los de OTROS equipos), por fama desc: a quién marcar/seguir. */

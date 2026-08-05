@@ -127,6 +127,12 @@ export function renderAltimetrySvg(profile: StageProfile, options: AltimetryOpti
       const x = xn.toFixed(1)
       const label = bannerLabel(profile, b)
       const color = b.tipo === 'cima' ? '#dc2626' : '#16a34a'
+      // Cota menor sin categoría (clásicas con decenas de repechos, p.ej. Amstel): se marca con una
+      // línea tenue pero SIN etiqueta, para no saturar de "Summit" el perfil. Las cimas puntuables y
+      // los sprints sí llevan etiqueta, y solo ellos ocupan fila (así no se pisan entre sí).
+      if (b.tipo === 'cima' && label === 'Summit') {
+        return `<line x1="${x}" y1="${PAD}" x2="${x}" y2="${height - PAD}" stroke="${color}" stroke-width="1" stroke-dasharray="2 4" opacity="0.3"/>`
+      }
       row = xn - prevX < 34 ? (row + 1) % 2 : 0
       prevX = xn
       const labelY = PAD - 6 + row * 13 // fila 0 encima del gráfico, fila 1 justo debajo

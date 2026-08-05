@@ -9,7 +9,7 @@ import {
 import { and, eq, isNotNull, isNull, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import type { Database } from './client.js'
-import { contracts, raceCallups, riderRacePrefs, riders, teams } from './schema.js'
+import { contracts, raceCallups, raceRosters, riderRacePrefs, riders, teams } from './schema.js'
 
 /**
  * IA de convocatorias en la capa de datos (Paso 35, SPEC 6.18, 7.2). Unos días antes de cada
@@ -148,13 +148,28 @@ export async function runCallups(
         young: YOUNG_AGE >= 20 - r.birthSeason + season,
       }))
 
-      const { squad } = selectSquad(candidates, {
-        raceFit,
-        philosophy: team.philosophy as TeamPhilosophy,
-        size,
-        seed: `${worldSeed}:${race.id}:${team.id}:s${season}`,
-      })
-      const selected = new Set(squad)
+      // La escuadra REAL ya se congeló ~2 semanas antes en race_rosters (ENROLL_LOCK_DAYS = 14 >
+      // CALLUP_LEAD_DAYS = 5). La convocatoria (a quién se llamó y a quién no, que ve el jugador y que
+      // mueve la moral) se DERIVA de esa escuadra, para que coincida con quien realmente corre. Si no,
+      // el aviso de convocatoria y el planificador de entrenamiento se contradecían: te decía "no te han
+      // elegido" y a la vez "no entrenas porque tienes carrera".
+      const raceKey = `${race.id}:s${season}`
+      const frozen = await tx
+        .select({ riderId: raceRosters.riderId })
+        .from(raceRosters)
+        .where(eq(raceRosters.raceId, raceKey))
+      const selected =
+        frozen.length > 0
+          ? new Set(frozen.map((f) => f.riderId))
+          : // Respaldo: si por lo que sea aún no se congeló, decide con el motor (comportamiento antiguo).
+            new Set(
+              selectSquad(candidates, {
+                raceFit,
+                philosophy: team.philosophy as TeamPhilosophy,
+                size,
+                seed: `${worldSeed}:${race.id}:${team.id}:s${season}`,
+              }).squad,
+            )
 
       for (const r of roster) {
         const isSelected = selected.has(r.id)

@@ -1,0 +1,1 @@
+ALTER TABLE "race_rosters" ADD COLUMN "abandoned_day" integer;

@@ -382,6 +382,15 @@ export const STAGE = {
   markDropMargin: -6,
   markGiveScale: 1.2,
 
+  // 6.18 — Trabajo de equipo (gregarios y lanzadores). Da PESO a la estrategia: rodearse de un buen
+  // equipo rinde de verdad. Los gregarios que acompañan a su líder en el grupo le ahorran energía
+  // (le protegen del viento, le llevan bidones, cierran huecos); un tren de lanzadores lanza al
+  // sprinter en la última rampa. Solo cuentan los compañeros presentes en el MISMO grupo del líder.
+  domestiqueProtectPerHelper: 0.05, // cada gregario presente rebaja un 5% el coste del líder...
+  domestiqueProtectMax: 0.15, //       ...hasta un 15% (≈3 gregarios): un equipo fuerte ahorra mucho.
+  leadOutBoostPerHelper: 0.05, // cada lanzador presente sube un 5% la puntuación de sprint del líder...
+  leadOutMaxHelpers: 2, //             ...con dos ya se satura (un tren de más de dos no suma más).
+
   // TSS de etapa derivado del gasto (workUnits) para alimentar el Banister (SPEC 5.1, 6.15).
   tssPerWorkUnit: 5,
 } as const
