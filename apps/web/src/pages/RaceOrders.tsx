@@ -288,7 +288,7 @@ export function RaceOrders() {
                         checked={order.contestSprints}
                         onChange={(e) => update(stage.day, { contestSprints: e.target.checked })}
                       />
-                      Contest sprints
+                      Chase points-jersey sprints
                     </label>
                     <label className="flex items-center gap-1.5">
                       <input
@@ -296,10 +296,11 @@ export function RaceOrders() {
                         checked={order.contestClimbs}
                         onChange={(e) => update(stage.day, { contestClimbs: e.target.checked })}
                       />
-                      Contest KOMs
+                      Chase mountain (KOM) points
                     </label>
                     <span className="text-xs text-slate-400">
-                      Go for the intermediate-sprint or climb points on the way (costs energy).
+                      Contest the intermediate-sprint or the King-of-the-Mountains points at the
+                      banners along the route (green / polka-dot jerseys). Costs energy.
                     </span>
                   </div>
                 </div>
