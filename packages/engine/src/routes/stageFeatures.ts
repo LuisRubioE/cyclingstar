@@ -5876,4 +5876,95 @@ export const STAGE_FEATURES: Record<string, (StageFeatures | null)[]> = {
       sprints: [],
     },
   ],
+  'race-laigueglia': [
+    {
+      climbs: [
+        {
+          name: 'Capo Mele',
+          summitKm: 11,
+          lengthKm: 1.5,
+          avgGradient: 5.1,
+        },
+        {
+          name: 'Capo Berta',
+          summitKm: 24,
+          lengthKm: 1.8,
+          avgGradient: 6.6,
+        },
+        {
+          name: 'Cipressa',
+          summitKm: 41,
+          lengthKm: 5.6,
+          avgGradient: 4.1,
+        },
+        {
+          name: 'Capo Berta',
+          summitKm: 65,
+          lengthKm: 2.4,
+          avgGradient: 4.8,
+        },
+        {
+          name: 'Capo Mele',
+          summitKm: 79,
+          lengthKm: 2,
+          avgGradient: 3.6,
+        },
+        {
+          name: 'Colla Micheri',
+          summitKm: 83,
+          lengthKm: 1.9,
+          avgGradient: 8.4,
+        },
+        {
+          name: 'Testico',
+          summitKm: 102,
+          lengthKm: 7,
+          avgGradient: 4.6,
+        },
+        {
+          name: 'Cima Paravenna',
+          summitKm: 129,
+          lengthKm: 7.2,
+          avgGradient: 5.5,
+        },
+        {
+          name: 'Colla Micheri',
+          summitKm: 162,
+          lengthKm: 1.9,
+          avgGradient: 8.4,
+        },
+        {
+          name: 'Capo Mele',
+          summitKm: 169,
+          lengthKm: 2,
+          avgGradient: 3.6,
+        },
+        {
+          name: 'Colla Micheri',
+          summitKm: 173,
+          lengthKm: 1.9,
+          avgGradient: 8.4,
+        },
+        {
+          name: 'Capo Mele',
+          summitKm: 180,
+          lengthKm: 2,
+          avgGradient: 3.6,
+        },
+        {
+          name: 'Colla Micheri',
+          summitKm: 184,
+          lengthKm: 1.9,
+          avgGradient: 8.4,
+        },
+        {
+          name: 'Capo Mele',
+          summitKm: 191,
+          lengthKm: 2,
+          avgGradient: 3.6,
+        },
+      ],
+      sprints: [],
+    },
+  ],
 }
