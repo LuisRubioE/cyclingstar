@@ -396,7 +396,7 @@ async function convokeField(
 ): Promise<string[]> {
   const { size, min: minSquad } = squadFor(race)
   const fieldCap = FIELD_CAP_BY_CLASS[race.raceClass] ?? FIELD_CAP
-  const { teamRows, forcedOut } = await resolveFieldTeams(tx, worldId, race, raceKey, season)
+  const { teamRows } = await resolveFieldTeams(tx, worldId, race, raceKey, season)
   if (teamRows.length === 0) return []
   const teamIds = teamRows.map((t) => t.id)
 
@@ -528,13 +528,11 @@ async function convokeField(
       // humano entra por convocatoria de su equipo o por auto-inscripción (que le cobra el viaje);
       // si se colara aquí, correría gratis y saltaría su opt-in/economía de agente libre.
       isNull(riders.userId),
+      // SOLO AGENTES LIBRES (sin equipo comercial): el relleno individual son corredores sueltos del
+      // continente, NO corredores de equipos WT/Pro. Un corredor con equipo entra con la escuadra de su
+      // equipo (núcleo o invitado) o no corre; si no, aparecería como un equipo WT/Pro de UN solo dorsal.
+      isNull(riders.teamId),
     ]
-    // Un equipo con dueño que decidió NO acudir (forcedOut) no aporta ni corredores de relleno: si el
-    // manager saltó la carrera, ninguno de los suyos corre aquí (ni como individual del continente).
-    // Se preservan los agentes libres NPC (team_id nulo), que sí pueden rellenar.
-    if (forcedOut.size > 0) {
-      conds.push(or(isNull(riders.teamId), notInArray(riders.teamId, [...forcedOut]))!)
-    }
     const excluded = [...new Set([...already, ...busy])]
     if (excluded.length > 0) conds.push(notInArray(riders.id, excluded))
     const fillers = await tx
