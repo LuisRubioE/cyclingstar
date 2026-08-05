@@ -1197,7 +1197,15 @@ const PRO_TABLE: RaceRow[] = [
     stages: 5,
     terrain: 'flat',
   },
-  { id: 'race-brabant', name: 'Race Brabant', m: 4, d: 17, raceClass: 'Pro', terrain: 'hilly' },
+  {
+    id: 'race-brabant',
+    name: 'Race Brabant',
+    m: 4,
+    d: 17,
+    raceClass: 'Pro',
+    terrain: 'hilly',
+    km: 163,
+  },
   {
     id: 'race-alps',
     name: 'Race Alps',
