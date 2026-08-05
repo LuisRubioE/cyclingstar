@@ -98,7 +98,7 @@ export function PublicRider() {
       {resultsQuery.data && resultsQuery.data.length > 0 && (
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-            Recent results
+            Últimos resultados
           </h2>
           <ul className="mt-3 space-y-1.5">
             {resultsQuery.data.map((r, i) => (
@@ -120,7 +120,7 @@ export function PublicRider() {
                 >
                   {r.raceName}
                 </Link>
-                {!r.isOneDay && <span className="text-xs text-slate-400">Stage {r.stageDay}</span>}
+                {!r.isOneDay && <span className="text-xs text-slate-400">Etapa {r.stageDay}</span>}
               </li>
             ))}
           </ul>
@@ -133,7 +133,7 @@ export function PublicRider() {
           <ul className="mt-3 space-y-1.5">
             {palmaresQuery.data.map((p, i) => (
               <li key={i} className="flex items-center gap-3 text-sm">
-                <span className="w-20 shrink-0 text-slate-400">Season {p.season + 1}</span>
+                <span className="w-20 shrink-0 text-slate-400">Temporada {p.season + 1}</span>
                 <span className="font-medium text-slate-700">{p.raceName}</span>
                 <span className="text-slate-500">
                   {palmaresLabel(p.kind)}
