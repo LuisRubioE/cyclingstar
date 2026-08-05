@@ -75,6 +75,8 @@ export interface StageReplay {
   name: string
   km: number
   run: boolean
+  /** La etapa es una contrarreloj: el journal cuenta la historia del crono (mejor tiempo, diferencias). */
+  timeTrial?: boolean
   altimetry: string
   results?: StageResultEntry[]
   chronicle?: ChronicleEntry[]

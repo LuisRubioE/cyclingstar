@@ -1,6 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
-import { type ChronicleEntry, fetchCalendarStage, formatTime } from '../api/results'
+import {
+  type ChronicleEntry,
+  type StageResultEntry,
+  fetchCalendarStage,
+  formatTime,
+} from '../api/results'
 import { Flag } from '../components/Flag'
 import { RiderName } from '../components/RiderName'
 
@@ -27,6 +32,33 @@ function chronicleLine(e: ChronicleEntry): string {
     default:
       return `${e.plantilla}${who ? `: ${who}` : ''}`
   }
+}
+
+/** Diferencia contra el mejor tiempo, formateada (+Ns o +m:ss). */
+function gapToBest(seconds: number): string {
+  if (seconds < 60) return `+${seconds}s`
+  const m = Math.floor(seconds / 60)
+  const ss = String(seconds % 60).padStart(2, '0')
+  return `+${m}:${ss}`
+}
+
+/**
+ * Relato de una contrarreloj a partir de los tiempos reales: una crono no tiene fuga ni sprint que
+ * narrar, así que el journal cuenta lo que importa —mejor tiempo, quién se acercó, y cuán apretada
+ * quedó la clasificación contra el crono—.
+ */
+function timeTrialStory(results: StageResultEntry[]): string[] {
+  if (results.length === 0) return []
+  const winner = results[0]!
+  const gap = (r: StageResultEntry) => r.tiempoS - winner.tiempoS
+  const lines = [`Best time of the day: ${winner.name} — ${formatTime(winner.tiempoS)}.`]
+  if (results[1]) lines.push(`${results[1].name} came closest, ${gapToBest(gap(results[1]))} down.`)
+  if (results[2])
+    lines.push(`${results[2].name} rounded out the podium at ${gapToBest(gap(results[2]))}.`)
+  const within = results.filter((r) => gap(r) <= 60).length
+  if (within >= 2)
+    lines.push(`${within} riders finished within a minute of the best time — a tight one.`)
+  return lines
 }
 
 /** Journal/crónica de una etapa de calendario ya corrida: lo que pasó, más resultado y general. */
@@ -69,7 +101,21 @@ export function StageReplay() {
 
       {!data.run && <p className="text-slate-500">This stage hasn't been raced yet.</p>}
 
-      {data.chronicle && data.chronicle.length > 0 && (
+      {/* Crono: sin fuga ni sprint que narrar, se cuenta la historia del reloj desde los tiempos. */}
+      {data.run && data.timeTrial && data.results && data.results.length > 0 && (
+        <div className={card}>
+          <h2 className={head}>Against the clock</h2>
+          <ul className="mt-3 space-y-2">
+            {timeTrialStory(data.results).map((line, i) => (
+              <li key={i} className="text-sm text-slate-700">
+                {line}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {!data.timeTrial && data.chronicle && data.chronicle.length > 0 && (
         <div className={card}>
           <h2 className={head}>How the stage unfolded</h2>
           <ol className="mt-3 space-y-2">

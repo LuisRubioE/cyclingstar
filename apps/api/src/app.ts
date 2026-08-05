@@ -1278,6 +1278,7 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
             name: stage.name,
             km,
             run: false,
+            timeTrial: stage.timeTrial ?? false,
             altimetry: renderAltimetrySvg(stage.profile),
           }
         }
@@ -1321,7 +1322,17 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
           .map((e) => ({ km: e.km, label: MARKER_LABEL[e.tipo] ?? '•' }))
         const altimetry = renderAltimetrySvg(stage.profile, { markers })
         const gc = await getGcThroughStage(db, raceKey, day)
-        return { day, name: stage.name, km, run: true, altimetry, results, chronicle, gc }
+        return {
+          day,
+          name: stage.name,
+          km,
+          run: true,
+          timeTrial: stage.timeTrial ?? false,
+          altimetry,
+          results,
+          chronicle,
+          gc,
+        }
       },
     )
 
