@@ -193,6 +193,52 @@ export function RiderProfile() {
         </Panel>
       )}
 
+      {resultsQuery.data && resultsQuery.data.length > 0 && (
+        <Panel title="Últimos resultados">
+          <ul className="space-y-1.5">
+            {resultsQuery.data.map((r, i) => (
+              <li key={i} className="flex items-center gap-3 text-sm">
+                <span
+                  className={`w-8 shrink-0 text-right font-bold tabular-nums ${
+                    r.puesto === 1
+                      ? 'text-amber-500'
+                      : r.puesto <= 3
+                        ? 'text-slate-600'
+                        : 'text-slate-400'
+                  }`}
+                >
+                  {r.puesto}
+                </span>
+                <Link
+                  to={r.isOneDay ? `/races/${r.raceId}` : `/races/${r.raceId}/stages/${r.stageDay}`}
+                  className="font-medium text-slate-700 hover:underline"
+                >
+                  {r.raceName}
+                </Link>
+                {!r.isOneDay && <span className="text-xs text-slate-400">Etapa {r.stageDay}</span>}
+              </li>
+            ))}
+          </ul>
+        </Panel>
+      )}
+
+      {palmaresQuery.data && palmaresQuery.data.length > 0 && (
+        <Panel title="Palmarès">
+          <ul className="space-y-1.5">
+            {palmaresQuery.data.map((p, i) => (
+              <li key={i} className="flex items-center gap-3 text-sm">
+                <span className="w-20 shrink-0 text-slate-400">Temporada {p.season + 1}</span>
+                <span className="font-medium text-slate-700">{p.raceName}</span>
+                <span className="text-slate-500">
+                  {palmaresLabel(p.kind)}
+                  {p.detail && ` · ${p.detail}`}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </Panel>
+      )}
+
       <LastRaceReport />
 
       <Panel
@@ -273,52 +319,6 @@ export function RiderProfile() {
         <p className="mb-1 text-xs text-slate-400">Tap an attribute to see what it does.</p>
         <AttributeList attributes={rider.attributes} />
       </Panel>
-
-      {resultsQuery.data && resultsQuery.data.length > 0 && (
-        <Panel title="Últimos resultados">
-          <ul className="space-y-1.5">
-            {resultsQuery.data.map((r, i) => (
-              <li key={i} className="flex items-center gap-3 text-sm">
-                <span
-                  className={`w-8 shrink-0 text-right font-bold tabular-nums ${
-                    r.puesto === 1
-                      ? 'text-amber-500'
-                      : r.puesto <= 3
-                        ? 'text-slate-600'
-                        : 'text-slate-400'
-                  }`}
-                >
-                  {r.puesto}
-                </span>
-                <Link
-                  to={r.isOneDay ? `/races/${r.raceId}` : `/races/${r.raceId}/stages/${r.stageDay}`}
-                  className="font-medium text-slate-700 hover:underline"
-                >
-                  {r.raceName}
-                </Link>
-                {!r.isOneDay && <span className="text-xs text-slate-400">Etapa {r.stageDay}</span>}
-              </li>
-            ))}
-          </ul>
-        </Panel>
-      )}
-
-      {palmaresQuery.data && palmaresQuery.data.length > 0 && (
-        <Panel title="Palmarès">
-          <ul className="space-y-1.5">
-            {palmaresQuery.data.map((p, i) => (
-              <li key={i} className="flex items-center gap-3 text-sm">
-                <span className="w-20 shrink-0 text-slate-400">Season {p.season + 1}</span>
-                <span className="font-medium text-slate-700">{p.raceName}</span>
-                <span className="text-slate-500">
-                  {palmaresLabel(p.kind)}
-                  {p.detail && ` · ${p.detail}`}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </Panel>
-      )}
     </section>
   )
 }
