@@ -129,7 +129,7 @@ export function PublicRider() {
 
       {palmaresQuery.data && palmaresQuery.data.length > 0 && (
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-400">Palmarès</h2>
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-400">Palmarés</h2>
           <ul className="mt-3 space-y-1.5">
             {palmaresQuery.data.map((p, i) => (
               <li key={i} className="flex items-center gap-3 text-sm">
