@@ -66,7 +66,12 @@ function assignTeam(
     return undefined
   }
   const next = (metric: (a: Record<Attribute, number>) => number): AutoOrderRider | undefined =>
-    take(ranked(team.filter((r) => remaining.has(r.riderId)), metric)[0])
+    take(
+      ranked(
+        team.filter((r) => remaining.has(r.riderId)),
+        metric,
+      )[0],
+    )
 
   // 1) Jefe de filas según el terreno.
   let leaderId: string | undefined
@@ -93,10 +98,7 @@ function assignTeam(
   } else {
     const l = next(mountain ? climbScore : allroundScore)
     if (l) {
-      out.set(
-        l.riderId,
-        order({ role: 'lider', mentality: 'reservon', contestClimbs: mountain }),
-      )
+      out.set(l.riderId, order({ role: 'lider', mentality: 'reservon', contestClimbs: mountain }))
       leaderId = l.riderId
     }
   }
