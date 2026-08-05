@@ -219,9 +219,18 @@ export function Race() {
               <Fragment key={stage.index}>
                 <li>
                   <div className="mb-1 flex items-center gap-3 text-sm">
-                    <span className="font-medium text-slate-700">
-                      {data.stages.length === 1 ? stage.name : `Stage ${stage.index}`}
-                    </span>
+                    {data.stageWinners.some((w) => w.stageDay === stage.index) ? (
+                      <Link
+                        to={`/races/${raceId}/stages/${stage.index}`}
+                        className="font-medium text-indigo-600 hover:underline"
+                      >
+                        {data.stages.length === 1 ? stage.name : `Stage ${stage.index}`} · journal →
+                      </Link>
+                    ) : (
+                      <span className="font-medium text-slate-700">
+                        {data.stages.length === 1 ? stage.name : `Stage ${stage.index}`}
+                      </span>
+                    )}
                     <span
                       className={`inline-block h-2 w-2 shrink-0 rounded-full ${KIND_DOT[stage.kind] ?? 'bg-slate-300'}`}
                       aria-hidden

@@ -93,6 +93,13 @@ export async function fetchStageReplay(day: number): Promise<StageReplay> {
   return (await res.json()) as StageReplay
 }
 
+/** Crónica/journal de una etapa de calendario (pública). */
+export async function fetchCalendarStage(raceId: string, day: number): Promise<StageReplay> {
+  const res = await fetch(`/api/races/${raceId}/stages/${day}`)
+  if (!res.ok) throw new Error('Could not load the stage.')
+  return (await res.json()) as StageReplay
+}
+
 /** Adelanta el mundo N días de juego (herramienta de pruebas de la alfa). */
 export async function advanceWorld(days: number): Promise<{ currentDay: number | null }> {
   const res = await fetch(`/api/world/advance?days=${days}`, { method: 'POST' })
