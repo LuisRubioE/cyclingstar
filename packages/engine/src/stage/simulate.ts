@@ -129,6 +129,9 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
   // gasta menos si los lleva en el grupo; un sprinter con lanzadores va mejor lanzado en la meta.
   const domestiquesFor = new Map<string, string[]>()
   const leadOutFor = new Map<string, string[]>()
+  // Marcaje (SPEC 6.18): quién marca a qué rival. Un marcador se agarra a la rueda de su objetivo y
+  // aguanta sus ataques en la subida mientras su nivel no esté muy por debajo (no le deja marcharse solo).
+  const markTargetOf = new Map<string, string>()
   for (const r of input.riders) {
     const target = r.orders.targetRiderId
     if (!target) continue
@@ -140,6 +143,8 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       const list = leadOutFor.get(target) ?? []
       list.push(r.riderId)
       leadOutFor.set(target, list)
+    } else if (r.orders.role === 'marcador') {
+      markTargetOf.set(r.riderId, target)
     }
   }
 
@@ -292,9 +297,22 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
     const shatter = (group: Group, members: RiderSim[], paceFraction: number): void => {
       if (block.tipo !== 'subida') return
       const pace = pacemakerP75(members, block, paceFraction)
+      const inGroup = new Set(members.map((m) => m.input.riderId))
       for (const m of members) {
         const deficit = pace - riderPerfil(m, block)
         if (deficit <= STAGE.dropDeficitTolerance) continue
+        // Marcaje (SPEC 6.18): si m marca a un rival que sube en su MISMO grupo, se agarra a su rueda y
+        // aguanta mientras su nivel de escalada no esté MUY por debajo del objetivo (margen ≥ -6). Así
+        // "marcar a un rival" evita que se te escape en la subida (donde se decide la general).
+        const targetId = markTargetOf.get(m.input.riderId)
+        if (targetId && inGroup.has(targetId)) {
+          const target = sims.get(targetId)
+          if (target) {
+            const margin =
+              riderPerfil(m, block) - riderPerfil(target, block) + STAGE.markDraftTolerance
+            if (margin >= STAGE.markDropMargin) continue // se queda a rueda del objetivo
+          }
+        }
         const lambda = (STAGE.lambdaDropBase * deficit) / STAGE.dropDeficitDenom
         if (!rollHazard(rngHazard, lambda)) continue
         if (m.matches > 0 && m.input.orders.mentality !== 'reservon') {

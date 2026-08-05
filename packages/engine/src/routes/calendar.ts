@@ -1155,6 +1155,7 @@ const PRO_TABLE: RaceRow[] = [
     d: 4,
     raceClass: 'Pro',
     terrain: 'hilly',
+    km: 192,
   },
   {
     id: 'race-nokere',

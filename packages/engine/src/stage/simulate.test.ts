@@ -197,4 +197,54 @@ describe('trabajo de equipo (SPEC 6.18)', () => {
     const workB = out.workUnits.get('cap-b')!
     expect(workA).toBeLessThan(workB)
   })
+
+  // Un escalador fuerte (objetivo) y dos escaladores medianos idénticos; solo uno (mark) marca al fuerte.
+  function markInput(): StageInput {
+    const riders: StageRider[] = [
+      rider('target', { eff0: eff(58, { MON: 82, COL: 78 }), orders: orders({ role: 'lider' }) }),
+      rider('mark', {
+        eff0: eff(58, { MON: 74, COL: 72 }),
+        orders: orders({ role: 'marcador', targetRiderId: 'target' }),
+      }),
+      rider('free', { eff0: eff(58, { MON: 74, COL: 72 }) }),
+    ]
+    for (let i = 0; i < 30; i++)
+      riders.push(rider(`pel-${i}`, { eff0: eff(54, { MON: 52 + (i % 8) }) }))
+    return {
+      profile: {
+        segments: [
+          { km: 120, tipo: 'llano' },
+          { km: 12, tipo: 'puerto', tramos: [{ km: 12, g: 8 }] },
+        ],
+        banners: [{ km: 132, tipo: 'cima' }],
+      },
+      riders,
+    }
+  }
+
+  it(
+    'un marcador se pega a su objetivo en la subida más que un igual que no marca',
+    { timeout: 30000 },
+    () => {
+      let markWith = 0
+      let freeWith = 0
+      for (let s = 0; s < 60; s++) {
+        const seed = stageSeed({
+          worldSeed: `mk-${s}`,
+          raceId: 'mk',
+          stageDay: 1,
+          engineVersion: 1,
+        })
+        const out = simulateStage(markInput(), seed)
+        const t = out.results.find((r) => r.riderId === 'target')!.tiempoS
+        const mk = out.results.find((r) => r.riderId === 'mark')!.tiempoS
+        const fr = out.results.find((r) => r.riderId === 'free')!.tiempoS
+        // "Con el objetivo" = a menos de 5 s de su tiempo en meta.
+        if (Math.abs(mk - t) <= 5) markWith++
+        if (Math.abs(fr - t) <= 5) freeWith++
+      }
+      // Marcar debe hacer que se quede con el objetivo más a menudo que el corredor idéntico que no marca.
+      expect(markWith).toBeGreaterThan(freeWith)
+    },
+  )
 })
