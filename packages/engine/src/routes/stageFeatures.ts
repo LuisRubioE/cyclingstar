@@ -5784,4 +5784,96 @@ export const STAGE_FEATURES: Record<string, (StageFeatures | null)[]> = {
       sprints: [],
     },
   ],
+  'race-sanremo': [
+    {
+      climbs: [
+        {
+          name: 'Passo del Turchino',
+          summitKm: 138,
+          lengthKm: 2.4,
+          avgGradient: 5.2,
+        },
+        {
+          name: 'Capo Mele',
+          summitKm: 236,
+          lengthKm: 1.6,
+          avgGradient: 4.8,
+        },
+        {
+          name: 'Capo Cervo',
+          summitKm: 241,
+          lengthKm: 1.4,
+          avgGradient: 3.2,
+        },
+        {
+          name: 'Capo Berta',
+          summitKm: 249,
+          lengthKm: 1.9,
+          avgGradient: 6.2,
+        },
+        {
+          name: 'Cipressa',
+          summitKm: 266,
+          lengthKm: 5.7,
+          avgGradient: 4.1,
+        },
+        {
+          name: 'Poggio di Sanremo',
+          summitKm: 282,
+          lengthKm: 3.7,
+          avgGradient: 3.8,
+        },
+      ],
+      sprints: [],
+    },
+  ],
+  'race-san-sebastian': [
+    {
+      climbs: [
+        {
+          name: 'Alto de Kalbario',
+          summitKm: 56.2,
+          lengthKm: 2.2,
+          avgGradient: 8,
+        },
+        {
+          name: 'Alto de Azkarate',
+          summitKm: 70.2,
+          lengthKm: 4.2,
+          avgGradient: 7.3,
+        },
+        {
+          name: 'Urraki',
+          summitKm: 91.2,
+          lengthKm: 8.6,
+          avgGradient: 6.9,
+        },
+        {
+          name: 'Alkiza',
+          summitKm: 111.2,
+          lengthKm: 4.4,
+          avgGradient: 6.2,
+        },
+        {
+          name: 'Alto de Jaizkibel',
+          summitKm: 159.2,
+          lengthKm: 7.9,
+          avgGradient: 5.6,
+        },
+        {
+          name: 'Erlaitz',
+          summitKm: 178.2,
+          lengthKm: 3.8,
+          avgGradient: 10.6,
+        },
+        {
+          name: 'Murgil',
+          summitKm: 213.2,
+          lengthKm: 2.1,
+          avgGradient: 10.1,
+        },
+      ],
+      sprints: [],
+    },
+  ],
 }

@@ -993,7 +993,7 @@ const WT_TABLE: RaceRow[] = [
     d: 1,
     raceClass: 'WT',
     terrain: 'classic',
-    km: 220,
+    km: 221,
   },
   {
     id: 'race-poland',
