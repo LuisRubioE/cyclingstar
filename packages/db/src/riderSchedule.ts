@@ -79,7 +79,7 @@ export async function getRiderRecentResults(
     })
     .from(stageResults)
     .where(eq(stageResults.riderId, riderId))
-  const out: (RiderResult & { sortKey: number })[] = []
+  const out: { result: RiderResult; sortKey: number }[] = []
   for (const r of rows) {
     const m = /^(.*):s(\d+)$/.exec(r.raceId)
     if (!m) continue // la vuelta de prueba no cuenta como carrera del calendario
@@ -90,19 +90,21 @@ export async function getRiderRecentResults(
     // Orden de recencia: temporada, día de salida de la carrera y número de etapa.
     const sortKey = season * 1_000_000 + race.startDay * 100 + r.stageDay
     out.push({
-      raceId: baseId,
-      raceName: race.name,
-      raceClass: race.raceClass,
-      season,
-      stageDay: r.stageDay,
-      stageCount: race.stages.length,
-      puesto: r.puesto,
-      isOneDay: race.stages.length === 1,
+      result: {
+        raceId: baseId,
+        raceName: race.name,
+        raceClass: race.raceClass,
+        season,
+        stageDay: r.stageDay,
+        stageCount: race.stages.length,
+        puesto: r.puesto,
+        isOneDay: race.stages.length === 1,
+      },
       sortKey,
     })
   }
   out.sort((a, b) => b.sortKey - a.sortKey)
-  return out.slice(0, limit).map(({ sortKey: _sortKey, ...r }) => r)
+  return out.slice(0, limit).map((o) => o.result)
 }
 
 /** Una carrera próxima (o en curso) del corredor: nombre, clase, día de salida y cuánto falta. */
