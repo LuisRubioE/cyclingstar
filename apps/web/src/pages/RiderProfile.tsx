@@ -226,11 +226,13 @@ export function RiderProfile() {
             return (
               <div className={`mb-3 rounded-lg px-3 py-2 text-sm ring-1 ${m.cls}`}>
                 <span className="font-semibold">{m.label}</span>
-                {daysLeft != null && daysLeft > 0 && (h.state === 'enfermo' || h.state === 'lesionado') && (
-                  <span className="ml-1 tabular-nums">
-                    — ~{daysLeft} day{daysLeft === 1 ? '' : 's'} to go
-                  </span>
-                )}
+                {daysLeft != null &&
+                  daysLeft > 0 &&
+                  (h.state === 'enfermo' || h.state === 'lesionado') && (
+                    <span className="ml-1 tabular-nums">
+                      — ~{daysLeft} day{daysLeft === 1 ? '' : 's'} to go
+                    </span>
+                  )}
                 <span className="ml-2 opacity-80">{m.note}</span>
               </div>
             )
