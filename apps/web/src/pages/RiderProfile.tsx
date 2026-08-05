@@ -194,7 +194,7 @@ export function RiderProfile() {
       )}
 
       {resultsQuery.data && resultsQuery.data.length > 0 && (
-        <Panel title="Últimos resultados">
+        <Panel title="Recent results">
           <ul className="space-y-1.5">
             {resultsQuery.data.map((r, i) => (
               <li key={i} className="flex items-center gap-3 text-sm">
@@ -215,7 +215,7 @@ export function RiderProfile() {
                 >
                   {r.raceName}
                 </Link>
-                {!r.isOneDay && <span className="text-xs text-slate-400">Etapa {r.stageDay}</span>}
+                {!r.isOneDay && <span className="text-xs text-slate-400">Stage {r.stageDay}</span>}
               </li>
             ))}
           </ul>
@@ -223,11 +223,11 @@ export function RiderProfile() {
       )}
 
       {palmaresQuery.data && palmaresQuery.data.length > 0 && (
-        <Panel title="Palmarés">
+        <Panel title="Palmarès">
           <ul className="space-y-1.5">
             {palmaresQuery.data.map((p, i) => (
               <li key={i} className="flex items-center gap-3 text-sm">
-                <span className="w-20 shrink-0 text-slate-400">Temporada {p.season + 1}</span>
+                <span className="w-20 shrink-0 text-slate-400">Season {p.season + 1}</span>
                 <span className="font-medium text-slate-700">{p.raceName}</span>
                 <span className="text-slate-500">
                   {palmaresLabel(p.kind)}
