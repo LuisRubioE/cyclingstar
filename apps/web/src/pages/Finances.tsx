@@ -52,6 +52,33 @@ function HousingCard() {
   )
 }
 
+/**
+ * Aviso de próximo día de pago: la nómina cae cada día de juego múltiplo de 7 (GD7, GD14, GD21…),
+ * atada al reloj del mundo, no a tu fecha de fichaje. El siguiente pago es el primer múltiplo de 7
+ * por delante del día actual (el día en curso ya está procesado).
+ */
+function NextSalaryCard({ gameDay, salary }: { gameDay: number; salary: number }) {
+  const nextPayday = (Math.floor(gameDay / 7) + 1) * 7
+  const daysUntil = nextPayday - gameDay
+  return (
+    <Panel title="Next salary">
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-sm">
+        <span className="text-lg font-bold tabular-nums text-emerald-600">
+          +{salary.toLocaleString('en-US')}
+        </span>
+        <span className="text-slate-500">
+          on <span className="font-semibold text-slate-700">GD{nextPayday}</span> ·{' '}
+          {daysUntil === 1 ? 'in 1 day' : `in ${daysUntil} days`}
+        </span>
+      </div>
+      <p className="mt-2 text-xs text-slate-400">
+        Salaries are paid weekly, on every game day that is a multiple of 7 (GD7, GD14, GD21…) —
+        tied to the world clock, not to your signing date.
+      </p>
+    </Panel>
+  )
+}
+
 export function Finances() {
   const { data, isPending, isError } = useQuery({ queryKey: ['ledger'], queryFn: fetchLedger })
 
@@ -70,6 +97,10 @@ export function Finances() {
           {data.balance.toLocaleString('en-US')}
         </p>
       </Panel>
+
+      {data.salary != null && data.gameDay != null && (
+        <NextSalaryCard gameDay={data.gameDay} salary={data.salary} />
+      )}
 
       <HousingCard />
 

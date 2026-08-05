@@ -8,6 +8,10 @@ export interface LedgerEntry {
 export interface Ledger {
   balance: number
   entries: LedgerEntry[]
+  /** Día de juego actual del mundo (para calcular el próximo día de pago). Null si no hay mundo/ciclista. */
+  gameDay: number | null
+  /** Salario semanal del contrato vigente, o null si el corredor no tiene contrato. */
+  salary: number | null
 }
 
 export async function fetchLedger(): Promise<Ledger> {
