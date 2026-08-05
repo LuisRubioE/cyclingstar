@@ -75,7 +75,11 @@ export async function getRiderUpcomingRaces(
   currentDay: number,
 ): Promise<RiderUpcomingRace[]> {
   const rosters = await db
-    .select({ raceId: raceRosters.raceId, bib: raceRosters.bib, abandonedDay: raceRosters.abandonedDay })
+    .select({
+      raceId: raceRosters.raceId,
+      bib: raceRosters.bib,
+      abandonedDay: raceRosters.abandonedDay,
+    })
     .from(raceRosters)
     .where(eq(raceRosters.riderId, riderId))
   const out: RiderUpcomingRace[] = []
