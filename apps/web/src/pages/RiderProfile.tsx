@@ -223,7 +223,7 @@ export function RiderProfile() {
       )}
 
       {palmaresQuery.data && palmaresQuery.data.length > 0 && (
-        <Panel title="Palmarès">
+        <Panel title="Palmarés">
           <ul className="space-y-1.5">
             {palmaresQuery.data.map((p, i) => (
               <li key={i} className="flex items-center gap-3 text-sm">
