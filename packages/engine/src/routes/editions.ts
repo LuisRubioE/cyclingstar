@@ -509,6 +509,20 @@ export const RACE_EDITIONS: Record<string, RaceEdition> = {
       { from: 'Wieliczka', to: 'Wieliczka', km: 12, terrain: 'itt' },
     ],
   },
+  // Recorrido real (perfiles PCS 2026): una carrera casi llana con UN día ondulado. El prólogo es una
+  // crono llana; la etapa 1 rueda con cotas pequeñas (final llano en Haveli); la 2 es la reina de
+  // verdad (Cat 2) pero baja hasta Nanded City; la 3 sube al principio y llanea hasta Baramati; la 4
+  // es llana. Nada de "montaña" salvo la etapa 2, así que solo esa lleva terreno ondulado.
+  'race-pune': {
+    restAfter: [],
+    stages: [
+      { from: 'Pune', to: 'Pune', km: 8, terrain: 'itt' },
+      { from: 'Mulshi', to: 'Haveli', km: 88, terrain: 'flat' },
+      { from: 'Pune', to: 'Nanded City', km: 105, terrain: 'hilly' },
+      { from: 'Chandan Tekadi', to: 'Baramati', km: 135, terrain: 'flat' },
+      { from: 'Pune', to: 'Pune', km: 95, terrain: 'flat' },
+    ],
+  },
   'race-qinghai': {
     restAfter: [],
     stages: [
