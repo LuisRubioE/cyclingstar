@@ -135,10 +135,10 @@ export async function fetchRiderResults(id: string): Promise<RiderResult[]> {
 }
 
 const KIND_LABEL: Record<string, string> = {
-  gc: 'Overall win',
-  stage: 'Stage win',
-  kom: 'Mountains',
-  points: 'Points',
+  gc: 'Victoria general',
+  stage: 'Victoria de etapa',
+  kom: 'Montaña',
+  points: 'Puntos',
 }
 
 export function palmaresLabel(kind: string): string {

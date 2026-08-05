@@ -114,7 +114,10 @@ export function PublicRider() {
                 >
                   {r.puesto}
                 </span>
-                <Link to={`/races/${r.raceId}`} className="font-medium text-slate-700 hover:underline">
+                <Link
+                  to={r.isOneDay ? `/races/${r.raceId}` : `/races/${r.raceId}/stages/${r.stageDay}`}
+                  className="font-medium text-slate-700 hover:underline"
+                >
                   {r.raceName}
                 </Link>
                 {!r.isOneDay && <span className="text-xs text-slate-400">Stage {r.stageDay}</span>}
