@@ -34,6 +34,7 @@ import {
   getContract,
   getEnterableRaces,
   predictStartlist,
+  recomputeWorldRanking,
   ENROLL_LOCK_DAYS,
   ensureRaceRosterFrozen,
   getTeamCalendar,
@@ -637,6 +638,9 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
     app.get('/api/rankings', async () => {
       const world = await getCurrentWorld(db)
       if (!world) return { ranking: [] }
+      // TEMPORAL (quitar): fuerza el recálculo de puntos por si el del tick aún no llegó al mundo, para
+      // corregir en el acto el doble conteo viejo de las carreras de un día.
+      await recomputeWorldRanking(db, world.worldId)
       return { ranking: await getRanking(db, world.worldId) }
     })
 

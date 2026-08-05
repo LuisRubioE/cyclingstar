@@ -12,6 +12,7 @@ export {
   ENROLL_LOCK_DAYS,
   ensureRaceRosterFrozen,
   predictStartlist,
+  recomputeWorldRanking,
   runCalendarDay,
   selectFieldTeams,
   type RaceStartlist,
