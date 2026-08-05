@@ -152,6 +152,25 @@ export async function getRiderForUser(db: Database, userId: string): Promise<Pub
   }
 }
 
+export type HealthState = 'sano' | 'molestias' | 'enfermo' | 'lesionado'
+export interface RiderHealth {
+  state: HealthState
+  /** Día de juego hasta el que dura la baja (enfermo/lesionado); null si está sano. */
+  untilDay: number | null
+}
+
+/** Estado de salud del corredor (sano / molestias / enfermo / lesionado) y hasta cuándo dura la baja. */
+export async function getRiderHealth(db: Database, riderId: string): Promise<RiderHealth | null> {
+  const rows = await db
+    .select({ health: riders.health, healthUntilDay: riders.healthUntilDay })
+    .from(riders)
+    .where(eq(riders.id, riderId))
+    .limit(1)
+  const r = rows[0]
+  if (!r) return null
+  return { state: r.health as HealthState, untilDay: r.healthUntilDay }
+}
+
 export interface RiderSummary {
   teamId: string | null
   teamName: string | null

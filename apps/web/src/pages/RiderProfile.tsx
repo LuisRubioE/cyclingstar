@@ -194,6 +194,47 @@ export function RiderProfile() {
         title="Form & condition"
         action={formQuery.data?.form && <StarRating value={formQuery.data.form.stars} />}
       >
+        {formQuery.data?.health &&
+          (() => {
+            const h = formQuery.data.health
+            const gameDay = healthQuery.data?.gameDay
+            const daysLeft =
+              h.untilDay != null && gameDay != null ? Math.max(0, h.untilDay - gameDay + 1) : null
+            const meta: Record<string, { label: string; cls: string; note: string }> = {
+              sano: {
+                label: 'Healthy',
+                cls: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
+                note: 'Fit to race and train.',
+              },
+              molestias: {
+                label: 'Minor niggle',
+                cls: 'bg-amber-50 text-amber-700 ring-amber-200',
+                note: 'Can race, but at a slight disadvantage until it clears.',
+              },
+              enfermo: {
+                label: 'Ill',
+                cls: 'bg-orange-50 text-orange-700 ring-orange-200',
+                note: "Resting to recover — won't be called up until fit again.",
+              },
+              lesionado: {
+                label: 'Injured',
+                cls: 'bg-red-50 text-red-700 ring-red-200',
+                note: "Out with an injury — can't race until recovered.",
+              },
+            }
+            const m = meta[h.state] ?? meta.sano!
+            return (
+              <div className={`mb-3 rounded-lg px-3 py-2 text-sm ring-1 ${m.cls}`}>
+                <span className="font-semibold">{m.label}</span>
+                {daysLeft != null && daysLeft > 0 && (h.state === 'enfermo' || h.state === 'lesionado') && (
+                  <span className="ml-1 tabular-nums">
+                    — ~{daysLeft} day{daysLeft === 1 ? '' : 's'} to go
+                  </span>
+                )}
+                <span className="ml-2 opacity-80">{m.note}</span>
+              </div>
+            )
+          })()}
         {formQuery.data?.form && (
           <div>
             <div className="flex items-center justify-between text-xs text-slate-500">
