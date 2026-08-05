@@ -14,6 +14,13 @@ const DIVISION_LABEL: Record<string, string> = {
   CON: 'Continental',
 }
 
+/** Distintivo de salud junto al nombre en la plantilla; los sanos no llevan (sin ruido). */
+const HEALTH_BADGE: Record<string, { label: string; cls: string } | undefined> = {
+  molestias: { label: 'Niggle', cls: 'bg-amber-50 text-amber-700 ring-amber-200' },
+  enfermo: { label: 'Ill', cls: 'bg-orange-50 text-orange-700 ring-orange-200' },
+  lesionado: { label: 'Injured', cls: 'bg-red-50 text-red-700 ring-red-200' },
+}
+
 export function Team() {
   const { id = '' } = useParams()
   const queryClient = useQueryClient()
@@ -105,6 +112,13 @@ export function Team() {
                   {/* La bandera de cada corredor ya dice su nacionalidad; comparar con el país del
                       equipo hace obvio quién es extranjero, así que no hace falta etiqueta "abroad". */}
                   <RiderName riderId={r.id} name={r.name} isBot={r.isBot} />
+                  {HEALTH_BADGE[r.health] && (
+                    <span
+                      className={`ml-2 rounded px-1.5 py-0.5 text-xs ring-1 ${HEALTH_BADGE[r.health]!.cls}`}
+                    >
+                      {HEALTH_BADGE[r.health]!.label}
+                    </span>
+                  )}
                 </td>
                 <td className="py-1.5 text-slate-500">
                   {VOCATION_LABELS[r.archetype as Vocation] ?? r.archetype}

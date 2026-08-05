@@ -17,6 +17,8 @@ export interface TeamRider {
   isBot: boolean
   seasonPoints: number
   foreign: boolean
+  /** Estado de salud: 'sano' | 'molestias' | 'enfermo' | 'lesionado'. */
+  health: string
 }
 
 export interface TeamDetail {

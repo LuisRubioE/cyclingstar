@@ -5,6 +5,8 @@ export interface GcRow {
   teamName: string | null
   isBot: boolean
   tiempoTotalS: number
+  /** Abandonó la carrera (caída grave): se muestra como DNF al final de la general. */
+  dnf?: boolean
 }
 
 export interface StageWinner {

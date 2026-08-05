@@ -268,14 +268,20 @@ export function Race() {
                   <td className="w-6 py-1">
                     <Flag code={r.country} size={16} />
                   </td>
-                  <td className={`py-1 ${r.dnf ? 'text-slate-400 line-through' : 'text-slate-700'}`}>
+                  <td
+                    className={`py-1 ${r.dnf ? 'text-slate-400 line-through' : 'text-slate-700'}`}
+                  >
                     <RiderName riderId={r.riderId} name={r.name} isBot={r.isBot} />
                     {r.teamName && (
                       <span className="ml-2 text-xs text-slate-400">{r.teamName}</span>
                     )}
                   </td>
                   <td className="py-1 text-right tabular-nums text-slate-500">
-                    {r.dnf ? <span className="text-amber-500">DNF</span> : relTime(r.tiempoTotalS, leader, i === 0)}
+                    {r.dnf ? (
+                      <span className="text-amber-500">DNF</span>
+                    ) : (
+                      relTime(r.tiempoTotalS, leader, i === 0)
+                    )}
                   </td>
                 </tr>
               ))}

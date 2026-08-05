@@ -39,7 +39,10 @@ export async function getRaceGc(db: Database, raceId: string): Promise<GcRow[]> 
     )
     .where(eq(raceGc.raceId, raceId))
     // Los que abandonaron caen al final (no están clasificados); el resto por tiempo.
-    .orderBy(sql`case when ${raceRosters.abandonedDay} is null then 0 else 1 end`, asc(raceGc.tiempoTotalS))
+    .orderBy(
+      sql`case when ${raceRosters.abandonedDay} is null then 0 else 1 end`,
+      asc(raceGc.tiempoTotalS),
+    )
   return rows.map(({ userId, abandonedDay, ...r }) => ({
     ...r,
     isBot: userId === null,
