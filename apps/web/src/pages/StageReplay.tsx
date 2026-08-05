@@ -93,7 +93,6 @@ export function StageReplay() {
         <div className={card}>
           <div
             className="w-full overflow-x-auto"
-            // eslint-disable-next-line react/no-danger
             dangerouslySetInnerHTML={{ __html: data.altimetry }}
           />
         </div>
@@ -170,7 +169,9 @@ export function StageReplay() {
                     <RiderName riderId={r.riderId} name={r.name} isBot={r.isBot} />
                   </td>
                   <td className="py-1 text-right tabular-nums text-slate-500">
-                    {i === 0 ? formatTime(r.tiempoTotalS) : `+${formatTime(r.tiempoTotalS - leader)}`}
+                    {i === 0
+                      ? formatTime(r.tiempoTotalS)
+                      : `+${formatTime(r.tiempoTotalS - leader)}`}
                   </td>
                 </tr>
               ))}

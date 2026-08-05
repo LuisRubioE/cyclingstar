@@ -35,7 +35,8 @@ const TEMPLATES: Record<NewsKind, ((d: NewsData) => string)[]> = {
   tt_win: [
     (d) => `${d.rider} sets the fastest time to win stage ${d.stage} of the ${d.race}.`,
     (d) => `${d.rider} stops the clock quickest to take stage ${d.stage} of the ${d.race}.`,
-    (d) => `Best against the clock: ${d.rider} wins the stage ${d.stage} time trial at the ${d.race}.`,
+    (d) =>
+      `Best against the clock: ${d.rider} wins the stage ${d.stage} time trial at the ${d.race}.`,
   ],
   breakaway_win: [
     (d) => `${d.rider} survives from the break to win stage ${d.stage} of the ${d.race}.`,
@@ -55,8 +56,10 @@ const TEMPLATES: Record<NewsKind, ((d: NewsData) => string)[]> = {
   ],
   kom: [
     (d) => `${d.rider} is first over the summit and leads the mountains at the ${d.race}.`,
-    (d) => `${d.rider} attacks on the climb and grabs the KOM points on stage ${d.stage} of the ${d.race}.`,
-    (d) => `The polka-dot fight heats up as ${d.rider} tops the queen-stage climb at the ${d.race}.`,
+    (d) =>
+      `${d.rider} attacks on the climb and grabs the KOM points on stage ${d.stage} of the ${d.race}.`,
+    (d) =>
+      `The polka-dot fight heats up as ${d.rider} tops the queen-stage climb at the ${d.race}.`,
   ],
   gc_win: [
     (d) => `${d.rider} seals the overall win at the ${d.race}.`,
