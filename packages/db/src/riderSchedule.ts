@@ -19,12 +19,12 @@ export async function getRiderRaceDays(
   toDay: number,
 ): Promise<number[]> {
   const rosters = await db
-    .select({ raceId: raceRosters.raceId })
+    .select({ raceId: raceRosters.raceId, abandonedDay: raceRosters.abandonedDay })
     .from(raceRosters)
     .where(eq(raceRosters.riderId, riderId))
 
   const days = new Set<number>()
-  for (const { raceId } of rosters) {
+  for (const { raceId, abandonedDay } of rosters) {
     if (raceId === 'test-tour') {
       for (const stage of TEST_TOUR) {
         if (stage.day >= fromDay && stage.day <= toDay) days.add(stage.day)
@@ -40,6 +40,9 @@ export async function getRiderRaceDays(
     if (!race) continue
     for (let idx = 1; idx <= race.stages.length; idx++) {
       const gameDay = season * SEASON_DAYS + stageDayOfSeason(race, idx)
+      // Si el corredor ABANDONÓ, ya no toma la salida en las etapas posteriores: esos días SÍ entrena
+      // (se recupera). Solo cuentan como día de carrera las etapas hasta el día del abandono inclusive.
+      if (abandonedDay != null && gameDay > abandonedDay) continue
       if (gameDay >= fromDay && gameDay <= toDay) days.add(gameDay)
     }
   }
@@ -72,11 +75,11 @@ export async function getRiderUpcomingRaces(
   currentDay: number,
 ): Promise<RiderUpcomingRace[]> {
   const rosters = await db
-    .select({ raceId: raceRosters.raceId, bib: raceRosters.bib })
+    .select({ raceId: raceRosters.raceId, bib: raceRosters.bib, abandonedDay: raceRosters.abandonedDay })
     .from(raceRosters)
     .where(eq(raceRosters.riderId, riderId))
   const out: RiderUpcomingRace[] = []
-  for (const { raceId, bib } of rosters) {
+  for (const { raceId, bib, abandonedDay } of rosters) {
     const m = /^(.*):s(\d+)$/.exec(raceId)
     if (!m) continue // la vuelta de prueba (test-tour) no cuenta como carrera del calendario
     const baseId = m[1]!
@@ -86,6 +89,7 @@ export async function getRiderUpcomingRaces(
     const startGameDay = season * SEASON_DAYS + race.startDay
     const lastGameDay = season * SEASON_DAYS + raceLastDay(race)
     if (lastGameDay < currentDay) continue // ya terminó
+    if (abandonedDay != null && currentDay > abandonedDay) continue // abandonó: ya está fuera
     out.push({
       raceId: baseId,
       raceKey: raceId,
