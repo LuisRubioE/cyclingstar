@@ -1029,6 +1029,11 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
       return { badges: await getRiderBadges(db, request.params.id) }
     })
 
+    // Palmarés público de cualquier corredor (lo que ha ganado): para ver el detalle desde su ficha.
+    app.get<{ Params: { id: string } }>('/api/riders/:id/palmares', async (request) => {
+      return { palmares: await getPalmares(db, request.params.id) }
+    })
+
     app.get<{ Params: { id: string } }>('/api/riders/:id', async (request, reply) => {
       const world = await getCurrentWorld(db)
       const season = world ? Math.floor(world.currentDay / 364) : 0

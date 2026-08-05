@@ -2,6 +2,7 @@ import { COUNTRIES, VOCATION_LABELS, type Vocation, birthdayDayOfSeason } from '
 import { useQuery } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
 import { fetchPublicRider } from '../api/browse'
+import { fetchRiderPalmares, palmaresLabel } from '../api/rankings'
 import { AttributeList } from '../components/AttributeList'
 import { Badges } from '../components/Badges'
 import { Flag } from '../components/Flag'
@@ -11,6 +12,10 @@ export function PublicRider() {
   const { data, isPending, isError } = useQuery({
     queryKey: ['public-rider', id],
     queryFn: () => fetchPublicRider(id),
+  })
+  const palmaresQuery = useQuery({
+    queryKey: ['public-rider', id, 'palmares'],
+    queryFn: () => fetchRiderPalmares(id),
   })
   if (isPending) return <p className="text-slate-500">Loading…</p>
   if (isError) return <p className="text-red-600">Could not load the rider.</p>
@@ -85,6 +90,24 @@ export function PublicRider() {
           </div>
         ))}
       </dl>
+
+      {palmaresQuery.data && palmaresQuery.data.length > 0 && (
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-400">Palmarès</h2>
+          <ul className="mt-3 space-y-1.5">
+            {palmaresQuery.data.map((p, i) => (
+              <li key={i} className="flex items-center gap-3 text-sm">
+                <span className="w-20 shrink-0 text-slate-400">Season {p.season + 1}</span>
+                <span className="font-medium text-slate-700">{p.raceName}</span>
+                <span className="text-slate-500">
+                  {palmaresLabel(p.kind)}
+                  {p.detail && ` · ${p.detail}`}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-400">Attributes</h2>
