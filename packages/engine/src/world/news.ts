@@ -29,18 +29,19 @@ const TEMPLATES: Record<NewsKind, ((d: NewsData) => string)[]> = {
   stage_win: [
     (d) => `${d.rider} powers to victory on stage ${d.stage} of the ${d.race}.`,
     (d) => `Stage ${d.stage} goes to ${d.rider} after a commanding finish at the ${d.race}.`,
-    (d) => `${d.rider} times the sprint to perfection to win stage ${d.stage}.`,
+    (d) => `${d.rider} times the sprint to perfection to win stage ${d.stage} of the ${d.race}.`,
     (d) => `No answer for ${d.rider}, who takes stage ${d.stage} of the ${d.race}.`,
   ],
   tt_win: [
     (d) => `${d.rider} sets the fastest time to win stage ${d.stage} of the ${d.race}.`,
-    (d) => `${d.rider} stops the clock quickest to take stage ${d.stage}.`,
-    (d) => `Best against the clock: ${d.rider} wins the stage ${d.stage} time trial.`,
+    (d) => `${d.rider} stops the clock quickest to take stage ${d.stage} of the ${d.race}.`,
+    (d) => `Best against the clock: ${d.rider} wins the stage ${d.stage} time trial at the ${d.race}.`,
   ],
   breakaway_win: [
     (d) => `${d.rider} survives from the break to win stage ${d.stage} of the ${d.race}.`,
-    (d) => `The peloton misjudges it — ${d.rider} holds on from the break on stage ${d.stage}.`,
-    (d) => `A perfect raid: ${d.rider} wins stage ${d.stage} from the day's move.`,
+    (d) =>
+      `The peloton misjudges it — ${d.rider} holds on from the break on stage ${d.stage} of the ${d.race}.`,
+    (d) => `A perfect raid: ${d.rider} wins stage ${d.stage} of the ${d.race} from the day's move.`,
   ],
   one_day_win: [
     (d) => `${d.rider} wins the ${d.race}.`,
@@ -54,8 +55,8 @@ const TEMPLATES: Record<NewsKind, ((d: NewsData) => string)[]> = {
   ],
   kom: [
     (d) => `${d.rider} is first over the summit and leads the mountains at the ${d.race}.`,
-    (d) => `${d.rider} attacks on the climb and grabs the KOM points on stage ${d.stage}.`,
-    (d) => `The polka-dot fight heats up as ${d.rider} tops the queen-stage climb.`,
+    (d) => `${d.rider} attacks on the climb and grabs the KOM points on stage ${d.stage} of the ${d.race}.`,
+    (d) => `The polka-dot fight heats up as ${d.rider} tops the queen-stage climb at the ${d.race}.`,
   ],
   gc_win: [
     (d) => `${d.rider} seals the overall win at the ${d.race}.`,
