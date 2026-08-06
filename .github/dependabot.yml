@@ -1,0 +1,54 @@
+version: 2
+
+# Actualizaciones agrupadas para no generar ruido: un PR semanal por grupo en vez de uno
+# por dependencia. Las de parche y menores van todas juntas; las mayores van sueltas,
+# porque son las que hay que leer con calma.
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: Europe/Madrid
+    open-pull-requests-limit: 5
+    versioning-strategy: increase
+    commit-message:
+      prefix: 'deps'
+      prefix-development: 'deps-dev'
+    labels:
+      - dependencies
+    groups:
+      # Todo el utillaje de desarrollo junto: TypeScript, ESLint, Prettier, Vitest, Vite…
+      utillaje:
+        applies-to: version-updates
+        dependency-type: development
+        update-types:
+          - minor
+          - patch
+      # Dependencias de ejecución: parches y menores en un solo PR.
+      produccion:
+        applies-to: version-updates
+        dependency-type: production
+        update-types:
+          - minor
+          - patch
+      # Las de seguridad, también agrupadas para no abrir un PR por cada aviso.
+      seguridad:
+        applies-to: security-updates
+        patterns:
+          - '*'
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: 'ci'
+    labels:
+      - dependencies
+    groups:
+      acciones:
+        patterns:
+          - '*'
