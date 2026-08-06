@@ -22,6 +22,7 @@ import {
 } from '@cyclingstar/shared'
 import { and, asc, desc, eq, inArray, isNotNull, isNull, notInArray, or, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
+import { BATCH_ROWS, type BatchValue, inChunks, valuesList } from './batch.js'
 import { creditRider } from './economy.js'
 import { LOCK_CLASS, hashInt, raceLockKey } from './locks.js'
 import {
@@ -830,18 +831,29 @@ async function assignBibs(tx: Tx, race: CalendarRace, season: number): Promise<v
     .where(eq(raceRosters.raceId, raceKey))
   if (rows.length === 0) return
 
-  const setBib = async (riderId: string, bib: number) => {
-    await tx
-      .update(raceRosters)
-      .set({ bib })
-      .where(and(eq(raceRosters.raceId, raceKey), eq(raceRosters.riderId, riderId)))
+  // Los dorsales se acumulan y se escriben de una vez al final (hasta 176 en una gran vuelta: un
+  // UPDATE por dorsal eran 176 idas y vueltas dentro de la transacción del día).
+  const bibs: BatchValue[][] = []
+  const setBib = (riderId: string, bib: number): void => {
+    bibs.push([riderId, bib])
+  }
+  const flushBibs = async (): Promise<void> => {
+    await inChunks(bibs, BATCH_ROWS, async (chunk) => {
+      const v = valuesList(chunk, ['uuid', 'integer'])
+      await tx.execute(
+        sql`update ${raceRosters} set bib = v.bib
+            from ${v} as v(rider_id, bib)
+            where ${raceRosters.raceId} = ${raceKey} and ${raceRosters.riderId} = v.rider_id`,
+      )
+    })
   }
 
   // Campeonato nacional: sin equipos, se numera por fama (el mejor, o el campeón defensor, el 1).
   if (race.championshipCountry) {
     const ordered = [...rows].sort((a, b) => b.fame - a.fame)
     let n = 1
-    for (const r of ordered) await setBib(r.riderId, n++)
+    for (const r of ordered) setBib(r.riderId, n++)
+    await flushBibs()
     return
   }
 
@@ -919,15 +931,16 @@ async function assignBibs(tx: Tx, race: CalendarRace, season: number): Promise<v
       if (idx > 0) members.unshift(members.splice(idx, 1)[0]!)
     }
     const base = decade * 10
-    for (let i = 0; i < members.length; i++) await setBib(members[i]!.riderId, base + i + 1)
+    for (let i = 0; i < members.length; i++) setBib(members[i]!.riderId, base + i + 1)
     decade++
   }
 
   // Agentes libres: decenas siguientes, 9 por decena.
   freeAgents.sort((a, b) => b.fame - a.fame)
   for (let k = 0; k < freeAgents.length; k++) {
-    await setBib(freeAgents[k]!.riderId, (decade + Math.floor(k / 9)) * 10 + (k % 9) + 1)
+    setBib(freeAgents[k]!.riderId, (decade + Math.floor(k / 9)) * 10 + (k % 9) + 1)
   }
+  await flushBibs()
 }
 
 /** Corredores ya comprometidos con otra carrera cuya ventana se solapa con la de `race` (misma temporada). */
