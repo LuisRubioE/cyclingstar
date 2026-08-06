@@ -371,7 +371,11 @@ export function RiderProfile() {
                   {r.puesto}
                 </span>
                 <Link
-                  to={r.isOneDay ? `/world/races/${r.raceId}` : `/world/races/${r.raceId}/stages/${r.stageDay}`}
+                  to={
+                    r.isOneDay
+                      ? `/world/races/${r.raceId}`
+                      : `/world/races/${r.raceId}/stages/${r.stageDay}`
+                  }
                   className="font-medium text-slate-700 hover:underline"
                 >
                   {r.raceName}

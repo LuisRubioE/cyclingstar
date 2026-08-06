@@ -65,7 +65,10 @@ function Headline({ item }: { item: NewsItem }) {
       <p className="min-w-0 flex-1 text-sm leading-relaxed text-slate-700">
         {item.country && <Flag code={item.country} size={13} className="mr-1.5" />}
         {item.riderId ? (
-          <Link to={`/world/riders/${item.riderId}`} className="hover:text-brand-cyan hover:underline">
+          <Link
+            to={`/world/riders/${item.riderId}`}
+            className="hover:text-brand-cyan hover:underline"
+          >
             {item.text}
           </Link>
         ) : (

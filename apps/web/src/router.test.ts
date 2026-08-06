@@ -27,10 +27,9 @@ describe('react-router', () => {
   })
 
   it('trae la versión con el CSRF de modo RSC ya parcheado', async () => {
-    const pkg: { name: string; version: string } = await import(
-      'react-router-dom/package.json',
-      { with: { type: 'json' } }
-    ).then((m: { default: { name: string; version: string } }) => m.default)
+    const pkg: { name: string; version: string } = await import('react-router-dom/package.json', {
+      with: { type: 'json' },
+    }).then((m: { default: { name: string; version: string } }) => m.default)
     expect(pkg.name).toBe('react-router')
     const [major, minor] = pkg.version.split('.').map(Number)
     expect((major ?? 0) > 8 || ((major ?? 0) === 8 && (minor ?? 0) >= 3)).toBe(true)

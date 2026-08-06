@@ -346,7 +346,9 @@ function ResultsTab({ riderId }: { riderId: string | null }) {
                 <th scope="row" className="px-3 py-2 text-left font-normal">
                   <Link
                     to={
-                      r.isOneDay ? `/world/races/${r.raceId}` : `/world/races/${r.raceId}/stages/${r.stageDay}`
+                      r.isOneDay
+                        ? `/world/races/${r.raceId}`
+                        : `/world/races/${r.raceId}/stages/${r.stageDay}`
                     }
                     className="font-medium text-slate-800 hover:text-brand-cyan hover:underline"
                   >
