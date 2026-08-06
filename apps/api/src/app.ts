@@ -105,7 +105,13 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
     global: true,
     ...GLOBAL_RATE_LIMIT,
     // trustProxy ya está activo: la clave es la IP real del cliente, no la del proxy de Railway.
-    errorResponseBuilder: () => apiError('demasiadas_peticiones'),
+    // El plugin LANZA lo que devuelva este constructor, así que hay que devolver un Error con
+    // statusCode; el manejador de errores lo traduce al formato uniforme `{ ok, error }`.
+    errorResponseBuilder: (_request, context) => {
+      const err = new Error('demasiadas_peticiones') as Error & { statusCode: number }
+      err.statusCode = context.statusCode
+      return err
+    },
   })
 
   // Guarda de admin (ADMIN_TOKEN en x-admin-token), en tiempo constante. Único punto de control.

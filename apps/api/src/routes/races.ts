@@ -176,8 +176,10 @@ export const raceRoutes: RoutePlugin = async (app, ctx) => {
     const raceKey = request.query.raceKey ?? ''
     const parsedKey = parseRaceKey(raceKey)
     const race = parsedKey ? SEASON_CALENDAR.find((r) => r.id === parsedKey.raceId) : null
+    // La clave se valida ANTES de consultar la base: una raceKey basura es un 404, no un 500.
+    if (!race) return notFound(reply)
     const rider = await getRiderForUser(db, userId)
-    if (!rider || !race) return notFound(reply)
+    if (!rider) return notFound(reply)
     if (!(await isOnRoster(db, raceKey, rider.id))) {
       return sendError(reply, 403, 'no_convocado')
     }
@@ -202,8 +204,9 @@ export const raceRoutes: RoutePlugin = async (app, ctx) => {
     if (!parsed.success) return badRequest(reply)
     const parsedKey = parseRaceKey(parsed.data.raceKey)
     const race = parsedKey ? SEASON_CALENDAR.find((r) => r.id === parsedKey.raceId) : null
+    if (!race) return notFound(reply)
     const rider = await getRiderForUser(db, userId)
-    if (!rider || !race) return notFound(reply)
+    if (!rider) return notFound(reply)
     if (!(await isOnRoster(db, parsed.data.raceKey, rider.id))) {
       return sendError(reply, 403, 'no_convocado')
     }
@@ -221,13 +224,14 @@ export const raceRoutes: RoutePlugin = async (app, ctx) => {
       const raceId = parseRaceId(request.params.raceId)
       const day = parseStageDay(request.params.day)
       if (!raceId || day === null) return notFound(reply)
-      const world = await getCurrentWorld(db)
-      if (!world) return notFound(reply)
-      const season = currentSeason(world.currentDay)
+      // La carrera y la etapa se resuelven contra el calendario (dato del motor) ANTES de tocar la
+      // base: un raceId o un día inexistentes son un 404, no un 500 por consulta con basura.
       const race = SEASON_CALENDAR.find((r) => r.id === raceId)
       const stage = race?.stages[day - 1]
       if (!race || !stage) return notFound(reply)
-      const raceKey = `${race.id}:s${season}`
+      const world = await getCurrentWorld(db)
+      if (!world) return notFound(reply)
+      const raceKey = `${race.id}:s${currentSeason(world.currentDay)}`
       const km = stageKm(stage.profile.segments)
       const snapshot = await getStageSnapshot(db, raceKey, day)
       if (!snapshot) {
