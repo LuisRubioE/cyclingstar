@@ -297,6 +297,12 @@ cambiar de pestaña, y debajo:
   motor — ver `docs/motor.md` §16 y la vista de espectador de su Parte IV).
 - **Result completo**, con truncado y "mostrar todos", igual que en la carrera.
 
+**Carreras de un día: una sola clasificación.** La etapa ES el resultado, así que la general es una
+copia exacta de `Result` y enseñar las dos solo confunde (en producción se vieron dos tablas que ni
+siquiera coincidían). En la ficha de etapa de una carrera de un día no hay sub-pestaña `General`, y
+si tampoco hay puntos ni montaña que enseñar desaparece la pestaña `Classifications` entera. En la
+ficha de carrera se conserva una única tabla, ya rotulada **Result** en vez de "General".
+
 ### 7.3 Regla común de tablas
 
 Una sola convención en todo el juego: **top 20 visible + "Show all"**. Ni truncar sin salida ni
