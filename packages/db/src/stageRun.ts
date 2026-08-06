@@ -2,6 +2,7 @@ import {
   type AutoOrderRider,
   type RaceClass,
   type RaceLevel,
+  ENGINE_VERSION,
   type StageInput,
   type StageOrders,
   type StageRider,
@@ -46,7 +47,12 @@ import {
 type Db = ReturnType<typeof drizzle>
 type Tx = Parameters<Parameters<Db['transaction']>[0]>[0]
 
-const ENGINE_VERSION_NUM = 1
+/**
+ * La versión del motor entra en `stageSeed()` y se sella en `stage_runs`: DEBE venir del propio
+ * motor. Estuvo cableada a 1, así que subir `ENGINE_VERSION` no cambiaba ninguna semilla real ni
+ * sellaba los replays (un cambio de comportamiento reproducía las etapas viejas con la física nueva).
+ */
+const ENGINE_VERSION_NUM = ENGINE_VERSION
 const RACE_XP_BASE = 0.5
 /** El maillot de líder da alas: el líder de la general rinde ~4% por encima de su nivel efectivo. */
 const LEADER_JERSEY_BOOST = 1.04

@@ -1,4 +1,5 @@
 import type { TickSummary } from '@cyclingstar/db'
+import { ENGINE_VERSION } from '@cyclingstar/engine'
 import { afterAll, describe, expect, it } from 'vitest'
 import type { AppDeps } from './app.js'
 import { buildApp } from './app.js'
@@ -45,7 +46,7 @@ describe('api: /health', () => {
     expect(res.statusCode).toBe(200)
     expect(res.json()).toEqual({
       ok: true,
-      engineVersion: 1,
+      engineVersion: ENGINE_VERSION,
       gameDay: null,
       migrationsApplied: true,
       tickIntervalMinutes: 360,
