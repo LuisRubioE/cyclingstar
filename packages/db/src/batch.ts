@@ -36,11 +36,14 @@ export async function inChunks<T>(
  * como parámetros pelados. `types` debe tener un tipo por columna.
  */
 export function valuesList(rows: readonly BatchValue[][], types: readonly string[]): SQL {
-  const rowSql = rows.map((row, i) =>
-    sql`(${sql.join(
-      row.map((cell, j) => (i === 0 ? sql`${cell}::${sql.raw(types[j] ?? 'text')}` : sql`${cell}`)),
-      sql`, `,
-    )})`,
+  const rowSql = rows.map(
+    (row, i) =>
+      sql`(${sql.join(
+        row.map((cell, j) =>
+          i === 0 ? sql`${cell}::${sql.raw(types[j] ?? 'text')}` : sql`${cell}`,
+        ),
+        sql`, `,
+      )})`,
   )
   return sql`(values ${sql.join(rowSql, sql`, `)})`
 }

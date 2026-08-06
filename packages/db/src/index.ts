@@ -14,11 +14,7 @@ export {
   type RunTickOptions,
   type TickSummary,
 } from './tick.js'
-export {
-  WORLD_REPAIR_VERSION,
-  markWorldRepaired,
-  worldNeedsRepair,
-} from './worldRepair.js'
+export { WORLD_REPAIR_VERSION, markWorldRepaired, worldNeedsRepair } from './worldRepair.js'
 export { raceWorldDay } from './race.js'
 export {
   ENROLL_LOCK_DAYS,

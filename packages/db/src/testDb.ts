@@ -2,6 +2,7 @@ import { createServer } from 'node:net'
 import { PGlite } from '@electric-sql/pglite'
 import { citext } from '@electric-sql/pglite/contrib/citext'
 import { PGLiteSocketServer } from '@electric-sql/pglite-socket'
+import postgres from 'postgres'
 import { type Database, type DbClient, createDb } from './client.js'
 import { runMigrations } from './migrate.js'
 
@@ -101,4 +102,23 @@ export async function startTestDb(): Promise<TestDb> {
 export function realTestDatabaseUrl(): string | undefined {
   const url = process.env.TEST_DATABASE_URL
   return url && url.length > 0 ? url : undefined
+}
+
+/**
+ * Prepara un Postgres REAL (el de `TEST_DATABASE_URL`) para un test: VACÍA el esquema y vuelve a
+ * aplicar las migraciones desde cero. Solo para bases de prueba; borra todo lo que haya.
+ *
+ * A diferencia de PGlite, aquí sí se pueden abrir varias conexiones a la vez, que es lo que hace
+ * falta para probar la contención de advisory locks (el doble cobro tick↔web).
+ */
+export async function resetRealTestDb(url: string): Promise<void> {
+  const admin = postgres(url, { max: 1 })
+  try {
+    await admin.unsafe('drop schema if exists drizzle cascade')
+    await admin.unsafe('drop schema if exists public cascade')
+    await admin.unsafe('create schema public')
+  } finally {
+    await admin.end({ timeout: 5 })
+  }
+  await runMigrations(url)
 }

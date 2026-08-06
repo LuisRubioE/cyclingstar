@@ -65,11 +65,13 @@ async function seedMiniWorld(t: TestDb): Promise<{ worldId: string; riderIds: st
 
   // Atributos visibles distintos por corredor (para que la carrera tenga jerarquía) y techos altos,
   // de modo que la etapa deje margen de subida y se escriban filas en rider_attrs / rider_attr_log.
-  await t.db.insert(riderAttrs).values(
-    riderIds.flatMap((id, i) =>
-      ATTRIBUTES.map((attr) => ({ riderId: id, attr, value: 50 + (i % 20) })),
-    ),
-  )
+  await t.db
+    .insert(riderAttrs)
+    .values(
+      riderIds.flatMap((id, i) =>
+        ATTRIBUTES.map((attr) => ({ riderId: id, attr, value: 50 + (i % 20) })),
+      ),
+    )
   await t.db.insert(riderHidden).values(
     riderIds.map((id) => ({
       riderId: id,
