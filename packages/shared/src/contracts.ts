@@ -681,10 +681,14 @@ export const stageOrderSchema = z.object({
 })
 export type StageOrder = z.infer<typeof stageOrderSchema>
 
+/** Tipos de etapa del motor (StageKind). La web declaraba solo cuatro y se dejaba fuera 'clasica'. */
+export const stageKindSchema = z.enum(['llana', 'media', 'reina', 'cri', 'clasica'])
+export type StageKind = z.infer<typeof stageKindSchema>
+
 export const raceStageSchema = z.object({
   day: z.number().int(),
   name: z.string(),
-  kind: z.enum(['llana', 'media', 'reina', 'cri']),
+  kind: stageKindSchema,
   timeTrial: z.boolean(),
   km: z.number(),
   altimetry: z.string(),
