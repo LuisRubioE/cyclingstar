@@ -2,6 +2,10 @@
  * Invariantes de balance de la etapa llana (SPEC 6.17), que corren en CI. Todo es determinista
  * (semillas fijas, sin reloj ni Math.random), así que los rangos se validan de forma reproducible
  * bit a bit. La campaña completa de calibración se lanza con `pnpm sim`.
+ *
+ * Los rangos salen de `sim/targets.ts`, la MISMA fuente que usa `pnpm sim`: antes estaban
+ * duplicados aquí con valores más laxos, y por eso CI pasaba en verde mientras el simulador
+ * fallaba (docs/motor.md §3-bis-h).
  */
 import { describe, expect, it } from 'vitest'
 import type { Attribute } from '@cyclingstar/shared'
@@ -10,10 +14,23 @@ import { accLimit, blockSeconds } from '../stage/physics.js'
 import { simulateStage } from '../stage/simulate.js'
 import { stageSeed } from '../stage/rng.js'
 import type { Block, StageRider } from '../stage/types.js'
-import { analyzeFlat, analyzeMountain, analyzeTimeTrial } from './analyze.js'
-import { campaignSeeds, flatScenario, queenScenario, timeTrialScenario } from './scenarios.js'
+import { analyzeErosion, analyzeFlat, analyzeMountain, analyzeTimeTrial } from './analyze.js'
+import {
+  campaignSeeds,
+  flatScenario,
+  queenScenario,
+  queenThirdWeekScenario,
+  timeTrialScenario,
+} from './scenarios.js'
+import { TARGETS, type Target } from './targets.js'
 
 const flat: Block = { tipo: 'llano', g: 0, estrellas: 0 }
+
+/** Comprueba un estadístico contra su rango objetivo compartido. */
+function expectInRange(value: number, target: Target): void {
+  expect(value).toBeGreaterThanOrEqual(target.min)
+  expect(value).toBeLessThanOrEqual(target.max)
+}
 
 describe('invariantes de llano (6.17)', () => {
   const scenario = flatScenario()
@@ -21,20 +38,17 @@ describe('invariantes de llano (6.17)', () => {
 
   // Con las "piernas del día" (dayFormSd) la fuga aguanta algo más a menudo: el juego de la fuga
   // pesa más y no siempre manda el pelotón. Aun así sigue siendo minoría en llano.
-  it('la fuga gana entre el 2% y el 12% de las etapas', () => {
-    expect(stats.breakawayWinPct).toBeGreaterThanOrEqual(2)
-    expect(stats.breakawayWinPct).toBeLessThanOrEqual(12)
+  it('la fuga gana el porcentaje objetivo de las etapas', () => {
+    expectInRange(stats.breakawayWinPct, TARGETS.flat.breakawayWinPct)
   })
 
-  it('el mejor sprinter gana entre el 30% y el 45% con 3 sprinters de nivel', () => {
-    expect(stats.bestSprinterWinPct).toBeGreaterThanOrEqual(30)
-    expect(stats.bestSprinterWinPct).toBeLessThanOrEqual(45)
+  it('el mejor sprinter gana el porcentaje objetivo con 3 sprinters de nivel', () => {
+    expectInRange(stats.bestSprinterWinPct, TARGETS.flat.bestSprinterWinPct)
   })
 
-  it('cuando los sprinters cazan, la captura mediana cae entre el km 25 y el km 8 a meta', () => {
+  it('cuando los sprinters cazan, la captura mediana cae en el rango objetivo', () => {
     expect(stats.capturePct).toBeGreaterThan(85)
-    expect(stats.medianCatchKmToFinish).toBeGreaterThanOrEqual(8)
-    expect(stats.medianCatchKmToFinish).toBeLessThanOrEqual(25)
+    expectInRange(stats.medianCatchKmToFinish, TARGETS.flat.catchKmToFinish)
   })
 })
 
@@ -42,14 +56,12 @@ describe('invariantes de montaña (6.17)', () => {
   const scenario = queenScenario()
   const stats = analyzeMountain(scenario, campaignSeeds(scenario.name, 120))
 
-  it('la fuga gana entre el 25% y el 55% de las etapas de montaña', () => {
-    expect(stats.breakawayWinPct).toBeGreaterThanOrEqual(25)
-    expect(stats.breakawayWinPct).toBeLessThanOrEqual(55)
+  it('la fuga gana el porcentaje objetivo de las etapas de montaña', () => {
+    expectInRange(stats.breakawayWinPct, TARGETS.mountain.breakawayWinPct)
   })
 
-  it('una etapa reina produce brechas de 1 a 4 minutos entre el 1º y el 10º del día', () => {
-    expect(stats.medianTop10GapSeconds).toBeGreaterThanOrEqual(60)
-    expect(stats.medianTop10GapSeconds).toBeLessThanOrEqual(240)
+  it('una etapa reina produce la brecha objetivo entre el primero y el décimo del día', () => {
+    expectInRange(stats.medianTop10GapSeconds, TARGETS.mountain.top10GapSeconds)
   })
 })
 
@@ -58,12 +70,91 @@ describe('contrarreloj (6.17)', () => {
   const stats = analyzeTimeTrial(scenario, campaignSeeds(scenario.name, 120))
 
   it('la brecha p90-p10 de una CRI de 40 km mide entre 2 y 4 minutos', () => {
-    expect(stats.medianP90MinusP10Seconds).toBeGreaterThanOrEqual(120)
-    expect(stats.medianP90MinusP10Seconds).toBeLessThanOrEqual(240)
+    expectInRange(stats.medianP90MinusP10Seconds, TARGETS.timeTrial.p90MinusP10Seconds)
   })
 
-  it('la gana un especialista de crono', () => {
-    expect(stats.specialistWinPct).toBeGreaterThan(90)
+  it('la gana un especialista', () => {
+    expectInRange(stats.specialistWinPct, TARGETS.timeTrial.specialistWinPct)
+  })
+})
+
+describe('desgaste (docs/motor.md §VI.1)', () => {
+  // La perilla raíz del Cambio 0: la erosión valía 0.000 en TODAS las etapas, así que RES, la
+  // durabilidad y el tanque no cambiaban nada y el ganador se decidía con los atributos del km 0.
+  // Estos rangos son la tabla de objetivos de §VI.1 y evitan que el desgaste vuelva a apagarse.
+  const flatScen = flatScenario()
+  const queen = queenScenario()
+  const tired = queenThirdWeekScenario()
+
+  it('una llana rodada en pelotón no erosiona al corredor fresco', { timeout: 30000 }, () => {
+    const stats = analyzeErosion(flatScen, campaignSeeds(flatScen.name, 60))
+    expectInRange(stats.medianErosion, TARGETS.erosion.flatFresh)
+  })
+
+  it('una etapa reina en fresco sí erosiona', { timeout: 30000 }, () => {
+    const stats = analyzeErosion(queen, campaignSeeds(queen.name, 60))
+    expectInRange(stats.medianErosion, TARGETS.erosion.queenFresh)
+  })
+
+  it('la misma etapa reina en la tercera semana erosiona mucho más', { timeout: 30000 }, () => {
+    const stats = analyzeErosion(tired, campaignSeeds(tired.name, 60))
+    expectInRange(stats.medianErosion, TARGETS.erosion.queenThirdWeek)
+  })
+
+  it('el que releva todo el día se desgasta más que el que va a rueda', { timeout: 30000 }, () => {
+    // El turno de relevo lo reparte el ROL (`STAGE.relayDutyByRole`), no la posición en el array
+    // (eso era el bug de la v1). Se compara el caso que describe docs/motor.md §VI.1: el GREGARIO
+    // que tira todo el día (deber 1.0) contra el SPRINTER que se guarda para la meta (0.2).
+    //
+    // Campo a medida en vez del escenario canónico: `llana-180` no tiene gregarios, solo rodadores
+    // `libre` (deber 0.6), y como el turno rota por frescura el trabajo se reparte entre los 31 y la
+    // diferencia se diluye hasta ser irrelevante (~1.07). Aquí se mide la mecánica, no el escenario.
+    const eff = (base: number): Record<Attribute, number> => ({
+      RES: base,
+      REC: base,
+      LLA: base,
+      MON: base,
+      COL: base,
+      CRI: base,
+      SPR: base,
+      DES: base,
+      PAV: base,
+      TAC: base,
+    })
+    const make = (id: string, role: 'gregario' | 'sprinter'): StageRider => ({
+      riderId: id,
+      eff0: eff(65),
+      energy: 100,
+      matches: 3,
+      tsb: 0,
+      orders: {
+        role,
+        mentality: 'reservon',
+        contestSprints: false,
+        contestClimbs: false,
+      },
+      gcDeficitSeconds: 0,
+    })
+    const riders: StageRider[] = []
+    for (let i = 0; i < 10; i++) riders.push(make(`greg-${i}`, 'gregario'))
+    for (let i = 0; i < 10; i++) riders.push(make(`spr-${i}`, 'sprinter'))
+    const input = { profile: { segments: [{ km: 180, tipo: 'llano' as const }] }, riders }
+
+    let relayWork = 0
+    let shelteredWork = 0
+    for (const seed of campaignSeeds('relevos-180', 20)) {
+      const out = simulateStage(input, seed)
+      for (const r of riders) {
+        const w = out.workUnits.get(r.riderId) ?? 0
+        if (r.orders.role === 'gregario') relayWork += w
+        else shelteredWork += w
+      }
+    }
+    // Umbral 1.10, no 1.15: el turno ROTA por frescura, así que ni el gregario más entregado releva
+    // el 100% del tiempo (con 10 gregarios y ~5 huecos de turno, cada uno tira la mitad del día). El
+    // techo estructural de este escenario extremo es ~1.14. El 1.15 original se fijó midiendo la
+    // lógica vieja, donde el primer cuarto del array relevaba SIEMPRE y sin rotar.
+    expect(relayWork / shelteredWork).toBeGreaterThan(1.1)
   })
 })
 

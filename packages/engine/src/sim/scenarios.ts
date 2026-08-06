@@ -4,8 +4,17 @@
  * fuga, cooperación, ruido del sprint), no por los atributos.
  */
 import type { Attribute } from '@cyclingstar/shared'
+import { initialEnergy } from '../banister.js'
 import { stageSeed } from '../stage/rng.js'
 import type { StageInput, StageOrders, StageRider } from '../stage/types.js'
+
+/**
+ * Estado del pelotón en la TERCERA SEMANA de una gran vuelta, para el escenario fatigado. No son
+ * constantes de juego sino el punto de medida del objetivo de erosión de docs/motor.md §VI.1: un
+ * corredor con mucho fondo acumulado (CTL alto por 14 días de carrera) y hundido de frescura.
+ */
+const THIRD_WEEK_CTL = 100
+const THIRD_WEEK_TSB = -55
 
 function eff(
   base: number,
@@ -130,6 +139,25 @@ export function queenScenario(): Scenario {
       riders,
     },
     bestSprinterId: 'gc-3',
+  }
+}
+
+/**
+ * La MISMA etapa reina, corrida por el mismo campo en la tercera semana de una gran vuelta: el
+ * depósito de cada corredor sale de `initialEnergy` con un TSB hundido, en vez de los 100 planos.
+ * Es el escenario que verifica el objetivo alto de la tabla de erosión (docs/motor.md §VI.1) y la
+ * razón de ser del Cambio 0: la fatiga acumulada tiene que llegar al depósito.
+ */
+export function queenThirdWeekScenario(): Scenario {
+  const base = queenScenario()
+  const energy = initialEnergy(THIRD_WEEK_CTL, THIRD_WEEK_TSB, 'sano')
+  return {
+    ...base,
+    name: 'reina-150-s3',
+    input: {
+      ...base.input,
+      riders: base.input.riders.map((r) => ({ ...r, energy, tsb: THIRD_WEEK_TSB })),
+    },
   }
 }
 
