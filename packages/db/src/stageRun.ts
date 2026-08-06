@@ -20,10 +20,11 @@ import {
   stageTss,
 } from '@cyclingstar/engine'
 import { ATTRIBUTES, type Attribute } from '@cyclingstar/shared'
-import { and, asc, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
+import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import { BATCH_ROWS, type BatchValue, inChunks, valuesList } from './batch.js'
 import { awardRacePrizes } from './economy.js'
+import { gcOrderBy } from './gcSort.js'
 import { emitNews } from './news.js'
 import { addSeasonPointsBatch, recordPalmares } from './ranking.js'
 import {
@@ -85,6 +86,15 @@ export interface StageRunSpec {
   isFinal: boolean
 }
 
+/**
+ * Una carrera de UN DÍA: su única etapa es también la final. La etapa ES el resultado, no hay general
+ * separada que construir, y de ahí cuelgan sus reglas —sin bonificaciones de tiempo, un solo titular y
+ * una sola entrada de palmarés—. Vive aquí para que la condición no se repita con matices distintos.
+ */
+function isOneDayRace(spec: StageRunSpec): boolean {
+  return spec.isFinal && spec.stageDay === 1
+}
+
 /** Corre una etapa de una carrera cualquiera desde su roster. Devuelve los corredores que corrieron. */
 export async function runOneStage(
   tx: Tx,
@@ -107,6 +117,12 @@ export async function runOneStage(
     )
   const riderIds = roster.map((r) => r.riderId)
   if (riderIds.length === 0) return new Set()
+
+  // Una carrera de UN DÍA no tiene general que construir, así que NO lleva bonificaciones de tiempo
+  // (como en el ciclismo real). El motor las reparte siempre —es puro y no sabe de calendarios—, así
+  // que se anulan aquí, tanto en lo que se guarda en `stage_results` como en el tiempo neto que
+  // alimenta la general. Sin esto el ganador aparecía con 10 s menos que su propio tiempo de meta.
+  const isOneDay = isOneDayRace(spec)
 
   const gcRows = await tx.select().from(raceGc).where(eq(raceGc.raceId, spec.raceKey))
   const gcTime = new Map(gcRows.map((r) => [r.riderId, r.tiempoTotalS]))
@@ -301,18 +317,19 @@ export async function runOneStage(
 
   for (const result of output.results) {
     raced.add(result.riderId)
+    const bonificacionS = isOneDay ? 0 : result.bonificacionS
     resultValues.push({
       raceId: spec.raceKey,
       stageDay: spec.stageDay,
       riderId: result.riderId,
       puesto: result.puesto,
       tiempoS: result.tiempoS,
-      bonificacionS: result.bonificacionS,
+      bonificacionS,
       puntosVolante: result.puntosVolante,
       puntosMontana: result.puntosMontana,
     })
 
-    const netTime = Math.max(0, result.tiempoS - result.bonificacionS)
+    const netTime = Math.max(0, result.tiempoS - bonificacionS)
     const prev = gcByRider.get(result.riderId)
     gcValues.push({
       raceId: spec.raceKey,
@@ -320,6 +337,10 @@ export async function runOneStage(
       tiempoTotalS: (prev?.tiempoTotalS ?? 0) + netTime,
       puntosVolante: (prev?.puntosVolante ?? 0) + result.puntosVolante,
       puntosMontana: (prev?.puntosMontana ?? 0) + result.puntosMontana,
+      // Desempate de la general: se acumula igual que el tiempo (suma de puestos) y se guarda el
+      // puesto de ESTA etapa, que es la última disputada mientras no corra otra.
+      sumaPuestos: (prev?.sumaPuestos ?? 0) + result.puesto,
+      ultimoPuesto: result.puesto,
     })
 
     const state = riderState.get(result.riderId)
@@ -366,6 +387,8 @@ export async function runOneStage(
           tiempoTotalS: sql`excluded.tiempo_total_s`,
           puntosVolante: sql`excluded.puntos_volante`,
           puntosMontana: sql`excluded.puntos_montana`,
+          sumaPuestos: sql`excluded.suma_puestos`,
+          ultimoPuesto: sql`excluded.ultimo_puesto`,
         },
       }),
   )
@@ -393,7 +416,7 @@ export async function runOneStage(
 
   // Consecuencias de las caídas (SPEC 6.14): una caída con baja deja al corredor LESIONADO varios días
   // (rinde peor y puede perderse próximas carreras); las más graves obligan a ABANDONAR la vuelta.
-  await applyIncidents(tx, worldId, gameDay, spec.raceKey, output.incidents, riderById)
+  await applyIncidents(tx, worldId, gameDay, spec.raceKey, output.incidents, riderById, isOneDay)
 
   await awardOutcome(tx, worldId, gameDay, spec, output)
   return raced
@@ -416,6 +439,7 @@ async function applyIncidents<
   raceKey: string,
   incidents: Awaited<ReturnType<typeof simulateStage>>['incidents'],
   riderById: Map<string, R>,
+  isOneDay: boolean,
 ): Promise<void> {
   if (incidents.length === 0) return
   // Peor incidencia por corredor (la de más días de baja manda).
@@ -437,7 +461,11 @@ async function applyIncidents<
       .set({ health: 'lesionado', healthUntilDay: Math.max(currentUntil, until) })
       .where(eq(riders.id, riderId))
 
-    const abandons = inc.severidad === 'major' || inc.diasBaja >= ABANDON_DAYS_THRESHOLD
+    // Abandonar la carrera solo tiene sentido si QUEDAN etapas por correr: en una prueba de un día
+    // el corredor ya ha llegado a meta y tiene su puesto en el resultado. Marcarlo lo pintaba como
+    // DNF en la clasificación (y lo mandaba al final), contradiciendo al resultado de la misma carrera.
+    const abandons =
+      !isOneDay && (inc.severidad === 'major' || inc.diasBaja >= ABANDON_DAYS_THRESHOLD)
     if (abandons) {
       await tx
         .update(raceRosters)
@@ -471,12 +499,15 @@ async function awardOutcome(
   const stageWinner = output.results.find((r) => r.puesto === 1)
   if (!stageWinner) return
 
+  // Orden de la general con desempate real (ver `gcSort.ts`). Es el que reparte premios y puntos UCI,
+  // así que tiene que ser total y determinista: antes, con todo el pelotón empatado a tiempo, los
+  // puntos se repartían por el orden arbitrario que devolviera Postgres.
   const gcOrder = (
     await tx
       .select({ riderId: raceGc.riderId })
       .from(raceGc)
       .where(eq(raceGc.raceId, spec.raceKey))
-      .orderBy(asc(raceGc.tiempoTotalS))
+      .orderBy(...gcOrderBy())
   ).map((r) => r.riderId)
 
   await awardRacePrizes(
@@ -508,7 +539,7 @@ async function awardOutcome(
   // En una carrera de UN DÍA (etapa única = final) la victoria de etapa y la general son la misma:
   // se emite UNA sola noticia (la victoria en la carrera), con lenguaje de contrarreloj si es CRI.
   const timeTrial = spec.timeTrial === true
-  const isOneDay = spec.isFinal && spec.stageDay === 1
+  const isOneDay = isOneDayRace(spec)
   const winKind = isOneDay
     ? timeTrial
       ? 'one_day_tt_win'

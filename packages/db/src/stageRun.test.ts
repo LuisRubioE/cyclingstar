@@ -135,6 +135,20 @@ describe('db: runOneStage escribe en lote con la misma semántica', () => {
       .where(and(eq(stageResults.raceId, RACE_KEY), eq(stageResults.stageDay, 1)))
     expect(res1).toHaveLength(FIELD)
 
+    // En una carrera POR ETAPAS sí hay bonificaciones (10/6/4 a los tres primeros): construyen la
+    // general, que es justo lo que una carrera de un día no tiene.
+    const puestoById = new Map(
+      (
+        await t.db
+          .select({ riderId: stageResults.riderId, puesto: stageResults.puesto })
+          .from(stageResults)
+          .where(and(eq(stageResults.raceId, RACE_KEY), eq(stageResults.stageDay, 1)))
+      ).map((r) => [r.riderId, r.puesto] as const),
+    )
+    const bonoDe = (puesto: number): number =>
+      res1.find((r) => puestoById.get(r.riderId) === puesto)?.bonificacionS ?? -1
+    expect([bonoDe(1), bonoDe(2), bonoDe(3), bonoDe(4)]).toEqual([10, 6, 4, 0])
+
     // La general tras la etapa 1 es exactamente el tiempo neto (tiempo − bonificación) de la etapa.
     const gc1 = await t.db.select().from(raceGc).where(eq(raceGc.raceId, RACE_KEY))
     expect(gc1).toHaveLength(FIELD)
@@ -143,6 +157,9 @@ describe('db: runOneStage escribe en lote con la misma semántica', () => {
     )
     for (const row of gc1) {
       expect(row.tiempoTotalS).toBe(netById.get(row.riderId))
+      // Desempate: con una sola etapa corrida, la suma de puestos ES el puesto de esa etapa.
+      expect(row.sumaPuestos).toBe(puestoById.get(row.riderId))
+      expect(row.ultimoPuesto).toBe(puestoById.get(row.riderId))
     }
 
     // Puntos de temporada: los del puesto de etapa, sumados en una sola sentencia en lote.
@@ -199,6 +216,7 @@ describe('db: runOneStage escribe en lote con la misma semántica', () => {
     const res2 = await t.db
       .select({
         riderId: stageResults.riderId,
+        puesto: stageResults.puesto,
         tiempoS: stageResults.tiempoS,
         bonificacionS: stageResults.bonificacionS,
         puntosVolante: stageResults.puntosVolante,
@@ -214,6 +232,9 @@ describe('db: runOneStage escribe en lote con la misma semántica', () => {
       expect(now.tiempoTotalS).toBe(prev.tiempoTotalS + Math.max(0, r.tiempoS - r.bonificacionS))
       expect(now.puntosVolante).toBe(prev.puntosVolante + r.puntosVolante)
       expect(now.puntosMontana).toBe(prev.puntosMontana + r.puntosMontana)
+      // El desempate se acumula etapa a etapa igual que el tiempo.
+      expect(now.sumaPuestos).toBe(prev.sumaPuestos + r.puesto)
+      expect(now.ultimoPuesto).toBe(r.puesto)
     }
 
     // Al ser la etapa final se reparten además los puntos de la general: el total sube.

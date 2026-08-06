@@ -20,10 +20,11 @@ import {
   countriesInContinent,
   raceAttendanceCost,
 } from '@cyclingstar/shared'
-import { and, asc, desc, eq, inArray, isNotNull, isNull, notInArray, or, sql } from 'drizzle-orm'
+import { and, desc, eq, inArray, isNotNull, isNull, notInArray, or, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import { BATCH_ROWS, type BatchValue, inChunks, valuesList } from './batch.js'
 import { creditRider } from './economy.js'
+import { gcOrderBy } from './gcSort.js'
 import { LOCK_CLASS, hashInt, raceLockKey } from './locks.js'
 import {
   gameState,
@@ -910,7 +911,9 @@ async function assignBibs(tx: Tx, race: CalendarRace, season: number): Promise<v
       .select({ riderId: raceGc.riderId })
       .from(raceGc)
       .where(eq(raceGc.raceId, prevKey))
-      .orderBy(asc(raceGc.tiempoTotalS))
+      // Mismo desempate que en el resto de la general (gcSort.ts): quién fue el campeón no puede
+      // depender del orden que devuelva Postgres cuando hay empate a tiempo.
+      .orderBy(...gcOrderBy())
       .limit(1)
     championRiderId = winner[0]?.riderId ?? null
     if (championRiderId) {
@@ -1332,7 +1335,9 @@ async function recomputeSeasonPoints(tx: Tx, worldId: string, season: number): P
         .select({ riderId: raceGc.riderId })
         .from(raceGc)
         .where(eq(raceGc.raceId, key))
-        .orderBy(asc(raceGc.tiempoTotalS))
+        // Con el mismo desempate que usó el reparto original (gcSort.ts): si aquí se ordenara de otra
+        // forma, la reconciliación "corregiría" los puntos a un orden distinto del que se repartió.
+        .orderBy(...gcOrderBy())
       gc.forEach((row, i) => add(row.riderId, gcPointsByClass(race.raceClass, i)))
     }
   }
