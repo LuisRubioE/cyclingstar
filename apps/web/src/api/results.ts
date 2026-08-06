@@ -89,6 +89,8 @@ export interface StageReplay {
   run: boolean
   /** La etapa es una contrarreloj: el journal cuenta la historia del crono (mejor tiempo, diferencias). */
   timeTrial?: boolean
+  /** La etapa corrió antes de guardar la crónica: no hay journal detallado (el resultado sí es real). */
+  journalUnavailable?: boolean
   altimetry: string
   results?: StageResultEntry[]
   chronicle?: ChronicleEntry[]

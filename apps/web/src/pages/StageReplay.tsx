@@ -255,6 +255,15 @@ export function StageReplay() {
 
       {!data.run && <p className="text-slate-500">This stage hasn't been raced yet.</p>}
 
+      {data.run && data.journalUnavailable && (
+        <div className={card}>
+          <p className="text-sm text-slate-500">
+            The detailed journal wasn't recorded for this stage — it was raced before the chronicle
+            was saved. The result below is the official one.
+          </p>
+        </div>
+      )}
+
       {/* Crono: sin fuga ni sprint que narrar, se cuenta la historia del reloj desde los tiempos. */}
       {data.run && data.timeTrial && data.results && data.results.length > 0 && (
         <div className={card}>

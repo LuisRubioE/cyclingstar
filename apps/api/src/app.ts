@@ -124,6 +124,16 @@ function toWebHeaders(request: FastifyRequest): Headers {
   return headers
 }
 
+/** Un evento de la crónica tal como se guardó (congelado) en el snapshot de la etapa (RaceEvent). */
+interface StoredEvent {
+  km: number
+  tS: number
+  tipo: string
+  plantilla: string
+  protagonistas: string[]
+  datos?: Record<string, number | string>
+}
+
 export interface AppDeps {
   /** Base de datos (opcional en tests). Cuando está, /health lee la fecha de juego. */
   db?: Database
@@ -1302,7 +1312,29 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
           }
         }
         const results = await getStageResults(db, raceKey, day)
-        const output = simulateStage(snapshot.input as StageInput, snapshot.seed)
+        const gc = await getGcThroughStage(db, raceKey, day)
+        // Montaña y puntos tal como quedaron TRAS esta etapa (acumulado hasta el día `day`).
+        const kom = await getKomClassification(db, raceKey, day)
+        const points = await getPointsClassification(db, raceKey, day)
+        // El journal se lee de los eventos CONGELADOS al correr la etapa (no se re-simula): así siempre
+        // cuadra con el resultado guardado. Las etapas corridas antes de guardarlos no tienen journal
+        // detallado (no lo inventamos re-simulando, que daría una historia distinta al resultado real).
+        const storedEvents = snapshot.events as StoredEvent[] | null
+        if (!storedEvents) {
+          return {
+            day,
+            name: stage.name,
+            km,
+            run: true,
+            timeTrial: stage.timeTrial ?? false,
+            altimetry: renderAltimetrySvg(stage.profile),
+            results,
+            gc,
+            kom,
+            points,
+            journalUnavailable: true,
+          }
+        }
         const nameOf = new Map(results.map((r) => [r.riderId, r.name]))
         const teamOf = new Map(results.map((r) => [r.riderId, r.teamName]))
         const EVENT_ORDER: Record<string, number> = {
@@ -1321,7 +1353,7 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
           stage_win: 7,
           stage_win_itt: 6,
         }
-        const chronicle = output.events
+        const chronicle = storedEvents
           .map((e) => ({
             km: Math.round(e.km),
             tS: Math.round(e.tS),
@@ -1349,14 +1381,10 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
               prev.protagonists.join() !== e.protagonists.join()
             )
           })
-        const markers: AltimetryMarker[] = output.events
+        const markers: AltimetryMarker[] = storedEvents
           .filter((e) => ['fuga_formada', 'fuga_cazada', 'banner', 'meta'].includes(e.tipo))
           .map((e) => ({ km: e.km, label: MARKER_LABEL[e.tipo] ?? '•' }))
         const altimetry = renderAltimetrySvg(stage.profile, { markers })
-        const gc = await getGcThroughStage(db, raceKey, day)
-        // Montaña y puntos tal como quedaron TRAS esta etapa (acumulado hasta el día `day`).
-        const kom = await getKomClassification(db, raceKey, day)
-        const points = await getPointsClassification(db, raceKey, day)
         return {
           day,
           name: stage.name,

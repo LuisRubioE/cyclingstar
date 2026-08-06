@@ -426,6 +426,10 @@ export const stageSnapshots = pgTable(
     seed: text('seed').notNull(),
     engineVersion: integer('engine_version').notNull(),
     input: jsonb('input').notNull(),
+    // Eventos de la crónica CONGELADOS cuando corrió la etapa (SPEC 6.15). El journal se lee de aquí,
+    // NO se re-simula al vuelo: así siempre cuadra con el resultado guardado aunque cambie el motor.
+    // Null en snapshots antiguos (anteriores a guardar la crónica): esos no tienen journal detallado.
+    events: jsonb('events'),
   },
   (t) => [primaryKey({ columns: [t.raceId, t.stageDay] })],
 )

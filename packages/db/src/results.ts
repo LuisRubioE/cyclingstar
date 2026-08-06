@@ -256,6 +256,8 @@ export interface StageSnapshotRow {
   seed: string
   engineVersion: number
   input: unknown
+  /** Crónica congelada al correr la etapa; null en snapshots antiguos (sin journal detallado). */
+  events: unknown
 }
 
 export async function getStageSnapshot(
@@ -268,6 +270,7 @@ export async function getStageSnapshot(
       seed: stageSnapshots.seed,
       engineVersion: stageSnapshots.engineVersion,
       input: stageSnapshots.input,
+      events: stageSnapshots.events,
     })
     .from(stageSnapshots)
     .where(and(eq(stageSnapshots.raceId, raceId), eq(stageSnapshots.stageDay, stageDay)))

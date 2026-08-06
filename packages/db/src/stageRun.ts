@@ -234,6 +234,9 @@ export async function runOneStage(
       seed,
       engineVersion: ENGINE_VERSION_NUM,
       input: input as unknown,
+      // Congela la crónica JUNTO al resultado: el journal se leerá de aquí, no se re-simula al vuelo,
+      // así siempre cuadra con el resultado guardado aunque el motor cambie después.
+      events: output.events as unknown,
     })
     .onConflictDoNothing()
 
