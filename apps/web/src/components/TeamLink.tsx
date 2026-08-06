@@ -19,7 +19,7 @@ export function TeamLink({
   if (!name) return <span className={className}>{fallback}</span>
   if (!teamId) return <span className={className}>{name}</span>
   return (
-    <Link to={`/teams/${teamId}`} className={`hover:underline ${className ?? ''}`}>
+    <Link to={`/world/teams/${teamId}`} className={`hover:underline ${className ?? ''}`}>
       {name}
     </Link>
   )

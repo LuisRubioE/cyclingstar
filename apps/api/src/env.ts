@@ -11,8 +11,10 @@ const envSchema = z.object({
   PORT: z.coerce.number().int().positive().default(3000),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
   APP_URL: z.string().url('APP_URL debe ser una URL válida'),
-  SESSION_SECRET: z.string().min(16, 'SESSION_SECRET debe tener al menos 16 caracteres'),
-  ADMIN_TOKEN: z.string().min(16, 'ADMIN_TOKEN debe tener al menos 16 caracteres'),
+  // 32 caracteres mínimo: el token de admin y el secreto de sesión son la única barrera ante
+  // fuerza bruta offline/online, y la app va a dejar de ser una alfa cerrada.
+  SESSION_SECRET: z.string().min(32, 'SESSION_SECRET debe tener al menos 32 caracteres'),
+  ADMIN_TOKEN: z.string().min(32, 'ADMIN_TOKEN debe tener al menos 32 caracteres'),
   TICK_INTERVAL_MINUTES: z.coerce.number().int().positive().default(360),
 })
 

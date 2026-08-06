@@ -13,6 +13,7 @@ import {
   targetSpeed,
   vRef,
 } from './physics.js'
+import { STAGE } from '../constants.js'
 import type { Block } from './types.js'
 
 /** eff0 uniforme de valor `v` para todos los atributos, salvo los que se sobreescriban. */
@@ -49,10 +50,26 @@ describe('ley de velocidad (6.4)', () => {
   })
 
   it('vRef cae con la pendiente y satura en los extremos', () => {
-    expect(vRef(0, 'llano')).toBe(44)
-    expect(vRef(8, 'subida')).toBeCloseTo(44 - 2.7 * 8)
-    expect(vRef(20, 'subida')).toBe(14) // saturado al mínimo
+    expect(vRef(0, 'llano')).toBe(STAGE.vRefFlat)
+    // Subida hiperbólica A/(g+k): la velocidad va como el inverso de la pendiente, de modo que la
+    // VAM sale sola en el rango real a cualquier pendiente (docs/motor.md §3-bis-c).
+    expect(vRef(8, 'subida')).toBeCloseTo(190 / 11.5)
+    expect(vRef(12, 'subida')).toBeCloseTo(190 / 15.5)
+    expect(vRef(40, 'subida')).toBe(STAGE.vRefClimbMin) // saturado al mínimo
     expect(vRef(-6, 'descenso')).toBe(55)
+  })
+
+  it('la VAM del pelotón de cabeza cae en el rango real a cualquier pendiente', () => {
+    // VAM (m/h) = v (km/h) · 1000 · g/100. Referencia: los punteros de una etapa reina (P75 86)
+    // subiendo al compromiso de puerto decisivo. Real en el WorldTour: 1.500-1.800 m/h en puertos
+    // sostenidos del 8 al 12%. Por encima del 12% ya no hay puertos largos —son muros de pocos
+    // minutos, donde manda COL— y ahí la VAM real sí sube de 1.800, así que no se acota.
+    for (const g of [8, 10, 12]) {
+      const v = targetSpeed(block('subida', g), 86, STAGE.climbRaceCommit)
+      const vam = v * 10 * g
+      expect(vam).toBeGreaterThanOrEqual(1500)
+      expect(vam).toBeLessThanOrEqual(1800)
+    }
   })
 })
 
@@ -102,8 +119,8 @@ describe('inercia (6.4)', () => {
   it('un grupo comprometido rueda más rápido que uno a tempo', () => {
     const b = block('llano', 0)
     expect(targetSpeed(b, 75, 1)).toBeGreaterThan(targetSpeed(b, 75, 0))
-    // A P75 = 75 y ritmo(0) = 0.9, la objetivo es 0.9·vRef.
-    expect(targetSpeed(b, 75, 0)).toBeCloseTo(0.9 * 44)
+    // A P75 = 75 (la referencia) y ritmo(0) = rhythmBase, la objetivo es rhythmBase·vRef.
+    expect(targetSpeed(b, 75, 0)).toBeCloseTo(STAGE.rhythmBase * STAGE.vRefFlat)
   })
 })
 

@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import type { Attribute } from '@cyclingstar/shared'
-import { simulateStage } from './simulate.js'
+import { STAGE } from '../constants.js'
+import { simulateStage, stageTss } from './simulate.js'
+import { blockCost } from './physics.js'
 import { stageSeed } from './rng.js'
 import type { StageInput, StageOrders, StageRider } from './types.js'
 
@@ -120,6 +122,199 @@ describe('simulateStage — etapa llana (Paso 24)', () => {
   it('es determinista: la misma semilla da el mismo ganador', () => {
     const again = simulateStage(flatStageInput(), seed)
     expect(again.results[0]!.riderId).toBe(out.results[0]!.riderId)
+  })
+})
+
+// --- Invariantes estructurales del motor (SPEC 6.15, 6.16) ---------------------------------
+// La garantía central del motor: con la MISMA semilla, la salida COMPLETA es idéntica bit a bit,
+// y sea cual sea el terreno la clasificación es única y completa y no hay magnitudes imposibles.
+// Comprobar solo `results[0].riderId` dejaba pasar cualquier no-determinismo en eventos, tiempos,
+// gasto o incidentes; por eso aquí se compara el StageOutput entero.
+
+/** Los cuatro terrenos del motor, cada uno con un campo de corredores adecuado. */
+function terrainCases(): { name: string; input: StageInput }[] {
+  const climbers = (): StageRider[] => {
+    const riders: StageRider[] = []
+    for (let i = 0; i < 4; i++) {
+      riders.push(
+        rider(`gc-${i}`, {
+          eff0: eff(60, { MON: 82 + i, COL: 78, LLA: 64 }),
+          orders: orders({ role: 'lider', contestClimbs: true }),
+        }),
+      )
+    }
+    for (let i = 0; i < 5; i++) {
+      riders.push(
+        rider(`bar-${i}`, {
+          eff0: eff(56, { MON: 70 + (i % 4), COL: 68, LLA: 66, TAC: 60 }),
+          orders: orders({ role: 'cazaetapas', mentality: 'combativo', contestClimbs: true }),
+        }),
+      )
+    }
+    for (let i = 0; i < 21; i++) {
+      riders.push(rider(`pel-${i}`, { eff0: eff(55, { MON: 54 + (i % 10), LLA: 60 }) }))
+    }
+    return riders
+  }
+  const rouleurs = (pav: number): StageRider[] =>
+    Array.from({ length: 30 }, (_, i) =>
+      rider(`r-${i}`, {
+        eff0: eff(56, { PAV: pav + (i % 9), LLA: 60 + (i % 7), CRI: 62 + (i % 8) }),
+      }),
+    )
+
+  return [
+    { name: 'llano', input: flatStageInput() },
+    {
+      name: 'montaña',
+      input: {
+        profile: {
+          segments: [
+            { km: 60, tipo: 'llano' },
+            { km: 12, tipo: 'puerto', tramos: [{ km: 12, g: 8 }] },
+          ],
+          banners: [{ km: 72, tipo: 'cima' }],
+        },
+        riders: climbers(),
+      },
+    },
+    {
+      name: 'CRI',
+      input: {
+        profile: { segments: [{ km: 30, tipo: 'llano' }] },
+        riders: rouleurs(52),
+        timeTrial: true,
+      },
+    },
+    {
+      name: 'pavés',
+      input: {
+        profile: {
+          segments: [
+            { km: 15, tipo: 'llano' },
+            { km: 25, tipo: 'paves', estrellas: 4 },
+            { km: 10, tipo: 'llano' },
+          ],
+        },
+        riders: rouleurs(50),
+      },
+    },
+  ]
+}
+
+describe.each(terrainCases())('invariantes del motor — $name', ({ name, input }) => {
+  const seed = stageSeed({ worldSeed: 'inv', raceId: name, stageDay: 1, engineVersion: 1 })
+  const out = simulateStage(input, seed)
+  const n = input.riders.length
+
+  it('es determinista: la MISMA semilla da el StageOutput COMPLETO idéntico', () => {
+    const again = simulateStage(input, seed)
+    // Compara events + results + workUnits + incidents + engineVersion de una vez: cualquier
+    // no-determinismo en tiempos, crónica, gasto o incidentes hace fallar este test.
+    expect(again).toEqual(out)
+  })
+
+  it('clasifica a todos exactamente una vez, con puestos 1..N sin huecos', () => {
+    expect(out.results).toHaveLength(n)
+    expect(out.results.map((r) => r.puesto)).toEqual(Array.from({ length: n }, (_, i) => i + 1))
+    const ids = out.results.map((r) => r.riderId)
+    expect(new Set(ids).size).toBe(n)
+    expect([...ids].sort()).toEqual(input.riders.map((r) => r.riderId).sort())
+    for (const r of out.results) expect(r.estado).toBe('finish')
+  })
+
+  it('los tiempos son finitos, positivos y no decrecen con el puesto', () => {
+    let prev = -Infinity
+    for (const r of out.results) {
+      expect(Number.isFinite(r.tiempoS)).toBe(true)
+      expect(Number.isInteger(r.tiempoS)).toBe(true)
+      expect(r.tiempoS).toBeGreaterThan(0)
+      expect(r.tiempoS).toBeGreaterThanOrEqual(prev)
+      prev = r.tiempoS
+    }
+  })
+
+  it('el gasto (work) es finito y nunca negativo, y hay uno por corredor', () => {
+    expect(out.workUnits.size).toBe(n)
+    for (const [id, units] of out.workUnits) {
+      expect(Number.isFinite(units), `work de ${id}`).toBe(true)
+      expect(units, `work de ${id}`).toBeGreaterThanOrEqual(0)
+      expect(stageTss(units)).toBeGreaterThanOrEqual(0)
+    }
+  })
+
+  it('la crónica avanza en el tiempo y los incidentes son coherentes', () => {
+    for (let i = 1; i < out.events.length; i++) {
+      expect(out.events[i]!.tS).toBeGreaterThanOrEqual(out.events[i - 1]!.tS)
+      expect(out.events[i]!.km).toBeGreaterThanOrEqual(0)
+    }
+    for (const inc of out.incidents) {
+      expect(out.workUnits.has(inc.riderId)).toBe(true)
+      expect(inc.perdidaS).toBeGreaterThanOrEqual(0)
+      expect(inc.diasBaja).toBeGreaterThanOrEqual(0)
+      expect(Number.isInteger(inc.diasBaja)).toBe(true)
+      expect(inc.km).toBeGreaterThanOrEqual(0)
+    }
+  })
+
+  it('los puntos de volante y montaña nunca son negativos', () => {
+    for (const r of out.results) {
+      expect(r.puntosVolante).toBeGreaterThanOrEqual(0)
+      expect(r.puntosMontana).toBeGreaterThanOrEqual(0)
+      expect(r.bonificacionS).toBeGreaterThanOrEqual(0)
+    }
+  })
+})
+
+describe('energía nunca negativa (SPEC 6.5, 6.7)', () => {
+  // El tanque se vacía con `energy = max(0, energy - coste)`, así que basta con garantizar que
+  // NINGÚN coste de bloque es negativo (un coste negativo rellenaría el tanque y rompería la
+  // erosión). Se barre toda la rejilla de terreno, compromiso y abrigo que usa el motor.
+  it('el coste de un bloque nunca es negativo, en ningún terreno ni abrigo', () => {
+    const shelters = [STAGE.shelterAlone, STAGE.shelterRelay, STAGE.shelterProtected, 1]
+    for (const tipo of ['llano', 'subida', 'descenso', 'paves'] as const) {
+      for (let g = -15; g <= 20; g++) {
+        for (const estrellas of [0, 1, 2, 3, 4, 5]) {
+          for (let c = 0; c <= 1.0001; c += 0.1) {
+            for (const shelter of shelters) {
+              const cost = blockCost({ tipo, g, estrellas }, c, shelter)
+              expect(Number.isFinite(cost)).toBe(true)
+              expect(cost).toBeGreaterThanOrEqual(0)
+            }
+          }
+        }
+      }
+    }
+  })
+
+  // Una etapa brutal para un campo flojo: casi todos acaban con el tanque a cero. Aun así el
+  // resultado debe seguir siendo una clasificación completa, finita y con gasto no negativo.
+  it('una etapa que vacía el tanque sigue dando una clasificación completa y finita', () => {
+    const riders = Array.from({ length: 24 }, (_, i) =>
+      rider(`w-${i}`, { eff0: eff(34 + (i % 5)), energy: 12, matches: 0 }),
+    )
+    const seed = stageSeed({ worldSeed: 'bonk', raceId: 'bonk', stageDay: 1, engineVersion: 1 })
+    const out = simulateStage(
+      {
+        profile: {
+          segments: [
+            { km: 40, tipo: 'puerto', tramos: [{ km: 40, g: 9 }] },
+            { km: 20, tipo: 'paves', estrellas: 5 },
+          ],
+        },
+        riders,
+      },
+      seed,
+    )
+    expect(out.results).toHaveLength(riders.length)
+    expect(out.results.map((r) => r.puesto)).toEqual(
+      Array.from({ length: riders.length }, (_, i) => i + 1),
+    )
+    for (const r of out.results) expect(Number.isFinite(r.tiempoS)).toBe(true)
+    for (const units of out.workUnits.values()) {
+      expect(Number.isFinite(units)).toBe(true)
+      expect(units).toBeGreaterThanOrEqual(0)
+    }
   })
 })
 

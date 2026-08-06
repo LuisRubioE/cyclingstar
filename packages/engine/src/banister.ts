@@ -1,5 +1,5 @@
 import { type HealthState, stars } from '@cyclingstar/shared'
-import { BANISTER, HEALTH, MORALE } from './constants.js'
+import { BANISTER, HEALTH, MORALE, TANK } from './constants.js'
 import { clamp } from './random.js'
 
 /**
@@ -97,6 +97,36 @@ export function eff0(
   morale: number,
 ): number {
   return attr * mForm(ctl, tsb) * mHealth(health) * mMorale(morale)
+}
+
+// --- Depósito inicial E0 (docs/motor.md §VI.1) ---------------------------------------------
+
+/**
+ * Multiplicador del depósito por CONDICIÓN (docs/motor.md §VI.1). El fondo acumulado (CTL) da
+ * tanque: quien lleva meses de trabajo aguanta más kilómetros duros antes de vaciarse.
+ */
+export function mTankFitness(ctl: number): number {
+  return clamp(TANK.fitnessBase + TANK.fitnessScale * (ctl / 100), TANK.fitnessMin, TANK.fitnessMax)
+}
+
+/**
+ * Multiplicador del depósito por FRESCURA (docs/motor.md §VI.1). Es la pieza que hace que una gran
+ * vuelta se sienta como una gran vuelta: `applyDailyLoad` sube el ATL con el TSS de cada etapa, el
+ * TSB baja día tras día y el depósito mengua solo, sin ningún estado paralelo de "fatiga de carrera".
+ */
+export function mTankFreshness(tsb: number): number {
+  return clamp(TANK.freshnessBase + TANK.freshnessSlope * tsb, TANK.freshnessMin, TANK.freshnessMax)
+}
+
+/**
+ * Depósito de energía E0 con que el corredor toma la salida (docs/motor.md §VI.1):
+ * E0 = 100 · clamp( mTankFitness(CTL) · mTankFreshness(TSB) · mHealth(salud), 0.70, 1.08 ).
+ * Un corredor fresco y en forma sale con ~105; uno hundido en la tercera semana, con ~72.
+ */
+export function initialEnergy(ctl: number, tsb: number, health: HealthState): number {
+  return (
+    TANK.base * clamp(mTankFitness(ctl) * mTankFreshness(tsb) * mHealth(health), TANK.min, TANK.max)
+  )
 }
 
 /** Probabilidad diaria de enfermar (SPEC 4.3). */

@@ -1,6 +1,7 @@
 import { type RaceClass, gcPointsByClass, stagePointsByClass } from '@cyclingstar/engine'
 import { type SQL, and, asc, desc, eq, gte, isNull, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
+import { BATCH_ROWS, type BatchValue, inChunks, valuesList } from './batch.js'
 import type { Database } from './client.js'
 import { palmares, riders, teams } from './schema.js'
 
@@ -19,13 +20,7 @@ export async function addStagePoints(
   raceClass: RaceClass,
   placing: number,
 ): Promise<void> {
-  const pts = stagePointsByClass(raceClass, placing)
-  if (pts > 0) {
-    await tx
-      .update(riders)
-      .set({ seasonPoints: sql`${riders.seasonPoints} + ${pts}` })
-      .where(eq(riders.id, riderId))
-  }
+  await addSeasonPointsBatch(tx, [{ riderId, points: stagePointsByClass(raceClass, placing) }])
 }
 
 /** Suma puntos de ranking al corredor por su puesto en la general (0 = ganador), según la clase. */
@@ -35,13 +30,36 @@ export async function addGcPoints(
   raceClass: RaceClass,
   placing: number,
 ): Promise<void> {
-  const pts = gcPointsByClass(raceClass, placing)
-  if (pts > 0) {
-    await tx
-      .update(riders)
-      .set({ seasonPoints: sql`${riders.seasonPoints} + ${pts}` })
-      .where(eq(riders.id, riderId))
+  await addSeasonPointsBatch(tx, [{ riderId, points: gcPointsByClass(raceClass, placing) }])
+}
+
+/**
+ * Suma puntos de temporada a VARIOS corredores en una sola sentencia. Es un incremento atómico
+ * (`season_points + v.pts`), igual que la versión fila a fila: no lee ni pisa el valor almacenado,
+ * así que convive sin problemas con cualquier otra escritura concurrente. Los corredores repetidos
+ * se agregan antes (una fila por corredor) para que el `UPDATE ... FROM (VALUES …)` no descarte
+ * ninguna suma: con varias filas del VALUES casando la misma fila destino, Postgres aplicaría solo
+ * una. Ignora las entradas de 0 puntos, como hacía el `if (pts > 0)` de antes.
+ */
+export async function addSeasonPointsBatch(
+  tx: Tx,
+  entries: readonly { riderId: string; points: number }[],
+): Promise<void> {
+  const totals = new Map<string, number>()
+  for (const e of entries) {
+    if (e.points === 0) continue
+    totals.set(e.riderId, (totals.get(e.riderId) ?? 0) + e.points)
   }
+  const rows: BatchValue[][] = [...totals]
+    .filter(([, pts]) => pts !== 0)
+    .map(([riderId, pts]) => [riderId, pts])
+  await inChunks(rows, BATCH_ROWS, async (chunk) => {
+    const v = valuesList(chunk, ['uuid', 'integer'])
+    await tx.execute(
+      sql`update ${riders} set season_points = ${riders.seasonPoints} + v.pts
+          from ${v} as v(id, pts) where ${riders.id} = v.id`,
+    )
+  })
 }
 
 /** Inmortaliza un logro en el palmarés (no se reinicia). */

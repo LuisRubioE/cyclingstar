@@ -17,7 +17,7 @@ export function RiderName({
 }) {
   return (
     <Link
-      to={`/riders/${riderId}`}
+      to={`/world/riders/${riderId}`}
       className={`hover:text-indigo-600 hover:underline ${isBot ? 'italic' : 'font-semibold'} ${className}`}
     >
       {name}

@@ -8,6 +8,10 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle'
  * el modelo (SPEC 11).
  */
 export function createAuth(db: Database, opts: { secret: string; baseURL: string }) {
+  // Cookies seguras cuando la app se sirve por https (producción tras el proxy de Railway).
+  // Se deriva de APP_URL y NO de NODE_ENV: un despliegue sin NODE_ENV=production no debe acabar
+  // emitiendo la cookie de sesión sin el flag `secure`.
+  const secureCookies = opts.baseURL.startsWith('https://')
   return betterAuth({
     secret: opts.secret,
     baseURL: opts.baseURL,
@@ -36,6 +40,17 @@ export function createAuth(db: Database, opts: { secret: string; baseURL: string
       },
     },
     advanced: {
+      useSecureCookies: secureCookies,
+      // Atributos de la cookie de sesión, explícitos en vez de heredados del defecto de la
+      // librería: httpOnly (inaccesible desde JS, corta el robo por XSS), sameSite lax (la web y
+      // la API comparten origen, así que lax basta y corta el CSRF de peticiones cruzadas),
+      // secure en https y path raíz (la SPA vive en /).
+      defaultCookieAttributes: {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: secureCookies,
+        path: '/',
+      },
       database: {
         generateId: false,
       },

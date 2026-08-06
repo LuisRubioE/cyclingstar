@@ -1,96 +1,87 @@
 /**
- * Cliente de la lista de bloqueo de nombres (solo admins). Se autentica con el ADMIN_TOKEN
- * (el mismo que protege /admin/tick), guardado en localStorage y enviado como x-admin-token.
+ * Cliente de la base de admins (lista de bloqueo, salud del mundo, premium).
+ *
+ * SEGURIDAD: el ADMIN_TOKEN es el secreto de mayor privilegio del juego (premium, blocklist, salud
+ * del mundo). Antes vivía en `localStorage`, donde cualquier XSS podía leerlo y donde además
+ * sobrevivía a cierres del navegador. Ahora NO se persiste en ningún sitio: viaja como argumento
+ * explícito desde el estado de React de la página de admin y desaparece al recargar, así que hay
+ * que introducirlo en cada sesión de administración. La cabecera sigue siendo `x-admin-token`
+ * porque la API no cambia.
  */
 
-export type BlockedKind = 'team' | 'rider'
+import {
+  type BlockedKind,
+  type BlockedName,
+  type TickLogRow,
+  type WorldHealth,
+  blocklistAddResponseSchema,
+  blocklistResponseSchema,
+  okResponseSchema,
+  worldHealthResponseSchema,
+} from '@cyclingstar/shared'
+import type { ZodType } from 'zod'
+import { ApiError, type RequestOptions, request } from './request'
 
-export interface BlockedName {
-  id: string
-  kind: BlockedKind
-  value: string
-  note: string | null
-  createdAt: string
-}
-
-const TOKEN_KEY = 'cs_admin_token'
-
-export function getAdminToken(): string {
-  return localStorage.getItem(TOKEN_KEY) ?? ''
-}
-
-export function setAdminToken(token: string): void {
-  localStorage.setItem(TOKEN_KEY, token.trim())
-}
-
-export function clearAdminToken(): void {
-  localStorage.removeItem(TOKEN_KEY)
-}
+export type { BlockedKind, BlockedName, TickLogRow, WorldHealth }
 
 /** Error con marca de "no autorizado" para que la página pida el token de nuevo. */
 export class AdminAuthError extends Error {}
 
-async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const res = await fetch(path, {
-    ...init,
-    headers: { ...(init.headers ?? {}), 'x-admin-token': getAdminToken() },
-  })
-  if (res.status === 401) throw new AdminAuthError('Invalid admin token.')
-  if (!res.ok) throw new Error('Request failed.')
-  return (await res.json()) as T
+/** Petición de admin: añade la cabecera del token y traduce el 401 a `AdminAuthError`. */
+async function adminRequest<T>(
+  token: string,
+  path: string,
+  schema: ZodType<T>,
+  options: RequestOptions = {},
+): Promise<T> {
+  try {
+    return await request(path, schema, {
+      ...options,
+      headers: { ...(options.headers ?? {}), 'x-admin-token': token },
+    })
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 401) {
+      throw new AdminAuthError('Invalid admin token.')
+    }
+    throw error
+  }
 }
 
-export async function fetchBlocklist(kind: BlockedKind): Promise<BlockedName[]> {
-  const data = await request<{ ok: boolean; items: BlockedName[] }>(
+export async function fetchBlocklist(token: string, kind: BlockedKind): Promise<BlockedName[]> {
+  const data = await adminRequest(
+    token,
     `/api/admin/blocklist?kind=${kind}`,
+    blocklistResponseSchema,
   )
   return data.items
 }
 
 export async function addBlocked(
+  token: string,
   kind: BlockedKind,
   value: string,
   note?: string,
 ): Promise<{ inserted: boolean }> {
-  return request<{ ok: boolean; inserted: boolean }>('/api/admin/blocklist', {
+  const data = await adminRequest(token, '/api/admin/blocklist', blocklistAddResponseSchema, {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ kind, value, note: note?.trim() || undefined }),
+    json: { kind, value, note: note?.trim() || undefined },
   })
+  return { inserted: data.inserted }
 }
 
-export async function removeBlocked(id: string): Promise<void> {
-  await request(`/api/admin/blocklist/${id}`, { method: 'DELETE' })
+export async function removeBlocked(token: string, id: string): Promise<void> {
+  await adminRequest(token, `/api/admin/blocklist/${id}`, okResponseSchema, { method: 'DELETE' })
 }
 
-export interface TickLogRow {
-  startedAt: string
-  daysProcessed: number
-  durationMs: number
-  ok: boolean
-  notes: string | null
-}
-
-export interface WorldHealth {
-  currentDay: number
-  season: number
-  worldCreatedAt: string | null
-  riders: { active: number; human: number; bots: number; retired: number; freeAgents: number }
-  teams: { total: number; human: number; wt: number; prs: number; con: number }
-  users: number
-  recentTicks: TickLogRow[]
-}
-
-export async function fetchWorldHealth(): Promise<WorldHealth> {
-  const data = await request<{ ok: boolean; health: WorldHealth }>('/api/admin/health')
+export async function fetchWorldHealth(token: string): Promise<WorldHealth> {
+  const data = await adminRequest(token, '/api/admin/health', worldHealthResponseSchema)
   return data.health
 }
 
 /** Concede o retira premium a una cuenta por email (habilita tomar el control de equipos bot). */
-export async function setPremium(email: string, premium: boolean): Promise<void> {
-  await request('/api/admin/premium', {
+export async function setPremium(token: string, email: string, premium: boolean): Promise<void> {
+  await adminRequest(token, '/api/admin/premium', okResponseSchema, {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ email: email.trim(), premium }),
+    json: { email: email.trim(), premium },
   })
 }

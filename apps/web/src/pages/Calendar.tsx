@@ -1,13 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
 import { Fragment, type ReactElement, useState } from 'react'
 import { Link } from 'react-router-dom'
-import {
-  type CalendarRaceSummary,
-  type RaceLevel,
-  fetchCalendar,
-  formatLabel,
-  raceClassLabel,
-} from '../api/calendar'
+import { type CalendarRaceSummary, type RaceLevel, fetchCalendar } from '../api/calendar'
+import { formatLabel, raceClassLabel } from '../domain/labels'
 import { Flag } from '../components/Flag'
 import { Panel, SectionBar } from '../components/Panel'
 
@@ -72,7 +67,7 @@ function RaceCard({ race }: { race: CalendarRaceSummary }) {
               {Math.round(totalKm)} km total · open to {race.openTo.join(', ')}
             </p>
             <Link
-              to={`/races/${race.id}`}
+              to={`/world/races/${race.id}`}
               className="text-xs font-medium text-indigo-600 hover:text-indigo-500"
             >
               View full race →
@@ -163,7 +158,7 @@ function NationRow({ code, races }: { code: string; races: CalendarRaceSummary[]
             {byDay.get(d)!.map((r) => (
               <Link
                 key={r.id}
-                to={`/races/${r.id}`}
+                to={`/world/races/${r.id}`}
                 title={r.winner ? `Winner: ${r.winner}` : champEventLabel(r)}
                 className="rounded bg-slate-900/5 px-1.5 py-0.5 text-[11px] font-medium text-slate-600 hover:bg-brand-cyan/15 hover:text-brand-navy"
               >

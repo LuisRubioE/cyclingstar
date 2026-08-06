@@ -490,6 +490,19 @@ La `p` de etapa se reparte como intensidad `λ(bloque)` ponderada por los bloque
 - `workUnits` por dominio (alimenta 5.3 y el TSS de 5.1) e `incidents`.
 - La serie `t_s` por grupo permite al replay dibujar el cursor de cada grupo sobre la altimetría SVG.
 
+**Carreras de un día.** Una prueba de un día NO lleva bonificaciones de tiempo: no hay general que
+construir, la etapa ES el resultado. El motor es puro y no sabe de calendarios, así que las reparte
+siempre; quien conoce la estructura de la carrera (`packages/db`) las anula antes de persistirlas.
+Por lo mismo, su clasificación general es una copia exacta del resultado de meta y no se muestra por
+separado, y una caída grave no marca abandono (no quedan etapas a las que no tomar la salida).
+
+**Desempate de la general.** El orden es: tiempo total, menor suma de puestos, mejor puesto en la
+última etapa disputada y, como último criterio, el id del corredor. Los dos primeros son la regla del
+ciclismo; el id no es deportivo, está para que el orden sea TOTAL y DETERMINISTA —con el pelotón
+empatado a tiempo, sin él la base devolvía un orden arbitrario y distinto en cada consulta, y por ahí
+se repartían los puntos de ranking—. `race_gc` acumula los dos criterios etapa a etapa igual que el
+tiempo (`suma_puestos`, `ultimo_puesto`).
+
 ### 6.16 Pseudocódigo del bucle
 
 ```

@@ -1,26 +1,16 @@
-export interface FormPoint {
-  gameDay: number
-  ctl: number
-  atl: number
-  tsb: number
-  tss: number
-  activity: string
-}
+import {
+  type FormPoint,
+  type FormResponse,
+  type HealthState,
+  type RiderHealth,
+  formResponseSchema,
+} from '@cyclingstar/shared'
+import { request } from './request'
 
-export type HealthState = 'sano' | 'molestias' | 'enfermo' | 'lesionado'
-export interface RiderHealth {
-  state: HealthState
-  untilDay: number | null
-}
-
-export interface FormResponse {
-  log: FormPoint[]
-  form: { stars: number; freshness: number } | null
-  health: RiderHealth | null
-}
+export type { FormPoint, FormResponse, HealthState, RiderHealth }
 
 export async function fetchForm(): Promise<FormResponse> {
-  const res = await fetch('/api/riders/me/form')
-  if (!res.ok) throw new Error('Could not load your form.')
-  return (await res.json()) as FormResponse
+  return request('/api/riders/me/form', formResponseSchema, {
+    errorMessage: 'Could not load your form.',
+  })
 }

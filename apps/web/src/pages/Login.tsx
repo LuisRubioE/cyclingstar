@@ -20,7 +20,7 @@ export function Login() {
       setError(result.error.message ?? 'Wrong email or password.')
       return
     }
-    navigate('/rider')
+    navigate('/me/profile')
   }
 
   return (

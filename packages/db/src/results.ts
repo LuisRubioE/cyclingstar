@@ -1,5 +1,6 @@
 import { and, asc, desc, eq, lte, sql } from 'drizzle-orm'
 import type { Database } from './client.js'
+import { gcOrderBy } from './gcSort.js'
 import { raceGc, raceRosters, riders, stageResults, stageSnapshots, teams } from './schema.js'
 
 /** Lecturas de resultados y clasificaciones para la web del replay (Paso 31, pulido). */
@@ -38,11 +39,9 @@ export async function getRaceGc(db: Database, raceId: string): Promise<GcRow[]> 
       and(eq(raceRosters.raceId, raceGc.raceId), eq(raceRosters.riderId, raceGc.riderId)),
     )
     .where(eq(raceGc.raceId, raceId))
-    // Los que abandonaron caen al final (no están clasificados); el resto por tiempo.
-    .orderBy(
-      sql`case when ${raceRosters.abandonedDay} is null then 0 else 1 end`,
-      asc(raceGc.tiempoTotalS),
-    )
+    // Los que abandonaron caen al final (no están clasificados); el resto por tiempo y, a igualdad de
+    // tiempo, por el desempate del ciclismo (mejores puestos acumulados). Ver `gcSort.ts`.
+    .orderBy(sql`case when ${raceRosters.abandonedDay} is null then 0 else 1 end`, ...gcOrderBy())
   return rows.map(({ userId, abandonedDay, ...r }) => ({
     ...r,
     isBot: userId === null,
@@ -121,7 +120,13 @@ export async function getStageResults(
     .orderBy(asc(stageResults.puesto))
 }
 
-/** Clasificación general tal como estaba tras la etapa `stageDay` (tiempo neto acumulado). */
+/**
+ * Clasificación general tal como estaba tras la etapa `stageDay` (tiempo neto acumulado).
+ *
+ * Se recalcula desde `stage_results` (no desde `race_gc`, que solo guarda el estado actual), así que
+ * el desempate se deriva aquí de los mismos datos: suma de puestos hasta esa etapa y puesto en la
+ * última disputada. Mismo criterio y mismo orden total que `gcOrderBy()`.
+ */
 export async function getGcThroughStage(
   db: Database,
   raceId: string,
@@ -137,6 +142,8 @@ export async function getGcThroughStage(
   }[]
 > {
   const net = sql<number>`sum(${stageResults.tiempoS} - ${stageResults.bonificacionS})::int`
+  const sumaPuestos = sql<number>`sum(${stageResults.puesto})::int`
+  const ultimoPuesto = sql<number>`(array_agg(${stageResults.puesto} order by ${stageResults.stageDay} desc))[1]`
   return db
     .select({
       riderId: stageResults.riderId,
@@ -151,7 +158,7 @@ export async function getGcThroughStage(
     .leftJoin(teams, eq(teams.id, riders.teamId))
     .where(and(eq(stageResults.raceId, raceId), lte(stageResults.stageDay, stageDay)))
     .groupBy(stageResults.riderId, riders.name, riders.country, teams.name)
-    .orderBy(asc(net))
+    .orderBy(asc(net), asc(sumaPuestos), asc(ultimoPuesto), asc(stageResults.riderId))
 }
 
 export interface PointsRow {

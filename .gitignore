@@ -11,3 +11,6 @@ coverage/
 # Sistema / editor
 .DS_Store
 *.log
+
+# Worktrees temporales de agentes (infraestructura de trabajo, nunca versionada)
+.claude/worktrees/

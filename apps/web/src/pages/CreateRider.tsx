@@ -50,7 +50,7 @@ export function CreateRider() {
     setCreating(true)
     try {
       await createRider({ vocation, gender: 'M', country, nameSeed: seed })
-      navigate('/rider')
+      navigate('/me/profile')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong.')
       setCreating(false)

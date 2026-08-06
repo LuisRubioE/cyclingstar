@@ -87,9 +87,19 @@ export interface StageRider {
   energy: number
   /** Cerillos disponibles al arrancar (SPEC 6.6). */
   matches: number
+  /**
+   * PENDIENTE DE IMPLEMENTAR (SPEC 6.6): campo definido pero sin efecto en la simulación de etapa.
+   * El TSB solo se consume en `physics.matchCount()`, que el bucle de carrera no llama (recibe
+   * `matches` ya resuelto desde fuera). Lo rellena packages/db pero el motor lo ignora.
+   */
   tsb: number
   orders: StageOrders
-  /** Desventaja del corredor en la general, en segundos (para 6.9). */
+  /**
+   * Desventaja del corredor en la general, en segundos (para 6.9).
+   * PENDIENTE DE IMPLEMENTAR (SPEC 6.9): campo definido pero sin efecto en la simulación.
+   * El pelotón no distingue hoy si en la fuga va una amenaza para la general (ver
+   * `STAGE.gcThreatFraction`, también sin implementar).
+   */
   gcDeficitSeconds: number
   /** Fragilidad oculta (SPEC 3.4): escala la probabilidad de lesión al caer. Por defecto 1. */
   fragility?: number
@@ -140,6 +150,26 @@ export interface StageOutput {
   results: StageResult[]
   workUnits: Map<string, number>
   incidents: Incident[]
+  /**
+   * Estado del tanque en meta por corredor (SPEC 6.6, 6.7). Sin esto la erosión no se podía medir
+   * desde fuera —era imposible calibrarla o vigilarla en CI— y el vaciado profundo que resta un
+   * cerillo al día siguiente no se podía propagar (docs/motor.md §12-bis).
+   */
+  tank: Map<string, TankState>
   /** Versión del motor con que se generó (sellada para replays reproducibles, SPEC 6.1). */
   engineVersion: number
+}
+
+/** Cómo terminó el tanque de un corredor (SPEC 6.6, 6.7). */
+export interface TankState {
+  /** Depósito inicial E0 con que tomó la salida. */
+  energy0: number
+  /** Energía restante en meta. */
+  energy: number
+  /** Vaciado 1 - E/E0, en [0,1]. */
+  depletion: number
+  /** Erosión resultante, en [0,1]: lo que de verdad le quitó el día. */
+  erosion: number
+  /** Terminó por debajo del umbral de vaciado profundo: mañana sale con un cerillo menos (6.6). */
+  deepDepleted: boolean
 }

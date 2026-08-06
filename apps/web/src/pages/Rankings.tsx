@@ -27,6 +27,8 @@ function RankingTable({ rows }: { rows: RankingRow[] }) {
   }
   return (
     <table className="w-full text-sm">
+      {/* Sin cabecera visible (el diseño es una lista): la leyenda la anuncian los lectores. */}
+      <caption className="sr-only">Ranking: position, country, rider, team and points</caption>
       <tbody>
         {rows.map((r, i) => (
           <tr key={r.riderId} className="border-b border-slate-100 last:border-0">
@@ -77,7 +79,7 @@ function AwardCard({
         <>
           <p className="mt-1.5 flex items-center gap-2 text-sm font-bold text-slate-800">
             <Flag code={winner.country} size={16} />
-            <Link to={`/riders/${winner.riderId}`} className="hover:underline">
+            <Link to={`/world/riders/${winner.riderId}`} className="hover:underline">
               <RiderName riderId={winner.riderId} name={winner.name} isBot={winner.isBot} />
             </Link>
           </p>

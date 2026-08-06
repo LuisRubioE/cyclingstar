@@ -10,37 +10,128 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
-  ci:
-    name: typecheck · build · test · lint
+  # Jobs independientes y en paralelo: antes era un único job secuencial y un fallo de
+  # typecheck ocultaba lint, format, tests y build. Ahora cada señal es independiente.
+  typecheck:
+    name: Typecheck
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: pnpm typecheck
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    # Postgres disponible para los tests que lo necesiten (integración de packages/db).
+    # Los tests que no lo usan (motor, shared) simplemente ignoran DATABASE_URL, así que
+    # el job funciona tanto si la suite es 100% en memoria/pglite como si es real.
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: cyclingstar_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/cyclingstar_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      # packages/db compilado: lo necesita el aplicador de migraciones (dist/migrate.js).
+      - name: Build de packages/db
+        run: pnpm exec tsc -b packages/db
+
+      # Deja el esquema listo por si hay tests de integración contra DATABASE_URL.
+      # Si aún no existen, este paso simplemente valida que las migraciones aplican.
+      - name: Migraciones sobre la base de tests
+        run: node scripts/migrate.mjs
+
+      - name: Test con cobertura
+        run: pnpm test:coverage
+
+      - name: Sube el informe de cobertura
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          node-version: 22
-          cache: pnpm
+          name: coverage
+          path: coverage/
+          retention-days: 7
+          if-no-files-found: ignore
 
-      - name: Install
-        run: pnpm install --frozen-lockfile
-
-      - name: Typecheck
-        run: pnpm typecheck
-
-      - name: Build
-        run: pnpm -r build
-
-      - name: Test
-        run: pnpm test
-
+  quality:
+    name: Lint · Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
       - name: Lint
         run: pnpm lint
-
+      # Se ejecuta aunque el lint falle: son dos señales independientes y conviene verlas
+      # las dos en la misma ejecución (`!cancelled()` en vez de `always()` para respetar
+      # la cancelación por concurrencia).
       - name: Format check
+        if: ${{ !cancelled() }}
         run: pnpm format
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: pnpm -r build
+
+  migrations:
+    name: Migraciones (base vacía)
+    runs-on: ubuntu-latest
+    # Valida que el conjunto de migraciones de Drizzle aplica limpio sobre una base
+    # recién creada, con el mismo camino que producción (advisory lock + citext), y que
+    # una segunda pasada es idempotente (cada despliegue vuelve a llamar a runMigrations).
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: cyclingstar_migrations
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/cyclingstar_migrations
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - name: Build de packages/db
+        run: pnpm exec tsc -b packages/db
+      - name: Aplica las migraciones
+        run: node scripts/migrate.mjs --verify-idempotent
+
+  audit:
+    name: Auditoría de dependencias (informativo)
+    runs-on: ubuntu-latest
+    # No bloquea el merge: es una señal para revisar, no una puerta. Si se quiere
+    # bloquear algún día, quitar `continue-on-error`.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - name: pnpm audit
+        run: pnpm audit --audit-level=high

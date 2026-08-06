@@ -24,7 +24,7 @@ function NationCard({ c }: { c: CountrySummary }) {
   const info = COUNTRIES.find((x) => x.code === c.country)
   return (
     <Link
-      to={`/countries/${c.country}`}
+      to={`/world/nations/${c.country}`}
       className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm transition hover:border-indigo-300"
     >
       <span className="flex items-center gap-2">

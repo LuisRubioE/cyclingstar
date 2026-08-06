@@ -4,46 +4,52 @@ import {
   AdminAuthError,
   type BlockedKind,
   addBlocked,
-  clearAdminToken,
   fetchBlocklist,
   fetchWorldHealth,
-  getAdminToken,
   removeBlocked,
-  setAdminToken,
   setPremium,
 } from '../api/admin'
 
 /**
  * Base secreta de admins (no enlazada en la navegación): lista de bloqueo de nombres de equipos
  * reales y de ciclistas / personas famosas reales, para evitar su uso. Se protege con el
- * ADMIN_TOKEN (el que ya usas para el tick), guardado en el navegador.
+ * ADMIN_TOKEN (el que ya usas para el tick).
+ *
+ * SEGURIDAD: el token vive SOLO en el estado de React de esta página y se pasa a mano a cada
+ * llamada. No se guarda en localStorage ni en ninguna otra parte, así que un XSS no puede
+ * robarlo del almacenamiento y no sobrevive a una recarga: hay que introducirlo en cada sesión.
  */
 export function AdminNames() {
-  const [unlocked, setUnlocked] = useState(getAdminToken().length > 0)
+  const [token, setToken] = useState('')
   const [tokenInput, setTokenInput] = useState('')
 
   function unlock() {
-    if (!tokenInput.trim()) return
-    setAdminToken(tokenInput)
+    const value = tokenInput.trim()
+    if (!value) return
+    setToken(value)
     setTokenInput('')
-    setUnlocked(true)
   }
 
   function lock() {
-    clearAdminToken()
-    setUnlocked(false)
+    setToken('')
   }
 
-  if (!unlocked) {
+  if (!token) {
     return (
       <section className="mx-auto max-w-md space-y-4">
         <h1 className="text-2xl font-bold tracking-tight">Admin — blocked names</h1>
         <p className="text-sm text-slate-500">
           Enter the admin token to manage the list of real team and rider/celebrity names to keep
-          out of the game.
+          out of the game. The token is kept in memory only, so you have to enter it again after a
+          reload.
         </p>
+        <label htmlFor="admin-token" className="sr-only">
+          Admin token
+        </label>
         <input
+          id="admin-token"
           type="password"
+          autoComplete="off"
           value={tokenInput}
           onChange={(e) => setTokenInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && unlock()}
@@ -79,16 +85,18 @@ export function AdminNames() {
         </button>
       </div>
 
-      <HealthPanel onExpired={lock} />
+      <HealthPanel token={token} onExpired={lock} />
 
       <div className="grid gap-8 lg:grid-cols-2">
         <BlocklistPanel
+          token={token}
           kind="team"
           title="Real team names"
           hint="e.g. UAE Team Emirates, Jumbo-Visma"
           onExpired={lock}
         />
         <BlocklistPanel
+          token={token}
           kind="rider"
           title="Real riders & famous people"
           hint="e.g. Tadej Pogačar, Cristiano Ronaldo"
@@ -102,13 +110,13 @@ export function AdminNames() {
           Premium players (admin + trusted, paid later) can take over the bot team their rider races
           for and turn it into a player-managed team.
         </p>
-        <PremiumPanel onExpired={lock} />
+        <PremiumPanel token={token} onExpired={lock} />
       </div>
     </section>
   )
 }
 
-function PremiumPanel({ onExpired }: { onExpired: () => void }) {
+function PremiumPanel({ token, onExpired }: { token: string; onExpired: () => void }) {
   const [email, setEmail] = useState('')
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
@@ -121,7 +129,7 @@ function PremiumPanel({ onExpired }: { onExpired: () => void }) {
     setMsg(null)
     setError(null)
     try {
-      await setPremium(e, premium)
+      await setPremium(token, e, premium)
       setMsg(`${premium ? 'Granted' : 'Removed'} premium for ${e}.`)
       setEmail('')
     } catch (err) {
@@ -177,8 +185,12 @@ function Stat({ label, value }: { label: string; value: number | string }) {
   )
 }
 
-function HealthPanel({ onExpired }: { onExpired: () => void }) {
-  const query = useQuery({ queryKey: ['admin-health'], queryFn: fetchWorldHealth, retry: false })
+function HealthPanel({ token, onExpired }: { token: string; onExpired: () => void }) {
+  const query = useQuery({
+    queryKey: ['admin-health'],
+    queryFn: () => fetchWorldHealth(token),
+    retry: false,
+  })
   if (query.isError && query.error instanceof AdminAuthError) onExpired()
   if (query.isPending) return <p className="text-sm text-slate-500">Loading world health…</p>
   if (query.isError) return null
@@ -222,11 +234,13 @@ function HealthPanel({ onExpired }: { onExpired: () => void }) {
 }
 
 function BlocklistPanel({
+  token,
   kind,
   title,
   hint,
   onExpired,
 }: {
+  token: string
   kind: BlockedKind
   title: string
   hint: string
@@ -239,7 +253,7 @@ function BlocklistPanel({
 
   const query = useQuery({
     queryKey: ['blocklist', kind],
-    queryFn: () => fetchBlocklist(kind),
+    queryFn: () => fetchBlocklist(token, kind),
     retry: false,
   })
 
@@ -257,7 +271,7 @@ function BlocklistPanel({
     setBusy(true)
     setError(null)
     try {
-      await addBlocked(kind, v)
+      await addBlocked(token, kind, v)
       setValue('')
       await qc.invalidateQueries({ queryKey: ['blocklist', kind] })
     } catch (err) {
@@ -270,7 +284,7 @@ function BlocklistPanel({
   async function remove(id: string) {
     setError(null)
     try {
-      await removeBlocked(id)
+      await removeBlocked(token, id)
       await qc.invalidateQueries({ queryKey: ['blocklist', kind] })
     } catch (err) {
       handleError(err)

@@ -51,18 +51,27 @@ export function rollCrash(
   // Severidad por ruleta acumulada (SPEC 6.14); la lesión escala con la fragilidad.
   const roll = rng()
   const s = STAGE.crashSeverity
+  const noneLoss = (): number => STAGE.crashLossNoneMinS + rng() * STAGE.crashLossNoneRangeS
   if (roll < s.none) {
-    return { severidad: 'none', perdidaS: 30 + rng() * 60, diasBaja: 0 }
+    return { severidad: 'none', perdidaS: noneLoss(), diasBaja: 0 }
   }
   if (roll < s.none + s.scratches) {
     return {
       severidad: 'scratches',
-      perdidaS: 30 + rng() * 60,
-      diasBaja: Math.round(3 + rng() * 3),
+      perdidaS: noneLoss(),
+      diasBaja: Math.round(STAGE.crashDaysScratchesMin + rng() * STAGE.crashDaysScratchesRange),
     }
   }
   if (roll < s.none + s.scratches + s.minor * fragility) {
-    return { severidad: 'minor', perdidaS: 60 + rng() * 120, diasBaja: Math.round(5 + rng() * 10) }
+    return {
+      severidad: 'minor',
+      perdidaS: STAGE.crashLossMinorMinS + rng() * STAGE.crashLossMinorRangeS,
+      diasBaja: Math.round(STAGE.crashDaysMinorMin + rng() * STAGE.crashDaysMinorRange),
+    }
   }
-  return { severidad: 'major', perdidaS: 120 + rng() * 180, diasBaja: Math.round(20 + rng() * 40) }
+  return {
+    severidad: 'major',
+    perdidaS: STAGE.crashLossMajorMinS + rng() * STAGE.crashLossMajorRangeS,
+    diasBaja: Math.round(STAGE.crashDaysMajorMin + rng() * STAGE.crashDaysMajorRange),
+  }
 }

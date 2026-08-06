@@ -187,3 +187,198 @@ perillas ajustables.
   regional + wildcards acotadas) ya está calibrada y no se quiere desestabilizar.
 - **Ascensos por puntos**: el ascenso/descenso es por fuerza de plantilla (fama), no por puntos de
   temporada; cambiarlo es una decisión de diseño pendiente.
+
+## Cambio 0 — Desgaste, controlador del pelotón y velocidades reales (`engine_version` 1 → 2)
+
+Implementa `docs/motor.md` §12-bis con la especificación de perillas de la Parte VI. Es la **raíz
+medida** del motor: sin desgaste y con un controlador atado a la existencia de fuga, ningún modelo
+de final ni capa táctica posterior puede dar resultados creíbles. No incluye §12 (modelo de final)
+ni §13 (capa táctica): son fases posteriores.
+
+Toda la campaña es determinista (semillas fijas, `mulberry32`). Los números de "antes" salen de
+correr los mismos arneses sobre el código anterior al cambio.
+
+### Resumen: antes / después
+
+| Medida (mediana, N = 120-500)                    | Antes                         | Después                      | Objetivo            |
+| ------------------------------------------------ | ----------------------------- | ---------------------------- | ------------------- |
+| **Erosión** llana en fresco                      | **0,000**                     | 0,000                        | 0                   |
+| **Erosión** reina en fresco                      | **0,000**                     | **0,267**                    | 0,20 – 0,50 (§VI.1) |
+| **Erosión** reina en 3.ª semana                  | **0,000**                     | **0,674**                    | 0,60 – 0,85 (§VI.1) |
+| Gasto del tanque: llana / reina / reina 3.ª sem. | 46 / 54 / 54 %                | 38 / 57 / 81 %               | umbral separable    |
+| E₀ del corredor de tercera semana                | **100 (fijo)**                | **70,7**                     | ~72 (§VI.1)         |
+| Erosión del que releva vs. del que va a rueda    | 0,000 vs 0,000                | **0,102 vs 0,000**           | claramente mayor    |
+| Velocidad llana 180 km                           | **47,24**                     | **44,07**                    | 42 – 45 km/h        |
+| Velocidad reina 150 km                           | **42,58**                     | **37,60**                    | 33 – 38 km/h        |
+| Velocidad CRI 40 km                              | **54,39**                     | **50,35**                    | 48 – 52 km/h        |
+| Puerto de 15 km al 8 %                           | **27,05 km/h**                | **19,44 km/h**               | 18 – 21 km/h        |
+| **VAM** al 8 % / 10 % / 12 %                     | **2.164 / — / —**             | **1.555 / 1.656 / 1.731**    | 1.500 – 1.800 m/h   |
+| Etapa llana: con fuga vs. sin fuga               | **3h48′ vs 4h27′ (39,3 min)** | 4h05′ vs 4h06′ (**1,3 min**) | ~0                  |
+| Grupos en meta en la reina (de un corredor)      | **19 (10,5)**                 | **5 (1)**                    | pocos, sin sueltos  |
+| Duelo MON 82 vs MON 74, 12 km al 8 %             | **gana el peor (0 %)**        | **gana el mejor (85 %)**     | gana el mejor       |
+| RES 80 vs RES 40 (gemelos), reina en fresco      | **52,5 % (azar)**             | **72,0 %**                   | RES importa         |
+| RES 80 vs RES 40 (gemelos), reina 3.ª semana     | **42,5 %**                    | **62,0 %**                   | RES importa         |
+| `pnpm sim`                                       | **ROJO** (8,3 % y 59,7 %)     | **VERDE**                    | verde               |
+
+### 1. Depósito inicial E₀ dependiente del estado (§VI.1)
+
+`packages/db/src/stageRun.ts:202` tenía `energy: 100` cableado para todos. Ahora:
+
+```
+E₀ = 100 · clamp( mTankFitness(CTL) · mTankFreshness(TSB) · mHealth(salud), 0.70, 1.08 )
+mTankFitness(ctl)   = clamp(0.90 + 0.20·ctl/100, 0.90, 1.10)
+mTankFreshness(tsb) = clamp(1.00 + 0.0065·tsb,   0.66, 1.05)
+```
+
+Las funciones viven en el MOTOR (`banister.ts`, junto a `eff0`/`mForm`/`mHealth`) y las constantes
+en `TANK` (`constants.ts`); `stageRun.ts` solo llama.
+
+**El arrastre entre etapas sale gratis del Banister**: `applyDailyLoad` ya sube el ATL con el TSS
+real de cada etapa, así que el TSB baja solo día tras día en una gran vuelta y el depósito mengua con
+él. No se ha inventado ningún estado paralelo de "fatiga de carrera".
+
+**Giro respecto al punto de partida de §VI.1**: la pendiente de frescura pasa de 0,0045 a **0,0065**
+y el suelo de 0,80 a **0,66**. Con los valores de partida un corredor de tercera semana salía con
+E₀ ≈ 88 y su erosión medía **0,40**, por debajo del 0,60-0,85 que exige la tabla de objetivos; con
+0,0065/0,66 sale con **70,7** y erosiona **0,674**. La tabla de §VI.1 manda sobre los números.
+
+Referencias de la curva: TSB 0 → 1,00 · −25 → 0,84 · −45 → 0,71 · ≤ −55 → 0,66 (suelo). Un corredor
+fresco y en forma sale con 108 (tope); uno hundido en la tercera semana, con 70,7.
+
+### 2. Que la erosión llegue a activarse (§3-bis-a)
+
+El umbral era `0.35 + 0.40·RES/100` = **0,57** con RES 55, y el gasto mediano 46-55: la erosión
+valía **0,000 en todas las etapas** y `effNow == eff0` siempre. Tres perillas, calibradas juntas:
+
+| Perilla                | Antes | Después  | Por qué                                                                                                                                                                                                              |
+| ---------------------- | ----- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `erosionThresholdBase` | 0,35  | **0,20** | Con 0,35 el umbral (0,57) era inalcanzable. Con 0,20 (umbral 0,42 a RES 55) la llana sigue sin erosionar (gasto 38 %) y la reina sí (57 %)                                                                           |
+| `costClimbSlope`       | 0,11  | **0,17** | La reina solo gastaba un **18 %** más que la llana (54 frente a 46). Con esa separación NINGÚN umbral podía dejar la llana en 0 y la reina en 0,20-0,50 a la vez. Ahora la reina gasta un **50 %** más               |
+| `draftFlat`            | 0,32  | **0,42** | La otra mitad de la separación: ir a rueda en un pelotón grande ahorra un 40-50 % real, no un 32 %. Abarata el llano sin tocar la subida (donde el rebufo apenas existe) y, de paso, hace que RELEVAR pese mucho más |
+
+Efecto sobre el trabajo de equipo (llana-180, gasto mediano): relevador **47,6** frente a **37,5** del
+protegido (ratio 1,18 → **1,27**), y en erosión **0,102 frente a 0,000**. En la reina, 0,369 frente a
+0,228.
+
+**La señal de éxito era que RES pasara a importar**, y pasa: dos gemelos idénticos salvo en
+Resistencia (RES 80 contra RES 40) en la etapa reina pasan de un **52,5 %** (azar puro) a un
+**72,0 %** de victorias del más resistente; en tercera semana, de **42,5 %** a **62,0 %**. Sus
+erosiones finales son 0,309 y 0,468.
+
+### 3. Mecánicas muertas que ahora se ejecutan
+
+- **Pájara** (`effNow(..., bonk=true)`): el tercer argumento no se pasaba desde ningún sitio y todo
+  `physics.ts:207-218` era código muerto. Ahora hay un único punto de resolución (`riderEff`) que lo
+  pasa cuando `energy <= 0`, y el corredor con pájara se descuelga automáticamente, suba o no.
+  Medido: 0 % de pájaras en fresco, **9 %** en una reina de tercera semana.
+- **Coste del cerillo** (`matchCost = 5`): estaba definido y no se restaba en ninguna parte, así que
+  salvarse de un descuelgue salía gratis. Ahora se descuenta del tanque y cuenta como trabajo, y no
+  se puede quemar un cerillo sin energía para pagarlo.
+- **Vaciado profundo** (`matchDepletionThreshold`, flag `deepDepleted` de `matchCount`): nunca se
+  pasaba. Como no hay columna donde guardarlo, `stageRun.ts` lo reconstruye del diario del día
+  anterior (`tss / tssPerWorkUnit` frente al E₀ de aquel día, solo si fue día de carrera). El motor
+  publica además el estado del tanque en meta (`StageOutput.tank`), que antes no salía y hacía
+  imposible medir o vigilar la erosión desde fuera.
+
+### 4. El controlador del pelotón, fuera del condicional de la fuga (§3-bis-b)
+
+Vivía dentro de `if (breakaway && !caught && ...)`. Consecuencias medidas en el mismo campo y la
+misma etapa de 180 km: **con fuga 3h48′ (47,2 km/h), sin fuga 4h27′ (40,3 km/h) — 39,3 minutos de
+diferencia** por un detalle de composición del campo; y al capturar la fuga (`breakaway = null`) el
+compromiso quedaba congelado hasta meta.
+
+Ahora el controlador corre **siempre** y hay tres regímenes cuando no hay nada que cazar por delante,
+con sus constantes nuevas:
+
+| Constante            | Valor | Intención                                                               |
+| -------------------- | ----- | ----------------------------------------------------------------------- |
+| `pelotonTempoCommit` | 0,55  | Tempo de carretera: un pelotón rueda, no pasea (antes `commitIdle` 0,1) |
+| `climbTempoCommit`   | 0,62  | Puerto que no es decisivo: se sube a tempo                              |
+| `finalDriveCommit`   | 0,85  | Últimos km con meta llana: los trenes se organizan                      |
+| `finalDriveKm`       | 15    | Desde dónde se organiza ese tirón                                       |
+
+Después: **con fuga 4h05′ · sin fuga 4h06′ — 1,3 minutos**. Efecto colateral inmediato: en el duelo
+de escaladores (12 km al 8 %, MON 82 contra MON 74) el mejor pasa de ganar **0 de 60** a ganar el
+**85 %**, con 140 s de margen mediano; antes ganaba el peor por 4′19″ porque un descolgado
+(`shedCommit` 0,7) rodaba más rápido que un pelotón congelado en 0,1.
+
+### 5. Velocidades y VAM a rango real (§3-bis-c)
+
+| Perilla          | Antes                  | Después                      | Por qué                                                                                                                                                                                                                                            |
+| ---------------- | ---------------------- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `p75Exponent`    | 0,34                   | **0,39**                     | Con 0,34 el nivel del corredor casi no influía. No puede subir mucho más: el invariante de la CRI (2-4 min de brecha p90-p10) lo acota —con 0,45 medía 4,4 min; con 0,85, 7— porque en crono la ley se aplica sin rebufo ni grupo                  |
+| `rhythmScale`    | 0,35                   | **0,30**                     | Que el compromiso del grupo pese menos y quién pedalea pese más. Tampoco puede bajar mucho más: el invariante "un pelotón comprometido cierra 50-75 s por 10 km" depende justo de `ritmo(0,85)/ritmo(0,60)`; con 0,30 queda en 1,069 (medido 53 s) |
+| `vRefFlat`       | 44                     | **42**                       | Con 44 la llana canónica salía a 47,2 km/h                                                                                                                                                                                                         |
+| `vRef` en subida | `44 − 2,7·g`, suelo 14 | **`190/(g + 3,5)`**, suelo 8 | Subir es vencer la gravedad: la velocidad va como el INVERSO de la pendiente. La recta daba VAM 1.940 al 8 % (por encima de cualquier ascensión de la historia) y, pasado el 11 %, el suelo la dejaba plana y la VAM se disparaba a 2.260          |
+
+VAM medida después, punteros de la reina subiendo al compromiso decisivo: **8 % → 1.555 · 10 % →
+1.656 · 12 % → 1.731 m/h**, todo dentro de 1.500-1.800. Al 6 % baja a 1.402, que es lo correcto: en
+pendiente suave manda la aerodinámica y la VAM real cae. Hay un invariante nuevo en `physics.test.ts`
+que lo comprueba al 8, 10 y 12 %.
+
+### 6. Reagrupamiento en subida: grupetos (§3-bis-e)
+
+El recorte y la fusión solo actuaban en llano y descenso (`if (!onClimb && shed.length > 0)`), y la
+reina terminaba con una mediana de **19 grupos, 10,5 de un solo corredor** (33 y 30 con el criterio
+más fino del diagnóstico). Dos piezas nuevas, ambas con el umbral estrecho `grupetoJoinGapSeconds` =
+12 s, para no destruir la selección:
+
+1. **Al descolgarse** (`dropOut`), si ya rueda un grupo de descolgados a la misma altura de carrera,
+   el corredor se une a él en vez de abrir grupo propio. Los que se sueltan a la vez ruedan juntos:
+   es como nacen los grupetos de verdad. Vale también para caídas y pájaras.
+2. **En subida** los grupos de descolgados se funden entre sí si están a menos de 12 s. Sin recorte
+   contra el pelotón y sin reenganche: en la subida manda la selección.
+
+Después: **5 grupos, 1 de un corredor** (igual en la reina de tercera semana). La selección se
+mantiene: el mejor escalador sigue ganando el 85 % de los duelos.
+
+Para que la brecha 1.º-10.º no se disparase con el pelotón ya regulando y la erosión activa hubo que
+mover además dos perillas del descuelgue:
+
+| Perilla                | Antes | Después  | Efecto medido en la brecha 1.º-10.º                                         |
+| ---------------------- | ----- | -------- | --------------------------------------------------------------------------- |
+| `dropDeficitTolerance` | 2     | **4**    | 377 s → 285 s                                                               |
+| `shedCommit`           | 0,70  | **0,82** | 285 s → 262 s. Quien se descuelga en un puerto no se sienta: va a su umbral |
+
+### 7. Re-centrado de la fuga tras liberar el controlador
+
+Con el pelotón regulando de verdad, los rangos de fuga se hundieron y hubo que recentrarlos:
+
+| Perilla                  | Antes     | Después          | Medición                                                                                                                             |
+| ------------------------ | --------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `gcControlLeash`         | 265       | **330**          | La fuga en montaña caía del 35,8 % al **3,3 %**. Sigue siendo la perilla más sensible del motor: 300 → 25 %, 330 → 38 %, 600 → 100 % |
+| `breakawayCommitMin/Max` | 0,50/0,65 | **0,52/0,665**   | La fuga en llano caía al **0,6 %**. El extremo superior es muy sensible: 0,665 → 3,4 %, 0,68 → 8,0 %, 0,75 → 28,7 %                  |
+| `chaseMaxLeashSeconds`   | 150       | **175**          | La caza se cerraba a 29 km de meta (objetivo 8-25); vuelve a 23,5 km                                                                 |
+| `climbPaceFraction`      | 0,12      | 0,12 (sin tocar) | Probado a 0,20: solo restaba 10 s a la brecha y diluía "el mejor escalador manda". Se deja donde estaba                              |
+
+### 8. Umbrales de `pnpm sim` y de CI: una sola fuente de verdad (§3-bis-h)
+
+`sim/cli.ts` exigía fuga en llano 2-8 % y en montaña 25-45 %; `sim/invariants.test.ts` aceptaba
+2-12 % y 25-55 %. CI pasaba en verde mientras `pnpm sim` salía en rojo (8,3 % y 59,7 %). Los rangos
+viven ahora en **`packages/engine/src/sim/targets.ts`** y los leen los dos, así que no pueden volver a
+divergir. `pnpm sim` reporta además el bloque nuevo de **desgaste**.
+
+### Invariantes reajustados, y por qué
+
+| Invariante                     | Antes             | Ahora                                                            | Justificación                                                                                                                                                                                                                                                                                                                          |
+| ------------------------------ | ----------------- | ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Fuga en llano                  | 2-8 % / 2-12 %    | **2-8 %**                                                        | Se unifica en el rango estricto (el del CLI), no en el laxo. Medido 3,4 %                                                                                                                                                                                                                                                              |
+| Fuga en montaña                | 25-45 % / 25-55 % | **25-45 %**                                                      | Ídem. Medido 40,8 %                                                                                                                                                                                                                                                                                                                    |
+| Brecha 1.º-10.º en la reina    | 60-240 s          | **60-300 s**                                                     | **El único rango que se relaja.** Es un rango en SEGUNDOS y depende de cuánto dura el puerto: al corregir la VAM (1.940 → 1.555 m/h) el puerto final pasó de 33 a 46 minutos, y la MISMA selección relativa (~9 % del tiempo de subida) pasa de 171 s a 262 s. No es que la montaña seleccione más: es que ahora se sube al ritmo real |
+| `vRef(0, 'llano') === 44`      | literal 44        | `STAGE.vRefFlat`                                                 | El test clavaba el número en vez de la ley                                                                                                                                                                                                                                                                                             |
+| `vRef` en subida, forma lineal | `44 − 2,7·g`      | hipérbola + **invariante nuevo de VAM 1.500-1.800 al 8/10/12 %** | La VAM es la magnitud contrastable con la realidad; el número intermedio, no                                                                                                                                                                                                                                                           |
+| `ENGINE_VERSION`               | 1                 | **2**                                                            | Cambio de comportamiento del motor (CLAUDE.md)                                                                                                                                                                                                                                                                                         |
+
+**Invariantes nuevos** (`sim/invariants.test.ts`, bloque "desgaste"): los tres objetivos de erosión de
+§VI.1 y "el que releva se desgasta más que el que va a rueda". Existen precisamente porque la erosión
+estuvo apagada mucho tiempo sin que ningún test lo notara.
+
+### Pendiente (deferido con razón)
+
+- **La pájara no se narra.** El motor la ejecuta pero no emite evento: una plantilla nueva se
+  imprimiría en crudo en la crónica, que vive en `apps/web`. Se conecta con la telemetría (§16).
+- **Abandonos automáticos** (§VI.3): ya no los bloquea el reagrupamiento, pero son Cambio 4.
+- **Los banners siguen usando `eff0`, no `effNow`**: un escalador reventado corona igual. Es §12.
+- **Etapa de pavés**: sigue sin producir selección (`shatter` solo actúa en subida). Es §14.
+- **`apps/api/src/app.test.ts` clava `engineVersion: 1`** y hay que subirlo a 2. Ese fichero es de
+  otro agente en esta tanda (propiedad de `apps/**`), así que se deja anotado en vez de tocarlo.
