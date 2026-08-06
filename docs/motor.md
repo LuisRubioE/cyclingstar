@@ -488,12 +488,82 @@ Dos vías, ambas deseadas:
 
 ---
 
-## Parte VI — Cuestiones que siguen abiertas
+## Parte VI — Especificación de las tres perillas
 
-1. **Cuánta fatiga debe cargarse en el tanque inicial** (§3-bis-i): la relación exacta entre TSB /
-   CTL y `E0` es una perilla de calibración con consecuencias grandes. Hay que fijarla con
-   Montecarlo, cuidando que una gran vuelta desgaste de verdad sin volverse impracticable.
-2. **Consecuencias de desobedecer** (§V.1): cuánto penaliza en moral y confianza del equipo, y si el
-   equipo puede sancionar (no convocarte) o rescindir.
-3. **Umbral del abandono automático**: dónde está la frontera entre "sufrir mucho" y "no terminar",
-   para que no se convierta en una hemorragia de abandonos en cada etapa de montaña.
+Cerradas. Los valores son **puntos de partida para calibrar con Montecarlo**, no dogma: lo que no se
+negocia es la forma de las fórmulas y los objetivos de salida.
+
+### VI.1 El depósito inicial E₀
+
+Sustituye al `energy: 100` cableado de `stageRun.ts:202`.
+
+```
+E₀ = 100 · clamp( mTankFitness(CTL) · mTankFreshness(TSB) · mHealth(salud), 0.70, 1.08 )
+
+mTankFitness(ctl)  = clamp(0.90 + 0.20·(ctl/100), 0.90, 1.10)
+mTankFreshness(tsb)= clamp(1.00 + 0.0045·tsb,     0.80, 1.05)
+```
+
+Referencias: TSB 0 → 1.00 · TSB −25 → 0.89 · TSB −45 → 0.80 (suelo). Un corredor fresco y en forma
+sale con ~105; uno hundido en la tercera semana, con ~72.
+
+> **La clave del diseño: el arrastre entre etapas sale gratis.** No hace falta un mecanismo nuevo de
+> "fatiga acumulada de la carrera". `applyDailyLoad` ya sube el ATL con el TSS real de cada etapa, así
+> que el TSB baja solo día tras día en una gran vuelta y, con E₀ dependiendo del TSB, **el depósito
+> mengua solo**. Se reutiliza la fisiología que ya existe en vez de inventar estado paralelo.
+
+**Objetivos de calibración** (esto es lo que hay que verificar con Montecarlo, y manda sobre los
+números de arriba):
+
+| Situación                                   | Erosión esperada al final           |
+| ------------------------------------------- | ----------------------------------- |
+| Llana tranquila, corredor fresco            | 0 (no debe erosionar)               |
+| Etapa reina, último puerto, corredor fresco | 0,20 – 0,50                         |
+| Etapa reina, tercera semana, TSB muy bajo   | 0,60 – 0,85                         |
+| Gregario que ha relevado todo el día        | claramente > que el que fue a rueda |
+
+Es una calibración **conjunta** con el umbral `0.35 + 0.40·RES/100` y con el coste por km: puede
+hacer falta bajar el umbral además de bajar E₀. La señal de éxito es que RES pase a importar.
+
+### VI.2 Desobedecer las órdenes del equipo
+
+**Decisión del dueño:** en un **equipo bot, no cuesta nada**. En un **equipo humano, lo que decida su
+mánager** (herramienta futura: no convocar, sancionar, rescindir).
+
+> **Consecuencia que hay que vigilar.** Como hoy todos los equipos son bots, desobedecer sale gratis
+> siempre, y la estrategia óptima pasa a ser "ir siempre de líder" pase lo que pase. Eso vaciaría de
+> sentido los roles.
+>
+> **Mitigación propuesta, coherente con la decisión: que el coste sea intrínseco, no administrativo.**
+> El que se va por su cuenta pierde de forma natural lo que da el equipo — la protección de gregarios
+> (`domestiqueProtect*`), el tren de lanzadores en meta (`leadOutBoost*`) y el reparto de relevos —,
+> así que **gasta más y remata peor**. No es un castigo del sistema: es que ir solo cuesta más. Así
+> desobedecer sigue siendo posible y a veces acertado (soy más fuerte que mi líder, o me han dado un
+> rol absurdo), pero no es gratis por defecto.
+
+### VI.3 Umbral del abandono automático
+
+**Objetivo de diseño, medible:** una gran vuelta de 21 etapas debe empezar con ~176 y terminar con
+**entre 140 y 155** (abandona el **12-20%**), que es el rango real. Traducido: **≈1% del pelotón por
+etapa**, no más.
+
+Tres causas, con su peso objetivo:
+
+| Causa                    | Peso  | Regla                                                                                                                   |
+| ------------------------ | ----- | ----------------------------------------------------------------------------------------------------------------------- |
+| **Fuera de control**     | ~45 % | Llegar fuera de un % del tiempo del ganador, según dureza de la etapa: **8%** en llana, hasta **18%** en la etapa reina |
+| **Lesión**               | ~40 % | Caída de severidad `major` con baja por encima de un umbral → no toma la salida al día siguiente                        |
+| **Colapso / enfermedad** | ~15 % | Tanque a cero lejos de meta de forma sostenida, o enfermar durante la carrera                                           |
+
+**Dos salvaguardas contra la hemorragia**, que es el riesgo real:
+
+1. **Tope por etapa**: como mucho un **4% del pelotón restante** abandona en una sola etapa. Si el
+   corte de tiempo señala a más, se aplica la regla real del ciclismo: cuando un grupo numeroso llega
+   fuera de control, se les readmite con penalización en vez de eliminarlos en bloque.
+2. **El corte de tiempo se mide contra el grupo, no contra el corredor suelto**: hoy la montaña
+   produce 30 grupos de un corredor (§3-bis-e). Hasta que el reagrupamiento del Cambio 0 esté
+   arreglado, aplicar el corte tal cual eliminaría a media carrera. **El abandono automático se
+   implementa DESPUÉS del reagrupamiento, no antes.**
+
+Y el corredor humano tiene siempre la salida voluntaria de §V.5, que es la que convierte esto en
+decisión de juego y no en castigo.
