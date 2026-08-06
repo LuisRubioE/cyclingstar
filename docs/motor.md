@@ -95,6 +95,76 @@ objetivo del SPEC 6.17, y pasa.
 
 Ordenado por cuánto explica la sensación de "resultados basura".
 
+### 3-bis. La evidencia medida (campañas de 60 a 300 semillas)
+
+Todo lo de esta sección está **medido**, no razonado, y es **preexistente**: los mismos números
+salen antes y después de la limpieza reciente.
+
+**a) El desgaste no existe. Es la causa raíz.**
+
+|                               | Llana 180         | Reina 150         |
+| ----------------------------- | ----------------- | ----------------- |
+| Gasto mediano del tanque      | 46,1 / 100        | 54,6 / 100        |
+| Umbral de erosión (RES 55-56) | 0,57              | 0,57              |
+| **Erosión resultante**        | **0,000 siempre** | **0,000 siempre** |
+
+`effNow == eff0` en todas las etapas. **RES, los coeficientes de erosión, la durabilidad y el
+tanque no cambian absolutamente nada**: el ganador se decide con los atributos frescos del km 0.
+Súmese que la pájara nunca dispara y que gastar un cerillo no cuesta energía (`matchCost` sin uso):
+el tanque es decorativo. Un juego de ciclismo sin desgaste no puede producir carreras creíbles.
+
+**b) El controlador del pelotón vive dentro de `if (breakaway && !caught …)` (`simulate.ts:235`).**
+
+- **Sin fuga, el pelotón rueda toda la etapa a `commitIdle` = 0,1.** Mismo campo, misma etapa de 180
+  km: **con fuga 3h49′ (47,0 km/h) · sin fuga 4h28′ (40,3 km/h)**. 39 minutos de diferencia por un
+  detalle de composición del campo.
+- Al capturar la fuga se hace `breakaway = null` y **el compromiso queda congelado** el resto de la
+  etapa: en llano la captura mediana llega a 25 km de meta, así que el final rueda sin regulación.
+- Consecuencia demoledora: un descolgado suelto (`shedCommit` 0,7) **va más rápido que el pelotón**
+  (0,1). Con un MON 82 y un MON 74 idénticos en todo lo demás, puerto de 12 km al 8%: **el peor
+  escalador gana en 55 de 60 etapas, por 4′16″ de mediana.**
+
+**c) Velocidades fuera de rango.**
+
+| Escenario                | Motor                         | Realidad WT                 |
+| ------------------------ | ----------------------------- | --------------------------- |
+| Llana 180 km             | **47,1 km/h**                 | 42-45                       |
+| Reina 150 km             | **42,8 km/h**                 | 33-38                       |
+| Puerto final 15 km al 8% | **24,2 km/h — VAM 1.940 m/h** | 18-21 km/h, VAM 1.500-1.800 |
+| CRI 40 km (ganador)      | **54,4 km/h**                 | 48-52                       |
+
+Una VAM de 1.940 m/h está por encima de cualquier ascensión registrada en la historia del ciclismo.
+El origen está en `targetSpeed`: con `p75Exponent` 0,34 el nivel del corredor casi no influye
+(P75 de 60 frente a 85 son 8 km/h en llano) mientras `rhythmScale` 0,35 hace que el compromiso pese
+mucho más que quién pedalea.
+
+**d) En montaña ganan los peores escaladores.** `reina-150`, 200 semillas: los cazaetapas (MON
+72-75) ganan el **76%**; los líderes (MON 84-87), el **24%**. Puesto mediano 4.º frente a 7.º. El
+pelotón clava el boquete en `gcControlLeash` = 265 s durante ~100 km —la crónica emite literalmente
+`265 → 265 → 265`, un termostato— y solo "corre" el puerto desde 30 km a meta, tarde para recuperar.
+
+**e) La montaña se desintegra.** Mediana de **33 grupos en meta sobre 40 corredores, 30 de ellos de
+un solo corredor**. No hay reagrupamiento ni grupeto en subida.
+
+**f) El pavés no existe como terreno.** 55 km con 25 de pavé 4★, PAV del campo entre 45 y 83:
+**brecha 1.º-último de 0 s, un único grupo en meta**, y el PAV mediano del ganador es **67** — el
+centro exacto del rango, es decir, azar. Es una etapa llana con más coste energético que, por (a),
+tampoco tiene consecuencias.
+
+**g) En llano nadie pierde tiempo.** Mediana de **0 corredores de 40** que no llegan con el tiempo
+del ganador. Los rellenos comparten SPR, así que los puestos 4.º a 40.º los decide **solo el ruido**
+—un mismo corredor va del puesto 4 al 39 según el día— y como los puntos reparten a 14 posiciones,
+**la clasificación por puntos entre gregarios es azar puro**.
+
+**h) `pnpm sim` está en rojo, y ya lo estaba.** Los umbrales de `sim/cli.ts` (fuga en llano 2-8%,
+en montaña 25-45%) son más estrictos que los del test de CI (2-12% y 25-55%). El motor da **8,3%** y
+**59,7%**: CI pasa y `pnpm sim` falla. Hay que alinearlos.
+
+> **Lo que esto cambia respecto al diagnóstico inicial.** El modelo de final (§4) y la ausencia de
+> ataques (§5) son problemas reales, pero **no son la raíz**. La raíz son (a) y (b): sin desgaste y
+> con un controlador que solo funciona mientras hay fuga, ningún modelo de final por sofisticado que
+> sea puede dar resultados creíbles. Se corrigen primero.
+
 ### 4. El problema de fondo: la carrera no decide la carrera
 
 Esta es la línea más importante del motor (`simulate.ts:669`):
@@ -229,6 +299,23 @@ Tipos propuestos: `sprint_masivo`, `sprint_reducido`, `puncheur`, `alto`, `pave`
   única estrategia ganadora.
 - Aplicar erosión también a los banners.
 
+### 12-bis. Cambio 0 — Calibrar el desgaste y liberar el controlador (va ANTES que todo)
+
+Los dos hallazgos de §3-bis (a) y (b) son la raíz y se corrigen primero, porque **todo lo demás se
+calibra encima de ellos**:
+
+1. **Que la erosión llegue a activarse.** Hoy el gasto mediano (46-55 de 100) nunca alcanza el
+   umbral (0,57). Hay que ajustar la relación entre el tanque inicial, el coste por km y el umbral
+   para que una etapa dura erosione de verdad y una suave no. Es un trabajo de calibración con
+   Montecarlo, no de arquitectura. Con él se activan también la pájara y el coste de los cerillos.
+2. **Sacar el controlador del pelotón de `if (breakaway && !caught)`.** El pelotón debe regular su
+   ritmo _siempre_: haya fuga, la hayan cazado o no se haya formado nunca. Es un cambio pequeño de
+   estructura con un efecto enorme (hoy son 39 minutos de diferencia en una etapa llana).
+3. **Revisar `p75Exponent` y `rhythmScale`** para que el nivel del corredor pese más que el
+   compromiso del grupo, y que las velocidades y la VAM caigan a rango real.
+4. **Reagrupamiento en subida** (grupeto), que hoy no existe y produce 30 grupos de un corredor.
+5. **Alinear los umbrales de `pnpm sim` con los del test de CI**, hoy divergentes.
+
 ### 13. Cambio 2 — Capa táctica: que existan los ataques
 
 Es el corazón que falta. Propuesta de mecánica única y reutilizable: un **intento de movimiento**,
@@ -273,14 +360,15 @@ y que los replays dejan de depender de re-simular.
 
 ### 17. Orden de trabajo propuesto
 
-| #   | Trabajo                                          | Por qué en este puesto                                                                                                             |
-| --- | ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | **Perfiles reales** (extracción y validación)    | Es la **entrada** del motor. Calibrar la física contra perfiles basura es meter compensaciones erróneas que luego hay que deshacer |
-| 2   | Modelo de final (§12)                            | Máximo impacto por esfuerzo: arregla "gana quien no debe" sin tocar la física                                                      |
-| 3   | Capa táctica (§13)                               | El desarrollo grande. Es lo que hace que las carreras se distingan                                                                 |
-| 4   | Selección en pavés/descenso (§14) y fatiga (§15) | Completan el realismo por tipo de carrera                                                                                          |
-| 5   | Telemetría (§16)                                 | Habilita el journal y las vistas nuevas                                                                                            |
-| 6   | Recalibración completa con Montecarlo            | Solo tiene sentido al final, con entradas buenas y mecánicas completas                                                             |
+| #   | Trabajo                                                        | Por qué en este puesto                                                                                                                                                |
+| --- | -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0   | **Desgaste + controlador del pelotón + velocidades** (§12-bis) | Es la raíz medida. Sin desgaste y con el controlador atado a la fuga, nada de lo demás puede dar resultados creíbles. No depende de los perfiles: se puede empezar YA |
+| 1   | Modelo de final (§12)                                          | Máximo impacto por esfuerzo una vez hay desgaste: arregla "gana quien no debe"                                                                                        |
+| 2   | Selección en pavés/descenso (§14) y fatiga (§15)               | Hoy el pavés no existe como terreno (brecha de 0 s) y nadie abandona                                                                                                  |
+| 3   | **Perfiles reales** (extracción y validación)                  | Entrada del motor. Necesarios **antes de la recalibración final**, no antes de las correcciones estructurales                                                         |
+| 4   | Capa táctica (§13)                                             | El desarrollo grande. Es lo que hace que las carreras se distingan entre sí                                                                                           |
+| 5   | Telemetría (§16)                                               | Habilita el journal y las vistas nuevas                                                                                                                               |
+| 6   | Recalibración completa con Montecarlo                          | Solo al final, con entradas buenas y mecánicas completas                                                                                                              |
 
 Cada cambio de comportamiento incrementa `engine_version` y se anota en `docs/balance.md`.
 
