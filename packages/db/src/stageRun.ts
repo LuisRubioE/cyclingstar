@@ -1,4 +1,6 @@
 import {
+  ENGINE_VERSION,
+  STAGE,
   type AutoOrderRider,
   type RaceClass,
   type RaceLevel,
@@ -8,6 +10,8 @@ import {
   applyDailyLoad,
   autoStageOrders,
   eff0,
+  initialEnergy,
+  isDeepDepleted,
   matchCount,
   simulateStage,
   stageSeed,
@@ -43,7 +47,7 @@ import {
 type Db = ReturnType<typeof drizzle>
 type Tx = Parameters<Parameters<Db['transaction']>[0]>[0]
 
-const ENGINE_VERSION_NUM = 1
+const ENGINE_VERSION_NUM: number = ENGINE_VERSION
 const RACE_XP_BASE = 0.5
 /** El maillot de líder da alas: el líder de la general rinde ~4% por encima de su nivel efectivo. */
 const LEADER_JERSEY_BOOST = 1.04
@@ -133,6 +137,33 @@ export async function runOneStage(
     .where(and(eq(stageOrders.raceId, spec.raceKey), eq(stageOrders.stageDay, spec.stageDay)))
   const ordersByRider = new Map(orderRows.map((o) => [o.riderId, o]))
 
+  // Vaciado profundo de AYER (SPEC 6.6): quien terminó la etapa anterior por debajo del 12% de su
+  // depósito arranca hoy con un cerillo menos. No hay columna donde guardarlo, así que se reconstruye
+  // del diario: `tss = gasto · tssPerWorkUnit`, y el depósito de aquel día se recalcula con su CTL/TSB
+  // registrados. La aproximación es que el CTL del diario es el POSTERIOR a aplicar la carga (unos
+  // pocos puntos por encima del que se usó): un desvío por debajo del 1% del tanque.
+  const yesterdayRows = await tx
+    .select({
+      riderId: riderDailyLog.riderId,
+      tss: riderDailyLog.tss,
+      ctl: riderDailyLog.ctl,
+      tsb: riderDailyLog.tsb,
+      activity: riderDailyLog.activity,
+    })
+    .from(riderDailyLog)
+    .where(and(inArray(riderDailyLog.riderId, riderIds), eq(riderDailyLog.gameDay, gameDay - 1)))
+  const deepDepletedYesterday = new Set<string>()
+  for (const row of yesterdayRows) {
+    if (!row.activity.startsWith('carrera:')) continue
+    const rider = riderById.get(row.riderId)
+    if (!rider) continue
+    const prevEnergy0 = initialEnergy(row.ctl, row.tsb, rider.health)
+    const spent = row.tss / STAGE.tssPerWorkUnit
+    if (isDeepDepleted(Math.max(0, prevEnergy0 - spent), prevEnergy0)) {
+      deepDepletedYesterday.add(row.riderId)
+    }
+  }
+
   const stageRiders: StageRider[] = []
   const riderState = new Map<
     string,
@@ -187,11 +218,19 @@ export async function runOneStage(
           contestSprints: false,
           contestClimbs: false,
         })
+    // Depósito inicial dependiente del ESTADO (docs/motor.md §VI.1): forma (CTL), frescura (TSB) y
+    // salud. Antes era `energy: 100` para todos, y por eso la erosión no se activaba jamás y la
+    // etapa 18 de una gran vuelta se corría con el mismo tanque que la 1.ª. El arrastre entre etapas
+    // sale gratis del Banister: `applyDailyLoad` sube el ATL con el TSS real de cada etapa, el TSB
+    // baja solo y el depósito mengua con él, sin ningún estado paralelo de "fatiga de carrera".
+    const energy0 = initialEnergy(rider.ctl, tsb, rider.health)
     stageRiders.push({
       riderId,
       eff0: effResolved,
-      energy: 100,
-      matches: matchCount(effResolved, tsb),
+      energy: energy0,
+      // Vaciado profundo del día anterior: quien terminó por debajo del 12% de su depósito sale
+      // hoy con un cerillo menos (SPEC 6.6). Hasta ahora el flag nunca se pasaba.
+      matches: matchCount(effResolved, tsb, deepDepletedYesterday.has(riderId)),
       tsb,
       orders,
       gcDeficitSeconds: (gcTime.get(riderId) ?? 0) - gcLeader,
