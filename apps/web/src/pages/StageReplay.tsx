@@ -9,12 +9,33 @@ import {
 import { Flag } from '../components/Flag'
 import { RiderName } from '../components/RiderName'
 
+/** Segundos como diferencia de carrera: 45s, 1:30, 12:05. */
+function fmtGap(seconds: number): string {
+  if (seconds < 60) return `${seconds}s`
+  const m = Math.floor(seconds / 60)
+  const s = String(seconds % 60).padStart(2, '0')
+  return `${m}:${s}`
+}
+
 /** Convierte un evento del motor en una frase legible del journal de la etapa. */
 function chronicleLine(e: ChronicleEntry): string {
   const who = e.protagonists.join(', ')
   switch (e.plantilla) {
     case 'breakaway_formed':
       return `${who || 'A group'} go clear in the break.`
+    case 'break_cooperation':
+      return e.datos?.cooperating === 1
+        ? 'The break settles into a smooth rhythm, everyone taking turns.'
+        : 'There is little cooperation up front — the move looks disorganised.'
+    case 'sprinters_chase':
+      return "The sprinters' teams mass at the front and take up the chase."
+    case 'time_gap': {
+      const g = Number(e.datos?.gapS ?? 0)
+      const trend = Number(e.datos?.trend ?? 0)
+      const tail =
+        trend > 0 ? ' and growing' : trend < 0 ? ', and the bunch is pulling it back' : ''
+      return `The break leads by ${fmtGap(g)}${tail}.`
+    }
     case 'peloton_concedes':
       return 'The peloton concedes — the break is given room to fight for the win.'
     case 'sprinters_give_up':
