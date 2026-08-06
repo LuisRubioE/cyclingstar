@@ -83,6 +83,40 @@ export function analyzeMountain(scenario: Scenario, seeds: string[]): MountainSt
   }
 }
 
+export interface ErosionStats {
+  runs: number
+  /** Erosión mediana del campo al cruzar la meta (docs/motor.md §VI.1). */
+  medianErosion: number
+  /** Vaciado mediano del tanque, en fracción de E0. */
+  medianDepletion: number
+  /** % de corredores que terminan con pájara (tanque a cero). */
+  bonkPct: number
+}
+
+/**
+ * Corre una campaña y agrega el DESGASTE (docs/motor.md §VI.1). Sin esto la erosión no se podía
+ * medir desde fuera y llevaba tiempo valiendo 0.000 en todas las etapas sin que nadie lo notara.
+ */
+export function analyzeErosion(scenario: Scenario, seeds: string[]): ErosionStats {
+  const erosions: number[] = []
+  const depletions: number[] = []
+  let bonked = 0
+  for (const seed of seeds) {
+    const out = simulateStage(scenario.input, seed)
+    for (const t of out.tank.values()) {
+      erosions.push(t.erosion)
+      depletions.push(t.depletion)
+      if (t.energy <= 0) bonked += 1
+    }
+  }
+  return {
+    runs: seeds.length,
+    medianErosion: median(erosions),
+    medianDepletion: median(depletions),
+    bonkPct: erosions.length === 0 ? 0 : (100 * bonked) / erosions.length,
+  }
+}
+
 export interface TimeTrialStats {
   runs: number
   /** Brecha percentil 90 a 10 del campo, mediana en segundos (objetivo 120-240). */

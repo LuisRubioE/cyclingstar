@@ -14,6 +14,7 @@ export {
   MORALE,
   NPC,
   STAGE,
+  TANK,
   TRAINING,
 } from './constants.js'
 export { deriveClimbCategory, isWall, sampleProfile, stageLengthKm } from './stage/sample.js'
@@ -96,9 +97,11 @@ export {
   type OfferInput,
 } from './world/contracts.js'
 export {
+  analyzeErosion,
   analyzeFlat,
   analyzeMountain,
   analyzeTimeTrial,
+  type ErosionStats,
   type FlatStats,
   type MountainStats,
   type TimeTrialStats,
@@ -107,9 +110,11 @@ export {
   campaignSeeds,
   flatScenario,
   queenScenario,
+  queenThirdWeekScenario,
   timeTrialScenario,
   type Scenario,
 } from './sim/scenarios.js'
+export { TARGETS, type Target } from './sim/targets.js'
 export {
   advanceGroup,
   createGroup,
@@ -132,8 +137,10 @@ export {
   effNowAttr,
   erosion,
   depletion,
+  isDeepDepleted,
   matchCount,
   rhythm,
+  tankState,
   stepSpeed,
   targetSpeed,
   vRef,
@@ -159,6 +166,7 @@ export type {
   StageResult,
   StageRider,
   StageRole,
+  TankState,
 } from './stage/types.js'
 export {
   simulateRiderDay,
@@ -176,9 +184,12 @@ export {
   formStars,
   freshnessBar,
   illnessProbability,
+  initialEnergy,
   mForm,
   mHealth,
   mMorale,
+  mTankFitness,
+  mTankFreshness,
   regressMorale,
   tauFatigue,
   tsbFactor,
