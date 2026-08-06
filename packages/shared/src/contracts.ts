@@ -482,7 +482,11 @@ export const newsItemSchema = z.object({
   personal: z.boolean(),
   /** Protagonista, para pintar su bandera y enlazarlo (null si el titular no tiene corredor). */
   riderId: z.string().nullable(),
+  riderName: z.string().nullable(),
   country: z.string().nullable(),
+  /** Equipo ACTUAL del protagonista: es lo que permite filtrar el feed por equipo (§3.5). */
+  teamId: z.string().nullable(),
+  teamName: z.string().nullable(),
 })
 export type NewsItem = z.infer<typeof newsItemSchema>
 export const newsResponseSchema = z.object({ news: z.array(newsItemSchema) })

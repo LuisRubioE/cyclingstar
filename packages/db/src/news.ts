@@ -3,7 +3,7 @@ import { renderNews } from '@cyclingstar/engine'
 import { and, desc, eq, or } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import type { Database } from './client.js'
-import { news, riders } from './schema.js'
+import { news, riders, teams } from './schema.js'
 
 /**
  * Feed de noticias (SPEC, Paso 39). El generador templado del motor redacta el titular; aquí se
@@ -50,7 +50,11 @@ export interface NewsItem {
   personal: boolean
   /** Protagonista, para pintar su bandera y enlazarlo (null si el titular no tiene corredor). */
   riderId: string | null
+  riderName: string | null
   country: string | null
+  /** Equipo ACTUAL del protagonista: es lo que permite filtrar el feed por equipo (§3.5). */
+  teamId: string | null
+  teamName: string | null
 }
 
 /** Feed global del mundo, lo más reciente primero. */
@@ -65,10 +69,14 @@ export async function getGlobalNews(
       kind: news.kind,
       text: news.text,
       riderId: news.riderId,
+      riderName: riders.name,
       country: riders.country,
+      teamId: riders.teamId,
+      teamName: teams.name,
     })
     .from(news)
     .leftJoin(riders, eq(riders.id, news.riderId))
+    .leftJoin(teams, eq(teams.id, riders.teamId))
     .where(eq(news.worldId, worldId))
     .orderBy(desc(news.gameDay), desc(news.createdAt))
     .limit(limit)
@@ -86,10 +94,14 @@ export async function getTeamNews(db: Database, teamId: string, limit = 15): Pro
       kind: news.kind,
       text: news.text,
       riderId: news.riderId,
+      riderName: riders.name,
       country: riders.country,
+      teamId: riders.teamId,
+      teamName: teams.name,
     })
     .from(news)
     .innerJoin(riders, eq(riders.id, news.riderId))
+    .leftJoin(teams, eq(teams.id, riders.teamId))
     .where(eq(riders.teamId, teamId))
     .orderBy(desc(news.gameDay), desc(news.createdAt))
     .limit(limit)
@@ -110,10 +122,14 @@ export async function getRiderNews(
       text: news.text,
       scope: news.scope,
       riderId: news.riderId,
+      riderName: riders.name,
       country: riders.country,
+      teamId: riders.teamId,
+      teamName: teams.name,
     })
     .from(news)
     .leftJoin(riders, eq(riders.id, news.riderId))
+    .leftJoin(teams, eq(teams.id, riders.teamId))
     .where(and(eq(news.worldId, worldId), or(eq(news.riderId, riderId), eq(news.scope, 'global'))))
     .orderBy(desc(news.gameDay), desc(news.createdAt))
     .limit(limit)

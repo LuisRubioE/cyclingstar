@@ -11,7 +11,7 @@ import {
   STAGE_ROLE_OPTIONS,
   ledgerKindLabel,
   mentalityLabel,
-  newsIcon,
+  newsLabel,
   palmaresLabel,
   raceClassLabel,
   roleLabel,
@@ -32,7 +32,7 @@ describe('web: diccionario de dominio (español interno → inglés de UI)', () 
     expect(ledgerKindLabel('multa')).toBe('multa')
     expect(palmaresLabel('otro')).toBe('otro')
     expect(mentalityLabel('desconocida')).toBe('desconocida')
-    expect(newsIcon('lo_que_sea')).toBe('📰')
+    expect(newsLabel('lo_que_sea')).toBe('News')
   })
 
   it('traduce los tipos de apunte y de palmarés', () => {

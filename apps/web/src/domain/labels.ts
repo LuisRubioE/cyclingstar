@@ -138,22 +138,26 @@ export function palmaresLabel(kind: string): string {
   return PALMARES_KIND_LABEL[kind] ?? kind
 }
 
-/** Icono del tipo de titular del feed de noticias. */
-const NEWS_KIND_ICON: Record<string, string> = {
-  stage_win: '🏆',
-  tt_win: '⏱️',
-  breakaway_win: '🚀',
-  one_day_win: '🏆',
-  one_day_tt_win: '⏱️',
-  kom: '⛰️',
-  gc_win: '👑',
-  contract: '✍️',
-  injury: '🚑',
-  retirement: '👋',
+/**
+ * Familia del titular del feed, para la etiqueta de la izquierda: una palabra, sin iconos. El feed
+ * pide un diseño sobrio con jerarquía tipográfica (docs/navegacion.md §3.5), y una fila de emojis
+ * ni se puede leer en voz alta ni distingue un triunfo de etapa de uno de la general.
+ */
+const NEWS_KIND_LABEL: Record<string, string> = {
+  stage_win: 'Stage',
+  tt_win: 'Time trial',
+  breakaway_win: 'Breakaway',
+  one_day_win: 'Classic',
+  one_day_tt_win: 'Time trial',
+  kom: 'Mountains',
+  gc_win: 'Overall',
+  contract: 'Transfer',
+  injury: 'Injury',
+  retirement: 'Retirement',
 }
 
-export function newsIcon(kind: string): string {
-  return NEWS_KIND_ICON[kind] ?? '📰'
+export function newsLabel(kind: string): string {
+  return NEWS_KIND_LABEL[kind] ?? 'News'
 }
 
 /** Clase de la carrera tal como se escribe en el ciclismo real (.WT, .Pro, .1…). */
