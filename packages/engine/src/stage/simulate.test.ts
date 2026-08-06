@@ -158,7 +158,9 @@ function terrainCases(): { name: string; input: StageInput }[] {
   }
   const rouleurs = (pav: number): StageRider[] =>
     Array.from({ length: 30 }, (_, i) =>
-      rider(`r-${i}`, { eff0: eff(56, { PAV: pav + (i % 9), LLA: 60 + (i % 7), CRI: 62 + (i % 8) }) }),
+      rider(`r-${i}`, {
+        eff0: eff(56, { PAV: pav + (i % 9), LLA: 60 + (i % 7), CRI: 62 + (i % 8) }),
+      }),
     )
 
   return [
