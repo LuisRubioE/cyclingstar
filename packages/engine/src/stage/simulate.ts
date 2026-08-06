@@ -12,6 +12,7 @@ import { type Group, advanceGroup, createGroup, gapSeconds, percentile75 } from 
 import { blockCost, blockPerfil, effNow, erosion } from './physics.js'
 import { rollHazard } from './hazard.js'
 import { rollCrash } from './crash.js'
+import { markingMargin, resolveMarking } from './marcaje.js'
 import { sampleProfile, stageLengthKm } from './sample.js'
 import { stageRng } from './rng.js'
 import { simulateTimeTrial } from './timetrial.js'
@@ -36,6 +37,8 @@ interface RiderSim {
   climbBoostBlocks: number
   /** Desempate fijo del turno de relevos, en [0,1) (SPEC 6.1: subflujo nominal por corredor). */
   workJitter: number
+  /** Segundos cedidos al objetivo marcado sin llegar a soltarse (`gives` de SPEC 6.18). */
+  markLossS: number
   incident: Incident | null
 }
 
@@ -165,6 +168,7 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       // Subflujo NOMINAL por corredor: el desempate del turno de relevos no depende del orden del
       // array de entrada ni del tamaño del pelotón, solo de la semilla y del id (SPEC 6.1).
       workJitter: streams(`work:${r.riderId}`)(),
+      markLossS: 0,
       incident: null,
     })
   }
@@ -412,20 +416,26 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       for (const m of members) {
         const deficit = pace - riderPerfil(m, block)
         if (deficit <= STAGE.dropDeficitTolerance) continue
-        // Marcaje (SPEC 6.18): si m marca a un rival que sube en su MISMO grupo, se agarra a su rueda y
-        // aguanta mientras su nivel de escalada no esté MUY por debajo del objetivo (margen ≥ -6). Así
-        // "marcar a un rival" evita que se te escape en la subida (donde se decide la general).
+        const lambda = (STAGE.lambdaDropBase * deficit) / STAGE.dropDeficitDenom
+        if (!rollHazard(rngHazard, lambda)) continue
+        // Marcaje (SPEC 6.18): el hazard que acaba de saltar ES el momento de selección (el ataque).
+        // Si m marca a un rival que sube en su MISMO grupo, la respuesta la resuelve el módulo
+        // oficial `marcaje.ts`: pegado a rueda, cede unos segundos, o se suelta.
         const targetId = markTargetOf.get(m.input.riderId)
         if (targetId && inGroup.has(targetId)) {
           const target = sims.get(targetId)
           if (target) {
-            const margin =
-              riderPerfil(m, block) - riderPerfil(target, block) + STAGE.markDraftTolerance
-            if (margin >= STAGE.markDropMargin) continue // se queda a rueda del objetivo
+            const outcome = resolveMarking(
+              markingMargin(riderPerfil(m, block), riderPerfil(target, block)),
+            )
+            if (outcome.kind === 'stuck') continue
+            if (outcome.kind === 'gives') {
+              m.markLossS += outcome.secondsLost
+              continue
+            }
+            // 'dropped': se suelta y sigue por el camino normal de descuelgue.
           }
         }
-        const lambda = (STAGE.lambdaDropBase * deficit) / STAGE.dropDeficitDenom
-        if (!rollHazard(rngHazard, lambda)) continue
         if (m.matches > 0 && m.input.orders.mentality !== 'reservon') {
           m.matches -= 1
           m.climbBoostBlocks = STAGE.matchBonusBlocks
@@ -736,7 +746,9 @@ function finishStage(
       })
       .sort((a, b) => b.score - a.score)
     ranked.forEach(({ m }, idx) => {
-      m.finishTs = group.tS + idx * STAGE.finishTieBreakSeconds
+      // Los segundos cedidos marcando (SPEC 6.18) se pagan en el tiempo de meta: el marcador no se
+      // soltó del grupo, pero llegó con ese retraso respecto a su objetivo.
+      m.finishTs = group.tS + m.markLossS + idx * STAGE.finishTieBreakSeconds
     })
     if (gi === 0 && ranked[0]) {
       const field = ranked.length
