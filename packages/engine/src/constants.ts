@@ -214,6 +214,12 @@ export const STAGE = {
   // La fuga se fecha en los primeros km (ataques de salida), no en el km 0: mín + aleatorio determinista.
   breakFormMinKm: 3,
   breakFormKmRange: 17,
+  // Tope de la fecha de formación de la fuga como fracción del recorrido: en una etapa corta la
+  // fuga no puede "formarse" a 25 km de salida; nunca pasa de este % del total.
+  breakFormMaxRouteFraction: 0.15,
+  // Variación de la ventaja (s) a partir de la cual el reporte de boquete dice que la fuga se
+  // estira (+1) o se recorta (-1) respecto al reporte anterior; por debajo, se considera estable.
+  gapTrendThresholdSeconds: 3,
 
   // 6.5 — Coste, tanque y drafting.
   // costeBase paves: 0.55 + 0.06·estrellas.
@@ -306,6 +312,10 @@ export const STAGE = {
   // Compromiso de los favoritos en la subida decisiva: tempo duro que descuelga poco a poco
   // (no máximo, o el grupo llegaría junto). Calibra la caza de la fuga y el estiramiento.
   climbRaceCommit: 0.85,
+  // Tamaño de la fuga del día: entre 3 y 6 corredores (mín + entero uniforme en [0, rango-1]).
+  // Menos de 3 no colabora; más de 6 es un grupo que el pelotón ya no deja marchar.
+  breakawaySizeMin: 3,
+  breakawaySizeRange: 4,
   breakawayScoreTac: 0.4,
   breakawayScoreLla: 0.3,
   breakawayScoreRng: 0.3,
@@ -353,7 +363,12 @@ export const STAGE = {
 
   // 6.12 — Últimos 2 km (20 bloques) y finales.
   finalBlocks: 20,
+  // Ruido multiplicativo del remate: score = base·N(1, sd). Es el ÚNICO modelo de ruido de
+  // desempate del motor; lo comparten el sprint de meta y los mini-sprints de banner (6.11).
   sprintScoreNoiseSd: 0.045,
+  // Desempate dentro de un mismo grupo de meta: cada puesto suma este épsilon al reloj del grupo,
+  // de modo que el orden del sprint sobrevive al `sort` sin alterar el tiempo redondeado a segundos.
+  finishTieBreakSeconds: 0.001,
   // "Día" del corredor (SPEC 6.7): cada corredor rinde algo mejor o peor cada etapa (piernas del día),
   // escalando su nivel efectivo. Aporta variación —no siempre gana el mismo— sin volverlo azar puro.
   dayFormSd: 0.035,
@@ -394,6 +409,21 @@ export const STAGE = {
     minor: 0.09,
     major: 0.01,
   },
+  // Consecuencias de una caída por severidad: tiempo perdido en carretera (s) y días de baja.
+  // Cada rango se expresa como mínimo + amplitud uniforme, para que la tirada sea `min + rng()·range`.
+  // Un susto cuesta medio minuto largo (levantarse y volver al grupo); una caída grave arruina el mes.
+  crashLossNoneMinS: 30,
+  crashLossNoneRangeS: 60, // 30-90 s: sin daño y con rasguños
+  crashLossMinorMinS: 60,
+  crashLossMinorRangeS: 120, // 60-180 s: lesión leve
+  crashLossMajorMinS: 120,
+  crashLossMajorRangeS: 180, // 120-300 s: lesión grave
+  crashDaysScratchesMin: 3,
+  crashDaysScratchesRange: 3, // 3-6 días
+  crashDaysMinorMin: 5,
+  crashDaysMinorRange: 10, // 5-15 días
+  crashDaysMajorMin: 20,
+  crashDaysMajorRange: 40, // 20-60 días
 
   // 6.15 — Bonificaciones de tiempo en meta.
   timeBonuses: [10, 6, 4],

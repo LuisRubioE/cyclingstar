@@ -184,7 +184,10 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
           STAGE.breakawayScoreRng * 100 * rngBreak(),
       }))
       .sort((a, b) => b.score - a.score)
-    const size = Math.min(scored.length, 3 + Math.floor(rngBreak() * 4)) // 3..6
+    const size = Math.min(
+      scored.length,
+      STAGE.breakawaySizeMin + Math.floor(rngBreak() * STAGE.breakawaySizeRange),
+    )
     const fugados = scored.slice(0, size).map((s) => s.r.riderId)
     if (fugados.length >= 2) {
       for (const id of fugados) sims.get(id)!.groupId = BREAKAWAY
@@ -200,7 +203,10 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       // La fuga se fragua en los primeros km de ataques, no en la línea de salida (km 0): se fecha en
       // un punto temprano, variado y determinista, sin pasar del 15% del recorrido en etapas cortas.
       breakFormedKm = Math.round(
-        Math.min(totalKm * 0.15, STAGE.breakFormMinKm + rngBreak() * STAGE.breakFormKmRange),
+        Math.min(
+          totalKm * STAGE.breakFormMaxRouteFraction,
+          STAGE.breakFormMinKm + rngBreak() * STAGE.breakFormKmRange,
+        ),
       )
       log.emit(breakFormedKm, breakaway.tS, 'fuga_formada', 'breakaway_formed', fugados)
       // Colaboración de la fuga: con un compromiso alto van a bloque; con uno bajo se miran y no
@@ -245,9 +251,9 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
         const trend =
           prevGapS === Number.POSITIVE_INFINITY
             ? 0
-            : gap > prevGapS + 3
+            : gap > prevGapS + STAGE.gapTrendThresholdSeconds
               ? 1
-              : gap < prevGapS - 3
+              : gap < prevGapS - STAGE.gapTrendThresholdSeconds
                 ? -1
                 : 0
         log.emit(km, peloton.tS, 'boquete', 'time_gap', [], { gapS: Math.round(gap), trend })
@@ -683,7 +689,7 @@ function finishStage(
       })
       .sort((a, b) => b.score - a.score)
     ranked.forEach(({ m }, idx) => {
-      m.finishTs = group.tS + idx * 1e-3
+      m.finishTs = group.tS + idx * STAGE.finishTieBreakSeconds
     })
     if (gi === 0 && ranked[0]) {
       const field = ranked.length
