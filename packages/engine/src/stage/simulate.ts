@@ -9,13 +9,21 @@ import { normal, type Rng } from '../random.js'
 import { ENGINE_VERSION, STAGE } from '../constants.js'
 import { EventLog } from './events.js'
 import { type Group, advanceGroup, createGroup, gapSeconds, percentile75 } from './group.js'
-import { blockCost, blockPerfil, effNow, erosion } from './physics.js'
+import { blockCost, blockPerfil, effNow, erosion, tankState } from './physics.js'
 import { rollHazard } from './hazard.js'
 import { rollCrash } from './crash.js'
 import { sampleProfile, stageLengthKm } from './sample.js'
 import { stageRng } from './rng.js'
 import { simulateTimeTrial } from './timetrial.js'
-import type { Block, Incident, StageInput, StageOutput, StageResult, StageRider } from './types.js'
+import type {
+  Block,
+  Incident,
+  StageInput,
+  StageOutput,
+  StageResult,
+  StageRider,
+  TankState,
+} from './types.js'
 
 const PELOTON = 'peloton'
 const BREAKAWAY = 'fuga'
@@ -51,13 +59,27 @@ function isSprinter(r: StageRider): boolean {
   return r.orders.role === 'sprinter' || r.eff0.SPR >= 70
 }
 
+/** ¿Está el corredor con la pájara (tanque a cero)? (SPEC 6.7). */
+function isBonked(sim: RiderSim): boolean {
+  return sim.energy <= 0
+}
+
+/**
+ * Efectividades del corredor AHORA, con la erosión del momento y la pájara si el tanque está a
+ * cero (SPEC 6.7). Único punto donde se resuelve `effNow`: antes el 3.er argumento (`bonk`) no se
+ * pasaba nunca desde ninguna parte y todo el bloque de la pájara era código muerto.
+ */
+function riderEff(sim: RiderSim): ReturnType<typeof effNow> {
+  const e = erosion(sim.energy, sim.energy0, sim.input.eff0.RES)
+  return effNow(sim.input.eff0, e, isBonked(sim))
+}
+
 /**
  * Perfil efectivo de un corredor en un bloque, ya con la erosión del momento (SPEC 6.4, 6.7).
  * En los muros (subida corta y empinada) manda COL en vez de MON; un cerillo activo suma +10.
  */
 function riderPerfil(sim: RiderSim, block: Block): number {
-  const e = erosion(sim.energy, sim.energy0, sim.input.eff0.RES)
-  const eff = effNow(sim.input.eff0, e)
+  const eff = riderEff(sim)
   const useCol = block.tipo === 'subida' && block.g >= STAGE.wallMinGradient
   let perfil = blockPerfil(eff, block, useCol)
   if (sim.climbBoostBlocks > 0 && block.tipo === 'subida') perfil += STAGE.matchBonus
@@ -231,13 +253,25 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
     // Caduca el impulso de cerillo de todos los corredores en carrera.
     for (const s of sims.values()) if (s.climbBoostBlocks > 0) s.climbBoostBlocks -= 1
 
-    // Controlador del pelotón cada 10 bloques, con histéresis (SPEC 6.9).
-    if (breakaway && !caught && i % STAGE.decisionEveryBlocks === 0) {
-      const gap = peloton.tS - breakaway.tS
+    // En subida mandan los más fuertes (fracción menor): el grupo se estira y se descuelga. PERO solo
+    // se ataca el puerto de verdad cerca de meta (o en un final en alto): un puerto a mitad de etapa se
+    // sube a TEMPO (fracción mayor → ritmo más suave), así el pelotón no se destroza en cada cota y las
+    // diferencias las marca el último puerto, como en la realidad. Lejos de meta apenas se descuelga nadie.
+    const onClimb = block.tipo === 'subida'
+    const raceThisClimb = finishUphill || totalKm - km <= STAGE.climbRaceKmToGo
+
+    // Controlador del pelotón cada 10 bloques, con histéresis (SPEC 6.9). Regula SIEMPRE: haya fuga,
+    // la hayan cazado o no se haya formado nunca. Antes vivía dentro de `if (breakaway && !caught)`,
+    // de modo que sin fuga el pelotón rodaba TODA la etapa a `commitIdle` (39 minutos de diferencia
+    // medidos en una llana de 180 km) y, al capturar, el compromiso quedaba congelado hasta meta.
+    if (i % STAGE.decisionEveryBlocks === 0) {
+      const ahead = breakaway !== null && !caught
+      const gap = ahead ? peloton.tS - breakaway!.tS : 0
       const kmRestantes = totalKm - km
       // Reporte de distancia (throttle cada gapReportKmGap): narra la ventaja de la fuga y si se
       // estira o se recorta, para seguir la carrera aunque no pase nada más (SPEC 6.15).
       if (
+        ahead &&
         gap >= STAGE.gapReportMinSeconds &&
         km >= breakFormedKm &&
         km - lastGapReportKm >= STAGE.gapReportKmGap
@@ -254,8 +288,17 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
         lastGapReportKm = km
         prevGapS = gap
       }
-      let target: number = STAGE.commitIdle
-      if (chasingSprinters && !chaseAbandoned) {
+      // Ritmo base del pelotón cuando no hay nada que cazar por delante: tempo de carretera, a tope
+      // en el puerto decisivo, y el tirón de los últimos km cuando la meta es llana (trenes de sprint).
+      const freeRunTarget = onClimb
+        ? raceThisClimb
+          ? STAGE.climbRaceCommit
+          : STAGE.climbTempoCommit
+        : finishFlat && kmRestantes <= STAGE.finalDriveKm
+          ? STAGE.finalDriveCommit
+          : STAGE.pelotonTempoCommit
+      let target: number = freeRunTarget
+      if (ahead && chasingSprinters && !chaseAbandoned) {
         // Los equipos de los sprinters se ponen a tirar para cazar: se narra una vez, pasada cierta
         // parte del recorrido (antes la fuga tiene su cuerda), si aún no han claudicado.
         if (!chaseAnnounced && km >= totalKm * STAGE.chaseAnnounceFrac) {
@@ -285,21 +328,20 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
         } else {
           target = Math.min(1, Math.max(0.1, STAGE.chaseHoldCommit + STAGE.chaseGain * err))
         }
-      } else {
+      } else if (ahead) {
         // Control de la general: en el llano el pelotón rueda a tempo para limitar el boquete (no
         // capturar); pero en cuanto empieza a subir, los favoritos atacan a tope y la subida
         // decide (SPEC 6.9). Boquete deseado constante fuera de la subida.
         const err = gap - STAGE.gcControlLeash
-        target =
-          block.tipo === 'subida'
-            ? STAGE.climbRaceCommit
-            : Math.min(1, Math.max(0.1, STAGE.chaseHoldCommit + STAGE.chaseGain * err))
+        target = onClimb
+          ? freeRunTarget
+          : Math.min(1, Math.max(0.1, STAGE.chaseHoldCommit + STAGE.chaseGain * err))
       }
       peloton = {
         ...peloton,
         compromiso: peloton.compromiso + (target - peloton.compromiso) * STAGE.commitHysteresis,
       }
-      if (!consolidated) {
+      if (!consolidated && breakaway && !caught) {
         if (peloton.compromiso < STAGE.breakawayCommitThreshold) {
           lowCommitKm += STAGE.decisionEveryBlocks * STAGE.dx
           if (lowCommitKm >= STAGE.breakawayConsolidateKm) {
@@ -349,14 +391,52 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       return next
     }
 
+    /**
+     * Saca a un corredor de su grupo (descuelgue, pájara o caída). Si ya rueda por ahí un grupo de
+     * descolgados a su MISMA altura de carrera se une a él —los que se sueltan a la vez ruedan
+     * juntos, que es como nacen los grupetos— y solo si no hay ninguno abre grupo propio. Sin esto
+     * la montaña terminaba con decenas de grupos de UN corredor (docs/motor.md §3-bis-e).
+     */
+    const dropOut = (m: RiderSim, group: Group, delayS = 0): void => {
+      const tS = group.tS + delayS
+      const near = shed.find(
+        (sg) => Math.abs(sg.tS - tS) <= STAGE.grupetoJoinGapSeconds && membersOf(sg.id).length > 0,
+      )
+      if (near) {
+        m.groupId = near.id
+        near.riderIds = [...near.riderIds, m.input.riderId]
+        return
+      }
+      shedCounter += 1
+      const gid = `shed-${shedCounter}`
+      m.groupId = gid
+      shed.push(
+        createGroup(gid, [m.input.riderId], {
+          tS,
+          vActual: group.vActual,
+          compromiso: STAGE.shedCommit,
+        }),
+      )
+    }
+
     // Descuelgue en los puertos (SPEC 6.8): quien no aguanta el P75 del grupo se cae o quema un
-    // cerillo. Fuera de subida no pasa nada, así que el llano queda intacto.
+    // cerillo. Fuera de subida solo suelta la pájara, así que el llano queda casi intacto.
     const shatter = (group: Group, members: RiderSim[], paceFraction: number): string[] => {
-      if (block.tipo !== 'subida') return []
-      const pace = pacemakerP75(members, block, paceFraction)
-      const inGroup = new Set(members.map((m) => m.input.riderId))
       const dropped: string[] = []
+      // Pájara (SPEC 6.7): con el tanque a cero el corredor se descuelga automáticamente, suba o no.
+      // Hasta ahora `effNow(..., bonk)` no se llamaba nunca y todo este bloque era código muerto.
+      // (Sin evento de crónica: la pájara se narrará cuando exista la telemetría del Cambio 5; hoy
+      // una plantilla nueva se imprimiría en crudo en la crónica, que vive fuera del motor.)
       for (const m of members) {
+        if (!isBonked(m)) continue
+        dropOut(m, group)
+        dropped.push(m.input.riderId)
+      }
+      if (block.tipo !== 'subida') return dropped
+      const alive = members.filter((m) => m.groupId === group.id)
+      const pace = pacemakerP75(alive, block, paceFraction)
+      const inGroup = new Set(alive.map((m) => m.input.riderId))
+      for (const m of alive) {
         const deficit = pace - riderPerfil(m, block)
         if (deficit <= STAGE.dropDeficitTolerance) continue
         // Marcaje (SPEC 6.18): si m marca a un rival que sube en su MISMO grupo, se agarra a su rueda y
@@ -373,32 +453,25 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
         }
         const lambda = (STAGE.lambdaDropBase * deficit) / STAGE.dropDeficitDenom
         if (!rollHazard(rngHazard, lambda)) continue
-        if (m.matches > 0 && m.input.orders.mentality !== 'reservon') {
+        // Quemar un cerillo salva el descuelgue, pero CUESTA energía (SPEC 6.6): `matchCost` estaba
+        // definido y no se restaba en ninguna parte, así que un cerillo salía gratis.
+        if (
+          m.matches > 0 &&
+          m.input.orders.mentality !== 'reservon' &&
+          m.energy > STAGE.matchCost
+        ) {
           m.matches -= 1
           m.climbBoostBlocks = STAGE.matchBonusBlocks
+          m.energy = Math.max(0, m.energy - STAGE.matchCost)
+          m.work += STAGE.matchCost
         } else {
-          shedCounter += 1
-          const gid = `shed-${shedCounter}`
-          m.groupId = gid
-          shed.push(
-            createGroup(gid, [m.input.riderId], {
-              tS: group.tS,
-              vActual: group.vActual,
-              compromiso: STAGE.shedCommit,
-            }),
-          )
+          dropOut(m, group)
           dropped.push(m.input.riderId)
         }
       }
       return dropped
     }
 
-    // En subida mandan los más fuertes (fracción menor): el grupo se estira y se descuelga. PERO solo
-    // se ataca el puerto de verdad cerca de meta (o en un final en alto): un puerto a mitad de etapa se
-    // sube a TEMPO (fracción mayor → ritmo más suave), así el pelotón no se destroza en cada cota y las
-    // diferencias las marca el último puerto, como en la realidad. Lejos de meta apenas se descuelga nadie.
-    const onClimb = block.tipo === 'subida'
-    const raceThisClimb = finishUphill || totalKm - km <= STAGE.climbRaceKmToGo
     const climbFrac = raceThisClimb ? STAGE.climbPaceFraction : STAGE.climbTempoFraction
     const pelFrac = onClimb ? climbFrac : STAGE.pelotonPaceFraction
     const brkFrac = onClimb ? climbFrac : (breakaway?.coop ?? STAGE.climbPaceFraction)
@@ -440,30 +513,35 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       shed[g] = !onClimb && adv.tS < peloton.tS ? { ...adv, tS: peloton.tS } : adv
     }
 
-    // Recorte en terreno NO montañoso (llano/descenso): los descolgados no se quedan rodando solos
-    // para siempre. En terreno rodador CIERRAN el boquete con el pelotón a un ritmo (s/km) y, al entrar
-    // en rango, se reenganchan; los que están demasiado lejos se funden entre sí (grupeto/autobús) y
-    // llegan juntos más atrás. En subida no hay recorte: allí manda la selección (SPEC 6.3, realismo).
-    // Es la pieza que evita finales irreales con decenas de grupos de un solo corredor en etapas llanas.
-    if (!onClimb && shed.length > 0) {
-      const close = STAGE.chaseBackSecondsPerKm * STAGE.dx
-      for (const sg of shed) {
-        if (membersOf(sg.id).length === 0) continue
-        const gap = sg.tS - peloton.tS
-        if (gap > 0) sg.tS = Math.max(peloton.tS, sg.tS - close)
+    // Recorte y reagrupamiento de los descolgados. En terreno RODADOR (llano/descenso) cierran el
+    // boquete con el pelotón a un ritmo (s/km) y, al entrar en rango, se reenganchan. En SUBIDA no
+    // hay recorte —allí manda la selección, que es lo que hace una etapa de montaña—, pero los
+    // descolgados que ruedan a la MISMA altura sí se funden en grupetos: si no, la reina terminaba
+    // con una mediana de 30 grupos de un solo corredor (docs/motor.md §3-bis-e).
+    if (shed.length > 0) {
+      if (!onClimb) {
+        const close = STAGE.chaseBackSecondsPerKm * STAGE.dx
+        for (const sg of shed) {
+          if (membersOf(sg.id).length === 0) continue
+          const gap = sg.tS - peloton.tS
+          if (gap > 0) sg.tS = Math.max(peloton.tS, sg.tS - close)
+        }
       }
+      // En subida el umbral de fusión es más estrecho (y no hay reenganche al pelotón): los que van
+      // juntos de verdad forman grupeto, los que están cortados de verdad siguen cortados.
+      const mergeGap = onClimb ? STAGE.grupetoJoinGapSeconds : STAGE.regroupGapSeconds
       const stillDropped: Group[] = []
       for (const sg of [...shed].sort((a, b) => a.tS - b.tS)) {
         const mem = membersOf(sg.id)
         if (mem.length === 0) continue
-        // ¿alcanza al pelotón? se reengancha.
-        if (gapSeconds(peloton, sg) <= STAGE.regroupGapSeconds) {
+        // ¿alcanza al pelotón? se reengancha (solo en terreno rodador).
+        if (!onClimb && gapSeconds(peloton, sg) <= STAGE.regroupGapSeconds) {
           for (const m of mem) m.groupId = PELOTON
           peloton = { ...peloton, riderIds: [...peloton.riderIds, ...sg.riderIds] }
           continue
         }
         // ¿se funde con un grupeto cercano ya por delante? forman un autobús que rueda junto.
-        const near = stillDropped.find((o) => Math.abs(o.tS - sg.tS) <= STAGE.regroupGapSeconds)
+        const near = stillDropped.find((o) => Math.abs(o.tS - sg.tS) <= mergeGap)
         if (near) {
           for (const m of mem) m.groupId = near.id
           near.riderIds = [...near.riderIds, ...sg.riderIds]
@@ -480,20 +558,11 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
     const crashCheck = (group: Group): void => {
       for (const m of membersOf(group.id)) {
         const e = erosion(m.energy, m.energy0, m.input.eff0.RES)
-        const eff = effNow(m.input.eff0, e)
+        const eff = riderEff(m)
         const out = rollCrash(rngCrash, block, isFinal, eff, e, m.input.fragility ?? 1)
         if (!out) continue
         incidents.push({ riderId: m.input.riderId, km, tipo: 'caida', ...out })
-        shedCounter += 1
-        const gid = `shed-${shedCounter}`
-        m.groupId = gid
-        shed.push(
-          createGroup(gid, [m.input.riderId], {
-            tS: group.tS + out.perdidaS,
-            vActual: group.vActual,
-            compromiso: STAGE.shedCommit,
-          }),
-        )
+        dropOut(m, group, out.perdidaS)
       }
     }
     crashCheck(peloton)
@@ -539,9 +608,20 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
 
   const results = buildResults(sims)
   const workUnits = new Map<string, number>()
-  for (const [id, s] of sims) workUnits.set(id, s.work)
+  const tank = new Map<string, TankState>()
+  for (const [id, s] of sims) {
+    workUnits.set(id, s.work)
+    tank.set(id, tankState(s.energy, s.energy0, s.input.eff0.RES))
+  }
 
-  return { events: log.toArray(), results, workUnits, incidents, engineVersion: ENGINE_VERSION }
+  return {
+    events: log.toArray(),
+    results,
+    workUnits,
+    incidents,
+    tank,
+    engineVersion: ENGINE_VERSION,
+  }
 }
 
 /** TSS de etapa derivado del gasto de un corredor (workUnits), para el Banister (SPEC 5.1, 6.15). */
@@ -665,7 +745,7 @@ function finishStage(
     const ranked = members
       .map((m) => {
         const e = erosion(m.energy, m.energy0, m.input.eff0.RES)
-        const eff = effNow(m.input.eff0, e)
+        const eff = effNow(m.input.eff0, e, m.energy <= 0)
         const base = finishUphill ? Math.max(eff.MON, eff.COL) : eff.SPR
         let score = base * normal(rngSprint, 1, STAGE.sprintScoreNoiseSd)
         // Tren de lanzadores: en una llegada masiva, un sprinter bien lanzado por su equipo remata
