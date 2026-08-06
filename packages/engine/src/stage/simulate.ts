@@ -217,6 +217,10 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
   // Final en alto: el tramo de meta trepa. El orden de meta lo decide entonces la escalada.
   const finishUphill = finalStretch.some((b) => b.tipo === 'subida')
   const chasingSprinters = input.riders.some(isSprinter) && finishFlat
+  // Jefe de filas de los sprinters: el mejor rematador. Su equipo es el que suele tirar para cazar,
+  // así que se nombra en la crónica de la persecución (protagonista del evento sprinters_chase).
+  const leadSprinterId =
+    [...input.riders].filter(isSprinter).sort((a, b) => b.eff0.SPR - a.eff0.SPR)[0]?.riderId ?? null
 
   // --- Bucle principal (SPEC 6.16) --------------------------------------------------------
   for (let i = 0; i < n; i++) {
@@ -256,7 +260,13 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
         // parte del recorrido (antes la fuga tiene su cuerda), si aún no han claudicado.
         if (!chaseAnnounced && km >= totalKm * STAGE.chaseAnnounceFrac) {
           chaseAnnounced = true
-          log.emit(km, peloton.tS, 'persecucion', 'sprinters_chase', [])
+          log.emit(
+            km,
+            peloton.tS,
+            'persecucion',
+            'sprinters_chase',
+            leadSprinterId ? [leadSprinterId] : [],
+          )
         }
         // Los sprinters quieren capturar en meta: el boquete deseado mengua a 0 en finish - 12 km.
         const frac = Math.min(
@@ -628,6 +638,17 @@ function finishStage(
       m.finishTs = group.tS + idx * 1e-3
     })
     if (gi === 0 && ranked[0]) {
+      // Sprint masivo: si el grupo de cabeza es numeroso y la meta es llana, se narra el último km —
+      // los rematadores que lo disputan y si el ganador remató bien lanzado por su tren (SPEC 6.15).
+      if (!finishUphill && ranked.length >= STAGE.bunchSprintMinRiders) {
+        const top3 = ranked.slice(0, 3).map((r) => r.m.input.riderId)
+        const train = leadOutFor.get(ranked[0].m.input.riderId) ?? []
+        const ledOut = train.some((id) => idSet.has(id)) ? 1 : 0
+        log.emit(Math.max(0, totalKm - 1), group.tS, 'sprint', 'bunch_sprint', top3, {
+          field: ranked.length,
+          ledOut,
+        })
+      }
       log.emit(totalKm, group.tS, 'meta', 'stage_win', [ranked[0].m.input.riderId])
     }
   })

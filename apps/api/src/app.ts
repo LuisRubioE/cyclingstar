@@ -1218,6 +1218,7 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
         // Regenera los eventos ejecutando el motor con la misma entrada y semilla.
         const output = simulateStage(snapshot.input as StageInput, snapshot.seed)
         const nameOf = new Map(results.map((r) => [r.riderId, r.name]))
+        const teamOf = new Map(results.map((r) => [r.riderId, r.teamName]))
         // Orden narrativo: por km y, a igual km, primero la fuga/cima y al final la victoria.
         const EVENT_ORDER: Record<string, number> = {
           breakaway_formed: 0,
@@ -1230,6 +1231,7 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
           climb_kom: 3,
           peloton_split: 4,
           breakaway_caught: 5,
+          bunch_sprint: 6,
           stage_win: 6,
           stage_win_itt: 6,
         }
@@ -1239,6 +1241,11 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
             tS: Math.round(e.tS),
             plantilla: e.plantilla,
             protagonists: e.protagonistas.map((id) => nameOf.get(id) ?? id),
+            protagonistTeams: [
+              ...new Set(
+                e.protagonistas.map((id) => teamOf.get(id)).filter((t): t is string => !!t),
+              ),
+            ],
             datos: e.datos,
           }))
           .sort(
@@ -1296,6 +1303,7 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
         const results = await getStageResults(db, raceKey, day)
         const output = simulateStage(snapshot.input as StageInput, snapshot.seed)
         const nameOf = new Map(results.map((r) => [r.riderId, r.name]))
+        const teamOf = new Map(results.map((r) => [r.riderId, r.teamName]))
         const EVENT_ORDER: Record<string, number> = {
           breakaway_formed: 0,
           break_cooperation: 0,
@@ -1307,6 +1315,7 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
           climb_kom: 3,
           peloton_split: 4,
           breakaway_caught: 5,
+          bunch_sprint: 6,
           stage_win: 6,
           stage_win_itt: 6,
         }
@@ -1316,6 +1325,11 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
             tS: Math.round(e.tS),
             plantilla: e.plantilla,
             protagonists: e.protagonistas.map((id) => nameOf.get(id) ?? id),
+            protagonistTeams: [
+              ...new Set(
+                e.protagonistas.map((id) => teamOf.get(id)).filter((t): t is string => !!t),
+              ),
+            ],
             datos: e.datos,
           }))
           .sort(

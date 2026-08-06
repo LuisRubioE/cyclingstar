@@ -206,6 +206,8 @@ export const STAGE = {
   breakCoopThreshold: 0.58,
   // Fracción del recorrido a partir de la cual se narra que los sprinters organizan la caza.
   chaseAnnounceFrac: 0.4,
+  // Nº mínimo de corredores en el grupo de cabeza para narrar la llegada como sprint masivo.
+  bunchSprintMinRiders: 8,
   // La fuga se fecha en los primeros km (ataques de salida), no en el km 0: mín + aleatorio determinista.
   breakFormMinKm: 3,
   breakFormKmRange: 17,
