@@ -195,6 +195,9 @@ export const STAGE = {
   // Un descolgado en llano/descenso vuelve al pelotón si su boquete es de este orden (s): la subida
   // parte el grupo, pero en terreno rodador los cortes pequeños se cazan y el pelotón se recompone.
   regroupGapSeconds: 22,
+  // Ritmo (s/km) al que un descolgado recorta el boquete con el pelotón en llano/descenso: en terreno
+  // rodador los grupos vuelven a juntarse; solo los muy distanciados en la subida llegan más atrás.
+  chaseBackSecondsPerKm: 8,
   // Nº mínimo de descolgados en un bloque de subida para narrar el "corte" del pelotón en la crónica.
   splitEventMinDropped: 2,
   // Distancia mínima (km) entre dos "cortes" narrados: evita repetir la frase bloque a bloque.
@@ -281,7 +284,7 @@ export const STAGE = {
   // Descuelgue: λ = lambdaDropBase · max(0, P75 - perfil) / denom. El denominador traduce el
   // déficit en puntos de atributo a una intensidad humana; se calibra al Montecarlo de montaña.
   dropDeficitDenom: 12,
-  dropDeficitTolerance: 2,
+  dropDeficitTolerance: 4,
   // Un descolgado rueda solo a su tope (contrarreloj improvisada), perdiendo tiempo bloque a bloque.
   shedCommit: 0.7,
   // 6.10 — Fuga: consolida si el compromiso del pelotón < 0.25 durante 2 km.
@@ -319,6 +322,11 @@ export const STAGE = {
   // En subida el ritmo lo imponen los más fuertes (atacan): fracción menor -> más selección.
   // Calibra el estiramiento del grupo de cabeza en montaña (brechas 1-4 min).
   climbPaceFraction: 0.12,
+  // Fracción de ritmo en un puerto que se sube a TEMPO (lejos de meta): más corredores marcan el ritmo,
+  // el P75 baja y apenas se descuelga nadie. El pelotón solo se rompe de verdad en el puerto decisivo.
+  climbTempoFraction: 0.5,
+  // Solo se ataca un puerto (ritmo duro, selección) si quedan estos km o menos para meta (o final en alto).
+  climbRaceKmToGo: 30,
   decisionEveryBlocks: 10,
   chaseFeasibleSecondsPerKm: 8,
   chaseCatchTargetKm: 12,

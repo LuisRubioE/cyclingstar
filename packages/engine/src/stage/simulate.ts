@@ -393,21 +393,31 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       return dropped
     }
 
-    // En subida mandan los más fuertes (fracción menor): el grupo se estira y se descuelga.
+    // En subida mandan los más fuertes (fracción menor): el grupo se estira y se descuelga. PERO solo
+    // se ataca el puerto de verdad cerca de meta (o en un final en alto): un puerto a mitad de etapa se
+    // sube a TEMPO (fracción mayor → ritmo más suave), así el pelotón no se destroza en cada cota y las
+    // diferencias las marca el último puerto, como en la realidad. Lejos de meta apenas se descuelga nadie.
     const onClimb = block.tipo === 'subida'
-    const pelFrac = onClimb ? STAGE.climbPaceFraction : STAGE.pelotonPaceFraction
-    const brkFrac = onClimb ? STAGE.climbPaceFraction : (breakaway?.coop ?? STAGE.climbPaceFraction)
+    const raceThisClimb = finishUphill || totalKm - km <= STAGE.climbRaceKmToGo
+    const climbFrac = raceThisClimb ? STAGE.climbPaceFraction : STAGE.climbTempoFraction
+    const pelFrac = onClimb ? climbFrac : STAGE.pelotonPaceFraction
+    const brkFrac = onClimb ? climbFrac : (breakaway?.coop ?? STAGE.climbPaceFraction)
 
     const pelotonDropped = shatter(peloton, membersOf(PELOTON), pelFrac)
     if (breakaway && !caught) shatter(breakaway, membersOf(BREAKAWAY), brkFrac)
     // Corte en el puerto: cuando la subida descuelga a varios del pelotón, se narra en la crónica
     // (SPEC 6.15). Explica los boquetes de la clasificación que, si no, aparecerían sin motivo. Se
     // limita a uno cada pocos km para no repetir la misma frase bloque a bloque en un puerto largo.
+    // Solo se narra el corte en un puerto que se está ATACANDO (decisivo, cerca de meta): en los de
+    // tempo el pelotón se recompone después, así que anunciar "N se descuelgan" ahí sería engañoso.
     if (
+      raceThisClimb &&
       pelotonDropped.length >= STAGE.splitEventMinDropped &&
       km - lastSplitKm >= STAGE.splitEventMinKmGap
     ) {
-      log.emit(km, peloton.tS, 'corte', 'peloton_split', pelotonDropped)
+      log.emit(km, peloton.tS, 'corte', 'peloton_split', pelotonDropped, {
+        remaining: membersOf(PELOTON).length,
+      })
       lastSplitKm = km
     }
 
@@ -417,16 +427,33 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       shed[g] = advance(shed[g]!, membersOf(shed[g]!.id), 1)
     }
 
-    // Reagrupamiento en terreno NO montañoso (llano/descenso): los descolgados ruedan a tope y, si el
-    // boquete con el pelotón es pequeño, vuelven a engancharse —el pelotón se recompone tras el puerto
-    // en los km siguientes—. En subida no: allí la selección manda y no se caza. (SPEC 6.3, realismo.)
+    // Recorte en terreno NO montañoso (llano/descenso): los descolgados no se quedan rodando solos
+    // para siempre. En terreno rodador CIERRAN el boquete con el pelotón a un ritmo (s/km) y, al entrar
+    // en rango, se reenganchan; los que están demasiado lejos se funden entre sí (grupeto/autobús) y
+    // llegan juntos más atrás. En subida no hay recorte: allí manda la selección (SPEC 6.3, realismo).
+    // Es la pieza que evita finales irreales con decenas de grupos de un solo corredor en etapas llanas.
     if (!onClimb && shed.length > 0) {
-      const stillDropped: Group[] = []
+      const close = STAGE.chaseBackSecondsPerKm * STAGE.dx
       for (const sg of shed) {
+        if (membersOf(sg.id).length === 0) continue
+        const gap = sg.tS - peloton.tS
+        if (gap > 0) sg.tS = Math.max(peloton.tS, sg.tS - close)
+      }
+      const stillDropped: Group[] = []
+      for (const sg of [...shed].sort((a, b) => a.tS - b.tS)) {
         const mem = membersOf(sg.id)
-        if (mem.length > 0 && gapSeconds(peloton, sg) <= STAGE.regroupGapSeconds) {
+        if (mem.length === 0) continue
+        // ¿alcanza al pelotón? se reengancha.
+        if (gapSeconds(peloton, sg) <= STAGE.regroupGapSeconds) {
           for (const m of mem) m.groupId = PELOTON
           peloton = { ...peloton, riderIds: [...peloton.riderIds, ...sg.riderIds] }
+          continue
+        }
+        // ¿se funde con un grupeto cercano ya por delante? forman un autobús que rueda junto.
+        const near = stillDropped.find((o) => Math.abs(o.tS - sg.tS) <= STAGE.regroupGapSeconds)
+        if (near) {
+          for (const m of mem) m.groupId = near.id
+          near.riderIds = [...near.riderIds, ...sg.riderIds]
         } else {
           stillDropped.push(sg)
         }
@@ -638,18 +665,29 @@ function finishStage(
       m.finishTs = group.tS + idx * 1e-3
     })
     if (gi === 0 && ranked[0]) {
+      const field = ranked.length
+      const isBunch = !finishUphill && field >= STAGE.bunchSprintMinRiders
       // Sprint masivo: si el grupo de cabeza es numeroso y la meta es llana, se narra el último km —
       // los rematadores que lo disputan y si el ganador remató bien lanzado por su tren (SPEC 6.15).
-      if (!finishUphill && ranked.length >= STAGE.bunchSprintMinRiders) {
+      if (isBunch) {
         const top3 = ranked.slice(0, 3).map((r) => r.m.input.riderId)
         const train = leadOutFor.get(ranked[0].m.input.riderId) ?? []
         const ledOut = train.some((id) => idSet.has(id)) ? 1 : 0
         log.emit(Math.max(0, totalKm - 1), group.tS, 'sprint', 'bunch_sprint', top3, {
-          field: ranked.length,
+          field,
           ledOut,
         })
       }
-      log.emit(totalKm, group.tS, 'meta', 'stage_win', [ranked[0].m.input.riderId])
+      // La victoria dice CÓMO se ganó, coherente con el resultado: en solitario (con su margen al
+      // siguiente grupo), al sprint de un pelotón numeroso, o al esprint de un grupo reducido.
+      const nextTs = withMembers[gi + 1]?.group.tS
+      const margin = field === 1 && nextTs != null ? Math.round(nextTs - group.tS) : 0
+      const won = isBunch ? 'sprint' : field === 1 ? 'solo' : 'group'
+      log.emit(totalKm, group.tS, 'meta', 'stage_win', [ranked[0].m.input.riderId], {
+        won,
+        margin,
+        field,
+      })
     }
   })
 }

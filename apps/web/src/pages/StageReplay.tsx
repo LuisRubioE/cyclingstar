@@ -117,15 +117,17 @@ function chronicleLine(e: ChronicleEntry): string {
       ])
     case 'peloton_split': {
       const n = e.protagonists.length
-      if (n === 0) return 'The climb splits the peloton.'
+      const remaining = e.datos?.remaining
+      const left = remaining != null ? ` — about ${remaining} left in the front group` : ''
+      if (n === 0) return `The climb thins the front group${left}.`
       if (n <= 2)
         return pick([
-          `The climb splits the peloton — ${who} lose contact.`,
-          `The pace shatters the bunch and ${who} are distanced.`,
+          `On the climb ${who} lose contact${left}.`,
+          `The pace tells and ${who} are distanced${left}.`,
         ])
       return pick([
-        `The climb splits the peloton — ${n} riders lose contact.`,
-        `The pace is brutal: ${n} riders are shelled out the back.`,
+        `The climb thins the lead group — ${n} riders are shelled${left}.`,
+        `The pace bites: ${n} riders slip off the back${left}.`,
       ])
     }
     case 'bunch_sprint': {
@@ -139,12 +141,28 @@ function chronicleLine(e: ChronicleEntry): string {
           : `All together for the sprint: ${trio} line it up.`,
       ])
     }
-    case 'stage_win':
-      return pick([
-        `${who}${team ? ` (${team})` : ''} wins the stage.`,
-        `${who} throws up the arms — stage victory${team ? ` for ${team}` : ''}.`,
-        `${who} takes it at the line.`,
-      ])
+    case 'stage_win': {
+      const t = team ? ` (${team})` : ''
+      const won = e.datos?.won
+      const margin = Number(e.datos?.margin ?? 0)
+      if (won === 'solo')
+        return pick([
+          `${who}${t} solos to victory, ${fmtGap(margin)} clear of the chase.`,
+          `${who}${t} holds on alone to win by ${fmtGap(margin)}.`,
+        ])
+      if (won === 'sprint')
+        return pick([
+          `${who}${t} wins the bunch sprint.`,
+          `${who}${t} takes the sprint from the bunch.`,
+          `${who}${t} throws up the arms — fastest in the sprint.`,
+        ])
+      if (won === 'group')
+        return pick([
+          `${who}${t} wins from the lead group.`,
+          `${who}${t} outkicks the leaders for the stage.`,
+        ])
+      return `${who}${t} wins the stage.`
+    }
     case 'stage_win_itt':
       return `${who} sets the fastest time.`
     default:
