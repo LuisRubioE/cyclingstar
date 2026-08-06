@@ -162,8 +162,15 @@ export interface PointsRow {
   puntos: number
 }
 
-/** Clasificación por puntos (metas volantes) acumulada en toda la carrera. */
-export async function getPointsClassification(db: Database, raceId: string): Promise<PointsRow[]> {
+/**
+ * Clasificación por puntos (metas volantes). Acumulada en toda la carrera, o solo hasta `throughStage`
+ * (inclusive) si se indica —para ver la clasificación tal como quedó tras una etapa concreta—.
+ */
+export async function getPointsClassification(
+  db: Database,
+  raceId: string,
+  throughStage?: number,
+): Promise<PointsRow[]> {
   const total = sql<number>`sum(${stageResults.puntosVolante})::int`
   const rows = await db
     .select({
@@ -175,7 +182,12 @@ export async function getPointsClassification(db: Database, raceId: string): Pro
     })
     .from(stageResults)
     .innerJoin(riders, eq(riders.id, stageResults.riderId))
-    .where(eq(stageResults.raceId, raceId))
+    .where(
+      and(
+        eq(stageResults.raceId, raceId),
+        throughStage != null ? lte(stageResults.stageDay, throughStage) : undefined,
+      ),
+    )
     .groupBy(stageResults.riderId, riders.name, riders.country)
     .orderBy(desc(total))
   return rows.filter((r) => r.puntos > 0)
@@ -209,8 +221,15 @@ export async function getStageWinners(db: Database, raceId: string): Promise<Sta
   return rows.map(({ userId, ...r }) => ({ ...r, isBot: userId === null }))
 }
 
-/** Clasificación de la montaña (cimas) acumulada en toda la carrera. */
-export async function getKomClassification(db: Database, raceId: string): Promise<PointsRow[]> {
+/**
+ * Clasificación de la montaña (cimas). Acumulada en toda la carrera, o solo hasta `throughStage`
+ * (inclusive) si se indica —para ver la montaña tal como quedó tras una etapa concreta—.
+ */
+export async function getKomClassification(
+  db: Database,
+  raceId: string,
+  throughStage?: number,
+): Promise<PointsRow[]> {
   const total = sql<number>`sum(${stageResults.puntosMontana})::int`
   const rows = await db
     .select({
@@ -222,7 +241,12 @@ export async function getKomClassification(db: Database, raceId: string): Promis
     })
     .from(stageResults)
     .innerJoin(riders, eq(riders.id, stageResults.riderId))
-    .where(eq(stageResults.raceId, raceId))
+    .where(
+      and(
+        eq(stageResults.raceId, raceId),
+        throughStage != null ? lte(stageResults.stageDay, throughStage) : undefined,
+      ),
+    )
     .groupBy(stageResults.riderId, riders.name, riders.country)
     .orderBy(desc(total))
   return rows.filter((r) => r.puntos > 0)

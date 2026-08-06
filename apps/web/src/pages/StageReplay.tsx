@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
 import {
   type ChronicleEntry,
+  type StageClassEntry,
   type StageResultEntry,
   fetchCalendarStage,
   formatTime,
@@ -116,18 +117,19 @@ function chronicleLine(e: ChronicleEntry): string {
         `${who} crests the climb in front.`,
       ])
     case 'peloton_split': {
-      const n = e.protagonists.length
+      const dropped = Number(e.datos?.dropped ?? 0)
       const remaining = e.datos?.remaining
-      const left = remaining != null ? ` — about ${remaining} left in the front group` : ''
-      if (n === 0) return `The climb thins the front group${left}.`
-      if (n <= 2)
-        return pick([
-          `On the climb ${who} lose contact${left}.`,
-          `The pace tells and ${who} are distanced${left}.`,
-        ])
+      const left = remaining != null ? ` — about ${remaining} left in front` : ''
+      // El protagonista es quien impone el ritmo (su equipo tira); si no hay, se narra sin nombre.
+      const driver = team
+        ? `${team} lift the pace`
+        : who
+          ? `${who} lifts the pace`
+          : 'The pace lifts'
       return pick([
-        `The climb thins the lead group — ${n} riders are shelled${left}.`,
-        `The pace bites: ${n} riders slip off the back${left}.`,
+        `${driver} on the climb — ${dropped} riders are shelled${left}.`,
+        `${driver} and ${dropped} riders slip off the back${left}.`,
+        `${driver}; the climb thins the lead group by ${dropped}${left}.`,
       ])
     }
     case 'bunch_sprint': {
@@ -318,6 +320,44 @@ export function StageReplay() {
           </table>
         </div>
       )}
+
+      {data.kom && data.kom.length > 0 && (
+        <div className={card}>
+          <h2 className={head}>Mountains classification (KOM) after the stage</h2>
+          <PointsTable rows={data.kom} unit="pts" />
+        </div>
+      )}
+
+      {data.points && data.points.length > 0 && (
+        <div className={card}>
+          <h2 className={head}>Points classification after the stage</h2>
+          <PointsTable rows={data.points} unit="pts" />
+        </div>
+      )}
     </section>
+  )
+}
+
+/** Tabla compacta de una clasificación por puntos (montaña o metas volantes): puesto, bandera, nombre, puntos. */
+function PointsTable({ rows, unit }: { rows: StageClassEntry[]; unit: string }) {
+  return (
+    <table className="mt-2 w-full text-sm">
+      <tbody>
+        {rows.slice(0, 10).map((r, i) => (
+          <tr key={r.riderId} className="border-b border-slate-100 last:border-0">
+            <td className="w-7 py-1 tabular-nums text-slate-400">{i + 1}</td>
+            <td className="w-6 py-1">
+              <Flag code={r.country} size={16} />
+            </td>
+            <td className="py-1 text-slate-700">
+              <RiderName riderId={r.riderId} name={r.name} isBot={r.isBot} />
+            </td>
+            <td className="py-1 text-right font-medium tabular-nums text-slate-600">
+              {r.puntos} {unit}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   )
 }
