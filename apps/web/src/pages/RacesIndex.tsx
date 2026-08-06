@@ -10,6 +10,7 @@ import {
   type ClassFilter,
   type FormatFilter,
   type RaceTimelineStatus,
+  RECENT_WINDOW,
   buildTimeline,
   champCountryName,
   champEventLabel,
@@ -269,6 +270,10 @@ export function RacesIndex() {
 
   const baseRaces = races.length - nationals.length
   const showingChamps = classFilter === 'NC'
+  // Con el pasado desplegado se puede volver a plegar, siempre que hubiera algo que plegar.
+  const canCollapse =
+    timeline.rows.filter((row) => row.kind === 'race' && row.status === 'finished').length >
+    RECENT_WINDOW
 
   return (
     <section className="space-y-4">
@@ -314,6 +319,7 @@ export function RacesIndex() {
         </p>
       ) : (
         <Panel title={`Season timeline (${timeline.total})`} bodyClassName="p-0">
+          {/* El pasado lejano, plegado: así "hoy" y lo que viene entran en la primera pantalla. */}
           {timeline.earlierCount > 0 && (
             <button
               type="button"
@@ -322,6 +328,15 @@ export function RacesIndex() {
             >
               ↑ Show {timeline.earlierCount} earlier{' '}
               {timeline.earlierCount === 1 ? 'race' : 'races'}
+            </button>
+          )}
+          {showEarlier && canCollapse && (
+            <button
+              type="button"
+              onClick={() => setShowEarlier(false)}
+              className="w-full border-b border-slate-100 py-2 text-xs font-medium text-indigo-600 transition hover:bg-slate-50"
+            >
+              ↓ Back to recent races
             </button>
           )}
           {timeline.rows.map((row) =>
