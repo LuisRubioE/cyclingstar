@@ -3,6 +3,7 @@ import tseslint from 'typescript-eslint'
 import prettier from 'eslint-config-prettier'
 import react from 'eslint-plugin-react'
 import reactHooks from 'eslint-plugin-react-hooks'
+import globals from 'globals'
 
 /**
  * Módulos de Node prohibidos en packages/engine (sin el prefijo `node:`; el prefijo se
@@ -67,6 +68,11 @@ export default tseslint.config(
     rules: {
       '@typescript-eslint/no-explicit-any': 'error',
     },
+  },
+  {
+    // Scripts de operación y de CI: Node puro en ESM, fuera de la build de TypeScript.
+    files: ['scripts/**/*.{js,mjs,cjs}'],
+    languageOptions: { globals: globals.node },
   },
   {
     // Pureza del motor (CLAUDE.md / SPEC 6.1): packages/engine es puro y determinista.
