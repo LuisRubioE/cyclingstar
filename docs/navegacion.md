@@ -1,26 +1,28 @@
 # Propuesta de navegación e arquitectura de información
 
-Estado: **propuesta para discutir**. No implementada. Sustituiría a la navegación actual de
-`apps/web/src/components/Header.tsx` y al mapa de rutas de `apps/web/src/App.tsx`.
+Estado: **propuesta en discusión, v2.** Incorpora la primera ronda de comentarios del dueño.
+No implementada. Sustituiría a `apps/web/src/components/Header.tsx` y al mapa de rutas de
+`apps/web/src/App.tsx`.
+
+> **Nota de alcance.** El problema no es solo el menú. Es igual de grave el **contenido y la
+> navegación dentro de las páginas**, sobre todo en el flujo Calendario → Carrera → Etapa, que hoy
+> es la única vía para ver qué pasó en el mundo. Eso se trata en la Parte B.
 
 ---
 
-## 1. Diagnóstico: qué está mal hoy
+# PARTE A — Estructura de menús
 
-No es una impresión, son hechos verificables sobre el código actual.
+## 1. Diagnóstico: qué está mal hoy
 
 ### 1.1 Tres páginas funcionales son inalcanzables
 
-No están en el menú ni enlazadas desde ninguna página. Solo se llega escribiendo la URL a mano:
+No están en el menú ni enlazadas desde ninguna página. Solo se llega escribiendo la URL:
 
-| Ruta             | Qué contiene                                                                      | Gravedad                                                              |
-| ---------------- | --------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| `/race-entry`    | Auto-inscripción del agente libre a carreras continentales, con su coste de viaje | **Crítica**: es el bucle de juego principal de un corredor sin equipo |
-| `/team-calendar` | Plan de carreras del equipo que gestiona el usuario                               | **Crítica**: es la función central del rol de mánager                 |
-| `/routes`        | Altimetrías de la "vuelta de prueba" de 5 etapas                                  | Baja: es un resto de la fase de desarrollo (Paso 28)                  |
-
-Un jugador sin equipo hoy **no tiene forma de descubrir** que puede inscribirse a carreras. El bucle
-existe, está implementado y probado, y es invisible.
+| Ruta             | Qué contiene                                 | Decisión tomada                                                                        |
+| ---------------- | -------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `/race-entry`    | Auto-inscripción del agente libre a carreras | **Rehacer**, no rescatar: la página actual no vale. Renace como pestaña de `/me/races` |
+| `/team-calendar` | Plan de carreras del equipo                  | **Rescatar** dentro de `My Team`, en solo lectura para miembros                        |
+| `/routes`        | Altimetrías de la "vuelta de prueba"         | **Borrar**: prueba de desarrollo que ya no se usa                                      |
 
 ### 1.2 Colisión de URLs: `/races` significa dos cosas distintas
 
@@ -29,70 +31,35 @@ existe, está implementado y probado, y es invisible.
 /races/:raceId    → Race         (una carrera del mundo, pública)
 ```
 
-`/races/:raceId` **no es el detalle de** `/races`. Son dos conceptos sin relación compartiendo
-prefijo. Es la causa raíz de la sensación de "se llega a las cosas por caminos raros": la propia
-estructura de URLs miente sobre la jerarquía.
+`/races/:raceId` **no es el detalle de** `/races`. Son conceptos sin relación compartiendo prefijo:
+la estructura de URLs miente sobre la jerarquía.
 
 ### 1.3 Una tira plana de 12 enlaces sin jerarquía visible
 
-El código **ya tiene** el modelo mental correcto (`Header.tsx:14-30`):
+El código **ya tiene** el modelo mental correcto (`Header.tsx:14-30`) —`WORLD_LINKS` y
+`RIDER_LINKS`— y lo destruye al pintar (`Header.tsx:44`) concatenándolos en **una sola fila
+indiferenciada de 12 elementos**. La distinción existe en el código y es invisible para el jugador.
 
-```ts
-const WORLD_LINKS = [Calendar, Teams, Nations, Rankings, Hall of Fame, News]
-const RIDER_LINKS = [My rider, Training, Orders, Races, Market, Finances]
-```
+### 1.4 "Lo mío" desperdigado y nomenclatura incoherente
 
-…y luego lo destruye al pintar (`Header.tsx:44`):
-
-```ts
-const links = data ? [...WORLD_LINKS, ...RIDER_LINKS] : [...WORLD_LINKS]
-```
-
-Los dos grupos se concatenan en **una sola fila indiferenciada de 12 elementos**. La distinción
-entre "el mundo" y "yo" existe en el código y es invisible para el jugador. En móvil, esos 12
-elementos son una lista vertical sin agrupar.
-
-### 1.4 "Lo mío" está desperdigado en cinco destinos hermanos
-
-`/training`, `/race-orders`, `/races`, `/race-entry`, `/market`, `/finances` y `/rider` están todos
-al mismo nivel jerárquico, sin relación declarada entre ellos. Además hay dos conceptos de "órdenes"
-sin distinguir: órdenes de **entrenamiento** (dentro de `/training`) y órdenes de **carrera**
-(`/race-orders`, etiquetado simplemente "Orders" en el menú).
-
-### 1.5 El panel de inicio duplica el menú sin añadir nada
-
-`Home.tsx:13-19` define `ACTIONS` con cinco enlaces —Training, Race orders, Races, Market,
-Finances— que son **exactamente** cinco de los seis `RIDER_LINKS` del menú, más un botón "View my
-rider" que es el sexto. El dashboard no prioriza ni resume: repite.
-
-### 1.6 Nomenclatura incoherente
-
-| Concepto             | En el menú | En el dashboard | En la URL      |
-| -------------------- | ---------- | --------------- | -------------- |
-| Órdenes de carrera   | "Orders"   | "Race orders"   | `/race-orders` |
-| Mis carreras         | "Races"    | "Races"         | `/races`       |
-| Calendario del mundo | "Calendar" | —               | `/calendar`    |
-| Contrato y ofertas   | "Market"   | "Market"        | `/market`      |
-
-"Races" (mías) y "Calendar" (del mundo) son el mismo concepto en dos ámbitos, pero nada lo sugiere.
-"Market" describe un mercado que no existe: no hay mercado entre usuarios en el MVP; lo que hay es
-**tu contrato y tus ofertas**.
+Siete destinos hermanos sin relación declarada. Dos conceptos de "órdenes" sin distinguir
+(entrenamiento y carrera, este último etiquetado solo "Orders"). El panel de inicio
+(`Home.tsx:13-19`) **repite** cinco de los seis enlaces del menú sin priorizar nada. Y "Market"
+nombra un mercado que no existe en el MVP: lo que hay es **tu contrato y tus ofertas**.
 
 ---
 
-## 2. Principios de la propuesta
+## 2. Principios
 
-1. **Tres esferas, no una lista.** Todo en este juego es _yo_, _mi equipo_ o _el mundo_. La
-   navegación debe hacer visible esa división en todo momento.
-2. **La URL es la jerarquía.** Si algo es hijo de otra cosa, cuelga de ella. Nunca dos conceptos
-   distintos bajo el mismo prefijo.
-3. **Dos niveles como máximo.** Sección arriba, pestañas de contexto debajo. Nada de menús
-   desplegables anidados: son hostiles en móvil, y el juego se juega desde el teléfono entre ticks.
-4. **Cero huérfanos.** Toda página alcanzable en dos clics desde la cabecera. Si algo no merece
-   estar en la navegación, no merece existir.
-5. **El dashboard decide, no repite.** Su trabajo es responder "¿qué hago ahora?", no listar
-   secciones que ya están en el menú.
-6. **Nombres del dominio, no del código.** El jugador entiende "Contract", no "Market".
+1. **Tres esferas, no una lista.** Todo es _yo_, _mi equipo_ o _el mundo_.
+2. **La URL es la jerarquía.** Nunca dos conceptos distintos bajo el mismo prefijo.
+3. **Dos niveles como máximo.** Sección arriba, pestañas debajo. Sin desplegables anidados: el juego
+   se consulta desde el teléfono.
+4. **Cero huérfanos.** Si algo no merece estar en la navegación, no merece existir.
+5. **El dashboard decide, no repite.**
+6. **Nombres del dominio.** El jugador entiende "Contract", no "Market".
+7. **Nada cambia de sitio según mi estado.** Un concepto vive siempre en el mismo lugar, tenga yo
+   equipo o no. Cambiar la ubicación según la situación es lo que más cuesta aprender.
 
 ---
 
@@ -108,172 +75,264 @@ rider" que es el sexto. El dashboard no prioriza ni resume: repite.
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
-- **4 destinos** (5 con News), frente a 12. Caben en móvil sin colapsar.
-- `My Team` aparece **solo si el usuario gestiona un equipo** (ya existe `getAccountControl`).
-- `News` va a la derecha con indicador de no leídas: es consulta, no navegación.
-- Sin sesión, la barra se reduce a: `World` · `How to play` · `Log in` · `Sign up`.
+- **4 destinos** frente a 12.
+- `My Team` aparece **si pertenezco a un equipo**, no solo si lo gestiono (ver §3.4).
+- Sin sesión: `World` · `News` · `How to play` · `Log in` · `Sign up`.
 
-### 3.2 Pestañas de contexto (nivel 2)
-
-Cada sección tiene su propia barra de pestañas, que sustituye a la tira plana actual.
-
-**My Rider**
+### 3.2 My Rider
 
 ```
 Profile │ Training │ Race orders │ My races │ Contract │ Finances
 ```
 
-**My Team** (solo mánagers)
+**`My races` (antes `/races` + `/race-entry`)** — resuelve la pregunta "¿cuándo corro?" en un sitio:
+
+| Pestaña interna        | Contenido                                                                   | Visible           |
+| ---------------------- | --------------------------------------------------------------------------- | ----------------- |
+| **Upcoming**           | Carreras en las que me ha inscrito mi equipo, o en las que me apunté yo     | Siempre           |
+| **Available to enter** | Carreras a las que aún estoy a tiempo de inscribirme, con su coste de viaje | Solo agente libre |
+| **Results**            | Mis carreras corridas, con mi puesto y enlace a la etapa                    | Siempre           |
+
+La página `/race-entry` actual **se borra y se rehace** como la pestaña _Available to enter_.
+
+**`Contract` (antes `Market`)** — mi contrato actual, mi salario, y **mis ofertas**.
+
+> **Decisión: las ofertas viven aquí, tenga equipo o no.** Puedo recibir ofertas _estando_ en un
+> equipo —es el mercado normal—, así que ponerlas en `My Team` las haría cambiar de sitio según mi
+> situación, contra el principio 7. Una oferta es un hecho de _mi_ carrera, no de un equipo al que
+> aún no pertenezco.
+
+### 3.3 World
 
 ```
-Squad │ Race calendar │ Training │ Finances
+Calendar │ Races │ Teams │ Nations │ Rankings │ Hall of Fame
 ```
 
-**World**
+`Races` es nuevo y es importante: hoy **el calendario es la única puerta** para llegar a un
+resultado. Ver §6.
+
+### 3.4 My Team — para miembros, no solo para mánagers
+
+Hoy no existen mánagers humanos (todos son bots), pero **un corredor sí pertenece a un equipo**, y
+eso ya da contenido de sobra. Se define el mapa completo desde ahora, marcando qué llega después.
 
 ```
-Calendar │ Teams │ Nations │ Rankings │ Hall of Fame
+Squad │ Race calendar │ Identity │ Finances*
 ```
 
-### 3.3 Mapa de rutas completo
+| Pestaña           | Miembro (hoy)                                                       | Mánager (futuro)        |
+| ----------------- | ------------------------------------------------------------------- | ----------------------- |
+| **Squad**         | Mis compañeros: quiénes son, su nivel, su especialidad, su palmarés | Fichar, roles, despedir |
+| **Race calendar** | A qué carreras va mi equipo — y por tanto dónde pueden mandarme     | Elegir el calendario    |
+| **Identity**      | Maillot, país, filosofía, división, historia                        | Editar maillot y nombre |
+| **Finances**      | (oculto)                                                            | Presupuesto y nóminas   |
+| _Team forum_      | Idea a valorar; fuera del MVP por necesitar moderación              | —                       |
 
-| Ruta nueva                                | Página actual                     | Cambio                                                       |
-| ----------------------------------------- | --------------------------------- | ------------------------------------------------------------ |
-| `/`                                       | `Home`                            | Rediseñado (ver §4)                                          |
-| `/me`                                     | —                                 | Redirige a `/me/profile`                                     |
-| `/me/profile`                             | `RiderProfile` (`/rider`)         | Movida                                                       |
-| `/me/training`                            | `Training` (`/training`)          | Movida                                                       |
-| `/me/orders`                              | `RaceOrders` (`/race-orders`)     | Movida y renombrada                                          |
-| `/me/races`                               | `MyRaces` (`/races`)              | Movida; **absorbe `/race-entry`** como pestaña interna       |
-| `/me/contract`                            | `Market` (`/market`)              | Movida y renombrada                                          |
-| `/me/finances`                            | `Finances` (`/finances`)          | Movida                                                       |
-| `/team/squad`                             | `Team` filtrado al propio         | Nueva vista del equipo propio                                |
-| `/team/calendar`                          | `TeamCalendar` (`/team-calendar`) | **Rescatada del olvido**                                     |
-| `/team/training`                          | (existe API `team-training`)      | Expuesta                                                     |
-| `/team/finances`                          | —                                 | Futuro                                                       |
-| `/world/calendar`                         | `Calendar` (`/calendar`)          | Movida                                                       |
-| `/world/races/:raceId`                    | `Race` (`/races/:raceId`)         | **Resuelve la colisión**                                     |
-| `/world/races/:raceId/stages/:day`        | `StageReplay`                     | Movida                                                       |
-| `/world/teams` · `/world/teams/:id`       | `Teams` · `Team`                  | Movidas                                                      |
-| `/world/nations` · `/world/nations/:code` | `Countries` · `Country`           | Movidas y renombradas                                        |
-| `/world/rankings`                         | `Rankings`                        | Movida                                                       |
-| `/world/hall-of-fame`                     | `HallOfFame`                      | Movida                                                       |
-| `/world/riders/:id`                       | `PublicRider`                     | Movida                                                       |
-| `/news`                                   | `News`                            | Se queda arriba                                              |
-| `/account` · `/how-to-play` · `/privacy`  | iguales                           | Sin cambio                                                   |
-| `/login` · `/register` · `/create`        | iguales                           | Sin cambio                                                   |
-| `/admin/*`                                | `AdminNames`                      | Sin cambio (no enlazada, a propósito)                        |
-| ~~`/routes`~~                             | `RoutesPage`                      | **Eliminar** (resto de desarrollo) o mover a `/admin/routes` |
+**Si no pertenezco a ningún equipo**, `My Team` no aparece en la barra. Mi situación de agente libre
+y mis ofertas están en `My Rider → Contract`, que es donde siempre están.
 
-**Compatibilidad:** todas las rutas viejas se mantienen como redirecciones permanentes a las nuevas
-durante una temporada, para no romper enlaces guardados ni los que aparecen en noticias.
+> Nota: el foro de equipo introduciría el **primer texto libre del juego**, y con él la necesidad de
+> moderación, que `MVP.md §2` da explícitamente por no necesaria. Es un buen candidato a v1.1, no al
+> MVP.
 
-### 3.4 Dos decisiones que merecen justificación
+### 3.5 News — feed global, sobrio y con filtros
 
-**`/race-entry` desaparece como página y se convierte en pestaña de `/me/races`.**
-Hoy son la misma pregunta partida en dos sitios inconexos: "¿en qué carreras estoy?" y "¿a cuáles
-puedo apuntarme?". Propuesta:
+Mismo feed para todos, sin personalizar. Se le añaden filtros para responder preguntas concretas:
 
 ```
-/me/races   →   [ Upcoming ]  [ Available to enter ]  [ Results ]
+[ All ]  [ Team ▾ ]  [ Rider ▾ ]  [ Nation ▾ ]  [ Race ▾ ]
 ```
 
-Así el agente libre **descubre** que puede inscribirse, porque está a un clic de donde ya iba a mirar.
+Diseño más sobrio que el actual: menos iconos, más jerarquía tipográfica, agrupado por día de juego.
 
-**`Market` pasa a llamarse `Contract`.**
-No hay mercado entre usuarios en el MVP (está explícitamente fuera de alcance en `MVP.md §2`). Lo
-que la página muestra es tu contrato actual y tus ofertas. Cuando exista mercado real en v1.1,
-`World → Market` será su sitio natural, y no habrá que renombrar nada.
+### 3.6 Perfil del corredor: una página, dos modos
+
+Hoy hay **dos páginas distintas** (`PublicRider.tsx` y `RiderProfile.tsx`) con duplicación entre
+ellas. Propuesta: **una sola página** con un _modo propietario_ que añade lo privado.
+
+| Público (cualquiera, sin sesión) | Añadido si es mi corredor          |
+| -------------------------------- | ---------------------------------- |
+| Identidad, país, equipo, edad    | **Frescura y fatiga**              |
+| Estrellas por atributo           | Gráfica de forma (CTL/ATL/TSB)     |
+| Palmarés, resultados, ranking    | Cerillos, moral, techos, objetivos |
+
+Una página, un componente, sin duplicar. Y lo privado nunca sale en la vista pública.
+
+### 3.7 Mapa de rutas
+
+| Ruta nueva                                | Hoy                      | Cambio                                     |
+| ----------------------------------------- | ------------------------ | ------------------------------------------ |
+| `/`                                       | `Home`                   | Rediseñado (§4)                            |
+| `/me/profile`                             | `/rider`                 | Movida; unificada con la pública (§3.6)    |
+| `/me/training`                            | `/training`              | Movida                                     |
+| `/me/orders`                              | `/race-orders`           | Movida                                     |
+| `/me/races`                               | `/races` + `/race-entry` | Fusionadas en pestañas (§3.2)              |
+| `/me/contract`                            | `/market`                | Movida y renombrada                        |
+| `/me/finances`                            | `/finances`              | Movida                                     |
+| `/team/squad`                             | —                        | **Nueva** (lectura para miembros)          |
+| `/team/calendar`                          | `/team-calendar`         | **Rescatada**                              |
+| `/team/identity`                          | —                        | Nueva                                      |
+| `/world/calendar`                         | `/calendar`              | Movida                                     |
+| `/world/races`                            | —                        | **Nueva**: índice de carreras y resultados |
+| `/world/races/:raceId`                    | `/races/:raceId`         | **Resuelve la colisión**                   |
+| `/world/races/:raceId/stages/:day`        | `.../stages/:day`        | Movida                                     |
+| `/world/teams` · `/world/teams/:id`       | `/teams` · `/teams/:id`  | Movidas                                    |
+| `/world/nations` · `/world/nations/:code` | `/countries` · `/:code`  | Movidas y renombradas                      |
+| `/world/rankings` · `/world/hall-of-fame` | iguales                  | Movidas                                    |
+| `/world/riders/:id`                       | `/riders/:id`            | Movida; misma página que `/me/profile`     |
+| `/news`                                   | `/news`                  | Se queda arriba, con filtros (§3.5)        |
+| ~~`/routes`~~                             | `RoutesPage`             | **Eliminada**                              |
+
+Las rutas viejas se mantienen como redirecciones permanentes durante una temporada.
 
 ---
 
 ## 4. El dashboard: de espejo a copiloto
 
-Hoy el dashboard repite el menú. Propuesta: que responda **una sola pregunta** —"¿qué hago hoy?"— con
-una jerarquía de urgencia.
-
 ```
 ┌─ Day 137 · Season 1 ─────────────── next tick in 2h 14m ─┐
-│                                                           │
-│  ⚠️  ACCIÓN REQUERIDA                                     │
-│  You race tomorrow: Race Catalonia, stage 3 (mountain)    │
-│  You have no orders set.               [ Set orders → ]   │
-│                                                           │
+│  ⚠️  You race tomorrow: Catalonia, stage 3 (mountain)     │
+│      You have no orders set.           [ Set orders → ]   │
 │  📋 Training queue empty in 2 days     [ Plan week → ]    │
 │  📝 2 contract offers waiting          [ Review → ]       │
 ├───────────────────────────────────────────────────────────┤
-│  Form ████████░░  Fresh    Matches 🔥🔥🔥🔥🔥              │
+│  Form ████████░░ Fresh   Matches 🔥🔥🔥🔥🔥                │
 │  Season points 340 · Money 12,400 · Morale 72 · Fame 41   │
 ├───────────────────────────────────────────────────────────┤
-│  LAST RACE — Race Galicia, stage 2            [ Full → ]  │
-│  9th at 1'42"  ·  You were in the front group until km 148│
+│  LAST RACE — Galicia, stage 2                 [ Full → ]  │
+│  9th at 1'42" · In the front group until km 148           │
 └───────────────────────────────────────────────────────────┘
 ```
 
-Reglas:
+Solo aparece lo accionable, ordenado por urgencia (lo que caduca con el próximo tick va primero).
+Sin atajos de sección: para eso está el menú.
 
-- **Solo se muestra lo accionable.** Sin órdenes pendientes ni ofertas, esos bloques no aparecen.
-- **Orden por urgencia**, no por sección: lo que caduca con el próximo tick va primero.
-- **Los atajos de sección desaparecen**: para eso está el menú, que ahora es legible.
+## 5. Móvil
 
----
-
-## 5. Navegación en móvil
-
-El juego se consulta desde el teléfono entre ticks, así que esto no es un añadido:
-
-- **Barra inferior fija** con los 4 destinos de nivel 1 (patrón de app nativa, alcanzable con el
-  pulgar), en lugar del menú de hamburguesa actual.
-- Las **pestañas de nivel 2** se convierten en una tira con desplazamiento horizontal bajo la
-  cabecera.
-- La cabecera se reduce a logo + reloj del mundo + avatar.
-- Se resuelve de paso el problema de accesibilidad del menú actual, que no gestiona el foco al
-  abrirse (`Header.tsx:129`).
+Barra inferior fija con los 4 destinos (patrón nativo, alcanzable con el pulgar) en lugar del menú
+de hamburguesa; pestañas de nivel 2 con desplazamiento horizontal. Resuelve de paso que el menú
+actual no gestiona el foco al abrirse (`Header.tsx:129`).
 
 ---
 
-## 6. Antes y después
+# PARTE B — El flujo Calendario → Carrera → Etapa
 
-|                                 | Hoy                  | Propuesta             |
-| ------------------------------- | -------------------- | --------------------- |
-| Destinos de nivel 1             | 12 en una tira plana | 4 (+ News)            |
-| Páginas inalcanzables           | 3                    | 0                     |
-| Colisiones de URL               | 1 (`/races`)         | 0                     |
-| Niveles de jerarquía            | 1                    | 2                     |
-| Sitios donde gestionar "lo mío" | 6 hermanos sueltos   | 1 sección, 6 pestañas |
-| Función del dashboard           | Repetir el menú      | Decir qué hacer hoy   |
+Esta es la parte que peor está, y la que más se usa: es **la única forma de ver qué pasa en el
+mundo**.
+
+## 6. Diagnóstico, con evidencia
+
+### 6.1 El calendario es la única puerta de entrada
+
+Para ver el resultado de lo último hay que ir al calendario, buscar la carrera por día de juego,
+desplegarla y entrar. **No existe "resultados recientes" en ninguna parte.** El calendario en sí no
+está mal (tiene filtros por división y acordeón), pero está haciendo un trabajo que no le toca.
+
+→ Se añade **`World → Races`**: índice de carreras con lo último corrido arriba, buscador y filtros.
+El calendario se queda con lo suyo, que es la línea temporal de la temporada.
+
+### 6.2 La página de carrera lo apila todo, y no sabe en qué momento está
+
+`Race.tsx` renderiza **de una vez y siempre**: cabecera, aviso de "no corrida", lista de inscritos,
+**una altimetría SVG por cada etapa**, la general **completa y sin truncar**, los ganadores de etapa
+y el palmarés.
+
+Para Race France (21 etapas, 176 corredores) eso es **21 altimetrías + una tabla de 176 filas** en
+un scroll infinito. Y mezcla información **previa** (inscritos, recorrido) con **posterior**
+(general, ganadores): las dos a la vez, corra o no corra la carrera.
+
+**El problema de fondo no es la cantidad, es que la página no tiene noción de estado.** Una carrera
+está _por correr_, _en curso_ (una vuelta dura días) o _terminada_, y cada estado pide un contenido
+principal distinto.
+
+### 6.3 La página de etapa es un callejón sin salida
+
+`StageReplay.tsx` tiene **un solo enlace: "← Back to the race"**. No hay anterior/siguiente: para
+leer las 21 crónicas de una gran vuelta hay que volver atrás 21 veces. El título dice solo
+"Stage 4" — **no menciona a qué carrera pertenece**.
+
+Y apila seis secciones a la vez: contrarreloj, crónica, resultado, general, montaña y puntos.
+
+### 6.4 Incoherencia entre las dos páginas
+
+|                                       | Filas que muestra                               |
+| ------------------------------------- | ----------------------------------------------- |
+| Etapa (`StageReplay.tsx:305,334,378`) | **Trunca a 15 / 15 / 10, sin forma de ver más** |
+| Carrera (`Race.tsx:277`)              | **Todas** (176 en una gran vuelta)              |
+
+Es decir: **no se puede consultar el resultado completo de una etapa**, y a la vez la general te
+sepulta. Ninguna de las dos decisiones es la correcta.
+
+## 7. Propuesta: pestañas + estado
+
+Sí a las pestañas, pero con la pestaña por defecto elegida según el estado de la carrera.
+
+### 7.1 Página de carrera
+
+Cabecera **persistente** (nombre, bandera, clase, fechas, ganador si ya se corrió) que no cambia al
+cambiar de pestaña, y debajo:
+
+| Estado de la carrera | Pestañas                                                  | Por defecto         |
+| -------------------- | --------------------------------------------------------- | ------------------- |
+| **Por correr**       | `Route` · `Startlist` · `Roll of honour`                  | **Route**           |
+| **En curso**         | `Classifications` · `Stages` · `Route` · `Startlist`      | **Classifications** |
+| **Terminada**        | `Classifications` · `Stages` · `Route` · `Roll of honour` | **Classifications** |
+
+- **Classifications**: general, puntos y montaña como sub-pestañas, con top 20 y "mostrar todos".
+- **Stages**: lista compacta —día, tipo, recorrido, ganador, enlace a la crónica—, **sin** volcar 21
+  altimetrías.
+- **Route**: ahí sí van las altimetrías, que es donde el jugador las busca.
+
+### 7.2 Página de etapa
+
+```
+← Race Catalonia · Stage 3 of 7          [ ‹ Prev ]  [ Next › ]
+──────────────────────────────────────────────────────────────
+[ Story ]  [ Result ]  [ Classifications ]  [ Profile ]
+```
+
+- **Cabecera con contexto**: a qué carrera pertenece y qué etapa es de cuántas.
+- **Anterior / siguiente**: se pueden leer las 21 crónicas seguidas.
+- **Story por defecto**: es la carga emocional de la etapa (y donde entra la telemetría nueva del
+  motor — ver `docs/motor.md` §16 y la vista de espectador de su Parte IV).
+- **Result completo**, con truncado y "mostrar todos", igual que en la carrera.
+
+### 7.3 Regla común de tablas
+
+Una sola convención en todo el juego: **top 20 visible + "Show all"**. Ni truncar sin salida ni
+volcar 176 filas.
 
 ---
 
-## 7. Plan de implementación por fases
+## 8. Plan por fases
 
 Cada fase deja la aplicación funcionando y es desplegable por separado.
 
-**Fase A — Rescate (1 sesión).** Enlazar `/race-entry` y `/team-calendar` en el menú actual y
-decidir el destino de `/routes`. Sin refactor. _Elimina hoy mismo el daño real: hay funcionalidad
-pagada e invisible._
+| Fase  | Trabajo                                                                                                   | Sesiones |
+| ----- | --------------------------------------------------------------------------------------------------------- | -------- |
+| **A** | **Rescate**: enlazar `/team-calendar`, borrar `/routes`. Sin refactor.                                    | 0,5      |
+| **B** | **Flujo de carrera** (Parte B): pestañas + estado, `World → Races`, prev/next en etapa, regla de tablas   | 2-3      |
+| **C** | **Estructura** de menús: rutas nuevas con redirecciones, cabecera de dos niveles, `My Team` para miembros | 1-2      |
+| **D** | **`My races`** rehecha con sus tres pestañas (sustituye a `/race-entry`)                                  | 1        |
+| **E** | **Dashboard** de urgencia y **News** con filtros                                                          | 1        |
+| **F** | **Perfil unificado** (público + modo propietario)                                                         | 1        |
+| **G** | **Móvil**: barra inferior y pestañas desplazables                                                         | 1        |
 
-**Fase B — Estructura (1-2 sesiones).** Nuevo mapa de rutas con redirecciones desde las viejas.
-Cabecera de dos niveles. Nombres nuevos (`Contract`, `My races`). Fusión de `/race-entry` como
-pestaña.
+> **La Fase B va antes que la A-estructural a propósito**: es donde está el daño real de uso diario.
+> Arreglar el menú sin arreglar el flujo de carrera dejaría bonito el camino hacia una página mala.
 
-**Fase C — Dashboard (1 sesión).** Panel de urgencia con bloques condicionales.
-
-**Fase D — Móvil (1 sesión).** Barra inferior y pestañas desplazables.
-
-Nota de coordinación: la Fase B toca `App.tsx` y `Header.tsx`, que también toca el trabajo de
-`code-splitting` con `React.lazy`. Conviene hacer B **después** de que ese trabajo esté fusionado, o
-resolver el conflicto conscientemente.
+Nota de coordinación: la fase C toca `App.tsx` y `Header.tsx`, ya modificados por el trabajo de
+`React.lazy` ya fusionado. No hay conflicto pendiente, pero conviene hacerla de una sentada.
 
 ---
 
-## 8. Cuestiones abiertas para decidir
+## 9. Cuestiones abiertas
 
-1. **`/routes`**: ¿borrar, o conservar como herramienta de administración para revisar altimetrías?
-   Relacionado con el rediseño de perfiles de carrera (283 de 307 son procedurales).
-2. **`My Team`**: ¿cuánto peso tendrá el rol de mánager en el MVP? Si crece, quizá merezca ser una
-   esfera de primer nivel permanente y no condicional.
-3. **`News`**: ¿feed global, personal, o dos pestañas? Hoy conviven ambos conceptos.
-4. **Perfil público del corredor**: `/world/riders/:id` frente a `/me/profile` — ¿la misma página con
-   distinto modo, o dos páginas distintas? Hoy son dos (`PublicRider` y `RiderProfile`), con
-   duplicación entre ellas.
+1. **Foro de equipo**: introduce el primer texto libre del juego y con él la moderación. ¿v1.1?
+2. **`World → Races` frente a `World → Calendar`**: ¿dos páginas, o una con dos vistas (línea
+   temporal / índice)? Me inclino por dos: responden a preguntas distintas ("¿qué viene?" y "¿qué
+   pasó?").
+3. **Etapas de una carrera en curso**: ¿mostrar las etapas futuras con su recorrido, o solo las ya
+   corridas?
+4. **Vista de espectador de la etapa**: cuánto de la telemetría nueva del motor cabe aquí sin
+   abrumar. Depende del trabajo de `docs/motor.md` §16.
