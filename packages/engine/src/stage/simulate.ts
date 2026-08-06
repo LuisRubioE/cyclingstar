@@ -159,6 +159,7 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
   let shedCounter = 0
 
   let lowCommitKm = 0
+  let lastSplitKm = Number.NEGATIVE_INFINITY
   let chaseAbandoned = false
   let consolidated = false
   let caught = false
@@ -191,7 +192,12 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
         vActual: peloton.vActual,
         compromiso: coop,
       })
-      log.emit(0, breakaway.tS, 'fuga_formada', 'breakaway_formed', fugados)
+      // La fuga se fragua en los primeros km de ataques, no en la línea de salida (km 0): se fecha en
+      // un punto temprano, variado y determinista, sin pasar del 15% del recorrido en etapas cortas.
+      const breakKm = Math.round(
+        Math.min(totalKm * 0.15, STAGE.breakFormMinKm + rngBreak() * STAGE.breakFormKmRange),
+      )
+      log.emit(breakKm, breakaway.tS, 'fuga_formada', 'breakaway_formed', fugados)
     }
   }
   // Los sprinters solo cazan si la meta es llana (una llegada masiva que puedan disputar): en un
@@ -294,10 +300,11 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
 
     // Descuelgue en los puertos (SPEC 6.8): quien no aguanta el P75 del grupo se cae o quema un
     // cerillo. Fuera de subida no pasa nada, así que el llano queda intacto.
-    const shatter = (group: Group, members: RiderSim[], paceFraction: number): void => {
-      if (block.tipo !== 'subida') return
+    const shatter = (group: Group, members: RiderSim[], paceFraction: number): string[] => {
+      if (block.tipo !== 'subida') return []
       const pace = pacemakerP75(members, block, paceFraction)
       const inGroup = new Set(members.map((m) => m.input.riderId))
+      const dropped: string[] = []
       for (const m of members) {
         const deficit = pace - riderPerfil(m, block)
         if (deficit <= STAGE.dropDeficitTolerance) continue
@@ -329,8 +336,10 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
               compromiso: STAGE.shedCommit,
             }),
           )
+          dropped.push(m.input.riderId)
         }
       }
+      return dropped
     }
 
     // En subida mandan los más fuertes (fracción menor): el grupo se estira y se descuelga.
@@ -338,13 +347,41 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
     const pelFrac = onClimb ? STAGE.climbPaceFraction : STAGE.pelotonPaceFraction
     const brkFrac = onClimb ? STAGE.climbPaceFraction : (breakaway?.coop ?? STAGE.climbPaceFraction)
 
-    shatter(peloton, membersOf(PELOTON), pelFrac)
+    const pelotonDropped = shatter(peloton, membersOf(PELOTON), pelFrac)
     if (breakaway && !caught) shatter(breakaway, membersOf(BREAKAWAY), brkFrac)
+    // Corte en el puerto: cuando la subida descuelga a varios del pelotón, se narra en la crónica
+    // (SPEC 6.15). Explica los boquetes de la clasificación que, si no, aparecerían sin motivo. Se
+    // limita a uno cada pocos km para no repetir la misma frase bloque a bloque en un puerto largo.
+    if (
+      pelotonDropped.length >= STAGE.splitEventMinDropped &&
+      km - lastSplitKm >= STAGE.splitEventMinKmGap
+    ) {
+      log.emit(km, peloton.tS, 'corte', 'peloton_split', pelotonDropped)
+      lastSplitKm = km
+    }
 
     peloton = advance(peloton, membersOf(PELOTON), pelFrac)
     if (breakaway && !caught) breakaway = advance(breakaway, membersOf(BREAKAWAY), brkFrac)
     for (let g = 0; g < shed.length; g++) {
       shed[g] = advance(shed[g]!, membersOf(shed[g]!.id), 1)
+    }
+
+    // Reagrupamiento en terreno NO montañoso (llano/descenso): los descolgados ruedan a tope y, si el
+    // boquete con el pelotón es pequeño, vuelven a engancharse —el pelotón se recompone tras el puerto
+    // en los km siguientes—. En subida no: allí la selección manda y no se caza. (SPEC 6.3, realismo.)
+    if (!onClimb && shed.length > 0) {
+      const stillDropped: Group[] = []
+      for (const sg of shed) {
+        const mem = membersOf(sg.id)
+        if (mem.length > 0 && gapSeconds(peloton, sg) <= STAGE.regroupGapSeconds) {
+          for (const m of mem) m.groupId = PELOTON
+          peloton = { ...peloton, riderIds: [...peloton.riderIds, ...sg.riderIds] }
+        } else {
+          stillDropped.push(sg)
+        }
+      }
+      shed.length = 0
+      shed.push(...stillDropped)
     }
 
     // Caídas e incidentes (SPEC 6.14): en pavés, descensos y el embudo final. El caído pierde

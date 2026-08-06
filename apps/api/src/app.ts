@@ -1225,9 +1225,10 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
           sprinters_give_up: 1,
           sprint_intermediate: 2,
           climb_kom: 3,
-          breakaway_caught: 4,
-          stage_win: 5,
-          stage_win_itt: 5,
+          peloton_split: 4,
+          breakaway_caught: 5,
+          stage_win: 6,
+          stage_win_itt: 6,
         }
         const chronicle = output.events
           .map((e) => ({
@@ -1297,9 +1298,10 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
           sprinters_give_up: 1,
           sprint_intermediate: 2,
           climb_kom: 3,
-          breakaway_caught: 4,
-          stage_win: 5,
-          stage_win_itt: 5,
+          peloton_split: 4,
+          breakaway_caught: 5,
+          stage_win: 6,
+          stage_win_itt: 6,
         }
         const chronicle = output.events
           .map((e) => ({
