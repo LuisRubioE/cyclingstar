@@ -24,18 +24,27 @@ export function WorldClock({
 
   useEffect(() => {
     refetched.current = false
+    // El temporizador diferido también se limpia al desmontar: si no, quedaba huérfano e invalidaba
+    // consultas de un componente que ya no existe.
+    let refetchTimer: number | undefined
     const update = () => {
       const ms = target() - Date.now()
       setRemainingMs(ms)
       // Al vencer, pide /health una vez para obtener el nuevo día y el siguiente objetivo.
       if (ms <= 0 && !refetched.current) {
         refetched.current = true
-        setTimeout(() => void qc.invalidateQueries({ queryKey: ['health'] }), 2000)
+        refetchTimer = window.setTimeout(
+          () => void qc.invalidateQueries({ queryKey: ['health'] }),
+          2000,
+        )
       }
     }
     update()
     const id = window.setInterval(update, 1000)
-    return () => window.clearInterval(id)
+    return () => {
+      window.clearInterval(id)
+      if (refetchTimer !== undefined) window.clearTimeout(refetchTimer)
+    }
   }, [tickIntervalMinutes, nextTickAtMs])
 
   const dateLabel =

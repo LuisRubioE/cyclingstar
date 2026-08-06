@@ -114,6 +114,7 @@ export function Finances() {
       ) : (
         <Panel bodyClassName="p-0">
           <table className="w-full text-sm">
+            <caption className="sr-only">Transactions: game day, type, note and amount</caption>
             <tbody>
               {data.entries.map((e, i) => (
                 <tr key={i} className="border-b border-slate-100 last:border-0">

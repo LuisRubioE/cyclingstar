@@ -140,11 +140,21 @@ export function RaceEntry() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-slate-200 text-left text-xs text-slate-400">
-                    <th className="px-3 py-2 font-medium">Day</th>
-                    <th className="px-2 py-2 font-medium">Race</th>
-                    <th className="px-2 py-2 font-medium">Where</th>
-                    <th className="px-2 py-2 text-right font-medium">Travel</th>
-                    <th className="px-3 py-2 text-right font-medium">Entry</th>
+                    <th scope="col" className="px-3 py-2 font-medium">
+                      Day
+                    </th>
+                    <th scope="col" className="px-2 py-2 font-medium">
+                      Race
+                    </th>
+                    <th scope="col" className="px-2 py-2 font-medium">
+                      Where
+                    </th>
+                    <th scope="col" className="px-2 py-2 text-right font-medium">
+                      Travel
+                    </th>
+                    <th scope="col" className="px-3 py-2 text-right font-medium">
+                      Entry
+                    </th>
                   </tr>
                 </thead>
                 <tbody>

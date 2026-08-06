@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import { fetchHealth } from '../api/health'
 import { authClient } from '../auth/client'
@@ -40,8 +40,24 @@ export function Header() {
   const { data } = authClient.useSession()
   const health = useQuery({ queryKey: ['health'], queryFn: fetchHealth })
   const [open, setOpen] = useState(false)
+  const menuRef = useRef<HTMLElement>(null)
+  const toggleRef = useRef<HTMLButtonElement>(null)
 
   const links = data ? [...WORLD_LINKS, ...RIDER_LINKS] : [...WORLD_LINKS]
+
+  // Accesibilidad del menú móvil: al abrirlo el foco entra en el primer enlace y Escape lo cierra
+  // devolviendo el foco al botón (si no, el teclado se queda perdido detrás del menú).
+  useEffect(() => {
+    if (!open) return
+    menuRef.current?.querySelector('a')?.focus()
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      setOpen(false)
+      toggleRef.current?.focus()
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [open])
 
   return (
     <header className="bg-gradient-to-b from-brand-navy to-brand-navy-dark shadow-md">
@@ -91,10 +107,13 @@ export function Header() {
             </>
           )}
           <button
+            ref={toggleRef}
+            type="button"
             onClick={() => setOpen((v) => !v)}
             className="rounded border border-white/30 p-1.5 text-white lg:hidden"
-            aria-label="Menu"
+            aria-label={open ? 'Close menu' : 'Open menu'}
             aria-expanded={open}
+            aria-controls="mobile-menu"
           >
             <svg
               width="18"
@@ -103,6 +122,8 @@ export function Header() {
               fill="none"
               stroke="currentColor"
               strokeWidth="2"
+              aria-hidden="true"
+              focusable="false"
             >
               {open ? (
                 <path d="M6 6l12 12M6 18L18 6" strokeLinecap="round" />
@@ -115,7 +136,7 @@ export function Header() {
       </div>
 
       {/* Barra de navegación (escritorio) */}
-      <nav className="hidden border-t border-white/10 bg-black/15 lg:block">
+      <nav aria-label="Main" className="hidden border-t border-white/10 bg-black/15 lg:block">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-1 px-3 py-1">
           {links.map((l) => (
             <NavLink key={l.to} to={l.to} className={navClass}>
@@ -127,7 +148,12 @@ export function Header() {
 
       {/* Menú móvil */}
       {open && (
-        <nav className="border-t border-white/10 bg-black/20 px-3 py-2 lg:hidden">
+        <nav
+          id="mobile-menu"
+          ref={menuRef}
+          aria-label="Main"
+          className="border-t border-white/10 bg-black/20 px-3 py-2 lg:hidden"
+        >
           <div className="flex flex-col gap-1">
             {links.map((l) => (
               <NavLink key={l.to} to={l.to} className={navClass} onClick={() => setOpen(false)}>

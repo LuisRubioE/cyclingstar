@@ -248,6 +248,8 @@ export function StageReplay() {
         <div className={card}>
           <div
             className="w-full overflow-x-auto"
+            role="img"
+            aria-label={`Elevation profile of stage ${data.day}, ${data.km} km`}
             dangerouslySetInnerHTML={{ __html: data.altimetry }}
           />
         </div>
@@ -298,6 +300,7 @@ export function StageReplay() {
         <div className={card}>
           <h2 className={head}>Stage result</h2>
           <table className="mt-2 w-full text-sm">
+            <caption className="sr-only">Stage result: position, country, rider and time</caption>
             <tbody>
               {data.results.slice(0, 15).map((r) => (
                 <tr key={r.riderId} className="border-b border-slate-100 last:border-0">
@@ -324,6 +327,9 @@ export function StageReplay() {
         <div className={card}>
           <h2 className={head}>General classification after the stage</h2>
           <table className="mt-2 w-full text-sm">
+            <caption className="sr-only">
+              General classification: position, country, rider and time
+            </caption>
             <tbody>
               {data.gc.slice(0, 15).map((r, i) => (
                 <tr key={r.riderId} className="border-b border-slate-100 last:border-0">
@@ -367,6 +373,7 @@ export function StageReplay() {
 function PointsTable({ rows, unit }: { rows: StageClassEntry[]; unit: string }) {
   return (
     <table className="mt-2 w-full text-sm">
+      <caption className="sr-only">Classification: position, country, rider and {unit}</caption>
       <tbody>
         {rows.slice(0, 10).map((r, i) => (
           <tr key={r.riderId} className="border-b border-slate-100 last:border-0">

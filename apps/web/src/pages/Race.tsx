@@ -247,6 +247,8 @@ export function Race() {
                   {/* Altimetría real de autoría de la carrera (relieve + puertos). SVG del backend. */}
                   <div
                     className="w-full overflow-x-auto rounded-lg bg-slate-50 p-1"
+                    role="img"
+                    aria-label={`Elevation profile of ${stage.name}, ${stage.km} km`}
                     dangerouslySetInnerHTML={{ __html: stage.altimetry }}
                   />
                 </li>
@@ -268,6 +270,9 @@ export function Race() {
         <div className={card}>
           <h2 className={head}>General classification</h2>
           <table className="w-full text-sm">
+            <caption className="sr-only">
+              General classification: position, country, rider, team and time
+            </caption>
             <tbody>
               {data.gc.map((r, i) => (
                 <tr
