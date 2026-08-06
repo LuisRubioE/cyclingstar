@@ -302,13 +302,27 @@ export function Race() {
       {data.stageWinners.length > 0 && (
         <div className={card}>
           <h2 className={head}>Stage winners</h2>
+          <p className="-mt-2 mb-3 text-xs text-slate-400">
+            Tap a stage to read its journal — how the race unfolded.
+          </p>
           <ol className="space-y-1.5">
             {data.stageWinners.map((w) => (
               <li key={w.stageDay} className="flex items-center gap-3 text-sm">
-                <span className="w-16 shrink-0 text-slate-400">Stage {w.stageDay}</span>
+                <Link
+                  to={`/races/${raceId}/stages/${w.stageDay}`}
+                  className="w-16 shrink-0 font-medium text-indigo-600 hover:underline"
+                >
+                  Stage {w.stageDay}
+                </Link>
                 <Flag code={w.country} size={16} />
                 <RiderName riderId={w.riderId} name={w.name} isBot={w.isBot} />
                 {w.teamName && <span className="text-xs text-slate-400">{w.teamName}</span>}
+                <Link
+                  to={`/races/${raceId}/stages/${w.stageDay}`}
+                  className="ml-auto shrink-0 text-xs text-indigo-600 hover:underline"
+                >
+                  journal →
+                </Link>
               </li>
             ))}
           </ol>
