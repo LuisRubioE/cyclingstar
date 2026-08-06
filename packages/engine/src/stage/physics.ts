@@ -6,7 +6,7 @@
 import type { Attribute } from '@cyclingstar/shared'
 import { clamp } from '../random.js'
 import { STAGE } from '../constants.js'
-import type { Block, BlockTerrain } from './types.js'
+import type { Block, BlockTerrain, TankState } from './types.js'
 
 /** Efectividades por atributo, ya resueltas por Banister (eff0) o por erosión (effNow). */
 export type Eff = Record<Attribute, number>
@@ -41,12 +41,20 @@ export function blockPerfil(eff: Eff, block: Block, useCol = false): number {
   }
 }
 
-/** Velocidad de referencia del terreno en km/h (SPEC 6.4). */
+/**
+ * Velocidad de referencia del terreno en km/h (SPEC 6.4).
+ *
+ * En SUBIDA es hiperbólica, `A / (g + k)`, no lineal: subir es vencer la gravedad, así que la
+ * velocidad va como el inverso de la pendiente. La recta anterior (44 − 2.7·g, con suelo en 14)
+ * daba VAM de 1.940 m/h al 8% —por encima de cualquier ascensión de la historia— y encima se
+ * volvía absurda al pasar del 11%, donde el suelo la dejaba plana y la VAM se disparaba a 2.200.
+ * Con la hipérbola la VAM sale sola en el rango real (1.500-1.800 m/h) a cualquier pendiente.
+ */
 export function vRef(g: number, tipo: BlockTerrain): number {
   switch (tipo) {
     case 'subida':
       return clamp(
-        STAGE.vRefClimbBase - STAGE.vRefClimbSlope * g,
+        STAGE.vRefClimbNumerator / (g + STAGE.vRefClimbOffset),
         STAGE.vRefClimbMin,
         STAGE.vRefFlat,
       )
@@ -181,6 +189,27 @@ export function matchCount(eff0: Eff, tsb: number, deepDepleted = false): number
 /** Fracción de vaciado del tanque: clamp(1 - E/E0, 0, 1). */
 export function depletion(energy: number, energy0: number): number {
   return clamp(1 - energy / energy0, 0, 1)
+}
+
+/**
+ * ¿Terminó la etapa con VACIADO PROFUNDO (SPEC 6.6)? Quien acaba por debajo del
+ * `matchDepletionThreshold` de su depósito arranca la etapa siguiente con un cerillo menos
+ * (`matchCount(eff0, tsb, deepDepleted)`), que hasta ahora nunca se activaba.
+ */
+export function isDeepDepleted(energy: number, energy0: number): boolean {
+  if (energy0 <= 0) return false
+  return energy / energy0 < STAGE.matchDepletionThreshold
+}
+
+/** Foto del tanque de un corredor en meta (SPEC 6.6, 6.7), para telemetría e invariantes. */
+export function tankState(energy: number, energy0: number, res: number): TankState {
+  return {
+    energy0,
+    energy,
+    depletion: depletion(energy, energy0),
+    erosion: erosion(energy, energy0, res),
+    deepDepleted: isDeepDepleted(energy, energy0),
+  }
 }
 
 /**

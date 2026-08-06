@@ -15,11 +15,12 @@ import {
   effNow,
   erosion,
   stepSpeed,
+  tankState,
   targetSpeed,
 } from './physics.js'
 import { sampleProfile } from './sample.js'
 import { stageRng } from './rng.js'
-import type { Block, StageInput, StageOutput, StageResult } from './types.js'
+import type { Block, StageInput, StageOutput, StageResult, TankState } from './types.js'
 
 /** Perfil de crono: compuesto de especialista en llano que desliza hacia MON en subida (6.13). */
 function ttPerfil(eff: Eff, block: Block): number {
@@ -38,6 +39,7 @@ export function simulateTimeTrial(input: StageInput, seed: string): StageOutput 
   const blocks = sampleProfile(input.profile)
   const log = new EventLog()
   const workUnits = new Map<string, number>()
+  const tank = new Map<string, TankState>()
 
   const finishers = input.riders.map((rider) => {
     // Piernas del día: escala el nivel efectivo del corredor esta crono (SPEC 6.7), como en carretera.
@@ -68,6 +70,7 @@ export function simulateTimeTrial(input: StageInput, seed: string): StageOutput 
       work += cost
     }
     workUnits.set(rider.riderId, work)
+    tank.set(rider.riderId, tankState(energy, rider.energy, eff0.RES))
     return { riderId: rider.riderId, tS: tS * normal(rngNoise, 1, STAGE.ttNoiseSd) }
   })
 
@@ -87,5 +90,12 @@ export function simulateTimeTrial(input: StageInput, seed: string): StageOutput 
     log.emit(finishKm, finishers[0]!.tS, 'meta', 'stage_win_itt', [results[0].riderId])
   }
 
-  return { events: log.toArray(), results, workUnits, incidents: [], engineVersion: ENGINE_VERSION }
+  return {
+    events: log.toArray(),
+    results,
+    workUnits,
+    incidents: [],
+    tank,
+    engineVersion: ENGINE_VERSION,
+  }
 }
