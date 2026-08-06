@@ -634,7 +634,7 @@ function disputeBanner(
       // La volante la define SPR; la cima, el perfil de escalador (MON/COL).
       score:
         (isSprint ? m.input.eff0.SPR : Math.max(m.input.eff0.MON, m.input.eff0.COL)) *
-        (0.9 + 0.2 * rngSprint()),
+        normal(rngSprint, 1, STAGE.sprintScoreNoiseSd),
     }))
     .sort((a, b) => b.score - a.score)
   ranked.forEach(({ m }, idx) => {
@@ -669,7 +669,9 @@ function disputeClimb(
     const ranked = g.members
       .map((m) => ({
         m,
-        score: Math.max(m.input.eff0.MON, m.input.eff0.COL) * (0.9 + 0.2 * rngSprint()),
+        score:
+          Math.max(m.input.eff0.MON, m.input.eff0.COL) *
+          normal(rngSprint, 1, STAGE.sprintScoreNoiseSd),
       }))
       .sort((a, b) => b.score - a.score)
     for (const r of ranked) ordered.push(r.m)
