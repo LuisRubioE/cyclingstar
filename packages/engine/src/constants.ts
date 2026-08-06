@@ -199,6 +199,13 @@ export const STAGE = {
   splitEventMinDropped: 2,
   // Distancia mínima (km) entre dos "cortes" narrados: evita repetir la frase bloque a bloque.
   splitEventMinKmGap: 3,
+  // Journal: cada cuántos km se reporta la ventaja de la fuga, y el boquete mínimo para reportarlo.
+  gapReportKmGap: 25,
+  gapReportMinSeconds: 20,
+  // Colaboración de la fuga: por encima de este compromiso, la fuga «va a bloque» (colabora bien).
+  breakCoopThreshold: 0.58,
+  // Fracción del recorrido a partir de la cual se narra que los sprinters organizan la caza.
+  chaseAnnounceFrac: 0.4,
   // La fuga se fecha en los primeros km (ataques de salida), no en el km 0: mín + aleatorio determinista.
   breakFormMinKm: 3,
   breakFormKmRange: 17,

@@ -1221,8 +1221,11 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
         // Orden narrativo: por km y, a igual km, primero la fuga/cima y al final la victoria.
         const EVENT_ORDER: Record<string, number> = {
           breakaway_formed: 0,
+          break_cooperation: 0,
+          sprinters_chase: 1,
           peloton_concedes: 1,
           sprinters_give_up: 1,
+          time_gap: 2,
           sprint_intermediate: 2,
           climb_kom: 3,
           peloton_split: 4,
@@ -1236,6 +1239,7 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
             tS: Math.round(e.tS),
             plantilla: e.plantilla,
             protagonists: e.protagonistas.map((id) => nameOf.get(id) ?? id),
+            datos: e.datos,
           }))
           .sort(
             (a, b) =>
@@ -1294,8 +1298,11 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
         const nameOf = new Map(results.map((r) => [r.riderId, r.name]))
         const EVENT_ORDER: Record<string, number> = {
           breakaway_formed: 0,
+          break_cooperation: 0,
+          sprinters_chase: 1,
           peloton_concedes: 1,
           sprinters_give_up: 1,
+          time_gap: 2,
           sprint_intermediate: 2,
           climb_kom: 3,
           peloton_split: 4,
@@ -1309,6 +1316,7 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
             tS: Math.round(e.tS),
             plantilla: e.plantilla,
             protagonists: e.protagonistas.map((id) => nameOf.get(id) ?? id),
+            datos: e.datos,
           }))
           .sort(
             (a, b) =>

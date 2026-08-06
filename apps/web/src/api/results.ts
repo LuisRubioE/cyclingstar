@@ -46,6 +46,8 @@ export interface ChronicleEntry {
   tS: number
   plantilla: string
   protagonists: string[]
+  /** Datos numéricos del evento (p.ej. gapS = ventaja de la fuga en segundos; trend = -1/0/1). */
+  datos?: Record<string, number | string>
 }
 
 export interface StageResultEntry {
@@ -154,6 +156,12 @@ const CHRONICLE: Record<string, ((n: string) => string)[]> = {
     (n) => `${n} leads over the top for the KOM points`,
     (n) => `${n} dances away to top the climb`,
     (n) => `${n} is first to the summit`,
+  ],
+  break_cooperation: [(n) => `${n} start working together up front`],
+  time_gap: [() => 'Out front, the break presses on with its advantage'],
+  sprinters_chase: [
+    () => "The sprinters' teams hit the front to chase",
+    () => 'The bunch organises behind — the chase is on',
   ],
   peloton_split: [
     (n) => `The climb splits the peloton — ${n} lose contact`,

@@ -159,7 +159,12 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
   let shedCounter = 0
 
   let lowCommitKm = 0
+  // Km en que se «anuncia» la fuga en la crónica: ningún evento relativo a la fuga se fecha antes.
+  let breakFormedKm = 0
   let lastSplitKm = Number.NEGATIVE_INFINITY
+  let lastGapReportKm = Number.NEGATIVE_INFINITY
+  let prevGapS = Number.POSITIVE_INFINITY
+  let chaseAnnounced = false
   let chaseAbandoned = false
   let consolidated = false
   let caught = false
@@ -194,10 +199,15 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       })
       // La fuga se fragua en los primeros km de ataques, no en la línea de salida (km 0): se fecha en
       // un punto temprano, variado y determinista, sin pasar del 15% del recorrido en etapas cortas.
-      const breakKm = Math.round(
+      breakFormedKm = Math.round(
         Math.min(totalKm * 0.15, STAGE.breakFormMinKm + rngBreak() * STAGE.breakFormKmRange),
       )
-      log.emit(breakKm, breakaway.tS, 'fuga_formada', 'breakaway_formed', fugados)
+      log.emit(breakFormedKm, breakaway.tS, 'fuga_formada', 'breakaway_formed', fugados)
+      // Colaboración de la fuga: con un compromiso alto van a bloque; con uno bajo se miran y no
+      // avanzan. Se narra una vez, para que el journal cuente si la fuga rueda bien o mal avenida.
+      log.emit(breakFormedKm, breakaway.tS, 'colaboracion', 'break_cooperation', fugados, {
+        cooperating: coop >= STAGE.breakCoopThreshold ? 1 : 0,
+      })
     }
   }
   // Los sprinters solo cazan si la meta es llana (una llegada masiva que puedan disputar): en un
@@ -221,8 +231,33 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
     if (breakaway && !caught && i % STAGE.decisionEveryBlocks === 0) {
       const gap = peloton.tS - breakaway.tS
       const kmRestantes = totalKm - km
+      // Reporte de distancia (throttle cada gapReportKmGap): narra la ventaja de la fuga y si se
+      // estira o se recorta, para seguir la carrera aunque no pase nada más (SPEC 6.15).
+      if (
+        gap >= STAGE.gapReportMinSeconds &&
+        km >= breakFormedKm &&
+        km - lastGapReportKm >= STAGE.gapReportKmGap
+      ) {
+        const trend =
+          prevGapS === Number.POSITIVE_INFINITY
+            ? 0
+            : gap > prevGapS + 3
+              ? 1
+              : gap < prevGapS - 3
+                ? -1
+                : 0
+        log.emit(km, peloton.tS, 'boquete', 'time_gap', [], { gapS: Math.round(gap), trend })
+        lastGapReportKm = km
+        prevGapS = gap
+      }
       let target: number = STAGE.commitIdle
       if (chasingSprinters && !chaseAbandoned) {
+        // Los equipos de los sprinters se ponen a tirar para cazar: se narra una vez, pasada cierta
+        // parte del recorrido (antes la fuga tiene su cuerda), si aún no han claudicado.
+        if (!chaseAnnounced && km >= totalKm * STAGE.chaseAnnounceFrac) {
+          chaseAnnounced = true
+          log.emit(km, peloton.tS, 'persecucion', 'sprinters_chase', [])
+        }
         // Los sprinters quieren capturar en meta: el boquete deseado mengua a 0 en finish - 12 km.
         const frac = Math.min(
           1,
@@ -259,7 +294,13 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
           lowCommitKm += STAGE.decisionEveryBlocks * STAGE.dx
           if (lowCommitKm >= STAGE.breakawayConsolidateKm) {
             consolidated = true
-            log.emit(km, peloton.tS, 'fuga_consolidada', 'peloton_concedes', breakaway.riderIds)
+            log.emit(
+              Math.max(km, breakFormedKm),
+              peloton.tS,
+              'fuga_consolidada',
+              'peloton_concedes',
+              breakaway.riderIds,
+            )
           }
         } else {
           lowCommitKm = 0
