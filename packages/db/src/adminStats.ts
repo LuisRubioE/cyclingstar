@@ -13,6 +13,10 @@ export interface TickLogRow {
   durationMs: number
   ok: boolean
   notes: string | null
+  /** Día de juego en el que reventó el tick (null si no falló procesando un día). */
+  failedDay: number | null
+  /** Intentos consecutivos fallando ese mismo día: si crece, el mundo está atascado. */
+  failedAttempts: number | null
 }
 
 export interface WorldHealth {
@@ -55,6 +59,8 @@ export async function getWorldHealth(db: Database): Promise<WorldHealth> {
       durationMs: tickLog.durationMs,
       ok: tickLog.ok,
       notes: tickLog.notes,
+      failedDay: tickLog.failedDay,
+      failedAttempts: tickLog.failedAttempts,
     })
     .from(tickLog)
     .orderBy(desc(tickLog.startedAt))

@@ -39,6 +39,7 @@ import {
 } from './schema.js'
 import { runOneStage } from './stageRun.js'
 import { ownedTeamAttendance } from './teamPlan.js'
+import { worldNeedsRepair } from './worldRepair.js'
 
 /**
  * El calendario corre en el tick (Paso 44). Cada carrera del calendario (SPEC 8) ejecuta sus etapas
@@ -1113,8 +1114,9 @@ export async function ensureRaceRosterFrozen(
 /**
  * Corrige datos YA guardados de un mundo (idempotente): quita el honor de ETAPA de las carreras de un
  * día (contaba doble con la general en el palmarés / Hall of Fame) y asigna dorsales a los rosters
- * congelados que aún no los tengan (carreras congeladas antes de existir los dorsales). No-op cuando
- * ya está todo bien, así que es barato correrlo cada tick.
+ * congelados que aún no los tengan (carreras congeladas antes de existir los dorsales). Es CARO
+ * (barre palmarés, rosters, resultados y corredores del mundo), así que solo se ejecuta mientras el
+ * mundo tenga reparaciones pendientes (`worlds.repair_version`), no en cada tick.
  */
 async function backfillWorldData(tx: Tx, worldId: string, gameDay: number): Promise<void> {
   const season = Math.floor(gameDay / SEASON_DAYS)
@@ -1242,6 +1244,11 @@ async function dedupeOverlappingRosters(tx: Tx, worldId: string, gameDay: number
  * ya terminó) con las mismas funciones puras, y solo escribe a los corredores cuyo total cambia.
  */
 async function recomputeSeasonPoints(tx: Tx, worldId: string, season: number): Promise<void> {
+  // Serializa los recálculos entre sí (tick y web): son la única escritura de `season_points` con
+  // valor calculado desde cero, y dos a la vez llegarían a la misma corrección por duplicado.
+  await tx.execute(
+    sql`select pg_advisory_xact_lock(${LOCK_CLASS.seasonPoints}, ${raceLockKey(worldId)})`,
+  )
   // Solo hace falta si ya se corrió alguna carrera de un día esta temporada (la única fuente del doble
   // conteo). Si no, no hay nada que corregir y nos ahorramos escanear resultados.
   const oneDayKeys = SEASON_CALENDAR.filter((r) => r.stages.length === 1).map(
@@ -1287,29 +1294,51 @@ async function recomputeSeasonPoints(tx: Tx, worldId: string, season: number): P
     }
   }
 
-  // Escribe solo las diferencias: en la primera pasada corrige a quien tenía el doble; después,
-  // como coincide con lo almacenado, no toca nada (idempotente y barato tras converger).
+  // Escribe solo las diferencias, y como DELTA (`season_points + corrección`), no como valor
+  // absoluto: así no pisa los incrementos atómicos que el tick pueda estar sumando en paralelo
+  // (ranking.ts). Con valor absoluto, cualquier punto sumado entre la lectura y la escritura se
+  // perdía. En una sola sentencia por lote, además.
   const stored = await tx
     .select({ id: riders.id, seasonPoints: riders.seasonPoints })
     .from(riders)
     .where(eq(riders.worldId, worldId))
+  const fixes: BatchValue[][] = []
   for (const r of stored) {
     const correct = totals.get(r.id) ?? 0
-    if (correct !== r.seasonPoints) {
-      await tx.update(riders).set({ seasonPoints: correct }).where(eq(riders.id, r.id))
-    }
+    if (correct !== r.seasonPoints) fixes.push([r.id, correct - r.seasonPoints])
   }
+  await inChunks(fixes, BATCH_ROWS, async (chunk) => {
+    const v = valuesList(chunk, ['uuid', 'integer'])
+    await tx.execute(
+      sql`update ${riders} set season_points = ${riders.seasonPoints} + v.delta
+          from ${v} as v(id, delta) where ${riders.id} = v.id`,
+    )
+  })
 }
 
 /**
- * TEMPORAL (quitar): fuerza el recálculo de los puntos de la temporada bajo demanda (al abrir la
- * clasificación), por si el recálculo del tick aún no llegó al mundo (deploy/tick). Corrige el doble
- * conteo viejo de las carreras de un día en el acto. Es idempotente y solo escribe diferencias.
+ * Fuerza el recálculo de los puntos de la temporada bajo demanda, por si el del tick aún no llegó al
+ * mundo (deploy/tick). Corrige el doble conteo viejo de las carreras de un día en el acto.
+ *
+ * Solo hace algo mientras el mundo tenga reparaciones pendientes (`worlds.repair_version`): en un
+ * mundo ya reparado devuelve enseguida sin barrer nada, así que se puede llamar desde una petición
+ * web sin miedo. Idempotente y, cuando escribe, lo hace como delta (ver recomputeSeasonPoints).
  */
 export async function recomputeWorldRanking(db: Db, worldId: string): Promise<void> {
+  if (!(await worldNeedsRepair(db, worldId))) return
   const gs = await db.select({ currentDay: gameState.currentDay }).from(gameState).limit(1)
   const season = Math.floor((gs[0]?.currentDay ?? 0) / SEASON_DAYS)
   await db.transaction((tx) => recomputeSeasonPoints(tx, worldId, season))
+}
+
+/** Ajustes del día de calendario. `repairWorld` lo decide el tick (ver worldRepair.ts). */
+export interface CalendarDayOptions {
+  /**
+   * Ejecuta las correcciones de datos de mundos antiguos (palmarés de carreras de un día, dorsales
+   * que faltaban, recálculo de puntos, dobles inscripciones). El tick solo lo pide mientras el mundo
+   * tenga reparaciones pendientes; en un mundo sano NO se hace, que barría todas las tablas cada día.
+   */
+  repairWorld?: boolean
 }
 
 export async function runCalendarDay(
@@ -1317,13 +1346,15 @@ export async function runCalendarDay(
   worldId: string,
   gameDay: number,
   worldSeed: string,
+  opts: CalendarDayOptions = {},
 ): Promise<Set<string>> {
   const season = Math.floor(gameDay / SEASON_DAYS)
   const dayOfSeason = gameDay % SEASON_DAYS
   const raced = new Set<string>()
 
-  // Corrige datos viejos del mundo (palmarés de 1 día, dorsales faltantes, puntos, dobles inscripciones). Idempotente.
-  await backfillWorldData(tx, worldId, gameDay)
+  // Corrige datos viejos del mundo (palmarés de 1 día, dorsales faltantes, puntos, dobles
+  // inscripciones). Solo mientras queden reparaciones pendientes: no es trabajo del día.
+  if (opts.repairWorld === true) await backfillWorldData(tx, worldId, gameDay)
 
   // Corredores OCUPADOS hoy: los que ya están corriendo una carrera que arrancó antes y aún no
   // termina (nadie puede estar en dos carreras a la vez). Los que empiecen carrera hoy se van

@@ -6,7 +6,19 @@
 export * from './schema.js'
 export { createDb, type Database, type DbClient } from './client.js'
 export { runMigrations } from './migrate.js'
-export { runTick, targetGameDay, type RunTickOptions, type TickSummary } from './tick.js'
+export {
+  DEFAULT_MAX_DAYS_PER_RUN,
+  POISON_PILL_ATTEMPTS,
+  runTick,
+  targetGameDay,
+  type RunTickOptions,
+  type TickSummary,
+} from './tick.js'
+export {
+  WORLD_REPAIR_VERSION,
+  markWorldRepaired,
+  worldNeedsRepair,
+} from './worldRepair.js'
 export { raceWorldDay } from './race.js'
 export {
   ENROLL_LOCK_DAYS,
@@ -15,6 +27,7 @@ export {
   recomputeWorldRanking,
   runCalendarDay,
   selectFieldTeams,
+  type CalendarDayOptions,
   type RaceStartlist,
   type StartlistRider,
   type StartlistTeam,
