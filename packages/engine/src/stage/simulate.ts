@@ -430,7 +430,14 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
     peloton = advance(peloton, membersOf(PELOTON), pelFrac)
     if (breakaway && !caught) breakaway = advance(breakaway, membersOf(BREAKAWAY), brkFrac)
     for (let g = 0; g < shed.length; g++) {
-      shed[g] = advance(shed[g]!, membersOf(shed[g]!.id), 1)
+      const adv = advance(shed[g]!, membersOf(shed[g]!.id), 1)
+      // Un descolgado del pelotón NUNCA rueda por delante de él: en carretera el grupo grande, a rueda,
+      // siempre es más rápido que un suelto. Sin este tope, un "descolgado" con compromiso alto se
+      // escapaba en FANTASMA (más rápido que el pelotón a tempo) y ganaba la etapa sin que la fuga ni la
+      // crónica lo contaran. PERO el tope solo aplica en LLANO/DESCENSO: en la SUBIDA un descolgado sí
+      // puede quedar por delante de lo que reste del pelotón (que se ha estirado y va más lento en
+      // conjunto), y ahí la selección debe mantenerse —no reagrupar—.
+      shed[g] = !onClimb && adv.tS < peloton.tS ? { ...adv, tS: peloton.tS } : adv
     }
 
     // Recorte en terreno NO montañoso (llano/descenso): los descolgados no se quedan rodando solos
@@ -612,7 +619,15 @@ function disputeClimb(
   })
   const winner = ordered[0]
   if (winner) {
-    log.emit(km, groups[0]?.tS ?? 0, 'banner', 'climb_kom', [winner.input.riderId])
+    // Datos para una crónica informativa: categoría del puerto, puntos que suma el primero, y si con
+    // ellos pasa a LIDERAR la clasificación de la montaña (o solo se acerca). `ordered` tiene ya a
+    // todos los corredores en carrera, así que el máximo de climbPts es el líder actual de la montaña.
+    const maxPts = ordered.reduce((mx, m) => Math.max(mx, m.climbPts), 0)
+    log.emit(km, groups[0]?.tS ?? 0, 'banner', 'climb_kom', [winner.input.riderId], {
+      category: block.climbCategory ?? '',
+      points: table[0] ?? 0,
+      leads: winner.climbPts >= maxPts && winner.climbPts > 0 ? 1 : 0,
+    })
   }
 }
 
@@ -687,8 +702,17 @@ function finishStage(
       // La victoria dice CÓMO se ganó, coherente con el resultado: en solitario (con su margen al
       // siguiente grupo), al sprint de un pelotón numeroso, o al esprint de un grupo reducido.
       const nextTs = withMembers[gi + 1]?.group.tS
-      const margin = field === 1 && nextTs != null ? Math.round(nextTs - group.tS) : 0
+      const margin = nextTs != null ? Math.max(0, Math.round(nextTs - group.tS)) : 0
       const won = isBunch ? 'sprint' : field === 1 ? 'solo' : 'group'
+      // Reporte de último km cuando NO es un sprint masivo: quién manda en cabeza y con cuánta ventaja,
+      // para que el desenlace no llegue de golpe (el sprint masivo ya lo cuenta bunch_sprint).
+      if (!isBunch) {
+        const leaders = ranked.slice(0, Math.min(3, field)).map((r) => r.m.input.riderId)
+        log.emit(Math.max(0, totalKm - 1), group.tS, 'final', 'final_km', leaders, {
+          margin,
+          field,
+        })
+      }
       log.emit(totalKm, group.tS, 'meta', 'stage_win', [ranked[0].m.input.riderId], {
         won,
         margin,
