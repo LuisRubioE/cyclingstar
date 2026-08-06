@@ -1,146 +1,97 @@
-export interface RankingRow {
-  riderId: string
-  name: string
-  country: string
-  teamId: string | null
-  teamName: string | null
-  isBot: boolean
-  points: number
-}
+import {
+  type AllTimeRecords,
+  type AwardWinner,
+  type HallOfFameRow,
+  type PalmaresRow,
+  type RaceHistoryHonour,
+  type RankingRow,
+  type RecordEntry,
+  type RiderResult,
+  type SeasonAwards,
+  hallOfFameResponseSchema,
+  palmaresResponseSchema,
+  raceHistoryResponseSchema,
+  rankingResponseSchema,
+  recordsResponseSchema,
+  riderResultsResponseSchema,
+  seasonAwardsResponseSchema,
+} from '@cyclingstar/shared'
+import { request } from './request'
 
-export interface RaceHonour {
-  season: number
-  raceName: string
-  winnerId: string
-  winnerName: string
-  winnerCountry: string
+export type {
+  AllTimeRecords,
+  AwardWinner,
+  HallOfFameRow,
+  PalmaresRow,
+  RankingRow,
+  RecordEntry,
+  RiderResult,
+  SeasonAwards,
 }
-
-export interface PalmaresRow {
-  season: number
-  raceId: string
-  raceName: string
-  kind: string
-  detail: string
-}
+/** Historial de ganadores de una carrera (nombre de la carrera incluido). */
+export type { RaceHistoryHonour as RaceHonour }
 
 export async function fetchRankings(): Promise<RankingRow[]> {
-  const res = await fetch('/api/rankings')
-  if (!res.ok) throw new Error('Could not load the rankings.')
-  return ((await res.json()) as { ranking: RankingRow[] }).ranking
+  const data = await request('/api/rankings', rankingResponseSchema, {
+    errorMessage: 'Could not load the rankings.',
+  })
+  return data.ranking
 }
 
 export async function fetchYoungRankings(): Promise<RankingRow[]> {
-  const res = await fetch('/api/rankings/young')
-  if (!res.ok) throw new Error('Could not load the young riders ranking.')
-  return ((await res.json()) as { ranking: RankingRow[] }).ranking
-}
-
-export interface AwardWinner {
-  riderId: string
-  name: string
-  country: string
-  isBot: boolean
-  archetype: string
-  points: number
-}
-
-export interface SeasonAwards {
-  riderOfYear: AwardWinner | null
-  bestSprinter: AwardWinner | null
-  bestClimber: AwardWinner | null
-  revelation: AwardWinner | null
+  const data = await request('/api/rankings/young', rankingResponseSchema, {
+    errorMessage: 'Could not load the young riders ranking.',
+  })
+  return data.ranking
 }
 
 export async function fetchSeasonAwards(): Promise<SeasonAwards | null> {
-  const res = await fetch('/api/season-awards')
-  if (!res.ok) throw new Error('Could not load the season awards.')
-  return ((await res.json()) as { awards: SeasonAwards | null }).awards
-}
-
-export interface HallOfFameRow {
-  riderId: string
-  name: string
-  country: string
-  isBot: boolean
-  gc: number
-  stage: number
-  kom: number
-  points: number
-  total: number
+  const data = await request('/api/season-awards', seasonAwardsResponseSchema, {
+    errorMessage: 'Could not load the season awards.',
+  })
+  return data.awards
 }
 
 export async function fetchHallOfFame(): Promise<HallOfFameRow[]> {
-  const res = await fetch('/api/hall-of-fame')
-  if (!res.ok) throw new Error('Could not load the hall of fame.')
-  return ((await res.json()) as { riders: HallOfFameRow[] }).riders
-}
-
-export interface RecordEntry {
-  riderId: string
-  name: string
-  country: string
-  isBot: boolean
-  value: number
-  note: string
-}
-
-export interface AllTimeRecords {
-  mostWins: RecordEntry | null
-  mostGcWins: RecordEntry | null
-  youngestWinner: RecordEntry | null
+  const data = await request('/api/hall-of-fame', hallOfFameResponseSchema, {
+    errorMessage: 'Could not load the hall of fame.',
+  })
+  return data.riders
 }
 
 export async function fetchRecords(): Promise<AllTimeRecords | null> {
-  const res = await fetch('/api/records')
-  if (!res.ok) throw new Error('Could not load records.')
-  return ((await res.json()) as { records: AllTimeRecords | null }).records
+  const data = await request('/api/records', recordsResponseSchema, {
+    errorMessage: 'Could not load records.',
+  })
+  return data.records
 }
 
-export async function fetchRaceHistory(): Promise<RaceHonour[]> {
-  const res = await fetch('/api/races/test-tour/history')
-  if (!res.ok) throw new Error('Could not load the race history.')
-  return ((await res.json()) as { history: RaceHonour[] }).history
+export async function fetchRaceHistory(): Promise<RaceHistoryHonour[]> {
+  const data = await request('/api/races/test-tour/history', raceHistoryResponseSchema, {
+    errorMessage: 'Could not load the race history.',
+  })
+  return data.history
 }
 
 export async function fetchPalmares(): Promise<PalmaresRow[]> {
-  const res = await fetch('/api/riders/me/palmares')
-  if (!res.ok) throw new Error('Could not load your palmarès.')
-  return ((await res.json()) as { palmares: PalmaresRow[] }).palmares
+  const data = await request('/api/riders/me/palmares', palmaresResponseSchema, {
+    errorMessage: 'Could not load your palmarès.',
+  })
+  return data.palmares
 }
 
 /** Palmarés público de cualquier corredor (para su ficha). */
 export async function fetchRiderPalmares(id: string): Promise<PalmaresRow[]> {
-  const res = await fetch(`/api/riders/${id}/palmares`)
-  if (!res.ok) throw new Error('Could not load the palmarès.')
-  return ((await res.json()) as { palmares: PalmaresRow[] }).palmares
-}
-
-export interface RiderResult {
-  raceId: string
-  raceName: string
-  raceClass: string
-  season: number
-  stageDay: number
-  stageCount: number
-  puesto: number
-  isOneDay: boolean
+  const data = await request(`/api/riders/${id}/palmares`, palmaresResponseSchema, {
+    errorMessage: 'Could not load the palmarès.',
+  })
+  return data.palmares
 }
 
 /** Últimos resultados públicos de cualquier corredor (sus puestos en carreras ya corridas). */
 export async function fetchRiderResults(id: string): Promise<RiderResult[]> {
-  const res = await fetch(`/api/riders/${id}/results`)
-  if (!res.ok) throw new Error('Could not load the results.')
-  return ((await res.json()) as { results: RiderResult[] }).results
-}
-
-const KIND_LABEL: Record<string, string> = {
-  gc: 'Overall win',
-  stage: 'Stage win',
-  kom: 'Mountains classification',
-  points: 'Points classification',
-}
-
-export function palmaresLabel(kind: string): string {
-  return KIND_LABEL[kind] ?? kind
+  const data = await request(`/api/riders/${id}/results`, riderResultsResponseSchema, {
+    errorMessage: 'Could not load the results.',
+  })
+  return data.results
 }

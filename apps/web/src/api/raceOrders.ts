@@ -1,76 +1,56 @@
-export type StageRole =
-  'lider' | 'sprinter' | 'lanzador' | 'gregario' | 'cazaetapas' | 'marcador' | 'libre'
-export type Mentality = 'reservon' | 'oportunista' | 'combativo' | 'supercombativo'
-export type Effort = 'ahorrar' | 'normal' | 'a_tope'
+import {
+  type Effort,
+  type Mentality,
+  type RaceOrders,
+  type RaceStage,
+  type RosterRider,
+  type StageOrder,
+  type StageRole,
+  type TestTour,
+  raceOrdersResponseSchema,
+  savedResponseSchema,
+  testTourResponseSchema,
+} from '@cyclingstar/shared'
+import { request } from './request'
 
-export interface StageOrder {
-  stageDay: number
-  role: StageRole
-  targetRiderId: string | null
-  mentality: Mentality
-  effort: Effort
-  triggerKm: number | null
-  contestSprints: boolean
-  contestClimbs: boolean
-}
-
-export interface RaceStage {
-  day: number
-  name: string
-  kind: 'llana' | 'media' | 'reina' | 'cri'
-  timeTrial: boolean
-  km: number
-  altimetry: string
-}
-
-export interface RosterRider {
-  id: string
-  name: string
-}
-
-export interface TestTour {
-  stages: RaceStage[]
-  orders: StageOrder[]
-  roster: RosterRider[]
+export type {
+  Effort,
+  Mentality,
+  RaceOrders,
+  RaceStage,
+  RosterRider,
+  StageOrder,
+  StageRole,
+  TestTour,
 }
 
 export async function fetchTestTour(): Promise<TestTour> {
-  const res = await fetch('/api/races/test-tour')
-  if (!res.ok) throw new Error('Could not load the race.')
-  return (await res.json()) as TestTour
+  return request('/api/races/test-tour', testTourResponseSchema, {
+    errorMessage: 'Could not load the race.',
+  })
 }
 
 export async function saveStageOrders(orders: StageOrder[]): Promise<void> {
-  const res = await fetch('/api/races/test-tour/orders', {
+  await request('/api/races/test-tour/orders', savedResponseSchema, {
     method: 'PUT',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ orders }),
+    json: { orders },
+    errorMessage: 'Could not save your orders.',
   })
-  if (!res.ok) throw new Error('Could not save your orders.')
-}
-
-export interface RaceOrders {
-  race: { id: string; name: string }
-  stages: RaceStage[]
-  orders: StageOrder[]
-  /** Compañeros de equipo en la carrera (objetivos de lanzador/gregario). */
-  teammates: RosterRider[]
-  /** Rivales en la carrera (a quién marcar/seguir), por fama. */
-  rivals: RosterRider[]
 }
 
 /** Órdenes del corredor para una carrera real a la que está convocado. */
 export async function fetchRaceOrders(raceKey: string): Promise<RaceOrders> {
-  const res = await fetch(`/api/my-orders?raceKey=${encodeURIComponent(raceKey)}`)
-  if (!res.ok) throw new Error('Could not load the race.')
-  return (await res.json()) as RaceOrders
+  return request(
+    `/api/my-orders?raceKey=${encodeURIComponent(raceKey)}`,
+    raceOrdersResponseSchema,
+    { errorMessage: 'Could not load the race.' },
+  )
 }
 
 export async function saveRaceOrders(raceKey: string, orders: StageOrder[]): Promise<void> {
-  const res = await fetch('/api/my-orders', {
+  await request('/api/my-orders', savedResponseSchema, {
     method: 'PUT',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ raceKey, orders }),
+    json: { raceKey, orders },
+    errorMessage: 'Could not save your orders.',
   })
-  if (!res.ok) throw new Error('Could not save your orders.')
 }

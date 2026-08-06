@@ -32,6 +32,8 @@ export function RoutesPage() {
               </div>
               <div
                 className="w-full overflow-x-auto"
+                role="img"
+                aria-label={`Elevation profile of ${stage.name}, ${totalKm} km`}
                 // El SVG lo genera nuestro propio motor (cadena de confianza, sin entrada externa).
                 dangerouslySetInnerHTML={{ __html: renderAltimetrySvg(stage.profile) }}
               />

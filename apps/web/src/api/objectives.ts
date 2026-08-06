@@ -1,26 +1,20 @@
-export interface RacePref {
-  raceId: string
-  name: string
-  level: string
-  format: string
-  startDay: number
-  stageCount: number
-  wanted: boolean
-  callup: 'selected' | 'not-selected' | null
-}
+import { type RacePref, okResponseSchema, racePrefsResponseSchema } from '@cyclingstar/shared'
+import { request, requestOptionalAuth } from './request'
 
+export type { RacePref }
+
+/** Objetivos de calendario del corredor. Sin sesión (401) no hay objetivos que mostrar. */
 export async function fetchRacePrefs(): Promise<RacePref[]> {
-  const res = await fetch('/api/riders/me/race-prefs')
-  if (res.status === 401) return [] // sin sesión: no hay objetivos que mostrar
-  if (!res.ok) throw new Error('Could not load your objectives.')
-  return ((await res.json()) as { races: RacePref[] }).races
+  const data = await requestOptionalAuth('/api/riders/me/race-prefs', racePrefsResponseSchema, {
+    errorMessage: 'Could not load your objectives.',
+  })
+  return data?.races ?? []
 }
 
 export async function setRacePref(raceId: string, wanted: boolean): Promise<void> {
-  const res = await fetch('/api/riders/me/race-prefs', {
+  await request('/api/riders/me/race-prefs', okResponseSchema, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ raceId, wanted }),
+    json: { raceId, wanted },
+    errorMessage: 'Could not update your objectives.',
   })
-  if (!res.ok) throw new Error('Could not update your objectives.')
 }

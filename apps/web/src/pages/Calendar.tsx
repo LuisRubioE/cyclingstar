@@ -1,13 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
 import { Fragment, type ReactElement, useState } from 'react'
 import { Link } from 'react-router-dom'
-import {
-  type CalendarRaceSummary,
-  type RaceLevel,
-  fetchCalendar,
-  formatLabel,
-  raceClassLabel,
-} from '../api/calendar'
+import { type CalendarRaceSummary, type RaceLevel, fetchCalendar } from '../api/calendar'
+import { formatLabel, raceClassLabel } from '../domain/labels'
 import { Flag } from '../components/Flag'
 import { Panel, SectionBar } from '../components/Panel'
 

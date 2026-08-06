@@ -1,60 +1,60 @@
-export interface TeamListItem {
-  id: string
-  name: string
-  country: string | null
-  division: string
-  budget: number
-  pointsSeason: number
-  jerseySeed: string
-  riderCount: number
+/**
+ * Explorar el mundo: equipos, ficha de equipo, ficha pública de corredor, países y agentes libres.
+ * Todas las respuestas se validan con los esquemas compartidos (los tipos salen de ahí).
+ */
+
+import {
+  type Badge,
+  type CountryRider,
+  type CountrySummary,
+  type FreeAgent,
+  type PublicRiderDetail,
+  type TeamControl,
+  type TeamDetail,
+  type TeamListItem,
+  type TeamNewsItem,
+  type TeamRider,
+  badgesResponseSchema,
+  countriesResponseSchema,
+  countryRidersResponseSchema,
+  freeAgentsResponseSchema,
+  okResponseSchema,
+  publicRiderDetailResponseSchema,
+  takeOverResponseSchema,
+  teamControlResponseSchema,
+  teamNewsResponseSchema,
+  teamResponseSchema,
+  teamsResponseSchema,
+} from '@cyclingstar/shared'
+import { request, requestOptionalAuth } from './request'
+
+export type {
+  Badge,
+  CountryRider,
+  CountrySummary,
+  FreeAgent,
+  PublicRiderDetail,
+  TeamControl,
+  TeamDetail,
+  TeamListItem,
+  TeamNewsItem,
+  TeamRider,
 }
 
-export interface TeamRider {
-  id: string
-  name: string
-  country: string
-  archetype: string
-  isBot: boolean
-  seasonPoints: number
-  foreign: boolean
-  /** Estado de salud: 'sano' | 'molestias' | 'enfermo' | 'lesionado'. */
-  health: string
-}
-
-export interface TeamDetail {
-  id: string
-  name: string
-  country: string | null
-  division: string
-  budget: number
-  pointsSeason: number
-  jerseySeed: string
-  human: boolean
-  roster: TeamRider[]
-}
-
-export interface TeamControl {
-  premium: boolean
-  isAdmin: boolean
-  team: { id: string; name: string; isBot: boolean; ownedByMe: boolean } | null
-}
-
+/** Estado de control de equipo. Sin sesión (401) no hay nada que mostrar: null. */
 export async function fetchTeamControl(): Promise<TeamControl | null> {
-  const res = await fetch('/api/me/team-control')
-  if (res.status === 401) return null
-  if (!res.ok) throw new Error('Could not load team control.')
-  return ((await res.json()) as { control: TeamControl | null }).control
+  const data = await requestOptionalAuth('/api/me/team-control', teamControlResponseSchema, {
+    errorMessage: 'Could not load team control.',
+  })
+  return data?.control ?? null
 }
 
 export async function takeOverTeam(): Promise<{ teamId: string; teamName: string }> {
-  const res = await fetch('/api/teams/take-over', { method: 'POST' })
-  const body = (await res.json().catch(() => ({}))) as {
-    teamId?: string
-    teamName?: string
-    error?: string
-  }
-  if (!res.ok) throw new Error(body.error ?? 'take_over_failed')
-  return { teamId: body.teamId!, teamName: body.teamName! }
+  const data = await request('/api/teams/take-over', takeOverResponseSchema, {
+    method: 'POST',
+    errorMessage: 'take_over_failed',
+  })
+  return { teamId: data.teamId, teamName: data.teamName }
 }
 
 export interface TeamEdit {
@@ -65,115 +65,60 @@ export interface TeamEdit {
 
 /** Edita el equipo que gestiona el usuario. Lanza con el código de error del servidor. */
 export async function updateMyTeam(edit: TeamEdit): Promise<void> {
-  const res = await fetch('/api/teams/me', {
+  await request('/api/teams/me', okResponseSchema, {
     method: 'PUT',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify(edit),
+    json: edit,
+    errorMessage: 'update_failed',
   })
-  if (!res.ok) {
-    const body = (await res.json().catch(() => ({}))) as { error?: string }
-    throw new Error(body.error ?? 'update_failed')
-  }
-}
-
-export interface PublicRiderDetail {
-  id: string
-  name: string
-  country: string
-  residence: string
-  archetype: string
-  age: number
-  isBot: boolean
-  teamId: string | null
-  teamName: string | null
-  seasonPoints: number
-  seasonRank: number
-  fieldSize: number
-  fame: number
-  attributes: Record<string, number>
 }
 
 export async function fetchTeams(): Promise<TeamListItem[]> {
-  const res = await fetch('/api/teams')
-  if (!res.ok) throw new Error('Could not load teams.')
-  return ((await res.json()) as { teams: TeamListItem[] }).teams
+  const data = await request('/api/teams', teamsResponseSchema, {
+    errorMessage: 'Could not load teams.',
+  })
+  return data.teams
 }
 
 export async function fetchTeam(id: string): Promise<TeamDetail> {
-  const res = await fetch(`/api/teams/${id}`)
-  if (!res.ok) throw new Error('Could not load the team.')
-  return ((await res.json()) as { team: TeamDetail }).team
-}
-
-export interface TeamNewsItem {
-  gameDay: number
-  kind: string
-  text: string
+  const data = await request(`/api/teams/${id}`, teamResponseSchema, {
+    errorMessage: 'Could not load the team.',
+  })
+  return data.team
 }
 
 export async function fetchTeamNews(id: string): Promise<TeamNewsItem[]> {
-  const res = await fetch(`/api/teams/${id}/news`)
-  if (!res.ok) throw new Error('Could not load team news.')
-  return ((await res.json()) as { news: TeamNewsItem[] }).news
+  const data = await request(`/api/teams/${id}/news`, teamNewsResponseSchema, {
+    errorMessage: 'Could not load team news.',
+  })
+  return data.news
 }
 
 export async function fetchPublicRider(id: string): Promise<PublicRiderDetail> {
-  const res = await fetch(`/api/riders/${id}`)
-  if (!res.ok) throw new Error('Could not load the rider.')
-  return ((await res.json()) as { rider: PublicRiderDetail }).rider
-}
-
-export interface Badge {
-  id: string
-  label: string
-  icon: string
-  desc: string
+  const data = await request(`/api/riders/${id}`, publicRiderDetailResponseSchema, {
+    errorMessage: 'Could not load the rider.',
+  })
+  return data.rider
 }
 
 export async function fetchRiderBadges(id: string): Promise<Badge[]> {
-  const res = await fetch(`/api/riders/${id}/badges`)
-  if (!res.ok) throw new Error('Could not load badges.')
-  return ((await res.json()) as { badges: Badge[] }).badges
-}
-
-export interface CountrySummary {
-  country: string
-  riderCount: number
-  totalPoints: number
-}
-
-export interface CountryRider {
-  id: string
-  name: string
-  archetype: string
-  isBot: boolean
-  teamId: string | null
-  teamName: string | null
-  seasonPoints: number
-  fame: number
+  const data = await request(`/api/riders/${id}/badges`, badgesResponseSchema, {
+    errorMessage: 'Could not load badges.',
+  })
+  return data.badges
 }
 
 export async function fetchCountries(): Promise<CountrySummary[]> {
-  const res = await fetch('/api/countries')
-  if (!res.ok) throw new Error('Could not load countries.')
-  return ((await res.json()) as { countries: CountrySummary[] }).countries
+  const data = await request('/api/countries', countriesResponseSchema, {
+    errorMessage: 'Could not load countries.',
+  })
+  return data.countries
 }
 
 export async function fetchCountryRiders(code: string): Promise<CountryRider[]> {
-  const res = await fetch(`/api/countries/${code}`)
-  if (!res.ok) throw new Error('Could not load the country.')
-  return ((await res.json()) as { riders: CountryRider[] }).riders
-}
-
-export interface FreeAgent {
-  id: string
-  name: string
-  country: string
-  archetype: string
-  age: number
-  isBot: boolean
-  seasonPoints: number
-  fame: number
+  const data = await request(`/api/countries/${code}`, countryRidersResponseSchema, {
+    errorMessage: 'Could not load the country.',
+  })
+  return data.riders
 }
 
 export async function fetchFreeAgents(filters: {
@@ -184,7 +129,8 @@ export async function fetchFreeAgents(filters: {
   if (filters.country) params.set('country', filters.country)
   if (filters.vocation) params.set('vocation', filters.vocation)
   const qs = params.toString()
-  const res = await fetch(`/api/free-agents${qs ? `?${qs}` : ''}`)
-  if (!res.ok) throw new Error('Could not load free agents.')
-  return ((await res.json()) as { riders: FreeAgent[] }).riders
+  const data = await request(`/api/free-agents${qs ? `?${qs}` : ''}`, freeAgentsResponseSchema, {
+    errorMessage: 'Could not load free agents.',
+  })
+  return data.riders
 }

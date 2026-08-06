@@ -5,6 +5,7 @@ import { z } from 'zod'
  * El cliente de la web valida contra este esquema; la API tipa su respuesta con él.
  */
 
+export * from './contracts.js'
 export * from './countries.js'
 export * from './regions.js'
 export * from './rider.js'

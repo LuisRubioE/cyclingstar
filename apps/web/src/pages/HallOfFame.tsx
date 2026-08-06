@@ -83,13 +83,27 @@ export function HallOfFame() {
             <table className="w-full min-w-[520px] text-sm">
               <thead>
                 <tr className="border-b border-slate-100 text-xs uppercase tracking-wide text-slate-400">
-                  <th className="py-2 pl-4 text-left font-semibold">#</th>
-                  <th className="py-2 text-left font-semibold">Rider</th>
-                  <th className="py-2 text-right font-semibold">Overall</th>
-                  <th className="py-2 text-right font-semibold">Stages</th>
-                  <th className="py-2 text-right font-semibold">Mtn</th>
-                  <th className="py-2 text-right font-semibold">Pts</th>
-                  <th className="py-2 pr-4 text-right font-semibold">Total</th>
+                  <th scope="col" className="py-2 pl-4 text-left font-semibold">
+                    #
+                  </th>
+                  <th scope="col" className="py-2 text-left font-semibold">
+                    Rider
+                  </th>
+                  <th scope="col" className="py-2 text-right font-semibold">
+                    Overall
+                  </th>
+                  <th scope="col" className="py-2 text-right font-semibold">
+                    Stages
+                  </th>
+                  <th scope="col" className="py-2 text-right font-semibold">
+                    Mtn
+                  </th>
+                  <th scope="col" className="py-2 text-right font-semibold">
+                    Pts
+                  </th>
+                  <th scope="col" className="py-2 pr-4 text-right font-semibold">
+                    Total
+                  </th>
                 </tr>
               </thead>
               <tbody>

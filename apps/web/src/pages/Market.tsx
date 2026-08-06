@@ -3,7 +3,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Flag } from '../components/Flag'
 import { Panel, SectionBar, InfoRow } from '../components/Panel'
 import { TeamLink } from '../components/TeamLink'
-import { type Offer, fetchMarket, respondToOffer, roleLabel } from '../api/market'
+import { type Offer, fetchMarket, respondToOffer } from '../api/market'
+import { roleLabel } from '../domain/labels'
 
 const DIVISION_BADGE: Record<string, string> = {
   WT: 'bg-indigo-100 text-indigo-700',

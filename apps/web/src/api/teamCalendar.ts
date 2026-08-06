@@ -1,41 +1,31 @@
-export interface TeamCalendarRace {
-  raceId: string
-  name: string
-  country: string | null
-  startDay: number
-  level: string
-  raceClass: string
-  format: string
-  travelPerRider: number
-  squad: number
-  drafted: boolean
-  natural: boolean
-  travelTier: 'home' | 'continental' | 'intercontinental'
-}
+import {
+  type TeamCalendar,
+  type TeamCalendarRace,
+  okResponseSchema,
+  teamCalendarResponseSchema,
+} from '@cyclingstar/shared'
+import { request, requestOptionalAuth } from './request'
 
-export interface TeamCalendar {
-  teamId: string
-  teamName: string
-  teamCountry: string | null
-  budget: number
-  weeklyIncome: number
-  weeklyWages: number
-  weeklyNet: number
-  races: TeamCalendarRace[]
-}
+export type { TeamCalendar, TeamCalendarRace }
 
+/** Draft de calendario del equipo. Sin sesión (401) no hay calendario; los 500 se propagan. */
 export async function fetchTeamCalendar(): Promise<TeamCalendar | null> {
-  const res = await fetch('/api/teams/me/calendar')
-  if (!res.ok) return null
-  return ((await res.json()) as { calendar: TeamCalendar | null }).calendar
+  const data = await requestOptionalAuth('/api/teams/me/calendar', teamCalendarResponseSchema, {
+    errorMessage: 'Could not load your team calendar.',
+  })
+  return data?.calendar ?? null
 }
 
 export async function draftRace(raceId: string): Promise<void> {
-  const res = await fetch(`/api/teams/me/calendar/${raceId}`, { method: 'POST' })
-  if (!res.ok) throw new Error('Could not add the race to the plan.')
+  await request(`/api/teams/me/calendar/${raceId}`, okResponseSchema, {
+    method: 'POST',
+    errorMessage: 'Could not add the race to the plan.',
+  })
 }
 
 export async function undraftRace(raceId: string): Promise<void> {
-  const res = await fetch(`/api/teams/me/calendar/${raceId}`, { method: 'DELETE' })
-  if (!res.ok) throw new Error('Could not remove the race from the plan.')
+  await request(`/api/teams/me/calendar/${raceId}`, okResponseSchema, {
+    method: 'DELETE',
+    errorMessage: 'Could not remove the race from the plan.',
+  })
 }

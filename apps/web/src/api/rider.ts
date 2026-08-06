@@ -1,37 +1,61 @@
-import { type Gender, type PublicRider, type Vocation, resolveCountry } from '@cyclingstar/shared'
+import {
+  type Gender,
+  type GeneratedName,
+  type PublicRider,
+  type RiderSummary,
+  type UpcomingRace,
+  type Vocation,
+  createdRiderResponseSchema,
+  generatedNameSchema,
+  geoCountryResponseSchema,
+  myRiderResponseSchema,
+  okResponseSchema,
+  resolveCountry,
+  riderSummaryResponseSchema,
+  upcomingRacesResponseSchema,
+} from '@cyclingstar/shared'
+import { z } from 'zod'
+import { request, requestOptionalAuth } from './request'
 
-export interface GeneratedName {
-  firstName: string
-  surname: string
-  fullName: string
-}
+export type { GeneratedName, RiderSummary, UpcomingRace }
+
+/** Lo que ipwho.is devuelve y nos interesa (validado igual que cualquier otro borde de entrada). */
+const ipWhoIsSchema = z.object({
+  success: z.boolean().optional(),
+  country_code: z.string().optional(),
+})
 
 /**
- * País preseleccionado por geolocalización de IP (Paso 14, SPEC 3.6). Se resuelve desde el
- * navegador con una API pública gratuita (sin Cloudflare); si nuestro servidor recibe la
- * cabecera CF-IPCountry (por si algún día hay proxy delante), se usa como primera opción.
- * La IP no se persiste. Devuelve null si no se puede determinar (el selector es editable).
+ * País preseleccionado por geolocalización de IP (Paso 14, SPEC 3.6).
+ *
+ * ⚠️ RIESGO CONOCIDO (funcionalidad de producto, se mantiene a propósito): el segundo intento
+ * llama desde el NAVEGADOR a un tercero (https://ipwho.is), lo que implica:
+ *  - Privacidad: la IP del jugador llega a un servicio externo sobre el que no tenemos control ni
+ *    acuerdo de tratamiento. No persistimos nada, pero el tercero sí puede.
+ *  - Disponibilidad: si el servicio cae, cambia de formato o mete rate-limit, esto falla.
+ *  - CSP: cualquier `connect-src` restrictivo (o un bloqueador de anuncios) corta la petición.
+ * Por eso TODO fallo es silencioso: se devuelve null y el selector de país queda editable, que es
+ * el comportamiento correcto. Alternativa futura: resolver el país solo en el servidor (cabecera
+ * CF-IPCountry o una base GeoIP propia) y eliminar la llamada del navegador.
  */
 export async function fetchGeoCountry(): Promise<string | null> {
   // 1) Cabecera del servidor (CF-IPCountry) si existe.
   try {
-    const res = await fetch('/api/geo/country')
-    if (res.ok) {
-      const data = (await res.json()) as { country: string | null }
-      if (data.country) return resolveCountry(data.country)
-    }
+    const data = await request('/api/geo/country', geoCountryResponseSchema)
+    if (data.country) return resolveCountry(data.country)
   } catch {
     // sigue con la API pública
   }
 
-  // 2) API pública de geolocalización por IP (país + coordenadas), desde el navegador.
+  // 2) API pública de geolocalización por IP, desde el navegador (ver aviso de arriba).
   try {
     const res = await fetch('https://ipwho.is/?fields=success,country_code')
     if (!res.ok) return null
-    const data = (await res.json()) as { success?: boolean; country_code?: string }
+    const parsed = ipWhoIsSchema.safeParse(await res.json())
+    if (!parsed.success) return null
+    const data = parsed.data
     if (data.success === false || !data.country_code) return null
-    const code = data.country_code.toUpperCase()
-    return resolveCountry(code)
+    return resolveCountry(data.country_code.toUpperCase())
   } catch {
     return null
   }
@@ -43,60 +67,34 @@ export async function fetchGeneratedName(params: {
   seed: string
 }): Promise<GeneratedName> {
   const query = new URLSearchParams(params)
-  const res = await fetch(`/api/names/generate?${query.toString()}`)
-  if (!res.ok) throw new Error('Could not generate a name.')
-  return (await res.json()) as GeneratedName
+  return request(`/api/names/generate?${query.toString()}`, generatedNameSchema, {
+    errorMessage: 'Could not generate a name.',
+  })
 }
 
+/** El ciclista del usuario. Sin sesión (401) devuelve null: la home pública también lo pide. */
 export async function fetchMyRider(): Promise<PublicRider | null> {
-  const res = await fetch('/api/riders/me')
-  if (res.status === 401) return null
-  if (!res.ok) throw new Error('Could not load your rider.')
-  const data = (await res.json()) as { rider: PublicRider | null }
-  return data.rider
-}
-
-export interface UpcomingRace {
-  raceId: string
-  raceKey: string
-  raceName: string
-  raceClass: string
-  country: string | null
-  startGameDay: number
-  daysUntil: number
-  stageCount: number
-  ongoing: boolean
-  bib: number | null
+  const data = await requestOptionalAuth('/api/riders/me', myRiderResponseSchema, {
+    errorMessage: 'Could not load your rider.',
+  })
+  return data?.rider ?? null
 }
 
 /** Próximas carreras (y en curso) del ciclista del jugador. */
 export async function fetchMyUpcomingRaces(): Promise<UpcomingRace[]> {
-  const res = await fetch('/api/riders/me/upcoming-races')
-  if (res.status === 401) return []
-  if (!res.ok) throw new Error('Could not load your upcoming races.')
-  const data = (await res.json()) as { races: UpcomingRace[] }
-  return data.races
-}
-
-export interface RiderSummary {
-  teamId: string | null
-  teamName: string | null
-  money: number
-  morale: number
-  fame: number
-  seasonPoints: number
-  seasonRank: number
-  fieldSize: number
-  nationality: string
-  residence: string
-  housingCovered: boolean
+  const data = await requestOptionalAuth(
+    '/api/riders/me/upcoming-races',
+    upcomingRacesResponseSchema,
+    { errorMessage: 'Could not load your upcoming races.' },
+  )
+  return data?.races ?? []
 }
 
 export async function fetchRiderSummary(): Promise<RiderSummary | null> {
-  const res = await fetch('/api/riders/me/summary')
-  if (!res.ok) return null
-  const data = (await res.json()) as { summary: RiderSummary | null }
-  return data.summary
+  const data = await requestOptionalAuth('/api/riders/me/summary', riderSummaryResponseSchema, {
+    errorMessage: 'Could not load your rider summary.',
+  })
+  return data?.summary ?? null
 }
 
 export interface CreateRiderBody {
@@ -107,24 +105,19 @@ export interface CreateRiderBody {
 }
 
 export async function createRider(body: CreateRiderBody): Promise<{ id: string }> {
-  const res = await fetch('/api/riders', {
+  const data = await request('/api/riders', createdRiderResponseSchema, {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify(body),
+    json: body,
+    errorMessage: 'Could not create your rider.',
   })
-  const data = (await res.json()) as { id?: string; error?: string }
-  if (!res.ok || !data.id) {
-    throw new Error(data.error ?? 'Could not create your rider.')
-  }
   return { id: data.id }
 }
 
 /** Cambia la vocación declarada del corredor (la etiqueta). */
 export async function setArchetype(archetype: Vocation): Promise<void> {
-  const res = await fetch('/api/riders/me/archetype', {
+  await request('/api/riders/me/archetype', okResponseSchema, {
     method: 'PUT',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ archetype }),
+    json: { archetype },
+    errorMessage: 'Could not change your role.',
   })
-  if (!res.ok) throw new Error('Could not change your role.')
 }

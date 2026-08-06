@@ -7,25 +7,26 @@ import {
   type Session,
   ATTRIBUTE_LABELS,
   attributesTrainedBy,
-  defaultCoachPlan,
   seasonPosition,
 } from '@cyclingstar/shared'
 import { useQuery } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { fetchOrders, fetchTeamTraining, saveOrders, saveTeamTraining } from '../api/training'
 import { Panel, SectionBar } from '../components/Panel'
+import {
+  type DayEdit,
+  type DayPlan,
+  adoptTeamSuggestions,
+  applyEdits,
+  buildServerPlan,
+  withEdit,
+} from '../domain/trainingPlan'
 
 const HORIZON = 7
 
 // "Travel" no se elige a mano: lo marca el sistema de viajes automáticamente los días de
 // desplazamiento a una carrera lejana (y el día de competición tampoco se entrena).
 const SELECTABLE_SESSIONS = SESSIONS.filter((s) => s !== 'viaje')
-
-interface DayPlan {
-  gameDay: number
-  session: Session
-  intensity: Intensity
-}
 
 /** Human-readable summary of what a session trains and how hard it is (#7). */
 function sessionEffect(session: Session, intensity: Intensity): string {
@@ -44,7 +45,9 @@ function sessionEffect(session: Session, intensity: Intensity): string {
 export function Training() {
   const query = useQuery({ queryKey: ['orders'], queryFn: fetchOrders })
   const team = useQuery({ queryKey: ['team-training'], queryFn: fetchTeamTraining })
-  const [plan, setPlan] = useState<DayPlan[]>([])
+  // Ediciones sin guardar, por día de juego. Viven APARTE de los datos del servidor: un refetch en
+  // segundo plano actualiza la base pero jamás pisa lo que el jugador ha tocado.
+  const [edits, setEdits] = useState<Record<number, DayEdit>>({})
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -53,16 +56,16 @@ export function Training() {
   const raceDays = new Set(query.data?.raceDays ?? [])
   const teamByDay = new Map((team.data?.plan ?? []).map((o) => [o.gameDay, o]))
 
+  // El plan del servidor es un valor DERIVADO, no estado copiado con un efecto.
+  const serverPlan = useMemo(
+    () => (query.data ? buildServerPlan(query.data, HORIZON) : []),
+    [query.data],
+  )
+  const plan: DayPlan[] = applyEdits(serverPlan, edits)
+
   function adoptTeamPlan() {
     setSaved(false)
-    setPlan((current) =>
-      current.map((day) => {
-        const suggestion = teamByDay.get(day.gameDay)
-        return suggestion
-          ? { ...day, session: suggestion.session, intensity: suggestion.intensity }
-          : day
-      }),
-    )
+    setEdits((current) => adoptTeamSuggestions(serverPlan, current, teamByDay))
   }
 
   async function publishTeamPlan() {
@@ -76,31 +79,9 @@ export function Training() {
     }
   }
 
-  useEffect(() => {
-    if (!query.data) return
-    const { currentDay, orders, raceDays: race } = query.data
-    const raceSet = new Set(race)
-    const byDay = new Map(orders.map((order) => [order.gameDay, order]))
-    const next: DayPlan[] = []
-    for (let i = 1; i <= HORIZON; i++) {
-      const gameDay = currentDay + i
-      if (raceSet.has(gameDay)) continue // Race days can't be trained (#6).
-      const existing = byDay.get(gameDay)
-      const fallback = defaultCoachPlan(gameDay)
-      next.push({
-        gameDay,
-        session: existing?.session ?? fallback.session,
-        intensity: existing?.intensity ?? fallback.intensity,
-      })
-    }
-    setPlan(next)
-  }, [query.data])
-
-  function update(gameDay: number, patch: Partial<DayPlan>) {
+  function update(gameDay: number, patch: DayEdit) {
     setSaved(false)
-    setPlan((current) =>
-      current.map((day) => (day.gameDay === gameDay ? { ...day, ...patch } : day)),
-    )
+    setEdits((current) => withEdit(current, gameDay, patch))
   }
 
   async function onSave() {
@@ -109,6 +90,8 @@ export function Training() {
     try {
       await saveOrders(plan)
       setSaved(true)
+      // Refresca la base con lo que acaba de quedar guardado (las ediciones ya coinciden con ella).
+      await query.refetch()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong.')
     } finally {
@@ -193,6 +176,8 @@ export function Training() {
                     Day {position.dayOfSeason}
                   </span>
                   <select
+                    id={`session-${gameDay}`}
+                    aria-label={`Session for day ${position.dayOfSeason}`}
                     value={day.session}
                     onChange={(event) =>
                       update(day.gameDay, { session: event.target.value as Session })
@@ -206,6 +191,8 @@ export function Training() {
                     ))}
                   </select>
                   <select
+                    id={`intensity-${gameDay}`}
+                    aria-label={`Intensity for day ${position.dayOfSeason}`}
                     value={day.intensity}
                     disabled={!info.variableIntensity}
                     onChange={(event) =>

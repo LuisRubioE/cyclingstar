@@ -102,6 +102,7 @@ export function Team() {
 
       <Panel title={`Roster (${data.roster.length})`} bodyClassName="p-0">
         <table className="w-full text-sm">
+          <caption className="sr-only">Team roster: country, rider, speciality and points</caption>
           <tbody>
             {data.roster.map((r) => (
               <tr key={r.id} className="border-b border-slate-100 last:border-0">

@@ -1,11 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
-import {
-  fetchLastRace,
-  mentalityLabel,
-  personalNarration,
-  raceVerdict,
-  roleLabel,
-} from '../api/lastRace'
+import { fetchLastRace } from '../api/lastRace'
+import { mentalityLabel, roleLabel } from '../domain/labels'
+import { personalNarration, raceVerdict } from '../domain/narration'
 
 /**
  * Panel "Your last race" (backlog extra): compara lo que el corredor ordenó con lo que ocurrió,

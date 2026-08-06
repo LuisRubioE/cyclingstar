@@ -1,4 +1,8 @@
-/** Campo de texto etiquetado, reutilizado en los formularios de acceso y registro. */
+/**
+ * Campo de texto etiquetado, reutilizado en los formularios de acceso y registro.
+ * `required` es opcional (por defecto sí, que es lo que necesitan esos formularios): antes estaba
+ * forzado en el marcado y el componente no servía para campos opcionales.
+ */
 export function TextField(props: {
   label: string
   value: string
@@ -7,6 +11,7 @@ export function TextField(props: {
   autoComplete: string
   minLength?: number
   hint?: string
+  required?: boolean
 }) {
   return (
     <label className="block space-y-1.5">
@@ -18,7 +23,7 @@ export function TextField(props: {
         autoComplete={props.autoComplete}
         minLength={props.minLength}
         onChange={(event) => props.onChange(event.target.value)}
-        required
+        required={props.required ?? true}
       />
       {props.hint && <span className="text-xs text-slate-400">{props.hint}</span>}
     </label>
