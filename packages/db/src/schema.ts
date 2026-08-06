@@ -1,4 +1,4 @@
-import { sql } from 'drizzle-orm'
+import { desc, sql } from 'drizzle-orm'
 import {
   boolean,
   char,
@@ -41,6 +41,13 @@ export const worlds = pgTable('worlds', {
   id: uuid('id').primaryKey().defaultRandom(),
   worldSeed: text('world_seed').notNull(),
   engineVersion: integer('engine_version').notNull(),
+  /**
+   * Versión de las CORRECCIONES de datos ya aplicadas a este mundo (ver worldRepair.ts). Los
+   * backfills/reconciliaciones son reparaciones de mundos antiguos, no trabajo del día: se ejecutan
+   * una sola vez y esto lo recuerda, en vez de barrer todas las tablas en cada tick. Un mundo nuevo
+   * nace con la versión actual (no hay nada que reparar).
+   */
+  repairVersion: integer('repair_version').notNull().default(0),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
@@ -128,15 +135,29 @@ export const gameState = pgTable(
   (t) => [check('game_state_singleton', sql`${t.id} = 1`)],
 )
 
-/** Bitácora de cada avance del mundo (SPEC 2 y 11): auditoría del tick. */
-export const tickLog = pgTable('tick_log', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  startedAt: timestamp('started_at', { withTimezone: true }).notNull().defaultNow(),
-  daysProcessed: integer('days_processed').notNull(),
-  durationMs: integer('duration_ms').notNull(),
-  ok: boolean('ok').notNull(),
-  notes: text('notes'),
-})
+/**
+ * Bitácora de cada avance del mundo (SPEC 2 y 11): auditoría del tick. Se escribe SIEMPRE, también
+ * cuando el tick falla (`ok = false`), para que el panel de admin no sea ciego ante un mundo atascado.
+ */
+export const tickLog = pgTable(
+  'tick_log',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    startedAt: timestamp('started_at', { withTimezone: true }).notNull().defaultNow(),
+    daysProcessed: integer('days_processed').notNull(),
+    durationMs: integer('duration_ms').notNull(),
+    ok: boolean('ok').notNull(),
+    notes: text('notes'),
+    /**
+     * Día de juego que se estaba procesando cuando falló el tick (null si no falló procesando un día).
+     * Detecta el "poison pill": un día que falla determinísticamente y bloquea el mundo para siempre.
+     */
+    failedDay: integer('failed_day'),
+    /** Intentos CONSECUTIVOS fallidos del mismo `failed_day` (1 = primer fallo). Null si no falló. */
+    failedAttempts: integer('failed_attempts'),
+  },
+  (t) => [index('tick_log_started_idx').on(t.startedAt)],
+)
 
 // ---- El ciclista (SPEC 3 y 11), Paso 15 ----
 
@@ -196,7 +217,11 @@ export const teams = pgTable(
   (t) => [index('teams_world_division_idx').on(t.worldId, t.division)],
 )
 
-/** El ciclista (SPEC 11). `team_id` queda sin FK hasta que exista `teams`. */
+/**
+ * El ciclista (SPEC 11). `team_id` apunta a `teams` con `on delete set null`: borrar un equipo (poda
+ * de NPC sobrantes, ver world.ts) deja a sus corredores como AGENTES LIBRES, que es exactamente lo
+ * que hacía el código a mano. Ahora la base lo garantiza y no puede quedar un team_id colgando.
+ */
 export const riders = pgTable(
   'riders',
   {
@@ -205,7 +230,7 @@ export const riders = pgTable(
       .notNull()
       .references(() => worlds.id),
     userId: uuid('user_id').references(() => users.id), // null = NPC
-    teamId: uuid('team_id'),
+    teamId: uuid('team_id').references(() => teams.id, { onDelete: 'set null' }),
     name: text('name').notNull(),
     country: char('country', { length: 2 }).notNull(),
     /** País de RESIDENCIA (ISO alpha-2): base del coste de viajes y de la vivienda. Arranca en el
@@ -235,6 +260,9 @@ export const riders = pgTable(
     index('riders_user_idx').on(t.userId),
     index('riders_team_idx').on(t.teamId),
     index('riders_world_fame_idx').on(t.worldId, t.fame),
+    // El ranking ordena ~3.900 corredores del mundo por puntos en cada carga (ranking.ts): sin este
+    // índice es un seq scan + sort completo. Descendente, que es el orden en que siempre se lee.
+    index('riders_world_points_idx').on(t.worldId, desc(t.seasonPoints)),
   ],
 )
 
@@ -543,7 +571,13 @@ export const contracts = pgTable(
     /** El equipo asume el alquiler de vivienda del corredor (extra del contrato, no lo paga él). */
     payHousing: boolean('pay_housing').notNull().default(false),
   },
-  (t) => [index('contracts_rider_idx').on(t.riderId), index('contracts_team_idx').on(t.teamId)],
+  (t) => [
+    // UNO POR CORREDOR de verdad: hasta ahora la invariante solo la sostenía que `acceptOffer` borre
+    // antes de insertar. Con el índice único la base la impone (y sirve de índice de búsqueda por
+    // corredor, así que sustituye al antiguo `contracts_rider_idx`).
+    uniqueIndex('contracts_rider_uidx').on(t.riderId),
+    index('contracts_team_idx').on(t.teamId),
+  ],
 )
 
 /** Oferta de contrato a un corredor (bandeja de ofertas, SPEC 7.2, Paso 36). */
@@ -567,7 +601,12 @@ export const offers = pgTable(
     /** La oferta incluye que el equipo pague el alquiler de vivienda (a cambio de menos salario). */
     payHousing: boolean('pay_housing').notNull().default(false),
   },
-  (t) => [index('offers_rider_status_idx').on(t.riderId, t.status)],
+  (t) => [
+    index('offers_rider_status_idx').on(t.riderId, t.status),
+    // La FK a teams es `on delete cascade`, pero sin índice Postgres hace un seq scan de offers por
+    // cada equipo borrado (la poda de NPC de world.ts borra equipos en bucle).
+    index('offers_team_idx').on(t.teamId),
+  ],
 )
 
 /** Deseos de calendario del corredor: qué carreras marca como objetivo (SPEC 7.2, Paso 35). */
@@ -579,7 +618,12 @@ export const riderRacePrefs = pgTable(
       .references(() => riders.id, { onDelete: 'cascade' }),
     raceId: text('race_id').notNull(),
   },
-  (t) => [primaryKey({ columns: [t.riderId, t.raceId] })],
+  (t) => [
+    primaryKey({ columns: [t.riderId, t.raceId] }),
+    // Convocatorias y congelado de escuadras filtran por raceId SOLO (calendarRun.ts, callups.ts),
+    // que no es prefijo de la PK: sin este índice cada carrera del día escanea la tabla entera.
+    index('rider_race_prefs_race_idx').on(t.raceId),
+  ],
 )
 
 /**
@@ -599,7 +643,11 @@ export const raceEntries = pgTable(
     /** Ya convocado y pagado el viaje (metido en el pelotón). */
     enrolled: boolean('enrolled').notNull().default(false),
   },
-  (t) => [primaryKey({ columns: [t.riderId, t.raceId, t.season] })],
+  (t) => [
+    primaryKey({ columns: [t.riderId, t.raceId, t.season] }),
+    // Se consulta por (raceId, season), que NO es prefijo de la PK (empieza por riderId).
+    index('race_entries_race_season_idx').on(t.raceId, t.season),
+  ],
 )
 
 /**
@@ -621,7 +669,11 @@ export const teamRacePlan = pgTable(
     /** Excepción sobre el calendario natural: true = añadir esta carrera, false = saltarla. */
     attend: boolean('attend').notNull().default(true),
   },
-  (t) => [primaryKey({ columns: [t.teamId, t.raceId, t.season] })],
+  (t) => [
+    primaryKey({ columns: [t.teamId, t.raceId, t.season] }),
+    // Se consulta por (season, raceId), que NO es prefijo de la PK (empieza por teamId).
+    index('team_race_plan_season_race_idx').on(t.season, t.raceId),
+  ],
 )
 
 /** Decisiones de convocatoria por carrera y temporada (SPEC 6.18, Paso 35). */

@@ -23,6 +23,7 @@ import {
 import { and, asc, desc, eq, inArray, isNotNull, isNull, notInArray, or, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import { creditRider } from './economy.js'
+import { LOCK_CLASS, hashInt, raceLockKey } from './locks.js'
 import {
   gameState,
   palmares,
@@ -93,14 +94,21 @@ const FIELD_CAP = 64
 /** Plazas de wildcard (fuera de la región) reservadas por defecto en una carrera continental. */
 const WILDCARD_FRACTION = 0.12
 
-/** Hash entero estable de una cadena (para variar de forma determinista, p.ej. las wildcards). */
-function hashInt(s: string): number {
-  let h = 2166136261
-  for (let i = 0; i < s.length; i++) {
-    h ^= s.charCodeAt(i)
-    h = Math.imul(h, 16777619)
-  }
-  return h >>> 0
+/**
+ * Toma el candado de congelado de UNA carrera dentro de la transacción actual. Lo toman TODOS los
+ * caminos que pueden convocar/congelar esa carrera —el tick (`runCalendarDay`, `lockUpcomingRosters`)
+ * y la web (`ensureRaceRosterFrozen`)—, porque congelar dos veces la misma escuadra descontaría DOS
+ * VECES el presupuesto de viaje del equipo y el bolsillo del corredor (READ COMMITTED no lo impide:
+ * la segunda transacción no ve las filas aún sin confirmar de la primera y cree que no está congelada).
+ *
+ * Orden de adquisición y deadlocks: la web toma como mucho UN candado de carrera por transacción, y
+ * solo el tick toma varios; como el tick es único (candado global del tick, clase `tick`), no puede
+ * haber dos poseedores de varias claves a la vez y por tanto no hay ciclo de espera posible.
+ */
+async function lockRace(tx: Tx, raceKey: string): Promise<void> {
+  await tx.execute(
+    sql`select pg_advisory_xact_lock(${LOCK_CLASS.raceRoster}, ${raceLockKey(raceKey)})`,
+  )
 }
 /**
  * Prioridad de división al llenar una carrera global (.WT/.Pro). En una .WT los equipos WorldTour
@@ -961,6 +969,10 @@ async function lockUpcomingRosters(
   ).sort((a, b) => a.startDay - b.startDay)
   for (const race of upcoming) {
     const raceKey = `${race.id}:s${season}`
+    // MISMO candado que usa la web (`ensureRaceRosterFrozen`): si no, las dos podrían congelar la
+    // misma carrera a la vez y cobrar dos veces el viaje. El candado global del tick no basta porque
+    // la web no lo pide.
+    await lockRace(tx, raceKey)
     const already = await tx
       .select({ riderId: raceRosters.riderId })
       .from(raceRosters)
@@ -1069,7 +1081,7 @@ export async function ensureRaceRosterFrozen(
   const raceKey = `${race.id}:s${season}`
   await db.transaction(async (tx) => {
     // Serializa por carrera: una petición congela y las demás esperan y ven que ya está.
-    await tx.execute(sql`select pg_advisory_xact_lock(${hashInt(raceKey)})`)
+    await lockRace(tx, raceKey)
     const already = await tx
       .select({ riderId: raceRosters.riderId })
       .from(raceRosters)
@@ -1321,6 +1333,10 @@ export async function runCalendarDay(
     const raceKey = `${race.id}:s${season}`
 
     if (idx === 1) {
+      // Convocar el día de la salida también congela la escuadra (y cobra viajes): mismo candado que
+      // la web. Sin él, una petición web que aún ve el día ANTERIOR (la transacción del tick no está
+      // confirmada) podría estar congelando esta misma carrera en paralelo y cobrar dos veces.
+      await lockRace(tx, raceKey)
       const existing = await tx
         .select({ riderId: raceRosters.riderId })
         .from(raceRosters)
