@@ -294,6 +294,8 @@ Sí a las pestañas, pero con la pestaña por defecto elegida según el estado d
 Cabecera **persistente** (nombre, bandera, clase, fechas, ganador si ya se corrió) que no cambia al
 cambiar de pestaña, y debajo:
 
+Carrera **por etapas**:
+
 | Estado de la carrera | Pestañas                                                  | Por defecto         |
 | -------------------- | --------------------------------------------------------- | ------------------- |
 | **Por correr**       | `Route` · `Startlist` · `Roll of honour`                  | **Route**           |
@@ -302,10 +304,37 @@ cambiar de pestaña, y debajo:
 
 - **Classifications**: general, puntos y montaña como sub-pestañas, con top 20 y "mostrar todos".
 - **Stages**: lista compacta —día, tipo, recorrido, ganador, enlace a la crónica—, **sin** volcar 21
-  altimetrías.
+  altimetrías. El enlace "Read the story →" va **directo a la pestaña `Story`** de esa etapa
+  (`?tab=story`), no a la etapa en su pestaña por defecto: un clic menos en cada una de las 21.
 - **Route**: ahí sí van las altimetrías, que es donde el jugador las busca.
 
-### 7.2 Página de etapa
+#### Carrera de UN DÍA: la ficha de carrera ES la ficha de etapa
+
+La v2 de este documento definió las pestañas por estado **sin excepcionar este caso**, y el
+resultado en producción fue el peor fallo de uso del flujo: para leer el journal de una clásica
+—que es su contenido principal— había que ir a `Stages`, entrar en una lista de **un solo
+elemento** y, ya dentro de la etapa, pinchar `Story`. **Tres clics para lo único que importa.**
+
+La causa es de diseño: en una carrera de un día la carrera **y** la etapa son la misma cosa, y eran
+dos páginas. Se corrige metiendo el contenido de la etapa en la ficha de carrera:
+
+| Estado de la carrera | Pestañas                                        | Por defecto |
+| -------------------- | ----------------------------------------------- | ----------- |
+| **Por correr**       | `Route` · `Startlist` · `Roll of honour`        | **Route**   |
+| **En curso**         | `Route` · `Startlist`                           | **Route**   |
+| **Terminada**        | `Result` · `Story` · `Route` · `Roll of honour` | **Result**  |
+
+- Sin pestaña `Stages` (sería una lista de un elemento) y sin salto intermedio: **el journal pasa de
+  tres clics a uno**.
+- `Result` por defecto —el desenlace es lo que se busca al abrir una clásica ya corrida— con `Story`
+  justo al lado. Si la carrera reparte puntos o montaña, salen como sub-pestañas de `Result`; si no,
+  no se pinta ninguna tira de sub-pestañas sobre una sola tabla.
+- La cabecera absorbe lo que daba la ficha de etapa: kilómetros, tipo de recorrido e ITT.
+- `/world/races/:raceId/stages/1` **sigue funcionando**: redirige a la ficha de carrera con la
+  pestaña equivalente (`story` por defecto, que es lo que enseñaba la etapa y a lo que apuntan el
+  "Full story →" del dashboard y los enlaces ya compartidos).
+
+### 7.2 Página de etapa (solo carreras por etapas)
 
 ```
 ← Race Catalonia · Stage 3 of 7          [ ‹ Prev ]  [ Next › ]
@@ -319,11 +348,10 @@ cambiar de pestaña, y debajo:
   motor — ver `docs/motor.md` §16 y la vista de espectador de su Parte IV).
 - **Result completo**, con truncado y "mostrar todos", igual que en la carrera.
 
-**Carreras de un día: una sola clasificación.** La etapa ES el resultado, así que la general es una
-copia exacta de `Result` y enseñar las dos solo confunde (en producción se vieron dos tablas que ni
-siquiera coincidían). En la ficha de etapa de una carrera de un día no hay sub-pestaña `General`, y
-si tampoco hay puntos ni montaña que enseñar desaparece la pestaña `Classifications` entera. En la
-ficha de carrera se conserva una única tabla, ya rotulada **Result** en vez de "General".
+**Carreras de un día: esta página ya no existe.** La etapa ES la carrera, así que su contenido vive
+en la ficha de carrera (§7.1) y esta URL redirige allí. Con ello desaparece también el problema
+anterior —la general de un día era una copia exacta de `Result`, y en producción se llegaron a ver
+dos tablas que ni siquiera coincidían—: hay **una sola tabla**, rotulada `Result`.
 
 ### 7.3 Regla común de tablas
 

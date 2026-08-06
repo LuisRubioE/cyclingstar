@@ -15,13 +15,16 @@ import {
   fetchRace,
   fetchStartlist,
 } from '../api/race'
+import { fetchCalendarStage } from '../api/results'
 import { Flag } from '../components/Flag'
 import { Jersey } from '../components/Jersey'
 import { RiderName } from '../components/RiderName'
 import { ShowAllButton, TOP_ROWS } from '../components/ShowAll'
+import { StageStory } from '../components/StageStory'
 import { type TabOption, TabPanel, Tabs, useTabParam } from '../components/Tabs'
 import { TeamLink } from '../components/TeamLink'
 import { formatLabel, raceClassLabel } from '../domain/labels'
+import { RACE_TAB_LABEL, type RaceTabId, raceTabs } from '../domain/raceTabs'
 
 function fmtTime(seconds: number): string {
   const h = Math.floor(seconds / 3600)
@@ -319,8 +322,10 @@ function StagesTab({ data, raceId }: { data: RaceView; raceId: string }) {
                           {winner.teamName}
                         </span>
                       )}
+                      {/* Directo a la crónica, no a la etapa en su pestaña por defecto: un clic
+                          menos en cada una de las 21 etapas de una gran vuelta. */}
                       <Link
-                        to={`/world/races/${raceId}/stages/${stage.index}`}
+                        to={`/world/races/${raceId}/stages/${stage.index}?tab=story`}
                         className="ml-auto shrink-0 text-xs font-medium text-brand-cyan hover:underline"
                       >
                         Read the story →
@@ -356,16 +361,33 @@ const CLASS_TABS: readonly TabOption<ClassTabId>[] = [
 ]
 const CLASS_PANEL = 'race-classification'
 
-/** Pestaña `Classifications`: general, puntos y montaña como sub-pestañas. */
+/**
+ * Pestaña `Classifications` (o `Result` en una carrera de un día): general, puntos y montaña como
+ * sub-pestañas. En una carrera de un día la "general" ES el resultado de la llegada, así que se
+ * rotula como tal; y si además no hay puntos ni montaña que enseñar, no se pinta ninguna tira de
+ * sub-pestañas: sobra una pestaña única sobre una sola tabla.
+ */
 function ClassificationsTab({ data }: { data: RaceView }) {
   // Sub-pestaña en `?cls=`, validada contra las opciones: un enlace a una clasificación concreta
   // funciona, y hasta que el jugador toca una no se escribe nada en la URL.
   const [active, setActive] = useTabParam(CLASS_TAB_IDS, 'gc', 'cls')
-  // En una carrera de un día la "general" es el resultado de la llegada: se nombra como tal.
-  const tabs =
-    data.stages.length === 1
-      ? [{ key: 'gc' as const, label: 'Result' }, ...CLASS_TABS.slice(1)]
-      : CLASS_TABS
+  const oneDay = data.stages.length === 1
+  const alone = oneDay && data.points.length === 0 && data.kom.length === 0
+  const tabs = oneDay
+    ? [{ key: 'gc' as const, label: 'Result' }, ...CLASS_TABS.slice(1)]
+    : CLASS_TABS
+  if (alone) {
+    return (
+      <div className={card}>
+        <h2 className={head}>Result</h2>
+        {data.gc.length > 0 ? (
+          <GcTable rows={data.gc} />
+        ) : (
+          <p className="text-sm text-slate-400">No result yet.</p>
+        )}
+      </div>
+    )
+  }
   return (
     <div className={card}>
       <Tabs
@@ -400,6 +422,23 @@ function ClassificationsTab({ data }: { data: RaceView }) {
   )
 }
 
+/**
+ * Pestaña `Story` de una carrera de UN DÍA: el journal de su única etapa, aquí mismo.
+ *
+ * Antes esto costaba tres clics —`Stages`, entrar en la lista de un solo elemento, y ya dentro
+ * `Story`— para lo único que de verdad importa de una clásica. La crónica se pide solo cuando se
+ * abre la pestaña, así que la ficha de carrera no carga nada de más.
+ */
+function OneDayStory({ raceId, onFullResult }: { raceId: string; onFullResult: () => void }) {
+  const { data, isPending, isError } = useQuery({
+    queryKey: ['stage-replay', raceId, 1],
+    queryFn: () => fetchCalendarStage(raceId, 1),
+  })
+  if (isPending) return <p className="text-slate-500">Loading…</p>
+  if (isError) return <p className="text-red-600">Could not load the story.</p>
+  return <StageStory data={data} onFullResult={onFullResult} />
+}
+
 /** Pestaña `Roll of honour`: quién ganó la carrera en temporadas anteriores. */
 function HonoursTab({ data }: { data: RaceView }) {
   return (
@@ -420,26 +459,6 @@ function HonoursTab({ data }: { data: RaceView }) {
       )}
     </div>
   )
-}
-
-type RaceTabId = 'classifications' | 'stages' | 'route' | 'startlist' | 'honours'
-
-const TAB_LABEL: Record<RaceTabId, string> = {
-  classifications: 'Classifications',
-  stages: 'Stages',
-  route: 'Route',
-  startlist: 'Startlist',
-  honours: 'Roll of honour',
-}
-
-/**
- * Qué pestañas tiene la página y cuál abre por defecto (la primera) según el momento de la carrera:
- * antes de correrse manda el recorrido, y en cuanto rueda mandan las clasificaciones.
- */
-const TABS_BY_STATUS: Record<RaceStatus, readonly RaceTabId[]> = {
-  upcoming: ['route', 'startlist', 'honours'],
-  racing: ['classifications', 'stages', 'route', 'startlist'],
-  finished: ['classifications', 'stages', 'route', 'honours'],
 }
 
 const STATUS_BADGE: Record<RaceStatus, { label: string; className: string }> = {
@@ -466,12 +485,12 @@ function RaceSections({
   status: RaceStatus
   startlist: RaceStartlist | undefined
 }) {
-  const tabIds = TABS_BY_STATUS[status]
+  const tabIds = raceTabs(status, data.race.stageCount)
   // La pestaña por defecto la manda el estado (la primera del conjunto). `useTabParam` valida el
   // `?tab=` contra las opciones de ESTE estado y no escribe nada en la URL hasta que se toca una,
   // así que un enlace compartido abre donde toca y el resto se comporta como espera el jugador.
   const [active, setActive] = useTabParam(tabIds, tabIds[0] as RaceTabId)
-  const options = tabIds.map((id) => ({ key: id, label: TAB_LABEL[id] }))
+  const options = tabIds.map((id) => ({ key: id, label: RACE_TAB_LABEL[id] }))
   return (
     <>
       <Tabs
@@ -483,7 +502,12 @@ function RaceSections({
         panelId={RACE_PANEL}
       />
       <TabPanel panelId={RACE_PANEL} active={active}>
-        {active === 'classifications' && <ClassificationsTab data={data} />}
+        {(active === 'classifications' || active === 'result') && (
+          <ClassificationsTab data={data} />
+        )}
+        {active === 'story' && (
+          <OneDayStory raceId={raceId} onFullResult={() => setActive('result')} />
+        )}
         {active === 'stages' && <StagesTab data={data} raceId={raceId} />}
         {active === 'route' && <RouteTab data={data} />}
         {active === 'startlist' &&
@@ -543,6 +567,9 @@ export function Race() {
   // Duración real de la carrera: sus etapas más los días de descanso intercalados.
   const endDay = raceEndDay(data)
   const badge = STATUS_BADGE[status]
+  // En una carrera de un día la carrera Y la etapa son la misma cosa: los datos de la etapa (los
+  // kilómetros y el tipo de recorrido) son los de la carrera, y su sitio es esta cabecera.
+  const single = stageCount === 1 ? data.stages[0] : undefined
 
   return (
     <section className="space-y-5">
@@ -565,6 +592,8 @@ export function Race() {
           {` · ${raceClassLabel(data.race.raceClass as RaceClass)}`}
           {` · ${formatLabel(data.race.format as RaceFormat)}`}
           {stageCount > 1 ? ` · ${stageCount} stages` : ''}
+          {single ? ` · ${single.km} km · ${KIND_LABEL[single.kind] ?? single.kind}` : ''}
+          {single?.timeTrial ? ' · ITT' : ''}
           {endDay > startDay ? ` · GD ${startDay}–${endDay}` : ` · GD ${startDay}`}
         </p>
         {status === 'finished' && winner && (
