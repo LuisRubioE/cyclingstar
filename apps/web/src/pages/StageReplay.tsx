@@ -1,14 +1,18 @@
 import { useQuery } from '@tanstack/react-query'
-import { Link, useParams } from 'react-router-dom'
+import { useState } from 'react'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import {
   type ChronicleEntry,
   type StageClassEntry,
+  type StageGcEntry,
   type StageResultEntry,
   fetchCalendarStage,
 } from '../api/results'
-import { formatTime } from '../domain/format'
 import { Flag } from '../components/Flag'
 import { RiderName } from '../components/RiderName'
+import { ShowAllButton, TOP_ROWS } from '../components/ShowAll'
+import { type TabOption, TabPanel, Tabs, useTabParam } from '../components/Tabs'
+import { formatTime } from '../domain/format'
 
 /** Segundos como diferencia de carrera: 45s, 1:30, 12:05. */
 function fmtGap(seconds: number): string {
@@ -215,181 +219,386 @@ function timeTrialStory(results: StageResultEntry[]): string[] {
   return lines
 }
 
-/** Journal/crónica de una etapa de calendario ya corrida: lo que pasó, más resultado y general. */
+const card = 'rounded-2xl border border-slate-200 bg-white p-5 shadow-sm'
+const head = 'text-xs font-semibold uppercase tracking-wide text-slate-400'
+
+/** Nombre legible del tipo de etapa (el dato del motor viene en español). */
+const KIND_LABEL: Record<string, string> = {
+  llana: 'Flat',
+  media: 'Hilly',
+  reina: 'Mountain',
+  cri: 'Time trial',
+  clasica: 'Classic',
+}
+
+type StageTabId = 'story' | 'result' | 'classifications' | 'profile'
+
+/** Orden de las pestañas: `Story` primero, que es la carga emocional de la etapa (§7.2). */
+const STAGE_TAB_IDS: readonly StageTabId[] = ['story', 'result', 'classifications', 'profile']
+const STAGE_TAB_LABEL: Record<StageTabId, string> = {
+  story: 'Story',
+  result: 'Result',
+  classifications: 'Classifications',
+  profile: 'Profile',
+}
+const STAGE_PANEL = 'stage-section'
+
+type StageClassTabId = 'gc' | 'points' | 'kom'
+
+const STAGE_CLASS_TAB_IDS: readonly StageClassTabId[] = ['gc', 'points', 'kom']
+const STAGE_CLASS_TABS: readonly TabOption<StageClassTabId>[] = [
+  { key: 'gc', label: 'General' },
+  { key: 'points', label: 'Points' },
+  { key: 'kom', label: 'Mountains' },
+]
+const STAGE_CLASS_PANEL = 'stage-classification'
+
+/** Resultado de la etapa: top 20 y "Show all" (antes se truncaba a 15 sin forma de ver el resto). */
+function ResultTable({ rows }: { rows: StageResultEntry[] }) {
+  const [showAll, setShowAll] = useState(false)
+  const winnerTime = rows[0]?.tiempoS ?? 0
+  const visible = showAll ? rows : rows.slice(0, TOP_ROWS)
+  return (
+    <>
+      <table className="mt-2 w-full text-sm">
+        <caption className="sr-only">Stage result: position, country, rider and time</caption>
+        <tbody>
+          {visible.map((r) => (
+            <tr key={r.riderId} className="border-b border-slate-100 last:border-0">
+              <td className="w-7 py-1 text-slate-400 tabular-nums">{r.puesto}</td>
+              <td className="w-6 py-1">
+                <Flag code={r.country} size={16} />
+              </td>
+              <td className="py-1 text-slate-700">
+                <RiderName riderId={r.riderId} name={r.name} isBot={r.isBot} />
+                {r.teamName && <span className="ml-2 text-xs text-slate-400">{r.teamName}</span>}
+              </td>
+              <td className="py-1 text-right tabular-nums text-slate-500">
+                {r.puesto === 1 ? formatTime(r.tiempoS) : `+${formatTime(r.tiempoS - winnerTime)}`}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <ShowAllButton total={rows.length} expanded={showAll} onToggle={() => setShowAll(!showAll)} />
+    </>
+  )
+}
+
+/** General tal como quedó tras esta etapa, con la misma regla de top 20 + "Show all". */
+function GcTable({ rows }: { rows: StageGcEntry[] }) {
+  const [showAll, setShowAll] = useState(false)
+  const leader = rows[0]?.tiempoTotalS ?? 0
+  const visible = showAll ? rows : rows.slice(0, TOP_ROWS)
+  return (
+    <>
+      <table className="mt-2 w-full text-sm">
+        <caption className="sr-only">
+          General classification: position, country, rider, team and time
+        </caption>
+        <tbody>
+          {visible.map((r, i) => (
+            <tr key={r.riderId} className="border-b border-slate-100 last:border-0">
+              <td className="w-7 py-1 text-slate-400 tabular-nums">{i + 1}</td>
+              <td className="w-6 py-1">
+                <Flag code={r.country} size={16} />
+              </td>
+              <td className="py-1 text-slate-700">
+                <RiderName riderId={r.riderId} name={r.name} isBot={r.isBot} />
+                {r.teamName && <span className="ml-2 text-xs text-slate-400">{r.teamName}</span>}
+              </td>
+              <td className="py-1 text-right tabular-nums text-slate-500">
+                {i === 0 ? formatTime(r.tiempoTotalS) : `+${formatTime(r.tiempoTotalS - leader)}`}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <ShowAllButton total={rows.length} expanded={showAll} onToggle={() => setShowAll(!showAll)} />
+    </>
+  )
+}
+
+/** Clasificación por puntos (montaña o metas volantes): puesto, bandera, nombre, puntos. */
+function PointsTable({ rows, unit }: { rows: StageClassEntry[]; unit: string }) {
+  const [showAll, setShowAll] = useState(false)
+  const visible = showAll ? rows : rows.slice(0, TOP_ROWS)
+  return (
+    <>
+      <table className="mt-2 w-full text-sm">
+        <caption className="sr-only">Classification: position, country, rider and {unit}</caption>
+        <tbody>
+          {visible.map((r, i) => (
+            <tr key={r.riderId} className="border-b border-slate-100 last:border-0">
+              <td className="w-7 py-1 tabular-nums text-slate-400">{i + 1}</td>
+              <td className="w-6 py-1">
+                <Flag code={r.country} size={16} />
+              </td>
+              <td className="py-1 text-slate-700">
+                <RiderName riderId={r.riderId} name={r.name} isBot={r.isBot} />
+              </td>
+              <td className="py-1 text-right font-medium tabular-nums text-slate-600">
+                {r.puntos} {unit}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <ShowAllButton total={rows.length} expanded={showAll} onToggle={() => setShowAll(!showAll)} />
+    </>
+  )
+}
+
+/** Sub-pestañas de clasificación de la etapa: general, puntos y montaña tras correrla. */
+function StageClassifications({
+  gc,
+  points,
+  kom,
+}: {
+  gc: StageGcEntry[]
+  points: StageClassEntry[]
+  kom: StageClassEntry[]
+}) {
+  const [active, setActive] = useTabParam(STAGE_CLASS_TAB_IDS, 'gc', 'cls')
+  return (
+    <div className={card}>
+      <p className="mb-3 text-xs text-slate-400">Standings after this stage.</p>
+      <Tabs
+        options={STAGE_CLASS_TABS}
+        value={active}
+        onChange={setActive}
+        label="Stage classification"
+        variant="pill"
+        panelId={STAGE_CLASS_PANEL}
+      />
+      <TabPanel panelId={STAGE_CLASS_PANEL} active={active} className="mt-3">
+        {active === 'gc' &&
+          (gc.length > 0 ? (
+            <GcTable rows={gc} />
+          ) : (
+            <p className="text-sm text-slate-400">No general classification yet.</p>
+          ))}
+        {active === 'points' &&
+          (points.length > 0 ? (
+            <PointsTable rows={points} unit="pts" />
+          ) : (
+            <p className="text-sm text-slate-400">No sprint points awarded yet.</p>
+          ))}
+        {active === 'kom' &&
+          (kom.length > 0 ? (
+            <PointsTable rows={kom} unit="pts" />
+          ) : (
+            <p className="text-sm text-slate-400">No mountain points awarded yet.</p>
+          ))}
+      </TabPanel>
+    </div>
+  )
+}
+
+/**
+ * Página de una etapa del calendario. Ya no es un callejón sin salida: la cabecera dice a qué carrera
+ * pertenece y qué etapa es de cuántas, hay anterior/siguiente para leer las 21 crónicas seguidas, y el
+ * contenido va en pestañas con `Story` por delante, que es la carga emocional de la etapa.
+ */
 export function StageReplay() {
   const { raceId = '', day = '' } = useParams()
   const dayNum = Number(day)
+  const [params] = useSearchParams()
   const { data, isPending, isError } = useQuery({
     queryKey: ['stage-replay', raceId, dayNum],
     queryFn: () => fetchCalendarStage(raceId, dayNum),
   })
+  // Una etapa sin correr solo tiene recorrido que enseñar: no hay historia, resultado ni general.
+  // El conjunto de pestañas depende de eso, así que las opciones se calculan aquí (con `data` aún
+  // posiblemente ausente) para que el hook se llame siempre y en el mismo orden.
+  const tabIds: readonly StageTabId[] = data?.run ? STAGE_TAB_IDS : ['profile']
+  const [active, setActive] = useTabParam(tabIds, tabIds[0] as StageTabId)
+
   if (isPending) return <p className="text-slate-500">Loading…</p>
   if (isError) return <p className="text-red-600">Could not load the stage.</p>
 
-  const leader = data.gc?.[0]?.tiempoTotalS ?? 0
-  const stageWinnerTime = data.results?.[0]?.tiempoS ?? 0
-  const card = 'rounded-2xl border border-slate-200 bg-white p-5 shadow-sm'
-  const head = 'text-xs font-semibold uppercase tracking-wide text-slate-400'
+  const race = data.race
+  const stageCount = race?.stageCount ?? 0
+  const prevDay = data.day > 1 ? data.day - 1 : null
+  const nextDay = stageCount > 0 && data.day < stageCount ? data.day + 1 : null
+  const options = tabIds.map((id) => ({ key: id, label: STAGE_TAB_LABEL[id] }))
+
+  // La pestaña viaja en la URL (enlace compartido) y se conserva al saltar de etapa: quien está
+  // leyendo crónicas sigue leyendo crónicas.
+  function stageHref(target: number): string {
+    const suffix = params.toString()
+    return `/world/races/${raceId}/stages/${target}${suffix ? `?${suffix}` : ''}`
+  }
+
+  const navButton =
+    'rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600 transition hover:bg-slate-200'
+  const oneDay = stageCount === 1
+  const kom = data.kom ?? []
+  const points = data.points ?? []
 
   return (
     <section className="space-y-4">
-      <Link to={`/races/${raceId}`} className="text-xs text-slate-400 hover:text-slate-600">
-        ← Back to the race
-      </Link>
+      {/* Cabecera con contexto: de qué carrera es la etapa, y anterior/siguiente para no volver atrás. */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <Link
+          to={`/world/races/${raceId}`}
+          className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-700"
+        >
+          <span aria-hidden>←</span>
+          {race?.country && <Flag code={race.country} size={14} />}
+          <span className="font-medium">{race?.name ?? 'Back to the race'}</span>
+          {race && !oneDay && stageCount > 0 && (
+            <span className="text-slate-400">
+              · Stage {data.day} of {stageCount}
+            </span>
+          )}
+        </Link>
+        {!oneDay && stageCount > 0 && (
+          <nav aria-label="Stages" className="flex items-center gap-2">
+            {prevDay != null ? (
+              <Link to={stageHref(prevDay)} className={navButton}>
+                ‹ Stage {prevDay}
+              </Link>
+            ) : (
+              <span className={`${navButton} pointer-events-none opacity-40`} aria-hidden>
+                ‹ Prev
+              </span>
+            )}
+            {nextDay != null ? (
+              <Link to={stageHref(nextDay)} className={navButton}>
+                Stage {nextDay} ›
+              </Link>
+            ) : (
+              <span className={`${navButton} pointer-events-none opacity-40`} aria-hidden>
+                Next ›
+              </span>
+            )}
+          </nav>
+        )}
+      </div>
+
       <header>
         <h1 className="text-xl font-bold tracking-tight text-slate-800">
-          Stage {data.day}
-          {data.name ? ` · ${data.name}` : ''}
+          {oneDay ? (race?.name ?? data.name) : `Stage ${data.day}`}
+          {!oneDay && data.name ? ` · ${data.name}` : ''}
         </h1>
-        <p className="text-sm text-slate-500">{data.km} km</p>
+        <p className="text-sm text-slate-500">
+          {data.km} km
+          {data.kind ? ` · ${KIND_LABEL[data.kind] ?? data.kind}` : ''}
+          {data.timeTrial ? ' · ITT' : ''}
+          {!data.run ? ' · not raced yet' : ''}
+        </p>
       </header>
 
-      {data.altimetry && (
-        <div className={card}>
-          <div
-            className="w-full overflow-x-auto"
-            role="img"
-            aria-label={`Elevation profile of stage ${data.day}, ${data.km} km`}
-            dangerouslySetInnerHTML={{ __html: data.altimetry }}
-          />
-        </div>
-      )}
+      <Tabs
+        options={options}
+        value={active}
+        onChange={setActive}
+        label="Stage"
+        variant="underline"
+        panelId={STAGE_PANEL}
+      />
 
-      {!data.run && <p className="text-slate-500">This stage hasn't been raced yet.</p>}
+      <TabPanel panelId={STAGE_PANEL} active={active}>
+        {active === 'story' && (
+          <>
+            {data.journalUnavailable && (
+              <div className={card}>
+                <p className="text-sm text-slate-500">
+                  The detailed journal wasn't recorded for this stage — it was raced before the
+                  chronicle was saved. The result is still the official one.
+                </p>
+              </div>
+            )}
+            {/* Crono: sin fuga ni sprint que narrar, se cuenta la historia del reloj desde los tiempos. */}
+            {data.timeTrial && data.results && data.results.length > 0 && (
+              <div className={card}>
+                <h2 className={head}>Against the clock</h2>
+                <ul className="mt-3 space-y-2">
+                  {timeTrialStory(data.results).map((line, i) => (
+                    <li key={i} className="text-sm text-slate-700">
+                      {line}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {!data.timeTrial && data.chronicle && data.chronicle.length > 0 && (
+              <div className={card}>
+                <h2 className={head}>How the stage unfolded</h2>
+                <ol className="mt-3 space-y-2">
+                  {data.chronicle.map((e, i) => (
+                    <li key={i} className="flex gap-3 text-sm">
+                      <span className="w-14 shrink-0 text-right tabular-nums text-slate-400">
+                        km {e.km}
+                      </span>
+                      <span className="text-slate-700">{chronicleLine(e)}</span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )}
+            {/* El desenlace, sin cambiar de pestaña: los tres primeros y la salida al resultado completo. */}
+            {data.results && data.results.length > 0 && (
+              <div className={card}>
+                <h2 className={head}>Podium</h2>
+                <ol className="mt-2 space-y-1.5">
+                  {data.results.slice(0, 3).map((r) => (
+                    <li key={r.riderId} className="flex items-center gap-3 text-sm">
+                      <span className="w-5 shrink-0 tabular-nums text-slate-400">{r.puesto}</span>
+                      <Flag code={r.country} size={16} />
+                      <RiderName riderId={r.riderId} name={r.name} isBot={r.isBot} />
+                      {r.teamName && <span className="text-xs text-slate-400">{r.teamName}</span>}
+                    </li>
+                  ))}
+                </ol>
+                <button
+                  type="button"
+                  onClick={() => setActive('result')}
+                  className="mt-2 text-sm font-medium text-brand-cyan hover:underline"
+                >
+                  Full result →
+                </button>
+              </div>
+            )}
+          </>
+        )}
 
-      {data.run && data.journalUnavailable && (
-        <div className={card}>
-          <p className="text-sm text-slate-500">
-            The detailed journal wasn't recorded for this stage — it was raced before the chronicle
-            was saved. The result below is the official one.
-          </p>
-        </div>
-      )}
+        {active === 'result' &&
+          (data.results && data.results.length > 0 ? (
+            <div className={card}>
+              <h2 className={head}>Stage result</h2>
+              <ResultTable rows={data.results} />
+            </div>
+          ) : (
+            <div className={card}>
+              <p className="text-sm text-slate-400">No result for this stage.</p>
+            </div>
+          ))}
 
-      {/* Crono: sin fuga ni sprint que narrar, se cuenta la historia del reloj desde los tiempos. */}
-      {data.run && data.timeTrial && data.results && data.results.length > 0 && (
-        <div className={card}>
-          <h2 className={head}>Against the clock</h2>
-          <ul className="mt-3 space-y-2">
-            {timeTrialStory(data.results).map((line, i) => (
-              <li key={i} className="text-sm text-slate-700">
-                {line}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+        {active === 'classifications' && (
+          <StageClassifications gc={data.gc ?? []} points={points} kom={kom} />
+        )}
 
-      {!data.timeTrial && data.chronicle && data.chronicle.length > 0 && (
-        <div className={card}>
-          <h2 className={head}>How the stage unfolded</h2>
-          <ol className="mt-3 space-y-2">
-            {data.chronicle.map((e, i) => (
-              <li key={i} className="flex gap-3 text-sm">
-                <span className="w-14 shrink-0 text-right tabular-nums text-slate-400">
-                  km {e.km}
-                </span>
-                <span className="text-slate-700">{chronicleLine(e)}</span>
-              </li>
-            ))}
-          </ol>
-        </div>
-      )}
-
-      {data.results && data.results.length > 0 && (
-        <div className={card}>
-          <h2 className={head}>Stage result</h2>
-          <table className="mt-2 w-full text-sm">
-            <caption className="sr-only">Stage result: position, country, rider and time</caption>
-            <tbody>
-              {data.results.slice(0, 15).map((r) => (
-                <tr key={r.riderId} className="border-b border-slate-100 last:border-0">
-                  <td className="w-7 py-1 text-slate-400 tabular-nums">{r.puesto}</td>
-                  <td className="w-6 py-1">
-                    <Flag code={r.country} size={16} />
-                  </td>
-                  <td className="py-1 text-slate-700">
-                    <RiderName riderId={r.riderId} name={r.name} isBot={r.isBot} />
-                  </td>
-                  <td className="py-1 text-right tabular-nums text-slate-500">
-                    {r.puesto === 1
-                      ? formatTime(r.tiempoS)
-                      : `+${formatTime(r.tiempoS - stageWinnerTime)}`}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {data.gc && data.gc.length > 0 && (
-        <div className={card}>
-          <h2 className={head}>General classification after the stage</h2>
-          <table className="mt-2 w-full text-sm">
-            <caption className="sr-only">
-              General classification: position, country, rider and time
-            </caption>
-            <tbody>
-              {data.gc.slice(0, 15).map((r, i) => (
-                <tr key={r.riderId} className="border-b border-slate-100 last:border-0">
-                  <td className="w-7 py-1 text-slate-400 tabular-nums">{i + 1}</td>
-                  <td className="w-6 py-1">
-                    <Flag code={r.country} size={16} />
-                  </td>
-                  <td className="py-1 text-slate-700">
-                    <RiderName riderId={r.riderId} name={r.name} isBot={r.isBot} />
-                  </td>
-                  <td className="py-1 text-right tabular-nums text-slate-500">
-                    {i === 0
-                      ? formatTime(r.tiempoTotalS)
-                      : `+${formatTime(r.tiempoTotalS - leader)}`}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {data.kom && data.kom.length > 0 && (
-        <div className={card}>
-          <h2 className={head}>Mountains classification (KOM) after the stage</h2>
-          <PointsTable rows={data.kom} unit="pts" />
-        </div>
-      )}
-
-      {data.points && data.points.length > 0 && (
-        <div className={card}>
-          <h2 className={head}>Points classification after the stage</h2>
-          <PointsTable rows={data.points} unit="pts" />
-        </div>
-      )}
+        {active === 'profile' && (
+          <div className={card}>
+            <h2 className={head}>Profile</h2>
+            {data.altimetry ? (
+              <div
+                className="mt-2 w-full overflow-x-auto"
+                role="img"
+                aria-label={`Elevation profile of stage ${data.day}, ${data.km} km`}
+                dangerouslySetInnerHTML={{ __html: data.altimetry }}
+              />
+            ) : (
+              <p className="text-sm text-slate-400">No profile available for this stage.</p>
+            )}
+            {!data.run && (
+              <p className="mt-3 text-sm text-slate-500">This stage hasn't been raced yet.</p>
+            )}
+          </div>
+        )}
+      </TabPanel>
     </section>
-  )
-}
-
-/** Tabla compacta de una clasificación por puntos (montaña o metas volantes): puesto, bandera, nombre, puntos. */
-function PointsTable({ rows, unit }: { rows: StageClassEntry[]; unit: string }) {
-  return (
-    <table className="mt-2 w-full text-sm">
-      <caption className="sr-only">Classification: position, country, rider and {unit}</caption>
-      <tbody>
-        {rows.slice(0, 10).map((r, i) => (
-          <tr key={r.riderId} className="border-b border-slate-100 last:border-0">
-            <td className="w-7 py-1 tabular-nums text-slate-400">{i + 1}</td>
-            <td className="w-6 py-1">
-              <Flag code={r.country} size={16} />
-            </td>
-            <td className="py-1 text-slate-700">
-              <RiderName riderId={r.riderId} name={r.name} isBot={r.isBot} />
-            </td>
-            <td className="py-1 text-right font-medium tabular-nums text-slate-600">
-              {r.puntos} {unit}
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
   )
 }
