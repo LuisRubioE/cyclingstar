@@ -423,6 +423,12 @@ export const publicRiderDetailSchema = z.object({
   fieldSize: z.number(),
   fame: z.number(),
   attributes: attributesSchema,
+  /**
+   * Estado de salud, PÚBLICO a propósito: en el ciclismo real una lesión es noticia y un rival
+   * querría saberla. Lo que sigue siendo privado es el detalle fino (frescura, fatiga, forma), que
+   * solo sale en modo propietario.
+   */
+  health: riderHealthSchema,
 })
 export type PublicRiderDetail = z.infer<typeof publicRiderDetailSchema>
 export const publicRiderDetailResponseSchema = z.object({ rider: publicRiderDetailSchema })

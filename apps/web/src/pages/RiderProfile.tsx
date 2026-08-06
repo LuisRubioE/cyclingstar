@@ -24,42 +24,25 @@ import { InfoRow, Panel, SectionBar } from '../components/Panel'
 import { RoleEditor } from '../components/RoleEditor'
 import { StarRating } from '../components/StarRating'
 import { TeamLink } from '../components/TeamLink'
+import { HEALTH_LOOK, healthUntilLabel } from '../domain/health'
 import { palmaresLabel } from '../domain/labels'
 
-/** Etiquetas y consejo de cada estado de salud (solo se ve en modo propietario). */
-const HEALTH_META: Record<string, { label: string; cls: string; note: string }> = {
-  sano: {
-    label: 'Healthy',
-    cls: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
-    note: 'Fit to race and train.',
-  },
-  molestias: {
-    label: 'Minor niggle',
-    cls: 'bg-amber-50 text-amber-700 ring-amber-200',
-    note: 'Can race, but at a slight disadvantage until it clears.',
-  },
-  enfermo: {
-    label: 'Ill',
-    cls: 'bg-orange-50 text-orange-700 ring-orange-200',
-    note: "Resting to recover — won't be called up until fit again.",
-  },
-  lesionado: {
-    label: 'Injured',
-    cls: 'bg-red-50 text-red-700 ring-red-200',
-    note: "Out with an injury — can't race until recovered.",
-  },
-}
-
-/** Cabecera de identidad: lo mismo para todo el mundo, con o sin sesión. */
-function Identity({ rider }: { rider: PublicRiderDetail }) {
+/**
+ * Cabecera de identidad: lo mismo para todo el mundo, con o sin sesión. La salud va aquí, junto al
+ * nombre, porque es pública (§3.6): una insignia sobria basta para distinguir los cuatro estados y,
+ * si hay baja, decir hasta cuándo.
+ */
+function Identity({ rider, gameDay }: { rider: PublicRiderDetail; gameDay: number | null }) {
   const country = COUNTRIES.find((c) => c.code === rider.country)
   const abroad = rider.residence && rider.residence !== rider.country
   const residence = COUNTRIES.find((c) => c.code === rider.residence)
+  const look = HEALTH_LOOK[rider.health.state]
+  const until = healthUntilLabel(rider.health, gameDay)
   return (
     <div className="mb-3 flex items-center gap-3">
       <Flag code={rider.country} size={34} />
       <div className="min-w-0">
-        <p className="flex items-center gap-2 text-xl font-bold tracking-tight">
+        <p className="flex flex-wrap items-center gap-2 text-xl font-bold tracking-tight">
           {rider.name}
           <span
             className={`rounded-full px-2 py-0.5 text-xs font-medium ${
@@ -67,6 +50,13 @@ function Identity({ rider }: { rider: PublicRiderDetail }) {
             }`}
           >
             {rider.isBot ? 'NPC' : 'Player'}
+          </span>
+          <span
+            className={`rounded-full px-2 py-0.5 text-xs font-medium ring-1 ${look.cls}`}
+            title={look.note}
+          >
+            {look.label}
+            {until && <span className="ml-1 font-normal opacity-80">· {until}</span>}
           </span>
         </p>
         <p className="text-sm text-slate-500">
@@ -111,8 +101,7 @@ function OwnerCondition({ attributes }: { attributes: Record<Attribute, number> 
   const log = formQuery.data?.log ?? []
   const last = log[log.length - 1] ?? null
   const gameDay = healthQuery.data?.gameDay ?? null
-  const daysLeft =
-    health?.untilDay != null && gameDay != null ? Math.max(0, health.untilDay - gameDay + 1) : null
+  const until = healthUntilLabel(health, gameDay)
 
   // Cerillos del día: la MISMA cuenta que hará la etapa (SPEC 6.6), sobre los atributos efectivos
   // de hoy —forma, salud y moral incluidas—, para que el jugador vea con qué sale de casa.
@@ -134,17 +123,11 @@ function OwnerCondition({ attributes }: { attributes: Record<Attribute, number> 
     <Panel title="Condition" action={form && <StarRating value={form.stars} />}>
       {health && (
         <div
-          className={`mb-3 rounded-md px-3 py-2 text-sm ring-1 ${HEALTH_META[health.state]?.cls ?? ''}`}
+          className={`mb-3 rounded-md px-3 py-2 text-sm ring-1 ${HEALTH_LOOK[health.state].cls}`}
         >
-          <span className="font-semibold">{HEALTH_META[health.state]?.label ?? health.state}</span>
-          {daysLeft != null &&
-            daysLeft > 0 &&
-            (health.state === 'enfermo' || health.state === 'lesionado') && (
-              <span className="ml-1 tabular-nums">
-                — ~{daysLeft} day{daysLeft === 1 ? '' : 's'} to go
-              </span>
-            )}
-          <span className="ml-2 opacity-80">{HEALTH_META[health.state]?.note}</span>
+          <span className="font-semibold">{HEALTH_LOOK[health.state].label}</span>
+          {until && <span className="ml-1 tabular-nums">— {until}</span>}
+          <span className="ml-2 opacity-80">{HEALTH_LOOK[health.state].note}</span>
         </div>
       )}
 
@@ -253,6 +236,9 @@ export function RiderProfile() {
     queryFn: () => fetchRiderResults(riderId!),
     enabled: !!riderId,
   })
+  // El día de juego actual, para decir hasta cuándo dura una baja. Es la misma consulta pública que
+  // ya hace la cabecera (misma clave ⇒ misma caché), así que no añade tráfico.
+  const clock = useQuery({ queryKey: ['health'], queryFn: fetchHealth })
 
   // Sin `:id` y sin corredor propio: el jugador aún no ha creado el suyo.
   if (!routeId && mine.isPending) return <p className="text-slate-500">Loading…</p>
@@ -286,7 +272,7 @@ export function RiderProfile() {
 
       <div className="grid gap-4 lg:grid-cols-3">
         <Panel title="Rider" className="lg:col-span-2">
-          <Identity rider={rider} />
+          <Identity rider={rider} gameDay={clock.data?.gameDay ?? null} />
           <InfoRow label="Age">
             {rider.age} · born day {birthdayDayOfSeason(rider.id)} of the season
           </InfoRow>

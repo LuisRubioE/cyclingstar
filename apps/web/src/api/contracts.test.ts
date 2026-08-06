@@ -13,6 +13,7 @@ import {
   ledgerResponseSchema,
   myRiderResponseSchema,
   ordersResponseSchema,
+  publicRiderDetailResponseSchema,
   raceOrdersResponseSchema,
   raceStartlistSchema,
   raceViewSchema,
@@ -331,6 +332,37 @@ describe('contratos: mundo, equipo y dinero', () => {
       },
     }
     expect(teamResponseSchema.parse(payload)).toEqual(payload)
+  })
+
+  it('acepta la ficha pública de corredor CON su salud (es pública, §3.6)', () => {
+    const rider = {
+      id: 'r1',
+      name: 'Ana Ruiz',
+      country: 'ES',
+      residence: 'ES',
+      archetype: 'escalada',
+      age: 24,
+      isBot: false,
+      teamId: null,
+      teamName: null,
+      seasonPoints: 120,
+      seasonRank: 12,
+      fieldSize: 900,
+      fame: 30,
+      attributes,
+      health: { state: 'lesionado', untilDay: 143 },
+    }
+    expect(publicRiderDetailResponseSchema.parse({ rider })).toEqual({ rider })
+    // Sin salud la ficha ya no vale: la insignia del perfil cuenta con ella.
+    const sinSalud: Record<string, unknown> = { ...rider }
+    delete sinSalud.health
+    expect(publicRiderDetailResponseSchema.safeParse({ rider: sinSalud }).success).toBe(false)
+    // Y el estado sale del vocabulario del motor, no de un string cualquiera.
+    expect(
+      publicRiderDetailResponseSchema.safeParse({
+        rider: { ...rider, health: { state: 'resfriado', untilDay: null } },
+      }).success,
+    ).toBe(false)
   })
 
   it('acepta el estado de control de equipo, con equipo y sin él', () => {

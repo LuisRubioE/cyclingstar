@@ -1,7 +1,7 @@
 import { ATTRIBUTES, type Attribute, type Vocation } from '@cyclingstar/shared'
 import { and, desc, eq, isNull, sql } from 'drizzle-orm'
 import type { Database } from './client.js'
-import { getSeasonRank } from './riders.js'
+import { type HealthState, getSeasonRank } from './riders.js'
 import { riderAttrs, riders, teams } from './schema.js'
 
 /**
@@ -259,6 +259,8 @@ export interface PublicRiderDetail {
   fieldSize: number
   fame: number
   attributes: Record<Attribute, number>
+  /** Salud pública: estado y día de juego hasta el que dura la baja (null si está sano). */
+  health: { state: HealthState; untilDay: number | null }
 }
 
 /** Ficha pública de un corredor (#14). `season` para calcular la edad. */
@@ -281,6 +283,8 @@ export async function getPublicRider(
       teamName: teams.name,
       seasonPoints: riders.seasonPoints,
       fame: riders.fame,
+      health: riders.health,
+      healthUntilDay: riders.healthUntilDay,
     })
     .from(riders)
     .leftJoin(teams, eq(teams.id, riders.teamId))
@@ -311,5 +315,6 @@ export async function getPublicRider(
     fieldSize: rank.fieldSize,
     fame: r.fame,
     attributes,
+    health: { state: r.health as HealthState, untilDay: r.healthUntilDay },
   }
 }
