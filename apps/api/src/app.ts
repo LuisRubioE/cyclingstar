@@ -109,6 +109,8 @@ import Fastify, {
 import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod'
 import { z } from 'zod'
 import type { Auth } from './auth.js'
+import { apiError } from './http.js'
+import { createAdminGuard } from './security.js'
 
 /** Convierte las cabeceras de una petición Fastify en un objeto Headers estándar. */
 function toWebHeaders(request: FastifyRequest): Headers {
@@ -173,19 +175,26 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
   app.setValidatorCompiler(validatorCompiler)
   app.setSerializerCompiler(serializerCompiler)
 
-  // Manejo uniforme de errores.
+  // Guarda de admin (ADMIN_TOKEN en x-admin-token), en tiempo constante. Único punto de control.
+  const requireAdmin = createAdminGuard(deps.adminToken)
+
+  // Manejo uniforme de errores: SIEMPRE `{ ok: false, error: <codigo> }` (ver http.ts). Antes las
+  // validaciones nativas de Fastify+Zod adjuntaban `detalles: error.validation`, que describe la
+  // forma interna del esquema; ahora usan el mismo formato opaco que las validaciones manuales.
   app.setErrorHandler((error: FastifyError, request: FastifyRequest, reply: FastifyReply) => {
     if (error.validation) {
-      reply.status(400).send({ ok: false, error: 'validacion', detalles: error.validation })
+      // El detalle se queda en el log del servidor, no en la respuesta.
+      request.log.debug({ validation: error.validation }, 'validacion de entrada fallida')
+      reply.status(400).send(apiError('validacion'))
       return
     }
     const statusCode = typeof error.statusCode === 'number' ? error.statusCode : 500
     if (statusCode >= 500) {
       request.log.error(error)
-      reply.status(500).send({ ok: false, error: 'interno' })
+      reply.status(500).send(apiError('interno'))
       return
     }
-    reply.status(statusCode).send({ ok: false, error: error.message })
+    reply.status(statusCode).send(apiError(error.message))
   })
 
   app.get('/health', async (): Promise<Health> => {
@@ -214,12 +223,8 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
   // Tick manual protegido (Paso 10): recuperación y desarrollo (SPEC 12).
   if (deps.onAdminTick) {
     const onAdminTick = deps.onAdminTick
-    const adminToken = deps.adminToken
     app.post('/admin/tick', async (request, reply) => {
-      const provided = request.headers['x-admin-token']
-      if (!adminToken || provided !== adminToken) {
-        return reply.status(401).send({ ok: false, error: 'no_autorizado' })
-      }
+      if (!requireAdmin(request, reply)) return
       const summary = await onAdminTick()
       return reply.send({ ok: true, ...summary })
     })
@@ -229,12 +234,8 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
   // real y procesa N días de juego (carreras + entrenamiento). Protegido por ADMIN_TOKEN.
   if (deps.onAdminAdvance) {
     const onAdminAdvance = deps.onAdminAdvance
-    const adminToken = deps.adminToken
     app.post<{ Querystring: { days?: string } }>('/admin/advance', async (request, reply) => {
-      const provided = request.headers['x-admin-token']
-      if (!adminToken || provided !== adminToken) {
-        return reply.status(401).send({ ok: false, error: 'no_autorizado' })
-      }
+      if (!requireAdmin(request, reply)) return
       const days = Math.min(30, Math.max(1, Number(request.query.days ?? 1) || 1))
       const summary = await onAdminAdvance(days)
       return reply.send({ ok: true, ...summary })
@@ -245,7 +246,6 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
   // Protegida por ADMIN_TOKEN (cabecera x-admin-token). "Base secreta" no enlazada en la web.
   if (deps.db) {
     const db = deps.db
-    const adminToken = deps.adminToken
     const kindSchema = z.enum(['team', 'rider'])
     const addSchema = z.object({
       kind: kindSchema,
@@ -256,15 +256,6 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
       email: z.string().trim().email().max(200),
       premium: z.boolean(),
     })
-
-    const requireAdmin = (request: FastifyRequest, reply: FastifyReply): boolean => {
-      const provided = request.headers['x-admin-token']
-      if (!adminToken || provided !== adminToken) {
-        reply.status(401).send({ ok: false, error: 'no_autorizado' })
-        return false
-      }
-      return true
-    }
 
     app.get<{ Querystring: { kind?: string } }>('/api/admin/blocklist', async (request, reply) => {
       if (!requireAdmin(request, reply)) return
@@ -1401,14 +1392,16 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
       },
     )
 
-    // Avance del mundo desde la web para pruebas (Paso 32): un usuario con sesión adelanta N días
-    // de juego con un clic, sin consola ni token. Herramienta temporal de la fase alfa; el tick
-    // automático (cron) la sustituye en producción (SPEC Paso 43).
+    // Avance del mundo desde la web para pruebas (Paso 32): adelanta N días de juego con un clic.
+    //
+    // SEGURIDAD: antes bastaba con tener SESIÓN, así que cualquier usuario registrado podía avanzar
+    // el mundo hasta 10 días por petición de forma IRREVERSIBLE (se corren carreras, se reparten
+    // puntos y dinero, envejecen los corredores). Al abrir el registro eso es un botón de destruir
+    // la partida de todos. Ahora exige el mismo ADMIN_TOKEN que /admin/tick y /admin/advance.
     if (deps.onAdminAdvance) {
       const onAdminAdvance = deps.onAdminAdvance
       app.post<{ Querystring: { days?: string } }>('/api/world/advance', async (request, reply) => {
-        const userId = await currentUserId(request)
-        if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
+        if (!requireAdmin(request, reply)) return
         const days = Math.min(10, Math.max(1, Number(request.query.days ?? 1) || 1))
         const summary = await onAdminAdvance(days)
         return { ok: true, currentDay: summary.currentDay, daysProcessed: summary.daysProcessed }
