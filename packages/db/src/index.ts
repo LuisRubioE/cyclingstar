@@ -19,6 +19,7 @@ export { raceWorldDay } from './race.js'
 export {
   ENROLL_LOCK_DAYS,
   ensureRaceRosterFrozen,
+  lockCalendarDay,
   predictStartlist,
   recomputeWorldRanking,
   runCalendarDay,

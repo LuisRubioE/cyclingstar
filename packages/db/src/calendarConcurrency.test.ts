@@ -1,8 +1,9 @@
 import { SEASON_CALENDAR } from '@cyclingstar/engine'
-import { asc, eq } from 'drizzle-orm'
+import { asc, eq, sql } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { ENROLL_LOCK_DAYS, ensureRaceRosterFrozen, runCalendarDay } from './calendarRun.js'
 import { type Database, type DbClient, createDb } from './client.js'
+import { LOCK_CLASS, raceLockKey } from './locks.js'
 import { raceRosters, teams, worlds } from './schema.js'
 import { realTestDatabaseUrl, resetRealTestDb } from './testDb.js'
 import { seedWorld } from './world.js'
@@ -31,11 +32,15 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
  * excluyen los campeonatos nacionales: no traen equipos y por tanto no cobran viajes, que es
  * justamente lo que aquí se quiere ver cobrado una sola vez.
  */
-const targetRace = [...SEASON_CALENDAR]
+const byTeamsRaces = [...SEASON_CALENDAR]
   .filter((r) => r.startDay > ENROLL_LOCK_DAYS && r.championshipCountry == null)
-  .sort((a, b) => a.startDay - b.startDay)[0]!
+  .sort((a, b) => a.startDay - b.startDay)
+const targetRace = byTeamsRaces[0]!
 /** Día de juego en el que faltan exactamente ENROLL_LOCK_DAYS para la salida (temporada 0). */
 const GAME_DAY = targetRace.startDay - ENROLL_LOCK_DAYS
+/** Otra carrera (y su día) para el caso inverso, con la escuadra aún sin congelar. */
+const otherRace = byTeamsRaces[1]!
+const OTHER_DAY = otherRace.startDay - ENROLL_LOCK_DAYS
 
 describe.skipIf(REAL_URL == null)('db: congelar escuadra no cobra el viaje dos veces', () => {
   let a: DbClient
@@ -100,5 +105,47 @@ describe.skipIf(REAL_URL == null)('db: congelar escuadra no cobra el viaje dos v
       .where(eq(raceRosters.raceId, raceKey))
     expect(roster.length).toBeGreaterThan(0)
     expect(new Set(roster.map((r) => r.riderId)).size).toBe(roster.length)
+  }, 300_000)
+
+  it('al revés (la web primero) el tick espera y termina sin error de abrazo mortal', async () => {
+    // La web toma el candado de una carrera y DESPUÉS bloquea filas de teams (así cobra el viaje).
+    // Si el tick hiciera lo contrario —bloquear filas y pedir el candado después— podrían esperarse
+    // mutuamente; por eso el tick reserva los candados del día ANTES de tocar nada (lockCalendarDay).
+    // Este test cubre el sentido inverso de la carrera: el tick espera y acaba limpio (sin 40P01).
+    const raceKey = `${otherRace.id}:s${Math.floor(OTHER_DAY / SEASON_DAYS)}`
+    let tickDone = false
+    let tickError: unknown = null
+    let tickRun: Promise<unknown> | null = null
+
+    await b.db.transaction(async (tx) => {
+      // Imita a la web: candado de la carrera y, con él en la mano, una fila de teams bloqueada.
+      await tx.execute(
+        sql`select pg_advisory_xact_lock(${LOCK_CLASS.raceRoster}, ${raceLockKey(raceKey)})`,
+      )
+      const [victim] = await tx.select({ id: teams.id }).from(teams).orderBy(asc(teams.id)).limit(1)
+      await tx
+        .update(teams)
+        .set({ budget: sql`${teams.budget} - 1` })
+        .where(eq(teams.id, victim!.id))
+
+      tickRun = a.db
+        .transaction((tx2) => runCalendarDay(tx2, worldId, OTHER_DAY, WORLD_SEED))
+        .then(
+          () => {
+            tickDone = true
+          },
+          (err: unknown) => {
+            tickError = err
+            tickDone = true
+          },
+        )
+      await sleep(750)
+      // El tick sigue esperando el candado, no ha reventado por deadlock ni ha seguido adelante.
+      expect(tickDone).toBe(false)
+    })
+
+    await tickRun!
+    expect(tickError).toBeNull()
+    expect(tickDone).toBe(true)
   }, 300_000)
 })

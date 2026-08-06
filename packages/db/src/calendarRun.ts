@@ -103,14 +103,57 @@ const WILDCARD_FRACTION = 0.12
  * VECES el presupuesto de viaje del equipo y el bolsillo del corredor (READ COMMITTED no lo impide:
  * la segunda transacción no ve las filas aún sin confirmar de la primera y cree que no está congelada).
  *
- * Orden de adquisición y deadlocks: la web toma como mucho UN candado de carrera por transacción, y
- * solo el tick toma varios; como el tick es único (candado global del tick, clase `tick`), no puede
- * haber dos poseedores de varias claves a la vez y por tanto no hay ciclo de espera posible.
+ * Repetir la petición dentro de la misma transacción es gratis (Postgres lleva un contador), así que
+ * se puede pedir tanto por adelantado como en el punto de uso.
  */
 async function lockRace(tx: Tx, raceKey: string): Promise<void> {
   await tx.execute(
     sql`select pg_advisory_xact_lock(${LOCK_CLASS.raceRoster}, ${raceLockKey(raceKey)})`,
   )
+}
+
+/** Claves de almacenamiento de las carreras que este día puede tocar (correr, convocar o congelar). */
+function raceKeysForDay(gameDay: number): string[] {
+  const season = Math.floor(gameDay / SEASON_DAYS)
+  const dayOfSeason = gameDay % SEASON_DAYS
+  const keys = new Set<string>()
+  for (const race of SEASON_CALENDAR) {
+    const runsToday = scheduledStageIndex(race, dayOfSeason) != null
+    const freezesToday =
+      race.startDay > dayOfSeason && race.startDay - dayOfSeason <= ENROLL_LOCK_DAYS
+    if (runsToday || freezesToday) keys.add(`${race.id}:s${season}`)
+  }
+  return [...keys]
+}
+
+/**
+ * Reserva POR ADELANTADO todos los candados que la transacción de un día de juego va a necesitar,
+ * ANTES de tocar ninguna fila. Es lo que evita el abrazo mortal con la web:
+ *
+ *  - La web (`ensureRaceRosterFrozen`) toma el candado de UNA carrera y después bloquea filas de
+ *    `teams`/`riders` al cobrar el viaje.
+ *  - Si el tick bloqueara primero esas filas y pidiera el candado después, cada uno esperaría al
+ *    otro. Pidiéndolos todos al principio, el tick nunca espera un candado teniendo filas cogidas:
+ *    o la web ya lo tiene y el tick espera sin retener nada, o el tick los tiene todos y la web
+ *    espera. En ninguno de los dos casos hay ciclo.
+ *
+ * Se piden en orden ascendente de clave, orden total y estable, por si algún día hubiera dos ticks.
+ */
+export async function lockCalendarDay(
+  tx: Tx,
+  worldId: string,
+  gameDay: number,
+  opts: CalendarDayOptions = {},
+): Promise<void> {
+  const keys = raceKeysForDay(gameDay).sort((a, b) => raceLockKey(a) - raceLockKey(b))
+  for (const key of keys) await lockRace(tx, key)
+  // El recálculo de puntos (solo en mundos por reparar) lo pueden lanzar a la vez el tick y la web;
+  // su candado entra en la misma reserva previa, por el mismo motivo.
+  if (opts.repairWorld === true) {
+    await tx.execute(
+      sql`select pg_advisory_xact_lock(${LOCK_CLASS.seasonPoints}, ${raceLockKey(worldId)})`,
+    )
+  }
 }
 /**
  * Prioridad de división al llenar una carrera global (.WT/.Pro). En una .WT los equipos WorldTour
@@ -1351,6 +1394,11 @@ export async function runCalendarDay(
   const season = Math.floor(gameDay / SEASON_DAYS)
   const dayOfSeason = gameDay % SEASON_DAYS
   const raced = new Set<string>()
+
+  // Reserva por adelantado los candados del día (ver lockCalendarDay). Es idempotente: el tick ya
+  // los pide al abrir la transacción del día, y pedirlos otra vez aquí no cuesta nada; así también
+  // queda protegido quien llame a runCalendarDay por su cuenta.
+  await lockCalendarDay(tx, worldId, gameDay, opts)
 
   // Corrige datos viejos del mundo (palmarés de 1 día, dorsales faltantes, puntos, dobles
   // inscripciones). Solo mientras queden reparaciones pendientes: no es trabajo del día.

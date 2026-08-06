@@ -1,7 +1,7 @@
 import { desc, eq } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
-import { runCalendarDay } from './calendarRun.js'
+import { lockCalendarDay, runCalendarDay } from './calendarRun.js'
 import { runCallups } from './callups.js'
 import { dedupeWorldNames } from './dedupeNames.js'
 import { runMarket } from './contracts.js'
@@ -204,6 +204,10 @@ export async function runTick(databaseUrl: string, opts: RunTickOptions): Promis
         // NO se trocea: la atomicidad por día es un requisito de diseño (un día se aplica entero o
         // no se aplica; si no, un fallo a mitad dejaría carreras corridas sin nóminas ni mercado).
         await db.transaction(async (tx) => {
+          // LO PRIMERO, antes de tocar una sola fila: reservar los candados de las carreras que el
+          // día puede congelar. La web los toma antes de cobrar viajes, así que si el tick los
+          // pidiera con filas ya bloqueadas se abrazarían mortalmente (ver lockCalendarDay).
+          await lockCalendarDay(tx, genesis.worldId, next, { repairWorld: needsRepair })
           // Al cruzar a una temporada nueva, primero el rollover (retiros, neopros, ascensos).
           await runRollover(tx, genesis.worldId, next, opts.worldSeed)
           const racedTest = await raceWorldDay(tx, genesis.worldId, next, opts.worldSeed)
