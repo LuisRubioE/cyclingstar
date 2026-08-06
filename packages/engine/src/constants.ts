@@ -11,8 +11,13 @@
  * Versión del comportamiento del motor. Se incrementa ante CUALQUIER cambio de
  * comportamiento del motor (CLAUDE.md) y entra en la semilla del RNG (SPEC 6.1:
  * seed = sha256(worldSeed, raceId, stageDay, engineVersion)).
+ *
+ * v2: el reparto del trabajo en el grupo (quién releva) pasa a decidirse por rol, frescura y
+ * protección de equipo en vez de por la posición en el array de entrada; el marcaje de carrera
+ * pasa a resolverse con el módulo `stage/marcaje.ts`; el ruido de los mini-sprints de banner se
+ * unifica con el del sprint de meta (`sprintScoreNoiseSd`).
  */
-export const ENGINE_VERSION = 1 as const
+export const ENGINE_VERSION = 2 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -239,11 +244,37 @@ export const STAGE = {
   draftClimbMin: 0.08,
   // shelter_i: protegido 0.9 | rotando/trabajando 0.4 | fugado que releva 0.5 | solo 0.0.
   shelterProtected: 0.9,
+  // PENDIENTE DE IMPLEMENTAR (SPEC 6.5): parámetro definido pero sin efecto en la simulación.
+  // El motor solo distingue hoy dos estados (protegido / relevando): quien trabaja usa
+  // `shelterRelay`. Falta el tercer estado "rotando en cabeza del pelotón" de la tabla del SPEC.
   shelterWorking: 0.4,
   shelterRelay: 0.5,
   shelterAlone: 0.0,
   // coste = dx·costeBase·ritmo(c)^1.6·(1 - draftMax·shelter).
   costRhythmExponent: 1.6,
+
+  // 6.5/6.18 — Reparto del trabajo dentro del grupo: quién releva (paga `shelterRelay`) y quién
+  // va a rueda (`shelterProtected`). NO puede decidirlo el orden del array de entrada: se ordena
+  // por "deber de relevo", con el rol como criterio principal, la frescura restante como segundo
+  // y un jitter determinista del RNG sembrado (subflujo `work:<riderId>`) para romper empates.
+  // Así un líder que aparezca el primero en el input ya no se pasa la etapa tirando.
+  relayDutyByRole: {
+    gregario: 1.0, // su oficio es tirar y proteger al jefe
+    lanzador: 0.85, // tira, pero se reserva algo para el último km
+    libre: 0.6, // sin órdenes concretas: colabora lo normal
+    cazaetapas: 0.5, // ahorra para su ataque
+    marcador: 0.35, // vive a rueda de su objetivo, no del viento
+    sprinter: 0.2, // se guarda entero para la meta
+    lider: 0.1, // el equipo lo lleva; solo tira si no queda nadie más
+  },
+  // Peso de la frescura (E/E0) en el deber de relevo: quien va vaciado deja de dar relevos y los
+  // que aún tienen tanque asumen el trabajo, como en carretera.
+  relayFreshnessWeight: 0.35,
+  // Penalización al deber de relevo de un corredor que lleva gregarios suyos en el grupo: si tiene
+  // equipo alrededor, el equipo trabaja por él (SPEC 6.18) y él pasa al final de la cola de relevos.
+  relayProtectedPenalty: 0.5,
+  // Amplitud del desempate aleatorio (determinista, sembrado) del deber de relevo.
+  relayJitterWeight: 0.05,
 
   // 6.6 — Cerillos (esfuerzos supraumbral discretos).
   // comp = 0.50·max(MON,COL) + 0.30·RES + 0.20·LLA; cerillos = 2 + (comp>=55)+(>=72)+(>=88).

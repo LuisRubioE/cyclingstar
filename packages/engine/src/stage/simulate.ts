@@ -34,6 +34,8 @@ interface RiderSim {
   matches: number
   /** Bloques que resta el impulso de un cerillo gastado (+10 al terreno, SPEC 6.6). */
   climbBoostBlocks: number
+  /** Desempate fijo del turno de relevos, en [0,1) (SPEC 6.1: subflujo nominal por corredor). */
+  workJitter: number
   incident: Incident | null
 }
 
@@ -74,6 +76,47 @@ function pacemakerP75(members: RiderSim[], block: Block, fraction: number): numb
   const perfils = members.map((m) => riderPerfil(m, block)).sort((a, b) => b - a)
   const k = Math.max(1, Math.ceil(fraction * perfils.length))
   return percentile75(perfils.slice(0, k))
+}
+
+/**
+ * Deber de relevo de un corredor (SPEC 6.5, 6.18): cuánto le "toca" dar la cara al viento ahora.
+ * Manda el ROL (el gregario tira, el líder y el sprinter ahorran), la FRESCURA restante corrige
+ * (quien va vaciado ya no puede relevar) y, si lleva gregarios propios en el grupo, sale del turno
+ * porque su equipo trabaja por él. Un jitter fijo por corredor y etapa rompe empates.
+ * Deliberadamente NO interviene la posición en el array de entrada.
+ */
+function relayDuty(m: RiderSim, protectedByTeam: boolean): number {
+  const duty = STAGE.relayDutyByRole[m.input.orders.role]
+  const freshness = m.energy0 > 0 ? Math.max(0, Math.min(1, m.energy / m.energy0)) : 0
+  return (
+    duty +
+    STAGE.relayFreshnessWeight * freshness -
+    (protectedByTeam ? STAGE.relayProtectedPenalty : 0) +
+    STAGE.relayJitterWeight * m.workJitter
+  )
+}
+
+/**
+ * Quién releva en este bloque: los `ceil(paceFraction · N)` corredores con más deber de relevo
+ * (SPEC 6.5). El resto va a rueda y paga `shelterProtected`. El tamaño del turno lo fija la misma
+ * fracción de ritmo que marca el P75, así el número de corredores que trabajan no cambia; lo que
+ * cambia (y es el arreglo) es QUIÉNES son: antes salían del orden del array `input.riders`.
+ */
+function relayTurn(
+  members: RiderSim[],
+  idSet: Set<string>,
+  paceFraction: number,
+  domestiquesFor: Map<string, string[]>,
+): Set<string> {
+  const count = Math.min(members.length, Math.max(1, Math.ceil(paceFraction * members.length)))
+  const scored = members.map((m) => {
+    const helpers = domestiquesFor.get(m.input.riderId)
+    const protectedByTeam = helpers != null && helpers.some((id) => idSet.has(id))
+    return { id: m.input.riderId, duty: relayDuty(m, protectedByTeam) }
+  })
+  // Desempate final por id para que el orden sea total y no herede el orden de inserción.
+  scored.sort((a, b) => b.duty - a.duty || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+  return new Set(scored.slice(0, count).map((s) => s.id))
 }
 
 export function simulateStage(input: StageInput, seed: string): StageOutput {
@@ -119,6 +162,9 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       climbPts: 0,
       matches: r.matches,
       climbBoostBlocks: 0,
+      // Subflujo NOMINAL por corredor: el desempate del turno de relevos no depende del orden del
+      // array de entrada ni del tamaño del pelotón, solo de la semilla y del id (SPEC 6.1).
+      workJitter: streams(`work:${r.riderId}`)(),
       incident: null,
     })
   }
@@ -330,8 +376,9 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       const p75 = pacemakerP75(members, block, paceFraction)
       const next = advanceGroup(group, block, p75, { isFinal })
       const idSet = new Set(members.map((m) => m.input.riderId))
-      members.forEach((m, idx) => {
-        const relaying = idx / members.length < paceFraction
+      const relayers = relayTurn(members, idSet, paceFraction, domestiquesFor)
+      for (const m of members) {
+        const relaying = relayers.has(m.input.riderId)
         const shelter = relaying ? STAGE.shelterRelay : STAGE.shelterProtected
         let cost = blockCost(block, group.compromiso, shelter)
         // Protección de gregarios: un líder arropado que no está relevando gasta menos según cuántos
@@ -351,7 +398,7 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
         }
         m.energy = Math.max(0, m.energy - cost)
         m.work += cost
-      })
+      }
       return next
     }
 
