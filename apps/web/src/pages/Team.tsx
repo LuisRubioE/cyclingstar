@@ -47,7 +47,7 @@ export function Team() {
 
   return (
     <section className="space-y-4">
-      <Link to="/teams" className="text-xs text-slate-400 hover:text-slate-600">
+      <Link to="/world/teams" className="text-xs text-slate-400 hover:text-slate-600">
         ← Teams
       </Link>
       <SectionBar

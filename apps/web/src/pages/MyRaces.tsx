@@ -87,7 +87,7 @@ function UpcomingTab() {
                   <tr key={r.raceKey} className="border-b border-slate-100 last:border-0">
                     <th scope="row" className="px-3 py-2 text-left font-normal">
                       <Link
-                        to={`/races/${r.raceId}`}
+                        to={`/world/races/${r.raceId}`}
                         className="font-medium text-slate-800 hover:text-brand-cyan hover:underline"
                       >
                         {r.country && <Flag code={r.country} size={14} className="mr-1.5" />}
@@ -108,7 +108,7 @@ function UpcomingTab() {
                         etapas en curso, cuando el motor la soporte (docs/motor.md §V.5). */}
                     <td className="px-3 py-2 text-right">
                       <Link
-                        to={`/race-orders?race=${encodeURIComponent(r.raceKey)}`}
+                        to={`/me/orders?race=${encodeURIComponent(r.raceKey)}`}
                         className="font-medium text-brand-cyan hover:underline"
                       >
                         Set orders
@@ -128,7 +128,7 @@ function UpcomingTab() {
             {pending.map((r) => (
               <li key={r.raceId} className="flex items-center justify-between gap-3 py-2 text-sm">
                 <Link
-                  to={`/races/${r.raceId}`}
+                  to={`/world/races/${r.raceId}`}
                   className="font-medium text-slate-700 hover:text-brand-cyan hover:underline"
                 >
                   {r.country && <Flag code={r.country} size={14} className="mr-1.5" />}
@@ -167,7 +167,7 @@ function EnterableRow({
       <td className="px-3 py-2 text-xs tabular-nums text-slate-400">GD {race.startDay}</td>
       <th scope="row" className="px-2 py-2 text-left font-normal">
         <Link
-          to={`/races/${race.raceId}`}
+          to={`/world/races/${race.raceId}`}
           className="font-medium text-slate-800 hover:text-brand-cyan hover:underline"
         >
           {race.country && <Flag code={race.country} size={14} className="mr-1.5" />}
@@ -346,7 +346,7 @@ function ResultsTab({ riderId }: { riderId: string | null }) {
                 <th scope="row" className="px-3 py-2 text-left font-normal">
                   <Link
                     to={
-                      r.isOneDay ? `/races/${r.raceId}` : `/races/${r.raceId}/stages/${r.stageDay}`
+                      r.isOneDay ? `/world/races/${r.raceId}` : `/world/races/${r.raceId}/stages/${r.stageDay}`
                     }
                     className="font-medium text-slate-800 hover:text-brand-cyan hover:underline"
                   >

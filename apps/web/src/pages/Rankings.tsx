@@ -79,7 +79,7 @@ function AwardCard({
         <>
           <p className="mt-1.5 flex items-center gap-2 text-sm font-bold text-slate-800">
             <Flag code={winner.country} size={16} />
-            <Link to={`/riders/${winner.riderId}`} className="hover:underline">
+            <Link to={`/world/riders/${winner.riderId}`} className="hover:underline">
               <RiderName riderId={winner.riderId} name={winner.name} isBot={winner.isBot} />
             </Link>
           </p>

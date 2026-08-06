@@ -21,7 +21,7 @@ export function Country() {
 
   return (
     <section className="space-y-4">
-      <Link to="/countries" className="text-sm text-slate-400 hover:text-indigo-600">
+      <Link to="/world/nations" className="text-sm text-slate-400 hover:text-indigo-600">
         ← All nations
       </Link>
       <SectionBar>
@@ -70,7 +70,7 @@ export function Country() {
                     <td className="px-3 py-2 text-slate-500">
                       {r.teamId && r.teamName ? (
                         <Link
-                          to={`/teams/${r.teamId}`}
+                          to={`/world/teams/${r.teamId}`}
                           className="hover:text-indigo-600 hover:underline"
                         >
                           {r.teamName}

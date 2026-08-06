@@ -24,7 +24,7 @@ function RecordCard({
           </p>
           <p className="mt-0.5 flex items-center gap-1.5 text-sm text-slate-600">
             <Flag code={entry.country} size={14} />
-            <Link to={`/riders/${entry.riderId}`} className="hover:underline">
+            <Link to={`/world/riders/${entry.riderId}`} className="hover:underline">
               <RiderName riderId={entry.riderId} name={entry.name} isBot={entry.isBot} />
             </Link>
           </p>

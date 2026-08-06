@@ -156,7 +156,7 @@ function LastRaceCard() {
       title="Last race"
       action={
         <Link
-          to={`/races/${data.raceId}/stages/${data.stageDay}`}
+          to={`/world/races/${data.raceId}/stages/${data.stageDay}`}
           className="text-xs font-medium text-white/90 hover:text-white hover:underline"
         >
           Full story →
@@ -308,7 +308,7 @@ function PlayerHome({ name }: { name: string }) {
           </dl>
         )}
         <p className="mt-3 text-xs">
-          <Link to="/rider" className="font-medium text-brand-cyan hover:underline">
+          <Link to="/me/profile" className="font-medium text-brand-cyan hover:underline">
             See the full profile →
           </Link>
         </p>

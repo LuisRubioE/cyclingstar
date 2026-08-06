@@ -73,7 +73,7 @@ function Identity({ rider }: { rider: PublicRiderDetail }) {
           {VOCATION_LABELS[rider.archetype as Vocation] ?? rider.archetype}
           {' · '}
           <Link
-            to={`/countries/${rider.country}`}
+            to={`/world/nations/${rider.country}`}
             className="hover:text-brand-cyan hover:underline"
           >
             {country?.name ?? rider.country}
@@ -205,7 +205,7 @@ function OwnerObjectives() {
         {wanted.map((r) => (
           <li key={r.raceId} className="flex items-center justify-between gap-3 py-2 text-sm">
             <Link
-              to={`/races/${r.raceId}`}
+              to={`/world/races/${r.raceId}`}
               className="font-medium text-slate-700 hover:text-brand-cyan hover:underline"
             >
               {r.name}
@@ -371,7 +371,7 @@ export function RiderProfile() {
                   {r.puesto}
                 </span>
                 <Link
-                  to={r.isOneDay ? `/races/${r.raceId}` : `/races/${r.raceId}/stages/${r.stageDay}`}
+                  to={r.isOneDay ? `/world/races/${r.raceId}` : `/world/races/${r.raceId}/stages/${r.stageDay}`}
                   className="font-medium text-slate-700 hover:underline"
                 >
                   {r.raceName}
