@@ -13,7 +13,12 @@ import { news, riders } from './schema.js'
 type Db = ReturnType<typeof drizzle>
 type Tx = Parameters<Parameters<Db['transaction']>[0]>[0]
 
-/** Redacta y guarda una noticia. Si `riderId` va, es personal de ese corredor; si no, global. */
+/**
+ * Redacta y guarda una noticia. `riderId` es el PROTAGONISTA (siempre que lo haya): permite pintar su
+ * bandera, enlazarlo y resaltar en tu feed las noticias sobre TU corredor. `personal` marca las que van
+ * dirigidas al jugador (mensajes suyos); una victoria/fichaje/lesión es un titular GLOBAL aunque lleve
+ * protagonista, así que se ve en el feed de todos.
+ */
 export async function emitNews(
   tx: Tx,
   opts: {
@@ -23,13 +28,14 @@ export async function emitNews(
     seed: string
     data: NewsData
     riderId?: string | null
+    personal?: boolean
   },
 ): Promise<void> {
   const text = renderNews(opts.kind, opts.seed, opts.data)
   await tx.insert(news).values({
     worldId: opts.worldId,
     gameDay: opts.gameDay,
-    scope: opts.riderId ? 'personal' : 'global',
+    scope: opts.personal ? 'personal' : 'global',
     riderId: opts.riderId ?? null,
     kind: opts.kind,
     text,
@@ -40,7 +46,11 @@ export interface NewsItem {
   gameDay: number
   kind: string
   text: string
+  /** Va sobre el corredor del jugador (o es un mensaje suyo): se resalta en su feed. */
   personal: boolean
+  /** Protagonista, para pintar su bandera y enlazarlo (null si el titular no tiene corredor). */
+  riderId: string | null
+  country: string | null
 }
 
 /** Feed global del mundo, lo más reciente primero. */
@@ -50,12 +60,19 @@ export async function getGlobalNews(
   limit = 40,
 ): Promise<NewsItem[]> {
   const rows = await db
-    .select({ gameDay: news.gameDay, kind: news.kind, text: news.text, scope: news.scope })
+    .select({
+      gameDay: news.gameDay,
+      kind: news.kind,
+      text: news.text,
+      riderId: news.riderId,
+      country: riders.country,
+    })
     .from(news)
+    .leftJoin(riders, eq(riders.id, news.riderId))
     .where(eq(news.worldId, worldId))
     .orderBy(desc(news.gameDay), desc(news.createdAt))
     .limit(limit)
-  return rows.map((r) => ({ ...r, personal: r.scope === 'personal' }))
+  return rows.map((r) => ({ ...r, personal: false }))
 }
 
 /**
@@ -64,16 +81,22 @@ export async function getGlobalNews(
  */
 export async function getTeamNews(db: Database, teamId: string, limit = 15): Promise<NewsItem[]> {
   const rows = await db
-    .select({ gameDay: news.gameDay, kind: news.kind, text: news.text, scope: news.scope })
+    .select({
+      gameDay: news.gameDay,
+      kind: news.kind,
+      text: news.text,
+      riderId: news.riderId,
+      country: riders.country,
+    })
     .from(news)
     .innerJoin(riders, eq(riders.id, news.riderId))
     .where(eq(riders.teamId, teamId))
     .orderBy(desc(news.gameDay), desc(news.createdAt))
     .limit(limit)
-  return rows.map((r) => ({ ...r, personal: r.scope === 'personal' }))
+  return rows.map((r) => ({ ...r, personal: false }))
 }
 
-/** Feed personal de un corredor: sus noticias más las globales del mundo. */
+/** Feed personal de un corredor: las globales del mundo más las que van sobre él (resaltadas). */
 export async function getRiderNews(
   db: Database,
   worldId: string,
@@ -81,10 +104,21 @@ export async function getRiderNews(
   limit = 40,
 ): Promise<NewsItem[]> {
   const rows = await db
-    .select({ gameDay: news.gameDay, kind: news.kind, text: news.text, scope: news.scope })
+    .select({
+      gameDay: news.gameDay,
+      kind: news.kind,
+      text: news.text,
+      scope: news.scope,
+      riderId: news.riderId,
+      country: riders.country,
+    })
     .from(news)
+    .leftJoin(riders, eq(riders.id, news.riderId))
     .where(and(eq(news.worldId, worldId), or(eq(news.riderId, riderId), eq(news.scope, 'global'))))
     .orderBy(desc(news.gameDay), desc(news.createdAt))
     .limit(limit)
-  return rows.map((r) => ({ ...r, personal: r.scope === 'personal' }))
+  return rows.map(({ scope, ...r }) => ({
+    ...r,
+    personal: r.riderId === riderId || scope === 'personal',
+  }))
 }
