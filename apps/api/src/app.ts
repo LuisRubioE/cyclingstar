@@ -2,6 +2,8 @@ import { randomUUID } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import fastifyHelmet from '@fastify/helmet'
+import fastifyRateLimit from '@fastify/rate-limit'
 import fastifyStatic from '@fastify/static'
 import {
   type Database,
@@ -110,7 +112,13 @@ import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod
 import { z } from 'zod'
 import type { Auth } from './auth.js'
 import { apiError } from './http.js'
-import { createAdminGuard } from './security.js'
+import {
+  AUTH_RATE_LIMIT,
+  CREDENTIAL_AUTH_PATHS,
+  CREDENTIAL_RATE_LIMIT,
+  GLOBAL_RATE_LIMIT,
+  createAdminGuard,
+} from './security.js'
 
 /** Convierte las cabeceras de una petición Fastify en un objeto Headers estándar. */
 function toWebHeaders(request: FastifyRequest): Headers {
@@ -175,6 +183,46 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
   app.setValidatorCompiler(validatorCompiler)
   app.setSerializerCompiler(serializerCompiler)
 
+  // Cabeceras de seguridad (@fastify/helmet). Se registra ANTES que ninguna ruta: los hooks de
+  // Fastify solo alcanzan a las rutas declaradas después.
+  //
+  // La CSP es deliberadamente pragmática, no máxima: la SPA se sirve desde el MISMO origen que la
+  // API, así que 'self' cubre scripts, estilos y fetch. Se deja `style-src 'unsafe-inline'` porque
+  // la web inyecta las altimetrías como SVG en línea (con atributos style) y Tailwind/React aplican
+  // estilos en línea; sin eso la web se rompe. El resto queda cerrado: nada de objetos, nada de
+  // iframes de terceros y nadie puede embebernos (frame-ancestors 'none').
+  void app.register(fastifyHelmet, {
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        baseUri: ["'self'"],
+        frameAncestors: ["'none'"],
+        frameSrc: ["'none'"],
+        objectSrc: ["'none'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", 'data:', 'blob:'],
+        fontSrc: ["'self'", 'data:'],
+        connectSrc: ["'self'"],
+        formAction: ["'self'"],
+      },
+    },
+    // No servimos recursos que necesiten aislamiento cruzado; activarlo rompería la carga de la web.
+    crossOriginEmbedderPolicy: false,
+    // HSTS: 180 días. Railway termina el TLS delante, la app siempre se sirve por https.
+    hsts: { maxAge: 15_552_000, includeSubDomains: true },
+  })
+
+  // Rate limiting global por IP (@fastify/rate-limit), también antes que las rutas. Antes no había
+  // ninguno: /api/auth/* aceptaba intentos de contraseña ilimitados. Los límites concretos y su
+  // porqué están en security.ts. El 429 usa el mismo formato de error que el resto de la API.
+  void app.register(fastifyRateLimit, {
+    global: true,
+    ...GLOBAL_RATE_LIMIT,
+    // trustProxy ya está activo: la clave es la IP real del cliente, no la del proxy de Railway.
+    errorResponseBuilder: () => apiError('demasiadas_peticiones'),
+  })
+
   // Guarda de admin (ADMIN_TOKEN en x-admin-token), en tiempo constante. Único punto de control.
   const requireAdmin = createAdminGuard(deps.adminToken)
 
@@ -197,7 +245,9 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
     reply.status(statusCode).send(apiError(error.message))
   })
 
-  app.get('/health', async (): Promise<Health> => {
+  // /health queda fuera del rate limit: lo sondea el healthcheck de Railway y no debe poder
+  // agotarse el cupo de nadie (ni agotar el suyo) por un sondeo de infraestructura.
+  app.get('/health', { config: { rateLimit: false } }, async (): Promise<Health> => {
     let gameDay: number | null = null
     let nextTickAtMs: number | null = null
     const tickIntervalMinutes = deps.tickIntervalMinutes ?? 360
@@ -302,31 +352,43 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
   // de la petición de Fastify y reenvía la respuesta, preservando las cookies de sesión.
   if (deps.auth) {
     const auth = deps.auth
+    const forwardToAuth = async (
+      request: FastifyRequest,
+      reply: FastifyReply,
+    ): Promise<FastifyReply> => {
+      const url = new URL(request.url, `${request.protocol}://${request.host}`)
+      const init: RequestInit = { method: request.method, headers: toWebHeaders(request) }
+      const hasBody = request.method !== 'GET' && request.method !== 'HEAD'
+      if (hasBody && request.body != null) {
+        init.body = JSON.stringify(request.body)
+      }
+      const webRequest = new Request(url, init)
+
+      const response = await auth.handler(webRequest)
+
+      reply.status(response.status)
+      for (const [key, value] of response.headers.entries()) {
+        if (key.toLowerCase() === 'set-cookie') continue
+        reply.header(key, value)
+      }
+      for (const cookie of response.headers.getSetCookie()) {
+        reply.header('set-cookie', cookie)
+      }
+      const body = await response.text()
+      return reply.send(body.length > 0 ? body : null)
+    }
+
+    // Rutas de credenciales: mismo handler, límite estricto contra la fuerza bruta (security.ts).
+    // Se declaran antes del comodín; find-my-way prefiere la ruta estática igualmente.
+    for (const url of CREDENTIAL_AUTH_PATHS) {
+      app.post(url, { config: { rateLimit: CREDENTIAL_RATE_LIMIT } }, forwardToAuth)
+    }
+
     app.route({
       method: ['GET', 'POST'],
       url: '/api/auth/*',
-      async handler(request, reply) {
-        const url = new URL(request.url, `${request.protocol}://${request.host}`)
-        const init: RequestInit = { method: request.method, headers: toWebHeaders(request) }
-        const hasBody = request.method !== 'GET' && request.method !== 'HEAD'
-        if (hasBody && request.body != null) {
-          init.body = JSON.stringify(request.body)
-        }
-        const webRequest = new Request(url, init)
-
-        const response = await auth.handler(webRequest)
-
-        reply.status(response.status)
-        for (const [key, value] of response.headers.entries()) {
-          if (key.toLowerCase() === 'set-cookie') continue
-          reply.header(key, value)
-        }
-        for (const cookie of response.headers.getSetCookie()) {
-          reply.header('set-cookie', cookie)
-        }
-        const body = await response.text()
-        return reply.send(body.length > 0 ? body : null)
-      },
+      config: { rateLimit: AUTH_RATE_LIMIT },
+      handler: forwardToAuth,
     })
   }
 
