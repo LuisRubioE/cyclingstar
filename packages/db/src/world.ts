@@ -7,8 +7,9 @@ import {
   type Vocation,
   seededRng,
 } from '@cyclingstar/shared'
-import { eq } from 'drizzle-orm'
+import { eq, inArray, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
+import { BATCH_ROWS, type BatchValue, inChunks, valuesList } from './batch.js'
 import { riderAttrs, riderHidden, riders, teams } from './schema.js'
 import { generateUniqueName } from './names.js'
 import { makeLangTeamName } from './teamNameLang.js'
@@ -543,12 +544,12 @@ export async function reconcileTeams(tx: Tx, worldId: string): Promise<number> {
   // Continental de 200 cuando el reparto son 185), los de índice fuera de rango se eliminan. Sus
   // corredores pasan a agentes libres (team_id nulo); borrar el equipo arrastra contratos y ofertas
   // (onDelete cascade). Nunca se podan equipos con dueño. Idempotente: una vez podados, no vuelven.
-  let changed = 0
-  for (const t of bots.filter((b) => !inRange(b))) {
-    await tx.update(riders).set({ teamId: null }).where(eq(riders.teamId, t.id))
-    await tx.delete(teams).where(eq(teams.id, t.id))
-    changed++
-  }
+  // Con la FK `riders.team_id → teams.id ON DELETE SET NULL` basta con borrar el equipo: sus
+  // corredores pasan a agentes libres solos (antes había que ponerlo a null a mano en otra sentencia,
+  // y si algo fallaba entre medias quedaba un team_id colgando).
+  const prune = bots.filter((b) => !inRange(b)).map((b) => b.id)
+  let changed = prune.length
+  await inChunks(prune, BATCH_ROWS, (chunk) => tx.delete(teams).where(inArray(teams.id, chunk)))
 
   // Reconcilia los equipos en rango en orden fijo (división, índice) —el mismo que la génesis—, para
   // que la asignación sea un punto fijo determinista (no-op en un mundo nuevo).
@@ -559,14 +560,22 @@ export async function reconcileTeams(tx: Tx, worldId: string): Promise<number> {
         DIV_RANK[a.division] - DIV_RANK[b.division] ||
         teamIndexFromSeed(a.jerseySeed) - teamIndexFromSeed(b.jerseySeed),
     )
+  const renames: BatchValue[][] = []
   for (const t of keep) {
     const country = teamCountryByIndex(t.division, teamIndexFromSeed(t.jerseySeed))
     const name = makeLangTeamName(t.jerseySeed, country, used)
     if (t.country !== country || t.name !== name) {
-      await tx.update(teams).set({ country, name }).where(eq(teams.id, t.id))
+      renames.push([t.id, country, name])
       changed++
     }
   }
+  await inChunks(renames, BATCH_ROWS, async (chunk) => {
+    const v = valuesList(chunk, ['uuid', 'char(2)', 'text'])
+    await tx.execute(
+      sql`update ${teams} set country = v.country, name = v.name
+          from ${v} as v(id, country, name) where ${teams.id} = v.id`,
+    )
+  })
   return changed
 }
 
@@ -748,12 +757,19 @@ export async function clusterTeamNationalities(tx: Tx, worldId: string): Promise
   // indonesio a uno español seguiría "viviendo" en Indonesia.
   const countryByTeam = new Map(botTeams.map((t) => [t.id, t.country]))
   const changes = planNationalClustering(clusterTeams, movable)
-  for (const [riderId, teamId] of changes) {
-    await tx
-      .update(riders)
-      .set({ teamId, residence: countryByTeam.get(teamId) ?? null })
-      .where(eq(riders.id, riderId))
-  }
+  // Una reagrupación puede mover cientos de corredores: se escriben en lote, no uno a uno.
+  const rows: BatchValue[][] = [...changes].map(([riderId, teamId]) => [
+    riderId,
+    teamId,
+    countryByTeam.get(teamId) ?? null,
+  ])
+  await inChunks(rows, BATCH_ROWS, async (chunk) => {
+    const v = valuesList(chunk, ['uuid', 'uuid', 'char(2)'])
+    await tx.execute(
+      sql`update ${riders} set team_id = v.team_id, residence = v.residence
+          from ${v} as v(id, team_id, residence) where ${riders.id} = v.id`,
+    )
+  })
   return changes.size
 }
 
@@ -804,9 +820,14 @@ export async function reconcileBotResidences(tx: Tx, worldId: string): Promise<n
     .from(riders)
     .where(eq(riders.worldId, worldId))
   const repairs = planResidenceRepairs(riderRows, teamCountry)
-  for (const [riderId, residence] of repairs) {
-    await tx.update(riders).set({ residence }).where(eq(riders.id, riderId))
-  }
+  const rows: BatchValue[][] = [...repairs].map(([riderId, residence]) => [riderId, residence])
+  await inChunks(rows, BATCH_ROWS, async (chunk) => {
+    const v = valuesList(chunk, ['uuid', 'char(2)'])
+    await tx.execute(
+      sql`update ${riders} set residence = v.residence
+          from ${v} as v(id, residence) where ${riders.id} = v.id`,
+    )
+  })
   return repairs.size
 }
 
@@ -862,7 +883,9 @@ export async function renationalizeBotRosters(
   }
 
   const used = new Set<string>()
-  let changed = 0
+  // Se acumulan los cambios y se escriben en lote al final (una renacionalización de un mundo
+  // antiguo puede tocar cientos de corredores).
+  const rows: BatchValue[][] = []
   for (const team of botTeams) {
     const members = byTeam.get(team.id) ?? []
     if (members.length === 0) continue
@@ -881,14 +904,17 @@ export async function renationalizeBotRosters(
         used,
       ).fullName
       // Se renacionaliza al país del equipo: su residencia también es la de su equipo (vive allí).
-      await tx
-        .update(riders)
-        .set({ country: team.country, name, residence: team.country })
-        .where(eq(riders.id, r.id))
-      changed++
+      rows.push([r.id, team.country, name, team.country])
     }
   }
-  return changed
+  await inChunks(rows, BATCH_ROWS, async (chunk) => {
+    const v = valuesList(chunk, ['uuid', 'char(2)', 'text', 'char(2)'])
+    await tx.execute(
+      sql`update ${riders} set country = v.country, name = v.name, residence = v.residence
+          from ${v} as v(id, country, name, residence) where ${riders.id} = v.id`,
+    )
+  })
+  return rows.length
 }
 
 /** Inserta un array en lotes para no exceder el límite de parámetros de Postgres. */

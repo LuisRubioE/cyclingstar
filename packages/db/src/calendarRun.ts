@@ -22,7 +22,9 @@ import {
 } from '@cyclingstar/shared'
 import { and, asc, desc, eq, inArray, isNotNull, isNull, notInArray, or, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
+import { BATCH_ROWS, type BatchValue, inChunks, valuesList } from './batch.js'
 import { creditRider } from './economy.js'
+import { LOCK_CLASS, hashInt, raceLockKey } from './locks.js'
 import {
   gameState,
   palmares,
@@ -37,6 +39,7 @@ import {
 } from './schema.js'
 import { runOneStage } from './stageRun.js'
 import { ownedTeamAttendance } from './teamPlan.js'
+import { worldNeedsRepair } from './worldRepair.js'
 
 /**
  * El calendario corre en el tick (Paso 44). Cada carrera del calendario (SPEC 8) ejecuta sus etapas
@@ -93,14 +96,64 @@ const FIELD_CAP = 64
 /** Plazas de wildcard (fuera de la región) reservadas por defecto en una carrera continental. */
 const WILDCARD_FRACTION = 0.12
 
-/** Hash entero estable de una cadena (para variar de forma determinista, p.ej. las wildcards). */
-function hashInt(s: string): number {
-  let h = 2166136261
-  for (let i = 0; i < s.length; i++) {
-    h ^= s.charCodeAt(i)
-    h = Math.imul(h, 16777619)
+/**
+ * Toma el candado de congelado de UNA carrera dentro de la transacción actual. Lo toman TODOS los
+ * caminos que pueden convocar/congelar esa carrera —el tick (`runCalendarDay`, `lockUpcomingRosters`)
+ * y la web (`ensureRaceRosterFrozen`)—, porque congelar dos veces la misma escuadra descontaría DOS
+ * VECES el presupuesto de viaje del equipo y el bolsillo del corredor (READ COMMITTED no lo impide:
+ * la segunda transacción no ve las filas aún sin confirmar de la primera y cree que no está congelada).
+ *
+ * Repetir la petición dentro de la misma transacción es gratis (Postgres lleva un contador), así que
+ * se puede pedir tanto por adelantado como en el punto de uso.
+ */
+async function lockRace(tx: Tx, raceKey: string): Promise<void> {
+  await tx.execute(
+    sql`select pg_advisory_xact_lock(${LOCK_CLASS.raceRoster}, ${raceLockKey(raceKey)})`,
+  )
+}
+
+/** Claves de almacenamiento de las carreras que este día puede tocar (correr, convocar o congelar). */
+function raceKeysForDay(gameDay: number): string[] {
+  const season = Math.floor(gameDay / SEASON_DAYS)
+  const dayOfSeason = gameDay % SEASON_DAYS
+  const keys = new Set<string>()
+  for (const race of SEASON_CALENDAR) {
+    const runsToday = scheduledStageIndex(race, dayOfSeason) != null
+    const freezesToday =
+      race.startDay > dayOfSeason && race.startDay - dayOfSeason <= ENROLL_LOCK_DAYS
+    if (runsToday || freezesToday) keys.add(`${race.id}:s${season}`)
   }
-  return h >>> 0
+  return [...keys]
+}
+
+/**
+ * Reserva POR ADELANTADO todos los candados que la transacción de un día de juego va a necesitar,
+ * ANTES de tocar ninguna fila. Es lo que evita el abrazo mortal con la web:
+ *
+ *  - La web (`ensureRaceRosterFrozen`) toma el candado de UNA carrera y después bloquea filas de
+ *    `teams`/`riders` al cobrar el viaje.
+ *  - Si el tick bloqueara primero esas filas y pidiera el candado después, cada uno esperaría al
+ *    otro. Pidiéndolos todos al principio, el tick nunca espera un candado teniendo filas cogidas:
+ *    o la web ya lo tiene y el tick espera sin retener nada, o el tick los tiene todos y la web
+ *    espera. En ninguno de los dos casos hay ciclo.
+ *
+ * Se piden en orden ascendente de clave, orden total y estable, por si algún día hubiera dos ticks.
+ */
+export async function lockCalendarDay(
+  tx: Tx,
+  worldId: string,
+  gameDay: number,
+  opts: CalendarDayOptions = {},
+): Promise<void> {
+  const keys = raceKeysForDay(gameDay).sort((a, b) => raceLockKey(a) - raceLockKey(b))
+  for (const key of keys) await lockRace(tx, key)
+  // El recálculo de puntos (solo en mundos por reparar) lo pueden lanzar a la vez el tick y la web;
+  // su candado entra en la misma reserva previa, por el mismo motivo.
+  if (opts.repairWorld === true) {
+    await tx.execute(
+      sql`select pg_advisory_xact_lock(${LOCK_CLASS.seasonPoints}, ${raceLockKey(worldId)})`,
+    )
+  }
 }
 /**
  * Prioridad de división al llenar una carrera global (.WT/.Pro). En una .WT los equipos WorldTour
@@ -822,18 +875,29 @@ async function assignBibs(tx: Tx, race: CalendarRace, season: number): Promise<v
     .where(eq(raceRosters.raceId, raceKey))
   if (rows.length === 0) return
 
-  const setBib = async (riderId: string, bib: number) => {
-    await tx
-      .update(raceRosters)
-      .set({ bib })
-      .where(and(eq(raceRosters.raceId, raceKey), eq(raceRosters.riderId, riderId)))
+  // Los dorsales se acumulan y se escriben de una vez al final (hasta 176 en una gran vuelta: un
+  // UPDATE por dorsal eran 176 idas y vueltas dentro de la transacción del día).
+  const bibs: BatchValue[][] = []
+  const setBib = (riderId: string, bib: number): void => {
+    bibs.push([riderId, bib])
+  }
+  const flushBibs = async (): Promise<void> => {
+    await inChunks(bibs, BATCH_ROWS, async (chunk) => {
+      const v = valuesList(chunk, ['uuid', 'integer'])
+      await tx.execute(
+        sql`update ${raceRosters} set bib = v.bib
+            from ${v} as v(rider_id, bib)
+            where ${raceRosters.raceId} = ${raceKey} and ${raceRosters.riderId} = v.rider_id`,
+      )
+    })
   }
 
   // Campeonato nacional: sin equipos, se numera por fama (el mejor, o el campeón defensor, el 1).
   if (race.championshipCountry) {
     const ordered = [...rows].sort((a, b) => b.fame - a.fame)
     let n = 1
-    for (const r of ordered) await setBib(r.riderId, n++)
+    for (const r of ordered) setBib(r.riderId, n++)
+    await flushBibs()
     return
   }
 
@@ -911,15 +975,16 @@ async function assignBibs(tx: Tx, race: CalendarRace, season: number): Promise<v
       if (idx > 0) members.unshift(members.splice(idx, 1)[0]!)
     }
     const base = decade * 10
-    for (let i = 0; i < members.length; i++) await setBib(members[i]!.riderId, base + i + 1)
+    for (let i = 0; i < members.length; i++) setBib(members[i]!.riderId, base + i + 1)
     decade++
   }
 
   // Agentes libres: decenas siguientes, 9 por decena.
   freeAgents.sort((a, b) => b.fame - a.fame)
   for (let k = 0; k < freeAgents.length; k++) {
-    await setBib(freeAgents[k]!.riderId, (decade + Math.floor(k / 9)) * 10 + (k % 9) + 1)
+    setBib(freeAgents[k]!.riderId, (decade + Math.floor(k / 9)) * 10 + (k % 9) + 1)
   }
+  await flushBibs()
 }
 
 /** Corredores ya comprometidos con otra carrera cuya ventana se solapa con la de `race` (misma temporada). */
@@ -961,6 +1026,10 @@ async function lockUpcomingRosters(
   ).sort((a, b) => a.startDay - b.startDay)
   for (const race of upcoming) {
     const raceKey = `${race.id}:s${season}`
+    // MISMO candado que usa la web (`ensureRaceRosterFrozen`): si no, las dos podrían congelar la
+    // misma carrera a la vez y cobrar dos veces el viaje. El candado global del tick no basta porque
+    // la web no lo pide.
+    await lockRace(tx, raceKey)
     const already = await tx
       .select({ riderId: raceRosters.riderId })
       .from(raceRosters)
@@ -1069,7 +1138,7 @@ export async function ensureRaceRosterFrozen(
   const raceKey = `${race.id}:s${season}`
   await db.transaction(async (tx) => {
     // Serializa por carrera: una petición congela y las demás esperan y ven que ya está.
-    await tx.execute(sql`select pg_advisory_xact_lock(${hashInt(raceKey)})`)
+    await lockRace(tx, raceKey)
     const already = await tx
       .select({ riderId: raceRosters.riderId })
       .from(raceRosters)
@@ -1088,8 +1157,9 @@ export async function ensureRaceRosterFrozen(
 /**
  * Corrige datos YA guardados de un mundo (idempotente): quita el honor de ETAPA de las carreras de un
  * día (contaba doble con la general en el palmarés / Hall of Fame) y asigna dorsales a los rosters
- * congelados que aún no los tengan (carreras congeladas antes de existir los dorsales). No-op cuando
- * ya está todo bien, así que es barato correrlo cada tick.
+ * congelados que aún no los tengan (carreras congeladas antes de existir los dorsales). Es CARO
+ * (barre palmarés, rosters, resultados y corredores del mundo), así que solo se ejecuta mientras el
+ * mundo tenga reparaciones pendientes (`worlds.repair_version`), no en cada tick.
  */
 async function backfillWorldData(tx: Tx, worldId: string, gameDay: number): Promise<void> {
   const season = Math.floor(gameDay / SEASON_DAYS)
@@ -1217,6 +1287,11 @@ async function dedupeOverlappingRosters(tx: Tx, worldId: string, gameDay: number
  * ya terminó) con las mismas funciones puras, y solo escribe a los corredores cuyo total cambia.
  */
 async function recomputeSeasonPoints(tx: Tx, worldId: string, season: number): Promise<void> {
+  // Serializa los recálculos entre sí (tick y web): son la única escritura de `season_points` con
+  // valor calculado desde cero, y dos a la vez llegarían a la misma corrección por duplicado.
+  await tx.execute(
+    sql`select pg_advisory_xact_lock(${LOCK_CLASS.seasonPoints}, ${raceLockKey(worldId)})`,
+  )
   // Solo hace falta si ya se corrió alguna carrera de un día esta temporada (la única fuente del doble
   // conteo). Si no, no hay nada que corregir y nos ahorramos escanear resultados.
   const oneDayKeys = SEASON_CALENDAR.filter((r) => r.stages.length === 1).map(
@@ -1262,29 +1337,51 @@ async function recomputeSeasonPoints(tx: Tx, worldId: string, season: number): P
     }
   }
 
-  // Escribe solo las diferencias: en la primera pasada corrige a quien tenía el doble; después,
-  // como coincide con lo almacenado, no toca nada (idempotente y barato tras converger).
+  // Escribe solo las diferencias, y como DELTA (`season_points + corrección`), no como valor
+  // absoluto: así no pisa los incrementos atómicos que el tick pueda estar sumando en paralelo
+  // (ranking.ts). Con valor absoluto, cualquier punto sumado entre la lectura y la escritura se
+  // perdía. En una sola sentencia por lote, además.
   const stored = await tx
     .select({ id: riders.id, seasonPoints: riders.seasonPoints })
     .from(riders)
     .where(eq(riders.worldId, worldId))
+  const fixes: BatchValue[][] = []
   for (const r of stored) {
     const correct = totals.get(r.id) ?? 0
-    if (correct !== r.seasonPoints) {
-      await tx.update(riders).set({ seasonPoints: correct }).where(eq(riders.id, r.id))
-    }
+    if (correct !== r.seasonPoints) fixes.push([r.id, correct - r.seasonPoints])
   }
+  await inChunks(fixes, BATCH_ROWS, async (chunk) => {
+    const v = valuesList(chunk, ['uuid', 'integer'])
+    await tx.execute(
+      sql`update ${riders} set season_points = ${riders.seasonPoints} + v.delta
+          from ${v} as v(id, delta) where ${riders.id} = v.id`,
+    )
+  })
 }
 
 /**
- * TEMPORAL (quitar): fuerza el recálculo de los puntos de la temporada bajo demanda (al abrir la
- * clasificación), por si el recálculo del tick aún no llegó al mundo (deploy/tick). Corrige el doble
- * conteo viejo de las carreras de un día en el acto. Es idempotente y solo escribe diferencias.
+ * Fuerza el recálculo de los puntos de la temporada bajo demanda, por si el del tick aún no llegó al
+ * mundo (deploy/tick). Corrige el doble conteo viejo de las carreras de un día en el acto.
+ *
+ * Solo hace algo mientras el mundo tenga reparaciones pendientes (`worlds.repair_version`): en un
+ * mundo ya reparado devuelve enseguida sin barrer nada, así que se puede llamar desde una petición
+ * web sin miedo. Idempotente y, cuando escribe, lo hace como delta (ver recomputeSeasonPoints).
  */
 export async function recomputeWorldRanking(db: Db, worldId: string): Promise<void> {
+  if (!(await worldNeedsRepair(db, worldId))) return
   const gs = await db.select({ currentDay: gameState.currentDay }).from(gameState).limit(1)
   const season = Math.floor((gs[0]?.currentDay ?? 0) / SEASON_DAYS)
   await db.transaction((tx) => recomputeSeasonPoints(tx, worldId, season))
+}
+
+/** Ajustes del día de calendario. `repairWorld` lo decide el tick (ver worldRepair.ts). */
+export interface CalendarDayOptions {
+  /**
+   * Ejecuta las correcciones de datos de mundos antiguos (palmarés de carreras de un día, dorsales
+   * que faltaban, recálculo de puntos, dobles inscripciones). El tick solo lo pide mientras el mundo
+   * tenga reparaciones pendientes; en un mundo sano NO se hace, que barría todas las tablas cada día.
+   */
+  repairWorld?: boolean
 }
 
 export async function runCalendarDay(
@@ -1292,13 +1389,20 @@ export async function runCalendarDay(
   worldId: string,
   gameDay: number,
   worldSeed: string,
+  opts: CalendarDayOptions = {},
 ): Promise<Set<string>> {
   const season = Math.floor(gameDay / SEASON_DAYS)
   const dayOfSeason = gameDay % SEASON_DAYS
   const raced = new Set<string>()
 
-  // Corrige datos viejos del mundo (palmarés de 1 día, dorsales faltantes, puntos, dobles inscripciones). Idempotente.
-  await backfillWorldData(tx, worldId, gameDay)
+  // Reserva por adelantado los candados del día (ver lockCalendarDay). Es idempotente: el tick ya
+  // los pide al abrir la transacción del día, y pedirlos otra vez aquí no cuesta nada; así también
+  // queda protegido quien llame a runCalendarDay por su cuenta.
+  await lockCalendarDay(tx, worldId, gameDay, opts)
+
+  // Corrige datos viejos del mundo (palmarés de 1 día, dorsales faltantes, puntos, dobles
+  // inscripciones). Solo mientras queden reparaciones pendientes: no es trabajo del día.
+  if (opts.repairWorld === true) await backfillWorldData(tx, worldId, gameDay)
 
   // Corredores OCUPADOS hoy: los que ya están corriendo una carrera que arrancó antes y aún no
   // termina (nadie puede estar en dos carreras a la vez). Los que empiecen carrera hoy se van
@@ -1321,6 +1425,10 @@ export async function runCalendarDay(
     const raceKey = `${race.id}:s${season}`
 
     if (idx === 1) {
+      // Convocar el día de la salida también congela la escuadra (y cobra viajes): mismo candado que
+      // la web. Sin él, una petición web que aún ve el día ANTERIOR (la transacción del tick no está
+      // confirmada) podría estar congelando esta misma carrera en paralelo y cobrar dos veces.
+      await lockRace(tx, raceKey)
       const existing = await tx
         .select({ riderId: raceRosters.riderId })
         .from(raceRosters)
