@@ -430,7 +430,14 @@ export const stageResults = pgTable(
   (t) => [primaryKey({ columns: [t.raceId, t.stageDay, t.riderId] })],
 )
 
-/** Clasificación general de una carrera, acumulada etapa a etapa (SPEC 6.15, Paso 30). */
+/**
+ * Clasificación general de una carrera, acumulada etapa a etapa (SPEC 6.15, Paso 30).
+ *
+ * `sumaPuestos` y `ultimoPuesto` son los criterios de DESEMPATE del ciclismo real: a igualdad de
+ * tiempo manda quien acumula mejores puestos y, si persiste, el mejor puesto en la última etapa
+ * disputada. Se acumulan etapa a etapa igual que el tiempo. Sin ellos, con todo el pelotón empatado
+ * (lo normal en una llana) el orden lo decidía Postgres y ni siquiera era estable entre consultas.
+ */
 export const raceGc = pgTable(
   'race_gc',
   {
@@ -441,6 +448,10 @@ export const raceGc = pgTable(
     tiempoTotalS: integer('tiempo_total_s').notNull().default(0),
     puntosVolante: integer('puntos_volante').notNull().default(0),
     puntosMontana: integer('puntos_montana').notNull().default(0),
+    /** Suma de los puestos de etapa (primer desempate: menos es mejor). */
+    sumaPuestos: integer('suma_puestos').notNull().default(0),
+    /** Puesto en la última etapa disputada (segundo desempate: menos es mejor). */
+    ultimoPuesto: integer('ultimo_puesto').notNull().default(0),
   },
   (t) => [primaryKey({ columns: [t.raceId, t.riderId] })],
 )
