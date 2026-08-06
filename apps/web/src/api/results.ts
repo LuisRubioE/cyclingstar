@@ -74,6 +74,14 @@ export interface StageGcEntry {
   tiempoTotalS: number
 }
 
+export interface StageClassEntry {
+  riderId: string
+  name: string
+  country: string
+  isBot: boolean
+  puntos: number
+}
+
 export interface StageReplay {
   day: number
   name: string
@@ -85,6 +93,10 @@ export interface StageReplay {
   results?: StageResultEntry[]
   chronicle?: ChronicleEntry[]
   gc?: StageGcEntry[]
+  /** Clasificación de la montaña (KOM) tras esta etapa. */
+  kom?: StageClassEntry[]
+  /** Clasificación por puntos (metas volantes) tras esta etapa. */
+  points?: StageClassEntry[]
 }
 
 export async function fetchResults(): Promise<RaceResults> {
@@ -170,9 +182,9 @@ const CHRONICLE: Record<string, ((n: string) => string)[]> = {
     () => 'The bunch organises behind — the chase is on',
   ],
   peloton_split: [
-    (n) => `The climb splits the peloton — ${n} lose contact`,
-    (n) => `The pace shatters the bunch: ${n} are distanced`,
-    (n) => `Selection on the climb — ${n} slip off the back`,
+    (n) => `${n || 'The front'} lifts the tempo on the climb and the group thins`,
+    (n) => `Selection on the climb as ${n || 'the leaders'} press the pace`,
+    (n) => `${n || 'The pace'} bites on the climb — riders slip off the back`,
   ],
   breakaway_caught: [
     () => 'The peloton reels the breakaway back in',

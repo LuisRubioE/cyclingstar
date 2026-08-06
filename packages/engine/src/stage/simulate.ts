@@ -415,8 +415,14 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       pelotonDropped.length >= STAGE.splitEventMinDropped &&
       km - lastSplitKm >= STAGE.splitEventMinKmGap
     ) {
-      log.emit(km, peloton.tS, 'corte', 'peloton_split', pelotonDropped, {
-        remaining: membersOf(PELOTON).length,
+      // Quién aprieta: el corredor más fuerte en cabeza del pelotón en este puerto (su equipo tira).
+      const front = membersOf(PELOTON)
+      const driver = front
+        .map((m) => ({ id: m.input.riderId, p: riderPerfil(m, block) }))
+        .sort((a, b) => b.p - a.p)[0]?.id
+      log.emit(km, peloton.tS, 'corte', 'peloton_split', driver ? [driver] : [], {
+        dropped: pelotonDropped.length,
+        remaining: front.length,
       })
       lastSplitKm = km
     }

@@ -1352,6 +1352,9 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
           .map((e) => ({ km: e.km, label: MARKER_LABEL[e.tipo] ?? '•' }))
         const altimetry = renderAltimetrySvg(stage.profile, { markers })
         const gc = await getGcThroughStage(db, raceKey, day)
+        // Montaña y puntos tal como quedaron TRAS esta etapa (acumulado hasta el día `day`).
+        const kom = await getKomClassification(db, raceKey, day)
+        const points = await getPointsClassification(db, raceKey, day)
         return {
           day,
           name: stage.name,
@@ -1362,6 +1365,8 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
           results,
           chronicle,
           gc,
+          kom,
+          points,
         }
       },
     )
