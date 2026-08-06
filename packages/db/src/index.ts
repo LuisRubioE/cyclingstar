@@ -81,10 +81,13 @@ export {
 export { enterRace, getEnterableRaces, withdrawRace, type EnterableRace } from './raceEntry.js'
 export {
   draftRace,
+  getRiderTeamRacePlan,
   getTeamCalendar,
   undraftRace,
   type TeamCalendar,
   type TeamCalendarRace,
+  type TeamPlanRace,
+  type TeamRacePlan,
 } from './teamPlan.js'
 export { runRollover } from './rollover.js'
 export { emitNews, getGlobalNews, getRiderNews, getTeamNews, type NewsItem } from './news.js'

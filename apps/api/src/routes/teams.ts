@@ -1,6 +1,7 @@
 import {
   draftRace,
   getCurrentWorld,
+  getRiderTeamRacePlan,
   getTeamCalendar,
   getTeamDetail,
   getTeamNews,
@@ -65,6 +66,20 @@ export const teamRoutes: RoutePlugin = async (app, ctx) => {
     const world = await getCurrentWorld(db)
     if (!world) return { calendar: null }
     return { calendar: await getTeamCalendar(db, userId, world.currentDay) }
+  })
+
+  // Plan de carreras del equipo al que PERTENECE el corredor, en SOLO LECTURA (§3.4).
+  //
+  // `/api/teams/me/calendar` exige gestionar el equipo, así que un corredor de a pie —el caso normal
+  // hoy, que todos los equipos son bots— no podía ver a qué carreras va el suyo. Este endpoint
+  // responde justo a eso y a nada más: el programa, sin presupuesto ni salarios, que no son asunto
+  // de un miembro de la plantilla.
+  app.get('/api/teams/me/race-plan', async (request, reply) => {
+    const userId = await currentUserId(request)
+    if (!userId) return unauthorized(reply)
+    const world = await getCurrentWorld(db)
+    if (!world) return { plan: null }
+    return { plan: await getRiderTeamRacePlan(db, userId, world.currentDay) }
   })
 
   app.post<{ Params: { raceId: string } }>(

@@ -241,6 +241,7 @@ describe('api: gating de sesión', () => {
     { method: 'POST', url: '/api/teams/take-over' },
     { method: 'PUT', url: '/api/teams/me' },
     { method: 'GET', url: '/api/teams/me/calendar' },
+    { method: 'GET', url: '/api/teams/me/race-plan' },
     { method: 'POST', url: '/api/teams/me/calendar/tour-de-france' },
     { method: 'DELETE', url: '/api/teams/me/calendar/tour-de-france' },
     { method: 'GET', url: '/api/races/test-tour' },

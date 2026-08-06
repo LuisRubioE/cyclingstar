@@ -113,6 +113,95 @@ export interface TeamCalendar {
   races: TeamCalendarRace[]
 }
 
+/** Una carrera del plan del equipo, tal como la ve un MIEMBRO: sin dinero, solo el programa. */
+export interface TeamPlanRace {
+  raceId: string
+  name: string
+  country: string | null
+  startDay: number
+  level: string
+  raceClass: string
+  format: string
+  /** El equipo tiene previsto acudir (calendario natural salvo excepción guardada por su mánager). */
+  attending: boolean
+  /** Es del calendario natural del equipo (su circuito de casa). */
+  natural: boolean
+}
+
+/** Plan de carreras del equipo en solo lectura, para un corredor de la plantilla. */
+export interface TeamRacePlan {
+  teamId: string
+  teamName: string
+  teamCountry: string | null
+  division: string
+  races: TeamPlanRace[]
+}
+
+/**
+ * Plan de carreras del equipo al que PERTENECE el corredor de `userId`, en solo lectura.
+ *
+ * Es la otra cara de `getTeamCalendar`: aquella exige gestionar el equipo y sirve para EDITAR el
+ * plan (con costes de viaje y finanzas); esta solo responde a "¿a qué carreras va mi equipo, y por
+ * tanto dónde pueden mandarme?" (docs/navegacion.md §3.4), así que no expone ni presupuesto ni
+ * salarios: un corredor de la plantilla no tiene por qué ver las cuentas de su equipo.
+ *
+ * Devuelve la temporada ENTERA, no solo lo que queda: el miembro también quiere ver dónde ha
+ * estado el equipo. Null si el corredor no existe o no tiene equipo.
+ */
+export async function getRiderTeamRacePlan(
+  db: Database,
+  userId: string,
+  currentDay: number,
+): Promise<TeamRacePlan | null> {
+  const rows = await db
+    .select({
+      id: teams.id,
+      name: teams.name,
+      country: teams.country,
+      division: teams.division,
+    })
+    .from(riders)
+    .innerJoin(teams, eq(teams.id, riders.teamId))
+    .where(and(eq(riders.userId, userId), isNull(riders.retiredAt)))
+    .limit(1)
+  const team = rows[0]
+  if (!team) return null
+
+  const season = Math.floor(currentDay / SEASON_DAYS)
+  const continent = continentForCountry(team.country ?? '')
+  const overrideRows = await db
+    .select({ raceId: teamRacePlan.raceId, attend: teamRacePlan.attend })
+    .from(teamRacePlan)
+    .where(and(eq(teamRacePlan.teamId, team.id), eq(teamRacePlan.season, season)))
+  const override = new Map(overrideRows.map((o) => [o.raceId, o.attend]))
+
+  const races: TeamPlanRace[] = SEASON_CALENDAR.filter((r) => isEligible(r, team.division))
+    .map((r) => {
+      const natural = isNaturalRace(r, team.division, continent)
+      return {
+        raceId: r.id,
+        name: r.name,
+        country: r.country ?? null,
+        startDay: r.startDay,
+        level: r.level,
+        raceClass: r.raceClass,
+        format: r.format,
+        // Sin excepción guardada, el equipo corre su calendario natural.
+        attending: override.get(r.id) ?? natural,
+        natural,
+      }
+    })
+    .sort((a, b) => a.startDay - b.startDay)
+
+  return {
+    teamId: team.id,
+    teamName: team.name,
+    teamCountry: team.country,
+    division: team.division,
+    races,
+  }
+}
+
 /** El equipo del que `userId` es dueño, o null. */
 async function ownedTeam(db: Database, userId: string) {
   const rows = await db

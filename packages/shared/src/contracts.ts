@@ -706,6 +706,38 @@ export const teamCalendarSchema = z.object({
 export type TeamCalendar = z.infer<typeof teamCalendarSchema>
 export const teamCalendarResponseSchema = z.object({ calendar: teamCalendarSchema.nullable() })
 
+// --- /api/teams/me/race-plan (plan del equipo, en lectura, para un miembro) -----------------
+
+/**
+ * El programa del equipo tal como lo ve un corredor de la plantilla: sin costes de viaje ni
+ * finanzas, que son cosa de quien gestiona el equipo.
+ */
+export const teamPlanRaceSchema = z.object({
+  raceId: z.string(),
+  name: z.string(),
+  country: z.string().nullable(),
+  startDay: z.number().int(),
+  level: z.string(),
+  raceClass: z.string(),
+  format: z.string(),
+  /** El equipo tiene previsto acudir. */
+  attending: z.boolean(),
+  /** Es del calendario natural del equipo (su circuito de casa). */
+  natural: z.boolean(),
+})
+export type TeamPlanRace = z.infer<typeof teamPlanRaceSchema>
+
+export const teamRacePlanSchema = z.object({
+  teamId: z.string(),
+  teamName: z.string(),
+  teamCountry: z.string().nullable(),
+  division: z.string(),
+  /** La temporada entera, no solo lo que queda: el miembro también mira dónde ha estado el equipo. */
+  races: z.array(teamPlanRaceSchema),
+})
+export type TeamRacePlan = z.infer<typeof teamRacePlanSchema>
+export const teamRacePlanResponseSchema = z.object({ plan: teamRacePlanSchema.nullable() })
+
 // --- Órdenes de etapa (/api/races/test-tour y /api/my-orders) -------------------------------
 
 export const stageOrderSchema = z.object({

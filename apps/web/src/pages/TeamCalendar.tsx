@@ -1,14 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { type CalendarRaceSummary, fetchCalendar } from '../api/calendar'
-import { fetchTeam } from '../api/browse'
-import { fetchMyUpcomingRaces, fetchRiderSummary } from '../api/rider'
+import { type RaceClass, type RaceFormat, fetchCalendar } from '../api/calendar'
+import { fetchMyUpcomingRaces } from '../api/rider'
 import {
   type TeamCalendar as TeamCalendarData,
   type TeamCalendarRace,
+  type TeamPlanRace,
+  type TeamRacePlan,
   draftRace,
   fetchTeamCalendar,
+  fetchTeamRacePlan,
   undraftRace,
 } from '../api/teamCalendar'
 import { Flag } from '../components/Flag'
@@ -26,11 +28,9 @@ import { formatLabel, raceClassLabel } from '../domain/labels'
  *   carreras puede ir mi equipo, y por tanto dónde pueden mandarme?", marcando las que ya tengo
  *   confirmadas.
  *
- * Aviso para quien siga esto: la API solo expone el plan real de carreras a quien GESTIONA el
- * equipo (`/api/teams/me/calendar` devuelve null si no eres el dueño). Por eso la vista de miembro
- * se construye con lo que sí es público —el calendario de temporada filtrado por la división del
- * equipo— y lo dice sin adornos. Cuando haya un endpoint de plan de equipo en lectura, esta vista
- * pasa a mostrar el plan de verdad sin tocar nada más.
+ * La vista de miembro lee el PLAN REAL del equipo (`/api/teams/me/race-plan`, solo lectura): no
+ * todas las carreras abiertas a su división, sino a las que su equipo tiene previsto ir. El
+ * endpoint no expone presupuesto ni salarios: eso es cosa de quien gestiona el equipo.
  */
 
 /** Una carrera elegible para el plan del equipo, con su coste de viaje total estimado. */
@@ -218,17 +218,20 @@ const PAST_PREVIEW = 10
 /** Una fila de la vista de miembro: solo lectura, con la marca de "voy yo". */
 function MemberRow({
   race,
+  winner,
   selected,
   past,
 }: {
-  race: CalendarRaceSummary
+  race: TeamPlanRace
+  /** Ganador de la carrera esta temporada, si ya se corrió (viene del calendario público). */
+  winner: string | null
   selected: boolean
   past: boolean
 }) {
   return (
     <li className={past ? 'opacity-60' : ''}>
       <Link
-        to={`/world/races/${race.id}`}
+        to={`/world/races/${race.raceId}`}
         className={`flex items-center gap-3 px-4 py-2.5 transition hover:bg-slate-50 ${
           selected ? 'bg-brand-cyan/5' : ''
         }`}
@@ -244,19 +247,27 @@ function MemberRow({
         <span className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-800">
           {race.name}
           <span className="ml-2 font-mono text-[11px] font-normal text-slate-400">
-            {raceClassLabel(race.raceClass)}
+            {raceClassLabel(race.raceClass as RaceClass)}
           </span>
+          {race.natural && (
+            <span
+              className="ml-2 rounded bg-slate-900/5 px-1.5 py-0.5 text-[10px] font-medium text-slate-500"
+              title="Home race — part of your team's natural calendar"
+            >
+              home
+            </span>
+          )}
         </span>
         <span className="hidden w-24 shrink-0 text-right text-xs text-slate-400 md:block">
-          {formatLabel(race.format)}
+          {formatLabel(race.format as RaceFormat)}
         </span>
         <span className="w-24 shrink-0 text-right text-xs">
           {selected ? (
             <span className="rounded bg-brand-navy px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
               You ride
             </span>
-          ) : race.winner ? (
-            <span className="truncate text-amber-700">🏆 {race.winner}</span>
+          ) : winner ? (
+            <span className="truncate text-amber-700">🏆 {winner}</span>
           ) : (
             <span className="text-slate-300">—</span>
           )}
@@ -266,40 +277,37 @@ function MemberRow({
   )
 }
 
-/** Vista de solo lectura para un corredor de la plantilla que no gestiona el equipo. */
-function MemberCalendar({ teamId }: { teamId: string }) {
-  const team = useQuery({ queryKey: ['team', teamId], queryFn: () => fetchTeam(teamId) })
+/**
+ * Vista de solo lectura para un corredor de la plantilla que no gestiona el equipo: el PLAN REAL de
+ * su equipo, no todas las carreras abiertas a su división. Son las carreras a las que puede ser
+ * convocado, así que es la respuesta a "¿dónde pueden mandarme?".
+ */
+function MemberCalendar({ plan }: { plan: TeamRacePlan }) {
+  // El calendario público solo se usa para dos cosas: saber qué día es hoy y quién ganó cada carrera.
   const calendar = useQuery({ queryKey: ['calendar'], queryFn: fetchCalendar })
   const upcoming = useQuery({ queryKey: ['rider', 'upcoming'], queryFn: fetchMyUpcomingRaces })
   const [showAllPast, setShowAllPast] = useState(false)
 
-  if (team.isPending || calendar.isPending) return <p className="text-slate-500">Loading…</p>
-  if (team.isError || calendar.isError || !team.data)
+  if (calendar.isPending) return <p className="text-slate-500">Loading…</p>
+  if (calendar.isError)
     return <p className="text-red-600">Could not load your team&apos;s calendar.</p>
 
-  const division = team.data.division
-  // Las carreras a las que puede acudir el equipo: las abiertas a su división. Los campeonatos
-  // nacionales quedan fuera porque no se va con el equipo, se va con la selección del país.
-  const eligible = calendar.data.races
-    .filter(
-      (r) => r.championshipCountry == null && (r.openTo as readonly string[]).includes(division),
-    )
-    .sort((a, b) => a.startDay - b.startDay)
-
+  const attending = plan.races.filter((r) => r.attending)
+  const winnerOf = new Map(calendar.data.races.map((r) => [r.id, r.winner]))
   const today = calendar.data.dayOfSeason
   const mine = new Set((upcoming.data ?? []).map((r) => r.raceId))
-  const past = today == null ? [] : eligible.filter((r) => r.startDay < today).reverse()
-  const ahead = today == null ? eligible : eligible.filter((r) => r.startDay >= today)
+  const past = today == null ? [] : attending.filter((r) => r.startDay < today).reverse()
+  const ahead = today == null ? attending : attending.filter((r) => r.startDay >= today)
   const shownPast = showAllPast ? past : past.slice(0, PAST_PREVIEW)
 
   return (
     <section className="space-y-4">
-      <SectionBar>Race calendar · {team.data.name}</SectionBar>
+      <SectionBar>Race calendar · {plan.teamName}</SectionBar>
       <p className="text-sm text-slate-500">
-        Where your team can race this season — every race open to a <strong>{division}</strong>{' '}
-        licence. These are the races you can be called up to; the ones you are already in are
-        marked. Picking the final programme is the manager&apos;s job, and your team is run by the
-        computer.
+        Your team&apos;s programme for the season — the races it plans to ride with a{' '}
+        <strong>{plan.division}</strong> licence, and therefore the ones you can be called up to.
+        The ones you are already in are marked. Picking the programme is the manager&apos;s job, and
+        your team is run by the computer.
       </p>
 
       <Panel title={`Still to come (${ahead.length})`} bodyClassName="p-0">
@@ -310,7 +318,13 @@ function MemberCalendar({ teamId }: { teamId: string }) {
         ) : (
           <ul className="divide-y divide-slate-100">
             {ahead.map((race) => (
-              <MemberRow key={race.id} race={race} selected={mine.has(race.id)} past={false} />
+              <MemberRow
+                key={race.raceId}
+                race={race}
+                winner={winnerOf.get(race.raceId) ?? null}
+                selected={mine.has(race.raceId)}
+                past={false}
+              />
             ))}
           </ul>
         )}
@@ -320,7 +334,13 @@ function MemberCalendar({ teamId }: { teamId: string }) {
         <Panel title={`Already raced (${past.length})`} bodyClassName="p-0">
           <ul className="divide-y divide-slate-100">
             {shownPast.map((race) => (
-              <MemberRow key={race.id} race={race} selected={mine.has(race.id)} past />
+              <MemberRow
+                key={race.raceId}
+                race={race}
+                winner={winnerOf.get(race.raceId) ?? null}
+                selected={mine.has(race.raceId)}
+                past
+              />
             ))}
           </ul>
           {past.length > PAST_PREVIEW && (
@@ -339,16 +359,16 @@ function MemberCalendar({ teamId }: { teamId: string }) {
 }
 
 export function TeamCalendar() {
-  const summary = useQuery({ queryKey: ['rider', 'summary'], queryFn: fetchRiderSummary })
   // Devuelve null si no gestiono ningún equipo: ese es el caso normal hoy (todos son bots).
-  const plan = useQuery({ queryKey: ['team-calendar'], queryFn: fetchTeamCalendar })
+  const draft = useQuery({ queryKey: ['team-calendar'], queryFn: fetchTeamCalendar })
+  // Devuelve null si ni siquiera pertenezco a un equipo (agente libre).
+  const plan = useQuery({ queryKey: ['team-race-plan'], queryFn: fetchTeamRacePlan })
 
-  if (summary.isPending || plan.isPending) return <p className="text-slate-500">Loading…</p>
+  if (draft.isPending || plan.isPending) return <p className="text-slate-500">Loading…</p>
 
-  if (plan.data) return <ManagerPlanner data={plan.data} />
+  if (draft.data) return <ManagerPlanner data={draft.data} />
 
-  const teamId = summary.data?.teamId ?? null
-  if (!teamId) {
+  if (!plan.data) {
     return (
       <section className="space-y-4">
         <SectionBar>Race calendar</SectionBar>
@@ -364,5 +384,5 @@ export function TeamCalendar() {
     )
   }
 
-  return <MemberCalendar teamId={teamId} />
+  return <MemberCalendar plan={plan.data} />
 }
