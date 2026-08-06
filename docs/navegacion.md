@@ -1,7 +1,8 @@
 # Propuesta de navegación e arquitectura de información
 
-Estado: **propuesta en discusión, v2.** Incorpora la primera ronda de comentarios del dueño.
-No implementada. Sustituiría a `apps/web/src/components/Header.tsx` y al mapa de rutas de
+Estado: **v3, implementada y desplegada.** La v2 incorporó la primera ronda de comentarios del
+dueño; la v3 corrige lo que el uso real desmintió (§3.3 y §7.1, marcados en su sitio). Es la
+especificación viva de `apps/web/src/components/Header.tsx` y del mapa de rutas de
 `apps/web/src/App.tsx`.
 
 > **Nota de alcance.** El problema no es solo el menú. Es igual de grave el **contenido y la
