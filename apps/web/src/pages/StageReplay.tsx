@@ -349,22 +349,34 @@ function PointsTable({ rows, unit }: { rows: StageClassEntry[]; unit: string }) 
   )
 }
 
-/** Sub-pestañas de clasificación de la etapa: general, puntos y montaña tras correrla. */
+/**
+ * Sub-pestañas de clasificación de la etapa: general, puntos y montaña tras correrla.
+ *
+ * En una carrera de UN DÍA no se enseña la general: la etapa ES el resultado, así que la general
+ * sería una copia exacta de la pestaña `Result` de al lado (y enseñar las dos era justo lo que
+ * confundía en producción).
+ */
 function StageClassifications({
   gc,
   points,
   kom,
+  oneDay,
 }: {
   gc: StageGcEntry[]
   points: StageClassEntry[]
   kom: StageClassEntry[]
+  oneDay: boolean
 }) {
-  const [active, setActive] = useTabParam(STAGE_CLASS_TAB_IDS, 'gc', 'cls')
+  const ids = oneDay ? STAGE_CLASS_TAB_IDS.filter((id) => id !== 'gc') : STAGE_CLASS_TAB_IDS
+  const options = oneDay ? STAGE_CLASS_TABS.filter((o) => o.key !== 'gc') : STAGE_CLASS_TABS
+  const [active, setActive] = useTabParam(ids, ids[0] as StageClassTabId, 'cls')
   return (
     <div className={card}>
-      <p className="mb-3 text-xs text-slate-400">Standings after this stage.</p>
+      <p className="mb-3 text-xs text-slate-400">
+        {oneDay ? 'Standings from this race.' : 'Standings after this stage.'}
+      </p>
       <Tabs
-        options={STAGE_CLASS_TABS}
+        options={options}
         value={active}
         onChange={setActive}
         label="Stage classification"
@@ -411,7 +423,16 @@ export function StageReplay() {
   // Una etapa sin correr solo tiene recorrido que enseñar: no hay historia, resultado ni general.
   // El conjunto de pestañas depende de eso, así que las opciones se calculan aquí (con `data` aún
   // posiblemente ausente) para que el hook se llame siempre y en el mismo orden.
-  const tabIds: readonly StageTabId[] = data?.run ? STAGE_TAB_IDS : ['profile']
+  //
+  // En una carrera de un día la general es una copia del resultado, así que `Classifications` solo
+  // aparece si hay algo propio que enseñar (puntos o montaña); si no, sobra la pestaña entera.
+  const isOneDay = (data?.race?.stageCount ?? 0) === 1
+  const hasSideClassifications = (data?.points?.length ?? 0) > 0 || (data?.kom?.length ?? 0) > 0
+  const tabIds: readonly StageTabId[] = !data?.run
+    ? ['profile']
+    : isOneDay && !hasSideClassifications
+      ? STAGE_TAB_IDS.filter((id) => id !== 'classifications')
+      : STAGE_TAB_IDS
   const [active, setActive] = useTabParam(tabIds, tabIds[0] as StageTabId)
 
   if (isPending) return <p className="text-slate-500">Loading…</p>
@@ -432,7 +453,6 @@ export function StageReplay() {
 
   const navButton =
     'rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600 transition hover:bg-slate-200'
-  const oneDay = stageCount === 1
   const kom = data.kom ?? []
   const points = data.points ?? []
 
@@ -447,13 +467,13 @@ export function StageReplay() {
           <span aria-hidden>←</span>
           {race?.country && <Flag code={race.country} size={14} />}
           <span className="font-medium">{race?.name ?? 'Back to the race'}</span>
-          {race && !oneDay && stageCount > 0 && (
+          {race && !isOneDay && stageCount > 0 && (
             <span className="text-slate-400">
               · Stage {data.day} of {stageCount}
             </span>
           )}
         </Link>
-        {!oneDay && stageCount > 0 && (
+        {!isOneDay && stageCount > 0 && (
           <nav aria-label="Stages" className="flex items-center gap-2">
             {prevDay != null ? (
               <Link to={stageHref(prevDay)} className={navButton}>
@@ -479,8 +499,8 @@ export function StageReplay() {
 
       <header>
         <h1 className="text-xl font-bold tracking-tight text-slate-800">
-          {oneDay ? (race?.name ?? data.name) : `Stage ${data.day}`}
-          {!oneDay && data.name ? ` · ${data.name}` : ''}
+          {isOneDay ? (race?.name ?? data.name) : `Stage ${data.day}`}
+          {!isOneDay && data.name ? ` · ${data.name}` : ''}
         </h1>
         <p className="text-sm text-slate-500">
           {data.km} km
@@ -577,7 +597,7 @@ export function StageReplay() {
           ))}
 
         {active === 'classifications' && (
-          <StageClassifications gc={data.gc ?? []} points={points} kom={kom} />
+          <StageClassifications gc={data.gc ?? []} points={points} kom={kom} oneDay={isOneDay} />
         )}
 
         {active === 'profile' && (
