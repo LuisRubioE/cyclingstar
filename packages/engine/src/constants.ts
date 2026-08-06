@@ -285,10 +285,15 @@ export const STAGE = {
   matchThresholds: [55, 72, 88],
   matchMin: 1,
   matchTsbPenaltyThreshold: -25,
+  // PENDIENTE DE IMPLEMENTAR (SPEC 6.6): parámetro definido pero sin efecto en la simulación.
+  // Gastar un cerillo debería restar energía del tanque; hoy solo activa `matchBonus` durante
+  // `matchBonusBlocks` bloques y no cuesta nada.
   matchCost: 5,
   matchBonus: 10,
   matchBonusBlocks: 5,
-  // Vaciado profundo: quien termina con E < 0.12·E0 arranca con un cerillo menos (6.6).
+  // PENDIENTE DE IMPLEMENTAR (SPEC 6.6): parámetro definido pero sin efecto en la simulación.
+  // Vaciado profundo: quien termina con E < 0.12·E0 debería arrancar la etapa siguiente con un
+  // cerillo menos. `matchCount(..., deepDepleted)` sabe aplicarlo, pero nadie calcula el flag.
   matchDepletionThreshold: 0.12,
 
   // 6.7 — Erosión por vaciado (durabilidad).
@@ -311,11 +316,24 @@ export const STAGE = {
   bonkFactor: 0.55,
 
   // 6.8 — Intensidades de riesgo (eventos/km). Ajustables desde docs/balance.md.
+  // PENDIENTE DE IMPLEMENTAR (SPEC 6.8): parámetro definido pero sin efecto en la simulación.
+  // Ataques de salida: la fuga del día se compone hoy de una sola tacada por puntuación
+  // (breakawayScore*), no integrando esta intensidad km a km.
   lambdaBreakawayAttack: 1.2,
+  // PENDIENTE DE IMPLEMENTAR (SPEC 6.8): parámetro definido pero sin efecto en la simulación.
+  // Contraataques: el motor no genera hoy ningún grupo perseguidor tras un ataque.
   lambdaCounterAttack: 0.02,
+  // PENDIENTE DE IMPLEMENTAR (SPEC 6.8): parámetro definido pero sin efecto en la simulación.
+  // Puentes a la fuga: nadie salta del pelotón a la fuga; una vez formada, su composición no cambia.
   lambdaBridge: 0.08,
+  // PENDIENTE DE IMPLEMENTAR (SPEC 6.8): parámetro definido pero sin efecto en la simulación.
+  // Ventana de boquete en la que un puente sería viable (va con `lambdaBridge`).
   bridgeGapMinSeconds: 30,
+  // PENDIENTE DE IMPLEMENTAR (SPEC 6.8): parámetro definido pero sin efecto en la simulación.
   bridgeGapMaxSeconds: 150,
+  // PENDIENTE DE IMPLEMENTAR (SPEC 6.8): parámetro definido pero sin efecto en la simulación.
+  // Ataques en la subida: hoy la subida solo DESCUELGA (lambdaDropBase); nadie ataca hacia delante,
+  // así que ningún favorito se va en solitario y las diferencias salen solo del descuelgue.
   lambdaClimbAttack: 0.1,
   lambdaDropBase: 0.9,
   // Descuelgue: λ = lambdaDropBase · max(0, P75 - perfil) / denom. El denominador traduce el
@@ -350,11 +368,22 @@ export const STAGE = {
   breakawayScoreTac: 0.4,
   breakawayScoreLla: 0.3,
   breakawayScoreRng: 0.3,
+  // PENDIENTE DE IMPLEMENTAR (SPEC 6.10): parámetro definido pero sin efecto en la simulación.
+  // Filtro de candidatos a la fuga: un sprinter puro (SPR >= 70) no debería irse a la fuga...
   breakawaySkipSprThreshold: 70,
+  // PENDIENTE DE IMPLEMENTAR (SPEC 6.10): parámetro definido pero sin efecto en la simulación.
+  // ...ni debería irse quien llega a la etapa con menos del 40% del tanque.
   breakawaySkipEnergyFraction: 0.4,
+  // PENDIENTE DE IMPLEMENTAR (SPEC 6.10): parámetro definido pero sin efecto en la simulación.
+  // Tensión de la fuga: la fuga debería ir tensándose km a km (quien no releva, quien se guarda)
+  // hasta romperse. Hoy `Group.tension` existe pero nadie la acumula ni la lee; la cooperación
+  // (`coop`) se fija una vez al formarse la fuga y ya no cambia en toda la etapa.
   breakawayTensionPerKm: 0.4,
+  // PENDIENTE DE IMPLEMENTAR (SPEC 6.10): parámetro definido pero sin efecto en la simulación.
   breakawayTensionThreshold: 6,
+  // PENDIENTE DE IMPLEMENTAR (SPEC 6.10): parámetro definido pero sin efecto en la simulación.
   breakawayTensionCoopFactor: 0.7,
+  // PENDIENTE DE IMPLEMENTAR (SPEC 6.10): parámetro definido pero sin efecto en la simulación.
   breakawayTensionAttackFactor: 3,
 
   // 6.9 — El pelotón como controlador (decisiones cada 10 bloques, con histéresis).
@@ -373,6 +402,9 @@ export const STAGE = {
   chaseCatchTargetKm: 12,
   commitHysteresis: 0.4,
   commitIdle: 0.1,
+  // PENDIENTE DE IMPLEMENTAR (SPEC 6.9): parámetro definido pero sin efecto en la simulación.
+  // Amenaza para la general: el pelotón debería endurecer la caza si en la fuga va alguien
+  // peligroso en la clasificación (`StageRider.gcDeficitSeconds`, que hoy tampoco se lee).
   gcThreatFraction: 0.6,
 
   // 6.11 — Banners: metas volantes y cimas puntuables.
@@ -403,10 +435,22 @@ export const STAGE = {
   // "Día" del corredor (SPEC 6.7): cada corredor rinde algo mejor o peor cada etapa (piernas del día),
   // escalando su nivel efectivo. Aporta variación —no siempre gana el mismo— sin volverlo azar puro.
   dayFormSd: 0.035,
+  // PENDIENTE DE IMPLEMENTAR (SPEC 6.12): parámetro definido pero sin efecto en la simulación.
+  // Ataques tardíos: en los últimos km nadie ataca; el final se resuelve siempre por el sprint
+  // dentro de cada grupo ya formado.
   lambdaLateAttack: 0.5,
+  // PENDIENTE DE IMPLEMENTAR (SPEC 6.12): parámetro definido pero sin efecto en la simulación.
+  // Km a meta en que se abre la ventana de ataques tardíos (va con `lambdaLateAttack`).
   lateAttackKm: 3,
+  // PENDIENTE DE IMPLEMENTAR (SPEC 6.12): parámetro definido pero sin efecto en la simulación.
+  // Tamaño a partir del cual un grupo se considera "gordo" (un ataque tardío tiene menos éxito).
+  // Ojo: el sprint masivo NO usa este umbral, usa `bunchSprintMinRiders`.
   bigGroupThreshold: 25,
+  // PENDIENTE DE IMPLEMENTAR (SPEC 6.12): parámetro definido pero sin efecto en la simulación.
+  // Definición de "final en alto" del SPEC (últimos 3 km con pendiente media >= 5%). El motor usa
+  // en su lugar una heurística propia sobre los `finalBlocks`: "algún bloque final es subida".
   hilltopFinishKm: 3,
+  // PENDIENTE DE IMPLEMENTAR (SPEC 6.12): parámetro definido pero sin efecto en la simulación.
   hilltopFinishGradient: 5,
 
   // 6.13 — CRI/cronoescalada/CRE.
@@ -415,11 +459,19 @@ export const STAGE = {
   ttCompositeCri: 0.75,
   ttCompositeLla: 0.15,
   ttCompositeRes: 0.1,
+  // PENDIENTE DE IMPLEMENTAR (SPEC 6.13): parámetros definidos pero sin efecto en la simulación.
+  // Contrarreloj por equipos: `simulateTimeTrial` solo resuelve CRI individual (un grupo por
+  // corredor). No existe modo CRE ni entrada que lo active (`StageInput.timeTrial` es booleano).
   teamTtShelter: 0.5,
   teamTtPaceRider: 4,
   teamTtPaceFactor: 0.98,
 
   // 6.14 — Caídas e incidentes.
+  // PENDIENTE DE IMPLEMENTAR (SPEC 6.14): parámetros definidos pero sin efecto en la simulación.
+  // Probabilidad de caída POR ETAPA y tipo de etapa. El motor no las usa: reparte el riesgo como
+  // intensidad λ por bloque y terreno (`crashLambda*`), que es la doctrina de invariancia de
+  // resolución. Quedan como referencia de calibración: la suma de λ·dx de una etapa debería
+  // reproducir estas cifras. Hoy nadie comprueba esa correspondencia.
   crashBaseFlat: 0.025,
   crashBaseMedium: 0.018,
   crashBaseMountain: 0.022,
@@ -460,6 +512,9 @@ export const STAGE = {
   timeBonuses: [10, 6, 4],
 
   // 6.18 — Marcaje (capa 4). p_rueda = clamp(0.35 + (TAC_m-TAC_t)/80 - 0.10·extra, 0.15, 0.90).
+  // PENDIENTE DE IMPLEMENTAR (SPEC 6.18): parámetros definidos pero sin efecto en la simulación.
+  // Los consume `marcaje.wheelProbability()`, que existe y tiene tests pero que el bucle de carrera
+  // NO llama: hoy el marcador SIEMPRE consigue la rueda de su objetivo y la TAC no interviene.
   markWheelBase: 0.35,
   markWheelTacScale: 80,
   markWheelExtraPenalty: 0.1,

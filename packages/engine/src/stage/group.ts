@@ -19,7 +19,13 @@ export interface Group {
   compromiso: number
   /** Cooperación [0,1]: fracción de relevadores (SPEC 6.10). */
   coop: number
-  /** Tensión acumulada de la fuga (SPEC 6.10). */
+  /**
+   * Tensión acumulada de la fuga (SPEC 6.10).
+   * PENDIENTE DE IMPLEMENTAR (SPEC 6.10): campo definido pero sin efecto en la simulación.
+   * Se inicializa en `createGroup` y se promedia en `mergeGroups`, pero NADIE lo lee ni lo
+   * incrementa: `simulate.ts` no lo toca en ningún bloque. Las perillas que lo gobernarían
+   * (`STAGE.breakawayTension*`) también están sin implementar.
+   */
   tension: number
 }
 
@@ -99,6 +105,7 @@ export function mergeGroups(a: Group, b: Group): Group {
     vActual: front.vActual,
     compromiso: Math.max(front.compromiso, back.compromiso),
     coop: (front.coop + back.coop) / 2,
+    // Sin efecto: `tension` no se lee en ninguna parte (ver la declaración del campo).
     tension: (front.tension + back.tension) / 2,
   }
 }

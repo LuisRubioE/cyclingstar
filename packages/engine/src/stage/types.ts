@@ -87,9 +87,19 @@ export interface StageRider {
   energy: number
   /** Cerillos disponibles al arrancar (SPEC 6.6). */
   matches: number
+  /**
+   * PENDIENTE DE IMPLEMENTAR (SPEC 6.6): campo definido pero sin efecto en la simulación de etapa.
+   * El TSB solo se consume en `physics.matchCount()`, que el bucle de carrera no llama (recibe
+   * `matches` ya resuelto desde fuera). Lo rellena packages/db pero el motor lo ignora.
+   */
   tsb: number
   orders: StageOrders
-  /** Desventaja del corredor en la general, en segundos (para 6.9). */
+  /**
+   * Desventaja del corredor en la general, en segundos (para 6.9).
+   * PENDIENTE DE IMPLEMENTAR (SPEC 6.9): campo definido pero sin efecto en la simulación.
+   * El pelotón no distingue hoy si en la fuga va una amenaza para la general (ver
+   * `STAGE.gcThreatFraction`, también sin implementar).
+   */
   gcDeficitSeconds: number
   /** Fragilidad oculta (SPEC 3.4): escala la probabilidad de lesión al caer. Por defecto 1. */
   fragility?: number
