@@ -2,10 +2,10 @@
   "$schema": "https://railway.com/railway.schema.json",
   "build": {
     "builder": "NIXPACKS",
-    "buildCommand": "pnpm install --frozen-lockfile && pnpm build"
+    "buildCommand": "pnpm install --frozen-lockfile && pnpm exec tsc -b"
   },
   "deploy": {
-    "startCommand": "node apps/api/dist/tick/main.js",
+    "startCommand": "node scripts/migrate.mjs && node apps/api/dist/tick/main.js",
     "cronSchedule": "0 */6 * * *",
     "restartPolicyType": "NEVER"
   }

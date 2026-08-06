@@ -57,7 +57,7 @@ jobs:
       # Deja el esquema listo por si hay tests de integración contra DATABASE_URL.
       # Si aún no existen, este paso simplemente valida que las migraciones aplican.
       - name: Migraciones sobre la base de tests
-        run: node scripts/ci-migrate.mjs
+        run: node scripts/migrate.mjs
 
       - name: Test con cobertura
         run: pnpm test:coverage
@@ -122,7 +122,7 @@ jobs:
       - name: Build de packages/db
         run: pnpm exec tsc -b packages/db
       - name: Aplica las migraciones
-        run: node scripts/ci-migrate.mjs
+        run: node scripts/migrate.mjs --verify-idempotent
 
   audit:
     name: Auditoría de dependencias (informativo)
