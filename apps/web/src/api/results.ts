@@ -176,6 +176,10 @@ const CHRONICLE: Record<string, ((n: string) => string)[]> = {
     (n) => `Into the final kilometre it's a bunch sprint — ${n} fight it out`,
     (n) => `The trains wind up for a mass gallop; ${n} in the mix`,
   ],
+  final_km: [
+    (n) => `Into the final kilometre ${n || 'the leaders'} are clear at the front`,
+    (n) => `${n || 'The leaders'} hit the last kilometre in front`,
+  ],
   time_gap: [() => 'Out front, the break presses on with its advantage'],
   sprinters_chase: [
     () => "The sprinters' teams hit the front to chase",

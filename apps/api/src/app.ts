@@ -1231,8 +1231,9 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
           climb_kom: 3,
           peloton_split: 4,
           breakaway_caught: 5,
+          final_km: 6,
           bunch_sprint: 6,
-          stage_win: 6,
+          stage_win: 7,
           stage_win_itt: 6,
         }
         const chronicle = output.events
@@ -1315,8 +1316,9 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
           climb_kom: 3,
           peloton_split: 4,
           breakaway_caught: 5,
+          final_km: 6,
           bunch_sprint: 6,
-          stage_win: 6,
+          stage_win: 7,
           stage_win_itt: 6,
         }
         const chronicle = output.events

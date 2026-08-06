@@ -284,7 +284,7 @@ export const STAGE = {
   // Descuelgue: λ = lambdaDropBase · max(0, P75 - perfil) / denom. El denominador traduce el
   // déficit en puntos de atributo a una intensidad humana; se calibra al Montecarlo de montaña.
   dropDeficitDenom: 12,
-  dropDeficitTolerance: 4,
+  dropDeficitTolerance: 2,
   // Un descolgado rueda solo a su tope (contrarreloj improvisada), perdiendo tiempo bloque a bloque.
   shedCommit: 0.7,
   // 6.10 — Fuga: consolida si el compromiso del pelotón < 0.25 durante 2 km.

@@ -100,9 +100,9 @@ function chronicleLine(e: ChronicleEntry): string {
       ])
     case 'breakaway_caught':
       return pick([
-        'The peloton reels the break back in.',
-        'It all comes back together — the break is caught.',
-        'The bunch swallows the move.',
+        'The peloton catches the breakaway — everyone back together.',
+        'The break is caught; the race is all together again.',
+        'The chase succeeds and the escapees are reeled back in.',
       ])
     case 'sprint_intermediate':
       return pick([
@@ -110,12 +110,20 @@ function chronicleLine(e: ChronicleEntry): string {
         `${who} kicks first at the intermediate.`,
         `${who} grabs the points at the intermediate sprint.`,
       ])
-    case 'climb_kom':
-      return pick([
-        `${who}${team ? ` (${team})` : ''} is first over the summit.`,
-        `${who} leads over the top for the KOM points.`,
-        `${who} crests the climb in front.`,
-      ])
+    case 'climb_kom': {
+      const cat = String(e.datos?.category ?? '')
+      const catLabel =
+        cat === 'HC'
+          ? 'hors-catégorie climb'
+          : cat.startsWith('cat')
+            ? `category ${cat.slice(3)} climb`
+            : 'climb'
+      const pts = Number(e.datos?.points ?? 0)
+      const t = team ? ` (${team})` : ''
+      const ptsPart = pts > 0 ? `, taking ${pts} KOM point${pts === 1 ? '' : 's'}` : ''
+      const leadPart = e.datos?.leads === 1 ? ' — he now leads the mountains classification' : ''
+      return `${who}${t} is first over the ${catLabel}${ptsPart}${leadPart}.`
+    }
     case 'peloton_split': {
       const dropped = Number(e.datos?.dropped ?? 0)
       const remaining = e.datos?.remaining
@@ -131,6 +139,14 @@ function chronicleLine(e: ChronicleEntry): string {
         `${driver} and ${dropped} riders slip off the back${left}.`,
         `${driver}; the climb thins the lead group by ${dropped}${left}.`,
       ])
+    }
+    case 'final_km': {
+      const margin = Number(e.datos?.margin ?? 0)
+      const field = Number(e.datos?.field ?? 0)
+      const m = margin > 0 ? ` by ${fmtGap(margin)}` : ''
+      if (field <= 1)
+        return `Into the final kilometre ${who} leads alone${m} — barring mishap the stage is won.`
+      return `Into the final kilometre ${who} are clear${m} — the win will be fought out among them.`
     }
     case 'bunch_sprint': {
       const led = e.datos?.ledOut === 1
