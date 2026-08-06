@@ -239,6 +239,7 @@ export async function runRollover(
       kind: 'retirement',
       seed: `${worldSeed}:retire:${r.id}`,
       data: { rider: r.name, detail: `at ${r.age}` },
+      riderId: r.id,
     })
   }
 

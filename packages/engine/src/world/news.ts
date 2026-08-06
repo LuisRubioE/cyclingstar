@@ -25,64 +25,21 @@ export interface NewsData {
   detail?: string
 }
 
+/**
+ * Titulares CONCRETOS y sin florituras (SPEC 39): un hecho por línea —quién, qué, dónde—. El estilo
+ * narrativo va en el journal de la etapa, no aquí. Una sola redacción por tipo: la noticia es un dato.
+ */
 const TEMPLATES: Record<NewsKind, ((d: NewsData) => string)[]> = {
-  stage_win: [
-    (d) => `${d.rider} powers to victory on stage ${d.stage} of the ${d.race}.`,
-    (d) => `Stage ${d.stage} goes to ${d.rider} after a commanding finish at the ${d.race}.`,
-    (d) => `${d.rider} times the sprint to perfection to win stage ${d.stage} of the ${d.race}.`,
-    (d) => `No answer for ${d.rider}, who takes stage ${d.stage} of the ${d.race}.`,
-  ],
-  tt_win: [
-    (d) => `${d.rider} sets the fastest time to win stage ${d.stage} of the ${d.race}.`,
-    (d) => `${d.rider} stops the clock quickest to take stage ${d.stage} of the ${d.race}.`,
-    (d) =>
-      `Best against the clock: ${d.rider} wins the stage ${d.stage} time trial at the ${d.race}.`,
-  ],
-  breakaway_win: [
-    (d) => `${d.rider} survives from the break to win stage ${d.stage} of the ${d.race}.`,
-    (d) =>
-      `The peloton misjudges it — ${d.rider} holds on from the break on stage ${d.stage} of the ${d.race}.`,
-    (d) => `A perfect raid: ${d.rider} wins stage ${d.stage} of the ${d.race} from the day's move.`,
-  ],
-  one_day_win: [
-    (d) => `${d.rider} wins the ${d.race}.`,
-    (d) => `${d.rider} times the finale to perfection to take the ${d.race}.`,
-    (d) => `A big win for ${d.rider}, first across the line at the ${d.race}.`,
-  ],
-  one_day_tt_win: [
-    (d) => `${d.rider} sets the fastest time to win the ${d.race}.`,
-    (d) => `${d.rider} stops the clock quickest to take the ${d.race}.`,
-    (d) => `Fastest against the clock, ${d.rider} takes the ${d.race}.`,
-  ],
-  kom: [
-    (d) => `${d.rider} is first over the summit and leads the mountains at the ${d.race}.`,
-    (d) =>
-      `${d.rider} attacks on the climb and grabs the KOM points on stage ${d.stage} of the ${d.race}.`,
-    (d) =>
-      `The polka-dot fight heats up as ${d.rider} tops the queen-stage climb at the ${d.race}.`,
-  ],
-  gc_win: [
-    (d) => `${d.rider} seals the overall win at the ${d.race}.`,
-    (d) => `${d.rider} defends the lead all the way to take the ${d.race} title.`,
-    (d) => `The ${d.race} is decided: ${d.rider} wins the general classification.`,
-  ],
-  contract: [
-    (d) => `${d.rider} signs for ${d.team}${d.detail ? d.detail : ''}.`,
-    (d) => `${d.team} land the signature of ${d.rider}${d.detail ? d.detail : ''}.`,
-    (d) => `Transfer done: ${d.rider} joins ${d.team}${d.detail ? d.detail : ''}.`,
-  ],
-  injury: [
-    (d) => `${d.rider} crashes and will need time to recover.`,
-    (d) => `Bad luck for ${d.rider}, down in a crash and forced out.`,
-    (d) => `${d.rider} hits the deck — the medical report is awaited.`,
-  ],
-  retirement: [
-    (d) =>
-      `${d.rider} announces retirement${d.detail ? ` ${d.detail}` : ''}, bringing the curtain down on a long career.`,
-    (d) => `End of the road: ${d.rider} hangs up the wheels${d.detail ? ` ${d.detail}` : ''}.`,
-    (d) => `${d.rider} calls time on a career in the peloton${d.detail ? ` ${d.detail}` : ''}.`,
-    (d) => `The bunch says farewell to ${d.rider}, who retires${d.detail ? ` ${d.detail}` : ''}.`,
-  ],
+  stage_win: [(d) => `${d.rider} wins stage ${d.stage} of the ${d.race}.`],
+  tt_win: [(d) => `${d.rider} wins the stage ${d.stage} time trial at the ${d.race}.`],
+  breakaway_win: [(d) => `${d.rider} wins stage ${d.stage} of the ${d.race} from the breakaway.`],
+  one_day_win: [(d) => `${d.rider} wins the ${d.race}.`],
+  one_day_tt_win: [(d) => `${d.rider} wins the ${d.race} time trial.`],
+  kom: [(d) => `${d.rider} wins the mountains classification at the ${d.race}.`],
+  gc_win: [(d) => `${d.rider} wins the ${d.race} overall.`],
+  contract: [(d) => `${d.rider} signs for ${d.team}${d.detail ? ` ${d.detail}` : ''}.`],
+  injury: [(d) => `${d.rider} injured${d.detail ? ` — out for ${d.detail}` : ''}.`],
+  retirement: [(d) => `${d.rider} retires${d.detail ? ` ${d.detail}` : ''}.`],
 }
 
 /** Redacta un titular determinista para un evento, variando la frase con la semilla. */

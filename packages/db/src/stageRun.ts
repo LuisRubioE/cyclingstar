@@ -14,7 +14,7 @@ import {
   stageTss,
 } from '@cyclingstar/engine'
 import { ATTRIBUTES, type Attribute } from '@cyclingstar/shared'
-import { and, asc, eq, inArray, isNull } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import { awardRacePrizes } from './economy.js'
 import { emitNews } from './news.js'
@@ -363,12 +363,18 @@ async function applyIncidents<
         .set({ abandonedDay: gameDay })
         .where(and(eq(raceRosters.raceId, raceKey), eq(raceRosters.riderId, riderId)))
     }
+    // Duración concreta de la baja para el titular: semanas si es larga, días si es corta.
+    const outFor =
+      inc.diasBaja >= 14
+        ? `${Math.round(inc.diasBaja / 7)} weeks`
+        : `${inc.diasBaja} day${inc.diasBaja === 1 ? '' : 's'}`
     await emitNews(tx, {
       worldId,
       gameDay,
       kind: 'injury',
       seed: `injury:${raceKey}:${gameDay}:${riderId}`,
-      data: { rider: rider?.name ?? 'A rider' },
+      data: { rider: rider?.name ?? 'A rider', detail: outFor },
+      riderId,
     })
   }
 }
@@ -437,26 +443,46 @@ async function awardOutcome(
     kind: winKind,
     seed: `win:${seedBase}`,
     data: { rider: nameOf(stageWinner.riderId), race: spec.raceName, stage: spec.stageDay },
+    riderId: stageWinner.riderId,
   })
-  if (komLeader && (spec.kind === 'reina' || spec.kind === 'media')) {
-    await emitNews(tx, {
-      worldId,
-      gameDay,
-      kind: 'kom',
-      seed: `kom:${seedBase}`,
-      data: { rider: nameOf(komLeader.riderId), race: spec.raceName, stage: spec.stageDay },
-    })
-  }
   const gcWinnerId = gcOrder[0]
-  // La general es un evento aparte solo en carreras POR ETAPAS; en las de un día ya la cuenta winKind.
-  if (spec.isFinal && gcWinnerId && !isOneDay) {
-    await emitNews(tx, {
-      worldId,
-      gameDay,
-      kind: 'gc_win',
-      seed: `gc:${seedBase}`,
-      data: { rider: nameOf(gcWinnerId), race: spec.raceName },
-    })
+  // La general y la MONTAÑA son eventos aparte solo en carreras POR ETAPAS y solo al TERMINAR: un
+  // único titular por carrera (el ganador global), no uno por etapa —eso inundaba el feed—.
+  if (spec.isFinal && !isOneDay) {
+    if (gcWinnerId) {
+      await emitNews(tx, {
+        worldId,
+        gameDay,
+        kind: 'gc_win',
+        seed: `gc:${seedBase}`,
+        data: { rider: nameOf(gcWinnerId), race: spec.raceName },
+        riderId: gcWinnerId,
+      })
+    }
+    // Ganador de la clasificación de la montaña (suma de puntos de cima de toda la carrera).
+    const komRows = await tx
+      .select({
+        riderId: stageResults.riderId,
+        name: riders.name,
+        pts: sql<number>`sum(${stageResults.puntosMontana})::int`,
+      })
+      .from(stageResults)
+      .innerJoin(riders, eq(riders.id, stageResults.riderId))
+      .where(eq(stageResults.raceId, spec.raceKey))
+      .groupBy(stageResults.riderId, riders.name)
+      .orderBy(desc(sql`sum(${stageResults.puntosMontana})`))
+      .limit(1)
+    const komWinner = komRows[0]
+    if (komWinner && komWinner.pts > 0) {
+      await emitNews(tx, {
+        worldId,
+        gameDay,
+        kind: 'kom',
+        seed: `kom:${spec.raceKey}`,
+        data: { rider: komWinner.name, race: spec.raceName },
+        riderId: komWinner.riderId,
+      })
+    }
   }
 
   // En una carrera de UN DÍA la etapa ES la general: no se dan puntos de etapa (contarían doble con

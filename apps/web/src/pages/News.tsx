@@ -1,5 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
+import { Link } from 'react-router-dom'
 import { fetchNews, newsIcon } from '../api/news'
+import { Flag } from '../components/Flag'
 import { Panel, SectionBar } from '../components/Panel'
 
 export function News() {
@@ -33,7 +35,16 @@ export function News() {
                   {newsIcon(item.kind)}
                 </span>
                 <div className="min-w-0">
-                  <p className="text-sm text-slate-700">{item.text}</p>
+                  <p className="flex items-center gap-1.5 text-sm text-slate-700">
+                    {item.country && <Flag code={item.country} size={16} />}
+                    {item.riderId ? (
+                      <Link to={`/riders/${item.riderId}`} className="hover:underline">
+                        {item.text}
+                      </Link>
+                    ) : (
+                      item.text
+                    )}
+                  </p>
                   <p className="mt-0.5 text-xs text-slate-400">
                     Day {item.gameDay}
                     {item.personal && <span className="ml-2 text-indigo-500">· about you</span>}
