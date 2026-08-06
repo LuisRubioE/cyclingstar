@@ -27,7 +27,6 @@ import { SessionExpiryWatcher } from './components/SessionExpiryWatcher'
 // Carga diferida por página. Las páginas exportan componentes con nombre, de ahí el `.then(…)`.
 const Account = lazy(() => import('./pages/Account').then((m) => ({ default: m.Account })))
 const AdminNames = lazy(() => import('./pages/AdminNames').then((m) => ({ default: m.AdminNames })))
-const Calendar = lazy(() => import('./pages/Calendar').then((m) => ({ default: m.Calendar })))
 const Countries = lazy(() => import('./pages/Countries').then((m) => ({ default: m.Countries })))
 const Country = lazy(() => import('./pages/Country').then((m) => ({ default: m.Country })))
 const CreateRider = lazy(() =>
@@ -88,7 +87,7 @@ function NotFound() {
     <section className="py-10 text-center">
       <h1 className="text-2xl font-bold tracking-tight text-slate-800">Page not found</h1>
       <p className="mt-2 text-sm text-slate-500">
-        That page does not exist — it may have moved. Try the world calendar or your dashboard.
+        That page does not exist — it may have moved. Try the season races or your dashboard.
       </p>
       <div className="mt-5 flex justify-center gap-3 text-sm font-medium">
         <Link to="/" className="rounded-xl bg-brand-navy px-4 py-2 text-white">
@@ -191,7 +190,6 @@ export function App() {
             />
 
             {/* El mundo (§3.3): todo público, se vea con sesión o sin ella */}
-            <Route path="/world/calendar" element={<Calendar />} />
             <Route path="/world/races" element={<RacesIndex />} />
             <Route path="/world/races/:raceId" element={<Race />} />
             <Route path="/world/races/:raceId/stages/:day" element={<StageReplay />} />
@@ -243,7 +241,14 @@ export function App() {
             <Route path="/market" element={<Legacy to="/me/contract" />} />
             <Route path="/finances" element={<Legacy to="/me/finances" />} />
             <Route path="/team-calendar" element={<Legacy to="/team/calendar" />} />
-            <Route path="/calendar" element={<Legacy to="/world/calendar" />} />
+            {/*
+              `World → Calendar` y `World → Races` eran dos páginas que respondían a las mismas dos
+              preguntas ("¿qué viene?" y "¿qué pasó?"). Se fusionaron en `/world/races`, que es donde
+              vive la jerarquía (`/world/races/:raceId` es una carrera), y el calendario queda como
+              redirección permanente.
+            */}
+            <Route path="/world/calendar" element={<Legacy to="/world/races" />} />
+            <Route path="/calendar" element={<Legacy to="/world/races" />} />
             <Route path="/races/:raceId" element={<Legacy to="/world/races/:raceId" />} />
             <Route
               path="/races/:raceId/stages/:day"
@@ -257,7 +262,7 @@ export function App() {
             <Route path="/hall-of-fame" element={<Legacy to="/world/hall-of-fame" />} />
             <Route path="/riders/:id" element={<Legacy to="/world/riders/:id" />} />
             {/* /routes era la prueba de desarrollo de altimetrías: borrada (§1.1) */}
-            <Route path="/routes" element={<Legacy to="/world/calendar" />} />
+            <Route path="/routes" element={<Legacy to="/world/races" />} />
 
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -37,7 +37,7 @@ interface MainLink {
 const DASHBOARD: MainLink = { section: 'dashboard', to: '/', label: 'Dashboard' }
 const MY_RIDER: MainLink = { section: 'me', to: '/me/profile', label: 'My Rider' }
 const MY_TEAM: MainLink = { section: 'team', to: '/team/squad', label: 'My Team' }
-const WORLD: MainLink = { section: 'world', to: '/world/calendar', label: 'World' }
+const WORLD: MainLink = { section: 'world', to: '/world/races', label: 'World' }
 const NEWS: MainLink = { section: 'news', to: '/news', label: 'News' }
 
 const ME_TABS: readonly NavTabItem[] = [
@@ -56,7 +56,8 @@ const TEAM_TABS: readonly NavTabItem[] = [
 ]
 
 const WORLD_TABS: readonly NavTabItem[] = [
-  { to: '/world/calendar', label: 'Calendar' },
+  // `Calendar` y `Races` eran dos entradas para lo mismo (las dos respondían a "¿qué viene?" y
+  // "¿qué pasó?"): ahora hay una sola página, la línea temporal de la temporada con buscador.
   { to: '/world/races', label: 'Races' },
   { to: '/world/teams', label: 'Teams' },
   { to: '/world/nations', label: 'Nations' },

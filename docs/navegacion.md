@@ -105,11 +105,29 @@ La página `/race-entry` actual **se borra y se rehace** como la pestaña _Avail
 ### 3.3 World
 
 ```
-Calendar │ Races │ Teams │ Nations │ Rankings │ Hall of Fame
+Races │ Teams │ Nations │ Rankings │ Hall of Fame
 ```
 
-`Races` es nuevo y es importante: hoy **el calendario es la única puerta** para llegar a un
-resultado. Ver §6.
+`Races` es la **única** página de carreras del mundo: la línea temporal de la temporada, con
+buscador y filtros. Ver §6.
+
+> **Revocado (agosto 2026): `Calendar` y `Races` eran dos entradas para lo mismo.** La v2 de este
+> documento las quería separadas —"responden a preguntas distintas: ¿qué viene? y ¿qué pasó?"— y al
+> desplegarlas se vio que no: **las dos respondían a las dos preguntas**. El calendario pintaba la
+> temporada en orden con marcador de "hoy" (o sea, también el pasado, atenuado) y el índice
+> agrupaba en _Racing now / Results / Coming up_ (o sea, también el futuro). Dos páginas casi
+> iguales con contenido distinto en cada una: el buscador solo en una, las etapas solo en la otra.
+>
+> Se fusionan en **`/world/races`**, que conserva lo mejor de cada una: la línea temporal
+> cronológica con "hoy" y el pasado atenuado, el desplegable de etapas por carrera, el bloque
+> aparte de campeonatos nacionales, el buscador (nombre, país, ganador) y los filtros de clase y
+> formato. Y arregla lo que a ninguna le salía: **lo recién corrido y lo que viene, juntos
+> alrededor de "hoy"** —el pasado lejano se pliega tras un "Show earlier races", así que en el
+> teléfono la referencia entra en la primera pantalla—.
+>
+> Sobrevive `/world/races` y no `/world/calendar` por el principio 2 (**la URL es la jerarquía**):
+> una carrera vive en `/world/races/:raceId`, así que su índice es `/world/races`. `/world/calendar`
+> queda como redirección permanente, como el resto de rutas viejas.
 
 ### 3.4 My Team — para miembros, no solo para mánagers
 
@@ -160,28 +178,28 @@ Una página, un componente, sin duplicar. Y lo privado nunca sale en la vista p�
 
 ### 3.7 Mapa de rutas
 
-| Ruta nueva                                | Hoy                      | Cambio                                     |
-| ----------------------------------------- | ------------------------ | ------------------------------------------ |
-| `/`                                       | `Home`                   | Rediseñado (§4)                            |
-| `/me/profile`                             | `/rider`                 | Movida; unificada con la pública (§3.6)    |
-| `/me/training`                            | `/training`              | Movida                                     |
-| `/me/orders`                              | `/race-orders`           | Movida                                     |
-| `/me/races`                               | `/races` + `/race-entry` | Fusionadas en pestañas (§3.2)              |
-| `/me/contract`                            | `/market`                | Movida y renombrada                        |
-| `/me/finances`                            | `/finances`              | Movida                                     |
-| `/team/squad`                             | —                        | **Nueva** (lectura para miembros)          |
-| `/team/calendar`                          | `/team-calendar`         | **Rescatada**                              |
-| `/team/identity`                          | —                        | Nueva                                      |
-| `/world/calendar`                         | `/calendar`              | Movida                                     |
-| `/world/races`                            | —                        | **Nueva**: índice de carreras y resultados |
-| `/world/races/:raceId`                    | `/races/:raceId`         | **Resuelve la colisión**                   |
-| `/world/races/:raceId/stages/:day`        | `.../stages/:day`        | Movida                                     |
-| `/world/teams` · `/world/teams/:id`       | `/teams` · `/teams/:id`  | Movidas                                    |
-| `/world/nations` · `/world/nations/:code` | `/countries` · `/:code`  | Movidas y renombradas                      |
-| `/world/rankings` · `/world/hall-of-fame` | iguales                  | Movidas                                    |
-| `/world/riders/:id`                       | `/riders/:id`            | Movida; misma página que `/me/profile`     |
-| `/news`                                   | `/news`                  | Se queda arriba, con filtros (§3.5)        |
-| ~~`/routes`~~                             | `RoutesPage`             | **Eliminada**                              |
+| Ruta nueva                                | Hoy                      | Cambio                                    |
+| ----------------------------------------- | ------------------------ | ----------------------------------------- |
+| `/`                                       | `Home`                   | Rediseñado (§4)                           |
+| `/me/profile`                             | `/rider`                 | Movida; unificada con la pública (§3.6)   |
+| `/me/training`                            | `/training`              | Movida                                    |
+| `/me/orders`                              | `/race-orders`           | Movida                                    |
+| `/me/races`                               | `/races` + `/race-entry` | Fusionadas en pestañas (§3.2)             |
+| `/me/contract`                            | `/market`                | Movida y renombrada                       |
+| `/me/finances`                            | `/finances`              | Movida                                    |
+| `/team/squad`                             | —                        | **Nueva** (lectura para miembros)         |
+| `/team/calendar`                          | `/team-calendar`         | **Rescatada**                             |
+| `/team/identity`                          | —                        | Nueva                                     |
+| `/world/races`                            | `/calendar`              | Calendario e índice **fusionados** (§3.3) |
+| ~~`/world/calendar`~~                     | `/calendar`              | **Redirige** a `/world/races`             |
+| `/world/races/:raceId`                    | `/races/:raceId`         | **Resuelve la colisión**                  |
+| `/world/races/:raceId/stages/:day`        | `.../stages/:day`        | Movida                                    |
+| `/world/teams` · `/world/teams/:id`       | `/teams` · `/teams/:id`  | Movidas                                   |
+| `/world/nations` · `/world/nations/:code` | `/countries` · `/:code`  | Movidas y renombradas                     |
+| `/world/rankings` · `/world/hall-of-fame` | iguales                  | Movidas                                   |
+| `/world/riders/:id`                       | `/riders/:id`            | Movida; misma página que `/me/profile`    |
+| `/news`                                   | `/news`                  | Se queda arriba, con filtros (§3.5)       |
+| ~~`/routes`~~                             | `RoutesPage`             | **Eliminada**                             |
 
 Las rutas viejas se mantienen como redirecciones permanentes durante una temporada.
 
@@ -230,6 +248,10 @@ está mal (tiene filtros por división y acordeón), pero está haciendo un trab
 
 → Se añade **`World → Races`**: índice de carreras con lo último corrido arriba, buscador y filtros.
 El calendario se queda con lo suyo, que es la línea temporal de la temporada.
+
+> **Corrección (agosto 2026).** Esa separación no aguantó el uso real: el índice y el calendario
+> acababan siendo dos formas de mirar lo mismo. `World → Races` es hoy **una sola página** que es a
+> la vez línea temporal e índice buscable (§3.3), y `World → Calendar` redirige a ella.
 
 ### 6.2 La página de carrera lo apila todo, y no sabe en qué momento está
 
@@ -335,9 +357,11 @@ Nota de coordinación: la fase C toca `App.tsx` y `Header.tsx`, ya modificados p
 ## 9. Cuestiones abiertas
 
 1. **Foro de equipo**: introduce el primer texto libre del juego y con él la moderación. ¿v1.1?
-2. **`World → Races` frente a `World → Calendar`**: ¿dos páginas, o una con dos vistas (línea
-   temporal / índice)? Me inclino por dos: responden a preguntas distintas ("¿qué viene?" y "¿qué
-   pasó?").
+2. ~~**`World → Races` frente a `World → Calendar`**: ¿dos páginas, o una con dos vistas?~~
+   **Resuelto (agosto 2026): UNA sola página**, `/world/races`. La recomendación de mantenerlas
+   separadas queda **revocada**: no respondían a preguntas distintas, sino **las dos a las dos
+   preguntas** —el calendario enseñaba el pasado atenuado y el índice enseñaba lo que viene—, y
+   el jugador solo veía dos menús que llevaban casi a lo mismo. Ver §3.3 y §6.1.
 3. **Etapas de una carrera en curso**: ¿mostrar las etapas futuras con su recorrido, o solo las ya
    corridas?
 4. **Vista de espectador de la etapa**: cuánto de la telemetría nueva del motor cabe aquí sin
