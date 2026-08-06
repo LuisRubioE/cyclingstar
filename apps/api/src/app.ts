@@ -1,104 +1,10 @@
-import { randomUUID } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import fastifyHelmet from '@fastify/helmet'
+import fastifyRateLimit from '@fastify/rate-limit'
 import fastifyStatic from '@fastify/static'
-import {
-  type Database,
-  type StageOrderRow,
-  type TickSummary,
-  type TrainingOrderRow,
-  acceptOffer,
-  addToRoster,
-  getRaceRivals,
-  getRosterTeammates,
-  isOnRoster,
-  addBlocked,
-  type BlockedKind,
-  createRider,
-  getWorldClock,
-  generateName,
-  generateUniqueRiderName,
-  getCountriesSummary,
-  getCountryRiders,
-  getFreeAgents,
-  getWorldHealth,
-  getAccountControl,
-  setUserPremium,
-  takeOverBotTeam,
-  updateOwnedTeam,
-  listBlocked,
-  removeBlocked,
-  draftRace,
-  enterRace,
-  getContract,
-  getEnterableRaces,
-  predictStartlist,
-  ENROLL_LOCK_DAYS,
-  ensureRaceRosterFrozen,
-  getTeamCalendar,
-  getCurrentWorld,
-  getDailyLog,
-  getGlobalNews,
-  getPublicRider,
-  getTeamDetail,
-  getTeamNews,
-  getTeams,
-  getLedger,
-  getPalmares,
-  getRaceHistory,
-  getHallOfFame,
-  getAllTimeRecords,
-  getRanking,
-  getRiderBadges,
-  getSeasonAwards,
-  getYoungRiders,
-  getRiderNews,
-  getSeasonWinners,
-  getGcThroughStage,
-  getKomClassification,
-  getOffers,
-  undraftRace,
-  withdrawRace,
-  getPointsClassification,
-  getRaceGc,
-  getRacePrefs,
-  getRiderForUser,
-  getRiderHealth,
-  getRiderLastRaceReport,
-  getRiderRaceDays,
-  getRiderRecentResults,
-  getRiderUpcomingRaces,
-  getRiderSummary,
-  setRiderArchetype,
-  getRunStageDays,
-  getStageOrders,
-  getStageResults,
-  getStageSnapshot,
-  getStageWinners,
-  getTrainingOrders,
-  getTeamTrainingPlan,
-  setTeamTrainingPlan,
-  rejectOffer,
-  setRacePref,
-  setStageOrders,
-  teamsClassification,
-  setTrainingOrders,
-} from '@cyclingstar/db'
-import {
-  ENGINE_VERSION,
-  type AltimetryMarker,
-  SEASON_CALENDAR,
-  type StageInput,
-  TEST_TOUR,
-  formStars,
-  freshnessBar,
-  generateRiderGenome,
-  renderAltimetrySvg,
-  simulateStage,
-  stageEndpoints,
-} from '@cyclingstar/engine'
-import { type Health, isKnownCountry, resolveCountry, seasonPosition } from '@cyclingstar/shared'
+import type { Database, TickSummary } from '@cyclingstar/db'
 import Fastify, {
   type FastifyError,
   type FastifyInstance,
@@ -107,32 +13,19 @@ import Fastify, {
   type FastifyServerOptions,
 } from 'fastify'
 import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod'
-import { z } from 'zod'
 import type { Auth } from './auth.js'
-
-/** Convierte las cabeceras de una petición Fastify en un objeto Headers estándar. */
-function toWebHeaders(request: FastifyRequest): Headers {
-  const headers = new Headers()
-  for (const [key, value] of Object.entries(request.headers)) {
-    if (key.toLowerCase() === 'content-length') continue
-    if (Array.isArray(value)) {
-      for (const v of value) headers.append(key, v)
-    } else if (value != null) {
-      headers.append(key, value)
-    }
-  }
-  return headers
-}
-
-/** Un evento de la crónica tal como se guardó (congelado) en el snapshot de la etapa (RaceEvent). */
-interface StoredEvent {
-  km: number
-  tS: number
-  tipo: string
-  plantilla: string
-  protagonistas: string[]
-  datos?: Record<string, number | string>
-}
+import { apiError } from './http.js'
+import { adminRoutes } from './routes/admin.js'
+import { authProxyRoutes } from './routes/authProxy.js'
+import { calendarRoutes } from './routes/calendar.js'
+import { type RouteContext, createCurrentUserId } from './routes/context.js'
+import { healthRoutes } from './routes/health.js'
+import { raceRoutes } from './routes/races.js'
+import { rankingRoutes } from './routes/rankings.js'
+import { riderRoutes } from './routes/riders.js'
+import { teamRoutes } from './routes/teams.js'
+import { worldRoutes } from './routes/world.js'
+import { GLOBAL_RATE_LIMIT, createAdminGuard } from './security.js'
 
 export interface AppDeps {
   /** Base de datos (opcional en tests). Cuando está, /health lee la fecha de juego. */
@@ -147,7 +40,7 @@ export interface AppDeps {
   serveWeb?: boolean
   /** Instancia de better-auth; si está, se monta en /api/auth/* (Paso 9). */
   auth?: Auth
-  /** Token que protege POST /admin/tick (Paso 10). */
+  /** Token que protege las rutas de admin y el avance del mundo (Paso 10). */
   adminToken?: string
   /** Ejecutor del tick manual para POST /admin/tick (Paso 10). */
   onAdminTick?: () => Promise<TickSummary>
@@ -159,1260 +52,128 @@ export interface AppDeps {
 const webRoot = fileURLToPath(new URL('../../web/dist', import.meta.url))
 
 /**
- * Construye la instancia de Fastify de la API (SPEC 12).
- * Paso 7: logging pino, validación Zod en los bordes, manejo uniforme de errores,
- * servido de los estáticos de apps/web (latente hasta que exista la build) y /health.
+ * Construye la instancia de Fastify de la API (SPEC 12): logging pino, validación Zod en los
+ * bordes, cabeceras de seguridad, rate limiting, manejo uniforme de errores y servido de los
+ * estáticos de apps/web.
+ *
+ * Las rutas viven en plugins por dominio bajo `routes/` (admin, auth, riders, teams, races,
+ * calendar, rankings, world). Además de ordenar el código, registrarlas como plugins es lo que
+ * hace efectivo el rate limiting: los hooks de Fastify solo alcanzan a las rutas declaradas
+ * DESPUÉS del plugin que los instala, y los plugins se cargan en el orden en que se registran.
  */
 export function buildApp(deps: AppDeps = {}): FastifyInstance {
   // trustProxy: detrás del proxy de Railway (TLS terminado), para resolver bien
   // protocolo (https), host e IP de cliente a partir de las cabeceras X-Forwarded-*.
   const app = Fastify({ logger: deps.logger ?? false, trustProxy: true })
 
-  // Zod como validador/serializador en los bordes: las rutas futuras validan su
-  // entrada y salida con esquemas Zod.
+  // Zod como validador/serializador en los bordes: las rutas validan su entrada con esquemas Zod.
   app.setValidatorCompiler(validatorCompiler)
   app.setSerializerCompiler(serializerCompiler)
 
-  // Manejo uniforme de errores.
+  // Cabeceras de seguridad (@fastify/helmet).
+  //
+  // La CSP es deliberadamente pragmática, no máxima: la SPA se sirve desde el MISMO origen que la
+  // API, así que 'self' cubre scripts, estilos y fetch. Se deja `style-src 'unsafe-inline'` porque
+  // la web inyecta las altimetrías como SVG en línea (con atributos style) y React aplica estilos
+  // en línea; sin eso la web se rompe. El resto queda cerrado: nada de objetos, nada de iframes de
+  // terceros y nadie puede embebernos (frame-ancestors 'none').
+  void app.register(fastifyHelmet, {
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        baseUri: ["'self'"],
+        frameAncestors: ["'none'"],
+        frameSrc: ["'none'"],
+        objectSrc: ["'none'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", 'data:', 'blob:'],
+        fontSrc: ["'self'", 'data:'],
+        connectSrc: ["'self'"],
+        formAction: ["'self'"],
+      },
+    },
+    // No servimos recursos que necesiten aislamiento cruzado; activarlo rompería la carga de la web.
+    crossOriginEmbedderPolicy: false,
+    // HSTS: 180 días. Railway termina el TLS delante, la app siempre se sirve por https.
+    hsts: { maxAge: 15_552_000, includeSubDomains: true },
+  })
+
+  // Rate limiting global por IP (@fastify/rate-limit). Antes no había ninguno: /api/auth/* aceptaba
+  // intentos de contraseña ilimitados. Los límites concretos y su porqué están en security.ts.
+  void app.register(fastifyRateLimit, {
+    global: true,
+    ...GLOBAL_RATE_LIMIT,
+    // trustProxy ya está activo: la clave es la IP real del cliente, no la del proxy de Railway.
+    // El plugin LANZA lo que devuelva este constructor, así que hay que devolver un Error con
+    // statusCode; el manejador de errores lo traduce al formato uniforme `{ ok, error }`.
+    errorResponseBuilder: (_request, context) => {
+      const err = new Error('demasiadas_peticiones') as Error & { statusCode: number }
+      err.statusCode = context.statusCode
+      return err
+    },
+  })
+
+  // Guarda de admin (ADMIN_TOKEN en x-admin-token), en tiempo constante. Único punto de control.
+  const requireAdmin = createAdminGuard(deps.adminToken)
+
+  // Manejo uniforme de errores: SIEMPRE `{ ok: false, error: <codigo> }` (ver http.ts). Las
+  // validaciones nativas de Fastify+Zod adjuntaban `detalles: error.validation`, que describe la
+  // forma interna del esquema; ahora usan el mismo formato opaco que las validaciones manuales.
   app.setErrorHandler((error: FastifyError, request: FastifyRequest, reply: FastifyReply) => {
     if (error.validation) {
-      reply.status(400).send({ ok: false, error: 'validacion', detalles: error.validation })
+      // El detalle se queda en el log del servidor, no en la respuesta.
+      request.log.debug({ validation: error.validation }, 'validacion de entrada fallida')
+      reply.status(400).send(apiError('validacion'))
       return
     }
     const statusCode = typeof error.statusCode === 'number' ? error.statusCode : 500
     if (statusCode >= 500) {
       request.log.error(error)
-      reply.status(500).send({ ok: false, error: 'interno' })
+      reply.status(500).send(apiError('interno'))
       return
     }
-    reply.status(statusCode).send({ ok: false, error: error.message })
+    reply.status(statusCode).send(apiError(error.message))
   })
 
-  app.get('/health', async (): Promise<Health> => {
-    let gameDay: number | null = null
-    let nextTickAtMs: number | null = null
-    const tickIntervalMinutes = deps.tickIntervalMinutes ?? 360
-    if (deps.db) {
-      const clock = await getWorldClock(deps.db)
-      if (clock) {
-        gameDay = clock.currentDay
-        // Próximo avance: creación del mundo + (día+1) periodos (targetGameDay = floor(elapsed/ms)).
-        const msPerGameDay = tickIntervalMinutes * 60_000
-        nextTickAtMs = clock.createdAtMs + (clock.currentDay + 1) * msPerGameDay
-      }
-    }
-    return {
-      ok: true,
-      engineVersion: ENGINE_VERSION,
-      gameDay,
-      migrationsApplied: deps.migrationsApplied ?? false,
-      tickIntervalMinutes,
-      nextTickAtMs,
-    }
+  void app.register(healthRoutes, {
+    ...(deps.db ? { db: deps.db } : {}),
+    ...(deps.migrationsApplied !== undefined ? { migrationsApplied: deps.migrationsApplied } : {}),
+    ...(deps.tickIntervalMinutes !== undefined
+      ? { tickIntervalMinutes: deps.tickIntervalMinutes }
+      : {}),
   })
 
-  // Tick manual protegido (Paso 10): recuperación y desarrollo (SPEC 12).
-  if (deps.onAdminTick) {
-    const onAdminTick = deps.onAdminTick
-    const adminToken = deps.adminToken
-    app.post('/admin/tick', async (request, reply) => {
-      const provided = request.headers['x-admin-token']
-      if (!adminToken || provided !== adminToken) {
-        return reply.status(401).send({ ok: false, error: 'no_autorizado' })
-      }
-      const summary = await onAdminTick()
-      return reply.send({ ok: true, ...summary })
-    })
-  }
-
-  // Avance forzado de días para pruebas (Paso 32): POST /admin/advance?days=N. Ignora el tiempo
-  // real y procesa N días de juego (carreras + entrenamiento). Protegido por ADMIN_TOKEN.
-  if (deps.onAdminAdvance) {
-    const onAdminAdvance = deps.onAdminAdvance
-    const adminToken = deps.adminToken
-    app.post<{ Querystring: { days?: string } }>('/admin/advance', async (request, reply) => {
-      const provided = request.headers['x-admin-token']
-      if (!adminToken || provided !== adminToken) {
-        return reply.status(401).send({ ok: false, error: 'no_autorizado' })
-      }
-      const days = Math.min(30, Math.max(1, Number(request.query.days ?? 1) || 1))
-      const summary = await onAdminAdvance(days)
-      return reply.send({ ok: true, ...summary })
-    })
-  }
-
-  // Lista de bloqueo de nombres (equipos reales, ciclistas/famosos reales), curada por admins.
-  // Protegida por ADMIN_TOKEN (cabecera x-admin-token). "Base secreta" no enlazada en la web.
+  // Rutas de admin: necesitan base de datos (lista de bloqueo, censo, premium) y el token.
   if (deps.db) {
-    const db = deps.db
-    const adminToken = deps.adminToken
-    const kindSchema = z.enum(['team', 'rider'])
-    const addSchema = z.object({
-      kind: kindSchema,
-      value: z.string().trim().min(1).max(120),
-      note: z.string().trim().max(200).optional(),
-    })
-    const premiumSchema = z.object({
-      email: z.string().trim().email().max(200),
-      premium: z.boolean(),
-    })
-
-    const requireAdmin = (request: FastifyRequest, reply: FastifyReply): boolean => {
-      const provided = request.headers['x-admin-token']
-      if (!adminToken || provided !== adminToken) {
-        reply.status(401).send({ ok: false, error: 'no_autorizado' })
-        return false
-      }
-      return true
-    }
-
-    app.get<{ Querystring: { kind?: string } }>('/api/admin/blocklist', async (request, reply) => {
-      if (!requireAdmin(request, reply)) return
-      const kind = kindSchema.safeParse(request.query.kind)
-      if (!kind.success) return reply.status(400).send({ ok: false, error: 'validacion' })
-      return { ok: true, items: await listBlocked(db, kind.data as BlockedKind) }
-    })
-
-    app.post('/api/admin/blocklist', async (request, reply) => {
-      if (!requireAdmin(request, reply)) return
-      const parsed = addSchema.safeParse(request.body)
-      if (!parsed.success) return reply.status(400).send({ ok: false, error: 'validacion' })
-      const { kind, value, note } = parsed.data
-      const { inserted } = await addBlocked(db, kind as BlockedKind, value, note ?? null)
-      return reply.status(inserted ? 201 : 200).send({ ok: true, inserted })
-    })
-
-    app.delete<{ Params: { id: string } }>('/api/admin/blocklist/:id', async (request, reply) => {
-      if (!requireAdmin(request, reply)) return
-      const id = z.string().uuid().safeParse(request.params.id)
-      if (!id.success) return reply.status(400).send({ ok: false, error: 'validacion' })
-      await removeBlocked(db, id.data)
-      return { ok: true }
-    })
-
-    // Salud del mundo para el panel de admin (#84): día, censo y últimos ticks. Solo lectura.
-    app.get('/api/admin/health', async (request, reply) => {
-      if (!requireAdmin(request, reply)) return
-      return { ok: true, health: await getWorldHealth(db) }
-    })
-
-    // Concede/retira premium por email (admin). Premium habilita tomar el control de un equipo bot.
-    app.post('/api/admin/premium', async (request, reply) => {
-      if (!requireAdmin(request, reply)) return
-      const parsed = premiumSchema.safeParse(request.body)
-      if (!parsed.success) return reply.status(400).send({ ok: false, error: 'validacion' })
-      const { updated } = await setUserPremium(db, parsed.data.email, parsed.data.premium)
-      if (!updated) return reply.status(404).send({ ok: false, error: 'usuario_no_encontrado' })
-      return { ok: true }
+    void app.register(adminRoutes, {
+      db: deps.db,
+      requireAdmin,
+      ...(deps.onAdminTick ? { onAdminTick: deps.onAdminTick } : {}),
+      ...(deps.onAdminAdvance ? { onAdminAdvance: deps.onAdminAdvance } : {}),
     })
   }
 
-  // Montaje de better-auth en /api/auth/* (Paso 9). Reconstruye una Request web a partir
-  // de la petición de Fastify y reenvía la respuesta, preservando las cookies de sesión.
+  // Montaje de better-auth en /api/auth/* (Paso 9).
   if (deps.auth) {
-    const auth = deps.auth
-    app.route({
-      method: ['GET', 'POST'],
-      url: '/api/auth/*',
-      async handler(request, reply) {
-        const url = new URL(request.url, `${request.protocol}://${request.host}`)
-        const init: RequestInit = { method: request.method, headers: toWebHeaders(request) }
-        const hasBody = request.method !== 'GET' && request.method !== 'HEAD'
-        if (hasBody && request.body != null) {
-          init.body = JSON.stringify(request.body)
-        }
-        const webRequest = new Request(url, init)
-
-        const response = await auth.handler(webRequest)
-
-        reply.status(response.status)
-        for (const [key, value] of response.headers.entries()) {
-          if (key.toLowerCase() === 'set-cookie') continue
-          reply.header(key, value)
-        }
-        for (const cookie of response.headers.getSetCookie()) {
-          reply.header('set-cookie', cookie)
-        }
-        const body = await response.text()
-        return reply.send(body.length > 0 ? body : null)
-      },
-    })
+    void app.register(authProxyRoutes, { auth: deps.auth })
   }
 
-  // Creación y consulta del ciclista (SPEC 3, Pasos 14-16). Requiere auth y base de datos.
+  // Rutas de juego: requieren sesión (better-auth) y base de datos.
   if (deps.auth && deps.db) {
-    const auth = deps.auth
-    const db = deps.db
-
-    const genderSchema = z.enum(['M', 'F'])
-    const nameQuerySchema = z.object({
-      country: z.string().length(2),
-      gender: genderSchema,
-      seed: z.string().min(1),
-    })
-    const createRiderSchema = z.object({
-      vocation: z.enum(['escalada', 'velocidad', 'clasicas', 'crono', 'fondo']),
-      gender: genderSchema,
-      country: z.string().length(2),
-      nameSeed: z.string().min(1),
-    })
-
-    const currentUserId = async (request: FastifyRequest): Promise<string | null> => {
-      const session = await auth.api.getSession({ headers: toWebHeaders(request) })
-      return session?.user.id ?? null
+    const ctx: RouteContext = {
+      db: deps.db,
+      auth: deps.auth,
+      currentUserId: createCurrentUserId(deps.auth),
+      requireAdmin,
     }
-
-    // País por IP (Paso 14): tras Cloudflare, cabecera CF-IPCountry. Sin ella, null (selector).
-    app.get('/api/geo/country', (request) => {
-      const raw = request.headers['cf-ipcountry']
-      const code = typeof raw === 'string' ? raw.toUpperCase() : null
-      // Resuelve al país jugable: el propio si existe, si no su fallback más cercano (Vaticano→Italia…).
-      return { country: resolveCountry(code) }
-    })
-
-    // Generación de nombre (Paso 13/15): server-side, respeta la lista de bloqueo y evita
-    // colisiones con corredores en activo del mundo (ni bots ni humanos repetidos).
-    app.get('/api/names/generate', async (request, reply) => {
-      const parsed = nameQuerySchema.safeParse(request.query)
-      if (!parsed.success) {
-        return reply.status(400).send({ ok: false, error: 'validacion' })
-      }
-      const { country, gender, seed } = parsed.data
-      if (!isKnownCountry(country)) {
-        return reply.status(400).send({ ok: false, error: 'pais_desconocido' })
-      }
-      const world = await getCurrentWorld(db)
-      if (!world) return generateName(seed, { country: country.toLowerCase(), gender })
-      return generateUniqueRiderName(db, world.worldId, seed, {
-        country: country.toLowerCase(),
-        gender,
-      })
-    })
-
-    // El ciclista del usuario (o null si aún no ha creado uno).
-    app.get('/api/riders/me', async (request, reply) => {
-      const userId = await currentUserId(request)
-      if (!userId) {
-        return reply.status(401).send({ ok: false, error: 'no_autorizado' })
-      }
-      return { rider: await getRiderForUser(db, userId) }
-    })
-
-    // Próximas carreras del ciclista del jugador (convocatorias ya congeladas + en curso).
-    app.get('/api/riders/me/upcoming-races', async (request, reply) => {
-      const userId = await currentUserId(request)
-      if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
-      const rider = await getRiderForUser(db, userId)
-      const world = await getCurrentWorld(db)
-      if (!rider || !world) return { races: [] }
-      return { races: await getRiderUpcomingRaces(db, rider.id, world.currentDay) }
-    })
-
-    // Estado de control de equipo del usuario: si es premium y si su equipo sigue siendo bot
-    // (reclamable) o ya es suyo. La web lo usa para mostrar el botón de "tomar control".
-    app.get('/api/me/team-control', async (request, reply) => {
-      const userId = await currentUserId(request)
-      if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
-      return { control: await getAccountControl(db, userId) }
-    })
-
-    // Un jugador premium toma el control del equipo bot en el que corre su ciclista (SPEC 7).
-    app.post('/api/teams/take-over', async (request, reply) => {
-      const userId = await currentUserId(request)
-      if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
-      const result = await takeOverBotTeam(db, userId)
-      if (!result.ok) {
-        const status = result.reason === 'no_premium' ? 403 : 409
-        return reply.status(status).send({ ok: false, error: result.reason })
-      }
-      return { ok: true, teamId: result.teamId, teamName: result.teamName }
-    })
-
-    // El dueño edita su equipo: nombre (validado como el de un ciclista), país y maillot (SPEC 7).
-    app.put('/api/teams/me', async (request, reply) => {
-      const userId = await currentUserId(request)
-      if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
-      const parsed = teamEditSchema.safeParse(request.body)
-      if (!parsed.success) return reply.status(400).send({ ok: false, error: 'validacion' })
-      const result = await updateOwnedTeam(db, userId, parsed.data)
-      if (!result.ok) {
-        const status = result.reason === 'sin_equipo' ? 409 : 400
-        return reply.status(status).send({ ok: false, error: result.reason })
-      }
-      return { ok: true }
-    })
-
-    // Crear el ciclista (SPEC 3.5). El genoma lo genera el servidor (no lo controla el cliente).
-    app.post('/api/riders', async (request, reply) => {
-      const userId = await currentUserId(request)
-      if (!userId) {
-        return reply.status(401).send({ ok: false, error: 'no_autorizado' })
-      }
-      const parsed = createRiderSchema.safeParse(request.body)
-      if (!parsed.success) {
-        return reply.status(400).send({ ok: false, error: 'validacion' })
-      }
-      const { vocation, gender, country, nameSeed } = parsed.data
-      if (!isKnownCountry(country)) {
-        return reply.status(400).send({ ok: false, error: 'pais_desconocido' })
-      }
-      if (await getRiderForUser(db, userId)) {
-        return reply.status(409).send({ ok: false, error: 'ya_tienes_ciclista' })
-      }
-      const world = await getCurrentWorld(db)
-      if (!world) {
-        return reply.status(409).send({ ok: false, error: 'mundo_no_inicializado' })
-      }
-      const name = await generateUniqueRiderName(db, world.worldId, nameSeed, {
-        country: country.toLowerCase(),
-        gender,
-      })
-      const genome = generateRiderGenome(randomUUID(), vocation)
-      const created = await createRider(db, {
-        worldId: world.worldId,
-        userId,
-        name: name.fullName,
-        country: country.toUpperCase(),
-        gender,
-        archetype: vocation,
-        birthSeason: seasonPosition(world.currentDay).season,
-        faceSeed: randomUUID(),
-        attributes: genome.attributes,
-        hidden: genome.hidden,
-      })
-      return reply.status(201).send({ ok: true, id: created.id })
-    })
-
-    // Informe personal de la última carrera: qué ordené vs qué pasó (backlog extra).
-    app.get('/api/riders/me/last-race', async (request, reply) => {
-      const userId = await currentUserId(request)
-      if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
-      const rider = await getRiderForUser(db, userId)
-      if (!rider) return { report: null }
-      return { report: await getRiderLastRaceReport(db, rider.id) }
-    })
-
-    // Cambiar la vocación declarada (la "etiqueta") del corredor. No toca techos ni atributos:
-    // el corredor decide luego alinear su entrenamiento; influye en las convocatorias por tipo.
-    const archetypeSchema = z.object({
-      archetype: z.enum(['escalada', 'velocidad', 'clasicas', 'crono', 'fondo']),
-    })
-    const teamEditSchema = z
-      .object({
-        name: z.string().trim().min(2).max(40).optional(),
-        country: z.string().trim().length(2).optional(),
-        jerseySeed: z.string().trim().min(1).max(120).optional(),
-      })
-      .refine(
-        (v) => v.name !== undefined || v.country !== undefined || v.jerseySeed !== undefined,
-        {
-          message: 'nada_que_cambiar',
-        },
-      )
-    app.put('/api/riders/me/archetype', async (request, reply) => {
-      const userId = await currentUserId(request)
-      if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
-      const parsed = archetypeSchema.safeParse(request.body)
-      if (!parsed.success) return reply.status(400).send({ ok: false, error: 'validacion' })
-      const rider = await getRiderForUser(db, userId)
-      if (!rider) return reply.status(404).send({ ok: false, error: 'sin_ciclista' })
-      await setRiderArchetype(db, rider.id, parsed.data.archetype)
-      return { ok: true }
-    })
-
-    // --- Planificador de entrenamiento (Paso 18) ---
-    const TRAINING_HORIZON_DAYS = 28
-
-    const orderSchema = z.object({
-      gameDay: z.number().int().positive(),
-      session: z.enum([
-        'descanso_total',
-        'descanso_activo',
-        'fondo',
-        'umbral',
-        'puertos',
-        'sprint',
-        'crono',
-        'bajada_paves',
-        'gimnasio',
-        'video_tactica',
-        'viaje',
-      ]),
-      intensity: z.enum(['suave', 'normal', 'fuerte']),
-    })
-    const putOrdersSchema = z.object({ orders: z.array(orderSchema).max(TRAINING_HORIZON_DAYS) })
-    const putRacePrefSchema = z.object({ raceId: z.string(), wanted: z.boolean() })
-
-    app.get('/api/riders/me/orders', async (request, reply) => {
-      const userId = await currentUserId(request)
-      if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
-      const rider = await getRiderForUser(db, userId)
-      const world = await getCurrentWorld(db)
-      if (!rider || !world)
-        return {
-          currentDay: world?.currentDay ?? 0,
-          horizonDays: TRAINING_HORIZON_DAYS,
-          orders: [],
-          raceDays: [],
-        }
-      const orders = await getTrainingOrders(
-        db,
-        rider.id,
-        world.currentDay + 1,
-        world.currentDay + TRAINING_HORIZON_DAYS,
-      )
-      // Días con carrera: no se entrenan (la carrera es su carga).
-      const raceDays = await getRiderRaceDays(
-        db,
-        rider.id,
-        world.currentDay + 1,
-        world.currentDay + TRAINING_HORIZON_DAYS,
-      )
-      return { currentDay: world.currentDay, horizonDays: TRAINING_HORIZON_DAYS, orders, raceDays }
-    })
-
-    // Plan de entrenamiento SUGERIDO por el equipo (para que la plantilla entrene junta y gane el
-    // bonus de grupo). Cualquier corredor del equipo lo LEE; solo el mánager (dueño) lo edita.
-    app.get('/api/me/team-training', async (request, reply) => {
-      const userId = await currentUserId(request)
-      if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
-      const rider = await getRiderForUser(db, userId)
-      const world = await getCurrentWorld(db)
-      const summary = rider ? await getRiderSummary(db, rider.id) : null
-      const teamId = summary?.teamId ?? null
-      if (!teamId || !world) return { plan: [], canEdit: false, teamName: null }
-      const control = await getAccountControl(db, userId)
-      const plan = await getTeamTrainingPlan(
-        db,
-        teamId,
-        world.currentDay + 1,
-        world.currentDay + TRAINING_HORIZON_DAYS,
-      )
-      return {
-        plan,
-        canEdit: control?.team?.ownedByMe ?? false,
-        teamName: summary?.teamName ?? null,
-      }
-    })
-
-    app.put('/api/me/team-training', async (request, reply) => {
-      const userId = await currentUserId(request)
-      if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
-      const parsed = putOrdersSchema.safeParse(request.body)
-      if (!parsed.success) return reply.status(400).send({ ok: false, error: 'validacion' })
-      const control = await getAccountControl(db, userId)
-      const teamId = control?.team?.ownedByMe ? control.team.id : null
-      if (!teamId) return reply.status(403).send({ ok: false, error: 'no_eres_manager' })
-      await setTeamTrainingPlan(db, teamId, parsed.data.orders)
-      return { ok: true, saved: parsed.data.orders.length }
-    })
-
-    // Serie de forma para la gráfica del perfil (Paso 20).
-    app.get('/api/riders/me/form', async (request, reply) => {
-      const userId = await currentUserId(request)
-      if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
-      const rider = await getRiderForUser(db, userId)
-      if (!rider) return { log: [], form: null }
-      const log = await getDailyLog(db, rider.id, 90)
-      const latest = log[log.length - 1]
-      const form = latest
-        ? { stars: formStars(latest.ctl, latest.tsb), freshness: freshnessBar(latest.tsb) }
-        : null
-      const health = await getRiderHealth(db, rider.id)
-      return { log, form, health }
-    })
-
-    // Objetivos de calendario del corredor y su convocatoria (Paso 35).
-    app.get('/api/riders/me/race-prefs', async (request, reply) => {
-      const userId = await currentUserId(request)
-      if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
-      const rider = await getRiderForUser(db, userId)
-      const world = await getCurrentWorld(db)
-      if (!rider || !world) return { races: [] }
-      const season = seasonPosition(world.currentDay).season
-      return { races: await getRacePrefs(db, rider.id, season) }
-    })
-
-    app.put('/api/riders/me/race-prefs', async (request, reply) => {
-      const userId = await currentUserId(request)
-      if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
-      const parsed = putRacePrefSchema.safeParse(request.body)
-      if (!parsed.success) return reply.status(400).send({ ok: false, error: 'validacion' })
-      const rider = await getRiderForUser(db, userId)
-      if (!rider) return reply.status(409).send({ ok: false, error: 'sin_ciclista' })
-      await setRacePref(db, rider.id, parsed.data.raceId, parsed.data.wanted)
-      return { ok: true }
-    })
-
-    // Ranking individual de puntos de la temporada (Paso 40). Público.
-    app.get('/api/rankings', async () => {
-      const world = await getCurrentWorld(db)
-      if (!world) return { ranking: [] }
-      return { ranking: await getRanking(db, world.worldId) }
-    })
-
-    // Clasificación de jóvenes de la temporada (#59, maillot blanco).
-    app.get('/api/rankings/young', async () => {
-      const world = await getCurrentWorld(db)
-      if (!world) return { ranking: [] }
-      const season = seasonPosition(world.currentDay).season
-      return { ranking: await getYoungRiders(db, world.worldId, season) }
-    })
-
-    // Premios de la temporada (#60): líderes por categoría (mejor del año, sprinter, escalador, revelación).
-    app.get('/api/season-awards', async () => {
-      const world = await getCurrentWorld(db)
-      if (!world) return { awards: null }
-      const season = seasonPosition(world.currentDay).season
-      return { awards: await getSeasonAwards(db, world.worldId, season) }
-    })
-
-    // Salón de la fama: palmarés acumulado de todas las temporadas (#58).
-    app.get('/api/hall-of-fame', async () => {
-      const world = await getCurrentWorld(db)
-      if (!world) return { riders: [] }
-      return { riders: await getHallOfFame(db, world.worldId, 40) }
-    })
-
-    // Récords de todos los tiempos del mundo (#62).
-    app.get('/api/records', async () => {
-      const world = await getCurrentWorld(db)
-      if (!world) return { records: null }
-      return { records: await getAllTimeRecords(db, world.worldId) }
-    })
-
-    // Palmarés del corredor de la sesión (Paso 40).
-    app.get('/api/riders/me/palmares', async (request, reply) => {
-      const userId = await currentUserId(request)
-      if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
-      const rider = await getRiderForUser(db, userId)
-      if (!rider) return { palmares: [] }
-      return { palmares: await getPalmares(db, rider.id) }
-    })
-
-    // Historial de ganadores de la vuelta de prueba (Paso 40). Público.
-    app.get('/api/races/test-tour/history', async () => {
-      const world = await getCurrentWorld(db)
-      if (!world) return { history: [] }
-      return { history: await getRaceHistory(db, world.worldId, TEST_TOUR_ID) }
-    })
-
-    // Feed de noticias del mundo (Paso 39). Público (como el calendario); si hay sesión con
-    // ciclista, incluye también sus noticias personales.
-    app.get('/api/news', async (request) => {
-      const world = await getCurrentWorld(db)
-      if (!world) return { news: [] }
-      const userId = await currentUserId(request)
-      const rider = userId ? await getRiderForUser(db, userId) : null
-      const items = rider
-        ? await getRiderNews(db, world.worldId, rider.id)
-        : await getGlobalNews(db, world.worldId)
-      return { news: items }
-    })
-
-    // Estado del corredor (equipo, moral, dinero, fama, puntos) para la cabecera del perfil.
-    app.get('/api/riders/me/summary', async (request, reply) => {
-      const userId = await currentUserId(request)
-      if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
-      const rider = await getRiderForUser(db, userId)
-      if (!rider) return { summary: null }
-      return { summary: await getRiderSummary(db, rider.id) }
-    })
-
-    // Libro de transacciones y saldo (Paso 38).
-    app.get('/api/riders/me/ledger', async (request, reply) => {
-      const userId = await currentUserId(request)
-      if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
-      const rider = await getRiderForUser(db, userId)
-      if (!rider) return { balance: 0, entries: [], gameDay: null, salary: null }
-      const [ledger, world, contract] = await Promise.all([
-        getLedger(db, rider.id),
-        getCurrentWorld(db),
-        getContract(db, rider.id),
-      ])
-      // Para el aviso de "próximo sueldo": la nómina cae cada día de juego múltiplo de 7 (GD7, GD14…).
-      return { ...ledger, gameDay: world?.currentDay ?? null, salary: contract?.salary ?? null }
-    })
-
-    // Bandeja de ofertas y contrato vigente (Paso 36).
-    app.get('/api/riders/me/offers', async (request, reply) => {
-      const userId = await currentUserId(request)
-      if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
-      const rider = await getRiderForUser(db, userId)
-      if (!rider) return { offers: [], contract: null }
-      return { offers: await getOffers(db, rider.id), contract: await getContract(db, rider.id) }
-    })
-
-    app.post<{ Params: { id: string } }>(
-      '/api/riders/me/offers/:id/accept',
-      async (request, reply) => {
-        const userId = await currentUserId(request)
-        if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
-        const rider = await getRiderForUser(db, userId)
-        if (!rider) return reply.status(409).send({ ok: false, error: 'sin_ciclista' })
-        try {
-          await acceptOffer(db, rider.id, request.params.id)
-        } catch {
-          return reply.status(409).send({ ok: false, error: 'oferta_no_disponible' })
-        }
-        return { ok: true }
-      },
-    )
-
-    app.post<{ Params: { id: string } }>(
-      '/api/riders/me/offers/:id/reject',
-      async (request, reply) => {
-        const userId = await currentUserId(request)
-        if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
-        const rider = await getRiderForUser(db, userId)
-        if (!rider) return reply.status(409).send({ ok: false, error: 'sin_ciclista' })
-        await rejectOffer(db, rider.id, request.params.id)
-        return { ok: true }
-      },
-    )
-
-    // Auto-inscripción del agente libre a carreras continentales (economía de viajes). Lista lo que
-    // puede correr con el coste de viaje, y permite inscribirse/darse de baja hasta que empiece.
-    app.get('/api/riders/me/race-entries', async (request, reply) => {
-      const userId = await currentUserId(request)
-      if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
-      const rider = await getRiderForUser(db, userId)
-      const world = await getCurrentWorld(db)
-      if (!rider || !world) return { races: [] }
-      return { races: await getEnterableRaces(db, rider.id, world.currentDay) }
-    })
-
-    app.post<{ Params: { raceId: string } }>(
-      '/api/riders/me/race-entries/:raceId',
-      async (request, reply) => {
-        const userId = await currentUserId(request)
-        if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
-        const rider = await getRiderForUser(db, userId)
-        const world = await getCurrentWorld(db)
-        if (!rider || !world) return reply.status(409).send({ ok: false, error: 'sin_ciclista' })
-        const res = await enterRace(db, rider.id, request.params.raceId, world.currentDay)
-        if (!res.ok) return reply.status(409).send({ ok: false, error: res.error })
-        return { ok: true }
-      },
-    )
-
-    app.delete<{ Params: { raceId: string } }>(
-      '/api/riders/me/race-entries/:raceId',
-      async (request, reply) => {
-        const userId = await currentUserId(request)
-        if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
-        const rider = await getRiderForUser(db, userId)
-        const world = await getCurrentWorld(db)
-        if (!rider || !world) return reply.status(409).send({ ok: false, error: 'sin_ciclista' })
-        const res = await withdrawRace(db, rider.id, request.params.raceId, world.currentDay)
-        if (!res.ok) return reply.status(409).send({ ok: false, error: res.error })
-        return { ok: true }
-      },
-    )
-
-    // Draft de calendario del EQUIPO (lo hace el manager): lista las carreras elegibles con el coste
-    // de viaje y permite añadir/quitar del plan. Solo para quien gestiona un equipo.
-    app.get('/api/teams/me/calendar', async (request, reply) => {
-      const userId = await currentUserId(request)
-      if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
-      const world = await getCurrentWorld(db)
-      if (!world) return { calendar: null }
-      return { calendar: await getTeamCalendar(db, userId, world.currentDay) }
-    })
-
-    app.post<{ Params: { raceId: string } }>(
-      '/api/teams/me/calendar/:raceId',
-      async (request, reply) => {
-        const userId = await currentUserId(request)
-        if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
-        const world = await getCurrentWorld(db)
-        if (!world) return reply.status(409).send({ ok: false, error: 'sin_mundo' })
-        const res = await draftRace(db, userId, request.params.raceId, world.currentDay)
-        if (!res.ok) return reply.status(409).send({ ok: false, error: res.error })
-        return { ok: true }
-      },
-    )
-
-    app.delete<{ Params: { raceId: string } }>(
-      '/api/teams/me/calendar/:raceId',
-      async (request, reply) => {
-        const userId = await currentUserId(request)
-        if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
-        const world = await getCurrentWorld(db)
-        if (!world) return reply.status(409).send({ ok: false, error: 'sin_mundo' })
-        const res = await undraftRace(db, userId, request.params.raceId, world.currentDay)
-        if (!res.ok) return reply.status(409).send({ ok: false, error: res.error })
-        return { ok: true }
-      },
-    )
-
-    app.put('/api/riders/me/orders', async (request, reply) => {
-      const userId = await currentUserId(request)
-      if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
-      const parsed = putOrdersSchema.safeParse(request.body)
-      if (!parsed.success) return reply.status(400).send({ ok: false, error: 'validacion' })
-      const rider = await getRiderForUser(db, userId)
-      const world = await getCurrentWorld(db)
-      if (!rider || !world) return reply.status(409).send({ ok: false, error: 'sin_ciclista' })
-      // Solo días futuros dentro del horizonte (SPEC 5.2: cola de 7 a 28 días).
-      const valid: TrainingOrderRow[] = parsed.data.orders.filter(
-        (order) =>
-          order.gameDay > world.currentDay &&
-          order.gameDay <= world.currentDay + TRAINING_HORIZON_DAYS,
-      )
-      await setTrainingOrders(db, rider.id, valid)
-      return { ok: true, saved: valid.length }
-    })
-
-    // --- Convocatorias y órdenes de etapa (Paso 29) ------------------------------------
-    const TEST_TOUR_ID = 'test-tour'
-    const stageOrderSchema = z.object({
-      stageDay: z.number().int().positive(),
-      role: z.enum([
-        'lider',
-        'sprinter',
-        'lanzador',
-        'gregario',
-        'cazaetapas',
-        'marcador',
-        'libre',
-      ]),
-      targetRiderId: z.string().uuid().nullable(),
-      mentality: z.enum(['reservon', 'oportunista', 'combativo', 'supercombativo']),
-      effort: z.enum(['ahorrar', 'normal', 'a_tope']),
-      triggerKm: z.number().int().nonnegative().nullable(),
-      contestSprints: z.boolean(),
-      contestClimbs: z.boolean(),
-    })
-    const putStageOrdersSchema = z.object({
-      orders: z.array(stageOrderSchema).max(TEST_TOUR.length),
-    })
-
-    // La vuelta de prueba: sus etapas con altimetría y las órdenes actuales del corredor.
-    app.get('/api/races/test-tour', async (request, reply) => {
-      const userId = await currentUserId(request)
-      if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
-      const rider = await getRiderForUser(db, userId)
-      const stages = TEST_TOUR.map((stage) => ({
-        day: stage.day,
-        name: stage.name,
-        kind: stage.kind,
-        timeTrial: stage.timeTrial ?? false,
-        km: Math.round(stage.profile.segments.reduce((sum, s) => sum + s.km, 0)),
-        altimetry: renderAltimetrySvg(stage.profile),
-      }))
-      if (!rider) return { stages, orders: [], roster: [] }
-      // El corredor se convoca a la vuelta de prueba al visitarla (roster mínimo hasta los NPC).
-      await addToRoster(db, TEST_TOUR_ID, rider.id)
-      const orders = await getStageOrders(db, TEST_TOUR_ID, rider.id)
-      const roster = [{ id: rider.id, name: rider.name }]
-      return { stages, orders, roster }
-    })
-
-    app.put('/api/races/test-tour/orders', async (request, reply) => {
-      const userId = await currentUserId(request)
-      if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
-      const parsed = putStageOrdersSchema.safeParse(request.body)
-      if (!parsed.success) return reply.status(400).send({ ok: false, error: 'validacion' })
-      const rider = await getRiderForUser(db, userId)
-      if (!rider) return reply.status(409).send({ ok: false, error: 'sin_ciclista' })
-      const validDays = new Set(TEST_TOUR.map((s) => s.day))
-      const valid: StageOrderRow[] = parsed.data.orders.filter((o) => validDays.has(o.stageDay))
-      await addToRoster(db, TEST_TOUR_ID, rider.id)
-      await setStageOrders(db, TEST_TOUR_ID, rider.id, valid)
-      return { ok: true, saved: valid.length }
-    })
-
-    // Órdenes del corredor para una carrera REAL del calendario a la que está convocado (raceKey
-    // = `${raceId}:s${season}`). Devuelve sus etapas con altimetría, las órdenes actuales y los
-    // compañeros de equipo en el roster (posibles objetivos). Solo si el corredor está convocado.
-    const raceForKey = (raceKey: string): (typeof SEASON_CALENDAR)[number] | null => {
-      const m = /^(.*):s\d+$/.exec(raceKey)
-      if (!m) return null
-      return SEASON_CALENDAR.find((r) => r.id === m[1]) ?? null
-    }
-    app.get<{ Querystring: { raceKey?: string } }>('/api/my-orders', async (request, reply) => {
-      const userId = await currentUserId(request)
-      if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
-      const rider = await getRiderForUser(db, userId)
-      const raceKey = request.query.raceKey ?? ''
-      const race = raceForKey(raceKey)
-      if (!rider || !race) return reply.status(404).send({ ok: false, error: 'no_encontrado' })
-      if (!(await isOnRoster(db, raceKey, rider.id))) {
-        return reply.status(403).send({ ok: false, error: 'no_convocado' })
-      }
-      const stages = race.stages.map((stage, i) => ({
-        day: i + 1,
-        name: `Stage ${i + 1}`,
-        kind: stage.kind,
-        timeTrial: stage.timeTrial ?? false,
-        km: Math.round(stage.profile.segments.reduce((sum, s) => sum + s.km, 0)),
-        altimetry: renderAltimetrySvg(stage.profile),
-      }))
-      const orders = await getStageOrders(db, raceKey, rider.id)
-      const teammates = await getRosterTeammates(db, raceKey, rider.id)
-      const rivals = await getRaceRivals(db, raceKey, rider.id)
-      return { race: { id: race.id, name: race.name }, stages, orders, teammates, rivals }
-    })
-
-    const putMyOrdersSchema = z.object({
-      raceKey: z.string().min(1),
-      orders: z.array(stageOrderSchema).max(30),
-    })
-    app.put('/api/my-orders', async (request, reply) => {
-      const userId = await currentUserId(request)
-      if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
-      const parsed = putMyOrdersSchema.safeParse(request.body)
-      if (!parsed.success) return reply.status(400).send({ ok: false, error: 'validacion' })
-      const rider = await getRiderForUser(db, userId)
-      const race = raceForKey(parsed.data.raceKey)
-      if (!rider || !race) return reply.status(404).send({ ok: false, error: 'no_encontrado' })
-      if (!(await isOnRoster(db, parsed.data.raceKey, rider.id))) {
-        return reply.status(403).send({ ok: false, error: 'no_convocado' })
-      }
-      const validDays = new Set(race.stages.map((_, i) => i + 1))
-      const valid: StageOrderRow[] = parsed.data.orders.filter((o) => validDays.has(o.stageDay))
-      await setStageOrders(db, parsed.data.raceKey, rider.id, valid)
-      return { ok: true, saved: valid.length }
-    })
-
-    // --- Resultados y replay (Paso 31) --------------------------------------------------
-    const MARKER_LABEL: Record<string, string> = {
-      fuga_formada: 'break',
-      fuga_cazada: 'caught',
-      banner: 'banner',
-      meta: 'finish',
-    }
-    // Calendario de temporada autorizado (Paso 34): 28 carreras con sus etapas cargadas.
-    app.get('/api/calendar', async () => {
-      const world = await getCurrentWorld(db)
-      // La temporada de almacenamiento es 0-indexada (floor(día/364)), como en el tick.
-      const season = world ? Math.floor(world.currentDay / 364) : 0
-      const winners = world ? await getSeasonWinners(db, world.worldId, season) : {}
-      const races = SEASON_CALENDAR.map((race) => ({
-        id: race.id,
-        name: race.name,
-        level: race.level,
-        raceClass: race.raceClass,
-        championshipCountry: race.championshipCountry ?? null,
-        championshipCategory: race.championshipCategory ?? null,
-        country: race.country ?? null,
-        format: race.format,
-        startDay: race.startDay,
-        openTo: race.openTo,
-        winner: winners[race.id] ?? null,
-        // Índices de etapa (1-based) tras los que hay descanso (grandes vueltas y alguna vuelta por
-        // etapas); vacío en las que no tienen. Permite marcar el descanso en la lista del calendario.
-        restAfter: race.restAfter ?? [],
-        stages: race.stages.map((stage) => {
-          // De dónde a dónde va la etapa: localidades reales del recorrido de autoría de la carrera.
-          const ends = stageEndpoints(race.id, stage.index)
-          return {
-            index: stage.index,
-            name: stage.name,
-            label: stage.label,
-            kind: stage.kind,
-            km: Math.round(stage.profile.segments.reduce((sum, s) => sum + s.km, 0)),
-            timeTrial: stage.timeTrial ?? false,
-            from: ends?.from ?? null,
-            to: ends?.to ?? null,
-          }
-        }),
-      }))
-      // Día actual de la temporada (0..363) para marcar "hoy" en el calendario; null si no hay mundo.
-      return { races, dayOfSeason: world ? world.currentDay % 364 : null }
-    })
-
-    // Explorar el mundo (#13/#14/#15): equipos, ficha de equipo, ficha pública de corredor. Público.
-    app.get('/api/teams', async () => {
-      const world = await getCurrentWorld(db)
-      if (!world) return { teams: [] }
-      return { teams: await getTeams(db, world.worldId) }
-    })
-
-    app.get<{ Params: { id: string } }>('/api/teams/:id', async (request, reply) => {
-      const team = await getTeamDetail(db, request.params.id)
-      if (!team) return reply.status(404).send({ ok: false, error: 'no_encontrado' })
-      return { team }
-    })
-
-    // Noticias del equipo (#16): titulares de sus corredores.
-    app.get<{ Params: { id: string } }>('/api/teams/:id/news', async (request) => {
-      return { news: await getTeamNews(db, request.params.id) }
-    })
-
-    // Logros de un corredor (#95).
-    app.get<{ Params: { id: string } }>('/api/riders/:id/badges', async (request) => {
-      return { badges: await getRiderBadges(db, request.params.id) }
-    })
-
-    // Palmarés público de cualquier corredor (lo que ha ganado): para ver el detalle desde su ficha.
-    app.get<{ Params: { id: string } }>('/api/riders/:id/palmares', async (request) => {
-      return { palmares: await getPalmares(db, request.params.id) }
-    })
-
-    // Últimos resultados públicos de cualquier corredor (sus puestos en carreras ya corridas).
-    app.get<{ Params: { id: string } }>('/api/riders/:id/results', async (request) => {
-      return { results: await getRiderRecentResults(db, request.params.id) }
-    })
-
-    app.get<{ Params: { id: string } }>('/api/riders/:id', async (request, reply) => {
-      const world = await getCurrentWorld(db)
-      const season = world ? Math.floor(world.currentDay / 364) : 0
-      const rider = await getPublicRider(db, request.params.id, season)
-      if (!rider) return reply.status(404).send({ ok: false, error: 'no_encontrado' })
-      return { rider }
-    })
-
-    // Naciones (#7): lista de países con corredores y ranking nacional por país. Público.
-    app.get('/api/countries', async () => {
-      const world = await getCurrentWorld(db)
-      if (!world) return { countries: [] }
-      return { countries: await getCountriesSummary(db, world.worldId) }
-    })
-
-    app.get<{ Params: { code: string } }>('/api/countries/:code', async (request, reply) => {
-      if (!isKnownCountry(request.params.code)) {
-        return reply.status(404).send({ ok: false, error: 'no_encontrado' })
-      }
-      const world = await getCurrentWorld(db)
-      if (!world) return { code: request.params.code.toUpperCase(), riders: [] }
-      return {
-        code: request.params.code.toUpperCase(),
-        riders: await getCountryRiders(db, world.worldId, request.params.code),
-      }
-    })
-
-    // Agentes libres del mercado (#20): corredores en activo sin equipo, filtrable por país y vocación.
-    app.get<{ Querystring: { country?: string; vocation?: string } }>(
-      '/api/free-agents',
-      async (request) => {
-        const world = await getCurrentWorld(db)
-        if (!world) return { riders: [] }
-        const season = seasonPosition(world.currentDay).season
-        const country = request.query.country?.trim()
-        const vocation = request.query.vocation?.trim()
-        return {
-          riders: await getFreeAgents(db, world.worldId, season, {
-            ...(country ? { country } : {}),
-            ...(vocation ? { archetype: vocation } : {}),
-          }),
-        }
-      },
-    )
-
-    // Página de una carrera del calendario: general de la temporada, ganadores de etapa e historial.
-    app.get<{ Params: { raceId: string } }>('/api/calendar/:raceId', async (request, reply) => {
-      const race = SEASON_CALENDAR.find((r) => r.id === request.params.raceId)
-      if (!race) return reply.status(404).send({ ok: false, error: 'no_encontrado' })
-      // Perfil de cada etapa (determinista, no depende del mundo): la altimetría real de autoría de la
-      // carrera —relieve, puertos y sus categorías—, que es lo que de verdad define cada etapa.
-      const stagePlan = race.stages.map((stage) => {
-        const ends = stageEndpoints(race.id, stage.index)
-        return {
-          index: stage.index,
-          name: stage.name,
-          label: stage.label,
-          kind: stage.kind,
-          km: Math.round(stage.profile.segments.reduce((sum, s) => sum + s.km, 0)),
-          timeTrial: stage.timeTrial ?? false,
-          from: ends?.from ?? null,
-          to: ends?.to ?? null,
-          altimetry: renderAltimetrySvg(stage.profile),
-        }
-      })
-      // Días de descanso: índices de etapa (1-based) tras los que hay descanso (grandes vueltas y
-      // alguna carrera por etapas como la Volta a Portugal). Vacío en las que no tienen.
-      const restAfter = race.restAfter ?? []
-      const world = await getCurrentWorld(db)
-      if (!world)
-        return {
-          race: { id: race.id, name: race.name, level: race.level, country: race.country ?? null },
-          stages: stagePlan,
-          restAfter,
-          gc: [],
-          stageWinners: [],
-          history: [],
-        }
-      const season = Math.floor(world.currentDay / 364)
-      const raceKey = `${race.id}:s${season}`
-      const gc = (await getRaceGc(db, raceKey)).slice(0, 20)
-      const stageWinners = await getStageWinners(db, raceKey)
-      const history = await getRaceHistory(db, world.worldId, race.id)
-      return {
-        race: {
-          id: race.id,
-          name: race.name,
-          level: race.level,
-          raceClass: race.raceClass,
-          format: race.format,
-          stageCount: race.stages.length,
-          country: race.country ?? null,
-        },
-        stages: stagePlan,
-        restAfter,
-        gc,
-        stageWinners,
-        history,
-      }
-    })
-
-    // Lista de inscritos de una carrera que está a punto de empezar (dentro de la ventana de cierre de
-    // inscripciones): una vez pasado el cierre (~2 semanas antes) la escuadra está congelada y trae a los
-    // corredores reales; antes, solo se prevén los equipos que acudirán. Vacía si la carrera no está
-    // próxima o ya se corrió esta temporada.
-    app.get<{ Params: { raceId: string } }>(
-      '/api/calendar/:raceId/startlist',
-      async (request, reply) => {
-        const race = SEASON_CALENDAR.find((r) => r.id === request.params.raceId)
-        if (!race) return reply.status(404).send({ ok: false, error: 'no_encontrado' })
-        const world = await getCurrentWorld(db)
-        if (!world) return { upcoming: false, teams: [], freeAgents: [] }
-        const season = Math.floor(world.currentDay / 364)
-        const dayOfSeason = world.currentDay % 364
-        const daysUntil = race.startDay - dayOfSeason
-        // Solo si aún no ha empezado esta temporada y arranca dentro de la ventana de cierre.
-        if (daysUntil <= 0 || daysUntil > ENROLL_LOCK_DAYS) {
-          return { upcoming: false, daysUntil, teams: [], freeAgents: [] }
-        }
-        // Dentro de la ventana la escuadra ya debe estar congelada; si el tick no la congeló aún
-        // (mundo ya dentro de la ventana al desplegar), la congela ahora para mostrar corredores reales.
-        await ensureRaceRosterFrozen(db, world.worldId, world.worldSeed, race, world.currentDay)
-        const startlist = await predictStartlist(db, world.worldId, race, season)
-        return { upcoming: true, daysUntil, ...startlist }
-      },
-    )
-
-    // General de la vuelta + estado de cada etapa (corrida o no).
-    app.get('/api/races/test-tour/results', async (request, reply) => {
-      const userId = await currentUserId(request)
-      if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
-      const gc = await getRaceGc(db, TEST_TOUR_ID)
-      const points = await getPointsClassification(db, TEST_TOUR_ID)
-      const kom = await getKomClassification(db, TEST_TOUR_ID)
-      const teamsGc = teamsClassification(gc)
-      const run = new Set(await getRunStageDays(db, TEST_TOUR_ID))
-      const stages = TEST_TOUR.map((stage) => ({
-        day: stage.day,
-        name: stage.name,
-        kind: stage.kind,
-        km: Math.round(stage.profile.segments.reduce((sum, s) => sum + s.km, 0)),
-        run: run.has(stage.day),
-      }))
-      return { gc, points, kom, teamsGc, stages }
-    })
-
-    // Replay de una etapa: se regenera desde el snapshot sellado (SPEC 6.1).
-    app.get<{ Params: { day: string } }>(
-      '/api/races/test-tour/stages/:day',
-      async (request, reply) => {
-        const userId = await currentUserId(request)
-        if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
-        const day = Number(request.params.day)
-        const stage = TEST_TOUR.find((s) => s.day === day)
-        if (!stage) return reply.status(404).send({ ok: false, error: 'no_encontrado' })
-
-        const snapshot = await getStageSnapshot(db, TEST_TOUR_ID, day)
-        const results = await getStageResults(db, TEST_TOUR_ID, day)
-        const km = Math.round(stage.profile.segments.reduce((sum, s) => sum + s.km, 0))
-        if (!snapshot) {
-          return {
-            day,
-            name: stage.name,
-            km,
-            run: false,
-            altimetry: renderAltimetrySvg(stage.profile),
-          }
-        }
-
-        // Regenera los eventos ejecutando el motor con la misma entrada y semilla.
-        const output = simulateStage(snapshot.input as StageInput, snapshot.seed)
-        const nameOf = new Map(results.map((r) => [r.riderId, r.name]))
-        const teamOf = new Map(results.map((r) => [r.riderId, r.teamName]))
-        // Orden narrativo: por km y, a igual km, primero la fuga/cima y al final la victoria.
-        const EVENT_ORDER: Record<string, number> = {
-          breakaway_formed: 0,
-          break_cooperation: 0,
-          sprinters_chase: 1,
-          peloton_concedes: 1,
-          sprinters_give_up: 1,
-          time_gap: 2,
-          sprint_intermediate: 2,
-          climb_kom: 3,
-          peloton_split: 4,
-          breakaway_caught: 5,
-          final_km: 6,
-          bunch_sprint: 6,
-          stage_win: 7,
-          stage_win_itt: 6,
-        }
-        const chronicle = output.events
-          .map((e) => ({
-            km: Math.round(e.km),
-            tS: Math.round(e.tS),
-            plantilla: e.plantilla,
-            protagonists: e.protagonistas.map((id) => nameOf.get(id) ?? id),
-            protagonistTeams: [
-              ...new Set(
-                e.protagonistas.map((id) => teamOf.get(id)).filter((t): t is string => !!t),
-              ),
-            ],
-            datos: e.datos,
-          }))
-          .sort(
-            (a, b) =>
-              a.km - b.km ||
-              (EVENT_ORDER[a.plantilla] ?? 9) - (EVENT_ORDER[b.plantilla] ?? 9) ||
-              a.tS - b.tS,
-          )
-          // Quita duplicados exactos consecutivos (misma frase, mismos protagonistas y km).
-          .filter((e, i, arr) => {
-            const prev = arr[i - 1]
-            return (
-              !prev ||
-              prev.km !== e.km ||
-              prev.plantilla !== e.plantilla ||
-              prev.protagonists.join() !== e.protagonists.join()
-            )
-          })
-        // Momentos clave sobre la altimetría: fuga, captura, banners y meta.
-        const markers: AltimetryMarker[] = output.events
-          .filter((e) => ['fuga_formada', 'fuga_cazada', 'banner', 'meta'].includes(e.tipo))
-          .map((e) => ({ km: e.km, label: MARKER_LABEL[e.tipo] ?? '•' }))
-        const altimetry = renderAltimetrySvg(stage.profile, { markers })
-        // La general tal como quedó tras esta etapa (no solo la final).
-        const gc = await getGcThroughStage(db, TEST_TOUR_ID, day)
-        return { day, name: stage.name, km, run: true, altimetry, results, chronicle, gc }
-      },
-    )
-
-    // Crónica/journal de una etapa de CALENDARIO (pública): regenera los eventos desde el snapshot
-    // sellado y cuenta lo que pasó (fuga, caza, cimas, sprints, meta), aunque no hayas corrido tú.
-    app.get<{ Params: { raceId: string; day: string } }>(
-      '/api/races/:raceId/stages/:day',
-      async (request, reply) => {
-        const world = await getCurrentWorld(db)
-        if (!world) return reply.status(404).send({ ok: false, error: 'no_encontrado' })
-        const season = Math.floor(world.currentDay / 364)
-        const race = SEASON_CALENDAR.find((r) => r.id === request.params.raceId)
-        const day = Number(request.params.day)
-        const stage = race?.stages[day - 1]
-        if (!race || !stage) return reply.status(404).send({ ok: false, error: 'no_encontrado' })
-        const raceKey = `${race.id}:s${season}`
-        const km = Math.round(stage.profile.segments.reduce((sum, s) => sum + s.km, 0))
-        const snapshot = await getStageSnapshot(db, raceKey, day)
-        if (!snapshot) {
-          return {
-            day,
-            name: stage.name,
-            km,
-            run: false,
-            timeTrial: stage.timeTrial ?? false,
-            altimetry: renderAltimetrySvg(stage.profile),
-          }
-        }
-        const results = await getStageResults(db, raceKey, day)
-        const gc = await getGcThroughStage(db, raceKey, day)
-        // Montaña y puntos tal como quedaron TRAS esta etapa (acumulado hasta el día `day`).
-        const kom = await getKomClassification(db, raceKey, day)
-        const points = await getPointsClassification(db, raceKey, day)
-        // El journal se lee de los eventos CONGELADOS al correr la etapa (no se re-simula): así siempre
-        // cuadra con el resultado guardado. Las etapas corridas antes de guardarlos no tienen journal
-        // detallado (no lo inventamos re-simulando, que daría una historia distinta al resultado real).
-        const storedEvents = snapshot.events as StoredEvent[] | null
-        if (!storedEvents) {
-          return {
-            day,
-            name: stage.name,
-            km,
-            run: true,
-            timeTrial: stage.timeTrial ?? false,
-            altimetry: renderAltimetrySvg(stage.profile),
-            results,
-            gc,
-            kom,
-            points,
-            journalUnavailable: true,
-          }
-        }
-        const nameOf = new Map(results.map((r) => [r.riderId, r.name]))
-        const teamOf = new Map(results.map((r) => [r.riderId, r.teamName]))
-        const EVENT_ORDER: Record<string, number> = {
-          breakaway_formed: 0,
-          break_cooperation: 0,
-          sprinters_chase: 1,
-          peloton_concedes: 1,
-          sprinters_give_up: 1,
-          time_gap: 2,
-          sprint_intermediate: 2,
-          climb_kom: 3,
-          peloton_split: 4,
-          breakaway_caught: 5,
-          final_km: 6,
-          bunch_sprint: 6,
-          stage_win: 7,
-          stage_win_itt: 6,
-        }
-        const chronicle = storedEvents
-          .map((e) => ({
-            km: Math.round(e.km),
-            tS: Math.round(e.tS),
-            plantilla: e.plantilla,
-            protagonists: e.protagonistas.map((id) => nameOf.get(id) ?? id),
-            protagonistTeams: [
-              ...new Set(
-                e.protagonistas.map((id) => teamOf.get(id)).filter((t): t is string => !!t),
-              ),
-            ],
-            datos: e.datos,
-          }))
-          .sort(
-            (a, b) =>
-              a.km - b.km ||
-              (EVENT_ORDER[a.plantilla] ?? 9) - (EVENT_ORDER[b.plantilla] ?? 9) ||
-              a.tS - b.tS,
-          )
-          .filter((e, i, arr) => {
-            const prev = arr[i - 1]
-            return (
-              !prev ||
-              prev.km !== e.km ||
-              prev.plantilla !== e.plantilla ||
-              prev.protagonists.join() !== e.protagonists.join()
-            )
-          })
-        const markers: AltimetryMarker[] = storedEvents
-          .filter((e) => ['fuga_formada', 'fuga_cazada', 'banner', 'meta'].includes(e.tipo))
-          .map((e) => ({ km: e.km, label: MARKER_LABEL[e.tipo] ?? '•' }))
-        const altimetry = renderAltimetrySvg(stage.profile, { markers })
-        return {
-          day,
-          name: stage.name,
-          km,
-          run: true,
-          timeTrial: stage.timeTrial ?? false,
-          altimetry,
-          results,
-          chronicle,
-          gc,
-          kom,
-          points,
-        }
-      },
-    )
-
-    // Avance del mundo desde la web para pruebas (Paso 32): un usuario con sesión adelanta N días
-    // de juego con un clic, sin consola ni token. Herramienta temporal de la fase alfa; el tick
-    // automático (cron) la sustituye en producción (SPEC Paso 43).
+    void app.register(riderRoutes, ctx)
+    void app.register(teamRoutes, ctx)
+    void app.register(raceRoutes, ctx)
+    void app.register(calendarRoutes, ctx)
+    void app.register(rankingRoutes, ctx)
     if (deps.onAdminAdvance) {
-      const onAdminAdvance = deps.onAdminAdvance
-      app.post<{ Querystring: { days?: string } }>('/api/world/advance', async (request, reply) => {
-        const userId = await currentUserId(request)
-        if (!userId) return reply.status(401).send({ ok: false, error: 'no_autorizado' })
-        const days = Math.min(10, Math.max(1, Number(request.query.days ?? 1) || 1))
-        const summary = await onAdminAdvance(days)
-        return { ok: true, currentDay: summary.currentDay, daysProcessed: summary.daysProcessed }
-      })
+      void app.register(worldRoutes, { requireAdmin, onAdminAdvance: deps.onAdminAdvance })
     }
   }
 
@@ -1427,11 +188,11 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
         void reply.sendFile('index.html')
         return
       }
-      reply.status(404).send({ ok: false, error: 'no_encontrado' })
+      reply.status(404).send(apiError('no_encontrado'))
     })
   } else {
     app.setNotFoundHandler((_request, reply) => {
-      reply.status(404).send({ ok: false, error: 'no_encontrado' })
+      reply.status(404).send(apiError('no_encontrado'))
     })
   }
 
