@@ -156,6 +156,28 @@ del ganador. Los rellenos comparten SPR, así que los puestos 4.º a 40.º los d
 —un mismo corredor va del puesto 4 al 39 según el día— y como los puntos reparten a 14 posiciones,
 **la clasificación por puntos entre gregarios es azar puro**.
 
+**i) La fatiga acumulada no llega al depósito. Es la otra mitad de (a).**
+
+Cada corredor **sí** llega a la etapa con su estado propio, pero solo en parte
+(`packages/db/src/stageRun.ts:178-204`):
+
+| Entrada del motor | ¿Depende del estado del corredor?                                               |
+| ----------------- | ------------------------------------------------------------------------------- |
+| `eff0`            | **Sí** — `eff0(attr, ctl, tsb, health, morale)`: forma, frescura, salud y moral |
+| `matches`         | **Sí** — `matchCount(eff, tsb)` resta un cerillo con TSB muy negativo           |
+| `energy` (E₀)     | **NO** — `energy: 100` **cableado para todos** (`stageRun.ts:202`)              |
+
+Y el efecto de la forma sobre `eff0` es estrecho: `mForm ∈ [0.92, 1.05]`, es decir **±6,5%**.
+
+**Por qué esto cierra el círculo con (a).** La erosión se mide como `depletion = 1 − E/E₀`. Si todos
+salen con E₀ = 100 y el gasto mediano es 46-55, la depleción nunca alcanza el umbral de 0,57 y la
+erosión es 0,000 siempre. Con un corredor fatigado saliendo, por ejemplo, con E₀ = 75, ese mismo
+gasto de 50 daría 0,67 y **sí** erosionaría.
+
+Es decir: **el depósito constante es una causa directa de que nadie se canse**. Un corredor en la
+etapa 18 de una gran vuelta sale hoy con el mismo tanque que uno recién descansado. La fatiga
+acumulada tiene que entrar en `E₀`, no solo en un multiplicador del ±6,5%.
+
 **h) `pnpm sim` está en rojo, y ya lo estaba.** Los umbrales de `sim/cli.ts` (fuga en llano 2-8%,
 en montaña 25-45%) son más estrictos que los del test de CI (2-12% y 25-55%). El motor da **8,3%** y
 **59,7%**: CI pasa y `pnpm sim` falla. Hay que alinearlos.
@@ -308,6 +330,12 @@ calibra encima de ellos**:
    umbral (0,57). Hay que ajustar la relación entre el tanque inicial, el coste por km y el umbral
    para que una etapa dura erosione de verdad y una suave no. Es un trabajo de calibración con
    Montecarlo, no de arquitectura. Con él se activan también la pájara y el coste de los cerillos.
+   1-bis. **Que la fatiga acumulada entre en el depósito** (§3-bis-i). Sustituir el `energy: 100`
+   cableado de `stageRun.ts:202` por un E₀ que dependa del estado real del corredor (TSB/CTL, salud,
+   y el desgaste de las etapas anteriores en una carrera por etapas). Es la mitad que falta del punto
+   1: sin esto, subir el umbral de erosión castigaría por igual al fresco y al reventado. Es además
+   **la pieza que hace que una gran vuelta se sienta como una gran vuelta**, con el pelotón cada vez
+   más justo según avanzan los días.
 2. **Sacar el controlador del pelotón de `if (breakaway && !caught)`.** El pelotón debe regular su
    ritmo _siempre_: haya fuga, la hayan cazado o no se haya formado nunca. Es un cambio pequeño de
    estructura con un efecto enorme (hoy son 39 minutos de diferencia en una etapa llana).
@@ -339,8 +367,10 @@ adoquines no son clásicas de adoquines.
 ### 15. Cambio 4 — Consecuencias de la fatiga
 
 - **Activar la pájara**: pasar `bonk` a `effNow` cuando el tanque llega a cero. El código ya existe.
-- **Abandonos y fuera de control**: que una lesión grave pueda significar no terminar, y que exista
-  el corte de tiempo. Hoy el tipo `StageResult` ya contempla `'abandon' | 'dnf'` y nunca se emiten.
+- **Abandonos y fuera de control** (decidido, ver §V.5): abandono **automático** cuando el corredor
+  no puede más (tanque agotado, lesión seria, corte de tiempo) y abandono **voluntario entre etapas**
+  para el jugador humano que prefiere retirarse y preparar otra carrera. Hoy el tipo `StageResult`
+  contempla `'abandon' | 'dnf'` y nunca se emiten.
 
 ### 16. Cambio 5 — Telemetría: que el motor cuente lo que sabe
 
@@ -401,16 +431,69 @@ ya está en marcha en el trabajo de corrección en curso.
 
 ---
 
-## Parte V — Cuestiones abiertas para decidir
+## Parte V — Decisiones tomadas
 
-1. **Alcance de la capa táctica.** ¿Modelo simple (intentos con probabilidad y respuesta del
-   pelotón) o modelo de intenciones por equipo (cada equipo con objetivos y presupuesto de
-   esfuerzo)? Lo segundo es bastante más caro y bastante más realista.
-2. **¿Cuánto debe pesar el azar?** Hoy hay dos fuentes: piernas del día (±3σ sobre todos los
-   atributos) y el ruido del sprint. Con una capa táctica de verdad, quizá sobre parte de ese ruido.
-3. **Perfiles**: con 532 campeonatos nacionales (133 países × 4) que PCS no va a cubrir para la
-   mayoría de países, ¿aceptamos un generador _consciente de la identidad_ del país (un nacional
-   belga es llano y de adoquines; uno colombiano, de montaña) para ese bloque concreto?
-4. **CRE**: ¿entra en el MVP o se retira del `constants.ts` hasta que toque?
-5. **Abandonos**: ¿queremos que un usuario real pueda no terminar una gran vuelta? Tiene
-   consecuencias de producto (frustración) además de realismo.
+Resueltas con el dueño. Sustituyen a las cuestiones abiertas de la v1.
+
+### V.1 Capa táctica: por equipo, con las individualidades por encima
+
+Modelo de **intenciones por equipo** (cada equipo con objetivos y presupuesto de esfuerzo), pero con
+dos reglas que mandan sobre él:
+
+1. **Las órdenes individuales priman sobre el plan del equipo.** Si un corredor humano desobedece —
+   se va por su cuenta cuando su equipo le pidió arropar—, **su decisión gana**. El plan de equipo
+   es el comportamiento por defecto, no una jaula. Esto es diseño de producto, no solo de motor:
+   desobedecer debe ser posible, tener sentido a veces, y tener consecuencias (moral, confianza del
+   equipo, y el resultado deportivo).
+2. **Un corredor sin equipo corre de forma individual**: no participa de ningún plan colectivo y
+   decide solo con sus propias órdenes y su situación.
+
+### V.2 Azar: moderado, sin romper el determinismo
+
+Objetivo: que el resultado **no sea deducible de los atributos**. Un corredor con mal día, mal
+posicionado o mal aconsejado debe poder perder.
+
+> **Distinción crítica que hay que conservar.** _Determinismo_ (misma semilla → mismo resultado) es
+> innegociable: sostiene los replays fieles y la idempotencia del tick, que puede reintentar un día
+> sin duplicar ni alterar resultados. Lo que se reduce es la _predictibilidad_, que es otra cosa.
+> La variedad entra por la semilla `(worldSeed, raceId, stageDay, engineVersion)` y por la capa
+> táctica, nunca por el reloj. Meter la hora real en la semilla haría que dos ejecuciones difirieran
+> — y perderíamos los replays. **No se hace.**
+
+### V.3 Perfiles: generador aceptable de inicio, refinar después
+
+Se acepta un generador _consciente de la identidad_ para lo que no se pueda extraer de
+procyclingstats (sobre todo los 532 campeonatos nacionales: un nacional belga es llano y de
+adoquines; uno colombiano, de montaña). Es un punto de partida, no el destino: se afina con el
+tiempo. Los 147 perfiles ya existentes **también se validan** contra PCS, porque no hay certeza de
+que estén bien.
+
+### V.4 CRE: se implementa, pero no urge
+
+Ninguna carrera del calendario actual la usa. (La CRE del Tour real era, de hecho, una CRI con
+salida por equipos.) Las constantes `teamTt*` **se conservan** marcadas como pendientes, no se
+retiran.
+
+### V.5 Abandonos: automáticos y voluntarios
+
+Dos vías, ambas deseadas:
+
+1. **Automático**: si un corredor no puede más —tanque agotado, lesión seria, fuera de control—
+   abandona. Hoy no ocurre nunca (`'abandon' | 'dnf'` existen en el tipo y no se emiten jamás).
+2. **Voluntario, entre etapas**: un jugador humano puede **retirarse de una carrera por etapas**
+   entre una etapa y la siguiente. Es una decisión de gestión legítima y con buen sabor de juego:
+   voy mal, arriesgo lesión, no voy a ganar nada — mejor retirarme y preparar otra carrera en
+   condiciones. Necesita su punto en la interfaz (`My Rider → My races`, y probablemente también en
+   el dashboard cuando estoy en carrera).
+
+---
+
+## Parte VI — Cuestiones que siguen abiertas
+
+1. **Cuánta fatiga debe cargarse en el tanque inicial** (§3-bis-i): la relación exacta entre TSB /
+   CTL y `E0` es una perilla de calibración con consecuencias grandes. Hay que fijarla con
+   Montecarlo, cuidando que una gran vuelta desgaste de verdad sin volverse impracticable.
+2. **Consecuencias de desobedecer** (§V.1): cuánto penaliza en moral y confianza del equipo, y si el
+   equipo puede sancionar (no convocarte) o rescindir.
+3. **Umbral del abandono automático**: dónde está la frontera entre "sufrir mucho" y "no terminar",
+   para que no se convierta en una hemorragia de abandonos en cada etapa de montaña.
