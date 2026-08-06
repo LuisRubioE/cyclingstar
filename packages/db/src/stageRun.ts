@@ -8,17 +8,20 @@ import {
   applyDailyLoad,
   autoStageOrders,
   eff0,
+  gcPointsByClass,
   matchCount,
   simulateStage,
+  stagePointsByClass,
   stageSeed,
   stageTss,
 } from '@cyclingstar/engine'
 import { ATTRIBUTES, type Attribute } from '@cyclingstar/shared'
 import { and, asc, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
+import { BATCH_ROWS, type BatchValue, inChunks, valuesList } from './batch.js'
 import { awardRacePrizes } from './economy.js'
 import { emitNews } from './news.js'
-import { addGcPoints, addStagePoints, recordPalmares } from './ranking.js'
+import { addSeasonPointsBatch, recordPalmares } from './ranking.js'
 import {
   raceGc,
   raceRosters,
@@ -240,46 +243,46 @@ export async function runOneStage(
     })
     .onConflictDoNothing()
 
+  // Todo lo que sigue se ACUMULA en memoria y se escribe en lote al final: una etapa de gran vuelta
+  // son 176 corredores y el bucle fila a fila hacía ~700-900 idas y vueltas dentro de la transacción
+  // del día. Los valores se calculan exactamente igual que antes; solo cambia cómo se mandan.
   const dailyLogValues: (typeof riderDailyLog.$inferInsert)[] = []
   const attrLogValues: (typeof riderAttrLog.$inferInsert)[] = []
+  const resultValues: (typeof stageResults.$inferInsert)[] = []
+  const gcValues: (typeof raceGc.$inferInsert)[] = []
+  const loadValues: BatchValue[][] = []
+  const attrValues: BatchValue[][] = []
   const raced = new Set<string>()
+  const gcByRider = new Map(gcRows.map((r) => [r.riderId, r]))
 
   for (const result of output.results) {
     raced.add(result.riderId)
-    await tx
-      .insert(stageResults)
-      .values({
-        raceId: spec.raceKey,
-        stageDay: spec.stageDay,
-        riderId: result.riderId,
-        puesto: result.puesto,
-        tiempoS: result.tiempoS,
-        bonificacionS: result.bonificacionS,
-        puntosVolante: result.puntosVolante,
-        puntosMontana: result.puntosMontana,
-      })
-      .onConflictDoNothing()
+    resultValues.push({
+      raceId: spec.raceKey,
+      stageDay: spec.stageDay,
+      riderId: result.riderId,
+      puesto: result.puesto,
+      tiempoS: result.tiempoS,
+      bonificacionS: result.bonificacionS,
+      puntosVolante: result.puntosVolante,
+      puntosMontana: result.puntosMontana,
+    })
 
     const netTime = Math.max(0, result.tiempoS - result.bonificacionS)
-    const prev = gcRows.find((r) => r.riderId === result.riderId)
-    const totals = {
+    const prev = gcByRider.get(result.riderId)
+    gcValues.push({
+      raceId: spec.raceKey,
+      riderId: result.riderId,
       tiempoTotalS: (prev?.tiempoTotalS ?? 0) + netTime,
       puntosVolante: (prev?.puntosVolante ?? 0) + result.puntosVolante,
       puntosMontana: (prev?.puntosMontana ?? 0) + result.puntosMontana,
-    }
-    await tx
-      .insert(raceGc)
-      .values({ raceId: spec.raceKey, riderId: result.riderId, ...totals })
-      .onConflictDoUpdate({ target: [raceGc.raceId, raceGc.riderId], set: totals })
+    })
 
     const state = riderState.get(result.riderId)
     if (!state) continue
     const tss = stageTss(output.workUnits.get(result.riderId) ?? 0)
     const load = applyDailyLoad({ ctl: state.ctl, atl: state.atl }, tss, state.attributes.REC)
-    await tx
-      .update(riders)
-      .set({ ctl: load.ctl, atl: load.atl })
-      .where(eq(riders.id, result.riderId))
+    loadValues.push([result.riderId, load.ctl, load.atl])
     dailyLogValues.push({
       riderId: result.riderId,
       gameDay,
@@ -298,18 +301,49 @@ export async function runOneStage(
       if (gain <= 0) continue
       const after = Math.min(ceiling, before + gain)
       if (after === before) continue
-      await tx
-        .update(riderAttrs)
-        .set({ value: after })
-        .where(and(eq(riderAttrs.riderId, result.riderId), eq(riderAttrs.attr, attr)))
+      attrValues.push([result.riderId, attr, after])
       attrLogValues.push({ riderId: result.riderId, gameDay, attr, delta: after - before })
     }
   }
 
-  await insertChunked(dailyLogValues, 1000, (chunk) =>
+  await inChunks(resultValues, BATCH_ROWS, (chunk) =>
+    tx.insert(stageResults).values(chunk).onConflictDoNothing(),
+  )
+  // Upsert en lote: `excluded.*` son los totales ya calculados arriba (prev + delta), igual que el
+  // `set` fila a fila de antes. Cada corredor aparece una sola vez por etapa, así que no hay
+  // conflicto de dos filas nuevas contra la misma clave dentro del mismo lote.
+  await inChunks(gcValues, BATCH_ROWS, (chunk) =>
+    tx
+      .insert(raceGc)
+      .values(chunk)
+      .onConflictDoUpdate({
+        target: [raceGc.raceId, raceGc.riderId],
+        set: {
+          tiempoTotalS: sql`excluded.tiempo_total_s`,
+          puntosVolante: sql`excluded.puntos_volante`,
+          puntosMontana: sql`excluded.puntos_montana`,
+        },
+      }),
+  )
+  await inChunks(loadValues, BATCH_ROWS, async (chunk) => {
+    const v = valuesList(chunk, ['uuid', 'real', 'real'])
+    await tx.execute(
+      sql`update ${riders} set ctl = v.ctl, atl = v.atl
+          from ${v} as v(id, ctl, atl) where ${riders.id} = v.id`,
+    )
+  })
+  await inChunks(attrValues, BATCH_ROWS, async (chunk) => {
+    const v = valuesList(chunk, ['uuid', 'rider_attribute', 'real'])
+    await tx.execute(
+      sql`update ${riderAttrs} set value = v.value
+          from ${v} as v(rider_id, attr, value)
+          where ${riderAttrs.riderId} = v.rider_id and ${riderAttrs.attr} = v.attr`,
+    )
+  })
+  await inChunks(dailyLogValues, BATCH_ROWS, (chunk) =>
     tx.insert(riderDailyLog).values(chunk).onConflictDoNothing(),
   )
-  await insertChunked(attrLogValues, 2000, (chunk) =>
+  await inChunks(attrLogValues, BATCH_ROWS, (chunk) =>
     tx.insert(riderAttrLog).values(chunk).onConflictDoNothing(),
   )
 
@@ -491,9 +525,13 @@ async function awardOutcome(
   // En una carrera de UN DÍA la etapa ES la general: no se dan puntos de etapa (contarían doble con
   // los de general de abajo). El resultado reparte en la escala de general (más prestigio que una etapa).
   if (!isOneDay) {
-    for (const r of output.results) {
-      await addStagePoints(tx, r.riderId, spec.raceClass, r.puesto - 1)
-    }
+    await addSeasonPointsBatch(
+      tx,
+      output.results.map((r) => ({
+        riderId: r.riderId,
+        points: stagePointsByClass(spec.raceClass, r.puesto - 1),
+      })),
+    )
   }
   // En una carrera de UN DÍA (etapa única = final) la victoria de etapa y la general son la MISMA:
   // no se registra honor de etapa (contaría doble en el palmarés); solo cuenta como victoria de general.
@@ -510,9 +548,10 @@ async function awardOutcome(
     })
   }
   if (spec.isFinal) {
-    for (let i = 0; i < gcOrder.length; i++) {
-      await addGcPoints(tx, gcOrder[i]!, spec.raceClass, i)
-    }
+    await addSeasonPointsBatch(
+      tx,
+      gcOrder.map((riderId, i) => ({ riderId, points: gcPointsByClass(spec.raceClass, i) })),
+    )
     if (gcWinnerId) {
       await recordPalmares(tx, {
         worldId,
@@ -524,15 +563,5 @@ async function awardOutcome(
         gameDay,
       })
     }
-  }
-}
-
-async function insertChunked<T>(
-  rows: T[],
-  size: number,
-  insert: (chunk: T[]) => Promise<unknown>,
-): Promise<void> {
-  for (let i = 0; i < rows.length; i += size) {
-    await insert(rows.slice(i, i + size))
   }
 }
