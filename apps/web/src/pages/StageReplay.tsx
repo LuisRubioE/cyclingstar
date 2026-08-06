@@ -5,8 +5,8 @@ import {
   type StageClassEntry,
   type StageResultEntry,
   fetchCalendarStage,
-  formatTime,
 } from '../api/results'
+import { formatTime } from '../domain/format'
 import { Flag } from '../components/Flag'
 import { RiderName } from '../components/RiderName'
 

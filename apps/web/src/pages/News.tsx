@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { fetchNews, newsIcon } from '../api/news'
+import { fetchNews } from '../api/news'
+import { newsIcon } from '../domain/labels'
 import { Flag } from '../components/Flag'
 import { Panel, SectionBar } from '../components/Panel'
 

@@ -2,8 +2,10 @@ import { COUNTRIES, HOUSING_RENT_PER_WEEK } from '@cyclingstar/shared'
 import { useQuery } from '@tanstack/react-query'
 import { Flag } from '../components/Flag'
 import { Panel, SectionBar } from '../components/Panel'
-import { fetchLedger, kindLabel, money } from '../api/finances'
+import { fetchLedger } from '../api/finances'
 import { fetchRiderSummary } from '../api/rider'
+import { money } from '../domain/format'
+import { ledgerKindLabel } from '../domain/labels'
 
 const KIND_TONE: Record<string, string> = {
   salario: 'text-emerald-600',
@@ -116,7 +118,7 @@ export function Finances() {
               {data.entries.map((e, i) => (
                 <tr key={i} className="border-b border-slate-100 last:border-0">
                   <td className="w-16 px-4 py-2 text-slate-400 tabular-nums">Day {e.gameDay}</td>
-                  <td className="w-20 px-2 py-2 text-slate-500">{kindLabel(e.kind)}</td>
+                  <td className="w-20 px-2 py-2 text-slate-500">{ledgerKindLabel(e.kind)}</td>
                   <td className="px-2 py-2 text-slate-700">{e.note}</td>
                   <td
                     className={`px-4 py-2 text-right tabular-nums font-medium ${KIND_TONE[e.kind] ?? 'text-slate-600'}`}

@@ -1,28 +1,35 @@
-export interface EnterableRace {
-  raceId: string
-  name: string
-  country: string | null
-  startDay: number
-  raceClass: string
-  travelMoney: number
-  travelDays: number
-  entered: boolean
-  enrolled: boolean
-  affordable: boolean
-}
+import {
+  type EnterableRace,
+  enterableRacesResponseSchema,
+  okResponseSchema,
+} from '@cyclingstar/shared'
+import { request, requestOptionalAuth } from './request'
 
+export type { EnterableRace }
+
+/**
+ * Carreras a las que el corredor puede inscribirse. Sin sesión (401) la lista es vacía; un 500 SÍ
+ * se propaga (antes cualquier `!res.ok` devolvía [] y ocultaba los errores del servidor).
+ */
 export async function fetchEnterableRaces(): Promise<EnterableRace[]> {
-  const res = await fetch('/api/riders/me/race-entries')
-  if (!res.ok) return []
-  return ((await res.json()) as { races: EnterableRace[] }).races
+  const data = await requestOptionalAuth(
+    '/api/riders/me/race-entries',
+    enterableRacesResponseSchema,
+    { errorMessage: 'Could not load the races you can enter.' },
+  )
+  return data?.races ?? []
 }
 
 export async function enterRace(raceId: string): Promise<void> {
-  const res = await fetch(`/api/riders/me/race-entries/${raceId}`, { method: 'POST' })
-  if (!res.ok) throw new Error('Could not enter the race.')
+  await request(`/api/riders/me/race-entries/${raceId}`, okResponseSchema, {
+    method: 'POST',
+    errorMessage: 'Could not enter the race.',
+  })
 }
 
 export async function withdrawRace(raceId: string): Promise<void> {
-  const res = await fetch(`/api/riders/me/race-entries/${raceId}`, { method: 'DELETE' })
-  if (!res.ok) throw new Error('Could not withdraw from the race.')
+  await request(`/api/riders/me/race-entries/${raceId}`, okResponseSchema, {
+    method: 'DELETE',
+    errorMessage: 'Could not withdraw from the race.',
+  })
 }

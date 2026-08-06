@@ -1,66 +1,27 @@
-export type RaceLevel = 'WT' | 'PRS' | 'CON'
-export type RaceFormat = 'gran-vuelta' | 'una-semana' | 'un-dia'
-export type RaceClass = 'WT' | 'Pro' | '1' | '2' | 'NC'
+/** Calendario de temporada (SPEC 8). Las etiquetas visibles viven en `domain/labels`. */
 
-const RACE_CLASS_LABEL: Record<RaceClass, string> = {
-  WT: '.WT',
-  Pro: '.Pro',
-  '1': '.1',
-  '2': '.2',
-  NC: '.NC',
-}
+import {
+  type Calendar,
+  type CalendarRaceSummary,
+  type CalendarStageSummary,
+  type RaceClass,
+  type RaceFormat,
+  type RaceLevel,
+  calendarResponseSchema,
+} from '@cyclingstar/shared'
+import { request } from './request'
 
-export function raceClassLabel(cls: RaceClass): string {
-  return RACE_CLASS_LABEL[cls] ?? cls
-}
-
-export interface CalendarStageSummary {
-  index: number
-  name: string
-  label: string
-  kind: string
-  km: number
-  timeTrial: boolean
-  /** Localidad de salida y de meta de la etapa (recorrido real), o null si no está definido. */
-  from: string | null
-  to: string | null
-}
-
-export interface CalendarRaceSummary {
-  id: string
-  name: string
-  level: RaceLevel
-  raceClass: RaceClass
-  championshipCountry: string | null
-  championshipCategory: 'elite' | 'u23' | null
-  country: string | null
-  format: RaceFormat
-  startDay: number
-  openTo: RaceLevel[]
-  winner: string | null
-  /** Índices de etapa (1-based) tras los que hay un día de descanso; vacío si no tiene. */
-  restAfter: number[]
-  stages: CalendarStageSummary[]
-}
-
-export interface Calendar {
-  races: CalendarRaceSummary[]
-  /** Día actual de la temporada (0..363), o null si aún no hay mundo. */
-  dayOfSeason: number | null
+export type {
+  Calendar,
+  CalendarRaceSummary,
+  CalendarStageSummary,
+  RaceClass,
+  RaceFormat,
+  RaceLevel,
 }
 
 export async function fetchCalendar(): Promise<Calendar> {
-  const res = await fetch('/api/calendar')
-  if (!res.ok) throw new Error('Could not load the calendar.')
-  return (await res.json()) as Calendar
-}
-
-const FORMAT_LABEL: Record<RaceFormat, string> = {
-  'gran-vuelta': 'Grand tour',
-  'una-semana': 'Stage race',
-  'un-dia': 'One-day',
-}
-
-export function formatLabel(format: RaceFormat): string {
-  return FORMAT_LABEL[format]
+  return request('/api/calendar', calendarResponseSchema, {
+    errorMessage: 'Could not load the calendar.',
+  })
 }
