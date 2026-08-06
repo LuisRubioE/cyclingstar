@@ -1,74 +1,134 @@
 import { useQuery } from '@tanstack/react-query'
-import { useEffect, useRef, useState } from 'react'
-import { Link, NavLink } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { fetchHealth } from '../api/health'
+import { fetchRiderSummary } from '../api/rider'
 import { authClient } from '../auth/client'
 import { Logo } from './Logo'
+import { NavTabs, type NavTabItem } from './Tabs'
 import { WorldClock } from './WorldClock'
 
 /**
- * Cabecera del layout, estilo manager: banda superior oscura con logo y reloj del mundo, y una barra
- * de navegación azul debajo. En móvil, la navegación se colapsa en un menú.
+ * Cabecera de DOS niveles (docs/navegacion.md §3.1-§3.4).
+ *
+ *   ┌ logo · reloj del mundo · cuenta ─────────────────────────┐  banda superior
+ *   ├ Dashboard · My Rider · My Team* · World          News ───┤  nivel 1: sección
+ *   └ Profile · Training · Race orders · …  ───────────────────┘  nivel 2: contexto
+ *
+ * Cuatro destinos en vez de doce, y las pestañas del nivel 2 dependen de la sección abierta.
+ * `My Team` sale solo si pertenezco a un equipo (basta ser corredor de la plantilla, no hace falta
+ * gestionarlo). Sin sesión la barra se reduce a `World · News · How to play`, con `Log in`/`Sign up`
+ * en la banda superior.
+ *
+ * No hay menú de hamburguesa: con cinco entradas cabe todo en el teléfono y las dos barras se
+ * desplazan en horizontal. Así todo enlace es visible y alcanzable con el teclado, sin gestión de
+ * foco que se pueda romper. La barra inferior fija de §5 (fase G) sustituirá al nivel 1 en móvil.
  */
 
-const WORLD_LINKS = [
-  { to: '/calendar', label: 'Calendar' },
-  { to: '/teams', label: 'Teams' },
-  { to: '/countries', label: 'Nations' },
-  { to: '/rankings', label: 'Rankings' },
-  { to: '/hall-of-fame', label: 'Hall of Fame' },
-  { to: '/news', label: 'News' },
+/** Las secciones del nivel 1. `dashboard` y `news` no tienen pestañas de contexto. */
+type Section = 'dashboard' | 'me' | 'team' | 'world' | 'news' | null
+
+/** Destino del nivel 1: la sección y su puerta de entrada. */
+interface MainLink {
+  section: Exclude<Section, null>
+  to: string
+  label: string
+}
+
+const DASHBOARD: MainLink = { section: 'dashboard', to: '/', label: 'Dashboard' }
+const MY_RIDER: MainLink = { section: 'me', to: '/me/profile', label: 'My Rider' }
+const MY_TEAM: MainLink = { section: 'team', to: '/team/squad', label: 'My Team' }
+const WORLD: MainLink = { section: 'world', to: '/world/calendar', label: 'World' }
+const NEWS: MainLink = { section: 'news', to: '/news', label: 'News' }
+
+const ME_TABS: readonly NavTabItem[] = [
+  { to: '/me/profile', label: 'Profile' },
+  { to: '/me/training', label: 'Training' },
+  { to: '/me/orders', label: 'Race orders' },
+  { to: '/me/races', label: 'My races' },
+  { to: '/me/contract', label: 'Contract' },
+  { to: '/me/finances', label: 'Finances' },
 ]
 
-const RIDER_LINKS = [
-  { to: '/rider', label: 'My rider' },
-  { to: '/training', label: 'Training' },
-  { to: '/race-orders', label: 'Orders' },
-  { to: '/races', label: 'Races' },
-  { to: '/market', label: 'Market' },
-  { to: '/finances', label: 'Finances' },
+const TEAM_TABS: readonly NavTabItem[] = [
+  { to: '/team/squad', label: 'Squad' },
+  { to: '/team/calendar', label: 'Race calendar' },
+  { to: '/team/identity', label: 'Identity' },
 ]
 
-const navClass = ({ isActive }: { isActive: boolean }): string =>
-  `rounded px-2.5 py-1 text-sm transition ${
-    isActive
-      ? 'bg-white/15 font-semibold text-white'
-      : 'text-white/80 hover:bg-white/10 hover:text-white'
-  }`
+const WORLD_TABS: readonly NavTabItem[] = [
+  { to: '/world/calendar', label: 'Calendar' },
+  { to: '/world/races', label: 'Races' },
+  { to: '/world/teams', label: 'Teams' },
+  { to: '/world/nations', label: 'Nations' },
+  { to: '/world/rankings', label: 'Rankings' },
+  { to: '/world/hall-of-fame', label: 'Hall of Fame' },
+]
+
+/** Qué sección está abierta, deducida de la URL. `null` en páginas sueltas (login, privacy…). */
+function sectionOf(pathname: string): Section {
+  if (pathname === '/') return 'dashboard'
+  if (pathname.startsWith('/me/')) return 'me'
+  if (pathname.startsWith('/team/')) return 'team'
+  if (pathname.startsWith('/world/')) return 'world'
+  if (pathname === '/news') return 'news'
+  return null
+}
+
+/** Pestañas de contexto de la sección abierta (nivel 2); vacío si la sección no tiene. */
+function tabsOf(section: Section): readonly NavTabItem[] {
+  if (section === 'me') return ME_TABS
+  if (section === 'team') return TEAM_TABS
+  if (section === 'world') return WORLD_TABS
+  return []
+}
+
+/** Un destino del nivel 1. Lo activo lo decide la SECCIÓN, no la coincidencia exacta de ruta. */
+function MainNavLink({ link, active }: { link: MainLink; active: boolean }) {
+  return (
+    <Link
+      to={link.to}
+      aria-current={active ? 'page' : undefined}
+      className={`shrink-0 rounded px-3 py-1.5 text-sm transition ${
+        active
+          ? 'bg-white/15 font-semibold text-white'
+          : 'text-white/80 hover:bg-white/10 hover:text-white'
+      }`}
+    >
+      {link.label}
+    </Link>
+  )
+}
 
 export function Header() {
-  const { data } = authClient.useSession()
+  const { data: session } = authClient.useSession()
+  const { pathname } = useLocation()
   const health = useQuery({ queryKey: ['health'], queryFn: fetchHealth })
-  const [open, setOpen] = useState(false)
-  const menuRef = useRef<HTMLElement>(null)
-  const toggleRef = useRef<HTMLButtonElement>(null)
+  // ¿Pertenezco a un equipo? Solo importa con sesión; sin ella la consulta ni se lanza.
+  const summary = useQuery({
+    queryKey: ['rider', 'summary'],
+    queryFn: fetchRiderSummary,
+    enabled: Boolean(session),
+  })
 
-  const links = data ? [...WORLD_LINKS, ...RIDER_LINKS] : [...WORLD_LINKS]
+  const hasTeam = Boolean(summary.data?.teamId)
+  const section = sectionOf(pathname)
+  const tabs = tabsOf(section)
 
-  // Accesibilidad del menú móvil: al abrirlo el foco entra en el primer enlace y Escape lo cierra
-  // devolviendo el foco al botón (si no, el teclado se queda perdido detrás del menú).
-  useEffect(() => {
-    if (!open) return
-    menuRef.current?.querySelector('a')?.focus()
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape') return
-      setOpen(false)
-      toggleRef.current?.focus()
-    }
-    document.addEventListener('keydown', onKeyDown)
-    return () => document.removeEventListener('keydown', onKeyDown)
-  }, [open])
+  // Sin sesión no hay nada "mío" que enseñar: solo el mundo, las noticias y cómo se juega.
+  const mainLinks: MainLink[] = session
+    ? [DASHBOARD, MY_RIDER, ...(hasTeam ? [MY_TEAM] : []), WORLD]
+    : [WORLD]
 
   return (
     <header className="bg-gradient-to-b from-brand-navy to-brand-navy-dark shadow-md">
       {/* Banda superior: logo + reloj + sesión */}
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-2.5">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-2.5">
         <Link
           to="/"
-          className="flex items-center gap-2 text-lg font-bold tracking-tight text-white"
+          className="flex shrink-0 items-center gap-2 text-lg font-bold tracking-tight text-white"
         >
           <Logo size={30} />
-          Cycling Star
+          <span className="hidden sm:inline">Cycling Star</span>
         </Link>
 
         {health.data && (
@@ -81,21 +141,14 @@ export function Header() {
           </div>
         )}
 
-        <div className="flex items-center gap-3 text-sm">
-          <Link
-            to="/how-to-play"
-            className="hidden text-white/70 hover:text-white sm:inline"
-            title="How to play"
-          >
-            ?
-          </Link>
-          {data ? (
-            <NavLink to="/account" className="hidden text-white/80 hover:text-white sm:inline">
+        <div className="flex shrink-0 items-center gap-3 text-sm">
+          {session ? (
+            <Link to="/account" className="text-white/80 hover:text-white">
               Account
-            </NavLink>
+            </Link>
           ) : (
             <>
-              <Link to="/login" className="hidden text-white/80 hover:text-white sm:inline">
+              <Link to="/login" className="text-white/80 hover:text-white">
                 Log in
               </Link>
               <Link
@@ -106,83 +159,42 @@ export function Header() {
               </Link>
             </>
           )}
-          <button
-            ref={toggleRef}
-            type="button"
-            onClick={() => setOpen((v) => !v)}
-            className="rounded border border-white/30 p-1.5 text-white lg:hidden"
-            aria-label={open ? 'Close menu' : 'Open menu'}
-            aria-expanded={open}
-            aria-controls="mobile-menu"
-          >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              aria-hidden="true"
-              focusable="false"
-            >
-              {open ? (
-                <path d="M6 6l12 12M6 18L18 6" strokeLinecap="round" />
-              ) : (
-                <path d="M4 7h16M4 12h16M4 17h16" strokeLinecap="round" />
-              )}
-            </svg>
-          </button>
         </div>
       </div>
 
-      {/* Barra de navegación (escritorio) */}
-      <nav aria-label="Main" className="hidden border-t border-white/10 bg-black/15 lg:block">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-1 px-3 py-1">
-          {links.map((l) => (
-            <NavLink key={l.to} to={l.to} className={navClass}>
-              {l.label}
-            </NavLink>
+      {/* Nivel 1: secciones. News se separa a la derecha porque no es "una sección más". */}
+      <nav
+        aria-label="Sections"
+        className="border-t border-white/10 bg-black/15 [&::-webkit-scrollbar]:hidden"
+      >
+        <div className="mx-auto flex max-w-6xl items-center gap-1 overflow-x-auto whitespace-nowrap px-3 py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {mainLinks.map((link) => (
+            <MainNavLink key={link.section} link={link} active={section === link.section} />
           ))}
+          <span className="ml-auto flex shrink-0 items-center gap-1 pl-2">
+            {!session && (
+              <Link
+                to="/how-to-play"
+                className="shrink-0 rounded px-3 py-1.5 text-sm text-white/80 transition hover:bg-white/10 hover:text-white"
+              >
+                How to play
+              </Link>
+            )}
+            <MainNavLink link={NEWS} active={section === 'news'} />
+          </span>
         </div>
       </nav>
 
-      {/* Menú móvil */}
-      {open && (
-        <nav
-          id="mobile-menu"
-          ref={menuRef}
-          aria-label="Main"
-          className="border-t border-white/10 bg-black/20 px-3 py-2 lg:hidden"
-        >
-          <div className="flex flex-col gap-1">
-            {links.map((l) => (
-              <NavLink key={l.to} to={l.to} className={navClass} onClick={() => setOpen(false)}>
-                {l.label}
-              </NavLink>
-            ))}
-            <Link
-              to="/how-to-play"
-              className="rounded px-2.5 py-1 text-sm text-white/80 hover:bg-white/10"
-              onClick={() => setOpen(false)}
-            >
-              How to play
-            </Link>
-            {data ? (
-              <NavLink to="/account" className={navClass} onClick={() => setOpen(false)}>
-                Account
-              </NavLink>
-            ) : (
-              <>
-                <NavLink to="/login" className={navClass} onClick={() => setOpen(false)}>
-                  Log in
-                </NavLink>
-                <NavLink to="/register" className={navClass} onClick={() => setOpen(false)}>
-                  Sign up
-                </NavLink>
-              </>
-            )}
-          </div>
-        </nav>
+      {/* Nivel 2: pestañas de contexto de la sección abierta. */}
+      {tabs.length > 0 && (
+        <div className="border-t border-white/10 bg-black/25">
+          <NavTabs
+            items={tabs}
+            label={`${section === 'me' ? 'My rider' : section === 'team' ? 'My team' : 'World'} sections`}
+            variant="header"
+            className="mx-auto max-w-6xl px-3 py-1"
+          />
+        </div>
       )}
     </header>
   )
