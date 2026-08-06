@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Panel, SectionBar } from '../components/Panel'
 import {
@@ -11,67 +11,32 @@ import {
   saveRaceOrders,
 } from '../api/raceOrders'
 import { fetchMyUpcomingRaces } from '../api/rider'
+import {
+  EFFORT_DESC,
+  EFFORT_LABEL,
+  EFFORT_OPTIONS,
+  MENTALITY_DESC,
+  MENTALITY_LABEL,
+  MENTALITY_OPTIONS,
+  STAGE_ROLE_DESC,
+  STAGE_ROLE_LABEL,
+  STAGE_ROLE_OPTIONS,
+} from '../domain/labels'
+import {
+  type OrdersDraft,
+  buildServerOrders,
+  defaultOrder,
+  resolveOrders,
+  withOrderPatch,
+} from '../domain/raceOrdersDraft'
 
-const ROLES: { value: StageRole; label: string }[] = [
-  { value: 'libre', label: 'Free' },
-  { value: 'lider', label: 'Leader' },
-  { value: 'sprinter', label: 'Sprinter' },
-  { value: 'lanzador', label: 'Lead-out' },
-  { value: 'gregario', label: 'Domestique' },
-  { value: 'cazaetapas', label: 'Stage hunter' },
-  { value: 'marcador', label: 'Marker' },
-]
-const MENTALITIES: { value: Mentality; label: string }[] = [
-  { value: 'reservon', label: 'Conservative' },
-  { value: 'oportunista', label: 'Opportunist' },
-  { value: 'combativo', label: 'Aggressive' },
-  { value: 'supercombativo', label: 'Super-aggressive' },
-]
-const EFFORTS: { value: Effort; label: string }[] = [
-  { value: 'ahorrar', label: 'Save' },
-  { value: 'normal', label: 'Normal' },
-  { value: 'a_tope', label: 'All-in' },
-]
 const NEEDS_TARGET: StageRole[] = ['lanzador', 'gregario', 'marcador']
 
-const ROLE_DESC: Record<StageRole, string> = {
-  libre: 'Rides on instinct with no special job — a free role.',
-  lider: 'Your protected leader: teammates shelter and pace them, saving them for the finish.',
-  sprinter: 'Sits in for the finish and contests a bunch sprint.',
-  lanzador: 'Lead-out: delivers a teammate to the sprint at top speed, then swings off.',
-  gregario: 'Domestique: works for a teammate — shelters them, sets the pace, fetches bottles.',
-  cazaetapas: 'Stage hunter: gets in the breakaway to fight for the stage win.',
-  marcador: "Marker: shadows a RIVAL and follows their attacks so they can't get away.",
-}
-const MENTALITY_DESC: Record<Mentality, string> = {
-  reservon: 'Conservative — saves energy and only reacts.',
-  oportunista: 'Opportunist — takes a good chance when it appears.',
-  combativo: 'Aggressive — attacks and forces the race.',
-  supercombativo: 'Super-aggressive — attacks early and often (burns through energy).',
-}
-const EFFORT_DESC: Record<Effort, string> = {
-  ahorrar: 'Save — ride within yourself to keep energy for later.',
-  normal: 'Normal — a balanced effort for the day.',
-  a_tope: 'All-in — empty the tank today.',
-}
 /** El objetivo de una orden: un COMPAÑERO (lanzar/trabajar) o un RIVAL (marcar), según el rol. */
 function targetLabel(role: StageRole): string {
   if (role === 'marcador') return 'Rival to mark'
   if (role === 'lanzador') return 'Teammate to lead out'
   return 'Teammate to work for'
-}
-
-function defaultOrder(stageDay: number): StageOrder {
-  return {
-    stageDay,
-    role: 'libre',
-    targetRiderId: null,
-    mentality: 'reservon',
-    effort: 'normal',
-    triggerKm: null,
-    contestSprints: false,
-    contestClimbs: false,
-  }
 }
 
 const selectClass =
@@ -98,24 +63,35 @@ export function RaceOrders() {
     queryFn: () => fetchRaceOrders(selectedKey!),
     enabled: !!selectedKey,
   })
-  const [orders, setOrders] = useState<Record<number, StageOrder>>({})
+  // Borrador de ediciones sin guardar, SIEMPRE atado a su carrera: ni un refetch en segundo plano
+  // las pisa (antes un `useEffect` copiaba `data` al estado y las borraba) ni se pueden guardar
+  // contra otra carrera si el jugador cambia de selección antes de pulsar "Save all".
+  const [draft, setDraft] = useState<OrdersDraft | null>(null)
 
-  useEffect(() => {
-    if (!data) return
-    const map: Record<number, StageOrder> = {}
-    for (const stage of data.stages) {
-      map[stage.day] = data.orders.find((o) => o.stageDay === stage.day) ?? defaultOrder(stage.day)
-    }
-    setOrders(map)
-  }, [data])
+  const serverOrders = useMemo(
+    () => (data ? buildServerOrders(data.stages, data.orders) : {}),
+    [data],
+  )
+  const orders = resolveOrders(serverOrders, draft, selectedKey)
 
   const mutation = useMutation({
-    mutationFn: () => saveRaceOrders(selectedKey!, Object.values(orders)),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['race-orders', selectedKey] }),
+    mutationFn: ({ raceKey, orders: toSave }: { raceKey: string; orders: StageOrder[] }) =>
+      saveRaceOrders(raceKey, toSave),
+    onSuccess: (_result, variables) =>
+      queryClient.invalidateQueries({ queryKey: ['race-orders', variables.raceKey] }),
   })
 
-  const update = (day: number, patch: Partial<StageOrder>): void =>
-    setOrders((prev) => ({ ...prev, [day]: { ...prev[day]!, ...patch } }))
+  const update = (day: number, patch: Partial<StageOrder>): void => {
+    if (!selectedKey) return
+    setDraft((prev) => withOrderPatch(prev, selectedKey, serverOrders, day, patch))
+  }
+
+  // Solo se guarda lo que se está viendo: la carrera seleccionada Y ya cargada.
+  const canSave = !!selectedKey && !!data && !mutation.isPending
+  const saveAll = (): void => {
+    if (!selectedKey || !data) return
+    mutation.mutate({ raceKey: selectedKey, orders: Object.values(orders) })
+  }
 
   if (upcoming.isPending) return <p className="text-slate-500">Loading…</p>
   if (!upcoming.data || upcoming.data.length === 0) {
@@ -139,8 +115,8 @@ export function RaceOrders() {
       <SectionBar
         action={
           <button
-            onClick={() => mutation.mutate()}
-            disabled={mutation.isPending || !selectedKey}
+            onClick={saveAll}
+            disabled={!canSave}
             className="rounded-lg bg-white/20 px-4 py-1.5 text-sm font-medium text-white transition hover:bg-white/30 disabled:opacity-60"
           >
             {mutation.isPending ? 'Saving…' : 'Save all'}
@@ -149,9 +125,13 @@ export function RaceOrders() {
       >
         Race orders
       </SectionBar>
-      <label className="flex flex-col gap-1 text-xs font-medium text-slate-500">
+      <label
+        htmlFor="race-picker"
+        className="flex flex-col gap-1 text-xs font-medium text-slate-500"
+      >
         Race
         <select
+          id="race-picker"
           className={`${selectClass} max-w-sm`}
           value={selectedKey ?? ''}
           onChange={(e) => setSelectedKey(e.target.value)}
@@ -179,8 +159,11 @@ export function RaceOrders() {
               title={stage.name}
               action={<span className="text-xs text-white/90">{stage.km} km</span>}
             >
+              {/* SVG generado por nuestro motor; se anuncia como imagen con su descripción. */}
               <div
                 className="mb-3 w-full overflow-x-auto"
+                role="img"
+                aria-label={`Elevation profile of ${stage.name}, ${stage.km} km`}
                 dangerouslySetInnerHTML={{ __html: stage.altimetry }}
               />
 
@@ -190,26 +173,36 @@ export function RaceOrders() {
                 </p>
               ) : (
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  <label className="flex flex-col gap-1 text-xs font-medium text-slate-500">
+                  <label
+                    htmlFor={`role-${stage.day}`}
+                    className="flex flex-col gap-1 text-xs font-medium text-slate-500"
+                  >
                     Role
                     <select
+                      id={`role-${stage.day}`}
                       className={selectClass}
                       value={order.role}
                       onChange={(e) => update(stage.day, { role: e.target.value as StageRole })}
                     >
-                      {ROLES.map((r) => (
-                        <option key={r.value} value={r.value}>
-                          {r.label}
+                      {STAGE_ROLE_OPTIONS.map((role) => (
+                        <option key={role} value={role}>
+                          {STAGE_ROLE_LABEL[role]}
                         </option>
                       ))}
                     </select>
-                    <span className="font-normal text-slate-400">{ROLE_DESC[order.role]}</span>
+                    <span className="font-normal text-slate-400">
+                      {STAGE_ROLE_DESC[order.role]}
+                    </span>
                   </label>
 
                   {NEEDS_TARGET.includes(order.role) && (
-                    <label className="flex flex-col gap-1 text-xs font-medium text-slate-500">
+                    <label
+                      htmlFor={`target-${stage.day}`}
+                      className="flex flex-col gap-1 text-xs font-medium text-slate-500"
+                    >
                       {targetLabel(order.role)}
                       <select
+                        id={`target-${stage.day}`}
                         className={selectClass}
                         value={order.targetRiderId ?? ''}
                         onChange={(e) =>
@@ -226,18 +219,22 @@ export function RaceOrders() {
                     </label>
                   )}
 
-                  <label className="flex flex-col gap-1 text-xs font-medium text-slate-500">
+                  <label
+                    htmlFor={`mentality-${stage.day}`}
+                    className="flex flex-col gap-1 text-xs font-medium text-slate-500"
+                  >
                     Mentality
                     <select
+                      id={`mentality-${stage.day}`}
                       className={selectClass}
                       value={order.mentality}
                       onChange={(e) =>
                         update(stage.day, { mentality: e.target.value as Mentality })
                       }
                     >
-                      {MENTALITIES.map((m) => (
-                        <option key={m.value} value={m.value}>
-                          {m.label}
+                      {MENTALITY_OPTIONS.map((m) => (
+                        <option key={m} value={m}>
+                          {MENTALITY_LABEL[m]}
                         </option>
                       ))}
                     </select>
@@ -246,25 +243,33 @@ export function RaceOrders() {
                     </span>
                   </label>
 
-                  <label className="flex flex-col gap-1 text-xs font-medium text-slate-500">
+                  <label
+                    htmlFor={`effort-${stage.day}`}
+                    className="flex flex-col gap-1 text-xs font-medium text-slate-500"
+                  >
                     Effort
                     <select
+                      id={`effort-${stage.day}`}
                       className={selectClass}
                       value={order.effort}
                       onChange={(e) => update(stage.day, { effort: e.target.value as Effort })}
                     >
-                      {EFFORTS.map((ef) => (
-                        <option key={ef.value} value={ef.value}>
-                          {ef.label}
+                      {EFFORT_OPTIONS.map((ef) => (
+                        <option key={ef} value={ef}>
+                          {EFFORT_LABEL[ef]}
                         </option>
                       ))}
                     </select>
                     <span className="font-normal text-slate-400">{EFFORT_DESC[order.effort]}</span>
                   </label>
 
-                  <label className="flex flex-col gap-1 text-xs font-medium text-slate-500">
+                  <label
+                    htmlFor={`trigger-km-${stage.day}`}
+                    className="flex flex-col gap-1 text-xs font-medium text-slate-500"
+                  >
                     Attack at km (optional)
                     <input
+                      id={`trigger-km-${stage.day}`}
                       type="number"
                       min={0}
                       max={stage.km}
@@ -282,16 +287,18 @@ export function RaceOrders() {
                   </label>
 
                   <div className="flex flex-col gap-1 text-sm text-slate-600">
-                    <label className="flex items-center gap-1.5">
+                    <label htmlFor={`sprints-${stage.day}`} className="flex items-center gap-1.5">
                       <input
+                        id={`sprints-${stage.day}`}
                         type="checkbox"
                         checked={order.contestSprints}
                         onChange={(e) => update(stage.day, { contestSprints: e.target.checked })}
                       />
                       Chase points-jersey sprints
                     </label>
-                    <label className="flex items-center gap-1.5">
+                    <label htmlFor={`climbs-${stage.day}`} className="flex items-center gap-1.5">
                       <input
+                        id={`climbs-${stage.day}`}
                         type="checkbox"
                         checked={order.contestClimbs}
                         onChange={(e) => update(stage.day, { contestClimbs: e.target.checked })}

@@ -57,6 +57,25 @@ export const MENTALITY_DESC: Record<Mentality, string> = {
   supercombativo: 'Super-aggressive — attacks early and often (burns through energy).',
 }
 
+/** Orden en el que se ofrecen las mentalidades en la consola de órdenes. */
+export const MENTALITY_OPTIONS: Mentality[] = [
+  'reservon',
+  'oportunista',
+  'combativo',
+  'supercombativo',
+]
+
+/** Orden en el que se ofrecen los roles de etapa (el rol libre primero, es el valor por defecto). */
+export const STAGE_ROLE_OPTIONS: StageRole[] = [
+  'libre',
+  'lider',
+  'sprinter',
+  'lanzador',
+  'gregario',
+  'cazaetapas',
+  'marcador',
+]
+
 /** Etiqueta y descripción de cada rol de etapa (consola de órdenes). */
 export const STAGE_ROLE_LABEL: Record<StageRole, string> = {
   libre: 'Free',
@@ -77,6 +96,8 @@ export const STAGE_ROLE_DESC: Record<StageRole, string> = {
   cazaetapas: 'Stage hunter: gets in the breakaway to fight for the stage win.',
   marcador: "Marker: shadows a RIVAL and follows their attacks so they can't get away.",
 }
+
+export const EFFORT_OPTIONS: Effort[] = ['ahorrar', 'normal', 'a_tope']
 
 export const EFFORT_LABEL: Record<Effort, string> = {
   ahorrar: 'Save',
