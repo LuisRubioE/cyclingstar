@@ -2,8 +2,11 @@ import {
   ENROLL_LOCK_DAYS,
   ensureRaceRosterFrozen,
   getCurrentWorld,
+  getKomClassification,
+  getPointsClassification,
   getRaceGc,
   getRaceHistory,
+  getRunStageDays,
   getSeasonWinners,
   getStageWinners,
   predictStartlist,
@@ -85,33 +88,62 @@ export const calendarRoutes: RoutePlugin = async (app, ctx) => {
     // Días de descanso: índices de etapa (1-based) tras los que hay descanso (grandes vueltas y
     // alguna carrera por etapas como la Volta a Portugal). Vacío en las que no tienen.
     const restAfter = race.restAfter ?? []
+    // Ficha de la carrera, igual haya mundo o no: `startDay` la sitúa en la temporada, y con él la
+    // web sabe cuánto falta para la salida sin tener que cruzar con /api/calendar.
+    const raceInfo = {
+      id: race.id,
+      name: race.name,
+      level: race.level,
+      raceClass: race.raceClass,
+      format: race.format,
+      stageCount: race.stages.length,
+      country: race.country ?? null,
+      startDay: race.startDay,
+    }
     const world = await getCurrentWorld(db)
     if (!world)
       return {
-        race: { id: race.id, name: race.name, level: race.level, country: race.country ?? null },
+        race: raceInfo,
+        dayOfSeason: null,
+        status: 'upcoming' as const,
+        runDays: [],
         stages: stagePlan,
         restAfter,
         gc: [],
+        points: [],
+        kom: [],
         stageWinners: [],
         history: [],
       }
     const raceKey = `${race.id}:s${currentSeason(world.currentDay)}`
-    const gc = (await getRaceGc(db, raceKey)).slice(0, 20)
+    // La general va COMPLETA: la web muestra el top 20 y ofrece "Show all" (regla común de tablas,
+    // docs/navegacion.md §7.3). Antes se truncaba aquí y no había forma de ver el resto.
+    const gc = await getRaceGc(db, raceKey)
     const stageWinners = await getStageWinners(db, raceKey)
     const history = await getRaceHistory(db, world.worldId, race.id)
+    // Puntos y montaña: las otras dos clasificaciones que el jugador consulta junto a la general.
+    const points = await getPointsClassification(db, raceKey)
+    const kom = await getKomClassification(db, raceKey)
+    // Estado de la carrera ESTA temporada; es lo que decide qué pestañas tiene su página y cuál abre
+    // por defecto (§7.1). La regla de "terminada" es la misma que usa el tick para repartir puntos de
+    // general: existe resultado de su última etapa.
+    const runDays = await getRunStageDays(db, raceKey)
+    const status = runDays.includes(race.stages.length)
+      ? ('finished' as const)
+      : runDays.length > 0
+        ? ('racing' as const)
+        : ('upcoming' as const)
     return {
-      race: {
-        id: race.id,
-        name: race.name,
-        level: race.level,
-        raceClass: race.raceClass,
-        format: race.format,
-        stageCount: race.stages.length,
-        country: race.country ?? null,
-      },
+      race: raceInfo,
+      // Día actual de la temporada (0..363): con `startDay` sitúa la carrera en el tiempo.
+      dayOfSeason: world.currentDay % DAYS_PER_SEASON,
+      status,
+      runDays,
       stages: stagePlan,
       restAfter,
       gc,
+      points,
+      kom,
       stageWinners,
       history,
     }

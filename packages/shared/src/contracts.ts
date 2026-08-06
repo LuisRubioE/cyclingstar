@@ -241,6 +241,28 @@ export const raceHonourSchema = z.object({
 })
 export type RaceHonour = z.infer<typeof raceHonourSchema>
 
+/**
+ * Fila de una clasificación por puntos: metas volantes (`points`) o montaña (`kom`). La comparten
+ * la ficha de carrera, el replay de etapa y los resultados de la vuelta de prueba.
+ */
+export const pointsEntrySchema = z.object({
+  riderId: z.string(),
+  name: z.string(),
+  country: z.string(),
+  isBot: z.boolean(),
+  puntos: z.number(),
+})
+export type PointsEntry = z.infer<typeof pointsEntrySchema>
+
+/**
+ * Momento en el que está la carrera ESTA temporada. Es lo que decide qué pestañas tiene su página y
+ * cuál abre por defecto (docs/navegacion.md §7.1): por correr manda el recorrido; en curso y
+ * terminada, las clasificaciones. Lo calcula la API con la misma regla que usa el tick para repartir
+ * puntos de general ("terminada" = existe resultado de su última etapa).
+ */
+export const raceStatusSchema = z.enum(['upcoming', 'racing', 'finished'])
+export type RaceStatus = z.infer<typeof raceStatusSchema>
+
 export const raceStagePlanSchema = calendarStageSummarySchema.extend({
   /** Altimetría de la etapa: SVG autocontenido del perfil (relieve, puertos y categorías). */
   altimetry: z.string(),
@@ -248,20 +270,33 @@ export const raceStagePlanSchema = calendarStageSummarySchema.extend({
 export type RaceStagePlan = z.infer<typeof raceStagePlanSchema>
 
 export const raceViewSchema = z.object({
+  // La ficha va completa haya mundo o no: sin mundo cambian los resultados, no la identidad de la
+  // carrera, que sale del calendario del motor.
   race: z.object({
     id: z.string(),
     name: z.string(),
     level: z.string(),
-    // Sin mundo la API devuelve una ficha reducida (solo id/name/level/country).
-    raceClass: z.string().optional(),
-    format: z.string().optional(),
-    stageCount: z.number().int().optional(),
-    country: z.string().nullable().optional(),
+    raceClass: z.string(),
+    format: z.string(),
+    stageCount: z.number().int(),
+    country: z.string().nullable(),
+    /** Día de la temporada (0..363) en el que sale la carrera. */
+    startDay: z.number().int(),
   }),
+  /** Día actual de la temporada (0..363); null si aún no hay mundo. */
+  dayOfSeason: z.number().int().nullable(),
+  status: raceStatusSchema,
+  /** Etapas (1-based) ya corridas esta temporada. */
+  runDays: z.array(z.number().int()),
   stages: z.array(raceStagePlanSchema),
   /** Índices de etapa (1-based) tras los que hay día de descanso (vacío si no tiene). */
   restAfter: z.array(z.number().int()),
+  /** General COMPLETA: la web enseña el top 20 y ofrece "Show all" (§7.3). */
   gc: z.array(gcRowSchema),
+  /** Clasificación por puntos (metas volantes) de la carrera. */
+  points: z.array(pointsEntrySchema),
+  /** Clasificación de la montaña (KOM) de la carrera. */
+  kom: z.array(pointsEntrySchema),
   stageWinners: z.array(stageWinnerSchema),
   history: z.array(raceHonourSchema),
 })
@@ -724,14 +759,6 @@ export const raceResultsGcEntrySchema = gcRowSchema.extend({
 })
 export type GcEntry = z.infer<typeof raceResultsGcEntrySchema>
 
-export const pointsEntrySchema = z.object({
-  riderId: z.string(),
-  name: z.string(),
-  country: z.string(),
-  isBot: z.boolean(),
-  puntos: z.number(),
-})
-export type PointsEntry = z.infer<typeof pointsEntrySchema>
 /** Misma forma que `PointsEntry`: clasificación de puntos/montaña tras una etapa. */
 export type StageClassEntry = PointsEntry
 
@@ -797,11 +824,30 @@ export const stageGcEntrySchema = z.object({
 })
 export type StageGcEntry = z.infer<typeof stageGcEntrySchema>
 
+/**
+ * Carrera a la que pertenece una etapa: contexto de la cabecera y base de la navegación
+ * anterior/siguiente (docs/navegacion.md §7.2).
+ */
+export const stageRaceContextSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  country: z.string().nullable(),
+  stageCount: z.number().int(),
+})
+export type StageRaceContext = z.infer<typeof stageRaceContextSchema>
+
 export const stageReplaySchema = z.object({
   day: z.number().int(),
   name: z.string(),
   km: z.number(),
   run: z.boolean(),
+  /**
+   * Carrera de la etapa. Ausente en la vuelta de prueba (`/api/races/test-tour/stages/:day`), que
+   * vive fuera del calendario de temporada; las etapas de calendario SIEMPRE la traen.
+   */
+  race: stageRaceContextSchema.optional(),
+  /** Tipo de etapa (llana, media, reina, cri, clasica). Ausente en la vuelta de prueba. */
+  kind: stageKindSchema.optional(),
   /** Contrarreloj: el journal cuenta la historia del crono (mejor tiempo, diferencias). */
   timeTrial: z.boolean().optional(),
   /** La etapa corrió antes de guardar la crónica: no hay journal detallado. */

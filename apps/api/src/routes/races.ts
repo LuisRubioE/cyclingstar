@@ -233,6 +233,15 @@ export const raceRoutes: RoutePlugin = async (app, ctx) => {
       if (!world) return notFound(reply)
       const raceKey = `${race.id}:s${currentSeason(world.currentDay)}`
       const km = stageKm(stage.profile.segments)
+      // Contexto de la etapa: a qué carrera pertenece y cuántas etapas tiene. Sin esto la página de
+      // etapa es un callejón sin salida (docs/navegacion.md §6.3): no sabe ni su carrera ni si hay
+      // anterior/siguiente. Va en las TRES ramas de respuesta, corrida o no.
+      const raceInfo = {
+        id: race.id,
+        name: race.name,
+        country: race.country ?? null,
+        stageCount: race.stages.length,
+      }
       const snapshot = await getStageSnapshot(db, raceKey, day)
       if (!snapshot) {
         return {
@@ -240,6 +249,8 @@ export const raceRoutes: RoutePlugin = async (app, ctx) => {
           name: stage.name,
           km,
           run: false,
+          race: raceInfo,
+          kind: stage.kind,
           timeTrial: stage.timeTrial ?? false,
           altimetry: renderAltimetrySvg(stage.profile),
         }
@@ -259,6 +270,8 @@ export const raceRoutes: RoutePlugin = async (app, ctx) => {
           name: stage.name,
           km,
           run: true,
+          race: raceInfo,
+          kind: stage.kind,
           timeTrial: stage.timeTrial ?? false,
           altimetry: renderAltimetrySvg(stage.profile),
           results,
@@ -275,6 +288,8 @@ export const raceRoutes: RoutePlugin = async (app, ctx) => {
         name: stage.name,
         km,
         run: true,
+        race: raceInfo,
+        kind: stage.kind,
         timeTrial: stage.timeTrial ?? false,
         altimetry,
         results,

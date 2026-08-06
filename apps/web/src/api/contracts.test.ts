@@ -171,16 +171,58 @@ describe('contratos: calendario y carrera', () => {
     expect(calendarResponseSchema.safeParse(payload).success).toBe(false)
   })
 
-  it('acepta la ficha de carrera reducida que devuelve la API cuando aún no hay mundo', () => {
+  it('acepta la ficha de carrera sin mundo: identidad completa y resultados vacíos', () => {
+    // Sin mundo cambian los RESULTADOS, no la identidad de la carrera: esa sale del calendario del
+    // motor y va siempre completa, para que la página pueda situarla en la temporada.
     const payload = {
-      race: { id: 'tour', name: 'Le Tour', level: 'WT', country: 'FR' },
+      race: {
+        id: 'tour',
+        name: 'Le Tour',
+        level: 'WT',
+        raceClass: 'WT',
+        format: 'gran-vuelta',
+        stageCount: 21,
+        country: 'FR',
+        startDay: 180,
+      },
+      dayOfSeason: null,
+      status: 'upcoming',
+      runDays: [],
       stages: [{ ...stage, altimetry: '<svg/>' }],
       restAfter: [],
       gc: [],
+      points: [],
+      kom: [],
       stageWinners: [],
       history: [],
     }
     expect(raceViewSchema.parse(payload)).toEqual(payload)
+  })
+
+  it('rechaza un estado de carrera que no sea upcoming/racing/finished', () => {
+    const payload = {
+      race: {
+        id: 'tour',
+        name: 'Le Tour',
+        level: 'WT',
+        raceClass: 'WT',
+        format: 'gran-vuelta',
+        stageCount: 21,
+        country: 'FR',
+        startDay: 180,
+      },
+      dayOfSeason: 190,
+      status: 'en-curso',
+      runDays: [1],
+      stages: [],
+      restAfter: [],
+      gc: [],
+      points: [],
+      kom: [],
+      stageWinners: [],
+      history: [],
+    }
+    expect(raceViewSchema.safeParse(payload).success).toBe(false)
   })
 
   it('acepta la lista de inscritos antes y después del cierre de inscripciones', () => {

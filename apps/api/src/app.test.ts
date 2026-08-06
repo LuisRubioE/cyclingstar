@@ -256,6 +256,26 @@ describe('api: gating de sesión', () => {
     expect(res.statusCode).toBe(401)
     expect(res.json()).toEqual({ ok: false, error: 'no_autorizado' })
   })
+
+  /**
+   * El flujo Calendario → Carrera → Etapa es PÚBLICO por requisito explícito: se consulta sin haber
+   * iniciado sesión. Al enriquecer estas rutas (estado de la carrera, clasificaciones, contexto de
+   * etapa) es fácil colar un `currentUserId` de más y cerrarlas sin darse cuenta, así que se fija
+   * aquí. Se usan ids inexistentes a propósito: el 404 se decide contra el calendario del motor,
+   * ANTES de tocar la base (que en estas pruebas es un doble vacío). Lo que importa es que la
+   * respuesta no sea 401.
+   */
+  const publicRoutes = [
+    '/api/calendar/carrera-que-no-existe',
+    '/api/calendar/carrera-que-no-existe/startlist',
+    '/api/races/carrera-que-no-existe/stages/1',
+  ]
+
+  it.each(publicRoutes)('GET %s se sirve sin sesión (404, nunca 401)', async (url) => {
+    const res = await anonApp.inject({ method: 'GET', url })
+    expect(res.statusCode).toBe(404)
+    expect(res.json()).toEqual({ ok: false, error: 'no_encontrado' })
+  })
 })
 
 describe('api: validación de parámetros de ruta', () => {
