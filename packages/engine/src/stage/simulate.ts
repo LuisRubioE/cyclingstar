@@ -12,6 +12,7 @@ import { type Group, advanceGroup, createGroup, gapSeconds, percentile75 } from 
 import { blockCost, blockPerfil, effNow, erosion } from './physics.js'
 import { rollHazard } from './hazard.js'
 import { rollCrash } from './crash.js'
+import { markingMargin, resolveMarking } from './marcaje.js'
 import { sampleProfile, stageLengthKm } from './sample.js'
 import { stageRng } from './rng.js'
 import { simulateTimeTrial } from './timetrial.js'
@@ -34,6 +35,10 @@ interface RiderSim {
   matches: number
   /** Bloques que resta el impulso de un cerillo gastado (+10 al terreno, SPEC 6.6). */
   climbBoostBlocks: number
+  /** Desempate fijo del turno de relevos, en [0,1) (SPEC 6.1: subflujo nominal por corredor). */
+  workJitter: number
+  /** Segundos cedidos al objetivo marcado sin llegar a soltarse (`gives` de SPEC 6.18). */
+  markLossS: number
   incident: Incident | null
 }
 
@@ -74,6 +79,47 @@ function pacemakerP75(members: RiderSim[], block: Block, fraction: number): numb
   const perfils = members.map((m) => riderPerfil(m, block)).sort((a, b) => b - a)
   const k = Math.max(1, Math.ceil(fraction * perfils.length))
   return percentile75(perfils.slice(0, k))
+}
+
+/**
+ * Deber de relevo de un corredor (SPEC 6.5, 6.18): cuánto le "toca" dar la cara al viento ahora.
+ * Manda el ROL (el gregario tira, el líder y el sprinter ahorran), la FRESCURA restante corrige
+ * (quien va vaciado ya no puede relevar) y, si lleva gregarios propios en el grupo, sale del turno
+ * porque su equipo trabaja por él. Un jitter fijo por corredor y etapa rompe empates.
+ * Deliberadamente NO interviene la posición en el array de entrada.
+ */
+function relayDuty(m: RiderSim, protectedByTeam: boolean): number {
+  const duty = STAGE.relayDutyByRole[m.input.orders.role]
+  const freshness = m.energy0 > 0 ? Math.max(0, Math.min(1, m.energy / m.energy0)) : 0
+  return (
+    duty +
+    STAGE.relayFreshnessWeight * freshness -
+    (protectedByTeam ? STAGE.relayProtectedPenalty : 0) +
+    STAGE.relayJitterWeight * m.workJitter
+  )
+}
+
+/**
+ * Quién releva en este bloque: los `ceil(paceFraction · N)` corredores con más deber de relevo
+ * (SPEC 6.5). El resto va a rueda y paga `shelterProtected`. El tamaño del turno lo fija la misma
+ * fracción de ritmo que marca el P75, así el número de corredores que trabajan no cambia; lo que
+ * cambia (y es el arreglo) es QUIÉNES son: antes salían del orden del array `input.riders`.
+ */
+function relayTurn(
+  members: RiderSim[],
+  idSet: Set<string>,
+  paceFraction: number,
+  domestiquesFor: Map<string, string[]>,
+): Set<string> {
+  const count = Math.min(members.length, Math.max(1, Math.ceil(paceFraction * members.length)))
+  const scored = members.map((m) => {
+    const helpers = domestiquesFor.get(m.input.riderId)
+    const protectedByTeam = helpers != null && helpers.some((id) => idSet.has(id))
+    return { id: m.input.riderId, duty: relayDuty(m, protectedByTeam) }
+  })
+  // Desempate final por id para que el orden sea total y no herede el orden de inserción.
+  scored.sort((a, b) => b.duty - a.duty || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+  return new Set(scored.slice(0, count).map((s) => s.id))
 }
 
 export function simulateStage(input: StageInput, seed: string): StageOutput {
@@ -119,6 +165,10 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       climbPts: 0,
       matches: r.matches,
       climbBoostBlocks: 0,
+      // Subflujo NOMINAL por corredor: el desempate del turno de relevos no depende del orden del
+      // array de entrada ni del tamaño del pelotón, solo de la semilla y del id (SPEC 6.1).
+      workJitter: streams(`work:${r.riderId}`)(),
+      markLossS: 0,
       incident: null,
     })
   }
@@ -184,7 +234,10 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
           STAGE.breakawayScoreRng * 100 * rngBreak(),
       }))
       .sort((a, b) => b.score - a.score)
-    const size = Math.min(scored.length, 3 + Math.floor(rngBreak() * 4)) // 3..6
+    const size = Math.min(
+      scored.length,
+      STAGE.breakawaySizeMin + Math.floor(rngBreak() * STAGE.breakawaySizeRange),
+    )
     const fugados = scored.slice(0, size).map((s) => s.r.riderId)
     if (fugados.length >= 2) {
       for (const id of fugados) sims.get(id)!.groupId = BREAKAWAY
@@ -200,7 +253,10 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       // La fuga se fragua en los primeros km de ataques, no en la línea de salida (km 0): se fecha en
       // un punto temprano, variado y determinista, sin pasar del 15% del recorrido en etapas cortas.
       breakFormedKm = Math.round(
-        Math.min(totalKm * 0.15, STAGE.breakFormMinKm + rngBreak() * STAGE.breakFormKmRange),
+        Math.min(
+          totalKm * STAGE.breakFormMaxRouteFraction,
+          STAGE.breakFormMinKm + rngBreak() * STAGE.breakFormKmRange,
+        ),
       )
       log.emit(breakFormedKm, breakaway.tS, 'fuga_formada', 'breakaway_formed', fugados)
       // Colaboración de la fuga: con un compromiso alto van a bloque; con uno bajo se miran y no
@@ -245,9 +301,9 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
         const trend =
           prevGapS === Number.POSITIVE_INFINITY
             ? 0
-            : gap > prevGapS + 3
+            : gap > prevGapS + STAGE.gapTrendThresholdSeconds
               ? 1
-              : gap < prevGapS - 3
+              : gap < prevGapS - STAGE.gapTrendThresholdSeconds
                 ? -1
                 : 0
         log.emit(km, peloton.tS, 'boquete', 'time_gap', [], { gapS: Math.round(gap), trend })
@@ -324,8 +380,9 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       const p75 = pacemakerP75(members, block, paceFraction)
       const next = advanceGroup(group, block, p75, { isFinal })
       const idSet = new Set(members.map((m) => m.input.riderId))
-      members.forEach((m, idx) => {
-        const relaying = idx / members.length < paceFraction
+      const relayers = relayTurn(members, idSet, paceFraction, domestiquesFor)
+      for (const m of members) {
+        const relaying = relayers.has(m.input.riderId)
         const shelter = relaying ? STAGE.shelterRelay : STAGE.shelterProtected
         let cost = blockCost(block, group.compromiso, shelter)
         // Protección de gregarios: un líder arropado que no está relevando gasta menos según cuántos
@@ -345,7 +402,7 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
         }
         m.energy = Math.max(0, m.energy - cost)
         m.work += cost
-      })
+      }
       return next
     }
 
@@ -359,20 +416,26 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       for (const m of members) {
         const deficit = pace - riderPerfil(m, block)
         if (deficit <= STAGE.dropDeficitTolerance) continue
-        // Marcaje (SPEC 6.18): si m marca a un rival que sube en su MISMO grupo, se agarra a su rueda y
-        // aguanta mientras su nivel de escalada no esté MUY por debajo del objetivo (margen ≥ -6). Así
-        // "marcar a un rival" evita que se te escape en la subida (donde se decide la general).
+        const lambda = (STAGE.lambdaDropBase * deficit) / STAGE.dropDeficitDenom
+        if (!rollHazard(rngHazard, lambda)) continue
+        // Marcaje (SPEC 6.18): el hazard que acaba de saltar ES el momento de selección (el ataque).
+        // Si m marca a un rival que sube en su MISMO grupo, la respuesta la resuelve el módulo
+        // oficial `marcaje.ts`: pegado a rueda, cede unos segundos, o se suelta.
         const targetId = markTargetOf.get(m.input.riderId)
         if (targetId && inGroup.has(targetId)) {
           const target = sims.get(targetId)
           if (target) {
-            const margin =
-              riderPerfil(m, block) - riderPerfil(target, block) + STAGE.markDraftTolerance
-            if (margin >= STAGE.markDropMargin) continue // se queda a rueda del objetivo
+            const outcome = resolveMarking(
+              markingMargin(riderPerfil(m, block), riderPerfil(target, block)),
+            )
+            if (outcome.kind === 'stuck') continue
+            if (outcome.kind === 'gives') {
+              m.markLossS += outcome.secondsLost
+              continue
+            }
+            // 'dropped': se suelta y sigue por el camino normal de descuelgue.
           }
         }
-        const lambda = (STAGE.lambdaDropBase * deficit) / STAGE.dropDeficitDenom
-        if (!rollHazard(rngHazard, lambda)) continue
         if (m.matches > 0 && m.input.orders.mentality !== 'reservon') {
           m.matches -= 1
           m.climbBoostBlocks = STAGE.matchBonusBlocks
@@ -571,7 +634,7 @@ function disputeBanner(
       // La volante la define SPR; la cima, el perfil de escalador (MON/COL).
       score:
         (isSprint ? m.input.eff0.SPR : Math.max(m.input.eff0.MON, m.input.eff0.COL)) *
-        (0.9 + 0.2 * rngSprint()),
+        normal(rngSprint, 1, STAGE.sprintScoreNoiseSd),
     }))
     .sort((a, b) => b.score - a.score)
   ranked.forEach(({ m }, idx) => {
@@ -606,7 +669,9 @@ function disputeClimb(
     const ranked = g.members
       .map((m) => ({
         m,
-        score: Math.max(m.input.eff0.MON, m.input.eff0.COL) * (0.9 + 0.2 * rngSprint()),
+        score:
+          Math.max(m.input.eff0.MON, m.input.eff0.COL) *
+          normal(rngSprint, 1, STAGE.sprintScoreNoiseSd),
       }))
       .sort((a, b) => b.score - a.score)
     for (const r of ranked) ordered.push(r.m)
@@ -683,7 +748,9 @@ function finishStage(
       })
       .sort((a, b) => b.score - a.score)
     ranked.forEach(({ m }, idx) => {
-      m.finishTs = group.tS + idx * 1e-3
+      // Los segundos cedidos marcando (SPEC 6.18) se pagan en el tiempo de meta: el marcador no se
+      // soltó del grupo, pero llegó con ese retraso respecto a su objetivo.
+      m.finishTs = group.tS + m.markLossS + idx * STAGE.finishTieBreakSeconds
     })
     if (gi === 0 && ranked[0]) {
       const field = ranked.length
