@@ -48,6 +48,8 @@ export interface ChronicleEntry {
   protagonists: string[]
   /** Datos numéricos del evento (p.ej. gapS = ventaja de la fuga en segundos; trend = -1/0/1). */
   datos?: Record<string, number | string>
+  /** Equipos de los protagonistas (nombres, sin repetir), para nombrarlos en la crónica. */
+  protagonistTeams?: string[]
 }
 
 export interface StageResultEntry {
@@ -158,6 +160,10 @@ const CHRONICLE: Record<string, ((n: string) => string)[]> = {
     (n) => `${n} is first to the summit`,
   ],
   break_cooperation: [(n) => `${n} start working together up front`],
+  bunch_sprint: [
+    (n) => `Into the final kilometre it's a bunch sprint — ${n} fight it out`,
+    (n) => `The trains wind up for a mass gallop; ${n} in the mix`,
+  ],
   time_gap: [() => 'Out front, the break presses on with its advantage'],
   sprinters_chase: [
     () => "The sprinters' teams hit the front to chase",

@@ -17,47 +17,138 @@ function fmtGap(seconds: number): string {
   return `${m}:${s}`
 }
 
-/** Convierte un evento del motor en una frase legible del journal de la etapa. */
+/** Índice determinista para elegir una variante de frase (misma entrada ⇒ misma variante). */
+function variantIndex(seed: string, mod: number): number {
+  let h = 2166136261
+  for (let i = 0; i < seed.length; i++) h = Math.imul(h ^ seed.charCodeAt(i), 16777619) >>> 0
+  return mod > 0 ? h % mod : 0
+}
+
+/** Une una lista con comas y "and" al final: "A", "A and B", "A, B and C". */
+function listNames(names: string[]): string {
+  if (names.length <= 1) return names[0] ?? ''
+  if (names.length === 2) return `${names[0]} and ${names[1]}`
+  return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
+}
+
+/**
+ * Convierte un evento del motor en una frase del journal. Varias redacciones por evento, elegidas
+ * de forma determinista (misma etapa ⇒ mismo relato, pero variado entre eventos y etapas), y con
+ * nombres de corredores y de equipos para que se lea como una crónica de verdad.
+ */
 function chronicleLine(e: ChronicleEntry): string {
-  const who = e.protagonists.join(', ')
+  const who = listNames(e.protagonists)
+  const team = e.protagonistTeams?.[0]
+  const teams = listNames(e.protagonistTeams ?? [])
+  const seed = `${e.plantilla}:${e.km}:${who}`
+  const pick = (opts: string[]): string => opts[variantIndex(seed, opts.length)] ?? opts[0] ?? ''
   switch (e.plantilla) {
     case 'breakaway_formed':
-      return `${who || 'A group'} go clear in the break.`
+      return pick([
+        `${who || 'A group'} attack and open up the day's break.`,
+        `${who || 'A handful of riders'} jump clear off the front.`,
+        `The break of the day forms: ${who || 'an early move'} go up the road.`,
+        `${who || 'A move'} slip away and get a gap.`,
+      ])
     case 'break_cooperation':
       return e.datos?.cooperating === 1
-        ? 'The break settles into a smooth rhythm, everyone taking turns.'
-        : 'There is little cooperation up front — the move looks disorganised.'
+        ? pick([
+            'Up front they collaborate well, rolling smooth turns.',
+            'The break is working like a well-drilled team, sharing the load.',
+            'Good understanding in the move — everyone takes their turn.',
+          ])
+        : pick([
+            'There is little cooperation up front — the move looks disorganised.',
+            'The escapees eye each other and few want to work.',
+            'No unity in the break; the turns are ragged.',
+          ])
     case 'sprinters_chase':
-      return "The sprinters' teams mass at the front and take up the chase."
+      return team
+        ? pick([
+            `${team} hit the front and take up the chase.`,
+            `${team} mass at the head of the bunch to reel the break in.`,
+            `${team} take control, winding up the pace behind ${e.protagonists[0] ?? 'their sprinter'}.`,
+          ])
+        : pick([
+            "The sprinters' teams take up the chase.",
+            'The bunch organises behind — the chase is on.',
+          ])
     case 'time_gap': {
-      const g = Number(e.datos?.gapS ?? 0)
+      const g = fmtGap(Number(e.datos?.gapS ?? 0))
       const trend = Number(e.datos?.trend ?? 0)
-      const tail =
-        trend > 0 ? ' and growing' : trend < 0 ? ', and the bunch is pulling it back' : ''
-      return `The break leads by ${fmtGap(g)}${tail}.`
+      if (trend > 0)
+        return pick([`The lead stretches out to ${g}.`, `Out front the gap grows to ${g}.`])
+      if (trend < 0)
+        return pick([
+          `The advantage is down to ${g} and falling.`,
+          `The bunch has the gap back to ${g}.`,
+        ])
+      return pick([`The break leads by ${g}.`, `Out front the advantage holds at ${g}.`])
     }
     case 'peloton_concedes':
-      return 'The peloton concedes — the break is given room to fight for the win.'
+      return pick([
+        'The peloton concedes — the break is given room to fight for the win.',
+        'The bunch eases and lets the move take its rope.',
+        'No panic behind: the favourites wave the break up the road.',
+      ])
     case 'sprinters_give_up':
-      return "The sprinters' teams give up the chase."
+      return pick([
+        "The sprinters' teams give up the chase.",
+        'The lead-out trains sit up — the catch looks off.',
+        'Behind, the fast men run out of legs and abandon the pursuit.',
+      ])
     case 'breakaway_caught':
-      return 'The peloton reels the break back in.'
+      return pick([
+        'The peloton reels the break back in.',
+        'It all comes back together — the break is caught.',
+        'The bunch swallows the move.',
+      ])
     case 'sprint_intermediate':
-      return `${who} takes the intermediate sprint.`
+      return pick([
+        `${who} takes the intermediate sprint.`,
+        `${who} kicks first at the intermediate.`,
+        `${who} grabs the points at the intermediate sprint.`,
+      ])
     case 'climb_kom':
-      return `${who} is first over the summit.`
+      return pick([
+        `${who}${team ? ` (${team})` : ''} is first over the summit.`,
+        `${who} leads over the top for the KOM points.`,
+        `${who} crests the climb in front.`,
+      ])
     case 'peloton_split': {
       const n = e.protagonists.length
       if (n === 0) return 'The climb splits the peloton.'
-      if (n <= 2) return `The climb splits the peloton — ${who} lose contact.`
-      return `The climb splits the peloton — ${n} riders lose contact.`
+      if (n <= 2)
+        return pick([
+          `The climb splits the peloton — ${who} lose contact.`,
+          `The pace shatters the bunch and ${who} are distanced.`,
+        ])
+      return pick([
+        `The climb splits the peloton — ${n} riders lose contact.`,
+        `The pace is brutal: ${n} riders are shelled out the back.`,
+      ])
+    }
+    case 'bunch_sprint': {
+      const led = e.datos?.ledOut === 1
+      const trio = listNames(e.protagonists.slice(0, 3))
+      return pick([
+        `Into the final kilometre it's a bunch sprint — ${trio} fight it out.`,
+        `The trains wind up for a mass gallop; ${trio} are in the mix.`,
+        led
+          ? `Perfectly led out, ${e.protagonists[0] ?? 'the sprinter'} launches with ${trio} for company.`
+          : `All together for the sprint: ${trio} line it up.`,
+      ])
     }
     case 'stage_win':
-      return `${who} wins the stage.`
+      return pick([
+        `${who}${team ? ` (${team})` : ''} wins the stage.`,
+        `${who} throws up the arms — stage victory${team ? ` for ${team}` : ''}.`,
+        `${who} takes it at the line.`,
+      ])
     case 'stage_win_itt':
       return `${who} sets the fastest time.`
     default:
-      return `${e.plantilla}${who ? `: ${who}` : ''}`
+      return `${e.plantilla}${who ? `: ${who}` : ''}${teams ? ` (${teams})` : ''}`
   }
 }
 
