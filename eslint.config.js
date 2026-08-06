@@ -57,7 +57,9 @@ const ENGINE_PURITY_MSG =
 
 export default tseslint.config(
   {
-    ignores: ['**/dist/**', '**/node_modules/**', '**/coverage/**'],
+    // `.claude/**` aloja los worktrees temporales de agentes: son copias del propio repositorio,
+    // así que sin esta exclusión ESLint las analizaría por duplicado (ESLint 9 no lee .gitignore).
+    ignores: ['**/dist/**', '**/node_modules/**', '**/coverage/**', '.claude/**'],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,

@@ -13,11 +13,11 @@ No es una impresión, son hechos verificables sobre el código actual.
 
 No están en el menú ni enlazadas desde ninguna página. Solo se llega escribiendo la URL a mano:
 
-| Ruta | Qué contiene | Gravedad |
-| --- | --- | --- |
-| `/race-entry` | Auto-inscripción del agente libre a carreras continentales, con su coste de viaje | **Crítica**: es el bucle de juego principal de un corredor sin equipo |
-| `/team-calendar` | Plan de carreras del equipo que gestiona el usuario | **Crítica**: es la función central del rol de mánager |
-| `/routes` | Altimetrías de la "vuelta de prueba" de 5 etapas | Baja: es un resto de la fase de desarrollo (Paso 28) |
+| Ruta             | Qué contiene                                                                      | Gravedad                                                              |
+| ---------------- | --------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `/race-entry`    | Auto-inscripción del agente libre a carreras continentales, con su coste de viaje | **Crítica**: es el bucle de juego principal de un corredor sin equipo |
+| `/team-calendar` | Plan de carreras del equipo que gestiona el usuario                               | **Crítica**: es la función central del rol de mánager                 |
+| `/routes`        | Altimetrías de la "vuelta de prueba" de 5 etapas                                  | Baja: es un resto de la fase de desarrollo (Paso 28)                  |
 
 Un jugador sin equipo hoy **no tiene forma de descubrir** que puede inscribirse a carreras. El bucle
 existe, está implementado y probado, y es invisible.
@@ -67,12 +67,12 @@ rider" que es el sexto. El dashboard no prioriza ni resume: repite.
 
 ### 1.6 Nomenclatura incoherente
 
-| Concepto | En el menú | En el dashboard | En la URL |
-| --- | --- | --- | --- |
-| Órdenes de carrera | "Orders" | "Race orders" | `/race-orders` |
-| Mis carreras | "Races" | "Races" | `/races` |
-| Calendario del mundo | "Calendar" | — | `/calendar` |
-| Contrato y ofertas | "Market" | "Market" | `/market` |
+| Concepto             | En el menú | En el dashboard | En la URL      |
+| -------------------- | ---------- | --------------- | -------------- |
+| Órdenes de carrera   | "Orders"   | "Race orders"   | `/race-orders` |
+| Mis carreras         | "Races"    | "Races"         | `/races`       |
+| Calendario del mundo | "Calendar" | —               | `/calendar`    |
+| Contrato y ofertas   | "Market"   | "Market"        | `/market`      |
 
 "Races" (mías) y "Calendar" (del mundo) son el mismo concepto en dos ámbitos, pero nada lo sugiere.
 "Market" describe un mercado que no existe: no hay mercado entre usuarios en el MVP; lo que hay es
@@ -82,7 +82,7 @@ rider" que es el sexto. El dashboard no prioriza ni resume: repite.
 
 ## 2. Principios de la propuesta
 
-1. **Tres esferas, no una lista.** Todo en este juego es *yo*, *mi equipo* o *el mundo*. La
+1. **Tres esferas, no una lista.** Todo en este juego es _yo_, _mi equipo_ o _el mundo_. La
    navegación debe hacer visible esa división en todo momento.
 2. **La URL es la jerarquía.** Si algo es hijo de otra cosa, cuelga de ella. Nunca dos conceptos
    distintos bajo el mismo prefijo.
@@ -118,49 +118,52 @@ rider" que es el sexto. El dashboard no prioriza ni resume: repite.
 Cada sección tiene su propia barra de pestañas, que sustituye a la tira plana actual.
 
 **My Rider**
+
 ```
 Profile │ Training │ Race orders │ My races │ Contract │ Finances
 ```
 
 **My Team** (solo mánagers)
+
 ```
 Squad │ Race calendar │ Training │ Finances
 ```
 
 **World**
+
 ```
 Calendar │ Teams │ Nations │ Rankings │ Hall of Fame
 ```
 
 ### 3.3 Mapa de rutas completo
 
-| Ruta nueva | Página actual | Cambio |
-| --- | --- | --- |
-| `/` | `Home` | Rediseñado (ver §4) |
-| `/me` | — | Redirige a `/me/profile` |
-| `/me/profile` | `RiderProfile` (`/rider`) | Movida |
-| `/me/training` | `Training` (`/training`) | Movida |
-| `/me/orders` | `RaceOrders` (`/race-orders`) | Movida y renombrada |
-| `/me/races` | `MyRaces` (`/races`) | Movida; **absorbe `/race-entry`** como pestaña interna |
-| `/me/contract` | `Market` (`/market`) | Movida y renombrada |
-| `/me/finances` | `Finances` (`/finances`) | Movida |
-| `/team/squad` | `Team` filtrado al propio | Nueva vista del equipo propio |
-| `/team/calendar` | `TeamCalendar` (`/team-calendar`) | **Rescatada del olvido** |
-| `/team/training` | (existe API `team-training`) | Expuesta |
-| `/team/finances` | — | Futuro |
-| `/world/calendar` | `Calendar` (`/calendar`) | Movida |
-| `/world/races/:raceId` | `Race` (`/races/:raceId`) | **Resuelve la colisión** |
-| `/world/races/:raceId/stages/:day` | `StageReplay` | Movida |
-| `/world/teams` · `/world/teams/:id` | `Teams` · `Team` | Movidas |
-| `/world/nations` · `/world/nations/:code` | `Countries` · `Country` | Movidas y renombradas |
-| `/world/rankings` | `Rankings` | Movida |
-| `/world/hall-of-fame` | `HallOfFame` | Movida |
-| `/world/riders/:id` | `PublicRider` | Movida |
-| `/news` | `News` | Se queda arriba |
-| `/account` · `/how-to-play` · `/privacy` | iguales | Sin cambio |
-| `/login` · `/register` · `/create` | iguales | Sin cambio |
-| `/admin/*` | `AdminNames` | Sin cambio (no enlazada, a propósito) |
-| ~~`/routes`~~ | `RoutesPage` | **Eliminar** (resto de desarrollo) o mover a `/admin/routes` |
+| Ruta nueva                                | Página actual                     | Cambio                                                       |
+| ----------------------------------------- | --------------------------------- | ------------------------------------------------------------ |
+| `/`                                       | `Home`                            | Rediseñado (ver §4)                                          |
+| `/me`                                     | —                                 | Redirige a `/me/profile`                                     |
+| `/me/profile`                             | `RiderProfile` (`/rider`)         | Movida                                                       |
+| `/me/training`                            | `Training` (`/training`)          | Movida                                                       |
+| `/me/orders`                              | `RaceOrders` (`/race-orders`)     | Movida y renombrada                                          |
+| `/me/races`                               | `MyRaces` (`/races`)              | Movida; **absorbe `/race-entry`** como pestaña interna       |
+| `/me/contract`                            | `Market` (`/market`)              | Movida y renombrada                                          |
+| `/me/finances`                            | `Finances` (`/finances`)          | Movida                                                       |
+| `/team/squad`                             | `Team` filtrado al propio         | Nueva vista del equipo propio                                |
+| `/team/calendar`                          | `TeamCalendar` (`/team-calendar`) | **Rescatada del olvido**                                     |
+| `/team/training`                          | (existe API `team-training`)      | Expuesta                                                     |
+| `/team/finances`                          | —                                 | Futuro                                                       |
+| `/world/calendar`                         | `Calendar` (`/calendar`)          | Movida                                                       |
+| `/world/races/:raceId`                    | `Race` (`/races/:raceId`)         | **Resuelve la colisión**                                     |
+| `/world/races/:raceId/stages/:day`        | `StageReplay`                     | Movida                                                       |
+| `/world/teams` · `/world/teams/:id`       | `Teams` · `Team`                  | Movidas                                                      |
+| `/world/nations` · `/world/nations/:code` | `Countries` · `Country`           | Movidas y renombradas                                        |
+| `/world/rankings`                         | `Rankings`                        | Movida                                                       |
+| `/world/hall-of-fame`                     | `HallOfFame`                      | Movida                                                       |
+| `/world/riders/:id`                       | `PublicRider`                     | Movida                                                       |
+| `/news`                                   | `News`                            | Se queda arriba                                              |
+| `/account` · `/how-to-play` · `/privacy`  | iguales                           | Sin cambio                                                   |
+| `/login` · `/register` · `/create`        | iguales                           | Sin cambio                                                   |
+| `/admin/*`                                | `AdminNames`                      | Sin cambio (no enlazada, a propósito)                        |
+| ~~`/routes`~~                             | `RoutesPage`                      | **Eliminar** (resto de desarrollo) o mover a `/admin/routes` |
 
 **Compatibilidad:** todas las rutas viejas se mantienen como redirecciones permanentes a las nuevas
 durante una temporada, para no romper enlaces guardados ni los que aparecen en noticias.
@@ -208,6 +211,7 @@ una jerarquía de urgencia.
 ```
 
 Reglas:
+
 - **Solo se muestra lo accionable.** Sin órdenes pendientes ni ofertas, esos bloques no aparecen.
 - **Orden por urgencia**, no por sección: lo que caduca con el próximo tick va primero.
 - **Los atajos de sección desaparecen**: para eso está el menú, que ahora es legible.
@@ -230,14 +234,14 @@ El juego se consulta desde el teléfono entre ticks, así que esto no es un aña
 
 ## 6. Antes y después
 
-| | Hoy | Propuesta |
-| --- | --- | --- |
-| Destinos de nivel 1 | 12 en una tira plana | 4 (+ News) |
-| Páginas inalcanzables | 3 | 0 |
-| Colisiones de URL | 1 (`/races`) | 0 |
-| Niveles de jerarquía | 1 | 2 |
-| Sitios donde gestionar "lo mío" | 6 hermanos sueltos | 1 sección, 6 pestañas |
-| Función del dashboard | Repetir el menú | Decir qué hacer hoy |
+|                                 | Hoy                  | Propuesta             |
+| ------------------------------- | -------------------- | --------------------- |
+| Destinos de nivel 1             | 12 en una tira plana | 4 (+ News)            |
+| Páginas inalcanzables           | 3                    | 0                     |
+| Colisiones de URL               | 1 (`/races`)         | 0                     |
+| Niveles de jerarquía            | 1                    | 2                     |
+| Sitios donde gestionar "lo mío" | 6 hermanos sueltos   | 1 sección, 6 pestañas |
+| Función del dashboard           | Repetir el menú      | Decir qué hacer hoy   |
 
 ---
 
@@ -246,8 +250,8 @@ El juego se consulta desde el teléfono entre ticks, así que esto no es un aña
 Cada fase deja la aplicación funcionando y es desplegable por separado.
 
 **Fase A — Rescate (1 sesión).** Enlazar `/race-entry` y `/team-calendar` en el menú actual y
-decidir el destino de `/routes`. Sin refactor. *Elimina hoy mismo el daño real: hay funcionalidad
-pagada e invisible.*
+decidir el destino de `/routes`. Sin refactor. _Elimina hoy mismo el daño real: hay funcionalidad
+pagada e invisible._
 
 **Fase B — Estructura (1-2 sesiones).** Nuevo mapa de rutas con redirecciones desde las viejas.
 Cabecera de dos niveles. Nombres nuevos (`Contract`, `My races`). Fusión de `/race-entry` como

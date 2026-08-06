@@ -58,7 +58,7 @@ objetivo del SPEC 6.17, y pasa.
 
 **Antes del bucle**
 
-1. **Piernas del día.** Cada corredor recibe un multiplicador único (±3σ) que escala *todos* sus
+1. **Piernas del día.** Cada corredor recibe un multiplicador único (±3σ) que escala _todos_ sus
    atributos. Un corredor algo inferior puede ganar a otro mejor que tiene un mal día.
 2. **Se forma la fuga.** Se filtran los candidatos —rol `cazaetapas` **o** mentalidad
    `combativo`/`supercombativo`—, se puntúan con `0.5·TAC + 0.3·LLA + ruido` y se toman los 3 a 6
@@ -69,9 +69,9 @@ objetivo del SPEC 6.17, y pasa.
 **El bucle, un paso por cada bloque de 100 m**
 
 4. **Controlador del pelotón** (cada 10 bloques, con histéresis). Dos modos y solo dos:
-   - *Hay sprinters y la meta es llana* → persiguen; el boquete deseado mengua hasta 0 a 12 km de
+   - _Hay sprinters y la meta es llana_ → persiguen; el boquete deseado mengua hasta 0 a 12 km de
      meta; si el cierre necesario es inviable, claudican (`sprinters_give_up`).
-   - *Si no* → control de la general: tempo en el llano, y `climbRaceCommit` (a tope) en cuanto el
+   - _Si no_ → control de la general: tempo en el llano, y `climbRaceCommit` (a tope) en cuanto el
      bloque sube.
 5. **Descuelgue (`shatter`)** — **solo si el bloque es subida**. Quien va por debajo del P75 del
    grupo más una tolerancia tiene una probabilidad `λ` de descolgarse; si le quedan cerillos y no es
@@ -107,7 +107,7 @@ let score = base * normal(rngSprint, 1, STAGE.sprintScoreNoiseSd)
 El orden de llegada **dentro de un grupo** se decide por **un solo atributo más ruido**. Con eso:
 
 - **Solo existen dos arquetipos de final en todo el juego: sprinter o escalador.** No hay final de
-  *puncheur*, ni de pavés (PAV no interviene jamás en el resultado), ni de grupo reducido donde
+  _puncheur_, ni de pavés (PAV no interviene jamás en el resultado), ni de grupo reducido donde
   cuente la táctica, ni de descenso, ni de fuga que aguanta por astucia.
 - Una clásica dura que termina en falso llano tras una cota se resuelve **a puro SPR**: gana el
   sprinter que haya sobrevivido, aunque haya pasado el día escondido. Esto explica, tal cual, "los
@@ -115,7 +115,7 @@ El orden de llegada **dentro de un grupo** se decide por **un solo atributo más
 - **El trabajo del día no se paga.** El corredor que ha relevado 100 km y el que ha ido a rueda
   llegan a la meta con la misma lotería, salvo por la erosión. `workUnits` **ya se calcula** y no se
   usa para nada en el resultado.
-- **`finishUphill` es binario y frágil**: basta que *un* bloque de los últimos 2 km suba para que
+- **`finishUphill` es binario y frágil**: basta que _un_ bloque de los últimos 2 km suba para que
   toda la meta pase a decidirse por MON/COL. Una rampa de 200 m antes de meta convierte una etapa
   llana en una llegada de escaladores.
 
@@ -159,23 +159,23 @@ desde ninguna parte.** El motor promete una carrera táctica y ejecuta una carre
 
 Además de los ataques y la tensión:
 
-| Mecánica | Estado real | Evidencia |
-| --- | --- | --- |
-| **Pájara (*bonk*)** | **Nunca se activa** | `effNow(eff0, e)` se llama siempre con 2 argumentos; el 3.º (`bonk`) jamás se pasa. Todo el bloque de `physics.ts:207-218` (atributos físicos ×0.55 y descuelgue automático) es código muerto |
-| **Abandonos / fuera de control** | **Nunca ocurren** | No se produce ni un `'abandon'` ni un `'dnf'` en todo el motor. En una gran vuelta de 21 etapas con caídas y lesiones, los 176 salen y los 176 acaban, siempre |
-| **Marcaje** | Duplicado | `marcaje.ts` está probado y exportado, pero `simulate.ts` **no lo llama**: reimplementa la fórmula en línea (`:365-373`). Ajustar el módulo "oficial" no cambia nada en carrera |
-| **Contrarreloj por equipos (CRE)** | Sin implementar | `teamTtShelter`, `teamTtPaceRider`, `teamTtPaceFactor` definidos y sin usar |
+| Mecánica                           | Estado real         | Evidencia                                                                                                                                                                                     |
+| ---------------------------------- | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Pájara (_bonk_)**                | **Nunca se activa** | `effNow(eff0, e)` se llama siempre con 2 argumentos; el 3.º (`bonk`) jamás se pasa. Todo el bloque de `physics.ts:207-218` (atributos físicos ×0.55 y descuelgue automático) es código muerto |
+| **Abandonos / fuera de control**   | **Nunca ocurren**   | No se produce ni un `'abandon'` ni un `'dnf'` en todo el motor. En una gran vuelta de 21 etapas con caídas y lesiones, los 176 salen y los 176 acaban, siempre                                |
+| **Marcaje**                        | Duplicado           | `marcaje.ts` está probado y exportado, pero `simulate.ts` **no lo llama**: reimplementa la fórmula en línea (`:365-373`). Ajustar el módulo "oficial" no cambia nada en carrera               |
+| **Contrarreloj por equipos (CRE)** | Sin implementar     | `teamTtShelter`, `teamTtPaceRider`, `teamTtPaceFactor` definidos y sin usar                                                                                                                   |
 
 ### 9. Defectos concretos de menor calado
 
 - **Quién releva se decide por el orden del array** (`:328`, `relaying = idx / members.length <
-  paceFraction`). Los primeros de `input.riders` gastan siempre más, y un líder que aparezca pronto
-  en la lista nunca recibe la protección de sus gregarios. Determinista, pero arbitrario. *(Ya está
-  en corrección.)*
+paceFraction`). Los primeros de `input.riders` gastan siempre más, y un líder que aparezca pronto
+  en la lista nunca recibe la protección de sus gregarios. Determinista, pero arbitrario. _(Ya está
+  en corrección.)_
 - **Los puntos de banner y cima usan `eff0`, no `effNow`** (`:573`, `:609`): ignoran la erosión, así
   que un escalador reventado sigue coronando primero.
 - **Parches sobre la falta de un modelo de persecución**: el tiempo de un grupo descolgado se
-  *pega* al del pelotón en llano (`:440`) y los descolgados cierran a un ritmo fijo en s/km
+  _pega_ al del pelotón en llano (`:440`) y los descolgados cierran a un ritmo fijo en s/km
   (`:449`). El propio comentario admite que se añadió para tapar "fugas fantasma". Funciona, pero
   es sintomático.
 - **El controlador del pelotón no sabe de equipos**: no hay "el equipo del líder defiende", ni
@@ -188,7 +188,7 @@ No es una contradicción, y conviene entenderlo bien:
 Los invariantes miden **estadística agregada sobre escenarios canónicos**: qué porcentaje de veces
 gana la fuga, cada cuánto se captura, qué brechas salen en una etapa reina. Eso puede estar bien
 **mientras cada carrera individual es inverosímil**. "El mejor sprinter gana el 43% de las llanas"
-es cierto y sano; que *ese* sprinter gane también la clásica de muros porque el último bloque es
+es cierto y sano; que _ese_ sprinter gane también la clásica de muros porque el último bloque es
 llano, no lo es.
 
 Y hay un segundo agujero: los invariantes solo corren sobre los escenarios canónicos y los perfiles
@@ -206,7 +206,7 @@ se han validado contra nada. Un motor razonable con un perfil absurdo produce un
 - La capa cara y difícil —ley de velocidad, inercia acotada, coste/rebufo/erosión, relojes de grupo,
   invariancia de resolución— **está bien hecha y calibrada**, y rehacerla es meses.
 - Lo que falla es la capa **táctica** (que no existe) y la de **resolución del final** (que es una
-  lotería de un atributo). Ambas se pueden construir *encima* de la física actual sin tocarla.
+  lotería de un atributo). Ambas se pueden construir _encima_ de la física actual sin tocarla.
 - Un reinicio tira además el trabajo de calibración de `docs/balance.md`.
 
 Lo que sí hay que aceptar es que **la capa táctica es prácticamente un desarrollo nuevo**, no un
@@ -223,7 +223,7 @@ Tipos propuestos: `sprint_masivo`, `sprint_reducido`, `puncheur`, `alto`, `pave`
 - El tipo se deriva de los últimos ~5 km (no de 2), ponderando pendiente media, dureza acumulada de
   la última cota y a qué distancia de meta corona, y el tamaño del grupo que llega.
 - La puntuación pasa a ser una **mezcla de atributos con pesos por tipo de final**, en lugar de uno
-  solo. Un final de *puncheur* mezcla COL, SPR y TAC; uno de pavés, PAV y LLA.
+  solo. Un final de _puncheur_ mezcla COL, SPR y TAC; uno de pavés, PAV y LLA.
 - **Penalizar el trabajo hecho**: `workUnits` ya está calculado; quien ha tirado todo el día llega
   con menos. Es lo que hace que "ir a rueda" sea una decisión con coste de oportunidad, y no la
   única estrategia ganadora.
@@ -266,21 +266,21 @@ Propuesta: separar **telemetría** de **narrativa**.
 - **Telemetría** (nueva, estructurada): estado de los grupos cada N bloques —composición, brecha,
   velocidad—, y los hitos por corredor (cuándo quemó cada cerillo, cuándo se descolgó, cuándo
   atacó). Es dato, no texto.
-- **Narrativa**: se construye *a partir* de la telemetría, fuera del motor.
+- **Narrativa**: se construye _a partir_ de la telemetría, fuera del motor.
 
 La ventaja es que con **un solo dato** se pueden alimentar varias vistas distintas (ver más abajo),
 y que los replays dejan de depender de re-simular.
 
 ### 17. Orden de trabajo propuesto
 
-| # | Trabajo | Por qué en este puesto |
-| --- | --- | --- |
-| 1 | **Perfiles reales** (extracción y validación) | Es la **entrada** del motor. Calibrar la física contra perfiles basura es meter compensaciones erróneas que luego hay que deshacer |
-| 2 | Modelo de final (§12) | Máximo impacto por esfuerzo: arregla "gana quien no debe" sin tocar la física |
-| 3 | Capa táctica (§13) | El desarrollo grande. Es lo que hace que las carreras se distingan |
-| 4 | Selección en pavés/descenso (§14) y fatiga (§15) | Completan el realismo por tipo de carrera |
-| 5 | Telemetría (§16) | Habilita el journal y las vistas nuevas |
-| 6 | Recalibración completa con Montecarlo | Solo tiene sentido al final, con entradas buenas y mecánicas completas |
+| #   | Trabajo                                          | Por qué en este puesto                                                                                                             |
+| --- | ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | **Perfiles reales** (extracción y validación)    | Es la **entrada** del motor. Calibrar la física contra perfiles basura es meter compensaciones erróneas que luego hay que deshacer |
+| 2   | Modelo de final (§12)                            | Máximo impacto por esfuerzo: arregla "gana quien no debe" sin tocar la física                                                      |
+| 3   | Capa táctica (§13)                               | El desarrollo grande. Es lo que hace que las carreras se distingan                                                                 |
+| 4   | Selección en pavés/descenso (§14) y fatiga (§15) | Completan el realismo por tipo de carrera                                                                                          |
+| 5   | Telemetría (§16)                                 | Habilita el journal y las vistas nuevas                                                                                            |
+| 6   | Recalibración completa con Montecarlo            | Solo tiene sentido al final, con entradas buenas y mecánicas completas                                                             |
 
 Cada cambio de comportamiento incrementa `engine_version` y se anota en `docs/balance.md`.
 
@@ -300,7 +300,7 @@ Propuesta de tres vistas sobre la **misma** telemetría:
    cazaron— más los momentos decisivos y quién hizo el trabajo (`workUnits` ya existe y hoy no se
    enseña).
 
-2. **Vista personal (solo si mi corredor participa).** La misma carrera contada desde *mi* rueda:
+2. **Vista personal (solo si mi corredor participa).** La misma carrera contada desde _mi_ rueda:
    dónde iba en cada momento, cuándo quemé cerillos, dónde me descolgué o resistí, y qué habría
    pasado con otras órdenes. Es la que engancha y la que se pega en el Discord.
 
@@ -321,7 +321,7 @@ ya está en marcha en el trabajo de corrección en curso.
 2. **¿Cuánto debe pesar el azar?** Hoy hay dos fuentes: piernas del día (±3σ sobre todos los
    atributos) y el ruido del sprint. Con una capa táctica de verdad, quizá sobre parte de ese ruido.
 3. **Perfiles**: con 532 campeonatos nacionales (133 países × 4) que PCS no va a cubrir para la
-   mayoría de países, ¿aceptamos un generador *consciente de la identidad* del país (un nacional
+   mayoría de países, ¿aceptamos un generador _consciente de la identidad_ del país (un nacional
    belga es llano y de adoquines; uno colombiano, de montaña) para ese bloque concreto?
 4. **CRE**: ¿entra en el MVP o se retira del `constants.ts` hasta que toque?
 5. **Abandonos**: ¿queremos que un usuario real pueda no terminar una gran vuelta? Tiene
