@@ -1,0 +1,1 @@
+ALTER TABLE "stage_snapshots" ADD COLUMN "events" jsonb;
