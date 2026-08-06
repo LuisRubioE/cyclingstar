@@ -25,6 +25,12 @@ function chronicleLine(e: ChronicleEntry): string {
       return `${who} takes the intermediate sprint.`
     case 'climb_kom':
       return `${who} is first over the summit.`
+    case 'peloton_split': {
+      const n = e.protagonists.length
+      if (n === 0) return 'The climb splits the peloton.'
+      if (n <= 2) return `The climb splits the peloton — ${who} lose contact.`
+      return `The climb splits the peloton — ${n} riders lose contact.`
+    }
     case 'stage_win':
       return `${who} wins the stage.`
     case 'stage_win_itt':
@@ -73,6 +79,7 @@ export function StageReplay() {
   if (isError) return <p className="text-red-600">Could not load the stage.</p>
 
   const leader = data.gc?.[0]?.tiempoTotalS ?? 0
+  const stageWinnerTime = data.results?.[0]?.tiempoS ?? 0
   const card = 'rounded-2xl border border-slate-200 bg-white p-5 shadow-sm'
   const head = 'text-xs font-semibold uppercase tracking-wide text-slate-400'
 
@@ -145,7 +152,9 @@ export function StageReplay() {
                     <RiderName riderId={r.riderId} name={r.name} isBot={r.isBot} />
                   </td>
                   <td className="py-1 text-right tabular-nums text-slate-500">
-                    {formatTime(r.tiempoS)}
+                    {r.puesto === 1
+                      ? formatTime(r.tiempoS)
+                      : `+${formatTime(r.tiempoS - stageWinnerTime)}`}
                   </td>
                 </tr>
               ))}

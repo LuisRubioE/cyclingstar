@@ -155,6 +155,11 @@ const CHRONICLE: Record<string, ((n: string) => string)[]> = {
     (n) => `${n} dances away to top the climb`,
     (n) => `${n} is first to the summit`,
   ],
+  peloton_split: [
+    (n) => `The climb splits the peloton — ${n} lose contact`,
+    (n) => `The pace shatters the bunch: ${n} are distanced`,
+    (n) => `Selection on the climb — ${n} slip off the back`,
+  ],
   breakaway_caught: [
     () => 'The peloton reels the breakaway back in',
     () => 'It all comes back together — the break is caught',

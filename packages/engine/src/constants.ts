@@ -192,6 +192,16 @@ export const STAGE = {
   // Velocidad inicial del grupo tras la salida neutralizada (6.3).
   initialSpeed: 35,
   captureGapSeconds: 5,
+  // Un descolgado en llano/descenso vuelve al pelotón si su boquete es de este orden (s): la subida
+  // parte el grupo, pero en terreno rodador los cortes pequeños se cazan y el pelotón se recompone.
+  regroupGapSeconds: 22,
+  // Nº mínimo de descolgados en un bloque de subida para narrar el "corte" del pelotón en la crónica.
+  splitEventMinDropped: 2,
+  // Distancia mínima (km) entre dos "cortes" narrados: evita repetir la frase bloque a bloque.
+  splitEventMinKmGap: 3,
+  // La fuga se fecha en los primeros km (ataques de salida), no en el km 0: mín + aleatorio determinista.
+  breakFormMinKm: 3,
+  breakFormKmRange: 17,
 
   // 6.5 — Coste, tanque y drafting.
   // costeBase paves: 0.55 + 0.06·estrellas.
