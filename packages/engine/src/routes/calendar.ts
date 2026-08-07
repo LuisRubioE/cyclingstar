@@ -10,7 +10,7 @@ import { COUNTRIES, type Continent } from '@cyclingstar/shared'
 import type { Division } from '../world/npc.js'
 import type { Segment, StageProfile } from '../stage/types.js'
 import { type RaceEdition, RACE_EDITIONS } from './editions.js'
-import { type StageFeatures, buildFeatureProfile } from './featureProfile.js'
+import { type RouteTerrain, type StageFeatures, buildFeatureProfile } from './featureProfile.js'
 import {
   classicSegments,
   cobblesSegments,
@@ -172,7 +172,7 @@ function featureSpec(
     kind: t.kind,
     label: t.label,
     ...(t.timeTrial ? { timeTrial: true } : {}),
-    profile: buildFeatureProfile(km, features, seed),
+    profile: buildFeatureProfile(km, features, seed, terrain),
   }
 }
 
@@ -342,7 +342,9 @@ function doy(month: number, day: number): number {
   return MONTH_CUM[month - 1]! + day
 }
 
-type Terrain = 'flat' | 'hilly' | 'mountain' | 'cobbles' | 'classic' | 'itt'
+// El terreno dominante de una etapa: da color y etiqueta en el calendario y, en un perfil
+// reconstruido, la amplitud del relieve anónimo entre dificultades (ver featureProfile.ts).
+type Terrain = RouteTerrain
 
 interface RaceRow {
   id: string

@@ -9,8 +9,22 @@
  * y la FÍSICA de la carrera: los puertos reales cuentan para la montaña y el esfuerzo, no son decorado.
  * Puro y determinista (semilla por etapa para el relleno ondulado entre puertos).
  */
+import { RELIEF } from '../constants.js'
 import { deriveClimbCategory } from '../stage/sample.js'
 import type { Banner, ClimbCategory, Ramp, Segment, StageProfile } from '../stage/types.js'
+
+/**
+ * Terreno DOMINANTE de una etapa (el que le da color y etiqueta en el calendario). Aquí manda una
+ * cosa concreta: cuánto ondula la carretera entre las dificultades publicadas (`RELIEF`). Vive en
+ * este módulo, y no en el calendario, para que el constructor del perfil no dependa de él.
+ */
+export type RouteTerrain = 'flat' | 'hilly' | 'mountain' | 'cobbles' | 'classic' | 'itt'
+
+/** Amplitud del relieve anónimo de un terreno (1.0 = clásica de montes, la referencia). */
+function rollingAmplitude(terrain?: RouteTerrain): number {
+  if (!terrain) return RELIEF.rollingAmplitudeDefault
+  return RELIEF.rollingAmplitude[terrain]
+}
 
 /** Un puerto real de la etapa: su cima está en `summitKm`, mide `lengthKm` al `avgGradient` % medio. */
 export interface StageClimb {
@@ -133,16 +147,27 @@ function descentSegment(lengthKm: number, dropM: number): Segment {
   return { km: r2(lengthKm), tipo: 'descenso', tramos: [{ km: r2(lengthKm), g: r1(g) }] }
 }
 
-/** Relleno ondulado (falsos llanos y toboganes suaves) de `lengthKm` km. Determinista por semilla. */
-function rollingFill(lengthKm: number, seed: string): Segment[] {
+/**
+ * Relleno ondulado (falsos llanos y toboganes suaves) de `lengthKm` km. Determinista por semilla.
+ *
+ * La `amplitud` escala la pendiente de las rampas según el terreno que atraviesa la etapa
+ * (`RELIEF.rollingAmplitude`): la llanura del Norte no ondula como los Prealpes lombardos, y con
+ * una amplitud única para todos los terrenos el desnivel reconstruido se iba un +49 % en
+ * Paris-Roubaix. Cada metro de más se paga en el tanque, así que esto no es cosmética.
+ */
+function rollingFill(lengthKm: number, seed: string, amplitude: number): Segment[] {
   if (lengthKm <= 0.05) return []
   const rand = seededRand(seed)
   const segs: Segment[] = []
   let rem = lengthKm
   while (rem > 0.4) {
-    const len = Math.min(rem, 1.4 + rand() * 2.2)
+    const len = Math.min(rem, RELIEF.rollingMinKm + rand() * RELIEF.rollingKmRange)
     const up = rand() < 0.5
-    const g = r1((0.4 + rand() * 2.4) * (up ? 1 : -1))
+    const g = r1(
+      (RELIEF.rollingMinGradient + rand() * RELIEF.rollingGradientRange) *
+        amplitude *
+        (up ? 1 : -1),
+    )
     segs.push({ km: r2(len), tipo: 'llano', tramos: [{ km: r2(len), g }] })
     rem -= len
   }
@@ -330,13 +355,17 @@ function profileFromElevation(
  * (cada uno en su km, con descenso y relleno ondulado entre unos y otros). En ambos casos se marca una
  * cima en cada puerto (categoría oficial o derivada) y un sprint en cada meta volante real, y al final
  * se superponen los sectores de pavé reales (`cobbles`), que marcan el firme sin tocar el relieve.
+ *
+ * El `terrain` solo interviene en el relleno ondulado entre dificultades (cuánto ondula la
+ * carretera anónima, `RELIEF.rollingAmplitude`); nada de lo publicado por la fuente depende de él.
  */
 export function buildFeatureProfile(
   totalKm: number,
   features: StageFeatures,
   seed: string,
+  terrain?: RouteTerrain,
 ): StageProfile {
-  const profile = buildRelief(totalKm, features, seed)
+  const profile = buildRelief(totalKm, features, seed, rollingAmplitude(terrain))
   if (features.cobbles && features.cobbles.length > 0)
     profile.segments = normalizeTotal(
       applyCobbles(profile.segments, features.cobbles, totalKm),
@@ -346,7 +375,12 @@ export function buildFeatureProfile(
 }
 
 /** El relieve de la etapa: de la altitud real muestreada si la hay, o reconstruido de los puertos. */
-function buildRelief(totalKm: number, features: StageFeatures, seed: string): StageProfile {
+function buildRelief(
+  totalKm: number,
+  features: StageFeatures,
+  seed: string,
+  amplitude: number,
+): StageProfile {
   if (features.elevation && features.elevation.length >= 2)
     return profileFromElevation(
       totalKm,
@@ -373,7 +407,7 @@ function buildRelief(totalKm: number, features: StageFeatures, seed: string): St
           prevGainM = 0
         }
       }
-      segments.push(...rollingFill(gap, `${seed}:roll${idx}`))
+      segments.push(...rollingFill(gap, `${seed}:roll${idx}`, amplitude))
     }
     const climbLen = Math.max(0.3, c.summitKm - Math.max(cursor, baseKm))
     const ramps = climbRamps(climbLen, c.avgGradient)
@@ -397,7 +431,7 @@ function buildRelief(totalKm: number, features: StageFeatures, seed: string): St
       segments.push(descentSegment(descLen, prevGainM * 0.85))
       tail -= descLen
     }
-    segments.push(...rollingFill(tail, `${seed}:tail`))
+    segments.push(...rollingFill(tail, `${seed}:tail`, amplitude))
   }
 
   for (const s of features.sprints ?? [])

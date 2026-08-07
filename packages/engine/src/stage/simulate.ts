@@ -717,10 +717,14 @@ function disputeBanner(
         normal(rngSprint, 1, STAGE.sprintScoreNoiseSd),
     }))
     .sort((a, b) => b.score - a.score)
+  // Disputar el banner cuesta `bannerCost` UNA vez a cada contendiente (SPEC 6.11). El descuento
+  // vivía dentro del reparto de puntos, así que se cobraba una vez POR PUESTO puntuable: con la
+  // tabla de la meta volante (8 puestos) cada aspirante pagaba 16 de tanque por cada volante, y en
+  // una carrera con tres sprints intermedios eso vaciaba medio depósito antes de correr.
+  for (const c of contenders) c.energy = Math.max(0, c.energy - STAGE.bannerCost)
   ranked.forEach(({ m }, idx) => {
     const pts = table[idx] ?? 0
     if (pts <= 0) return
-    for (const c of contenders) c.energy = Math.max(0, c.energy - STAGE.bannerCost)
     if (isSprint) m.sprintPts += pts
     else m.climbPts += pts
   })

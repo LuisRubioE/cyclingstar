@@ -27,8 +27,14 @@
  * `buildFeatureProfile()` los traduce a segmentos `paves` con sus estrellas. No cambia ninguna ley
  * física, pero sí el recorrido que corren las clásicas del Norte —y con él su coste en energía
  * (SPEC 6.5)—, así que las etapas ya no son las mismas: es cambio de comportamiento.
+ *
+ * v5: la CLÁSICA LARGA entra en la calibración. El relieve anónimo reconstruido pasa a escalarse por
+ * terreno (`RELIEF.rollingAmplitude`), disputar un banner deja de cobrarse una vez por puesto
+ * puntuable (era un fallo: hasta 16 de tanque por meta volante), y el coste por km, el umbral de
+ * erosión y el depósito del corredor fatigado se recalibran para que un monumento de 250 km no
+ * agote el depósito del pelotón entero (docs/balance.md).
  */
-export const ENGINE_VERSION = 4 as const
+export const ENGINE_VERSION = 5 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -133,17 +139,57 @@ export const TANK = {
   fitnessMin: 0.9,
   fitnessMax: 1.1,
   // Frescura (TSB): la fatiga acumulada vacía el depósito antes de salir.
-  // TSB 0 -> 1.00 · -25 -> 0.84 · -45 -> 0.71 · <= -55 -> 0.64 (suelo).
+  // TSB 0 -> 1.00 · -25 -> 0.79 · -45 -> 0.62 · <= -55 -> 0.52 (suelo).
   // La pendiente es MÁS dura que el 0.0045 de partida de §VI.1 porque con ella la tercera semana
   // de una gran vuelta no llegaba a erosionar (medido: 0.40 frente al objetivo 0.60-0.85); la
-  // tabla de objetivos de §VI.1 manda sobre los números concretos.
+  // tabla de objetivos de §VI.1 manda sobre los números concretos. Se endurece otra vez (0.0065 ->
+  // 0.0085, suelo 0.64 -> 0.52) al bajar el coste por km para que la clásica larga no saturase: con
+  // el coste nuevo, un corredor de tercera semana saliendo con 70,7 solo erosionaba 0,48.
   freshnessBase: 1.0,
-  freshnessSlope: 0.0065,
-  freshnessMin: 0.64,
+  freshnessSlope: 0.0085,
+  freshnessMin: 0.52,
   freshnessMax: 1.05,
   // Cotas del producto (§VI.1): ni el mejor sale con un tanque irreal ni el peor con uno inservible.
-  min: 0.7,
+  // El suelo baja de 0.70 a 0.58 por lo mismo: es el que fija el depósito del hundido (58,6).
+  min: 0.58,
   max: 1.08,
+} as const
+
+/**
+ * RELIEVE ANÓNIMO de un recorrido reconstruido (`routes/featureProfile.ts`). Entre dos dificultades
+ * publicadas (puertos, muros) la carretera no es una mesa de billar: ondula. Ese relleno es
+ * sintético —la fuente no lo publica— y se dibuja con rampas cortas alternas de pendiente
+ * `±(min + rango·aleatorio)·amplitud`.
+ *
+ * La AMPLITUD depende del terreno, y esa es la perilla que faltaba: con una única amplitud para
+ * todos los terrenos, la llanura del Norte ondulaba igual que los Prealpes. Medido con una amplitud
+ * común, Paris-Roubaix salía con 2.154 m de desnivel cuando la carrera tiene ~1.450 (+49 %) y el
+ * Ronde con 3.030 frente a ~2.500 (+21 %). El relleno no es decorado: cada metro reconstruido se
+ * paga en el tanque (SPEC 6.5, `costClimbSlope`), así que inflarlo inflaba la erosión.
+ *
+ * Los valores se calibran contra el desnivel PUBLICADO de las carreras de referencia (ver
+ * docs/balance.md): Paris-Roubaix ~1.450 m · Ronde van Vlaanderen ~2.500 · Il Lombardia ~4.400 ·
+ * Milano-Sanremo ~2.000.
+ */
+export const RELIEF = {
+  // Pendiente del relleno: |g| = min + rango·U(0,1), escalada por la amplitud del terreno.
+  rollingMinGradient: 0.4,
+  rollingGradientRange: 2.4,
+  // Longitud de cada rampa del relleno (km): tramos cortos, ni un tobogán ni un falso llano eterno.
+  rollingMinKm: 1.4,
+  rollingKmRange: 2.2,
+  // Amplitud por terreno dominante de la etapa. 1.0 es la referencia (la clásica de montes: un
+  // Lombardía, un Lieja), y de ahí hacia abajo cuanto más plano es el país que se atraviesa.
+  rollingAmplitude: {
+    flat: 0.55, // etapa de llanura: la carretera apenas se mueve entre dificultad y dificultad
+    itt: 0.55, // una crono se traza por terreno rodador a propósito
+    cobbles: 0.7, // llanura del Norte: los muros están declarados, entre ellos es plano
+    hilly: 0.85, // media montaña y clásicas de costa: ondula, pero el relieve gordo va declarado
+    classic: 1.0, // clásica de montes (Prealpes lombardos, Ardenas): referencia de la escala
+    mountain: 1.15, // valles de alta montaña: ni los enlaces son llanos
+  },
+  // Amplitud de una etapa sin terreno declarado: la de referencia.
+  rollingAmplitudeDefault: 1.0,
 } as const
 
 /** Salud y enfermedad (SPEC 4.2, 4.3). */
@@ -290,13 +336,22 @@ export const STAGE = {
   // costeBase paves: 0.55 + 0.06·estrellas.
   costPavesBase: 0.55,
   costPavesStars: 0.06,
-  // costeBase por pendiente: g<=-3 -> 0.10 | -3<g<0 -> lerp(0.10, 0.30) | g>=0 -> 0.30 + 0.17·g.
-  // La pendiente del coste sube de 0.11 a 0.17: con 0.11, una etapa reina gastaba solo un 18% más
-  // de tanque que una llana (medido 51,8% frente a 43,7%), y con esa separación NINGÚN umbral de
-  // erosión podía a la vez dejar la llana a 0 y llevar la reina al 0,20-0,50 que pide §VI.1.
+  // costeBase por pendiente: g<=-3 -> 0.10 | -3<g<0 -> lerp(0.10, cf) | g>=0 -> cf + 0.135·g.
+  // La pendiente del coste subió de 0.11 a 0.17 en el Cambio 0: con 0.11, una etapa reina gastaba
+  // solo un 18% más de tanque que una llana, y con esa separación NINGÚN umbral de erosión podía a
+  // la vez dejar la llana a 0 y llevar la reina al 0,20-0,50 que pide §VI.1.
+  //
+  // Ahora bajan las dos (0.30 -> 0.22 y 0.17 -> 0.135) porque aquella calibración se hizo contra
+  // perfiles SINTÉTICOS y LISOS —la llana canónica es g = 0 durante 180 km y la reina, 135 km a
+  // g = 0 más un puerto— mientras un recorrido REAL cobra pendiente en casi todos sus km. Con los
+  // valores viejos un monumento de 250 km gastaba 117 de un depósito de 100: el pelotón entero
+  // entraba en pájara y la erosión topaba en 1,000, es decir, dejaba de discriminar. Con estos, la
+  // llana sigue sin erosionar (gasto 28,8%), la reina erosiona 0,216 e Il Lombardia 0,86 sin
+  // saturar. La razón llana/reina (0,65) y el umbral de erosión son las dos ataduras: ver
+  // docs/balance.md, «la aritmética de la clásica larga».
   costDescentFloor: 0.1,
-  costFlatBase: 0.3,
-  costClimbSlope: 0.17,
+  costFlatBase: 0.22,
+  costClimbSlope: 0.135,
   costDescentGradient: -3,
   // draftMax por terreno: llano 0.42 | descenso 0.25 | paves 0.18 | subida clamp(0.32 - 0.028·g, 0.08, 0.42).
   // El rebufo del llano sube de 0.32 a 0.42: ir a rueda en un pelotón grande ahorra de verdad un
@@ -363,13 +418,14 @@ export const STAGE = {
   matchDepletionThreshold: 0.12,
 
   // 6.7 — Erosión por vaciado (durabilidad).
-  // depl = clamp(1 - E/E0, 0, 1); umbral = 0.20 + 0.40·RES/100.
-  // La base baja de 0.35 a 0.20 porque con 0.35 el umbral quedaba en 0.57 para un RES de 55 y el
+  // depl = clamp(1 - E/E0, 0, 1); umbral = 0.07 + 0.40·RES/100.
+  // La base bajó de 0.35 a 0.20 porque con 0.35 el umbral quedaba en 0.57 para un RES de 55 y el
   // gasto de una etapa NUNCA lo alcanzaba: la erosión era 0.000 siempre y RES, la durabilidad y el
-  // tanque entero eran decorativos (docs/motor.md §3-bis-a). Con 0.20 y los costes recalibrados, la
-  // llana tranquila sigue sin erosionar (gasto 38%, umbral 42%), la reina en fresco erosiona 0,24 y
-  // la reina en tercera semana 0,65, que es justo la tabla de objetivos de §VI.1.
-  erosionThresholdBase: 0.2,
+  // tanque entero eran decorativos (docs/motor.md §3-bis-a). Ahora baja de 0.20 a 0.07 porque el
+  // coste por km también ha bajado: el umbral tiene que seguir al gasto o la reina deja de erosionar.
+  // Queda justo por encima del gasto de la llana tranquila (28,8% frente a un umbral de 29,2% con
+  // RES 55): es la atadura que impide subirlo más, porque la llana NO debe erosionar.
+  erosionThresholdBase: 0.07,
   erosionThresholdResScale: 0.4,
   erosionExponent: 1.2,
   // coefErosion por atributo.
@@ -423,11 +479,12 @@ export const STAGE = {
   breakawayConsolidateKm: 2,
   // La fuga rueda a tempo cooperando (conserva), con cooperación variable por etapa: unas se
   // entienden y aguantan, otras se miran y las cazan. Esa varianza produce el 2-8% de fugas.
-  // Suben de 0.50/0.65 a 0.52/0.665 porque el pelotón ya no rueda a paseo cuando no hay nada que
-  // cazar: con los valores viejos la fuga en llano caía del 5,8% al 0,6%. El extremo superior sigue
-  // siendo muy sensible (0.68 -> 8,0%, 0.665 -> 3,4%, 0.75 -> 28,7%).
+  // Subieron de 0.50/0.65 a 0.52/0.665 porque el pelotón dejó de rodar a paseo cuando no hay nada
+  // que cazar. El extremo superior BAJA ahora a 0.635: al abaratar el coste por km (clásica larga)
+  // la fuga se desgasta menos y aguantaba el 15,0% de las llanas, muy por encima del 2-8%. Sigue
+  // siendo la perilla más sensible del llano: 0.62 -> 0,8%, 0.635 -> 5,8%, 0.65 -> 10,0%.
   breakawayCommitMin: 0.52,
-  breakawayCommitMax: 0.665,
+  breakawayCommitMax: 0.635,
   // Control del boquete (leash): los sprinters dejan a la fuga una ventaja máxima que se cierra
   // linealmente hasta el punto de captura (finish - 12 km). El pelotón regula en lazo cerrado:
   // tempo de mantenimiento + ganancia proporcional al exceso sobre el boquete deseado.
@@ -438,10 +495,14 @@ export const STAGE = {
   chaseGain: 0.006,
   // Control de la general en etapas sin llegada masiva: el pelotón limita el boquete a este
   // tempo (no captura); la subida final decide. Calibra el % de fugas que ganan en montaña.
-  // Sube de 265 a 330: con el pelotón regulando SIEMPRE (antes solo mientras había fuga) el boquete
-  // se cerraba solo y la fuga en montaña se hundía del 35,8% al 3,3%. Sigue siendo la perilla más
-  // sensible del motor (300 -> 25%, 330 -> 38%, 600 -> 100% de fugas que ganan).
-  gcControlLeash: 342,
+  // Subió de 265 a 342: con el pelotón regulando SIEMPRE (antes solo mientras había fuga) el boquete
+  // se cerraba solo y la fuga en montaña se hundía del 35,8% al 3,3%. Sube otra vez a 350 al bajar
+  // el coste por km y el techo de cooperación de la fuga (0.665 -> 0.635), que se llevaron la fuga
+  // en montaña al 25,8% (pegada al suelo del rango). Sigue siendo la perilla más sensible del motor,
+  // y el estadístico tiene mucha varianza: medido con 120 / 500 semillas, 335 -> 22% / 26%,
+  // 342 -> 26% / 31%, 350 -> 29% / 35%, 365 -> 37% / 47%. Con 350 el rango 25-45% se cumple en las
+  // DOS campañas (la de CI y la de `pnpm sim`), que es la condición que hay que exigir.
+  gcControlLeash: 350,
   // Compromiso de los favoritos en la subida decisiva: tempo duro que descuelga poco a poco
   // (no máximo, o el grupo llegaría junto). Calibra la caza de la fuga y el estiramiento.
   climbRaceCommit: 0.85,
