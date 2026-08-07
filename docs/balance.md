@@ -382,3 +382,32 @@ estuvo apagada mucho tiempo sin que ningún test lo notara.
 - **Etapa de pavés**: sigue sin producir selección (`shatter` solo actúa en subida). Es §14.
 - **`apps/api/src/app.test.ts` clava `engineVersion: 1`** y hay que subirlo a 2. Ese fichero es de
   otro agente en esta tanda (propiedad de `apps/**`), así que se deja anotado en vez de tocarlo.
+
+## Perfiles reales de las clásicas: el pavé entra en el recorrido (`engine_version` 3 → 4)
+
+### Por qué sube la versión sin tocar ninguna constante
+
+No se ha movido ni una perilla de `STAGE`. Lo que cambia es el **recorrido**: `StageFeatures` gana el
+campo `cobbles` (sector de pavé: km de inicio, longitud y dureza en estrellas) y
+`buildFeatureProfile()` lo traduce a segmentos `tipo: 'paves'` con sus `estrellas`. El pavé sí tiene
+coste en el motor (SPEC 6.5, `STAGE.pavesCost`), así que las etapas que lo declaran **ya no corren
+igual**: mismo mundo y misma semilla dan otra carrera. Eso es cambio de comportamiento (CLAUDE.md), y
+por eso `ENGINE_VERSION` pasa a 4.
+
+Lo que **no** cambia: el pavé marca el firme, no el relieve. El adoquín se superpone al trazado ya
+construido troceando segmentos por las fronteras de cada sector y conservando su pendiente, así que el
+desnivel de una etapa con y sin `cobbles` es exactamente el mismo (hay test).
+
+### Reglas de traducción (y por qué)
+
+| Regla                                                           | Razón                                                                                                                                                                                                                                  |
+| --------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Los sectores se recortan al recorrido y **no pueden solaparse** | Las tablas publicadas traen defectos reales (la italiana de Paris-Roubaix encabalga Verchain-Maugré→Quérénaing con Quérénaing→Maing). Un dato imperfecto no puede reventar una etapa: el segundo sector arranca donde acaba el primero |
+| Un sector que cae dentro de un **puerto** se queda como puerto  | Un muro adoquinado (Koppenberg, Paterberg) ya está modelado como subida y el muestreo da **un solo terreno por bloque**: `sample.ts` solo cobra estrellas en segmentos `paves`. Por eso en `cobbles` va únicamente el pavé LLANO       |
+| El troceado ajusta la cola de cada segmento                     | Redondear a 2 decimales al partir movería la distancia total de la etapa                                                                                                                                                               |
+
+### Lo que esto todavía NO hace
+
+`shatter()` solo actúa en subida, así que **el adoquín aún no selecciona la carrera**: cuesta energía,
+pero no descuelga a nadie. Es el Cambio 3 de `docs/motor.md` §14, y sigue pendiente. El dato ya está
+bien guardado para cuando llegue.

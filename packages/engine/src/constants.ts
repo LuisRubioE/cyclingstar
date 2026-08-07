@@ -22,8 +22,13 @@
  * ella la pájara y el coste en energía de los cerillos; el controlador del pelotón sale del
  * condicional de la fuga y regula el ritmo siempre; las velocidades y la VAM bajan a rango real; y
  * los descolgados se reagrupan en grupeto también en subida.
+ *
+ * v4: los rasgos de una etapa admiten SECTORES DE PAVÉ reales (`StageFeatures.cobbles`) y
+ * `buildFeatureProfile()` los traduce a segmentos `paves` con sus estrellas. No cambia ninguna ley
+ * física, pero sí el recorrido que corren las clásicas del Norte —y con él su coste en energía
+ * (SPEC 6.5)—, así que las etapas ya no son las mismas: es cambio de comportamiento.
  */
-export const ENGINE_VERSION = 3 as const
+export const ENGINE_VERSION = 4 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a

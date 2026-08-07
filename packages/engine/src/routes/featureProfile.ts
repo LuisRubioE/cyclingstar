@@ -35,6 +35,23 @@ export interface StageSprint {
 }
 
 /**
+ * Un sector de PAVÉ real: empieza en `startKm`, mide `lengthKm` y su dureza publicada es `stars`
+ * (1-5 estrellas, el baremo de la organización de Paris-Roubaix). El motor cobra el pavé por esas
+ * estrellas (SPEC 6.5), así que este es el dato que convierte una clásica del Norte en una clásica
+ * del Norte. OJO: solo va aquí el pavé LLANO; un muro adoquinado se modela como puerto (`climbs`),
+ * porque el muestreo solo puede darle un terreno a cada bloque (ver stage/sample.ts).
+ */
+export interface StageCobbles {
+  name: string
+  /** Kilómetro (desde la salida) en el que EMPIEZA el sector. */
+  startKm: number
+  /** Longitud del sector en km. */
+  lengthKm: number
+  /** Dureza en estrellas (1-5). */
+  stars: number
+}
+
+/**
  * Muestra de ALTITUD REAL: a `km` de la salida el recorrido está a `elevM` metros. Una serie de estas
  * (de PCS/La Flamme Rouge o de un GPX) define el trazado REAL: el motor integra la pendiente entre
  * muestras consecutivas, así el relieve deja de ser un relleno sintético y reproduce la etapa de verdad.
@@ -48,6 +65,11 @@ export interface StageElevation {
 export interface StageFeatures {
   climbs?: StageClimb[]
   sprints?: StageSprint[]
+  /**
+   * Sectores de pavé REALES (los de la tabla oficial de la carrera). Se superponen al trazado ya
+   * construido: no cambian el relieve, cambian el firme y su coste (SPEC 6.5).
+   */
+  cobbles?: StageCobbles[]
   /**
    * Perfil de altitud REAL muestreado (km desde salida -> metros). Si viene (>= 2 muestras), el trazado
    * se construye integrando estas muestras en vez del relleno ondulado sintético; los puertos y sprints
@@ -131,6 +153,107 @@ function normalizeTotal(segments: Segment[], totalKm: number): Segment[] {
   return segments
 }
 
+/**
+ * Sectores de pavé saneados: en km creciente, recortados al recorrido y SIN SOLAPARSE (si dos se
+ * pisan —defecto habitual de las tablas publicadas— el segundo arranca donde acaba el primero, y si
+ * con eso se queda sin longitud se descarta). Determinista y sin excepciones: un dato imperfecto no
+ * puede reventar la construcción de una etapa.
+ */
+function sanitizeCobbles(cobbles: StageCobbles[], totalKm: number): StageCobbles[] {
+  const out: StageCobbles[] = []
+  let end = 0
+  for (const c of [...cobbles].sort((a, b) => a.startKm - b.startKm)) {
+    const start = Math.max(end, Math.min(totalKm, c.startKm))
+    const stop = Math.min(totalKm, c.startKm + c.lengthKm)
+    if (stop - start < 0.1) continue
+    out.push({ name: c.name, startKm: r2(start), lengthKm: r2(stop - start), stars: c.stars })
+    end = stop
+  }
+  return out
+}
+
+/** Trozo `[from, to)` (km dentro del segmento) de los tramos de un segmento, con su pendiente. */
+function sliceRamps(ramps: Ramp[], from: number, to: number): Ramp[] {
+  const out: Ramp[] = []
+  let acc = 0
+  for (const ramp of ramps) {
+    const a = Math.max(from, acc)
+    const b = Math.min(to, acc + ramp.km)
+    if (b - a > 0.005) out.push({ km: r2(b - a), g: ramp.g })
+    acc += ramp.km
+  }
+  return out
+}
+
+/**
+ * Superpone los sectores de pavé sobre el trazado ya construido: parte los segmentos por las
+ * fronteras de cada sector y marca los trozos resultantes como `paves` con sus `estrellas`,
+ * conservando la pendiente (el adoquín no cambia el relieve; cambia el firme y su coste, SPEC 6.5).
+ *
+ * Un trozo que cae dentro de un PUERTO se deja como puerto: un muro adoquinado ya está modelado como
+ * subida, y el muestreo solo da un terreno por bloque (el pavé solo se cobra en segmentos `paves`,
+ * ver stage/sample.ts). Por eso en `cobbles` va únicamente el pavé llano.
+ */
+function applyCobbles(segments: Segment[], cobbles: StageCobbles[], totalKm: number): Segment[] {
+  const sectors = sanitizeCobbles(cobbles, totalKm)
+  if (sectors.length === 0) return segments
+  const out: Segment[] = []
+  let cursor = 0
+  for (const seg of segments) {
+    const segStart = cursor
+    const segEnd = cursor + seg.km
+    cursor = segEnd
+    // Fronteras de sector que caen DENTRO de este segmento: dividen el segmento en trozos.
+    const cuts = [segStart, segEnd]
+    for (const s of sectors) {
+      for (const km of [s.startKm, s.startKm + s.lengthKm])
+        if (km > segStart + 0.005 && km < segEnd - 0.005) cuts.push(km)
+    }
+    if (cuts.length === 2) {
+      out.push(cobbledOrSame(seg, seg, segStart, segEnd, sectors))
+      continue
+    }
+    cuts.sort((a, b) => a - b)
+    const pieces: Segment[] = []
+    for (let i = 0; i < cuts.length - 1; i++) {
+      const from = cuts[i]!
+      const to = cuts[i + 1]!
+      if (to - from < 0.005) continue
+      const piece: Segment = {
+        km: r2(to - from),
+        tipo: seg.tipo,
+        ...(seg.tramos ? { tramos: sliceRamps(seg.tramos, from - segStart, to - segStart) } : {}),
+        ...(seg.estrellas != null ? { estrellas: seg.estrellas } : {}),
+      }
+      pieces.push(cobbledOrSame(piece, seg, from, to, sectors))
+    }
+    // El troceado redondea a 2 decimales: la cola absorbe la deriva para no mover la distancia total.
+    const drift = seg.km - pieces.reduce((acc, p) => acc + p.km, 0)
+    const last = pieces[pieces.length - 1]
+    if (last && Math.abs(drift) > 0.001) {
+      last.km = r2(last.km + drift)
+      if (last.tramos && last.tramos.length === 1) last.tramos[0]!.km = last.km
+    }
+    out.push(...pieces)
+  }
+  return out
+}
+
+/** El trozo `[from, to)` convertido en pavé si cae dentro de un sector (y no es un puerto). */
+function cobbledOrSame(
+  piece: Segment,
+  origin: Segment,
+  from: number,
+  to: number,
+  sectors: StageCobbles[],
+): Segment {
+  if (origin.tipo === 'puerto') return piece
+  const mid = (from + to) / 2
+  const sector = sectors.find((s) => mid >= s.startKm && mid < s.startKm + s.lengthKm)
+  if (!sector) return piece
+  return { ...piece, tipo: 'paves', estrellas: sector.stars }
+}
+
 /** Terreno físico de un tramo según su pendiente real (SPEC 6.4): sube, baja o llanea/rompepiernas. */
 function terrainForGradient(g: number): Segment['tipo'] {
   if (g >= 3) return 'puerto'
@@ -196,13 +319,25 @@ function profileFromElevation(
  * Construye el perfil real de una etapa. Si la etapa trae ALTITUD REAL muestreada (`elevation`), el
  * trazado se integra de esas muestras (fiel de verdad). Si no, se reconstruye a partir de los puertos
  * (cada uno en su km, con descenso y relleno ondulado entre unos y otros). En ambos casos se marca una
- * cima en cada puerto (categoría oficial o derivada) y un sprint en cada meta volante real.
+ * cima en cada puerto (categoría oficial o derivada) y un sprint en cada meta volante real, y al final
+ * se superponen los sectores de pavé reales (`cobbles`), que marcan el firme sin tocar el relieve.
  */
 export function buildFeatureProfile(
   totalKm: number,
   features: StageFeatures,
   seed: string,
 ): StageProfile {
+  const profile = buildRelief(totalKm, features, seed)
+  if (features.cobbles && features.cobbles.length > 0)
+    profile.segments = normalizeTotal(
+      applyCobbles(profile.segments, features.cobbles, totalKm),
+      totalKm,
+    )
+  return profile
+}
+
+/** El relieve de la etapa: de la altitud real muestreada si la hay, o reconstruido de los puertos. */
+function buildRelief(totalKm: number, features: StageFeatures, seed: string): StageProfile {
   if (features.elevation && features.elevation.length >= 2)
     return profileFromElevation(
       totalKm,
