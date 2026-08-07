@@ -5,6 +5,7 @@ import {
   type StageClassEntry,
   type StageGcEntry,
   type StageResultEntry,
+  type TeamClassEntry,
   fetchCalendarStage,
 } from '../api/results'
 import { Flag } from '../components/Flag'
@@ -12,6 +13,7 @@ import { RiderName } from '../components/RiderName'
 import { ShowAllButton, TOP_ROWS } from '../components/ShowAll'
 import { StageStory } from '../components/StageStory'
 import { type TabOption, TabPanel, Tabs, useTabParam } from '../components/Tabs'
+import { TeamClassNote, TeamClassTable } from '../components/TeamClassTable'
 import { formatTime } from '../domain/format'
 import { oneDayStageTarget } from '../domain/raceTabs'
 
@@ -39,13 +41,14 @@ const STAGE_TAB_LABEL: Record<StageTabId, string> = {
 }
 const STAGE_PANEL = 'stage-section'
 
-type StageClassTabId = 'gc' | 'points' | 'kom'
+type StageClassTabId = 'gc' | 'points' | 'kom' | 'teams'
 
-const STAGE_CLASS_TAB_IDS: readonly StageClassTabId[] = ['gc', 'points', 'kom']
+const STAGE_CLASS_TAB_IDS: readonly StageClassTabId[] = ['gc', 'points', 'kom', 'teams']
 const STAGE_CLASS_TABS: readonly TabOption<StageClassTabId>[] = [
   { key: 'gc', label: 'General' },
   { key: 'points', label: 'Points' },
   { key: 'kom', label: 'Mountains' },
+  { key: 'teams', label: 'Teams' },
 ]
 const STAGE_CLASS_PANEL = 'stage-classification'
 
@@ -155,10 +158,14 @@ function StageClassifications({
   gc,
   points,
   kom,
+  teamStage,
+  teamGc,
 }: {
   gc: StageGcEntry[]
   points: StageClassEntry[]
   kom: StageClassEntry[]
+  teamStage: TeamClassEntry[]
+  teamGc: TeamClassEntry[]
 }) {
   const [active, setActive] = useTabParam(STAGE_CLASS_TAB_IDS, 'gc', 'cls')
   return (
@@ -190,6 +197,29 @@ function StageClassifications({
             <PointsTable rows={kom} unit="pts" />
           ) : (
             <p className="text-sm text-slate-400">No mountain points awarded yet.</p>
+          ))}
+        {/* Equipos: la clasificación de ESTA etapa y la acumulada tras ella, una debajo de otra
+            —son dos preguntas distintas ("¿quién ganó hoy?" y "¿quién va ganando?") y las dos se
+            responden aquí, sin obligar a saltar entre páginas—. */}
+        {active === 'teams' &&
+          (teamStage.length > 0 || teamGc.length > 0 ? (
+            <div className="space-y-5">
+              {teamStage.length > 0 && (
+                <div>
+                  <h3 className={head}>Stage</h3>
+                  <TeamClassTable rows={teamStage} />
+                </div>
+              )}
+              {teamGc.length > 0 && (
+                <div>
+                  <h3 className={head}>Overall after this stage</h3>
+                  <TeamClassTable rows={teamGc} />
+                </div>
+              )}
+              <TeamClassNote />
+            </div>
+          ) : (
+            <p className="text-sm text-slate-400">No team classification for this stage.</p>
           ))}
       </TabPanel>
     </div>
@@ -324,7 +354,13 @@ export function StageReplay() {
           ))}
 
         {active === 'classifications' && (
-          <StageClassifications gc={data.gc ?? []} points={points} kom={kom} />
+          <StageClassifications
+            gc={data.gc ?? []}
+            points={points}
+            kom={kom}
+            teamStage={data.teamStage ?? []}
+            teamGc={data.teamGc ?? []}
+          />
         )}
 
         {active === 'profile' && (

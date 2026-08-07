@@ -21,6 +21,7 @@ import { Jersey } from '../components/Jersey'
 import { RiderName } from '../components/RiderName'
 import { ShowAllButton, TOP_ROWS } from '../components/ShowAll'
 import { StageStory } from '../components/StageStory'
+import { TeamClassNote, TeamClassTable } from '../components/TeamClassTable'
 import { type TabOption, TabPanel, Tabs, useTabParam } from '../components/Tabs'
 import { TeamLink } from '../components/TeamLink'
 import { formatLabel, raceClassLabel } from '../domain/labels'
@@ -351,13 +352,14 @@ function StagesTab({ data, raceId }: { data: RaceView; raceId: string }) {
   )
 }
 
-type ClassTabId = 'gc' | 'points' | 'kom'
+type ClassTabId = 'gc' | 'points' | 'kom' | 'teams'
 
-const CLASS_TAB_IDS: readonly ClassTabId[] = ['gc', 'points', 'kom']
+const CLASS_TAB_IDS: readonly ClassTabId[] = ['gc', 'points', 'kom', 'teams']
 const CLASS_TABS: readonly TabOption<ClassTabId>[] = [
   { key: 'gc', label: 'General' },
   { key: 'points', label: 'Points' },
   { key: 'kom', label: 'Mountains' },
+  { key: 'teams', label: 'Teams' },
 ]
 const CLASS_PANEL = 'race-classification'
 
@@ -372,7 +374,10 @@ function ClassificationsTab({ data }: { data: RaceView }) {
   // funciona, y hasta que el jugador toca una no se escribe nada en la URL.
   const [active, setActive] = useTabParam(CLASS_TAB_IDS, 'gc', 'cls')
   const oneDay = data.stages.length === 1
-  const alone = oneDay && data.points.length === 0 && data.kom.length === 0
+  // Sin puntos, sin montaña y sin equipos no hay nada que elegir: una sola tabla no merece una tira
+  // de sub-pestañas (docs/navegacion.md §7.1).
+  const alone =
+    oneDay && data.points.length === 0 && data.kom.length === 0 && data.teamGc.length === 0
   const tabs = oneDay
     ? [{ key: 'gc' as const, label: 'Result' }, ...CLASS_TABS.slice(1)]
     : CLASS_TABS
@@ -416,6 +421,15 @@ function ClassificationsTab({ data }: { data: RaceView }) {
             <PointsTable rows={data.kom} />
           ) : (
             <p className="text-sm text-slate-400">No mountain points awarded yet.</p>
+          ))}
+        {active === 'teams' &&
+          (data.teamGc.length > 0 ? (
+            <>
+              <TeamClassTable rows={data.teamGc} />
+              <TeamClassNote />
+            </>
+          ) : (
+            <p className="text-sm text-slate-400">No team classification yet.</p>
           ))}
       </TabPanel>
     </div>
