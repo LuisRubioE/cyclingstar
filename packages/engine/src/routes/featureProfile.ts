@@ -118,9 +118,18 @@ function climbRamps(lengthKm: number, avgGradient: number): Ramp[] {
   return ramps
 }
 
-/** Un descenso de `lengthKm` km que pierde `dropM` metros (pendiente negativa media). */
+/**
+ * Pendiente máxima (en %) de un descenso RECONSTRUIDO. La regla "tras un puerto se baja el 85 % de lo
+ * subido" se va de madre cuando dos puertos reales se encadenan: entre el Passo della Crocetta y
+ * Zambla Alta (Il Lombardia) solo hay 3 km, y bajar ahí 576 m daba un bloque al −29,6 %, que no es
+ * una carretera. Al topar la pendiente el descenso pierde menos altura, que es justo lo que pasa de
+ * verdad cuando un puerto enlaza con el siguiente.
+ */
+const MAX_DESCENT_GRADIENT = 12
+
+/** Un descenso de `lengthKm` km que pierde `dropM` metros (pendiente negativa media, topada). */
 function descentSegment(lengthKm: number, dropM: number): Segment {
-  const g = -(dropM / (lengthKm * 10))
+  const g = -Math.min(dropM / (lengthKm * 10), MAX_DESCENT_GRADIENT)
   return { km: r2(lengthKm), tipo: 'descenso', tramos: [{ km: r2(lengthKm), g: r1(g) }] }
 }
 

@@ -16,13 +16,14 @@ creíble y narrable, progresión larga, cero _pay to win_.
 
 ## Documentos rectores
 
-| Documento                            | Qué es                                                                    |
-| ------------------------------------ | ------------------------------------------------------------------------- |
-| [SPEC.md](./SPEC.md)                 | Fuente de verdad del diseño y de la arquitectura. Ante conflicto, manda.  |
-| [MVP.md](./MVP.md)                   | Plan de ejecución: alcance del MVP y los pasos numerados.                 |
-| [Claude.md](./Claude.md)             | Convenciones de código, tests y despliegue que este repo hace cumplir.    |
-| [docs/balance.md](./docs/balance.md) | Registro de las constantes del motor y de cada campaña de Montecarlo.     |
-| [docs/ops.md](./docs/ops.md)         | Runbook de operación: respaldos, restauración, variables, monitorización. |
+| Documento                                                  | Qué es                                                                          |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| [SPEC.md](./SPEC.md)                                       | Fuente de verdad del diseño y de la arquitectura. Ante conflicto, manda.        |
+| [MVP.md](./MVP.md)                                         | Plan de ejecución: alcance del MVP y los pasos numerados.                       |
+| [Claude.md](./Claude.md)                                   | Convenciones de código, tests y despliegue que este repo hace cumplir.          |
+| [docs/balance.md](./docs/balance.md)                       | Registro de las constantes del motor y de cada campaña de Montecarlo.           |
+| [docs/ops.md](./docs/ops.md)                               | Runbook de operación: respaldos, restauración, variables, monitorización.       |
+| [docs/fuentes-recorridos.md](./docs/fuentes-recorridos.md) | Atribución y procedencia de los recorridos reales cargados de fuentes abiertas. |
 
 ## Arquitectura del monorepo
 

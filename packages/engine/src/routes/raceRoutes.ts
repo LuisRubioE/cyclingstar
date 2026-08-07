@@ -639,7 +639,8 @@ export const RACE_ROUTES: Record<string, [string, string][]> = {
     ['Blois', 'Blois'],
   ],
   'race-loire-atlantique': [['Nantes', 'Saint-Nazaire']],
-  'race-lombardy': [['Bergamo', 'Como']],
+  // Il Lombardia alterna el sentido cada año; el recorrido cargado es el de 2025, Como -> Bergamo.
+  'race-lombardy': [['Como', 'Bergamo']],
   'race-luxembourg': [
     ['Luxembourg', 'Luxembourg'],
     ['Remich', 'Mamer'],
