@@ -1,3 +1,4 @@
+import { eq } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { getTeamClassifications } from './teamClassification.js'
 import { riders, stageResults, stageTeamResults, teams, worlds } from './schema.js'
@@ -198,6 +199,26 @@ describe('db: clasificación por equipos derivada del histórico', () => {
     const todo = await getTeamClassifications(t.db, RACE)
     expect(todo.stage).toEqual([])
     expect(todo.overall.find((r) => r.teamName === 'Alfa')!.stagesScored).toBe(3)
+  }, 120_000)
+
+  it('si lo persistido solo cubre parte de la carrera, se deriva todo (despliegue a media vuelta)', async () => {
+    // Una carrera EN CURSO al desplegar esto tiene las primeras etapas sin escribir y las
+    // siguientes sí. Sumar solo las segundas daría una clasificación silenciosamente falsa.
+    const completa = await getTeamClassifications(t.db, RACE)
+    const alfa = completa.overall.find((r) => r.teamName === 'Alfa')!
+    await t.db.insert(stageTeamResults).values({
+      raceId: RACE,
+      stageDay: 3, // solo la última etapa persistida
+      teamId: s.teamIds.Alfa!,
+      scored: true,
+      tiempoS: 300,
+      sumaPuestos: 6,
+      mejorPuesto: 1,
+    })
+    const conParte = await getTeamClassifications(t.db, RACE)
+    expect(conParte.overall.find((r) => r.teamName === 'Alfa')!.tiempoS).toBe(alfa.tiempoS)
+    expect(conParte.overall).toEqual(completa.overall)
+    await t.db.delete(stageTeamResults).where(eq(stageTeamResults.raceId, RACE))
   }, 120_000)
 
   it('una carrera sin resultados no tiene clasificación por equipos', async () => {

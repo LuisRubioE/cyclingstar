@@ -156,7 +156,7 @@ export async function getTeamClassifications(
 
   const identity = new Map<string, TeamIdentity>()
   let scores: StageScoreRow[]
-  if (storedRows.length > 0) {
+  if (await storedIsComplete(db, raceId, throughStage, storedRows)) {
     scores = storedRows.map((r) => {
       identity.set(r.teamId, { teamName: r.teamName, country: r.country })
       return {
@@ -184,6 +184,34 @@ export async function getTeamClassifications(
       : []
   const overall = buildRows(scores, identity, (a, b) => overallCompare(a, b, bestGc))
   return { stage, overall }
+}
+
+/**
+ * ¿Lo persistido cubre TODAS las etapas ya corridas? Si no, no sirve y hay que derivarlo entero.
+ *
+ * No basta con "hay filas": una carrera que estaba EN CURSO al desplegar esto tiene las etapas
+ * anteriores sin escribir y las siguientes sí. Sumar solo las segundas daría una clasificación
+ * silenciosamente falsa —el peor fallo posible aquí—, así que en ese caso se deriva todo desde
+ * `stage_results`, que sí está completo.
+ */
+async function storedIsComplete(
+  db: Database,
+  raceId: string,
+  throughStage: number | undefined,
+  storedRows: readonly { stageDay: number }[],
+): Promise<boolean> {
+  if (storedRows.length === 0) return false
+  const run = await db
+    .selectDistinct({ stageDay: stageResults.stageDay })
+    .from(stageResults)
+    .where(
+      and(
+        eq(stageResults.raceId, raceId),
+        throughStage != null ? lte(stageResults.stageDay, throughStage) : undefined,
+      ),
+    )
+  const stored = new Set(storedRows.map((r) => r.stageDay))
+  return run.every((r) => stored.has(r.stageDay))
 }
 
 /**
@@ -280,8 +308,17 @@ function buildRows(
     row.stagesScored += 1
     row.mejorPuesto = Math.min(row.mejorPuesto, score.mejorPuesto)
   }
-  // Un equipo que no ha puntuado NUNCA no tiene tiempo que enseñar: está fuera y punto.
-  return [...byTeam.values()].sort(compare).map(({ mejorPuesto: _mejorPuesto, ...row }) => row)
+  // Ya ordenadas, se deja fuera `mejorPuesto`: desempata la etapa, pero en la acumulada sería un
+  // número sin significado y no tiene por qué salir en la respuesta.
+  return [...byTeam.values()].sort(compare).map((row) => ({
+    teamId: row.teamId,
+    teamName: row.teamName,
+    country: row.country,
+    tiempoS: row.tiempoS,
+    sumaPuestos: row.sumaPuestos,
+    stagesScored: row.stagesScored,
+    out: row.out,
+  }))
 }
 
 /** Los equipos fuera de clasificación van siempre al final, como los DNF de la general. */
