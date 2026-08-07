@@ -455,18 +455,22 @@ miden como siempre.
 
 ### Resumen: antes / después
 
-| Carrera                | km    | Desnivel antes | Desnivel después | Real publicado | Erosión antes | Erosión después |
-| ---------------------- | ----- | -------------- | ---------------- | -------------- | ------------- | --------------- |
-| `race-lombardy`        | 241,5 | 4.141          | 4.141            | ~4.400         | **1,000**     | **0,867**       |
-| `race-flanders`        | 278,2 | 3.030          | **2.429**        | ~2.500         | **0,997**     | **0,629**       |
-| `race-roubaix`         | 258,3 | 2.154          | **1.509**        | ~1.450         | **0,943**     | **0,707**       |
-| `race-sanremo`         | 288,0 | 2.859          | **2.542**        | ~2.000         | 0,861         | **0,555**       |
-| `race-liege`           | 260,0 | 2.150          | 2.150            | (altitud real) | 0,742         | **0,510**       |
-| `race-harelbeke`       | 208,8 | 2.235          | **1.885**        | ~2.000         | 0,557         | **0,386**       |
-| `race-opening-classic` | 202,2 | 2.328          | **1.813**        | ~2.000         | 0,569         | 0,385           |
-| `race-across-flanders` | 188,6 | 1.734          | **1.410**        | ~1.500         | 0,365         | 0,274           |
-| `race-frankfurt`       | 203,8 | 2.667          | **2.513**        | ~3.000         | 0,645         | 0,445           |
-| `race-hamburg`         | 198,5 | 1.734          | **1.048**        | ~1.100         | **1,000**     | **0,221**       |
+| Carrera                | km    | Desnivel antes | Desnivel después | Referencia real  | Erosión antes | Erosión después |
+| ---------------------- | ----- | -------------- | ---------------- | ---------------- | ------------- | --------------- |
+| `race-lombardy`        | 241,5 | 4.141          | 4.141            | ~4.400           | **1,000**     | **0,867**       |
+| `race-flanders`        | 278,2 | 3.030          | **2.429**        | ~2.500           | **0,997**     | **0,629**       |
+| `race-roubaix`         | 258,3 | 2.154          | **1.509**        | ~1.450           | **0,943**     | **0,707**       |
+| `race-sanremo`         | 288,0 | 2.859          | **2.542**        | ~2.000           | 0,861         | **0,555**       |
+| `race-liege`           | 260,0 | 2.150          | 2.150            | (altitud real)   | 0,742         | **0,510**       |
+| `race-harelbeke`       | 208,8 | 2.235          | **1.885**        | (~2.000, aprox.) | 0,557         | **0,386**       |
+| `race-opening-classic` | 202,2 | 2.328          | **1.813**        | (~2.000, aprox.) | 0,569         | 0,385           |
+| `race-across-flanders` | 188,6 | 1.734          | **1.410**        | (~1.500, aprox.) | 0,365         | 0,274           |
+| `race-frankfurt`       | 203,8 | 2.667          | **2.513**        | (~3.000, aprox.) | 0,645         | 0,445           |
+| `race-hamburg`         | 198,5 | 1.734          | **1.048**        | (llana, aprox.)  | **1,000**     | **0,221**       |
+
+Las referencias con marca «aprox.» son de orden de magnitud, no dato citable: las cuatro que el
+encargo fija (Roubaix ~1.450, Ronde ~2.500, Lombardia ~4.400-4.800, Sanremo ~2.000) son las que
+mandan en la calibración. El desnivel se mide sobre el trazado que construye el motor.
 
 Pájaras (tanque a cero) en el mismo banco: antes **100 %** en Lombardía y Hamburgo, 47 % en Flandes,
 25 % en Roubaix; después **3 %** en Lombardía y **0 %** en todas las demás.
