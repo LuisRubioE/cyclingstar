@@ -364,9 +364,9 @@ const CLASS_TABS: readonly TabOption<ClassTabId>[] = [
 const CLASS_PANEL = 'race-classification'
 
 /**
- * Pestaña `Classifications` (o `Result` en una carrera de un día): general, puntos y montaña como
- * sub-pestañas. En una carrera de un día la "general" ES el resultado de la llegada, así que se
- * rotula como tal; y si además no hay puntos ni montaña que enseñar, no se pinta ninguna tira de
+ * Pestaña `Classifications` (o `Result` en una carrera de un día): general, puntos, montaña y
+ * equipos como sub-pestañas. En una carrera de un día la "general" ES el resultado de la llegada,
+ * así que se rotula como tal; y si además no hay nada más que enseñar, no se pinta ninguna tira de
  * sub-pestañas: sobra una pestaña única sobre una sola tabla.
  */
 function ClassificationsTab({ data }: { data: RaceView }) {
