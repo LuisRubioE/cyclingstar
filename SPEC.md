@@ -503,6 +503,25 @@ empatado a tiempo, sin él la base devolvía un orden arbitrario y distinto en c
 se repartían los puntos de ranking—. `race_gc` acumula los dos criterios etapa a etapa igual que el
 tiempo (`suma_puestos`, `ultimo_puesto`).
 
+**Clasificación por equipos.** Por ETAPA se suman los TIEMPOS DE META (sin bonificaciones: no
+cuentan para esta clasificación) de los TRES MEJORES corredores de cada equipo. La de la carrera
+acumula esas sumas etapa a etapa; **no** es la suma de los tres mejores de la general, porque los
+tres que puntúan cambian cada día. Una carrera de un día tiene la clasificación por equipos de su
+única etapa.
+
+- **Equipo incompleto**: con menos de tres clasificados NO puntúa esa etapa y queda FUERA de la
+  clasificación desde ese día (regla UCI). Se sigue mostrando al final y sin puesto, como los DNF.
+- **Abandonos**: quien abandona en la etapa N sí llegó a meta ese día y puntúa en ella; desde N+1
+  no toma la salida y su equipo puede quedarse corto.
+- **Agentes libres**: no tienen equipo, no entran en la agregación.
+- **Desempate**, con la misma doctrina que la general (orden TOTAL y determinista): de etapa,
+  tiempo → suma de los puestos de los tres que puntúan → mejor puesto → id del equipo; acumulada,
+  tiempo → suma de puestos acumulada → puesto del mejor corredor del equipo en la general → id.
+- El tick escribe la fila de cada equipo en `stage_team_results` al correr la etapa; la acumulada es
+  un `group by` sobre ella. Las carreras corridas antes de existir la tabla se derivan al vuelo
+  desde `stage_results` con la MISMA función, así que el histórico no tiene agujeros.
+- Es **informativa**: no reparte dinero ni puntos UCI.
+
 ### 6.16 Pseudocódigo del bucle
 
 ```

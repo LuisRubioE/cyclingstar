@@ -303,7 +303,9 @@ Carrera **por etapas**:
 | **En curso**         | `Classifications` · `Stages` · `Route` · `Startlist`      | **Classifications** |
 | **Terminada**        | `Classifications` · `Stages` · `Route` · `Roll of honour` | **Classifications** |
 
-- **Classifications**: general, puntos y montaña como sub-pestañas, con top 20 y "mostrar todos".
+- **Classifications**: general, puntos, montaña y **equipos** como sub-pestañas, con top 20 y
+  "mostrar todos". La de equipos suma los tres mejores de cada equipo en cada etapa (ver SPEC 6.15);
+  también la tiene una carrera de un día, con su única etapa.
 - **Stages**: lista compacta —día, tipo, recorrido, ganador, enlace a la crónica—, **sin** volcar 21
   altimetrías. El enlace "Read the story →" va **directo a la pestaña `Story`** de esa etapa
   (`?tab=story`), no a la etapa en su pestaña por defecto: un clic menos en cada una de las 21.
@@ -329,7 +331,8 @@ dos páginas. Se corrige metiendo el contenido de la etapa en la ficha de carrer
   tres clics a uno**.
 - `Result` por defecto —el desenlace es lo que se busca al abrir una clásica ya corrida— con `Story`
   justo al lado. Si la carrera reparte puntos o montaña, salen como sub-pestañas de `Result`; si no,
-  no se pinta ninguna tira de sub-pestañas sobre una sola tabla.
+  no se pinta ninguna tira de sub-pestañas sobre una sola tabla. (Con clasificación por equipos ya
+  hay dos tablas, así que la tira aparece: `Result` · `Teams`.)
 - La cabecera absorbe lo que daba la ficha de etapa: kilómetros, tipo de recorrido e ITT.
 - `/world/races/:raceId/stages/1` **sigue funcionando**: redirige a la ficha de carrera con la
   pestaña equivalente (`story` por defecto, que es lo que enseñaba la etapa y a lo que apuntan el
@@ -348,6 +351,9 @@ dos páginas. Se corrige metiendo el contenido de la etapa en la ficha de carrer
 - **Story por defecto**: es la carga emocional de la etapa (y donde entra la telemetría nueva del
   motor — ver `docs/motor.md` §16 y la vista de espectador de su Parte IV).
 - **Result completo**, con truncado y "mostrar todos", igual que en la carrera.
+- **Classifications** lleva la sub-pestaña `Teams` con DOS tablas: la clasificación por equipos de
+  esa etapa y la acumulada tras ella —"¿quién ganó hoy?" y "¿quién va ganando?" son dos preguntas
+  distintas y las dos se responden sin salir de aquí—.
 
 **Carreras de un día: esta página ya no existe.** La etapa ES la carrera, así que su contenido vive
 en la ficha de carrera (§7.1) y esta URL redirige allí. Con ello desaparece también el problema
