@@ -5,6 +5,7 @@
  */
 import type { Attribute } from '@cyclingstar/shared'
 import { initialEnergy } from '../banister.js'
+import { SEASON_CALENDAR } from '../routes/calendar.js'
 import { stageSeed } from '../stage/rng.js'
 import type { StageInput, StageOrders, StageRider } from '../stage/types.js'
 
@@ -159,6 +160,54 @@ export function queenThirdWeekScenario(): Scenario {
       riders: base.input.riders.map((r) => ({ ...r, energy, tsb: THIRD_WEEK_TSB })),
     },
   }
+}
+
+/**
+ * Campo HOMOGÉNEO de 40 corredores medios (todo a 60, depósito lleno): el banco de pruebas del
+ * DESGASTE de un recorrido. Todos iguales a propósito —mismo perfil, mismas órdenes, mismo tanque—
+ * para que lo único que explique la erosión sea el RECORRIDO. Con RES 60 el umbral de erosión queda
+ * en 0.31 (`erosionThresholdBase + 0.40·RES/100`).
+ */
+function uniformField(): StageRider[] {
+  return Array.from({ length: 40 }, (_, i) => rider(`uni-${i}`, { eff0: eff(60), fragility: 1 }))
+}
+
+/**
+ * Una carrera de un día REAL del calendario, corrida por el campo homogéneo. No es un perfil de
+ * laboratorio: es el recorrido que el juego corre de verdad, con sus puertos, su pavé y su relieve
+ * reconstruido. Los perfiles sintéticos y lisos de `llana-180` y `reina-150` no bastan para calibrar
+ * el desgaste —una llana canónica es g = 0 durante 180 km, y ningún recorrido real lo es—, y por eso
+ * las clásicas largas saturaron la erosión sin que ningún invariante se enterase.
+ */
+export function realRaceScenario(raceId: string): Scenario {
+  const race = SEASON_CALENDAR.find((r) => r.id === raceId)
+  if (!race) throw new Error(`Escenario: no existe la carrera ${raceId}`)
+  const stage = race.stages[0]
+  if (!stage) throw new Error(`Escenario: ${raceId} no tiene etapas`)
+  return {
+    name: raceId,
+    input: { profile: stage.profile, riders: uniformField() },
+    bestSprinterId: 'uni-0',
+  }
+}
+
+/**
+ * La CLÁSICA LARGA canónica: el Ronde van Vlaanderen real (278 km, 16 muros, 6 sectores de pavé).
+ * Es el monumento tipo del calendario y el punto donde se mide el objetivo de erosión de la clásica
+ * larga (docs/motor.md §VI.1).
+ */
+export function longClassicScenario(): Scenario {
+  return realRaceScenario('race-flanders')
+}
+
+/**
+ * La clásica MÁS DURA del calendario: Il Lombardia real (241 km y ~4.100 m de desnivel). Es el peor
+ * caso, y el que reventó la escala: gastaba 117 de un depósito de 100, así que el pelotón entero
+ * entraba en pájara y la erosión topaba en 1,000 (deja de discriminar y el resultado vuelve a ser
+ * azar). Este escenario existe para que eso no pueda repetirse en silencio.
+ */
+export function hardestClassicScenario(): Scenario {
+  return realRaceScenario('race-lombardy')
 }
 
 /**

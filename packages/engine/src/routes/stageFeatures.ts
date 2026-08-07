@@ -9,9 +9,13 @@
  * posición). Los km de cima salen del eje del perfil real; la categoría es la OFICIAL (ESP -> 'HC').
  * Clave: id de carrera -> array indexado por etapa (0-based); null = etapa con perfil por terreno.
  */
+import { CLASSIC_FEATURES } from './classicRoutes.js'
 import type { StageFeatures } from './featureProfile.js'
 
 export const STAGE_FEATURES: Record<string, (StageFeatures | null)[]> = {
+  // Las clásicas de un día con recorrido real viven en classicRoutes.ts, con su atribución al lado
+  // (sus tablas vienen de Wikipedia, CC BY-SA, y la licencia obliga a mantenerla).
+  ...CLASSIC_FEATURES,
   'race-france': [
     {
       elevation: [

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { stageLengthKm } from '../stage/sample.js'
+import { sampleProfile, stageLengthKm } from '../stage/sample.js'
 import { buildFeatureProfile } from './featureProfile.js'
 
 describe('routes: perfil a partir de rasgos reales (puertos y sprints reales)', () => {
@@ -102,5 +102,106 @@ describe('routes: trazado a partir de la ALTITUD REAL muestreada', () => {
     const descentSeg = profile.segments.find((s) => s.tipo === 'descenso')
     expect(descentSeg).toBeDefined()
     expect(descentSeg!.tramos![0]!.g).toBeLessThan(0)
+  })
+})
+
+describe('routes: sectores de PAVÉ reales -> segmentos paves con sus estrellas', () => {
+  const cobbles = [
+    { name: 'Troisvilles', startKm: 20, lengthKm: 2.2, stars: 3 },
+    { name: 'Arenberg', startKm: 60.5, lengthKm: 2.3, stars: 5 },
+  ]
+  const profile = buildFeatureProfile(100, { cobbles }, 'seed')
+
+  it('no cambia la distancia de la etapa', () => {
+    expect(stageLengthKm(profile)).toBeCloseTo(100, 1)
+  })
+
+  it('cada sector es pavé con su dureza y su longitud reales', () => {
+    const paves = profile.segments.filter((s) => s.tipo === 'paves')
+    // Un sector puede caer a caballo de dos segmentos del relieve: lo que importa es su km y dureza.
+    expect([...new Set(paves.map((s) => s.estrellas))].sort()).toEqual([3, 5])
+    const km = (stars: number): number =>
+      paves.filter((s) => s.estrellas === stars).reduce((acc, s) => acc + s.km, 0)
+    expect(km(3)).toBeCloseTo(2.2, 1)
+    expect(km(5)).toBeCloseTo(2.3, 1)
+  })
+
+  it('el pavé cae en su kilómetro real al muestrear a bloques de 100 m', () => {
+    const blocks = sampleProfile(profile)
+    const kmDe = (i: number): number => (i + 0.5) / 10
+    const enPave = blocks.map((b, i) => ({ km: kmDe(i), b })).filter((x) => x.b.tipo === 'paves')
+    expect(enPave[0]!.km).toBeCloseTo(20, 0)
+    expect(enPave[0]!.b.estrellas).toBe(3)
+    const cinco = enPave.filter((x) => x.b.estrellas === 5)
+    expect(cinco[0]!.km).toBeCloseTo(60.5, 0)
+    expect(cinco).toHaveLength(23) // 2,3 km = 23 bloques de 100 m
+    // Fuera del pavé no se cobra dureza alguna.
+    expect(blocks.filter((b) => b.tipo !== 'paves').every((b) => b.estrellas === 0)).toBe(true)
+  })
+
+  it('el adoquín marca el firme pero NO toca el relieve (mismo desnivel con y sin él)', () => {
+    const gain = (p: ReturnType<typeof buildFeatureProfile>): number =>
+      p.segments.reduce(
+        (acc, s) => acc + (s.tramos ?? []).reduce((a, r) => a + (r.g > 0 ? r.km * r.g * 10 : 0), 0),
+        0,
+      )
+    expect(gain(profile)).toBeCloseTo(gain(buildFeatureProfile(100, {}, 'seed')), 0)
+  })
+
+  it('dos sectores que se pisan (defecto de la fuente) no se solapan en el recorrido', () => {
+    // La tabla italiana de Paris-Roubaix da dos sectores encabalgados: el segundo se recorta.
+    const p = buildFeatureProfile(
+      50,
+      {
+        cobbles: [
+          { name: 'A', startKm: 10, lengthKm: 3, stars: 3 },
+          { name: 'B', startKm: 11.5, lengthKm: 3, stars: 4 },
+        ],
+      },
+      'seed',
+    )
+    const paves = p.segments.filter((s) => s.tipo === 'paves')
+    // A entero (3 km) + lo que queda de B (13 -> 14,5): 4,5 km de adoquín, sin contar dos veces.
+    expect(paves.reduce((acc, s) => acc + s.km, 0)).toBeCloseTo(4.5, 1)
+    expect(stageLengthKm(p)).toBeCloseTo(50, 1)
+  })
+
+  it('un sector dentro de un puerto sigue siendo puerto (el muro adoquinado ya es subida)', () => {
+    // Trazado con un repecho exacto entre los km 10 y 12; el sector de adoquín cubre justo el repecho.
+    const p = buildFeatureProfile(
+      20,
+      {
+        elevation: [
+          { km: 0, elevM: 0 },
+          { km: 10, elevM: 0 },
+          { km: 12, elevM: 200 },
+          { km: 20, elevM: 100 },
+        ],
+        cobbles: [{ name: 'Muro (adoquín)', startKm: 10, lengthKm: 2, stars: 4 }],
+      },
+      'seed',
+    )
+    expect(p.segments.some((s) => s.tipo === 'paves')).toBe(false)
+    expect(p.segments.filter((s) => s.tipo === 'puerto')).toHaveLength(1)
+  })
+
+  it('convive con la altitud real muestreada: el pavé se superpone al trazado', () => {
+    const p = buildFeatureProfile(
+      40,
+      {
+        elevation: [
+          { km: 0, elevM: 20 },
+          { km: 20, elevM: 60 },
+          { km: 40, elevM: 30 },
+        ],
+        cobbles: [{ name: 'Sector', startKm: 10, lengthKm: 2, stars: 2 }],
+      },
+      'seed',
+    )
+    const paves = p.segments.filter((s) => s.tipo === 'paves')
+    expect(paves).toHaveLength(1)
+    expect(paves[0]!.km).toBeCloseTo(2, 1)
+    expect(paves[0]!.tramos![0]!.g).toBeCloseTo(0.2, 1) // conserva la pendiente del trazado
+    expect(stageLengthKm(p)).toBeCloseTo(40, 1)
   })
 })

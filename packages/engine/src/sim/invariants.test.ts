@@ -15,11 +15,15 @@ import { simulateStage } from '../stage/simulate.js'
 import { stageSeed } from '../stage/rng.js'
 import type { Block, StageRider } from '../stage/types.js'
 import { analyzeErosion, analyzeFlat, analyzeMountain, analyzeTimeTrial } from './analyze.js'
+import { SEASON_CALENDAR } from '../routes/calendar.js'
 import {
   campaignSeeds,
   flatScenario,
+  hardestClassicScenario,
+  longClassicScenario,
   queenScenario,
   queenThirdWeekScenario,
+  realRaceScenario,
   timeTrialScenario,
 } from './scenarios.js'
 import { TARGETS, type Target } from './targets.js'
@@ -85,6 +89,7 @@ describe('desgaste (docs/motor.md §VI.1)', () => {
   const flatScen = flatScenario()
   const queen = queenScenario()
   const tired = queenThirdWeekScenario()
+  const longClassic = longClassicScenario()
 
   it('una llana rodada en pelotón no erosiona al corredor fresco', { timeout: 30000 }, () => {
     const stats = analyzeErosion(flatScen, campaignSeeds(flatScen.name, 60))
@@ -100,6 +105,15 @@ describe('desgaste (docs/motor.md §VI.1)', () => {
     const stats = analyzeErosion(tired, campaignSeeds(tired.name, 60))
     expectInRange(stats.medianErosion, TARGETS.erosion.queenThirdWeek)
   })
+
+  it(
+    'una clásica larga en fresco erosiona más que una reina, sin llegar a la 3.ª semana',
+    { timeout: 30000 },
+    () => {
+      const stats = analyzeErosion(longClassic, campaignSeeds(longClassic.name, 12))
+      expectInRange(stats.medianErosion, TARGETS.erosion.longClassicFresh)
+    },
+  )
 
   it('el que releva todo el día se desgasta más que el que va a rueda', { timeout: 30000 }, () => {
     // El turno de relevo lo reparte el ROL (`STAGE.relayDutyByRole`), no la posición en el array
@@ -155,6 +169,41 @@ describe('desgaste (docs/motor.md §VI.1)', () => {
     // techo estructural de este escenario extremo es ~1.14. El 1.15 original se fijó midiendo la
     // lógica vieja, donde el primer cuarto del array relevaba SIEMPRE y sin rotar.
     expect(relayWork / shelteredWork).toBeGreaterThan(1.1)
+  })
+})
+
+describe('la erosión no satura en ninguna clásica (docs/motor.md §VI.1)', () => {
+  // Cuando la erosión topa en 1,000 todo el pelotón queda al máximo de degradación: el modelo deja
+  // de discriminar y el resultado vuelve a ser azar, que es justo lo contrario de lo que se buscaba
+  // con el desgaste. Al cargar los recorridos reales, TRES clásicas saturaron (Lombardía, Flandes y
+  // Roubaix) y ningún invariante se enteró, porque la batería solo corría perfiles sintéticos.
+  //
+  // Las carreras de un día del WorldTour son las más largas del calendario (200-290 km) y por tanto
+  // el peor caso. Se corren con el campo homogéneo: lo único que explica la erosión es el recorrido.
+  const oneDayWt = SEASON_CALENDAR.filter(
+    (r) => r.level === 'WT' && r.format === 'un-dia' && r.stages[0] && !r.stages[0].timeTrial,
+  ).map((r) => r.id)
+
+  it(
+    'la clásica más dura del calendario erosiona fuerte pero no satura',
+    { timeout: 30000 },
+    () => {
+      const hardest = hardestClassicScenario()
+      const stats = analyzeErosion(hardest, campaignSeeds(hardest.name, 12))
+      expectInRange(stats.medianErosion, TARGETS.erosion.hardestClassicFresh)
+    },
+  )
+
+  it('ninguna clásica del WorldTour satura con el pelotón fresco', { timeout: 120000 }, () => {
+    expect(oneDayWt.length).toBeGreaterThan(10)
+    const saturated: string[] = []
+    for (const id of oneDayWt) {
+      const stats = analyzeErosion(realRaceScenario(id), campaignSeeds(id, 3))
+      if (stats.medianErosion > TARGETS.erosion.hardestClassicFresh.max) {
+        saturated.push(`${id} ${stats.medianErosion.toFixed(3)}`)
+      }
+    }
+    expect(saturated).toEqual([])
   })
 })
 

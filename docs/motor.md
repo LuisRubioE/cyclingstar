@@ -515,12 +515,36 @@ sale con ~105; uno hundido en la tercera semana, con ~72.
 **Objetivos de calibración** (esto es lo que hay que verificar con Montecarlo, y manda sobre los
 números de arriba):
 
-| Situación                                   | Erosión esperada al final           |
-| ------------------------------------------- | ----------------------------------- |
-| Llana tranquila, corredor fresco            | 0 (no debe erosionar)               |
-| Etapa reina, último puerto, corredor fresco | 0,20 – 0,50                         |
-| Etapa reina, tercera semana, TSB muy bajo   | 0,60 – 0,85                         |
-| Gregario que ha relevado todo el día        | claramente > que el que fue a rueda |
+| Situación                                        | Erosión esperada al final           |
+| ------------------------------------------------ | ----------------------------------- |
+| Llana tranquila, corredor fresco                 | 0 (no debe erosionar)               |
+| Etapa reina, último puerto, corredor fresco      | 0,20 – 0,50                         |
+| **Clásica larga de un día (250+ km), en fresco** | **0,45 – 0,80**                     |
+| Etapa reina, tercera semana, TSB muy bajo        | 0,60 – 0,85                         |
+| **La clásica MÁS dura del calendario, fresco**   | **≤ 0,92 — jamás 1,000**            |
+| Gregario que ha relevado todo el día             | claramente > que el que fue a rueda |
+
+**La clásica larga** (añadida al cargar los recorridos reales de las ocho clásicas WT). Un monumento
+de 250-280 km debe erosionar **más que una etapa reina de vuelta con el corredor fresco** —son 100 km
+más de carrera— y **menos que la tercera semana de una gran vuelta**, donde la fatiga acumulada ya
+viene de casa y el depósito sale mermado de la salida. Se mide sobre el recorrido REAL (Ronde van
+Vlaanderen, 278 km) con el campo homogéneo, no sobre un perfil de laboratorio.
+
+> **La última fila no es un rango, es un techo, y es el que importa.** Con la erosión topada en 1,000
+> el pelotón entero está al máximo de degradación: el modelo **deja de discriminar** y el resultado
+> vuelve a ser azar, justo lo contrario de lo que persigue el desgaste. Al cargar los recorridos
+> reales saturaron tres clásicas (Lombardía, Flandes y Roubaix) y **ningún invariante se enteró**,
+> porque la batería solo corría perfiles sintéticos. Ahora lo vigila `sim/invariants.test.ts` sobre
+> TODAS las carreras de un día del WorldTour.
+>
+> **Aviso medido, y es una tensión estructural, no una perilla suelta.** Los objetivos de la reina se
+> fijaron contra escenarios SINTÉTICOS y LISOS: `llana-180` es g = 0 durante 180 km y `reina-150` son
+> 135 km a g = 0 más un puerto de 15 km al 8 % (1.200 m de desnivel). Una etapa reina REAL tiene
+> 3.500-4.500 m, e Il Lombardia 4.100 m en 241 km: por la contabilidad del propio motor, el monumento
+> hace **el doble de trabajo** que la reina canónica. Con un depósito fijo y una erosión lineal por
+> encima del umbral, exigir a la vez «reina 0,20-0,50» y «monumento ≤ 0,75» no tiene solución (ver la
+> aritmética en docs/balance.md). Por eso la banda de la clásica larga es 0,45-0,80 y no 0,45-0,75, y
+> por eso queda pendiente **re-anclar §VI.1 sobre una etapa reina realista** en vez de la caricatura.
 
 Es una calibración **conjunta** con el umbral `0.35 + 0.40·RES/100` y con el coste por km: puede
 hacer falta bajar el umbral además de bajar E₀. La señal de éxito es que RES pase a importar.

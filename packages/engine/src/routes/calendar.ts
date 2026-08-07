@@ -10,7 +10,7 @@ import { COUNTRIES, type Continent } from '@cyclingstar/shared'
 import type { Division } from '../world/npc.js'
 import type { Segment, StageProfile } from '../stage/types.js'
 import { type RaceEdition, RACE_EDITIONS } from './editions.js'
-import { type StageFeatures, buildFeatureProfile } from './featureProfile.js'
+import { type RouteTerrain, type StageFeatures, buildFeatureProfile } from './featureProfile.js'
 import {
   classicSegments,
   cobblesSegments,
@@ -172,7 +172,7 @@ function featureSpec(
     kind: t.kind,
     label: t.label,
     ...(t.timeTrial ? { timeTrial: true } : {}),
-    profile: buildFeatureProfile(km, features, seed),
+    profile: buildFeatureProfile(km, features, seed, terrain),
   }
 }
 
@@ -342,7 +342,9 @@ function doy(month: number, day: number): number {
   return MONTH_CUM[month - 1]! + day
 }
 
-type Terrain = 'flat' | 'hilly' | 'mountain' | 'cobbles' | 'classic' | 'itt'
+// El terreno dominante de una etapa: da color y etiqueta en el calendario y, en un perfil
+// reconstruido, la amplitud del relieve anónimo entre dificultades (ver featureProfile.ts).
+type Terrain = RouteTerrain
 
 interface RaceRow {
   id: string
@@ -804,7 +806,7 @@ const WT_TABLE: RaceRow[] = [
     d: 28,
     raceClass: 'WT',
     terrain: 'cobbles',
-    km: 200,
+    km: 202.2, // distancia oficial (ver classicRoutes.ts)
   },
   {
     id: 'race-white-roads',
@@ -867,7 +869,7 @@ const WT_TABLE: RaceRow[] = [
     d: 27,
     raceClass: 'WT',
     terrain: 'cobbles',
-    km: 205,
+    km: 208.8, // distancia oficial (ver classicRoutes.ts)
   },
   {
     id: 'race-wevelgem',
@@ -885,7 +887,7 @@ const WT_TABLE: RaceRow[] = [
     d: 1,
     raceClass: 'WT',
     terrain: 'cobbles',
-    km: 185,
+    km: 188.6, // distancia oficial (ver classicRoutes.ts)
   },
   {
     id: 'race-flanders',
@@ -894,7 +896,7 @@ const WT_TABLE: RaceRow[] = [
     d: 5,
     raceClass: 'WT',
     terrain: 'cobbles',
-    km: 260,
+    km: 278.2, // distancia oficial (ver classicRoutes.ts)
   },
   {
     id: 'race-basque-country',
@@ -912,7 +914,7 @@ const WT_TABLE: RaceRow[] = [
     d: 12,
     raceClass: 'WT',
     terrain: 'cobbles',
-    km: 257,
+    km: 258.3, // distancia oficial (ver classicRoutes.ts)
   },
   {
     id: 'race-amstel',
@@ -957,7 +959,7 @@ const WT_TABLE: RaceRow[] = [
     d: 1,
     raceClass: 'WT',
     terrain: 'hilly',
-    km: 205,
+    km: 203.8, // distancia oficial (ver classicRoutes.ts)
   },
   {
     id: 'race-rhone-alpes',
@@ -1011,7 +1013,7 @@ const WT_TABLE: RaceRow[] = [
     d: 16,
     raceClass: 'WT',
     terrain: 'flat',
-    km: 216,
+    km: 198.5, // distancia oficial (ver classicRoutes.ts)
   },
   {
     id: 'race-benelux',
@@ -1056,7 +1058,7 @@ const WT_TABLE: RaceRow[] = [
     d: 10,
     raceClass: 'WT',
     terrain: 'classic',
-    km: 252,
+    km: 241.5, // distancia oficial (ver classicRoutes.ts)
   },
   {
     id: 'race-guangxi',
