@@ -49,7 +49,22 @@ export const TARGETS = {
     flatFresh: { label: 'Erosión mediana, llana en fresco', min: 0, max: 0.02, unit: '' },
     // Una etapa reina sí: el último puerto se paga.
     queenFresh: { label: 'Erosión mediana, reina en fresco', min: 0.2, max: 0.5, unit: '' },
+    // Una CLÁSICA LARGA de un día (monumento de 250+ km) en fresco: más dura que una etapa reina de
+    // vuelta (0,20-0,50) porque son 100 km más, y sin llegar a la tercera semana de una gran vuelta,
+    // donde la fatiga acumulada viene de casa. Se mide sobre el recorrido REAL del Ronde van
+    // Vlaanderen (278 km, 16 muros y 6 sectores de pavé), que es el monumento tipo del calendario.
+    longClassicFresh: { label: 'Erosión mediana, clásica larga', min: 0.45, max: 0.8, unit: '' },
     // Y en la tercera semana de una gran vuelta, con el depósito ya mermado, se paga mucho más.
     queenThirdWeek: { label: 'Erosión mediana, reina 3.ª semana', min: 0.6, max: 0.85, unit: '' },
+    // Techo DURO contra la saturación, medido sobre la carrera más dura del calendario (Il Lombardia:
+    // 241 km y 4.100 m). Con la erosión topada en 1,000 todo el pelotón está al máximo de degradación
+    // y el modelo DEJA DE DISCRIMINAR: el resultado vuelve a ser azar. Este es el invariante que no
+    // existía cuando los recorridos reales entraron y tres clásicas saturaron sin que nadie lo notara.
+    hardestClassicFresh: {
+      label: 'Erosión mediana, la clásica más dura',
+      min: 0.45,
+      max: 0.92,
+      unit: '',
+    },
   },
 } as const satisfies Record<string, Record<string, Target>>

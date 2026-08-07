@@ -11,6 +11,8 @@ import { analyzeErosion, analyzeFlat, analyzeMountain, analyzeTimeTrial } from '
 import {
   campaignSeeds,
   flatScenario,
+  hardestClassicScenario,
+  longClassicScenario,
   queenScenario,
   queenThirdWeekScenario,
   timeTrialScenario,
@@ -66,20 +68,30 @@ function main(): void {
     { target: TARGETS.timeTrial.specialistWinPct, value: ttStats.specialistWinPct },
   ])
 
-  // Desgaste (docs/motor.md §VI.1): la tabla de objetivos del Cambio 0.
+  // Desgaste (docs/motor.md §VI.1): la tabla de objetivos del Cambio 0 más la clásica larga.
+  // Las dos clásicas corren su RECORRIDO REAL con el campo homogéneo, así que lo único que explica
+  // su erosión es el trazado; con perfiles sintéticos esto no se veía y tres clásicas saturaron.
   const tired = queenThirdWeekScenario()
+  const longClassic = longClassicScenario()
+  const hardest = hardestClassicScenario()
+  // Una clásica de 250-280 km cuesta ~6 veces más de simular que la llana canónica: menos corridas.
+  const classicRuns = Math.max(6, Math.round(runs / 20))
   const flatEro = analyzeErosion(flat, campaignSeeds(flat.name, runs))
   const queenEro = analyzeErosion(queen, campaignSeeds(queen.name, runs))
   const tiredEro = analyzeErosion(tired, campaignSeeds(tired.name, runs))
+  const longEro = analyzeErosion(longClassic, campaignSeeds(longClassic.name, classicRuns))
+  const hardEro = analyzeErosion(hardest, campaignSeeds(hardest.name, classicRuns))
   const eroOk = report(
     'desgaste',
     runs,
     [
       { target: TARGETS.erosion.flatFresh, value: flatEro.medianErosion },
       { target: TARGETS.erosion.queenFresh, value: queenEro.medianErosion },
+      { target: TARGETS.erosion.longClassicFresh, value: longEro.medianErosion },
       { target: TARGETS.erosion.queenThirdWeek, value: tiredEro.medianErosion },
+      { target: TARGETS.erosion.hardestClassicFresh, value: hardEro.medianErosion },
     ],
-    `Gasto mediano del tanque: llana ${(100 * flatEro.medianDepletion).toFixed(0)}% · reina ${(100 * queenEro.medianDepletion).toFixed(0)}% · reina 3.ª semana ${(100 * tiredEro.medianDepletion).toFixed(0)}% (pájaras ${tiredEro.bonkPct.toFixed(0)}%)`,
+    `Gasto mediano del tanque: llana ${(100 * flatEro.medianDepletion).toFixed(0)}% · reina ${(100 * queenEro.medianDepletion).toFixed(0)}% · reina 3.ª semana ${(100 * tiredEro.medianDepletion).toFixed(0)}% (pájaras ${tiredEro.bonkPct.toFixed(0)}%) · clásica larga ${(100 * longEro.medianDepletion).toFixed(0)}% · más dura ${(100 * hardEro.medianDepletion).toFixed(0)}% (pájaras ${hardEro.bonkPct.toFixed(0)}%, ${classicRuns} corridas)`,
   )
 
   console.log('')
