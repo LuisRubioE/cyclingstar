@@ -128,14 +128,21 @@ export {
   getStageResults,
   getStageSnapshot,
   getStageWinners,
-  teamsClassification,
   type StageWinnerRow,
   type GcRow,
   type PointsRow,
   type StageResultRow,
   type StageSnapshotRow,
-  type TeamGcRow,
 } from './results.js'
+export {
+  TEAM_SCORING_RIDERS,
+  getTeamClassifications,
+  teamStageScores,
+  type TeamClassRow,
+  type TeamClassifications,
+  type TeamStageEntry,
+  type TeamStageScore,
+} from './teamClassification.js'
 export {
   generateName,
   generateUniqueName,

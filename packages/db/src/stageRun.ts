@@ -38,7 +38,9 @@ import {
   stageOrders,
   stageResults,
   stageSnapshots,
+  stageTeamResults,
 } from './schema.js'
+import { teamStageScores } from './teamClassification.js'
 
 /**
  * Motor de una etapa en la capa de datos (Paso 30/44). Genérico por carrera: construye el snapshot
@@ -407,6 +409,30 @@ export async function runOneStage(
           where ${riderAttrs.riderId} = v.rider_id and ${riderAttrs.attr} = v.attr`,
     )
   })
+  // Clasificación POR EQUIPOS de la etapa: los tres mejores de cada equipo por TIEMPO DE META (las
+  // bonificaciones no cuentan aquí). La acumulada de la carrera es luego un `group by` sobre estas
+  // filas, así que basta con escribir la etapa. Una sola sentencia en lote, como todo lo de arriba:
+  // el tick no puede permitirse una consulta por equipo.
+  const teamValues: (typeof stageTeamResults.$inferInsert)[] = teamStageScores(
+    output.results.map((r) => ({
+      riderId: r.riderId,
+      // Los agentes libres (sin equipo) no entran en la agregación; `teamStageScores` los descarta.
+      teamId: riderById.get(r.riderId)?.teamId ?? null,
+      puesto: r.puesto,
+      tiempoS: r.tiempoS,
+    })),
+  ).map((score) => ({
+    raceId: spec.raceKey,
+    stageDay: spec.stageDay,
+    teamId: score.teamId,
+    scored: score.scored,
+    tiempoS: score.tiempoS,
+    sumaPuestos: score.sumaPuestos,
+    mejorPuesto: score.mejorPuesto,
+  }))
+  await inChunks(teamValues, BATCH_ROWS, (chunk) =>
+    tx.insert(stageTeamResults).values(chunk).onConflictDoNothing(),
+  )
   await inChunks(dailyLogValues, BATCH_ROWS, (chunk) =>
     tx.insert(riderDailyLog).values(chunk).onConflictDoNothing(),
   )

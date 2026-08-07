@@ -1,6 +1,6 @@
 import { TEST_TOUR } from '@cyclingstar/engine'
 import { ATTRIBUTES } from '@cyclingstar/shared'
-import { and, eq, sql } from 'drizzle-orm'
+import { and, asc, eq, sql } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import {
   raceGc,
@@ -11,10 +11,12 @@ import {
   riderHidden,
   riders,
   stageResults,
+  stageTeamResults,
   teams,
   worlds,
 } from './schema.js'
 import { runOneStage } from './stageRun.js'
+import { getTeamClassifications } from './teamClassification.js'
 import { type TestDb, startTestDb } from './testDb.js'
 
 /**
@@ -244,5 +246,40 @@ describe('db: runOneStage escribe en lote con la misma semántica', () => {
       .where(eq(riders.worldId, worldId))
     expect(points2[0]!.n).toBeGreaterThan(points1[0]!.n)
     expect(riderIds).toHaveLength(FIELD)
+
+    // --- Clasificación por equipos escrita por el tick -------------------------------------
+    // El mundo de este test tiene UN solo equipo con los 40 corredores, así que hay una fila por
+    // etapa y su tiempo es la suma de los tres primeros puestos de esa etapa (tiempos de META: las
+    // bonificaciones, que aquí sí existen, no cuentan para esta clasificación).
+    const teamRows = await t.db
+      .select()
+      .from(stageTeamResults)
+      .where(eq(stageTeamResults.raceId, RACE_KEY))
+      .orderBy(asc(stageTeamResults.stageDay))
+    expect(teamRows).toHaveLength(2)
+    const tresMejores = (rows: { puesto: number; tiempoS: number }[]): number =>
+      [...rows]
+        .sort((a, b) => a.puesto - b.puesto)
+        .slice(0, 3)
+        .reduce((sum, r) => sum + r.tiempoS, 0)
+    const res1Full = await t.db
+      .select({ puesto: stageResults.puesto, tiempoS: stageResults.tiempoS })
+      .from(stageResults)
+      .where(and(eq(stageResults.raceId, RACE_KEY), eq(stageResults.stageDay, 1)))
+    expect(teamRows[0]!.scored).toBe(true)
+    expect(teamRows[0]!.tiempoS).toBe(tresMejores(res1Full))
+    expect(teamRows[0]!.sumaPuestos).toBe(6) // 1 + 2 + 3
+    expect(teamRows[0]!.mejorPuesto).toBe(1)
+    expect(teamRows[1]!.tiempoS).toBe(tresMejores(res2))
+
+    // Y lo persistido coincide EXACTAMENTE con lo que se derivaría del histórico: la regla es la
+    // misma función en los dos caminos, y este test lo ata para que no puedan separarse.
+    const persistida = await getTeamClassifications(t.db, RACE_KEY, 2)
+    await t.db.delete(stageTeamResults).where(eq(stageTeamResults.raceId, RACE_KEY))
+    const derivada = await getTeamClassifications(t.db, RACE_KEY, 2)
+    expect(derivada).toEqual(persistida)
+    // La acumulada suma las dos etapas, no las recalcula desde la general.
+    expect(persistida.overall[0]!.tiempoS).toBe(teamRows[0]!.tiempoS + teamRows[1]!.tiempoS)
+    expect(persistida.overall[0]!.stagesScored).toBe(2)
   }, 180_000)
 })

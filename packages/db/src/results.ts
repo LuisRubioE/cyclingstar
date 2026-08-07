@@ -49,38 +49,8 @@ export async function getRaceGc(db: Database, raceId: string): Promise<GcRow[]> 
   }))
 }
 
-export interface TeamGcRow {
-  teamName: string
-  tiempoTotalS: number
-  riderCount: number
-}
-
-/**
- * Clasificación por equipos (SPEC): suma de los tiempos de los 3 mejores corredores de cada equipo
- * en la general. Solo puntúan equipos con al menos 3 corredores clasificados. Se calcula desde la
- * general ya ordenada por tiempo, así que los 3 primeros de cada equipo son sus mejores.
- */
-export function teamsClassification(gc: GcRow[]): TeamGcRow[] {
-  const byTeam = new Map<string, number[]>()
-  for (const row of gc) {
-    if (!row.teamName || row.dnf) continue // un abandono no puntúa para la general por equipos
-    const times = byTeam.get(row.teamName) ?? []
-    times.push(row.tiempoTotalS)
-    byTeam.set(row.teamName, times)
-  }
-  const table: TeamGcRow[] = []
-  for (const [teamName, times] of byTeam) {
-    if (times.length < 3) continue
-    // gc viene ordenada por tiempo, así que los 3 primeros del equipo son los mejores.
-    const best3 = times.slice(0, 3)
-    table.push({
-      teamName,
-      tiempoTotalS: best3.reduce((sum, t) => sum + t, 0),
-      riderCount: times.length,
-    })
-  }
-  return table.sort((a, b) => a.tiempoTotalS - b.tiempoTotalS)
-}
+// La clasificación por equipos NO se deriva de la general: se acumulan los tres mejores DE CADA
+// ETAPA, que no son los mismos corredores cada día. Vive entera en `teamClassification.ts`.
 
 export interface StageResultRow {
   riderId: string
