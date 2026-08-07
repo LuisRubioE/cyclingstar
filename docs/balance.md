@@ -411,3 +411,31 @@ desnivel de una etapa con y sin `cobbles` es exactamente el mismo (hay test).
 `shatter()` solo actúa en subida, así que **el adoquín aún no selecciona la carrera**: cuesta energía,
 pero no descuelga a nadie. Es el Cambio 3 de `docs/motor.md` §14, y sigue pendiente. El dato ya está
 bien guardado para cuando llegue.
+
+### Efecto medido de cargar los recorridos reales (no se tocó ninguna perilla)
+
+Ocho clásicas dejan de usar el generador (ver `docs/fuentes-recorridos.md`). Con el campo llano
+canónico corriendo cada una, perfil generado frente a perfil real:
+
+| Carrera                | Antes                          | Después                              |
+| ---------------------- | ------------------------------ | ------------------------------------ |
+| `race-roubaix`         | 257 km · 43,5 km/h · er. 0,588 | 258,3 km · 41,4 km/h · er. **1,000** |
+| `race-flanders`        | 260 km · 43,4 km/h · er. 0,563 | 278,2 km · 40,2 km/h · er. **1,000** |
+| `race-lombardy`        | 252 km · 38,7 km/h · er. 0,986 | 241,5 km · 34,9 km/h · er. **1,000** |
+| `race-opening-classic` | 200 km · 43,5 km/h · er. 0,269 | 202,2 km · 40,7 km/h · er. 0,597     |
+| `race-harelbeke`       | 205 km · 44,2 km/h · er. 0,321 | 208,8 km · 40,5 km/h · er. 0,618     |
+| `race-across-flanders` | 185 km · 43,7 km/h · er. 0,207 | 188,6 km · 41,1 km/h · er. 0,390     |
+| `race-frankfurt`       | 205 km · 40,7 km/h · er. 0,693 | 203,8 km · 38,5 km/h · er. 0,692     |
+| `race-hamburg`         | 216 km · 43,5 km/h · er. 0,285 | 198,5 km · 42,5 km/h · er. 0,316     |
+
+Dos lecturas, ninguna bloqueante, las dos a vigilar:
+
+1. **Las velocidades se acercan a la realidad** (Il Lombardia a 34,9 km/h, Paris-Roubaix a 41,4) y
+   nadie abandona: el dato real no rompe nada.
+2. **La erosión satura en 1,000 en las tres carreras largas.** Dos causas, y las dos están medidas:
+   los 54,8 km de adoquín reales de Roubaix (frente a los 8,4 inventados) y el **desnivel inflado por
+   `rollingFill`**, que dibuja el relieve menudo entre dificultades con una amplitud única para todos
+   los terrenos: Roubaix sale con 2.154 m cuando la carrera tiene ~1.450 (+49 %) y el Ronde con 3.030
+   cuando tiene ~2.200 (+38 %). Il Lombardia, en cambio, se queda corto (4.141 frente a ~4.800).
+   **La perilla que falta es escalar la amplitud de `rollingFill` por terreno** (el llano del Norte no
+   ondula como los Prealpes lombardos). Es un parámetro, no un rediseño, y la POC ya lo señaló.
