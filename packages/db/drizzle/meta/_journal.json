@@ -190,6 +190,13 @@
       "when": 1786044082003,
       "tag": "0026_ambiguous_sentinel",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1786085558992,
+      "tag": "0027_clasificacion_equipos",
+      "breakpoints": true
     }
   ]
 }

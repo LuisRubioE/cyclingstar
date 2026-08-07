@@ -456,6 +456,39 @@ export const raceGc = pgTable(
   (t) => [primaryKey({ columns: [t.raceId, t.riderId] })],
 )
 
+/**
+ * Clasificación POR EQUIPOS de cada etapa, tal como la calcula el tick al correrla.
+ *
+ * Regla del ciclismo: por etapa se suman los TIEMPOS DE META (sin bonificaciones) de los tres
+ * mejores corredores de cada equipo, y la clasificación de la carrera acumula esa suma etapa a
+ * etapa —no la de los tres mejores de la general, que no son los mismos cada día—. Por eso se
+ * guarda una fila POR ETAPA y la acumulada es un `group by` sobre estas filas: cualquier otra
+ * forma perdería el dato de qué tres puntuaron cada día.
+ *
+ * Hay fila también para el equipo que NO puntuó (`scored = false`): un equipo que se queda con
+ * menos de tres clasificados queda FUERA de la clasificación acumulada (regla UCI), y sin esta
+ * fila no habría forma de distinguirlo de un equipo que no tomó la salida.
+ */
+export const stageTeamResults = pgTable(
+  'stage_team_results',
+  {
+    raceId: text('race_id').notNull(),
+    stageDay: integer('stage_day').notNull(),
+    teamId: uuid('team_id')
+      .notNull()
+      .references(() => teams.id, { onDelete: 'cascade' }),
+    /** Puntuó en esta etapa: tenía al menos tres corredores clasificados. */
+    scored: boolean('scored').notNull().default(true),
+    /** Suma de los tiempos de meta de sus tres mejores en la etapa (0 si no puntuó). */
+    tiempoS: integer('tiempo_s').notNull().default(0),
+    /** Suma de los puestos de esos tres corredores (primer desempate; 0 si no puntuó). */
+    sumaPuestos: integer('suma_puestos').notNull().default(0),
+    /** Mejor puesto de esos tres (segundo desempate de la etapa; 0 si no puntuó). */
+    mejorPuesto: integer('mejor_puesto').notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.raceId, t.stageDay, t.teamId] })],
+)
+
 /** Snapshot de entrada de una etapa, para regenerar el replay bajo demanda (SPEC 6.1, Paso 30). */
 export const stageSnapshots = pgTable(
   'stage_snapshots',

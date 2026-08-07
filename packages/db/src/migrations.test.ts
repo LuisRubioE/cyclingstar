@@ -35,6 +35,7 @@ describe('db: migraciones desde cero', () => {
       'race_rosters',
       'stage_results',
       'race_gc',
+      'stage_team_results',
     ]) {
       expect(names.has(table), `falta la tabla ${table}`).toBe(true)
     }
