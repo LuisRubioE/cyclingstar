@@ -439,3 +439,180 @@ Dos lecturas, ninguna bloqueante, las dos a vigilar:
    cuando tiene ~2.200 (+38 %). Il Lombardia, en cambio, se queda corto (4.141 frente a ~4.800).
    **La perilla que falta es escalar la amplitud de `rollingFill` por terreno** (el llano del Norte no
    ondula como los Prealpes lombardos). Es un parámetro, no un rediseño, y la POC ya lo señaló.
+
+## La clásica larga entra en la calibración (`engine_version` 4 → 5)
+
+Cargar los recorridos reales de las ocho clásicas WT dejó a la vista un agujero: **tres monumentos
+saturaban la erosión en 1,000**. Con todo el pelotón al máximo de degradación el modelo deja de
+discriminar y el resultado vuelve a ser azar — exactamente lo contrario de lo que persigue el
+desgaste. La causa de fondo es que **las clásicas largas de un día nunca entraron en la tabla de
+objetivos de §VI.1**: sus rangos se fijaron para etapas de vuelta y sobre perfiles sintéticos.
+
+Todo lo que sigue está medido con el mismo banco: **campo homogéneo de 40 corredores** (todos los
+atributos a 60, depósito 100, órdenes `libre`), 20 semillas deterministas por carrera, corriendo el
+recorrido REAL que el juego usa. Los escenarios canónicos (`llana-180`, `reina-150`, `cri-40`) se
+miden como siempre.
+
+### Resumen: antes / después
+
+| Carrera                | km    | Desnivel antes | Desnivel después | Real publicado | Erosión antes | Erosión después |
+| ---------------------- | ----- | -------------- | ---------------- | -------------- | ------------- | --------------- |
+| `race-lombardy`        | 241,5 | 4.141          | 4.141            | ~4.400         | **1,000**     | **0,867**       |
+| `race-flanders`        | 278,2 | 3.030          | **2.429**        | ~2.500         | **0,997**     | **0,629**       |
+| `race-roubaix`         | 258,3 | 2.154          | **1.509**        | ~1.450         | **0,943**     | **0,707**       |
+| `race-sanremo`         | 288,0 | 2.859          | **2.542**        | ~2.000         | 0,861         | **0,555**       |
+| `race-liege`           | 260,0 | 2.150          | 2.150            | (altitud real) | 0,742         | **0,510**       |
+| `race-harelbeke`       | 208,8 | 2.235          | **1.885**        | ~2.000         | 0,557         | **0,386**       |
+| `race-opening-classic` | 202,2 | 2.328          | **1.813**        | ~2.000         | 0,569         | 0,385           |
+| `race-across-flanders` | 188,6 | 1.734          | **1.410**        | ~1.500         | 0,365         | 0,274           |
+| `race-frankfurt`       | 203,8 | 2.667          | **2.513**        | ~3.000         | 0,645         | 0,445           |
+| `race-hamburg`         | 198,5 | 1.734          | **1.048**        | ~1.100         | **1,000**     | **0,221**       |
+
+Pájaras (tanque a cero) en el mismo banco: antes **100 %** en Lombardía y Hamburgo, 47 % en Flandes,
+25 % en Roubaix; después **3 %** en Lombardía y **0 %** en todas las demás.
+
+Y los escenarios canónicos, que NO pueden moverse de sus bandas:
+
+| Invariante                               | Antes  | Después                   | Objetivo              |
+| ---------------------------------------- | ------ | ------------------------- | --------------------- |
+| Erosión llana en fresco                  | 0,000  | **0,000**                 | 0 – 0,02              |
+| Erosión reina en fresco                  | 0,286  | **0,213**                 | 0,20 – 0,50           |
+| Erosión reina en 3.ª semana              | 0,716  | **0,662**                 | 0,60 – 0,85           |
+| **Erosión clásica larga (Flandes)**      | 0,997  | **0,626**                 | 0,45 – 0,80           |
+| **Erosión clásica más dura (Lombardía)** | 1,000  | **0,874**                 | ≤ 0,92                |
+| Fuga en llano                            | 4,2 %  | **5,8 %**                 | 2 – 8 %               |
+| Captura mediana (km a meta)              | 22,3   | **21,1**                  | 8 – 25                |
+| Capturas                                 | 96 %   | **94 %**                  | > 85 %                |
+| Gana el mejor sprinter                   | 36,7 % | **33,3 %**                | 30 – 45 %             |
+| Fuga en montaña                          | 29,2 % | **36,7 %**                | 25 – 45 %             |
+| Brecha 1.º-10.º en la reina              | 232 s  | **234 s**                 | 60 – 300 s            |
+| CRI: brecha p90-p10                      | 230 s  | **230 s**                 | 120 – 240 s           |
+| Velocidad llana / reina / CRI            | —      | **43,99 / 37,52 / 50,59** | 42-45 / 33-38 / 48-52 |
+
+Las medidas de «antes» salen de correr los mismos arneses sobre el commit anterior, no de la memoria.
+
+### 1. El relleno de relieve anónimo se escala por terreno (`RELIEF.rollingAmplitude`)
+
+`rollingFill()` dibuja la carretera entre dos dificultades publicadas —la fuente no publica el
+relieve menudo— y usaba **una amplitud única para todos los terrenos**. Resultado medido: Roubaix
+salía con 2.154 m cuando la carrera tiene ~1.450 (**+49 %**) mientras Lombardía se quedaba corta. La
+llanura del Norte no ondula como los Prealpes lombardos.
+
+Ahora la amplitud depende del terreno dominante de la etapa, que ya existía en el calendario y que
+`buildFeatureProfile()` recibe como cuarto argumento (solo lo usa el relleno; nada de lo publicado
+por la fuente depende de él):
+
+| Terreno    | Amplitud | Intención                                                         |
+| ---------- | -------- | ----------------------------------------------------------------- |
+| `flat`     | 0,55     | Etapa de llanura: la carretera apenas se mueve                    |
+| `itt`      | 0,55     | Una crono se traza por terreno rodador a propósito                |
+| `cobbles`  | 0,70     | Llanura del Norte: los muros van declarados, entre ellos es plano |
+| `hilly`    | 0,85     | Media montaña y clásicas de costa                                 |
+| `classic`  | 1,00     | Clásica de montes (Prealpes, Ardenas): la referencia              |
+| `mountain` | 1,15     | Valles de alta montaña: ni los enlaces son llanos                 |
+
+Contra el desnivel publicado, el ajuste acierta en Roubaix (1.509 frente a ~1.450), el Ronde (2.429
+frente a ~2.500), Dwars (1.410) y el Amstel (3.160 frente a ~3.400).
+
+**Dos desviaciones que se quedan, y por qué.** Milano-Sanremo sale con 2.542 m frente a los ~2.000
+reales: es una clásica de COSTA (llana con tres capos) etiquetada como `hilly` en el calendario, y
+una sola amplitud por terreno no puede separarla de un Amstel o un Frankfurt, que con la misma
+etiqueta necesitan MÁS relieve. Eschborn-Frankfurt se queda en 2.513 frente a ~3.000, pero ahí el
+déficit viene del dato: la fuente publica **cinco de las ocho cotas** y las otras tres no se
+inventan (ver `classicRoutes.ts`). Ninguna de las dos rompe su banda de erosión.
+
+### 2. Disputar un banner se cobraba una vez POR PUESTO PUNTUABLE (fallo)
+
+En `disputeBanner()` el descuento de `bannerCost` estaba **dentro** del bucle que reparte los puntos:
+
+```ts
+ranked.forEach(({ m }, idx) => {
+  if (table[idx] <= 0) return
+  for (const c of contenders) c.energy -= STAGE.bannerCost // ← una vez por puesto, no por corredor
+```
+
+Con la tabla de la meta volante (8 puestos) cada aspirante pagaba **16 de tanque por volante**, y si
+nadie tiene la orden `contestSprints` los aspirantes son **todos**. Cyclassics Hamburg, con tres
+sprints intermedios, se comía **48 de 100** antes de correr: de ahí su erosión de 1,000 y su 100 %
+de pájaras. Ahora se cobra una vez a cada contendiente. Medido en Hamburgo (sin tocar nada más):
+gasto **100 % → 64 %**, erosión **1,000 → 0,360**.
+
+No afecta a las cimas (`disputeClimb` ya cobraba una vez, y solo a quien puntúa) ni, por tanto, a
+Lombardía o Flandes.
+
+### 3. La aritmética de la clásica larga: por qué hubo que recalibrar el coste
+
+Con el relieve corregido y el banner arreglado, **Lombardía seguía saturando** (117 de gasto sobre
+un depósito de 100). No es un ajuste fino: es una tensión estructural, y conviene dejarla escrita
+porque acota lo que se puede pedir.
+
+Midiendo el gasto como función lineal de las dos perillas de coste (`cf = costFlatBase`,
+`cs = costClimbSlope`), con el resto igual:
+
+| Escenario              | Gasto medido          | Trabajo relativo a la reina |
+| ---------------------- | --------------------- | --------------------------- |
+| `llana-180` (0 m)      | `141·cf − 2`          | 0,68                        |
+| `reina-150` (1.200 m)  | `118·cf + 143·cs − 1` | 1,00                        |
+| Il Lombardia (4.141 m) | `148·cf + 439·cs − 2` | **2,00**                    |
+
+De ahí salen tres ataduras simultáneas que **no tienen solución conjunta** con los objetivos que se
+pedían:
+
+1. La llana **no debe erosionar** → el umbral ha de quedar por encima de su gasto: `u ≥ 0,68·Q`.
+2. La reina debe erosionar **≥ 0,20** → `Q ≥ u + 0,20·(1 − u)`.
+3. De 1 y 2: `u ≥ 0,30`, y entonces `Q ≤ u/0,68 = 0,44`, luego el monumento gasta `2,00·Q = 0,88`
+   y su erosión **no puede bajar de ~0,84** por mucho que se muevan `cf`, `cs`, el umbral o el
+   depósito. Pedir «monumento ≤ 0,75» con «reina 0,20-0,50» es aritméticamente imposible.
+
+La raíz es que **los objetivos de §VI.1 se anclaron en perfiles sintéticos y lisos**: `llana-180` es
+g = 0 durante 180 km y `reina-150` son 135 km a g = 0 más un puerto de 15 km al 8 %, que son 1.200 m
+de desnivel. Una etapa reina REAL tiene 3.500-4.500 m. Por la propia contabilidad del motor,
+Il Lombardia (4.141 m en 241 km) hace **el doble de trabajo** que la reina canónica; con un depósito
+fijo y una erosión lineal por encima del umbral, ese factor 2 se paga entero.
+
+Por eso la banda de la clásica larga se fija en **0,45-0,80** (no 0,45-0,75) y la carrera más dura
+del calendario tiene un **techo de 0,92** en vez de un rango. Y por eso queda anotado como pendiente
+**re-anclar §VI.1 sobre una etapa reina realista**.
+
+### 4. Las perillas que se movieron, y por qué
+
+| Perilla                | Antes  | Después    | Razón (medida)                                                                                                                                                                                                                                                                                                                                                                |
+| ---------------------- | ------ | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `costFlatBase`         | 0,30   | **0,22**   | El coste por km se calibró contra perfiles lisos; un recorrido real cobra pendiente en casi todos sus km. Con 0,30 un monumento gastaba 117 de 100                                                                                                                                                                                                                            |
+| `costClimbSlope`       | 0,17   | **0,135**  | Ídem, y es la perilla que más pesa en un monumento (439 frente a 143 en la reina). Bajar solo esta hundía la reina; bajan las dos a la vez                                                                                                                                                                                                                                    |
+| `erosionThresholdBase` | 0,20   | **0,07**   | El umbral tiene que seguir al gasto o la reina deja de erosionar. Queda justo por encima del gasto de la llana (28,8 % frente a 29,2 % de umbral con RES 55): **esa es la atadura que impide subirlo más**                                                                                                                                                                    |
+| `TANK.freshnessSlope`  | 0,0065 | **0,0085** | Con el coste nuevo, un corredor de tercera semana saliendo con 70,7 solo erosionaba 0,48 (objetivo 0,60-0,85). Sale ahora con **58,6** y erosiona 0,662                                                                                                                                                                                                                       |
+| `TANK.freshnessMin`    | 0,64   | **0,52**   | Suelo de la curva de frescura, coherente con la pendiente nueva (TSB ≤ −55)                                                                                                                                                                                                                                                                                                   |
+| `TANK.min`             | 0,70   | **0,58**   | Suelo del producto: es el que fija de verdad el depósito del hundido                                                                                                                                                                                                                                                                                                          |
+| `breakawayCommitMax`   | 0,665  | **0,635**  | Efecto colateral **del arreglo del banner**, medido: la meta volante del km 100 castigaba con 16 de tanque justo a los seis cazaetapas de la fuga (son ellos los que la disputan), así que al dejar de cobrárselo la fuga pasó a ganar el **15,0 %** de las llanas (objetivo 2-8). Sigue siendo la perilla más sensible del llano: 0,62 → 0,8 %, 0,635 → 5,8 %, 0,65 → 10,0 % |
+| `gcControlLeash`       | 342    | **365**    | Con el coste más barato y la fuga menos cooperativa, la fuga en montaña bajaba a **25,8 %**, pegada al suelo del rango. Muy sensible: 342 → 26 %, 365 → 37 %, 385 → 50 %, 405 → 64 %                                                                                                                                                                                          |
+
+Lo que **no** se ha tocado: la ley de velocidad (`vRef`, `p75Exponent`, `rhythmScale`), el rebufo, el
+descuelgue, los cerillos ni las caídas. Velocidades y VAM siguen donde las dejó el Cambio 0.
+
+### 5. Invariantes nuevos
+
+En `sim/targets.ts` (fuente única de CI y `pnpm sim`) y en `sim/invariants.test.ts`:
+
+- **`erosion.longClassicFresh` (0,45-0,80)**, medido sobre el recorrido REAL del Ronde van
+  Vlaanderen (278 km) con el campo homogéneo: la clásica larga erosiona más que una reina en fresco
+  y menos que una reina en tercera semana.
+- **`erosion.hardestClassicFresh` (≤ 0,92)**, sobre Il Lombardia: el techo contra la saturación.
+- **«ninguna clásica del WorldTour satura con el pelotón fresco»**: recorre TODAS las carreras de un
+  día del WT del calendario y falla si alguna pasa del techo. Este es el invariante que faltaba —
+  cuando los recorridos reales entraron y tres clásicas saturaron, la batería no se enteró porque
+  solo corría perfiles sintéticos.
+
+`realRaceScenario(raceId)` y el campo homogéneo viven en `sim/scenarios.ts`, así que cualquier
+carrera del calendario se puede meter en el banco con una línea.
+
+### Pendiente (deferido con razón)
+
+- **Re-anclar §VI.1 sobre una etapa reina realista.** La reina canónica tiene 1.200 m; las de verdad,
+  3.500-4.500. Medido con el campo homogéneo sobre el calendario WT, las etapas reina reales de las
+  grandes vueltas erosionan **0,73-0,93** en fresco, y una generada (`race-poland` e5: 219 km y
+  4.511 m) llega a **0,99**. No satura por poco, pero la banda 0,20-0,50 ya no describe lo que corre
+  el juego. Es una recalibración de la misma familia que esta y merece su propia tanda.
+- **Milano-Sanremo y su etiqueta de terreno.** Su relieve reconstruido se pasa un 27 % porque el
+  calendario la marca `hilly` y de verdad es una clásica de costa. Se arregla el día que el terreno
+  deje de ser una etiqueta única por carrera, no tocando el dato de la fuente.
