@@ -194,6 +194,7 @@ describe('contratos: calendario y carrera', () => {
       gc: [],
       points: [],
       kom: [],
+      teamGc: [],
       stageWinners: [],
       history: [],
     }
@@ -220,6 +221,7 @@ describe('contratos: calendario y carrera', () => {
       gc: [],
       points: [],
       kom: [],
+      teamGc: [],
       stageWinners: [],
       history: [],
     }

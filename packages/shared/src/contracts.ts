@@ -255,6 +255,31 @@ export const pointsEntrySchema = z.object({
 export type PointsEntry = z.infer<typeof pointsEntrySchema>
 
 /**
+ * Fila de la clasificación POR EQUIPOS, la misma para la de una etapa y la acumulada.
+ *
+ * Regla del ciclismo: por etapa suman los tiempos de meta de los TRES MEJORES de cada equipo (sin
+ * bonificaciones, que no cuentan para esta clasificación), y la de la carrera acumula esas sumas
+ * etapa a etapa —no es la suma de los tres mejores de la general, porque los tres que puntúan
+ * cambian cada día—. Un equipo que se queda con menos de tres clasificados no puntúa esa etapa y
+ * sale de la clasificación (`out`), pero se sigue mostrando al final, como los DNF de la general.
+ */
+export const teamClassEntrySchema = z.object({
+  teamId: z.string(),
+  teamName: z.string(),
+  /** País del equipo (ISO alpha-2); null si no lo tiene asignado. */
+  country: z.string().nullable(),
+  /** Suma de tiempos: la de la etapa, o la acumulada de la carrera. */
+  tiempoS: z.number(),
+  /** Suma de los puestos de los corredores que puntúan (primer desempate). */
+  sumaPuestos: z.number().int(),
+  /** Etapas puntuadas (1 en la clasificación de una etapa). */
+  stagesScored: z.number().int(),
+  /** Fuera de la clasificación: se quedó sin tres clasificados en alguna etapa. */
+  out: z.boolean(),
+})
+export type TeamClassEntry = z.infer<typeof teamClassEntrySchema>
+
+/**
  * Momento en el que está la carrera ESTA temporada. Es lo que decide qué pestañas tiene su página y
  * cuál abre por defecto (docs/navegacion.md §7.1): por correr manda el recorrido; en curso y
  * terminada, las clasificaciones. Lo calcula la API con la misma regla que usa el tick para repartir
@@ -297,6 +322,8 @@ export const raceViewSchema = z.object({
   points: z.array(pointsEntrySchema),
   /** Clasificación de la montaña (KOM) de la carrera. */
   kom: z.array(pointsEntrySchema),
+  /** Clasificación por equipos acumulada de la carrera (vacía si aún no se ha corrido). */
+  teamGc: z.array(teamClassEntrySchema),
   stageWinners: z.array(stageWinnerSchema),
   history: z.array(raceHonourSchema),
 })
@@ -804,13 +831,6 @@ export type GcEntry = z.infer<typeof raceResultsGcEntrySchema>
 /** Misma forma que `PointsEntry`: clasificación de puntos/montaña tras una etapa. */
 export type StageClassEntry = PointsEntry
 
-export const teamGcEntrySchema = z.object({
-  teamName: z.string(),
-  tiempoTotalS: z.number(),
-  riderCount: z.number().int(),
-})
-export type TeamGcEntry = z.infer<typeof teamGcEntrySchema>
-
 export const stageStatusSchema = z.object({
   day: z.number().int(),
   name: z.string(),
@@ -824,7 +844,8 @@ export const raceResultsSchema = z.object({
   gc: z.array(raceResultsGcEntrySchema),
   points: z.array(pointsEntrySchema),
   kom: z.array(pointsEntrySchema),
-  teamsGc: z.array(teamGcEntrySchema),
+  /** Clasificación por equipos acumulada de la vuelta. */
+  teamGc: z.array(teamClassEntrySchema),
   stages: z.array(stageStatusSchema),
 })
 export type RaceResults = z.infer<typeof raceResultsSchema>
@@ -902,6 +923,10 @@ export const stageReplaySchema = z.object({
   kom: z.array(pointsEntrySchema).optional(),
   /** Clasificación por puntos (metas volantes) tras esta etapa. */
   points: z.array(pointsEntrySchema).optional(),
+  /** Clasificación por equipos DE ESTA ETAPA (los tres mejores de cada equipo hoy). */
+  teamStage: z.array(teamClassEntrySchema).optional(),
+  /** Clasificación por equipos acumulada TRAS esta etapa. */
+  teamGc: z.array(teamClassEntrySchema).optional(),
 })
 export type StageReplay = z.infer<typeof stageReplaySchema>
 

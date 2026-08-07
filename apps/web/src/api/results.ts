@@ -14,7 +14,7 @@ import {
   type StageReplay,
   type StageResultEntry,
   type StageStatus,
-  type TeamGcEntry,
+  type TeamClassEntry,
   advanceWorldResponseSchema,
   raceResultsSchema,
   stageReplaySchema,
@@ -32,7 +32,7 @@ export type {
   StageReplay,
   StageResultEntry,
   StageStatus,
-  TeamGcEntry,
+  TeamClassEntry,
 }
 
 export async function fetchResults(): Promise<RaceResults> {

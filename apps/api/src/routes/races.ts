@@ -14,9 +14,9 @@ import {
   getStageResults,
   getStageSnapshot,
   getRiderForUser,
+  getTeamClassifications,
   isOnRoster,
   setStageOrders,
-  teamsClassification,
 } from '@cyclingstar/db'
 import {
   SEASON_CALENDAR,
@@ -122,7 +122,7 @@ export const raceRoutes: RoutePlugin = async (app, ctx) => {
     const gc = await getRaceGc(db, TEST_TOUR_ID)
     const points = await getPointsClassification(db, TEST_TOUR_ID)
     const kom = await getKomClassification(db, TEST_TOUR_ID)
-    const teamsGc = teamsClassification(gc)
+    const { overall: teamGc } = await getTeamClassifications(db, TEST_TOUR_ID)
     const run = new Set(await getRunStageDays(db, TEST_TOUR_ID))
     const stages = TEST_TOUR.map((stage) => ({
       day: stage.day,
@@ -131,7 +131,7 @@ export const raceRoutes: RoutePlugin = async (app, ctx) => {
       km: stageKm(stage.profile.segments),
       run: run.has(stage.day),
     }))
-    return { gc, points, kom, teamsGc, stages }
+    return { gc, points, kom, teamGc, stages }
   })
 
   // Replay de una etapa de la vuelta de prueba: se regenera desde el snapshot sellado (SPEC 6.1).
@@ -260,6 +260,8 @@ export const raceRoutes: RoutePlugin = async (app, ctx) => {
       // Montaña y puntos tal como quedaron TRAS esta etapa (acumulado hasta el día `day`).
       const kom = await getKomClassification(db, raceKey, day)
       const points = await getPointsClassification(db, raceKey, day)
+      // Clasificación por equipos: la de ESTA etapa y la acumulada tras ella, igual que la general.
+      const { stage: teamStage, overall: teamGc } = await getTeamClassifications(db, raceKey, day)
       // El journal se lee de los eventos CONGELADOS al correr la etapa (no se re-simula): así siempre
       // cuadra con el resultado guardado. Las etapas corridas antes de guardarlos no tienen journal
       // detallado (no lo inventamos re-simulando, que daría una historia distinta al resultado real).
@@ -278,6 +280,8 @@ export const raceRoutes: RoutePlugin = async (app, ctx) => {
           gc,
           kom,
           points,
+          teamStage,
+          teamGc,
           journalUnavailable: true,
         }
       }
@@ -297,6 +301,8 @@ export const raceRoutes: RoutePlugin = async (app, ctx) => {
         gc,
         kom,
         points,
+        teamStage,
+        teamGc,
       }
     },
   )

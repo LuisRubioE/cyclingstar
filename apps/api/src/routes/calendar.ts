@@ -9,6 +9,7 @@ import {
   getRunStageDays,
   getSeasonWinners,
   getStageWinners,
+  getTeamClassifications,
   predictStartlist,
 } from '@cyclingstar/db'
 import { SEASON_CALENDAR, renderAltimetrySvg, stageEndpoints } from '@cyclingstar/engine'
@@ -112,6 +113,7 @@ export const calendarRoutes: RoutePlugin = async (app, ctx) => {
         gc: [],
         points: [],
         kom: [],
+        teamGc: [],
         stageWinners: [],
         history: [],
       }
@@ -124,6 +126,9 @@ export const calendarRoutes: RoutePlugin = async (app, ctx) => {
     // Puntos y montaña: las otras dos clasificaciones que el jugador consulta junto a la general.
     const points = await getPointsClassification(db, raceKey)
     const kom = await getKomClassification(db, raceKey)
+    // Clasificación por equipos acumulada de la carrera. Se sirve de lo que el tick dejó escrito y,
+    // en carreras corridas antes de que existiera, se deriva al vuelo desde `stage_results`.
+    const { overall: teamGc } = await getTeamClassifications(db, raceKey)
     // Estado de la carrera ESTA temporada; es lo que decide qué pestañas tiene su página y cuál abre
     // por defecto (§7.1). La regla de "terminada" es la misma que usa el tick para repartir puntos de
     // general: existe resultado de su última etapa.
@@ -144,6 +149,7 @@ export const calendarRoutes: RoutePlugin = async (app, ctx) => {
       gc,
       points,
       kom,
+      teamGc,
       stageWinners,
       history,
     }

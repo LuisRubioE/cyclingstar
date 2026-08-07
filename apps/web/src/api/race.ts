@@ -9,6 +9,7 @@ import {
   type StageWinner,
   type StartlistRider,
   type StartlistTeam,
+  type TeamClassEntry,
   raceStartlistSchema,
   raceViewSchema,
 } from '@cyclingstar/shared'
@@ -25,6 +26,7 @@ export type {
   StageWinner,
   StartlistRider,
   StartlistTeam,
+  TeamClassEntry,
 }
 
 /**
