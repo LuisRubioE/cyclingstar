@@ -146,6 +146,15 @@ export function isSprintFinish(type: FinishType): boolean {
 }
 
 /**
+ * ¿Se llega a meta CUESTA ARRIBA? Es lo que antes decidía el binario `finishUphill`, y para lo
+ * único que hace falta seguir sabiéndolo es la crónica: un grupo grande que llega en llano, en
+ * descenso o por el adoquín disputa un sprint; uno que llega trepando, no.
+ */
+export function isUphillFinish(type: FinishType): boolean {
+  return type === 'alto' || type === 'puncheur'
+}
+
+/**
  * Puntuación de remate de un corredor en un final de este tipo (docs/motor.md §12): una MEZCLA de
  * atributos con pesos por tipo, en vez de un único atributo. Los pesos suman 1, así que la
  * puntuación queda en la escala de los atributos (0-100) sea cual sea el final.

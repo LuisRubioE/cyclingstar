@@ -18,6 +18,7 @@ import {
   finishScore,
   finishType,
   isSprintFinish,
+  isUphillFinish,
 } from './finish.js'
 import { markingMargin, resolveMarking } from './marcaje.js'
 import { sampleProfile, stageLengthKm } from './sample.js'
@@ -1002,7 +1003,11 @@ function finishStage(
     })
     if (gi === 0 && ranked[0]) {
       const field = ranked.length
-      const isBunch = sprintFinish && field >= STAGE.bunchSprintMinRiders
+      // Sprint masivo A EFECTOS DE CRÓNICA: un grupo numeroso que no llega trepando disputa la
+      // meta al sprint, ruede por asfalto, por adoquín o cuesta abajo. Es el mismo criterio de
+      // antes (`!finishUphill && field >= 8`) con una definición de "cuesta arriba" que ya no la
+      // dispara un solo bloque de los últimos 2 km.
+      const isBunch = !isUphillFinish(type) && field >= STAGE.bunchSprintMinRiders
       // Sprint masivo: si el grupo de cabeza es numeroso y la meta es llana, se narra el último km —
       // los rematadores que lo disputan y si el ganador remató bien lanzado por su tren (SPEC 6.15).
       if (isBunch) {

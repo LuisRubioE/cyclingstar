@@ -894,8 +894,8 @@ Campaña de **500 semillas** por escenario, la misma antes y después:
 | Fuga en montaña                         | 35,0%                 | 35,0%                 | 25 – 45%                       |
 | Brecha 1.º-10.º en la reina             | 225 s                 | 225 s                 | 60 – 300 s                     |
 | CRI: brecha p90-p10 / gana especialista | 233 s / 99,8%         | 233 s / 99,8%         | 120-240 s / 90-100%            |
-| Erosión llana / reina / 3.ª semana      | 0,000 / 0,213 / 0,662 | 0,000 / 0,214 / 0,662 | 0-0,02 / 0,20-0,50 / 0,60-0,85 |
-| Erosión clásica larga / la más dura     | 0,626 / 0,868         | 0,630 / 0,869         | 0,45-0,80 / ≤ 0,92             |
+| Erosión llana / reina / 3.ª semana      | 0,000 / 0,214 / 0,662 | 0,000 / 0,214 / 0,662 | 0-0,02 / 0,20-0,50 / 0,60-0,85 |
+| Erosión clásica larga / la más dura     | 0,629 / 0,868         | 0,630 / 0,869         | 0,45-0,80 / ≤ 0,92             |
 | Ratio de relevos (relevador/protegido)  | 1,135                 | 1,135                 | > 1,10                         |
 
 **No hubo que reajustar ningún rango.** Las velocidades y la VAM no se tocan (el cambio no entra en

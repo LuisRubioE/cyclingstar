@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import type { Attribute } from '@cyclingstar/shared'
 import { STAGE } from '../constants.js'
-import { deriveFinishTerrain, finishScore, finishType, isSprintFinish } from './finish.js'
+import {
+  deriveFinishTerrain,
+  finishScore,
+  finishType,
+  isSprintFinish,
+  isUphillFinish,
+} from './finish.js'
 import { sampleProfile } from './sample.js'
 import type { FinishType } from './finish.js'
 import type { Segment, StageProfile } from './types.js'
@@ -208,5 +214,13 @@ describe('puntuación compuesta por tipo de final (docs/motor.md §12)', () => {
     expect(isSprintFinish('sprint_reducido')).toBe(true)
     expect(isSprintFinish('alto')).toBe(false)
     expect(isSprintFinish('puncheur')).toBe(false)
+  })
+
+  it('llegar por adoquín o cuesta abajo sigue siendo llegar al sprint, para la crónica', () => {
+    expect(isUphillFinish('alto')).toBe(true)
+    expect(isUphillFinish('puncheur')).toBe(true)
+    expect(isUphillFinish('pave')).toBe(false)
+    expect(isUphillFinish('descenso')).toBe(false)
+    expect(isUphillFinish('sprint_masivo')).toBe(false)
   })
 })
