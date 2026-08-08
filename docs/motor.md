@@ -374,6 +374,14 @@ adoquines no son clásicas de adoquines.
 
 ### 16. Cambio 5 — Telemetría: que el motor cuente lo que sabe
 
+> **Primera entrega hecha (v6).** Sin separar aún telemetría de narrativa, pero cerrando los tres
+> agujeros que hacían el journal ilegible: el corte del pelotón se emite con la selección ACUMULADA
+> y el tamaño del grupo antes y después (no con los descolgados de un bloque de 100 m), el parte de
+> boquete sigue al grupo de CABEZA sea quien sea y se aprieta en los últimos 40 km, y el nuevo
+> `front_group` NOMBRA a los que van delante cuando quedan pocos. De paso salieron dos defectos
+> medidos: en un final en alto toda la etapa contaba como puerto decisivo, y la erosión no tenía
+> techo estructural. Todo en docs/balance.md, «v6 — Telemetría de carrera».
+
 Hoy `StageOutput` solo lleva `events, results, workUnits, incidents`, y hay **14 puntos de emisión
 de eventos** en todo el motor. El motor simula bloque a bloque —energía, cerillos, grupos, brechas—
 y **tira todo eso**. Por eso el journal es pobre: no es que se cuente mal, es que no hay qué contar.
