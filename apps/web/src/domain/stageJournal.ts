@@ -191,6 +191,9 @@ export function chronicleLine(e: ChronicleEntry): string {
       // Con `before` la frase dice de cuántos a cuántos ha quedado el grupo, que es lo que el
       // lector necesita para no encontrarse 78 corredores desaparecidos entre dos líneas.
       if (before != null && remaining != null && before > remaining) {
+        // Caso extremo pero posible: el grupo se deshace entero y no queda nadie a ese ritmo.
+        if (remaining === 0)
+          return `The pace blows ${group} to pieces — all ${before} riders are strung out over the climb.`
         if (remaining === 1)
           return `${driver} and the last companions crack — ${who || 'the leader'} rides on alone.`
         if (small)

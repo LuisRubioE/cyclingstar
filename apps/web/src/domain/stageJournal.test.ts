@@ -188,3 +188,17 @@ describe('quién va delante y con cuánta ventaja', () => {
     ).toContain('1:30')
   })
 })
+
+describe('casos límite de la criba', () => {
+  it('si el grupo se deshace entero, la frase no habla de "0 corredores restantes"', () => {
+    const linea = chronicleLine(
+      event({
+        plantilla: 'peloton_split',
+        protagonists: [],
+        datos: { dropped: 30, remaining: 0, before: 30, chasing: 0 },
+      }),
+    )
+    expect(linea).toContain('30')
+    expect(linea).not.toMatch(/\b0\b/)
+  })
+})
