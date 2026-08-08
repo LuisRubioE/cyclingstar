@@ -1,6 +1,8 @@
 # El motor de etapa: cómo funciona hoy y qué hay que cambiarle
 
-Estado: **documento de diagnóstico y propuesta, para discutir.** Nada de esto está implementado.
+Estado: **documento vivo.** Las Partes I y II son el diagnóstico (medido) y siguen valiendo como
+retrato de lo que había. En la Parte III cada cambio lleva su estado: **§12-bis hecho** (v3),
+**§16 primera entrega** (v6) y **§12 hecho** (v7). Lo demás sigue siendo propuesta.
 
 Ámbito: `packages/engine/src/stage/` (2.333 líneas sin tests). Referencias a SPEC 6.
 
@@ -189,6 +191,9 @@ en montaña 25-45%) son más estrictos que los del test de CI (2-12% y 25-55%). 
 
 ### 4. El problema de fondo: la carrera no decide la carrera
 
+> **RESUELTO en v7** (ver §12, «Cambio 1 — Modelo de final»). Lo que sigue es el diagnóstico
+> original, que se conserva porque explica de dónde viene el modelo actual.
+
 Esta es la línea más importante del motor (`simulate.ts:669`):
 
 ```ts
@@ -264,8 +269,8 @@ Además de los ataques y la tensión:
 paceFraction`). Los primeros de `input.riders` gastan siempre más, y un líder que aparezca pronto
   en la lista nunca recibe la protección de sus gregarios. Determinista, pero arbitrario. _(Ya está
   en corrección.)_
-- **Los puntos de banner y cima usan `eff0`, no `effNow`** (`:573`, `:609`): ignoran la erosión, así
-  que un escalador reventado sigue coronando primero.
+- ~~**Los puntos de banner y cima usan `eff0`, no `effNow`** (`:573`, `:609`): ignoran la erosión,
+  así que un escalador reventado sigue coronando primero.~~ **Corregido en v7** (§12).
 - **Parches sobre la falta de un modelo de persecución**: el tiempo de un grupo descolgado se
   _pega_ al del pelotón en llano (`:440`) y los descolgados cierran a un ritmo fijo en s/km
   (`:449`). El propio comentario admite que se añadió para tapar "fugas fantasma". Funciona, pero
@@ -304,22 +309,54 @@ se han validado contra nada. Un motor razonable con un perfil absurdo produce un
 Lo que sí hay que aceptar es que **la capa táctica es prácticamente un desarrollo nuevo**, no un
 retoque. No es "arreglar bugs": es escribir la mitad que falta.
 
-### 12. Cambio 1 — Modelo de final (el que más impacto tiene)
+### 12. Cambio 1 — Modelo de final (HECHO, v7)
 
-Sustituir `finishUphill ? MON/COL : SPR` por un **tipo de final derivado del recorrido**, y una
-puntuación compuesta.
+> **Implementado en `engine_version` 7.** Vive en `packages/engine/src/stage/finish.ts` (derivación
+> y puntuación) y en `finishStage()` de `simulate.ts` (aplicación). Los números de antes y después
+> están en docs/balance.md, «v7 — El modelo de final». Lo que sigue describe lo que se hizo, no lo
+> que se proponía.
 
-Tipos propuestos: `sprint_masivo`, `sprint_reducido`, `puncheur`, `alto`, `pave`, `descenso`,
-`solitario`.
+`finishUphill ? MON/COL : SPR` ha desaparecido. En su lugar, cada GRUPO que llega a meta resuelve su
+propio **tipo de final** y se ordena por una **puntuación compuesta**.
 
-- El tipo se deriva de los últimos ~5 km (no de 2), ponderando pendiente media, dureza acumulada de
-  la última cota y a qué distancia de meta corona, y el tamaño del grupo que llega.
-- La puntuación pasa a ser una **mezcla de atributos con pesos por tipo de final**, en lugar de uno
-  solo. Un final de _puncheur_ mezcla COL, SPR y TAC; uno de pavés, PAV y LLA.
-- **Penalizar el trabajo hecho**: `workUnits` ya está calculado; quien ha tirado todo el día llega
-  con menos. Es lo que hace que "ir a rueda" sea una decisión con coste de oportunidad, y no la
-  única estrategia ganadora.
-- Aplicar erosión también a los banners.
+**1. El tipo se deriva del recorrido y del tamaño del grupo.** `deriveFinishTerrain()` mide, una vez
+por etapa: la pendiente media de los **últimos 5 km** (no 2), la **última cota** de los últimos 15 km
+—longitud, pendiente media, dureza `km·g²` y a cuántos km de meta corona—, la fracción de descenso de
+los últimos 3 km y la de pavé de los últimos 30. `finishType()` cruza eso con cuántos llegan:
+
+| Tipo              | Cuándo                                                                                                                                                 |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `solitario`       | El grupo es de uno                                                                                                                                     |
+| `alto`            | Cota de ≥ 3 km que muere en meta, o los últimos 3 km al ≥ 5% (definición del SPEC 6.12, cuya constante llevaba desde el principio definida y sin usar) |
+| `puncheur`        | Cota de dureza ≥ 15 que corona a ≤ 5 km, o una llegada que arrastra al ≥ 2,5% de media                                                                 |
+| `descenso`        | La mitad o más de los últimos 3 km baja                                                                                                                |
+| `pave`            | ≥ 10% de adoquín en los últimos 30 km                                                                                                                  |
+| `sprint_masivo`   | Nada de lo anterior y llegan ≥ 15                                                                                                                      |
+| `sprint_reducido` | Nada de lo anterior y llegan menos                                                                                                                     |
+
+**La fragilidad del binario se corrige con dos números concretos**: una racha ascendente no cuenta
+como cota si mide menos de 400 m (`finishClimbMinKm`) y un bloque no "sube" por debajo del 3%
+(`finishClimbMinGradient`), así que la rampa de 200 m del diagnóstico ya no convierte una llana en
+llegada de escaladores —hay test— y el relieve menudo de los recorridos reconstruidos tampoco.
+
+**2. La puntuación es una mezcla con pesos por tipo** (`STAGE.finishWeights`, suman 1 en cada fila,
+así la escala sigue siendo la de los atributos): el sprint masivo es SPR con LLA y TAC de
+colocación; el reducido carga la mano en TAC; el de puncheur mezcla COL + SPR + TAC; el de alto es
+MON/COL con RES; el de pavé es **PAV + LLA**, que es la primera vez que el PAV interviene en un
+resultado; el de descenso, DES + TAC.
+
+**3. El trabajo del día se cobra en el remate.** `workUnits` se calculaba y no se usaba para nada.
+Ahora el remate se corrige comparando el trabajo de cada corredor con la **media de su grupo de
+meta** (no con un absoluto: así no depende de lo larga que sea la etapa), con peso 0,6 y tope ±15%.
+
+**4. Los banners se disputan con la erosión del momento.** `disputeBanner()` y `disputeClimb()`
+puntuaban con `eff0`, el corredor del km 0, así que un escalador reventado seguía coronando primero.
+Ahora usan `riderEff()`, como el resto del motor.
+
+Lo que este cambio **no** hace, y sigue pendiente: no crea ataques ni movimientos (§13), así que en
+una etapa llana el pelotón sigue llegando junto y el tipo de final es casi siempre `sprint_masivo`;
+y no toca el generador de perfiles, así que una carrera sin terreno selectivo sigue sin poder
+decidirse por otra cosa que las bonificaciones.
 
 ### 12-bis. Cambio 0 — Calibrar el desgaste y liberar el controlador (va ANTES que todo)
 
@@ -401,7 +438,7 @@ y que los replays dejan de depender de re-simular.
 | #   | Trabajo                                                        | Por qué en este puesto                                                                                                                                                |
 | --- | -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 0   | **Desgaste + controlador del pelotón + velocidades** (§12-bis) | Es la raíz medida. Sin desgaste y con el controlador atado a la fuga, nada de lo demás puede dar resultados creíbles. No depende de los perfiles: se puede empezar YA |
-| 1   | Modelo de final (§12)                                          | Máximo impacto por esfuerzo una vez hay desgaste: arregla "gana quien no debe"                                                                                        |
+| 1   | ~~Modelo de final (§12)~~ **HECHO (v7)**                       | Máximo impacto por esfuerzo una vez hay desgaste: arregla "gana quien no debe"                                                                                        |
 | 2   | Selección en pavés/descenso (§14) y fatiga (§15)               | Hoy el pavés no existe como terreno (brecha de 0 s) y nadie abandona                                                                                                  |
 | 3   | **Perfiles reales** (extracción y validación)                  | Entrada del motor. Necesarios **antes de la recalibración final**, no antes de las correcciones estructurales                                                         |
 | 4   | Capa táctica (§13)                                             | El desarrollo grande. Es lo que hace que las carreras se distingan entre sí                                                                                           |

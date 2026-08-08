@@ -444,6 +444,161 @@ describe('trabajo de equipo (SPEC 6.18)', () => {
   )
 })
 
+// --- Modelo de final (docs/motor.md §12) ----------------------------------------------------
+// El orden dentro de un grupo lo decidía UN atributo (`finishUphill ? max(MON,COL) : SPR`): solo
+// existían dos arquetipos de final, el PAV no intervenía jamás en ningún resultado y el trabajo
+// del día no se pagaba. Estos tests fijan lo contrario, de punta a punta del motor.
+
+describe('modelo de final (docs/motor.md §12)', () => {
+  const seedsFor = (tag: string, n: number): string[] =>
+    Array.from({ length: n }, (_, i) =>
+      stageSeed({ worldSeed: `${tag}-${i}`, raceId: tag, stageDay: 1, engineVersion: 1 }),
+    )
+
+  it('el evento de meta dice qué clase de final resolvió la etapa', () => {
+    const field = Array.from({ length: 30 }, (_, i) =>
+      rider(`p-${i}`, { eff0: eff(58, { SPR: 60 + (i % 9), MON: 60 + (i % 7) }) }),
+    )
+    const llana = simulateStage(
+      { profile: { segments: [{ km: 120, tipo: 'llano' }] }, riders: field },
+      stageSeed({ worldSeed: 'f1', raceId: 'f1', stageDay: 1, engineVersion: 1 }),
+    )
+    expect(llana.events.find((e) => e.plantilla === 'stage_win')!.datos!.finish).toBe(
+      'sprint_masivo',
+    )
+    const alto = simulateStage(
+      {
+        profile: {
+          segments: [
+            { km: 60, tipo: 'llano' },
+            { km: 12, tipo: 'puerto', tramos: [{ km: 12, g: 8 }] },
+          ],
+        },
+        riders: field,
+      },
+      stageSeed({ worldSeed: 'f2', raceId: 'f2', stageDay: 1, engineVersion: 1 }),
+    )
+    expect(alto.events.find((e) => e.plantilla === 'stage_win')!.datos!.finish).toBe('alto')
+  })
+
+  it(
+    'un final de PAVÉ lo gana el adoquinero: el PAV interviene en el resultado',
+    { timeout: 30000 },
+    () => {
+      // El campo solo se distingue en PAV (45-83). Antes el ganador salía con un PAV mediano de
+      // 63 sobre ese rango —el centro exacto, es decir, azar puro— porque el final era a puro SPR.
+      const riders = Array.from({ length: 30 }, (_, i) =>
+        rider(`r-${i}`, { eff0: eff(60, { PAV: 45 + i }), fragility: 1 }),
+      )
+      const input: StageInput = {
+        profile: {
+          segments: [
+            { km: 60, tipo: 'llano' },
+            { km: 15, tipo: 'paves', estrellas: 4 },
+            { km: 3, tipo: 'llano' },
+          ],
+        },
+        riders,
+      }
+      const pavs: number[] = []
+      for (const seed of seedsFor('pave-final', 20)) {
+        const out = simulateStage(input, seed)
+        pavs.push(riders.find((r) => r.riderId === out.results[0]!.riderId)!.eff0.PAV)
+      }
+      pavs.sort((a, b) => a - b)
+      const mediana = pavs[Math.floor(pavs.length / 2)]!
+      expect(mediana).toBeGreaterThan(70) // el centro del rango (azar) sería 64
+    },
+  )
+
+  it(
+    'el trabajo del día se paga en la meta: quien tira remata peor que quien va a rueda',
+    { timeout: 30000 },
+    () => {
+      // Veinte corredores IDÉNTICOS en atributos y tanque. Lo único que los separa es el turno de
+      // relevos que les toca por rol (gregario 1.0 contra sprinter 0.2). `workUnits` ya se
+      // calculaba y no entraba en el resultado: los dos grupos llegaban en el mismo orden medio.
+      const riders: StageRider[] = []
+      for (let i = 0; i < 10; i++) {
+        riders.push(
+          rider(`greg-${i}`, { eff0: eff(65), matches: 3, orders: orders({ role: 'gregario' }) }),
+        )
+      }
+      for (let i = 0; i < 10; i++) {
+        riders.push(
+          rider(`prot-${i}`, { eff0: eff(65), matches: 3, orders: orders({ role: 'sprinter' }) }),
+        )
+      }
+      const input: StageInput = {
+        profile: { segments: [{ km: 180, tipo: 'llano' }] },
+        riders,
+      }
+      let gregPos = 0
+      let protPos = 0
+      let protWins = 0
+      const seeds = seedsFor('peaje', 20)
+      for (const seed of seeds) {
+        const out = simulateStage(input, seed)
+        for (const r of out.results) {
+          if (r.riderId.startsWith('greg-')) gregPos += r.puesto
+          else protPos += r.puesto
+        }
+        if (out.results[0]!.riderId.startsWith('prot-')) protWins += 1
+      }
+      // El protegido remata claramente mejor que el que ha estado dando la cara todo el día.
+      expect(protPos / (10 * seeds.length)).toBeLessThan(gregPos / (10 * seeds.length) - 2)
+      // Y gana la mayoría de las etapas, sin que sea una ley (piernas del día y ruido del sprint).
+      expect(protWins).toBeGreaterThan(seeds.length / 2)
+    },
+  )
+
+  it(
+    'los banners se disputan con la EROSIÓN del momento, no con el corredor del km 0',
+    { timeout: 30000 },
+    () => {
+      // Dos aspirantes a la meta volante: uno mejor rematador de papel (SPR 82) y otro discreto
+      // (SPR 70). Con el depósito lleno gana el primero; si llega al banner reventado, no. Antes
+      // `disputeBanner` puntuaba con `eff0`, así que el resultado era el MISMO en los dos casos.
+      const build = (energyStrong: number): StageInput => {
+        const contest = { contestSprints: true, contestClimbs: true }
+        const riders: StageRider[] = [
+          rider('fuerte', {
+            eff0: eff(55, { SPR: 82, RES: 40 }),
+            energy: energyStrong,
+            matches: 0,
+            orders: orders(contest),
+          }),
+          rider('entero', {
+            eff0: eff(55, { SPR: 70, RES: 40 }),
+            matches: 0,
+            orders: orders(contest),
+          }),
+        ]
+        for (let i = 0; i < 20; i++) riders.push(rider(`pel-${i}`, { eff0: eff(52), matches: 2 }))
+        return {
+          profile: {
+            segments: [{ km: 100, tipo: 'llano' }],
+            banners: [{ km: 80, tipo: 'meta_volante' }],
+          },
+          riders,
+        }
+      }
+      const winners = (energy: number): string[] =>
+        seedsFor('banner', 12)
+          .map((seed) => simulateStage(build(energy), seed))
+          .map((out) => out.events.find((e) => e.plantilla === 'sprint_intermediate')!)
+          .map((e) => e.protagonistas[0]!)
+
+      const fresco = winners(100)
+      expect(fresco.every((w) => w === 'fuerte')).toBe(true)
+      // Con un depósito de 16 el "fuerte" llega al km 80 con la erosión por las nubes y su punta
+      // de velocidad (coef 0.45, el más castigado de la tabla) ya no le da para ganar la volante.
+      const reventado = winners(16)
+      expect(reventado.every((w) => w === 'entero')).toBe(true)
+    },
+  )
+})
+
 // --- Telemetría de la carrera (docs/motor.md §16) -------------------------------------------
 // El motor simulaba bloque a bloque —quién se descuelga, cuánto boquete hay, quién va delante— y
 // tiraba casi todo. La crónica que salía era ilegible: el grupo de cabeza pasaba de 81 corredores

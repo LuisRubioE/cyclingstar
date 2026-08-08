@@ -751,3 +751,172 @@ tabla de §VI.1 re-anclada sobre recorridos reales.
 INFORMATIVA (no bloquea) en cada corrida, con su objetivo de diseño al lado. El escenario vive en
 `sim/scenarios.ts::realQueenThirdWeekScenario()` y `realRaceScenario` acepta ya un índice de etapa,
 así que cualquier etapa del calendario entra en el banco con una línea.
+
+---
+
+## v7 — El modelo de final: la carrera deja de decidirse por un atributo (`engine_version` 6 → 7)
+
+Motivación: el dueño vio en producción que **un corredor con 4 estrellas en sprint y 1-2 en todo lo
+demás ganó 4 de las 5 etapas de Race Sharjah y la general**. La causa es la línea que
+`docs/motor.md` §4 señalaba como el problema de fondo, en `finishStage()`:
+
+```ts
+const base = finishUphill ? Math.max(eff.MON, eff.COL) : eff.SPR
+```
+
+Implementa `docs/motor.md` §12 (modelo de final). **No** incluye §13 (capa táctica): no hay ataques
+ni contraataques, y eso condiciona la lectura de todo lo que sigue.
+
+### El banco de medida
+
+Tres bancos, los tres deterministas, y los tres se miden ANTES (corriendo el mismo arnés sobre
+`main`, con un worktree, no de memoria) y DESPUÉS:
+
+- **Sharjah**: las 5 etapas REALES de `race-sharjah` × 10 semillas = 50 etapas. Campo de 40: un
+  sprinter deliberadamente malo (**SPR 78 y 45 en todo lo demás**) y 39 rivales continentales
+  mejores que él en CUALQUIER otra faceta (todo entre 52 y 73) y ninguno sprinter de verdad
+  (SPR 46-64). Reproduce el caso del dueño clavado: **48 de 50**.
+- **Roubaix**: el recorrido real (258 km, 31 sectores, 54,8 km de adoquín) con 40 rodadores
+  IDÉNTICOS salvo en **PAV, repartido de 45 a 83**. Si el ganador sale con un PAV mediano de 64
+  —el centro exacto del rango— es que el resultado es azar.
+- **Relevos**: llana de 180 km, 20 corredores con los MISMOS atributos y el mismo tanque; 10 con rol
+  `gregario` (deber de relevo 1,0) y 10 con rol `sprinter` (0,2). Lo único que los separa es cuánto
+  trabajo hacen.
+
+### Resumen: antes / después
+
+| Medida                                                       | Antes               | Después             |
+| ------------------------------------------------------------ | ------------------- | ------------------- |
+| **Sharjah**: etapas que gana el sprinter malo                | **48 / 50**         | **19 / 50**         |
+| **Sharjah**: generales que gana (de 10)                      | **9 / 10**          | **6 / 10**          |
+| **Sharjah**: margen mediano de esa general                   | 30 s                | **10 s**            |
+| **Sharjah**: corredores con el tiempo del ganador (mediana)  | 40 de 40            | 40 de 40            |
+| **Roubaix**: PAV mediano del ganador (rango 45-83, azar =64) | **63** (media 63,8) | **81** (media 81,0) |
+| **Relevos**: puesto medio del que releva                     | 10,79               | **13,30**           |
+| **Relevos**: puesto medio del protegido                      | 10,21               | **7,70**            |
+| **Relevos**: etapas que gana un relevador (de 40)            | 16                  | **10**              |
+
+Tres lecturas:
+
+1. **El sprinter malo sigue ganando etapas llanas —para eso es sprinter— pero ya no las gana
+   todas**: pasa del 96% al 38%. Y su general deja de ser cómoda: gana 6 de 10 en vez de 9, y por
+   10 s en vez de 30.
+2. **El PAV decide Paris-Roubaix.** De un ganador mediano en el centro exacto del rango (azar puro,
+   con ganadores de PAV 45 y 46 entre ellos) a un mediano de 81 sobre un techo de 83.
+3. **El trabajo del día se paga.** Dos corredores idénticos: el que releva pierde 2,5 puestos de
+   media y el protegido gana 2,5. Antes la diferencia era de medio puesto, es decir, ruido.
+
+### 1. El tipo de final se DERIVA (`stage/finish.ts`)
+
+`deriveFinishTerrain()` mide el recorrido una vez por etapa y `finishType()` lo cruza con el tamaño
+del grupo que llega. Las perillas y por qué valen lo que valen:
+
+| Perilla                              | Valor     | Por qué                                                                                                                                                                   |
+| ------------------------------------ | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `finishWindowKm`                     | 5         | La ventana del encargo: un final se juega en el último puerto y en lo que venga detrás, no en los últimos 2 km                                                            |
+| `finishClimbSearchKm`                | 15        | Más allá, un puerto ya no define la LLEGADA (define la selección, que la resuelve el descuelgue)                                                                          |
+| `finishClimbMinGradient`             | 3         | Por debajo es relieve menudo. Un `rompepiernas` rueda a g = 1,5 fijo y el relleno reconstruido ondula siempre: con un umbral menor, media llanura sería final de puncheur |
+| `finishClimbMinKm`                   | 0,4       | **El número que mata el defecto**: una racha de menos de 400 m no es una cota, así que la rampa de 200 m ya no decide la etapa                                            |
+| `finishSummitKm` / `finishAltoMinKm` | 0,6 / 3   | «Muere en meta» tolera que el último medio kilómetro afloje; y por debajo de 3 km no es un final en alto, es un muro —y un muro lo gana un puncheur, no un escalador—     |
+| `hilltopFinishKm` / `...Gradient`    | 3 / 5     | La definición de final en alto del SPEC 6.12, que llevaba desde el Paso 21 definida y sin usar. Es el segundo camino al tipo `alto`: la cumbre con rellano antes de meta  |
+| `finishPuncheurKmToGo` / `...Score`  | 5 / 15    | Il Lombardia (cota de 1,3 km al 7,3% a 3,4 km) y el Amstel (0,9 km al 5,8% a 1,8 km) entran; una cota que corona a 12 km, no                                              |
+| `finishDragGradient`                 | 2,5       | Un final que arrastra 5 km al 2,5% son 125 m de desnivel en la llegada: eso es de puncheur aunque no haya una cota clara. No puede bajar a 2: los rompepiernas van a 1,5  |
+| `finishDescentKm` / `...Fraction`    | 3 / 0,5   | Bajar hasta la meta es un final de bajador                                                                                                                                |
+| `finishPaveKm` / `...Fraction`       | 30 / 0,10 | Ventana larga a propósito: Paris-Roubaix mide **0,303** de adoquín ahí y entra de sobra; el Ronde, cuyos últimos 13 km tras el Paterberg son asfalto, mide 0 y no entra   |
+| `finishBunchMinRiders`               | 15        | Por debajo, la llegada es un esprint de grupo reducido y la táctica pesa el doble                                                                                         |
+
+Censo estático sobre las **1.117 etapas no-crono del calendario** (con un grupo de 40 en meta):
+85% `sprint_masivo`, 13% `alto`, 2% `puncheur`, 0,3% `descenso`, 0,2% `pave`. Corriendo de verdad
+una muestra de 128 etapas, el reparto es 93,8% `sprint_masivo`, 3,1% `alto`, 1,6% `puncheur` y 1,6%
+`solitario`. La diferencia entre las dos cifras **no es un defecto de la derivación, es la falta de
+capa táctica**: sin ataques el pelotón llega junto y casi todo acaba en llegada masiva.
+
+### 2. Los pesos por tipo de final (`STAGE.finishWeights`)
+
+Suman 1 en cada fila, así la puntuación de remate queda en la escala 0-100 de los atributos sea cual
+sea el final (hay test).
+
+| Final             | Mezcla                                | Intención                                                          |
+| ----------------- | ------------------------------------- | ------------------------------------------------------------------ |
+| `sprint_masivo`   | SPR ,66 · LLA ,18 · TAC ,16           | Manda la punta, pero hay que llegar colocado y con piernas         |
+| `sprint_reducido` | SPR ,50 · TAC ,25 · LLA ,15 · RES ,10 | La mitad es punta; la otra mitad es leer el momento y aguantar     |
+| `puncheur`        | COL ,40 · SPR ,28 · TAC ,20 · RES ,12 | Se remata en cuesta, no en llano                                   |
+| `alto`            | MON ,60 · COL ,20 · RES ,15 · TAC ,05 | Escalada y fondo; arriba se llega como se puede                    |
+| `pave`            | PAV ,50 · LLA ,27 · TAC ,15 · SPR ,08 | El perfil del clasicómano del Norte                                |
+| `descenso`        | DES ,42 · TAC ,25 · SPR ,18 · LLA ,15 | Baja y elige trazada quien gana, aunque remate peor                |
+| `solitario`       | RES ,35 · LLA ,30 · TAC ,20 · MON ,15 | Un grupo de uno no disputa nada; la fila existe para que sea total |
+
+**El peso de SPR en el sprint masivo es la perilla sensible del cambio**, medida sobre el banco de
+Sharjah y contra el invariante de la llana canónica:
+
+| SPR en `sprint_masivo` | Sharjah: etapas del sprinter malo | Llana canónica: gana el mejor sprinter (objetivo 30-45%) |
+| ---------------------- | --------------------------------- | -------------------------------------------------------- |
+| 1,00 (el motor viejo)  | **48 / 50**                       | 41,8%                                                    |
+| 0,72                   | 26 / 50                           | 39,8%                                                    |
+| **0,66 (elegido)**     | **19 / 50**                       | **39,2%**                                                |
+| 0,60                   | 5 / 50                            | 39,2%                                                    |
+
+Dos cosas que enseña la tabla. La primera: **el invariante canónico casi no se entera** (41,8 →
+39,2%), porque allí el mejor sprinter es un 86 contra un campo de 56 y ninguna mezcla razonable le
+quita eso; el banco que sí discrimina es Sharjah, donde el sprinter es un 78 contra rivales de 64.
+La segunda: **con 0,60 se pasa de frenada** —5 de 50 es decirle a un sprinter puro que su
+especialidad no sirve— y por eso el elegido es 0,66.
+
+### 3. El peaje del trabajo (`finishWorkWeight` 0,6, `finishWorkMax` ±0,15)
+
+El remate se corrige con `1 − clamp(0,6·(trabajo/media del grupo − 1), ±0,15)`. Se compara con la
+**media del grupo de meta** y no con un absoluto por dos razones: no depende de lo larga que sea la
+etapa, y lo que decide una llegada no es haber gastado mucho —eso ya lo cobra la erosión— sino haber
+gastado más que aquellos contra los que se disputa la meta.
+
+Con el reparto de relevos actual la diferencia de gasto entre el gregario y el protegido es de 1,135
+(invariante «el que releva se desgasta más que el que va a rueda», > 1,10, **sin tocar**), así que el
+peaje típico es de un ±4% sobre una puntuación con ruido de sd 4,5%: pesa, y no aplasta. Medido:
+el protegido pasa de ganar 24 de 40 etapas a ganar 30, y de 10,21 de puesto medio a 7,70.
+
+### 4. La erosión llega a los banners
+
+`disputeBanner()` y `disputeClimb()` puntuaban con `eff0`. Medido en un banco a propósito (meta
+volante en el km 80 de 100; un rematador de SPR 82 contra uno de 70): con el depósito lleno el
+fuerte gana **20 de 20**; saliendo con un depósito de 16 —erosión 0,92 al llegar al banner— gana
+**0 de 20** después del cambio, y seguía ganando **20 de 20** antes. Es coherencia con el resto del
+motor: el SPR es el atributo con el coeficiente de erosión más alto de la tabla (0,45).
+
+### Invariantes: qué se movió (nada) y qué se añadió
+
+Campaña de **500 semillas** por escenario, la misma antes y después:
+
+| Invariante                              | Antes                 | Después               | Objetivo                       |
+| --------------------------------------- | --------------------- | --------------------- | ------------------------------ |
+| Fuga en llano                           | 5,6%                  | 5,6%                  | 2 – 8%                         |
+| **Gana el mejor sprinter**              | 41,8%                 | 39,2%                 | 30 – 45%                       |
+| Captura mediana (km a meta)             | 22,4                  | 22,4                  | 8 – 25                         |
+| Fuga en montaña                         | 35,0%                 | 35,0%                 | 25 – 45%                       |
+| Brecha 1.º-10.º en la reina             | 225 s                 | 225 s                 | 60 – 300 s                     |
+| CRI: brecha p90-p10 / gana especialista | 233 s / 99,8%         | 233 s / 99,8%         | 120-240 s / 90-100%            |
+| Erosión llana / reina / 3.ª semana      | 0,000 / 0,213 / 0,662 | 0,000 / 0,214 / 0,662 | 0-0,02 / 0,20-0,50 / 0,60-0,85 |
+| Erosión clásica larga / la más dura     | 0,626 / 0,868         | 0,630 / 0,869         | 0,45-0,80 / ≤ 0,92             |
+| Ratio de relevos (relevador/protegido)  | 1,135                 | 1,135                 | > 1,10                         |
+
+**No hubo que reajustar ningún rango.** Las velocidades y la VAM no se tocan (el cambio no entra en
+la física: solo ordena a los que ya han llegado). Los milésimos de la erosión se mueven porque el
+orden de coronación de las cimas cambia y con él quién paga `bannerCost`.
+
+Tests nuevos: `stage/finish.test.ts` (17 casos: la rampa de 200 m, el rompepiernas, el muro contra
+el final en alto, la cota que corona a 3 y a 12 km, el pavé, el descenso, el tamaño del grupo, que
+los pesos sumen 1 y que ningún final dependa de un solo atributo) y cuatro de integración en
+`stage/simulate.test.ts` (el tipo de final viaja en el evento de meta, el PAV gana Roubaix, el peaje
+del trabajo y la erosión en los banners).
+
+### Lo que este cambio NO arregla, y hay que decirlo
+
+**La general de una carrera sin terreno selectivo se sigue decidiendo por bonificaciones.** En las 5
+etapas de Race Sharjah los 40 corredores llegan con el mismo tiempo (mediana 40 de 40) antes y
+después, porque en llano nadie pierde un segundo —que es lo REALISTA—, así que la general la marca
+quien suma 10/6/4. El modelo de final reparte mucho mejor esas victorias (de 48 a 19 de 50), pero no
+puede inventar diferencias de tiempo donde el recorrido no las permite.
+
+El problema de fondo es de **diseño de la carrera**: Race Sharjah es una de las 1.083 continentales
+con perfil generado y no tiene un solo tramo capaz de separar a nadie. Las dos vías reales son la
+capa táctica (§13: un ataque que aguanta sí abre hueco) y dar a los perfiles generados algo que
+morder —una cota a 20 km de meta, un tramo expuesto—. Ninguna de las dos entra en esta tanda.

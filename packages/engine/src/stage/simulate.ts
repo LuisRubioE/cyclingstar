@@ -12,6 +12,13 @@ import { type Group, advanceGroup, createGroup, gapSeconds, percentile75 } from 
 import { blockCost, blockPerfil, effNow, erosion, tankState } from './physics.js'
 import { rollHazard } from './hazard.js'
 import { rollCrash } from './crash.js'
+import {
+  type FinishTerrain,
+  deriveFinishTerrain,
+  finishScore,
+  finishType,
+  isSprintFinish,
+} from './finish.js'
 import { markingMargin, resolveMarking } from './marcaje.js'
 import { sampleProfile, stageLengthKm } from './sample.js'
 import { stageRng } from './rng.js'
@@ -303,8 +310,10 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
   // final en alto no persiguen, y la fuga vive o muere en la subida (SPEC 6.9).
   const finalStretch = blocks.slice(Math.max(0, n - STAGE.finalBlocks))
   const finishFlat = finalStretch.every((b) => b.tipo === 'llano' || b.tipo === 'descenso')
-  // Final en alto: el tramo de meta trepa. El orden de meta lo decide entonces la escalada.
-  const finishUphill = finalStretch.some((b) => b.tipo === 'subida')
+  // Qué clase de final dibuja el RECORRIDO (docs/motor.md §12). Se mide una vez por etapa sobre los
+  // últimos ~5 km y la última cota de los últimos 15; el TIPO de final concreto se resuelve luego
+  // para cada grupo de meta, porque depende también de cuántos lleguen.
+  const finishTerrain = deriveFinishTerrain(blocks)
   const chasingSprinters = input.riders.some(isSprinter) && finishFlat
   // Jefe de filas de los sprinters: el mejor rematador. Su equipo es el que suele tirar para cazar,
   // así que se nombra en la crónica de la persecución (protagonista del evento sprinters_chase).
@@ -794,7 +803,7 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
 
   // --- Meta y resultados (SPEC 6.12, 6.15) -----------------------------------------------
   const allGroups: Group[] = [peloton, ...(breakaway && !caught ? [breakaway] : []), ...shed]
-  finishStage(sims, allGroups, log, rngSprint, totalKm, finishUphill, leadOutFor)
+  finishStage(sims, allGroups, log, rngSprint, totalKm, finishTerrain, leadOutFor)
 
   const results = buildResults(sims)
   const workUnits = new Map<string, number>()
@@ -836,13 +845,19 @@ function disputeBanner(
   const isSprint = block.banner === 'meta_volante'
   const table = isSprint ? STAGE.sprintPoints : climbTable(block)
   const ranked = contenders
-    .map((m) => ({
-      m,
-      // La volante la define SPR; la cima, el perfil de escalador (MON/COL).
-      score:
-        (isSprint ? m.input.eff0.SPR : Math.max(m.input.eff0.MON, m.input.eff0.COL)) *
-        normal(rngSprint, 1, STAGE.sprintScoreNoiseSd),
-    }))
+    .map((m) => {
+      // La volante la define SPR; la cima, el perfil de escalador (MON/COL). Con la EROSIÓN del
+      // momento (`riderEff`), no con el corredor fresco del km 0: puntuar los banners con `eff0`
+      // era incoherente con el resto del motor —un escalador reventado seguía coronando primero—
+      // y estaba anotado como defecto abierto desde el Cambio 0 (docs/motor.md §9).
+      const eff = riderEff(m)
+      return {
+        m,
+        score:
+          (isSprint ? eff.SPR : Math.max(eff.MON, eff.COL)) *
+          normal(rngSprint, 1, STAGE.sprintScoreNoiseSd),
+      }
+    })
     .sort((a, b) => b.score - a.score)
   // Disputar el banner cuesta `bannerCost` UNA vez a cada contendiente (SPEC 6.11). El descuento
   // vivía dentro del reparto de puntos, así que se cobraba una vez POR PUESTO puntuable: con la
@@ -878,12 +893,15 @@ function disputeClimb(
   const ordered: RiderSim[] = []
   for (const g of groups) {
     const ranked = g.members
-      .map((m) => ({
-        m,
-        score:
-          Math.max(m.input.eff0.MON, m.input.eff0.COL) *
-          normal(rngSprint, 1, STAGE.sprintScoreNoiseSd),
-      }))
+      .map((m) => {
+        // Con la erosión del momento, igual que la meta volante: quien llega a la cima vaciado
+        // corona detrás de quien llega entero, aunque sea mejor escalador en el papel.
+        const eff = riderEff(m)
+        return {
+          m,
+          score: Math.max(eff.MON, eff.COL) * normal(rngSprint, 1, STAGE.sprintScoreNoiseSd),
+        }
+      })
       .sort((a, b) => b.score - a.score)
     for (const r of ranked) ordered.push(r.m)
   }
@@ -918,9 +936,13 @@ function climbTable(block: Block): readonly number[] {
 }
 
 /**
- * Cierra la etapa: define el orden dentro de cada grupo y los tiempos (SPEC 6.12). En una llegada
- * masiva manda el SPR; en un final en alto, la capacidad escaladora (MON/COL), así el ganador de
- * una etapa de montaña es un escalador, coherente con quien corona primero.
+ * Cierra la etapa: define el orden dentro de cada grupo y los tiempos (SPEC 6.12, docs/motor.md §12).
+ *
+ * El orden ya NO lo decide un solo atributo. Cada grupo resuelve su propio TIPO de final —que
+ * depende del recorrido y de cuántos lleguen— y dentro de él se puntúa con una MEZCLA de atributos
+ * (`finishScore`), corregida por el TRABAJO que cada uno ha hecho durante el día: quien ha tirado
+ * llega peor que quien fue a rueda, que es lo que convierte "ir a rueda" en una decisión con coste
+ * de oportunidad y no en la única estrategia.
  */
 function finishStage(
   sims: Map<string, RiderSim>,
@@ -928,7 +950,7 @@ function finishStage(
   log: EventLog,
   rngSprint: Rng,
   totalKm: number,
-  finishUphill: boolean,
+  terrain: FinishTerrain,
   leadOutFor: Map<string, string[]>,
 ): void {
   const withMembers = groups
@@ -938,15 +960,30 @@ function finishStage(
 
   withMembers.forEach(({ group, members }, gi) => {
     const idSet = new Set(members.map((m) => m.input.riderId))
+    const type = finishType(terrain, members.length)
+    const sprintFinish = isSprintFinish(type)
+    // El trabajo se compara con la MEDIA DEL GRUPO que llega: lo que cuenta no es haber gastado
+    // mucho en términos absolutos (eso ya lo cobra la erosión), sino haber trabajado más que
+    // aquellos contra los que se disputa la meta.
+    const meanWork = members.reduce((acc, m) => acc + m.work, 0) / members.length
     const ranked = members
       .map((m) => {
         const e = erosion(m.energy, m.energy0, m.input.eff0.RES)
         const eff = effNow(m.input.eff0, e, m.energy <= 0)
-        const base = finishUphill ? Math.max(eff.MON, eff.COL) : eff.SPR
-        let score = base * normal(rngSprint, 1, STAGE.sprintScoreNoiseSd)
-        // Tren de lanzadores: en una llegada masiva, un sprinter bien lanzado por su equipo remata
-        // mejor (SPEC 6.18). Solo cuentan los lanzadores que llegan en su mismo grupo de meta.
-        if (!finishUphill) {
+        let score = finishScore(eff, type) * normal(rngSprint, 1, STAGE.sprintScoreNoiseSd)
+        // Peaje del trabajo del día (docs/motor.md §12): `workUnits` ya se calculaba y no se usaba
+        // para nada en el resultado.
+        if (meanWork > 0) {
+          const extra = m.work / meanWork - 1
+          const toll = Math.max(
+            -STAGE.finishWorkMax,
+            Math.min(STAGE.finishWorkMax, STAGE.finishWorkWeight * extra),
+          )
+          score *= 1 - toll
+        }
+        // Tren de lanzadores: en una llegada al sprint, un sprinter bien lanzado por su equipo
+        // remata mejor (SPEC 6.18). Solo cuentan los lanzadores que llegan en su mismo grupo.
+        if (sprintFinish) {
           const train = leadOutFor.get(m.input.riderId)
           if (train) {
             const present = train.reduce((c, id) => c + (idSet.has(id) ? 1 : 0), 0)
@@ -965,7 +1002,7 @@ function finishStage(
     })
     if (gi === 0 && ranked[0]) {
       const field = ranked.length
-      const isBunch = !finishUphill && field >= STAGE.bunchSprintMinRiders
+      const isBunch = sprintFinish && field >= STAGE.bunchSprintMinRiders
       // Sprint masivo: si el grupo de cabeza es numeroso y la meta es llana, se narra el último km —
       // los rematadores que lo disputan y si el ganador remató bien lanzado por su tren (SPEC 6.15).
       if (isBunch) {
@@ -995,6 +1032,10 @@ function finishStage(
         won,
         margin,
         field,
+        // Qué clase de final resolvió la etapa: dato de telemetría (docs/motor.md §12 y §16). La
+        // crónica no lo necesita todavía, pero es lo que permite comprobar desde fuera que un
+        // repecho de 200 m no ha convertido una llana en llegada de escaladores.
+        finish: type,
       })
     }
   })

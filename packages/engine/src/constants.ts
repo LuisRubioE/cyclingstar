@@ -42,8 +42,17 @@
  * corredores que van delante cuando quedan pocos. No cambia ninguna ley física —los tiempos y el
  * orden de meta son los mismos—, pero sí los eventos emitidos y la semilla, así que es cambio de
  * comportamiento.
+ *
+ * v7 (Cambio 1 de docs/motor.md §12, MODELO DE FINAL): el orden de llegada dentro de un grupo deja
+ * de decidirlo un solo atributo (`finishUphill ? max(MON,COL) : SPR`). El final se DERIVA del
+ * recorrido —últimos 5 km, última cota y a qué distancia corona— y del tamaño del grupo que llega,
+ * dando siete arquetipos (`sprint_masivo`, `sprint_reducido`, `puncheur`, `alto`, `pave`,
+ * `descenso`, `solitario`), y cada uno puntúa con su MEZCLA de atributos: así el PAV interviene por
+ * fin en un resultado y una rampa de 200 m deja de convertir una llana en llegada de escaladores.
+ * Además el TRABAJO del día (`workUnits`, que se calculaba y no se usaba para nada) se cobra en el
+ * remate, y los banners se disputan con la erosión del momento en vez de con el corredor del km 0.
  */
-export const ENGINE_VERSION = 6 as const
+export const ENGINE_VERSION = 7 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -629,6 +638,89 @@ export const STAGE = {
 
   // 6.12 — Últimos 2 km (20 bloques) y finales.
   finalBlocks: 20,
+
+  // 6.12 — MODELO DE FINAL (docs/motor.md §12). Sustituye a `finishUphill ? max(MON,COL) : SPR`,
+  // que era binario, frágil (un bloque en subida en los últimos 2 km convertía una llana en
+  // llegada de escaladores) y dejaba el PAV sin intervenir jamás en ningún resultado.
+  //
+  // El tipo de final se deriva del RECORRIDO (últimos kilómetros, última cota y a qué distancia
+  // corona) y del TAMAÑO del grupo que llega. Ver `stage/finish.ts`.
+  // Ventana del final: los últimos 5 km, no los últimos 2. Un final se juega en el último puerto y
+  // en lo que venga detrás, no en los 200 metros de meta.
+  finishWindowKm: 5,
+  // Dónde se busca la última cota del final. Más allá de 15 km, un puerto ya no define la llegada
+  // (define la selección, que es otra cosa y la resuelve el descuelgue).
+  finishClimbSearchKm: 15,
+  // Un bloque "sube" a efectos del final a partir de esta pendiente. Por debajo es relieve menudo:
+  // el relleno ondulado de los recorridos reconstruidos y los rompepiernas (g = 1.5) no son cotas.
+  finishClimbMinGradient: 3,
+  // Respiro tolerado DENTRO de una cota (bloques de 100 m): un rellano de 500 m no parte un puerto
+  // en dos cotas distintas.
+  finishClimbGapBlocks: 5,
+  // Longitud mínima (km) para que una racha ascendente cuente como cota. ESTE es el número que
+  // impide que una rampa de 200 m antes de meta convierta una etapa llana en llegada de escaladores.
+  finishClimbMinKm: 0.4,
+  // La cota "muere en la meta" si corona a menos de esto (km): el último medio kilómetro suele
+  // aflojar y no por eso deja de ser un final en alto.
+  finishSummitKm: 0.6,
+  // …y es un final en ALTO (manda el escalador puro) si además mide al menos estos km. Por debajo
+  // es un muro: lo gana un puncheur, no un escalador de gran vuelta.
+  finishAltoMinKm: 3,
+  // Puncheur: cota que corona dentro de estos km de meta…
+  finishPuncheurKmToGo: 5,
+  // …y con esta dureza mínima (km·g², el baremo de la categoría de cima). 15 son ~1 km al 4% o
+  // 0,6 km al 5%: por debajo es un repecho, no un final de puncheur.
+  finishPuncheurScore: 15,
+  // Un final que ARRASTRA hacia arriba sin una cota clara (falso llano largo) también es de
+  // puncheur. 2,5% de media en 5 km son 125 m de desnivel en la llegada. El umbral no puede bajar
+  // a 2: un segmento de rompepiernas rueda a g = 1.5 fijo y arrastraría a media montaña ahí.
+  finishDragGradient: 2.5,
+  // Final en DESCENSO: al menos esta fracción de los últimos km baja.
+  finishDescentKm: 3,
+  finishDescentFraction: 0.5,
+  // Final de PAVÉ: fracción de adoquín en los últimos km. La ventana es larga (30 km) a propósito:
+  // el pavé decide la llegada mucho antes de la meta —Paris-Roubaix mide 0,30 en esa ventana y
+  // entra de sobra— pero el Ronde, cuyos últimos 13 km tras el Paterberg son asfalto, no.
+  finishPaveKm: 30,
+  finishPaveFraction: 0.1,
+  // A partir de este tamaño el grupo que llega es un sprint MASIVO; por debajo, un esprint de grupo
+  // reducido, donde la colocación y la táctica pesan mucho más que la punta de velocidad.
+  finishBunchMinRiders: 15,
+  // Pesos de la mezcla de atributos por tipo de final. Suman 1 en cada fila, así la puntuación de
+  // remate queda siempre en la escala 0-100 de los atributos. La intención de cada mezcla:
+  // - sprint_masivo: manda la punta (SPR), pero hay que llegar a la última curva bien colocado y
+  //   con piernas: por eso LLA y TAC no son cero. Antes era SPR al 100%, y esa fila es la que
+  //   producía el caso del dueño —un sprinter con 45 en todo lo demás ganaba 48 de 50 etapas de
+  //   Race Sharjah—. Medido sobre ese mismo banco: con SPR 1.00 gana 48/50; con 0.72, 26/50; con
+  //   0.66, 19/50; con 0.60 se hunde a 5/50, que ya es pasarse (para eso es sprinter). El
+  //   invariante "el mejor sprinter gana el 30-45% de las llanas canónicas" apenas se entera del
+  //   cambio (39,8% con 0.72 · 39,2% con 0.66): allí el sprinter es 86 contra un campo de 56.
+  // - sprint_reducido: la mitad es punta y la otra mitad es carrera —leer el momento (TAC) y
+  //   aguantar el tirón después de un día duro (RES)—.
+  // - puncheur: la mezcla COL + SPR + TAC del final de muro; se remata en cuesta, no en llano.
+  // - alto: escalada pura (MON, con COL para las rampas) y fondo. La táctica pesa poco: arriba se
+  //   llega como se puede.
+  // - pave: PAV y LLA, que es exactamente el perfil de un clasicómano del Norte, con TAC de
+  //   colocación (en el adoquín se pierde la carrera por ir mal situado).
+  // - descenso: DES y TAC mandan; el que baja y elige la trazada gana, aunque remate peor.
+  // - solitario: un grupo de uno no disputa nada, pero la fila existe para que el modelo sea total.
+  finishWeights: {
+    sprint_masivo: { SPR: 0.66, LLA: 0.18, TAC: 0.16 },
+    sprint_reducido: { SPR: 0.5, LLA: 0.15, TAC: 0.25, RES: 0.1 },
+    puncheur: { COL: 0.4, SPR: 0.28, TAC: 0.2, RES: 0.12 },
+    alto: { MON: 0.6, COL: 0.2, RES: 0.15, TAC: 0.05 },
+    pave: { PAV: 0.5, LLA: 0.27, TAC: 0.15, SPR: 0.08 },
+    descenso: { DES: 0.42, TAC: 0.25, SPR: 0.18, LLA: 0.15 },
+    solitario: { RES: 0.35, LLA: 0.3, TAC: 0.2, MON: 0.15 },
+  },
+  // Penalización del TRABAJO del día en el remate (docs/motor.md §12). `workUnits` ya se calculaba
+  // y no se usaba para NADA en el resultado: quien había relevado 100 km llegaba igual que quien
+  // fue a rueda, y por eso ir a rueda era la única estrategia sin coste de oportunidad. Se compara
+  // con la MEDIA del grupo de meta (no con un absoluto) para que no dependa de lo larga que sea la
+  // etapa: quien ha hecho un 20% más de trabajo que sus rivales remata un 20%·peso peor.
+  finishWorkWeight: 0.6,
+  // Tope de la corrección, arriba y abajo: el trabajo pesa, pero no anula la diferencia de nivel.
+  finishWorkMax: 0.15,
   // Ruido multiplicativo del remate: score = base·N(1, sd). Es el ÚNICO modelo de ruido de
   // desempate del motor; lo comparten el sprint de meta y los mini-sprints de banner (6.11).
   sprintScoreNoiseSd: 0.045,
@@ -649,11 +741,11 @@ export const STAGE = {
   // Tamaño a partir del cual un grupo se considera "gordo" (un ataque tardío tiene menos éxito).
   // Ojo: el sprint masivo NO usa este umbral, usa `bunchSprintMinRiders`.
   bigGroupThreshold: 25,
-  // PENDIENTE DE IMPLEMENTAR (SPEC 6.12): parámetro definido pero sin efecto en la simulación.
-  // Definición de "final en alto" del SPEC (últimos 3 km con pendiente media >= 5%). El motor usa
-  // en su lugar una heurística propia sobre los `finalBlocks`: "algún bloque final es subida".
+  // Definición de "final en alto" del SPEC 6.12: últimos 3 km con pendiente media >= 5%. Estuvo
+  // definida y sin usar mientras el motor resolvía el final con su propia heurística ("algún bloque
+  // de los últimos 2 km sube"); ahora es uno de los dos caminos que llevan al tipo `alto`
+  // (`stage/finish.ts`), el que cubre la cumbre con rellano antes de la pancarta.
   hilltopFinishKm: 3,
-  // PENDIENTE DE IMPLEMENTAR (SPEC 6.12): parámetro definido pero sin efecto en la simulación.
   hilltopFinishGradient: 5,
 
   // 6.13 — CRI/cronoescalada/CRE.
