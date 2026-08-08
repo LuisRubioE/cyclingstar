@@ -214,12 +214,18 @@ export function tankState(energy: number, energy0: number, res: number): TankSta
 
 /**
  * Erosión del corredor (SPEC 6.7). Nada por debajo del umbral (0.35 + 0.40·RES/100); a partir
- * de ahí crece hasta 1 cuando el tanque se agota. Un corredor con más Resistencia aguanta más.
+ * de ahí crece con el vaciado, TOPADA en `erosionMax`.
+ *
+ * El techo no es cosmético y estaba escrito en docs/motor.md §VI.1 sin implementar: «con la erosión
+ * topada en 1,000 el pelotón entero está al máximo de degradación, el modelo DEJA DE DISCRIMINAR y
+ * el resultado vuelve a ser azar». Hasta ahora ese techo solo lo garantizaba la calibración de las
+ * clásicas de un día con el campo fresco; medido sobre etapas de montaña REALES con un campo de
+ * tercera semana, la erosión llegaba a 1,000 en el 100% del pelotón (docs/balance.md).
  */
 export function erosion(energy: number, energy0: number, res: number): number {
   const depl = depletion(energy, energy0)
   const umbral = STAGE.erosionThresholdBase + STAGE.erosionThresholdResScale * (res / 100)
-  return Math.max(0, (depl - umbral) / (1 - umbral))
+  return Math.min(STAGE.erosionMax, Math.max(0, (depl - umbral) / (1 - umbral)))
 }
 
 /**

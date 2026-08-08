@@ -236,6 +236,14 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
   let lastSplitKm = Number.NEGATIVE_INFINITY
   let lastGapReportKm = Number.NEGATIVE_INFINITY
   let prevGapS = Number.POSITIVE_INFINITY
+  // Selección del pelotón acumulada desde el último corte NARRADO, y cuántos iban entonces. Sin
+  // acumular, una criba de 78 corredores en 3 km se contaba con "2 se descuelgan" (docs/motor.md
+  // §16: el motor sabe lo que pasa y lo tiraba).
+  let droppedSinceSplit = 0
+  let frontAtLastSplit = input.riders.length
+  // Último tamaño del grupo de cabeza anunciado, para no repetir el parte de una fuga estable.
+  let lastFrontSize = input.riders.length
+  let lastFrontReportKm = Number.NEGATIVE_INFINITY
   let chaseAnnounced = false
   let chaseAbandoned = false
   let consolidated = false
@@ -286,6 +294,9 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       log.emit(breakFormedKm, breakaway.tS, 'colaboracion', 'break_cooperation', fugados, {
         cooperating: coop >= STAGE.breakCoopThreshold ? 1 : 0,
       })
+      // La fuga YA se ha nombrado: el parte de cabeza no debe repetirla nada más salir.
+      lastFrontSize = fugados.length
+      frontAtLastSplit = peloton.riderIds.length
     }
   }
   // Los sprinters solo cazan si la meta es llana (una llegada masiva que puedan disputar): en un
@@ -310,11 +321,20 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
     for (const s of sims.values()) if (s.climbBoostBlocks > 0) s.climbBoostBlocks -= 1
 
     // En subida mandan los más fuertes (fracción menor): el grupo se estira y se descuelga. PERO solo
-    // se ataca el puerto de verdad cerca de meta (o en un final en alto): un puerto a mitad de etapa se
-    // sube a TEMPO (fracción mayor → ritmo más suave), así el pelotón no se destroza en cada cota y las
-    // diferencias las marca el último puerto, como en la realidad. Lejos de meta apenas se descuelga nadie.
+    // se ataca el puerto de verdad cerca de meta: un puerto a mitad de etapa se sube a TEMPO
+    // (fracción mayor → ritmo más suave), así el pelotón no se destroza en cada cota y las
+    // diferencias las marca el último puerto, como en la realidad.
+    //
+    // La condición era `finishUphill || km a meta <= climbRaceKmToGo`, y ese primer término era un
+    // defecto medido: en una etapa con final en alto TODA la etapa contaba como puerto decisivo, así
+    // que el pelotón subía a tope desde el km 0 cada cota del recorrido. Con perfiles REALES —que
+    // tienen relieve en todas partes, al contrario que la reina sintética— eso producía ciclos de
+    // 170 → 15 → 173 corredores: el pelotón estallaba en un puerto a 120 km de meta y se recomponía
+    // entero en el llano siguiente. No es solo que la crónica no pudiera contarlo (era el "de 81 a 3"
+    // del dueño): es que no pasa en carretera. En la reina canónica no cambia nada —sus únicos km de
+    // subida son los últimos 15— y por eso los invariantes no se movían y el defecto no se veía.
     const onClimb = block.tipo === 'subida'
-    const raceThisClimb = finishUphill || totalKm - km <= STAGE.climbRaceKmToGo
+    const raceThisClimb = totalKm - km <= STAGE.climbRaceKmToGo
 
     // Controlador del pelotón cada 10 bloques, con histéresis (SPEC 6.9). Regula SIEMPRE: haya fuga,
     // la hayan cazado o no se haya formado nunca. Antes vivía dentro de `if (breakaway && !caught)`,
@@ -324,25 +344,84 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       const ahead = breakaway !== null && !caught
       const gap = ahead ? peloton.tS - breakaway!.tS : 0
       const kmRestantes = totalKm - km
-      // Reporte de distancia (throttle cada gapReportKmGap): narra la ventaja de la fuga y si se
-      // estira o se recorta, para seguir la carrera aunque no pase nada más (SPEC 6.15).
-      if (
-        ahead &&
-        gap >= STAGE.gapReportMinSeconds &&
-        km >= breakFormedKm &&
-        km - lastGapReportKm >= STAGE.gapReportKmGap
-      ) {
-        const trend =
-          prevGapS === Number.POSITIVE_INFINITY
-            ? 0
-            : gap > prevGapS + STAGE.gapTrendThresholdSeconds
-              ? 1
-              : gap < prevGapS - STAGE.gapTrendThresholdSeconds
-                ? -1
-                : 0
-        log.emit(km, peloton.tS, 'boquete', 'time_gap', [], { gapS: Math.round(gap), trend })
-        lastGapReportKm = km
-        prevGapS = gap
+
+      // --- Telemetría de situación (docs/motor.md §16) -------------------------------------
+      // Los grupos vivos, ordenados por reloj. El parte de carrera se da sobre el grupo de CABEZA
+      // y su primer perseguidor, sean quienes sean. Antes el único boquete que se contaba era
+      // "pelotón menos fuga": cuando la cabeza pasaba a ser un trozo del pelotón —o un corredor
+      // solo tras la criba del último puerto— el journal se quedaba mudo justo en el desenlace, y
+      // la ventaja final aparecía de la nada en la frase de meta.
+      const liveGroups = [peloton, ...(ahead ? [breakaway!] : []), ...shed]
+        .map((g) => ({ g, members: membersOf(g.id) }))
+        .filter((x) => x.members.length > 0)
+        .sort((a, b) => a.g.tS - b.g.tS)
+      const racing = liveGroups.reduce((c, x) => c + x.members.length, 0)
+      const lead = liveGroups[0]
+      const chase = liveGroups[1]
+
+      // Reporte de distancia. En el desenlace el throttle se aprieta: 25 km sin noticias en los
+      // últimos kilómetros son exactamente los que hacen aparecer siete minutos sin explicación.
+      const reportEveryKm =
+        kmRestantes <= STAGE.gapReportFinalKm ? STAGE.gapReportFinalKmGap : STAGE.gapReportKmGap
+      if (lead && chase && km >= breakFormedKm && km - lastGapReportKm >= reportEveryKm) {
+        const frontGap = chase.g.tS - lead.g.tS
+        // Solo se cuenta el boquete si delante hay una MINORÍA: que el pelotón en bloque saque 25 s
+        // a un rezagado no es noticia, y contarlo llenaría la crónica de ruido.
+        const leadIsMinority = lead.members.length * 2 <= racing
+        // Y solo si la ventaja se ha movido, salvo que toque el parte lento de todos modos.
+        const moved =
+          prevGapS === Number.POSITIVE_INFINITY ||
+          Math.abs(frontGap - prevGapS) >=
+            Math.max(STAGE.gapTrendThresholdSeconds, STAGE.gapReportChangeFraction * prevGapS)
+        if (
+          frontGap >= STAGE.gapReportMinSeconds &&
+          leadIsMinority &&
+          (moved || km - lastGapReportKm >= STAGE.gapReportKmGap)
+        ) {
+          const trend =
+            prevGapS === Number.POSITIVE_INFINITY
+              ? 0
+              : frontGap > prevGapS + STAGE.gapTrendThresholdSeconds
+                ? 1
+                : frontGap < prevGapS - STAGE.gapTrendThresholdSeconds
+                  ? -1
+                  : 0
+          log.emit(km, lead.g.tS, 'boquete', 'time_gap', [], {
+            gapS: Math.round(frontGap),
+            trend,
+            leadSize: lead.members.length,
+            chaseSize: chase.members.length,
+          })
+          lastGapReportKm = km
+          prevGapS = frontGap
+        }
+      }
+
+      // Parte de cabeza: cuando delante quedan pocos, se dice QUIÉNES son. Es la pregunta directa
+      // del dueño ("hay 5 ciclistas, ¡podrías haber dicho cuáles!"). Solo si el tamaño ha cambiado
+      // desde el último parte, así una fuga estable no repite la lista cada cinco kilómetros.
+      if (lead) {
+        const size = lead.members.length
+        if (size > STAGE.frontNamesMaxRiders) {
+          lastFrontSize = size
+        } else if (
+          size !== lastFrontSize &&
+          size < racing &&
+          km >= breakFormedKm &&
+          km - lastFrontReportKm >= STAGE.frontGroupReportKmGap
+        ) {
+          const names = lead.members
+            .map((m) => ({ id: m.input.riderId, p: riderPerfil(m, block) }))
+            .sort((a, b) => b.p - a.p || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+            .map((x) => x.id)
+          log.emit(km, lead.g.tS, 'cabeza', 'front_group', names, {
+            size,
+            gapS: chase ? Math.max(0, Math.round(chase.g.tS - lead.g.tS)) : 0,
+            toGo: Math.round(kmRestantes),
+          })
+          lastFrontReportKm = km
+          lastFrontSize = size
+        }
       }
       // Ritmo base del pelotón cuando no hay nada que cazar por delante: tempo de carretera, a tope
       // en el puerto decisivo, y el tirón de los últimos km cuando la meta es llana (trenes de sprint).
@@ -546,21 +625,46 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
     // limita a uno cada pocos km para no repetir la misma frase bloque a bloque en un puerto largo.
     // Solo se narra el corte en un puerto que se está ATACANDO (decisivo, cerca de meta): en los de
     // tempo el pelotón se recompone después, así que anunciar "N se descuelgan" ahí sería engañoso.
-    if (
-      raceThisClimb &&
-      pelotonDropped.length >= STAGE.splitEventMinDropped &&
-      km - lastSplitKm >= STAGE.splitEventMinKmGap
-    ) {
-      // Quién aprieta: el corredor más fuerte en cabeza del pelotón en este puerto (su equipo tira).
+    if (raceThisClimb) {
+      // La cuenta es ACUMULADA desde el último corte narrado, no la del bloque: en una criba
+      // continua se sueltan 2-3 corredores cada 100 m y, contando solo el bloque, el grupo de
+      // cabeza pasaba de 81 a 3 con dos frases que sumaban 4 descolgados. Ahora la frase dice
+      // cuántos se han ido DESDE la anterior y de cuántos a cuántos ha quedado el grupo.
+      droppedSinceSplit += pelotonDropped.length
       const front = membersOf(PELOTON)
-      const driver = front
-        .map((m) => ({ id: m.input.riderId, p: riderPerfil(m, block) }))
-        .sort((a, b) => b.p - a.p)[0]?.id
-      log.emit(km, peloton.tS, 'corte', 'peloton_split', driver ? [driver] : [], {
-        dropped: pelotonDropped.length,
-        remaining: front.length,
-      })
-      lastSplitKm = km
+      // Un corte grande se cuenta en el acto, sin esperar al throttle de km: 76 corredores fuera
+      // en tres kilómetros son una frase que el lector necesita ahí, no cinco kilómetros después.
+      const bigCut =
+        droppedSinceSplit >= STAGE.splitEventBigDropMin &&
+        droppedSinceSplit >= frontAtLastSplit * STAGE.splitEventBigDropFraction &&
+        km - lastSplitKm >= STAGE.splitEventBigDropKmGap
+      const material =
+        droppedSinceSplit >= STAGE.splitEventMinDropped &&
+        droppedSinceSplit >= frontAtLastSplit * STAGE.splitEventMinDropFraction
+      if (material && (km - lastSplitKm >= STAGE.splitEventMinKmGap || bigCut)) {
+        // Quién aprieta: el corredor más fuerte en cabeza del pelotón en este puerto. Con un grupo
+        // grande su EQUIPO es quien tira y así se narra; con un grupo pequeño lo decide la web,
+        // que para eso recibe el tamaño (con tres corredores no tira un equipo, tira un corredor).
+        const driver = front
+          .map((m) => ({ id: m.input.riderId, p: riderPerfil(m, block) }))
+          .sort((a, b) => b.p - a.p || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))[0]?.id
+        log.emit(km, peloton.tS, 'corte', 'peloton_split', driver ? [driver] : [], {
+          dropped: droppedSinceSplit,
+          remaining: front.length,
+          before: frontAtLastSplit,
+          // Si la fuga sigue por delante, este grupo NO va en cabeza: es el que persigue. Decir
+          // "N left in front" con una fuga en carretera era sencillamente falso.
+          chasing: breakaway && !caught ? 1 : 0,
+        })
+        lastSplitKm = km
+        frontAtLastSplit = front.length
+        droppedSinceSplit = 0
+      }
+    } else {
+      // Fuera del puerto decisivo el pelotón se recompone: lo que se soltó en un puerto de tempo
+      // no se arrastra a la cuenta del corte que sí decide la etapa.
+      droppedSinceSplit = 0
+      frontAtLastSplit = membersOf(PELOTON).length
     }
 
     peloton = advance(peloton, membersOf(PELOTON), pelFrac)

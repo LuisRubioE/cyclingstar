@@ -33,8 +33,17 @@
  * puntuable (era un fallo: hasta 16 de tanque por meta volante), y el coste por km, el umbral de
  * erosión y el depósito del corredor fatigado se recalibran para que un monumento de 250 km no
  * agote el depósito del pelotón entero (docs/balance.md).
+ *
+ * v6 (Cambio 5 de docs/motor.md, telemetría): el motor cuenta lo que ya sabía y se callaba. El
+ * corte del pelotón pasa a narrarse con la selección ACUMULADA y con el tamaño del grupo antes y
+ * después (antes solo el descuelgue de UN bloque: el grupo de cabeza saltaba de 81 a 3 sin
+ * explicación); el parte de boquete deja de mirar solo a la fuga y sigue al grupo de CABEZA sea
+ * quien sea, con throttle apretado en los últimos 40 km; y nace `front_group`, que nombra a los
+ * corredores que van delante cuando quedan pocos. No cambia ninguna ley física —los tiempos y el
+ * orden de meta son los mismos—, pero sí los eventos emitidos y la semilla, así que es cambio de
+ * comportamiento.
  */
-export const ENGINE_VERSION = 5 as const
+export const ENGINE_VERSION = 6 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -309,12 +318,45 @@ export const STAGE = {
   // sí forman un grupo. Sin él la etapa reina terminaba con 30 grupos de un corredor (§3-bis-e).
   // Estrecho a propósito: fusiona a los que van realmente juntos, no a los que están cortados.
   grupetoJoinGapSeconds: 12,
-  // Nº mínimo de descolgados en un bloque de subida para narrar el "corte" del pelotón en la crónica.
+  // Nº mínimo de descolgados ACUMULADOS desde el último corte narrado para volver a narrarlo. La
+  // cuenta es acumulada, no del bloque: en una criba continua se soltaban 2-3 por bloque y solo se
+  // narraba uno cada 3 km, así que el grupo de cabeza pasaba de 81 a 3 con dos frases de por medio.
   splitEventMinDropped: 2,
+  // …y además tiene que ser una parte APRECIABLE del grupo. En una etapa con final en alto el
+  // puerto decisivo dura toda la etapa (`raceThisClimb`), y con el suelo de 2 solo, la crónica
+  // narraba un corte cada tres kilómetros de principio a fin (medido: 26 por etapa). Un pelotón de
+  // 176 necesita perder ~26 para que sea noticia; un grupo de 5, dos.
+  splitEventMinDropFraction: 0.15,
   // Distancia mínima (km) entre dos "cortes" narrados: evita repetir la frase bloque a bloque.
-  splitEventMinKmGap: 3,
-  // Journal: cada cuántos km se reporta la ventaja de la fuga, y el boquete mínimo para reportarlo.
+  splitEventMinKmGap: 12,
+  // Un corte GRANDE se cuenta YA, sin esperar al throttle de km: si desde el último aviso se ha
+  // quedado esta fracción del grupo, ha pasado algo que el lector tiene que saber en el acto.
+  // El mínimo absoluto es la otra mitad de la regla y es imprescindible: sin él, en cuanto el
+  // grupo de cabeza queda pequeño la fracción se cumple con dos descolgados y la excepción salta
+  // en cada bloque (medido: 37 cortes narrados por etapa, un muro de texto).
+  splitEventBigDropFraction: 0.25,
+  splitEventBigDropMin: 12,
+  // Aun así el corte grande respeta un mínimo propio: el último puerto revienta el pelotón en dos
+  // kilómetros y sin este suelo la explosión se narraba con siete frases seguidas en el mismo km.
+  // Una explosión merece UNA frase que la explique, no una por escalón.
+  splitEventBigDropKmGap: 3,
+  // Por debajo de este tamaño, el grupo de cabeza deja de ser "un pelotón" y la crónica puede
+  // NOMBRAR a los que van delante. Es también el umbral por el que deja de tener sentido decir
+  // que "tira un equipo": con tres corredores en cabeza no tira un equipo, tira un corredor.
+  frontNamesMaxRiders: 8,
+  // Cada cuántos km, como mucho, se refresca el parte de quién va en cabeza. Solo se emite cuando
+  // el grupo de cabeza es pequeño Y ha cambiado de tamaño, así que una fuga estable no lo repite.
+  frontGroupReportKmGap: 5,
+  // Journal: cada cuántos km se reporta la ventaja de cabeza, y el boquete mínimo para reportarlo.
   gapReportKmGap: 25,
+  // En el DESENLACE la carrera se decide y 25 km sin noticias hacen aparecer siete minutos de la
+  // nada: dentro de los últimos `gapReportFinalKm` el parte se da cada `gapReportFinalKmGap` km.
+  gapReportFinalKm: 40,
+  gapReportFinalKmGap: 4,
+  // …y aun así solo se repite si la ventaja se ha MOVIDO de verdad respecto al parte anterior. Una
+  // brecha clavada en 7:00 durante veinte kilómetros no es noticia; lo que hay que contar es cómo
+  // crece o se derrumba. Sin este filtro el desenlace se llenaba de "el líder sigue con 7:00".
+  gapReportChangeFraction: 0.15,
   gapReportMinSeconds: 20,
   // Colaboración de la fuga: por encima de este compromiso, la fuga «va a bloque» (colabora bien).
   breakCoopThreshold: 0.58,
@@ -428,6 +470,13 @@ export const STAGE = {
   erosionThresholdBase: 0.07,
   erosionThresholdResScale: 0.4,
   erosionExponent: 1.2,
+  // Techo estructural de la erosión (docs/motor.md §VI.1: «≤ 0,92 — jamás 1,000»). En 1,000 todo el
+  // pelotón está igual de degradado, el modelo deja de discriminar y el resultado vuelve a ser azar,
+  // que es lo contrario de lo que persigue el desgaste. Hasta ahora el techo solo lo sostenía la
+  // calibración de las clásicas en fresco (la más dura mide 0,868); en una etapa de montaña REAL con
+  // un campo de tercera semana saturaba el 100% del campo. No mueve ningún invariante actual: todos
+  // miden por debajo de 0,92.
+  erosionMax: 0.92,
   // coefErosion por atributo.
   erosionCoef: {
     SPR: 0.45,

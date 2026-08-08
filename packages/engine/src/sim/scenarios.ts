@@ -179,15 +179,35 @@ function uniformField(): StageRider[] {
  * el desgaste —una llana canónica es g = 0 durante 180 km, y ningún recorrido real lo es—, y por eso
  * las clásicas largas saturaron la erosión sin que ningún invariante se enterase.
  */
-export function realRaceScenario(raceId: string): Scenario {
+export function realRaceScenario(raceId: string, stageIndex = 1): Scenario {
   const race = SEASON_CALENDAR.find((r) => r.id === raceId)
   if (!race) throw new Error(`Escenario: no existe la carrera ${raceId}`)
-  const stage = race.stages[0]
-  if (!stage) throw new Error(`Escenario: ${raceId} no tiene etapas`)
+  const stage = race.stages.find((s) => s.index === stageIndex)
+  if (!stage) throw new Error(`Escenario: ${raceId} no tiene etapa ${stageIndex}`)
   return {
-    name: raceId,
+    name: stageIndex === 1 ? raceId : `${raceId}-e${stageIndex}`,
     input: { profile: stage.profile, riders: uniformField() },
     bestSprinterId: 'uni-0',
+  }
+}
+
+/**
+ * Una etapa REINA REAL de gran vuelta (Race France, etapa 18: 185 km con final en alto), corrida
+ * por el campo homogéneo en la TERCERA SEMANA. Es el punto ciego que dejaba la batería: la reina
+ * canónica es una caricatura (135 km lisos más un puerto) y el escenario fatigado corría sobre ella,
+ * así que nadie medía lo que hace una etapa de montaña de verdad con el depósito ya mermado.
+ * Medido, ahí el 100% del campo entraba en pájara y la erosión saturaba (ver docs/balance.md).
+ */
+export function realQueenThirdWeekScenario(): Scenario {
+  const base = realRaceScenario('race-france', 18)
+  const energy = initialEnergy(THIRD_WEEK_CTL, THIRD_WEEK_TSB, 'sano')
+  return {
+    ...base,
+    name: 'reina-real-s3',
+    input: {
+      ...base.input,
+      riders: base.input.riders.map((r) => ({ ...r, energy, tsb: THIRD_WEEK_TSB })),
+    },
   }
 }
 

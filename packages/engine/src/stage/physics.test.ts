@@ -178,6 +178,19 @@ describe('erosión (6.7)', () => {
     expect(perdidaSpr).toBeGreaterThan(perdidaTac)
   })
 
+  it('la erosión tiene techo: con el tanque a cero sigue discriminando', () => {
+    // docs/motor.md §VI.1: «≤ 0,92 — jamás 1,000». En 1,000 todos los corredores quedan igual de
+    // degradados y el resultado vuelve a ser azar. El techo lo garantiza ahora la propia función,
+    // no la calibración: medido, una etapa de montaña real en tercera semana vaciaba el 100% del
+    // campo y la erosión llegaba a 1,000 (docs/balance.md).
+    expect(erosion(0, 100, 50)).toBe(STAGE.erosionMax)
+    expect(erosion(0, 100, 90)).toBe(STAGE.erosionMax)
+    // Con el techo puesto, dos corredores distintos siguen llegando a meta distintos.
+    const fuerte = effNow(eff(80), erosion(0, 100, 50))
+    const flojo = effNow(eff(60), erosion(0, 100, 50))
+    expect(fuerte.SPR).toBeGreaterThan(flojo.SPR)
+  })
+
   it('la pájara hunde los atributos físicos pero no la táctica', () => {
     const base = eff(80)
     const now = effNow(base, 0, true)

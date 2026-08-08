@@ -443,3 +443,164 @@ describe('trabajo de equipo (SPEC 6.18)', () => {
     },
   )
 })
+
+// --- Telemetría de la carrera (docs/motor.md §16) -------------------------------------------
+// El motor simulaba bloque a bloque —quién se descuelga, cuánto boquete hay, quién va delante— y
+// tiraba casi todo. La crónica que salía era ilegible: el grupo de cabeza pasaba de 81 corredores
+// a 3 en tres kilómetros con DOS descolgados narrados, y la ventaja del ganador aparecía de la
+// nada porque el parte de boquete llegaba cada 25 km. Estos tests son el seguro de que no vuelve.
+
+describe('telemetría de la crónica (docs/motor.md §16)', () => {
+  /** Etapa de montaña larga con una criba continua: el caso que producía el salto de 81 a 3. */
+  function shatterInput(): StageInput {
+    const riders: StageRider[] = []
+    for (let i = 0; i < 4; i++) {
+      riders.push(
+        rider(`gc-${i}`, {
+          eff0: eff(60, { MON: 84 + i, COL: 80, LLA: 64 }),
+          orders: orders({ role: 'lider', contestClimbs: true }),
+        }),
+      )
+    }
+    for (let i = 0; i < 6; i++) {
+      riders.push(
+        rider(`bar-${i}`, {
+          eff0: eff(56, { MON: 72 + (i % 4), COL: 70, LLA: 66, TAC: 60 }),
+          orders: orders({ role: 'cazaetapas', mentality: 'combativo', contestClimbs: true }),
+        }),
+      )
+    }
+    for (let i = 0; i < 70; i++) {
+      riders.push(rider(`pel-${i}`, { eff0: eff(55, { MON: 46 + (i % 16), LLA: 60 }) }))
+    }
+    return {
+      profile: {
+        segments: [
+          { km: 130, tipo: 'llano' },
+          { km: 20, tipo: 'puerto', tramos: [{ km: 20, g: 8 }] },
+        ],
+        banners: [{ km: 150, tipo: 'cima' }],
+      },
+      riders,
+    }
+  }
+
+  const seeds = Array.from({ length: 12 }, (_, i) =>
+    stageSeed({ worldSeed: `tel-${i}`, raceId: 'tel', stageDay: 1, engineVersion: 1 }),
+  )
+  const runs = seeds.map((s) => simulateStage(shatterInput(), s))
+
+  it('la selección narrada explica el tamaño del grupo: nadie desaparece sin contarlo', () => {
+    for (const out of runs) {
+      const splits = out.events
+        .filter((e) => e.plantilla === 'peloton_split')
+        .sort((a, b) => a.km - b.km)
+      for (const e of splits) {
+        const before = Number(e.datos!.before)
+        const remaining = Number(e.datos!.remaining)
+        const dropped = Number(e.datos!.dropped)
+        // La frase trae de cuántos a cuántos ha quedado el grupo, y cuántos se han ido DESDE el
+        // aviso anterior. Sin `before`/`dropped` acumulado, la crónica contaba 2 descolgados
+        // mientras el grupo perdía 78 corredores.
+        expect(dropped).toBeGreaterThanOrEqual(STAGE.splitEventMinDropped)
+        expect(remaining).toBeGreaterThanOrEqual(0)
+        expect(before).toBeGreaterThan(0)
+        // La caída del grupo entre dos avisos nunca puede exceder lo que se ha narrado.
+        expect(before - remaining).toBeLessThanOrEqual(dropped)
+      }
+      // Y la cadena no tiene huecos: lo que quedaba en un aviso es de lo que parte el siguiente.
+      // Este es EL seguro contra el "de 81 a 3 sin explicación": para llegar a 3 desde 81 hay que
+      // haber narrado los 78 por el camino, no dos.
+      for (let i = 1; i < splits.length; i++) {
+        expect(Number(splits[i]!.datos!.before)).toBe(Number(splits[i - 1]!.datos!.remaining))
+      }
+    }
+  })
+
+  it('un corte grande se cuenta cuando pasa, no cinco kilómetros después', () => {
+    // En cada corrida, la mayor caída de tamaño del grupo entre dos avisos consecutivos tiene que
+    // seguir siendo explicable: si el grupo se parte de golpe, hay una frase con ese `dropped`.
+    for (const out of runs) {
+      const splits = out.events
+        .filter((e) => e.plantilla === 'peloton_split')
+        .sort((a, b) => a.km - b.km)
+      if (splits.length === 0) continue
+      const worst = Math.max(...splits.map((e) => Number(e.datos!.dropped)))
+      expect(worst).toBeGreaterThanOrEqual(STAGE.splitEventBigDropMin)
+    }
+  })
+
+  it('cuando quedan pocos delante, la crónica sabe QUIÉNES son', () => {
+    const withNames = runs.filter((out) =>
+      out.events.some((e) => e.plantilla === 'front_group' && e.protagonistas.length > 0),
+    )
+    expect(withNames.length).toBe(runs.length)
+    for (const out of runs) {
+      for (const e of out.events.filter((x) => x.plantilla === 'front_group')) {
+        expect(e.protagonistas.length).toBe(Number(e.datos!.size))
+        expect(e.protagonistas.length).toBeLessThanOrEqual(STAGE.frontNamesMaxRiders)
+        // Sin repetidos y con ids reales de la etapa.
+        expect(new Set(e.protagonistas).size).toBe(e.protagonistas.length)
+      }
+    }
+  })
+
+  it('la ventaja final no aparece de la nada: hay parte de boquete cerca de meta', () => {
+    const totalKm = 150
+    for (const out of runs) {
+      const win = out.events.find((e) => e.plantilla === 'stage_win')!
+      const margin = Number(win.datos!.margin ?? 0)
+      if (margin < STAGE.gapReportMinSeconds) continue
+      // Si el ganador llega con ventaja apreciable, el lector la ha visto crecer: tiene que haber
+      // al menos un parte (boquete o cabeza) dentro de la ventana del desenlace.
+      const late = out.events.filter(
+        (e) =>
+          (e.plantilla === 'time_gap' || e.plantilla === 'front_group') &&
+          e.km >= totalKm - STAGE.gapReportFinalKm,
+      )
+      expect(late.length).toBeGreaterThan(0)
+    }
+  })
+
+  it('narrar más no es narrar todo: la crónica no se convierte en un muro de texto', () => {
+    for (const out of runs) {
+      expect(out.events.length).toBeLessThanOrEqual(40)
+    }
+  })
+
+  it('el corte dice si el grupo va en cabeza o persiguiendo a una fuga', () => {
+    for (const out of runs) {
+      for (const e of out.events.filter((x) => x.plantilla === 'peloton_split')) {
+        expect([0, 1]).toContain(Number(e.datos!.chasing))
+      }
+    }
+  })
+})
+
+describe('el puerto decisivo no es toda la etapa (defecto medido, docs/balance.md)', () => {
+  /** Final en alto con un puerto INTERMEDIO a mitad de recorrido y llano largo después. */
+  const input: StageInput = {
+    profile: {
+      segments: [
+        { km: 30, tipo: 'llano' },
+        { km: 10, tipo: 'puerto', tramos: [{ km: 10, g: 7 }] },
+        { km: 80, tipo: 'llano' },
+        { km: 10, tipo: 'puerto', tramos: [{ km: 10, g: 8 }] },
+      ],
+    },
+    riders: Array.from({ length: 40 }, (_, i) =>
+      rider(`p-${i}`, { eff0: eff(55, { MON: 48 + (i % 18), LLA: 60 }) }),
+    ),
+  }
+
+  it('un puerto a 90 km de meta no revienta el pelotón como el último', () => {
+    const seed = stageSeed({ worldSeed: 'mid', raceId: 'mid', stageDay: 1, engineVersion: 1 })
+    const out = simulateStage(input, seed)
+    // Ningún corte narrado antes de la ventana del puerto decisivo: en el puerto de tempo el
+    // pelotón se recompone y anunciar "N se descuelgan" ahí es engañoso.
+    const early = out.events.filter(
+      (e) => e.plantilla === 'peloton_split' && e.km < 130 - STAGE.climbRaceKmToGo,
+    )
+    expect(early).toEqual([])
+  })
+})

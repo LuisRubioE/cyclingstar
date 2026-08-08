@@ -15,6 +15,7 @@ import {
   longClassicScenario,
   queenScenario,
   queenThirdWeekScenario,
+  realQueenThirdWeekScenario,
   timeTrialScenario,
 } from './scenarios.js'
 import { TARGETS, type Target } from './targets.js'
@@ -92,6 +93,20 @@ function main(): void {
       { target: TARGETS.erosion.hardestClassicFresh, value: hardEro.medianErosion },
     ],
     `Gasto mediano del tanque: llana ${(100 * flatEro.medianDepletion).toFixed(0)}% · reina ${(100 * queenEro.medianDepletion).toFixed(0)}% · reina 3.ª semana ${(100 * tiredEro.medianDepletion).toFixed(0)}% (pájaras ${tiredEro.bonkPct.toFixed(0)}%) · clásica larga ${(100 * longEro.medianDepletion).toFixed(0)}% · más dura ${(100 * hardEro.medianDepletion).toFixed(0)}% (pájaras ${hardEro.bonkPct.toFixed(0)}%, ${classicRuns} corridas)`,
+  )
+
+  // Medida INFORMATIVA (no bloquea): la etapa reina REAL de gran vuelta en la tercera semana. Es el
+  // punto ciego que dejaban los escenarios sintéticos y hoy sale mal a propósito —está en
+  // docs/balance.md como defecto abierto—: se imprime en cada corrida para que deje de ser invisible
+  // mientras no se re-ancle §VI.1 sobre una reina realista. No se convierte en objetivo todavía
+  // porque arreglarlo es una recalibración completa del depósito, no una perilla.
+  const realQueen = realQueenThirdWeekScenario()
+  const realQueenEro = analyzeErosion(realQueen, campaignSeeds(realQueen.name, classicRuns))
+  console.log(
+    `\nInformativo — ${realQueen.name} (Race France e18, 185 km, tercera semana, ${classicRuns} corridas)\n`,
+  )
+  console.log(
+    `  erosión mediana ${realQueenEro.medianErosion.toFixed(3)} · gasto ${(100 * realQueenEro.medianDepletion).toFixed(0)}% · pájaras ${realQueenEro.bonkPct.toFixed(0)}%  (objetivo de diseño 0.60-0.85 y pájaras marginales — ver docs/balance.md, «la reina real de tercera semana»)`,
   )
 
   console.log('')

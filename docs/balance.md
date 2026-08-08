@@ -620,3 +620,134 @@ carrera del calendario se puede meter en el banco con una línea.
 - **Milano-Sanremo y su etiqueta de terreno.** Su relieve reconstruido se pasa un 27 % porque el
   calendario la marca `hilly` y de verdad es una clásica de costa. Se arregla el día que el terreno
   deje de ser una etiqueta única por carrera, no tocando el dato de la fuente.
+
+---
+
+## v6 — Telemetría de carrera, el puerto decisivo y el techo de la erosión
+
+Motivación: el dueño leyó dos crónicas reales y eran ilegibles. Dos ejemplos literales suyos —«de 81
+corredores a 3 en tres kilómetros, con solo 2 descolgados narrados» y «hay 5 ciclistas y de repente
+uno saca 7 minutos a todos»—. Al medirlo salieron **tres cosas distintas**: una de narración, una de
+orquestación del motor (defecto real) y una de calibración (defecto real, deferido).
+
+### 1. El motor tiraba lo que sabía (docs/motor.md §16)
+
+El corte del pelotón se narraba con los descolgados de **UN bloque de 100 m**. En una criba continua
+se sueltan 2-3 corredores por bloque, y con el throttle de 3 km eso significaba narrar 4 descolgados
+mientras el grupo perdía 78. El «about N left in front» solo se muestreaba en los eventos narrados:
+de ahí el salto de 81 a 3.
+
+Y el parte de boquete (`time_gap`) solo miraba a la fuga —«pelotón menos fuga»— y se daba **cada
+25 km**. Cuando la cabeza de carrera pasaba a ser un trozo del pelotón, o un corredor solo tras la
+criba, el journal se quedaba mudo justo en el desenlace.
+
+Lo que emite ahora el motor:
+
+| Evento          | Antes                               | Ahora                                                                                                 |
+| --------------- | ----------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `peloton_split` | `dropped` (del bloque), `remaining` | `dropped` ACUMULADO desde el aviso anterior, `remaining`, `before` (de cuántos a cuántos) y `chasing` |
+| `time_gap`      | boquete pelotón→fuga                | boquete del grupo de CABEZA al primer perseguidor, sea quien sea, con `leadSize` y `chaseSize`        |
+| `front_group`   | —                                   | NUEVO: los nombres de quienes van delante cuando quedan ≤ 8, con `size`, `gapS` y `toGo`              |
+
+Perillas de narración (todas en `STAGE`, todas medidas sobre etapas reina REALES del calendario con
+campo NPC de 176 corredores, 14 etapas × 8-12 semillas):
+
+| Perilla                         | Valor      | Por qué ese valor (medido)                                                                                                                                                                         |
+| ------------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `splitEventMinDropped`          | 2          | Suelo absoluto: en un grupo de 5, perder 2 es noticia                                                                                                                                              |
+| `splitEventMinDropFraction`     | 0,15       | Y además una parte apreciable del grupo. Solo con el suelo de 2, en una etapa con final en alto se narraba un corte cada 3 km de principio a fin: **26 cortes por etapa**                          |
+| `splitEventMinKmGap`            | 3 → **12** | Con 3 km el throttle no ataba nada en una etapa de 200 km                                                                                                                                          |
+| `splitEventBigDropFraction`     | 0,25       | Un corte grande rompe el throttle de km: 76 fuera en 3 km necesitan la frase ahí, no 12 km después                                                                                                 |
+| `splitEventBigDropMin`          | 12         | La otra mitad de la regla, imprescindible: sin el mínimo absoluto, con el grupo ya pequeño la fracción se cumple con 2 descolgados y la excepción saltaba en cada bloque (**37 cortes por etapa**) |
+| `splitEventBigDropKmGap`        | 3          | Y aun así la explosión del último puerto se narraba con **7 frases seguidas en el mismo km**. Una explosión merece UNA frase                                                                       |
+| `gapReportKmGap`                | 25         | Sin cambios fuera del desenlace                                                                                                                                                                    |
+| `gapReportFinalKm` / `...KmGap` | 40 / 4     | En los últimos 40 km el parte se da cada 4: 25 km de silencio en el desenlace son exactamente los que hacen aparecer 7 minutos de la nada                                                          |
+| `gapReportChangeFraction`       | 0,15       | Pero solo si la ventaja se ha movido. Sin este filtro el final se llenaba de «el líder sigue con 7:00»                                                                                             |
+| `frontNamesMaxRiders`           | 8          | Por debajo de 8 el grupo de cabeza deja de ser «un pelotón»: se nombran los corredores, y deja de tener sentido decir que tira un equipo                                                           |
+| `frontGroupReportKmGap`         | 5          | Con la regla de «solo si el tamaño ha cambiado», una fuga estable no repite la lista                                                                                                               |
+
+Resultado medido, mismas 14 etapas reina reales: la crónica pasa de **6 cortes + 6 boquetes** (v5) a
+**2 cortes + 9 boquetes + 4 partes de cabeza**, con **25 líneas por etapa de mediana** (p90 29). Se
+cuenta más y se escribe menos: el número de líneas casi no sube, pero ya no hay huecos.
+
+### 2. Defecto real: en un final en alto, TODA la etapa era el puerto decisivo
+
+`raceThisClimb = finishUphill || km a meta ≤ climbRaceKmToGo`. Ese primer término hacía que, en
+cualquier etapa con final en alto, el pelotón subiera **a tope (`climbRaceCommit` 0,85) todas las
+cotas desde el km 0**.
+
+Con la reina SINTÉTICA no se notaba —sus únicos km de subida son los últimos 15, dentro de la ventana
+de 30 km— y por eso ningún invariante lo vio nunca. Con recorridos REALES, que tienen relieve por
+todas partes, producía ciclos de **170 → 15 → 173 corredores**: el pelotón estallaba en un puerto a
+120 km de meta y se recomponía entero en el llano siguiente. No es solo que la crónica no pudiera
+contarlo (era el «de 81 a 3»): es que no pasa en carretera.
+
+Arreglo: `raceThisClimb = km a meta ≤ climbRaceKmToGo`, sin más. **Los invariantes no se mueven ni una
+milésima** (la reina canónica no tiene subida fuera de la ventana), y sobre etapas reales el margen
+del ganador tampoco cambia (p50 43 s → 42 s, p90 126 s → 126 s): lo que desaparece son las cribas
+falsas de mitad de etapa.
+
+### 3. Investigación del «7:15 en 10 km» (problema 3 del encargo)
+
+Medido sobre 14 etapas reina reales del calendario con campo NPC de 176 corredores, tomando el
+crecimiento del boquete de cabeza entre partes consecutivos en los **últimos 20 km**:
+
+| Campo                                | s/km p50  | p90   | p99   | máx    | Margen del ganador p50 / p90 / máx |
+| ------------------------------------ | --------- | ----- | ----- | ------ | ---------------------------------- |
+| **Fresco** (CTL 70, TSB 0)           | **−21,8** | +5,5  | +21,8 | +31,0  | 42 s / 126 s / **236 s (3:56)**    |
+| **Tercera semana** (CTL 95, TSB −45) | −2,3      | +25,0 | +96,5 | +102,3 | 69 s / 385 s / **2.154 s (35:54)** |
+
+Conclusión en dos partes:
+
+- **Con el campo fresco, el 7:15 no es reproducible.** El boquete de cabeza en los últimos 20 km
+  **se cierra** en la mediana, y en 201 muestras **ninguna** superó los 40 s/km. El máximo margen de
+  ganador en 168 etapas fue 3:56. Los 43 s/km del ejemplo del dueño están fuera de esa distribución.
+- **Con el campo fatigado sí ocurre, y además se desmadra.** Aparecen tramos de 95-102 s/km y
+  márgenes de **36 minutos**. La causa está medida y es una sola: **el 100 % del campo entra en
+  pájara** y la erosión saturaba en 1,000.
+
+Es decir: el 7:15 que vio el dueño es **plausible bajo fatiga** —es un hundimiento real del grupo—,
+y lo que faltaba era contarlo. Pero la cola de esa distribución es un defecto.
+
+### 4. El techo de la erosión, ahora estructural
+
+`docs/motor.md §VI.1` lo decía desde el principio: «≤ 0,92 — jamás 1,000», porque en 1,000 todo el
+pelotón queda igual de degradado, **el modelo deja de discriminar y el resultado vuelve a ser azar**.
+Hasta ahora eso lo sostenía solo la calibración de las clásicas de un día en fresco. `erosion()`
+lleva ahora el tope dentro (`STAGE.erosionMax = 0,92`).
+
+No mueve **ningún** invariante actual: el peor caso medido es Il Lombardia con 0,868. Lo que hace es
+garantizar que un escenario no calibrado —una etapa reina real en tercera semana— siga separando al
+fuerte del flojo en vez de sortear el resultado.
+
+Efecto colateral que hubo que arreglar: el invariante «ninguna clásica del WT satura» miraba la
+erosión, y con el tope **nunca podría volver a dispararse**. Pasa a mirar el **vaciado del depósito**
+(`medianDepletion ≤ 0,95`, `bonkPct ≤ 10 %`), que no está topado y es la señal buena. Peor caso hoy:
+Il Lombardia, 0,908 de vaciado y 3 % de pájaras.
+
+### 5. Pendiente, medido y ahora visible: la reina REAL de tercera semana
+
+El punto ciego que quedaba. Los escenarios de desgaste corren la reina SINTÉTICA (135 km lisos + un
+puerto, 1.200 m). Medida la reina REAL de gran vuelta (Race France etapa 18, 185 km) con el depósito
+de tercera semana:
+
+| Escenario                             | E₀   | Gasto     | Erosión             | Pájaras   |
+| ------------------------------------- | ---- | --------- | ------------------- | --------- |
+| `reina-150-s3` (sintética)            | 58,6 | 76 %      | 0,662 ✓ (0,60-0,85) | 11 %      |
+| **`reina-real-s3` (Race France e18)** | 58,6 | **100 %** | **0,920 (topada)**  | **100 %** |
+| Race France e18 en FRESCO             | 100  | 69 %      | 0,556               | 0 %       |
+
+La aritmética es transparente: la reina real cuesta ~70 de depósito y el corredor de tercera semana
+sale con **58,6**, porque `TANK.min` se bajó a 0,58 para que la reina SINTÉTICA (que cuesta ~26)
+alcanzase su banda de erosión. Es exactamente la tensión ya anotada arriba —«re-anclar §VI.1 sobre
+una etapa reina realista»—, ahora con números.
+
+**No se arregla aquí**: mover `TANK` para que la reina real caiga en 0,60-0,85 saca de banda a
+`reina-150-s3`, que es un objetivo de CI, y arrastra a la clásica larga y al monumento. Es la
+recalibración completa del depósito (docs/motor.md §17, trabajo 6), y merece su propia tanda con la
+tabla de §VI.1 re-anclada sobre recorridos reales.
+
+**Lo que sí se hace es que deje de ser invisible**: `pnpm sim` imprime `reina-real-s3` como medida
+INFORMATIVA (no bloquea) en cada corrida, con su objetivo de diseño al lado. El escenario vive en
+`sim/scenarios.ts::realQueenThirdWeekScenario()` y `realRaceScenario` acepta ya un índice de etapa,
+así que cualquier etapa del calendario entra en el banco con una línea.

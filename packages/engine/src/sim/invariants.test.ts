@@ -30,6 +30,15 @@ import { TARGETS, type Target } from './targets.js'
 
 const flat: Block = { tipo: 'llano', g: 0, estrellas: 0 }
 
+/**
+ * Umbrales de SATURACIÓN del depósito. Con RES 60 el umbral de erosión queda en 0,31, así que el
+ * techo de erosión de 0,92 se alcanza con un vaciado de 0,945: por encima de eso el modelo ya no
+ * puede expresar más degradación y deja de discriminar. Se deja un pelo de margen (0,95) y se pide
+ * además que las pájaras sean marginales.
+ */
+const SATURATION_DEPLETION = 0.95
+const SATURATION_BONK_PCT = 10
+
 /** Comprueba un estadístico contra su rango objetivo compartido. */
 function expectInRange(value: number, target: Target): void {
   expect(value).toBeGreaterThanOrEqual(target.min)
@@ -196,11 +205,18 @@ describe('la erosión no satura en ninguna clásica (docs/motor.md §VI.1)', () 
 
   it('ninguna clásica del WorldTour satura con el pelotón fresco', { timeout: 120000 }, () => {
     expect(oneDayWt.length).toBeGreaterThan(10)
+    // OJO: desde v6 la erosión lleva un techo estructural (`STAGE.erosionMax`), así que mirar la
+    // erosión ya NO detecta la saturación —topa en 0,92 justo cuando hay que dar la alarma—. La
+    // señal buena es el VACIADO del depósito, que no está topado: si el tanque llega a cero, la
+    // erosión estaba pidiendo más de lo que el modelo puede expresar. Medido hoy: el peor caso es
+    // Il Lombardia con 0,908 de vaciado y un 3% de pájaras.
     const saturated: string[] = []
     for (const id of oneDayWt) {
       const stats = analyzeErosion(realRaceScenario(id), campaignSeeds(id, 3))
-      if (stats.medianErosion > TARGETS.erosion.hardestClassicFresh.max) {
-        saturated.push(`${id} ${stats.medianErosion.toFixed(3)}`)
+      if (stats.medianDepletion > SATURATION_DEPLETION || stats.bonkPct > SATURATION_BONK_PCT) {
+        saturated.push(
+          `${id} vaciado ${stats.medianDepletion.toFixed(3)} pájaras ${stats.bonkPct.toFixed(0)}%`,
+        )
       }
     }
     expect(saturated).toEqual([])
