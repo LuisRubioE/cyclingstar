@@ -882,6 +882,15 @@ fuerte gana **20 de 20**; saliendo con un depósito de 16 —erosión 0,92 al ll
 **0 de 20** después del cambio, y seguía ganando **20 de 20** antes. Es coherencia con el resto del
 motor: el SPR es el atributo con el coeficiente de erosión más alto de la tabla (0,45).
 
+### 5. Efecto colateral en la crónica
+
+El aviso de llegada masiva (`bunch_sprint`) se decidía con el mismo binario que el resultado
+(`!finishUphill && field >= 8`). Ahora se decide con el TIPO: un grupo numeroso que llega en llano,
+por adoquín o cuesta abajo disputa un sprint y se narra como tal; uno que llega trepando —`alto` o
+`puncheur`— se narra con `final_km`. Para una etapa llana no cambia nada; lo que cambia es que una
+cota que corona a 3 km de meta ya no se cuenta como sprint masivo (antes lo era, porque la cota
+quedaba fuera de los últimos 2 km) y que un final en alto con rellano final tampoco.
+
 ### Invariantes: qué se movió (nada) y qué se añadió
 
 Campaña de **500 semillas** por escenario, la misma antes y después:
@@ -902,11 +911,11 @@ Campaña de **500 semillas** por escenario, la misma antes y después:
 la física: solo ordena a los que ya han llegado). Los milésimos de la erosión se mueven porque el
 orden de coronación de las cimas cambia y con él quién paga `bannerCost`.
 
-Tests nuevos: `stage/finish.test.ts` (17 casos: la rampa de 200 m, el rompepiernas, el muro contra
-el final en alto, la cota que corona a 3 y a 12 km, el pavé, el descenso, el tamaño del grupo, que
-los pesos sumen 1 y que ningún final dependa de un solo atributo) y cuatro de integración en
-`stage/simulate.test.ts` (el tipo de final viaja en el evento de meta, el PAV gana Roubaix, el peaje
-del trabajo y la erosión en los banners).
+Tests nuevos (22 en total, de 647 a 669): `stage/finish.test.ts` (18 casos: la rampa de 200 m, el
+rompepiernas, el muro contra el final en alto, la cota que corona a 3 y a 12 km, el pavé, el
+descenso, el tamaño del grupo, que los pesos sumen 1 y que ningún final dependa de un solo atributo)
+y cuatro de integración en `stage/simulate.test.ts` (el tipo de final viaja en el evento de meta, el
+PAV gana Roubaix, el peaje del trabajo y la erosión en los banners).
 
 ### Lo que este cambio NO arregla, y hay que decirlo
 
