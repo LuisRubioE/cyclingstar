@@ -1,3 +1,4 @@
+import { raceIdFromKey } from '@cyclingstar/shared'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { fetchForm } from '../api/form'
@@ -156,7 +157,7 @@ function LastRaceCard() {
       title="Last race"
       action={
         <Link
-          to={`/world/races/${data.raceId}/stages/${data.stageDay}`}
+          to={`/world/races/${raceIdFromKey(data.raceId)}/stages/${data.stageDay}`}
           className="text-xs font-medium text-white/90 hover:text-white hover:underline"
         >
           Full story →

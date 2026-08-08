@@ -1,4 +1,4 @@
-import { COUNTRIES, VOCATION_LABELS, type Vocation } from '@cyclingstar/shared'
+import { COUNTRIES, VOCATION_LABELS, raceIdFromKey, type Vocation } from '@cyclingstar/shared'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -85,8 +85,8 @@ function TeammateDetail({ riderId }: { riderId: string }) {
                   <Link
                     to={
                       r.isOneDay
-                        ? `/world/races/${r.raceId}`
-                        : `/world/races/${r.raceId}/stages/${r.stageDay}`
+                        ? `/world/races/${raceIdFromKey(r.raceId)}`
+                        : `/world/races/${raceIdFromKey(r.raceId)}/stages/${r.stageDay}`
                     }
                     className="font-medium text-slate-700 hover:underline"
                   >

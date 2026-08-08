@@ -1,3 +1,4 @@
+import { raceIdFromKey } from '@cyclingstar/shared'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
@@ -87,7 +88,7 @@ function UpcomingTab() {
                   <tr key={r.raceKey} className="border-b border-slate-100 last:border-0">
                     <th scope="row" className="px-3 py-2 text-left font-normal">
                       <Link
-                        to={`/world/races/${r.raceId}`}
+                        to={`/world/races/${raceIdFromKey(r.raceId)}`}
                         className="font-medium text-slate-800 hover:text-brand-cyan hover:underline"
                       >
                         {r.country && <Flag code={r.country} size={14} className="mr-1.5" />}
@@ -128,7 +129,7 @@ function UpcomingTab() {
             {pending.map((r) => (
               <li key={r.raceId} className="flex items-center justify-between gap-3 py-2 text-sm">
                 <Link
-                  to={`/world/races/${r.raceId}`}
+                  to={`/world/races/${raceIdFromKey(r.raceId)}`}
                   className="font-medium text-slate-700 hover:text-brand-cyan hover:underline"
                 >
                   {r.country && <Flag code={r.country} size={14} className="mr-1.5" />}
@@ -347,8 +348,8 @@ function ResultsTab({ riderId }: { riderId: string | null }) {
                   <Link
                     to={
                       r.isOneDay
-                        ? `/world/races/${r.raceId}`
-                        : `/world/races/${r.raceId}/stages/${r.stageDay}`
+                        ? `/world/races/${raceIdFromKey(r.raceId)}`
+                        : `/world/races/${raceIdFromKey(r.raceId)}/stages/${r.stageDay}`
                     }
                     className="font-medium text-slate-800 hover:text-brand-cyan hover:underline"
                   >

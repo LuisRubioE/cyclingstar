@@ -5,6 +5,7 @@ import {
   type Attribute,
   type Vocation,
   birthdayDayOfSeason,
+  raceIdFromKey,
 } from '@cyclingstar/shared'
 import { type Eff, eff0, matchCount } from '@cyclingstar/engine'
 import { useQuery } from '@tanstack/react-query'
@@ -188,7 +189,7 @@ function OwnerObjectives() {
         {wanted.map((r) => (
           <li key={r.raceId} className="flex items-center justify-between gap-3 py-2 text-sm">
             <Link
-              to={`/world/races/${r.raceId}`}
+              to={`/world/races/${raceIdFromKey(r.raceId)}`}
               className="font-medium text-slate-700 hover:text-brand-cyan hover:underline"
             >
               {r.name}
@@ -359,8 +360,8 @@ export function RiderProfile() {
                 <Link
                   to={
                     r.isOneDay
-                      ? `/world/races/${r.raceId}`
-                      : `/world/races/${r.raceId}/stages/${r.stageDay}`
+                      ? `/world/races/${raceIdFromKey(r.raceId)}`
+                      : `/world/races/${raceIdFromKey(r.raceId)}/stages/${r.stageDay}`
                   }
                   className="font-medium text-slate-700 hover:underline"
                 >
