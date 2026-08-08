@@ -25,6 +25,7 @@ import { InfoRow, Panel, SectionBar } from '../components/Panel'
 import { RoleEditor } from '../components/RoleEditor'
 import { StarRating } from '../components/StarRating'
 import { TeamLink } from '../components/TeamLink'
+import { conditionBars, conditionLabel } from '../domain/condition'
 import { HEALTH_LOOK, healthUntilLabel } from '../domain/health'
 import { palmaresLabel } from '../domain/labels'
 
@@ -89,6 +90,35 @@ function Identity({ rider, gameDay }: { rider: PublicRiderDetail; gameDay: numbe
 }
 
 /**
+ * Una magnitud de condición en barra 0-100, con su etiqueta cualitativa. Se pinta la palabra
+ * ("Good", "Low") y no el número interno del modelo: el jugador no maneja unidades de carga.
+ */
+function ConditionBar({
+  label,
+  hint,
+  value,
+  color,
+}: {
+  label: string
+  hint: string
+  value: number
+  color: string
+}) {
+  return (
+    <div>
+      <div className="flex items-center justify-between text-xs text-slate-500">
+        <span>{label}</span>
+        <span className="font-semibold text-slate-700">{conditionLabel(value)}</span>
+      </div>
+      <div className="mt-1 h-2 overflow-hidden rounded-full bg-slate-200">
+        <div className={`h-full rounded-full ${color}`} style={{ width: `${value}%` }} />
+      </div>
+      <p className="mt-1.5 text-xs text-slate-500">{hint}</p>
+    </div>
+  )
+}
+
+/**
  * Bloque privado: forma, frescura, salud, cerillos y moral. Solo se monta si el perfil es MÍO, así
  * que sus consultas (`/api/riders/me/...`) no se disparan nunca en la vista pública.
  */
@@ -103,6 +133,8 @@ function OwnerCondition({ attributes }: { attributes: Record<Attribute, number> 
   const last = log[log.length - 1] ?? null
   const gameDay = healthQuery.data?.gameDay ?? null
   const until = healthUntilLabel(health, gameDay)
+  // Fondo y frescura del último día del diario, ya traducidos a 0-100 (domain/condition.ts).
+  const bars = last ? conditionBars(last) : null
 
   // Cerillos del día: la MISMA cuenta que hará la etapa (SPEC 6.6), sobre los atributos efectivos
   // de hoy —forma, salud y moral incluidas—, para que el jugador vea con qué sale de casa.
@@ -132,30 +164,32 @@ function OwnerCondition({ attributes }: { attributes: Record<Attribute, number> 
         </div>
       )}
 
-      {form && (
-        <div>
-          <div className="flex items-center justify-between text-xs text-slate-500">
-            <span>Freshness — race readiness</span>
-            <span className="tabular-nums">{Math.round(form.freshness)} / 100</span>
-          </div>
-          <div className="mt-1 h-2 overflow-hidden rounded-full bg-slate-200">
-            <div
-              className="h-full rounded-full bg-emerald-500"
-              style={{ width: `${form.freshness}%` }}
-            />
-          </div>
-          <p className="mt-2 text-xs text-slate-500">
-            How rested you are today. High = fresh and race-ready; low = fatigued from hard
-            training. Easing off before a goal raises it: peaking is high fitness with high
-            freshness.
-          </p>
+      {/*
+        Las DOS magnitudes que ve el jugador, ambas 0-100 y acotadas por el motor: el fondo que ha
+        construido y lo descansado que está hoy. Antes aquí abajo había una rejilla con «Fitness
+        (CTL)» y «Fatigue (ATL)» en crudo —carga acumulada del Banister, sin escala— y el dueño
+        llegaba a leer «fatiga 118». La fatiga no necesita número propio: la frescura ES su cara
+        legible (MVP.md Paso 20: forma en estrellas y frescura en barra, nunca números internos).
+      */}
+      {bars && (
+        <div className="space-y-3">
+          <ConditionBar
+            label="Fitness — training base"
+            hint="The condition you have built up over the past weeks. It grows with steady work and fades with rest."
+            value={bars.fitness}
+            color="bg-indigo-500"
+          />
+          <ConditionBar
+            label="Freshness — race readiness"
+            hint="How rested you are today. High = fresh and race-ready; low = fatigued from hard training. Easing off before a goal raises it: peaking is high fitness with high freshness."
+            value={bars.freshness}
+            color="bg-emerald-500"
+          />
         </div>
       )}
 
-      <dl className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <dl className="mt-4 grid grid-cols-2 gap-3">
         {[
-          { label: 'Fitness (CTL)', value: last ? Math.round(last.ctl) : '—' },
-          { label: 'Fatigue (ATL)', value: last ? Math.round(last.atl) : '—' },
           { label: 'Matches', value: matches ?? '—' },
           {
             label: 'Morale',
