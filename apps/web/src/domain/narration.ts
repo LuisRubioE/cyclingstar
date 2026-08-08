@@ -63,6 +63,10 @@ const CHRONICLE: Record<string, ((n: string) => string)[]> = {
     (n) => `Selection on the climb as ${n || 'the leaders'} press the pace`,
     (n) => `${n || 'The pace'} bites on the climb — riders slip off the back`,
   ],
+  front_group: [
+    (n) => `Only a handful left in front: ${n}`,
+    (n) => `The race is down to a select group — ${n}`,
+  ],
   breakaway_caught: [
     () => 'The peloton reels the breakaway back in',
     () => 'It all comes back together — the break is caught',

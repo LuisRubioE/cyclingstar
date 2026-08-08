@@ -42,11 +42,14 @@ const EVENT_ORDER: Record<string, number> = {
   sprint_intermediate: 2,
   climb_kom: 3,
   peloton_split: 4,
+  // El parte de quién va en cabeza va DESPUÉS de lo que lo ha producido —el corte del grupo o la
+  // captura de la fuga—: primero se cuenta qué ha pasado y luego quiénes han quedado delante.
   breakaway_caught: 5,
-  final_km: 6,
-  bunch_sprint: 6,
-  stage_win: 7,
-  stage_win_itt: 6,
+  front_group: 6,
+  final_km: 7,
+  bunch_sprint: 7,
+  stage_win: 8,
+  stage_win_itt: 7,
 }
 
 /** Tipos de evento que se pintan como hito sobre la altimetría, con su etiqueta en la web. */
