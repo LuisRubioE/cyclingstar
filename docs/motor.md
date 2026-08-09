@@ -530,6 +530,19 @@ adoquines no son clásicas de adoquines.
 > medidos: en un final en alto toda la etapa contaba como puerto decisivo, y la erosión no tenía
 > techo estructural. Todo en docs/balance.md, «v6 — Telemetría de carrera».
 
+> **Segunda entrega hecha (v11): la ATRIBUCIÓN DEL TRABAJO.** El motor sabía, en cada bloque de
+> 100 m y para cada grupo, quién daba la cara al viento (`relayTurn()`) y lo tiraba; y el `work` que
+> sí guardaba mezclaba el gasto de ir a rueda con el de relevar. Ahora se cuenta aparte el TRABAJO
+> AL FRENTE —solo los bloques en el turno de relevos y solo lo que se aprieta por encima del tempo
+> de carretera—, separado por grupo (pelotón / fuga), con una ventana con olvido para «quién tira
+> AHORA» y un libro por movimiento para «quién cerró ESA persecución». De ahí salen `peloton_pull`,
+> `chase_work` y `break_share`, que responden a las dos preguntas del dueño: **quién tira del
+> pelotón** y **quién hizo el trabajo para reducir la distancia**. Cambio de OBSERVACIÓN: ni azar
+> nuevo ni física nueva, y los resultados de una etapa con una semilla dada son idénticos a los de
+> la v10 (test `stage/attribution.test.ts`). Medido en docs/balance.md, «v11 — Atribución del
+> trabajo». Sigue pendiente lo estructural de este cambio (la telemetría como dato separado de los
+> eventos, ver abajo) y siguen sin narrarse la pájara y el descuelgue individual.
+
 Hoy `StageOutput` solo lleva `events, results, workUnits, incidents`, y hay **14 puntos de emisión
 de eventos** en todo el motor. El motor simula bloque a bloque —energía, cerillos, grupos, brechas—
 y **tira todo eso**. Por eso el journal es pobre: no es que se cuente mal, es que no hay qué contar.
@@ -553,7 +566,7 @@ y que los replays dejan de depender de re-simular.
 | 2   | Selección en pavés/descenso (§14) y fatiga (§15)                     | Hoy el pavés no existe como terreno (brecha de 0 s) y nadie abandona                                                                                                  |
 | 3   | **Perfiles reales** (extracción y validación)                        | Entrada del motor. Necesarios **antes de la recalibración final**, no antes de las correcciones estructurales                                                         |
 | 4   | ~~Capa táctica (§13)~~ **HECHO (v9)**                                | El desarrollo grande. Es lo que hace que las carreras se distingan entre sí                                                                                           |
-| 5   | Telemetría (§16)                                                     | Habilita el journal y las vistas nuevas                                                                                                                               |
+| 5   | Telemetría (§16) — **v6 y v11 hechas, lo estructural pendiente**     | Habilita el journal y las vistas nuevas                                                                                                                               |
 | 6   | Recalibración completa con Montecarlo                                | Solo al final, con entradas buenas y mecánicas completas                                                                                                              |
 | —   | ~~Composición de la carrera y caza por campo (§18)~~ **HECHO (v10)** | Se coló delante del 2 y del 3 porque sin ella el motor no tenía nada que resolver: la carrera generada no repartía tiempo por ninguna parte                           |
 

@@ -1417,3 +1417,184 @@ añade la sección 6, la de la caza según el campo.
   pero está en la banda alta de lo razonable: si en producción los campos continentales resultan
   tener menos SPR de lo que supone el banco, la fuga podría llegar demasiado. La perilla es
   `chaseWeakCommitCap`, que es la que más pesa de las cuatro.
+
+## v11 — Atribución del trabajo: quién tira y quién cerró (`engine_version` 10 → 11)
+
+> «Con el nuevo motor ya tuvimos 1 carrera… tiene buena pinta… solo que el Journal me gustaría que
+> tuviera aún más detalle… por ejemplo **quién tira del pelotón**… hubo una buena escapada tras
+> varios intentos… pero no llegó y **no sé quién hizo el trabajo para reducir la distancia**.»
+
+Las dos preguntas tienen respuesta EXACTA dentro del motor, que hasta ahora la calculaba y la tiraba
+a la basura:
+
+- `relayTurn()` (`stage/simulate.ts`) decide, en **cada bloque de 100 m y para cada grupo**, qué
+  corredores están dando la cara al viento. Nadie guardaba esa información.
+- `advance()` acumulaba `m.work += cost` por corredor, pero **mezclando** el gasto de ir a rueda con
+  el de relevar, y solo se usaba al final para el TSS y el peaje del remate.
+
+Esta tanda es de **OBSERVACIÓN**: no toca ninguna ley física, no consume azar y no cambia el reparto
+de tiempos. El primer test de `stage/attribution.test.ts` sella la huella `puesto:corredor:tiempo` de
+los escenarios canónicos con la v10 y comprueba que no se mueve **ni un segundo**.
+
+### El contador: trabajo AL FRENTE, no trabajo a secas
+
+```
+si el corredor está en el turno de relevos de su grupo:
+    frontWork += max(0, compromiso − frontWorkIdleCommit) · dx        (idle = 0,50)
+```
+
+Se acumula por separado en tres sitios, porque son tres noticias distintas:
+
+| Contador           | Qué cuenta                                            | Para qué                      |
+| ------------------ | ----------------------------------------------------- | ----------------------------- |
+| `frontWorkPeloton` | relevos dados **en el pelotón**                       | «quién tira del pelotón»      |
+| `frontWorkMove`    | relevos dados **en un grupo escapado**                | «quién colabora en la fuga»   |
+| `pullWindow`       | lo mismo que el primero, con **olvido** (0,87 por km) | «quién tira AHORA», no «hoy»  |
+| `Move.chaseLedger` | trabajo de los que **persiguen a ese movimiento**     | «quién cerró ESA persecución» |
+
+**La forma se apartó de la sugerida en el encargo** (`compromiso · dx`) por una razón medida: con
+ella, un pelotón que rueda a paseo 100 km reparte más «trabajo» que una persecución de 20 km a 0,9,
+y entonces **el criterio de «esta captura no tuvo autor» deja de existir**, porque cualquier grupo
+que rueda acumula. Restando el suelo de 0,50 —por debajo del tempo de carretera, que es 0,55—
+relevar en el tempo cuenta un pelo y relevar a 0,9 cuenta ocho veces más, que es exactamente lo que
+pedía el encargo («relevar a 0,45 en el tempo de carretera no es noticia»).
+
+El **libro por movimiento** es lo que responde a la segunda pregunta sin mentir: cada movimiento
+guarda quién ha trabajado persiguiéndole A ÉL, así que al cazarlo se nombra a quien lo cerró y no a
+quien tiró en el km 20 por otra cosa. Las fusiones traspasan el libro tomando el **máximo corredor a
+corredor**, no la suma: los dos grupos iban por delante del mismo pelotón a la vez y el mismo relevo
+no puede contarse dos veces.
+
+### Los tres eventos
+
+| Evento         | `tipo`         | Protagonistas                                  | `datos`                                       |
+| -------------- | -------------- | ---------------------------------------------- | --------------------------------------------- |
+| `peloton_pull` | `tiran`        | los 1-3 con más trabajo en la ventana reciente | `commit`, `effort`, `toGo`, `size`, `chasing` |
+| `chase_work`   | `trabajo`      | los 1-3 que más pusieron en ESA persecución    | `closedS`, `km`, `work`                       |
+| `break_share`  | `colaboracion` | los que se relevan dentro de la fuga           | `size`, `passengers`, `toGo`                  |
+
+Como manda la casa, **el motor nombra CORREDORES**: no conoce los equipos (`StageRider` sigue sin
+`teamId`) y es la web quien resuelve corredor→equipo por `protagonistTeams`, igual que hace
+`sprinters_chase` desde la v10. No se ha añadido nada a `StageOutput`: la crónica no necesita los
+contadores en crudo, así que no se exponen.
+
+**Throttle de `peloton_pull`**: se emite cuando **CAMBIA quién manda** —el primero de la lista, no un
+tercer nombre que rota— y han pasado `pullReportMinKmGap` (12) km desde el parte anterior; o cuando
+el parte ha caducado a los `pullReportKmGap` (36) km aunque siga mandando el mismo. Y **nunca antes
+de que la fuga esté formada**: hasta entonces el pelotón va en bloque y «quién tira» no significa
+nada.
+
+**`chase_work` no siempre sale, y ese es el punto.** Va enganchado a `breakaway_caught`,
+`move_caught` y `attack_reeled`, y solo si la captura **tuvo autor**: el movimiento tiene que haber
+llegado a sacar `chaseWorkMinGapSeconds` (25 s) y el que más tiró tiene que haber puesto
+`chaseWorkMinUnits` (2,0 ≈ diez kilómetros relevando a 0,7). Si el movimiento se hundió solo, no se
+nombra a nadie: **mentir es peor que callar**.
+
+### Lo medido, antes y después
+
+Eventos NARRABLES por etapa (los que pasan el filtro `narra`), 40 semillas por escenario:
+
+| Escenario                          | v10 (mediana / máx) | v11 (mediana / máx) | de los nuevos                               |
+| ---------------------------------- | ------------------: | ------------------: | ------------------------------------------- |
+| `llana-180` canónica               |             37 / 55 |         **43 / 60** | pull 4,1 · chase_work 1,2 · break_share 0,8 |
+| `reina-150` canónica               |             32 / 46 |         **38 / 51** | pull 3,7 · chase_work 1,1 · break_share 0,2 |
+| `llana-180` con campo modesto      |             34 / 46 |         **39 / 51** | pull 4,1 · chase_work 1,0 · break_share 0,6 |
+| Ronde van Vlaanderen real (278 km) |             65 / 78 |         **72 / 84** | pull 5,2 · chase_work 0,6 · break_share 0,7 |
+
+Y el objetivo declarado del encargo —«tiene que salir en una etapa normal unas 3-6 veces, no una ni
+veinte»— medido sobre 120 semillas por escenario (`pnpm sim:tactics`, sección 7 nueva):
+
+| Escenario   | «quién tira» por etapa | dentro de 3-6 | nombres por parte | capturas narradas/etapa | con autor | reparto en la fuga |
+| ----------- | ---------------------: | ------------: | ----------------: | ----------------------: | --------: | -----------------: |
+| `llana-180` |    mediana **4** (0-8) |     **85,0%** |                 3 |                    3,09 | **40,2%** |      80% de etapas |
+| `reina-150` |    mediana **4** (0-6) |     **83,3%** |                 3 |                    2,82 | **34,9%** |      22% de etapas |
+
+Las etapas con **0 partes** son las que **no forman fuga del día** (5,8% en llano, 6,7% en montaña
+según el banco de la capa táctica): sin nada delante no hay a quién atribuir nada, y es correcto.
+Que solo el 35-40% de las capturas tenga autor **es el objetivo, no un defecto**: la mayoría de las
+capturas narradas son intentos pequeños que el pelotón absorbe sin apretar.
+
+Ajuste del throttle, medido:
+
+| `pullReportMinKmGap` / `pullReportKmGap` | partes por etapa (llana) | Ronde real |
+| ---------------------------------------- | -----------------------: | ---------: |
+| 9 / 30, comparando la LISTA de nombres   |                     5,43 |       6,25 |
+| 12 / 36, comparando la LISTA de nombres  |                     4,10 |       5,17 |
+| **12 / 36, comparando QUIÉN MANDA**      |                 **4,10** |   **5,17** |
+
+Comparar la lista entera producía **17 partes** en el peor caso del Ronde: en un pelotón que se rompe
+en cada muro el tercer nombre nunca repite. Comparando solo el primero, el peor caso baja a 13 y la
+mediana a 5 en 278 km.
+
+### La voz de la crónica: equipo o corredores
+
+La regla de la casa —con un grupo grande manda el EQUIPO, con uno pequeño se nombra a los
+CORREDORES, umbral `STAGE.frontNamesMaxRiders`— se respeta, y encima de ella va la del encargo: si
+los que tiran son **todos del mismo equipo** se dice el equipo; si son de **equipos distintos** se
+dicen los nombres, porque una alianza es información distinta y más interesante.
+
+Medido sobre campos con equipos de verdad (40 semillas por casilla), qué voz sale:
+
+| Campo          | «Cumbre Escuadra have taken the front» | «X, Y and Z share the work» |
+| -------------- | -------------------------------------: | --------------------------: |
+| 8 equipos × 5  |                                   2,4% |                       97,6% |
+| 12 equipos × 8 |                                   5,7% |                       94,3% |
+| 20 equipos × 8 |                                  11,8% |                       88,2% |
+
+**La voz de equipo es rara, y hay que decirlo.** No es un defecto de la crónica sino del modelo: el
+turno de relevos lo decide `relayDuty` **corredor a corredor** (rol, frescura, jitter), no un plan de
+equipo, así que los tres que más tiran suelen ser gregarios de tres equipos distintos. Es la misma
+laguna que anota la v10 («la caza sigue siendo un solo escalar de etapa, no un plan por equipo con
+presupuesto de esfuerzo», docs/motor.md §V.1): el día que exista ese plan —y `StageRider` traiga
+`teamId`— esta frase saldrá con la voz que el dueño espera **sin tocar la crónica**.
+
+### Invariantes: qué se movió
+
+**Nada.** `pnpm sim`, 500 simulaciones por escenario, antes y después:
+
+| Medida                             | v10           | v11           | Objetivo          |
+| ---------------------------------- | ------------- | ------------- | ----------------- |
+| Gana la fuga (llana)               | 3,8%          | 3,8%          | 2-8%              |
+| Gana el mejor sprinter             | 35,4%         | 35,4%         | 30-45%            |
+| Captura mediana (km a meta)        | 22,4          | 22,4          | 8-25              |
+| Gana la fuga (montaña)             | 42,4%         | 42,4%         | 25-45%            |
+| Brecha 1º-10º (s)                  | 227           | 227           | 60-300            |
+| CRI: brecha p90-p10 / especialista | 233 / 99,8%   | 233 / 99,8%   | 120-240 / 90-100% |
+| Erosión llana / reina              | 0,007 / 0,212 | 0,007 / 0,212 | 0-0,02 / 0,2-0,5  |
+| Erosión clásica larga              | 0,614         | 0,614         | 0,45-0,8          |
+| Erosión reina 3.ª semana           | 0,690         | 0,690         | 0,6-0,85          |
+| Erosión la clásica más dura        | 0,866         | 0,866         | 0,45-0,92         |
+
+Y `pnpm sim:tactics`, las seis secciones anteriores **idénticas dígito a dígito**: 14 intentos por
+etapa y 23,7% que cuajan en llano, la fuga sale en el km 22,05, 32 guiones distintos de 120, 53,3%
+de finales en alto decididos por ataque, 1 corredor que se deja ir con 4,6% de peor retraso, y la
+caza por campo en 32,0% / 4,0% / 0,0%. **Ningún rango objetivo de `sim/targets.ts` se ha tocado.**
+
+El único número de test que ha habido que mover es el techo de líneas narrables por etapa del banco
+de la criba (`simulate.test.ts`), de 40 a 46: el peor caso medido pasa de 40 a 41 porque hay tres
+familias de frase nuevas. No es narrar más de lo mismo; son líneas que antes no existían.
+
+### Lo que este cambio NO hace
+
+- **No mueve un solo segundo.** Es observación pura: ni azar nuevo (no hace falta ningún subflujo),
+  ni física nueva, ni una constante de comportamiento tocada.
+- **No mete equipos en el motor.** Sigue sin conocerlos: nombra corredores y la web resuelve.
+- **No hay plan de caza por equipo.** Por eso la voz de equipo sale poco (ver arriba). Es §V.1.
+- **No expone los contadores en `StageOutput`.** Si algún día una vista quiere el ranking de trabajo
+  del día —«el más combativo», el premio de la etapa— habrá que exponer `frontWorkPeloton` y
+  `frontWorkMove`; hoy no hace falta para la crónica y por tanto no se expone.
+- **No narra la pájara ni el descuelgue individual**, que siguen siendo los agujeros abiertos del
+  Cambio 5 (docs/motor.md §16).
+
+### Lo que hay que vigilar
+
+- **`chase_work` puede decir «cerraron 2:53 en los últimos 137 km».** Es verdad —la persecución
+  empezó en la cúspide del boquete— pero en una etapa donde el pelotón nunca se rindió del todo la
+  cifra de km es grande y suena rara. Si molesta, la perilla es medir desde la última vez que el
+  boquete estuvo por encima de un umbral, no desde la cúspide absoluta.
+- **La ventana de olvido (0,87 por km, vida media ~5 km) es la perilla sensible del parte.** Más
+  olvido y el parte pasa a decir quién dio el último relevo; menos y vuelve a decir quién ha tirado
+  más en toda la etapa, que era justo lo que no se quería.
+- **`break_share` sale en el 80% de las llanas y en el 22% de las reinas.** La diferencia es real (en
+  montaña la fuga se rompe antes de asentarse los 25 km que pide el evento), pero si en producción
+  cansa en las llanas, la perilla es `breakShareUnevenFactor`.
