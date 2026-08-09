@@ -1093,7 +1093,7 @@ Campaña de **200 semillas** por escenario (`pnpm sim 200`), la misma antes y de
 | Erosión clásica larga                   | 0,630                   | **0,626**                 | 0,45 – 0,80           |
 | Erosión reina 3.ª semana                | 0,662                   | **0,680**                 | 0,60 – 0,85           |
 | Erosión la clásica más dura             | 0,869                   | **0,844**                 | ≤ 0,92                |
-| Ninguna clásica WT satura               | peor 0,908 / 3% pájaras | **peor 0,885 / 5%**       | ≤ 0,95 y ≤ 10%        |
+| Ninguna clásica WT satura               | peor 0,908 / 3% pájaras | **peor 0,903 / 8,3%**     | ≤ 0,95 y ≤ 10%        |
 | Ratio de relevos (relevador/protegido)  | 1,135                   | **> 1,10**                | > 1,10                |
 | Velocidad llana / reina / CRI           | 43,99 / 37,52 / 50,59   | **44,05 / 37,56 / 50,35** | 42-45 / 33-38 / 48-52 |
 | Roubaix: PAV mediano del ganador        | 81 (rango 45-83)        | **76**                    | ≫ 64 (azar)           |
@@ -1133,3 +1133,14 @@ Campaña de **200 semillas** por escenario (`pnpm sim 200`), la misma antes y de
 - **`shelterAlone` (0,0) sigue sin usarse**: un corredor solo paga `shelterRelay` (0,5), es decir,
   se le regala el rebufo de un grupo que no tiene. Corregirlo encarece todas las escapadas en
   solitario y es una recalibración en sí misma.
+
+### 10. Lo que hay que vigilar
+
+**Il Lombardia se ha quedado a dos décimas del techo de pájaras.** El invariante «ninguna clásica
+del WT satura» exige ≤ 10% de tanques a cero, y la carrera más dura del calendario mide **8,3% con
+las 3 semillas que corre CI y 9,6% con 30**. Antes de la capa táctica medía 3%. La causa está
+identificada y medida —cada ataque cuesta `tacticAttackCost` y en un monumento hay sitio para
+muchos—, y la palanca, si hace falta, es esa constante o `tacticMinEnergyFraction` (nadie ataca por
+debajo del 25% de depósito: subirlo apaga los ataques justo donde el pelotón va vacío, que es donde
+molestan). No se toca ahora porque el invariante pasa, y moverla arrastra otra vez las cinco bandas
+de erosión — que están calibradas en una ventana de dos centésimas.
