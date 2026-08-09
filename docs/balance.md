@@ -1144,3 +1144,276 @@ muchos—, y la palanca, si hace falta, es esa constante o `tacticMinEnergyFract
 debajo del 25% de depósito: subirlo apaga los ataques justo donde el pelotón va vacío, que es donde
 molestan). No se toca ahora porque el invariante pasa, y moverla arrastra otra vez las cinco bandas
 de erosión — que están calibradas en una ventana de dos centésimas.
+
+---
+
+## v10 — Composición y caza: que la carrera tenga algo que morder (`engine_version` 9 → 10)
+
+Las dos mitades de **la misma queja del dueño**, que arrastrábamos desde la v7: un corredor con
+**4 estrellas en sprint y 1-2 en todo lo demás** ganaba 4 de las 5 etapas de `race-sharjah` **y la
+general**. El modelo de final (v7) y la capa táctica (v9) mejoraron mucho el síntoma, pero el fondo
+seguía intacto: **esa carrera no tenía nada que morder**. Y no lo tenía por dos razones distintas,
+una de recorrido y otra de motor.
+
+> «No existen carreras por etapas de 5 etapas llanas en la realidad. Mira el perfil del Tour de
+> Sharjah: tuvo 1 contrarreloj y 2 etapas con puertos.»
+>
+> «Las etapas llanas no siempre tienen por qué llegar al sprint: puede haber escapados. En 5 etapas
+> llanas esperaría que al menos una no fuese al sprint.»
+
+### Parte 1 — La composición de una vuelta generada (`routes/calendar.ts::stageMix`)
+
+Afecta a las **1.083 continentales y 61 ProSeries** con perfil de autoría. **No toca** las 8 clásicas
+con recorrido real de `classicRoutes.ts`, las 17 carreras con `STAGE_FEATURES` ni las ediciones
+verificadas (grandes vueltas, Volta a Portugal): eso es dato curado y atribuido, y ahora hay un test
+que lo vigila etapa a etapa (`las carreras con recorrido REAL no pasan por la mezcla`).
+
+**Lo que hacía el generador anterior**, medido:
+
+| Defecto                                            | Consecuencia                                                            |
+| -------------------------------------------------- | ----------------------------------------------------------------------- |
+| `if (n >= 6 && i === n - 2 && terrain !== 'flat')` | Una vuelta de **5 etapas no podía llevar crono jamás**                  |
+| …y la segunda condición                            | Una vuelta de terreno **llano tampoco**, tuviera las etapas que tuviera |
+| `hillySegments` acaba con relleno ondulado         | Toda la media montaña **moría en el valle** → sprint igual              |
+| `last ? (mountain ? reina : flat)`                 | La **última etapa era llana** salvo en alta montaña                     |
+| Km fijos (180/185/172/170/150)                     | Todas las carreras generadas medían **exactamente lo mismo**            |
+
+`race-sharjah` caía en las dos exclusiones a la vez.
+
+#### La composición, antes y después
+
+El «antes» es determinista (un `i % 2`), así que una sola fila lo describe entero. El «después» es
+un sorteo sembrado por carrera; se enseñan tres carreras reales del calendario para ver la variedad.
+
+**3 etapas, terreno llano**
+
+- ANTES · `Flat 180 · Hills 170 · Flat 150`
+- AHORA · `Flat 174 · Hills 167 · Hills 151` / `Flat 189 · Hills 165 · Hills 137` / `Flat 171 · Hills 183 · Hills 150`
+
+**5 etapas, terreno llano** (el caso Sharjah)
+
+- ANTES · `Flat 180 · Hills 170 · Flat 185 · Hills 170 · Flat 150` — y las dos «Hills» llevan
+  10-11 km de puerto con final llano, así que **acaban al sprint igual**: cinco sprints garantizados.
+- AHORA · `Flat 169 · Flat 176 · Hills 181 · ITT 15 · Uphill finish 130` (es `race-sharjah`) /
+  `Flat 168 · Hills 187 · ITT 22 · Uphill finish 164 · Flat 155` /
+  `Flat 170 · Uphill finish 159 · ITT 15 · Hills 178 · Flat 159`
+
+**7 etapas, terreno de media montaña**
+
+- ANTES · `Flat 180 · Hills 172 · Flat 178 · Hills 172 · Flat 178 · ITT 22 · Flat 150`
+- AHORA · `Flat 187 · Hills 185 · Hills 163 · Uphill finish 169 · ITT 22 · Hills 169 · Flat 143` /
+  `Flat 179 · Flat 176 · Uphill finish 154 · Summit finish 166 · Hills 174 · Summit finish 163 · Uphill finish 152`
+
+**21 etapas, alta montaña** (hipotético: las tres grandes vueltas usan su edición real)
+
+- ANTES · `Flat 180` y luego **`Hills 175 · Summit 160` alternándose diecinueve veces**, con la
+  crono en la penúltima y una reina final. Literalmente un patrón de damero.
+- AHORA · `Flat 187 · Hills 173 · Flat 181 · Hills 163 · Hills 171 · Uphill finish 164 · Hills 180 ·
+ITT 28 · Uphill finish 165 · Hills 182 · Summit finish 152 · Summit finish 171 · Hills 190 ·
+Uphill finish 151 · Hills 183 · Hills 188 · Uphill finish 173 · Summit finish 164 · Flat 191 ·
+ITT 29 · Flat 148`
+
+#### Las proporciones que salen (400 carreras sintéticas por casilla)
+
+|   n | terreno  | lleva crono | lleva final en alto | última llana | etapas con puertos |
+| --: | -------- | ----------: | ------------------: | -----------: | -----------------: |
+|   3 | flat     |         56% |                 59% |           0% |           1,4 de 3 |
+|   3 | hilly    |         57% |                 73% |           0% |           1,4 de 3 |
+|   3 | mountain |         63% |                 86% |           0% |           1,4 de 3 |
+|   5 | flat     |    **100%** |            **100%** |          73% |       **2,0 de 5** |
+|   5 | hilly    |         61% |                100% |          14% |           3,1 de 5 |
+|   5 | mountain |         57% |                100% |           0% |           3,4 de 5 |
+|   7 | flat     |        100% |                100% |          68% |           3,1 de 7 |
+|   7 | hilly    |         89% |                100% |          49% |           4,2 de 7 |
+|   7 | mountain |         90% |                100% |           2% |           5,0 de 7 |
+|  21 | flat     |        100% |                100% |          89% |          8,5 de 21 |
+|  21 | hilly    |         89% |                100% |          74% |         12,9 de 21 |
+|  21 | mountain |         87% |                100% |          67% |         15,6 de 21 |
+
+Sobre las **72 vueltas por etapas generadas del calendario**: 69% llevan crono, 96% llevan un final
+en alto, el 14% cierra con una etapa llana y **ninguna se queda sin crono ni final en alto** (antes:
+crono el 24% y, entre las generadas de terreno llano, ni una).
+
+La fila de 5 etapas llanas es el objetivo declarado por el dueño y sale clavada: **1 crono y 2
+etapas con puertos**, que es lo que tuvo el Tour de Sharjah real.
+
+#### Decisiones y por qué
+
+1. **La crono va al revés de como estaba.** Una vuelta LLANA de 4+ etapas la lleva **siempre**
+   (`ittAlwaysFlatStages`), porque en una vuelta sin puertos la crono es lo único que puede abrir una
+   general: prohibirla ahí, que es lo que hacía el código, era exactamente al revés. En montaña la
+   general la hacen los puertos y la crono es opcional (`ittChanceShort` 0,6 / `ittChanceWeek` 0,9).
+2. **Etapa nueva: media montaña que muere arriba** (`hillyUphillSegments`, etiqueta `Uphill finish`,
+   tipo `media`). Una cota final de 4-8 km al 5-7,5% sin nada detrás. El modelo de final (§12) la
+   clasifica como `alto` —cota de ≥3 km que muere en meta— y la resuelve con MON/COL y RES, no con
+   SPR. Es la pieza que da algo que morder a una vuelta corta sin alta montaña.
+3. **La última etapa puede ser decisiva** (`lastDecisiveChance` 0,30 / 0,55 / 0,85 por terreno), con
+   un factor de 0,4 en vueltas de 15+ etapas, porque una gran vuelta sí termina con la etapa de
+   trámite y una vuelta de cinco días no tiene por qué.
+4. **Dos garantías** que impiden que el sorteo devuelva una carrera que no existe: un mínimo de
+   etapas con puertos (`selectiveMinFraction`) y, en vueltas de 4+, al menos un final en alto. Y por
+   debajo de todo, la de fondo: **ninguna vuelta se queda sin crono NI final en alto**.
+5. **Los kilometrajes varían** dentro de un rango por tipo, y la última etapa es un 15% más corta.
+   Antes las 1.144 carreras generadas medían todas lo mismo.
+
+### Parte 2 — La caza depende del campo (`stage/chase.ts`)
+
+El motor decidía la persecución con esto:
+
+```ts
+const chasingSprinters = input.riders.some(isSprinter) && finishFlat
+```
+
+Un interruptor global: **bastaba UN corredor con SPR ≥ 70** para que el pelotón entero persiguiera
+con toda su fuerza, y se aplicaba igual en una continental modesta que en una gran vuelta con cinco
+trenes organizados. En el ciclismo real la fuga llega mucho más a menudo en las carreras pequeñas
+justamente porque allí **no hay equipos capaces de organizarse para cazarla**.
+
+#### Cómo se modela la fuerza de la caza
+
+Un **tren** es un rematador con opciones reales más los compañeros que trabajan para él. El motor no
+conoce equipos —`StageRider` no trae `teamId`—, pero sí conoce el trabajo de equipo: lanzadores y
+gregarios apuntan a su jefe de filas con `targetRiderId` (SPEC 6.18), y **eso es el tren**. En
+producción los reparte `world/autoOrders.ts`: un equipo nombra sprinter al suyo solo si pasa de 68
+de SPR y le pone un lanzador y hasta dos gregarios; un equipo continental sin rematador no nombra a
+ninguno y por tanto no aporta nada a la caza. El modelo lee la realidad que ya existe, no inventa
+estado nuevo.
+
+```
+rematador con opciones = (rol sprinter o SPR ≥ 70) y a menos de 12 de punta del mejor del campo
+calidad q              = clamp((SPR − 60) / (85 − 60), 0, 1)
+unidades del tren      = q · (1 + 0,15 · min(compañeros, 3))
+FUERZA                 = clamp(Σ unidades / 2,5, 0, 1)
+```
+
+El divisor 2,5 es la definición operativa de «campo que caza cualquier cosa»: tres rematadores de
+primer nivel llegan solos; con trenes montados bastan dos.
+
+La fuerza escala **tres cosas** del controlador del pelotón, más el tirón final:
+
+| Perilla                            | Fuerza 1 (gran vuelta) | Fuerza 0,29 (carrera modesta) |
+| ---------------------------------- | ---------------------- | ----------------------------- |
+| Cuerda máxima a la fuga            | 195 s                  | **278 s**                     |
+| Tope de esfuerzo del pelotón       | 1,00                   | **0,84**                      |
+| Tirón final de los trenes (15 km)  | 0,85                   | **0,76**                      |
+| Cierre viable antes de rendirse    | 8,0 s/km               | **5,7 s/km**                  |
+| Por debajo de `chaseMinForce` 0,12 | —                      | no hay caza organizada        |
+
+**La interpolación respeta los extremos exactamente** (`lerp(a, b, t) = (1−t)·a + t·b`, no
+`a + (b−a)·t`). No es pedantería: con la forma ingenua, `0,55 + (0,85 − 0,55)·1` da
+`0,8500000000000001` y **la llana canónica se movería** por un error de coma flotante. Con la fuerza
+a 1 el controlador produce hoy los mismos números que antes de esta capa, bit a bit, y por eso
+ningún invariante de balance se ha movido.
+
+#### Lo medido: la misma etapa llana, tres campos distintos
+
+Cinco etapas llanas (recorrido canónico `llana-180`) × 10 semanas, el mismo campo de 40:
+
+| Campo                                        | Fuerza | Trenes | Sin sprint masivo | Mediana de 5 | Gana un escapado |
+| -------------------------------------------- | -----: | -----: | ----------------: | -----------: | ---------------: |
+| **Carrera modesta** (SPR 78 sin equipo)      |   0,29 |      1 |         **32,0%** |      **1,5** |            32,0% |
+| **ProSeries** (2 trenes de 74-76 + lanzador) |   0,55 |      2 |              4,0% |            0 |             4,0% |
+| **Gran vuelta** (5 trenes de 82-90 + 3)      |   1,00 |      5 |              0,0% |            0 |             0,0% |
+
+El criterio del dueño —«en 5 etapas llanas de una carrera modesta, al menos una debería resolverse
+sin sprint masivo»— se cumple con **1,5 de 5 de mediana**, y la diferencia entre categorías, que es
+lo que se buscaba, es de 32% a 0%.
+
+#### Calibración de las perillas nuevas
+
+Todas se movieron midiendo el mismo banco (5 llanas × 10-30 semanas, campo modesto):
+
+| Perilla                  | Probado              | Efecto en «sin sprint masivo» (campo modesto)                          |
+| ------------------------ | -------------------- | ---------------------------------------------------------------------- |
+| `chaseWeakLeashGain`     | 1,2 → 0,8 → 0,6      | 74% → 50% → **32%**                                                    |
+| `chaseWeakCommitCap`     | (0,55) → 0,75 → 0,78 | idem, es la que más pesa: sin tope de esfuerzo el pelotón cierra igual |
+| `chaseWeakFinalDrive`    | (0,55) → 0,70 → 0,72 | el tirón de los últimos 15 km sin trenes que lo den                    |
+| `chaseWeakFeasibleFloor` | 0,35 → 0,5 → 0,6     | cuándo se rinde un campo flojo                                         |
+
+El primer juego (1,2 / 0,55 / 0,55 / 0,35) daba **74% de etapas sin sprint y 4 de 5 de mediana**:
+pasarse al otro lado. Una continental modesta sigue siendo una carrera de sprinters, solo que **no
+siempre**.
+
+### El caso Sharjah, remedido con las dos cosas hechas
+
+`race-sharjah` completa, con su nueva composición (`Flat 169 · Flat 176 · Hills 181 · ITT 15 ·
+Uphill finish 130`) y el campo del banco: un sprinter deliberadamente malo —**SPR 78 y 45 en todo lo
+demás**— contra 39 rivales continentales mejores que él en cualquier otra faceta.
+
+| Medida                                              | v9 (10 generales) | v10 (10 generales) | v10 (30 generales) |
+| --------------------------------------------------- | ----------------: | -----------------: | -----------------: |
+| **Generales que gana el sprinter malo**             |          **2/10** |           **0/10** |           **0/30** |
+| Etapas que gana el sprinter malo                    |             10/50 |               8/50 |             21/150 |
+| **Etapas con diferencias de tiempo reales**         |         **30,0%** |          **64,0%** |          **70,7%** |
+| Corredores con el tiempo del ganador (mediana / 40) |            **40** |              **2** |              **2** |
+| Margen mediano de la general                        |              31 s |               65 s |             89,5 s |
+
+**Un corredor con 1 estrella en crono ya no gana esa general**: 0 de 30. Sigue ganando etapas —14%
+de ellas—, y debe: es sprinter y en el calendario hay tres finales que se disputan al sprint. Lo que
+ya no puede es ganar la carrera, porque pierde la crono y el final en alto contra rivales que le
+sacan 20-25 puntos en todo lo que no sea la punta de velocidad.
+
+### Invariantes: qué se movió
+
+**Ningún rango objetivo ha hecho falta reajustarlo.** `pnpm sim`, antes y después:
+
+| Medida                             | v9            | v10           | Objetivo          |
+| ---------------------------------- | ------------- | ------------- | ----------------- |
+| Gana la fuga (llana)               | 3,8%          | 3,8%          | 2-8%              |
+| Gana el mejor sprinter             | 35,4%         | 35,4%         | 30-45%            |
+| Captura mediana (km a meta)        | 22,4          | 22,4          | 8-25              |
+| Gana la fuga (montaña)             | 42,4%         | 42,4%         | 25-45%            |
+| Brecha 1º-10º (s)                  | 227           | 227           | 60-300            |
+| CRI: brecha p90-p10 / especialista | 233 / 99,8%   | 233 / 99,8%   | 120-240 / 90-100% |
+| Erosión llana / reina              | 0,007 / 0,212 | 0,007 / 0,212 | 0-0,02 / 0,2-0,5  |
+| Erosión clásica larga              | 0,617         | 0,614         | 0,45-0,8          |
+| Erosión reina 3.ª semana           | 0,690         | 0,690         | 0,6-0,85          |
+| Erosión la clásica más dura        | 0,868         | 0,866         | 0,45-0,92         |
+
+Los **rangos de fuga** (llano 2-8%, montaña 25-45%) **no se han tocado y no se han movido**, que era
+el riesgo declarado del encargo. La razón es de diseño, no de suerte: los escenarios canónicos
+`llana-180` y `reina-150` traen **tres sprinters de SPR 84-86**, así que su fuerza de caza vale
+exactamente 1 y el controlador se comporta como siempre. Lo que cambia es lo que ANTES no se medía:
+el campo flojo.
+
+Las dos décimas de la clásica larga (0,617 → 0,614) y de la más dura (0,868 → 0,866) vienen del
+único efecto colateral real: en un campo **sin rematadores** (el campo homogéneo de eff 60 con que
+se miden los recorridos) el tirón final de los últimos 15 km baja de 0,85 a 0,72, porque no hay
+trenes que lo den. Gasta un pelo menos, erosiona un pelo menos. Es el comportamiento correcto.
+
+**El margen de Il Lombardia sigue exactamente donde estaba**: vaciado 0,901 y **8,3% de pájaras**
+contra el techo del 10% (3 semillas, las de CI). Este trabajo no lo ha tocado.
+
+Y `pnpm sim:tactics`: las cinco medidas de la capa táctica salen **idénticas** (14 intentos por
+etapa, 23,7% que cuajan, fuga en el km 22,05, 32 guiones distintos, 53,3% de finales en alto
+decididos por ataque, 1 corredor que se deja ir con 4,6% de peor retraso), por la misma razón. Se
+añade la sección 6, la de la caza según el campo.
+
+### Lo que este cambio NO hace
+
+- **No toca los recorridos reales.** Las 8 clásicas de `classicRoutes.ts`, las 17 carreras con
+  `STAGE_FEATURES` y las ediciones verificadas siguen exactamente igual, y ahora hay un test que lo
+  comprueba etapa a etapa contra los km de la edición.
+- **El generador de perfiles sigue siendo de autoría, no dato real.** Una `Uphill finish` es una cota
+  verosímil, no la cota de una carrera concreta (docs/motor.md §V.3, punto 3 del orden de trabajo).
+- **La fuerza de la caza no distingue equipos de verdad**, porque el motor no los conoce: infiere el
+  tren de `targetRiderId`. El día que `StageRider` traiga `teamId` (§V.1), esto se lee mejor y sin
+  cambiar la fórmula.
+- **La caza sigue siendo un solo escalar para toda la etapa.** No hay «este equipo tira y este otro
+  no», ni un presupuesto de esfuerzo por equipo que se agote: eso es la capa de intenciones por
+  equipo de §V.1, que sigue pendiente.
+- **La general de una carrera modesta ahora la abren la crono y el final en alto**, no una carrera
+  más táctica en las llanas. Es lo correcto para este encargo, pero conviene decirlo: el 70,7% de
+  etapas con diferencias de tiempo de Sharjah sale sobre todo de que el calendario por fin tiene dos
+  días que reparten.
+
+### Lo que hay que vigilar
+
+- **La composición se sortea por carrera y el sorteo tiene cola.** Las garantías cubren el suelo
+  (nunca una vuelta sin nada que morder) pero no el techo: una vuelta de 21 etapas de terreno llano
+  puede salir con once llanas seguidas antes de la primera cota. No pasa en el calendario actual
+  —las tres grandes vueltas usan su edición real— pero saldría si algún día se generase una.
+- **El campo modesto está en el 32% de etapas sin sprint masivo.** Es el número que pidió el dueño,
+  pero está en la banda alta de lo razonable: si en producción los campos continentales resultan
+  tener menos SPR de lo que supone el banco, la fuga podría llegar demasiado. La perilla es
+  `chaseWeakCommitCap`, que es la que más pesa de las cuatro.

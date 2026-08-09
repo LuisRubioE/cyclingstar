@@ -2,8 +2,8 @@
 
 Estado: **documento vivo.** Las Partes I y II son el diagnóstico (medido) y siguen valiendo como
 retrato de lo que había. En la Parte III cada cambio lleva su estado: **§12-bis hecho** (v3),
-**§16 primera entrega** (v6), **§12 hecho** (v7) y **§13 hecho** (v9). Lo demás sigue siendo
-propuesta.
+**§16 primera entrega** (v6), **§12 hecho** (v7), **§13 hecho** (v9) y **§18 hecho** (v10). Lo demás
+sigue siendo propuesta.
 
 Ámbito: `packages/engine/src/stage/` (2.333 líneas sin tests). Referencias a SPEC 6.
 
@@ -546,17 +546,58 @@ y que los replays dejan de depender de re-simular.
 
 ### 17. Orden de trabajo propuesto
 
-| #   | Trabajo                                                        | Por qué en este puesto                                                                                                                                                |
-| --- | -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0   | **Desgaste + controlador del pelotón + velocidades** (§12-bis) | Es la raíz medida. Sin desgaste y con el controlador atado a la fuga, nada de lo demás puede dar resultados creíbles. No depende de los perfiles: se puede empezar YA |
-| 1   | ~~Modelo de final (§12)~~ **HECHO (v7)**                       | Máximo impacto por esfuerzo una vez hay desgaste: arregla "gana quien no debe"                                                                                        |
-| 2   | Selección en pavés/descenso (§14) y fatiga (§15)               | Hoy el pavés no existe como terreno (brecha de 0 s) y nadie abandona                                                                                                  |
-| 3   | **Perfiles reales** (extracción y validación)                  | Entrada del motor. Necesarios **antes de la recalibración final**, no antes de las correcciones estructurales                                                         |
-| 4   | ~~Capa táctica (§13)~~ **HECHO (v9)**                          | El desarrollo grande. Es lo que hace que las carreras se distingan entre sí                                                                                           |
-| 5   | Telemetría (§16)                                               | Habilita el journal y las vistas nuevas                                                                                                                               |
-| 6   | Recalibración completa con Montecarlo                          | Solo al final, con entradas buenas y mecánicas completas                                                                                                              |
+| #   | Trabajo                                                              | Por qué en este puesto                                                                                                                                                |
+| --- | -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0   | **Desgaste + controlador del pelotón + velocidades** (§12-bis)       | Es la raíz medida. Sin desgaste y con el controlador atado a la fuga, nada de lo demás puede dar resultados creíbles. No depende de los perfiles: se puede empezar YA |
+| 1   | ~~Modelo de final (§12)~~ **HECHO (v7)**                             | Máximo impacto por esfuerzo una vez hay desgaste: arregla "gana quien no debe"                                                                                        |
+| 2   | Selección en pavés/descenso (§14) y fatiga (§15)                     | Hoy el pavés no existe como terreno (brecha de 0 s) y nadie abandona                                                                                                  |
+| 3   | **Perfiles reales** (extracción y validación)                        | Entrada del motor. Necesarios **antes de la recalibración final**, no antes de las correcciones estructurales                                                         |
+| 4   | ~~Capa táctica (§13)~~ **HECHO (v9)**                                | El desarrollo grande. Es lo que hace que las carreras se distingan entre sí                                                                                           |
+| 5   | Telemetría (§16)                                                     | Habilita el journal y las vistas nuevas                                                                                                                               |
+| 6   | Recalibración completa con Montecarlo                                | Solo al final, con entradas buenas y mecánicas completas                                                                                                              |
+| —   | ~~Composición de la carrera y caza por campo (§18)~~ **HECHO (v10)** | Se coló delante del 2 y del 3 porque sin ella el motor no tenía nada que resolver: la carrera generada no repartía tiempo por ninguna parte                           |
 
 Cada cambio de comportamiento incrementa `engine_version` y se anota en `docs/balance.md`.
+
+### 18. Cambio 6 — Que la carrera tenga algo que morder (HECHO, v10)
+
+> **Implementado en `engine_version` 10.** La composición vive en `routes/calendar.ts::stageMix`
+> (proporciones en `ROUTE`) y la caza en `stage/chase.ts`. Los números de antes y después están en
+> docs/balance.md, «v10 — Composición y caza».
+
+Es la mitad que faltaba de la queja que abría este documento —«un sprinter con 45 en todo lo demás
+gana 4 de 5 etapas y la general»— y que ni el modelo de final (§12) ni la capa táctica (§13) podían
+cerrar, porque **el problema no estaba solo en el motor: estaba en la carrera**.
+
+**18.1 La carrera no existía.** El generador de composición era un `i % 2` con dos excepciones y
+producía vueltas que no se corren en ninguna parte: una vuelta de 5 etapas **no podía llevar crono
+jamás** (se exigían 6+), con terreno llano **tampoco la llevaba nunca** tuviera las etapas que
+tuviera, la media montaña generada **siempre acababa en el valle** —o sea, al sprint— y la última
+etapa era llana salvo en alta montaña. `race-sharjah` caía en las dos exclusiones a la vez: cinco
+sprints garantizados por construcción y una general que solo repartía bonificaciones. Es el punto
+ciego que ya anotaba §10 («1.271 etapas del calendario usan perfiles generados que nunca se han
+validado contra nada»), visto desde la composición y no desde el perfil.
+
+Ahora la vuelta se compone como la compone un organizador —crono, última etapa, relleno por terreno
+y garantías— y hay un tipo de etapa nuevo, **la media montaña que muere arriba**, que es lo que da
+algo que morder a una vuelta corta sin alta montaña. Con dos garantías de suelo: un mínimo de etapas
+con puertos y, por debajo de todo, **ninguna vuelta se queda sin crono ni final en alto**.
+
+**18.2 El pelotón no sabía a qué carrera estaba corriendo.** `chasingSprinters` era un interruptor
+global —`riders.some(SPR ≥ 70) && finishFlat`— así que **un solo corredor rápido** ponía al pelotón
+entero a perseguir con toda su fuerza, exactamente igual en una continental modesta que en una gran
+vuelta con cinco trenes. En el ciclismo real la fuga llega mucho más a menudo en las carreras
+pequeñas y no es casualidad: es que allí no hay equipos capaces de organizarse para cazarla.
+
+`stage/chase.ts` mide los **trenes** del campo (un rematador con opciones reales más los compañeros
+que le apuntan con `targetRiderId`, que es lo más parecido a un equipo que conoce el motor) y con
+ellos escala la cuerda que da el pelotón, el tope de esfuerzo con que puede cerrar, el tirón final
+de los últimos kilómetros y cuándo se rinde. Con el campo a fuerza plena el controlador da los
+mismos números que antes, así que los invariantes de balance no se mueven.
+
+Lo que **no** hace, y queda anotado: la caza sigue siendo un solo escalar de etapa, no un plan por
+equipo con presupuesto de esfuerzo (§V.1); y la fuerza se infiere de las órdenes porque
+`StageRider` todavía no trae `teamId`.
 
 ---
 
