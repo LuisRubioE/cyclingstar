@@ -206,6 +206,92 @@ export function chronicleLine(e: ChronicleEntry): string {
       if (size === 2) return `Just two left in front${left}: ${who}${clear}.`
       return `Only ${size} riders left in front${left}: ${who}${clear}.`
     }
+    // --- La atribución del trabajo (v11, docs/motor.md §16) ---------------------------------
+    // Las dos preguntas del dueño: «quién tira del pelotón» y «no sé quién hizo el trabajo para
+    // reducir la distancia». El motor solo nombra CORREDORES —no conoce los equipos—; la voz de la
+    // frase se decide aquí, con `protagonistTeams` y con el tamaño del grupo.
+    case 'peloton_pull': {
+      const size = Number(e.datos?.size ?? 0)
+      const toGo = Number(e.datos?.toGo ?? 0)
+      const effort = String(e.datos?.effort ?? 'firme')
+      const left = toGo > 0 ? ` with ${toGo} km to go` : ''
+      const nTeams = e.protagonistTeams?.length ?? 0
+      // Con un grupo pequeño no tira un equipo, tira un corredor: es el mismo umbral con el que el
+      // motor decide nombrar a los de cabeza, para que la crónica no se contradiga en dos frases.
+      const small = size > 0 && size <= SMALL_FRONT_GROUP
+      const group = small ? 'the front group' : 'the bunch'
+      if (!small && nTeams === 1 && team) {
+        // Los que tiran son todos del MISMO equipo: eso es un equipo tomando la carretera.
+        if (effort === 'tope')
+          return pick([
+            `${team} have the bunch strung out in a single line${left}.`,
+            `${team} are drilling it on the front — the bunch is in one long line${left}.`,
+          ])
+        if (effort === 'tempo')
+          return pick([
+            `${team} have taken the front and settled into a steady tempo${left}.`,
+            `${team} line up at the head of the bunch and set a manageable pace${left}.`,
+          ])
+        return pick([
+          `${team} mass on the front and wind the pace up${left}.`,
+          `${team} take up the work at the head of the bunch${left}.`,
+          `The pace is in the hands of ${team}${left}.`,
+        ])
+      }
+      // Corredores de EQUIPOS DISTINTOS turnándose al frente es otra información, y más
+      // interesante: no es un equipo controlando, es una alianza que se ha montado en carretera.
+      if (!small && nTeams > 1)
+        return pick([
+          `${who} are sharing the work on the front of ${group}${left}.`,
+          `An alliance on the front${left}: ${who} are the ones doing the pulling.`,
+          `${who} take turns at the head of ${group}${left} — ${nTeams} different teams doing the work.`,
+        ])
+      const one = e.protagonists.length === 1
+      if (effort === 'tope')
+        return `${who || 'The leaders'} ${one ? 'is' : 'are'} flat out on the front of ${group}${left}.`
+      return pick([
+        `${who || 'The leaders'} ${one ? 'is' : 'are'} doing the pulling in ${group}${left}.`,
+        `The work in ${group} falls to ${who || 'the strongest'}${left}.`,
+      ])
+    }
+    case 'chase_work': {
+      // Quién cerró. El motor solo lo emite si de verdad hubo trabajo: una fuga que se hunde sola
+      // no tiene autor y no llega hasta aquí.
+      const closed = fmtGap(Number(e.datos?.closedS ?? 0))
+      const km = Number(e.datos?.km ?? 0)
+      const over = km > 0 ? ` over the last ${km} km` : ''
+      const nTeams = e.protagonistTeams?.length ?? 0
+      if (nTeams === 1 && team)
+        return pick([
+          `The work was ${team}'s: ${closed} pulled back${over}.`,
+          `${team} did the closing — ${closed} taken out of the lead${over}.`,
+          `It is ${team} who have driven the chase, clawing back ${closed}${over}.`,
+        ])
+      if (nTeams > 1)
+        return pick([
+          `${who} shared the chasing between them: ${closed} pulled back${over}.`,
+          `The catch belongs to ${who}, who took ${closed} out of the gap${over}.`,
+        ])
+      return pick([
+        `${who || 'The chasers'} did the work to close it: ${closed}${over}.`,
+        `${closed} pulled back${over}, and it was ${who || 'the chase'} who did it.`,
+      ])
+    }
+    case 'break_share': {
+      // Quién colabora y quién va a rueda dentro de la fuga. `break_cooperation` dice si el grupo
+      // se entiende; esto dice a costa de quién.
+      const passengers = Number(e.datos?.passengers ?? 0)
+      const one = e.protagonists.length === 1
+      const sitting =
+        passengers > 0
+          ? ` while ${passengers} of their companion${passengers === 1 ? '' : 's'} sit${passengers === 1 ? 's' : ''} on.`
+          : '.'
+      return pick([
+        `${who} ${one ? 'is' : 'are'} doing the lion's share of the work up front${sitting}`,
+        `Up the road the turns are uneven: ${who} keep${one ? 's' : ''} the move going${sitting}`,
+        `${who} ${one ? 'is' : 'are'} on the front of the break far more than anyone else${sitting}`,
+      ])
+    }
     case 'peloton_concedes':
       return pick([
         'The peloton concedes — the break is given room to fight for the win.',

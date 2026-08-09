@@ -330,3 +330,134 @@ describe('la crónica cuenta los ataques', () => {
     expect(line('rider_sits_up', { toGo: 18 }, ['Ana'])).toContain('18')
   })
 })
+
+// --- La atribución del trabajo (v11, docs/motor.md §16) -------------------------------------
+// «El Journal me gustaría que tuviera aún más detalle: por ejemplo quién tira del pelotón […] y no
+// sé quién hizo el trabajo para reducir la distancia.» El motor ya sabía las dos cosas y las tiraba;
+// aquí se comprueba que la frase las dice, y que dice EQUIPO o CORREDORES según toque.
+
+describe('quién tira del pelotón', () => {
+  const pull = (datos: Record<string, number | string>, who: string[], teams: string[]): string =>
+    chronicleLine(
+      event({
+        plantilla: 'peloton_pull',
+        km: 90,
+        protagonists: who,
+        protagonistTeams: teams,
+        datos,
+      }),
+    )
+
+  it('con un pelotón grande y un solo equipo al frente, manda el EQUIPO', () => {
+    const l = pull(
+      { size: 120, effort: 'firme', toGo: 60, chasing: 1 },
+      ['Ana', 'Bea'],
+      ['Summit Squad'],
+    )
+    expect(l).toContain('Summit Squad')
+    // Con un equipo tirando no se enumeran sus corredores: sería la misma información dos veces.
+    expect(l).not.toContain('Ana')
+    expect(l).toContain('60 km')
+  })
+
+  it('a tope, la frase dice que el pelotón va en fila india', () => {
+    const l = pull({ size: 120, effort: 'tope', toGo: 20, chasing: 1 }, ['Ana'], ['Summit Squad'])
+    expect(l).toMatch(/line/)
+  })
+
+  it('a tempo no se cuenta como si estuvieran matándose', () => {
+    const l = pull({ size: 120, effort: 'tempo', toGo: 100, chasing: 1 }, ['Ana'], ['Summit Squad'])
+    expect(l).toMatch(/tempo|manageable/)
+  })
+
+  it('si los que tiran son de EQUIPOS DISTINTOS, se nombran los corredores: es una alianza', () => {
+    const l = pull(
+      { size: 120, effort: 'firme', toGo: 45, chasing: 1 },
+      ['Ana', 'Bea'],
+      ['Summit Squad', 'Team Sol'],
+    )
+    expect(l).toContain('Ana')
+    expect(l).toContain('Bea')
+    expect(l).not.toContain('Summit Squad')
+  })
+
+  it('con un grupo pequeño no tira un equipo: tira un corredor', () => {
+    const l = pull({ size: 4, effort: 'firme', toGo: 12, chasing: 0 }, ['Ana'], ['Summit Squad'])
+    expect(l).toContain('Ana')
+    expect(l).not.toContain('Summit Squad')
+  })
+
+  it('cuenta la misma historia cada vez que se pinta el mismo evento', () => {
+    const e = event({
+      plantilla: 'peloton_pull',
+      protagonists: ['Ana', 'Bea'],
+      protagonistTeams: ['A', 'B'],
+      datos: { size: 100, effort: 'firme', toGo: 30, chasing: 1 },
+    })
+    expect(chronicleLine(e)).toBe(chronicleLine(e))
+  })
+})
+
+describe('quién hizo el trabajo para cerrar', () => {
+  const work = (who: string[], teams: string[]): string =>
+    chronicleLine(
+      event({
+        plantilla: 'chase_work',
+        km: 150,
+        protagonists: who,
+        protagonistTeams: teams,
+        datos: { closedS: 155, km: 32, work: 6.4 },
+      }),
+    )
+
+  it('dice cuántos segundos se cerraron y en cuántos km', () => {
+    const l = work(['Ana', 'Bea'], ['Summit Squad'])
+    expect(l).toContain('2:35')
+    expect(l).toContain('32 km')
+  })
+
+  it('un solo equipo detrás de la caza se lleva el crédito por su nombre', () => {
+    expect(work(['Ana', 'Bea'], ['Summit Squad'])).toContain('Summit Squad')
+  })
+
+  it('si cerraron varios equipos, se nombra a los corredores', () => {
+    const l = work(['Ana', 'Bea'], ['Summit Squad', 'Team Sol'])
+    expect(l).toContain('Ana')
+    expect(l).toContain('Bea')
+    expect(l).not.toContain('Summit Squad')
+  })
+
+  it('sin equipo conocido la frase sigue siendo una frase', () => {
+    const l = work(['Ana'], [])
+    expect(l).toContain('Ana')
+    expect(l).not.toMatch(/^\s|\s{2}|undefined/)
+  })
+})
+
+describe('quién colabora en la fuga', () => {
+  const share = (passengers: number, who: string[]): string =>
+    chronicleLine(
+      event({
+        plantilla: 'break_share',
+        km: 80,
+        protagonists: who,
+        datos: { size: 5, passengers, toGo: 90 },
+      }),
+    )
+
+  it('nombra a los que tiran y cuenta cuántos van a rueda', () => {
+    const l = share(2, ['Ana', 'Bea'])
+    expect(l).toContain('Ana')
+    expect(l).toContain('2 of their companions sit on')
+  })
+
+  it('con un solo pasajero la frase va en singular', () => {
+    expect(share(1, ['Ana', 'Bea'])).toContain('1 of their companion sits on')
+  })
+
+  it('sin pasajeros no se inventa la coletilla', () => {
+    const l = share(0, ['Ana'])
+    expect(l).not.toContain('sit')
+    expect(l).toContain('Ana')
+  })
+})

@@ -50,6 +50,10 @@ const EVENT_ORDER: Record<string, number> = {
   peloton_concedes: 1,
   sprinters_give_up: 1,
   time_gap: 2,
+  // Quién tira del pelotón va DESPUÉS del parte de ventaja: primero cuánto hay, luego quién está
+  // trabajando para cerrarlo. Y cómo se reparte el trabajo en la fuga, con lo demás de la fuga.
+  break_share: 2,
+  peloton_pull: 2.5,
   sprint_intermediate: 2,
   climb_kom: 3,
   peloton_split: 4,
@@ -59,6 +63,9 @@ const EVENT_ORDER: Record<string, number> = {
   // El parte de quién va en cabeza va DESPUÉS de lo que lo ha producido —el corte del grupo o la
   // captura de la fuga—: primero se cuenta qué ha pasado y luego quiénes han quedado delante.
   breakaway_caught: 5,
+  // «Quién hizo el trabajo para cerrar» va pegado a la captura que lo motiva, sea la de la fuga
+  // del día (5) o la de un intento cualquiera (1): siempre justo detrás, nunca suelto.
+  chase_work: 5.5,
   front_group: 6,
   final_km: 7,
   bunch_sprint: 7,
