@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   hasStageBreakdown,
   ordinal,
+  placeTone,
   raceResultKind,
   raceResultPlace,
   stagesSummary,
@@ -102,5 +103,18 @@ describe('desglose de etapas', () => {
   it('hay desglose siempre que la vuelta tenga etapas corridas', () => {
     expect(hasStageBreakdown(race())).toBe(true)
     expect(hasStageBreakdown(race({ stages: [] }))).toBe(false)
+  })
+})
+
+describe('color del puesto', () => {
+  it('el oro es solo de la victoria y el podio se destaca', () => {
+    expect(placeTone(race({ gcPuesto: 1 }))).toBe('text-amber-500')
+    expect(placeTone(race({ gcPuesto: 3 }))).toBe('text-slate-700')
+    expect(placeTone(race({ gcPuesto: 40 }))).toBe('text-slate-500')
+  })
+
+  it('un abandono o una general sin calcular se apagan', () => {
+    expect(placeTone(race({ dnf: true, gcPuesto: 1 }))).toBe('text-slate-400')
+    expect(placeTone(race({ gcPuesto: null }))).toBe('text-slate-400')
   })
 })

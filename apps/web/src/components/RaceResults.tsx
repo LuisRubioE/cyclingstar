@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import {
   hasStageBreakdown,
   ordinal,
+  placeTone,
   raceResultKey,
   raceResultKind,
   raceResultPlace,
@@ -24,14 +25,6 @@ import { TOP_ROWS } from './ShowAll'
  * El desglose es un `<details>`: se pliega sin JavaScript, es accesible con teclado y no obliga a
  * gestionar estado por fila.
  */
-
-/** Color del puesto: el oro solo para la victoria, el podio destacado y el resto sobrio. */
-function placeTone(r: RiderRaceResult): string {
-  if (r.dnf || r.gcPuesto == null) return 'text-slate-400'
-  if (r.gcPuesto === 1) return 'text-amber-500'
-  if (r.gcPuesto <= 3) return 'text-slate-700'
-  return 'text-slate-500'
-}
 
 /** Una carrera del historial: puesto, nombre, contexto y (si procede) el desglose de etapas. */
 export function RaceResultRow({
@@ -67,7 +60,7 @@ export function RaceResultRow({
 
       {showStages && hasStageBreakdown(result) && (
         <details className="ml-[3.25rem] mt-1">
-          <summary className="cursor-pointer list-none text-xs text-slate-400 hover:text-brand-cyan">
+          <summary className="cursor-pointer list-none text-xs [&::-webkit-details-marker]:hidden text-slate-400 hover:text-brand-cyan">
             <span className="underline decoration-dotted underline-offset-2">
               {stagesSummary(result)}
             </span>

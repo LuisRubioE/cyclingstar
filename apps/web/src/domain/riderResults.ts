@@ -56,6 +56,18 @@ export function hasStageBreakdown(r: RiderRaceResult): boolean {
   return !r.isOneDay && r.stages.length > 0
 }
 
+/**
+ * Color del puesto en la ficha: el oro solo para la victoria, el podio destacado y el resto sobrio.
+ * Vive aquí porque lo comparten la lista de la ficha y la tabla de `My races`, y una divergencia
+ * haría que el mismo 1.º se pintara distinto en dos pantallas.
+ */
+export function placeTone(r: RiderRaceResult): string {
+  if (r.dnf || r.gcPuesto == null) return 'text-slate-400'
+  if (r.gcPuesto === 1) return 'text-amber-500'
+  if (r.gcPuesto <= 3) return 'text-slate-700'
+  return 'text-slate-500'
+}
+
 /** Clave estable de una carrera del historial (una carrera puede repetirse cada temporada). */
 export function raceResultKey(r: RiderRaceResult): string {
   return `${r.raceId}:s${r.season}`

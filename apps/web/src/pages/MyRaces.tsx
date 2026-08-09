@@ -14,6 +14,7 @@ import { raceClassLabel } from '../domain/labels'
 import {
   hasStageBreakdown,
   ordinal,
+  placeTone,
   raceResultKey,
   raceResultKind,
   raceResultPlace,
@@ -374,7 +375,7 @@ function ResultsTab({ riderId }: { riderId: string | null }) {
                   {/* El desglose de etapas cuelga de la carrera, plegado: el titular es la general. */}
                   {hasStageBreakdown(r) && (
                     <details className="mt-0.5">
-                      <summary className="cursor-pointer list-none text-xs text-slate-400 hover:text-brand-cyan">
+                      <summary className="cursor-pointer list-none text-xs [&::-webkit-details-marker]:hidden text-slate-400 hover:text-brand-cyan">
                         <span className="underline decoration-dotted underline-offset-2">
                           {stagesSummary(r)}
                         </span>
@@ -402,17 +403,7 @@ function ResultsTab({ riderId }: { riderId: string | null }) {
                   )}
                 </th>
                 <td className="px-2 py-2 text-slate-500">{raceResultKind(r)}</td>
-                <td
-                  className={`px-3 py-2 text-right font-bold tabular-nums ${
-                    r.dnf || r.gcPuesto == null
-                      ? 'text-slate-400'
-                      : r.gcPuesto === 1
-                        ? 'text-amber-500'
-                        : r.gcPuesto <= 3
-                          ? 'text-slate-700'
-                          : 'text-slate-500'
-                  }`}
-                >
+                <td className={`px-3 py-2 text-right font-bold tabular-nums ${placeTone(r)}`}>
                   {raceResultPlace(r)}
                 </td>
               </tr>
