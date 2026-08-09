@@ -149,10 +149,7 @@ describe('db: el día de viaje cuenta como día vivido, no como día congelado',
 
   it('el viaje no da atributos: cuesta el día de trabajo', async () => {
     const log = await logOf(s.travelling)
-    const attrs = await t.db
-      .select()
-      .from(riderAttrs)
-      .where(eq(riderAttrs.riderId, s.travelling))
+    const attrs = await t.db.select().from(riderAttrs).where(eq(riderAttrs.riderId, s.travelling))
     expect(log!.tss).toBeGreaterThan(0)
     for (const a of attrs) expect(a.value).toBe(50)
   })
