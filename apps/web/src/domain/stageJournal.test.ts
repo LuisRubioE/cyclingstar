@@ -297,7 +297,7 @@ describe('la crónica cuenta los ataques', () => {
       'Ana',
       'Bea',
     ])
-    expect(l).toContain('not letting')
+    expect(l).toContain('reacts at once')
   })
 
   it('un ataque del último puerto dice a cuántos km de meta se lanza', () => {

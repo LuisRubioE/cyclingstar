@@ -20,11 +20,10 @@ export interface Group {
   /** Cooperación [0,1]: fracción de relevadores (SPEC 6.10). */
   coop: number
   /**
-   * Tensión acumulada de la fuga (SPEC 6.10).
-   * PENDIENTE DE IMPLEMENTAR (SPEC 6.10): campo definido pero sin efecto en la simulación.
-   * Se inicializa en `createGroup` y se promedia en `mergeGroups`, pero NADIE lo lee ni lo
-   * incrementa: `simulate.ts` no lo toca en ningún bloque. Las perillas que lo gobernarían
-   * (`STAGE.breakawayTension*`) también están sin implementar.
+   * Tensión acumulada de la fuga (SPEC 6.10, docs/motor.md §13 regla 6). Cada grupo escapado la
+   * acumula `breakawayTensionPerKm` por kilómetro y, pasado `breakawayTensionThreshold`, el pacto
+   * se rompe: los ataques internos se disparan (`breakawayTensionAttackFactor`) y la cooperación
+   * de lo que salga de ahí se recorta (`breakawayTensionCoopFactor`).
    */
   tension: number
 }
@@ -105,7 +104,7 @@ export function mergeGroups(a: Group, b: Group): Group {
     vActual: front.vActual,
     compromiso: Math.max(front.compromiso, back.compromiso),
     coop: (front.coop + back.coop) / 2,
-    // Sin efecto: `tension` no se lee en ninguna parte (ver la declaración del campo).
+    // Dos grupos que se juntan traen su historia: la tensión resultante es la media de las dos.
     tension: (front.tension + back.tension) / 2,
   }
 }

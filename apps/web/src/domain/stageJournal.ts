@@ -81,7 +81,9 @@ export function chronicleLine(e: ChronicleEntry): string {
           `${who} attack${jumped === 1 ? 's' : ''} out of the front group.${tail}`,
           `The move splinters: ${who} kick${jumped === 1 ? 's' : ''} clear.${tail}`,
         ])
-      const chased = held ? ' The bunch is not letting this one go.' : ''
+      // `cuerda` dice si el pelotón ha decidido dar cuerda al movimiento. Lo que se narra es su
+      // REACCIÓN, no el desenlace: a veces el pelotón se pone a cerrar y aun así no llega.
+      const chased = held ? ' The bunch reacts at once and the pace goes up behind.' : ''
       return pick([
         `${who} go clear off the front.${tail}${chased}`,
         `Attack: ${who} force${jumped === 1 ? 's' : ''} the pace and open a gap.${tail}${chased}`,

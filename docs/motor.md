@@ -2,7 +2,8 @@
 
 Estado: **documento vivo.** Las Partes I y II son el diagnóstico (medido) y siguen valiendo como
 retrato de lo que había. En la Parte III cada cambio lleva su estado: **§12-bis hecho** (v3),
-**§16 primera entrega** (v6) y **§12 hecho** (v7). Lo demás sigue siendo propuesta.
+**§16 primera entrega** (v6), **§12 hecho** (v7) y **§13 hecho** (v9). Lo demás sigue siendo
+propuesta.
 
 Ámbito: `packages/engine/src/stage/` (2.333 líneas sin tests). Referencias a SPEC 6.
 
@@ -218,6 +219,8 @@ El orden de llegada **dentro de un grupo** se decide por **un solo atributo más
 
 ### 5. No hay ataques. Ninguno
 
+> **RESUELTO en v9** (ver §13). Lo que sigue es el diagnóstico original.
+
 Verificado: la palabra "ataque" solo aparece en comentarios y en un módulo que no se usa. En todo el
 bucle **solo existen dos formas de sacar tiempo**:
 
@@ -234,6 +237,10 @@ referencia al SPEC (`lambdaCounterAttack`, `lambdaBridge`, `lambdaLateAttack`, `
 desde ninguna parte.** El motor promete una carrera táctica y ejecuta una carrera de tempo.
 
 ### 6. La fuga es un casting fijo
+
+> **RESUELTO en v9** (ver §13): la fuga del día EMERGE del primer intento al que el pelotón da
+> cuerda, cualquiera puede entrar en ella (con el filtro del SPEC 6.10: ni un sprinter puro ni quien
+> sale con el depósito por debajo del 40%), se rehace si la cazan y `Group.tension` ya se lee.
 
 - Solo pueden fugarse quienes traen rol `cazaetapas` o mentalidad combativa. Un escalador o un
   sprinter **jamás** entran en una fuga.
@@ -381,12 +388,21 @@ calibra encima de ellos**:
 4. **Reagrupamiento en subida** (grupeto), que hoy no existe y produce 30 grupos de un corredor.
 5. **Alinear los umbrales de `pnpm sim` con los del test de CI**, hoy divergentes.
 
-### 13. Cambio 2 — Capa táctica: que existan los ataques
+### 13. Cambio 2 — Capa táctica: que existan los ataques (HECHO, v9)
 
-**Este es el cambio que hace que dos carreras no se parezcan**, y es el corazón que falta. Hoy solo
-hay dos formas de sacar tiempo: estar en la fuga inicial (que se forma una vez, antes del km 0) o
-ser descolgado en una subida. **Nadie ataca nunca.** Por eso la crónica solo sabe decir «el equipo X
-aprieta el ritmo»: es literalmente lo único que el motor sabe hacer.
+> **Implementado en `engine_version` 9.** Las decisiones viven en
+> `packages/engine/src/stage/tactics.ts` y la carretera en `simulate.ts`: un ataque logrado **es un
+> grupo nuevo** creado con la maquinaria de `group.ts` que ya existía, así que no hay física nueva.
+> Los números de antes y después están en docs/balance.md, «v9 — La capa táctica», y el banco que
+> los produce se lanza con `pnpm sim:tactics`. El estado regla a regla está en §13.4.
+>
+> Lo que sigue es el diagnóstico y la especificación originales, que se conservan porque son el
+> contrato contra el que se midió.
+
+**Este es el cambio que hace que dos carreras no se parezcan**, y era el corazón que faltaba. Antes
+de la v9 solo había dos formas de sacar tiempo: estar en la fuga inicial (que se formaba una vez,
+antes del km 0) o ser descolgado en una subida. **Nadie atacaba nunca.** Por eso la crónica solo
+sabía decir «el equipo X aprieta el ritmo»: era literalmente lo único que el motor sabía hacer.
 
 #### 13.1 Especificación de dominio (dictada por el dueño, agosto 2026)
 
@@ -448,6 +464,39 @@ Las reglas 8 y 9 son piezas aparte:
   equipo, eligiendo el momento y vigilando a los rivales de la general (ahí entra `marcaje.ts`, que
   ya está implementado, y `gcDeficitSeconds`, que `packages/db` rellena y el motor ignora).
 
+#### 13.4 Qué quedó implementado (v9) y qué no
+
+Las **nueve reglas están implementadas**. Medido con 150 semillas por escenario (antes / después):
+
+| Regla                                | Cómo se ejecuta                                                                         | Medida                                                                 |
+| ------------------------------------ | --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| 1 — alguien lo intenta               | `moveLambda`: λ × cohesión × cercanía de meta × tensión                                 | 12 intentos/etapa en llano (antes 0)                                   |
+| 2 — 0..N le siguen                   | `followProbability` (TAC, rol, mentalidad, piernas, general), diluida en un grupo gordo | de 0 a 8 saltan; si salta ≥ la mitad, no hay hueco                     |
+| 3 — muchos no lo consiguen           | `sustainsJump`, con el margen del marcaje (SPEC 6.18)                                   | los que se quedan viajan en `tierra`                                   |
+| 4 — muchos intentos fracasan         | `pelotonAllows` + el pelotón cerrando a `tacticControlCommit`                           | prospera el 34,6% (llano)                                              |
+| 5 — la fuga tras varios intentos     | el primer movimiento que cuaja dentro de la ventana                                     | cuaja en el km 16,6 (mediana); 3-7% de etapas sin fuga                 |
+| 6 — se ataca dentro de la fuga       | `kind: 'ataque_grupo'`, candidatos por lo mal que rematarían, con la TENSIÓN del grupo  | la fuga se parte cerca de meta                                         |
+| 7 — el puente, y a veces no se llega | `kind: 'puente'` con caducidad (`tacticBridgeKm`) y tierra de nadie                     | `bridge_made` / `bridge_failed`                                        |
+| 8 — el agotado se deja ir            | `giveUpLambda` + guardarraíl del corte de tiempo                                        | 1 por etapa en la reina de 3.ª semana; peor retraso 5,0% (corte 8-18%) |
+| 9 — el final en alto se ataca        | `kind: 'ataque_final'` + `marcaje.ts` resolviendo la respuesta                          | **55,3%** de los finales en alto los decide un ataque (antes 0%)       |
+
+Y el criterio que las resume: **guiones distintos de 150 etapas, de 4 a 25 en la llana canónica y de
+8 a 57 en la reina**.
+
+**Lo que NO entró, y por qué:**
+
+- **Los puentes solo salen del pelotón o de un grupo ya escapado**, no de un grupo rezagado: un
+  grupeto que persigue vive en la maquinaria de descolgados (`shed`), que tiene su propio modelo de
+  recorte, y mezclar las dos cosas pedía unificar los dos caminos.
+- **`shelterAlone` (0,0) sigue sin usarse**: el corredor que rueda solo paga `shelterRelay` (0,5),
+  es decir, se le regala el rebufo de un grupo que no tiene. Arreglarlo encarece TODAS las escapadas
+  en solitario y es una recalibración por sí misma.
+- **Abandonos y fuera de control** (§15, §VI.3): la regla 8 respeta el corte por construcción —solo
+  administra si lo que va a ceder cabe dentro de él— pero nadie queda eliminado nunca.
+- **El intento no distingue equipos**: quién ataca lo decide el rol y la mentalidad del corredor, no
+  un plan colectivo (§V.1). Un equipo no coloca a un hombre en la fuga a propósito ni cierra un
+  hueco por su líder más allá de lo que ya hace el pelotón entero.
+
 #### 13.3 Por qué esto también arregla la general
 
 Medido tras el modelo de final (§12): en una carrera de 5 etapas llanas **los 40 corredores siguen
@@ -503,7 +552,7 @@ y que los replays dejan de depender de re-simular.
 | 1   | ~~Modelo de final (§12)~~ **HECHO (v7)**                       | Máximo impacto por esfuerzo una vez hay desgaste: arregla "gana quien no debe"                                                                                        |
 | 2   | Selección en pavés/descenso (§14) y fatiga (§15)               | Hoy el pavés no existe como terreno (brecha de 0 s) y nadie abandona                                                                                                  |
 | 3   | **Perfiles reales** (extracción y validación)                  | Entrada del motor. Necesarios **antes de la recalibración final**, no antes de las correcciones estructurales                                                         |
-| 4   | Capa táctica (§13)                                             | El desarrollo grande. Es lo que hace que las carreras se distingan entre sí                                                                                           |
+| 4   | ~~Capa táctica (§13)~~ **HECHO (v9)**                          | El desarrollo grande. Es lo que hace que las carreras se distingan entre sí                                                                                           |
 | 5   | Telemetría (§16)                                               | Habilita el journal y las vistas nuevas                                                                                                                               |
 | 6   | Recalibración completa con Montecarlo                          | Solo al final, con entradas buenas y mecánicas completas                                                                                                              |
 

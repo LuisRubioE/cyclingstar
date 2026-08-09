@@ -929,3 +929,204 @@ El problema de fondo es de **diseño de la carrera**: Race Sharjah es una de las
 con perfil generado y no tiene un solo tramo capaz de separar a nadie. Las dos vías reales son la
 capa táctica (§13: un ataque que aguanta sí abre hueco) y dar a los perfiles generados algo que
 morder —una cota a 20 km de meta, un tramo expuesto—. Ninguna de las dos entra en esta tanda.
+
+---
+
+## v9 — La capa táctica: existen los ataques (`engine_version` 8 → 9)
+
+Implementa `docs/motor.md` §13 completo: las **nueve reglas de dominio** que dictó el dueño. Es el
+cambio que hace que dos carreras no se parezcan, y el que faltaba desde el principio: hasta ahora
+solo había dos formas de sacar tiempo —estar en la fuga inicial, que se componía **antes del km 0**
+con un casting fijo, o ser descolgado en una subida—, así que todas las etapas seguían el mismo
+guion y la crónica solo sabía decir «el equipo X aprieta el ritmo».
+
+### El banco de medida
+
+Nace `pnpm sim:tactics` (`sim/tactics.ts` + `sim/tacticsCli.ts`), que mide lo que la capa PROMETE y
+que ningún invariante sabía contestar. Todo lo que sigue está medido con **150 semillas** por
+escenario, y el «antes» sale de correr **el mismo banco sobre `main`** en un worktree, no de la
+memoria.
+
+| Medida (150 semillas)                                 | Antes (v8)        | Después (v9)            |
+| ----------------------------------------------------- | ----------------- | ----------------------- |
+| **Intentos de movimiento por etapa** (llana, mediana) | **0**             | **12** (min 1, máx 21)  |
+| Intentos que prosperan (llana)                        | —                 | **34,6%**               |
+| Intentos por etapa (reina) / que prosperan            | **0**             | **8** / 54,2%           |
+| Km en que cuaja la fuga del día (llana, mediana)      | 12 (inventado)    | **16,6** (emergente)    |
+| Etapas sin fuga del día (llana / reina)               | 0% / 0%           | **3,3% / 6,7%**         |
+| **Guiones distintos de 150 etapas** (llana)           | **4**             | **25**                  |
+| **Guiones distintos de 150 etapas** (reina)           | **8**             | **57**                  |
+| Etapas con algún ataque narrado (llana)               | **0%**            | **96%**                 |
+| **Final en alto decidido por un ATAQUE**              | **0%**            | **55,3%**               |
+| Ataques por etapa en el final en alto (mediana)       | 0                 | **3**                   |
+| **Corredores que se dejan ir** (reina 3.ª semana)     | **0** (0% etapas) | **1** (58,7% de etapas) |
+| Peor retraso de uno que se deja ir (corte: 8-18%)     | —                 | **5,0%**                |
+| **Sharjah: etapas con diferencias de tiempo REALES**  | **10,8%**         | **30,8%**               |
+| Sharjah: margen mediano de la general                 | **8 s**           | **126 s**               |
+| Sharjah: generales que gana el sprinter malo (de 13)  | **4**             | **3**                   |
+
+El «guion» de una etapa es cómo se desarrolló, no quién ganó: cuándo cuajó la fuga (en tramos de
+20 km), cuántos intentos hicieron falta, si la cazaron, si la etapa se ganó desde la carretera y qué
+clase de final la resolvió. **De 4 guiones en 150 etapas a 25** en la llana y **de 8 a 57** en la
+reina es, literalmente, el criterio del encargo.
+
+### 1. Una sola mecánica, no nueve (`stage/tactics.ts`)
+
+Las siete primeras reglas son **la misma pieza** parametrizada por contexto, tal como decía §13.2.
+`tactics.ts` tiene las DECISIONES (puras, sin estado) y `simulate.ts` pone la carretera: un ataque
+logrado **es un grupo nuevo** creado con `createGroup`, y su boquete se integra bloque a bloque con
+la maquinaria de `group.ts` que ya existía. No hay física nueva.
+
+| Regla                          | Cómo se implementa                                                                                                                                          |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1 — alguien lo intenta         | `moveLambda`: λ base por tipo × cohesión (grupo/campo, con suelo) × cercanía (cuadrática) × tensión                                                         |
+| 2 — 0..N le siguen             | `followProbability`: base + atención (TAC) + rol + mentalidad + piernas + interés en la general, diluido en un grupo gordo (`bigGroupThreshold`)            |
+| 3 — muchos no lo consiguen     | `sustainsJump`, con el MISMO margen del marcaje (SPEC 6.18): el que no da el nivel del que ataca se queda                                                   |
+| 4 y 5 — fracasar es lo normal  | `pelotonAllows`: el pelotón decide si da cuerda, y si no la da rueda a `tacticControlCommit` hasta cerrar el hueco. La fuga del día es el primero que cuaja |
+| 6 — se ataca dentro de la fuga | mismo intento con `kind: 'ataque_grupo'`, candidatos ponderados por lo MAL que rematarían (`tacticWorstFinisherWeight`), y solo cerca de meta o con tensión |
+| 7 — el puente                  | `kind: 'puente'` con un grupo objetivo, compromiso 0,92 y **caducidad** (`tacticBridgeKm`): pasada, el que saltó se queda en tierra de nadie                |
+| 8 — el que se deja ir          | `giveUpLambda` + el guardarraíl del fuera de control en `simulate.ts`                                                                                       |
+| 9 — el final en alto           | `kind: 'ataque_final'`, candidatos por fuerza y por interés en la general, y `marcaje.ts` resolviendo la respuesta                                          |
+
+### 2. Constantes que llevaban desde el Paso 21 definidas y sin usar, y que ahora se ejecutan
+
+`lambdaBreakawayAttack`, `lambdaCounterAttack`, `lambdaBridge`, `bridgeGapMinSeconds`,
+`bridgeGapMaxSeconds`, `lambdaLateAttack`, `lateAttackKm`, `lambdaClimbAttack`, `bigGroupThreshold`,
+`breakawayTensionPerKm/Threshold/CoopFactor/AttackFactor`, `breakawaySkipSprThreshold`,
+`breakawaySkipEnergyFraction`, `gcThreatFraction`, `markWheelBase/TacScale/ExtraPenalty/Min/Max`
+(vía `wheelProbability`, que tenía tests y no llamaba nadie) y `shelterAlone` sigue pendiente.
+
+Y con ellas dos campos que se rellenaban y nadie leía: **`Group.tension`** —que ahora se acumula km
+a km en cada grupo escapado y, pasado el umbral, triplica la intensidad de los ataques internos y
+recorta la cooperación— y **`StageRider.gcDeficitSeconds`**, que `packages/db` rellena en cada
+corredor y que el motor ignoraba por completo.
+
+> **Cómo se lee `gcDeficitSeconds` sin romper la etapa 1.** En la primera etapa de una vuelta y en
+> toda carrera de un día TODOS llegan con 0. Leído literalmente, el pelotón entero sería el líder y
+> cualquier movimiento una amenaza mortal: no se formaría una fuga jamás. Por eso hay una bandera
+> `hasGcContext` —¿hay alguna diferencia?— y solo entonces el motor mira las amenazas. Hay test.
+
+### 3. Las perillas nuevas y por qué valen lo que valen
+
+| Perilla                      | Valor       | Razón (medida)                                                                                                                                                                                        |
+| ---------------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tacticProximityGain`        | 1,5         | Regla 1: λ se multiplica por hasta 2,5 al llegar a meta, cuadrático en lo recorrido                                                                                                                   |
+| `tacticCohesionFloor`        | 0,35        | Con la carrera rota se ataca menos, pero no se apaga: si no, tras la primera criba no vuelve a pasar nada                                                                                             |
+| `tacticJumpGapSeconds/Range` | 5 / 7       | **El número que hace que un ataque sea un ataque.** Un acelerón abre 5-12 s de golpe y a partir de ahí manda la carretera. Sin él, un «ataque» tardaba 20 km en abrir 5 s y no era nada               |
+| `tacticNoAttackKm`           | 3           | En los últimos 3 km ya no se simulan movimientos: eso ES el sprint, y lo resuelve el modelo de final. Sin este corte, un ataque a 1 km nacía con sus 10 s y **ganaba la etapa** sin oposición posible |
+| `tacticAllowBase/KmGain`     | 0,42 / 0,50 | Reglas 4-5. Es LA perilla del número de intentos: con 0,06 la fuga cuajaba en el km 43 y el pelotón se pasaba media etapa cerrando huecos (gasto de la llana 45%); con 0,42 cuaja en el 16,6          |
+| `tacticControlCommit`        | 0,62        | Ritmo al que el pelotón cierra lo que no consiente. Con 0,72 cerraba antes pero encarecía la etapa (+1,5 puntos de depósito) sin cambiar el resultado                                                 |
+| `tacticAttemptCooldownKm`    | 4,5         | La carrera respira entre ataque y ataque. Con 2,5 salían 27 intentos por etapa: un muro                                                                                                               |
+| `tacticAttackCost`           | 1,8         | **La perilla energética del cambio.** Cobrar el ataque a `matchCost` (5) se comía 3,7 puntos de depósito en una llana y disparaba las pájaras de Il Lombardia del 1% al **18%**                       |
+| `tacticFollowCostFactor`     | 0,5         | Seguir una rueda es más barato que abrirla                                                                                                                                                            |
+| `tacticInsideAttackKm`       | 18          | Regla 6. Dentro de una fuga se colabora en mitad de etapa y se ataca cerca de meta. Con 45 la fuga se autodestruía a 40 km de meta y el invariante de montaña caía al **13%**                         |
+| `tacticBridgeKm`             | 8           | Regla 7. Nadie sostiene un puente veinte kilómetros. Sin caducidad, los puentes SIEMPRE llegaban y la fuga del día crecía hasta **17 corredores** en una llana                                        |
+| `tacticFollowFractionMax`    | 0,5         | Segunda mitad de la regla 2: si salta medio grupo, no hay ataque, hay un grupo estirándose                                                                                                            |
+| `giveUpKm` / `...Fraction`   | 25 / 0,22   | Regla 8: solo en el desenlace y solo con el depósito por debajo del 22%                                                                                                                               |
+| `giveUpMaxLossFraction`      | 0,05        | El cuidado del fuera de control: solo administra si lo que va a ceder cabe en el 5% del tiempo de carrera. Medido, el peor retraso real es **5,0%**, muy dentro del corte (8-18%, §VI.3)              |
+
+### 4. Constantes que hubo que mover, con su medición
+
+| Perilla                     | Antes        | Después         | Razón (medida)                                                                                                                                                                                                                     |
+| --------------------------- | ------------ | --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `lateAttackKm`              | 3            | **12**          | Con 3 km el ataque tardío llegaba cuando los trenes ya mandaban y no separaba a nadie nunca. Los ataques que deciden una etapa se lanzan entre 15 y 5 km de meta                                                                   |
+| `breakawayTensionThreshold` | 6            | **25**          | A 0,4/km el pacto de la fuga se rompía a los **15 km** de vida y una fuga del día vive 120: se autodestruía a mitad de etapa. Con 25 se rompe a los 62 km, que es cuando una fuga larga empieza a mirarse de reojo                 |
+| `breakawayCommitMin/Max`    | 0,52 / 0,635 | **0,58 / 0,72** | La fuga emergente es más floja que la que se elegía a dedo por TAC+LLA (lleva rodadores medios, no los seis mejores), así que necesita cooperar más para vivir lo mismo. Con la banda vieja: fuga en llano 1,0% y en montaña 23,5% |
+| `chaseMaxLeashSeconds`      | 175          | **195**         | Ídem: la cuerda tiene que ser algo más larga para que la fuga emergente llegue al mismo sitio                                                                                                                                      |
+| `chaseGain`                 | 0,006        | **0,016**       | El lazo cerraba con un sesgo permanente (la fuga rodaba ~26 s por debajo de la cuerda pedida) y la captura se adelantaba a **34 km** de meta. Con 0,016 el lazo sigue la programación y la captura vuelve a 22,5                   |
+| `gcControlLeash`            | 365          | **450**         | Sigue siendo la perilla más sensible del motor: 400 → 20% de fugas en montaña, 440 → 24,5%, 450 → 33%, 500 → 31-43%. Con 450 el rango 25-45% se cumple con margen en las dos campañas                                              |
+| `erosionThresholdBase`      | 0,07         | **0,088**       | La capa táctica encarece la primera hora de carrera —que es lo que pasa en carretera— y el umbral, que estaba clavado 4 décimas por encima del gasto de la llana, tiene que seguir al gasto. Ver abajo                             |
+| `chaseCatchTargetKm`        | 12           | 12 (sin tocar)  | Probado a 6 y 8: adelanta la captura 2 km y se lleva por delante las fugas que ganan (de 3,5% a 0%)                                                                                                                                |
+
+### 5. Dos defectos preexistentes que la capa táctica destapó
+
+**(a) Los trenes se sentaban ante cualquier ataque tardío.** La fórmula de viabilidad de la caza
+divide por los km que faltan hasta el punto de captura (`gap / (kmRestantes − 12)`), así que cerca de
+meta declara **inviable cualquier cosa**: un ataque de 15 s a 14 km del final daba
+`cierreNecesario = 7,5` y a 13 km, 15 — por encima del umbral de 8 —, y los sprinters claudicaban.
+Antes no se notaba porque no existían los ataques tardíos: lo único que se cazaba era la fuga del
+día, y para entonces el boquete ya era pequeño. Ahora la claudicación exige **que sea la fuga del
+día** y **un boquete de al menos `chaseNeverConcedeSeconds` = 10 s**. Medido: sin el arreglo, los
+`pel-*` (rodadores de LLA 62-69) ganaban el **47%** de las llanas canónicas atacando en el último km.
+
+**(b) El pelotón AFLOJABA por tener a alguien delante.** En los últimos km de una etapa de meta
+llana el pelotón rueda a `finalDriveCommit` = 0,85 (los trenes toman la carretera), pero el
+controlador de boquete pedía 0,72 para un ataque de 20 s y el mínimo de los dos ganaba. Ahora el
+tirón final es un SUELO, salvo que los sprinters hayan claudicado de verdad.
+
+### 6. La cuenta de la criba deja de mezclar dos cosas
+
+`peloton_split` narraba «N descolgados» calculando la pérdida NETA del grupo entre dos avisos. Con
+ataques, el grupo también mengua **hacia delante**, y contar a los que se han escapado como
+descolgados es narrar la carrera al revés. El evento lleva ahora `escapados`, y
+`dropped + escapados = before − remaining` (hay test).
+
+### 7. Telemetría frente a narrativa (docs/motor.md §16)
+
+El motor emite **todos** los intentos —son dato de carrera, y el banco los cuenta— y marca con
+`narra` cuáles merecen una frase; `buildChronicle` filtra el resto. Sin esto, una etapa reina real
+pasaba de 25 a **45 líneas** y la crónica se convertía en el inventario de una docena de ataques
+fallidos. Con el throttle (`tacticAttemptNarrateKmGap` 35 / 10 en el desenlace,
+`tacticStickNarrateKmGap` 6, `tacticReeledNarrateKm` 3, `tacticMergeNarrateRiders` 3) la mediana
+queda en **31 líneas y el peor caso en 39**, con el invariante de «no es un muro de texto» intacto.
+
+Nueve plantillas nuevas en `apps/web/src/domain/stageJournal.ts`: `attack_go` (con su variante por
+tipo de movimiento), `attack_swarm`, `attack_sticks`, `attack_reeled`, `move_caught`, `bridge_made`,
+`bridge_failed`, `move_merge` y `rider_sits_up`.
+
+### 8. Los invariantes, antes y después
+
+Campaña de **200 semillas** por escenario (`pnpm sim 200`), la misma antes y después:
+
+| Invariante                              | Antes (v8)              | Después (v9)              | Objetivo              |
+| --------------------------------------- | ----------------------- | ------------------------- | --------------------- |
+| Gana la fuga (llano)                    | 5,6%                    | **5,5%**                  | 2 – 8%                |
+| Gana el mejor sprinter                  | 39,2%                   | **44,0%**                 | 30 – 45%              |
+| Captura mediana (km a meta)             | 22,4                    | **22,4**                  | 8 – 25                |
+| Capturas (de las etapas CON fuga)       | 94%                     | **95%**                   | > 85%                 |
+| Gana la fuga (montaña)                  | 35,0%                   | **43,5%**                 | 25 – 45%              |
+| Brecha 1.º-10.º en la reina             | 225 s                   | **212 s**                 | 60 – 300 s            |
+| CRI: brecha p90-p10 / gana especialista | 233 s / 99,8%           | **234 s / 100%**          | 120-240 s / 90-100%   |
+| Erosión llana en fresco                 | 0,000                   | **0,009**                 | 0 – 0,02              |
+| Erosión reina en fresco                 | 0,214                   | **0,212**                 | 0,20 – 0,50           |
+| Erosión clásica larga                   | 0,630                   | **0,626**                 | 0,45 – 0,80           |
+| Erosión reina 3.ª semana                | 0,662                   | **0,680**                 | 0,60 – 0,85           |
+| Erosión la clásica más dura             | 0,869                   | **0,844**                 | ≤ 0,92                |
+| Ninguna clásica WT satura               | peor 0,908 / 3% pájaras | **peor 0,885 / 5%**       | ≤ 0,95 y ≤ 10%        |
+| Ratio de relevos (relevador/protegido)  | 1,135                   | **> 1,10**                | > 1,10                |
+| Velocidad llana / reina / CRI           | 43,99 / 37,52 / 50,59   | **44,05 / 37,56 / 50,35** | 42-45 / 33-38 / 48-52 |
+| Roubaix: PAV mediano del ganador        | 81 (rango 45-83)        | **76**                    | ≫ 64 (azar)           |
+
+**Dos rangos se movieron y uno cambió de definición**, y los tres se justifican con medición:
+
+1. **`erosionThresholdBase` 0,07 → 0,088.** No es un rango objetivo, es la perilla que los sostiene:
+   el gasto de la llana canónica sube de 28,8% a **31,7%** porque la primera hora de carrera pasa a
+   ser una sucesión de ataques y el pelotón los cierra. Como la banda de la llana es «erosión 0» y
+   la de la reina «≥ 0,20», el umbral queda atrapado entre `t ≥ 0,303` y `t ≤ 0,325`: 0,088 (que da
+   0,308 con RES 55) es el centro de esa ventana. Es exactamente la misma atadura anotada en la
+   campaña de la clásica larga, ahora con el gasto de la llana un pelo más arriba.
+2. **«Capturas» pasa a medirse sobre las etapas EN QUE HUBO FUGA.** Antes la fuga del día estaba
+   garantizada y el estadístico «¿se caza?» y el «¿se forma?» eran el mismo. Ahora hay un 3-7% de
+   etapas en que el pelotón no da cuerda a nadie —que es justo lo que pedía el encargo— y mezclarlos
+   haría que «cuando hay fuga, ¿se caza?» dependiera de con qué frecuencia se forma.
+3. **«Gana la fuga» pasa a medirse como «la etapa se gana DESDE LA CARRETERA»**: el ganador llega en
+   un grupo escapado. La definición vieja —estar en la lista del evento `fuga_formada` y que no
+   hubiera captura— deja fuera al que llegó a la fuga por un puente y al que se fue en un ataque
+   posterior, que con capa táctica son la mitad de los casos. Lo emite el motor en el evento de meta
+   (`fuga: 0|1`), así que no hay heurística en el analizador.
+
+### 9. Lo que este cambio NO hace
+
+- **La general de Sharjah mejora mucho pero no se arregla del todo.** Las etapas con diferencias de
+  tiempo reales pasan del 10,8% al 30,8% y el margen mediano de la general de 8 s a 126 s, pero el
+  sprinter malo sigue ganando 3 generales de 13 (antes 4) y **más etapas que antes** (18/65 frente a
+  13/65): cuando un ataque se lleva a los rivales por delante, el sprint que queda atrás lo disputa
+  él contra un grupo reducido, y ahí su SPR 78 pesa todavía más. El problema de fondo sigue siendo
+  el que anotó la v7: Race Sharjah es un perfil generado sin un solo tramo capaz de separar a nadie.
+- **No hay abandonos ni fuera de control de verdad** (§15 / §VI.3): la regla 8 respeta el corte por
+  construcción, pero nadie queda eliminado nunca.
+- **El pavé y el descenso siguen sin seleccionar** (§14): `shatter` solo actúa en subida.
+- **Los puentes solo salen del pelotón o de un grupo ya escapado**, no de un grupo rezagado.
+- **`shelterAlone` (0,0) sigue sin usarse**: un corredor solo paga `shelterRelay` (0,5), es decir,
+  se le regala el rebufo de un grupo que no tiene. Corregirlo encarece todas las escapadas en
+  solitario y es una recalibración en sí misma.

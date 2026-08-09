@@ -108,13 +108,16 @@ export function analyzeVariety(scenario: Scenario, seeds: string[]): VarietyStat
     const win = out.events.find((e) => e.tipo === 'meta')
     const winner = out.results[0]?.riderId ?? '?'
     winners.add(winner)
+    // El GUION de la etapa: cómo se desarrolló, no quién ganó. Cuándo cuajó la fuga (o si no
+    // cuajó), cuántos intentos hicieron falta, si la cazaron, si la etapa se ganó desde la
+    // carretera y qué clase de final la resolvió. Dos etapas con el mismo guion se parecen.
     scripts.add(
       [
-        formed ? 'fuga' : 'sinfuga',
+        formed ? `km${Math.round(formed.km / 20)}` : 'sinfuga',
+        `i${Math.round(tries.length / 4)}`,
         caught ? 'cazada' : 'viva',
+        win?.datos?.fuga === 1 ? 'desdefuga' : 'delgrupo',
         String(win?.datos?.finish ?? ''),
-        String(win?.datos?.won ?? ''),
-        winner,
       ].join('|'),
     )
     const late = out.events.some((e) => e.tipo === 'ataque')

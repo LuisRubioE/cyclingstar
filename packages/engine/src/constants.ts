@@ -416,11 +416,11 @@ export const STAGE = {
   chaseAnnounceFrac: 0.4,
   // Nº mínimo de corredores en el grupo de cabeza para narrar la llegada como sprint masivo.
   bunchSprintMinRiders: 8,
-  // La fuga se fecha en los primeros km (ataques de salida), no en el km 0: mín + aleatorio determinista.
+  // RETIRADAS en v9: fechaban la fuga en un km inventado (mín + aleatorio, tope al 15% del
+  // recorrido) porque el motor la componía antes de la salida y había que ponerle una fecha
+  // verosímil. Hoy la fuga se fecha en el kilómetro en que SALIÓ de verdad el movimiento que cuajó.
   breakFormMinKm: 3,
   breakFormKmRange: 17,
-  // Tope de la fecha de formación de la fuga como fracción del recorrido: en una etapa corta la
-  // fuga no puede "formarse" a 25 km de salida; nunca pasa de este % del total.
   breakFormMaxRouteFraction: 0.15,
   // Variación de la ventaja (s) a partir de la cual el reporte de boquete dice que la fuga se
   // estira (+1) o se recorta (-1) respecto al reporte anterior; por debajo, se considera estable.
@@ -606,18 +606,24 @@ export const STAGE = {
   // Compromiso de los favoritos en la subida decisiva: tempo duro que descuelga poco a poco
   // (no máximo, o el grupo llegaría junto). Calibra la caza de la fuga y el estiramiento.
   climbRaceCommit: 0.85,
-  // Tamaño de la fuga del día: entre 3 y 6 corredores (mín + entero uniforme en [0, rango-1]).
-  // Menos de 3 no colabora; más de 6 es un grupo que el pelotón ya no deja marchar.
+  // Tamaño de referencia de una fuga: 3 corredores. Desde la v9 la fuga del día no se DIMENSIONA
+  // —emerge de un intento y es tan grande como gente salte (docs/motor.md §13)—, pero este número
+  // sigue siendo la referencia a partir de la cual una fuga es «numerosa»: cada corredor de más
+  // recorta su cooperación (`tacticCoopSizePenalty`) y la probabilidad de que el pelotón le dé
+  // cuerda (`tacticAllowSizePenalty`).
   breakawaySizeMin: 3,
+  // RETIRADAS en v9: dimensionaban y elegían a dedo la fuga del día antes del km 0 —tamaño uniforme
+  // en [3,6] y puntuación `0.4·TAC + 0.3·LLA + 0.3·ruido`—, que es exactamente el «casting fijo»
+  // que documentaba §6. Se conservan como referencia del modelo anterior: hoy quién se va lo deciden
+  // el rol, la mentalidad, las piernas y quién salta a la rueda.
   breakawaySizeRange: 4,
   breakawayScoreTac: 0.4,
   breakawayScoreLla: 0.3,
   breakawayScoreRng: 0.3,
-  // PENDIENTE DE IMPLEMENTAR (SPEC 6.10): parámetro definido pero sin efecto en la simulación.
-  // Filtro de candidatos a la fuga: un sprinter puro (SPR >= 70) no debería irse a la fuga...
+  // Filtro de candidatos a la fuga (SPEC 6.10), ya en uso desde la v9 (`attackAppetite`): a la fuga
+  // del día no se va un sprinter puro —espera su llegada—…
   breakawaySkipSprThreshold: 70,
-  // PENDIENTE DE IMPLEMENTAR (SPEC 6.10): parámetro definido pero sin efecto en la simulación.
-  // ...ni debería irse quien llega a la etapa con menos del 40% del tanque.
+  // …ni quien llega a la etapa con menos del 40% del tanque.
   breakawaySkipEnergyFraction: 0.4,
   // Tensión de la fuga (SPEC 6.10, docs/motor.md §13 regla 6): la fuga se va tensando km a km
   // —quién releva, quién se guarda para el sprint de los cinco— hasta que se rompe. `Group.tension`
@@ -720,6 +726,10 @@ export const STAGE = {
   // El mismo throttle vale para el ataque que CUAJA, con menos distancia: es el desenlace del
   // intento y la frase que el lector necesita, pero cuatro por etapa siguen siendo demasiadas.
   tacticStickNarrateKmGap: 6,
+  // …y solo cuenta como «ataque que cuaja» lo que cuaja dentro de estos km desde que salió. Un
+  // movimiento que lleva media etapa fuera y que cruza el umbral porque el grupo del que salió ya
+  // no existe no ha atacado: lleva 80 km escapado, y decirlo entonces confunde al lector.
+  tacticStickWindowKm: 20,
   // Un intento que muere a los dos kilómetros no merece su propia frase de epitafio.
   tacticReeledNarrateKm: 3,
   // Dos grupos que se juntan solo son noticia si de verdad se junta gente.
@@ -979,9 +989,10 @@ export const STAGE = {
   timeBonuses: [10, 6, 4],
 
   // 6.18 — Marcaje (capa 4). p_rueda = clamp(0.35 + (TAC_m-TAC_t)/80 - 0.10·extra, 0.15, 0.90).
-  // PENDIENTE DE IMPLEMENTAR (SPEC 6.18): parámetros definidos pero sin efecto en la simulación.
-  // Los consume `marcaje.wheelProbability()`, que existe y tiene tests pero que el bucle de carrera
-  // NO llama: hoy el marcador SIEMPRE consigue la rueda de su objetivo y la TAC no interviene.
+  // Los consume `marcaje.wheelProbability()`, que existía con tests y a la que no llamaba nadie:
+  // desde la v9 decide si el marcador vive de verdad en la rueda de su objetivo cuando este ATACA
+  // (docs/motor.md §13, regla 9). Si la tiene, responde con `resolveMarking`; si no, decide con el
+  // dado de la atención como cualquier otro.
   markWheelBase: 0.35,
   markWheelTacScale: 80,
   markWheelExtraPenalty: 0.1,

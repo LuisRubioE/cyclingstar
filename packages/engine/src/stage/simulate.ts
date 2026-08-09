@@ -1279,15 +1279,21 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
             dayBreakFormed = true
             m.dayBreak = true
             dayBreakRiders = ids
-            breakFormedKm = Math.round(km)
-            log.emit(km, m.g.tS, 'fuga_formada', 'breakaway_formed', ids)
+            // La fuga se fecha en el km en que SALIÓ, no en el que se confirma que ha cuajado: en
+            // carretera el movimiento nace cuando alguien ataca y solo después se ve si vive. Sin
+            // esto la crónica decía «quedan 8 delante» en el km 1 y «se forma la fuga» en el 55.
+            breakFormedKm = Math.round(m.bornKm)
+            log.emit(m.bornKm, m.g.tS, 'fuga_formada', 'breakaway_formed', ids)
             // Con un compromiso alto la fuga va a bloque; con uno bajo se miran y no avanzan.
-            log.emit(km, m.g.tS, 'colaboracion', 'break_cooperation', ids, {
+            log.emit(m.bornKm, m.g.tS, 'colaboracion', 'break_cooperation', ids, {
               cooperating: m.g.compromiso >= STAGE.breakCoopThreshold ? 1 : 0,
             })
             lastFrontSize = ids.length
             frontAtLastNotice = membersOf(PELOTON).length
-          } else {
+          } else if (km - m.bornKm <= STAGE.tacticStickWindowKm) {
+            // Solo se cuenta como «el ataque cuaja» lo que cuaja PRONTO. Un grupo que lleva 80 km
+            // en carretera y que de pronto supera el umbral porque el grupo del que salió ya no
+            // existe no ha atacado nada: lleva media etapa fugado.
             log.emit(km, m.g.tS, 'ataque', 'attack_sticks', ids.slice(0, 3), {
               kind: m.kind,
               size: ids.length,

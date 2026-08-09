@@ -95,10 +95,11 @@ export interface StageRider {
   tsb: number
   orders: StageOrders
   /**
-   * Desventaja del corredor en la general, en segundos (para 6.9).
-   * PENDIENTE DE IMPLEMENTAR (SPEC 6.9): campo definido pero sin efecto en la simulación.
-   * El pelotón no distingue hoy si en la fuga va una amenaza para la general (ver
-   * `STAGE.gcThreatFraction`, también sin implementar).
+   * Desventaja del corredor en la general, en segundos (SPEC 6.9). Lo rellena packages/db y desde
+   * la v9 el motor lo LEE: el pelotón acorta la cuerda si en el movimiento va una amenaza
+   * (`STAGE.gcThreatFraction`), el que anda cerca ataca más en el final en alto y sus rivales no le
+   * dejan marchar (docs/motor.md §13, regla 9). Un 0 solo cuenta si hay diferencias en el campo: en
+   * la etapa 1 y en las carreras de un día todos llegan con 0 y no hay general que defender.
    */
   gcDeficitSeconds: number
   /** Fragilidad oculta (SPEC 3.4): escala la probabilidad de lesión al caer. Por defecto 1. */
