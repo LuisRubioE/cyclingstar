@@ -7,7 +7,16 @@
  * deje ir sin irse fuera de control. Solo lectura: no toca base de datos ni red.
  */
 import { campaignSeeds, flatScenario, queenScenario, queenThirdWeekScenario } from './scenarios.js'
-import { analyzeGiveUp, analyzeSharjah, analyzeUphillFinish, analyzeVariety } from './tactics.js'
+import {
+  analyzeChase,
+  analyzeGiveUp,
+  analyzeSharjah,
+  analyzeUphillFinish,
+  analyzeVariety,
+  grandTourSprintField,
+  proSprintField,
+  sharjahField,
+} from './tactics.js'
 
 function main(): void {
   const runs = Number(process.argv[2] ?? 120)
@@ -61,6 +70,23 @@ function main(): void {
   console.log(
     `  peor retraso         ${give.worstLossPct.toFixed(1)}% sobre el tiempo del ganador (fuera de control: 8-18%)`,
   )
+
+  // 6) La caza depende del campo (docs/balance.md, v10): las MISMAS cinco etapas llanas corridas por
+  // una carrera modesta y por una gran vuelta con cinco trenes.
+  const chaseRuns = Math.max(4, Math.round(runs / 12))
+  const modest = analyzeChase(sharjahField(), 'caza-modesta', chaseRuns)
+  const pro = analyzeChase(proSprintField(), 'caza-proseries', chaseRuns)
+  const wt = analyzeChase(grandTourSprintField(), 'caza-gran-vuelta', chaseRuns)
+  console.log(`\n6) La caza según el campo — 5 etapas llanas × ${chaseRuns} semanas\n`)
+  for (const [name, st] of [
+    ['carrera modesta ', modest],
+    ['ProSeries       ', pro],
+    ['gran vuelta     ', wt],
+  ] as const) {
+    console.log(
+      `  ${name}  fuerza ${st.force.toFixed(2)} (${st.trains} trenes) · sin sprint masivo ${st.noBunchPct.toFixed(1)}% (mediana ${st.medianNoBunchPerWeek} de 5) · gana un escapado ${st.breakawayWinPct.toFixed(1)}%`,
+    )
+  }
 
   const gcRuns = Math.max(4, Math.round(runs / 12))
   const gc = analyzeSharjah(gcRuns)

@@ -7,6 +7,7 @@
  */
 import { normal, type Rng } from '../random.js'
 import { ENGINE_VERSION, STAGE } from '../constants.js'
+import { chaseField, isFinisher, lerp } from './chase.js'
 import { EventLog } from './events.js'
 import { type Group, advanceGroup, createGroup, gapSeconds, percentile75 } from './group.js'
 import { blockCost, blockPerfil, effNow, erosion, rhythm, tankState } from './physics.js'
@@ -109,11 +110,6 @@ interface RiderSim {
   /** Segundos cedidos al objetivo marcado sin llegar a soltarse (`gives` de SPEC 6.18). */
   markLossS: number
   incident: Incident | null
-}
-
-/** ¿Interesa a este corredor la llegada masiva (SPEC 6.9)? */
-function isSprinter(r: StageRider): boolean {
-  return r.orders.role === 'sprinter' || r.eff0.SPR >= 70
 }
 
 /** ¿Está el corredor con la pájara (tanque a cero)? (SPEC 6.7). */
@@ -347,11 +343,26 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
   // últimos ~5 km y la última cota de los últimos 15; el TIPO de final concreto se resuelve luego
   // para cada grupo de meta, porque depende también de cuántos lleguen.
   const finishTerrain = deriveFinishTerrain(blocks)
-  const chasingSprinters = input.riders.some(isSprinter) && finishFlat
+  /**
+   * LA FUERZA DE LA CAZA (`stage/chase.ts`): cuántos trenes tiene el campo, cómo de bueno es su
+   * rematador y con cuántos compañeros cuenta. Antes bastaba UN corredor con SPR ≥ 70 para que el
+   * pelotón entero persiguiera a tope, en una continental modesta igual que en una gran vuelta.
+   * Con la fuerza a 1 (tres rematadores de primer nivel) el controlador da exactamente los mismos
+   * números que antes; cuanto más flojo es el campo, más cuerda da, menos aprieta y antes se rinde.
+   */
+  const chase = chaseField(input.riders)
+  const chasingSprinters = finishFlat && chase.force >= STAGE.chaseMinForce
+  // Cuerda máxima, tope de esfuerzo y tirón final de los trenes, ya escalados por el campo.
+  const chaseLeashSeconds =
+    STAGE.chaseMaxLeashSeconds * (1 + STAGE.chaseWeakLeashGain * (1 - chase.force))
+  const chaseCommitCap = lerp(STAGE.chaseWeakCommitCap, 1, chase.force)
+  const finalDriveCommit = lerp(STAGE.chaseWeakFinalDrive, STAGE.finalDriveCommit, chase.force)
+  const chaseFeasible =
+    STAGE.chaseFeasibleSecondsPerKm * lerp(STAGE.chaseWeakFeasibleFloor, 1, chase.force)
   // Jefe de filas de los sprinters: el mejor rematador. Su equipo es el que suele tirar para cazar,
   // así que se nombra en la crónica de la persecución (protagonista del evento sprinters_chase).
   const leadSprinterId =
-    [...input.riders].filter(isSprinter).sort((a, b) => b.eff0.SPR - a.eff0.SPR)[0]?.riderId ?? null
+    [...input.riders].filter(isFinisher).sort((a, b) => b.eff0.SPR - a.eff0.SPR)[0]?.riderId ?? null
 
   /**
    * ¿Hay general en juego? En la etapa 1 de una vuelta y en toda carrera de un día, TODOS llegan
@@ -531,7 +542,7 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
           ? STAGE.climbRaceCommit
           : STAGE.climbTempoCommit
         : finishFlat && kmRestantes <= STAGE.finalDriveKm
-          ? STAGE.finalDriveCommit
+          ? finalDriveCommit
           : STAGE.pelotonTempoCommit
       // Con la carretera despejada la pregunta de si la caza es viable se hace de cero: haber
       // claudicado ante la fuga del día no significa regalar el siguiente movimiento.
@@ -564,7 +575,7 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
             (kmRestantes - STAGE.chaseCatchTargetKm) / (totalKm - STAGE.chaseCatchTargetKm),
           ),
         )
-        const desiredGap = STAGE.chaseMaxLeashSeconds * frac
+        const desiredGap = chaseLeashSeconds * frac
         const err = gap - desiredGap
         const cierreNecesario = gap / Math.max(1, kmRestantes - STAGE.chaseCatchTargetKm)
         // Los sprinters solo claudican ante LA FUGA DEL DÍA y con un boquete de verdad. La fórmula
@@ -574,12 +585,17 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
         const conceded =
           front?.dayBreak === true &&
           gap >= STAGE.chaseNeverConcedeSeconds &&
-          cierreNecesario > STAGE.chaseFeasibleSecondsPerKm
+          cierreNecesario > chaseFeasible
         if (conceded) {
           chaseAbandoned = true
           log.emit(km, peloton.tS, 'caza_abandonada', 'sprinters_give_up', [])
         } else {
-          target = Math.min(1, Math.max(0.1, STAGE.chaseHoldCommit + STAGE.chaseGain * err))
+          // …y el tope de esfuerzo lo pone el campo: un par de equipos flojos no pueden poner al
+          // pelotón a 0,9 durante 100 km por mucho que el lazo se lo pida.
+          target = Math.min(
+            chaseCommitCap,
+            Math.max(0.1, STAGE.chaseHoldCommit + STAGE.chaseGain * err),
+          )
         }
       } else if (ahead) {
         // Control de la general: en el llano el pelotón rueda a tempo para limitar el boquete (no
@@ -596,7 +612,7 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       // un ataque tardío de 20 s hacía que el lazo cerrado pidiera 0,72 —menos que el 0,85 del
       // tirón final— y el pelotón AFLOJABA por tener a alguien delante, regalando la etapa.
       if (finishFlat && kmRestantes <= STAGE.finalDriveKm && !chaseAbandoned) {
-        target = Math.max(target, STAGE.finalDriveCommit)
+        target = Math.max(target, finalDriveCommit)
       }
       peloton = {
         ...peloton,

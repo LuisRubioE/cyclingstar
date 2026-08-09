@@ -7,11 +7,12 @@
  * Es análisis, no motor: solo lee `StageOutput`. Lo consume `sim/cli.ts`.
  */
 import { SEASON_CALENDAR } from '../routes/calendar.js'
+import { chaseField } from '../stage/chase.js'
 import { simulateStage } from '../stage/simulate.js'
 import { stageSeed } from '../stage/rng.js'
 import type { Attribute } from '@cyclingstar/shared'
 import type { StageInput, StageOrders, StageRider } from '../stage/types.js'
-import type { Scenario } from './scenarios.js'
+import { flatScenario, type Scenario } from './scenarios.js'
 
 function eff(
   base: number,
@@ -259,6 +260,143 @@ export function analyzeSharjah(runs: number): GcStats {
     sprinterGcWins: sprinterGc,
     medianGcMargin: median(margins),
     sprinterStageWins: sprinterStages,
+  }
+}
+
+// --- 3-bis. La caza depende del campo -----------------------------------------------------
+
+/**
+ * El campo de una GRAN VUELTA en una etapa llana: cinco trenes de sprint de primer nivel (rematador
+ * de 82-90 con su lanzador y dos gregarios), sus baroudeurs y el resto del pelotón. Es el contraste
+ * del banco de la caza: aquí la fuga tiene que seguir llegando poco.
+ */
+export function grandTourSprintField(): StageRider[] {
+  const riders: StageRider[] = []
+  for (let t = 0; t < 5; t++) {
+    const leader = `spr-${t}`
+    riders.push(
+      rider(leader, {
+        eff0: eff(60, { SPR: 82 + 2 * t, LLA: 72 }),
+        orders: orders({ role: 'sprinter', contestSprints: true }),
+      }),
+    )
+    riders.push(
+      rider(`lan-${t}`, {
+        eff0: eff(60, { SPR: 68, LLA: 74 }),
+        orders: orders({ role: 'lanzador', targetRiderId: leader, contestSprints: true }),
+      }),
+    )
+    for (let g = 0; g < 2; g++) {
+      riders.push(
+        rider(`greg-${t}-${g}`, {
+          eff0: eff(60, { LLA: 70 }),
+          orders: orders({ role: 'gregario', targetRiderId: leader }),
+        }),
+      )
+    }
+  }
+  for (let i = 0; i < 6; i++) {
+    riders.push(
+      rider(`brk-${i}`, {
+        eff0: eff(58, { TAC: 62, LLA: 68 }),
+        orders: orders({ role: 'cazaetapas', mentality: 'combativo', contestSprints: true }),
+      }),
+    )
+  }
+  for (let i = 0; i < 14; i++)
+    riders.push(rider(`pel-${i}`, { eff0: eff(58, { LLA: 64 + (i % 8) }) }))
+  return riders
+}
+
+/**
+ * El campo INTERMEDIO: una ProSeries con dos trenes de rematador correcto (74-76) y un par de
+ * ayudantes cada uno. Existe para ver que la escala es un gradiente y no un segundo interruptor.
+ */
+export function proSprintField(): StageRider[] {
+  const riders: StageRider[] = []
+  for (let t = 0; t < 2; t++) {
+    const leader = `spr-${t}`
+    riders.push(
+      rider(leader, {
+        eff0: eff(58, { SPR: 74 + 2 * t, LLA: 70 }),
+        orders: orders({ role: 'sprinter', contestSprints: true }),
+      }),
+    )
+    riders.push(
+      rider(`lan-${t}`, {
+        eff0: eff(58, { SPR: 64, LLA: 70 }),
+        orders: orders({ role: 'lanzador', targetRiderId: leader, contestSprints: true }),
+      }),
+    )
+  }
+  for (let i = 0; i < 6; i++) {
+    riders.push(
+      rider(`brk-${i}`, {
+        eff0: eff(56, { TAC: 60, LLA: 66 }),
+        orders: orders({ role: 'cazaetapas', mentality: 'combativo', contestSprints: true }),
+      }),
+    )
+  }
+  for (let i = 0; i < 30; i++)
+    riders.push(rider(`pel-${i}`, { eff0: eff(56, { LLA: 62 + (i % 8) }) }))
+  return riders
+}
+
+export interface ChaseStats {
+  /** Fuerza de la caza que mide el motor para ese campo. */
+  force: number
+  /** Trenes con opciones reales. */
+  trains: number
+  races: number
+  stages: number
+  /** % de etapas llanas que NO acaban en sprint masivo. */
+  noBunchPct: number
+  /** Cuántas de las 5 llanas de una semana no acaban al sprint (mediana). */
+  medianNoBunchPerWeek: number
+  /** % de etapas que gana un corredor llegado desde la carretera (escapado). */
+  breakawayWinPct: number
+}
+
+/**
+ * El banco de la CAZA (criterio del dueño): cinco etapas llanas corridas por el MISMO recorrido y el
+ * mismo campo, contando cuántas se resuelven sin sprint masivo. En una carrera modesta al menos una
+ * debería escapársele al pelotón; en una gran vuelta con cinco trenes, casi ninguna.
+ */
+export function analyzeChase(riders: StageRider[], tag: string, races: number): ChaseStats {
+  const profile = flatScenario().input.profile
+  const field = chaseField(riders)
+  const perWeek: number[] = []
+  let stages = 0
+  let noBunch = 0
+  let fromBreak = 0
+  for (let r = 0; r < races; r++) {
+    let week = 0
+    for (let s = 1; s <= 5; s++) {
+      const seed = stageSeed({
+        worldSeed: `${tag}-${r}`,
+        raceId: tag,
+        stageDay: s,
+        engineVersion: 1,
+      })
+      const out = simulateStage({ profile, riders }, seed)
+      stages += 1
+      const win = out.events.find((e) => e.tipo === 'meta')
+      if (win?.datos?.won !== 'sprint') {
+        noBunch += 1
+        week += 1
+      }
+      if (win?.datos?.fuga === 1) fromBreak += 1
+    }
+    perWeek.push(week)
+  }
+  return {
+    force: field.force,
+    trains: field.trains.length,
+    races,
+    stages,
+    noBunchPct: (100 * noBunch) / stages,
+    medianNoBunchPerWeek: median(perWeek),
+    breakawayWinPct: (100 * fromBreak) / stages,
   }
 }
 

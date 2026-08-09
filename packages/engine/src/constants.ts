@@ -77,8 +77,18 @@
  * `gcThreatFraction` y `StageRider.gcDeficitSeconds`. Aparte van la regla 8 —el agotado sin nada
  * que jugarse se deja ir en los últimos km, cuidando el fuera de control— y la regla 9 —en el final
  * en alto los fuertes se atacan y se vigilan, con `marcaje.ts` resolviendo la respuesta—.
+ *
+ * v10 (COMPOSICIÓN Y CAZA, docs/balance.md «v10»): las dos mitades de una misma queja —una carrera
+ * generada que no tenía NADA que morder—. (1) La composición de una vuelta por etapas generada
+ * (`routes/calendar.ts::stageMix`, proporciones en `ROUTE`) deja de ser un `i % 2`: hay crono en las
+ * vueltas cortas y también en las llanas (donde antes estaba PROHIBIDA), la media montaña puede
+ * morir arriba y la última etapa puede ser decisiva; ninguna vuelta se queda sin crono ni final en
+ * alto. (2) La intensidad de la PERSECUCIÓN sale del campo (`stage/chase.ts`): cuántos trenes tiene
+ * la carrera, cómo de bueno es su rematador y con cuántos compañeros cuenta. Antes bastaba UN
+ * corredor con SPR ≥ 70 para que el pelotón entero cazara a tope, igual en una continental que en
+ * una gran vuelta; ahora una carrera modesta deja llegar a la fuga y una gran vuelta no.
  */
-export const ENGINE_VERSION = 9 as const
+export const ENGINE_VERSION = 10 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -670,6 +680,44 @@ export const STAGE = {
   chaseMaxLeashSeconds: 195,
   chaseHoldCommit: 0.62,
   chaseGain: 0.016,
+
+  // --- LA FUERZA DE LA CAZA (`stage/chase.ts`, docs/balance.md «v10») ----------------------
+  // Antes esto era un interruptor: bastaba UN corredor con SPR ≥ 70 para que el pelotón entero
+  // persiguiera con toda su fuerza, en una continental modesta igual que en una gran vuelta. Ahora
+  // la intensidad sale del CAMPO que persigue: cuántos trenes hay, cómo de bueno es su rematador y
+  // con cuántos compañeros cuenta. Todo lo de aquí abajo se calibra en docs/balance.md.
+  //
+  // Quién cuenta como rematador (el mismo umbral de siempre) y hasta cuánta punta puede cederle al
+  // mejor del campo sin dejar de tener opciones: por encima de eso su equipo no tira, porque no va
+  // a ganar el sprint de todas formas.
+  chaseContenderMinSpr: 70,
+  chaseContenderMaxGap: 12,
+  // Escala de calidad de un rematador: con 60 de punta no aporta nada a la caza; de 85 en adelante,
+  // todo lo que puede aportar uno solo.
+  chaseQualityFloor: 60,
+  chaseQualityFull: 85,
+  // Cuánto suma cada compañero (lanzador o gregario) que trabaja para él, y cuántos se cuentan como
+  // mucho: un tren son cuatro hombres, el quinto ya no cambia la carrera.
+  chaseHelperBonus: 0.15,
+  chaseHelpersMax: 3,
+  // Unidades que suman los trenes de un campo que sabe cazar CUALQUIER cosa. Tres rematadores de
+  // primer nivel llegan solos; con trenes montados basta con dos. Es el divisor de la normalización.
+  chaseFullUnits: 2.5,
+  // Por debajo de esta fuerza no hay caza organizada: nadie se pone a tirar y el pelotón pasa al
+  // control de la general (cuerda larga). Es la carrera pequeña donde la fuga llega.
+  chaseMinForce: 0.12,
+  // Cuánta MÁS cuerda da un campo flojo: la cuerda máxima se multiplica por (1 + gain·(1 − fuerza)),
+  // así una caza a media fuerza deja bastante más ventaja que una a fuerza plena.
+  chaseWeakLeashGain: 0.6,
+  // Tope de esfuerzo de un campo SIN fuerza ninguna: por muy alto que pida el lazo cerrado, dos
+  // equipos flojos no ponen al pelotón a 0,9 durante cien kilómetros. Con la fuerza a 1 el tope es
+  // 1 y el controlador da exactamente los números de siempre.
+  chaseWeakCommitCap: 0.78,
+  // Lo mismo con el tirón final de los trenes en los últimos km: sin trenes no hay tirón.
+  chaseWeakFinalDrive: 0.72,
+  // Y cuándo se rinde: el cierre viable por km se escala con la fuerza, con este suelo. Un campo
+  // flojo declara imposible antes lo que uno fuerte todavía intenta.
+  chaseWeakFeasibleFloor: 0.6,
   // Control de la general en etapas sin llegada masiva: el pelotón limita el boquete a este
   // tempo (no captura); la subida final decide. Calibra el % de fugas que ganan en montaña.
   // Subió de 265 a 342: con el pelotón regulando SIEMPRE (antes solo mientras había fuga) el boquete
