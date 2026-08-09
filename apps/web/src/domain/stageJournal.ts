@@ -55,6 +55,85 @@ export function chronicleLine(e: ChronicleEntry): string {
   const seed = `${e.plantilla}:${e.km}:${who}`
   const pick = (opts: string[]): string => opts[variantIndex(seed, opts.length)] ?? opts[0] ?? ''
   switch (e.plantilla) {
+    // --- La capa táctica (docs/motor.md §13) ------------------------------------------------
+    // Un ataque que ocurre y no se cuenta no existe para el jugador. El motor emite todos los
+    // intentos como telemetría y marca cuáles merecen frase; aquí se les pone voz. Cada tipo de
+    // movimiento se cuenta como lo que es: no es lo mismo el manotazo del km 5 que el ataque del
+    // último puerto, ni un puente que se cierra que uno que se queda a medio camino.
+    case 'attack_go': {
+      const jumped = Number(e.datos?.saltan ?? e.protagonists.length)
+      const stranded = Number(e.datos?.tierra ?? 0)
+      const toGo = Number(e.datos?.toGo ?? 0)
+      const held = e.datos?.cuerda === 0
+      const tail =
+        stranded > 0
+          ? ` ${stranded} more tr${stranded === 1 ? 'ies' : 'y'} to go with them and cannot hold the wheel.`
+          : ''
+      if (e.datos?.kind === 'puente')
+        return `${who || 'A rider'} jump${jumped === 1 ? 's' : ''} across, chasing the leaders on their own.${tail}`
+      if (e.datos?.kind === 'ataque_final')
+        return pick([
+          `${who} attack${jumped === 1 ? 's' : ''} with ${toGo} km to go.${tail}`,
+          `It is ${who} who goes, ${toGo} km from the line.${tail}`,
+        ])
+      if (e.datos?.kind === 'ataque_grupo')
+        return pick([
+          `${who} attack${jumped === 1 ? 's' : ''} out of the front group.${tail}`,
+          `The move splinters: ${who} kick${jumped === 1 ? 's' : ''} clear.${tail}`,
+        ])
+      const chased = held ? ' The bunch is not letting this one go.' : ''
+      return pick([
+        `${who} go clear off the front.${tail}${chased}`,
+        `Attack: ${who} force${jumped === 1 ? 's' : ''} the pace and open a gap.${tail}${chased}`,
+        `${who} tr${jumped === 1 ? 'ies' : 'y'} their luck up the road.${tail}${chased}`,
+      ])
+    }
+    case 'attack_swarm': {
+      // Regla 2 llevada al extremo: saltan tantos que el ataque no separa nada.
+      const jumped = Number(e.datos?.saltan ?? 0)
+      return pick([
+        `${who} go, but half the group goes with them — ${jumped} riders and no gap.`,
+        `Everyone is watching: ${jumped} jump across at once and nothing opens up.`,
+      ])
+    }
+    case 'attack_sticks': {
+      const gap = fmtGap(Number(e.datos?.gapS ?? 0))
+      const toGo = Number(e.datos?.toGo ?? 0)
+      const size = Number(e.datos?.size ?? e.protagonists.length)
+      if (size === 1) return `${who} has a real gap now — ${gap}, ${toGo} km from the finish.`
+      return `The move sticks: ${who} have ${gap} with ${toGo} km to go.`
+    }
+    case 'attack_reeled':
+      return pick([
+        `The bunch closes it down and ${who || 'the move'} ${e.protagonists.length === 1 ? 'is' : 'are'} back.`,
+        `Nothing doing: ${who || 'the attack'} ${e.protagonists.length === 1 ? 'is' : 'are'} swept up again.`,
+        `The elastic snaps back — ${who || 'the attackers'} sit up.`,
+      ])
+    case 'move_caught':
+      return pick([
+        `The chase brings ${who || 'the leaders'} back into the fold.`,
+        `${who || 'The move'} ${e.protagonists.length === 1 ? 'is' : 'are'} caught.`,
+      ])
+    case 'bridge_made':
+      return pick([
+        `${who} make${e.protagonists.length === 1 ? 's' : ''} the junction and joins the leaders.`,
+        `The bridge works: ${who} get${e.protagonists.length === 1 ? 's' : ''} across to the front group.`,
+      ])
+    case 'bridge_failed':
+      return pick([
+        `${who || 'The chaser'} run${e.protagonists.length === 1 ? 's' : ''} out of legs in no man's land.`,
+        `The junction is never made — ${who || 'the move'} hang${e.protagonists.length === 1 ? 's' : ''} between the two groups.`,
+      ])
+    case 'move_merge':
+      return `The groups come together up front — ${Number(e.datos?.size ?? 0)} riders now in the lead.`
+    case 'rider_sits_up': {
+      // Regla 8: el agotado sin nada que jugarse administra el esfuerzo.
+      const toGo = Number(e.datos?.toGo ?? 0)
+      return pick([
+        `${who} is empty and lets the group go with ${toGo} km left, riding home at his own pace.`,
+        `Nothing left for ${who}: he sits up ${toGo} km from the line.`,
+      ])
+    }
     case 'breakaway_formed':
       return pick([
         `${who || 'A group'} attack and open up the day's break.`,

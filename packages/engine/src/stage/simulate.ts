@@ -21,7 +21,7 @@ import {
   isSprintFinish,
   isUphillFinish,
 } from './finish.js'
-import { markingMargin, resolveMarking } from './marcaje.js'
+import { markingMargin, resolveMarking, wheelProbability } from './marcaje.js'
 import {
   type MoveContext,
   type MoveKind,
@@ -260,6 +260,12 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
   // Marcaje (SPEC 6.18): quién marca a qué rival. Un marcador se agarra a la rueda de su objetivo y
   // aguanta sus ataques en la subida mientras su nivel no esté muy por debajo (no le deja marcharse solo).
   const markTargetOf = new Map<string, string>()
+  /** Cuántos marcadores MÁS (aparte de uno dado) vigilan a un objetivo: la rueda se disputa. */
+  const marksAlso = (targetId: string, exceptId: string): number => {
+    let n = 0
+    for (const [markerId, t] of markTargetOf) if (t === targetId && markerId !== exceptId) n += 1
+    return n
+  }
   for (const r of input.riders) {
     const target = r.orders.targetRiderId
     if (!target) continue
@@ -742,6 +748,7 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
      * porque decidieras ahorrar, así que el vaciado agonizaba a rueda hasta la meta.
      */
     const administerEffort = (group: Group, members: RiderSim[], inFront: boolean): void => {
+      if (members.length === 0) return
       if (totalKm - km > STAGE.giveUpKm) return
       for (const m of members) {
         const lambda = giveUpLambda(
@@ -772,7 +779,12 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
     const pelFrac = onClimb ? climbFrac : STAGE.pelotonPaceFraction
     const moveFrac = (m: Move): number => (onClimb ? climbFrac : m.g.coop)
 
-    administerEffort(peloton, membersOf(PELOTON), moves.length === 0)
+    // El que va ESCAPADO se juega la etapa y aprieta los dientes; el que va en el pelotón o
+    // descolgado a 20 km de meta con el depósito vacío, no. (El filtro fino —líder, sprinter,
+    // cazaetapas, supercombativo— lo pone `giveUpLambda`.)
+    administerEffort(peloton, membersOf(PELOTON), false)
+    for (const m of moves) administerEffort(m.g, membersOf(m.g.id), true)
+    for (const sg of shed) administerEffort(sg, membersOf(sg.id), false)
     const pelotonDropped = shatter(peloton, membersOf(PELOTON), pelFrac)
     for (const m of moves) shatter(m.g, membersOf(m.g.id), moveFrac(m))
     // Cómo cambia el pelotón en el desenlace: la CRIBA que lo parte y el REAGRUPAMIENTO que lo
@@ -931,7 +943,34 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       // es la mitad de por qué un ataque no prospera.
       const jumpers: MoveRider[] = []
       let stranded = 0
+      const instigatorSim = sims.get(instigator.riderId)
       for (const r of pool) {
+        if (r.riderId === instigator.riderId) continue
+        const sim = sims.get(r.riderId)
+        // MARCAJE (SPEC 6.18, regla 9): el que tiene la orden de marcar a quien acaba de atacar no
+        // decide con el dado de la atención: si vive en su rueda, responde. `wheelProbability`
+        // existía, tenía tests y no la llamaba nadie; `resolveMarking` solo se usaba en el
+        // descuelgue. Este es el otro momento para el que se escribieron: la respuesta al ataque.
+        const marks = sim != null && markTargetOf.get(r.riderId) === instigator.riderId
+        if (marks && instigatorSim) {
+          const onWheel =
+            rngTactics() <
+            wheelProbability(r.tac, instigator.tac, marksAlso(instigator.riderId, r.riderId))
+          if (onWheel) {
+            const outcome = resolveMarking(markingMargin(r.perfil, instigator.perfil))
+            if (outcome.kind === 'stuck') {
+              jumpers.push(r)
+              continue
+            }
+            if (outcome.kind === 'gives') {
+              sim.markLossS += outcome.secondsLost
+              stranded += 1
+              continue
+            }
+            stranded += 1
+            continue
+          }
+        }
         if (rngTactics() >= followProbability(r, instigator, ctx)) continue
         if (sustainsJump(r, instigator, rngTactics)) jumpers.push(r)
         else stranded += 1

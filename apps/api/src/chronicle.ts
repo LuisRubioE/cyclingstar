@@ -33,8 +33,19 @@ export interface ChronicleEntry {
  * pelotón, los sprints y las cimas, después la caza, y la victoria siempre al final.
  */
 const EVENT_ORDER: Record<string, number> = {
+  // Un ataque va ANTES que su consecuencia: primero salta alguien, luego se forma la fuga, lo
+  // cazan o engancha con los de delante (docs/motor.md §13).
+  attack_go: 0,
+  attack_swarm: 0,
   breakaway_formed: 0,
   break_cooperation: 0,
+  attack_sticks: 1,
+  attack_reeled: 1,
+  move_caught: 1,
+  bridge_made: 1,
+  bridge_failed: 1,
+  move_merge: 1,
+  rider_sits_up: 4,
   sprinters_chase: 1,
   peloton_concedes: 1,
   sprinters_give_up: 1,
@@ -57,6 +68,7 @@ const EVENT_ORDER: Record<string, number> = {
 
 /** Tipos de evento que se pintan como hito sobre la altimetría, con su etiqueta en la web. */
 const MARKER_LABEL: Record<string, string> = {
+  ataque: 'attack',
   fuga_formada: 'break',
   fuga_cazada: 'caught',
   banner: 'banner',
@@ -89,6 +101,10 @@ export function buildChronicle(
 ): ChronicleEntry[] {
   return (
     events
+      // TELEMETRÍA frente a NARRATIVA (docs/motor.md §16): el motor emite TODOS los intentos de
+      // movimiento porque son dato de carrera, y marca con `narra` cuáles merecen una frase. Una
+      // etapa tiene una docena de intentos y la crónica no puede ser su inventario.
+      .filter((e) => e.datos?.narra !== 0)
       .map((e) => ({
         km: Math.round(e.km),
         tS: Math.round(e.tS),

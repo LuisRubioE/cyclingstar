@@ -519,7 +519,7 @@ export const STAGE = {
   // coste por km también ha bajado: el umbral tiene que seguir al gasto o la reina deja de erosionar.
   // Queda justo por encima del gasto de la llana tranquila (28,8% frente a un umbral de 29,2% con
   // RES 55): es la atadura que impide subirlo más, porque la llana NO debe erosionar.
-  erosionThresholdBase: 0.105,
+  erosionThresholdBase: 0.088,
   erosionThresholdResScale: 0.4,
   erosionExponent: 1.2,
   // Techo estructural de la erosión (docs/motor.md §VI.1: «≤ 0,92 — jamás 1,000»). En 1,000 todo el
@@ -685,14 +685,14 @@ export const STAGE = {
   // (el pelotón se cansa de cerrar huecos), cuánto la baja que el grupo sea numeroso, y el castigo
   // si ahí va una amenaza para la general. Es LA perilla que decide cuántos intentos hacen falta
   // antes de que cuaje la fuga del día.
-  tacticAllowBase: 0.35,
+  tacticAllowBase: 0.42,
   tacticAllowKmGain: 0.5,
   tacticAllowSizePenalty: 0.05,
   tacticAllowGcPenalty: 0.75,
   tacticAllowMax: 0.7,
   // Ritmo al que el pelotón cierra un movimiento al que NO da cuerda. Por encima del tempo de
   // carretera (0,55): cerrar un hueco cuesta, y por eso el pelotón no puede hacerlo indefinidamente.
-  tacticControlCommit: 0.65,
+  tacticControlCommit: 0.62,
   // Lo que cuesta LANZAR un ataque, en unidades de tanque. Menos que el cerillo que salva un
   // descuelgue en un puerto (`matchCost` = 5), porque aquello es un esfuerzo sostenido y esto un
   // acelerón: el ataque abre su boquete y luego se rueda. El número importa mucho más de lo que
@@ -705,7 +705,7 @@ export const STAGE = {
   tacticFollowCostFactor: 0.5,
   // Km sin un intento nuevo desde el mismo grupo tras el anterior: la carrera respira entre ataque
   // y ataque, y sin esto un λ de 1,2/km produciría un muro de intentos.
-  tacticAttemptCooldownKm: 3.5,
+  tacticAttemptCooldownKm: 4.5,
   // Dentro de un grupo escapado no se ataca antes de esto (km a meta): en mitad de la etapa se
   // colabora para que la fuga viva. Salvo que la TENSIÓN haya roto el pacto (SPEC 6.10).
   tacticInsideAttackKm: 18,
