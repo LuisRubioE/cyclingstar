@@ -163,6 +163,22 @@ export function chronicleLine(e: ChronicleEntry): string {
       const leadPart = e.datos?.leads === 1 ? ' — he now leads the mountains classification' : ''
       return `${who}${t} is first over the ${catLabel}${ptsPart}${leadPart}.`
     }
+    case 'peloton_regroup': {
+      // El reagrupamiento (v8). Existía en el modelo desde siempre y no se narraba nunca: la crónica
+      // dejaba «about 51 left in front» y en meta llegaban más de cien juntos, sin nada que lo
+      // explicara. Es información de carrera de primer orden, no un detalle.
+      const joined = Number(e.datos?.joined ?? 0)
+      const now = Number(e.datos?.remaining ?? 0)
+      const before = Number(e.datos?.before ?? 0)
+      const group = e.datos?.chasing === 1 ? 'the chase group' : 'the front group'
+      if (before <= 1)
+        return `The chase gets back on: ${joined} riders rejoin and ${group} is ${now} strong again.`
+      return pick([
+        `The gap closes and ${joined} riders get back on — ${group} is up from ${before} to ${now}.`,
+        `Regrouping on the run-in: ${group} goes from ${before} to ${now} as the chasers rejoin.`,
+        `${joined} riders claw their way back — ${now} together again at the front.`,
+      ])
+    }
     case 'peloton_split': {
       const dropped = Number(e.datos?.dropped ?? 0)
       const remaining = e.datos?.remaining == null ? null : Number(e.datos.remaining)
@@ -173,6 +189,19 @@ export function chronicleLine(e: ChronicleEntry): string {
       const chasing = e.datos?.chasing === 1
       const group = chasing ? 'the chase group' : 'the lead group'
       const where = chasing ? 'in the chase' : 'in front'
+      // `phase` llega desde v8: cuántos avisos lleva ya esta misma criba. El primero presenta a
+      // quien aprieta; los siguientes cuentan la PROGRESIÓN y no vuelven a nombrarlo, que es lo que
+      // hacía que un puerto largo se leyera como diez partes clónicos con el mismo equipo repetido.
+      const phase = Number(e.datos?.phase ?? 0)
+      if (phase > 0 && before != null && remaining != null && before > remaining) {
+        if (remaining === 1)
+          return `The selection goes on and the last companions crack — ${who || 'the leader'} rides on alone.`
+        return pick([
+          `The selection goes on: ${group} is down from ${before} to ${remaining}.`,
+          `The climb keeps biting — ${dropped} more lose contact and only ${remaining} of the ${before} are left ${where}.`,
+          `Another surge cuts ${group} again, from ${before} to ${remaining}.`,
+        ])
+      }
       // Con un grupo grande tira un EQUIPO y así se narra; con un grupo pequeño no tira un equipo,
       // tira un corredor. Es la observación del dueño: "Cumbre Escuadra lift the pace" con tres
       // corredores en cabeza es absurdo. El tamaño de referencia es el del grupo ANTES del corte.

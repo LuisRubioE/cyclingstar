@@ -63,6 +63,11 @@ const CHRONICLE: Record<string, ((n: string) => string)[]> = {
     (n) => `Selection on the climb as ${n || 'the leaders'} press the pace`,
     (n) => `${n || 'The pace'} bites on the climb — riders slip off the back`,
   ],
+  peloton_regroup: [
+    () => 'The groups come back together at the front',
+    () => 'The chasers get back on — the front group swells again',
+    () => 'Regrouping on the road: the race is together again',
+  ],
   front_group: [
     (n) => `Only a handful left in front: ${n}`,
     (n) => `The race is down to a select group — ${n}`,

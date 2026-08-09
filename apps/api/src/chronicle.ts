@@ -42,6 +42,9 @@ const EVENT_ORDER: Record<string, number> = {
   sprint_intermediate: 2,
   climb_kom: 3,
   peloton_split: 4,
+  // El reagrupamiento comparte sitio con el corte: son la misma cuenta (de cuántos a cuántos ha
+  // pasado el grupo) contada en las dos direcciones, y nunca coinciden en el mismo kilómetro.
+  peloton_regroup: 4,
   // El parte de quién va en cabeza va DESPUÉS de lo que lo ha producido —el corte del grupo o la
   // captura de la fuga—: primero se cuenta qué ha pasado y luego quiénes han quedado delante.
   breakaway_caught: 5,

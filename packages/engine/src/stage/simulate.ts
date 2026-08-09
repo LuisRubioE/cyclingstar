@@ -44,7 +44,18 @@ interface RiderSim {
   energy: number
   groupId: string
   work: number
+  /**
+   * Tiempo de meta YA EN SEGUNDOS ENTEROS (SPEC 6.15). Es el tiempo del GRUPO, idéntico para todos
+   * los que entran con él: en ciclismo la línea de meta no desempata dentro de un grupo, lo hace el
+   * juez de llegada. Solo se separa de él lo que se ha cedido de verdad en carretera (`markLossS`).
+   */
   finishTs: number | null
+  /**
+   * Orden de llegada global (0, 1, 2…), asignado grupo a grupo y, dentro de cada grupo, por el
+   * ranking del remate. Es el ÚNICO desempate del puesto: antes el orden se colaba en el tiempo
+   * sumando 1 ms por posición, y al redondear partía el grupo en dos tiempos distintos.
+   */
+  finishOrder: number
   bonusS: number
   sprintPts: number
   climbPts: number
@@ -190,6 +201,7 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       groupId: PELOTON,
       work: 0,
       finishTs: null,
+      finishOrder: 0,
       bonusS: 0,
       sprintPts: 0,
       climbPts: 0,
@@ -241,14 +253,23 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
   let lowCommitKm = 0
   // Km en que se «anuncia» la fuga en la crónica: ningún evento relativo a la fuga se fecha antes.
   let breakFormedKm = 0
-  let lastSplitKm = Number.NEGATIVE_INFINITY
+  let lastFrontNoticeKm = Number.NEGATIVE_INFINITY
   let lastGapReportKm = Number.NEGATIVE_INFINITY
   let prevGapS = Number.POSITIVE_INFINITY
-  // Selección del pelotón acumulada desde el último corte NARRADO, y cuántos iban entonces. Sin
-  // acumular, una criba de 78 corredores en 3 km se contaba con "2 se descuelgan" (docs/motor.md
-  // §16: el motor sabe lo que pasa y lo tiraba).
-  let droppedSinceSplit = 0
-  let frontAtLastSplit = input.riders.length
+  // Descuelgues BRUTOS del pelotón desde el último aviso narrado, y cuántos corredores iban en él
+  // entonces. El bruto es telemetría verdadera —cuántas veces se rompió la goma— pero NO es lo que
+  // se narra: en el desenlace los mismos corredores se sueltan y se reenganchan una y otra vez, así
+  // que el bruto llegaba a decir "54 descolgados" con el grupo pasando de 76 a 76. Lo narrado es la
+  // diferencia entre `frontAtLastNotice` y el tamaño de ahora (docs/motor.md §16).
+  let droppedSinceNotice = 0
+  let frontAtLastNotice = input.riders.length
+  // Cuántos avisos de criba se han dado ya en la selección en curso. Sube el listón del siguiente
+  // (más kilómetros y una fracción mayor del grupo), que es lo que convierte una criba de 27 km en
+  // dos o tres frases de progresión en vez de un parte cada 3 km. Un reagrupamiento lo pone a cero:
+  // cuando el grupo se recompone, la siguiente selección es una historia nueva.
+  let splitPhase = 0
+  // Quién apretó en el aviso anterior, para no nombrar diez veces al mismo protagonista.
+  let lastSplitDriverId: string | null = null
   // Último tamaño del grupo de cabeza anunciado, para no repetir el parte de una fuga estable.
   let lastFrontSize = input.riders.length
   let lastFrontReportKm = Number.NEGATIVE_INFINITY
@@ -304,7 +325,7 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       })
       // La fuga YA se ha nombrado: el parte de cabeza no debe repetirla nada más salir.
       lastFrontSize = fugados.length
-      frontAtLastSplit = peloton.riderIds.length
+      frontAtLastNotice = peloton.riderIds.length
     }
   }
   // Los sprinters solo cazan si la meta es llana (una llegada masiva que puedan disputar): en un
@@ -653,51 +674,93 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
 
     const pelotonDropped = shatter(peloton, membersOf(PELOTON), pelFrac)
     if (breakaway && !caught) shatter(breakaway, membersOf(BREAKAWAY), brkFrac)
-    // Corte en el puerto: cuando la subida descuelga a varios del pelotón, se narra en la crónica
-    // (SPEC 6.15). Explica los boquetes de la clasificación que, si no, aparecerían sin motivo. Se
-    // limita a uno cada pocos km para no repetir la misma frase bloque a bloque en un puerto largo.
-    // Solo se narra el corte en un puerto que se está ATACANDO (decisivo, cerca de meta): en los de
-    // tempo el pelotón se recompone después, así que anunciar "N se descuelgan" ahí sería engañoso.
+    // Cómo cambia el pelotón en el desenlace: la CRIBA que lo parte y el REAGRUPAMIENTO que lo
+    // recompone (SPEC 6.15). Ambos son la misma cuenta —de cuántos a cuántos ha pasado el grupo
+    // desde el aviso anterior— y por eso comparten estado: así la cadena de avisos no tiene huecos
+    // y el lector nunca se encuentra corredores que aparecen o desaparecen sin explicación.
+    // Solo dentro del desenlace: en un puerto de tempo a mitad de etapa el pelotón se rompe y se
+    // recompone constantemente, y narrarlo sería ruido.
     if (raceThisClimb) {
-      // La cuenta es ACUMULADA desde el último corte narrado, no la del bloque: en una criba
-      // continua se sueltan 2-3 corredores cada 100 m y, contando solo el bloque, el grupo de
-      // cabeza pasaba de 81 a 3 con dos frases que sumaban 4 descolgados. Ahora la frase dice
-      // cuántos se han ido DESDE la anterior y de cuántos a cuántos ha quedado el grupo.
-      droppedSinceSplit += pelotonDropped.length
+      droppedSinceNotice += pelotonDropped.length
       const front = membersOf(PELOTON)
+      // Lo NARRADO es lo que el grupo ha perdido de verdad desde el aviso anterior. Con el recuento
+      // bruto (`droppedSinceNotice`) la crónica decía «54 riders slip off the back» y acto seguido
+      // «about 76 left in front» cuando el aviso anterior ya decía 76: no había caído nadie: los
+      // mismos corredores se soltaban en la rampa y volvían en el repecho siguiente.
+      const lost = frontAtLastNotice - front.length
+      const rejoined = front.length - frontAtLastNotice
+      // Progresión: una criba larga se cuenta en POCAS frases que enseñen cómo va cayendo el grupo,
+      // no en un parte cada 3 km. Cada aviso ya dado sube el listón del siguiente —más kilómetros y
+      // una fracción mayor de lo que quedaba—, así un puerto de 27 km da dos o tres frases.
+      const step = 1 + STAGE.splitPhaseEscalation * splitPhase
       // Un corte grande se cuenta en el acto, sin esperar al throttle de km: 76 corredores fuera
       // en tres kilómetros son una frase que el lector necesita ahí, no cinco kilómetros después.
       const bigCut =
-        droppedSinceSplit >= STAGE.splitEventBigDropMin &&
-        droppedSinceSplit >= frontAtLastSplit * STAGE.splitEventBigDropFraction &&
-        km - lastSplitKm >= STAGE.splitEventBigDropKmGap
+        lost >= STAGE.splitEventBigDropMin &&
+        lost >= frontAtLastNotice * STAGE.splitEventBigDropFraction * step &&
+        km - lastFrontNoticeKm >= STAGE.splitEventBigDropKmGap * step
       const material =
-        droppedSinceSplit >= STAGE.splitEventMinDropped &&
-        droppedSinceSplit >= frontAtLastSplit * STAGE.splitEventMinDropFraction
-      if (material && (km - lastSplitKm >= STAGE.splitEventMinKmGap || bigCut)) {
-        // Quién aprieta: el corredor más fuerte en cabeza del pelotón en este puerto. Con un grupo
-        // grande su EQUIPO es quien tira y así se narra; con un grupo pequeño lo decide la web,
-        // que para eso recibe el tamaño (con tres corredores no tira un equipo, tira un corredor).
-        const driver = front
+        lost >= STAGE.splitEventMinDropped &&
+        lost >= frontAtLastNotice * STAGE.splitEventMinDropFraction * step
+      if (material && (km - lastFrontNoticeKm >= STAGE.splitEventMinKmGap * step || bigCut)) {
+        // Quién aprieta: uno de los más fuertes en cabeza del pelotón en este puerto, pero NO el
+        // mismo del aviso anterior — nombrar diez veces seguidas al mismo equipo era la mitad de la
+        // sensación de "parte clónico". Con un grupo grande su EQUIPO es quien tira y así se narra;
+        // con un grupo pequeño lo decide la web, que para eso recibe el tamaño.
+        const ranking = front
           .map((m) => ({ id: m.input.riderId, p: riderPerfil(m, block) }))
-          .sort((a, b) => b.p - a.p || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))[0]?.id
+          .sort((a, b) => b.p - a.p || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+        const driver = (ranking.find((x) => x.id !== lastSplitDriverId) ?? ranking[0])?.id
         log.emit(km, peloton.tS, 'corte', 'peloton_split', driver ? [driver] : [], {
-          dropped: droppedSinceSplit,
+          dropped: lost,
           remaining: front.length,
-          before: frontAtLastSplit,
+          before: frontAtLastNotice,
+          // Descuelgues brutos contados por el motor en el tramo: la goma se rompió tantas veces,
+          // aunque muchos volvieran. Es telemetría, no es lo que se narra.
+          shed: droppedSinceNotice,
+          // Cuántos avisos lleva ya esta criba: la web usa el 0 para presentar al que aprieta y los
+          // siguientes para contar la progresión sin volver a nombrarlo.
+          phase: splitPhase,
           // Si la fuga sigue por delante, este grupo NO va en cabeza: es el que persigue. Decir
           // "N left in front" con una fuga en carretera era sencillamente falso.
           chasing: breakaway && !caught ? 1 : 0,
         })
-        lastSplitKm = km
-        frontAtLastSplit = front.length
-        droppedSinceSplit = 0
+        lastFrontNoticeKm = km
+        frontAtLastNotice = front.length
+        droppedSinceNotice = 0
+        lastSplitDriverId = driver ?? null
+        splitPhase += 1
+      } else if (
+        // Reagrupamiento: los descolgados vuelven y el grupo se recompone. Existía en el modelo
+        // desde siempre (los cortados recortan `chaseBackSecondsPerKm` en llano y se reenganchan
+        // dentro de `regroupGapSeconds`) y NO se narraba nunca: la crónica dejaba "51 delante" en la
+        // última frase y en meta llegaban más de cien juntos. Es información de carrera de primer
+        // orden y ahora tiene su evento.
+        rejoined >= STAGE.regroupEventMinRiders &&
+        rejoined >= frontAtLastNotice * STAGE.regroupEventMinFraction &&
+        km - lastFrontNoticeKm >= STAGE.regroupEventKmGap
+      ) {
+        log.emit(km, peloton.tS, 'reagrupamiento', 'peloton_regroup', [], {
+          joined: rejoined,
+          remaining: front.length,
+          before: frontAtLastNotice,
+          chasing: breakaway && !caught ? 1 : 0,
+        })
+        lastFrontNoticeKm = km
+        frontAtLastNotice = front.length
+        droppedSinceNotice = 0
+        // El grupo vuelve a estar entero: la criba anterior se ha cerrado y la próxima empieza de
+        // cero, tanto en el throttle como en quién puede volver a ser el protagonista.
+        splitPhase = 0
+        lastSplitDriverId = null
       }
     } else {
-      // Fuera del puerto decisivo el pelotón se recompone: lo que se soltó en un puerto de tempo
-      // no se arrastra a la cuenta del corte que sí decide la etapa.
-      droppedSinceSplit = 0
-      frontAtLastSplit = membersOf(PELOTON).length
+      // Fuera del desenlace el pelotón se rompe y se recompone sin consecuencias: lo que se soltó
+      // en un puerto de tempo no se arrastra a la cuenta de la criba que sí decide la etapa.
+      droppedSinceNotice = 0
+      frontAtLastNotice = membersOf(PELOTON).length
+      splitPhase = 0
+      lastSplitDriverId = null
     }
 
     peloton = advance(peloton, membersOf(PELOTON), pelFrac)
@@ -959,6 +1022,10 @@ function finishStage(
     .filter((g) => g.members.length > 0)
   withMembers.sort((a, b) => a.group.tS - b.group.tS)
 
+  // Contador del orden de llegada. Los grupos ya van ordenados por reloj, así que basta con ir
+  // repartiéndolo grupo a grupo y, dentro de cada uno, por el ranking del remate.
+  let order = 0
+
   withMembers.forEach(({ group, members }, gi) => {
     const idSet = new Set(members.map((m) => m.input.riderId))
     const type = finishType(terrain, members.length)
@@ -996,11 +1063,20 @@ function finishStage(
         return { m, score }
       })
       .sort((a, b) => b.score - a.score)
+    // El tiempo del GRUPO, redondeado UNA sola vez y compartido por todos sus corredores. Antes se
+    // sumaba al reloj un épsilon de 1 ms por posición para desempatar el ORDEN y luego se redondeaba
+    // el resultado: un grupo que cruzaba en X,477 s repartía X a los 23 primeros y X+1 a los demás,
+    // un corte inventado por el redondeo que además se acumulaba etapa tras etapa en la general y en
+    // la clasificación por equipos. El orden vive ahora en `finishOrder`, no en el reloj.
+    const groupTimeS = Math.round(group.tS)
     ranked.forEach(({ m }, idx) => {
-      // Los segundos cedidos marcando (SPEC 6.18) se pagan en el tiempo de meta: el marcador no se
-      // soltó del grupo, pero llegó con ese retraso respecto a su objetivo.
-      m.finishTs = group.tS + m.markLossS + idx * STAGE.finishTieBreakSeconds
+      // Los segundos cedidos marcando (SPEC 6.18) son tiempo cedido DE VERDAD en carretera (el
+      // marcador no se soltó del grupo, pero llegó con ese retraso), así que sí separan su tiempo
+      // del de sus compañeros de grupo. Es la única separación legítima dentro de un grupo.
+      m.finishTs = groupTimeS + Math.round(m.markLossS)
+      m.finishOrder = order + idx
     })
+    order += ranked.length
     if (gi === 0 && ranked[0]) {
       const field = ranked.length
       // Sprint masivo A EFECTOS DE CRÓNICA: un grupo numeroso que no llega trepando disputa la
@@ -1050,7 +1126,9 @@ function finishStage(
 function buildResults(sims: Map<string, RiderSim>): StageResult[] {
   const finishers = [...sims.values()]
     .filter((s) => s.finishTs !== null)
-    .sort((a, b) => a.finishTs! - b.finishTs!)
+    // Por tiempo y, a igualdad de tiempo (que es lo NORMAL dentro de un grupo), por el orden de
+    // llegada que resolvió el remate. El puesto lo decide el juez de llegada, no el cronómetro.
+    .sort((a, b) => a.finishTs! - b.finishTs! || a.finishOrder - b.finishOrder)
   finishers.forEach((s, idx) => {
     s.bonusS = STAGE.timeBonuses[idx] ?? 0
     // La meta de etapa reparte puntos de regularidad (SPEC 6.11): la fuente principal de la
@@ -1060,7 +1138,8 @@ function buildResults(sims: Map<string, RiderSim>): StageResult[] {
   return finishers.map((s, idx) => ({
     riderId: s.input.riderId,
     puesto: idx + 1,
-    tiempoS: Math.round(s.finishTs!),
+    // Ya es entero: se redondeó una vez, en el reloj del grupo.
+    tiempoS: s.finishTs!,
     bonificacionS: s.bonusS,
     puntosVolante: s.sprintPts,
     puntosMontana: s.climbPts,

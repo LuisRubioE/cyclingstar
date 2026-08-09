@@ -51,8 +51,20 @@
  * fin en un resultado y una rampa de 200 m deja de convertir una llana en llegada de escaladores.
  * Además el TRABAJO del día (`workUnits`, que se calculaba y no se usaba para nada) se cobra en el
  * remate, y los banners se disputan con la erosión del momento en vez de con el corredor del km 0.
+ *
+ * v8 (TIEMPOS DE GRUPO Y CRÓNICA DE LA CRIBA): (1) todos los corredores de un mismo grupo reciben
+ * el MISMO tiempo de meta. El desempate de 1 ms por puesto que servía para ordenar el sprint se
+ * sumaba al reloj y luego se redondeaba, así que un grupo que cruzaba en X,477 salía partido en
+ * X (23 corredores) y X+1 (el resto): un corte imposible que la general y la clasificación por
+ * equipos venían sumando etapa tras etapa. El orden dentro del grupo lo lleva ahora `finishOrder`.
+ * (2) La criba se narra por lo que PIERDE el grupo entre dos avisos (pérdida neta), no por el
+ * recuento bruto de descuelgues —que con el reenganche continuo inflaba la cifra hasta narrar «54
+ * descolgados» con el grupo pasando de 76 a 76—, con un throttle que escala dentro del mismo puerto
+ * para contar una criba larga en pocas frases de progresión. (3) Nace `peloton_regroup`: el
+ * reagrupamiento existía en el modelo y no se narraba nunca, así que la crónica decía «51 delante»
+ * y llegaban 100 juntos sin explicación.
  */
-export const ENGINE_VERSION = 7 as const
+export const ENGINE_VERSION = 8 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -327,9 +339,12 @@ export const STAGE = {
   // sí forman un grupo. Sin él la etapa reina terminaba con 30 grupos de un corredor (§3-bis-e).
   // Estrecho a propósito: fusiona a los que van realmente juntos, no a los que están cortados.
   grupetoJoinGapSeconds: 12,
-  // Nº mínimo de descolgados ACUMULADOS desde el último corte narrado para volver a narrarlo. La
-  // cuenta es acumulada, no del bloque: en una criba continua se soltaban 2-3 por bloque y solo se
-  // narraba uno cada 3 km, así que el grupo de cabeza pasaba de 81 a 3 con dos frases de por medio.
+  // Nº mínimo de corredores que el grupo tiene que haber PERDIDO desde el último aviso narrado para
+  // volver a narrarlo. Es la pérdida NETA (de cuántos a cuántos ha quedado el grupo), no el recuento
+  // bruto de descuelgues: contando el bruto, en el desenlace los mismos corredores se sueltan en la
+  // rampa y vuelven en el repecho, y la crónica llegaba a decir «54 descolgados» con el grupo
+  // pasando de 76 a 76. Contando solo el bloque de 100 m pasaba lo contrario (el grupo caía de 81 a
+  // 3 con dos frases de por medio): la cuenta buena es la diferencia entre avisos.
   splitEventMinDropped: 2,
   // …y además tiene que ser una parte APRECIABLE del grupo. En una etapa con final en alto el
   // puerto decisivo dura toda la etapa (`raceThisClimb`), y con el suelo de 2 solo, la crónica
@@ -349,6 +364,20 @@ export const STAGE = {
   // kilómetros y sin este suelo la explosión se narraba con siete frases seguidas en el mismo km.
   // Una explosión merece UNA frase que la explique, no una por escalón.
   splitEventBigDropKmGap: 3,
+  // Progresión de la criba: cuánto sube el listón CADA aviso ya dado dentro de la misma selección.
+  // Con 1, el segundo aviso exige el doble de distancia y el doble de fracción del grupo que el
+  // primero; el tercero, el triple. Es lo que convierte un puerto largo en dos o tres frases que
+  // cuentan cómo cae el grupo, en vez de diez frases clónicas cada 3 km (medido: una criba de 27 km
+  // narrada siete veces seguidas con la misma cifra). Un reagrupamiento reinicia la cuenta.
+  splitPhaseEscalation: 1,
+  // Reagrupamiento narrado: cuántos corredores tienen que VOLVER al grupo desde el último aviso, en
+  // absoluto y como fracción de lo que quedaba, y cada cuántos km como mucho se cuenta. El
+  // reagrupamiento existía en el modelo (los cortados recortan `chaseBackSecondsPerKm` en llano y se
+  // reenganchan dentro de `regroupGapSeconds`) y no se narraba nunca: la crónica se quedaba en «51
+  // delante» y en meta llegaban más de cien juntos, sin nada que lo explicara.
+  regroupEventMinRiders: 8,
+  regroupEventMinFraction: 0.25,
+  regroupEventKmGap: 3,
   // Por debajo de este tamaño, el grupo de cabeza deja de ser "un pelotón" y la crónica puede
   // NOMBRAR a los que van delante. Es también el umbral por el que deja de tener sentido decir
   // que "tira un equipo": con tres corredores en cabeza no tira un equipo, tira un corredor.
@@ -724,9 +753,10 @@ export const STAGE = {
   // Ruido multiplicativo del remate: score = base·N(1, sd). Es el ÚNICO modelo de ruido de
   // desempate del motor; lo comparten el sprint de meta y los mini-sprints de banner (6.11).
   sprintScoreNoiseSd: 0.045,
-  // Desempate dentro de un mismo grupo de meta: cada puesto suma este épsilon al reloj del grupo,
-  // de modo que el orden del sprint sobrevive al `sort` sin alterar el tiempo redondeado a segundos.
-  finishTieBreakSeconds: 0.001,
+  // (RETIRADO en v8) `finishTieBreakSeconds` sumaba 1 ms por puesto al reloj del grupo para
+  // desempatar el orden. No era inocuo: al redondear a segundos, un grupo que cruzaba en X,477
+  // repartía X a los 23 primeros y X+1 al resto — un corte inventado por el redondeo que la general
+  // y la clasificación por equipos sumaban etapa tras etapa. El orden vive ahora en `finishOrder`.
   // "Día" del corredor (SPEC 6.7): cada corredor rinde algo mejor o peor cada etapa (piernas del día),
   // escalando su nivel efectivo. Aporta variación —no siempre gana el mismo— sin volverlo azar puro.
   dayFormSd: 0.035,

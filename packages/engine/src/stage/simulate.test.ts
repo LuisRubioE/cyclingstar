@@ -4,7 +4,7 @@ import { STAGE } from '../constants.js'
 import { simulateStage, stageTss } from './simulate.js'
 import { blockCost } from './physics.js'
 import { stageSeed } from './rng.js'
-import type { StageInput, StageOrders, StageRider } from './types.js'
+import type { RaceEvent, StageInput, StageOrders, StageOutput, StageRider } from './types.js'
 
 function eff(
   base: number,
@@ -599,11 +599,86 @@ describe('modelo de final (docs/motor.md §12)', () => {
   )
 })
 
+// --- Tiempos de grupo (v8) ------------------------------------------------------------------
+// El dueño leyó una etapa y encontró 23 corredores con el mismo tiempo y TODOS los demás a
+// exactamente 1 segundo. No era un empate: el desempate del sprint sumaba 1 ms por puesto al reloj
+// del grupo y luego se redondeaba a segundos, así que un grupo que cruzaba en X,477 salía partido
+// en X (los 23 primeros) y X+1 (el resto). En ciclismo todos los de un grupo reciben el MISMO
+// tiempo, y la general y la clasificación por equipos venían sumando ese ruido etapa tras etapa.
+
+describe('el tiempo de meta es el del GRUPO, no un artefacto del redondeo (v8)', () => {
+  /** Etapa llana larga con un campo grande: el pelotón entero llega junto salvo caídas. */
+  function bunchInput(): StageInput {
+    const riders = Array.from({ length: 100 }, (_, i) =>
+      rider(`p-${i}`, { eff0: eff(58, { SPR: 52 + (i % 17), LLA: 60 }), fragility: 1 }),
+    )
+    return { profile: { segments: [{ km: 140, tipo: 'llano' }] }, riders }
+  }
+
+  const runs = Array.from({ length: 60 }, (_, s) =>
+    simulateStage(
+      bunchInput(),
+      stageSeed({ worldSeed: `grp-${s}`, raceId: 'grp', stageDay: 1, engineVersion: 1 }),
+    ),
+  )
+
+  it('un grupo no puede partirse en dos tiempos por el redondeo', { timeout: 60000 }, () => {
+    // Cada grupo distinto en meta aporta un tiempo distinto, y la ÚNICA forma de que nazca un grupo
+    // nuevo en una etapa llana es una caída (o el marcaje, que aquí no hay). Con el desempate viejo
+    // esta cota se violaba en 3 de estas 60 semillas SIN un solo incidente: en la 4.ª el pelotón
+    // llegaba repartido en 30 corredores a 11.980 s y 70 a 11.981 s.
+    for (const out of runs) {
+      const distinct = new Set(out.results.map((r) => r.tiempoS)).size
+      expect(distinct).toBeLessThanOrEqual(1 + out.incidents.length)
+    }
+  })
+
+  it('los que comparten tiempo ocupan puestos consecutivos', { timeout: 60000 }, () => {
+    // El orden dentro del grupo sale del remate (`finishOrder`), no del reloj: los corredores con el
+    // mismo tiempo tienen que formar un bloque contiguo de puestos, sin nadie intercalado.
+    for (const out of runs) {
+      const seen = new Set<number>()
+      let prev: number | null = null
+      for (const r of out.results) {
+        if (r.tiempoS !== prev) {
+          expect(seen.has(r.tiempoS)).toBe(false)
+          seen.add(r.tiempoS)
+          prev = r.tiempoS
+        }
+      }
+    }
+  })
+
+  it('el tiempo persistido es siempre un entero de segundos', () => {
+    for (const out of runs)
+      for (const r of out.results) expect(Number.isInteger(r.tiempoS)).toBe(true)
+  })
+})
+
 // --- Telemetría de la carrera (docs/motor.md §16) -------------------------------------------
 // El motor simulaba bloque a bloque —quién se descuelga, cuánto boquete hay, quién va delante— y
 // tiraba casi todo. La crónica que salía era ilegible: el grupo de cabeza pasaba de 81 corredores
 // a 3 en tres kilómetros con DOS descolgados narrados, y la ventaja del ganador aparecía de la
 // nada porque el parte de boquete llegaba cada 25 km. Estos tests son el seguro de que no vuelve.
+
+/** Los avisos que cuentan cómo cambia el pelotón, en orden: cortes y reagrupamientos. */
+function frontNotices(out: StageOutput): RaceEvent[] {
+  return out.events
+    .filter((e) => e.plantilla === 'peloton_split' || e.plantilla === 'peloton_regroup')
+    .sort((a, b) => a.km - b.km || a.tS - b.tS)
+}
+
+/**
+ * La cadena de avisos no tiene huecos: el `before` de cada uno es el `remaining` del anterior. Es
+ * EL seguro contra el "de 81 a 3 sin explicación" (y contra su simétrico, "de 51 a 100 sin
+ * explicación"): para llegar de un tamaño a otro hay que haberlo contado por el camino.
+ */
+function expectUnbrokenFrontChain(out: StageOutput): void {
+  const notices = frontNotices(out)
+  for (let i = 1; i < notices.length; i++) {
+    expect(Number(notices[i]!.datos!.before)).toBe(Number(notices[i - 1]!.datos!.remaining))
+  }
+}
 
 describe('telemetría de la crónica (docs/motor.md §16)', () => {
   /** Etapa de montaña larga con una criba continua: el caso que producía el salto de 81 a 3. */
@@ -655,20 +730,21 @@ describe('telemetría de la crónica (docs/motor.md §16)', () => {
         const remaining = Number(e.datos!.remaining)
         const dropped = Number(e.datos!.dropped)
         // La frase trae de cuántos a cuántos ha quedado el grupo, y cuántos se han ido DESDE el
-        // aviso anterior. Sin `before`/`dropped` acumulado, la crónica contaba 2 descolgados
-        // mientras el grupo perdía 78 corredores.
+        // aviso anterior. Sin `before`/`dropped`, la crónica contaba 2 descolgados mientras el
+        // grupo perdía 78 corredores.
         expect(dropped).toBeGreaterThanOrEqual(STAGE.splitEventMinDropped)
         expect(remaining).toBeGreaterThanOrEqual(0)
         expect(before).toBeGreaterThan(0)
-        // La caída del grupo entre dos avisos nunca puede exceder lo que se ha narrado.
-        expect(before - remaining).toBeLessThanOrEqual(dropped)
+        // Y lo narrado es EXACTAMENTE lo que el grupo ha perdido: ni el bruto inflado por los que
+        // se sueltan y vuelven, ni una cifra que se queda corta.
+        expect(dropped).toBe(before - remaining)
       }
       // Y la cadena no tiene huecos: lo que quedaba en un aviso es de lo que parte el siguiente.
       // Este es EL seguro contra el "de 81 a 3 sin explicación": para llegar a 3 desde 81 hay que
-      // haber narrado los 78 por el camino, no dos.
-      for (let i = 1; i < splits.length; i++) {
-        expect(Number(splits[i]!.datos!.before)).toBe(Number(splits[i - 1]!.datos!.remaining))
-      }
+      // haber narrado los 78 por el camino, no dos. Desde v8 la cadena incluye también los
+      // REAGRUPAMIENTOS, que son la misma cuenta contada en la otra dirección: si el grupo crece,
+      // se cuenta igual, y por eso ya no hay saltos ni hacia abajo ni hacia arriba.
+      expectUnbrokenFrontChain(out)
     }
   })
 
@@ -732,6 +808,189 @@ describe('telemetría de la crónica (docs/motor.md §16)', () => {
         expect([0, 1]).toContain(Number(e.datos!.chasing))
       }
     }
+  })
+})
+
+// --- La criba se cuenta como una historia, no como un parte cada 3 km (v8) ------------------
+// El dueño leyó diez líneas casi idénticas entre el km 180 y el 207, con el mismo equipo nombrado
+// diez veces y cifras acumuladas presentadas como si fueran nuevas ("54 descolgados" con el grupo
+// pasando de 76 a 76: no cayó nadie). El origen: la cuenta narrada era el recuento BRUTO de
+// descuelgues, y en el desenlace los mismos corredores se sueltan en la rampa y vuelven en el
+// repecho, así que el bruto se disparaba mientras el grupo no se movía.
+
+describe('una criba sostenida no genera diez frases clónicas (v8)', () => {
+  /**
+   * Puerto ESCALONADO de 30 km en el desenlace: rampas de 1 km al 5,5% separadas por 2 km al -1%.
+   * Es el terreno que produce el churn (soltarse y volver) del caso del dueño. Con el recuento
+   * bruto salían hasta SEIS avisos por etapa con el mismo protagonista nombrado seis veces.
+   */
+  function staircaseInput(): StageInput {
+    const tramos: { km: number; g: number }[] = []
+    for (let k = 0; k < 10; k++) {
+      tramos.push({ km: 1, g: 5.5 })
+      tramos.push({ km: 2, g: -1 })
+    }
+    const riders: StageRider[] = []
+    for (let i = 0; i < 8; i++) {
+      riders.push(
+        rider(`bar-${i}`, {
+          eff0: eff(58, { MON: 74 + (i % 5), COL: 72, LLA: 66, TAC: 62 }),
+          orders: orders({ role: 'cazaetapas', mentality: 'combativo' }),
+        }),
+      )
+    }
+    for (let i = 0; i < 160; i++) {
+      riders.push(
+        rider(`pel-${i}`, { eff0: eff(56, { MON: 50 + (i % 22), LLA: 62, SPR: 50 + (i % 15) }) }),
+      )
+    }
+    return {
+      profile: {
+        segments: [
+          { km: 180, tipo: 'llano' },
+          { km: 30, tipo: 'puerto', tramos },
+        ],
+      },
+      riders,
+    }
+  }
+
+  const runs = Array.from({ length: 8 }, (_, i) =>
+    simulateStage(
+      staircaseInput(),
+      stageSeed({ worldSeed: `sv-${i}`, raceId: 'sv', stageDay: 1, engineVersion: 1 }),
+    ),
+  )
+
+  it('el puerto se cuenta en pocas frases de progresión', { timeout: 60000 }, () => {
+    for (const out of runs) {
+      const splits = out.events.filter((e) => e.plantilla === 'peloton_split')
+      expect(splits.length).toBeLessThanOrEqual(3)
+    }
+  })
+
+  it(
+    'la cifra narrada es lo que el grupo PIERDE, nunca el bruto inflado',
+    { timeout: 60000 },
+    () => {
+      for (const out of runs) {
+        for (const e of out.events.filter((x) => x.plantilla === 'peloton_split')) {
+          const before = Number(e.datos!.before)
+          const remaining = Number(e.datos!.remaining)
+          // Un corte narra siempre una pérdida REAL: nunca "N descolgados" con el grupo igual o mayor.
+          expect(before).toBeGreaterThan(remaining)
+          expect(Number(e.datos!.dropped)).toBe(before - remaining)
+          // El bruto sigue viajando como telemetría, y nunca es menor que la pérdida neta.
+          expect(Number(e.datos!.shed)).toBeGreaterThanOrEqual(before - remaining)
+        }
+      }
+    },
+  )
+
+  it('no se nombra al mismo protagonista en dos avisos seguidos', { timeout: 60000 }, () => {
+    for (const out of runs) {
+      const splits = out.events
+        .filter((e) => e.plantilla === 'peloton_split')
+        .sort((a, b) => a.km - b.km)
+      for (let i = 1; i < splits.length; i++) {
+        const prev = splits[i - 1]!.protagonistas[0]
+        const now = splits[i]!.protagonistas[0]
+        if (prev && now) expect(now).not.toBe(prev)
+      }
+    }
+  })
+
+  it('el primer aviso presenta la criba y los siguientes cuentan la progresión', () => {
+    for (const out of runs) {
+      const splits = out.events
+        .filter((e) => e.plantilla === 'peloton_split')
+        .sort((a, b) => a.km - b.km)
+      splits.forEach((e, i) => expect(Number(e.datos!.phase)).toBe(i))
+    }
+  })
+
+  it('la cadena de avisos sigue sin huecos', { timeout: 60000 }, () => {
+    for (const out of runs) expectUnbrokenFrontChain(out)
+  })
+})
+
+// --- El reagrupamiento existe y ahora se cuenta (v8) ----------------------------------------
+// La crónica decía "about 51 left in front" y en meta llegaban más de cien juntos. Medido: no
+// mentían las cuentas, faltaba el evento. Los descolgados recortan `chaseBackSecondsPerKm` en
+// llano y se reenganchan dentro de `regroupGapSeconds`, así que el grupo se recompone de verdad
+// entre el último puerto y la meta — y el motor no lo contaba en ninguna parte.
+
+describe('el reagrupamiento se narra (v8)', () => {
+  /** Puerto duro a 40 km de meta y 26 km de llano después: los cortados vuelven antes de la línea. */
+  function regroupInput(): StageInput {
+    const riders: StageRider[] = []
+    for (let i = 0; i < 6; i++) {
+      riders.push(
+        rider(`bar-${i}`, {
+          eff0: eff(56, { MON: 72 + (i % 4), COL: 70, LLA: 66, TAC: 60 }),
+          orders: orders({ role: 'cazaetapas', mentality: 'combativo' }),
+        }),
+      )
+    }
+    for (let i = 0; i < 74; i++) {
+      riders.push(
+        rider(`pel-${i}`, { eff0: eff(56, { MON: 48 + (i % 18), LLA: 62, SPR: 50 + (i % 13) }) }),
+      )
+    }
+    return {
+      profile: {
+        segments: [
+          { km: 100, tipo: 'llano' },
+          { km: 14, tipo: 'puerto', tramos: [{ km: 14, g: 8 }] },
+          { km: 26, tipo: 'llano' },
+        ],
+      },
+      riders,
+    }
+  }
+
+  const runs = Array.from({ length: 8 }, (_, i) =>
+    simulateStage(
+      regroupInput(),
+      stageSeed({ worldSeed: `rg-${i}`, raceId: 'rg', stageDay: 1, engineVersion: 1 }),
+    ),
+  )
+
+  it('cuando el pelotón se recompone hay un evento que lo cuenta', { timeout: 60000 }, () => {
+    for (const out of runs) {
+      const regroups = out.events.filter((e) => e.plantilla === 'peloton_regroup')
+      expect(regroups.length).toBeGreaterThan(0)
+    }
+  })
+
+  it(
+    'el reagrupamiento cuadra: los que vuelven son la diferencia de tamaño',
+    { timeout: 60000 },
+    () => {
+      for (const out of runs) {
+        for (const e of out.events.filter((x) => x.plantilla === 'peloton_regroup')) {
+          const before = Number(e.datos!.before)
+          const now = Number(e.datos!.remaining)
+          expect(now).toBeGreaterThan(before)
+          expect(Number(e.datos!.joined)).toBe(now - before)
+          expect(Number(e.datos!.joined)).toBeGreaterThanOrEqual(STAGE.regroupEventMinRiders)
+        }
+      }
+    },
+  )
+
+  it('un crecimiento del grupo NUNCA se narra como un corte', { timeout: 60000 }, () => {
+    // Era lo que pasaba antes: el aviso decía "2 riders are shelled — about 68 left in front"
+    // justo después de haber dicho que quedaban 6. La frase de corte contaba un reagrupamiento.
+    for (const out of runs) {
+      for (const e of out.events.filter((x) => x.plantilla === 'peloton_split')) {
+        expect(Number(e.datos!.before)).toBeGreaterThan(Number(e.datos!.remaining))
+      }
+    }
+  })
+
+  it('la cadena de avisos cubre también los reagrupamientos', { timeout: 60000 }, () => {
+    for (const out of runs) expectUnbrokenFrontChain(out)
   })
 })
 

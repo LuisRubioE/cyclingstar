@@ -189,6 +189,76 @@ describe('quién va delante y con cuánta ventaja', () => {
   })
 })
 
+// --- La criba, contada como progresión (v8) -------------------------------------------------
+// El dueño leyó diez avisos casi idénticos con el mismo equipo nombrado diez veces. El motor ya
+// manda `phase`: el 0 presenta la criba y quién aprieta; los siguientes cuentan cómo sigue cayendo
+// el grupo, sin volver a nombrar a nadie.
+
+describe('la criba larga se cuenta como una progresión, no diez veces igual', () => {
+  const at = (phase: number, datos: Record<string, number | string>) =>
+    chronicleLine(
+      event({
+        plantilla: 'peloton_split',
+        km: 190 + phase,
+        protagonists: ['Iker Zabala'],
+        protagonistTeams: ['Summit Squad'],
+        datos: { ...datos, phase },
+      }),
+    )
+
+  it('el primer aviso presenta a quien aprieta', () => {
+    expect(at(0, { dropped: 41, remaining: 40, before: 81, chasing: 0 })).toContain('Summit Squad')
+  })
+
+  it('los siguientes no vuelven a nombrar al mismo equipo', () => {
+    for (const phase of [1, 2, 3]) {
+      const linea = at(phase, { dropped: 16, remaining: 24, before: 40, chasing: 0 })
+      expect(linea).not.toContain('Summit Squad')
+      expect(linea).not.toContain('Iker Zabala')
+      // Y sigue diciendo de cuántos a cuántos: la progresión es el contenido de la frase.
+      expect(linea).toContain('40')
+      expect(linea).toContain('24')
+    }
+  })
+
+  it('una crónica anterior a v8 (sin `phase`) se narra como siempre', () => {
+    const linea = chronicleLine(
+      event({
+        plantilla: 'peloton_split',
+        protagonists: ['Iker Zabala'],
+        protagonistTeams: ['Summit Squad'],
+        datos: { dropped: 41, remaining: 40, before: 81, chasing: 0 },
+      }),
+    )
+    expect(linea).toContain('Summit Squad')
+  })
+})
+
+// --- El reagrupamiento (v8) -----------------------------------------------------------------
+// "About 51 left in front" y luego más de cien en el mismo tiempo. El reagrupamiento pasaba de
+// verdad y no se contaba en ninguna parte.
+
+describe('el reagrupamiento se cuenta', () => {
+  const regroup = (datos: Record<string, number | string>) =>
+    chronicleLine(event({ plantilla: 'peloton_regroup', km: 166, protagonists: [], datos }))
+
+  it('dice cuántos vuelven y de cuántos a cuántos queda el grupo', () => {
+    const linea = regroup({ joined: 27, remaining: 44, before: 17, chasing: 0 })
+    expect(linea).toContain('44')
+    expect(linea).toMatch(/17|27/)
+  })
+
+  it('si delante quedaba un solo corredor, la frase no habla de "de 1 a N"', () => {
+    const linea = regroup({ joined: 14, remaining: 15, before: 1, chasing: 0 })
+    expect(linea).toContain('15')
+    expect(linea).toContain('14')
+  })
+
+  it('distingue el grupo de cabeza del de persecución', () => {
+    expect(regroup({ joined: 20, remaining: 60, before: 40, chasing: 1 })).toContain('chase')
+  })
+})
+
 describe('casos límite de la criba', () => {
   it('si el grupo se deshace entero, la frase no habla de "0 corredores restantes"', () => {
     const linea = chronicleLine(
