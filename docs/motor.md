@@ -383,18 +383,80 @@ calibra encima de ellos**:
 
 ### 13. Cambio 2 — Capa táctica: que existan los ataques
 
-Es el corazón que falta. Propuesta de mecánica única y reutilizable: un **intento de movimiento**,
-evaluado en los puntos donde tiene sentido (deciles empinados, coronación, últimos km, entrada al
-pavés), con el marco de hazard que ya existe (`p = 1 − e^{−λ·dx}`).
+**Este es el cambio que hace que dos carreras no se parezcan**, y es el corazón que falta. Hoy solo
+hay dos formas de sacar tiempo: estar en la fuga inicial (que se forma una vez, antes del km 0) o
+ser descolgado en una subida. **Nadie ataca nunca.** Por eso la crónica solo sabe decir «el equipo X
+aprieta el ritmo»: es literalmente lo único que el motor sabe hacer.
 
-Cada intento nace de: rol y mentalidad de las órdenes + situación de carrera (¿voy perdido en la
-general? ¿queda mi terreno?) + cerillos y energía restantes. Un ataque exitoso **crea un grupo
-nuevo** con su reloj — es decir, reutiliza toda la maquinaria de grupos que ya funciona.
+#### 13.1 Especificación de dominio (dictada por el dueño, agosto 2026)
 
-Con eso se activan de golpe las constantes muertas: contraataques, puentes, ataques tardíos,
-tensión de la fuga (fugados que dejan de colaborar cuando huelen la victoria).
+Nueve reglas de cómo se corre de verdad. Son el contrato de esta capa:
 
-**Este es el cambio que hace que dos carreras no se parezcan.**
+1. **Alguien intenta fugarse**, con una probabilidad que **sube si el grupo va junto** y **sube
+   cuanto más cerca está la meta**.
+2. Cuando uno ataca, **algunos van atentos y saltan detrás**: pueden ser **0 o 40**. Y si son 40, es
+   muy poco probable que colaboren lo suficiente para que la fuga prospere.
+3. **Muchos de los que intentan seguir el ataque no lo consiguen.**
+4. **Muchos intentos fracasan**, sin más.
+5. **Lo normal es que haya muchos intentos** antes de que cuaje la fuga del día.
+6. **Dentro de una fuga se sigue atacando**, sobre todo si es numerosa, y sobre todo lo hacen **los
+   que peor rematarían al sprint** de ese grupo — y muy especialmente en los últimos km, cuando ya
+   está claro que la fuga se juega la etapa.
+7. **Se puede atacar para enganchar al grupo de delante** desde el pelotón o desde un grupo
+   rezagado. **Y a veces no se llega**: quedarse en tierra de nadie es un resultado legítimo.
+8. **Es normal que un corredor agotado se descuelgue en los últimos km**, en montaña y también en
+   llano. Salvo motivación especial, **se deja ir**, con el único cuidado del fuera de control.
+9. **Un final en alto no es el equipo del favorito tirando hasta reventar a todos.** Los fuertes
+   **atacan**: por la etapa y por la general, **en el momento oportuno**, y **vigilándose entre
+   ellos**.
+
+#### 13.2 Una sola mecánica, no nueve
+
+Los puntos 1 al 7 son **la misma pieza** parametrizada por contexto — el **intento de movimiento**:
+
+```
+alguien lo intenta   (λ sube si el grupo va junto y si la meta está cerca)
+      ↓
+0..N le siguen       (quién salta depende de atención, rol, energía y cerillos)
+      ↓
+algunos no llegan    (los que saltaron pero no sostienen el esfuerzo se quedan en tierra de nadie)
+      ↓
+¿colaboran?          (cuantos más son, menos; los que peor rematan colaboran más)
+      ↓
+prospera o fracasa
+```
+
+Con esa única pieza salen los siete:
+
+| Regla                         | Es el intento con…                                               |
+| ----------------------------- | ---------------------------------------------------------------- |
+| 5 — la fuga del día           | el primero que prospera tras varios fracasos                     |
+| 6 — ataques dentro de la fuga | grupo pequeño, candidatos = los peores al sprint de ese grupo    |
+| 7 — el puente                 | un grupo objetivo por delante y posibilidad de quedarse a medias |
+
+Reutiliza además todo lo que ya existe: el marco de hazard `p = 1 − e^{−λ·dx}`, la maquinaria de
+grupos con su reloj (un ataque logrado **es** un grupo nuevo), y el marcaje de `stage/marcaje.ts`
+para la regla 9. Y activa de golpe las constantes muertas: `lambdaCounterAttack`, `lambdaBridge`,
+`bridgeGapMin/MaxSeconds`, `lambdaLateAttack`, `lateAttackKm`, `breakawayTension*`.
+
+Las reglas 8 y 9 son piezas aparte:
+
+- **8 — administrar el esfuerzo.** Hoy solo te descuelgas si no aguantas el P75; nunca porque
+  decidas ahorrar. Necesita que el corredor pueda **rendirse a propósito** cuando ya no se juega
+  nada, mirando el corte de tiempo.
+- **9 — el final en alto.** Que los favoritos ataquen en vez de limitarse a seguir el tren del
+  equipo, eligiendo el momento y vigilando a los rivales de la general (ahí entra `marcaje.ts`, que
+  ya está implementado, y `gcDeficitSeconds`, que `packages/db` rellena y el motor ignora).
+
+#### 13.3 Por qué esto también arregla la general
+
+Medido tras el modelo de final (§12): en una carrera de 5 etapas llanas **los 40 corredores siguen
+llegando con el mismo tiempo**, así que la general la decide quien suma bonificaciones. El modelo de
+final no puede inventar diferencias donde el recorrido no las permite.
+
+**Un ataque que aguanta sí abre hueco.** Es la única vía que arregla la general sin tocar datos ni
+maquillar la aritmética. Bajar las bonificaciones haría la foto menos absurda, pero sería un parche:
+lo que falta es carrera, no aritmética.
 
 ### 14. Cambio 3 — Selección fuera de la montaña
 
