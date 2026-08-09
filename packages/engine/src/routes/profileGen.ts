@@ -19,6 +19,16 @@ function hashInt(s: string): number {
   return h >>> 0
 }
 
+/**
+ * PRNG determinista (mulberry32). Se exporta porque la COMPOSICIÓN de una vuelta por etapas
+ * (`routes/calendar.ts::stageMix`) necesita el mismo azar sembrado que los perfiles: qué etapas
+ * tiene una carrera es tan de autoría como el dibujo de cada una, y las dos cosas deben salir
+ * siempre iguales para la misma carrera.
+ */
+export function routeRng(seed: string): () => number {
+  return rng(seed)
+}
+
 /** PRNG determinista (mulberry32). */
 function rng(seed: string): () => number {
   let a = hashInt(seed) >>> 0
@@ -145,6 +155,36 @@ export function hillySegments(km: number, seed: string): Segment[] {
     if (i < nClimbs - 1) segs.push(descent(rand, between(rand, 3, 5), 5))
     segs.push(...rolling(rand, gaps[i + 1]!, true))
   })
+  return normalize(segs, km)
+}
+
+/**
+ * Media montaña con FINAL EN ALTO: la misma base ondulada con sus cotas intermedias, pero la etapa
+ * NO baja al valle: muere arriba de una cota de 4-8 km al 5-7,5%. Es la etapa que faltaba en el
+ * generador —toda la media montaña acababa en llano, así que se resolvía al sprint igual que una
+ * llana— y la que da algo que morder a una vuelta corta sin alta montaña (docs/balance.md, v10).
+ */
+export function hillyUphillSegments(km: number, seed: string): Segment[] {
+  const rand = rng(seed)
+  const nClimbs = km > 170 ? 2 : 1
+  const climbs = Array.from({ length: nClimbs }, () => ({
+    len: between(rand, 3, 7),
+    g: between(rand, 4.5, 6.5),
+  }))
+  const finalLen = between(rand, 4, 8)
+  const finalG = between(rand, 5, 7.5)
+  const used = climbs.reduce((a, c) => a + c.len, 0) + nClimbs * 4 + finalLen
+  const fill = Math.max(km * 0.3, km - used)
+  const gaps = split(rand, fill, nClimbs + 1)
+  const segs: Segment[] = []
+  segs.push(...rolling(rand, gaps[0]!, true))
+  climbs.forEach((c, i) => {
+    segs.push(climb(rand, c.len, c.g))
+    segs.push(descent(rand, between(rand, 3, 5), 5))
+    segs.push(...rolling(rand, gaps[i + 1]!, true))
+  })
+  // La cota final: sin bajada ni llano detrás, la meta está en su cima.
+  segs.push(climb(rand, finalLen, finalG))
   return normalize(segs, km)
 }
 

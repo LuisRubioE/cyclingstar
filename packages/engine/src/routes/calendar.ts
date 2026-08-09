@@ -7,6 +7,7 @@
  * clásica de adoquines) para dar variedad sin imitar recorridos reales.
  */
 import { COUNTRIES, type Continent } from '@cyclingstar/shared'
+import { ROUTE } from '../constants.js'
 import type { Division } from '../world/npc.js'
 import type { Segment, StageProfile } from '../stage/types.js'
 import { type RaceEdition, RACE_EDITIONS } from './editions.js'
@@ -16,8 +17,10 @@ import {
   cobblesSegments,
   flatSegments,
   hillySegments,
+  hillyUphillSegments,
   ittSegments,
   mountainSegments,
+  routeRng,
 } from './profileGen.js'
 import { STAGE_FEATURES } from './stageFeatures.js'
 import type { StageKind } from './testTour.js'
@@ -111,6 +114,17 @@ const hilly = (km: number, seed: string): StageSpec => ({
   kind: 'media',
   label: 'Hills',
   profile: auto(hillySegments(km, seed)),
+})
+
+/**
+ * Media montaña que MUERE ARRIBA: mismo tipo (y color) que una etapa de cotas, pero la meta está en
+ * la cima de la última. Es lo que distingue una etapa que se resuelve al sprint de una que reparte
+ * tiempos sin necesidad de alta montaña.
+ */
+const hillyUphill = (km: number, seed: string): StageSpec => ({
+  kind: 'media',
+  label: 'Uphill finish',
+  profile: auto(hillyUphillSegments(km, seed)),
 })
 
 const mountain = (km: number, seed: string): StageSpec => ({
@@ -374,31 +388,155 @@ function oneDaySpec(terrain: Terrain, km: number, seed: string): StageSpec {
   return flat(km, seed)
 }
 
-/** Mezcla determinista de etapas para una vuelta de n etapas con sesgo de terreno (autoría propia). */
-function stageMix(n: number, terrain: Terrain, seedBase: string): StageSpec[] {
-  const specs: StageSpec[] = []
-  for (let i = 0; i < n; i++) {
-    const first = i === 0
-    const last = i === n - 1
-    const seed = `${seedBase}|${i}`
-    // Una crono hacia el final en vueltas de 6+ etapas (salvo terreno llano).
-    if (n >= 6 && i === n - 2 && terrain !== 'flat') {
-      specs.push(itt(22, seed))
-      continue
-    }
-    if (first) {
-      specs.push(flat(180, seed))
-      continue
-    }
-    if (last) {
-      specs.push(terrain === 'mountain' ? mountain(150, seed) : flat(150, seed))
-      continue
-    }
-    if (terrain === 'mountain') specs.push(i % 2 === 0 ? hilly(175, seed) : mountain(160, seed))
-    else if (terrain === 'hilly') specs.push(i % 2 === 0 ? flat(178, seed) : hilly(172, seed))
-    else specs.push(i % 2 === 0 ? flat(185, seed) : hilly(170, seed))
+/** Los tres terrenos que sabe componer una vuelta por etapas (el resto se reduce a ellos). */
+type MixTerrain = 'flat' | 'hilly' | 'mountain'
+
+/** El PAPEL de cada etapa dentro de la vuelta, antes de darle kilómetros y dibujarle el perfil. */
+type MixRole = 'llana' | 'media' | 'media-alto' | 'reina' | 'cri'
+
+/** Reduce el terreno de la ficha de la carrera a uno de los tres que compone `stageMix`. */
+function mixTerrain(terrain: Terrain): MixTerrain {
+  if (terrain === 'mountain') return 'mountain'
+  if (terrain === 'hilly' || terrain === 'classic') return 'hilly'
+  return 'flat'
+}
+
+/** ¿Es una etapa con puertos (algo que morder) o una llana más? */
+function isSelective(role: MixRole): boolean {
+  return role === 'media' || role === 'media-alto' || role === 'reina'
+}
+
+/** ¿Muere la etapa cuesta arriba? Es lo que reparte tiempos sin depender de una crono. */
+function isUphill(role: MixRole): boolean {
+  return role === 'media-alto' || role === 'reina'
+}
+
+/** Sorteo con pesos: devuelve el papel cuyo tramo de probabilidad contiene `u` ∈ [0,1). */
+function pickRole(weights: readonly number[], u: number): MixRole {
+  const roles: MixRole[] = ['llana', 'media', 'media-alto', 'reina']
+  const total = weights.reduce((a, b) => a + b, 0)
+  let acc = 0
+  for (let i = 0; i < roles.length; i++) {
+    acc += (weights[i] ?? 0) / total
+    if (u < acc) return roles[i]!
   }
-  return specs
+  return 'llana'
+}
+
+/**
+ * QUÉ ETAPAS tiene una vuelta generada de `n` etapas con un terreno dominante (docs/balance.md,
+ * «v10 — Composición y caza»). Determinista por carrera: la misma carrera compone siempre la misma
+ * vuelta. Las proporciones viven en `ROUTE`.
+ *
+ * El orden en que se decide importa, porque es el orden en que lo decide un organizador:
+ *   1. la CRONO (cuántas y dónde),
+ *   2. la ÚLTIMA etapa (¿se cierra arriba o al sprint?),
+ *   3. las de EN MEDIO, por sorteo con pesos del terreno,
+ *   4. y las GARANTÍAS: un mínimo de etapas con puertos y, en vueltas de 4+, al menos un final en
+ *      alto. Son las dos que impiden que el sorteo devuelva una carrera que no existe.
+ * La primera etapa es siempre llana: es la de los sprinters, y ninguna vuelta empieza por el muro.
+ */
+function mixRoles(n: number, terrain: MixTerrain, rand: () => number): MixRole[] {
+  const roles: MixRole[] = Array.from({ length: n }, () => 'llana')
+  if (n <= 1) return roles
+
+  // 1. Crono(s).
+  const alwaysItt = terrain === 'flat' && n >= ROUTE.ittAlwaysFlatStages
+  const ittChance = n >= ROUTE.ittWeekStages ? ROUTE.ittChanceWeek : ROUTE.ittChanceShort
+  if (n >= ROUTE.ittMinStages && (alwaysItt || rand() < ittChance)) {
+    const back = rand() < ROUTE.ittEarlierChance ? 2 : 1
+    roles[Math.min(n - 2, Math.max(1, n - 1 - back))] = 'cri'
+    if (n >= ROUTE.ittSecondStages) {
+      const early = Math.min(n - 3, Math.max(1, Math.round(ROUTE.ittSecondPosition * n)))
+      if (roles[early] !== 'cri') roles[early] = 'cri'
+    }
+  }
+
+  // 2. La última etapa: decisiva o de trámite.
+  const lastIdx = n - 1
+  if (roles[lastIdx] !== 'cri') {
+    const factor = n >= ROUTE.grandTourStages ? ROUTE.grandTourLastDecisiveFactor : 1
+    if (rand() < ROUTE.lastDecisiveChance[terrain] * factor) {
+      roles[lastIdx] = rand() < ROUTE.lastSummitShare[terrain] ? 'reina' : 'media-alto'
+    }
+  }
+
+  // 3. Las de en medio, por sorteo con los pesos del terreno.
+  for (let i = 1; i < lastIdx; i++) {
+    if (roles[i] === 'cri') continue
+    roles[i] = pickRole(ROUTE.mixWeights[terrain], rand())
+  }
+
+  // 4. Garantías. Los huecos que se pueden endurecer son todos menos la primera etapa y las cronos;
+  // se recorren de atrás hacia delante porque una vuelta se pone más dura según avanza. La ÚLTIMA va
+  // al final de la cola: si el paso 2 la dejó de trámite fue una decisión, y solo se toca si no
+  // queda otro hueco donde meter los puertos que faltan.
+  const slots: number[] = []
+  for (let i = n - 2; i >= 1; i--) if (roles[i] !== 'cri') slots.push(i)
+  if (roles[lastIdx] !== 'cri') slots.push(lastIdx)
+  const minSelective = Math.min(
+    Math.ceil(ROUTE.selectiveMinFraction[terrain] * n),
+    Math.max(0, slots.length),
+  )
+  for (const i of slots) {
+    if (roles.filter(isSelective).length >= minSelective) break
+    if (!isSelective(roles[i]!)) roles[i] = 'media'
+  }
+  const uphillTarget = (): number | undefined =>
+    slots.find((i) => isSelective(roles[i]!)) ?? slots[0]
+  if (n >= ROUTE.uphillFinishMinStages && !roles.some(isUphill)) {
+    // La más tardía de las que ya tienen puertos pasa a morir arriba; si no hubiera ninguna, el
+    // último hueco disponible.
+    const target = uphillTarget()
+    if (target != null) roles[target] = 'media-alto'
+  }
+  // Y la garantía de fondo, la que cierra la queja del dueño: NINGUNA vuelta por etapas se queda sin
+  // algo con que hacer la general. Si el sorteo no ha dejado ni crono ni final en alto —solo puede
+  // pasar en las vueltas más cortas—, la última cota disponible pasa a morir arriba.
+  if (!roles.some((r) => r === 'cri' || isUphill(r))) {
+    const target = uphillTarget()
+    if (target != null) roles[target] = 'media-alto'
+  }
+  return roles
+}
+
+/** Kilometraje de una etapa según su papel, con variación determinista dentro de su rango. */
+function mixKm(role: MixRole, n: number, last: boolean, rand: () => number): number {
+  if (role === 'cri') {
+    const [min, range] =
+      n >= ROUTE.ittLongStages
+        ? [ROUTE.ittLongKmMin, ROUTE.ittLongKmRange]
+        : [ROUTE.ittKmMin, ROUTE.ittKmRange]
+    return Math.round(min + rand() * range)
+  }
+  const [min, range] =
+    role === 'llana'
+      ? ROUTE.kmFlat
+      : role === 'media'
+        ? ROUTE.kmHilly
+        : role === 'media-alto'
+          ? ROUTE.kmUphill
+          : ROUTE.kmSummit
+  const km = (min ?? 160) + rand() * (range ?? 30)
+  return Math.round(last ? km * ROUTE.lastStageKmFactor : km)
+}
+
+/**
+ * Mezcla determinista de etapas para una vuelta de n etapas con sesgo de terreno (autoría propia).
+ * Exportada para el banco de composición (`routes/calendar.test.ts`), que comprueba las garantías.
+ */
+export function stageMix(n: number, terrain: Terrain, seedBase: string): StageSpec[] {
+  const rand = routeRng(`mix|${seedBase}|${n}|${terrain}`)
+  const roles = mixRoles(n, mixTerrain(terrain), rand)
+  return roles.map((role, i) => {
+    const seed = `${seedBase}|${i}`
+    const km = mixKm(role, n, i === n - 1, rand)
+    if (role === 'cri') return itt(km, seed)
+    if (role === 'reina') return mountain(km, seed)
+    if (role === 'media-alto') return hillyUphill(km, seed)
+    if (role === 'media') return hilly(km, seed)
+    return flat(km, seed)
+  })
 }
 
 /** Construye una carrera del calendario real desde su fila de datos. */

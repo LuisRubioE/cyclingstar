@@ -236,6 +236,83 @@ export const RELIEF = {
   rollingAmplitudeDefault: 1.0,
 } as const
 
+/**
+ * COMPOSICIÓN de una vuelta por etapas GENERADA (`routes/calendar.ts::stageMix`). Afecta a las
+ * 1.083 continentales y 61 ProSeries con perfil de autoría; NUNCA a las carreras con recorrido real
+ * (ediciones verificadas, `classicRoutes.ts` y `STAGE_FEATURES`), que llevan dato curado.
+ *
+ * Antes esto era un `i % 2` con dos excepciones y producía carreras que no existen: una vuelta de 5
+ * etapas NO PODÍA llevar crono jamás (se exigían 6+), con terreno llano tampoco la llevaba nunca
+ * tuviera las que tuviera, la media montaña siempre acababa en el valle (o sea, al sprint) y la
+ * última etapa era llana salvo en alta montaña. Resultado medido en `race-sharjah`: cinco sprints
+ * garantizados por construcción y una general que solo repartía bonificaciones.
+ *
+ * El criterio de dominio (dueño, agosto 2026) es que **una vuelta por etapas tiene que tener algo
+ * que morder**: o una crono, o un final en alto, o las dos cosas. Los números de abajo son las
+ * proporciones con que se reparte eso; se miden en docs/balance.md, «v10 — Composición y caza».
+ */
+export const ROUTE = {
+  // --- La crono ---------------------------------------------------------------------------
+  // Por debajo de estas etapas no cabe: una vuelta de dos días es un fin de semana de carreras.
+  ittMinStages: 3,
+  // Probabilidad de que la vuelta lleve crono, en vueltas cortas (3-5 etapas) y de una semana.
+  ittChanceShort: 0.6,
+  ittChanceWeek: 0.9,
+  ittWeekStages: 6,
+  // …y una vuelta de terreno LLANO de 4+ etapas la lleva SIEMPRE. Va justo al revés de lo que hacía
+  // el generador anterior (que la prohibía precisamente en el llano), y por una razón de dominio: en
+  // una vuelta sin puertos la crono es lo ÚNICO que puede abrir una general. Sin ella no hay carrera,
+  // solo cinco sprints y un recuento de bonificaciones.
+  ittAlwaysFlatStages: 4,
+  // Dónde cae: la penúltima etapa, o la antepenúltima con esta probabilidad.
+  ittEarlierChance: 0.35,
+  // Una segunda crono a partir de una vuelta larga (gran vuelta), en el primer tercio.
+  ittSecondStages: 15,
+  ittSecondPosition: 0.35,
+  // Km de la crono: corta en una vuelta corta, de las de verdad en una gran vuelta.
+  ittKmMin: 14,
+  ittKmRange: 12,
+  ittLongStages: 10,
+  ittLongKmMin: 26,
+  ittLongKmRange: 18,
+
+  // --- La última etapa --------------------------------------------------------------------
+  // Probabilidad de que la última etapa sea DECISIVA (acabe arriba) en vez del paseo al sprint.
+  // Muchas vueltas cortas se cierran con la etapa reina o con un final en alto; una gran vuelta,
+  // en cambio, casi siempre termina con la etapa de trámite, y por eso lleva su propio factor.
+  lastDecisiveChance: { flat: 0.3, hilly: 0.55, mountain: 0.85 },
+  grandTourStages: 15,
+  grandTourLastDecisiveFactor: 0.4,
+  // Si la última es decisiva, con qué probabilidad es alta montaña (reina) en vez de un final en
+  // alto de media montaña. En terreno llano nunca hay reina: se cierra con una cota, no con un col.
+  lastSummitShare: { flat: 0, hilly: 0.35, mountain: 0.8 },
+
+  // --- Las etapas de en medio ---------------------------------------------------------------
+  // Pesos de sorteo por terreno dominante: [llana, media, media con final en alto, reina].
+  mixWeights: {
+    flat: [0.58, 0.27, 0.1, 0.05],
+    hilly: [0.3, 0.36, 0.19, 0.15],
+    mountain: [0.16, 0.26, 0.18, 0.4],
+  },
+  // Fracción MÍNIMA de etapas con puertos (media, final en alto o reina). Es la garantía que impide
+  // que el sorteo devuelva la carrera de cinco llanas que no existe en la realidad: con 5 etapas de
+  // terreno llano salen al menos 2 con puertos, que es justo lo que tenía el Tour de Sharjah real.
+  selectiveMinFraction: { flat: 0.35, hilly: 0.55, mountain: 0.7 },
+  // Y a partir de estas etapas, al menos UN final en alto en el calendario de la carrera: una vuelta
+  // por etapas sin ninguna llegada cuesta arriba no tiene dónde hacerse la general.
+  uphillFinishMinStages: 4,
+
+  // --- Kilometrajes -------------------------------------------------------------------------
+  // Rango de km por tipo de etapa (mínimo + amplitud). Antes eran cinco números fijos (180/185/…) y
+  // todas las carreras generadas del calendario median exactamente lo mismo.
+  kmFlat: [165, 30],
+  kmHilly: [160, 30],
+  kmUphill: [150, 30],
+  kmSummit: [145, 35],
+  // La última etapa es más corta que las demás (llegada, circuito, desfile o el muro final).
+  lastStageKmFactor: 0.85,
+} as const
+
 /** Salud y enfermedad (SPEC 4.2, 4.3). */
 export const HEALTH = {
   mSano: 1.0,

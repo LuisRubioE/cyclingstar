@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { RACE_CLASSES } from './uci.js'
-import { SEASON_CALENDAR } from './calendar.js'
+import { SEASON_CALENDAR, stageMix } from './calendar.js'
+import { RACE_EDITIONS } from './editions.js'
+import type { RouteTerrain } from './featureProfile.js'
+import type { StageSpec } from './calendar.js'
 
 describe('engine: calendario de temporada (SPEC 8, Paso 34)', () => {
   it('incluye el WorldTour real (36) y 4 campeonatos por país (133 países), con id único', () => {
@@ -134,10 +137,130 @@ describe('engine: calendario de temporada (SPEC 8, Paso 34)', () => {
     }
   })
 
+  it('las carreras con recorrido REAL no pasan por la mezcla: sus km son los de la edición', () => {
+    // El generador de composición solo compone carreras de autoría. Las ediciones verificadas
+    // (grandes vueltas, Volta a Portugal…) mandan su distancia etapa a etapa, y esto lo vigila.
+    for (const [id, edition] of Object.entries(RACE_EDITIONS)) {
+      const race = SEASON_CALENDAR.find((r) => r.id === id)
+      if (!race) continue
+      expect(race.stages).toHaveLength(edition.stages.length)
+      race.stages.forEach((stage, i) => {
+        const km = stage.profile.segments.reduce((a, s) => a + s.km, 0)
+        expect(Math.round(km)).toBe(edition.stages[i]!.km)
+      })
+    }
+  })
+
   it('cubre los tres niveles y los tres formatos', () => {
     const levels = new Set(SEASON_CALENDAR.map((r) => r.level))
     expect(levels).toEqual(new Set(['WT', 'PRS', 'CON']))
     const formats = new Set(SEASON_CALENDAR.map((r) => r.format))
     expect(formats).toEqual(new Set(['gran-vuelta', 'una-semana', 'un-dia']))
+  })
+})
+
+/**
+ * Composición de una vuelta por etapas GENERADA (docs/balance.md, «v10 — Composición y caza»). Lo
+ * que se prueba no son los sorteos —eso es azar sembrado— sino las GARANTÍAS: que una vuelta corta
+ * pueda llevar crono (antes era imposible), que una vuelta llana no sea una fila de sprints, y que
+ * ninguna se quede sin nada con que hacer la general.
+ */
+describe('engine: composición de una vuelta por etapas (stageMix)', () => {
+  const TERRAINS: RouteTerrain[] = ['flat', 'hilly', 'mountain']
+  const seeds = Array.from({ length: 120 }, (_, i) => `mix-test-${i}`)
+  const isItt = (s: StageSpec): boolean => s.timeTrial === true
+  const isUphill = (s: StageSpec): boolean =>
+    s.label === 'Uphill finish' || s.label === 'Summit finish'
+  const isClimbing = (s: StageSpec): boolean => !isItt(s) && s.label !== 'Flat'
+
+  it('una vuelta de 5 etapas PUEDE llevar crono (antes hacían falta 6)', () => {
+    const withItt = seeds.filter((s) => stageMix(5, 'hilly', s).some(isItt))
+    expect(withItt.length).toBeGreaterThan(0)
+  })
+
+  it('una vuelta LLANA de 4+ etapas lleva SIEMPRE crono: es su única general', () => {
+    // Es la exclusión que dejaba a `race-sharjah` sin nada: `terrain !== 'flat'` la prohibía.
+    for (const n of [4, 5, 6, 7, 21]) {
+      for (const seed of seeds) {
+        expect(stageMix(n, 'flat', seed).some(isItt)).toBe(true)
+      }
+    }
+  })
+
+  it('cinco etapas llanas NO son cinco finales al sprint', () => {
+    for (const seed of seeds) {
+      const mix = stageMix(5, 'flat', seed)
+      // Al menos dos etapas con puertos (lo que tenía el Tour de Sharjah real)…
+      expect(mix.filter(isClimbing).length).toBeGreaterThanOrEqual(2)
+      // …y al menos una que muere arriba: no todas pueden acabar en llano.
+      expect(mix.some(isUphill)).toBe(true)
+    }
+  })
+
+  it('ninguna vuelta generada se queda sin crono NI final en alto', () => {
+    for (const n of [2, 3, 4, 5, 6, 7, 8, 9, 21]) {
+      for (const terrain of TERRAINS) {
+        for (const seed of seeds) {
+          const mix = stageMix(n, terrain, seed)
+          expect(mix.some((s) => isItt(s) || isUphill(s))).toBe(true)
+        }
+      }
+    }
+  })
+
+  it('la primera etapa es siempre llana y nunca es la crono', () => {
+    for (const n of [3, 5, 7, 21]) {
+      for (const terrain of TERRAINS) {
+        for (const seed of seeds) {
+          const first = stageMix(n, terrain, seed)[0]!
+          expect(first.timeTrial).toBeUndefined()
+          expect(first.label).toBe('Flat')
+        }
+      }
+    }
+  })
+
+  it('la última etapa PUEDE ser decisiva, y también puede ser el paseo al sprint', () => {
+    const last = (n: number, t: RouteTerrain, seed: string): StageSpec => {
+      const mix = stageMix(n, t, seed)
+      return mix[mix.length - 1]!
+    }
+    // En terreno llano manda el final al sprint, pero no siempre: antes era SIEMPRE llana.
+    const flatLast = seeds.map((s) => last(5, 'flat', s))
+    expect(flatLast.filter((s) => s.label === 'Flat').length).toBeGreaterThan(0)
+    expect(flatLast.filter(isUphill).length).toBeGreaterThan(0)
+    // Y en montaña casi todas cierran arriba.
+    const mtnLast = seeds.map((s) => last(5, 'mountain', s))
+    expect(mtnLast.filter(isUphill).length).toBeGreaterThan(seeds.length / 2)
+  })
+
+  it('es determinista: la misma carrera compone siempre la misma vuelta', () => {
+    const a = stageMix(7, 'hilly', 'race-x')
+    const b = stageMix(7, 'hilly', 'race-x')
+    expect(a.map((s) => `${s.label}|${s.profile.segments.length}`)).toEqual(
+      b.map((s) => `${s.label}|${s.profile.segments.length}`),
+    )
+    // …y dos carreras distintas no componen la misma vuelta.
+    const c = stageMix(7, 'hilly', 'race-y')
+    expect(a.map((s) => s.label)).not.toEqual(c.map((s) => s.label))
+  })
+
+  it('el caso del dueño: race-sharjah tiene crono y final en alto', () => {
+    const race = SEASON_CALENDAR.find((r) => r.id === 'race-sharjah')
+    expect(race).toBeDefined()
+    expect(race!.stages.some((s) => s.timeTrial)).toBe(true)
+    expect(
+      race!.stages.some((s) => s.label === 'Uphill finish' || s.label === 'Summit finish'),
+    ).toBe(true)
+  })
+
+  it('una etapa con final en alto termina cuesta arriba de verdad', () => {
+    // La garantía de fondo del tipo de etapa nuevo: el último km sube. Si acabara en llano, el
+    // modelo de final (§12) volvería a resolverla al sprint, que es justo lo que se quería evitar.
+    const mix = stageMix(5, 'flat', 'race-sharjah')
+    const uphill = mix.find((s) => s.label === 'Uphill finish')
+    expect(uphill).toBeDefined()
+    const last = uphill!.profile.segments[uphill!.profile.segments.length - 1]!
+    expect(last.tipo).toBe('puerto')
   })
 })
