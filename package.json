@@ -12,6 +12,7 @@
     "typecheck": "tsc -b && pnpm --filter @cyclingstar/web typecheck",
     "clean": "tsc -b --clean",
     "sim": "pnpm --filter @cyclingstar/engine build && node packages/engine/dist/sim/cli.js",
+    "sim:tactics": "pnpm --filter @cyclingstar/engine build && node packages/engine/dist/sim/tacticsCli.js",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
