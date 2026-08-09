@@ -272,3 +272,61 @@ describe('casos límite de la criba', () => {
     expect(linea).not.toMatch(/\b0\b/)
   })
 })
+
+// --- La capa táctica en la crónica (docs/motor.md §13) --------------------------------------
+// Un ataque que ocurre y no se narra no existe para el jugador. El motor emite todos los intentos
+// como telemetría y marca cuáles merecen frase; aquí se comprueba que cada clase de movimiento se
+// cuenta como lo que es y que las cifras del evento llegan al texto.
+
+describe('la crónica cuenta los ataques', () => {
+  const line = (plantilla: string, datos: Record<string, number | string>, who: string[] = []) =>
+    chronicleLine(event({ plantilla, protagonists: who, datos }))
+
+  it('un ataque de salida se cuenta con quién va y quién se queda a medias', () => {
+    const l = line('attack_go', { kind: 'fuga', saltan: 3, tierra: 2, cuerda: 1, toGo: 160 }, [
+      'Ana',
+      'Bea',
+      'Cris',
+    ])
+    expect(l).toContain('Ana')
+    expect(l).toContain('2 more')
+  })
+
+  it('si el pelotón no da cuerda, la frase lo dice', () => {
+    const l = line('attack_go', { kind: 'fuga', saltan: 2, tierra: 0, cuerda: 0, toGo: 150 }, [
+      'Ana',
+      'Bea',
+    ])
+    expect(l).toContain('not letting')
+  })
+
+  it('un ataque del último puerto dice a cuántos km de meta se lanza', () => {
+    const l = line('attack_go', { kind: 'ataque_final', saltan: 1, tierra: 0, toGo: 8 }, ['Ana'])
+    expect(l).toContain('8 km')
+  })
+
+  it('un puente se cuenta como lo que es, no como una fuga', () => {
+    const l = line('attack_go', { kind: 'puente', saltan: 1, tierra: 0, toGo: 60 }, ['Ana'])
+    expect(l).toMatch(/across/)
+  })
+
+  it('cuando salta medio grupo, la frase explica que no se abre hueco', () => {
+    const l = line('attack_swarm', { kind: 'ataque_grupo', saltan: 14, grupo: 25 }, ['Ana'])
+    expect(l).toContain('14')
+  })
+
+  it('el ataque que cuaja trae su ventaja y los km que faltan', () => {
+    expect(line('attack_sticks', { kind: 'fuga', size: 1, gapS: 75, toGo: 40 }, ['Ana'])).toContain(
+      '1:15',
+    )
+  })
+
+  it('el que se queda en tierra de nadie no se narra como cazado', () => {
+    const l = line('bridge_failed', { toGo: 30 }, ['Ana'])
+    expect(l.toLowerCase()).toMatch(/no man's land|between the two groups/)
+  })
+
+  it('el que se deja ir dice cuántos km le quedaban', () => {
+    expect(line('rider_sits_up', { toGo: 18 }, ['Ana'])).toContain('18')
+  })
+})

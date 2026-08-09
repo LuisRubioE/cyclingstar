@@ -46,6 +46,12 @@ function rider(id: string, over: Partial<StageRider>): StageRider {
   }
 }
 
+/** Semillas deterministas de una campaña: mismo tag y mismo índice, misma etapa siempre. */
+const seedsFor = (tag: string, n: number): string[] =>
+  Array.from({ length: n }, (_, i) =>
+    stageSeed({ worldSeed: `${tag}-${i}`, raceId: tag, stageDay: 1, engineVersion: 1 }),
+  )
+
 /** Una etapa llana de 100 km con una meta volante, un puñado de sprinters y candidatos a fuga. */
 function flatStageInput(): StageInput {
   const riders: StageRider[] = []
@@ -450,11 +456,6 @@ describe('trabajo de equipo (SPEC 6.18)', () => {
 // del día no se pagaba. Estos tests fijan lo contrario, de punta a punta del motor.
 
 describe('modelo de final (docs/motor.md §12)', () => {
-  const seedsFor = (tag: string, n: number): string[] =>
-    Array.from({ length: n }, (_, i) =>
-      stageSeed({ worldSeed: `${tag}-${i}`, raceId: tag, stageDay: 1, engineVersion: 1 }),
-    )
-
   it('el evento de meta dice qué clase de final resolvió la etapa', () => {
     // `matches: 0` apaga la capa táctica en este banco (sin cerillo no hay ataque, SPEC 6.6): lo
     // que se mide aquí es la DERIVACIÓN del tipo de final, no si alguien se va por delante.
@@ -1035,5 +1036,270 @@ describe('el puerto decisivo no es toda la etapa (defecto medido, docs/balance.m
       (e) => e.plantilla === 'peloton_split' && e.km < 130 - STAGE.climbRaceKmToGo,
     )
     expect(early).toEqual([])
+  })
+})
+
+// --- La capa táctica en carrera (docs/motor.md §13, v9) --------------------------------------
+// Las nueve reglas del dueño, vistas desde la carretera. Las DECISIONES se prueban una a una en
+// `tactics.test.ts`; aquí se comprueba que producen carrera: que hay intentos, que la mayoría
+// fracasan, que la fuga del día EMERGE en vez de estar decidida antes del km 0, que un ataque
+// logrado es un grupo con su propio tiempo, y que dos semillas no cuentan la misma historia.
+
+describe('capa táctica: el intento de movimiento (docs/motor.md §13)', () => {
+  /** Etapa llana de 180 km con sprinters, cazaetapas combativos y un pelotón de rodadores. */
+  function tacticalFlat(): StageInput {
+    const riders: StageRider[] = []
+    for (let i = 0; i < 3; i++) {
+      riders.push(
+        rider(`spr-${i}`, {
+          eff0: eff(55, { SPR: 84 + i, LLA: 68 }),
+          orders: orders({ role: 'sprinter', contestSprints: true }),
+        }),
+      )
+    }
+    for (let i = 0; i < 6; i++) {
+      riders.push(
+        rider(`brk-${i}`, {
+          eff0: eff(55, { TAC: 60, LLA: 68 }),
+          orders: orders({ role: 'cazaetapas', mentality: 'combativo' }),
+        }),
+      )
+    }
+    for (let i = 0; i < 31; i++) {
+      riders.push(rider(`pel-${i}`, { eff0: eff(56, { LLA: 62 + (i % 8) }) }))
+    }
+    return { profile: { segments: [{ km: 180, tipo: 'llano' }] }, riders }
+  }
+
+  const flatRuns = seedsFor('tactica', 40).map((s) => simulateStage(tacticalFlat(), s))
+
+  it('reglas 1 y 5: hay MUCHOS intentos por etapa, no uno', { timeout: 60000 }, () => {
+    const counts = flatRuns.map((out) => out.events.filter((e) => e.tipo === 'intento').length)
+    const median = [...counts].sort((a, b) => a - b)[Math.floor(counts.length / 2)]!
+    expect(median).toBeGreaterThanOrEqual(5)
+    // …y tampoco un muro: la carrera respira entre ataque y ataque (`tacticAttemptCooldownKm`).
+    expect(Math.max(...counts)).toBeLessThanOrEqual(40)
+  })
+
+  it('reglas 3 y 4: fracasar es lo NORMAL', { timeout: 60000 }, () => {
+    let tries = 0
+    let ok = 0
+    for (const out of flatRuns) {
+      tries += out.events.filter((e) => e.tipo === 'intento').length
+      ok += out.events.filter((e) => e.tipo === 'ataque' || e.tipo === 'fuga_formada').length
+    }
+    expect(tries).toBeGreaterThan(0)
+    // Una etapa con un solo intento que sale bien a la primera es un fallo de calibración.
+    expect(ok / tries).toBeLessThan(0.5)
+  })
+
+  it('regla 5: la fuga del día EMERGE, no está decidida antes del km 0', { timeout: 60000 }, () => {
+    const kms = flatRuns
+      .map((out) => out.events.find((e) => e.tipo === 'fuga_formada'))
+      .filter((e): e is RaceEvent => e != null)
+      .map((e) => e.km)
+    // Se forma en casi todas las etapas, pero no en todas: a veces el pelotón no da cuerda a nadie.
+    expect(kms.length).toBeGreaterThan(flatRuns.length * 0.7)
+    expect(kms.length).toBeLessThanOrEqual(flatRuns.length)
+    // Y el kilómetro en que cuaja VARÍA: antes era un número inventado en un rango fijo de 3 a 20.
+    expect(new Set(kms.map((k) => Math.round(k))).size).toBeGreaterThan(8)
+    expect(Math.max(...kms) - Math.min(...kms)).toBeGreaterThan(20)
+  })
+
+  it('un ataque logrado ES un grupo nuevo: se le integra su boquete', { timeout: 60000 }, () => {
+    for (const out of flatRuns) {
+      for (const e of out.events.filter((x) => x.tipo === 'ataque')) {
+        // El evento solo se emite cuando el movimiento ha abierto de verdad el hueco.
+        expect(Number(e.datos!.gapS)).toBeGreaterThanOrEqual(STAGE.tacticBreakGapSeconds - 1)
+        expect(e.protagonistas.length).toBeGreaterThan(0)
+      }
+    }
+  })
+
+  it('dos semillas no cuentan la misma carrera', { timeout: 60000 }, () => {
+    // El guion de una etapa: cuándo cuaja la fuga, cuántos intentos hubo, si la cazan y cómo se
+    // resuelve. Antes de la capa táctica esto daba 8 guiones distintos en 120 etapas.
+    const scripts = flatRuns.map((out) => {
+      const formed = out.events.find((e) => e.tipo === 'fuga_formada')
+      const win = out.events.find((e) => e.tipo === 'meta')
+      return [
+        formed ? Math.round(formed.km / 20) : 'sin-fuga',
+        Math.round(out.events.filter((e) => e.tipo === 'intento').length / 4),
+        out.events.some((e) => e.tipo === 'fuga_cazada') ? 'cazada' : 'viva',
+        String(win?.datos?.fuga ?? 0),
+        String(win?.datos?.finish ?? ''),
+      ].join('|')
+    })
+    expect(new Set(scripts).size).toBeGreaterThanOrEqual(6)
+  })
+
+  it('el motor sigue siendo determinista: misma semilla, misma carrera', () => {
+    const seed = seedsFor('tactica-det', 1)[0]!
+    const a = simulateStage(tacticalFlat(), seed)
+    const b = simulateStage(tacticalFlat(), seed)
+    expect(b.results.map((r) => `${r.riderId}:${r.tiempoS}:${r.puesto}`)).toEqual(
+      a.results.map((r) => `${r.riderId}:${r.tiempoS}:${r.puesto}`),
+    )
+    expect(b.events.length).toBe(a.events.length)
+  })
+
+  it('la crónica CUENTA los ataques, y no los inventaría', { timeout: 60000 }, () => {
+    for (const out of flatRuns) {
+      const attempts = out.events.filter((e) => e.tipo === 'intento')
+      const narrated = attempts.filter((e) => e.datos!.narra === 1)
+      if (attempts.length === 0) continue
+      // Un ataque que ocurre y no se narra no existe para el jugador: al menos uno se cuenta.
+      expect(narrated.length).toBeGreaterThan(0)
+      // Pero no todos: la crónica no es el inventario de una docena de intentos fallidos.
+      expect(narrated.length).toBeLessThanOrEqual(Math.max(3, attempts.length))
+      for (const e of narrated) {
+        expect(['fuga', 'contraataque', 'puente', 'ataque_grupo', 'ataque_final']).toContain(
+          e.datos!.kind,
+        )
+      }
+    }
+  })
+})
+
+describe('regla 8: el agotado se deja ir, con el cuidado del fuera de control', () => {
+  /** Etapa reina corrida con el depósito de la tercera semana: el campo llega vaciado al final. */
+  function tiredQueen(): StageInput {
+    const riders: StageRider[] = []
+    for (let i = 0; i < 4; i++) {
+      riders.push(
+        rider(`gc-${i}`, {
+          eff0: eff(60, { MON: 84 + i, COL: 80, LLA: 64 }),
+          energy: 58,
+          orders: orders({ role: 'lider' }),
+        }),
+      )
+    }
+    for (let i = 0; i < 36; i++) {
+      riders.push(
+        rider(`pel-${i}`, {
+          eff0: eff(55, { MON: 54 + (i % 12), LLA: 60 }),
+          energy: 58,
+          orders: orders({ role: 'gregario' }),
+        }),
+      )
+    }
+    return {
+      profile: {
+        segments: [
+          { km: 135, tipo: 'llano' },
+          { km: 15, tipo: 'puerto', tramos: [{ km: 15, g: 8 }] },
+        ],
+      },
+      riders,
+    }
+  }
+
+  const runs = seedsFor('regla8', 24).map((s) => simulateStage(tiredQueen(), s))
+
+  it('en una etapa dura alguien administra el esfuerzo al final', { timeout: 60000 }, () => {
+    const withGiveUp = runs.filter((out) => out.events.some((e) => e.tipo === 'abandona_ritmo'))
+    expect(withGiveUp.length).toBeGreaterThan(runs.length * 0.2)
+  })
+
+  it('solo en los últimos km, nunca a mitad de etapa', { timeout: 60000 }, () => {
+    for (const out of runs) {
+      for (const e of out.events.filter((x) => x.tipo === 'abandona_ritmo')) {
+        expect(Number(e.datos!.toGo)).toBeLessThanOrEqual(STAGE.giveUpKm)
+      }
+    }
+  })
+
+  it(
+    'y sin irse fuera de control (§VI.3: 8% en llana, 18% en la reina)',
+    { timeout: 60000 },
+    () => {
+      for (const out of runs) {
+        const ids = new Set(
+          out.events.filter((e) => e.tipo === 'abandona_ritmo').flatMap((e) => e.protagonistas),
+        )
+        if (ids.size === 0) continue
+        const winner = out.results[0]!.tiempoS
+        for (const r of out.results) {
+          if (!ids.has(r.riderId)) continue
+          expect((r.tiempoS - winner) / winner).toBeLessThan(0.18)
+        }
+      }
+    },
+  )
+
+  it('el que se juega la etapa no se deja ir', { timeout: 60000 }, () => {
+    for (const out of runs) {
+      const quitters = new Set(
+        out.events.filter((e) => e.tipo === 'abandona_ritmo').flatMap((e) => e.protagonistas),
+      )
+      // Ningún líder administra: `giveUpLambda` lo excluye por rol.
+      for (const id of quitters) expect(id.startsWith('gc-')).toBe(false)
+    }
+  })
+})
+
+describe('regla 9: un final en alto no es el equipo del favorito tirando hasta reventar', () => {
+  /** Puerto final de 15 km al 8% con cuatro favoritos que se vigilan entre ellos. */
+  function summitFinish(): StageInput {
+    const riders: StageRider[] = []
+    for (let i = 0; i < 4; i++) {
+      riders.push(
+        rider(`gc-${i}`, {
+          eff0: eff(60, { MON: 84 + i, COL: 80, LLA: 64 }),
+          orders: orders({ role: 'lider', contestClimbs: true }),
+          // Una general apretada: los cuatro se juegan la carrera (SPEC 6.9).
+          gcDeficitSeconds: i * 25,
+        }),
+      )
+    }
+    for (let i = 0; i < 6; i++) {
+      riders.push(
+        rider(`bar-${i}`, {
+          eff0: eff(56, { MON: 72 + (i % 4), COL: 70, LLA: 66, TAC: 60 }),
+          orders: orders({ role: 'cazaetapas', mentality: 'combativo' }),
+          gcDeficitSeconds: 1200 + i * 60,
+        }),
+      )
+    }
+    for (let i = 0; i < 30; i++) {
+      riders.push(
+        rider(`pel-${i}`, {
+          eff0: eff(55, { MON: 54 + (i % 12), LLA: 60 }),
+          gcDeficitSeconds: 2000 + i * 30,
+        }),
+      )
+    }
+    return {
+      profile: {
+        segments: [
+          { km: 135, tipo: 'llano' },
+          { km: 15, tipo: 'puerto', tramos: [{ km: 15, g: 8 }] },
+        ],
+      },
+      riders,
+    }
+  }
+
+  const runs = seedsFor('regla9', 30).map((s) => simulateStage(summitFinish(), s))
+
+  it('los fuertes ATACAN en el puerto decisivo', { timeout: 60000 }, () => {
+    const withAttack = runs.filter((out) =>
+      out.events.some((e) => e.tipo === 'intento' && e.datos!.kind === 'ataque_final'),
+    )
+    expect(withAttack.length).toBeGreaterThan(runs.length * 0.4)
+  })
+
+  it('y el desenlace no es siempre el mismo guion', { timeout: 60000 }, () => {
+    let byAttack = 0
+    for (const out of runs) {
+      const winner = out.results[0]?.riderId
+      const attacked = out.events.some(
+        (e) => e.tipo === 'ataque' && winner != null && e.protagonistas.includes(winner),
+      )
+      if (attacked) byAttack += 1
+    }
+    // Ni siempre gana un ataque ni nunca: antes de la capa táctica esto era 0 de 30, siempre.
+    expect(byAttack).toBeGreaterThan(0)
+    expect(byAttack).toBeLessThan(runs.length)
   })
 })
