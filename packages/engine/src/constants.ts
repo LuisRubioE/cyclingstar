@@ -519,7 +519,7 @@ export const STAGE = {
   // coste por km también ha bajado: el umbral tiene que seguir al gasto o la reina deja de erosionar.
   // Queda justo por encima del gasto de la llana tranquila (28,8% frente a un umbral de 29,2% con
   // RES 55): es la atadura que impide subirlo más, porque la llana NO debe erosionar.
-  erosionThresholdBase: 0.088,
+  erosionThresholdBase: 0.098,
   erosionThresholdResScale: 0.4,
   erosionExponent: 1.2,
   // Techo estructural de la erosión (docs/motor.md §VI.1: «≤ 0,92 — jamás 1,000»). En 1,000 todo el
@@ -602,7 +602,7 @@ export const STAGE = {
   // y el estadístico tiene mucha varianza: medido con 120 / 500 semillas, 335 -> 22% / 26%,
   // 342 -> 26% / 31%, 350 -> 29% / 35%, 365 -> 37% / 47%. Con 350 el rango 25-45% se cumple en las
   // DOS campañas (la de CI y la de `pnpm sim`), que es la condición que hay que exigir.
-  gcControlLeash: 450,
+  gcControlLeash: 430,
   // Compromiso de los favoritos en la subida decisiva: tempo duro que descuelga poco a poco
   // (no máximo, o el grupo llegaría junto). Calibra la caza de la fuga y el estiramiento.
   climbRaceCommit: 0.85,
@@ -691,14 +691,14 @@ export const STAGE = {
   // (el pelotón se cansa de cerrar huecos), cuánto la baja que el grupo sea numeroso, y el castigo
   // si ahí va una amenaza para la general. Es LA perilla que decide cuántos intentos hacen falta
   // antes de que cuaje la fuga del día.
-  tacticAllowBase: 0.42,
+  tacticAllowBase: 0.3,
   tacticAllowKmGain: 0.5,
   tacticAllowSizePenalty: 0.05,
   tacticAllowGcPenalty: 0.75,
   tacticAllowMax: 0.7,
   // Ritmo al que el pelotón cierra un movimiento al que NO da cuerda. Por encima del tempo de
   // carretera (0,55): cerrar un hueco cuesta, y por eso el pelotón no puede hacerlo indefinidamente.
-  tacticControlCommit: 0.62,
+  tacticControlCommit: 0.72,
   // Lo que cuesta LANZAR un ataque, en unidades de tanque. Menos que el cerillo que salva un
   // descuelgue en un puerto (`matchCost` = 5), porque aquello es un esfuerzo sostenido y esto un
   // acelerón: el ataque abre su boquete y luego se rueda. El número importa mucho más de lo que

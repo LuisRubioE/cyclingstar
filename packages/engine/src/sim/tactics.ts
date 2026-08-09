@@ -66,8 +66,11 @@ export interface VarietyStats {
   attemptsMax: number
   /** Intentos que prosperan (se convierten en un grupo con ventaja) sobre el total. */
   prosperFraction: number
-  /** Km en que cuaja la fuga del día (mediana); -1 si no cuaja. */
+  /** Km en que SALE la fuga del día (mediana); -1 si no cuaja. */
   breakKmMedian: number
+  /** Intentos fallidos antes del que acaba siendo la fuga del día (mediana, y el peor caso). */
+  triesBeforeBreakMedian: number
+  triesBeforeBreakMax: number
   /** % de etapas sin fuga del día. */
   noBreakPct: number
   /** Guiones distintos: (¿cuaja fuga?, ¿la cazan?, tipo de final, ganador) sobre el total. */
@@ -84,6 +87,7 @@ export interface VarietyStats {
 export function analyzeVariety(scenario: Scenario, seeds: string[]): VarietyStats {
   const attempts: number[] = []
   const breakKms: number[] = []
+  const triesBefore: number[] = []
   const scripts = new Set<string>()
   const winners = new Set<string>()
   let prospered = 0
@@ -103,8 +107,12 @@ export function analyzeVariety(scenario: Scenario, seeds: string[]): VarietyStat
     prospered += ok.length
     const formed = out.events.find((e) => e.tipo === 'fuga_formada')
     const caught = out.events.find((e) => e.tipo === 'fuga_cazada')
-    if (formed) breakKms.push(formed.km)
-    else noBreak += 1
+    if (formed) {
+      breakKms.push(formed.km)
+      // Cuántas veces se intentó ANTES del movimiento que acabó siendo la fuga del día. Es el
+      // número de la regla 5: «lo normal es que haya muchos intentos antes de que cuaje».
+      triesBefore.push(tries.filter((e) => e.km < formed.km).length)
+    } else noBreak += 1
     const win = out.events.find((e) => e.tipo === 'meta')
     const winner = out.results[0]?.riderId ?? '?'
     winners.add(winner)
@@ -113,7 +121,7 @@ export function analyzeVariety(scenario: Scenario, seeds: string[]): VarietyStat
     // carretera y qué clase de final la resolvió. Dos etapas con el mismo guion se parecen.
     scripts.add(
       [
-        formed ? `km${Math.round(formed.km / 20)}` : 'sinfuga',
+        formed ? `t${tries.filter((e) => e.km < formed.km).length}` : 'sinfuga',
         `i${Math.round(tries.length / 4)}`,
         caught ? 'cazada' : 'viva',
         win?.datos?.fuga === 1 ? 'desdefuga' : 'delgrupo',
@@ -136,6 +144,8 @@ export function analyzeVariety(scenario: Scenario, seeds: string[]): VarietyStat
     attemptsMax: Math.max(...attempts),
     prosperFraction: total === 0 ? 0 : prospered / total,
     breakKmMedian: breakKms.length === 0 ? -1 : median(breakKms),
+    triesBeforeBreakMedian: median(triesBefore),
+    triesBeforeBreakMax: triesBefore.length === 0 ? 0 : Math.max(...triesBefore),
     noBreakPct: (100 * noBreak) / runs,
     distinctScripts: scripts.size,
     distinctWinners: winners.size,

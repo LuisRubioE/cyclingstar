@@ -20,7 +20,7 @@ function main(): void {
   )
   console.log(`  intentos que cuajan  ${(100 * flatVar.prosperFraction).toFixed(1)}%`)
   console.log(
-    `  fuga del día         cuaja en el km ${flatVar.breakKmMedian} (mediana) · sin fuga el ${flatVar.noBreakPct.toFixed(1)}% de las etapas`,
+    `  fuga del día         sale en el km ${flatVar.breakKmMedian} (mediana) tras ${flatVar.triesBeforeBreakMedian} intentos fallidos (peor caso ${flatVar.triesBeforeBreakMax}) · sin fuga el ${flatVar.noBreakPct.toFixed(1)}% de las etapas`,
   )
   console.log(
     `  guiones distintos    ${flatVar.distinctScripts} de ${flatVar.runs} · ganadores distintos ${flatVar.distinctWinners}`,
@@ -37,7 +37,7 @@ function main(): void {
   )
   console.log(`  intentos que cuajan  ${(100 * queenVar.prosperFraction).toFixed(1)}%`)
   console.log(
-    `  fuga del día         cuaja en el km ${queenVar.breakKmMedian} (mediana) · sin fuga el ${queenVar.noBreakPct.toFixed(1)}%`,
+    `  fuga del día         sale en el km ${queenVar.breakKmMedian} (mediana) tras ${queenVar.triesBeforeBreakMedian} intentos fallidos (peor caso ${queenVar.triesBeforeBreakMax}) · sin fuga el ${queenVar.noBreakPct.toFixed(1)}%`,
   )
   console.log(
     `  guiones distintos    ${queenVar.distinctScripts} de ${queenVar.runs} · ganadores distintos ${queenVar.distinctWinners}`,

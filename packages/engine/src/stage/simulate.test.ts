@@ -92,7 +92,10 @@ describe('simulateStage — etapa llana (Paso 24)', () => {
 
   it('produce una crónica coherente de principio a fin', () => {
     const tipos = out.events.map((e) => e.tipo)
-    expect(tipos).toContain('fuga_formada')
+    // Desde la capa táctica (docs/motor.md §13) la fuga del día ya no está garantizada: emerge del
+    // primer intento al que el pelotón da cuerda, y en esta semilla no le da cuerda a ninguno. Lo
+    // que SÍ tiene que haber siempre es carrera —alguien lo intenta— y un ganador.
+    expect(tipos).toContain('intento')
     expect(tipos).toContain('meta') // se declara un ganador de etapa
     // Los eventos están ordenados cronológicamente.
     for (let i = 1; i < out.events.length; i++) {
