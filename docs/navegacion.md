@@ -177,6 +177,22 @@ ellas. Propuesta: **una sola página** con un _modo propietario_ que añade lo p
 
 Una página, un componente, sin duplicar. Y lo privado nunca sale en la vista pública.
 
+> **Corrección (agosto 2026): «Recent results» va por CARRERA, no por etapa.** Listaba las etapas
+> sueltas, y la posición final en la general no aparecía en ninguna parte de la ficha: el palmarés
+> solo registra la general **si se gana**, así que un 3.º en una gran vuelta —tres semanas de
+> carrera y probablemente el mejor resultado de la temporada— era invisible.
+>
+> En una carrera por etapas **el resultado del corredor ES la general**; las etapas son el detalle.
+> Así que cada carrera es una línea con su puesto en la general de titular —se gane o no, y diciendo
+> "so far" si aún está en marcha, o `DNF` si abandonó— y las etapas cuelgan debajo plegadas
+> (`components/RaceResults.tsx`), cada una con su enlace a la crónica. Igual en la ficha del
+> corredor, en la de un compañero (`My Team → Squad`) y en `My Rider → My races → Results`.
+>
+> El puesto sale de `race_gc`, que el tick ya acumula etapa a etapa y nunca se borra (la temporada
+> va en la clave), numerada con el **mismo** desempate y el mismo trato de los abandonos que la
+> clasificación de la página de carrera: sin persistencia nueva y sin que las dos pantallas puedan
+> decir cosas distintas.
+
 ### 3.7 Mapa de rutas
 
 | Ruta nueva                                | Hoy                      | Cambio                                    |
@@ -231,6 +247,24 @@ Sin atajos de sección: para eso está el menú.
 Barra inferior fija con los 4 destinos (patrón nativo, alcanzable con el pulgar) en lugar del menú
 de hamburguesa; pestañas de nivel 2 con desplazamiento horizontal. Resuelve de paso que el menú
 actual no gestiona el foco al abrirse (`Header.tsx:129`).
+
+> **Hecho (fase G, agosto 2026): `apps/web/src/components/BottomNav.tsx`.** En móvil la barra
+> inferior **sustituye** al nivel 1 de la cabecera, que se oculta (`sm:block`): tenerlos a la vez
+> sería el mismo menú dos veces. El nivel 2 no se mueve y sigue desplazándose en horizontal.
+>
+> Lleva **todos** los destinos de esa fila, no solo las cuatro secciones: `News` va con ellos —y
+> `How to play` mientras no hay sesión—, porque al ocultar el nivel 1 se quedaban sin puerta en el
+> teléfono, que es justo lo que la barra viene a arreglar. Máximo cinco entradas, con el mismo
+> rótulo que en escritorio (un destino no cambia de nombre según la pantalla).
+>
+> Qué destinos salen según la sesión y el equipo lo decide `apps/web/src/domain/nav.ts`, compartido
+> con la cabecera y probado en `nav.test.ts`: una sola regla para las dos formas de pintarla.
+>
+> Detalles de teléfono: 56 px de alto por destino (por encima del mínimo táctil de 44),
+> `env(safe-area-inset-bottom)` para los móviles con muesca, el mismo hueco reservado al final del
+> contenido en `App.tsx` para que la barra no tape nada, y el destino activo marcado con
+> `aria-current="page"` además de color y pastilla de fondo. Es navegación, así que va en un `<nav>`
+> etiquetado.
 
 ---
 
@@ -379,7 +413,7 @@ Cada fase deja la aplicación funcionando y es desplegable por separado.
 | **D** | **`My races`** rehecha con sus tres pestañas (sustituye a `/race-entry`)                                  | 1        |
 | **E** | **Dashboard** de urgencia y **News** con filtros                                                          | 1        |
 | **F** | **Perfil unificado** (público + modo propietario)                                                         | 1        |
-| **G** | **Móvil**: barra inferior y pestañas desplazables                                                         | 1        |
+| **G** | ~~**Móvil**: barra inferior y pestañas desplazables~~ **HECHA** (ago. 2026, ver §5)                       | 1        |
 
 > **La Fase B va antes que la A-estructural a propósito**: es donde está el daño real de uso diario.
 > Arreglar el menú sin arreglar el flujo de carrera dejaría bonito el camino hacia una página mala.

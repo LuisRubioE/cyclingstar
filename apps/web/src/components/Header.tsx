@@ -3,6 +3,14 @@ import { Link, useLocation } from 'react-router-dom'
 import { fetchHealth } from '../api/health'
 import { fetchRiderSummary } from '../api/rider'
 import { authClient } from '../auth/client'
+import {
+  type MainLink,
+  type Section,
+  HOW_TO_PLAY,
+  NEWS,
+  sectionLinks,
+  sectionOf,
+} from '../domain/nav'
 import { Logo } from './Logo'
 import { NavTabs, type NavTabItem } from './Tabs'
 import { WorldClock } from './WorldClock'
@@ -19,26 +27,13 @@ import { WorldClock } from './WorldClock'
  * gestionarlo). Sin sesión la barra se reduce a `World · News · How to play`, con `Log in`/`Sign up`
  * en la banda superior.
  *
- * No hay menú de hamburguesa: con cinco entradas cabe todo en el teléfono y las dos barras se
- * desplazan en horizontal. Así todo enlace es visible y alcanzable con el teclado, sin gestión de
- * foco que se pueda romper. La barra inferior fija de §5 (fase G) sustituirá al nivel 1 en móvil.
+ * No hay menú de hamburguesa: todo enlace es visible y alcanzable con el teclado, sin gestión de
+ * foco que se pueda romper.
+ *
+ * EN MÓVIL el nivel 1 no se pinta aquí: lo sustituye la barra inferior fija (`BottomNav`, §5), que
+ * lleva los mismos destinos al alcance del pulgar. Las pestañas de nivel 2 se quedan donde están y
+ * se desplazan en horizontal.
  */
-
-/** Las secciones del nivel 1. `dashboard` y `news` no tienen pestañas de contexto. */
-type Section = 'dashboard' | 'me' | 'team' | 'world' | 'news' | null
-
-/** Destino del nivel 1: la sección y su puerta de entrada. */
-interface MainLink {
-  section: Exclude<Section, null>
-  to: string
-  label: string
-}
-
-const DASHBOARD: MainLink = { section: 'dashboard', to: '/', label: 'Dashboard' }
-const MY_RIDER: MainLink = { section: 'me', to: '/me/profile', label: 'My Rider' }
-const MY_TEAM: MainLink = { section: 'team', to: '/team/squad', label: 'My Team' }
-const WORLD: MainLink = { section: 'world', to: '/world/races', label: 'World' }
-const NEWS: MainLink = { section: 'news', to: '/news', label: 'News' }
 
 const ME_TABS: readonly NavTabItem[] = [
   { to: '/me/profile', label: 'Profile' },
@@ -64,16 +59,6 @@ const WORLD_TABS: readonly NavTabItem[] = [
   { to: '/world/rankings', label: 'Rankings' },
   { to: '/world/hall-of-fame', label: 'Hall of Fame' },
 ]
-
-/** Qué sección está abierta, deducida de la URL. `null` en páginas sueltas (login, privacy…). */
-function sectionOf(pathname: string): Section {
-  if (pathname === '/') return 'dashboard'
-  if (pathname.startsWith('/me/')) return 'me'
-  if (pathname.startsWith('/team/')) return 'team'
-  if (pathname.startsWith('/world/')) return 'world'
-  if (pathname === '/news') return 'news'
-  return null
-}
 
 /** Pestañas de contexto de la sección abierta (nivel 2); vacío si la sección no tiene. */
 function tabsOf(section: Section): readonly NavTabItem[] {
@@ -111,14 +96,12 @@ export function Header() {
     enabled: Boolean(session),
   })
 
-  const hasTeam = Boolean(summary.data?.teamId)
   const section = sectionOf(pathname)
   const tabs = tabsOf(section)
-
-  // Sin sesión no hay nada "mío" que enseñar: solo el mundo, las noticias y cómo se juega.
-  const mainLinks: MainLink[] = session
-    ? [DASHBOARD, MY_RIDER, ...(hasTeam ? [MY_TEAM] : []), WORLD]
-    : [WORLD]
+  const mainLinks = sectionLinks({
+    signedIn: Boolean(session),
+    hasTeam: Boolean(summary.data?.teamId),
+  })
 
   return (
     <header className="bg-gradient-to-b from-brand-navy to-brand-navy-dark shadow-md">
@@ -163,24 +146,21 @@ export function Header() {
         </div>
       </div>
 
-      {/* Nivel 1: secciones. News se separa a la derecha porque no es "una sección más". */}
+      {/*
+        Nivel 1: secciones. News se separa a la derecha porque no es "una sección más".
+        Oculto en móvil: ahí este nivel lo pinta la barra inferior fija (§5), y tener las dos sería
+        el mismo menú dos veces.
+      */}
       <nav
         aria-label="Sections"
-        className="border-t border-white/10 bg-black/15 [&::-webkit-scrollbar]:hidden"
+        className="hidden border-t border-white/10 bg-black/15 sm:block [&::-webkit-scrollbar]:hidden"
       >
         <div className="mx-auto flex max-w-6xl items-center gap-1 overflow-x-auto whitespace-nowrap px-3 py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {mainLinks.map((link) => (
             <MainNavLink key={link.section} link={link} active={section === link.section} />
           ))}
           <span className="ml-auto flex shrink-0 items-center gap-1 pl-2">
-            {!session && (
-              <Link
-                to="/how-to-play"
-                className="shrink-0 rounded px-3 py-1.5 text-sm text-white/80 transition hover:bg-white/10 hover:text-white"
-              >
-                How to play
-              </Link>
-            )}
+            {!session && <MainNavLink link={HOW_TO_PLAY} active={section === 'help'} />}
             <MainNavLink link={NEWS} active={section === 'news'} />
           </span>
         </div>

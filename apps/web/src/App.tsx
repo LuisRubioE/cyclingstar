@@ -1,5 +1,6 @@
 import { type ReactNode, Suspense, lazy } from 'react'
 import { Link, Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom'
+import { BottomNav } from './components/BottomNav'
 import { Header } from './components/Header'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { SessionExpiryWatcher } from './components/SessionExpiryWatcher'
@@ -103,7 +104,12 @@ function NotFound() {
 
 export function App() {
   return (
-    <div className="min-h-screen text-slate-900">
+    /*
+      El hueco de abajo es para la barra inferior del teléfono (§5): la barra es fija y taparía el
+      final de la página, así que el contenido reserva su alto (56 px) más el `safe-area-inset` de
+      los móviles con muesca. En escritorio no hay barra y no hay hueco.
+    */
+    <div className="min-h-screen pb-[calc(3.5rem+env(safe-area-inset-bottom))] text-slate-900 sm:pb-0">
       <SessionExpiryWatcher />
       <Header />
       <main className="mx-auto max-w-6xl px-3 py-5 sm:px-4">
@@ -287,6 +293,7 @@ export function App() {
           </p>
         </div>
       </footer>
+      <BottomNav />
     </div>
   )
 }
