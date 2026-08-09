@@ -944,6 +944,63 @@ export const STAGE = {
   finalDriveKm: 15,
   finalDriveCommit: 0.85,
 
+  // --- ATRIBUCIÓN DEL TRABAJO (v11, docs/motor.md §16) ----------------------------------------
+  // `relayTurn()` sabía en cada bloque de 100 m y para cada grupo QUIÉN estaba dando la cara al
+  // viento, y ese dato se tiraba. Estas perillas convierten ese dato en las dos preguntas del
+  // dueño: «quién tira del pelotón» y «quién hizo el trabajo para reducir la distancia».
+  //
+  // El trabajo AL FRENTE de un corredor solo cuenta lo que hace POR ENCIMA del tempo de carretera:
+  //   frontWork += max(0, compromiso − frontWorkIdleCommit) · dx
+  // La forma sugerida en el encargo era `compromiso · dx`, pero entonces un pelotón que rueda a
+  // paseo 100 km reparte más «trabajo» que una persecución de 20 km a 0,9, y el criterio de «esta
+  // captura no tuvo autor» deja de existir: cualquier grupo que rueda acumula. Con el suelo en 0,50
+  // —por debajo del tempo de carretera (0,55)— relevar en el tempo cuenta un pelo y relevar a 0,9
+  // cuenta ocho veces más, que es lo que pedía el encargo («relevar a 0,45 no es noticia»).
+  frontWorkIdleCommit: 0.5,
+  // La VENTANA del parte de «quién tira»: el trabajo al frente se olvida con este factor por km, o
+  // sea con una vida media de ~5 km. Sin olvido, el que tiró en el km 20 seguiría siendo el
+  // protagonista en el 150 y el parte diría quién ha tirado MÁS, no quién está tirando AHORA.
+  pullWindowDecayPerKm: 0.87,
+  // Cuántos nombres da el parte y qué parte del trabajo del primero hay que haber hecho para
+  // aparecer en él. Con 0,55, un relevo que se lleva la mitad de lo que se lleva el que más no sale:
+  // así el parte dice «X y Z» cuando de verdad tiran dos y «X» cuando tira uno solo.
+  pullNamesMax: 3,
+  pullNamesMinShare: 0.55,
+  // Trabajo mínimo del que más ha tirado en la ventana para que haya parte. Es lo que impide narrar
+  // «tiran fulano y mengano» de un pelotón que va de paseo detrás de una fuga consentida.
+  pullMinWork: 0.35,
+  // Throttle del parte: nunca dos partes en menos de `Min` km aunque cambie quién manda, y como
+  // mucho uno cada `pullReportKmGap` km aunque no cambie nadie. Medido (60 semillas por escenario):
+  // con 9/30 salían 5,4 por etapa en la llana y 6,3 en Flandes; con 12/36 la mediana queda en 4-5 y
+  // el 75-90% de las etapas cae en la ventana 3-6 que pedía el encargo.
+  pullReportMinKmGap: 12,
+  pullReportKmGap: 36,
+  // Clasificación del esfuerzo del pelotón que viaja en el evento: por debajo de `Tempo` va a
+  // tempo de carretera, por encima de `Full` va a tope, y en medio «firme».
+  pullEffortTempoMax: 0.62,
+  pullEffortFullMin: 0.8,
+  // --- Quién cerró (chase_work) ---
+  // Trabajo mínimo del que más tiró en ESA persecución para que la captura tenga autor. Por debajo
+  // el movimiento se cazó solo —se hundió— y nombrar a alguien sería mentir. 2,0 son ~10 km
+  // relevando a 0,7 o ~5 km a 0,9: un trabajo de verdad, no dos relevos de cortesía.
+  chaseWorkMinUnits: 2,
+  // …y el boquete que se cerró tiene que haber sido un boquete. Cazar algo que nunca sacó 25 s no
+  // es «el trabajo para reducir la distancia», es que el intento no salió.
+  chaseWorkMinGapSeconds: 25,
+  chaseWorkNamesMax: 3,
+  chaseWorkNamesMinShare: 0.45,
+  // --- La colaboración dentro de la fuga (break_share) ---
+  // Se cuenta una vez por etapa, con la fuga ya asentada (km desde que salió), si son bastantes y
+  // si el reparto es DESIGUAL: que cuatro se releven por igual no es noticia; que dos tiren y dos
+  // vayan a rueda, sí. «Desigual» es relativo al tamaño del grupo —en una fuga de cinco lo
+  // equitativo es un quinto cada uno—, así que el umbral es un MULTIPLICADOR sobre el reparto justo:
+  // con 1,4 el que más tira tiene que estar haciendo un 40% más de lo que le tocaría.
+  breakShareMinRiders: 3,
+  breakShareMinKm: 25,
+  breakShareUnevenFactor: 1.4,
+  // …y va a rueda quien no llega a esta fracción del reparto justo.
+  breakSharePassengerFactor: 0.5,
+
   // 6.11 — Banners: metas volantes y cimas puntuables.
   bannerCost: 2,
   // Derivación de categoría de cima: score = sum(km_i·g_i^2) con g_i > 2.

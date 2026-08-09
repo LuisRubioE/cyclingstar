@@ -815,8 +815,12 @@ describe('telemetría de la crónica (docs/motor.md §16)', () => {
       // Se cuentan las líneas NARRABLES: desde la capa táctica (docs/motor.md §13) el motor emite
       // todos los intentos como telemetría y marca con `narra` cuáles merecen una frase, porque
       // una etapa tiene una docena de intentos y la crónica no puede ser su inventario.
+      // El techo sube de 40 a 46 en la v11: la ATRIBUCIÓN DEL TRABAJO añade tres familias de frase
+      // —quién tira del pelotón (4-5 por etapa), quién cerró la persecución (~1) y cómo se reparte
+      // el trabajo en la fuga (≤1)—, así que el peor caso medido de este banco pasa de 40 a 41. No
+      // es que se narre más de lo mismo: son líneas que antes no existían y que el dueño pidió.
       const narrated = out.events.filter((e) => e.datos?.narra !== 0)
-      expect(narrated.length).toBeLessThanOrEqual(40)
+      expect(narrated.length).toBeLessThanOrEqual(46)
     }
   })
 

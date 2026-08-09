@@ -78,6 +78,15 @@ interface Move {
   bridgeUntilKm: number | null
   /** Ritmo al que rueda cuando deja de puentear: el de un grupo que colabora y ya está. */
   restCommit: number
+  /**
+   * ATRIBUCIÓN (v11): trabajo al frente que han hecho SUS PERSEGUIDORES desde que el movimiento
+   * salió. Es la cuenta que responde a «no sé quién hizo el trabajo para reducir la distancia»:
+   * al capturarlo se nombra a quien más puso AQUÍ, no a quien tiró en el km 20 por otra cosa.
+   */
+  chaseLedger: Map<string, number>
+  /** Mayor boquete que llegó a tener sobre su perseguidor, y en qué km lo tuvo. */
+  peakGapS: number
+  peakGapKm: number
 }
 
 /** Estado mutable de un corredor durante la simulación. */
@@ -87,6 +96,20 @@ interface RiderSim {
   energy: number
   groupId: string
   work: number
+  /**
+   * TRABAJO AL FRENTE (v11, docs/motor.md §16). `work` mezcla el gasto de ir a rueda con el de
+   * relevar y solo sirve para el TSS; esto cuenta SOLO los bloques en que el corredor está en el
+   * turno de relevos, ponderado por lo que el grupo estaba apretando por encima del tempo de
+   * carretera (`STAGE.frontWorkIdleCommit`). Separado por grupo, porque tirar del pelotón y
+   * colaborar en la fuga son dos noticias distintas.
+   */
+  frontWorkPeloton: number
+  frontWorkMove: number
+  /**
+   * El mismo trabajo al frente del pelotón, pero con OLVIDO (`pullWindowDecayPerKm`): es la
+   * ventana con la que se responde «quién tira AHORA» en vez de «quién ha tirado más hoy».
+   */
+  pullWindow: number
   /**
    * Tiempo de meta YA EN SEGUNDOS ENTEROS (SPEC 6.15). Es el tiempo del GRUPO, idéntico para todos
    * los que entran con él: en ciclismo la línea de meta no desempata dentro de un grupo, lo hace el
@@ -232,6 +255,9 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       energy: r.energy,
       groupId: PELOTON,
       work: 0,
+      frontWorkPeloton: 0,
+      frontWorkMove: 0,
+      pullWindow: 0,
       finishTs: null,
       finishOrder: 0,
       bonusS: 0,
@@ -334,6 +360,58 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
   let dayBreakFormed = false
 
   const kmAt = (i: number): number => (i + 0.5) * STAGE.dx
+
+  // --- ATRIBUCIÓN DEL TRABAJO (v11, docs/motor.md §16) --------------------------------------
+  // Estado del parte de «quién tira del pelotón»: desde qué km no se cuenta y a quién se nombró.
+  let lastPullReportKm = Number.NEGATIVE_INFINITY
+  let lastPullLeader = ''
+  /** Ya se ha contado una vez cómo se reparte el trabajo dentro de la fuga. */
+  let breakShareReported = false
+
+  /**
+   * Los que más trabajo al frente han hecho, de más a menos, quedándose solo con los que han
+   * puesto una parte apreciable de lo que puso el primero: si tiran dos, se nombran dos; si tira
+   * uno solo, se nombra uno. El desempate por id hace el orden total (nunca el de inserción).
+   */
+  const topWorkers = (
+    ledger: Iterable<[string, number]>,
+    max: number,
+    minShare: number,
+  ): { ids: string[]; best: number } => {
+    const ranked = [...ledger]
+      .filter(([, w]) => w > 0)
+      .sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))
+    const best = ranked[0]?.[1] ?? 0
+    return {
+      ids: ranked
+        .slice(0, max)
+        .filter(([, w]) => w >= best * minShare)
+        .map(([id]) => id),
+      best,
+    }
+  }
+
+  /**
+   * Quién hizo el trabajo para cerrar. Se engancha a la captura de un movimiento y nombra a los que
+   * más pusieron EN ESA persecución (no a quien tiró en el km 20 por otra cosa). Si el movimiento
+   * se cazó SOLO —porque se hundió, no porque nadie tirara— no emite nada: mentir es peor que
+   * callar, y por eso hay dos umbrales, el del boquete que llegó a haber y el del trabajo hecho.
+   */
+  const attributeChase = (mv: Move, atKm: number, atTs: number): void => {
+    if (mv.peakGapS < STAGE.chaseWorkMinGapSeconds) return
+    const { ids, best } = topWorkers(
+      mv.chaseLedger,
+      STAGE.chaseWorkNamesMax,
+      STAGE.chaseWorkNamesMinShare,
+    )
+    if (ids.length === 0 || best < STAGE.chaseWorkMinUnits) return
+    log.emit(atKm, atTs, 'trabajo', 'chase_work', ids, {
+      // Lo que se cerró: desde la cúspide del boquete hasta aquí, y en cuántos km.
+      closedS: Math.round(mv.peakGapS),
+      km: Math.max(1, Math.round(atKm - mv.peakGapKm)),
+      work: Math.round(10 * best) / 10,
+    })
+  }
 
   // Los sprinters solo cazan si la meta es llana (una llegada masiva que puedan disputar): en un
   // final en alto no persiguen, y la fuga vive o muere en la subida (SPEC 6.9).
@@ -535,6 +613,85 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
         }
       }
 
+      // --- ATRIBUCIÓN: quién tira del pelotón (v11, docs/motor.md §16) ----------------------
+      // La ventana se olvida un poco cada kilómetro: el parte tiene que decir quién está tirando
+      // AHORA, no quién ha tirado más en toda la etapa. Sin olvido, el que se partió el lomo en el
+      // km 20 seguiría siendo el protagonista en el 150 y el parte sería siempre el mismo.
+      for (const s of sims.values()) s.pullWindow *= STAGE.pullWindowDecayPerKm
+      const pelotonNow = membersOf(PELOTON)
+      // Nunca antes de que la fuga esté formada: hasta entonces el pelotón va en bloque y «quién
+      // tira» no significa nada. Y nunca de un pelotón que no existe (queda uno solo).
+      if (dayBreakFormed && km >= breakFormedKm && pelotonNow.length >= 2) {
+        const pull = topWorkers(
+          pelotonNow.map((m): [string, number] => [m.input.riderId, m.pullWindow]),
+          STAGE.pullNamesMax,
+          STAGE.pullNamesMinShare,
+        )
+        // Se cuenta cuando CAMBIA QUIEN MANDA —el primero de la lista, no un tercer nombre que
+        // rota— y han pasado unos km desde el parte anterior; o cuando el parte anterior ha
+        // caducado aunque siga mandando el mismo. Mirar la lista entera daba 17 partes en una
+        // clásica de 278 km: en un pelotón que se rompe cada muro, el tercer nombre nunca repite.
+        const leader = pull.ids[0] ?? ''
+        if (
+          pull.ids.length > 0 &&
+          pull.best >= STAGE.pullMinWork &&
+          km - lastPullReportKm >= STAGE.pullReportMinKmGap &&
+          (leader !== lastPullLeader || km - lastPullReportKm >= STAGE.pullReportKmGap)
+        ) {
+          const c = peloton.compromiso
+          log.emit(km, peloton.tS, 'tiran', 'peloton_pull', pull.ids, {
+            commit: Math.round(100 * c) / 100,
+            // Clasificado, que es lo que la crónica sabe decir: a tempo de carretera, firme, o a tope.
+            effort:
+              c <= STAGE.pullEffortTempoMax
+                ? 'tempo'
+                : c >= STAGE.pullEffortFullMin
+                  ? 'tope'
+                  : 'firme',
+            toGo: Math.round(kmRestantes),
+            // El tamaño decide la VOZ de la crónica: con un pelotón grande manda el equipo, con un
+            // grupo pequeño se nombra a los corredores (`STAGE.frontNamesMaxRiders`).
+            size: pelotonNow.length,
+            chasing: ahead ? 1 : 0,
+          })
+          lastPullReportKm = km
+          lastPullLeader = leader
+        }
+      }
+
+      // --- ATRIBUCIÓN: cómo se reparte el trabajo dentro de la fuga (v11) -------------------
+      // El dato ya estaba (`frontWorkMove`) y sale gratis: una vez por etapa, con la fuga asentada,
+      // y solo si el reparto es DESIGUAL —que se relevan bien ya lo cuenta `break_cooperation`—.
+      if (!breakShareReported && dayBreakFormed && km - breakFormedKm >= STAGE.breakShareMinKm) {
+        const dayMove = moves.find((mv) => mv.dayBreak)
+        const mem = dayMove ? membersOf(dayMove.g.id) : []
+        if (mem.length >= STAGE.breakShareMinRiders) {
+          const total = mem.reduce((acc, m) => acc + m.frontWorkMove, 0)
+          const fair = total / mem.length
+          const share = topWorkers(
+            mem.map((m): [string, number] => [m.input.riderId, m.frontWorkMove]),
+            STAGE.pullNamesMax,
+            STAGE.pullNamesMinShare,
+          )
+          const passengers = mem.filter(
+            (m) => m.frontWorkMove < fair * STAGE.breakSharePassengerFactor,
+          ).length
+          if (
+            total > 0 &&
+            share.ids.length > 0 &&
+            share.ids.length < mem.length &&
+            share.best >= fair * STAGE.breakShareUnevenFactor
+          ) {
+            breakShareReported = true
+            log.emit(km, dayMove!.g.tS, 'colaboracion', 'break_share', share.ids, {
+              size: mem.length,
+              passengers,
+              toGo: Math.round(kmRestantes),
+            })
+          }
+        }
+      }
+
       // Ritmo base del pelotón cuando no hay nada que cazar por delante: tempo de carretera, a tope
       // en el puerto decisivo, y el tirón de los últimos km cuando la meta es llana (trenes de sprint).
       const freeRunTarget = onClimb
@@ -638,14 +795,46 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
     }
 
     // Avance físico de un grupo y gasto de energía de sus corredores.
-    const advance = (group: Group, members: RiderSim[], paceFraction: number): Group => {
+    // `kind` no cambia nada de la física: solo dice a qué contador de TRABAJO AL FRENTE va lo que
+    // se releva aquí (v11). Tirar del pelotón, colaborar en la fuga y arrastrarse en un grupeto
+    // son tres cosas distintas y la crónica las cuenta distinto.
+    const advance = (
+      group: Group,
+      members: RiderSim[],
+      paceFraction: number,
+      kind: 'peloton' | 'move' | 'shed' = 'shed',
+    ): Group => {
       if (members.length === 0) return group
       const p75 = pacemakerP75(members, block, paceFraction)
       const next = advanceGroup(group, block, p75, { isFinal })
       const idSet = new Set(members.map((m) => m.input.riderId))
       const relayers = relayTurn(members, idSet, paceFraction, domestiquesFor)
+      // Lo que vale un relevo en este bloque: solo cuenta lo que se aprieta POR ENCIMA del tempo
+      // de carretera, así una captura que se cierra a 0,9 no se confunde con cien kilómetros de
+      // paseo (y una captura sin nadie apretando se queda, con razón, sin autor).
+      const frontEffort = Math.max(0, group.compromiso - STAGE.frontWorkIdleCommit) * STAGE.dx
+      // Los movimientos que van por DELANTE de este grupo: lo que se releva aquí es trabajo de
+      // persecución contra ellos, y es lo que se nombra al cazarlos.
+      const chased =
+        kind === 'shed' || frontEffort <= 0
+          ? []
+          : moves.filter((mv) => mv.g.id !== group.id && mv.g.tS < group.tS)
       for (const m of members) {
         const relaying = relayers.has(m.input.riderId)
+        if (relaying && frontEffort > 0) {
+          if (kind === 'peloton') {
+            m.frontWorkPeloton += frontEffort
+            m.pullWindow += frontEffort
+          } else if (kind === 'move') {
+            m.frontWorkMove += frontEffort
+          }
+          for (const mv of chased) {
+            mv.chaseLedger.set(
+              m.input.riderId,
+              (mv.chaseLedger.get(m.input.riderId) ?? 0) + frontEffort,
+            )
+          }
+        }
         const shelter = relaying ? STAGE.shelterRelay : STAGE.shelterProtected
         let cost = blockCost(block, group.compromiso, shelter)
         // Protección de gregarios: un líder arropado que no está relevando gasta menos según cuántos
@@ -1065,6 +1254,9 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
         targetId: target?.id ?? null,
         bridgeUntilKm: kind === 'puente' ? km + STAGE.tacticBridgeKm : null,
         restCommit: coop,
+        chaseLedger: new Map(),
+        peakGapS: gap,
+        peakGapKm: km,
       })
       log.emit(km, g.tS, 'intento', 'attack_go', names, {
         kind,
@@ -1126,15 +1318,25 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       attemptFrom(m.g, 'ataque_grupo', null)
     }
 
-    peloton = advance(peloton, membersOf(PELOTON), pelFrac)
+    peloton = advance(peloton, membersOf(PELOTON), pelFrac, 'peloton')
     for (const m of moves) {
-      m.g = advance(m.g, membersOf(m.g.id), moveFrac(m))
+      m.g = advance(m.g, membersOf(m.g.id), moveFrac(m), 'move')
       // La TENSIÓN del grupo escapado (SPEC 6.10): se acumula km a km y, pasado el umbral, dispara
       // los ataques internos y recorta la cooperación. Existía en `Group` y nadie la tocaba nunca.
       m.g.tension += STAGE.breakawayTensionPerKm * STAGE.dx
+      // Cúspide del boquete sobre QUIEN LE PERSIGUE (v11): es el punto desde el que se mide «se
+      // cerraron N segundos en M km» cuando lo cacen. Contar desde que nació diría siempre lo
+      // mismo (0 s) y contra el pelotón diría una barbaridad cuando la carrera ya está rota.
+      const src = moves.find((o) => o.g.id === m.sourceId)
+      const chaserTs = src && membersOf(src.g.id).length > 0 ? src.g.tS : peloton.tS
+      const gapNow = chaserTs - m.g.tS
+      if (gapNow > m.peakGapS) {
+        m.peakGapS = gapNow
+        m.peakGapKm = km
+      }
     }
     for (let g = 0; g < shed.length; g++) {
-      const adv = advance(shed[g]!, membersOf(shed[g]!.id), 1)
+      const adv = advance(shed[g]!, membersOf(shed[g]!.id), 1, 'shed')
       // Un descolgado del pelotón NUNCA rueda por delante de él: en carretera el grupo grande, a rueda,
       // siempre es más rápido que un suelto. Sin este tope, un "descolgado" con compromiso alto se
       // escapaba en FANTASMA (más rápido que el pelotón a tempo) y ganaba la etapa sin que la fuga ni la
@@ -1244,12 +1446,16 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
           const attackers = membersOf(front.g.id)
             .map((x) => x.input.riderId)
             .filter((id) => !joined.includes(id))
+          const narra = front.narrated && km - front.bornKm >= STAGE.tacticReeledNarrateKm
           log.emit(km, front.g.tS, 'intento_fallido', 'attack_reeled', attackers.slice(0, 3), {
             kind: front.kind,
             km: Math.max(1, Math.round(km - front.bornKm)),
             // Solo se cuenta cómo acaba lo que se contó cómo empezaba, y solo si duró algo.
-            narra: front.narrated && km - front.bornKm >= STAGE.tacticReeledNarrateKm ? 1 : 0,
+            narra: narra ? 1 : 0,
           })
+          // …y con ella, quién lo cerró. Solo de lo que se ha narrado: el epitafio de un intento
+          // que no se contó tampoco necesita autor.
+          if (narra) attributeChase(front, km, front.g.tS)
         } else {
           log.emit(
             km,
@@ -1269,6 +1475,17 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
         // El grupo resultante hereda la memoria táctica del que iba delante, salvo el origen: ya no
         // persigue a nadie.
         front.targetId = bridged ? null : front.targetId
+        // …y también la cuenta de quién le persigue (v11). Se toma el MÁXIMO corredor a corredor,
+        // no la suma: los dos movimientos iban por delante del mismo pelotón a la vez, así que el
+        // mismo relevo cuenta una vez, no dos. Se hace DESPUÉS de narrar, para que el epitafio del
+        // ataque reabsorbido hable de quien le cerró a él y no de quien perseguía al otro grupo.
+        for (const [id, w] of back.chaseLedger) {
+          front.chaseLedger.set(id, Math.max(front.chaseLedger.get(id) ?? 0, w))
+        }
+        if (back.peakGapS > front.peakGapS) {
+          front.peakGapS = back.peakGapS
+          front.peakGapKm = back.peakGapKm
+        }
       }
       // 2. ¿Ha cuajado? ¿Le ha cazado el pelotón?
       for (const m of moves) {
@@ -1333,6 +1550,8 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
           if (!m.dayBreak) {
             // Regla 4: **muchos intentos fracasan, sin más**. Un movimiento que nunca llegó a
             // cuajar se narra como el intento que fue; uno que sí cuajó, como un movimiento cazado.
+            const narra =
+              m.prospered || (m.narrated && km - m.bornKm >= STAGE.tacticReeledNarrateKm)
             log.emit(
               km,
               peloton.tS,
@@ -1342,12 +1561,10 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
               {
                 kind: m.kind,
                 km: Math.max(1, Math.round(km - m.bornKm)),
-                narra:
-                  m.prospered || (m.narrated && km - m.bornKm >= STAGE.tacticReeledNarrateKm)
-                    ? 1
-                    : 0,
+                narra: narra ? 1 : 0,
               },
             )
+            if (narra) attributeChase(m, km, peloton.tS)
           }
         }
       }
@@ -1362,6 +1579,11 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
         if (!stillAway) {
           caught = true
           log.emit(km, peloton.tS, 'fuga_cazada', 'breakaway_caught', dayBreakRiders)
+          // «No sé quién hizo el trabajo para reducir la distancia»: aquí se dice. El movimiento
+          // que lleva la marca de fuga del día es el que guarda la cuenta de su persecución (las
+          // fusiones se la traspasan), así que la respuesta sale de su libro y no de la etapa.
+          const dayMove = moves.find((mv) => mv.dayBreak)
+          if (dayMove) attributeChase(dayMove, km, peloton.tS)
         }
       }
       for (let a = moves.length - 1; a >= 0; a--) {
