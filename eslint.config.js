@@ -131,15 +131,15 @@ export default tseslint.config(
         {
           name: 'process',
           message:
-            'packages/engine es puro: nada de process (argv/env/exit). Excepción: src/sim/cli.ts.',
+            'packages/engine es puro: nada de process (argv/env/exit). Excepción: los harness de línea de comandos de src/sim.',
         },
       ],
     },
   },
   {
-    // Excepción acotada: packages/engine/src/sim/cli.ts es un harness de línea de comandos
-    // (`pnpm sim`), no se exporta desde index.ts y por tanto no forma parte de la API del motor.
-    files: ['packages/engine/src/sim/cli.ts'],
+    // Excepción acotada: los harness de línea de comandos de packages/engine/src/sim (`pnpm sim`
+    // y `pnpm sim:tactics`) no se exportan desde index.ts y no forman parte de la API del motor.
+    files: ['packages/engine/src/sim/cli.ts', 'packages/engine/src/sim/tacticsCli.ts'],
     rules: {
       'no-restricted-globals': 'off',
     },

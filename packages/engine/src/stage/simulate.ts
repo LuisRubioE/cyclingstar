@@ -9,11 +9,12 @@ import { normal, type Rng } from '../random.js'
 import { ENGINE_VERSION, STAGE } from '../constants.js'
 import { EventLog } from './events.js'
 import { type Group, advanceGroup, createGroup, gapSeconds, percentile75 } from './group.js'
-import { blockCost, blockPerfil, effNow, erosion, tankState } from './physics.js'
+import { blockCost, blockPerfil, effNow, erosion, rhythm, tankState } from './physics.js'
 import { rollHazard } from './hazard.js'
 import { rollCrash } from './crash.js'
 import {
   type FinishTerrain,
+  type FinishType,
   deriveFinishTerrain,
   finishScore,
   finishType,
@@ -21,6 +22,20 @@ import {
   isUphillFinish,
 } from './finish.js'
 import { markingMargin, resolveMarking } from './marcaje.js'
+import {
+  type MoveContext,
+  type MoveKind,
+  type MoveRider,
+  chooseInstigator,
+  followProbability,
+  giveUpLambda,
+  jumpGapSeconds,
+  moveCooperation,
+  pelotonAllows,
+  rankOf,
+  rollMoveAttempt,
+  sustainsJump,
+} from './tactics.js'
 import { sampleProfile, stageLengthKm } from './sample.js'
 import { stageRng } from './rng.js'
 import { simulateTimeTrial } from './timetrial.js'
@@ -35,7 +50,34 @@ import type {
 } from './types.js'
 
 const PELOTON = 'peloton'
-const BREAKAWAY = 'fuga'
+
+/**
+ * Un MOVIMIENTO en carretera: un grupo que se ha ido por delante del pelotón (docs/motor.md §13).
+ * Un ataque logrado ES un grupo nuevo, así que lo único que hace falta añadir a `Group` es la
+ * memoria táctica: de qué clase de intento nació, si el pelotón le ha dado cuerda, si ya ha cuajado
+ * y —si es un puente— a quién iba a buscar.
+ */
+interface Move {
+  g: Group
+  kind: MoveKind
+  /** Grupo del que salió. Un intento prospera cuando abre hueco sobre ÉL, no sobre el pelotón. */
+  sourceId: string
+  bornKm: number
+  /** Reglas 4-5: el pelotón le ha dado cuerda. Si no, lo cierra a `tacticControlCommit`. */
+  allowed: boolean
+  /** Ha superado `tacticBreakGapSeconds`: el intento ha PROSPERADO. */
+  prospered: boolean
+  /** Es la fuga del día (la primera que cuaja dentro de la ventana). */
+  dayBreak: boolean
+  /** ¿Se narró el intento? Si no se contó cómo salió, tampoco se cuenta cómo acabó. */
+  narrated: boolean
+  /** Grupo al que iba a enganchar, si nació como puente (regla 7). */
+  targetId: string | null
+  /** Hasta qué km aguanta el esfuerzo de puente; pasado eso, se acabó (regla 7). */
+  bridgeUntilKm: number | null
+  /** Ritmo al que rueda cuando deja de puentear: el de un grupo que colabora y ya está. */
+  restCommit: number
+}
 
 /** Estado mutable de un corredor durante la simulación. */
 interface RiderSim {
@@ -67,15 +109,6 @@ interface RiderSim {
   /** Segundos cedidos al objetivo marcado sin llegar a soltarse (`gives` de SPEC 6.18). */
   markLossS: number
   incident: Incident | null
-}
-
-/** ¿Es este corredor un candidato a la fuga (SPEC 6.10)? */
-function isBreakawayCandidate(r: StageRider): boolean {
-  return (
-    r.orders.role === 'cazaetapas' ||
-    r.orders.mentality === 'supercombativo' ||
-    r.orders.mentality === 'combativo'
-  )
 }
 
 /** ¿Interesa a este corredor la llegada masiva (SPEC 6.9)? */
@@ -170,6 +203,9 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
   const streams = stageRng(seed)
   // Subflujos nominales creados UNA vez: reutilizarlos preserva la secuencia (SPEC 6.1).
   const rngBreak = streams('breakaway')
+  // Subflujo NOMINAL de la capa táctica (SPEC 6.1): los intentos de movimiento tiran de aquí, así
+  // que añadirlos no altera la secuencia de la fuga, del sprint ni de las caídas.
+  const rngTactics = streams('tactics')
   const rngSprint = streams('sprint')
   const rngHazard = streams('hazard')
   const rngCrash = streams('crash')
@@ -245,7 +281,13 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
     input.riders.map((r) => r.riderId),
     { compromiso: STAGE.commitIdle },
   )
-  let breakaway: Group | null = null
+  // Movimientos por delante del pelotón (docs/motor.md §13). La fuga del día ya no se compone antes
+  // del km 0: EMERGE del primer intento que cuaja, y por delante puede haber a la vez una fuga, un
+  // contraataque y un puente que no llega.
+  const moves: Move[] = []
+  let moveCounter = 0
+  /** Km del último intento salido de cada grupo: la carrera respira entre ataque y ataque. */
+  const lastAttemptKm = new Map<string, number>()
   // Grupos de descolgados: cada uno rueda a su propia velocidad (SPEC 6.3, 6.8).
   const shed: Group[] = []
   let shedCounter = 0
@@ -262,6 +304,12 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
   // que el bruto llegaba a decir "54 descolgados" con el grupo pasando de 76 a 76. Lo narrado es la
   // diferencia entre `frontAtLastNotice` y el tamaño de ahora (docs/motor.md §16).
   let droppedSinceNotice = 0
+  /**
+   * Y los que se han ido HACIA DELANTE en un ataque desde el último aviso. No son una criba: el
+   * grupo también mengua cuando alguien se escapa, y narrar «12 descolgados» porque doce se han
+   * fugado sería contar la carrera al revés.
+   */
+  let escapedSinceNotice = 0
   let frontAtLastNotice = input.riders.length
   // Cuántos avisos de criba se han dado ya en la selección en curso. Sube el listón del siguiente
   // (más kilómetros y una fracción mayor del grupo), que es lo que convierte una criba de 27 km en
@@ -273,61 +321,18 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
   // Último tamaño del grupo de cabeza anunciado, para no repetir el parte de una fuga estable.
   let lastFrontSize = input.riders.length
   let lastFrontReportKm = Number.NEGATIVE_INFINITY
+  /** Km del último intento NARRADO: la crónica cuenta los ataques, no los inventaría. */
+  let lastAttackNoticeKm = Number.NEGATIVE_INFINITY
   let chaseAnnounced = false
   let chaseAbandoned = false
   let consolidated = false
   let caught = false
-  let separated = false
+  /** Los corredores que formaron la fuga del día: mientras alguno siga delante, no está cazada. */
+  let dayBreakRiders: string[] = []
+  let dayBreakFormed = false
 
   const kmAt = (i: number): number => (i + 0.5) * STAGE.dx
 
-  // --- Formación de la fuga (SPEC 6.10) ---------------------------------------------------
-  {
-    const scored = input.riders
-      .filter(isBreakawayCandidate)
-      .map((r) => ({
-        r,
-        score:
-          STAGE.breakawayScoreTac * r.eff0.TAC +
-          STAGE.breakawayScoreLla * r.eff0.LLA +
-          STAGE.breakawayScoreRng * 100 * rngBreak(),
-      }))
-      .sort((a, b) => b.score - a.score)
-    const size = Math.min(
-      scored.length,
-      STAGE.breakawaySizeMin + Math.floor(rngBreak() * STAGE.breakawaySizeRange),
-    )
-    const fugados = scored.slice(0, size).map((s) => s.r.riderId)
-    if (fugados.length >= 2) {
-      for (const id of fugados) sims.get(id)!.groupId = BREAKAWAY
-      peloton = { ...peloton, riderIds: peloton.riderIds.filter((id) => !fugados.includes(id)) }
-      const coop =
-        STAGE.breakawayCommitMin +
-        (STAGE.breakawayCommitMax - STAGE.breakawayCommitMin) * rngBreak()
-      breakaway = createGroup(BREAKAWAY, fugados, {
-        tS: peloton.tS,
-        vActual: peloton.vActual,
-        compromiso: coop,
-      })
-      // La fuga se fragua en los primeros km de ataques, no en la línea de salida (km 0): se fecha en
-      // un punto temprano, variado y determinista, sin pasar del 15% del recorrido en etapas cortas.
-      breakFormedKm = Math.round(
-        Math.min(
-          totalKm * STAGE.breakFormMaxRouteFraction,
-          STAGE.breakFormMinKm + rngBreak() * STAGE.breakFormKmRange,
-        ),
-      )
-      log.emit(breakFormedKm, breakaway.tS, 'fuga_formada', 'breakaway_formed', fugados)
-      // Colaboración de la fuga: con un compromiso alto van a bloque; con uno bajo se miran y no
-      // avanzan. Se narra una vez, para que el journal cuente si la fuga rueda bien o mal avenida.
-      log.emit(breakFormedKm, breakaway.tS, 'colaboracion', 'break_cooperation', fugados, {
-        cooperating: coop >= STAGE.breakCoopThreshold ? 1 : 0,
-      })
-      // La fuga YA se ha nombrado: el parte de cabeza no debe repetirla nada más salir.
-      lastFrontSize = fugados.length
-      frontAtLastNotice = peloton.riderIds.length
-    }
-  }
   // Los sprinters solo cazan si la meta es llana (una llegada masiva que puedan disputar): en un
   // final en alto no persiguen, y la fuga vive o muere en la subida (SPEC 6.9).
   const finalStretch = blocks.slice(Math.max(0, n - STAGE.finalBlocks))
@@ -341,6 +346,39 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
   // así que se nombra en la crónica de la persecución (protagonista del evento sprinters_chase).
   const leadSprinterId =
     [...input.riders].filter(isSprinter).sort((a, b) => b.eff0.SPR - a.eff0.SPR)[0]?.riderId ?? null
+
+  /**
+   * ¿Hay general en juego? En la etapa 1 de una vuelta y en toda carrera de un día, TODOS llegan
+   * con `gcDeficitSeconds` = 0: leído literalmente, el pelotón entero sería el líder y cualquier
+   * movimiento una amenaza mortal. No hay general que defender hasta que hay diferencias.
+   */
+  const hasGcContext = input.riders.some((r) => r.gcDeficitSeconds > 0)
+
+  /** El movimiento más adelantado que sigue teniendo corredores; `null` si no hay nada delante. */
+  const frontMove = (): Move | null => {
+    let best: Move | null = null
+    for (const m of moves) {
+      if (membersOf(m.g.id).length === 0) continue
+      if (best === null || m.g.tS < best.g.tS) best = m
+    }
+    return best
+  }
+
+  /**
+   * Cuerda que el pelotón está dispuesto a dar al grupo de cabeza (SPEC 6.9). Es la de siempre
+   * (`gcControlLeash`) salvo que delante vaya una AMENAZA para la general: entonces el pelotón le
+   * deja recuperar como mucho `gcThreatFraction` de su desventaja, porque más sería regalarle el
+   * liderato. `gcDeficitSeconds` lo rellenaba packages/db en cada corredor y el motor lo ignoraba.
+   */
+  const gcLeash = (): number => {
+    if (!hasGcContext) return STAGE.gcControlLeash
+    const front = frontMove()
+    if (!front) return STAGE.gcControlLeash
+    let worst = Number.POSITIVE_INFINITY
+    for (const m of membersOf(front.g.id)) worst = Math.min(worst, m.input.gcDeficitSeconds)
+    if (!Number.isFinite(worst)) return STAGE.gcControlLeash
+    return Math.min(STAGE.gcControlLeash, STAGE.gcThreatFraction * worst)
+  }
 
   // --- Bucle principal (SPEC 6.16) --------------------------------------------------------
   for (let i = 0; i < n; i++) {
@@ -372,8 +410,11 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
     // de modo que sin fuga el pelotón rodaba TODA la etapa a `commitIdle` (39 minutos de diferencia
     // medidos en una llana de 180 km) y, al capturar, el compromiso quedaba congelado hasta meta.
     if (i % STAGE.decisionEveryBlocks === 0) {
-      const ahead = breakaway !== null && !caught
-      const gap = ahead ? peloton.tS - breakaway!.tS : 0
+      // El grupo de cabeza ya no es «la fuga»: es el movimiento más adelantado de los que haya en
+      // carretera, que puede ser la fuga del día, un contraataque o un puente que se quedó a medias.
+      const front = frontMove()
+      const ahead = front !== null
+      const gap = front ? peloton.tS - front.g.tS : 0
       const kmRestantes = totalKm - km
 
       // --- Telemetría de situación (docs/motor.md §16) -------------------------------------
@@ -387,7 +428,7 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       // ser el pelotón entero durante un instante y el parte de cabeza se dispara luego por partida
       // doble. Delante va la fuga; detrás, el pelotón; y al final, los descolgados.
       const liveGroups = [
-        ...(ahead ? [{ g: breakaway!, rank: 0 }] : []),
+        ...moves.map((m) => ({ g: m.g, rank: 0 })),
         { g: peloton, rank: 1 },
         ...shed.map((g) => ({ g, rank: 2 })),
       ]
@@ -486,8 +527,17 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
         : finishFlat && kmRestantes <= STAGE.finalDriveKm
           ? STAGE.finalDriveCommit
           : STAGE.pelotonTempoCommit
+      // Con la carretera despejada la pregunta de si la caza es viable se hace de cero: haber
+      // claudicado ante la fuga del día no significa regalar el siguiente movimiento.
+      if (moves.length === 0) chaseAbandoned = false
       let target: number = freeRunTarget
-      if (ahead && chasingSprinters && !chaseAbandoned) {
+      // Reglas 4 y 5: mientras haya en carretera un movimiento al que el pelotón NO ha dado cuerda,
+      // el pelotón lo cierra. Es lo que hace que la mayoría de los intentos fracasen —y lo que hace
+      // que hagan falta varios antes de que cuaje la fuga del día— sin necesidad de un dado aparte.
+      const closing = moves.length > 0 && !moves.some((m) => m.allowed)
+      if (closing) {
+        target = Math.max(freeRunTarget, STAGE.tacticControlCommit)
+      } else if (ahead && chasingSprinters && !chaseAbandoned) {
         // Los equipos de los sprinters se ponen a tirar para cazar: se narra una vez, pasada cierta
         // parte del recorrido (antes la fuga tiene su cuerda), si aún no han claudicado.
         if (!chaseAnnounced && km >= totalKm * STAGE.chaseAnnounceFrac) {
@@ -511,7 +561,15 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
         const desiredGap = STAGE.chaseMaxLeashSeconds * frac
         const err = gap - desiredGap
         const cierreNecesario = gap / Math.max(1, kmRestantes - STAGE.chaseCatchTargetKm)
-        if (cierreNecesario > STAGE.chaseFeasibleSecondsPerKm) {
+        // Los sprinters solo claudican ante LA FUGA DEL DÍA y con un boquete de verdad. La fórmula
+        // divide por los km que faltan hasta el punto de captura, así que cerca de meta declara
+        // inviable cualquier cosa: sin estas dos condiciones, cada ataque tardío de 15 s sentaba a
+        // los trenes y le regalaba la etapa. Antes no se notaba porque no había ataques tardíos.
+        const conceded =
+          front?.dayBreak === true &&
+          gap >= STAGE.chaseNeverConcedeSeconds &&
+          cierreNecesario > STAGE.chaseFeasibleSecondsPerKm
+        if (conceded) {
           chaseAbandoned = true
           log.emit(km, peloton.tS, 'caza_abandonada', 'sprinters_give_up', [])
         } else {
@@ -520,17 +578,25 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       } else if (ahead) {
         // Control de la general: en el llano el pelotón rueda a tempo para limitar el boquete (no
         // capturar); pero en cuanto empieza a subir, los favoritos atacan a tope y la subida
-        // decide (SPEC 6.9). Boquete deseado constante fuera de la subida.
-        const err = gap - STAGE.gcControlLeash
+        // decide (SPEC 6.9). Boquete deseado constante fuera de la subida. Y si delante va una
+        // AMENAZA para la general (`gcDeficitSeconds`, que el motor ignoraba), la cuerda se acorta.
+        const err = gap - gcLeash()
         target = onClimb
           ? freeRunTarget
           : Math.min(1, Math.max(0.1, STAGE.chaseHoldCommit + STAGE.chaseGain * err))
+      }
+      // En los últimos km de una etapa de meta llana los trenes toman la carretera y el pelotón
+      // vuela: el controlador de boquete NO puede dejarlo rodar por debajo de eso. Sin este suelo,
+      // un ataque tardío de 20 s hacía que el lazo cerrado pidiera 0,72 —menos que el 0,85 del
+      // tirón final— y el pelotón AFLOJABA por tener a alguien delante, regalando la etapa.
+      if (finishFlat && kmRestantes <= STAGE.finalDriveKm && !chaseAbandoned) {
+        target = Math.max(target, STAGE.finalDriveCommit)
       }
       peloton = {
         ...peloton,
         compromiso: peloton.compromiso + (target - peloton.compromiso) * STAGE.commitHysteresis,
       }
-      if (!consolidated && breakaway && !caught) {
+      if (!consolidated && dayBreakFormed && !caught) {
         if (peloton.compromiso < STAGE.breakawayCommitThreshold) {
           lowCommitKm += STAGE.decisionEveryBlocks * STAGE.dx
           if (lowCommitKm >= STAGE.breakawayConsolidateKm) {
@@ -540,7 +606,7 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
               peloton.tS,
               'fuga_consolidada',
               'peloton_concedes',
-              breakaway.riderIds,
+              dayBreakRiders,
             )
           }
         } else {
@@ -587,7 +653,12 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
      * juntos, que es como nacen los grupetos— y solo si no hay ninguno abre grupo propio. Sin esto
      * la montaña terminaba con decenas de grupos de UN corredor (docs/motor.md §3-bis-e).
      */
-    const dropOut = (m: RiderSim, group: Group, delayS = 0): void => {
+    const dropOut = (
+      m: RiderSim,
+      group: Group,
+      delayS = 0,
+      commit: number = STAGE.shedCommit,
+    ): void => {
       const tS = group.tS + delayS
       const near = shed.find(
         (sg) => Math.abs(sg.tS - tS) <= STAGE.grupetoJoinGapSeconds && membersOf(sg.id).length > 0,
@@ -601,11 +672,7 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       const gid = `shed-${shedCounter}`
       m.groupId = gid
       shed.push(
-        createGroup(gid, [m.input.riderId], {
-          tS,
-          vActual: group.vActual,
-          compromiso: STAGE.shedCommit,
-        }),
+        createGroup(gid, [m.input.riderId], { tS, vActual: group.vActual, compromiso: commit }),
       )
     }
 
@@ -668,12 +735,46 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       return dropped
     }
 
+    /**
+     * Regla 8 (docs/motor.md §13): **es normal que un corredor agotado se descuelgue en los últimos
+     * km**, en montaña y también en llano. Salvo motivación especial **se deja ir**, con el único
+     * cuidado del FUERA DE CONTROL. Hasta ahora solo te descolgabas si no aguantabas el P75: nunca
+     * porque decidieras ahorrar, así que el vaciado agonizaba a rueda hasta la meta.
+     */
+    const administerEffort = (group: Group, members: RiderSim[], inFront: boolean): void => {
+      if (totalKm - km > STAGE.giveUpKm) return
+      for (const m of members) {
+        const lambda = giveUpLambda(
+          {
+            role: m.input.orders.role,
+            mentality: m.input.orders.mentality,
+            energyFraction: m.energy0 > 0 ? Math.max(0, m.energy / m.energy0) : 0,
+            inFrontGroup: inFront,
+          },
+          totalKm - km,
+        )
+        if (lambda <= 0) continue
+        if (!rollHazard(rngTactics, lambda)) continue
+        // El cuidado del fuera de control: solo administra si lo que va a ceder de aquí a meta cabe
+        // dentro del corte. La cuenta es la de la propia ley de velocidad —ritmo(c) es lineal en el
+        // compromiso—, así que el retraso relativo se conoce sin simular nada.
+        const slower = rhythm(group.compromiso) / rhythm(STAGE.giveUpCommit) - 1
+        const remainingS = ((totalKm - km) / Math.max(1, group.vActual)) * 3600
+        if (slower * remainingS > STAGE.giveUpMaxLossFraction * group.tS) continue
+        dropOut(m, group, 0, STAGE.giveUpCommit)
+        log.emit(km, group.tS, 'abandona_ritmo', 'rider_sits_up', [m.input.riderId], {
+          toGo: Math.round(totalKm - km),
+        })
+      }
+    }
+
     const climbFrac = raceThisClimb ? STAGE.climbPaceFraction : STAGE.climbTempoFraction
     const pelFrac = onClimb ? climbFrac : STAGE.pelotonPaceFraction
-    const brkFrac = onClimb ? climbFrac : (breakaway?.coop ?? STAGE.climbPaceFraction)
+    const moveFrac = (m: Move): number => (onClimb ? climbFrac : m.g.coop)
 
+    administerEffort(peloton, membersOf(PELOTON), moves.length === 0)
     const pelotonDropped = shatter(peloton, membersOf(PELOTON), pelFrac)
-    if (breakaway && !caught) shatter(breakaway, membersOf(BREAKAWAY), brkFrac)
+    for (const m of moves) shatter(m.g, membersOf(m.g.id), moveFrac(m))
     // Cómo cambia el pelotón en el desenlace: la CRIBA que lo parte y el REAGRUPAMIENTO que lo
     // recompone (SPEC 6.15). Ambos son la misma cuenta —de cuántos a cuántos ha pasado el grupo
     // desde el aviso anterior— y por eso comparten estado: así la cadena de avisos no tiene huecos
@@ -687,7 +788,7 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       // bruto (`droppedSinceNotice`) la crónica decía «54 riders slip off the back» y acto seguido
       // «about 76 left in front» cuando el aviso anterior ya decía 76: no había caído nadie: los
       // mismos corredores se soltaban en la rampa y volvían en el repecho siguiente.
-      const lost = frontAtLastNotice - front.length
+      const lost = frontAtLastNotice - front.length - escapedSinceNotice
       const rejoined = front.length - frontAtLastNotice
       // Progresión: una criba larga se cuenta en POCAS frases que enseñen cómo va cayendo el grupo,
       // no en un parte cada 3 km. Cada aviso ya dado sube el listón del siguiente —más kilómetros y
@@ -713,6 +814,10 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
         const driver = (ranking.find((x) => x.id !== lastSplitDriverId) ?? ranking[0])?.id
         log.emit(km, peloton.tS, 'corte', 'peloton_split', driver ? [driver] : [], {
           dropped: lost,
+          // Los que se fueron HACIA DELANTE en un ataque desde el aviso anterior. El grupo también
+          // mengua cuando alguien se escapa, y contarlos como descolgados sería narrar la carrera
+          // al revés: `dropped + escapados` es siempre la diferencia entre `before` y `remaining`.
+          escapados: escapedSinceNotice,
           remaining: front.length,
           before: frontAtLastNotice,
           // Descuelgues brutos contados por el motor en el tramo: la goma se rompió tantas veces,
@@ -723,11 +828,12 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
           phase: splitPhase,
           // Si la fuga sigue por delante, este grupo NO va en cabeza: es el que persigue. Decir
           // "N left in front" con una fuga en carretera era sencillamente falso.
-          chasing: breakaway && !caught ? 1 : 0,
+          chasing: moves.length > 0 ? 1 : 0,
         })
         lastFrontNoticeKm = km
         frontAtLastNotice = front.length
         droppedSinceNotice = 0
+        escapedSinceNotice = 0
         lastSplitDriverId = driver ?? null
         splitPhase += 1
       } else if (
@@ -744,11 +850,12 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
           joined: rejoined,
           remaining: front.length,
           before: frontAtLastNotice,
-          chasing: breakaway && !caught ? 1 : 0,
+          chasing: moves.length > 0 ? 1 : 0,
         })
         lastFrontNoticeKm = km
         frontAtLastNotice = front.length
         droppedSinceNotice = 0
+        escapedSinceNotice = 0
         // El grupo vuelve a estar entero: la criba anterior se ha cerrado y la próxima empieza de
         // cero, tanto en el throttle como en quién puede volver a ser el protagonista.
         splitPhase = 0
@@ -758,13 +865,219 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       // Fuera del desenlace el pelotón se rompe y se recompone sin consecuencias: lo que se soltó
       // en un puerto de tempo no se arrastra a la cuenta de la criba que sí decide la etapa.
       droppedSinceNotice = 0
+      escapedSinceNotice = 0
       frontAtLastNotice = membersOf(PELOTON).length
       splitPhase = 0
       lastSplitDriverId = null
     }
 
+    // --- Capa táctica: EL INTENTO DE MOVIMIENTO (docs/motor.md §13) -----------------------
+    // Una sola pieza para las siete primeras reglas: alguien lo intenta, 0..N le siguen, algunos no
+    // llegan, colaboran o no, y la carretera decide. Un ataque logrado ES un grupo nuevo, así que
+    // aquí no hay física nueva: se crea el grupo con su reloj y el boquete se integra como siempre.
+    const kmToGo = totalKm - km
+    const racingNow = [...sims.values()].filter((s) => s.finishTs === null).length
+
+    /**
+     * Throttle COMÚN de todo lo que se narra de un ataque —el intento, el que cuaja, el que cazan—:
+     * la crónica cuenta la historia de los movimientos, no su inventario. Devuelve si toca frase y,
+     * si toca, apunta el kilómetro.
+     */
+    const claimAttackNotice = (gapKm: number): boolean => {
+      if (km - lastAttackNoticeKm < gapKm) return false
+      lastAttackNoticeKm = km
+      return true
+    }
+
+    const asMoveRider = (m: RiderSim, type: FinishType): MoveRider => ({
+      riderId: m.input.riderId,
+      role: m.input.orders.role,
+      mentality: m.input.orders.mentality,
+      perfil: riderPerfil(m, block),
+      finishScore: finishScore(riderEff(m), type),
+      energyFraction: m.energy0 > 0 ? Math.max(0, m.energy / m.energy0) : 0,
+      matches: m.matches,
+      tac: m.input.eff0.TAC,
+      spr: m.input.eff0.SPR,
+      gcDeficitSeconds: m.input.gcDeficitSeconds,
+    })
+
+    /** Un intento de movimiento desde `source`. Puede no salir, salir y fracasar, o salir y cuajar. */
+    const attemptFrom = (source: Group, kind: MoveKind, target: Group | null): void => {
+      if (kmToGo <= STAGE.tacticNoAttackKm) return
+      if (moves.length >= STAGE.tacticMaxMoves) return
+      const last = lastAttemptKm.get(source.id)
+      if (last != null && km - last < STAGE.tacticAttemptCooldownKm) return
+      const members = membersOf(source.id)
+      if (members.length < 2) return
+      const ctx: MoveContext = {
+        kind,
+        kmToGo,
+        totalKm,
+        groupSize: members.length,
+        fieldSize: racingNow,
+        onClimb,
+        tension: source.tension,
+        hasGcContext,
+      }
+      if (!rollMoveAttempt(rngTactics, ctx)) return
+      lastAttemptKm.set(source.id, km)
+      const type = finishType(finishTerrain, members.length)
+      const pool = members.map((m) => asMoveRider(m, type))
+      const instigator = chooseInstigator(pool, ctx, rngTactics)
+      if (instigator === null) return
+      // Regla 2: **algunos van atentos y saltan detrás**, y regla 3: **muchos de los que lo intentan
+      // no lo consiguen**. Los que no sostienen se quedan donde estaban; no es un fallo del modelo,
+      // es la mitad de por qué un ataque no prospera.
+      const jumpers: MoveRider[] = []
+      let stranded = 0
+      for (const r of pool) {
+        if (rngTactics() >= followProbability(r, instigator, ctx)) continue
+        if (sustainsJump(r, instigator, rngTactics)) jumpers.push(r)
+        else stranded += 1
+      }
+      const party = [instigator, ...jumpers]
+      const names = party.slice(0, 3).map((r) => r.riderId)
+      // …y la otra mitad de la regla 2: si salta medio grupo, esto no es un ataque, es el grupo
+      // entero estirándose. No nace ningún grupo: el intento se ha diluido.
+      // TELEMETRÍA frente a NARRATIVA (docs/motor.md §16): el motor emite TODOS los intentos —son
+      // dato, y el banco de la capa táctica los cuenta— pero marca cuáles merecen una frase. Una
+      // etapa tiene una docena de intentos y la crónica no puede ser una lista de doce ataques
+      // fallidos: se cuenta el primero, los que espacian, los numerosos y los del desenlace.
+      const narrate =
+        party.length >= STAGE.tacticAttemptNarrateRiders
+          ? claimAttackNotice(0)
+          : claimAttackNotice(
+              kmToGo <= STAGE.gapReportFinalKm
+                ? STAGE.tacticAttemptNarrateFinalKmGap
+                : STAGE.tacticAttemptNarrateKmGap,
+            )
+      if (party.length > members.length * STAGE.tacticFollowFractionMax) {
+        log.emit(km, source.tS, 'intento', 'attack_swarm', names, {
+          kind,
+          saltan: party.length,
+          grupo: members.length,
+          toGo: Math.round(kmToGo),
+          narra: narrate ? 1 : 0,
+        })
+        return
+      }
+      // El acelerón abre un boquete de golpe (SPEC 6.4: un ataque es una ACELERACIÓN) y cuesta un
+      // cerillo a cada uno (SPEC 6.6). A partir de aquí manda la carretera.
+      const gap = jumpGapSeconds(rngTactics)
+      const finishes = pool.map((r) => r.finishScore)
+      const meanRank =
+        party.reduce((acc, r) => acc + rankOf(r.finishScore, finishes), 0) / party.length
+      const coop = moveCooperation(party.length, meanRank, source.tension, rngBreak)
+      moveCounter += 1
+      const gid = `mov-${moveCounter}`
+      const ids = party.map((r) => r.riderId)
+      for (const r of party) {
+        const s = sims.get(r.riderId)
+        if (!s) continue
+        s.groupId = gid
+        s.matches = Math.max(0, s.matches - 1)
+        // Lanzar el ataque cuesta un cerillo entero; saltar a la rueda del que ataca cuesta menos
+        // —se va al rebufo— y por eso seguir es más barato que irse, como en carretera (SPEC 6.6).
+        const cost =
+          r.riderId === instigator.riderId
+            ? STAGE.tacticAttackCost
+            : STAGE.tacticAttackCost * STAGE.tacticFollowCostFactor
+        s.energy = Math.max(0, s.energy - cost)
+        s.work += cost
+        s.climbBoostBlocks = STAGE.matchBonusBlocks
+      }
+      source.riderIds = source.riderIds.filter((id) => !ids.includes(id))
+      if (source.id === PELOTON) escapedSinceNotice += ids.length
+      const g = createGroup(gid, ids, {
+        tS: source.tS - gap,
+        vActual: source.vActual,
+        // Un puente va a tope: por eso a veces no llega y se queda en tierra de nadie (regla 7).
+        compromiso: kind === 'puente' ? STAGE.tacticBridgeCommit : coop,
+      })
+      // Reglas 4 y 5: el pelotón decide si da cuerda. Los ataques que salen de un grupo YA escapado
+      // no pasan por esa aduana: allí no hay pelotón que cierre.
+      const allowed = source.id !== PELOTON || pelotonAllows(party, ctx, rngTactics)
+      moves.push({
+        g,
+        kind,
+        sourceId: source.id,
+        bornKm: km,
+        allowed,
+        prospered: false,
+        dayBreak: false,
+        narrated: narrate,
+        targetId: target?.id ?? null,
+        bridgeUntilKm: kind === 'puente' ? km + STAGE.tacticBridgeKm : null,
+        restCommit: coop,
+      })
+      log.emit(km, g.tS, 'intento', 'attack_go', names, {
+        kind,
+        saltan: party.length,
+        tierra: stranded,
+        cuerda: allowed ? 1 : 0,
+        grupo: members.length,
+        toGo: Math.round(kmToGo),
+        narra: narrate ? 1 : 0,
+      })
+    }
+
+    // ¿Qué se intenta desde el pelotón en este bloque? Uno solo, el que toca por contexto.
+    {
+      // Mientras el pelotón cierra un movimiento al que no ha dado cuerda va en fila india y nadie
+      // salta: los intentos se encadenan, no se solapan. Es también lo que da a la carrera su
+      // respiración —ataque, caza, tregua, ataque— en vez de un muro de intentos simultáneos.
+      const closingNow = moves.length > 0 && !moves.some((m) => m.allowed)
+      const head = frontMove()
+      const headGap = head ? peloton.tS - head.g.tS : 0
+      const bridgeable =
+        head !== null &&
+        headGap >= STAGE.bridgeGapMinSeconds &&
+        headGap <= STAGE.bridgeGapMaxSeconds
+      const finalPhase = (onClimb && raceThisClimb) || kmToGo <= STAGE.lateAttackKm
+      const kind: MoveKind = finalPhase
+        ? 'ataque_final'
+        : !dayBreakFormed
+          ? 'fuga'
+          : bridgeable
+            ? 'puente'
+            : 'contraataque'
+      if (!closingNow) attemptFrom(peloton, kind, bridgeable && head ? head.g : null)
+    }
+    // Y desde cada grupo escapado: se sigue atacando dentro de la fuga (regla 6) y se puentea al
+    // grupo de delante si lo hay a tiro (regla 7).
+    for (const m of [...moves]) {
+      const size = membersOf(m.g.id).length
+      if (size < STAGE.tacticInsideAttackMinRiders) continue
+      let ahead: Move | null = null
+      for (const o of moves) {
+        if (o === m || o.g.tS >= m.g.tS) continue
+        if (ahead === null || o.g.tS > ahead.g.tS) ahead = o
+      }
+      const gapAhead = ahead ? m.g.tS - ahead.g.tS : 0
+      const bridgeable =
+        ahead !== null &&
+        gapAhead >= STAGE.bridgeGapMinSeconds &&
+        gapAhead <= STAGE.bridgeGapMaxSeconds
+      if (bridgeable && ahead) {
+        attemptFrom(m.g, 'puente', ahead.g)
+        continue
+      }
+      // Regla 6: dentro de una fuga se sigue atacando, pero NO en mitad de la etapa —ahí se
+      // colabora para que la fuga viva—. Los ataques llegan cuando la meta está cerca y ya está
+      // claro que la fuga se juega el día, o cuando la TENSIÓN ha roto el pacto (SPEC 6.10).
+      const tense = m.g.tension >= STAGE.breakawayTensionThreshold
+      if (kmToGo > STAGE.tacticInsideAttackKm && !tense) continue
+      attemptFrom(m.g, 'ataque_grupo', null)
+    }
+
     peloton = advance(peloton, membersOf(PELOTON), pelFrac)
-    if (breakaway && !caught) breakaway = advance(breakaway, membersOf(BREAKAWAY), brkFrac)
+    for (const m of moves) {
+      m.g = advance(m.g, membersOf(m.g.id), moveFrac(m))
+      // La TENSIÓN del grupo escapado (SPEC 6.10): se acumula km a km y, pasado el umbral, dispara
+      // los ataques internos y recorta la cooperación. Existía en `Group` y nadie la tocaba nunca.
+      m.g.tension += STAGE.breakawayTensionPerKm * STAGE.dx
+    }
     for (let g = 0; g < shed.length; g++) {
       const adv = advance(shed[g]!, membersOf(shed[g]!.id), 1)
       // Un descolgado del pelotón NUNCA rueda por delante de él: en carretera el grupo grande, a rueda,
@@ -829,35 +1142,181 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       }
     }
     crashCheck(peloton)
-    if (breakaway && !caught) crashCheck(breakaway)
+    for (const m of moves) crashCheck(m.g)
 
-    // Captura de la fuga por el pelotón (SPEC 6.3).
-    if (breakaway && !caught) {
-      if (gapSeconds(peloton, breakaway) > STAGE.captureGapSeconds) separated = true
-      if (separated && gapSeconds(peloton, breakaway) <= STAGE.captureGapSeconds) {
-        caught = true
-        for (const m of membersOf(BREAKAWAY)) m.groupId = PELOTON
-        peloton = {
-          ...peloton,
-          riderIds: [...peloton.riderIds, ...breakaway.riderIds],
-          tS: Math.min(peloton.tS, breakaway.tS),
+    // Regla 7: **y a veces no se llega**. Nadie sostiene el esfuerzo de un puente indefinidamente;
+    // pasados sus kilómetros, el que saltó baja el ritmo al de un grupo cualquiera y se queda en
+    // TIERRA DE NADIE —ni con los de delante ni con los de atrás—, que es un resultado legítimo.
+    for (const m of moves) {
+      if (m.bridgeUntilKm === null || km <= m.bridgeUntilKm) continue
+      m.bridgeUntilKm = null
+      m.targetId = null
+      m.g.compromiso = m.restCommit
+      log.emit(km, m.g.tS, 'puente_fallido', 'bridge_failed', m.g.riderIds.slice(0, 3), {
+        toGo: Math.round(totalKm - km),
+        narra: m.narrated ? 1 : 0,
+      })
+    }
+
+    // --- Resolución de los movimientos (docs/motor.md §13, SPEC 6.3) ----------------------
+    // Todo lo que le puede pasar a un grupo escapado: que otro le alcance (un puente que llega),
+    // que el pelotón le coma, y —si aguanta— que deje de ser un intento y pase a ser la fuga del
+    // día. No hay lógica nueva de boquetes: son los relojes de `group.ts` juntándose o separándose.
+    if (moves.length > 0) {
+      moves.sort((a, b) => a.g.tS - b.g.tS)
+      // 1. Fusiones entre movimientos: el puente que engancha, el contraataque que da caza.
+      for (let a = 0; a < moves.length - 1; a++) {
+        const front = moves[a]!
+        const back = moves[a + 1]!
+        const backMembers = membersOf(back.g.id)
+        if (backMembers.length === 0 || membersOf(front.g.id).length === 0) continue
+        if (back.g.tS - front.g.tS > STAGE.captureGapSeconds) continue
+        const joined = backMembers.map((m) => m.input.riderId)
+        for (const m of backMembers) m.groupId = front.g.id
+        front.g.riderIds = [...front.g.riderIds, ...joined]
+        front.g.tension = (front.g.tension + back.g.tension) / 2
+        back.g.riderIds = []
+        if (back.dayBreak) {
+          front.dayBreak = true
+          back.dayBreak = false
         }
-        log.emit(km, peloton.tS, 'fuga_cazada', 'breakaway_caught', breakaway.riderIds)
-        breakaway = null
+        // Tres cosas distintas se ven igual desde fuera —dos relojes que se juntan— y hay que
+        // contarlas distinto: el puente que ENGANCHA, el ataque que el propio grupo REABSORBE, y
+        // dos grupos que simplemente se encuentran en carretera.
+        const bridged = back.kind === 'puente' && back.targetId === front.g.id
+        const reeled = front.sourceId === back.g.id && !front.prospered
+        if (reeled) {
+          const attackers = membersOf(front.g.id)
+            .map((x) => x.input.riderId)
+            .filter((id) => !joined.includes(id))
+          log.emit(km, front.g.tS, 'intento_fallido', 'attack_reeled', attackers.slice(0, 3), {
+            kind: front.kind,
+            km: Math.max(1, Math.round(km - front.bornKm)),
+            // Solo se cuenta cómo acaba lo que se contó cómo empezaba, y solo si duró algo.
+            narra: front.narrated && km - front.bornKm >= STAGE.tacticReeledNarrateKm ? 1 : 0,
+          })
+        } else {
+          log.emit(
+            km,
+            front.g.tS,
+            'enlace',
+            bridged ? 'bridge_made' : 'move_merge',
+            joined.slice(0, 3),
+            {
+              size: membersOf(front.g.id).length,
+              toGo: Math.round(totalKm - km),
+              // Dos relojes que se juntan son noticia si de verdad cambia la carrera: el puente que
+              // engancha siempre, y una fusión solo si trae compañía.
+              narra: bridged || joined.length >= STAGE.tacticMergeNarrateRiders ? 1 : 0,
+            },
+          )
+        }
+        // El grupo resultante hereda la memoria táctica del que iba delante, salvo el origen: ya no
+        // persigue a nadie.
+        front.targetId = bridged ? null : front.targetId
+      }
+      // 2. ¿Ha cuajado? ¿Le ha cazado el pelotón?
+      for (const m of moves) {
+        const mem = membersOf(m.g.id)
+        if (mem.length === 0) continue
+        const gap = peloton.tS - m.g.tS
+        // Un intento prospera cuando abre hueco sobre el grupo DEL QUE SALIÓ. Medirlo contra el
+        // pelotón daría por cuajado cualquier ataque dentro de una fuga que ya lleva dos minutos.
+        const source = moves.find((o) => o.g.id === m.sourceId)
+        const sourceTs = source && membersOf(source.g.id).length > 0 ? source.g.tS : peloton.tS
+        const gapOverSource = sourceTs - m.g.tS
+        const ids = mem.map((x) => x.input.riderId)
+        if (!m.prospered && gapOverSource >= STAGE.tacticBreakGapSeconds) {
+          m.prospered = true
+          // Regla 5: la fuga del día es **el primero que prospera tras varios fracasos**. Solo
+          // dentro de la ventana: un movimiento que cuaja a falta de 40 km es un ataque tardío, y
+          // la crónica no puede llamarlo igual.
+          if (
+            !dayBreakFormed &&
+            m.kind !== 'puente' &&
+            m.sourceId === PELOTON &&
+            km <= totalKm * STAGE.tacticBreakWindowFraction
+          ) {
+            dayBreakFormed = true
+            m.dayBreak = true
+            dayBreakRiders = ids
+            breakFormedKm = Math.round(km)
+            log.emit(km, m.g.tS, 'fuga_formada', 'breakaway_formed', ids)
+            // Con un compromiso alto la fuga va a bloque; con uno bajo se miran y no avanzan.
+            log.emit(km, m.g.tS, 'colaboracion', 'break_cooperation', ids, {
+              cooperating: m.g.compromiso >= STAGE.breakCoopThreshold ? 1 : 0,
+            })
+            lastFrontSize = ids.length
+            frontAtLastNotice = membersOf(PELOTON).length
+          } else {
+            log.emit(km, m.g.tS, 'ataque', 'attack_sticks', ids.slice(0, 3), {
+              kind: m.kind,
+              size: ids.length,
+              gapS: Math.round(gap),
+              toGo: Math.round(totalKm - km),
+              narra: claimAttackNotice(STAGE.tacticStickNarrateKmGap) ? 1 : 0,
+            })
+          }
+        }
+        if (gap <= STAGE.captureGapSeconds) {
+          for (const x of mem) x.groupId = PELOTON
+          peloton = {
+            ...peloton,
+            riderIds: [...peloton.riderIds, ...ids],
+            tS: Math.min(peloton.tS, m.g.tS),
+          }
+          m.g.riderIds = []
+          if (!m.dayBreak) {
+            // Regla 4: **muchos intentos fracasan, sin más**. Un movimiento que nunca llegó a
+            // cuajar se narra como el intento que fue; uno que sí cuajó, como un movimiento cazado.
+            log.emit(
+              km,
+              peloton.tS,
+              m.prospered ? 'movimiento_cazado' : 'intento_fallido',
+              m.prospered ? 'move_caught' : 'attack_reeled',
+              ids.slice(0, 3),
+              {
+                kind: m.kind,
+                km: Math.max(1, Math.round(km - m.bornKm)),
+                narra:
+                  m.prospered || (m.narrated && km - m.bornKm >= STAGE.tacticReeledNarrateKm)
+                    ? 1
+                    : 0,
+              },
+            )
+          }
+        }
+      }
+      // 3. La fuga del día está CAZADA cuando ninguno de los que la formaron sigue por delante. No
+      //    basta con que se disuelva el grupo original: si uno de ellos se ha ido en un ataque
+      //    posterior, la fuga sigue viva en carretera y decir lo contrario sería falso.
+      if (dayBreakFormed && !caught) {
+        const stillAway = dayBreakRiders.some((id) => {
+          const s = sims.get(id)
+          return s != null && s.finishTs === null && moves.some((mv) => mv.g.id === s.groupId)
+        })
+        if (!stillAway) {
+          caught = true
+          log.emit(km, peloton.tS, 'fuga_cazada', 'breakaway_caught', dayBreakRiders)
+        }
+      }
+      for (let a = moves.length - 1; a >= 0; a--) {
+        if (membersOf(moves[a]!.g.id).length === 0) moves.splice(a, 1)
       }
     }
 
     // Disputa de banners (SPEC 6.11).
     if (block.banner === 'meta_volante') {
       // Meta volante: solo el grupo de cabeza esprinta por los puntos.
-      const frontIsBreak = breakaway !== null && !caught && breakaway.tS <= peloton.tS
-      const front = frontIsBreak ? membersOf(BREAKAWAY) : membersOf(PELOTON)
-      const frontTs = frontIsBreak ? breakaway!.tS : peloton.tS
+      const head = frontMove()
+      const frontIsMove = head !== null && head.g.tS <= peloton.tS
+      const front = frontIsMove ? membersOf(head.g.id) : membersOf(PELOTON)
+      const frontTs = frontIsMove ? head.g.tS : peloton.tS
       disputeBanner(front, block, km, frontTs, log, rngSprint)
     } else if (block.banner === 'cima') {
       // Cima: puntúan los primeros en coronar en TODO el pelotón, no solo el grupo de cabeza, así
       // la clasificación de la montaña reparte entre varios escaladores (SPEC 6.11).
-      const groups = [peloton, ...(breakaway && !caught ? [breakaway] : []), ...shed]
+      const groups = [peloton, ...moves.map((m) => m.g), ...shed]
         .map((g) => ({ tS: g.tS, members: membersOf(g.id) }))
         .filter((g) => g.members.length > 0)
         .sort((a, b) => a.tS - b.tS)
@@ -866,8 +1325,9 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
   }
 
   // --- Meta y resultados (SPEC 6.12, 6.15) -----------------------------------------------
-  const allGroups: Group[] = [peloton, ...(breakaway && !caught ? [breakaway] : []), ...shed]
-  finishStage(sims, allGroups, log, rngSprint, totalKm, finishTerrain, leadOutFor)
+  const allGroups: Group[] = [peloton, ...moves.map((m) => m.g), ...shed]
+  const moveGroupIds = new Set(moves.map((m) => m.g.id))
+  finishStage(sims, allGroups, log, rngSprint, totalKm, finishTerrain, leadOutFor, moveGroupIds)
 
   const results = buildResults(sims)
   const workUnits = new Map<string, number>()
@@ -1016,6 +1476,8 @@ function finishStage(
   totalKm: number,
   terrain: FinishTerrain,
   leadOutFor: Map<string, string[]>,
+  /** Ids de los grupos que llegan ESCAPADOS por delante del pelotón (docs/motor.md §13). */
+  moveGroupIds: Set<string>,
 ): void {
   const withMembers = groups
     .map((group) => ({ group, members: [...sims.values()].filter((s) => s.groupId === group.id) }))
@@ -1113,6 +1575,11 @@ function finishStage(
         won,
         margin,
         field,
+        // ¿Se ganó DESDE LA CARRETERA? El ganador llegó en un grupo escapado, no con el pelotón.
+        // Es el estadístico que mide de verdad «gana la fuga»: el anterior —estar en la lista del
+        // evento `fuga_formada`— dejaba fuera al que llegó a la fuga por un puente y al que se fue
+        // en un ataque posterior, que con capa táctica son la mitad de los casos.
+        fuga: moveGroupIds.has(group.id) ? 1 : 0,
         // Qué clase de final resolvió la etapa: dato de telemetría (docs/motor.md §12 y §16). La
         // crónica no lo necesita todavía, pero es lo que permite comprobar desde fuera que un
         // repecho de 200 m no ha convertido una llana en llegada de escaladores.

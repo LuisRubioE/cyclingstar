@@ -63,8 +63,22 @@
  * para contar una criba larga en pocas frases de progresión. (3) Nace `peloton_regroup`: el
  * reagrupamiento existía en el modelo y no se narraba nunca, así que la crónica decía «51 delante»
  * y llegaban 100 juntos sin explicación.
+ *
+ * v9 (Cambio 2 de docs/motor.md §13, LA CAPA TÁCTICA): existen los ataques. La fuga del día deja de
+ * componerse antes del km 0 con un casting fijo y EMERGE del primer intento de movimiento al que el
+ * pelotón da cuerda; por delante puede haber a la vez una fuga, un contraataque y un puente que se
+ * queda en tierra de nadie. Las siete primeras reglas del dueño son UNA sola pieza parametrizada
+ * por contexto (`stage/tactics.ts`): alguien lo intenta con una λ que sube si el grupo va junto y
+ * si la meta está cerca, 0..N le siguen, algunos no llegan, colaboran peor cuantos más son, y la
+ * carretera decide. Se activan de golpe `lambdaBreakawayAttack`, `lambdaCounterAttack`,
+ * `lambdaBridge`, `bridgeGapMin/MaxSeconds`, `lambdaLateAttack`, `lateAttackKm`,
+ * `lambdaClimbAttack`, `bigGroupThreshold`, `breakawayTension*` (y con ellas `Group.tension`, que
+ * se calculaba y no leía nadie), `breakawaySkipSprThreshold`, `breakawaySkipEnergyFraction`,
+ * `gcThreatFraction` y `StageRider.gcDeficitSeconds`. Aparte van la regla 8 —el agotado sin nada
+ * que jugarse se deja ir en los últimos km, cuidando el fuera de control— y la regla 9 —en el final
+ * en alto los fuertes se atacan y se vigilan, con `marcaje.ts` resolviendo la respuesta—.
  */
-export const ENGINE_VERSION = 8 as const
+export const ENGINE_VERSION = 9 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -505,7 +519,7 @@ export const STAGE = {
   // coste por km también ha bajado: el umbral tiene que seguir al gasto o la reina deja de erosionar.
   // Queda justo por encima del gasto de la llana tranquila (28,8% frente a un umbral de 29,2% con
   // RES 55): es la atadura que impide subirlo más, porque la llana NO debe erosionar.
-  erosionThresholdBase: 0.07,
+  erosionThresholdBase: 0.105,
   erosionThresholdResScale: 0.4,
   erosionExponent: 1.2,
   // Techo estructural de la erosión (docs/motor.md §VI.1: «≤ 0,92 — jamás 1,000»). En 1,000 todo el
@@ -530,24 +544,23 @@ export const STAGE = {
   bonkFactor: 0.55,
 
   // 6.8 — Intensidades de riesgo (eventos/km). Ajustables desde docs/balance.md.
-  // PENDIENTE DE IMPLEMENTAR (SPEC 6.8): parámetro definido pero sin efecto en la simulación.
-  // Ataques de salida: la fuga del día se compone hoy de una sola tacada por puntuación
-  // (breakawayScore*), no integrando esta intensidad km a km.
+  // Ataques de salida (docs/motor.md §13, regla 5): la intensidad con que alguien lo intenta en la
+  // primera parte de la etapa. Es alta a propósito —el principio de una carrera es una sucesión de
+  // ataques— y lo que hace que la fuga tarde en cuajar no es que se intente poco, sino que el
+  // pelotón casi nunca da cuerda (`tacticAllow*`) y que un movimiento sin ventaja se caza solo.
   lambdaBreakawayAttack: 1.2,
-  // PENDIENTE DE IMPLEMENTAR (SPEC 6.8): parámetro definido pero sin efecto en la simulación.
-  // Contraataques: el motor no genera hoy ningún grupo perseguidor tras un ataque.
+  // Contraataques (regla 1 con una fuga ya en carretera): mucho más raros, porque el pelotón ya
+  // tiene una fuga que controlar y quien se va detrás rara vez encuentra compañía.
   lambdaCounterAttack: 0.02,
-  // PENDIENTE DE IMPLEMENTAR (SPEC 6.8): parámetro definido pero sin efecto en la simulación.
-  // Puentes a la fuga: nadie salta del pelotón a la fuga; una vez formada, su composición no cambia.
+  // Puentes a la fuga (regla 7): saltar del pelotón —o de un grupo rezagado— para enganchar al de
+  // delante. A veces no se llega: quedarse en tierra de nadie es un resultado legítimo.
   lambdaBridge: 0.08,
-  // PENDIENTE DE IMPLEMENTAR (SPEC 6.8): parámetro definido pero sin efecto en la simulación.
-  // Ventana de boquete en la que un puente sería viable (va con `lambdaBridge`).
+  // Ventana de boquete en la que un puente es viable (va con `lambdaBridge`). Por debajo del mínimo
+  // no hace falta puentear (se llega rodando) y por encima del máximo ya no se llega.
   bridgeGapMinSeconds: 30,
-  // PENDIENTE DE IMPLEMENTAR (SPEC 6.8): parámetro definido pero sin efecto en la simulación.
   bridgeGapMaxSeconds: 150,
-  // PENDIENTE DE IMPLEMENTAR (SPEC 6.8): parámetro definido pero sin efecto en la simulación.
-  // Ataques en la subida: hoy la subida solo DESCUELGA (lambdaDropBase); nadie ataca hacia delante,
-  // así que ningún favorito se va en solitario y las diferencias salen solo del descuelgue.
+  // Ataques dentro de un grupo (reglas 6 y 9): en la fuga y en el puerto decisivo. Es la intensidad
+  // base; la modulan la cohesión, la cercanía de la meta y la tensión del grupo.
   lambdaClimbAttack: 0.1,
   lambdaDropBase: 0.9,
   // Descuelgue: λ = lambdaDropBase · max(0, P75 - perfil) / denom. El denominador traduce el
@@ -570,16 +583,16 @@ export const STAGE = {
   // que cazar. El extremo superior BAJA ahora a 0.635: al abaratar el coste por km (clásica larga)
   // la fuga se desgasta menos y aguantaba el 15,0% de las llanas, muy por encima del 2-8%. Sigue
   // siendo la perilla más sensible del llano: 0.62 -> 0,8%, 0.635 -> 5,8%, 0.65 -> 10,0%.
-  breakawayCommitMin: 0.52,
-  breakawayCommitMax: 0.635,
+  breakawayCommitMin: 0.58,
+  breakawayCommitMax: 0.72,
   // Control del boquete (leash): los sprinters dejan a la fuga una ventaja máxima que se cierra
   // linealmente hasta el punto de captura (finish - 12 km). El pelotón regula en lazo cerrado:
   // tempo de mantenimiento + ganancia proporcional al exceso sobre el boquete deseado.
   // Sube de 150 a 175: con el controlador liberado la caza se cerraba a 29 km de meta (objetivo
   // 8-25); con 175 la captura mediana vuelve a los 23-24 km.
-  chaseMaxLeashSeconds: 175,
+  chaseMaxLeashSeconds: 195,
   chaseHoldCommit: 0.62,
-  chaseGain: 0.006,
+  chaseGain: 0.016,
   // Control de la general en etapas sin llegada masiva: el pelotón limita el boquete a este
   // tempo (no captura); la subida final decide. Calibra el % de fugas que ganan en montaña.
   // Subió de 265 a 342: con el pelotón regulando SIEMPRE (antes solo mientras había fuga) el boquete
@@ -589,7 +602,7 @@ export const STAGE = {
   // y el estadístico tiene mucha varianza: medido con 120 / 500 semillas, 335 -> 22% / 26%,
   // 342 -> 26% / 31%, 350 -> 29% / 35%, 365 -> 37% / 47%. Con 350 el rango 25-45% se cumple en las
   // DOS campañas (la de CI y la de `pnpm sim`), que es la condición que hay que exigir.
-  gcControlLeash: 350,
+  gcControlLeash: 450,
   // Compromiso de los favoritos en la subida decisiva: tempo duro que descuelga poco a poco
   // (no máximo, o el grupo llegaría junto). Calibra la caza de la fuga y el estiramiento.
   climbRaceCommit: 0.85,
@@ -606,17 +619,139 @@ export const STAGE = {
   // PENDIENTE DE IMPLEMENTAR (SPEC 6.10): parámetro definido pero sin efecto en la simulación.
   // ...ni debería irse quien llega a la etapa con menos del 40% del tanque.
   breakawaySkipEnergyFraction: 0.4,
-  // PENDIENTE DE IMPLEMENTAR (SPEC 6.10): parámetro definido pero sin efecto en la simulación.
-  // Tensión de la fuga: la fuga debería ir tensándose km a km (quien no releva, quien se guarda)
-  // hasta romperse. Hoy `Group.tension` existe pero nadie la acumula ni la lee; la cooperación
-  // (`coop`) se fija una vez al formarse la fuga y ya no cambia en toda la etapa.
+  // Tensión de la fuga (SPEC 6.10, docs/motor.md §13 regla 6): la fuga se va tensando km a km
+  // —quién releva, quién se guarda para el sprint de los cinco— hasta que se rompe. `Group.tension`
+  // existía, se calculaba, se promediaba al fusionar grupos y NADIE la leía. Ahora la acumula cada
+  // grupo escapado y, pasado el umbral, multiplica la intensidad de los ataques internos y recorta
+  // la cooperación: es la mecánica por la que una fuga numerosa acaba estallando sola.
   breakawayTensionPerKm: 0.4,
-  // PENDIENTE DE IMPLEMENTAR (SPEC 6.10): parámetro definido pero sin efecto en la simulación.
-  breakawayTensionThreshold: 6,
-  // PENDIENTE DE IMPLEMENTAR (SPEC 6.10): parámetro definido pero sin efecto en la simulación.
+  breakawayTensionThreshold: 25,
   breakawayTensionCoopFactor: 0.7,
-  // PENDIENTE DE IMPLEMENTAR (SPEC 6.10): parámetro definido pero sin efecto en la simulación.
   breakawayTensionAttackFactor: 3,
+
+  // --- CAPA TÁCTICA (docs/motor.md §13) --------------------------------------------------
+  // El intento de movimiento, una sola mecánica parametrizada por contexto. Vive en
+  // `stage/tactics.ts`; aquí solo sus perillas. Todas se calibran en docs/balance.md, «v9».
+
+  // Regla 1, «sube si el grupo va junto»: suelo del factor de cohesión. Con el pelotón entero el
+  // factor vale 1; con la carrera ya rota no se apaga del todo, pero baja a este suelo.
+  tacticCohesionFloor: 0.35,
+  // Regla 1, «sube cuanto más cerca está la meta»: cuánto multiplica λ al final de la etapa. Es
+  // cuadrático en la fracción recorrida, así que el último cuarto pesa mucho más que el primero.
+  tacticProximityGain: 1.5,
+  // Nadie ataca con el depósito por debajo de esto: atacar es un esfuerzo supraumbral (SPEC 6.6).
+  tacticMinEnergyFraction: 0.25,
+  // Regla 6: cuánto más ataca el PEOR rematador de su grupo. Con 1,5 el peor tiene 2,5 veces las
+  // ganas del mejor: en una fuga de cinco, el que sabe que pierde el sprint es el que se va antes.
+  tacticWorstFinisherWeight: 1.5,
+  // Regla 9: en el final en alto atacan LOS FUERTES. El más flojo del grupo conserva este suelo de
+  // ganas (algo puede intentar), el más fuerte, el 100%.
+  tacticStrongFloor: 0.2,
+  // …y el que se juega la general ataca más que el que ya la ha perdido (SPEC 6.9).
+  tacticGcStakeWeight: 0.8,
+  // Regla 2, quién SALTA detrás: base + atención (TAC) + rol + mentalidad + piernas, acotado.
+  // Con un pelotón de 40 y p ≈ 0,15 saltan 5-6; con TAC alto y combativos, muchos más. Puede salir
+  // 0 y puede salir el grupo entero, que es justo lo que pide la regla.
+  tacticFollowBase: 0.04,
+  tacticFollowTacWeight: 0.22,
+  tacticFollowRoleWeight: 0.3,
+  tacticFollowMentalityWeight: 0.15,
+  // La energía RESTA: (E/E0 − 1) es negativo, así que el vaciado deja de saltar a las ruedas.
+  tacticFollowEnergyWeight: 0.3,
+  // En el final, el rival cercano en la general no deja marchar al que ataca (regla 9).
+  tacticFollowGcWeight: 0.45,
+  tacticFollowMin: 0,
+  tacticFollowMax: 0.85,
+  // Si salta MÁS de esta fracción del grupo, el ataque no separa nada: es el grupo entero
+  // estirándose. Es la segunda mitad de la regla 2 («y si son 40, no colaboran lo suficiente»),
+  // resuelta antes de crear un grupo que no lo es.
+  tacticFollowFractionMax: 0.5,
+  // Boquete instantáneo (s) que abre el acelerón: mín + amplitud uniforme. Un ataque es una
+  // ACELERACIÓN, no un cambio de tempo; a partir de aquí manda la carretera y el boquete se integra
+  // bloque a bloque como cualquier otro. Sin esto un «ataque» tardaba 20 km en abrir 5 s.
+  tacticJumpGapSeconds: 5,
+  tacticJumpGapRange: 7,
+  // Dentro de los últimos km ya no se simulan movimientos: eso ES el sprint, y lo resuelve el
+  // modelo de final (§12), que para eso ordena el grupo por una mezcla de atributos. Sin este
+  // corte, un «ataque» a 1 km de meta nacía con su boquete instantáneo y ganaba la etapa por 15 s
+  // sin que a nadie le diera tiempo a responder: el sprint se decidía por un dado, no por piernas.
+  tacticNoAttackKm: 3,
+  // Cooperación del movimiento: cuantos más van, peor se entienden…
+  tacticCoopSizePenalty: 0.02,
+  // …y los que peor rematan colaboran más, porque su única opción es que la fuga llegue.
+  tacticCoopHungerWeight: 0.08,
+  tacticCoopMin: 0.35,
+  // Reglas 4 y 5 — que el pelotón dé cuerda: probabilidad base, cuánto sube con la etapa recorrida
+  // (el pelotón se cansa de cerrar huecos), cuánto la baja que el grupo sea numeroso, y el castigo
+  // si ahí va una amenaza para la general. Es LA perilla que decide cuántos intentos hacen falta
+  // antes de que cuaje la fuga del día.
+  tacticAllowBase: 0.35,
+  tacticAllowKmGain: 0.5,
+  tacticAllowSizePenalty: 0.05,
+  tacticAllowGcPenalty: 0.75,
+  tacticAllowMax: 0.7,
+  // Ritmo al que el pelotón cierra un movimiento al que NO da cuerda. Por encima del tempo de
+  // carretera (0,55): cerrar un hueco cuesta, y por eso el pelotón no puede hacerlo indefinidamente.
+  tacticControlCommit: 0.65,
+  // Lo que cuesta LANZAR un ataque, en unidades de tanque. Menos que el cerillo que salva un
+  // descuelgue en un puerto (`matchCost` = 5), porque aquello es un esfuerzo sostenido y esto un
+  // acelerón: el ataque abre su boquete y luego se rueda. El número importa mucho más de lo que
+  // parece —una etapa tiene una docena de intentos y cada corredor entra en uno de media—: con 5
+  // la capa táctica se comía 3,7 puntos de depósito en una llana y disparaba las pájaras de los
+  // monumentos del 1% al 18% (docs/balance.md, v9).
+  tacticAttackCost: 1.8,
+  // Lo que paga el que SALTA a la rueda del que ataca, como fracción de lo anterior. Seguir es más
+  // barato que irse: va al rebufo del ataque.
+  tacticFollowCostFactor: 0.5,
+  // Km sin un intento nuevo desde el mismo grupo tras el anterior: la carrera respira entre ataque
+  // y ataque, y sin esto un λ de 1,2/km produciría un muro de intentos.
+  tacticAttemptCooldownKm: 3.5,
+  // Dentro de un grupo escapado no se ataca antes de esto (km a meta): en mitad de la etapa se
+  // colabora para que la fuga viva. Salvo que la TENSIÓN haya roto el pacto (SPEC 6.10).
+  tacticInsideAttackKm: 18,
+  // …y hace falta ser al menos tres: en un dúo no hay ataque que valga, hay relevo o no lo hay.
+  tacticInsideAttackMinRiders: 3,
+  // NARRACIÓN de los intentos (docs/motor.md §16): el motor los emite TODOS —son telemetría— pero
+  // marca con `narra` cuáles merecen una frase. Sin esto la crónica sería un inventario de doce
+  // ataques fallidos. Se cuentan los espaciados, los numerosos y los del desenlace.
+  tacticAttemptNarrateKmGap: 35,
+  tacticAttemptNarrateFinalKmGap: 10,
+  tacticAttemptNarrateRiders: 4,
+  // El mismo throttle vale para el ataque que CUAJA, con menos distancia: es el desenlace del
+  // intento y la frase que el lector necesita, pero cuatro por etapa siguen siendo demasiadas.
+  tacticStickNarrateKmGap: 6,
+  // Un intento que muere a los dos kilómetros no merece su propia frase de epitafio.
+  tacticReeledNarrateKm: 3,
+  // Dos grupos que se juntan solo son noticia si de verdad se junta gente.
+  tacticMergeNarrateRiders: 3,
+  // Cuántos movimientos vivos por delante del pelotón como mucho. Más de tres grupos en carretera
+  // no es una carrera, es contabilidad.
+  tacticMaxMoves: 3,
+  // Boquete (s) a partir del cual un movimiento deja de ser un intento y es LA FUGA DEL DÍA: se
+  // narra como tal y el pelotón pasa a controlarla con su leash.
+  tacticBreakGapSeconds: 45,
+  // …y solo dentro de esta fracción del recorrido. Un movimiento que cuaja a falta de 40 km no es
+  // «la fuga del día», es un ataque tardío, y la crónica no debe llamarlo igual.
+  tacticBreakWindowFraction: 0.55,
+  // Compromiso del que salta a por el grupo de delante (regla 7): va a tope, por eso a veces no
+  // llega y se queda en tierra de nadie.
+  tacticBridgeCommit: 0.92,
+  // …y cuántos km aguanta ese esfuerzo. Nadie rueda a tumba abierta veinte kilómetros: pasado esto,
+  // el que saltó baja al ritmo de un grupo normal. Con 8 km a 0,92 se cierran ~80 s, así que un
+  // puente a un boquete corto llega y uno a dos minutos se queda a medias — que es la regla 7.
+  tacticBridgeKm: 8,
+
+  // Regla 8 — administrar el esfuerzo. El agotado sin nada que jugarse se deja ir en los últimos
+  // km en vez de agonizar al ritmo del grupo. Hoy solo te descolgabas si no aguantabas el P75.
+  giveUpKm: 25,
+  giveUpEnergyFraction: 0.22,
+  lambdaGiveUp: 0.35,
+  // Ritmo del que administra: rueda a lo suyo, por debajo del descolgado que pelea (`shedCommit`).
+  giveUpCommit: 0.5,
+  // Y el cuidado del FUERA DE CONTROL, que es la única razón por la que no se deja ir del todo:
+  // solo administra si lo que puede perder de aquí a meta cabe en esta fracción del tiempo de
+  // carrera. El corte real va del 8% en una llana al 18% en la etapa reina (docs/motor.md §VI.3).
+  giveUpMaxLossFraction: 0.05,
 
   // 6.9 — El pelotón como controlador (decisiones cada 10 bloques, con histéresis).
   // El ritmo del pelotón lo marca su cuarto delantero de punteros, no todo el bloque (6.4).
@@ -631,12 +766,18 @@ export const STAGE = {
   climbRaceKmToGo: 30,
   decisionEveryBlocks: 10,
   chaseFeasibleSecondsPerKm: 8,
+  // …pero por debajo de este boquete la caza no se da nunca por perdida. La fórmula de viabilidad
+  // divide por los km que faltan hasta el punto de captura, así que cerca de meta declara inviable
+  // cualquier cosa: sin este suelo, un ataque de 15 s a 14 km de meta hacía sentarse a los trenes.
+  chaseNeverConcedeSeconds: 10,
   chaseCatchTargetKm: 12,
   commitHysteresis: 0.4,
   commitIdle: 0.1,
-  // PENDIENTE DE IMPLEMENTAR (SPEC 6.9): parámetro definido pero sin efecto en la simulación.
-  // Amenaza para la general: el pelotón debería endurecer la caza si en la fuga va alguien
-  // peligroso en la clasificación (`StageRider.gcDeficitSeconds`, que hoy tampoco se lee).
+  // Amenaza para la general (SPEC 6.9): en un movimiento va alguien PELIGROSO si su desventaja en
+  // la general (`StageRider.gcDeficitSeconds`, que packages/db rellenaba y el motor ignoraba) es
+  // menor que esta fracción de la cuerda máxima que el pelotón está dispuesto a dar. Con 0,6 y una
+  // cuerda de 175 s, quien esté a menos de 105 s del líder no se va de rositas: si le dejan la
+  // cuerda entera, se pone líder.
   gcThreatFraction: 0.6,
   // Ritmo del pelotón cuando NO hay nada que cazar por delante (sin fuga, o ya cazada). Antes esto
   // no existía: el controlador vivía dentro de `if (breakaway && !caught)` y el pelotón se quedaba
@@ -760,15 +901,16 @@ export const STAGE = {
   // "Día" del corredor (SPEC 6.7): cada corredor rinde algo mejor o peor cada etapa (piernas del día),
   // escalando su nivel efectivo. Aporta variación —no siempre gana el mismo— sin volverlo azar puro.
   dayFormSd: 0.035,
-  // PENDIENTE DE IMPLEMENTAR (SPEC 6.12): parámetro definido pero sin efecto en la simulación.
-  // Ataques tardíos: en los últimos km nadie ataca; el final se resuelve siempre por el sprint
-  // dentro de cada grupo ya formado.
+  // Ataques tardíos (docs/motor.md §13): dentro de la ventana final la intensidad del intento sube
+  // a este λ, sea cual sea el terreno. Es el ataque de los últimos kilómetros —el que se juega la
+  // etapa a una carta— y por eso casi siempre fracasa: el grupo va lanzado y lo caza.
   lambdaLateAttack: 0.5,
-  // PENDIENTE DE IMPLEMENTAR (SPEC 6.12): parámetro definido pero sin efecto en la simulación.
-  // Km a meta en que se abre la ventana de ataques tardíos (va con `lambdaLateAttack`).
-  lateAttackKm: 3,
-  // PENDIENTE DE IMPLEMENTAR (SPEC 6.12): parámetro definido pero sin efecto en la simulación.
-  // Tamaño a partir del cual un grupo se considera "gordo" (un ataque tardío tiene menos éxito).
+  // Km a meta en que se abre esa ventana. Sube de 3 a 12: con 3 km el ataque tardío llegaba después
+  // de que los trenes hubieran tomado la carretera y no separaba nunca a nadie; los ataques que
+  // deciden una etapa (y los de una fuga que se juega el día, regla 6) se lanzan entre 15 y 5 km.
+  lateAttackKm: 12,
+  // Tamaño a partir del cual un grupo es «gordo»: un intento dentro de él tiene mucho menos éxito
+  // porque hay demasiadas ruedas atentas. Modula la probabilidad de que el pelotón dé cuerda.
   // Ojo: el sprint masivo NO usa este umbral, usa `bunchSprintMinRiders`.
   bigGroupThreshold: 25,
   // Definición de "final en alto" del SPEC 6.12: últimos 3 km con pendiente media >= 5%. Estuvo

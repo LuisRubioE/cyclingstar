@@ -95,7 +95,9 @@ export function analyzeVariety(scenario: Scenario, seeds: string[]): VarietyStat
   for (const seed of seeds) {
     const out = simulateStage(scenario.input, seed)
     const tries = out.events.filter((e) => e.tipo === 'intento')
-    const ok = tries.filter((e) => Number(e.datos?.prospera ?? 0) === 1)
+    // Un intento PROSPERA cuando el grupo que nace supera el boquete de consagración: o se convierte
+    // en la fuga del día, o es un ataque que se sostiene.
+    const ok = out.events.filter((e) => e.tipo === 'ataque' || e.tipo === 'fuga_formada')
     attempts.push(tries.length)
     total += tries.length
     prospered += ok.length

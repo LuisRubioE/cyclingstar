@@ -11,8 +11,10 @@ export interface FlatStats {
   breakawayWinPct: number
   /** % que gana el mejor sprinter del campo (objetivo 30-45%). */
   bestSprinterWinPct: number
-  /** % de etapas en que la fuga es cazada. */
+  /** % de las etapas CON fuga en que la fuga es cazada. */
   capturePct: number
+  /** % de etapas en que llega a formarse una fuga del día. */
+  breakFormedPct: number
   /** Km a meta de la captura, mediana (objetivo entre 25 y 8). */
   medianCatchKmToFinish: number
 }
@@ -29,6 +31,7 @@ export function analyzeFlat(scenario: Scenario, seeds: string[]): FlatStats {
   const totalKm = scenario.input.profile.segments.reduce((s, seg) => s + seg.km, 0)
   let breakawayWins = 0
   let bestSprinterWins = 0
+  let breaks = 0
   const catchKmToFinish: number[] = []
 
   for (const seed of seeds) {
@@ -36,8 +39,13 @@ export function analyzeFlat(scenario: Scenario, seeds: string[]): FlatStats {
     const formed = out.events.find((e) => e.tipo === 'fuga_formada')
     const caught = out.events.find((e) => e.tipo === 'fuga_cazada')
     const winner = out.results[0]?.riderId
-    if (winner && formed?.protagonistas.includes(winner) && !caught) breakawayWins += 1
+    // «Gana la fuga» = la etapa se gana DESDE LA CARRETERA: el ganador llega en un grupo escapado.
+    // Antes se medía como «el ganador estaba en la lista del evento fuga_formada y no hubo
+    // captura», que con capa táctica deja fuera al que llegó a la fuga por un puente y al que se
+    // fue en un ataque posterior — la mitad de los casos (docs/balance.md, v9).
+    if (out.events.find((e) => e.tipo === 'meta')?.datos?.fuga === 1) breakawayWins += 1
     if (winner === scenario.bestSprinterId) bestSprinterWins += 1
+    if (formed) breaks += 1
     if (caught) catchKmToFinish.push(totalKm - caught.km)
   }
 
@@ -46,7 +54,11 @@ export function analyzeFlat(scenario: Scenario, seeds: string[]): FlatStats {
     runs,
     breakawayWinPct: (100 * breakawayWins) / runs,
     bestSprinterWinPct: (100 * bestSprinterWins) / runs,
-    capturePct: (100 * catchKmToFinish.length) / runs,
+    // Sobre las etapas EN QUE LLEGÓ A HABER FUGA: la fuga del día ya no está garantizada —a veces
+    // el pelotón no da cuerda a nadie— y mezclar los dos casos hacía que «cuando hay fuga, ¿se
+    // caza?» dependiera de con qué frecuencia se forma, que es otra pregunta.
+    capturePct: breaks === 0 ? 0 : (100 * catchKmToFinish.length) / breaks,
+    breakFormedPct: (100 * breaks) / runs,
     medianCatchKmToFinish: median(catchKmToFinish),
   }
 }
@@ -66,10 +78,7 @@ export function analyzeMountain(scenario: Scenario, seeds: string[]): MountainSt
 
   for (const seed of seeds) {
     const out = simulateStage(scenario.input, seed)
-    const formed = out.events.find((e) => e.tipo === 'fuga_formada')
-    const caught = out.events.find((e) => e.tipo === 'fuga_cazada')
-    const winner = out.results[0]?.riderId
-    if (winner && formed?.protagonistas.includes(winner) && !caught) breakawayWins += 1
+    if (out.events.find((e) => e.tipo === 'meta')?.datos?.fuga === 1) breakawayWins += 1
     if (out.results.length >= 10) {
       top10Gaps.push(out.results[9]!.tiempoS - out.results[0]!.tiempoS)
     }

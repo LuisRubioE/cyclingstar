@@ -456,8 +456,10 @@ describe('modelo de final (docs/motor.md §12)', () => {
     )
 
   it('el evento de meta dice qué clase de final resolvió la etapa', () => {
+    // `matches: 0` apaga la capa táctica en este banco (sin cerillo no hay ataque, SPEC 6.6): lo
+    // que se mide aquí es la DERIVACIÓN del tipo de final, no si alguien se va por delante.
     const field = Array.from({ length: 30 }, (_, i) =>
-      rider(`p-${i}`, { eff0: eff(58, { SPR: 60 + (i % 9), MON: 60 + (i % 7) }) }),
+      rider(`p-${i}`, { eff0: eff(58, { SPR: 60 + (i % 9), MON: 60 + (i % 7) }), matches: 0 }),
     )
     const llana = simulateStage(
       { profile: { segments: [{ km: 120, tipo: 'llano' }] }, riders: field },
@@ -487,8 +489,9 @@ describe('modelo de final (docs/motor.md §12)', () => {
     () => {
       // El campo solo se distingue en PAV (45-83). Antes el ganador salía con un PAV mediano de
       // 63 sobre ese rango —el centro exacto, es decir, azar puro— porque el final era a puro SPR.
+      // Sin cerillos: aquí se mide el REMATE por PAV, no la capa táctica (docs/motor.md §13).
       const riders = Array.from({ length: 30 }, (_, i) =>
-        rider(`r-${i}`, { eff0: eff(60, { PAV: 45 + i }), fragility: 1 }),
+        rider(`r-${i}`, { eff0: eff(60, { PAV: 45 + i }), fragility: 1, matches: 0 }),
       )
       const input: StageInput = {
         profile: {
@@ -574,7 +577,9 @@ describe('modelo de final (docs/motor.md §12)', () => {
             orders: orders(contest),
           }),
         ]
-        for (let i = 0; i < 20; i++) riders.push(rider(`pel-${i}`, { eff0: eff(52), matches: 2 }))
+        // Sin cerillos en todo el campo: si alguien se fuga, la volante se disputa en la fuga y el
+        // banco deja de medir lo que quiere medir (la erosión en el remate del banner).
+        for (let i = 0; i < 20; i++) riders.push(rider(`pel-${i}`, { eff0: eff(52), matches: 0 }))
         return {
           profile: {
             segments: [{ km: 100, tipo: 'llano' }],
@@ -609,8 +614,11 @@ describe('modelo de final (docs/motor.md §12)', () => {
 describe('el tiempo de meta es el del GRUPO, no un artefacto del redondeo (v8)', () => {
   /** Etapa llana larga con un campo grande: el pelotón entero llega junto salvo caídas. */
   function bunchInput(): StageInput {
+    // Sin cerillos: lo que se vigila es el REDONDEO del reloj de grupo, así que el pelotón tiene
+    // que llegar junto. Con capa táctica (docs/motor.md §13) un ataque parte el campo en grupos
+    // legítimos con tiempos distintos, que es otra cosa y se prueba aparte.
     const riders = Array.from({ length: 100 }, (_, i) =>
-      rider(`p-${i}`, { eff0: eff(58, { SPR: 52 + (i % 17), LLA: 60 }), fragility: 1 }),
+      rider(`p-${i}`, { eff0: eff(58, { SPR: 52 + (i % 17), LLA: 60 }), fragility: 1, matches: 0 }),
     )
     return { profile: { segments: [{ km: 140, tipo: 'llano' }] }, riders }
   }
@@ -737,7 +745,9 @@ describe('telemetría de la crónica (docs/motor.md §16)', () => {
         expect(before).toBeGreaterThan(0)
         // Y lo narrado es EXACTAMENTE lo que el grupo ha perdido: ni el bruto inflado por los que
         // se sueltan y vuelven, ni una cifra que se queda corta.
-        expect(dropped).toBe(before - remaining)
+        // Desde la capa táctica (§13) el grupo también mengua porque alguien se ESCAPA: la cuenta
+        // cierra con los dos términos, y los escapados no se narran como descolgados.
+        expect(dropped + Number(e.datos!.escapados ?? 0)).toBe(before - remaining)
       }
       // Y la cadena no tiene huecos: lo que quedaba en un aviso es de lo que parte el siguiente.
       // Este es EL seguro contra el "de 81 a 3 sin explicación": para llegar a 3 desde 81 hay que
@@ -798,7 +808,11 @@ describe('telemetría de la crónica (docs/motor.md §16)', () => {
 
   it('narrar más no es narrar todo: la crónica no se convierte en un muro de texto', () => {
     for (const out of runs) {
-      expect(out.events.length).toBeLessThanOrEqual(40)
+      // Se cuentan las líneas NARRABLES: desde la capa táctica (docs/motor.md §13) el motor emite
+      // todos los intentos como telemetría y marca con `narra` cuáles merecen una frase, porque
+      // una etapa tiene una docena de intentos y la crónica no puede ser su inventario.
+      const narrated = out.events.filter((e) => e.datos?.narra !== 0)
+      expect(narrated.length).toBeLessThanOrEqual(40)
     }
   })
 
@@ -879,9 +893,11 @@ describe('una criba sostenida no genera diez frases clónicas (v8)', () => {
           const remaining = Number(e.datos!.remaining)
           // Un corte narra siempre una pérdida REAL: nunca "N descolgados" con el grupo igual o mayor.
           expect(before).toBeGreaterThan(remaining)
-          expect(Number(e.datos!.dropped)).toBe(before - remaining)
-          // El bruto sigue viajando como telemetría, y nunca es menor que la pérdida neta.
-          expect(Number(e.datos!.shed)).toBeGreaterThanOrEqual(before - remaining)
+          const escapados = Number(e.datos!.escapados ?? 0)
+          expect(Number(e.datos!.dropped)).toBe(before - remaining - escapados)
+          // El bruto sigue viajando como telemetría, y nunca es menor que la pérdida neta por
+          // descuelgue (los que se han ido por delante en un ataque no son un descuelgue).
+          expect(Number(e.datos!.shed)).toBeGreaterThanOrEqual(before - remaining - escapados)
         }
       }
     },
