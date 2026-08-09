@@ -8,6 +8,7 @@
  */
 import { campaignSeeds, flatScenario, queenScenario, queenThirdWeekScenario } from './scenarios.js'
 import {
+  analyzeAttribution,
   analyzeChase,
   analyzeGiveUp,
   analyzeSharjah,
@@ -85,6 +86,19 @@ function main(): void {
   ] as const) {
     console.log(
       `  ${name}  fuerza ${st.force.toFixed(2)} (${st.trains} trenes) · sin sprint masivo ${st.noBunchPct.toFixed(1)}% (mediana ${st.medianNoBunchPerWeek} de 5) · gana un escapado ${st.breakawayWinPct.toFixed(1)}%`,
+    )
+  }
+
+  // 7) La atribución del trabajo (docs/balance.md, v11): las dos preguntas del dueño —quién tira
+  // del pelotón y quién hizo el trabajo para cerrar— salen las veces justas, ni una ni veinte.
+  console.log(`\n7) La atribución del trabajo — ${runs} semillas por escenario\n`)
+  for (const sc of [flat, queen]) {
+    const at = analyzeAttribution(sc, campaignSeeds(sc.name, runs))
+    console.log(
+      `  ${sc.name.padEnd(16)} quién tira: mediana ${at.pullsMedian} por etapa (min ${at.pullsMin}, max ${at.pullsMax}) · en la ventana 3-6 el ${at.pullsInWindowPct.toFixed(1)}% · ${at.pullNamesMedian} nombres por parte`,
+    )
+    console.log(
+      `  ${''.padEnd(16)} quién cerró: ${at.catchesPerStage.toFixed(2)} capturas narradas por etapa, con autor el ${at.attributedPct.toFixed(1)}% · reparto en la fuga en el ${at.breakSharePct.toFixed(1)}% de las etapas`,
     )
   }
 

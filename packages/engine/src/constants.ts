@@ -87,8 +87,20 @@
  * la carrera, cómo de bueno es su rematador y con cuántos compañeros cuenta. Antes bastaba UN
  * corredor con SPR ≥ 70 para que el pelotón entero cazara a tope, igual en una continental que en
  * una gran vuelta; ahora una carrera modesta deja llegar a la fuga y una gran vuelta no.
+ *
+ * v11 (ATRIBUCIÓN DEL TRABAJO, docs/balance.md «v11»): el motor sabía QUIÉN daba la cara al viento
+ * en cada bloque de 100 m —`relayTurn()` lo decide para cada grupo— y lo tiraba; `advance()` sumaba
+ * un `work` que mezclaba el gasto de ir a rueda con el de relevar y solo servía para el TSS. Ahora
+ * se cuenta aparte el TRABAJO AL FRENTE (solo los bloques en el turno de relevos, y solo lo que se
+ * aprieta por encima del tempo de carretera), separado por grupo y con un libro por movimiento, y
+ * de ahí salen tres eventos: `peloton_pull` (quién tira del pelotón AHORA), `chase_work` (quién
+ * hizo el trabajo para cerrar ESA persecución, y solo si de verdad lo hubo) y `break_share` (quién
+ * se reparte el trabajo dentro de la fuga y cuántos van a rueda). Es un cambio de OBSERVACIÓN: no
+ * toca ninguna ley física ni consume azar, y los resultados de una etapa con una semilla dada son
+ * idénticos a los de la v10 (test `stage/attribution.test.ts`). Sube la versión porque cambia lo
+ * que el motor EMITE, que es contrato con la crónica y con las etapas ya selladas.
  */
-export const ENGINE_VERSION = 10 as const
+export const ENGINE_VERSION = 11 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a

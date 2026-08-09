@@ -444,6 +444,68 @@ export function analyzeUphillFinish(scenario: Scenario, seeds: string[]): Uphill
   }
 }
 
+// --- 7. La atribución del trabajo (v11) ---------------------------------------------------
+
+export interface AttributionStats {
+  runs: number
+  /** Partes de «quién tira del pelotón» por etapa: mediana, extremos y % dentro de la ventana 3-6. */
+  pullsMedian: number
+  pullsMin: number
+  pullsMax: number
+  pullsInWindowPct: number
+  /** Corredores nombrados en cada parte (mediana): tienen que ser 2-3, no doce. */
+  pullNamesMedian: number
+  /** Capturas narradas por etapa y cuántas de ellas se le atribuyen a alguien. */
+  catchesPerStage: number
+  attributedPct: number
+  /** % de etapas que cuentan cómo se reparte el trabajo dentro de la fuga. */
+  breakSharePct: number
+}
+
+/**
+ * El banco de la ATRIBUCIÓN (docs/balance.md, v11): las dos preguntas del dueño —«quién tira del
+ * pelotón» y «quién hizo el trabajo para reducir la distancia»— no son invariantes de balance sino
+ * de CRÓNICA, y lo que hay que medir es que salgan las veces justas: ni una ni veinte.
+ */
+export function analyzeAttribution(scenario: Scenario, seeds: string[]): AttributionStats {
+  const pulls: number[] = []
+  const names: number[] = []
+  let inWindow = 0
+  let catches = 0
+  let attributed = 0
+  let withShare = 0
+  const narrated = (e: { datos?: Record<string, number | string> }): boolean => e.datos?.narra !== 0
+  for (const seed of seeds) {
+    const out = simulateStage(scenario.input, seed)
+    const pull = out.events.filter((e) => e.plantilla === 'peloton_pull')
+    pulls.push(pull.length)
+    if (pull.length >= 3 && pull.length <= 6) inWindow += 1
+    for (const e of pull) names.push(e.protagonistas.length)
+    const caught = out.events.filter(
+      (e) =>
+        narrated(e) &&
+        (e.plantilla === 'breakaway_caught' ||
+          e.plantilla === 'move_caught' ||
+          e.plantilla === 'attack_reeled'),
+    )
+    catches += caught.length
+    attributed += out.events.filter((e) => e.plantilla === 'chase_work').length
+    if (out.events.some((e) => e.plantilla === 'break_share')) withShare += 1
+  }
+  const runs = seeds.length
+  return {
+    runs,
+    pullsMedian: median(pulls),
+    pullsMin: Math.min(...pulls),
+    pullsMax: Math.max(...pulls),
+    pullsInWindowPct: (100 * inWindow) / runs,
+    pullNamesMedian: median(names),
+    catchesPerStage: catches / runs,
+    attributedPct: catches === 0 ? 0 : (100 * attributed) / catches,
+    breakSharePct: (100 * withShare) / runs,
+  }
+}
+
 export interface GiveUpStats {
   runs: number
   /** Corredores que se dejan ir en los últimos km, por etapa (mediana). */
