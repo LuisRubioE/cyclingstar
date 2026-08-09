@@ -169,9 +169,21 @@ export const BANISTER = {
   // M_form = base + scale * formIndex, en [0.92, 1.05].
   mFormBase: 0.92,
   mFormScale: 0.13,
-  // Barra de frescura: clamp(base + slope * TSB, 0, 100).
+  // Barra de frescura: lineal en la zona de entrenamiento y con cola exponencial por debajo.
+  //
+  //   TSB >= knee : base + slope · TSB          (0 → 55, +41 → 100)
+  //   TSB <  knee : kneeValue · e^((TSB-knee)/decay)
+  //
+  // Era `clamp(base + slope·TSB, 0, 100)` a secas, y por eso la barra MORÍA en TSB -50: tocaba el
+  // cero y ahí se quedaba. El rango que produce entrenar va de -40 a +20, pero el que produce
+  // CORRER llega a -80/-100 (medido: dos etapas de montaña seguidas bastan), así que la barra
+  // pasaba días enteros clavada en 0 mientras el ATL bajaba de 154 a 120. El jugador descansaba
+  // cinco días y no veía moverse nada. La cola es continua y derivable en la rodilla
+  // (decay = kneeValue/slope), así que la sensibilidad alrededor de 0 —la que importa para
+  // afinar el pico de forma— no cambia ni un punto: solo deja de haber suelo.
   freshnessBase: 55,
   freshnessSlope: 1.1,
+  freshnessKneeTsb: -20,
 } as const
 
 /**
@@ -328,10 +340,18 @@ export const HEALTH = {
   mSano: 1.0,
   mMolestias: 0.96,
   mEnfermo: 0.9,
-  // p_enfermo_dia = base * fragilidad * exp(max(0, -TSB - tsbOffset) / tsbScale).
+  // p_enfermo_dia = min(illnessMax, base * fragilidad * exp(max(0, -TSB - tsbOffset) / tsbScale)).
+  //
+  // El techo NO estaba, y la exponencial cruzaba 1,0 en TSB -78: por debajo de ahí enfermar dejaba
+  // de ser un riesgo y pasaba a ser una certeza el primer día que el corredor entrenase. Y como el
+  // dado solo se tira los días de ENTRENAMIENTO (quien corre o viaja no pasa por `simulateRiderDay`),
+  // una tanda de carreras iba cargando una mina que estallaba el día del descanso. La forma de la
+  // curva se conserva tal cual en la banda que produce el entrenamiento (-20 a -45, donde el castigo
+  // al sobreentrenamiento estaba calibrado); el techo solo corta la cola que produce COMPETIR.
   illnessBase: 0.002,
   illnessTsbOffset: 22,
   illnessTsbScale: 9,
+  illnessMax: 0.08,
 } as const
 
 /** Moral (SPEC 4.2, 4.4). M_moral = base + scale * MOR/100; regresión diaria a la media. */

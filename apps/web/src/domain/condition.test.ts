@@ -11,7 +11,19 @@ describe('la condición que ve el jugador', () => {
 
   it('la frescura tampoco se sale de la escala con un TSB extremo', () => {
     expect(conditionBars({ gameDay: 1, ctl: 80, tsb: 90 }).freshness).toBe(100)
-    expect(conditionBars({ gameDay: 1, ctl: 80, tsb: -90 }).freshness).toBe(0)
+    const deep = conditionBars({ gameDay: 1, ctl: 80, tsb: -90 }).freshness
+    expect(deep).toBeGreaterThanOrEqual(0)
+    expect(deep).toBeLessThan(10)
+  })
+
+  it('en fatiga profunda la barra sigue distinguiendo un día de otro', () => {
+    // Correr lleva el TSB a -80/-100 y la barra se quedaba clavada en 0 durante días, así que el
+    // jugador descansaba y no veía moverse nada. Aquí se comprueba lo contrario: que baja de forma
+    // estricta, punto a punto, en la banda que produce competir.
+    const at = (tsb: number) => conditionBars({ gameDay: 1, ctl: 80, tsb }).freshness
+    expect(at(-40)).toBeGreaterThan(at(-60))
+    expect(at(-60)).toBeGreaterThan(at(-80))
+    expect(at(-80)).toBeGreaterThan(at(-110))
   })
 
   it('ningún punto del diario produce un valor fuera de 0-100', () => {

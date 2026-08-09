@@ -14,6 +14,7 @@ function candidate(over: Partial<CallupCandidate> & { riderId: string }): Callup
     archetype: 'fondo',
     pointsSeason: 0,
     formStars: 3,
+    freshness: 60,
     desire: false,
     teamTrust: 50,
     young: false,
@@ -100,6 +101,29 @@ describe('engine: IA de convocatorias (SPEC 6.18, Paso 35)', () => {
     const rateWith = selectionRate('target', withDesire, fit, 'equilibrado', 2)
     const rateWithout = selectionRate('target', without, fit, 'equilibrado', 2)
     expect(rateWith).toBeGreaterThan(rateWithout)
+  })
+
+  it('un corredor fundido casi no se convoca, aunque su forma en estrellas mienta', () => {
+    // `formStars` se apoya en `tsbFactor`, que vale 0 para TODO TSB <= -35: un corredor a -35 y uno
+    // a -110 dan las MISMAS estrellas. Con solo esa señal el seleccionador era ciego en toda la
+    // banda que produce competir, y por eso un equipo bot podía encadenarle cuatro días de carrera
+    // al mismo corredor. La frescura sí tiene gradiente ahí abajo, y es lo que se mide aquí: los
+    // dos candidatos llevan las MISMAS estrellas a propósito.
+    const fit = raceVocationFit(['media', 'media'])
+    const fresh = [
+      candidate({ riderId: 'target', formStars: 2, freshness: 95 }),
+      candidate({ riderId: 'b' }),
+      candidate({ riderId: 'c' }),
+      candidate({ riderId: 'd' }),
+    ]
+    const spent = fresh.map((c) => (c.riderId === 'target' ? { ...c, freshness: 4 } : c))
+    const rateFresh = selectionRate('target', fresh, fit, 'equilibrado', 2)
+    const rateSpent = selectionRate('target', spent, fit, 'equilibrado', 2)
+    expect(rateFresh).toBeGreaterThan(rateSpent)
+    // Preferencia FUERTE, no veto: el fundido baja mucho pero el equipo puede alinearlo si no tiene
+    // a nadie más (si no, una plantilla molida dejaría a su equipo sin escuadra mínima).
+    expect(rateFresh / Math.max(rateSpent, 0.001)).toBeGreaterThan(1.5)
+    expect(rateSpent).toBeGreaterThan(0)
   })
 
   it('la filosofía de sprints favorece al velocista', () => {

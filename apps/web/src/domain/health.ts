@@ -43,6 +43,29 @@ export const HEALTH_LOOK: Record<HealthState, HealthLook> = {
   },
 }
 
+/**
+ * Frescura por debajo de la cual "sano" deja de significar "listo para correr".
+ *
+ * Salud y frescura son ejes distintos —sano/enfermo/lesionado por un lado, TSB por otro— y por eso
+ * la insignia decía «Healthy · Fit to race and train» encima de una barra de frescura a cero, que
+ * es exactamente lo contrario de lo que pasaba. La insignia sigue contando la SALUD, que es lo suyo,
+ * pero cuando el corredor está fundido la nota lo dice: es un aviso real, porque el riesgo diario de
+ * enfermar crece con la fatiga acumulada y el jugador no tiene otra forma de verlo venir.
+ */
+export const SPENT_FRESHNESS = 20
+
+/**
+ * La nota de la insignia de salud. Para un corredor sano depende de lo descansado que llegue; para
+ * el resto es la de su estado. `freshness` es privada (solo la ve el dueño): sin ella se devuelve la
+ * nota de siempre, que es lo correcto en la ficha pública.
+ */
+export function healthNote(state: HealthState, freshness: number | null): string {
+  if (state !== 'sano' || freshness == null || freshness >= SPENT_FRESHNESS) {
+    return HEALTH_LOOK[state].note
+  }
+  return 'No injury or illness, but deeply fatigued: racing now means poor legs and a real risk of falling ill.'
+}
+
 /** Estados que dejan al corredor fuera de combate (los que tienen fecha de vuelta). */
 export function isOut(state: HealthState): boolean {
   return state === 'enfermo' || state === 'lesionado'

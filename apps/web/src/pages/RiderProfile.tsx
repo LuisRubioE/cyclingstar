@@ -27,7 +27,7 @@ import { RoleEditor } from '../components/RoleEditor'
 import { StarRating } from '../components/StarRating'
 import { TeamLink } from '../components/TeamLink'
 import { conditionBars, conditionLabel } from '../domain/condition'
-import { HEALTH_LOOK, healthUntilLabel } from '../domain/health'
+import { HEALTH_LOOK, healthNote, healthUntilLabel } from '../domain/health'
 import { palmaresLabel } from '../domain/labels'
 
 /**
@@ -161,7 +161,9 @@ function OwnerCondition({ attributes }: { attributes: Record<Attribute, number> 
         >
           <span className="font-semibold">{HEALTH_LOOK[health.state].label}</span>
           {until && <span className="ml-1 tabular-nums">— {until}</span>}
-          <span className="ml-2 opacity-80">{HEALTH_LOOK[health.state].note}</span>
+          <span className="ml-2 opacity-80">
+            {healthNote(health.state, bars?.freshness ?? null)}
+          </span>
         </div>
       )}
 

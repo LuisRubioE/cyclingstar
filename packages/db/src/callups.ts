@@ -3,6 +3,7 @@ import {
   type CallupCandidate,
   type TeamPhilosophy,
   formStars,
+  freshnessBar,
   raceVocationFit,
   selectSquad,
 } from '@cyclingstar/engine'
@@ -143,6 +144,7 @@ export async function runCallups(
         archetype: r.archetype,
         pointsSeason: Math.round(r.fame * 4), // proxy hasta que existan puntos de temporada (Paso 40)
         formStars: formStars(r.ctl, r.ctl - r.atl),
+        freshness: freshnessBar(r.ctl - r.atl),
         desire: wanted.has(r.id),
         teamTrust: r.teamTrust,
         young: YOUNG_AGE >= 20 - r.birthSeason + season,

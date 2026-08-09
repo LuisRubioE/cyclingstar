@@ -43,13 +43,18 @@ export async function trainWorldDay(
   const currentSeason = seasonPosition(gameDay).season
   const riderRows = await tx.select().from(riders).where(eq(riders.worldId, worldId))
 
-  // Quien está de VIAJE hoy (vuelta de una carrera lejana) no entrena: el viaje le cuesta días de
-  // entrenamiento. Se suma al `skip` (que ya trae a quienes han corrido hoy).
-  const noTrain = new Set(skip)
+  // Quien está de VIAJE hoy (vuelta de una carrera lejana) no ENTRENA —el viaje le cuesta días de
+  // trabajo—, pero sí VIVE el día: el catálogo tiene una sesión `viaje` (TSS 15, sin ganancias) que
+  // estaba definida y sin enchufar. Antes se le metía en el `skip` y se salía por `continue`, de
+  // modo que `applyDailyLoad` no llegaba a ejecutarse nunca: su ATL no bajaba (viajar no descansaba
+  // NADA, el corredor quedaba literalmente congelado) y no se escribía fila en `rider_daily_log`,
+  // así que el gráfico de forma cosía dos puntos separados por días y la caída salía en vertical.
+  // Era la causa de "hice descanso activo y no mejoró mi frescura": la sesión elegida ni corría.
+  const travelling = new Set<string>()
   for (const rider of riderRows) {
-    if (rider.travelUntilDay != null && rider.travelUntilDay >= gameDay) noTrain.add(rider.id)
+    if (skip.has(rider.id)) continue // ya ha corrido hoy: la carrera manda sobre el viaje
+    if (rider.travelUntilDay != null && rider.travelUntilDay >= gameDay) travelling.add(rider.id)
   }
-  skip = noTrain
 
   // Lecturas en lote para no hacer O(corredores) consultas por día (Paso 41, rendimiento del tick):
   // atributos, genoma y órdenes del día del mundo entero en tres consultas.
@@ -102,6 +107,12 @@ export async function trainWorldDay(
   const choiceByRider = new Map<string, TrainingChoice>()
   for (const rider of riderRows) {
     if (skip.has(rider.id)) continue
+    // De viaje: la sesión del día es el viaje, gane quien gane la orden. Cuesta el día de trabajo
+    // (no da atributos) pero deja al Banister hacer su cuenta, que es lo que faltaba.
+    if (travelling.has(rider.id)) {
+      choiceByRider.set(rider.id, { session: 'viaje', intensity: 'normal' })
+      continue
+    }
     const order = ordersByRider.get(rider.id)
     const teamPlan = rider.teamId ? teamPlanByTeam.get(rider.teamId) : undefined
     choiceByRider.set(
@@ -119,6 +130,8 @@ export async function trainWorldDay(
   for (const rider of riderRows) {
     const choice = choiceByRider.get(rider.id)
     if (!choice || !rider.teamId) continue
+    // Quien viaja no está entrenando con nadie: no cuenta para el bonus de grupo de su equipo.
+    if (travelling.has(rider.id)) continue
     const key = `${rider.teamId}:${choice.session}`
     teamSessionCount.set(key, (teamSessionCount.get(key) ?? 0) + 1)
   }

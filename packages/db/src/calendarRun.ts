@@ -6,6 +6,7 @@ import {
   SEASON_CALENDAR,
   type TeamPhilosophy,
   formStars,
+  freshnessBar,
   gcPointsByClass,
   raceLastDay,
   raceOngoingBefore,
@@ -20,7 +21,7 @@ import {
   countriesInContinent,
   raceAttendanceCost,
 } from '@cyclingstar/shared'
-import { and, desc, eq, inArray, isNotNull, isNull, notInArray, or, sql } from 'drizzle-orm'
+import { and, desc, eq, inArray, isNotNull, isNull, lt, notInArray, or, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import { BATCH_ROWS, type BatchValue, inChunks, valuesList } from './batch.js'
 import { creditRider } from './economy.js'
@@ -79,6 +80,17 @@ function squadFor(race: CalendarRace): { size: number; min: number } {
  */
 function fitToRace() {
   return notInArray(riders.health, ['enfermo', 'lesionado'])
+}
+/**
+ * Condición de "está en casa el día de la salida": excluye a quien aún vuelve de una carrera lejana.
+ *
+ * `travelUntilDay` existía y solo lo miraba el entrenamiento (`train.ts`), no la convocatoria: se
+ * podía llamar a un corredor a una carrera que arranca ANTES de que haya llegado a casa de la
+ * anterior. Eso, más que `busyForRaceWindow` solo impide SOLAPES (no días encadenados), es lo que
+ * permitía apilar días de carrera seguidos sobre el mismo corredor.
+ */
+function homeByStart(seasonStartDay: number) {
+  return or(isNull(riders.travelUntilDay), lt(riders.travelUntilDay, seasonStartDay))
 }
 /**
  * Tamaño objetivo del pelotón según la clase de carrera (acota el cómputo del motor y refleja la
@@ -221,6 +233,7 @@ async function convokeNationalField(
         eq(riders.country, country),
         isNull(riders.retiredAt),
         fitToRace(),
+        homeByStart(season * SEASON_DAYS + race.startDay),
       ),
     )
     .orderBy(desc(riders.fame))
@@ -469,7 +482,14 @@ async function convokeField(
       country: riders.country,
     })
     .from(riders)
-    .where(and(inArray(riders.teamId, teamIds), isNull(riders.retiredAt), fitToRace()))
+    .where(
+      and(
+        inArray(riders.teamId, teamIds),
+        isNull(riders.retiredAt),
+        fitToRace(),
+        homeByStart(season * SEASON_DAYS + race.startDay),
+      ),
+    )
   const byTeam = new Map<string, typeof candidates>()
   for (const c of candidates) {
     if (!c.teamId) continue
@@ -547,6 +567,7 @@ async function convokeField(
       archetype: m.archetype,
       pointsSeason: Math.round(m.fame * 4),
       formStars: formStars(m.ctl, m.ctl - m.atl),
+      freshness: freshnessBar(m.ctl - m.atl),
       desire: wanted.has(m.id),
       teamTrust: m.teamTrust,
       young: YOUNG_AGE >= 20 - m.birthSeason + season,
@@ -579,6 +600,7 @@ async function convokeField(
       inArray(riders.country, countries),
       isNull(riders.retiredAt),
       fitToRace(),
+      homeByStart(season * SEASON_DAYS + race.startDay),
       // SOLO NPCs: el relleno son las "selecciones nacionales / equipos club" del continente. Un
       // humano entra por convocatoria de su equipo o por auto-inscripción (que le cobra el viaje);
       // si se colara aquí, correría gratis y saltaría su opt-in/economía de agente libre.
@@ -665,6 +687,8 @@ async function convokeSelfEntries(
         isNotNull(riders.userId),
         isNull(riders.retiredAt),
         fitToRace(),
+        // Tampoco el agente libre puede tomar una salida a la que no ha llegado todavía.
+        homeByStart(season * SEASON_DAYS + race.startDay),
       ),
     )
   const raceDays = race.stages.length

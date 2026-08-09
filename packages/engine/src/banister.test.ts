@@ -10,6 +10,7 @@ import {
   tauFatigue,
   tsbFactor,
 } from './banister.js'
+import { HEALTH } from './constants.js'
 
 const near = (value: number, expected: number) => expect(value).toBeCloseTo(expected, 2)
 
@@ -57,10 +58,35 @@ describe('banister: forma (SPEC 4.1)', () => {
     near(mForm(45, 0), 1.006)
   })
 
-  it('la barra de frescura se satura en [0,100]', () => {
+  it('la barra de frescura se satura arriba y no toca el suelo abajo', () => {
     near(freshnessBar(0), 55)
-    expect(freshnessBar(-60)).toBe(0)
     expect(freshnessBar(60)).toBe(100)
+    // La zona lineal (por encima de la rodilla) es EXACTAMENTE la de siempre: es donde el jugador
+    // afina el pico de forma y no debe cambiar ni un punto.
+    near(freshnessBar(-20), 33)
+    near(freshnessBar(20), 77)
+  })
+
+  it('la barra de frescura SIGUE moviéndose por debajo de TSB -50', () => {
+    // Era `clamp(55 + 1.1·TSB, 0, 100)` y moría en -50, pero correr lleva el TSB a -80/-100: la
+    // barra pasaba días clavada en 0 mientras el corredor SÍ se recuperaba. Esa era la queja del
+    // dueño ("hice descanso activo y no mejoró mi frescura"). Ahora cada día de descanso se ve.
+    const deep = [-50, -64, -80, -110]
+    for (let i = 1; i < deep.length; i++) {
+      expect(freshnessBar(deep[i - 1]!)).toBeGreaterThan(freshnessBar(deep[i]!))
+    }
+    expect(freshnessBar(-110)).toBeGreaterThan(0)
+    expect(freshnessBar(-50)).toBeLessThan(20)
+  })
+
+  it('la cola de la frescura empalma con la recta sin escalón', () => {
+    const knee = -20
+    const eps = 0.001
+    // Continua en valor y en pendiente: la rodilla no se nota al mirar el gráfico.
+    expect(Math.abs(freshnessBar(knee + eps) - freshnessBar(knee - eps))).toBeLessThan(0.01)
+    const slopeUp = (freshnessBar(knee + 1) - freshnessBar(knee)) / 1
+    const slopeDown = (freshnessBar(knee) - freshnessBar(knee - 1)) / 1
+    expect(Math.abs(slopeUp - slopeDown)).toBeLessThan(0.05)
   })
 })
 
@@ -70,6 +96,17 @@ describe('banister: salud y moral (SPEC 4.3, 4.4)', () => {
     near(illnessProbability(1.4, -40), 0.0202)
     // Con TSB alto el riesgo es mínimo.
     expect(illnessProbability(1.0, 10)).toBeCloseTo(0.002, 3)
+  })
+
+  it('el riesgo de enfermar tiene techo: nunca es una certeza', () => {
+    // Sin techo la exponencial cruzaba 1,0 en TSB -78, que es territorio normal tras un par de
+    // etapas de montaña: enfermar dejaba de ser un riesgo para ser un peaje seguro el primer día
+    // que el corredor entrenase. Con techo sigue siendo malo, pero es una tirada, no una condena.
+    expect(illnessProbability(1, -78)).toBeLessThan(0.2)
+    expect(illnessProbability(2, -300)).toBeLessThanOrEqual(HEALTH.illnessMax)
+    // Y la banda del ENTRENAMIENTO (-20 a -45), donde estaba calibrado el castigo al
+    // sobreentrenamiento, no se toca: el techo solo corta la cola que produce competir.
+    near(illnessProbability(1.4, -40), 0.0202)
   })
 
   it('la moral regresa hacia 60', () => {

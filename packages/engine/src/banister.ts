@@ -65,9 +65,22 @@ export function formStars(ctl: number, tsb: number): number {
   return stars(100 * formIndex(ctl, tsb))
 }
 
-/** Barra de frescura 0..100 para la UI (nunca estrellas) (SPEC 4.1). */
+/**
+ * Barra de frescura 0..100 para la UI (nunca estrellas) (SPEC 4.1).
+ *
+ * Lineal desde la rodilla hacia arriba y con cola exponencial por debajo, de modo que la barra
+ * SIEMPRE se mueve: un corredor a TSB -80 que descansa y sube a -64 lo ve, aunque siga en rojo.
+ * Con el clamp a 0 de antes no lo veía, y esa era la queja: "hice descanso activo y no mejoró".
+ * La cola es C¹ en la rodilla (misma pendiente a un lado y al otro), así que la zona de afinar el
+ * pico de forma se comporta exactamente igual que siempre.
+ */
 export function freshnessBar(tsb: number): number {
-  return clamp(BANISTER.freshnessBase + BANISTER.freshnessSlope * tsb, 0, 100)
+  const knee = BANISTER.freshnessKneeTsb
+  const kneeValue = BANISTER.freshnessBase + BANISTER.freshnessSlope * knee
+  if (tsb >= knee) return clamp(BANISTER.freshnessBase + BANISTER.freshnessSlope * tsb, 0, 100)
+  // decay = kneeValue / slope hace que la derivada coincida en la rodilla.
+  const decay = kneeValue / BANISTER.freshnessSlope
+  return clamp(kneeValue * Math.exp((tsb - knee) / decay), 0, 100)
 }
 
 /** Multiplicador de salud (SPEC 4.2). */
@@ -129,12 +142,19 @@ export function initialEnergy(ctl: number, tsb: number, health: HealthState): nu
   )
 }
 
-/** Probabilidad diaria de enfermar (SPEC 4.3). */
+/**
+ * Probabilidad diaria de enfermar (SPEC 4.3), acotada por `illnessMax`.
+ *
+ * Sin el techo la exponencial pasaba de 1 en TSB -78, que es territorio normal después de un par de
+ * etapas de montaña: enfermar dejaba de ser un riesgo para ser un peaje seguro. El techo no toca la
+ * banda del entrenamiento, donde la curva sigue siendo la de siempre.
+ */
 export function illnessProbability(fragility: number, tsb: number): number {
-  return (
+  return Math.min(
+    HEALTH.illnessMax,
     HEALTH.illnessBase *
-    fragility *
-    Math.exp(Math.max(0, -tsb - HEALTH.illnessTsbOffset) / HEALTH.illnessTsbScale)
+      fragility *
+      Math.exp(Math.max(0, -tsb - HEALTH.illnessTsbOffset) / HEALTH.illnessTsbScale),
   )
 }
 

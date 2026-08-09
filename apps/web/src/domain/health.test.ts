@@ -1,6 +1,13 @@
 import type { RiderHealth } from '@cyclingstar/shared'
 import { describe, expect, it } from 'vitest'
-import { HEALTH_LOOK, healthDaysLeft, healthUntilLabel, isOut } from './health'
+import {
+  HEALTH_LOOK,
+  SPENT_FRESHNESS,
+  healthDaysLeft,
+  healthNote,
+  healthUntilLabel,
+  isOut,
+} from './health'
 
 describe('etiquetas de salud', () => {
   it('tiene los cuatro estados del enum de la base de datos', () => {
@@ -69,5 +76,31 @@ describe('hasta cuándo dura la baja', () => {
     expect(healthUntilLabel({ state: 'lesionado', untilDay: null }, 138)).toBeNull()
     expect(healthUntilLabel({ state: 'lesionado', untilDay: 130 }, 138)).toBeNull()
     expect(healthUntilLabel(null, 138)).toBeNull()
+  })
+})
+
+describe('la nota de la insignia de salud', () => {
+  it('un corredor sano y descansado lee la nota de siempre', () => {
+    expect(healthNote('sano', 70)).toBe(HEALTH_LOOK.sano.note)
+    expect(healthNote('sano', SPENT_FRESHNESS)).toBe(HEALTH_LOOK.sano.note)
+  })
+
+  it('un corredor sano pero fundido NO lee "listo para correr"', () => {
+    // La insignia decía «Healthy · Fit to race and train» justo encima de una barra de frescura a
+    // cero, que es lo contrario de lo que pasaba. Salud y frescura son ejes distintos, pero la nota
+    // no puede afirmar lo que la barra desmiente.
+    const note = healthNote('sano', 0)
+    expect(note).not.toBe(HEALTH_LOOK.sano.note)
+    expect(note).toMatch(/fatigued/i)
+  })
+
+  it('sin frescura (ficha pública) se lee la nota de siempre: es un dato privado', () => {
+    expect(healthNote('sano', null)).toBe(HEALTH_LOOK.sano.note)
+  })
+
+  it('los estados de baja mandan sobre la frescura', () => {
+    expect(healthNote('lesionado', 0)).toBe(HEALTH_LOOK.lesionado.note)
+    expect(healthNote('enfermo', 0)).toBe(HEALTH_LOOK.enfermo.note)
+    expect(healthNote('molestias', 0)).toBe(HEALTH_LOOK.molestias.note)
   })
 })

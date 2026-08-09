@@ -16,6 +16,16 @@ export interface CallupCandidate {
   pointsSeason: number
   /** Forma reciente en estrellas [0,5] (SPEC 3.2). */
   formStars: number
+  /**
+   * Frescura [0,100] (`freshnessBar`): lo descansado que llega HOY, aparte de la forma.
+   *
+   * Hace falta porque `formStars` no distingue cansado de destrozado: se apoya en `tsbFactor`, que
+   * vale exactamente 0 para todo TSB <= -35, de modo que un corredor a -35 y uno a -110 puntúan
+   * IGUAL. Con la selección ciega en toda esa banda, un equipo bot podía mandar cuatro días
+   * seguidos de carrera al mismo corredor sin notar que estaba fundido. La barra de frescura sí
+   * tiene gradiente ahí abajo, así que es la señal correcta.
+   */
+  freshness: number
   /** El corredor marcó esta carrera como objetivo (rider_race_prefs). */
   desire: boolean
   /** Confianza con el equipo [0,100] (SPEC 6.18). */
@@ -59,6 +69,13 @@ const W_POINTS = 0.8
 const W_FORM = 0.6
 const W_DESIRE = 0.5
 const W_TRUST = 0.4
+/**
+ * Peso de la FRESCURA, separado del de la forma a propósito. Es el que impide que el mismo corredor
+ * encadene días de carrera hasta fundirse: entre uno fresco (100) y uno destrozado (≈4 tras dos
+ * etapas de montaña) hay 0,67 de score, que con GAMMA = 2,5 son ~5 veces menos peso en el sorteo.
+ * Preferencia fuerte, no veto: un equipo con la plantilla molida tiene que poder alinear igual.
+ */
+const W_FRESH = 0.7
 const POINTS_NORM = 400 // puntos que saturan la contribución de regularidad
 const PHILOSOPHY_BONUS = 0.6
 
@@ -94,6 +111,7 @@ export function callupScore(
     W_FIT * fit +
     W_POINTS * clamp01(c.pointsSeason / POINTS_NORM) +
     W_FORM * (c.formStars / 5) +
+    W_FRESH * clamp01(c.freshness / 100) +
     W_DESIRE * (c.desire ? 1 : 0) +
     W_TRUST * (c.teamTrust / 100) +
     philosophyBonus(philosophy, c, fit)
