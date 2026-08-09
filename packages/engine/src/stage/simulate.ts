@@ -1297,7 +1297,10 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
             log.emit(km, m.g.tS, 'ataque', 'attack_sticks', ids.slice(0, 3), {
               kind: m.kind,
               size: ids.length,
-              gapS: Math.round(gap),
+              // La ventaja que se cuenta es la que ha sacado AL GRUPO DEL QUE SALIÓ, que es de lo
+              // que habla la frase. Contar la del pelotón cuando la carrera ya está rota decía
+              // «5:52» de un corredor que llevaba 23 s a sus perseguidores directos.
+              gapS: Math.round(gapOverSource),
               toGo: Math.round(totalKm - km),
               narra: claimAttackNotice(STAGE.tacticStickNarrateKmGap) ? 1 : 0,
             })
