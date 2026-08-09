@@ -22,6 +22,7 @@ import { Flag } from '../components/Flag'
 import { FormChart } from '../components/FormChart'
 import { LastRaceReport } from '../components/LastRaceReport'
 import { InfoRow, Panel, SectionBar } from '../components/Panel'
+import { RaceResultList } from '../components/RaceResults'
 import { RoleEditor } from '../components/RoleEditor'
 import { StarRating } from '../components/StarRating'
 import { TeamLink } from '../components/TeamLink'
@@ -375,36 +376,13 @@ export function RiderProfile() {
         </Panel>
       )}
 
+      {/*
+        Una línea por CARRERA con su general de titular (§3.6): en una vuelta el resultado del
+        corredor es la general, y las etapas son el desglose que se despliega debajo.
+      */}
       {resultsQuery.data && resultsQuery.data.length > 0 && (
         <Panel title="Recent results">
-          <ul className="space-y-1.5">
-            {resultsQuery.data.map((r, i) => (
-              <li key={i} className="flex items-center gap-3 text-sm">
-                <span
-                  className={`w-8 shrink-0 text-right font-bold tabular-nums ${
-                    r.puesto === 1
-                      ? 'text-amber-500'
-                      : r.puesto <= 3
-                        ? 'text-slate-600'
-                        : 'text-slate-400'
-                  }`}
-                >
-                  {r.puesto}
-                </span>
-                <Link
-                  to={
-                    r.isOneDay
-                      ? `/world/races/${raceIdFromKey(r.raceId)}`
-                      : `/world/races/${raceIdFromKey(r.raceId)}/stages/${r.stageDay}`
-                  }
-                  className="font-medium text-slate-700 hover:underline"
-                >
-                  {r.raceName}
-                </Link>
-                {!r.isOneDay && <span className="text-xs text-slate-400">Stage {r.stageDay}</span>}
-              </li>
-            ))}
-          </ul>
+          <RaceResultList results={resultsQuery.data} />
         </Panel>
       )}
 

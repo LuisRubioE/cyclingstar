@@ -2,6 +2,7 @@ import { TEST_TOUR } from '@cyclingstar/engine'
 import { ATTRIBUTES } from '@cyclingstar/shared'
 import { and, asc, eq } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { getRiderGcStandings } from './riderResults.js'
 import { getGcThroughStage, getRaceGc } from './results.js'
 import {
   raceGc,
@@ -183,5 +184,25 @@ describe('db: general coherente en carreras de un día y con desempate por puest
     const gc = await getRaceGc(t.db, TIE_KEY)
     const porId = [d!, e!].sort()
     expect(gc.map((r) => r.riderId)).toEqual([a!, porId[0]!, porId[1]!, c!, b!])
+  }, 60_000)
+
+  // Este test va el ÚLTIMO del fichero: al final marca un abandono en TIE_KEY y eso cambia el orden
+  // de esa general para cualquiera que la lea después.
+  it('el puesto de la general que ve el corredor en su ficha es el de la carrera', async () => {
+    // La ficha del corredor no recalcula nada por su cuenta: numera la MISMA general que la página
+    // de carrera, así que el 3.º de la general es el 3.º en su ficha, gane o no.
+    const gc = await getRaceGc(t.db, TIE_KEY)
+    for (const [i, row] of gc.entries()) {
+      const standings = await getRiderGcStandings(t.db, row.riderId, [TIE_KEY])
+      expect(standings.get(TIE_KEY)).toEqual({ puesto: i + 1, dnf: false })
+    }
+
+    // Quien abandona deja de estar clasificado: cae al final y se marca como tal.
+    const abandona = gc[0]!.riderId
+    await t.db.insert(raceRosters).values({ raceId: TIE_KEY, riderId: abandona, abandonedDay: 3 })
+    const conAbandono = await getRaceGc(t.db, TIE_KEY)
+    expect(conAbandono.at(-1)!.riderId).toBe(abandona)
+    const standings = await getRiderGcStandings(t.db, abandona, [TIE_KEY])
+    expect(standings.get(TIE_KEY)).toEqual({ puesto: conAbandono.length, dnf: true })
   }, 60_000)
 })

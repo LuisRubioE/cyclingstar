@@ -1,6 +1,6 @@
 import { raceIdFromKey } from '@cyclingstar/shared'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { ReactNode } from 'react'
+import { type ReactNode, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { RaceClass } from '../api/calendar'
 import { type EnterableRace, enterRace, fetchEnterableRaces, withdrawRace } from '../api/raceEntry'
@@ -8,8 +8,17 @@ import { fetchRiderResults } from '../api/rankings'
 import { fetchMyRider, fetchMyUpcomingRaces, fetchRiderSummary } from '../api/rider'
 import { Flag } from '../components/Flag'
 import { Panel, SectionBar } from '../components/Panel'
+import { ShowAllButton, TOP_ROWS } from '../components/ShowAll'
 import { type TabOption, TabPanel, Tabs, useTabParam } from '../components/Tabs'
 import { raceClassLabel } from '../domain/labels'
+import {
+  hasStageBreakdown,
+  ordinal,
+  raceResultKey,
+  raceResultKind,
+  raceResultPlace,
+  stagesSummary,
+} from '../domain/riderResults'
 
 type TabId = 'upcoming' | 'enter' | 'results'
 
@@ -308,30 +317,40 @@ function EnterTab({ money }: { money: number | null }) {
   )
 }
 
-/** Pestaña "Results": mis carreras corridas, con mi puesto y enlace a la etapa. */
+/**
+ * Pestaña "Results": mis carreras corridas. Una fila POR CARRERA con mi puesto en la general —el
+ * resultado de una vuelta es la general, se gane o no (docs/navegacion.md §3.6)— y las etapas
+ * plegadas debajo, cada una con su enlace a la crónica.
+ */
 function ResultsTab({ riderId }: { riderId: string | null }) {
   const { data, isPending, isError } = useQuery({
     queryKey: ['rider', 'results', riderId],
     queryFn: () => fetchRiderResults(riderId!),
     enabled: !!riderId,
   })
+  const [expanded, setExpanded] = useState(false)
 
   if (!riderId || isPending) return <p className="text-slate-500">Loading…</p>
   if (isError) return <p className="text-red-600">Could not load your results.</p>
   if (data.length === 0) return <Empty>You haven't raced yet. Your results will land here.</Empty>
 
+  // Regla común de tablas (§7.3): 20 filas y salida para ver el resto.
+  const visible = expanded ? data : data.slice(0, TOP_ROWS)
+
   return (
     <Panel title="Races you have ridden" bodyClassName="p-0">
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <caption className="sr-only">Your finishing places, most recent first</caption>
+          <caption className="sr-only">
+            Your races, most recent first: your overall place and the stages behind it
+          </caption>
           <thead>
             <tr className="border-b border-slate-200 text-left text-xs text-slate-400">
               <th scope="col" className="px-3 py-2 font-medium">
                 Race
               </th>
               <th scope="col" className="px-2 py-2 font-medium">
-                Stage
+                Result
               </th>
               <th scope="col" className="px-3 py-2 text-right font-medium">
                 Place
@@ -339,42 +358,74 @@ function ResultsTab({ riderId }: { riderId: string | null }) {
             </tr>
           </thead>
           <tbody>
-            {data.map((r) => (
+            {visible.map((r) => (
               <tr
-                key={`${r.raceId}-${r.season}-${r.stageDay}`}
-                className="border-b border-slate-100 last:border-0"
+                key={raceResultKey(r)}
+                className="border-b border-slate-100 align-top last:border-0"
               >
                 <th scope="row" className="px-3 py-2 text-left font-normal">
                   <Link
-                    to={
-                      r.isOneDay
-                        ? `/world/races/${raceIdFromKey(r.raceId)}`
-                        : `/world/races/${raceIdFromKey(r.raceId)}/stages/${r.stageDay}`
-                    }
+                    to={`/world/races/${r.raceId}`}
                     className="font-medium text-slate-800 hover:text-brand-cyan hover:underline"
                   >
                     {r.raceName}
                   </Link>
                   <span className="ml-2 text-xs text-slate-400">Season {r.season + 1}</span>
+                  {/* El desglose de etapas cuelga de la carrera, plegado: el titular es la general. */}
+                  {hasStageBreakdown(r) && (
+                    <details className="mt-0.5">
+                      <summary className="cursor-pointer list-none text-xs text-slate-400 hover:text-brand-cyan">
+                        <span className="underline decoration-dotted underline-offset-2">
+                          {stagesSummary(r)}
+                        </span>
+                      </summary>
+                      <ul className="mt-1 space-y-0.5">
+                        {r.stages.map((s) => (
+                          <li key={s.stageDay} className="flex items-baseline gap-2 text-xs">
+                            <span
+                              className={`w-9 shrink-0 text-right font-semibold tabular-nums ${
+                                s.puesto === 1 ? 'text-amber-500' : 'text-slate-500'
+                              }`}
+                            >
+                              {ordinal(s.puesto)}
+                            </span>
+                            <Link
+                              to={`/world/races/${r.raceId}/stages/${s.stageDay}`}
+                              className="text-slate-500 hover:text-brand-cyan hover:underline"
+                            >
+                              Stage {s.stageDay} of {r.stageCount}
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
+                  )}
                 </th>
-                <td className="px-2 py-2 text-slate-500">
-                  {r.isOneDay ? 'One-day' : `Stage ${r.stageDay} of ${r.stageCount}`}
-                </td>
+                <td className="px-2 py-2 text-slate-500">{raceResultKind(r)}</td>
                 <td
                   className={`px-3 py-2 text-right font-bold tabular-nums ${
-                    r.puesto === 1
-                      ? 'text-amber-500'
-                      : r.puesto <= 3
-                        ? 'text-slate-700'
-                        : 'text-slate-500'
+                    r.dnf || r.gcPuesto == null
+                      ? 'text-slate-400'
+                      : r.gcPuesto === 1
+                        ? 'text-amber-500'
+                        : r.gcPuesto <= 3
+                          ? 'text-slate-700'
+                          : 'text-slate-500'
                   }`}
                 >
-                  {r.puesto}
+                  {raceResultPlace(r)}
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
+      </div>
+      <div className="px-3 pb-3">
+        <ShowAllButton
+          total={data.length}
+          expanded={expanded}
+          onToggle={() => setExpanded((v) => !v)}
+        />
       </div>
     </Panel>
   )

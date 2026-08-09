@@ -199,13 +199,13 @@ export {
   setTrainingOrders,
   type TrainingOrderRow,
 } from './training.js'
+export { getRiderRaceDays, getRiderUpcomingRaces, type RiderUpcomingRace } from './riderSchedule.js'
 export {
-  getRiderRaceDays,
-  getRiderRecentResults,
-  getRiderUpcomingRaces,
-  type RiderResult,
-  type RiderUpcomingRace,
-} from './riderSchedule.js'
+  buildRiderRaceResults,
+  getRiderRaceResults,
+  type RiderRaceResult,
+  type RiderStagePlacing,
+} from './riderResults.js'
 export {
   getRiderLastRaceReport,
   type RiderRaceReport,

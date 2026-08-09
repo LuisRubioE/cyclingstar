@@ -1,4 +1,4 @@
-import { COUNTRIES, VOCATION_LABELS, raceIdFromKey, type Vocation } from '@cyclingstar/shared'
+import { COUNTRIES, VOCATION_LABELS, type Vocation } from '@cyclingstar/shared'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -9,6 +9,7 @@ import { AttributeList } from '../components/AttributeList'
 import { Flag } from '../components/Flag'
 import { Jersey } from '../components/Jersey'
 import { Panel, SectionBar } from '../components/Panel'
+import { RaceResultList } from '../components/RaceResults'
 import { RiderName } from '../components/RiderName'
 import { palmaresLabel } from '../domain/labels'
 
@@ -72,32 +73,10 @@ function TeammateDetail({ riderId }: { riderId: string }) {
             Recent results
           </h3>
           {results.data && results.data.length > 0 ? (
-            <ul className="mt-2 space-y-1">
-              {results.data.slice(0, 6).map((r, i) => (
-                <li key={i} className="flex items-center gap-3 text-sm">
-                  <span
-                    className={`w-7 shrink-0 text-right font-bold tabular-nums ${
-                      r.puesto === 1 ? 'text-amber-500' : 'text-slate-400'
-                    }`}
-                  >
-                    {r.puesto}
-                  </span>
-                  <Link
-                    to={
-                      r.isOneDay
-                        ? `/world/races/${raceIdFromKey(r.raceId)}`
-                        : `/world/races/${raceIdFromKey(r.raceId)}/stages/${r.stageDay}`
-                    }
-                    className="font-medium text-slate-700 hover:underline"
-                  >
-                    {r.raceName}
-                  </Link>
-                  {!r.isOneDay && (
-                    <span className="text-xs text-slate-400">Stage {r.stageDay}</span>
-                  )}
-                </li>
-              ))}
-            </ul>
+            // Una línea por carrera con su general de titular; el desglose de etapas se pliega.
+            <div className="mt-2">
+              <RaceResultList results={results.data} limit={6} />
+            </div>
           ) : (
             <p className="mt-2 text-sm text-slate-400">No results yet.</p>
           )}

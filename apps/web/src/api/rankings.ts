@@ -6,7 +6,7 @@ import {
   type RaceHistoryHonour,
   type RankingRow,
   type RecordEntry,
-  type RiderResult,
+  type RiderRaceResult,
   type SeasonAwards,
   hallOfFameResponseSchema,
   palmaresResponseSchema,
@@ -25,7 +25,7 @@ export type {
   PalmaresRow,
   RankingRow,
   RecordEntry,
-  RiderResult,
+  RiderRaceResult,
   SeasonAwards,
 }
 /** Historial de ganadores de una carrera (nombre de la carrera incluido). */
@@ -88,8 +88,11 @@ export async function fetchRiderPalmares(id: string): Promise<PalmaresRow[]> {
   return data.palmares
 }
 
-/** Últimos resultados públicos de cualquier corredor (sus puestos en carreras ya corridas). */
-export async function fetchRiderResults(id: string): Promise<RiderResult[]> {
+/**
+ * Resultados públicos de cualquier corredor, agrupados por carrera: su puesto en la general (se
+ * gane o no) con las etapas como desglose.
+ */
+export async function fetchRiderResults(id: string): Promise<RiderRaceResult[]> {
   const data = await request(`/api/riders/${id}/results`, riderResultsResponseSchema, {
     errorMessage: 'Could not load the results.',
   })

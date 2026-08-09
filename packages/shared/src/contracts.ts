@@ -610,18 +610,31 @@ export const palmaresRowSchema = z.object({
 export type PalmaresRow = z.infer<typeof palmaresRowSchema>
 export const palmaresResponseSchema = z.object({ palmares: z.array(palmaresRowSchema) })
 
-export const riderResultSchema = z.object({
+/** Puesto del corredor en una etapa suelta, dentro del desglose de su carrera. */
+export const riderStagePlacingSchema = z.object({
+  stageDay: z.number().int(),
+  puesto: z.number().int(),
+})
+export type RiderStagePlacing = z.infer<typeof riderStagePlacingSchema>
+
+/**
+ * El paso del corredor por una carrera. En una carrera por etapas su resultado ES la general
+ * (`gcPuesto`, se gane o no) y las etapas son el desglose; en una de un día las dos cosas coinciden.
+ */
+export const riderRaceResultSchema = z.object({
   raceId: z.string(),
   raceName: z.string(),
   raceClass: z.string(),
   season: z.number().int(),
-  stageDay: z.number().int(),
   stageCount: z.number().int(),
-  puesto: z.number().int(),
   isOneDay: z.boolean(),
+  gcPuesto: z.number().int().nullable(),
+  dnf: z.boolean(),
+  finished: z.boolean(),
+  stages: z.array(riderStagePlacingSchema),
 })
-export type RiderResult = z.infer<typeof riderResultSchema>
-export const riderResultsResponseSchema = z.object({ results: z.array(riderResultSchema) })
+export type RiderRaceResult = z.infer<typeof riderRaceResultSchema>
+export const riderResultsResponseSchema = z.object({ results: z.array(riderRaceResultSchema) })
 
 // --- /api/riders/me/ledger (finanzas) ------------------------------------------------------
 

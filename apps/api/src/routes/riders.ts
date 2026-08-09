@@ -21,7 +21,7 @@ import {
   getRiderHealth,
   getRiderLastRaceReport,
   getRiderRaceDays,
-  getRiderRecentResults,
+  getRiderRaceResults,
   getRiderSummary,
   getRiderUpcomingRaces,
   getTeamTrainingPlan,
@@ -450,11 +450,12 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
     return { palmares: await getPalmares(db, riderId) }
   })
 
-  // Últimos resultados públicos de cualquier corredor (sus puestos en carreras ya corridas).
+  // Resultados públicos de cualquier corredor, AGRUPADOS POR CARRERA: la general de titular (se
+  // gane o no) y las etapas como desglose (docs/navegacion.md §3.6).
   app.get<{ Params: { id: string } }>('/api/riders/:id/results', async (request, reply) => {
     const riderId = parseUuid(request.params.id)
     if (!riderId) return notFound(reply)
-    return { results: await getRiderRecentResults(db, riderId) }
+    return { results: await getRiderRaceResults(db, riderId) }
   })
 
   app.get<{ Params: { id: string } }>('/api/riders/:id', async (request, reply) => {
