@@ -2425,32 +2425,36 @@ objetivo NO se toca. Se investigó y se arregló la causa:
 **El criterio de éxito visible: la voz de la crónica.** 8 equipos × 5 corredores, roles repartidos
 por `world/autoOrders.ts`, contando los partes de «quién tira» sobre grupo grande:
 
-| Etapa                  | v14 (sin equipos) | v15, solo intenciones | v15 completo |
-| ---------------------- | ----------------: | --------------------: | -----------: |
-| Llana (180 km)         |          **0,0%** |                 19,9% |   **73-77%** |
-| Media montaña (160 km) |              3,0% |                  1,8% |   **68-71%** |
-| Reina (150 km)         |              7,8% |                     — |      **77%** |
+| Etapa                      | v14 (sin equipos) | v15, solo intenciones | v15 completo (80 semillas) |
+| -------------------------- | ----------------: | --------------------: | -------------------------: |
+| Llana (180 km)             |          **0,0%** |                 19,9% |                  **68,4%** |
+| Llana, con general abierta |                 — |                     — |                  **84,4%** |
+| Media montaña (160 km)     |              3,0% |                  1,8% |                  **65,8%** |
+| Media montaña, con general |                 — |                     — |                  **75,8%** |
+| Reina (150 km)             |              7,8% |                     — |                  **82,4%** |
+| Reina, con general         |                 — |                     — |                  **80,1%** |
 
-Y el frente CAMBIA DE MANOS: **3 equipos distintos** llevan el frente en una llana (mediana), 2 en
-media montaña, 1 en la reina —donde el equipo del jefe de filas pone tempo y no hay relevo que dar—.
-Ese es el objetivo nuevo `chronicle.frontTeamsPerStage` (2-5): vigila que la voz de equipo no se
-consiga con un dueño único e inmóvil, que sería un plan de equipo de cartón.
+Y el frente CAMBIA DE MANOS: **2,2 equipos distintos por etapa** llevan el frente en una llana
+(media sobre 100 semillas: 2,24), 1,7-2,2 en media montaña y 1,3-1,4 en la reina, donde el equipo
+del maillot pone su tempo todo el día y no hay relevo que dar. Ese es el objetivo nuevo
+`chronicle.frontTeamsPerStage` (1,8-4,0): vigila que la voz de equipo no se consiga con un dueño
+único e inmóvil, que sería un plan de equipo de cartón.
 
 **La caza según los equipos que la quieren** (las mismas 5 llanas, el mismo campo de 40, repartido en
 8 equipos con más o menos bazas). Es la pregunta literal del dueño:
 
-| Equipos con rematador | Fuerza | Etapas sin sprint masivo |
-| --------------------- | -----: | -----------------------: |
-| 1                     |   0,56 |                    14,0% |
-| 2                     |   1,00 |                    18,0% |
-| 4                     |   1,00 |                    18,0% |
-| 8                     |   1,00 |                     2,0% |
+| Equipos con rematador | Fuerza | Etapas sin sprint masivo (100 por fila) |
+| --------------------- | -----: | --------------------------------------: |
+| 1                     |   0,56 |                                   26,0% |
+| 2                     |   1,00 |                                   11,0% |
+| 4                     |   1,00 |                                   15,0% |
+| 8                     |   1,00 |                                    1,0% |
 
-La lectura honesta: **el extremo se distingue perfectamente** —con ocho equipos interesados la fuga
-no llega nunca (2 %) y con uno o dos llega una de cada cinco— pero **entre 1, 2 y 4 el banco no
-resuelve**, porque la fuerza satura en 1,00 con dos trenes (`chaseFullUnits`) y lo que separa a esos
-tres casos es solo el presupuesto, que con 50 etapas por fila queda dentro del ruido. Con ocho
-equipos el presupuesto colectivo no se agota nunca y por eso la diferencia sí es tajante.
+La lectura honesta: **los extremos se distinguen perfectamente** —con un solo equipo interesado la
+fuga llega una de cada cuatro y con ocho no llega casi nunca (1 %)— pero **entre 2 y 4 el banco
+sigue sin resolver** (11 % frente a 15 %, con 100 etapas por fila), porque la fuerza satura en 1,00
+con dos trenes (`chaseFullUnits`) y lo único que separa a esos dos casos es el presupuesto. Con ocho
+equipos el presupuesto colectivo no se agota nunca y por eso ahí la diferencia sí es tajante.
 
 **Los invariantes de balance.** `pnpm sim`, 500 simulaciones por escenario:
 
@@ -2514,8 +2518,11 @@ cableado.
   primera hora en que no le interesa a nadie y cuando el que manda pierde hombres, el trabajo lo
   reparten varios y la alianza es la lectura honesta—. Un objetivo del 90 % obligaría a inventar un
   dueño donde no lo hay, que es el defecto contrario. Medido: 74,2 %.
-- **`frontTeamsPerStage` (2-5)**: equipos distintos que llevan el frente en una etapa. Es la otra
-  mitad, y vigila que la voz de equipo no se consiga con un dueño único e inmóvil. Medido: 3.
+- **`frontTeamsPerStage` (1,8-4,0)**: equipos distintos que llevan el frente en una etapa. Es la
+  otra mitad, y vigila que la voz de equipo no se consiga con un dueño único e inmóvil. Se mide en
+  MEDIA y no en mediana: es un entero pequeño y su mediana vive en una retícula (1 · 1,5 · 2), así
+  que un objetivo apoyado en ella pasa o falla por un salto entero — el mismo «invariante
+  intermitente» contra el que ya avisa `grandTour.abandonPct`. Medido: 2,24.
 
 **Re-anclado** (no relajado): `erosion.queenThirdWeek` conserva su banda **0,60-0,85** y cambia de
 punto de medida, de la reina sintética de 1.200 m a la reina REAL de gran vuelta. Va acompañado de
@@ -2599,17 +2606,19 @@ una general ya abierta:
 
 | Etapa | Contexto    | Voz de equipo | Con motivo | etapa | maillot | general |
 | ----- | ----------- | ------------: | ---------: | ----: | ------: | ------: |
-| Llana | sin general |         67,8% |      100 % | 100 % |     0 % |     0 % |
-| Llana | con general |         83,6% |      100 % |  95 % |     5 % |     0 % |
-| Media | sin general |         57,8% |      100 % | 100 % |     0 % |     0 % |
-| Media | con general |         71,4% |      100 % |  67 % |    33 % |     0 % |
-| Reina | sin general |         79,1% |      100 % | 100 % |     0 % |     0 % |
-| Reina | con general |         80,7% |      100 % |   7 % |    91 % |     1 % |
+| Llana | sin general |         68,4% |      100 % | 100 % |     0 % |     0 % |
+| Llana | con general |         84,4% |      100 % |  91 % |     9 % |     0 % |
+| Media | sin general |         65,8% |       99 % | 100 % |     0 % |     0 % |
+| Media | con general |         75,8% |      100 % |  64 % |    36 % |     0 % |
+| Reina | sin general |         82,4% |      100 % | 100 % |     0 % |     0 % |
+| Reina | con general |         80,1% |      100 % |  10 % |    89 % |     1 % |
 
-Es exactamente lo que pedía la comprobación: **en la llana manda «por la etapa»** (95-100 %, hay
+Es exactamente lo que pedía la comprobación: **en la llana manda «por la etapa»** (91-100 %, hay
 trenes y hay sprint que ganar) y **en cuanto la etapa trepa y hay general en juego manda la
-general** (33 % en media montaña, 91 % en la reina, donde el equipo del maillot pone su tempo todo
-el día). Sin general en juego el motivo solo puede ser la etapa, y así sale.
+general** (36 % en media montaña, 89 % en la reina, donde el equipo del maillot pone su tempo todo
+el día). Sin general en juego el motivo solo puede ser la etapa, y así sale. El 99 % de una casilla
+no es un fallo: es un parte en el que los tres nombrados eran del mismo equipo sin ser el que llevaba
+el frente, y ese equipo no tenía motivo — la crónica lo dice tal cual.
 
 **Lo que hay que decir del motivo `general`: sale poco (0-1 %), y es correcto.** El equipo de un
 favorito solo tira cuando la fuga le amenaza, y cuando eso pasa el maillot está amenazado también y
@@ -2617,10 +2626,10 @@ tiene MÁS derecho al frente. En carretera es así: el trabajo lo hace el equipo
 se colocan. El motivo existe, se narra y añade esfuerzo cuando toca; lo que casi nunca hace es
 llevar el frente él solo, y para eso tendría que fundirse antes el equipo del maillot.
 
-**Efecto colateral bueno, medido:** con el motivo puesto, el banco de la caza por equipos —que antes
-no separaba 1, 2 y 4 equipos fuertes— pasa a ser **monótono**: 1 equipo con rematador 20 % de etapas
-sin sprint masivo, 2 equipos 16 %, 4 equipos 12 %, 8 equipos 4 %. La razón es la regla del corolario:
-los equipos SIN carta han dejado de gastar, así que el número de equipos con carta se nota de verdad.
+**Efecto colateral bueno, medido:** con el motivo puesto, el banco de la caza por equipos separa
+mucho mejor los extremos —1 equipo con rematador deja escapar el 26 % de las llanas y 8 equipos el
+1 %— porque los equipos SIN carta han dejado de gastar y el número de equipos con carta se nota de
+verdad. Entre 2 y 4 sigue sin resolver (11 % y 15 %): la fuerza ya satura con dos trenes.
 
 **Objetivo nuevo:** `chronicle.teamPullWithReasonPct` (95-100 %). Por construcción un equipo sin
 motivo no toma el frente, así que todo parte con voz de equipo debería traer motivo; el suelo del

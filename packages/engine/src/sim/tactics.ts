@@ -577,8 +577,14 @@ export interface TeamVoiceStats {
   withReasonPct: number
   /** Reparto de motivos entre los partes con voz de equipo. */
   reasons: { etapa: number; maillot: number; general: number; sinMotivo: number }
-  /** Equipos distintos que llegan a llevar el frente en una etapa (mediana). */
-  frontTeamsMedian: number
+  /**
+   * Equipos distintos que llegan a llevar el frente en una etapa, en MEDIA (no en mediana). Es un
+   * entero pequeño —una etapa tiene uno, dos o tres dueños del frente— y su mediana vive en una
+   * retícula (1 · 1,5 · 2 · 2,5), así que un objetivo apoyado en ella se cumple o falla por un
+   * salto entero: exactamente el «invariante intermitente» que ya enseñó `grandTour.abandonPct`.
+   * La media mide lo mismo de forma continua.
+   */
+  frontTeamsAvg: number
 }
 
 /**
@@ -629,7 +635,7 @@ export function analyzeTeamVoice(
     teamVoicePct: pulls === 0 ? 0 : (100 * single) / pulls,
     withReasonPct: single === 0 ? 0 : (100 * (single - reasons.sinMotivo)) / single,
     reasons,
-    frontTeamsMedian: median(fronts),
+    frontTeamsAvg: fronts.reduce((a, b) => a + b, 0) / Math.max(1, fronts.length),
   }
 }
 

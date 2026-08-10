@@ -98,11 +98,14 @@ export const TARGETS = {
     // equipo no se consiga con un dueño único e inmóvil: el presupuesto de esfuerzo tiene que
     // obligar a que en una etapa se releven VARIOS equipos al frente, como en carretera —al
     // principio no tira nadie, luego se pone uno, se funde, y en el desenlace pelean los trenes—.
-    // Uno solo todo el día sería un plan de equipo de cartón; ocho sería no tener plan.
+    // Uno solo todo el día sería un plan de equipo de cartón; ocho sería no tener plan. Se mide en
+    // MEDIA y no en mediana: es un entero pequeño y su mediana vive en una retícula (1 · 1,5 · 2),
+    // así que un objetivo apoyado en ella pasa o falla por un salto entero, que es justo el
+    // invariante intermitente contra el que ya avisa `grandTour.abandonPct`.
     frontTeamsPerStage: {
       label: 'Equipos que llevan el frente (llana)',
-      min: 2,
-      max: 5,
+      min: 1.8,
+      max: 4,
       unit: '',
     },
     // Y EL PARTE DICE POR QUÉ. «No es solo saber qué equipo(s) participan de la persecución…

@@ -161,7 +161,7 @@ function main(): void {
       const total = Math.max(1, v.reasons.etapa + v.reasons.maillot + v.reasons.general)
       const pct = (n: number): string => `${Math.round((100 * n) / total)}%`
       console.log(
-        `  ${name} ${tag}  voz de EQUIPO ${v.teamVoicePct.toFixed(1)}% de ${v.pulls} partes · con motivo ${v.withReasonPct.toFixed(0)}% (etapa ${pct(v.reasons.etapa)} · maillot ${pct(v.reasons.maillot)} · general ${pct(v.reasons.general)}) · ${v.frontTeamsMedian} equipos al frente`,
+        `  ${name} ${tag}  voz de EQUIPO ${v.teamVoicePct.toFixed(1)}% de ${v.pulls} partes · con motivo ${v.withReasonPct.toFixed(0)}% (etapa ${pct(v.reasons.etapa)} · maillot ${pct(v.reasons.maillot)} · general ${pct(v.reasons.general)}) · ${v.frontTeamsAvg.toFixed(1)} equipos al frente`,
       )
     }
   }

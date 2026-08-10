@@ -274,7 +274,7 @@ describe('el plan de equipo y la voz de la crónica (docs/motor.md §V.1)', () =
   })
 
   it('y el frente cambia de manos a lo largo de la etapa', { timeout: 60000 }, () => {
-    expectInRange(stats.frontTeamsMedian, TARGETS.chronicle.frontTeamsPerStage)
+    expectInRange(stats.frontTeamsAvg, TARGETS.chronicle.frontTeamsPerStage)
   })
 
   it('…y el parte dice POR QUÉ tira ese equipo', { timeout: 60000 }, () => {
