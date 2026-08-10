@@ -746,3 +746,90 @@ describe('B5 · el liderato de la montaña solo se canta cuando existe', () => {
     expect(l).toContain('1 KOM point')
   })
 })
+
+// --- v14 · la pájara, el abandono y el fuera de control (docs/motor.md §15 y §VI.3) ----------
+// El motor ejecutaba la pájara desde la v8 sin contarla y no emitía un solo abandono. Aquí se
+// comprueba que las frases nuevas dicen lo que hace falta y que degradan igual que el resto.
+
+describe('v14 · pájara, abandono y corte de tiempo', () => {
+  it('la pájara dice quién revienta y a cuántos km de meta', () => {
+    const l = chronicleLine(
+      event({
+        plantilla: 'rider_bonks',
+        protagonists: [rider('Ana Soler', { bib: 42, team: 'Equipo Sol', country: 'ES' })],
+        datos: { toGo: 55 },
+      }),
+    )
+    expect(l).toContain('Ana Soler')
+    expect(l).toContain('42')
+    expect(l).toContain('Equipo Sol')
+    expect(l).toContain('55')
+  })
+
+  it('varias pájaras a la vez se cuentan con número', () => {
+    const l = chronicleLine(
+      event({
+        plantilla: 'riders_bonk',
+        protagonists: Array.from({ length: 9 }, (_, i) => rider(`Rider ${i}`)),
+        datos: { count: 9, toGo: 40 },
+      }),
+    )
+    expect(l).toContain('9 riders')
+    expect(l).toContain('40 km to go')
+  })
+
+  it('el abandono lleva la identidad completa: es el final de su carrera', () => {
+    const l = chronicleLine(
+      event({
+        plantilla: 'rider_abandons',
+        protagonists: [rider('Leo Marín', { bib: 7, team: 'Cumbre', country: 'ES' })],
+        datos: { causa: 'colapso', toGo: 62 },
+      }),
+    )
+    expect(l).toContain('Leo Marín')
+    expect(l).toContain('Cumbre')
+    expect(l).toContain('62')
+  })
+
+  it('varios abandonos en el mismo tramo se cuentan juntos', () => {
+    const l = chronicleLine(
+      event({
+        plantilla: 'riders_abandon',
+        protagonists: Array.from({ length: 5 }, (_, i) => rider(`Rider ${i}`)),
+        datos: { count: 5 },
+      }),
+    )
+    expect(l).toContain('5 riders abandon')
+    expect(l).toContain('2 more')
+  })
+
+  it('el fuera de control dice el límite y a cuántos se lleva', () => {
+    const uno = chronicleLine(
+      event({
+        plantilla: 'time_cut',
+        protagonists: named('Ana'),
+        datos: { count: 1, limitPct: 8, gapS: 1500 },
+      }),
+    )
+    expect(uno).toContain('Ana')
+    expect(uno).toContain('8%')
+    const varios = chronicleLine(
+      event({
+        plantilla: 'time_cut',
+        protagonists: named('Ana', 'Leo'),
+        datos: { count: 4, limitPct: 18, gapS: 2000 },
+      }),
+    )
+    expect(varios).toContain('4 riders')
+    expect(varios).toContain('18%')
+  })
+
+  it('la readmisión con penalización se cuenta como lo que es', () => {
+    const l = chronicleLine(
+      event({ plantilla: 'time_cut_readmitted', datos: { count: 23, limitPct: 12 } }),
+    )
+    expect(l).toContain('23 riders')
+    expect(l).toContain('12%')
+    expect(l.toLowerCase()).toContain('points')
+  })
+})

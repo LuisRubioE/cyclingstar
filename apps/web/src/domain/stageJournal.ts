@@ -250,6 +250,59 @@ function chronicleTemplate(e: ChronicleEntry): string {
         `Behind, ${count} riders let the group go${left}, ${listNames(named)} among them.`,
       ])
     }
+    case 'rider_bonks': {
+      // LA PÁJARA (docs/motor.md §15). El motor la ejecuta desde la v8 y no la contaba: era el
+      // agujero que docs/balance.md arrastraba desde entonces («no narra la pájara»). Se cuenta con
+      // throttle largo porque en una etapa reina se vacía el pelotón entero.
+      const toGo = Number(e.datos?.toGo ?? 0)
+      return pick([
+        `${who} blows up completely and comes off the back with ${toGo} km to go.`,
+        `The tank is empty for ${who}: he cracks and slides out of the group, ${toGo} km from home.`,
+        `${who} hits the wall and loses the wheels with ${toGo} km left.`,
+      ])
+    }
+    case 'riders_bonk': {
+      const count = Number(e.datos?.count ?? e.protagonists.length)
+      const named = riders.slice(0, IDENTITY_MAX_RIDERS).map(riderShort)
+      const toGo = Number(e.datos?.toGo ?? 0)
+      const left = toGo > 0 ? ` with ${toGo} km to go` : ''
+      return `${count} riders run out of fuel${left}, ${listNames(named)} among them.`
+    }
+    case 'rider_abandons': {
+      // ABANDONO EN CARRETERA (docs/motor.md §VI.3): se baja de la bici y no llega a meta. Es el
+      // final de la carrera de ese corredor, así que lleva su identidad completa.
+      const toGo = Number(e.datos?.toGo ?? 0)
+      return pick([
+        `${who} climbs off and steps into the team car, ${toGo} km from the finish.`,
+        `It is over for ${who}: he abandons with ${toGo} km still to ride.`,
+        `${who} pulls out of the race — nothing left, ${toGo} km from home.`,
+      ])
+    }
+    case 'riders_abandon': {
+      const count = Number(e.datos?.count ?? e.protagonists.length)
+      const named = riders.slice(0, IDENTITY_MAX_RIDERS).map(riderShort)
+      if (count <= IDENTITY_MAX_RIDERS)
+        return `${count} riders abandon: ${listNames(named)} climb off and step into the team cars.`
+      const rest = count - named.length
+      return `${count} riders abandon — ${listNames([...named, `${rest} more`])} climb off.`
+    }
+    case 'time_cut': {
+      // FUERA DE CONTROL. Lo decide el jurado en meta y se narra al final de la crónica.
+      const count = Number(e.datos?.count ?? e.protagonists.length)
+      const limit = Number(e.datos?.limitPct ?? 0)
+      const named = riders.slice(0, IDENTITY_MAX_RIDERS).map(riderShort)
+      const who2 = named.length > 0 ? `: ${listNames(named)}` : ''
+      return count === 1
+        ? `${who} finishes outside the time limit (${limit}% of the winner's time) and is out of the race.`
+        : `${count} riders finish outside the ${limit}% time limit and are eliminated${who2}.`
+    }
+    case 'time_cut_readmitted': {
+      // …y la salvaguarda: cuando llega un grupo numeroso fuera de control, el jurado lo readmite
+      // con penalización en vez de vaciar la carrera (docs/motor.md §VI.3, salvaguarda 1).
+      const count = Number(e.datos?.count ?? e.protagonists.length)
+      const limit = Number(e.datos?.limitPct ?? 0)
+      return `${count} riders come home outside the ${limit}% limit, but the jury lets them start again — they lose their points for the stage.`
+    }
     case 'breakaway_formed':
       return pick([
         `${who || 'A group'} attack and open up the day's break.`,

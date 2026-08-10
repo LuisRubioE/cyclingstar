@@ -48,6 +48,12 @@ const EVENT_ORDER: Record<string, number> = {
   move_merge: 1,
   rider_sits_up: 4,
   riders_sit_up: 4,
+  // La pájara va JUSTO ANTES del descuelgue que provoca: primero se revienta, luego se cae del
+  // grupo. Y el abandono, después de todo: es el final de la historia de ese corredor (v14).
+  rider_bonks: 3.5,
+  riders_bonk: 3.5,
+  rider_abandons: 4.5,
+  riders_abandon: 4.5,
   sprinters_chase: 1,
   peloton_concedes: 1,
   sprinters_give_up: 1,
@@ -149,6 +155,17 @@ const SIT_UP_WINDOW_KM = 5
 const SIT_UP_GROUP_MIN = 3
 
 /**
+ * Qué se agrupa en racimo y con qué nombre (v14). La pájara y el abandono llegan igual que los
+ * descuelgues —en tandas, en el mismo tramo de carretera— y merecen el mismo trato: con uno o dos,
+ * mención propia; con tres o más en la misma ventana, una frase con el número.
+ */
+const CLUSTERED: readonly { single: string; many: string }[] = [
+  { single: 'rider_sits_up', many: 'riders_sit_up' },
+  { single: 'rider_bonks', many: 'riders_bonk' },
+  { single: 'rider_abandons', many: 'riders_abandon' },
+]
+
+/**
  * Traduce los eventos a la crónica que consume la web: resuelve ids a identidades completas, ordena
  * por km (y dentro del km por orden narrativo), quita duplicados y agrupa lo que en bruto sería una
  * lista. Es la frontera entre TELEMETRÍA y NARRATIVA (docs/motor.md §16): los eventos guardados no
@@ -202,7 +219,9 @@ export function buildChronicle(
         prev.protagonists.map((p) => p.name).join() !== e.protagonists.map((p) => p.name).join()
       )
     })
-  return groupSitUps(dedupeSitUps(normalizeKomLeads(normalizeSplits(ordered))))
+  let out = dedupeSitUps(normalizeKomLeads(normalizeSplits(ordered)))
+  for (const kind of CLUSTERED) out = groupRuns(out, kind.single, kind.many)
+  return out
 }
 
 /**
@@ -321,15 +340,17 @@ function dedupeSitUps(entries: ChronicleEntry[]): ChronicleEntry[] {
 }
 
 /**
- * Agrupa los descuelgues cercanos en una sola entrada `riders_sit_up` con el número (encargo A3).
+ * Agrupa en una sola entrada las menciones individuales cercanas del mismo tipo, con su número
+ * (encargo A3 del dueño: «no menciones uno a uno todos los ciclistas que se van descolgando… puedes
+ * mencionar muchos juntos con número»). Vale para los descuelgues, las pájaras y los abandonos.
  * Las entradas agrupadas conservan a TODOS sus protagonistas: cuántos nombres se dicen y cuántos se
  * resumen en «and N others» lo decide la web, que es quien sabe cuánto texto cabe en una línea.
  */
-function groupSitUps(entries: ChronicleEntry[]): ChronicleEntry[] {
-  // Los índices de los descuelgues, en orden. Se agrupan sobre ellos y NO sobre el array entero:
+function groupRuns(entries: ChronicleEntry[], single: string, many: string): ChronicleEntry[] {
+  // Los índices de las menciones, en orden. Se agrupan sobre ellos y NO sobre el array entero:
   // entre dos descuelgues de la misma ventana puede haber otras frases (un parte de cabeza, un
   // ataque) que no se tocan ni cambian de sitio.
-  const idx = entries.flatMap((e, i) => (e.plantilla === 'rider_sits_up' ? [i] : []))
+  const idx = entries.flatMap((e, i) => (e.plantilla === single ? [i] : []))
   /** El racimo que sustituye a cada posición; `null` en las que desaparecen absorbidas. */
   const replacement = new Map<number, ChronicleEntry | null>()
   for (let a = 0; a < idx.length;) {
@@ -345,7 +366,7 @@ function groupSitUps(entries: ChronicleEntry[]): ChronicleEntry[] {
       replacement.set(idx[b]!, {
         km: last.km,
         tS: last.tS,
-        plantilla: 'riders_sit_up',
+        plantilla: many,
         protagonists: run.flatMap((e) => e.protagonists),
         datos: {
           count: run.length,

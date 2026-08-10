@@ -133,6 +133,50 @@ describe('A3 · los descuelgues se agrupan', () => {
     expect(out).toHaveLength(1)
     expect(out[0]?.km).toBe(196)
   })
+
+  // v14: la pájara y el abandono llegan igual —en tandas, en el mismo tramo— y se agrupan con el
+  // MISMO mecanismo, no con una copia de él (docs/motor.md §VI.3).
+  const runOf = (plantilla: string, kms: number[]): ChronicleEvent[] =>
+    kms.map((km, i) =>
+      ev({ km, tS: km * 100, plantilla, protagonistas: [`r${i}`], datos: { toGo: 220 - km } }),
+    )
+
+  it('las pájaras cercanas también se agrupan', () => {
+    const out = buildChronicle(
+      runOf('rider_bonks', [140, 142, 144]),
+      chronicleNames([source('r0'), source('r1'), source('r2')]),
+    )
+    expect(out).toHaveLength(1)
+    expect(out[0]?.plantilla).toBe('riders_bonk')
+    expect(out[0]?.datos?.count).toBe(3)
+  })
+
+  it('y los abandonos', () => {
+    const out = buildChronicle(
+      runOf('rider_abandons', [90, 91, 93, 94]),
+      chronicleNames([source('r0'), source('r1'), source('r2'), source('r3')]),
+    )
+    expect(out).toHaveLength(1)
+    expect(out[0]?.plantilla).toBe('riders_abandon')
+    expect(out[0]?.datos?.count).toBe(4)
+  })
+
+  it('un abandono suelto conserva su frase propia', () => {
+    const out = buildChronicle(runOf('rider_abandons', [90]), chronicleNames([source('r0')]))
+    expect(out.map((e) => e.plantilla)).toEqual(['rider_abandons'])
+  })
+
+  it('la pájara se cuenta ANTES del descuelgue que provoca, y el abandono después', () => {
+    const out = buildChronicle(
+      [
+        ev({ km: 120, tS: 12000, plantilla: 'rider_abandons', protagonistas: ['a'] }),
+        ev({ km: 120, tS: 12000, plantilla: 'rider_sits_up', protagonistas: ['b'] }),
+        ev({ km: 120, tS: 12000, plantilla: 'rider_bonks', protagonistas: ['c'] }),
+      ],
+      chronicleNames([source('a'), source('b'), source('c')]),
+    )
+    expect(out.map((e) => e.plantilla)).toEqual(['rider_bonks', 'rider_sits_up', 'rider_abandons'])
+  })
 })
 
 describe('B1/B2 · la cadena de cortes de las crónicas viejas', () => {
