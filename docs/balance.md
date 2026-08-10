@@ -2024,3 +2024,226 @@ el defecto de fondo (los descolgados vuelven gratis) y sigue pendiente.
 - **No toca la clasificación de la montaña de la CARRERA.** El motor solo conoce los puntos de SU
   etapa, así que el liderato que canta es el de la etapa; por eso la frase pasa de «he now leads the
   mountains classification» a «and takes the lead in the mountains», que es lo que sabe.
+
+## v14 — Abandonos y pájara (`engine_version` 13 → 14)
+
+> «Claro!! Quiero que si un ciclista no puede más pues que abandone automáticamente… e incluso
+> dejarle a un humano entre una etapa y otra decidir abandonar.» — el dueño.
+
+Cierra el **Cambio 4** de docs/motor.md §15 y la especificación cerrada de **§VI.3**. Hasta aquí
+`StageResult.estado` contemplaba `'abandon' | 'dnf'` desde el Paso 21 y el motor **jamás** emitió
+otra cosa que `'finish'`: en una gran vuelta de 21 etapas con caídas y lesiones, los 176 que salían
+eran los 176 que acababan.
+
+### 0. La precondición de §VI.3, medida antes de escribir una línea
+
+§VI.3 dice, y con razón, que **el abandono automático se implementa DESPUÉS del reagrupamiento**:
+«hoy la montaña produce 30 grupos de un corredor; aplicar el corte tal cual eliminaría a media
+carrera». Eso se escribió antes de la v8 (`dropOut` une al descolgado a un grupeto cercano) y de la
+v12 (`chaseBackShutFloor`). **Se cumple hoy.** Medido con 60 semillas por escenario:
+
+| Escenario                       | Grupos en meta (mediana) | De un corredor | Grupo mayor |
+| ------------------------------- | ------------------------ | -------------- | ----------- |
+| `reina-150` sintética           | **7**                    | 2              | 21 de 40    |
+| `reina-150-s3` (tercera semana) | 7                        | 2              | 22 de 40    |
+| `llana-180`                     | 1                        | 0              | 40 de 40    |
+| Ronde van Vlaanderen (278 km)   | 3,5                      | 1              | 32 de 40    |
+| Reina REAL (Race France e18)    | 6                        | 1              | 18 de 40    |
+
+El diagnóstico original (§3-bis-e) medía **33 grupos en meta sobre 40 corredores, 30 de ellos de un
+solo corredor**. Hoy son 7 y 2. La precondición está cumplida y el corte se puede aplicar.
+
+### 1. El histograma de retrasos, que es lo que decide la calibración
+
+Retraso respecto al ganador, en % de su tiempo. Es el número que dice si un corte del 8 %/18 %
+elimina a tres o a sesenta:
+
+| Escenario                    | p50  | p90  | p99  | máximo   |
+| ---------------------------- | ---- | ---- | ---- | -------- |
+| `reina-150`                  | 3,27 | 4,64 | 5,47 | **5,51** |
+| `reina-150-s3`               | 3,37 | 4,12 | 5,03 | 5,03     |
+| `llana-180`                  | 0,00 | 0,00 | 0,81 | 0,81     |
+| Ronde van Vlaanderen         | 0,97 | 1,31 | 1,41 | 2,33     |
+| Reina REAL (Race France e18) | 1,28 | 1,76 | 2,04 | 2,09     |
+| Reina REAL, tercera semana   | 0,90 | 2,70 | 4,19 | 4,83     |
+
+Y con el campo REAL de una gran vuelta (176 corredores generados con `generateNpcRider`, 22 equipos
+de 8, las 21 etapas de Race France): **el peor retraso de una etapa en línea es del 6,7 %**, y la
+mediana de las etapas llanas es 0,00 %.
+
+> **Conclusión, y es el hallazgo de esta tanda: con el corte de §VI.3 puesto tal cual (8 % en llana,
+> 18 % en la reina) NO SE ELIMINA PRÁCTICAMENTE A NADIE.** No es que el corte esté mal puesto: es que
+> **los rezagados del motor pierden demasiado poco tiempo**. En el ciclismo real el grupeto de una
+> etapa reina entra 25-35 minutos detrás en una etapa de 5 h (≈ 10 %) y ahí es donde se produce la
+> eliminación; aquí el peor grupeto entra al 5-6 %. Es un defecto ABIERTO del modelo de persecución
+> —el descolgado recorta demasiado (`chaseBackSecondsPerKm`) y `giveUpMaxLossFraction` le impide
+> ceder más del 5 %— y **no se toca en esta tanda**, porque mover eso recalibra todas las etapas.
+>
+> Consecuencia directa: la causa «fuera de control», a la que §VI.3 asigna el 45 % del peso, aporta
+> hoy el **1 %**. Ver §5, «el reparto real de causas».
+
+**La CONTRARRELOJ es el caso contrario, y por eso queda fuera del corte.** En una crono de 20 km con
+176 corredores el motor reparte un abanico de **15 % de mediana, 25 % en el p90 y 36 % en la cola**:
+con el corte puesto, la etapa 1 de una gran vuelta se llevaría por delante a **150 de 176**. Ese
+abanico es un defecto abierto del modelo de crono, no de esta tanda, así que `simulateTimeTrial` no
+aplica corte y queda anotado aquí.
+
+### 2. Qué distingue `abandon` de `dnf` en este proyecto
+
+El SPEC (tabla `stage_results`) enumera cuatro estados —`ok, fuera_control, abandono, caida`— y el
+tipo del motor tiene tres. El reparto adoptado, que es el que respeta la frontera motor/datos:
+
+| Estado del motor | Significa                                       | Tiene tiempo | SPEC            |
+| ---------------- | ----------------------------------------------- | ------------ | --------------- |
+| `finish`         | Llegó y está clasificado                        | Sí           | `ok`            |
+| `abandon`        | **Se bajó de la bici** durante la etapa         | No           | `abandono`      |
+| `dnf`            | Llegó pero **fuera de control**, sin clasificar | Sí           | `fuera_control` |
+
+Y **no tomar la salida al día siguiente NO es un estado de etapa**: es `race_rosters.abandoned_day`
+y lo decide `packages/db`. El motor simula UNA etapa y no sabe que hay un mañana.
+
+### 3. Las cuatro causas y dónde vive cada una
+
+| Causa                | Quién decide  | Regla                                                                                   |
+| -------------------- | ------------- | --------------------------------------------------------------------------------------- |
+| **Colapso**          | Motor         | Tanque a cero ≥ 20 km seguidos, a > 30 km de meta, descolgado y con su grupo ya a > 5 % |
+| **Fuera de control** | Motor         | Llegar más allá del 8 % (llana) al 18 % (reina), medido **contra el grupo**             |
+| **Lesión**           | `packages/db` | Caída `minor` o `major`, o baja ≥ 10 días (`injuryEndsRace`)                            |
+| **Enfermedad**       | `packages/db` | Dado diario en carrera con la curva del TSB (`raceIllnessProbability`)                  |
+
+**El colapso necesita las cuatro condiciones, y esto es lo que más costó.** «Tanque a cero» a secas
+no sirve: en la etapa 18 de una gran vuelta con el campo de tercera semana **el 100 % del pelotón
+cruza la meta vacío** (medida informativa de `pnpm sim`, `reina-real-s3`). Una regla que solo mirase
+`energy <= 0` retiraría a la carrera entera. El filtro que de verdad separa a los tres que se bajan
+de los ciento setenta que también llegan vacíos es `collapseMinLostFraction`: **uno se baja de la
+bici cuando ya sabe que no llega dentro del corte**.
+
+Se probó además exigir que el corredor se hubiera «dejado ir» (`gaveUp`, regla 8 de §13) y es una
+condición **imposible** de cumplir a la vez que las otras: `administerEffort` solo sortea dentro de
+los últimos `giveUpKm` = 25 km, y el colapso exige estar a más de 30 km de meta. Queda anotado en
+`shouldCollapse` para que no se vuelva a intentar.
+
+### 4. Dos arreglos que salieron por el camino, y que valen por sí solos
+
+**La lesión no sacaba a nadie de la vuelta.** El umbral era `severidad === 'major' || diasBaja >= 15`
+y `major` es el 1 % de las caídas: una gran vuelta perdía **1 corredor en tres semanas (0,6 %)**.
+Peor: un corredor con una lesión `minor` de 10 días quedaba marcado `lesionado` —fuera de los rosters
+de todas las demás carreras (`calendarRun.ts:82`)— **y seguía corriendo esta**. Ahora lo decide
+`injuryEndsRace` por SEVERIDAD (un rasguño no te saca de una gran vuelta; una lesión, sí) y son
+**7-14 abandonos por vuelta**. Medido sobre una vuelta: ~95 caídas, de las que 18-33 son rasguños,
+7-10 leves y 0-1 graves.
+
+**El dado de la enfermedad no se tiraba nunca en carrera.** Solo se tira en `simulateRiderDay`, y
+quien corre no pasa por ahí (lo dice el propio comentario de `HEALTH.illnessMax`: «una tanda de
+carreras iba cargando una mina que estallaba el día del descanso»). En una gran vuelta de tres
+semanas, con el pelotón hundido de TSB, **no enfermaba absolutamente nadie**. §VI.3 pide
+explícitamente «o enfermar durante la carrera», así que se tira el mismo dado, con la misma curva,
+escalado por `illnessRaceFactor` y con su propio techo; en carrera, enfermar significa abandonar.
+
+### 5. El reparto real de causas, y el objetivo
+
+Medido sobre **6 grandes vueltas** deterministas de 21 etapas y 176 corredores
+(`sim/grandTour.ts`, el mismo banco que vigila CI):
+
+| Medida                        | Objetivo §VI.3 | Medido                   |
+| ----------------------------- | -------------- | ------------------------ |
+| **Abandonos en tres semanas** | **12 – 20 %**  | **14,4 %** (13,1 – 15,9) |
+| Terminan de 176               | 140 – 155      | **151** (mediana)        |
+| Fuera de control              | ~45 %          | **0 %**                  |
+| Lesión                        | ~40 %          | **31 %**                 |
+| Colapso + enfermedad          | ~15 %          | **69 %** (23 % + 46 %)   |
+
+**El total cae en el objetivo; el reparto NO, y es deliberado.** La razón está en §1: con los
+retrasos que produce el motor hoy, un corte del 8-18 % no elimina a nadie, y bajarlo por debajo de
+lo que dice §VI.3 sería relajar la especificación para que salga el número. Lo que se ha hecho es
+respetar el corte tal cual y dejar que las otras causas lleven el peso, **anotando la deuda**: el
+día que el modelo de persecución deje que un grupeto pierda el 10 % —que es lo que pasa en la
+carretera— la causa «fuera de control» subirá sola y las otras se podrán bajar. Es un ajuste de una
+perilla, no un rediseño.
+
+### 6. Las salvaguardas, y cuánto se activan
+
+1. **Tope del 4 % por etapa.** Se toca en **5 de las 126 etapas** simuladas, y siempre en la misma:
+   la etapa 20 de Race France (171 km, **4.515 m de desnivel**, 26,4 m/km — la más dura del
+   calendario), donde el 100 % del campo entra en pájara. Ahí el tope deja pasar 6 abandonos de ~155
+   corredores y **es lo único que está entre el diseño y una masacre**. Que la salvaguarda sea hoy el
+   regulador de esa etapa concreta es consecuencia directa del defecto abierto «la reina real de
+   tercera semana satura el depósito»: cuando eso se arregle, el colapso caerá por debajo del tope
+   solo. Queda vigilado por el invariante `el tope del 4% por etapa nunca se rebasa`.
+2. **Readmisión con penalización.** **0 veces en las 126 etapas**, por la misma razón que la causa
+   «fuera de control» aporta el 0 %: el corte no señala a nadie. Está implementada, probada en
+   `stage/abandon.test.ts` (seis casos, incluido «un grupo NUMEROSO fuera de control se readmite
+   entero») y verificada de punta a punta en `stage/simulate.test.ts` con un escenario de
+   laboratorio —un puerto de 40 km al 9 % con el campo partido en dos— donde el corte señala a 9-12
+   corredores, el tope es de 1 y **se readmite a todos** perdiendo los puntos de la etapa, que es la
+   penalización del reglamento.
+3. **El corte se mide contra el GRUPO.** `applyTimeCut` recibe los grupos de meta (los que comparten
+   tiempo, que es como el motor asigna el reloj) y elimina o salva grupos enteros. Un corredor no
+   queda fuera por llegar 5 s detrás de su grupeto.
+
+### 7. La pájara: activa desde la v8, narrada desde la v14
+
+El primer punto de §15 («pasar `bonk` a `effNow` cuando el tanque llega a cero») **ya estaba hecho**:
+lo activó la v8 (`riderEff` → `effNow(eff0, e, isBonked(sim))`, commit `4961eb7`), y desde entonces
+`pnpm sim` reporta el porcentaje de pájaras en el escenario «desgaste». Lo que faltaba, y era el
+agujero que este documento arrastraba desde la v6 («no narra la pájara»), es **contarla**.
+
+Ahora el motor emite `rider_bonks` con la telemetría completa y marca cuáles merecen frase, con un
+throttle largo (`bonkNarrateKmGap` = 15 km) por la misma razón de siempre: en una etapa reina se
+vacía el pelotón entero y narrar 170 pájaras repetiría el defecto que arregló la v13. Medido sobre
+la reina real de tercera semana: **16 pájaras de telemetría, 2 narradas**. La crónica las agrupa en
+racimo con número exactamente igual que los descuelgues, con el MISMO mecanismo (`groupRuns`), no
+con una copia de él.
+
+### Perillas nuevas
+
+| Constante                      | Valor       | Qué hace                                                                                    |
+| ------------------------------ | ----------- | ------------------------------------------------------------------------------------------- |
+| `collapseSustainedKm`          | 20          | Km seguidos con el tanque a cero antes de que retirarse sea creíble                         |
+| `collapseMinKmToGo`            | 30          | Y a más de esto de meta: a diez kilómetros nadie se baja de la bici                         |
+| `collapseMinLostFraction`      | 0,05        | …y con su grupo ya camino del fuera de control. **Es el filtro que hace la calibración**    |
+| `lambdaCollapse`               | 0,0025      | Intensidad (por km) del abandono una vez cumplidas las condiciones                          |
+| `collapseLambdaGrowthPerKm`    | 0,03        | …que crece con lo que lleve arrastrándose de más                                            |
+| `timeCutFlat` / `timeCutQueen` | 0,08 / 0,18 | El corte de §VI.3, literal                                                                  |
+| `timeCutHardnessGainPerKm`     | 22          | Desnivel (m/km) al que el corte llega al 18 %. Medido: llana 0,8-3, media 5-14, reina 15-26 |
+| `abandonStageCapFraction`      | 0,04        | Salvaguarda 1: lo que como mucho se va en una etapa por decisión del motor                  |
+| `abandonInjuryDays`            | 10          | Baja que saca de la vuelta aunque la caída no llegue a `minor`                              |
+| `bonkNarrateKmGap`             | 15          | Km entre dos pájaras contadas                                                               |
+| `HEALTH.illnessRaceFactor`     | 0,15        | Escala de la curva de enfermedad en un día de CARRERA frente a uno de entrenamiento         |
+| `HEALTH.illnessRaceMax`        | 0,0045      | …y su techo. Es la perilla que centra el total en el 12-20 %                                |
+
+### La huella de tiempos NO se mueve
+
+`stage/attribution.test.ts` sella la huella `puesto:corredor:tiempo` de dos etapas de `reina-150` y
+sale **idéntica** a la de la v13. Dos razones, y las dos son de diseño:
+
+1. **El azar nuevo sale de un subflujo NOMINAL propio, `abandon`.** Reutilizar `rngTactics` (que
+   consume `administerEffort` bloque a bloque) o `rngHazard` (el descuelgue en montaña) habría
+   desplazado secuencias calibradas y movido resultados sin que ninguna ley cambiara. Es la misma
+   doctrina con la que la v12 creó `rough`.
+2. **En `reina-150` no se retira nadie**: sus 15 km de subida están en los últimos 15 km, así que
+   `collapseMinKmToGo` = 30 lo hace imposible por construcción, y el peor retraso (5,5 %) está muy
+   por debajo del corte. La huella no se resella y no hay nada que justificar.
+
+### Objetivos de `targets.ts`: uno nuevo, ninguno movido
+
+Se añade `grandTour.abandonPct` (12-20 %), que es el criterio de éxito de esta tanda. **Ningún
+objetivo existente se ha tocado**: los ocho de llano, montaña, crono y desgaste salen exactamente
+igual que en la v13.
+
+### Lo que este cambio NO hace
+
+- **No toca el modelo de persecución** (`chaseBackSecondsPerKm`, `giveUpMaxLossFraction`), que es la
+  razón de que el fuera de control no dispare. Se midió: sentarse a `giveUpCommit` durante los
+  últimos 25 km cuesta ~256 s sobre una etapa de 4 h, un **1,8 %** — el tope del 5 % ni siquiera
+  llega a ser vinculante, así que subirlo no cambiaría nada. Lo que hay que arreglar es el recorte.
+- **No aplica el corte en contrarreloj** (ver §1), y por tanto la etapa 1 de una gran vuelta no
+  elimina a nadie aunque el último entre 36 % detrás.
+- **No pasa la fragilidad oculta al motor.** `StageRider.fragility` existe y escala la lesión al
+  caer, y `stageRun.ts` **nunca lo rellenaba**: todas las carreras de producción corren con
+  fragilidad 1. Ahora se lee del genoma para la enfermedad, pero pasárselo al motor cambiaría las
+  caídas de todas las etapas y es una recalibración por sí misma. Queda anotado.
+- **No pone el botón de retirarse en el dashboard.** §V.5 lo sugería «probablemente»;
+  docs/navegacion.md §4 dice que el dashboard es «solo lo accionable, ordenado por urgencia» y «sin
+  atajos de sección». Retirarse no es urgente y es irreversible: vive en `My Rider → My races`, con
+  confirmación, que es donde el jugador ya mira su programa.

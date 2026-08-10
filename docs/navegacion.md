@@ -96,6 +96,14 @@ Profile │ Training │ Race orders │ My races │ Contract │ Finances
 
 La página `/race-entry` actual **se borra y se rehace** como la pestaña _Available to enter_.
 
+> **Añadido en la v14 del motor: RETIRARSE de una carrera en marcha** (docs/motor.md §V.5). En
+> _Upcoming_, una carrera POR ETAPAS que ya está rodando trae un botón `Abandon` que **pide
+> confirmación** antes de hacer nada: retirarse no se deshace, y es la única acción destructiva de
+> esta página. Va aquí y **no en el dashboard** aunque §V.5 lo sugería: el dashboard es «solo lo
+> accionable, ordenado por urgencia, sin atajos de sección» (§4), y retirarse no caduca con el
+> próximo tick. Aquí, en cambio, el jugador ya está mirando su programa —es el sitio donde uno
+> decide qué corre y qué no— y tiene la carrera delante con sus etapas y su dorsal.
+
 **`Contract` (antes `Market`)** — mi contrato actual, mi salario, y **mis ofertas**.
 
 > **Decisión: las ofertas viven aquí, tenga equipo o no.** Puedo recibir ofertas _estando_ en un

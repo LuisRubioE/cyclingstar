@@ -3,7 +3,8 @@
 Estado: **documento vivo.** Las Partes I y II son el diagnóstico (medido) y siguen valiendo como
 retrato de lo que había. En la Parte III cada cambio lleva su estado: **§12-bis hecho** (v3),
 **§16 primera entrega** (v6), **§12 hecho** (v7), **§13 hecho** (v9), **§18 hecho** (v10),
-**§16 segunda entrega** (v11) y **§14 hecho** (v12). Lo demás sigue siendo propuesta.
+**§16 segunda entrega** (v11), **§14 hecho** (v12), **§16 tercera entrega** (v13) y
+**§15 hecho** (v14). Lo demás sigue siendo propuesta.
 
 Ámbito: `packages/engine/src/stage/` (2.333 líneas sin tests). Referencias a SPEC 6.
 
@@ -578,13 +579,53 @@ la v10.
 docs/fuentes-recorridos.md): 15 sectores de _sterrato_ reales, 70,5 de sus 215 km, con dureza
 publicada de 1 a 5 estrellas.
 
-### 15. Cambio 4 — Consecuencias de la fatiga
+### 15. Cambio 4 — Consecuencias de la fatiga (HECHO, v14)
+
+> **Implementado en `engine_version` 14.** Las reglas puras viven en
+> `packages/engine/src/stage/abandon.ts` y su aplicación en `simulate.ts`; lo que decide quién no
+> toma la salida al día siguiente vive en `packages/db/src/stageRun.ts`, que es quien sabe que hay un
+> mañana. La retirada voluntaria es `retireFromRace()` + `POST /api/riders/me/races/:raceKey/retire`.
+> Los números de antes y después están en docs/balance.md, «v14 — Abandonos y pájara», y el criterio
+> de éxito lo vigila CI con una gran vuelta simulada entera (`sim/grandTour.ts`).
+>
+> Lo que sigue es el encargo original, que se conserva porque es el contrato contra el que se midió.
 
 - **Activar la pájara**: pasar `bonk` a `effNow` cuando el tanque llega a cero. El código ya existe.
 - **Abandonos y fuera de control** (decidido, ver §V.5): abandono **automático** cuando el corredor
   no puede más (tanque agotado, lesión seria, corte de tiempo) y abandono **voluntario entre etapas**
   para el jugador humano que prefiere retirarse y preparar otra carrera. Hoy el tipo `StageResult`
   contempla `'abandon' | 'dnf'` y nunca se emiten.
+
+#### 15.1 Qué quedó implementado (v14) y qué no
+
+**La pájara ya estaba activa desde la v8** (`riderEff` pasa `isBonked(sim)` a `effNow`): lo que
+faltaba era **narrarla**, que era el agujero que docs/balance.md arrastraba desde la v6. Ahora el
+motor emite `rider_bonks` con throttle largo (en la reina de tercera semana se vacía el pelotón
+entero) y la crónica lo agrupa en racimo con número, igual que los descuelgues.
+
+**Los abandonos** son cuatro causas repartidas según quién puede saberlo:
+
+| Causa                 | Quién decide  | Estado emitido               |
+| --------------------- | ------------- | ---------------------------- |
+| Colapso               | Motor         | `abandon` (no llega a meta)  |
+| Fuera de control      | Motor         | `dnf` (llega, no clasifica)  |
+| Lesión                | `packages/db` | `race_rosters.abandoned_day` |
+| Enfermedad en carrera | `packages/db` | `race_rosters.abandoned_day` |
+
+**Lo que NO entró, y por qué:**
+
+- **El corte de tiempo casi nunca dispara** y por eso «fuera de control» aporta el 1 % en vez del
+  45 % de §VI.3. No es que el corte esté mal puesto: **los rezagados del motor pierden demasiado
+  poco tiempo** (el peor grupeto de una etapa reina real entra al 5-6 %, cuando en carretera entra
+  al 10 %). Es el modelo de persecución (`chaseBackSecondsPerKm`), y arreglarlo recalibra todas las
+  etapas. Medido en docs/balance.md, «v14 §1».
+- **La contrarreloj no lleva corte.** El motor reparte en una crono de 20 km un abanico del 36 % en
+  la cola: con el corte puesto, la etapa 1 de una gran vuelta eliminaría a 150 de 176. Es un defecto
+  abierto del modelo de crono.
+- **La fragilidad oculta sigue sin llegar al motor.** `StageRider.fragility` existe, escala la lesión
+  al caer y `stageRun.ts` nunca lo rellenaba: todas las carreras de producción corren con fragilidad
+  1. Ahora se lee del genoma para la enfermedad, pero pasárselo al motor cambiaría las caídas de
+     todas las etapas.
 
 ### 16. Cambio 5 — Telemetría: que el motor cuente lo que sabe
 
@@ -646,16 +687,16 @@ y que los replays dejan de depender de re-simular.
 
 ### 17. Orden de trabajo propuesto
 
-| #   | Trabajo                                                               | Por qué en este puesto                                                                                                                                                |
-| --- | --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0   | **Desgaste + controlador del pelotón + velocidades** (§12-bis)        | Es la raíz medida. Sin desgaste y con el controlador atado a la fuga, nada de lo demás puede dar resultados creíbles. No depende de los perfiles: se puede empezar YA |
-| 1   | ~~Modelo de final (§12)~~ **HECHO (v7)**                              | Máximo impacto por esfuerzo una vez hay desgaste: arregla "gana quien no debe"                                                                                        |
-| 2   | ~~Selección en pavés/descenso (§14)~~ **HECHO (v12)** · fatiga (§15)  | El pavés no existía como terreno (brecha de 0 s en meta). Hecha la selección; la fatiga (§15) y los abandonos siguen pendientes                                       |
-| 3   | **Perfiles reales** (extracción y validación)                         | Entrada del motor. Necesarios **antes de la recalibración final**, no antes de las correcciones estructurales                                                         |
-| 4   | ~~Capa táctica (§13)~~ **HECHO (v9)**                                 | El desarrollo grande. Es lo que hace que las carreras se distingan entre sí                                                                                           |
-| 5   | Telemetría (§16) — **v6, v11 y v13 hechas, lo estructural pendiente** | Habilita el journal y las vistas nuevas                                                                                                                               |
-| 6   | Recalibración completa con Montecarlo                                 | Solo al final, con entradas buenas y mecánicas completas                                                                                                              |
-| —   | ~~Composición de la carrera y caza por campo (§18)~~ **HECHO (v10)**  | Se coló delante del 2 y del 3 porque sin ella el motor no tenía nada que resolver: la carrera generada no repartía tiempo por ninguna parte                           |
+| #   | Trabajo                                                                                  | Por qué en este puesto                                                                                                                                                |
+| --- | ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0   | **Desgaste + controlador del pelotón + velocidades** (§12-bis)                           | Es la raíz medida. Sin desgaste y con el controlador atado a la fuga, nada de lo demás puede dar resultados creíbles. No depende de los perfiles: se puede empezar YA |
+| 1   | ~~Modelo de final (§12)~~ **HECHO (v7)**                                                 | Máximo impacto por esfuerzo una vez hay desgaste: arregla "gana quien no debe"                                                                                        |
+| 2   | ~~Selección en pavés/descenso (§14)~~ **HECHO (v12)** · ~~fatiga (§15)~~ **HECHO (v14)** | El pavés no existía como terreno (brecha de 0 s en meta). Hechas las dos: la selección en la v12 y los abandonos con la pájara narrada en la v14                      |
+| 3   | **Perfiles reales** (extracción y validación)                                            | Entrada del motor. Necesarios **antes de la recalibración final**, no antes de las correcciones estructurales                                                         |
+| 4   | ~~Capa táctica (§13)~~ **HECHO (v9)**                                                    | El desarrollo grande. Es lo que hace que las carreras se distingan entre sí                                                                                           |
+| 5   | Telemetría (§16) — **v6, v11 y v13 hechas, lo estructural pendiente**                    | Habilita el journal y las vistas nuevas                                                                                                                               |
+| 6   | Recalibración completa con Montecarlo                                                    | Solo al final, con entradas buenas y mecánicas completas                                                                                                              |
+| —   | ~~Composición de la carrera y caza por campo (§18)~~ **HECHO (v10)**                     | Se coló delante del 2 y del 3 porque sin ella el motor no tenía nada que resolver: la carrera generada no repartía tiempo por ninguna parte                           |
 
 Cada cambio de comportamiento incrementa `engine_version` y se anota en `docs/balance.md`.
 
@@ -771,7 +812,17 @@ Ninguna carrera del calendario actual la usa. (La CRE del Tour real era, de hech
 salida por equipos.) Las constantes `teamTt*` **se conservan** marcadas como pendientes, no se
 retiran.
 
-### V.5 Abandonos: automáticos y voluntarios
+### V.5 Abandonos: automáticos y voluntarios (HECHO, v14)
+
+> **Las dos vías están implementadas.** La automática, en §15 y §VI.3. La voluntaria vive en
+> `packages/db/src/riderSchedule.ts::retireFromRace()` y se dispara desde
+> `POST /api/riders/me/races/:raceKey/retire`, con su contrato Zod en `packages/shared`. Deja la
+> MISMA marca que un abandono automático (`race_rosters.abandoned_day`, con el motivo `voluntario`),
+> así que no hay un segundo camino de consecuencias que mantener. Su punto en la interfaz es
+> **`My Rider → My races → Upcoming`**, con confirmación, y solo aparece en una carrera POR ETAPAS
+> que ya esté rodando. **No** está en el dashboard: docs/navegacion.md §4 lo reserva a «solo lo
+> accionable, ordenado por urgencia, sin atajos de sección», y retirarse no es urgente y no se
+> deshace.
 
 Dos vías, ambas deseadas:
 
@@ -862,7 +913,23 @@ mánager** (herramienta futura: no convocar, sancionar, rescindir).
 > desobedecer sigue siendo posible y a veces acertado (soy más fuerte que mi líder, o me han dado un
 > rol absurdo), pero no es gratis por defecto.
 
-### VI.3 Umbral del abandono automático
+### VI.3 Umbral del abandono automático (HECHO, v14)
+
+> **Implementado y medido.** La precondición de más abajo —«hasta que el reagrupamiento esté
+> arreglado, aplicar el corte eliminaría a media carrera»— **se comprobó antes de escribir una línea
+> y se cumple**: la reina canónica pasó de 33 grupos en meta con 30 de un corredor (§3-bis-e) a
+> **7 grupos con 2 de un corredor**. Los números están en docs/balance.md, «v14», §0.
+>
+> **El objetivo del 12-20 % se cumple (14,4 % medido sobre 6 grandes vueltas de 21 etapas, terminan
+> 151 de 176) y lo vigila CI.** El REPARTO de causas no: «fuera de control» aporta el 1 % en vez del
+> 45 %, porque con los retrasos que produce el motor hoy —el peor grupeto de una etapa reina real
+> entra al 5-6 %— un corte del 8-18 % no señala a nadie. Se prefirió respetar el corte tal cual y
+> dejar que las otras causas lleven el peso antes que bajarlo para cuadrar el reparto. La deuda
+> concreta es el modelo de persecución, no este umbral.
+>
+> Las dos salvaguardas están implementadas y probadas: el tope del 4 % se toca en 5 de 126 etapas
+> (siempre la más dura del calendario) y la readmisión con penalización no llega a activarse en el
+> calendario real, por la misma razón que el corte.
 
 **Objetivo de diseño, medible:** una gran vuelta de 21 etapas debe empezar con ~176 y terminar con
 **entre 140 y 155** (abandona el **12-20%**), que es el rango real. Traducido: **≈1% del pelotón por
