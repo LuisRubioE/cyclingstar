@@ -3,8 +3,9 @@
 Estado: **documento vivo.** Las Partes I y II son el diagnóstico (medido) y siguen valiendo como
 retrato de lo que había. En la Parte III cada cambio lleva su estado: **§12-bis hecho** (v3),
 **§16 primera entrega** (v6), **§12 hecho** (v7), **§13 hecho** (v9), **§18 hecho** (v10),
-**§16 segunda entrega** (v11), **§14 hecho** (v12), **§16 tercera entrega** (v13) y
-**§15 hecho** (v14). Lo demás sigue siendo propuesta.
+**§16 segunda entrega** (v11), **§14 hecho** (v12), **§16 tercera entrega** (v13),
+**§15 hecho** (v14), **§V.1 hecho** (v15) y **§9-bis hecho** (v16, el modelo de persecución: la
+última deuda de fondo). Lo demás sigue siendo propuesta.
 
 Ámbito: `packages/engine/src/stage/` (2.333 líneas sin tests). Referencias a SPEC 6.
 
@@ -149,6 +150,12 @@ pelotón clava el boquete en `gcControlLeash` = 265 s durante ~100 km —la cró
 
 **e) La montaña se desintegra.** Mediana de **33 grupos en meta sobre 40 corredores, 30 de ellos de
 un solo corredor**. No hay reagrupamiento ni grupeto en subida.
+
+> **AL DÍA (v14 y v16): 7 grupos con 2 de un corredor.** La v14 lo arregló con el grupeto
+> (`grupetoJoinGapSeconds`) y era la precondición para poder aplicar el corte de tiempo. La v16
+> tocaba de lleno esta cuenta —los descolgados dejan de volver gratis— y **el número no ha
+> empeorado**: siguen siendo 7 y 2 sobre 150 corridas, ahora además porque el grupo grande tiene un
+> motivo físico para rodar junto (se releva y el suelto no).
 
 **f) El pavés no existe como terreno.** 55 km con 25 de pavé 4★, PAV del campo entre 45 y 83:
 **brecha 1.º-último de 0 s, un único grupo en meta**, y el PAV mediano del ganador es **67** — el
@@ -299,12 +306,56 @@ paceFraction`). Los primeros de `input.riders` gastan siempre más, y un líder 
   en corrección.)_
 - ~~**Los puntos de banner y cima usan `eff0`, no `effNow`** (`:573`, `:609`): ignoran la erosión,
   así que un escalador reventado sigue coronando primero.~~ **Corregido en v7** (§12).
-- **Parches sobre la falta de un modelo de persecución**: el tiempo de un grupo descolgado se
+- ~~**Parches sobre la falta de un modelo de persecución**: el tiempo de un grupo descolgado se
   _pega_ al del pelotón en llano (`:440`) y los descolgados cierran a un ritmo fijo en s/km
   (`:449`). El propio comentario admite que se añadió para tapar "fugas fantasma". Funciona, pero
-  es sintomático.
+  es sintomático.~~ **RESUELTO en v16** (ver §9-bis).
 - **El controlador del pelotón no sabe de equipos**: no hay "el equipo del líder defiende", ni
   intereses distintos por equipo. Solo "hay sprinters" o "no los hay".
+
+### 9-bis. El modelo de persecución (HECHO, v16)
+
+> **La última deuda de fondo del documento, y la única que estaba anotada tres veces con
+> mediciones.** La v8 la vio en «el pelotón entero al mismo segundo», la v12 la nombró al calibrar el
+> pavé y la v14 la midió entera: **el peor retraso de una gran vuelta era del 6,7 % contra un corte
+> del 8-18 %, así que el corte no eliminaba a nadie.** Medido y cerrado en docs/balance.md, «v16».
+
+**El defecto.** El tiempo del descolgado dejaba de ser física en dos líneas de `simulate.ts`: un
+RECORTE FIJO de 8 s por kilómetro (`chaseBackSecondsPerKm`) que le devolvía el boquete pasara lo que
+pasara —fuera uno o cuarenta, en el llano o en una rampa al 9 %, entero o vacío— y un TOPE que le
+clavaba el reloj del pelotón si resultaba ir más rápido. Las dos pisaban lo que `advanceGroup`
+acababa de calcular. De ahí colgaban los tres síntomas que se veían en pantalla: el corte de tiempo
+no eliminaba a nadie, la causa «fuera de control» aportaba el 0-4 % en vez del 45 % de §VI.3, y 6 de
+7 etapas de producción terminaban con el pelotón ENTERO al mismo segundo mientras la crónica contaba
+que el grupo de cabeza había pasado de 116 a 80.
+
+**Lo que hay ahora** es `droppedCommit(bloque, tamaño, frescura, boquete)` en `physics.ts`:
+
+1. **Relevarse reparte el viento.** En un grupo de `n` que rota, a cada uno le toca ir en cabeza 1/n
+   del tiempo; el que va solo da la cara siempre. Es lo que `shelterAlone` (v15) ya cobraba en
+   energía y que no llegaba nunca a la velocidad.
+2. **…y eso vale lo que valga el rebufo en ese terreno** (`draftMax`: 42 % en el llano, 9,6 % en una
+   rampa al 8 %). De aquí sale solo el hecho de carretera que ningún parche sabía imitar: **el
+   grupeto sube tan lento como el que sube solo y en el valle vuelve a rodar como un pelotón.**
+3. **Con lo que quede en las piernas**, y solo sobre el que administra: la frescura del que pelea ya
+   la cobra la erosión sobre el P75.
+4. **Y primero se PERSIGUE y luego uno se resigna.** El que acaba de soltarse va a su umbral —el 0,82
+   de siempre— y afloja conforme el grupo de cabeza se le pierde de vista. Este término es el que
+   separa una selección de una debacle: sin él, el décimo de la reina canónica entraba a 7,6 minutos.
+
+El tope fantasma se sustituye por la resolución honesta: un grupo que ALCANZA al pelotón fuera de la
+subida se reengancha a él, que es lo que se hace en carretera.
+
+**Y dos cosas que el recorte tapaba**, sin las cuales el cambio produce carreras peores: un puerto de
+TEMPO seleccionaba igual que el puerto decisivo (`climbTempoSelection`; medido, el pelotón pasaba de
+173 a 6 corredores en una cota a 100 km de meta y volvía entero), y los descolgados eran invisibles
+para las caídas (`crashCheck` no los recorría: las lesiones de una gran vuelta caían de 65 a 28 sin
+que ninguna ley de las caídas hubiera cambiado).
+
+**El criterio de éxito, y lo vigila CI:** el último grupo de una etapa reina de gran vuelta entra
+entre el **8 % y el 14 %** del tiempo del ganador (`grandTour.queenLastGroupPct`). Medido: **2,00 % →
+9,34 %**. Con él, «fuera de control» pasa del 0 % al 19 % de los abandonos y ninguna etapa reina
+termina ya con el pelotón entero al mismo segundo.
 
 ### 10. Por qué los invariantes pasan y aun así los resultados son malos
 
@@ -1003,6 +1054,16 @@ mánager** (herramienta futura: no convocar, sancionar, rescindir).
 > entra al 5-6 %— un corte del 8-18 % no señala a nadie. Se prefirió respetar el corte tal cual y
 > dejar que las otras causas lleven el peso antes que bajarlo para cuadrar el reparto. La deuda
 > concreta es el modelo de persecución, no este umbral.
+>
+> **AL DÍA (v16): la deuda está pagada y el corte muerde.** Con el modelo de persecución arreglado
+> (§9-bis) el último grupo de una etapa reina de gran vuelta entra al **9,3 %** en vez del 2 %, y con
+> ello «fuera de control» pasa del 0 % al **19 %** de los abandonos, con el total en el 15,2 %
+> (dentro del 12-20 %). El reparto sigue sin ser el de la tabla —19 / 54 / 27 contra 45 / 40 / 15—
+> por dos razones medidas: la LESIÓN subió en absoluto (65 → 97 en seis vueltas) al arreglarse un
+> agujero que dejaba a los descolgados sin exposición a las caídas, y la ENFERMEDAD se bajó a
+> propósito (`illnessRaceMax` 0,0045 → 0,0028) para que el total no se saliera por arriba, que es
+> justo lo que esta sección anticipó. La perilla que queda es la calibración de las caídas, atada al
+> invariante del pavé. Las dos salvaguardas siguen sin activarse en el calendario real.
 >
 > Las dos salvaguardas están implementadas y probadas: el tope del 4 % se toca en 5 de 126 etapas
 > (siempre la más dura del calendario) y la readmisión con penalización no llega a activarse en el

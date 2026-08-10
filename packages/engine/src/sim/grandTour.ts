@@ -213,8 +213,7 @@ export function runGrandTour(worldSeed: string): GrandTourResult {
           lastGroupPct: (100 * (last - winner)) / winner,
           groups: clocks.size,
           oneGroup: clocks.size === 1,
-          winnerGroupPct:
-            (100 * timed.filter((r) => r.tiempoS === winner).length) / timed.length,
+          winnerGroupPct: (100 * timed.filter((r) => r.tiempoS === winner).length) / timed.length,
           top10GapSeconds: (timed[9]?.tiempoS ?? winner) - winner,
           wonFromMove: out.events.find((e) => e.tipo === 'meta')?.datos?.fuga === 1,
         })
@@ -312,7 +311,7 @@ function tailStats(tails: StageTail[]): TailStats {
   const pcts = [...tails.map((t) => t.lastGroupPct)].sort((a, b) => a - b)
   const groups = [...tails.map((t) => t.groups)].sort((a, b) => a - b)
   const shares = [...tails.map((t) => t.winnerGroupPct)].sort((a, b) => a - b)
-  const mid = <T,>(v: T[]): T | undefined => v[Math.floor(v.length / 2)]
+  const mid = <T>(v: T[]): T | undefined => v[Math.floor(v.length / 2)]
   return {
     stages: tails.length,
     medianLastGroupPct: mid(pcts) ?? 0,

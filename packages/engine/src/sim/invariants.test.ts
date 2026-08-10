@@ -347,9 +347,13 @@ describe('abandonos en una gran vuelta (docs/motor.md §VI.3)', () => {
    * esto no se comprueba sobre las llanas—, pero una etapa de montaña que llega en bloque es un
    * defecto, no un resultado.
    */
-  it('ninguna etapa reina termina con el pelotón entero al mismo segundo', { timeout: 300000 }, () => {
-    expect(tours().tails.reina.oneGroupPct).toBe(0)
-  })
+  it(
+    'ninguna etapa reina termina con el pelotón entero al mismo segundo',
+    { timeout: 300000 },
+    () => {
+      expect(tours().tails.reina.oneGroupPct).toBe(0)
+    },
+  )
 
   it('el tope del 4% por etapa nunca se rebasa', { timeout: 300000 }, () => {
     // Salvaguarda 1 de §VI.3, y la que de verdad protege la carrera: la hemorragia es el riesgo

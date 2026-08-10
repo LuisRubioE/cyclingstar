@@ -184,7 +184,8 @@ describe('el ritmo del descolgado (v16, docs/motor.md §9)', () => {
   it('se pelea al principio y se resigna al final, sin escalones', () => {
     const gaps = [0, 60, 120, 180, 240, 300, 600]
     const commits = gaps.map((g) => droppedCommit(llano, 8, 0.5, g))
-    for (let i = 1; i < commits.length; i++) expect(commits[i]!).toBeLessThanOrEqual(commits[i - 1]!)
+    for (let i = 1; i < commits.length; i++)
+      expect(commits[i]!).toBeLessThanOrEqual(commits[i - 1]!)
     // Y una vez resignado, el ritmo ya no depende del boquete: no hay espiral.
     expect(commits[6]!).toBeCloseTo(commits[5]!)
   })

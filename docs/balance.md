@@ -2635,3 +2635,356 @@ verdad. Entre 2 y 4 sigue sin resolver (11 % y 15 %): la fuerza ya satura con do
 motivo no toma el frente, así que todo parte con voz de equipo debería traer motivo; el suelo del
 95 % no es holgura de calibración sino la alarma de que alguien ha dejado tirar a un equipo sin razón
 para hacerlo. Medido: 100 % en los seis casos de la tabla.
+
+---
+
+## v16 — El modelo de persecución: el tiempo del descolgado sale de la física (`engine_version` 15 → 16)
+
+> «Los rezagados pierden demasiado poco tiempo.» Es la última deuda de fondo del plan del motor, y
+> la única que estaba anotada TRES veces con mediciones: la v8 la vio en «el pelotón entero al mismo
+> segundo», la v12 la nombró al calibrar el pavé («el parche sigue ahí: los descolgados recortan con
+> una regla en s/km, no con física») y la v14 la midió entera —«el peor retraso de una gran vuelta
+> es del 6,7 % contra un corte del 8-18 %: NO SE ELIMINA PRÁCTICAMENTE A NADIE»—.
+
+### 0. Las dos líneas
+
+El tiempo de un grupo descolgado dejaba de ser física en dos líneas de `simulate.ts`:
+
+```ts
+shed[g] = !onClimb && adv.tS < peloton.tS ? { ...adv, tS: peloton.tS } : adv // el TOPE FANTASMA
+const close = STAGE.chaseBackSecondsPerKm * STAGE.dx * shutFor(size) // el RECORTE FIJO
+if (gap > 0) sg.tS = Math.max(peloton.tS, sg.tS - close)
+```
+
+Ocho segundos por kilómetro, **pase lo que pase**: fuera uno o cuarenta, en el llano o en una rampa
+al 9 %, con el depósito lleno o vacío. Y si aun así el descolgado salía más rápido que el pelotón
+—que salía, porque rodaba a `shedCommit` = 0,82 y un pelotón a tempo va a 0,55— se le clavaba el
+reloj del pelotón. Las dos pisaban el resultado que `advanceGroup` acababa de calcular con su
+compromiso y su P75.
+
+### 1. Qué se pone en su lugar
+
+**`droppedCommit(bloque, tamaño, frescura, boquete)`** en `physics.ts`, con tres términos que son
+física del rebufo —la que el motor ya cobraba en el COSTE (SPEC 6.5) y no llegaba nunca a la
+velocidad— y una regla que es carrera:
+
+| Término                          | Qué dice                                                                                                                               |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `1 − 1/n` · `draftMax/draftFlat` | Relevarse reparte el viento: en un grupo de n cada uno da la cara 1/n del tiempo, **y eso vale lo que valga el rebufo en ese terreno** |
+| `shedCommitAlone` 0,55           | El que va solo no sostiene más que su propio tempo de carretera                                                                        |
+| `shedCommitBunch` 0,82           | Un autobús que se releva rueda como rodaba el descolgado de la v15 (el valor NO se ha elegido de nuevo: se conserva)                   |
+| `shedEmptyCommitFactor` 0,6      | …con lo que quede en las piernas, y solo sobre el que ADMINISTRA: la frescura del que pelea ya la cobra la erosión sobre el P75        |
+| `shedFightCommit` 0,82           | **El que acaba de soltarse pelea**: se pone de pie y va a su umbral, que es el `shedCommit` de siempre                                 |
+| `shedResignGapSeconds` 300       | …y deja de pelear cuando el grupo de cabeza se le pierde de vista. El paso es continuo: un umbral duro cambiaría el ritmo de golpe     |
+
+De los dos primeros sale solo el hecho de carretera que ningún parche sabía imitar: **el grupeto
+sube tan lento como el que sube solo** —en una rampa al 8 % el rebufo vale 9,6 %, no 42 %, así que
+ser cuarenta no sirve de nada— **y en el valle vuelve a rodar como un pelotón**. De los dos últimos
+sale la otra mitad, que es la que da nombre a la tanda: un descolgado primero PERSIGUE y luego se
+resigna.
+
+El **tope fantasma** se sustituye por la resolución honesta: un grupo que ALCANZA al pelotón fuera de
+la subida no es un fantasma al que clavarle el cronómetro, es un grupo que ha vuelto, y lo que hace
+en carretera es entrar en el pelotón. En la subida sigue pudiendo pasar por delante: allí manda la
+selección.
+
+`chaseBackShutFloor` y `chaseBackBusFactor` **se conservan**, pero solo donde siguen significando
+algo: el umbral de «ir DENTRO del grupo» (22 s a tempo, 7 s con los trenes lanzados, y la puerta
+abierta de par en par para el autobús que triplica al de delante). Ya no escalan ningún recorte,
+porque no hay recorte.
+
+### 2. Lo que el recorte tapaba, y hubo que arreglar con él
+
+Quitar el recorte destapó dos defectos que llevaban años debajo. Sin arreglarlos, el cambio produce
+carreras PEORES, así que van en la misma tanda:
+
+**a) Un puerto de TEMPO seleccionaba como el puerto decisivo.** El motor ya sabía desde la v11 que
+una cota lejos de meta se sube a tempo, y lo aplicaba a la VELOCIDAD (`climbTempoFraction`: más
+corredores marcan el ritmo) pero no a la SELECCIÓN: el descuelgue se sorteaba con la misma
+intensidad subiera el grupo a 0,85 o a 0,40. Con un campo real de 176 corredores —el mejor escalador
+es un MON 85 y el peor un MON 45— eso reventaba el pelotón en CADA cota. Medido, Race Great Ocean:
+
+```
+km 110 (100 km a meta, rampa al 7,6%)   pelotón 173 -> 6 corredores
+km 115 (el valle siguiente)             pelotón 6 -> 173     ← el recorte los devolvía a todos
+```
+
+Con el recorte fuera, esos «descolgados» de mentira ya no volvían y llegaban a **20 minutos**.
+Entra `climbTempoSelection` = 0,3: un puerto que no se corre sigue soltando a los más flojos —el
+grupeto de una gran vuelta se forma en el primer puerto de verdad, como en carretera— pero ya no
+parte el pelotón en dos. **La reina canónica no se mueve ni un dígito**: sus únicos kilómetros de
+subida están dentro de `climbRaceKmToGo`, así que su factor sigue siendo 1.
+
+**b) Los descolgados eran INVISIBLES para las caídas.** `crashCheck` recorría el pelotón y los
+grupos escapados; a los `shed` no los miraba nadie. Un corredor que se soltaba en el km 40 cruzaba
+los 20 km de descenso siguientes con probabilidad CERO de caerse. Mientras el descolgado volvía
+siempre al pelotón el agujero se notaba poco; con el modelo arreglado hay gente rodando ahí atrás
+media etapa, y **las lesiones de una gran vuelta cayeron de 65 a 28 sin que ninguna ley de las
+caídas hubiera cambiado**. Ahora el grupeto también se cae.
+
+### 3. El histograma de retrasos, antes y después
+
+Retraso respecto al ganador, en % de su tiempo. 120 corridas por escenario canónico y 12 en los
+recorridos reales, con el mismo campo antes y después:
+
+| Escenario                                | p50 v15 | **p50 v16** | p90 v15 | **p90 v16** | p99 v15 | **p99 v16** | máx v15 | **máx v16** |
+| ---------------------------------------- | ------: | ----------: | ------: | ----------: | ------: | ----------: | ------: | ----------: |
+| `reina-150`                              |    3,31 |    **4,44** |    4,52 |    **5,66** |    5,17 |    **6,46** |    5,46 |   **12,74** |
+| `llana-180`                              |    0,00 |    **0,00** |    0,00 |    **0,00** |    1,23 |    **1,23** |    1,40 |    **9,00** |
+| Reina REAL (France e18), campo homogéneo |    1,42 |    **1,26** |    1,80 |    **1,97** |    2,04 |    **2,20** |    2,04 |    **7,97** |
+| Reina REAL 3.ª semana                    |    0,84 |    **1,07** |    1,50 |    **1,54** |    1,92 |    **2,14** |    1,92 |    **2,14** |
+
+**Y lo que de verdad mide el cambio no está en esta tabla, y conviene decir por qué.** Los cuatro
+escenarios corren campos de LABORATORIO —40 corredores, y los dos reales con el campo homogéneo
+(todos a 60)—, y un campo homogéneo no puede producir un grupeto: nadie es lo bastante peor que
+nadie. El grupeto es un fenómeno de campo REAL, así que el número que manda es el de la gran vuelta
+del banco (176 corredores generados, 21 etapas, tres semanas de fatiga acumulada):
+
+| Gran vuelta del banco (6 vueltas, 114 etapas en línea) |       v15 |       **v16** |
+| ------------------------------------------------------ | --------: | ------------: |
+| Último grupo de una etapa REINA (mediana)              |    2,00 % |    **9,34 %** |
+| …y el peor de las 42 etapas reina                      |   14,02 % |   **17,56 %** |
+| Último grupo de una etapa de MEDIA montaña             |    0,85 % |    **6,50 %** |
+| Último grupo de una etapa LLANA                        |    0,48 % |    **2,12 %** |
+| Grupos de tiempo en meta (reina · media · llana)       | 4 · 2 · 2 | **7 · 4 · 2** |
+| % del pelotón con el tiempo del GANADOR en una llana   |      99 % |      **99 %** |
+
+El objetivo del encargo —«el último grupo de una etapa reina entra entre el 8 % y el 14 %»— se
+cumple con 9,34 %, y **lo vigila CI**: es el objetivo nuevo `grandTour.queenLastGroupPct`.
+
+### 4. El pelotón entero al mismo segundo, POR TIPO DE ETAPA
+
+El desglose es la mitad del encargo, porque en una llana que acaba al sprint llegar en bloque es
+CORRECTO y en una reina no. Banco de 84 etapas (7 etapas reales de producción × 12 semillas, 18
+equipos de 8 con las órdenes de `autoStageOrders`):
+
+| Tipo de etapa     |    v15 |    **v16** | Lectura                                            |
+| ----------------- | -----: | ---------: | -------------------------------------------------- |
+| Llana (36 etapas) | 38,9 % | **22,2 %** | Baja, y el grupo principal NO se toca (ver abajo)  |
+| Media (36 etapas) | 25,0 % | **13,9 %** | Ya hay varios grupos de tiempo, que es el objetivo |
+| Reina (12 etapas) |  0,0 % |  **0,0 %** | Ya era 0 en el banco; en la gran vuelta, 2 % → 0 % |
+| **Total**         | 27,4 % | **15,5 %** |                                                    |
+
+**La llana no se ha convertido en un abanico, y está medido**: el porcentaje de corredores que
+comparte el tiempo del GANADOR en las llanas del banco sigue en el **99 %** (era 99-100 %), y en las
+llanas de la gran vuelta, en el **99 %**. Lo que baja es el «todos exactamente al mismo segundo»,
+porque el uno o los dos rezagados del día ya no vuelven gratis. Eso es una llana de verdad: el
+pelotón llega en bloque y hay quien entra a tres minutos.
+
+| Etapa del banco     | tipo  | mismo segundo v15 → v16 | grupos en meta v15 → v16 | con el ganador v15 → v16 |
+| ------------------- | ----- | ----------------------- | ------------------------ | ------------------------ |
+| Race Great Ocean e1 | media | 3/12 → **1/12**         | 2 → **3,5**              | 99 % → **89 %**          |
+| Race Arabia e3      | media | 2/12 → **0/12**         | 2 → **3**                | 99 % → **72 %**          |
+| Race Arabia e5      | media | 4/12 → **4/12**         | 2 → **3**                | 99 % → **87 %**          |
+| Race Tramuntana e1  | reina | 0/12 → **0/12**         | 5,5 → **7**              | 2 % → **1 %**            |
+| Race Palma e1       | llana | 6/12 → **3/12**         | 1,5 → **2**              | 100 % → **99 %**         |
+| Race Arabia e1      | llana | 4/12 → **3/12**         | 2 → **2**                | 99 % → **99 %**          |
+| Race Muscat e1      | llana | 4/12 → **2/12**         | 2 → **2**                | 99 % → **99 %**          |
+
+### 5. Los abandonos: el corte por fin muerde
+
+6 vueltas de 21 etapas con 176 corredores:
+
+| Medida                    | Objetivo §VI.3 |     v15 |    **v16** |
+| ------------------------- | -------------- | ------: | ---------: |
+| Abandonos en tres semanas | 12 – 20 %      |  12,9 % | **15,2 %** |
+| Terminan de 176           | 140 – 155      |     153 |    **151** |
+| **Fuera de control**      | ~45 %          | **0 %** |   **19 %** |
+| Lesión                    | ~40 %          |    48 % |   **54 %** |
+| Colapso + enfermedad      | ~15 %          |    52 % |   **27 %** |
+
+**El reparto se mueve hacia §VI.3 y todavía no llega, y hay que decir por qué.** La causa «fuera de
+control» pasa de no existir a ser una de cada cinco retiradas: el corte de tiempo señala a alguien
+por primera vez desde que se implementó. Que no llegue al 45 % tiene dos razones medidas:
+
+1. **La lesión ha SUBIDO en términos absolutos** (65 → 97 en seis vueltas) por el arreglo de las
+   caídas en los grupetos (§2b). No es que se caiga más: es que antes no se contaba a los que
+   rodaban descolgados. Con la exposición correcta, la lesión pesa más de lo que §VI.3 le pide.
+2. **La enfermedad se ha bajado a propósito** (`HEALTH.illnessRaceMax` 0,0045 → 0,0028). Es
+   exactamente lo que la v14 dejó anotado que pasaría: «el día que el modelo de persecución deje que
+   un grupeto pierda el 10 %, la causa fuera de control subirá sola y las otras se podrán bajar».
+   Sin esta bajada el total se iba al 18,7 %, con vueltas sueltas por encima del 20 %.
+
+Las dos salvaguardas siguen sin activarse en el calendario real (0 etapas tocan el tope del 4 %, 0
+readmisiones), y eso es sano: significa que el corte se lleva a dos o tres por etapa dura, no a un
+grupo entero. En el banco de laboratorio de `simulate.test.ts` —un puerto de 40 km al 9 % con el
+campo partido en dos— la readmisión sigue disparándose y sigue probada.
+
+### 6. Que el reagrupamiento tras un puerto lejano sigue funcionando
+
+Es la condición que el encargo puso por delante de todo, y se comprueba en tres sitios:
+
+1. **El banco de la v8** (`simulate.test.ts`, «el reagrupamiento se narra»): 8 de 8 semillas emiten
+   `peloton_regroup`. **El perfil del banco cambia y la aserción no.** Era un puerto de 14 km al 8 %
+   con 26 km de llano detrás, y se recomponía en las 8 porque el recorte fijo devolvía el boquete;
+   sin recorte, ese puerto deja delante a nueve corredores y detrás a setenta, y setenta no cazan a
+   nueve en 26 km de llano —eso es una etapa de montaña, no un reagrupamiento—. El banco pasa a un
+   puerto que PARTE el pelotón sin destrozarlo (12 km al 7 %) con 30 km de valle detrás, y ahí el
+   reagrupamiento se emite 8 de 8 **antes y después** del cambio.
+2. **Un puerto de verdad lejos de meta** (banco a propósito: 12 km al 7 % en el km 40 de 170, campo
+   de 18 equipos de 8): el pelotón se recompone y llega en 1-2 grupos de 143-144 corredores en 6 de
+   8 semillas, igual que en la v15. El evento no se narra en ese caso —`peloton_regroup` solo se
+   emite dentro de los últimos 30 km— y eso es una deuda de §16, no de esta tanda.
+3. **La gran vuelta**: las etapas llanas siguen terminando con el 99 % del pelotón en el tiempo del
+   ganador. Si el reagrupamiento se hubiera roto, ese número sería el primero en caerse.
+
+### 7. La reina no termina con treinta grupos de un corredor (§3-bis-e)
+
+El límite que el encargo puso: «hoy son 7 grupos con 2 de un corredor; ese número no puede
+empeorar». Medido sobre 150 corridas de `reina-150`:
+
+| Medida                    | v15 | **v16** |
+| ------------------------- | --: | ------: |
+| Grupos en meta (mediana)  |   7 |   **7** |
+| …de ellos, de UN corredor |   2 |   **2** |
+
+No empeora. La razón es que los que se sueltan a la vez siguen fundiéndose en grupetos
+(`grupetoJoinGapSeconds`) y ahora, además, tienen un motivo físico para rodar juntos: el grupo
+grande se releva y el suelto no.
+
+### 8. Los invariantes: qué se ha movido
+
+`pnpm sim`, 500 corridas por escenario (8 grandes vueltas):
+
+| Medida                             |          v15 |      **v16** | Objetivo           |
+| ---------------------------------- | -----------: | -----------: | ------------------ |
+| Gana la fuga (llana)               |        3,2 % |    **3,2 %** | 2-8 %              |
+| Gana el mejor sprinter             |       35,6 % |   **34,8 %** | 30-45 %            |
+| Captura mediana (km a meta)        |         22,4 |     **22,6** | 8-25               |
+| Gana la fuga (montaña)             |       41,0 % |   **40,4 %** | 25-45 %            |
+| Brecha 1º-10º en la reina          |        225 s |    **251 s** | 60-300 s           |
+| CRI: brecha p90-p10 / especialista | 233 / 99,8 % | 233 / 99,8 % | 120-240 / 90-100%  |
+| Erosión llana en fresco            |        0,007 |    **0,008** | 0-0,02             |
+| **Erosión reina en fresco**        |    **0,211** |    **0,190** | **0,18-0,50** ⚠    |
+| Erosión clásica larga              |        0,618 |    **0,617** | 0,45-0,8           |
+| Erosión reina 3.ª semana (REAL)    |        0,657 |    **0,653** | 0,6-0,85           |
+| Erosión la clásica más dura        |        0,864 |    **0,850** | 0,45-0,92          |
+| Voz de EQUIPO en el parte (llana)  |       68,4 % |   **69,3 %** | 50-85 %            |
+| Equipos que llevan el frente       |         2,24 |     **2,26** | 1,8-4              |
+| Abandonos en una gran vuelta       |       14,4 % |   **15,9 %** | 12-20 %            |
+| **Último grupo en la reina**       |      (2,0 %) |    **9,2 %** | **8-14 % (nuevo)** |
+
+**Un solo rango se ha movido en toda la batería, y es el de la erosión de la reina en fresco: el
+suelo baja de 0,20 a 0,18.** La causa está identificada y comprobada, no supuesta: con el grupeto
+peleando siempre —el modelo de la v15— la medida vuelve a dar **0,211 exacto**. En `reina-150` el
+puerto son los últimos 15 km y más de la mitad del campo los sube ya descolgada, así que lo que esa
+mediana mide hoy es, en buena parte, **lo que el grupeto AHORRA**. Y ahorra: para eso existe el
+autobús. El número nuevo es el realista; el viejo describía un pelotón en el que nadie podía
+administrar porque un recorte fijo le devolvía el boquete igual.
+
+Se comprobó la alternativa —re-anclar el objetivo sobre la etapa reina REAL, como hizo la v15 con la
+de tercera semana— y ahí el cambio apenas se nota (**0,521 → 0,512**, 25 corridas de Race France
+e18): habría exigido mover el TECHO en vez del suelo, porque la reina real erosiona 0,51. Se
+prefiere conservar el punto de medida y anotar el suelo nuevo.
+
+**Objetivo nuevo: `grandTour.queenLastGroupPct` (8-14 %).** Es el criterio de éxito de la tanda y el
+número del que cuelgan los otros tres síntomas. Por qué esa banda: en una gran vuelta real el
+grupeto de una etapa reina entra 25-40 minutos detrás sobre etapas de 4 h 30 a 5 h 30, que es el
+9-13 %. El corte de §VI.3 va del 8 % al 18 %, así que la banda deja al último grupo DENTRO del corte
+en una reina normal —el grupeto llega, es lo normal— y le pone el 14 % de techo para que el corte
+siga siendo un riesgo y no una formalidad. Se mide sobre el último CLASIFICADO de las 7 etapas reina
+de la gran vuelta del calendario, en mediana sobre varias vueltas.
+
+Y con él, dos invariantes más que salen de las mismas seis vueltas sin coste extra: **ninguna etapa
+reina termina con el pelotón entero al mismo segundo** (0 de 42) y el banco de la cola se publica
+por tipo de etapa en `pnpm sim`.
+
+### 9. La brecha 1º-10º de la reina canónica: 225 → 251 s, y sigue en banda
+
+Es el número que más se ha movido de los que ya existían, y merece explicación porque estuvo a punto
+de irse a **456 s** en una versión intermedia de esta tanda. Con el descolgado pasando al ritmo del
+grupeto en cuanto perdía una rueda, el décimo de `reina-150` —que en un campo de 40 es un relleno de
+MON 60, no un escalador— se pasaba 43 minutos de puerto rodando a tempo y entraba a 7,6 minutos. La
+banda 60-300 s describe una etapa reina de verdad (1.º-10.º de 1 a 5 minutos en una gran vuelta), así
+que un 456 s era señal de que el modelo estaba mal, no de que el objetivo estuviera mal puesto.
+
+Lo que lo arregla es `shedFightCommit`: **el que acaba de soltarse pelea a su umbral**, y solo se
+resigna cuando el grupo de cabeza se le pierde de vista. Con eso el frente de la carrera se comporta
+como en la v15 —la huella sellada lo enseña dígito a dígito— y el ajuste queda en +26 s, que es lo
+que aporta la cola del grupo de diez.
+
+### 10. La huella sellada: resellada, y solo en la cola
+
+`stage/attribution.test.ts` lo explica en detalle. En resumen: en `reina-150` los catorce primeros de
+la primera semilla entran en los mismos 14681 · 14734 · 14805 que en la v15 y **no cambia un solo
+puesto en ninguna de las dos semillas**; lo que se mueve es el grupeto, +165 s. En `llana-180` los 40
+siguen llegando juntos y el único cortado pasa de +17 s a +104 s — que es literalmente el defecto que
+esta tanda arregla.
+
+### 11. El azar: NINGÚN subflujo nuevo
+
+`droppedCommit` no tira un solo dado: es aritmética sobre el tamaño del grupo, el terreno, la
+frescura y el boquete. `climbTempoSelection` escala una intensidad que ya existía y `crashCheck`
+sobre los grupetos usa el `rngCrash` de siempre —consume más tiradas de ese flujo, como las
+consumiría cualquier corredor que estuviera en el pelotón—. Por eso no hace falta un subflujo NOMINAL
+nuevo, al contrario que en `rough` (v12) y `abandon` (v14).
+
+### 12. Great Ocean: ¿cuadran ya la crónica y el resultado?
+
+El caso del dueño: en producción (motor v10) la crónica contaba que el grupo de cabeza pasaba de 116
+a 80 y luego llegaban **147 corredores al mismo segundo**. Reproducido en el banco con 18 equipos de
+8 sobre el recorrido real, el resultado ya no se contradice con lo que se narra:
+
+```
+km 159  peloton_pull   size 52        ← el pelotón ya no son 138
+km 203  time_gap       leadSize 64 · chaseSize 35 · gapS 191
+km 208  time_gap       leadSize 64 · chaseSize 35 · gapS 231
+km 209  bunch_sprint   field 64
+META    64@+0s · 35@+246s · 40@+442s · 2@+860s · 1@+1803s · 2@+3159s
+```
+
+Lo último que la crónica dice del grupo de cabeza (64) es lo que gana la etapa (64), y los 35 que
+anuncia a 231 s entran a 246 s. Medido sobre las 84 etapas del banco, **la última cifra narrada del
+grupo de cabeza cuadra con el grupo del ganador en el 90 % de las etapas** (87 % en la v15).
+
+**Lo que sigue mal, y es de §16 y no de esta tanda:** `peloton_split` solo se narra dentro de los
+últimos 30 km, así que la criba que decide Great Ocean —a 50 km de meta— no tiene frase propia; se
+deduce del `size` del parte de relevos. La contradicción del dueño está resuelta, pero la crónica
+todavía no CUENTA la selección cuando ocurre lejos de meta.
+
+### 13. Perillas nuevas
+
+| Perilla                     |  Valor | Qué hace                                                                                   |
+| --------------------------- | -----: | ------------------------------------------------------------------------------------------ |
+| `shedCommitAlone`           |   0,55 | El que rueda solo no sostiene más que su propio tempo de carretera                         |
+| `shedCommitBunch`           |   0,82 | Un autobús que se releva rueda como el descolgado de la v15 (valor conservado, no elegido) |
+| `shedEmptyCommitFactor`     |    0,6 | Con el depósito vacío se administra, y solo lo paga el que ya se resignó                   |
+| `shedFightCommit`           |   0,82 | El que acaba de soltarse pelea a su umbral. Es lo que separa una selección de una debacle  |
+| `shedResignGapSeconds`      |    300 | …y deja de pelear cuando el grupo de cabeza se le pierde de vista                          |
+| `climbTempoSelection`       |    0,3 | Un puerto que se sube a tempo no descuelga como el puerto decisivo                         |
+| `HEALTH.illnessRaceMax`     | 0,0028 | Baja de 0,0045: con el corte mordiendo, la enfermedad pesa menos (§VI.3)                   |
+| ~~`chaseBackSecondsPerKm`~~ |      — | **Borrada.** Era el recorte fijo de 8 s/km                                                 |
+| ~~`shedCommit`~~            |      — | **Borrada.** La sustituye `droppedCommit`                                                  |
+
+### 14. Lo que este cambio NO hace
+
+- **No arregla el reparto de causas de abandono de §VI.3** (19/54/27 contra 45/40/15). El «fuera de
+  control» ya existe, pero la lesión pesa más de lo que debería porque la exposición a las caídas
+  acaba de duplicarse en la cola de la carrera. La perilla natural es la calibración de
+  `crashLambda*`, que está atada al invariante del pavé, y no se toca aquí.
+- **No narra la criba lejos de meta** (§12). `peloton_split` sigue viviendo dentro de los últimos
+  30 km, y ahora que la selección de un puerto a 50 km de meta SÍ decide la etapa, esa frase falta.
+  Es el defecto que queda más a la vista después de esta tanda.
+- **No toca el corte de tiempo ni sus salvaguardas.** `timeCutFlat`/`timeCutQueen` siguen en el 8 % y
+  el 18 % de §VI.3, literales. Se probó atar el guardarraíl del que se deja ir (`giveUpMaxLossFraction`)
+  al corte real de cada etapa en vez de a un 5 % fijo y **no mueve nada donde importa**: la reina
+  canónica sale igual con el tope en el 5 % y en el 6,3 %. Se descarta por no añadir una perilla que
+  no paga.
+- **No arregla los ocho `time_gap` seguidos de una fuga que se hunde** (deuda de la v13). No se ha
+  empezado: el cambio no los multiplica —el throttle de `gapReportChangeFraction` sigue en su sitio—
+  y la prioridad era el modelo de persecución.
+- **No cambia la contrarreloj.** El abanico del 15-36 % de la CRI sigue siendo un defecto abierto del
+  modelo de crono y sigue sin aplicársele el corte.
+
+### 15. Lo que hay que vigilar
+
+- **La media montaña es el tipo de etapa con menos margen.** En el banco, Race Arabia e3 deja al
+  último a un 13,8 % y Great Ocean a un 12,9 % (medianas de 12 semillas): son recorridos de 200+ km
+  con dos puertos, y en la gran vuelta la media montaña se queda en el 6,5 %, que es lo razonable.
+  Si en producción una etapa de transición empieza a repartir cuartos de hora, la perilla es
+  `climbTempoSelection`.
+- **`shedResignGapSeconds` es la perilla sensible de toda la tanda.** Con 180 s la reina de gran
+  vuelta da 8,6 % y la brecha 1º-10º se va a 350 s; con 600 s da 8,2 % y 310 s. El 300 es el punto en
+  el que las dos caen dentro de sus bandas a la vez.
+- **Los abandonos han subido a 15,9 % y la lesión es la mitad de ellos.** El total está centrado,
+  pero si sube más habrá que mirar la exposición a las caídas antes que ninguna otra cosa.
