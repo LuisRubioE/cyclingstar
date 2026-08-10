@@ -16,7 +16,14 @@ import { stageSeed } from '../stage/rng.js'
 import type { Block, StageRider } from '../stage/types.js'
 import { analyzeErosion, analyzeFlat, analyzeMountain, analyzeTimeTrial } from './analyze.js'
 import { type GrandTourStats, analyzeGrandTour, runGrandTour } from './grandTour.js'
+import {
+  REAL_QUEENS,
+  type RealQueenStats,
+  analyzeRealQueens,
+  colombiaRegressionTails,
+} from './realQueens.js'
 import { SEASON_CALENDAR } from '../routes/calendar.js'
+import { STAGE } from '../constants.js'
 import {
   campaignSeeds,
   flatScenario,
@@ -363,6 +370,57 @@ describe('abandonos en una gran vuelta (docs/motor.md §VI.3)', () => {
     expect(gone).toBeGreaterThan(0)
     // 21 etapas × 4 % de un pelotón que mengua: la cota superior holgada es 21 · 0,04 · 176.
     expect(gone).toBeLessThan(Math.ceil(21 * 0.04 * tour.starters))
+  })
+})
+
+/**
+ * LAS ETAPAS REINA REALES (v17, docs/motor.md §9 y docs/balance.md «v17»). La cobertura que le
+ * faltaba a la batería y la lección de la regresión de la v16.
+ *
+ * `grandTour.queenLastGroupPct` estaba en verde mientras Race Colombia e5 metía en producción a 126
+ * de 130 corredores a más de 74 minutos. No porque el invariante estuviera mal medido, sino porque
+ * **mide siempre la misma forma**: las siete reinas de `race-france`, todas finales en alto de
+ * 170-185 km. La de Colombia son 232 km con el último puerto a 62 km de meta y 47 km rodadores
+ * hasta la línea. El banco nuevo corre ocho reinas REALES elegidas por forma, y esa entre ellas.
+ */
+describe('la cola en las etapas reina REALES (v17)', () => {
+  let shared: RealQueenStats | null = null
+  const bench = (): RealQueenStats => (shared ??= analyzeRealQueens(6))
+
+  it('el banco cubre formas distintas, y el caso de la regresión está dentro', () => {
+    // No es decorado: el defecto se coló porque el banco no tenía ninguna reina con esta forma.
+    expect(REAL_QUEENS.some((q) => q.raceId === 'race-colombia' && q.stageIndex === 5)).toBe(true)
+    expect(REAL_QUEENS.length).toBeGreaterThanOrEqual(6)
+    expect(new Set(REAL_QUEENS.map((q) => q.raceId)).size).toBe(REAL_QUEENS.length)
+  })
+
+  it('el último grupo entra al 8-14% del tiempo del ganador', { timeout: 300000 }, () => {
+    const stats = bench()
+    expect(stats.all.stages).toBe(REAL_QUEENS.length * 6)
+    expectInRange(stats.all.medianLastGroupPct, TARGETS.realQueens.lastGroupPct)
+  })
+
+  it('…y NINGUNA etapa suelta deja a su cola fuera del corte', { timeout: 300000 }, () => {
+    // El techo es `timeCutQueen` (18 %), el corte de §VI.3, y no un número de calibración: por
+    // encima de él el corte deja de ser un riesgo y pasa a ser una eliminación en bloque que solo
+    // frena el tope del 4 %. Es lo que Race Colombia e5 hacía en producción con un 22 %.
+    expectInRange(bench().worst.medianLastGroupPct, TARGETS.realQueens.worstStagePct)
+  })
+
+  /**
+   * EL CASO DE LA REGRESIÓN, CON EL CAMPO CON EL QUE SE VIO. El banco de arriba genera campos con
+   * `generateNpcRider` y sale un CONTINUO de niveles; lo que rompía la carrera es el ESCALÓN —ocho
+   * corredores treinta puntos por encima de una masa homogénea—, así que este caso va aparte y con
+   * el campo del dueño: 8 a 82, 16 a 62 y el resto a 52.
+   */
+  it('Race Colombia e5 no vuelve a entregar la etapa a 74 minutos', { timeout: 120000 }, () => {
+    const tails = colombiaRegressionTails(5)
+    const worst = Math.max(...tails.map((t) => t.lastGroupPct))
+    // Medido: v16 llegaba al 18,9 % en esta misma tanda de semillas (y al 22 % en producción); la
+    // v17 se queda en el 15,5 %. El listón es el corte de la reina, no el número medido.
+    expect(worst).toBeLessThanOrEqual(100 * STAGE.timeCutQueen)
+    // Y no se arregla llevándose por delante la selección: la etapa sigue partiéndose de verdad.
+    for (const t of tails) expect(t.groups).toBeGreaterThan(2)
   })
 })
 

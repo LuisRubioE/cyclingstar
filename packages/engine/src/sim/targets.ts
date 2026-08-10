@@ -170,4 +170,40 @@ export const TARGETS = {
       unit: '%',
     },
   },
+  /**
+   * LA COLA EN LAS ETAPAS REINA REALES DEL CALENDARIO (v17, `sim/realQueens.ts`).
+   *
+   * POR QUÉ EXISTE ESTE OBJETIVO SI YA ESTABA `grandTour.queenLastGroupPct`. Porque aquel mide
+   * SIEMPRE LA MISMA FORMA de etapa reina —las siete de `race-france`, todas finales en alto de
+   * 170-185 km— y estaba en verde mientras Race Colombia e5 metía en producción a 126 de 130
+   * corredores a más de 74 minutos. Esa etapa son 232 km con el último puerto a 62 km de meta y 47
+   * km rodadores hasta la línea: una forma que la gran vuelta del banco no tiene. El banco nuevo
+   * corre ocho reinas REALES elegidas por forma —finales en alto y finales rodados, de 151 a 232 km,
+   * de WorldTour a continental— y `race-colombia` e5 está dentro por nombre. Es la lección de la
+   * regresión, sellada en CI.
+   */
+  realQueens: {
+    // La MISMA banda que la reina de gran vuelta, y por la misma razón (§VI.3): el grupeto de una
+    // etapa reina entra 25-40 minutos detrás sobre etapas de 4 h 30 a 5 h 30. Se mide en MEDIANA
+    // sobre el banco entero, no etapa a etapa: una reina con final en alto y una con final rodado no
+    // tienen por qué dar el mismo número, y el objetivo describe el conjunto.
+    lastGroupPct: {
+      label: 'Último grupo en las reinas REALES (% del ganador)',
+      min: 8,
+      max: 14,
+      unit: '%',
+    },
+    // …Y NINGUNA ETAPA SUELTA PUEDE QUEDAR FUERA DEL CORTE. El techo es el corte de tiempo de la
+    // etapa reina de §VI.3 (`timeCutQueen`, 18 %), y no es un número de calibración: una etapa cuya
+    // cola vive por encima del corte es una etapa en la que el corte deja de ser un riesgo y pasa a
+    // ser una eliminación en bloque que solo frena el tope del 4 %. Es exactamente lo que Race
+    // Colombia e5 hacía en producción (22 %). El suelo es 0: que una etapa del banco llegue muy
+    // junta no es un defecto —lo dice la mediana del conjunto, no cada etapa—.
+    worstStagePct: {
+      label: 'La peor reina real (mediana de su cola)',
+      min: 0,
+      max: 18,
+      unit: '%',
+    },
+  },
 } as const satisfies Record<string, Record<string, Target>>

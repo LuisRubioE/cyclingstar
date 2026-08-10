@@ -9,7 +9,9 @@
  */
 import { analyzeErosion, analyzeFlat, analyzeMountain, analyzeTimeTrial } from './analyze.js'
 import { analyzeGrandTour } from './grandTour.js'
+import { REAL_QUEENS, analyzeRealQueens, colombiaRegressionTails } from './realQueens.js'
 import { analyzeTeamVoice, teamedField } from './tactics.js'
+import { STAGE } from '../constants.js'
 import {
   campaignSeeds,
   flatScenario,
@@ -164,8 +166,39 @@ function main(): void {
     ].join('\n  '),
   )
 
+  // LAS REINAS REALES (v17, docs/motor.md §9). El banco que le faltaba a la batería: la cola de la
+  // carrera medida sobre etapas reina REALES del calendario elegidas por FORMA —finales en alto y
+  // finales rodados, de 151 a 232 km, de WorldTour a continental—. La gran vuelta del banco mide
+  // siempre la misma forma, y por eso no vio la regresión de Race Colombia e5.
+  const queenRuns = Math.max(4, Math.min(12, Math.round(runs / 60)))
+  const rq = analyzeRealQueens(queenRuns)
+  const rqOk = report(
+    `reinas REALES del calendario (${REAL_QUEENS.length} etapas × ${queenRuns} semillas)`,
+    rq.all.stages,
+    [
+      { target: TARGETS.realQueens.lastGroupPct, value: rq.all.medianLastGroupPct },
+      { target: TARGETS.realQueens.worstStagePct, value: rq.worst.medianLastGroupPct },
+    ],
+    rq.perStage
+      .map(
+        (row) =>
+          `${`${row.queen.raceId} e${row.queen.stageIndex}`.padEnd(24)} último grupo ${row.stats.medianLastGroupPct.toFixed(1).padStart(5)}% (peor ${row.stats.maxLastGroupPct.toFixed(1)}%) · ${row.stats.medianGroups} grupos · con el ganador ${row.stats.medianWinnerGroupPct.toFixed(0)}% · 1.º-10.º ${row.stats.medianTop10GapSeconds}s`,
+      )
+      .join('\n  '),
+  )
+
+  // …y el caso de la regresión con el campo con el que se vio (escalón de niveles, no continuo).
+  const colombia = colombiaRegressionTails(5)
+  const worstColombia = Math.max(...colombia.map((t) => t.lastGroupPct))
+  console.log(
+    `\nRace Colombia e5 — el caso de la v17 (130 corredores: 8 a 82 · 16 a 62 · el resto a 52, 5 semillas)\n`,
+  )
+  console.log(
+    `  colas ${colombia.map((t) => `${t.lastGroupPct.toFixed(1)}%`).join(' · ')} · peor ${worstColombia.toFixed(1)}% (corte de la reina ${100 * STAGE.timeCutQueen}%) · grupos en meta ${colombia.map((t) => t.groups).join('/')}`,
+  )
+
   console.log('')
-  process.exit(flatOk && mtnOk && ttOk && eroOk && voiceOk && gtOk ? 0 : 1)
+  process.exit(flatOk && mtnOk && ttOk && eroOk && voiceOk && gtOk && rqOk ? 0 : 1)
 }
 
 main()

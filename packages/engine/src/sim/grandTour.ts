@@ -307,7 +307,7 @@ export interface TailStats {
   wonFromMovePct: number
 }
 
-function tailStats(tails: StageTail[]): TailStats {
+export function tailStats(tails: StageTail[]): TailStats {
   const pcts = [...tails.map((t) => t.lastGroupPct)].sort((a, b) => a - b)
   const groups = [...tails.map((t) => t.groups)].sort((a, b) => a - b)
   const shares = [...tails.map((t) => t.winnerGroupPct)].sort((a, b) => a - b)
