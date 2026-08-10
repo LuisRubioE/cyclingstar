@@ -137,6 +137,22 @@ export const CLASSIC_ROUTE_SOURCES: Record<string, RouteSource> = {
       'Distancia contrastada con Wikidata (P3157): 203,8 km.',
     ],
   },
+  'race-white-roads': {
+    race: 'Strade Bianche',
+    edition: 2024,
+    distanceKm: 215,
+    wikipedia: 'https://fr.wikipedia.org/wiki/Strade_Bianche_2024',
+    wikidata: 'https://www.wikidata.org/wiki/Q122729230',
+    retrieved: '2026-08-10',
+    notes: [
+      'Se carga en la v12, cuando el motor por fin DESCUELGA en el firme roto (docs/motor.md §14). Antes se dejó fuera a propósito: una carrera cuya única dificultad es el sterrato no tenía sentido en un motor donde el firme roto solo costaba energía.',
+      'La edición de 2024 es la primera del recorrido largo (215 km, 15 sectores, 71,5 km de sterrato) y la más reciente con tabla completa; la de 2025 tiene la sección «Percorso» vacía en it, fr e in.',
+      'Los 15 sectores llevan su DUREZA EN ESTRELLAS publicada (1-5), como Paris-Roubaix: es la segunda carrera del calendario con dureza real y no asumida.',
+      'La tabla trae también, para 9 sectores, una «longueur de la pente» y una PENDIENTE MÁXIMA (hasta el 18%). No se cargan como puertos: máxima no es media, y tomar el 18% del Monte Sante Marie por su media sería inventarse la carrera. Consecuencia asumida: la rampa de Via Santa Caterina, que la fuente no publica, no está en el recorrido y el final se resuelve como llegada de pavé.',
+      'La suma de las longitudes de la tabla da 70,5 km y la prosa del mismo artículo dice 71,5: la discrepancia es de la fuente y se conserva el dato de la tabla, que es el que tiene kilometraje.',
+      'Distancia contrastada con Wikidata (P3157): 215 km.',
+    ],
+  },
   'race-hamburg': {
     race: 'Cyclassics Hamburg',
     edition: 2024,
@@ -345,6 +361,30 @@ export const CLASSIC_FEATURES: Record<string, [StageFeatures]> = {
         { name: 'Mammolshain', summitKm: 107.9, lengthKm: 2.3, avgGradient: 8.3 },
         { name: 'Feldberg', summitKm: 117.8, lengthKm: 7.6, avgGradient: 6.5 },
         { name: 'Mammolshain', summitKm: 167.8, lengthKm: 2.3, avgGradient: 8.3 },
+      ],
+    },
+  ],
+  // Strade Bianche: 15 sectores de STERRATO (70,5 km de los 215) con su dureza en estrellas, el doble
+  // paso por Colle Pinzuto y Le Tolfe en el final, y el Monte Sante Marie —11,5 km a 5★— a 84 km de
+  // meta. Sin puertos: la fuente publica pendientes MÁXIMAS, no medias (ver la nota de procedencia).
+  'race-white-roads': [
+    {
+      cobbles: [
+        { name: 'Vidritta', startKm: 14, lengthKm: 2.1, stars: 1 },
+        { name: 'Bagnaia', startKm: 21.3, lengthKm: 5.8, stars: 3 },
+        { name: 'Radi', startKm: 33.4, lengthKm: 4.4, stars: 2 },
+        { name: 'La Piana', startKm: 44.1, lengthKm: 5.5, stars: 2 },
+        { name: "Lucignano d'Asso", startKm: 76.8, lengthKm: 11.9, stars: 3 },
+        { name: 'Pieve a Salti', startKm: 89.7, lengthKm: 8, stars: 4 },
+        { name: 'San Martino in Grania', startKm: 112.7, lengthKm: 9.5, stars: 5 },
+        { name: 'Monte Sante Marie', startKm: 131, lengthKm: 11.5, stars: 5 },
+        { name: 'Monteaperti', startKm: 161.3, lengthKm: 0.8, stars: 2 },
+        { name: 'Colle Pinzuto', startKm: 165.7, lengthKm: 2.4, stars: 4 },
+        { name: 'Le Tolfe', startKm: 171.9, lengthKm: 1.1, stars: 4 },
+        { name: 'Strada del Castagno', startKm: 175.4, lengthKm: 0.7, stars: 3 },
+        { name: 'Montechiaro', startKm: 189.2, lengthKm: 3.3, stars: 2 },
+        { name: 'Colle Pinzuto', startKm: 195.9, lengthKm: 2.4, stars: 4 },
+        { name: 'Le Tolfe', startKm: 202.2, lengthKm: 1.1, stars: 4 },
       ],
     },
   ],

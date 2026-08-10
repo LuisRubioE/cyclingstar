@@ -43,6 +43,7 @@ referencias; el enlace no se ha seguido — lo que se ha leído es el artículo 
 | `race-across-flanders` | Dwars door Vlaanderen | 2024    | [de: Dwars door Vlaanderen 2024](https://de.wikipedia.org/wiki/Dwars_door_Vlaanderen_2024)   | 12 hellingen + 8 sectores   |
 | `race-frankfurt`       | Eschborn-Frankfurt    | 2023    | [de: Eschborn–Frankfurt 2023](https://de.wikipedia.org/wiki/Eschborn%E2%80%93Frankfurt_2023) | 5 cotas (de 8 publicadas)   |
 | `race-hamburg`         | Cyclassics Hamburg    | 2024    | [de: Cyclassics Hamburg 2024](https://de.wikipedia.org/wiki/Cyclassics_Hamburg_2024)         | 3 cotas + 3 sprints         |
+| `race-white-roads`     | Strade Bianche        | 2024    | [fr: Strade Bianche 2024](https://fr.wikipedia.org/wiki/Strade_Bianche_2024)                 | 15 sectores de _sterrato_   |
 
 Las entidades de Wikidata (CC0) de cada edición están en `CLASSIC_ROUTE_SOURCES[...].wikidata`.
 
@@ -65,14 +66,30 @@ Las entidades de Wikidata (CC0) de cada edición están en `CLASSIC_ROUTE_SOURCE
 6. **Cuando dos fuentes se contradicen, manda la que cuadra con la distancia oficial.** La tabla
    italiana de Paris-Roubaix pone el sector 22 en el km 135,5, encima del sector 23; la francesa lo
    pone en 137,5 y encaja. Se usa 137,5 y queda anotado.
+7. **Una pendiente MÁXIMA no es una pendiente media.** La tabla de Strade Bianche publica, para nueve
+   de sus quince sectores, la longitud de la rampa y su pendiente máxima (hasta el 18 %). Eso no es un
+   puerto cargable: tomar el máximo por la media inventaría la carrera. Se cargan los sectores y se
+   anota lo que queda fuera.
+
+## Strade Bianche: por qué entra en la v12 y no antes
+
+Se dejó fuera a propósito mientras `shatter()` solo descolgaba en subida: una carrera cuya ÚNICA
+dificultad publicada es el _sterrato_ no podía existir en un motor donde el firme roto solo costaba
+energía. La v12 (docs/motor.md §14) extiende la selección al pavé con PAV y escalada por estrellas, y
+Strade Bianche es la carrera que más partido le saca: 70,5 km de sus 215 son sterrato, con dureza
+real publicada de 1 a 5 estrellas —es, con Paris-Roubaix, la única del calendario cuya dureza no hay
+que asumir— y con los dos pasos por Colle Pinzuto y Le Tolfe dentro de los últimos 20 km.
+
+Lo que sigue faltando y hay que saber: **la rampa de Via Santa Caterina** (el 16 % de adoquín que
+lleva a la Piazza del Campo) **no está**, porque la fuente no publica ninguna cota. El final se
+resuelve, por tanto, como llegada de pavé y no como el repecho brutal que es en la realidad.
 
 ## Lo que NO se cargó, y por qué
 
-| Carrera                                                                                               | Motivo                                                                                                                                                                                                                             |
-| ----------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `race-white-roads` (Strade Bianche)                                                                   | La fuente publica los 14 sectores de _sterrato_ pero **ninguna de sus cotas**. Cargarla dejaría la clásica más rota del calendario sin una sola subida, y el motor todavía no descuelga en pavé (§14): sería peor que el generador |
-| `race-bruges`, `race-copenhagen`, `race-brittany`, `race-quebec`, `race-montreal`, `race-great-ocean` | Sin tabla de dificultades en ningún idioma probado (fr, it, nl, en, de, es, da) ni en las ediciones 2023-2026                                                                                                                      |
-| `race-rhone-alpes`, `race-poland`, `race-benelux`, `race-guangxi`                                     | Vueltas por etapas: harían falta tablas **por etapa** y no existen. El artículo del Dauphiné 2026 en frwiki son 47 bytes                                                                                                           |
+| Carrera                                                                                               | Motivo                                                                                                                   |
+| ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `race-bruges`, `race-copenhagen`, `race-brittany`, `race-quebec`, `race-montreal`, `race-great-ocean` | Sin tabla de dificultades en ningún idioma probado (fr, it, nl, en, de, es, da) ni en las ediciones 2023-2026            |
+| `race-rhone-alpes`, `race-poland`, `race-benelux`, `race-guangxi`                                     | Vueltas por etapas: harían falta tablas **por etapa** y no existen. El artículo del Dauphiné 2026 en frwiki son 47 bytes |
 
 ## Cómo repetir o ampliar la extracción
 

@@ -26,8 +26,11 @@ function gainM(segments: readonly { km: number; tramos?: { km: number; g: number
 }
 
 describe('routes: recorridos reales de las clásicas (dato cargado de fuentes abiertas)', () => {
-  it('carga las ocho clásicas que tenían fuente', () => {
-    expect(IDS).toHaveLength(8)
+  it('carga las nueve clásicas que tenían fuente', () => {
+    // Ocho desde la v4; Strade Bianche entra en la v12, cuando el motor por fin descuelga en el
+    // firme roto (docs/motor.md §14) y una carrera cuya única dificultad es el sterrato tiene
+    // sentido cargarla (ver docs/fuentes-recorridos.md).
+    expect(IDS).toHaveLength(9)
   })
 
   it('cada recorrido declara su procedencia: carrera real, edición, artículo y fecha', () => {
