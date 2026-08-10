@@ -2143,7 +2143,7 @@ escalado por `illnessRaceFactor` y con su propio techo; en carrera, enfermar sig
 ### 5. El reparto real de causas, y el objetivo
 
 Medido sobre **6 grandes vueltas** deterministas de 21 etapas y 176 corredores
-(`sim/grandTour.ts`, el mismo banco que vigila CI):
+(`sim/grandTour.ts`, el mismo banco que vigila CI; `pnpm sim` corre 8 y da **14,5 %**, 12,5-17,0):
 
 | Medida                        | Objetivo §VI.3 | Medido                   |
 | ----------------------------- | -------------- | ------------------------ |
@@ -2163,14 +2163,16 @@ perilla, no un rediseño.
 
 ### 6. Las salvaguardas, y cuánto se activan
 
-1. **Tope del 4 % por etapa.** Se toca en **5 de las 126 etapas** simuladas, y siempre en la misma:
+1. **Tope del 4 % por etapa.** Se toca en **5 de las 126 etapas** simuladas (7 de 168 en la corrida
+   de 8 vueltas de `pnpm sim`), y siempre en la misma:
    la etapa 20 de Race France (171 km, **4.515 m de desnivel**, 26,4 m/km — la más dura del
    calendario), donde el 100 % del campo entra en pájara. Ahí el tope deja pasar 6 abandonos de ~155
    corredores y **es lo único que está entre el diseño y una masacre**. Que la salvaguarda sea hoy el
    regulador de esa etapa concreta es consecuencia directa del defecto abierto «la reina real de
    tercera semana satura el depósito»: cuando eso se arregle, el colapso caerá por debajo del tope
    solo. Queda vigilado por el invariante `el tope del 4% por etapa nunca se rebasa`.
-2. **Readmisión con penalización.** **0 veces en las 126 etapas**, por la misma razón que la causa
+2. **Readmisión con penalización.** **0 veces**, ni en las 126 etapas del invariante ni en las 168
+   de `pnpm sim`, por la misma razón que la causa
    «fuera de control» aporta el 0 %: el corte no señala a nadie. Está implementada, probada en
    `stage/abandon.test.ts` (seis casos, incluido «un grupo NUMEROSO fuera de control se readmite
    entero») y verificada de punta a punta en `stage/simulate.test.ts` con un escenario de
