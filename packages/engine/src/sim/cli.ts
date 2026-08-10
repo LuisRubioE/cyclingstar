@@ -141,14 +141,26 @@ function main(): void {
   const totalCauses =
     gt.causes.fueraControl + gt.causes.lesion + gt.causes.colapso + gt.causes.enfermedad
   const share = (n: number): string => `${Math.round((100 * n) / Math.max(1, totalCauses))}%`
+  // La COLA de la carrera por tipo de etapa (v16, docs/motor.md §9): cuánto pierde el último y
+  // cuántas etapas terminan con el pelotón entero al mismo segundo. El desglose por TIPO no es
+  // adorno: en una llana que acaba al sprint el pelotón entero comparte tiempo y eso es CORRECTO;
+  // en una reina, no.
+  const tailLine = (name: string, t: (typeof gt.tails)['reina']): string =>
+    `${name.padEnd(6)} ${t.stages.toString().padStart(3)} etapas · último grupo ${t.medianLastGroupPct.toFixed(1).padStart(5)}% (peor ${t.maxLastGroupPct.toFixed(1)}%) · ${t.medianGroups} grupos en meta · mismo segundo ${t.oneGroupPct.toFixed(0)}%`
   const gtOk = report(
     'gran vuelta (21 etapas, 176 corredores)',
     tourRuns,
-    [{ target: TARGETS.grandTour.abandonPct, value: gt.abandonPct }],
+    [
+      { target: TARGETS.grandTour.abandonPct, value: gt.abandonPct },
+      { target: TARGETS.grandTour.queenLastGroupPct, value: gt.tails.reina.medianLastGroupPct },
+    ],
     [
       `Terminan ${gt.medianFinishers} de 176 (mediana) · por vuelta ${gt.minAbandonPct.toFixed(1)}-${gt.maxAbandonPct.toFixed(1)}%`,
       `Causas: fuera de control ${share(gt.causes.fueraControl)} (objetivo 45%) · lesión ${share(gt.causes.lesion)} (40%) · colapso ${share(gt.causes.colapso)} + enfermedad ${share(gt.causes.enfermedad)} (15%)`,
       `Salvaguardas: tope del 4% tocado en ${gt.capHitStages} etapas · ${gt.readmitted} readmitidos con penalización en ${gt.readmissionStages} etapas`,
+      tailLine('reina', gt.tails.reina),
+      tailLine('media', gt.tails.media),
+      tailLine('llana', gt.tails.llana),
     ].join('\n  '),
   )
 

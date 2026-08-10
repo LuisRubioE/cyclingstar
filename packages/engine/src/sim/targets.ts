@@ -132,5 +132,27 @@ export const TARGETS = {
     // vueltas, no sobre una: una vuelta suelta oscila entre el 12 % y el 21 % según le caigan las
     // caídas, y un invariante que dependa de eso es un invariante intermitente.
     abandonPct: { label: 'Abandonos en una gran vuelta', min: 12, max: 20, unit: '%' },
+    /**
+     * LA COLA DE LA ETAPA REINA (v16, docs/motor.md §9 y §VI.3). El criterio de éxito del modelo de
+     * persecución, y el número del que cuelgan los otros tres síntomas: el corte de tiempo que no
+     * elimina a nadie, el «fuera de control» en el 4 % en vez del 45 %, y las etapas que terminan
+     * con el pelotón entero al mismo segundo.
+     *
+     * POR QUÉ 8-14 % Y NO OTRA COSA. En una gran vuelta real el grupeto de una etapa reina entra
+     * entre 25 y 40 minutos detrás sobre etapas de 4 h 30 a 5 h 30: eso es el 9-13 %. El corte de
+     * §VI.3 va del 8 % (llana) al 18 % (reina), así que la banda deja al último grupo DENTRO del
+     * corte en una reina normal —el grupeto llega, es lo normal— y le pone el 14 % de techo para que
+     * el corte siga siendo un riesgo y no una formalidad. Por debajo del 8 % el corte no señala a
+     * nadie, que es de donde venimos (medido en la v14: peor retraso de una gran vuelta entera,
+     * 6,7 %). Se mide sobre el ÚLTIMO CLASIFICADO de las 7 etapas reina de la gran vuelta del
+     * calendario, en MEDIANA sobre varias vueltas: una etapa suelta depende de a quién le toque
+     * reventar ese día.
+     */
+    queenLastGroupPct: {
+      label: 'Último grupo en la reina (% del ganador)',
+      min: 8,
+      max: 14,
+      unit: '%',
+    },
   },
 } as const satisfies Record<string, Record<string, Target>>

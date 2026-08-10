@@ -63,6 +63,23 @@ export interface AbandonCauses {
   enfermedad: number
 }
 
+/**
+ * LA COLA DE LA CARRERA en una etapa en línea (v16, docs/motor.md §9). Es la medida que le faltaba
+ * al banco: el corte de tiempo, la causa «fuera de control» y la sensación de «llegan todos juntos»
+ * dependen de CUÁNTO pierde el último, y eso no se puede medir sobre una etapa suelta de 40
+ * corredores de laboratorio. Aquí se mide donde importa: la gran vuelta que corre el juego.
+ */
+export interface StageTail {
+  /** `llana` · `media` · `reina`. Las contrarrelojes quedan fuera: no tienen grupos. */
+  kind: string
+  /** Retraso del último CLASIFICADO respecto al ganador, en % de su tiempo. */
+  lastGroupPct: number
+  /** Grupos de tiempo en meta (relojes distintos entre los clasificados). */
+  groups: number
+  /** ¿Terminó el pelotón ENTERO con el mismo segundo? */
+  oneGroup: boolean
+}
+
 export interface GrandTourResult {
   starters: number
   finishers: number
@@ -75,6 +92,8 @@ export interface GrandTourResult {
   readmitted: number
   /** Etapas en las que hubo alguna readmisión. */
   readmissionStages: number
+  /** Una fila por etapa en línea: cómo llegó la cola de la carrera. */
+  tails: StageTail[]
 }
 
 /** El pelotón de salida: 22 equipos de 8, deterministas desde la semilla del mundo. */
@@ -130,6 +149,7 @@ export function runGrandTour(worldSeed: string): GrandTourResult {
   let capHitStages = 0
   let readmitted = 0
   let readmissionStages = 0
+  const tails: StageTail[] = []
 
   for (const stage of race.stages) {
     const racing = [...alive.values()]
@@ -168,6 +188,24 @@ export function runGrandTour(worldSeed: string): GrandTourResult {
       // se podría distinguir un cambio de calibración de un cambio de dados.
       stageSeed({ worldSeed, raceId: GRAND_TOUR_ID, stageDay: stage.index, engineVersion: 1 }),
     )
+
+    // 0. La COLA de la etapa (v16): a cuánto entra el último grupo y cuántos relojes distintos hay
+    //    en meta. Se mide sobre los CLASIFICADOS —el que queda fuera de control ya no está en la
+    //    carrera— y solo en las etapas en línea: una contrarreloj no tiene grupos que medir.
+    if (stage.timeTrial !== true) {
+      const timed = out.results.filter((r) => r.estado === 'finish')
+      const winner = timed[0]?.tiempoS ?? 0
+      if (timed.length > 0 && winner > 0) {
+        const last = timed.reduce((mx, r) => Math.max(mx, r.tiempoS), winner)
+        const clocks = new Set(timed.map((r) => r.tiempoS))
+        tails.push({
+          kind: stage.kind,
+          lastGroupPct: (100 * (last - winner)) / winner,
+          groups: clocks.size,
+          oneGroup: clocks.size === 1,
+        })
+      }
+    }
 
     // 1. La carga del día sube el ATL de todos los que corrieron: es lo que hunde el TSB semana a
     //    semana y, con él, el depósito de mañana (docs/motor.md §VI.1).
@@ -233,6 +271,34 @@ export function runGrandTour(worldSeed: string): GrandTourResult {
     capHitStages,
     readmitted,
     readmissionStages,
+    tails,
+  }
+}
+
+/** Resumen de la cola por TIPO de etapa: es la lectura que pide docs/motor.md §9. */
+export interface TailStats {
+  stages: number
+  /** Retraso mediano del último grupo, en % del tiempo del ganador. */
+  medianLastGroupPct: number
+  /** …y el peor de todas las etapas de ese tipo. */
+  maxLastGroupPct: number
+  /** Grupos de tiempo en meta (mediana). */
+  medianGroups: number
+  /** % de etapas de ese tipo que terminan con el pelotón ENTERO al mismo segundo. */
+  oneGroupPct: number
+}
+
+function tailStats(tails: StageTail[]): TailStats {
+  const pcts = [...tails.map((t) => t.lastGroupPct)].sort((a, b) => a - b)
+  const groups = [...tails.map((t) => t.groups)].sort((a, b) => a - b)
+  const mid = <T,>(v: T[]): T | undefined => v[Math.floor(v.length / 2)]
+  return {
+    stages: tails.length,
+    medianLastGroupPct: mid(pcts) ?? 0,
+    maxLastGroupPct: pcts[pcts.length - 1] ?? 0,
+    medianGroups: mid(groups) ?? 0,
+    oneGroupPct:
+      tails.length === 0 ? 0 : (100 * tails.filter((t) => t.oneGroup).length) / tails.length,
   }
 }
 
@@ -247,6 +313,8 @@ export interface GrandTourStats {
   capHitStages: number
   readmitted: number
   readmissionStages: number
+  /** La cola de la carrera por TIPO de etapa (v16): reina, media montaña y llana. */
+  tails: { reina: TailStats; media: TailStats; llana: TailStats; todas: TailStats }
 }
 
 /** Corre N grandes vueltas deterministas y agrega el objetivo de §VI.3. */
@@ -257,8 +325,10 @@ export function analyzeGrandTour(runs: number): GrandTourStats {
   let capHitStages = 0
   let readmitted = 0
   let readmissionStages = 0
+  const tails: StageTail[] = []
   for (let i = 0; i < runs; i++) {
     const r = runGrandTour(`gran-vuelta-${i}`)
+    tails.push(...r.tails)
     pcts.push(r.abandonPct)
     finishers.push(r.finishers)
     causes.colapso += r.causes.colapso
@@ -280,5 +350,11 @@ export function analyzeGrandTour(runs: number): GrandTourStats {
     capHitStages,
     readmitted,
     readmissionStages,
+    tails: {
+      reina: tailStats(tails.filter((t) => t.kind === 'reina')),
+      media: tailStats(tails.filter((t) => t.kind === 'media')),
+      llana: tailStats(tails.filter((t) => t.kind === 'llana')),
+      todas: tailStats(tails),
+    },
   }
 }

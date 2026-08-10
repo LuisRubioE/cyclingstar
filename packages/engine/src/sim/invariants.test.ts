@@ -15,7 +15,7 @@ import { simulateStage } from '../stage/simulate.js'
 import { stageSeed } from '../stage/rng.js'
 import type { Block, StageRider } from '../stage/types.js'
 import { analyzeErosion, analyzeFlat, analyzeMountain, analyzeTimeTrial } from './analyze.js'
-import { analyzeGrandTour, runGrandTour } from './grandTour.js'
+import { type GrandTourStats, analyzeGrandTour, runGrandTour } from './grandTour.js'
 import { SEASON_CALENDAR } from '../routes/calendar.js'
 import {
   campaignSeeds,
@@ -316,10 +316,39 @@ describe('abandonos en una gran vuelta (docs/motor.md §VI.3)', () => {
    * sería intermitente; con seis, la media se queda en 15-17 %. Seis vueltas de 21 etapas con 176
    * corredores son ~2 minutos, de ahí el timeout.
    */
+  // Las seis vueltas se corren UNA vez y las comparten los dos invariantes que salen de ellas: son
+  // ~2 minutos de simulación y medir dos veces lo mismo solo dobla el reloj de CI.
+  let shared: GrandTourStats | null = null
+  const tours = (): GrandTourStats => (shared ??= analyzeGrandTour(6))
+
   it('el pelotón adelgaza entre un 12% y un 20% en tres semanas', { timeout: 300000 }, () => {
-    const stats = analyzeGrandTour(6)
+    const stats = tours()
     expect(stats.runs).toBe(6)
     expectInRange(stats.abandonPct, TARGETS.grandTour.abandonPct)
+  })
+
+  /**
+   * EL CRITERIO DE ÉXITO DEL MODELO DE PERSECUCIÓN (v16, docs/motor.md §9). En una etapa reina de
+   * gran vuelta el último grupo entra entre el 8 % y el 14 % del tiempo del ganador, que es lo que
+   * hace el grupeto en carretera. Con menos, el corte de tiempo de §VI.3 (8-18 %) no señala a nadie
+   * y la causa «fuera de control» no puede llegar a su 45 %; con más, el corte se llevaría por
+   * delante media carrera todos los días.
+   */
+  it('el último grupo de una etapa reina entra al 8-14%', { timeout: 300000 }, () => {
+    const stats = tours()
+    expect(stats.tails.reina.stages).toBeGreaterThanOrEqual(6 * 7)
+    expectInRange(stats.tails.reina.medianLastGroupPct, TARGETS.grandTour.queenLastGroupPct)
+  })
+
+  /**
+   * …y la otra mitad, que es la que pedía el dueño con sus palabras («hay 23 ciclistas en el mismo
+   * tiempo y luego todos los demás llegan a 1 segundo... lo cual es técnicamente imposible»): una
+   * etapa reina NO puede terminar con el pelotón entero al mismo segundo. En una llana sí —y por eso
+   * esto no se comprueba sobre las llanas—, pero una etapa de montaña que llega en bloque es un
+   * defecto, no un resultado.
+   */
+  it('ninguna etapa reina termina con el pelotón entero al mismo segundo', { timeout: 300000 }, () => {
+    expect(tours().tails.reina.oneGroupPct).toBe(0)
   })
 
   it('el tope del 4% por etapa nunca se rebasa', { timeout: 300000 }, () => {
