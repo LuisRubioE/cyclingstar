@@ -166,7 +166,7 @@ function chronicleTemplate(e: ChronicleEntry): string {
       if (e.datos?.kind === 'ataque_final')
         return pick([
           `${who} attack${jumped === 1 ? 's' : ''} with ${toGo} km to go.${tail}`,
-          `It is ${who} who goes, ${toGo} km from the line.${tail}`,
+          `It is ${who} who ${jumped === 1 ? 'goes' : 'go'}, ${toGo} km from the line.${tail}`,
         ])
       if (e.datos?.kind === 'ataque_grupo')
         return pick([
@@ -402,12 +402,12 @@ function chronicleTemplate(e: ChronicleEntry): string {
           : kind === 'alianza'
             ? ` — ${nLeaders} different leaders whose teams have decided the same thing`
             : ''
+        // El motivo NO va en las tres redacciones: en una etapa con cuatro partes de alianza,
+        // repetir «different leaders, one shared interest» cuatro veces cansa más que informa.
         return pick([
           `${who} are sharing the work on the front of ${group}${left}${why}.`,
-          `An alliance on the front${left}: ${who} are the ones doing the pulling${why}.`,
-          why
-            ? `${who} take turns at the head of ${group}${left}${why}.`
-            : `${who} take turns at the head of ${group}${left} — ${nTeams} different teams doing the work.`,
+          `An alliance on the front${left}: ${who} are the ones doing the pulling.`,
+          `${who} take turns at the head of ${group}${left} — ${nTeams} different teams doing the work.`,
         ])
       }
       const one = riders.length === 1

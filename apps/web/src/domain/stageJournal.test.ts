@@ -574,24 +574,32 @@ describe('A2 · quién tira, y POR QUÉ tira', () => {
     expect(l).toContain('Iker Zabala')
   })
 
+  // El motivo no va en las tres redacciones (repetirlo cuatro veces en una etapa cansa), así que se
+  // comprueba sobre las variantes: al menos una lo dice, y ninguna habla de un jefe de filas único.
   it('con líderes distintos es una alianza, y se dice por qué coinciden', () => {
-    const l = chronicleLine(
-      event({
-        plantilla: 'peloton_pull',
-        km: 90,
-        protagonists: [rider('Ana', { team: 'Summit Squad' }), rider('Bea', { team: 'Team Sol' })],
-        datos: {
-          size: 120,
-          effort: 'firme',
-          toGo: 45,
-          chasing: 1,
-          forKind: 'alianza',
-          forLeaders: 2,
-        },
-      }),
+    const lineas = [90, 91, 92, 93, 94, 95, 96, 97].map((km) =>
+      chronicleLine(
+        event({
+          plantilla: 'peloton_pull',
+          km,
+          protagonists: [
+            rider('Ana', { team: 'Summit Squad' }),
+            rider('Bea', { team: 'Team Sol' }),
+          ],
+          datos: {
+            size: 120,
+            effort: 'firme',
+            toGo: 45,
+            chasing: 1,
+            forKind: 'alianza',
+            forLeaders: 2,
+          },
+        }),
+      ),
     )
-    expect(l).toContain('different leaders')
-    expect(l).toContain('the break has to come back')
+    expect(lineas.some((l) => l.includes('the break has to come back'))).toBe(true)
+    expect(lineas.every((l) => l.includes('Ana') && l.includes('Bea'))).toBe(true)
+    expect(lineas.every((l) => !l.includes('working for'))).toBe(true)
   })
 
   // El «desgastarse a lo wey» del dueño: si no hay nadie detrás del esfuerzo, no se maquilla.
