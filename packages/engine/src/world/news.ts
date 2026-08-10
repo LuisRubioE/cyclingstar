@@ -15,6 +15,7 @@ export type NewsKind =
   | 'gc_win'
   | 'contract'
   | 'injury'
+  | 'abandon'
   | 'retirement'
 
 export interface NewsData {
@@ -39,6 +40,12 @@ const TEMPLATES: Record<NewsKind, ((d: NewsData) => string)[]> = {
   gc_win: [(d) => `${d.rider} wins the ${d.race} overall.`],
   contract: [(d) => `${d.rider} signs for ${d.team}${d.detail ? ` ${d.detail}` : ''}.`],
   injury: [(d) => `${d.rider} injured${d.detail ? ` — out for ${d.detail}` : ''}.`],
+  // Abandono en una carrera por etapas (docs/motor.md §VI.3 y §V.5). `detail` dice por qué: se bajó
+  // de la bici, quedó fuera de control, se lesionó, enfermó, o el jugador decidió retirarse.
+  abandon: [
+    (d) =>
+      `${d.rider} abandons the ${d.race}${d.stage ? ` on stage ${d.stage}` : ''}${d.detail ? ` — ${d.detail}` : ''}.`,
+  ],
   retirement: [(d) => `${d.rider} retires${d.detail ? ` ${d.detail}` : ''}.`],
 }
 

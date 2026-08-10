@@ -7,6 +7,13 @@
  */
 import { normal, type Rng } from '../random.js'
 import { ENGINE_VERSION, STAGE } from '../constants.js'
+import {
+  applyTimeCut,
+  collapseLambda,
+  elevationGainPerKm,
+  shouldCollapse,
+  timeCutFraction,
+} from './abandon.js'
 import { chaseField, isFinisher, lerp } from './chase.js'
 import { EventLog } from './events.js'
 import { type Group, advanceGroup, createGroup, gapSeconds, percentile75 } from './group.js'
@@ -140,6 +147,18 @@ interface RiderSim {
    * carrera (v13, docs/balance.md).
    */
   gaveUp: boolean
+  /** Ya se contó su pájara: se narra una vez por corredor, no cada vez que le suelta el grupo. */
+  bonkNoticed: boolean
+  /**
+   * Km SEGUIDOS con el tanque a cero (v14, docs/motor.md §VI.3). El contador se reinicia en cuanto
+   * el corredor recupera algo de depósito: el colapso pide arrastrarse, no rozar el cero un bloque.
+   */
+  bonkKm: number
+  /**
+   * Se BAJÓ DE LA BICI en carretera: no llega a meta (`estado: 'abandon'`). Guarda el km para la
+   * crónica; `null` mientras siga en carrera.
+   */
+  abandonedKm: number | null
   incident: Incident | null
 }
 
@@ -304,6 +323,12 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
   // moviendo resultados de montaña que hoy están calibrados (y con ellos los invariantes) sin que
   // ninguna ley de la montaña haya cambiado. Con un subflujo propio la montaña sale idéntica.
   const rngRough = streams('rough')
+  // Subflujo NOMINAL de los ABANDONOS (v14, SPEC 6.1, docs/motor.md §VI.3). Mismo motivo que
+  // `rngRough`: el dado del colapso no puede salir de `rngTactics` —que consume `administerEffort`
+  // bloque a bloque y con el que se calibró la regla 8— ni de `rngHazard`, que es el del descuelgue
+  // en montaña. Con subflujo propio, una etapa en la que no se retira nadie sale dígito a dígito
+  // igual que en la v13.
+  const rngAbandon = streams('abandon')
   const rngCrash = streams('crash')
   const rngDay = streams('day')
   const incidents: Incident[] = []
@@ -347,11 +372,21 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       workJitter: streams(`work:${r.riderId}`)(),
       markLossS: 0,
       gaveUp: false,
+      bonkNoticed: false,
+      bonkKm: 0,
+      abandonedKm: null,
       incident: null,
     })
   }
+  /**
+   * Los corredores VIVOS de un grupo: ni han llegado a meta ni se han retirado. El que abandona
+   * deja de existir para el resto del motor —no marca ritmo, no releva, no puntúa un banner— y por
+   * eso el filtro está aquí y no repartido por el bucle.
+   */
   const membersOf = (groupId: string): RiderSim[] =>
-    [...sims.values()].filter((s) => s.groupId === groupId && s.finishTs === null)
+    [...sims.values()].filter(
+      (s) => s.groupId === groupId && s.finishTs === null && s.abandonedKm === null,
+    )
 
   // Trabajo de equipo (SPEC 6.18): quién arropa a quién. Un líder con `targetRiderId` de sus gregarios
   // gasta menos si los lleva en el grupo; un sprinter con lanzadores va mejor lanzado en la meta.
@@ -440,6 +475,8 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
   let lastFrontReportKm = Number.NEGATIVE_INFINITY
   /** Km del último intento NARRADO: la crónica cuenta los ataques, no los inventaría. */
   let lastAttackNoticeKm = Number.NEGATIVE_INFINITY
+  /** …y el de la última pájara narrada: en la reina se vacía el pelotón entero (v14). */
+  let lastBonkNoticeKm = Number.NEGATIVE_INFINITY
   let chaseAnnounced = false
   let chaseAbandoned = false
   let consolidated = false
@@ -558,6 +595,18 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
    * movimiento una amenaza mortal. No hay general que defender hasta que hay diferencias.
    */
   const hasGcContext = input.riders.some((r) => r.gcDeficitSeconds > 0)
+
+  // --- ABANDONOS (v14, docs/motor.md §VI.3) -------------------------------------------------
+  /** Los que se han bajado de la bici, en orden de retirada. */
+  const abandoned: RiderSim[] = []
+  /**
+   * SALVAGUARDA 1: como mucho un 4 % del pelotón que tomó la salida se va en una sola etapa por
+   * decisión del motor. Es el tope contra la hemorragia, que es el riesgo real de esta mecánica:
+   * un corte aplicado sin tope puede llevarse a media carrera en un mal día. Se reparte por orden
+   * de llegada del suceso —primero el colapso, que ocurre en carretera; lo que quede, para el corte
+   * de tiempo— y lo que no cabe se readmite con penalización en vez de eliminarse.
+   */
+  const abandonBudget = Math.floor(STAGE.abandonStageCapFraction * input.riders.length)
 
   /** El movimiento más adelantado que sigue teniendo corredores; `null` si no hay nada delante. */
   const frontMove = (): Move | null => {
@@ -1051,13 +1100,25 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
     const shatter = (group: Group, members: RiderSim[], paceFraction: number): string[] => {
       const dropped: string[] = []
       // Pájara (SPEC 6.7): con el tanque a cero el corredor se descuelga automáticamente, suba o no.
-      // Hasta ahora `effNow(..., bonk)` no se llamaba nunca y todo este bloque era código muerto.
-      // (Sin evento de crónica: la pájara se narrará cuando exista la telemetría del Cambio 5; hoy
-      // una plantilla nueva se imprimiría en crudo en la crónica, que vive fuera del motor.)
+      // El efecto sobre el rendimiento se activó en la v8 (`effNow(..., bonk)`, que hasta entonces
+      // no se llamaba desde ninguna parte); lo que faltaba desde entonces, y entra en la v14, es
+      // CONTARLA: el motor la ejecutaba en silencio y el journal no podía narrarla.
       for (const m of members) {
         if (!isBonked(m)) continue
         dropOut(m, group)
         dropped.push(m.input.riderId)
+        if (m.bonkNoticed) continue
+        m.bonkNoticed = true
+        // Se cuenta UNA vez por corredor y con throttle largo, y esto es deliberado: en la etapa
+        // reina de una gran vuelta se vacía el pelotón entero, y narrar 170 pájaras sería el «no
+        // menciones uno a uno todos los ciclistas que se van descolgando» del dueño otra vez. La
+        // criba que producen ya la cuenta `peloton_split`; esto pone cara al primero que revienta.
+        const narrate = km - lastBonkNoticeKm >= STAGE.bonkNarrateKmGap
+        if (narrate) lastBonkNoticeKm = km
+        log.emit(km, group.tS, 'pajara', 'rider_bonks', [m.input.riderId], {
+          toGo: Math.round(totalKm - km),
+          narra: narrate ? 1 : 0,
+        })
       }
       const factor = selectionFactor(block)
       if (factor <= 0) return dropped
@@ -1150,6 +1211,41 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
         })
       }
     }
+
+    /**
+     * COLAPSO (docs/motor.md §VI.3, causa «colapso / enfermedad»): el que lleva kilómetros con el
+     * tanque a cero, lejos de meta y ya rodando a lo suyo, se baja de la bici. Es el único abandono
+     * que ocurre DENTRO de la etapa; el fuera de control se resuelve en meta, cuando se conoce el
+     * tiempo del ganador, y la lesión la resuelve `packages/db`, que es quien sabe que hay un mañana.
+     *
+     * El tope del 4 % se comprueba aquí también: el colapso gasta presupuesto antes que el corte,
+     * porque ya ha ocurrido en carretera cuando el corte se calcula.
+     */
+    const collapseCheck = (group: Group, members: RiderSim[], inFront: boolean): void => {
+      // Lo que su grupo lleva perdido contra el pelotón, en fracción del tiempo de carrera: la
+      // medida de si va camino de quedar fuera de control.
+      const lostFraction = peloton.tS > 0 ? Math.max(0, group.tS - peloton.tS) / peloton.tS : 0
+      for (const m of members) {
+        // El contador de pájara sostenida se lleva para TODOS, se colapse o no: es lo que distingue
+        // arrastrarse veinte kilómetros de rozar el cero en una rampa.
+        if (isBonked(m)) m.bonkKm += STAGE.dx
+        else m.bonkKm = 0
+        if (abandoned.length >= abandonBudget) continue
+        const ctx = { bonkKm: m.bonkKm, kmToGo: totalKm - km, inFrontGroup: inFront, lostFraction }
+        if (!shouldCollapse(ctx)) continue
+        if (!rollHazard(rngAbandon, collapseLambda(ctx))) continue
+        m.abandonedKm = km
+        abandoned.push(m)
+        group.riderIds = group.riderIds.filter((id) => id !== m.input.riderId)
+        log.emit(km, group.tS, 'abandono', 'rider_abandons', [m.input.riderId], {
+          causa: 'colapso',
+          toGo: Math.round(totalKm - km),
+        })
+      }
+    }
+    collapseCheck(peloton, membersOf(PELOTON), true)
+    for (const m of moves) collapseCheck(m.g, membersOf(m.g.id), true)
+    for (const sg of shed) collapseCheck(sg, membersOf(sg.id), false)
 
     const climbFrac = raceThisClimb ? STAGE.climbPaceFraction : STAGE.climbTempoFraction
     // En un sector de adoquines el ritmo lo marcan los de delante, como en el puerto decisivo: la
@@ -1268,7 +1364,9 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
     // llegan, colaboran o no, y la carretera decide. Un ataque logrado ES un grupo nuevo, así que
     // aquí no hay física nueva: se crea el grupo con su reloj y el boquete se integra como siempre.
     const kmToGo = totalKm - km
-    const racingNow = [...sims.values()].filter((s) => s.finishTs === null).length
+    const racingNow = [...sims.values()].filter(
+      (s) => s.finishTs === null && s.abandonedKm === null,
+    ).length
 
     /**
      * Throttle COMÚN de todo lo que se narra de un ataque —el intento, el que cuaja, el que cazan—:
@@ -1772,7 +1870,12 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       if (dayBreakFormed && !caught) {
         const stillAway = dayBreakRiders.some((id) => {
           const s = sims.get(id)
-          return s != null && s.finishTs === null && moves.some((mv) => mv.g.id === s.groupId)
+          return (
+            s != null &&
+            s.finishTs === null &&
+            s.abandonedKm === null &&
+            moves.some((mv) => mv.g.id === s.groupId)
+          )
         })
         if (!stillAway) {
           caught = true
@@ -1813,7 +1916,24 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
   const moveGroupIds = new Set(moves.map((m) => m.g.id))
   finishStage(sims, allGroups, log, rngSprint, totalKm, finishTerrain, leadOutFor, moveGroupIds)
 
-  const results = buildResults(sims)
+  /**
+   * FUERA DE CONTROL (docs/motor.md §VI.3, la causa de más peso). Se aplica AQUÍ y no en carretera
+   * por una razón que no es de comodidad: el corte se mide contra el tiempo del GANADOR, y ese dato
+   * no existe hasta que alguien cruza la meta.
+   *
+   * En CONTRARRELOJ no se aplica, y no por olvido: `simulateStage` desvía la crono a
+   * `simulateTimeTrial` antes de llegar aquí. El reglamento real sí corta en las cronos, pero medido
+   * sobre una
+   * gran vuelta de 176 corredores el motor reparte en una crono de 20 km un abanico del 15 % de
+   * mediana y del 36 % en la cola (docs/balance.md, «v14»): con el corte puesto, la etapa 1 se
+   * llevaría por delante a 150 corredores. Ese abanico es un defecto ABIERTO del modelo de crono
+   * —no de esta tanda— y hasta que se cierre, cortar en crono sería castigar a la carrera por un
+   * error del motor. Queda anotado en docs/balance.md como pendiente.
+   */
+  // (La contrarreloj no llega aquí: `simulateStage` la desvía a `simulateTimeTrial` en la 1.ª línea.)
+  const outOfTime = applyStageTimeCut(sims, blocks, abandonBudget - abandoned.length, totalKm, log)
+
+  const results = buildResults(sims, abandoned, outOfTime)
   const workUnits = new Map<string, number>()
   const tank = new Map<string, TankState>()
   for (const [id, s] of sims) {
@@ -1829,6 +1949,83 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
     tank,
     engineVersion: ENGINE_VERSION,
   }
+}
+
+/**
+ * Aplica el CORTE DE TIEMPO a los que han llegado (docs/motor.md §VI.3) y devuelve quién queda
+ * FUERA DE CONTROL. Tres decisiones, las tres de la especificación:
+ *
+ * 1. **El corte se mide contra el GRUPO, no contra el corredor suelto.** Los que comparten tiempo de
+ *    meta llegaron juntos y caen o se salvan juntos. Esta es la salvaguarda que hacía imposible
+ *    implementar el corte antes del reagrupamiento: cuando la montaña producía treinta grupos de un
+ *    corredor, un corte por corredor era un corte por sorteo.
+ * 2. **El límite lo fija la dureza del recorrido**: 8 % en llana, hasta 18 % en la reina.
+ * 3. **El tope del 4 %** decide cuántos se eliminan de verdad; el resto se READMITE con la
+ *    penalización del reglamento: pierde los puntos de la clasificación por puntos de esa etapa.
+ */
+function applyStageTimeCut(
+  sims: Map<string, RiderSim>,
+  blocks: readonly Block[],
+  budget: number,
+  totalKm: number,
+  log: EventLog,
+): Set<string> {
+  const out = new Set<string>()
+  const finishers = [...sims.values()].filter((s) => s.finishTs !== null)
+  if (finishers.length === 0) return out
+  const winnerTs = Math.min(...finishers.map((s) => s.finishTs!))
+  const fraction = timeCutFraction(elevationGainPerKm(blocks))
+  const limitS = winnerTs * (1 + fraction)
+  // Los grupos de meta son los corredores que comparten TIEMPO: es como el motor asigna el reloj
+  // (uno por grupo, redondeado una sola vez) y por tanto la definición operativa de «llegar juntos».
+  const byTime = new Map<number, RiderSim[]>()
+  for (const s of finishers) {
+    const list = byTime.get(s.finishTs!) ?? []
+    list.push(s)
+    byTime.set(s.finishTs!, list)
+  }
+  const times = [...byTime.keys()].sort((a, b) => a - b)
+  const groups = times.map((t) => ({ size: byTime.get(t)!.length, timeS: t }))
+  const outcome = applyTimeCut(groups, limitS, budget)
+  if (outcome.eliminated.length === 0 && outcome.readmitted.length === 0) return out
+
+  const idsOf = (indexes: readonly number[]): RiderSim[] =>
+    indexes.flatMap((i) => byTime.get(times[i]!)!)
+  const gone = idsOf(outcome.eliminated)
+  for (const s of gone) out.add(s.input.riderId)
+  if (gone.length > 0) {
+    log.emit(
+      totalKm,
+      gone[0]!.finishTs!,
+      'fuera_control',
+      'time_cut',
+      [...gone.slice(0, 3).map((s) => s.input.riderId)],
+      {
+        count: gone.length,
+        limitPct: Math.round(1000 * fraction) / 10,
+        gapS: Math.round(gone[0]!.finishTs! - winnerTs),
+      },
+    )
+  }
+  const back = idsOf(outcome.readmitted)
+  if (back.length > 0) {
+    // La penalización real del jurado: readmitidos, pero sin los puntos de la clasificación por
+    // puntos de la etapa. No se les quita el tiempo ni el puesto: siguen en carrera.
+    for (const s of back) s.sprintPts = 0
+    log.emit(
+      totalKm,
+      back[0]!.finishTs!,
+      'readmision',
+      'time_cut_readmitted',
+      [...back.slice(0, 3).map((s) => s.input.riderId)],
+      {
+        count: back.length,
+        limitPct: Math.round(1000 * fraction) / 10,
+        gapS: Math.round(back[back.length - 1]!.finishTs! - winnerTs),
+      },
+    )
+  }
+  return out
 }
 
 /** TSS de etapa derivado del gasto de un corredor (workUnits), para el Banister (SPEC 5.1, 6.15). */
@@ -1969,7 +2166,11 @@ function finishStage(
   moveGroupIds: Set<string>,
 ): void {
   const withMembers = groups
-    .map((group) => ({ group, members: [...sims.values()].filter((s) => s.groupId === group.id) }))
+    .map((group) => ({
+      group,
+      // El que se bajó de la bici no llega a meta: no entra en ningún grupo de llegada (v14).
+      members: [...sims.values()].filter((s) => s.groupId === group.id && s.abandonedKm === null),
+    }))
     .filter((g) => g.members.length > 0)
   withMembers.sort((a, b) => a.group.tS - b.group.tS)
 
@@ -2078,10 +2279,26 @@ function finishStage(
   })
 }
 
-/** Ordena a todos por tiempo, asigna puestos y bonificaciones (SPEC 6.15). */
-function buildResults(sims: Map<string, RiderSim>): StageResult[] {
+/**
+ * Ordena a todos por tiempo, asigna puestos y bonificaciones (SPEC 6.15), y añade detrás a los que
+ * NO figuran en la clasificación (v14, docs/motor.md §VI.3):
+ *
+ * - `abandon`: se bajó de la bici en carretera. Sin tiempo ni puesto (`puesto: 0`), que es lo que
+ *   dice una hoja de resultados de un abandono.
+ * - `dnf`: llegó FUERA DE CONTROL. Conserva el tiempo con que cruzó —cruzó de verdad— pero queda
+ *   sin puesto y sin bonificación, y `packages/db` lo saca del resto de la carrera.
+ *
+ * Los no clasificados van al final del array a propósito: quien lo consume por índice (los puntos
+ * de temporada, la clasificación por equipos) sigue viendo primero el orden real de la etapa, y
+ * quien mire `estado` sabe que ahí abajo no hay clasificación que repartir.
+ */
+function buildResults(
+  sims: Map<string, RiderSim>,
+  abandoned: readonly RiderSim[],
+  outOfTime: ReadonlySet<string>,
+): StageResult[] {
   const finishers = [...sims.values()]
-    .filter((s) => s.finishTs !== null)
+    .filter((s) => s.finishTs !== null && s.abandonedKm === null && !outOfTime.has(s.input.riderId))
     // Por tiempo y, a igualdad de tiempo (que es lo NORMAL dentro de un grupo), por el orden de
     // llegada que resolvió el remate. El puesto lo decide el juez de llegada, no el cronómetro.
     .sort((a, b) => a.finishTs! - b.finishTs! || a.finishOrder - b.finishOrder)
@@ -2091,7 +2308,7 @@ function buildResults(sims: Map<string, RiderSim>): StageResult[] {
     // clasificación por puntos, no solo las metas volantes intermedias.
     s.sprintPts += STAGE.finishPoints[idx] ?? 0
   })
-  return finishers.map((s, idx) => ({
+  const classified: StageResult[] = finishers.map((s, idx) => ({
     riderId: s.input.riderId,
     puesto: idx + 1,
     // Ya es entero: se redondeó una vez, en el reloj del grupo.
@@ -2101,4 +2318,32 @@ function buildResults(sims: Map<string, RiderSim>): StageResult[] {
     puntosMontana: s.climbPts,
     estado: 'finish' as const,
   }))
+  // Los no clasificados, en orden estable: primero los que se retiraron (por km de retirada) y
+  // luego los que llegaron fuera de control (por tiempo). El desempate por id cierra el orden.
+  const byId = (a: RiderSim, b: RiderSim): number =>
+    a.input.riderId < b.input.riderId ? -1 : a.input.riderId > b.input.riderId ? 1 : 0
+  const retired: StageResult[] = [...abandoned]
+    .sort((a, b) => a.abandonedKm! - b.abandonedKm! || byId(a, b))
+    .map((s) => ({
+      riderId: s.input.riderId,
+      puesto: 0,
+      tiempoS: 0,
+      bonificacionS: 0,
+      puntosVolante: 0,
+      puntosMontana: 0,
+      estado: 'abandon' as const,
+    }))
+  const cut: StageResult[] = [...sims.values()]
+    .filter((s) => outOfTime.has(s.input.riderId))
+    .sort((a, b) => a.finishTs! - b.finishTs! || byId(a, b))
+    .map((s) => ({
+      riderId: s.input.riderId,
+      puesto: 0,
+      tiempoS: s.finishTs!,
+      bonificacionS: 0,
+      puntosVolante: 0,
+      puntosMontana: 0,
+      estado: 'dnf' as const,
+    }))
+  return [...classified, ...retired, ...cut]
 }

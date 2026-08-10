@@ -158,6 +158,23 @@ export function illnessProbability(fragility: number, tsb: number): number {
   )
 }
 
+/**
+ * Probabilidad de enfermar en un día de CARRERA (docs/motor.md §VI.3). Misma curva que
+ * `illnessProbability` —misma dependencia del TSB y de la fragilidad— escalada por
+ * `illnessRaceFactor` y con su propio techo.
+ *
+ * Existe porque el dado de la enfermedad SOLO se tira en los días de entrenamiento
+ * (`simulateRiderDay`), y quien corre no pasa por ahí: en una gran vuelta de tres semanas, con el
+ * pelotón hundido de TSB, no enfermaba nadie. En carrera, enfermar significa abandonar, así que
+ * quien la consume es `packages/db` —el motor de etapa no sabe que hay un mañana—.
+ */
+export function raceIllnessProbability(fragility: number, tsb: number): number {
+  return Math.min(
+    HEALTH.illnessRaceMax,
+    HEALTH.illnessRaceFactor * illnessProbability(fragility, tsb),
+  )
+}
+
 /** Regresión diaria de la moral a la media (SPEC 4.4). */
 export function regressMorale(morale: number): number {
   return morale + (MORALE.mean - morale) * MORALE.regression

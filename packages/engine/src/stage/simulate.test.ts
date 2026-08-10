@@ -1310,3 +1310,92 @@ describe('regla 9: un final en alto no es el equipo del favorito tirando hasta r
     expect(byAttack).toBeLessThan(runs.length)
   })
 })
+
+describe('abandonos en carretera y fuera de control (docs/motor.md §VI.3)', () => {
+  /**
+   * Un puerto interminable con un campo partido en dos: veinte corredores fuertes con el depósito
+   * lleno y una docena hundidos que salen ya casi vacíos. Es el escenario de laboratorio del corte
+   * de tiempo — en el calendario real no hay etapas así, y por eso el corte casi nunca dispara
+   * (docs/balance.md, «v14»).
+   */
+  const cruelStage = (weak: number, strong: number): StageInput => {
+    const riders: StageRider[] = []
+    for (let i = 0; i < strong; i++) {
+      riders.push(rider(`fuerte-${i}`, { eff0: eff(80), energy: 100, matches: 2 }))
+    }
+    for (let i = 0; i < weak; i++) {
+      riders.push(rider(`flojo-${i}`, { eff0: eff(22), energy: 14, matches: 2 }))
+    }
+    return {
+      profile: {
+        segments: [
+          { km: 20, tipo: 'llano' },
+          { km: 40, tipo: 'puerto', tramos: [{ km: 40, g: 9 }] },
+          { km: 20, tipo: 'llano' },
+        ],
+      },
+      riders,
+    }
+  }
+
+  const run = (input: StageInput, world: string): StageOutput =>
+    simulateStage(
+      input,
+      stageSeed({ worldSeed: world, raceId: 'corte', stageDay: 1, engineVersion: 1 }),
+    )
+
+  it('un grupo numeroso fuera de control se READMITE con penalización, no se elimina', () => {
+    const out = run(cruelStage(12, 20), 'a')
+    const readmit = out.events.find((e) => e.plantilla === 'time_cut_readmitted')
+    expect(readmit).toBeDefined()
+    expect(Number(readmit!.datos!.count)).toBeGreaterThan(1)
+    // Salvaguarda 1: el tope de esta etapa es 1 corredor (4% de 32), así que NADIE se elimina.
+    expect(out.events.some((e) => e.plantilla === 'time_cut')).toBe(false)
+    expect(out.results.every((r) => r.estado === 'finish')).toBe(true)
+    // La penalización del reglamento: los readmitidos pierden los puntos de la etapa.
+    const readmitted = new Set(readmit!.protagonistas)
+    for (const r of out.results) {
+      if (readmitted.has(r.riderId)) expect(r.puntosVolante).toBe(0)
+    }
+  })
+
+  it('con tope de sobra, el que llega fuera de control queda sin clasificar (dnf)', () => {
+    const out = run(cruelStage(3, 100), 'c')
+    const cut = out.events.find((e) => e.plantilla === 'time_cut')
+    expect(cut).toBeDefined()
+    const dnf = out.results.filter((r) => r.estado === 'dnf')
+    expect(dnf.length).toBe(Number(cut!.datos!.count))
+    // Llegó de verdad, así que conserva su tiempo; lo que pierde es el puesto y la bonificación.
+    for (const r of dnf) {
+      expect(r.tiempoS).toBeGreaterThan(0)
+      expect(r.puesto).toBe(0)
+      expect(r.bonificacionS).toBe(0)
+    }
+    // Los clasificados llevan puestos consecutivos desde el 1: los no clasificados van detrás.
+    const finish = out.results.filter((r) => r.estado === 'finish')
+    expect(finish.map((r) => r.puesto)).toEqual(finish.map((_, i) => i + 1))
+  })
+
+  it('el que se baja de la bici no llega a meta: sin tiempo y sin puesto', () => {
+    const out = run(cruelStage(12, 20), 'e')
+    const gone = out.results.filter((r) => r.estado === 'abandon')
+    expect(gone.length).toBeGreaterThan(0)
+    for (const r of gone) {
+      expect(r.tiempoS).toBe(0)
+      expect(r.puesto).toBe(0)
+    }
+    const ev = out.events.filter((e) => e.plantilla === 'rider_abandons')
+    expect(ev.length).toBe(gone.length)
+    expect(ev[0]!.datos!.causa).toBe('colapso')
+    // Y deja de contar para la carrera: no aparece en ningún grupo de meta.
+    const ids = new Set(gone.map((r) => r.riderId))
+    expect(out.results.filter((r) => ids.has(r.riderId) && r.estado === 'finish')).toEqual([])
+  })
+
+  it('una etapa normal no retira a nadie', () => {
+    const riders: StageRider[] = []
+    for (let i = 0; i < 30; i++) riders.push(rider(`r-${i}`, { eff0: eff(58 + (i % 6)) }))
+    const out = run({ profile: { segments: [{ km: 180, tipo: 'llano' }] }, riders }, 'z')
+    expect(out.results.every((r) => r.estado === 'finish')).toBe(true)
+  })
+})

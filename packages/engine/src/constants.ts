@@ -139,8 +139,33 @@
  *
  * La huella `puesto:corredor:tiempo` de `stage/attribution.test.ts` sale IDÉNTICA: ver allí por qué.
  * Medido en docs/balance.md, «v13».
+ *
+ * v14 (ABANDONOS Y PÁJARA, docs/motor.md §15 y §VI.3). El tipo `StageResult.estado` contemplaba
+ * `'abandon' | 'dnf'` desde el Paso 21 y el motor nunca emitió otra cosa que `'finish'`: en una
+ * gran vuelta de 21 etapas con caídas y lesiones, los 176 que salían eran los 176 que acababan.
+ * Ahora hay dos abandonos que decide el MOTOR dentro de la etapa, con las dos salvaguardas contra
+ * la hemorragia que exige §VI.3:
+ *
+ * - **Colapso** (`abandon`): se baja de la bici quien lleva `collapseSustainedKm` con el tanque a
+ *   cero, a más de `collapseMinKmToGo` de meta, descolgado y con su grupo ya camino del fuera de
+ *   control. Las cuatro condiciones hacen falta: en la etapa reina de una gran vuelta el pelotón
+ *   ENTERO cruza la meta vacío, así que una regla que solo mirase `energy <= 0` retiraría a la
+ *   carrera entera.
+ * - **Fuera de control** (`dnf`): llegar más allá del 8 % del tiempo del ganador en una llana y del
+ *   18 % en la reina, interpolado por el desnivel del recorrido. Se mide **contra el GRUPO**, nunca
+ *   contra el corredor suelto, y solo se aplica a los que toman parte en una salida en línea.
+ * - **Tope del 4 %** por etapa: lo que el corte señale por encima se READMITE con la penalización
+ *   del reglamento (pierde los puntos de la clasificación por puntos), como hace el jurado cuando
+ *   llega un grupo numeroso fuera de control.
+ *
+ * Y la PÁJARA queda narrada: hasta ahora el motor la ejecutaba desde la v8 (`effNow(..., bonk)`) y
+ * no emitía un solo evento, así que el journal no podía contarla.
+ *
+ * El azar nuevo sale de un subflujo NOMINAL propio (`abandon`), de modo que una etapa en la que no
+ * se retira nadie sale dígito a dígito igual que en la v13 y la huella de `attribution.test.ts` no
+ * se mueve. Medido en docs/balance.md, «v14».
  */
-export const ENGINE_VERSION = 13 as const
+export const ENGINE_VERSION = 14 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -404,6 +429,18 @@ export const HEALTH = {
   illnessTsbOffset: 22,
   illnessTsbScale: 9,
   illnessMax: 0.08,
+  // ENFERMAR EN CARRERA (v14, docs/motor.md §VI.3, causa «colapso / enfermedad»). El dado de arriba
+  // solo se tira los días de ENTRENAMIENTO —quien corre no pasa por `simulateRiderDay`—, así que en
+  // una gran vuelta de tres semanas no enfermaba absolutamente nadie por más hundido que estuviera:
+  // el riesgo se acumulaba y estallaba el primer día de descanso, ya fuera de la carrera. Es la
+  // misma curva (misma dependencia del TSB, misma fragilidad) escalada y con su propio techo: un día
+  // de carrera no es un día machacándose en el entrenamiento, y en carrera enfermar significa
+  // ABANDONAR, así que el número tiene que ser pequeño y estar acotado.
+  //
+  // Calibrado sobre la gran vuelta de 21 etapas del banco (`sim/grandTour.ts`), que es donde se
+  // mide el objetivo de §VI.3. Ver docs/balance.md, «v14».
+  illnessRaceFactor: 0.13,
+  illnessRaceMax: 0.0045,
 } as const
 
 /** Moral (SPEC 4.2, 4.4). M_moral = base + scale * MOR/100; regresión diaria a la media. */
@@ -1028,6 +1065,47 @@ export const STAGE = {
   // solo administra si lo que puede perder de aquí a meta cabe en esta fracción del tiempo de
   // carrera. El corte real va del 8% en una llana al 18% en la etapa reina (docs/motor.md §VI.3).
   giveUpMaxLossFraction: 0.05,
+
+  // --- ABANDONOS AUTOMÁTICOS (v14, docs/motor.md §15 y §VI.3) ---------------------------------
+  // Objetivo de diseño, medible: una gran vuelta de 21 etapas empieza con ~176 y termina con 140-155
+  // (abandona el 12-20 %), que es ≈1 % del pelotón por etapa. La hemorragia es el riesgo real, así
+  // que todas estas perillas están del lado de retirar de menos. La lógica vive en `stage/abandon.ts`.
+
+  // COLAPSO. Km seguidos con el tanque a cero antes de que retirarse sea creíble. No basta con
+  // `energy <= 0`: en la etapa 18 de una gran vuelta con el campo de tercera semana el 100 % del
+  // pelotón cruza la meta vacío, y una regla que solo mirase el cero retiraría a la carrera entera.
+  collapseSustainedKm: 20,
+  // …y a más de estos km de meta. A diez kilómetros de la línea nadie se baja de la bici.
+  collapseMinKmToGo: 30,
+  // Intensidad (por km) del abandono una vez cumplidas las condiciones, y cuánto crece por cada km
+  // de más arrastrándose. Retirarse es una decisión que se toma en algún punto del calvario, no un
+  // interruptor que salta en el metro exacto en que se cumple la condición.
+  lambdaCollapse: 0.0025,
+  collapseLambdaGrowthPerKm: 0.03,
+  // …y con su grupo ya camino del fuera de control: perdido al menos esta fracción del tiempo de
+  // carrera contra el pelotón. Es lo que separa a los tres que se bajan de los ciento setenta que
+  // también llegan vacíos (ver `shouldCollapse`).
+  collapseMinLostFraction: 0.05,
+
+  // FUERA DE CONTROL. El corte va del 8 % del tiempo del ganador en una llana al 18 % en la reina,
+  // interpolado por el desnivel positivo por km del recorrido (la magnitud con la que el ciclismo
+  // real escala el corte). Medido en el calendario: llana 0,8-3 m/km, media 5-14, reina 15-26.
+  timeCutFlat: 0.08,
+  timeCutQueen: 0.18,
+  timeCutHardnessGainPerKm: 22,
+  // TOPE POR ETAPA (salvaguarda 1 de §VI.3): fracción del pelotón que tomó la salida que como mucho
+  // puede irse en un solo día por decisión del motor. Lo que el corte señale por encima de esto no
+  // se elimina: se READMITE CON PENALIZACIÓN, que es lo que hace el jurado cuando llega un grupo
+  // numeroso fuera de control. La penalización es la del reglamento: pierde los puntos de la
+  // clasificación por puntos de esa etapa.
+  abandonStageCapFraction: 0.04,
+  // LESIÓN. Días de baja a partir de los cuales una caída que no llega a `minor` saca igualmente al
+  // corredor del resto de la vuelta (`injuryEndsRace`). Los rasguños duran 3-6 días, así que con 15
+  // —el umbral anterior— no salía nadie y una gran vuelta perdía un corredor en tres semanas.
+  abandonInjuryDays: 10,
+  // PÁJARA NARRADA. Km entre dos pájaras contadas. Es largo a propósito: en la reina de una gran
+  // vuelta se vacía el pelotón entero y narrarlas todas repetiría el defecto que arregló la v13.
+  bonkNarrateKmGap: 15,
 
   // 6.9 — El pelotón como controlador (decisiones cada 10 bloques, con histéresis).
   // El ritmo del pelotón lo marca su cuarto delantero de punteros, no todo el bloque (6.4).

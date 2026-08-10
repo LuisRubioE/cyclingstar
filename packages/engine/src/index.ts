@@ -23,6 +23,19 @@ export { blockProbability, rollHazard } from './stage/hazard.js'
 export { simulateStage, stageTss } from './stage/simulate.js'
 export { simulateTimeTrial } from './stage/timetrial.js'
 export { crashLambda, rollCrash, type CrashOutcome } from './stage/crash.js'
+// Abandonos automáticos (docs/motor.md §VI.3). `injuryEndsRace` la consume packages/db: el motor
+// simula UNA etapa y no sabe que hay un mañana al que no tomar la salida.
+export {
+  applyTimeCut,
+  collapseLambda,
+  elevationGainPerKm,
+  injuryEndsRace,
+  shouldCollapse,
+  timeCutFraction,
+  type CollapseContext,
+  type FinishGroup,
+  type TimeCutOutcome,
+} from './stage/abandon.js'
 export {
   markingMargin,
   resolveMarking,
@@ -190,6 +203,7 @@ export {
   mMorale,
   mTankFitness,
   mTankFreshness,
+  raceIllnessProbability,
   regressMorale,
   tauFatigue,
   tsbFactor,
