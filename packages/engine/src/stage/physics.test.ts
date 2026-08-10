@@ -6,6 +6,7 @@ import {
   blockSeconds,
   costBase,
   draftMax,
+  droppedCommit,
   effNow,
   erosion,
   matchCount,
@@ -143,6 +144,49 @@ describe('coste y drafting (6.5)', () => {
 
   it('el rebufo mengua en subida', () => {
     expect(draftMax(block('subida', 8))).toBeLessThan(draftMax(block('llano', 0)))
+  })
+})
+
+describe('el ritmo del descolgado (v16, docs/motor.md §9)', () => {
+  const llano = block('llano', 0)
+  const puerto = block('subida', 8)
+  // Resignado del todo: el grupo de cabeza hace rato que se perdió de vista.
+  const lejos = STAGE.shedResignGapSeconds * 2
+
+  it('el que acaba de soltarse va a SU UMBRAL, vaya solo o acompañado', () => {
+    // Es el `shedCommit` = 0,82 de toda la vida, y es deliberado que no se haya movido: el que
+    // pierde una rueda no se sienta. Lo que cambia es lo que pasa DESPUÉS.
+    expect(droppedCommit(llano, 1, 1, 0)).toBeCloseTo(STAGE.shedFightCommit)
+    expect(droppedCommit(puerto, 40, 0.2, 0)).toBeCloseTo(STAGE.shedFightCommit)
+  })
+
+  it('resignado, el grupo grande rueda MÁS RÁPIDO que el que va solo: se relevan', () => {
+    const autobus = droppedCommit(llano, 40, 1, lejos)
+    const suelto = droppedCommit(llano, 1, 1, lejos)
+    expect(autobus).toBeGreaterThan(suelto)
+    expect(suelto).toBeCloseTo(STAGE.shedCommitAlone)
+    expect(autobus).toBeLessThanOrEqual(STAGE.shedCommitBunch)
+  })
+
+  it('…pero en el puerto ser cuarenta no sirve de nada: ahí no hay rueda a la que ir', () => {
+    const ventajaLlano = droppedCommit(llano, 40, 1, lejos) - droppedCommit(llano, 1, 1, lejos)
+    const ventajaPuerto = droppedCommit(puerto, 40, 1, lejos) - droppedCommit(puerto, 1, 1, lejos)
+    expect(ventajaPuerto).toBeGreaterThan(0)
+    expect(ventajaPuerto).toBeLessThan(ventajaLlano / 3)
+  })
+
+  it('el grupeto vaciado administra; con las piernas enteras, no', () => {
+    expect(droppedCommit(llano, 20, 0, lejos)).toBeLessThan(droppedCommit(llano, 20, 1, lejos))
+    // La frescura pesa sobre el resignado, NUNCA sobre el que pelea: eso ya lo cobra la erosión.
+    expect(droppedCommit(llano, 20, 0, 0)).toBeCloseTo(droppedCommit(llano, 20, 1, 0))
+  })
+
+  it('se pelea al principio y se resigna al final, sin escalones', () => {
+    const gaps = [0, 60, 120, 180, 240, 300, 600]
+    const commits = gaps.map((g) => droppedCommit(llano, 8, 0.5, g))
+    for (let i = 1; i < commits.length; i++) expect(commits[i]!).toBeLessThanOrEqual(commits[i - 1]!)
+    // Y una vez resignado, el ritmo ya no depende del boquete: no hay espiral.
+    expect(commits[6]!).toBeCloseTo(commits[5]!)
   })
 })
 

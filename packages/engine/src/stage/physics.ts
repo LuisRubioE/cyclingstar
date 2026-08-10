@@ -153,6 +153,54 @@ export function draftMax(block: Block): number {
 }
 
 /**
+ * COMPROMISO DEL DESCOLGADO (v16, docs/motor.md §9). A qué ritmo rueda un grupo que ya se ha ido
+ * por detrás. Sustituye a la constante `shedCommit` = 0,82, que era la mitad del parche: con ella
+ * un descolgado rodaba SIEMPRE al ritmo de un pelotón lanzado y la otra mitad —el recorte fijo de
+ * `chaseBackSecondsPerKm`— tenía que existir para tapar los fantasmas que eso producía.
+ *
+ * Sale de dos cosas que sí son física y que el motor ya modela en el COSTE (SPEC 6.5) sin que
+ * llegaran nunca a la velocidad:
+ *
+ * 1. **Relevarse reparte el viento.** En un grupo de `n` que rota, a cada uno le toca ir en cabeza
+ *    1/n del tiempo; el que va solo da la cara el 100 %. Por eso un autobús de cuarenta rueda como
+ *    un pelotón y un descolgado suelto no puede sostener ese ritmo aunque tenga las mismas piernas.
+ *    Es lo que `shelterAlone` (v15) ya cobraba en energía y aquí se cobra en velocidad.
+ * 2. **…y eso vale lo que valga el rebufo en este terreno.** `draftMax` ya lo dice: en el llano un
+ *    42 %, en un sector de adoquines un 18 %, y en una rampa al 8 % un 9,6 %. De ahí sale solo el
+ *    hecho de carretera que ningún parche sabía imitar: **el grupeto sube tan lento como el que sube
+ *    solo** —arriba no hay rueda a la que ir— y en el valle vuelve a rodar como un pelotón.
+ * 3. **Con lo que quede en las piernas.** Un grupeto de la última hora de una etapa reina va vacío y
+ *    administra; entero, no. `freshness` es E/E₀, la misma frescura que ya pesa en el deber de relevo.
+ *
+ * Y por encima de las tres, **primero se PERSIGUE y luego uno se resigna**, que es de lo que iba
+ * este modelo: el que acaba de soltarse va a su umbral (`shedFightCommit`, el 0,82 de siempre)
+ * peleando por volver, y conforme el grupo de cabeza se le pierde de vista pasa a rodar a lo suyo.
+ * Sin esta parte el motor mandaba al grupeto a cualquiera que perdiese una rueda, y una etapa reina
+ * la ganaba el mejor escalador por siete minutos sobre el décimo; con ella, el que se suelta a un
+ * minuto sigue peleando —y esa es la diferencia entre una selección y una debacle—.
+ */
+export function droppedCommit(
+  block: Block,
+  size: number,
+  freshness: number,
+  gapSeconds: number,
+): number {
+  const rotation = 1 - 1 / Math.max(1, size)
+  const wind = draftMax(block) / STAGE.draftFlat
+  const able =
+    STAGE.shedCommitAlone + (STAGE.shedCommitBunch - STAGE.shedCommitAlone) * rotation * wind
+  const legs =
+    STAGE.shedEmptyCommitFactor + (1 - STAGE.shedEmptyCommitFactor) * clamp(freshness, 0, 1)
+  // La frescura pesa sobre el ritmo del GRUPETO y no sobre el del que pelea, y no es un detalle: lo
+  // que administra es una decisión («me queda poco, lo guardo»), no una limitación —esa ya la cobra
+  // la erosión sobre el P75, y cobrarla dos veces mandaba al grupeto a cualquiera que perdiese una
+  // rueda—. El que acaba de soltarse va a su umbral aunque vaya vacío; el que ya se ha resignado,
+  // no.
+  const fight = 1 - clamp(gapSeconds / STAGE.shedResignGapSeconds, 0, 1)
+  return able * legs + (STAGE.shedFightCommit - able * legs) * fight
+}
+
+/**
  * Coste de energía de un corredor en un bloque (SPEC 6.5):
  * coste = dx·costeBase·ritmo(c)^1.6·(1 - draftMax·shelter).
  */

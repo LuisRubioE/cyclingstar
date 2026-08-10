@@ -17,7 +17,15 @@ import {
 import { chaseField, isFinisher, lerp } from './chase.js'
 import { EventLog } from './events.js'
 import { type Group, advanceGroup, createGroup, gapSeconds, percentile75 } from './group.js'
-import { blockCost, blockPerfil, effNow, erosion, rhythm, tankState } from './physics.js'
+import {
+  blockCost,
+  blockPerfil,
+  droppedCommit,
+  effNow,
+  erosion,
+  rhythm,
+  tankState,
+} from './physics.js'
 import { rollHazard } from './hazard.js'
 import { rollCrash } from './crash.js'
 import {
@@ -207,13 +215,25 @@ function riderPerfil(sim: RiderSim, block: Block): number {
  * Cuánto SELECCIONA el terreno de un bloque (v12, docs/motor.md §14). 0 = no selecciona: el llano
  * no descuelga a nadie, y una bajada que en realidad es relieve menudo, tampoco.
  *
- * La subida vale 1 por definición —es la referencia con la que se calibró `lambdaDropBase`—, así
- * que la montaña sigue exactamente igual que antes de este cambio.
+ * El PUERTO DECISIVO vale 1 por definición —es la referencia con la que se calibró
+ * `lambdaDropBase`—, así que la etapa reina canónica sigue exactamente igual que siempre: sus
+ * únicos kilómetros de subida son los últimos quince.
+ *
+ * UN PUERTO DE TEMPO NO ES UN PUERTO DECISIVO (v16). Lejos de meta el pelotón sube a tempo, y el
+ * motor ya lo sabía en la VELOCIDAD (`climbTempoFraction`: más corredores marcan el ritmo, el P75
+ * baja) pero no en la SELECCIÓN: el descuelgue se sorteaba con la misma intensidad subiera el grupo
+ * a 0,85 o a 0,40. Con un campo real de 176 corredores —donde el mejor escalador es un MON 85 y el
+ * peor un MON 45— eso reventaba el pelotón en CADA cota: medido en Race Great Ocean, el pelotón
+ * pasaba de 173 a 6 corredores en una rampa a 100 km de meta. Mientras el recorte fijo devolvía a
+ * todo el mundo daba lo mismo; con el modelo de persecución arreglado, esos descolgados de mentira
+ * llegaban a 20 minutos. Es la misma frase que el comentario de `onClimb` lleva escrita desde la
+ * v11 —«así el pelotón no se destroza en cada cota y las diferencias las marca el último puerto,
+ * como en la realidad»— aplicada donde faltaba.
  */
-function selectionFactor(block: Block): number {
+function selectionFactor(block: Block, raceThisClimb = true): number {
   switch (block.tipo) {
     case 'subida':
-      return 1
+      return raceThisClimb ? 1 : STAGE.climbTempoSelection
     case 'paves':
       // Las estrellas del sector escalan la dureza: viajan en el dato desde la v4 y hasta ahora
       // solo se leían para el coste en energía. Un 5★ rompe casi el doble que un 3★.
@@ -1312,13 +1332,12 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
      * descolgados a su MISMA altura de carrera se une a él —los que se sueltan a la vez ruedan
      * juntos, que es como nacen los grupetos— y solo si no hay ninguno abre grupo propio. Sin esto
      * la montaña terminaba con decenas de grupos de UN corredor (docs/motor.md §3-bis-e).
+     *
+     * El grupo nace al ritmo del que se descuelga y el bucle principal lo recalcula cada bloque con
+     * `droppedCommit` (v16): ya no hay un `shedCommit` que traer aquí, ni un compromiso especial que
+     * pasarle al que se deja ir —lo dice su `gaveUp`, que el ritmo del grupo ya mira—.
      */
-    const dropOut = (
-      m: RiderSim,
-      group: Group,
-      delayS = 0,
-      commit: number = STAGE.shedCommit,
-    ): void => {
+    const dropOut = (m: RiderSim, group: Group, delayS = 0): void => {
       const tS = group.tS + delayS
       const near = shed.find(
         (sg) => Math.abs(sg.tS - tS) <= STAGE.grupetoJoinGapSeconds && membersOf(sg.id).length > 0,
@@ -1332,7 +1351,16 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       const gid = `shed-${shedCounter}`
       m.groupId = gid
       shed.push(
-        createGroup(gid, [m.input.riderId], { tS, vActual: group.vActual, compromiso: commit }),
+        createGroup(gid, [m.input.riderId], {
+          tS,
+          vActual: group.vActual,
+          compromiso: droppedCommit(
+            block,
+            1,
+            m.energy0 > 0 ? Math.max(0, Math.min(1, m.energy / m.energy0)) : 0,
+            tS - peloton.tS,
+          ),
+        }),
       )
     }
 
@@ -1365,7 +1393,7 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
           narra: narrate ? 1 : 0,
         })
       }
-      const factor = selectionFactor(block)
+      const factor = selectionFactor(block, raceThisClimb)
       if (factor <= 0) return dropped
       // El dado: la montaña sigue con el suyo de siempre y el terreno nuevo estrena el suyo, para
       // no desplazar una secuencia calibrada (ver `rngRough` arriba).
@@ -1445,12 +1473,14 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
         if (!rollHazard(rngTactics, lambda)) continue
         // El cuidado del fuera de control: solo administra si lo que va a ceder de aquí a meta cabe
         // dentro del corte. La cuenta es la de la propia ley de velocidad —ritmo(c) es lineal en el
-        // compromiso—, así que el retraso relativo se conoce sin simular nada.
+        // compromiso—, así que el retraso relativo se conoce sin simular nada. El tope NO se ha
+        // tocado en la v16: se probó atarlo al corte real de cada etapa y no mueve nada donde
+        // importa (ver `giveUpMaxLossFraction`).
         const slower = rhythm(group.compromiso) / rhythm(STAGE.giveUpCommit) - 1
         const remainingS = ((totalKm - km) / Math.max(1, group.vActual)) * 3600
         if (slower * remainingS > STAGE.giveUpMaxLossFraction * group.tS) continue
         m.gaveUp = true
-        dropOut(m, group, 0, STAGE.giveUpCommit)
+        dropOut(m, group)
         log.emit(km, group.tS, 'abandona_ritmo', 'rider_sits_up', [m.input.riderId], {
           toGo: Math.round(totalKm - km),
         })
@@ -1854,52 +1884,65 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
         m.peakGapKm = km
       }
     }
+    /**
+     * EL RITMO DEL DESCOLGADO, CADA BLOQUE (v16, docs/motor.md §9). Aquí estaba la deuda de fondo:
+     * el grupo descolgado rodaba a la constante `shedCommit` = 0,82 —el ritmo de un pelotón
+     * lanzado— fuera uno o cuarenta, en el llano o en una rampa al 9 %, entero o vacío. Ahora lo
+     * decide `droppedCommit`: relevarse reparte el viento (1/n del tiempo en cabeza), eso vale lo
+     * que valga el rebufo del terreno, y se rueda con lo que quede en las piernas.
+     *
+     * Se recalcula bloque a bloque y no al descolgarse, porque las tres entradas cambian: el
+     * grupeto crece cuando se le suman otros, y se vacía kilómetro a kilómetro.
+     */
+    for (const sg of shed) {
+      const mem = membersOf(sg.id)
+      if (mem.length === 0) continue
+      let fresh = 0
+      let gaveUp = 0
+      for (const m of mem) {
+        fresh += m.energy0 > 0 ? Math.max(0, Math.min(1, m.energy / m.energy0)) : 0
+        if (m.gaveUp) gaveUp += 1
+      }
+      const able = droppedCommit(block, mem.length, fresh / mem.length, sg.tS - peloton.tS)
+      // …y el que SE HA DEJADO IR (regla 8) ya no pelea por nada: rueda a lo suyo y arrastra al
+      // grupo en la proporción en que sean los suyos. Un grupeto donde la mitad se ha sentado va
+      // más lento que uno donde nadie lo ha hecho, que es lo que se ve en carretera.
+      const share = gaveUp / mem.length
+      sg.compromiso = able + (Math.min(able, STAGE.giveUpCommit) - able) * share
+    }
     for (let g = 0; g < shed.length; g++) {
-      const adv = advance(shed[g]!, membersOf(shed[g]!.id), 1, 'shed')
-      // Un descolgado del pelotón NUNCA rueda por delante de él: en carretera el grupo grande, a rueda,
-      // siempre es más rápido que un suelto. Sin este tope, un "descolgado" con compromiso alto se
-      // escapaba en FANTASMA (más rápido que el pelotón a tempo) y ganaba la etapa sin que la fuga ni la
-      // crónica lo contaran. PERO el tope no aplica en la SUBIDA: allí un descolgado sí puede quedar por
-      // delante de lo que reste del pelotón (que se ha estirado y va más lento en conjunto), y la
-      // selección debe mantenerse. En el PAVÉ el tope sigue puesto aunque también seleccione: el que se
-      // suelta en un sector pierde tiempo porque va más lento que los de delante, no porque se le
-      // empuje; si sale más rápido, es un fantasma y hay que taparlo igual que en el llano.
-      shed[g] = !onClimb && adv.tS < peloton.tS ? { ...adv, tS: peloton.tS } : adv
+      shed[g] = advance(shed[g]!, membersOf(shed[g]!.id), 1, 'shed')
     }
 
-    // Recorte y reagrupamiento de los descolgados. En terreno RODADOR (llano/descenso) cierran el
-    // boquete con el pelotón a un ritmo (s/km) y, al entrar en rango, se reenganchan. En terreno
-    // que ROMPE —subida y, desde la v12, adoquín— no hay recorte: allí manda la selección, que es
-    // lo que hace una etapa de montaña y lo que hace una clásica de pavés. Pero los descolgados que
-    // ruedan a la MISMA altura sí se funden en grupetos: si no, la reina terminaba con una mediana
-    // de 30 grupos de un solo corredor (docs/motor.md §3-bis-e).
+    // Reagrupamiento de los descolgados. Hasta la v15 aquí había un RECORTE FIJO —el descolgado
+    // cerraba `chaseBackSecondsPerKm` = 8 s por kilómetro pasara lo que pasara— y un TOPE que le
+    // clavaba el reloj del pelotón si resultaba ir más rápido. Las dos líneas pisaban la física que
+    // `advanceGroup` acababa de calcular, y entre las dos son la causa raíz de que los rezagados
+    // perdieran demasiado poco tiempo (docs/motor.md §9). Ya no están: lo que queda es lo que sí es
+    // real —quién va CON el grupo y quién no— y lo demás lo decide `droppedCommit`.
+    //
+    // En terreno que ROMPE —subida y, desde la v12, adoquín— no hay reenganche al pelotón: allí
+    // manda la selección, que es lo que hace una etapa de montaña y lo que hace una clásica de
+    // pavés. Pero los descolgados que ruedan a la MISMA altura sí se funden en grupetos: si no, la
+    // reina terminaba con una mediana de 30 grupos de un solo corredor (docs/motor.md §3-bis-e).
     if (shed.length > 0) {
-      // LA PUERTA DEL PELOTÓN (v12). Cuánto se recorta —y con cuánto boquete se vuelve a entrar—
-      // depende de a qué ritmo vaya el grupo del que se soltó: a tempo se vuelve, con los trenes
-      // lanzados no. Ver `chaseBackShutFloor`: por debajo del tempo de carretera el factor vale 1 y
-      // esto es EXACTAMENTE lo de siempre (el llano canónico y el valle de la reina no se mueven).
+      // LA PUERTA DEL PELOTÓN (v12). Con cuánto boquete se considera que se vuelve a ir DENTRO del
+      // grupo depende de a qué ritmo vaya ese grupo: a tempo, veinte metros son la misma fila; con
+      // los trenes lanzados, no. Ver `chaseBackShutFloor`: por debajo del tempo de carretera el
+      // factor vale 1 y esto es lo de siempre (el llano canónico y el valle de la reina no se mueven).
       const paceShut = Math.max(
         STAGE.chaseBackShutFloor,
         Math.min(1, (1 - peloton.compromiso) / (1 - STAGE.pelotonTempoCommit)),
       )
       const pelotonSize = membersOf(PELOTON).length
       /**
-       * …y la puerta se abre de par en par para quien persigue con MUCHA más gente de la que va
+       * …y la puerta se abre de par en par para quien viene con MUCHA más gente de la que va
        * delante: un autobús que TRIPLICA en número al grupo de cabeza (`chaseBackBusFactor`) se
-       * releva mejor y acaba cazándolo en llano por lanzado que vaya. Es lo que devuelve al pelotón
-       * entero cuando un puerto lejos de meta deja delante a diez corredores y detrás a setenta.
+       * releva mejor y entra con él por lanzado que vaya. Es lo que devuelve al pelotón entero
+       * cuando un puerto lejos de meta deja delante a diez corredores y detrás a setenta.
        */
       const shutFor = (size: number): number =>
         size >= STAGE.chaseBackBusFactor * pelotonSize ? 1 : paceShut
-      if (!onRough) {
-        for (const sg of shed) {
-          const size = membersOf(sg.id).length
-          if (size === 0) continue
-          const close = STAGE.chaseBackSecondsPerKm * STAGE.dx * shutFor(size)
-          const gap = sg.tS - peloton.tS
-          if (gap > 0) sg.tS = Math.max(peloton.tS, sg.tS - close)
-        }
-      }
       // En terreno que rompe el umbral de fusión es más estrecho (y no hay reenganche al pelotón):
       // los que van juntos de verdad forman grupeto, los que están cortados de verdad siguen cortados.
       // La fusión ENTRE descolgados no pasa por la puerta del pelotón: que dos grupetos que ruedan a
@@ -1909,8 +1952,19 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       for (const sg of [...shed].sort((a, b) => a.tS - b.tS)) {
         const mem = membersOf(sg.id)
         if (mem.length === 0) continue
-        // ¿alcanza al pelotón? se reengancha (solo en terreno rodador, y solo si el pelotón deja).
-        if (!onRough && gapSeconds(peloton, sg) <= STAGE.regroupGapSeconds * shutFor(mem.length)) {
+        /**
+         * ¿ALCANZA al pelotón? Se reengancha. Y este es también el sitio donde muere el «tope
+         * fantasma» de la v15: un grupo descolgado que fuera de la subida acaba con MENOS reloj que
+         * el pelotón no es un fantasma al que haya que clavarle el cronómetro —lo que hacía la línea
+         * `adv.tS < peloton.tS ? { ...adv, tS: peloton.tS }`—, es un grupo que ha vuelto, y lo que
+         * hace en carretera es entrar en el pelotón. En la SUBIDA no: allí un descolgado sí puede
+         * pasar por delante de lo que quede del pelotón y la selección debe mantenerse.
+         */
+        const caught = !onClimb && sg.tS <= peloton.tS
+        if (
+          caught ||
+          (!onRough && gapSeconds(peloton, sg) <= STAGE.regroupGapSeconds * shutFor(mem.length))
+        ) {
           for (const m of mem) m.groupId = PELOTON
           peloton = { ...peloton, riderIds: [...peloton.riderIds, ...sg.riderIds] }
           continue
@@ -1942,6 +1996,13 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
     }
     crashCheck(peloton)
     for (const m of moves) crashCheck(m.g)
+    // …y EN LOS GRUPETOS también (v16). El bucle recorría el pelotón y los escapados, y a los
+    // descolgados no los miraba nadie: un corredor que se soltaba en el km 40 cruzaba los 20 km de
+    // descenso siguientes con probabilidad CERO de caerse. Mientras el descolgado volvía siempre al
+    // pelotón daba casi igual; con el modelo de persecución arreglado hay gente rodando ahí atrás
+    // media etapa, y medido, las lesiones de una gran vuelta caían de 65 a 28 sin que ninguna ley de
+    // las caídas hubiera cambiado. Un grupeto que baja un puerto se cae; menos, pero se cae.
+    for (const sg of [...shed]) crashCheck(sg)
 
     // Regla 7: **y a veces no se llega**. Nadie sostiene el esfuerzo de un puente indefinidamente;
     // pasados sus kilómetros, el que saltó baja el ritmo al de un grupo cualquiera y se queda en

@@ -191,8 +191,30 @@
  * fórmula de §VI.1 y el objetivo de tercera semana se mide sobre la reina REAL (Race France e18) en
  * vez de sobre la sintética de 1.200 m, que era lo que tenía al 100 % del campo en pájara. Ninguna
  * banda se ha relajado. Medido en docs/balance.md, «v15».
+ *
+ * v16 (EL MODELO DE PERSECUCIÓN, docs/motor.md §9 — la última deuda de fondo). El tiempo de un
+ * grupo descolgado dejaba de ser física en dos líneas de `simulate.ts`: un RECORTE FIJO de 8 s/km
+ * (`chaseBackSecondsPerKm`) que le devolvía el boquete pasara lo que pasara, y un TOPE que le
+ * clavaba el reloj del pelotón si resultaba ir más rápido. Las dos sobreescribían el resultado que
+ * `advanceGroup` acababa de calcular. Consecuencia medida por tres tandas seguidas (v8, v12, v14):
+ * **los rezagados perdían demasiado poco tiempo** —el peor retraso de una gran vuelta entera era del
+ * 6,7 % contra un corte del 8-18 %—, y de ahí colgaban los tres síntomas que se veían en pantalla:
+ * el corte de tiempo no eliminaba a nadie, la causa «fuera de control» aportaba el 0-4 % en vez del
+ * 45 % de §VI.3, y 6 de 7 etapas de producción terminaban con el pelotón ENTERO al mismo segundo
+ * mientras la crónica contaba que el grupo de cabeza había pasado de 116 a 80.
+ *
+ * Ahora el ritmo del descolgado sale de la física (`droppedCommit`, SPEC 6.5): **relevarse reparte
+ * el viento** —en un grupo de n cada uno da la cara 1/n del tiempo, y el que va solo, siempre—,
+ * **eso vale lo que valga el rebufo en ese terreno** (`draftMax`: 42 % en el llano, 9,6 % en una
+ * rampa al 8 %) y **se rueda con lo que quede en las piernas**. De ahí sale solo el hecho de
+ * carretera que ningún parche sabía imitar: el grupeto sube tan lento como el que sube solo y en el
+ * valle vuelve a rodar como un pelotón. El recorte fijo se borra; el tope fantasma se sustituye por
+ * la resolución honesta —un grupo que ALCANZA al pelotón fuera de la subida se reengancha a él, no
+ * se le clava el reloj—. Y el cuidado del fuera de control (`administerEffort`) deja de mirar un
+ * 5 % fijo para mirar el CORTE de la etapa con margen (`giveUpCutMargin`), que es lo que un corredor
+ * vigila de verdad. Sin dados nuevos: todo esto es determinista. Medido en docs/balance.md, «v16».
  */
-export const ENGINE_VERSION = 15 as const
+export const ENGINE_VERSION = 16 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -476,7 +498,7 @@ export const HEALTH = {
   // Calibrado sobre la gran vuelta de 21 etapas del banco (`sim/grandTour.ts`), que es donde se
   // mide el objetivo de §VI.3. Ver docs/balance.md, «v14».
   illnessRaceFactor: 0.13,
-  illnessRaceMax: 0.0045,
+  illnessRaceMax: 0.0028,
 } as const
 
 /** Moral (SPEC 4.2, 4.4). M_moral = base + scale * MOR/100; regresión diaria a la media. */
@@ -576,29 +598,23 @@ export const STAGE = {
   captureGapSeconds: 5,
   // Un descolgado en llano/descenso vuelve al pelotón si su boquete es de este orden (s): la subida
   // parte el grupo, pero en terreno rodador los cortes pequeños se cazan y el pelotón se recompone.
-  regroupGapSeconds: 22,
-  // Ritmo (s/km) al que un descolgado recorta el boquete con el pelotón en llano/descenso: en terreno
-  // rodador los grupos vuelven a juntarse; solo los muy distanciados en la subida llegan más atrás.
-  chaseBackSecondsPerKm: 8,
-  // …pero SOLO mientras el grupo del que se soltó ruede a tempo. La puerta se cierra según lo que
-  // esté apretando el pelotón: el recorte se escala por `clamp((1 − c) / (1 − pelotonTempoCommit),
-  // chaseBackShutFloor, 1)`, así que a tempo de carretera (0,55) o por debajo se recorta exactamente
-  // igual que siempre —el llano y el valle de la reina no se mueven— y con los trenes lanzados a
-  // 0,85 se recorta un tercio (v12).
   //
-  // Era el otro medio agujero del pavés, y estaba medido: en Paris-Roubaix el pelotón SÍ se partía
-  // en cada sector (58 -> 44) y volvía a estar entero en el asfalto siguiente (44 -> 57), tres veces
-  // en los últimos 30 km, porque 8 s/km cierran 45 s en los 5,6 km que hay entre el Carrefour de
-  // l'Arbre y Willems. Un ritmo de recorte FIJO regala al descolgado un 9% de velocidad sobre un
-  // pelotón lanzado, que es sencillamente imposible: es el parche que docs/motor.md §9 ya señalaba
-  // («el tiempo de un grupo descolgado se PEGA al del pelotón en llano»).
+  // OJO (v16): esto es el umbral de «ir con el grupo», no una persecución. El RECORTE FIJO que había
+  // aquí al lado —`chaseBackSecondsPerKm` = 8 s/km, el boquete se cerraba solo— ya no existe: un
+  // descolgado vuelve si su FÍSICA le da para volver (`droppedCommit`) y no porque una constante se
+  // lo regale. Ver docs/balance.md, «v16».
+  regroupGapSeconds: 22,
+  // …y ese umbral se estrecha según lo que esté apretando el pelotón: se escala por
+  // `clamp((1 − c) / (1 − pelotonTempoCommit), chaseBackShutFloor, 1)`, así que a tempo de carretera
+  // (0,55) o por debajo vale 1 —el llano y el valle de la reina no se mueven— y con los trenes
+  // lanzados a 0,85 quedan 7 s: a esa velocidad, veinte metros ya no son «ir en el grupo» (v12).
   chaseBackShutFloor: 0.15,
-  // …con una salvedad que es pura física de rebufo: la puerta NO se cierra para quien persigue con
+  // …con una salvedad que es pura física de rebufo: la puerta NO se cierra para quien viene con
   // MUCHA más gente de la que va delante. Un autobús que TRIPLICA en número al grupo de cabeza se
-  // releva mejor y acaba dándole caza en llano por lanzado que vaya el de delante. Es lo que
-  // devuelve al pelotón entero cuando un puerto a 26 km de meta deja delante a diez corredores y
-  // detrás a setenta (sin esto, esos setenta llegaban a siete minutos y `peloton_regroup` dejaba de
-  // narrarse); y no salva al descolgado de Roubaix, donde el corte deja 24 delante y 26 detrás.
+  // releva mejor y entra con él por lanzado que vaya. Es lo que devuelve al pelotón entero cuando un
+  // puerto a 26 km de meta deja delante a diez corredores y detrás a setenta (sin esto, esos setenta
+  // llegaban a siete minutos y `peloton_regroup` dejaba de narrarse); y no salva al descolgado de
+  // Roubaix, donde el corte deja 24 delante y 26 detrás.
   chaseBackBusFactor: 3,
   // Grupeto: dos descolgados separados por menos de esto ruedan JUNTOS. Es el umbral que usa la
   // SUBIDA, donde no hay recorte (la selección debe mantenerse) pero los que se sueltan a la vez
@@ -840,6 +856,12 @@ export const STAGE = {
   // v4 y no se leían para nada más que el coste. Un 3★ (la dureza mediana de Roubaix) vale
   // `dropPavesFactor`; un 5★ —Arenberg, Mons-en-Pévèle, Carrefour de l'Arbre— rompe casi el doble;
   // un 1★ apenas se nota. Es la perilla natural y estaba en el dato.
+  // …y CUÁNDO. Un puerto que se sube a TEMPO, lejos de meta, no descuelga como el puerto decisivo
+  // (v16): el pelotón va regulando y lo que se suelta ahí vuelve en el valle. Con 0,3 una cota a
+  // mitad de etapa sigue soltando a los más flojos —el grupeto de una gran vuelta se forma en el
+  // primer puerto de verdad, como en carretera— pero ya no parte el pelotón en dos. La etapa reina
+  // canónica NO se mueve ni un dígito: sus únicos km de subida están dentro de `climbRaceKmToGo`.
+  climbTempoSelection: 0.3,
   dropPavesFactor: 0.34,
   dropPavesStarsReference: 3,
   // DESCENSO. Mucho más suave, y a propósito: en una bajada se pierde la rueda, no se revienta.
@@ -867,10 +889,39 @@ export const STAGE = {
   // se deshacía antes del siguiente (medido: 43 -> 58 en 4,6 km).
   pavesApproachKm: 2,
 
-  // Un descolgado rueda solo a su tope (contrarreloj improvisada), perdiendo tiempo bloque a bloque.
-  // Sube de 0.70 a 0.82: al 0.70 un descolgado rodaba muy por debajo de su límite y una etapa reina
-  // producía brechas irreales. Quien se descuelga en un puerto no se sienta, va a su umbral.
-  shedCommit: 0.82,
+  // --- EL RITMO DEL DESCOLGADO (v16, docs/motor.md §9) ---------------------------------------
+  // Hasta la v15 esto era UNA constante, `shedCommit` = 0,82: un descolgado rodaba siempre al ritmo
+  // de un pelotón lanzado, fuera uno o cuarenta, en el llano o en una rampa al 9 %, entero o vacío.
+  // Como con eso un «descolgado» salía más rápido que un pelotón a tempo, hacían falta dos parches
+  // (el recorte fijo de 8 s/km y el tope que le clavaba el reloj del pelotón) para tapar el
+  // resultado. Ahora sale de `droppedCommit(block, tamaño, frescura)`, que es física de rebufo.
+  //
+  // EL QUE VA SOLO. No puede sostener más que su propio tempo de carretera: da la cara al viento el
+  // 100 % del tiempo. Es el mismo 0,55 con el que rueda un pelotón que no está corriendo, y no es
+  // casualidad: es el ritmo que un hombre solo aguanta horas.
+  shedCommitAlone: 0.55,
+  // EL AUTOBÚS. Un grupo grande que se releva rueda como rodaba el descolgado de la v15 (0,82): ese
+  // valor no se ha elegido de nuevo, se CONSERVA, y es lo que hace que un corte numeroso siga
+  // volviendo al pelotón en el valle igual que antes (el reagrupamiento de §16 no se toca).
+  shedCommitBunch: 0.82,
+  // Y LAS PIERNAS. Multiplicador del ritmo según la frescura que quede (E/E₀): con el depósito vacío
+  // se administra y se rueda al 60 % del compromiso que se llevaría entero. Es lo que mantiene al
+  // grupeto de la última hora lejos del pelotón —en la v15 volvía siempre— y lo que NO estorba en el
+  // primer puerto de la etapa, cuando todo el mundo va lleno y el corte se recompone en el valle.
+  shedEmptyCommitFactor: 0.6,
+  // EL QUE ACABA DE SOLTARSE PELEA. Su umbral, que es el `shedCommit` = 0,82 de toda la vida: quien
+  // pierde una rueda no se sienta, se pone de pie y pelea por volver. Este es el término que
+  // distingue una SELECCIÓN de una debacle, y sin él el motor mandaba al grupeto a cualquiera que
+  // perdiese la rueda en el último puerto: medido, la brecha 1.º-10.º de la reina canónica se iba de
+  // 225 s a 456 s porque el décimo —un relleno de MON 60 en un campo de 40— pasaba 43 minutos de
+  // puerto rodando a tempo en vez de a su umbral.
+  shedFightCommit: 0.82,
+  // …y deja de pelear cuando el grupo de cabeza SE LE PIERDE DE VISTA. Tres minutos: es el orden de
+  // magnitud en el que un corredor deja de mirar hacia delante y empieza a mirar el corte de tiempo,
+  // y el que separa las dos historias que este modelo tiene que contar a la vez —el cortado que
+  // vuelve en el valle y el grupeto que entra a un cuarto de hora—. El paso entre las dos es
+  // continuo a propósito: un umbral duro haría que el mismo corredor cambiara de ritmo de golpe.
+  shedResignGapSeconds: 300,
   // 6.10 — Fuga: consolida si el compromiso del pelotón < 0.25 durante 2 km.
   breakawayCommitThreshold: 0.25,
   breakawayConsolidateKm: 2,
@@ -1172,6 +1223,12 @@ export const STAGE = {
   // Y el cuidado del FUERA DE CONTROL, que es la única razón por la que no se deja ir del todo:
   // solo administra si lo que puede perder de aquí a meta cabe en esta fracción del tiempo de
   // carrera. El corte real va del 8% en una llana al 18% en la etapa reina (docs/motor.md §VI.3).
+  //
+  // NO SE HA TOCADO EN LA v16, y es deliberado. Se probó sustituirlo por el corte de verdad de cada
+  // etapa (`margen · timeCutFraction`) y medido no cambia nada donde se esperaba —la reina canónica
+  // sale dígito a dígito igual con el tope en el 5 % y en el 6,3 %— mientras que en el llano lo
+  // habría hecho más restrictivo que ahora. El encargo ya lo decía: «subirlo no arregla nada, el
+  // problema es el recorte». El recorte es lo que se ha arreglado.
   giveUpMaxLossFraction: 0.05,
 
   // --- ABANDONOS AUTOMÁTICOS (v14, docs/motor.md §15 y §VI.3) ---------------------------------
