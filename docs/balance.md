@@ -1484,6 +1484,11 @@ el parte ha caducado a los `pullReportKmGap` (36) km aunque siga mandando el mis
 de que la fuga esté formada**: hasta entonces el pelotón va en bloque y «quién tira» no significa
 nada.
 
+> **Corregido en la v13**: la condición «nunca antes de que la fuga esté formada» dejaba SIN NINGÚN
+> parte a las carreras donde no cuaja ninguna (Race Muscat, del km 33 al 136 en blanco). Ahora basta
+> con que la fuga esté formada **o** que se haya hecho un cuarto del recorrido
+> (`pullNoBreakRouteFrac`). Ver «v13 — Identidad, motivo y ruido en el journal».
+
 **`chase_work` no siempre sale, y ese es el punto.** Va enganchado a `breakaway_caught`,
 `move_caught` y `attack_reeled`, y solo si la captura **tuvo autor**: el movimiento tiene que haber
 llegado a sacar `chaseWorkMinGapSeconds` (25 s) y el que más tiró tiene que haber puesto
@@ -1823,3 +1828,196 @@ se esperaba:
 - **En Roubaix ganan los adoquineros el 100 % de las veces** con este campo. Es lo que se buscaba,
   pero el 100 % es mucho: si en producción se vuelve monótono, la perilla es el peso del PAV en
   `finishWeights.pave`, no la selección.
+
+## v13 — Identidad, motivo y ruido en el journal (`engine_version` 12 → 13)
+
+> «Cada vez que menciones un ciclista, pon su dorsal, su equipo entre paréntesis y su bandera.»
+> «Cada vez que alguien tire del pelotón, tienes que mencionar por qué: está trabajando para
+> alguien, ¿no? Si no, no debería desgastarse a lo wey.»
+> «No menciones uno a uno todos los ciclistas que se van descolgando: puedes mencionar muchos juntos
+> con número.» — el dueño, tras leer los journals de producción del día 37.
+
+Tanda de **telemetría y narrativa** (docs/motor.md §16), tercera entrega después de la v6 (telemetría
+de carrera) y la v11 (atribución del trabajo). **Ni física nueva ni azar nuevo**: ningún dado
+añadido, ningún subflujo nuevo, ninguna constante de la v12 tocada. Lo que cambia es lo que el motor
+CUENTA, cuándo lo cuenta y con cuánta identidad llega cada nombre a la página.
+
+### El primer hallazgo: los journals de producción no los escribió este motor
+
+Los siete journals del encargo (`race-arabia` e1/e3/e5, `race-muscat`, `race-palma`,
+`race-great-ocean`, `race-tramuntana`) se corrieron con motores **anteriores**, y sus eventos están
+CONGELADOS en `stage_runs.events`. Se ve en los campos que traen:
+
+| Journal            | Campos de `peloton_split`      | Motor |
+| ------------------ | ------------------------------ | ----- |
+| `race-arabia` e5   | `dropped`, `remaining`         | ≤ v5  |
+| `race-great-ocean` | `+ before`, `chasing`          | v6-v7 |
+| motor de hoy       | `+ escapados`, `shed`, `phase` | ≥ v8  |
+
+Eso cambia el diagnóstico de dos de los seis defectos, y conviene dejarlo escrito porque el dueño
+está leyendo esas páginas HOY y las seguirá leyendo:
+
+- **B1 («2010 riders are shelled» en una carrera de 147) ya estaba arreglado en el motor.** Aquel
+  `dropped` era `droppedSinceNotice`, el recuento BRUTO de veces que se rompió la goma bloque a
+  bloque —los mismos corredores soltándose y volviendo, treinta veces por kilómetro—, y por eso
+  crecía monótono hasta 2010 mientras el grupo bajaba de 116 a 80. Desde la v8 el evento manda la
+  pérdida REAL (`before − remaining − escapados`). Medido sobre 84 etapas del banco con el motor de
+  hoy: **0 eventos con `dropped > before`**, máximo 119 en un grupo de 143.
+- **B2 (el evento cada 3 km aunque no pase nada) también.** El throttle de la v8 (`splitPhase`
+  escalando el listón, `splitEventMinDropped`, `splitEventMinDropFraction`) ya lo cubre. Medido:
+  **0 eventos con `before === remaining`** en 84 etapas, y 1 de 24 avisos repite protagonista.
+- Y **`chasing` no vale 0 siempre**: en producción salía 0 porque en esas etapas no quedaba ningún
+  movimiento vivo. Con el motor de hoy vale 1 en 15 de 16 avisos medidos (la fuga sigue delante, así
+  que el grupo que se parte es el que persigue y no la cabeza). El campo sirve y se queda.
+
+Lo que sí había que hacer con B1 y B2 es que **las páginas ya guardadas dejen de mentir**, y eso solo
+puede pasar en la construcción de la crónica (`apps/api/src/chronicle.ts`), que ve la etapa entera.
+Está más abajo.
+
+### Los cuatro cambios del MOTOR
+
+| Defecto | Qué pasaba                                                                                 | Qué se ha hecho                                                                       |
+| ------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------- |
+| B3      | El mismo corredor se descolgaba tres veces (Alex Taylor: km 196, 204 y 209 de Race Muscat) | `gaveUp` marca al que se rindió; `administerEffort` ya no vuelve a sortearlo          |
+| B4      | «The peloton concedes» en el km 10 y «the break is caught» en el 126, en 5 de 7 carreras   | Conceder exige recorrido hecho y ventaja de verdad, y el contador solo corre entonces |
+| B5      | Tres corredores distintos «now lead the mountains» con UN punto cada uno                   | `leads` se compara contra los DEMÁS y en estricto, no contra un máximo que se incluía |
+| A2/B6   | Ni una línea entre el km 33 y el 136 de Race Muscat, y «quién tira» sin decir para quién   | El parte de relevos no espera a la fuga, y viaja con el motivo                        |
+
+**B3** es la raíz que costó encontrar: `administerEffort` se llama sobre el pelotón, sobre cada
+movimiento **y sobre cada grupo de descolgados**. Un corredor que se dejaba ir pasaba a un grupo
+`shed`… que el mismo bucle recorre en el bloque siguiente, así que volvía a entrar en el sorteo.
+
+**A2** no necesitaba dato nuevo: el motor tiene `role` y `targetRiderId` desde la v9 y construye
+`domestiquesFor` y `leadOutFor` con ellos. `pullReason()` invierte esos mapas y clasifica el parte en
+cinco casos, que la crónica redacta distinto cada uno: `gregarios` (el equipo de un jefe de filas),
+`tren` (los lanzadores de un sprinter), `equipo` (roles mezclados al servicio del mismo hombre),
+`alianza` (dos o más líderes detrás del trabajo) y `libre` (nadie).
+
+### Perillas nuevas
+
+| Constante              | Valor | Qué hace                                                                             |
+| ---------------------- | ----- | ------------------------------------------------------------------------------------ |
+| `concedeMinRouteFrac`  | 0,33  | No se puede conceder antes de un tercio del recorrido: no ha habido ocasión de cazar |
+| `concedeMinGapSeconds` | 60    | …ni sin una ventaja que sea una ventaja                                              |
+| `pullNoBreakRouteFrac` | 0,25  | Pasado un cuarto del recorrido hay parte de relevos aunque no cuaje ninguna fuga     |
+
+Ninguna toca los bloques de la v12 (`pavesRaceCommit`, `pavesApproachKm`, `pavesPaceFraction`,
+`chaseBackShutFloor`, `chaseBackBusFactor`, `selectionFactor`), recién calibrados contra
+Paris-Roubaix y Strade Bianche.
+
+### Medido: antes y después
+
+84 etapas del banco (7 carreras reales del calendario × 12 semillas, campo de 18 equipos de 8 con las
+órdenes de `autoStageOrders`, que es lo que hace el juego con el pelotón NPC).
+
+| Medida                                          | v12          | v13         |
+| ----------------------------------------------- | ------------ | ----------- |
+| Líneas de crónica por etapa                     | 42,0         | **38,1**    |
+| `rider_sits_up` totales                         | 362          | **252**     |
+| …de ellos, repeticiones del mismo corredor (B3) | 107 (29,6 %) | **0 (0 %)** |
+| `peloton_concedes` totales                      | 72           | **18**      |
+| …antes del km 25 (B4)                           | 39 (54 %)    | **0**       |
+| …concede y luego caza                           | 65           | **12**      |
+| `climb_kom` cantando liderato                   | 116          | 90          |
+| …de ellos empatados o por detrás (B5)           | 29 (25 %)    | **1**\*     |
+| `peloton_pull` emitidos                         | 365          | **406**     |
+| …menciones de quien tira sin jefe de filas (A2) | 2,1 %        | 1,9 %       |
+| Hueco máximo sin una línea (B6)                 | 55 km        | 52 km       |
+| Hueco p90 entre líneas                          | 12 km        | 13 km       |
+| `peloton_split` con `dropped > before` (B1)     | 0            | 0           |
+| `peloton_split` con `before === remaining` (B2) | 0            | 0           |
+
+\* El 1 que queda es del propio medidor, que solo suma los puntos del ganador de cada cima y no los
+del resto de la tabla; el motor sí los tiene todos.
+
+Y el banco de la capa táctica (`pnpm sim:tactics`, sección 7, 120 semillas por escenario), donde el
+parte de relevos mejora justo por donde se esperaba —al no depender ya de la fuga, las etapas que se
+quedaban a cero dejan de quedarse a cero—:
+
+| Escenario   | «quién tira» por etapa (v11) |                 v13 | dentro de la ventana 3-6 |
+| ----------- | ---------------------------: | ------------------: | -----------------------: |
+| `llana-180` |              mediana 4 (0-8) | mediana **5** (2-8) |        85,0% → **93,3%** |
+| `reina-150` |              mediana 4 (0-6) | mediana **4** (1-6) |        83,3% → **92,5%** |
+
+El mínimo pasa de 0 a 2 y a 1: ya no hay etapas mudas. El resto del banco no se mueve —los cinco
+invariantes de `pnpm sim` siguen en verde con los mismos números y ningún objetivo de
+`sim/targets.ts` se ha tocado—.
+
+**Los tiempos no se mueven.** La huella `puesto:corredor:tiempo` de `stage/attribution.test.ts`
+—resellada en la v12— sale IDÉNTICA dígito a dígito y **no se ha vuelto a sellar**. Tres de los
+cuatro cambios no pueden moverla (no consumen azar y solo deciden cuándo se emite un evento) y el
+cuarto, B3, solo mueve tiempos en una etapa donde alguien se descolgaba dos veces, cosa que no pasa
+en `llana-180` ni en `reina-150`. Donde sí pasa, el corredor pierde MENOS: ya no se le vuelve a bajar
+el ritmo un segundo antes de meta.
+
+### Lo que se ha hecho FUERA del motor, y por qué ahí
+
+Todo lo que sigue vive en `apps/api/src/chronicle.ts`, que es la frontera entre TELEMETRÍA y
+NARRATIVA (docs/motor.md §16) y **la única capa que puede arreglar una etapa ya corrida**: sus
+eventos están congelados y se renderizan al vuelo en cada visita.
+
+- **La identidad (A1).** Cada protagonista viaja como objeto con nombre, dorsal, equipo y país.
+  El dorsal sale de `race_rosters.bib` con una consulta nueva (`getRaceRiderIdentities`) que trae a
+  TODOS los inscritos, no solo a los clasificados: el que se cayó también es protagonista de eventos.
+  `protagonistTeams` desaparece del contrato: era un `Set` de equipos sin dueño y ahora cada corredor
+  lleva el suyo. Los tres campos que no son el nombre son nulables **a propósito**.
+- **El racimo de descuelgues (A3).** Tres o más `rider_sits_up` en una ventana de **5 km** se funden
+  en un `riders_sit_up` con el número; uno o dos conservan su mención individual, porque un corredor
+  que se deja ir solo sí es una noticia. El criterio sale de medir: los descuelgues llegan en racimos
+  (medidos de 50, 34, 20 y 17 corredores en 5 km) y Race Muscat gastaba **15 de sus 40 líneas** en
+  nombrarlos de uno en uno.
+- **El descuelgue repetido de las etapas viejas.** El mismo corredor no puede descolgarse dos veces
+  aunque el evento congelado lo diga.
+- **La cadena de cortes de las etapas viejas.** Se reconstruye el `before` que falta (de la cadena),
+  se tiran los avisos en los que no cayó nadie y se reconstruye la `phase` que no traen. Y en la web,
+  un `dropped` mayor que `before − remaining` se corrige con los dos números que sí cuadran.
+- **La concesión que luego se desmiente.** La crónica ve la etapa entera y el motor no: si hay
+  `breakaway_caught` después, la concesión se marca `cazada` y se redacta en provisional.
+
+### Lo medido en producción, antes y después
+
+| Etapa (eventos congelados) | Líneas antes | Líneas después | Qué se ha quitado                                   |
+| -------------------------- | ------------ | -------------- | --------------------------------------------------- |
+| `race-muscat`              | 40           | **28**         | 15 descuelgues uno a uno → 3 líneas (2 racimos + 1) |
+| `race-great-ocean`         | 26           | **22**         | los 4 avisos de criba en los que no cayó nadie      |
+| `race-arabia` e5           | 24           | **17**         | 7 de los 10 avisos idénticos del km 136 al 163      |
+| `race-tramuntana`          | 26           | **22**         | 4 avisos de criba vacíos                            |
+| `race-arabia` e1 / e3      | 12 / 13      | 12 / 13        | (la concesión pasa a provisional; el resto igual)   |
+| `race-palma`               | 13           | 13             | ídem                                                |
+
+Y en las que quedan igual de largas, lo que cambia es lo que DICEN: «1315 riders are shelled» pasa a
+«from 115 riders down to 89», «the peloton concedes» pasa a provisional cuando la fuga acaba cazada,
+y cada nombre llega con su dorsal, su equipo y su bandera.
+
+### El pelotón entero al mismo segundo: NO se ha tocado
+
+El encargo lo dejó fuera a propósito (es física, y la v12 acaba de tocar esa puerta con
+`chaseBackShutFloor`). Se mide antes y después para dejar constancia de que esta tanda **no lo
+mueve**:
+
+- **Producción (motores v10 y anteriores):** 6 de 7 etapas terminan con todo el pelotón al mismo
+  segundo — Great Ocean 147/147, Palma 130/130, Arabia e3 133/133, Arabia e1 132/133, Arabia e5
+  132/133, Muscat 104/105. La excepción es Tramuntana (1/130).
+- **Banco, motor v12:** 29 de 84 etapas (34,5 %).
+- **Banco, motor v13:** 29 de 84 etapas (34,5 %). **Idéntico.**
+
+La v12 ya mejoró mucho ese número respecto de lo que se ve en producción; lo que queda sigue siendo
+el defecto de fondo (los descolgados vuelven gratis) y sigue pendiente.
+
+### Lo que este cambio NO hace
+
+- **No cambia el modelo de relevos.** `relayDutyByRole.libre` = 0,6 («sin órdenes concretas: colabora
+  lo normal») es lo que hace que a veces tire alguien sin jefe de filas. Medido: **1,9 %** de las
+  menciones en el banco de carreras reales con un campo variado, pero hasta un **26 %** en un campo
+  plano donde nadie destaca y la frescura decide el turno. Es conducta MODELADA y documentada, no un
+  descuido, y bajarla es recalibrar el reparto de trabajo de todas las carreras. **No se ha tocado**;
+  la crónica se limita a decirlo cuando pasa («with no leader to work for») en vez de inventar un
+  motivo, y `stage/journal.test.ts` vigila que no se dispare.
+- **No agrupa nada más que los descuelgues.** Los ocho partes de `time_gap` seguidos de una fuga que
+  se hunde («the lone leader's advantage is down to 3:36 / 2:59 / 2:29 / 1:59…») son ruido del mismo
+  tipo y no entran en esta tanda.
+- **No narra la pájara ni distingue de qué terreno vino una criba**: siguen siendo los agujeros
+  abiertos del Cambio 5 (docs/motor.md §16).
+- **No toca la clasificación de la montaña de la CARRERA.** El motor solo conoce los puntos de SU
+  etapa, así que el liderato que canta es el de la etapa; por eso la frase pasa de «he now leads the
+  mountains classification» a «and takes the lead in the mountains», que es lo que sabe.

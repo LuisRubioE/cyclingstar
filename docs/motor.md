@@ -609,6 +609,27 @@ publicada de 1 a 5 estrellas.
 > trabajo». Sigue pendiente lo estructural de este cambio (la telemetría como dato separado de los
 > eventos, ver abajo) y siguen sin narrarse la pájara y el descuelgue individual.
 
+> **Tercera entrega hecha (v13): la IDENTIDAD, el MOTIVO y el RUIDO.** El dueño leyó los journals de
+> producción del día 37 y pidió tres cosas: que cada mención de un ciclista lleve su dorsal, su
+> equipo y su bandera; que cuando alguien tire del pelotón se diga POR QUÉ («está trabajando para
+> alguien, ¿no? Si no, no debería desgastarse»); y que los descuelgues no se narren uno a uno.
+> Midiendo esos mismos journals salieron seis defectos, dos de los cuales el motor YA no cometía: los
+> eventos de producción están CONGELADOS y se corrieron con motores anteriores.
+>
+> **Del motor**: rendirse pasa a ser un acto único (el mismo corredor se descolgaba tres veces en la
+> misma carrera), conceder la fuga exige recorrido hecho y ventaja de verdad (se concedía en el km 10
+> y se cazaba en el 126), el liderato de la montaña se canta solo en estricto (tres corredores con un
+> punto se proclamaban líderes uno tras otro) y el parte de relevos deja de esperar a la fuga del día
+> y viaja con el motivo (`forKind`, `forId`), que salía gratis del `role` y el `targetRiderId` de las
+> órdenes y se estaba tirando desde la v9.
+>
+> **De la crónica** —que es la ÚNICA capa que puede arreglar una etapa YA CORRIDA, porque sus eventos
+> están congelados y se renderizan al vuelo—: la identidad completa por protagonista, el racimo de
+> descuelgues, y las guardas de lo congelado (un `dropped` imposible, los avisos de criba vacíos, la
+> concesión que luego se desmiente). Sin física nueva ni azar nuevo, y con la huella de tiempos
+> intacta. Medido en docs/balance.md, «v13 — Identidad, motivo y ruido en el journal». Sigue
+> pendiente lo estructural (la telemetría como dato separado) y sigue sin narrarse la pájara.
+
 Hoy `StageOutput` solo lleva `events, results, workUnits, incidents`, y hay **14 puntos de emisión
 de eventos** en todo el motor. El motor simula bloque a bloque —energía, cerillos, grupos, brechas—
 y **tira todo eso**. Por eso el journal es pobre: no es que se cuente mal, es que no hay qué contar.
@@ -625,16 +646,16 @@ y que los replays dejan de depender de re-simular.
 
 ### 17. Orden de trabajo propuesto
 
-| #   | Trabajo                                                              | Por qué en este puesto                                                                                                                                                |
-| --- | -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0   | **Desgaste + controlador del pelotón + velocidades** (§12-bis)       | Es la raíz medida. Sin desgaste y con el controlador atado a la fuga, nada de lo demás puede dar resultados creíbles. No depende de los perfiles: se puede empezar YA |
-| 1   | ~~Modelo de final (§12)~~ **HECHO (v7)**                             | Máximo impacto por esfuerzo una vez hay desgaste: arregla "gana quien no debe"                                                                                        |
-| 2   | ~~Selección en pavés/descenso (§14)~~ **HECHO (v12)** · fatiga (§15) | El pavés no existía como terreno (brecha de 0 s en meta). Hecha la selección; la fatiga (§15) y los abandonos siguen pendientes                                       |
-| 3   | **Perfiles reales** (extracción y validación)                        | Entrada del motor. Necesarios **antes de la recalibración final**, no antes de las correcciones estructurales                                                         |
-| 4   | ~~Capa táctica (§13)~~ **HECHO (v9)**                                | El desarrollo grande. Es lo que hace que las carreras se distingan entre sí                                                                                           |
-| 5   | Telemetría (§16) — **v6 y v11 hechas, lo estructural pendiente**     | Habilita el journal y las vistas nuevas                                                                                                                               |
-| 6   | Recalibración completa con Montecarlo                                | Solo al final, con entradas buenas y mecánicas completas                                                                                                              |
-| —   | ~~Composición de la carrera y caza por campo (§18)~~ **HECHO (v10)** | Se coló delante del 2 y del 3 porque sin ella el motor no tenía nada que resolver: la carrera generada no repartía tiempo por ninguna parte                           |
+| #   | Trabajo                                                               | Por qué en este puesto                                                                                                                                                |
+| --- | --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0   | **Desgaste + controlador del pelotón + velocidades** (§12-bis)        | Es la raíz medida. Sin desgaste y con el controlador atado a la fuga, nada de lo demás puede dar resultados creíbles. No depende de los perfiles: se puede empezar YA |
+| 1   | ~~Modelo de final (§12)~~ **HECHO (v7)**                              | Máximo impacto por esfuerzo una vez hay desgaste: arregla "gana quien no debe"                                                                                        |
+| 2   | ~~Selección en pavés/descenso (§14)~~ **HECHO (v12)** · fatiga (§15)  | El pavés no existía como terreno (brecha de 0 s en meta). Hecha la selección; la fatiga (§15) y los abandonos siguen pendientes                                       |
+| 3   | **Perfiles reales** (extracción y validación)                         | Entrada del motor. Necesarios **antes de la recalibración final**, no antes de las correcciones estructurales                                                         |
+| 4   | ~~Capa táctica (§13)~~ **HECHO (v9)**                                 | El desarrollo grande. Es lo que hace que las carreras se distingan entre sí                                                                                           |
+| 5   | Telemetría (§16) — **v6, v11 y v13 hechas, lo estructural pendiente** | Habilita el journal y las vistas nuevas                                                                                                                               |
+| 6   | Recalibración completa con Montecarlo                                 | Solo al final, con entradas buenas y mecánicas completas                                                                                                              |
+| —   | ~~Composición de la carrera y caza por campo (§18)~~ **HECHO (v10)**  | Se coló delante del 2 y del 3 porque sin ella el motor no tenía nada que resolver: la carrera generada no repartía tiempo por ninguna parte                           |
 
 Cada cambio de comportamiento incrementa `engine_version` y se anota en `docs/balance.md`.
 
