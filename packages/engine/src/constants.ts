@@ -99,8 +99,24 @@
  * toca ninguna ley física ni consume azar, y los resultados de una etapa con una semilla dada son
  * idénticos a los de la v10 (test `stage/attribution.test.ts`). Sube la versión porque cambia lo
  * que el motor EMITE, que es contrato con la crónica y con las etapas ya selladas.
+ *
+ * v12 (Cambio 3 de docs/motor.md §14, SELECCIÓN FUERA DE LA MONTAÑA): `shatter()` deja de empezar
+ * con `if (block.tipo !== 'subida') return` y el MISMO mecanismo —déficit contra el P75 de los
+ * punteros, hazard, cerillo que salva, marcaje que responde— vale también en el PAVÉ (con PAV+LLA,
+ * escalado por las estrellas del sector, que viajaban en el dato desde la v4 y solo se leían para el
+ * coste) y en el DESCENSO (con DES, mucho más suave y solo en bajadas de verdad, para no repetir la
+ * trampa del puerto decisivo). Con él van las tres piezas sin las cuales la selección del adoquín se
+ * deshacía sola: el sector se CORRE (`pavesRaceCommit`, con su aproximación) en vez de rodarse a
+ * tempo, dentro del sector no hay recorte ni reenganche (el adoquín pasa a ser terreno «que rompe»,
+ * como la subida) y la PUERTA del pelotón se cierra según lo que esté apretando (`chaseBackShutFloor`),
+ * porque un ritmo de recorte fijo de 8 s/km regalaba al descolgado un 9% de velocidad sobre un
+ * pelotón lanzado. Se corrige además que un sector de pavé en los últimos 2 km apagase la persecución
+ * de toda la carrera (`finishFlat`), que era lo que dejaba a Paris-Roubaix en manos de la fuga del
+ * día. El azar nuevo sale de un subflujo NOMINAL propio (`rough`), así que la secuencia de la montaña
+ * no se desplaza. Entra también el recorrido real de Strade Bianche, que se había quedado fuera
+ * precisamente por esto. Medido en docs/balance.md, «v12».
  */
-export const ENGINE_VERSION = 11 as const
+export const ENGINE_VERSION = 12 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -467,6 +483,26 @@ export const STAGE = {
   // Ritmo (s/km) al que un descolgado recorta el boquete con el pelotón en llano/descenso: en terreno
   // rodador los grupos vuelven a juntarse; solo los muy distanciados en la subida llegan más atrás.
   chaseBackSecondsPerKm: 8,
+  // …pero SOLO mientras el grupo del que se soltó ruede a tempo. La puerta se cierra según lo que
+  // esté apretando el pelotón: el recorte se escala por `clamp((1 − c) / (1 − pelotonTempoCommit),
+  // chaseBackShutFloor, 1)`, así que a tempo de carretera (0,55) o por debajo se recorta exactamente
+  // igual que siempre —el llano y el valle de la reina no se mueven— y con los trenes lanzados a
+  // 0,85 se recorta un tercio (v12).
+  //
+  // Era el otro medio agujero del pavés, y estaba medido: en Paris-Roubaix el pelotón SÍ se partía
+  // en cada sector (58 -> 44) y volvía a estar entero en el asfalto siguiente (44 -> 57), tres veces
+  // en los últimos 30 km, porque 8 s/km cierran 45 s en los 5,6 km que hay entre el Carrefour de
+  // l'Arbre y Willems. Un ritmo de recorte FIJO regala al descolgado un 9% de velocidad sobre un
+  // pelotón lanzado, que es sencillamente imposible: es el parche que docs/motor.md §9 ya señalaba
+  // («el tiempo de un grupo descolgado se PEGA al del pelotón en llano»).
+  chaseBackShutFloor: 0.15,
+  // …con una salvedad que es pura física de rebufo: la puerta NO se cierra para quien persigue con
+  // MUCHA más gente de la que va delante. Un autobús que TRIPLICA en número al grupo de cabeza se
+  // releva mejor y acaba dándole caza en llano por lanzado que vaya el de delante. Es lo que
+  // devuelve al pelotón entero cuando un puerto a 26 km de meta deja delante a diez corredores y
+  // detrás a setenta (sin esto, esos setenta llegaban a siete minutos y `peloton_regroup` dejaba de
+  // narrarse); y no salva al descolgado de Roubaix, donde el corte deja 24 delante y 26 detrás.
+  chaseBackBusFactor: 3,
   // Grupeto: dos descolgados separados por menos de esto ruedan JUNTOS. Es el umbral que usa la
   // SUBIDA, donde no hay recorte (la selección debe mantenerse) pero los que se sueltan a la vez
   // sí forman un grupo. Sin él la etapa reina terminaba con 30 grupos de un corredor (§3-bis-e).
@@ -689,6 +725,45 @@ export const STAGE = {
   // pelotón regulando de verdad y la erosión activa la montaña seleccionaba demasiado (brecha
   // 1º-10º de 377 s; con 4 baja a 285 sin perder la selección: el mejor escalador sigue ganando).
   dropDeficitTolerance: 4,
+
+  // --- SELECCIÓN FUERA DE LA MONTAÑA (v12, docs/motor.md §14) ---------------------------------
+  // El mecanismo NO cambia: sigue siendo el déficit contra el P75 de los punteros alimentando un
+  // hazard, con el cerillo que te salva y el marcaje que te pega a la rueda. Lo que cambia entre
+  // terrenos es CON QUÉ atributo se mide el déficit —lo resuelve `blockPerfil`: MON/COL en la
+  // subida, 0,6·PAV + 0,4·LLA en el adoquín, DES en la bajada— y CUÁNTO pesa, que es esto de aquí.
+  // La subida vale 1 por definición: es la referencia contra la que se calibró `lambdaDropBase`.
+  //
+  // PAVÉS. La dureza la escalan las ESTRELLAS del sector, que ya viajan dentro del bloque desde la
+  // v4 y no se leían para nada más que el coste. Un 3★ (la dureza mediana de Roubaix) vale
+  // `dropPavesFactor`; un 5★ —Arenberg, Mons-en-Pévèle, Carrefour de l'Arbre— rompe casi el doble;
+  // un 1★ apenas se nota. Es la perilla natural y estaba en el dato.
+  dropPavesFactor: 0.34,
+  dropPavesStarsReference: 3,
+  // DESCENSO. Mucho más suave, y a propósito: en una bajada se pierde la rueda, no se revienta.
+  dropDescentFactor: 0.08,
+  // …y solo en las bajadas DE VERDAD. Los perfiles reales llevan relieve menudo por todas partes
+  // (el Ronde tiene 18,9 km de "descenso" repartidos en toboganes de 300 m), y convertir cada uno
+  // en una criba es EXACTAMENTE la trampa que ya se pagó una vez con el puerto decisivo: el pelotón
+  // estallaba y se recomponía en ciclos de 170 -> 15 -> 173 corredores (ver el comentario de
+  // `raceThisClimb` en simulate.ts). Por debajo del -4% ya no es relieve: es una bajada.
+  dropDescentMaxGradient: -4,
+  // El ritmo de un sector de pavé lo marcan los de delante, como en el puerto decisivo: en el
+  // adoquín la posición lo es todo y nadie pasa un sector "a tempo" desde mitad del pelotón. Entre
+  // el 0,12 del puerto que se corre y el 0,25 del llano, porque un sector dura 1-3 km, no 15.
+  pavesPaceFraction: 0.15,
+  // Y por eso un sector se CORRE, como el puerto decisivo (`climbRaceCommit` 0,85): es un suelo de
+  // compromiso, no un objetivo, así que si el pelotón ya iba más rápido cazando no lo frena. Un pelo
+  // por debajo del puerto porque un sector dura minuto y medio y el puerto decisivo, media hora.
+  // Sin esto el pelotón cruzaba los 31 sectores de Roubaix al tempo de carretera (0,55) y la
+  // selección que abría cada sector se deshacía en el asfalto siguiente.
+  pavesRaceCommit: 0.8,
+  // …y el suelo empieza ANTES del sector. La pelea por entrar delante es media clásica del Norte: a
+  // dos kilómetros de la entrada el pelotón ya está en fila india, y por eso entre dos sectores
+  // seguidos nunca se vuelve al tempo de carretera. Sin esta anticipación el pelotón aflojaba a 0,55
+  // en cuanto salía del adoquín, la puerta se abría de par en par y la selección del sector anterior
+  // se deshacía antes del siguiente (medido: 43 -> 58 en 4,6 km).
+  pavesApproachKm: 2,
+
   // Un descolgado rueda solo a su tope (contrarreloj improvisada), perdiendo tiempo bloque a bloque.
   // Sube de 0.70 a 0.82: al 0.70 un descolgado rodaba muy por debajo de su límite y una etapa reina
   // producía brechas irreales. Quien se descuelga en un puerto no se sienta, va a su umbral.

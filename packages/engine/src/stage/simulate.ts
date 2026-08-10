@@ -153,13 +153,39 @@ function riderEff(sim: RiderSim): ReturnType<typeof effNow> {
 /**
  * Perfil efectivo de un corredor en un bloque, ya con la erosión del momento (SPEC 6.4, 6.7).
  * En los muros (subida corta y empinada) manda COL en vez de MON; un cerillo activo suma +10.
+ *
+ * El impulso del cerillo vale en TODO terreno que selecciona (v12, docs/motor.md §14), no solo en
+ * la subida: si en el adoquín se quema una cerilla para no soltarse, tiene que servir para lo
+ * mismo que sirve en el puerto —aguantar los metros siguientes—, o quemarla sería tirarla.
  */
 function riderPerfil(sim: RiderSim, block: Block): number {
   const eff = riderEff(sim)
   const useCol = block.tipo === 'subida' && block.g >= STAGE.wallMinGradient
   let perfil = blockPerfil(eff, block, useCol)
-  if (sim.climbBoostBlocks > 0 && block.tipo === 'subida') perfil += STAGE.matchBonus
+  if (sim.climbBoostBlocks > 0 && block.tipo !== 'llano') perfil += STAGE.matchBonus
   return perfil
+}
+
+/**
+ * Cuánto SELECCIONA el terreno de un bloque (v12, docs/motor.md §14). 0 = no selecciona: el llano
+ * no descuelga a nadie, y una bajada que en realidad es relieve menudo, tampoco.
+ *
+ * La subida vale 1 por definición —es la referencia con la que se calibró `lambdaDropBase`—, así
+ * que la montaña sigue exactamente igual que antes de este cambio.
+ */
+function selectionFactor(block: Block): number {
+  switch (block.tipo) {
+    case 'subida':
+      return 1
+    case 'paves':
+      // Las estrellas del sector escalan la dureza: viajan en el dato desde la v4 y hasta ahora
+      // solo se leían para el coste en energía. Un 5★ rompe casi el doble que un 3★.
+      return (STAGE.dropPavesFactor * block.estrellas) / STAGE.dropPavesStarsReference
+    case 'descenso':
+      return block.g <= STAGE.dropDescentMaxGradient ? STAGE.dropDescentFactor : 0
+    case 'llano':
+      return 0
+  }
 }
 
 /**
@@ -227,6 +253,12 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
   const rngTactics = streams('tactics')
   const rngSprint = streams('sprint')
   const rngHazard = streams('hazard')
+  // Subflujo NOMINAL de la selección FUERA de la montaña (v12, SPEC 6.1, docs/motor.md §14). El
+  // descuelgue en pavé y en descenso NO puede tirar de `rngHazard`: ese flujo lo consume el
+  // descuelgue en subida bloque a bloque, y meterle tiradas nuevas DESPLAZARÍA su secuencia,
+  // moviendo resultados de montaña que hoy están calibrados (y con ellos los invariantes) sin que
+  // ninguna ley de la montaña haya cambiado. Con un subflujo propio la montaña sale idéntica.
+  const rngRough = streams('rough')
   const rngCrash = streams('crash')
   const rngDay = streams('day')
   const incidents: Incident[] = []
@@ -413,10 +445,31 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
     })
   }
 
-  // Los sprinters solo cazan si la meta es llana (una llegada masiva que puedan disputar): en un
+  // Los sprinters solo cazan si la meta NO TREPA (una llegada masiva que puedan disputar): en un
   // final en alto no persiguen, y la fuga vive o muere en la subida (SPEC 6.9).
+  //
+  // El adoquín cuenta como llegada rodada, y esto sí es un arreglo (v12): la condición pedía que
+  // los últimos 2 km fueran `llano` o `descenso`, así que los 300 m del Espace Charles Crupelandt
+  // —el sector 1 de Paris-Roubaix, a 1,1 km de meta— apagaban la persecución en TODA la carrera. El
+  // pelotón pasaba al control de la general, daba los 350 s de `gcControlLeash` y la fuga del día
+  // se llevaba el monumento con siete minutos. Un sector de pavé en el último kilómetro no convierte
+  // la meta en una llegada de escaladores: sigue siendo un remate rodado de los que queden.
   const finalStretch = blocks.slice(Math.max(0, n - STAGE.finalBlocks))
-  const finishFlat = finalStretch.every((b) => b.tipo === 'llano' || b.tipo === 'descenso')
+  const finishFlat = finalStretch.every((b) => b.tipo !== 'subida')
+
+  /**
+   * Km desde cada bloque hasta el siguiente de ADOQUÍN (v12). Se recorre el recorrido una vez hacia
+   * atrás y sirve para una sola cosa: que el pelotón no ruede a tempo en la aproximación a un
+   * sector. La pelea por entrar delante es media clásica del Norte (`pavesApproachKm`).
+   */
+  const kmToNextPaves = new Float64Array(n)
+  {
+    let next = Number.POSITIVE_INFINITY
+    for (let i = n - 1; i >= 0; i--) {
+      next = blocks[i]!.tipo === 'paves' ? 0 : next + STAGE.dx
+      kmToNextPaves[i] = next
+    }
+  }
   // Qué clase de final dibuja el RECORRIDO (docs/motor.md §12). Se mide una vez por etapa sobre los
   // últimos ~5 km y la última cota de los últimos 15; el TIPO de final concreto se resuelve luego
   // para cada grupo de meta, porque depende también de cuántos lleguen.
@@ -498,6 +551,18 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
     // del dueño): es que no pasa en carretera. En la reina canónica no cambia nada —sus únicos km de
     // subida son los últimos 15— y por eso los invariantes no se movían y el defecto no se veía.
     const onClimb = block.tipo === 'subida'
+    const onPaves = block.tipo === 'paves'
+    /**
+     * Terreno que ROMPE de verdad (v12, docs/motor.md §14): el puerto y el adoquín. Lo que se
+     * pierde ahí no se recupera sobre la marcha —dentro de un sector de pavé no hay rueda a la que
+     * volver, se va uno detrás de otro y el hueco se abre—, así que el recorte de los descolgados y
+     * el reenganche al pelotón solo existen en terreno RODADOR. Entre sector y sector sí se vuelve,
+     * que es como se corre Roubaix de verdad.
+     *
+     * El DESCENSO queda fuera a propósito: ahí se pierde la rueda y se recupera en el valle, y esa
+     * es justo la diferencia entre una bajada y un sector de adoquines.
+     */
+    const onRough = onClimb || onPaves
     const raceThisClimb = totalKm - km <= STAGE.climbRaceKmToGo
 
     // Controlador del pelotón cada 10 bloques, con histéresis (SPEC 6.9). Regula SIEMPRE: haya fuga,
@@ -771,6 +836,14 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       if (finishFlat && kmRestantes <= STAGE.finalDriveKm && !chaseAbandoned) {
         target = Math.max(target, finalDriveCommit)
       }
+      // Y en un sector de ADOQUINES —y en los kilómetros de aproximación, peleando por la posición—
+      // se corre, no se rueda (v12, docs/motor.md §14). Es un SUELO, como el tirón final: si el
+      // pelotón ya iba más rápido persiguiendo, el pavé no lo frena. Sin esto los 31 sectores de
+      // Paris-Roubaix se pasaban al tempo de carretera y la selección que abría cada sector se
+      // deshacía en el asfalto siguiente (medido: 58 -> 44 -> 57).
+      if (onPaves || kmToNextPaves[i]! <= STAGE.pavesApproachKm) {
+        target = Math.max(target, STAGE.pavesRaceCommit)
+      }
       peloton = {
         ...peloton,
         compromiso: peloton.compromiso + (target - peloton.compromiso) * STAGE.commitHysteresis,
@@ -887,8 +960,12 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       )
     }
 
-    // Descuelgue en los puertos (SPEC 6.8): quien no aguanta el P75 del grupo se cae o quema un
-    // cerillo. Fuera de subida solo suelta la pájara, así que el llano queda casi intacto.
+    // Descuelgue (SPEC 6.8): quien no aguanta el P75 de los punteros de su grupo o quema un cerillo
+    // o se descuelga. Hasta la v11 esto solo pasaba EN SUBIDA (`if (block.tipo !== 'subida')`), y
+    // por eso los 31 sectores reales de adoquines de Paris-Roubaix costaban energía pero no rompían
+    // el pelotón: la clásica de adoquines llegaba entera y se decidía al sprint. Desde la v12 el
+    // MISMO mecanismo vale en el pavé y en el descenso (docs/motor.md §14); lo único que cambia es
+    // con qué atributo se mide el déficit (`blockPerfil`) y cuánto pesa (`selectionFactor`).
     const shatter = (group: Group, members: RiderSim[], paceFraction: number): string[] => {
       const dropped: string[] = []
       // Pájara (SPEC 6.7): con el tanque a cero el corredor se descuelga automáticamente, suba o no.
@@ -900,18 +977,24 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
         dropOut(m, group)
         dropped.push(m.input.riderId)
       }
-      if (block.tipo !== 'subida') return dropped
+      const factor = selectionFactor(block)
+      if (factor <= 0) return dropped
+      // El dado: la montaña sigue con el suyo de siempre y el terreno nuevo estrena el suyo, para
+      // no desplazar una secuencia calibrada (ver `rngRough` arriba).
+      const rngDrop = block.tipo === 'subida' ? rngHazard : rngRough
       const alive = members.filter((m) => m.groupId === group.id)
       const pace = pacemakerP75(alive, block, paceFraction)
       const inGroup = new Set(alive.map((m) => m.input.riderId))
       for (const m of alive) {
         const deficit = pace - riderPerfil(m, block)
         if (deficit <= STAGE.dropDeficitTolerance) continue
-        const lambda = (STAGE.lambdaDropBase * deficit) / STAGE.dropDeficitDenom
-        if (!rollHazard(rngHazard, lambda)) continue
+        const lambda = (STAGE.lambdaDropBase * factor * deficit) / STAGE.dropDeficitDenom
+        if (!rollHazard(rngDrop, lambda)) continue
         // Marcaje (SPEC 6.18): el hazard que acaba de saltar ES el momento de selección (el ataque).
-        // Si m marca a un rival que sube en su MISMO grupo, la respuesta la resuelve el módulo
-        // oficial `marcaje.ts`: pegado a rueda, cede unos segundos, o se suelta.
+        // Si m marca a un rival que va en su MISMO grupo, la respuesta la resuelve el módulo
+        // oficial `marcaje.ts`: pegado a rueda, cede unos segundos, o se suelta. Vale igual en el
+        // puerto, en el adoquín y en la bajada: un marcador pegado a la rueda de su objetivo lo
+        // sigue estando ruede por donde ruede (v12).
         const targetId = markTargetOf.get(m.input.riderId)
         if (targetId && inGroup.has(targetId)) {
           const target = sims.get(targetId)
@@ -981,8 +1064,12 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
     }
 
     const climbFrac = raceThisClimb ? STAGE.climbPaceFraction : STAGE.climbTempoFraction
-    const pelFrac = onClimb ? climbFrac : STAGE.pelotonPaceFraction
-    const moveFrac = (m: Move): number => (onClimb ? climbFrac : m.g.coop)
+    // En un sector de adoquines el ritmo lo marcan los de delante, como en el puerto decisivo: la
+    // posición lo es todo y nadie pasa un sector a tempo desde mitad del pelotón (v12). Sin esto el
+    // P75 del pavé lo marcaba el cuarto delantero entero y el sector no estiraba el grupo.
+    const roughFrac = onPaves ? STAGE.pavesPaceFraction : STAGE.pelotonPaceFraction
+    const pelFrac = onClimb ? climbFrac : roughFrac
+    const moveFrac = (m: Move): number => (onClimb ? climbFrac : onPaves ? roughFrac : m.g.coop)
 
     // El que va ESCAPADO se juega la etapa y aprieta los dientes; el que va en el pelotón o
     // descolgado a 20 km de meta con el depósito vacío, no. (El filtro fino —líder, sprinter,
@@ -1340,35 +1427,58 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       // Un descolgado del pelotón NUNCA rueda por delante de él: en carretera el grupo grande, a rueda,
       // siempre es más rápido que un suelto. Sin este tope, un "descolgado" con compromiso alto se
       // escapaba en FANTASMA (más rápido que el pelotón a tempo) y ganaba la etapa sin que la fuga ni la
-      // crónica lo contaran. PERO el tope solo aplica en LLANO/DESCENSO: en la SUBIDA un descolgado sí
-      // puede quedar por delante de lo que reste del pelotón (que se ha estirado y va más lento en
-      // conjunto), y ahí la selección debe mantenerse —no reagrupar—.
+      // crónica lo contaran. PERO el tope no aplica en la SUBIDA: allí un descolgado sí puede quedar por
+      // delante de lo que reste del pelotón (que se ha estirado y va más lento en conjunto), y la
+      // selección debe mantenerse. En el PAVÉ el tope sigue puesto aunque también seleccione: el que se
+      // suelta en un sector pierde tiempo porque va más lento que los de delante, no porque se le
+      // empuje; si sale más rápido, es un fantasma y hay que taparlo igual que en el llano.
       shed[g] = !onClimb && adv.tS < peloton.tS ? { ...adv, tS: peloton.tS } : adv
     }
 
     // Recorte y reagrupamiento de los descolgados. En terreno RODADOR (llano/descenso) cierran el
-    // boquete con el pelotón a un ritmo (s/km) y, al entrar en rango, se reenganchan. En SUBIDA no
-    // hay recorte —allí manda la selección, que es lo que hace una etapa de montaña—, pero los
-    // descolgados que ruedan a la MISMA altura sí se funden en grupetos: si no, la reina terminaba
-    // con una mediana de 30 grupos de un solo corredor (docs/motor.md §3-bis-e).
+    // boquete con el pelotón a un ritmo (s/km) y, al entrar en rango, se reenganchan. En terreno
+    // que ROMPE —subida y, desde la v12, adoquín— no hay recorte: allí manda la selección, que es
+    // lo que hace una etapa de montaña y lo que hace una clásica de pavés. Pero los descolgados que
+    // ruedan a la MISMA altura sí se funden en grupetos: si no, la reina terminaba con una mediana
+    // de 30 grupos de un solo corredor (docs/motor.md §3-bis-e).
     if (shed.length > 0) {
-      if (!onClimb) {
-        const close = STAGE.chaseBackSecondsPerKm * STAGE.dx
+      // LA PUERTA DEL PELOTÓN (v12). Cuánto se recorta —y con cuánto boquete se vuelve a entrar—
+      // depende de a qué ritmo vaya el grupo del que se soltó: a tempo se vuelve, con los trenes
+      // lanzados no. Ver `chaseBackShutFloor`: por debajo del tempo de carretera el factor vale 1 y
+      // esto es EXACTAMENTE lo de siempre (el llano canónico y el valle de la reina no se mueven).
+      const paceShut = Math.max(
+        STAGE.chaseBackShutFloor,
+        Math.min(1, (1 - peloton.compromiso) / (1 - STAGE.pelotonTempoCommit)),
+      )
+      const pelotonSize = membersOf(PELOTON).length
+      /**
+       * …y la puerta se abre de par en par para quien persigue con MUCHA más gente de la que va
+       * delante: un autobús que TRIPLICA en número al grupo de cabeza (`chaseBackBusFactor`) se
+       * releva mejor y acaba cazándolo en llano por lanzado que vaya. Es lo que devuelve al pelotón
+       * entero cuando un puerto lejos de meta deja delante a diez corredores y detrás a setenta.
+       */
+      const shutFor = (size: number): number =>
+        size >= STAGE.chaseBackBusFactor * pelotonSize ? 1 : paceShut
+      if (!onRough) {
         for (const sg of shed) {
-          if (membersOf(sg.id).length === 0) continue
+          const size = membersOf(sg.id).length
+          if (size === 0) continue
+          const close = STAGE.chaseBackSecondsPerKm * STAGE.dx * shutFor(size)
           const gap = sg.tS - peloton.tS
           if (gap > 0) sg.tS = Math.max(peloton.tS, sg.tS - close)
         }
       }
-      // En subida el umbral de fusión es más estrecho (y no hay reenganche al pelotón): los que van
-      // juntos de verdad forman grupeto, los que están cortados de verdad siguen cortados.
-      const mergeGap = onClimb ? STAGE.grupetoJoinGapSeconds : STAGE.regroupGapSeconds
+      // En terreno que rompe el umbral de fusión es más estrecho (y no hay reenganche al pelotón):
+      // los que van juntos de verdad forman grupeto, los que están cortados de verdad siguen cortados.
+      // La fusión ENTRE descolgados no pasa por la puerta del pelotón: que dos grupetos que ruedan a
+      // la misma altura se junten no depende de lo que apriete un pelotón que va minutos por delante.
+      const mergeGap = onRough ? STAGE.grupetoJoinGapSeconds : STAGE.regroupGapSeconds
       const stillDropped: Group[] = []
       for (const sg of [...shed].sort((a, b) => a.tS - b.tS)) {
         const mem = membersOf(sg.id)
         if (mem.length === 0) continue
-        // ¿alcanza al pelotón? se reengancha (solo en terreno rodador).
-        if (!onClimb && gapSeconds(peloton, sg) <= STAGE.regroupGapSeconds) {
+        // ¿alcanza al pelotón? se reengancha (solo en terreno rodador, y solo si el pelotón deja).
+        if (!onRough && gapSeconds(peloton, sg) <= STAGE.regroupGapSeconds * shutFor(mem.length)) {
           for (const m of mem) m.groupId = PELOTON
           peloton = { ...peloton, riderIds: [...peloton.riderIds, ...sg.riderIds] }
           continue
