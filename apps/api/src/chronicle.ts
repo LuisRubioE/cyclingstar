@@ -34,6 +34,9 @@ export interface ChronicleEntry {
  * pelotón, los sprints y las cimas, después la caza, y la victoria siempre al final.
  */
 const EVENT_ORDER: Record<string, number> = {
+  // Quién sale hoy por su cuenta contra las órdenes de su equipo (v15, docs/motor.md §VI.2). Se
+  // emite en el km 0 y abre la crónica: es contexto de salida, no un suceso de carrera.
+  rider_defies_team: -1,
   // Un ataque va ANTES que su consecuencia: primero salta alguien, luego se forma la fuga, lo
   // cazan o engancha con los de delante (docs/motor.md §13).
   attack_go: 0,

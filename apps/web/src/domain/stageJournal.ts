@@ -250,6 +250,18 @@ function chronicleTemplate(e: ChronicleEntry): string {
         `Behind, ${count} riders let the group go${left}, ${listNames(named)} among them.`,
       ])
     }
+    case 'rider_defies_team': {
+      // DESOBEDECER LAS ÓRDENES (docs/motor.md §VI.2, motor v15). El equipo ya tiene jefe de filas
+      // y este corredor sale a lo suyo: queda fuera del plan, así que ni le empujan sus compañeros
+      // ni le arropan. Es raro por construcción —solo pasa con una orden humana que contradice el
+      // plan— y por eso se cuenta una vez, al principio, y no se vuelve a mencionar.
+      const total = Number(e.datos?.total ?? e.protagonists.length)
+      if (total > 1) return `${who} are riding to their own orders today, not their teams'.`
+      return pick([
+        `${who} has other ideas: he is riding for himself today, not for his team leader.`,
+        `Team orders are one thing — ${who} is racing his own race today.`,
+      ])
+    }
     case 'rider_bonks': {
       // LA PÁJARA (docs/motor.md §15). El motor la ejecuta desde la v8 y no la contaba: era el
       // agujero que docs/balance.md arrastraba desde entonces («no narra la pájara»). Se cuenta con
