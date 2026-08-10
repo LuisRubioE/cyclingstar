@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom'
 import type { RaceClass } from '../api/calendar'
 import { type EnterableRace, enterRace, fetchEnterableRaces, withdrawRace } from '../api/raceEntry'
 import { fetchRiderResults } from '../api/rankings'
-import { fetchMyRider, fetchMyUpcomingRaces, fetchRiderSummary } from '../api/rider'
+import { fetchMyRider, fetchMyUpcomingRaces, fetchRiderSummary, retireFromRace } from '../api/rider'
 import { Flag } from '../components/Flag'
 import { Panel, SectionBar } from '../components/Panel'
 import { ShowAllButton, TOP_ROWS } from '../components/ShowAll'
@@ -51,8 +51,20 @@ function whenLabel(daysUntil: number, ongoing: boolean): string {
  * convocado) y, debajo, lo que he pedido yo y aún está pendiente de convocatoria.
  */
 function UpcomingTab() {
+  const queryClient = useQueryClient()
   const upcoming = useQuery({ queryKey: ['rider', 'upcoming'], queryFn: fetchMyUpcomingRaces })
   const entries = useQuery({ queryKey: ['race-entries'], queryFn: fetchEnterableRaces })
+  // Qué carrera está esperando confirmación de retirada. Retirarse no se deshace (docs/motor.md
+  // §V.5), así que el botón nunca actúa a la primera: primero pregunta.
+  const [confirming, setConfirming] = useState<string | null>(null)
+  const retire = useMutation({
+    mutationFn: (raceKey: string) => retireFromRace(raceKey),
+    onSuccess: async () => {
+      setConfirming(null)
+      await queryClient.invalidateQueries({ queryKey: ['rider', 'upcoming'] })
+      await queryClient.invalidateQueries({ queryKey: ['rider', 'results'] })
+    },
+  })
 
   if (upcoming.isPending) return <p className="text-slate-500">Loading…</p>
   if (upcoming.isError) return <p className="text-red-600">Could not load your races.</p>
@@ -115,9 +127,42 @@ function UpcomingTab() {
                     <td className="px-2 py-2 text-slate-600">
                       {whenLabel(r.daysUntil, r.ongoing)}
                     </td>
-                    {/* Aquí irá también la retirada voluntaria entre etapas de una carrera por
-                        etapas en curso, cuando el motor la soporte (docs/motor.md §V.5). */}
+                    {/* Retirada voluntaria entre etapas (docs/motor.md §V.5): solo en una carrera
+                        POR ETAPAS que ya esté rodando, y siempre con confirmación. */}
                     <td className="px-3 py-2 text-right">
+                      {r.ongoing && r.stageCount > 1 && (
+                        <span className="mr-3 inline-flex items-center gap-2">
+                          {confirming === r.raceKey ? (
+                            <>
+                              <span className="text-xs text-slate-500">Abandon for good?</span>
+                              <button
+                                type="button"
+                                onClick={() => retire.mutate(r.raceKey)}
+                                disabled={retire.isPending}
+                                className="rounded-md bg-rose-600 px-2.5 py-1 text-xs font-medium text-white transition hover:bg-rose-700 disabled:opacity-60"
+                              >
+                                Yes, abandon
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setConfirming(null)}
+                                className="text-xs font-medium text-slate-500 hover:text-slate-700"
+                              >
+                                Keep racing
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setConfirming(r.raceKey)}
+                              title="Pull out of this race and prepare another one. This cannot be undone."
+                              className="rounded-md border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-600 transition hover:border-rose-300 hover:text-rose-700"
+                            >
+                              Abandon
+                            </button>
+                          )}
+                        </span>
+                      )}
                       <Link
                         to={`/me/orders?race=${encodeURIComponent(r.raceKey)}`}
                         className="font-medium text-brand-cyan hover:underline"
@@ -130,6 +175,9 @@ function UpcomingTab() {
               </tbody>
             </table>
           </div>
+          {retire.isError && (
+            <p className="px-3 pb-3 text-sm text-red-600">Could not withdraw from the race.</p>
+          )}
         </Panel>
       )}
 

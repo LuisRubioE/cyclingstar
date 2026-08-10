@@ -27,6 +27,7 @@ import {
   getTeamTrainingPlan,
   getTrainingOrders,
   rejectOffer,
+  retireFromRace,
   setRacePref,
   setRiderArchetype,
   setTeamTrainingPlan,
@@ -38,7 +39,7 @@ import { currentSeason, isKnownCountry, resolveCountry } from '@cyclingstar/shar
 import { z } from 'zod'
 import { badRequest, notFound, sendError, unauthorized } from '../http.js'
 import type { RoutePlugin } from './context.js'
-import { parseRaceId, parseUuid } from './params.js'
+import { parseRaceId, parseRaceKey, parseUuid } from './params.js'
 
 /** Horizonte del planificador de entrenamiento (SPEC 5.2: cola de 7 a 28 días). */
 export const TRAINING_HORIZON_DAYS = 28
@@ -429,6 +430,36 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
       const res = await withdrawRace(db, rider.id, raceId, world.currentDay)
       if (!res.ok) return sendError(reply, 409, res.error ?? 'no_disponible')
       return { ok: true }
+    },
+  )
+
+  /**
+   * RETIRARSE de una carrera por etapas en marcha (docs/motor.md §V.5). Es una decisión de gestión
+   * del jugador —«voy mal, arriesgo lesión, no voy a ganar nada, mejor preparo otra carrera»— y no
+   * se deshace, de ahí que la web pida confirmación antes de llamar.
+   *
+   * No se confunde con `DELETE /race-entries/:raceId`, que cancela una INSCRIPCIÓN antes de que la
+   * carrera empiece: esto retira al corredor de una carrera que ya está rodando, con las mismas
+   * consecuencias que un abandono automático (`race_rosters.abandoned_day`).
+   */
+  app.post<{ Params: { raceKey: string } }>(
+    '/api/riders/me/races/:raceKey/retire',
+    async (request, reply) => {
+      const userId = await currentUserId(request)
+      if (!userId) return unauthorized(reply)
+      // El parámetro es la clave con temporada (`race-france:s3`), que es como se guarda el roster.
+      if (!parseRaceKey(request.params.raceKey)) return badRequest(reply)
+      const rider = await getRiderForUser(db, userId)
+      const world = await getCurrentWorld(db)
+      if (!rider || !world) return sendError(reply, 409, 'sin_ciclista')
+      const res = await retireFromRace(db, {
+        worldId: world.worldId,
+        riderId: rider.id,
+        raceKey: request.params.raceKey,
+        currentDay: world.currentDay,
+      })
+      if (!res.ok) return sendError(reply, 409, res.reason)
+      return { ok: true, raceName: res.raceName, alreadyOut: res.alreadyOut }
     },
   )
 

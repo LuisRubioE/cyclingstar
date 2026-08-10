@@ -103,6 +103,17 @@ export const upcomingRaceSchema = z.object({
 export type UpcomingRace = z.infer<typeof upcomingRaceSchema>
 export const upcomingRacesResponseSchema = z.object({ races: z.array(upcomingRaceSchema) })
 
+/**
+ * Retirada VOLUNTARIA de una carrera por etapas en marcha (docs/motor.md §V.5). `alreadyOut` marca
+ * la repetición: el endpoint es idempotente y la web lo usa para no cantar dos veces la retirada.
+ */
+export const retireFromRaceResponseSchema = z.object({
+  ok: z.literal(true),
+  raceName: z.string(),
+  alreadyOut: z.boolean(),
+})
+export type RetireFromRaceResponse = z.infer<typeof retireFromRaceResponseSchema>
+
 export const riderSummarySchema = z.object({
   teamId: z.string().nullable(),
   teamName: z.string().nullable(),

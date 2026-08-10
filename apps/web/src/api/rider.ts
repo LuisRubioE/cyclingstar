@@ -2,6 +2,7 @@ import {
   type Gender,
   type GeneratedName,
   type PublicRider,
+  type RetireFromRaceResponse,
   type RiderSummary,
   type UpcomingRace,
   type Vocation,
@@ -11,13 +12,14 @@ import {
   myRiderResponseSchema,
   okResponseSchema,
   resolveCountry,
+  retireFromRaceResponseSchema,
   riderSummaryResponseSchema,
   upcomingRacesResponseSchema,
 } from '@cyclingstar/shared'
 import { z } from 'zod'
 import { request, requestOptionalAuth } from './request'
 
-export type { GeneratedName, RiderSummary, UpcomingRace }
+export type { GeneratedName, RetireFromRaceResponse, RiderSummary, UpcomingRace }
 
 /** Lo que ipwho.is devuelve y nos interesa (validado igual que cualquier otro borde de entrada). */
 const ipWhoIsSchema = z.object({
@@ -88,6 +90,18 @@ export async function fetchMyUpcomingRaces(): Promise<UpcomingRace[]> {
     { errorMessage: 'Could not load your upcoming races.' },
   )
   return data?.races ?? []
+}
+
+/**
+ * RETIRARSE de una carrera por etapas en marcha (docs/motor.md §V.5). No se deshace, así que quien
+ * llame tiene que haber pedido confirmación antes.
+ */
+export async function retireFromRace(raceKey: string): Promise<RetireFromRaceResponse> {
+  return await request(
+    `/api/riders/me/races/${encodeURIComponent(raceKey)}/retire`,
+    retireFromRaceResponseSchema,
+    { method: 'POST', errorMessage: 'Could not withdraw from the race.' },
+  )
 }
 
 export async function fetchRiderSummary(): Promise<RiderSummary | null> {

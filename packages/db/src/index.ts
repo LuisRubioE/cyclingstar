@@ -201,7 +201,13 @@ export {
   setTrainingOrders,
   type TrainingOrderRow,
 } from './training.js'
-export { getRiderRaceDays, getRiderUpcomingRaces, type RiderUpcomingRace } from './riderSchedule.js'
+export {
+  getRiderRaceDays,
+  getRiderUpcomingRaces,
+  retireFromRace,
+  type RetireOutcome,
+  type RiderUpcomingRace,
+} from './riderSchedule.js'
 export {
   buildRiderRaceResults,
   getRiderRaceResults,

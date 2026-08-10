@@ -233,6 +233,9 @@ describe('api: gating de sesión', () => {
     { method: 'GET', url: '/api/riders/me/race-entries' },
     { method: 'POST', url: '/api/riders/me/race-entries/test-tour' },
     { method: 'DELETE', url: '/api/riders/me/race-entries/test-tour' },
+    // Retirada voluntaria de una carrera en marcha (docs/motor.md §V.5): es una acción que borra
+    // la carrera de un corredor, así que jamás puede quedar abierta sin sesión.
+    { method: 'POST', url: '/api/riders/me/races/race-france:s0/retire' },
     { method: 'PUT', url: '/api/riders/me/archetype' },
     { method: 'POST', url: '/api/riders' },
     { method: 'GET', url: '/api/me/team-control' },
@@ -314,6 +317,8 @@ describe('api: validación de parámetros de ruta', () => {
     { method: 'DELETE', url: '/api/riders/me/race-entries/NO%20es%20un%20slug' },
     { method: 'POST', url: '/api/teams/me/calendar/NO%20es%20un%20slug' },
     { method: 'DELETE', url: '/api/teams/me/calendar/NO%20es%20un%20slug' },
+    // La clave de carrera-temporada tiene forma (`race-france:s0`): sin ella, 400 y no 500.
+    { method: 'POST', url: '/api/riders/me/races/no-es-una-clave/retire' },
   ]
 
   it.each(badRequestRoutes)('$method $url responde 400, no 500', async ({ method, url }) => {
