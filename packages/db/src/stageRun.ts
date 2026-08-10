@@ -803,10 +803,15 @@ async function awardOutcome(
   if (!isOneDay) {
     await addSeasonPointsBatch(
       tx,
-      output.results.map((r) => ({
-        riderId: r.riderId,
-        points: stagePointsByClass(spec.raceClass, r.puesto - 1),
-      })),
+      // Solo los CLASIFICADOS (v14): quien abandonó o llegó fuera de control tiene `puesto: 0`, y
+      // aunque la tabla de puntos ya devolvería 0 para el índice -1, pedirlos sería decir que ese
+      // corredor tiene un puesto en la etapa.
+      output.results
+        .filter((r) => r.estado === 'finish')
+        .map((r) => ({
+          riderId: r.riderId,
+          points: stagePointsByClass(spec.raceClass, r.puesto - 1),
+        })),
     )
   }
   // En una carrera de UN DÍA (etapa única = final) la victoria de etapa y la general son la MISMA:
