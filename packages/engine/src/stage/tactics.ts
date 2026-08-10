@@ -53,6 +53,14 @@ export interface MoveRider {
   spr: number
   /** Desventaja en la general, en segundos (SPEC 6.9). 0 = es el líder. */
   gcDeficitSeconds: number
+  /**
+   * EL PLAN DE SU EQUIPO, visto desde las ganas de atacar (v15, docs/motor.md §V.1). 1 = no hay
+   * plan que le condicione, y es lo que valen un agente libre y —por la regla 1 de §V.1— el que
+   * corre por su cuenta contra las órdenes de su equipo: su decisión manda sobre el plan. Por
+   * debajo de 1, el equipo tiene otra cosa que hacer (ya tiene un hombre delante, o está
+   * persiguiendo); por encima, no tiene baza que jugar y manda gente a la fuga.
+   */
+  teamAttack: number
 }
 
 /** El contexto que parametriza el intento. */
@@ -185,6 +193,10 @@ export function attackAppetite(
     if (r.energyFraction < STAGE.breakawaySkipEnergyFraction) return 0
   }
   let a = ROLE_APPETITE[r.role] * MENTALITY_APPETITE[r.mentality]
+  // EL PLAN DE EQUIPO (v15, §V.1): un equipo con un hombre ya en la carretera no manda a otro, y el
+  // que no tiene baza que jugar hoy es el que la manda. Multiplica, no decide: el rol y la
+  // mentalidad siguen mandando, y el que corre por su cuenta entra aquí con un 1 limpio.
+  a *= r.teamAttack
   // Frescura: quien va vaciado no salta aunque quiera.
   a *= clamp(r.energyFraction, 0, 1)
   if (ctx.kind === 'ataque_grupo') {

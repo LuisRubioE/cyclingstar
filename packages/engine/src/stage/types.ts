@@ -104,6 +104,17 @@ export interface StageRider {
   gcDeficitSeconds: number
   /** Fragilidad oculta (SPEC 3.4): escala la probabilidad de lesión al caer. Por defecto 1. */
   fragility?: number
+  /**
+   * EL EQUIPO del corredor (docs/motor.md §V.1, v15). Es lo que faltaba para que el motor pudiera
+   * tener un plan colectivo: hasta la v14 lo único que conocía era `orders.targetRiderId`, que dice
+   * «X trabaja para Y» pero no «este equipo persigue y este otro se esconde».
+   *
+   * **Nulo o ausente = agente libre**, y eso es una decisión de diseño, no una laguna: el dueño lo
+   * dijo explícitamente («un ciclista sin equipo, pues corre de forma individual»). Un corredor sin
+   * equipo no participa de ningún plan, no recibe compañeros fantasma y decide solo con sus órdenes.
+   * Un campo ENTERO sin equipos se comporta exactamente como antes de la v15.
+   */
+  teamId?: string | null
 }
 
 /** Entrada completa del motor (SPEC 6.1). */

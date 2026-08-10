@@ -151,6 +151,10 @@ export function runGrandTour(worldSeed: string): GrandTourResult {
         orders: orders.get(r.riderId) ?? NEUTRAL_ORDERS,
         gcDeficitSeconds: 0,
         fragility: r.fragility,
+        // El banco reproduce lo que hace `packages/db`, y desde la v15 eso incluye el EQUIPO: 22
+        // equipos de 8 con su plan (docs/motor.md §V.1). Sin esto el banco mediría una gran vuelta
+        // de 176 agentes libres, que no es la que corre el juego.
+        teamId: r.teamId,
       }
     })
     const out = simulateStage(

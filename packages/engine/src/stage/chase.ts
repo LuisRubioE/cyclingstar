@@ -8,14 +8,16 @@
  * allí no hay equipos capaces de organizarse para cazarla.
  *
  * Aquí se mide ESE campo. Un «tren» es un rematador con opciones reales más los compañeros que
- * trabajan para él. El motor no conoce equipos —`StageRider` no trae `teamId`—, pero sí conoce el
- * trabajo de equipo: los lanzadores y gregarios apuntan a su jefe de filas con `targetRiderId`
- * (SPEC 6.18), y eso ES el tren. En producción los reparte `world/autoOrders.ts`: un equipo nombra
- * sprinter al suyo solo si pasa de 68 de SPR, y le pone un lanzador y hasta dos gregarios; un equipo
- * continental sin rematador no nombra a ninguno y por tanto no aporta nada a la caza.
+ * trabajan para él: los lanzadores y gregarios que apuntan a su jefe de filas con `targetRiderId`
+ * (SPEC 6.18) y —desde la v15, con `teamId` en el motor— los de su EQUIPO que no apuntan a nadie.
+ * En producción los reparte `world/autoOrders.ts`: un equipo nombra sprinter al suyo solo si pasa de
+ * 68 de SPR, y le pone un lanzador y hasta dos gregarios; un equipo continental sin rematador no
+ * nombra a ninguno y por tanto no aporta nada a la caza.
  *
- * La salida es un escalar en [0,1] que el controlador del pelotón usa para tres cosas: cuánta cuerda
- * da, con cuánta fuerza puede cerrar y cuándo se rinde.
+ * La salida es un escalar en [0,1] con la fuerza que el campo PUEDE dar. Lo que de esa fuerza queda
+ * disponible en cada momento ya no es un escalar de etapa: lo decide el presupuesto de esfuerzo de
+ * los equipos que persiguen (`stage/teamPlan.ts`, docs/motor.md §V.1), y con ello el controlador del
+ * pelotón resuelve cuánta cuerda da, con cuánta fuerza cierra y cuándo se rinde.
  */
 import { STAGE } from '../constants.js'
 import type { StageRider } from './types.js'
@@ -55,12 +57,30 @@ export function chaseField(riders: StageRider[]): ChaseField {
   const bestSpr = contenders.reduce((mx, r) => Math.max(mx, r.eff0.SPR), 0)
 
   // Compañeros por jefe de filas: quien va de lanzador o de gregario TRABAJA para su objetivo.
+  //
+  // Desde la v15 el motor conoce los EQUIPOS (`teamId`, docs/motor.md §V.1) y con ellos se cierra el
+  // hueco que anotaba la v10: un gregario SIN objetivo explícito trabaja igualmente para el
+  // rematador de su equipo, y hasta ahora no contaba para nadie. Es un superconjunto estricto de lo
+  // de antes —el que apunta a alguien sigue contando para ese alguien—, así que un campo sin
+  // equipos, o uno donde todas las órdenes traen objetivo (que es lo que reparte `autoOrders`), da
+  // exactamente los mismos números que en la v14.
+  const teamOf = new Map<string, string>()
+  for (const r of riders) if (r.teamId) teamOf.set(r.riderId, r.teamId)
   const helpersOf = new Map<string, number>()
   for (const r of riders) {
-    const target = r.orders.targetRiderId
-    if (!target) continue
     if (r.orders.role !== 'lanzador' && r.orders.role !== 'gregario') continue
-    helpersOf.set(target, (helpersOf.get(target) ?? 0) + 1)
+    const target = r.orders.targetRiderId
+    if (target) {
+      helpersOf.set(target, (helpersOf.get(target) ?? 0) + 1)
+      continue
+    }
+    const team = teamOf.get(r.riderId)
+    if (!team) continue
+    // Sin objetivo: su hombre es el mejor rematador de SU equipo, si lo hay.
+    const boss = contenders
+      .filter((c) => teamOf.get(c.riderId) === team)
+      .sort((a, b) => b.eff0.SPR - a.eff0.SPR || (a.riderId < b.riderId ? -1 : 1))[0]
+    if (boss) helpersOf.set(boss.riderId, (helpersOf.get(boss.riderId) ?? 0) + 1)
   }
 
   const trains: ChaseTrain[] = []

@@ -269,6 +269,10 @@ export async function runOneStage(
       tsb,
       orders,
       gcDeficitSeconds: (gcTime.get(riderId) ?? 0) - gcLeader,
+      // EL EQUIPO (docs/motor.md §V.1, v15). El motor lo pide desde la v15 para tener un plan
+      // colectivo —quién persigue, quién se esconde, quién manda gente a la fuga— y la capa de
+      // datos es la única que lo sabe. `null` = agente libre: corre de forma individual.
+      teamId: rider.teamId ?? null,
     })
     riderState.set(riderId, { attributes, ctl: rider.ctl, atl: rider.atl, ceilings })
   }

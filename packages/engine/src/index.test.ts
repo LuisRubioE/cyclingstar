@@ -3,6 +3,15 @@ import { ENGINE_VERSION } from './index.js'
 
 describe('engine: esqueleto', () => {
   it('expone una engine_version sellada', () => {
+    // v15: EL PLAN DE EQUIPO (docs/motor.md §V.1, docs/balance.md «v15») — la última pieza del plan
+    // del motor. `StageRider` trae por fin `teamId` (nulo = agente libre, que corre solo) y con él
+    // cada equipo tiene una INTENCIÓN —perseguir, lanzar, controlar, proteger, defender al hombre
+    // que ya tiene delante o esconderse— y un PRESUPUESTO de esfuerzo que se agota: el que lleva
+    // ~80 km al frente se funde y otro toma el relevo. Lo consultan el turno de relevos, la caza
+    // (que deja de ser un escalar de etapa) y la capa de ataques. Las individualidades mandan sobre
+    // el plan: el que desobedece (§VI.2) queda fuera de él. Entran además los dos estados de rebufo
+    // que llevaban muertos desde el Paso 21 —`shelterAlone` y `shelterWorking`— y se re-ancla §VI.1
+    // sobre la etapa reina REAL en vez de sobre la sintética de 1.200 m.
     // v14: ABANDONOS (docs/motor.md §15 y §VI.3, docs/balance.md «v14»). `StageResult.estado`
     // contemplaba `'abandon' | 'dnf'` desde el Paso 21 y el motor no había emitido jamás otra cosa
     // que `'finish'`: los 176 que salían eran los 176 que acababan. Ahora hay dos abandonos DENTRO
@@ -29,6 +38,6 @@ describe('engine: esqueleto', () => {
     // v11 (atribución del trabajo), la v10 (composición y caza), la v9 (capa táctica), la
     // v8 (tiempos de grupo), la v7 (modelo de final), la v6 (telemetría), la v5 (clásica larga), la
     // v4 (pavé en el recorrido) y la v3 (Cambio 0).
-    expect(ENGINE_VERSION).toBe(14)
+    expect(ENGINE_VERSION).toBe(15)
   })
 })

@@ -164,8 +164,35 @@
  * El azar nuevo sale de un subflujo NOMINAL propio (`abandon`), de modo que una etapa en la que no
  * se retira nadie sale dígito a dígito igual que en la v13 y la huella de `attribution.test.ts` no
  * se mueve. Medido en docs/balance.md, «v14».
+ *
+ * v15 (EL PLAN DE EQUIPO, docs/motor.md §V.1 — la última pieza del plan del motor). Hasta aquí el
+ * motor NO conocía los equipos: `StageRider` no traía `teamId` y lo único que había era
+ * `orders.targetRiderId`, que dice «X trabaja para Y» pero no «este equipo persigue y este otro se
+ * esconde». Cuatro consecuencias medidas, y las cuatro se cierran:
+ *
+ * - **El frente del pelotón no tenía dueño.** El turno de relevos se decidía corredor a corredor,
+ *   así que los tres que más tiraban salían de tres equipos distintos y la crónica casi nunca podía
+ *   decir «Cumbre Escuadra ha tomado el frente» (medido: 0 % en la llana con 8 equipos de 5).
+ * - **La caza era UN escalar de etapa** (`chase.ts`), sin presupuesto que se agotara.
+ * - **Los ataques eran individuales**, sin plan colectivo detrás.
+ * - **La protección de gregarios se apañaba con `targetRiderId`** en vez de con el equipo.
+ *
+ * Ahora hay una INTENCIÓN por equipo (`stage/teamPlan.ts`) —perseguir, lanzar, controlar, proteger,
+ * defender lo que ya tiene delante o esconderse—, un PRESUPUESTO de esfuerzo que se gasta (un equipo
+ * que lleva ~80 km al frente se funde y otro toma el relevo) y un único equipo LLEVANDO EL FRENTE en
+ * cada momento. Las individualidades mandan sobre el plan: el que corre por su cuenta (§VI.2) queda
+ * fuera de él y el agente libre no participa de ninguno.
+ *
+ * Entran además los dos estados de rebufo que llevaban definidos desde el Paso 21 y no usaba nadie
+ * (§8): `shelterAlone` —el que rueda solo paga el viento entero— y `shelterWorking` —rotar en cabeza
+ * del pelotón cuesta más que relevar colocado—.
+ *
+ * Y se RE-ANCLA §VI.1 sobre una etapa reina realista: la curva de frescura del depósito vuelve a la
+ * fórmula de §VI.1 y el objetivo de tercera semana se mide sobre la reina REAL (Race France e18) en
+ * vez de sobre la sintética de 1.200 m, que era lo que tenía al 100 % del campo en pájara. Ninguna
+ * banda se ha relajado. Medido en docs/balance.md, «v15».
  */
-export const ENGINE_VERSION = 14 as const
+export const ENGINE_VERSION = 15 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -282,19 +309,28 @@ export const TANK = {
   fitnessMin: 0.9,
   fitnessMax: 1.1,
   // Frescura (TSB): la fatiga acumulada vacía el depósito antes de salir.
-  // TSB 0 -> 1.00 · -25 -> 0.79 · -45 -> 0.62 · <= -55 -> 0.52 (suelo).
-  // La pendiente es MÁS dura que el 0.0045 de partida de §VI.1 porque con ella la tercera semana
-  // de una gran vuelta no llegaba a erosionar (medido: 0.40 frente al objetivo 0.60-0.85); la
-  // tabla de objetivos de §VI.1 manda sobre los números concretos. Se endurece otra vez (0.0065 ->
-  // 0.0085, suelo 0.64 -> 0.52) al bajar el coste por km para que la clásica larga no saturase: con
-  // el coste nuevo, un corredor de tercera semana saliendo con 70,7 solo erosionaba 0,48.
+  // TSB 0 -> 1.00 · -25 -> 0.89 · <= -44.4 -> 0.80 (suelo). Son EXACTAMENTE los valores de §VI.1.
+  //
+  // HISTORIA, porque es la perilla que más se ha movido y conviene no repetir el error. La pendiente
+  // se endureció dos veces (0.0045 -> 0.0065 -> 0.0085, suelo 0.80 -> 0.64 -> 0.52) para que la
+  // etapa reina SINTÉTICA de tercera semana —135 km lisos más un puerto de 15 km: 1.200 m— alcanzase
+  // el 0,60-0,85 de erosión que pide §VI.1. Y funcionaba… sobre la caricatura. Sobre una etapa reina
+  // REAL de 4.500 m el mismo depósito dejaba al corredor de tercera semana saliendo con 58,6 para un
+  // día que cuesta ~70: el 100 % del campo entraba en pájara y la erosión topaba en 0,920, es decir,
+  // el modelo dejaba de discriminar (docs/balance.md, «la reina real de tercera semana»).
+  //
+  // En la v15 se RE-ANCLA: la curva vuelve a la fórmula de §VI.1 y el objetivo de tercera semana se
+  // mide donde se corre, sobre la etapa reina real. No se ha relajado ninguna banda —la de la reina
+  // de tercera semana sigue siendo 0,60-0,85— y las cinco de erosión en fresco no se mueven, porque
+  // con TSB ~0 el multiplicador de frescura vale 1 y esta curva no interviene.
   freshnessBase: 1.0,
-  freshnessSlope: 0.0085,
-  freshnessMin: 0.52,
+  freshnessSlope: 0.0045,
+  freshnessMin: 0.8,
   freshnessMax: 1.05,
   // Cotas del producto (§VI.1): ni el mejor sale con un tanque irreal ni el peor con uno inservible.
-  // El suelo baja de 0.70 a 0.58 por lo mismo: es el que fija el depósito del hundido (58,6).
-  min: 0.58,
+  // Vuelve a 0.70, el valor de §VI.1: con la curva de frescura re-anclada ya no hace de suelo real
+  // (el hundido de tercera semana sale con 88 por el producto, no por esta cota).
+  min: 0.7,
   max: 1.08,
 } as const
 
@@ -675,11 +711,17 @@ export const STAGE = {
   draftClimbMin: 0.08,
   // shelter_i: protegido 0.9 | rotando/trabajando 0.4 | fugado que releva 0.5 | solo 0.0.
   shelterProtected: 0.9,
-  // PENDIENTE DE IMPLEMENTAR (SPEC 6.5): parámetro definido pero sin efecto en la simulación.
-  // El motor solo distingue hoy dos estados (protegido / relevando): quien trabaja usa
-  // `shelterRelay`. Falta el tercer estado "rotando en cabeza del pelotón" de la tabla del SPEC.
+  // ROTANDO EN CABEZA DEL PELOTÓN (v15): el tercer estado de la tabla de SPEC 6.5, que llevaba
+  // definido desde el Paso 21 sin efecto ninguno porque el motor solo distinguía «protegido» y
+  // «relevando». Ahora lo pagan los hombres del equipo que ha TOMADO EL FRENTE (`teamPlan.ts`):
+  // dar la cara al viento en cabeza cuesta más que relevar colocado dentro del cuarto delantero, y
+  // es lo que hace que el presupuesto de un equipo se gaste de verdad. Sin equipos no se activa.
   shelterWorking: 0.4,
   shelterRelay: 0.5,
+  // EL QUE VA SOLO PAGA EL VIENTO ENTERO (v15, docs/motor.md §8). Llevaba definido desde el Paso 21
+  // y no lo usaba nadie: `advance()` solo conocía `shelterRelay` y `shelterProtected`, así que un
+  // escapado en solitario —y todo grupeto de un corredor— cobraba el rebufo de un grupo que no
+  // tenía. Ahora un grupo de UN corredor paga 0 de rebufo, como ya hacía la contrarreloj.
   shelterAlone: 0.0,
   // coste = dx·costeBase·ritmo(c)^1.6·(1 - draftMax·shelter).
   costRhythmExponent: 1.6,
@@ -896,6 +938,61 @@ export const STAGE = {
   // Y cuándo se rinde: el cierre viable por km se escala con la fuerza, con este suelo. Un campo
   // flojo declara imposible antes lo que uno fuerte todavía intenta.
   chaseWeakFeasibleFloor: 0.6,
+  // --- EL PLAN DE EQUIPO (`stage/teamPlan.ts`, docs/motor.md §V.1, v15) ---------------------
+  // Hasta la v14 el motor no conocía los equipos y la caza era un escalar de etapa: no existía
+  // «este equipo tira y este otro se esconde», ni un presupuesto que se agotara. Todo lo de aquí
+  // abajo solo actúa si el campo TRAE equipos (`StageRider.teamId`); un campo de agentes libres se
+  // comporta exactamente como antes, que es lo que pide §V.1 («un corredor sin equipo corre de
+  // forma individual») y lo que mantiene quietos los escenarios canónicos.
+  //
+  // PRESUPUESTO. Unidades de trabajo al frente por corredor comprometido con el plan, en la misma
+  // escala que `frontWork`: `max(0, compromiso − frontWorkIdleCommit) · dx` por bloque y relevo.
+  // Con 9 por hombre, un equipo de 8 tiene 72 unidades, y como el presupuesto solo se gasta con lo
+  // que se aprieta POR ENCIMA del tempo de carretera, eso son ~45 km de persecución a tope (0,85,
+  // con cuatro hombres rotando en cabeza) o bastante más de 100 km a ritmo de control. Es el número
+  // del encargo —«un equipo que lleva 80 km tirando no puede seguir a tope»— leído como lo que es:
+  // ochenta kilómetros de trabajo de verdad, no ochenta kilómetros de estar delante.
+  teamBudgetPerRider: 9,
+  // EL FRENTE LO LLEVA UNO. Aunque cuatro equipos quieran el mismo sprint, en carretera el frente
+  // tiene dueño y los demás se colocan detrás esperando su turno. Sin esa distinción, cuatro
+  // equipos empujando igual repartían el turno de relevos entre todos y los tres que más tiraban
+  // salían de tres equipos distintos por pura aritmética: es la causa MEDIDA de que la voz de
+  // equipo saliera el 2-12 % de las veces (docs/balance.md, v11). De ahí las dos columnas: lo que
+  // empuja el que lleva el frente y lo que empuja el que espera.
+  //
+  //   intención     lleva el frente   espera su turno
+  //   perseguir /
+  //   lanzar             1,00              0,30
+  //   controlar          0,75              0,10
+  //   proteger           0,55             −0,35
+  //   fuga                 —              −0,90   (tiene un hombre delante: no tira)
+  //   nada                 —              −0,50   (sin baza que jugar: se esconde)
+  teamDriveChase: 1,
+  teamDriveControl: 0.75,
+  teamDriveTempo: 0.55,
+  teamDriveWaiting: 0.3,
+  teamDriveWatching: 0.1,
+  teamDriveShelter: -0.35,
+  teamDriveUpTheRoad: -0.9,
+  teamDriveIdle: -0.5,
+  // …y adónde llega el que ha gastado su presupuesto entero. No baja de aquí: fundido no significa
+  // que estorbe, significa que otro equipo toma el frente.
+  teamDriveTired: -0.6,
+  // Peso del plan en el deber de relevo. Con 0,5 el plan pesa más que el rol (que va de 0,1 a 1,0)
+  // pero no lo anula: DENTRO del equipo que tira siguen tirando sus gregarios y no su sprinter.
+  teamRelayDriveWeight: 0.5,
+  // LA CAZA CON PRESUPUESTO. La fuerza del campo (`chase.ts`) deja de ser un escalar de etapa: se
+  // escala por lo que les queda en las piernas a los equipos que persiguen. Con el presupuesto
+  // intacto vale 1 y el controlador da exactamente los números de la v14; con los equipos de la
+  // caza fundidos, la caza baja a esta fracción de su fuerza.
+  teamChaseTiredForce: 0.5,
+  // Y cuánto ataca cada intención (la capa de ataques consulta el plan, §V.1). El equipo sin baza
+  // que jugar es el que manda gente a la fuga; el que ya tiene un hombre delante, no.
+  teamAttackUpTheRoad: 0.4,
+  teamAttackChasing: 0.7,
+  teamAttackDefending: 0.85,
+  teamAttackFree: 1.4,
+
   // Control de la general en etapas sin llegada masiva: el pelotón limita el boquete a este
   // tempo (no captura); la subida final decide. Calibra el % de fugas que ganan en montaña.
   // Subió de 265 a 342: con el pelotón regulando SIEMPRE (antes solo mientras había fuga) el boquete
@@ -1074,6 +1171,13 @@ export const STAGE = {
   // COLAPSO. Km seguidos con el tanque a cero antes de que retirarse sea creíble. No basta con
   // `energy <= 0`: en la etapa 18 de una gran vuelta con el campo de tercera semana el 100 % del
   // pelotón cruza la meta vacío, y una regla que solo mirase el cero retiraría a la carrera entera.
+  // OJO (v15): con el depósito re-anclado (§VI.1) esta condición dejó de alcanzarse en una gran
+  // vuelta —0 colapsos en 6 vueltas, frente al 23 % de los abandonos de la v14— y NO es por el
+  // umbral de energía: se probaron «fondo del depósito» en vez de cero exacto (0,06/0,10/0,15) y
+  // `collapseMinLostFraction` en 0,035 y 0,02, y ninguna de las cinco variantes cambia un solo
+  // abandono. Lo que lo bloquea es la combinación de estos 20 km con los 30 de abajo: con un
+  // depósito del tamaño correcto NADIE está vaciado a más de 30 km de meta. Es la misma deuda del
+  // modelo de persecución que tiene al «fuera de control» en el 1 %, y no se tapa con una perilla.
   collapseSustainedKm: 20,
   // …y a más de estos km de meta. A diez kilómetros de la línea nadie se baja de la bici.
   collapseMinKmToGo: 30,
@@ -1100,9 +1204,22 @@ export const STAGE = {
   // clasificación por puntos de esa etapa.
   abandonStageCapFraction: 0.04,
   // LESIÓN. Días de baja a partir de los cuales una caída que no llega a `minor` saca igualmente al
-  // corredor del resto de la vuelta (`injuryEndsRace`). Los rasguños duran 3-6 días, así que con 15
-  // —el umbral anterior— no salía nadie y una gran vuelta perdía un corredor en tres semanas.
-  abandonInjuryDays: 10,
+  // corredor del resto de la vuelta (`injuryEndsRace`).
+  //
+  // Baja de 10 a 6 en la v15, y no es una perilla movida hasta que pasa: con 10 este umbral era
+  // CÓDIGO MUERTO. `injuryEndsRace` ya devuelve true para `minor` y `major` por severidad, así que
+  // el umbral en días solo puede afectar a los rasguños… que duran 3-6 días
+  // (`crashDaysScratchesMin` + `Range`) y por tanto NUNCA llegaban a 10. La letra de §VI.3 —«baja
+  // por encima de un umbral»— no se ejecutaba nunca. Con 6 sí, y dice algo verdadero: un rasguño que
+  // te deja casi una semana de baja no te deja terminar una carrera de tres semanas.
+  //
+  // Hacía falta además por una razón medida: al re-anclar el depósito (§VI.1) desapareció el
+  // COLAPSO —que en la v14 aportaba el 23 % de los abandonos porque el 100 % del campo llegaba a
+  // cero, es decir, sobre un depósito que sabemos que estaba mal— y la gran vuelta se quedó en el
+  // 10,7 %, por debajo del 12-20 % de §VI.3. El objetivo NO se ha tocado: lo que se ha arreglado es
+  // la causa que §VI.3 pone en el 40 % y que estaba corta también en corredores (7,3 por vuelta
+  // frente a los ~10,5 que pide su peso). Medido: 10,7 % -> 13,4 %.
+  abandonInjuryDays: 6,
   // PÁJARA NARRADA. Km entre dos pájaras contadas. Es largo a propósito: en la reina de una gran
   // vuelta se vacía el pelotón entero y narrarlas todas repetiría el defecto que arregló la v13.
   bonkNarrateKmGap: 15,
@@ -1165,6 +1282,12 @@ export const STAGE = {
   // así el parte dice «X y Z» cuando de verdad tiran dos y «X» cuando tira uno solo.
   pullNamesMax: 3,
   pullNamesMinShare: 0.55,
+  // …y cuánto del trabajo se lleva el que releva SIN ir en cabeza (v15, docs/motor.md §V.1). El
+  // turno de relevos es una aproximación binaria: en un pelotón de 176 son 44 hombres, y los que
+  // de verdad dan la cara al viento son los del equipo que ha tomado el frente. Con todos contando
+  // igual, los tres que más trabajo acumulaban salían de tres equipos distintos y la crónica no
+  // podía nombrar a nadie. Es OBSERVACIÓN: no mueve un segundo. Sin equipo al frente vale 1.
+  pullOffFrontShare: 0.3,
   // Trabajo mínimo del que más ha tirado en la ventana para que haya parte. Es lo que impide narrar
   // «tiran fulano y mengano» de un pelotón que va de paseo detrás de una fuga consentida.
   pullMinWork: 0.35,

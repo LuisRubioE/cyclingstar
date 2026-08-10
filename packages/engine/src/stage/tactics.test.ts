@@ -51,6 +51,8 @@ function moveRider(id: string, over: Partial<MoveRider> = {}): MoveRider {
     tac: 60,
     spr: 55,
     gcDeficitSeconds: 600,
+    // Sin plan de equipo que le condicione: es lo que vale un agente libre (v15, §V.1).
+    teamAttack: 1,
     ...over,
   }
 }

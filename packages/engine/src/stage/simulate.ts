@@ -44,6 +44,15 @@ import {
   rollMoveAttempt,
   sustainsJump,
 } from './tactics.js'
+import {
+  type TeamIntent,
+  type TeamPlan,
+  buildTeamPlans,
+  currentIntent,
+  frontClaim,
+  teamAttackFactor,
+  teamDrive,
+} from './teamPlan.js'
 import { sampleProfile, stageLengthKm } from './sample.js'
 import { stageRng } from './rng.js'
 import { simulateTimeTrial } from './timetrial.js'
@@ -234,13 +243,18 @@ function pacemakerP75(members: RiderSim[], block: Block, fraction: number): numb
  * porque su equipo trabaja por él. Un jitter fijo por corredor y etapa rompe empates.
  * Deliberadamente NO interviene la posición en el array de entrada.
  */
-function relayDuty(m: RiderSim, protectedByTeam: boolean): number {
+function relayDuty(m: RiderSim, protectedByTeam: boolean, teamDriveNow: number): number {
   const duty = STAGE.relayDutyByRole[m.input.orders.role]
   const freshness = m.energy0 > 0 ? Math.max(0, Math.min(1, m.energy / m.energy0)) : 0
   return (
     duty +
     STAGE.relayFreshnessWeight * freshness -
     (protectedByTeam ? STAGE.relayProtectedPenalty : 0) +
+    // EL PLAN DE EQUIPO (v15, docs/motor.md §V.1). Este es el término que hace que el frente del
+    // pelotón tenga DUEÑO: el equipo que persigue empuja a los suyos al turno y el que se esconde
+    // los saca. Vale 0 para el agente libre y para el que corre por su cuenta (regla 1 de §V.1),
+    // así que un campo sin equipos da exactamente el mismo turno que en la v14.
+    STAGE.teamRelayDriveWeight * teamDriveNow +
     STAGE.relayJitterWeight * m.workJitter
   )
 }
@@ -256,12 +270,16 @@ function relayTurn(
   idSet: Set<string>,
   paceFraction: number,
   domestiquesFor: Map<string, string[]>,
+  driveOfRider: (riderId: string) => number,
 ): Set<string> {
   const count = Math.min(members.length, Math.max(1, Math.ceil(paceFraction * members.length)))
   const scored = members.map((m) => {
     const helpers = domestiquesFor.get(m.input.riderId)
     const protectedByTeam = helpers != null && helpers.some((id) => idSet.has(id))
-    return { id: m.input.riderId, duty: relayDuty(m, protectedByTeam) }
+    return {
+      id: m.input.riderId,
+      duty: relayDuty(m, protectedByTeam, driveOfRider(m.input.riderId)),
+    }
   })
   // Desempate final por id para que el orden sea total y no herede el orden de inserción.
   scored.sort((a, b) => b.duty - a.duty || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
@@ -575,15 +593,25 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
    * Con la fuerza a 1 (tres rematadores de primer nivel) el controlador da exactamente los mismos
    * números que antes; cuanto más flojo es el campo, más cuerda da, menos aprieta y antes se rinde.
    */
-  const chase = chaseField(input.riders)
-  const chasingSprinters = finishFlat && chase.force >= STAGE.chaseMinForce
-  // Cuerda máxima, tope de esfuerzo y tirón final de los trenes, ya escalados por el campo.
-  const chaseLeashSeconds =
-    STAGE.chaseMaxLeashSeconds * (1 + STAGE.chaseWeakLeashGain * (1 - chase.force))
-  const chaseCommitCap = lerp(STAGE.chaseWeakCommitCap, 1, chase.force)
-  const finalDriveCommit = lerp(STAGE.chaseWeakFinalDrive, STAGE.finalDriveCommit, chase.force)
-  const chaseFeasible =
-    STAGE.chaseFeasibleSecondsPerKm * lerp(STAGE.chaseWeakFeasibleFloor, 1, chase.force)
+  const chaseStrength = chaseField(input.riders)
+  const chasingSprinters = finishFlat && chaseStrength.force >= STAGE.chaseMinForce
+  /**
+   * Cuerda máxima, tope de esfuerzo y tirón final de los trenes, escalados por la fuerza del campo.
+   *
+   * Desde la v15 esto se recalcula en cada decisión del pelotón en vez de una vez por etapa, porque
+   * la fuerza DISPONIBLE ya no es constante: mengua con el presupuesto de los equipos que persiguen
+   * (§V.1). Con la fuerza fija —un campo sin equipos— devuelve exactamente los mismos números que
+   * la v14, que es lo que mantiene quietos los invariantes de balance.
+   */
+  const chaseGear = (
+    force: number,
+  ): { leash: number; commitCap: number; finalDrive: number; feasible: number } => ({
+    leash: STAGE.chaseMaxLeashSeconds * (1 + STAGE.chaseWeakLeashGain * (1 - force)),
+    commitCap: lerp(STAGE.chaseWeakCommitCap, 1, force),
+    finalDrive: lerp(STAGE.chaseWeakFinalDrive, STAGE.finalDriveCommit, force),
+    feasible: STAGE.chaseFeasibleSecondsPerKm * lerp(STAGE.chaseWeakFeasibleFloor, 1, force),
+  })
+  let gear = chaseGear(chaseStrength.force)
   // Jefe de filas de los sprinters: el mejor rematador. Su equipo es el que suele tirar para cazar,
   // así que se nombra en la crónica de la persecución (protagonista del evento sprinters_chase).
   const leadSprinterId =
@@ -595,6 +623,78 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
    * movimiento una amenaza mortal. No hay general que defender hasta que hay diferencias.
    */
   const hasGcContext = input.riders.some((r) => r.gcDeficitSeconds > 0)
+
+  // --- EL PLAN DE EQUIPO (v15, docs/motor.md §V.1) -----------------------------------------
+  // El motor ya conoce los equipos. Aquí se monta el plan de cada uno y el estado que se GASTA: el
+  // presupuesto de esfuerzo al frente, que es lo que hace que la caza deje de ser un escalar de
+  // etapa («este equipo tira y este otro se esconde», y el que lleva 80 km tirando ya no puede).
+  // Un campo sin equipos deja el mapa vacío y con él todo lo de abajo neutro: los agentes libres
+  // corren de forma individual (§V.1, regla 2) y la etapa sale dígito a dígito como en la v14.
+  const teamPlans = buildTeamPlans(
+    input.riders.map((r) => ({
+      riderId: r.riderId,
+      teamId: r.teamId ?? null,
+      role: r.orders.role,
+      mentality: r.orders.mentality,
+      ...(r.orders.targetRiderId ? { targetRiderId: r.orders.targetRiderId } : {}),
+      spr: r.eff0.SPR,
+      gcDeficitSeconds: r.gcDeficitSeconds,
+    })),
+    { finishFlat, hasGcContext },
+  )
+  const teamOf = new Map<string, string>()
+  /** Los que corren por su cuenta contra el plan de su equipo (§VI.2): fuera del plan, no del equipo. */
+  const rebels = new Set<string>()
+  for (const plan of teamPlans.values()) {
+    for (const id of plan.memberIds) teamOf.set(id, plan.teamId)
+    for (const id of plan.rebelIds) rebels.add(id)
+  }
+  /** Lo que cada equipo lleva gastado al frente del pelotón, en unidades de `frontWork`. */
+  const teamSpent = new Map<string, number>()
+  /** Su intención AHORA, recalculada en cada decisión del pelotón. */
+  const teamIntent = new Map<string, TeamIntent>()
+  /** Y el empuje que de ahí sale para el turno de relevos, cacheado entre decisiones. */
+  const teamDriveNow = new Map<string, number>()
+  /**
+   * EL EQUIPO QUE LLEVA EL FRENTE. Uno solo, con histéresis: cede el relevo cuando gasta su
+   * presupuesto o pierde su baza. Es lo que hace que la crónica pueda decir «Cumbre Escuadra ha
+   * tomado el frente» en vez de nombrar a tres corredores de tres equipos distintos.
+   */
+  let frontTeamId: string | null = null
+  for (const plan of teamPlans.values()) {
+    teamIntent.set(plan.teamId, plan.baseIntent)
+    teamDriveNow.set(plan.teamId, teamDrive(plan.baseIntent, 0, false))
+  }
+  /**
+   * El empuje del plan sobre UN corredor. Cero para el agente libre y cero para el que corre por su
+   * cuenta (§V.1, regla 1: las individualidades priman), así que ni le empuja al frente ni le saca
+   * de él: decide con su rol, sus piernas y su mentalidad, como si no tuviera equipo.
+   */
+  const driveOfRider = (riderId: string): number => {
+    if (rebels.has(riderId)) return 0
+    const t = teamOf.get(riderId)
+    return t == null ? 0 : (teamDriveNow.get(t) ?? 0)
+  }
+  const attackFactorOf = (riderId: string): number => {
+    if (rebels.has(riderId)) return 1
+    const t = teamOf.get(riderId)
+    if (t == null) return 1
+    const intent = teamIntent.get(t)
+    return intent == null ? 1 : teamAttackFactor(intent)
+  }
+  const spentFractionOf = (plan: TeamPlan): number =>
+    plan.budget > 0 ? (teamSpent.get(plan.teamId) ?? 0) / plan.budget : 1
+  /**
+   * DESOBEDECER (docs/motor.md §VI.2): quien sale hoy por su cuenta se anuncia una vez, al principio,
+   * y se acabó. Es raro por construcción —`autoOrders` nunca nombra dos jefes en un equipo, así que
+   * solo pasa cuando un jugador humano da una orden que contradice el plan— y por eso merece una
+   * línea cuando pasa. Una sola: la crónica no es un inventario.
+   */
+  if (rebels.size > 0) {
+    log.emit(0, 0, 'por_libre', 'rider_defies_team', [...rebels].sort().slice(0, 3), {
+      total: rebels.size,
+    })
+  }
 
   // --- ABANDONOS (v14, docs/motor.md §VI.3) -------------------------------------------------
   /** Los que se han bajado de la bici, en orden de retirada. */
@@ -682,6 +782,64 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       const ahead = front !== null
       const gap = front ? peloton.tS - front.g.tS : 0
       const kmRestantes = totalKm - km
+
+      // --- EL PLAN DE EQUIPO, al día (v15, docs/motor.md §V.1) -----------------------------
+      // Cada decisión del pelotón se revisa qué está jugando cada equipo y cuánto le queda en las
+      // piernas. De aquí salen dos cosas: el empuje que sus hombres llevan al turno de relevos
+      // —lo que hace que el frente tenga dueño— y la fuerza DISPONIBLE de la caza, que ya no es un
+      // escalar de etapa. Con el mapa vacío (campo sin equipos) esto no hace nada.
+      if (teamPlans.size > 0) {
+        const inMove = new Set<string>()
+        for (const mv of moves) for (const m of membersOf(mv.g.id)) inMove.add(m.input.riderId)
+        const menInPeloton = (plan: TeamPlan): number =>
+          plan.memberIds.filter((id) => !rebels.has(id) && sims.get(id)?.groupId === PELOTON).length
+        // 1. Qué juega cada equipo AHORA.
+        for (const plan of teamPlans.values()) {
+          // Solo cuenta el hombre delante si NO es un rebelde: el equipo no defiende a quien se ha
+          // ido por su cuenta contra sus órdenes (§VI.2), así que sigue persiguiendo.
+          const manUpTheRoad = plan.memberIds.some((id) => inMove.has(id) && !rebels.has(id))
+          teamIntent.set(plan.teamId, currentIntent(plan, { manUpTheRoad, kmToGo: kmRestantes }))
+        }
+        // 2. QUIÉN LLEVA EL FRENTE. Con la carretera despejada el relevo pasa al siguiente equipo
+        //    con derecho: el que más se juega y con el depósito colectivo más entero. Hay
+        //    histéresis a propósito —solo se cede cuando el que manda ha gastado su presupuesto o
+        //    ha perdido su baza—, porque un frente que cambia de dueño cada kilómetro no es un
+        //    frente: es lo que producía la alianza permanente de la v14.
+        const claimOf = (plan: TeamPlan): number =>
+          menInPeloton(plan) > 0 ? frontClaim(teamIntent.get(plan.teamId) ?? 'nada') : 0
+        const current = frontTeamId ? teamPlans.get(frontTeamId) : undefined
+        if (!current || claimOf(current) === 0 || spentFractionOf(current) >= 1) {
+          const relief = [...teamPlans.values()]
+            .filter((p) => claimOf(p) > 0 && spentFractionOf(p) < 1)
+            .sort(
+              (a, b) =>
+                claimOf(b) - claimOf(a) ||
+                spentFractionOf(a) - spentFractionOf(b) ||
+                b.quality - a.quality ||
+                (a.teamId < b.teamId ? -1 : 1),
+            )[0]
+          // Si no queda nadie fresco con derecho al frente, sigue el que estaba (fundido) hasta que
+          // alguien recupere la baza: la carretera no se queda sin nadie delante.
+          if (relief) frontTeamId = relief.teamId
+          else if (!current || claimOf(current) === 0) frontTeamId = null
+        }
+        // 3. El empuje de cada uno, y la fuerza que le QUEDA a la caza.
+        let chaseReady = 0
+        let chaseFull = 0
+        for (const plan of teamPlans.values()) {
+          const intent = teamIntent.get(plan.teamId) ?? 'nada'
+          const spent = spentFractionOf(plan)
+          teamDriveNow.set(plan.teamId, teamDrive(intent, spent, plan.teamId === frontTeamId))
+          if (intent !== 'perseguir' && intent !== 'lanzar') continue
+          // Peso: los hombres que el equipo tiene todavía en el pelotón. Un equipo diezmado no
+          // puede cazar por muchas ganas que le queden.
+          const present = menInPeloton(plan)
+          chaseFull += present
+          chaseReady += present * Math.max(0, 1 - spent)
+        }
+        const avail = chaseFull > 0 ? chaseReady / chaseFull : 1
+        gear = chaseGear(chaseStrength.force * lerp(STAGE.teamChaseTiredForce, 1, avail))
+      }
 
       // --- Telemetría de situación (docs/motor.md §16) -------------------------------------
       // Los grupos vivos, ordenados por reloj. El parte de carrera se da sobre el grupo de CABEZA
@@ -885,7 +1043,7 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
           ? STAGE.climbRaceCommit
           : STAGE.climbTempoCommit
         : finishFlat && kmRestantes <= STAGE.finalDriveKm
-          ? finalDriveCommit
+          ? gear.finalDrive
           : STAGE.pelotonTempoCommit
       // Con la carretera despejada la pregunta de si la caza es viable se hace de cero: haber
       // claudicado ante la fuga del día no significa regalar el siguiente movimiento.
@@ -918,7 +1076,7 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
             (kmRestantes - STAGE.chaseCatchTargetKm) / (totalKm - STAGE.chaseCatchTargetKm),
           ),
         )
-        const desiredGap = chaseLeashSeconds * frac
+        const desiredGap = gear.leash * frac
         const err = gap - desiredGap
         const cierreNecesario = gap / Math.max(1, kmRestantes - STAGE.chaseCatchTargetKm)
         // Los sprinters solo claudican ante LA FUGA DEL DÍA y con un boquete de verdad. La fórmula
@@ -928,7 +1086,7 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
         const conceded =
           front?.dayBreak === true &&
           gap >= STAGE.chaseNeverConcedeSeconds &&
-          cierreNecesario > chaseFeasible
+          cierreNecesario > gear.feasible
         if (conceded) {
           chaseAbandoned = true
           log.emit(km, peloton.tS, 'caza_abandonada', 'sprinters_give_up', [])
@@ -936,7 +1094,7 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
           // …y el tope de esfuerzo lo pone el campo: un par de equipos flojos no pueden poner al
           // pelotón a 0,9 durante 100 km por mucho que el lazo se lo pida.
           target = Math.min(
-            chaseCommitCap,
+            gear.commitCap,
             Math.max(0.1, STAGE.chaseHoldCommit + STAGE.chaseGain * err),
           )
         }
@@ -955,7 +1113,7 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       // un ataque tardío de 20 s hacía que el lazo cerrado pidiera 0,72 —menos que el 0,85 del
       // tirón final— y el pelotón AFLOJABA por tener a alguien delante, regalando la etapa.
       if (finishFlat && kmRestantes <= STAGE.finalDriveKm && !chaseAbandoned) {
-        target = Math.max(target, finalDriveCommit)
+        target = Math.max(target, gear.finalDrive)
       }
       // Y en un sector de ADOQUINES —y en los kilómetros de aproximación, peleando por la posición—
       // se corre, no se rueda (v12, docs/motor.md §14). Es un SUELO, como el tirón final: si el
@@ -1012,7 +1170,7 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       const p75 = pacemakerP75(members, block, paceFraction)
       const next = advanceGroup(group, block, p75, { isFinal })
       const idSet = new Set(members.map((m) => m.input.riderId))
-      const relayers = relayTurn(members, idSet, paceFraction, domestiquesFor)
+      const relayers = relayTurn(members, idSet, paceFraction, domestiquesFor, driveOfRider)
       // Lo que vale un relevo en este bloque: solo cuenta lo que se aprieta POR ENCIMA del tempo
       // de carretera, así una captura que se cierra a 0,9 no se confunde con cien kilómetros de
       // paseo (y una captura sin nadie apretando se queda, con razón, sin autor).
@@ -1025,10 +1183,36 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
           : moves.filter((mv) => mv.g.id !== group.id && mv.g.tS < group.tS)
       for (const m of members) {
         const relaying = relayers.has(m.input.riderId)
+        /**
+         * ¿Va este hombre EN CABEZA DEL PELOTÓN, o solo dentro del cuarto delantero? (v15, §V.1).
+         * El turno de relevos es una aproximación binaria de un continuo: en un pelotón de 176 el
+         * turno son 44 hombres, y de esos los que de verdad dan la cara al viento son los cuatro o
+         * cinco del equipo que ha tomado el frente. Los demás van colocados detrás de ellos.
+         *
+         * Esta es la distinción que activa el TERCER estado de rebufo de SPEC 6.5
+         * (`shelterWorking`, definido desde el Paso 21 y sin usar): rotando en cabeza se paga más
+         * viento que relevando en una fuga. Y es también lo que hace que el parte de «quién tira»
+         * pueda nombrar a un EQUIPO: sin ella, los 44 acumulan exactamente el mismo trabajo.
+         */
+        const onTheFront =
+          relaying &&
+          kind === 'peloton' &&
+          frontTeamId !== null &&
+          !rebels.has(m.input.riderId) &&
+          teamOf.get(m.input.riderId) === frontTeamId
         if (relaying && frontEffort > 0) {
           if (kind === 'peloton') {
             m.frontWorkPeloton += frontEffort
-            m.pullWindow += frontEffort
+            // El parte responde «quién tira AHORA»: el que va en cabeza se lleva el trabajo entero
+            // y el que releva colocado detrás, su parte. Es observación, no física: no mueve un
+            // segundo. Sin equipo que lleve el frente, todos cuentan igual y esto es lo de siempre.
+            m.pullWindow +=
+              frontEffort * (frontTeamId === null || onTheFront ? 1 : STAGE.pullOffFrontShare)
+            // …y se lo apunta a SU EQUIPO (v15, §V.1). Es el presupuesto que se agota: cuando un
+            // equipo lleva 80 km al frente sus hombres salen del turno y el frente cambia de dueño.
+            // El rebelde no gasta presupuesto de nadie: no tira por su equipo.
+            const team = rebels.has(m.input.riderId) ? undefined : teamOf.get(m.input.riderId)
+            if (team != null) teamSpent.set(team, (teamSpent.get(team) ?? 0) + frontEffort)
           } else if (kind === 'move') {
             m.frontWorkMove += frontEffort
           }
@@ -1039,7 +1223,18 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
             )
           }
         }
-        const shelter = relaying ? STAGE.shelterRelay : STAGE.shelterProtected
+        // EL QUE VA SOLO PAGA EL VIENTO ENTERO (v15, docs/motor.md §8). `shelterAlone` llevaba
+        // definido desde el Paso 21 sin que lo usara nadie, así que un escapado en solitario cobraba
+        // el rebufo de un grupo que no tenía —y también el descolgado que rueda solo—. Un grupo de
+        // UNO no tiene rueda a la que ir: paga 0 de rebufo, igual que en la contrarreloj.
+        const shelter =
+          members.length === 1
+            ? STAGE.shelterAlone
+            : onTheFront
+              ? STAGE.shelterWorking
+              : relaying
+                ? STAGE.shelterRelay
+                : STAGE.shelterProtected
         let cost = blockCost(block, group.compromiso, shelter)
         // Protección de gregarios: un líder arropado que no está relevando gasta menos según cuántos
         // de sus gregarios lleve en el grupo (SPEC 6.18). Así fichar buen equipo rinde de verdad.
@@ -1390,6 +1585,7 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       tac: m.input.eff0.TAC,
       spr: m.input.eff0.SPR,
       gcDeficitSeconds: m.input.gcDeficitSeconds,
+      teamAttack: attackFactorOf(m.input.riderId),
     })
 
     /** Un intento de movimiento desde `source`. Puede no salir, salir y fracasar, o salir y cuajar. */
