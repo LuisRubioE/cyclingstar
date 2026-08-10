@@ -115,8 +115,32 @@
  * día. El azar nuevo sale de un subflujo NOMINAL propio (`rough`), así que la secuencia de la montaña
  * no se desplaza. Entra también el recorrido real de Strade Bianche, que se había quedado fuera
  * precisamente por esto. Medido en docs/balance.md, «v12».
+ *
+ * v13 (LO QUE EL JOURNAL CUENTA, docs/motor.md §16): tanda de TELEMETRÍA, sin física nueva ni azar
+ * nuevo, salida de leer los journals de producción. Cuatro cambios en lo que el motor cuenta y
+ * cuándo lo cuenta:
+ *
+ * - **Rendirse es un acto único.** `administerEffort` recorría también los grupos de descolgados y
+ *   volvía a sortear a quien ya se había dejado ir, así que el mismo corredor «se descolgaba» tres
+ *   veces en la misma carrera (medido en producción: Alex Taylor, km 196, 204 y 209 de Race Muscat).
+ *   Ahora `gaveUp` lo marca y no vuelve a entrar en el sorteo. Es el único de los cuatro que puede
+ *   mover tiempos, y a mejor: el que ya rueda a `giveUpCommit` deja de bajar el ritmo otra vez.
+ * - **Conceder es una decisión.** `peloton_concedes` exige ahora recorrido hecho
+ *   (`concedeMinRouteFrac`) y una ventaja de verdad (`concedeMinGapSeconds`), no solo compromiso bajo
+ *   durante 2 km: eso se cumplía a los 10 km de carrera, cuando el pelotón aún no había empezado a
+ *   trabajar, y la crónica concedía en el km 10 y cazaba en el 126.
+ * - **El liderato de la montaña es estricto.** `climb_kom.leads` se comparaba con un máximo que
+ *   incluía al propio ganador (`>=`), así que tres corredores con UN punto cada uno se proclamaban
+ *   líderes uno detrás de otro.
+ * - **El parte de relevos ya no espera a la fuga** (`pullNoBreakRouteFrac`) y dice PARA QUIÉN se
+ *   tira (`forKind`, `forId`, `forLeaders`), que el motor sabía desde la v9 por el rol y el
+ *   `targetRiderId` de las órdenes y tiraba a la basura. Una carrera donde no cuaja ninguna fuga se
+ *   quedaba sin una sola línea en 100 km (Race Muscat, del km 33 al 136).
+ *
+ * La huella `puesto:corredor:tiempo` de `stage/attribution.test.ts` sale IDÉNTICA: ver allí por qué.
+ * Medido en docs/balance.md, «v13».
  */
-export const ENGINE_VERSION = 12 as const
+export const ENGINE_VERSION = 13 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -771,6 +795,16 @@ export const STAGE = {
   // 6.10 — Fuga: consolida si el compromiso del pelotón < 0.25 durante 2 km.
   breakawayCommitThreshold: 0.25,
   breakawayConsolidateKm: 2,
+  // …pero no en el km 10 (v13, docs/balance.md «v13 — Identidad, motivo y ruido»). Con solo el
+  // umbral de compromiso, «el pelotón concede» se emitía en cuanto la fuga salía, porque el pelotón
+  // aún no había empezado a trabajar: en cinco de las siete carreras de producción la crónica
+  // concedía en el km 10 y cazaba en el 126. Conceder es una DECISIÓN, y para tomarla hace falta
+  // haber tenido la ocasión de perseguir: un trecho de carrera hecho y una ventaja de verdad
+  // delante. Un tercio del recorrido es la mitad de lo que tarda el pelotón en anunciar la caza
+  // (`chaseAnnounceFrac` = 0,4) y deja sitio a la concesión temprana legítima; 60 s es la ventaja a
+  // partir de la cual una fuga es una fuga y no cuatro tipos a la vista.
+  concedeMinRouteFrac: 0.33,
+  concedeMinGapSeconds: 60,
   // La fuga rueda a tempo cooperando (conserva), con cooperación variable por etapa: unas se
   // entienden y aguantan, otras se miran y las cazan. Esa varianza produce el 2-8% de fugas.
   // Subieron de 0.50/0.65 a 0.52/0.665 porque el pelotón dejó de rodar a paseo cuando no hay nada
@@ -1062,6 +1096,12 @@ export const STAGE = {
   // el 75-90% de las etapas cae en la ventana 3-6 que pedía el encargo.
   pullReportMinKmGap: 12,
   pullReportKmGap: 36,
+  // Sin fuga del día no había parte de relevos en toda la etapa, y con él se iba lo único que se
+  // podía contar del tramo medio: medido en producción, Race Muscat —donde no cuajó ninguna fuga—
+  // no tiene una sola línea entre el km 33 y el 136 (v13, defecto B6). Pasado un cuarto del
+  // recorrido el pelotón ya lleva horas decidiendo el ritmo y quién lo marca es noticia, haya fuga
+  // o no. Antes de ese cuarto sigue sin serlo: el pelotón va en bloque y nadie «tira» de nada.
+  pullNoBreakRouteFrac: 0.25,
   // Clasificación del esfuerzo del pelotón que viaja en el evento: por debajo de `Tempo` va a
   // tempo de carretera, por encima de `Full` va a tope, y en medio «firme».
   pullEffortTempoMax: 0.62,

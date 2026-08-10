@@ -132,6 +132,14 @@ interface RiderSim {
   workJitter: number
   /** Segundos cedidos al objetivo marcado sin llegar a soltarse (`gives` de SPEC 6.18). */
   markLossS: number
+  /**
+   * Ya administró el esfuerzo (regla 8): se dejó ir a propósito. Un corredor solo puede rendirse UNA
+   * vez —el que ya rueda a `giveUpCommit` en su grupeto no puede volver a «dejarse ir»—, y sin esta
+   * marca `administerEffort` volvía a sortearlo cada bloque también sobre los grupos de descolgados:
+   * medido en producción, Alex Taylor se descolgaba en el km 196, en el 204 y en el 209 de la misma
+   * carrera (v13, docs/balance.md).
+   */
+  gaveUp: boolean
   incident: Incident | null
 }
 
@@ -241,6 +249,43 @@ function relayTurn(
   return new Set(scored.slice(0, count).map((s) => s.id))
 }
 
+/**
+ * POR QUÉ tira quien tira (v13, docs/motor.md §16). El dueño lo dijo así: «cada vez que alguien tire
+ * del pelotón, tienes que mencionar por qué; está trabajando para alguien, ¿no? Si no, no debería
+ * desgastarse». El motor lo sabe desde la v9 —el rol y el `targetRiderId` de las órdenes— y no lo
+ * contaba. Cuatro respuestas posibles, y la cuarta es un diagnóstico, no un adorno:
+ *
+ * - `gregarios`: todos los que tiran son gregarios del MISMO jefe de filas. Su equipo lleva la carrera.
+ * - `tren`: todos son lanzadores del mismo sprinter. Es el tren de meta.
+ * - `equipo`: sirven al mismo hombre con roles mezclados (un gregario y su lanzador, p. ej.).
+ * - `alianza`: hay dos o más jefes de filas distintos detrás del trabajo. No manda un equipo: coinciden.
+ * - `libre`: ninguno de los que tira trabaja para nadie. Es el «desgastarse a lo wey» del dueño, y si
+ *   sale a menudo el defecto es del motor, no de la frase. Medido: 2,1% de las menciones (v12).
+ */
+export function pullReason(
+  ids: readonly string[],
+  worksFor: ReadonlyMap<string, { targetId: string; role: 'gregario' | 'lanzador' }>,
+): {
+  kind: 'gregarios' | 'tren' | 'equipo' | 'alianza' | 'libre'
+  targetId?: string
+  leaders: number
+} {
+  const targets = new Set<string>()
+  const roles = new Set<string>()
+  for (const id of ids) {
+    const w = worksFor.get(id)
+    if (!w) continue
+    targets.add(w.targetId)
+    roles.add(w.role)
+  }
+  if (targets.size === 0) return { kind: 'libre', leaders: 0 }
+  if (targets.size > 1) return { kind: 'alianza', leaders: targets.size }
+  const targetId = [...targets][0]!
+  if (roles.size === 1 && roles.has('lanzador')) return { kind: 'tren', targetId, leaders: 1 }
+  if (roles.size === 1 && roles.has('gregario')) return { kind: 'gregarios', targetId, leaders: 1 }
+  return { kind: 'equipo', targetId, leaders: 1 }
+}
+
 export function simulateStage(input: StageInput, seed: string): StageOutput {
   // Contrarreloj: grupos de un corredor, sin drafting ni hazards de ataque (SPEC 6.13).
   if (input.timeTrial) return simulateTimeTrial(input, seed)
@@ -301,6 +346,7 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       // array de entrada ni del tamaño del pelotón, solo de la semilla y del id (SPEC 6.1).
       workJitter: streams(`work:${r.riderId}`)(),
       markLossS: 0,
+      gaveUp: false,
       incident: null,
     })
   }
@@ -320,9 +366,20 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
     for (const [markerId, t] of markTargetOf) if (t === targetId && markerId !== exceptId) n += 1
     return n
   }
+  /**
+   * PARA QUIÉN TRABAJA cada corredor (v13, docs/motor.md §16). Es el reverso de `domestiquesFor` y
+   * `leadOutFor`, y existe por una pregunta del dueño: «cada vez que alguien tire del pelotón, tienes
+   * que mencionar por qué; está trabajando para alguien, ¿no?». El motor ya tenía la respuesta en las
+   * órdenes y la tiraba: el parte de `peloton_pull` nombraba a los tres que más habían tirado y no
+   * decía a cuenta de quién. No es física: es telemetría que ya estaba y no se contaba.
+   */
+  const worksFor = new Map<string, { targetId: string; role: 'gregario' | 'lanzador' }>()
   for (const r of input.riders) {
     const target = r.orders.targetRiderId
     if (!target) continue
+    if (r.orders.role === 'gregario' || r.orders.role === 'lanzador') {
+      worksFor.set(r.riderId, { targetId: target, role: r.orders.role })
+    }
     if (r.orders.role === 'gregario') {
       const list = domestiquesFor.get(target) ?? []
       list.push(r.riderId)
@@ -686,7 +743,14 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       const pelotonNow = membersOf(PELOTON)
       // Nunca antes de que la fuga esté formada: hasta entonces el pelotón va en bloque y «quién
       // tira» no significa nada. Y nunca de un pelotón que no existe (queda uno solo).
-      if (dayBreakFormed && km >= breakFormedKm && pelotonNow.length >= 2) {
+      //
+      // Pero una carrera en la que NO cuaja ninguna fuga se quedaba sin parte de relevos en toda la
+      // etapa, y con ella sin nada que contar del tramo medio: medido en producción, Race Muscat no
+      // tiene una sola línea entre el km 33 y el 136 (v13, defecto B6). Pasada una cuarta parte del
+      // recorrido el pelotón ya lleva horas decidiendo el ritmo, haya fuga o no, y quién lo marca es
+      // noticia igual.
+      const pullWorthTelling = dayBreakFormed || km >= totalKm * STAGE.pullNoBreakRouteFrac
+      if (pullWorthTelling && km >= breakFormedKm && pelotonNow.length >= 2) {
         const pull = topWorkers(
           pelotonNow.map((m): [string, number] => [m.input.riderId, m.pullWindow]),
           STAGE.pullNamesMax,
@@ -704,8 +768,16 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
           (leader !== lastPullLeader || km - lastPullReportKm >= STAGE.pullReportKmGap)
         ) {
           const c = peloton.compromiso
+          const why = pullReason(pull.ids, worksFor)
           log.emit(km, peloton.tS, 'tiran', 'peloton_pull', pull.ids, {
             commit: Math.round(100 * c) / 100,
+            // POR QUÉ tiran (v13): `forKind` dice de qué clase de trabajo se trata y `forId`, cuando
+            // hay uno solo, a quién sirve. Nadie se desgasta al frente por gusto: o es el equipo de
+            // un jefe de filas, o es el tren de un sprinter, o son varios equipos coincidiendo en
+            // que hay que cazar. Y si de verdad no hay nadie detrás de ese esfuerzo, se dice.
+            forKind: why.kind,
+            ...(why.targetId ? { forId: why.targetId } : {}),
+            ...(why.leaders > 1 ? { forLeaders: why.leaders } : {}),
             // Clasificado, que es lo que la crónica sabe decir: a tempo de carretera, firme, o a tope.
             effort:
               c <= STAGE.pullEffortTempoMax
@@ -848,7 +920,17 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
         ...peloton,
         compromiso: peloton.compromiso + (target - peloton.compromiso) * STAGE.commitHysteresis,
       }
-      if (!consolidated && dayBreakFormed && !caught) {
+      // La fuga CONSOLIDADA: el pelotón ha decidido que se juegue la etapa. Hasta la v12 bastaba con
+      // que el compromiso bajara del umbral durante 2 km, y eso pasaba a los 10 km de carrera —cuando
+      // el pelotón sencillamente aún no ha empezado a trabajar—: en cinco de las siete carreras de
+      // producción la crónica decía «the peloton concedes» en el km 10 y «the break is caught» en el
+      // 126 (v13, defecto B4). No es conceder, es no haber empezado. Ahora hacen falta las tres cosas:
+      // que la carrera lleve un trecho hecho, que la fuga tenga una ventaja de verdad, y que aun así
+      // el pelotón no se ponga a tirar. Y el contador de kilómetros consentidos SOLO corre mientras se
+      // cumplen las dos primeras, para que el paseo del arranque no vaya sumando crédito.
+      const couldConcede =
+        km >= totalKm * STAGE.concedeMinRouteFrac && gap >= STAGE.concedeMinGapSeconds
+      if (!consolidated && dayBreakFormed && !caught && couldConcede) {
         if (peloton.compromiso < STAGE.breakawayCommitThreshold) {
           lowCommitKm += STAGE.decisionEveryBlocks * STAGE.dx
           if (lowCommitKm >= STAGE.breakawayConsolidateKm) {
@@ -1039,6 +1121,11 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       if (members.length === 0) return
       if (totalKm - km > STAGE.giveUpKm) return
       for (const m of members) {
+        // Rendirse es un acto único: quien ya se dejó ir rueda a `giveUpCommit` en su grupeto y no
+        // puede volver a dejarse ir. Sin esto el sorteo lo repescaba cada bloque —también dentro de
+        // los grupos de descolgados, que este mismo bucle recorre— y la crónica narraba tres veces
+        // el descuelgue del mismo corredor (v13, defecto B3).
+        if (m.gaveUp) continue
         const lambda = giveUpLambda(
           {
             role: m.input.orders.role,
@@ -1056,6 +1143,7 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
         const slower = rhythm(group.compromiso) / rhythm(STAGE.giveUpCommit) - 1
         const remainingS = ((totalKm - km) / Math.max(1, group.vActual)) * 3600
         if (slower * remainingS > STAGE.giveUpMaxLossFraction * group.tS) continue
+        m.gaveUp = true
         dropOut(m, group, 0, STAGE.giveUpCommit)
         log.emit(km, group.tS, 'abandona_ritmo', 'rider_sits_up', [m.input.riderId], {
           toGo: Math.round(totalKm - km),
@@ -1836,11 +1924,16 @@ function disputeClimb(
     // Datos para una crónica informativa: categoría del puerto, puntos que suma el primero, y si con
     // ellos pasa a LIDERAR la clasificación de la montaña (o solo se acerca). `ordered` tiene ya a
     // todos los corredores en carrera, así que el máximo de climbPts es el líder actual de la montaña.
-    const maxPts = ordered.reduce((mx, m) => Math.max(mx, m.climbPts), 0)
+    //
+    // El liderato se mide EN SOLITARIO y contra los DEMÁS (v13, defecto B5). Con `>= maxPts` —donde
+    // `maxPts` incluía al propio ganador— tres corredores distintos con UN punto cada uno se
+    // proclamaban líderes de la montaña uno detrás de otro en la misma carrera: con un punto cada
+    // uno, el tercero no lidera nada. Ahora hay que estar ESTRICTAMENTE por delante de todos.
+    const bestOther = ordered.reduce((mx, m) => (m === winner ? mx : Math.max(mx, m.climbPts)), 0)
     log.emit(km, groups[0]?.tS ?? 0, 'banner', 'climb_kom', [winner.input.riderId], {
       category: block.climbCategory ?? '',
       points: table[0] ?? 0,
-      leads: winner.climbPts >= maxPts && winner.climbPts > 0 ? 1 : 0,
+      leads: winner.climbPts > bestOther ? 1 : 0,
     })
   }
 }

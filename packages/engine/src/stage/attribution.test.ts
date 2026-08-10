@@ -36,6 +36,21 @@ import type { Attribute } from '@cyclingstar/shared'
  *
  * Es decir: cero movimiento en montaña, y en llano solo el que introduce a propósito la puerta del
  * pelotón. Cualquier otra cosa que mueva esta huella hay que volver a justificarla aquí.
+ *
+ * **NO RESELLADA EN LA v13** (identidad, motivo y ruido del journal, docs/balance.md «v13»). La v13
+ * cambia comportamiento del motor en tres sitios —un corredor solo puede dejarse ir UNA vez (B3), la
+ * concesión de la fuga exige recorrido hecho y ventaja de verdad (B4), y el parte de relevos ya no
+ * espera a que cuaje la fuga del día (B6)— y aun así esta huella sale IDÉNTICA dígito a dígito, que
+ * es justo lo que tenía que pasar:
+ *
+ * - Ninguno de los tres consume azar nuevo: no hay dado añadido ni subflujo nuevo, así que ninguna
+ *   secuencia se desplaza. El parte de relevos y el motivo (`forKind`, `forId`) son OBSERVACIÓN pura.
+ * - El de la concesión y el del parte no tocan la física: solo deciden cuándo se EMITE un evento.
+ * - El de dejarse ir sí puede mover tiempos, pero solo en una etapa donde alguien se descolgaba dos
+ *   veces, y en estos dos escenarios canónicos eso no ocurre (`llana-180` no tiene descuelgues por
+ *   administración y en `reina-150` ninguno se repite). Donde sí ocurre —una carrera de un día
+ *   larga y dura— el corredor pierde MENOS tiempo que antes, porque ya no se le vuelve a bajar el
+ *   ritmo: está medido en docs/balance.md.
  */
 const SEALED_RESULTS: Record<string, string> = {
   'llana-180-0|llana-180|1|v1':
@@ -165,15 +180,20 @@ describe('peloton_pull: quién tira del pelotón', () => {
     expect(Math.max(...counts)).toBeLessThanOrEqual(9)
   })
 
-  it('nombra a 1-3 corredores y nunca antes de que la fuga esté formada', () => {
+  // La regla cambió en la v13: el parte ya NO exige que la fuga del día esté formada, porque una
+  // carrera en la que no cuaja ninguna deja el tramo medio sin una sola línea (medido en producción:
+  // Race Muscat, del km 33 al 136 en blanco). Lo que sigue prohibido es hablar de «quién tira»
+  // mientras el pelotón va en bloque, y eso lo marca `pullNoBreakRouteFrac` (docs/balance.md v13).
+  it('nombra a 1-3 corredores, y nunca cuando el pelotón aún va en bloque', () => {
+    const totalKm = 180
     for (const out of runs) {
       const formed = out.events.find((e) => e.plantilla === 'breakaway_formed')
       for (const e of pulls(out)) {
         expect(e.protagonistas.length).toBeGreaterThanOrEqual(1)
         expect(e.protagonistas.length).toBeLessThanOrEqual(STAGE.pullNamesMax)
         expect(new Set(e.protagonistas).size).toBe(e.protagonistas.length)
-        expect(formed).toBeDefined()
-        expect(e.km).toBeGreaterThanOrEqual(formed!.km)
+        const conFuga = formed != null && e.km >= formed.km
+        expect(conFuga || e.km >= totalKm * STAGE.pullNoBreakRouteFrac).toBe(true)
       }
     }
   })
