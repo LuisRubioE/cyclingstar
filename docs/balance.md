@@ -2971,8 +2971,12 @@ todavía no CUENTA la selección cuando ocurre lejos de meta.
   canónica sale igual con el tope en el 5 % y en el 6,3 %. Se descarta por no añadir una perilla que
   no paga.
 - **No arregla los ocho `time_gap` seguidos de una fuga que se hunde** (deuda de la v13). No se ha
-  empezado: el cambio no los multiplica —el throttle de `gapReportChangeFraction` sigue en su sitio—
-  y la prioridad era el modelo de persecución.
+  empezado, y queda MEDIDO para quien lo coja: sobre las 84 etapas del banco, `time_gap` pasa de
+  **5,8 a 5,5 partes por etapa** —no se multiplican— pero la RACHA más larga de partes de boquete
+  seguidos sin otra cosa en medio sube de **6 a 9**. La causa es la misma de siempre (el throttle de
+  `gapReportChangeFraction` deja pasar el parte cada vez que la ventaja «se ha movido», y ahora los
+  boquetes se mueven más), y el arreglo es el mismo que la v13 aplicó a los descuelgues: agruparlos
+  en racimo. La prioridad de esta tanda era el modelo de persecución y ahí se ha quedado.
 - **No cambia la contrarreloj.** El abanico del 15-36 % de la CRI sigue siendo un defecto abierto del
   modelo de crono y sigue sin aplicársele el corte.
 
