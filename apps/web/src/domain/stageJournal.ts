@@ -9,7 +9,7 @@
  * así que van en inglés; el vocabulario de los eventos sigue en el idioma del motor.
  */
 
-import type { ChronicleEntry, StageResultEntry } from '@cyclingstar/shared'
+import type { ChronicleEntry, ChronicleRider, StageResultEntry } from '@cyclingstar/shared'
 import { STAGE } from '@cyclingstar/engine'
 import { formatTime } from './format'
 
@@ -43,16 +43,108 @@ export function listNames(names: string[]): string {
   return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
 }
 
+// --- La IDENTIDAD de cada corredor mencionado (encargo A1 del dueño) --------------------------
+// «Cada vez que menciones un ciclista, pon su dorsal, su equipo entre paréntesis y su bandera.»
+//
+// La bandera NO puede ir como emoji: `components/Flag.tsx` explica por qué (en Windows y en muchos
+// navegadores de escritorio los emoji de bandera salen como dos letras), y toda la web la pinta como
+// SVG local con las clases `fi fi-xx`. Como esto es un módulo de texto puro y sin React, la frase se
+// compone con una MARCA invisible alrededor del código de país y `chronicleParts()` la parte en
+// trozos para que `StageStory` intercale el mismo `<Flag/>` del resto de la web. `chronicleLine()`
+// devuelve el texto pelado (sin banderas) y sigue siendo lo que usan los tests y cualquier contexto
+// sin DOM.
+const FLAG_MARK = '\u0001'
+
+/**
+ * Cuántos corredores puede llevar una frase con la identidad COMPLETA. Medido sobre una crónica real
+ * (Race Muscat, producción): `front_group` llega a nombrar a ocho, y ocho veces «🇸🇮 42 Andrej Pucnik
+ * (Al Assad Cycling)» son más de 280 caracteres en una sola línea — un muro. Con tres o menos la
+ * identidad completa cabe y aporta; a partir de cuatro la frase se queda en bandera y nombre, que es
+ * lo que el lector necesita para saber quién es quién en una lista.
+ */
+const IDENTITY_MAX_RIDERS = 3
+
+/** Un trozo de frase: texto corrido o una bandera que la web pinta con `<Flag/>`. */
+export type ChroniclePart = { text: string } | { flag: string }
+
+const flagMark = (country: string | null): string =>
+  country ? `${FLAG_MARK}${country}${FLAG_MARK}` : ''
+
+/**
+ * Un corredor, con toda la identidad que se le conozca: `🇸🇮 42 Andrej Pucnik (Al Assad Cycling)`.
+ * Lo que falte se cae solo —sin dorsal, sin bandera, sin equipo— porque los eventos de las etapas ya
+ * corridas están congelados y se resuelven contra el roster de HOY: un corredor que ya no esté en él
+ * llega sin nada más que su nombre y la frase tiene que seguir leyéndose.
+ */
+export function riderFull(r: ChronicleRider): string {
+  const bib = r.bib != null ? `${r.bib} ` : ''
+  const team = r.team ? ` (${r.team})` : ''
+  return `${flagMark(r.country)}${bib}${r.name}${team}`
+}
+
+/** El mismo corredor en versión corta, para las listas largas: bandera y nombre. */
+export function riderShort(r: ChronicleRider): string {
+  return `${flagMark(r.country)}${r.name}`
+}
+
+/**
+ * La lista de protagonistas de una frase, con identidad completa si son pocos y con bandera y
+ * nombre si son muchos (ver `IDENTITY_MAX_RIDERS`).
+ */
+export function listRiders(riders: readonly ChronicleRider[]): string {
+  const full = riders.length > 0 && riders.length <= IDENTITY_MAX_RIDERS
+  return listNames(riders.map((r) => (full ? riderFull(r) : riderShort(r))))
+}
+
+/** Solo los nombres, sin bandera ni dorsal: para las frases que ya nombran al equipo aparte. */
+export function listPlain(riders: readonly ChronicleRider[]): string {
+  return listNames(riders.map((r) => r.name))
+}
+
+/** Equipos DISTINTOS de los protagonistas, en orden de aparición y sin repetir. */
+export function teamsOf(e: ChronicleEntry): string[] {
+  return [...new Set((e.protagonists ?? []).map((p) => p.team).filter((t): t is string => !!t))]
+}
+
+/**
+ * La frase partida en trozos para pintarla: el texto tal cual y las banderas como marcas, que
+ * `StageStory` convierte en el `<Flag/>` de siempre.
+ */
+export function chronicleParts(e: ChronicleEntry): ChroniclePart[] {
+  return chronicleTemplate(e)
+    .split(FLAG_MARK)
+    .map((chunk, i) => (i % 2 === 1 ? { flag: chunk } : { text: chunk }))
+    .filter((p) => ('flag' in p ? p.flag.length > 0 : p.text.length > 0))
+}
+
+/**
+ * La frase en TEXTO PELADO, sin banderas. Es lo que usan los tests, los contextos sin DOM y
+ * cualquier sitio que solo quiera la línea; para pintarla en la web con las banderas del resto del
+ * sitio se usa `chronicleParts()`.
+ */
+export function chronicleLine(e: ChronicleEntry): string {
+  return chronicleTemplate(e)
+    .split(FLAG_MARK)
+    .filter((_, i) => i % 2 === 0)
+    .join('')
+}
+
 /**
  * Convierte un evento del motor en una frase del journal. Varias redacciones por evento, elegidas
  * de forma determinista (misma etapa ⇒ mismo relato, pero variado entre eventos y etapas), y con
- * nombres de corredores y de equipos para que se lea como una crónica de verdad.
+ * la identidad de los corredores y el nombre de los equipos para que se lea como una crónica de
+ * verdad. Devuelve la frase con las banderas MARCADAS (ver `FLAG_MARK`).
  */
-export function chronicleLine(e: ChronicleEntry): string {
-  const who = listNames(e.protagonists)
-  const team = e.protagonistTeams?.[0]
-  const teams = listNames(e.protagonistTeams ?? [])
-  const seed = `${e.plantilla}:${e.km}:${who}`
+function chronicleTemplate(e: ChronicleEntry): string {
+  const riders = e.protagonists ?? []
+  const who = listRiders(riders)
+  const plain = listPlain(riders)
+  const teamList = teamsOf(e)
+  const team = teamList[0]
+  const teams = listNames(teamList)
+  // La semilla de la variante usa los NOMBRES pelados: así la redacción elegida no cambia porque un
+  // corredor gane o pierda el dorsal en la base (la crónica de una etapa es siempre la misma).
+  const seed = `${e.plantilla}:${e.km}:${plain}`
   const pick = (opts: string[]): string => opts[variantIndex(seed, opts.length)] ?? opts[0] ?? ''
   switch (e.plantilla) {
     // --- La capa táctica (docs/motor.md §13) ------------------------------------------------
@@ -84,10 +176,11 @@ export function chronicleLine(e: ChronicleEntry): string {
       // `cuerda` dice si el pelotón ha decidido dar cuerda al movimiento. Lo que se narra es su
       // REACCIÓN, no el desenlace: a veces el pelotón se pone a cerrar y aun así no llega.
       const chased = held ? ' The bunch reacts at once and the pace goes up behind.' : ''
+      const s1 = jumped === 1
       return pick([
-        `${who} go clear off the front.${tail}${chased}`,
-        `Attack: ${who} force${jumped === 1 ? 's' : ''} the pace and open a gap.${tail}${chased}`,
-        `${who} tr${jumped === 1 ? 'ies' : 'y'} their luck up the road.${tail}${chased}`,
+        `${who} go${s1 ? 'es' : ''} clear off the front.${tail}${chased}`,
+        `Attack: ${who} force${s1 ? 's' : ''} the pace and open${s1 ? 's' : ''} a gap.${tail}${chased}`,
+        `${who} tr${s1 ? 'ies' : 'y'} ${s1 ? 'his' : 'their'} luck up the road.${tail}${chased}`,
       ])
     }
     case 'attack_swarm': {
@@ -129,11 +222,32 @@ export function chronicleLine(e: ChronicleEntry): string {
     case 'move_merge':
       return `The groups come together up front — ${Number(e.datos?.size ?? 0)} riders now in the lead.`
     case 'rider_sits_up': {
-      // Regla 8: el agotado sin nada que jugarse administra el esfuerzo.
+      // Regla 8: el agotado sin nada que jugarse administra el esfuerzo. Uno o dos sueltos SÍ tienen
+      // mención propia; a partir de tres, la crónica los agrupa (ver `riders_sit_up`).
       const toGo = Number(e.datos?.toGo ?? 0)
       return pick([
         `${who} is empty and lets the group go with ${toGo} km left, riding home at his own pace.`,
         `Nothing left for ${who}: he sits up ${toGo} km from the line.`,
+      ])
+    }
+    case 'riders_sit_up': {
+      // Encargo A3 del dueño: «no menciones uno a uno todos los ciclistas que se van descolgando…
+      // puedes mencionar muchos juntos con número». El racimo lo arma la crónica (apps/api), que ve
+      // la etapa entera; aquí se cuenta. Con pocos se nombran, con muchos manda el número: quince
+      // nombres seguidos vuelven a ser la lista que había que quitar.
+      const count = Number(e.datos?.count ?? e.protagonists.length)
+      const toGo = Number(e.datos?.toGo ?? 0)
+      const left = toGo > 0 ? ` with ${toGo} km to go` : ''
+      const named = riders.slice(0, IDENTITY_MAX_RIDERS).map(riderShort)
+      const rest = count - named.length
+      if (count <= IDENTITY_MAX_RIDERS)
+        return `${count} riders let the group go${left}: ${listNames(named)}.`
+      // Los nombrados y «N more» se enumeran JUNTOS: «A, B, C and 3 more», no «A, B and C and 3 more».
+      const withRest = listNames([...named, `${rest} more`])
+      return pick([
+        `The back of the race is falling apart${left}: ${count} riders sit up, among them ${listNames(named)}.`,
+        `${count} riders give up the fight${left} — ${withRest} ride home at their own pace.`,
+        `Behind, ${count} riders let the group go${left}, ${listNames(named)} among them.`,
       ])
     }
     case 'breakaway_formed':
@@ -155,17 +269,27 @@ export function chronicleLine(e: ChronicleEntry): string {
             'The escapees eye each other and few want to work.',
             'No unity in the break; the turns are ragged.',
           ])
-    case 'sprinters_chase':
-      return team
-        ? pick([
-            `${team} hit the front and take up the chase.`,
-            `${team} mass at the head of the bunch to reel the break in.`,
-            `${team} take control, winding up the pace behind ${e.protagonists[0] ?? 'their sprinter'}.`,
-          ])
-        : pick([
-            "The sprinters' teams take up the chase.",
-            'The bunch organises behind — the chase is on.',
-          ])
+    case 'sprinters_chase': {
+      // El motor nombra al JEFE DE FILAS de los sprinters (el mejor rematador del campo): es SU
+      // equipo el que se pone a tirar, y hasta ahora la frase decía el nombre del equipo sin decir
+      // que fuera el suyo, o el del corredor sin decir que tirara su equipo (encargo A2 del dueño).
+      const boss = riders[0]
+      if (boss && team)
+        return pick([
+          `${team} hit the front and take up the chase for ${riderFull(boss)}.`,
+          `${team} mass at the head of the bunch to reel the break in for their sprinter, ${riderShort(boss)}.`,
+          `${team} take control, winding up the pace for ${riderFull(boss)}.`,
+        ])
+      if (boss)
+        return pick([
+          `The chase goes on behind, wound up for ${riderFull(boss)}.`,
+          `The bunch organises behind: the fast men want this one, ${riderShort(boss)} first among them.`,
+        ])
+      return pick([
+        "The sprinters' teams take up the chase.",
+        'The bunch organises behind — the chase is on.',
+      ])
+    }
     case 'time_gap': {
       const g = fmtGap(Number(e.datos?.gapS ?? 0))
       const trend = Number(e.datos?.trend ?? 0)
@@ -209,44 +333,84 @@ export function chronicleLine(e: ChronicleEntry): string {
     // --- La atribución del trabajo (v11, docs/motor.md §16) ---------------------------------
     // Las dos preguntas del dueño: «quién tira del pelotón» y «no sé quién hizo el trabajo para
     // reducir la distancia». El motor solo nombra CORREDORES —no conoce los equipos—; la voz de la
-    // frase se decide aquí, con `protagonistTeams` y con el tamaño del grupo.
+    // frase se decide aquí, con los equipos de los protagonistas y el tamaño del grupo.
+    //
+    // Y desde la v13, el POR QUÉ: «cada vez que alguien tire del pelotón, tienes que mencionar por
+    // qué; está trabajando para alguien, ¿no? Si no, no debería desgastarse a lo wey». El motor manda
+    // `forKind` (gregarios / tren / equipo / alianza / libre) y `forId` con el jefe de filas.
     case 'peloton_pull': {
       const size = Number(e.datos?.size ?? 0)
       const toGo = Number(e.datos?.toGo ?? 0)
       const effort = String(e.datos?.effort ?? 'firme')
       const left = toGo > 0 ? ` with ${toGo} km to go` : ''
-      const nTeams = e.protagonistTeams?.length ?? 0
+      const nTeams = teamList.length
+      const chasing = e.datos?.chasing === 1
+      const kind = String(e.datos?.forKind ?? '')
+      const boss = e.mentions?.forId
+      // Para quién, dicho una vez y bien. Sin `forKind` (crónicas anteriores a la v13) no se inventa
+      // motivo: la frase se queda como estaba, que no miente, solo cuenta menos.
+      const forWhom = boss ? riderFull(boss) : ''
       // Con un grupo pequeño no tira un equipo, tira un corredor: es el mismo umbral con el que el
       // motor decide nombrar a los de cabeza, para que la crónica no se contradiga en dos frases.
       const small = size > 0 && size <= SMALL_FRONT_GROUP
       const group = small ? 'the front group' : 'the bunch'
+      // El TREN: lanzadores de un sprinter cerca de meta. Es su propia noticia y va antes que todo
+      // lo demás, porque no es «controlar la carrera», es montar el lanzamiento.
+      if (kind === 'tren' && forWhom)
+        return pick([
+          `${team ? `${team} ` : 'The lead-out men '}wind it up at the head of ${group}${left}, building the train for ${forWhom}.`,
+          `The lead-out is on${left}: ${plain} drive ${group} with ${forWhom} on the last wheel.`,
+        ])
+      // Y el caso que el dueño quería ver señalado: nadie detrás de ese esfuerzo. Va ANTES que la
+      // voz del equipo, porque dos corredores del mismo equipo tirando sin jefe de filas siguen sin
+      // tener a quién servir. No se maquilla con un motivo inventado; se dice que van por su cuenta.
+      // Medido, es el 1,9% de las menciones: es raro, y por eso merece nombrarse cuando pasa.
+      if (kind === 'libre' && !small) {
+        const solo = riders.length === 1
+        return pick([
+          `${who} ${solo ? 'is' : 'are'} on the front of ${group}${left} with no leader to work for.`,
+          `Nobody's orders behind it: ${who} ${solo ? 'sets' : 'set'} the pace in ${group}${left} on ${solo ? 'his' : 'their'} own account.`,
+        ])
+      }
       if (!small && nTeams === 1 && team) {
-        // Los que tiran son todos del MISMO equipo: eso es un equipo tomando la carretera.
+        // Los que tiran son todos del MISMO equipo: eso es un equipo tomando la carretera. Y ahora se
+        // dice a cuenta de quién lo hacen, que es lo que faltaba.
+        const forTail = forWhom ? `, working for ${forWhom}` : ''
         if (effort === 'tope')
           return pick([
-            `${team} have the bunch strung out in a single line${left}.`,
-            `${team} are drilling it on the front — the bunch is in one long line${left}.`,
+            `${team} have the bunch strung out in a single line${left}${forTail}.`,
+            `${team} are drilling it on the front for ${forWhom || 'their leader'} — the bunch is in one long line${left}.`,
           ])
         if (effort === 'tempo')
           return pick([
-            `${team} have taken the front and settled into a steady tempo${left}.`,
-            `${team} line up at the head of the bunch and set a manageable pace${left}.`,
+            `${team} have taken the front and settled into a steady tempo${left}${forTail}.`,
+            `${team} line up at the head of the bunch and set a manageable pace${left}${forTail}.`,
           ])
         return pick([
-          `${team} mass on the front and wind the pace up${left}.`,
-          `${team} take up the work at the head of the bunch${left}.`,
-          `The pace is in the hands of ${team}${left}.`,
+          `${team} mass on the front and wind the pace up${left}${forTail}.`,
+          `${team} take up the work at the head of the bunch${left}${forTail}.`,
+          `The pace is in the hands of ${team}${left}${forTail}.`,
         ])
       }
       // Corredores de EQUIPOS DISTINTOS turnándose al frente es otra información, y más
-      // interesante: no es un equipo controlando, es una alianza que se ha montado en carretera.
-      if (!small && nTeams > 1)
+      // interesante: no es un equipo controlando, es una alianza que se ha montado en carretera. Y
+      // la alianza tiene un motivo: los dos quieren la misma cosa, y casi siempre es cazar.
+      if (!small && (nTeams > 1 || kind === 'alianza')) {
+        const nLeaders = Number(e.datos?.forLeaders ?? nTeams)
+        const why = chasing
+          ? ' — different leaders, one shared interest: the break has to come back'
+          : kind === 'alianza'
+            ? ` — ${nLeaders} different leaders whose teams have decided the same thing`
+            : ''
         return pick([
-          `${who} are sharing the work on the front of ${group}${left}.`,
-          `An alliance on the front${left}: ${who} are the ones doing the pulling.`,
-          `${who} take turns at the head of ${group}${left} — ${nTeams} different teams doing the work.`,
+          `${who} are sharing the work on the front of ${group}${left}${why}.`,
+          `An alliance on the front${left}: ${who} are the ones doing the pulling${why}.`,
+          why
+            ? `${who} take turns at the head of ${group}${left}${why}.`
+            : `${who} take turns at the head of ${group}${left} — ${nTeams} different teams doing the work.`,
         ])
-      const one = e.protagonists.length === 1
+      }
+      const one = riders.length === 1
       if (effort === 'tope')
         return `${who || 'The leaders'} ${one ? 'is' : 'are'} flat out on the front of ${group}${left}.`
       return pick([
@@ -260,7 +424,7 @@ export function chronicleLine(e: ChronicleEntry): string {
       const closed = fmtGap(Number(e.datos?.closedS ?? 0))
       const km = Number(e.datos?.km ?? 0)
       const over = km > 0 ? ` over the last ${km} km` : ''
-      const nTeams = e.protagonistTeams?.length ?? 0
+      const nTeams = teamList.length
       if (nTeams === 1 && team)
         return pick([
           `The work was ${team}'s: ${closed} pulled back${over}.`,
@@ -281,7 +445,7 @@ export function chronicleLine(e: ChronicleEntry): string {
       // Quién colabora y quién va a rueda dentro de la fuga. `break_cooperation` dice si el grupo
       // se entiende; esto dice a costa de quién.
       const passengers = Number(e.datos?.passengers ?? 0)
-      const one = e.protagonists.length === 1
+      const one = riders.length === 1
       const sitting =
         passengers > 0
           ? ` while ${passengers} of their companion${passengers === 1 ? '' : 's'} sit${passengers === 1 ? 's' : ''} on.`
@@ -293,11 +457,21 @@ export function chronicleLine(e: ChronicleEntry): string {
       ])
     }
     case 'peloton_concedes':
-      return pick([
-        'The peloton concedes — the break is given room to fight for the win.',
-        'The bunch eases and lets the move take its rope.',
-        'No panic behind: the favourites wave the break up the road.',
-      ])
+      // El pelotón concede… salvo cuando luego caza. `cazada` lo marca la crónica, que ve la etapa
+      // entera y sabe si la fuga terminó cogida (el motor decide en carretera y no ve el futuro). Es
+      // la mitad del arreglo del defecto B4: la otra mitad es que el motor ya no concede en el km 10,
+      // pero las etapas ya corridas están congeladas y sus concesiones tempranas siguen ahí.
+      return e.datos?.cazada === 1
+        ? pick([
+            'For now the bunch eases and gives the move its rope.',
+            'No panic behind: the break is allowed to go clear — for the moment.',
+            'The chase relaxes and the escapees are left to it, at least for now.',
+          ])
+        : pick([
+            'The peloton concedes — the break is given room to fight for the win.',
+            'The bunch eases and lets the move take its rope.',
+            'No panic behind: the favourites wave the break up the road.',
+          ])
     case 'sprinters_give_up':
       return pick([
         "The sprinters' teams give up the chase.",
@@ -325,10 +499,12 @@ export function chronicleLine(e: ChronicleEntry): string {
             ? `category ${cat.slice(3)} climb`
             : 'climb'
       const pts = Number(e.datos?.points ?? 0)
-      const t = team ? ` (${team})` : ''
       const ptsPart = pts > 0 ? `, taking ${pts} KOM point${pts === 1 ? '' : 's'}` : ''
-      const leadPart = e.datos?.leads === 1 ? ' — he now leads the mountains classification' : ''
-      return `${who}${t} is first over the ${catLabel}${ptsPart}${leadPart}.`
+      // Desde la v13 `leads` solo llega a 1 si el ganador está ESTRICTAMENTE por delante de todos los
+      // demás: tres corredores con un punto cada uno no pueden liderar los tres (defecto B5). Y la
+      // frase deja claro que habla de la montaña DE LA CARRERA, que es lo que el motor sabe contar.
+      const leadPart = e.datos?.leads === 1 ? ' — and takes the lead in the mountains' : ''
+      return `${who} is first over the ${catLabel}${ptsPart}${leadPart}.`
     }
     case 'peloton_regroup': {
       // El reagrupamiento (v8). Existía en el modelo desde siempre y no se narraba nunca: la crónica
@@ -347,11 +523,22 @@ export function chronicleLine(e: ChronicleEntry): string {
       ])
     }
     case 'peloton_split': {
-      const dropped = Number(e.datos?.dropped ?? 0)
       const remaining = e.datos?.remaining == null ? null : Number(e.datos.remaining)
       // `before` y `chasing` llegan desde v6. Sin ellos (crónicas guardadas antes) se narra como
       // siempre: es la redacción vieja, que no miente, solo cuenta menos.
       const before = e.datos?.before == null ? null : Number(e.datos.before)
+      // EL NÚMERO DE DESCOLGADOS NO PUEDE SER MAYOR QUE EL GRUPO (defecto B1). En producción hay
+      // crónicas congeladas que dicen «2010 riders are shelled» en una carrera de 147: son etapas
+      // corridas ANTES de la v8, cuando `dropped` viajaba con el recuento BRUTO de veces que se
+      // rompió la goma bloque a bloque (los mismos corredores soltándose y volviendo). El motor ya
+      // no emite eso —desde la v8 manda la pérdida real, `before − remaining − escapados`— pero los
+      // eventos guardados no se pueden reescribir, así que la frase se queda con lo que sí es
+      // coherente. `before` y `remaining` siempre lo fueron.
+      const raw = Number(e.datos?.dropped ?? 0)
+      const dropped =
+        before != null && remaining != null && raw > before - remaining
+          ? Math.max(0, before - remaining)
+          : raw
       // Si la fuga sigue en carretera, este grupo NO va en cabeza: decir "left in front" era falso.
       const chasing = e.datos?.chasing === 1
       const group = chasing ? 'the chase group' : 'the lead group'
@@ -399,15 +586,16 @@ export function chronicleLine(e: ChronicleEntry): string {
           ])
         return pick([
           `${driver} and the climb tears ${group} apart — from ${before} riders down to ${remaining}.`,
-          `${driver}: ${dropped} riders are shelled and ${group} is cut from ${before} to ${remaining}.`,
+          `${driver}: ${dropped} rider${dropped === 1 ? ' is' : 's are'} shelled and ${group} is cut from ${before} to ${remaining}.`,
           `${driver}; ${group} thins out from ${before} to ${remaining} over the climb.`,
         ])
       }
 
       const left = remaining != null ? ` — about ${remaining} left ${where}` : ''
+      const one = dropped === 1
       return pick([
-        `${driver} on the climb — ${dropped} riders are shelled${left}.`,
-        `${driver} and ${dropped} riders slip off the back${left}.`,
+        `${driver} on the climb — ${dropped} rider${one ? ' is' : 's are'} shelled${left}.`,
+        `${driver} and ${dropped} rider${one ? '' : 's'} slip${one ? 's' : ''} off the back${left}.`,
         `${driver}; the climb thins ${group} by ${dropped}${left}.`,
       ])
     }
@@ -420,37 +608,40 @@ export function chronicleLine(e: ChronicleEntry): string {
       return `Into the final kilometre ${who} are clear${m} — the win will be fought out among them.`
     }
     case 'bunch_sprint': {
+      // Los tres del sprint van con identidad completa: son tres, y son EL momento de la etapa.
       const led = e.datos?.ledOut === 1
-      const trio = listNames(e.protagonists.slice(0, 3))
+      const trio = listRiders(riders.slice(0, 3))
+      const first = riders[0]
       return pick([
         `Into the final kilometre it's a bunch sprint — ${trio} fight it out.`,
         `The trains wind up for a mass gallop; ${trio} are in the mix.`,
-        led
-          ? `Perfectly led out, ${e.protagonists[0] ?? 'the sprinter'} launches with ${trio} for company.`
+        led && first
+          ? `Perfectly led out, ${riderFull(first)} launches with ${listRiders(riders.slice(1, 3))} for company.`
           : `All together for the sprint: ${trio} line it up.`,
       ])
     }
     case 'stage_win': {
-      const t = team ? ` (${team})` : ''
+      // `who` ya trae dorsal, equipo y bandera del ganador: la coletilla `(equipo)` que se añadía
+      // aquí a mano sobraba y salía dos veces.
       const won = e.datos?.won
       const margin = Number(e.datos?.margin ?? 0)
       if (won === 'solo')
         return pick([
-          `${who}${t} solos to victory, ${fmtGap(margin)} clear of the chase.`,
-          `${who}${t} holds on alone to win by ${fmtGap(margin)}.`,
+          `${who} solos to victory, ${fmtGap(margin)} clear of the chase.`,
+          `${who} holds on alone to win by ${fmtGap(margin)}.`,
         ])
       if (won === 'sprint')
         return pick([
-          `${who}${t} wins the bunch sprint.`,
-          `${who}${t} takes the sprint from the bunch.`,
-          `${who}${t} throws up the arms — fastest in the sprint.`,
+          `${who} wins the bunch sprint.`,
+          `${who} takes the sprint from the bunch.`,
+          `${who} throws up the arms — fastest in the sprint.`,
         ])
       if (won === 'group')
         return pick([
-          `${who}${t} wins from the lead group.`,
-          `${who}${t} outkicks the leaders for the stage.`,
+          `${who} wins from the lead group.`,
+          `${who} outkicks the leaders for the stage.`,
         ])
-      return `${who}${t} wins the stage.`
+      return `${who} wins the stage.`
     }
     case 'stage_win_itt':
       return `${who} sets the fastest time.`

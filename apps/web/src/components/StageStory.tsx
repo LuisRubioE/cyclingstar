@@ -1,7 +1,7 @@
 import type { StageReplay } from '@cyclingstar/shared'
 import { Flag } from './Flag'
 import { RiderName } from './RiderName'
-import { chronicleLine, timeTrialStory } from '../domain/stageJournal'
+import { chronicleParts, timeTrialStory } from '../domain/stageJournal'
 
 /**
  * El journal de una etapa: cómo se desarrolló y quién ganó. Es el contenido con más carga emocional
@@ -58,7 +58,18 @@ export function StageStory({
                 <span className="w-14 shrink-0 text-right tabular-nums text-slate-400">
                   km {e.km}
                 </span>
-                <span className="text-slate-700">{chronicleLine(e)}</span>
+                <span className="text-slate-700">
+                  {/* Cada mención de un ciclista lleva su bandera, y la bandera es la MISMA del
+                      resto de la web (`<Flag/>`, SVG local): los emoji de bandera no se pintan en
+                      Windows. `chronicleParts` devuelve la frase ya partida en texto y banderas. */}
+                  {chronicleParts(e).map((part, j) =>
+                    'flag' in part ? (
+                      <Flag key={j} code={part.flag} size={12} className="mx-0.5 align-baseline" />
+                    ) : (
+                      <span key={j}>{part.text}</span>
+                    ),
+                  )}
+                </span>
               </li>
             ))}
           </ol>
