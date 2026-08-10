@@ -555,7 +555,11 @@ describe('A2 · quién tira, y POR QUÉ tira', () => {
   ]
   const jefe = rider('Iker Zabala', { bib: 11, team: 'Summit Squad', country: 'ES' })
 
-  const pull = (datos: Record<string, number | string>, who = greg, mentions = { forId: jefe }) =>
+  const pull = (
+    datos: Record<string, number | string>,
+    who = greg,
+    mentions: Record<string, ChronicleRider> = { forId: jefe },
+  ) =>
     chronicleLine(event({ plantilla: 'peloton_pull', km: 90, protagonists: who, datos, mentions }))
 
   it('los gregarios de un líder trabajan PARA él, y se dice', () => {

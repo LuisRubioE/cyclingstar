@@ -202,7 +202,30 @@ export function buildChronicle(
         prev.protagonists.map((p) => p.name).join() !== e.protagonists.map((p) => p.name).join()
       )
     })
-  return groupSitUps(dedupeSitUps(normalizeSplits(ordered)))
+  return groupSitUps(dedupeSitUps(normalizeKomLeads(normalizeSplits(ordered))))
+}
+
+/**
+ * El liderato de la montaña, recalculado sobre la etapa entera. Desde la v13 el motor solo pone
+ * `leads` a 1 si el ganador está ESTRICTAMENTE por delante de todos los demás, pero las crónicas
+ * guardadas se emitieron con la comparación vieja (`>=` contra un máximo que se incluía a sí mismo)
+ * y por eso en Race Great Ocean tres corredores distintos «now lead the mountains classification»
+ * con UN punto cada uno. Aquí se rehace la cuenta con los puntos que los propios eventos traen: si
+ * el que corona no manda en solitario, no se canta el liderato.
+ */
+function normalizeKomLeads(entries: ChronicleEntry[]): ChronicleEntry[] {
+  const puntos = new Map<string, number>()
+  return entries.map((e) => {
+    if (e.plantilla !== 'climb_kom') return e
+    const quien = e.protagonists[0]?.name ?? ''
+    puntos.set(quien, (puntos.get(quien) ?? 0) + Number(e.datos?.points ?? 0))
+    if (e.datos?.leads !== 1) return e
+    const mios = puntos.get(quien) ?? 0
+    let mejorAjeno = 0
+    for (const [otro, pts] of puntos) if (otro !== quien) mejorAjeno = Math.max(mejorAjeno, pts)
+    if (mios > mejorAjeno) return e
+    return { ...e, datos: { ...e.datos, leads: 0 } }
+  })
 }
 
 /**

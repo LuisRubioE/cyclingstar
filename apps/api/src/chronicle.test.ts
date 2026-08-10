@@ -244,3 +244,32 @@ describe('lo que ya hacía la crónica sigue haciéndolo', () => {
     expect(out.map((e) => e.plantilla)).toEqual(['time_gap', 'breakaway_formed', 'stage_win'])
   })
 })
+
+describe('B5 · el liderato de la montaña de las crónicas viejas', () => {
+  const kom = (km: number, who: string): ChronicleEvent =>
+    ev({
+      km,
+      tS: km * 100,
+      plantilla: 'climb_kom',
+      protagonistas: [who],
+      // `leads: 1` es lo que emitía el motor viejo con la comparación no estricta: con un punto
+      // cada uno, los tres se proclamaban líderes (Race Great Ocean, producción).
+      datos: { category: 'cat3', points: 1, leads: 1 },
+    })
+
+  it('con un punto cada uno, solo lidera el primero', () => {
+    const out = buildChronicle(
+      [kom(60, 'a'), kom(111, 'b'), kom(161, 'c')],
+      chronicleNames([source('a'), source('b'), source('c')]),
+    )
+    expect(out.map((e) => e.datos?.leads)).toEqual([1, 0, 0])
+  })
+
+  it('el que suma de verdad sí lidera', () => {
+    const out = buildChronicle(
+      [kom(60, 'a'), kom(111, 'b'), kom(161, 'a')],
+      chronicleNames([source('a'), source('b')]),
+    )
+    expect(out.map((e) => e.datos?.leads)).toEqual([1, 0, 1])
+  })
+})

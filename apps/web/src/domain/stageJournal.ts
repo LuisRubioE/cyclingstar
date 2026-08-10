@@ -552,7 +552,7 @@ function chronicleTemplate(e: ChronicleEntry): string {
           return `The selection goes on and the last companions crack — ${who || 'the leader'} rides on alone.`
         return pick([
           `The selection goes on: ${group} is down from ${before} to ${remaining}.`,
-          `The climb keeps biting — ${dropped} more lose contact and only ${remaining} of the ${before} are left ${where}.`,
+          `The climb keeps biting — ${dropped} more lose${dropped === 1 ? 's' : ''} contact and only ${remaining} of the ${before} are left ${where}.`,
           `Another surge cuts ${group} again, from ${before} to ${remaining}.`,
         ])
       }

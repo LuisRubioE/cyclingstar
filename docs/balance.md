@@ -1973,6 +1973,9 @@ eventos están congelados y se renderizan al vuelo en cada visita.
   un `dropped` mayor que `before − remaining` se corrige con los dos números que sí cuadran.
 - **La concesión que luego se desmiente.** La crónica ve la etapa entera y el motor no: si hay
   `breakaway_caught` después, la concesión se marca `cazada` y se redacta en provisional.
+- **El liderato de la montaña de las etapas viejas.** Se rehace la cuenta con los puntos que traen
+  los propios eventos: los tres «he now leads the mountains classification» con un punto cada uno de
+  Race Great Ocean pasan a ser uno.
 
 ### Lo medido en producción, antes y después
 
