@@ -15,6 +15,7 @@ import { simulateStage } from '../stage/simulate.js'
 import { stageSeed } from '../stage/rng.js'
 import type { Block, StageRider } from '../stage/types.js'
 import { analyzeErosion, analyzeFlat, analyzeMountain, analyzeTimeTrial } from './analyze.js'
+import { analyzeGrandTour, runGrandTour } from './grandTour.js'
 import { SEASON_CALENDAR } from '../routes/calendar.js'
 import {
   campaignSeeds,
@@ -220,6 +221,33 @@ describe('la erosión no satura en ninguna clásica (docs/motor.md §VI.1)', () 
       }
     }
     expect(saturated).toEqual([])
+  })
+})
+
+describe('abandonos en una gran vuelta (docs/motor.md §VI.3)', () => {
+  /**
+   * El criterio de éxito de la v14, y el único invariante del banco que no se mide sobre una etapa
+   * suelta: «una gran vuelta de 21 etapas empieza con ~176 y termina con entre 140 y 155».
+   *
+   * Se mide sobre la MEDIA de varias vueltas y no sobre una. Una vuelta suelta oscila entre el 12 %
+   * y el 21 % según le caigan las caídas (medido, 8 semillas), así que un invariante sobre una sola
+   * sería intermitente; con seis, la media se queda en 15-17 %. Seis vueltas de 21 etapas con 176
+   * corredores son ~2 minutos, de ahí el timeout.
+   */
+  it('el pelotón adelgaza entre un 12% y un 20% en tres semanas', { timeout: 300000 }, () => {
+    const stats = analyzeGrandTour(6)
+    expect(stats.runs).toBe(6)
+    expectInRange(stats.abandonPct, TARGETS.grandTour.abandonPct)
+  })
+
+  it('el tope del 4% por etapa nunca se rebasa', { timeout: 300000 }, () => {
+    // Salvaguarda 1 de §VI.3, y la que de verdad protege la carrera: la hemorragia es el riesgo
+    // real de esta mecánica. Se comprueba etapa a etapa sobre una vuelta entera.
+    const tour = runGrandTour('tope-4pct')
+    const gone = tour.starters - tour.finishers
+    expect(gone).toBeGreaterThan(0)
+    // 21 etapas × 4 % de un pelotón que mengua: la cota superior holgada es 21 · 0,04 · 176.
+    expect(gone).toBeLessThan(Math.ceil(21 * 0.04 * tour.starters))
   })
 })
 

@@ -1,0 +1,280 @@
+/**
+ * LA GRAN VUELTA DEL BANCO (docs/motor.md §VI.3). Una vuelta de 21 etapas con 176 corredores
+ * corrida entera, día a día, en PURO MOTOR: sin base de datos y sin reloj.
+ *
+ * Existe por una razón concreta: el criterio de éxito de los abandonos —«empezar con ~176 y terminar
+ * con entre 140 y 155»— no se puede medir sobre una etapa suelta. Es una propiedad de TRES SEMANAS:
+ * la fatiga que se acumula día tras día, el depósito que mengua con el TSB, las caídas que se van
+ * sumando y el pelotón que adelgaza. Los escenarios canónicos (`llana-180`, `reina-150`) son etapas
+ * sueltas de 40 corredores y no pueden decir nada de eso.
+ *
+ * **Reproduce lo que hace `packages/db` en el tick**, y a propósito comparte con él las funciones
+ * que deciden (`injuryEndsRace`, `raceIllnessProbability`): si producción y el banco no llaman a lo
+ * mismo, el invariante mide otra cosa que el juego.
+ *
+ * Puro y determinista: todo el azar sale de `seededRng` con semillas derivadas de `worldSeed`.
+ */
+import { ATTRIBUTES, type Attribute, type Vocation, seededRng } from '@cyclingstar/shared'
+import { applyDailyLoad, eff0, initialEnergy, raceIllnessProbability } from '../banister.js'
+import { STAGE } from '../constants.js'
+import { SEASON_CALENDAR } from '../routes/calendar.js'
+import { injuryEndsRace } from '../stage/abandon.js'
+import { matchCount } from '../stage/physics.js'
+import { stageSeed } from '../stage/rng.js'
+import { simulateStage, stageTss } from '../stage/simulate.js'
+import type { Incident, StageOrders, StageRider } from '../stage/types.js'
+import { autoStageOrders } from '../world/autoOrders.js'
+import { generateNpcRider, sampleNpcAge } from '../world/npc.js'
+
+/** La gran vuelta canónica del calendario: 21 etapas con dos cronos y siete finales en alto. */
+export const GRAND_TOUR_ID = 'race-france'
+
+/** 22 equipos de 8: el tamaño real del pelotón de una gran vuelta. */
+const TEAMS = 22
+const RIDERS_PER_TEAM = 8
+/** Los cuatro últimos equipos son invitados de segunda división (SPEC 8: `openTo`). */
+const WORLD_TOUR_TEAMS = 18
+const VOCATIONS: Vocation[] = ['escalada', 'velocidad', 'clasicas', 'crono', 'fondo']
+
+/**
+ * Estado de un corredor entre etapas. Es EXACTAMENTE lo que `packages/db` lee de `riders` y
+ * `rider_hidden` para construir el `StageRider` de cada día.
+ */
+interface TourRider {
+  riderId: string
+  teamId: string
+  attrs: Record<Attribute, number>
+  fragility: number
+  ctl: number
+  atl: number
+  morale: number
+  rec: number
+}
+
+/** Por qué se fue cada uno. Son las tres causas de docs/motor.md §VI.3, con la cuarta desglosada. */
+export interface AbandonCauses {
+  /** Se bajó de la bici en carretera con el tanque a cero (motor: `estado: 'abandon'`). */
+  colapso: number
+  /** Llegó fuera del corte de tiempo (motor: `estado: 'dnf'`). */
+  fueraControl: number
+  /** Caída con lesión: no toma la salida al día siguiente (capa de datos). */
+  lesion: number
+  /** Enfermó durante la carrera: no toma la salida al día siguiente (capa de datos). */
+  enfermedad: number
+}
+
+export interface GrandTourResult {
+  starters: number
+  finishers: number
+  /** % del pelotón que abandona en las tres semanas (objetivo de §VI.3: 12-20 %). */
+  abandonPct: number
+  causes: AbandonCauses
+  /** Veces que una etapa tocó el tope del 4 % (salvaguarda 1 de §VI.3). */
+  capHitStages: number
+  /** Corredores readmitidos con penalización tras el corte de tiempo (salvaguarda 1). */
+  readmitted: number
+  /** Etapas en las que hubo alguna readmisión. */
+  readmissionStages: number
+}
+
+/** El pelotón de salida: 22 equipos de 8, deterministas desde la semilla del mundo. */
+function buildField(worldSeed: string): TourRider[] {
+  const rng = seededRng(`${worldSeed}:gt-field`)
+  const field: TourRider[] = []
+  for (let t = 0; t < TEAMS; t++) {
+    for (let k = 0; k < RIDERS_PER_TEAM; k++) {
+      const riderId = `gt-${t}-${k}`
+      const vocation = VOCATIONS[Math.floor(rng() * VOCATIONS.length)]!
+      const age = sampleNpcAge(`${worldSeed}:${riderId}:age`)
+      const genome = generateNpcRider(`${worldSeed}:${riderId}`, {
+        division: t < WORLD_TOUR_TEAMS ? 'WT' : 'PRS',
+        vocation,
+        age,
+      })
+      field.push({
+        riderId,
+        teamId: `gt-team-${t}`,
+        attrs: genome.attributes,
+        fragility: genome.hidden.fragility,
+        // Un pelotón que llega a una gran vuelta: con fondo hecho y razonablemente fresco. El
+        // desgaste de las tres semanas lo pone luego `applyDailyLoad`, que es de lo que va esto.
+        ctl: 55 + 25 * rng(),
+        atl: 45 + 20 * rng(),
+        morale: 55 + 20 * rng(),
+        rec: genome.attributes.REC,
+      })
+    }
+  }
+  return field
+}
+
+const NEUTRAL_ORDERS: StageOrders = {
+  role: 'libre',
+  mentality: 'reservon',
+  contestSprints: false,
+  contestClimbs: false,
+}
+
+/**
+ * Corre una gran vuelta completa y devuelve cuántos terminan y por qué se fueron los demás.
+ * El bucle es el del tick: construir el campo del día con su estado, simular, aplicar la carga,
+ * y decidir quién no toma la salida mañana.
+ */
+export function runGrandTour(worldSeed: string): GrandTourResult {
+  const race = SEASON_CALENDAR.find((r) => r.id === GRAND_TOUR_ID)
+  if (!race) throw new Error(`Banco de la gran vuelta: no existe ${GRAND_TOUR_ID}`)
+  const field = buildField(worldSeed)
+  const alive = new Map(field.map((r) => [r.riderId, { ...r }]))
+  const starters = alive.size
+  const causes: AbandonCauses = { colapso: 0, fueraControl: 0, lesion: 0, enfermedad: 0 }
+  let capHitStages = 0
+  let readmitted = 0
+  let readmissionStages = 0
+
+  for (const stage of race.stages) {
+    const racing = [...alive.values()]
+    if (racing.length === 0) break
+    const orders = autoStageOrders(
+      racing.map((r) => ({ riderId: r.riderId, attrs: r.attrs, teamId: r.teamId })),
+      { kind: stage.kind, timeTrial: stage.timeTrial === true },
+    )
+    const riders: StageRider[] = racing.map((r) => {
+      const tsb = r.ctl - r.atl
+      const eff = {} as Record<Attribute, number>
+      for (const a of ATTRIBUTES) eff[a] = eff0(r.attrs[a], r.ctl, tsb, 'sano', r.morale)
+      return {
+        riderId: r.riderId,
+        eff0: eff,
+        energy: initialEnergy(r.ctl, tsb, 'sano'),
+        matches: matchCount(eff, tsb, false),
+        tsb,
+        orders: orders.get(r.riderId) ?? NEUTRAL_ORDERS,
+        gcDeficitSeconds: 0,
+        fragility: r.fragility,
+      }
+    })
+    const out = simulateStage(
+      {
+        profile: stage.profile,
+        riders,
+        ...(stage.timeTrial === true ? { timeTrial: true } : {}),
+      },
+      // `engineVersion: 1` FIJO en la semilla, como el resto del banco (`campaignSeeds`): el
+      // objetivo mide el comportamiento del motor, y si la semilla se moviera con cada versión no
+      // se podría distinguir un cambio de calibración de un cambio de dados.
+      stageSeed({ worldSeed, raceId: GRAND_TOUR_ID, stageDay: stage.index, engineVersion: 1 }),
+    )
+
+    // 1. La carga del día sube el ATL de todos los que corrieron: es lo que hunde el TSB semana a
+    //    semana y, con él, el depósito de mañana (docs/motor.md §VI.1).
+    for (const r of racing) {
+      const tss = stageTss(out.workUnits.get(r.riderId) ?? 0)
+      const load = applyDailyLoad({ ctl: r.ctl, atl: r.atl }, tss, r.rec)
+      r.ctl = load.ctl
+      r.atl = load.atl
+    }
+
+    // 2. Lo que decidió el MOTOR dentro de la etapa: colapso y fuera de control.
+    let goneThisStage = 0
+    for (const result of out.results) {
+      if (result.estado === 'finish') continue
+      if (result.estado === 'abandon') causes.colapso += 1
+      else causes.fueraControl += 1
+      alive.delete(result.riderId)
+      goneThisStage += 1
+    }
+    const cap = Math.floor(STAGE.abandonStageCapFraction * riders.length)
+    if (cap > 0 && goneThisStage >= cap) {
+      capHitStages += 1
+    }
+    const back = out.events
+      .filter((e) => e.plantilla === 'time_cut_readmitted')
+      .reduce((acc, e) => acc + Number(e.datos?.count ?? 0), 0)
+    if (back > 0) {
+      readmitted += back
+      readmissionStages += 1
+    }
+
+    // 3. Lo que decide la CAPA DE DATOS, que es la que sabe que hay un mañana: la lesión que impide
+    //    tomar la salida y la enfermedad contraída en carrera (docs/motor.md §VI.3).
+    const worst = new Map<string, Incident>()
+    for (const inc of out.incidents) {
+      const prev = worst.get(inc.riderId)
+      if (!prev || inc.diasBaja > prev.diasBaja) worst.set(inc.riderId, inc)
+    }
+    for (const [riderId, inc] of worst) {
+      if (!alive.has(riderId)) continue
+      if (inc.diasBaja <= 0) continue
+      if (!injuryEndsRace(inc.severidad, inc.diasBaja)) continue
+      alive.delete(riderId)
+      causes.lesion += 1
+    }
+    // La última etapa no tiene un «mañana» al que no tomar la salida.
+    if (stage.index < race.stages.length) {
+      for (const r of [...alive.values()]) {
+        const rng = seededRng(`${worldSeed}:ill:${GRAND_TOUR_ID}:${stage.index}:${r.riderId}`)
+        if (rng() >= raceIllnessProbability(r.fragility, r.ctl - r.atl)) continue
+        alive.delete(r.riderId)
+        causes.enfermedad += 1
+      }
+    }
+  }
+
+  const finishers = alive.size
+  return {
+    starters,
+    finishers,
+    abandonPct: (100 * (starters - finishers)) / starters,
+    causes,
+    capHitStages,
+    readmitted,
+    readmissionStages,
+  }
+}
+
+export interface GrandTourStats {
+  runs: number
+  /** Media del % de abandonos de las vueltas corridas (objetivo 12-20 %). */
+  abandonPct: number
+  minAbandonPct: number
+  maxAbandonPct: number
+  medianFinishers: number
+  causes: AbandonCauses
+  capHitStages: number
+  readmitted: number
+  readmissionStages: number
+}
+
+/** Corre N grandes vueltas deterministas y agrega el objetivo de §VI.3. */
+export function analyzeGrandTour(runs: number): GrandTourStats {
+  const causes: AbandonCauses = { colapso: 0, fueraControl: 0, lesion: 0, enfermedad: 0 }
+  const pcts: number[] = []
+  const finishers: number[] = []
+  let capHitStages = 0
+  let readmitted = 0
+  let readmissionStages = 0
+  for (let i = 0; i < runs; i++) {
+    const r = runGrandTour(`gran-vuelta-${i}`)
+    pcts.push(r.abandonPct)
+    finishers.push(r.finishers)
+    causes.colapso += r.causes.colapso
+    causes.fueraControl += r.causes.fueraControl
+    causes.lesion += r.causes.lesion
+    causes.enfermedad += r.causes.enfermedad
+    capHitStages += r.capHitStages
+    readmitted += r.readmitted
+    readmissionStages += r.readmissionStages
+  }
+  const sorted = [...finishers].sort((a, b) => a - b)
+  return {
+    runs,
+    abandonPct: pcts.reduce((a, b) => a + b, 0) / Math.max(1, runs),
+    minAbandonPct: Math.min(...pcts),
+    maxAbandonPct: Math.max(...pcts),
+    medianFinishers: sorted[Math.floor(sorted.length / 2)] ?? 0,
+    causes,
+    capHitStages,
+    readmitted,
+    readmissionStages,
+  }
+}

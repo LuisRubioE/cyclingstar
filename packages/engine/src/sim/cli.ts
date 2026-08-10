@@ -8,6 +8,7 @@
  * mientras CI pasaba en verde (docs/motor.md §3-bis-h).
  */
 import { analyzeErosion, analyzeFlat, analyzeMountain, analyzeTimeTrial } from './analyze.js'
+import { analyzeGrandTour } from './grandTour.js'
 import {
   campaignSeeds,
   flatScenario,
@@ -109,8 +110,27 @@ function main(): void {
     `  erosión mediana ${realQueenEro.medianErosion.toFixed(3)} · gasto ${(100 * realQueenEro.medianDepletion).toFixed(0)}% · pájaras ${realQueenEro.bonkPct.toFixed(0)}%  (objetivo de diseño 0.60-0.85 y pájaras marginales — ver docs/balance.md, «la reina real de tercera semana»)`,
   )
 
+  // ABANDONOS (docs/motor.md §VI.3): la única medida del banco que no sale de una etapa suelta.
+  // Correr una gran vuelta de 21 etapas con 176 corredores cuesta ~22 s, así que el número de
+  // vueltas no escala con `runs`: son unas pocas y su MEDIA, que es lo que el objetivo mide.
+  const tourRuns = Math.max(4, Math.min(12, Math.round(runs / 60)))
+  const gt = analyzeGrandTour(tourRuns)
+  const totalCauses =
+    gt.causes.fueraControl + gt.causes.lesion + gt.causes.colapso + gt.causes.enfermedad
+  const share = (n: number): string => `${Math.round((100 * n) / Math.max(1, totalCauses))}%`
+  const gtOk = report(
+    'gran vuelta (21 etapas, 176 corredores)',
+    tourRuns,
+    [{ target: TARGETS.grandTour.abandonPct, value: gt.abandonPct }],
+    [
+      `Terminan ${gt.medianFinishers} de 176 (mediana) · por vuelta ${gt.minAbandonPct.toFixed(1)}-${gt.maxAbandonPct.toFixed(1)}%`,
+      `Causas: fuera de control ${share(gt.causes.fueraControl)} (objetivo 45%) · lesión ${share(gt.causes.lesion)} (40%) · colapso ${share(gt.causes.colapso)} + enfermedad ${share(gt.causes.enfermedad)} (15%)`,
+      `Salvaguardas: tope del 4% tocado en ${gt.capHitStages} etapas · ${gt.readmitted} readmitidos con penalización en ${gt.readmissionStages} etapas`,
+    ].join('\n  '),
+  )
+
   console.log('')
-  process.exit(flatOk && mtnOk && ttOk && eroOk ? 0 : 1)
+  process.exit(flatOk && mtnOk && ttOk && eroOk && gtOk ? 0 : 1)
 }
 
 main()

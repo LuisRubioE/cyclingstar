@@ -67,4 +67,15 @@ export const TARGETS = {
       unit: '',
     },
   },
+  /**
+   * ABANDONOS en una gran vuelta de 21 etapas (docs/motor.md §VI.3). Es el criterio de éxito de la
+   * v14 y el único objetivo del banco que NO se mide sobre una etapa suelta: sale de correr la
+   * vuelta entera con su fatiga acumulada (`sim/grandTour.ts`).
+   */
+  grandTour: {
+    // El rango real: se sale con ~176 y se termina con 140-155. Se mide sobre la MEDIA de varias
+    // vueltas, no sobre una: una vuelta suelta oscila entre el 12 % y el 21 % según le caigan las
+    // caídas, y un invariante que dependa de eso es un invariante intermitente.
+    abandonPct: { label: 'Abandonos en una gran vuelta', min: 12, max: 20, unit: '%' },
+  },
 } as const satisfies Record<string, Record<string, Target>>
