@@ -3,6 +3,16 @@ import { ENGINE_VERSION } from './index.js'
 
 describe('engine: esqueleto', () => {
   it('expone una engine_version sellada', () => {
+    // v16: EL MODELO DE PERSECUCIÓN (docs/motor.md §9, docs/balance.md «v16») — la última deuda de
+    // fondo del motor. El tiempo de un grupo descolgado dejaba de ser física en dos líneas: un
+    // RECORTE FIJO de 8 s/km que le devolvía el boquete pasara lo que pasara y un TOPE que le
+    // clavaba el reloj del pelotón si iba más rápido. Ahora su ritmo sale de `droppedCommit`:
+    // relevarse reparte el viento (1/n del tiempo en cabeza), eso vale lo que valga el rebufo del
+    // terreno —en la subida, casi nada— y primero se PELEA por volver y luego uno se resigna. Con
+    // él, un puerto de tempo lejos de meta deja de descuajaringar el pelotón (`climbTempoSelection`)
+    // y los descolgados dejan de ser invisibles para las caídas. El último grupo de una etapa reina
+    // de gran vuelta pasa de entrar al 2 % del tiempo del ganador a entrar al 9 %, que es lo que
+    // hace el grupeto en carretera, y con ello el corte de tiempo por fin señala a alguien.
     // v15: EL PLAN DE EQUIPO (docs/motor.md §V.1, docs/balance.md «v15») — la última pieza del plan
     // del motor. `StageRider` trae por fin `teamId` (nulo = agente libre, que corre solo) y con él
     // cada equipo tiene una INTENCIÓN —perseguir, lanzar, controlar, proteger, defender al hombre
@@ -34,10 +44,10 @@ describe('engine: esqueleto', () => {
     // por las estrellas del sector) y, mucho más suave, en las bajadas de verdad (con DES). Con él,
     // el sector se corre en vez de rodarse, dentro del sector no hay reenganche, y la puerta del
     // pelotón se cierra según lo que aprieta. Entra Strade Bianche.
-    // Sobre la v13 (identidad y motivo en el journal), la v12 (selección en pavé y descenso), la
+    // Sobre la v15 (plan de equipo), la v14 (abandonos), la v13 (identidad y motivo en el journal), la v12 (selección en pavé y descenso), la
     // v11 (atribución del trabajo), la v10 (composición y caza), la v9 (capa táctica), la
     // v8 (tiempos de grupo), la v7 (modelo de final), la v6 (telemetría), la v5 (clásica larga), la
     // v4 (pavé en el recorrido) y la v3 (Cambio 0).
-    expect(ENGINE_VERSION).toBe(15)
+    expect(ENGINE_VERSION).toBe(16)
   })
 })

@@ -47,8 +47,23 @@ export const TARGETS = {
   erosion: {
     // Una llana rodada en pelotón no debe erosionar al corredor fresco (mediana del campo).
     flatFresh: { label: 'Erosión mediana, llana en fresco', min: 0, max: 0.02, unit: '' },
-    // Una etapa reina sí: el último puerto se paga.
-    queenFresh: { label: 'Erosión mediana, reina en fresco', min: 0.2, max: 0.5, unit: '' },
+    /**
+     * Una etapa reina sí: el último puerto se paga.
+     *
+     * EL SUELO BAJA DE 0,20 A 0,18 EN LA v16, y es el único rango de toda la batería que se mueve.
+     * Medido: 0,211 → 0,190 sobre 500 corridas. La causa está identificada y comprobada —con el
+     * grupeto peleando siempre (el modelo de la v15) sale otra vez 0,211 exacto—: en `reina-150` el
+     * puerto son los últimos 15 km y más de la mitad del campo los sube ya descolgada, así que lo
+     * que esta mediana mide hoy es, en buena parte, **lo que el grupeto AHORRA**. Y ahorra: para eso
+     * existe el autobús. El número nuevo es el realista; el viejo describía un pelotón en el que
+     * nadie podía administrar porque un recorte fijo le devolvía el boquete igual.
+     *
+     * Se comprobó la alternativa —re-anclar el objetivo sobre la etapa reina REAL, como hizo la v15
+     * con la de tercera semana— y ahí el cambio apenas se nota (0,521 → 0,512, 25 corridas de Race
+     * France e18): habría exigido mover el TECHO en vez del suelo, porque la reina real erosiona
+     * 0,51. Se prefiere conservar el punto de medida y anotar el suelo nuevo.
+     */
+    queenFresh: { label: 'Erosión mediana, reina en fresco', min: 0.18, max: 0.5, unit: '' },
     // Una CLÁSICA LARGA de un día (monumento de 250+ km) en fresco: más dura que una etapa reina de
     // vuelta (0,20-0,50) porque son 100 km más, y sin llegar a la tercera semana de una gran vuelta,
     // donde la fatiga acumulada viene de casa. Se mide sobre el recorrido REAL del Ronde van

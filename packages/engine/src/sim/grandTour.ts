@@ -78,6 +78,16 @@ export interface StageTail {
   groups: number
   /** ¿Terminó el pelotón ENTERO con el mismo segundo? */
   oneGroup: boolean
+  /**
+   * % de los clasificados que comparten el tiempo del GANADOR. Es la otra mitad de la medida y la
+   * que vigila que arreglar la cola no convierta una llana en un abanico: en una etapa llana que
+   * acaba al sprint el grupo principal tiene que seguir llegando junto.
+   */
+  winnerGroupPct: number
+  /** Brecha entre el 1.º y el 10.º del día, en segundos (SPEC 6.17). */
+  top10GapSeconds: number
+  /** ¿Ganó alguien llegado DESDE LA CARRETERA (fuga o ataque), y no con el grupo perseguidor? */
+  wonFromMove: boolean
 }
 
 export interface GrandTourResult {
@@ -203,6 +213,10 @@ export function runGrandTour(worldSeed: string): GrandTourResult {
           lastGroupPct: (100 * (last - winner)) / winner,
           groups: clocks.size,
           oneGroup: clocks.size === 1,
+          winnerGroupPct:
+            (100 * timed.filter((r) => r.tiempoS === winner).length) / timed.length,
+          top10GapSeconds: (timed[9]?.tiempoS ?? winner) - winner,
+          wonFromMove: out.events.find((e) => e.tipo === 'meta')?.datos?.fuga === 1,
         })
       }
     }
@@ -286,17 +300,28 @@ export interface TailStats {
   medianGroups: number
   /** % de etapas de ese tipo que terminan con el pelotón ENTERO al mismo segundo. */
   oneGroupPct: number
+  /** % del pelotón que comparte el tiempo del ganador (mediana de las etapas de ese tipo). */
+  medianWinnerGroupPct: number
+  /** Brecha mediana 1.º-10.º, en segundos (SPEC 6.17). */
+  medianTop10GapSeconds: number
+  /** % de etapas ganadas DESDE LA CARRETERA (fuga o ataque que aguanta). */
+  wonFromMovePct: number
 }
 
 function tailStats(tails: StageTail[]): TailStats {
   const pcts = [...tails.map((t) => t.lastGroupPct)].sort((a, b) => a - b)
   const groups = [...tails.map((t) => t.groups)].sort((a, b) => a - b)
+  const shares = [...tails.map((t) => t.winnerGroupPct)].sort((a, b) => a - b)
   const mid = <T,>(v: T[]): T | undefined => v[Math.floor(v.length / 2)]
   return {
     stages: tails.length,
     medianLastGroupPct: mid(pcts) ?? 0,
     maxLastGroupPct: pcts[pcts.length - 1] ?? 0,
     medianGroups: mid(groups) ?? 0,
+    medianWinnerGroupPct: mid(shares) ?? 0,
+    medianTop10GapSeconds: mid([...tails.map((t) => t.top10GapSeconds)].sort((a, b) => a - b)) ?? 0,
+    wonFromMovePct:
+      tails.length === 0 ? 0 : (100 * tails.filter((t) => t.wonFromMove).length) / tails.length,
     oneGroupPct:
       tails.length === 0 ? 0 : (100 * tails.filter((t) => t.oneGroup).length) / tails.length,
   }

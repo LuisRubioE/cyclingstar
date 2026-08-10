@@ -225,11 +225,22 @@ describe.each(terrainCases())('invariantes del motor — $name', ({ name, input 
 
   it('clasifica a todos exactamente una vez, con puestos 1..N sin huecos', () => {
     expect(out.results).toHaveLength(n)
-    expect(out.results.map((r) => r.puesto)).toEqual(Array.from({ length: n }, (_, i) => i + 1))
     const ids = out.results.map((r) => r.riderId)
     expect(new Set(ids).size).toBe(n)
     expect([...ids].sort()).toEqual(input.riders.map((r) => r.riderId).sort())
-    for (const r of out.results) expect(r.estado).toBe('finish')
+    // Los CLASIFICADOS llevan puesto 1..K sin huecos; el que no está clasificado —se retiró o llegó
+    // fuera de control— lleva puesto 0, que es como el motor lo dice desde la v14.
+    //
+    // Hasta la v15 estos cuatro bancos terminaban SIEMPRE con los N clasificados, y no porque la
+    // regla lo garantizase: con el recorte fijo de `chaseBackSecondsPerKm` nadie perdía tiempo
+    // suficiente para que el corte le señalara. Desde la v16 el peor adoquinero del banco de pavés
+    // —25 km de 4★— entra a 427 s del ganador, un 8,5 %, y el corte del 8 % lo deja fuera: eso es
+    // exactamente lo que este cambio venía a arreglar, y la etapa sigue estando bien formada.
+    const classified = out.results.filter((r) => r.estado === 'finish')
+    expect(classified.map((r) => r.puesto)).toEqual(
+      Array.from({ length: classified.length }, (_, i) => i + 1),
+    )
+    for (const r of out.results) if (r.estado !== 'finish') expect(r.puesto).toBe(0)
   })
 
   it('los tiempos son finitos, positivos y no decrecen con el puesto', () => {
@@ -940,12 +951,21 @@ describe('una criba sostenida no genera diez frases clónicas (v8)', () => {
 
 // --- El reagrupamiento existe y ahora se cuenta (v8) ----------------------------------------
 // La crónica decía "about 51 left in front" y en meta llegaban más de cien juntos. Medido: no
-// mentían las cuentas, faltaba el evento. Los descolgados recortan `chaseBackSecondsPerKm` en
-// llano y se reenganchan dentro de `regroupGapSeconds`, así que el grupo se recompone de verdad
-// entre el último puerto y la meta — y el motor no lo contaba en ninguna parte.
+// mentían las cuentas, faltaba el evento. Los cortados vuelven y se reenganchan dentro de
+// `regroupGapSeconds`, así que el grupo se recompone de verdad entre el último puerto y la meta — y
+// el motor no lo contaba en ninguna parte.
+//
+// EL BANCO CAMBIA EN LA v16, y conviene decir por qué. Era un puerto de 14 km al 8% con 26 km de
+// llano detrás, y se recomponía en las 8 semillas… porque el recorte fijo de 8 s/km le devolvía el
+// boquete al descolgado pasara lo que pasara. Con el recorte fuera, ese puerto es una SELECCIÓN: 14
+// km al 8% a 26 de meta dejan delante a nueve corredores y detrás a setenta, y setenta no cazan a
+// nueve en 26 km de llano —eso es una etapa de montaña, no un reagrupamiento—. El banco pasa a un
+// puerto que PARTE el pelotón sin destrozarlo (12 km al 7%) con 30 km de valle detrás, que es el
+// caso que este test vigila: los cortados vuelven, y cuando vuelven hay una frase que lo cuenta.
+// Medido: 8 de 8 semillas antes y después del cambio. La aserción NO se ha tocado.
 
 describe('el reagrupamiento se narra (v8)', () => {
-  /** Puerto duro a 40 km de meta y 26 km de llano después: los cortados vuelven antes de la línea. */
+  /** Puerto a 42 km de meta y 30 km de valle después: los cortados vuelven antes de la línea. */
   function regroupInput(): StageInput {
     const riders: StageRider[] = []
     for (let i = 0; i < 6; i++) {
@@ -965,8 +985,8 @@ describe('el reagrupamiento se narra (v8)', () => {
       profile: {
         segments: [
           { km: 100, tipo: 'llano' },
-          { km: 14, tipo: 'puerto', tramos: [{ km: 14, g: 8 }] },
-          { km: 26, tipo: 'llano' },
+          { km: 12, tipo: 'puerto', tramos: [{ km: 12, g: 7 }] },
+          { km: 30, tipo: 'llano' },
         ],
       },
       riders,
@@ -1349,9 +1369,14 @@ describe('abandonos en carretera y fuera de control (docs/motor.md §VI.3)', () 
     const readmit = out.events.find((e) => e.plantilla === 'time_cut_readmitted')
     expect(readmit).toBeDefined()
     expect(Number(readmit!.datos!.count)).toBeGreaterThan(1)
-    // Salvaguarda 1: el tope de esta etapa es 1 corredor (4% de 32), así que NADIE se elimina.
-    expect(out.events.some((e) => e.plantilla === 'time_cut')).toBe(false)
-    expect(out.results.every((r) => r.estado === 'finish')).toBe(true)
+    // Salvaguarda 1: el tope de esta etapa es 1 corredor (4 % de 32). Lo que la regla garantiza es
+    // que el GRUPO NUMEROSO se readmite y que como mucho se van los que quepan en el tope, nunca
+    // que no se vaya nadie: eso era una propiedad de este banco concreto, no de la salvaguarda.
+    // Desde la v16 el más rezagado llega solo —el grupeto ya no vuelve gratis— y su grupo de UNO sí
+    // cabe en el tope, así que se elimina él y se readmite a los demás. Es la regla, literal.
+    const cap = Math.floor(STAGE.abandonStageCapFraction * 32)
+    expect(out.results.filter((r) => r.estado !== 'finish').length).toBeLessThanOrEqual(cap)
+    expect(Number(readmit!.datos!.count)).toBeGreaterThan(cap)
     // La penalización del reglamento: los readmitidos pierden los puntos de la etapa.
     const readmitted = new Set(readmit!.protagonistas)
     for (const r of out.results) {

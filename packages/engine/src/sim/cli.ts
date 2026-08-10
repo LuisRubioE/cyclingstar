@@ -146,7 +146,7 @@ function main(): void {
   // adorno: en una llana que acaba al sprint el pelotón entero comparte tiempo y eso es CORRECTO;
   // en una reina, no.
   const tailLine = (name: string, t: (typeof gt.tails)['reina']): string =>
-    `${name.padEnd(6)} ${t.stages.toString().padStart(3)} etapas · último grupo ${t.medianLastGroupPct.toFixed(1).padStart(5)}% (peor ${t.maxLastGroupPct.toFixed(1)}%) · ${t.medianGroups} grupos en meta · mismo segundo ${t.oneGroupPct.toFixed(0)}%`
+    `${name.padEnd(6)} ${t.stages.toString().padStart(3)} etapas · último grupo ${t.medianLastGroupPct.toFixed(1).padStart(5)}% (peor ${t.maxLastGroupPct.toFixed(1)}%) · ${t.medianGroups} grupos en meta · con el ganador ${t.medianWinnerGroupPct.toFixed(0)}% · mismo segundo ${t.oneGroupPct.toFixed(0)}%`
   const gtOk = report(
     'gran vuelta (21 etapas, 176 corredores)',
     tourRuns,
