@@ -197,6 +197,13 @@
       "when": 1786085558992,
       "tag": "0027_clasificacion_equipos",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1786355779187,
+      "tag": "0028_abandonos_motivo",
+      "breakpoints": true
     }
   ]
 }

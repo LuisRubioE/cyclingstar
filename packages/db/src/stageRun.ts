@@ -12,14 +12,16 @@ import {
   eff0,
   gcPointsByClass,
   initialEnergy,
+  injuryEndsRace,
   isDeepDepleted,
   matchCount,
+  raceIllnessProbability,
   simulateStage,
   stagePointsByClass,
   stageSeed,
   stageTss,
 } from '@cyclingstar/engine'
-import { ATTRIBUTES, type Attribute } from '@cyclingstar/shared'
+import { ATTRIBUTES, type Attribute, seededRng } from '@cyclingstar/shared'
 import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import { BATCH_ROWS, type BatchValue, inChunks, valuesList } from './batch.js'
@@ -150,12 +152,19 @@ export async function runOneStage(
   }
 
   const hiddenRows = await tx
-    .select({ riderId: riderHidden.riderId, ceilings: riderHidden.ceilings })
+    .select({
+      riderId: riderHidden.riderId,
+      ceilings: riderHidden.ceilings,
+      fragility: riderHidden.fragility,
+    })
     .from(riderHidden)
     .where(inArray(riderHidden.riderId, riderIds))
   const ceilingsByRider = new Map(
     hiddenRows.map((h) => [h.riderId, h.ceilings as Record<Attribute, number>]),
   )
+  // Fragilidad oculta (SPEC 3.4): escala la probabilidad de enfermar en carrera (docs/motor.md
+  // §VI.3). Por defecto 1 para los corredores antiguos sin fila en `rider_hidden`.
+  const fragilityByRider = new Map(hiddenRows.map((h) => [h.riderId, h.fragility]))
 
   const orderRows = await tx
     .select()
@@ -317,8 +326,36 @@ export async function runOneStage(
   const raced = new Set<string>()
   const gcByRider = new Map(gcRows.map((r) => [r.riderId, r]))
 
+  /**
+   * ABANDONOS DEL MOTOR (v14, docs/motor.md §VI.3). `estado` deja de ser siempre `'finish'`: el que
+   * se bajó de la bici (`abandon`) y el que llegó fuera de control (`dnf`) NO están clasificados, así
+   * que no tienen fila en `stage_results`, no suman en la general, no puntúan en la clasificación
+   * por equipos y no reciben puntos de temporada. Lo único que sí reciben es la CARGA del día: han
+   * corrido lo que han corrido y el Banister tiene que enterarse.
+   */
+  const nonFinishers = output.results.filter((r) => r.estado !== 'finish')
+
   for (const result of output.results) {
     raced.add(result.riderId)
+    if (result.estado !== 'finish') {
+      // Solo la carga del día; el resto de la contabilidad de la etapa no le corresponde.
+      const state = riderState.get(result.riderId)
+      if (state) {
+        const tss = stageTss(output.workUnits.get(result.riderId) ?? 0)
+        const load = applyDailyLoad({ ctl: state.ctl, atl: state.atl }, tss, state.attributes.REC)
+        loadValues.push([result.riderId, load.ctl, load.atl])
+        dailyLogValues.push({
+          riderId: result.riderId,
+          gameDay,
+          tss,
+          ctl: load.ctl,
+          atl: load.atl,
+          tsb: load.tsb,
+          activity: `carrera:${spec.raceId}:e${spec.stageDay}`,
+        })
+      }
+      continue
+    }
     const bonificacionS = isOneDay ? 0 : result.bonificacionS
     resultValues.push({
       raceId: spec.raceKey,
@@ -414,13 +451,17 @@ export async function runOneStage(
   // filas, así que basta con escribir la etapa. Una sola sentencia en lote, como todo lo de arriba:
   // el tick no puede permitirse una consulta por equipo.
   const teamValues: (typeof stageTeamResults.$inferInsert)[] = teamStageScores(
-    output.results.map((r) => ({
-      riderId: r.riderId,
-      // Los agentes libres (sin equipo) no entran en la agregación; `teamStageScores` los descarta.
-      teamId: riderById.get(r.riderId)?.teamId ?? null,
-      puesto: r.puesto,
-      tiempoS: r.tiempoS,
-    })),
+    // Solo los CLASIFICADOS: el que abandonó no llegó a meta y su equipo puede quedarse corto, que
+    // es exactamente la regla UCI que ya describe SPEC 6.15 («equipo incompleto»).
+    output.results
+      .filter((r) => r.estado === 'finish')
+      .map((r) => ({
+        riderId: r.riderId,
+        // Los agentes libres (sin equipo) no entran en la agregación: `teamStageScores` los descarta.
+        teamId: riderById.get(r.riderId)?.teamId ?? null,
+        puesto: r.puesto,
+        tiempoS: r.tiempoS,
+      })),
   ).map((score) => ({
     raceId: spec.raceKey,
     stageDay: spec.stageDay,
@@ -440,21 +481,167 @@ export async function runOneStage(
     tx.insert(riderAttrLog).values(chunk).onConflictDoNothing(),
   )
 
+  // ABANDONOS DENTRO DE LA ETAPA (v14, docs/motor.md §VI.3). El motor decide quién se retira en
+  // carretera y quién llega fuera de control; la capa de datos lo saca del resto de la carrera. En
+  // una prueba de UN DÍA no hay «resto de la carrera» que abandonar: el corredor sencillamente no
+  // figura en el resultado, y marcarlo lo pintaría como DNF de una general que no existe.
+  if (!isOneDay && nonFinishers.length > 0) {
+    await markAbandons(
+      tx,
+      worldId,
+      gameDay,
+      spec,
+      nonFinishers.map((r) => ({
+        riderId: r.riderId,
+        reason: r.estado === 'abandon' ? 'colapso' : 'fuera_control',
+      })),
+      riderById,
+    )
+  }
+
   // Consecuencias de las caídas (SPEC 6.14): una caída con baja deja al corredor LESIONADO varios días
-  // (rinde peor y puede perderse próximas carreras); las más graves obligan a ABANDONAR la vuelta.
-  await applyIncidents(tx, worldId, gameDay, spec.raceKey, output.incidents, riderById, isOneDay)
+  // (rinde peor y puede perderse próximas carreras); las que dejan lesión obligan a ABANDONAR la vuelta.
+  await applyIncidents(tx, worldId, gameDay, spec.raceKey, output.incidents, riderById)
+  const injured = new Set(
+    output.incidents.filter((i) => injuryEndsRace(i.severidad, i.diasBaja)).map((i) => i.riderId),
+  )
+  if (!isOneDay && injured.size > 0) {
+    await markAbandons(
+      tx,
+      worldId,
+      gameDay,
+      spec,
+      [...injured].map((riderId) => ({ riderId, reason: 'lesion' as const })),
+      riderById,
+      // La lesión ya emite su propio titular (`injury`) en `applyIncidents`: no se duplica.
+      { silent: true },
+    )
+  }
+
+  // ENFERMAR DURANTE LA CARRERA (docs/motor.md §VI.3, la otra mitad de «colapso / enfermedad»).
+  // El dado de la enfermedad solo se tira los días de ENTRENAMIENTO (`simulateRiderDay`), y quien
+  // corre no pasa por ahí: en una gran vuelta de tres semanas, con el pelotón hundido de TSB, no
+  // enfermaba absolutamente nadie —el riesgo se acumulaba y estallaba el primer día de descanso, ya
+  // fuera de la carrera—. Se tira aquí, con la misma curva escalada (`raceIllnessProbability`), y en
+  // carrera enfermar significa no tomar la salida al día siguiente.
+  if (!isOneDay && !spec.isFinal) {
+    const sick: { riderId: string; days: number }[] = []
+    for (const r of stageRiders) {
+      if (nonFinishers.some((n) => n.riderId === r.riderId)) continue
+      if (injured.has(r.riderId)) continue
+      const rider = riderById.get(r.riderId)
+      if (!rider || rider.health !== 'sano') continue
+      const rng = seededRng(`ill:${worldSeed}:${spec.raceKey}:${spec.stageDay}:${r.riderId}`)
+      if (rng() >= raceIllnessProbability(fragilityByRider.get(r.riderId) ?? 1, r.tsb)) continue
+      sick.push({ riderId: r.riderId, days: ILLNESS_DAYS })
+    }
+    if (sick.length > 0) {
+      await tx
+        .update(riders)
+        .set({ health: 'enfermo', healthUntilDay: gameDay + ILLNESS_DAYS })
+        .where(
+          inArray(
+            riders.id,
+            sick.map((s) => s.riderId),
+          ),
+        )
+      await markAbandons(
+        tx,
+        worldId,
+        gameDay,
+        spec,
+        sick.map((s) => ({ riderId: s.riderId, reason: 'enfermedad' as const })),
+        riderById,
+      )
+    }
+  }
 
   await awardOutcome(tx, worldId, gameDay, spec, output)
   return raced
 }
 
-/** Umbral de baja (días) a partir del cual una caída obliga a abandonar la carrera. */
-const ABANDON_DAYS_THRESHOLD = 15
+/** Días de baja de una enfermedad contraída en carrera (mismo rango que SPEC 4.3 para el training). */
+const ILLNESS_DAYS = 4
+
+/** Por qué un corredor se ha ido de la carrera. Se guarda en `race_rosters.abandoned_reason`. */
+export type AbandonReason = 'colapso' | 'fuera_control' | 'lesion' | 'enfermedad' | 'voluntario'
+
+/** Cómo se cuenta cada abandono en el feed. Textos de interfaz, así que en inglés. */
+const ABANDON_DETAIL: Record<AbandonReason, string> = {
+  colapso: 'climbs off, out of energy',
+  fuera_control: 'eliminated on time',
+  lesion: 'injured',
+  enfermedad: 'ill',
+  voluntario: 'withdraws',
+}
 
 /**
- * Aplica las incidencias de la etapa (SPEC 6.14): marca al corredor LESIONADO hasta `gameDay+diasBaja`
- * (sin acortar una baja mayor ya vigente) y, si la caída es grave, lo hace ABANDONAR la carrera
- * (no toma la salida en las etapas siguientes). Emite una noticia de lesión por corredor afectado.
+ * Saca a unos corredores del resto de la carrera: `abandoned_day` los deja fuera del roster efectivo
+ * (`runOneStage` filtra por él), así que no toman la salida en las etapas siguientes y las
+ * clasificaciones —general, puntos, montaña y equipos— dejan de contarlos desde ese día
+ * (`gcSort.ts`, `results.ts`, `teamClassification.ts` ya ordenaban los DNF al final).
+ *
+ * Es IDEMPOTENTE: solo escribe sobre los que aún no habían abandonado, de modo que el tick puede
+ * reintentar un día sin duplicar titulares ni cambiar el día del abandono.
+ */
+async function markAbandons<R extends { name: string }>(
+  tx: Tx,
+  worldId: string,
+  gameDay: number,
+  spec: StageRunSpec,
+  entries: readonly { riderId: string; reason: AbandonReason }[],
+  riderById: Map<string, R>,
+  opts: { silent?: boolean } = {},
+): Promise<void> {
+  if (entries.length === 0) return
+  const already = await tx
+    .select({ riderId: raceRosters.riderId })
+    .from(raceRosters)
+    .where(
+      and(
+        eq(raceRosters.raceId, spec.raceKey),
+        inArray(
+          raceRosters.riderId,
+          entries.map((e) => e.riderId),
+        ),
+        isNull(raceRosters.abandonedDay),
+      ),
+    )
+  const pending = new Set(already.map((r) => r.riderId))
+  const todo = entries.filter((e) => pending.has(e.riderId))
+  if (todo.length === 0) return
+  for (const entry of todo) {
+    await tx
+      .update(raceRosters)
+      .set({ abandonedDay: gameDay, abandonedReason: entry.reason })
+      .where(and(eq(raceRosters.raceId, spec.raceKey), eq(raceRosters.riderId, entry.riderId)))
+    if (opts.silent) continue
+    await emitNews(tx, {
+      worldId,
+      gameDay,
+      kind: 'abandon',
+      seed: `abandon:${spec.raceKey}:${gameDay}:${entry.riderId}`,
+      data: {
+        rider: riderById.get(entry.riderId)?.name ?? 'A rider',
+        race: spec.raceName,
+        stage: spec.stageDay,
+        detail: ABANDON_DETAIL[entry.reason],
+      },
+      riderId: entry.riderId,
+    })
+  }
+}
+
+/**
+ * Aplica las incidencias de la etapa (SPEC 6.14): marca al corredor LESIONADO hasta
+ * `gameDay+diasBaja` (sin acortar una baja mayor ya vigente) y emite un titular de lesión por
+ * corredor afectado.
+ *
+ * Quién queda además FUERA del resto de la vuelta ya no se decide aquí: lo dice `injuryEndsRace`
+ * (motor, docs/motor.md §VI.3) y lo escribe `markAbandons`, junto a las otras tres causas de
+ * abandono, con la misma regla de idempotencia y guardando el motivo. Antes vivía suelto en este
+ * bucle con su propio umbral (15 días), y por eso un corredor con una lesión de 10 días quedaba
+ * marcado `lesionado` —fuera de los rosters de las demás carreras— y seguía corriendo esta.
  */
 async function applyIncidents<
   R extends { name: string; health: string; healthUntilDay: number | null },
@@ -465,7 +652,6 @@ async function applyIncidents<
   raceKey: string,
   incidents: Awaited<ReturnType<typeof simulateStage>>['incidents'],
   riderById: Map<string, R>,
-  isOneDay: boolean,
 ): Promise<void> {
   if (incidents.length === 0) return
   // Peor incidencia por corredor (la de más días de baja manda).
@@ -487,17 +673,6 @@ async function applyIncidents<
       .set({ health: 'lesionado', healthUntilDay: Math.max(currentUntil, until) })
       .where(eq(riders.id, riderId))
 
-    // Abandonar la carrera solo tiene sentido si QUEDAN etapas por correr: en una prueba de un día
-    // el corredor ya ha llegado a meta y tiene su puesto en el resultado. Marcarlo lo pintaba como
-    // DNF en la clasificación (y lo mandaba al final), contradiciendo al resultado de la misma carrera.
-    const abandons =
-      !isOneDay && (inc.severidad === 'major' || inc.diasBaja >= ABANDON_DAYS_THRESHOLD)
-    if (abandons) {
-      await tx
-        .update(raceRosters)
-        .set({ abandonedDay: gameDay })
-        .where(and(eq(raceRosters.raceId, raceKey), eq(raceRosters.riderId, riderId)))
-    }
     // Duración concreta de la baja para el titular: semanas si es larga, días si es corta.
     const outFor =
       inc.diasBaja >= 14

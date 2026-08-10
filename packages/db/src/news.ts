@@ -12,6 +12,12 @@ import { news, riders, teams } from './schema.js'
 
 type Db = ReturnType<typeof drizzle>
 type Tx = Parameters<Parameters<Db['transaction']>[0]>[0]
+/**
+ * Quien escribe la noticia. Casi siempre es la transacción del tick, pero la retirada voluntaria de
+ * §V.5 la dispara el jugador desde la API y no vive dentro de ninguna transacción: solo se usa
+ * `insert`, que las dos ofrecen igual.
+ */
+type NewsWriter = Tx | Database
 
 /**
  * Redacta y guarda una noticia. `riderId` es el PROTAGONISTA (siempre que lo haya): permite pintar su
@@ -20,7 +26,7 @@ type Tx = Parameters<Parameters<Db['transaction']>[0]>[0]
  * protagonista, así que se ve en el feed de todos.
  */
 export async function emitNews(
-  tx: Tx,
+  tx: NewsWriter,
   opts: {
     worldId: string
     gameDay: number

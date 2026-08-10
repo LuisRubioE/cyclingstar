@@ -383,9 +383,16 @@ export const raceRosters = pgTable(
     // primer equipo, 21-2X el segundo…), el 1 reservado al campeón defensor (SPEC 8). Null en rosters
     // antiguos anteriores a los dorsales.
     bib: integer('bib'),
-    // Día de juego en que el corredor ABANDONÓ la carrera (caída grave/lesión). Null si sigue en
-    // carrera. Las etapas siguientes lo saltan: un abandono está fuera del resto de la vuelta (SPEC 6.14).
+    // Día de juego en que el corredor ABANDONÓ la carrera. Null si sigue en carrera. Las etapas
+    // siguientes lo saltan: un abandono está fuera del resto de la vuelta (SPEC 6.14).
     abandonedDay: integer('abandoned_day'),
+    /**
+     * POR QUÉ abandonó (v14, docs/motor.md §VI.3): `colapso` (se bajó de la bici sin fuerzas),
+     * `fuera_control` (llegó fuera del corte de tiempo), `lesion`, `enfermedad` o `voluntario` (el
+     * jugador se retiró entre etapas, §V.5). Texto libre y nullable a propósito: los abandonos
+     * anteriores a la v14 no tienen motivo y la interfaz degrada sola a «DNF» a secas.
+     */
+    abandonedReason: text('abandoned_reason'),
   },
   (t) => [primaryKey({ columns: [t.raceId, t.riderId] })],
 )
