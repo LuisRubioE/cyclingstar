@@ -1,4 +1,5 @@
 import type { AltimetryMarker } from '@cyclingstar/engine'
+import type { ChronicleRider } from '@cyclingstar/shared'
 
 /**
  * Construcción de la crónica de una etapa. La comparten las dos rutas que la sirven —el replay de
@@ -18,13 +19,13 @@ export interface ChronicleEvent {
   datos?: Record<string, number | string>
 }
 
-/** Una entrada de la crónica ya lista para la web (nombres resueltos, sin ids). */
+/** Una entrada de la crónica ya lista para la web (identidades resueltas, sin ids). */
 export interface ChronicleEntry {
   km: number
   tS: number
   plantilla: string
-  protagonists: string[]
-  protagonistTeams: string[]
+  protagonists: ChronicleRider[]
+  mentions?: Record<string, ChronicleRider>
   datos: Record<string, number | string> | undefined
 }
 
@@ -46,6 +47,7 @@ const EVENT_ORDER: Record<string, number> = {
   bridge_failed: 1,
   move_merge: 1,
   rider_sits_up: 4,
+  riders_sit_up: 4,
   sprinters_chase: 1,
   peloton_concedes: 1,
   sprinters_give_up: 1,
@@ -82,65 +84,263 @@ const MARKER_LABEL: Record<string, string> = {
   meta: 'finish',
 }
 
-/** Nombre y equipo de cada corredor de la etapa, para resolver los ids de los eventos. */
-export interface ChronicleNames {
-  nameOf: Map<string, string>
-  teamOf: Map<string, string | null>
+/**
+ * De dónde salen las identidades: el ROSTER de la carrera (que tiene dorsal, equipo y país de todos
+ * los inscritos, hayan acabado o no) y, como respaldo, los resultados de la etapa. Los dos se pasan
+ * a `chronicleNames` en una sola lista y se funden campo a campo, quedándose con el primer valor no
+ * nulo de cada uno: así un corredor que está en los resultados pero no en el roster (o al revés)
+ * sale con toda la información que se pueda reunir.
+ */
+export interface ChronicleRiderSource {
+  riderId: string
+  name: string
+  teamName?: string | null
+  country?: string | null
+  bib?: number | null
 }
 
-/** Construye los índices de nombre y equipo a partir de los resultados de la etapa. */
-export function chronicleNames(
-  results: readonly { riderId: string; name: string; teamName: string | null }[],
-): ChronicleNames {
-  return {
-    nameOf: new Map(results.map((r) => [r.riderId, r.name])),
-    teamOf: new Map(results.map((r) => [r.riderId, r.teamName])),
-  }
+/** Identidad de cada corredor de la etapa, para resolver los ids de los eventos congelados. */
+export interface ChronicleNames {
+  riderOf: Map<string, ChronicleRider>
 }
 
 /**
- * Traduce los eventos a la crónica que consume la web: resuelve ids a nombres, ordena por km (y
- * dentro del km por orden narrativo) y quita los duplicados exactos consecutivos.
+ * Construye el índice de identidades. Todo lo que no sea el nombre puede faltar (roster antiguo sin
+ * dorsales, agente libre sin equipo, país vacío) y se guarda como `null`: la crónica degrada sola.
+ */
+export function chronicleNames(sources: readonly ChronicleRiderSource[]): ChronicleNames {
+  const riderOf = new Map<string, ChronicleRider>()
+  for (const s of sources) {
+    const prev = riderOf.get(s.riderId)
+    riderOf.set(s.riderId, {
+      name: prev?.name ?? s.name,
+      bib: prev?.bib ?? s.bib ?? null,
+      team: prev?.team ?? s.teamName ?? null,
+      country: prev?.country ?? s.country ?? null,
+    })
+  }
+  return { riderOf }
+}
+
+/**
+ * Un corredor que la crónica no sabe resolver. Pasa de verdad: los eventos están CONGELADOS en
+ * `stage_runs.events` y se renderizan al vuelo, así que quien ya no esté ni en el roster ni en los
+ * resultados llega aquí como un id suelto. No se inventa nada —se enseña el id, que al menos es
+ * estable— y los tres campos de identidad se quedan vacíos: sin dorsal y sin bandera.
+ */
+const unknownRider = (id: string): ChronicleRider => ({
+  name: id,
+  bib: null,
+  team: null,
+  country: null,
+})
+
+/**
+ * Ventana y umbral con los que se AGRUPAN los descuelgues (encargo A3 del dueño: «no menciones uno a
+ * uno todos los ciclistas que se van descolgando… puedes mencionar muchos juntos con número»).
+ *
+ * El criterio, medido sobre producción y sobre 56 etapas del banco: los descuelgues del final llegan
+ * en racimos (medidos racimos de 50, 34, 20 y 17 corredores en 5 km), y Race Muscat gastaba 15 de sus
+ * 40 líneas en nombrarlos de uno en uno. Dentro de una ventana de 5 km, tres o más descuelgues se
+ * cuentan en UNA frase con el número; uno o dos siguen teniendo su mención individual, porque un
+ * corredor que se deja ir solo sí es una noticia.
+ */
+const SIT_UP_WINDOW_KM = 5
+const SIT_UP_GROUP_MIN = 3
+
+/**
+ * Traduce los eventos a la crónica que consume la web: resuelve ids a identidades completas, ordena
+ * por km (y dentro del km por orden narrativo), quita duplicados y agrupa lo que en bruto sería una
+ * lista. Es la frontera entre TELEMETRÍA y NARRATIVA (docs/motor.md §16): los eventos guardados no
+ * se tocan nunca, y todo lo que se decide aquí vale también para las etapas ya congeladas.
  */
 export function buildChronicle(
   events: readonly ChronicleEvent[],
   names: ChronicleNames,
 ): ChronicleEntry[] {
-  return (
-    events
-      // TELEMETRÍA frente a NARRATIVA (docs/motor.md §16): el motor emite TODOS los intentos de
-      // movimiento porque son dato de carrera, y marca con `narra` cuáles merecen una frase. Una
-      // etapa tiene una docena de intentos y la crónica no puede ser su inventario.
-      .filter((e) => e.datos?.narra !== 0)
-      .map((e) => ({
+  const riderOf = (id: string): ChronicleRider => names.riderOf.get(id) ?? unknownRider(id)
+  // ¿Se acaba cazando la fuga? Se sabe aquí y no en el motor, que emite en carretera sin ver el
+  // futuro. Sirve para que «el pelotón concede» no contradiga a la captura de treinta km después.
+  const caughtLaterKm = events.find((e) => e.plantilla === 'breakaway_caught')?.km ?? null
+  const ordered = events
+    // TELEMETRÍA frente a NARRATIVA (docs/motor.md §16): el motor emite TODOS los intentos de
+    // movimiento porque son dato de carrera, y marca con `narra` cuáles merecen una frase. Una
+    // etapa tiene una docena de intentos y la crónica no puede ser su inventario.
+    .filter((e) => e.datos?.narra !== 0)
+    .map((e): ChronicleEntry => {
+      // Los corredores citados por `datos` (hoy `forId`) se resuelven igual que los protagonistas:
+      // la convención es el sufijo `Id`, para que un dato nuevo del motor no haya que darlo de alta
+      // aquí. Si el id no se resuelve, la mención simplemente no viaja y la frase se apaña sin ella.
+      const mentions: Record<string, ChronicleRider> = {}
+      for (const [k, v] of Object.entries(e.datos ?? {})) {
+        if (k.endsWith('Id') && typeof v === 'string' && names.riderOf.has(v)) {
+          mentions[k] = names.riderOf.get(v)!
+        }
+      }
+      return {
         km: Math.round(e.km),
         tS: Math.round(e.tS),
         plantilla: e.plantilla,
-        protagonists: e.protagonistas.map((id) => names.nameOf.get(id) ?? id),
-        protagonistTeams: [
-          ...new Set(
-            e.protagonistas.map((id) => names.teamOf.get(id)).filter((t): t is string => !!t),
-          ),
-        ],
-        datos: e.datos,
-      }))
-      .sort(
-        (a, b) =>
-          a.km - b.km ||
-          (EVENT_ORDER[a.plantilla] ?? 9) - (EVENT_ORDER[b.plantilla] ?? 9) ||
-          a.tS - b.tS,
+        protagonists: e.protagonistas.map(riderOf),
+        ...(Object.keys(mentions).length > 0 ? { mentions } : {}),
+        datos: markConcession(e, caughtLaterKm),
+      }
+    })
+    .sort(
+      (a, b) =>
+        a.km - b.km ||
+        (EVENT_ORDER[a.plantilla] ?? 9) - (EVENT_ORDER[b.plantilla] ?? 9) ||
+        a.tS - b.tS,
+    )
+    // Quita duplicados exactos consecutivos (misma frase, mismos protagonistas y km).
+    .filter((e, i, arr) => {
+      const prev = arr[i - 1]
+      return (
+        !prev ||
+        prev.km !== e.km ||
+        prev.plantilla !== e.plantilla ||
+        prev.protagonists.map((p) => p.name).join() !== e.protagonists.map((p) => p.name).join()
       )
-      // Quita duplicados exactos consecutivos (misma frase, mismos protagonistas y km).
-      .filter((e, i, arr) => {
-        const prev = arr[i - 1]
-        return (
-          !prev ||
-          prev.km !== e.km ||
-          prev.plantilla !== e.plantilla ||
-          prev.protagonists.join() !== e.protagonists.join()
-        )
+    })
+  return groupSitUps(dedupeSitUps(normalizeSplits(ordered)))
+}
+
+/**
+ * Km sin un solo corte tras los cuales la siguiente criba es una historia NUEVA (y vuelve a
+ * presentar a quien aprieta). Es el mismo criterio con el que el motor pone `splitPhase` a cero
+ * cuando el grupo se reagrupa; aquí, sin ese dato, lo aproxima la distancia.
+ */
+const SPLIT_SELECTION_GAP_KM = 25
+
+/**
+ * Pone en orden la cadena de CORTES de las crónicas viejas. El motor de hoy ya emite bien los tres
+ * datos que hacen falta —de cuántos a cuántos ha quedado el grupo y qué número de aviso es—, pero
+ * las etapas ya corridas tienen sus eventos CONGELADOS y son las que el dueño está leyendo. Tres
+ * arreglos, todos con información que la crónica sí tiene y el motor no tenía en carretera:
+ *
+ * 1. **`before` reconstruido** (crónicas anteriores a la v6, que solo traen `dropped` y `remaining`):
+ *    el grupo de antes es el que dejó el aviso anterior de la misma selección.
+ * 2. **Los avisos vacíos se tiran** (defecto B2): en Race Arabia e5 hay diez avisos entre el km 136 y
+ *    el 163 y en cuatro de ellos no se descolgó nadie. Un corte en el que no cae nadie no es un corte.
+ * 3. **`phase` reconstruida** (crónicas anteriores a la v8): sin ella un puerto largo se lee como diez
+ *    partes clónicos que nombran diez veces al mismo equipo («Éclair Équipe lift the pace» ×10 en
+ *    Race Great Ocean). Con ella, el primer aviso presenta a quien aprieta y los demás cuentan la
+ *    progresión. Lo que ya venga del motor no se toca.
+ */
+function normalizeSplits(entries: ChronicleEntry[]): ChronicleEntry[] {
+  let phase = 0
+  let lastKm: number | null = null
+  let lastRemaining: number | null = null
+  const out: ChronicleEntry[] = []
+  for (const e of entries) {
+    if (e.plantilla === 'peloton_regroup') {
+      phase = 0
+      lastKm = null
+      lastRemaining = e.datos?.remaining == null ? null : Number(e.datos.remaining)
+      out.push(e)
+      continue
+    }
+    if (e.plantilla !== 'peloton_split') {
+      out.push(e)
+      continue
+    }
+    if (lastKm !== null && e.km - lastKm > SPLIT_SELECTION_GAP_KM) {
+      phase = 0
+      lastRemaining = null
+    }
+    const remaining = e.datos?.remaining == null ? null : Number(e.datos.remaining)
+    const before = e.datos?.before == null ? lastRemaining : Number(e.datos.before)
+    // Nadie se ha descolgado: no hay corte que contar (y el aviso no cuenta como aviso).
+    if (before != null && remaining != null && before <= remaining) continue
+    lastKm = e.km
+    if (remaining != null) lastRemaining = remaining
+    const datos: Record<string, number | string> = {
+      ...e.datos,
+      phase: e.datos?.phase != null ? Number(e.datos.phase) : phase,
+    }
+    if (before != null) datos.before = before
+    phase += 1
+    out.push({ ...e, datos })
+  }
+  return out
+}
+
+/**
+ * Marca la concesión que luego se desmiente. El motor decide en carretera y no puede saber que
+ * treinta kilómetros después el pelotón cazará; la crónica sí lo sabe, y con `cazada` la web escoge
+ * una redacción que no promete lo que la carrera no cumplió. Esto también arregla las crónicas ya
+ * congeladas, que son las que el dueño está leyendo (defecto B4).
+ */
+function markConcession(
+  e: ChronicleEvent,
+  caughtLaterKm: number | null,
+): Record<string, number | string> | undefined {
+  if (e.plantilla !== 'peloton_concedes') return e.datos
+  if (caughtLaterKm === null || caughtLaterKm <= e.km) return e.datos
+  return { ...e.datos, cazada: 1 }
+}
+
+/**
+ * Un corredor solo se descuelga UNA vez. Desde la v13 el motor ya no lo repite (`gaveUp`), pero las
+ * etapas corridas antes tienen sus eventos congelados: en producción, Alex Taylor se dejaba ir en el
+ * km 196, en el 204 y en el 209 de la misma carrera. La segunda mención se tira aquí, que es lo
+ * único que puede arreglar un journal ya guardado (defecto B3).
+ */
+function dedupeSitUps(entries: ChronicleEntry[]): ChronicleEntry[] {
+  const seen = new Set<string>()
+  return entries.filter((e) => {
+    if (e.plantilla !== 'rider_sits_up') return true
+    const who = e.protagonists[0]?.name ?? ''
+    if (seen.has(who)) return false
+    seen.add(who)
+    return true
+  })
+}
+
+/**
+ * Agrupa los descuelgues cercanos en una sola entrada `riders_sit_up` con el número (encargo A3).
+ * Las entradas agrupadas conservan a TODOS sus protagonistas: cuántos nombres se dicen y cuántos se
+ * resumen en «and N others» lo decide la web, que es quien sabe cuánto texto cabe en una línea.
+ */
+function groupSitUps(entries: ChronicleEntry[]): ChronicleEntry[] {
+  // Los índices de los descuelgues, en orden. Se agrupan sobre ellos y NO sobre el array entero:
+  // entre dos descuelgues de la misma ventana puede haber otras frases (un parte de cabeza, un
+  // ataque) que no se tocan ni cambian de sitio.
+  const idx = entries.flatMap((e, i) => (e.plantilla === 'rider_sits_up' ? [i] : []))
+  /** El racimo que sustituye a cada posición; `null` en las que desaparecen absorbidas. */
+  const replacement = new Map<number, ChronicleEntry | null>()
+  for (let a = 0; a < idx.length;) {
+    const first = entries[idx[a]!]!
+    let b = a
+    while (b + 1 < idx.length && entries[idx[b + 1]!]!.km - first.km <= SIT_UP_WINDOW_KM) b += 1
+    const run = idx.slice(a, b + 1).map((i) => entries[i]!)
+    if (run.length >= SIT_UP_GROUP_MIN) {
+      const last = run[run.length - 1]!
+      // El racimo ocupa el sitio del ÚLTIMO descuelgue: la frase se lee donde acaba la sangría, que
+      // es donde el lector la espera («con 10 km para meta, cinco corredores se dejan ir»).
+      for (let k = a; k < b; k++) replacement.set(idx[k]!, null)
+      replacement.set(idx[b]!, {
+        km: last.km,
+        tS: last.tS,
+        plantilla: 'riders_sit_up',
+        protagonists: run.flatMap((e) => e.protagonists),
+        datos: {
+          count: run.length,
+          // Los km que faltaban cuando se descolgó el último: es el punto de la carrera en el que la
+          // frase se lee, y el que el lector necesita para situarla.
+          toGo: Number(last.datos?.toGo ?? 0),
+          from: first.km,
+        },
       })
-  )
+    }
+    a = b + 1
+  }
+  if (replacement.size === 0) return entries
+  return entries.flatMap((e, i) => {
+    if (!replacement.has(i)) return [e]
+    const r = replacement.get(i)
+    return r ? [r] : []
+  })
 }
 
 /** Momentos clave que se marcan sobre la altimetría: fuga, captura, banners y meta. */

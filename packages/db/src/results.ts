@@ -90,6 +90,41 @@ export async function getStageResults(
     .orderBy(asc(stageResults.puesto))
 }
 
+/** Identidad completa de un inscrito, para nombrar a los protagonistas de la crónica. */
+export interface RaceRiderIdentity {
+  riderId: string
+  name: string
+  country: string
+  teamName: string | null
+  bib: number | null
+}
+
+/**
+ * Identidad de TODOS los inscritos en la carrera: dorsal, equipo y país. La crónica la necesita
+ * porque el dueño pidió que cada mención de un ciclista lleve su dorsal, su equipo y su bandera, y
+ * los resultados de la etapa no bastan: solo traen a los clasificados (el que se cayó y no acabó es
+ * protagonista de eventos y no aparecería) y no tienen el dorsal, que vive en `race_rosters.bib`.
+ * En un roster antiguo, sin dorsales asignados, `bib` viene a null y la crónica degrada sola.
+ */
+export async function getRaceRiderIdentities(
+  db: Database,
+  raceId: string,
+): Promise<RaceRiderIdentity[]> {
+  const rows = await db
+    .select({
+      riderId: raceRosters.riderId,
+      name: riders.name,
+      country: riders.country,
+      teamName: teams.name,
+      bib: raceRosters.bib,
+    })
+    .from(raceRosters)
+    .innerJoin(riders, eq(riders.id, raceRosters.riderId))
+    .leftJoin(teams, eq(teams.id, riders.teamId))
+    .where(eq(raceRosters.raceId, raceId))
+  return rows.map((r) => ({ ...r, country: r.country ?? '' }))
+}
+
 /**
  * Clasificación general tal como estaba tras la etapa `stageDay` (tiempo neto acumulado).
  *

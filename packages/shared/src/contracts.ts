@@ -863,15 +863,41 @@ export const raceResultsSchema = z.object({
 })
 export type RaceResults = z.infer<typeof raceResultsSchema>
 
+/**
+ * IDENTIDAD de un corredor citado en la crónica. El encargo del dueño fue literal: «cada vez que
+ * menciones un ciclista, pon su dorsal, su equipo entre paréntesis y su bandera». Antes viajaba solo
+ * el nombre, y el equipo iba suelto en un `protagonistTeams` deduplicado que no decía de quién era
+ * cada uno.
+ *
+ * Los tres campos que no son el nombre son NULABLES a propósito: los eventos de las etapas ya
+ * corridas están congelados en `stage_runs.events` y se resuelven al vuelo contra el roster de hoy.
+ * Un corredor que ya no está en él, un roster antiguo sin dorsales o un país vacío tienen que
+ * degradar (sin dorsal, sin bandera), nunca romper la página.
+ */
+export const chronicleRiderSchema = z.object({
+  name: z.string(),
+  /** Dorsal de la carrera (`race_rosters.bib`); null si el roster no lo tiene. */
+  bib: z.number().int().nullable(),
+  /** Nombre del equipo; null en un agente libre o si ya no se puede resolver. */
+  team: z.string().nullable(),
+  /** Código ISO-2 del país, para pintar la bandera con el mismo `<Flag/>` del resto de la web. */
+  country: z.string().nullable(),
+})
+export type ChronicleRider = z.infer<typeof chronicleRiderSchema>
+
 export const chronicleEntrySchema = z.object({
   km: z.number(),
   tS: z.number(),
   plantilla: z.string(),
-  protagonists: z.array(z.string()),
+  protagonists: z.array(chronicleRiderSchema),
   /** Datos numéricos del evento (p.ej. gapS = ventaja de la fuga; trend = -1/0/1). */
   datos: z.record(z.string(), z.union([z.number(), z.string()])).optional(),
-  /** Equipos de los protagonistas (nombres, sin repetir), para nombrarlos en la crónica. */
-  protagonistTeams: z.array(z.string()).optional(),
+  /**
+   * Corredores citados por `datos` y que NO son protagonistas: hoy solo `forId`, el jefe de filas
+   * para el que trabajan los que tiran del pelotón. Van resueltos igual que los protagonistas para
+   * que la frase pueda decir «trabajando para 41 Andrej Pucnik» y no un id.
+   */
+  mentions: z.record(z.string(), chronicleRiderSchema).optional(),
 })
 export type ChronicleEntry = z.infer<typeof chronicleEntrySchema>
 

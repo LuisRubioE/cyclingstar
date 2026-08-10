@@ -7,6 +7,7 @@ import {
   getPointsClassification,
   getRaceGc,
   getRaceHistory,
+  getRaceRiderIdentities,
   getRaceRivals,
   getRosterTeammates,
   getRunStageDays,
@@ -159,6 +160,8 @@ export const raceRoutes: RoutePlugin = async (app, ctx) => {
 
       // Regenera los eventos ejecutando el motor con la misma entrada y semilla.
       const output = simulateStage(snapshot.input as StageInput, snapshot.seed)
+      // La vuelta de prueba no tiene roster de carrera: las identidades salen de los resultados, así
+      // que van sin dorsal (y la crónica lo omite, en vez de inventarlo).
       const chronicle = buildChronicle(output.events, chronicleNames(results))
       const altimetry = renderAltimetrySvg(stage.profile, { markers: buildMarkers(output.events) })
       // La general tal como quedó tras esta etapa (no solo la final).
@@ -285,7 +288,11 @@ export const raceRoutes: RoutePlugin = async (app, ctx) => {
           journalUnavailable: true,
         }
       }
-      const chronicle = buildChronicle(storedEvents, chronicleNames(results))
+      // La identidad de los protagonistas sale del ROSTER (dorsal, equipo, país de todos los
+      // inscritos) y, para quien no esté en él, de los resultados de la etapa: los eventos están
+      // congelados y hay que resolverlos con lo que haya hoy, sin romperse por lo que falte.
+      const identities = await getRaceRiderIdentities(db, raceKey)
+      const chronicle = buildChronicle(storedEvents, chronicleNames([...identities, ...results]))
       const altimetry = renderAltimetrySvg(stage.profile, { markers: buildMarkers(storedEvents) })
       return {
         day,
