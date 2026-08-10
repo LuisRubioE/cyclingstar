@@ -1598,3 +1598,228 @@ familias de frase nuevas. No es narrar más de lo mismo; son líneas que antes n
 - **`break_share` sale en el 80% de las llanas y en el 22% de las reinas.** La diferencia es real (en
   montaña la fuga se rompe antes de asentarse los 25 km que pide el evento), pero si en producción
   cansa en las llanas, la perilla es `breakShareUnevenFactor`.
+
+## v12 — Selección en pavé y descenso (`engine_version` 11 → 12)
+
+> «Extender `shatter` al pavés (con PAV) y a los descensos (con DES). Sin esto, las clásicas de
+> adoquines no son clásicas de adoquines.» — docs/motor.md §14, Cambio 3.
+
+`shatter()` empezaba con `if (block.tipo !== 'subida') return dropped` y **debajo de esa línea estaba
+TODA la selección**: el déficit contra el P75 de los punteros, el hazard, el cerillo que salva y el
+descuelgue. Fuera de la subida lo único que soltaba era la pájara. Consecuencia medida: los **31
+sectores reales de adoquines** de Paris-Roubaix solo **costaban energía** y **no rompían el pelotón**.
+
+El mecanismo NO se ha duplicado: se ha parametrizado. Debajo de la línea sigue el mismo código —el
+mismo cerillo, el mismo `marcaje.ts`— y encima hay un `selectionFactor(block)`. Tampoco hubo que
+tocar con qué se mide: `blockPerfil` ya daba MON/COL en la subida, `0,6·PAV + 0,4·LLA` en el adoquín y
+DES en la bajada.
+
+### Las perillas nuevas
+
+| Constante                 | Valor | Qué hace                                                                                        |
+| ------------------------- | ----- | ----------------------------------------------------------------------------------------------- |
+| `dropPavesFactor`         | 0,34  | Peso del descuelgue en pavé, relativo a la subida (que vale 1)                                  |
+| `dropPavesStarsReference` | 3     | Divisor de las estrellas: λ escala con `estrellas / 3`, así un 5★ rompe casi el doble que un 3★ |
+| `dropDescentFactor`       | 0,08  | Lo mismo en descenso: cuatro veces más suave que el adoquín medio                               |
+| `dropDescentMaxGradient`  | −4 %  | Y solo en bajadas DE VERDAD (ver «la trampa evitada»)                                           |
+| `pavesPaceFraction`       | 0,15  | El ritmo del sector lo marcan los de delante (puerto 0,12 · llano 0,25)                         |
+| `pavesRaceCommit`         | 0,80  | Suelo de compromiso: un sector se CORRE, no se rueda a tempo                                    |
+| `pavesApproachKm`         | 2     | …y el suelo empieza dos km antes, peleando por la posición                                      |
+| `chaseBackShutFloor`      | 0,15  | La puerta del pelotón se cierra según lo que aprieta (ver abajo)                                |
+| `chaseBackBusFactor`      | 3     | …salvo para un autobús que triplique en número al grupo de cabeza                               |
+
+Sin las cuatro últimas, la selección del adoquín **se deshacía sola** y esta tanda no habría medido
+nada. Es el hallazgo de la tanda y conviene dejarlo escrito.
+
+### Por qué no bastaba con quitar la línea (medido, Paris-Roubaix)
+
+Quitando solo el `if`, con el pelotón cruzando los sectores al tempo de carretera (0,55) y con el
+recorte fijo de 8 s/km, el pelotón **se partía en cada sector y se recomponía en el asfalto
+siguiente**, tres veces en los últimos 30 km:
+
+```
+231,9  peloton_split    58 -> 44        (Cysoing / Camphin)
+235,3  peloton_regroup  44 -> 60
+238,8  peloton_split    60 -> 45        (Carrefour de l'Arbre)
+243,5  peloton_regroup  45 -> 59
+251,1  peloton_split    59 -> 44        (Willems a Hem)
+254,4  peloton_regroup  44 -> 57
+```
+
+Es el mismo patrón —criba y recomposición en ciclo— que docs/motor.md §16 documenta para el puerto
+decisivo. La causa no era la selección sino el **recorte fijo de `chaseBackSecondsPerKm` = 8 s/km**,
+que es un 9 % de velocidad de regalo sobre un pelotón lanzado: cierra 45 s en los 5,6 km que hay
+entre el Carrefour de l'Arbre y Willems, y **el umbral de reenganche de 22 s hace el resto**. Estaba
+anotado como parche en docs/motor.md §9 («el tiempo de un grupo descolgado se PEGA al del pelotón en
+llano»). Ahora el recorte y el umbral se escalan por
+`clamp((1 − c) / (1 − pelotonTempoCommit), 0,15, 1)`: **a tempo de carretera o por debajo, el factor
+vale 1 y no se mueve nada de lo calibrado**; con los trenes a 0,85 se recorta un tercio.
+
+Y una salvedad que es física de rebufo: la puerta **no** se cierra para quien persigue con el triple
+de gente de la que va delante (`chaseBackBusFactor`). Sin ella, un puerto a 26 km de meta dejaba
+delante a diez corredores y a setenta a siete minutos, y `peloton_regroup` dejaba de emitirse en 3 de
+8 semillas del banco de la v8. Con ella vuelve a emitirse en las 8, y Roubaix no se salva: allí el
+corte deja 24 delante y 26 detrás.
+
+### El otro defecto que salió: un sector de pavé apagaba la persecución entera
+
+`finishFlat` exigía que los últimos 2 km fueran `llano` o `descenso`. Los **300 m del Espace Charles
+Crupelandt**, a 1,1 km de meta, lo ponían a `false` en Paris-Roubaix: los trenes no perseguían NUNCA,
+el pelotón pasaba al control de la general, daba los 350 s de `gcControlLeash` y **el monumento se lo
+llevaba la fuga del día con siete minutos** (medido: brecha 1.º-10.º de 409 s). Ahora la condición es
+«el final no TREPA»: el adoquín cuenta como llegada rodada. De las nueve clásicas cargadas, es la
+única a la que le afecta.
+
+### Paris-Roubaix: antes y después
+
+Campo de clásica de 60 corredores (8 adoquineros PAV 82-84 · 8 velocistas puros SPR 82-84 con PAV 50
+· 6 cazaetapas · 38 de relleno), 40 semillas deterministas, recorrido REAL de 258,3 km con sus 31
+sectores. Se da también la columna intermedia —solo el arreglo de `finishFlat`, sin selección— porque
+es la que enseña el síntoma en estado puro:
+
+| Medida                                      | v11       | v11 + solo `finishFlat` | **v12**     |
+| ------------------------------------------- | --------- | ----------------------- | ----------- |
+| Llegan con el tiempo del ganador            | 2 / 60    | **58 / 60**             | **20 / 60** |
+| Brecha 1.º-10.º                             | 409 s     | 0 s                     | 0 s         |
+| Brecha 1.º-50.º                             | 412 s     | 0 s                     | **153 s**   |
+| Grupos en meta                              | 4         | 2                       | 3           |
+| Velocidad media                             | 42,2 km/h | 43,4 km/h               | 44,2 km/h   |
+| **Gana un ADOQUINERO (PAV 82+)**            | 35 %      | 100 %                   | **100 %**   |
+| **Gana un VELOCISTA puro (SPR 82, PAV 50)** | 3 %       | 0 %                     | **0 %**     |
+
+Las tres lecturas:
+
+1. **El criterio de éxito se cumple**: en Roubaix gana un adoquinero, nunca un velocista puro. En la
+   v11 solo ganaba el 35 % de las veces porque la carrera la decidía la fuga del día, no el adoquín.
+2. **La columna del medio es el síntoma en estado puro**: con la persecución arreglada pero sin
+   selección, **58 de 60 llegan con el tiempo del ganador**. Ahí la victoria del adoquinero es mérito
+   del modelo de final de la v7 (`finishWeights.pave`), no del recorrido: es un sprint masivo en el
+   que el PAV pesa 0,5. Correcto, pero no es Paris-Roubaix.
+3. **La v12 selecciona de verdad**: 20 de 60 con el tiempo del ganador, tres grupos y 153 s
+   hasta el 50.º. Los 44,2 km/h de media quedan por debajo de los 46,8 km/h reales de 2025.
+
+### El llano de control: no se ha roto nada
+
+Mismo campo, 180 km lisos, 40 semillas:
+
+| Medida                           | v11       | v12       |
+| -------------------------------- | --------- | --------- |
+| Llegan con el tiempo del ganador | 60 / 60   | 60 / 60   |
+| Grupos en meta                   | 1         | 1         |
+| Velocidad media                  | 45,2 km/h | 45,2 km/h |
+| Erosión mediana                  | 0,000     | 0,000     |
+
+Y el resto de clásicas del calendario, con el mismo campo, se mueven lo que tienen que moverse:
+Cyclassics Hamburg (sin pavé) sale idéntica (60/60, un grupo, 44,1 km/h) y el Omloop, con 14,8 km de
+adoquín repartidos y ninguno en los últimos 35 km, apenas se despeina (59/60 y dos grupos).
+
+### El descenso, mucho más suave y con la trampa evitada
+
+**La trampa.** El comentario de `onClimb`/`raceThisClimb` en `simulate.ts` cuenta lo que pasó cuando
+toda la etapa contaba como puerto decisivo: ciclos de **170 → 15 → 173 corredores**. Un perfil real
+tiene descensos por todas partes —el Ronde tiene 18,9 km de «descenso» que son toboganes de 300 m del
+relleno de relieve, no bajadas—, así que la selección en descenso exige `g ≤ −4 %`. Medido: en el
+llano de control y en un banco con un descenso suave, **cero descuelgues**.
+
+**Y aun así DES decide.** Banco a medida (100 km llanos, puerto de 10 km al 6 %, bajada de 25 km al
+−6,5 % y 5 km de llano hasta meta; 40 corredores idénticos salvo el DES: 10 con 80, 10 con 48, 20 con
+60), 60 semillas:
+
+| Medida                           | Valor    |
+| -------------------------------- | -------- |
+| Llegan con el tiempo del ganador | 1 / 40   |
+| Grupos en meta                   | 4        |
+| **Gana un DES 80**               | **58 %** |
+| **Gana un DES 48**               | **7 %**  |
+
+Y es selección, no remate: la meta está 5 km después del final de la bajada, así que el tipo de
+final NO es `descenso` y el modelo de la v7 no interviene. Antes de la v12, DES no decidía nada en
+ese recorrido.
+
+### Strade Bianche entra
+
+El pavé sin selección era el motivo declarado por el que no se cargó (docs/fuentes-recorridos.md).
+Con la v12 la mecánica la soporta y se carga con sus **15 sectores de _sterrato_ reales** (70,5 de
+sus 215 km) y su dureza publicada de 1 a 5 estrellas: es, con Paris-Roubaix, la única del calendario
+cuya dureza no hay que asumir. Fuente: [fr.wikipedia, Strade Bianche
+2024](https://fr.wikipedia.org/wiki/Strade_Bianche_2024) (CC BY-SA 4.0), distancia contrastada con
+Wikidata Q122729230.
+
+**Lo que NO se carga, y es una limitación asumida:** la tabla publica, para nueve sectores, una
+longitud de rampa y una pendiente **MÁXIMA** (hasta el 18 %). Máxima no es media, y tomar el 18 % del
+Monte Sante Marie por su media sería inventarse la carrera, así que no entra ningún puerto. La
+consecuencia es que **la rampa de Via Santa Caterina no está** y el final se resuelve como llegada de
+pavé. Medida con el campo homogéneo (3 semillas): erosión 0,818, vaciado 0,879, pájaras 2 % — dura,
+como debe ser, y por debajo del umbral de saturación (0,95 / 10 %).
+
+### Invariantes: qué se ha movido
+
+`pnpm sim`, 500 simulaciones por escenario:
+
+| Medida                             | v11           | **v12**       | Objetivo          |
+| ---------------------------------- | ------------- | ------------- | ----------------- |
+| Gana la fuga (llana)               | 3,8 %         | **3,4 %**     | 2-8 %             |
+| Gana el mejor sprinter             | 35,4 %        | **35,6 %**    | 30-45 %           |
+| Captura mediana (km a meta)        | 22,4          | 22,4          | 8-25              |
+| Gana la fuga (montaña)             | 42,4 %        | **42,2 %**    | 25-45 %           |
+| Brecha 1º-10º (s)                  | 227           | 227           | 60-300            |
+| CRI: brecha p90-p10 / especialista | 233 / 99,8 %  | 233 / 99,8 %  | 120-240 / 90-100% |
+| Erosión llana / reina              | 0,007 / 0,212 | 0,007 / 0,212 | 0-0,02 / 0,2-0,5  |
+| Erosión clásica larga              | 0,614         | **0,618**     | 0,45-0,8          |
+| Erosión reina 3.ª semana           | 0,690         | 0,690         | 0,6-0,85          |
+| Erosión la clásica más dura        | 0,866         | **0,865**     | 0,45-0,92         |
+
+**Ningún rango de `sim/targets.ts` se ha tocado.** Los cinco números que se mueven lo hacen en la
+tercera cifra y todos siguen dentro del rango; el único movimiento con causa nombrable es la fuga en
+llano (3,8 → 3,4 %), que baja porque la puerta del pelotón también se le cierra al que se queda
+cortado en el tirón final. La montaña y la crono salen **idénticas dígito a dígito**, que es
+exactamente lo que perseguía sacar el azar nuevo a un subflujo nominal propio.
+
+La medida informativa `reina-real-s3` (0,920 · gasto 100 % · pájaras 100 %) sigue igual de mal que en
+la v11: es el defecto abierto de «la reina real de tercera semana», y esta tanda no lo toca.
+
+### El azar nuevo: subflujo `rough`
+
+El descuelgue en pavé y en descenso tira de `streams('rough')`, no de `rngHazard`. Reutilizar el flujo
+de la montaña **desplazaría su secuencia** —el descuelgue en subida consume una tirada por corredor y
+bloque— y movería resultados de montaña calibrados sin que ninguna ley de la montaña hubiera cambiado.
+La prueba de que ha funcionado está en `stage/attribution.test.ts`: las dos huellas selladas de
+`reina-150` salen **idénticas dígito a dígito** a las de la v10.
+
+### La huella sellada: por qué se reselló, y solo eso
+
+`stage/attribution.test.ts` sella la huella `puesto:corredor:tiempo` de cuatro etapas canónicas. Esta
+tanda SÍ mueve comportamiento, así que había que resellar, pero antes se comprobó que se movía donde
+se esperaba:
+
+- **`reina-150` (2 semillas): sin un solo cambio.** Ni un puesto ni un segundo.
+- **`llana-180` (2 semillas): ningún tiempo de grupo cambia** (los 40 siguen entrando en 14438 y en 14585) **salvo un corredor**, `brk-1` en la segunda semilla, que llega **17 s más tarde**: se quedó
+  cortado y el pelotón, lanzado a 0,85 en el tirón final, ya no le deja volver. El resto del
+  movimiento es de ORDEN dentro del mismo segundo, que es lo que arrastra un peaje de trabajo
+  distinto.
+
+### Lo que este cambio NO hace
+
+- **No mete el pavé en la montaña ni al revés.** El factor de la subida es 1 y su dado es el de
+  siempre: la montaña está intacta por construcción, no por suerte.
+- **No hace que el Ronde se rompa en el adoquín.** Sus 8,3 km de pavé son todos 3★ y el último está a
+  40 km de meta: con un campo homogéneo en MON llega en bloque. Lo que rompe el Ronde son los muros,
+  y eso es la montaña, no esto.
+- **No narra el descuelgue en pavé como algo distinto.** `peloton_split` no dice si la criba la hizo
+  un puerto o un sector; sigue siendo el agujero del Cambio 5 (docs/motor.md §16).
+- **No toca el modelo de persecución de fondo.** La puerta del pelotón mejora el parche de
+  `chaseBackSecondsPerKm`, pero el parche sigue ahí: los descolgados recortan con una regla en s/km,
+  no con física (docs/motor.md §9).
+
+### Lo que hay que vigilar
+
+- **`pavesRaceCommit` es la perilla cara.** Sube la erosión de Paris-Roubaix (campo homogéneo) de
+  0,64 a 0,772 de vaciado 0,849, y la de Strade Bianche a 0,879. Ninguna satura hoy, pero son las dos
+  carreras con menos margen del calendario después de Il Lombardia (0,899).
+- **`chaseBackShutFloor` toca a TODAS las carreras, no solo a las de pavé.** Las etapas de montaña
+  reales terminan ahora en algún grupo más (Il Lombardia pasa de 2 a 3-4 grupos en meta con campo
+  mixto), que es más realista que el bloque único de antes, pero es un cambio de fondo y conviene
+  mirarlo cuando haya carreras de verdad corridas.
+- **En Roubaix ganan los adoquineros el 100 % de las veces** con este campo. Es lo que se buscaba,
+  pero el 100 % es mucho: si en producción se vuelve monótono, la perilla es el peso del PAV en
+  `finishWeights.pave`, no la selección.

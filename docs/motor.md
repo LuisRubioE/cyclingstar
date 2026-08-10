@@ -2,8 +2,8 @@
 
 Estado: **documento vivo.** Las Partes I y II son el diagnóstico (medido) y siguen valiendo como
 retrato de lo que había. En la Parte III cada cambio lleva su estado: **§12-bis hecho** (v3),
-**§16 primera entrega** (v6), **§12 hecho** (v7), **§13 hecho** (v9) y **§18 hecho** (v10). Lo demás
-sigue siendo propuesta.
+**§16 primera entrega** (v6), **§12 hecho** (v7), **§13 hecho** (v9), **§18 hecho** (v10),
+**§16 segunda entrega** (v11) y **§14 hecho** (v12). Lo demás sigue siendo propuesta.
 
 Ámbito: `packages/engine/src/stage/` (2.333 líneas sin tests). Referencias a SPEC 6.
 
@@ -250,6 +250,9 @@ desde ninguna parte.** El motor promete una carrera táctica y ejecuta una carre
   promedia al fusionar grupos y no se lee nunca**.
 
 ### 7. La selección solo existe en las subidas
+
+> **RESUELTO en v12** (ver §14). Lo que sigue es el diagnóstico original, que se conserva porque es
+> el contrato contra el que se midió.
 
 `shatter` arranca con `if (block.tipo !== 'subida') return []`. Consecuencias:
 
@@ -507,10 +510,73 @@ final no puede inventar diferencias donde el recorrido no las permite.
 maquillar la aritmética. Bajar las bonificaciones haría la foto menos absurda, pero sería un parche:
 lo que falta es carrera, no aritmética.
 
-### 14. Cambio 3 — Selección fuera de la montaña
+### 14. Cambio 3 — Selección fuera de la montaña (HECHO, v12)
 
-Extender `shatter` al pavés (con PAV) y a los descensos (con DES). Sin esto, las clásicas de
-adoquines no son clásicas de adoquines.
+> **Implementado en `engine_version` 12.** Vive en `shatter()` y en el bucle de `simulate.ts`, sin
+> módulo nuevo: el mecanismo de la subida se ha PARAMETRIZADO, no duplicado. Los números de antes y
+> después están en docs/balance.md, «v12 — Selección en pavé y descenso».
+
+El encargo era una línea: «extender `shatter` al pavés (con PAV) y a los descensos (con DES). Sin
+esto, las clásicas de adoquines no son clásicas de adoquines». Lo que se hizo, y por qué hicieron
+falta cuatro piezas y no una:
+
+**1. El mecanismo es el mismo, con otro atributo y otro peso.** `shatter()` empezaba con
+`if (block.tipo !== 'subida') return dropped` y debajo estaba TODA la selección. Ahora arriba hay un
+`selectionFactor(block)` y debajo el mismo código de siempre: el déficit contra el P75 de los
+punteros, el hazard, el marcaje que responde y el cerillo que salva. Con qué atributo se mide el
+déficit no hubo que tocarlo —`blockPerfil` ya daba MON/COL en la subida, `0,6·PAV + 0,4·LLA` en el
+adoquín y DES en la bajada—; lo que se añade es cuánto pesa cada terreno:
+
+| Terreno  | Factor                       | Por qué                                                                                                                                    |
+| -------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Subida   | **1**                        | Es la referencia con la que se calibró `lambdaDropBase`. La montaña no se mueve                                                            |
+| Pavé     | `0,34 · estrellas / 3`       | **Las estrellas del sector escalan la dureza**: viajaban en el bloque desde la v4 y solo se leían para el coste. Un 5★ rompe casi el doble |
+| Descenso | `0,08`, y solo con `g ≤ −4%` | Se pierde la rueda, no se revienta. El umbral de pendiente es el guardarraíl contra la trampa de §16 (ver abajo)                           |
+| Llano    | 0                            | —                                                                                                                                          |
+
+El impulso del cerillo (`matchBonus`) pasa a valer en todo terreno que selecciona, no solo en la
+subida: si en el adoquín se quema una cerilla para no soltarse, tiene que servir para aguantar los
+metros siguientes, o quemarla sería tirarla.
+
+**2. La trampa del descenso, evitada a propósito.** El comentario de `onClimb`/`raceThisClimb` cuenta
+lo que pasó cuando toda la etapa contaba como puerto decisivo: ciclos de 170 → 15 → 173 corredores.
+Un perfil real tiene descensos por todas partes —el Ronde tiene 18,9 km de «descenso» repartidos en
+toboganes de 300 m que son relieve reconstruido, no bajadas—, así que la selección en descenso exige
+`g ≤ −4%`. Medido: en la llana de control y en el banco de descenso, cero descuelgues.
+
+**3. Sin las tres piezas de al lado, la selección del adoquín se deshacía sola.** Esto es lo que el
+encargo no anticipaba y lo que de verdad costó:
+
+- **El sector se CORRE.** El pelotón cruzaba los 31 sectores de Roubaix al tempo de carretera (0,55).
+  Ahora hay un suelo de compromiso en el adoquín y en su aproximación (`pavesRaceCommit`,
+  `pavesApproachKm`), igual que el puerto decisivo tiene el suyo, y el ritmo del sector lo marcan los
+  de delante (`pavesPaceFraction` 0,15, entre el 0,12 del puerto y el 0,25 del llano).
+- **Dentro del sector no hay reenganche.** El adoquín pasa a ser terreno «que rompe», como la
+  subida: no hay recorte de los descolgados ni vuelta al pelotón mientras dura el sector. Entre
+  sector y sector sí, que es como se corre Roubaix.
+- **La puerta del pelotón se cierra según lo que aprieta** (`chaseBackShutFloor`). Era el agujero de
+  fondo, y estaba anotado en §9 como parche: el descolgado recortaba **8 s/km fijos**, con el pelotón
+  a paseo igual que con los trenes lanzados —un 9% de velocidad de regalo sobre un pelotón a tope, que
+  es imposible—. Medido antes del arreglo: el pelotón se partía en cada sector (58 → 44) y estaba
+  entero en el asfalto siguiente (44 → 57), tres veces en los últimos 30 km. Por debajo del tempo de
+  carretera el factor vale 1 y no se mueve nada de lo calibrado; y un autobús que triplica en número
+  al grupo de cabeza (`chaseBackBusFactor`) vuelve igual, porque se releva mejor.
+
+**4. Un sector de pavé en los últimos 2 km apagaba la persecución de toda la carrera.** `finishFlat`
+pedía que el final fuera `llano` o `descenso`, así que los 300 m del Espace Charles Crupelandt hacían
+que en Paris-Roubaix los sprinters no persiguieran NUNCA: el pelotón pasaba al control de la general,
+daba los 350 s de `gcControlLeash` y el monumento se lo llevaba la fuga del día por siete minutos.
+Ahora el adoquín cuenta como llegada rodada.
+
+**El azar nuevo sale de un subflujo NOMINAL propio, `rough`.** Reutilizar `rngHazard` habría
+desplazado la secuencia del descuelgue en montaña —que se calibró contra ella— y habría movido
+resultados sin que ninguna ley de la montaña cambiara. Con el subflujo propio, las dos huellas
+selladas de `reina-150` en `stage/attribution.test.ts` salen **idénticas dígito a dígito** a las de
+la v10.
+
+**Y con esto entra Strade Bianche**, que se había quedado fuera declaradamente por este agujero (ver
+docs/fuentes-recorridos.md): 15 sectores de _sterrato_ reales, 70,5 de sus 215 km, con dureza
+publicada de 1 a 5 estrellas.
 
 ### 15. Cambio 4 — Consecuencias de la fatiga
 
@@ -563,7 +629,7 @@ y que los replays dejan de depender de re-simular.
 | --- | -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 0   | **Desgaste + controlador del pelotón + velocidades** (§12-bis)       | Es la raíz medida. Sin desgaste y con el controlador atado a la fuga, nada de lo demás puede dar resultados creíbles. No depende de los perfiles: se puede empezar YA |
 | 1   | ~~Modelo de final (§12)~~ **HECHO (v7)**                             | Máximo impacto por esfuerzo una vez hay desgaste: arregla "gana quien no debe"                                                                                        |
-| 2   | Selección en pavés/descenso (§14) y fatiga (§15)                     | Hoy el pavés no existe como terreno (brecha de 0 s) y nadie abandona                                                                                                  |
+| 2   | ~~Selección en pavés/descenso (§14)~~ **HECHO (v12)** · fatiga (§15) | El pavés no existía como terreno (brecha de 0 s en meta). Hecha la selección; la fatiga (§15) y los abandonos siguen pendientes                                       |
 | 3   | **Perfiles reales** (extracción y validación)                        | Entrada del motor. Necesarios **antes de la recalibración final**, no antes de las correcciones estructurales                                                         |
 | 4   | ~~Capa táctica (§13)~~ **HECHO (v9)**                                | El desarrollo grande. Es lo que hace que las carreras se distingan entre sí                                                                                           |
 | 5   | Telemetría (§16) — **v6 y v11 hechas, lo estructural pendiente**     | Habilita el journal y las vistas nuevas                                                                                                                               |
