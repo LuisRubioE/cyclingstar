@@ -3,6 +3,18 @@ import { ENGINE_VERSION } from './index.js'
 
 describe('engine: esqueleto', () => {
   it('expone una engine_version sellada', () => {
+    // v17: EL PELOTÓN NO SE RESIGNA (docs/balance.md «v17») — corrección de una REGRESIÓN de la v16
+    // vista en producción: Race Colombia e5 metió a 126 de 130 corredores a más de 74 minutos (el
+    // 22 % del tiempo del ganador contra un objetivo del 8-14 %) con el boquete creciendo +105 s por
+    // kilómetro en 47 km de terreno RODADOR. `droppedCommit` decidía resignarse solo por el boquete,
+    // y el tamaño entraba únicamente por `1 − 1/n`, que satura: un pelotón entero se rendía igual
+    // que un rezagado solo. Vuelve `chaseBackBusFactor` —la salvaguarda de la v12 que la v16 retiró
+    // por error— a la decisión de resignarse, cobrada a precio de rebufo, así que ser mayoría paga
+    // en el llano y no en la rampa (el grupeto de la reina queda intacto). Con ella, la guarda del
+    // «me dejo ir» pasa a predecir con la física real —el grupeto en el que va a caer— en vez de con
+    // el `giveUpCommit` que la v16 había dejado sin sentido, y aparece un tope de cuántos pueden
+    // sentarse a la vez (en el km 212 se sentaban 73 de golpe). Y el banco crece: `sim/realQueens.ts`
+    // mide la cola sobre ocho etapas reina REALES elegidas por forma, con Race Colombia e5 dentro.
     // v16: EL MODELO DE PERSECUCIÓN (docs/motor.md §9, docs/balance.md «v16») — la última deuda de
     // fondo del motor. El tiempo de un grupo descolgado dejaba de ser física en dos líneas: un
     // RECORTE FIJO de 8 s/km que le devolvía el boquete pasara lo que pasara y un TOPE que le
@@ -44,10 +56,10 @@ describe('engine: esqueleto', () => {
     // por las estrellas del sector) y, mucho más suave, en las bajadas de verdad (con DES). Con él,
     // el sector se corre en vez de rodarse, dentro del sector no hay reenganche, y la puerta del
     // pelotón se cierra según lo que aprieta. Entra Strade Bianche.
-    // Sobre la v15 (plan de equipo), la v14 (abandonos), la v13 (identidad y motivo en el journal), la v12 (selección en pavé y descenso), la
+    // Sobre la v16 (modelo de persecución), la v15 (plan de equipo), la v14 (abandonos), la v13 (identidad y motivo en el journal), la v12 (selección en pavé y descenso), la
     // v11 (atribución del trabajo), la v10 (composición y caza), la v9 (capa táctica), la
     // v8 (tiempos de grupo), la v7 (modelo de final), la v6 (telemetría), la v5 (clásica larga), la
     // v4 (pavé en el recorrido) y la v3 (Cambio 0).
-    expect(ENGINE_VERSION).toBe(16)
+    expect(ENGINE_VERSION).toBe(17)
   })
 })

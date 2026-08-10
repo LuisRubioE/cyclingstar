@@ -99,6 +99,33 @@ import type { Attribute } from '@cyclingstar/shared'
  *   —que es quien marca su velocidad— se compone de otra gente durante dos kilómetros. Nueve
  *   segundos sobre cuatro horas es el ruido esperable de eso; lo que importa es que **los 40 siguen
  *   llegando juntos**, que es lo que una llana con sprint tiene que hacer.
+ *
+ * **RESELLADA EN LA v17** (el pelotón no se resigna, docs/balance.md «v17»). La corrección toca lo
+ * mismo que la v16 —el ritmo del que va descolgado— así que esta huella tenía que moverse otra vez,
+ * y se ha comprobado que se mueve en la DIRECCIÓN CONTRARIA a la v16 y solo donde debe: el grupeto
+ * llega ANTES, porque ya no se resigna del todo cuando es mayoría en la carretera.
+ *
+ * - **`llana-180`, las dos semillas: IDÉNTICAS dígito a dígito.** Ni un puesto ni un segundo. Es la
+ *   garantía que el encargo puso por delante de todo —«en una llana que acaba al sprint el pelotón
+ *   entero comparte tiempo»— y sale gratis por construcción: el término nuevo solo existe cuando un
+ *   grupo descolgado tiene delante a MENOS gente de la que lleva, y en `llana-180` el único cortado
+ *   es un corredor solo con 39 por delante (razón 0,026, muy por debajo del suelo de la rampa). El
+ *   `brk-1` de la segunda semilla sigue clavado en sus 14689, que es el defecto que arregló la v16 y
+ *   que esta tanda NO deshace.
+ * - **`reina-150`, primera semilla: los DIECISÉIS primeros salen dígito a dígito igual** (14681,
+ *   14734, 14805, 14918). Lo que se mueve es de ahí hacia atrás: el grupeto pasa de 15373 a 15316
+ *   (**−57 s**) y `pel-5`, que entraba solo a 15348, se funde en él. Los puestos del 17 al 40 se
+ *   permutan DENTRO DEL MISMO SEGUNDO, que es lo que arrastra un peaje de trabajo distinto.
+ * - **`reina-150`, segunda semilla: ni un solo puesto cambia, y los ocho primeros tampoco de
+ *   tiempo** (14226, 14260, 14415). Se mueven cuatro relojes de grupo, todos hacia ABAJO y todos en
+ *   la cola: 14595→14592, 14892→14864, 14942→14906 y 15011→14969 (**−3, −28, −36 y −42 s**).
+ *
+ * Es decir: cero movimiento en llano, cero movimiento en el frente de la reina, y una cola que llega
+ * entre medio minuto y un minuto antes. Y es poco a propósito: en la reina canónica el grupeto se
+ * resigna EN EL PUERTO, donde la mayoría se cobra a precio de rebufo (9,6 % en una rampa al 8 %),
+ * así que el término nuevo apenas puede hacer nada. Donde sí hace —47 km de terreno rodador con
+ * cuatro corredores delante y 126 detrás— es donde estaba el defecto. Cualquier otra cosa que mueva
+ * esta huella hay que volver a justificarla aquí.
  */
 const SEALED_RESULTS: Record<string, string> = {
   'llana-180-0|llana-180|1|v1':
@@ -106,9 +133,9 @@ const SEALED_RESULTS: Record<string, string> = {
   'llana-180-1|llana-180|1|v1':
     '1:spr-2:14585,2:spr-0:14585,3:spr-1:14585,4:pel-19:14585,5:pel-30:14585,6:pel-15:14585,7:pel-28:14585,8:pel-1:14585,9:brk-3:14585,10:pel-11:14585,11:pel-13:14585,12:pel-23:14585,13:pel-22:14585,14:pel-2:14585,15:pel-6:14585,16:pel-7:14585,17:pel-0:14585,18:pel-8:14585,19:pel-4:14585,20:pel-24:14585,21:pel-3:14585,22:pel-25:14585,23:pel-26:14585,24:pel-21:14585,25:pel-17:14585,26:pel-9:14585,27:pel-14:14585,28:pel-20:14585,29:brk-4:14585,30:pel-16:14585,31:pel-5:14585,32:brk-0:14585,33:pel-27:14585,34:pel-12:14585,35:brk-5:14585,36:pel-29:14585,37:brk-2:14585,38:pel-18:14585,39:pel-10:14585,40:brk-1:14689',
   'reina-150-0|reina-150|1|v1':
-    '1:bar-2:14681,2:pel-7:14681,3:gc-2:14734,4:gc-3:14734,5:gc-1:14734,6:gc-0:14734,7:bar-4:14734,8:bar-5:14734,9:pel-10:14805,10:pel-19:14805,11:pel-4:14805,12:pel-1:14805,13:pel-18:14805,14:bar-3:14805,15:bar-0:14918,16:pel-14:14918,17:pel-5:15348,18:pel-21:15373,19:pel-6:15373,20:pel-11:15373,21:pel-9:15373,22:pel-20:15373,23:pel-17:15373,24:pel-26:15373,25:pel-23:15373,26:pel-22:15373,27:pel-8:15373,28:pel-25:15373,29:pel-16:15373,30:pel-2:15373,31:pel-15:15373,32:pel-13:15373,33:pel-24:15373,34:pel-3:15373,35:pel-0:15373,36:bar-1:15373,37:pel-12:15373,38:spr-2:15373,39:spr-0:15373,40:spr-1:15373',
+    '1:bar-2:14681,2:pel-7:14681,3:gc-2:14734,4:gc-3:14734,5:gc-1:14734,6:gc-0:14734,7:bar-4:14734,8:bar-5:14734,9:pel-10:14805,10:pel-19:14805,11:pel-4:14805,12:pel-1:14805,13:pel-18:14805,14:bar-3:14805,15:bar-0:14918,16:pel-14:14918,17:pel-21:15316,18:pel-6:15316,19:pel-11:15316,20:pel-9:15316,21:pel-20:15316,22:pel-17:15316,23:pel-26:15316,24:pel-23:15316,25:pel-22:15316,26:pel-8:15316,27:pel-5:15316,28:pel-25:15316,29:pel-16:15316,30:pel-3:15316,31:pel-15:15316,32:pel-13:15316,33:pel-0:15316,34:pel-24:15316,35:pel-2:15316,36:pel-12:15316,37:bar-1:15316,38:spr-0:15316,39:spr-2:15316,40:spr-1:15316',
   'reina-150-1|reina-150|1|v1':
-    '1:bar-3:14226,2:bar-0:14226,3:bar-1:14226,4:pel-10:14226,5:gc-0:14260,6:gc-3:14415,7:gc-2:14415,8:gc-1:14415,9:bar-2:14595,10:pel-7:14595,11:pel-23:14892,12:pel-11:14892,13:pel-14:14892,14:pel-1:14892,15:pel-0:14892,16:pel-5:14892,17:spr-0:14892,18:pel-18:14942,19:bar-4:14942,20:pel-8:14942,21:pel-9:14942,22:pel-15:14942,23:pel-2:14942,24:pel-12:14942,25:spr-1:14942,26:bar-5:15011,27:pel-20:15011,28:pel-22:15011,29:pel-6:15011,30:pel-3:15011,31:pel-21:15011,32:pel-25:15011,33:pel-13:15011,34:pel-24:15011,35:pel-17:15011,36:pel-19:15011,37:pel-4:15011,38:pel-26:15011,39:pel-16:15011,40:spr-2:15011',
+    '1:bar-3:14226,2:bar-0:14226,3:bar-1:14226,4:pel-10:14226,5:gc-0:14260,6:gc-3:14415,7:gc-2:14415,8:gc-1:14415,9:bar-2:14592,10:pel-7:14592,11:pel-23:14864,12:pel-11:14864,13:pel-14:14864,14:pel-1:14864,15:pel-0:14864,16:pel-5:14864,17:spr-0:14864,18:pel-18:14906,19:bar-4:14906,20:pel-8:14906,21:pel-9:14906,22:pel-15:14906,23:pel-2:14906,24:pel-12:14906,25:spr-1:14906,26:bar-5:14969,27:pel-20:14969,28:pel-22:14969,29:pel-6:14969,30:pel-3:14969,31:pel-21:14969,32:pel-25:14969,33:pel-13:14969,34:pel-24:14969,35:pel-17:14969,36:pel-19:14969,37:pel-4:14969,38:pel-26:14969,39:pel-16:14969,40:spr-2:14969',
 }
 
 const fingerprint = (out: StageOutput): string =>
