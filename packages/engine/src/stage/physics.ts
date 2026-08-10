@@ -178,12 +178,29 @@ export function draftMax(block: Block): number {
  * Sin esta parte el motor mandaba al grupeto a cualquiera que perdiese una rueda, y una etapa reina
  * la ganaba el mejor escalador por siete minutos sobre el décimo; con ella, el que se suelta a un
  * minuto sigue peleando —y esa es la diferencia entre una selección y una debacle—.
+ *
+ * …Y QUIÉN ES MAYORÍA EN LA CARRETERA (v17, la corrección de la regresión de la v16). El boquete no
+ * puede ser lo ÚNICO que decide si un grupo se resigna, porque «resignarse» pasados 300 s es
+ * verdad para UN rezagado y es mentira para el pelotón entero. El tamaño ya entraba —`rotation`—,
+ * pero satura: con n = 10 vale 0,90 y con n = 126, 0,992, así que un pelotón se rendía igual que un
+ * hombre solo. Medido en producción (Race Colombia e5, docs/balance.md «v17»): cuatro corredores
+ * delante, 126 detrás, y esos 126 rodando 47 km de terreno rodador a 8 km/h del grupo de cabeza
+ * hasta entrar a 74 minutos. Lo que distingue al grupeto que se resigna del pelotón que persigue no
+ * es el boquete, es que **cuatro delante y 126 detrás significa que los 126 son la carrera**.
+ *
+ * Vuelve por eso `chaseBackBusFactor` (v12, retirado por error en la v16): un grupo que TRIPLICA en
+ * número al que va delante no se resigna. La rampa es continua entre la paridad —donde no cambia
+ * nada— y el triple, y **se cobra a precio de rebufo** (`wind`), que es lo que hace honesto el
+ * argumento: ser mayoría paga porque un autobús se releva y caza en el llano; en una rampa al 8 %
+ * no hay rueda a la que ir y ser cuarenta no sirve de nada. Por eso el grupeto de la etapa reina
+ * —que se resigna EN EL PUERTO— sigue existiendo exactamente igual que en la v16.
  */
 export function droppedCommit(
   block: Block,
   size: number,
   freshness: number,
   gapSeconds: number,
+  aheadSize: number,
 ): number {
   const rotation = 1 - 1 / Math.max(1, size)
   const wind = draftMax(block) / STAGE.draftFlat
@@ -196,8 +213,29 @@ export function droppedCommit(
   // la erosión sobre el P75, y cobrarla dos veces mandaba al grupeto a cualquiera que perdiese una
   // rueda—. El que acaba de soltarse va a su umbral aunque vaya vacío; el que ya se ha resignado,
   // no.
-  const fight = 1 - clamp(gapSeconds / STAGE.shedResignGapSeconds, 0, 1)
+  const seen = 1 - clamp(gapSeconds / STAGE.shedResignGapSeconds, 0, 1)
+  const fight = seen + (1 - seen) * majorityOnTheRoad(size, aheadSize) * wind
   return able * legs + (STAGE.shedFightCommit - able * legs) * fight
+}
+
+/**
+ * MAYORÍA EN LA CARRETERA (v17): cuánto pesa ser más que los de delante, de 0 a 1.
+ *
+ * La escala es `chaseBackBusFactor` (3) leída en los dos sentidos, y esa simetría es justo lo que se
+ * quiere decir: **eres un grupeto cuando ellos te triplican a ti** (razón ≤ 1/3, vale 0, y es
+ * exactamente lo que había en la v16) **y eres un pelotón cuando tú los triplicas a ellos** (razón
+ * ≥ 3, vale 1, no te resignas). Entre medias la rampa es continua, así que dos mitades de un
+ * pelotón partido —el caso que de verdad se ve en carretera— quedan cerca del centro y siguen
+ * peleando un poco, sin que ninguna se convierta de golpe en la otra cosa.
+ *
+ * Los dos casos que la fijan: el grupeto de una gran vuelta (cuarenta detrás de ciento veinte, razón
+ * 0,33) no se entera de que esto existe; los 126 de Race Colombia e5 detrás de 4 dan 1 y no se
+ * resignan, que es de lo que iba la corrección.
+ */
+export function majorityOnTheRoad(size: number, aheadSize: number): number {
+  const ratio = size / Math.max(1, aheadSize)
+  const floor = 1 / STAGE.chaseBackBusFactor
+  return clamp((ratio - floor) / (STAGE.chaseBackBusFactor - floor), 0, 1)
 }
 
 /**

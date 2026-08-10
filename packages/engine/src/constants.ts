@@ -213,8 +213,31 @@
  * se le clava el reloj—. Y el cuidado del fuera de control (`administerEffort`) deja de mirar un
  * 5 % fijo para mirar el CORTE de la etapa con margen (`giveUpCutMargin`), que es lo que un corredor
  * vigila de verdad. Sin dados nuevos: todo esto es determinista. Medido en docs/balance.md, «v16».
+ *
+ * v17 (EL PELOTÓN NO SE RESIGNA — corrección de una REGRESIÓN de la v16 vista en producción). En
+ * Race Colombia e5 (232 km, reina) el resultado real fueron **126 de 130 corredores a más de 74
+ * minutos** —el 22 % del tiempo del ganador contra un objetivo del 8-14 %— y el journal enseñaba el
+ * boquete creciendo +105 s por kilómetro, perfectamente lineal, **en 47 km de terreno rodador**.
+ *
+ * La causa: `droppedCommit` decidía resignarse SOLO por el boquete (`shedResignGapSeconds`, 300 s).
+ * Para un rezagado solo es correcto y es lo que la v16 buscaba; aplicado a 126 corredores
+ * persiguiendo a 4, no. El tamaño entraba únicamente por `1 − 1/n`, que **satura** —0,90 con diez y
+ * 0,992 con ciento veintiséis—, así que un pelotón entero se rendía igual que un hombre solo. Vuelve
+ * por eso `chaseBackBusFactor` (la salvaguarda de la v12 que la v16 retiró por error) dentro de la
+ * decisión de resignarse: el tamaño RELATIVO al grupo de cabeza, cobrado a precio de rebufo, de modo
+ * que ser mayoría paga en el llano —donde un autobús se releva y caza— y no paga en la rampa, que es
+ * lo que deja intacto al grupeto de la etapa reina.
+ *
+ * Con ella van las otras dos mitades del mismo defecto: la guarda del «me dejo ir» predecía con
+ * `giveUpCommit`, un modelo que la v16 había borrado —ahora predice con el grupeto real en el que va
+ * a caer—, y no había TOPE de cuántos podían sentarse a la vez, así que en el km 212 se sentaron 73
+ * de golpe realimentándose entre ellos (`giveUpGroupMaxFraction`).
+ *
+ * Y la lección, sellada en CI: el banco no cubría el calendario REAL. `sim/realQueens.ts` mide la
+ * cola sobre ocho etapas reina reales elegidas por FORMA, con Race Colombia e5 dentro por nombre.
+ * Medido en docs/balance.md, «v17».
  */
-export const ENGINE_VERSION = 16 as const
+export const ENGINE_VERSION = 17 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -1230,6 +1253,16 @@ export const STAGE = {
   // habría hecho más restrictivo que ahora. El encargo ya lo decía: «subirlo no arregla nada, el
   // problema es el recorte». El recorte es lo que se ha arreglado.
   giveUpMaxLossFraction: 0.05,
+  // …Y EL FRENO COLECTIVO (v17). La guarda de arriba la pasa cada corredor por su cuenta, y eso
+  // basta mientras se sientan dos o tres. En el km 212 de Race Colombia e5 se sentaron 73 DE GOLPE:
+  // cada uno pasaba su guarda, y en cuanto se iban los primeros el pelotón menguaba, el `1 − 1/n`
+  // del que quedaba empeoraba y al siguiente le salía más barato todavía. Es una realimentación, y
+  // contra una realimentación no vale una guarda individual: hace falta un tope de cuántos pueden
+  // sentarse. Un tercio de la cohorte —los que siguen más los que ya se fueron— es mucho más de lo
+  // que se ve en una etapa de verdad y aun así corta la avalancha en seco; los que quedan SON el
+  // grupo. Se mide por grupo y sobre toda la etapa, no por bloque: con dx = 0,1 km un tope por
+  // bloque deja 250 oportunidades en los últimos 25 km y no frena nada.
+  giveUpGroupMaxFraction: 0.33,
 
   // --- ABANDONOS AUTOMÁTICOS (v14, docs/motor.md §15 y §VI.3) ---------------------------------
   // Objetivo de diseño, medible: una gran vuelta de 21 etapas empieza con ~176 y termina con 140-155

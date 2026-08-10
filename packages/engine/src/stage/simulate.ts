@@ -482,6 +482,14 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
   // Grupos de descolgados: cada uno rueda a su propia velocidad (SPEC 6.3, 6.8).
   const shed: Group[] = []
   let shedCounter = 0
+  /**
+   * Cuántos se han DEJADO IR ya desde cada grupo (regla 8), por id de grupo. Es el freno colectivo
+   * de la v17: rendirse es una decisión individual, pero en el km 212 de Race Colombia e5 se
+   * sentaron 73 corredores de golpe, cada uno pasando su guarda por separado, y en cuanto se fueron
+   * los primeros el pelotón menguó y el resto lo tuvo más fácil todavía. Los que quedan SON el
+   * grupo: pasada `giveUpGroupMaxFraction` de la cohorte, el grupo deja de disolverse.
+   */
+  const gaveUpFromGroup = new Map<string, number>()
 
   let lowCommitKm = 0
   // Km en que se «anuncia» la fuga en la crónica: ningún evento relativo a la fuga se fecha antes.
@@ -1359,9 +1367,41 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
             1,
             m.energy0 > 0 ? Math.max(0, Math.min(1, m.energy / m.energy0)) : 0,
             tS - peloton.tS,
+            membersOf(PELOTON).length,
           ),
         }),
       )
+    }
+
+    /**
+     * A QUÉ RITMO VA A RODAR el que se deja ir (v17). Es exactamente la cuenta que hace el bucle
+     * principal para el ritmo de un grupeto, aplicada al grupeto en el que `dropOut` lo va a meter:
+     * el que ya rueda por ahí a su misma altura si lo hay, y si no, él solo. Sin esto la guarda de
+     * la regla 8 predecía con `giveUpCommit` —un modelo que la v16 borró— y regalaba permisos para
+     * sentarse que la física cobraba al triple (docs/balance.md «v17»).
+     *
+     * Se evalúa en el régimen RESIGNADO (`shedResignGapSeconds`) porque es el estado al que llega
+     * quien se sienta a 20 km de meta, no en el boquete de ahora mismo: con el boquete de ahora
+     * —cero, porque todavía va en el grupo— la cuenta diría que va a rodar a su umbral y no perder
+     * nada, que es justo la mentira que hay que quitar.
+     */
+    const predictedShedPace = (group: Group, m: RiderSim): number => {
+      const near = shed.find(
+        (sg) =>
+          Math.abs(sg.tS - group.tS) <= STAGE.grupetoJoinGapSeconds && membersOf(sg.id).length > 0,
+      )
+      const size = near ? membersOf(near.id).length + 1 : 1
+      const fresh = m.energy0 > 0 ? Math.max(0, Math.min(1, m.energy / m.energy0)) : 0
+      const able = droppedCommit(
+        block,
+        size,
+        fresh,
+        STAGE.shedResignGapSeconds,
+        membersOf(PELOTON).length,
+      )
+      // …y el que se ha dejado ir arrastra al grupo en la proporción en que sean los suyos, que es
+      // la misma línea del bucle principal. Si cae solo, el grupeto ES él y rueda a lo suyo.
+      return able + (Math.min(able, STAGE.giveUpCommit) - able) / size
     }
 
     // Descuelgue (SPEC 6.8): quien no aguanta el P75 de los punteros de su grupo o quema un cerillo
@@ -1454,7 +1494,18 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
     const administerEffort = (group: Group, members: RiderSim[], inFront: boolean): void => {
       if (members.length === 0) return
       if (totalKm - km > STAGE.giveUpKm) return
+      /**
+       * EL FRENO COLECTIVO (v17). Rendirse lo decide cada uno, pero un grupo no se disuelve: en el
+       * km 212 de Race Colombia e5 se sentaron 73 corredores de golpe —cada uno pasó la guarda por
+       * su cuenta— y la cosa se realimentaba, porque cada uno que se iba dejaba al pelotón más
+       * pequeño y al siguiente le salía más barato. La cohorte es «los que están + los que ya se
+       * fueron»; pasada su fracción, los que quedan SON el grupo y aguantan.
+       */
+      let gone = gaveUpFromGroup.get(group.id) ?? 0
+      const cohort = gone + members.length
+      const budget = Math.floor(STAGE.giveUpGroupMaxFraction * cohort)
       for (const m of members) {
+        if (gone >= budget) break
         // Rendirse es un acto único: quien ya se dejó ir rueda a `giveUpCommit` en su grupeto y no
         // puede volver a dejarse ir. Sin esto el sorteo lo repescaba cada bloque —también dentro de
         // los grupos de descolgados, que este mismo bucle recorre— y la crónica narraba tres veces
@@ -1471,15 +1522,28 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
         )
         if (lambda <= 0) continue
         if (!rollHazard(rngTactics, lambda)) continue
-        // El cuidado del fuera de control: solo administra si lo que va a ceder de aquí a meta cabe
-        // dentro del corte. La cuenta es la de la propia ley de velocidad —ritmo(c) es lineal en el
-        // compromiso—, así que el retraso relativo se conoce sin simular nada. El tope NO se ha
-        // tocado en la v16: se probó atarlo al corte real de cada etapa y no mueve nada donde
-        // importa (ver `giveUpMaxLossFraction`).
-        const slower = rhythm(group.compromiso) / rhythm(STAGE.giveUpCommit) - 1
+        /**
+         * EL CUIDADO DEL FUERA DE CONTROL: solo administra si lo que va a ceder de aquí a meta cabe
+         * dentro del corte. La cuenta es la de la propia ley de velocidad —ritmo(c) es lineal en el
+         * compromiso—, así que el retraso relativo se conoce sin simular nada.
+         *
+         * PERO CONTRA QUÉ RITMO (v17, la corrección de la regresión de la v16). Hasta ahora esto
+         * predecía con `giveUpCommit`: «voy a rodar a 0,5 lo que queda». Y eso dejó de ser verdad en
+         * la v16, cuando el que se deja ir pasó a caer en un GRUPETO cuyo ritmo lo fija
+         * `droppedCommit` —y que se resigna en cuanto pierde de vista al grupo de cabeza—. La
+         * guarda decía «solo vas a perder un 4 %, adelante» y la carretera le cobraba un 22 %
+         * (medido, Race Colombia e5). Ahora predice con la MISMA física que va a vivir: el grupeto
+         * en el que va a caer, a su tamaño real y en el régimen resignado, que es el estado al que
+         * llegará —pedirle la cuenta con el boquete de AHORA sería volver a mentirle, porque quien
+         * acaba de soltarse todavía pelea y por eso todavía no pierde nada—.
+         */
+        const shedPace = predictedShedPace(group, m)
+        const slower = rhythm(group.compromiso) / rhythm(shedPace) - 1
         const remainingS = ((totalKm - km) / Math.max(1, group.vActual)) * 3600
         if (slower * remainingS > STAGE.giveUpMaxLossFraction * group.tS) continue
         m.gaveUp = true
+        gone += 1
+        gaveUpFromGroup.set(group.id, gone)
         dropOut(m, group)
         log.emit(km, group.tS, 'abandona_ritmo', 'rider_sits_up', [m.input.riderId], {
           toGo: Math.round(totalKm - km),
@@ -1893,6 +1957,10 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
      *
      * Se recalcula bloque a bloque y no al descolgarse, porque las tres entradas cambian: el
      * grupeto crece cuando se le suman otros, y se vacía kilómetro a kilómetro.
+     *
+     * …y desde la v17 también cambia CONTRA CUÁNTOS va: el cuarto argumento es el tamaño del grupo
+     * al que persigue, porque un autobús que triplica al de delante no se resigna (docs/balance.md
+     * «v17»). Es el mismo pelotón contra el que se mide su boquete.
      */
     for (const sg of shed) {
       const mem = membersOf(sg.id)
@@ -1903,7 +1971,13 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
         fresh += m.energy0 > 0 ? Math.max(0, Math.min(1, m.energy / m.energy0)) : 0
         if (m.gaveUp) gaveUp += 1
       }
-      const able = droppedCommit(block, mem.length, fresh / mem.length, sg.tS - peloton.tS)
+      const able = droppedCommit(
+        block,
+        mem.length,
+        fresh / mem.length,
+        sg.tS - peloton.tS,
+        membersOf(PELOTON).length,
+      )
       // …y el que SE HA DEJADO IR (regla 8) ya no pelea por nada: rueda a lo suyo y arrastra al
       // grupo en la proporción en que sean los suyos. Un grupeto donde la mitad se ha sentado va
       // más lento que uno donde nadie lo ha hecho, que es lo que se ve en carretera.
