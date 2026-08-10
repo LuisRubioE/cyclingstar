@@ -2992,3 +2992,313 @@ todavía no CUENTA la selección cuando ocurre lejos de meta.
   el que las dos caen dentro de sus bandas a la vez.
 - **Los abandonos han subido a 15,9 % y la lesión es la mitad de ellos.** El total está centrado,
   pero si sube más habrá que mirar la exposición a las caídas antes que ninguna otra cosa.
+
+## v17 — El pelotón no se resigna: corrección de una REGRESIÓN de la v16 (`engine_version` 16 → 17)
+
+> **Esto no es una mejora, es un arreglo.** La v16 metió un defecto en producción y se vio en
+> pantalla antes que en el banco. El dueño lo resumió en tres palabras: **«74 minutos???»**.
+
+### 0. Lo que se vio en producción
+
+**Race Colombia, etapa 5** (`reina`, 232 km, 3.742 m). Resultado real:
+
+```
+  +0s      × 4 corredores
+  +74m34   × 13
+  +78m29   × 61
+  +82m00   × 52
+```
+
+126 de 130 corredores a más de 74 minutos. El ganador hizo 5 h 36, así que la cola entró al **22 %
+de su tiempo** contra el 8-14 % que fija `sim/targets.ts`. Y el journal enseñaba la firma del
+defecto, que es lo que lo hizo diagnosticable de un vistazo:
+
+```
+km 179  Only 4 riders left in front with 53 km to go: … 1:22 clear.
+km 192  The 4 out front pull away — 15:17 now.
+km 196  The 4 out front pull away — 22:16 now.
+km 200  The 4 out front pull away — 29:15 now.
+km 204  The 4 out front pull away — 36:14 now.
+km 208  The 4 out front pull away — 43:13 now.
+km 212  The 4 out front pull away — 50:12 now.
+km 212  The back of the race is falling apart with 20 km to go: 73 riders sit up…
+km 217  Behind, 13 riders let the group go with 15 km to go…
+km 223  The 4 out front pull away — 69:25 now.
+```
+
+**+6:59 cada 4 km, perfectamente lineal**, y en un tramo que es LLANO: el último puerto de esa etapa
+termina en el km 178 y la meta está en el 232, con solo 7 km de puerto en el km 225. En 47 km de
+terreno rodador el pelotón perdió una hora contra cuatro corredores.
+
+### 1. La causa: `1 − 1/n` satura, y un pelotón se rendía como un hombre solo
+
+En `droppedCommit` (v16), la resignación dependía **solo del boquete**:
+
+```ts
+const fight = 1 - clamp(gapSeconds / STAGE.shedResignGapSeconds, 0, 1) // 300 s
+return able * legs + (STAGE.shedFightCommit - able * legs) * fight
+```
+
+Pasados 300 s, `fight` vale 0 y el grupo rueda a `able · legs` hasta meta. Para **un** rezagado eso
+es correcto y es exactamente lo que la v16 buscaba. Pero se aplicaba igual a **126 corredores
+persiguiendo a 4**, y eso no es un grupeto: es el pelotón. El tamaño entraba únicamente por
+`rotation = 1 − 1/n`, que **satura**: 0,90 con diez y 0,992 con ciento veintiséis. Entre un autobús
+de diez y la carrera entera no había diferencia ninguna.
+
+**La salvaguarda que faltaba existía en la v12 y se quitó**: `chaseBackBusFactor` = 3, «un grupo que
+TRIPLICA en número al que va delante no puede resignarse, porque se releva mejor y acaba cazándolo
+en llano». La v16 la conservó solo para la PUERTA del pelotón y la sacó de la decisión de ritmo.
+
+### 2. Lo que se pone en su lugar
+
+**a) La mayoría en la carretera** (`majorityOnTheRoad`, `physics.ts`). El tamaño RELATIVO al grupo de
+cabeza entra en la decisión de resignarse, con `chaseBackBusFactor` leído **en los dos sentidos**:
+
+| Razón `n / n_delante` | Mayoría | Qué dice                                                   |
+| --------------------- | ------- | ---------------------------------------------------------- |
+| ≤ 1/3                 | 0       | Te triplican: eres un grupeto. **Exactamente la v16.**     |
+| 1 (paridad)           | 0,25    | Un pelotón partido en dos: ninguna mitad se rinde del todo |
+| ≥ 3                   | 1       | Los triplicas: **eres la carrera**, y no te resignas       |
+
+Y **se cobra a precio de rebufo** (`draftMax / draftFlat`), que es lo que hace honesto el argumento:
+ser mayoría paga en el llano —donde un autobús se releva y caza— y no paga en una rampa al 8 %,
+donde el rebufo vale un 9,6 % y no hay rueda a la que ir. De ahí sale la propiedad que salva la v16
+entera: **el grupeto de la etapa reina se resigna EN EL PUERTO, y sigue resignándose igual.**
+
+```ts
+const seen = 1 - clamp(gapSeconds / STAGE.shedResignGapSeconds, 0, 1)
+const fight = seen + (1 - seen) * majorityOnTheRoad(size, aheadSize) * wind
+```
+
+**b) La guarda del «me dejo ir» predice con la física real** (`administerEffort`, `simulate.ts`). La
+cuenta era `rhythm(group.compromiso) / rhythm(STAGE.giveUpCommit) - 1`: «voy a rodar a 0,5 lo que
+queda». Eso dejó de ser verdad en la v16, cuando el que se deja ir pasó a caer en un GRUPETO cuyo
+ritmo lo fija `droppedCommit`. Ahora la guarda llama a `droppedCommit` sobre el grupeto en el que
+`dropOut` lo va a meter —el que ya rueda a su altura si lo hay, y si no, él solo— y en el régimen
+RESIGNADO, que es el estado al que llega. Es la misma línea que usa el bucle principal, incluido el
+`share` del que ya se sentó.
+
+**c) Un tope de cuántos pueden sentarse a la vez** (`giveUpGroupMaxFraction` = 0,33). En el km 212 se
+sentaron **73 de golpe**: cada uno pasaba su guarda por separado y la cosa se realimentaba, porque
+cada uno que se iba dejaba al pelotón más pequeño. Contra una realimentación no vale una guarda
+individual. La cohorte es «los que siguen + los que ya se fueron», y pasado un tercio de ella los que
+quedan **son** el grupo. Se lleva por grupo y por etapa, no por bloque: con `dx` = 0,1 km un tope por
+bloque deja 250 oportunidades en los últimos 25 km y no frena nada.
+
+### 3. Race Colombia e5, antes y después
+
+Reproducido con `SEASON_CALENDAR` y el campo continental del dueño —130 corredores: **8 a 82, 16 a
+62 y el resto a 52**—, cinco semillas deterministas. El caso vive en el banco
+(`colombiaRegressionTails`), así que estos números se pueden volver a sacar con `pnpm sim`:
+
+| Semilla  | Ganador |    **v16** |    **v17** |
+| -------- | ------- | ---------: | ---------: |
+| 0        | 6 h 05  |     14,2 % |     14,3 % |
+| 1        | 5 h 41  |     17,9 % |     15,1 % |
+| 2        | 5 h 39  |     18,9 % |     15,5 % |
+| 3        | 5 h 47  |     16,8 % |     14,7 % |
+| 4        | 5 h 38  |     18,7 % |     15,4 % |
+| **Peor** |         | **18,9 %** | **15,5 %** |
+
+**El peor caso baja del corte de la reina** (`timeCutQueen` = 18 %) y ahí está el criterio: por
+encima del corte, éste deja de ser un riesgo y pasa a ser una eliminación en bloque que solo frena el
+tope del 4 % con su readmisión. Es lo que producción enseñaba con su 22 %.
+
+**Y la curva del boquete deja de ser la de un grupo parado.** Medido en el llano del km 184 al 196
+(semilla 1), que es el tramo del journal:
+
+| Medida en el llano          | **v16**       | **v17**       |
+| --------------------------- | ------------- | ------------- |
+| Compromiso del grupo grande | 0,577         | **0,820**     |
+| Su velocidad                | 37,2 km/h     | **39,6 km/h** |
+| Crecimiento del boquete     | **18,6 s/km** | **12,6 s/km** |
+| Tamaño de ese grupo         | 52            | **69**        |
+
+El grupo grande pasa de rodar resignado a rodar a su umbral y, al hacerlo, **caza a los grupetos que
+tenía delante y se funde con ellos** (52 → 69). Lo que queda de crecimiento —12,6 s/km— **ya no es
+resignación**: es el P75 del grupo, 45 contra 80. Con ese campo, el frente son ocho corredores treinta
+puntos mejores que la masa, y un grupo de LLA 45 no rueda a la velocidad de uno de LLA 80 por muy
+convencido que vaya. Medido: forzando `fight = 1` siempre —el techo teórico de esta corrección— la
+cola solo baja a 13,1 %, así que de los 3,5 puntos que había en juego la v17 recupera 2,3 y el resto
+no lo puede dar esta perilla.
+
+### 4. Cuál de las tres causas hace el trabajo (ablación, mismas cinco semillas)
+
+| Configuración       | Colas                                  |  `rider_sits_up` por etapa |
+| ------------------- | -------------------------------------- | -------------------------: |
+| v16                 | 14,2 · 17,9 · 18,9 · 16,8 · 18,7 %     |     26 · 63 · 63 · 61 · 62 |
+| Solo la mayoría (a) | 14,3 · 15,1 · 15,5 · 14,7 · 15,6 %     |     43 · 77 · 74 · 72 · 66 |
+| Solo la guarda (b)  | 14,2 · 17,9 · 18,9 · 16,8 · 18,7 %     |     26 · 63 · 63 · 61 · 62 |
+| Solo el tope (c)    | 14,5 · 18,3 · 18,9 · 16,8 · 18,4 %     |     24 · 39 · 41 · 49 · 38 |
+| **v17 (las tres)**  | **14,3 · 15,1 · 15,5 · 14,7 · 15,4 %** | **42 · 43 · 43 · 47 · 40** |
+
+Se dice tal cual porque es lo honesto:
+
+- **La cola la arregla (a)**, la mayoría en la carretera. Es la causa principal y hace todo el
+  trabajo sobre el reloj.
+- **(c) hace falta precisamente porque (a) existe.** Con la mayoría sola, los que se sientan SUBEN
+  (de 61-63 a 66-77): el grupo grande rueda más rápido, llega más gente viva a los últimos 25 km y
+  hay más candidatos a rendirse. El tope los deja en 40-47 y evita que la corrección se coma a sí
+  misma por el otro lado.
+- **(b) no mueve nada medible en este caso** —sale dígito a dígito igual que la v16—. Y conviene
+  saber por qué, porque no es que la corrección sobre: el guardarraíl compara contra
+  `giveUpMaxLossFraction · group.tS`, y el 5 % de un tiempo de carrera de cinco horas son 900 s
+  mientras que lo que se puede ceder en los últimos 25 km son ~200 s con el modelo viejo y ~250 s
+  con el nuevo. **La guarda casi nunca ata**, ni antes ni después; lo que la v17 arregla es que
+  cuando ate, mida el mundo que existe. Queda anotado como deuda: el guardarraíl mide contra el
+  tiempo YA CORRIDO en vez de contra el corte de la etapa, y eso lo vuelve casi inerte en etapas
+  largas.
+
+### 5. La gran vuelta del banco: la cola por tipo de etapa
+
+8 vueltas de 21 etapas con 176 corredores:
+
+| Medida                                          |       v16 |       **v17** |
+| ----------------------------------------------- | --------: | ------------: |
+| Último grupo de una etapa REINA (mediana)       |    9,24 % |    **8,81 %** |
+| …y el peor de las 56 etapas reina               |    17,6 % |    **16,5 %** |
+| Último grupo de una etapa de MEDIA montaña      |    6,08 % |    **5,18 %** |
+| Último grupo de una etapa LLANA                 |    1,27 % |    **1,54 %** |
+| Grupos en meta (reina · media · llana)          | 7 · 4 · 2 | **7 · 4 · 2** |
+| % del pelotón con el tiempo del GANADOR (llana) |      99 % |      **99 %** |
+| Etapas reina al mismo segundo                   |       0 % |       **0 %** |
+| Abandonos en tres semanas                       |    15,9 % |    **15,1 %** |
+
+La cola de la reina baja cuatro décimas y **eso es lo esperado**: el mismo término que impide que un
+pelotón se resigna también deja volver a algún corte grande en el valle de una etapa de montaña. Se
+queda en 8,81 % sobre un suelo de 8 %, dentro de banda pero con **menos margen que la v16 (9,24 %)**,
+y por eso va en «lo que hay que vigilar».
+
+El movimiento con más carácter es el de la **media montaña**: el % del pelotón con el tiempo del
+ganador pasa de 25 % a 53 % sin que cambie ni el número de grupos (4) ni las etapas que llegan al
+mismo segundo (8 %). Es exactamente lo que hace el término: en una etapa de transición el corte que
+se abre en la cota vuelve en el valle si es numeroso, que es lo que se ve en carretera.
+
+### 6. Lo que NO se ha roto
+
+1. **La llana canónica no se mueve un dígito.** Las dos huellas selladas de `llana-180` en
+   `stage/attribution.test.ts` salen **idénticas**, incluido el `brk-1` que la v16 dejó a +104 s: el
+   término nuevo solo existe cuando un grupo tiene delante a menos gente de la que lleva, y un
+   cortado en solitario con 39 por delante da razón 0,026, por debajo del suelo de la rampa. En la
+   gran vuelta, las llanas siguen con el **99 %** del pelotón al tiempo del ganador.
+2. **El grupeto sigue existiendo.** No se ha vuelto a ningún recorte fijo: no hay más constante en el
+   camino que la razón de tamaños, y en el puerto vale casi cero. La reina de gran vuelta sigue
+   entregando su último grupo al 8,8 %.
+3. **La reina no gana grupos de un corredor.** `reina-150`, 150 corridas: **8 grupos en meta con 2 de
+   un corredor**, la misma cifra dígito a dígito que la v16 (§3-bis-e).
+4. **Los 17 invariantes siguen en verde y ninguna banda se ha relajado** (ver §8).
+
+### 7. El banco nuevo: reinas REALES del calendario (`sim/realQueens.ts`)
+
+Es la lección de esta regresión, y la parte que va a durar más que el arreglo.
+`grandTour.queenLastGroupPct` estaba **en verde** mientras esto pasaba en producción, y no porque
+midiera mal: porque **mide siempre la misma forma de etapa reina** —las siete de `race-france`, todas
+finales en alto de 170-185 km—. Ninguna se parece a una reina de 232 km con el último puerto a 62 km
+de meta y 47 km rodadores hasta la línea.
+
+El banco nuevo corre **ocho etapas reina REALES del calendario, elegidas por forma y no por cartel**,
+cada una con un campo generado del nivel de la carrera (una continental no la corre el pelotón del
+Tour, y las continentales llevan sus equipos invitados de categoría superior):
+
+| Etapa               | Por qué está                                                 | Cola mediana |
+| ------------------- | ------------------------------------------------------------ | -----------: |
+| `race-colombia` e5  | **El caso de la regresión.** 232 km, final rodado de 47 km   |       10,6 % |
+| `race-two-seas` e4  | Final rodado en WorldTour: 210 km, 7,8 km de subida al final |        6,2 % |
+| `race-spain` e7     | Reina de gran vuelta con meta en llano (3 km de subida)      |        5,6 % |
+| `race-france` e20   | La reina tipo: 171 km, 4.516 m, final en alto (control)      |       11,3 % |
+| `race-italy` e19    | Corta y brutal: 151 km, 4.094 m                              |        6,3 % |
+| `race-catalonia` e4 | Sube sin parar el último tercio (38 de los últimos 50 km)    |        4,7 % |
+| `race-guatemala` e9 | Continental larga: 200 km, 4.075 m                           |       10,9 % |
+| `race-tachira` e6   | Continental corta: 166 km                                    |       12,6 % |
+
+Con dos objetivos nuevos en `sim/targets.ts`:
+
+- **`realQueens.lastGroupPct` (8-14 %)**, sobre la mediana del banco entero. Medido: **9,3 %**. La
+  banda es la misma que la de la gran vuelta y por la misma razón de §VI.3; lo que cambia es que ya
+  no describe una sola forma de etapa.
+- **`realQueens.worstStagePct` (0-18 %)**, sobre la peor etapa del banco. El techo **no es un número
+  de calibración: es `timeCutQueen`**. Una etapa cuya cola vive por encima del corte es una etapa en
+  la que el corte deja de ser un riesgo y pasa a ser una eliminación en bloque. Medido: **12,6 %**.
+
+**Y hay que decir lo que este banco NO hace, porque es la mitad de la lección.** Con campos generados
+por `generateNpcRider` la etapa de Colombia se porta razonablemente **también en la v16** (9,96 % de
+mediana del banco en v16 contra 9,3 % en v17): el generador produce un CONTINUO de niveles, y lo que
+rompe la carrera es el **ESCALÓN** —ocho corredores treinta puntos por encima de una masa
+homogénea—. Por eso el caso de la regresión va **aparte y con el campo con el que se vio**
+(`colombiaRegressionTails`), y es esa prueba, no el banco general, la que falla en la v16 (18,9 % >
+18 %) y pasa en la v17 (15,5 %). El banco general vale para lo otro: cubrir FORMAS de recorrido que
+nadie estaba mirando, para la próxima vez.
+
+### 8. Los invariantes: qué se ha movido
+
+`pnpm sim`, 500 corridas por escenario (8 grandes vueltas, 8 semillas por reina real):
+
+| Medida                             |          v16 |      **v17** | Objetivo           |
+| ---------------------------------- | -----------: | -----------: | ------------------ |
+| Gana la fuga (llana)               |        3,2 % |    **3,2 %** | 2-8 %              |
+| Gana el mejor sprinter             |       34,8 % |   **34,8 %** | 30-45 %            |
+| Captura mediana (km a meta)        |         22,6 |     **22,6** | 8-25               |
+| Gana la fuga (montaña)             |       40,4 % |   **40,4 %** | 25-45 %            |
+| Brecha 1º-10º en la reina          |        251 s |    **249 s** | 60-300 s           |
+| CRI: brecha p90-p10 / especialista | 233 / 99,8 % | 233 / 99,8 % | 120-240 / 90-100%  |
+| Erosión llana en fresco            |        0,008 |    **0,008** | 0-0,02             |
+| Erosión reina en fresco            |        0,190 |    **0,195** | 0,18-0,50          |
+| Erosión clásica larga              |        0,617 |    **0,617** | 0,45-0,8           |
+| Erosión reina 3.ª semana (REAL)    |        0,653 |    **0,653** | 0,6-0,85           |
+| Erosión la clásica más dura        |        0,850 |    **0,851** | 0,45-0,92          |
+| Voz de EQUIPO en el parte (llana)  |       69,3 % |   **69,3 %** | 50-85 %            |
+| Equipos que llevan el frente       |         2,26 |     **2,26** | 1,8-4              |
+| Abandonos en una gran vuelta       |       15,9 % |   **15,1 %** | 12-20 %            |
+| Último grupo en la reina           |        9,2 % |    **8,8 %** | 8-14 %             |
+| **Último grupo, reinas REALES**    |     (10,0 %) |    **9,3 %** | **8-14 % (nuevo)** |
+| **La peor reina real**             |     (12,7 %) |   **12,6 %** | **0-18 % (nuevo)** |
+
+**NINGÚN rango se ha relajado, y ninguno se ha movido.** Los dos objetivos nuevos entran sobre
+medida nueva, no sobre un número que estorbara. Lo único que se mueve de verdad es lo que toca la
+tanda: la cola de la reina, la de la media montaña y los abandonos —el 15,1 % baja porque el corte
+señala a algo menos de gente cuando la cola es más corta, que es la consecuencia buscada—. La
+erosión de la reina en fresco sube tres milésimas (0,190 → 0,195) por la razón simétrica a la que la
+v16 anotó: el grupeto que pelea gasta más que el que se resigna.
+
+### 9. Perillas
+
+| Perilla                  | Valor | Qué hace                                                                                      |
+| ------------------------ | ----: | --------------------------------------------------------------------------------------------- |
+| `chaseBackBusFactor`     |     3 | **Reutilizada** (v12): ahora también decide si un grupo puede resignarse, en los dos sentidos |
+| `giveUpGroupMaxFraction` |  0,33 | Tope de qué fracción de un grupo puede dejarse ir en toda la etapa                            |
+
+`shedResignGapSeconds` (300 s), `shedFightCommit`, `shedCommitAlone`, `shedCommitBunch` y
+`shedEmptyCommitFactor` **no se tocan**: la v16 los calibró y siguen describiendo lo mismo.
+
+### 10. El azar: NINGÚN subflujo nuevo
+
+`majorityOnTheRoad` es una razón de tamaños; la guarda nueva llama a `droppedCommit`, que es
+aritmética; y el tope colectivo solo deja de sortear antes. **Ni un dado nuevo**, y por eso las dos
+huellas de `llana-180` salen idénticas: donde el término no aplica, la secuencia no se mueve.
+
+### 11. Lo que este cambio NO hace
+
+- **No arregla el P75 de un campo con escalón.** Con ocho corredores treinta puntos por encima de la
+  masa, el frente rueda 8 km/h más rápido que la cola en llano todo el día porque la velocidad de un
+  grupo la marca su cuartil bueno, y eso no es resignación: es la ley de velocidad de SPEC 6.4. Es lo
+  que deja la cola de Colombia en el 15 % y no en el 10 %, y tocarlo es otra tanda —y mucho más
+  grande—.
+- **No arregla el guardarraíl del «me dejo ir».** Ahora predice bien, pero sigue midiéndose contra el
+  5 % del tiempo YA CORRIDO en vez de contra el corte de la etapa, y por eso casi nunca ata (§4).
+- **No toca la SELECCIÓN.** En el banco de Colombia el pelotón pasa de 126 a 38 en el primer puerto
+  del día, a 180 km de meta y con `climbTempoSelection` puesto. Puede que esté bien con ese campo y
+  puede que no; esta tanda no lo mira, y queda anotado.
+- **No narra nada nuevo.** El journal sigue contando lo mismo; lo que cambia es que lo que cuenta ya
+  no es un grupo parado.
+
+### 12. Lo que hay que vigilar
+
+- **La cola de la reina de gran vuelta se ha acercado al suelo**: 9,24 % → 8,81 % sobre un mínimo de
+  8 %. Es el número con menos margen de la batería. Si baja más, la perilla es el suelo de la rampa
+  de `majorityOnTheRoad` (hoy 1/3): subirlo a la paridad devuelve grupetos más lentos… pero **medido,
+  con la paridad la reina da 8,09 %, aún más bajo**, porque los grupetos se funden distinto. No es
+  monótono, así que cualquier ajuste ahí hay que medirlo, no razonarlo.
+- **La media montaña llega mucho más agrupada** (25 % → 53 % con el tiempo del ganador). Es
+  defendible y el número de grupos no cambia, pero es el tipo de etapa que más se ha movido.
+- **El banco de reinas reales cuesta ~40 s por cada 8 semillas** y corre en CI. Si se le añaden
+  etapas hay que mirar el reloj de la suite.

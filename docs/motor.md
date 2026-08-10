@@ -353,9 +353,39 @@ para las caídas (`crashCheck` no los recorría: las lesiones de una gran vuelta
 que ninguna ley de las caídas hubiera cambiado).
 
 **El criterio de éxito, y lo vigila CI:** el último grupo de una etapa reina de gran vuelta entra
-entre el **8 % y el 14 %** del tiempo del ganador (`grandTour.queenLastGroupPct`). Medido: **2,00 % →
-9,34 %**. Con él, «fuera de control» pasa del 0 % al 19 % de los abandonos y ninguna etapa reina
-termina ya con el pelotón entero al mismo segundo.
+entre el **8 % y el 14 %** del tiempo del ganador (`grandTour.queenLastGroupPct`). Medido:
+**2,00 % → 9,34 %**. Con él, «fuera de control» pasa del 0 % al 19 % de los abandonos y ninguna
+etapa reina termina ya con el pelotón entero al mismo segundo.
+
+> **CORREGIDO EN LA v17: el pelotón no se resigna.** La v16 se pasó de frenada en un caso que no
+> había mirado, y se vio en PRODUCCIÓN: Race Colombia e5 (232 km) terminó con **126 de 130
+> corredores a más de 74 minutos** —el 22 % del tiempo del ganador— y el journal enseñaba el boquete
+> creciendo **+105 s por kilómetro, perfectamente lineal, en 47 km de terreno RODADOR**.
+>
+> La causa está en la última línea de `droppedCommit`: resignarse dependía SOLO del boquete
+> (`shedResignGapSeconds`, 300 s). Para un rezagado solo eso es correcto, y es exactamente lo que la
+> v16 quería. Aplicado a 126 corredores persiguiendo a 4, no lo es: el tamaño entraba únicamente por
+> `1 − 1/n`, que **satura** —0,90 con diez y 0,992 con ciento veintiséis—, así que **un pelotón
+> entero se rendía igual que un hombre solo**. Lo que distingue al grupeto que se resigna del
+> pelotón que persigue no es el boquete en segundos: es **quién es mayoría en la carretera**.
+>
+> Vuelve por eso `chaseBackBusFactor` —la salvaguarda de la v12, retirada por error en la v16— a la
+> decisión de resignarse, con el factor leído en los dos sentidos: eres un grupeto cuando te
+> triplican y eres un pelotón cuando triplicas, con una rampa continua entre medias. Y **se cobra a
+> precio de rebufo**: ser mayoría paga en el llano, donde un autobús se releva y caza, y no paga en
+> la rampa, donde no hay rueda a la que ir. Por eso el grupeto de la etapa reina —que se resigna EN
+> EL PUERTO— sigue igual que en la v16 y el banco de la gran vuelta no se mueve.
+>
+> Van con ella las otras dos mitades del mismo defecto: la guarda del «me dejo ir» predecía con
+> `giveUpCommit` —un modelo que la v16 había borrado— y ahora predice con el grupeto real en el que
+> el corredor va a caer; y no había TOPE de cuántos podían sentarse a la vez, así que en el km 212 se
+> sentaron 73 de golpe realimentándose entre ellos (`giveUpGroupMaxFraction`).
+>
+> **Y la lección, que es de banco y no de motor:** `grandTour.queenLastGroupPct` estaba en verde
+> mientras esto pasaba porque **mide siempre la misma forma de etapa reina** —las siete de
+> `race-france`, todas finales en alto de 170-185 km—, y ninguna se parece a una reina de 232 km con
+> el último puerto a 62 km de meta. `sim/realQueens.ts` mide ahora la cola sobre ocho reinas REALES
+> elegidas por forma, con Race Colombia e5 dentro por nombre. Medido en docs/balance.md, «v17».
 
 ### 10. Por qué los invariantes pasan y aun así los resultados son malos
 
@@ -532,6 +562,17 @@ Las reglas 8 y 9 son piezas aparte:
 - **8 — administrar el esfuerzo.** Hoy solo te descuelgas si no aguantas el P75; nunca porque
   decidas ahorrar. Necesita que el corredor pueda **rendirse a propósito** cuando ya no se juega
   nada, mirando el corte de tiempo.
+
+  > **AL DÍA (v17): rendirse es individual, pero un grupo no se disuelve.** La regla se implementó
+  > en la v9 con una guarda por corredor —«solo me dejo ir si lo que voy a ceder cabe en el corte»—
+  > y eso basta mientras se sientan dos o tres. En Race Colombia e5 se sentaron **73 de golpe en el
+  > km 212**: cada uno pasaba su guarda por separado y la cosa se realimentaba, porque cada uno que
+  > se iba dejaba al pelotón más pequeño y al siguiente le salía más barato. Contra una
+  > realimentación no vale una guarda individual, así que ahora hay un tope por grupo
+  > (`giveUpGroupMaxFraction`, un tercio de la cohorte): pasado él, **los que quedan SON el grupo**.
+  > Y la guarda misma predice con la física de verdad —el grupeto en el que el corredor va a caer,
+  > `droppedCommit`— en vez de con el `giveUpCommit` que la v16 dejó sin significado.
+
 - **9 — el final en alto.** Que los favoritos ataquen en vez de limitarse a seguir el tren del
   equipo, eligiendo el momento y vigilando a los rivales de la general (ahí entra `marcaje.ts`, que
   ya está implementado, y `gcDeficitSeconds`, que `packages/db` rellena y el motor ignora).
@@ -1064,6 +1105,13 @@ mánager** (herramienta futura: no convocar, sancionar, rescindir).
 > propósito (`illnessRaceMax` 0,0045 → 0,0028) para que el total no se saliera por arriba, que es
 > justo lo que esta sección anticipó. La perilla que queda es la calibración de las caídas, atada al
 > invariante del pavé. Las dos salvaguardas siguen sin activarse en el calendario real.
+>
+> **Y AL DÍA (v17): el corte tampoco puede ser una guillotina.** El otro extremo del mismo objetivo
+> se vio en producción antes que en el banco: en Race Colombia e5 la cola entró al **22 %**, por
+> encima del 18 % de la reina, así que el corte señalaba a media carrera y lo único que lo frenaba
+> era el tope del 4 % con su readmisión en bloque. Un corte que se lleva a todos no es un corte. El
+> banco nuevo de reinas reales (`sim/realQueens.ts`) lo vigila con un objetivo explícito: **ninguna
+> etapa reina del calendario puede tener su cola por encima de `timeCutQueen`**.
 >
 > Las dos salvaguardas están implementadas y probadas: el tope del 4 % se toca en 5 de 126 etapas
 > (siempre la más dura del calendario) y la readmisión con penalización no llega a activarse en el
