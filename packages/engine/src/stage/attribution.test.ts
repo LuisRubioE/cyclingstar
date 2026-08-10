@@ -16,15 +16,32 @@ import type { StageInput, StageOrders, StageOutput, StageRider } from './types.j
 import type { Attribute } from '@cyclingstar/shared'
 
 /**
- * Huella `puesto:corredor:tiempo` de los escenarios canónicos, SELLADA CON LA v10 (antes de esta
- * tanda). El reparto de tiempos no puede moverse ni un segundo por añadir telemetría: si este test
- * cae, es que se ha cambiado comportamiento donde no había que tocarlo.
+ * Huella `puesto:corredor:tiempo` de los escenarios canónicos. Nació sellada con la v10 para
+ * demostrar que la ATRIBUCIÓN de la v11 no movía ni un segundo, y sigue siendo el banco que avisa
+ * de que un cambio ha tocado el reparto de tiempos donde no debía.
+ *
+ * **RESELLADA EN LA v12** (selección en pavé y descenso, docs/motor.md §14). El cambio SÍ mueve
+ * comportamiento, así que la huella tenía que moverse, y antes de resellar se comprobó que se movía
+ * EXACTAMENTE donde se esperaba:
+ *
+ * - Las DOS huellas de `reina-150` son idénticas dígito a dígito a las de la v10. Es la prueba de
+ *   que la montaña no se ha tocado: el descuelgue en subida conserva su factor 1 y su dado
+ *   (`rngHazard`), y el terreno nuevo estrena un subflujo nominal propio (`rough`) que no desplaza
+ *   la secuencia de nadie.
+ * - En `llana-180` no cambia NINGÚN tiempo de grupo (los 40 corredores siguen entrando en 14438 y
+ *   14585 respectivamente) salvo un corredor de la segunda semilla, `brk-1`, que llega 17 s más
+ *   tarde: se quedó cortado y el pelotón, lanzado a 0,85 en el tirón final, ya no le deja volver
+ *   (`chaseBackShutFloor`). El resto del movimiento es de ORDEN dentro del mismo segundo, que es lo
+ *   que arrastra un peaje de trabajo distinto.
+ *
+ * Es decir: cero movimiento en montaña, y en llano solo el que introduce a propósito la puerta del
+ * pelotón. Cualquier otra cosa que mueva esta huella hay que volver a justificarla aquí.
  */
-const V10_RESULTS: Record<string, string> = {
+const SEALED_RESULTS: Record<string, string> = {
   'llana-180-0|llana-180|1|v1':
-    '1:spr-2:14438,2:spr-1:14438,3:spr-0:14438,4:pel-5:14438,5:pel-18:14438,6:pel-22:14438,7:pel-26:14438,8:brk-1:14438,9:pel-14:14438,10:pel-10:14438,11:pel-25:14438,12:pel-8:14438,13:pel-7:14438,14:pel-24:14438,15:pel-23:14438,16:pel-16:14438,17:pel-0:14438,18:pel-12:14438,19:pel-27:14438,20:brk-0:14438,21:pel-6:14438,22:pel-1:14438,23:brk-5:14438,24:pel-2:14438,25:pel-11:14438,26:pel-19:14438,27:pel-4:14438,28:pel-9:14438,29:brk-3:14438,30:pel-17:14438,31:pel-13:14438,32:brk-4:14438,33:pel-28:14438,34:pel-15:14438,35:pel-30:14438,36:pel-20:14438,37:pel-21:14438,38:pel-29:14438,39:brk-2:14438,40:pel-3:14438',
+    '1:spr-2:14438,2:spr-1:14438,3:spr-0:14438,4:pel-5:14438,5:pel-18:14438,6:pel-22:14438,7:pel-26:14438,8:brk-1:14438,9:pel-14:14438,10:pel-10:14438,11:pel-25:14438,12:pel-8:14438,13:pel-7:14438,14:pel-24:14438,15:pel-23:14438,16:pel-16:14438,17:pel-0:14438,18:pel-12:14438,19:brk-0:14438,20:pel-27:14438,21:pel-6:14438,22:pel-1:14438,23:brk-5:14438,24:pel-2:14438,25:pel-11:14438,26:pel-19:14438,27:pel-4:14438,28:pel-9:14438,29:brk-3:14438,30:pel-17:14438,31:pel-13:14438,32:brk-4:14438,33:pel-28:14438,34:pel-15:14438,35:pel-30:14438,36:pel-20:14438,37:pel-21:14438,38:pel-29:14438,39:brk-2:14438,40:pel-3:14438',
   'llana-180-1|llana-180|1|v1':
-    '1:spr-2:14585,2:spr-0:14585,3:spr-1:14585,4:pel-30:14585,5:pel-22:14585,6:pel-19:14585,7:pel-15:14585,8:pel-23:14585,9:pel-1:14585,10:pel-6:14585,11:pel-4:14585,12:brk-1:14585,13:pel-3:14585,14:pel-26:14585,15:pel-24:14585,16:pel-2:14585,17:pel-25:14585,18:pel-13:14585,19:pel-9:14585,20:pel-8:14585,21:pel-11:14585,22:pel-28:14585,23:pel-18:14585,24:pel-14:14585,25:pel-0:14585,26:pel-21:14585,27:pel-7:14585,28:brk-3:14585,29:pel-5:14585,30:brk-5:14585,31:pel-16:14585,32:pel-27:14585,33:pel-20:14585,34:pel-12:14585,35:brk-0:14585,36:brk-4:14585,37:pel-17:14585,38:brk-2:14585,39:pel-29:14585,40:pel-10:14585',
+    '1:spr-2:14585,2:spr-0:14585,3:spr-1:14585,4:pel-19:14585,5:pel-30:14585,6:pel-15:14585,7:pel-28:14585,8:pel-1:14585,9:brk-3:14585,10:pel-11:14585,11:pel-13:14585,12:pel-23:14585,13:pel-22:14585,14:pel-2:14585,15:pel-6:14585,16:pel-7:14585,17:pel-0:14585,18:pel-24:14585,19:pel-8:14585,20:pel-4:14585,21:pel-3:14585,22:pel-25:14585,23:pel-26:14585,24:pel-21:14585,25:pel-17:14585,26:pel-9:14585,27:pel-14:14585,28:pel-20:14585,29:brk-4:14585,30:pel-16:14585,31:pel-5:14585,32:brk-0:14585,33:pel-27:14585,34:pel-12:14585,35:brk-5:14585,36:pel-29:14585,37:brk-2:14585,38:pel-18:14585,39:pel-10:14585,40:brk-1:14602',
   'reina-150-0|reina-150|1|v1':
     '1:bar-2:14681,2:pel-7:14681,3:gc-2:14736,4:gc-3:14736,5:gc-1:14736,6:gc-0:14736,7:bar-4:14736,8:bar-5:14736,9:pel-10:14802,10:pel-19:14802,11:pel-4:14802,12:pel-1:14802,13:pel-18:14802,14:bar-3:14802,15:bar-0:14890,16:pel-14:14890,17:pel-5:15167,18:pel-21:15208,19:pel-6:15208,20:pel-11:15208,21:pel-9:15208,22:pel-20:15208,23:pel-17:15208,24:pel-26:15208,25:pel-23:15208,26:pel-22:15208,27:pel-8:15208,28:pel-25:15208,29:pel-16:15208,30:pel-2:15208,31:pel-15:15208,32:pel-13:15208,33:pel-24:15208,34:pel-3:15208,35:pel-0:15208,36:bar-1:15208,37:pel-12:15208,38:spr-2:15208,39:spr-0:15208,40:spr-1:15208',
   'reina-150-1|reina-150|1|v1':
@@ -34,11 +51,11 @@ const V10_RESULTS: Record<string, string> = {
 const fingerprint = (out: StageOutput): string =>
   out.results.map((r) => `${r.puesto}:${r.riderId}:${r.tiempoS}`).join(',')
 
-describe('v11: la atribución NO mueve la carrera', () => {
-  it('los resultados de una etapa con una semilla dada son los mismos que en la v10', () => {
+describe('la huella sellada del reparto de tiempos', () => {
+  it('los resultados de una etapa con una semilla dada son los sellados', () => {
     for (const scenario of [flatScenario(), queenScenario()]) {
       for (const seed of campaignSeeds(scenario.name, 2)) {
-        const expected = V10_RESULTS[seed]
+        const expected = SEALED_RESULTS[seed]
         expect(expected, `falta la huella sellada de ${seed}`).toBeDefined()
         expect(fingerprint(simulateStage(scenario.input, seed))).toBe(expected)
       }
