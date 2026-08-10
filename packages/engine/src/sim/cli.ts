@@ -9,6 +9,7 @@
  */
 import { analyzeErosion, analyzeFlat, analyzeMountain, analyzeTimeTrial } from './analyze.js'
 import { analyzeGrandTour } from './grandTour.js'
+import { analyzeTeamVoice, teamedField } from './tactics.js'
 import {
   campaignSeeds,
   flatScenario,
@@ -73,14 +74,19 @@ function main(): void {
   // Desgaste (docs/motor.md §VI.1): la tabla de objetivos del Cambio 0 más la clásica larga.
   // Las dos clásicas corren su RECORRIDO REAL con el campo homogéneo, así que lo único que explica
   // su erosión es el trazado; con perfiles sintéticos esto no se veía y tres clásicas saturaron.
-  const tired = queenThirdWeekScenario()
+  //
+  // Y desde la v15 la TERCERA SEMANA se mide sobre la etapa reina REAL (Race France e18, 185 km),
+  // no sobre la sintética: la banda de §VI.1 no se ha movido, se ha movido el punto de medida. La
+  // caricatura de 1.200 m arrastraba la curva del depósito fuera de la fórmula de §VI.1 y con ella
+  // la reina de verdad saturaba al 100 % de pájaras (docs/balance.md, «v15»).
+  const realQueen = realQueenThirdWeekScenario()
   const longClassic = longClassicScenario()
   const hardest = hardestClassicScenario()
   // Una clásica de 250-280 km cuesta ~6 veces más de simular que la llana canónica: menos corridas.
   const classicRuns = Math.max(6, Math.round(runs / 20))
   const flatEro = analyzeErosion(flat, campaignSeeds(flat.name, runs))
   const queenEro = analyzeErosion(queen, campaignSeeds(queen.name, runs))
-  const tiredEro = analyzeErosion(tired, campaignSeeds(tired.name, runs))
+  const tiredEro = analyzeErosion(realQueen, campaignSeeds(realQueen.name, classicRuns))
   const longEro = analyzeErosion(longClassic, campaignSeeds(longClassic.name, classicRuns))
   const hardEro = analyzeErosion(hardest, campaignSeeds(hardest.name, classicRuns))
   const eroOk = report(
@@ -93,21 +99,37 @@ function main(): void {
       { target: TARGETS.erosion.queenThirdWeek, value: tiredEro.medianErosion },
       { target: TARGETS.erosion.hardestClassicFresh, value: hardEro.medianErosion },
     ],
-    `Gasto mediano del tanque: llana ${(100 * flatEro.medianDepletion).toFixed(0)}% · reina ${(100 * queenEro.medianDepletion).toFixed(0)}% · reina 3.ª semana ${(100 * tiredEro.medianDepletion).toFixed(0)}% (pájaras ${tiredEro.bonkPct.toFixed(0)}%) · clásica larga ${(100 * longEro.medianDepletion).toFixed(0)}% · más dura ${(100 * hardEro.medianDepletion).toFixed(0)}% (pájaras ${hardEro.bonkPct.toFixed(0)}%, ${classicRuns} corridas)`,
+    `Gasto mediano del tanque: llana ${(100 * flatEro.medianDepletion).toFixed(0)}% · reina ${(100 * queenEro.medianDepletion).toFixed(0)}% · reina REAL 3.ª semana ${(100 * tiredEro.medianDepletion).toFixed(0)}% (pájaras ${tiredEro.bonkPct.toFixed(0)}%, ${classicRuns} corridas) · clásica larga ${(100 * longEro.medianDepletion).toFixed(0)}% · más dura ${(100 * hardEro.medianDepletion).toFixed(0)}% (pájaras ${hardEro.bonkPct.toFixed(0)}%, ${classicRuns} corridas)`,
   )
 
-  // Medida INFORMATIVA (no bloquea): la etapa reina REAL de gran vuelta en la tercera semana. Es el
-  // punto ciego que dejaban los escenarios sintéticos y hoy sale mal a propósito —está en
-  // docs/balance.md como defecto abierto—: se imprime en cada corrida para que deje de ser invisible
-  // mientras no se re-ancle §VI.1 sobre una reina realista. No se convierte en objetivo todavía
-  // porque arreglarlo es una recalibración completa del depósito, no una perilla.
-  const realQueen = realQueenThirdWeekScenario()
-  const realQueenEro = analyzeErosion(realQueen, campaignSeeds(realQueen.name, classicRuns))
+  // Medida INFORMATIVA (no bloquea): la reina SINTÉTICA de tercera semana, que hasta la v14 era el
+  // objetivo. Se sigue imprimiendo porque es la referencia histórica de toda la calibración del
+  // depósito, pero ya no manda: 1.200 m de desnivel no son una etapa reina, y anclar §VI.1 en ella
+  // era lo que rompía la de verdad. Erosiona MENOS, y eso es lo correcto.
+  const tired = queenThirdWeekScenario()
+  const synthEro = analyzeErosion(tired, campaignSeeds(tired.name, runs))
   console.log(
-    `\nInformativo — ${realQueen.name} (Race France e18, 185 km, tercera semana, ${classicRuns} corridas)\n`,
+    `\nInformativo — ${tired.name} (reina SINTÉTICA de 1.200 m, tercera semana, ${runs} corridas)\n`,
   )
   console.log(
-    `  erosión mediana ${realQueenEro.medianErosion.toFixed(3)} · gasto ${(100 * realQueenEro.medianDepletion).toFixed(0)}% · pájaras ${realQueenEro.bonkPct.toFixed(0)}%  (objetivo de diseño 0.60-0.85 y pájaras marginales — ver docs/balance.md, «la reina real de tercera semana»)`,
+    `  erosión mediana ${synthEro.medianErosion.toFixed(3)} · gasto ${(100 * synthEro.medianDepletion).toFixed(0)}% · pájaras ${synthEro.bonkPct.toFixed(0)}%  (referencia histórica: era el objetivo hasta la v14 — ver docs/balance.md, «v15»)`,
+  )
+
+  // EL PLAN DE EQUIPO (docs/motor.md §V.1): la voz de la crónica. Es el único objetivo del banco
+  // que se mide sobre un campo CON EQUIPOS —los escenarios canónicos son de agentes libres y por
+  // construcción no pueden decir nada de esto— y responde a la pregunta del dueño: ¿puede el parte
+  // de «quién tira» nombrar a un equipo, o siempre es una alianza de corredores sueltos?
+  const teamRuns = Math.max(20, Math.round(runs / 5))
+  const teamed = teamedField({ teams: 8, per: 5, kind: 'llana', strong: 4 })
+  const voice = analyzeTeamVoice(teamed, flat.input.profile, campaignSeeds('voz-llana', teamRuns))
+  const voiceOk = report(
+    'plan de equipo (8 equipos × 5, llana)',
+    voice.runs,
+    [
+      { target: TARGETS.chronicle.teamPullFlatPct, value: voice.teamVoicePct },
+      { target: TARGETS.chronicle.frontTeamsPerStage, value: voice.frontTeamsMedian },
+    ],
+    `Partes de relevo medidos: ${voice.pulls} sobre grupo grande`,
   )
 
   // ABANDONOS (docs/motor.md §VI.3): la única medida del banco que no sale de una etapa suelta.
@@ -130,7 +152,7 @@ function main(): void {
   )
 
   console.log('')
-  process.exit(flatOk && mtnOk && ttOk && eroOk && gtOk ? 0 : 1)
+  process.exit(flatOk && mtnOk && ttOk && eroOk && voiceOk && gtOk ? 0 : 1)
 }
 
 main()

@@ -6,17 +6,25 @@
  * carrera llana pueda abrirse, que un final en alto lo pueda decidir un ataque y que el agotado se
  * deje ir sin irse fuera de control. Solo lectura: no toca base de datos ni red.
  */
-import { campaignSeeds, flatScenario, queenScenario, queenThirdWeekScenario } from './scenarios.js'
 import {
+  campaignSeeds,
+  flatScenario,
+  queenScenario,
+  realQueenThirdWeekScenario,
+} from './scenarios.js'
+import {
+  HILLY_PROFILE,
   analyzeAttribution,
   analyzeChase,
   analyzeGiveUp,
   analyzeSharjah,
+  analyzeTeamVoice,
   analyzeUphillFinish,
   analyzeVariety,
   grandTourSprintField,
   proSprintField,
   sharjahField,
+  teamedField,
 } from './tactics.js'
 
 function main(): void {
@@ -62,8 +70,12 @@ function main(): void {
     `  ataques por etapa    mediana ${uphill.attacksMedian} · margen mediano del ganador ${uphill.medianMargin}s`,
   )
 
-  const tired = queenThirdWeekScenario()
-  const give = analyzeGiveUp(tired, campaignSeeds(tired.name, Math.max(20, Math.round(runs / 2))))
+  // La regla 8 se mide sobre la etapa reina REAL de tercera semana desde la v15: con §VI.1
+  // re-anclada, la reina SINTÉTICA (1.200 m) ya no deja a nadie vacío en la tercera semana —y es
+  // correcto que no lo deje—, así que el banco se quedaba sin sujeto. Donde el agotado se deja ir
+  // de verdad es en una etapa de montaña de verdad.
+  const tired = realQueenThirdWeekScenario()
+  const give = analyzeGiveUp(tired, campaignSeeds(tired.name, Math.max(12, Math.round(runs / 6))))
   console.log(`\n5) Regla 8 — el agotado que se deja ir ("${tired.name}"), ${give.runs} semillas\n`)
   console.log(
     `  se dejan ir          mediana ${give.giveUpsMedian} por etapa · en el ${give.stagesWithGiveUpPct.toFixed(1)}% de las etapas`,
@@ -99,6 +111,37 @@ function main(): void {
     )
     console.log(
       `  ${''.padEnd(16)} quién cerró: ${at.catchesPerStage.toFixed(2)} capturas narradas por etapa, con autor el ${at.attributedPct.toFixed(1)}% · reparto en la fuga en el ${at.breakSharePct.toFixed(1)}% de las etapas`,
+    )
+  }
+
+  // 8) EL PLAN DE EQUIPO (docs/motor.md §V.1, v15). Dos preguntas: ¿puede la crónica nombrar a un
+  // EQUIPO en vez de a una alianza?, y ¿se distingue una carrera con dos equipos fuertes de una con
+  // ocho? Es el único banco que corre campos CON equipos; todos los demás son de agentes libres.
+  const teamRuns = Math.max(20, Math.round(runs / 3))
+  console.log(`\n8) El plan de equipo — 8 equipos × 5, ${teamRuns} semillas\n`)
+  for (const [name, profile] of [
+    ['llana    ', flat.input.profile],
+    ['media    ', HILLY_PROFILE],
+    ['reina    ', queen.input.profile],
+  ] as const) {
+    const kind = name.trim() === 'llana' ? 'llana' : name.trim() === 'media' ? 'media' : 'reina'
+    const field = teamedField({ teams: 8, per: 5, kind, strong: 4 })
+    const v = analyzeTeamVoice(field, profile, campaignSeeds(`voz-${kind}`, teamRuns))
+    console.log(
+      `  ${name}  voz de EQUIPO en el ${v.teamVoicePct.toFixed(1)}% de los ${v.pulls} partes · ${v.frontTeamsMedian} equipos distintos al frente por etapa`,
+    )
+  }
+  // …y la caza con equipos de verdad: los mismos 40 corredores, repartidos en equipos con más o
+  // menos bazas. Es la pregunta del dueño: ¿se distinguen dos equipos fuertes de ocho?
+  const teamChaseRuns = Math.max(4, Math.round(runs / 12))
+  console.log(
+    `\n   La caza según los EQUIPOS que la quieren — 5 llanas × ${teamChaseRuns} semanas\n`,
+  )
+  for (const strong of [1, 2, 4, 8]) {
+    const field = teamedField({ teams: 8, per: 5, kind: 'llana', strong })
+    const st = analyzeChase(field, `caza-eq-${strong}`, teamChaseRuns)
+    console.log(
+      `  ${strong} equipo${strong === 1 ? ' ' : 's'} con rematador   fuerza ${st.force.toFixed(2)} (${st.trains} trenes) · sin sprint masivo ${st.noBunchPct.toFixed(1)}% · gana un escapado ${st.breakawayWinPct.toFixed(1)}%`,
     )
   }
 

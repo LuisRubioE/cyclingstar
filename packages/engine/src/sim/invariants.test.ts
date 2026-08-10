@@ -24,9 +24,11 @@ import {
   longClassicScenario,
   queenScenario,
   queenThirdWeekScenario,
+  realQueenThirdWeekScenario,
   realRaceScenario,
   timeTrialScenario,
 } from './scenarios.js'
+import { analyzeTeamVoice, teamedField } from './tactics.js'
 import { TARGETS, type Target } from './targets.js'
 
 const flat: Block = { tipo: 'llano', g: 0, estrellas: 0 }
@@ -111,9 +113,35 @@ describe('desgaste (docs/motor.md §VI.1)', () => {
     expectInRange(stats.medianErosion, TARGETS.erosion.queenFresh)
   })
 
-  it('la misma etapa reina en la tercera semana erosiona mucho más', { timeout: 30000 }, () => {
-    const stats = analyzeErosion(tired, campaignSeeds(tired.name, 60))
-    expectInRange(stats.medianErosion, TARGETS.erosion.queenThirdWeek)
+  /**
+   * LA ETAPA REINA REAL EN LA TERCERA SEMANA (re-anclada en la v15, docs/motor.md §VI.1).
+   *
+   * Hasta la v14 esto se medía sobre la reina SINTÉTICA (135 km lisos más un puerto: 1.200 m) y por
+   * eso pasaba en verde mientras la reina de verdad —4.500 m— saturaba con el 100 % del campo en
+   * pájara y la erosión topada en 0,920, o sea con el modelo sin capacidad de discriminar. La banda
+   * de §VI.1 es la misma; lo que cambia es que se mide donde se corre.
+   *
+   * Y va con la comprobación de saturación, que es la mitad que faltaba: una erosión de 0,80 con el
+   * depósito a cero no es una erosión de 0,80, es un techo.
+   */
+  it(
+    'la etapa reina REAL en la tercera semana erosiona mucho más, sin saturar',
+    { timeout: 60000 },
+    () => {
+      const realQueen = realQueenThirdWeekScenario()
+      const stats = analyzeErosion(realQueen, campaignSeeds(realQueen.name, 12))
+      expectInRange(stats.medianErosion, TARGETS.erosion.queenThirdWeek)
+      expect(stats.medianDepletion).toBeLessThanOrEqual(SATURATION_DEPLETION)
+      expect(stats.bonkPct).toBeLessThanOrEqual(SATURATION_BONK_PCT)
+    },
+  )
+
+  it('y la reina SINTÉTICA erosiona menos que ella, que es lo que debe', { timeout: 30000 }, () => {
+    // 1.200 m de desnivel no son una etapa reina. Este escenario deja de ser el objetivo y pasa a
+    // ser el control de que el ORDEN se respeta: la caricatura tiene que quedar por debajo.
+    const synth = analyzeErosion(tired, campaignSeeds(tired.name, 60))
+    const real = analyzeErosion(realQueenThirdWeekScenario(), campaignSeeds('reina-real-s3', 12))
+    expect(synth.medianErosion).toBeLessThan(real.medianErosion)
   })
 
   it(
@@ -221,6 +249,51 @@ describe('la erosión no satura en ninguna clásica (docs/motor.md §VI.1)', () 
       }
     }
     expect(saturated).toEqual([])
+  })
+})
+
+describe('el plan de equipo y la voz de la crónica (docs/motor.md §V.1)', () => {
+  /**
+   * El criterio de éxito VISIBLE del plan de equipo. Antes de la v15 el parte de «quién tira» casi
+   * nunca podía nombrar a un equipo (medido: 0 % en la llana con 8 equipos de 5, 2-12 % en la
+   * campaña de la v11) porque el turno de relevos se decidía corredor a corredor y los tres que más
+   * tiraban salían de tres equipos distintos. Este invariante vigila las dos mitades: que la voz de
+   * equipo salga, y que el frente CAMBIE DE MANOS —si un solo equipo lo llevara todo el día, el
+   * presupuesto de esfuerzo no estaría haciendo nada—.
+   */
+  const field = teamedField({ teams: 8, per: 5, kind: 'llana', strong: 4 })
+  const stats = analyzeTeamVoice(
+    field,
+    flatScenario().input.profile,
+    campaignSeeds('voz-llana', 40),
+  )
+
+  it('el parte de relevos puede nombrar a un EQUIPO', { timeout: 60000 }, () => {
+    expect(stats.pulls).toBeGreaterThan(50)
+    expectInRange(stats.teamVoicePct, TARGETS.chronicle.teamPullFlatPct)
+  })
+
+  it('y el frente cambia de manos a lo largo de la etapa', { timeout: 60000 }, () => {
+    expectInRange(stats.frontTeamsMedian, TARGETS.chronicle.frontTeamsPerStage)
+  })
+
+  it('un campo SIN equipos no cambia de comportamiento', () => {
+    // La regla 2 de §V.1 y la garantía que sostiene todo lo demás: el plan de equipo no puede tocar
+    // a quien no tiene equipo. Un corredor sin `teamId` no recibe compañeros fantasma ni empuje de
+    // ningún plan, y una etapa entera de agentes libres sale como salía.
+    const free = field.map((r) => ({ ...r, teamId: null }))
+    const seeds = campaignSeeds('sin-equipos', 3)
+    for (const seed of seeds) {
+      const out = simulateStage({ profile: flatScenario().input.profile, riders: free }, seed)
+      const teams = new Set(
+        out.events
+          .filter((e) => e.plantilla === 'peloton_pull')
+          .flatMap((e) => e.protagonistas.map((id) => id.split('-')[0])),
+      )
+      // Sin equipos no hay dueño del frente: los que tiran salen de donde toque.
+      expect(out.events.some((e) => e.plantilla === 'rider_defies_team')).toBe(false)
+      expect(teams.size).toBeGreaterThan(1)
+    }
   })
 })
 

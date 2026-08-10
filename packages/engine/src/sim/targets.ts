@@ -55,6 +55,15 @@ export const TARGETS = {
     // Vlaanderen (278 km, 16 muros y 6 sectores de pavé), que es el monumento tipo del calendario.
     longClassicFresh: { label: 'Erosión mediana, clásica larga', min: 0.45, max: 0.8, unit: '' },
     // Y en la tercera semana de una gran vuelta, con el depósito ya mermado, se paga mucho más.
+    //
+    // RE-ANCLADO EN LA v15, y la BANDA NO SE HA MOVIDO: lo que cambia es DÓNDE se mide. Hasta la
+    // v14 este objetivo se medía sobre `reina-150-s3`, que es una caricatura —135 km lisos más un
+    // puerto de 15 km, 1.200 m de desnivel— y para hacerla llegar a 0,60-0,85 se había endurecido
+    // la curva de frescura del depósito hasta salirse de la fórmula de §VI.1. El precio lo pagaba
+    // la etapa reina REAL: con 4.500 m y el depósito así de mermado, el 100 % del campo entraba en
+    // pájara y la erosión topaba en 0,920, es decir, el modelo dejaba de discriminar. Ahora se mide
+    // sobre `reina-real-s3` (Race France e18, 185 km reales) y la curva vuelve a la de §VI.1.
+    // Ver docs/balance.md, «v15 — el re-anclaje de la reina de tercera semana».
     queenThirdWeek: { label: 'Erosión mediana, reina 3.ª semana', min: 0.6, max: 0.85, unit: '' },
     // Techo DURO contra la saturación, medido sobre la carrera más dura del calendario (Il Lombardia:
     // 241 km y 4.100 m). Con la erosión topada en 1,000 todo el pelotón está al máximo de degradación
@@ -64,6 +73,36 @@ export const TARGETS = {
       label: 'Erosión mediana, la clásica más dura',
       min: 0.45,
       max: 0.92,
+      unit: '',
+    },
+  },
+  /**
+   * LA VOZ DE LA CRÓNICA (docs/motor.md §V.1, v15). El criterio de éxito visible del plan de
+   * equipo: con qué frecuencia el parte de «quién tira» puede nombrar a un EQUIPO —«Cumbre Escuadra
+   * ha tomado el frente»— en vez de a una alianza de tres corredores sueltos.
+   *
+   * Se mide como lo decide la web (`stageJournal.ts`): un parte tiene voz de equipo si TODOS sus
+   * protagonistas son del mismo equipo, contando solo los partes sobre un grupo grande, porque con
+   * un grupo pequeño la casa nombra corredores (`STAGE.frontNamesMaxRiders`). El lecho es un campo
+   * con equipos de verdad y los roles repartidos por el mismo planificador que usa producción.
+   */
+  chronicle: {
+    // POR QUÉ 45-80 % EN LA LLANA, y no más ni menos. En una llana con trenes de sprint el frente
+    // tiene dueño casi todo el día: un equipo se pone a tirar, se funde, y otro toma el relevo. Pero
+    // NO es el 100 %: en el relevo entre dos equipos, en la primera hora sin nadie interesado y
+    // cuando el que manda pierde hombres, el trabajo lo reparten varios y la alianza es la lectura
+    // honesta. Un objetivo del 90 % obligaría a inventar un dueño donde no lo hay, que es el defecto
+    // contrario. Medido antes de la v15: 0,0 % (docs/balance.md, «v15»).
+    teamPullFlatPct: { label: 'Voz de EQUIPO en el parte (llana)', min: 50, max: 85, unit: '%' },
+    // Y EL FRENTE CAMBIA DE MANOS. Es la otra mitad del criterio, y la que vigila que la voz de
+    // equipo no se consiga con un dueño único e inmóvil: el presupuesto de esfuerzo tiene que
+    // obligar a que en una etapa se releven VARIOS equipos al frente, como en carretera —al
+    // principio no tira nadie, luego se pone uno, se funde, y en el desenlace pelean los trenes—.
+    // Uno solo todo el día sería un plan de equipo de cartón; ocho sería no tener plan.
+    frontTeamsPerStage: {
+      label: 'Equipos que llevan el frente (llana)',
+      min: 2,
+      max: 5,
       unit: '',
     },
   },

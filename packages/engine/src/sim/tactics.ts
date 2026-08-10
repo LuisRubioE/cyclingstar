@@ -6,10 +6,12 @@
  *
  * Es análisis, no motor: solo lee `StageOutput`. Lo consume `sim/cli.ts`.
  */
+import { STAGE } from '../constants.js'
 import { SEASON_CALENDAR } from '../routes/calendar.js'
 import { chaseField } from '../stage/chase.js'
 import { simulateStage } from '../stage/simulate.js'
 import { stageSeed } from '../stage/rng.js'
+import { type AutoOrderRider, autoStageOrders } from '../world/autoOrders.js'
 import type { Attribute } from '@cyclingstar/shared'
 import type { StageInput, StageOrders, StageRider } from '../stage/types.js'
 import { flatScenario, type Scenario } from './scenarios.js'
@@ -503,6 +505,114 @@ export function analyzeAttribution(scenario: Scenario, seeds: string[]): Attribu
     catchesPerStage: catches / runs,
     attributedPct: catches === 0 ? 0 : (100 * attributed) / catches,
     breakSharePct: (100 * withShare) / runs,
+  }
+}
+
+// --- 8. El PLAN DE EQUIPO (v15, docs/motor.md §V.1) ---------------------------------------
+
+/**
+ * Un campo con EQUIPOS de verdad, con los roles repartidos por el mismo planificador que usa
+ * producción (`world/autoOrders.ts`). Es el lecho donde se mide lo que le importaba al dueño: con
+ * qué frecuencia el parte de «quién tira» puede nombrar a un EQUIPO en vez de a una alianza de
+ * corredores sueltos. Los campos de los otros bancos son de agentes libres —no traen `teamId`— y
+ * por construcción no pueden decir nada de esto.
+ *
+ * `strong` es cuántos equipos traen un rematador con opciones reales: es la perilla que distingue
+ * una carrera con dos equipos fuertes de una con ocho.
+ */
+export function teamedField(opts: {
+  teams: number
+  per: number
+  kind: 'llana' | 'media' | 'reina'
+  strong: number
+}): StageRider[] {
+  const auto: AutoOrderRider[] = []
+  for (let t = 0; t < opts.teams; t++) {
+    for (let k = 0; k < opts.per; k++) {
+      // Un rematador, un lanzador nato, un escalador y relleno: la plantilla tipo de un equipo.
+      const over =
+        k === 0
+          ? { SPR: t < opts.strong ? 84 - t : 62, LLA: 70 }
+          : k === 1
+            ? { SPR: 66, LLA: 72 }
+            : k === 2
+              ? { MON: 74, COL: 70, TAC: 62 }
+              : { LLA: 64 + k, TAC: 58 }
+      auto.push({ riderId: `t${t}-r${k}`, attrs: eff(58, over), teamId: `team-${t}` })
+    }
+  }
+  const plan = autoStageOrders(auto, { kind: opts.kind, timeTrial: false })
+  return auto.map((r) =>
+    rider(r.riderId, {
+      eff0: r.attrs,
+      teamId: r.teamId,
+      orders: plan.get(r.riderId) ?? orders({}),
+    }),
+  )
+}
+
+/**
+ * Recorrido de MEDIA MONTAÑA para el banco del plan de equipo: 160 km con un repecho largo, un
+ * puerto de segunda a 30 km de meta y un valle final. Es la «etapa de transición» del encargo —la
+ * que en carretera sí se corre por alianza entre equipos— y el contraste de la llana canónica.
+ */
+export const HILLY_PROFILE: StageInput['profile'] = {
+  segments: [
+    { km: 60, tipo: 'llano' },
+    { km: 20, tipo: 'rompepiernas' },
+    { km: 40, tipo: 'llano' },
+    { km: 10, tipo: 'puerto', tramos: [{ km: 10, g: 6 }] },
+    { km: 30, tipo: 'llano' },
+  ],
+  banners: [{ km: 130, tipo: 'cima' }],
+}
+
+export interface TeamVoiceStats {
+  runs: number
+  /** Partes de «quién tira» sobre un grupo grande (los que la crónica cuenta con voz de equipo). */
+  pulls: number
+  /** % de esos partes cuyos nombrados son TODOS del mismo equipo: la medida del encargo. */
+  teamVoicePct: number
+  /** Equipos distintos que llegan a llevar el frente en una etapa (mediana). */
+  frontTeamsMedian: number
+}
+
+/**
+ * LA VOZ DE LA CRÓNICA (el criterio de éxito visible del dueño): «Cumbre Escuadra ha tomado el
+ * frente» frente a «X, Y y Z se reparten el trabajo». Medido tal como lo decide la web
+ * (`stageJournal.ts`): un parte se cuenta con voz de equipo si todos sus protagonistas son del
+ * mismo equipo, y solo sobre un grupo grande, porque con un grupo pequeño se nombra a los
+ * corredores por acuerdo de la casa (`STAGE.frontNamesMaxRiders`).
+ */
+export function analyzeTeamVoice(
+  riders: StageRider[],
+  profile: StageInput['profile'],
+  seeds: string[],
+): TeamVoiceStats {
+  const teamOf = new Map(riders.map((r) => [r.riderId, r.teamId ?? r.riderId]))
+  let pulls = 0
+  let single = 0
+  const fronts: number[] = []
+  for (const seed of seeds) {
+    const out = simulateStage({ profile, riders }, seed)
+    const seen = new Set<string>()
+    for (const e of out.events) {
+      if (e.plantilla !== 'peloton_pull') continue
+      if (Number(e.datos?.size ?? 0) <= STAGE.frontNamesMaxRiders) continue
+      pulls += 1
+      const teams = new Set(e.protagonistas.map((id) => teamOf.get(id) ?? id))
+      if (teams.size === 1) {
+        single += 1
+        seen.add([...teams][0]!)
+      }
+    }
+    fronts.push(seen.size)
+  }
+  return {
+    runs: seeds.length,
+    pulls,
+    teamVoicePct: pulls === 0 ? 0 : (100 * single) / pulls,
+    frontTeamsMedian: median(fronts),
   }
 }
 
