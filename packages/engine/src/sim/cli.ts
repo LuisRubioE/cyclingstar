@@ -128,8 +128,9 @@ function main(): void {
     [
       { target: TARGETS.chronicle.teamPullFlatPct, value: voice.teamVoicePct },
       { target: TARGETS.chronicle.frontTeamsPerStage, value: voice.frontTeamsMedian },
+      { target: TARGETS.chronicle.teamPullWithReasonPct, value: voice.withReasonPct },
     ],
-    `Partes de relevo medidos: ${voice.pulls} sobre grupo grande`,
+    `Partes de relevo medidos: ${voice.pulls} sobre grupo grande · motivos: etapa ${voice.reasons.etapa} · maillot ${voice.reasons.maillot} · general ${voice.reasons.general} · sin motivo ${voice.reasons.sinMotivo}`,
   )
 
   // ABANDONOS (docs/motor.md §VI.3): la única medida del banco que no sale de una etapa suelta.

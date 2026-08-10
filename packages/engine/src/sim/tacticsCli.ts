@@ -27,6 +27,30 @@ import {
   teamedField,
 } from './tactics.js'
 
+/**
+ * Una GENERAL ya abierta sobre un campo con equipos: el líder a 0 y el resto escalonado, con los
+ * dos primeros equipos jugándose el podio y el resto ya fuera. Es lo que hace falta para que
+ * existan los motivos de general, que solo aparecen con `gcDeficitSeconds` de verdad.
+ */
+function gcTable(
+  field: readonly { riderId: string; teamId?: string | null }[],
+): Map<string, number> {
+  const gc = new Map<string, number>()
+  for (const r of field) {
+    const team = Number(String(r.teamId ?? '').split('-')[1] ?? 99)
+    const k = Number(r.riderId.split('-r')[1] ?? 9)
+    // Equipo 0: el maillot. Equipos 1-2: favoritos a 40 s y 90 s. El resto, ya fuera de la general.
+    const base = team === 0 ? 0 : team === 1 ? 40 : team === 2 ? 90 : 900 + 60 * team
+    // Y por detrás del jefe de filas, una general REALISTA: el segundo hombre de cada equipo entra
+    // a 2-4 minutos —la franja peligrosa, la que hace que una fuga con él dentro amenace al
+    // maillot— y el resto se va a media hora. Sin esa franja no existe «fuga peligrosa» y los
+    // motivos de general no pueden salir nunca.
+    const gap = k === 0 ? 0 : k === 1 ? 150 + 40 * team : 1800 + 120 * k
+    gc.set(r.riderId, base + gap)
+  }
+  return gc
+}
+
 function main(): void {
   const runs = Number(process.argv[2] ?? 120)
 
@@ -126,10 +150,20 @@ function main(): void {
   ] as const) {
     const kind = name.trim() === 'llana' ? 'llana' : name.trim() === 'media' ? 'media' : 'reina'
     const field = teamedField({ teams: 8, per: 5, kind, strong: 4 })
-    const v = analyzeTeamVoice(field, profile, campaignSeeds(`voz-${kind}`, teamRuns))
-    console.log(
-      `  ${name}  voz de EQUIPO en el ${v.teamVoicePct.toFixed(1)}% de los ${v.pulls} partes · ${v.frontTeamsMedian} equipos distintos al frente por etapa`,
-    )
+    // Dos campos por etapa: SIN general en juego (una clásica o la etapa 1, donde todos van a 0) y
+    // CON una general ya abierta. Es lo que separa los motivos: sin general solo puede haber
+    // «por la etapa»; con general aparecen el maillot y sus rivales directos.
+    for (const [tag, gc] of [
+      ['sin general', undefined],
+      ['con general', gcTable(field)],
+    ] as const) {
+      const v = analyzeTeamVoice(field, profile, campaignSeeds(`voz-${kind}-${tag}`, teamRuns), gc)
+      const total = Math.max(1, v.reasons.etapa + v.reasons.maillot + v.reasons.general)
+      const pct = (n: number): string => `${Math.round((100 * n) / total)}%`
+      console.log(
+        `  ${name} ${tag}  voz de EQUIPO ${v.teamVoicePct.toFixed(1)}% de ${v.pulls} partes · con motivo ${v.withReasonPct.toFixed(0)}% (etapa ${pct(v.reasons.etapa)} · maillot ${pct(v.reasons.maillot)} · general ${pct(v.reasons.general)}) · ${v.frontTeamsMedian} equipos al frente`,
+      )
+    }
   }
   // …y la caza con equipos de verdad: los mismos 40 corredores, repartidos en equipos con más o
   // menos bazas. Es la pregunta del dueño: ¿se distinguen dos equipos fuertes de ocho?

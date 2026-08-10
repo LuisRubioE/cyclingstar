@@ -573,6 +573,10 @@ export interface TeamVoiceStats {
   pulls: number
   /** % de esos partes cuyos nombrados son TODOS del mismo equipo: la medida del encargo. */
   teamVoicePct: number
+  /** …y de esos, cuántos dicen además POR QUÉ tira ese equipo. Un parte sin motivo va a medias. */
+  withReasonPct: number
+  /** Reparto de motivos entre los partes con voz de equipo. */
+  reasons: { etapa: number; maillot: number; general: number; sinMotivo: number }
   /** Equipos distintos que llegan a llevar el frente en una etapa (mediana). */
   frontTeamsMedian: number
 }
@@ -588,23 +592,34 @@ export function analyzeTeamVoice(
   riders: StageRider[],
   profile: StageInput['profile'],
   seeds: string[],
+  gcDeficits?: ReadonlyMap<string, number>,
 ): TeamVoiceStats {
   const teamOf = new Map(riders.map((r) => [r.riderId, r.teamId ?? r.riderId]))
+  // La general se inyecta desde fuera cuando el banco quiere medir los motivos de general: el motor
+  // solo la conoce por `gcDeficitSeconds`, que es lo que rellena `packages/db` en producción.
+  const field = gcDeficits
+    ? riders.map((r) => ({ ...r, gcDeficitSeconds: gcDeficits.get(r.riderId) ?? 0 }))
+    : riders
   let pulls = 0
   let single = 0
+  const reasons = { etapa: 0, maillot: 0, general: 0, sinMotivo: 0 }
   const fronts: number[] = []
   for (const seed of seeds) {
-    const out = simulateStage({ profile, riders }, seed)
+    const out = simulateStage({ profile, riders: field }, seed)
     const seen = new Set<string>()
     for (const e of out.events) {
       if (e.plantilla !== 'peloton_pull') continue
       if (Number(e.datos?.size ?? 0) <= STAGE.frontNamesMaxRiders) continue
       pulls += 1
       const teams = new Set(e.protagonistas.map((id) => teamOf.get(id) ?? id))
-      if (teams.size === 1) {
-        single += 1
-        seen.add([...teams][0]!)
-      }
+      if (teams.size !== 1) continue
+      single += 1
+      seen.add([...teams][0]!)
+      const why = String(e.datos?.porQue ?? '')
+      if (why === 'etapa') reasons.etapa += 1
+      else if (why === 'maillot') reasons.maillot += 1
+      else if (why === 'general') reasons.general += 1
+      else reasons.sinMotivo += 1
     }
     fronts.push(seen.size)
   }
@@ -612,6 +627,8 @@ export function analyzeTeamVoice(
     runs: seeds.length,
     pulls,
     teamVoicePct: pulls === 0 ? 0 : (100 * single) / pulls,
+    withReasonPct: single === 0 ? 0 : (100 * (single - reasons.sinMotivo)) / single,
+    reasons,
     frontTeamsMedian: median(fronts),
   }
 }

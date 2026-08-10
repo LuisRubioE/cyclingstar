@@ -277,6 +277,15 @@ describe('el plan de equipo y la voz de la crónica (docs/motor.md §V.1)', () =
     expectInRange(stats.frontTeamsMedian, TARGETS.chronicle.frontTeamsPerStage)
   })
 
+  it('…y el parte dice POR QUÉ tira ese equipo', { timeout: 60000 }, () => {
+    // La otra mitad del encargo: «no es solo saber qué equipo(s) participan de la persecución…
+    // también es saber POR QUÉ». Por construcción el equipo sin motivo no toma el frente, así que
+    // esto debería ser el 100 %; el invariante existe para que siga siéndolo.
+    expectInRange(stats.withReasonPct, TARGETS.chronicle.teamPullWithReasonPct)
+    // Y en una LLANA el motivo que manda es la etapa: hay trenes y hay sprint que ganar.
+    expect(stats.reasons.etapa).toBeGreaterThan(stats.reasons.maillot + stats.reasons.general)
+  })
+
   it('un campo SIN equipos no cambia de comportamiento', () => {
     // La regla 2 de §V.1 y la garantía que sostiene todo lo demás: el plan de equipo no puede tocar
     // a quien no tiene equipo. Un corredor sin `teamId` no recibe compañeros fantasma ni empuje de

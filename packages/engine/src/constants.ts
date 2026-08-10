@@ -978,6 +978,17 @@ export const STAGE = {
   // …y adónde llega el que ha gastado su presupuesto entero. No baja de aquí: fundido no significa
   // que estorbe, significa que otro equipo toma el frente.
   teamDriveTired: -0.6,
+  // …y lo que suma tener DOS motivos a la vez (el equipo del maillot que además lleva al mejor
+  // rematador del día). Los motivos se acumulan en el ESFUERZO —se juegan el doble, ponen más gente
+  // al frente— y no en la frase, porque una frase con dos motivos no se lee.
+  teamDriveSecondCard: 0.2,
+  // «TENEMOS AL FAVORITO DE HOY»: cuánta puntuación de remate puede cederle al mejor del campo un
+  // equipo y seguir teniendo candidato real para ESTE final. Se mide con `finishScore` (la mezcla
+  // de atributos del tipo de final que dibuja el recorrido, `stage/finish.ts`), no con un solo
+  // atributo, y contra el campo, no en abstracto: un rematador de 78 es el favorito de una
+  // continental y no pinta nada en una gran vuelta. 8 puntos en la escala 0-100 de los atributos
+  // dejan tres o cuatro equipos con carta en un campo de ocho, que es lo que se ve en carretera.
+  teamStageCardGap: 8,
   // Peso del plan en el deber de relevo. Con 0,5 el plan pesa más que el rol (que va de 0,1 a 1,0)
   // pero no lo anula: DENTRO del equipo que tira siguen tirando sus gregarios y no su sprinter.
   teamRelayDriveWeight: 0.5,

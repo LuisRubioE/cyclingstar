@@ -105,6 +105,19 @@ export const TARGETS = {
       max: 5,
       unit: '',
     },
+    // Y EL PARTE DICE POR QUÉ. «No es solo saber qué equipo(s) participan de la persecución…
+    // también es saber POR QUÉ», y un parte que nombra al equipo pero no el motivo se queda a
+    // medias de lo que se pidió. El objetivo es 100 % con margen: por construcción un equipo que no
+    // tiene ninguno de los tres motivos —etapa, maillot o general— NO toma el frente, así que todo
+    // parte con voz de equipo debería traer motivo. El 95 % de suelo no es holgura de calibración:
+    // es la alarma de que alguien ha dejado tirar a un equipo sin razón para hacerlo, que es
+    // exactamente el «desgastarse a lo wey» que esto viene a impedir.
+    teamPullWithReasonPct: {
+      label: 'Y el parte dice POR QUÉ',
+      min: 95,
+      max: 100,
+      unit: '%',
+    },
   },
   /**
    * ABANDONOS en una gran vuelta de 21 etapas (docs/motor.md §VI.3). Es el criterio de éxito de la

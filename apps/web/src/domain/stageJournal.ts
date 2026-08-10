@@ -339,6 +339,14 @@ function chronicleTemplate(e: ChronicleEntry): string {
       // equipo el que se pone a tirar, y hasta ahora la frase decía el nombre del equipo sin decir
       // que fuera el suyo, o el del corredor sin decir que tirara su equipo (encargo A2 del dueño).
       const boss = riders[0]
+      // …y desde la v15, POR QUÉ se ha puesto a tirar el equipo que lleva el frente: no siempre es
+      // por el sprint. Si la fuga amenaza al maillot, la caza es otra cosa y se cuenta como otra cosa.
+      const chaseWhy = String(e.datos?.porQue ?? '')
+      if (chaseWhy === 'maillot' || chaseWhy === 'general')
+        return pick([
+          `The chase is on, and it is not for the stage: the break is a threat on general classification and the bunch reacts.`,
+          `This move is dangerous for the overall, and the peloton knows it — the chase begins in earnest.`,
+        ])
       if (boss && team)
         return pick([
           `${team} hit the front and take up the chase for ${riderFull(boss)}.`,
@@ -439,8 +447,40 @@ function chronicleTemplate(e: ChronicleEntry): string {
       }
       if (!small && nTeams === 1 && team) {
         // Los que tiran son todos del MISMO equipo: eso es un equipo tomando la carretera. Y ahora se
-        // dice a cuenta de quién lo hacen, que es lo que faltaba.
+        // dice a cuenta de quién lo hacen y POR QUÉ, que es lo que faltaba.
+        //
+        // El MOTIVO (v15 del motor, docs/motor.md §V.1) es la respuesta al «no es solo saber qué
+        // equipos participan de la persecución… también es saber POR QUÉ». Son tres carreras
+        // distintas y se leen distinto: tirar por la etapa, tirar defendiendo el maillot y tirar
+        // porque la fuga amenaza a tu hombre de la general. Si el motor no manda motivo (crónicas
+        // anteriores a la v15, o un equipo tirando sin nada que defender) la frase se queda como
+        // estaba: no se inventa una razón.
         const forTail = forWhom ? `, working for ${forWhom}` : ''
+        const porQue = String(e.datos?.porQue ?? '')
+        if (porQue === 'maillot')
+          return pick([
+            `${team} take the front to defend the race lead${left} — this move is a threat to the jersey.`,
+            `The leader's team goes to the front: ${team} are not letting this one go${left}.`,
+            `${team} shoulder the work${left}; with the jersey on their backs the gap is their problem.`,
+          ])
+        if (porQue === 'general')
+          return pick([
+            `${team} come to the front${left}: the move is dangerous for ${forWhom || 'their GC leader'} and they cannot sit on it.`,
+            `${team} drive the bunch${left}: the break threatens ${forWhom || 'their leader'} on general classification, so they have to ride.`,
+            `${team} take up the chase${left} with the general classification in mind, not the stage.`,
+          ])
+        if (porQue === 'etapa') {
+          if (effort === 'tope')
+            return pick([
+              `${team} have the bunch strung out in a single line${left}: this finish suits ${forWhom || 'their leader'} and they want it.`,
+              `${team} are drilling it on the front for ${forWhom || 'their leader'} — the bunch is in one long line${left}.`,
+            ])
+          return pick([
+            `${team} mass on the front and wind the pace up${left}, riding for the stage with ${forWhom || 'their leader'}.`,
+            `${team} take up the work at the head of the bunch${left}: today's finish is made for ${forWhom || 'their man'}.`,
+            `The pace is in the hands of ${team}${left}, setting the race up for ${forWhom || 'their leader'}.`,
+          ])
+        }
         if (effort === 'tope')
           return pick([
             `${team} have the bunch strung out in a single line${left}${forTail}.`,

@@ -45,13 +45,14 @@ import {
   sustainsJump,
 } from './tactics.js'
 import {
-  type TeamIntent,
   type TeamPlan,
+  type TeamSituation,
+  type TeamStance,
   buildTeamPlans,
-  currentIntent,
   frontClaim,
   teamAttackFactor,
   teamDrive,
+  teamStance,
 } from './teamPlan.js'
 import { sampleProfile, stageLengthKm } from './sample.js'
 import { stageRng } from './rng.js'
@@ -587,6 +588,12 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
   // para cada grupo de meta, porque depende también de cuántos lleguen.
   const finishTerrain = deriveFinishTerrain(blocks)
   /**
+   * …y qué CLASE de final es, contado con el pelotón entero: es la pregunta «¿quién es el favorito
+   * de HOY?» que necesita el plan de equipo (§V.1) para saber qué equipos tienen una carta que
+   * jugar. El tipo por grupo de meta se resuelve luego, corredor a corredor, en `finishStage`.
+   */
+  const stageFinishType = finishType(finishTerrain, input.riders.length)
+  /**
    * LA FUERZA DE LA CAZA (`stage/chase.ts`): cuántos trenes tiene el campo, cómo de bueno es su
    * rematador y con cuántos compañeros cuenta. Antes bastaba UN corredor con SPR ≥ 70 para que el
    * pelotón entero persiguiera a tope, en una continental modesta igual que en una gran vuelta.
@@ -638,6 +645,10 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       mentality: r.orders.mentality,
       ...(r.orders.targetRiderId ? { targetRiderId: r.orders.targetRiderId } : {}),
       spr: r.eff0.SPR,
+      // «TENEMOS AL FAVORITO DE HOY» sale de la maquinaria de final que ya existe: el tipo de final
+      // que dibuja el RECORRIDO y la mezcla de atributos con que se resuelve el remate. No hay dato
+      // nuevo: es `finishScore` sobre `deriveFinishTerrain`, la misma cuenta del sprint.
+      finishScore: finishScore(r.eff0, stageFinishType),
       gcDeficitSeconds: r.gcDeficitSeconds,
     })),
     { finishFlat, hasGcContext },
@@ -651,8 +662,8 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
   }
   /** Lo que cada equipo lleva gastado al frente del pelotón, en unidades de `frontWork`. */
   const teamSpent = new Map<string, number>()
-  /** Su intención AHORA, recalculada en cada decisión del pelotón. */
-  const teamIntent = new Map<string, TeamIntent>()
+  /** Qué hace y POR QUÉ cada equipo AHORA, recalculado en cada decisión del pelotón. */
+  const teamNow = new Map<string, TeamStance>()
   /** Y el empuje que de ahí sale para el turno de relevos, cacheado entre decisiones. */
   const teamDriveNow = new Map<string, number>()
   /**
@@ -661,9 +672,15 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
    * tomado el frente» en vez de nombrar a tres corredores de tres equipos distintos.
    */
   let frontTeamId: string | null = null
+  const restStance: TeamSituation = {
+    manUpTheRoad: false,
+    kmToGo: totalKm,
+    frontThreatDeficit: null,
+  }
   for (const plan of teamPlans.values()) {
-    teamIntent.set(plan.teamId, plan.baseIntent)
-    teamDriveNow.set(plan.teamId, teamDrive(plan.baseIntent, 0, false))
+    const stance = teamStance(plan, restStance)
+    teamNow.set(plan.teamId, stance)
+    teamDriveNow.set(plan.teamId, teamDrive(stance, 0, false))
   }
   /**
    * El empuje del plan sobre UN corredor. Cero para el agente libre y cero para el que corre por su
@@ -679,9 +696,12 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
     if (rebels.has(riderId)) return 1
     const t = teamOf.get(riderId)
     if (t == null) return 1
-    const intent = teamIntent.get(t)
-    return intent == null ? 1 : teamAttackFactor(intent)
+    const stance = teamNow.get(t)
+    return stance == null ? 1 : teamAttackFactor(stance)
   }
+  /** El MOTIVO por el que tira un equipo, para la crónica; `null` si no es un equipo el que tira. */
+  const purposeOfTeam = (teamId: string | null): string | null =>
+    teamId == null ? null : (teamNow.get(teamId)?.purpose ?? null)
   const spentFractionOf = (plan: TeamPlan): number =>
     plan.budget > 0 ? (teamSpent.get(plan.teamId) ?? 0) / plan.budget : 1
   /**
@@ -793,20 +813,34 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
         for (const mv of moves) for (const m of membersOf(mv.g.id)) inMove.add(m.input.riderId)
         const menInPeloton = (plan: TeamPlan): number =>
           plan.memberIds.filter((id) => !rebels.has(id) && sims.get(id)?.groupId === PELOTON).length
-        // 1. Qué juega cada equipo AHORA.
+        // 1. Qué juega cada equipo AHORA, y POR QUÉ. La amenaza se mide con el MEJOR CLASIFICADO
+        //    que va delante: es la cuenta de `gcLeash()` mirada equipo a equipo, que es lo que
+        //    distingue al equipo del maillot —al que esa fuga sí le quita el liderato— del equipo
+        //    cuyo hombre va a tres minutos y no se juega nada con ella.
+        let frontThreatDeficit: number | null = null
+        if (hasGcContext && front) {
+          let worst = Number.POSITIVE_INFINITY
+          for (const m of membersOf(front.g.id)) worst = Math.min(worst, m.input.gcDeficitSeconds)
+          frontThreatDeficit = Number.isFinite(worst) ? worst : null
+        }
         for (const plan of teamPlans.values()) {
           // Solo cuenta el hombre delante si NO es un rebelde: el equipo no defiende a quien se ha
           // ido por su cuenta contra sus órdenes (§VI.2), así que sigue persiguiendo.
           const manUpTheRoad = plan.memberIds.some((id) => inMove.has(id) && !rebels.has(id))
-          teamIntent.set(plan.teamId, currentIntent(plan, { manUpTheRoad, kmToGo: kmRestantes }))
+          teamNow.set(
+            plan.teamId,
+            teamStance(plan, { manUpTheRoad, kmToGo: kmRestantes, frontThreatDeficit }),
+          )
         }
         // 2. QUIÉN LLEVA EL FRENTE. Con la carretera despejada el relevo pasa al siguiente equipo
         //    con derecho: el que más se juega y con el depósito colectivo más entero. Hay
         //    histéresis a propósito —solo se cede cuando el que manda ha gastado su presupuesto o
         //    ha perdido su baza—, porque un frente que cambia de dueño cada kilómetro no es un
         //    frente: es lo que producía la alianza permanente de la v14.
-        const claimOf = (plan: TeamPlan): number =>
-          menInPeloton(plan) > 0 ? frontClaim(teamIntent.get(plan.teamId) ?? 'nada') : 0
+        const claimOf = (plan: TeamPlan): number => {
+          const stance = teamNow.get(plan.teamId)
+          return stance && menInPeloton(plan) > 0 ? frontClaim(stance) : 0
+        }
         const current = frontTeamId ? teamPlans.get(frontTeamId) : undefined
         if (!current || claimOf(current) === 0 || spentFractionOf(current) >= 1) {
           const relief = [...teamPlans.values()]
@@ -827,10 +861,11 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
         let chaseReady = 0
         let chaseFull = 0
         for (const plan of teamPlans.values()) {
-          const intent = teamIntent.get(plan.teamId) ?? 'nada'
+          const stance = teamNow.get(plan.teamId)
+          if (!stance) continue
           const spent = spentFractionOf(plan)
-          teamDriveNow.set(plan.teamId, teamDrive(intent, spent, plan.teamId === frontTeamId))
-          if (intent !== 'perseguir' && intent !== 'lanzar') continue
+          teamDriveNow.set(plan.teamId, teamDrive(stance, spent, plan.teamId === frontTeamId))
+          if (stance.intent !== 'perseguir' && stance.intent !== 'lanzar') continue
           // Peso: los hombres que el equipo tiene todavía en el pelotón. Un equipo diezmado no
           // puede cazar por muchas ganas que le queden.
           const present = menInPeloton(plan)
@@ -976,6 +1011,13 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
         ) {
           const c = peloton.compromiso
           const why = pullReason(pull.ids, worksFor)
+          // POR QUÉ TIRA ESE EQUIPO (v15, docs/motor.md §V.1). El dueño lo pidió literal: «no es
+          // solo saber qué equipo(s) participan de la persecución… también es saber POR QUÉ». Solo
+          // se dice cuando los que tiran son TODOS del mismo equipo: si es una alianza, el motivo
+          // de cada uno es distinto y una sola palabra mentiría.
+          const pullTeams = new Set(pull.ids.map((id) => teamOf.get(id) ?? ''))
+          const pullTeam = pullTeams.size === 1 ? ([...pullTeams][0] ?? '') : ''
+          const porQue = pullTeam !== '' ? purposeOfTeam(pullTeam) : null
           log.emit(km, peloton.tS, 'tiran', 'peloton_pull', pull.ids, {
             commit: Math.round(100 * c) / 100,
             // POR QUÉ tiran (v13): `forKind` dice de qué clase de trabajo se trata y `forId`, cuando
@@ -985,6 +1027,10 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
             forKind: why.kind,
             ...(why.targetId ? { forId: why.targetId } : {}),
             ...(why.leaders > 1 ? { forLeaders: why.leaders } : {}),
+            // …y el MOTIVO del equipo que tira: por la etapa (tienen al favorito de hoy), por el
+            // maillot (es suyo y lo de delante lo amenaza) o por la general (su favorito se la
+            // juega igual). Ausente si no tira un equipo, o si tira sin motivo ninguno.
+            ...(porQue != null && porQue !== 'ninguno' ? { porQue } : {}),
             // Clasificado, que es lo que la crónica sabe decir: a tempo de carretera, firme, o a tope.
             effort:
               c <= STAGE.pullEffortTempoMax
@@ -1060,12 +1106,16 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
         // parte del recorrido (antes la fuga tiene su cuerda), si aún no han claudicado.
         if (!chaseAnnounced && km >= totalKm * STAGE.chaseAnnounceFrac) {
           chaseAnnounced = true
+          const porQue = purposeOfTeam(frontTeamId)
           log.emit(
             km,
             peloton.tS,
             'persecucion',
             'sprinters_chase',
             leadSprinterId ? [leadSprinterId] : [],
+            // El motivo del equipo que ha tomado el frente (v15): la caza de una llana casi siempre
+            // es «por la etapa», pero la del equipo del maillot ante una fuga peligrosa no lo es.
+            porQue != null && porQue !== 'ninguno' ? { porQue } : {},
           )
         }
         // Los sprinters quieren capturar en meta: el boquete deseado mengua a 0 en finish - 12 km.
