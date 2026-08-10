@@ -265,6 +265,23 @@ desde ninguna parte.** El motor promete una carrera táctica y ejecuta una carre
 
 ### 8. Mecánicas documentadas que nunca se ejecutan
 
+> **Estado en la v15: la lista está VACÍA.** La pájara se activó en la v8 y se narra desde la v14;
+> los abandonos y el fuera de control entraron en la v14; el marcaje lo resuelve `marcaje.ts` desde
+> la v9; el **rebufo del que va solo (`shelterAlone`) y el de quien rota en cabeza del pelotón
+> (`shelterWorking`) entran en la v15** —los dos estados que faltaban de la tabla de rebufo de
+> SPEC 6.5—, y con ellos el umbral de lesión de §VI.3 (`abandonInjuryDays`), que era inalcanzable
+> por construcción. Solo quedan sin usar las constantes de la **CRE**, y eso es una decisión tomada
+> (§V.4): ninguna carrera del calendario la corre, y se conservan marcadas como pendientes.
+>
+> **Con una excepción nueva que hay que anotar, no esconder:** al re-anclar el depósito (§VI.1) el
+> **COLAPSO** dejó de ocurrir en una gran vuelta (0 casos en 6 vueltas, frente al 23 % de los
+> abandonos de la v14). No es una perilla mal puesta —se midieron cinco variantes y ninguna cambia
+> un abandono—: con un depósito del tamaño correcto **nadie está vaciado a más de 30 km de meta**,
+> que es lo que la regla exige. Es la misma deuda del modelo de persecución que tiene al «fuera de
+> control» en el 1 % en vez del 45 %, y está en docs/balance.md, «v15».
+>
+> El diagnóstico original se conserva porque es el contrato contra el que se midió cada una.
+
 Además de los ataques y la tensión:
 
 | Mecánica                           | Estado real         | Evidencia                                                                                                                                                                                     |
@@ -492,14 +509,15 @@ Y el criterio que las resume: **guiones distintos de 150 etapas, de 4 a 25 en la
 - **Los puentes solo salen del pelotón o de un grupo ya escapado**, no de un grupo rezagado: un
   grupeto que persigue vive en la maquinaria de descolgados (`shed`), que tiene su propio modelo de
   recorte, y mezclar las dos cosas pedía unificar los dos caminos.
-- **`shelterAlone` (0,0) sigue sin usarse**: el corredor que rueda solo paga `shelterRelay` (0,5),
-  es decir, se le regala el rebufo de un grupo que no tiene. Arreglarlo encarece TODAS las escapadas
-  en solitario y es una recalibración por sí misma.
+- ~~**`shelterAlone` (0,0) sigue sin usarse**: el corredor que rueda solo paga `shelterRelay` (0,5),
+  es decir, se le regala el rebufo de un grupo que no tiene.~~ **HECHO en la v15**: un grupo de un
+  corredor paga 0 de rebufo. Medido en docs/balance.md, «v15».
 - **Abandonos y fuera de control** (§15, §VI.3): la regla 8 respeta el corte por construcción —solo
-  administra si lo que va a ceder cabe dentro de él— pero nadie queda eliminado nunca.
-- **El intento no distingue equipos**: quién ataca lo decide el rol y la mentalidad del corredor, no
-  un plan colectivo (§V.1). Un equipo no coloca a un hombre en la fuga a propósito ni cierra un
-  hueco por su líder más allá de lo que ya hace el pelotón entero.
+  administra si lo que va a ceder cabe dentro de él— pero nadie queda eliminado nunca. **HECHO en la
+  v14.**
+- ~~**El intento no distingue equipos**: quién ataca lo decide el rol y la mentalidad del corredor,
+  no un plan colectivo (§V.1).~~ **HECHO en la v15**: la capa de ataques consulta la intención del
+  equipo (`stage/teamPlan.ts`), y el equipo sin baza que jugar es el que manda gente a la fuga.
 
 #### 13.3 Por qué esto también arregla la general
 
@@ -685,18 +703,30 @@ Propuesta: separar **telemetría** de **narrativa**.
 La ventaja es que con **un solo dato** se pueden alimentar varias vistas distintas (ver más abajo),
 y que los replays dejan de depender de re-simular.
 
-### 17. Orden de trabajo propuesto
+### 17. Orden de trabajo propuesto — CERRADO
+
+> **El plan del motor está terminado.** Con la v15 entra la última pieza pendiente —el plan de
+> equipo de §V.1, con `shelterAlone` y la desobediencia de §VI.2— y no queda ningún trabajo de esta
+> tabla por hacer salvo los dos que nunca fueron del motor: los **perfiles reales** (entrada de
+> datos, trabajo 3) y la **recalibración con Montecarlo** (trabajo 6), que es un proceso continuo y
+> no un cambio de código. La lista de «mecánicas documentadas que nunca se ejecutan» (§8) está
+> vacía salvo la CRE, que es una decisión tomada (§V.4).
+>
+> Lo que sigue abierto ya no vive aquí, sino en docs/balance.md como defectos anotados y medidos:
+> el modelo de persecución de los descolgados, el abanico de la contrarreloj y el reparto de causas
+> de abandono. Ninguno es una mecánica que falte: son calibraciones de mecánicas que existen.
 
 | #   | Trabajo                                                                                  | Por qué en este puesto                                                                                                                                                |
 | --- | ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0   | **Desgaste + controlador del pelotón + velocidades** (§12-bis)                           | Es la raíz medida. Sin desgaste y con el controlador atado a la fuga, nada de lo demás puede dar resultados creíbles. No depende de los perfiles: se puede empezar YA |
+| 0   | ~~Desgaste + controlador del pelotón + velocidades (§12-bis)~~ **HECHO (v5-v6)**         | Es la raíz medida. Sin desgaste y con el controlador atado a la fuga, nada de lo demás puede dar resultados creíbles. No depende de los perfiles: se puede empezar YA |
 | 1   | ~~Modelo de final (§12)~~ **HECHO (v7)**                                                 | Máximo impacto por esfuerzo una vez hay desgaste: arregla "gana quien no debe"                                                                                        |
 | 2   | ~~Selección en pavés/descenso (§14)~~ **HECHO (v12)** · ~~fatiga (§15)~~ **HECHO (v14)** | El pavés no existía como terreno (brecha de 0 s en meta). Hechas las dos: la selección en la v12 y los abandonos con la pájara narrada en la v14                      |
 | 3   | **Perfiles reales** (extracción y validación)                                            | Entrada del motor. Necesarios **antes de la recalibración final**, no antes de las correcciones estructurales                                                         |
 | 4   | ~~Capa táctica (§13)~~ **HECHO (v9)**                                                    | El desarrollo grande. Es lo que hace que las carreras se distingan entre sí                                                                                           |
-| 5   | Telemetría (§16) — **v6, v11 y v13 hechas, lo estructural pendiente**                    | Habilita el journal y las vistas nuevas                                                                                                                               |
-| 6   | Recalibración completa con Montecarlo                                                    | Solo al final, con entradas buenas y mecánicas completas                                                                                                              |
+| 5   | ~~Telemetría (§16)~~ **HECHO (v6, v11, v13 y v14)**                                      | Habilita el journal y las vistas nuevas                                                                                                                               |
+| 6   | Recalibración completa con Montecarlo                                                    | Solo al final, con entradas buenas y mecánicas completas. **Proceso continuo**: cada tanda re-mide `pnpm sim` y `pnpm sim:tactics` y anota lo que mueve               |
 | —   | ~~Composición de la carrera y caza por campo (§18)~~ **HECHO (v10)**                     | Se coló delante del 2 y del 3 porque sin ella el motor no tenía nada que resolver: la carrera generada no repartía tiempo por ninguna parte                           |
+| —   | ~~Plan de equipo, `shelterAlone` y desobediencia (§V.1, §8, §VI.2)~~ **HECHO (v15)**     | La última pieza. Cierra la deuda que arrastraban la v9, la v10, la v11 y la v12: el motor no conocía los equipos y la caza era un escalar de etapa                    |
 
 Cada cambio de comportamiento incrementa `engine_version` y se anota en `docs/balance.md`.
 
@@ -773,7 +803,37 @@ ya está en marcha en el trabajo de corrección en curso.
 
 Resueltas con el dueño. Sustituyen a las cuestiones abiertas de la v1.
 
-### V.1 Capa táctica: por equipo, con las individualidades por encima
+### V.1 Capa táctica: por equipo, con las individualidades por encima (HECHO, v15)
+
+> **Implementado en `engine_version` 15.** El plan vive en `packages/engine/src/stage/teamPlan.ts`
+> (decisiones puras: intención, presupuesto y quién lleva el frente) y la carretera en `simulate.ts`.
+> `StageRider` trae por fin **`teamId`** —nulo para el agente libre— y lo rellena
+> `packages/db/src/stageRun.ts`, que es quien conoce los equipos.
+>
+> Lo que consulta el plan, que es lo que pedía esta sección: **el turno de relevos** (`relayDuty`),
+> **la caza** (la fuerza de `chase.ts` deja de ser un escalar de etapa y se escala con lo que les
+> queda a los equipos que persiguen) y **la capa de ataques** (`attackAppetite`). El presupuesto de
+> esfuerzo se agota: un equipo que lleva ~80 km al frente se funde y otro toma el relevo.
+>
+> **Y el plan lleva un MOTIVO, que es la mitad del valor.** Dictado después: «no es solo saber qué
+> equipo(s) participan de la persecución… también es saber POR QUÉ». Los tres motivos salen de la
+> carrera y de ningún dato nuevo: **por la etapa** (`finishScore` sobre el tipo de final que dibuja
+> el recorrido: «tenemos al favorito de HOY»), **por el maillot** (`gcDeficitSeconds` = 0 con
+> general en juego) y **por la general** (un favorito que se la juega igual). El motivo decide
+> cuánto gasta el equipo y si toma el frente —el que no tiene ninguno **no gasta**, que es el «no
+> desgastarse a lo wey» a escala de equipo— y viaja en el evento `peloton_pull` para que la crónica
+> pueda decir «X tira para su sprinter», «X tira defendiendo el maillot» o «X tira porque la fuga
+> amenaza a su líder». Un equipo puede tener varios: **se acumulan en el esfuerzo y manda uno solo
+> en la frase**, el que más derecho da al frente en esa situación.
+>
+> El efecto visible es el que pedía el dueño: el parte de «quién tira» pasa de **no poder nombrar a
+> un equipo casi nunca** (0 % medido en la llana con 8 equipos, 2-12 % en la campaña de la v11) a
+> hacerlo en la mayoría de los partes. Los números están en docs/balance.md, «v15», y el objetivo
+> vive en `sim/targets.ts` (`chronicle.teamPullFlatPct` y `chronicle.frontTeamsPerStage`).
+>
+> Las dos reglas que mandan sobre el plan están implementadas: el que corre por su cuenta (§VI.2)
+> queda FUERA del plan —ni le empuja ni le frena— y el agente libre no participa de ninguno. Un
+> campo entero sin equipos se comporta exactamente como en la v14.
 
 Modelo de **intenciones por equipo** (cada equipo con objetivos y presupuesto de esfuerzo), pero con
 dos reglas que mandan sobre él:
@@ -897,7 +957,24 @@ Vlaanderen, 278 km) con el campo homogéneo, no sobre un perfil de laboratorio.
 Es una calibración **conjunta** con el umbral `0.35 + 0.40·RES/100` y con el coste por km: puede
 hacer falta bajar el umbral además de bajar E₀. La señal de éxito es que RES pase a importar.
 
-### VI.2 Desobedecer las órdenes del equipo
+### VI.2 Desobedecer las órdenes del equipo (HECHO, v15)
+
+> **Implementado en `engine_version` 15**, con la mitigación INTRÍNSECA que proponía esta misma
+> sección y no la administrativa. `stage/teamPlan.ts` detecta dos formas de ir por libre, y las dos
+> se leen de las órdenes que ya existían:
+>
+> - **Dos jefes en un equipo**: el que se declara `lider` o `sprinter` sin ser el jefe de filas del
+>   plan. Es el caso del encargo: el jugador humano se pone de líder cuando su equipo ya tiene uno.
+>   `world/autoOrders.ts` nunca nombra dos, así que en un pelotón de bots esto no ocurre nunca.
+> - **El que trabaja para un extraño**: apunta con `targetRiderId` fuera de su equipo.
+>
+> Qué le pasa: **su decisión manda sobre el plan** (§V.1, regla 1), así que el empuje colectivo no
+> le toca —ni le mete en el turno de relevos de su equipo ni le saca de él— y **decide como un
+> agente libre**. El coste es el que decía la mitigación: no le arropan los gregarios, no le lanza
+> el tren y su equipo no gasta presupuesto por él; encima, el equipo **no deja de perseguir por
+> él** si se va en un movimiento. Gasta más, remata peor, y a veces sigue mereciendo la pena.
+>
+> Se cuenta una vez, al principio de la crónica (`rider_defies_team`).
 
 **Decisión del dueño:** en un **equipo bot, no cuesta nada**. En un **equipo humano, lo que decida su
 mánager** (herramienta futura: no convocar, sancionar, rescindir).

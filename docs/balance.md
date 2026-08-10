@@ -2249,3 +2249,380 @@ igual que en la v13.
   docs/navegacion.md §4 dice que el dashboard es «solo lo accionable, ordenado por urgencia» y «sin
   atajos de sección». Retirarse no es urgente y es irreversible: vive en `My Rider → My races`, con
   confirmación, que es donde el jugador ya mira su programa.
+
+## v15 — El plan de equipo (`engine_version` 14 → 15)
+
+> «Sí, por equipo, pero también teniendo en cuenta las individualidades (especialmente si un ciclista
+> humano desobedece las órdenes de equipo y va por su cuenta, esas priman...) y un ciclista sin
+> equipo, pues corre de forma individual.» — el dueño, docs/motor.md §V.1.
+
+La **última pieza pendiente** del plan del motor (docs/motor.md §17), y la deuda que estaba anotada
+en cuatro sitios: la v9 («el intento no distingue equipos»), la v10 («la caza sigue siendo un solo
+escalar de etapa… el día que `StageRider` traiga `teamId`»), la v11 («la voz de equipo es rara, y hay
+que decirlo: 2,4-11,8 % según el campo») y la v12. Entran con ella los dos estados de rebufo que
+llevaban muertos desde el Paso 21 (§8) y el re-anclaje de §VI.1 sobre una etapa reina realista.
+
+### 1. El diagnóstico, medido antes de tocar nada
+
+El motor no conocía los equipos. Lo único que tenía era `orders.targetRiderId`, que dice «X trabaja
+para Y» pero no «este equipo persigue y este otro se esconde». Cuatro consecuencias:
+
+| Síntoma                                                 | Medido en la v14                                                                      |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| El parte de «quién tira» casi nunca nombra a un EQUIPO  | **0,0 %** en la llana con 8 equipos de 5 · 3,0 % en media montaña · 7,8 % en la reina |
+| La caza es UN escalar de etapa                          | `chaseField()` se calcula una vez y no cambia en 180 km                               |
+| Los ataques son individuales                            | `attackAppetite` solo mira rol, mentalidad y piernas                                  |
+| El que rueda SOLO cobra rebufo de un grupo que no tiene | `shelterAlone` (0,0) definido y sin usar desde el Paso 21                             |
+
+La medida de la voz de equipo se toma como la decide la web (`stageJournal.ts`): un parte tiene voz
+de equipo si **todos** sus protagonistas son del mismo equipo, y solo cuenta sobre un grupo grande,
+porque con un grupo pequeño la casa nombra corredores (`STAGE.frontNamesMaxRiders`). El lecho es un
+campo con equipos de verdad y los roles repartidos por `world/autoOrders.ts`, el mismo planificador
+que usa producción.
+
+### 2. Qué se ha construido
+
+**`StageRider.teamId`**, opcional y nulable. Lo rellena `packages/db/src/stageRun.ts`, que ya leía
+`riders.teamId` para las órdenes automáticas. **Nulo = agente libre**, y eso es la regla 2 de §V.1,
+no una laguna: no participa de ningún plan, no recibe compañeros fantasma y decide con sus órdenes.
+
+**`stage/teamPlan.ts`**, puro y sin estado. Cada equipo tiene un jefe de filas (a quien apuntan sus
+gregarios; si nadie apunta a nadie, el que mejor papel tiene para el final que dibuja el recorrido) y
+de ahí sale una INTENCIÓN:
+
+| Intención   | Cuándo                                          | Qué hace                                          |
+| ----------- | ----------------------------------------------- | ------------------------------------------------- |
+| `perseguir` | rematador con punta real y meta llana           | tira para cazar                                   |
+| `lanzar`    | lo mismo, dentro de los últimos `finalDriveKm`  | monta el tren                                     |
+| `controlar` | su hombre lleva el maillot                      | limita el boquete, no captura                     |
+| `proteger`  | tiene jefe de filas y gregarios que lo arropan  | pone tempo si le toca el frente; si no, ahorra    |
+| `fuga`      | ya tiene un hombre en un movimiento por delante | **ni tira ni ataca**: defiende lo que hay delante |
+| `nada`      | no tiene baza que jugar hoy                     | se esconde, y es el que **manda gente a la fuga** |
+
+Tres cosas la consultan, que son las tres que pedía §V.1:
+
+1. **El turno de relevos** (`relayDuty`), con el término nuevo `teamRelayDriveWeight · drive`.
+2. **La caza** (`chase.ts`): la fuerza del campo deja de ser un escalar de etapa y se escala en cada
+   decisión del pelotón por lo que les queda a los equipos que persiguen.
+3. **La capa de ataques** (`attackAppetite`), con `MoveRider.teamAttack`.
+
+**El presupuesto que se agota.** Cada equipo tiene `teamBudgetPerRider · hombres` unidades de trabajo
+al frente (9 por hombre: un equipo de 8 sostiene ~80 km de persecución a 0,85). Se gasta cuando sus
+hombres relevan en el pelotón, y su empuje decae de `teamDriveChase` (1,0) a `teamDriveTired` (−0,6):
+entonces salen del turno y el frente cambia de dueño. Es exactamente el encargo, «un equipo que
+lleva 80 km tirando no puede seguir a tope».
+
+**EL FRENTE LO LLEVA UNO, y esta es la pieza que no estaba en el encargo y sin la cual no salía
+nada.** Con las intenciones puestas pero todos los equipos empujando a la vez, la voz de equipo subió
+de 0,0 % a **19,9 %** y ahí se quedó: en un pelotón de 40 el turno de relevos son 10 hombres
+(`pelotonPaceFraction`) y un equipo tiene 5, así que cuatro equipos con la misma intención se
+reparten el turno y los tres que más trabajo acumulan salen de tres equipos distintos **por
+aritmética**. En carretera no pasa eso: aunque cuatro equipos quieran el sprint, el frente tiene
+dueño y los demás se colocan detrás esperando su turno. Con eso modelado —un `frontTeamId` con
+histéresis, que solo cede el relevo cuando gasta su presupuesto o pierde su baza— la voz de equipo
+pasa a **73-74 %**.
+
+De ahí salen dos cosas más, y las dos son mecánicas documentadas que no se ejecutaban (§8):
+
+- **`shelterWorking` (0,4)**, el tercer estado de la tabla de rebufo de SPEC 6.5: los hombres del
+  equipo que lleva el frente pagan más viento que los que relevan colocados. Es lo que hace que el
+  presupuesto se gaste **de verdad** y no solo en un contador.
+- **`pullOffFrontShare` (0,3)** en el parte de «quién tira»: el turno de relevos es una aproximación
+  binaria de un continuo —en un pelotón de 176 son 44 hombres— y los que de verdad dan la cara son
+  los del equipo que ha tomado el frente. Es OBSERVACIÓN pura: no mueve un segundo.
+
+### 3. Las individualidades por encima (§VI.2, que era otra mecánica muerta)
+
+§VI.2 estaba especificado desde el principio y **no se ejecutaba en ninguna parte**. Ahora sí, con la
+mitigación INTRÍNSECA que la propia sección proponía y no la administrativa. Dos formas de ir por
+libre, las dos leídas de las órdenes que ya existían:
+
+- **Dos jefes en un equipo**: el que se declara `lider` o `sprinter` sin ser el jefe de filas del
+  plan. Es el caso del encargo —el jugador humano se pone de líder cuando su equipo ya tiene uno— y
+  en un pelotón de bots no ocurre nunca, porque `autoOrders` nombra uno solo.
+- **El que trabaja para un extraño**: apunta con `targetRiderId` fuera de su equipo.
+
+Qué le pasa: **su decisión manda sobre el plan**. Queda fuera de él —el empuje colectivo vale 0 para
+él, ni al frente ni escondido— y decide como un agente libre. El coste es intrínseco: no le arropan
+los gregarios, no le lanza el tren, su equipo no gasta presupuesto por él y **su equipo no deja de
+perseguir porque él esté en la fuga**. Se cuenta una vez, al principio (`rider_defies_team`).
+
+### 4. `shelterAlone`: el que va solo paga el viento entero
+
+Un grupo de UN corredor paga 0 de rebufo, como ya hacía la contrarreloj. Afecta al escapado en
+solitario y también al descolgado que rueda solo, que es donde más se nota.
+
+La cuenta exacta, que es lo que importa: el coste por bloque en LLANO sube un **26,6 %** para el que
+va solo (rebufo del llano 0,42; con `shelter` 0,5 el factor es 1 − 0,21 y con 0,0 es 1). Y en el
+puerto, casi nada: a un 8 % el rebufo vale 0,096 y la penalización se queda en un **+5 %**. Eso es
+exactamente lo que debe pasar —el viento se paga en el llano, no colgado de una rampa— y explica el
+efecto medido, que es pequeño en los escenarios canónicos y grande donde tiene que serlo:
+
+| Medida (300 semillas por escenario)              | v14 (rebufo 0,5) | v15 (rebufo 0,0) |
+| ------------------------------------------------ | ---------------: | ---------------: |
+| `reina-150`, gana en solitario                   |            47,7% |        **46,7%** |
+| `reina-150`, margen mediano del ganador en solo  |             50 s |         **49 s** |
+| `llana-180`, gana en solitario                   |             0,0% |             0,0% |
+| Km que el líder pasa solo (mediana, `reina-150`) |            14 km |            14 km |
+
+**Por qué se mueve tan poco ahí y por qué aun así había que arreglarlo.** En la reina canónica el
+líder rueda solo los últimos 14 km y casi todos son de subida, donde el rebufo no existe: 14 km al
++5 % no deciden una etapa. En la llana nadie gana en solitario ni antes ni después. Donde sí muerde
+es en el DESCOLGADO que rueda solo por el llano durante 50 km, y eso se ve en la gran vuelta: la
+causa «fuera de control» pasó del **1 % al 4 %** de los abandonos con este cambio (antes de re-anclar
+el depósito). El defecto era de física —se regalaba un rebufo inexistente—, no de balance, y su
+arreglo no pedía recalibrar nada.
+
+### 5. Re-anclar §VI.1 sobre una etapa reina realista
+
+El defecto abierto que arrastraba docs/balance.md desde la v6: `reina-real-s3` (Race France e18,
+185 km, tercera semana) medía **erosión 0,920 (topada), gasto 100 %, pájaras 100 %**, contra un
+objetivo de diseño de 0,60-0,85. Con el 100 % del campo en pájara y la erosión en el techo, el
+modelo **deja de discriminar** y el resultado vuelve a ser azar.
+
+**La causa, y esto es lo que había que ver antes de tocar nada:** la curva de frescura del depósito
+se había endurecido DOS veces (`freshnessSlope` 0,0045 → 0,0065 → 0,0085, suelo 0,80 → 0,64 → 0,52)
+para que la etapa reina **sintética** —135 km lisos más un puerto de 15 km: 1.200 m— alcanzase el
+0,60-0,85 que pide §VI.1. Es decir: el depósito se había deformado para satisfacer una caricatura, y
+el precio lo pagaba la etapa reina de verdad. Un corredor de tercera semana salía con **58,6** para
+un día que cuesta ~70.
+
+**Qué se hace: se re-anclan los objetivos, no se relaja ninguno.** La curva vuelve EXACTAMENTE a la
+fórmula de §VI.1 (`freshnessSlope` 0,0045, suelo 0,80, cota del producto 0,70) y el objetivo
+`erosion.queenThirdWeek` **conserva su banda 0,60-0,85** pero se mide donde se corre: sobre la etapa
+reina REAL. La sintética pasa a ser una medida informativa y un control de orden (tiene que erosionar
+MENOS que la real, y ahora lo hace).
+
+| Escenario                                |   E₀ | Gasto v14 | Erosión v14  | Gasto v15 | Erosión v15 |
+| ---------------------------------------- | ---: | --------: | ------------ | --------: | ----------- |
+| **`reina-real-s3`** (Race France e18)    | 58,6 |     100 % | 0,920 topada |         — | —           |
+| **`reina-real-s3`** con §VI.1 restaurado | 88,0 |         — | —            |  **77 %** | **0,657** ✓ |
+| `reina-150-s3` (sintética, 1.200 m)      | 58,6 |      79 % | 0,691        |  **53 %** | **0,306**   |
+
+Pájaras en la reina real de tercera semana: **100 % → 0 %**. Y las cinco bandas de erosión EN FRESCO
+no se mueven ni una milésima, porque con TSB ~0 el multiplicador de frescura vale 1 y esta curva ni
+interviene: llana 0,007 · reina 0,212 · clásica larga 0,618 · la más dura 0,864.
+
+**El daño colateral, medido y arreglado.** Con el depósito re-anclado, la tercera semana deja de
+reventar al pelotón, y con ella desaparece el **COLAPSO**, que en la v14 aportaba el 23 % de los
+abandonos de una gran vuelta. Total: 14,2 % → **10,7 %**, por debajo del 12-20 % de §VI.3. El
+objetivo NO se toca. Se investigó y se arregló la causa:
+
+- Se probó que el colapso no vuelve con ninguna perilla: «fondo del depósito» en vez de cero exacto
+  (0,06 / 0,10 / 0,15) y `collapseMinLostFraction` en 0,035 y 0,02 → **las cinco variantes dan
+  exactamente el mismo resultado**, 0 colapsos. Lo que lo bloquea es estructural: con un depósito del
+  tamaño correcto nadie está vaciado a más de 30 km de meta, que es lo que la regla exige. Queda
+  anotado como la misma deuda del modelo de persecución que tiene al «fuera de control» en el 1 %.
+- Se arregló, en cambio, un umbral que era **CÓDIGO MUERTO**: `abandonInjuryDays` valía 10, pero
+  `injuryEndsRace` ya saca por SEVERIDAD a `minor` y `major`, así que el umbral en días solo podía
+  afectar a los rasguños… que duran 3-6 días y nunca llegaban a 10. La letra de §VI.3 («baja por
+  encima de un umbral») no se ejecutaba jamás. Con **6** sí, y dice algo verdadero: un rasguño que te
+  deja casi una semana de baja no te deja terminar una carrera de tres semanas. Medido: **10,7 % →
+  13,4 %**, y la lesión pasa del 39 % al 50 % de las causas (§VI.3 le pide el 40 %).
+
+### 6. Lo medido, antes y después
+
+**El criterio de éxito visible: la voz de la crónica.** 8 equipos × 5 corredores, roles repartidos
+por `world/autoOrders.ts`, contando los partes de «quién tira» sobre grupo grande:
+
+| Etapa                  | v14 (sin equipos) | v15, solo intenciones | v15 completo |
+| ---------------------- | ----------------: | --------------------: | -----------: |
+| Llana (180 km)         |          **0,0%** |                 19,9% |   **73-77%** |
+| Media montaña (160 km) |              3,0% |                  1,8% |   **68-71%** |
+| Reina (150 km)         |              7,8% |                     — |      **77%** |
+
+Y el frente CAMBIA DE MANOS: **3 equipos distintos** llevan el frente en una llana (mediana), 2 en
+media montaña, 1 en la reina —donde el equipo del jefe de filas pone tempo y no hay relevo que dar—.
+Ese es el objetivo nuevo `chronicle.frontTeamsPerStage` (2-5): vigila que la voz de equipo no se
+consiga con un dueño único e inmóvil, que sería un plan de equipo de cartón.
+
+**La caza según los equipos que la quieren** (las mismas 5 llanas, el mismo campo de 40, repartido en
+8 equipos con más o menos bazas). Es la pregunta literal del dueño:
+
+| Equipos con rematador | Fuerza | Etapas sin sprint masivo |
+| --------------------- | -----: | -----------------------: |
+| 1                     |   0,56 |                    14,0% |
+| 2                     |   1,00 |                    18,0% |
+| 4                     |   1,00 |                    18,0% |
+| 8                     |   1,00 |                     2,0% |
+
+La lectura honesta: **el extremo se distingue perfectamente** —con ocho equipos interesados la fuga
+no llega nunca (2 %) y con uno o dos llega una de cada cinco— pero **entre 1, 2 y 4 el banco no
+resuelve**, porque la fuerza satura en 1,00 con dos trenes (`chaseFullUnits`) y lo que separa a esos
+tres casos es solo el presupuesto, que con 50 etapas por fila queda dentro del ruido. Con ocho
+equipos el presupuesto colectivo no se agota nunca y por eso la diferencia sí es tajante.
+
+**Los invariantes de balance.** `pnpm sim`, 500 simulaciones por escenario:
+
+| Medida                             |           v14 | v15              | Objetivo          |
+| ---------------------------------- | ------------: | ---------------- | ----------------- |
+| Gana la fuga (llana)               |          3,4% | 3,2%             | 2-8%              |
+| Gana el mejor sprinter             |         35,6% | 35,6%            | 30-45%            |
+| Captura mediana (km a meta)        |          22,4 | 22,4             | 8-25              |
+| Gana la fuga (montaña)             |         42,2% | 41,0%            | 25-45%            |
+| Brecha 1º-10º (s)                  |         227,0 | 225,5            | 60-300            |
+| CRI: brecha p90-p10 / especialista |   233 / 99,8% | 233 / 99,8%      | 120-240 / 90-100% |
+| Erosión llana / reina en fresco    | 0,007 / 0,212 | 0,007 / 0,212    | 0-0,02 / 0,2-0,5  |
+| Erosión clásica larga              |         0,618 | 0,618            | 0,45-0,8          |
+| Erosión la clásica más dura        |         0,864 | 0,864            | 0,45-0,92         |
+| Erosión reina 3.ª semana           | 0,691 (SINT.) | **0,657** (REAL) | 0,6-0,85          |
+
+Todo lo que se mueve en llano y montaña lo mueve `shelterAlone`, y son décimas. Los escenarios
+canónicos son campos de AGENTES LIBRES: no traen `teamId`, así que el plan de equipo no les toca ni
+un bloque. Es la regla 2 de §V.1 comprobada por construcción.
+
+### 7. Perillas nuevas
+
+| Perilla                                                  |                  Valor | Qué hace                                                                                        |
+| -------------------------------------------------------- | ---------------------: | ----------------------------------------------------------------------------------------------- |
+| `teamBudgetPerRider`                                     |                      9 | Presupuesto de trabajo al frente por hombre. Un equipo de 8 aguanta ~45 km a tope, >100 a tempo |
+| `teamDriveChase` / `Control` / `Tempo`                   |        1 / 0,75 / 0,55 | Empuje del equipo que LLEVA el frente, según lo que juega                                       |
+| `teamDriveWaiting` / `Watching` / `Shelter`              |      0,3 / 0,1 / −0,35 | …y del que espera su turno                                                                      |
+| `teamDriveUpTheRoad` / `Idle` / `Tired`                  |     −0,9 / −0,5 / −0,6 | El que tiene un hombre delante, el que no juega nada, y el que se fundió                        |
+| `teamRelayDriveWeight`                                   |                    0,5 | Cuánto pesa el plan en el deber de relevo. Pesa más que el rol pero no lo anula                 |
+| `teamChaseTiredForce`                                    |                    0,5 | A cuánto baja la fuerza de la caza con los equipos que persiguen fundidos                       |
+| `teamAttackUpTheRoad` / `Chasing` / `Defending` / `Free` | 0,4 / 0,7 / 0,85 / 1,4 | Cuánto ataca cada intención                                                                     |
+| `pullOffFrontShare`                                      |                    0,3 | Trabajo que se apunta el que releva SIN ir en cabeza. Observación pura: no mueve un segundo     |
+| `shelterAlone` (ya existía, ahora se usa)                |                    0,0 | El que rueda solo paga el viento entero                                                         |
+| `shelterWorking` (ya existía, ahora se usa)              |                    0,4 | Rotar en cabeza del pelotón cuesta más que relevar colocado                                     |
+| `TANK.freshnessSlope` / `freshnessMin` / `min`           |   0,0045 / 0,80 / 0,70 | Vuelven a los valores de §VI.1 (venían de 0,0085 / 0,52 / 0,58)                                 |
+| `abandonInjuryDays`                                      |                      6 | Era inalcanzable con 10: los rasguños duran 3-6 días                                            |
+
+### 8. El azar: NINGÚN subflujo nuevo
+
+El plan de equipo **no tira un solo dado**. La intención sale de las órdenes y del recorrido, el
+presupuesto es contabilidad y quién lleva el frente es un desempate determinista (derecho, gasto,
+calidad e id). Por eso no hace falta un subflujo NOMINAL nuevo —como sí lo necesitaron `rough` (v12)
+y `abandon` (v14)— y ninguna secuencia existente se desplaza: en un campo sin equipos la etapa sale
+dígito a dígito igual que en la v14 salvo por `shelterAlone`.
+
+### 9. La huella de tiempos: RESELLADA, y solo por `shelterAlone`
+
+`stage/attribution.test.ts` explica el detalle. En resumen: en `llana-180` **no cambia ningún
+tiempo** (solo se permutan puestos dentro del mismo segundo) y en `reina-150` se mueven **tres
+relojes de grupo y como mucho 2 segundos**, sin que cambie un solo puesto. El plan de equipo no la
+toca porque esos escenarios no tienen equipos, y el depósito tampoco porque salen con `energy: 100`
+cableado.
+
+### 10. Objetivos de `sim/targets.ts`
+
+**Nuevos** (grupo `chronicle`, y es el que pedía el encargo):
+
+- **`teamPullFlatPct` (50-85 %)**: con qué frecuencia el parte de relevos puede nombrar a un EQUIPO
+  en una llana. Por qué esa banda y no «cuanto más mejor»: en una llana con trenes de sprint el
+  frente tiene dueño casi todo el día, pero **no siempre** —en el relevo entre dos equipos, en la
+  primera hora en que no le interesa a nadie y cuando el que manda pierde hombres, el trabajo lo
+  reparten varios y la alianza es la lectura honesta—. Un objetivo del 90 % obligaría a inventar un
+  dueño donde no lo hay, que es el defecto contrario. Medido: 74,2 %.
+- **`frontTeamsPerStage` (2-5)**: equipos distintos que llevan el frente en una etapa. Es la otra
+  mitad, y vigila que la voz de equipo no se consiga con un dueño único e inmóvil. Medido: 3.
+
+**Re-anclado** (no relajado): `erosion.queenThirdWeek` conserva su banda **0,60-0,85** y cambia de
+punto de medida, de la reina sintética de 1.200 m a la reina REAL de gran vuelta. Va acompañado de
+una comprobación NUEVA y más dura que la que había: además del rango, se exige que no sature
+(vaciado ≤ 0,95 y pájaras ≤ 10 %), porque una erosión de 0,80 con el depósito a cero no es una
+erosión de 0,80, es un techo.
+
+**Ningún otro objetivo se ha movido.**
+
+### 11. Lo que este cambio NO hace
+
+- **No arregla el modelo de persecución**, que es la deuda que sigue teniendo al «fuera de control»
+  en el 1 % de los abandonos en vez del 45 % que le pide §VI.3 —y que ahora, además, deja al COLAPSO
+  en 0—. Se midió que no es una perilla (cinco variantes, ningún cambio) y queda anotado.
+- **No mete el plan de equipo en la contrarreloj.** La CRE sigue sin implementar (§V.4) y la CRI no
+  tiene táctica de grupo.
+- **No hay `followProbability` por equipo.** El plan modula quién ATACA, no quién salta a una rueda:
+  un equipo con un hombre delante debería además marcar más, y hoy no lo hace.
+- **No hay consecuencias administrativas de desobedecer** (moral, confianza, no convocar). §VI.2 lo
+  deja en manos del mánager humano y hoy todos los equipos son bots; lo que sí hay es el coste
+  intrínseco, que es lo que la propia sección proponía.
+- **No cambia `world/autoOrders.ts`.** Los planes se leen de las órdenes que ya reparte, no al revés.
+
+### 12. Lo que hay que vigilar
+
+- **`teamRelayDriveWeight` (0,5) es la perilla sensible de la voz de equipo.** Más y el frente se
+  vuelve un monopolio (la alianza desaparece); menos y volvemos a los tres equipos distintos. La
+  banda 50-85 % del objetivo es la que la vigila.
+- **El banco de la caza por equipos no separa 1, 2 y 4 equipos fuertes** (ver §6). Si en producción
+  la caza de una ProSeries se parece demasiado a la de una gran vuelta, la perilla es
+  `chaseFullUnits`, que satura la fuerza con dos trenes.
+- **La reina SINTÉTICA baja a 0,306 de erosión en tercera semana.** Es lo correcto —1.200 m no son
+  una etapa reina— pero significa que el escenario ya no vale para calibrar el desgaste de tercera
+  semana. Se conserva solo como control de orden.
+
+### 13. AMPLIACIÓN: el motivo, y no solo el equipo
+
+> «no es solo saber qué equipo(s) participan de la persecución... también es saber POR QUÉ!! que
+> normalmente será por ganar la etapa porque es una etapa en la que tienen al favorito o uno de los
+> favoritos... o por la general (o bien son el líder y es una fuga peligrosa para la general... o
+> bien el equipo de un favorito para la general, ídem)» — el dueño.
+
+La intención de equipo deja de ser un enum plano de comportamiento: cada equipo lleva un **motivo**
+(`TeamPurpose`), y de él salen el comportamiento, el gasto y la frase. Los tres motivos se derivan de
+la carrera con datos que YA existían en el motor; no se ha inventado ninguno:
+
+| Motivo    | De dónde sale                                                                                                                                                                                                                                                                      |
+| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `etapa`   | `finishScore(eff, finishType(deriveFinishTerrain(blocks), N))`: lo bueno que es su mejor hombre para EL FINAL DE HOY, medido contra el campo (`teamStageCardGap`, 8 puntos). Es la idea de `chaseField` pero por equipo y con la mezcla de atributos del final, no con un solo SPR |
+| `maillot` | `gcDeficitSeconds` = 0 con `hasGcContext`. La bandera ya distinguía la etapa 1 y las carreras de un día, donde todos van a 0 y no hay maillot que defender                                                                                                                         |
+| `general` | `gcDeficitSeconds` ≤ `gcThreatFraction · gcControlLeash`: el que todavía se juega la general                                                                                                                                                                                       |
+| `ninguno` | Ninguno de los tres. **No toma el frente y no gasta**                                                                                                                                                                                                                              |
+
+Y la AMENAZA, que es lo que convierte un motivo de general en trabajo, es la cuenta que ya hacía
+`gcLeash()` para el pelotón entero, mirada equipo a equipo: si al mejor clasificado de la fuga le
+dan la cuerda entera, ¿se pone por delante de nuestro hombre? Un equipo cuyo líder va a tres minutos
+no se asusta por una fuga con el 40.º de la general; el equipo del maillot sí.
+
+**El motivo decide, no adorna.** El derecho al frente sale de él y de la situación:
+
+| Situación                          | Derecho al frente | Qué hace                                 |
+| ---------------------------------- | ----------------: | ---------------------------------------- |
+| Maillot con la fuga amenazando     |                 4 | caza (`teamDriveChase`)                  |
+| Favorito de la general, amenazado  |                 3 | caza                                     |
+| Etapa con llegada masiva           |                 3 | persigue y luego lanza                   |
+| Maillot tranquilo                  |                 2 | controla el boquete                      |
+| Etapa con final que trepa          |                 1 | pone tempo y arropa                      |
+| Favorito de la general sin amenaza |                 0 | **no gasta**: el problema es del maillot |
+| Sin motivo                         |                 0 | **no gasta**                             |
+
+**Varios motivos a la vez: se acumulan en el esfuerzo, manda uno en la frase.** El equipo del maillot
+que además lleva al mejor rematador del día pone más gente al frente (`teamDriveSecondCard`, +0,2)
+porque se juega el doble; pero la frase cuenta UN motivo, el que más derecho da al frente en esa
+situación, porque una frase con dos motivos no se lee. Esto hace que el mismo equipo corra por la
+etapa en una llana con su sprinter y por el maillot en cuanto la fuga amenaza el liderato, **sin
+ninguna prioridad fija**: manda la carretera.
+
+**Medido — reparto de motivos por tipo de etapa** (8 equipos × 5, 20 semillas, partes con voz de
+equipo). Las dos columnas son el mismo campo sin general en juego (una clásica o la etapa 1) y con
+una general ya abierta:
+
+| Etapa | Contexto    | Voz de equipo | Con motivo | etapa | maillot | general |
+| ----- | ----------- | ------------: | ---------: | ----: | ------: | ------: |
+| Llana | sin general |         67,8% |      100 % | 100 % |     0 % |     0 % |
+| Llana | con general |         83,6% |      100 % |  95 % |     5 % |     0 % |
+| Media | sin general |         57,8% |      100 % | 100 % |     0 % |     0 % |
+| Media | con general |         71,4% |      100 % |  67 % |    33 % |     0 % |
+| Reina | sin general |         79,1% |      100 % | 100 % |     0 % |     0 % |
+| Reina | con general |         80,7% |      100 % |   7 % |    91 % |     1 % |
+
+Es exactamente lo que pedía la comprobación: **en la llana manda «por la etapa»** (95-100 %, hay
+trenes y hay sprint que ganar) y **en cuanto la etapa trepa y hay general en juego manda la
+general** (33 % en media montaña, 91 % en la reina, donde el equipo del maillot pone su tempo todo
+el día). Sin general en juego el motivo solo puede ser la etapa, y así sale.
+
+**Lo que hay que decir del motivo `general`: sale poco (0-1 %), y es correcto.** El equipo de un
+favorito solo tira cuando la fuga le amenaza, y cuando eso pasa el maillot está amenazado también y
+tiene MÁS derecho al frente. En carretera es así: el trabajo lo hace el equipo del líder y los demás
+se colocan. El motivo existe, se narra y añade esfuerzo cuando toca; lo que casi nunca hace es
+llevar el frente él solo, y para eso tendría que fundirse antes el equipo del maillot.
+
+**Efecto colateral bueno, medido:** con el motivo puesto, el banco de la caza por equipos —que antes
+no separaba 1, 2 y 4 equipos fuertes— pasa a ser **monótono**: 1 equipo con rematador 20 % de etapas
+sin sprint masivo, 2 equipos 16 %, 4 equipos 12 %, 8 equipos 4 %. La razón es la regla del corolario:
+los equipos SIN carta han dejado de gastar, así que el número de equipos con carta se nota de verdad.
+
+**Objetivo nuevo:** `chronicle.teamPullWithReasonPct` (95-100 %). Por construcción un equipo sin
+motivo no toma el frente, así que todo parte con voz de equipo debería traer motivo; el suelo del
+95 % no es holgura de calibración sino la alarma de que alguien ha dejado tirar a un equipo sin razón
+para hacerlo. Medido: 100 % en los seis casos de la tabla.
