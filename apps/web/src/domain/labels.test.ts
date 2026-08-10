@@ -35,6 +35,11 @@ describe('web: diccionario de dominio (español interno → inglés de UI)', () 
     expect(newsLabel('lo_que_sea')).toBe('News')
   })
 
+  it('el abandono tiene su propia etiqueta, distinta de la lesión', () => {
+    expect(newsLabel('abandon')).toBe('Abandon')
+    expect(newsLabel('injury')).toBe('Injury')
+  })
+
   it('traduce los tipos de apunte y de palmarés', () => {
     expect(ledgerKindLabel('salario')).toBe('Salary')
     expect(ledgerKindLabel('viaje')).toBe('Travel')

@@ -153,6 +153,9 @@ const NEWS_KIND_LABEL: Record<string, string> = {
   gc_win: 'Overall',
   contract: 'Transfer',
   injury: 'Injury',
+  // Abandonar una carrera es su propio tipo de noticia: no es una lesión (se abandona también por
+  // colapso, por enfermedad, por el corte de tiempo o porque el jugador lo decide) — docs/motor.md §VI.3.
+  abandon: 'Abandon',
   retirement: 'Retirement',
 }
 
