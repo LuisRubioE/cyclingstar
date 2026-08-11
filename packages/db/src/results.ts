@@ -132,6 +132,25 @@ export async function getRaceRiderIdentities(
  * el desempate se deriva aquí de los mismos datos: suma de puestos hasta esa etapa y puesto en la
  * última disputada. Mismo criterio y mismo orden total que `gcOrderBy()`.
  */
+/**
+ * La general ACUMULADA hasta una etapa, para la ficha de esa etapa.
+ *
+ * Se suma sobre `stage_results`, y eso tiene una trampa que costó un falso líder en producción: si
+ * un corredor NO tiene fila en una etapa —porque abandonó, porque no tomó la salida o por cualquier
+ * agujero— su suma es menor y **la ausencia le hace más rápido**. En la Race Colombia, Roberto
+ * Martínez no terminó la etapa 8 y la general le puso primero con 4h36 sobre el segundo, después de
+ * haber sido 129.º y 130.º en las dos reinas anteriores: las 6h09 del ganador de la etapa que no
+ * corrió eran su «ventaja». `riderResults.ts` ya avisaba de esto por escrito y por eso el perfil se
+ * había pasado a `race_gc`; esta consulta, que es la que ve el jugador en la pestaña de general de
+ * cada etapa, se quedó con la mala.
+ *
+ * Dos defensas, y las dos hacen falta:
+ *  1. **Quien abandonó no está clasificado** (`race_rosters.abandoned_day`): cae al final y sale
+ *     marcado como DNF, igual que en `getRaceGc`.
+ *  2. **Solo se clasifica quien tiene TODAS las etapas corridas hasta hoy.** Es la red que hace
+ *     imposible por construcción que a alguien le beneficie faltar, esté marcado el abandono o no:
+ *     si a un corredor le falta un día, no puede estar en la general aunque nadie lo haya anotado.
+ */
 export async function getGcThroughStage(
   db: Database,
   raceId: string,
@@ -144,12 +163,24 @@ export async function getGcThroughStage(
     teamName: string | null
     isBot: boolean
     tiempoTotalS: number
+    dnf: boolean
   }[]
 > {
   const net = sql<number>`sum(${stageResults.tiempoS} - ${stageResults.bonificacionS})::int`
   const sumaPuestos = sql<number>`sum(${stageResults.puesto})::int`
   const ultimoPuesto = sql<number>`(array_agg(${stageResults.puesto} order by ${stageResults.stageDay} desc))[1]`
-  return db
+  // Cuántas etapas de esta carrera se han corrido hasta `stageDay`: el que no las tenga todas no
+  // está clasificado. Se cuenta sobre los propios resultados para no depender del calendario.
+  const stagesRun = db
+    .select({ n: sql<number>`count(distinct ${stageResults.stageDay})::int`.as('n') })
+    .from(stageResults)
+    .where(and(eq(stageResults.raceId, raceId), lte(stageResults.stageDay, stageDay)))
+  const mine = sql<number>`count(distinct ${stageResults.stageDay})::int`
+  const abandoned = sql<boolean>`bool_or(${raceRosters.abandonedDay} is not null)`
+  // No clasificado = abandonó, o le falta alguna etapa. Los dos casos se muestran igual (DNF) y
+  // caen al final, porque su tiempo acumulado no significa nada.
+  const unranked = sql<boolean>`(${abandoned} or ${mine} < (${stagesRun}))`
+  const rows = await db
     .select({
       riderId: stageResults.riderId,
       name: riders.name,
@@ -157,13 +188,28 @@ export async function getGcThroughStage(
       teamName: teams.name,
       isBot: sql<boolean>`bool_and(${riders.userId} is null)`,
       tiempoTotalS: net,
+      dnf: unranked.as('dnf'),
     })
     .from(stageResults)
     .innerJoin(riders, eq(riders.id, stageResults.riderId))
     .leftJoin(teams, eq(teams.id, riders.teamId))
+    .leftJoin(
+      raceRosters,
+      and(
+        eq(raceRosters.raceId, stageResults.raceId),
+        eq(raceRosters.riderId, stageResults.riderId),
+      ),
+    )
     .where(and(eq(stageResults.raceId, raceId), lte(stageResults.stageDay, stageDay)))
     .groupBy(stageResults.riderId, riders.name, riders.country, teams.name)
-    .orderBy(asc(net), asc(sumaPuestos), asc(ultimoPuesto), asc(stageResults.riderId))
+    .orderBy(
+      sql`case when ${unranked} then 1 else 0 end`,
+      asc(net),
+      asc(sumaPuestos),
+      asc(ultimoPuesto),
+      asc(stageResults.riderId),
+    )
+  return rows
 }
 
 export interface PointsRow {

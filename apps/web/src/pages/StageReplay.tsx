@@ -87,7 +87,9 @@ function ResultTable({ rows }: { rows: StageResultEntry[] }) {
 /** General tal como quedó tras esta etapa, con la misma regla de top 20 + "Show all". */
 function GcTable({ rows }: { rows: StageGcEntry[] }) {
   const [showAll, setShowAll] = useState(false)
-  const leader = rows[0]?.tiempoTotalS ?? 0
+  // El líder es el primer CLASIFICADO, no la primera fila: los no clasificados van al final, pero si
+  // la general entera fuera de abandonos el `?? 0` de antes daba diferencias contra cero.
+  const leader = (rows.find((r) => !r.dnf) ?? rows[0])?.tiempoTotalS ?? 0
   const visible = showAll ? rows : rows.slice(0, TOP_ROWS)
   return (
     <>
@@ -97,17 +99,29 @@ function GcTable({ rows }: { rows: StageGcEntry[] }) {
         </caption>
         <tbody>
           {visible.map((r, i) => (
-            <tr key={r.riderId} className="border-b border-slate-100 last:border-0">
-              <td className="w-7 py-1 text-slate-400 tabular-nums">{i + 1}</td>
+            // Quien no está clasificado —abandonó, o le falta una etapa— sale como DNF y sin
+            // puesto. Su tiempo acumulado no significa nada: enseñarlo fue lo que puso a un
+            // corredor líder por 4h36 por no haber corrido la etapa 8 (ver `getGcThroughStage`).
+            <tr
+              key={r.riderId}
+              className={`border-b border-slate-100 last:border-0${r.dnf ? ' text-slate-300' : ''}`}
+            >
+              <td className="w-7 py-1 text-slate-400 tabular-nums">{r.dnf ? '' : i + 1}</td>
               <td className="w-6 py-1">
                 <Flag code={r.country} size={16} />
               </td>
-              <td className="py-1 text-slate-700">
+              <td className={`py-1 ${r.dnf ? 'text-slate-400 line-through' : 'text-slate-700'}`}>
                 <RiderName riderId={r.riderId} name={r.name} isBot={r.isBot} />
                 {r.teamName && <span className="ml-2 text-xs text-slate-400">{r.teamName}</span>}
               </td>
               <td className="py-1 text-right tabular-nums text-slate-500">
-                {i === 0 ? formatTime(r.tiempoTotalS) : `+${formatTime(r.tiempoTotalS - leader)}`}
+                {r.dnf ? (
+                  <span className="text-amber-500">DNF</span>
+                ) : i === 0 ? (
+                  formatTime(r.tiempoTotalS)
+                ) : (
+                  `+${formatTime(r.tiempoTotalS - leader)}`
+                )}
               </td>
             </tr>
           ))}
