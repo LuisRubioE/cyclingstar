@@ -3557,3 +3557,368 @@ starter in the course of the day»). Si el número es feo, que se vea.
   menos abanico es menos cruces.
 - **La traza de tiempos ocupa memoria**: `blocks · corredores` doubles (176 × 600 ≈ 845 KB en el peor
   caso del calendario). Es por corredor y por etapa, y se libera al terminar.
+
+---
+
+## v19 — El abanico de la contrarreloj: la ley de velocidad, corregida (`engine_version` 18 → 19)
+
+> **El encargo del dueño**, y son dos: «la ley de atributo → velocidad es aproximadamente el doble de
+> inclinada de lo que es en carretera… el nivel bajo de un profesional no puede rodar a 37 km/h en
+> una crono llana», y «el desempate en una etapa 2 no es por dorsal, es por posición en la etapa 1».
+
+Esto no es una tanda de crono: es la LEY DE VELOCIDAD de SPEC 6.4. La crono es solo donde se veía,
+porque es el único sitio donde la ley se aplica **sin rebufo, sin grupo y sin táctica** que la
+disimulen. El defecto llevaba anotado —y medido— desde la v14, y las tres tandas siguientes lo
+volvieron a medir sin tocarlo:
+
+| Tanda   | Lo que midió                                                                                                                                                                                   |
+| ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **v14** | «El motor reparte en una crono de 20 km un abanico del 36 % en la cola»: por eso el corte de tiempo se dejó FUERA de la crono (habría eliminado a 150 de 176 en la etapa 1 de una gran vuelta) |
+| **v17** | «Un grupo de LLA 45 rueda 8 km/h más lento que uno de LLA 80 vaya como vaya de convencido»: el 15 % de cola de Race Colombia e5 que la corrección de la resignación no podía tocar (§11)       |
+| **v18** | Cola del **46,4 %** en `race-colombia` e3 y del **41,2 %** en `nc-co-itt`, y **65 alcances en 130 corredores** en una sola crono: un tercio del campo apartándose                              |
+
+### 0. El diagnóstico, y por qué la ley estaba mal en un sitio y bien en el otro
+
+La ley era `v = vRef(g) · (P75/75)^0.39 · ritmo(c)`. Con el exponente único, la diferencia de tiempo
+entre dos corredores es la misma en el llano que en el puerto: `(P₂/P₁)^0.39`. Para el nivel 45
+contra el 86 eso son **un 28,9 %**, y ese número tiene una propiedad muy reveladora:
+
+- **En un puerto es correcto.** 6,2 W/kg contra 4,8 son un 29 % más de VAM, porque subiendo la
+  velocidad va como la potencia.
+- **En el llano es el triple de lo que se ve.** Los mismos vatios, en llano, son un 8,9 % de
+  velocidad, porque el aire crece con v³ y la velocidad va como la RAÍZ CÚBICA de la potencia.
+
+Es decir: **el 0,39 estaba calibrado para las cuestas y se estaba aplicando también al llano**. Y hay
+una segunda cosa debajo, que es la que hace que las velocidades absolutas sean de cicloturista:
+`(P/75)` dice que un corredor de nivel 45 pone el **60 %** de los vatios de uno de nivel 75 y que uno
+de nivel 0 no pone ninguno. Un pelotón profesional no es eso: **el 0 de la escala no es «parado», es
+«no existe»**, y lo que separa a un continental modesto de un especialista WorldTour es una franja
+estrecha de la fisiología humana —un 15 %, no un 40 %—.
+
+### 1. La corrección: dos hechos de física, dos perillas
+
+```
+carga(P75, bloque) = ( 0.55 + 0.45 · P75/75 ) ^ e(bloque)
+
+e(bloque) = 0.39                             en llano, pavés y descenso   (manda el AIRE, v ∝ P^⅓)
+          = 0.39 + 0.61 · clamp(g/6, 0, 1)   en subida, hasta 1.0 al 6 %  (manda la GRAVEDAD, v ∝ P)
+```
+
+| Perilla                |       Valor | Qué dice                                                                |
+| ---------------------- | ----------: | ----------------------------------------------------------------------- |
+| `p75PowerFloor`        |        0,55 | La escala 0-100 de un atributo no es una escala de vatios               |
+| `p75ExponentClimb`     |         1,0 | Subiendo, la velocidad va como la potencia (la gravedad es lineal en v) |
+| `p75ClimbFullGradient` |           6 | Pendiente a la que la gravedad se lo lleva todo                         |
+| `p75Exponent`          |        0,39 | **No se mueve**: era y sigue siendo la raíz cúbica del aire             |
+| `vRefClimbNumerator`   | 190→**188** | Aritmética, no calibración: ver §2                                      |
+
+**LO QUE HACE ESTE PAR, Y ES LO QUE LO SALVA TODO: DEJA LA MONTAÑA DONDE ESTABA.** No es una
+coincidencia afortunada sino la consecuencia de que las dos correcciones tiran en sentidos opuestos y
+en el puerto se cancelan casi exactamente. Medido sobre la selección relativa entre dos niveles:
+
+| Niveles      | Cuesta al 8 %, v18 | Cuesta al 8 %, **v19** | Llano, v18 | Llano, **v19** |
+| ------------ | -----------------: | ---------------------: | ---------: | -------------: |
+| 45 contra 86 |            28,74 % |            **30,00 %** |    28,74 % |    **10,77 %** |
+| 40 contra 86 |            34,79 % |            **34,94 %** |    34,79 % |    **12,40 %** |
+| 60 contra 80 |            11,87 % |            **13,19 %** |    11,87 % |     **4,95 %** |
+
+La cuesta se mueve **entre un 0,2 y un 1,3 puntos** en todo el rango de niveles que existe en el juego; el
+llano se divide entre dos y medio y tres. Ese era exactamente el objetivo.
+
+### 2. Por qué `vRefClimbNumerator` baja de 190 a 188
+
+Porque la escala con suelo deja la carga del P75 = 86 de una etapa reina en 1,0660 donde la ley vieja
+daba 1,0554: un 1,0 % más. Sin corregirlo, la VAM del 12 % se iba a **1.811 m/h**, por encima de la
+banda de 1.500-1.800 que ese número existe para defender (`physics.test.ts`). Con 188 vuelve a 1.792,
+que es el valor de la v18 dígito a dígito: **la montaña se sigue subiendo a la velocidad para la que
+se calibró.** No es una recalibración, es la aritmética de haber cambiado la escala de entrada.
+
+### 3. La tabla de nivel → velocidad, antes y después
+
+`race-colombia` e3 (33 km, la crono de producción), un corredor SOLO, mismo nivel en todos los
+atributos. Mediana de 25 semillas, para que las piernas del día no decidan:
+
+| Nivel | v18 (km/h) | **v19 (km/h)** | Qué es en carretera                    |
+| ----: | ---------: | -------------: | -------------------------------------- |
+|    40 |   **37,5** |       **44,2** | El peor profesional de una continental |
+|    45 |       39,9 |           44,9 | Un continental flojo                   |
+|    50 |       41,6 |           45,5 |                                        |
+|    60 |       44,6 |           46,8 | Un rodador correcto                    |
+|    70 |       47,3 |           47,9 |                                        |
+|    80 |       49,9 |           49,0 | Un especialista                        |
+|    90 |   **52,2** |       **50,1** | El mejor contrarrelojista del mundo    |
+
+| Medida                                        |    v18 |    **v19** | Objetivo real |
+| --------------------------------------------- | -----: | ---------: | ------------- |
+| Nivel **80 contra 45** (diferencia de tiempo) | 25,0 % |  **9,2 %** | **8-12 %**    |
+| Nivel 90 contra 40                            | 36,9 % | **13,2 %** | —             |
+
+**El extremo bueno casi no se mueve y el malo sube seis km/h y medio.** Es lo que tenía que pasar: el
+problema nunca fue que un especialista rodase a 50, fue que un profesional rodase a 37,5.
+
+### 4. Las dos cronos de PRODUCCIÓN, antes y después
+
+Las dos son **100 % bloques de llano**, así que el tiempo es exactamente proporcional a `1/carga(P)` y
+los tiempos reales se pueden remapear de una ley a la otra sin simular nada: se invierte la ley vieja
+para sacar el perfil implícito de cada corredor y se vuelve a aplicar la nueva. (Es la misma técnica
+con la que la v18 escaló los alcances, y aquí es exacta porque la erosión y las piernas del día
+también entran por el perfil y se comprimen con él.)
+
+| Crono de producción |  km | Corredores |   Cola v18 | **Cola v19** | km/h del 1.º → último, v18 | **v19**         |
+| ------------------- | --: | ---------: | ---------: | -----------: | -------------------------: | --------------- |
+| `race-colombia` e3  |  33 |        130 | **46,4 %** |   **13,1 %** |            47,2 → **32,2** | 47,9 → **42,4** |
+| `nc-co-itt`         |  38 |         40 | **41,2 %** |   **13,6 %** |            50,4 → **35,7** | 49,4 → **43,5** |
+
+**32,2 km/h era el síntoma que se veía sin necesidad de ninguna teoría**: el último clasificado de
+una contrarreloj llana de 33 km rodando a menos de lo que rueda un cicloturista en grupo.
+
+### 5. El banco nuevo: `sim/timeTrials.ts`, y el invariante que faltaba
+
+Es la lección de la v17 aplicada a la crono: `timeTrial.p90MinusP10Seconds` estaba **en verde**
+mientras producción repartía un 46 %, y no porque midiera mal, sino porque mide la brecha CENTRAL de
+`cri-40` —40 corredores de crono correcto en 40 km de laboratorio— y el defecto vivía en la COLA de un
+campo ancho. El banco nuevo corre **cinco cronos REALES del calendario**, con las dos de producción
+dentro por nombre, cada una con el campo de su división:
+
+| Crono              |  km | Campo | Cola mediana | km/h 1.º → último | Alcances |
+| ------------------ | --: | ----: | -----------: | ----------------: | -------: |
+| `race-colombia` e3 |  33 |   133 |   **14,6 %** |       48,6 → 42,5 |       19 |
+| `nc-co-itt`        |  38 |    40 |   **12,7 %** |       48,4 → 42,9 |       21 |
+| `race-italy` e10   |  42 |   176 |   **13,2 %** |       50,7 → 44,8 |       25 |
+| `race-spain` e18   |  33 |   176 |   **13,6 %** |       50,8 → 44,8 |       15 |
+| `race-chrono`      |  45 |   133 |   **15,3 %** |       48,7 → 42,5 |       92 |
+| **Banco entero**   |     |       |   **13,5 %** |                   |          |
+
+Con dos objetivos nuevos en `sim/targets.ts`:
+
+- **`timeTrials.tailPct` (8-15 %)** sobre la mediana del banco. Es el criterio de éxito de la tanda y
+  la banda es la del dueño: en una crono llana de 30-40 km, del primero al último de un campo
+  continental hay entre un 8 % y un 15 %. Medido: **13,5 %**.
+- **`timeTrials.worstStagePct` (0-17 %)** sobre la peor crono suelta. El punto de más viene de que
+  `race-chrono` son 45 km, doce más que el marco en el que la banda está anclada, y en esos doce la
+  EROSIÓN —que en una crono corta apenas actúa— ensancha la cola siete décimas (14,6 % en los 33 km
+  de Colombia contra 15,3 % en los 45). Medido: **15,3 %**.
+
+**EL CAMPO DEL BANCO ES DE LA DIVISIÓN DE LA CARRERA, y hay que decir por qué**, porque es distinto
+de lo que hace `sim/realQueens.ts`. Aquel monta las continentales con tres equipos invitados de
+categoría superior y para una reina eso es lo que se ve; para medir la cola de una crono, no: mete en
+el pelotón a un especialista de perfil 92 que en la Race Colombia de producción no existe —el mejor
+tiempo REAL corresponde a un perfil implícito de 69,9, y un generador continental puro da como mucho
+75—. Medido sobre `race-colombia` e3: con el campo de `realQueens` la cola sale al **17,5 %** y con el
+campo de la carrera, al **14,6 %**, que es lo que dan los tiempos reales de producción remapeados
+(13,1 %). Lo mismo con `nc-co-itt`: 12,7 % en el banco contra 13,6 % remapeado. **Queda anotado como deuda de `realQueens`: su campo continental es más
+ancho que el de producción.**
+
+### 6. Encargo 2: el desempate del orden de salida ya no es el dorsal
+
+`StageRider.gcRank` viaja al motor desde `packages/db`, igual que `gcDeficitSeconds` y `bib`, y sale
+del **mismo** orden que la general que ve el jugador: `gcSort.ts::gcOrderBy()` —tiempo, suma de
+puestos, puesto en la última etapa—. El motor no reimplementa el desempate; lo respeta. El dorsal se
+queda como último recurso, y hace falta de verdad: la etapa 1 y las carreras de un día no tienen
+general.
+
+Es una corrección de REGLA, y conviene decir lo que mide y lo que no. Medido sobre los tiempos reales
+de `race-colombia` e3 y su general real tras la etapa 2 (con el modelo de la v18: dos corredores se
+cruzan si y solo si se invierten sus relojes de llegada):
+
+| Orden de la rampa                           | Alcances, ley v18 | Alcances, **ley v19** |
+| ------------------------------------------- | ----------------: | --------------------: |
+| Inverso, desempate CIEGO (el 117 de la v18) |               117 |                **18** |
+| Inverso, desempate por dorsal reconstruido  |               123 |                **14** |
+| Inverso, desempate por PUESTO (**la v19**)  |               118 |                **18** |
+
+**Y hay que decirlo tal cual: con la general de producción, el desempate no mueve los alcances.** La
+v18 midió 117 → 65 con los dorsales REALES, donde el x1 de cada equipo es el más famoso y por tanto el
+más fuerte: aquel dorsal llevaba información de nivel. El puesto de la general tras dos etapas no la
+lleva —medida la correlación entre el puesto de la general y el tiempo de la crono en esa misma
+carrera: **−0,07**, es decir, ninguna—, porque lo que ordena la general de una vuelta joven es la
+suma de puestos en dos etapas en línea, y eso no dice quién anda contra el reloj. **Los alcances los
+mata la ley (117 → 18), no el desempate.** El desempate se cambia porque es la regla del ciclismo y
+porque el dorsal decidía el 86 % de la rampa, no porque arregle un número.
+
+Sobre el banco —corriendo de verdad las etapas 1 y 2 de Race Colombia y construyendo la general con la
+regla buena, 5 semillas—:
+
+| Desempate        | Alcances, ley v18          | Alcances, **ley v19**      |
+| ---------------- | -------------------------- | -------------------------- |
+| Dorsal (v18)     | 129 · 134 · 111 · 97 · 118 | 19 · 28 · 23 · 16 · 17     |
+| **Puesto (v19)** | 128 · 128 · 110 · 97 · 121 | **18 · 26 · 17 · 14 · 20** |
+
+### 7. LA DEUDA DE LA v14: ¿se puede ya aplicar el corte de tiempo en una crono?
+
+**Sí, pero no con el corte de la llana, y la razón no es la cola: es que una crono no tiene pelotón.**
+Con los tiempos de producción remapeados a la ley nueva:
+
+| Corte aplicado      | `race-colombia` e3, v18 |       **v19** | `nc-co-itt`, v18 |      **v19** |
+| ------------------- | ----------------------: | ------------: | ---------------: | -----------: |
+| 8 % (`timeCutFlat`) |              122 de 130 | **60 de 130** |         36 de 40 | **20 de 40** |
+| 10 %                |              118 de 130 | **24 de 130** |         36 de 40 | **12 de 40** |
+| 12 %                |              108 de 130 |  **5 de 130** |         32 de 40 |  **6 de 40** |
+| 15 %                |               96 de 130 |  **0 de 130** |         28 de 40 |  **0 de 40** |
+
+En una etapa en línea el corte del 8 % señala al ÚLTIMO GRUPO, porque los tiempos llegan apelotonados
+en un puñado de relojes; en una crono cada uno tiene el suyo y la distribución es continua, de modo
+que un corte por debajo de la cola se lleva media clasificación por definición. **Y así es en la vida
+real: el reglamento da a las contrarrelojes individuales un plazo mucho más generoso —del orden del
+25 %— justamente por eso.** Con la cola en el 13 %, un corte del 25 % en `race-colombia` e3 elimina a
+**cero** corredores y solo señalaría a quien pinche o se caiga, que es lo que un corte tiene que
+hacer. **No se activa en esta tanda** (no era el encargo), pero la deuda deja de ser «no se puede» y
+pasa a ser «hace falta una constante propia, `timeCutItt` ≈ 0,25».
+
+### 8. Los invariantes: qué se ha movido
+
+`pnpm sim`, 500 corridas por escenario (8 grandes vueltas, 8 semillas por reina real y por crono):
+
+| Medida                                 |       v18 |    **v19** | Objetivo                  |
+| -------------------------------------- | --------: | ---------: | ------------------------- |
+| Gana la fuga (llana)                   |     3,2 % |  **3,4 %** | 2-8 %                     |
+| Gana el mejor sprinter                 |    34,8 % | **36,0 %** | 30-45 %                   |
+| Captura mediana (km a meta)            |      22,6 |   **21,4** | 8-25                      |
+| Gana la fuga (montaña)                 |    40,4 % | **41,0 %** | 25-45 %                   |
+| Brecha 1º-10º en la reina              |     249 s |  **270 s** | 60-300 s                  |
+| **CRI: brecha p90-p10**                | **233 s** |  **107 s** | **80-170 s (nuevo)**      |
+| CRI: gana un especialista              |    99,8 % | **98,8 %** | 90-100 %                  |
+| **Cola de una crono real**             |       (—) | **13,5 %** | **8-15 % (nuevo)**        |
+| **La peor crono real**                 |       (—) | **15,3 %** | **0-17 % (nuevo)**        |
+| Erosión llana en fresco                |     0,008 |  **0,009** | 0-0,02                    |
+| Erosión reina en fresco                |     0,195 |  **0,197** | 0,18-0,50                 |
+| Erosión clásica larga                  |     0,617 |  **0,634** | 0,45-0,80                 |
+| Erosión reina 3.ª semana (REAL)        |     0,653 |  **0,652** | 0,60-0,85                 |
+| Erosión la clásica más dura            |     0,851 |  **0,848** | 0,45-0,92                 |
+| Voz de EQUIPO en el parte (llana)      |    69,3 % | **68,7 %** | 50-85 %                   |
+| Equipos que llevan el frente           |      2,26 |   **2,33** | 1,8-4                     |
+| Y el parte dice POR QUÉ                |     100 % |  **100 %** | 95-100 %                  |
+| Abandonos en una gran vuelta           |    15,1 % | **13,4 %** | 12-20 %                   |
+| Último grupo en la reina (gran vuelta) |     8,8 % |  **9,2 %** | 8-14 %                    |
+| **Último grupo, reinas REALES**        |     9,3 % |  **7,9 %** | **7-14 % (suelo movido)** |
+| La peor reina real                     |    12,6 % | **13,3 %** | 0-18 %                    |
+
+**Se mueven DOS objetivos y ninguno se relaja para pasar**: la brecha p90-p10 de `cri-40`
+(120-240 → 80-170 s) y el suelo de las reinas reales (8 → 7 %). Los dos están defendidos en §9 y en
+el propio `sim/targets.ts`, con la medida que sostiene el número nuevo. **Los demás no se tocan**, y
+la mayoría no se mueve ni un dígito.
+
+Lo que sí conviene leer entero, porque es lo que la tanda hace en la carretera:
+
+| Cola por tipo de etapa (gran vuelta del banco)  |       v18 |       **v19** |
+| ----------------------------------------------- | --------: | ------------: |
+| Último grupo de una etapa REINA                 |     8,8 % |     **9,2 %** |
+| Último grupo de una etapa de MEDIA montaña      |     5,2 % |     **3,9 %** |
+| Último grupo de una etapa LLANA                 |     1,5 % |     **0,8 %** |
+| Grupos en meta (reina · media · llana)          | 7 · 4 · 2 | **7 · 4 · 2** |
+| % del pelotón con el tiempo del ganador (llana) |      99 % |      **99 %** |
+
+**La montaña sube y el llano baja, que es el cambio dicho en una línea.** La reina —donde el grupeto
+pierde el tiempo SUBIENDO— gana cuatro décimas; la media montaña y la llana —donde lo perdía en el
+valle porque un grupo por debajo de la referencia rodaba 8 km/h más lento— se aprietan. Es lo que
+docs/balance.md «v17 §11» dejó escrito que aquella tanda no podía arreglar.
+
+Y el caso de la regresión de la v17 (`colombiaRegressionTails`, el campo con escalón): peor cola
+**15,5 % → 14,5 %**, y de 8-10 grupos en meta a **6-11**. Sigue por debajo del corte de la reina y la
+etapa se sigue partiendo.
+
+### 9. Los dos objetivos que se han movido, y por qué
+
+**`timeTrial.p90MinusP10Seconds`: 120-240 → 80-170 s.** Medido: 233 → **107**.
+
+Es el único objetivo re-anclado y hay que defenderlo con cuidado, porque bajar un suelo para que pase
+un número es exactamente lo que no se hace. El argumento no es el número, es **qué campo mide**:
+`cri-40` son «8 especialistas y 32 corredores de crono correcto» (`scenarios.ts`), un campo ESTRECHO
+por construcción —el perfil compuesto va de 68 a 79— y sin un solo sprinter ni escalador puro. Su p10
+es un especialista y su p90 un rodador correcto: entre ellos hay un 7-8 % de vatios, que en llano son
+un 2,5-3 % de tiempo, unos 80-90 s en 40 km, y con las piernas del día encima, algo más. **Los 233 s
+de la v18 eran un 8 % de tiempo entre dos corredores que en carretera se llevan el 3 %**: el mismo
+defecto que mandaba al nivel 40 a 37,5 km/h. El «2 a 4 minutos» con el que se escribió la banda
+describía la ley vieja, no el ciclismo.
+
+El suelo de 80 s **no es holgura de calibración, es una alarma**: si alguien anulara el efecto del
+nivel, quedarían solo las piernas del día y el ruido final, que sobre este campo dan unos 50 s. 80 s
+dice «el nivel del corredor SIGUE decidiendo la crono». El techo de 170 dice «pero no como para
+repartir cuatro minutos entre dos rodadores».
+
+**`realQueens.lastGroupPct`: suelo de 8 → 7 %.** Medido: 9,3 % → **7,9 %**.
+
+Es el objetivo que el encargo avisó que iba a moverse —«está pegado al suelo de su banda, así que
+cualquier compresión lo empuja fuera»— y hay que defenderlo con la medida en la mano, porque lo que
+ha pasado no es que la carretera se haya aplanado: es que **las FORMAS se han separado**.
+
+| Etapa del banco     |    v17 |        v19 | Forma del final            |
+| ------------------- | -----: | ---------: | -------------------------- |
+| `race-france` e20   | 11,3 % | **13,3 %** | Final en alto (el control) |
+| `race-two-seas` e4  |  6,2 % |  **9,3 %** | Sube 7,8 km al final       |
+| `race-italy` e19    |  6,3 % |  **7,5 %** | Tres puertos encadenados   |
+| `race-tachira` e6   | 12,6 % | **11,4 %** | Continental corta          |
+| `race-colombia` e5  | 10,6 % |  **9,6 %** | 47 km rodadores a meta     |
+| `race-guatemala` e9 | 10,9 % |  **8,6 %** | Continental larga          |
+| `race-catalonia` e4 |  4,7 % |  **3,5 %** | Sube y baja a meta         |
+| `race-spain` e7     |  5,6 % |  **2,5 %** | Meta en llano              |
+
+**Las que acaban ARRIBA seleccionan más y las que acaban abajo, menos**, y eso es exactamente lo que
+compra el exponente por terreno: en el puerto manda la gravedad y el grupeto paga lo que paga; en el
+valle un autobús de cuarenta que se releva rueda casi como el grupo de cabeza. Los números que lo
+sostienen:
+
+- **La mediana de las OCHO etapas sube**: 8,45 % → **8,95 %**. Lo que baja es la mediana AGRUPADA de
+  las 64 corridas, que es la que mide el invariante, y baja porque la distribución se ha vuelto más
+  dispersa (σ 2,91 → **3,44**): con dos racimos, la mediana agrupada cae en el hueco de en medio.
+- **Lo que el suelo existe para vigilar ha MEJORADO.** El suelo del 8 % está ahí porque «por debajo,
+  el corte no señala a nadie» (v16). La reina de gran vuelta —ocho finales en alto, que es la forma
+  sobre la que la banda se ancló— pasa de **8,8 % a 9,2 %**, y la peor reina suelta de este banco
+  sigue en 13,3 %, muy dentro del corte del 18 %.
+- **El caso de la regresión de la v17 no se deshace**: peor cola 15,5 % → **14,5 %**, por debajo del
+  corte, con la etapa partiéndose igual (6-11 grupos en meta).
+
+El techo NO se mueve. Y queda anotado que 7,9 % sobre un suelo de 7 % es otra vez el número con menos
+margen de la batería, como ya lo era en la v17.
+
+**`timeTrial.specialistWinPct`: NO se mueve (90-100 %), y el número sí: 99,8 % → 98,8 %.** Era el
+riesgo declarado del encargo —«una crono en la que gane cualquiera es tan falsa como una que reparta
+46 %»— y la medida dice que no ha pasado: sobre 500 cronos, el especialista sigue ganando 494. Un
+1,2 % de cronos en las que un rodador con las piernas del día gana a los ocho especialistas es
+exactamente lo que la banda 90-100 % describe, y es más ciclismo que el 99,8 %.
+
+### 10. El azar: NINGÚN subflujo nuevo
+
+`relPower` y `loadExponent` son aritmética sobre datos de entrada, y `gcRank` es un dato que viene de
+`packages/db`. **Ni un dado nuevo**, así que todo el movimiento de las huellas selladas es de la ley y
+ninguno del RNG. El único cambio de narración —la silla del mejor tiempo se compara en segundos
+REDONDEADOS, que son los que van a la clasificación— tampoco consume azar: con un campo apretado, dos
+corredores al mismo segundo comparten el mejor tiempo, como en carretera.
+
+### 11. Lo que este cambio NO hace
+
+- **No mete el corte de tiempo en la crono** (§7). Mide que ya se podría, con qué número, y lo deja
+  anotado.
+- **No toca `ttPerfil`.** El compuesto de crono sigue siendo `0,75·CRI + 0,15·LLA + 0,10·RES`: es
+  quién eres, no cómo se convierte en velocidad, y el defecto estaba en lo segundo. Comprimirlo ahí
+  habría arreglado la crono dejando viva la deuda de carretera, que es justo lo que la v17 anotó.
+- **No modela la rodadura del PAVÉ como lo que es.** Los adoquines tienen una resistencia de rodadura
+  enorme y ésa es lineal en la velocidad, como la gravedad, así que un sector de pavé merecería un
+  exponente intermedio y no el del llano. No se modela: el pavé se queda con 0,39. Queda anotado.
+- **No re-ancla `realQueens`.** Su campo continental es más ancho que el de producción (§5) y eso hace
+  su banco más severo de lo que la carretera pide. Queda anotado; moverlo es otra tanda.
+- **No reescribe las cronos ya corridas.** Sus tiempos están congelados: `race-colombia` e3 seguirá
+  teniendo su cola del 46,4 % en la base de datos.
+
+### 12. Lo que hay que vigilar
+
+- **La cola del banco de cronos vive en 13,5 % sobre un techo de 15 %**, que es 1,5 puntos de margen.
+  Si hiciera falta apretar, la perilla es `p75PowerFloor` y sube: con 0,60 la cola de producción baja
+  al 11,2 %… pero la diferencia entre el nivel 80 y el 45 cae al 8,1 %, pegada al suelo del 8-12 %
+  real. Los dos anclajes tiran en sentidos opuestos y 0,55 es el punto en que los dos caben.
+- **`race-chrono` reparte 92 alcances** con 133 corredores, muy por encima de las otras cuatro. No es
+  la cola —es de las más estrechas—: es que es una carrera de un DÍA de 45 km, así que la rampa va por
+  dorsales cada MINUTO y el orden por bloques de equipo no dice nada del nivel. En carretera un
+  organizador siembra la rampa por ranking incluso en una prueba de un día. Es una decisión de diseño
+  pendiente, no un defecto de la ley.
+- **La llana canónica pasa de 44,4 a 45,2 km/h de media.** Es la consecuencia directa de que un
+  pelotón por debajo de la referencia ya no pague la penalización desmedida que pagaba, y sigue dentro
+  de lo que se rueda hoy (una llana rápida de gran vuelta va a 45-47 km/h). Pero es el número que más
+  se ha movido fuera de la crono y conviene tenerlo a la vista.
+- **«Fuera de control» aporta ahora el 5 % de los abandonos y antes el 15 %** (el objetivo de §VI.3
+  es el 45 %). No es un objetivo del banco y viene de largo —la v14 lo anotó en el 1 %—, pero esta
+  tanda va en la dirección contraria: con el llano comprimido, la cola de una etapa en línea es más
+  corta (media montaña 5,2 % → 3,9 %; llana 1,5 % → 0,8 %) y el corte señala a menos gente. La causa
+  de fondo sigue siendo la de la v14, no ésta, y el sitio donde se arregla es el corte, no la ley:
+  §VI.3 escala el corte por el desnivel del recorrido y una etapa llana rápida se corre a un ritmo en
+  el que perder el 8 % es casi imposible. Queda anotado.

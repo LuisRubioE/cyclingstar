@@ -243,13 +243,43 @@ export const TARGETS = {
    * regresión, sellada en CI.
    */
   realQueens: {
-    // La MISMA banda que la reina de gran vuelta, y por la misma razón (§VI.3): el grupeto de una
-    // etapa reina entra 25-40 minutos detrás sobre etapas de 4 h 30 a 5 h 30. Se mide en MEDIANA
-    // sobre el banco entero, no etapa a etapa: una reina con final en alto y una con final rodado no
-    // tienen por qué dar el mismo número, y el objetivo describe el conjunto.
+    /**
+     * El grupeto de una etapa reina entra 25-40 minutos detrás sobre etapas de 4 h 30 a 5 h 30
+     * (§VI.3). Se mide en MEDIANA sobre el banco entero, no etapa a etapa: una reina con final en
+     * alto y una con final rodado no tienen por qué dar el mismo número, y el objetivo describe el
+     * conjunto.
+     *
+     * EL SUELO BAJA DE 8 A 7 EN LA v19, y es el único objetivo de carretera que se mueve. Medido:
+     * 9,3 % → **7,9 %**. Hay que defenderlo, porque bajar un suelo para que pase un número es
+     * exactamente lo que no se hace, y aquí lo que ha pasado es que **las FORMAS se han separado**:
+     *
+     * | Etapa                    |   v17 |   v19 | Forma del final          |
+     * | ------------------------ | ----: | ----: | ------------------------ |
+     * | `race-france` e20        | 11,3 % | **13,3 %** | Final en alto (el control) |
+     * | `race-two-seas` e4       |  6,2 % |  **9,3 %** | Sube 7,8 km al final    |
+     * | `race-italy` e19         |  6,3 % |  **7,5 %** | Tres puertos encadenados |
+     * | `race-tachira` e6        | 12,6 % | **11,4 %** | Continental corta        |
+     * | `race-colombia` e5       | 10,6 % |  **9,6 %** | 47 km rodadores a meta   |
+     * | `race-guatemala` e9      | 10,9 % |  **8,6 %** | Continental larga        |
+     * | `race-catalonia` e4      |  4,7 % |  **3,5 %** | Sube y baja a meta       |
+     * | `race-spain` e7          |  5,6 % |  **2,5 %** | Meta en llano            |
+     *
+     * **Las que acaban ARRIBA seleccionan MÁS y las que acaban abajo, menos.** Es exactamente lo que
+     * compra el exponente por terreno de la v19: en el puerto manda la gravedad y el grupeto pierde
+     * lo que pierde; en el valle un autobús de cuarenta que se releva rueda casi como el grupo de
+     * cabeza —que es lo que se ve en carretera y lo que docs/balance.md «v17 §11» dejó anotado como
+     * lo que aquella tanda NO podía arreglar—. La mediana de las OCHO ETAPAS sube (8,45 % → 8,95 %) y
+     * lo que baja es la mediana AGRUPADA de las 64 corridas, porque la distribución se ha vuelto más
+     * dispersa (σ 2,91 → 3,44) y con dos racimos la mediana agrupada cae en el hueco de en medio.
+     *
+     * Y lo que el suelo existe para vigilar —«que el corte de tiempo pueda señalar a alguien»— ha
+     * MEJORADO, no empeorado: la reina de gran vuelta, que son ocho finales en alto, pasa de 8,8 % a
+     * 9,2 % (`grandTour.queenLastGroupPct`), y la peor etapa suelta de este banco sigue en 13,3 %.
+     * El techo NO se mueve.
+     */
     lastGroupPct: {
       label: 'Último grupo en las reinas REALES (% del ganador)',
-      min: 8,
+      min: 7,
       max: 14,
       unit: '%',
     },

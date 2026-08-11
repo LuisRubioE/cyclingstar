@@ -15,9 +15,11 @@
  * carreras continentales con tres equipos invitados de categoría superior, y para una etapa reina
  * eso es lo que se ve; para medir la COLA de una crono, no: mete en el pelotón a un especialista
  * WorldTour de perfil 92 que en la Race Colombia de producción no existe —el mejor tiempo real
- * corresponde a un perfil de 70—. Medido, ese invitado solo empuja la cola del 13 % al 18 %, así que
- * el banco se corre con el campo que la carrera tiene de verdad: continental en las continentales,
- * WorldTour en las WorldTour. Contrastado contra los tiempos de producción en docs/balance.md.
+ * corresponde a un perfil implícito de 69,9, y un generador continental puro da como mucho 75—.
+ * Medido sobre `race-colombia` e3: con el campo de `realQueens` la cola sale al 17,5 % y con el campo
+ * de la carrera, al 14,6 %, que es lo que dan los tiempos REALES de producción remapeados (13,1 %).
+ * Así que el banco se corre con el campo que la carrera tiene de verdad: continental en las
+ * continentales, WorldTour en las WorldTour. Contrastado en docs/balance.md, «v19 §5».
  *
  * Puro y determinista: todo sale de `seededRng` y de `stageSeed`.
  */

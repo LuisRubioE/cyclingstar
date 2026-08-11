@@ -40,8 +40,14 @@ Esto conviene decirlo antes de la crítica, porque condiciona la conclusión.
 **`physics.ts` (219 líneas) es ejemplar.** Funciones pequeñas, puras, cada una con su referencia al
 SPEC y **todos** sus números en `constants.ts`:
 
-- **Ley de velocidad** — `v_obj = vRef(g,terreno) · (P75/75)^0.34 · ritmo(c)`. Una sola ley sirve al
+- **Ley de velocidad** — `v_obj = vRef(g,terreno) · carga(P75) · ritmo(c)`. Una sola ley sirve al
   pelotón, a la fuga, al descolgado y a la contrarreloj: cambian las entradas, no la física.
+  > **Corregida en la v19**, y era el defecto de fondo que la v14, la v17 y la v18 midieron sin
+  > nombrar. La carga era `(P75/75)^0.34` (0,39 desde el Cambio 0) y ahora es
+  > `(0.55 + 0.45·P75/75) ^ e(terreno)`, con `e` = 0,39 en llano y 1,0 en cuesta. Dos hechos de
+  > física: la escala 0-100 de un atributo **no es una escala de vatios** (el 0 no es «parado», es
+  > «no existe»), y **el aire y la gravedad no se pagan igual** —en llano la velocidad va como la
+  > raíz cúbica de la potencia y subiendo va como la potencia—. Ver docs/balance.md, «v19».
 - **Aceleración acotada y asimétrica**, en km/h **por segundo** (no por bloque) — de ahí que la
   invariancia de resolución dx=0.1 vs 0.05 pase por debajo del 5%.
 - **Coste, tanque y rebufo** — `coste = dx · costeBase · ritmo^1.6 · (1 − draftMax · shelter)`.
@@ -738,6 +744,17 @@ entero) y la crónica lo agrupa en racimo con número, igual que los descuelgues
   > esa cola son 65 ALCANCES por crono con 2 minutos de intervalo (145 con 1 minuto), contra los 0-6
   > que salen escalando los mismos tiempos a una cola realista del 8-10 %. Medido con los tiempos
   > reales de producción en docs/balance.md, «v18 §7».
+  >
+  > **ARREGLADO EN LA v19, y no era del modelo de crono: era de la LEY DE VELOCIDAD.** La ley se
+  > aplicaba con un exponente único y con el atributo leído como si fuera un vatio, de modo que
+  > acertaba en el puerto y multiplicaba por tres lo del llano. Con la escala de potencia con suelo y
+  > el exponente por terreno, la cola de `race-colombia` e3 pasa del 46,4 % al **13,1 %** y la de
+  > `nc-co-itt` del 41,2 % al **13,6 %**, los alcances de 117 a **18**, y la cola de una crono la
+  > vigila ahora `sim/timeTrials.ts` en CI (8-15 %). **El corte de tiempo sigue fuera de la crono**,
+  > pero ya no por imposible: con la cola arreglada, el 8 % de la llana sigue siendo el corte
+  > equivocado —una crono no tiene pelotón y sus tiempos son un continuo— y lo que hace falta es el
+  > plazo que el reglamento da a las cronos individuales, del orden del 25 %, con el que hoy no se
+  > eliminaría a nadie. Medido en docs/balance.md, «v19 §7».
 - **La fragilidad oculta sigue sin llegar al motor.** `StageRider.fragility` existe, escala la lesión
   al caer y `stageRun.ts` nunca lo rellenaba: todas las carreras de producción corren con fragilidad
   1. Ahora se lee del genoma para la enfermedad, pero pasárselo al motor cambiaría las caídas de
@@ -824,9 +841,13 @@ y que los replays dejan de depender de re-simular.
 > el modelo de persecución de los descolgados, el abanico de la contrarreloj y el reparto de causas
 > de abandono. Ninguno es una mecánica que falte: son calibraciones de mecánicas que existen.
 >
-> **El abanico de la contrarreloj es hoy el más visible de los tres** (§15.1): la v18 le puso encima
-> el orden de salida y los alcances, y con una cola del 46 % la crónica de una crono habla sobre todo
-> de gente apartándose. Medido en docs/balance.md, «v18 §7».
+> **El abanico de la contrarreloj está HECHO (v19)**, y resultó no ser una calibración de la crono
+> sino la LEY DE VELOCIDAD: el atributo se leía como si fuera un vatio y el exponente era el mismo
+> contra el aire que contra la gravedad. Corregidas las dos cosas, la cola de una crono de producción
+> pasa del 46 % al 13 %, el nivel 40 deja de rodar a 37,5 km/h y la montaña se queda donde estaba
+> (±1,3 puntos de selección). Medido en docs/balance.md, «v19». Quedan abiertos los otros dos, y uno
+> nuevo que la v19 anota: el pavé merece un exponente intermedio (su rodadura es lineal, como la
+> gravedad) y hoy usa el del llano.
 
 | #   | Trabajo                                                                                  | Por qué en este puesto                                                                                                                                                |
 | --- | ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
