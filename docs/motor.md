@@ -1210,8 +1210,8 @@ mánager** (herramienta futura: no convocar, sancionar, rescindir).
 **entre 140 y 155** (abandona el **12-20%**), que es el rango real. Traducido: **≈1% del pelotón por
 etapa**, no más.
 
-Tres causas, con su peso objetivo **(re-anclado en la v20; el reparto viejo, 45/40/15, está tachado
-arriba con la medida que lo desmiente)**:
+Tres causas, con su peso objetivo **(re-anclado en la v20; el reparto viejo, 45/40/15, queda
+desmentido arriba con la medida que lo tumba)**:
 
 | Causa                | Peso  | Real (4 grandes vueltas) | Medido v20 | Regla                                                                                                                                                    |
 | -------------------- | ----- | ------------------------ | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
