@@ -232,7 +232,7 @@ describe('el corte de tiempo de la crono (v20)', () => {
 })
 
 /**
- * Un campo de 20 corredores buenos más N a los que se les ha roto el día.
+ * Un campo de 24 corredores buenos más N a los que se les ha roto el día.
  *
  * **EL CORREDOR TIRADO ESTÁ EN EL FONDO DE LA ESCALA A PROPÓSITO, y ese detalle dice algo del
  * modelo.** Con la ley de velocidad de la v19 el NIVEL por sí solo no puede repartir más de un ~26 %
