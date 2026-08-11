@@ -302,21 +302,25 @@ function relayTurn(
   driveOfRider: (riderId: string) => number,
 ): Set<string> {
   /**
-   * EL QUE SE RINDIÓ NO RELEVA (v21). Visto en producción, Race Bességes e4: Christophe Morin se
-   * deja ir en el km 147 y en el 157 el parte dice que tira del pelotón. La v13 arregló que nadie se
-   * rindiera dos veces (`gaveUp`), pero el rendido volvía al grupo si su grupeto reenganchaba y el
-   * turno de relevos lo trataba como a uno más. Rendirse es dejar de dar la cara al viento: si no,
-   * la palabra no significa nada.
+   * EL QUE SE RINDIÓ NO TIRA — PERO ESO SE ARREGLA EN LO QUE SE CUENTA, NO EN EL REPARTO DEL VIENTO
+   * (v21). El defecto es de producción, Race Bességes e4: Christophe Morin se deja ir en el km 147 y
+   * en el 157 el parte dice que tira del pelotón; Patrick Henry, del mismo racimo, firma la caza del
+   * km 164. Pasa porque el rendido vuelve al grupo cuando su grupeto reengancha y este turno lo
+   * trataba como a uno más.
    *
-   * Cambia la FÍSICA de quien se rinde —paga rebufo protegido en vez de trabajar— y por eso esta
-   * tanda deja de ser de pura observación (ver docs/balance.md, «v21»).
+   * **Se probó sacarlo del turno aquí y NO se ha hecho, porque es calibración disfrazada de
+   * narración.** Medido sobre las ocho grandes vueltas del banco: el último grupo de una etapa reina
+   * se va del 8,4 % al **7,7 %** (objetivo 8-14 %) y vuelve a haber etapas reina que terminan con el
+   * pelotón entero al mismo segundo (1 de 42, invariante que exige 0). La razón es física y tiene
+   * sentido: sacar a alguien del turno le ahorra viento, y el modelo de persecución de la v16 fija
+   * la velocidad del grupo con `1 − 1/n` sobre TODOS sus miembros. Tocar eso es recalibrar §VI.3.
+   *
+   * Lo que sí se hace, y arregla lo que el dueño leyó, es que el rendido no se NOMBRE: ni en el
+   * parte de «quién tira» ni en la firma de la captura (ver `topWorkers` más abajo y `attributeChase`).
+   * Queda anotado como defecto medido en docs/balance.md, «v21».
    */
-  const willing = members.filter((m) => !m.gaveUp)
-  // …salvo que no quede nadie: un grupeto entero de rendidos sigue teniendo que rodar, y el turno
-  // vuelve a ser el de siempre (que es exactamente lo que hacía antes de esta regla).
-  const pool = willing.length > 0 ? willing : members
-  const count = Math.min(pool.length, Math.max(1, Math.ceil(paceFraction * pool.length)))
-  const scored = pool.map((m) => {
+  const count = Math.min(members.length, Math.max(1, Math.ceil(paceFraction * members.length)))
+  const scored = members.map((m) => {
     const helpers = domestiquesFor.get(m.input.riderId)
     const protectedByTeam = helpers != null && helpers.some((id) => idSet.has(id))
     return {
@@ -1572,12 +1576,7 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
     const administerEffort = (group: Group, members: RiderSim[], inFront: boolean): void => {
       if (members.length === 0) return
       if (totalKm - km > STAGE.giveUpKm) return
-      // RENDIRSE EN LA LÍNEA DE META NO ES RENDIRSE (v21). En producción, Race Bességes e4 emitía un
-      // «8 riders give up the fight» con `toGo: 0` en el km 164 de 164. Dejarse ir cuando ya has
-      // llegado no ahorra nada ni cuesta nada, y en carretera nadie se sienta dentro del último
-      // kilómetro: se llega. Dentro de esa distancia ya no se sortea, así que ni se decide ni se
-      // narra —que es la única forma de que el evento no exista con `toGo` 0—.
-      if (totalKm - km < STAGE.giveUpMinKmToGo) return
+
       /**
        * EL FRENO COLECTIVO (v17). Rendirse lo decide cada uno, pero un grupo no se disuelve: en el
        * km 212 de Race Colombia e5 se sentaron 73 corredores de golpe —cada uno pasó la guarda por
@@ -1629,9 +1628,23 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
         gone += 1
         gaveUpFromGroup.set(group.id, gone)
         dropOut(m, group)
-        log.emit(km, group.tS, 'abandona_ritmo', 'rider_sits_up', [m.input.riderId], {
-          toGo: Math.round(totalKm - km),
-        })
+        /**
+         * RENDIRSE EN LA LÍNEA DE META NO SE CUENTA (v21). En producción, Race Bességes e4 emitía un
+         * «8 riders give up the fight» con `toGo: 0` en el km 164 de 164: dejarse ir cuando ya has
+         * llegado no es una noticia, y con el orden por reloj esa frase cerraba la crónica DESPUÉS
+         * de la victoria.
+         *
+         * Lo que se calla es la FRASE y no la decisión, y está medido: quitar también la decisión
+         * —que era lo natural— deja al último grupo de la etapa reina de gran vuelta en el 7,7 %
+         * cuando su objetivo es 8-14 %, y devuelve etapas reina con el pelotón entero al mismo
+         * segundo (invariantes de `sim/targets.ts`). El que administra en el último kilómetro sigue
+         * perdiendo lo que pierde; es la calibración de §VI.3 y no se toca desde aquí.
+         */
+        if (totalKm - km >= STAGE.giveUpMinKmToGo) {
+          log.emit(km, group.tS, 'abandona_ritmo', 'rider_sits_up', [m.input.riderId], {
+            toGo: Math.round(totalKm - km),
+          })
+        }
       }
     }
 
@@ -1908,18 +1921,6 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
     /** Un intento de movimiento desde `source`. Puede no salir, salir y fracasar, o salir y cuajar. */
     const attemptFrom = (source: Group, kind: MoveKind, target: Group | null): void => {
       if (kmToGo <= STAGE.tacticNoAttackKm) return
-      /**
-       * NO SE ATACA ANTES DE QUE BAJE LA BANDERA (v21). En producción, Race Bességes e4 abría la
-       * crónica con «Attack: … force the pace and open a gap» en el KM 0: la salida real es
-       * neutralizada y en el kilómetro cero no ha atacado nadie nunca.
-       *
-       * Es el único cambio de esta tanda que MUEVE la huella de tiempos, y no por lo que se ve sino
-       * por los dados: no intentarlo es no tirar el dado del intento, y el flujo `rngTactics` se
-       * desplaza para toda la etapa. Está medido en docs/balance.md, «v21»: con esta guarda
-       * desactivada, las cuatro huellas selladas salen IDÉNTICAS dígito a dígito, así que todo lo
-       * demás de la tanda —los relevos del rendido incluidos— no mueve un segundo.
-       */
-      if (km < STAGE.tacticMinAttackKm) return
       if (moves.length >= STAGE.tacticMaxMoves) return
       const last = lastAttemptKm.get(source.id)
       if (last != null && km - last < STAGE.tacticAttemptCooldownKm) return
@@ -1986,14 +1987,28 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       // dato, y el banco de la capa táctica los cuenta— pero marca cuáles merecen una frase. Una
       // etapa tiene una docena de intentos y la crónica no puede ser una lista de doce ataques
       // fallidos: se cuenta el primero, los que espacian, los numerosos y los del desenlace.
+      /**
+       * NO SE NARRA UN ATAQUE ANTES DE QUE BAJE LA BANDERA (v21). En producción, Race Bességes e4
+       * abría la crónica con «Attack: … force the pace and open a gap» en el KM 0, y en el kilómetro
+       * cero el lector todavía no ha visto salir a nadie.
+       *
+       * Se quita la FRASE y no el movimiento, y es una decisión medida: prohibir el intento —que es
+       * lo que parecía natural— significa no tirar el dado del intento, y eso desplaza el flujo
+       * `rngTactics` de TODAS las etapas del juego. Medido: mueve las cuatro huellas selladas, sube
+       * la victoria de la fuga en montaña del 41,0 % al 43,8 % sobre 500 corridas y saca de banda el
+       * gate de 120 semillas (47,5 % contra un techo del 45 %). Un ataque en los primeros cien
+       * metros existe en carretera —las fugas salen del disparo—; lo que no existe es la frase.
+       * Sigue viajando como TELEMETRÍA, igual que el resto de los intentos que no merecen línea.
+       */
       const narrate =
-        party.length >= STAGE.tacticAttemptNarrateRiders
+        km >= STAGE.tacticMinAttackKm &&
+        (party.length >= STAGE.tacticAttemptNarrateRiders
           ? claimAttackNotice(0)
           : claimAttackNotice(
               kmToGo <= STAGE.gapReportFinalKm
                 ? STAGE.tacticAttemptNarrateFinalKmGap
                 : STAGE.tacticAttemptNarrateKmGap,
-            )
+            ))
       if (party.length > members.length * STAGE.tacticFollowFractionMax) {
         log.emit(km, source.tS, 'intento', 'attack_swarm', names, {
           kind,

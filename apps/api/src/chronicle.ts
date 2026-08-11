@@ -287,7 +287,7 @@ export function buildChronicle(
       )
     })
   let out = dedupeSitUps(normalizeKomLeads(normalizeSplits(ordered)))
-  out = dropFinishLineSitUps(out)
+  out = dropImpossibleLines(out)
   out = dropRetiredWorkers(out)
   out = markReunion(out)
   out = dropUndoneSelections(out)
@@ -354,7 +354,7 @@ function dropUndoneSelections(entries: ChronicleEntry[]): ChronicleEntry[] {
 }
 
 /**
- * DOS FRASES QUE NO PUEDEN EXISTIR, TIRADAS DE LAS ETAPAS YA CORRIDAS (v21).
+ * TRES FRASES QUE NO PUEDEN EXISTIR, TIRADAS DE LAS ETAPAS YA CORRIDAS (v21).
  *
  * RENDIRSE EN LA LÍNEA DE META NO ES RENDIRSE. El motor de hoy ya no lo hace —dentro del
  * último kilómetro no se sortea—, pero las etapas corridas tienen sus eventos congelados: en Race
@@ -362,7 +362,7 @@ function dropUndoneSelections(entries: ChronicleEntry[]): ChronicleEntry[] {
  * cuando ya has llegado no es una noticia, y con el orden por reloj esa frase caía DESPUÉS de la
  * victoria y cerraba la crónica.
  */
-function dropFinishLineSitUps(entries: ChronicleEntry[]): ChronicleEntry[] {
+function dropImpossibleLines(entries: ChronicleEntry[]): ChronicleEntry[] {
   return entries.filter(
     (e) =>
       !(
@@ -370,11 +370,17 @@ function dropFinishLineSitUps(entries: ChronicleEntry[]): ChronicleEntry[] {
         e.datos?.toGo != null &&
         Number(e.datos.toGo) <= 0
       ) &&
-      // Y UNO NO COLABORA CONSIGO MISMO: el parte de cooperación de una fuga de un solo corredor.
-      // El motor de hoy ya no lo emite; en las etapas ya corridas está congelado.
-      !(e.plantilla === 'break_cooperation' && e.protagonists.length <= 1),
+      // UNO NO COLABORA CONSIGO MISMO: el parte de cooperación de una fuga de un solo corredor.
+      !(e.plantilla === 'break_cooperation' && e.protagonists.length <= 1) &&
+      // Y NADIE ATACA EN EL KM 0: la crónica de Race Bességes e4 abría con «Attack: … force the pace
+      // and open a gap» antes de que bajara la bandera. El movimiento existe —en carretera las fugas
+      // salen del disparo— pero la FRASE, en el kilómetro cero, no.
+      !((e.plantilla === 'attack_go' || e.plantilla === 'attack_swarm') && e.km < ATTACK_MIN_KM),
   )
 }
+
+/** Km por debajo del cual un intento de ataque no tiene frase. El mismo que usa el motor. */
+const ATTACK_MIN_KM = 1
 
 /**
  * EL QUE SE RINDIÓ NO TIRA NI FIRMA LA CAZA, TAMPOCO EN LAS ETAPAS YA CORRIDAS (v21). El motor de

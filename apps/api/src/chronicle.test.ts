@@ -623,6 +623,23 @@ describe('v21 · lo que la crónica ya no deja decir', () => {
     expect(out.map((e) => e.protagonists[0]?.name)).toEqual(['b'])
   })
 
+  it('nadie ataca en el kilómetro cero', () => {
+    const out = buildChronicle(
+      [
+        ev({ km: 0, tS: 0, plantilla: 'attack_go', protagonistas: ['a'], datos: { kind: 'fuga' } }),
+        ev({
+          km: 11,
+          tS: 900,
+          plantilla: 'attack_go',
+          protagonistas: ['b'],
+          datos: { kind: 'fuga' },
+        }),
+      ],
+      names,
+    )
+    expect(out.map((e) => e.km)).toEqual([11])
+  })
+
   it('una fuga de un solo corredor no colabora consigo misma', () => {
     const out = buildChronicle(
       [

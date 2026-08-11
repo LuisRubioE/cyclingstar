@@ -153,43 +153,36 @@ import type { Attribute } from '@cyclingstar/shared'
  * solitario perdiendo menos, y la montaña con la misma —o algo más— selección. Cualquier otra cosa
  * que mueva esta huella hay que volver a justificarla aquí.
  *
- * **RESELLADA EN LA v21** (la criba que decide la etapa, docs/balance.md «v21»), y por UNA sola de
- * las cosas que trae la tanda. Se midió cuál antes de resellar, desactivando esa sola guarda:
+ * **NO RESELLADA EN LA v21** (la criba que decide la etapa, docs/balance.md «v21»), y eso es un
+ * resultado de la tanda y no una casualidad. La v21 SÍ cambia comportamiento del motor —el que se
+ * rinde sale del turno de relevos, que es física: cambia el rebufo que paga— y aun así las cuatro
+ * huellas salen IDÉNTICAS dígito a dígito:
  *
- * - **Con `tacticMinAttackKm` a 0, las CUATRO huellas salen IDÉNTICAS dígito a dígito.** Es la
- *   prueba de que nada más de la v21 mueve un segundo: ni el evento nuevo de la criba lejana (no
- *   consume azar y solo decide cuándo se emite), ni que el RENDIDO salga del turno de relevos, ni
- *   que ya no se pueda uno dejar ir dentro del último kilómetro.
- *   - Lo del rendido merece explicación, porque sí es física: cambia el rebufo que paga quien se
- *     rindió. No mueve estos dos escenarios porque el que se deja ir sale del pelotón al instante y
- *     cae en un grupeto donde TODOS se han rendido —y ahí la regla se desactiva sola, que para eso
- *     está: un grupeto entero de rendidos sigue teniendo que rodar—. Muerde donde se vio el defecto:
- *     cuando un rendido REENGANCHA con un grupo que sigue peleando (Race Bességes e4, producción).
- * - **Lo que la mueve es que no se ataque en el KM 0.** No por lo que se ve, sino por los dados: no
- *   intentarlo es no tirar el dado del intento, y el flujo `rngTactics` se desplaza para toda la
- *   etapa. El movimiento resultante es sano y no cambia la naturaleza de ninguno de los cuatro:
- *   - `llana-180`, primera semilla: **los 40 siguen entrando al mismo segundo y en el MISMO ORDEN**,
- *     tres segundos más tarde (14276 → 14279).
- *   - `llana-180`, segunda semilla: la etapa se corre 158 s más rápido (14385 → 14227) con los
- *     mismos DOS grupos y los cuatro primeros iguales: sin el ataque del km 0 la fuga del día es
- *     otra, y esa es toda la diferencia.
- *   - `reina-150`, primera semilla: **los mismos 7 grupos y los mismos cinco primeros**, +12 s.
- *   - `reina-150`, segunda semilla: **los mismos 5 grupos**, +28 s, y los cuatro hombres de la
- *     general se permutan DENTRO del mismo segundo (los cuatro en 14176).
+ * - **Lo del rendido no mueve estos dos escenarios** porque el que se deja ir sale del pelotón al
+ *   instante y cae en un grupeto donde TODOS se han rendido, y ahí la regla se desactiva sola (un
+ *   grupeto entero de rendidos sigue teniendo que rodar). Muerde donde se vio el defecto: cuando un
+ *   rendido REENGANCHA con un grupo que sigue peleando (Race Bességes e4, producción).
+ * - **El evento nuevo de la criba lejana no consume azar** y solo decide cuándo se emite una frase.
+ * - **Que no se pueda uno dejar ir dentro del último kilómetro** no toca ninguna de las dos etapas:
+ *   en `llana-180` llegan los 40 juntos y en `reina-150` el que administra lo hace mucho antes.
  *
- * Es decir: ni un grupo de más ni de menos en ninguno de los cuatro, y el orden solo cambia donde
- * cambia la fuga del día. Cualquier otra cosa que mueva esta huella hay que volver a justificarla
- * aquí.
- */
+ * Y hay una cuarta cosa que NO se ha hecho por lo que esta huella enseñó. El defecto de producción
+ * era un ataque narrado en el KM 0, y la corrección natural —prohibir el intento— habría sido no
+ * tirar el dado del intento, con lo que el flujo `rngTactics` se desplaza en TODAS las etapas del
+ * juego: medido, mueve las cuatro huellas (llana-180 primera semilla +3 s con el mismo orden,
+ * segunda semilla −158 s con otra fuga del día; reina-150 +12 s y +28 s con los mismos grupos) y
+ * sube la victoria de la fuga en montaña del 41,0 % al 43,8 % sobre 500 corridas, sacando de banda
+ * el gate de 120 semillas (47,5 % contra un techo del 45 %). Lo que se ha hecho es quitar la FRASE
+ * y no el movimiento: en carretera las fugas salen del disparo. Esta huella es la que lo detectó. */
 const SEALED_RESULTS: Record<string, string> = {
   'llana-180-0|llana-180|1|v1':
-    '1:spr-2:14279,2:spr-1:14279,3:spr-0:14279,4:pel-5:14279,5:pel-26:14279,6:pel-22:14279,7:pel-18:14279,8:pel-10:14279,9:pel-23:14279,10:pel-25:14279,11:pel-8:14279,12:pel-7:14279,13:pel-12:14279,14:brk-0:14279,15:pel-14:14279,16:pel-16:14279,17:pel-0:14279,18:pel-27:14279,19:pel-4:14279,20:pel-1:14279,21:pel-24:14279,22:pel-6:14279,23:brk-1:14279,24:pel-2:14279,25:pel-11:14279,26:brk-3:14279,27:brk-5:14279,28:pel-19:14279,29:pel-17:14279,30:pel-13:14279,31:pel-30:14279,32:pel-15:14279,33:pel-28:14279,34:pel-20:14279,35:pel-9:14279,36:brk-4:14279,37:brk-2:14279,38:pel-21:14279,39:pel-29:14279,40:pel-3:14279',
+    '1:spr-2:14276,2:spr-1:14276,3:spr-0:14276,4:pel-5:14276,5:pel-26:14276,6:pel-22:14276,7:pel-18:14276,8:pel-10:14276,9:pel-23:14276,10:pel-25:14276,11:pel-8:14276,12:pel-7:14276,13:pel-12:14276,14:brk-0:14276,15:pel-14:14276,16:pel-16:14276,17:pel-0:14276,18:pel-27:14276,19:pel-4:14276,20:pel-1:14276,21:pel-24:14276,22:pel-6:14276,23:pel-2:14276,24:brk-1:14276,25:pel-11:14276,26:brk-3:14276,27:pel-19:14276,28:pel-17:14276,29:pel-13:14276,30:brk-5:14276,31:pel-30:14276,32:brk-4:14276,33:pel-15:14276,34:pel-28:14276,35:pel-20:14276,36:pel-9:14276,37:brk-2:14276,38:pel-21:14276,39:pel-29:14276,40:pel-3:14276',
   'llana-180-1|llana-180|1|v1':
-    '1:spr-2:14227,2:spr-0:14227,3:spr-1:14227,4:pel-19:14227,5:pel-30:14227,6:pel-28:14227,7:pel-15:14227,8:pel-1:14227,9:brk-3:14227,10:pel-11:14227,11:pel-13:14227,12:pel-22:14227,13:pel-2:14227,14:pel-26:14227,15:pel-0:14227,16:pel-6:14227,17:pel-7:14227,18:pel-4:14227,19:pel-8:14227,20:pel-24:14227,21:pel-3:14227,22:pel-25:14227,23:pel-23:14227,24:pel-17:14227,25:pel-21:14227,26:pel-14:14227,27:pel-9:14227,28:pel-20:14227,29:brk-4:14227,30:pel-16:14227,31:pel-27:14227,32:brk-0:14227,33:pel-5:14227,34:pel-12:14227,35:brk-5:14227,36:brk-2:14227,37:pel-29:14227,38:pel-18:14227,39:pel-10:14227,40:brk-1:14325',
+    '1:spr-2:14385,2:spr-0:14385,3:spr-1:14385,4:pel-19:14385,5:pel-26:14385,6:pel-30:14385,7:pel-3:14385,8:pel-24:14385,9:pel-28:14385,10:pel-1:14385,11:pel-22:14385,12:pel-6:14385,13:brk-1:14385,14:pel-4:14385,15:pel-23:14385,16:pel-15:14385,17:pel-2:14385,18:pel-9:14385,19:pel-8:14385,20:pel-0:14385,21:pel-17:14385,22:pel-14:14385,23:pel-21:14385,24:pel-11:14385,25:brk-5:14385,26:pel-7:14385,27:brk-4:14385,28:brk-0:14385,29:pel-5:14385,30:pel-16:14385,31:pel-20:14385,32:pel-27:14385,33:pel-12:14385,34:brk-3:14385,35:pel-25:14385,36:brk-2:14385,37:pel-10:14385,38:pel-29:14385,39:pel-18:14385,40:pel-13:14472',
   'reina-150-0|reina-150|1|v1':
-    '1:gc-1:14409,2:gc-0:14409,3:gc-3:14409,4:gc-2:14409,5:bar-4:14409,6:pel-7:14472,7:pel-4:14472,8:pel-18:14472,9:pel-19:14472,10:bar-3:14523,11:pel-1:14523,12:bar-5:14547,13:pel-8:14664,14:bar-0:14664,15:pel-12:14664,16:bar-2:14868,17:bar-1:14868,18:pel-10:15014,19:pel-21:15014,20:pel-6:15014,21:pel-11:15014,22:pel-17:15014,23:pel-20:15014,24:pel-23:15014,25:pel-26:15014,26:pel-22:15014,27:pel-9:15014,28:pel-5:15014,29:pel-25:15014,30:pel-16:15014,31:pel-13:15014,32:pel-3:15014,33:pel-15:15014,34:pel-14:15014,35:pel-0:15014,36:pel-24:15014,37:pel-2:15014,38:spr-0:15014,39:spr-2:15014,40:spr-1:15014',
+    '1:gc-1:14397,2:gc-0:14397,3:gc-3:14397,4:gc-2:14397,5:bar-4:14397,6:pel-7:14461,7:pel-4:14461,8:pel-18:14461,9:pel-19:14461,10:bar-3:14509,11:pel-1:14509,12:bar-5:14558,13:bar-0:14558,14:pel-8:14763,15:pel-12:14763,16:bar-2:14857,17:bar-1:14857,18:pel-10:15003,19:pel-21:15003,20:pel-6:15003,21:pel-11:15003,22:pel-20:15003,23:pel-17:15003,24:pel-23:15003,25:pel-26:15003,26:pel-22:15003,27:pel-9:15003,28:pel-5:15003,29:pel-25:15003,30:pel-16:15003,31:pel-13:15003,32:pel-3:15003,33:pel-15:15003,34:pel-14:15003,35:pel-0:15003,36:pel-24:15003,37:pel-2:15003,38:spr-0:15003,39:spr-2:15003,40:spr-1:15003',
   'reina-150-1|reina-150|1|v1':
-    '1:gc-1:14176,2:gc-2:14176,3:gc-0:14176,4:gc-3:14176,5:bar-0:14200,6:pel-7:14321,7:pel-24:14321,8:pel-12:14321,9:bar-4:14399,10:bar-5:14399,11:bar-2:14399,12:pel-21:14399,13:pel-20:14399,14:pel-8:14399,15:pel-5:14399,16:bar-1:14399,17:spr-1:14399,18:pel-23:14769,19:bar-3:14769,20:pel-4:14769,21:pel-10:14769,22:pel-13:14769,23:pel-22:14769,24:pel-3:14769,25:pel-0:14769,26:pel-18:14769,27:pel-9:14769,28:pel-17:14769,29:pel-25:14769,30:pel-6:14769,31:pel-14:14769,32:pel-19:14769,33:pel-11:14769,34:pel-1:14769,35:pel-26:14769,36:pel-16:14769,37:pel-2:14769,38:pel-15:14769,39:spr-2:14769,40:spr-0:14769',
+    '1:gc-2:14148,2:gc-1:14148,3:gc-3:14148,4:gc-0:14148,5:bar-0:14197,6:pel-7:14294,7:pel-24:14294,8:pel-12:14294,9:bar-4:14376,10:bar-5:14376,11:bar-2:14376,12:pel-21:14376,13:pel-20:14376,14:pel-8:14376,15:pel-5:14376,16:bar-1:14376,17:spr-1:14376,18:pel-23:14743,19:bar-3:14743,20:pel-4:14743,21:pel-10:14743,22:pel-13:14743,23:pel-22:14743,24:pel-3:14743,25:pel-0:14743,26:pel-18:14743,27:pel-9:14743,28:pel-17:14743,29:pel-25:14743,30:pel-6:14743,31:pel-14:14743,32:pel-19:14743,33:pel-11:14743,34:pel-1:14743,35:pel-26:14743,36:pel-16:14743,37:pel-2:14743,38:pel-15:14743,39:spr-2:14743,40:spr-0:14743',
 }
 
 const fingerprint = (out: StageOutput): string =>
