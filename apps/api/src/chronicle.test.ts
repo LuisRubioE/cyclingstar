@@ -539,3 +539,194 @@ describe('v21 · la racha de partes de boquete', () => {
     expect(out.map((e) => e.plantilla)).toEqual(['time_gap', 'climb_kom', 'time_gap_run'])
   })
 })
+
+/**
+ * EL ORDEN DENTRO DEL MISMO KILÓMETRO (v21). Lo contó el dueño leyendo Race Bességes e4: en el km
+ * 164 caen seis eventos y la crónica imprimía primero la victoria y después la captura de la fuga…
+ * cuando los `tS` del motor dicen que la caza fue 22 segundos ANTES. El motor tenía razón; el que
+ * ordenaba no miraba el reloj.
+ */
+describe('v21 · dentro del mismo km manda el reloj de carrera', () => {
+  const names = chronicleNames([source('ferrari'), source('pavlic')])
+
+  it('la caza va antes que la victoria si ocurrió antes', () => {
+    const out = buildChronicle(
+      [
+        ev({ km: 164, tS: 13735, plantilla: 'stage_win', protagonistas: ['pavlic'] }),
+        ev({ km: 164, tS: 13735, plantilla: 'climb_kom', protagonistas: ['pavlic'] }),
+        ev({ km: 164, tS: 13713, plantilla: 'breakaway_caught', protagonistas: ['ferrari'] }),
+        ev({ km: 164, tS: 13713, plantilla: 'chase_work', protagonistas: ['pavlic'] }),
+      ],
+      names,
+    )
+    expect(out.map((e) => e.plantilla)).toEqual([
+      'breakaway_caught',
+      'chase_work',
+      'climb_kom',
+      'stage_win',
+    ])
+  })
+
+  it('la victoria cierra su kilómetro aunque alguien cruce la meta más tarde', () => {
+    const out = buildChronicle(
+      [
+        ev({ km: 164, tS: 13735, plantilla: 'stage_win', protagonistas: ['pavlic'] }),
+        ev({
+          km: 164,
+          tS: 13900,
+          plantilla: 'rider_abandons',
+          protagonistas: ['ferrari'],
+          datos: { causa: 'colapso', toGo: 0 },
+        }),
+      ],
+      names,
+    )
+    expect(out[out.length - 1]?.plantilla).toBe('stage_win')
+  })
+
+  it('el mismo segundo lo sigue desempatando el orden narrativo', () => {
+    const out = buildChronicle(
+      [
+        ev({ km: 20, tS: 1800, plantilla: 'peloton_concedes' }),
+        ev({ km: 20, tS: 1800, plantilla: 'breakaway_formed', protagonistas: ['ferrari'] }),
+      ],
+      names,
+    )
+    expect(out.map((e) => e.plantilla)).toEqual(['breakaway_formed', 'peloton_concedes'])
+  })
+})
+
+/** Las tres frases que no podían existir, arregladas también en las etapas ya corridas (v21). */
+describe('v21 · lo que la crónica ya no deja decir', () => {
+  const names = chronicleNames([source('a'), source('b'), source('c')])
+
+  it('rendirse en la línea de meta no se cuenta', () => {
+    const out = buildChronicle(
+      [
+        ev({
+          km: 164,
+          tS: 13796,
+          plantilla: 'rider_sits_up',
+          protagonistas: ['a'],
+          datos: { toGo: 0 },
+        }),
+        ev({
+          km: 150,
+          tS: 12000,
+          plantilla: 'rider_sits_up',
+          protagonistas: ['b'],
+          datos: { toGo: 14 },
+        }),
+      ],
+      names,
+    )
+    expect(out.map((e) => e.protagonists[0]?.name)).toEqual(['b'])
+  })
+
+  it('una fuga de un solo corredor no colabora consigo misma', () => {
+    const out = buildChronicle(
+      [
+        ev({ km: 33, tS: 3000, plantilla: 'breakaway_formed', protagonistas: ['a'] }),
+        ev({
+          km: 33,
+          tS: 3000,
+          plantilla: 'break_cooperation',
+          protagonistas: ['a'],
+          datos: { cooperating: 1 },
+        }),
+      ],
+      names,
+    )
+    expect(out.map((e) => e.plantilla)).toEqual(['breakaway_formed'])
+  })
+
+  it('el que se rindió no tira del pelotón ni firma la caza', () => {
+    const out = buildChronicle(
+      [
+        ev({
+          km: 147,
+          tS: 11900,
+          plantilla: 'rider_sits_up',
+          protagonistas: ['a'],
+          datos: { toGo: 17 },
+        }),
+        ev({
+          km: 157,
+          tS: 12747,
+          plantilla: 'peloton_pull',
+          protagonistas: ['a', 'b'],
+          datos: { size: 128 },
+        }),
+        ev({
+          km: 164,
+          tS: 13713,
+          plantilla: 'chase_work',
+          protagonistas: ['a'],
+          datos: { closedS: 140, km: 5 },
+        }),
+      ],
+      names,
+    )
+    // El parte de relevos se queda sin el rendido; la caza, que solo lo tenía a él, desaparece.
+    expect(out.map((e) => e.plantilla)).toEqual(['rider_sits_up', 'peloton_pull'])
+    expect(out[1]?.protagonists.map((p) => p.name)).toEqual(['b'])
+  })
+
+  it('«todos juntos otra vez» solo si de verdad quedaba un pelotón', () => {
+    const roto = buildChronicle(
+      [
+        ev({
+          km: 100,
+          tS: 9000,
+          plantilla: 'peloton_pull',
+          protagonistas: ['b'],
+          datos: { size: 128 },
+        }),
+        ev({
+          km: 162,
+          tS: 13208,
+          plantilla: 'time_gap',
+          datos: { gapS: 110, trend: -1, leadSize: 1, chaseSize: 16 },
+        }),
+        ev({ km: 164, tS: 13713, plantilla: 'breakaway_caught', protagonistas: ['a'] }),
+      ],
+      names,
+    )
+    expect(roto.find((e) => e.plantilla === 'breakaway_caught')?.datos?.juntos).toBe(0)
+    const junto = buildChronicle(
+      [
+        ev({
+          km: 100,
+          tS: 9000,
+          plantilla: 'peloton_pull',
+          protagonistas: ['b'],
+          datos: { size: 128 },
+        }),
+        ev({
+          km: 130,
+          tS: 11000,
+          plantilla: 'peloton_pull',
+          protagonistas: ['b'],
+          datos: { size: 126 },
+        }),
+        ev({ km: 132, tS: 11200, plantilla: 'breakaway_caught', protagonistas: ['a'] }),
+      ],
+      names,
+    )
+    expect(junto.find((e) => e.plantilla === 'breakaway_caught')?.datos?.juntos).toBe(1)
+  })
+
+  it('la captura reconstruye cuánto llevaba fuera la fuga y a cuánto de meta acabó', () => {
+    const out = buildChronicle(
+      [
+        ev({ km: 33, tS: 3000, plantilla: 'breakaway_formed', protagonistas: ['a', 'b'] }),
+        ev({ km: 164, tS: 13713, plantilla: 'breakaway_caught', protagonistas: ['a', 'b'] }),
+        ev({ km: 164, tS: 13735, plantilla: 'stage_win', protagonistas: ['c'] }),
+      ],
+      names,
+    )
+    const caught = out.find((e) => e.plantilla === 'breakaway_caught')
+    expect(caught?.datos?.awayKm).toBe(131)
+    expect(caught?.datos?.toGo).toBe(0)
+  })
+})

@@ -1196,3 +1196,84 @@ describe('la racha de partes de boquete se cuenta en una frase (v21)', () => {
     )
   })
 })
+
+// --- LO QUE EL DUEÑO CONTÓ EN UN JOURNAL DE PRODUCCIÓN (v21, Race Bességes e4) ----------------
+
+describe('la captura de la fuga cuenta el desenlace (v21)', () => {
+  const caught = (datos: Record<string, number | string>, who: ChronicleRider[] = []) =>
+    chronicleLine(event({ plantilla: 'breakaway_caught', km: 164, protagonists: who, datos }))
+
+  it('al escapado en solitario se le nombra, y se dice cuánto llevaba fuera', () => {
+    const linea = caught({ size: 1, awayKm: 131, toGo: 0, juntos: 0 }, [rider('Nicolas Ferrari')])
+    expect(linea).toContain('Nicolas Ferrari')
+    expect(linea).toContain('131 km')
+  })
+
+  it('cazado en la línea de meta se cuenta como lo que es', () => {
+    const linea = caught({ size: 1, awayKm: 131, toGo: 0, juntos: 0 }, [rider('Nicolas Ferrari')])
+    expect(linea).toContain('within sight of the line')
+  })
+
+  it('cazado lejos de meta no dice que fue en la línea', () => {
+    const linea = caught({ size: 2, awayKm: 90, toGo: 45, juntos: 1 }, named('A', 'B'))
+    expect(linea).not.toContain('within sight of the line')
+    expect(linea).toContain('90 km')
+  })
+
+  it('no dice «todos juntos otra vez» cuando la carrera está rota', () => {
+    const linea = caught({ size: 12, awayKm: 100, toGo: 2, juntos: 0 })
+    expect(linea).not.toMatch(/together/)
+  })
+
+  it('…y lo dice cuando de verdad se junta', () => {
+    const linea = caught({ size: 12, awayKm: 100, toGo: 40, juntos: 1 })
+    expect(linea).toMatch(/together|reeled back in|catches the breakaway/)
+  })
+})
+
+describe('las frases que no pueden decir tonterías (v21)', () => {
+  it('un solo fugado no lleva el verbo en plural', () => {
+    const linea = chronicleLine(
+      event({ plantilla: 'breakaway_formed', km: 33, protagonists: named('Nicolas Ferrari') }),
+    )
+    expect(linea).not.toMatch(/Ferrari go\b/)
+    expect(linea).toMatch(/goes|slips away|lone one/)
+  })
+
+  it('con dos o más, la frase de siempre', () => {
+    const linea = chronicleLine(
+      event({ plantilla: 'breakaway_formed', km: 33, protagonists: named('A', 'B') }),
+    )
+    expect(linea).toContain('A and B')
+  })
+
+  it('uno no colabora consigo mismo', () => {
+    const linea = chronicleLine(
+      event({
+        plantilla: 'break_cooperation',
+        km: 33,
+        protagonists: named('Nicolas Ferrari'),
+        datos: { cooperating: 1 },
+      }),
+    )
+    expect(linea).not.toContain('collaborate')
+    expect(linea).toContain('on his own')
+  })
+
+  it('quién cerró la caza dice lo que el dato mide: la CÚSPIDE del boquete', () => {
+    const linea = chronicleLine(
+      event({
+        plantilla: 'chase_work',
+        km: 164,
+        protagonists: [
+          rider('Patrick Henry', { team: 'Phénix Cycling' }),
+          rider('Philippe Roux', { team: 'Aigle Cyclisme' }),
+        ],
+        datos: { closedS: 140, km: 5, work: 27.4 },
+      }),
+    )
+    expect(linea).toContain('2:20')
+    expect(linea).toContain('5 km')
+    expect(linea).toMatch(/peak|high point/)
+  })
+})

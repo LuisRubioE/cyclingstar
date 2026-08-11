@@ -106,6 +106,13 @@ const MARKED = new RegExp(
 const NAMED_IN_SUMMARY = 3
 
 /**
+ * A cuántos km de meta una captura es «a la vista de la línea» (v21). Es la diferencia entre una
+ * fuga que se apaga y el desenlace de Race Bességes e4, donde el escapado llevaba 130 km delante,
+ * le cogieron en el último kilómetro y acabó cuarto a cinco segundos.
+ */
+const CAUGHT_AT_THE_LINE_KM = 2
+
+/**
  * Un trozo de frase: texto corrido, una bandera que la web pinta con `<Flag/>` o un maillot de
  * líder que pinta con `<LeaderJersey/>`. La web decide cómo se ven; aquí solo se dice qué son.
  */
@@ -387,14 +394,30 @@ function chronicleTemplate(e: ChronicleEntry): string {
       const limit = Number(e.datos?.limitPct ?? 0)
       return `${count} riders come home outside the ${limit}% limit, but the jury lets them start again — they lose their points for the stage.`
     }
-    case 'breakaway_formed':
+    case 'breakaway_formed': {
+      // CONCORDANCIA CON UN SOLO FUGADO (v21). En producción salía «The break of the day forms:
+      // Nicolas Ferrari GO up the road»: el número de protagonistas puede ser uno y el verbo estaba
+      // siempre en plural. Con uno la frase se escribe en singular y además dice lo que es —una
+      // escapada en solitario—, que es más noticia todavía.
+      if (riders.length === 1)
+        return pick([
+          `${who} goes clear alone — the break of the day is one rider.`,
+          `${who} slips away on his own and opens up the day's break.`,
+          `The move of the day is a lone one: ${who} goes up the road.`,
+        ])
       return pick([
         `${who || 'A group'} attack and open up the day's break.`,
         `${who || 'A handful of riders'} jump clear off the front.`,
         `The break of the day forms: ${who || 'an early move'} go up the road.`,
         `${who || 'A move'} slip away and get a gap.`,
       ])
+    }
     case 'break_cooperation':
+      // UNO NO COLABORA CONSIGO MISMO (v21). El motor de hoy ya no lo emite con un solo fugado y la
+      // crónica lo tira de las etapas ya corridas —donde está congelado: «up front they collaborate
+      // well, rolling smooth turns» para un corredor solo—. Esto es la red de seguridad: si por
+      // cualquier vía llega uno, la frase dice lo único que se puede decir de un hombre solo.
+      if (riders.length === 1) return 'No wheels to share up front: he is on his own.'
       return e.datos?.cooperating === 1
         ? pick([
             'Up front they collaborate well, rolling smooth turns.',
@@ -671,24 +694,29 @@ function chronicleTemplate(e: ChronicleEntry): string {
     case 'chase_work': {
       // Quién cerró. El motor solo lo emite si de verdad hubo trabajo: una fuga que se hunde sola
       // no tiene autor y no llega hasta aquí.
-      const closed = fmtGap(Number(e.datos?.closedS ?? 0))
+      //
+      // LA FRASE DICE LO QUE EL DATO MIDE (v21). Decía «took 2:20 out of the gap over the last
+      // 5 km» y el lector acababa de leer «1:50» dos kilómetros antes: las dos cifras eran ciertas
+      // —`closedS` es la CÚSPIDE del boquete y `km`, los kilómetros desde esa cúspide— pero juntas
+      // se leían como una contradicción. Ahora la frase nombra la cúspide como lo que es.
+      const peak = fmtGap(Number(e.datos?.closedS ?? 0))
       const km = Number(e.datos?.km ?? 0)
-      const over = km > 0 ? ` over the last ${km} km` : ''
+      const since = km > 0 ? ` ${km} km later` : ' before the line'
       const nTeams = teamList.length
       if (nTeams === 1 && team)
         return pick([
-          `The work was ${team}'s: ${closed} pulled back${over}.`,
-          `${team} did the closing — ${closed} taken out of the lead${over}.`,
-          `It is ${team} who have driven the chase, clawing back ${closed}${over}.`,
+          `The work was ${team}'s: the lead peaked at ${peak} and was gone${since}.`,
+          `${team} did the closing — from a high of ${peak} to nothing${since}.`,
+          `It is ${team} who have driven the chase: ${peak} at its best, and gone${since}.`,
         ])
       if (nTeams > 1)
         return pick([
-          `${who} shared the chasing between them: ${closed} pulled back${over}.`,
-          `The catch belongs to ${who}, who took ${closed} out of the gap${over}.`,
+          `${who} shared the chasing between them: the gap peaked at ${peak} and was gone${since}.`,
+          `The catch belongs to ${who} — from ${peak} at its high point to nothing${since}.`,
         ])
       return pick([
-        `${who || 'The chasers'} did the work to close it: ${closed}${over}.`,
-        `${closed} pulled back${over}, and it was ${who || 'the chase'} who did it.`,
+        `${who || 'The chasers'} did the work to close it: ${peak} at its widest, gone${since}.`,
+        `A lead of ${peak} wiped out${since}, and it was ${who || 'the chase'} who did it.`,
       ])
     }
     case 'break_share': {
@@ -728,12 +756,43 @@ function chronicleTemplate(e: ChronicleEntry): string {
         'The lead-out trains sit up — the catch looks off.',
         'Behind, the fast men run out of legs and abandon the pursuit.',
       ])
-    case 'breakaway_caught':
+    /**
+     * LA CAPTURA, CON NOMBRE Y CON CUENTAS (v21). Dos defectos de producción a la vez, los dos de
+     * Race Bességes e4: (1) Nicolás Ferrari se pasó 130 km escapado en solitario, le cazaron a la
+     * vista de la meta y acabó CUARTO a 5 s, y la crónica lo despachó sin nombrarlo; (2) la frase
+     * decía «the race is all together again» con seis grupos en meta y 76 corredores a 1:51.
+     *
+     * El motor manda ahora cuántos eran, cuánto llevaban delante y a cuánto de meta se acabó; y la
+     * crónica —la única que ve la etapa entera— marca con `juntos` si aquello reunió a alguien.
+     */
+    case 'breakaway_caught': {
+      const away = Number(e.datos?.awayKm ?? 0)
+      const toGo = Number(e.datos?.toGo ?? -1)
+      const size = Number(e.datos?.size ?? riders.length)
+      const juntos = e.datos?.juntos !== 0
+      const forKm = away > 0 ? ` after ${away} km up the road` : ''
+      // A la vista de la meta: es el desenlace más duro que hay y merece decirse así.
+      const atTheLine = toGo >= 0 && toGo <= CAUGHT_AT_THE_LINE_KM
+      // Con la fuga pequeña se nombra a quien iba dentro: es SU historia la que se acaba.
+      if (size > 0 && size <= NAMED_IN_SUMMARY && who) {
+        if (atTheLine)
+          return `Caught within sight of the line: ${who} ${size === 1 ? 'is' : 'are'} swallowed up${forKm}.`
+        return pick([
+          `It is over for ${who}: caught${forKm}.`,
+          `The chase finally lands${forKm} — ${who} ${size === 1 ? 'is' : 'are'} back in the bunch.`,
+        ])
+      }
+      if (!juntos)
+        return pick([
+          `The break is caught${forKm}, though there is no bunch left to speak of behind.`,
+          `What is left of the peloton swallows the move${forKm} — the race is in pieces.`,
+        ])
       return pick([
         'The peloton catches the breakaway — everyone back together.',
         'The break is caught; the race is all together again.',
         'The chase succeeds and the escapees are reeled back in.',
       ])
+    }
     case 'sprint_intermediate':
       return pick([
         `${who} takes the intermediate sprint.`,

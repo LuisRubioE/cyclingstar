@@ -100,6 +100,14 @@ const EVENT_ORDER: Record<string, number> = {
   stage_win_itt: 8,
 }
 
+/**
+ * La VICTORIA cierra el relato de su kilómetro pase lo que pase (v21). Es la única excepción a que
+ * dentro de un km mande el reloj: el que cruza la meta minutos después del ganador puede tener un
+ * `tS` mayor, y su frase no puede ir detrás del final de la etapa.
+ */
+const finalRank = (plantilla: string): number =>
+  plantilla === 'stage_win' || plantilla === 'stage_win_itt' ? 1 : 0
+
 /** Tipos de evento que se pintan como hito sobre la altimetría, con su etiqueta en la web. */
 const MARKER_LABEL: Record<string, string> = {
   ataque: 'attack',
@@ -253,9 +261,20 @@ export function buildChronicle(
         ? a.tS - b.tS ||
           (EVENT_ORDER[a.plantilla] ?? 9) - (EVENT_ORDER[b.plantilla] ?? 9) ||
           a.km - b.km
-        : a.km - b.km ||
-          (EVENT_ORDER[a.plantilla] ?? 9) - (EVENT_ORDER[b.plantilla] ?? 9) ||
-          a.tS - b.tS,
+        : // DENTRO DEL MISMO KILÓMETRO MANDA EL RELOJ DE CARRERA (v21). El orden narrativo
+          // (`EVENT_ORDER`) es una tabla de prioridades fija y se estrenó para desempatar eventos
+          // que ocurren a la vez; en el último kilómetro de una etapa caen seis y NO ocurren a la
+          // vez. Medido en producción, Race Bességes e4: la captura de la fuga y quién la cerró
+          // llevan `tS` 13713 y la victoria 13735 —la caza fue ANTES—, y la crónica imprimía
+          // primero la victoria. El motor tenía razón y el ordenador no lo miraba.
+          //
+          // El reloj va por delante de la tabla y la tabla queda para lo que de verdad comparte
+          // segundo. Solo la VICTORIA se queda fija al final de su kilómetro: es el cierre del
+          // relato y ningún parte del pelotón que cruce la meta después le quita ese sitio.
+          a.km - b.km ||
+          finalRank(a.plantilla) - finalRank(b.plantilla) ||
+          a.tS - b.tS ||
+          (EVENT_ORDER[a.plantilla] ?? 9) - (EVENT_ORDER[b.plantilla] ?? 9),
     )
     // Quita duplicados exactos consecutivos (misma frase, mismos protagonistas y km).
     .filter((e, i, arr) => {
@@ -268,6 +287,9 @@ export function buildChronicle(
       )
     })
   let out = dedupeSitUps(normalizeKomLeads(normalizeSplits(ordered)))
+  out = dropFinishLineSitUps(out)
+  out = dropRetiredWorkers(out)
+  out = markReunion(out)
   out = dropUndoneSelections(out)
   out = groupGapRuns(out)
   for (const kind of CLUSTERED) out = groupRuns(out, kind.single, kind.many)
@@ -328,6 +350,101 @@ function dropUndoneSelections(entries: ChronicleEntry[]): ChronicleEntry[] {
       if (size !== null && size >= recovered) return false
     }
     return true
+  })
+}
+
+/**
+ * DOS FRASES QUE NO PUEDEN EXISTIR, TIRADAS DE LAS ETAPAS YA CORRIDAS (v21).
+ *
+ * RENDIRSE EN LA LÍNEA DE META NO ES RENDIRSE. El motor de hoy ya no lo hace —dentro del
+ * último kilómetro no se sortea—, pero las etapas corridas tienen sus eventos congelados: en Race
+ * Bességes e4 hay un «8 riders give up the fight» con `toGo: 0` en el km 164 de 164. Dejarse ir
+ * cuando ya has llegado no es una noticia, y con el orden por reloj esa frase caía DESPUÉS de la
+ * victoria y cerraba la crónica.
+ */
+function dropFinishLineSitUps(entries: ChronicleEntry[]): ChronicleEntry[] {
+  return entries.filter(
+    (e) =>
+      !(
+        (e.plantilla === 'rider_sits_up' || e.plantilla === 'riders_sit_up') &&
+        e.datos?.toGo != null &&
+        Number(e.datos.toGo) <= 0
+      ) &&
+      // Y UNO NO COLABORA CONSIGO MISMO: el parte de cooperación de una fuga de un solo corredor.
+      // El motor de hoy ya no lo emite; en las etapas ya corridas está congelado.
+      !(e.plantilla === 'break_cooperation' && e.protagonists.length <= 1),
+  )
+}
+
+/**
+ * EL QUE SE RINDIÓ NO TIRA NI FIRMA LA CAZA, TAMPOCO EN LAS ETAPAS YA CORRIDAS (v21). El motor de
+ * hoy ya no lo permite —el rendido sale del turno de relevos y no entra en el reparto de la
+ * captura—, pero en producción está congelado y es lo que el dueño ha leído: en Race Bességes e4,
+ * Christophe Morin se deja ir en el km 147 y en el 157 «tira del pelotón», y Patrick Henry, que se
+ * dejó ir en el mismo racimo, firma la caza del km 164.
+ *
+ * Aquí se quitan de la frase los que ya se habían rendido ANTES de ella. Si no queda nadie, la frase
+ * entera se cae: un parte de relevos sin relevistas, o una captura sin autor, no dicen nada.
+ */
+function dropRetiredWorkers(entries: ChronicleEntry[]): ChronicleEntry[] {
+  const goneBy = new Set<string>()
+  const out: ChronicleEntry[] = []
+  for (const e of entries) {
+    if (e.plantilla === 'peloton_pull' || e.plantilla === 'chase_work') {
+      const left = e.protagonists.filter((p) => !goneBy.has(p.name))
+      if (left.length === 0) continue
+      out.push(left.length === e.protagonists.length ? e : { ...e, protagonists: left })
+      continue
+    }
+    if (e.plantilla === 'rider_sits_up' || e.plantilla === 'riders_sit_up') {
+      for (const p of e.protagonists) goneBy.add(p.name)
+    }
+    out.push(e)
+  }
+  return out
+}
+
+/**
+ * Cuánto tiene que quedar del grupo de cabeza, respecto de su máximo, para que la captura de la
+ * fuga se pueda contar como que la carrera VUELVE A ESTAR JUNTA.
+ */
+const REUNION_MIN_FRACTION = 0.75
+
+/**
+ * «THE BREAK IS CAUGHT; THE RACE IS ALL TOGETHER AGAIN» — y no era verdad (v21). En Race Bességes
+ * e4 la fuga se caza en la línea de meta con la carrera hecha pedazos: seis grupos de tiempo y 76
+ * corredores a 1:51. El motor emite la captura sin más —en carretera es lo que ve—, y quien puede
+ * saber si eso reunió a alguien es esta capa, que tiene delante todos los tamaños de grupo que se
+ * han ido narrando.
+ *
+ * `juntos` viaja con el evento: 1 si el grupo que caza sigue siendo casi todo el pelotón, 0 si lo
+ * que caza es un pedazo de carrera. La web escribe una frase distinta en cada caso, y así también se
+ * arreglan las etapas ya corridas.
+ */
+function markReunion(entries: ChronicleEntry[]): ChronicleEntry[] {
+  let maxFront = 0
+  let lastFront: number | null = null
+  // Y los dos números que hacen que la captura sea una historia y no un trámite: desde cuándo
+  // estaba fuera la fuga y a cuánto de meta se la comieron. El motor los manda desde la v21; en las
+  // etapas ya corridas se RECONSTRUYEN de la propia crónica, que sabe en qué km se formó la fuga y
+  // en cuál acabó la etapa. Es el mismo apaño que la v13 hizo con el `before` de los cortes.
+  const formedKm = entries.find((e) => e.plantilla === 'breakaway_formed')?.km ?? null
+  const lastKm = entries.reduce((mx, e) => Math.max(mx, e.km), 0)
+  return entries.map((e) => {
+    // El grupo que persigue: el tamaño que anuncian los eventos que lo dicen, y el `chaseSize` del
+    // parte de boquete, que es justo el del grupo que va a cazar.
+    const size = frontSizeOf(e) ?? (e.datos?.chaseSize == null ? null : Number(e.datos.chaseSize))
+    if (size != null) {
+      maxFront = Math.max(maxFront, size)
+      lastFront = size
+    }
+    if (e.plantilla !== 'breakaway_caught') return e
+    const juntos =
+      lastFront == null || maxFront <= 0 || lastFront >= maxFront * REUNION_MIN_FRACTION
+    const datos: Record<string, number | string> = { ...e.datos, juntos: juntos ? 1 : 0 }
+    if (datos.toGo == null) datos.toGo = Math.max(0, lastKm - e.km)
+    if (datos.awayKm == null && formedKm != null && e.km > formedKm) datos.awayKm = e.km - formedKm
+    return { ...e, datos }
   })
 }
 
