@@ -407,3 +407,135 @@ describe('la crónica de una contrarreloj se ordena por el reloj de carrera', ()
     expect(buildChronicle(linea, chronicleNames([])).map((e) => e.km)).toEqual([12, 180])
   })
 })
+
+/**
+ * LA CRIBA QUE SE DESHACE (v21). El motor emite la selección lejana con la magnitud que ve en
+ * carretera; esta capa es la única que sabe si la carrera siguió rota. Es el mismo reparto de
+ * papeles que la v13 hizo con la concesión que luego se desmiente.
+ */
+describe('v21 · la criba lejos de meta que la carrera deshace', () => {
+  const criba = (km: number, before: number, remaining: number): ChronicleEvent =>
+    ev({
+      km,
+      tS: km * 100,
+      plantilla: 'peloton_selection',
+      protagonistas: ['drv'],
+      datos: { before, remaining, dropped: before - remaining, toGo: 210 - km, fromKm: km - 6 },
+    })
+  const names = chronicleNames([source('drv', { name: 'Jean Thomas', teamName: 'Éclair Équipe' })])
+  const pull = (km: number, size: number): ChronicleEvent =>
+    ev({ km, tS: km * 100, plantilla: 'peloton_pull', protagonistas: ['drv'], datos: { size } })
+
+  it('la criba que aguanta hasta meta se cuenta', () => {
+    const out = buildChronicle(
+      [
+        criba(160, 116, 80),
+        pull(180, 78),
+        ev({ km: 209, tS: 20900, plantilla: 'bunch_sprint', datos: { field: 74 } }),
+      ],
+      names,
+    )
+    expect(out.map((e) => e.plantilla)).toContain('peloton_selection')
+  })
+
+  it('la criba que se recompone después NO se cuenta: no decidió nada', () => {
+    const out = buildChronicle([criba(160, 116, 80), pull(185, 112)], names)
+    expect(out.map((e) => e.plantilla)).not.toContain('peloton_selection')
+  })
+
+  it('recuperar menos de la mitad de lo perdido sigue siendo una criba', () => {
+    // Perdió 36 y vuelven 12: la carrera sigue rota.
+    const out = buildChronicle([criba(160, 116, 80), pull(185, 92)], names)
+    expect(out.map((e) => e.plantilla)).toContain('peloton_selection')
+  })
+
+  it('un corte del desenlace que devuelve el grupo también la desmiente', () => {
+    const out = buildChronicle(
+      [
+        criba(160, 116, 80),
+        ev({
+          km: 190,
+          tS: 19000,
+          plantilla: 'peloton_regroup',
+          datos: { joined: 30, remaining: 110, before: 80 },
+        }),
+      ],
+      names,
+    )
+    expect(out.map((e) => e.plantilla)).not.toContain('peloton_selection')
+  })
+})
+
+/**
+ * LA FUGA QUE SE HUNDE, EN DOS LÍNEAS Y NO EN NUEVE (v21, deuda de la v13 y de la v16). El ruido es
+ * el mismo que el de los descuelgues uno a uno, pero aquí no se agrupa por número: se agrupa por
+ * NARRATIVA. Se cuenta el arranque y el desenlace, y en medio solo lo que cambia la historia.
+ */
+describe('v21 · la racha de partes de boquete', () => {
+  const gap = (km: number, gapS: number, trend: number, leadSize = 1): ChronicleEvent =>
+    ev({ km, tS: km * 100, plantilla: 'time_gap', datos: { gapS, trend, leadSize, chaseSize: 60 } })
+  const names = chronicleNames([])
+
+  it('nueve partes de una fuga que se hunde son dos líneas', () => {
+    const out = buildChronicle(
+      [216, 179, 149, 119, 95, 76, 60, 48, 38].map((g, i) => gap(150 + 4 * i, g, -1)),
+      names,
+    )
+    expect(out.map((e) => e.plantilla)).toEqual(['time_gap', 'time_gap_run'])
+    // El arranque conserva su cifra y el resumen trae de dónde a dónde fue la ventaja.
+    expect(out[0]?.datos?.gapS).toBe(216)
+    expect(out[1]?.datos?.fromGapS).toBe(179)
+    expect(out[1]?.datos?.gapS).toBe(38)
+    expect(out[1]?.datos?.count).toBe(8)
+  })
+
+  it('dos partes seguidos no son una racha: no hay nada que resumir', () => {
+    const out = buildChronicle([gap(150, 216, -1), gap(154, 179, -1)], names)
+    expect(out.map((e) => e.plantilla)).toEqual(['time_gap', 'time_gap'])
+  })
+
+  it('que la ventaja vuelva a crecer ROMPE la racha: es otra noticia', () => {
+    const out = buildChronicle(
+      [gap(150, 216, -1), gap(154, 179, -1), gap(158, 149, -1), gap(162, 190, 1), gap(166, 220, 1)],
+      names,
+    )
+    expect(out.map((e) => e.plantilla)).toEqual([
+      'time_gap',
+      'time_gap_run',
+      'time_gap',
+      'time_gap',
+    ])
+  })
+
+  it('que cambie el grupo de cabeza también la rompe: no se habla de lo mismo', () => {
+    const out = buildChronicle(
+      [gap(150, 216, -1, 4), gap(154, 179, -1, 4), gap(158, 149, -1, 1), gap(162, 119, -1, 1)],
+      names,
+    )
+    expect(out.map((e) => e.plantilla)).toEqual(['time_gap', 'time_gap', 'time_gap', 'time_gap'])
+  })
+
+  it('sin `trend` (crónicas anteriores a la v6) la dirección sale de los dos números', () => {
+    const viejo = (km: number, gapS: number): ChronicleEvent =>
+      ev({ km, tS: km * 100, plantilla: 'time_gap', datos: { gapS } })
+    const out = buildChronicle(
+      [viejo(150, 216), viejo(154, 179), viejo(158, 149), viejo(162, 119)],
+      names,
+    )
+    expect(out.map((e) => e.plantilla)).toEqual(['time_gap', 'time_gap_run'])
+  })
+
+  it('las frases de en medio se van, pero lo que NO es un parte de boquete se queda donde estaba', () => {
+    const out = buildChronicle(
+      [
+        gap(150, 216, -1),
+        gap(154, 179, -1),
+        ev({ km: 156, tS: 15600, plantilla: 'climb_kom', protagonistas: [] }),
+        gap(158, 149, -1),
+        gap(162, 119, -1),
+      ],
+      names,
+    )
+    expect(out.map((e) => e.plantilla)).toEqual(['time_gap', 'climb_kom', 'time_gap_run'])
+  })
+})

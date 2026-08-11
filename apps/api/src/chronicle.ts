@@ -61,6 +61,8 @@ const EVENT_ORDER: Record<string, number> = {
   peloton_concedes: 1,
   sprinters_give_up: 1,
   time_gap: 2,
+  // El resumen de una racha de partes de boquete ocupa el sitio del parte que resume (v21).
+  time_gap_run: 2,
   // Quién tira del pelotón va DESPUÉS del parte de ventaja: primero cuánto hay, luego quién está
   // trabajando para cerrarlo. Y cómo se reparte el trabajo en la fuga, con lo demás de la fuga.
   break_share: 2,
@@ -68,6 +70,9 @@ const EVENT_ORDER: Record<string, number> = {
   sprint_intermediate: 2,
   climb_kom: 3,
   peloton_split: 4,
+  // La criba LEJOS de meta (v21) va en el sitio del corte: es la misma noticia contada en el tramo
+  // de carretera donde el desenlace todavía no ha empezado.
+  peloton_selection: 4,
   // El reagrupamiento comparte sitio con el corte: son la misma cuenta (de cuántos a cuántos ha
   // pasado el grupo) contada en las dos direcciones, y nunca coinciden en el mismo kilómetro.
   peloton_regroup: 4,
@@ -263,8 +268,157 @@ export function buildChronicle(
       )
     })
   let out = dedupeSitUps(normalizeKomLeads(normalizeSplits(ordered)))
+  out = dropUndoneSelections(out)
+  out = groupGapRuns(out)
   for (const kind of CLUSTERED) out = groupRuns(out, kind.single, kind.many)
   return out
+}
+
+/**
+ * Tamaño del grupo de CABEZA que anuncia una entrada, si es que anuncia alguno. Es lo único que
+ * hace falta para saber si una criba se deshizo: todos estos eventos dicen, cada uno a su manera,
+ * cuánta gente va delante en ese kilómetro.
+ */
+function frontSizeOf(e: ChronicleEntry): number | null {
+  const n = (k: string): number | null => (e.datos?.[k] == null ? null : Number(e.datos[k]))
+  switch (e.plantilla) {
+    case 'peloton_pull':
+      return n('size')
+    case 'peloton_split':
+    case 'peloton_selection':
+    case 'peloton_regroup':
+      return n('remaining')
+    case 'bunch_sprint':
+      return n('field')
+    default:
+      return null
+  }
+}
+
+/**
+ * Cuánto de lo perdido basta con que vuelva para que la criba no haya sido una criba. La mitad: si
+ * el grupo de cabeza recupera más de la mitad de los corredores que perdió, lo que pasó fue un
+ * estirón y no una selección, y contarlo como si hubiera decidido la etapa es peor que callarse.
+ * Se mira hasta META y no en una ventana de km, porque la pregunta es justamente esa: ¿siguió rota
+ * la carrera? Una criba que aguanta ochenta kilómetros y se deshace antes de la línea no decidió
+ * nada — y el lector lo va a ver en el resultado.
+ */
+const SELECTION_UNDONE_FRACTION = 0.5
+
+/**
+ * LA CRIBA QUE SE DESHACE (v21). El motor emite la selección lejana cuando ocurre y con el tamaño
+ * del grupo antes y después, porque en carretera es lo único que puede saber. Pero una criba que se
+ * recompone treinta kilómetros después NO decidió nada, y anunciarla como si hubiera decidido la
+ * etapa es peor que callarse: el lector se queda con un grupo de 80 que en meta son 140.
+ *
+ * Eso solo lo puede ver esta capa, que tiene la etapa entera delante —el mismo reparto de papeles
+ * que la v13 hizo con la concesión que luego se desmiente—. Si en lo que queda de etapa el grupo de
+ * cabeza recupera más de la mitad de lo que perdió, la frase se cae.
+ */
+function dropUndoneSelections(entries: ChronicleEntry[]): ChronicleEntry[] {
+  if (!entries.some((e) => e.plantilla === 'peloton_selection')) return entries
+  return entries.filter((e, i) => {
+    if (e.plantilla !== 'peloton_selection') return true
+    const before = Number(e.datos?.before ?? 0)
+    const remaining = Number(e.datos?.remaining ?? 0)
+    if (before <= remaining) return false
+    const recovered = remaining + (before - remaining) * SELECTION_UNDONE_FRACTION
+    for (let j = i + 1; j < entries.length; j++) {
+      const size = frontSizeOf(entries[j]!)
+      if (size !== null && size >= recovered) return false
+    }
+    return true
+  })
+}
+
+/**
+ * Cuántos partes de boquete seguidos hacen falta para que la racha se resuma, y cuánto tiene que
+ * moverse la ventaja para considerar que la historia CAMBIA de dirección. Tres es el mismo suelo
+ * que el racimo de descuelgues de la v13: con dos partes no hay racha, hay un antes y un después.
+ */
+const GAP_RUN_MIN = 3
+const GAP_TREND_SECONDS = 3
+
+/**
+ * LA FUGA QUE SE HUNDE, EN DOS LÍNEAS Y NO EN NUEVE (v21). El caso es literal de producción:
+ *
+ * ```
+ * The advantage is down to 3:36 and falling.
+ * The advantage is down to 2:59 and falling.
+ * The advantage is down to 2:29 and falling.
+ * …
+ * ```
+ *
+ * Es el mismo ruido que los descuelgues uno a uno («puedes mencionar muchos juntos con número»),
+ * pero aquí no se agrupa por número sino por NARRATIVA: una ventaja que se derrumba de forma
+ * sostenida es UNA noticia. Se cuenta el ARRANQUE —el primer parte, que es el que da la novedad— y
+ * el DESENLACE —un resumen con el de dónde a dónde y en cuántos km—, y desaparece todo lo que hay
+ * en medio, que solo repite la misma frase con otro número.
+ *
+ * Lo que ROMPE la racha es exactamente lo que cambia la historia: que la ventaja se estabilice, que
+ * vuelva a crecer, o que cambie el grupo del que se habla (la fuga de cuatro que pasa a ser un
+ * corredor solo no es la misma noticia). Y como se hace aquí y no en el motor, arregla también los
+ * journals YA CORRIDOS, que es lo que el dueño está leyendo.
+ */
+function groupGapRuns(entries: ChronicleEntry[]): ChronicleEntry[] {
+  const idx = entries.flatMap((e, i) => (e.plantilla === 'time_gap' ? [i] : []))
+  if (idx.length < GAP_RUN_MIN) return entries
+  const gapOf = (e: ChronicleEntry): number => Number(e.datos?.gapS ?? 0)
+  const leadOf = (e: ChronicleEntry): number | null =>
+    e.datos?.leadSize == null ? null : Number(e.datos.leadSize)
+  /**
+   * Hacia dónde va la ventaja respecto del parte anterior. Se prefiere el `trend` del motor y, si
+   * no viaja (crónicas anteriores a la v6), se deduce de los dos números: los journals viejos son
+   * justo los que más ruido tienen.
+   */
+  const dirOf = (e: ChronicleEntry, prev: ChronicleEntry): number => {
+    if (e.datos?.trend != null) return Math.sign(Number(e.datos.trend))
+    const d = gapOf(e) - gapOf(prev)
+    return Math.abs(d) < GAP_TREND_SECONDS ? 0 : Math.sign(d)
+  }
+  const replacement = new Map<number, ChronicleEntry | null>()
+  for (let a = 0; a < idx.length;) {
+    let b = a
+    let dir: number | null = null
+    while (b + 1 < idx.length) {
+      const prev = entries[idx[b]!]!
+      const next = entries[idx[b + 1]!]!
+      // La racha es de UNA dirección y de UN grupo de cabeza: en cuanto una de las dos cambia, lo
+      // que viene es otra noticia y merece su frase.
+      const d = dirOf(next, prev)
+      if (dir === null) dir = d
+      else if (d !== dir) break
+      if (leadOf(next) !== leadOf(prev)) break
+      b += 1
+    }
+    const run = idx.slice(a, b + 1)
+    if (run.length >= GAP_RUN_MIN) {
+      const last = entries[idx[b]!]!
+      const second = entries[idx[a + 1]!]!
+      for (let k = a + 1; k < b; k++) replacement.set(idx[k]!, null)
+      replacement.set(idx[b]!, {
+        km: last.km,
+        tS: last.tS,
+        plantilla: 'time_gap_run',
+        protagonists: [],
+        datos: {
+          ...last.datos,
+          // De dónde venía la ventaja: la del SEGUNDO parte, porque el primero se sigue leyendo
+          // entero y el resumen cuenta lo que pasó a partir de ahí.
+          fromGapS: gapOf(second),
+          fromKm: second.km,
+          count: run.length - 1,
+        },
+      })
+    }
+    a = b + 1
+  }
+  if (replacement.size === 0) return entries
+  return entries.flatMap((e, i) => {
+    if (!replacement.has(i)) return [e]
+    const r = replacement.get(i)
+    return r ? [r] : []
+  })
 }
 
 /**
