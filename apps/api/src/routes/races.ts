@@ -186,11 +186,24 @@ export const raceRoutes: RoutePlugin = async (app, ctx) => {
       const output = simulateStage(snapshot.input as StageInput, snapshot.seed)
       // La vuelta de prueba no tiene roster de carrera: las identidades salen de los resultados, así
       // que van sin dorsal (y la crónica lo omite, en vez de inventarlo).
-      const chronicle = buildChronicle(output.events, chronicleNames(results))
+      const chronicle = buildChronicle(output.events, chronicleNames(results), {
+        // Una crono se lee por el reloj de carrera, no por el kilómetro (v18).
+        byClock: stage.timeTrial === true,
+      })
       const altimetry = renderAltimetrySvg(stage.profile, { markers: buildMarkers(output.events) })
       // La general tal como quedó tras esta etapa (no solo la final).
       const gc = await getGcThroughStage(db, TEST_TOUR_ID, day)
-      return { day, name: stage.name, km, run: true, altimetry, results, chronicle, gc }
+      return {
+        day,
+        name: stage.name,
+        km,
+        run: true,
+        timeTrial: stage.timeTrial ?? false,
+        altimetry,
+        results,
+        chronicle,
+        gc,
+      }
     },
   )
 
@@ -332,6 +345,8 @@ export const raceRoutes: RoutePlugin = async (app, ctx) => {
       const chronicle = buildChronicle(
         storedEvents,
         chronicleNames([...identities, ...results], onRoad),
+        // Una crono se lee por el reloj de carrera, no por el kilómetro (v18).
+        { byClock: stage.timeTrial === true },
       )
       const altimetry = renderAltimetrySvg(stage.profile, { markers: buildMarkers(storedEvents) })
       return {

@@ -5,6 +5,7 @@ import {
   chronicleParts,
   fmtGap,
   listNames,
+  ordinalSuffix,
   timeTrialStory,
   variantIndex,
 } from './stageJournal'
@@ -938,5 +939,168 @@ describe('el maillot de líder en la crónica', () => {
     const e = event({ plantilla: 'stage_win', protagonists: named('Ghost Rider') })
     expect(chronicleParts(e).some((p) => 'jersey' in p)).toBe(false)
     expect(chronicleLine(e)).toContain('Ghost Rider')
+  })
+})
+
+// --- LA CONTRARRELOJ (motor v18) ---------------------------------------------------------------
+// «En el Journal puedes ir diciendo quién hace el mejor tiempo y quién le supera, etc… o sea como
+// una crónica de una contrarreloj de verdad… también cuando alguien de los primeros "dobla" a otro».
+// Hasta la v17 una crono entera era UNA línea; aquí se fija lo que cada frase nueva tiene que decir.
+
+describe('v18 · la crónica de una contrarreloj', () => {
+  const pucnik = rider('Andrej Pucnik', { bib: 11, team: 'Cumbre Escuadra', country: 'SI' })
+  const moreau = rider('Hugo Moreau', { bib: 149, team: 'Delta Pro', country: 'FR' })
+  const amarillo = { ...pucnik, jersey: 'gc' as const }
+
+  it('la línea de salida explica el formato: general invertida y 2 minutos', () => {
+    const line = chronicleLine(
+      event({
+        plantilla: 'tt_start_order',
+        km: 0,
+        protagonists: [moreau],
+        datos: { mode: 'general', intervalS: 120, riders: 130, windowS: 15480 },
+      }),
+    )
+    expect(line).toContain('130 riders')
+    expect(line).toContain('2 minutes apart')
+    expect(line).toContain('Hugo Moreau')
+    // Y por qué el amarillo sale el último, que es lo que hace legible el resto de la crónica.
+    expect(line.toLowerCase()).toContain('last')
+  })
+
+  it('…y por dorsales dice que el 1 cierra la crono', () => {
+    const line = chronicleLine(
+      event({
+        plantilla: 'tt_start_order',
+        km: 0,
+        protagonists: [moreau],
+        datos: { mode: 'dorsales', intervalS: 60, riders: 40 },
+      }),
+    )
+    expect(line).toContain('one-minute intervals')
+    expect(line).toMatch(/number 1|ending in 1/)
+  })
+
+  it('el último en tomar la rampa se cuenta en horas, no en minutos corridos', () => {
+    const line = chronicleLine(
+      event({
+        plantilla: 'tt_last_off',
+        km: 0,
+        protagonists: [amarillo],
+        datos: { afterS: 15480, riders: 130 },
+      }),
+    )
+    // 15.480 s son 4:18:00. «258:00» es lo que salía antes, y no se lee.
+    expect(line).toContain('4:18:00')
+    expect(line).not.toContain('258:00')
+  })
+
+  it('el parcial dice el punto de control, el tiempo y a quién se lo quita', () => {
+    const line = chronicleLine(
+      event({
+        plantilla: 'tt_split',
+        km: 11,
+        protagonists: [pucnik, moreau],
+        datos: { checkKm: 11, splitS: 1060, gainS: 14 },
+      }),
+    )
+    expect(line).toContain('11 km')
+    expect(line).toContain('17:40')
+    expect(line).toContain('Andrej Pucnik')
+    expect(line).toContain('Hugo Moreau')
+  })
+
+  it('el primero en pasar por un control no se compara con nadie', () => {
+    const line = chronicleLine(
+      event({
+        plantilla: 'tt_split',
+        km: 11,
+        protagonists: [moreau],
+        datos: { checkKm: 11, splitS: 1100, gainS: 0 },
+      }),
+    )
+    expect(line).toContain('First through')
+    expect(line).not.toContain('undefined')
+  })
+
+  it('la silla del mejor tiempo: quién la estrena y quién se la queda', () => {
+    const primero = chronicleLine(
+      event({ plantilla: 'tt_first_time', km: 33, protagonists: [moreau], datos: { timeS: 3221 } }),
+    )
+    expect(primero).toContain('53:41')
+    const mejor = chronicleLine(
+      event({
+        plantilla: 'tt_best_time',
+        km: 33,
+        protagonists: [pucnik, moreau],
+        datos: { timeS: 3179, gainS: 42 },
+      }),
+    )
+    expect(mejor).toContain('52:59')
+    expect(mejor).toContain('42s')
+    expect(mejor).toContain('Hugo Moreau')
+  })
+
+  it('el alcance dice dónde, con cuánta ventaja de salida, y que NO da rebufo', () => {
+    const line = chronicleLine(
+      event({
+        plantilla: 'tt_catch',
+        km: 24,
+        protagonists: [pucnik, moreau],
+        datos: { headStartS: 120 },
+      }),
+    )
+    expect(line).toContain('km 24')
+    expect(line).toContain('2:00')
+    // La regla real, dicha en la frase: alcanzar no es ir a rueda.
+    expect(line).toMatch(/shelter|pulls aside|swing wide|out of the way/)
+  })
+
+  it('el recuento de alcances se dice tal cual, sin maquillar', () => {
+    expect(
+      chronicleLine(event({ plantilla: 'tt_catches', km: 33, datos: { count: 117 } })),
+    ).toContain('117 riders')
+    expect(
+      chronicleLine(event({ plantilla: 'tt_catches', km: 33, datos: { count: 1 } })),
+    ).toContain('One rider')
+  })
+
+  it('el que salió el último cierra la historia con su diferencia y su puesto', () => {
+    const line = chronicleLine(
+      event({
+        plantilla: 'tt_last_home',
+        km: 33,
+        protagonists: [amarillo],
+        datos: { gapS: 95, timeS: 2383, puesto: 12 },
+      }),
+    )
+    expect(line).toContain('+1:35')
+    expect(line).toContain('12th')
+  })
+
+  it('el ganador se canta con su tiempo y su margen…', () => {
+    const line = chronicleLine(
+      event({
+        plantilla: 'stage_win_itt',
+        km: 33,
+        protagonists: [pucnik],
+        datos: { timeS: 2288, marginS: 35 },
+      }),
+    )
+    expect(line).toContain('38:08')
+    expect(line).toContain('35s')
+  })
+
+  it('…y una crono CONGELADA antes de la v18, sin datos, se sigue leyendo', () => {
+    // Las etapas ya corridas tienen sus eventos congelados y solo traen el protagonista.
+    expect(chronicleLine(event({ plantilla: 'stage_win_itt', protagonists: [pucnik] }))).toBe(
+      '11 Andrej Pucnik (Cumbre Escuadra) sets the fastest time.',
+    )
+  })
+
+  it('los sufijos ordinales son los ingleses de verdad, incluidas las excepciones', () => {
+    expect([1, 2, 3, 4, 11, 12, 13, 21, 22, 23, 101].map((n) => `${n}${ordinalSuffix(n)}`)).toEqual(
+      ['1st', '2nd', '3rd', '4th', '11th', '12th', '13th', '21st', '22nd', '23rd', '101st'],
+    )
   })
 })

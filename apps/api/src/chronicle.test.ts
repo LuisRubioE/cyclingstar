@@ -362,3 +362,48 @@ describe('el maillot en la identidad', () => {
     expect(entry?.mentions?.forId?.jersey).toBe('gc')
   })
 })
+
+/**
+ * LA CRONO SE LEE POR EL RELOJ (v18). En una etapa en línea avanzar en el km es avanzar en el
+ * tiempo y por eso la crónica se ordena por km. En una contrarreloj no: el primero en salir cruza
+ * la meta mientras el último todavía espera en la rampa, así que ordenar por km mezclaría dos horas
+ * distintas de la tarde en la misma frase.
+ */
+describe('la crónica de una contrarreloj se ordena por el reloj de carrera', () => {
+  const carrera: ChronicleEvent[] = [
+    ev({ plantilla: 'tt_start_order', km: 0, tS: 0, protagonistas: ['r1'] }),
+    ev({ plantilla: 'tt_first_time', km: 33, tS: 3200, protagonistas: ['r1'] }),
+    ev({ plantilla: 'tt_split', km: 11, tS: 4100, protagonistas: ['r2'] }),
+    ev({ plantilla: 'tt_last_off', km: 0, tS: 7800, protagonistas: ['r3'] }),
+    ev({ plantilla: 'stage_win_itt', km: 33, tS: 10400, protagonistas: ['r3'] }),
+  ]
+  const names = chronicleNames([source('r1'), source('r2'), source('r3')])
+
+  it('con `byClock` la historia va en el orden en que ocurrió', () => {
+    expect(buildChronicle(carrera, names, { byClock: true }).map((e) => e.plantilla)).toEqual([
+      'tt_start_order',
+      'tt_first_time',
+      'tt_split',
+      'tt_last_off',
+      'stage_win_itt',
+    ])
+  })
+
+  it('sin `byClock` mandaría el kilómetro, que en una crono no es el hilo de la historia', () => {
+    expect(buildChronicle(carrera, names).map((e) => e.plantilla)).toEqual([
+      'tt_start_order',
+      'tt_last_off',
+      'tt_split',
+      'tt_first_time',
+      'stage_win_itt',
+    ])
+  })
+
+  it('una etapa en línea no cambia: sin la opción se ordena por km, como siempre', () => {
+    const linea = [
+      ev({ plantilla: 'stage_win', km: 180, tS: 14000 }),
+      ev({ plantilla: 'breakaway_formed', km: 12, tS: 1200 }),
+    ]
+    expect(buildChronicle(linea, chronicleNames([])).map((e) => e.km)).toEqual([12, 180])
+  })
+})

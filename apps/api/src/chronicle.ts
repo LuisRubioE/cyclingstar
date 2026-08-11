@@ -81,7 +81,18 @@ const EVENT_ORDER: Record<string, number> = {
   final_km: 7,
   bunch_sprint: 7,
   stage_win: 8,
-  stage_win_itt: 7,
+  // LA CONTRARRELOJ (v18). Una crono se ordena por RELOJ y no por kilómetro (ver `buildChronicle`),
+  // así que estos números solo deciden los empates dentro del mismo segundo: la rampa antes que la
+  // carretera, la carretera antes que la meta, y la victoria siempre al final.
+  tt_start_order: -1,
+  tt_last_off: -1,
+  tt_catch: 2,
+  tt_split: 3,
+  tt_first_time: 6,
+  tt_best_time: 6,
+  tt_catches: 6.5,
+  tt_last_home: 7,
+  stage_win_itt: 8,
 }
 
 /** Tipos de evento que se pintan como hito sobre la altimetría, con su etiqueta en la web. */
@@ -178,15 +189,31 @@ const CLUSTERED: readonly { single: string; many: string }[] = [
   { single: 'rider_abandons', many: 'riders_abandon' },
 ]
 
+/** Cómo se arma la crónica de ESTA etapa. */
+export interface BuildChronicleOptions {
+  /**
+   * CONTRARRELOJ (v18): la crónica se ordena por el RELOJ DE CARRERA y no por el kilómetro.
+   *
+   * En una etapa en línea las dos cosas son la misma —el pelotón va junto, avanzar en el km es
+   * avanzar en el tiempo— y ordenar por km es lo natural. En una crono no: el primero en salir está
+   * cruzando la meta mientras el último todavía no ha tomado la rampa, así que ordenar por km
+   * pondría todas las llegadas juntas al final y todos los parciales juntos al principio, con el
+   * relato mezclando dos horas distintas de la tarde. El reloj es el hilo de la historia.
+   */
+  byClock?: boolean
+}
+
 /**
  * Traduce los eventos a la crónica que consume la web: resuelve ids a identidades completas, ordena
- * por km (y dentro del km por orden narrativo), quita duplicados y agrupa lo que en bruto sería una
- * lista. Es la frontera entre TELEMETRÍA y NARRATIVA (docs/motor.md §16): los eventos guardados no
- * se tocan nunca, y todo lo que se decide aquí vale también para las etapas ya congeladas.
+ * por km (y dentro del km por orden narrativo; por RELOJ si es una crono, ver `byClock`), quita
+ * duplicados y agrupa lo que en bruto sería una lista. Es la frontera entre TELEMETRÍA y NARRATIVA
+ * (docs/motor.md §16): los eventos guardados no se tocan nunca, y todo lo que se decide aquí vale
+ * también para las etapas ya congeladas.
  */
 export function buildChronicle(
   events: readonly ChronicleEvent[],
   names: ChronicleNames,
+  options: BuildChronicleOptions = {},
 ): ChronicleEntry[] {
   const riderOf = (id: string): ChronicleRider => names.riderOf.get(id) ?? unknownRider(id)
   // ¿Se acaba cazando la fuga? Se sabe aquí y no en el motor, que emite en carretera sin ver el
@@ -216,11 +243,14 @@ export function buildChronicle(
         datos: markConcession(e, caughtLaterKm),
       }
     })
-    .sort(
-      (a, b) =>
-        a.km - b.km ||
-        (EVENT_ORDER[a.plantilla] ?? 9) - (EVENT_ORDER[b.plantilla] ?? 9) ||
-        a.tS - b.tS,
+    .sort((a, b) =>
+      options.byClock === true
+        ? a.tS - b.tS ||
+          (EVENT_ORDER[a.plantilla] ?? 9) - (EVENT_ORDER[b.plantilla] ?? 9) ||
+          a.km - b.km
+        : a.km - b.km ||
+          (EVENT_ORDER[a.plantilla] ?? 9) - (EVENT_ORDER[b.plantilla] ?? 9) ||
+          a.tS - b.tS,
     )
     // Quita duplicados exactos consecutivos (misma frase, mismos protagonistas y km).
     .filter((e, i, arr) => {

@@ -3,6 +3,7 @@ import { Flag } from './Flag'
 import { LeaderJersey, RiderJersey } from './Jersey'
 import { RiderName } from './RiderName'
 import { chronicleParts, timeTrialStory } from '../domain/stageJournal'
+import { formatTime } from '../domain/format'
 
 /**
  * El journal de una etapa: cómo se desarrolló y quién ganó. Es el contenido con más carga emocional
@@ -27,6 +28,12 @@ export function StageStory({
   const results = data.results ?? []
   // En una carrera de un día la etapa ES la carrera: el rótulo lo dice como lo diría un periódico.
   const oneDay = data.race?.stageCount === 1
+  // ¿Hay crónica que contar? En una CRONO hace falta más de una línea: las corridas antes de la v18
+  // guardaron un único evento (el ganador en meta) y con eso no se cuenta una tarde de reloj, así
+  // que esas siguen con el resumen reconstruido desde los tiempos (`timeTrialStory`).
+  const hasChronicle = data.timeTrial
+    ? (data.chronicle?.length ?? 0) > 1
+    : (data.chronicle?.length ?? 0) > 0
   // Los maillots que se llevaban PUESTOS ese día (la clasificación tras la etapa anterior). Son los
   // que nombra la crónica, y no los de las tablas de esta misma página, que son los de DESPUÉS.
   const onRoad = data.leaders?.onRoad
@@ -47,8 +54,10 @@ export function StageStory({
           </p>
         </div>
       )}
-      {/* Crono: sin fuga ni sprint que narrar, se cuenta la historia del reloj desde los tiempos. */}
-      {data.timeTrial && results.length > 0 && (
+      {/* CRONO SIN CRÓNICA: las corridas antes de la v18 solo guardaron el evento del ganador, así
+          que su historia se reconstruye desde los tiempos. Las nuevas traen su crónica completa
+          (orden de salida, mejor tiempo, parciales y alcances) y caen en el bloque de abajo. */}
+      {data.timeTrial && results.length > 0 && !hasChronicle && (
         <div className={card}>
           <h2 className={head}>Against the clock</h2>
           <ul className="mt-3 space-y-2">
@@ -60,9 +69,11 @@ export function StageStory({
           </ul>
         </div>
       )}
-      {!data.timeTrial && data.chronicle && data.chronicle.length > 0 && (
+      {hasChronicle && data.chronicle && (
         <div className={card}>
-          <h2 className={head}>How the {oneDay ? 'race' : 'stage'} unfolded</h2>
+          <h2 className={head}>
+            {data.timeTrial ? 'Against the clock' : `How the ${oneDay ? 'race' : 'stage'} unfolded`}
+          </h2>
           {/* QUIÉN SALIÓ DE AMARILLO. La crónica marca a los líderes con el maillot que llevaban
               PUESTO ese día —el de la clasificación tras la etapa anterior—, mientras que las tablas
               de la pestaña `Classifications` enseñan la de DESPUÉS. Las dos cosas son ciertas y
@@ -85,8 +96,12 @@ export function StageStory({
           <ol className="mt-3 space-y-2">
             {data.chronicle.map((e, i) => (
               <li key={i} className="flex gap-3 text-sm">
+                {/* EL MARGEN DICE DÓNDE VA LA CARRERA, y en una crono eso no es el kilómetro sino
+                    LA HORA: mientras uno cruza la meta, otro aún no ha tomado la rampa, así que la
+                    crónica va ordenada por el reloj de carrera (`buildChronicle`, byClock) y la
+                    columna tiene que decir lo mismo o el lector la lee como si retrocediera. */}
                 <span className="w-14 shrink-0 text-right tabular-nums text-slate-400">
-                  km {e.km}
+                  {data.timeTrial ? formatTime(e.tS) : `km ${e.km}`}
                 </span>
                 <span className="text-slate-700">
                   {/* Cada mención de un ciclista lleva su bandera, y la bandera es la MISMA del

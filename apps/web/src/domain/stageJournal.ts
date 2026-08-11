@@ -34,6 +34,14 @@ export function fmtGap(seconds: number): string {
   return `${m}:${s}`
 }
 
+/** Sufijo ordinal inglés: 1st, 2nd, 3rd, 4th… (11th, 12th y 13th son la excepción de siempre). */
+export function ordinalSuffix(n: number): string {
+  const mod100 = n % 100
+  if (mod100 >= 11 && mod100 <= 13) return 'th'
+  const mod10 = n % 10
+  return mod10 === 1 ? 'st' : mod10 === 2 ? 'nd' : mod10 === 3 ? 'rd' : 'th'
+}
+
 /** Índice determinista para elegir una variante de frase (misma entrada ⇒ misma variante). */
 export function variantIndex(seed: string, mod: number): number {
   let h = 2166136261
@@ -800,8 +808,122 @@ function chronicleTemplate(e: ChronicleEntry): string {
         ])
       return `${who} wins the stage.`
     }
-    case 'stage_win_itt':
-      return `${who} sets the fastest time.`
+    // --- LA CONTRARRELOJ (motor v18, docs/balance.md «v18 — La contrarreloj») -------------------
+    // Una crono se cuenta con el reloj, no con la carretera: quién sale y en qué orden, quién marca
+    // el mejor tiempo, quién se lo baja, cómo van los favoritos en los parciales, quién alcanza a
+    // quién, y el desenlace cuando entra el último. Hasta la v17 una crono entera era UNA línea
+    // (`stage_win_itt` y nada más).
+    case 'tt_start_order': {
+      // El formato de salida, dicho una vez y bien: es lo que hace legible todo lo que viene
+      // después (por qué el amarillo sale el último, por qué a uno le alcanzan).
+      const mins = Math.round(Number(e.datos?.intervalS ?? 0) / 60)
+      const every = mins === 1 ? 'at one-minute intervals' : `${mins} minutes apart`
+      const n = Number(e.datos?.riders ?? 0)
+      const field = n > 0 ? `${n} riders ` : ''
+      if (e.datos?.mode === 'general')
+        return pick([
+          `${field}roll down the start ramp in reverse order on general classification, ${every}: last on GC first, the race leader last. ${who || 'The first man'} is first off.`,
+          `The start order is the classification turned on its head — ${field}${every}, with the leader's jersey the last to leave the ramp. First away: ${who}.`,
+        ])
+      return pick([
+        `No classification to reverse yet, so the start order follows the race numbers, ${every}: the numbers ending in 1 go last and the team leaders close the day. First off is ${who}.`,
+        `${field}take the ramp by race number, ${every} — highest numbers first, and number 1 the very last man to start. ${who} opens the road.`,
+      ])
+    }
+    case 'tt_last_off': {
+      // Horas después: el último toma la salida con medio campo ya duchado. Su maillot sale solo
+      // por la identidad, así que la frase no lo repite. La espera se dice en h:mm:ss y no en
+      // minutos corridos: una rampa de 130 corredores dura cuatro horas y «258:00» no se lee.
+      const after = formatTime(Number(e.datos?.afterS ?? 0))
+      return pick([
+        `The last man down the ramp is ${who}, ${after} after the first rider left it.`,
+        `${who} is the last to start, with the rest of the field already out on the road.`,
+        `Now ${who} takes the ramp — the final starter, ${after} into the day.`,
+      ])
+    }
+    case 'tt_split': {
+      // El parcial: en el punto de control se compara con el mejor. `protagonists[0]` es el que
+      // acaba de marcar el mejor parcial; `[1]`, a quien se lo quita (si había alguien).
+      const at = Number(e.datos?.checkKm ?? e.km)
+      const split = formatTime(Number(e.datos?.splitS ?? 0))
+      const gain = Number(e.datos?.gainS ?? 0)
+      const me = riders[0] ? riderFull(riders[0]) : 'The leader'
+      const beaten = riders[1] ? riderFull(riders[1]) : ''
+      if (!beaten) return `First through the ${at} km check is ${me}, in ${split}.`
+      const by = gain > 0 ? ` by ${fmtGap(gain)}` : ''
+      return pick([
+        `At the ${at} km check ${me} is fastest so far in ${split}, quicker than ${beaten}${by}.`,
+        `${me} comes through the ${at} km time check in ${split} — that is${by ? ` ${fmtGap(gain)}` : ''} up on ${beaten}.`,
+        `New best at the ${at} km split: ${me}, ${split}${by ? `, ${fmtGap(gain)} inside ${beaten}` : `, ahead of ${beaten}`}.`,
+      ])
+    }
+    case 'tt_first_time': {
+      // La silla del mejor tiempo se estrena: el primero en llegar siempre la ocupa.
+      const t = formatTime(Number(e.datos?.timeS ?? 0))
+      return pick([
+        `${who} is the first man home and sets the time to beat: ${t}.`,
+        `First finisher of the day, ${who} stops the clock at ${t} — the mark everyone else now has to chase.`,
+      ])
+    }
+    case 'tt_best_time': {
+      const t = formatTime(Number(e.datos?.timeS ?? 0))
+      const gain = Number(e.datos?.gainS ?? 0)
+      const me = riders[0] ? riderFull(riders[0]) : who
+      const beaten = riders[1] ? riderFull(riders[1]) : 'the previous best'
+      const by = gain > 0 ? fmtGap(gain) : ''
+      return pick([
+        `${me} takes over the hot seat: ${t}, ${by ? `${by} ` : ''}quicker than ${beaten}.`,
+        `Best time of the day so far to ${me} — ${t}${by ? `, ${by} inside ${beaten}` : `, ahead of ${beaten}`}.`,
+        `${beaten} is out of the chair: ${me} goes fastest with ${t}${by ? `, ${by} better` : ''}.`,
+      ])
+    }
+    case 'tt_catch': {
+      // EL ALCANCE. La regla es la de verdad: no da rebufo, está prohibido, y el alcanzado se
+      // aparta. Se dice en la frase para que nadie lea el alcance como una ventaja.
+      const chaser = riders[0] ? riderFull(riders[0]) : 'A rider'
+      const victim = riders[1] ? riderFull(riders[1]) : 'a rider'
+      const victimPlain = riders[1]?.name ?? 'the caught rider'
+      const head = fmtGap(Number(e.datos?.headStartS ?? 0))
+      const at = `km ${e.km}`
+      return pick([
+        `${chaser} catches ${victim} at ${at} — he left the ramp ${head} earlier. No shelter allowed on a time trial, so ${victimPlain} pulls aside and lets him through.`,
+        `${head} of a head start gone: ${chaser} reels in ${victim} at ${at}, and rides straight past without a metre of shelter.`,
+        `${victim} is caught at ${at} by ${chaser}, who started ${head} behind him, and has to swing wide out of the way.`,
+      ])
+    }
+    case 'tt_catches': {
+      // El recuento honesto. Con el abanico de tiempos que reparte hoy el modelo de crono el número
+      // es grande, y taparlo sería esconder un defecto medido (docs/balance.md, «v18 §7»).
+      const count = Number(e.datos?.count ?? 0)
+      return count === 1
+        ? 'One rider was caught by a later starter over the course of the day.'
+        : `${count} riders were caught by a later starter in the course of the day.`
+    }
+    case 'tt_last_home': {
+      // El que salió el último, al entrar: con orden inverso es el maillot de líder, y su llegada
+      // cierra la crono. El maillot va en la identidad, así que la frase no lo nombra dos veces.
+      const gap = Number(e.datos?.gapS ?? 0)
+      const place = Number(e.datos?.puesto ?? 0)
+      const t = formatTime(Number(e.datos?.timeS ?? 0))
+      const nth = place > 0 ? `${place}${ordinalSuffix(place)}` : ''
+      if (gap <= 0) return `The last starter, ${who}, comes home in ${t}.`
+      return pick([
+        `The last man off the ramp comes home: ${who} finishes ${gapToBest(gap)} down${nth ? `, ${nth} on the day` : ''}.`,
+        `${who} crosses the line in ${t} — ${gapToBest(gap)} off the best time${nth ? ` and ${nth} today` : ''}.`,
+      ])
+    }
+    case 'stage_win_itt': {
+      // Las crónicas congeladas antes de la v18 no traen `datos`: la frase se queda como estaba,
+      // que no miente, solo cuenta menos.
+      const t = e.datos?.timeS == null ? '' : formatTime(Number(e.datos.timeS))
+      const margin = Number(e.datos?.marginS ?? 0)
+      if (!t) return `${who} sets the fastest time.`
+      const by = margin > 0 ? `, ${fmtGap(margin)} clear of the field` : ''
+      return pick([
+        `Nobody beats it: ${who} wins the time trial in ${t}${by}.`,
+        `The fastest time of the day belongs to ${who} — ${t}${by}.`,
+      ])
+    }
     default:
       return `${e.plantilla}${who ? `: ${who}` : ''}${teams ? ` (${teams})` : ''}`
   }
