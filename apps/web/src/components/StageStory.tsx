@@ -30,12 +30,13 @@ export function StageStory({
   // Los maillots que se llevaban PUESTOS ese día (la clasificación tras la etapa anterior). Son los
   // que nombra la crónica, y no los de las tablas de esta misma página, que son los de DESPUÉS.
   const onRoad = data.leaders?.onRoad
-  const wornToday = onRoad ? JERSEY_PRIORITY.filter((k) => onRoad[k]) : []
-  // El nombre de cada líder sale de lo que ya trae la página (general de la etapa y resultado): no
-  // hace falta que la API lo repita. Si el corredor no aparece en ninguna de las dos, no se pinta.
+  // El nombre de cada líder sale de lo que ya trae la página (la general de la etapa y el
+  // resultado): no hace falta que la API lo repita. Y un maillot cuyo dueño no se sepa nombrar no
+  // se pinta —un icono suelto sin nombre no dice nada—, en vez de dejar el hueco.
   const nameOf = new Map([...(data.gc ?? []), ...results].map((r) => [r.riderId, r.name] as const))
-  const leaderName = (riderId: string | null | undefined): string =>
-    (riderId && nameOf.get(riderId)) || ''
+  const leaderName = (riderId: string | null | undefined): string | undefined =>
+    riderId ? nameOf.get(riderId) : undefined
+  const wornToday = onRoad ? JERSEY_PRIORITY.filter((k) => leaderName(onRoad[k]) !== undefined) : []
   return (
     <>
       {data.journalUnavailable && (
