@@ -117,9 +117,11 @@ const jerseyMark = (jersey: JerseyKind | null | undefined): string =>
  *
  * EL MAILLOT VA DELANTE DEL TODO, antes incluso de la bandera. En la carretera el maillot es lo
  * primero que se ve —se reconoce al amarillo antes de leerle el dorsal— y ponerlo al frente deja
- * intacto el bloque `bandera + dorsal + nombre` que el lector ya tiene aprendido. Medido sobre las
- * crónicas reales de Race Colombia: lo llevan entre el 15 % y el 30 % de las menciones, así que
- * marca sin invadir.
+ * intacto el bloque `bandera + dorsal + nombre` que el lector ya tiene aprendido.
+ *
+ * Medido sobre las ocho etapas corridas de Race Colombia: el maillot aparece en el 0-11 % de las
+ * menciones (de 0 a 12 líneas por crónica, siempre en las que de verdad hablan de los líderes).
+ * Marca sin invadir, que era el riesgo.
  */
 export function riderFull(r: ChronicleRider): string {
   const bib = r.bib != null ? `${r.bib} ` : ''
