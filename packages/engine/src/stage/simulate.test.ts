@@ -963,6 +963,15 @@ describe('una criba sostenida no genera diez frases clónicas (v8)', () => {
 // puerto que PARTE el pelotón sin destrozarlo (12 km al 7%) con 30 km de valle detrás, que es el
 // caso que este test vigila: los cortados vuelven, y cuando vuelven hay una frase que lo cuenta.
 // Medido: 8 de 8 semillas antes y después del cambio. La aserción NO se ha tocado.
+//
+// Y EL PUERTO SE AFLOJA MEDIO PUNTO EN LA v19 (7% → 6,5%), por la misma razón y con la aserción otra
+// vez intacta. La v19 corrige la ley de velocidad y en la cuesta el exponente pasa a ser el de la
+// gravedad (docs/balance.md «v19»), de modo que el MISMO puerto selecciona un poco más: con 12 km al
+// 7% una de las ocho semillas dejaba delante a 25 corredores y a 53 detrás a ocho minutos, que ya no
+// es «partir sin destrozar» sino una etapa de montaña, y en ella no hay reagrupamiento que narrar.
+// Con 6,5% vuelven a ser 8 de 8 y el puerto sigue partiendo el pelotón (4-5 grupos en meta). Lo que
+// este banco vigila es que el reagrupamiento se CUENTE, no cuánto selecciona un puerto concreto: eso
+// lo miden `sim/realQueens.ts` y `grandTour.queenLastGroupPct`, y los dos suben en la v19.
 
 describe('el reagrupamiento se narra (v8)', () => {
   /** Puerto a 42 km de meta y 30 km de valle después: los cortados vuelven antes de la línea. */
@@ -985,7 +994,7 @@ describe('el reagrupamiento se narra (v8)', () => {
       profile: {
         segments: [
           { km: 100, tipo: 'llano' },
-          { km: 12, tipo: 'puerto', tramos: [{ km: 12, g: 7 }] },
+          { km: 12, tipo: 'puerto', tramos: [{ km: 12, g: 6.5 }] },
           { km: 30, tipo: 'llano' },
         ],
       },
