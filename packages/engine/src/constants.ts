@@ -236,8 +236,23 @@
  * Y la lección, sellada en CI: el banco no cubría el calendario REAL. `sim/realQueens.ts` mide la
  * cola sobre ocho etapas reina reales elegidas por FORMA, con Race Colombia e5 dentro por nombre.
  * Medido en docs/balance.md, «v17».
+ *
+ * v18 (LA CONTRARRELOJ: ORDEN DE SALIDA Y RELOJ DE CARRERA). Hasta la v17 una crono no tenía orden
+ * de salida —cada corredor acumulaba su tiempo desde cero, nadie salía a una hora— y emitía UN solo
+ * evento en toda la etapa: una crono entera era una línea de journal. Ahora la rampa se reparte con
+ * una regla pura y propia (`stage/startOrder.ts`): **orden inverso de la general cada 2 minutos** si
+ * es una etapa de una vuelta que no es la primera, y **por dorsales cada minuto** —agrupando por la
+ * última cifra, del más alto al más bajo, así que el dorsal 1 cierra la crono— en la primera etapa y
+ * en las carreras de un día. De ahí sale todo lo demás: cada corredor tiene hora de salida y de
+ * llegada, hay un RELOJ de carrera en el que unos están en la carretera a la vez que otros, hay
+ * silla del mejor tiempo, hay parciales en dos puntos de control y hay ALCANCES.
+ *
+ * **NO SE MUEVE UN SEGUNDO DE NADIE, y es el criterio de aceptación de la tanda**: la física de la
+ * crono no se toca, no hay dado nuevo ni subflujo nuevo, y el alcance es narrativa pura —alcanzar
+ * NO da rebufo, está prohibido y el alcanzado se aparta—, de modo que los dos invariantes de crono
+ * salen dígito a dígito iguales a los de la v17. Medido en docs/balance.md, «v18».
  */
-export const ENGINE_VERSION = 17 as const
+export const ENGINE_VERSION = 18 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -1567,6 +1582,43 @@ export const STAGE = {
   ttCompositeCri: 0.75,
   ttCompositeLla: 0.15,
   ttCompositeRes: 0.1,
+
+  // --- El ORDEN DE SALIDA y el RELOJ de la crono (v18, `stage/startOrder.ts`) ------------------
+  // Los dos intervalos van SEPARADOS a propósito: son dos formatos distintos y se calibran solos.
+  //
+  // 2 minutos con orden inverso de la general. Es el intervalo del ciclismo real cuando la crono
+  // reparte la general: da aire para que el alcance signifique algo (el que caza a su predecesor le
+  // ha sacado dos minutos de verdad) y estira la jornada, que es lo que convierte la crono en una
+  // tarde de reloj y no en una salida en masa numerada.
+  ttStartIntervalGcS: 120,
+  // 1 minuto por dorsales. El dueño no fijó este; se toma el habitual de carretera cuando no hay
+  // general que proteger. Con 130 corredores son 2 h 09 de rampa contra las 4 h 18 de los dos
+  // minutos: una crono de primera etapa no puede durar media jornada más que la carrera.
+  ttStartIntervalBibS: 60,
+  // CRONOMETRAJES INTERMEDIOS. Puntos de control PROPIOS, repartidos a partes iguales, y no los
+  // `banners` del perfil: el generador de cronos (`routes/profileGen.ts::ittSegments`) no pone
+  // ninguno, así que apoyarse en ellos dejaría sin parciales a TODAS las cronos de producción. Dos
+  // parciales es lo que da una crono de verdad (el 1/3 y el 2/3 del recorrido).
+  ttSplitChecks: 2,
+  // …y solo si el recorrido da para ello: un parcial a 2 km de la salida o a 2 de meta no informa.
+  ttSplitMinKm: 2,
+  // NARRACIÓN. Todo lo que sigue es throttle: una crono de 130 corredores tiene ~120 cambios de
+  // mejor tiempo y puede tener cientos de alcances, y la crónica no puede ser su inventario. La
+  // separación efectiva se calcula sobre el RELOJ DE CARRERA y se estira si hace falta para no
+  // pasar del máximo de líneas (`narrateGapS`), así que el número de líneas no depende del tamaño
+  // del campo: una crono de 40 y una de 176 cuentan lo mismo.
+  ttBestNarrateMax: 12,
+  ttBestMinClockGapS: 90,
+  // …salvo que la mejora sea GRANDE: bajar el mejor tiempo en medio minuto es noticia aunque el
+  // parte anterior sea de hace un minuto.
+  ttBestBigGainS: 30,
+  // Parciales narrados POR PUNTO DE CONTROL.
+  ttSplitNarrateMax: 5,
+  ttSplitMinClockGapS: 120,
+  // ALCANCES. Alcanzar no da rebufo (está prohibido y el alcanzado se aparta), así que esto es
+  // narrativa pura y no toca el tiempo de nadie: el throttle solo decide cuántos se cuentan.
+  ttCatchNarrateMax: 10,
+  ttCatchMinClockGapS: 120,
   // PENDIENTE DE IMPLEMENTAR (SPEC 6.13): parámetros definidos pero sin efecto en la simulación.
   // Contrarreloj por equipos: `simulateTimeTrial` solo resuelve CRI individual (un grupo por
   // corredor). No existe modo CRE ni entrada que lo active (`StageInput.timeTrial` es booleano).

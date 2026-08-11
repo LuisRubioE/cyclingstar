@@ -22,6 +22,15 @@ export { stageRng, stageSeed, type StageSeedParts } from './stage/rng.js'
 export { blockProbability, rollHazard } from './stage/hazard.js'
 export { simulateStage, stageTss } from './stage/simulate.js'
 export { simulateTimeTrial } from './stage/timetrial.js'
+// El orden de salida de una crono (v18): regla pura, exportada y con test propio. Fuera del motor
+// la usa la web para explicar el formato antes de que la etapa se corra.
+export {
+  timeTrialStartOrder,
+  type StartOrderMode,
+  type StartOrderPlan,
+  type StartOrderRider,
+  type StartSlot,
+} from './stage/startOrder.js'
 export { crashLambda, rollCrash, type CrashOutcome } from './stage/crash.js'
 // Abandonos automáticos (docs/motor.md §VI.3). `injuryEndsRace` la consume packages/db: el motor
 // simula UNA etapa y no sabe que hay un mañana al que no tomar la salida.

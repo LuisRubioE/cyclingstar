@@ -3,6 +3,17 @@ import { ENGINE_VERSION } from './index.js'
 
 describe('engine: esqueleto', () => {
   it('expone una engine_version sellada', () => {
+    // v18: LA CONTRARRELOJ (docs/balance.md «v18 — La contrarreloj»). Una crono no tenía ORDEN DE
+    // SALIDA: cada corredor acumulaba su tiempo desde cero, nadie salía a una hora, y la etapa
+    // entera se contaba con UN evento (`stage_win_itt`). Ahora la rampa la reparte una regla pura y
+    // propia (`stage/startOrder.ts`): orden INVERSO de la general cada 2 minutos si es una etapa de
+    // vuelta que no es la primera, y por DORSALES cada minuto —agrupando por la última cifra, del
+    // más alto al más bajo, así que el dorsal 1 cierra la crono— en la primera etapa y en las
+    // carreras de un día. El dorsal viaja al motor desde `packages/db` (`StageRider.bib`), igual que
+    // el `gcDeficitSeconds`. De ahí sale el RELOJ DE CARRERA: hora de salida y de llegada, silla del
+    // mejor tiempo, dos parciales y ALCANCES —que son narrativa pura, porque alcanzar NO da rebufo—.
+    // Sin dado nuevo ni subflujo nuevo: la huella de la crono canónica es la de la v17 dígito a
+    // dígito (`stage/timetrial.test.ts`) y los dos invariantes de crono no se mueven.
     // v17: EL PELOTÓN NO SE RESIGNA (docs/balance.md «v17») — corrección de una REGRESIÓN de la v16
     // vista en producción: Race Colombia e5 metió a 126 de 130 corredores a más de 74 minutos (el
     // 22 % del tiempo del ganador contra un objetivo del 8-14 %) con el boquete creciendo +105 s por
@@ -56,10 +67,10 @@ describe('engine: esqueleto', () => {
     // por las estrellas del sector) y, mucho más suave, en las bajadas de verdad (con DES). Con él,
     // el sector se corre en vez de rodarse, dentro del sector no hay reenganche, y la puerta del
     // pelotón se cierra según lo que aprieta. Entra Strade Bianche.
-    // Sobre la v16 (modelo de persecución), la v15 (plan de equipo), la v14 (abandonos), la v13 (identidad y motivo en el journal), la v12 (selección en pavé y descenso), la
+    // Sobre la v17 (el pelotón no se resigna), la v16 (modelo de persecución), la v15 (plan de equipo), la v14 (abandonos), la v13 (identidad y motivo en el journal), la v12 (selección en pavé y descenso), la
     // v11 (atribución del trabajo), la v10 (composición y caza), la v9 (capa táctica), la
     // v8 (tiempos de grupo), la v7 (modelo de final), la v6 (telemetría), la v5 (clásica larga), la
     // v4 (pavé en el recorrido) y la v3 (Cambio 0).
-    expect(ENGINE_VERSION).toBe(17)
+    expect(ENGINE_VERSION).toBe(18)
   })
 })
