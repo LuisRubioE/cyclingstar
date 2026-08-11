@@ -732,6 +732,12 @@ entero) y la crónica lo agrupa en racimo con número, igual que los descuelgues
 - **La contrarreloj no lleva corte.** El motor reparte en una crono de 20 km un abanico del 36 % en
   la cola: con el corte puesto, la etapa 1 de una gran vuelta eliminaría a 150 de 176. Es un defecto
   abierto del modelo de crono.
+  > **RE-MEDIDO EN LA v18, y está peor de lo anotado.** En producción, `race-colombia` e3 (33 km, 130
+  > corredores) reparte una cola del **46,4 %** y `nc-co-itt` (38 km, 40) del **41,2 %**. Sigue sin
+  > tocarse —no era el encargo de aquella tanda—, pero desde la v18 **se ve**: con orden de salida,
+  > esa cola son 65 ALCANCES por crono con 2 minutos de intervalo (145 con 1 minuto), contra los 0-6
+  > que salen escalando los mismos tiempos a una cola realista del 8-10 %. Medido con los tiempos
+  > reales de producción en docs/balance.md, «v18 §7».
 - **La fragilidad oculta sigue sin llegar al motor.** `StageRider.fragility` existe, escala la lesión
   al caer y `stageRun.ts` nunca lo rellenaba: todas las carreras de producción corren con fragilidad
   1. Ahora se lee del genoma para la enfermedad, pero pasárselo al motor cambiaría las caídas de
@@ -781,6 +787,16 @@ entero) y la crónica lo agrupa en racimo con número, igual que los descuelgues
 > intacta. Medido en docs/balance.md, «v13 — Identidad, motivo y ruido en el journal». Sigue
 > pendiente lo estructural (la telemetría como dato separado) y sigue sin narrarse la pájara.
 
+> **Cuarta entrega hecha (v18): LA CONTRARRELOJ.** Era el agujero más grande que quedaba en lo que
+> el motor cuenta, y no era de matiz: una crono entera —130 corredores, 33 km— se resolvía con **un
+> solo evento**, el ganador en meta. La causa no estaba en la narración sino en el modelo: no había
+> ORDEN DE SALIDA, así que no había reloj de carrera, y sin reloj no hay nada que contar. Ahora la
+> rampa la reparte una regla pura y propia (`stage/startOrder.ts`) —inverso de la general cada 2
+> minutos, o por dorsales cada minuto con el 1 cerrando— y de ella salen la silla del mejor tiempo,
+> dos parciales y los ALCANCES. Cambio de OBSERVACIÓN en lo que a los tiempos respecta: ni azar nuevo
+> ni física nueva, y la huella de la crono canónica es la de la v17 dígito a dígito
+> (`stage/timetrial.test.ts`). Medido en docs/balance.md, «v18 — La contrarreloj».
+
 Hoy `StageOutput` solo lleva `events, results, workUnits, incidents`, y hay **14 puntos de emisión
 de eventos** en todo el motor. El motor simula bloque a bloque —energía, cerillos, grupos, brechas—
 y **tira todo eso**. Por eso el journal es pobre: no es que se cuente mal, es que no hay qué contar.
@@ -807,6 +823,10 @@ y que los replays dejan de depender de re-simular.
 > Lo que sigue abierto ya no vive aquí, sino en docs/balance.md como defectos anotados y medidos:
 > el modelo de persecución de los descolgados, el abanico de la contrarreloj y el reparto de causas
 > de abandono. Ninguno es una mecánica que falte: son calibraciones de mecánicas que existen.
+>
+> **El abanico de la contrarreloj es hoy el más visible de los tres** (§15.1): la v18 le puso encima
+> el orden de salida y los alcances, y con una cola del 46 % la crónica de una crono habla sobre todo
+> de gente apartándose. Medido en docs/balance.md, «v18 §7».
 
 | #   | Trabajo                                                                                  | Por qué en este puesto                                                                                                                                                |
 | --- | ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -963,6 +983,12 @@ que estén bien.
 Ninguna carrera del calendario actual la usa. (La CRE del Tour real era, de hecho, una CRI con
 salida por equipos.) Las constantes `teamTt*` **se conservan** marcadas como pendientes, no se
 retiran.
+
+> **La v18 tampoco la implementa, y ahora hay una razón de más para no hacerlo todavía.** Esa tanda
+> construye el ORDEN DE SALIDA de la CRI (`stage/startOrder.ts`) y con él el reloj de carrera; la CRE
+> es exactamente «esa misma rampa, pero el que sale es un equipo», así que cuando llegue se apoyará
+> en la regla que ya existe en vez de inventar otra. Lo que sigue sin urgir es lo mismo de siempre:
+> ninguna carrera del calendario la corre.
 
 ### V.5 Abandonos: automáticos y voluntarios (HECHO, v14)
 

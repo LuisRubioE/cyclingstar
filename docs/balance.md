@@ -3302,3 +3302,258 @@ huellas de `llana-180` salen idénticas: donde el término no aplica, la secuenc
   defendible y el número de grupos no cambia, pero es el tipo de etapa que más se ha movido.
 - **El banco de reinas reales cuesta ~40 s por cada 8 semillas** y corre en CI. Si se le añaden
   etapas hay que mirar el reloj de la suite.
+
+---
+
+## v18 — La contrarreloj: orden de salida y reloj de carrera (`engine_version` 17 → 18)
+
+> **El encargo del dueño**, textual: «la contrarreloj hay que modelarla bien… si es de una carrera
+> por etapas y no es la primera etapa, salen en orden inverso de la general… separados por 2
+> minutos, **con lo que eso implica**… si es primera etapa o una carrera de un día entonces salen
+> por dorsales, acabando con el 1, antes el 11, antes el 21, 31,… entonces en el Journal puedes ir
+> diciendo quién hace el mejor tiempo y quién le supera… también cuando alguien de los primeros
+> "dobla" a otro».
+
+### 0. El punto de partida, medido en producción
+
+`simulateTimeTrial` recorría a cada corredor por separado, acumulaba su tiempo desde cero y ordenaba
+por tiempo. **Nadie salía a una hora: el concepto no existía.** Y la etapa entera emitía **UN evento**
+(`stage_win_itt`, el ganador en meta). Las tres cronos corridas en producción lo enseñan sin
+comentario:
+
+| Etapa                     |  km | Corredores | Líneas de journal |
+| ------------------------- | --: | ---------: | ----------------: |
+| `race-colombia` e3        |  33 |        130 |             **1** |
+| `nc-co-itt` (un día)      |  38 |         40 |             **1** |
+| `nc-nz-itt` / `nc-za-itt` |   — |          — |             **1** |
+
+Contra las **25-44 líneas** (mediana 38) de las siete etapas en línea de la misma carrera.
+
+### 1. La regla del orden de salida: `packages/engine/src/stage/startOrder.ts`
+
+Función **pura, exportada y con banco propio** (`startOrder.test.ts`, 16 casos). Devuelve el reparto
+completo de la rampa —modo, intervalo y el hueco de cada corredor— y nada más: quién la llama y qué
+hace con ella es cosa de `stage/timetrial.ts`.
+
+| Caso                                                     | Orden                                                                         | Intervalo                        |
+| -------------------------------------------------------- | ----------------------------------------------------------------------------- | -------------------------------- |
+| **A** · etapa de vuelta que **no** es la primera         | **Inverso de la general**: el último sale primero, el líder el último         | `ttStartIntervalGcS` = **120 s** |
+| **B** · primera etapa de una vuelta, o carrera de un día | **Por dorsales**: grupos por la ÚLTIMA cifra, del dorsal más alto al más bajo | `ttStartIntervalBibS` = **60 s** |
+
+El caso B, hacia delante: `… 29, 19, 9 → … 28, 18, 8 → … → 22, 12, 2 → 21, 11, 1`, y **el dorsal 1
+cierra la crono**. Tiene sentido en este mundo porque los dorsales se asignan por bloques de equipo
+—1-9, 11-19, 21-29…, con el x1 para el de más fama (`calendarRun.ts::assignBibs`)—, así que el
+acabado en 1 es el jefe de filas y **todos los líderes salen al final**.
+
+**El intervalo del caso B lo decide esta tanda** (el dueño no lo fijó): 1 minuto, el habitual de
+carretera cuando no hay general que proteger, en una constante SEPARADA para que se pueda mover sola.
+Con 130 corredores son 2 h 09 de rampa contra las 4 h 18 de los dos minutos.
+
+**Tres decisiones que hay que revisar:**
+
+1. **Cómo se distingue un caso del otro sin bandera nueva.** El motor es puro y no sabe en qué etapa
+   va; lo que sí sabe es si hay general CON DIFERENCIAS, porque `gcDeficitSeconds` se lo dice
+   corredor a corredor. En la etapa 1 y en una carrera de un día todos llegan con 0 —lo documenta el
+   propio campo en `types.ts`— y no hay general que invertir. Es **el mismo criterio** con el que
+   `packages/db` decide si hay maillot de líder al que dar alas (`stageRun.ts::hasLeaderJersey`), así
+   que no pueden discrepar.
+2. **Los empates en la general los desempata el dorsal.** No es un apaño de determinismo: en
+   producción, tras la etapa 2 de Race Colombia, **58 corredores empatan a un tiempo y 54 a otro** —el
+   86 % del pelotón—. Con el desempate del dorsal, dentro de cada grupo empatado siguen cerrando los
+   acabados en 1, que es lo que decidiría en la etapa 1. Y tiene efecto medible: cambia los alcances
+   de la crono de producción de 117 a 65 (§7).
+3. **La cifra 0 se cuenta como 10.** En una vuelta no aparece nunca (los bloques son x1..x9), pero un
+   campeonato nacional numera 1..N corrido y ahí el 10, el 20 y el 30 existen. El 10 es el DÉCIMO de
+   su decena, no el primero, así que sale por delante del 9.
+
+**El dorsal viaja como dato**, igual que el `gcDeficitSeconds`: `StageRider.bib`, que rellena
+`packages/db/src/stageRun.ts` leyendo `race_rosters.bib` del roster. El motor **no** se lo inventa ni
+lo deduce del orden del array. Quien no lo traiga —vuelta de prueba, roster antiguo, banco de
+simulación— sale al principio, que es el único sitio donde no le quita el hueco a nadie: la propiedad
+que la regla promete es que el dorsal 1 cierra la crono, y ahí se conserva.
+
+### 2. «Con lo que eso implica»: el reloj de carrera
+
+Cada corredor tiene ahora **hora de salida y hora de llegada**. El tiempo de la clasificación sigue
+siendo el suyo propio, pero el reloj de la carrera avanza, y de ahí sale todo lo que una crono tiene
+y aquí no existía:
+
+- **La silla del mejor tiempo** (`tt_first_time`, `tt_best_time`): quién va marcando el mejor
+  registro provisional y el momento en que se lo quitan.
+- **Los parciales** (`tt_split`): **dos puntos de control PROPIOS**, al tercio y a los dos tercios del
+  recorrido. Se descartaron los `banners` del perfil, que era la otra opción: el generador de cronos
+  (`routes/profileGen.ts::ittSegments`) **no pone ninguno**, así que apoyarse en ellos dejaría sin
+  parciales a todas las cronos generadas del calendario. Con puntos propios el parcial es además
+  comparable entre corredores por construcción.
+- **El ALCANCE** (`tt_catch`): se detecta LEYENDO las trazas ya calculadas. Dos corredores están
+  juntos en el km x cuando coinciden sus relojes ahí, así que se recorre el recorrido bloque a bloque
+  manteniendo la lista ordenada por reloj —que es el orden real en la carretera— y cada trasposición
+  es un adelantamiento. Solo cuenta la PRIMERA vez que un corredor pasa a otro.
+
+**Alcanzar NO da rebufo**: está prohibido y el alcanzado tiene que apartarse. Es narrativa pura y no
+toca el tiempo de nadie (§4).
+
+### 3. La crónica: de 1 línea a 22-34
+
+Nueve plantillas nuevas en `apps/web/src/domain/stageJournal.ts` —`tt_start_order`, `tt_last_off`,
+`tt_split`, `tt_first_time`, `tt_best_time`, `tt_catch`, `tt_catches`, `tt_last_home` y el
+`stage_win_itt` enriquecido—, todas con varias redacciones deterministas por `pick`/`variantIndex`.
+
+**La crónica de una crono se ordena por el RELOJ, no por el kilómetro** (`buildChronicle(..., {
+byClock })`). En una etapa en línea avanzar en el km es avanzar en el tiempo; en una crono no —el
+primero cruza la meta mientras el último espera en la rampa—, y ordenar por km mezclaría dos horas
+distintas de la tarde en frases seguidas. Por lo mismo, la columna de la izquierda de `StageStory`
+enseña **la hora de carrera** en vez del kilómetro cuando la etapa es una crono.
+
+**El throttle.** La separación efectiva entre dos líneas del mismo tipo se calcula sobre la VENTANA
+de reloj en la que ese tipo puede ocurrir (`narrateGapS`), y no como un número fijo de segundos: así
+el número de líneas **no depende del tamaño del campo**. Y los alcances llevan además una regla de
+VARIEDAD: ningún corredor sale dos veces en el parte de alcances (sin ella, con el abanico de hoy hay
+quien es cazado siete veces y protagoniza media crónica).
+
+| Perilla                                     |      Valor | Qué ata                                                 |
+| ------------------------------------------- | ---------: | ------------------------------------------------------- |
+| `ttBestNarrateMax` / `ttBestMinClockGapS`   |  12 / 90 s | Cambios de la silla del mejor tiempo                    |
+| `ttBestBigGainS`                            |       30 s | …y una mejora GRANDE rompe el throttle                  |
+| `ttSplitNarrateMax` / `ttSplitMinClockGapS` |  5 / 120 s | Parciales narrados **por punto de control**             |
+| `ttCatchNarrateMax` / `ttCatchMinClockGapS` | 10 / 120 s | Alcances narrados                                       |
+| `ttSplitChecks` / `ttSplitMinKm`            |   2 / 2 km | Puntos de control y su distancia mínima a salida y meta |
+
+Medido sobre 20 semillas por caso, con un campo de equipos y dorsales de verdad y con la general
+repartida por MON (un campo real no está ordenado igual en la general que contra el reloj):
+
+| Caso                                           | Líneas (mediana) | Rango | Reparto medio                                                  |
+| ---------------------------------------------- | ---------------: | ----: | -------------------------------------------------------------- |
+| Inverso de la general · 33 km · 130 corredores |           **34** | 32-39 | 10,6 parciales · 10,0 mejor tiempo · 8,2 alcances · 5 de marco |
+| Inverso de la general · 20 km · 176 corredores |           **34** | 30-35 | 10,1 · 9,3 · 8,0 · 5                                           |
+| Dorsales · 33 km · 130 corredores              |           **27** | 24-31 | 7,8 · 4,5 · 9,0 · 5                                            |
+| Dorsales · 15 km · 176 corredores              |           **28** | 25-32 | 7,8 · 6,0 · 8,4 · 5                                            |
+| Dorsales · 38 km · 40 corredores (nacional)    |           **22** | 18-26 | 6,4 · 2,8 · 6,8 · 5                                            |
+
+Contra las etapas en línea de producción (`race-colombia`): 25 · 38 · 44 · 43 · 35 · 38 · 37,
+**mediana 38**. La crono con orden inverso queda dentro de la banda; la de dorsales, por debajo,
+porque los cambios de la silla se apelotonan al final —todos los jefes de filas salen seguidos— y el
+throttle los adelgaza.
+
+### 4. NO SE MUEVE UN SEGUNDO DE NADIE, y es el criterio de aceptación
+
+La huella `puesto:corredor:tiempo` de `cri-40` se selló **con el motor de la v17** y se comprobó
+contra el de la v18 antes de escribirla en `stage/timetrial.test.ts`: **80 comparaciones —la crono
+canónica con 40 semillas, más 40 cronos de 120 corredores con dorsales y con general de verdad—, cero
+diferencias.** No es suerte, es por construcción:
+
+- El orden de salida **no consume azar**: sale del dorsal y de la general, que son datos de entrada.
+  **Ningún dado nuevo y ningún subflujo nuevo**, así que no se desplaza ninguna secuencia.
+- La física de la crono no se toca: el mismo bucle de bloques en el mismo orden, y el ruido final se
+  pide en el mismo punto. Lo único que se añade dentro del bucle es APUNTAR el tiempo acumulado (la
+  traza), y el ruido se aplica al leerla para que el último valor sea `raw · noise` bit a bit.
+- El ALCANCE es observación: se lee de las trazas ya calculadas. Si esta huella se moviera por un
+  alcance, la crono estaría rota.
+
+Y hay un segundo test que lo dice de frente: **la MISMA crono corrida con orden de dorsales y con
+orden inverso de la general da los mismos tiempos y los mismos puestos** (`cambiar la rampa entera no
+cambia una sola clasificación`, 6 semillas).
+
+### 5. Los invariantes: NINGUNO se mueve
+
+Batería completa, 500 corridas, antes y después:
+
+| Invariante                                     |  v17 |  v18 | Objetivo |
+| ---------------------------------------------- | ---: | ---: | -------- |
+| **Brecha p90-p10 (s)** · `cri-40`              |  233 |  233 | 120-240  |
+| **Gana un especialista** · `cri-40`            | 99,8 | 99,8 | 90-100 % |
+| Gana la fuga (llana)                           |  3,2 |  3,2 | 2-8 %    |
+| Gana el mejor sprinter                         | 34,8 | 34,8 | 30-45 %  |
+| Captura mediana (km a meta)                    | 22,6 | 22,6 | 8-25     |
+| Gana la fuga (montaña)                         | 40,4 | 40,4 | 25-45 %  |
+| Brecha 1º-10º (s)                              |  249 |  249 | 60-300   |
+| Erosión (las cinco)                            |    = |    = | =        |
+| Abandonos en una gran vuelta                   |    = |    = | 12-20 %  |
+| Último grupo en la reina                       |    = |    = | 8-14 %   |
+| Reinas REALES (las dos)                        |    = |    = | =        |
+| Voz de equipo / equipos al frente / con motivo |    = |    = | =        |
+
+**Los dos de crono no se mueven ni un dígito**, que es exactamente lo que tenía que pasar: si el
+orden de salida no cambia el tiempo de nadie, la brecha p90-p10 y el porcentaje de especialistas que
+ganan no pueden moverse. **Ningún objetivo se ha tocado.**
+
+Y la huella de `stage/attribution.test.ts` (llana y reina) **NO se resella**: la tanda no entra en
+`simulate.ts` por ningún lado, y sale idéntica dígito a dígito.
+
+### 6. Perillas nuevas
+
+Todas en el bloque 6.13 de `constants.ts`: `ttStartIntervalGcS`, `ttStartIntervalBibS`,
+`ttSplitChecks`, `ttSplitMinKm`, `ttBestNarrateMax`, `ttBestMinClockGapS`, `ttBestBigGainS`,
+`ttSplitNarrateMax`, `ttSplitMinClockGapS`, `ttCatchNarrateMax`, `ttCatchMinClockGapS`. Ninguna toca
+la física: las dos primeras reparten la rampa y las nueve restantes son throttle de narración.
+
+### 7. EL DEFECTO QUE ESTO PONE DELANTE DE LOS OJOS: el abanico de la crono
+
+**No es el encargo de esta tanda arreglarlo, y no se ha tocado. Pero ahora se ve.**
+
+docs/motor.md §15.1 lo anotó en la v14: «el motor reparte en una crono de 20 km un abanico del 36 % en
+la cola», y por eso el corte de tiempo se dejó FUERA de la crono. Producción está peor:
+
+| Crono de producción |  km | Corredores | Mediana del campo |   **Cola** | p90-p10 |
+| ------------------- | --: | ---------: | ----------------: | ---------: | ------: |
+| `race-colombia` e3  |  33 |        130 |            22,5 % | **46,4 %** |   648 s |
+| `nc-co-itt`         |  38 |         40 |            20,1 % | **41,2 %** |   815 s |
+
+Con orden de salida, esa cola se convierte en ALCANCES. Medido **sobre los tiempos reales de
+`race-colombia` e3 y su general real tras la etapa 2**, aplicando la regla de esta tanda (un modelo de
+velocidad constante: dos corredores se cruzan si y solo si se invierten sus relojes de llegada):
+
+|                                    | Alcances | Víctimas distintas | Al peor lo alcanzan |
+| ---------------------------------- | -------: | -----------------: | ------------------: |
+| Inverso de la general, 2 min       |   **65** |          43 de 130 |             3 veces |
+| Los mismos 130 por dorsales, 1 min |  **145** |          63 de 130 |             7 veces |
+
+Y lo que cuesta el defecto, escalando los mismos tiempos a colas de crono realistas:
+
+| Cola del campo         | Alcances (inverso, 2 min) | Alcances (dorsales, 1 min) |
+| ---------------------- | ------------------------: | -------------------------: |
+| **46,4 % (lo de hoy)** |                    **65** |                    **145** |
+| 25 %                   |                        24 |                         64 |
+| 15 %                   |                         6 |                         32 |
+| 10 %                   |                         1 |                         14 |
+| 8 %                    |                         0 |                          8 |
+
+**Mi lectura, con los números delante: 65 alcances en 130 corredores es absurdo.** Es un alcance cada
+cuatro minutos de rampa, y significa que un tercio del campo se pasa la tarde apartándose. En una
+crono real de gran vuelta con 2 minutos de intervalo se alcanza a un puñado de corredores, no a
+cuarenta y tres. La causa está identificada y **no es el orden de salida**: es que el modelo de crono
+reparte una cola del 46 % donde el ciclismo reparte el 8-12 %. Con una cola realista los alcances
+caen a 0-6, que es lo que se ve en carretera.
+
+**No se ha tapado bajando el throttle**: el throttle narra 8-9 de esos 65 y el evento `tt_catches`
+dice el total en la crónica, en una línea que el jugador lee («65 riders were caught by a later
+starter in the course of the day»). Si el número es feo, que se vea.
+
+### 8. Lo que este cambio NO hace
+
+- **No arregla el abanico de la crono** (§7). Lo mide, lo enseña y lo deja anotado.
+- **No mete el corte de tiempo en la crono.** Sigue fuera por la misma razón de la v14: con el 46 %
+  de cola, un corte del 8 % eliminaría a medio pelotón.
+- **No modela la CRE** (contrarreloj por equipos). Sigue siendo la decisión de §V.4: las constantes
+  `teamTt*` se conservan marcadas como pendientes.
+- **No cambia la física de la crono**: ni el compromiso, ni el perfil compuesto, ni el ruido, ni la
+  erosión. Nada de eso se ha tocado, y el §4 lo demuestra.
+- **No hace que el alcance dé ventaja.** Es la regla real —alcanzar está prohibido como rebufo y el
+  alcanzado se aparta— y modelarlo como ventaja rompería la crono.
+- **No reescribe las cronos ya corridas.** Sus eventos están congelados: `race-colombia` e3 seguirá
+  teniendo una línea. La web lo detecta (una crono con una sola entrada de crónica) y les deja el
+  resumen reconstruido desde los tiempos, que es lo que ya tenían.
+
+### 9. Lo que hay que vigilar
+
+- **La crono por dorsales narra menos** (22-28 líneas contra 32-39 con orden inverso), y el motivo es
+  estructural: todos los jefes de filas salen seguidos al final, así que la silla del mejor tiempo
+  cambia de manos en un cuarto de hora y el throttle la adelgaza. Si se quiere subir, la perilla es
+  `ttBestMinClockGapS` (hoy 90 s), no `ttBestNarrateMax`, que ya no ata.
+- **El coste de los alcances es O(bloques · campo)** con una ordenación por inserción sobre una lista
+  casi ordenada, más un cruce por adelantamiento. En la crono más grande del calendario (176
+  corredores, 60 km) son 600 pasadas de 176: irrelevante al lado del bucle de física. Pero si algún
+  día el abanico se arregla y la lista deja de estar casi ordenada… seguirá estando casi ordenada:
+  menos abanico es menos cruces.
+- **La traza de tiempos ocupa memoria**: `blocks · corredores` doubles (176 × 600 ≈ 845 KB en el peor
+  caso del calendario). Es por corredor y por etapa, y se libera al terminar.
