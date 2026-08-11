@@ -1307,6 +1307,10 @@ export const STAGE = {
   // corte, un «ataque» a 1 km de meta nacía con su boquete instantáneo y ganaba la etapa por 15 s
   // sin que a nadie le diera tiempo a responder: el sprint se decidía por un dado, no por piernas.
   tacticNoAttackKm: 3,
+  // …y tampoco antes de que baje la bandera (v21). La crónica de producción de Race Bességes e4
+  // abría con un ataque en el KM 0: la salida real es neutralizada y en el kilómetro cero no se ha
+  // atacado nunca. El primer movimiento nace, como pronto, cumplido el primer kilómetro.
+  tacticMinAttackKm: 1,
   // Cooperación del movimiento: cuantos más van, peor se entienden…
   tacticCoopSizePenalty: 0.02,
   // …y los que peor rematan colaboran más, porque su única opción es que la fuga llegue.
@@ -1379,6 +1383,10 @@ export const STAGE = {
   // Regla 8 — administrar el esfuerzo. El agotado sin nada que jugarse se deja ir en los últimos
   // km en vez de agonizar al ritmo del grupo. Hoy solo te descolgabas si no aguantabas el P75.
   giveUpKm: 25,
+  // …pero no en el último kilómetro (v21). En producción se emitió un «8 riders give up the fight»
+  // con `toGo: 0` en el km 164 de 164: dejarse ir en la línea de meta no ahorra nada, no cuesta nada
+  // y no es una noticia. En carretera, dentro del último kilómetro se llega.
+  giveUpMinKmToGo: 1,
   giveUpEnergyFraction: 0.22,
   lambdaGiveUp: 0.35,
   // Ritmo del que administra: rueda a lo suyo, por debajo del descolgado que pelea (`shedCommit`).

@@ -301,8 +301,22 @@ function relayTurn(
   domestiquesFor: Map<string, string[]>,
   driveOfRider: (riderId: string) => number,
 ): Set<string> {
-  const count = Math.min(members.length, Math.max(1, Math.ceil(paceFraction * members.length)))
-  const scored = members.map((m) => {
+  /**
+   * EL QUE SE RINDIÓ NO RELEVA (v21). Visto en producción, Race Bességes e4: Christophe Morin se
+   * deja ir en el km 147 y en el 157 el parte dice que tira del pelotón. La v13 arregló que nadie se
+   * rindiera dos veces (`gaveUp`), pero el rendido volvía al grupo si su grupeto reenganchaba y el
+   * turno de relevos lo trataba como a uno más. Rendirse es dejar de dar la cara al viento: si no,
+   * la palabra no significa nada.
+   *
+   * Cambia la FÍSICA de quien se rinde —paga rebufo protegido en vez de trabajar— y por eso esta
+   * tanda deja de ser de pura observación (ver docs/balance.md, «v21»).
+   */
+  const willing = members.filter((m) => !m.gaveUp)
+  // …salvo que no quede nadie: un grupeto entero de rendidos sigue teniendo que rodar, y el turno
+  // vuelve a ser el de siempre (que es exactamente lo que hacía antes de esta regla).
+  const pool = willing.length > 0 ? willing : members
+  const count = Math.min(pool.length, Math.max(1, Math.ceil(paceFraction * pool.length)))
+  const scored = pool.map((m) => {
     const helpers = domestiquesFor.get(m.input.riderId)
     const protectedByTeam = helpers != null && helpers.some((id) => idSet.has(id))
     return {
@@ -601,13 +615,24 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
   const attributeChase = (mv: Move, atKm: number, atTs: number): void => {
     if (mv.peakGapS < STAGE.chaseWorkMinGapSeconds) return
     const { ids, best } = topWorkers(
-      mv.chaseLedger,
+      // EL QUE SE RINDIÓ NO FIRMA LA CAZA (v21). En producción, Race Bességes e4 atribuía la captura
+      // a Patrick Henry, que se había dejado ir diecisiete kilómetros antes. El trabajo que hizo es
+      // REAL y no se borra del libro —lo hizo—, pero la frase habla en presente («the catch belongs
+      // to»): la firman los que seguían peleando cuando ocurrió. Si no queda ninguno, la captura se
+      // queda sin autor, que es lo que este evento ya hacía cuando la fuga se hundía sola.
+      [...mv.chaseLedger].filter(([id]) => {
+        const s = sims.get(id)
+        return s != null && !s.gaveUp && s.abandonedKm === null
+      }),
       STAGE.chaseWorkNamesMax,
       STAGE.chaseWorkNamesMinShare,
     )
     if (ids.length === 0 || best < STAGE.chaseWorkMinUnits) return
     log.emit(atKm, atTs, 'trabajo', 'chase_work', ids, {
-      // Lo que se cerró: desde la cúspide del boquete hasta aquí, y en cuántos km.
+      // Lo que se cerró: la CÚSPIDE del boquete y en cuántos km se fue desde ella. Son los dos
+      // números que la frase tiene que decir tal cual: contarlo como «cerraron 2:20 en 5 km» hacía
+      // que chocara con el último parte narrado («1:50» dos kilómetros antes), y las dos cosas eran
+      // ciertas. La cúspide es la que explica el trabajo; el último parte, dónde estaba la carrera.
       closedS: Math.round(mv.peakGapS),
       km: Math.max(1, Math.round(atKm - mv.peakGapKm)),
       work: Math.round(10 * best) / 10,
@@ -1050,7 +1075,12 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       const pullWorthTelling = dayBreakFormed || km >= totalKm * STAGE.pullNoBreakRouteFrac
       if (pullWorthTelling && km >= breakFormedKm && pelotonNow.length >= 2) {
         const pull = topWorkers(
-          pelotonNow.map((m): [string, number] => [m.input.riderId, m.pullWindow]),
+          // Y el que se rindió no tira (v21): desde esta versión tampoco entra en el turno de
+          // relevos, pero su ventana de trabajo tarda unos kilómetros en olvidarse y podría seguir
+          // encabezando el parte. El que se ha dejado ir no es quien lleva el pelotón.
+          pelotonNow
+            .filter((m) => !m.gaveUp)
+            .map((m): [string, number] => [m.input.riderId, m.pullWindow]),
           STAGE.pullNamesMax,
           STAGE.pullNamesMinShare,
         )
@@ -1542,6 +1572,12 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
     const administerEffort = (group: Group, members: RiderSim[], inFront: boolean): void => {
       if (members.length === 0) return
       if (totalKm - km > STAGE.giveUpKm) return
+      // RENDIRSE EN LA LÍNEA DE META NO ES RENDIRSE (v21). En producción, Race Bességes e4 emitía un
+      // «8 riders give up the fight» con `toGo: 0` en el km 164 de 164. Dejarse ir cuando ya has
+      // llegado no ahorra nada ni cuesta nada, y en carretera nadie se sienta dentro del último
+      // kilómetro: se llega. Dentro de esa distancia ya no se sortea, así que ni se decide ni se
+      // narra —que es la única forma de que el evento no exista con `toGo` 0—.
+      if (totalKm - km < STAGE.giveUpMinKmToGo) return
       /**
        * EL FRENO COLECTIVO (v17). Rendirse lo decide cada uno, pero un grupo no se disuelve: en el
        * km 212 de Race Colombia e5 se sentaron 73 corredores de golpe —cada uno pasó la guarda por
@@ -1689,7 +1725,26 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       const material =
         lost >= STAGE.splitEventMinDropped &&
         lost >= frontAtLastNotice * STAGE.splitEventMinDropFraction * step
-      if (material && (km - lastFrontNoticeKm >= STAGE.splitEventMinKmGap * step || bigCut)) {
+      /**
+       * LA CRIBA QUE DECIDE, TAMBIÉN AQUÍ (v21). El throttle de arriba escala con cada aviso ya
+       * dado (`step`), y eso es lo que convierte un puerto largo en dos o tres frases en vez de
+       * diez. Pero cuando la selección es ENORME el escalado se traga la noticia: medido en
+       * producción, Race Bességes e4 narra «de 128 a 101» en el km 160 y dos kilómetros después el
+       * grupo de cabeza son 16 corredores —de 101 a 16 sin una línea—, porque el segundo aviso
+       * pedía 6 km de separación y la etapa se acabó en 4.
+       *
+       * El listón que rompe el escalado es el MISMO que decide la criba lejos de meta —magnitud
+       * absoluta y en fracción del grupo—, y con el mismo suelo de kilómetros que el corte grande,
+       * sin escalar: una criba así merece su frase pase lo que pase, y como mucho cada 3 km.
+       */
+      const decisive =
+        lost >= STAGE.splitFarMinDropped &&
+        lost >= frontAtLastNotice * STAGE.splitFarMinDropFraction &&
+        km - lastFrontNoticeKm >= STAGE.splitEventBigDropKmGap
+      if (
+        (material && (km - lastFrontNoticeKm >= STAGE.splitEventMinKmGap * step || bigCut)) ||
+        decisive
+      ) {
         // Quién aprieta: uno de los más fuertes en cabeza del pelotón en este puerto, pero NO el
         // mismo del aviso anterior — nombrar diez veces seguidas al mismo equipo era la mitad de la
         // sensación de "parte clónico". Con un grupo grande su EQUIPO es quien tira y así se narra;
@@ -1853,6 +1908,18 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
     /** Un intento de movimiento desde `source`. Puede no salir, salir y fracasar, o salir y cuajar. */
     const attemptFrom = (source: Group, kind: MoveKind, target: Group | null): void => {
       if (kmToGo <= STAGE.tacticNoAttackKm) return
+      /**
+       * NO SE ATACA ANTES DE QUE BAJE LA BANDERA (v21). En producción, Race Bességes e4 abría la
+       * crónica con «Attack: … force the pace and open a gap» en el KM 0: la salida real es
+       * neutralizada y en el kilómetro cero no ha atacado nadie nunca.
+       *
+       * Es el único cambio de esta tanda que MUEVE la huella de tiempos, y no por lo que se ve sino
+       * por los dados: no intentarlo es no tirar el dado del intento, y el flujo `rngTactics` se
+       * desplaza para toda la etapa. Está medido en docs/balance.md, «v21»: con esta guarda
+       * desactivada, las cuatro huellas selladas salen IDÉNTICAS dígito a dígito, así que todo lo
+       * demás de la tanda —los relevos del rendido incluidos— no mueve un segundo.
+       */
+      if (km < STAGE.tacticMinAttackKm) return
       if (moves.length >= STAGE.tacticMaxMoves) return
       const last = lastAttemptKm.get(source.id)
       if (last != null && km - last < STAGE.tacticAttemptCooldownKm) return
@@ -2335,10 +2402,15 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
             // esto la crónica decía «quedan 8 delante» en el km 1 y «se forma la fuga» en el 55.
             breakFormedKm = Math.round(m.bornKm)
             log.emit(m.bornKm, m.g.tS, 'fuga_formada', 'breakaway_formed', ids)
-            // Con un compromiso alto la fuga va a bloque; con uno bajo se miran y no avanzan.
-            log.emit(m.bornKm, m.g.tS, 'colaboracion', 'break_cooperation', ids, {
-              cooperating: m.g.compromiso >= STAGE.breakCoopThreshold ? 1 : 0,
-            })
+            // Con un compromiso alto la fuga va a bloque; con uno bajo se miran y no avanzan. Pero
+            // UNO NO COLABORA CONSIGO MISMO (v21): en producción, la fuga de un solo corredor de
+            // Race Bességes e4 salía con un «up front they collaborate well, rolling smooth turns».
+            // La cooperación es una propiedad del grupo y con un hombre no existe.
+            if (ids.length > 1) {
+              log.emit(m.bornKm, m.g.tS, 'colaboracion', 'break_cooperation', ids, {
+                cooperating: m.g.compromiso >= STAGE.breakCoopThreshold ? 1 : 0,
+              })
+            }
             lastFrontSize = ids.length
             frontAtLastNotice = membersOf(PELOTON).length
           } else if (km - m.bornKm <= STAGE.tacticStickWindowKm) {
@@ -2401,7 +2473,16 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
         })
         if (!stillAway) {
           caught = true
-          log.emit(km, peloton.tS, 'fuga_cazada', 'breakaway_caught', dayBreakRiders)
+          log.emit(km, peloton.tS, 'fuga_cazada', 'breakaway_caught', dayBreakRiders, {
+            // QUIÉN ERA Y CUÁNTO LLEVABA (v21). En producción, Race Bességes e4: Nicolás Ferrari se
+            // pasa 130 km escapado en solitario, le cazan a la vista de la meta y acaba CUARTO a
+            // 5 s… y la crónica lo despachaba con «the break is caught» sin nombrarlo. Con estos
+            // tres números la frase puede contar el desenlace que fue: cuántos eran, cuánto tiempo
+            // llevaban delante y a qué distancia de meta se acabó.
+            size: dayBreakRiders.length,
+            awayKm: Math.max(0, Math.round(km - breakFormedKm)),
+            toGo: Math.round(totalKm - km),
+          })
           // «No sé quién hizo el trabajo para reducir la distancia»: aquí se dice. El movimiento
           // que lleva la marca de fuga del día es el que guarda la cuenta de su persecución (las
           // fusiones se la traspasan), así que la respuesta sale de su libro y no de la etapa.

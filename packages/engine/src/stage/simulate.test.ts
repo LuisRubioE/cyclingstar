@@ -1163,6 +1163,124 @@ describe('la criba lejos de meta se cuenta cuando es de verdad (v21)', () => {
   })
 })
 
+// --- LO QUE EL DUEÑO CONTÓ EN UN JOURNAL DE PRODUCCIÓN (v21, Race Bességes e4) ----------------
+// Cuatro defectos del MOTOR en la misma etapa: un corredor que se rinde en el km 147 y aparece
+// tirando del pelotón en el 157 y firmando la caza en el 164; ocho corredores «rindiéndose» en la
+// línea de meta (`toGo: 0`); una fuga de UN corredor que «colabora bien»; y un ataque en el km 0.
+
+describe('el journal de producción de Race Bességes e4 (v21)', () => {
+  /** Etapa dura de 164 km con final en repecho: el terreno donde la gente se deja ir. */
+  function besseges(): StageInput {
+    const riders: StageRider[] = []
+    for (let i = 0; i < 8; i++) {
+      riders.push(
+        rider(`fav-${i}`, {
+          eff0: eff(62, { MON: 74 + (i % 4), LLA: 68, SPR: 66 }),
+          orders: orders({ role: 'cazaetapas', mentality: 'combativo' }),
+          teamId: `bt-${i % 8}`,
+        }),
+      )
+    }
+    for (let i = 0; i < 112; i++) {
+      riders.push(
+        rider(`pel-${i}`, {
+          eff0: eff(54, { MON: 44 + (i % 16), LLA: 60 + (i % 8) }),
+          teamId: `bt-${i % 16}`,
+        }),
+      )
+    }
+    return {
+      profile: {
+        segments: [
+          { km: 120, tipo: 'llano' },
+          { km: 30, tipo: 'puerto', tramos: [{ km: 30, g: 4 }] },
+          { km: 14, tipo: 'puerto', tramos: [{ km: 14, g: 6 }] },
+        ],
+      },
+      riders,
+    }
+  }
+
+  const runs = seedsFor('besseges', 8).map((s) => simulateStage(besseges(), s))
+
+  it('el que se rinde no vuelve a tirar del pelotón ni firma la caza', () => {
+    for (const out of runs) {
+      const gaveUpAt = new Map<string, number>()
+      for (const e of out.events) {
+        if (e.plantilla !== 'rider_sits_up') continue
+        for (const id of e.protagonistas) if (!gaveUpAt.has(id)) gaveUpAt.set(id, e.km)
+      }
+      for (const e of out.events) {
+        if (e.plantilla !== 'peloton_pull' && e.plantilla !== 'chase_work') continue
+        for (const id of e.protagonistas) {
+          const km = gaveUpAt.get(id)
+          expect(
+            km === undefined || km > e.km,
+            `${id} se rindió en el km ${km} y ${e.plantilla} lo nombra en el ${e.km}`,
+          ).toBe(true)
+        }
+      }
+    }
+  })
+
+  it('nadie se deja ir en la línea de meta', () => {
+    for (const out of runs) {
+      for (const e of out.events) {
+        if (e.plantilla !== 'rider_sits_up') continue
+        expect(Number(e.datos!.toGo)).toBeGreaterThanOrEqual(STAGE.giveUpMinKmToGo)
+      }
+    }
+  })
+
+  it('una fuga de un solo corredor no colabora consigo misma', () => {
+    for (const out of runs) {
+      for (const e of out.events) {
+        if (e.plantilla !== 'break_cooperation') continue
+        expect(e.protagonistas.length).toBeGreaterThan(1)
+      }
+    }
+  })
+
+  it('no se ataca antes de que baje la bandera', () => {
+    for (const out of runs) {
+      for (const e of out.events) {
+        if (e.tipo !== 'intento' && e.plantilla !== 'breakaway_formed') continue
+        expect(e.km).toBeGreaterThanOrEqual(STAGE.tacticMinAttackKm)
+      }
+    }
+  })
+
+  it('la captura de la fuga dice quiénes eran, cuánto llevaban fuera y dónde acabó', () => {
+    const caught = runs.flatMap((out) =>
+      out.events.filter((e) => e.plantilla === 'breakaway_caught'),
+    )
+    expect(caught.length).toBeGreaterThan(0)
+    for (const e of caught) {
+      expect(Number(e.datos!.size)).toBe(e.protagonistas.length)
+      expect(Number(e.datos!.awayKm)).toBeGreaterThanOrEqual(0)
+      expect(Number(e.datos!.toGo)).toBeGreaterThanOrEqual(0)
+    }
+  })
+
+  it('la criba que decide el final se cuenta aunque el throttle diga que no', () => {
+    // El defecto medido: «de 128 a 101» en el km 160 y, dos kilómetros después, 16 corredores en
+    // cabeza sin una sola línea. Una pérdida de esa magnitud rompe el escalado del throttle.
+    for (const out of runs) {
+      const splits = out.events
+        .filter((e) => e.plantilla === 'peloton_split')
+        .sort((a, b) => a.km - b.km)
+      for (let i = 1; i < splits.length; i++) {
+        const before = Number(splits[i]!.datos!.before)
+        const remaining = Number(splits[i]!.datos!.remaining)
+        // Ningún aviso puede partir de un grupo mucho más pequeño que el que dejó el anterior sin
+        // que haya habido un aviso por el camino: la cadena sigue sin huecos.
+        expect(before).toBe(Number(splits[i - 1]!.datos!.remaining))
+        expect(before).toBeGreaterThan(remaining)
+      }
+    }
+  })
+})
+
 // --- La capa táctica en carrera (docs/motor.md §13, v9) --------------------------------------
 // Las nueve reglas del dueño, vistas desde la carretera. Las DECISIONES se prueban una a una en
 // `tactics.test.ts`; aquí se comprueba que producen carrera: que hay intentos, que la mayoría
