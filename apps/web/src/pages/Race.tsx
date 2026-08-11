@@ -16,8 +16,9 @@ import {
   fetchStartlist,
 } from '../api/race'
 import { fetchCalendarStage } from '../api/results'
+import type { RaceLeaders } from '@cyclingstar/shared'
 import { Flag } from '../components/Flag'
-import { Jersey } from '../components/Jersey'
+import { Jersey, RiderJersey, TeamBib } from '../components/Jersey'
 import { RiderName } from '../components/RiderName'
 import { ShowAllButton, TOP_ROWS } from '../components/ShowAll'
 import { StageStory } from '../components/StageStory'
@@ -164,7 +165,7 @@ function Startlist({ data }: { data: RaceStartlist }) {
 }
 
 /** General de la carrera: top 20 y "Show all" (nunca 176 filas de golpe, nunca truncada sin salida). */
-function GcTable({ rows }: { rows: GcRow[] }) {
+function GcTable({ rows, leaders }: { rows: GcRow[]; leaders: RaceLeaders | undefined }) {
   const [showAll, setShowAll] = useState(false)
   const leader = rows[0]?.tiempoTotalS ?? 0
   const visible = showAll ? rows : rows.slice(0, TOP_ROWS)
@@ -185,8 +186,14 @@ function GcTable({ rows }: { rows: GcRow[] }) {
                 <Flag code={r.country} size={16} />
               </td>
               <td className={`py-1 ${r.dnf ? 'text-slate-400 line-through' : 'text-slate-700'}`}>
+                <RiderJersey leaders={leaders} riderId={r.riderId} />
                 <RiderName riderId={r.riderId} name={r.name} isBot={r.isBot} />
-                {r.teamName && <span className="ml-2 text-xs text-slate-400">{r.teamName}</span>}
+                {r.teamName && (
+                  <span className="ml-2 text-xs text-slate-400">
+                    {r.teamName}
+                    <TeamBib leaders={leaders} teamId={r.teamId} />
+                  </span>
+                )}
               </td>
               <td className="py-1 text-right tabular-nums text-slate-500">
                 {r.dnf ? (
@@ -205,7 +212,7 @@ function GcTable({ rows }: { rows: GcRow[] }) {
 }
 
 /** Clasificación por puntos (montaña o metas volantes), con la misma regla de top 20 + "Show all". */
-function PointsTable({ rows }: { rows: PointsEntry[] }) {
+function PointsTable({ rows, leaders }: { rows: PointsEntry[]; leaders: RaceLeaders | undefined }) {
   const [showAll, setShowAll] = useState(false)
   const visible = showAll ? rows : rows.slice(0, TOP_ROWS)
   return (
@@ -220,6 +227,7 @@ function PointsTable({ rows }: { rows: PointsEntry[] }) {
                 <Flag code={r.country} size={16} />
               </td>
               <td className="py-1 text-slate-700">
+                <RiderJersey leaders={leaders} riderId={r.riderId} />
                 <RiderName riderId={r.riderId} name={r.name} isBot={r.isBot} />
               </td>
               <td className="py-1 text-right font-medium tabular-nums text-slate-600">
@@ -365,7 +373,13 @@ const CLASS_PANEL = 'race-classification'
 
 /**
  * Pestaña `Classifications` (o `Result` en una carrera de un día): general, puntos, montaña y
- * equipos como sub-pestañas. En una carrera de un día la "general" ES el resultado de la llegada,
+ * equipos como sub-pestañas.
+ *
+ * Los maillots que se marcan son los de AHORA (`data.leaders`): la ficha de carrera enseña el
+ * estado actual de la carrera, no el de un día concreto, así que aquí solo hay un juego. Y en una
+ * carrera de un día no hay ninguno —no hay clasificación que arrastrar de una jornada a otra—, así
+ * que la API los manda todos a null y no se pinta nada.
+ * En una carrera de un día la "general" ES el resultado de la llegada,
  * así que se rotula como tal; y si además no hay nada más que enseñar, no se pinta ninguna tira de
  * sub-pestañas: sobra una pestaña única sobre una sola tabla.
  */
@@ -386,7 +400,7 @@ function ClassificationsTab({ data }: { data: RaceView }) {
       <div className={card}>
         <h2 className={head}>Result</h2>
         {data.gc.length > 0 ? (
-          <GcTable rows={data.gc} />
+          <GcTable rows={data.gc} leaders={data.leaders} />
         ) : (
           <p className="text-sm text-slate-400">No result yet.</p>
         )}
@@ -406,26 +420,26 @@ function ClassificationsTab({ data }: { data: RaceView }) {
       <TabPanel panelId={CLASS_PANEL} active={active} className="mt-4">
         {active === 'gc' &&
           (data.gc.length > 0 ? (
-            <GcTable rows={data.gc} />
+            <GcTable rows={data.gc} leaders={data.leaders} />
           ) : (
             <p className="text-sm text-slate-400">No general classification yet.</p>
           ))}
         {active === 'points' &&
           (data.points.length > 0 ? (
-            <PointsTable rows={data.points} />
+            <PointsTable rows={data.points} leaders={data.leaders} />
           ) : (
             <p className="text-sm text-slate-400">No sprint points awarded yet.</p>
           ))}
         {active === 'kom' &&
           (data.kom.length > 0 ? (
-            <PointsTable rows={data.kom} />
+            <PointsTable rows={data.kom} leaders={data.leaders} />
           ) : (
             <p className="text-sm text-slate-400">No mountain points awarded yet.</p>
           ))}
         {active === 'teams' &&
           (data.teamGc.length > 0 ? (
             <>
-              <TeamClassTable rows={data.teamGc} />
+              <TeamClassTable rows={data.teamGc} leaders={data.leaders} />
               <TeamClassNote />
             </>
           ) : (

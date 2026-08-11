@@ -8,7 +8,9 @@ import {
   type TeamClassEntry,
   fetchCalendarStage,
 } from '../api/results'
+import type { RaceLeaders } from '@cyclingstar/shared'
 import { Flag } from '../components/Flag'
+import { RiderJersey, TeamBib } from '../components/Jersey'
 import { RiderName } from '../components/RiderName'
 import { ShowAllButton, TOP_ROWS } from '../components/ShowAll'
 import { StageStory } from '../components/StageStory'
@@ -52,8 +54,20 @@ const STAGE_CLASS_TABS: readonly TabOption<StageClassTabId>[] = [
 ]
 const STAGE_CLASS_PANEL = 'stage-classification'
 
-/** Resultado de la etapa: top 20 y "Show all" (antes se truncaba a 15 sin forma de ver el resto). */
-function ResultTable({ rows }: { rows: StageResultEntry[] }) {
+/**
+ * Resultado de la etapa: top 20 y "Show all" (antes se truncaba a 15 sin forma de ver el resto).
+ *
+ * Las tres tablas de esta página se exportan para poder probarlas sueltas (`stageTables.test.tsx`):
+ * lo que hay que verificar de ellas es qué fila lleva qué maillot, y montar la página entera con su
+ * `react-query` y su router para eso no prueba nada más y sí puede fallar por otra cosa.
+ */
+export function ResultTable({
+  rows,
+  leaders,
+}: {
+  rows: StageResultEntry[]
+  leaders: RaceLeaders | undefined
+}) {
   const [showAll, setShowAll] = useState(false)
   const winnerTime = rows[0]?.tiempoS ?? 0
   const visible = showAll ? rows : rows.slice(0, TOP_ROWS)
@@ -69,8 +83,14 @@ function ResultTable({ rows }: { rows: StageResultEntry[] }) {
                 <Flag code={r.country} size={16} />
               </td>
               <td className="py-1 text-slate-700">
+                <RiderJersey leaders={leaders} riderId={r.riderId} />
                 <RiderName riderId={r.riderId} name={r.name} isBot={r.isBot} />
-                {r.teamName && <span className="ml-2 text-xs text-slate-400">{r.teamName}</span>}
+                {r.teamName && (
+                  <span className="ml-2 text-xs text-slate-400">
+                    {r.teamName}
+                    <TeamBib leaders={leaders} teamId={r.teamId} />
+                  </span>
+                )}
               </td>
               <td className="py-1 text-right tabular-nums text-slate-500">
                 {r.puesto === 1 ? formatTime(r.tiempoS) : `+${formatTime(r.tiempoS - winnerTime)}`}
@@ -85,7 +105,13 @@ function ResultTable({ rows }: { rows: StageResultEntry[] }) {
 }
 
 /** General tal como quedó tras esta etapa, con la misma regla de top 20 + "Show all". */
-function GcTable({ rows }: { rows: StageGcEntry[] }) {
+export function GcTable({
+  rows,
+  leaders,
+}: {
+  rows: StageGcEntry[]
+  leaders: RaceLeaders | undefined
+}) {
   const [showAll, setShowAll] = useState(false)
   // El líder es el primer CLASIFICADO, no la primera fila: los no clasificados van al final, pero si
   // la general entera fuera de abandonos el `?? 0` de antes daba diferencias contra cero.
@@ -111,8 +137,14 @@ function GcTable({ rows }: { rows: StageGcEntry[] }) {
                 <Flag code={r.country} size={16} />
               </td>
               <td className={`py-1 ${r.dnf ? 'text-slate-400 line-through' : 'text-slate-700'}`}>
+                <RiderJersey leaders={leaders} riderId={r.riderId} />
                 <RiderName riderId={r.riderId} name={r.name} isBot={r.isBot} />
-                {r.teamName && <span className="ml-2 text-xs text-slate-400">{r.teamName}</span>}
+                {r.teamName && (
+                  <span className="ml-2 text-xs text-slate-400">
+                    {r.teamName}
+                    <TeamBib leaders={leaders} teamId={r.teamId} />
+                  </span>
+                )}
               </td>
               <td className="py-1 text-right tabular-nums text-slate-500">
                 {r.dnf ? (
@@ -133,7 +165,15 @@ function GcTable({ rows }: { rows: StageGcEntry[] }) {
 }
 
 /** Clasificación por puntos (montaña o metas volantes): puesto, bandera, nombre, puntos. */
-function PointsTable({ rows, unit }: { rows: StageClassEntry[]; unit: string }) {
+export function PointsTable({
+  rows,
+  unit,
+  leaders,
+}: {
+  rows: StageClassEntry[]
+  unit: string
+  leaders: RaceLeaders | undefined
+}) {
   const [showAll, setShowAll] = useState(false)
   const visible = showAll ? rows : rows.slice(0, TOP_ROWS)
   return (
@@ -148,6 +188,7 @@ function PointsTable({ rows, unit }: { rows: StageClassEntry[]; unit: string }) 
                 <Flag code={r.country} size={16} />
               </td>
               <td className="py-1 text-slate-700">
+                <RiderJersey leaders={leaders} riderId={r.riderId} />
                 <RiderName riderId={r.riderId} name={r.name} isBot={r.isBot} />
               </td>
               <td className="py-1 text-right font-medium tabular-nums text-slate-600">
@@ -167,6 +208,11 @@ function PointsTable({ rows, unit }: { rows: StageClassEntry[]; unit: string }) 
  *
  * Solo aparece en carreras POR ETAPAS: en una de un día la etapa ES la carrera y su ficha ya enseña
  * el resultado (esta página redirige allí), así que aquí no hay caso especial que atender.
+ *
+ * LOS MAILLOTS QUE SE PINTAN AQUÍ SON LOS DE DESPUÉS DE LA ETAPA (`leaders.afterStage`), porque es
+ * el estado que estas tablas están mostrando. La crónica de la pestaña `Story` lleva los de ANTES
+ * —los que se llevaban puestos en la carretera ese día— y lo dice en su propia línea, para que la
+ * diferencia se lea como lo que es y no como una contradicción.
  */
 function StageClassifications({
   gc,
@@ -174,12 +220,14 @@ function StageClassifications({
   kom,
   teamStage,
   teamGc,
+  leaders,
 }: {
   gc: StageGcEntry[]
   points: StageClassEntry[]
   kom: StageClassEntry[]
   teamStage: TeamClassEntry[]
   teamGc: TeamClassEntry[]
+  leaders: RaceLeaders | undefined
 }) {
   const [active, setActive] = useTabParam(STAGE_CLASS_TAB_IDS, 'gc', 'cls')
   return (
@@ -196,19 +244,19 @@ function StageClassifications({
       <TabPanel panelId={STAGE_CLASS_PANEL} active={active} className="mt-3">
         {active === 'gc' &&
           (gc.length > 0 ? (
-            <GcTable rows={gc} />
+            <GcTable rows={gc} leaders={leaders} />
           ) : (
             <p className="text-sm text-slate-400">No general classification yet.</p>
           ))}
         {active === 'points' &&
           (points.length > 0 ? (
-            <PointsTable rows={points} unit="pts" />
+            <PointsTable rows={points} unit="pts" leaders={leaders} />
           ) : (
             <p className="text-sm text-slate-400">No sprint points awarded yet.</p>
           ))}
         {active === 'kom' &&
           (kom.length > 0 ? (
-            <PointsTable rows={kom} unit="pts" />
+            <PointsTable rows={kom} unit="pts" leaders={leaders} />
           ) : (
             <p className="text-sm text-slate-400">No mountain points awarded yet.</p>
           ))}
@@ -221,13 +269,13 @@ function StageClassifications({
               {teamStage.length > 0 && (
                 <div>
                   <h3 className={head}>Stage</h3>
-                  <TeamClassTable rows={teamStage} />
+                  <TeamClassTable rows={teamStage} leaders={leaders} />
                 </div>
               )}
               {teamGc.length > 0 && (
                 <div>
                   <h3 className={head}>Overall after this stage</h3>
-                  <TeamClassTable rows={teamGc} />
+                  <TeamClassTable rows={teamGc} leaders={leaders} />
                 </div>
               )}
               <TeamClassNote />
@@ -359,7 +407,7 @@ export function StageReplay() {
           (data.results && data.results.length > 0 ? (
             <div className={card}>
               <h2 className={head}>Stage result</h2>
-              <ResultTable rows={data.results} />
+              <ResultTable rows={data.results} leaders={data.leaders?.afterStage} />
             </div>
           ) : (
             <div className={card}>
@@ -374,6 +422,7 @@ export function StageReplay() {
             kom={kom}
             teamStage={data.teamStage ?? []}
             teamGc={data.teamGc ?? []}
+            leaders={data.leaders?.afterStage}
           />
         )}
 
