@@ -4149,17 +4149,21 @@ ellos a la vez disparan el tope del 4 % y la readmisión en bloque.
 **La reina NO gana grupos de un corredor** (§3-bis-e), que era el riesgo declarado de tocar
 `dropOut`:
 
-| Medida sobre las etapas reina de la gran vuelta     |   v19 |   **v20** |
-| --------------------------------------------------- | ----: | --------: |
-| Grupos en meta (mediana)                            |     7 |     **7** |
-| Cola del último grupo (8 vueltas)                   | 9,2 % | **8,4 %** |
-| Etapas que terminan con el pelotón al mismo segundo |   0 % |   **0 %** |
+| Medida sobre las etapas reina de la gran vuelta        |      v19 |     **v20** |
+| ------------------------------------------------------ | -------: | ----------: |
+| Grupos en meta (mediana)                               |        7 |       **7** |
+| Cola del último grupo (8 vueltas)                      |    9,2 % |   **8,4 %** |
+| Etapas que terminan con el pelotón al mismo segundo    |      0 % |     **0 %** |
+| **Corredores SOLOS por detrás del pelotón, por etapa** | **1,29** |    **1,60** |
+| …y de ellos, por encima del corte de la reina (18 %)   |  0 de 54 | **0 de 67** |
 
-Siete grupos en meta, los mismos que la v19, contra los **33 con 30 de un corredor** que medía el
-diagnóstico original: el arreglo de §3-bis-e sigue intacto y lo que se le ha añadido es una excepción
-de 0,7 corredores por etapa. (Las cinco primeras filas de la tabla de cronos salen del banco
-`sim/timeTrials.ts` con el campo de la división de cada carrera; las dos de `race-france` se midieron
-aparte, con el campo de la gran vuelta, porque no están en ese banco.)
+**El número que hay que mirar es el de los solos: 1,29 → 1,60 por etapa reina**, treinta centésimas
+más, y la mediana de lo que pierden no se mueve (5,7 %). Siete grupos en meta, los mismos que la v19,
+contra los **33 con 30 de un corredor** que medía el diagnóstico original: el arreglo de §3-bis-e
+sigue intacto y lo que se le ha añadido es exactamente la excepción que se pedía, del tamaño que se
+pedía. (Las cinco primeras filas de la tabla de cronos salen del banco `sim/timeTrials.ts` con el
+campo de la división de cada carrera; las dos de `race-france` se midieron aparte, con el campo de la
+gran vuelta, porque no están en ese banco.)
 
 **Las dos salvaguardas de §VI.3, y cuánto se activan.** El tope del 4 % se toca en **0 etapas** de
 las 168 del banco y la readmisión con penalización, **0 veces**, igual que en la v14, la v16 y la
