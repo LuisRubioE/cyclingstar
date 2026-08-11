@@ -526,6 +526,25 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
   let splitPhase = 0
   // Quién apretó en el aviso anterior, para no nombrar diez veces al mismo protagonista.
   let lastSplitDriverId: string | null = null
+  /**
+   * LA CRIBA LEJOS DE META (v21, docs/motor.md §16). Todo lo de arriba vive dentro del desenlace
+   * (`raceThisClimb`), y por buenas razones: con perfiles reales hay relieve por todas partes y un
+   * puerto de tempo rompe y recompone el pelotón sin consecuencias. Pero la etapa a veces se decide
+   * FUERA de esa ventana —Race Great Ocean, 116 → 80 a 50 km de meta— y ahí la crónica se callaba.
+   *
+   * Este contador es el de la selección lejana y va APARTE del de arriba a propósito: mide la
+   * pérdida ACUMULADA del grupo de cabeza desde su último máximo, no desde el último aviso, y por
+   * eso no participa en la cadena de avisos del desenlace (que sí tiene que cerrar sin huecos).
+   * El listón es de MAGNITUD: solo se cuenta la criba que se lleva a una parte grande del grupo.
+   */
+  let farAtPeak = input.riders.length
+  let farEscaped = 0
+  let farNoticeKm = Number.NEGATIVE_INFINITY
+  /** Desde qué kilómetro se está midiendo la selección lejana en curso. */
+  let farFromKm = 0
+  /** Tamaño del bloque anterior y último km en el que el grupo ENCOGIÓ: la criba aún está pasando. */
+  let farPrevSize = input.riders.length
+  let farShrinkKm = 0
   // Último tamaño del grupo de cabeza anunciado, para no repetir el parte de una fuga estable.
   let lastFrontSize = input.riders.length
   let lastFrontReportKm = Number.NEGATIVE_INFINITY
@@ -1736,6 +1755,65 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       frontAtLastNotice = membersOf(PELOTON).length
       splitPhase = 0
       lastSplitDriverId = null
+
+      /**
+       * …pero una criba GRANDE lejos de meta sí decide la etapa, y hasta la v20 no tenía frase
+       * (v21, docs/motor.md §16). El criterio NO es «narra siempre» —eso devolvería el parte por
+       * cada cota del recorrido, que es lo que la v6 midió en 26 líneas por etapa—: es MAGNITUD, y
+       * se mide con dos cosas que el motor sí sabe en carretera.
+       *
+       * 1. **Cuánta gente ha perdido la cabeza de carrera**, contra el MÁXIMO reciente del grupo y
+       *    no contra el último aviso: en un puerto de tempo el pelotón suelta y recoge sin parar, y
+       *    lo que interesa es el saldo. Si el grupo se recompone, la referencia sube y la cuenta
+       *    empieza limpia.
+       * 2. **Que la sangría haya PARADO**. Medido sobre el banco: una cota de tempo hunde el grupo
+       *    de 175 a 90 y lo devuelve entero dos kilómetros después, así que contar en el fondo del
+       *    agujero es contar un espejismo (y además narra un número que nadie volverá a ver).
+       *    Esperar a que el grupo lleve `splitFarSettleKm` sin encoger cuesta cuatro kilómetros de
+       *    retraso y da la cifra con la que la criba se queda.
+       *
+       * Lo que este listón NO puede saber es si la criba se DESHACE cincuenta kilómetros después:
+       * eso es futuro, y el motor emite en carretera. Lo resuelve la crónica, que ve la etapa entera
+       * (`apps/api/src/chronicle.ts`), igual que hizo la v13 con la concesión que luego se desmiente.
+       */
+      const front = membersOf(PELOTON)
+      if (front.length >= farAtPeak) {
+        farAtPeak = front.length
+        farEscaped = 0
+        farFromKm = km
+      }
+      if (front.length < farPrevSize) farShrinkKm = km
+      farPrevSize = front.length
+      const farLost = farAtPeak - front.length - farEscaped
+      if (
+        farLost >= STAGE.splitFarMinDropped &&
+        farLost >= farAtPeak * STAGE.splitFarMinDropFraction &&
+        km - farShrinkKm >= STAGE.splitFarSettleKm &&
+        km - farNoticeKm >= STAGE.splitFarKmGap
+      ) {
+        // Quién aprieta, con el mismo criterio que el corte del desenlace: el más fuerte de los que
+        // siguen delante, que es quien está haciendo el daño.
+        const ranking = front
+          .map((m) => ({ id: m.input.riderId, p: riderPerfil(m, block) }))
+          .sort((a, b) => b.p - a.p || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+        const driver = ranking[0]?.id
+        log.emit(km, peloton.tS, 'criba', 'peloton_selection', driver ? [driver] : [], {
+          dropped: farLost,
+          escapados: farEscaped,
+          remaining: front.length,
+          before: farAtPeak,
+          // Desde dónde y hasta dónde: una criba lejana se cuenta con los km que ha durado, porque
+          // no es un instante sino un tramo (un puerto, un sector de viento).
+          fromKm: Math.round(farFromKm),
+          toGo: Math.round(totalKm - km),
+          chasing: moves.length > 0 ? 1 : 0,
+        })
+        farNoticeKm = km
+        farAtPeak = front.length
+        farEscaped = 0
+        farFromKm = km
+        farShrinkKm = km
+      }
     }
 
     // --- Capa táctica: EL INTENTO DE MOVIMIENTO (docs/motor.md §13) -----------------------
@@ -1885,7 +1963,12 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
         s.climbBoostBlocks = STAGE.matchBonusBlocks
       }
       source.riderIds = source.riderIds.filter((id) => !ids.includes(id))
-      if (source.id === PELOTON) escapedSinceNotice += ids.length
+      if (source.id === PELOTON) {
+        escapedSinceNotice += ids.length
+        // …y lo mismo para la cuenta de la criba lejana, que lleva su propio libro (v21): el que se
+        // ESCAPA no es un descolgado ni aquí ni allí.
+        farEscaped += ids.length
+      }
       const g = createGroup(gid, ids, {
         tS: source.tS - gap,
         vActual: source.vActual,

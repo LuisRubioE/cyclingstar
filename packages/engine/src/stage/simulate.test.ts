@@ -1075,6 +1075,94 @@ describe('el puerto decisivo no es toda la etapa (defecto medido, docs/balance.m
   })
 })
 
+// --- LA CRIBA LEJOS DE META (v21, docs/motor.md §16) ----------------------------------------
+// El corte del desenlace vive dentro de los últimos `climbRaceKmToGo` km, y esa ventana existe por
+// una razón medida (sin ella cada cota escupía una línea). Pero la etapa se decide a veces mucho
+// antes —Race Great Ocean, de 116 a 80 a 50 km de meta— y eso no tenía frase. El motor pone la
+// MAGNITUD; que la criba no se deshaga después lo decide la crónica, que ve la etapa entera.
+
+describe('la criba lejos de meta se cuenta cuando es de verdad (v21)', () => {
+  /**
+   * Un puerto duro que acaba a 50 km de meta, con el campo en ESCALÓN: 24 escaladores muy por
+   * encima de una masa homogénea. Es la forma que rompe una carrera de verdad (la misma lección del
+   * banco de la v17), y por eso es el banco de la criba lejana.
+   */
+  function farSelectionInput(): StageInput {
+    return {
+      profile: {
+        segments: [
+          { km: 130, tipo: 'llano' },
+          { km: 20, tipo: 'puerto', tramos: [{ km: 20, g: 8 }] },
+          { km: 50, tipo: 'llano' },
+        ],
+      },
+      riders: Array.from({ length: 120 }, (_, i) =>
+        rider(`p-${i}`, {
+          eff0:
+            i < 24
+              ? eff(60, { MON: 78, COL: 74, LLA: 66 })
+              : eff(55, { MON: 44 + (i % 12), LLA: 60 }),
+          teamId: `t-${i % 15}`,
+        }),
+      ),
+    }
+  }
+
+  const runs = seedsFor('criba-lejos', 8).map((s) => simulateStage(farSelectionInput(), s))
+  const selections = (out: StageOutput): RaceEvent[] =>
+    out.events.filter((e) => e.plantilla === 'peloton_selection')
+
+  it('la selección que parte la carrera a 50 km de meta tiene evento propio', () => {
+    const withEvent = runs.filter((out) => selections(out).length > 0)
+    expect(withEvent.length).toBeGreaterThanOrEqual(6)
+  })
+
+  it('y ocurre FUERA del desenlace: dentro ya lo cuenta el corte de siempre', () => {
+    for (const out of runs) {
+      for (const e of selections(out)) {
+        expect(Number(e.datos!.toGo)).toBeGreaterThan(STAGE.climbRaceKmToGo)
+      }
+    }
+  })
+
+  it('solo se cuenta la criba GRANDE: el listón es de magnitud, no de kilómetro', () => {
+    for (const out of runs) {
+      for (const e of selections(out)) {
+        const dropped = Number(e.datos!.dropped)
+        const before = Number(e.datos!.before)
+        expect(dropped).toBeGreaterThanOrEqual(STAGE.splitFarMinDropped)
+        expect(dropped).toBeGreaterThanOrEqual(before * STAGE.splitFarMinDropFraction)
+      }
+    }
+  })
+
+  it('la cuenta cierra: los descolgados más los escapados son la diferencia de tamaño', () => {
+    for (const out of runs) {
+      for (const e of selections(out)) {
+        const before = Number(e.datos!.before)
+        const remaining = Number(e.datos!.remaining)
+        expect(before).toBeGreaterThan(remaining)
+        expect(Number(e.datos!.dropped) + Number(e.datos!.escapados)).toBe(before - remaining)
+      }
+    }
+  })
+
+  it('una criba lejana es UNA noticia, no un parte por rampa', () => {
+    for (const out of runs) expect(selections(out).length).toBeLessThanOrEqual(2)
+  })
+
+  it('los avisos guardan entre sí el throttle ancho', () => {
+    for (const out of runs) {
+      const kms = selections(out)
+        .map((e) => e.km)
+        .sort((a, b) => a - b)
+      for (let i = 1; i < kms.length; i++) {
+        expect(kms[i]! - kms[i - 1]!).toBeGreaterThanOrEqual(STAGE.splitFarKmGap)
+      }
+    }
+  })
+})
+
 // --- La capa táctica en carrera (docs/motor.md §13, v9) --------------------------------------
 // Las nueve reglas del dueño, vistas desde la carretera. Las DECISIONES se prueban una a una en
 // `tactics.test.ts`; aquí se comprueba que producen carrera: que hay intentos, que la mayoría

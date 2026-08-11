@@ -3,6 +3,17 @@ import { ENGINE_VERSION } from './index.js'
 
 describe('engine: esqueleto', () => {
   it('expone una engine_version sellada', () => {
+    // v21: LA CRIBA QUE DECIDE LA ETAPA, Y LA FUGA QUE SE HUNDE (docs/motor.md §16,
+    // docs/balance.md «v21»). El corte del pelotón solo se narraba dentro de los últimos
+    // `climbRaceKmToGo` km, y la etapa se decide a veces mucho antes: en Race Great Ocean el grupo
+    // de cabeza pasó de 116 a 80 a 50 km de meta y la crónica no dijo una palabra. Ahora hay un
+    // evento propio para la criba LEJOS de meta (`peloton_selection`), con un listón que no es de
+    // kilómetro sino de MAGNITUD —cuánta gente pierde la cabeza de carrera contra su máximo
+    // reciente, y que la sangría haya parado— porque la ventana existía por una razón medida: sin
+    // ella cada cota escupía una línea. Si la criba se DESHACE después no se cuenta, y eso lo
+    // decide la crónica, que es la única capa que ve la etapa entera. Cambio de OBSERVACIÓN: ni
+    // azar nuevo ni física nueva —el evento no consume un solo dado— y las huellas de tiempos de
+    // `attribution.test.ts` y `timetrial.test.ts` salen idénticas dígito a dígito.
     // v19: EL ABANICO DE LA CONTRARRELOJ (docs/balance.md «v19»). La ley de velocidad de SPEC 6.4
     // era el DOBLE de inclinada de lo que es en carretera, y se veía en la crono, que es donde se
     // aplica sin rebufo ni grupo: en `race-colombia` e3 (33 km) el nivel 40 rodaba a 37,5 km/h
@@ -81,10 +92,10 @@ describe('engine: esqueleto', () => {
     // por las estrellas del sector) y, mucho más suave, en las bajadas de verdad (con DES). Con él,
     // el sector se corre en vez de rodarse, dentro del sector no hay reenganche, y la puerta del
     // pelotón se cierra según lo que aprieta. Entra Strade Bianche.
-    // Sobre la v18 (la contrarreloj), la v17 (el pelotón no se resigna), la v16 (modelo de persecución), la v15 (plan de equipo), la v14 (abandonos), la v13 (identidad y motivo en el journal), la v12 (selección en pavé y descenso), la
+    // Sobre la v21 (la criba lejana), la v18 (la contrarreloj), la v17 (el pelotón no se resigna), la v16 (modelo de persecución), la v15 (plan de equipo), la v14 (abandonos), la v13 (identidad y motivo en el journal), la v12 (selección en pavé y descenso), la
     // v11 (atribución del trabajo), la v10 (composición y caza), la v9 (capa táctica), la
     // v8 (tiempos de grupo), la v7 (modelo de final), la v6 (telemetría), la v5 (clásica larga), la
     // v4 (pavé en el recorrido) y la v3 (Cambio 0).
-    expect(ENGINE_VERSION).toBe(20)
+    expect(ENGINE_VERSION).toBe(21)
   })
 })

@@ -299,8 +299,17 @@
  *    pelotón y sus tiempos son un continuo: el corte de la llana se llevaría media clasificación.
  *
  * Medido en docs/balance.md, «v20».
+ *
+ * **v21 — LA CRIBA QUE DECIDE LA ETAPA.** Cambio de OBSERVACIÓN, sin física ni azar nuevos: el
+ * motor emite donde no emitía. El corte del pelotón (`peloton_split`) solo se narra dentro de los
+ * últimos `climbRaceKmToGo` km, y la etapa se decide a veces mucho antes —Race Great Ocean, de 116
+ * a 80 a 50 km de meta, sin una sola frase—. Nace `peloton_selection`, la criba LEJOS de meta, con
+ * un listón que no es de kilómetro sino de MAGNITUD (`splitFar*`): cuánta gente ha perdido la
+ * cabeza de carrera contra su máximo reciente, y que la sangría haya parado. Que la criba no se
+ * DESHAGA cincuenta kilómetros después no lo puede saber el motor —es futuro— y lo decide la
+ * crónica, que ve la etapa entera. Medido en docs/balance.md, «v21».
  */
-export const ENGINE_VERSION = 20 as const
+export const ENGINE_VERSION = 21 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -786,6 +795,26 @@ export const STAGE = {
   // cuentan cómo cae el grupo, en vez de diez frases clónicas cada 3 km (medido: una criba de 27 km
   // narrada siete veces seguidas con la misma cifra). Un reagrupamiento reinicia la cuenta.
   splitPhaseEscalation: 1,
+  // LA CRIBA LEJOS DE META (v21). Las tres perillas de arriba viven dentro del desenlace
+  // (`climbRaceKmToGo`), y esa ventana existe por una razón medida: con perfiles reales hay relieve
+  // por todas partes y sin ella cada cota escupía una línea. Pero la etapa se decide a veces FUERA
+  // —Race Great Ocean, de 116 a 80 a 50 km de meta, sin una sola frase— y ahí el criterio no puede
+  // ser el mismo. No es «narra siempre»: es «narra la selección que de verdad importa», y eso se
+  // mide por MAGNITUD contra el máximo reciente del grupo, no contra el aviso anterior.
+  //
+  // Los tres números salen de medir el banco de 12 etapas reales × 8 semillas (docs/balance.md v21):
+  // con la fracción sola, un pelotón de 176 daba parte por perder 18 corredores en una cota de
+  // tempo; con el mínimo absoluto solo, un grupo ya roto de 30 daba parte por perder 15. Los dos
+  // juntos dejan pasar la criba que decide la etapa y ninguna más.
+  splitFarMinDropped: 20,
+  splitFarMinDropFraction: 0.25,
+  // Y la criba se cuenta cuando ha PARADO, no en el fondo del agujero: km sin que el grupo encoja
+  // antes de dar el parte. Medido: en una cota de tempo el pelotón cae de 175 a 90 y vuelve entero
+  // dos kilómetros después, así que sin esta espera la frase contaba espejismos —y con ella la
+  // cifra narrada es la que el grupo conserva—. Cuatro kilómetros es el ancho del churn medido.
+  splitFarSettleKm: 4,
+  // Y un throttle ancho: una criba lejana es UNA noticia, no un parte cada tres kilómetros.
+  splitFarKmGap: 20,
   // Reagrupamiento narrado: cuántos corredores tienen que VOLVER al grupo desde el último aviso, en
   // absoluto y como fracción de lo que quedaba, y cada cuántos km como mucho se cuenta. El
   // reagrupamiento existía en el modelo (los cortados recortan `chaseBackSecondsPerKm` en llano y se
