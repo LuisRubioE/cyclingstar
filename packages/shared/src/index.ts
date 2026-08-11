@@ -7,6 +7,7 @@ import { z } from 'zod'
 
 export * from './contracts.js'
 export * from './countries.js'
+export * from './jerseys.js'
 export * from './regions.js'
 export * from './rider.js'
 export * from './raceKey.js'
