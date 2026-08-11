@@ -176,10 +176,14 @@ function findCatches(rides: readonly Ride[], blocks: number, dxKm: number): Catc
         order[k - 1] = behind
         order[k] = ahead
         const key = behind * n + ahead
-        if (!seen.has(key)) {
+        const chaser = rides[behind]!
+        const caught = rides[ahead]!
+        // ALCANZAR es cazar a quien te precede en la RAMPA. Un corredor puede recuperar el
+        // adelantamiento más adelante —le pasa por un repecho y lo vuelve a perder— y ese cruce de
+        // vuelta no es un alcance: es el alcanzado volviendo a su sitio, y contarlo diría que
+        // alguien «caza» a quien salió después que él. Se descarta.
+        if (!seen.has(key) && chaser.startS > caught.startS) {
           seen.add(key)
-          const chaser = rides[behind]!
-          const caught = rides[ahead]!
           out.push({
             tS: clockAt(chaser, i),
             chaserId: chaser.riderId,
