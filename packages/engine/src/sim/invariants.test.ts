@@ -22,6 +22,11 @@ import {
   analyzeRealQueens,
   colombiaRegressionTails,
 } from './realQueens.js'
+import {
+  REAL_TIME_TRIALS,
+  type RealTimeTrialStats,
+  analyzeRealTimeTrials,
+} from './timeTrials.js'
 import { SEASON_CALENDAR } from '../routes/calendar.js'
 import { STAGE } from '../constants.js'
 import {
@@ -92,12 +97,54 @@ describe('contrarreloj (6.17)', () => {
   const scenario = timeTrialScenario()
   const stats = analyzeTimeTrial(scenario, campaignSeeds(scenario.name, 120))
 
-  it('la brecha p90-p10 de una CRI de 40 km mide entre 2 y 4 minutos', () => {
+  it('la brecha p90-p10 de una CRI de 40 km cae en la banda de la ley', () => {
     expectInRange(stats.medianP90MinusP10Seconds, TARGETS.timeTrial.p90MinusP10Seconds)
   })
 
   it('la gana un especialista', () => {
     expectInRange(stats.specialistWinPct, TARGETS.timeTrial.specialistWinPct)
+  })
+})
+
+/**
+ * EL ABANICO DE LA CRONO (v19, `sim/timeTrials.ts`). El invariante que faltaba, y la razón por la
+ * que faltaba: los dos de arriba miden `cri-40` —40 corredores de crono correcto en 40 km de
+ * laboratorio— y estaban en VERDE mientras producción repartía en `race-colombia` e3 una cola del
+ * 46,4 % del primero al último, 65 alcances en 130 corredores, y el corte de tiempo tenía que
+ * quedarse fuera de la crono. Es la misma lección de `realQueens` frente a `grandTour`: lo que no se
+ * mide sobre carreras reales, no se mide.
+ */
+describe('la cola de una CONTRARRELOJ real (v19)', () => {
+  let shared: RealTimeTrialStats | null = null
+  const bench = (): RealTimeTrialStats => (shared ??= analyzeRealTimeTrials(6))
+
+  it('el banco cubre formas distintas, y las dos cronos de producción están dentro', () => {
+    const has = (raceId: string): boolean => REAL_TIME_TRIALS.some((t) => t.raceId === raceId)
+    expect(has('race-colombia')).toBe(true)
+    expect(has('nc-co-itt')).toBe(true)
+    expect(REAL_TIME_TRIALS.length).toBeGreaterThanOrEqual(4)
+    expect(new Set(REAL_TIME_TRIALS.map((t) => t.raceId)).size).toBe(REAL_TIME_TRIALS.length)
+  })
+
+  it('del primero al último hay entre un 8% y un 15%', { timeout: 300000 }, () => {
+    const stats = bench()
+    expect(stats.all.runs).toBe(REAL_TIME_TRIALS.length * 6)
+    expectInRange(stats.all.medianTailPct, TARGETS.timeTrials.tailPct)
+  })
+
+  it('…y ninguna crono suelta se dispara', { timeout: 300000 }, () => {
+    expectInRange(bench().worst.medianTailPct, TARGETS.timeTrials.worstStagePct)
+  })
+
+  it('las velocidades son de profesional: el peor no rueda de cicloturista', { timeout: 300000 }, () => {
+    // El síntoma con el que se vio el defecto: en producción el último de una crono llana de 33 km
+    // entraba a 32,2 km/h. Un profesional, por flojo que sea, rueda una crono llana por encima de
+    // 40; y el mejor de una crono no pasa de 56, que es el récord de la hora con casco aerodinámico.
+    for (const row of bench().perStage) {
+      expect(row.stats.medianLastKmh).toBeGreaterThanOrEqual(40)
+      expect(row.stats.medianWinnerKmh).toBeLessThanOrEqual(56)
+      expect(row.stats.medianWinnerKmh).toBeGreaterThan(row.stats.medianLastKmh)
+    }
   })
 })
 

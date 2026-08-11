@@ -10,6 +10,7 @@
 import { analyzeErosion, analyzeFlat, analyzeMountain, analyzeTimeTrial } from './analyze.js'
 import { analyzeGrandTour } from './grandTour.js'
 import { REAL_QUEENS, analyzeRealQueens, colombiaRegressionTails } from './realQueens.js'
+import { REAL_TIME_TRIALS, analyzeRealTimeTrials } from './timeTrials.js'
 import { analyzeTeamVoice, teamedField } from './tactics.js'
 import { STAGE } from '../constants.js'
 import {
@@ -72,6 +73,26 @@ function main(): void {
     { target: TARGETS.timeTrial.p90MinusP10Seconds, value: ttStats.medianP90MinusP10Seconds },
     { target: TARGETS.timeTrial.specialistWinPct, value: ttStats.specialistWinPct },
   ])
+
+  // …y la crono sobre carreras REALES (v19), que es donde vivía el abanico: `cri-40` es un campo
+  // estrecho de laboratorio y su brecha central estaba en verde mientras producción repartía el 46 %
+  // de cola. Una crono cuesta poco de simular, así que el banco entero corre con 8 semillas.
+  const ttRuns = Math.max(4, Math.round(runs / 60))
+  const rtt = analyzeRealTimeTrials(ttRuns)
+  const rttOk = report(
+    `cronos REALES del calendario (${REAL_TIME_TRIALS.length} cronos × ${ttRuns} semillas)`,
+    rtt.all.runs,
+    [
+      { target: TARGETS.timeTrials.tailPct, value: rtt.all.medianTailPct },
+      { target: TARGETS.timeTrials.worstStagePct, value: rtt.worst.medianTailPct },
+    ],
+    rtt.perStage
+      .map(
+        (row) =>
+          `${`${row.tt.raceId} e${row.tt.stageIndex}`.padEnd(24)} ${row.stats.km.toFixed(0).padStart(2)} km · ${String(row.stats.riders).padStart(3)} corredores · cola ${row.stats.medianTailPct.toFixed(1).padStart(5)}% (peor ${row.stats.maxTailPct.toFixed(1)}%) · ${row.stats.medianWinnerKmh.toFixed(1)} → ${row.stats.medianLastKmh.toFixed(1)} km/h · ${row.stats.medianCatches} alcances`,
+      )
+      .join('\n  '),
+  )
 
   // Desgaste (docs/motor.md §VI.1): la tabla de objetivos del Cambio 0 más la clásica larga.
   // Las dos clásicas corren su RECORRIDO REAL con el campo homogéneo, así que lo único que explica
@@ -198,7 +219,7 @@ function main(): void {
   )
 
   console.log('')
-  process.exit(flatOk && mtnOk && ttOk && eroOk && voiceOk && gtOk && rqOk ? 0 : 1)
+  process.exit(flatOk && mtnOk && ttOk && rttOk && eroOk && voiceOk && gtOk && rqOk ? 0 : 1)
 }
 
 main()

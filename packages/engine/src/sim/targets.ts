@@ -40,8 +40,68 @@ export const TARGETS = {
   },
   /** Contrarreloj canónica (`cri-40`). */
   timeTrial: {
-    p90MinusP10Seconds: { label: 'Brecha p90-p10 (s)', min: 120, max: 240, unit: '' },
+    /**
+     * BRECHA CENTRAL DEL CAMPO. RE-ANCLADA EN LA v19 (120-240 → 80-170 s), y no por comodidad: el
+     * número viejo describía una ley de velocidad que se demostró mal calibrada.
+     *
+     * `cri-40` no es un pelotón cualquiera: son «8 especialistas y 32 corredores de crono correcto»
+     * (`scenarios.ts`), es decir, un campo ESTRECHO por construcción —el perfil compuesto de crono
+     * va de 68 a 79— y sin un solo sprinter ni escalador puro. El p10 es un especialista y el p90 un
+     * rodador correcto: en vatios, entre ellos hay un 7-8 %, que sobre el asfalto llano son un 2,5-3 %
+     * de tiempo, unos 80-90 s en una crono de 40 km, y con las piernas del día encima, algo más.
+     *
+     * Los 120-240 s («2 a 4 minutos») venían de la ley vieja, que sobre ese mismo campo repartía
+     * 233 s: el 8 % del tiempo entre dos corredores que en carretera se llevan el 3 %. Era el mismo
+     * defecto que hacía rodar al nivel 40 a 37,5 km/h y repartía el 46 % de cola en producción
+     * (docs/balance.md «v19»). Medido con la ley corregida: **107 s.**
+     *
+     * La banda no se ha estirado para que quepa el número: el SUELO es el que importa y es una
+     * alarma de verdad. Con la ley plana del todo —si alguien anulara el efecto del nivel— quedarían
+     * solo las piernas del día y el ruido, que sobre este campo dan ~50 s. 80 s de suelo dice «el
+     * nivel del corredor SIGUE decidiendo la crono»; 170 s de techo dice «pero no como para repartir
+     * cuatro minutos entre dos rodadores».
+     */
+    p90MinusP10Seconds: { label: 'Brecha p90-p10 (s)', min: 80, max: 170, unit: '' },
     specialistWinPct: { label: 'Gana un especialista', min: 90, max: 100, unit: '%' },
+  },
+  /**
+   * LA COLA DE UNA CONTRARRELOJ REAL (v19, `sim/timeTrials.ts`). El criterio de éxito de la tanda
+   * que arregla el abanico de la crono, y el invariante que no existía cuando el defecto llevaba
+   * anotado desde la v14.
+   *
+   * POR QUÉ HACE FALTA SI YA ESTABA `timeTrial.p90MinusP10Seconds`. Porque aquel mide la brecha
+   * CENTRAL de un campo estrecho de laboratorio (`cri-40`, 40 corredores de crono correcto) y estaba
+   * en verde mientras producción repartía en `race-colombia` e3 una cola del **46,4 %** del primero
+   * al último y en `nc-co-itt` del 41,2 %: un tercio del campo se pasaba la tarde apartándose (65
+   * alcances en 130 corredores) y el corte de tiempo tuvo que dejarse FUERA de la crono porque
+   * habría eliminado a 150 de 176 en la etapa 1 de una gran vuelta. Es la misma lección que
+   * `realQueens` frente a `grandTour`: lo que no se mide sobre carreras reales, no se mide.
+   */
+  timeTrials: {
+    /**
+     * POR QUÉ 8-15 % Y NO OTRA COSA. En una crono llana de 30-40 km, del primero al último de un
+     * campo continental hay entre un 8 % y un 15 %: un especialista ronda los 50 km/h y el peor
+     * corredor del pelotón, los 43-44. Es lo mismo que decir que entre un especialista WorldTour y
+     * un profesional continental flojo hay un 8-12 % —eso es la LEY (SPEC 6.4)— y que las piernas del
+     * día y la erosión de una crono de 40 km añaden unos puntos más en los extremos del campo.
+     *
+     * Por debajo del 8 % la crono deja de seleccionar y la gana cualquiera, que es tan falso como el
+     * 46 %. Por encima del 15 % vuelven los alcances en cadena y el corte de tiempo sigue sin poder
+     * aplicarse. Se mide en MEDIANA sobre el banco entero —cinco cronos de 33 a 45 km, continentales
+     * y WorldTour— y no crono a crono: una crono corta con campo apretado y una larga con campo
+     * ancho no tienen por qué dar el mismo número, y el objetivo describe el conjunto.
+     */
+    tailPct: { label: 'Cola de una crono real (% del ganador)', min: 8, max: 15, unit: '%' },
+    /**
+     * …Y NINGUNA CRONO SUELTA SE DISPARA. El techo es UN PUNTO por encima de la banda del conjunto,
+     * y ese punto tiene dueño: la crono más larga del calendario (`race-chrono`, 45 km) tiene 12 km
+     * más que el marco de 30-40 km en el que la banda está anclada, y en esos 12 km la EROSIÓN
+     * —que en una crono corta apenas actúa— ensancha la cola. Medido: la misma ley da 14,6 % en los
+     * 33 km de Colombia y 15,3 % en los 45 de `race-chrono`, siete décimas de diferencia que no las
+     * pone la ley sino el depósito. El suelo es 0: que una crono llegue muy junta no es un defecto,
+     * lo dice la mediana del conjunto.
+     */
+    worstStagePct: { label: 'La peor crono real (mediana de su cola)', min: 0, max: 17, unit: '%' },
   },
   /** Erosión al final de etapa (docs/motor.md §VI.1): la tabla de objetivos del Cambio 0. */
   erosion: {
