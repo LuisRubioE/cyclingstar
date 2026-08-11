@@ -316,13 +316,19 @@ perfil_i(bloque):
   paves    -> 0.6 * effNow(PAV) + 0.4 * effNow(LLA)
   descenso -> effNow(DES)
 
-vRef(g) km/h: subida clamp(44 - 2.7*g, 14, 44) | llano 44 | paves 38 | descenso 55
-ritmo(c) = 0.90 + 0.35 * c                 // c = compromiso del grupo: 0 tempo, 1 a bloque
+vRef(g) km/h: subida clamp(188 / (g + 3.5), 8, 42) | llano 42 | paves 38 | descenso 55
+ritmo(c) = 0.90 + 0.30 * c                 // c = compromiso del grupo: 0 tempo, 1 a bloque
 
-v_objetivo(bloque) = vRef(g) * ( P75(perfil de quienes marcan el ritmo) / 75 )^0.34 * ritmo(c)
+potencia(P75) = 0.55 + 0.45 * P75/75       // el atributo NO es un vatio: el 0 de la escala no es "parado"
+e(bloque)     = 0.39                       // llano, paves y descenso: manda el aire, v va como P^(1/3)
+              | 0.39 + 0.61 * clamp(g/6, 0, 1)   // subiendo manda la gravedad: al 6% ya es v ~ P
+
+v_objetivo(bloque) = vRef(g) * potencia( P75(perfil de quienes marcan el ritmo) )^e(bloque) * ritmo(c)
 ```
 
 La misma ley sirve al pelotón, a la fuga, al descolgado solitario y a la contrarreloj: cambian los inputs, no la física.
+
+> **La carga se corrigió en el motor v19** (docs/balance.md, «v19»). Era `(P75/75)^0.34` —0.39 desde el Cambio 0— con un exponente único, y eso son dos errores de física en la misma expresión: la escala 0-100 de un atributo no es una escala de vatios (un continental modesto pone el 85 % de los vatios de un especialista, no el 60 %), y el aire y la gravedad no se pagan igual (en llano la velocidad va como la raíz cúbica de la potencia; subiendo, como la potencia). Con el exponente único la ley acertaba en el puerto y multiplicaba por tres la selección del llano: una contrarreloj llana de 33 km repartía un 46 % del primero al último contra el 8-15 % real, y el nivel 40 rodaba a 37,5 km/h. La `vRef` de subida también cambió de recta a hipérbola en el Cambio 0 (VAM real, 1.500-1.800 m/h).
 
 Inercia: la velocidad real persigue a la objetivo con aceleraciones acotadas. Las cotas se expresan en km/h por segundo (jamás por bloque: misma doctrina de invariancia que las intensidades de 6.8) y son asimétricas:
 
