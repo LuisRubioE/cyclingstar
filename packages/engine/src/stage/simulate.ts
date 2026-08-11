@@ -173,6 +173,14 @@ interface RiderSim {
    */
   bonkKm: number
   /**
+   * EL CORREDOR EN APUROS (v20, docs/motor.md §VI.3): arrastra una caída SERIA de esta etapa. Son
+   * `minor` y `major`, exactamente las severidades que `injuryEndsRace` ya sacaba de la carrera —el
+   * 10 % de las caídas—, así que no es una categoría nueva sino la que ya existía leída dentro de la
+   * etapa. Un corredor tocado **no se engancha a un grupeto** (ver `dropOut`) y abre la segunda vía
+   * del colapso: solo, lejos de meta y ya fuera del corte, se baja de la bici.
+   */
+  hurt: boolean
+  /**
    * Se BAJÓ DE LA BICI en carretera: no llega a meta (`estado: 'abandon'`). Guarda el km para la
    * crónica; `null` mientras siga en carrera.
    */
@@ -413,6 +421,7 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       gaveUp: false,
       bonkNoticed: false,
       bonkKm: 0,
+      hurt: false,
       abandonedKm: null,
       incident: null,
     })
@@ -1344,12 +1353,26 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
      * El grupo nace al ritmo del que se descuelga y el bucle principal lo recalcula cada bloque con
      * `droppedCommit` (v16): ya no hay un `shedCommit` que traer aquí, ni un compromiso especial que
      * pasarle al que se deja ir —lo dice su `gaveUp`, que el ritmo del grupo ya mira—.
+     *
+     * …CON UNA EXCEPCIÓN, Y ES LA DE LA v20: **el que va TOCADO no coge autobús.** El arreglo de
+     * §3-bis-e tenía una consecuencia que nadie había medido: como todo el que se descuelga acaba en
+     * un grupeto, y un grupeto organizado entra siempre dentro del corte, en el motor no existía el
+     * corredor en apuros —el que se ha caído fuerte, va roto y pierde veinte minutos él solo—, que en
+     * carretera es justo el que se va fuera de control. Un corredor con una caída `minor` o `major`
+     * no puede coger la rueda de un grupo que pasa: abre grupo propio y rueda a lo suyo.
+     *
+     * Es la EXCEPCIÓN MOTIVADA y no la regla, y el número lo dice: son el 10 % de las caídas, unas
+     * 0,7 por etapa. La pájara NO entra aquí a propósito —en la reina se vacía el pelotón entero y
+     * quitarle el grupeto al que revienta devolvería los treinta grupos de un corredor de §3-bis-e—.
      */
     const dropOut = (m: RiderSim, group: Group, delayS = 0): void => {
       const tS = group.tS + delayS
-      const near = shed.find(
-        (sg) => Math.abs(sg.tS - tS) <= STAGE.grupetoJoinGapSeconds && membersOf(sg.id).length > 0,
-      )
+      const near = m.hurt
+        ? undefined
+        : shed.find(
+            (sg) =>
+              Math.abs(sg.tS - tS) <= STAGE.grupetoJoinGapSeconds && membersOf(sg.id).length > 0,
+          )
       if (near) {
         m.groupId = near.id
         near.riderIds = [...near.riderIds, m.input.riderId]
@@ -1386,10 +1409,16 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
      * nada, que es justo la mentira que hay que quitar.
      */
     const predictedShedPace = (group: Group, m: RiderSim): number => {
-      const near = shed.find(
-        (sg) =>
-          Math.abs(sg.tS - group.tS) <= STAGE.grupetoJoinGapSeconds && membersOf(sg.id).length > 0,
-      )
+      // …y al TOCADO se le predice lo que de verdad le espera: rodar solo. `dropOut` ya no le da
+      // autobús (v20), así que mirar el grupeto que pasa sería la misma clase de mentira que la v17
+      // quitó de aquí.
+      const near = m.hurt
+        ? undefined
+        : shed.find(
+            (sg) =>
+              Math.abs(sg.tS - group.tS) <= STAGE.grupetoJoinGapSeconds &&
+              membersOf(sg.id).length > 0,
+          )
       const size = near ? membersOf(near.id).length + 1 : 1
       const fresh = m.energy0 > 0 ? Math.max(0, Math.min(1, m.energy / m.energy0)) : 0
       const able = droppedCommit(
@@ -1570,14 +1599,25 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
         if (isBonked(m)) m.bonkKm += STAGE.dx
         else m.bonkKm = 0
         if (abandoned.length >= abandonBudget) continue
-        const ctx = { bonkKm: m.bonkKm, kmToGo: totalKm - km, inFrontGroup: inFront, lostFraction }
+        const ctx = {
+          bonkKm: m.bonkKm,
+          kmToGo: totalKm - km,
+          inFrontGroup: inFront,
+          lostFraction,
+          // El corredor en apuros (v20): tocado y en un grupo diminuto. El tamaño se lee AQUÍ y no en
+          // `abandon.ts` porque es lo único de la regla que depende del estado de la carretera.
+          hurt: m.hurt,
+          groupSize: members.length,
+        }
         if (!shouldCollapse(ctx)) continue
         if (!rollHazard(rngAbandon, collapseLambda(ctx))) continue
         m.abandonedKm = km
         abandoned.push(m)
         group.riderIds = group.riderIds.filter((id) => id !== m.input.riderId)
         log.emit(km, group.tS, 'abandono', 'rider_abandons', [m.input.riderId], {
-          causa: 'colapso',
+          // Se distinguen las dos vías porque la crónica cuenta cosas distintas: uno se ha vaciado y
+          // al otro se lo ha llevado una caída.
+          causa: m.hurt ? 'caida' : 'colapso',
           toGo: Math.round(totalKm - km),
         })
       }
@@ -2022,6 +2062,17 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       // La fusión ENTRE descolgados no pasa por la puerta del pelotón: que dos grupetos que ruedan a
       // la misma altura se junten no depende de lo que apriete un pelotón que va minutos por delante.
       const mergeGap = onRough ? STAGE.grupetoJoinGapSeconds : STAGE.regroupGapSeconds
+      /**
+       * EL GRUPO EN APUROS NO SE FUNDE CON NADIE (v20). `dropOut` ya no le da autobús al que va
+       * tocado, pero sin esto el arreglo duraba un bloque: la fusión de descolgados lo volvía a
+       * meter en el primer grupeto que pasara a menos de 22 s. Un grupo TODO él de heridos ni absorbe
+       * ni es absorbido; en cuanto lleve un corredor entero, vuelve a ser un grupeto normal —dos que
+       * ruedan juntos de verdad se ayudan, y eso también es carretera—.
+       */
+      const allHurt = (g: Group): boolean => {
+        const mem = membersOf(g.id)
+        return mem.length > 0 && mem.every((m) => m.hurt)
+      }
       const stillDropped: Group[] = []
       for (const sg of [...shed].sort((a, b) => a.tS - b.tS)) {
         const mem = membersOf(sg.id)
@@ -2044,7 +2095,9 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
           continue
         }
         // ¿se funde con un grupeto cercano ya por delante? forman un autobús que rueda junto.
-        const near = stillDropped.find((o) => Math.abs(o.tS - sg.tS) <= mergeGap)
+        const near = allHurt(sg)
+          ? undefined
+          : stillDropped.find((o) => Math.abs(o.tS - sg.tS) <= mergeGap && !allHurt(o))
         if (near) {
           for (const m of mem) m.groupId = near.id
           near.riderIds = [...near.riderIds, ...sg.riderIds]
@@ -2065,6 +2118,11 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
         const out = rollCrash(rngCrash, block, isFinal, eff, e, m.input.fragility ?? 1)
         if (!out) continue
         incidents.push({ riderId: m.input.riderId, km, tipo: 'caida', ...out })
+        // EL CORREDOR EN APUROS (v20): la caída SERIA lo marca antes de sacarlo del grupo, porque es
+        // lo que decide si `dropOut` le da autobús o lo deja solo. `minor` y `major` son las mismas
+        // severidades que `injuryEndsRace` ya sacaba de la carrera al día siguiente; un rasguño o un
+        // susto (el 90 % de las caídas) se levanta y vuelve al grupeto como siempre.
+        if (out.severidad === 'minor' || out.severidad === 'major') m.hurt = true
         dropOut(m, group, out.perdidaS)
       }
     }

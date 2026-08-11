@@ -60,6 +60,13 @@ export interface CollapseContext {
    * medida de «ya no pinta nada aquí»: quien va camino de llegar fuera de control es el que se baja.
    */
   lostFraction: number
+  /**
+   * Arrastra una caída SERIA de esta etapa (`minor` o `major`, v20). Es el corredor en apuros de
+   * §VI.3: el que se ha caído fuerte, va tocado y ya no puede coger la rueda de nadie.
+   */
+  hurt: boolean
+  /** Cuántos van en su grupo. Ir SOLO es la mitad de lo que significa estar en apuros. */
+  groupSize: number
 }
 
 /**
@@ -88,17 +95,53 @@ export function shouldCollapse(ctx: CollapseContext): boolean {
   if (ctx.inFrontGroup) return false
   if (ctx.kmToGo < STAGE.collapseMinKmToGo) return false
   if (ctx.lostFraction < STAGE.collapseMinLostFraction) return false
-  return ctx.bonkKm >= STAGE.collapseSustainedKm
+  return ctx.bonkKm >= STAGE.collapseSustainedKm || isInTrouble(ctx)
+}
+
+/**
+ * EL CORREDOR EN APUROS (v20, docs/motor.md §VI.3). La segunda vía del colapso, y la única que de
+ * verdad se dispara en una gran vuelta.
+ *
+ * La primera —la pájara sostenida— es INALCANZABLE y ahora está medido: sobre una gran vuelta entera
+ * el `bonkKm` máximo de un descolgado a más de 30 km de meta es **0,0**, porque con el depósito
+ * re-anclado en la v15 nadie está vaciado tan lejos de casa. No se toca (describe algo verdadero y
+ * saltará el día que un recorrido lo produzca), pero por sí sola dejaba la tercera causa de §VI.3 en
+ * el 0 % de los abandonos.
+ *
+ * Ésta dice lo que pasa en carretera: **el que se baja de la bici es el que se ha caído fuerte y se
+ * ha quedado SOLO**. Las dos mitades cuentan, y por eso son dos condiciones y no una:
+ *
+ * - **Tocado** (`hurt`): una caída `minor` o `major`. No es una categoría inventada para esto, son
+ *   exactamente las que `injuryEndsRace` ya sacaba de la carrera al día siguiente; lo que cambia es
+ *   que una parte de ellas se resuelve donde de verdad se resuelve, en la cuneta.
+ * - **Solo** (`groupSize <= collapseHurtMaxGroup`): mientras vas en un autobús que se releva, llegas.
+ *   El herido no va en autobús porque `dropOut` ya no se lo da (ver `simulate.ts`), y ésta es la
+ *   condición que lo dice en la regla en vez de darlo por hecho.
+ *
+ * Más las dos que comparte con la otra vía y que son las que impiden la hemorragia: lejos de meta
+ * —a diez kilómetros se llega como sea— y ya perdiendo de verdad.
+ */
+function isInTrouble(ctx: CollapseContext): boolean {
+  return ctx.hurt && ctx.groupSize <= STAGE.collapseHurtMaxGroup
 }
 
 /**
  * Intensidad (por km) con que se retira el que ya cumple `shouldCollapse`. No es un interruptor:
  * abandonar es una decisión que se toma en algún momento del calvario, no en el metro exacto en que
- * se cumple la condición. Crece con lo que lleve arrastrándose de más.
+ * se cumple la condición.
+ *
+ * La vía de la PÁJARA crece con lo que lleve arrastrándose de más. La del CORREDOR EN APUROS no
+ * crece: la caída ya ocurrió y el daño no va a más kilómetro a kilómetro, lo que decide es cuánto
+ * tiempo le queda por delante para tomar la decisión. Se toma la mayor de las dos, que es lo que
+ * corresponde a un corredor que cumpla las dos cosas a la vez.
  */
 export function collapseLambda(ctx: CollapseContext): number {
   const extra = Math.max(0, ctx.bonkKm - STAGE.collapseSustainedKm)
-  return STAGE.lambdaCollapse * (1 + STAGE.collapseLambdaGrowthPerKm * extra)
+  const bonk =
+    ctx.bonkKm >= STAGE.collapseSustainedKm
+      ? STAGE.lambdaCollapse * (1 + STAGE.collapseLambdaGrowthPerKm * extra)
+      : 0
+  return Math.max(bonk, isInTrouble(ctx) ? STAGE.lambdaCollapseHurt : 0)
 }
 
 // --- Fuera de control (causa «corte de tiempo» de §VI.3) -------------------------------------

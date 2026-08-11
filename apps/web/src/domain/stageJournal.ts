@@ -343,7 +343,19 @@ function chronicleTemplate(e: ChronicleEntry): string {
     case 'rider_abandons': {
       // ABANDONO EN CARRETERA (docs/motor.md §VI.3): se baja de la bici y no llega a meta. Es el
       // final de la carrera de ese corredor, así que lleva su identidad completa.
+      //
+      // Y desde la v20 el motor dice POR QUÉ: el que se vacía y el que se ha caído no abandonan por
+      // lo mismo, y contar «nothing left» de un corredor al que se ha llevado una caída sería
+      // narrar otra carrera. `causa` viene del evento; si falta, se cuenta como colapso, que es lo
+      // único que el motor emitía antes.
       const toGo = Number(e.datos?.toGo ?? 0)
+      if (e.datos?.causa === 'caida') {
+        return pick([
+          `${who} abandons: too badly hurt in that crash to go on, ${toGo} km from the finish.`,
+          `It is over for ${who} — the crash has ended his race with ${toGo} km still to ride.`,
+          `${who} climbs off, still bleeding from his fall, ${toGo} km from home.`,
+        ])
+      }
       return pick([
         `${who} climbs off and steps into the team car, ${toGo} km from the finish.`,
         `It is over for ${who}: he abandons with ${toGo} km still to ride.`,

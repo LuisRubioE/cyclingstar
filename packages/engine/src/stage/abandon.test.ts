@@ -20,7 +20,12 @@ const collapsing = {
   kmToGo: STAGE.collapseMinKmToGo + 1,
   inFrontGroup: false,
   lostFraction: STAGE.collapseMinLostFraction,
+  hurt: false,
+  groupSize: 30,
 }
+
+/** El corredor en apuros (v20): tocado y solo, sin necesidad de llevar la pájara encima. */
+const inTrouble = { ...collapsing, bonkKm: 0, hurt: true, groupSize: 1 }
 
 describe('colapso', () => {
   it('se retira quien lleva kilómetros vacío, lejos de meta, descolgado y camino del corte', () => {
@@ -50,6 +55,43 @@ describe('colapso', () => {
     const mucho = collapseLambda({ ...collapsing, bonkKm: collapsing.bonkKm + 40 })
     expect(poco).toBeCloseTo(STAGE.lambdaCollapse, 6)
     expect(mucho).toBeGreaterThan(poco)
+  })
+})
+
+/**
+ * EL CORREDOR EN APUROS (v20, docs/motor.md §VI.3). La vía de arriba —la pájara sostenida— está
+ * medida y es INALCANZABLE en una gran vuelta: el `bonkKm` máximo de un descolgado a más de 30 km de
+ * meta es 0,0, así que la tercera causa de §VI.3 aportaba el 0 % de los abandonos. Ésta es la que
+ * ocurre en carretera: el que se ha caído fuerte y se ha quedado solo.
+ */
+describe('el corredor en apuros (v20)', () => {
+  it('el que va tocado y SOLO se baja de la bici sin necesidad de llevar la pájara', () => {
+    expect(shouldCollapse(inTrouble)).toBe(true)
+  })
+
+  it('…pero si va en un autobús, llega: para eso existe el grupeto', () => {
+    const bus = { ...inTrouble, groupSize: STAGE.collapseHurtMaxGroup + 1 }
+    expect(shouldCollapse(bus)).toBe(false)
+  })
+
+  it('…y el que va solo pero ENTERO, también llega', () => {
+    expect(shouldCollapse({ ...inTrouble, hurt: false })).toBe(false)
+  })
+
+  it('el herido respeta las mismas salvaguardas que la otra vía', () => {
+    // Las tres que impiden la hemorragia: en el grupo de cabeza no se baja nadie, cerca de meta se
+    // llega como sea, y el que todavía está en la carrera no abandona.
+    expect(shouldCollapse({ ...inTrouble, inFrontGroup: true })).toBe(false)
+    expect(shouldCollapse({ ...inTrouble, kmToGo: STAGE.collapseMinKmToGo - 1 })).toBe(false)
+    expect(shouldCollapse({ ...inTrouble, lostFraction: 0 })).toBe(false)
+  })
+
+  it('su intensidad no crece con los km: la caída ya ocurrió', () => {
+    expect(collapseLambda(inTrouble)).toBeCloseTo(STAGE.lambdaCollapseHurt, 6)
+    expect(collapseLambda({ ...inTrouble, kmToGo: 120 })).toBeCloseTo(STAGE.lambdaCollapseHurt, 6)
+    // Y el que cumple las DOS vías se lleva la mayor de las dos, no la suma.
+    const ambas = collapseLambda({ ...inTrouble, bonkKm: STAGE.collapseSustainedKm + 200 })
+    expect(ambas).toBeGreaterThan(STAGE.lambdaCollapseHurt)
   })
 })
 
