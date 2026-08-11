@@ -180,6 +180,90 @@ describe('una crono ya no es una línea de journal', () => {
   })
 })
 
+/**
+ * EL CORTE DE TIEMPO DE LA CRONO (v20, docs/motor.md §VI.3). La deuda que abrió la v14 —«no se aplica
+ * el corte en contrarreloj, y por tanto la etapa 1 de una gran vuelta no elimina a nadie aunque el
+ * último entre 36 % detrás»— y que la v19 dejó medida y sin activar.
+ */
+describe('el corte de tiempo de la crono (v20)', () => {
+  it('una crono normal no elimina a nadie', () => {
+    // 120 corredores de 44 a 65 de nivel en 33 km llanos: el campo de una crono de producción. La
+    // cola de un campo así vive en el 13-15 % y el corte está en el 25 %.
+    for (let s = 0; s < 6; s++) {
+      const out = simulateTimeTrial(
+        itt(field(120, true)),
+        stageSeed({ worldSeed: `corte-${s}`, raceId: 'itt', stageDay: 3, engineVersion: 1 }),
+      )
+      expect(out.results.filter((r) => r.estado !== 'finish')).toHaveLength(0)
+      expect(of(out, 'time_cut')).toHaveLength(0)
+    }
+  })
+
+  it('…pero sí señala al que se queda tirado del todo', () => {
+    const out = simulateTimeTrial(itt(stranded(1)), 'tirado')
+    const suyo = out.results.find((r) => r.riderId === 'tirado-0')!
+    expect(suyo.estado).toBe('dnf')
+    expect(suyo.puesto).toBe(0)
+    // Tiene tiempo —cruzó la meta— pero no se clasifica, que es la diferencia entre `dnf` y
+    // `abandon` en este proyecto.
+    expect(suyo.tiempoS).toBeGreaterThan(0)
+    // Y no se lleva a nadie más por delante.
+    expect(out.results.filter((r) => r.estado === 'dnf')).toHaveLength(1)
+    // Los clasificados conservan puestos correlativos desde el 1: el eliminado no gasta número.
+    const puestos = out.results.filter((r) => r.estado === 'finish').map((r) => r.puesto)
+    expect(puestos).toEqual(puestos.map((_, i) => i + 1))
+  })
+
+  it('lo que no cabe en el tope del 4% se readmite con penalización', () => {
+    // La salvaguarda de §VI.3, resuelta con el MISMO `applyTimeCut` que la carretera para que el
+    // corte no pueda divergir entre las dos disciplinas. Ocho corredores tirados sobre un campo de
+    // 28: el tope deja irse a uno (4 % de 28 = 1) y los otros siete vuelven a la carrera.
+    const riders = stranded(8)
+    const out = simulateTimeTrial(itt(riders), 'masacre')
+    const fuera = out.results.filter((r) => r.estado === 'dnf')
+    expect(fuera.length).toBe(Math.floor(STAGE.abandonStageCapFraction * riders.length))
+    const readmitidos = of(out, 'time_cut_readmitted')
+    expect(readmitidos).toHaveLength(1)
+    expect(Number(readmitidos[0]!.datos!.count)).toBe(8 - fuera.length)
+    // Y el readmitido sigue clasificado: la penalización del reglamento le quita los puntos de la
+    // etapa, que en una crono no existen, pero no el tiempo ni el puesto.
+    expect(out.results.filter((r) => r.estado === 'finish')).toHaveLength(riders.length - 1)
+  })
+})
+
+/**
+ * Un campo de 20 corredores buenos más N a los que se les ha roto el día.
+ *
+ * **EL CORREDOR TIRADO ESTÁ EN EL FONDO DE LA ESCALA A PROPÓSITO, y ese detalle dice algo del
+ * modelo.** Con la ley de velocidad de la v19 el NIVEL por sí solo no puede repartir más de un ~26 %
+ * en llano (`p75PowerFloor` = 0,55 topa la escala: `(1/0,55)^0,39` = 1,263), así que un corte del
+ * 25 % está por encima de casi todo lo que el motor sabe expresar. Es lo correcto —el reglamento no
+ * quiere eliminar al último clasificado, quiere eliminar al que se queda tirado— y a la vez es lo que
+ * hay que saber al leer el resultado: **en una crono de producción este corte no va a saltar hasta
+ * que el motor modele el pinchazo y la caída dentro de una contrarreloj**, que hoy no lo hace
+ * (`simulateTimeTrial` devuelve `incidents: []`). Queda anotado en docs/balance.md «v20».
+ */
+function stranded(n: number): StageRider[] {
+  const base = Object.fromEntries(ATTRS.map((a) => [a, 90])) as Record<Attribute, number>
+  const roto = Object.fromEntries(ATTRS.map((a) => [a, 1])) as Record<Attribute, number>
+  const one = (id: string, eff0: Record<Attribute, number>, energy: number): StageRider => ({
+    riderId: id,
+    eff0,
+    energy,
+    matches: 3,
+    tsb: 0,
+    orders: { role: 'libre', mentality: 'reservon', contestSprints: false, contestClimbs: false },
+    gcDeficitSeconds: 0,
+  })
+  // 24 corredores buenos y no 20: el tope del 4 % es `floor(0,04·N)`, así que por debajo de 25
+  // participantes vale CERO y el corte no puede eliminar a nadie —lo readmite todo—. Es correcto
+  // (una carrera de veinte no elimina a nadie por tiempo) y es la razón por la que este banco de
+  // laboratorio necesita un campo mínimo para poder demostrar el corte.
+  const riders = Array.from({ length: 24 }, (_, i) => one(`r-${i}`, base, 100))
+  for (let i = 0; i < n; i++) riders.push(one(`tirado-${i}`, roto, 1))
+  return riders
+}
+
 describe('bordes de la crono', () => {
   it('una crono de un solo corredor se cuenta sin inventarse un rival', () => {
     const out = simulateTimeTrial(itt(field(1, false)), 'sola')

@@ -153,6 +153,14 @@ export interface TimeTrialTail {
   lastKmh: number
   /** Alcances de la jornada (`tt_catches`), que es lo que la cola produce en la carretera. */
   catches: number
+  /**
+   * ELIMINADOS POR EL CORTE DE LA CRONO (v20, `timeCutItt`). Tiene que ser CERO en una crono normal:
+   * el corte de una contrarreloj existe para el que pincha, se cae o se queda tirado, no para el
+   * último clasificado. Es el criterio de aceptación de haberlo activado (docs/motor.md §VI.3).
+   */
+  outOfTime: number
+  /** …y readmitidos con penalización, la otra mitad de la salvaguarda. */
+  readmitted: number
 }
 
 /**
@@ -226,12 +234,18 @@ export function runRealTimeTrial(tt: RealTimeTrial, run: number): TimeTrialTail 
     kind: `${tt.raceId} e${tt.stageIndex}`,
     km,
     riders: times.length,
+    // La cola se mide sobre TODOS los que llegaron, eliminados incluidos: el que queda fuera de
+    // control tiene tiempo, y quitarlo de aquí sería medir la cola después de haberla cortado.
     tailPct: (100 * (last - winner)) / winner,
     medianPct: (100 * (at(0.5) - winner)) / winner,
     p90MinusP10Seconds: at(0.9) - at(0.1),
     winnerKmh: km / (winner / 3600),
     lastKmh: km / (last / 3600),
     catches: typeof catches === 'number' ? catches : 0,
+    outOfTime: out.results.filter((r) => r.estado === 'dnf').length,
+    readmitted: out.events
+      .filter((e) => e.plantilla === 'time_cut_readmitted')
+      .reduce((acc, e) => acc + Number(e.datos?.count ?? 0), 0),
   }
 }
 
@@ -245,6 +259,9 @@ export interface TimeTrialStats {
   medianWinnerKmh: number
   medianLastKmh: number
   medianCatches: number
+  /** Eliminados por el corte en TODAS las corridas del grupo. Tiene que ser 0 (v20). */
+  outOfTime: number
+  readmitted: number
 }
 
 function median(values: number[]): number {
@@ -262,6 +279,8 @@ function summarize(rows: TimeTrialTail[]): TimeTrialStats {
     medianWinnerKmh: median(rows.map((r) => r.winnerKmh)),
     medianLastKmh: median(rows.map((r) => r.lastKmh)),
     medianCatches: median(rows.map((r) => r.catches)),
+    outOfTime: rows.reduce((acc, r) => acc + r.outOfTime, 0),
+    readmitted: rows.reduce((acc, r) => acc + r.readmitted, 0),
   }
 }
 

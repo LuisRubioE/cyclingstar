@@ -21,6 +21,7 @@
  */
 import { normal } from '../random.js'
 import { ENGINE_VERSION, STAGE } from '../constants.js'
+import { applyTimeCut } from './abandon.js'
 import { EventLog } from './events.js'
 import {
   type Eff,
@@ -263,15 +264,33 @@ export function simulateTimeTrial(input: StageInput, seed: string): StageOutput 
   })
 
   const finishers = [...rides].sort((a, b) => a.tS - b.tS)
-  const results: StageResult[] = finishers.map((f, idx) => ({
-    riderId: f.riderId,
-    puesto: idx + 1,
-    tiempoS: Math.round(f.tS),
-    bonificacionS: 0,
-    puntosVolante: 0,
-    puntosMontana: 0,
-    estado: 'finish' as const,
-  }))
+  const outOfTime = applyIttTimeCut(finishers, input.riders.length, finishKm(input), log)
+  // El mismo contrato que `buildResults` en carretera: primero los CLASIFICADOS en orden de etapa y
+  // los no clasificados al final, para que quien consume el array por índice —los puntos de
+  // temporada, la clasificación por equipos— siga viendo el orden real de la etapa.
+  const classified = finishers.filter((f) => !outOfTime.has(f.riderId))
+  const results: StageResult[] = [
+    ...classified.map((f, idx) => ({
+      riderId: f.riderId,
+      puesto: idx + 1,
+      tiempoS: Math.round(f.tS),
+      bonificacionS: 0,
+      puntosVolante: 0,
+      puntosMontana: 0,
+      estado: 'finish' as const,
+    })),
+    ...finishers
+      .filter((f) => outOfTime.has(f.riderId))
+      .map((f) => ({
+        riderId: f.riderId,
+        puesto: 0,
+        tiempoS: Math.round(f.tS),
+        bonificacionS: 0,
+        puntosVolante: 0,
+        puntosMontana: 0,
+        estado: 'dnf' as const,
+      })),
+  ]
 
   narrate(log, input, plan, rides, blocks.length)
 
@@ -283,6 +302,79 @@ export function simulateTimeTrial(input: StageInput, seed: string): StageOutput 
     tank,
     engineVersion: ENGINE_VERSION,
   }
+}
+
+/** Km de meta del recorrido, que es donde se cuelgan los eventos de llegada. */
+function finishKm(input: StageInput): number {
+  return Math.round(input.profile.segments.reduce((sum, seg) => sum + seg.km, 0))
+}
+
+/**
+ * EL CORTE DE TIEMPO DE LA CONTRARRELOJ (v20, docs/motor.md §VI.3). La deuda que la v14 abrió y la
+ * v19 dejó medida y sin activar.
+ *
+ * **Por qué necesita constante propia, y no es una perilla de calibración.** En una etapa en línea
+ * los tiempos llegan apelotonados en un puñado de relojes, así que el corte del 8 % señala al ÚLTIMO
+ * GRUPO y a nadie más; en una crono cada uno tiene su tiempo y la distribución es un CONTINUO, de
+ * modo que cualquier corte por debajo de la cola se lleva media clasificación por definición. Medido
+ * en la v19 sobre `race-colombia` e3: el 8 % elimina a 60 de 130, el 12 % a 5 y el 15 % a 0. El
+ * reglamento real da a las contrarrelojes individuales un plazo mucho más generoso —del orden del
+ * 25 %— justamente por eso, y con `timeCutItt` = 0,25 el corte no señala a nadie en una crono normal
+ * y solo alcanza a quien pincha o se cae, que es lo que un corte tiene que hacer.
+ *
+ * **Y con las dos salvaguardas de §VI.3, igual que en carretera.** El tope del 4 % del pelotón por
+ * etapa y la readmisión con penalización de lo que no quepa en él. Lo único que cambia es lo que es
+ * un «grupo»: en una crono, un grupo es UN corredor, porque cada uno corre su carrera. Se reutiliza
+ * `applyTimeCut` en vez de escribir una segunda versión de la regla, para que el corte no pueda
+ * divergir entre las dos disciplinas.
+ *
+ * (La etapa 1 de una gran vuelta es el caso que hizo saltar la alarma en la v14 —con el corte de la
+ * llana habría eliminado a 150 de 176—; con éste elimina a cero. Ver docs/balance.md «v20».)
+ */
+function applyIttTimeCut(
+  finishers: readonly Ride[],
+  starters: number,
+  km: number,
+  log: EventLog,
+): Set<string> {
+  const out = new Set<string>()
+  if (finishers.length === 0) return out
+  const winnerTs = finishers[0]!.tS
+  if (winnerTs <= 0) return out
+  const limitS = winnerTs * (1 + STAGE.timeCutItt)
+  const budget = Math.floor(STAGE.abandonStageCapFraction * starters)
+  // Un «grupo» de crono es un corredor: los tiempos son un continuo y nadie llega acompañado.
+  const groups = finishers.map((f) => ({ size: 1, timeS: f.tS }))
+  const outcome = applyTimeCut(groups, limitS, budget)
+  if (outcome.eliminated.length === 0 && outcome.readmitted.length === 0) return out
+
+  const pct = Math.round(1000 * STAGE.timeCutItt) / 10
+  const gone = outcome.eliminated.map((i) => finishers[i]!)
+  for (const f of gone) out.add(f.riderId)
+  if (gone.length > 0) {
+    log.emit(km, gone[0]!.finishS, 'fuera_control', 'time_cut', [
+      ...gone.slice(0, 3).map((f) => f.riderId),
+    ], {
+      count: gone.length,
+      limitPct: pct,
+      gapS: Math.round(gone[0]!.tS - winnerTs),
+    })
+  }
+  const back = outcome.readmitted.map((i) => finishers[i]!)
+  if (back.length > 0) {
+    // La penalización del reglamento es la misma que en carretera —perder los puntos de la
+    // clasificación por puntos de la etapa— y en una crono no hay ninguno que perder, así que aquí
+    // se readmite y se cuenta. Sigue haciendo falta: es lo que impide que un corte mal puesto vacíe
+    // media carrera de golpe.
+    log.emit(km, back[back.length - 1]!.finishS, 'readmision', 'time_cut_readmitted', [
+      ...back.slice(0, 3).map((f) => f.riderId),
+    ], {
+      count: back.length,
+      limitPct: pct,
+      gapS: Math.round(back[back.length - 1]!.tS - winnerTs),
+    })
+  }
+  return out
 }
 
 /**
@@ -298,7 +390,7 @@ function narrate(
   blockCount: number,
 ): void {
   if (rides.length === 0 || blockCount === 0) return
-  const finishKm = Math.round(input.profile.segments.reduce((sum, seg) => sum + seg.km, 0))
+  const meta = finishKm(input)
   const byFinish = [...rides].sort((a, b) => a.finishS - b.finishS || a.tS - b.tS)
   const winner = [...rides].sort((a, b) => a.tS - b.tS)[0]!
   const lastOff = plan.slots[plan.slots.length - 1]!
@@ -333,7 +425,7 @@ function narrate(
   for (let c = 1; c <= STAGE.ttSplitChecks; c++) {
     const idx = Math.floor((blockCount * c) / (STAGE.ttSplitChecks + 1)) - 1
     const km = Math.round((idx + 1) * dxKm)
-    if (idx < 0 || km < STAGE.ttSplitMinKm || finishKm - km < STAGE.ttSplitMinKm) continue
+    if (idx < 0 || km < STAGE.ttSplitMinKm || meta - km < STAGE.ttSplitMinKm) continue
     const arrivals = rides
       .map((r) => ({ riderId: r.riderId, timeS: r.raw[idx]! * r.noise, clockS: clockAt(r, idx) }))
       .sort((a, b) => a.clockS - b.clockS)
@@ -364,7 +456,7 @@ function narrate(
   }))
   const { first, changes } = bestChain(finishArrivals)
   if (first) {
-    log.emit(finishKm, first.tS, 'meta', 'tt_first_time', [first.riderId], {
+    log.emit(meta, first.tS, 'meta', 'tt_first_time', [first.riderId], {
       timeS: Math.round(first.timeS),
     })
   }
@@ -375,7 +467,7 @@ function narrate(
   const finishWindowS = lastHome.finishS - byFinish[0]!.finishS
   const bestGap = narrateGapS(finishWindowS, STAGE.ttBestMinClockGapS, STAGE.ttBestNarrateMax)
   for (const b of thin(bestBeats, bestGap)) {
-    log.emit(finishKm, b.tS, 'meta', 'tt_best_time', [b.riderId, b.previousId], {
+    log.emit(meta, b.tS, 'meta', 'tt_best_time', [b.riderId, b.previousId], {
       timeS: Math.round(b.timeS),
       gainS: Math.round(b.gainS),
       prevId: b.previousId,
@@ -403,7 +495,7 @@ function narrate(
   // Y CUÁNTOS FUERON EN TOTAL, que es un dato de la crono y no un adorno: con el abanico de tiempos
   // que reparte hoy el modelo, los primeros en salir se pasan la tarde apartándose.
   if (catches.length > 0) {
-    log.emit(finishKm, lastHome.finishS, 'alcance', 'tt_catches', [], { count: catches.length })
+    log.emit(meta, lastHome.finishS, 'alcance', 'tt_catches', [], { count: catches.length })
   }
 
   // --- 5. El desenlace --------------------------------------------------------------------------
@@ -412,7 +504,7 @@ function narrate(
   // que abre la numeración. No se cuenta si además ha ganado: para eso está `stage_win_itt`.
   const lastRide = rides.find((r) => r.riderId === lastOff.riderId)
   if (lastRide && lastRide.riderId !== winner.riderId) {
-    log.emit(finishKm, lastRide.finishS, 'meta', 'tt_last_home', [lastRide.riderId], {
+    log.emit(meta, lastRide.finishS, 'meta', 'tt_last_home', [lastRide.riderId], {
       gapS: Math.round(lastRide.tS - winner.tS),
       timeS: Math.round(lastRide.tS),
       puesto: rides.filter((r) => r.tS < lastRide.tS).length + 1,
@@ -421,7 +513,7 @@ function narrate(
   // El evento de mejor tiempo cae en META, y en el reloj en que el resultado queda cerrado: el
   // ganador puede haber entrado hace media hora, pero la crono no se gana hasta que entra el último.
   const runnerUp = [...rides].sort((a, b) => a.tS - b.tS)[1]
-  log.emit(finishKm, lastHome.finishS, 'meta', 'stage_win_itt', [winner.riderId], {
+  log.emit(meta, lastHome.finishS, 'meta', 'stage_win_itt', [winner.riderId], {
     timeS: Math.round(winner.tS),
     marginS: runnerUp ? Math.round(runnerUp.tS - winner.tS) : 0,
     startedNth: plan.slots.findIndex((s) => s.riderId === winner.riderId) + 1,
