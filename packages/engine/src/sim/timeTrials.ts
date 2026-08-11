@@ -167,7 +167,8 @@ export function runRealTimeTrial(tt: RealTimeTrial, run: number): TimeTrialTail 
   if (!race) throw new Error(`Banco de cronos: no existe ${tt.raceId}`)
   const stage = race.stages.find((s) => s.index === tt.stageIndex)
   if (!stage) throw new Error(`Banco de cronos: ${tt.raceId} no tiene etapa ${tt.stageIndex}`)
-  if (stage.timeTrial !== true) throw new Error(`Banco de cronos: ${tt.raceId} e${tt.stageIndex} no es crono`)
+  if (stage.timeTrial !== true)
+    throw new Error(`Banco de cronos: ${tt.raceId} e${tt.stageIndex} no es crono`)
 
   const worldSeed = `crono-real-${tt.raceId}-${run}`
   const field = buildField(worldSeed, race.level, tt.championship === true)
@@ -213,7 +214,8 @@ export function runRealTimeTrial(tt: RealTimeTrial, run: number): TimeTrialTail 
   )
   const times = out.results.map((r) => r.tiempoS).sort((a, b) => a - b)
   const winner = times[0] ?? 0
-  if (winner <= 0) throw new Error(`Banco de cronos: ${tt.raceId} e${tt.stageIndex} sin clasificados`)
+  if (winner <= 0)
+    throw new Error(`Banco de cronos: ${tt.raceId} e${tt.stageIndex} sin clasificados`)
   const last = times[times.length - 1]!
   const at = (p: number): number => times[Math.min(times.length - 1, Math.floor(times.length * p))]!
   const km = stage.profile.segments.reduce((sum, seg) => sum + seg.km, 0)

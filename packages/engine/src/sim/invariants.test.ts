@@ -22,11 +22,7 @@ import {
   analyzeRealQueens,
   colombiaRegressionTails,
 } from './realQueens.js'
-import {
-  REAL_TIME_TRIALS,
-  type RealTimeTrialStats,
-  analyzeRealTimeTrials,
-} from './timeTrials.js'
+import { REAL_TIME_TRIALS, type RealTimeTrialStats, analyzeRealTimeTrials } from './timeTrials.js'
 import { SEASON_CALENDAR } from '../routes/calendar.js'
 import { STAGE } from '../constants.js'
 import {
@@ -136,16 +132,20 @@ describe('la cola de una CONTRARRELOJ real (v19)', () => {
     expectInRange(bench().worst.medianTailPct, TARGETS.timeTrials.worstStagePct)
   })
 
-  it('las velocidades son de profesional: el peor no rueda de cicloturista', { timeout: 300000 }, () => {
-    // El síntoma con el que se vio el defecto: en producción el último de una crono llana de 33 km
-    // entraba a 32,2 km/h. Un profesional, por flojo que sea, rueda una crono llana por encima de
-    // 40; y el mejor de una crono no pasa de 56, que es el récord de la hora con casco aerodinámico.
-    for (const row of bench().perStage) {
-      expect(row.stats.medianLastKmh).toBeGreaterThanOrEqual(40)
-      expect(row.stats.medianWinnerKmh).toBeLessThanOrEqual(56)
-      expect(row.stats.medianWinnerKmh).toBeGreaterThan(row.stats.medianLastKmh)
-    }
-  })
+  it(
+    'las velocidades son de profesional: el peor no rueda de cicloturista',
+    { timeout: 300000 },
+    () => {
+      // El síntoma con el que se vio el defecto: en producción el último de una crono llana de 33 km
+      // entraba a 32,2 km/h. Un profesional, por flojo que sea, rueda una crono llana por encima de
+      // 40; y el mejor de una crono no pasa de 56, que es el récord de la hora con casco aerodinámico.
+      for (const row of bench().perStage) {
+        expect(row.stats.medianLastKmh).toBeGreaterThanOrEqual(40)
+        expect(row.stats.medianWinnerKmh).toBeLessThanOrEqual(56)
+        expect(row.stats.medianWinnerKmh).toBeGreaterThan(row.stats.medianLastKmh)
+      }
+    },
+  )
 })
 
 describe('desgaste (docs/motor.md §VI.1)', () => {
