@@ -878,7 +878,10 @@ describe('el maillot de líder en la crónica', () => {
       datos: { won: 'sprint' },
     })
     expect(chronicleLine(e)).toBe(chronicleLine(sinMaillot))
-    expect(chronicleLine(e)).not.toMatch(/[\u0001-\u0002]/)
+    // Sin marcas invisibles dentro: el texto pelado es texto y nada más. Se comprueba con
+    // `String.fromCharCode` y no con una expresión regular, que con caracteres de control
+    // literales es justo lo que prohíbe `no-control-regex`.
+    for (const marca of [1, 2]) expect(chronicleLine(e)).not.toContain(String.fromCharCode(marca))
   })
 
   it('el maillot abre la mención, delante de la bandera y del dorsal', () => {
