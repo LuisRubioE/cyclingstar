@@ -4404,6 +4404,28 @@ km 117  This is the selection of the day with 93 km still to go: the chase group
 km 127  The lone leader's advantage is down to 1:11.
 ```
 
+El caso que mejor lo enseña, sin embargo, es Race Colombia e5 —232 km, el último puerto a 62 km de
+meta—, porque ahí el lector perdía 110 corredores por el camino sin que nadie se lo dijera. Antes y
+después, el mismo tramo:
+
+```
+ANTES                                                  DESPUÉS
+km 185  9 Rider 8 tries his luck up the road…          km 185  9 Rider 8 tries his luck up the road…
+                                                       km 189  Team bt-11 force the selection with 43
+                                                               km still to go — 99 riders lose the
+                                                               wheel and only 16 of the 126 are left
+                                                               in the chase.
+km 192  Out front the lone leader stretches…           km 192  Out front the lone leader stretches…
+…                                                      …
+km 225  Team bt-5 lift the pace; the chase group       km 225  Team bt-5 lift the pace; the chase group
+        thins out from 16 to 10 over the climb.                thins out from 16 to 10 over the climb.
+```
+
+La última línea es de `peloton_split` y es la primera vez que la crónica vieja decía un número: **16**.
+El lector venía de un pelotón de 126 y nadie le había contado los 110 que faltaban, porque la cadena
+de avisos sin huecos que la v6 y la v8 construyeron solo vive DENTRO del desenlace. Esa es, en una
+línea, la deuda que esta tanda cierra.
+
 Y con el campo de 18 equipos de 8 con el que la v16 la reprodujo, **hoy no hay criba que contar**:
 la etapa termina con 142-144 corredores al tiempo del ganador en las 6 semillas y no se emite ni una
 selección lejana. No es un fallo del listón: es que la v17 —«el pelotón no se resigna»— arregló
