@@ -287,7 +287,7 @@
  *    con el tanque a cero a más de 30 km de meta, y en una gran vuelta entera el `bonkKm` máximo de
  *    un descolgado a esa distancia de meta es **0,0**: la condición no se cumple jamás. La causa que
  *    §VI.3 pone en tercer lugar aportaba el 0 % de los abandonos.
- * 2. **El CORREDOR EN APUROS no existía** (`riderInTrouble`). Cuando alguien se descolgaba,
+ * 2. **El CORREDOR EN APUROS no existía** (`isInTrouble`). Cuando alguien se descolgaba,
  *    `dropOut` lo unía al grupeto que rodara a su altura —el arreglo de §3-bis-e— y por tanto TODO
  *    el mundo acababa en un autobús, incluido el que se acababa de romper la clavícula. En carretera
  *    el que se va fuera de control es el que se queda SOLO. Ahora el que arrastra una caída SERIA
