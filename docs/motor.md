@@ -1172,11 +1172,12 @@ mánager** (herramienta futura: no convocar, sancionar, rescindir).
 > anotaron como deuda y no lo tocaron. La v20 lo toca, y lo primero que hace es **contrastar el 45 %
 > con el ciclismo real antes de calibrar hacia él**. No se sostiene:
 >
-> | Gran vuelta        | Abandonos | De ellos, FUERA DE CONTROL |
-> | ------------------ | --------: | -------------------------: |
-> | Vuelta a España 2024 |    39 de 176 |  **1** (Nico Denz, e20) |
-> | Giro d'Italia 2024   |    34 de 176 |  **0**                  |
-> | Tour de France 2024  |    26 de 176 |  **1** (e12)            |
+> | Gran vuelta          | Abandonos | De ellos, FUERA DE CONTROL |
+> | -------------------- | --------: | -------------------------: |
+> | Vuelta a España 2024 | 39 de 176 |     **1** (Nico Denz, e20) |
+> | Giro d'Italia 2024   | 34 de 176 |                      **0** |
+> | Giro d'Italia 2023   | 51 de 176 |                      **0** |
+> | Tour de France 2024  | 26 de 176 |                **1** (e12) |
 >
 > **Del orden del 0-4 % de los abandonos de una gran vuelta son eliminaciones por el corte, no el
 > 45 %.** Y tiene una explicación de reglamento, no de estadística: **el grupeto existe precisamente
@@ -1212,8 +1213,8 @@ etapa**, no más.
 Tres causas, con su peso objetivo **(re-anclado en la v20; el reparto viejo, 45/40/15, está tachado
 arriba con la medida que lo desmiente)**:
 
-| Causa                | Peso  | Real (4 grandes vueltas) | Medido v20 | Regla                                                                                                                                                   |
-| -------------------- | ----- | ------------------------ | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Causa                | Peso  | Real (4 grandes vueltas) | Medido v20 | Regla                                                                                                                                                    |
+| -------------------- | ----- | ------------------------ | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Caída**            | ~45 % | 14 – 42 %                | **62 %**   | Caída `minor` o `major`, o baja ≥ `abandonInjuryDays`. Dos desenlaces: no tomar la salida mañana (`packages/db`) o **bajarse de la bici hoy** (el motor) |
 | **Enfermedad**       | ~50 % | 54 – 86 %                | **34 %**   | Enfermar durante la carrera (`raceIllnessProbability`), que es también el «no toma la salida» sin causa declarada de las listas reales                   |
 | **Fuera de control** | ~5 %  | 0 – 4 %                  | **4 %**    | Llegar fuera de un % del tiempo del ganador, según dureza: **8 %** en llana, hasta **18 %** en la reina, y **25 %** en contrarreloj (`timeCutItt`)       |

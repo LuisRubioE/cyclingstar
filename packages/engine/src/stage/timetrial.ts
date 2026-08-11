@@ -352,13 +352,18 @@ function applyIttTimeCut(
   const gone = outcome.eliminated.map((i) => finishers[i]!)
   for (const f of gone) out.add(f.riderId)
   if (gone.length > 0) {
-    log.emit(km, gone[0]!.finishS, 'fuera_control', 'time_cut', [
-      ...gone.slice(0, 3).map((f) => f.riderId),
-    ], {
-      count: gone.length,
-      limitPct: pct,
-      gapS: Math.round(gone[0]!.tS - winnerTs),
-    })
+    log.emit(
+      km,
+      gone[0]!.finishS,
+      'fuera_control',
+      'time_cut',
+      [...gone.slice(0, 3).map((f) => f.riderId)],
+      {
+        count: gone.length,
+        limitPct: pct,
+        gapS: Math.round(gone[0]!.tS - winnerTs),
+      },
+    )
   }
   const back = outcome.readmitted.map((i) => finishers[i]!)
   if (back.length > 0) {
@@ -366,13 +371,18 @@ function applyIttTimeCut(
     // clasificación por puntos de la etapa— y en una crono no hay ninguno que perder, así que aquí
     // se readmite y se cuenta. Sigue haciendo falta: es lo que impide que un corte mal puesto vacíe
     // media carrera de golpe.
-    log.emit(km, back[back.length - 1]!.finishS, 'readmision', 'time_cut_readmitted', [
-      ...back.slice(0, 3).map((f) => f.riderId),
-    ], {
-      count: back.length,
-      limitPct: pct,
-      gapS: Math.round(back[back.length - 1]!.tS - winnerTs),
-    })
+    log.emit(
+      km,
+      back[back.length - 1]!.finishS,
+      'readmision',
+      'time_cut_readmitted',
+      [...back.slice(0, 3).map((f) => f.riderId)],
+      {
+        count: back.length,
+        limitPct: pct,
+        gapS: Math.round(back[back.length - 1]!.tS - winnerTs),
+      },
+    )
   }
   return out
 }
