@@ -1129,7 +1129,7 @@ mánager** (herramienta futura: no convocar, sancionar, rescindir).
 > desobedecer sigue siendo posible y a veces acertado (soy más fuerte que mi líder, o me han dado un
 > rol absurdo), pero no es gratis por defecto.
 
-### VI.3 Umbral del abandono automático (HECHO, v14)
+### VI.3 Umbral del abandono automático (HECHO, v14 · ESPECIFICACIÓN CORREGIDA en la v20)
 
 > **Implementado y medido.** La precondición de más abajo —«hasta que el reagrupamiento esté
 > arreglado, aplicar el corte eliminaría a media carrera»— **se comprobó antes de escribir una línea
@@ -1164,17 +1164,98 @@ mánager** (herramienta futura: no convocar, sancionar, rescindir).
 > (siempre la más dura del calendario) y la readmisión con penalización no llega a activarse en el
 > calendario real, por la misma razón que el corte.
 
+> ---
+>
+> ## LA CORRECCIÓN DE LA v20: EL 45 % ERA NUESTRO, NO DEL CICLISMO
+>
+> Tres tandas —la v14, la v16 y la v19— midieron el reparto de causas contra la tabla de abajo, lo
+> anotaron como deuda y no lo tocaron. La v20 lo toca, y lo primero que hace es **contrastar el 45 %
+> con el ciclismo real antes de calibrar hacia él**. No se sostiene:
+>
+> | Gran vuelta        | Abandonos | De ellos, FUERA DE CONTROL |
+> | ------------------ | --------: | -------------------------: |
+> | Vuelta a España 2024 |    39 de 176 |  **1** (Nico Denz, e20) |
+> | Giro d'Italia 2024   |    34 de 176 |  **0**                  |
+> | Tour de France 2024  |    26 de 176 |  **1** (e12)            |
+>
+> **Del orden del 0-4 % de los abandonos de una gran vuelta son eliminaciones por el corte, no el
+> 45 %.** Y tiene una explicación de reglamento, no de estadística: **el grupeto existe precisamente
+> para entrar dentro del corte, y casi siempre lo consigue**. Un corte que se llevara por delante a la
+> mitad de los que abandonan no sería un corte, sería una guillotina —que es justo lo que la v17 vio
+> en producción y corrigió—. Lo que vacía una gran vuelta son las caídas, las enfermedades y el
+> agotamiento; el fuera de control es la excepción que remata a quien ya venía roto.
+>
+> El 45 % venía de una intuición nuestra sobre lo que «debía» pesar el corte de tiempo por ser la
+> regla más vistosa, y **perseguirlo habría obligado a estrechar el corte hasta dejarlo por debajo de
+> la cola de la carrera** — es decir, a romper a propósito el modelo de persecución que la v16 y la
+> v17 costaron enteras. Se prefiere corregir la especificación antes que calibrar el motor hacia un
+> objetivo equivocado.
+>
+> **La tabla de abajo queda re-anclada sobre esos datos**, y con dos cambios más de fondo:
+>
+> 1. **La «lesión» y el «colapso» dejan de ser causas independientes y pasan a ser DOS SITIOS de la
+>    misma causa: la CAÍDA.** El que se cae fuerte a veces termina la etapa y no toma la salida al día
+>    siguiente (lo decide `packages/db`) y a veces se baja de la bici en la cuneta (lo decide el
+>    motor). En el ciclismo real es un solo bloque —«crash/injury», 11-14 corredores por gran vuelta—
+>    y medirlo partido en dos no dice nada útil.
+> 2. **La «enfermedad» absorbe lo que en las listas reales es el bloque de DNS sin causa declarada**
+>    (18-20 corredores por gran vuelta): enfermar de verdad, y también el que amanece cocido y no se
+>    sube a la bici. Es lo que el motor modela con `raceIllnessProbability`, y es el bloque más grande
+>    de todos, no el 15 % de la tabla vieja.
+>
+> ---
+
 **Objetivo de diseño, medible:** una gran vuelta de 21 etapas debe empezar con ~176 y terminar con
 **entre 140 y 155** (abandona el **12-20%**), que es el rango real. Traducido: **≈1% del pelotón por
 etapa**, no más.
 
-Tres causas, con su peso objetivo:
+Tres causas, con su peso objetivo **(re-anclado en la v20; el reparto viejo, 45/40/15, está tachado
+arriba con la medida que lo desmiente)**:
 
-| Causa                    | Peso  | Regla                                                                                                                   |
-| ------------------------ | ----- | ----------------------------------------------------------------------------------------------------------------------- |
-| **Fuera de control**     | ~45 % | Llegar fuera de un % del tiempo del ganador, según dureza de la etapa: **8%** en llana, hasta **18%** en la etapa reina |
-| **Lesión**               | ~40 % | Caída de severidad `major` con baja por encima de un umbral → no toma la salida al día siguiente                        |
-| **Colapso / enfermedad** | ~15 % | Tanque a cero lejos de meta de forma sostenida, o enfermar durante la carrera                                           |
+| Causa                | Peso  | Real (4 grandes vueltas) | Medido v20 | Regla                                                                                                                                                   |
+| -------------------- | ----- | ------------------------ | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Caída**            | ~45 % | 14 – 42 %                | **62 %**   | Caída `minor` o `major`, o baja ≥ `abandonInjuryDays`. Dos desenlaces: no tomar la salida mañana (`packages/db`) o **bajarse de la bici hoy** (el motor) |
+| **Enfermedad**       | ~50 % | 54 – 86 %                | **34 %**   | Enfermar durante la carrera (`raceIllnessProbability`), que es también el «no toma la salida» sin causa declarada de las listas reales                   |
+| **Fuera de control** | ~5 %  | 0 – 4 %                  | **4 %**    | Llegar fuera de un % del tiempo del ganador, según dureza: **8 %** en llana, hasta **18 %** en la reina, y **25 %** en contrarreloj (`timeCutItt`)       |
+
+**La causa del encargo queda cumplida y las otras dos quedan INVERTIDAS, y hay que decirlo con el
+número delante.** El «fuera de control» está donde el ciclismo lo pone; el bloque de la caída y el de
+la enfermedad están del revés respecto a la carretera, porque **la enfermedad en carrera pesa la
+mitad de lo que pesa en la vida**. El arreglo se probó en esta misma tanda —subir
+`HEALTH.illnessRaceMax` de 0,0028 a 0,0050 pone el reparto en 50 / 47 / 3 y el total en el 16,6 %,
+los dos mejores— y **se descartó porque `grandTour.queenLastGroupPct` cae de 8,4 % a 6,9 %**: se
+compraría la mezcla rompiendo el criterio de éxito del modelo de persecución, que costó las tandas
+v16 y v17 enteras. Queda como deuda NOMBRADA y medida, no como número escondido.
+
+**El suelo del 1 % de la última fila no es holgura: es la alarma que faltaba.** Lo que hay que
+vigilar de esa causa no es que sea grande —no lo es en la vida— sino que **no vuelva a quedarse
+muda**: en la v14 valía el 1 % porque el corte no señalaba a nadie, y ese sí era un defecto. Un
+corte que no elimina jamás a nadie no es un corte. Y las bandas de `sim/targets.ts` no son estos
+pesos: son el margen que hoy se puede sostener, con un techo de **dos tercios** para que ninguna
+causa se quede con la carrera entera mientras la deuda de arriba siga abierta.
+
+> **EL CORREDOR EN APUROS (v20), que es la pieza que faltaba para que el corte signifique algo.** El
+> arreglo de §3-bis-e —que `dropOut` una al descolgado con el grupeto que rueda a su altura, sin el
+> cual la reina terminaba con treinta grupos de un corredor— tenía una consecuencia que nadie había
+> medido: **todo el mundo acababa en un autobús**, y un autobús organizado entra siempre dentro del
+> corte. En carretera el que se va fuera de control es el que se queda SOLO: el que se ha caído y va
+> tocado, el que ha reventado del todo, el que arrastra una avería.
+>
+> Medido antes de tocar nada, sobre 42 etapas reina de gran vuelta: **detrás del pelotón principal
+> entran 14,3 corredores por etapa, y de ellos 1,29 van SOLOS** — así que el corredor suelto sí
+> existía. Lo que no existía es que **irse solo le costara algo**: el que llega solo pierde el 5,7 %
+> de mediana y el autobús el 5,3 %, y ninguno de los 54 solos medidos pasó del 18 % del corte. Por eso
+> el arreglo no es «que haya corredores sueltos» sino **que al que va roto no se le regale el
+> autobús**: con una caída `minor` o `major` encima no se engancha a un grupeto, ni al descolgarse ni
+> en la fusión de descolgados, y desde ahí se abre la segunda vía del colapso. Es la **excepción
+> motivada** que §3-bis-e exige y no la regla: son el 10 % de las caídas, unas 0,7 por etapa.
+
+**Y el COLAPSO por pájara sostenida era código muerto, medido.** La regla «tanque a cero de forma
+sostenida lejos de meta» exige 20 km seguidos vacío a más de 30 km de meta, y sobre una gran vuelta
+entera —624.640 bloques de corredor descolgado a esa distancia— el `bonkKm` máximo es **0,0**: con el
+depósito re-anclado en la v15 nadie está vaciado tan lejos de casa. No se retira porque describe algo
+verdadero y saltará el día que un recorrido lo produzca, pero **no es la vía por la que uno se baja
+de la bici en una gran vuelta**; ésa es la del corredor en apuros.
 
 **Dos salvaguardas contra la hemorragia**, que es el riesgo real:
 
@@ -1185,6 +1266,22 @@ Tres causas, con su peso objetivo:
    produce 30 grupos de un corredor (§3-bis-e). Hasta que el reagrupamiento del Cambio 0 esté
    arreglado, aplicar el corte tal cual eliminaría a media carrera. **El abandono automático se
    implementa DESPUÉS del reagrupamiento, no antes.**
+
+**EL CORTE EN CONTRARRELOJ (v20, `timeCutItt` = 0,25).** La v14 dejó la crono fuera del corte y tenía
+razón: con el abanico de aquel motor —36 % de cola— la etapa 1 de una gran vuelta habría eliminado a
+150 de 176. La v19 arregló la ley de velocidad, dejó la cola en el 13,5 % y midió que ya se podía,
+con una condición: **el corte de la crono necesita constante propia, y no por calibración sino por
+forma**. En una etapa en línea los tiempos llegan apelotonados en un puñado de relojes y el 8 %
+señala al último GRUPO; en una crono cada uno tiene el suyo y la distribución es un continuo, así que
+cualquier corte por debajo de la cola se lleva media clasificación por definición (el 8 % elimina a
+60 de 130 en `race-colombia` e3). El reglamento real da a las contrarrelojes individuales un plazo
+del orden del 25 % justamente por eso.
+
+Con el 25 %: **cero eliminados** en las cinco cronos reales del banco y **cero** en las dos cronos de
+la gran vuelta, incluida la etapa 1 que hizo saltar la alarma en la v14. Sigue mordiendo donde debe:
+un corredor cuyo día se derrumba del todo pasa del 25 % y queda fuera. Y trae las dos salvaguardas de
+arriba tal cual —el tope del 4 % y la readmisión—, con la única diferencia de que en una crono **un
+grupo es un corredor**, porque cada uno corre su carrera.
 
 Y el corredor humano tiene siempre la salida voluntaria de §V.5, que es la que convierte esto en
 decisión de juego y no en castigo.

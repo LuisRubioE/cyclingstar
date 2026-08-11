@@ -274,8 +274,33 @@
  * 44 km/h y el 90 a 50, y los alcances de una crono de 130 corredores caen de 65 a un puñado.
  * Con ella, el orden de salida desempata la general por PUESTO (`StageRider.gcRank`) y no por
  * dorsal. Medido en docs/balance.md, «v19».
+ *
+ * v20 (EL CORREDOR EN APUROS Y EL CORTE DE LA CRONO, docs/motor.md §VI.3). Dos tandas —la v14 y la
+ * v19— midieron y anotaron que el REPARTO de causas de los abandonos no cuadraba con §VI.3 sin
+ * tocarlo. Esta lo toca, y lo primero que hace es CORREGIR LA ESPECIFICACIÓN: el 45 % que §VI.3
+ * asignaba al «fuera de control» no lo sostiene el ciclismo real —en la Vuelta 2024 fue 1 de 39
+ * abandonos y en el Giro 2024, 0 de 34—, así que perseguirlo habría sido calibrar el motor hacia un
+ * objetivo equivocado. La tabla de §VI.3 se re-ancla sobre datos y el motor se arregla donde de
+ * verdad estaba roto:
+ *
+ * 1. **El COLAPSO era código muerto, y ahora está medido.** `shouldCollapse` exigía 20 km seguidos
+ *    con el tanque a cero a más de 30 km de meta, y en una gran vuelta entera el `bonkKm` máximo de
+ *    un descolgado a esa distancia de meta es **0,0**: la condición no se cumple jamás. La causa que
+ *    §VI.3 pone en tercer lugar aportaba el 0 % de los abandonos.
+ * 2. **El CORREDOR EN APUROS no existía** (`riderInTrouble`). Cuando alguien se descolgaba,
+ *    `dropOut` lo unía al grupeto que rodara a su altura —el arreglo de §3-bis-e— y por tanto TODO
+ *    el mundo acababa en un autobús, incluido el que se acababa de romper la clavícula. En carretera
+ *    el que se va fuera de control es el que se queda SOLO. Ahora el que arrastra una caída SERIA
+ *    (`minor`/`major`, las mismas que ya sacaban de la carrera) no se engancha a ningún autobús, y
+ *    con eso se abre la segunda vía del colapso: solo, lejos de meta y ya fuera del corte, se baja
+ *    de la bici. Es la EXCEPCIÓN motivada y no la regla: son ~0,7 caídas serias por etapa.
+ * 3. **El corte de tiempo entra en la CONTRARRELOJ** (`timeCutItt` = 0,25), que la v14 dejó fuera
+ *    por un defecto del motor que la v19 arregló. Con su constante propia, porque una crono no tiene
+ *    pelotón y sus tiempos son un continuo: el corte de la llana se llevaría media clasificación.
+ *
+ * Medido en docs/balance.md, «v20».
  */
-export const ENGINE_VERSION = 19 as const
+export const ENGINE_VERSION = 20 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -1363,8 +1388,15 @@ export const STAGE = {
   // umbral de energía: se probaron «fondo del depósito» en vez de cero exacto (0,06/0,10/0,15) y
   // `collapseMinLostFraction` en 0,035 y 0,02, y ninguna de las cinco variantes cambia un solo
   // abandono. Lo que lo bloquea es la combinación de estos 20 km con los 30 de abajo: con un
-  // depósito del tamaño correcto NADIE está vaciado a más de 30 km de meta. Es la misma deuda del
-  // modelo de persecución que tiene al «fuera de control» en el 1 %, y no se tapa con una perilla.
+  // depósito del tamaño correcto NADIE está vaciado a más de 30 km de meta.
+  //
+  // MEDIDO POR FIN EN LA v20, y el número cierra el diagnóstico: sobre una gran vuelta entera
+  // (624.640 bloques de corredor descolgado a más de 30 km de meta) el `bonkKm` MÁXIMO es **0,0** —
+  // no «pequeño», cero— mientras que la otra condición, `collapseMinLostFraction`, se cumple en
+  // 5.852 de esos bloques. Esta vía del colapso no es una perilla mal puesta: es INALCANZABLE por
+  // construcción, y por eso la v20 no la mueve —describe algo verdadero, la pájara sostenida de una
+  // etapa infernal, y ya se disparará el día que un recorrido la produzca— sino que le añade al lado
+  // la vía que sí ocurre en carretera (`collapseHurt*`, el corredor en apuros).
   collapseSustainedKm: 20,
   // …y a más de estos km de meta. A diez kilómetros de la línea nadie se baja de la bici.
   collapseMinKmToGo: 30,
@@ -1378,12 +1410,51 @@ export const STAGE = {
   // también llegan vacíos (ver `shouldCollapse`).
   collapseMinLostFraction: 0.05,
 
+  // EL CORREDOR EN APUROS (v20, docs/motor.md §VI.3). La segunda vía del colapso, y la que de verdad
+  // ocurre: el que se baja de la bici a mitad de etapa en una gran vuelta no es el que lleva veinte
+  // kilómetros con la pájara —eso no pasa nunca, ver arriba—, es **el que se ha caído fuerte y se ha
+  // quedado solo**. Las cuatro condiciones son las de la vía de la pájara salvo la primera, que
+  // cambia «tanque a cero sostenido» por «arrastra una caída seria»: descolgado, a más de
+  // `collapseMinKmToGo` de meta, ya perdiendo más de `collapseMinLostFraction` y en un grupo de como
+  // mucho `collapseHurtMaxGroup` corredores.
+  //
+  // «Caída seria» NO es una categoría nueva: son `minor` y `major`, exactamente las que
+  // `injuryEndsRace` ya sacaba de la carrera (el 10 % de las caídas). Lo único que cambia para ellos
+  // es DÓNDE se resuelve: antes terminaban la etapa en un grupeto y no tomaban la salida al día
+  // siguiente (causa `lesión`); ahora una parte se retira en carretera, que es lo que hace el que va
+  // en la ambulancia. No se inventa un abandono: se le pone el sitio correcto.
+  collapseHurtMaxGroup: 2,
+  // Intensidad (por km) de esa segunda vía. Es más alta que `lambdaCollapse` porque las condiciones
+  // son más raras y porque el que la cumple ya no tiene carrera: con 0,010 por km, un herido que
+  // arrastra 40 km solo se retira una de cada tres veces y las otras dos llega como puede, que es lo
+  // que se ve en carretera.
+  //
+  // POR QUÉ NO MÁS ALTA, y está medido sobre 8 grandes vueltas: con 0,020 el herido se baja de la
+  // bici tantas veces que deja de llegar a meta, y las dos cosas que eso arrastra son las que no se
+  // quieren. La causa «fuera de control» cae del 4,3 % al 2,2 % —porque el que se retira ya no puede
+  // llegar tarde— y la cola de la etapa reina, que se mide sobre el ÚLTIMO CLASIFICADO, cae de
+  // 8,4 % a 7,2 % y se sale de su banda. Un corte de tiempo al que le quitan a sus candidatos deja
+  // de ser un corte, así que el herido tiene que llegar más veces de las que se retira.
+  lambdaCollapseHurt: 0.01,
+
   // FUERA DE CONTROL. El corte va del 8 % del tiempo del ganador en una llana al 18 % en la reina,
   // interpolado por el desnivel positivo por km del recorrido (la magnitud con la que el ciclismo
   // real escala el corte). Medido en el calendario: llana 0,8-3 m/km, media 5-14, reina 15-26.
   timeCutFlat: 0.08,
   timeCutQueen: 0.18,
   timeCutHardnessGainPerKm: 22,
+  // …Y EL CORTE DE LA CONTRARRELOJ (v20), que necesita constante propia y no es una perilla de
+  // calibración sino una diferencia de FORMA. En una etapa en línea los tiempos llegan apelotonados
+  // en un puñado de relojes, así que un corte del 8 % señala al último GRUPO; en una crono cada uno
+  // tiene su tiempo y la distribución es un continuo, de modo que cualquier corte por debajo de la
+  // cola se lleva media clasificación por definición (medido en la v19: el 8 % elimina a 60 de 130
+  // en `race-colombia` e3). Por eso el reglamento real da a las contrarrelojes individuales un plazo
+  // mucho más generoso, del orden del 25 %, y por eso aquí es 0,25: con la cola del banco de cronos
+  // en el 13,5 %, señala a CERO en una crono normal y solo alcanza a quien pincha o se cae.
+  //
+  // No se escala por dureza como el de carretera: `timeCutHardnessGainPerKm` interpola entre el
+  // pelotón de una llana y el grupeto de una reina, y una crono no tiene ni lo uno ni lo otro.
+  timeCutItt: 0.25,
   // TOPE POR ETAPA (salvaguarda 1 de §VI.3): fracción del pelotón que tomó la salida que como mucho
   // puede irse en un solo día por decisión del motor. Lo que el corte señale por encima de esto no
   // se elimina: se READMITE CON PENALIZACIÓN, que es lo que hace el jurado cuando llega un grupo

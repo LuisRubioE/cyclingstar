@@ -231,6 +231,81 @@ export const TARGETS = {
     },
   },
   /**
+   * EL REPARTO DE CAUSAS DE LOS ABANDONOS (v20, docs/motor.md §VI.3). El invariante que faltaba:
+   * hasta aquí el banco solo vigilaba el TOTAL (`grandTour.abandonPct`, 12-20 %), así que una gran
+   * vuelta podía cuadrar el número perdiendo a los 24 corredores por la misma puerta. Y de hecho lo
+   * hacía: la v14 midió «fuera de control» en el 1 %, la v19 en el 5 % y el colapso en el 0 %, tres
+   * tandas anotando la deuda sin que ningún objetivo se pusiera rojo.
+   *
+   * **LAS BANDAS NO SALEN DE LA TABLA VIEJA DE §VI.3, QUE ESTABA MAL, SINO DE LAS LISTAS DE
+   * ABANDONOS DE GRANDES VUELTAS REALES.** El 45 % que §VI.3 asignaba al «fuera de control» era una
+   * intuición nuestra sobre lo vistosa que es la regla; los datos dicen otra cosa:
+   *
+   * | Gran vuelta          | Abandonos | Caída       | Enfermedad / DNS | Fuera de control |
+   * | -------------------- | --------: | ----------: | ---------------: | ---------------: |
+   * | Vuelta a España 2024 |        39 |   14 (36 %) |      24 (62 %)   |     **1 (2,6 %)** |
+   * | Giro d'Italia 2024   |        34 |   11 (32 %) |      23 (68 %)   |     **0 (0 %)**   |
+   * | Giro d'Italia 2023   |        51 |    7 (14 %) |      44 (86 %)   |     **0 (0 %)**   |
+   * | Tour de France 2024  |        26 |  ~11 (42 %) |     ~14 (54 %)   |     **1 (~4 %)**  |
+   *
+   * El grupeto existe precisamente para entrar dentro del corte y casi siempre lo consigue, así que
+   * el fuera de control es la excepción que remata a quien ya venía roto —el **0-4 %**— y no la mitad
+   * de la sangría. Lo que vacía una gran vuelta son las caídas (14-42 %) y, sobre todo, el bloque de
+   * «no toma la salida» (54-86 %).
+   *
+   * **LAS BANDAS DE ABAJO NO SON LOS PESOS OBJETIVO, Y HAY QUE DECIRLO.** El peso objetivo está en
+   * §VI.3 (caída ~45 %, enfermedad ~50 %, fuera de control ~5 %) y el motor todavía no lo cumple:
+   * mide **62 % / 34 % / 4 %**, es decir, tiene el bloque de la caída y el de la enfermedad
+   * INVERTIDOS respecto a la carretera. La causa está identificada y medida —la enfermedad en carrera
+   * pesa la mitad de lo que pesa en la vida— y el arreglo (subir `HEALTH.illnessRaceMax`) se probó en
+   * esta misma tanda: con 0,0050 el reparto se pone en 50 / 47 / 3 y el total en el 16,6 %, los dos
+   * mejores… **y `grandTour.queenLastGroupPct` cae de 8,4 % a 6,9 %**, o sea que se compraría la
+   * mezcla rompiendo el criterio de éxito del modelo de persecución, que costó las tandas v16 y v17
+   * enteras. Eso no es un arreglo, es mover el bulto. Queda como deuda NOMBRADA y medida.
+   *
+   * Así que estas bandas son el margen que hoy se puede sostener, con dos trabajos distintos: el
+   * fuera de control lleva su banda REAL (es donde iba el encargo y donde el motor ya está bien), y
+   * las otras dos llevan un **techo de dos tercios** que dice lo único que hoy se puede exigir: que
+   * ninguna causa se quede con la carrera entera. No es holgura de calibración —el Giro 2023 llegó a
+   * un 86 % de enfermedad, así que dos tercios es un número que la carretera puede tocar— sino la
+   * alarma que faltaba: durante tres tandas el total cuadró en el 12-20 % mientras dos de las cuatro
+   * causas valían CERO y ningún objetivo se puso rojo.
+   *
+   * Se mide sobre la MEDIA de varias vueltas, como el total, y en PORCENTAJE del reparto y no en
+   * corredores: lo que este objetivo vigila es la MEZCLA, y el tamaño ya lo vigila `abandonPct`.
+   */
+  abandonCauses: {
+    /**
+     * LA CAÍDA, contada donde acaba: el que no toma la salida al día siguiente (`packages/db`) MÁS
+     * el corredor en apuros que se baja de la bici en la cuneta (el motor). En las listas reales es
+     * un solo bloque —«crash/injury»— y partirlo en dos no dice nada útil. Medido: **62 %**, contra
+     * un objetivo de §VI.3 del 45 % y un 14-42 % real. El techo de dos tercios es la alarma, no la
+     * meta; el suelo del 30 % vigila el otro extremo, que las caídas dejen de sacar a nadie de la
+     * carrera (que es de donde venía la v14: **1 corredor por vuelta**, el 0,6 %).
+     */
+    crashPct: { label: 'Abandonos por CAÍDA', min: 30, max: 67, unit: '%' },
+    /**
+     * ENFERMEDAD Y DESGASTE: el bloque de «no toma la salida», que en las listas reales es el más
+     * grande de los tres (54-86 %) y que la tabla vieja de §VI.3 metía en un 15 % junto con el
+     * colapso. Incluye enfermar de verdad y al que amanece cocido, que es lo que el motor modela con
+     * una sola curva (`raceIllnessProbability`). Medido: **34 %**, por debajo de lo que pesa en la
+     * carretera; el suelo del 20 % es la alarma de que no vuelva a ser lo que era antes de la v14,
+     * donde en tres semanas de gran vuelta **no enfermaba absolutamente nadie**.
+     */
+    illnessPct: { label: 'Abandonos por ENFERMEDAD', min: 20, max: 67, unit: '%' },
+    /**
+     * FUERA DE CONTROL. **El suelo del 1 % es lo que de verdad vigila este objetivo**, y no el
+     * techo: lo que hay que impedir no es que el corte se dispare —en la vida no lo hace, 0-4 %—
+     * sino que vuelva a quedarse MUDO, que es lo que la v14 midió (1 %, con el corte sin señalar a
+     * nadie porque los rezagados no perdían tiempo). Un corte que no elimina jamás a nadie no es un
+     * corte. El techo del 15 % es el otro extremo, el de la v17: un corte que se lleva a medio
+     * pelotón deja de ser un riesgo y pasa a ser una guillotina que solo frena el tope del 4 %.
+     * Medido: **4 %**, que es exactamente lo que hace el ciclismo. Es la única de las tres bandas
+     * que es a la vez el objetivo y el margen.
+     */
+    outOfTimePct: { label: 'Abandonos FUERA DE CONTROL', min: 1, max: 15, unit: '%' },
+  },
+  /**
    * LA COLA EN LAS ETAPAS REINA REALES DEL CALENDARIO (v17, `sim/realQueens.ts`).
    *
    * POR QUÉ EXISTE ESTE OBJETIVO SI YA ESTABA `grandTour.queenLastGroupPct`. Porque aquel mide

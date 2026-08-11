@@ -53,7 +53,7 @@ interface TourRider {
 
 /** Por qué se fue cada uno. Son las tres causas de docs/motor.md §VI.3, con la cuarta desglosada. */
 export interface AbandonCauses {
-  /** Se bajó de la bici en carretera con el tanque a cero (motor: `estado: 'abandon'`). */
+  /** Se bajó de la bici en carretera (motor: `estado: 'abandon'`). */
   colapso: number
   /** Llegó fuera del corte de tiempo (motor: `estado: 'dnf'`). */
   fueraControl: number
@@ -61,6 +61,29 @@ export interface AbandonCauses {
   lesion: number
   /** Enfermó durante la carrera: no toma la salida al día siguiente (capa de datos). */
   enfermedad: number
+}
+
+/**
+ * EL REPARTO DE CAUSAS EN PORCENTAJE (v20, docs/motor.md §VI.3), agrupado como lo agrupan las listas
+ * de abandonos de las grandes vueltas reales y no como lo agrupaba la tabla vieja.
+ *
+ * **La CAÍDA se cuenta entera**, junta el `lesion` de la capa de datos —terminó la etapa y no toma la
+ * salida mañana— y el `colapso` del motor —se bajó de la bici hoy—, porque desde la v20 el colapso lo
+ * produce el corredor en apuros, que es un caído. En «crash/injury» de una lista real están los dos.
+ */
+export interface AbandonMix {
+  crashPct: number
+  illnessPct: number
+  outOfTimePct: number
+}
+
+export function abandonMix(c: AbandonCauses): AbandonMix {
+  const total = Math.max(1, c.colapso + c.fueraControl + c.lesion + c.enfermedad)
+  return {
+    crashPct: (100 * (c.lesion + c.colapso)) / total,
+    illnessPct: (100 * c.enfermedad) / total,
+    outOfTimePct: (100 * c.fueraControl) / total,
+  }
 }
 
 /**

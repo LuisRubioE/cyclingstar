@@ -8,7 +8,7 @@
  * mientras CI pasaba en verde (docs/motor.md §3-bis-h).
  */
 import { analyzeErosion, analyzeFlat, analyzeMountain, analyzeTimeTrial } from './analyze.js'
-import { analyzeGrandTour } from './grandTour.js'
+import { abandonMix, analyzeGrandTour } from './grandTour.js'
 import { REAL_QUEENS, analyzeRealQueens, colombiaRegressionTails } from './realQueens.js'
 import { REAL_TIME_TRIALS, analyzeRealTimeTrials } from './timeTrials.js'
 import { analyzeTeamVoice, teamedField } from './tactics.js'
@@ -89,7 +89,7 @@ function main(): void {
     rtt.perStage
       .map(
         (row) =>
-          `${`${row.tt.raceId} e${row.tt.stageIndex}`.padEnd(24)} ${row.stats.km.toFixed(0).padStart(2)} km · ${String(row.stats.riders).padStart(3)} corredores · cola ${row.stats.medianTailPct.toFixed(1).padStart(5)}% (peor ${row.stats.maxTailPct.toFixed(1)}%) · ${row.stats.medianWinnerKmh.toFixed(1)} → ${row.stats.medianLastKmh.toFixed(1)} km/h · ${row.stats.medianCatches} alcances`,
+          `${`${row.tt.raceId} e${row.tt.stageIndex}`.padEnd(24)} ${row.stats.km.toFixed(0).padStart(2)} km · ${String(row.stats.riders).padStart(3)} corredores · cola ${row.stats.medianTailPct.toFixed(1).padStart(5)}% (peor ${row.stats.maxTailPct.toFixed(1)}%) · ${row.stats.medianWinnerKmh.toFixed(1)} → ${row.stats.medianLastKmh.toFixed(1)} km/h · ${row.stats.medianCatches} alcances · corte ${row.stats.outOfTime} fuera`,
       )
       .join('\n  '),
   )
@@ -161,9 +161,11 @@ function main(): void {
   // vueltas no escala con `runs`: son unas pocas y su MEDIA, que es lo que el objetivo mide.
   const tourRuns = Math.max(4, Math.min(12, Math.round(runs / 60)))
   const gt = analyzeGrandTour(tourRuns)
-  const totalCauses =
-    gt.causes.fueraControl + gt.causes.lesion + gt.causes.colapso + gt.causes.enfermedad
-  const share = (n: number): string => `${Math.round((100 * n) / Math.max(1, totalCauses))}%`
+  // El REPARTO de causas (v20, docs/motor.md §VI.3), agrupado como lo agrupan las listas de
+  // abandonos reales: la caída se cuenta entera —el que no sale mañana y el que se bajó hoy— y la
+  // enfermedad absorbe el bloque de «no toma la salida». Ya no es un adorno del informe: es un
+  // objetivo, porque durante tres tandas el total cuadró mientras la mezcla no.
+  const mix = abandonMix(gt.causes)
   // La COLA de la carrera por tipo de etapa (v16, docs/motor.md §9): cuánto pierde el último y
   // cuántas etapas terminan con el pelotón entero al mismo segundo. El desglose por TIPO no es
   // adorno: en una llana que acaba al sprint el pelotón entero comparte tiempo y eso es CORRECTO;
@@ -176,10 +178,13 @@ function main(): void {
     [
       { target: TARGETS.grandTour.abandonPct, value: gt.abandonPct },
       { target: TARGETS.grandTour.queenLastGroupPct, value: gt.tails.reina.medianLastGroupPct },
+      { target: TARGETS.abandonCauses.crashPct, value: mix.crashPct },
+      { target: TARGETS.abandonCauses.illnessPct, value: mix.illnessPct },
+      { target: TARGETS.abandonCauses.outOfTimePct, value: mix.outOfTimePct },
     ],
     [
       `Terminan ${gt.medianFinishers} de 176 (mediana) · por vuelta ${gt.minAbandonPct.toFixed(1)}-${gt.maxAbandonPct.toFixed(1)}%`,
-      `Causas: fuera de control ${share(gt.causes.fueraControl)} (objetivo 45%) · lesión ${share(gt.causes.lesion)} (40%) · colapso ${share(gt.causes.colapso)} + enfermedad ${share(gt.causes.enfermedad)} (15%)`,
+      `Corredores: caída ${gt.causes.lesion} sin tomar la salida + ${gt.causes.colapso} bajándose de la bici · enfermedad ${gt.causes.enfermedad} · fuera de control ${gt.causes.fueraControl}`,
       `Salvaguardas: tope del 4% tocado en ${gt.capHitStages} etapas · ${gt.readmitted} readmitidos con penalización en ${gt.readmissionStages} etapas`,
       tailLine('reina', gt.tails.reina),
       tailLine('media', gt.tails.media),

@@ -15,7 +15,7 @@ import { simulateStage } from '../stage/simulate.js'
 import { stageSeed } from '../stage/rng.js'
 import type { Block, StageRider } from '../stage/types.js'
 import { analyzeErosion, analyzeFlat, analyzeMountain, analyzeTimeTrial } from './analyze.js'
-import { type GrandTourStats, analyzeGrandTour, runGrandTour } from './grandTour.js'
+import { type GrandTourStats, abandonMix, analyzeGrandTour, runGrandTour } from './grandTour.js'
 import {
   REAL_QUEENS,
   type RealQueenStats,
@@ -130,6 +130,21 @@ describe('la cola de una CONTRARRELOJ real (v19)', () => {
 
   it('…y ninguna crono suelta se dispara', { timeout: 300000 }, () => {
     expectInRange(bench().worst.medianTailPct, TARGETS.timeTrials.worstStagePct)
+  })
+
+  /**
+   * EL CORTE DE LA CRONO NO ELIMINA A NADIE EN UNA CRONO NORMAL (v20, `timeCutItt` = 0,25). Es el
+   * criterio de aceptación de haberlo activado, y el que la v14 no podía cumplir: con el abanico de
+   * aquel motor el corte de la llana habría eliminado a 150 de 176 en la etapa 1 de una gran vuelta.
+   * El corte de una contrarreloj existe para el que pincha, se cae o se queda tirado; el último
+   * clasificado de una crono llana es un corredor flojo, no un eliminado.
+   */
+  it('el corte de la crono no elimina a nadie en una crono normal', { timeout: 300000 }, () => {
+    const stats = bench()
+    expect(stats.all.outOfTime).toBe(0)
+    expect(stats.all.readmitted).toBe(0)
+    // …y no es porque el corte esté tan lejos que no signifique nada: la cola vive a 10 puntos de él.
+    expect(stats.worst.medianTailPct).toBeLessThan(100 * STAGE.timeCutItt)
   })
 
   it(
@@ -408,6 +423,37 @@ describe('abandonos en una gran vuelta (docs/motor.md §VI.3)', () => {
       expect(tours().tails.reina.oneGroupPct).toBe(0)
     },
   )
+
+  /**
+   * EL REPARTO DE CAUSAS (v20, docs/motor.md §VI.3). El invariante que faltaba: hasta aquí solo se
+   * vigilaba el TOTAL, así que una gran vuelta podía cuadrar el 12-20 % perdiendo a los 24
+   * corredores por la misma puerta — y lo hacía, con el colapso en el 0 % y el fuera de control en el
+   * 1-5 % durante tres tandas seguidas sin que ningún objetivo se pusiera rojo.
+   *
+   * Las bandas salen de las listas de abandonos de grandes vueltas REALES (ver `sim/targets.ts`), no
+   * de la tabla vieja de §VI.3, que asignaba al fuera de control el 45 % y ha quedado corregida.
+   */
+  it('…y se van por las tres puertas, no por una sola', { timeout: 300000 }, () => {
+    const mix = abandonMix(tours().causes)
+    expectInRange(mix.crashPct, TARGETS.abandonCauses.crashPct)
+    expectInRange(mix.illnessPct, TARGETS.abandonCauses.illnessPct)
+    expectInRange(mix.outOfTimePct, TARGETS.abandonCauses.outOfTimePct)
+    // Y las tres suman el reparto entero: si alguien añade una causa nueva y no la mete aquí, esto
+    // lo dice en vez de dejarla fuera del invariante en silencio.
+    expect(mix.crashPct + mix.illnessPct + mix.outOfTimePct).toBeCloseTo(100, 6)
+  })
+
+  /**
+   * EL CORREDOR EN APUROS EXISTE (v20). La otra mitad del reparto, y la que hace falta comprobar
+   * aparte porque el porcentaje de arriba la esconde: el colapso —bajarse de la bici EN CARRETERA—
+   * era código muerto desde la v15 (0 en 6 vueltas) y §VI.3 lo pone como una de sus causas.
+   */
+  it('alguien se baja de la bici en carretera, y no son multitudes', { timeout: 300000 }, () => {
+    const stats = tours()
+    expect(stats.causes.colapso).toBeGreaterThan(0)
+    // Un tope holgado: si el colapso pasara de aquí, dejaría de ser la excepción del que va roto.
+    expect(stats.causes.colapso).toBeLessThan(stats.causes.lesion)
+  })
 
   it('el tope del 4% por etapa nunca se rebasa', { timeout: 300000 }, () => {
     // Salvaguarda 1 de §VI.3, y la que de verdad protege la carrera: la hemorragia es el riesgo
