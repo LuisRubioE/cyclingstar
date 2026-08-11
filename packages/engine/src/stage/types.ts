@@ -102,6 +102,16 @@ export interface StageRider {
    * la etapa 1 y en las carreras de un día todos llegan con 0 y no hay general que defender.
    */
   gcDeficitSeconds: number
+  /**
+   * EL DORSAL de la carrera (`race_rosters.bib`), v18. Lo rellena packages/db, igual que
+   * `gcDeficitSeconds`, y el motor NO se lo inventa: sin él no habría forma de repartir la rampa de
+   * salida de una crono por dorsales (`stage/startOrder.ts`), que es la regla real cuando no hay
+   * general que invertir. Nulo o ausente = el roster no lo tiene (vuelta de prueba, roster antiguo,
+   * banco de simulación) y la regla lo pone a salir al principio, donde no le quita el hueco a nadie.
+   *
+   * Fuera de la crono el motor lo ignora: la carrera en línea no depende del número que lleves.
+   */
+  bib?: number | null
   /** Fragilidad oculta (SPEC 3.4): escala la probabilidad de lesión al caer. Por defecto 1. */
   fragility?: number
   /**

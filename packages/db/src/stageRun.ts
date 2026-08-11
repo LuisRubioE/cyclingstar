@@ -108,7 +108,10 @@ export async function runOneStage(
   spec: StageRunSpec,
 ): Promise<Set<string>> {
   const roster = await tx
-    .select({ riderId: raceRosters.riderId })
+    // EL DORSAL viaja al motor desde aquí (v18), igual que el `gcDeficitSeconds`: la contrarreloj
+    // reparte la rampa de salida por dorsales cuando no hay general que invertir, y el motor es puro
+    // y no puede inventárselo (`packages/engine/src/stage/startOrder.ts`).
+    .select({ riderId: raceRosters.riderId, bib: raceRosters.bib })
     .from(raceRosters)
     .innerJoin(riders, eq(riders.id, raceRosters.riderId))
     .where(
@@ -121,6 +124,7 @@ export async function runOneStage(
     )
   const riderIds = roster.map((r) => r.riderId)
   if (riderIds.length === 0) return new Set()
+  const bibOf = new Map(roster.map((r) => [r.riderId, r.bib]))
 
   // Una carrera de UN DÍA no tiene general que construir, así que NO lleva bonificaciones de tiempo
   // (como en el ciclismo real). El motor las reparte siempre —es puro y no sabe de calendarios—, así
@@ -269,6 +273,9 @@ export async function runOneStage(
       tsb,
       orders,
       gcDeficitSeconds: (gcTime.get(riderId) ?? 0) - gcLeader,
+      // EL DORSAL (v18): lo necesita el orden de salida de la contrarreloj por dorsales. `null` en
+      // un roster sin numerar, y la regla lo trata sin romperse.
+      bib: bibOf.get(riderId) ?? null,
       // EL EQUIPO (docs/motor.md §V.1, v15). El motor lo pide desde la v15 para tener un plan
       // colectivo —quién persigue, quién se esconde, quién manda gente a la fuga— y la capa de
       // datos es la única que lo sabe. `null` = agente libre: corre de forma individual.
