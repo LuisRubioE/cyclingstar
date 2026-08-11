@@ -34,6 +34,7 @@ describe('web: narración de la crónica', () => {
 
   it('narra en segunda persona los momentos del propio corredor', () => {
     expect(personalNarration('stage_win')).toContain('You won the stage')
+    expect(personalNarration('peloton_selection')).toContain('when the group split')
     expect(personalNarration('lo_que_sea')).toBe('lo_que_sea')
   })
 

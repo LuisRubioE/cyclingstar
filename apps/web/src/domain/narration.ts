@@ -134,6 +134,11 @@ export function personalNarration(plantilla: string): string {
       return 'You crested the climb first — KOM points'
     case 'breakaway_caught':
       return 'Your breakaway was reeled back in'
+    // La criba lejos de meta (v21): el protagonista del evento es quien va apretando en cabeza, así
+    // que puede ser el jugador. Sin este caso, «What happened to you» enseñaría el nombre pelado de
+    // la plantilla, que es lo que hace el respaldo.
+    case 'peloton_selection':
+      return 'You were at the head of the race when the group split'
     case 'stage_win':
       return 'You won the stage! 🏆'
     case 'stage_win_itt':
