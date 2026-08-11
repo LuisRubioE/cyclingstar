@@ -3867,6 +3867,12 @@ sostienen:
   sigue en 13,3 %, muy dentro del corte del 18 %.
 - **El caso de la regresión de la v17 no se deshace**: peor cola 15,5 % → **14,5 %**, por debajo del
   corte, con la etapa partiéndose igual (6-11 grupos en meta).
+- **Y hay un tercer sitio donde se ve que la cuesta selecciona MÁS**, aunque no sea un objetivo: el
+  banco del reagrupamiento de `stage/simulate.test.ts` (12 km al 7 % con 30 km de valle detrás) pasa
+  de recomponer el pelotón en 8 de 8 semillas a hacerlo en 7, porque en una de ellas el puerto deja
+  delante a 25 corredores y a 53 detrás a ocho minutos. El banco baja a **6,5 %** —la misma clase de
+  ajuste que hizo la v16 y con la aserción intacta— y vuelve a 8 de 8, con el puerto partiendo el
+  pelotón igual (4-5 grupos en meta).
 
 El techo NO se mueve. Y queda anotado que 7,9 % sobre un suelo de 7 % es otra vez el número con menos
 margen de la batería, como ya lo era en la v17.
