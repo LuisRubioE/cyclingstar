@@ -73,11 +73,14 @@ const FLAG_MARK = '\u0001'
 const JERSEY_MARK = '\u0002'
 
 /**
- * Un trozo marcado —bandera o maillot— con grupo de captura, para que `split` conserve los
- * delimitadores y la frase se reparta en una sola pasada.
+ * Un trozo marcado —bandera o maillot—, con grupo de captura para que `split` conserve los
+ * delimitadores y la frase se reparta en una sola pasada. Va con `g` porque `chronicleLine()` la
+ * usa para quitarlos TODOS; `split` y `replace` no arrastran `lastIndex` entre llamadas, así que
+ * una sola instancia compartida es segura y evita compilar la expresión en cada frase.
  */
 const MARKED = new RegExp(
   `(${FLAG_MARK}[^${FLAG_MARK}]*${FLAG_MARK}|${JERSEY_MARK}[^${JERSEY_MARK}]*${JERSEY_MARK})`,
+  'g',
 )
 
 /**
@@ -157,7 +160,7 @@ export function teamsOf(e: ChronicleEntry): string[] {
  */
 export function chronicleParts(e: ChronicleEntry): ChroniclePart[] {
   return chronicleTemplate(e)
-    .split(new RegExp(MARKED.source, 'g'))
+    .split(MARKED)
     .map((chunk): ChroniclePart => {
       if (chunk.startsWith(FLAG_MARK)) return { flag: chunk.slice(1, -1) }
       if (chunk.startsWith(JERSEY_MARK)) return { jersey: chunk.slice(1, -1) as JerseyKind }
@@ -172,7 +175,7 @@ export function chronicleParts(e: ChronicleEntry): ChroniclePart[] {
  * sitio se usa `chronicleParts()`.
  */
 export function chronicleLine(e: ChronicleEntry): string {
-  return chronicleTemplate(e).replace(new RegExp(MARKED.source, 'g'), '')
+  return chronicleTemplate(e).replace(MARKED, '')
 }
 
 /**
