@@ -56,13 +56,18 @@ export function listNames(names: string[]): string {
 const FLAG_MARK = '\u0001'
 
 /**
- * Cuántos corredores puede llevar una frase con la identidad COMPLETA. Medido sobre una crónica real
- * (Race Muscat, producción): `front_group` llega a nombrar a ocho, y ocho veces «🇸🇮 42 Andrej Pucnik
- * (Al Assad Cycling)» son más de 280 caracteres en una sola línea — un muro. Con tres o menos la
- * identidad completa cabe y aporta; a partir de cuatro la frase se queda en bandera y nombre, que es
- * lo que el lector necesita para saber quién es quién en una lista.
+ * Cuántos corredores se NOMBRAN en una frase que resume a muchos («73 riders sit up, among them A,
+ * B and C»). No tiene nada que ver con cuánta identidad lleva cada nombre —eso es siempre completa,
+ * ver `riderFull`—: es cuántos se citan antes de que la lista vuelva a ser el muro que el racimo
+ * venía a quitar.
+ *
+ * Hubo un umbral de identidad, de tres, por el que a partir del cuarto corredor la frase se quedaba
+ * en bandera y nombre. El dueño lo rechazó al verlo en producción («siguen saliendo entradas sin
+ * dorsal y nombre de equipo»): quiere saber quién es quién SIEMPRE, y tiene razón —un dorsal sin
+ * equipo no sirve para seguir una carrera—. El muro se evita nombrando a menos, no identificando
+ * peor.
  */
-const IDENTITY_MAX_RIDERS = 3
+const NAMED_IN_SUMMARY = 3
 
 /** Un trozo de frase: texto corrido o una bandera que la web pinta con `<Flag/>`. */
 export type ChroniclePart = { text: string } | { flag: string }
@@ -82,18 +87,21 @@ export function riderFull(r: ChronicleRider): string {
   return `${flagMark(r.country)}${bib}${r.name}${team}`
 }
 
-/** El mismo corredor en versión corta, para las listas largas: bandera y nombre. */
+/**
+ * El corredor en versión corta —bandera y nombre— para las frases que YA dicen su equipo aparte y
+ * repetirlo sonaría a tartamudeo: «Al Assad Cycling tira para su sprinter, 🇦🇪 11 Marwan Al Maktoum
+ * (Al Assad Cycling)». Fuera de ese caso la identidad va siempre completa.
+ */
 export function riderShort(r: ChronicleRider): string {
-  return `${flagMark(r.country)}${r.name}`
+  return `${flagMark(r.country)}${r.bib != null ? `${r.bib} ` : ''}${r.name}`
 }
 
 /**
- * La lista de protagonistas de una frase, con identidad completa si son pocos y con bandera y
- * nombre si son muchos (ver `IDENTITY_MAX_RIDERS`).
+ * La lista de protagonistas de una frase, SIEMPRE con la identidad completa: bandera, dorsal,
+ * nombre y equipo. Sean tres o sean ocho.
  */
 export function listRiders(riders: readonly ChronicleRider[]): string {
-  const full = riders.length > 0 && riders.length <= IDENTITY_MAX_RIDERS
-  return listNames(riders.map((r) => (full ? riderFull(r) : riderShort(r))))
+  return listNames(riders.map(riderFull))
 }
 
 /** Solo los nombres, sin bandera ni dorsal: para las frases que ya nombran al equipo aparte. */
@@ -238,9 +246,9 @@ function chronicleTemplate(e: ChronicleEntry): string {
       const count = Number(e.datos?.count ?? e.protagonists.length)
       const toGo = Number(e.datos?.toGo ?? 0)
       const left = toGo > 0 ? ` with ${toGo} km to go` : ''
-      const named = riders.slice(0, IDENTITY_MAX_RIDERS).map(riderShort)
+      const named = riders.slice(0, NAMED_IN_SUMMARY).map(riderFull)
       const rest = count - named.length
-      if (count <= IDENTITY_MAX_RIDERS)
+      if (count <= NAMED_IN_SUMMARY)
         return `${count} riders let the group go${left}: ${listNames(named)}.`
       // Los nombrados y «N more» se enumeran JUNTOS: «A, B, C and 3 more», no «A, B and C and 3 more».
       const withRest = listNames([...named, `${rest} more`])
@@ -275,7 +283,7 @@ function chronicleTemplate(e: ChronicleEntry): string {
     }
     case 'riders_bonk': {
       const count = Number(e.datos?.count ?? e.protagonists.length)
-      const named = riders.slice(0, IDENTITY_MAX_RIDERS).map(riderShort)
+      const named = riders.slice(0, NAMED_IN_SUMMARY).map(riderFull)
       const toGo = Number(e.datos?.toGo ?? 0)
       const left = toGo > 0 ? ` with ${toGo} km to go` : ''
       return `${count} riders run out of fuel${left}, ${listNames(named)} among them.`
@@ -292,8 +300,8 @@ function chronicleTemplate(e: ChronicleEntry): string {
     }
     case 'riders_abandon': {
       const count = Number(e.datos?.count ?? e.protagonists.length)
-      const named = riders.slice(0, IDENTITY_MAX_RIDERS).map(riderShort)
-      if (count <= IDENTITY_MAX_RIDERS)
+      const named = riders.slice(0, NAMED_IN_SUMMARY).map(riderFull)
+      if (count <= NAMED_IN_SUMMARY)
         return `${count} riders abandon: ${listNames(named)} climb off and step into the team cars.`
       const rest = count - named.length
       return `${count} riders abandon — ${listNames([...named, `${rest} more`])} climb off.`
@@ -302,7 +310,7 @@ function chronicleTemplate(e: ChronicleEntry): string {
       // FUERA DE CONTROL. Lo decide el jurado en meta y se narra al final de la crónica.
       const count = Number(e.datos?.count ?? e.protagonists.length)
       const limit = Number(e.datos?.limitPct ?? 0)
-      const named = riders.slice(0, IDENTITY_MAX_RIDERS).map(riderShort)
+      const named = riders.slice(0, NAMED_IN_SUMMARY).map(riderFull)
       const who2 = named.length > 0 ? `: ${listNames(named)}` : ''
       return count === 1
         ? `${who} finishes outside the time limit (${limit}% of the winner's time) and is out of the race.`

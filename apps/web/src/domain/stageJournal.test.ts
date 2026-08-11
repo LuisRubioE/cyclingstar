@@ -526,25 +526,46 @@ describe('A1 · cada mención de un ciclista lleva dorsal, equipo y bandera', ()
     expect(l).toContain('7 Sin Bandera')
   })
 
-  // El muro de ocho nombres con dorsal y equipo era el riesgo del encargo: en una lista larga la
-  // identidad se recorta a bandera y nombre.
-  it('en una lista larga no se repiten ocho dorsales y ocho equipos', () => {
+  // Hubo un umbral: a partir del cuarto corredor la frase se quedaba en bandera y nombre, para no
+  // hacer un muro. El dueño lo rechazó al verlo en producción («siguen saliendo entradas sin dorsal
+  // y nombre de equipo»). La identidad va completa SIEMPRE; el muro se evita nombrando a menos en
+  // los resúmenes (`NAMED_IN_SUMMARY`), no identificando peor.
+  it('una lista de ocho lleva los ocho dorsales y los ocho equipos', () => {
     const ocho = Array.from({ length: 8 }, (_, i) =>
       rider(`Rider ${i}`, { bib: 10 + i, team: `Team ${i}`, country: 'ES' }),
     )
     const l = chronicleLine(
       event({ plantilla: 'front_group', protagonists: ocho, datos: { size: 8, toGo: 20 } }),
     )
-    expect(l).toContain('Rider 0')
-    expect(l).toContain('Rider 7')
-    expect(l).not.toContain('(Team 0)')
-    // …y con tres o menos sí cabe la identidad completa.
-    const tres = ocho.slice(0, 3)
+    for (let i = 0; i < 8; i++) {
+      expect(l).toContain(`${10 + i} Rider ${i} (Team ${i})`)
+    }
+  })
+
+  it('y con tres también, que es lo que ya hacía', () => {
+    const tres = Array.from({ length: 3 }, (_, i) =>
+      rider(`Rider ${i}`, { bib: 10 + i, team: `Team ${i}`, country: 'ES' }),
+    )
     expect(
       chronicleLine(
         event({ plantilla: 'front_group', protagonists: tres, datos: { size: 3, toGo: 20 } }),
       ),
     ).toContain('(Team 0)')
+  })
+
+  // El racimo de descuelgues nombra a tres de los muchos, y esos tres van IDENTIFICADOS: era el
+  // segundo sitio donde se colaba el nombre pelado.
+  it('el resumen de un racimo identifica a los que nombra', () => {
+    const muchos = Array.from({ length: 20 }, (_, i) =>
+      rider(`Rider ${i}`, { bib: 30 + i, team: `Team ${i}`, country: 'IT' }),
+    )
+    const l = chronicleLine(
+      event({ plantilla: 'riders_sit_up', protagonists: muchos, datos: { count: 20, toGo: 12 } }),
+    )
+    expect(l).toContain('20 riders')
+    expect(l).toContain('30 Rider 0 (Team 0)')
+    // …pero no los veinte: para eso está el número.
+    expect(l).not.toContain('Rider 19')
   })
 })
 
