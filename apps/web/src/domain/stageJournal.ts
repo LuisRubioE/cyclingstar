@@ -461,6 +461,79 @@ function chronicleTemplate(e: ChronicleEntry): string {
         ])
       return pick([`The break leads by ${g}.`, `Out front the advantage holds at ${g}.`])
     }
+    /**
+     * LA RACHA DE PARTES DE BOQUETE, EN UNA LÍNEA (v21). Nueve frases seguidas para contar que una
+     * fuga se hunde («down to 3:36 / 2:59 / 2:29 / 1:59…») son UNA noticia contada nueve veces. La
+     * crónica agrupa la racha (`groupGapRuns`) y aquí se redacta el arco entero: de dónde venía la
+     * ventaja, en qué se ha quedado y en cuántos kilómetros. El primer parte de la racha se sigue
+     * leyendo tal cual —es el que da la novedad—; esto es el desenlace.
+     */
+    case 'time_gap_run': {
+      const to = fmtGap(Number(e.datos?.gapS ?? 0))
+      const from = fmtGap(Number(e.datos?.fromGapS ?? 0))
+      const over = Math.max(0, e.km - Number(e.datos?.fromKm ?? e.km))
+      // La frase se lee DONDE ACABA la racha, así que los kilómetros se cuentan hacia atrás: es lo
+      // que ha pasado desde el parte anterior, no lo que va a pasar.
+      const span = over > 0 ? ` over the last ${over} km` : ''
+      const trend = Number(e.datos?.trend ?? 0)
+      const lead = e.datos?.leadSize == null ? null : Number(e.datos.leadSize)
+      const subject =
+        lead === 1
+          ? 'the lone leader'
+          : lead != null && lead <= SMALL_FRONT_GROUP
+            ? `the ${lead} out front`
+            : 'the break'
+      // Cada redacción NOMBRA de quién se habla —la racha resume varios partes y el lector se ha
+      // podido perder por el camino de quién era la ventaja— y ninguna pone al grupo de SUJETO: «the
+      // lone leader» y «the 4 out front» no conjugan igual, y una frase por número sería un enredo.
+      if (trend < 0)
+        return pick([
+          `The chase keeps grinding away at ${subject}: ${from} becomes ${to}${span}.`,
+          `And it keeps falling for ${subject} — from ${from} to ${to}${span}.`,
+          `The gap on ${subject} comes down and down${span}: ${from}, then ${to}.`,
+        ])
+      if (trend > 0)
+        return pick([
+          `And the gap keeps going up for ${subject}: ${from} becomes ${to}${span}.`,
+          `Nobody answers${span}: the advantage of ${subject} goes from ${from} to ${to}.`,
+          `The lead grows and grows for ${subject} — ${from} to ${to}${span}.`,
+        ])
+      return pick([
+        `The gap barely moves${span}: still ${to} for ${subject}.`,
+        `Stalemate${span} — ${to} for ${subject}, and nothing changes.`,
+      ])
+    }
+    /**
+     * LA CRIBA LEJOS DE META (v21, docs/motor.md §16). El corte del desenlace (`peloton_split`) solo
+     * se narra en los últimos 30 km, y la etapa se decide a veces mucho antes: en Race Great Ocean
+     * el grupo de cabeza pasó de 116 a 80 a 50 km de meta y la crónica no dijo nada. Esta frase es
+     * esa selección, y por eso lleva SIEMPRE los km que faltaban: lo que la hace noticia no es solo
+     * cuánta gente se quedó, sino lo lejos de meta que ocurrió.
+     */
+    case 'peloton_selection': {
+      const before = Number(e.datos?.before ?? 0)
+      const remaining = Number(e.datos?.remaining ?? 0)
+      const dropped = Number(e.datos?.dropped ?? Math.max(0, before - remaining))
+      const toGo = Number(e.datos?.toGo ?? 0)
+      const left = toGo > 0 ? ` with ${toGo} km still to go` : ''
+      const group = e.datos?.chasing === 1 ? 'the chase group' : 'the front group'
+      const where = e.datos?.chasing === 1 ? 'in the chase' : 'in front'
+      // Con el pelotón entero delante quien aprieta es un EQUIPO; con un grupo ya reducido, un
+      // corredor. Es el mismo umbral que usa el corte del desenlace.
+      const driver =
+        before > SMALL_FRONT_GROUP && team
+          ? `${team} force the selection`
+          : who
+            ? `${who} forces the selection`
+            : 'The pace goes up'
+      if (remaining <= 1)
+        return `This is where the race breaks${left}: ${who || 'the leader'} is left alone in front, ${dropped} riders shed on the way.`
+      return pick([
+        `The race is made a long way from home${left}: ${driver} and ${group} is cut from ${before} riders to ${remaining}.`,
+        `${driver}${left} — ${dropped} riders lose the wheel and only ${remaining} of the ${before} are left ${where}.`,
+        `This is the selection of the day${left}: ${group} goes from ${before} down to ${remaining}, and the race never comes back together.`,
+      ])
+    }
     case 'front_group': {
       // Quiénes van delante. El motor solo emitía un número ("about 5 left in front") y el lector
       // se quedaba con la pregunta obvia: ¿cuáles cinco? Desde v6 vienen los nombres.

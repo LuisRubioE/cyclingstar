@@ -1104,3 +1104,95 @@ describe('v18 · la crónica de una contrarreloj', () => {
     )
   })
 })
+
+// --- LA CRIBA LEJOS DE META (v21, docs/motor.md §16) ----------------------------------------
+// `peloton_split` solo se narra en los últimos 30 km, y la etapa se decide a veces mucho antes: en
+// Race Great Ocean el grupo de cabeza pasó de 116 a 80 a 50 km de meta y la crónica no dijo nada.
+
+describe('la criba lejos de meta tiene frase propia (v21)', () => {
+  const criba = (datos: Record<string, number | string>, who: ChronicleRider[] = []) =>
+    chronicleLine(event({ plantilla: 'peloton_selection', km: 160, protagonists: who, datos }))
+
+  it('dice de cuántos a cuántos y CUÁNTO FALTA: es lo que la hace noticia', () => {
+    const linea = criba({
+      before: 116,
+      remaining: 80,
+      dropped: 36,
+      toGo: 50,
+      fromKm: 152,
+      chasing: 0,
+    })
+    expect(linea).toContain('116')
+    expect(linea).toContain('80')
+    expect(linea).toContain('50 km')
+  })
+
+  it('con el pelotón entero delante, quien fuerza la criba es un EQUIPO', () => {
+    const linea = criba({ before: 116, remaining: 80, dropped: 36, toGo: 50, chasing: 0 }, [
+      rider('Iker Zabala', { team: 'Summit Squad' }),
+    ])
+    expect(linea).toContain('Summit Squad')
+  })
+
+  it('con un grupo ya pequeño no tira un equipo, tira un corredor', () => {
+    const linea = criba({ before: 8, remaining: 3, dropped: 5, toGo: 60, chasing: 0 }, [
+      rider('Iker Zabala', { team: 'Summit Squad' }),
+    ])
+    expect(linea).toContain('Iker Zabala')
+    expect(linea).not.toContain('Summit Squad force')
+  })
+
+  it('si delante queda uno solo, la frase no habla de "de N a 1"', () => {
+    const linea = criba({ before: 40, remaining: 1, dropped: 39, toGo: 70, chasing: 0 }, [
+      rider('Iker Zabala'),
+    ])
+    expect(linea).toContain('alone')
+    expect(linea).toContain('39')
+  })
+
+  it('distingue el grupo de cabeza del de persecución', () => {
+    expect(criba({ before: 90, remaining: 50, dropped: 40, toGo: 55, chasing: 1 })).toContain(
+      'chase',
+    )
+  })
+})
+
+// --- LA RACHA DE PARTES DE BOQUETE (v21) ----------------------------------------------------
+// Nueve frases seguidas para contar que una fuga se hunde son UNA noticia contada nueve veces. La
+// crónica agrupa la racha y aquí se redacta el arco: de dónde venía, en qué se quedó y en cuántos km.
+
+describe('la racha de partes de boquete se cuenta en una frase (v21)', () => {
+  const run = (datos: Record<string, number | string>, km = 190) =>
+    chronicleLine(event({ plantilla: 'time_gap_run', km, protagonists: [], datos }))
+
+  it('la fuga que se hunde: de dónde a dónde y en cuántos km', () => {
+    const linea = run({ gapS: 38, fromGapS: 179, fromKm: 154, trend: -1, leadSize: 1 })
+    expect(linea).toContain('2:59')
+    expect(linea).toContain('38s')
+    expect(linea).toContain('36 km')
+  })
+
+  it('la ventaja que no para de crecer se cuenta igual, en el otro sentido', () => {
+    const linea = run({ gapS: 4165, fromGapS: 1336, fromKm: 196, trend: 1, leadSize: 4 }, 223)
+    expect(linea).toContain('22:16')
+    expect(linea).toContain('69:25')
+  })
+
+  it('una ventaja clavada dice que no se mueve, y no repite el número diez veces', () => {
+    const linea = run({ gapS: 420, fromGapS: 418, fromKm: 120, trend: 0, leadSize: 20 })
+    expect(linea).toContain('7:00')
+    expect(linea).toMatch(/barely moves|Stalemate/)
+  })
+
+  it('sabe de quién habla: un corredor solo, un puñado o la fuga', () => {
+    expect(run({ gapS: 38, fromGapS: 179, fromKm: 154, trend: -1, leadSize: 1 })).toContain(
+      'lone leader',
+    )
+    expect(run({ gapS: 38, fromGapS: 179, fromKm: 154, trend: -1, leadSize: 4 })).toContain(
+      '4 out front',
+    )
+    expect(run({ gapS: 38, fromGapS: 179, fromKm: 154, trend: -1, leadSize: 40 })).toContain(
+      'break',
+    )
+  })
+})
