@@ -284,6 +284,9 @@ export const TARGETS = {
      * carrera (que es de donde venía la v14: **1 corredor por vuelta**, el 0,6 %).
      */
     crashPct: { label: 'Abandonos por CAÍDA', min: 30, max: 67, unit: '%' },
+    // OJO: es el número con menos margen del reparto. Con 8 vueltas sale 62 % y con 6 —las que corre
+    // el invariante de CI— sale 65 %, porque son enteros pequeños sobre ~190 abandonos. El día que
+    // alguien toque las caídas, éste es el techo que se va a rozar primero.
     /**
      * ENFERMEDAD Y DESGASTE: el bloque de «no toma la salida», que en las listas reales es el más
      * grande de los tres (54-86 %) y que la tabla vieja de §VI.3 metía en un 15 % junto con el

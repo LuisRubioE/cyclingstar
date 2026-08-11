@@ -4065,7 +4065,7 @@ seria son ~0,7 corredores por etapa. Comprobado: **la reina no gana grupos de un
 ### 4. El reparto de causas, antes y después
 
 Sobre **8 grandes vueltas** de 21 etapas y 176 corredores (`sim/grandTour.ts`, el mismo banco de CI;
-las cifras de 6 vueltas, que es lo que corre el invariante, salen a menos de dos décimas):
+el invariante de CI corre 6 y `pnpm sim` corre 8):
 
 | Medida                         | §VI.3 vieja        | v19 (medido) |    **v20** | §VI.3 v20 | Real        |
 | ------------------------------ | ------------------ | -----------: | ---------: | --------- | ----------- |
@@ -4086,6 +4086,12 @@ las cifras de 6 vueltas, que es lo que corre el invariante, salen a menos de dos
   54-86), y esto es una deuda que se nombra y se mide, no un número que se esconde. La causa es que
   la enfermedad en carrera pesa la mitad de lo que pesa en la vida. **El arreglo se probó en esta
   misma tanda y se descartó**, ver §5.
+
+**Y una advertencia de lectura: el reparto se mueve un par de puntos entre 6 y 8 vueltas**, porque
+son enteros pequeños (11 colapsos, 8 fuera de control) sobre ~190 abandonos. Por eso las bandas de
+`sim/targets.ts` no van pegadas al número medido: el invariante corre 6 vueltas y `pnpm sim` corre 8,
+y los dos tienen que caber. El de menos margen es el techo de la caída (67 % contra un 62 % con 8
+vueltas y un 65 % con 6), y es el que hay que mirar el día que alguien toque las caídas.
 
 ### 5. El arreglo de la mezcla que NO se hace, y por qué (medido)
 
