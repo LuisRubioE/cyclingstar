@@ -3270,6 +3270,25 @@ v16 anotó: el grupeto que pelea gasta más que el que se resigna.
 `shedResignGapSeconds` (300 s), `shedFightCommit`, `shedCommitAlone`, `shedCommitBunch` y
 `shedEmptyCommitFactor` **no se tocan**: la v16 los calibró y siguen describiendo lo mismo.
 
+### 9-bis. `pnpm sim:tactics`, que no tiene objetivos pero sí lecturas
+
+La batería táctica es informativa y sale entera; lo que se mueve, se mueve poco y en la dirección de
+la tanda:
+
+| Medida (120 semillas)                           |                        v18 |               **v19** |
+| ----------------------------------------------- | -------------------------: | --------------------: |
+| Intentos de fuga que cuajan (llana)             |                     23,9 % |            **24,7 %** |
+| Guiones distintos / ganadores distintos (llana) |                     30 / 7 |            **37 / 9** |
+| Desenlace de la reina por ATAQUE                |                     50,8 % |            **41,7 %** |
+| Margen mediano del ganador de la reina          |                       36 s |              **45 s** |
+| Se dejan ir (reina REAL de 3.ª semana)          | 1 por etapa, 60 % de ellas | **0 por etapa, 45 %** |
+
+Las dos que dicen algo: **la reina se decide algo menos por ataque y algo más por desgaste de ritmo**
+—con el exponente de la gravedad, subir al ritmo del mejor cuesta más y hace falta menos cambio de
+ritmo para abrir hueco, y el margen del ganador sube de 36 a 45 s—; y **se deja ir menos gente**, que
+es la otra cara de que la cola de una etapa en línea sea más corta. La variedad de guiones y de
+ganadores SUBE, que es lo contrario de lo que uno temería al comprimir una ley.
+
 ### 10. El azar: NINGÚN subflujo nuevo
 
 `majorityOnTheRoad` es una razón de tamaños; la guarda nueva llama a `droppedCommit`, que es
