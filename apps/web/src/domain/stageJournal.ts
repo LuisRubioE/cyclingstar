@@ -531,7 +531,7 @@ function chronicleTemplate(e: ChronicleEntry): string {
       return pick([
         `The race is made a long way from home${left}: ${driver} and ${group} is cut from ${before} riders to ${remaining}.`,
         `${driver}${left} — ${dropped} riders lose the wheel and only ${remaining} of the ${before} are left ${where}.`,
-        `This is the selection of the day${left}: ${group} goes from ${before} down to ${remaining}, and the race never comes back together.`,
+        `This is the selection of the day${left}: ${group} goes from ${before} down to ${remaining}, and those left behind never come back.`,
       ])
     }
     case 'front_group': {

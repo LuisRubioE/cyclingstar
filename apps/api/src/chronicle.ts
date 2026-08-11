@@ -394,7 +394,7 @@ function groupGapRuns(entries: ChronicleEntry[]): ChronicleEntry[] {
     const run = idx.slice(a, b + 1)
     if (run.length >= GAP_RUN_MIN) {
       const last = entries[idx[b]!]!
-      const second = entries[idx[a + 1]!]!
+      const first = entries[idx[a]!]!
       for (let k = a + 1; k < b; k++) replacement.set(idx[k]!, null)
       replacement.set(idx[b]!, {
         km: last.km,
@@ -403,10 +403,11 @@ function groupGapRuns(entries: ChronicleEntry[]): ChronicleEntry[] {
         protagonists: [],
         datos: {
           ...last.datos,
-          // De dónde venía la ventaja: la del SEGUNDO parte, porque el primero se sigue leyendo
-          // entero y el resumen cuenta lo que pasó a partir de ahí.
-          fromGapS: gapOf(second),
-          fromKm: second.km,
+          // De dónde venía la ventaja: la del PRIMER parte de la racha, que es el que el lector
+          // acaba de leer. Así el arco engancha con la línea anterior en vez de empezar en una
+          // cifra que no ha visto nunca («la ventaja crece a 2:11» / «de 1:51 a 49s»).
+          fromGapS: gapOf(first),
+          fromKm: first.km,
           count: run.length - 1,
         },
       })

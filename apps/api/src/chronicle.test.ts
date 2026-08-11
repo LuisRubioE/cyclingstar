@@ -484,7 +484,7 @@ describe('v21 · la racha de partes de boquete', () => {
     expect(out.map((e) => e.plantilla)).toEqual(['time_gap', 'time_gap_run'])
     // El arranque conserva su cifra y el resumen trae de dónde a dónde fue la ventaja.
     expect(out[0]?.datos?.gapS).toBe(216)
-    expect(out[1]?.datos?.fromGapS).toBe(179)
+    expect(out[1]?.datos?.fromGapS).toBe(216)
     expect(out[1]?.datos?.gapS).toBe(38)
     expect(out[1]?.datos?.count).toBe(8)
   })
