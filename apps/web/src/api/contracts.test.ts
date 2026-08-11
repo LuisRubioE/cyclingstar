@@ -195,6 +195,8 @@ describe('contratos: calendario y carrera', () => {
       points: [],
       kom: [],
       teamGc: [],
+      // Sin mundo tampoco hay maillots: nadie lidera nada todavía.
+      leaders: { gc: null, points: null, kom: null, team: null },
       stageWinners: [],
       history: [],
     }

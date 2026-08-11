@@ -23,6 +23,7 @@ function view(partial: Partial<RaceView> = {}): RaceView {
     points: [],
     kom: [],
     teamGc: [],
+    leaders: { gc: null, points: null, kom: null, team: null },
     stageWinners: [],
     history: [],
     ...partial,

@@ -9,6 +9,8 @@ export interface GcRow {
   riderId: string
   name: string
   country: string
+  /** Id del equipo, para poder marcar al equipo líder de la clasificación por equipos. */
+  teamId: string | null
   teamName: string | null
   isBot: boolean
   tiempoTotalS: number
@@ -24,6 +26,7 @@ export async function getRaceGc(db: Database, raceId: string): Promise<GcRow[]> 
       riderId: raceGc.riderId,
       name: riders.name,
       country: riders.country,
+      teamId: teams.id,
       teamName: teams.name,
       userId: riders.userId,
       tiempoTotalS: raceGc.tiempoTotalS,
@@ -56,6 +59,7 @@ export interface StageResultRow {
   riderId: string
   name: string
   country: string
+  teamId: string | null
   teamName: string | null
   isBot: boolean
   puesto: number
@@ -75,6 +79,7 @@ export async function getStageResults(
       riderId: stageResults.riderId,
       name: riders.name,
       country: riders.country,
+      teamId: teams.id,
       teamName: teams.name,
       isBot: sql<boolean>`${riders.userId} is null`,
       puesto: stageResults.puesto,
@@ -160,6 +165,7 @@ export async function getGcThroughStage(
     riderId: string
     name: string
     country: string
+    teamId: string | null
     teamName: string | null
     isBot: boolean
     tiempoTotalS: number
@@ -185,6 +191,7 @@ export async function getGcThroughStage(
       riderId: stageResults.riderId,
       name: riders.name,
       country: riders.country,
+      teamId: teams.id,
       teamName: teams.name,
       isBot: sql<boolean>`bool_and(${riders.userId} is null)`,
       tiempoTotalS: net,
@@ -201,7 +208,7 @@ export async function getGcThroughStage(
       ),
     )
     .where(and(eq(stageResults.raceId, raceId), lte(stageResults.stageDay, stageDay)))
-    .groupBy(stageResults.riderId, riders.name, riders.country, teams.name)
+    .groupBy(stageResults.riderId, riders.name, riders.country, teams.id, teams.name)
     .orderBy(
       sql`case when ${unranked} then 1 else 0 end`,
       asc(net),

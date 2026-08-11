@@ -1,4 +1,5 @@
 import {
+  type Database,
   type StageOrderRow,
   addToRoster,
   getCurrentWorld,
@@ -26,7 +27,7 @@ import {
   renderAltimetrySvg,
   simulateStage,
 } from '@cyclingstar/engine'
-import { currentSeason } from '@cyclingstar/shared'
+import { NO_LEADERS, type RaceLeaders, currentSeason, raceLeaders } from '@cyclingstar/shared'
 import { z } from 'zod'
 import { type ChronicleEvent, buildChronicle, buildMarkers, chronicleNames } from '../chronicle.js'
 import { badRequest, notFound, sendError, unauthorized } from '../http.js'
@@ -57,6 +58,29 @@ const putMyOrdersSchema = z.object({
 /** Kilómetros de una etapa a partir de su perfil. */
 const stageKm = (segments: readonly { km: number }[]): number =>
   Math.round(segments.reduce((sum, s) => sum + s.km, 0))
+
+/**
+ * Quién llevaba cada maillot TRAS la etapa `day` (y por tanto quién lo lleva PUESTO en la `day+1`).
+ *
+ * Es la misma pregunta que responde la ficha con sus tablas, hecha un día antes: por eso relee las
+ * mismas cuatro clasificaciones con `throughStage = day` en vez de inventar una consulta nueva. Con
+ * `day < 1` no hay nada que arrastrar —la etapa 1 se corre sin maillots, se ganan el día anterior—
+ * y se devuelve el juego vacío sin tocar la base.
+ */
+async function leadersThroughStage(
+  db: Database,
+  raceKey: string,
+  day: number,
+): Promise<RaceLeaders> {
+  if (day < 1) return NO_LEADERS
+  const [gc, points, kom, teams] = await Promise.all([
+    getGcThroughStage(db, raceKey, day),
+    getPointsClassification(db, raceKey, day),
+    getKomClassification(db, raceKey, day),
+    getTeamClassifications(db, raceKey, day),
+  ])
+  return raceLeaders({ gc, points, kom, teams: teams.overall })
+}
 
 /**
  * Rutas de carrera: la vuelta de prueba (etapas, órdenes, resultados y replay), las órdenes del
@@ -265,6 +289,16 @@ export const raceRoutes: RoutePlugin = async (app, ctx) => {
       const points = await getPointsClassification(db, raceKey, day)
       // Clasificación por equipos: la de ESTA etapa y la acumulada tras ella, igual que la general.
       const { stage: teamStage, overall: teamGc } = await getTeamClassifications(db, raceKey, day)
+      // LOS MAILLOTS, en dos juegos (ver `stageReplaySchema.leaders`): los de la carretera de ese
+      // día —la clasificación tras la N−1, que es lo que cuenta el journal— y los de después de la
+      // etapa, que es lo que muestran las tablas de esta misma página. En una carrera de UN DÍA no
+      // hay ninguno: no hay clasificación anterior que arrastrar ni día siguiente que defender.
+      const oneDay = race.stages.length === 1
+      const onRoad = oneDay ? NO_LEADERS : await leadersThroughStage(db, raceKey, day - 1)
+      const afterStage: RaceLeaders = oneDay
+        ? NO_LEADERS
+        : raceLeaders({ gc, points, kom, teams: teamGc })
+      const leaders = { onRoad, afterStage }
       // El journal se lee de los eventos CONGELADOS al correr la etapa (no se re-simula): así siempre
       // cuadra con el resultado guardado. Las etapas corridas antes de guardarlos no tienen journal
       // detallado (no lo inventamos re-simulando, que daría una historia distinta al resultado real).
@@ -285,6 +319,7 @@ export const raceRoutes: RoutePlugin = async (app, ctx) => {
           points,
           teamStage,
           teamGc,
+          leaders,
           journalUnavailable: true,
         }
       }
@@ -292,7 +327,12 @@ export const raceRoutes: RoutePlugin = async (app, ctx) => {
       // inscritos) y, para quien no esté en él, de los resultados de la etapa: los eventos están
       // congelados y hay que resolverlos con lo que haya hoy, sin romperse por lo que falte.
       const identities = await getRaceRiderIdentities(db, raceKey)
-      const chronicle = buildChronicle(storedEvents, chronicleNames([...identities, ...results]))
+      // …y con el maillot que llevaba PUESTO ese día, que es parte de su identidad en la carretera
+      // exactamente igual que el dorsal: así sale en TODAS las menciones sin tocar una sola frase.
+      const chronicle = buildChronicle(
+        storedEvents,
+        chronicleNames([...identities, ...results], onRoad),
+      )
       const altimetry = renderAltimetrySvg(stage.profile, { markers: buildMarkers(storedEvents) })
       return {
         day,
@@ -310,6 +350,7 @@ export const raceRoutes: RoutePlugin = async (app, ctx) => {
         points,
         teamStage,
         teamGc,
+        leaders,
       }
     },
   )

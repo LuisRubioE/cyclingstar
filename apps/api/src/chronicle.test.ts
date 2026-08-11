@@ -317,3 +317,48 @@ describe('B5 · el liderato de la montaña de las crónicas viejas', () => {
     expect(out.map((e) => e.datos?.leads)).toEqual([1, 0, 1])
   })
 })
+
+/**
+ * EL MAILLOT ENTRA EN LA IDENTIDAD, no en el evento.
+ *
+ * Esa es toda la decisión de diseño: el maillot llega pegado al corredor —como el dorsal, el equipo
+ * y la bandera— y por eso sale en todas sus menciones sin tocar ni una de las plantillas del
+ * journal. Y el que llega es el de la CARRETERA de ese día, que lo elige la ruta.
+ */
+describe('el maillot en la identidad', () => {
+  const leaders = { gc: 'r1', points: 'r2', kom: 'r3', team: 'equipo-1' }
+
+  it('cada líder llega con el suyo y el resto sin ninguno', () => {
+    const names = chronicleNames([source('r1'), source('r2'), source('r3'), source('r4')], leaders)
+    expect(names.riderOf.get('r1')?.jersey).toBe('gc')
+    expect(names.riderOf.get('r2')?.jersey).toBe('points')
+    expect(names.riderOf.get('r3')?.jersey).toBe('kom')
+    expect(names.riderOf.get('r4')?.jersey).toBeUndefined()
+  })
+
+  it('sin líderes —etapa 1, carrera de un día, vuelta de prueba— nadie lleva maillot', () => {
+    const names = chronicleNames([source('r1')])
+    expect(names.riderOf.get('r1')?.jersey).toBeUndefined()
+  })
+
+  it('el equipo líder NO se pega al corredor: no es un maillot y no viaja en la crónica', () => {
+    // Medido sobre Race Colombia: marcarlo aquí saldría de 4 a 13 veces por etapa (los corredores
+    // del equipo líder), tanto como los tres maillots juntos y diciendo mucho menos. Va en las
+    // tablas de la clasificación por equipos, que es donde se consulta.
+    const names = chronicleNames([source('r9', { teamName: 'Equipo Uno' })], leaders)
+    expect(names.riderOf.get('r9')).toEqual({
+      name: 'r9',
+      bib: null,
+      team: 'Equipo Uno',
+      country: null,
+    })
+  })
+
+  it('el maillot viaja también a las menciones de `datos` (el jefe de filas de quien tira)', () => {
+    const [entry] = buildChronicle(
+      [ev({ plantilla: 'peloton_pull', protagonistas: ['r5'], datos: { forId: 'r1', size: 80 } })],
+      chronicleNames([source('r1'), source('r5')], leaders),
+    )
+    expect(entry?.mentions?.forId?.jersey).toBe('gc')
+  })
+})

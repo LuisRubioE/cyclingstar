@@ -1,6 +1,6 @@
-import { ATTRIBUTES } from '@cyclingstar/shared'
+import { ATTRIBUTES, assignLeaderJerseys } from '@cyclingstar/shared'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { getGcThroughStage } from './results.js'
+import { getGcThroughStage, getKomClassification, getPointsClassification } from './results.js'
 import { raceRosters, riderAttrs, riders, stageResults, teams, worlds } from './schema.js'
 import { type TestDb, startTestDb } from './testDb.js'
 
@@ -163,5 +163,22 @@ describe('db: faltar a una etapa no puede hacerte líder de la general', () => {
         .sort(),
     ).toEqual([...s.completos, s.ausente].sort())
     expect(gc.at(-1)!.riderId).toBe(s.abandonado)
+  })
+
+  /**
+   * Y LA CONSECUENCIA VISIBLE: un DNF no puede salir de amarillo.
+   *
+   * El reparto de maillots (`assignLeaderJerseys`) se alimenta de esta misma consulta, así que la
+   * defensa de arriba lo cubre por construcción; se comprueba de punta a punta porque es el caso
+   * que el dueño vio en producción y el que hay que poder enseñar arreglado.
+   */
+  it('el maillot amarillo se lo lleva el primer CLASIFICADO, no el ausente', async () => {
+    const gc = await getGcThroughStage(t.db, KEY, STAGES)
+    const points = await getPointsClassification(t.db, KEY, STAGES)
+    const kom = await getKomClassification(t.db, KEY, STAGES)
+    const maillots = assignLeaderJerseys({ gc, points, kom })
+    expect(maillots.gc).toBe(s.completos[0])
+    expect(maillots.gc).not.toBe(s.ausente)
+    expect(maillots.gc).not.toBe(s.abandonado)
   })
 })

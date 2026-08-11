@@ -13,7 +13,7 @@ import {
   predictStartlist,
 } from '@cyclingstar/db'
 import { SEASON_CALENDAR, renderAltimetrySvg, stageEndpoints } from '@cyclingstar/engine'
-import { DAYS_PER_SEASON, currentSeason } from '@cyclingstar/shared'
+import { DAYS_PER_SEASON, NO_LEADERS, currentSeason, raceLeaders } from '@cyclingstar/shared'
 import { notFound } from '../http.js'
 import type { RoutePlugin } from './context.js'
 import { parseRaceId } from './params.js'
@@ -114,6 +114,7 @@ export const calendarRoutes: RoutePlugin = async (app, ctx) => {
         points: [],
         kom: [],
         teamGc: [],
+        leaders: NO_LEADERS,
         stageWinners: [],
         history: [],
       }
@@ -138,6 +139,12 @@ export const calendarRoutes: RoutePlugin = async (app, ctx) => {
       : runDays.length > 0
         ? ('racing' as const)
         : ('upcoming' as const)
+    // Quién lleva cada maillot AHORA en la carrera: se deriva de las cuatro clasificaciones que ya
+    // se acaban de leer, sin una sola consulta más. En una carrera de UN DÍA no hay maillots —no
+    // hay clasificación que arrastrar de un día para otro—, y el «líder» de su única tabla es
+    // simplemente el ganador.
+    const leaders =
+      race.stages.length === 1 ? NO_LEADERS : raceLeaders({ gc, points, kom, teams: teamGc })
     return {
       race: raceInfo,
       // Día actual de la temporada (0..363): con `startDay` sitúa la carrera en el tiempo.
@@ -150,6 +157,7 @@ export const calendarRoutes: RoutePlugin = async (app, ctx) => {
       points,
       kom,
       teamGc,
+      leaders,
       stageWinners,
       history,
     }

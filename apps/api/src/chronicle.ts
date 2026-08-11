@@ -1,5 +1,5 @@
 import type { AltimetryMarker } from '@cyclingstar/engine'
-import type { ChronicleRider } from '@cyclingstar/shared'
+import { type ChronicleRider, type RaceLeaders, jerseyOf } from '@cyclingstar/shared'
 
 /**
  * Construcción de la crónica de una etapa. La comparten las dos rutas que la sirven —el replay de
@@ -116,16 +116,26 @@ export interface ChronicleNames {
 /**
  * Construye el índice de identidades. Todo lo que no sea el nombre puede faltar (roster antiguo sin
  * dorsales, agente libre sin equipo, país vacío) y se guarda como `null`: la crónica degrada sola.
+ *
+ * `leaders` son los maillots de la CARRETERA de ese día (la clasificación tras la etapa N−1). El
+ * maillot entra en la identidad, junto al dorsal y la bandera, y no como un dato aparte del evento:
+ * así sale en todas las menciones sin tocar ninguna de las cincuenta plantillas del journal. Sin
+ * `leaders` —vuelta de prueba, etapa 1, carrera de un día— nadie lleva ninguno.
  */
-export function chronicleNames(sources: readonly ChronicleRiderSource[]): ChronicleNames {
+export function chronicleNames(
+  sources: readonly ChronicleRiderSource[],
+  leaders?: RaceLeaders,
+): ChronicleNames {
   const riderOf = new Map<string, ChronicleRider>()
   for (const s of sources) {
     const prev = riderOf.get(s.riderId)
+    const jersey = jerseyOf(leaders, s.riderId)
     riderOf.set(s.riderId, {
       name: prev?.name ?? s.name,
       bib: prev?.bib ?? s.bib ?? null,
       team: prev?.team ?? s.teamName ?? null,
       country: prev?.country ?? s.country ?? null,
+      ...(jersey ? { jersey } : {}),
     })
   }
   return { riderOf }

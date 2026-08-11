@@ -14,6 +14,7 @@
  */
 
 import { z } from 'zod'
+import type { RaceLeaders } from './jerseys.js'
 import { ATTRIBUTES, GENDERS, HEALTH_STATES, type PublicRider, VOCATIONS } from './rider.js'
 import { INTENSITIES, SESSIONS } from './training.js'
 
@@ -221,12 +222,45 @@ export const calendarResponseSchema = z.object({
 })
 export type Calendar = z.infer<typeof calendarResponseSchema>
 
+// --- Los maillots de líder -----------------------------------------------------------------
+
+/**
+ * Los tres maillots que puede llevar un CORREDOR. El reparto (prioridad amarillo > verde > azul y
+ * qué pasa cuando coinciden) vive entero en `jerseys.ts`, que es una función pura y con sus tests.
+ */
+export const jerseyKindSchema = z.enum(['gc', 'points', 'kom'])
+
+/**
+ * Quién lidera qué en una carrera por etapas, en un momento dado. Los tres primeros campos son ids
+ * de CORREDOR y los tres maillots son excluyentes entre sí; `team` es un id de EQUIPO y no entra en
+ * esa cadena (en el ciclismo real el equipo líder no lleva maillot: sus corredores llevan el dorsal
+ * amarillo, así que se puede ir de amarillo y llevar dorsal amarillo a la vez).
+ *
+ * Todo a null en una carrera de UN DÍA (no hay clasificación que arrastrar) y en la etapa 1 (los
+ * maillots se ganan el día anterior).
+ */
+export const raceLeadersSchema: z.ZodType<RaceLeaders> = z.object({
+  /** Líder de la general: maillot amarillo. */
+  gc: z.string().nullable(),
+  /** Primero por puntos: maillot verde. */
+  points: z.string().nullable(),
+  /** Primero en la montaña: maillot azul. */
+  kom: z.string().nullable(),
+  /** Equipo líder de la clasificación por equipos acumulada: dorsales amarillos. */
+  team: z.string().nullable(),
+})
+
 // --- /api/calendar/:raceId (ficha de carrera) ----------------------------------------------
 
 export const gcRowSchema = z.object({
   riderId: z.string(),
   name: z.string(),
   country: z.string(),
+  /**
+   * Id del equipo del corredor; null en un agente libre. Está para poder marcar al EQUIPO LÍDER de
+   * la clasificación por equipos junto al nombre del equipo, sin tener que casar por nombre.
+   */
+  teamId: z.string().nullable().optional(),
   teamName: z.string().nullable(),
   isBot: z.boolean(),
   tiempoTotalS: z.number(),
@@ -335,6 +369,12 @@ export const raceViewSchema = z.object({
   kom: z.array(pointsEntrySchema),
   /** Clasificación por equipos acumulada de la carrera (vacía si aún no se ha corrido). */
   teamGc: z.array(teamClassEntrySchema),
+  /**
+   * Quién lleva cada maillot AHORA MISMO en la carrera (tras la última etapa corrida). Es lo que
+   * marcan las tablas de esta ficha, que enseñan justo ese estado. Todo a null en una carrera de un
+   * día y mientras no se haya corrido nada.
+   */
+  leaders: raceLeadersSchema,
   stageWinners: z.array(stageWinnerSchema),
   history: z.array(raceHonourSchema),
 })
@@ -893,6 +933,14 @@ export const chronicleRiderSchema = z.object({
   team: z.string().nullable(),
   /** Código ISO-2 del país, para pintar la bandera con el mismo `<Flag/>` del resto de la web. */
   country: z.string().nullable(),
+  /**
+   * EL MAILLOT QUE LLEVABA PUESTO ESE DÍA (el de la clasificación tras la etapa N−1, ver
+   * `stageReplaySchema.leaders`). Viaja DENTRO de la identidad, y no como un mapa de ids aparte,
+   * porque una entrada de la crónica no tiene ids: sus corredores están resueltos a nombre, dorsal,
+   * equipo y país, y el journal es texto puro. Es la misma razón por la que el equipo viaja aquí.
+   * Ausente o null = no llevaba ninguno (etapa 1, carrera de un día, o simplemente no era líder).
+   */
+  jersey: jerseyKindSchema.nullable().optional(),
 })
 export type ChronicleRider = z.infer<typeof chronicleRiderSchema>
 
@@ -916,6 +964,11 @@ export const stageResultEntrySchema = z.object({
   riderId: z.string(),
   name: z.string(),
   country: z.string(),
+  /**
+   * Id del equipo del corredor; null en un agente libre. Está para poder marcar al EQUIPO LÍDER de
+   * la clasificación por equipos junto al nombre del equipo, sin tener que casar por nombre.
+   */
+  teamId: z.string().nullable().optional(),
   teamName: z.string().nullable(),
   isBot: z.boolean(),
   puesto: z.number().int(),
@@ -930,6 +983,11 @@ export const stageGcEntrySchema = z.object({
   riderId: z.string(),
   name: z.string(),
   country: z.string(),
+  /**
+   * Id del equipo del corredor; null en un agente libre. Está para poder marcar al EQUIPO LÍDER de
+   * la clasificación por equipos junto al nombre del equipo, sin tener que casar por nombre.
+   */
+  teamId: z.string().nullable().optional(),
   teamName: z.string().nullable(),
   isBot: z.boolean(),
   tiempoTotalS: z.number(),
@@ -977,6 +1035,21 @@ export const stageReplaySchema = z.object({
   teamStage: z.array(teamClassEntrySchema).optional(),
   /** Clasificación por equipos acumulada TRAS esta etapa. */
   teamGc: z.array(teamClassEntrySchema).optional(),
+  /**
+   * LOS MAILLOTS, en DOS juegos, y son dos a propósito: la crónica y las tablas de esta misma
+   * página hablan de momentos distintos y se contradirían sin decir por qué.
+   *
+   * - `onRoad`: la clasificación tras la etapa N−1, o sea **el maillot que se llevaba puesto ESE
+   *   día en la carretera**. Es el que usa el journal: «el amarillo ataca en el km 120» solo es
+   *   verdad si es el amarillo de ese día, no el que acabó ganando la etapa.
+   * - `afterStage`: la clasificación tras la etapa N, que es lo que están mostrando las tablas de
+   *   general, puntos, montaña y equipos de esta ficha.
+   *
+   * Los dos van a null en la etapa 1 y en una carrera de un día. El `onRoad` va además repetido
+   * DENTRO de cada corredor de la crónica (`chronicleRiderSchema.jersey`), porque una entrada de la
+   * crónica no lleva ids; se calcula una sola vez y se proyecta, así que no pueden discrepar.
+   */
+  leaders: z.object({ onRoad: raceLeadersSchema, afterStage: raceLeadersSchema }).optional(),
 })
 export type StageReplay = z.infer<typeof stageReplaySchema>
 
