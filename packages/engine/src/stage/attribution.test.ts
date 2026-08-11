@@ -126,16 +126,42 @@ import type { Attribute } from '@cyclingstar/shared'
  * así que el término nuevo apenas puede hacer nada. Donde sí hace —47 km de terreno rodador con
  * cuatro corredores delante y 126 detrás— es donde estaba el defecto. Cualquier otra cosa que mueva
  * esta huella hay que volver a justificarla aquí.
+ *
+ * **RESELLADA EN LA v19** (el abanico de la contrarreloj, docs/balance.md «v19»). Esta tanda toca la
+ * LEY DE VELOCIDAD, así que la huella tenía que moverse entera y se ha comprobado que se mueve donde
+ * la corrección predice, ni más ni menos. Los dos términos nuevos son la escala de potencia con
+ * suelo (`p75PowerFloor`) y el exponente por terreno (`p75ExponentClimb`), y lo que hacen es: el
+ * llano se aprieta —todos los relojes bajan un 1,2 % porque un pelotón por debajo de la referencia
+ * ya no paga la penalización desmedida que pagaba— y la cuesta se queda donde estaba.
+ *
+ * - **`llana-180`, primera semilla: los 40 siguen entrando al MISMO SEGUNDO** (14447 → 14276). No es
+ *   la cola lo que se mueve, es la etapa entera: la llana canónica pasa de 44,4 a 45,2 km/h de
+ *   media, que es lo que rueda hoy una llana rápida de gran vuelta. Los puestos se permuten dentro
+ *   del mismo segundo, como siempre que cambia el peaje de trabajo.
+ * - **`llana-180`, segunda semilla: los 39 siguen juntos** (14585 → 14385) y `brk-1`, el único
+ *   cortado, pasa de +104 s a **+87 s**. Es la firma del cambio y hay que mirarla: el corredor que
+ *   rueda SOLO ya no pierde contra el pelotón lo que perdía, porque la penalización del que rueda
+ *   por debajo de la referencia se ha reducido a la mitad. Sigue perdiendo minuto y medio; no vuelve
+ *   gratis, que es lo que arregló la v16.
+ * - **`reina-150`: el frente se aprieta y la cola NO se ensancha.** Primera semilla: el ganador pasa
+ *   de 14681 a 14397 (−1,9 %, todo ganado en los 135 km llanos que preceden al puerto) y la cola de
+ *   15316 a 15003, así que el retraso relativo del último baja de 4,33 % a 4,21 %. Segunda semilla,
+ *   lo mismo: 5,22 % → 4,21 %. **La selección no desaparece**: la primera semilla pasa de 5 relojes
+ *   de grupo a 7, es decir, la etapa se parte MÁS, que es lo que hace el exponente 1 en la cuesta.
+ *
+ * Es decir: el llano entero un 1,2 % más rápido con el pelotón igual de junto, el descolgado en
+ * solitario perdiendo menos, y la montaña con la misma —o algo más— selección. Cualquier otra cosa
+ * que mueva esta huella hay que volver a justificarla aquí.
  */
 const SEALED_RESULTS: Record<string, string> = {
   'llana-180-0|llana-180|1|v1':
-    '1:spr-2:14447,2:spr-1:14447,3:spr-0:14447,4:pel-18:14447,5:pel-22:14447,6:pel-5:14447,7:pel-26:14447,8:brk-1:14447,9:pel-10:14447,10:pel-23:14447,11:pel-25:14447,12:pel-8:14447,13:pel-7:14447,14:pel-12:14447,15:pel-14:14447,16:pel-16:14447,17:pel-0:14447,18:brk-0:14447,19:pel-6:14447,20:pel-27:14447,21:brk-5:14447,22:pel-1:14447,23:pel-24:14447,24:pel-2:14447,25:pel-11:14447,26:pel-19:14447,27:pel-4:14447,28:pel-9:14447,29:brk-3:14447,30:pel-17:14447,31:pel-13:14447,32:brk-4:14447,33:pel-28:14447,34:pel-15:14447,35:pel-30:14447,36:pel-20:14447,37:pel-21:14447,38:pel-29:14447,39:brk-2:14447,40:pel-3:14447',
+    '1:spr-2:14276,2:spr-1:14276,3:spr-0:14276,4:pel-5:14276,5:pel-26:14276,6:pel-22:14276,7:pel-18:14276,8:pel-10:14276,9:pel-23:14276,10:pel-25:14276,11:pel-8:14276,12:pel-7:14276,13:pel-12:14276,14:brk-0:14276,15:pel-14:14276,16:pel-16:14276,17:pel-0:14276,18:pel-27:14276,19:pel-4:14276,20:pel-1:14276,21:pel-24:14276,22:pel-6:14276,23:pel-2:14276,24:brk-1:14276,25:pel-11:14276,26:brk-3:14276,27:pel-19:14276,28:pel-17:14276,29:pel-13:14276,30:brk-5:14276,31:pel-30:14276,32:brk-4:14276,33:pel-15:14276,34:pel-28:14276,35:pel-20:14276,36:pel-9:14276,37:brk-2:14276,38:pel-21:14276,39:pel-29:14276,40:pel-3:14276',
   'llana-180-1|llana-180|1|v1':
-    '1:spr-2:14585,2:spr-0:14585,3:spr-1:14585,4:pel-19:14585,5:pel-30:14585,6:pel-15:14585,7:pel-28:14585,8:pel-1:14585,9:brk-3:14585,10:pel-11:14585,11:pel-13:14585,12:pel-23:14585,13:pel-22:14585,14:pel-2:14585,15:pel-6:14585,16:pel-7:14585,17:pel-0:14585,18:pel-8:14585,19:pel-4:14585,20:pel-24:14585,21:pel-3:14585,22:pel-25:14585,23:pel-26:14585,24:pel-21:14585,25:pel-17:14585,26:pel-9:14585,27:pel-14:14585,28:pel-20:14585,29:brk-4:14585,30:pel-16:14585,31:pel-5:14585,32:brk-0:14585,33:pel-27:14585,34:pel-12:14585,35:brk-5:14585,36:pel-29:14585,37:brk-2:14585,38:pel-18:14585,39:pel-10:14585,40:brk-1:14689',
+    '1:spr-2:14385,2:spr-0:14385,3:spr-1:14385,4:pel-19:14385,5:pel-26:14385,6:pel-30:14385,7:pel-3:14385,8:pel-24:14385,9:pel-28:14385,10:pel-1:14385,11:pel-22:14385,12:pel-6:14385,13:brk-1:14385,14:pel-4:14385,15:pel-23:14385,16:pel-15:14385,17:pel-2:14385,18:pel-9:14385,19:pel-8:14385,20:pel-0:14385,21:pel-17:14385,22:pel-14:14385,23:pel-21:14385,24:pel-11:14385,25:brk-5:14385,26:pel-7:14385,27:brk-4:14385,28:brk-0:14385,29:pel-5:14385,30:pel-16:14385,31:pel-20:14385,32:pel-27:14385,33:pel-12:14385,34:brk-3:14385,35:pel-25:14385,36:brk-2:14385,37:pel-10:14385,38:pel-29:14385,39:pel-18:14385,40:pel-13:14472',
   'reina-150-0|reina-150|1|v1':
-    '1:bar-2:14681,2:pel-7:14681,3:gc-2:14734,4:gc-3:14734,5:gc-1:14734,6:gc-0:14734,7:bar-4:14734,8:bar-5:14734,9:pel-10:14805,10:pel-19:14805,11:pel-4:14805,12:pel-1:14805,13:pel-18:14805,14:bar-3:14805,15:bar-0:14918,16:pel-14:14918,17:pel-21:15316,18:pel-6:15316,19:pel-11:15316,20:pel-9:15316,21:pel-20:15316,22:pel-17:15316,23:pel-26:15316,24:pel-23:15316,25:pel-22:15316,26:pel-8:15316,27:pel-5:15316,28:pel-25:15316,29:pel-16:15316,30:pel-3:15316,31:pel-15:15316,32:pel-13:15316,33:pel-0:15316,34:pel-24:15316,35:pel-2:15316,36:pel-12:15316,37:bar-1:15316,38:spr-0:15316,39:spr-2:15316,40:spr-1:15316',
+    '1:gc-1:14397,2:gc-0:14397,3:gc-3:14397,4:gc-2:14397,5:bar-4:14397,6:pel-7:14461,7:pel-4:14461,8:pel-18:14461,9:pel-19:14461,10:bar-3:14509,11:pel-1:14509,12:bar-5:14558,13:bar-0:14558,14:pel-8:14763,15:pel-12:14763,16:bar-2:14857,17:bar-1:14857,18:pel-10:15003,19:pel-21:15003,20:pel-6:15003,21:pel-11:15003,22:pel-20:15003,23:pel-17:15003,24:pel-23:15003,25:pel-26:15003,26:pel-22:15003,27:pel-9:15003,28:pel-5:15003,29:pel-25:15003,30:pel-16:15003,31:pel-13:15003,32:pel-3:15003,33:pel-15:15003,34:pel-14:15003,35:pel-0:15003,36:pel-24:15003,37:pel-2:15003,38:spr-0:15003,39:spr-2:15003,40:spr-1:15003',
   'reina-150-1|reina-150|1|v1':
-    '1:bar-3:14226,2:bar-0:14226,3:bar-1:14226,4:pel-10:14226,5:gc-0:14260,6:gc-3:14415,7:gc-2:14415,8:gc-1:14415,9:bar-2:14592,10:pel-7:14592,11:pel-23:14864,12:pel-11:14864,13:pel-14:14864,14:pel-1:14864,15:pel-0:14864,16:pel-5:14864,17:spr-0:14864,18:pel-18:14906,19:bar-4:14906,20:pel-8:14906,21:pel-9:14906,22:pel-15:14906,23:pel-2:14906,24:pel-12:14906,25:spr-1:14906,26:bar-5:14969,27:pel-20:14969,28:pel-22:14969,29:pel-6:14969,30:pel-3:14969,31:pel-21:14969,32:pel-25:14969,33:pel-13:14969,34:pel-24:14969,35:pel-17:14969,36:pel-19:14969,37:pel-4:14969,38:pel-26:14969,39:pel-16:14969,40:spr-2:14969',
+    '1:gc-2:14148,2:gc-1:14148,3:gc-3:14148,4:gc-0:14148,5:bar-0:14197,6:pel-7:14294,7:pel-24:14294,8:pel-12:14294,9:bar-4:14376,10:bar-5:14376,11:bar-2:14376,12:pel-21:14376,13:pel-20:14376,14:pel-8:14376,15:pel-5:14376,16:bar-1:14376,17:spr-1:14376,18:pel-23:14743,19:bar-3:14743,20:pel-4:14743,21:pel-10:14743,22:pel-13:14743,23:pel-22:14743,24:pel-3:14743,25:pel-0:14743,26:pel-18:14743,27:pel-9:14743,28:pel-17:14743,29:pel-25:14743,30:pel-6:14743,31:pel-14:14743,32:pel-19:14743,33:pel-11:14743,34:pel-1:14743,35:pel-26:14743,36:pel-16:14743,37:pel-2:14743,38:pel-15:14743,39:spr-2:14743,40:spr-0:14743',
 }
 
 const fingerprint = (out: StageOutput): string =>

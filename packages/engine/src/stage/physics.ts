@@ -73,12 +73,47 @@ export function rhythm(c: number): number {
 }
 
 /**
+ * POTENCIA RELATIVA del que marca el ritmo (v19): el atributo, leído como vatios.
+ *
+ * La escala 0-100 de un atributo **no es una escala de vatios**, y tratarla como tal era el defecto
+ * de fondo del abanico de la contrarreloj (docs/balance.md «v19»). `(P75/75)` decía que un corredor
+ * de nivel 45 pone el 60 % de los vatios de uno de 75 y que uno de nivel 0 no pone ninguno; un
+ * pelotón profesional no es eso. El 0 de la escala no es «parado»: es «no existe», y lo que separa
+ * a un continental modesto de un especialista WorldTour es una franja estrecha de la fisiología.
+ * Por eso el atributo entra por una recta con suelo (`p75PowerFloor`), normalizada para valer 1
+ * exacto en la referencia: la ley no se mueve en el nivel 75 y se comprime hacia abajo.
+ */
+export function relPower(p75Perfil: number): number {
+  const scaled = p75Perfil / STAGE.p75Reference
+  return Math.max(0, STAGE.p75PowerFloor + (1 - STAGE.p75PowerFloor) * scaled)
+}
+
+/**
+ * EL EXPONENTE DE LA LEY, que depende del TERRENO (v19). Contra qué se pedalea decide qué compran
+ * los vatios: en llano la resistencia es el aire y crece con v³, así que la velocidad va como la
+ * raíz cúbica de la potencia (0,39); subiendo manda la gravedad, que es lineal en la velocidad, y
+ * la velocidad va como la potencia entera (1,0). Entre las dos, la rampa es la propia pendiente y
+ * satura en `p75ClimbFullGradient`, donde ya no queda aire que valga la pena contar.
+ *
+ * Pavés y descenso se quedan con el exponente del llano: en los dos manda el aire y no la gravedad.
+ * (El pavé tiene además una rodadura enorme, que es lineal como la gravedad y justificaría un
+ * exponente intermedio; no se modela, y queda anotado en docs/balance.md «v19».)
+ */
+export function loadExponent(block: Block): number {
+  if (block.tipo !== 'subida') return STAGE.p75Exponent
+  const gravity = clamp(block.g / STAGE.p75ClimbFullGradient, 0, 1)
+  return STAGE.p75Exponent + (STAGE.p75ExponentClimb - STAGE.p75Exponent) * gravity
+}
+
+/**
  * Velocidad objetivo del grupo en un bloque (SPEC 6.4):
- * v_obj = vRef(g)·(P75_perfil / 75)^0.34·ritmo(c). El P75 lo aportan quienes marcan el ritmo.
+ * v_obj = vRef(g)·carga(P75_perfil)·ritmo(c). El P75 lo aportan quienes marcan el ritmo, y la carga
+ * es la potencia relativa elevada al exponente del terreno (v19; hasta la v18, `(P75/75)^0.39` en
+ * todas partes).
  */
 export function targetSpeed(block: Block, p75Perfil: number, c: number): number {
   const base = vRef(block.g, block.tipo)
-  const load = Math.pow(p75Perfil / STAGE.p75Reference, STAGE.p75Exponent)
+  const load = Math.pow(relPower(p75Perfil), loadExponent(block))
   return base * load * rhythm(c)
 }
 

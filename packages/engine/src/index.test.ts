@@ -3,6 +3,20 @@ import { ENGINE_VERSION } from './index.js'
 
 describe('engine: esqueleto', () => {
   it('expone una engine_version sellada', () => {
+    // v19: EL ABANICO DE LA CONTRARRELOJ (docs/balance.md «v19»). La ley de velocidad de SPEC 6.4
+    // era el DOBLE de inclinada de lo que es en carretera, y se veía en la crono, que es donde se
+    // aplica sin rebufo ni grupo: en `race-colombia` e3 (33 km) el nivel 40 rodaba a 37,5 km/h
+    // —velocidad de cicloturista— y del primero al último había un 46,4 % contra el 8-15 % real.
+    // Dos cosas, las dos de física: (1) la escala 0-100 de un atributo NO es una escala de vatios
+    // —un continental modesto no pone el 60 % de los vatios de un especialista, pone el 85 %—, así
+    // que entra por una recta con suelo (`p75PowerFloor` = 0,55) en vez de pelada; y (2) el
+    // exponente depende del TERRENO: 0,39 en llano, donde manda el aire y la velocidad va como la
+    // raíz cúbica de la potencia, y 1,0 subiendo, donde manda la gravedad y va como la potencia
+    // entera. Las dos juntas dejan el PUERTO donde estaba (±1 % en todo el rango de niveles) y
+    // comprimen el llano a la mitad, que es donde estaba el defecto. Y el orden de salida de la
+    // crono desempata la general por PUESTO y no por dorsal (`StageRider.gcRank`, que rellena
+    // packages/db con `gcSort.ts`), que es la regla real: «el desempate en una etapa 2 no es por
+    // dorsal, es por posición en la etapa 1».
     // v18: LA CONTRARRELOJ (docs/balance.md «v18 — La contrarreloj»). Una crono no tenía ORDEN DE
     // SALIDA: cada corredor acumulaba su tiempo desde cero, nadie salía a una hora, y la etapa
     // entera se contaba con UN evento (`stage_win_itt`). Ahora la rampa la reparte una regla pura y
@@ -67,10 +81,10 @@ describe('engine: esqueleto', () => {
     // por las estrellas del sector) y, mucho más suave, en las bajadas de verdad (con DES). Con él,
     // el sector se corre en vez de rodarse, dentro del sector no hay reenganche, y la puerta del
     // pelotón se cierra según lo que aprieta. Entra Strade Bianche.
-    // Sobre la v17 (el pelotón no se resigna), la v16 (modelo de persecución), la v15 (plan de equipo), la v14 (abandonos), la v13 (identidad y motivo en el journal), la v12 (selección en pavé y descenso), la
+    // Sobre la v18 (la contrarreloj), la v17 (el pelotón no se resigna), la v16 (modelo de persecución), la v15 (plan de equipo), la v14 (abandonos), la v13 (identidad y motivo en el journal), la v12 (selección en pavé y descenso), la
     // v11 (atribución del trabajo), la v10 (composición y caza), la v9 (capa táctica), la
     // v8 (tiempos de grupo), la v7 (modelo de final), la v6 (telemetría), la v5 (clásica larga), la
     // v4 (pavé en el recorrido) y la v3 (Cambio 0).
-    expect(ENGINE_VERSION).toBe(18)
+    expect(ENGINE_VERSION).toBe(19)
   })
 })

@@ -55,8 +55,8 @@ describe('ley de velocidad (6.4)', () => {
     expect(vRef(0, 'llano')).toBe(STAGE.vRefFlat)
     // Subida hiperbólica A/(g+k): la velocidad va como el inverso de la pendiente, de modo que la
     // VAM sale sola en el rango real a cualquier pendiente (docs/motor.md §3-bis-c).
-    expect(vRef(8, 'subida')).toBeCloseTo(190 / 11.5)
-    expect(vRef(12, 'subida')).toBeCloseTo(190 / 15.5)
+    expect(vRef(8, 'subida')).toBeCloseTo(188 / 11.5)
+    expect(vRef(12, 'subida')).toBeCloseTo(188 / 15.5)
     expect(vRef(40, 'subida')).toBe(STAGE.vRefClimbMin) // saturado al mínimo
     expect(vRef(-6, 'descenso')).toBe(55)
   })

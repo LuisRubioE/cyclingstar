@@ -15,24 +15,43 @@ import type { Attribute } from '@cyclingstar/shared'
 import type { RaceEvent, StageInput, StageOutput, StageRider } from './types.js'
 
 /**
- * Huella sellada de `cri-40`. **Es la de la v17**: se generó con el motor de la v17 y se comprobó
+ * Huella sellada de `cri-40`.
+ *
+ * **NACIÓ EN LA v17 Y LLEGÓ INTACTA A LA v18**: se generó con el motor de la v17 y se comprobó
  * contra el de la v18 antes de escribirla aquí (80 comparaciones, incluidas cronos con general y
- * con dorsales de verdad, cero diferencias). Que salga igual no es suerte, es por construcción:
+ * con dorsales de verdad, cero diferencias). Que saliera igual no fue suerte, fue por construcción:
  *
  * - El orden de salida no consume azar —sale del dorsal y de la general, que son datos de entrada—,
  *   así que no hay dado nuevo ni subflujo nuevo que desplace ninguna secuencia.
- * - La física de la crono no se toca: el bucle de bloques es el mismo y en el mismo orden, y el
- *   ruido final se sigue pidiendo en el mismo punto. Lo único que se añade dentro del bucle es
- *   APUNTAR el tiempo acumulado (la traza), que no lo altera.
+ * - La física de la crono no se tocaba: el bucle de bloques era el mismo y en el mismo orden, y el
+ *   ruido final se pedía en el mismo punto. Lo único que la v18 añadió dentro del bucle fue APUNTAR
+ *   el tiempo acumulado (la traza), que no lo altera.
  * - El ALCANCE es narrativa pura: se detecta leyendo las trazas YA calculadas. Alcanzar no da
  *   rebufo —está prohibido y el alcanzado se aparta—, así que si esta huella se moviera por un
  *   alcance, la crono estaría rota.
+ *
+ * **RESELLADA EN LA v19** (el abanico de la contrarreloj, docs/balance.md «v19»), y aquí sí tenía
+ * que moverse: la tanda corrige la LEY DE VELOCIDAD, que es lo que esta huella mide, y la crono es
+ * justo donde la ley se aplica sin rebufo ni grupo que la disimulen. Se comprobó que se mueve
+ * EXACTAMENTE como la corrección predice —comprimiendo, y desde los dos extremos hacia el centro—:
+ *
+ * - **Los especialistas pierden y el pelotón gana, que es el sentido del cambio.** Primera semilla:
+ *   el ganador pasa de 2838 a 2895 (**+57 s**) y el último de 3211 a 3072 (**−139 s**). La brecha
+ *   entre el primero y el último cae de 13,1 % a 6,1 %, y ese 6,1 % es lo que reparte en carretera
+ *   un campo de «8 especialistas y 32 corredores de crono correcto» en 40 km.
+ * - **Las velocidades pasan a ser de crono.** 40 km en 2895 s son 49,7 km/h para el ganador y 46,9
+ *   para el último, contra 50,7 y 44,8 de la v18. La v18 mandaba al 40.º de un campo de rodadores a
+ *   44,8 km/h, que no es una crono, es un paseo.
+ * - **Y la sigue ganando un especialista.** El primero de las dos semillas sigue siendo un `cri-*`,
+ *   y sobre 500 cronos el invariante se queda en 98,8 % (era 99,8 %): ver docs/balance.md «v19».
+ * - **Ni un dado nuevo, otra vez**: la v19 no toca el azar de la crono —el ruido final se pide en el
+ *   mismo punto y del mismo subflujo—, así que todo el movimiento es de la ley y ninguno del RNG.
  */
 const SEALED_ITT: Record<string, string> = {
   'cri-40-0|cri-40|1|v1':
-    '1:cri-2:2838,2:cri-3:2851,3:cri-5:2882,4:cri-0:2888,5:cri-4:2895,6:cri-1:2906,7:cri-7:2918,8:cri-6:2971,9:pel-28:2986,10:pel-27:2992,11:pel-7:2999,12:pel-9:3005,13:pel-4:3014,14:pel-29:3020,15:pel-17:3024,16:pel-12:3029,17:pel-8:3034,18:pel-6:3039,19:pel-5:3045,20:pel-25:3051,21:pel-16:3052,22:pel-18:3057,23:pel-19:3064,24:pel-15:3078,25:pel-22:3079,26:pel-30:3093,27:pel-23:3095,28:pel-31:3102,29:pel-26:3103,30:pel-24:3106,31:pel-11:3126,32:pel-21:3129,33:pel-0:3130,34:pel-1:3132,35:pel-20:3133,36:pel-3:3134,37:pel-13:3156,38:pel-14:3157,39:pel-2:3160,40:pel-10:3211',
+    '1:cri-2:2895,2:cri-3:2920,3:cri-1:2923,4:cri-4:2934,5:cri-0:2935,6:cri-5:2942,7:cri-7:2952,8:cri-6:2966,9:pel-17:2966,10:pel-27:2977,11:pel-28:2978,12:pel-7:2985,13:pel-29:2986,14:pel-9:2987,15:pel-4:2989,16:pel-12:2990,17:pel-25:2994,18:pel-6:2994,19:pel-5:2996,20:pel-16:2998,21:pel-8:3006,22:pel-18:3008,23:pel-15:3018,24:pel-19:3019,25:pel-22:3023,26:pel-31:3023,27:pel-30:3026,28:pel-23:3033,29:pel-20:3033,30:pel-24:3035,31:pel-26:3037,32:pel-21:3039,33:pel-2:3045,34:pel-14:3048,35:pel-11:3049,36:pel-13:3050,37:pel-1:3051,38:pel-3:3053,39:pel-0:3056,40:pel-10:3072',
   'cri-40-1|cri-40|1|v1':
-    '1:cri-2:2829,2:cri-4:2843,3:cri-7:2887,4:cri-5:2923,5:cri-6:2927,6:cri-0:2934,7:cri-3:2963,8:pel-8:2979,9:pel-9:2988,10:pel-15:2990,11:pel-29:2994,12:cri-1:2995,13:pel-19:3007,14:pel-18:3032,15:pel-7:3036,16:pel-6:3044,17:pel-28:3054,18:pel-26:3066,19:pel-5:3068,20:pel-27:3072,21:pel-16:3080,22:pel-25:3086,23:pel-23:3094,24:pel-14:3099,25:pel-3:3101,26:pel-13:3103,27:pel-11:3104,28:pel-22:3110,29:pel-24:3110,30:pel-31:3118,31:pel-12:3122,32:pel-2:3123,33:pel-1:3140,34:pel-4:3155,35:pel-20:3156,36:pel-10:3161,37:pel-17:3171,38:pel-21:3171,39:pel-30:3200,40:pel-0:3232',
+    '1:cri-2:2888,2:cri-4:2922,3:cri-7:2929,4:cri-6:2949,5:cri-5:2951,6:pel-8:2955,7:cri-3:2965,8:pel-9:2968,9:pel-15:2970,10:pel-29:2975,11:cri-0:2977,12:cri-1:2980,13:pel-19:2982,14:pel-6:2998,15:pel-18:3000,16:pel-7:3000,17:pel-5:3009,18:pel-24:3014,19:pel-23:3023,20:pel-26:3024,21:pel-27:3025,22:pel-16:3027,23:pel-22:3027,24:pel-28:3031,25:pel-13:3031,26:pel-14:3033,27:pel-3:3034,28:pel-1:3034,29:pel-25:3035,30:pel-11:3039,31:pel-31:3040,32:pel-2:3046,33:pel-30:3047,34:pel-12:3049,35:pel-10:3053,36:pel-20:3057,37:pel-4:3059,38:pel-21:3064,39:pel-17:3069,40:pel-0:3079',
 }
 
 // --- Campo de pruebas (arriba porque lo usan las constantes de módulo de más abajo) ------------

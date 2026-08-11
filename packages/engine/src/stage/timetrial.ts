@@ -115,6 +115,12 @@ interface BestBeat extends Beat {
 /**
  * La cadena de mejores marcas: quién va marcando el mejor registro y a quién se lo quita. Los
  * corredores llegan al punto en orden de RELOJ, que en una crono no es el orden de salida.
+ *
+ * **EL CRONÓMETRO TIENE UN SEGUNDO DE RESOLUCIÓN** (v19), y la silla lo respeta: se compara en
+ * segundos redondeados, que son los que van a la clasificación y los que el jugador lee. Dos
+ * corredores al mismo segundo COMPARTEN el mejor tiempo y el segundo no se lo quita al primero,
+ * como en carretera. Antes se comparaba en crudo y con un campo apretado salían líneas que decían
+ * «X le quita el mejor tiempo a Y» enseñando el mismo tiempo para los dos.
  */
 function bestChain(arrivals: readonly { riderId: string; timeS: number; clockS: number }[]): {
   first: BestBeat | null
@@ -125,17 +131,18 @@ function bestChain(arrivals: readonly { riderId: string; timeS: number; clockS: 
   let first: BestBeat | null = null
   const changes: BestBeat[] = []
   for (const a of arrivals) {
-    if (a.timeS >= best) continue
+    const timeS = Math.round(a.timeS)
+    if (timeS >= best) continue
     const beat: BestBeat = {
       tS: a.clockS,
       riderId: a.riderId,
-      timeS: a.timeS,
-      gainS: best === Infinity ? 0 : best - a.timeS,
+      timeS,
+      gainS: best === Infinity ? 0 : best - timeS,
       previousId: holder,
     }
     if (first === null) first = beat
     else changes.push(beat)
-    best = a.timeS
+    best = timeS
     holder = a.riderId
   }
   return { first, changes }

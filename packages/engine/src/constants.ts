@@ -251,8 +251,31 @@
  * crono no se toca, no hay dado nuevo ni subflujo nuevo, y el alcance es narrativa pura —alcanzar
  * NO da rebufo, está prohibido y el alcanzado se aparta—, de modo que los dos invariantes de crono
  * salen dígito a dígito iguales a los de la v17. Medido en docs/balance.md, «v18».
+ *
+ * v19 (EL ABANICO DE LA CONTRARRELOJ: LA LEY DE VELOCIDAD, CORREGIDA). La v14, la v17 y la v18
+ * fueron midiendo el mismo defecto sin nombrarlo: la ley de SPEC 6.4 era **el doble de inclinada**
+ * de lo que es en carretera. Se veía en la crono, que es donde se aplica sin rebufo ni grupo que la
+ * disimulen —en `race-colombia` e3, 33 km llanos, el nivel 40 rodaba a 37,5 km/h y del primero al
+ * último había un 46,4 %—, y se veía también en la carretera, donde la v17 dejó anotado que un grupo
+ * de LLA 45 rueda 8 km/h más lento que uno de LLA 80 «vaya como vaya de convencido».
+ *
+ * La corrección son dos cosas y las dos son física:
+ *
+ * 1. **La escala 0-100 de un atributo no es una escala de vatios** (`p75PowerFloor` = 0,55). El 0 no
+ *    es «parado», es «no existe»: un continental modesto no pone el 60 % de los vatios de un
+ *    especialista WorldTour, pone el 85 %. El atributo entra por una recta con suelo.
+ * 2. **El exponente depende del terreno** (`p75ExponentClimb` = 1,0). En llano manda el aire, que
+ *    crece con v³, así que la velocidad va como la raíz cúbica de la potencia (0,39); subiendo manda
+ *    la gravedad, lineal en la velocidad, y va como la potencia entera. El 0,39 único de antes
+ *    acertaba en el puerto y multiplicaba por tres lo del llano.
+ *
+ * Juntas dejan la MONTAÑA donde estaba —±1 % de selección en todo el rango de niveles, medido— y
+ * comprimen el llano a la mitad. La crono pasa de repartir el 46 % de cola al 13 %, el nivel 40 a
+ * 44 km/h y el 90 a 50, y los alcances de una crono de 130 corredores caen de 65 a un puñado.
+ * Con ella, el orden de salida desempata la general por PUESTO (`StageRider.gcRank`) y no por
+ * dorsal. Medido en docs/balance.md, «v19».
  */
-export const ENGINE_VERSION = 18 as const
+export const ENGINE_VERSION = 19 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -599,14 +622,20 @@ export const STAGE = {
   // Paves: 0.6·eff(PAV) + 0.4·eff(LLA).
   pavesPavWeight: 0.6,
   pavesLlaWeight: 0.4,
-  // vRef(g) km/h: subida clamp(190/(g + 3.5), 8, 44) | llano 43 | paves 38 | descenso 55.
+  // vRef(g) km/h: subida clamp(188/(g + 3.5), 8, 44) | llano 42 | paves 38 | descenso 55.
   // El llano baja de 44 a 43: con 44 la etapa llana canónica salía a 47,1 km/h de media (real 42-45).
   vRefFlat: 42,
   // Subida HIPERBÓLICA (ver `vRef`): A/(g+k). Calibrada para que la VAM de los punteros de una
   // etapa reina (P75 86 al compromiso de puerto decisivo) caiga en 1.500-1.800 m/h en todo el
   // rango de puertos sostenidos: al 8% 20,1 km/h (VAM 1.610), al 10% 17,1 (1.714), al 12% 14,9
   // (1.792). La recta anterior daba VAM 1.940 al 8% y 2.260 al 12%, imposibles.
-  vRefClimbNumerator: 190,
+  //
+  // BAJA DE 190 A 188 EN LA v19, y es aritmética, no una recalibración: la escala de potencia con
+  // suelo (`p75PowerFloor`) deja la carga del P75 = 86 de una reina en 1,0660 donde la ley vieja
+  // daba 1,0554, un 1,0 % más. Sin este ajuste la VAM del 12 % se iba a 1.811 m/h, por encima de la
+  // banda que este número existe para defender. Con 188 vuelve a 1.792, es decir, **la montaña
+  // sigue subiéndose exactamente a la velocidad para la que se calibró**.
+  vRefClimbNumerator: 188,
   vRefClimbOffset: 3.5,
   vRefClimbMin: 8,
   vRefPaves: 38,
@@ -617,13 +646,55 @@ export const STAGE = {
   // depende justo de la razón ritmo(0.85)/ritmo(0.60), y con 0.30 queda en 1.069 (medido 53 s).
   rhythmBase: 0.9,
   rhythmScale: 0.3,
-  // v_objetivo = vRef(g)·(P75/75)^0.39·ritmo(c). El exponente sube de 0.34 a 0.39: con 0.34 el nivel
-  // del corredor casi no influía (P75 60 frente a 85 eran 8 km/h en llano contando el ritmo). No
-  // puede subir mucho más: el invariante de la CRI (brecha p90-p10 de 2 a 4 minutos en 40 km) lo
-  // acota por arriba —con 0.45 medía 4,4 min y con 0.85, 7— porque en crono la ley se aplica sin
-  // rebufo ni grupo y el exponente se ve entero.
+  // v_objetivo = vRef(g)·carga(P75)·ritmo(c) (v19). Antes la carga era `(P75/75)^0.39` a secas: el
+  // exponente había subido de 0.34 a 0.39 porque «con 0.34 el nivel del corredor casi no influía»,
+  // y ese 0.39 se acotaba por arriba con el invariante de la CRI. Los dos síntomas eran el mismo
+  // defecto y se explican abajo (`p75PowerFloor`, `p75ExponentClimb`).
   p75Reference: 75,
+  /**
+   * EL EXPONENTE DEL LLANO, y ahora dice lo que es: en llano la resistencia es el AIRE, que crece
+   * con v³, así que la velocidad va como la raíz cúbica de la potencia. 0,39 es esa raíz cúbica con
+   * el pelo de rodadura encima, y por eso NO se mueve: el valor está bien, lo que estaba mal era lo
+   * que se metía dentro (ver `p75PowerFloor`) y aplicarlo también a las cuestas (`p75ExponentClimb`).
+   */
   p75Exponent: 0.39,
+  /**
+   * EL EXPONENTE DE LA CUESTA (v19). Subiendo, la resistencia que manda es la GRAVEDAD, que es
+   * lineal en la velocidad —cada kilo por metro subido cuesta lo mismo se suba deprisa o despacio—,
+   * así que ahí la velocidad va como la POTENCIA, exponente 1, y no como su raíz cúbica. Es la
+   * diferencia real entre los dos terrenos: el mismo 25 % más de vatios son un 25 % más de VAM en
+   * un puerto y un 8 % más de velocidad en el llano.
+   *
+   * Hasta la v18 el motor usaba 0,39 en todas partes, y esa cuenta única es la que producía el
+   * abanico de la crono: 0,39 SIN compresión de escala acierta en el puerto (nivel 45 contra 86 daba
+   * un 28,9 %, que es lo que se ve subiendo) y multiplica por tres lo que se ve en el llano. Con la
+   * escala comprimida y el exponente 1 en la cuesta, el puerto sale donde estaba —medido, ±1 % sobre
+   * todo el rango de niveles— y el llano baja a lo que es.
+   */
+  p75ExponentClimb: 1.0,
+  /** Pendiente a partir de la cual la gravedad se lo lleva TODO y el exponente es el de cuesta. */
+  p75ClimbFullGradient: 6,
+  /**
+   * EL SUELO DE POTENCIA: la escala 0-100 de un atributo NO es una escala de vatios (v19).
+   *
+   * Éste es el defecto de fondo que la v14, la v17 y la v18 fueron midiendo sin nombrar. La ley
+   * decía `(P75/75)^0.39`, es decir, que un corredor de nivel 45 pone el 60 % de los vatios de uno
+   * de nivel 75 y uno de nivel 0, ninguno. Eso no describe a un pelotón profesional: un continental
+   * modesto no rueda al 60 % de los vatios de un especialista WorldTour, rueda al 85 %. El 0 de la
+   * escala no es «parado», es «no existe» — y el tramo que de verdad separa a los profesionales es
+   * una franja estrecha de la fisiología humana.
+   *
+   * Así que el atributo entra por una recta y no por su valor pelado:
+   *
+   *     potencia relativa = 0.55 + 0.45 · P75/75      (1,00 en la referencia, 0,82 en el nivel 45)
+   *
+   * POR QUÉ 0,55 Y NO OTRA COSA. Es lo que hace que la crono diga lo que dice la carretera: entre un
+   * especialista (nivel 80) y un continental flojo (45), 9,3 % de diferencia de tiempo en una crono
+   * llana, dentro del 8-12 % real. Con 0 —lo de la v18— eran 21,5 %, y el nivel 40 rodaba a 37,5
+   * km/h, que es velocidad de cicloturista. Medido sobre las dos cronos de producción en
+   * docs/balance.md, «v19».
+   */
+  p75PowerFloor: 0.55,
   // Inercia: aceleraciones acotadas en km/h por segundo, asimétricas (6.4).
   accPedal: 0.4,
   accGrav: 1.5,
