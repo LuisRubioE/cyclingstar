@@ -4,8 +4,9 @@ Estado: **documento vivo.** Las Partes I y II son el diagnóstico (medido) y sig
 retrato de lo que había. En la Parte III cada cambio lleva su estado: **§12-bis hecho** (v3),
 **§16 primera entrega** (v6), **§12 hecho** (v7), **§13 hecho** (v9), **§18 hecho** (v10),
 **§16 segunda entrega** (v11), **§14 hecho** (v12), **§16 tercera entrega** (v13),
-**§15 hecho** (v14), **§V.1 hecho** (v15) y **§9-bis hecho** (v16, el modelo de persecución: la
-última deuda de fondo). Lo demás sigue siendo propuesta.
+**§15 hecho** (v14), **§V.1 hecho** (v15), **§9-bis hecho** (v16, el modelo de persecución: la
+última deuda de fondo), **§16 cuarta entrega** (v18, la contrarreloj) y **§16 quinta entrega**
+(v21, la criba lejos de meta y el ruido del boquete). Lo demás sigue siendo propuesta.
 
 Ámbito: `packages/engine/src/stage/` (2.333 líneas sin tests). Referencias a SPEC 6.
 
@@ -803,6 +804,29 @@ entero) y la crónica lo agrupa en racimo con número, igual que los descuelgues
 > concesión que luego se desmiente). Sin física nueva ni azar nuevo, y con la huella de tiempos
 > intacta. Medido en docs/balance.md, «v13 — Identidad, motivo y ruido en el journal». Sigue
 > pendiente lo estructural (la telemetría como dato separado) y sigue sin narrarse la pájara.
+
+> **Quinta entrega hecha (v21): LA CRIBA QUE DECIDE LA ETAPA, Y LA FUGA QUE SE HUNDE.** Los dos
+> agujeros que las tandas anteriores dejaron medidos y anotados. El primero lo escribió la v16: el
+> corte del pelotón (`peloton_split`) solo se narra dentro de los últimos `climbRaceKmToGo` km, así
+> que **la criba que decide la etapa a 50 km de meta no tenía frase**. La ventana no se toca —existe
+> por una razón medida: con perfiles reales hay relieve por todas partes y sin ella cada cota
+> escupía una línea (v6, 26 cortes por etapa)—; lo que entra es un evento NUEVO para la criba lejana
+> (`peloton_selection`) con un listón que no es de kilómetro sino de **magnitud**: cuánta gente ha
+> perdido la cabeza de carrera contra su MÁXIMO reciente, y que la sangría haya parado. Y una
+> frontera que conviene leer entera, porque es la de este §16: **el motor pone la magnitud y la
+> crónica pone la permanencia**. Que una criba se DESHAGA cincuenta kilómetros después es futuro, el
+> motor emite en carretera y no lo puede saber; la crónica ve la etapa entera y tira la frase si el
+> grupo recupera más de la mitad de lo que perdió. Medido: el motor emite 80 cribas lejanas en 128
+> etapas del banco y la crónica narra 40 —la mitad exacta eran espejismos—.
+>
+> El segundo agujero es de la v13 y lo volvió a medir la v16: **ocho partes de boquete seguidos para
+> contar que una fuga se hunde**. No se agrupa por número como los descuelgues, sino por NARRATIVA:
+> se cuenta el arranque, se cuenta el desenlace —de dónde a dónde y en cuántos km— y desaparece lo
+> de en medio; rompen la racha las tres cosas que cambian la historia (que la ventaja se estabilice,
+> que vuelva a crecer, que cambie el grupo del que se habla). Como vive en la crónica, arregla
+> también los journals YA CORRIDOS: los 64 de producción bajan de 27,3 a 25,4 líneas de media.
+> Cambio de OBSERVACIÓN en el motor: ni azar nuevo ni física nueva, y las huellas de
+> `attribution.test.ts` y `timetrial.test.ts` salen idénticas. Medido en docs/balance.md, «v21».
 
 > **Cuarta entrega hecha (v18): LA CONTRARRELOJ.** Era el agujero más grande que quedaba en lo que
 > el motor cuenta, y no era de matiz: una crono entera —130 corredores, 33 km— se resolvía con **un

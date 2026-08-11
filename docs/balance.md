@@ -4245,3 +4245,196 @@ roto).
   inalcanzable y se conserva porque describe algo verdadero.
 - **No toca el modelo de persecución ni la ley de velocidad.** La cola de la reina se mueve cuatro
   décimas por reestructuración de grupos, no por ninguna ley nueva.
+
+## v21 — La criba que decide la etapa, y la fuga que se hunde (`engine_version` 20 → 21)
+
+> **Lo que sigue mal y es de §16:** `peloton_split` solo se narra dentro de los últimos 30 km, así
+> que la criba que decide Great Ocean —a 50 km de meta— no tiene frase propia. — la v16, §14.
+>
+> «No menciones uno a uno todos los ciclistas que se van descolgando: puedes mencionar muchos juntos
+> con número.» — el dueño (v13), sobre los descuelgues. Los **ocho `time_gap` seguidos de una fuga
+> que se hunde** son el mismo ruido, y llevan anotados sin arreglar desde entonces (v13 §«lo que no
+> hace», v16 §14: «la racha más larga sube de 6 a 9»).
+
+Tanda de **telemetría y narrativa** (docs/motor.md §16), quinta entrega. Los dos agujeros que las
+tandas anteriores dejaron MEDIDOS y sin tocar. **Ni física nueva ni azar nuevo**: ningún dado
+añadido, ningún subflujo nuevo, ninguna constante de calibración movida. Lo que cambia es lo que el
+motor CUENTA y cómo la crónica lo ordena.
+
+### 1. La frontera, que es lo primero que hay que decidir
+
+Los dos agujeros parecen de narración y solo uno lo es del todo. La regla con la que se ha repartido
+el trabajo:
+
+| Pregunta                                       | Quién la responde | Por qué                                                                                                                              |
+| ---------------------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| ¿Cuánta gente ha perdido la cabeza de carrera? | **Motor**         | Es telemetría: solo él tiene la composición de los grupos bloque a bloque, y en la crónica no queda ni rastro de los que se soltaron |
+| ¿Ha parado la sangría?                         | **Motor**         | Le basta con esperar cuatro kilómetros. No es ver el futuro, es no contar en el fondo del agujero                                    |
+| ¿Se DESHIZO la criba cincuenta km después?     | **Crónica**       | Eso sí es futuro. El motor emite en carretera; la crónica tiene la etapa entera delante, como en la concesión desmentida de la v13   |
+| ¿Nueve partes de boquete son nueve noticias?   | **Crónica**       | Es puro ordenar el relato… y además arregla los journals YA CORRIDOS, que es lo que el dueño está leyendo HOY                        |
+
+La última fila es la razón de que el agrupamiento de boquetes NO esté en el motor aunque allí habría
+sido más fácil: los eventos de las etapas corridas están congelados en `stage_runs.events` y se
+renderizan al vuelo. Un arreglo en el motor solo vale para las etapas que aún no se han corrido.
+
+### 2. El motor: la criba lejos de meta (`peloton_selection`)
+
+La ventana de los últimos 30 km **no se toca**, y conviene recordar por qué existe: la v6 midió que
+sin ella, con perfiles reales —que tienen relieve por todas partes—, se narraban **26 cortes por
+etapa**. El criterio de la criba lejana no puede ser «narra siempre», así que es de MAGNITUD:
+
+| Perilla nueva             | Valor | Qué hace                                                                                                        |
+| ------------------------- | ----: | --------------------------------------------------------------------------------------------------------------- |
+| `splitFarMinDropped`      |    20 | Suelo absoluto de corredores perdidos. Sin él, un grupo ya roto de 30 daba parte por perder 15                  |
+| `splitFarMinDropFraction` |  0,25 | …y además una parte grande del grupo. Sin ella, un pelotón de 176 daba parte por perder 18 en una cota de tempo |
+| `splitFarSettleKm`        |     4 | La criba se cuenta cuando ha PARADO, no en el fondo del agujero (ver abajo). Es el ancho del churn medido       |
+| `splitFarKmGap`           |    20 | Throttle ancho: una criba lejana es UNA noticia                                                                 |
+
+Dos decisiones de diseño que salieron de medir y no de suponer:
+
+1. **La referencia es el MÁXIMO reciente del grupo, no el aviso anterior.** Es distinto de
+   `peloton_split`, que encadena avisos porque narra una progresión. Aquí se mide el saldo: si el
+   grupo se recompone, la referencia sube sola y la cuenta empieza limpia.
+2. **`splitFarSettleKm` es el número que mata el espejismo.** Medida la composición del pelotón cada
+   2 km sobre el banco, `membersOf(PELOTON)` NO es una curva suave: en Race Great Ocean cae de 175 a
+   **91** en el km 58 y vuelve a 175 en el km 60; en Race Colombia e5 cae de 123 a 19 en el km 56 y
+   vuelve a 122 en el km 150. Contar en el fondo del agujero narra un número que el lector no volverá
+   a ver nunca. Esperando a que el grupo lleve 4 km sin encoger, la cifra narrada es la que la criba
+   conserva —y las caídas que se recomponen en dos kilómetros no llegan siquiera a emitirse—.
+
+### 3. La crónica: la criba que se deshace, y la racha de boquetes
+
+**`dropUndoneSelections`.** Si en lo que queda de etapa el grupo de cabeza recupera **más de la
+mitad** de lo que perdió, la frase se cae. El tamaño se lee de los eventos que ya lo traen
+(`peloton_pull.size`, `peloton_split/regroup.remaining`, `bunch_sprint.field`), así que no hace falta
+dato nuevo. Se mira hasta META y no en una ventana de km, porque la pregunta es exactamente esa:
+¿siguió rota la carrera? Una criba que aguanta ochenta kilómetros y se deshace antes de la línea no
+decidió nada, y el lector lo va a ver en el resultado.
+
+**`groupGapRuns`.** Una racha de partes de boquete en la MISMA dirección y sobre el MISMO grupo de
+cabeza se cuenta en dos líneas: el primer parte tal cual —es el que da la novedad— y un resumen que
+cierra el arco («de 15:17 a 69:25 en los últimos 31 km»). Lo de en medio desaparece. Rompen la racha
+las tres cosas que cambian la historia: que la ventaja se estabilice, que vuelva a crecer, o que
+cambie el grupo del que se habla (la fuga de cuatro que pasa a ser un corredor solo no es la misma
+noticia). El mínimo son tres partes, el mismo suelo que el racimo de descuelgues de la v13: con dos
+no hay racha, hay un antes y un después. Y la cifra de partida es la del PRIMER parte —el que el
+lector acaba de leer— para que el arco enganche con la línea anterior.
+
+### 4. Medido: 128 etapas del banco (16 etapas reales × 8 semillas)
+
+Banco nuevo y equilibrado por tipo de etapa —4 llanas, 4 medias, 6 reinas y 2 clásicas del
+calendario real, con campo NPC del nivel de cada carrera y las órdenes de `autoStageOrders`— porque
+la pregunta de esta tanda («¿sube el número de líneas?») no se puede contestar solo con etapas duras.
+
+| Líneas de crónica por etapa | v20 (media / mediana / p90 / máx) | **v21**                   |
+| --------------------------- | --------------------------------- | ------------------------- |
+| **Todas** (128)             | 47,1 / 44 / — / 94                | **46,2 / 43 / — / 91**    |
+| Llana (32)                  | 38,6 / 38 / 44 / 52               | **37,3 / 38 / 42 / 48**   |
+| Media (32)                  | 43,2 / 42,5 / 53 / 57             | **42,2 / 42,5 / 53 / 57** |
+| Reina (48)                  | 46,6 / 46 / 54 / 62               | **46,0 / 46 / 53 / 60**   |
+| Clásica (16)                | 73,2 / 72 / 91 / 94               | **72,4 / 70,5 / 91 / 91** |
+
+**El total baja un 1,9 % (6.027 → 5.911 líneas)**: 62 etapas bajan, 58 se quedan igual y 8 suben.
+Suben las que ganan la criba lejana sin tener ninguna racha que resumir, que es exactamente el
+intercambio que se buscaba: **una línea que cuenta la etapa a cambio de las que no contaban nada**.
+
+| Medida                                               |      v20 |   **v21** |
+| ---------------------------------------------------- | -------: | --------: |
+| Partes de boquete por etapa                          |      6,3 |   **5,1** |
+| …de ellos, resúmenes de racha                        |        — |       0,7 |
+| Racha más larga de partes seguidos (mediana / máx)   |    1,5/5 |   **1/3** |
+| Cribas lejanas EMITIDAS por el motor                 |        0 |        80 |
+| …**NARRADAS** por la crónica                         |        0 |    **40** |
+| Etapas con criba lejana narrada                      |        0 | 33 (26 %) |
+| …de ellas, etapas LLANAS                             |        — |     **0** |
+| Hueco máximo sin una línea (mediana / p90 / máx, km) | 23/29/51 |  24/33/51 |
+
+Tres lecturas de esa tabla:
+
+- **La crónica tira la MITAD de las cribas que el motor emite** (80 → 40). No es un listón mal
+  puesto: es el reparto de papeles funcionando. Un puerto de tempo a 120 km de meta produce una
+  selección de verdad… que el valle siguiente deshace, y eso el motor no lo puede saber.
+- **Ninguna etapa llana narra una criba lejana.** Es la comprobación de que el listón mide selección
+  y no relieve.
+- **El hueco máximo sin una línea no empeora** (51 km antes y después): agrupar la racha no deja
+  tramos mudos, porque lo que se quita son frases que repetían la anterior.
+
+### 5. Producción: los journals YA CORRIDOS
+
+56 journals con crónica de las 34 carreras corridas (los eventos están CONGELADOS y se resuelven al
+vuelo, así que la capa nueva se les aplica sola en la próxima visita):
+
+| Medida             |  v20 |           **v21** |
+| ------------------ | ---: | ----------------: |
+| Líneas totales     | 1528 | **1424** (−6,8 %) |
+| Media por etapa    | 27,3 |          **25,4** |
+| Etapas que mejoran |    — |       **37 / 56** |
+
+Race Colombia e5 —la reina de 232 km, y el caso que la v17 corrigió— pasa de **43 a 36 líneas**, y
+las ocho frases del muro se quedan en dos:
+
+```
+ANTES                                     DESPUÉS
+km 192  The 4 out front pull away — 15:17 now.       km 192  The 4 out front pull away — 15:17 now.
+km 196  The 4 out front pull away — 22:16 now.
+km 200  The 4 out front pull away — 29:15 now.
+km 204  The 4 out front pull away — 36:14 now.
+km 208  The 4 out front pull away — 43:13 now.
+km 212  The 4 out front pull away — 50:12 now.
+km 217  The 4 out front pull away — 58:56 now.
+km 223  The 4 out front pull away — 69:25 now.       km 223  Nobody answers over the last 31 km: the
+                                                             advantage of the 4 out front goes from
+                                                             15:17 to 69:25.
+```
+
+**Lo que NO mejora en producción, y hay que decirlo: la criba lejana.** Race Great Ocean no tiene
+guardado el evento de la criba de los 50 km —el motor de entonces no lo emitía—, así que su journal
+viejo no se puede arreglar sin inventárselo, y no se inventa. Su crónica sale hoy exactamente igual
+que ayer (22 líneas). Lo que cambia es de la etapa 1 en adelante.
+
+### 6. Great Ocean con el motor de HOY
+
+Reproducida en el banco sobre el recorrido real (22 equipos de 8, el campo WT del calendario), la
+criba que la v16 dejó sin frase ya la tiene:
+
+```
+km 112  An alliance on the front with 98 km to go: … are the ones doing the pulling.
+km 117  This is the selection of the day with 93 km still to go: the chase group goes from 176
+        down to 41, and those left behind never come back.
+km 127  The lone leader's advantage is down to 1:11.
+```
+
+Y con el campo de 18 equipos de 8 con el que la v16 la reprodujo, **hoy no hay criba que contar**:
+la etapa termina con 142-144 corredores al tiempo del ganador en las 6 semillas y no se emite ni una
+selección lejana. No es un fallo del listón: es que la v17 —«el pelotón no se resigna»— arregló
+justamente eso, y esa etapa ya no se rompe con ese campo. La frase aparece cuando la carrera se
+rompe de verdad.
+
+### 7. Los tiempos no se mueven
+
+Las huellas selladas de `stage/attribution.test.ts` (v12, v15, v16, v17) y `stage/timetrial.test.ts`
+(v18, v19) salen **idénticas dígito a dígito y no se han vuelto a sellar**. No podían moverse: el
+evento nuevo no consume una sola tirada del RNG y no toca ni un compromiso, ni una velocidad, ni una
+decisión; la crónica, por definición, corre después de la carrera. Los 24 invariantes de
+`pnpm sim` y el banco táctico de `pnpm sim:tactics` salen con los mismos números y **ningún objetivo
+de `sim/targets.ts` se ha tocado**.
+
+### 8. Lo que este cambio NO hace
+
+- **No toca la ventana del desenlace** (`climbRaceKmToGo` = 30) ni ninguna de las perillas del corte
+  de siempre. La criba lejana es un evento APARTE y no entra en la cadena de avisos del desenlace,
+  que sigue teniendo que cerrar sin huecos (su test lo vigila).
+- **No arregla los journals viejos en lo que toca a la criba lejana** (§5): sin el evento guardado no
+  hay nada que narrar, y reconstruirlo desde los tamaños que sí traen otros eventos sería inventarse
+  una etapa.
+- **No pone tope a la longitud de una racha de boquete.** Una fuga que se hunde durante 97 km se
+  resume en una línea que dice esos 97 km. Se probó cortar la racha cada N km y lo único que produce
+  es una línea intermedia que repite la anterior con otro número; el hueco máximo sin línea no
+  empeora (§4), que era el riesgo real.
+- **No agrupa nada más.** Los partes de «quién tira» (`peloton_pull`, 4-5 por etapa) también repiten
+  estructura, pero cambian de protagonista y de motivo: no son la misma noticia contada dos veces.
+- **No investiga por qué algunas etapas pierden 50-60 corredores en los primeros 40 km y no los
+  recuperan.** La criba lejana lo ha dejado a la vista —Race Two Seas e4 narra «de 176 a 116 con 170
+  km por delante», y la crónica ha comprobado que no vuelven—, y es una pregunta de CALIBRACIÓN del
+  modelo de persecución, no de narración. Queda anotada aquí, que es donde viven los defectos
+  medidos.
