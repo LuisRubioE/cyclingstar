@@ -493,7 +493,7 @@ describe('A1 · cada mención de un ciclista lleva dorsal, equipo y bandera', ()
     )
     expect(partes).toContainEqual({ flag: 'SI' })
     // Y el texto plano no arrastra marcas invisibles ni el código de país suelto.
-    const plano = partes.map((p) => ('flag' in p ? '' : p.text)).join('')
+    const plano = partes.map((p) => ('text' in p ? p.text : '')).join('')
     expect(plano).toBe(
       chronicleLine(
         event({ plantilla: 'stage_win', protagonists: [pucnik], datos: { won: 'sprint' } }),
@@ -852,5 +852,88 @@ describe('v14 · pájara, abandono y corte de tiempo', () => {
     expect(l).toContain('23 riders')
     expect(l).toContain('12%')
     expect(l.toLowerCase()).toContain('points')
+  })
+})
+
+/**
+ * EL MAILLOT DE LÍDER EN LA CRÓNICA.
+ *
+ * El maillot va DENTRO de la identidad del corredor —igual que el dorsal, el equipo y la bandera—,
+ * así que sale solo en TODAS las menciones y no hay una sola plantilla que lo nombre. Lo que se
+ * prueba aquí es justo eso: que aparece sin tocar las frases, que `chronicleLine()` sigue
+ * devolviendo el texto pelado de siempre, y que una crónica sin maillots no cambia en nada.
+ */
+describe('el maillot de líder en la crónica', () => {
+  const lider = rider('Ole Andersen', { bib: 163, team: 'Aurora', country: 'NO', jersey: 'gc' })
+  const raso = rider('Ana Ruiz', { bib: 41, team: 'Team Sol', country: 'ES' })
+
+  it('el maillot NO va en el texto: va como trozo aparte, para pintarlo con `<LeaderJersey/>`', () => {
+    const e = event({ plantilla: 'stage_win', protagonists: [lider], datos: { won: 'sprint' } })
+    expect(chronicleParts(e)).toContainEqual({ jersey: 'gc' })
+    // Y el texto pelado es EXACTAMENTE el mismo que sin maillot: los tests y cualquier contexto sin
+    // DOM (informes, noticias) siguen leyendo la misma frase, sin marcas invisibles dentro.
+    const sinMaillot = event({
+      plantilla: 'stage_win',
+      protagonists: [{ ...lider, jersey: null }],
+      datos: { won: 'sprint' },
+    })
+    expect(chronicleLine(e)).toBe(chronicleLine(sinMaillot))
+    expect(chronicleLine(e)).not.toMatch(/[\u0001-\u0002]/)
+  })
+
+  it('el maillot abre la mención, delante de la bandera y del dorsal', () => {
+    const partes = chronicleParts(
+      event({ plantilla: 'stage_win', protagonists: [lider], datos: { won: 'sprint' } }),
+    )
+    const iJersey = partes.findIndex((p) => 'jersey' in p)
+    const iFlag = partes.findIndex((p) => 'flag' in p)
+    expect(iJersey).toBeGreaterThanOrEqual(0)
+    expect(iJersey).toBeLessThan(iFlag)
+    const texto = partes.map((p) => ('text' in p ? p.text : '')).join('')
+    expect(texto).toContain('163 Ole Andersen (Aurora)')
+  })
+
+  it('sale en TODAS las menciones: en las listas y en las frases que ya nombran al equipo', () => {
+    const lista = chronicleParts(
+      event({
+        plantilla: 'front_group',
+        protagonists: [raso, lider, rider('Bea', { jersey: 'kom' })],
+        datos: { size: 3, toGo: 20 },
+      }),
+    )
+    expect(lista.filter((p) => 'jersey' in p)).toEqual([{ jersey: 'gc' }, { jersey: 'kom' }])
+    // `riderShort` —la versión sin equipo, para las frases que ya lo dicen aparte— también lo
+    // lleva: es el mismo hombre, solo se calla el equipo.
+    const tren = chronicleParts(
+      event({
+        plantilla: 'sprinters_chase',
+        protagonists: [{ ...lider, jersey: 'points' }],
+        datos: {},
+      }),
+    )
+    expect(tren.some((p) => 'jersey' in p)).toBe(true)
+  })
+
+  it('cada maillot llega con su tipo, sin mezclarse', () => {
+    for (const kind of ['gc', 'points', 'kom'] as const) {
+      const partes = chronicleParts(
+        event({ plantilla: 'stage_win', protagonists: [{ ...raso, jersey: kind }] }),
+      )
+      expect(partes).toContainEqual({ jersey: kind })
+    }
+  })
+
+  // Compatibilidad hacia atrás: la etapa 1, una carrera de un día y cualquier crónica que la API
+  // sirva sin maillots tienen que salir EXACTAMENTE como salían antes.
+  it('sin maillots la crónica es la de siempre, trozo a trozo', () => {
+    const e = event({ plantilla: 'stage_win', protagonists: [raso], datos: { won: 'sprint' } })
+    expect(chronicleParts(e).some((p) => 'jersey' in p)).toBe(false)
+    expect(chronicleParts(e)).toContainEqual({ flag: 'ES' })
+  })
+
+  it('un corredor que ya no está en el roster —sin nada— tampoco lleva maillot', () => {
+    const e = event({ plantilla: 'stage_win', protagonists: named('Ghost Rider') })
+    expect(chronicleParts(e).some((p) => 'jersey' in p)).toBe(false)
+    expect(chronicleLine(e)).toContain('Ghost Rider')
   })
 })

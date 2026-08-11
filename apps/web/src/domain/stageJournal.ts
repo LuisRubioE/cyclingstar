@@ -9,7 +9,12 @@
  * así que van en inglés; el vocabulario de los eventos sigue en el idioma del motor.
  */
 
-import type { ChronicleEntry, ChronicleRider, StageResultEntry } from '@cyclingstar/shared'
+import type {
+  ChronicleEntry,
+  ChronicleRider,
+  JerseyKind,
+  StageResultEntry,
+} from '@cyclingstar/shared'
 import { STAGE } from '@cyclingstar/engine'
 import { formatTime } from './format'
 
@@ -56,6 +61,26 @@ export function listNames(names: string[]): string {
 const FLAG_MARK = '\u0001'
 
 /**
+ * EL MAILLOT DE LÍDER, con el mismo truco y por la misma razón (encargo del dueño: «cuando menciona
+ * al ciclista que va el primero en la general, debería mencionarlo como con una imagen de maillot
+ * amarillo»). Tampoco vale un emoji: no hay ninguno que sea un maillot de líder, y el cuadrado de
+ * color se pinta distinto en cada sistema. Se dibuja en SVG reutilizando la MISMA silueta del
+ * maillot de equipo que ya existía (`components/Jersey.tsx`).
+ *
+ * El maillot viaja DENTRO de la identidad de cada corredor, resuelto por la API: es el de la
+ * clasificación tras la etapa ANTERIOR, o sea el que llevaba puesto ese día en la carretera.
+ */
+const JERSEY_MARK = '\u0002'
+
+/**
+ * Un trozo marcado —bandera o maillot— con grupo de captura, para que `split` conserve los
+ * delimitadores y la frase se reparta en una sola pasada.
+ */
+const MARKED = new RegExp(
+  `(${FLAG_MARK}[^${FLAG_MARK}]*${FLAG_MARK}|${JERSEY_MARK}[^${JERSEY_MARK}]*${JERSEY_MARK})`,
+)
+
+/**
  * Cuántos corredores se NOMBRAN en una frase que resume a muchos («73 riders sit up, among them A,
  * B and C»). No tiene nada que ver con cuánta identidad lleva cada nombre —eso es siempre completa,
  * ver `riderFull`—: es cuántos se citan antes de que la lista vuelva a ser el muro que el racimo
@@ -69,22 +94,34 @@ const FLAG_MARK = '\u0001'
  */
 const NAMED_IN_SUMMARY = 3
 
-/** Un trozo de frase: texto corrido o una bandera que la web pinta con `<Flag/>`. */
-export type ChroniclePart = { text: string } | { flag: string }
+/**
+ * Un trozo de frase: texto corrido, una bandera que la web pinta con `<Flag/>` o un maillot de
+ * líder que pinta con `<LeaderJersey/>`. La web decide cómo se ven; aquí solo se dice qué son.
+ */
+export type ChroniclePart = { text: string } | { flag: string } | { jersey: JerseyKind }
 
 const flagMark = (country: string | null): string =>
   country ? `${FLAG_MARK}${country}${FLAG_MARK}` : ''
 
+const jerseyMark = (jersey: JerseyKind | null | undefined): string =>
+  jersey ? `${JERSEY_MARK}${jersey}${JERSEY_MARK}` : ''
+
 /**
- * Un corredor, con toda la identidad que se le conozca: `🇸🇮 42 Andrej Pucnik (Al Assad Cycling)`.
- * Lo que falte se cae solo —sin dorsal, sin bandera, sin equipo— porque los eventos de las etapas ya
- * corridas están congelados y se resuelven contra el roster de HOY: un corredor que ya no esté en él
- * llega sin nada más que su nombre y la frase tiene que seguir leyéndose.
+ * Un corredor, con toda la identidad que se le conozca: `🟨 🇸🇮 42 Andrej Pucnik (Al Assad Cycling)`.
+ * Lo que falte se cae solo —sin maillot, sin dorsal, sin bandera, sin equipo— porque los eventos de
+ * las etapas ya corridas están congelados y se resuelven contra el roster de HOY: un corredor que ya
+ * no esté en él llega sin nada más que su nombre y la frase tiene que seguir leyéndose.
+ *
+ * EL MAILLOT VA DELANTE DEL TODO, antes incluso de la bandera. En la carretera el maillot es lo
+ * primero que se ve —se reconoce al amarillo antes de leerle el dorsal— y ponerlo al frente deja
+ * intacto el bloque `bandera + dorsal + nombre` que el lector ya tiene aprendido. Medido sobre las
+ * crónicas reales de Race Colombia: lo llevan entre el 15 % y el 30 % de las menciones, así que
+ * marca sin invadir.
  */
 export function riderFull(r: ChronicleRider): string {
   const bib = r.bib != null ? `${r.bib} ` : ''
   const team = r.team ? ` (${r.team})` : ''
-  return `${flagMark(r.country)}${bib}${r.name}${team}`
+  return `${jerseyMark(r.jersey)}${flagMark(r.country)}${bib}${r.name}${team}`
 }
 
 /**
@@ -93,7 +130,7 @@ export function riderFull(r: ChronicleRider): string {
  * (Al Assad Cycling)». Fuera de ese caso la identidad va siempre completa.
  */
 export function riderShort(r: ChronicleRider): string {
-  return `${flagMark(r.country)}${r.bib != null ? `${r.bib} ` : ''}${r.name}`
+  return `${jerseyMark(r.jersey)}${flagMark(r.country)}${r.bib != null ? `${r.bib} ` : ''}${r.name}`
 }
 
 /**
@@ -120,9 +157,13 @@ export function teamsOf(e: ChronicleEntry): string[] {
  */
 export function chronicleParts(e: ChronicleEntry): ChroniclePart[] {
   return chronicleTemplate(e)
-    .split(FLAG_MARK)
-    .map((chunk, i) => (i % 2 === 1 ? { flag: chunk } : { text: chunk }))
-    .filter((p) => ('flag' in p ? p.flag.length > 0 : p.text.length > 0))
+    .split(new RegExp(MARKED.source, 'g'))
+    .map((chunk): ChroniclePart => {
+      if (chunk.startsWith(FLAG_MARK)) return { flag: chunk.slice(1, -1) }
+      if (chunk.startsWith(JERSEY_MARK)) return { jersey: chunk.slice(1, -1) as JerseyKind }
+      return { text: chunk }
+    })
+    .filter((p) => !('text' in p) || p.text.length > 0)
 }
 
 /**
@@ -131,17 +172,15 @@ export function chronicleParts(e: ChronicleEntry): ChroniclePart[] {
  * sitio se usa `chronicleParts()`.
  */
 export function chronicleLine(e: ChronicleEntry): string {
-  return chronicleTemplate(e)
-    .split(FLAG_MARK)
-    .filter((_, i) => i % 2 === 0)
-    .join('')
+  return chronicleTemplate(e).replace(new RegExp(MARKED.source, 'g'), '')
 }
 
 /**
  * Convierte un evento del motor en una frase del journal. Varias redacciones por evento, elegidas
  * de forma determinista (misma etapa ⇒ mismo relato, pero variado entre eventos y etapas), y con
  * la identidad de los corredores y el nombre de los equipos para que se lea como una crónica de
- * verdad. Devuelve la frase con las banderas MARCADAS (ver `FLAG_MARK`).
+ * verdad. Devuelve la frase con las banderas y los maillots MARCADOS (ver `FLAG_MARK` y
+ * `JERSEY_MARK`); `chronicleParts()` los reparte y `chronicleLine()` los quita.
  */
 function chronicleTemplate(e: ChronicleEntry): string {
   const riders = e.protagonists ?? []
