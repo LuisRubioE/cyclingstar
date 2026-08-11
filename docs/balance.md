@@ -4437,9 +4437,14 @@ rompe de verdad.
 Las huellas selladas de `stage/attribution.test.ts` (v12, v15, v16, v17) y `stage/timetrial.test.ts`
 (v18, v19) salen **idénticas dígito a dígito y no se han vuelto a sellar**. No podían moverse: el
 evento nuevo no consume una sola tirada del RNG y no toca ni un compromiso, ni una velocidad, ni una
-decisión; la crónica, por definición, corre después de la carrera. Los 24 invariantes de
-`pnpm sim` y el banco táctico de `pnpm sim:tactics` salen con los mismos números y **ningún objetivo
-de `sim/targets.ts` se ha tocado**.
+decisión; la crónica, por definición, corre después de la carrera. **Ningún objetivo de
+`sim/targets.ts` se ha tocado.**
+
+`pnpm sim`: **24 de 24 en verde**, y los números son los MISMOS de la v20 dígito a dígito —gana la
+fuga 3,4 % / mejor sprinter 36,0 % / captura 21,4 km / fuga en montaña 41,0 % / brecha 1.º-10.º
+270 s / erosión llana 0,009 / reina en fresco 0,197 / clásica más dura 0,848 / abandonos 13,4 % /
+último grupo en la reina 8,4 % / reinas REALES 7,7 %—. `pnpm sim:tactics` igual: `llana-180` con
+mediana 5 partes de relevo por etapa (92,5 % dentro de la ventana 3-6) y `reina-150` con 4 (94,2 %).
 
 ### 8. Lo que este cambio NO hace
 
