@@ -360,6 +360,24 @@ export async function runOneStage(
    */
   const nonFinishers = output.results.filter((r) => r.estado !== 'finish')
 
+  /**
+   * POR QUÉ SE FUE, tal y como lo cuenta el motor (v20). Hasta la v19 `estado: 'abandon'` solo podía
+   * significar una cosa —el tanque a cero— y bastaba con traducirlo a `colapso`. Desde la v20 hay
+   * DOS vías para bajarse de la bici (docs/motor.md §VI.3) y la que de verdad se dispara es el
+   * CORREDOR EN APUROS: el que se ha caído fuerte y se ha quedado solo. Contarlo como «climbs off,
+   * out of energy» en el feed sería narrar otra carrera, así que el motivo se lee del evento que el
+   * motor ya emite en vez de deducirlo del estado.
+   */
+  const abandonCause = new Map<string, unknown>(
+    output.events
+      .filter((e) => e.plantilla === 'rider_abandons')
+      .flatMap((e) => e.protagonistas.map((id) => [id, e.datos?.causa] as const)),
+  )
+  const abandonReasonOf = (r: { riderId: string; estado: string }): AbandonReason => {
+    if (r.estado !== 'abandon') return 'fuera_control'
+    return abandonCause.get(r.riderId) === 'caida' ? 'lesion' : 'colapso'
+  }
+
   for (const result of output.results) {
     raced.add(result.riderId)
     if (result.estado !== 'finish') {
@@ -518,7 +536,7 @@ export async function runOneStage(
       spec,
       nonFinishers.map((r) => ({
         riderId: r.riderId,
-        reason: r.estado === 'abandon' ? 'colapso' : 'fuera_control',
+        reason: abandonReasonOf(r),
       })),
       riderById,
     )
