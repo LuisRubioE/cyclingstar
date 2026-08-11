@@ -1,15 +1,25 @@
 /**
- * LA REGLA DEL ORDEN DE SALIDA (v18). Es una función pura y este es su banco: los dos casos del
- * encargo y los bordes que de verdad ocurren en producción —dorsales nulos, empates en la general
- * (tras una etapa llana el pelotón ENTERO comparte tiempo) y huecos en la numeración—.
+ * LA REGLA DEL ORDEN DE SALIDA (v18, con el desempate de la v19). Es una función pura y este es su
+ * banco: los dos casos del encargo y los bordes que de verdad ocurren en producción —dorsales
+ * nulos, empates en la general (tras una etapa llana el pelotón ENTERO comparte tiempo) y huecos en
+ * la numeración—.
+ *
+ * **Lo que cambia en la v19** es quién desempata la general: el PUESTO y no el dorsal. El dorsal
+ * sigue aquí y sigue haciendo falta —la etapa 1 y las carreras de un día no tienen general—, pero
+ * ha dejado de decidir la rampa de una etapa 3 en la que 112 de 130 corredores empatan a tiempo.
  */
 import { describe, expect, it } from 'vitest'
 import { STAGE } from '../constants.js'
 import { timeTrialStartOrder, type StartOrderRider } from './startOrder.js'
 
 /** Un corredor de la rampa: solo lo que la regla mira. */
-function r(riderId: string, bib: number | null, gcDeficitSeconds = 0): StartOrderRider {
-  return { riderId, bib, gcDeficitSeconds }
+function r(
+  riderId: string,
+  bib: number | null,
+  gcDeficitSeconds = 0,
+  gcRank: number | null = null,
+): StartOrderRider {
+  return { riderId, bib, gcDeficitSeconds, gcRank }
 }
 
 /** Los ids en orden de salida, que es lo que la regla decide. */
@@ -45,13 +55,43 @@ describe('caso A · etapa de vuelta que no es la primera: orden inverso de la ge
     expect(timeTrialStartOrder([r('a', 11, 0), r('b', 21, 1)]).mode).toBe('general')
   })
 
-  it('los empatados en la general los desempata el dorsal, con los jefes de filas al final', () => {
-    // Tras una etapa llana el pelotón entero comparte tiempo: en Race Colombia, después de la
-    // etapa 2, 58 corredores empatan a un tiempo y 54 a otro. Sin desempate estable el orden lo
-    // decidiría el azar del array; con el del dorsal, dentro del grupo empatado siguen cerrando
-    // los acabados en 1.
+  it('los empatados en la general los desempata EL PUESTO, no el dorsal (v19)', () => {
+    // El dueño: «el desempate en una etapa 2 no es por dorsal, es por posición en la etapa 1». Y
+    // no es un caso de borde: tras la etapa 2 de Race Colombia, 58 corredores empatan a un tiempo
+    // y 54 a otro —el 86 % del pelotón—, así que esto decide casi toda la rampa. El puesto llega ya
+    // resuelto por `packages/db/src/gcSort.ts` (tiempo · suma de puestos · puesto en la última
+    // etapa) y el motor solo lo respeta: el peor clasificado del grupo sale primero.
+    const pack = [
+      r('a', 12, 90, 21),
+      r('b', 21, 90, 24),
+      r('c', 11, 90, 22),
+      r('d', 22, 90, 23),
+      r('z', 31, 300, 40),
+    ]
+    expect(order(pack)).toEqual(['z', 'b', 'd', 'c', 'a'])
+    // …y el dorsal, que es lo que decidía en la v18, aquí ya no manda nada.
+    expect(bibs(pack)).toEqual([31, 21, 22, 11, 12])
+  })
+
+  it('el puesto NO puede adelantar al tiempo: manda el reloj de la general', () => {
+    // Si un puesto llegara descolocado respecto al tiempo (datos viejos, una general a medio
+    // recalcular), la rampa sigue siendo la del ciclismo: primero el que va más lejos en el reloj.
+    const field = [r('lider', 1, 0, 1), r('colista', 11, 4021, 2), r('medio', 21, 210, 3)]
+    expect(order(field)).toEqual(['colista', 'medio', 'lider'])
+  })
+
+  it('sin puesto en la general, el desempate vuelve al dorsal (v18)', () => {
+    // Un roster antiguo, una vuelta de prueba o el banco de simulación no traen puesto. La regla no
+    // se queda sin decidir: cae al dorsal, con los acabados en 1 cerrando el grupo empatado.
     const pack = [r('a', 12, 90), r('b', 21, 90), r('c', 11, 90), r('d', 22, 90), r('z', 31, 300)]
     expect(bibs(pack)).toEqual([31, 22, 12, 21, 11])
+  })
+
+  it('quien no trae puesto sale antes que los que sí, como el que no trae dorsal', () => {
+    // Misma política que con el dorsal, y por la misma razón: al principio de la rampa es el único
+    // sitio donde no le quita el hueco a nadie.
+    const pack = [r('con', 11, 90, 5), r('sin', 21, 90, null), r('otro', 31, 90, 9)]
+    expect(order(pack)).toEqual(['sin', 'otro', 'con'])
   })
 })
 

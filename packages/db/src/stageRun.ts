@@ -132,8 +132,17 @@ export async function runOneStage(
   // alimenta la general. Sin esto el ganador aparecía con 10 s menos que su propio tiempo de meta.
   const isOneDay = isOneDayRace(spec)
 
-  const gcRows = await tx.select().from(raceGc).where(eq(raceGc.raceId, spec.raceKey))
+  // La general viene ORDENADA con el desempate del ciclismo (`gcSort.ts`: tiempo · suma de puestos ·
+  // puesto en la última etapa), porque desde la v19 al motor no le viaja solo el tiempo sino también
+  // el PUESTO: en una crono el orden inverso de salida se reparte por puesto, y con el tiempo a
+  // secas los 112 empatados de una etapa 2 le llegaban indistinguibles.
+  const gcRows = await tx
+    .select()
+    .from(raceGc)
+    .where(eq(raceGc.raceId, spec.raceKey))
+    .orderBy(...gcOrderBy())
   const gcTime = new Map(gcRows.map((r) => [r.riderId, r.tiempoTotalS]))
+  const gcRank = new Map(gcRows.map((r, i) => [r.riderId, i + 1]))
   const gcLeader = gcRows.length > 0 ? Math.min(...gcRows.map((r) => r.tiempoTotalS)) : 0
 
   // Lecturas en lote: corredores, atributos, genoma y órdenes de la etapa.
@@ -273,6 +282,11 @@ export async function runOneStage(
       tsb,
       orders,
       gcDeficitSeconds: (gcTime.get(riderId) ?? 0) - gcLeader,
+      // EL PUESTO EN LA GENERAL (v19): lo necesita el orden inverso de salida de la contrarreloj,
+      // porque el déficit es un tiempo y los empates son la norma. Sale del MISMO orden que la
+      // general que ve el jugador (`gcOrderBy`), así que no puede discrepar de ella. `null` antes de
+      // la primera etapa y en una carrera de un día, y entonces la rampa vuelve al dorsal.
+      gcRank: gcRank.get(riderId) ?? null,
       // EL DORSAL (v18): lo necesita el orden de salida de la contrarreloj por dorsales. `null` en
       // un roster sin numerar, y la regla lo trata sin romperse.
       bib: bibOf.get(riderId) ?? null,

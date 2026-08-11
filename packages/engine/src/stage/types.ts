@@ -103,6 +103,22 @@ export interface StageRider {
    */
   gcDeficitSeconds: number
   /**
+   * EL PUESTO en la clasificación general, 1 el líder (v19). Lo rellena packages/db, igual que
+   * `gcDeficitSeconds`, y viaja aparte porque **el déficit no basta**: es un tiempo, y los empates
+   * a tiempo son la norma —tras la etapa 2 de Race Colombia, 58 corredores comparten un tiempo y 54
+   * otro, el 86 % del pelotón—. Al motor le llegaban indistinguibles y la rampa de la crono caía al
+   * dorsal, que no es la regla del ciclismo: **el desempate en una etapa 2 no es por dorsal, es por
+   * posición en la etapa 1.**
+   *
+   * El desempate bueno ya existe y vive donde tiene que vivir (`packages/db/src/gcSort.ts`): tiempo,
+   * luego SUMA DE PUESTOS y luego el puesto en la última etapa. El motor no lo reimplementa —sería
+   * una segunda verdad que puede divergir—: recibe el puesto ya resuelto y lo respeta.
+   *
+   * Nulo o ausente = no hay general que consultar (etapa 1, carrera de un día, banco de simulación),
+   * y entonces la rampa vuelve al dorsal, que es la regla real cuando no hay general.
+   */
+  gcRank?: number | null
+  /**
    * EL DORSAL de la carrera (`race_rosters.bib`), v18. Lo rellena packages/db, igual que
    * `gcDeficitSeconds`, y el motor NO se lo inventa: sin él no habría forma de repartir la rampa de
    * salida de una crono por dorsales (`stage/startOrder.ts`), que es la regla real cuando no hay

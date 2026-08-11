@@ -36,6 +36,16 @@
  * inventa ni lo deduce del orden del array. Quien no lo traiga —roster antiguo, vuelta de prueba,
  * banco de simulación— sale al principio, que es el único sitio donde no le quita el hueco a nadie:
  * la propiedad que la regla promete es que el dorsal 1 CIERRA la crono, y eso se conserva.
+ *
+ * **Y EL PUESTO DE LA GENERAL TAMBIÉN (v19), que es lo que faltaba.** El dueño, literal: «el
+ * desempate en una etapa 2 no es por dorsal, es por posición en la etapa 1». Tiene razón y es la
+ * regla real. Hasta la v18 el motor solo recibía `gcDeficitSeconds`, que es un TIEMPO, y los empates
+ * a tiempo son la norma: tras la etapa 2 de Race Colombia empatan 58 corredores a un tiempo y 54 a
+ * otro —el 86 % del pelotón—, así que el dorsal decidía casi toda la rampa. Ahora viaja también
+ * `StageRider.gcRank`, el puesto ya resuelto por `packages/db/src/gcSort.ts` con el desempate del
+ * ciclismo (tiempo · suma de puestos · puesto en la última etapa), y el orden inverso es por PUESTO
+ * descendente. El motor **no reimplementa el desempate**: lo respeta. El dorsal sigue estando, y
+ * sigue haciendo falta, como último recurso: la etapa 1 y las carreras de un día no tienen general.
  */
 import { STAGE } from '../constants.js'
 
@@ -48,6 +58,11 @@ export interface StartOrderRider {
   bib?: number | null
   /** Desventaja en la general, en segundos. 0 en todos si no hay general (SPEC 6.9). */
   gcDeficitSeconds: number
+  /**
+   * Puesto en la general, 1 el líder (v19). Nulo o ausente = no hay general que consultar, y
+   * entonces el desempate vuelve al dorsal.
+   */
+  gcRank?: number | null
 }
 
 /** Cómo se ha repartido la rampa. */
@@ -96,6 +111,15 @@ function compareBib(a: StartOrderRider, b: StartOrderRider): number {
 }
 
 /**
+ * El puesto de la general para ordenar la rampa. Quien no lo traiga sale al PRINCIPIO —la misma
+ * política que con el dorsal, y por la misma razón: es el único sitio donde no le quita el hueco a
+ * nadie—, así que su puesto vale infinito y el orden inverso lo manda a la primera rampa.
+ */
+function rankOf(r: StartOrderRider): number {
+  return r.gcRank != null && r.gcRank > 0 ? r.gcRank : Number.MAX_SAFE_INTEGER
+}
+
+/**
  * Reparte la rampa de salida de una contrarreloj. Pura y total: con el mismo campo devuelve siempre
  * el mismo orden, y no hay entrada —dorsales nulos, empates en la general, huecos en la numeración—
  * que la deje sin decidir, porque el último desempate es el `riderId`.
@@ -105,13 +129,22 @@ export function timeTrialStartOrder(riders: readonly StartOrderRider[]): StartOr
   // primera etapa o una carrera de un día (ver la cabecera del módulo).
   const hasGc = riders.some((r) => r.gcDeficitSeconds > 0)
   const sorted = [...riders].sort((a, b) => {
-    // Caso A: el último de la general sale primero, el líder el último.
-    if (hasGc && a.gcDeficitSeconds !== b.gcDeficitSeconds) {
-      return b.gcDeficitSeconds - a.gcDeficitSeconds
+    if (hasGc) {
+      // Caso A: el último de la general sale primero, el líder el último. Manda el TIEMPO, que es lo
+      // que ve todo el mundo…
+      if (a.gcDeficitSeconds !== b.gcDeficitSeconds) return b.gcDeficitSeconds - a.gcDeficitSeconds
+      // …y a igualdad de tiempo manda el PUESTO (v19), que trae el desempate del ciclismo ya
+      // resuelto por `packages/db/src/gcSort.ts`: suma de puestos y, si sigue el empate, el puesto
+      // en la última etapa. Es la corrección del dueño: «el desempate en una etapa 2 no es por
+      // dorsal, es por posición en la etapa 1». Sin esto, con 112 de 130 corredores empatados a
+      // tiempo, la rampa entera la decidía el dorsal.
+      const ra = rankOf(a)
+      const rb = rankOf(b)
+      if (ra !== rb) return rb - ra
     }
-    // Caso B —y el desempate del caso A—: el dorsal. Que la regla de dorsales desempate la general
-    // no es un apaño: tras una etapa llana el pelotón entero comparte tiempo, y lo que decide
-    // entonces es lo mismo que decidiría en la etapa 1, con los jefes de filas cerrando la crono.
+    // Caso B —y el último recurso del caso A—: el dorsal. Hace falta de verdad, porque en la etapa 1
+    // y en una carrera de un día NO HAY general, y ahí lo que decide es lo mismo que decidiría en la
+    // etapa 1 de una vuelta, con los jefes de filas cerrando la crono.
     return compareBib(a, b) || (a.riderId < b.riderId ? -1 : a.riderId > b.riderId ? 1 : 0)
   })
   const intervalS = hasGc ? STAGE.ttStartIntervalGcS : STAGE.ttStartIntervalBibS
