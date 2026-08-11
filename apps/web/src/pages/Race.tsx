@@ -306,6 +306,10 @@ function RouteTab({ data }: { data: RaceView }) {
 /**
  * Pestaña `Stages`: lista compacta de las etapas —día, tipo, recorrido y ganador, con enlace a la
  * crónica—. Sin altimetrías: una gran vuelta son 21 y su sitio es `Route`.
+ *
+ * SIN MAILLOTS a propósito: cada línea es el ganador de un día distinto, y el único juego de
+ * maillots que esta página tiene es el de HOY. Poner el amarillo de hoy junto al ganador de la
+ * etapa 3 diría algo que no es verdad de esa etapa. Los maillots de cada día están en su ficha.
  */
 function StagesTab({ data, raceId }: { data: RaceView; raceId: string }) {
   const winnerOf = new Map(data.stageWinners.map((w) => [w.stageDay, w]))

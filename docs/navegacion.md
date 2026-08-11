@@ -407,6 +407,56 @@ dos tablas que ni siquiera coincidían—: hay **una sola tabla**, rotulada `Res
 Una sola convención en todo el juego: **top 20 visible + "Show all"**. Ni truncar sin salida ni
 volcar 176 filas.
 
+### 7.4 Los maillots de líder
+
+> «en el Journal cuando menciona al ciclista que va el primero en la general, debería mencionarlo
+> como con una imagen de maillot amarillo… y poner un maillot amarillo en todas las
+> clasificaciones… y uno verde al que vaya primero por puntos excepto si coincide con el anterior…
+> y uno azul al que vaya primero en la montaña.» «Ah, falta la clasificación por equipos.»
+> — el dueño, agosto 2026.
+
+**Tres maillots y un dorsal.** Amarillo (general), verde (puntos) y azul (montaña) los lleva un
+CORREDOR y son excluyentes entre sí, con prioridad amarillo > verde > azul. El equipo líder de la
+clasificación por equipos NO lleva maillot: sus corredores llevan **dorsal amarillo**, como en el
+Tour, así que se dibuja un dorsal y **no entra en la cadena de prioridad** —se puede ir de amarillo
+y llevar dorsal amarillo a la vez, y es lo normal—.
+
+**Cuando dos maillots caen en el mismo hombre, el segundo pasa al siguiente** de su clasificación
+(regla real: en carretera el maillot lo lleva alguien). Encadenado hasta donde haga falta. Toda esa
+decisión vive en `assignLeaderJerseys` (`packages/shared/src/jerseys.ts`), función pura y con sus
+tests; la alternativa —«no se pinta»— está documentada ahí mismo y es cambiar un bucle.
+
+**Cuándo no hay ninguno:** en una carrera de UN DÍA (no hay clasificación que arrastrar), en la
+etapa 1 (se ganan el día anterior) y para quien abandonó (ya no está clasificado).
+
+**Qué clasificación manda, que es el detalle que hace que la frase sea verdad:**
+
+| Dónde                           | Qué maillot                                             |
+| ------------------------------- | ------------------------------------------------------- |
+| Crónica de la etapa N (`Story`) | El de tras la **N−1**: el que se llevaba puesto ESE día |
+| Tablas de la etapa N            | El de tras la **N**, que es lo que la tabla muestra     |
+| Tablas de la ficha de carrera   | El de ahora mismo                                       |
+
+Las dos cosas son ciertas y pueden no coincidir, así que la pestaña `Story` abre con una línea —«On
+the road today»— que dice quién salió con cada maillot. La contradicción aparente se explica sola
+en vez de descubrirse.
+
+**En qué tablas se marca: en todas, y también el maillot de la clasificación que la propia tabla
+ordena.** Parece redundante y no lo es: por la regla del «pasa al siguiente», el verde no tiene por
+qué ser la fila 1 de la tabla de puntos. Una sola regla, sin excepciones que memorizar. En la de
+equipos, el dorsal marca al líder de la ACUMULADA en las dos vistas (en la de la etapa, la fila 1 es
+quien mejor lo hizo hoy, que no es quien lleva los dorsales mañana).
+
+**En la crónica, el maillot va dentro de la identidad del corredor** (`riderFull`), delante de la
+bandera: sale así en todas las menciones sin tocar ninguna de las cincuenta plantillas del journal.
+El dorsal del equipo líder **no** entra ahí: medido sobre Race Colombia, saldría de 4 a 13 veces por
+etapa —tanto como los tres maillots juntos— diciendo mucho menos.
+
+**Accesibilidad.** El color no distingue por sí solo (amarillo/verde/azul es el trío que peor separa
+una deuteranopia), así que cada maillot lleva además marca de forma —liso, banda, lunares— y los
+cuatro iconos llevan `aria-label` y `<title>`: «Race leader», «Points leader», «Mountains leader»,
+«Leading team».
+
 ---
 
 ## 8. Plan por fases
