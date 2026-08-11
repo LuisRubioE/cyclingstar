@@ -3821,8 +3821,8 @@ etapa se sigue partiendo.
 
 **`timeTrial.p90MinusP10Seconds`: 120-240 → 80-170 s.** Medido: 233 → **107**.
 
-Es el único objetivo re-anclado y hay que defenderlo con cuidado, porque bajar un suelo para que pase
-un número es exactamente lo que no se hace. El argumento no es el número, es **qué campo mide**:
+Hay que defenderlo con cuidado, porque bajar un suelo para que pase un número es exactamente lo que
+no se hace. El argumento no es el número, es **qué campo mide**:
 `cri-40` son «8 especialistas y 32 corredores de crono correcto» (`scenarios.ts`), un campo ESTRECHO
 por construcción —el perfil compuesto va de 68 a 79— y sin un solo sprinter ni escalador puro. Su p10
 es un especialista y su p90 un rodador correcto: entre ellos hay un 7-8 % de vatios, que en llano son
