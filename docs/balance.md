@@ -5100,3 +5100,236 @@ promedio se traga que dos de las cuatro carreras medibles de producción estén 
 etapa de él. El listón que hace falta no es «cuántas gana el mejor» sino **cuánto se repite la foto
 de meta dentro de una misma carrera**, que es lo que la tabla de arriba separa limpiamente (3,3
 enfermo contra 1,0 sano). Ése es el objetivo que le falta a `targets.ts`.
+
+## v24 — La foto de meta la decidía la salida: en el sprint no se podía ir mal colocado (`engine_version` 23 → 24)
+
+> **El encargo:** «Race Arabia la gana el mismo corredor las cinco etapas… el top-5 se repite 3,3 de
+> 5 en Arabia y Sharjah contra 1,0 en Colombia. Encuentra dónde se pierde la varianza del desenlace.»
+
+Esta tanda hace tres cosas y hay que decirlas en este orden, porque la segunda cambia la primera:
+**corrige la premisa del encargo con los números de producción**, encuentra y arregla la pieza que de
+verdad faltaba, y le pone al banco los tres objetivos que la v23 dejó pendientes en su §10.
+
+### 1. Primero, lo que producción dice de verdad — y la tabla del encargo estaba comparando peras con manzanas
+
+Se leyó la API de producción entera (`https://cyclingstar.up.railway.app`), no solo las cuatro
+carreras del encargo: **todas** las del día de juego 46 con dos o más llegadas agrupadas, etapa a
+etapa y con los atributos de los corredores uno a uno. Lo primero que aparece es que **producción
+corre `engine_version` 22** (`/health`: `{"engineVersion":22,"gameDay":47}`), es decir, el arreglo de
+la v23 todavía no está desplegado. Y lo segundo, que el «1,0 sano» de Race Colombia **no existe**.
+
+El 1,0 de Colombia sale de comparar su e1 (130 corredores en el tiempo del ganador) con su e7 (58) y
+con su e9. No mide el desenlace: mide la COMPOSICIÓN del calendario. Comparando **llegada agrupada
+contra llegada agrupada**, que es lo único comparable:
+
+| Carrera (GD 46)   |  pares | top-5 repetido | mismo ganador | mismo 1.º Y 2.º |
+| ----------------- | -----: | -------------: | ------------: | --------------: |
+| Race Arabia       |     10 |            3,3 |     **100 %** |       **100 %** |
+| Race Sharjah      |     10 |            3,3 |          60 % |            20 % |
+| Race Colombia     |      3 |        **2,0** |           0 % |             0 % |
+| Race Bességes     |      6 |            1,7 |          17 % |             0 % |
+| **TODA la GD 46** | **29** |       **2,83** |      **59 %** |        **41 %** |
+
+Es decir: **el top-5 repetido separa mucho menos de lo que el encargo creía** (2,0 contra 3,3, no 1,0
+contra 3,3) y las dos llanas de pleno pelotón de Colombia —e1 y e6— comparten **4 de sus 5 primeros**,
+exactamente igual que Arabia. Colombia no es el control sano: es una carrera con etapas de formas
+distintas. Lo que SÍ separa limpiamente es el **ganador**: 0 % en Colombia, 100 % en Arabia.
+
+Se comprobó también la otra mitad del encargo, la del campo. Race Arabia e1 real, 133 corredores con
+sus atributos leídos uno a uno, puntuados con la mezcla del sprint masivo (`SPR 0,66 · LLA 0,18 ·
+TAC 0,16`):
+
+```
+85,0  Marc Willems      (SPR 88   LLA 91   TAC 66)   <- 2.º en las cinco
+81,4  Carlo Lombardo    (SPR 88,4 LLA 77,5 TAC 57)   <- 1.º en las cinco
+80,6  Cristian González (SPR 85   LLA 79   TAC 64)
+75,6  Luís Almeida
+75,1  Joshua Taylor
+```
+
+**Willems remata MEJOR que Lombardo sobre el papel —un 4,4 % mejor— y perdió con él las cinco veces.**
+O sea que el «sprinter que destaca demasiado» no solo es falso: va del revés. Lo que decide Arabia no
+es la jerarquía de atributos, es que el desenlace no la revisa.
+
+### 2. Segundo, lo que hace el motor de `main` con ese mismo campo
+
+Antes de tocar nada se le dio al motor de hoy el campo REAL de Arabia y su recorrido REAL (el del
+calendario coincide con el que corrió producción; el de Sharjah **no**, su ficha se recalculó desde
+el código y hoy es otra carrera — ver `0e9fc2f`), con `ctl 45 / atl 45 / moral 60`, que es con lo que
+`packages/db` crea a los NPC:
+
+| Race Arabia, campo y recorrido REALES, 40 semillas | top-5 repetido | un solo ganador en las 5 |
+| -------------------------------------------------- | -------------: | -----------------------: |
+| motor de `main` (v23)                              |       **1,74** |                  **5 %** |
+| el mismo motor con la v23 revertida (o sea, v22)   |           1,38 |                        — |
+
+Y con dispersión de forma metida a mano (ctl de 45 a 85, o sea el rango entero que un NPC puede tener
+el día 46) el número **no se mueve**: 2,23 · 1,97 · 1,97 · 2,24 · 2,06. Porque `mForm` con TSB igual
+apenas abre un 2,4 % entre el ctl 45 y el ctl 85.
+
+**Conclusión medida: la fotocopia de Arabia es una tirada de cola del motor, no su guion.** Lo que sí
+es sistemático —y es lo que esta tanda arregla— es lo de abajo.
+
+### 3. Dónde se pierde la varianza: el sprint no tenía carretera
+
+La medición que lo dice todo, sobre el banco de carreras pequeñas (7 carreras × 3 semillas):
+
+| Sobre la primera y la última llegada agrupada de una carrera       |     medido |
+| ------------------------------------------------------------------ | ---------: |
+| De los 5 favoritos del remate del día 1, siguen siéndolo el último | **4,57/5** |
+| Hueco del 1.º al 2.º en `finishScore`, primera llegada agrupada    |     4,67 % |
+| …y en la última, después de toda la semana con `applyDailyLoad`    |     4,36 % |
+
+Cinco días de carrera mueven la jerarquía del remate **media plaza de cinco** y le quitan al líder
+**tres décimas de punto porcentual** de ventaja. Y enfrente, esto es todo el azar que el desenlace
+tenía:
+
+| Lo que separa a dos rematadores el día de la etapa |             tamaño | ¿cambia de un día para otro?                  |
+| -------------------------------------------------- | -----------------: | --------------------------------------------- |
+| `eff0` (atributos × forma × salud × moral)         | 9-11 % en el top-5 | **no**                                        |
+| Peaje del trabajo del día (`finishWorkWeight`)     |         ±15 % tope | apenas: el sprinter va a rueda todos los días |
+| Tren de lanzadores (`leadOutBoostPerHelper`)       |               +5 % | **NO: se cobraba SIEMPRE**                    |
+| Piernas del día (`dayFormSd`)                      |              3,5 % | sí                                            |
+| Ruido del remate (`sprintScoreNoiseSd`)            |              4,5 % | sí                                            |
+
+**5,7 % de dado por día contra un top-5 que abarca un 9-11 %**, y la única pieza de COLOCACIÓN que el
+motor tenía —el tren— era una constante que no fallaba jamás. En carretera un sprint se pierde por ir
+mal colocado: te tapan en la última curva, el tren se te va, entras por el lado del viento. En el
+motor no se podía perder por eso.
+
+### 4. El arreglo: `placementSd`, un factor de media 1 que escala con el pelotón
+
+`stage/finish.ts` gana una función pura y `finishStage` una línea (docs/motor.md §12.6):
+
+```ts
+score *= clamp(normal(rngPlacement, 1, placementSd(members.length, lanzadoresPresentes, eff.TAC)))
+```
+
+Tres propiedades, y las tres son las del ciclismo:
+
+- **Escala con el TAMAÑO del grupo.** Cero por debajo de `finishBunchMinRiders` (15) —en un grupo de
+  diez todos ven la carretera— y hasta `placementFullBunchRiders` (60) sube lineal al desorden del
+  pelotón entero, `placementSdMax` = 7 %. Ese cero es lo que deja INTACTOS el final en alto, la fuga
+  que llega, el escapado en solitario y la contrarreloj.
+- **El TREN protege** (`placementTrainRelief` = 0,18 por lanzador, con el mismo tope que el empujón).
+- **La TÁCTICA protege** (`placementTacScale`), que es por lo que TAC pesa 0,16 en el sprint masivo.
+- …con suelo: `placementReliefMax` = 0,55, así que ni el mejor tren del mundo baja del 3,1 % de
+  desorden en un pelotón entero.
+
+**Media 1: no regala ni quita nivel, reparte suerte.** Dado nuevo con **subflujo NOMINAL nuevo**
+(`placement`), así que no desplaza ni una secuencia vieja. Ninguna constante anterior se ha movido.
+
+### 5. El objetivo que faltaba (la deuda §10 de la v23), y por qué son tres y no uno
+
+`topTenOverlap` **se retira** y en su sitio entra `finishPhoto()`. Las dos mitades de aquella medida
+la inutilizaban como listón: diez nombres de 130 repiten casi por construcción, y «etapas seguidas»
+mezcla un sprint con un final en alto, que es exactamente el error que hacía leer Colombia como sana.
+Lo nuevo compara **pares de llegadas agrupadas de la misma carrera** y **los cinco primeros**.
+
+Y son tres bandas porque el promedio es justo lo que dejó pasar el defecto —`sweepPct` mide 9,7 %
+sobre 31 carreras mientras dos de las cuatro carreras medibles de producción están en barrido o a una
+etapa de él—, así que hay una del conjunto, una de **la peor carrera** (la forma de
+`realQueens.worstStagePct`) y una del ganador, que es la que separa de verdad. Las razones de cada
+banda están en `sim/targets.ts`.
+
+### 6. Antes y después, con `pnpm sim` (500 corridas · 10 carreras × 6 semillas · 156 pares)
+
+| Objetivo                                             |  ANTES |    DESPUÉS | Banda   |
+| ---------------------------------------------------- | -----: | ---------: | ------- |
+| La foto de meta que se repite (de 5)                 |   2,19 |   **2,03** | 1-3,6   |
+| La carrera cuya foto más se repite (`race-besseges`) |   2,62 |   **2,24** | 0-4,1   |
+| Dos agrupadas de la misma carrera, mismo ganador     | 28,2 % | **25,0 %** | 15-55 % |
+| Gana el mejor rematador (carreras reales)            | 41,1 % | **35,5 %** | 25-60 % |
+| Se lleva TODAS las llegadas agrupadas                |  9,7 % |  **3,2 %** | 0-30 %  |
+| Gana el mejor sprinter (`llana-180`)                 | 36,0 % | **34,8 %** | 30-45 % |
+
+Y carrera a carrera, «gana el mejor rematador», que es donde se ve que el arreglo muerde justo donde
+había que morder — en las carreras clavadas y no en las que ya repartían:
+
+| Carrera           | ANTES |  DESPUÉS |
+| ----------------- | ----: | -------: |
+| `race-sharjah`    |  71 % | **57 %** |
+| `race-besseges`   |  58 % | **47 %** |
+| `race-colombia`   |  43 % |     52 % |
+| `race-arabia`     |  42 % | **27 %** |
+| `race-almeria`    |  33 % | **17 %** |
+| `race-oman`       |  30 % |     25 % |
+| `race-provence`   |  40 % |     40 % |
+| `race-victoria`   |  40 % |     40 % |
+| `race-down-under` |   0 % |      0 % |
+
+Colombia sube (43 → 52 %) y hay que decirlo: son 23 llegadas agrupadas y el número es un entero
+pequeño, pero además Colombia es la carrera del banco con más grupos en meta (5,5) y por tanto la que
+menos pelotón entero tiene, o sea la que menos desorden corre. No es el arreglo tirando al revés: es
+la muestra.
+
+Y la lectura sin banda, que es la que cuenta la historia: **mismo 1.º Y mismo 2.º entre dos llegadas
+agrupadas de la misma carrera, 5 % → 4 %**; favoritos del remate que siguen siéndolo el último día,
+**4,63/5 antes y después** (eso el arreglo no lo toca: es la jerarquía de partida, no el desenlace).
+
+### 7. Lo que NO se ha movido, comprobado línea a línea
+
+`pnpm sim` ANTES y DESPUÉS son **el mismo fichero salvo las seis filas de arriba**. Dígito a dígito:
+las cinco medidas de erosión, las cinco cronos reales, `cri-40`, las tres del plan de equipo, las
+cinco de la gran vuelta, las dos de las reinas reales con sus nueve etapas una a una, la fuga en
+llano y en montaña, la brecha 1.º-10.º, la captura mediana, los grupos y la cola de cada carrera
+pequeña. **Y las velocidades del ganador: llana 45,5 · media 42,8 · reina 36,6 km/h, iguales.** La ley
+de velocidad no se ha tocado, que era el guardarraíl del encargo.
+
+Es lo que tenía que pasar: el factor de colocación entra AL FINAL, sobre la puntuación de remate, y
+no toca ni la física, ni el reloj, ni quién llega en qué grupo. Solo el orden dentro del grupo.
+
+### 8. Las huellas selladas: se resellan las CUATRO, y ni un tiempo se mueve
+
+`stage/attribution.test.ts` se resella y la justificación está EN EL FICHERO. Lo comprobado antes de
+resellar:
+
+- **Ningún reloj cambia en ninguna de las cuatro.** Los 40 de `llana-180` siguen entrando en 14222 y
+  en 14385 (+14472 el último); los diecisiete relojes de `reina-150` salen idénticos.
+- **`llana-180`, las dos semillas:** reordena el pelotón de 40 (`crowd` = (40−15)/(60−15) = 0,56, sd
+  máximo 3,9 %). Los tres sprinters siguen en el podio en las dos; en la segunda el sprint lo gana
+  `spr-0` en vez de `spr-2`. Ése es el cambio que se buscaba.
+- **`reina-150`, las dos semillas: los DIECISIETE primeros, idénticos puesto a puesto.** No por
+  suerte: todos esos grupos tienen 15 corredores o menos y `placementSd` devuelve CERO. Lo que se
+  reordena es el grupeto de 23.
+
+`stage/timetrial.test.ts` **NO se resella**: una crono son grupos de uno, `placementSd` = 0.
+
+### 9. Lo que se probó y se descartó
+
+- **«El campo real de producción está más apretado y por eso se clava.»** Falso, y va del revés: con
+  el campo REAL de Arabia (133 corredores leídos uno a uno) el motor de hoy da un solo ganador en el
+  **5 %** de las carreras y 1,74 de repetición, contra el 100 % y el 3,3 de producción. El campo no
+  lo explica.
+- **«Es la forma (`mForm`, TSB): la fatiga no separa a los sprinters.»** Medido y descartado como
+  causa. Con TSB igual, `mForm` abre solo un **2,4 %** entre el ctl 45 y el ctl 85, o sea el rango
+  entero que un NPC puede tener; y metiendo esa dispersión a mano en el campo real de Arabia la
+  repetición no se mueve (2,23 · 1,97 · 1,97 · 2,24 · 2,06). Lo que sí es cierto —y es lo que se ha
+  arreglado— es la mitad de al lado: la jerarquía del remate **no se mueve en toda la semana**
+  (4,57 de 5 favoritos siguen siéndolo el último día).
+- **«El dado del sprint pesa poco al lado de los atributos.»** Ni mucho ni poco: **el ganador sale del
+  favorito número uno solo el 47 % de las veces** y de fuera de los diez primeros el 10 %. Subir
+  `sprintScoreNoiseSd` habría convertido el sprint en una lotería —el defecto contra el que avisa
+  `bestSprinterWinPct`— y además habría movido las cronos y los mini-sprints de banner, que comparten
+  ese mismo dado. No se toca.
+- **`topTenOverlap` como objetivo** (la opción que el encargo dejaba abierta). Descartada por las dos
+  razones de §5: diez de 130 repiten por construcción y «etapas seguidas» mide el calendario.
+- **La atrición como palanca.** Es cierto que donde el pelotón se parte la foto rota —es lo que hace
+  Colombia— pero eso ya lo vigilan `mediaGroups` y `mediaOneGroupPct`, y forzarlo habría sido
+  fabricar cortes donde el terreno no los pide. La foto tiene que rotar **también** cuando llegan 130
+  juntos, que es lo que hace una llana de verdad.
+
+### 10. Lo que esta tanda NO hace, con su número
+
+- **No arregla la reina.** Sigue llegando de uno en uno: grupo de cabeza (≤ 30 s) **1** contra los
+  5-15 que deja una reina real, medido e impreso por `pnpm sim` y **sin banda**, por la misma razón
+  que en la v23. Es la deuda grande y sigue viva.
+- **`race-almeria` trae el campo entero en el mismo segundo el 100 % de las veces**, con 1 grupo y
+  0,0 % de cola, y `mediaOneGroupPct` (9,5 %, banda 0-20 %) no lo enciende porque promedia diez
+  carreras. Es el mismo defecto de FORMA que esta tanda arregla en la foto de meta poniéndole un
+  objetivo de peor caso; queda anotado que a `mediaOneGroupPct` le falta su gemelo de peor carrera.
+- **Race Sharjah del banco no es la que corrió producción.** Su ficha se recalcula desde el código en
+  cada petición y el generador ha cambiado desde el GD 46: producción corrió 5 etapas (llana, media,
+  llana, media, llana) y el calendario de hoy tiene una crono en la e4 y otros kilometrajes. La
+  comparación banco↔producción de esa carrera **no es válida** y no se ha usado. `0e9fc2f` congela el
+  recorrido corrido en `stage_snapshots`, pero eso arregla la FICHA, no el banco.
