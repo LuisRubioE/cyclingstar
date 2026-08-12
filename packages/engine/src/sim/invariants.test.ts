@@ -23,6 +23,7 @@ import {
   colombiaRegressionTails,
 } from './realQueens.js'
 import { REAL_TIME_TRIALS, type RealTimeTrialStats, analyzeRealTimeTrials } from './timeTrials.js'
+import { SMALL_TOURS, type SmallTourStats, analyzeSmallTours } from './smallTours.js'
 import { SEASON_CALENDAR } from '../routes/calendar.js'
 import { STAGE } from '../constants.js'
 import {
@@ -524,6 +525,90 @@ describe('la cola en las etapas reina REALES (v17)', () => {
     expect(worst).toBeLessThanOrEqual(100 * STAGE.timeCutQueen)
     // Y no se arregla llevándose por delante la selección: la etapa sigue partiéndose de verdad.
     for (const t of tails) expect(t.groups).toBeGreaterThan(2)
+  })
+})
+
+/**
+ * LAS CARRERAS PEQUEÑAS (v23, `sim/smallTours.ts`). El banco con FORMA DE PRODUCCIÓN.
+ *
+ * `flat.bestSprinterWinPct` mide `llana-180`, que monta tres sprinters con SPR 84, 85 y 86: con un
+ * empate a tres el ganador lo decide el ruido, sale 36 % y pasa su 30-45 % sin enterarse de nada.
+ * En producción los campos no tienen esa forma —el mejor le saca 2-6 puntos al segundo— y Race
+ * Arabia dio cinco victorias del mismo corredor en cinco etapas mientras CI seguía en verde. Y la
+ * pregunta es de CARRERA, no de etapa: hace falta el mismo campo corriendo las cinco seguidas.
+ */
+describe('las carreras PEQUEÑAS con forma de producción (v23)', () => {
+  // Diez carreras de 1 a 9 etapas con 126-176 corredores son ~2 minutos: se corren UNA vez y las
+  // comparten todos los invariantes que salen de ellas, como hacen `grandTour` y `realQueens`.
+  let shared: SmallTourStats | null = null
+  const bench = (): SmallTourStats => (shared ??= analyzeSmallTours(4))
+
+  it('el banco cubre formas distintas, y las carreras de la queja están dentro', () => {
+    // No es decorado: el defecto se coló porque el banco no tenía ningún campo con esta forma.
+    const has = (raceId: string): boolean => SMALL_TOURS.some((t) => t.raceId === raceId)
+    expect(has('race-arabia')).toBe(true) // «gana las 5»
+    expect(has('race-provence')).toBe(true) // «la e2 y la e3 se parecen demasiado»
+    expect(has('race-almeria')).toBe(true) // la fuga que ganó por 4 minutos
+    expect(has('race-tramuntana')).toBe(true) // …y la misma historia en montaña, por 38 minutos
+    expect(SMALL_TOURS.length).toBeGreaterThanOrEqual(8)
+    expect(new Set(SMALL_TOURS.map((t) => t.raceId)).size).toBe(SMALL_TOURS.length)
+    // Y con los tres NIVELES de campo: una continental y una WorldTour no tienen la misma
+    // dispersión de SPR, que es justo de lo que va este banco. Se lee del calendario y no
+    // corriendo las carreras: esta comprobación tiene que ser barata.
+    const levels = new Set(
+      SMALL_TOURS.map((t) => SEASON_CALENDAR.find((r) => r.id === t.raceId)?.level),
+    )
+    expect(levels.has(undefined)).toBe(false)
+    expect(levels.size).toBeGreaterThanOrEqual(3)
+  })
+
+  it('el mejor rematador gana bastantes, y no todas', { timeout: 300000 }, () => {
+    const stats = bench()
+    expect(stats.share.races).toBe(SMALL_TOURS.length * 4)
+    // …y el campo tiene un mejor sprinter CLARO, que es la premisa del objetivo: si el banco
+    // acabara midiendo un empate a tres, mediría lo mismo que `llana-180` y no serviría de nada.
+    expect(stats.share.medianEdge).toBeGreaterThan(1)
+    expectInRange(stats.share.bestSprinterWinPct, TARGETS.smallTours.bestSprinterWinPct)
+  })
+
+  it('…y no se lleva TODAS las llegadas agrupadas de la carrera', { timeout: 300000 }, () => {
+    const stats = bench()
+    // Sobre carreras con tres o más llegadas agrupadas: llevarse dos de dos no es la queja.
+    expect(stats.share.sweepableRaces).toBeGreaterThanOrEqual(10)
+    expectInRange(stats.share.sweepPct, TARGETS.smallTours.sweepPct)
+  })
+
+  it('una LLANA sigue metiendo al pelotón entero', { timeout: 300000 }, () => {
+    // Objetivo de NO ROMPER: el 99 % de producción no es el defecto, es lo que hace una llana de
+    // verdad. Está aquí para que arreglar la media y la reina no se pague partiendo la llana.
+    expectInRange(bench().shapes.llana.medianWinnerGroupPct, TARGETS.smallTours.flatWinnerGroupPct)
+  })
+
+  it('una MEDIA se parte, y no trae al campo entero al mismo segundo', { timeout: 300000 }, () => {
+    const media = bench().shapes.media
+    expect(media.stages).toBeGreaterThan(40)
+    expectInRange(media.medianGroups, TARGETS.smallTours.mediaGroups)
+    expectInRange(media.oneGroupPct, TARGETS.smallTours.mediaOneGroupPct)
+  })
+
+  it('ninguna fuga gana una llana por cuatro minutos', { timeout: 300000 }, () => {
+    // La alarma de peor caso: en producción hubo victorias en solitario por 240 s y por 193 s, y
+    // eso no es una fuga que aguanta, es un pelotón que no persiguió (docs/balance.md «v23»).
+    const margins = bench().flatMargins
+    expect(margins.wins).toBeGreaterThan(0)
+    expectInRange(margins.maxMarginS, TARGETS.smallTours.flatMoveWorstMarginS)
+  })
+
+  it('la ley de velocidad no se ha movido: el ganador rueda como un profesional', () => {
+    // GUARDARRAÍL, no objetivo de esta tanda. Las medianas del ganador en producción por tipo de
+    // etapa —llana 44,8 · media 42,4 · reina 35,8 km/h— están todas dentro del rango real, así que
+    // la ley de velocidad (v19) está bien. Lo que había que arreglar es cómo se REPARTE el campo;
+    // si una calibración moviera estas medianas, la palanca sería la equivocada.
+    const { llana, media, reina } = bench().shapes
+    expect(llana.medianWinnerKmh).toBeGreaterThan(media.medianWinnerKmh)
+    expect(media.medianWinnerKmh).toBeGreaterThan(reina.medianWinnerKmh)
+    expect(llana.medianWinnerKmh).toBeLessThanOrEqual(48)
+    expect(reina.medianWinnerKmh).toBeGreaterThanOrEqual(32)
   })
 })
 

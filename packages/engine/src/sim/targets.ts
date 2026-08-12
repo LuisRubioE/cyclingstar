@@ -309,6 +309,151 @@ export const TARGETS = {
     outOfTimePct: { label: 'Abandonos FUERA DE CONTROL', min: 1, max: 15, unit: '%' },
   },
   /**
+   * LAS CARRERAS PEQUEÑAS (v23, `sim/smallTours.ts`). El banco con FORMA DE PRODUCCIÓN, y la
+   * tercera vez que la batería aprende la misma lección.
+   *
+   * POR QUÉ EXISTE SI YA ESTABA `flat.bestSprinterWinPct`. Porque aquél mide `llana-180`, que monta
+   * **tres sprinters con SPR 84, 85 y 86** —un empate a tres— y con eso el ganador lo decide el
+   * ruido: mide 36 % y pasa su 30-45 % sin enterarse de nada. Los campos de producción no tienen esa
+   * forma. El planificador que corre el juego (`world/autoOrders.ts`) nombra sprinter al mejor de
+   * cada equipo solo si pasa de 68 de SPR, y en un campo generado de verdad **el mejor le saca 2,7
+   * puntos de SPR efectivo al segundo**, no uno. Con un mejor claro, en el día de juego 46, Race
+   * Arabia dio **cinco victorias del mismo corredor en cinco etapas** y Sharjah 4 de 5, mientras CI
+   * seguía en verde. Es `realQueens` frente a `grandTour` (v17) y `timeTrials` frente a `cri-40`
+   * (v19) otra vez: lo que no se mide sobre carreras reales, no se mide.
+   *
+   * Y ES UN BANCO DE CARRERA, NO DE ETAPA. «¿Gana las cinco?» no lo contesta un invariante sobre una
+   * etapa suelta por muchas semillas que se le echen: hace falta el MISMO campo corriendo las cinco
+   * etapas seguidas con su fatiga encima, que es lo que hace producción. El banco corre diez
+   * carreras REALES del calendario de principio a fin, elegidas por forma y por historial.
+   */
+  smallTours: {
+    /**
+     * CUÁNTAS GANA EL MEJOR REMATADOR, sobre las etapas de LLEGADA AGRUPADA del banco (las que un
+     * sprinter puede ganar; el listón son los 15 corredores con que el modelo de final separa el
+     * sprint masivo del reducido).
+     *
+     * POR QUÉ 25-60 % Y NO OTRA COSA, con las dos alarmas mirando a lados opuestos:
+     *
+     * EL TECHO ES EL TOPE HISTÓRICO DEL CICLISMO, leído como techo y no como meta. La temporada de
+     * dominio al sprint más grande de la historia moderna es la de Mark Cavendish en el Tour de 2009:
+     * **6 victorias de etapa**, sobre un Tour que reparte del orden de 9 llegadas masivas — o sea,
+     * dos tercios de los sprints que corrió. Un motor cuya carrera MEDIANA viviera por encima de eso
+     * estaría fabricando un Cavendish de 2009 cada semana. 60 % deja el techo un punto por debajo del
+     * mejor registro que existe.
+     *
+     * EL SUELO VIGILA EL DEFECTO CONTRARIO, que es el que ya nos costó una tanda: que el sprint sea
+     * una lotería. Un campo de producción trae de 7 a 17 sprintes nombrados, así que repartir al azar
+     * daría al mejor un 6-14 %. Un 25 % de suelo dice «el mejor rematador ES el mejor» sin exigirle
+     * que arrase.
+     *
+     * Medido en la v23: **41,1 %**, dentro de banda ANTES y DESPUÉS del arreglo de esta tanda (39,0 %
+     * → 41,1 %). Hay que decirlo con el número delante: **esta mitad de la hipótesis del dueño era
+     * falsa.** El reparto de victorias no estaba roto; lo que estaba roto era el BARRIDO de abajo y,
+     * sobre todo, el desenlace de la etapa. El banco hacía falta igual: sin él no se podía saber.
+     */
+    bestSprinterWinPct: {
+      label: 'Gana el mejor rematador (carreras reales)',
+      min: 25,
+      max: 60,
+      unit: '%',
+    },
+    /**
+     * …Y NO SE LAS LLEVA TODAS, que es la queja literal («Race Arabia: gana las 5»). Se mide solo
+     * sobre las carreras con TRES o más llegadas agrupadas: llevarse dos de dos es un resultado
+     * corriente y no lo que el dueño vio.
+     *
+     * El barrido EXISTE en el ciclismo —un sprinter en forma se lleva los tres sprints de una vuelta
+     * pequeña de vez en cuando— así que el suelo es 0 y lo que se vigila es el techo: que sea la
+     * excepción y no el guion. Un tercio de las carreras es el listón por encima del cual «el mejor
+     * sprinter arrasa» deja de ser una noticia y pasa a ser lo que hace el motor todos los días.
+     * Medido: **9,7 %** sobre 31 carreras con tres o más llegadas agrupadas.
+     */
+    sweepPct: { label: 'Se lleva TODAS las llegadas agrupadas', min: 0, max: 30, unit: '%' },
+    /**
+     * LA FOTO DE META DE UNA LLANA. Y es un objetivo de NO ROMPER: el 99 % del campo en el tiempo del
+     * ganador que se midió en producción **no está mal**, es lo que hace una etapa llana de verdad.
+     * Está aquí para que arreglar el desenlace de la media y de la reina no se pague partiendo en
+     * pedazos la única etapa que sí llegaba bien. Medido: **99,3 %**.
+     */
+    flatWinnerGroupPct: {
+      label: 'Con el ganador en una LLANA',
+      min: 85,
+      max: 100,
+      unit: '%',
+    },
+    /**
+     * LA MEDIA MONTAÑA SE PARTE. Es el tipo de etapa que peor sale en producción: 30 de ellas con una
+     * mediana de 3 grupos y **siete trayendo el campo ENTERO en el mismo segundo** (Arabia e3,
+     * Bességes e3, Calvià, Colombia e9, Down Under e5, Great Ocean, Marsella). Una media de verdad
+     * deja de 3 a 8 grupos: hay cotas, hay abanico, hay quien se queda. Medido: **4**.
+     */
+    mediaGroups: { label: 'Grupos de tiempo en una MEDIA', min: 3, max: 8, unit: '' },
+    /**
+     * …Y NO TRAE AL CAMPO ENTERO EN EL MISMO SEGUNDO. El otro lado del mismo objetivo, y el que
+     * responde a la queja con su número: en producción pasó en **7 de 30 medias (23 %)**.
+     *
+     * **EL TECHO NO ES EL OBJETIVO, ES EL MARGEN QUE HOY SE PUEDE SOSTENER**, igual que las bandas de
+     * `abandonCauses`: lo correcto es que una media que trae a 140 de 140 no ocurra casi nunca, y el
+     * motor mide **9,5 %**. El 20 % de techo se pone por debajo del 23 % de producción —que es el
+     * defecto medido— y por encima de lo que hoy da el motor, para que la alarma salte cuando la
+     * media vuelva a llegar entera y no antes.
+     */
+    mediaOneGroupPct: {
+      label: 'MEDIAS con el campo entero al mismo segundo',
+      min: 0,
+      max: 20,
+      unit: '%',
+    },
+    /**
+     * EL MARGEN DE LA FUGA QUE GANA EN LLANO, en su PEOR caso del banco. Es la otra mitad de la queja
+     * («en etapas llanas nunca gana una fuga casual») y la que hace falta leer al revés de como suena:
+     * en producción la fuga ganó **5 de 24 llanas (21 %)**, así que ganar, gana. El problema es CÓMO:
+     *
+     * ```
+     * race-almeria-1     solo    +240 s al 2.º
+     * race-valencia-5    solo    +193 s
+     * race-oman-1        solo    +16 s
+     * race-oman-4        grupo   +10 s   (4 corredores)
+     * race-victoria-1    grupo   +25 s   (3 corredores)
+     * ```
+     *
+     * Las de 10-25 s son buenas y el juego las necesita. Las de 193 y 240 no son «una fuga que
+     * aguanta»: son **un pelotón que no persiguió en 200 km**, y en la v23 se encontró por qué (ver
+     * docs/balance.md «v23»). Por eso el objetivo es un TECHO y no una banda: 180 s deja fuera los dos
+     * casos de producción y dentro cualquier fuga que aguante de verdad. Es una alarma de peor caso,
+     * como `realQueens.worstStagePct`. Medido: **186 s → 74 s**, con la mediana en 27 s y el 88 % de
+     * las victorias entre 5 y 60 s.
+     */
+    flatMoveWorstMarginS: {
+      label: 'La fuga que más gana en llano (s)',
+      min: 0,
+      max: 180,
+      unit: '',
+    },
+    /**
+     * EL GRUPO DE CABEZA DE UNA REINA NO TIENE BANDA, Y HAY QUE DECIR POR QUÉ (deuda de la v23).
+     *
+     * El encargo pedía un objetivo también para la reina: «una reina real deja llegar juntos a un
+     * grupo de 5-15 y no 1». El banco lo MIDE —`ShapeStats.medianLeadGroupRiders`, los que entran
+     * dentro de medio minuto del ganador, que es como se lee un grupo de cabeza y no el «mismo
+     * segundo», que en un final en alto vale 1 aunque hayan llegado juntos— y el motor da **1**.
+     * Sobre 36 etapas reina del banco: 1 en la mediana, 2 en Provence, 2,5 en Tramuntana.
+     *
+     * O sea: **el objetivo que el encargo pide sale ROJO hoy.** No se pone la banda por dos razones,
+     * y ninguna es que estorbe. La primera, que un objetivo que nace rojo no es un objetivo, es un
+     * TODO con formato de test, y deja CI en rojo bloqueando el despliegue de la web (precedente
+     * caro: `invariants.test.ts` con 30 s de timeout, diez commits en rojo). La segunda, que
+     * calibrar hacia él es una tanda entera: el final en alto lo resuelve la capa de ataques
+     * (§13.1, regla 9) más el modelo de final, y moverlo toca la reina canónica, `realQueens` y
+     * `grandTour.queenLastGroupPct`, que costaron las tandas v16 y v17 enteras.
+     *
+     * Queda como deuda NOMBRADA y MEDIDA, con su número y su sitio donde mirarlo, que es lo que la
+     * v20 hizo con la mezcla de abandonos y la v22 con el dato de Montréal. La medida se imprime en
+     * `pnpm sim` para que la próxima tanda la vea sin tener que redescubrirla.
+     */
+  },
+  /**
    * LA COLA EN LAS ETAPAS REINA REALES DEL CALENDARIO (v17, `sim/realQueens.ts`).
    *
    * POR QUÉ EXISTE ESTE OBJETIVO SI YA ESTABA `grandTour.queenLastGroupPct`. Porque aquel mide

@@ -11,6 +11,7 @@ import { analyzeErosion, analyzeFlat, analyzeMountain, analyzeTimeTrial } from '
 import { abandonMix, analyzeGrandTour } from './grandTour.js'
 import { REAL_QUEENS, analyzeRealQueens, colombiaRegressionTails } from './realQueens.js'
 import { REAL_TIME_TRIALS, analyzeRealTimeTrials } from './timeTrials.js'
+import { SMALL_TOURS, analyzeSmallTours } from './smallTours.js'
 import { analyzeTeamVoice, teamedField } from './tactics.js'
 import { STAGE } from '../constants.js'
 import {
@@ -213,6 +214,44 @@ function main(): void {
       .join('\n  '),
   )
 
+  // LAS CARRERAS PEQUEÑAS (v23, docs/motor.md §19). El banco con FORMA DE PRODUCCIÓN: `llana-180`
+  // monta tres sprinters empatados a 84-86 de SPR y con eso el ganador lo decide el ruido; los
+  // campos de producción tienen un mejor rematador CLARO y corren CARRERAS de varias etapas, que es
+  // la pregunta que el dueño hace («Race Arabia: gana las 5») y que ningún invariante sobre una
+  // etapa suelta puede contestar.
+  const tourStages = SMALL_TOURS.length
+  const smallRuns = Math.max(3, Math.min(8, Math.round(runs / 80)))
+  const st = analyzeSmallTours(smallRuns)
+  const stOk = report(
+    `carreras PEQUEÑAS del calendario (${tourStages} carreras × ${smallRuns} semillas)`,
+    st.share.races,
+    [
+      { target: TARGETS.smallTours.bestSprinterWinPct, value: st.share.bestSprinterWinPct },
+      { target: TARGETS.smallTours.sweepPct, value: st.share.sweepPct },
+      {
+        target: TARGETS.smallTours.flatWinnerGroupPct,
+        value: st.shapes.llana.medianWinnerGroupPct,
+      },
+      { target: TARGETS.smallTours.mediaGroups, value: st.shapes.media.medianGroups },
+      { target: TARGETS.smallTours.mediaOneGroupPct, value: st.shapes.media.oneGroupPct },
+      { target: TARGETS.smallTours.flatMoveWorstMarginS, value: st.flatMargins.maxMarginS },
+    ],
+    [
+      `Llegadas agrupadas ${st.share.bunchStages} · ventaja en SPR del mejor sobre el 2.º ${st.share.medianEdge.toFixed(1)} · ganadores distintos ${st.share.distinctWinnerPct.toFixed(0)}% · barrido medido sobre ${st.share.sweepableRaces} carreras`,
+      `Fugas que ganan en llano: ${st.flatMargins.wins} · margen mediano ${st.flatMargins.medianMarginS.toFixed(0)}s · de MINUTOS ${st.flatMargins.runawayPct.toFixed(0)}% · del término medio realista (5-60s) ${st.flatMargins.closePct.toFixed(0)}%`,
+      // DEUDA MEDIDA de la v23 (ver `sim/targets.ts`): el grupo de cabeza de una reina. El encargo
+      // pedía «5-15 juntos y no 1» y el motor da 1, así que la medida se IMPRIME y no lleva banda:
+      // un objetivo que nace rojo no es un objetivo, y calibrar hacia él es una tanda entera.
+      `DEUDA — grupo de cabeza (dentro de 30 s del ganador): llana ${st.shapes.llana.medianLeadGroupRiders} · media ${st.shapes.media.medianLeadGroupRiders} · reina ${st.shapes.reina.medianLeadGroupRiders} (una reina real deja 5-15)`,
+      `Cribas lejos de meta narradas (peloton_selection, v21): ${st.shapes.todas.farSelections} en ${st.shapes.todas.stages} etapas · parecido entre etapas seguidas ${st.overlap.medianCommon}/10 de los diez primeros`,
+      `Velocidad del ganador (guardarraíl, NO objetivo): llana ${st.shapes.llana.medianWinnerKmh.toFixed(1)} · media ${st.shapes.media.medianWinnerKmh.toFixed(1)} · reina ${st.shapes.reina.medianWinnerKmh.toFixed(1)} km/h`,
+      ...st.perRace.map(
+        (row) =>
+          `${row.tour.raceId.padEnd(18)} ${String(row.runs[0]?.riders ?? 0).padStart(3)} corredores · agrupadas ${String(row.share.bunchStages).padStart(3)} · gana el mejor ${row.share.bestSprinterWinPct.toFixed(0).padStart(3)}% · ${row.shape.medianGroups} grupos · con el ganador ${row.shape.medianWinnerGroupPct.toFixed(0)}% · mismo segundo ${row.shape.oneGroupPct.toFixed(0)}% · cola ${row.shape.medianLastGroupPct.toFixed(1)}%`,
+      ),
+    ].join('\n  '),
+  )
+
   // …y el caso de la regresión con el campo con el que se vio (escalón de niveles, no continuo).
   const colombia = colombiaRegressionTails(5)
   const worstColombia = Math.max(...colombia.map((t) => t.lastGroupPct))
@@ -224,7 +263,7 @@ function main(): void {
   )
 
   console.log('')
-  process.exit(flatOk && mtnOk && ttOk && rttOk && eroOk && voiceOk && gtOk && rqOk ? 0 : 1)
+  process.exit(flatOk && mtnOk && ttOk && rttOk && eroOk && voiceOk && gtOk && rqOk && stOk ? 0 : 1)
 }
 
 main()
