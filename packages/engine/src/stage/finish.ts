@@ -183,6 +183,35 @@ export function isUphillFinish(type: FinishType): boolean {
 }
 
 /**
+ * EL DESORDEN DE LA COLOCACIÓN (v24, docs/motor.md §12.6): con cuánta dispersión se juega la
+ * posición en meta un corredor de este grupo.
+ *
+ * Devuelve el sd relativo de un factor multiplicativo de media 1. No es «ruido» de desempate —de eso
+ * ya hay uno, `sprintScoreNoiseSd`—: es la pieza de carrera que faltaba, la que hace que el mismo
+ * hombre no gane siempre aunque sea el más rápido. Tres términos, en este orden:
+ *
+ * - **El tamaño del grupo.** Por debajo de `finishBunchMinRiders` devuelve CERO: en un grupo de diez
+ *   todos ven la carretera y se colocan donde quieren. De ahí a `placementFullBunchRiders` sube
+ *   lineal hasta el desorden del pelotón entero. Ese cero es lo que deja intactos el final en alto,
+ *   la fuga que llega, el escapado en solitario y la contrarreloj.
+ * - **El tren.** Cada lanzador PRESENTE en el mismo grupo baja el desorden: para eso existe un tren,
+ *   y por eso el tope de lanzadores útiles es el mismo que el del empujón (`leadOutMaxHelpers`).
+ * - **La táctica.** Colocarse es leer el momento. TAC por encima de 50 alivia, por debajo penaliza.
+ *
+ * Y un suelo: `placementReliefMax` impide que el alivio llegue nunca al 100 %. Ni el mejor tren del
+ * mundo te garantiza la rueda buena.
+ */
+export function placementSd(groupSize: number, leadOutsPresent: number, tac: number): number {
+  const span = STAGE.placementFullBunchRiders - STAGE.finishBunchMinRiders
+  const crowd = Math.max(0, Math.min(1, (groupSize - STAGE.finishBunchMinRiders) / span))
+  if (crowd === 0) return 0
+  const fromTrain = STAGE.placementTrainRelief * Math.min(leadOutsPresent, STAGE.leadOutMaxHelpers)
+  const fromTac = (tac - 50) / STAGE.placementTacScale
+  const relief = Math.max(0, Math.min(STAGE.placementReliefMax, fromTrain + fromTac))
+  return STAGE.placementSdMax * crowd * (1 - relief)
+}
+
+/**
  * Puntuación de remate de un corredor en un final de este tipo (docs/motor.md §12): una MEZCLA de
  * atributos con pesos por tipo, en vez de un único atributo. Los pesos suman 1, así que la
  * puntuación queda en la escala de los atributos (0-100) sea cual sea el final.

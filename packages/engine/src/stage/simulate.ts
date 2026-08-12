@@ -37,6 +37,7 @@ import {
   finishType,
   isSprintFinish,
   isUphillFinish,
+  placementSd,
 } from './finish.js'
 import { markingMargin, resolveMarking, wheelProbability } from './marcaje.js'
 import {
@@ -382,6 +383,13 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
   // que añadirlos no altera la secuencia de la fuga, del sprint ni de las caídas.
   const rngTactics = streams('tactics')
   const rngSprint = streams('sprint')
+  // Subflujo NOMINAL de la COLOCACIÓN en meta (v24, SPEC 6.1, docs/motor.md §12.6). Mismo motivo
+  // que `rngRough` y `rngAbandon`: el dado de la colocación no puede salir de `rngSprint`, que
+  // consume el ruido del remate y los mini-sprints de banner con los que se calibró el modelo de
+  // final; meterle tiradas nuevas DESPLAZARÍA su secuencia y movería resultados que hoy están
+  // calibrados sin que ninguna ley del sprint haya cambiado. Con subflujo propio, un grupo pequeño
+  // —donde la colocación no reparte nada— sale dígito a dígito igual que en la v23.
+  const rngPlacement = streams('placement')
   const rngHazard = streams('hazard')
   // Subflujo NOMINAL de la selección FUERA de la montaña (v12, SPEC 6.1, docs/motor.md §14). El
   // descuelgue en pavé y en descenso NO puede tirar de `rngHazard`: ese flujo lo consume el
@@ -2563,7 +2571,17 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
   // --- Meta y resultados (SPEC 6.12, 6.15) -----------------------------------------------
   const allGroups: Group[] = [peloton, ...moves.map((m) => m.g), ...shed]
   const moveGroupIds = new Set(moves.map((m) => m.g.id))
-  finishStage(sims, allGroups, log, rngSprint, totalKm, finishTerrain, leadOutFor, moveGroupIds)
+  finishStage(
+    sims,
+    allGroups,
+    log,
+    rngSprint,
+    rngPlacement,
+    totalKm,
+    finishTerrain,
+    leadOutFor,
+    moveGroupIds,
+  )
 
   /**
    * FUERA DE CONTROL (docs/motor.md §VI.3, la causa de más peso). Se aplica AQUÍ y no en carretera
@@ -2808,6 +2826,8 @@ function finishStage(
   groups: Group[],
   log: EventLog,
   rngSprint: Rng,
+  /** Dado de la COLOCACIÓN en el grupo de meta (v24, docs/motor.md §12.6). */
+  rngPlacement: Rng,
   totalKm: number,
   terrain: FinishTerrain,
   leadOutFor: Map<string, string[]>,
@@ -2852,15 +2872,18 @@ function finishStage(
         }
         // Tren de lanzadores: en una llegada al sprint, un sprinter bien lanzado por su equipo
         // remata mejor (SPEC 6.18). Solo cuentan los lanzadores que llegan en su mismo grupo.
-        if (sprintFinish) {
-          const train = leadOutFor.get(m.input.riderId)
-          if (train) {
-            const present = train.reduce((c, id) => c + (idSet.has(id) ? 1 : 0), 0)
-            if (present > 0) {
-              score *= 1 + STAGE.leadOutBoostPerHelper * Math.min(present, STAGE.leadOutMaxHelpers)
-            }
-          }
+        const train = leadOutFor.get(m.input.riderId)
+        const present =
+          train === undefined ? 0 : train.reduce((c, id) => c + (idSet.has(id) ? 1 : 0), 0)
+        if (sprintFinish && present > 0) {
+          score *= 1 + STAGE.leadOutBoostPerHelper * Math.min(present, STAGE.leadOutMaxHelpers)
         }
+        // LA COLOCACIÓN (v24, docs/motor.md §12.6). Se tira SIEMPRE, también cuando el sd es 0,
+        // para que la secuencia del subflujo no dependa del tamaño del grupo ni de quién lleve
+        // tren: un grupo pequeño consume su tirada y la multiplica por 1 exacto.
+        const sd = placementSd(members.length, present, eff.TAC)
+        const draw = normal(rngPlacement, 1, sd)
+        score *= sd === 0 ? 1 : Math.max(1 - 3 * sd, Math.min(1 + 3 * sd, draw))
         return { m, score }
       })
       .sort((a, b) => b.score - a.score)

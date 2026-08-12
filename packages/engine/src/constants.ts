@@ -341,8 +341,23 @@
  * ser «cierro este hueco» y pasa a ser «cazo o concedo», que es lo que el controlador de la caza
  * sabe contestar. Nada de física nueva y ningún dado nuevo: dos predicados que dejan de mirar solo
  * `allowed` y miran también `dayBreak`. Medido en docs/balance.md, «v23».
+ *
+ * **v24 — LA COLOCACIÓN EN EL SPRINT.** La foto de meta de una carrera pequeña era la misma todos
+ * los días, y no porque el sprint no tuviera azar sino porque no tenía CARRETERA. Medido: de los
+ * cinco favoritos del remate del primer día de una carrera del banco, **4,63 de 5** siguen siendo
+ * los cinco favoritos el último, y el hueco del 1.º al 2.º se mueve del 4,67 % al 4,36 % en toda la
+ * semana. Todo lo que separaba a dos sprinters era CONSTANTE durante la carrera —el `eff0` con su
+ * forma, el peaje del trabajo y, sobre todo, un tren que se cobraba +5 % SIEMPRE y no fallaba
+ * jamás—, contra 5,7 % de dado por día (piernas 3,5 % + ruido del remate 4,5 %) y un top-5 que
+ * abarca un 9-11 %. En carretera un sprint se pierde por ir mal colocado; aquí no se podía perder.
+ *
+ * Entra `placementSd` (`stage/finish.ts`): un factor multiplicativo de MEDIA 1 que escala con el
+ * tamaño del grupo —CERO por debajo de `finishBunchMinRiders`, así que el final en alto, la fuga que
+ * llega, el solitario y la crono quedan intactos— y que el TREN y la TÁCTICA reducen. Dado nuevo,
+ * subflujo NOMINAL nuevo (`placement`), ninguna constante vieja movida. Medido en
+ * docs/balance.md, «v24».
  */
-export const ENGINE_VERSION = 23 as const
+export const ENGINE_VERSION = 24 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -1767,6 +1782,41 @@ export const STAGE = {
   // Ruido multiplicativo del remate: score = base·N(1, sd). Es el ÚNICO modelo de ruido de
   // desempate del motor; lo comparten el sprint de meta y los mini-sprints de banner (6.11).
   sprintScoreNoiseSd: 0.045,
+
+  // --- LA COLOCACIÓN EN EL PELOTÓN (v24, docs/motor.md §12.6) ------------------------------
+  //
+  // En carretera un sprint se pierde por ir mal colocado: te tapan en la última curva, el tren se
+  // te va, entras por el lado del viento. Hasta la v23 el motor no tenía eso: la única pieza de
+  // colocación era `leadOutBoostPerHelper`, un +5% por lanzador presente que se cobraba SIEMPRE y
+  // era, por tanto, una constante de la carrera entera. Medido: de los cinco favoritos del remate
+  // del primer día de una carrera pequeña, 4,57 de 5 seguían siendo los cinco favoritos el último
+  // día, y el hueco del 1.º al 2.º se movía del 4,67% al 4,36% en toda la semana. Con 5,7% de dado
+  // por día (piernas del día 3,5% + ruido del remate 4,5%) contra un top-5 que abarca un 9-11%, la
+  // foto de meta la decidía la salida.
+  //
+  // El modelo es un factor multiplicativo de MEDIA 1 —no regala ni quita nivel, reparte suerte— con
+  // tres propiedades que son las del ciclismo:
+  //
+  //  1. Escala con el TAMAÑO del grupo. Seis hombres escapados se ven todos y se colocan donde
+  //     quieren; ciento treinta, no. Por debajo de `finishBunchMinRiders` el sd es CERO, y de ahí
+  //     sale gratis lo que hay que preservar: un final en alto, una fuga que llega, una crono y
+  //     cualquier grupo pequeño quedan intactos, dígito a dígito.
+  //  2. El TREN protege. Cada lanzador presente reduce el desorden: para eso existe un tren.
+  //  3. La TÁCTICA protege. Colocarse es leer el momento (TAC), que es justo por lo que TAC pesa un
+  //     0,16 en la mezcla del sprint masivo.
+  placementFullBunchRiders: 60,
+  // Desorden máximo (sd relativo) de un pelotón entero, para el que no lleva tren ni sabe colocarse.
+  // 7% son ~5 puntos sobre una puntuación de remate de 75: saca de los cinco primeros al que iba
+  // quinto y mete al octavo, que es lo que pasa en carretera. NO es un dado que decida la etapa: el
+  // hueco del 1.º al 2.º de un campo de producción es del 4-5% y el mejor sigue ganando lo suyo.
+  placementSdMax: 0.07,
+  // Cuánto desorden le quita al sprinter cada lanzador presente (tope `leadOutMaxHelpers`, como el
+  // empujón), y cuánto le quita la táctica: (TAC − 50)/escala.
+  placementTrainRelief: 0.18,
+  placementTacScale: 400,
+  // …y el suelo del desorden: ni el mejor tren del mundo te garantiza la rueda buena. Con tope de
+  // alivio 0,55 un sprinter con dos lanzadores y TAC 90 sigue corriendo un 3,1% de desorden.
+  placementReliefMax: 0.55,
   // (RETIRADO en v8) `finishTieBreakSeconds` sumaba 1 ms por puesto al reloj del grupo para
   // desempatar el orden. No era inocuo: al redondear a segundos, un grupo que cruzaba en X,477
   // repartía X a los 23 primeros y X+1 al resto — un corte inventado por el redondeo que la general

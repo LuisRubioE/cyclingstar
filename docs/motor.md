@@ -504,6 +504,31 @@ tipos, y la niega uno solo: el final en `alto`. El repecho de meta —Québec, e
 Cauberg— es `puncheur` y admite llegada agrupada, porque se aborda con el pelotón lanzado y se decide
 en el último minuto. Números en docs/balance.md, «v22».
 
+**6. …y en el pelotón se llega mal colocado (HECHO, v24).** El modelo de arriba decide quién remata
+mejor, y hasta la v23 eso bastaba para decidir el sprint: la única pieza de COLOCACIÓN era
+`leadOutBoostPerHelper`, un +5 % por lanzador presente que se cobraba siempre y no fallaba jamás. Es
+decir, una constante de la carrera entera. Medido sobre el banco de carreras pequeñas: de los cinco
+favoritos del remate del primer día, **4,63 de 5** seguían siendo los cinco favoritos el último, y el
+hueco del 1.º al 2.º se movía del 4,67 % al 4,36 % en toda la semana. Con 5,7 % de dado por día
+(piernas del día 3,5 % + ruido del remate 4,5 %) contra un top-5 que abarca un 9-11 %, la foto de meta
+la decidía la salida y la carretera no tenía nada que decir.
+
+En carretera un sprint se pierde por ir mal colocado: te tapan en la última curva, el tren se te va,
+entras por el lado del viento. Eso es lo que entra, en `placementSd()` (`stage/finish.ts`): un factor
+multiplicativo de **media 1** —no regala ni quita nivel, reparte suerte— con tres propiedades:
+
+- **Escala con el TAMAÑO del grupo.** Por debajo de `finishBunchMinRiders` (15) devuelve **cero**: en
+  un grupo de diez todos ven la carretera. Sube lineal hasta `placementFullBunchRiders` (60), donde
+  vale el desorden del pelotón entero (`placementSdMax`, 7 %). De ese cero sale gratis lo que había
+  que preservar: el final en alto, la fuga que llega, el escapado en solitario y la contrarreloj no
+  se mueven ni un dígito.
+- **El TREN protege** (`placementTrainRelief`), con el mismo tope de lanzadores útiles que el empujón.
+- **La TÁCTICA protege** (`placementTacScale`), que es por lo que TAC pesa 0,16 en el sprint masivo.
+
+…y con un suelo: `placementReliefMax` impide que el alivio llegue al 100 %. Ni el mejor tren del
+mundo te garantiza la rueda buena. El dado sale de un subflujo NOMINAL propio (`placement`), así que
+ninguna secuencia vieja se desplaza. Números en docs/balance.md, «v24».
+
 ### 12-bis. Cambio 0 — Calibrar el desgaste y liberar el controlador (va ANTES que todo)
 
 Los dos hallazgos de §3-bis (a) y (b) son la raíz y se corrigen primero, porque **todo lo demás se
