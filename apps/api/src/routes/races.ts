@@ -31,6 +31,7 @@ import { NO_LEADERS, type RaceLeaders, currentSeason, raceLeaders } from '@cycli
 import { z } from 'zod'
 import { type ChronicleEvent, buildChronicle, buildMarkers, chronicleNames } from '../chronicle.js'
 import { badRequest, notFound, sendError, unauthorized } from '../http.js'
+import { stageHead } from '../stageHistory.js'
 import type { RoutePlugin } from './context.js'
 import { parseRaceId, parseRaceKey, parseStageDay } from './params.js'
 
@@ -295,6 +296,21 @@ export const raceRoutes: RoutePlugin = async (app, ctx) => {
           altimetry: renderAltimetrySvg(stage.profile),
         }
       }
+      // LA HISTORIA DE UNA ETAPA CORRIDA SE LEE DE SU SNAPSHOT, NO DEL CALENDARIO DE HOY: el
+      // porqué y el caso de producción que lo destapó, en `stageHistory.ts`.
+      const racedInput = snapshot.input as StageInput
+      const racedProfile = racedInput.profile
+      const racedTimeTrial = racedInput.timeTrial === true
+      const head = stageHead(
+        day,
+        { name: stage.name, kind: stage.kind, timeTrial: stage.timeTrial ?? false, km },
+        {
+          profile: racedProfile,
+          timeTrial: racedTimeTrial,
+          km: stageKm(racedProfile.segments),
+        },
+      )
+
       const results = await getStageResults(db, raceKey, day)
       const gc = await getGcThroughStage(db, raceKey, day)
       // Montaña y puntos tal como quedaron TRAS esta etapa (acumulado hasta el día `day`).
@@ -319,13 +335,13 @@ export const raceRoutes: RoutePlugin = async (app, ctx) => {
       if (!storedEvents) {
         return {
           day,
-          name: stage.name,
-          km,
+          name: head.name,
+          km: head.km,
           run: true,
           race: raceInfo,
-          kind: stage.kind,
-          timeTrial: stage.timeTrial ?? false,
-          altimetry: renderAltimetrySvg(stage.profile),
+          kind: head.kind,
+          timeTrial: head.timeTrial,
+          altimetry: renderAltimetrySvg(racedProfile),
           results,
           gc,
           kom,
@@ -345,18 +361,19 @@ export const raceRoutes: RoutePlugin = async (app, ctx) => {
       const chronicle = buildChronicle(
         storedEvents,
         chronicleNames([...identities, ...results], onRoad),
-        // Una crono se lee por el reloj de carrera, no por el kilómetro (v18).
-        { byClock: stage.timeTrial === true },
+        // Una crono se lee por el reloj de carrera, no por el kilómetro (v18); y si se corrió contra
+        // el reloj lo dice el snapshot, que es quien vio la etapa.
+        { byClock: racedTimeTrial },
       )
-      const altimetry = renderAltimetrySvg(stage.profile, { markers: buildMarkers(storedEvents) })
+      const altimetry = renderAltimetrySvg(racedProfile, { markers: buildMarkers(storedEvents) })
       return {
         day,
-        name: stage.name,
-        km,
+        name: head.name,
+        km: head.km,
         run: true,
         race: raceInfo,
-        kind: stage.kind,
-        timeTrial: stage.timeTrial ?? false,
+        kind: head.kind,
+        timeTrial: head.timeTrial,
         altimetry,
         results,
         chronicle,

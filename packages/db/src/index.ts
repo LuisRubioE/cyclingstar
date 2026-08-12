@@ -125,6 +125,7 @@ export {
   getPointsClassification,
   getRaceGc,
   getRaceRiderIdentities,
+  getRacedStageProfiles,
   getRunStageDays,
   getStageResults,
   getStageSnapshot,
@@ -133,6 +134,7 @@ export {
   type GcRow,
   type PointsRow,
   type RaceRiderIdentity,
+  type RacedProfileRow,
   type StageResultRow,
   type StageSnapshotRow,
 } from './results.js'

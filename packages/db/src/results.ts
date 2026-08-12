@@ -343,6 +343,40 @@ export async function getStageSnapshot(
   return rows[0] ?? null
 }
 
+/** El recorrido que se corrió de verdad en una etapa, sacado de su snapshot. */
+export interface RacedProfileRow {
+  stageDay: number
+  /** `StageProfile` congelado; se tipa en quien lo consume, que es quien conoce el motor. */
+  profile: unknown
+  timeTrial: boolean
+}
+
+/**
+ * Los recorridos REALMENTE corridos de todas las etapas de una carrera, en una sola consulta.
+ *
+ * El calendario se recalcula desde el código, así que la ficha de una etapa ya corrida cambia si
+ * cambia el generador de recorridos (ver `apps/api/src/stageHistory.ts`). Para la página de la
+ * carrera, que dibuja de un tirón las etapas de toda la vuelta, hace falta leerlos en lote: uno por
+ * uno serían 21 consultas en una gran vuelta.
+ */
+export async function getRacedStageProfiles(
+  db: Database,
+  raceId: string,
+): Promise<RacedProfileRow[]> {
+  const rows = await db
+    .select({ stageDay: stageSnapshots.stageDay, input: stageSnapshots.input })
+    .from(stageSnapshots)
+    .where(eq(stageSnapshots.raceId, raceId))
+  return rows.map((r) => {
+    const input = r.input as { profile?: unknown; timeTrial?: boolean } | null
+    return {
+      stageDay: r.stageDay,
+      profile: input?.profile ?? null,
+      timeTrial: input?.timeTrial === true,
+    }
+  })
+}
+
 /** Días de etapa que ya se han corrido (tienen resultados), para listar el estado de la vuelta. */
 export async function getRunStageDays(db: Database, raceId: string): Promise<number[]> {
   const rows = await db

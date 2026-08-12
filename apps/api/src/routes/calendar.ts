@@ -6,15 +6,22 @@ import {
   getPointsClassification,
   getRaceGc,
   getRaceHistory,
+  getRacedStageProfiles,
   getRunStageDays,
   getSeasonWinners,
   getStageWinners,
   getTeamClassifications,
   predictStartlist,
 } from '@cyclingstar/db'
-import { SEASON_CALENDAR, renderAltimetrySvg, stageEndpoints } from '@cyclingstar/engine'
+import {
+  SEASON_CALENDAR,
+  type StageProfile,
+  renderAltimetrySvg,
+  stageEndpoints,
+} from '@cyclingstar/engine'
 import { DAYS_PER_SEASON, NO_LEADERS, currentSeason, raceLeaders } from '@cyclingstar/shared'
 import { notFound } from '../http.js'
+import { type RacedStage, stageHead } from '../stageHistory.js'
 import type { RoutePlugin } from './context.js'
 import { parseRaceId } from './params.js'
 
@@ -70,22 +77,41 @@ export const calendarRoutes: RoutePlugin = async (app, ctx) => {
     const raceId = parseRaceId(request.params.raceId)
     const race = raceId ? SEASON_CALENDAR.find((r) => r.id === raceId) : null
     if (!race) return notFound(reply)
-    // Perfil de cada etapa (determinista, no depende del mundo): la altimetría real de autoría de la
-    // carrera —relieve, puertos y sus categorías—, que es lo que de verdad define cada etapa.
-    const stagePlan = race.stages.map((stage) => {
-      const ends = stageEndpoints(race.id, stage.index)
-      return {
-        index: stage.index,
-        name: stage.name,
-        label: stage.label,
-        kind: stage.kind,
-        km: stageKm(stage.profile.segments),
-        timeTrial: stage.timeTrial ?? false,
-        from: ends?.from ?? null,
-        to: ends?.to ?? null,
-        altimetry: renderAltimetrySvg(stage.profile),
-      }
-    })
+    /**
+     * El plan de etapas: la altimetría de autoría de la carrera —relieve, puertos y sus
+     * categorías—, que es lo que de verdad define cada etapa.
+     *
+     * Para las que YA SE CORRIERON manda el recorrido congelado en su snapshot y no el que genera
+     * hoy el código, por lo mismo que en la página de etapa (`apps/api/src/stageHistory.ts`): el
+     * calendario se recalcula en cada petición, así que un cambio en el generador de recorridos
+     * reescribiría hacia atrás carreras ya disputadas.
+     */
+    const planFrom = (raced: Map<number, RacedStage>) =>
+      race.stages.map((stage) => {
+        const ends = stageEndpoints(race.id, stage.index)
+        const spec = {
+          name: stage.name,
+          kind: stage.kind,
+          timeTrial: stage.timeTrial ?? false,
+          km: stageKm(stage.profile.segments),
+        }
+        const run = raced.get(stage.index)
+        const head = run ? stageHead(stage.index, spec, run) : { ...spec, staleSpec: false }
+        const profile = run?.profile ?? stage.profile
+        return {
+          index: stage.index,
+          name: head.name,
+          label: stage.label,
+          kind: head.kind,
+          km: head.km,
+          timeTrial: head.timeTrial,
+          from: ends?.from ?? null,
+          to: ends?.to ?? null,
+          altimetry: renderAltimetrySvg(profile),
+        }
+      })
+    // Sin mundo no hay carrera corrida que consultar: el plan es el del calendario, tal cual.
+    const stagePlan = planFrom(new Map())
     // Días de descanso: índices de etapa (1-based) tras los que hay descanso (grandes vueltas y
     // alguna carrera por etapas como la Volta a Portugal). Vacío en las que no tienen.
     const restAfter = race.restAfter ?? []
@@ -134,6 +160,17 @@ export const calendarRoutes: RoutePlugin = async (app, ctx) => {
     // por defecto (§7.1). La regla de "terminada" es la misma que usa el tick para repartir puntos de
     // general: existe resultado de su última etapa.
     const runDays = await getRunStageDays(db, raceKey)
+    // Los recorridos que se corrieron de verdad, en una sola consulta para toda la carrera.
+    const raced = new Map<number, RacedStage>()
+    for (const row of await getRacedStageProfiles(db, raceKey)) {
+      if (!row.profile) continue
+      const profile = row.profile as StageProfile
+      raced.set(row.stageDay, {
+        profile,
+        timeTrial: row.timeTrial,
+        km: stageKm(profile.segments),
+      })
+    }
     const status = runDays.includes(race.stages.length)
       ? ('finished' as const)
       : runDays.length > 0
@@ -151,7 +188,7 @@ export const calendarRoutes: RoutePlugin = async (app, ctx) => {
       dayOfSeason: world.currentDay % DAYS_PER_SEASON,
       status,
       runDays,
-      stages: stagePlan,
+      stages: planFrom(raced),
       restAfter,
       gc,
       points,
