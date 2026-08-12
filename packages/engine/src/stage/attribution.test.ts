@@ -173,7 +173,23 @@ import type { Attribute } from '@cyclingstar/shared'
  * segunda semilla −158 s con otra fuga del día; reina-150 +12 s y +28 s con los mismos grupos) y
  * sube la victoria de la fuga en montaña del 41,0 % al 43,8 % sobre 500 corridas, sacando de banda
  * el gate de 120 semillas (47,5 % contra un techo del 45 %). Lo que se ha hecho es quitar la FRASE
- * y no el movimiento: en carretera las fugas salen del disparo. Esta huella es la que lo detectó. */
+ * y no el movimiento: en carretera las fugas salen del disparo. Esta huella es la que lo detectó.
+ *
+ * **NO RESELLADA EN LA v22** (la rampa de meta, docs/balance.md «v22»). La v22 sustituye el binario
+ * `finalStretch.every((b) => b.tipo !== 'subida')` por `admitsBunchFinish(stageFinishType)`, del que
+ * cuelgan la caza de los sprinters, el tirón final de los trenes y el plan de equipo. Cambia el
+ * comportamiento de 9 de las 1.075 etapas no-crono del calendario, y NINGUNA de las dos de esta
+ * huella es una de ellas, por construcción y no por suerte:
+ *
+ * - `llana-180` son 180 km de `llano` de una pieza: el viejo `every` decía «sí» y el modelo de final
+ *   la resuelve `sprint_masivo`, que también dice «sí». Las dos respuestas coinciden y coincidían.
+ * - `reina-150` acaba con 15 km al 8 %: el viejo `every` decía «no» —los últimos 2 km son bloques de
+ *   subida— y el modelo la resuelve `alto`, el ÚNICO tipo que sigue diciendo «no». Idem.
+ *
+ * Las dos respuestas solo se separan en el terreno intermedio que ninguno de estos dos escenarios
+ * tiene: el repecho de meta. Que estas huellas no se muevan es, por tanto, la comprobación de que el
+ * cambio muerde donde debe y de que no hay física nueva por debajo. Cualquier otra cosa que mueva
+ * esta huella hay que volver a justificarla aquí. */
 const SEALED_RESULTS: Record<string, string> = {
   'llana-180-0|llana-180|1|v1':
     '1:spr-2:14276,2:spr-1:14276,3:spr-0:14276,4:pel-5:14276,5:pel-26:14276,6:pel-22:14276,7:pel-18:14276,8:pel-10:14276,9:pel-23:14276,10:pel-25:14276,11:pel-8:14276,12:pel-7:14276,13:pel-12:14276,14:brk-0:14276,15:pel-14:14276,16:pel-16:14276,17:pel-0:14276,18:pel-27:14276,19:pel-4:14276,20:pel-1:14276,21:pel-24:14276,22:pel-6:14276,23:pel-2:14276,24:brk-1:14276,25:pel-11:14276,26:brk-3:14276,27:pel-19:14276,28:pel-17:14276,29:pel-13:14276,30:brk-5:14276,31:pel-30:14276,32:brk-4:14276,33:pel-15:14276,34:pel-28:14276,35:pel-20:14276,36:pel-9:14276,37:brk-2:14276,38:pel-21:14276,39:pel-29:14276,40:pel-3:14276',

@@ -46,6 +46,12 @@ import type { RaceEvent, StageInput, StageOutput, StageRider } from './types.js'
  *   y sobre 500 cronos el invariante se queda en 98,8 % (era 99,8 %): ver docs/balance.md «v19».
  * - **Ni un dado nuevo, otra vez**: la v19 no toca el azar de la crono —el ruido final se pide en el
  *   mismo punto y del mismo subflujo—, así que todo el movimiento es de la ley y ninguno del RNG.
+ *
+ * **NO RESELLADA EN LA v22** (la rampa de meta, docs/balance.md «v22»), y esta vez no había manera
+ * de que se moviera: la v22 sustituye el binario del que colgaban la caza, el tirón final de los
+ * trenes y el plan de equipo, y una contrarreloj individual no tiene ninguna de las tres. Se corre
+ * por `simulateTimeTrial`, que no pasa por `finishStage` ni consulta el tipo de final. Comprobado,
+ * no supuesto: las dos huellas salen dígito a dígito iguales.
  */
 const SEALED_ITT: Record<string, string> = {
   'cri-40-0|cri-40|1|v1':
