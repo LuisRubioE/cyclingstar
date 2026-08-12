@@ -4793,3 +4793,276 @@ igual que no se enteró de Race Colombia e5 en la v16.
 - **No añade un tipo de final nuevo.** El repecho ya tenía el suyo (`puncheur`) desde la v7.
 - **No pone un suelo de dureza al final en `alto`.** Medido y descartado en §4: sobre recorridos
   reconstruidos mediría la reconstrucción y no la carretera.
+
+## v23 — El banco no medía producción, y la fuga del día no la perseguía nadie (`engine_version` 22 → 23)
+
+> **La queja, textual:** «poca variabilidad... race provence.. etapa 2 y etapa 3 el resultado se
+> parece demasiado» y «en etapas llanas nunca gana una fuga casual».
+
+Lo medido sobre las 81 etapas de las 38 carreras del día de juego 46, que es el punto de partida:
+
+```
+tipo      n   grupos   %campo   solitarios   cola(mediana)
+cri      10     39       3%       9/10          14 min
+clasica   6      4      11%       5/6           11 min
+llana    26      2      99%       4/26           3 min
+media    30      3      54%       8/30           9 min
+reina     9      4       1%       6/9           24 min
+```
+
+Con **Race Arabia ganada las cinco etapas por el mismo corredor**, Sharjah 4 de 5, siete etapas
+`media` trayendo el campo ENTERO en el mismo segundo, y CI **en verde con sus 24 objetivos**.
+
+Esta tanda encuentra **una causa que no era la que se buscaba**, y hay que decirlo con el número
+delante: dos de las tres hipótesis del encargo eran falsas tal como estaban escritas. Lo que sigue
+es lo medido.
+
+---
+
+### 1. El banco: `sim/smallTours.ts`, y la tercera vez que aprendemos lo mismo
+
+`flat.bestSprinterWinPct` mide `llana-180`, que monta **tres sprinters con SPR 84, 85 y 86**. Con un
+empate a tres el ganador lo decide el ruido: sale 36 %, pasa su 30-45 % y no puede enterarse de nada.
+Producción no tiene esa forma. Medido sobre el generador que corre el juego (`world/npc.ts` +
+`world/autoOrders.ts`, que nombra sprinter al mejor de cada equipo solo si pasa de 68 de SPR):
+
+| Campo           |      n | mejor SPR | 1.º−2.º | 1.º−3.º | SPR ≥ 68 | sprinters nombrados |
+| --------------- | -----: | --------: | ------: | ------: | -------: | ------------------: |
+| WorldTour       |    176 |      94,0 |     3,5 |     5,0 |       37 |                17,5 |
+| Pro Series      |    140 |      83,0 |     3,5 |     5,0 |       14 |                10,0 |
+| Continental     |    126 |      81,5 |     5,5 |     5,5 |     10,5 |                 7,0 |
+| **`llana-180`** | **40** |    **86** |   **1** |   **2** |    **3** |               **3** |
+
+Tres a cuatro veces más apretado en la punta, y con 3 rematadores donde producción tiene 7-17.
+
+**Y la pregunta es de CARRERA, no de etapa.** «¿Gana las cinco?» no la contesta un invariante sobre
+una etapa suelta por muchas semillas que se le eche. El banco nuevo corre **diez carreras REALES del
+calendario de principio a fin**, con el mismo campo día a día y la fatiga acumulándose
+(`applyDailyLoad`, el bucle del tick, como `sim/grandTour.ts`): Arabia, Sharjah, Bességes, Provence,
+Omán, Victoria, Down Under, Colombia, Almería y Tramuntana — las carreras de la queja, con sus tres
+niveles de campo y de 1 a 9 etapas. Lista CERRADA, como las de `realQueens` y `timeTrials`.
+
+> **No se ha podido leer producción.** `https://cyclingstar-production.up.railway.app` devuelve
+> `404 Application not found` en `/health`, `/api/calendar` y `/api/rankings`. El campo del banco sale
+> por tanto del MISMO generador que puebla el mundo, que es lo más cerca que se puede estar sin la
+> API; si algún día se contrasta contra una startlist real y la dispersión no cuadra, esta tabla es
+> la que hay que rehacer.
+
+### 2. La causa, y no era la del encargo: `Move.allowed` se decidía una vez y no se revisaba jamás
+
+El encargo apuntaba a `STAGE.chaseMinForce` = 0,12: «un campo flojo cae por debajo y nadie persigue».
+**Medido, no es eso.** La fuerza de la caza de un campo de producción vale **1,00** en los tres
+niveles (mínimo 0,58 en 10 campos Pro Series): el umbral no se toca nunca. Solo cae a 0 cuando el
+campo no tiene NI UN corredor con SPR ≥ 70, y eso hay que fabricarlo a mano (con el SPR topado a 66,
+la fuga gana 6 de 6 con 305 s de margen; con el tope a 69, 1 de 6).
+
+La causa está en la capa táctica. `Move.allowed` —si el pelotón le da cuerda a un intento— se decide
+**en el kilómetro en que el movimiento nace** y no se revisa nunca más. Y de ese booleano cuelgan dos
+cosas en `simulate.ts`:
+
+```ts
+const closing = moves.length > 0 && !moves.some((m) => m.allowed)
+if (closing)
+  target = Math.max(freeRunTarget, STAGE.tacticControlCommit) // 0,72 FIJO
+else if (ahead && chasingSprinters && !chaseAbandoned) {
+  /* …el controlador de la caza… */
+}
+```
+
+```ts
+const closingNow = moves.length > 0 && !moves.some((m) => m.allowed) // …y no salta nadie más
+```
+
+Mientras no haya un movimiento con cuerda, el pelotón «cierra» a **0,72 fijo, ciego al boquete**
+—porque el controlador de la caza vive en la rama de al lado del `if` y no llega a ejecutarse— y la
+capa táctica **no lanza ni un intento más**. Las dos cosas son correctas mientras lo de delante es un
+intento. El agujero es lo que pasa cuando un intento sin cuerda **prospera igualmente** y se
+convierte en la fuga del día: se queda en ese limbo hasta la meta.
+
+**Race Almeria e1 (210 km llanos, campo Pro Series de 140), traza cruda de la semilla que lo hace:**
+
+```
+attack_go  km 0   fuga   cuerda 0   saltan 3
+attack_go  km 8   fuga   cuerda 0   saltan 6
+attack_go  km 13  fuga   cuerda 0   saltan 9
+attack_go  km 19  fuga   cuerda 0   saltan 1
+breakaway_formed  km 19
+   …y NADA más en 190 km: ni un sprinters_chase, ni un intento, ni un puente.
+peloton_pull  km 46:0.72  82:0.72  95:0.72  113:0.72  125:0.72  137:0.72  173:0.72
+→ gana el escapado EN SOLITARIO, 157 s al siguiente grupo.
+```
+
+Ese `0,72` repetido es la firma exacta que el diario de producción trae en Almería en los km 15, 29,
+60, 87, 99, 135, 149 y 185 mientras el hueco pasa de 64 s a 255 s. **No es que nadie persiguiera: es
+que el pelotón tiraba a un ritmo constante que ignora el boquete, y el controlador que sí sabe subirlo
+no llegaba a ejecutarse.** Es §3-bis (b) —el controlador atado a `if (breakaway …)`— sobreviviendo en
+otra rama, seis versiones después.
+
+Y se ve la otra mitad en la misma tabla: en la semilla de al lado, con la fuga formada **con** cuerda,
+la caza arranca en el km 84, el pelotón concede en el 204 y la fuga gana por **20 s**. Ése es el
+desenlace que el juego quiere y que el limbo impedía.
+
+### 3. El arreglo: la fuga del día no es un intento
+
+```ts
+const closing = moves.length > 0 && !moves.some((m) => m.allowed || m.dayBreak)
+```
+
+…en los dos sitios. La fuga del día es el que ganó la aduana; a partir de ahí la pregunta deja de ser
+«cierro este hueco» y pasa a ser «cazo o concedo», que es lo que contesta el controlador de la caza
+con su lazo cerrado, su narración (`sprinters_chase`) y su claudicación (`sprinters_give_up`). Y
+vuelve a atacarse: se puentea, se contraataca.
+
+**Ni física nueva, ni constante movida, ni dado nuevo, ni subflujo nuevo.** Dos predicados.
+
+Race Almeria e1, sonda de 10 semillas (`carrera-pequena-race-almeria-0..9`), antes → después:
+
+| Semilla       | antes                               | después                                    |
+| ------------- | ----------------------------------- | ------------------------------------------ |
+| #9            | solo, **157 s**, 3 grupos, sin caza | solo, **88 s**, 5 grupos, caza en el km 84 |
+| #6            | 20 s (ya tenía cuerda)              | 20 s, idéntica                             |
+| #0-#5, #7, #8 | pelotón entero                      | pelotón entero, idénticas                  |
+
+La #9 es la que trae la firma de producción y la que el arreglo desactiva; las otras nueve no la
+tienen y no se mueven ni un segundo.
+
+### 4. El banco, antes y después (10 carreras × 6 semillas = 246 etapas en línea)
+
+| Medida                                       |  ANTES |    DESPUÉS | Objetivo |
+| -------------------------------------------- | -----: | ---------: | -------- |
+| Gana el mejor rematador (llegadas agrupadas) | 39,0 % | **41,1 %** | 25-60 %  |
+| Se lleva TODAS las agrupadas de la carrera   |  6,3 % |  **9,7 %** | 0-30 %   |
+| Con el ganador en una LLANA                  |  100 % | **99,3 %** | 85-100 % |
+| Grupos de tiempo en una MEDIA                |      4 |      **4** | 3-8      |
+| MEDIAS con el campo entero al mismo segundo  | 10,0 % |  **9,5 %** | 0-20 %   |
+| **La fuga que más gana en llano**            |  186 s |   **74 s** | 0-180 s  |
+
+**Dos de esas seis empeoran, y hay que decirlo.** El mejor rematador gana algo MÁS (39,0 → 41,1 %) y
+barre algo más a menudo (6,3 → 9,7 %), y la causa es directa: con el pelotón persiguiendo de verdad
+sobreviven menos fugas, así que hay más sprints que ganar. Las dos siguen holgadamente dentro de
+banda —el techo es 60 % y 30 %— y **el arreglo no iba de eso**: iba del desenlace. Cambiarlas
+requeriría tocar el remate, que es otra tanda y no un efecto colateral que se pueda comprar aquí.
+
+Y lo que no lleva objetivo pero cuenta la historia:
+
+| Lectura                                        |              ANTES |                     DESPUÉS |
+| ---------------------------------------------- | -----------------: | --------------------------: |
+| Fugas que ganan en llano con margen de MINUTOS |               13 % |                     **0 %** |
+| …y con el margen realista de 5-60 s            |               88 % |                      88 %   |
+| Margen mediano de la fuga que gana en llano    |               31 s |                        27 s |
+| Fugas que ganan en llano (de 84 llanas)        |                  8 |                           8 |
+| Grupos de tiempo en una LLANA                  |                1,5 |                     **2,0** |
+| Grupo de cabeza de una MEDIA (≤ 30 s)          |               39,5 |                    **24,0** |
+| Ganadores distintos por etapa                  |             80,9 % |                      79,7 % |
+| Cola de una etapa reina del banco              |              7,0 % |                       6,5 % |
+| Velocidad del ganador: llana / media / reina   | 45,5 / 42,7 / 36,3 | **45,5 / 42,8 / 36,6 km/h** |
+
+**La fuga sigue ganando ocho llanas de 84 (10 %), las mismas ocho: lo que cambia es CÓMO.** Ninguna
+gana ya por minutos, la peor pasa de 186 s a 74 s y el 88 % entran entre 5 y 60 s. Eso es exactamente
+lo que el encargo pedía —«lo que FALTA es el término medio realista»— sin haber tocado ni una perilla
+de cuántas fugas prosperan.
+
+**Las velocidades no se mueven**, que es la comprobación que pedía el aviso: las medianas de
+producción son llana 44,8 · media 42,4 · reina 35,8 km/h, todas dentro del rango real, y el banco se
+queda a menos de un km/h de cada una antes y después, con menos de 0,3 km/h de movimiento entre las
+dos columnas. La ley de velocidad (v19) no se ha tocado.
+
+### 5. Lo que NO arregla, con su número: la reina sigue llegando de uno en uno
+
+El encargo pedía también un objetivo para la reina: «una reina real deja llegar juntos a un grupo de
+5-15 y no 1». El banco lo MIDE —los que entran **dentro de medio minuto** del ganador, que es como se
+lee un grupo de cabeza; el «mismo segundo» vale 1 en un final en alto aunque hayan llegado juntos— y
+el motor da:
+
+| Tipo  | Grupo de cabeza (≤ 30 s del ganador) | Lo que debería ser |
+| ----- | -----------------------------------: | ------------------ |
+| llana |                                  126 | el pelotón         |
+| media |                                   24 | un grupo grande    |
+| reina |                                **1** | **5-15**           |
+
+**O sea: el objetivo que el encargo pide sale ROJO hoy, y no se ha puesto la banda.** Las razones
+están escritas en `sim/targets.ts` y no son que estorbe: un objetivo que nace rojo no es un objetivo,
+es un TODO con formato de test que deja CI bloqueando el despliegue (precedente caro: el timeout de
+30 s de `invariants.test.ts`, diez commits en rojo); y calibrar hacia él es una tanda entera, porque
+el final en alto lo resuelven la regla 9 de la capa de ataques y el modelo de final, y moverlo toca
+`realQueens` y `grandTour.queenLastGroupPct`, que costaron las v16 y v17 enteras. Queda como **deuda
+nombrada y medida**, y `pnpm sim` la imprime en cada corrida para que la próxima tanda no tenga que
+redescubrirla. Es lo que la v20 hizo con la mezcla de abandonos y la v22 con el dato de Montréal.
+
+Tramuntana —la clásica de un día tipo reina en la que producción entregó la etapa con los puestos 2.º
+al 6.º a **38 min 27 s**— entra en el banco por eso, y su fila lo dice entero: cola **6,7 % → 6,7 %**,
+grupos **7,5 → 8**, grupo de cabeza **2 → 2,5 corredores**. O sea: el arreglo del llano **no llega a
+la montaña**, porque en un final de reina `admitsBunchFinish` es `false` y la rama de la caza no
+existe; lo que allí decide es la capa de ataques del final en alto. La etapa sigue entregándose de
+uno en uno. Es el mismo diagnóstico de arriba visto desde la carrera que lo enseñó.
+
+### 6. Lo que se probó y se descartó
+
+- **Bajar o eliminar `chaseMinForce`** (la hipótesis del encargo). Se midió primero si el umbral se
+  toca siquiera: **no.** La fuerza vale 1,00 en los tres niveles de campo de producción y solo cae a 0
+  cuando no hay NI UN corredor con SPR ≥ 70 en 126. Tocar el umbral no habría cambiado ninguna de las
+  etapas de la queja —Almería incluida, que corre con fuerza 1,00— y a cambio movería la cuerda que se
+  da a la fuga en TODAS las carreras pequeñas, que es la perilla que la v10 calibró entera. No se toca.
+- **Poner un suelo de `freeRunTarget` a la rama de control de la general** (`max(0.1, …)` → 0,55).
+  Es un defecto real y anotado —con un movimiento delante, el pelotón puede rodar MÁS despacio que con
+  la carretera despejada— pero no hacía falta para esta tanda: con el arreglo de §3 las llanas ya no
+  producen ningún margen de minutos, y `gcControlLeash` es «la perilla más sensible del motor» con la
+  victoria de la fuga en montaña pegada a su techo (42,2 % contra 45 %). Subir ese suelo la mueve sin
+  que ningún defecto medido lo pida. **Queda anotado, sin tocar.**
+- **Un objetivo sobre el % de fugas que ganan en llano con margen de minutos** en vez del peor caso.
+  Descartado por muestra: son 8 victorias de fuga en 84 llanas del banco, y un porcentaje sobre 8
+  casos es el invariante intermitente contra el que ya avisan `grandTour.abandonPct` y
+  `chronicle.frontTeamsPerStage`. El techo de peor caso (180 s) es la misma forma que
+  `realQueens.worstStagePct` y no depende del tamaño de la muestra.
+
+### 7. Lo que no se ha roto, medido
+
+**`pnpm sim` con 500 corridas: los 24 objetivos anteriores siguen en verde**, y estos son los que se
+mueven algo (antes → después):
+
+| Objetivo                               |             antes |           después | banda                |
+| -------------------------------------- | ----------------: | ----------------: | -------------------- |
+| Gana la fuga (llana)                   |             3,4 % |             3,4 % | 2-8 %                |
+| Gana el mejor sprinter (`llana-180`)   |            36,0 % |            36,0 % | 30-45 %              |
+| Captura mediana (km a meta)            |              21,4 |              21,3 | 8-25                 |
+| Gana la fuga (montaña)                 |            41,0 % |            42,2 % | 25-45 %              |
+| Brecha 1.º-10.º (s)                    |               270 |               272 | 60-300               |
+| Voz de EQUIPO en el parte              |            68,7 % |            68,1 % | 50-85 %              |
+| Equipos que llevan el frente           |             2,330 |             2,350 | 1,8-4                |
+| Abandonos en una gran vuelta           |            13,4 % |            13,3 % | 12-20 %              |
+| Último grupo en la reina (gran vuelta) |             8,4 % |             8,1 % | 8-14 %               |
+| Reparto: caída / enfermedad / corte    | 62,2 / 33,5 / 4,3 | 63,1 / 33,7 / 3,2 | 30-67 / 20-67 / 1-15 |
+| Último grupo en las reinas REALES      |             7,9 % |             7,6 % | 7-14 %               |
+
+Las contrarrelojes (las cinco reales y `cri-40`) y las cinco medidas de erosión salen **dígito a
+dígito iguales o a una milésima**: una crono no tiene capa táctica y el desgaste no depende de ella.
+
+**Y hay que decir dónde queda apretado.** `grandTour.queenLastGroupPct` baja de 8,4 % a **8,1 %** con
+el suelo en 8, y `realQueens.lastGroupPct` de 7,9 % a **7,6 %** con el suelo en 7. Los dos siguen
+dentro y CI los pasa (43 de 44 invariantes en verde; el 44.º era un timeout de 5 s en una
+comprobación mía, corregido). La causa es sana —en la parte rodada de una etapa de montaña el pelotón
+persigue de verdad en vez de rodar a 0,72, así que la cola pierde menos tiempo— pero **el margen del
+suelo de la reina se ha estrechado a tres décimas, y la próxima tanda que toque la persecución lo va
+a rozar.** No se ha bajado ningún suelo para que pase nada: se anota.
+
+### 8. La criba lejana, que era la otra pregunta
+
+`peloton_selection` (v21) aparecía **una sola vez en las 81 etapas** de producción. En el banco nuevo
+se emite **110 veces antes y 105 después, en 246 etapas** —0 en las llanas, 75 → 70 en las medias,
+35 → 35 en las reinas—. Es decir: **el motor sí rompe el pelotón lejos de meta en las medias y las
+reinas del calendario, y lo narra**, y esta tanda no lo mueve apenas (−5 sobre 110, todas en la media,
+que es donde el pelotón ahora persigue en vez de rodar). Que producción solo tuviera una es
+información sobre el día de juego 46 —donde 26 de las 81 etapas eran llanas y 10 cronos, que no criban
+lejos por definición— y no sobre el motor de hoy. El banco queda como el sitio donde mirarlo.
+
+### 9. Lo que este cambio NO hace
+
+- **No arregla la reina** (§5). Es la deuda grande y está nombrada, medida y sin banda.
+- **No toca la ley de velocidad**, y se comprueba: las medianas del ganador por tipo de etapa se
+  mueven menos de 0,3 km/h.
+- **No toca `chaseMinForce`, ni `tacticControlCommit`, ni `gcControlLeash`**, ni ninguna otra
+  constante. Cero perillas movidas en esta tanda.
+- **No mide el parecido entre etapas con un objetivo.** `topTenOverlap` está en el banco y se imprime
+  (3 de los diez primeros repiten entre etapas seguidas, antes y después) porque no hay un número real
+  que poner ahí: dos sprints seguidos SE PARECEN, y un sprint y una etapa reina no. Es lectura, no
+  listón.
