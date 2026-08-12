@@ -246,6 +246,28 @@ if (modo === 'produccion') {
   const { world, sinCronica, dayOfSeason, porEtapa } = await medirProduccion(base)
   console.log(`Producción ${base} — día de juego ${dayOfSeason} (${sinCronica} etapas sin crónica)`)
   imprimir(world, porEtapa)
+} else if (modo === 'banco-detalle') {
+  // El detalle de una carrera del banco, hallazgo a hallazgo: es como se mira un defecto de cerca.
+  const [raceId, run = '0', filtro] = args
+  for (const stage of correrCarrera(raceId, Number(run))) {
+    const { findings } = auditStage(fromApi(stage.chronicle))
+    const vistos = filtro ? findings.filter((f) => f.defect === filtro) : findings
+    if (vistos.length === 0) continue
+    console.log(`\n=== ${stage.id} ===`)
+    for (const f of vistos)
+      console.log(`  km ${String(f.km).padStart(3)}  ${f.defect}: ${f.detail}`)
+  }
+} else if (modo === 'banco-traza') {
+  const [raceId, run = '0', etapa] = args
+  for (const stage of correrCarrera(raceId, Number(run))) {
+    if (etapa && !stage.id.endsWith(`e${etapa}`)) continue
+    console.log(`\n=== ${stage.id} ===`)
+    for (const e of stage.chronicle) {
+      console.log(
+        `${String(e.km).padStart(3)} ${String(e.tS).padStart(6)} ${e.plantilla.padEnd(20)} [${e.protagonists.map((p) => p.name).join(', ')}] ${JSON.stringify(e.datos ?? {})}`,
+      )
+    }
+  }
 } else if (modo === 'banco') {
   const runs = Number(args[0] ?? 3)
   const { world, porEtapa } = medirBanco(runs)

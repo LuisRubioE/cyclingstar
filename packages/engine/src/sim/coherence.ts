@@ -92,6 +92,8 @@ const OPENING = new Set(['attack_go', 'attack_swarm'])
  */
 const CLOSING = new Set([
   'attack_reeled',
+  'attack_short',
+  'move_faded',
   'attack_sticks',
   'move_caught',
   'move_merge',
@@ -134,8 +136,7 @@ const EXIT = new Set([
   'riders_bonk',
   'rider_abandons',
   'riders_abandon',
-  'break_dropped',
-  'riders_drop_break',
+  'move_faded',
   'attack_go',
   'attack_swarm',
   'attack_sticks',
@@ -149,6 +150,22 @@ const EXIT = new Set([
  * etapa que ha quedado en cuatro corredores, que el perseguidor sea uno es la carrera y no un error.
  */
 const BUNCH_MIN_RIDERS = 8
+
+/** Lo que hace CRECER al grupo de cabeza: un puente que llega, dos grupos que se juntan. */
+const GROWS_THE_FRONT = new Set(['move_merge', 'bridge_made', 'attack_sticks'])
+
+/**
+ * Lo que DESPEJA LA CARRETERA. Después de esto deja de haber «grupo de cabeza» en la cabeza del
+ * lector: lo siguiente que se nombre delante es un grupo que NACE, no uno del que ha desaparecido
+ * gente. Es el mismo olvido que hacen el motor (`lastFrontIds`) y la crónica.
+ */
+const CLEARS_THE_ROAD = new Set([
+  'attack_reeled',
+  'move_caught',
+  'breakaway_caught',
+  'peloton_regroup',
+  'bunch_sprint',
+])
 
 /**
  * Cuánto puede separarse la CÚSPIDE del boquete que firma `chase_work` de la mayor ventaja que la
@@ -191,12 +208,14 @@ export function auditStage(entries: readonly AuditEntry[]): AuditResult {
   // --- 1. Un movimiento que se abre tiene que cerrarse ------------------------------------------
   entries.forEach((e, i) => {
     if (!OPENING.has(e.plantilla)) return
-    const closed = entries
-      .slice(i + 1)
-      .some(
-        (o) =>
-          o.km > e.km && CLOSING.has(o.plantilla) && o.riders.some((r) => e.riders.includes(r)),
-      )
+    const closed = entries.slice(i + 1).some(
+      (o) =>
+        CLOSING.has(o.plantilla) &&
+        // El parte de cabeza solo cierra un ataque si llega DESPUÉS: en el mismo kilómetro no es
+        // el desenlace, es la misma noticia contada dos veces (ver `ataqueDobleLinea`).
+        (o.plantilla !== 'front_group' || o.km > e.km) &&
+        o.riders.some((r) => e.riders.includes(r)),
+    )
     if (closed) return
     // …y llegar a meta DELANTE tampoco es quedarse sin cerrar. Pero solo cuenta si de verdad llegó
     // delante: el que ataca a 3 km y aparece luego en un sprint masivo de 128 fue cazado.
@@ -207,6 +226,12 @@ export function auditStage(entries: readonly AuditEntry[]): AuditResult {
   // --- 2. «Ya solo quedan N delante» con N creciendo ---------------------------------------------
   let prevFront: AuditEntry | null = null
   for (const e of entries) {
+    // Con la carretera despejada por el medio, el siguiente parte de cabeza no es el mismo grupo
+    // que ha crecido: es otro grupo. Es el mismo olvido que hace el motor.
+    if (CLEARS_THE_ROAD.has(e.plantilla)) {
+      prevFront = null
+      continue
+    }
     if (e.plantilla !== 'front_group') continue
     const size = num(e, 'size') ?? e.riders.length
     const before = prevFront ? (num(prevFront, 'size') ?? prevFront.riders.length) : null
@@ -242,14 +267,34 @@ export function auditStage(entries: readonly AuditEntry[]): AuditResult {
   // --- 5. `breakaway_caught` nombra a quien no iba delante -----------------------------------------
   entries.forEach((e, i) => {
     if (e.plantilla !== 'breakaway_caught') return
+    // El último parte de cabeza, SI SIGUE VALIENDO: si entre él y la captura el grupo de delante
+    // creció —un puente que llega, dos grupos que se juntan— ya no dice quiénes iban delante, y
+    // exigirle que coincida sería medir una foto caducada.
     let front: AuditEntry | null = null
+    let stale = false
     for (let j = i - 1; j >= 0; j--) {
-      if (entries[j]!.plantilla === 'front_group') {
-        front = entries[j]!
+      const o = entries[j]!
+      if (o.plantilla === 'front_group') {
+        front = o
         break
       }
+      // …y una criba del pelotón también caduca el parte: después de ella el grupo de cabeza lo
+      // decide la carretera y no lo que se contó veinte kilómetros antes.
+      if (
+        GROWS_THE_FRONT.has(o.plantilla) ||
+        CLEARS_THE_ROAD.has(o.plantilla) ||
+        OPENING.has(o.plantilla) ||
+        o.plantilla === 'peloton_split' ||
+        o.plantilla === 'peloton_selection'
+      ) {
+        stale = true
+      }
     }
-    if (!front) return
+    if (!front || stale) return
+    // Y tiene que ser EL MISMO grupo: si la captura y el último parte de cabeza no comparten ni un
+    // nombre, lo que se caza es otro grupo de la carretera —en una etapa rota hay varios— y no una
+    // lista congelada. Lo que se audita es la fuga que cambió de gente por el camino.
+    if (!e.riders.some((r) => front!.riders.includes(r))) return
     const ausentes = e.riders.filter((r) => !front!.riders.includes(r))
     if (ausentes.length === 0) return
     hit('cazadaFantasma', e.km, `caza a ${ausentes.join(', ')}, que no iban delante`)
@@ -269,22 +314,56 @@ export function auditStage(entries: readonly AuditEntry[]): AuditResult {
     /** En qué entrada se vio por última vez al grupo de cabeza: la marcha se busca a partir de ahí. */
     let frontIdx = -1
     entries.forEach((e, i) => {
+      if (CLEARS_THE_ROAD.has(e.plantilla)) {
+        front = []
+        frontIdx = i
+        return
+      }
       if (e.plantilla !== 'front_group') return
-      const declared = new Set<string>(
-        typeof e.datos.entran === 'string' && e.datos.entran !== ''
-          ? String(e.datos.entran).split('|')
-          : [],
-      )
+      /**
+       * LOS QUE ENTRAN SIN NOMBRE. Un evento de entrada nombra a tres como mucho —«8 riders jump
+       * clear»— y eso no es una contradicción: al lector se le ha dicho que eran ocho. Lo que se
+       * audita es que la CUENTA cuadre, no que cada nombre tenga su línea. Este es el presupuesto
+       * de entradas anunciadas y todavía no gastadas.
+       */
+      let anonimos = entries.slice(0, i).reduce((acc, o) => {
+        if (!ENTRY.has(o.plantilla)) return acc
+        const declarados = num(o, 'saltan') ?? num(o, 'entran') ?? 0
+        return acc + Math.max(0, declarados - o.riders.length)
+      }, 0)
+      anonimos += num(e, 'entran') ?? 0
+      /**
+       * …Y CUANDO LA CARRERA SE PARTE, LO QUE EXPLICA ES LA CRIBA. Después de un corte del pelotón
+       * quién va delante no lo decide un ataque sino la carretera, y la frase del corte ya le ha
+       * dicho al lector que la cabeza de carrera es ahora un puñado.
+       */
+      const shattered = entries
+        .slice(frontIdx + 1, i)
+        .some((o) => o.plantilla === 'peloton_split' || o.plantilla === 'peloton_selection')
       // QUIÉN APARECE. Todo el que va delante ha entrado antes por un evento que lo explique.
-      for (const r of e.riders) {
-        if (front.includes(r) || declared.has(r)) continue
+      for (const r of shattered ? [] : e.riders) {
+        if (front.includes(r)) continue
         const explained = entries
           .slice(0, i)
           .some((o) => ENTRY.has(o.plantilla) && o.riders.includes(r))
-        if (!explained) hit('frenteSinExplicar', e.km, `${r} aparece delante sin haber entrado`)
+        if (explained) continue
+        if (anonimos > 0) {
+          anonimos -= 1
+          continue
+        }
+        hit('frenteSinExplicar', e.km, `${r} aparece delante sin haber entrado`)
       }
-      // QUIÉN SE VA. Y sale por otro, entre el parte anterior y éste.
-      const salen = front.filter((r) => !e.riders.includes(r))
+      /**
+       * QUIÉN SE VA. Y sale por otro, entre el parte anterior y éste… SALVO CUANDO LA CABEZA DE
+       * CARRERA HA CAMBIADO DE GRUPO. Si por el medio dos grupos se han juntado o alguien ha
+       * atacado del de delante, el parte siguiente habla de OTRO grupo: los que ya no aparecen no
+       * se han caído de nada, es que la cabeza de carrera es ahora otra cosa, y el lector lo ha
+       * leído. Es el mismo olvido que hace el motor cuando el grupo de cabeza deja de ser pequeño.
+       */
+      const otroGrupo = entries
+        .slice(frontIdx + 1, i)
+        .some((o) => GROWS_THE_FRONT.has(o.plantilla) || OPENING.has(o.plantilla))
+      const salen = otroGrupo ? [] : front.filter((r) => !e.riders.includes(r))
       const declaredOut = num(e, 'salen') ?? 0
       const mudos = salen.filter(
         (r) =>
