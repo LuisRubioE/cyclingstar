@@ -4,6 +4,7 @@ import { LeaderJersey, RiderJersey } from './Jersey'
 import { RiderName } from './RiderName'
 import { chronicleParts, timeTrialStory } from '../domain/stageJournal'
 import { formatTime } from '../domain/format'
+import { raceTeamLabel } from '../domain/labels'
 
 /**
  * El journal de una etapa: cómo se desarrolló y quién ganó. Es el contenido con más carga emocional
@@ -137,7 +138,7 @@ export function StageStory({
                     como el resto de tablas de la página; la crónica de arriba lleva los de antes. */}
                 <RiderJersey leaders={data.leaders?.afterStage} riderId={r.riderId} className="" />
                 <RiderName riderId={r.riderId} name={r.name} isBot={r.isBot} />
-                {r.teamName && <span className="text-xs text-slate-400">{r.teamName}</span>}
+                <span className="text-xs text-slate-400">{raceTeamLabel(r.teamName)}</span>
               </li>
             ))}
           </ol>

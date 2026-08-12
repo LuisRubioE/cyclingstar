@@ -17,6 +17,7 @@ import type {
 } from '@cyclingstar/shared'
 import { STAGE } from '@cyclingstar/engine'
 import { formatTime } from './format'
+import { raceTeamLabel } from './labels'
 
 /**
  * Por debajo de este tamaño el grupo de cabeza deja de ser «un pelotón»: se nombra a los corredores
@@ -140,7 +141,19 @@ const jerseyMark = (jersey: JerseyKind | null | undefined): string =>
  */
 export function riderFull(r: ChronicleRider): string {
   const bib = r.bib != null ? `${r.bib} ` : ''
-  const team = r.team ? ` (${r.team})` : ''
+  /**
+   * El que corre SIN equipo lleva «(Individual)», que es lo que pone una hoja de resultados de
+   * verdad: el relleno regional de las continentales entra sin equipo comercial y dejarle el hueco
+   * vacío se lee como un fallo (ver `raceTeamLabel` en domain/labels).
+   *
+   * PERO SOLO SI SABEMOS QUE NO TIENE EQUIPO. `team` en null significa dos cosas distintas: «no
+   * tiene» y «no hemos podido averiguarlo», que es lo que pasa con un corredor de una crónica
+   * congelada que ya no está en el roster de hoy —llega sin dorsal, sin equipo y sin bandera—.
+   * Llamar «Individual» a ese sería inventárselo. El dorsal es el testigo: si lo hemos resuelto, la
+   * identidad viene del roster o del resultado y su equipo vacío es un hecho; si no, no sabemos
+   * nada y la frase se lee sin equipo, como hasta ahora.
+   */
+  const team = r.bib != null ? ` (${raceTeamLabel(r.team)})` : r.team ? ` (${r.team})` : ''
   return `${jerseyMark(r.jersey)}${flagMark(r.country)}${bib}${r.name}${team}`
 }
 

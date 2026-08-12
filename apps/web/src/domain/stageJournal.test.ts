@@ -1277,3 +1277,50 @@ describe('las frases que no pueden decir tonterías (v21)', () => {
     expect(linea).toMatch(/peak|high point/)
   })
 })
+
+/**
+ * El relleno regional de las continentales corre SIN equipo comercial —90 corredores del mundo, en
+ * bloques de hasta 12 por carrera— y hasta ahora salía con el hueco del equipo vacío, que el jugador
+ * lee como un fallo. La hoja de resultados de verdad los llama «Individual».
+ */
+describe('el corredor sin equipo se llama Individual, y solo cuando lo sabemos', () => {
+  it('con dorsal y sin equipo: es un individual, y se dice', () => {
+    const e = event({
+      plantilla: 'attack_go',
+      protagonists: [rider('Nicolás Gómez', { bib: 222, country: 'CO' })],
+    })
+    expect(chronicleLine(e)).toContain('222 Nicolás Gómez (Individual)')
+  })
+
+  it('con equipo, manda el equipo', () => {
+    const e = event({
+      plantilla: 'attack_go',
+      protagonists: [rider('Carlo Lombardo', { bib: 11, country: 'IT', team: 'Welle Team' })],
+    })
+    const line = chronicleLine(e)
+    expect(line).toContain('11 Carlo Lombardo (Welle Team)')
+    expect(line).not.toContain('Individual')
+  })
+
+  it('SIN dorsal no se inventa nada: no sabemos su equipo, no que no tenga', () => {
+    // Es el corredor de una crónica congelada que ya no está en el roster de hoy: llega sin dorsal,
+    // sin equipo y sin bandera. Llamarlo «Individual» sería afirmar algo que no consta.
+    const e = event({ plantilla: 'attack_go', protagonists: [rider('Un Fantasma')] })
+    const line = chronicleLine(e)
+    expect(line).toContain('Un Fantasma')
+    expect(line).not.toContain('Individual')
+  })
+
+  it('y NUNCA actúa como equipo: «Individual» no tira del pelotón', () => {
+    // `teamsOf` sigue descartando a quien no tiene equipo, así que las frases de equipo no lo
+    // nombran: esos corredores son individuales, no una escuadra que pueda organizar una caza.
+    const e = event({
+      plantilla: 'chase_work',
+      protagonists: [
+        rider('Nicolás Gómez', { bib: 222, country: 'CO' }),
+        rider('Edwin Cardenas', { bib: 223, country: 'CO' }),
+      ],
+    })
+    expect(chronicleLine(e)).not.toContain('Individual hit the front')
+  })
+})

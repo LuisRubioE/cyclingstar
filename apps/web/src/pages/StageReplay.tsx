@@ -17,6 +17,7 @@ import { StageStory } from '../components/StageStory'
 import { type TabOption, TabPanel, Tabs, useTabParam } from '../components/Tabs'
 import { TeamClassNote, TeamClassTable } from '../components/TeamClassTable'
 import { formatTime } from '../domain/format'
+import { raceTeamLabel } from '../domain/labels'
 import { oneDayStageTarget } from '../domain/raceTabs'
 
 const card = 'rounded-2xl border border-slate-200 bg-white p-5 shadow-sm'
@@ -76,12 +77,10 @@ export function ResultTable({
               <td className="py-1 text-slate-700">
                 <RiderJersey leaders={leaders} riderId={r.riderId} />
                 <RiderName riderId={r.riderId} name={r.name} isBot={r.isBot} />
-                {r.teamName && (
-                  <span className="ml-2 text-xs text-slate-400">
-                    {r.teamName}
-                    <TeamBib leaders={leaders} teamId={r.teamId} />
-                  </span>
-                )}
+                <span className="ml-2 text-xs text-slate-400">
+                  {raceTeamLabel(r.teamName)}
+                  <TeamBib leaders={leaders} teamId={r.teamId} />
+                </span>
               </td>
               <td className="py-1 text-right tabular-nums text-slate-500">
                 {r.puesto === 1 ? formatTime(r.tiempoS) : `+${formatTime(r.tiempoS - winnerTime)}`}
@@ -130,12 +129,10 @@ export function GcTable({
               <td className={`py-1 ${r.dnf ? 'text-slate-400 line-through' : 'text-slate-700'}`}>
                 <RiderJersey leaders={leaders} riderId={r.riderId} />
                 <RiderName riderId={r.riderId} name={r.name} isBot={r.isBot} />
-                {r.teamName && (
-                  <span className="ml-2 text-xs text-slate-400">
-                    {r.teamName}
-                    <TeamBib leaders={leaders} teamId={r.teamId} />
-                  </span>
-                )}
+                <span className="ml-2 text-xs text-slate-400">
+                  {raceTeamLabel(r.teamName)}
+                  <TeamBib leaders={leaders} teamId={r.teamId} />
+                </span>
               </td>
               <td className="py-1 text-right tabular-nums text-slate-500">
                 {r.dnf ? (

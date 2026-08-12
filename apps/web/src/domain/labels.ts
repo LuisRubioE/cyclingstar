@@ -185,3 +185,28 @@ const FORMAT_LABEL: Record<RaceFormat, string> = {
 export function formatLabel(format: RaceFormat): string {
   return FORMAT_LABEL[format]
 }
+
+/**
+ * EL EQUIPO DE UN CORREDOR EN UNA CARRERA, incluido el que no tiene ninguno.
+ *
+ * Las carreras continentales se completan con «relleno regional»: corredores individuales del
+ * continente que entran sin equipo comercial, el equivalente a las selecciones y equipos club de
+ * relleno de esas pruebas (`packages/db/src/calendarRun.ts`). Son el 3,6 % de los resultados del
+ * mundo —90 corredores, en bloques de hasta 12 por carrera—, y hasta ahora salían con el hueco del
+ * equipo VACÍO: sin paréntesis en el journal y con la columna en blanco en las tablas, que el
+ * jugador lee como un fallo y no como lo que es.
+ *
+ * «Individual» es lo que pone una hoja de resultados de verdad para el corredor sin equipo. NO es
+ * lo mismo que el «Free agent» de la ficha del corredor, que responde a otra pregunta —su situación
+ * contractual, no cómo figura en esta carrera— y por eso se queda donde está.
+ *
+ * Y no vale para las frases de EQUIPO de la crónica: «Individual se pone a tirar» no significa nada,
+ * porque esos corredores no son un equipo. De eso se encarga `teamsOf`, que sigue descartando a
+ * quien no tiene equipo antes de nombrar a nadie.
+ */
+export const NO_TEAM_LABEL = 'Individual'
+
+/** El nombre del equipo de un corredor tal como se muestra en una carrera. */
+export function raceTeamLabel(teamName: string | null | undefined): string {
+  return teamName || NO_TEAM_LABEL
+}

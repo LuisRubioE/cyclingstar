@@ -25,7 +25,7 @@ import { StageStory } from '../components/StageStory'
 import { TeamClassNote, TeamClassTable } from '../components/TeamClassTable'
 import { type TabOption, TabPanel, Tabs, useTabParam } from '../components/Tabs'
 import { TeamLink } from '../components/TeamLink'
-import { formatLabel, raceClassLabel } from '../domain/labels'
+import { formatLabel, raceClassLabel, raceTeamLabel } from '../domain/labels'
 import { RACE_TAB_LABEL, type RaceTabId, raceTabs } from '../domain/raceTabs'
 
 function fmtTime(seconds: number): string {
@@ -179,12 +179,10 @@ function GcTable({ rows, leaders }: { rows: GcRow[]; leaders: RaceLeaders | unde
               <td className={`py-1 ${r.dnf ? 'text-slate-400 line-through' : 'text-slate-700'}`}>
                 <RiderJersey leaders={leaders} riderId={r.riderId} />
                 <RiderName riderId={r.riderId} name={r.name} isBot={r.isBot} />
-                {r.teamName && (
-                  <span className="ml-2 text-xs text-slate-400">
-                    {r.teamName}
-                    <TeamBib leaders={leaders} teamId={r.teamId} />
-                  </span>
-                )}
+                <span className="ml-2 text-xs text-slate-400">
+                  {raceTeamLabel(r.teamName)}
+                  <TeamBib leaders={leaders} teamId={r.teamId} />
+                </span>
               </td>
               <td className="py-1 text-right tabular-nums text-slate-500">
                 {r.dnf ? (
@@ -330,11 +328,9 @@ function StagesTab({ data, raceId }: { data: RaceView; raceId: string }) {
                     <>
                       <Flag code={winner.country} size={14} />
                       <RiderName riderId={winner.riderId} name={winner.name} isBot={winner.isBot} />
-                      {winner.teamName && (
-                        <span className="hidden text-xs text-slate-400 sm:inline">
-                          {winner.teamName}
-                        </span>
-                      )}
+                      <span className="hidden text-xs text-slate-400 sm:inline">
+                        {raceTeamLabel(winner.teamName)}
+                      </span>
                       {/* Directo a la crónica, no a la etapa en su pestaña por defecto: un clic
                           menos en cada una de las 21 etapas de una gran vuelta. */}
                       <Link
@@ -636,7 +632,7 @@ export function Race() {
             <span className="font-semibold text-slate-800">
               <RiderName riderId={winner.riderId} name={winner.name} isBot={winner.isBot} />
             </span>
-            {winner.teamName && <span className="text-xs text-slate-400">{winner.teamName}</span>}
+            <span className="text-xs text-slate-400">{raceTeamLabel(winner.teamName)}</span>
           </p>
         )}
         {status === 'upcoming' && (
