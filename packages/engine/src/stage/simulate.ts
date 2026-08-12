@@ -91,6 +91,14 @@ interface Move {
   /** Grupo del que salió. Un intento prospera cuando abre hueco sobre ÉL, no sobre el pelotón. */
   sourceId: string
   bornKm: number
+  /**
+   * …y el RELOJ que tenía el grupo al nacer (v25). `breakaway_formed` se fecha en el km en que la
+   * fuga SALIÓ pero se emitía con el `tS` del km en que se confirma que ha cuajado, que es otro
+   * momento de la tarde. Como la crónica ordena por km y, dentro del km, por reloj (v21), el
+   * resumen se colaba DELANTE del suceso: en Race Jaén, «ya solo quedan dos delante» (tS 77) se
+   * leía antes de «saltan del pelotón» (tS 341), los dos en el km 1.
+   */
+  bornTs: number
   /** Reglas 4-5: el pelotón le ha dado cuerda. Si no, lo cierra a `tacticControlCommit`. */
   allowed: boolean
   /** Ha superado `tacticBreakGapSeconds`: el intento ha PROSPERADO. */
@@ -99,6 +107,13 @@ interface Move {
   dayBreak: boolean
   /** ¿Se narró el intento? Si no se contó cómo salió, tampoco se cuenta cómo acabó. */
   narrated: boolean
+  /**
+   * …y ¿se ha contado ya cómo acabó? (v25). Un movimiento puede desaparecer de tres maneras: le
+   * cazan, se funde con otro, o se queda SIN GENTE porque sus corredores se van descolgando uno a
+   * uno. Las dos primeras tenían evento; la tercera dejaba un ataque narrado sin desenlace y el
+   * lector con un corredor «que se fue» y del que nunca más se supo.
+   */
+  closed: boolean
   /** Grupo al que iba a enganchar, si nació como puente (regla 7). */
   targetId: string | null
   /** Hasta qué km aguanta el esfuerzo de puente; pasado eso, se acabó (regla 7). */
@@ -111,6 +126,11 @@ interface Move {
    * al capturarlo se nombra a quien más puso AQUÍ, no a quien tiró en el km 20 por otra cosa.
    */
   chaseLedger: Map<string, number>
+  /**
+   * Los que iban en él la última vez que tuvo a alguien. Un grupo que se queda sin gente ya no
+   * puede decir quién era, y el epitafio necesita nombres (v25).
+   */
+  lastIds: string[]
   /** Mayor boquete que llegó a tener sobre su perseguidor, y en qué km lo tuvo. */
   peakGapS: number
   peakGapKm: number
@@ -572,8 +592,15 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
   /** Tamaño del bloque anterior y último km en el que el grupo ENCOGIÓ: la criba aún está pasando. */
   let farPrevSize = input.riders.length
   let farShrinkKm = 0
-  // Último tamaño del grupo de cabeza anunciado, para no repetir el parte de una fuga estable.
-  let lastFrontSize = input.riders.length
+  /**
+   * QUIÉNES iban delante en el último parte de cabeza, no cuántos (v25). El motor llevaba solo el
+   * TAMAÑO, y por eso una fuga que cambia de miembros sin cambiar de número —Pinho se cae, entra
+   * Jereb— no producía ni una línea: el lector se encontraba nombres nuevos delante sin que nadie
+   * los hubiera visto llegar, y nombres viejos desaparecidos sin que nadie los hubiera visto
+   * marcharse. Es la mitad de la causa madre de esta versión: la fuga del DÍA (`dayBreakRiders`,
+   * congelada) no es el grupo que va delante AHORA.
+   */
+  let lastFrontIds: string[] = []
   let lastFrontReportKm = Number.NEGATIVE_INFINITY
   /** Km del último intento NARRADO: la crónica cuenta los ataques, no los inventaría. */
   let lastAttackNoticeKm = Number.NEGATIVE_INFINITY
@@ -583,8 +610,22 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
   let chaseAbandoned = false
   let consolidated = false
   let caught = false
-  /** Los corredores que formaron la fuga del día: mientras alguno siga delante, no está cazada. */
+  /** A quién se ha proclamado ya líder de la montaña: ver `disputeClimb` (v25). */
+  const komLead: { proclaimed: string | null } = { proclaimed: null }
+  /** Los corredores que FORMARON la fuga del día. Es una foto del km en que salió, y nada más. */
   let dayBreakRiders: string[] = []
+  /**
+   * …y LOS QUE VAN EN ELLA AHORA (v25). Aquí estaba la causa madre de esta versión: el motor
+   * llevaba una sola lista, la congelada, y la usaba para contestar dos preguntas distintas —quién
+   * formó la fuga y a quién están cazando—. En Race Jaén el km 190 anunciaba que «Carlos Pinho y
+   * Alex Taylor vuelven al pelotón» cuando Pinho no iba delante desde el km 150 y los cazados eran
+   * CINCO. La fuga del día no es el grupo que va delante ahora.
+   */
+  let dayBreakNow: string[] = []
+  /** Todo el que ha pasado por la fuga del día: mientras uno siga escapado, la fuga no está cazada. */
+  const dayBreakEver = new Set<string>()
+  /** ¿Se la comió el pelotón, o se deshizo sola por el camino? No es el mismo desenlace. */
+  let dayBreakSwallowed = false
   let dayBreakFormed = false
 
   const kmAt = (i: number): number => (i + 0.5) * STAGE.dx
@@ -648,6 +689,14 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       // ciertas. La cúspide es la que explica el trabajo; el último parte, dónde estaba la carrera.
       closedS: Math.round(mv.peakGapS),
       km: Math.max(1, Math.round(atKm - mv.peakGapKm)),
+      /**
+       * …Y DÓNDE ESTUVO ESA CÚSPIDE (v25). La v21 dejó de llamarla «cerraron 2:20 en 5 km», pero
+       * seguía siendo un número suelto: en Race Jaén la frase dice «peaked at 3:04» dos líneas
+       * después de que el lector leyera «2:53», y las dos son ciertas —el boquete se mide cada
+       * bloque y se narra cada veinte kilómetros—. Con el km, la cúspide deja de ser una cifra que
+       * contradice a la anterior y pasa a ser un sitio de la carretera («3:04 allá por el km 26»).
+       */
+      peakKm: Math.round(mv.peakGapKm),
       work: Math.round(10 * best) / 10,
     })
   }
@@ -999,18 +1048,57 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
         .sort((a, b) => a.g.tS - b.g.tS || a.rank - b.rank)
       const racing = liveGroups.reduce((c, x) => c + x.members.length, 0)
       const lead = liveGroups[0]
-      const chase = liveGroups[1]
+      /**
+       * CONTRA QUÉ SE MIDE EL BOQUETE (v25). Era `liveGroups[1]`, el primer reloj de detrás sin más,
+       * y eso convierte en «la persecución» a cualquier cosa que quede en medio: en Race Jaén, el
+       * puente en solitario de Frédéric Muller (km 140) dejó un grupo intermedio de UN corredor, y
+       * el parte del km 152 salió con `chaseSize: 1` mientras el pelotón eran 127 y estaba tirando.
+       * De ahí salían dos defectos a la vez: la frase narraba la caza del pelotón sobre un dato que
+       * no era del pelotón, y —peor— la referencia CAMBIABA de un parte al siguiente, así que el
+       * hueco «iba y venía» sin física que lo explicara (28 s → 11 s → 29 s → 18 s en 24 km).
+       *
+       * La referencia es EL GRUESO DE LA CARRERA: el primer grupo de detrás que tenga al menos la
+       * mitad de los corredores del mayor que va por detrás de la cabeza. Un puente en tierra de
+       * nadie se salta —su historia la cuentan `bridge_made` y `bridge_failed`, no el parte de
+       * boquete—; un grupo perseguidor de verdad, aunque el pelotón roto vaya aún más atrás, sí
+       * cuenta. Y como el criterio no depende del reloj sino del tamaño, la referencia es la MISMA
+       * a lo largo de la etapa y la tendencia significa algo.
+       */
+      const behind = liveGroups.slice(1)
+      const biggestBehind = behind.reduce((mx, x) => Math.max(mx, x.members.length), 0)
+      const chase =
+        behind.find((x) => x.members.length >= biggestBehind * STAGE.gapChaseMainFraction) ??
+        behind[0]
 
       // Parte de cabeza: cuando delante quedan pocos, se dice QUIÉNES son. Es la pregunta directa
-      // del dueño ("hay 5 ciclistas, ¡podrías haber dicho cuáles!"). Solo si el tamaño ha cambiado
-      // desde el último parte, así una fuga estable no repite la lista cada cinco kilómetros.
+      // del dueño ("hay 5 ciclistas, ¡podrías haber dicho cuáles!"). Solo si la COMPOSICIÓN ha
+      // cambiado desde el último parte, así una fuga estable no repite la lista cada cinco km.
       let frontReported = false
-      if (lead) {
+      /**
+       * …Y NO SE HABLA DE UN GRUPO CUYA SALIDA NO SE HA CONTADO (v25). El parte de cabeza nombraba a
+       * los de delante en cuanto eran pocos, aunque el movimiento que los puso ahí no tuviera frase
+       * —porque saltó en el kilómetro cero, donde la crónica no narra ataques desde la v21, o porque
+       * el throttle de intentos se lo comió—. El resultado es la primera línea del diario: «ya solo
+       * quedan ocho delante» con ocho nombres que el lector no ha visto salir y que no volverá a
+       * ver. La fuga del día siempre tiene su frase (`breakaway_formed`), así que nunca se calla.
+       */
+      const leadMove = lead ? moves.find((m) => m.g.id === lead.g.id) : undefined
+      const leadTold = leadMove === undefined || leadMove.dayBreak || leadMove.narrated
+      if (lead && leadTold) {
         const size = lead.members.length
+        const ids = lead.members.map((m) => m.input.riderId)
+        // …y CAMBIAR es cambiar de gente, no de número (v25). Con el tamaño solo, una fuga de dos
+        // que pierde a uno y gana a otro seguía siendo «dos delante» y el relevo se hacía en
+        // silencio: es exactamente lo que pasó entre el km 1 y el km 156 de Race Jaén.
+        const entran = ids.filter((id) => !lastFrontIds.includes(id))
+        const salen = lastFrontIds.filter((id) => !ids.includes(id))
         if (size > STAGE.frontNamesMaxRiders) {
-          lastFrontSize = size
+          // Con el pelotón entero en cabeza no hay «grupo de cabeza» en la cabeza del lector, así
+          // que el próximo parte pequeño es una fuga que NACE y no un grupo que cambia: si no se
+          // olvidara, el primer parte de una fuga de ocho saldría con «salen: 118».
+          lastFrontIds = []
         } else if (
-          size !== lastFrontSize &&
+          (entran.length > 0 || salen.length > 0) &&
           size < racing &&
           km >= breakFormedKm &&
           km - lastFrontReportKm >= STAGE.frontGroupReportKmGap
@@ -1023,9 +1111,17 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
             size,
             gapS: chase ? Math.max(0, Math.round(chase.g.tS - lead.g.tS)) : 0,
             toGo: Math.round(kmRestantes),
+            // EL PARTE CUENTA EL CAMBIO, no solo la foto: cuántos han llegado y cuántos se han
+            // caído desde la última vez. Es lo que hace que «ya solo quedan N delante» deje de
+            // anunciarse con N CRECIENDO —69 veces en 31 etapas del día de juego 46— y que el
+            // lector pueda seguir a un grupo que se recompone por dentro. Van por NÚMERO y no por
+            // nombre porque los nombres ya están todos en la propia lista de protagonistas: lo que
+            // falta no es quiénes van delante, es qué ha cambiado desde la última vez que se dijo.
+            ...(lastFrontIds.length > 0 && entran.length > 0 ? { entran: entran.length } : {}),
+            ...(salen.length > 0 ? { salen: salen.length } : {}),
           })
           lastFrontReportKm = km
-          lastFrontSize = size
+          lastFrontIds = ids
           frontReported = true
           // La ventaja ya se ha contado con este parte: cuenta como reporte de boquete.
           if (chase) {
@@ -2098,14 +2194,17 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
         kind,
         sourceId: source.id,
         bornKm: km,
+        bornTs: g.tS,
         allowed,
         prospered: false,
         dayBreak: false,
         narrated: narrate,
+        closed: false,
         targetId: target?.id ?? null,
         bridgeUntilKm: kind === 'puente' ? km + STAGE.tacticBridgeKm : null,
         restCommit: coop,
         chaseLedger: new Map(),
+        lastIds: ids,
         peakGapS: gap,
         peakGapKm: km,
       })
@@ -2381,15 +2480,27 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
         // dos grupos que simplemente se encuentran en carretera.
         const bridged = back.kind === 'puente' && back.targetId === front.g.id
         const reeled = front.sourceId === back.g.id && !front.prospered
+        back.closed = true
         if (reeled) {
+          // EL ATAQUE VUELVE A SU GRUPO (v25): el que sigue en carretera es el PADRE, así que la
+          // historia que continúa es la suya. Sin esto, un manotazo narrado dentro de una fuga que
+          // nunca tuvo frase convertía a la fuga entera en «narrada», y el parte de cabeza empezaba
+          // a nombrar delante a gente a la que el lector no había visto salir.
+          front.narrated = back.narrated
           const attackers = membersOf(front.g.id)
             .map((x) => x.input.riderId)
             .filter((id) => !joined.includes(id))
-          const narra = front.narrated && km - front.bornKm >= STAGE.tacticReeledNarrateKm
+          // LO QUE SE ABRE SE CIERRA (v25). Aquí había un `km - bornKm >= tacticReeledNarrateKm`
+          // además de `narrated`, y ése es el agujero más grande de los doce: 184 ataques narrados
+          // en 31 etapas del día de juego 46 se abrían con su frase y no volvían a mencionarse
+          // nunca, porque la goma les había vuelto en menos de tres kilómetros. El umbral evitaba
+          // ruido en los intentos que NO se contaron; para los que sí, callarse el desenlace no
+          // ahorra una línea, deja una historia sin final. Se cuenta cómo acaba TODO lo que se
+          // contó cómo empezaba.
+          const narra = front.narrated
           log.emit(km, front.g.tS, 'intento_fallido', 'attack_reeled', attackers.slice(0, 3), {
             kind: front.kind,
             km: Math.max(1, Math.round(km - front.bornKm)),
-            // Solo se cuenta cómo acaba lo que se contó cómo empezaba, y solo si duró algo.
             narra: narra ? 1 : 0,
           })
           // …y con ella, quién lo cerró. Solo de lo que se ha narrado: el epitafio de un intento
@@ -2404,10 +2515,20 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
             joined.slice(0, 3),
             {
               size: membersOf(front.g.id).length,
+              // CUÁNTOS SE SUMAN (v25). El evento decía en cuántos queda el grupo y no cuántos han
+              // llegado, así que el lector veía crecer la cabeza de carrera sin que nadie le dijera
+              // por dónde entraban. Es el mismo dato que `front_group.entran`, y de él sale la
+              // frase: «tres más enganchan — ya son diez delante».
+              entran: joined.length,
               toGo: Math.round(totalKm - km),
               // Dos relojes que se juntan son noticia si de verdad cambia la carrera: el puente que
-              // engancha siempre, y una fusión solo si trae compañía.
-              narra: bridged || joined.length >= STAGE.tacticMergeNarrateRiders ? 1 : 0,
+              // engancha siempre, y una fusión solo si trae compañía… O SI LO QUE SE SUMA TENÍA SU
+              // PROPIA HISTORIA ABIERTA (v25). Un contraataque de dos que alcanza a la fuga se
+              // fundía en silencio, y ahí se perdían las dos mitades: el ataque que se contó y no se
+              // cerró, y los dos nombres nuevos que aparecían delante sin que nadie los viera
+              // llegar. Es literalmente el caso de Race Jaén (Jereb y Moretti, km 156).
+              narra:
+                bridged || joined.length >= STAGE.tacticMergeNarrateRiders || back.narrated ? 1 : 0,
             },
           )
         }
@@ -2437,6 +2558,14 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
         const sourceTs = source && membersOf(source.g.id).length > 0 ? source.g.tS : peloton.tS
         const gapOverSource = sourceTs - m.g.tS
         const ids = mem.map((x) => x.input.riderId)
+        m.lastIds = ids
+        // LA FUGA DEL DÍA, TAL COMO ESTÁ AHORA (v25). Se refresca antes de resolver nada, así que
+        // cuando el pelotón se la coma unas líneas más abajo la lista sea la de los que iban de
+        // verdad delante y no la del kilómetro en que salió.
+        if (m.dayBreak) {
+          dayBreakNow = ids
+          for (const id of ids) dayBreakEver.add(id)
+        }
         if (!m.prospered && gapOverSource >= STAGE.tacticBreakGapSeconds) {
           m.prospered = true
           // Regla 5: la fuga del día es **el primero que prospera tras varios fracasos**. Solo
@@ -2451,21 +2580,26 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
             dayBreakFormed = true
             m.dayBreak = true
             dayBreakRiders = ids
+            // …y la lista VIVA arranca igual que la congelada. Sin esto la fuga nacía «vacía» para
+            // la cuenta de quién sigue delante —el refresco de arriba corre ANTES de marcarla— y el
+            // paso 3 la declaraba cazada en el kilómetro siguiente.
+            dayBreakNow = ids
+            for (const id of ids) dayBreakEver.add(id)
             // La fuga se fecha en el km en que SALIÓ, no en el que se confirma que ha cuajado: en
             // carretera el movimiento nace cuando alguien ataca y solo después se ve si vive. Sin
             // esto la crónica decía «quedan 8 delante» en el km 1 y «se forma la fuga» en el 55.
             breakFormedKm = Math.round(m.bornKm)
-            log.emit(m.bornKm, m.g.tS, 'fuga_formada', 'breakaway_formed', ids)
+            log.emit(m.bornKm, m.bornTs, 'fuga_formada', 'breakaway_formed', ids)
             // Con un compromiso alto la fuga va a bloque; con uno bajo se miran y no avanzan. Pero
             // UNO NO COLABORA CONSIGO MISMO (v21): en producción, la fuga de un solo corredor de
             // Race Bességes e4 salía con un «up front they collaborate well, rolling smooth turns».
             // La cooperación es una propiedad del grupo y con un hombre no existe.
             if (ids.length > 1) {
-              log.emit(m.bornKm, m.g.tS, 'colaboracion', 'break_cooperation', ids, {
+              log.emit(m.bornKm, m.bornTs, 'colaboracion', 'break_cooperation', ids, {
                 cooperating: m.g.compromiso >= STAGE.breakCoopThreshold ? 1 : 0,
               })
             }
-            lastFrontSize = ids.length
+            lastFrontIds = ids
             frontAtLastNotice = membersOf(PELOTON).length
           } else if (km - m.bornKm <= STAGE.tacticStickWindowKm) {
             // Solo se cuenta como «el ataque cuaja» lo que cuaja PRONTO. Un grupo que lleva 80 km
@@ -2491,11 +2625,13 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
             tS: Math.min(peloton.tS, m.g.tS),
           }
           m.g.riderIds = []
+          m.closed = true
+          if (m.dayBreak) dayBreakSwallowed = true
           if (!m.dayBreak) {
             // Regla 4: **muchos intentos fracasan, sin más**. Un movimiento que nunca llegó a
             // cuajar se narra como el intento que fue; uno que sí cuajó, como un movimiento cazado.
-            const narra =
-              m.prospered || (m.narrated && km - m.bornKm >= STAGE.tacticReeledNarrateKm)
+            // Lo que se abre se cierra (v25): ver la nota de `attack_reeled` en las fusiones.
+            const narra = m.prospered || m.narrated
             log.emit(
               km,
               peloton.tS,
@@ -2512,11 +2648,13 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
           }
         }
       }
-      // 3. La fuga del día está CAZADA cuando ninguno de los que la formaron sigue por delante. No
-      //    basta con que se disuelva el grupo original: si uno de ellos se ha ido en un ataque
-      //    posterior, la fuga sigue viva en carretera y decir lo contrario sería falso.
+      // 3. La fuga del día está CAZADA cuando ninguno de los que HAN PASADO POR ELLA sigue por
+      //    delante. No basta con que se disuelva el grupo original: si uno de ellos se ha ido en un
+      //    ataque posterior, la fuga sigue viva en carretera y decir lo contrario sería falso. Y
+      //    desde la v25 la cuenta se lleva sobre todos los que estuvieron dentro, no solo sobre los
+      //    que la formaron: al que puenteó y luego atacó también hay que esperarle.
       if (dayBreakFormed && !caught) {
-        const stillAway = dayBreakRiders.some((id) => {
+        const stillAway = [...dayBreakEver].some((id) => {
           const s = sims.get(id)
           return (
             s != null &&
@@ -2527,15 +2665,23 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
         })
         if (!stillAway) {
           caught = true
-          log.emit(km, peloton.tS, 'fuga_cazada', 'breakaway_caught', dayBreakRiders, {
+          // A QUIÉN CAZAN: a los que iban delante EN ESE MOMENTO (v25), no a la lista congelada del
+          // kilómetro en que la fuga salió. `deLos` conserva de cuántos salió, que es la otra mitad
+          // de la historia cuando el grupo ha cambiado por el camino.
+          const quienes = dayBreakNow.length > 0 ? dayBreakNow : dayBreakRiders
+          log.emit(km, peloton.tS, 'fuga_cazada', 'breakaway_caught', quienes, {
             // QUIÉN ERA Y CUÁNTO LLEVABA (v21). En producción, Race Bességes e4: Nicolás Ferrari se
             // pasa 130 km escapado en solitario, le cazan a la vista de la meta y acaba CUARTO a
             // 5 s… y la crónica lo despachaba con «the break is caught» sin nombrarlo. Con estos
             // tres números la frase puede contar el desenlace que fue: cuántos eran, cuánto tiempo
             // llevaban delante y a qué distancia de meta se acabó.
-            size: dayBreakRiders.length,
+            size: quienes.length,
+            ...(dayBreakRiders.length !== quienes.length ? { deLos: dayBreakRiders.length } : {}),
             awayKm: Math.max(0, Math.round(km - breakFormedKm)),
             toGo: Math.round(totalKm - km),
+            // …Y CÓMO SE ACABÓ. Si el pelotón nunca llegó a comérsela —se fue cayendo sola, uno a
+            // uno— «the break is caught» es falso, y la crónica tiene que decir otra cosa.
+            ...(dayBreakSwallowed ? {} : { motivo: 'deshecha' }),
           })
           // «No sé quién hizo el trabajo para reducir la distancia»: aquí se dice. El movimiento
           // que lleva la marca de fuga del día es el que guarda la cuenta de su persecución (las
@@ -2545,7 +2691,24 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
         }
       }
       for (let a = moves.length - 1; a >= 0; a--) {
-        if (membersOf(moves[a]!.g.id).length === 0) moves.splice(a, 1)
+        const m = moves[a]!
+        if (membersOf(m.g.id).length > 0) continue
+        /**
+         * EL MOVIMIENTO QUE SE APAGA (v25). Un intento no siempre acaba cazado ni fundido: a veces
+         * se queda sin gente porque los suyos se van descolgando de él uno a uno, y entonces el
+         * grupo se borraba en silencio. Eso dejaba un ataque con frase de salida y sin desenlace —el
+         * defecto más numeroso de los doce— y, cuando el que se apagaba era la fuga del día, un
+         * lector esperando una captura que no llegaba nunca. Lo que se abre se cierra.
+         */
+        if (!m.closed && m.narrated && !m.dayBreak) {
+          log.emit(km, peloton.tS, 'intento_fallido', 'move_faded', m.lastIds.slice(0, 3), {
+            kind: m.kind,
+            km: Math.max(1, Math.round(km - m.bornKm)),
+            toGo: Math.round(totalKm - km),
+          })
+        }
+        m.closed = true
+        moves.splice(a, 1)
       }
     }
 
@@ -2564,7 +2727,7 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
         .map((g) => ({ tS: g.tS, members: membersOf(g.id) }))
         .filter((g) => g.members.length > 0)
         .sort((a, b) => a.tS - b.tS)
-      disputeClimb(groups, block, km, log, rngSprint)
+      disputeClimb(groups, block, km, log, rngSprint, komLead)
     }
   }
 
@@ -2760,6 +2923,12 @@ function disputeClimb(
   km: number,
   log: EventLog,
   rngSprint: Rng,
+  /**
+   * A quién se ha PROCLAMADO ya líder de la montaña en esta etapa (v25). Es el estado que hace que
+   * `leads` diga «pasa a liderar» y no «lidera»: sin él, el que ya mandaba se proclamaba otra vez en
+   * cada cima que coronaba —35 veces en 21 etapas del día de juego 46—.
+   */
+  kom: { proclaimed: string | null },
 ): void {
   const table = climbTable(block)
   const ordered: RiderSim[] = []
@@ -2794,10 +2963,22 @@ function disputeClimb(
     // proclamaban líderes de la montaña uno detrás de otro en la misma carrera: con un punto cada
     // uno, el tercero no lidera nada. Ahora hay que estar ESTRICTAMENTE por delante de todos.
     const bestOther = ordered.reduce((mx, m) => (m === winner ? mx : Math.max(mx, m.climbPts)), 0)
+    /**
+     * `leads` DICE «PASA A LIDERAR», NO «LIDERA» (v25). Con la lectura vieja —«está por delante de
+     * todos»— el que ya mandaba se proclamaba líder otra vez en cada cima que coronaba: en Race
+     * Jaén, Alex Taylor «takes the lead in the mountains» en el km 44 y otra vez en el km 100, y
+     * sobre el día de juego 46 son 35 proclamaciones repetidas en 21 etapas. Ganar un maillot es
+     * una noticia; conservarlo no es la misma noticia contada dos veces.
+     *
+     * El liderato se sigue midiendo EN SOLITARIO y contra los DEMÁS (v13, defecto B5): hay que
+     * estar ESTRICTAMENTE por delante. Lo que se añade es la otra mitad —no estarlo ya antes—.
+     */
+    const takesLead = winner.climbPts > bestOther && kom.proclaimed !== winner.input.riderId
+    if (takesLead) kom.proclaimed = winner.input.riderId
     log.emit(km, groups[0]?.tS ?? 0, 'banner', 'climb_kom', [winner.input.riderId], {
       category: block.climbCategory ?? '',
       points: table[0] ?? 0,
-      leads: winner.climbPts > bestOther ? 1 : 0,
+      leads: takesLead ? 1 : 0,
     })
   }
 }

@@ -118,10 +118,17 @@ describe('engine: esqueleto', () => {
     // `placementSd`: un factor de media 1 que escala con el tamaño del grupo —cero por debajo de
     // `finishBunchMinRiders`, así que el final en alto, el solitario y la crono no se mueven— y que
     // el tren y la táctica reducen. Dado nuevo con subflujo NOMINAL nuevo (`placement`).
+    // v25: LA FUGA DEL DIARIO NO ES LA FUGA DE LA CARRETERA (docs/balance.md «v25») — el motor
+    // llevaba dos objetos que se llamaban los dos «la fuga» (la lista congelada del kilómetro en que
+    // se formó y el grupo que va delante ahora) y lo que cuenta los mezclaba. Cambio de OBSERVACIÓN:
+    // el parte de cabeza sigue a la GENTE y no al número, el boquete se mide contra el grueso de la
+    // carrera, la captura nombra a los que iban delante en ese momento, `leads` dice «pasa a
+    // liderar» y lo que se abre se cierra. Ni un dado, ni un subflujo, ni una constante de
+    // calibración: las cuatro huellas selladas salen idénticas.
     // Sobre la v23 (la fuga del día), la v22 (la rampa de meta), la v21 (la criba lejana), la v18 (la contrarreloj), la v17 (el pelotón no se resigna), la v16 (modelo de persecución), la v15 (plan de equipo), la v14 (abandonos), la v13 (identidad y motivo en el journal), la v12 (selección en pavé y descenso), la
     // v11 (atribución del trabajo), la v10 (composición y caza), la v9 (capa táctica), la
     // v8 (tiempos de grupo), la v7 (modelo de final), la v6 (telemetría), la v5 (clásica larga), la
     // v4 (pavé en el recorrido) y la v3 (Cambio 0).
-    expect(ENGINE_VERSION).toBe(24)
+    expect(ENGINE_VERSION).toBe(25)
   })
 })

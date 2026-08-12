@@ -356,8 +356,24 @@
  * llega, el solitario y la crono quedan intactos— y que el TREN y la TÁCTICA reducen. Dado nuevo,
  * subflujo NOMINAL nuevo (`placement`), ninguna constante vieja movida. Medido en
  * docs/balance.md, «v24».
+ *
+ * **v25 — LA FUGA DEL DIARIO NO ES LA FUGA DE LA CARRETERA.** El motor llevaba DOS objetos que se
+ * llamaban los dos «la fuga» —`dayBreakRiders`, la lista CONGELADA del kilómetro en que se formó, y
+ * el grupo que va delante AHORA— y lo que cuenta los mezclaba sin saber que eran dos cosas. De ahí
+ * salían, medidas sobre las 73 etapas con crónica de producción, más de mil contradicciones de
+ * relato: la captura que nombra a quien no iba delante, el grupo de cabeza que cambia de gente en
+ * silencio, el boquete medido contra un corredor en tierra de nadie mientras el pelotón tiraba.
+ *
+ * Cambio de OBSERVACIÓN, no de carrera: ni un dado nuevo, ni un subflujo nuevo, ni una constante de
+ * calibración movida, y las cuatro huellas selladas salen dígito a dígito iguales. Lo que cambia es
+ * QUÉ cuenta el motor: el parte de cabeza sigue a la GENTE y no al número (`entran`, `salen`) y
+ * calla si el movimiento del que habla no se ha narrado; el boquete se mide contra el grueso de la
+ * carrera (`gapChaseMainFraction`) y no contra el primer reloj que venga detrás; `breakaway_caught`
+ * nombra a los que iban delante en ese momento; `leads` de la montaña dice «PASA a liderar»; la
+ * fuga se fecha con el reloj que tenía al nacer; y lo que se abre se cierra (se retira
+ * `tacticReeledNarrateKm`). Medido en docs/balance.md, «v25».
  */
-export const ENGINE_VERSION = 24 as const
+export const ENGINE_VERSION = 25 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -876,8 +892,22 @@ export const STAGE = {
   // que "tira un equipo": con tres corredores en cabeza no tira un equipo, tira un corredor.
   frontNamesMaxRiders: 8,
   // Cada cuántos km, como mucho, se refresca el parte de quién va en cabeza. Solo se emite cuando
-  // el grupo de cabeza es pequeño Y ha cambiado de tamaño, así que una fuga estable no lo repite.
+  // el grupo de cabeza es pequeño Y ha cambiado de GENTE (v25), así que una fuga estable no lo
+  // repite pero una que se recompone por dentro sí se cuenta.
   frontGroupReportKmGap: 5,
+  /**
+   * CONTRA QUÉ GRUPO SE MIDE EL BOQUETE (v25). El parte de ventaja se daba contra el primer reloj
+   * que viniera por detrás, fuera quien fuera: en Race Jaén, un puente en solitario dejó un grupo
+   * intermedio de UN corredor y el parte del km 152 salió con `chaseSize: 1` mientras el pelotón
+   * eran 127 y estaba tirando. La referencia pasa a ser el GRUESO de la carrera —el primer grupo de
+   * detrás con al menos esta fracción de los corredores del mayor que va detrás de la cabeza—, así
+   * que un corredor en tierra de nadie no se disfraza de persecución y, sobre todo, la referencia
+   * NO CAMBIA de un parte al siguiente: sin eso, la tendencia del hueco no significa nada.
+   *
+   * La mitad y no otra cosa: con un pelotón partido en dos, el trozo de delante persigue de verdad
+   * y es del que hay que hablar; un puñado suelto entre medias, no.
+   */
+  gapChaseMainFraction: 0.5,
   // Journal: cada cuántos km se reporta la ventaja de cabeza, y el boquete mínimo para reportarlo.
   gapReportKmGap: 25,
   // En el DESENLACE la carrera se decide y 25 km sin noticias hacen aparecer siete minutos de la
@@ -1410,8 +1440,11 @@ export const STAGE = {
   // movimiento que lleva media etapa fuera y que cruza el umbral porque el grupo del que salió ya
   // no existe no ha atacado: lleva 80 km escapado, y decirlo entonces confunde al lector.
   tacticStickWindowKm: 20,
-  // Un intento que muere a los dos kilómetros no merece su propia frase de epitafio.
-  tacticReeledNarrateKm: 3,
+  // RETIRADA EN LA v25 (`tacticReeledNarrateKm` = 3). Decía que «un intento que muere a los dos
+  // kilómetros no merece su propia frase de epitafio», y era verdad para los intentos que no se
+  // narraron —ésos no la tienen igualmente, porque el epitafio va atado a `narrated`—. Pero sobre
+  // los que SÍ se contaron abría el defecto más numeroso de los doce: 184 ataques con frase de
+  // salida y sin desenlace en 31 etapas del día de juego 46. Lo que se abre se cierra.
   // Dos grupos que se juntan solo son noticia si de verdad se junta gente.
   tacticMergeNarrateRiders: 3,
   // Cuántos movimientos vivos por delante del pelotón como mucho. Más de tres grupos en carretera
