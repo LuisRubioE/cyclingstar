@@ -82,6 +82,11 @@ export const REAL_QUEENS: readonly RealQueen[] = [
     stageIndex: 6,
     why: 'Reina continental corta (166 km): el contraste de longitud dentro del mismo nivel.',
   },
+  {
+    raceId: 'race-rhone-alpes',
+    stageIndex: 8,
+    why: 'LA ETAPA MÁS DURA DEL CALENDARIO (v22): 120 km y 3.800 m —Col du Pré 6,9 al 10,1 %, Bisanne 11,4 al 7,7 %, Aravis y final en el Plateau de Solaison, 11,3 km al 9,1 %—. Es el BORDE del corte de §VI.3: cola del 10,1 % de mediana y 17,57 % en el peor caso contra un techo del 18 %. Ninguna otra etapa del banco tiene esta forma (corta, cuatro puertos encadenados y final en alto de 11 km al 9 %) y hasta la v21 nadie la vigilaba: si cruzara el corte, CI no se enteraría, igual que no se enteró de Race Colombia e5 en la v16.',
+  },
 ] as const
 
 const VOCATIONS: Vocation[] = ['escalada', 'velocidad', 'clasicas', 'crono', 'fondo']
