@@ -205,13 +205,23 @@ describe('desgaste (docs/motor.md §VI.1)', () => {
     },
   )
 
-  it('y la reina SINTÉTICA erosiona menos que ella, que es lo que debe', { timeout: 30000 }, () => {
-    // 1.200 m de desnivel no son una etapa reina. Este escenario deja de ser el objetivo y pasa a
-    // ser el control de que el ORDEN se respeta: la caricatura tiene que quedar por debajo.
-    const synth = analyzeErosion(tired, campaignSeeds(tired.name, 60))
-    const real = analyzeErosion(realQueenThirdWeekScenario(), campaignSeeds('reina-real-s3', 12))
-    expect(synth.medianErosion).toBeLessThan(real.medianErosion)
-  })
+  // 300 s como el resto de los tests de campaña de este fichero, y no los 30 s que arrastraba: es
+  // el ÚNICO que corre DOS campañas —60 semillas de la sintética más 12 de la real—, y el de arriba,
+  // que corre solo la real, ya necesita 60. Con los escenarios que dejaron la v19 y la v20 se pasaba
+  // de 30 s en el runner de CI (no en una máquina de desarrollo, que es más rápida), y por eso CI
+  // llevaba diez commits en rojo mientras en local todo salía verde: el despliegue de la web espera
+  // a CI y se quedó parado. No se ha tocado nada de lo que el test MIDE.
+  it(
+    'y la reina SINTÉTICA erosiona menos que ella, que es lo que debe',
+    { timeout: 300000 },
+    () => {
+      // 1.200 m de desnivel no son una etapa reina. Este escenario deja de ser el objetivo y pasa a
+      // ser el control de que el ORDEN se respeta: la caricatura tiene que quedar por debajo.
+      const synth = analyzeErosion(tired, campaignSeeds(tired.name, 60))
+      const real = analyzeErosion(realQueenThirdWeekScenario(), campaignSeeds('reina-real-s3', 12))
+      expect(synth.medianErosion).toBeLessThan(real.medianErosion)
+    },
+  )
 
   it(
     'una clásica larga en fresco erosiona más que una reina, sin llegar a la 3.ª semana',
