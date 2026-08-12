@@ -4465,3 +4465,105 @@ mediana 5 partes de relevo por etapa (92,5 % dentro de la ventana 3-6) y `reina-
   km por delante», y la crónica ha comprobado que no vuelven—, y es una pregunta de CALIBRACIÓN del
   modelo de persecución, no de narración. Queda anotada aquí, que es donde viven los defectos
   medidos.
+
+## Perfiles reales del WorldTour, segunda tanda: cinco carreras más (sin tocar `engine_version`)
+
+**No sube la versión del motor.** No se mueve ni una constante de `STAGE` ni una línea de física:
+esto es DATO de recorrido. Pero cinco carreras del calendario dejan de correrse sobre un perfil
+inventado y pasan a correrse sobre el suyo, así que **su resultado cambia** —mismo mundo y misma
+semilla dan otra carrera en esas cinco—, y por eso queda anotado aquí con números.
+
+Medido con `node scripts/medir-carrera.mjs <raceId> 20`, que corre cada etapa 20 veces con el mismo
+campo generado que usa el banco de reinas reales (`sim/realQueens.ts`) para que los números sean
+comparables. Procedencia y licencias, en `docs/fuentes-recorridos.md`.
+
+### 1. Qué entra
+
+| Carrera            | Carrera real                                 | Fuente                       | Qué se carga                                    |
+| ------------------ | -------------------------------------------- | ---------------------------- | ----------------------------------------------- |
+| `race-great-ocean` | Cadel Evans Great Ocean Road Race 2025       | frwiki (CC BY-SA)            | 4 pasos por Challambra (1,3 km al 7,9 %)        |
+| `race-quebec`      | GP cycliste de Québec 2025                   | frwiki (CC BY-SA)            | 18 vueltas x 2 cotas = 36 cimas                 |
+| `race-montreal`    | GP cycliste de Montréal 2025                 | frwiki + enwiki (CC BY-SA)   | 17 vueltas x 2 de sus 4 cotas = 34 cimas        |
+| `race-rhone-alpes` | Tour Auvergne-Rhône-Alpes 2026 (ex Dauphiné) | web oficial, «Cols et côtes» | 32 puertos con CATEGORÍA OFICIAL, 7 de 8 etapas |
+| `race-guangxi`     | Gree-Tour of Guangxi 2025                    | frwiki (CC BY-SA)            | Solo el final de Nongla (1 de 6 etapas)         |
+
+Tres de ellas (Great Ocean, Québec, Montréal) también cambian de DISTANCIA, porque la del juego era
+aproximada y ahora es la oficial de la edición cargada: 210 → 187,6; 201 → 216; 209 → 209,1.
+
+### 2. Qué cambia en la carrera
+
+Mediana de 20 simulaciones; «cola» es el retraso del último clasificado en % del tiempo del ganador.
+
+| Etapa                   | grupos (antes → después) | cola % (antes → después) | cola % peor | % en el grupo del ganador | gana                                     |
+| ----------------------- | ------------------------ | ------------------------ | ----------- | ------------------------- | ---------------------------------------- |
+| Great Ocean             | 2,5 → 3,0                | 3,32 → 1,48              | 9,5 → 11,6  | 99 → 96 %                 | sprinter → sprinter (13/20, antes 16/20) |
+| Québec                  | 3,0 → 6,0                | 4,53 → 3,99              | 11,1 → 9,5  | **99 → 1 %**              | escalador → rodador/fondista             |
+| Montréal                | 3,0 → 6,0                | 3,69 → 4,95              | 13,1 → 15,8 | **99 → 1 %**              | escalador (14/20) → repartido (8/20)     |
+| Rhône-Alpes e1 (146 km) | 6,0 → 7,0                | 4,75 → 8,02              | 16,7 → 14,1 | 1 → 11 %                  | escalador (17/20) → escalador/sprinter   |
+| Rhône-Alpes e2 (234 km) | 3,0 → 5,0                | 4,78 → 7,86              | 12,3 → 13,0 | 99 → 32 %                 | sprinter (18/20 → 13/20)                 |
+| Rhône-Alpes e4 (167 km) | 2,0 → 4,0                | 1,98 → 6,43              | 11,5 → 12,8 | 99 → 98 %                 | sprinter (15/20 → 14/20)                 |
+| Rhône-Alpes e5 (196 km) | 2,0 → 2,0                | 0,64 → 2,50              | 9,8 → 9,9   | 99 → 99 %                 | sprinter (18/20 → 16/20)                 |
+| Rhône-Alpes e6 (182 km) | 9,0 → 7,5                | 7,85 → 5,74              | 13,9 → 13,1 | 1 → 1 %                   | escalador                                |
+| Rhône-Alpes e7 (134 km) | 7,5 → 6,0                | 5,76 → 6,71              | 14,1 → 17,2 | 1 → 1 %                   | escalador/clasicómano                    |
+| Rhône-Alpes e8 (120 km) | 6,0 → 8,0                | 4,30 → **10,13**         | 16,0 → 17,6 | 1 → 1 %                   | escalador (13/20)                        |
+| Guangxi e5 (166 km)     | 7,0 → 4,5                | 6,76 → 3,12              | 14,2 → 11,8 | 1 → 1 %                   | escalador (9/20) → **repartido (3/20)**  |
+
+### 3. Los tres hallazgos, con números
+
+**a) Una rampa del 3 % en meta mata el sprint del pelotón.** Québec y Montréal pasan de un 99 % de
+corredores en el tiempo del ganador a un **1 %**: nadie llega con nadie. La causa no es la dureza del
+final —Québec acaba con 1 km al 3 %, que es un falso llano— sino que en `StageFeatures` todo `climbs`
+se construye como segmento `puerto`, y con un puerto en el último bloque el motor nunca resuelve una
+llegada masiva. El GP de Québec real de 2025 lo ganó Alaphilippe con 2 s sobre el segundo y 17 s
+sobre el décimo: un sprint de grupo reducido, no una contrarreloj de 161 hombres. **Es un defecto del
+modelo de llegada, no del dato**, y sale a la luz ahora porque hasta hoy ninguna carrera cargada
+tenía una rampa suave justo en la línea. Queda anotado: la etiqueta de terreno del último bloque
+debería depender de la PENDIENTE (un 3 % no es un puerto, `terrainForGradient` ya lo sabe para los
+perfiles de altitud) y no de que el rasgo venga en `climbs`.
+
+**b) La etapa 8 del Dauphiné es la etapa más dura que ha entrado nunca al calendario.** 120 km con
+Col du Pré (6,9 km al 10,1 %), Bisanne (11,4 al 7,7 %), Aravis y final en el Plateau de Solaison
+(11,3 km al 9,1 %): 3.800 m en 120 km. La cola pasa de 4,30 % a **10,13 %** de mediana y a **17,57 %
+en el peor caso**, a un pelo del 18 % que la v17 fijó como el corte a partir del cual la etapa deja
+de repartir tiempos y pasa a ser una eliminación en bloque (§VI.3 de la v17). No lo cruza, pero es el
+número más alto del calendario y **el candidato natural a entrar en el banco `realQueens`** si se
+quiere vigilar ese borde: hoy el banco no tiene ninguna etapa con esta forma (corta, cuatro puertos
+grandes encadenados y final en alto de 11 km al 9 %).
+
+**c) Una carga PARCIAL puede quitarle carácter a una etapa.** La reina del Guangxi (Yizhou → Nongla)
+gana en realismo de cola (6,76 % → 3,12 %, y la real repartió unos 5 min entre el ganador y el
+sprinter que la aguantó) pero pierde la selección: el escalador ganaba 9 de 20 y ahora gana 3 de 20,
+repartido con fondistas, rodadores y clasicómanos. La razón es sabida y está anotada en la fuente:
+de esa etapa solo se publica el final (3,1 km al 6,3 %), y los 163 km anteriores, que en la etapa
+real llevan desnivel, caen al relleno por terreno. **Se deja cargada igualmente**: el Tour of Guangxi
+real es una carrera de sprinters con un final en alto, y la versión sintética se inventaba una
+cordillera en Guangxi que no existe. Pero es el ejemplo de que media etapa real no siempre es media
+etapa mejor, y por eso se mide.
+
+### 4. Los invariantes no se mueven, y eso también es información
+
+`pnpm sim`: **24 de 24 en verde**, y los veinticuatro números son los MISMOS de la v21 dígito a
+dígito —gana la fuga 3,4 % / mejor sprinter 36,0 % / captura 21,4 km / fuga en montaña 41,0 % /
+brecha 1.º-10.º 270 s / erosión llana 0,009 / reina en fresco 0,197 / clásica más dura 0,848 /
+abandonos 13,4 % / último grupo en la reina 8,4 % / reinas REALES 7,7 % / la peor reina real
+15,5 %—. `pnpm sim:tactics` igual.
+
+No es casualidad ni suerte: **ninguna de las cinco carreras cargadas está en un escenario de la
+batería**. La clásica larga es Flandes, la más dura es Lombardía, la gran vuelta es Francia y el
+banco `realQueens` son ocho etapas cerradas de otras siete carreras. Dicho de otro modo: la batería
+mide el motor, no el calendario, y hoy **no vigila ninguna de las diez carreras de esta tanda**. Si
+la etapa 8 del Dauphiné se pasara del 18 % de cola, la batería no se enteraría —igual que no se
+enteró de Race Colombia e5 en la v16—. Por eso el §3.b propone meterla en el banco.
+
+### 5. Lo que este cambio NO hace
+
+- **No sube `ENGINE_VERSION`**: no hay cambio de mecánica. Las etapas que no se han tocado dan
+  exactamente los mismos números.
+- **No arregla el defecto (a)**: la llegada en falso llano sigue resolviéndose como un final en alto.
+  Se anota, se mide y se deja para una versión del motor, que es donde toca.
+- **No toca `editions.ts`**: las distancias del juego siguen redondeadas al km, así que alguna cima
+  final cae hasta 300 m por detrás de la meta (Crest-Voland, 182,3 contra 182). El constructor del
+  perfil lo absorbe.
+- **No carga cinco de las diez carreras del encargo** (Bruges, Copenhague, Bretaña, Polonia y
+  Benelux): sus fuentes no publican el dato mínimo (km + longitud + pendiente). El detalle, carrera a
+  carrera, está en `docs/fuentes-recorridos.md`.
