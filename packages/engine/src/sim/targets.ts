@@ -432,6 +432,91 @@ export const TARGETS = {
       unit: '',
     },
     /**
+     * LA FOTO DE META, ¿ES LA MISMA TODOS LOS DÍAS? (v24, `smallTours.finishPhoto`)
+     *
+     * De los cinco primeros de una llegada agrupada, cuántos vuelven a estar entre los cinco
+     * primeros de OTRA llegada agrupada de la misma carrera. Es la pregunta que la v23 dejó abierta
+     * en su §10 y la que `sweepPct` no sabe hacer: aquél mide «cuántas gana el mejor» promediando 31
+     * carreras, y ese promedio se traga que una de ellas devuelva la misma foto cinco días seguidos.
+     *
+     * **LA TABLA DEL ENCARGO ESTABA MEDIDA CONTRA SÍ MISMA, Y HAY QUE CORREGIRLA CON EL NÚMERO
+     * DELANTE.** El punto de partida decía «3,3 enfermo en Arabia contra 1,0 sano en Colombia». Ese
+     * 1,0 sale de comparar la llegada de 130 de Colombia e1 con la de 58 de su e7 y con su crono: no
+     * mide el desenlace, mide la COMPOSICIÓN del calendario. Comparando llegada agrupada contra
+     * llegada agrupada —lo único que tiene sentido comparar— producción da:
+     *
+     * | Carrera (GD 46, pares de llegadas agrupadas) | pares | top-5 repetido | mismo ganador |
+     * | -------------------------------------------- | ----: | -------------: | ------------: |
+     * | Race Arabia                                  |    10 |            3,3 |       **100 %** |
+     * | Race Sharjah                                 |    10 |            3,3 |          60 % |
+     * | Race Colombia                                |     3 |        **2,0** |           0 % |
+     * | Race Bességes                                |     6 |            1,7 |          17 % |
+     * | **Producción entera (todas las carreras)**   |  **29** |      **2,83** |      **59 %** |
+     *
+     * O sea: el top-5 repetido separa mucho menos de lo que parecía (2,0 contra 3,3, no 1,0 contra
+     * 3,3) y el que separa limpiamente es el GANADOR (0 % contra 100 %). De ahí que esta banda sea
+     * ANCHA y la de abajo, estrecha.
+     *
+     * POR QUÉ 1,0-3,6 Y NO OTRA COSA. El techo no es una meta, es el derrumbe: 3,6 son cuatro de los
+     * cinco nombres repitiéndose cada día, y por encima de eso la carrera devuelve una fotocopia
+     * —Arabia, con 3,3, ya está llamando a la puerta—. Que dos sprints de la misma carrera compartan
+     * tres de sus cinco primeros NO es un defecto: los disputan los mismos siete a diecisiete
+     * rematadores, y así es como se lee una hoja de resultados de verdad. El SUELO vigila el defecto
+     * contrario, que es el que la v23 avisó que no se puede comprar: con 130 llegando y 28 con SPR
+     * ≥ 68, repartir al azar daría 0,9 de repetición. Por debajo de 1,0 el sprint ha dejado de tener
+     * protagonistas y es una lotería. Medido en el banco: **2,19 → 2,03** con el arreglo de la v24.
+     */
+    photoRepeatTopFive: {
+      label: 'La foto de meta que se repite (de 5)',
+      min: 1,
+      max: 3.6,
+      unit: '',
+    },
+    /**
+     * …Y NINGUNA CARRERA SUELTA SE CLAVA. Misma forma que `realQueens.worstStagePct` y por la misma
+     * razón, que es la lección de esta tanda: el promedio de diez carreras se traga a la que está
+     * rota. `sweepPct` mide 9,7 % sobre 31 carreras mientras dos de las cuatro carreras medibles de
+     * producción están en barrido o a una etapa de él; `mediaOneGroupPct` mide 9,5 % mientras Race
+     * Almería trae el campo entero al mismo segundo el 100 % de las veces. Un objetivo de promedio
+     * no puede ver eso, y por eso hay dos.
+     *
+     * El techo es medio punto por encima del de arriba y tiene dueño: una carrera de CINCO llegadas
+     * agrupadas seguidas y llanas (Arabia) repite más que una que alterna llano y media (Colombia),
+     * y eso es del calendario y no del motor. 4,1 deja fuera la fotocopia —Arabia midió 3,3 en
+     * producción con el mismo 1.º y 2.º las cinco veces— y dentro cualquier semana de sprinters.
+     * Medido: la peor del banco es `race-besseges`, **2,62 → 2,24** con el arreglo de la v24.
+     */
+    worstRacePhotoRepeat: {
+      label: 'La carrera cuya foto más se repite (de 5)',
+      min: 0,
+      max: 4.1,
+      unit: '',
+    },
+    /**
+     * Y EL QUE DE VERDAD SEPARA: DOS LLEGADAS AGRUPADAS DE LA MISMA CARRERA, ¿LAS GANA EL MISMO?
+     *
+     * Medido sobre los mismos pares. Es la queja literal del dueño («Race Arabia la gana el mismo
+     * las cinco») y el único de los tres números que distingue una carrera sana de una clavada:
+     * Colombia 0 %, Bességes 17 %, Sharjah 60 %, Arabia **100 %**, producción entera **59 %**.
+     *
+     * POR QUÉ 15-55 %. El techo NO se pone en el 59 % de producción: ese 59 % es el defecto medido,
+     * no la diana. Lo que el techo describe es el mejor registro que el ciclismo conoce: la temporada
+     * de dominio al sprint más grande de la era moderna, Cavendish en el Tour de 2009, son 6
+     * victorias sobre unas 9 llegadas masivas — y aun ganando dos tercios de sus sprints, la
+     * probabilidad de que dos sprints cualesquiera de ese Tour los ganara el mismo hombre es del
+     * orden del 45 %. 55 % deja el techo por encima de eso y por debajo de lo que hoy hace
+     * producción. El SUELO es el mismo argumento que el de `bestSprinterWinPct` visto por el otro
+     * lado: con 7 a 17 rematadores nombrados, repartir al azar daría un 6-14 %, así que por debajo
+     * del 15 % el sprint ha dejado de tener un mejor y vuelve a ser la lotería de la que la v23
+     * avisó. Medido en el banco: **28,2 % → 25,0 %** con el arreglo de la v24.
+     */
+    sameWinnerPairPct: {
+      label: 'Dos llegadas agrupadas de la misma carrera, ¿el mismo ganador?',
+      min: 15,
+      max: 55,
+      unit: '%',
+    },
+    /**
      * EL GRUPO DE CABEZA DE UNA REINA NO TIENE BANDA, Y HAY QUE DECIR POR QUÉ (deuda de la v23).
      *
      * El encargo pedía un objetivo también para la reina: «una reina real deja llegar juntos a un

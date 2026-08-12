@@ -599,6 +599,22 @@ describe('las carreras PEQUEÑAS con forma de producción (v23)', () => {
     expectInRange(margins.maxMarginS, TARGETS.smallTours.flatMoveWorstMarginS)
   })
 
+  it('la foto de meta no es la misma todos los días', { timeout: 300000 }, () => {
+    // v24. La deuda que la v23 dejó nombrada en su §10, ahora con banda. Se mide sobre PARES de
+    // llegadas agrupadas de la misma carrera —lo único comparable: el 1,0 «sano» que producción
+    // daba en Race Colombia salía de comparar una llegada de 130 con una de 58 y con una crono, y
+    // comparando agrupada contra agrupada Colombia repite 2,0 y Arabia 3,3, no 1,0 contra 3,3.
+    const photo = bench().photo
+    expect(photo.pairs).toBeGreaterThan(50)
+    expectInRange(photo.repeatTopFive, TARGETS.smallTours.photoRepeatTopFive)
+    // …y NINGUNA carrera suelta se clava, que es la lección de la tanda: el promedio de diez
+    // carreras se traga a la que está rota, igual que `sweepPct` se tragaba el barrido de Arabia.
+    expectInRange(photo.worstRepeatTopFive, TARGETS.smallTours.worstRacePhotoRepeat)
+    // El número que de verdad separa una carrera sana de una clavada: en producción, 0 % en
+    // Colombia y 100 % en Arabia.
+    expectInRange(photo.sameWinnerPct, TARGETS.smallTours.sameWinnerPairPct)
+  })
+
   it('la ley de velocidad no se ha movido: el ganador rueda como un profesional', () => {
     // GUARDARRAÍL, no objetivo de esta tanda. Las medianas del ganador en producción por tipo de
     // etapa —llana 44,8 · media 42,4 · reina 35,8 km/h— están todas dentro del rango real, así que

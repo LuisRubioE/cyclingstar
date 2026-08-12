@@ -235,6 +235,9 @@ function main(): void {
       { target: TARGETS.smallTours.mediaGroups, value: st.shapes.media.medianGroups },
       { target: TARGETS.smallTours.mediaOneGroupPct, value: st.shapes.media.oneGroupPct },
       { target: TARGETS.smallTours.flatMoveWorstMarginS, value: st.flatMargins.maxMarginS },
+      { target: TARGETS.smallTours.photoRepeatTopFive, value: st.photo.repeatTopFive },
+      { target: TARGETS.smallTours.worstRacePhotoRepeat, value: st.photo.worstRepeatTopFive },
+      { target: TARGETS.smallTours.sameWinnerPairPct, value: st.photo.sameWinnerPct },
     ],
     [
       `Llegadas agrupadas ${st.share.bunchStages} · ventaja en SPR del mejor sobre el 2.º ${st.share.medianEdge.toFixed(1)} · ganadores distintos ${st.share.distinctWinnerPct.toFixed(0)}% · barrido medido sobre ${st.share.sweepableRaces} carreras`,
@@ -243,7 +246,8 @@ function main(): void {
       // pedía «5-15 juntos y no 1» y el motor da 1, así que la medida se IMPRIME y no lleva banda:
       // un objetivo que nace rojo no es un objetivo, y calibrar hacia él es una tanda entera.
       `DEUDA — grupo de cabeza (dentro de 30 s del ganador): llana ${st.shapes.llana.medianLeadGroupRiders} · media ${st.shapes.media.medianLeadGroupRiders} · reina ${st.shapes.reina.medianLeadGroupRiders} (una reina real deja 5-15)`,
-      `Cribas lejos de meta narradas (peloton_selection, v21): ${st.shapes.todas.farSelections} en ${st.shapes.todas.stages} etapas · parecido entre etapas seguidas ${st.overlap.medianCommon}/10 de los diez primeros`,
+      `Cribas lejos de meta narradas (peloton_selection, v21): ${st.shapes.todas.farSelections} en ${st.shapes.todas.stages} etapas`,
+      `Foto de meta (${st.photo.pairs} pares de llegadas agrupadas de una misma carrera): mismo 1.º y 2.º ${st.photo.sameTopTwoPct.toFixed(0)}% · peor carrera ${st.photo.worstRaceId} ${st.photo.worstRepeatTopFive.toFixed(2)}/5 · favoritos del remate que siguen siéndolo el último día ${st.photo.favouritesKept.toFixed(2)}/5`,
       `Velocidad del ganador (guardarraíl, NO objetivo): llana ${st.shapes.llana.medianWinnerKmh.toFixed(1)} · media ${st.shapes.media.medianWinnerKmh.toFixed(1)} · reina ${st.shapes.reina.medianWinnerKmh.toFixed(1)} km/h`,
       ...st.perRace.map(
         (row) =>

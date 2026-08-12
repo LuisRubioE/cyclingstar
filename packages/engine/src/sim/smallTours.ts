@@ -29,8 +29,10 @@ import { applyDailyLoad, eff0, initialEnergy, raceIllnessProbability } from '../
 import { STAGE } from '../constants.js'
 import { SEASON_CALENDAR } from '../routes/calendar.js'
 import { injuryEndsRace } from '../stage/abandon.js'
+import { deriveFinishTerrain, finishScore, finishType } from '../stage/finish.js'
 import { matchCount } from '../stage/physics.js'
 import { stageSeed } from '../stage/rng.js'
+import { sampleProfile } from '../stage/sample.js'
 import { simulateStage, stageTss } from '../stage/simulate.js'
 import type { Incident, StageOrders, StageRider } from '../stage/types.js'
 import { autoStageOrders } from '../world/autoOrders.js'
@@ -171,6 +173,14 @@ export interface TourStageRow {
   winnerId: string
   /** Los diez primeros, en orden: es lo que compara dos etapas de la misma carrera entre sí. */
   topTen: string[]
+  /**
+   * LOS CINCO FAVORITOS DEL REMATE, antes de correr: los cinco mejores `finishScore` sobre el `eff0`
+   * con que se toma la salida y el tipo de final que resolvió la etapa. Es la JERARQUÍA con la que
+   * empieza el día, y hace falta para separar dos preguntas que la foto de meta mezcla: si la foto
+   * se repite porque el desenlace no reparte, o porque la jerarquía de partida no se mueve en toda
+   * la semana. Ver `finishPhoto()`.
+   */
+  favourites: string[]
   /** ¿Ganó el mejor rematador del campo (el SPR más alto del día 1)? */
   bestSprinterWon: boolean
   /** Corredores que comparten el tiempo del ganador. */
@@ -308,12 +318,21 @@ export function runSmallTour(tour: SmallTour, run: number): SmallTourRun {
           Number.POSITIVE_INFINITY,
         )
         const km = stage.profile.segments.reduce((sum, seg) => sum + seg.km, 0)
+        // La jerarquía con la que se toma la salida: el mismo `finishScore` que resuelve la meta,
+        // sobre el `eff0` del día y el tipo de final que de hecho resolvió esta etapa.
+        const type = finishType(deriveFinishTerrain(sampleProfile(stage.profile)), withWinner)
+        const favourites = [...riders]
+          .map((r) => ({ id: r.riderId, score: finishScore(r.eff0, type) }))
+          .sort((a, b) => b.score - a.score || (a.id < b.id ? -1 : 1))
+          .slice(0, 5)
+          .map((r) => r.id)
         rows.push({
           raceId: tour.raceId,
           stageIndex: stage.index,
           kind: stage.kind,
           winnerId: winner.riderId,
           topTen: timed.slice(0, 10).map((r) => r.riderId),
+          favourites,
           bestSprinterWon: winner.riderId === bestSprinterId,
           winnerGroupRiders: withWinner,
           leadGroupRiders30S: timed.filter((r) => r.tiempoS - winnerTime <= LEAD_GROUP_SECONDS)
@@ -486,24 +505,95 @@ export function winShare(runs: SmallTourRun[]): WinShare {
 }
 
 /**
- * DOS ETAPAS SEGUIDAS DE LA MISMA CARRERA, ¿SE PARECEN? La queja textual del dueño («race
- * provence… etapa 2 y etapa 3 el resultado se parece demasiado») medida como lo que es: cuántos de
- * los diez primeros de una etapa repiten entre los diez primeros de la siguiente.
+ * LA FOTO DE META, ¿ES LA MISMA TODOS LOS DÍAS? (v24, docs/balance.md «v24»)
  *
- * No lleva objetivo, y es a propósito: **no hay un número del ciclismo real que decir aquí**. En una
- * vuelta pequeña de verdad los diez primeros de dos sprints seguidos se parecen bastante —son los
- * mismos sprinters— y los de un sprint y una etapa de montaña, nada. Es una medida de LECTURA, para
- * que la próxima tanda sepa si el parecido sube o baja, y no un listón que calibrar a ciegas.
+ * SUSTITUYE A `topTenOverlap`, que era la lectura sin banda que dejó la v23, y hay que decir por qué
+ * la sustituye y no la acompaña. Aquella comparaba **los diez primeros de dos etapas SEGUIDAS**, y
+ * las dos mitades de esa frase la inutilizan como listón:
+ *
+ * - **Diez es demasiado grueso.** Cuando llegan 130 al mismo segundo, diez nombres de 130 repiten
+ *   casi por construcción; el número no se mueve aunque el desenlace sí.
+ * - **«Seguidas» mezcla peras con manzanas.** Un sprint y un final en alto no tienen por qué
+ *   parecerse en nada, así que el promedio de esos pares mide la COMPOSICIÓN del calendario y no el
+ *   desenlace. Es exactamente el error que hacía leer Race Colombia como sana: su 1,0 de producción
+ *   sale de comparar una llegada de 130 con una de 58 y con una crono. Comparando llegada agrupada
+ *   contra llegada agrupada, Colombia repite **2,0** y Arabia **3,3** — la mitad de la distancia que
+ *   parecía haber entre ellas.
+ *
+ * Aquí se comparan solo **pares de LLEGADAS AGRUPADAS de la misma carrera** (el mismo listón de
+ * `winShare`, `STAGE.finishBunchMinRiders`) y solo **los cinco primeros**, que es la foto que el
+ * espectador mira. Se mide sobre TODOS los pares y no solo sobre los consecutivos: «gana las cinco»
+ * es una pregunta sobre la carrera entera.
  */
-export function topTenOverlap(runs: SmallTourRun[]): { pairs: number; medianCommon: number } {
-  const commons: number[] = []
+export interface FinishPhoto {
+  /** Pares de llegadas agrupadas de una misma carrera sobre los que se mide. */
+  pairs: number
+  /** De los cinco primeros de una, cuántos repiten entre los cinco primeros de la otra (media). */
+  repeatTopFive: number
+  /** % de esos pares que gana el MISMO corredor. */
+  sameWinnerPct: number
+  /** …y con el mismo 1.º Y el mismo 2.º, que es la queja literal de Race Arabia. */
+  sameTopTwoPct: number
+  /** La carrera del banco cuya foto MÁS se repite, y su número: el peor caso. */
+  worstRaceId: string
+  worstRepeatTopFive: number
+  /**
+   * LA JERARQUÍA DE PARTIDA, que es la otra mitad de la pregunta: de los cinco favoritos del remate
+   * el primer día de carrera, cuántos siguen siendo favoritos el último. No mide el desenlace sino
+   * lo que la semana le hace al campo. Lectura, sin banda.
+   */
+  favouritesKept: number
+}
+
+export function finishPhoto(runs: SmallTourRun[]): FinishPhoto {
+  let pairs = 0
+  let repeat = 0
+  let sameWinner = 0
+  let sameTopTwo = 0
+  const perRace = new Map<string, { pairs: number; repeat: number }>()
+  const kept: number[] = []
   for (const run of runs) {
-    for (let i = 1; i < run.rows.length; i++) {
-      const prev = new Set(run.rows[i - 1]!.topTen)
-      commons.push(run.rows[i]!.topTen.filter((id) => prev.has(id)).length)
+    const bunch = run.rows.filter((r) => r.winnerGroupRiders >= BUNCH_RIDERS)
+    for (let i = 0; i < bunch.length; i++) {
+      for (let j = i + 1; j < bunch.length; j++) {
+        const a = bunch[i]!
+        const b = bunch[j]!
+        const five = new Set(a.topTen.slice(0, 5))
+        const common = b.topTen.slice(0, 5).filter((id) => five.has(id)).length
+        pairs += 1
+        repeat += common
+        if (a.winnerId === b.winnerId) sameWinner += 1
+        if (a.topTen[0] === b.topTen[0] && a.topTen[1] === b.topTen[1]) sameTopTwo += 1
+        const row = perRace.get(run.raceId) ?? { pairs: 0, repeat: 0 }
+        row.pairs += 1
+        row.repeat += common
+        perRace.set(run.raceId, row)
+      }
+    }
+    // La jerarquía: primera y última etapa de la carrera con llegada agrupada.
+    if (bunch.length >= 2) {
+      const first = new Set(bunch[0]!.favourites)
+      kept.push(bunch[bunch.length - 1]!.favourites.filter((id) => first.has(id)).length)
     }
   }
-  return { pairs: commons.length, medianCommon: median(commons) }
+  let worstRaceId = ''
+  let worstRepeatTopFive = 0
+  for (const [raceId, row] of perRace) {
+    const value = row.repeat / row.pairs
+    if (value > worstRepeatTopFive) {
+      worstRepeatTopFive = value
+      worstRaceId = raceId
+    }
+  }
+  return {
+    pairs,
+    repeatTopFive: pairs === 0 ? 0 : repeat / pairs,
+    sameWinnerPct: pairs === 0 ? 0 : (100 * sameWinner) / pairs,
+    sameTopTwoPct: pairs === 0 ? 0 : (100 * sameTopTwo) / pairs,
+    worstRaceId,
+    worstRepeatTopFive,
+    favouritesKept: kept.length === 0 ? 0 : kept.reduce((acc, k) => acc + k, 0) / kept.length,
+  }
 }
 
 /**
@@ -555,7 +645,8 @@ export interface SmallTourStats {
   shapes: { llana: ShapeStats; media: ShapeStats; reina: ShapeStats; todas: ShapeStats }
   /** Los márgenes de las fugas que ganan en LLANO, que es donde vivía la queja. */
   flatMargins: MoveMargins
-  overlap: { pairs: number; medianCommon: number }
+  /** ¿Se repite la foto de meta dentro de una misma carrera? (v24) */
+  photo: FinishPhoto
   /** La carrera cuyo mejor rematador más domina: el peor caso del banco. */
   worst: { tour: SmallTour; bestSprinterWinPct: number }
 }
@@ -590,7 +681,7 @@ export function analyzeSmallTours(runsPerRace: number): SmallTourStats {
       todas: shapeStats(rows),
     },
     flatMargins: moveMargins(rows.filter((r) => r.kind === 'llana')),
-    overlap: topTenOverlap(allRuns),
+    photo: finishPhoto(allRuns),
     worst: { tour: worst.tour, bestSprinterWinPct: worst.share.bestSprinterWinPct },
   }
 }
