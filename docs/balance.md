@@ -5333,3 +5333,267 @@ resellar:
   llana, media, llana) y el calendario de hoy tiene una crono en la e4 y otros kilometrajes. La
   comparación banco↔producción de esa carrera **no es válida** y no se ha usado. `0e9fc2f` congela el
   recorrido corrido en `stage_snapshots`, pero eso arregla la FICHA, no el banco.
+
+## v25 — La fuga del diario no es la fuga de la carretera (`engine_version` 24 → 25)
+
+> **La queja, textual:** el dueño leyó el diario de Race Jaén (día de juego 47, corrido con la v23
+> desplegada) y dijo que **«no tiene ni pies ni cabeza»**.
+
+Tenía razón, hay UNA causa madre, y **no es una rareza de esa carrera**. Esta tanda hace tres cosas:
+mide las doce contradicciones sobre el mundo entero y deja la herramienta que las mide, arregla la
+causa madre en el motor y sus consecuencias en la crónica, y deja una red que impide que vuelvan.
+
+### 1. La causa madre: dos objetos que se llaman los dos «la fuga»
+
+El motor lleva **dos listas distintas** y todo lo que cuenta las mezclaba sin saber que eran dos:
+
+- `dayBreakRiders` — la fuga DEL DÍA, **congelada en el kilómetro en que se formó**.
+- el grupo que va delante AHORA, que es lo que emite `front_group`.
+
+La traza cruda de Race Jaén, leída de `https://cyclingstar.up.railway.app/api/races/race-jaen/stages/1`:
+
+```
+km   1 front_group      [141 Pinho, 212 Taylor]                        size 2  gapS 11
+km   1 breakaway_formed [141 Pinho, 212 Taylor]                                    <<< el resumen ANTES del suceso
+km  44 climb_kom        [212 Taylor]               leads 1  points 2  cat3
+km 100 climb_kom        [212 Taylor]               leads 1  points 2  cat3         <<< gana el maillot dos veces
+km 152 time_gap                                    gapS  28  leadSize 2  chaseSize 1
+km 156 front_group      [212 Taylor, 104 Jereb, 122 Moretti]           size 3      <<< Pinho ya no está; Jereb y Moretti nunca puentearon
+km 167 front_group      [+ 54 Rus]                                     size 4  gapS 29
+km 176 front_group      [+ 53 Horvat]                                  size 5  gapS 18
+km 190 breakaway_caught [141 Pinho, 212 Taylor]    size 2  awayKm 189              <<< la lista congelada del km 1
+```
+
+Y el telón de fondo: **128 de 130 acabaron en el mismo segundo**. La crónica contaba cuatro fugas y
+una alianza en una etapa que llegó entera junta.
+
+### 2. Lo primero, medirlo: 1079 contradicciones en 73 etapas
+
+`scripts/medir-defectos.mjs` recorre la crónica de cada etapa llevando el estado —quién va delante,
+qué movimientos están abiertos, quién lidera la montaña— y cuenta las doce. La cuenta la hace
+`packages/engine/src/sim/coherence.ts`, **la misma que corre el test de coherencia del motor**, para
+que el número de producción y el del banco sean comparables. Producción, día de juego 47, las 73
+etapas que tienen crónica:
+
+| Contradicción                                                  | veces | en etapas |
+| -------------------------------------------------------------- | ----: | --------: |
+| entra o sale alguien del grupo de cabeza sin decirlo           |   713 |        43 |
+| «ya solo quedan N delante» con N CRECIENDO                     |    73 |        33 |
+| ataques que se abren y NUNCA se cierran                        |    66 |        26 |
+| dos números que dicen lo mismo y no coinciden                  |    50 |        28 |
+| el mismo equipo tira para el mismo líder sin contar nada nuevo |    45 |        25 |
+| el maillot de montaña se gana dos veces                        |    36 |        22 |
+| el mismo ataque contado en dos líneas seguidas                 |    25 |        19 |
+| `breakaway_caught` nombra a quien no iba delante               |    19 |        19 |
+| el resumen va ANTES del suceso                                 |    19 |        19 |
+| grupo perseguidor de UN corredor                               |    18 |        14 |
+| «…try to go with them» con UN protagonista                     |    13 |        13 |
+| «1 of their companion sits on»                                 |     2 |         2 |
+| **TOTAL**                                                      |  1079 |           |
+| **Etapas sin NI UNA contradicción**                            |       | **23/73** |
+
+**Race Jaén sola trae las doce clases**, 27 hallazgos. Y el orden de la tabla es el que ordenó la
+tanda: se empezó por arriba.
+
+> **Un matiz de método, porque el encargo lo pedía afinado.** «Ataques sin cerrar» sale 66 y no 184
+> porque esta cuenta acepta como cierre TODO lo que de verdad cierra el arco: que le cacen, que le
+> reabsorban, que enganche, que se quede en tierra de nadie, que se siente, que abandone… y que
+> aparezca en un parte de cabeza POSTERIOR (el ataque prosperó). Llegar a meta delante tampoco es
+> quedarse sin cerrar, pero solo cuenta si llegó de verdad: el que ataca a 3 km y luego aparece en un
+> sprint masivo de 128 fue cazado, y ése —Rafael Teixeira, km 207— sigue contando como abierto.
+
+### 3. El motor: seis arreglos, todos de OBSERVACIÓN
+
+Ni un dado nuevo, ni un subflujo nuevo, ni una constante de calibración movida.
+
+**(a) El parte de cabeza sigue a la GENTE, no al número.** El motor llevaba solo `lastFrontSize`, así
+que una fuga que pierde a uno y gana a otro seguía siendo «dos delante» y el relevo se hacía en
+silencio: es exactamente lo que pasó entre el km 1 y el km 156 de Jaén. Ahora lleva la LISTA, emite
+cuando cambia la composición y manda `entran` y `salen`. De ahí sale la frase que faltaba: cuando el
+grupo de cabeza CRECE hay que decir otra cosa, no «ya solo quedan N».
+
+**(b) El parte de cabeza calla si el movimiento del que habla no se ha narrado.** La v21 decidió, con
+números, que en el kilómetro cero no hay frase de ataque. La consecuencia que nadie había medido es
+que el parte de cabeza sí nombraba a ese grupo: la primera línea del diario decía «ya solo quedan
+ocho delante» con ocho nombres que el lector no había visto salir. La fuga del día siempre tiene su
+frase (`breakaway_formed`), así que nunca se calla.
+
+**(c) El boquete se mide contra el GRUESO de la carrera.** Era `liveGroups[1]`, el primer reloj de
+detrás sin más, y eso convierte en «la persecución» a cualquier cosa que quede en medio: el puente en
+solitario de Frédéric Muller (km 140) dejó un grupo intermedio de UN corredor y el parte del km 152
+salió con `chaseSize: 1` mientras el pelotón eran 127 y estaba tirando. La referencia pasa a ser el
+primer grupo de detrás con al menos la mitad de los corredores del mayor que va detrás de la cabeza
+(`gapChaseMainFraction` = 0,5). **Y eso arregla los dos defectos a la vez**: el perseguidor de uno y
+el hueco que iba y venía sin física que lo explicara (28 s → 11 s → 29 s → 18 s en 24 km), que era el
+mismo síntoma —la referencia cambiaba de un parte al siguiente, así que la tendencia no significaba
+nada—.
+
+**(d) `breakaway_caught` nombra a los que iban delante EN ESE MOMENTO.** Se lleva la lista VIVA de la
+fuga (`dayBreakNow`) además de la congelada, y todos los que han pasado por ella (`dayBreakEver`),
+que es lo que decide cuándo está cazada de verdad. El evento gana `deLos` —de cuántos salió— y
+`motivo: deshecha` para el desenlace que no existía: una fuga puede acabarse porque el pelotón se la
+come o porque se va cayendo sola, y no es lo mismo.
+
+**(e) `leads` dice «PASA a liderar», no «lidera».** El que ya mandaba se proclamaba líder otra vez en
+cada cima que coronaba. Ahora se lleva a quién se ha proclamado ya (`komLead.proclaimed`): ganar el
+maillot es una noticia; conservarlo no es la misma noticia contada dos veces. Y si otro se lo quita y
+lo recupera, eso sí vuelve a ser noticia.
+
+**(f) Lo que se abre se cierra.** El defecto más numeroso de los doce tenía tres agujeros:
+
+- `tacticReeledNarrateKm` = 3 **se retira**. Decía que «un intento que muere a los dos kilómetros no
+  merece su propia frase de epitafio», y era verdad para los que no se narraron —ésos no la tienen
+  igualmente, porque el epitafio va atado a `narrated`—. Sobre los que SÍ se contaron, dejaba la
+  historia sin final.
+- **La fusión que trae a alguien narrado se cuenta.** Un contraataque de dos que alcanza a la fuga se
+  fundía en silencio (`tacticMergeNarrateRiders` = 3) y ahí se perdían las dos mitades: el ataque
+  contado y sin cerrar, y los dos nombres nuevos que aparecían delante. Es literalmente Jereb y
+  Moretti en el km 156 de Jaén.
+- **El movimiento que se queda SIN GENTE tiene epitafio** (`move_faded`). Un intento no siempre acaba
+  cazado ni fundido: a veces sus corredores se van descolgando de él uno a uno y el grupo se borraba
+  en silencio.
+
+Y dos arreglos menores del mismo tejido: la fuga se fecha con el reloj que tenía **al nacer**
+(`bornTs`), para que el resumen no se lea antes del suceso; y `chase_work` manda `peakKm`, para que
+«peaked at 3:04» sea un sitio de la carretera y no una cifra que contradice al «2:53» de dos líneas
+antes.
+
+### 4. La crónica: lo único que arregla las etapas YA CORRIDAS
+
+Los eventos de las 73 etapas están CONGELADOS en `stage_runs.events` y se renderizan al vuelo, así
+que esta capa es la única que llega a lo que el dueño está leyendo HOY (el mismo reparto de papeles
+de la v13 y la v21). Ocho pasadas nuevas en `apps/api/src/chronicle.ts`: el orden que pone la fuga
+delante de su resumen, la captura que toma los nombres del último parte de cabeza **si sigue
+valiendo**, `entran`/`salen` reconstruidos comparando partes, el boquete contra un corredor suelto que
+se cae, el eco del ataque en la línea siguiente que se cae, el manotazo de un kilómetro que se funde
+en una sola línea (`attack_short`), el parte de relevos que repite y se calla, y las dos
+concordancias rotas.
+
+### 5. Antes y después, con las mismas doce cuentas
+
+**El banco de carreras pequeñas** (10 carreras × 3 semillas = 123 etapas en línea), que es lo único
+que se puede correr con el motor y la crónica nuevos:
+
+| Contradicción                                                  |    ANTES |     DESPUÉS |
+| -------------------------------------------------------------- | -------: | ----------: |
+| entra o sale alguien del grupo de cabeza sin decirlo           |     1866 |       **0** |
+| «ya solo quedan N delante» con N CRECIENDO                     |      304 |       **0** |
+| dos números que dicen lo mismo y no coinciden                  |      206 |       **0** |
+| ataques que se abren y NUNCA se cierran                        |      168 |      **10** |
+| grupo perseguidor de UN corredor                               |      135 |       **0** |
+| el mismo equipo tira para el mismo líder sin contar nada nuevo |      133 |       **0** |
+| «…try to go with them» con UN protagonista                     |       63 |       **0** |
+| `breakaway_caught` nombra a quien no iba delante               |       61 |       **0** |
+| el maillot de montaña se gana dos veces                        |       57 |       **0** |
+| el mismo ataque contado en dos líneas seguidas                 |       51 |       **0** |
+| el resumen va ANTES del suceso                                 |       36 |       **0** |
+| «1 of their companion sits on»                                 |       18 |       **0** |
+| **TOTAL**                                                      | **3098** |      **10** |
+| **Etapas sin NI UNA contradicción**                            |    0/123 | **113/123** |
+
+**Producción, sobre los eventos congelados** (o sea: solo lo que la capa de narración puede
+arreglar, sin volver a correr ninguna etapa). 1079 → **372**, y las etapas limpias de 23 a **34**:
+
+| Contradicción                                                  | ANTES | DESPUÉS |
+| -------------------------------------------------------------- | ----: | ------: |
+| entra o sale alguien del grupo de cabeza sin decirlo           |   713 | **259** |
+| ataques que se abren y NUNCA se cierran                        |    66 |  **65** |
+| dos números que dicen lo mismo y no coinciden                  |    50 |  **24** |
+| «ya solo quedan N delante» con N CRECIENDO                     |    73 |  **18** |
+| grupo perseguidor de UN corredor                               |    18 |   **4** |
+| el mismo equipo tira para el mismo líder sin contar nada nuevo |    45 |   **2** |
+| las seis restantes                                             |   114 |   **0** |
+| **TOTAL**                                                      |  1079 | **372** |
+
+Y **el diario de Race Jaén, el que el dueño leyó: de 27 hallazgos a 7**, sin tocar un solo evento
+guardado. Los 7 que quedan son, uno a uno, lo que el motor no emitió en su día y no se puede
+inventar: cuatro ataques sin desenlace y dos corredores que aparecen delante sin evento de entrada.
+Es la misma lección de la v21 con la criba lejana de Race Great Ocean.
+
+> **Cómo se mide el «después» de producción, y su límite.** Los eventos congelados no se sirven en
+> crudo por ninguna ruta, así que `--rehacer` vuelve a construir la crónica encima de lo que la API
+> entrega. Es una aproximación **por arriba** —las pasadas viejas ya se le han aplicado una vez— y
+> mide lo que la v25 AÑADE, no la crónica desde cero. Los 4 «perseguidor de uno» que sobreviven son
+> justo eso: `time_gap_run` que la capa vieja ya había fabricado y que la nueva no vuelve a mirar.
+
+### 6. La red: `sim/coherence.test.ts`
+
+Las cinco invariantes del encargo, corriendo sobre cuatro escenarios del banco —llana-180,
+reina-150, la clásica larga (Flandes) y Race Jaén— con 140 semillas, sobre los eventos **crudos** del
+motor y no sobre la crónica: que la capa de narración sepa apañar un evento incoherente no es excusa
+para emitirlo, porque los eventos se congelan y viven para siempre.
+
+**Cuatro de las cinco en CERO por etapa.** La quinta —el arco del ataque— tolera dos, y la razón está
+en el fichero: un evento nombra a TRES protagonistas como mucho, y cuando un intento de cinco se
+funde con los de delante los tres nombres del desenlace pueden no ser los tres de la salida. El arco
+existe; el medidor, que solo mira nombres, no puede coserlo. Bajarlo a cero exige que la salida y el
+desenlace nombren a la misma gente, y eso es otra tanda.
+
+### 7. Lo que NO se ha movido, comprobado
+
+**Las cuatro huellas selladas salen IDÉNTICAS y NO se resellan.** `stage/attribution.test.ts` (v12,
+v15, v16, v17, v24) y `stage/timetrial.test.ts` (v18, v19) pasan sin tocar una línea, y no podían
+moverse: esta tanda no consume una sola tirada del RNG, no toca un compromiso, ni una velocidad, ni
+una decisión de carrera. Todo lo que cambia es qué se EMITE y cómo se ORDENA.
+
+**`pnpm sim`: 33 de 33 objetivos en verde, y los treinta y tres números son los MISMOS de la v24
+dígito a dígito.** Gana la fuga 3,4 % · mejor sprinter 34,8 % · captura 21,3 km · fuga en montaña
+42,2 % · brecha 1.º-10.º 272 s · p90-p10 de la crono 107 s · cola de las cronos reales 13,5 % (peor
+15,3 %) · erosión llana 0,010 / reina 0,196 / clásica larga 0,636 / reina 3.ª semana 0,652 / la más
+dura 0,848 · voz de equipo 68,1 % con 2,350 equipos al frente y el 100 % de los partes con motivo ·
+abandonos 13,3 % (63,1 / 33,7 / 3,2) · último grupo en la reina 8,1 % y en las reinas REALES 7,6 %
+(peor 15,5 %) · mejor rematador 35,5 % · barrido 3,2 % · con el ganador en una llana 99,3 % · grupos
+en una media 4 · medias al mismo segundo 9,5 % · la fuga que más gana en llano 74 s · foto de meta
+2,026 (peor carrera 2,238) y mismo ganador 25,0 %.
+
+Es lo que tenía que pasar: **ningún objetivo de `sim/targets.ts` se ha tocado**, y ninguno se ha
+movido, porque esta tanda no cambia lo que ocurre en la carrera.
+
+**`pnpm sim:tactics`** cuenta la misma carrera y una cosa SÍ se mueve, que es justo la que se
+buscaba: `llana-180` sigue con **mediana 5 partes de relevo por etapa (93,3 % dentro de la ventana
+3-6)** y `reina-150` con 4 (94,2 %), la fuga del día sigue saliendo en el km 21 tras 2 intentos
+fallidos, y la caza según el campo sigue dando 0,29 / 0,55 / 1,00 de fuerza en carrera modesta,
+ProSeries y gran vuelta. Lo que sube es **cuántas capturas se NARRAN** —5,42 por etapa en `llana-180`
+y 4,80 en `reina-150`—, y sube por construcción: es el arreglo de §3(f), que es literalmente «todo lo
+que se abre se cierra». Los movimientos son los mismos; lo que cambia es cuántos tienen final.
+
+### 8. Lo que se probó y se DESCARTÓ
+
+- **Un evento propio para el que se cae de la fuga** (`break_dropped`, con su racimo). Era lo natural
+  —hay un evento para el que se rinde y otro para el que revienta— pero produce DOS líneas donde el
+  lector necesita una: la de la marcha y la del parte de cabeza que la refleja. `salen` en el propio
+  parte de cabeza cuenta lo mismo en la línea que el lector ya iba a leer. **Descartado por número de
+  líneas, no por corrección.**
+- **Nombrar en `front_group` a los que entran** (los ids en `datos`). Se escribió y se tiró: los
+  nombres YA están todos en la lista de protagonistas de esa misma frase, así que lo que falta no es
+  quiénes van delante sino QUÉ HA CAMBIADO, y eso es un número. Además obligaba a inventar una
+  convención de resolución de listas en `apps/api` para un dato que la frase no iba a usar.
+- **Re-fechar al km 1 el ataque del kilómetro cero** para que dejara de haber grupos de cabeza sin
+  presentación. Habría cerrado el resto de `frenteSinExplicar`, pero deshace una decisión de la v21
+  que está MEDIDA (prohibir el intento desplaza `rngTactics` en todas las etapas del juego y saca de
+  banda la victoria de la fuga en montaña) y cambia la frase que el dueño aprobó. **No se toca**: el
+  parte de cabeza calla en su lugar, que es el arreglo que no miente.
+- **Bajar `chaseWorkMinGapSeconds` o tocar el reparto del trabajo** para que la cúspide del boquete
+  cuadrara con el último parte narrado. Las dos cifras son CIERTAS y miden cosas distintas —el
+  boquete se mide cada bloque y se narra cada veinte kilómetros—; falsear la cúspide para que
+  coincida sería mentir. Lo que entra es el KM de la cúspide, que la sitúa.
+- **Contar «ataques sin cerrar» como lo contó el encargo** (184). Se afinó a 66 aceptando como cierre
+  todo lo que de verdad cierra el arco, incluido llegar a meta delante de verdad. El número más
+  pequeño es el honesto y es el que se persigue.
+
+### 9. Lo que esta tanda NO hace, con su número
+
+- **No cierra los 10 ataques sin desenlace del banco** (en 10 de 123 etapas). La causa está medida y
+  es de FORMA: los eventos nombran a tres protagonistas como mucho, y la salida y el desenlace de un
+  movimiento de cinco pueden nombrar a tres distintos. El arco está contado; lo que no se puede es
+  comprobarlo por nombres. Queda anotado, con su tolerancia explícita en el test.
+- **No arregla los 372 que quedan en producción.** 259 de ellos son grupos de cabeza que cambian sin
+  evento y 65 son ataques sin desenlace: el motor de entonces no emitía el dato y reconstruirlo sería
+  inventarse una etapa. Se arreglan solos **de la etapa siguiente en adelante**.
+- **No toca la ley de velocidad (v19) ni la colocación en el sprint (v24)**, ni ninguna constante de
+  calibración. No hacía falta: el defecto era de lo que se cuenta, no de lo que pasa.
+- **No mide la LONGITUD de la crónica con un objetivo.** La v25 quita líneas (los partes de relevos
+  que repetían, el eco del ataque, el manotazo fundido) y añade otras (los desenlaces que faltaban,
+  los partes de cabeza que ahora sí se emiten cuando el grupo cambia de gente). El saldo se lee en la
+  tabla de arriba, que es la pregunta que importaba: no cuántas líneas hay, sino cuántas se
+  contradicen.

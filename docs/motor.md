@@ -905,6 +905,40 @@ entero) y la crónica lo agrupa en racimo con número, igual que los descuelgues
 > Cambio de OBSERVACIÓN en el motor: ni azar nuevo ni física nueva, y las huellas de
 > `attribution.test.ts` y `timetrial.test.ts` salen idénticas. Medido en docs/balance.md, «v21».
 
+> **Sexta entrega hecha (v25): LA FUGA DEL DIARIO NO ES LA FUGA DE LA CARRETERA.** El dueño leyó el
+> diario de Race Jaén y dijo que «no tiene ni pies ni cabeza». Tenía razón y había UNA causa madre:
+> el motor lleva **dos objetos distintos que se llaman los dos «la fuga»** —`dayBreakRiders`, la
+> lista CONGELADA del kilómetro en que se formó, y el grupo que va delante AHORA, que es lo que
+> emite `front_group`— y todo lo que cuenta los mezclaba sin saber que eran dos cosas. Al km 190,
+> `breakaway_caught` anunciaba que «Carlos Pinho y Alex Taylor vuelven al pelotón» cuando Pinho no
+> aparecía delante desde el km 1 y los de delante eran CINCO.
+>
+> **No era una rareza de esa carrera, y el número lo dice**: contadas las doce contradicciones sobre
+> las **73 etapas con crónica** de producción salen **1079**, y solo **23 etapas** no tienen ni una.
+> Se cuentan con `scripts/medir-defectos.mjs`, que es la otra mitad de esta entrega: medir esto tiene
+> que dejar de ser un favor que hace alguien una tarde.
+>
+> **Del motor** (cambio de OBSERVACIÓN: ni un dado, ni un subflujo, ni una constante de calibración,
+> y las cuatro huellas selladas salen idénticas): el parte de cabeza sigue a la GENTE y no al número
+> —se emite cuando cambia la composición, con `entran` y `salen`— y **calla si el movimiento del que
+> habla no se ha narrado**; el boquete se mide contra el GRUESO de la carrera
+> (`gapChaseMainFraction`) y no contra el primer reloj que venga detrás, así que la referencia no
+> cambia de un parte al siguiente; `breakaway_caught` nombra a los que iban delante EN ESE MOMENTO,
+> con `deLos` y con `motivo` cuando la fuga se apagó en vez de ser cazada; `leads` de la montaña dice
+> «PASA a liderar» y no «lidera»; la fuga se fecha con el reloj que tenía AL NACER, para que el
+> resumen no se lea antes del suceso; y **lo que se abre se cierra** —se retira
+> `tacticReeledNarrateKm`, la fusión que trae a alguien narrado se cuenta, y el movimiento que se
+> queda sin gente tiene epitafio (`move_faded`)—.
+>
+> **De la crónica** —la única capa que arregla una etapa YA CORRIDA—: ocho pasadas nuevas que bajan
+> las 1079 contradicciones de producción a **372** sin tocar un solo evento guardado, y las 27 del
+> diario de Race Jaén a **7**.
+>
+> **Y la red**: `sim/coherence.test.ts` corre las cinco invariantes de coherencia sobre cuatro
+> escenarios del banco y 140 semillas. Sobre el banco de carreras pequeñas (123 etapas) las
+> contradicciones pasan de **3098 a 10**, y las etapas sin ni una, de **0 a 113**. Medido en
+> docs/balance.md, «v25».
+
 > **Cuarta entrega hecha (v18): LA CONTRARRELOJ.** Era el agujero más grande que quedaba en lo que
 > el motor cuenta, y no era de matiz: una crono entera —130 corredores, 33 km— se resolvía con **un
 > solo evento**, el ganador en meta. La causa no estaba en la narración sino en el modelo: no había
