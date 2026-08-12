@@ -146,6 +146,34 @@ export function isSprintFinish(type: FinishType): boolean {
 }
 
 /**
+ * ¿ADMITE ESTE FINAL UNA LLEGADA AGRUPADA? (v22)
+ *
+ * Es una pregunta DISTINTA de `isSprintFinish` y de `isUphillFinish`, y confundirlas costó el
+ * defecto del GP de Québec. Aquí no se pregunta quién REMATA (eso lo resuelve `finishScore` grupo a
+ * grupo, ya con los que han llegado), sino si el pelotón puede plantarse entero en el kilómetro
+ * final: si los trenes tienen sentido, si los equipos de los sprinters se ponen a cazar y si el
+ * tirón de los últimos kilómetros existe.
+ *
+ * La respuesta la da el tipo de final y es casi siempre que sí. Sube el ÚNICO que la niega:
+ *
+ * - `alto` — un puerto de 3 km o más que muere en la meta (o los últimos 3 km al 5 %). Ahí no hay
+ *   tren que valga: el pelotón se rompe en la subida y cada uno llega como puede.
+ * - `puncheur` — SÍ admite llegada agrupada, y esta es la corrección. Un repecho de 1,3 km al 6 %
+ *   en la línea (Québec), el Mur de Huy o el Cauberg se abordan con el pelotón lanzado a tope y se
+ *   deciden en el último minuto: el GP de Québec 2025 lo ganó Alaphilippe con 2 s sobre el segundo
+ *   y 17 s sobre el décimo, que es una llegada de grupo, no una criba.
+ * - `pave`, `descenso`, `sprint_*` — llegada rodada de los que queden.
+ *
+ * Lo que ESTO sustituye es `finalStretch.every((b) => b.tipo !== 'subida')` en `simulate.ts`: un
+ * `every` en crudo sobre los últimos 2 km, donde UN bloque de subida —una rampa del 3 % en la
+ * pancarta— apagaba los trenes, la caza y el tirón final de toda la carrera. El motor ya tenía aquí
+ * un clasificador que sabe distinguir un repecho de un puerto; no lo usaba donde más importa.
+ */
+export function admitsBunchFinish(type: FinishType): boolean {
+  return type !== 'alto' && type !== 'solitario'
+}
+
+/**
  * ¿Se llega a meta CUESTA ARRIBA? Es lo que antes decidía el binario `finishUphill`, y para lo
  * único que hace falta seguir sabiéndolo es la crónica: un grupo grande que llega en llano, en
  * descenso o por el adoquín disputa un sprint; uno que llega trepando, no.

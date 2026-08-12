@@ -31,6 +31,7 @@ import { rollCrash } from './crash.js'
 import {
   type FinishTerrain,
   type FinishType,
+  admitsBunchFinish,
   deriveFinishTerrain,
   finishScore,
   finishType,
@@ -643,18 +644,6 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
     })
   }
 
-  // Los sprinters solo cazan si la meta NO TREPA (una llegada masiva que puedan disputar): en un
-  // final en alto no persiguen, y la fuga vive o muere en la subida (SPEC 6.9).
-  //
-  // El adoquín cuenta como llegada rodada, y esto sí es un arreglo (v12): la condición pedía que
-  // los últimos 2 km fueran `llano` o `descenso`, así que los 300 m del Espace Charles Crupelandt
-  // —el sector 1 de Paris-Roubaix, a 1,1 km de meta— apagaban la persecución en TODA la carrera. El
-  // pelotón pasaba al control de la general, daba los 350 s de `gcControlLeash` y la fuga del día
-  // se llevaba el monumento con siete minutos. Un sector de pavé en el último kilómetro no convierte
-  // la meta en una llegada de escaladores: sigue siendo un remate rodado de los que queden.
-  const finalStretch = blocks.slice(Math.max(0, n - STAGE.finalBlocks))
-  const finishFlat = finalStretch.every((b) => b.tipo !== 'subida')
-
   /**
    * Km desde cada bloque hasta el siguiente de ADOQUÍN (v12). Se recorre el recorrido una vez hacia
    * atrás y sirve para una sola cosa: que el pelotón no ruede a tempo en la aproximación a un
@@ -679,6 +668,22 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
    */
   const stageFinishType = finishType(finishTerrain, input.riders.length)
   /**
+   * ¿ADMITE LA META UNA LLEGADA AGRUPADA? De este booleano cuelga todo lo que hace que un pelotón
+   * llegue junto: que los equipos de los sprinters se pongan a cazar (`chasingSprinters`), el tirón
+   * de los últimos kilómetros (`finalDriveKm`) y el plan de equipo de los que tienen rematador.
+   *
+   * HASTA LA v21 ERA `finalStretch.every((b) => b.tipo !== 'subida')` (v22, docs/balance.md): un
+   * `every` en crudo sobre los últimos 2 km en el que UN solo bloque de subida lo apagaba todo. El
+   * motor tenía DOS clasificadores de final y solo uno había aprendido la lección de la rampa de
+   * 200 m: `deriveFinishTerrain` mide la última cota, cuánto dura y dónde muere, y descarta las
+   * rachas cortas; el `every` no distinguía un repecho del 3 % de un puerto del 10 %.
+   *
+   * Lo destapó el GP de Québec al cargarle su circuito real: 1 km al 3 % en la línea dejaba al 1 %
+   * del pelotón en el tiempo del ganador (la carrera real la ganó Alaphilippe con 2 s sobre el
+   * segundo). Ahora la pregunta se la hace al modelo de final, que ya sabe la respuesta.
+   */
+  const bunchFinish = admitsBunchFinish(stageFinishType)
+  /**
    * LA FUERZA DE LA CAZA (`stage/chase.ts`): cuántos trenes tiene el campo, cómo de bueno es su
    * rematador y con cuántos compañeros cuenta. Antes bastaba UN corredor con SPR ≥ 70 para que el
    * pelotón entero persiguiera a tope, en una continental modesta igual que en una gran vuelta.
@@ -686,7 +691,12 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
    * números que antes; cuanto más flojo es el campo, más cuerda da, menos aprieta y antes se rinde.
    */
   const chaseStrength = chaseField(input.riders)
-  const chasingSprinters = finishFlat && chaseStrength.force >= STAGE.chaseMinForce
+  // Los equipos de los sprinters solo cazan si la meta admite una llegada agrupada: en un final en
+  // alto no persiguen, y la fuga vive o muere en la subida (SPEC 6.9). El adoquín cuenta como
+  // llegada rodada desde la v12 —los 300 m del Espace Charles Crupelandt, a 1,1 km de meta,
+  // apagaban la persecución en TODA Paris-Roubaix y el pelotón le regalaba el monumento a la fuga
+  // del día— y desde la v22 también el repecho de meta, por la misma razón y con el mismo defecto.
+  const chasingSprinters = bunchFinish && chaseStrength.force >= STAGE.chaseMinForce
   /**
    * Cuerda máxima, tope de esfuerzo y tirón final de los trenes, escalados por la fuerza del campo.
    *
@@ -736,7 +746,7 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       finishScore: finishScore(r.eff0, stageFinishType),
       gcDeficitSeconds: r.gcDeficitSeconds,
     })),
-    { finishFlat, hasGcContext },
+    { bunchFinish, hasGcContext },
   )
   const teamOf = new Map<string, string>()
   /** Los que corren por su cuenta contra el plan de su equipo (§VI.2): fuera del plan, no del equipo. */
@@ -1178,7 +1188,7 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
         ? raceThisClimb
           ? STAGE.climbRaceCommit
           : STAGE.climbTempoCommit
-        : finishFlat && kmRestantes <= STAGE.finalDriveKm
+        : bunchFinish && kmRestantes <= STAGE.finalDriveKm
           ? gear.finalDrive
           : STAGE.pelotonTempoCommit
       // Con la carretera despejada la pregunta de si la caza es viable se hace de cero: haber
@@ -1252,7 +1262,7 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       // vuela: el controlador de boquete NO puede dejarlo rodar por debajo de eso. Sin este suelo,
       // un ataque tardío de 20 s hacía que el lazo cerrado pidiera 0,72 —menos que el 0,85 del
       // tirón final— y el pelotón AFLOJABA por tener a alguien delante, regalando la etapa.
-      if (finishFlat && kmRestantes <= STAGE.finalDriveKm && !chaseAbandoned) {
+      if (bunchFinish && kmRestantes <= STAGE.finalDriveKm && !chaseAbandoned) {
         target = Math.max(target, gear.finalDrive)
       }
       // Y en un sector de ADOQUINES —y en los kilómetros de aproximación, peleando por la posición—

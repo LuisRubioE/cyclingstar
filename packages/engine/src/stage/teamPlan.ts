@@ -93,8 +93,12 @@ export interface TeamPlanRider {
 
 /** El contexto de la etapa que decide qué motivos existen hoy. */
 export interface TeamPlanContext {
-  /** ¿La meta permite una llegada masiva? Si trepa, la baza no se juega igual. */
-  finishFlat: boolean
+  /**
+   * ¿La meta admite una LLEGADA AGRUPADA? (`admitsBunchFinish`, v22). Si trepa de verdad —un final
+   * en alto— la baza no se juega igual: no hay tren que montar y el equipo protege en vez de tirar.
+   * Un repecho de meta SÍ admite llegada agrupada, y hasta la v21 no lo hacía (docs/balance.md v22).
+   */
+  bunchFinish: boolean
   /**
    * ¿Hay general en juego? En la etapa 1 de una vuelta y en toda carrera de un día TODOS llegan con
    * `gcDeficitSeconds` = 0: leído literalmente, el pelotón entero sería el líder. Sin esta bandera
@@ -144,7 +148,7 @@ export interface TeamPlan {
 function leaderScore(r: TeamPlanRider, ctx: TeamPlanContext): number {
   switch (r.role) {
     case 'sprinter':
-      return ctx.finishFlat ? 4 : 1
+      return ctx.bunchFinish ? 4 : 1
     case 'lider':
       return 3
     case 'cazaetapas':
@@ -270,7 +274,7 @@ export function buildTeamPlans(
       stageCandidateId: hasStageCard && candidate ? candidate.riderId : null,
       quality: candidate ? candidate.finishScore : 0,
       gcDeficitSeconds,
-      sprintFinish: ctx.finishFlat,
+      sprintFinish: ctx.bunchFinish,
       budget: STAGE.teamBudgetPerRider * Math.max(1, committed),
       rebelIds,
     })

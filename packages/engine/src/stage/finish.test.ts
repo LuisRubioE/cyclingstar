@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { Attribute } from '@cyclingstar/shared'
 import { STAGE } from '../constants.js'
 import {
+  admitsBunchFinish,
   deriveFinishTerrain,
   finishScore,
   finishType,
@@ -222,5 +223,40 @@ describe('puntuación compuesta por tipo de final (docs/motor.md §12)', () => {
     expect(isUphillFinish('pave')).toBe(false)
     expect(isUphillFinish('descenso')).toBe(false)
     expect(isUphillFinish('sprint_masivo')).toBe(false)
+  })
+
+  it('SOLO el final en alto niega la llegada agrupada (v22)', () => {
+    // La pregunta que hasta la v21 respondía un `every` en crudo sobre los últimos 2 km. No es la
+    // misma que «¿se remata al sprint?» ni que «¿se llega trepando?»: un repecho de meta se aborda
+    // con el pelotón lanzado y se decide en el último minuto, y por eso el `puncheur` la responde
+    // que SÍ aunque no sea ni sprint ni llano.
+    expect(admitsBunchFinish('alto')).toBe(false)
+    expect(admitsBunchFinish('solitario')).toBe(false)
+    expect(admitsBunchFinish('puncheur')).toBe(true)
+    expect(admitsBunchFinish('sprint_masivo')).toBe(true)
+    expect(admitsBunchFinish('sprint_reducido')).toBe(true)
+    expect(admitsBunchFinish('pave')).toBe(true)
+    expect(admitsBunchFinish('descenso')).toBe(true)
+  })
+
+  it('LA RAMPA DE META DEL GP DE QUÉBEC admite llegada agrupada, y un puerto de 11 km no', () => {
+    // El defecto de la v22, medido: el circuito real de Québec acaba con la côte de la Montagne
+    // (600 m al 9 %) pegada a la rampa de la Grande Allée (1 km al 3 %). Es un final de puncheur
+    // —lo ganó Alaphilippe con 2 s sobre el segundo— y el pelotón llega lanzado a su pie.
+    const quebec = typeOf([
+      { km: 214.4, tipo: 'llano' },
+      { km: 0.6, tipo: 'puerto', tramos: [{ km: 0.6, g: 9 }] },
+      { km: 1, tipo: 'puerto', tramos: [{ km: 1, g: 3 }] },
+    ])
+    expect(quebec).toBe('puncheur')
+    expect(admitsBunchFinish(quebec)).toBe(true)
+    // Y la etapa reina de al lado sigue siendo una etapa reina: el Plateau de Solaison son 11,3 km
+    // al 9,1 %, ahí no hay tren de meta que valga.
+    const solaison = typeOf([
+      { km: 108.7, tipo: 'llano' },
+      { km: 11.3, tipo: 'puerto', tramos: [{ km: 11.3, g: 9.1 }] },
+    ])
+    expect(solaison).toBe('alto')
+    expect(admitsBunchFinish(solaison)).toBe(false)
   })
 })

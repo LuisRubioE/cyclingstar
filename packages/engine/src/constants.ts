@@ -308,8 +308,26 @@
  * cabeza de carrera contra su máximo reciente, y que la sangría haya parado. Que la criba no se
  * DESHAGA cincuenta kilómetros después no lo puede saber el motor —es futuro— y lo decide la
  * crónica, que ve la etapa entera. Medido en docs/balance.md, «v21».
+ *
+ * **v22 — LA RAMPA DE META.** El motor tenía DOS clasificadores de final y solo uno había
+ * aprendido la lección. El bueno, `deriveFinishTerrain` (la v7), mide la última cota, cuánto dura,
+ * a qué distancia de meta muere, y descarta las rachas demasiado cortas. El otro era una línea:
+ * `finalStretch.every((b) => b.tipo !== 'subida')`, un `every` en crudo sobre los últimos 2 km
+ * donde UN bloque de subida lo apagaba todo —la caza de los equipos de los sprinters, el tirón
+ * final de los trenes y el plan de equipo de los que tienen rematador—. Lo destapó el GP de Québec
+ * al cargarle su circuito real: 1 km al 3 % en la línea y el pelotón dejaba de ser un pelotón (1 %
+ * de los corredores en el tiempo del ganador, el décimo a 6:23; la carrera real la ganó Alaphilippe
+ * con 2 s sobre el segundo).
+ *
+ * Ahora esa pregunta —«¿admite la meta una llegada agrupada?»— se la hace al modelo de final
+ * (`admitsBunchFinish`) y la niega un solo tipo, el final en `alto`. Nada de física nueva y ningún
+ * dado nuevo: es el mismo motor mirando el mismo recorrido con el clasificador que ya tenía.
+ * Cambia el final de 9 de las 1.075 etapas no-crono del calendario, y son las que tenían que
+ * cambiar: Québec, Montréal, el Mur de Huy, el Amstel, la Brabantse Pijl, Laigueglia, Romandía e3 y
+ * Tirreno e5 pasan de un rodador en solitario con seis minutos a una llegada de grupo que gana un
+ * puncheur. Medido en docs/balance.md, «v22».
  */
-export const ENGINE_VERSION = 21 as const
+export const ENGINE_VERSION = 22 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a

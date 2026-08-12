@@ -92,10 +92,19 @@ describe('engine: esqueleto', () => {
     // por las estrellas del sector) y, mucho más suave, en las bajadas de verdad (con DES). Con él,
     // el sector se corre en vez de rodarse, dentro del sector no hay reenganche, y la puerta del
     // pelotón se cierra según lo que aprieta. Entra Strade Bianche.
+    // v22: LA RAMPA DE META (docs/balance.md «v22») — el motor tenía DOS clasificadores de final y
+    // solo uno había aprendido la lección de la rampa corta. El bueno, `deriveFinishTerrain` (v7),
+    // mide la última cota, cuánto dura y dónde muere; el otro era `finalStretch.every((b) => b.tipo
+    // !== 'subida')`, un `every` en crudo sobre los últimos 2 km del que colgaban la caza de los
+    // sprinters, el tirón final de los trenes y el plan de equipo. Un solo bloque de subida en la
+    // pancarta lo apagaba todo: al GP de Québec, con 1 km al 3 % en la línea, le dejaba al 1 % del
+    // pelotón en el tiempo del ganador y al décimo a 6:23. Ahora la pregunta «¿admite la meta una
+    // llegada agrupada?» se la hace al modelo de final (`admitsBunchFinish`) y solo la niega el
+    // final en `alto`. Sin física nueva y sin azar nuevo.
     // Sobre la v21 (la criba lejana), la v18 (la contrarreloj), la v17 (el pelotón no se resigna), la v16 (modelo de persecución), la v15 (plan de equipo), la v14 (abandonos), la v13 (identidad y motivo en el journal), la v12 (selección en pavé y descenso), la
     // v11 (atribución del trabajo), la v10 (composición y caza), la v9 (capa táctica), la
     // v8 (tiempos de grupo), la v7 (modelo de final), la v6 (telemetría), la v5 (clásica larga), la
     // v4 (pavé en el recorrido) y la v3 (Cambio 0).
-    expect(ENGINE_VERSION).toBe(21)
+    expect(ENGINE_VERSION).toBe(22)
   })
 })
