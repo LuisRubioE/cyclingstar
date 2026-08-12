@@ -65,6 +65,16 @@ Las tres carreras en circuito (Great Ocean, Québec y Montréal) no traen tabla 
 la aritmética de ese circuito, no de un km inventado; la función que la hace, `circuitClimbs()`, está
 en `classicRoutes.ts` con el detalle.
 
+**Deuda de dato conocida: Montréal (medida en la v22).** De las cuatro cotas por vuelta del
+Mont-Royal la fuente solo publica la posición de dos, así que del circuito cargado la única
+dificultad de los últimos kilómetros es la rampa de meta de la avenue du Parc, 560 m al 4 % después
+de 2,4 km de bajada. Con eso el modelo de final resuelve la carrera como `sprint_masivo` —arrastre de
+los últimos 5 km **negativo** (−1,05 %) y dureza de la cota **8,2** contra el umbral de 15 del final
+de puncheur— y la gana un velocista 9 veces de 20, cuando el GP de Montréal real es de punchers. **Es
+deuda de DATO, no de motor**: bajar `finishPuncheurScore` para que Montréal entre movería el tipo de
+final de docenas de etapas del calendario por una carrera cargada a medias. Se arregla el día que
+alguien publique dónde caen la Polytechnique y la côte de Pagnuelo dentro de la vuelta.
+
 ## Reglas de la carga
 
 1. **Se usa la edición más reciente que publique tabla de dificultades**, no necesariamente la de

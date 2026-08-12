@@ -474,6 +474,19 @@ una etapa llana el pelotón sigue llegando junto y el tipo de final es casi siem
 y no toca el generador de perfiles, así que una carrera sin terreno selectivo sigue sin poder
 decidirse por otra cosa que las bonificaciones.
 
+**5. …y el resto del motor tardó catorce versiones en preguntárselo (HECHO, v22).** El modelo de
+final decidía QUIÉN gana, pero la pregunta de si el pelotón puede llegar entero al último kilómetro
+—de la que cuelgan la caza de los equipos de los rematadores, el tirón final de los trenes y el plan
+de equipo— se seguía respondiendo con un binario de una línea en `simulate.ts`:
+`finalStretch.every((b) => b.tipo !== 'subida')`. Un bloque de subida en los últimos 2 km y valía
+`false`, sin mirar si eran 200 m al 3 % u 11 km al 9 %: **la misma fragilidad que esta sección dice
+haber corregido, viva en el sitio de al lado.** Lo destapó el GP de Québec al cargarle su circuito
+real (1 km al 3 % en la línea, el 1 % del pelotón en el tiempo del ganador y el décimo a 6:23).
+Ahora esa pregunta la responde `admitsBunchFinish(type)`, en el mismo módulo y con los mismos siete
+tipos, y la niega uno solo: el final en `alto`. El repecho de meta —Québec, el Mur de Huy, el
+Cauberg— es `puncheur` y admite llegada agrupada, porque se aborda con el pelotón lanzado y se decide
+en el último minuto. Números en docs/balance.md, «v22».
+
 ### 12-bis. Cambio 0 — Calibrar el desgaste y liberar el controlador (va ANTES que todo)
 
 Los dos hallazgos de §3-bis (a) y (b) son la raíz y se corrigen primero, porque **todo lo demás se

@@ -4567,3 +4567,229 @@ enteró de Race Colombia e5 en la v16—. Por eso el §3.b propone meterla en el
 - **No carga cinco de las diez carreras del encargo** (Bruges, Copenhague, Bretaña, Polonia y
   Benelux): sus fuentes no publican el dato mínimo (km + longitud + pendiente). El detalle, carrera a
   carrera, está en `docs/fuentes-recorridos.md`.
+
+---
+
+## v22 — La rampa de meta: el motor tenía dos clasificadores de final y solo uno sabía (`engine_version` 21 → 22)
+
+> **Lo que quedó anotado y sin arreglar:** «la etiqueta de terreno del último bloque debería depender
+> de la PENDIENTE… Es un defecto del modelo de llegada, no del dato, y sale a la luz ahora porque
+> hasta hoy ninguna carrera cargada tenía una rampa suave justo en la línea.» — «Perfiles reales del
+> WorldTour, segunda tanda», §3.a.
+
+Al GP de Québec y al GP de Montréal se les cargó su circuito real y las dos pasaron de un **99 % de
+corredores en el tiempo del ganador a un 1 %**. El Québec real de 2025 lo ganó Alaphilippe con **2 s
+sobre el segundo y 17 s sobre el décimo**: una llegada de grupo pequeño, no una criba.
+
+**No era el dato: era el motor.** Y no lo había destapado ninguna carrera anterior porque ninguna
+tenía un falso llano justo en la línea de meta.
+
+### 1. La causa: dos clasificadores de final, y solo uno había aprendido la lección
+
+**El bueno** es `deriveFinishTerrain()` (`stage/finish.ts`), el modelo de final de la v7. Mide la
+pendiente media de los últimos 5 km, la última racha ascendente —cuánto mide, a qué % sube, cuánto
+dura y a cuántos km de meta muere—, tolera un rellano corto dentro de una subida y **descarta
+explícitamente las rachas demasiado cortas** (`finishClimbMinKm` = 0,4). Su propio comentario lo
+dice: «esa es justo la rampa de 200 m que antes decidía la etapa».
+
+**El malo** era una línea de `simulate.ts`:
+
+```ts
+const finalStretch = blocks.slice(Math.max(0, n - STAGE.finalBlocks))
+const finishFlat = finalStretch.every((b) => b.tipo !== 'subida')
+```
+
+Un `every` en crudo sobre el TIPO de bloque en los últimos 2 km. **Un solo bloque de subida y valía
+`false`**, sin mirar si eran 200 m al 3 % o 11 km al 9 %. Y de ese booleano colgaba todo lo que hace
+que una llegada masiva ocurra:
+
+| Sitio                    | Qué se apaga con `false`                                          |
+| ------------------------ | ----------------------------------------------------------------- |
+| `chasingSprinters`       | Los equipos de los rematadores no se ponen a cazar en todo el día |
+| `freeRunTarget` (v14)    | No hay tirón final: el pelotón rueda a `pelotonTempoCommit`       |
+| El SUELO de `finalDrive` | …y el controlador de boquete puede dejarlo rodar aún más despacio |
+| `buildTeamPlans`         | Ningún equipo tiene un plan de sprint: todos «protegen»           |
+
+Con eso, en Québec el pelotón nunca se monta: llegaban 6 grupos, el décimo a **6:23** del ganador y
+la carrera la ganaba un **especialista de crono** (10 de 20) escapado en solitario.
+
+### 2. Lo que se ha hecho: preguntárselo al clasificador bueno
+
+`admitsBunchFinish(type)`, en `stage/finish.ts` junto a `isSprintFinish` e `isUphillFinish`, y es una
+pregunta DISTINTA de las dos:
+
+| Pregunta                                                | La responde             | Québec                                          |
+| ------------------------------------------------------- | ----------------------- | ----------------------------------------------- |
+| ¿Quién REMATA?                                          | `finishScore`           | puncheur: COL ,40 · SPR ,28 · TAC ,20 · RES ,12 |
+| ¿Tiene sentido un tren de lanzadores?                   | `isSprintFinish`        | no                                              |
+| ¿Se llega trepando? (crónica)                           | `isUphillFinish`        | sí                                              |
+| **¿Puede el pelotón plantarse entero en el último km?** | **`admitsBunchFinish`** | **sí**                                          |
+
+Y la niega **un solo tipo de los siete**: el final en `alto` (un puerto de 3 km o más que muere en la
+meta, o los últimos 3 km al 5 %). El `solitario` también, por completitud: un grupo de uno no es una
+llegada agrupada. `puncheur`, `pave`, `descenso` y los dos sprints dicen que sí.
+
+**Por qué el `puncheur` dice que sí, que es todo el cambio.** Un repecho de meta —Québec, el Mur de
+Huy, el Cauberg, media Ardenas— se aborda con el pelotón lanzado a tope peleando por la posición y se
+decide en el último minuto. Eso es una llegada de grupo: no la niega el hecho de que la carretera
+suba, la niega que suba TANTO que no haya tren que valga.
+
+**No hay física nueva, ni una constante de calibración movida, ni un dado nuevo**: el mismo motor
+mirando el mismo recorrido con el clasificador que ya tenía.
+
+### 3. Qué cambia, etapa a etapa: 9 de las 1.075 no-crono del calendario
+
+Censo estático sobre el calendario entero, con un grupo de 40 en meta: `admitsBunchFinish` y el
+`every` viejo dan la MISMA respuesta en **1.066 de 1.075** etapas. Las nueve que se separan son las
+nueve que tenían que separarse. Mediana de 20 simulaciones con el campo del banco de reinas reales
+(`node scripts/medir-carrera.mjs`, más el tamaño del grupo del ganador y la brecha 1.º-10.º):
+
+| Etapa                           | grupos    | cola % med  | grupo del ganador | 1.º-10.º (s) | gana                                 |
+| ------------------------------- | --------- | ----------- | ----------------- | ------------ | ------------------------------------ |
+| **Québec** (216 km)             | 6,0 → 5,0 | 3,99 → 5,82 | **1 → 24**        | **383 → 0**  | crono 10/20 → **escalada 14/20**     |
+| **Montréal** (209 km)           | 6,0 → 7,0 | 4,95 → 8,16 | **1 → 36**        | **196 → 0**  | escalada 8/20 → velocidad 9/20       |
+| Walloon Wall (Mur de Huy)       | 6,0 → 6,0 | 2,59 → 1,32 | **1 → 10**        | **362 → 1**  | fondo 8/20 → **escalada 16/20**      |
+| Amstel (257 km)                 | 5,5 → 6,0 | 4,62 → 8,07 | **1 → 51**        | **399 → 0**  | fondo 7/20 → **escalada 12/20**      |
+| Brabant (163 km)                | 4,0 → 3,0 | 2,91 → 2,22 | **1 → 24**        | **414 → 0**  | crono 7/20 → clasicas/velocidad 6/20 |
+| Laigueglia (192 km)             | 5,0 → 6,5 | 4,16 → 7,84 | **1 → 19**        | **367 → 0**  | velocidad 6/20 → **escalada 15/20**  |
+| Romandy e3 (173 km)             | 7,0 → 5,0 | 3,30 → 2,06 | **2 → 20**        | **344 → 0**  | crono 12/20 → **escalada 16/20**     |
+| Two Seas e5 (186 km)            | 6,0 → 6,0 | 6,89 → 6,86 | **2 → 9**         | **345 → 12** | crono 12/20 → **escalada 12/20**     |
+| Aulne (210 km) — LA QUE EMPEORA | 4,0 → 5,0 | 4,18 → 3,33 | **41 → 1**        | **0 → 426**  | escalada 14/20 → crono 8/20          |
+
+Las ocho primeras cuentan la misma historia y es la que había que arreglar: **un rodador o un
+especialista de crono en solitario con seis minutos** pasa a ser una llegada de grupo de 9 a 51
+hombres, con el décimo a 0-12 s, ganada por un puncheur. El Mur de Huy queda de manual: diez
+corredores en el tiempo del ganador, el décimo a **1 s**, y gana un COL 16 veces de 20.
+
+### 4. La que empeora, con el nombre y la causa: Race Aulne
+
+Race Aulne e1 es la única de las 1.075 que se mueve en la otra dirección, y **no se ha tapado**.
+
+Es una continental de un día con perfil GENERADO cuyo recorrido acaba con 5,9 km al 3,0 % clavado.
+El modelo de final lo llama `alto` —la cota mide más de `finishAltoMinKm` (3 km) y muere en la
+línea—, así que `admitsBunchFinish` dice que no, y donde antes llegaban 41 corredores juntos ahora
+gana un rodador en solitario con siete minutos.
+
+**La causa está localizada y no está en el modelo de final: está en `profileGen.normalize()`.** Esa
+función cuadra la etiqueta de kilómetros estirando el ÚLTIMO segmento sin estirar sus tramos, y
+`gradientAt` cubre la cola con el último tramo: aquí, un segmento de 8,9 km con tramos de 3 km al
+−3,2 % y 2,9 km al +3,0 % se estiró a 8,9 km y los 3 km sobrantes leen +3,0 %. Sin ese artefacto la
+racha ascendente sería de 2,9 km, por debajo del suelo de 3 km, y la etapa saldría `puncheur` —que es
+lo que es— y todo cuadraría.
+
+**Lo que NO se ha hecho, y por qué.** La tentación era ponerle al tipo `alto` un suelo de PENDIENTE
+(la v7 le puso uno de longitud, «por debajo de 3 km es un muro», y ninguno de dureza). Se midió, y
+**es una mala idea sobre recorridos reconstruidos**: `deriveFinishTerrain` tolera rellanos dentro de
+la subida, así que en un perfil reconstruido la cota final se funde con su aproximación y la pendiente
+media sale DILUIDA. Con un suelo del 5 % cambian 15 etapas del calendario y entre ellas está
+**Two Seas e6, que es el Sassotetto (13 km al 7,7 % en la carretera y 10,4 km al 3,3 % en el dato
+cargado)**: un final en alto de verdad degradado a puncheur. Con un suelo del 4 % cambian 9 y entre
+ellas **Catalonia e4, que está en el banco `realQueens`**. El suelo mediría la calidad de la
+reconstrucción, no la carretera. Arreglar `normalize()` sí es el arreglo bueno, y mueve el último
+kilómetro de TODOS los perfiles generados del calendario: es su propia tanda.
+
+### 5. Los otros dos sitios donde se podía arreglar, y por qué no se ha arreglado ahí
+
+El encargo señalaba tres sitios y pedía medir antes de elegir. Se midieron los tres.
+
+**a) `featureProfile.ts:414` — que el tipo de segmento salga de la PENDIENTE.** Es verdad que
+`segments.push({ km, tipo: 'puerto', … })` convierte cualquier cota en puerto, y es verdad que
+`terrainForGradient` ya existe y ya se usa en la rama de altitud real. Pero medido: de los **768
+puertos declarados** en los recorridos reales cargados, **7 tienen menos del 3 %** de pendiente media
+(dos de la Vuelta, dos de Gante-Wevelgem, Amstel, Brabant y Pune e2). Ninguno está en el final de
+Québec ni en el de Montréal: la côte de la Montagne son 600 m al **9 %** y la Camilien-Houde 1,8 km al
+**8 %**, y `terrainForGradient` los tiparía `puerto` igual. **Arreglar ahí no arregla el defecto** —los
+últimos 2 km de Québec siguen teniendo bloques de subida y el `every` seguiría diciendo `false`— y a
+cambio mueve 26 carreras del WorldTour ya cargadas. Se deja anotado y no se hace.
+
+**b) El modelo de final (`stage/finish.ts`) — ¿tiene un tipo para el «final en repecho»?** **Sí, y se
+llama `puncheur`**, y Québec cae en él sin tocar nada: la côte de la Montagne y la Grande Allée se
+funden en una racha de 1,3 km al 6,1 % que muere a 200 m de meta, dureza 48 sobre un umbral de 15.
+Sus pesos son COL ,40 · SPR ,28 · TAC ,20 · RES ,12, que es exactamente el perfil del que gana el GP
+de Québec. **No hubo que añadir ningún tipo**: el modelo de final ya resolvía bien el repecho, lo que
+no hacía era que el resto del motor le preguntase.
+
+Montréal, en cambio, sale `sprint_masivo` y lo gana un velocista 9 veces de 20. No es un fallo del
+modelo sino del DATO cargado: de sus cuatro cotas por vuelta la fuente solo publica la posición de
+dos, y la rampa de meta que queda son 560 m al 4 % (dureza **8,2** contra el umbral de 15) precedidos
+de 2,4 km de bajada, así que el arrastre de los últimos 5 km sale **negativo** (−1,05 %). Bajar
+`finishPuncheurScore` de 15 a 8 para que Montréal entre movería el tipo de final de docenas de etapas
+del calendario por una carrera cuyo dato está incompleto y anotado como incompleto. **No se toca.**
+Queda como deuda de DATO en `docs/fuentes-recorridos.md`, no de motor.
+
+### 6. Lo que NO se ha roto, medido
+
+**a) Una llana que acaba al sprint sigue acabando al sprint.** Race Rhône-Alpes entera, las 7 etapas
+no-crono, 20 simulaciones cada una: **dígito a dígito idéntica** antes y después. Las tres llanas
+—e2, e4 y e5— siguen con el 32 %, el 98 % y el 99 % del pelotón en el tiempo del ganador y las siguen
+ganando velocistas (13, 14 y 16 de 20).
+
+**b) Una reina sigue siendo una reina.** Las mismas 7 etapas incluyen las tres de montaña (e6, e7 y
+e8) y salen igual: un grupo de uno en meta, el décimo a 187, 256 y 195 s, y gana un escalador. Sobre
+el banco: **`realQueens` no se mueve** (ver §8).
+
+**c) Las huellas selladas no se han resellado, y era previsible.** `attribution.test.ts` corre
+`llana-180` (180 km de llano de una pieza: el `every` decía «sí» y el modelo dice `sprint_masivo`,
+que también) y `reina-150` (15 km al 8 % en la línea: el `every` decía «no» y el modelo dice `alto`,
+el único tipo que sigue diciendo «no»). Las dos respuestas coinciden en los dos escenarios **por
+construcción**: solo se separan en el terreno intermedio, el repecho, que ninguno de los dos tiene.
+`timetrial.test.ts` no puede moverse: una crono no pasa por `finishStage`. Se ha comprobado, no
+supuesto —las cuatro huellas de reparto de tiempos y las dos de la crono salen dígito a dígito
+iguales— y la justificación queda escrita en las dos cabeceras junto a las de la v12 a la v21.
+
+### 7. Los invariantes: los 24 en verde y ninguno se mueve un dígito
+
+`pnpm sim` con el arreglo dentro y ANTES de tocar el banco de reinas: **24 de 24 en verde y los
+veinticuatro números idénticos a los de la v21** —gana la fuga 3,4 % / mejor sprinter 36,0 % /
+captura 21,4 km / fuga en montaña 41,0 % / brecha 1.º-10.º 270 s / crono p90-p10 107 s / gana un
+especialista 98,8 % / cola de crono real 13,5 % y peor 15,3 % / erosión llana 0,009 · reina 0,197 ·
+clásica larga 0,634 · 3.ª semana 0,652 · la más dura 0,848 / voz de equipo 68,7 % con 2,330 equipos
+al frente y 100 % con motivo / abandonos 13,4 % con 62,2-33,5-4,3 de reparto / último grupo en la
+reina 8,4 % / reinas REALES 7,7 % y peor 15,5 %—. `pnpm sim:tactics`, igual.
+
+**Y eso, otra vez, es información y no tranquilidad.** Es exactamente lo que dijo la tanda anterior:
+la batería mide el MOTOR, no el calendario. Ninguno de sus escenarios tiene un repecho de meta —los
+dos canónicos son 180 km de llano de una pieza y 15 km al 8 % en la línea, y las ocho reinas reales
+son finales en alto o finales rodados—, así que un defecto que solo vive en el terreno intermedio
+podía estar ahí desde la v7 sin que ningún objetivo se pusiera rojo. Y estaba.
+
+**Ningún objetivo se ha reajustado.** Ni uno.
+
+### 8. La etapa 8 del Dauphiné entra en `realQueens`
+
+Es la deuda que dejó abierta la tanda anterior (§3.b): **la etapa más dura que ha entrado nunca al
+calendario** —120 km y 3.800 m, con Col du Pré (6,9 km al 10,1 %), Bisanne (11,4 al 7,7 %), Aravis y
+final en el Plateau de Solaison (11,3 km al 9,1 %)— y **la forma que al banco le faltaba**: corta,
+cuatro puertos grandes encadenados y final en alto de 11 km al 9 %. Las ocho que ya estaban son
+reinas de 151 a 232 km, con final en alto (Francia e20, Italia e19), rodado (Colombia e5, Two Seas
+e4, España e7) o de subir y bajar (Cataluña e4).
+
+Qué le hace al banco, con el mismo campo y las mismas 8 semillas por etapa:
+
+| Medida                                      | 8 etapas | 9 etapas   | Objetivo |
+| ------------------------------------------- | -------- | ---------- | -------- |
+| Último grupo en las reinas REALES (mediana) | 7,7 %    | **7,9 %**  | 7 – 14 % |
+| La peor reina real (mediana de su cola)     | 15,5 %   | **15,5 %** | 0 – 18 % |
+
+Y su fila propia: **último grupo 9,5 % de mediana, 16,4 % en el peor caso, 8 grupos en meta, 1 % con
+el ganador y 279 s entre el 1.º y el 10.º.** Sube la mediana del banco dos décimas (entra por encima
+de ella) y **no toca el techo**: la peor mediana sigue siendo la de Race France e20 con su 15,5 %.
+
+Lo que el banco gana no es un número, es una alarma. Por mediana la e8 es la **cuarta** más dura de
+las nueve; por peor caso de una corrida suelta es la **tercera** (16,4 %, tras el 17,7 % de Francia
+e20 y el 17,4 % de Táchira e6) y la más cercana al corte del 18 % que trae una forma que no estaba
+representada. Hasta hoy, si esa etapa se hubiera pasado del corte, **CI no se habría enterado**,
+igual que no se enteró de Race Colombia e5 en la v16.
+
+### 9. Lo que este cambio NO hace
+
+- **No arregla Montréal del todo.** Llega a una llegada de grupo de 36, que es lo que se pedía, pero
+  la gana un velocista porque la rampa de meta cargada (560 m al 4 %) no llega a final de puncheur.
+  Es deuda de dato, anotada en `docs/fuentes-recorridos.md`.
+- **No toca `featureProfile.ts`.** El tipado de segmento por pendiente sigue pendiente, medido en
+  §5.a: son 7 de 768 puertos y ninguno cambia el resultado de esta tanda.
+- **No toca `profileGen.normalize()`**, que es lo que hace de Race Aulne un final en alto que no lo
+  es (§4). Ese arreglo mueve el último kilómetro de todos los perfiles generados del calendario.
+- **No añade un tipo de final nuevo.** El repecho ya tenía el suyo (`puncheur`) desde la v7.
+- **No pone un suelo de dureza al final en `alto`.** Medido y descartado en §4: sobre recorridos
+  reconstruidos mediría la reconstrucción y no la carretera.
