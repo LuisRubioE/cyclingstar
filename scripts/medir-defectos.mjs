@@ -66,6 +66,36 @@ const fromApi = (chronicle) =>
     datos: e.datos ?? {},
   }))
 
+/**
+ * LA CRÓNICA DE HOY SOBRE LOS EVENTOS DE AYER. Los eventos congelados no se sirven en crudo por
+ * ninguna ruta, así que la única forma de medir cuánto quita la capa de narración NUEVA sobre lo ya
+ * corrido es volver a construirla encima de lo que la API entrega. Es una aproximación por arriba
+ * —las pasadas viejas ya se le han aplicado una vez— y por eso se dice: mide lo que la v25 AÑADE,
+ * no la crónica reconstruida desde cero.
+ */
+const rebuild = (chronicle) =>
+  buildChronicle(
+    chronicle.map((e) => ({
+      km: e.km,
+      tS: e.tS,
+      tipo: '',
+      plantilla: e.plantilla,
+      protagonistas: (e.protagonists ?? []).map((p) => p.name),
+      ...(e.datos ? { datos: e.datos } : {}),
+    })),
+    chronicleNames(
+      chronicle.flatMap((e) =>
+        (e.protagonists ?? []).map((p) => ({
+          riderId: p.name,
+          name: p.name,
+          teamName: p.team,
+          country: p.country,
+          bib: p.bib,
+        })),
+      ),
+    ),
+  )
+
 // --- Fuente 1: producción -----------------------------------------------------------------------
 
 async function getJson(url) {
@@ -74,7 +104,7 @@ async function getJson(url) {
   return res.json()
 }
 
-async function medirProduccion(base) {
+async function medirProduccion(base, rehacer = false) {
   const cal = await getJson(`${base}/api/calendar`)
   const started = cal.races.filter((r) => r.startDay <= cal.dayOfSeason)
   const world = emptyWorldAudit()
@@ -92,7 +122,12 @@ async function medirProduccion(base) {
         sinCronica += 1
         continue
       }
-      const result = auditStage(fromApi(data.chronicle))
+      // LA CRÓNICA DE HOY SOBRE LOS EVENTOS DE AYER (`--rehacer`). Los eventos congelados no se
+      // sirven en crudo por ninguna ruta, así que la única forma de medir cuánto quita la capa de
+      // narración NUEVA sobre lo ya corrido es volver a construir la crónica encima de lo que la
+      // API entrega. Es una aproximación por arriba —las pasadas viejas ya se le han aplicado una
+      // vez— y por eso se dice: mide lo que la v25 AÑADE, no la crónica desde cero.
+      const result = auditStage(fromApi(rehacer ? rebuild(data.chronicle) : data.chronicle))
       addToWorld(world, result)
       porEtapa.push({ id: `${race.id} e${stage.index}`, result })
     }
@@ -242,9 +277,13 @@ function imprimir(world, porEtapa) {
 const [modo, ...args] = process.argv.slice(2)
 
 if (modo === 'produccion') {
-  const base = args[0] ?? BASE
-  const { world, sinCronica, dayOfSeason, porEtapa } = await medirProduccion(base)
-  console.log(`Producción ${base} — día de juego ${dayOfSeason} (${sinCronica} etapas sin crónica)`)
+  const rehacer = args.includes('--rehacer')
+  const base = args.find((a) => !a.startsWith('--')) ?? BASE
+  const { world, sinCronica, dayOfSeason, porEtapa } = await medirProduccion(base, rehacer)
+  console.log(
+    `Producción ${base} — día de juego ${dayOfSeason} (${sinCronica} etapas sin crónica)` +
+      (rehacer ? ' · crónica RECONSTRUIDA con la capa de narración de este árbol' : ''),
+  )
   imprimir(world, porEtapa)
 } else if (modo === 'banco-detalle') {
   // El detalle de una carrera del banco, hallazgo a hallazgo: es como se mira un defecto de cerca.
@@ -274,9 +313,12 @@ if (modo === 'produccion') {
   console.log(`Banco de carreras pequeñas — ${SMALL_TOURS.length} carreras × ${runs} semillas`)
   imprimir(world, porEtapa)
 } else if (modo === 'etapa') {
-  const [raceId, day, base = BASE] = args
+  const rehacer = args.includes('--rehacer')
+  const [raceId, day, base = BASE] = args.filter((a) => !a.startsWith('--'))
   const data = await getJson(`${base}/api/races/${raceId}/stages/${day}`)
-  const { counts, findings } = auditStage(fromApi(data.chronicle ?? []))
+  const { counts, findings } = auditStage(
+    fromApi(rehacer ? rebuild(data.chronicle ?? []) : (data.chronicle ?? [])),
+  )
   console.log(`${raceId} e${day}: ${findings.length} hallazgos`)
   for (const f of findings)
     console.log(`  km ${String(f.km).padStart(3)}  ${f.defect}: ${f.detail}`)
