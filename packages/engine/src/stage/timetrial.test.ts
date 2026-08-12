@@ -52,6 +52,14 @@ import type { RaceEvent, StageInput, StageOutput, StageRider } from './types.js'
  * trenes y el plan de equipo, y una contrarreloj individual no tiene ninguna de las tres. Se corre
  * por `simulateTimeTrial`, que no pasa por `finishStage` ni consulta el tipo de final. Comprobado,
  * no supuesto: las dos huellas salen dígito a dígito iguales.
+ *
+ * **NO RESELLADA EN LA v23** (la fuga del día a la que nadie perseguía, docs/balance.md «v23»), por
+ * la misma razón de fondo y con la misma comprobación. La v23 son dos predicados de la capa
+ * TÁCTICA: cuándo deja el pelotón de considerar que está cerrando un intento. Una contrarreloj
+ * individual no tiene pelotón, ni movimientos, ni controlador de grupo —cada uno corre su carrera
+ * contra el reloj— y no ejecuta una sola línea de lo que se ha tocado. Tampoco hay dado nuevo ni
+ * subflujo nuevo, así que ninguna secuencia se desplaza. Comprobado, no supuesto: las dos huellas
+ * salen dígito a dígito iguales.
  */
 const SEALED_ITT: Record<string, string> = {
   'cri-40-0|cri-40|1|v1':

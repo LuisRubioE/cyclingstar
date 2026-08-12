@@ -326,8 +326,23 @@
  * cambiar: Québec, Montréal, el Mur de Huy, el Amstel, la Brabantse Pijl, Laigueglia, Romandía e3 y
  * Tirreno e5 pasan de un rodador en solitario con seis minutos a una llegada de grupo que gana un
  * puncheur. Medido en docs/balance.md, «v22».
+ *
+ * **v23 — LA FUGA DEL DÍA A LA QUE NADIE PERSIGUIÓ.** `Move.allowed` —si el pelotón le da cuerda a
+ * un intento— se decidía UNA vez, en el kilómetro en que el movimiento nace, y no se revisaba
+ * jamás. Un intento al que el pelotón dijo que no y que aun así CUAJÓ se quedaba en el limbo el
+ * resto de la etapa, y en ese limbo pasaban dos cosas a la vez: el pelotón se clavaba en
+ * `tacticControlCommit` = 0,72 —un valor FIJO, ciego al boquete, porque el controlador de la caza
+ * vive en la rama de al lado y no llegaba a ejecutarse— y la capa táctica se congelaba, porque
+ * mientras se cierra un hueco no salta nadie. Medido en Race Almeria e1 (210 km llanos): cuatro
+ * intentos sin cuerda, el último en el km 19, la fuga del día formada en el 19 y **ni un solo
+ * `sprinters_chase` ni un solo intento más en los 190 km restantes**, con el escapado ganando solo.
+ *
+ * La fuga DEL DÍA no es un intento: es el que ganó la aduana. A partir de ahí la pregunta deja de
+ * ser «cierro este hueco» y pasa a ser «cazo o concedo», que es lo que el controlador de la caza
+ * sabe contestar. Nada de física nueva y ningún dado nuevo: dos predicados que dejan de mirar solo
+ * `allowed` y miran también `dayBreak`. Medido en docs/balance.md, «v23».
  */
-export const ENGINE_VERSION = 22 as const
+export const ENGINE_VERSION = 23 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a

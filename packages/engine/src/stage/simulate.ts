@@ -1198,7 +1198,22 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       // Reglas 4 y 5: mientras haya en carretera un movimiento al que el pelotón NO ha dado cuerda,
       // el pelotón lo cierra. Es lo que hace que la mayoría de los intentos fracasen —y lo que hace
       // que hagan falta varios antes de que cuaje la fuga del día— sin necesidad de un dado aparte.
-      const closing = moves.length > 0 && !moves.some((m) => m.allowed)
+      //
+      // …PERO ESO VALE MIENTRAS SON INTENTOS (v23, docs/balance.md «v23»). `allowed` se decide UNA
+      // vez, en el km en que nace el movimiento, y hasta la v22 no se revisaba jamás: un movimiento
+      // al que el pelotón dijo que no y que aun así CUAJÓ se quedaba en el limbo el resto de la
+      // etapa. Y en ese limbo pasaban dos cosas a la vez, las dos malas: el pelotón se clavaba en
+      // `tacticControlCommit` = 0,72 —un valor FIJO, que ignora si el boquete es de 20 s o de 4
+      // minutos, porque el controlador de la caza vive en la rama de al lado y no llegaba a
+      // ejecutarse nunca— y la capa táctica se congelaba, porque mientras se cierra no salta nadie
+      // (ver `closingNow`). Medido en Race Almeria e1: cuatro intentos sin cuerda, el último en el
+      // km 19, la fuga del día formada en el 19 y **ni un solo `sprinters_chase` ni un solo intento
+      // más en los 190 km siguientes**, con el pelotón a 0,72 clavado y el escapado ganando solo.
+      //
+      // La fuga DEL DÍA no es un intento: es el que ganó la aduana. A partir de ahí la pregunta ya
+      // no es «cierro este hueco» sino «cazo o concedo», y ésa la contesta el controlador de la caza
+      // con su lazo cerrado, su narración y su claudicación.
+      const closing = moves.length > 0 && !moves.some((m) => m.allowed || m.dayBreak)
       if (closing) {
         target = Math.max(freeRunTarget, STAGE.tacticControlCommit)
       } else if (ahead && chasingSprinters && !chaseAbandoned) {
@@ -2102,7 +2117,13 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
       // Mientras el pelotón cierra un movimiento al que no ha dado cuerda va en fila india y nadie
       // salta: los intentos se encadenan, no se solapan. Es también lo que da a la carrera su
       // respiración —ataque, caza, tregua, ataque— en vez de un muro de intentos simultáneos.
-      const closingNow = moves.length > 0 && !moves.some((m) => m.allowed)
+      //
+      // Con la MISMA excepción que el controlador del pelotón (v23): una vez que uno de esos
+      // movimientos es la fuga del día, la etapa ha entrado en su fase siguiente y se vuelve a
+      // atacar —se puentea a la fuga, se contraataca—. Sin esto, un intento sin cuerda que cuajaba
+      // dejaba la carrera congelada hasta meta: medido, cuatro intentos en los primeros 19 km de
+      // Race Almeria e1 y ninguno más en los 190 restantes.
+      const closingNow = moves.length > 0 && !moves.some((m) => m.allowed || m.dayBreak)
       const head = frontMove()
       const headGap = head ? peloton.tS - head.g.tS : 0
       const bridgeable =

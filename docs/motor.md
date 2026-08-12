@@ -5,8 +5,9 @@ retrato de lo que había. En la Parte III cada cambio lleva su estado: **§12-bi
 **§16 primera entrega** (v6), **§12 hecho** (v7), **§13 hecho** (v9), **§18 hecho** (v10),
 **§16 segunda entrega** (v11), **§14 hecho** (v12), **§16 tercera entrega** (v13),
 **§15 hecho** (v14), **§V.1 hecho** (v15), **§9-bis hecho** (v16, el modelo de persecución: la
-última deuda de fondo), **§16 cuarta entrega** (v18, la contrarreloj) y **§16 quinta entrega**
-(v21, la criba lejos de meta y el ruido del boquete). Lo demás sigue siendo propuesta.
+última deuda de fondo), **§16 cuarta entrega** (v18, la contrarreloj), **§16 quinta entrega**
+(v21, la criba lejos de meta y el ruido del boquete) y **§13.1 reglas 4-5 corregidas** (v23, la
+fuga del día a la que nadie perseguía). Lo demás sigue siendo propuesta.
 
 Ámbito: `packages/engine/src/stage/` (2.333 líneas sin tests). Referencias a SPEC 6.
 
@@ -408,6 +409,22 @@ Y hay un segundo agujero: los invariantes solo corren sobre los escenarios canó
 hechos a mano. **1.271 de las 1.418 etapas del calendario (90%) usan perfiles generados** que nunca
 se han validado contra nada. Un motor razonable con un perfil absurdo produce una carrera absurda.
 
+> **Y UN TERCERO, QUE ES EL QUE MÁS CARO SALE (v23): el CAMPO del escenario canónico tampoco es el
+> de producción.** Esta sección da como ejemplo sano «el mejor sprinter gana el 43% de las llanas», y
+> ese número lo produce `llana-180`, que monta **tres sprinters con SPR 84, 85 y 86**. Con un empate
+> a tres el ganador lo decide el ruido, y el estadístico sale bonito diga lo que diga el motor. Los
+> campos de producción no tienen esa forma: `world/autoOrders.ts` nombra sprinter al mejor de cada
+> equipo solo si pasa de 68 de SPR, y en un campo generado el mejor le saca 2-6 puntos al segundo.
+> Con un mejor claro, en el día de juego 46, **Race Arabia dio cinco victorias del mismo corredor en
+> cinco etapas** mientras el invariante seguía en verde.
+>
+> Y la pregunta tampoco era de etapa: «¿gana las cinco?» no la contesta un invariante sobre una etapa
+> suelta por muchas semillas que se le echen. Hace falta el MISMO campo corriendo las cinco etapas
+> seguidas con su fatiga encima. Eso es `sim/smallTours.ts`, que corre diez carreras REALES del
+> calendario de principio a fin. Es la tercera vez que la batería aprende lo mismo —`realQueens`
+> frente a `grandTour` (v17), `timeTrials` frente a `cri-40` (v19)— y la primera en que lo que
+> faltaba no era el recorrido sino **quién lo corre**.
+
 ---
 
 ## Parte III — Qué hay que cambiarle
@@ -615,6 +632,28 @@ Las **nueve reglas están implementadas**. Medido con 150 semillas por escenario
 
 Y el criterio que las resume: **guiones distintos de 150 etapas, de 4 a 25 en la llana canónica y de
 8 a 57 en la reina**.
+
+> **CORREGIDO EN LA v23: la fuga del día seguía contando como «un intento que se está cerrando».**
+> Las reglas 4 y 5 se implementaron con un booleano por movimiento —`allowed`, si el pelotón le da
+> cuerda— que se decide en el kilómetro en que el movimiento NACE y **no se revisaba nunca más**.
+> Mientras ningún movimiento tuviera cuerda, el pelotón «cerraba»: rodaba a `tacticControlCommit`
+> = 0,72, un valor FIJO, y la capa táctica no lanzaba ningún intento nuevo (los intentos se encadenan,
+> no se solapan). Las dos cosas son correctas mientras lo de delante es un intento.
+>
+> El agujero es lo que pasa cuando un intento sin cuerda **prospera igualmente** y se convierte en la
+> fuga del día: se quedaba en ese limbo el resto de la etapa. El pelotón no escalaba nunca —0,72
+> pasara lo que pasara, porque el controlador de la caza vive en la rama de al lado del `if` y no
+> llegaba a ejecutarse— y no volvía a atacar nadie. Medido en Race Almeria e1, 210 km llanos: cuatro
+> intentos, todos sin cuerda, el último en el **km 19**; la fuga del día formada en el 19; y **ni un
+> solo `sprinters_chase` ni un solo intento más en los 190 km restantes**, con el pelotón clavado en
+> 0,72 y el escapado ganando en solitario. Es el mismo síntoma que §3-bis (b) describía para el
+> controlador atado a `if (breakaway …)`, sobreviviendo en otra rama.
+>
+> **La fuga del día no es un intento: es el que ganó la aduana.** A partir de ahí la pregunta deja de
+> ser «cierro este hueco» y pasa a ser «cazo o concedo», que es lo que sabe contestar el controlador
+> de la caza —con su lazo cerrado, su narración y su claudicación (`sprinters_give_up`)—. Los dos
+> predicados de `simulate.ts` miran ahora `allowed || dayBreak`. Sin física nueva y sin azar nuevo.
+> Medido en docs/balance.md, «v23».
 
 **Lo que NO entró, y por qué:**
 

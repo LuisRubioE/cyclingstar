@@ -101,10 +101,19 @@ describe('engine: esqueleto', () => {
     // pelotón en el tiempo del ganador y al décimo a 6:23. Ahora la pregunta «¿admite la meta una
     // llegada agrupada?» se la hace al modelo de final (`admitsBunchFinish`) y solo la niega el
     // final en `alto`. Sin física nueva y sin azar nuevo.
-    // Sobre la v21 (la criba lejana), la v18 (la contrarreloj), la v17 (el pelotón no se resigna), la v16 (modelo de persecución), la v15 (plan de equipo), la v14 (abandonos), la v13 (identidad y motivo en el journal), la v12 (selección en pavé y descenso), la
+    // v23: LA FUGA DEL DÍA A LA QUE NADIE PERSIGUIÓ (docs/balance.md «v23») — `Move.allowed` se
+    // decidía una vez, al nacer el movimiento, y no se revisaba jamás: un intento sin cuerda que aun
+    // así CUAJABA dejaba al pelotón clavado en `tacticControlCommit` = 0,72, un valor fijo y ciego al
+    // boquete, y congelaba la capa táctica (mientras se cierra un hueco no salta nadie). Medido en
+    // Race Almeria e1: cuatro intentos en los primeros 19 km, la fuga del día formada en el 19, y ni
+    // un `sprinters_chase` ni un intento más en los 190 restantes. Ahora la fuga del día deja de
+    // contar como «intento que se está cerrando» y la caza se resuelve con su controlador de
+    // siempre. Sin física nueva y sin azar nuevo: dos predicados que además de `allowed` miran
+    // `dayBreak`.
+    // Sobre la v22 (la rampa de meta), la v21 (la criba lejana), la v18 (la contrarreloj), la v17 (el pelotón no se resigna), la v16 (modelo de persecución), la v15 (plan de equipo), la v14 (abandonos), la v13 (identidad y motivo en el journal), la v12 (selección en pavé y descenso), la
     // v11 (atribución del trabajo), la v10 (composición y caza), la v9 (capa táctica), la
     // v8 (tiempos de grupo), la v7 (modelo de final), la v6 (telemetría), la v5 (clásica larga), la
     // v4 (pavé en el recorrido) y la v3 (Cambio 0).
-    expect(ENGINE_VERSION).toBe(22)
+    expect(ENGINE_VERSION).toBe(23)
   })
 })

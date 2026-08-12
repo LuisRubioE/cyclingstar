@@ -189,10 +189,38 @@ import type { Attribute } from '@cyclingstar/shared'
  * Las dos respuestas solo se separan en el terreno intermedio que ninguno de estos dos escenarios
  * tiene: el repecho de meta. Que estas huellas no se muevan es, por tanto, la comprobación de que el
  * cambio muerde donde debe y de que no hay física nueva por debajo. Cualquier otra cosa que mueva
- * esta huella hay que volver a justificarla aquí. */
+ * esta huella hay que volver a justificarla aquí.
+ *
+ * **RESELLADA EN LA v23** (la fuga del día a la que nadie perseguía, docs/balance.md «v23»), y se
+ * mueve UNA de las cuatro. Antes de resellar se comprobó cuál y por qué, con la traza de eventos de
+ * las cuatro corridas delante:
+ *
+ * - **`llana-180`, primera semilla: es la que se mueve, y es el caso del arreglo.** Ahí la fuga del
+ *   día sale en el **km 0 SIN cuerda**, así que hasta la v22 el pelotón se quedaba «cerrando» a
+ *   `tacticControlCommit` = 0,72 y el controlador de la caza no llegaba a ejecutarse: el
+ *   `sprinters_chase` se emitía en el **km 91**. Ahora la fuga del día deja de contar como intento
+ *   que se cierra y la caza arranca en el **km 72**, diecinueve kilómetros antes. Consecuencia
+ *   exacta: los 40 corredores entran **54 s más rápido (14276 → 14222, un 0,38 %)**, siguen entrando
+ *   **los 40 en un solo reloj** —ni un grupo nuevo, ni un descolgado, ni un segundo repartido— y la
+ *   fuga se caza en el km 158 en vez del 157. Lo único que cambia además del reloj es el ORDEN
+ *   dentro de ese mismo segundo, que es lo que arrastra un peaje de trabajo distinto.
+ * - **`llana-180`, segunda semilla: IDÉNTICA dígito a dígito.** Su fuga del día sale en el km 28 y
+ *   **con** cuerda, así que la rama que el arreglo toca nunca se ejecutaba. Es el control de que el
+ *   cambio no toca lo que ya funcionaba.
+ * - **Las DOS de `reina-150`: IDÉNTICAS dígito a dígito.** Y por construcción: `reina-150` acaba con
+ *   15 km al 8 %, o sea final en `alto`, el único tipo que niega `admitsBunchFinish`, así que
+ *   `chasingSprinters` es `false` y la rama de la caza no existe en esa etapa haga lo que haga la
+ *   fuga. La montaña no se ha tocado.
+ *
+ * Es decir: cero movimiento en montaña, cero movimiento en la llana cuya fuga tenía cuerda, y en la
+ * cuarta un pelotón que llega 54 s antes por perseguir diecinueve kilómetros más, sin partirse. No
+ * hay azar nuevo ni subflujo nuevo: el cambio son dos predicados que además de `allowed` miran
+ * `dayBreak`. Cualquier otra cosa que mueva esta huella hay que volver a justificarla aquí. */
 const SEALED_RESULTS: Record<string, string> = {
+  // v23: 14276 → 14222 y el orden dentro del segundo. Los 40 siguen entrando en UN solo reloj; lo
+  // que cambia es que la caza arranca en el km 72 en vez del 91 (ver la cabecera).
   'llana-180-0|llana-180|1|v1':
-    '1:spr-2:14276,2:spr-1:14276,3:spr-0:14276,4:pel-5:14276,5:pel-26:14276,6:pel-22:14276,7:pel-18:14276,8:pel-10:14276,9:pel-23:14276,10:pel-25:14276,11:pel-8:14276,12:pel-7:14276,13:pel-12:14276,14:brk-0:14276,15:pel-14:14276,16:pel-16:14276,17:pel-0:14276,18:pel-27:14276,19:pel-4:14276,20:pel-1:14276,21:pel-24:14276,22:pel-6:14276,23:pel-2:14276,24:brk-1:14276,25:pel-11:14276,26:brk-3:14276,27:pel-19:14276,28:pel-17:14276,29:pel-13:14276,30:brk-5:14276,31:pel-30:14276,32:brk-4:14276,33:pel-15:14276,34:pel-28:14276,35:pel-20:14276,36:pel-9:14276,37:brk-2:14276,38:pel-21:14276,39:pel-29:14276,40:pel-3:14276',
+    '1:spr-2:14222,2:spr-1:14222,3:spr-0:14222,4:pel-5:14222,5:pel-18:14222,6:pel-26:14222,7:pel-22:14222,8:pel-8:14222,9:pel-10:14222,10:pel-23:14222,11:pel-25:14222,12:pel-7:14222,13:brk-5:14222,14:pel-6:14222,15:pel-12:14222,16:pel-24:14222,17:pel-14:14222,18:brk-0:14222,19:pel-0:14222,20:pel-27:14222,21:brk-1:14222,22:pel-1:14222,23:pel-4:14222,24:pel-11:14222,25:pel-13:14222,26:pel-9:14222,27:pel-17:14222,28:pel-16:14222,29:brk-4:14222,30:pel-19:14222,31:brk-3:14222,32:pel-30:14222,33:pel-28:14222,34:pel-15:14222,35:pel-20:14222,36:pel-2:14222,37:pel-21:14222,38:pel-29:14222,39:pel-3:14222,40:brk-2:14222',
   'llana-180-1|llana-180|1|v1':
     '1:spr-2:14385,2:spr-0:14385,3:spr-1:14385,4:pel-19:14385,5:pel-26:14385,6:pel-30:14385,7:pel-3:14385,8:pel-24:14385,9:pel-28:14385,10:pel-1:14385,11:pel-22:14385,12:pel-6:14385,13:brk-1:14385,14:pel-4:14385,15:pel-23:14385,16:pel-15:14385,17:pel-2:14385,18:pel-9:14385,19:pel-8:14385,20:pel-0:14385,21:pel-17:14385,22:pel-14:14385,23:pel-21:14385,24:pel-11:14385,25:brk-5:14385,26:pel-7:14385,27:brk-4:14385,28:brk-0:14385,29:pel-5:14385,30:pel-16:14385,31:pel-20:14385,32:pel-27:14385,33:pel-12:14385,34:brk-3:14385,35:pel-25:14385,36:brk-2:14385,37:pel-10:14385,38:pel-29:14385,39:pel-18:14385,40:pel-13:14472',
   'reina-150-0|reina-150|1|v1':
