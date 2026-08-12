@@ -50,6 +50,16 @@ export function variantIndex(seed: string, mod: number): number {
   return mod > 0 ? h % mod : 0
 }
 
+/**
+ * La coletilla de los que saltan a la rueda y no la aguantan, con la concordancia del que ataca:
+ * detrás de un corredor solo se va CON ÉL, no con ellos.
+ */
+function attackTail(stranded: number, alone: boolean): string {
+  if (stranded <= 0) return ''
+  const tries = stranded === 1 ? 'tries' : 'try'
+  return ` ${stranded} more ${tries} to go with ${alone ? 'him' : 'them'} and cannot hold the wheel.`
+}
+
 /** Une una lista con comas y "and" al final: "A", "A and B", "A, B and C". */
 export function listNames(names: string[]): string {
   if (names.length <= 1) return names[0] ?? ''
@@ -237,10 +247,11 @@ function chronicleTemplate(e: ChronicleEntry): string {
       const stranded = Number(e.datos?.tierra ?? 0)
       const toGo = Number(e.datos?.toGo ?? 0)
       const held = e.datos?.cuerda === 0
-      const tail =
-        stranded > 0
-          ? ` ${stranded} more tr${stranded === 1 ? 'ies' : 'y'} to go with them and cannot hold the wheel.`
-          : ''
+      // CON UN SOLO PROTAGONISTA SE VA CON ÉL, NO CON ELLOS (v25). La coletilla de los que se quedan
+      // a rueda estaba escrita para un grupo: en producción, «3 more try to go with THEM» detrás de
+      // un corredor solo, 13 veces en 13 etapas del día de juego 46. `solo` lo marca la crónica, que
+      // es la capa que ve la entrada entera (ver `markAgreement` en apps/api).
+      const tail = attackTail(stranded, jumped === 1 || e.datos?.solo === 1)
       if (e.datos?.kind === 'puente')
         return `${who || 'A rider'} jump${jumped === 1 ? 's' : ''} across, chasing the leaders on their own.${tail}`
       if (e.datos?.kind === 'ataque_final')
@@ -261,6 +272,24 @@ function chronicleTemplate(e: ChronicleEntry): string {
         `${who} go${s1 ? 'es' : ''} clear off the front.${tail}${chased}`,
         `Attack: ${who} force${s1 ? 's' : ''} the pace and open${s1 ? 's' : ''} a gap.${tail}${chased}`,
         `${who} tr${s1 ? 'ies' : 'y'} ${s1 ? 'his' : 'their'} luck up the road.${tail}${chased}`,
+      ])
+    }
+    /**
+     * EL MANOTAZO QUE DURA UN KILÓMETRO (v25). La v25 retira el umbral que dejaba a 184 ataques
+     * narrados sin desenlace —lo que se abre se cierra—, y cuando el desenlace llega al kilómetro
+     * siguiente la crónica funde las dos líneas en ésta (`foldQuickAttacks` en apps/api): la
+     * historia se cuenta entera y ocupa la mitad.
+     */
+    case 'attack_short': {
+      const jumped = Number(e.datos?.saltan ?? e.protagonists.length)
+      const one = jumped === 1 || e.datos?.solo === 1
+      const km = Number(e.datos?.km ?? 1)
+      const span = km <= 1 ? 'within the kilometre' : `after ${km} km`
+      const tail = attackTail(Number(e.datos?.tierra ?? 0), one)
+      return pick([
+        `${who} go${one ? 'es' : ''} clear off the front, but the bunch has ${one ? 'him' : 'them'} back ${span}.${tail}`,
+        `A dig from ${who}${tail ? `.${tail}` : ','} ${tail ? 'The' : 'the'} elastic snaps back ${span}.`,
+        `${who} tr${one ? 'ies' : 'y'} ${one ? 'his' : 'their'} luck up the road and ${one ? 'is' : 'are'} swept up ${span}.${tail}`,
       ])
     }
     case 'attack_swarm': {
@@ -284,23 +313,49 @@ function chronicleTemplate(e: ChronicleEntry): string {
         `Nothing doing: ${who || 'the attack'} ${e.protagonists.length === 1 ? 'is' : 'are'} swept up again.`,
         `The elastic snaps back — ${who || 'the attackers'} sit up.`,
       ])
+    /**
+     * EL MOVIMIENTO QUE SE APAGA (v25). Un intento no siempre acaba cazado ni enganchado: a veces se
+     * queda sin nadie porque los suyos se van descolgando de él uno a uno, y el motor lo borraba en
+     * silencio. Es la mitad más callada del defecto más numeroso de los doce —ataques con frase de
+     * salida y sin desenlace— y se cuenta por lo que es: no le cogieron, se apagó.
+     */
+    case 'move_faded': {
+      const km = Number(e.datos?.km ?? 0)
+      const lasted = km > 0 ? ` after ${km} km out in front` : ''
+      const one = e.protagonists.length === 1
+      return pick([
+        `The move up the road simply dies out${lasted} — ${who || 'the escapees'} ${one ? 'has' : 'have'} nothing left.`,
+        `Nothing comes of it: ${who || 'the attack'} fade${one ? 's' : ''} away${lasted} without ever being caught.`,
+      ])
+    }
     case 'move_caught':
       return pick([
         `The chase brings ${who || 'the leaders'} back into the fold.`,
         `${who || 'The move'} ${e.protagonists.length === 1 ? 'is' : 'are'} caught.`,
       ])
-    case 'bridge_made':
+    case 'bridge_made': {
+      // …y EN CUÁNTOS QUEDA LA CABEZA (v25). El puente que engancha hace CRECER al grupo de delante,
+      // y hasta ahora la frase no lo decía: el lector veía aparecer nombres nuevos en el siguiente
+      // parte de cabeza sin que nadie le hubiera contado por dónde entraban.
+      const now = Number(e.datos?.size ?? 0)
+      const tail = now > 1 ? ` — ${now} in front now` : ''
       return pick([
-        `${who} make${e.protagonists.length === 1 ? 's' : ''} the junction and joins the leaders.`,
-        `The bridge works: ${who} get${e.protagonists.length === 1 ? 's' : ''} across to the front group.`,
+        `${who} make${e.protagonists.length === 1 ? 's' : ''} the junction and joins the leaders${tail}.`,
+        `The bridge works: ${who} get${e.protagonists.length === 1 ? 's' : ''} across to the front group${tail}.`,
       ])
+    }
     case 'bridge_failed':
       return pick([
         `${who || 'The chaser'} run${e.protagonists.length === 1 ? 's' : ''} out of legs in no man's land.`,
         `The junction is never made — ${who || 'the move'} hang${e.protagonists.length === 1 ? 's' : ''} between the two groups.`,
       ])
-    case 'move_merge':
-      return `The groups come together up front — ${Number(e.datos?.size ?? 0)} riders now in the lead.`
+    case 'move_merge': {
+      const joined = Number(e.datos?.entran ?? 0)
+      const now = Number(e.datos?.size ?? 0)
+      if (joined > 0)
+        return `The groups come together up front: ${joined} more join${joined === 1 ? 's' : ''} and there are ${now} riders in the lead.`
+      return `The groups come together up front — ${now} riders now in the lead.`
+    }
     case 'rider_sits_up': {
       // Regla 8: el agotado sin nada que jugarse administra el esfuerzo. Uno o dos sueltos SÍ tienen
       // mención propia; a partir de tres, la crónica los agrupa (ver `riders_sit_up`).
@@ -580,6 +635,31 @@ function chronicleTemplate(e: ChronicleEntry): string {
       // La ventaja solo se dice si es de verdad. El "perseguidor" inmediato puede ser el compañero
       // que acaba de soltarse tres segundos antes, y «3s clear» ahí no informa de nada: engaña.
       const clear = gap >= STAGE.gapReportMinSeconds ? `, ${fmtGap(gap)} clear` : ''
+      /**
+       * CUANDO EL GRUPO DE CABEZA CRECE HAY QUE DECIR OTRA COSA (v25). «Only N riders left in front»
+       * da por hecho que una fuga solo se deshace, y en Race Jaén la frase salió con N CRECIENDO
+       * —3, luego 4, luego 5—: 69 veces en 31 etapas del día de juego 46. `entran` y `salen` dicen
+       * qué ha cambiado desde el parte anterior (los manda el motor desde la v25 y la crónica los
+       * reconstruye para las etapas ya corridas), y con eso la frase cuenta el MOVIMIENTO del grupo
+       * y no una foto que se contradice con la anterior.
+       */
+      const entran = Number(e.datos?.entran ?? 0)
+      const salen = Number(e.datos?.salen ?? 0)
+      if (entran > 0) {
+        const gone = salen > 0 ? `, ${salen} ${salen === 1 ? 'has' : 'have'} dropped out of it` : ''
+        const joined = entran === 1 ? 'one more has come across' : `${entran} more have come across`
+        return pick([
+          `The lead group is up to ${size}${left}: ${joined}${gone} — ${who}${clear}.`,
+          `${joined.charAt(0).toUpperCase()}${joined.slice(1)}${gone}: ${size} at the front now${left} — ${who}${clear}.`,
+        ])
+      }
+      if (salen > 0 && size > 0) {
+        if (size === 1) return `${who || 'The leader'} is alone at the front now${clear}${left}.`
+        return pick([
+          `The move is coming apart: ${salen} ${salen === 1 ? 'is' : 'are'} gone and ${size} are left in front${left} — ${who}${clear}.`,
+          `Down to ${size} at the front${left} — ${who}${clear}.`,
+        ])
+      }
       if (size === 1) return `${who || 'The leader'} is alone at the front${clear}${left}.`
       if (size === 2) return `Just two left in front${left}: ${who}${clear}.`
       return `Only ${size} riders left in front${left}: ${who}${clear}.`
@@ -608,6 +688,35 @@ function chronicleTemplate(e: ChronicleEntry): string {
       // motor decide nombrar a los de cabeza, para que la crónica no se contradiga en dos frases.
       const small = size > 0 && size <= SMALL_FRONT_GROUP
       const group = small ? 'the front group' : 'the bunch'
+      /**
+       * SI YA ESTABAN AHÍ, LA FRASE CUENTA LO QUE HA CAMBIADO (v25). Fuego Escuadra tiraba para
+       * Sergio Gómez SEIS veces en Race Jaén con la misma redacción de presentación. La crónica ya
+       * tira los partes que no traen nada nuevo (`dropRepeatedPulls` en apps/api) y marca con
+       * `repite` los que sobreviven porque el esfuerzo o el motivo han cambiado: eso es lo que se
+       * cuenta —que aprietan, que aflojan, que ya no persiguen—, y no otra presentación.
+       */
+      if (e.datos?.repite === 1 && !small) {
+        const quien = team ?? who
+        if (effort === 'tope')
+          return pick([
+            `${quien} turn the screw${left}: the front of ${group} is one long line now.`,
+            `And now it is full gas from ${quien}${left} — ${group} is strung out.`,
+          ])
+        if (effort === 'tempo')
+          return pick([
+            `${quien} ease off at the front${left}: back to a steady tempo.`,
+            `The pace comes down again with ${quien} still on the front${left}.`,
+          ])
+        if (!chasing)
+          return pick([
+            `${quien} keep the front${left}, but they are not chasing anything now.`,
+            `Nothing left to chase: ${quien} simply hold the head of ${group}${left}.`,
+          ])
+        return pick([
+          `${quien} lift it again at the head of ${group}${left}.`,
+          `${quien} are still on the front${left}, and the pace is up.`,
+        ])
+      }
       // El TREN: lanzadores de un sprinter cerca de meta. Es su propia noticia y va antes que todo
       // lo demás, porque no es «controlar la carrera», es montar el lanzamiento.
       if (kind === 'tren' && forWhom)
@@ -714,22 +823,31 @@ function chronicleTemplate(e: ChronicleEntry): string {
       // se leían como una contradicción. Ahora la frase nombra la cúspide como lo que es.
       const peak = fmtGap(Number(e.datos?.closedS ?? 0))
       const km = Number(e.datos?.km ?? 0)
-      const since = km > 0 ? ` ${km} km later` : ' before the line'
+      /**
+       * DOS NÚMEROS QUE DICEN LO MISMO Y NO COINCIDEN (v25). En Race Jaén esta frase decía «172 km
+       * later» pegada a un «189 km up the road»: las dos son ciertas —una cuenta desde la cúspide
+       * del boquete y la otra desde que salió la fuga— y juntas se leen como un error. Cuando la
+       * frase va detrás de la captura, la cuenta de kilómetros ya está dicha y ésta se calla.
+       */
+      const since = e.datos?.pegado === 1 ? '' : km > 0 ? ` ${km} km later` : ' before the line'
+      // …y la CÚSPIDE se sitúa en la carretera. «Peaked at 3:04» dos líneas después de un «2:53» se
+      // lee como una contradicción; «3:04 allá por el km 26» es un sitio de la etapa.
+      const peakAt = e.datos?.peakKm == null ? '' : ` back at km ${Number(e.datos.peakKm)}`
       const nTeams = teamList.length
       if (nTeams === 1 && team)
         return pick([
-          `The work was ${team}'s: the lead peaked at ${peak} and was gone${since}.`,
-          `${team} did the closing — from a high of ${peak} to nothing${since}.`,
-          `It is ${team} who have driven the chase: ${peak} at its best, and gone${since}.`,
+          `The work was ${team}'s: the lead peaked at ${peak}${peakAt} and was gone${since}.`,
+          `${team} did the closing — from a high of ${peak}${peakAt} to nothing${since}.`,
+          `It is ${team} who have driven the chase: ${peak}${peakAt} at its best, and gone${since}.`,
         ])
       if (nTeams > 1)
         return pick([
-          `${who} shared the chasing between them: the gap peaked at ${peak} and was gone${since}.`,
-          `The catch belongs to ${who} — from ${peak} at its high point to nothing${since}.`,
+          `${who} shared the chasing between them: the gap peaked at ${peak}${peakAt} and was gone${since}.`,
+          `The catch belongs to ${who} — from ${peak}${peakAt} at its high point to nothing${since}.`,
         ])
       return pick([
-        `${who || 'The chasers'} did the work to close it: ${peak} at its widest, gone${since}.`,
-        `A lead of ${peak} wiped out${since}, and it was ${who || 'the chase'} who did it.`,
+        `${who || 'The chasers'} did the work to close it: ${peak}${peakAt} at its widest, gone${since}.`,
+        `A lead of ${peak}${peakAt} wiped out${since}, and it was ${who || 'the chase'} who did it.`,
       ])
     }
     case 'break_share': {
@@ -737,10 +855,15 @@ function chronicleTemplate(e: ChronicleEntry): string {
       // se entiende; esto dice a costa de quién.
       const passengers = Number(e.datos?.passengers ?? 0)
       const one = riders.length === 1
+      // «1 OF THEIR COMPANION SITS ON» (v25). La frase estaba escrita para varios y con uno se
+      // rompía: el que va a rueda es UN compañero, no «uno de su compañero». Con más de uno la
+      // cuenta manda, que es como se lee una fuga en la que la mitad no releva.
       const sitting =
-        passengers > 0
-          ? ` while ${passengers} of their companion${passengers === 1 ? '' : 's'} sit${passengers === 1 ? 's' : ''} on.`
-          : '.'
+        passengers === 1
+          ? ` while one of their companions sits on.`
+          : passengers > 1
+            ? ` while ${passengers} of their companions sit on.`
+            : '.'
       return pick([
         `${who} ${one ? 'is' : 'are'} doing the lion's share of the work up front${sitting}`,
         `Up the road the turns are uneven: ${who} keep${one ? 's' : ''} the move going${sitting}`,
@@ -784,6 +907,23 @@ function chronicleTemplate(e: ChronicleEntry): string {
       const size = Number(e.datos?.size ?? riders.length)
       const juntos = e.datos?.juntos !== 0
       const forKm = away > 0 ? ` after ${away} km up the road` : ''
+      /**
+       * LO QUE QUEDABA DE LA FUGA (v25). `size` son los que iban delante EN ESE MOMENTO y `deLos`,
+       * de cuántos había salido: cuando no coinciden, el grupo cambió por el camino y decirlo es la
+       * mitad de la historia. Antes el evento viajaba con la lista congelada del kilómetro en que la
+       * fuga se formó y la frase nombraba a quien llevaba cuarenta kilómetros en el pelotón.
+       */
+      const deLos = Number(e.datos?.deLos ?? size)
+      const ofWhat = deLos > size ? ` — what was left of a move that started with ${deLos}` : ''
+      /**
+       * …Y SI NADIE LLEGÓ A CAZARLA, NO SE DICE QUE LA CAZARON. Una fuga puede acabarse porque el
+       * pelotón se la come o porque se va cayendo sola, y no es el mismo desenlace.
+       */
+      if (e.datos?.motivo === 'deshecha')
+        return pick([
+          `The move of the day simply falls apart${forKm}: nothing left of it out on the road.`,
+          `No catch to speak of — the break comes undone on its own${forKm}.`,
+        ])
       // A la vista de la meta: es el desenlace más duro que hay y merece decirse así.
       const atTheLine = toGo >= 0 && toGo <= CAUGHT_AT_THE_LINE_KM
       // Con la fuga pequeña se nombra a quien iba dentro: es SU historia la que se acaba.
@@ -791,8 +931,8 @@ function chronicleTemplate(e: ChronicleEntry): string {
         if (atTheLine)
           return `Caught within sight of the line: ${who} ${size === 1 ? 'is' : 'are'} swallowed up${forKm}.`
         return pick([
-          `It is over for ${who}: caught${forKm}.`,
-          `The chase finally lands${forKm} — ${who} ${size === 1 ? 'is' : 'are'} back in the bunch.`,
+          `It is over for ${who}: caught${forKm}${ofWhat}.`,
+          `The chase finally lands${forKm} — ${who} ${size === 1 ? 'is' : 'are'} back in the bunch${ofWhat}.`,
         ])
       }
       if (!juntos)
@@ -801,8 +941,8 @@ function chronicleTemplate(e: ChronicleEntry): string {
           `What is left of the peloton swallows the move${forKm} — the race is in pieces.`,
         ])
       return pick([
-        'The peloton catches the breakaway — everyone back together.',
-        'The break is caught; the race is all together again.',
+        `The peloton catches the ${size} out front${ofWhat} — everyone back together.`,
+        `The break is caught${ofWhat}; the race is all together again.`,
         'The chase succeeds and the escapees are reeled back in.',
       ])
     }

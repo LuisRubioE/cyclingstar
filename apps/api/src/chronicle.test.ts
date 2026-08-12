@@ -309,12 +309,27 @@ describe('B5 · el liderato de la montaña de las crónicas viejas', () => {
     expect(out.map((e) => e.datos?.leads)).toEqual([1, 0, 0])
   })
 
-  it('el que suma de verdad sí lidera', () => {
+  /**
+   * `LEADS` DICE «PASA A LIDERAR», NO «LIDERA» (v25). El que ya mandaba se proclamaba líder otra vez
+   * en cada cima que coronaba: en Race Jaén, Alex Taylor lo hace en el km 44 y otra vez en el 100, y
+   * sobre el día de juego 46 son 35 proclamaciones repetidas en 21 etapas. Ganar el maillot es una
+   * noticia; conservarlo no es la misma noticia contada dos veces.
+   */
+  it('el que ya mandaba no vuelve a «pasar a liderar» por sumar más', () => {
     const out = buildChronicle(
       [kom(60, 'a'), kom(111, 'b'), kom(161, 'a')],
       chronicleNames([source('a'), source('b')]),
     )
-    expect(out.map((e) => e.datos?.leads)).toEqual([1, 0, 1])
+    expect(out.map((e) => e.datos?.leads)).toEqual([1, 0, 0])
+  })
+
+  it('…pero si otro se lo quita y lo recupera, eso SÍ es noticia otra vez', () => {
+    // `b` corona dos veces seguidas y le pasa por delante; cuando `a` vuelve a mandar, se canta.
+    const out = buildChronicle(
+      [kom(60, 'a'), kom(111, 'b'), kom(130, 'b'), kom(161, 'a'), kom(180, 'a')],
+      chronicleNames([source('a'), source('b')]),
+    )
+    expect(out.map((e) => e.datos?.leads)).toEqual([1, 0, 1, 0, 1])
   })
 })
 
@@ -745,5 +760,189 @@ describe('v21 · lo que la crónica ya no deja decir', () => {
     const caught = out.find((e) => e.plantilla === 'breakaway_caught')
     expect(caught?.datos?.awayKm).toBe(131)
     expect(caught?.datos?.toGo).toBe(0)
+  })
+})
+
+/**
+ * LA COHERENCIA DEL RELATO (v25, docs/balance.md «v25»).
+ *
+ * El dueño leyó el diario de Race Jaén y dijo que «no tiene ni pies ni cabeza»: doce contradicciones
+ * en un solo diario, y 1079 sobre las 73 etapas con crónica de producción. La causa madre es que el
+ * motor lleva DOS objetos que se llaman los dos «la fuga» —la lista congelada del kilómetro en que
+ * se formó y el grupo que va delante ahora— y el relato los mezcla.
+ *
+ * El motor de la v25 emite los datos que hacen falta. Lo que se sella aquí es la otra mitad: lo que
+ * esta capa puede arreglar de las etapas YA CORRIDAS, que son las que el dueño está leyendo.
+ */
+describe('v25 · la crónica no se contradice', () => {
+  const names = chronicleNames([source('a'), source('b'), source('c'), source('d')])
+
+  it('el resumen no se lee antes del suceso: la fuga se forma primero', () => {
+    // Race Jaén, km 1: `front_group` (tS 77) se leía antes de `breakaway_formed` (tS 341) porque la
+    // fuga se fecha en el km en que salió y se emitía con el reloj del km en que se confirmó.
+    const out = buildChronicle(
+      [
+        ev({
+          km: 1,
+          tS: 77,
+          plantilla: 'front_group',
+          protagonistas: ['a', 'b'],
+          datos: { size: 2 },
+        }),
+        ev({ km: 1, tS: 341, plantilla: 'breakaway_formed', protagonistas: ['a', 'b'] }),
+      ],
+      names,
+    )
+    expect(out.map((e) => e.plantilla)).toEqual(['breakaway_formed', 'front_group'])
+  })
+
+  it('la captura nombra a quien iba delante, no a la lista congelada', () => {
+    // Km 190 de Race Jaén: «Carlos Pinho y Alex Taylor vuelven al pelotón» con Pinho fuera del grupo
+    // de cabeza desde el km 150 y CINCO corredores delante.
+    const out = buildChronicle(
+      [
+        ev({ km: 1, tS: 10, plantilla: 'breakaway_formed', protagonistas: ['a', 'b'] }),
+        ev({
+          km: 176,
+          tS: 500,
+          plantilla: 'front_group',
+          protagonistas: ['b', 'c'],
+          datos: { size: 2 },
+        }),
+        ev({
+          km: 190,
+          tS: 600,
+          plantilla: 'breakaway_caught',
+          protagonistas: ['a', 'b'],
+          datos: { size: 2, awayKm: 189 },
+        }),
+      ],
+      names,
+    )
+    const caught = out.find((e) => e.plantilla === 'breakaway_caught')
+    expect(caught?.protagonists.map((p) => p.name)).toEqual(['b', 'c'])
+    expect(caught?.datos?.deLos).toBe(2)
+  })
+
+  it('cuando el grupo de cabeza CRECE la frase lo dice, y no «ya solo quedan N»', () => {
+    const out = buildChronicle(
+      [
+        ev({ km: 1, tS: 10, plantilla: 'breakaway_formed', protagonistas: ['a', 'b'] }),
+        ev({
+          km: 20,
+          tS: 100,
+          plantilla: 'front_group',
+          protagonistas: ['a', 'b'],
+          datos: { size: 2 },
+        }),
+        ev({
+          km: 40,
+          tS: 200,
+          plantilla: 'front_group',
+          protagonistas: ['a', 'b', 'c'],
+          datos: { size: 3 },
+        }),
+      ],
+      names,
+    )
+    const segundo = out.filter((e) => e.plantilla === 'front_group')[1]
+    expect(segundo?.datos?.entran).toBe(1)
+    expect(segundo?.datos?.salen).toBeUndefined()
+  })
+
+  it('un boquete medido contra un corredor suelto no se cuenta como la caza del pelotón', () => {
+    const out = buildChronicle(
+      [
+        ev({ km: 26, tS: 100, plantilla: 'time_gap', datos: { gapS: 173, chaseSize: 128 } }),
+        ev({ km: 152, tS: 200, plantilla: 'time_gap', datos: { gapS: 28, chaseSize: 1 } }),
+      ],
+      names,
+    )
+    expect(out.map((e) => e.datos?.chaseSize)).toEqual([128])
+  })
+
+  it('el mismo ataque no se cuenta dos veces seguidas', () => {
+    const out = buildChronicle(
+      [
+        ev({
+          km: 207,
+          tS: 100,
+          plantilla: 'attack_go',
+          protagonistas: ['a'],
+          datos: { saltan: 1, kind: 'ataque_final' },
+        }),
+        ev({
+          km: 207,
+          tS: 110,
+          plantilla: 'front_group',
+          protagonistas: ['a'],
+          datos: { size: 1 },
+        }),
+      ],
+      names,
+    )
+    expect(out.map((e) => e.plantilla)).toEqual(['attack_go'])
+  })
+
+  it('el ataque que dura un kilómetro se cuenta entero en una línea', () => {
+    const out = buildChronicle(
+      [
+        ev({
+          km: 195,
+          tS: 100,
+          plantilla: 'attack_go',
+          protagonistas: ['a'],
+          datos: { saltan: 1 },
+        }),
+        ev({
+          km: 196,
+          tS: 150,
+          plantilla: 'attack_reeled',
+          protagonistas: ['a'],
+          datos: { km: 1 },
+        }),
+      ],
+      names,
+    )
+    expect(out.map((e) => e.plantilla)).toEqual(['attack_short'])
+    expect(out[0]?.datos?.km).toBe(1)
+  })
+
+  it('el mismo equipo tirando para el mismo hombre no repite la presentación', () => {
+    const pull = (km: number, effort: string): ChronicleEvent =>
+      ev({
+        km,
+        tS: km * 100,
+        plantilla: 'peloton_pull',
+        protagonistas: ['a', 'b'],
+        datos: { forId: 'd', forKind: 'gregarios', effort, chasing: 1, size: 128 },
+      })
+    const out = buildChronicle([pull(21, 'firme'), pull(57, 'firme'), pull(94, 'tempo')], names)
+    // La segunda no dice nada nuevo y se cae; la tercera sí (aflojan) y se marca como repetición.
+    expect(out.map((e) => e.km)).toEqual([21, 94])
+    expect(out[1]?.datos?.repite).toBe(1)
+  })
+
+  it('quién cerró no repite la cuenta de kilómetros que la captura acaba de dar', () => {
+    const out = buildChronicle(
+      [
+        ev({
+          km: 190,
+          tS: 600,
+          plantilla: 'breakaway_caught',
+          protagonistas: ['a'],
+          datos: { size: 1, awayKm: 189 },
+        }),
+        ev({
+          km: 190,
+          tS: 600,
+          plantilla: 'chase_work',
+          protagonistas: ['b'],
+          datos: { closedS: 184, km: 172, peakKm: 26 },
+        }),
+      ],
+      names,
+    )
+    expect(out.find((e) => e.plantilla === 'chase_work')?.datos?.pegado).toBe(1)
   })
 })

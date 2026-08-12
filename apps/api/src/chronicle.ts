@@ -108,6 +108,35 @@ const EVENT_ORDER: Record<string, number> = {
 const finalRank = (plantilla: string): number =>
   plantilla === 'stage_win' || plantilla === 'stage_win_itt' ? 1 : 0
 
+/**
+ * …Y LA FUGA ABRE EL SUYO (v25). La otra excepción a que dentro de un km mande el reloj, y por la
+ * razón simétrica: un RESUMEN no puede leerse antes del SUCESO que lo produce. En Race Jaén el
+ * kilómetro 1 dice «ya solo quedan dos delante» y a continuación «saltan del pelotón», porque
+ * `breakaway_formed` se fecha en el km en que la fuga SALIÓ pero se emitía con el reloj del km en
+ * que se confirma que ha cuajado (77 contra 341). El motor de la v25 ya lo emite con el reloj bueno;
+ * esto lo arregla también en las 73 crónicas ya congeladas, que son las que el dueño está leyendo.
+ */
+const openingRank = (plantilla: string): number =>
+  plantilla === 'breakaway_formed' || plantilla === 'break_cooperation' ? 0 : 1
+
+/**
+ * Lo que DESPEJA LA CARRETERA: después de esto no hay «grupo de cabeza» en la cabeza del lector, y
+ * el siguiente parte de cabeza habla de un grupo que NACE, no de uno que ha perdido gente. Es el
+ * mismo olvido que hace el motor con su lista de los que van delante.
+ */
+const CLEARS_THE_ROAD = new Set([
+  'attack_reeled',
+  'attack_short',
+  'move_faded',
+  'move_caught',
+  'breakaway_caught',
+  'peloton_regroup',
+  'bunch_sprint',
+])
+
+/** Lo que hace CRECER al grupo de cabeza: un puente que llega, dos grupos que se juntan. */
+const GROWS_THE_FRONT = new Set(['move_merge', 'bridge_made', 'attack_sticks'])
+
 /** Tipos de evento que se pintan como hito sobre la altimetría, con su etiqueta en la web. */
 const MARKER_LABEL: Record<string, string> = {
   ataque: 'attack',
@@ -272,6 +301,7 @@ export function buildChronicle(
           // segundo. Solo la VICTORIA se queda fija al final de su kilómetro: es el cierre del
           // relato y ningún parte del pelotón que cruce la meta después le quita ese sitio.
           a.km - b.km ||
+          openingRank(a.plantilla) - openingRank(b.plantilla) ||
           finalRank(a.plantilla) - finalRank(b.plantilla) ||
           a.tS - b.tS ||
           (EVENT_ORDER[a.plantilla] ?? 9) - (EVENT_ORDER[b.plantilla] ?? 9),
@@ -289,11 +319,270 @@ export function buildChronicle(
   let out = dedupeSitUps(normalizeKomLeads(normalizeSplits(ordered)))
   out = dropImpossibleLines(out)
   out = dropRetiredWorkers(out)
+  // LA COHERENCIA DEL RELATO (v25). Todas estas pasadas valen también para las 73 crónicas ya
+  // CONGELADAS, que es lo que el dueño está leyendo hoy y lo único que el motor no puede arreglar.
+  out = dropLoneChaseGaps(out)
+  out = retellCatch(out)
   out = markReunion(out)
   out = dropUndoneSelections(out)
   out = groupGapRuns(out)
+  out = markFrontDelta(out)
+  out = dropAttackEcho(out)
+  out = foldQuickAttacks(out)
+  out = dropRepeatedPulls(out)
+  out = markAgreement(out)
+  out = markChaseWork(out)
   for (const kind of CLUSTERED) out = groupRuns(out, kind.single, kind.many)
   return out
+}
+
+/**
+ * Con menos gente que esto en carrera, que el perseguidor inmediato sea uno no es un defecto: es la
+ * carrera. El defecto es decir «la caza» de un corredor suelto mientras detrás hay un pelotón.
+ */
+const BUNCH_MIN_RIDERS = 8
+
+/**
+ * EL BOQUETE MEDIDO CONTRA UN CORREDOR SUELTO (v25). El motor daba el parte de ventaja contra el
+ * primer reloj que viniera por detrás, fuera quien fuera: en Race Jaén, el puente en solitario de
+ * Frédéric Muller dejó un grupo intermedio de UN corredor y el km 152 salió con «la caza se está
+ * comiendo la ventaja» sobre un dato que no era el del pelotón —que eran 127 y estaba tirando—.
+ *
+ * El motor de la v25 ya mide contra el grueso de la carrera. En lo congelado no hay forma de
+ * recalcular el número, y un número que no se puede arreglar es mejor no contarlo: la línea se cae.
+ * No se pierde información —la ventaja de verdad la cuentan los partes de al lado—, se pierde una
+ * contradicción.
+ */
+function dropLoneChaseGaps(entries: ChronicleEntry[]): ChronicleEntry[] {
+  const field = entries.reduce((mx, e) => {
+    const n = Number(
+      e.datos?.field ??
+        e.datos?.chaseSize ??
+        (e.plantilla === 'peloton_pull' ? e.datos?.size : 0) ??
+        0,
+    )
+    return Number.isFinite(n) ? Math.max(mx, n) : mx
+  }, 0)
+  if (field < BUNCH_MIN_RIDERS) return entries
+  return entries.filter(
+    (e) => !(e.plantilla === 'time_gap' && Number(e.datos?.chaseSize ?? 0) === 1),
+  )
+}
+
+/**
+ * LA CAPTURA NOMBRA A QUIEN IBA DELANTE (v25). `breakaway_caught` viajaba con `dayBreakRiders`, la
+ * lista congelada del kilómetro en que la fuga se formó: en Race Jaén, el km 190 anuncia que «Carlos
+ * Pinho y Alex Taylor vuelven al pelotón» cuando Pinho no iba delante desde el km 150 y los de
+ * delante eran CINCO. El motor de la v25 emite a los que iban delante en ese momento; aquí se
+ * arregla lo congelado con lo que la propia crónica sabe —el último parte de cabeza—.
+ *
+ * Con una guarda, porque el último parte de cabeza puede estar CADUCADO: si entre él y la captura el
+ * grupo de delante creció (un puente que llega, dos grupos que se juntan) ya no sabemos quiénes
+ * eran, y entonces no se toca nada. Inventarse una lista es peor que dejar la vieja.
+ */
+function retellCatch(entries: ChronicleEntry[]): ChronicleEntry[] {
+  return entries.map((e, i) => {
+    if (e.plantilla !== 'breakaway_caught') return e
+    let front: ChronicleEntry | null = null
+    let stale = false
+    for (let j = i - 1; j >= 0; j--) {
+      const o = entries[j]!
+      if (o.plantilla === 'front_group') {
+        front = o
+        break
+      }
+      // Un ataque que sale del grupo de cabeza, una criba del pelotón o una fusión caducan el parte
+      // igual: después de cualquiera de esas cosas ya no dice quiénes van delante.
+      if (
+        GROWS_THE_FRONT.has(o.plantilla) ||
+        CLEARS_THE_ROAD.has(o.plantilla) ||
+        o.plantilla === 'attack_go' ||
+        o.plantilla === 'attack_swarm' ||
+        o.plantilla === 'peloton_split' ||
+        o.plantilla === 'peloton_selection'
+      ) {
+        stale = true
+      }
+    }
+    if (!front || stale) return e
+    const iban = front.protagonists.map((p) => p.name).join()
+    if (e.protagonists.map((p) => p.name).join() === iban) return e
+    return {
+      ...e,
+      protagonists: front.protagonists,
+      datos: {
+        ...e.datos,
+        size: front.protagonists.length,
+        // De cuántos salió la fuga: la otra mitad de la historia cuando el grupo ha cambiado.
+        ...(e.datos?.deLos == null
+          ? { deLos: Number(e.datos?.size ?? e.protagonists.length) }
+          : {}),
+      },
+    }
+  })
+}
+
+/**
+ * EL GRUPO DE CABEZA CAMBIA DE GENTE, Y SE DICE (v25). «Only N riders left in front» con N
+ * CRECIENDO —3, luego 4, luego 5— es el segundo defecto más numeroso de los doce: 69 veces en 31
+ * etapas del día de juego 46. La plantilla daba por hecho que una fuga solo se deshace.
+ *
+ * El motor de la v25 manda `entran` y `salen`. Aquí se reconstruyen para las crónicas congeladas,
+ * comparando con el parte de cabeza anterior. Solo cuando los dos partes comparten a alguien: si no
+ * hay un solo nombre en común, lo de delante no es el mismo grupo que ha cambiado, es otro grupo.
+ */
+function markFrontDelta(entries: ChronicleEntry[]): ChronicleEntry[] {
+  let prev: string[] | null = null
+  return entries.map((e) => {
+    if (CLEARS_THE_ROAD.has(e.plantilla)) {
+      prev = null
+      return e
+    }
+    if (e.plantilla !== 'front_group') return e
+    const ids = e.protagonists.map((p) => p.name)
+    const before = prev
+    prev = ids
+    if (before === null) return e
+    if (e.datos?.entran != null || e.datos?.salen != null) return e
+    if (!ids.some((r) => before.includes(r))) return e
+    const entran = ids.filter((r) => !before.includes(r)).length
+    const salen = before.filter((r) => !ids.includes(r)).length
+    if (entran === 0 && salen === 0) return e
+    return {
+      ...e,
+      datos: {
+        ...e.datos,
+        ...(entran > 0 ? { entran } : {}),
+        ...(salen > 0 ? { salen } : {}),
+      },
+    }
+  })
+}
+
+/**
+ * EL MISMO ATAQUE, DOS LÍNEAS SEGUIDAS (v25). En Race Jaén el km 207 dice «Rafael Teixeira ataca a
+ * 3 km» y justo después «solo queda uno delante: Rafael Teixeira»: son la misma noticia con otras
+ * palabras. El parte de cabeza existe para contar QUIÉNES van delante cuando el lector no lo sabe;
+ * pegado al ataque que acaba de leer, no cuenta nada.
+ */
+function dropAttackEcho(entries: ChronicleEntry[]): ChronicleEntry[] {
+  return entries.filter((e, i) => {
+    if (e.plantilla !== 'front_group') return true
+    const prev = entries[i - 1]
+    if (!prev || prev.km !== e.km) return true
+    if (prev.plantilla !== 'attack_go' && prev.plantilla !== 'bridge_made') return true
+    const mine = e.protagonists.map((p) => p.name)
+    const his = prev.protagonists.map((p) => p.name)
+    return !(mine.length === his.length && mine.every((r) => his.includes(r)))
+  })
+}
+
+/** Km dentro de los cuales un ataque y su captura son UNA noticia y no dos. */
+const QUICK_ATTACK_KM = 3
+
+/**
+ * EL MANOTAZO QUE DURA UN KILÓMETRO, EN UNA LÍNEA (v25). La v25 retira el umbral que dejaba a 184
+ * ataques narrados sin desenlace, y el precio de contarlos todos es un «ataca» seguido a un
+ * kilómetro de un «le cazan». Cuando las dos líneas son seguidas y del mismo corredor, se cuentan
+ * juntas: el arco se cierra igual y ocupa la mitad.
+ */
+function foldQuickAttacks(entries: ChronicleEntry[]): ChronicleEntry[] {
+  const drop = new Set<number>()
+  const out = entries.map((e, i) => {
+    if (e.plantilla !== 'attack_reeled' && e.plantilla !== 'move_caught') return e
+    const prev = entries[i - 1]
+    if (!prev || prev.plantilla !== 'attack_go') return e
+    if (e.km - prev.km > QUICK_ATTACK_KM) return e
+    const mine = e.protagonists.map((p) => p.name)
+    const his = prev.protagonists.map((p) => p.name)
+    if (!(mine.length === his.length && mine.every((r) => his.includes(r)))) return e
+    drop.add(i - 1)
+    return {
+      ...e,
+      plantilla: 'attack_short',
+      datos: { ...prev.datos, ...e.datos, km: Math.max(1, e.km - prev.km) },
+    }
+  })
+  return out.filter((_, i) => !drop.has(i))
+}
+
+/**
+ * EL MISMO EQUIPO TIRANDO PARA EL MISMO HOMBRE, SEIS VECES (v25). En Race Jaén, Fuego Escuadra tira
+ * para Sergio Gómez en los km 21, 57, 70, 94, 130 y 192, y las seis frases dicen lo mismo. El motor
+ * tiene un acelerador (`pullReportKmGap`) y no basta: si el equipo y el líder no cambian, la segunda
+ * vez y las siguientes o cuentan algo NUEVO —que aprietan, que aflojan, que ya no persiguen— o se
+ * callan.
+ *
+ * Lo que se conserva es el CAMBIO, que es la noticia; y va marcado con `repite` para que la frase se
+ * lea como lo que es —«siguen ahí, y ahora a tope»— y no como una presentación repetida.
+ */
+function dropRepeatedPulls(entries: ChronicleEntry[]): ChronicleEntry[] {
+  let prev: string | null = null
+  const out: ChronicleEntry[] = []
+  for (const e of entries) {
+    if (e.plantilla !== 'peloton_pull') {
+      out.push(e)
+      continue
+    }
+    // La identidad del parte es QUIÉN tira y PARA QUIÉN, no qué tres gregarios concretos están al
+    // frente: en un pelotón que se releva, el tercer nombre no repite nunca y sin esto la frase
+    // volvería a salir seis veces con otro reparto.
+    // …y en una ALIANZA no hay un equipo del que hablar: lo que la frase cuenta es que varios
+    // equipos con líderes distintos coinciden en tirar, y eso no cambia porque roten los nombres.
+    const alianza = e.datos?.forKind === 'alianza'
+    const who = [
+      e.datos?.forId ?? '',
+      alianza ? '' : [...new Set(e.protagonists.map((p) => p.team ?? p.name))].join('/'),
+    ].join('|')
+    const key = `${who}|${e.datos?.forKind ?? ''}|${e.datos?.effort ?? ''}|${e.datos?.chasing ?? ''}`
+    if (prev === key) continue
+    const sameCrew = prev !== null && prev.startsWith(`${who}|`)
+    prev = key
+    out.push(sameCrew ? { ...e, datos: { ...e.datos, repite: 1 } } : e)
+  }
+  return out
+}
+
+/**
+ * LA CONCORDANCIA, DECIDIDA DONDE SE VE LA ENTRADA ENTERA (v25). Dos frases de producción con la
+ * gramática rota: «3 more try to go with them and cannot hold the wheel» con UN solo protagonista, y
+ * «1 of their companion sits on». La plantilla tiene los números para saberlo, pero el medidor de
+ * coherencia trabaja sobre DATOS y no sobre texto: marcarlo aquí es lo que permite comprobar que la
+ * frase concuerda sin tener que leerla, igual que `juntos` y `cazada` hacen con la captura.
+ */
+function markAgreement(entries: ChronicleEntry[]): ChronicleEntry[] {
+  return entries.map((e) => {
+    if (
+      e.plantilla === 'attack_go' ||
+      e.plantilla === 'attack_swarm' ||
+      e.plantilla === 'attack_short'
+    ) {
+      const saltan = Number(e.datos?.saltan ?? e.protagonists.length)
+      return { ...e, datos: { ...e.datos, solo: saltan === 1 ? 1 : 0 } }
+    }
+    if (e.plantilla === 'break_share') {
+      return { ...e, datos: { ...e.datos, solo: Number(e.datos?.passengers ?? 0) === 1 ? 1 : 0 } }
+    }
+    return e
+  })
+}
+
+/**
+ * DOS NÚMEROS QUE DICEN LO MISMO Y NO COINCIDEN (v25). En Race Jaén, dos líneas seguidas: «189 km up
+ * the road» (los que llevaba fuera la fuga) y «172 km later» (los que han pasado desde la cúspide
+ * del boquete). Las dos son ciertas y miden cosas distintas, y juntas se leen como un error.
+ *
+ * `pegado` dice que la frase de quién cerró va justo detrás de la captura, y entonces se calla su
+ * cuenta de kilómetros: la de la captura ya está dicha y es la que el lector necesita.
+ */
+function markChaseWork(entries: ChronicleEntry[]): ChronicleEntry[] {
+  return entries.map((e, i) => {
+    if (e.plantilla !== 'chase_work') return e
+    const prev = entries[i - 1]
+    if (!prev) return e
+    if (prev.plantilla !== 'breakaway_caught' && prev.plantilla !== 'move_caught') return e
+    return { ...e, datos: { ...e.datos, pegado: 1 } }
+  })
 }
 
 /**
@@ -555,15 +844,27 @@ function groupGapRuns(entries: ChronicleEntry[]): ChronicleEntry[] {
  */
 function normalizeKomLeads(entries: ChronicleEntry[]): ChronicleEntry[] {
   const puntos = new Map<string, number>()
+  /** A quién se ha PROCLAMADO ya líder en esta etapa. Es lo que distingue ganar de conservar. */
+  let proclamado: string | null = null
   return entries.map((e) => {
     if (e.plantilla !== 'climb_kom') return e
     const quien = e.protagonists[0]?.name ?? ''
     puntos.set(quien, (puntos.get(quien) ?? 0) + Number(e.datos?.points ?? 0))
-    if (e.datos?.leads !== 1) return e
     const mios = puntos.get(quien) ?? 0
     let mejorAjeno = 0
     for (const [otro, pts] of puntos) if (otro !== quien) mejorAjeno = Math.max(mejorAjeno, pts)
-    if (mios > mejorAjeno) return e
+    if (e.datos?.leads !== 1) return e
+    /**
+     * `leads` DICE «PASA A LIDERAR», NO «LIDERA» (v25). Con la lectura vieja el que ya mandaba se
+     * proclamaba líder otra vez en cada cima que coronaba: en Race Jaén, Alex Taylor «takes the lead
+     * in the mountains» en el km 44 y otra vez en el km 100, y son 35 proclamaciones repetidas en 21
+     * etapas del día de juego 46. Ganar el maillot es una noticia; conservarlo no es la misma
+     * noticia contada dos veces. El motor de la v25 ya lo emite así; esto arregla lo congelado.
+     */
+    if (mios > mejorAjeno && proclamado !== quien) {
+      proclamado = quien
+      return e
+    }
     return { ...e, datos: { ...e.datos, leads: 0 } }
   })
 }

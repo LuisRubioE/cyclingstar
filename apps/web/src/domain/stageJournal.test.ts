@@ -463,8 +463,12 @@ describe('quién colabora en la fuga', () => {
     expect(l).toContain('2 of their companions sit on')
   })
 
-  it('con un solo pasajero la frase va en singular', () => {
-    expect(share(1, ['Ana', 'Bea'])).toContain('1 of their companion sits on')
+  // «1 OF THEIR COMPANION SITS ON» (v25): la coletilla estaba escrita para varios y con uno se
+  // rompía. El que va a rueda es UN compañero, no «uno de su compañero».
+  it('con un solo pasajero la frase va en singular y concuerda', () => {
+    const l = share(1, ['Ana', 'Bea'])
+    expect(l).toContain('one of their companions sits on')
+    expect(l).not.toContain('1 of their companion sits on')
   })
 
   it('sin pasajeros no se inventa la coletilla', () => {
@@ -1322,5 +1326,145 @@ describe('el corredor sin equipo se llama Individual, y solo cuando lo sabemos',
       ],
     })
     expect(chronicleLine(e)).not.toContain('Individual hit the front')
+  })
+})
+
+/**
+ * V25 · LAS FRASES QUE SE CONTRADECÍAN (docs/balance.md «v25»). Todas salen del diario de Race Jaén
+ * que el dueño leyó, y todas se cuentan sobre el mundo entero en `scripts/medir-defectos.mjs`.
+ */
+describe('v25 · el relato no se contradice', () => {
+  it('con un solo atacante los que no aguantan la rueda van CON ÉL', () => {
+    const l = chronicleLine(
+      event({
+        plantilla: 'attack_go',
+        km: 28,
+        protagonists: named('Álvaro'),
+        datos: { saltan: 1, tierra: 3, cuerda: 0, toGo: 182, solo: 1 },
+      }),
+    )
+    expect(l).toContain('3 more try to go with him')
+    expect(l).not.toContain('with them')
+  })
+
+  it('cuando el grupo de cabeza CRECE la frase no dice «ya solo quedan N»', () => {
+    const l = chronicleLine(
+      event({
+        plantilla: 'front_group',
+        km: 156,
+        protagonists: named('Taylor', 'Jereb', 'Moretti'),
+        datos: { size: 3, gapS: 60, toGo: 54, entran: 2, salen: 1 },
+      }),
+    )
+    expect(l).not.toContain('Only 3 riders left in front')
+    expect(l).toMatch(/come across/)
+    expect(l).toContain('Taylor')
+  })
+
+  it('…y cuando se deshace, sí', () => {
+    const l = chronicleLine(
+      event({
+        plantilla: 'front_group',
+        km: 120,
+        protagonists: named('Taylor'),
+        datos: { size: 1, gapS: 60, toGo: 30, salen: 2 },
+      }),
+    )
+    expect(l).toContain('alone at the front')
+  })
+
+  it('la captura dice de cuántos había salido la fuga cuando ya no son los mismos', () => {
+    const l = chronicleLine(
+      event({
+        plantilla: 'breakaway_caught',
+        km: 190,
+        protagonists: named('Taylor', 'Rus'),
+        datos: { size: 2, deLos: 6, awayKm: 189, toGo: 20, juntos: 1 },
+      }),
+    )
+    expect(l).toContain('started with 6')
+  })
+
+  it('una fuga que se apaga sola no se cuenta como una fuga cazada', () => {
+    const l = chronicleLine(
+      event({
+        plantilla: 'breakaway_caught',
+        km: 150,
+        protagonists: named('Taylor'),
+        datos: { size: 1, awayKm: 120, motivo: 'deshecha' },
+      }),
+    )
+    expect(l).not.toMatch(/caught|catches/)
+    expect(l).toMatch(/falls apart|comes undone/)
+  })
+
+  it('la cúspide del boquete se sitúa en la carretera y no repite la cuenta de la captura', () => {
+    const l = chronicleLine(
+      event({
+        plantilla: 'chase_work',
+        km: 190,
+        protagonists: named('Muller'),
+        datos: { closedS: 184, km: 172, peakKm: 26, work: 18.5, pegado: 1 },
+      }),
+    )
+    expect(l).toContain('back at km 26')
+    expect(l).not.toContain('172 km later')
+  })
+
+  it('el equipo que ya estaba tirando cuenta lo que ha cambiado, no otra presentación', () => {
+    const l = chronicleLine(
+      event({
+        plantilla: 'peloton_pull',
+        km: 94,
+        protagonists: [rider('Fischer', { team: 'Fuego Escuadra' })],
+        datos: {
+          size: 128,
+          effort: 'tempo',
+          forKind: 'gregarios',
+          chasing: 1,
+          toGo: 116,
+          repite: 1,
+        },
+      }),
+    )
+    expect(l).toMatch(/ease off|pace comes down/)
+  })
+
+  it('el manotazo que dura un kilómetro se cuenta entero en una línea', () => {
+    const l = chronicleLine(
+      event({
+        plantilla: 'attack_short',
+        km: 196,
+        protagonists: named('Turk'),
+        datos: { saltan: 1, solo: 1, km: 1, kind: 'contraataque' },
+      }),
+    )
+    expect(l).toContain('Turk')
+    expect(l).toMatch(/within the kilometre|snaps back/)
+  })
+
+  it('el movimiento que se apaga se cuenta como lo que fue: nadie le cazó', () => {
+    const l = chronicleLine(
+      event({
+        plantilla: 'move_faded',
+        km: 140,
+        protagonists: named('Brown'),
+        datos: { kind: 'puente', km: 26, toGo: 70 },
+      }),
+    )
+    expect(l).toContain('Brown')
+    expect(l).toMatch(/dies out|fade/)
+  })
+
+  it('un puente que engancha dice en cuántos queda la cabeza de carrera', () => {
+    const l = chronicleLine(
+      event({
+        plantilla: 'bridge_made',
+        km: 167,
+        protagonists: named('Rus'),
+        datos: { size: 4, entran: 1, toGo: 43 },
+      }),
+    )
+    expect(l).toContain('4 in front now')
   })
 })
