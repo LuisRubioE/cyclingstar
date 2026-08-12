@@ -4842,11 +4842,22 @@ calendario de principio a fin**, con el mismo campo día a día y la fatiga acum
 Omán, Victoria, Down Under, Colombia, Almería y Tramuntana — las carreras de la queja, con sus tres
 niveles de campo y de 1 a 9 etapas. Lista CERRADA, como las de `realQueens` y `timeTrials`.
 
-> **No se ha podido leer producción.** `https://cyclingstar-production.up.railway.app` devuelve
-> `404 Application not found` en `/health`, `/api/calendar` y `/api/rankings`. El campo del banco sale
-> por tanto del MISMO generador que puebla el mundo, que es lo más cerca que se puede estar sin la
-> API; si algún día se contrasta contra una startlist real y la dispersión no cuadra, esta tabla es
-> la que hay que rehacer.
+> **CONTRASTADO CONTRA PRODUCCIÓN, y la punta está aún MÁS apretada que en esta tabla.** La fila
+> «Continental» se escribió a ciegas —la URL con la que se intentó leer la API estaba equivocada, no
+> era que estuviera caída; la buena es `https://cyclingstar.up.railway.app`—, así que se comprobó
+> después sobre el campo REAL de Race Arabia e1 (133 corredores, atributos leídos uno a uno de
+> `/api/riders/:id`):
+>
+> | Race Arabia e1 (real) | mejor SPR | 1.º−2.º | 1.º−3.º | 1.º−5.º | SPR ≥ 68 |
+> | --------------------- | --------: | ------: | ------: | ------: | -------: |
+> | medido                |      88,4 | **0,4** |     3,4 |    10,8 |       28 |
+>
+> Cero coma cuatro puntos entre Carlo Lombardo y Marc Willems. Y Lombardo ganó las cinco etapas con
+> Willems SEGUNDO en las cinco. Es decir: la tabla de arriba se queda CORTA en su dirección —el campo
+> real está más igualado que el generado, no menos— y aun así el desenlace no se movió ni un día.
+> Eso descarta «el mejor sprinter destaca demasiado» como explicación del barrido y deja apuntando a
+> otro sitio: a que el sprint reparta siempre el mismo orden. Anotado como deuda al final de esta
+> entrada.
 
 ### 2. La causa, y no era la del encargo: `Move.allowed` se decidía una vez y no se revisaba jamás
 
@@ -4948,7 +4959,7 @@ Y lo que no lleva objetivo pero cuenta la historia:
 | Lectura                                        |              ANTES |                     DESPUÉS |
 | ---------------------------------------------- | -----------------: | --------------------------: |
 | Fugas que ganan en llano con margen de MINUTOS |               13 % |                     **0 %** |
-| …y con el margen realista de 5-60 s            |               88 % |                      88 %   |
+| …y con el margen realista de 5-60 s            |               88 % |                        88 % |
 | Margen mediano de la fuga que gana en llano    |               31 s |                        27 s |
 | Fugas que ganan en llano (de 84 llanas)        |                  8 |                           8 |
 | Grupos de tiempo en una LLANA                  |                1,5 |                     **2,0** |
@@ -5066,3 +5077,26 @@ lejos por definición— y no sobre el motor de hoy. El banco queda como el siti
   (3 de los diez primeros repiten entre etapas seguidas, antes y después) porque no hay un número real
   que poner ahí: dos sprints seguidos SE PARECEN, y un sprint y una etapa reina no. Es lectura, no
   listón.
+
+### 10. La deuda que deja abierta esta tanda: el sprint reparte SIEMPRE el mismo orden
+
+Contrastado contra producción DESPUÉS de cerrar la tanda (§1), y es el número que hay que perseguir
+en la siguiente. Sobre las llegadas agrupadas de cada carrera del GD 46 con tres o más, cuántos de
+los cinco primeros de una etapa vuelven a estar entre los cinco primeros de otra de la misma carrera:
+
+| Carrera       | llegadas agrupadas | ganadores distintos | top-5 que se repite |
+| ------------- | -----------------: | ------------------: | ------------------: |
+| Race Arabia   |                  5 |               **1** |         **3,3** / 5 |
+| Race Sharjah  |                  5 |                   2 |         **3,3** / 5 |
+| Race Bességes |                  4 |                   3 |             1,7 / 5 |
+| Race Colombia |                  4 |               **4** |             1,0 / 5 |
+
+**No es universal, y eso es lo interesante**: Colombia y Bességes reparten como debe repartir una
+carrera de verdad; Arabia y Sharjah devuelven casi la misma foto de meta cinco días seguidos. Y en
+Arabia el 1.º y el 2.º son los MISMOS en las cinco etapas, con 0,4 puntos de SPR entre ellos.
+
+Por qué esta tanda no lo cierra: `smallTours.sweepPct` mide **9,7 %** agrupando 31 carreras, y ese
+promedio se traga que dos de las cuatro carreras medibles de producción estén en barrido o a una
+etapa de él. El listón que hace falta no es «cuántas gana el mejor» sino **cuánto se repite la foto
+de meta dentro de una misma carrera**, que es lo que la tabla de arriba separa limpiamente (3,3
+enfermo contra 1,0 sano). Ése es el objetivo que le falta a `targets.ts`.
