@@ -35,7 +35,7 @@ describe('api: una etapa corrida se describe con el recorrido que se corrió', (
   it('la crono de 15 km que en realidad fueron 170 km de carretera', () => {
     const head = stageHead(
       4,
-      { name: 'Stage 4 · ITT', kind: 'cri', timeTrial: true, km: 15 },
+      { name: 'Stage 4 · ITT', label: 'ITT', kind: 'cri', timeTrial: true, km: 15 },
       { profile: carretera, timeTrial: false, km: KM_CORRIDOS },
     )
     expect(head.staleSpec).toBe(true)
@@ -44,18 +44,22 @@ describe('api: una etapa corrida se describe con el recorrido que se corrió', (
     expect(head.kind).toBe('llana')
     // El número de etapa no cambia —es su sitio en la carrera—, la etiqueta sí.
     expect(head.name).toBe('Stage 4 · Flat')
+    // Y la etiqueta corta va con ellos: la web la pinta al lado del tipo y del nombre, así que si se
+    // quedara con el «ITT» de la ficha volvería a contradecirlos, que es el defecto de partida.
+    expect(head.label).toBe('Flat')
   })
 
   it('los 188 km de la ficha contra los 210 que se corrieron', () => {
     const real = conPuertoFinal(210)
     const head = stageHead(
       1,
-      { name: 'Stage 1 · Hills', kind: 'media', timeTrial: false, km: 188 },
+      { name: 'Stage 1 · Hills', label: 'Hills', kind: 'media', timeTrial: false, km: 188 },
       { profile: real, timeTrial: false, km: 210 },
     )
     expect(head.staleSpec).toBe(true)
     expect(head.km).toBe(210)
     expect(head.kind).toBe('reina')
+    expect(head.label).toBe('Summit finish')
   })
 
   it('cuando la ficha SIGUE describiendo la etapa, manda la ficha', () => {
@@ -64,19 +68,22 @@ describe('api: una etapa corrida se describe con el recorrido que se corrió', (
     const perfil = conPuertoFinal(200)
     const head = stageHead(
       3,
-      { name: 'Stage 3 · Cobbles', kind: 'clasica', timeTrial: false, km: 200 },
+      { name: 'Stage 3 · Cobbles', label: 'Cobbles', kind: 'clasica', timeTrial: false, km: 200 },
       { profile: perfil, timeTrial: false, km: 200 },
     )
     expect(head.staleSpec).toBe(false)
     expect(head.name).toBe('Stage 3 · Cobbles')
     expect(head.kind).toBe('clasica')
+    // Ni siquiera se le pregunta al clasificador: con la ficha vigente, «Cobbles» es lo que hay,
+    // aunque este perfil de prueba sea el de una reina.
+    expect(head.label).toBe('Cobbles')
   })
 
   it('un kilómetro de diferencia es redondeo, no un recorrido distinto', () => {
     const perfil = rodado(181)
     const head = stageHead(
       2,
-      { name: 'Stage 2 · Flat', kind: 'llana', timeTrial: false, km: 180 },
+      { name: 'Stage 2 · Flat', label: 'Flat', kind: 'llana', timeTrial: false, km: 180 },
       { profile: perfil, timeTrial: false, km: 181 },
     )
     expect(head.staleSpec).toBe(false)
@@ -88,7 +95,7 @@ describe('api: una etapa corrida se describe con el recorrido que se corrió', (
   it('una crono que sigue siendo crono no se toca', () => {
     const head = stageHead(
       2,
-      { name: 'Stage 2 · ITT', kind: 'cri', timeTrial: true, km: 15 },
+      { name: 'Stage 2 · ITT', label: 'ITT', kind: 'cri', timeTrial: true, km: 15 },
       { profile: crono, timeTrial: true, km: 15 },
     )
     expect(head.staleSpec).toBe(false)

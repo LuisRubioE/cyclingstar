@@ -50,15 +50,6 @@ const KIND_DOT: Record<string, string> = {
   clasica: 'bg-orange-500',
 }
 
-/** Nombre legible del tipo de etapa (el dato del motor viene en español). */
-const KIND_LABEL: Record<string, string> = {
-  llana: 'Flat',
-  media: 'Hilly',
-  reina: 'Mountain',
-  cri: 'Time trial',
-  clasica: 'Classic',
-}
-
 const DIVISION_LABEL: Record<string, string> = {
   WT: 'WorldTour',
   PRS: 'ProTeams',
@@ -250,12 +241,21 @@ function StageLine({ stage, oneDay }: { stage: RaceStagePlan; oneDay: boolean })
         className={`inline-block h-2 w-2 shrink-0 rounded-full ${KIND_DOT[stage.kind] ?? 'bg-slate-300'}`}
         aria-hidden
       />
+      {/*
+        En una carrera de un día no hay «Stage 1» que numerar: la etapa ES la carrera, y su nombre
+        del calendario («Stage 1 · Classic») no dice nada que no diga ya la ficha de arriba. Se deja
+        solo la etiqueta.
+      */}
       <span className="font-medium text-slate-700">
-        {oneDay ? stage.name : `Stage ${stage.index}`}
+        {oneDay ? stage.label : `Stage ${stage.index}`}
       </span>
-      <span className="hidden text-xs text-slate-400 sm:inline">
-        {KIND_LABEL[stage.kind] ?? stage.kind}
-      </span>
+      {/*
+        La ETIQUETA del calendario, no el tipo. Son dos vocabularios para lo mismo —«Summit finish»
+        contra «Mountain», «Uphill finish» contra «Hilly»— y el del calendario es el preciso: sabe
+        distinguir la reina que muere arriba de la que baja a meta. El tipo sigue mandando en el
+        color del punto, que es para lo que sirve.
+      */}
+      {!oneDay && <span className="hidden text-xs text-slate-400 sm:inline">{stage.label}</span>}
       {stage.from && stage.to && (
         <span className="truncate text-slate-500">
           {stage.from === stage.to ? stage.from : `${stage.from} → ${stage.to}`}
@@ -624,8 +624,9 @@ export function Race() {
           {` · ${raceClassLabel(data.race.raceClass as RaceClass)}`}
           {` · ${formatLabel(data.race.format as RaceFormat)}`}
           {stageCount > 1 ? ` · ${stageCount} stages` : ''}
-          {single ? ` · ${single.km} km · ${KIND_LABEL[single.kind] ?? single.kind}` : ''}
-          {single?.timeTrial ? ' · ITT' : ''}
+          {/* La etiqueta del calendario, por lo mismo que en la lista de etapas. Una crono ya se
+              llama «ITT» en ella, así que no hay que añadírselo detrás. */}
+          {single ? ` · ${single.km} km · ${single.label}` : ''}
           {endDay > startDay ? ` · GD ${startDay}–${endDay}` : ` · GD ${startDay}`}
         </p>
         {status === 'finished' && winner && (

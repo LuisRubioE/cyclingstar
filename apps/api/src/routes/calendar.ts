@@ -91,6 +91,7 @@ export const calendarRoutes: RoutePlugin = async (app, ctx) => {
         const ends = stageEndpoints(race.id, stage.index)
         const spec = {
           name: stage.name,
+          label: stage.label,
           kind: stage.kind,
           timeTrial: stage.timeTrial ?? false,
           km: stageKm(stage.profile.segments),
@@ -101,7 +102,7 @@ export const calendarRoutes: RoutePlugin = async (app, ctx) => {
         return {
           index: stage.index,
           name: head.name,
-          label: stage.label,
+          label: head.label,
           kind: head.kind,
           km: head.km,
           timeTrial: head.timeTrial,

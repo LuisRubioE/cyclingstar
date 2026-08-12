@@ -22,15 +22,6 @@ import { oneDayStageTarget } from '../domain/raceTabs'
 const card = 'rounded-2xl border border-slate-200 bg-white p-5 shadow-sm'
 const head = 'text-xs font-semibold uppercase tracking-wide text-slate-400'
 
-/** Nombre legible del tipo de etapa (el dato del motor viene en español). */
-const KIND_LABEL: Record<string, string> = {
-  llana: 'Flat',
-  media: 'Hilly',
-  reina: 'Mountain',
-  cri: 'Time trial',
-  clasica: 'Classic',
-}
-
 type StageTabId = 'story' | 'result' | 'classifications' | 'profile'
 
 /** Orden de las pestañas: `Story` primero, que es la carga emocional de la etapa (§7.2). */
@@ -379,15 +370,21 @@ export function StageReplay() {
       </div>
 
       <header>
+        {/*
+          El nombre que da la API YA es la cabecera entera: el calendario nombra cada etapa
+          `Stage N · etiqueta` («Stage 3 · Hills», «Stage 2 · ITT», «Stage 3 · Summit finish»).
+          Anteponerle otro `Stage N` lo decía dos veces —«Stage 3 · Stage 3 · Hills»— y repetir
+          debajo el TIPO lo decía una tercera con otras palabras: «Summit finish» arriba y
+          «Mountain» abajo, o el «Uphill finish · Hilly» que se vio en producción. La etiqueta del
+          calendario es además la MÁS precisa de las dos (distingue el final en alto de la reina que
+          baja a meta), así que es la que se queda; el tipo sigue vivo en el dato, que es de donde
+          sale el color. Y el `· ITT` suelto sobraba por lo mismo: la etiqueta de una crono ya es ITT.
+        */}
         <h1 className="text-xl font-bold tracking-tight text-slate-800">
-          {`Stage ${data.day}`}
-          {data.name ? ` · ${data.name}` : ''}
+          {data.name || `Stage ${data.day}`}
         </h1>
         <p className="text-sm text-slate-500">
-          {data.km} km
-          {data.kind ? ` · ${KIND_LABEL[data.kind] ?? data.kind}` : ''}
-          {data.timeTrial ? ' · ITT' : ''}
-          {!data.run ? ' · not raced yet' : ''}
+          {data.km} km{!data.run ? ' · not raced yet' : ''}
         </p>
       </header>
 

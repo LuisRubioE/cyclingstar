@@ -20,6 +20,8 @@ import { type StageKind, type StageProfile, stageKindOf } from '@cyclingstar/eng
 /** Lo que el calendario de HOY dice de esta etapa. */
 export interface StageSpecHead {
   name: string
+  /** La etiqueta corta del calendario: «Flat», «Hills», «Summit finish», «ITT»… */
+  label: string
   kind: StageKind
   timeTrial: boolean
   km: number
@@ -34,6 +36,8 @@ export interface RacedStage {
 
 export interface StageHead {
   name: string
+  /** La etiqueta corta, coherente SIEMPRE con el nombre y el tipo que van a su lado. */
+  label: string
   kind: StageKind
   timeTrial: boolean
   km: number
@@ -56,13 +60,21 @@ export function stageHead(day: number, spec: StageSpecHead, raced: RacedStage): 
   const staleSpec =
     raced.timeTrial !== spec.timeTrial || Math.abs(raced.km - spec.km) > KM_TOLERANCE
   if (!staleSpec) {
-    return { name: spec.name, kind: spec.kind, timeTrial: raced.timeTrial, km: raced.km, staleSpec }
+    return {
+      name: spec.name,
+      label: spec.label,
+      kind: spec.kind,
+      timeTrial: raced.timeTrial,
+      km: raced.km,
+      staleSpec,
+    }
   }
   const shape = stageKindOf(raced.profile, raced.timeTrial)
   return {
     // El nombre se rehace con el mismo patrón que el calendario (`Stage N · etiqueta`): el número de
     // etapa no cambia nunca —es su sitio en la carrera— y la etiqueta la pone el recorrido corrido.
     name: `Stage ${day} · ${shape.label}`,
+    label: shape.label,
     kind: shape.kind,
     timeTrial: raced.timeTrial,
     km: raced.km,

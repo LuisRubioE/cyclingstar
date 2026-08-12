@@ -303,7 +303,13 @@ export const raceRoutes: RoutePlugin = async (app, ctx) => {
       const racedTimeTrial = racedInput.timeTrial === true
       const head = stageHead(
         day,
-        { name: stage.name, kind: stage.kind, timeTrial: stage.timeTrial ?? false, km },
+        {
+          name: stage.name,
+          label: stage.label,
+          kind: stage.kind,
+          timeTrial: stage.timeTrial ?? false,
+          km,
+        },
         {
           profile: racedProfile,
           timeTrial: racedTimeTrial,
