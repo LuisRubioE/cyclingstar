@@ -1,11 +1,15 @@
 /**
- * RECORRIDOS REALES de las clásicas de un día del WorldTour, extraídos de fuentes abiertas.
+ * RECORRIDOS REALES de las clásicas de un día del WorldTour, extraídos de fuentes abiertas, y la
+ * PROCEDENCIA de todos los recorridos reales cargados de fuente (también la de las carreras por
+ * etapas, que viven en stageFeatures.ts pero declaran su origen aquí, junto a las demás).
  *
  * De dónde sale cada dato:
  *   - **Wikidata** (CC0, sin obligaciones): la entidad de cada edición y su distancia oficial (P3157).
  *   - **Wikipedia** (CC BY-SA 4.0): las tablas de montes y de sectores de pavé. La licencia OBLIGA a
  *     atribuir, y por eso cada carrera lleva aquí su `RouteSource` con el artículo exacto, la edición
  *     y la fecha de extracción. La misma tabla, en prosa, está en docs/fuentes-recorridos.md.
+ *   - **La web oficial de la carrera**, cuando publica su tabla de dificultades (el Tour
+ *     Auvergne-Rhône-Alpes publica «Cols et côtes» etapa por etapa, con categoría oficial incluida).
  *
  * Reglas de la carga (ver docs/fuentes-recorridos.md para el detalle):
  *   - Se usa la edición MÁS RECIENTE que publique tabla de dificultades, no necesariamente la de 2026:
@@ -17,7 +21,7 @@
  *
  * Estos rasgos entran en STAGE_FEATURES (ver stageFeatures.ts) y de ahí a `buildFeatureProfile()`.
  */
-import type { StageFeatures } from './featureProfile.js'
+import type { StageClimb, StageFeatures } from './featureProfile.js'
 
 /** Procedencia de un recorrido real: de dónde viene, de qué edición y qué hubo que curar. */
 export interface RouteSource {
@@ -27,8 +31,13 @@ export interface RouteSource {
   edition: number
   /** Distancia oficial de ESA edición, en km. */
   distanceKm: number
-  /** Artículo de Wikipedia del que salen las tablas (CC BY-SA 4.0): la atribución es obligatoria. */
-  wikipedia: string
+  /**
+   * Artículo de Wikipedia del que salen las tablas (CC BY-SA 4.0): la atribución es obligatoria.
+   * Falta solo cuando el recorrido sale de la web oficial de la carrera (`official`).
+   */
+  wikipedia?: string
+  /** Web OFICIAL de la carrera, cuando es ella la que publica la tabla de dificultades. */
+  official?: string
   /** Entidad de Wikidata de la edición (CC0), de donde sale la distancia oficial. */
   wikidata?: string
   /** Segunda fuente usada para desempatar un dato dudoso. */
@@ -153,6 +162,53 @@ export const CLASSIC_ROUTE_SOURCES: Record<string, RouteSource> = {
       'Distancia contrastada con Wikidata (P3157): 215 km.',
     ],
   },
+  'race-great-ocean': {
+    race: 'Cadel Evans Great Ocean Road Race',
+    edition: 2025,
+    distanceKm: 187.6,
+    wikipedia: 'https://fr.wikipedia.org/wiki/Cadel_Evans_Great_Ocean_Road_Race_2025',
+    wikidata: 'https://www.wikidata.org/wiki/Q126737318',
+    crossCheck: 'https://fr.wikipedia.org/wiki/Cadel_Evans_Great_Ocean_Road_Race_2026',
+    retrieved: '2026-08-12',
+    notes: [
+      'La edición de 2026 describe el mismo circuito, pero se CONTRADICE consigo misma: su prosa dice 186,1 km y su ficha (y Wikidata) 182,3. La de 2025 cuadra en las dos (187,6 km), así que es la que se carga (regla 6: manda la fuente que cuadra con la distancia oficial).',
+      'La fuente no publica una tabla de cotas: publica el CIRCUITO. Cuatro vueltas de 21 km con la côte de Challambra Crescent (1,3 km al 7,9 % de media) y «el último paso a 9 km de la meta». De ahí salen las cuatro cimas por aritmética del circuito, no por invención: 178,6 - 21 = 157,6 - 21 = 136,6 - 21 = 115,6, y el circuito empieza en el km 103,6 (187,6 - 4x21), justo antes de la primera.',
+      'La pendiente publicada es la MEDIA («une moyenne de 7,9 %»), no la máxima: es cargable (ver la nota de Strade Bianche).',
+      'Lo que NO entra: los 1.973 m de desnivel que publica la ficha están casi todos fuera de Challambra (4x103 m = 411 m), en la parte costera y en el ondulado del circuito, que la fuente no detalla. El resto lo pone el relleno por terreno.',
+      'Distancia contrastada con Wikidata (P3157): 187,6 km.',
+    ],
+  },
+  'race-quebec': {
+    race: 'Grand Prix cycliste de Québec',
+    edition: 2025,
+    distanceKm: 216,
+    wikipedia: 'https://fr.wikipedia.org/wiki/Grand_Prix_cycliste_de_Qu%C3%A9bec_2025',
+    wikidata: 'https://www.wikidata.org/wiki/Q126737365',
+    crossCheck: 'https://fr.wikipedia.org/wiki/Grand_Prix_cycliste_de_Qu%C3%A9bec',
+    retrieved: '2026-08-12',
+    notes: [
+      'Circuito de 12 km recorrido 18 veces (216 km). El recorrido cambió en 2025: la côte de la Potasse y la montée de la Fabrique, que estaban hasta 2024, se suprimieron. Quedan DOS dificultades por vuelta y son las que se cargan.',
+      "La côte de la Montagne/rue du Fort son 600 m al 9 % de MEDIA (con un paso al 13 %, que no se usa) y la subida final a la Grande Allée, 1.000 m al 3 %, «où se juge l'arrivée».",
+      'POSICIÓN DERIVADA, no publicada: la meta está en lo alto de la subida final, así que su cima cae en el km de cierre de cada vuelta (12, 24, ... 216). La côte de la Montagne se coloca inmediatamente antes porque el artículo general dice que la rampa de meta va «faisant suite à la montée de la Côte de la Montagne». Es lo único compatible con las dos frases; el km exacto dentro de la vuelta no lo publica nadie y queda anotado como supuesto.',
+      'Cuadra a medias con el desnivel: el artículo general da +145 m por vuelta (unos 2.600 m) y las dos cotas cargadas suman 84 m. Los 61 m restantes por vuelta son ondulación que la fuente no detalla.',
+      'Distancia contrastada con Wikidata (P3157): 216 km.',
+    ],
+  },
+  'race-montreal': {
+    race: 'Grand Prix cycliste de Montréal',
+    edition: 2025,
+    distanceKm: 209.1,
+    wikipedia: 'https://fr.wikipedia.org/wiki/Grand_Prix_cycliste_de_Montr%C3%A9al_2025',
+    wikidata: 'https://www.wikidata.org/wiki/Q126737368',
+    crossCheck: 'https://en.wikipedia.org/wiki/Grand_Prix_Cycliste_de_Montr%C3%A9al',
+    retrieved: '2026-08-12',
+    notes: [
+      'Circuito de 12,3 km recorrido 17 veces (209,1 km) con CUATRO subidas por vuelta. La frwiki de 2025 da el circuito, su orden y la distancia; las longitudes y pendientes medias de las cuatro las publica el artículo general de la enwiki (Camilien-Houde 1,8 km al 8 %, Polytechnique 780 m al 6 %, Pagnuelo 534 m al 7,5 %, avenue du Parc 560 m al 4 %).',
+      "SOLO SE CARGAN DOS de las cuatro, las que tienen posición: Camilien-Houde, porque «le départ sur l'avenue du Parc est suivi d'une montée du Mont-Royal jusqu'au sommet Camilien-Houde» (empieza al abrirse la vuelta), y la rampa de meta de la avenue du Parc, que cierra la vuelta. La côte de la Polytechnique y la de Pagnuelo tienen longitud y pendiente pero NINGUNA fuente publica su km: se descartan, no se colocan a ojo.",
+      'Lo que cuesta la decisión, en metros: las cuatro suman 253 m por vuelta (4.301 m en 17, contra los 4.573 m que publica la ficha, un 94 %); las dos cargadas suman 166 m por vuelta (2.829 m). El tercio que falta lo pone el relleno por terreno, que no es real.',
+      'Distancia contrastada con Wikidata (P3157): 209,1 km.',
+    ],
+  },
   'race-hamburg': {
     race: 'Cyclassics Hamburg',
     edition: 2024,
@@ -166,6 +222,86 @@ export const CLASSIC_ROUTE_SOURCES: Record<string, RouteSource> = {
       'Distancia contrastada con Wikidata (P3157): 198,5 km.',
     ],
   },
+}
+
+/**
+ * Atribución y procedencia de los recorridos reales de las CARRERAS POR ETAPAS del WorldTour cuyos
+ * rasgos viven en stageFeatures.ts. Se declara aquí, y no allí, para que toda la procedencia esté en
+ * un solo sitio: quien audite el dato mira un fichero, no dos.
+ *
+ * Ojo con `distanceKm`: en una carrera por etapas es la suma de las distancias oficiales de sus
+ * etapas, y el juego usa las de `editions.ts`, que van redondeadas al km.
+ */
+export const STAGE_ROUTE_SOURCES: Record<string, RouteSource> = {
+  'race-rhone-alpes': {
+    race: 'Tour Auvergne-Rhône-Alpes (ex Critérium du Dauphiné)',
+    edition: 2026,
+    distanceKm: 1207.5,
+    official: 'https://www.criterium-du-dauphine.fr/fr/parcours-general',
+    crossCheck: 'https://de.wikipedia.org/wiki/Crit%C3%A9rium_du_Dauphin%C3%A9_2025',
+    retrieved: '2026-08-12',
+    notes: [
+      'La web oficial publica, en cada página de etapa, la ficha «Cols et côtes»: nombre, km de la CIMA, altitud, longitud, pendiente MEDIA y categoría oficial. Es la fuente ideal para esta carga —no hay que asumir nada— y por eso se usa antes que Wikipedia, cuyos artículos del Dauphiné no traen tabla de dificultades en ningún idioma probado (fr, de, it).',
+      'Las ocho etapas de la edición 2026 cuadran una a una con las de editions.ts (Vizille -> Saint-Ismier 146,2; Le Puy 234,3; la crono por equipos de Perreux 28,4; Montrond 167,4; Villars-les-Dombes 195,8; Crest-Voland 182,3; Grand Colombier 133,6; Plateau de Solaison 120,1): son la misma edición, así que las tablas y las distancias no se mezclan.',
+      'La etapa 3 es una CRONO POR EQUIPOS y la fuente no le publica ninguna cota: se queda en null (perfil por terreno), como corresponde.',
+      'La etapa 5 solo tiene dos cotas publicadas, ambas en los primeros 8 km: no es un dato incompleto, es que el resto de sus 195,8 km es llano hasta Villars-les-Dombes.',
+      'El Col du Banchet (etapa 7) tiene la cima en el km 5,1 y mide 5,4 km: la subida empieza antes de la salida real, en el neutralizado. El constructor del perfil la recorta al arranque de la etapa.',
+      'La categoría es la OFICIAL de la carrera (HC, 1, 2, 3, 4), no la derivada: se carga tal cual en `category`.',
+    ],
+  },
+  'race-guangxi': {
+    race: 'Gree-Tour of Guangxi',
+    edition: 2025,
+    distanceKm: 1017.7,
+    wikipedia: 'https://fr.wikipedia.org/wiki/Tour_du_Guangxi_2025',
+    crossCheck: 'https://en.wikipedia.org/wiki/2025_Tour_of_Guangxi',
+    retrieved: '2026-08-12',
+    notes: [
+      'Carga MÍNIMA y a propósito: de las seis etapas solo se carga la reina, y de la reina solo su final. La fuente no publica tabla de dificultades sino una prosa de presentación, y en ella casi ninguna cota tiene a la vez nombre, km, longitud y pendiente.',
+      "Lo único completo es el final de la etapa 5 (Yizhou -> Nongla, 165,8 km): «l'ascension finale de Nongla, longue de 3,1 km à 6,3 %». Tiene nombre, es final en alto (la etapa acaba en Nongla) y la crónica del mismo artículo la vuelve a citar (con 3,2 km al 7,3 %, que es la discrepancia de la fuente; se conserva el dato de la sección de recorrido).",
+      'La prosa de la etapa 2 describe 179,6 km con final en Nanning, y la lista oficial de etapas del mismo artículo (y la enwiki) dicen Chongzuo -> Jingxi, 177,4 km. La fuente se contradice consigo misma, así que de esa etapa no se carga NADA.',
+      "Las cotas de las etapas 1, 3, 4 y 6 se descartan por incompletas: la fuente no las nombra y solo da la distancia a meta de algunas («une côte de 1 km à 3,7 % à 14 km de l'arrivée»). Colocar las demás sería inventarlas.",
+      'Las seis distancias de la edición 2025 cuadran con editions.ts (149,4 / 177,4 / 214 / 176,8 / 165,8 / 134,3), así que la etapa 5 del juego es la etapa 5 real.',
+    ],
+  },
+}
+
+/**
+ * Una cota de un CIRCUITO, tal y como la publican las fuentes de las carreras en circuito: no por su
+ * km absoluto (que cambia en cada vuelta) sino por lo que le falta para la LÍNEA de esa vuelta.
+ */
+interface CircuitClimb {
+  name: string
+  /** Km desde la cima hasta la línea de meta de esa vuelta (0 = la cima ES la meta). */
+  kmToLine: number
+  lengthKm: number
+  avgGradient: number
+}
+
+/**
+ * Las cotas de un circuito repetido, vuelta a vuelta y en su km real. No inventa nada: hace la
+ * aritmética del circuito que publica la fuente (número de vueltas, longitud de la vuelta y a cuánto
+ * de la meta pasa cada cota). Un circuito de 18 vueltas son 36 cimas, y escribirlas a mano sería
+ * copiar 36 veces la misma suma con el riesgo de equivocarse en una.
+ */
+function circuitClimbs(
+  laps: number,
+  lapKm: number,
+  lastLineKm: number,
+  climbs: readonly CircuitClimb[],
+): StageClimb[] {
+  const out: StageClimb[] = []
+  for (let lap = laps - 1; lap >= 0; lap--) {
+    const line = lastLineKm - lap * lapKm
+    for (const c of climbs)
+      out.push({
+        name: c.name,
+        summitKm: Math.round((line - c.kmToLine) * 100) / 100,
+        lengthKm: c.lengthKm,
+        avgGradient: c.avgGradient,
+      })
+  }
+  return out.sort((a, b) => a.summitKm - b.summitKm)
 }
 
 /** Rasgos reales de cada clásica: puertos, sprints y sectores de pavé, en su kilómetro de verdad. */
@@ -386,6 +522,38 @@ export const CLASSIC_FEATURES: Record<string, [StageFeatures]> = {
         { name: 'Colle Pinzuto', startKm: 195.9, lengthKm: 2.4, stars: 4 },
         { name: 'Le Tolfe', startKm: 202.2, lengthKm: 1.1, stars: 4 },
       ],
+    },
+  ],
+  // Cadel Evans Great Ocean Road Race: 103,6 km de costa y luego cuatro vueltas de 21 km al circuito
+  // de Geelong, con la côte de Challambra Crescent (1,3 km al 7,9 %) a 9 km de la línea en cada una.
+  // La última, a 9 km de meta, es donde se decide.
+  'race-great-ocean': [
+    {
+      climbs: circuitClimbs(4, 21, 187.6, [
+        { name: 'Challambra Crescent', kmToLine: 9, lengthKm: 1.3, avgGradient: 7.9 },
+      ]),
+    },
+  ],
+  // GP de Québec: 18 vueltas de 12 km. Desde 2025 quedan dos subidas por vuelta —la côte de la
+  // Montagne/rue du Fort (600 m al 9 %) y la rampa de meta a la Grande Allée (1 km al 3 %)—, y la
+  // segunda va pegada a la primera. Treinta y seis cimas: la carrera es un martilleo, no un puerto.
+  'race-quebec': [
+    {
+      climbs: circuitClimbs(18, 12, 216, [
+        { name: 'Côte de la Montagne / rue du Fort', kmToLine: 1, lengthKm: 0.6, avgGradient: 9 },
+        { name: 'Montée de la Grande Allée', kmToLine: 0, lengthKm: 1, avgGradient: 3 },
+      ]),
+    },
+  ],
+  // GP de Montréal: 17 vueltas de 12,3 km al Mont-Royal. Se cargan las dos subidas cuya posición
+  // publica la fuente: la Camilien-Houde, que arranca nada más abrirse la vuelta, y la rampa de meta
+  // de la avenue du Parc. La Polytechnique y Pagnuelo se quedan fuera (ver la nota de procedencia).
+  'race-montreal': [
+    {
+      climbs: circuitClimbs(17, 12.3, 209.1, [
+        { name: 'Côte Camilien-Houde', kmToLine: 10.5, lengthKm: 1.8, avgGradient: 8 },
+        { name: 'Avenue du Parc', kmToLine: 0, lengthKm: 0.56, avgGradient: 4 },
+      ]),
     },
   ],
   // Cyclassics Hamburg: tres pasos por el Waseberg en el tramo final y tres sprints intermedios.

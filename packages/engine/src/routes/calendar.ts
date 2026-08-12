@@ -927,6 +927,7 @@ const WT_TABLE: RaceRow[] = [
     d: 1,
     raceClass: 'WT',
     terrain: 'hilly',
+    km: 187.6, // distancia oficial (ver classicRoutes.ts)
   },
   {
     id: 'race-emirates',
@@ -1178,7 +1179,7 @@ const WT_TABLE: RaceRow[] = [
     d: 11,
     raceClass: 'WT',
     terrain: 'hilly',
-    km: 201,
+    km: 216, // distancia oficial (ver classicRoutes.ts)
   },
   {
     id: 'race-montreal',
@@ -1187,7 +1188,7 @@ const WT_TABLE: RaceRow[] = [
     d: 13,
     raceClass: 'WT',
     terrain: 'hilly',
-    km: 209,
+    km: 209.1, // distancia oficial (ver classicRoutes.ts)
   },
   {
     id: 'race-lombardy',

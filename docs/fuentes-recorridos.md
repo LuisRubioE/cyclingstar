@@ -1,19 +1,22 @@
 # Fuentes de los recorridos reales
 
 Los recorridos de las clásicas del WorldTour que hay en `packages/engine/src/routes/classicRoutes.ts`
-**no son autoría propia**: salen de fuentes abiertas. Este documento es la atribución que esas fuentes
-exigen y el registro de cómo se extrajo cada uno.
+—y los de las carreras por etapas que hay en `stageFeatures.ts`— **no son autoría propia**: salen de
+fuentes abiertas. Este documento es la atribución que esas fuentes exigen y el registro de cómo se
+extrajo cada uno.
 
-La misma información, campo a campo y junto al dato, vive en `CLASSIC_ROUTE_SOURCES` (mismo fichero):
-si alguien lee el código sin leer estas páginas, la procedencia sigue estando delante de sus ojos.
+La misma información, campo a campo y junto al dato, vive en `CLASSIC_ROUTE_SOURCES` y en
+`STAGE_ROUTE_SOURCES` (`classicRoutes.ts`): si alguien lee el código sin leer estas páginas, la
+procedencia sigue estando delante de sus ojos.
 
 ## Licencias
 
-| Fuente                                              | Licencia        | Qué obliga                                                     |
-| --------------------------------------------------- | --------------- | -------------------------------------------------------------- |
-| [Wikidata](https://www.wikidata.org)                | CC0 1.0         | Nada. Se cita igualmente por trazabilidad                      |
-| [Wikipedia](https://www.wikipedia.org)              | CC BY-SA 4.0    | **Atribuir** al artículo concreto y mantener la misma licencia |
-| [OpenTopoData / SRTM](https://www.opentopodata.org) | Dominio público | Nada. Hoy no se usa en el dato cargado                         |
+| Fuente                                              | Licencia                          | Qué obliga                                                                                                                                  |
+| --------------------------------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Wikidata](https://www.wikidata.org)                | CC0 1.0                           | Nada. Se cita igualmente por trazabilidad                                                                                                   |
+| [Wikipedia](https://www.wikipedia.org)              | CC BY-SA 4.0                      | **Atribuir** al artículo concreto y mantener la misma licencia                                                                              |
+| [OpenTopoData / SRTM](https://www.opentopodata.org) | Dominio público                   | Nada. Hoy no se usa en el dato cargado                                                                                                      |
+| Web oficial de la carrera                           | Con todos los derechos reservados | No se copia su página: se leen HECHOS (km, longitud, pendiente, categoría), que no son obra protegible. Se cita igualmente el enlace exacto |
 
 De Wikidata sale la entidad de cada edición y su distancia oficial (propiedad `P3157`). De Wikipedia
 salen las **tablas de montes y de sectores de pavé**: son el trabajo de sus editores y por eso cada
@@ -33,19 +36,34 @@ referencias; el enlace no se ha seguido — lo que se ha leído es el artículo 
 
 ## Qué se cargó y de dónde
 
-| Carrera del juego      | Carrera real          | Edición | Artículo (CC BY-SA)                                                                          | Qué trae                    |
-| ---------------------- | --------------------- | ------- | -------------------------------------------------------------------------------------------- | --------------------------- |
-| `race-roubaix`         | Paris-Roubaix         | 2026    | [it: Parigi-Roubaix 2026](https://it.wikipedia.org/wiki/Parigi-Roubaix_2026)                 | 31 tramos de pavé (54,8 km) |
-| `race-flanders`        | Ronde van Vlaanderen  | 2026    | [fr: Tour des Flandres 2026](https://fr.wikipedia.org/wiki/Tour_des_Flandres_2026)           | 16 muros + 6 sectores       |
-| `race-lombardy`        | Il Lombardia          | 2025    | [fr: Tour de Lombardie 2025](https://fr.wikipedia.org/wiki/Tour_de_Lombardie_2025)           | 7 puertos                   |
-| `race-opening-classic` | Omloop Het Nieuwsblad | 2024    | [fr: Circuit Het Nieuwsblad 2024](https://fr.wikipedia.org/wiki/Circuit_Het_Nieuwsblad_2024) | 12 muros + 9 sectores       |
-| `race-harelbeke`       | E3 Saxo Classic       | 2025    | [fr: E3 Saxo Bank Classic 2025](https://fr.wikipedia.org/wiki/E3_Saxo_Bank_Classic_2025)     | 17 muros + 5 sectores       |
-| `race-across-flanders` | Dwars door Vlaanderen | 2024    | [de: Dwars door Vlaanderen 2024](https://de.wikipedia.org/wiki/Dwars_door_Vlaanderen_2024)   | 12 hellingen + 8 sectores   |
-| `race-frankfurt`       | Eschborn-Frankfurt    | 2023    | [de: Eschborn–Frankfurt 2023](https://de.wikipedia.org/wiki/Eschborn%E2%80%93Frankfurt_2023) | 5 cotas (de 8 publicadas)   |
-| `race-hamburg`         | Cyclassics Hamburg    | 2024    | [de: Cyclassics Hamburg 2024](https://de.wikipedia.org/wiki/Cyclassics_Hamburg_2024)         | 3 cotas + 3 sprints         |
-| `race-white-roads`     | Strade Bianche        | 2024    | [fr: Strade Bianche 2024](https://fr.wikipedia.org/wiki/Strade_Bianche_2024)                 | 15 sectores de _sterrato_   |
+| Carrera del juego      | Carrera real                      | Edición | Artículo (CC BY-SA)                                                                                                                                                                                              | Qué trae                      |
+| ---------------------- | --------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
+| `race-roubaix`         | Paris-Roubaix                     | 2026    | [it: Parigi-Roubaix 2026](https://it.wikipedia.org/wiki/Parigi-Roubaix_2026)                                                                                                                                     | 31 tramos de pavé (54,8 km)   |
+| `race-flanders`        | Ronde van Vlaanderen              | 2026    | [fr: Tour des Flandres 2026](https://fr.wikipedia.org/wiki/Tour_des_Flandres_2026)                                                                                                                               | 16 muros + 6 sectores         |
+| `race-lombardy`        | Il Lombardia                      | 2025    | [fr: Tour de Lombardie 2025](https://fr.wikipedia.org/wiki/Tour_de_Lombardie_2025)                                                                                                                               | 7 puertos                     |
+| `race-opening-classic` | Omloop Het Nieuwsblad             | 2024    | [fr: Circuit Het Nieuwsblad 2024](https://fr.wikipedia.org/wiki/Circuit_Het_Nieuwsblad_2024)                                                                                                                     | 12 muros + 9 sectores         |
+| `race-harelbeke`       | E3 Saxo Classic                   | 2025    | [fr: E3 Saxo Bank Classic 2025](https://fr.wikipedia.org/wiki/E3_Saxo_Bank_Classic_2025)                                                                                                                         | 17 muros + 5 sectores         |
+| `race-across-flanders` | Dwars door Vlaanderen             | 2024    | [de: Dwars door Vlaanderen 2024](https://de.wikipedia.org/wiki/Dwars_door_Vlaanderen_2024)                                                                                                                       | 12 hellingen + 8 sectores     |
+| `race-frankfurt`       | Eschborn-Frankfurt                | 2023    | [de: Eschborn–Frankfurt 2023](https://de.wikipedia.org/wiki/Eschborn%E2%80%93Frankfurt_2023)                                                                                                                     | 5 cotas (de 8 publicadas)     |
+| `race-hamburg`         | Cyclassics Hamburg                | 2024    | [de: Cyclassics Hamburg 2024](https://de.wikipedia.org/wiki/Cyclassics_Hamburg_2024)                                                                                                                             | 3 cotas + 3 sprints           |
+| `race-white-roads`     | Strade Bianche                    | 2024    | [fr: Strade Bianche 2024](https://fr.wikipedia.org/wiki/Strade_Bianche_2024)                                                                                                                                     | 15 sectores de _sterrato_     |
+| `race-great-ocean`     | Cadel Evans Great Ocean Road Race | 2025    | [fr: Cadel Evans Great Ocean Road Race 2025](https://fr.wikipedia.org/wiki/Cadel_Evans_Great_Ocean_Road_Race_2025)                                                                                               | 4 pasos por Challambra        |
+| `race-quebec`          | GP cycliste de Québec             | 2025    | [fr: Grand Prix cycliste de Québec 2025](https://fr.wikipedia.org/wiki/Grand_Prix_cycliste_de_Qu%C3%A9bec_2025) + [fr: artículo general](https://fr.wikipedia.org/wiki/Grand_Prix_cycliste_de_Qu%C3%A9bec)       | 18 vueltas x 2 cotas          |
+| `race-montreal`        | GP cycliste de Montréal           | 2025    | [fr: Grand Prix cycliste de Montréal 2025](https://fr.wikipedia.org/wiki/Grand_Prix_cycliste_de_Montr%C3%A9al_2025) + [en: artículo general](https://en.wikipedia.org/wiki/Grand_Prix_Cycliste_de_Montr%C3%A9al) | 17 vueltas x 2 de sus 4 cotas |
 
 Las entidades de Wikidata (CC0) de cada edición están en `CLASSIC_ROUTE_SOURCES[...].wikidata`.
+
+### Carreras por etapas
+
+| Carrera del juego  | Carrera real                                         | Edición | Fuente                                                                                                 | Qué trae                                              |
+| ------------------ | ---------------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------ | ----------------------------------------------------- |
+| `race-rhone-alpes` | Tour Auvergne-Rhône-Alpes (ex Critérium du Dauphiné) | 2026    | [Web oficial, «Cols et côtes» de cada etapa](https://www.criterium-du-dauphine.fr/fr/parcours-general) | 32 puertos con categoría oficial en 7 de sus 8 etapas |
+| `race-guangxi`     | Gree-Tour of Guangxi                                 | 2025    | [fr: Tour du Guangxi 2025](https://fr.wikipedia.org/wiki/Tour_du_Guangxi_2025)                         | El final de Nongla (1 de 6 etapas)                    |
+
+Las tres carreras en circuito (Great Ocean, Québec y Montréal) no traen tabla de cotas: traen el
+**circuito** (vueltas, longitud de la vuelta y a cuánto de meta pasa cada cota). Las cimas salen de
+la aritmética de ese circuito, no de un km inventado; la función que la hace, `circuitClimbs()`, está
+en `classicRoutes.ts` con el detalle.
 
 ## Reglas de la carga
 
@@ -70,6 +88,20 @@ Las entidades de Wikidata (CC0) de cada edición están en `CLASSIC_ROUTE_SOURCE
    de sus quince sectores, la longitud de la rampa y su pendiente máxima (hasta el 18 %). Eso no es un
    puerto cargable: tomar el máximo por la media inventaría la carrera. Se cargan los sectores y se
    anota lo que queda fuera.
+8. **Una carrera en circuito se carga por su circuito.** Great Ocean, Québec y Montréal no publican
+   tabla de cotas: publican cuántas vueltas se dan, cuánto mide la vuelta y a cuánto de meta pasa cada
+   cota. La cima de cada paso sale de esa aritmética, que no es invención sino la misma suma repetida
+   (`circuitClimbs()` en `classicRoutes.ts`). Lo que sí es supuesto —el orden dentro de la vuelta
+   cuando la fuente solo dice «X va justo detrás de Y»— se anota carrera a carrera.
+9. **La web oficial de la carrera es fuente de primera, cuando publica el dato.** El Tour
+   Auvergne-Rhône-Alpes publica «Cols et côtes» etapa por etapa con km de cima, longitud, pendiente
+   media y CATEGORÍA OFICIAL: es mejor dato que cualquier Wikipedia y no hay que asumir nada. Se
+   comprueba su `robots.txt` como el de cualquier otro sitio (el suyo solo cierra `/admin`, `/api`,
+   `/graphql` y `/login`; las páginas de etapa están abiertas).
+10. **Una fuente que se contradice a sí misma no se usa a medias.** La prosa del Tour du Guangxi 2025
+    describe una etapa 2 de 179,6 km con final en Nanning y la lista oficial de etapas del MISMO
+    artículo dice Chongzuo -> Jingxi, 177,4 km. De esa etapa no se carga nada: si la fuente falla en
+    lo comprobable, no se le cree lo que no se puede comprobar.
 
 ## Strade Bianche: por qué entra en la v12 y no antes
 
@@ -86,20 +118,40 @@ resuelve, por tanto, como llegada de pavé y no como el repecho brutal que es en
 
 ## Lo que NO se cargó, y por qué
 
-| Carrera                                                                                               | Motivo                                                                                                                   |
-| ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `race-bruges`, `race-copenhagen`, `race-brittany`, `race-quebec`, `race-montreal`, `race-great-ocean` | Sin tabla de dificultades en ningún idioma probado (fr, it, nl, en, de, es, da) ni en las ediciones 2023-2026            |
-| `race-rhone-alpes`, `race-poland`, `race-benelux`, `race-guangxi`                                     | Vueltas por etapas: harían falta tablas **por etapa** y no existen. El artículo del Dauphiné 2026 en frwiki son 47 bytes |
+| Carrera           | Motivo                                                                                                                                                                                                                                                                                      |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `race-bruges`     | Classic Brugge-De Panne. **No hay nada que cargar**: la fuente dice que el recorrido «reste dans une zone très proche de la côte belge et est donc quasiment parfaitement plat». Ni cotas, ni sectores de pavé, ni sprints con km. Una carrera de viento y sprint, y el viento no se modela |
+| `race-copenhagen` | Copenhagen Sprint. Igual: 235,7 km con 1.053 m de desnivel y cinco vueltas a un circuito urbano de 10 km, sin una sola dificultad publicada. La sección «Parcours» de la edición 2026 está vacía                                                                                            |
+| `race-brittany`   | Bretagne Classic. La fuente **sí** publica las tres cotas del circuito final (Rostervel 1,5 km al 4,5 %; Lezot 900 m al 5,3 %; Kerscoulic 225 m al 8,9 %) pero **no dice dónde caen** dentro de los 11,8 km del circuito, ni en qué orden. Falta el km: se descarta (regla 3)               |
+| `race-poland`     | Tour de Pologne. La web oficial describe las «Premie Górskie» por localidad, sin longitud ni pendiente; el único documento con el roadbook completo es un PDF de **121 MB** y en este entorno no hay con qué leerlo. Wikipedia (de, fr, nl, pl) no trae tabla                               |
+| `race-benelux`    | Renewi Tour. La web oficial no es alcanzable desde aquí (el proxy la deniega) y la prosa de frwiki da longitud y pendiente de tres muros de la etapa 3 (Mur de Grammont, Taaienberg, Bosberg) **sin un solo km**. Falta el km: se descarta                                                  |
 
 ## Cómo repetir o ampliar la extracción
 
-Los scripts viven fuera del repositorio (son herramienta de una vez, no código de producto). El
-procedimiento, para quien tenga que repetirlo:
+Los scripts de descarga viven fuera del repositorio (son herramienta de una vez, no código de
+producto). Lo que sí está en el repo es `scripts/medir-carrera.mjs`, que es lo que dice si el
+recorrido cargado ha cambiado la carrera y cómo.
 
-1. Buscar la edición en Wikidata (`wbsearchentities` con el nombre real y el año) y quedarse con
-   `P3157` (distancia), `P1427`/`P1444` (salida y meta).
-2. Bajar el wikitexto del artículo (`action=parse&prop=wikitext`) y partirlo en tablas.
-3. Reconocer el formato de la tabla y traducirlo a `climbs` / `cobbles` / `sprints`.
-4. Retroceder de edición mientras no aparezca tabla (2026 → 2025 → 2024 → 2023).
-5. Validar con `packages/engine/src/routes/classicRoutes.test.ts`, que comprueba distancias, orden de
-   las cimas, solapes de pavé y que el perfil pasa por `sampleProfile()`.
+**Corrección importante sobre el `robots.txt` de Wikimedia**: la primera tanda bajó el wikitexto por
+`/w/api.php`, y ese prefijo está **prohibido** (`Disallow: /w/` para `User-agent: *`; solo se permite
+`action=mobileview`). Lo que sí está permitido es la página del artículo, `/wiki/<Título>`, y de ahí
+salen igual de bien las tablas y la prosa. Las entidades de Wikidata se leen por `/wiki/Q…`, no por
+`/wiki/Special:EntityData` (`/wiki/Special:` también está prohibido). Esta tanda se ha bajado así.
+
+El procedimiento, para quien tenga que repetirlo:
+
+1. Averiguar a qué carrera real corresponde la del juego por su `name`, su `country` y su fecha en
+   `SEASON_CALENDAR`. Si la correspondencia no es evidente, no se adivina: se deja fuera.
+2. Mirar primero la **web oficial** de la carrera (`robots.txt` antes que nada): si publica su tabla
+   de dificultades, es mejor dato que Wikipedia y trae la categoría oficial.
+3. Si no, bajar el artículo (`https://<lang>.wikipedia.org/wiki/<Título>`) y partir el HTML en tablas
+   y en prosa. Muchas carreras pequeñas no tienen tabla y sí una descripción del recorrido con los
+   datos dentro; se lee entera antes de dar la carrera por perdida.
+4. Contrastar la distancia con Wikidata (`/wiki/Q…`, propiedad `P3157`) y con la suma de las etapas
+   de `editions.ts`. Si no cuadra, se ha leído mal algo.
+5. Retroceder de edición mientras no aparezca dato (2026 → 2025 → 2024 → 2023).
+6. Validar con `packages/engine/src/routes/classicRoutes.test.ts`, que comprueba distancias, orden de
+   las cimas, solapes de pavé, que cada puerto cabe en SU etapa y que el perfil pasa por
+   `sampleProfile()`.
+7. Medir antes y después con `node scripts/medir-carrera.mjs <raceId>` y anotar en `docs/balance.md`
+   qué ha cambiado en la carrera. Cargar un recorrido no es rellenar una tabla: es cambiar la carrera.

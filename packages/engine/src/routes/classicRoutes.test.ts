@@ -11,7 +11,8 @@
 import { describe, expect, it } from 'vitest'
 import { sampleProfile, stageLengthKm } from '../stage/sample.js'
 import { SEASON_CALENDAR } from './calendar.js'
-import { CLASSIC_FEATURES, CLASSIC_ROUTE_SOURCES } from './classicRoutes.js'
+import { CLASSIC_FEATURES, CLASSIC_ROUTE_SOURCES, STAGE_ROUTE_SOURCES } from './classicRoutes.js'
+import { RACE_EDITIONS } from './editions.js'
 import { buildFeatureProfile } from './featureProfile.js'
 import { STAGE_FEATURES } from './stageFeatures.js'
 
@@ -26,11 +27,12 @@ function gainM(segments: readonly { km: number; tramos?: { km: number; g: number
 }
 
 describe('routes: recorridos reales de las clásicas (dato cargado de fuentes abiertas)', () => {
-  it('carga las nueve clásicas que tenían fuente', () => {
+  it('carga las doce clásicas que tenían fuente', () => {
     // Ocho desde la v4; Strade Bianche entra en la v12, cuando el motor por fin descuelga en el
     // firme roto (docs/motor.md §14) y una carrera cuya única dificultad es el sterrato tiene
-    // sentido cargarla (ver docs/fuentes-recorridos.md).
-    expect(IDS).toHaveLength(9)
+    // sentido cargarla; las tres de circuito (Great Ocean, Québec y Montréal) entran con la tanda
+    // de perfiles del WorldTour (ver docs/fuentes-recorridos.md).
+    expect(IDS).toHaveLength(12)
   })
 
   it('cada recorrido declara su procedencia: carrera real, edición, artículo y fecha', () => {
@@ -40,7 +42,7 @@ describe('routes: recorridos reales de las clásicas (dato cargado de fuentes ab
       expect(src!.race.length).toBeGreaterThan(3)
       expect(src!.edition).toBeGreaterThanOrEqual(2023)
       // Atribución obligatoria: Wikipedia es CC BY-SA.
-      expect(src!.wikipedia).toMatch(/^https:\/\/[a-z]{2}\.wikipedia\.org\/wiki\//)
+      expect(src!.wikipedia ?? '').toMatch(/^https:\/\/[a-z]{2}\.wikipedia\.org\/wiki\//)
       expect(src!.retrieved).toMatch(/^\d{4}-\d{2}-\d{2}$/)
       expect(src!.notes.length).toBeGreaterThan(0)
     }
@@ -142,5 +144,83 @@ describe('routes: recorridos reales de las clásicas (dato cargado de fuentes ab
       const cimas = (profile.banners ?? []).filter((b) => b.tipo === 'cima').map((b) => b.km)
       expect(cimas).toEqual((features.climbs ?? []).map((c) => Math.round(c.summitKm)))
     })
+  })
+})
+
+/**
+ * Lo mismo, para las CARRERAS POR ETAPAS cargadas de fuente. Aquí el dato tiene un enganche más que
+ * vigilar: los rasgos de la etapa i tienen que caber en la etapa i de `editions.ts`, que es la que
+ * pone la distancia. Si alguien cambia una y no la otra, un puerto se sale de su etapa.
+ */
+const STAGE_IDS = Object.keys(STAGE_ROUTE_SOURCES)
+
+describe('routes: recorridos reales de las carreras por etapas', () => {
+  it('cada carrera cargada declara su procedencia y su fecha de extracción', () => {
+    for (const id of STAGE_IDS) {
+      const src = STAGE_ROUTE_SOURCES[id]!
+      expect(src.race.length).toBeGreaterThan(3)
+      expect(src.edition).toBeGreaterThanOrEqual(2023)
+      // O Wikipedia (CC BY-SA, atribución obligatoria) o la web oficial: alguna de las dos.
+      expect(src.wikipedia ?? src.official ?? '').toMatch(/^https:\/\//)
+      expect(src.retrieved).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+      expect(src.notes.length).toBeGreaterThan(0)
+    }
+  })
+
+  it('la distancia declarada es la suma de las etapas de la edición (±1 %)', () => {
+    for (const id of STAGE_IDS) {
+      const edition = RACE_EDITIONS[id]
+      expect(edition, `${id} no tiene edición real en editions.ts`).toBeDefined()
+      const suma = edition!.stages.reduce((acc, s) => acc + s.km, 0)
+      const declarada = STAGE_ROUTE_SOURCES[id]!.distanceKm
+      expect(Math.abs(suma - declarada) / declarada).toBeLessThan(0.01)
+    }
+  })
+
+  it('hay un hueco de rasgos por etapa, ni uno más ni uno menos', () => {
+    for (const id of STAGE_IDS) {
+      expect(STAGE_FEATURES[id]).toHaveLength(RACE_EDITIONS[id]!.stages.length)
+    }
+  })
+
+  it('los puertos van en orden y caben en SU etapa, con pendiente y categoría creíbles', () => {
+    for (const id of STAGE_IDS) {
+      const stages = STAGE_FEATURES[id]!
+      RACE_EDITIONS[id]!.stages.forEach((s, i) => {
+        let prev = 0
+        for (const c of stages[i]?.climbs ?? []) {
+          expect(
+            c.summitKm,
+            `${id} e${i + 1} ${c.name}: cima fuera de orden`,
+          ).toBeGreaterThanOrEqual(prev)
+          prev = c.summitKm
+          // Medio km de holgura: la distancia del juego va redondeada al km (ver editions.ts).
+          expect(
+            c.summitKm,
+            `${id} e${i + 1} ${c.name}: cima fuera de la etapa`,
+          ).toBeLessThanOrEqual(s.km + 0.5)
+          expect(c.lengthKm).toBeGreaterThan(0)
+          expect(c.avgGradient).toBeGreaterThan(1)
+          expect(c.avgGradient).toBeLessThan(20)
+          if (c.category) expect(['HC', 'cat1', 'cat2', 'cat3', 'cat4']).toContain(c.category)
+        }
+      })
+    }
+  })
+
+  it('cada etapa con rasgos se construye y se muestrea sin romperse', () => {
+    for (const id of STAGE_IDS) {
+      const stages = STAGE_FEATURES[id]!
+      RACE_EDITIONS[id]!.stages.forEach((s, i) => {
+        const f = stages[i]
+        if (!f) return
+        const profile = buildFeatureProfile(s.km, f, `${id}-e${i + 1}`, s.terrain)
+        expect(stageLengthKm(profile)).toBeCloseTo(s.km, 1)
+        for (const b of sampleProfile(profile)) {
+          expect(Number.isFinite(b.g)).toBe(true)
+          expect(Math.abs(b.g)).toBeLessThan(25)
+        }
+      })
+    }
   })
 })

@@ -3958,6 +3958,255 @@ export const STAGE_FEATURES: Record<string, (StageFeatures | null)[]> = {
       ],
     },
   ],
+  /**
+   * RECORRIDO REAL del Tour Auvergne-Rhone-Alpes 2026 (el antiguo Criterium du Dauphine), sacado de
+   * la ficha "Cols et cotes" de la web OFICIAL de la carrera, etapa por etapa: cada puerto con su km
+   * de cima, su longitud, su pendiente media y su CATEGORIA oficial. Procedencia y reglas de la carga,
+   * en STAGE_ROUTE_SOURCES (classicRoutes.ts) y en docs/fuentes-recorridos.md.
+   *
+   * Las distancias del juego (editions.ts) son las oficiales redondeadas al km, asi que alguna cima
+   * final cae hasta 300 m por detras de la meta del juego (Crest-Voland, 182,3 contra 182): el
+   * constructor del perfil lo absorbe y el final en alto se conserva.
+   */
+  'race-rhone-alpes': [
+    // Etapa 1 Vizille -> Saint-Ismier (146,2 km, Montagne)
+    {
+      climbs: [
+        {
+          name: "Col de l'Arzelier",
+          summitKm: 39.8,
+          lengthKm: 8.6,
+          avgGradient: 5.7,
+          category: 'cat2',
+        },
+        {
+          name: 'Côte de Seyssins',
+          summitKm: 72.8,
+          lengthKm: 2.6,
+          avgGradient: 6,
+          category: 'cat3',
+        },
+        {
+          name: 'Côte de Quaix en Chartreuse',
+          summitKm: 94.4,
+          lengthKm: 2.3,
+          avgGradient: 9.2,
+          category: 'cat2',
+        },
+        { name: 'Col de Vence', summitKm: 102.2, lengthKm: 5.1, avgGradient: 6, category: 'cat2' },
+        {
+          name: 'Côte de Rousset',
+          summitKm: 125.3,
+          lengthKm: 8.2,
+          avgGradient: 7.6,
+          category: 'cat1',
+        },
+      ],
+    },
+    // Etapa 2 Saint-Martin-le-Vinoux -> Le Puy-en-Velay (234,3 km, Accidentée)
+    {
+      climbs: [
+        {
+          name: 'Col de Chatain',
+          summitKm: 22.8,
+          lengthKm: 7.9,
+          avgGradient: 5.7,
+          category: 'cat2',
+        },
+        {
+          name: 'Col de la Croix de Toutes Aures',
+          summitKm: 35.3,
+          lengthKm: 2.8,
+          avgGradient: 6.1,
+          category: 'cat3',
+        },
+        {
+          name: 'Col Robert Marchand',
+          summitKm: 125.7,
+          lengthKm: 10.9,
+          avgGradient: 4.4,
+          category: 'cat2',
+        },
+        {
+          name: 'Côte des Baraques',
+          summitKm: 203.3,
+          lengthKm: 4.2,
+          avgGradient: 6.6,
+          category: 'cat2',
+        },
+        {
+          name: 'Côte de Saint-Vidal',
+          summitKm: 222.5,
+          lengthKm: 2,
+          avgGradient: 7.4,
+          category: 'cat3',
+        },
+      ],
+    },
+    // Etapa 3 Perreux -> Perreux (CRE) (28,4 km, C.l.m par équipe)
+    null,
+    // Etapa 4 Le Puy-en-Velay -> Montrond-les-Bains (167,4 km, Accidentée)
+    {
+      climbs: [
+        {
+          name: "Col de la Croix de l'Arbre",
+          summitKm: 14.6,
+          lengthKm: 4,
+          avgGradient: 4.1,
+          category: 'cat4',
+        },
+        {
+          name: 'Côte du Temple',
+          summitKm: 67.3,
+          lengthKm: 5.7,
+          avgGradient: 4.5,
+          category: 'cat3',
+        },
+        {
+          name: 'Côte de Chougoirand',
+          summitKm: 77.9,
+          lengthKm: 7.8,
+          avgGradient: 5.5,
+          category: 'cat2',
+        },
+        {
+          name: 'Col des Limites',
+          summitKm: 92.4,
+          lengthKm: 3.7,
+          avgGradient: 5.5,
+          category: 'cat3',
+        },
+        {
+          name: 'Côte de Lérigneux',
+          summitKm: 104.7,
+          lengthKm: 1.7,
+          avgGradient: 4.4,
+          category: 'cat4',
+        },
+        {
+          name: 'Côte de la Roche en Forez',
+          summitKm: 109.6,
+          lengthKm: 2.2,
+          avgGradient: 4.5,
+          category: 'cat4',
+        },
+      ],
+    },
+    // Etapa 5 Saint-Chamond -> Villars-les-Dombes (195,8 km, Accidentée)
+    {
+      climbs: [
+        {
+          name: 'Côte de la Croix-Blanche',
+          summitKm: 3,
+          lengthKm: 3,
+          avgGradient: 5,
+          category: 'cat4',
+        },
+        {
+          name: 'Col de la Gachet',
+          summitKm: 7.5,
+          lengthKm: 1.7,
+          avgGradient: 4.4,
+          category: 'cat4',
+        },
+      ],
+    },
+    // Etapa 6 Saint-Vulbas -> Crest-Voland (182,3 km, Montagne)
+    {
+      climbs: [
+        {
+          name: 'Côte de Châtelard',
+          summitKm: 83.5,
+          lengthKm: 4.3,
+          avgGradient: 5.7,
+          category: 'cat3',
+        },
+        { name: 'Col du Granier', summitKm: 98.3, lengthKm: 8, avgGradient: 5.7, category: 'cat2' },
+        {
+          name: "Côte d'Héry-sur-Ugine",
+          summitKm: 173.2,
+          lengthKm: 11.6,
+          avgGradient: 5.1,
+          category: 'cat1',
+        },
+        {
+          name: 'Côte de Crest-Voland',
+          summitKm: 182.3,
+          lengthKm: 5.9,
+          avgGradient: 7.7,
+          category: 'cat1',
+        },
+      ],
+    },
+    // Etapa 7 La Bridoire -> Grand Colombier (133,6 km, Montagne)
+    {
+      climbs: [
+        {
+          name: 'Col du Banchet',
+          summitKm: 5.1,
+          lengthKm: 5.4,
+          avgGradient: 5.7,
+          category: 'cat2',
+        },
+        {
+          name: 'Col de la Crusille',
+          summitKm: 13.8,
+          lengthKm: 2.9,
+          avgGradient: 4,
+          category: 'cat4',
+        },
+        {
+          name: 'Côte de Saint-Maurice-de-Rotherens',
+          summitKm: 24.2,
+          lengthKm: 4.9,
+          avgGradient: 7.1,
+          category: 'cat2',
+        },
+        {
+          name: 'Lacets du Grand Colombier',
+          summitKm: 76.2,
+          lengthKm: 7,
+          avgGradient: 8.4,
+          category: 'cat1',
+        },
+        {
+          name: 'Col de Richemond',
+          summitKm: 111.2,
+          lengthKm: 7.7,
+          avgGradient: 6,
+          category: 'cat2',
+        },
+        {
+          name: 'Col Du Grand Colombier',
+          summitKm: 133.6,
+          lengthKm: 8.4,
+          avgGradient: 10.2,
+          category: 'HC',
+        },
+      ],
+    },
+    // Etapa 8 Beaufort -> Plateau de Solaison (120,1 km, Montagne)
+    {
+      climbs: [
+        { name: 'Col du Pré', summitKm: 10.4, lengthKm: 6.9, avgGradient: 10.1, category: 'cat1' },
+        {
+          name: 'Montée de Bisanne',
+          summitKm: 43.1,
+          lengthKm: 11.4,
+          avgGradient: 7.7,
+          category: 'HC',
+        },
+        { name: 'Col des Aravis', summitKm: 73.4, lengthKm: 7, avgGradient: 6.8, category: 'cat1' },
+        {
+          name: 'Plateau de Solaison',
+          summitKm: 120.1,
+          lengthKm: 11.3,
+          avgGradient: 9.1,
+          category: 'HC',
+        },
+      ],
+    },
+  ],
   'race-emirates': [
     {
       climbs: [],
@@ -6234,6 +6483,31 @@ export const STAGE_FEATURES: Record<string, (StageFeatures | null)[]> = {
   ],
   // Race Pune (perfiles reales PCS 2026): carrera casi llana con un día ondulado (etapa 2). Los puertos
   // y sprints caen en su km real; la etapa 1 lleva cotas pequeñas, la 3 sube al principio y llanea.
+  /**
+   * Gree-Tour of Guangxi 2025. La fuente (frwiki) NO trae tabla: trae una prosa de presentación del
+   * recorrido, y de ella solo se puede sacar limpio el final de la etapa reina. Todo lo demás se
+   * queda fuera y en docs/fuentes-recorridos.md se explica por qué, cota a cota.
+   */
+  'race-guangxi': [
+    // Etapa 1 Fangchenggang (149 km): «quelques côtes d'un kilomètre à 5-6 %», sin km ni nombre.
+    null,
+    // Etapa 2 Chongzuo -> Jingxi (177 km): la prosa describe una etapa de 179,6 km que acaba en
+    // Nanning y la lista oficial de etapas dice Chongzuo -> Jingxi, 177,4. La fuente se contradice
+    // con ella misma, así que no se carga nada (regla 6).
+    null,
+    // Etapa 3 Jingxi -> Bama (214 km): tres cotas, ninguna con nombre y solo una con km.
+    null,
+    // Etapa 4 Bama -> Jinchengjiang (177 km): cinco cotas sin nombre, dos con km aproximado.
+    null,
+    // Etapa 5 Yizhou -> Nongla (166 km): LA REINA, y el único dato completo de la carrera. Final en
+    // alto en Nongla, 3,1 km al 6,3 %. El resto de la etapa (una cota previa de 2,7 km al 4,6 % sin
+    // km publicado) se queda fuera.
+    {
+      climbs: [{ name: 'Nongla', summitKm: 165.8, lengthKm: 3.1, avgGradient: 6.3 }],
+    },
+    // Etapa 6 Nanning (134 km): cinco pasos por un muro de 1,3 km al 11,5 %, sin km de ninguno.
+    null,
+  ],
   'race-pune': [
     // Prólogo CRI llano (8 km), sin puertos ni sprints.
     {},
