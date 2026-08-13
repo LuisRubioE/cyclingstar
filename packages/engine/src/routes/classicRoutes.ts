@@ -264,6 +264,23 @@ export const STAGE_ROUTE_SOURCES: Record<string, RouteSource> = {
       'Las seis distancias de la edición 2025 cuadran con editions.ts (149,4 / 177,4 / 214 / 176,8 / 165,8 / 134,3), así que la etapa 5 del juego es la etapa 5 real.',
     ],
   },
+  'race-oman': {
+    race: 'Tour of Oman',
+    edition: 2026,
+    distanceKm: 856.3,
+    official: 'https://www.tour-of-oman.com/en/stage-1',
+    crossCheck: 'https://en.wikipedia.org/wiki/2026_Tour_of_Oman',
+    retrieved: '2026-08-13',
+    notes: [
+      'Web oficial (ASO), una ficha por etapa (`/en/stage-1` … `/en/stage-5`) con el bloque «Mountain passes & hill»: nombre, km de la CIMA, altitud, longitud y pendiente media. Es el mismo CMS del Tour Auvergne-Rhône-Alpes y su robots.txt solo cierra /admin, /sonatadmin, /api, /graphql y /login: las páginas de etapa están abiertas.',
+      'Las cinco distancias de la edición 2026 cuadran una a una con editions.ts (170,9 / 191,4 / 191,3 / 146,8 / 155,9 frente a 171 / 191 / 191 / 147 / 156) y suman 856,3 km: son la misma edición, así que no se mezclan tablas con distancias de otro año.',
+      'A diferencia del Dauphiné, esta carrera NO publica la categoría de sus dificultades ni sus sprints intermedios. La categoría se deja derivar de la longitud y la pendiente reales (SPEC 6.2) y no se carga ningún sprint: no hay dato que cargar.',
+      'La etapa 4 (Al Sawadi Beach -> Sohar) no tiene ninguna cota en su ficha. Se deja en null, no en {}: la fuente calla, y callar no es afirmar que la etapa sea llana del todo.',
+      'DEUDA DE DATO conocida, y es la mitad de la carrera: de las etapas 3 y 5 la fuente publica ÚNICAMENTE el final en alto. La etapa 3 son 188 km sin una sola cota publicada antes de Misfat al Abriyeen, y la 5 otros 152 antes de Jabal al Akhdhar. Lo que falta lo pone el relleno por terreno, que no es real. No se ha completado a ojo.',
+      'Las dos subidas finales (etapa 3, Eastern Mountain / Misfat al Abriyeen; etapa 5, Jabal al Akhdhar) traen en la web oficial cifras IDÉNTICAS: 941 m de altitud, 3,3 km al 8 %. Se ha comprobado dos veces contra la página y es lo que publica; no es un error de lectura. Queda anotado porque una coincidencia exacta entre dos puertos distintos es más fácil que sea de la fuente que de la carretera, y si algún día se corrige, se corrigen las dos.',
+      'La enwiki de la edición 2026 se usó solo para contrastar la lista de etapas: no publica altimetría de ninguna de las dos subidas finales, así que no sirve para arbitrar lo anterior.',
+    ],
+  },
 }
 
 /**

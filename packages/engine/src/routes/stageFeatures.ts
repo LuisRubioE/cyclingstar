@@ -6508,6 +6508,66 @@ export const STAGE_FEATURES: Record<string, (StageFeatures | null)[]> = {
     // Etapa 6 Nanning (134 km): cinco pasos por un muro de 1,3 km al 11,5 %, sin km de ninguno.
     null,
   ],
+  /**
+   * Tour of Oman 2026. La fuente es la WEB OFICIAL (ASO), que publica en cada ficha de etapa el
+   * bloque «Mountain passes & hill» con nombre, km de la CIMA, altitud, longitud y pendiente media
+   * de cada dificultad. Es el mismo formato del Tour Auvergne-Rhône-Alpes y por eso no hay que
+   * asumir nada, con una sola salvedad: aquí NO se publica la categoría (la carrera no la usa), así
+   * que se deja derivar de la longitud y la pendiente reales (SPEC 6.2). Tampoco publica sprints
+   * intermedios, y por eso no se carga ninguno.
+   */
+  'race-oman': [
+    // Etapa 1 Ministry of Tourism -> Bimmah Sink Hole (171 km): una sola dificultad publicada, y
+    // nada más salir de Mascate (cima en el km 6,5). Los otros 164 km son costa llana.
+    {
+      climbs: [
+        { name: 'Jabal Road (Bousher Al Amerat)', summitKm: 6.5, lengthKm: 3.5, avgGradient: 9.2 },
+      ],
+    },
+    // Etapa 2 Al Rustaq Fort -> Yitti Hills (191 km): la etapa mejor documentada de la carrera,
+    // cuatro cotas con su km, y la última corona a menos de 1 km de meta.
+    {
+      climbs: [
+        { name: 'Fanja', summitKm: 90.5, lengthKm: 1.2, avgGradient: 9 },
+        {
+          name: 'Jabal Road (Bousher Al Amerat)',
+          summitKm: 152.1,
+          lengthKm: 3.3,
+          avgGradient: 9.2,
+        },
+        { name: 'Halamriyah', summitKm: 177.7, lengthKm: 0.88, avgGradient: 9.4 },
+        { name: 'Yitti Hills', summitKm: 190.4, lengthKm: 1.6, avgGradient: 6.8 },
+      ],
+    },
+    // Etapa 3 Samail -> Misfat al Abriyeen (191 km): CARGA A MEDIAS Y A PROPÓSITO. La ficha oficial
+    // solo publica el final en alto; de los 188 km anteriores no da una sola cota, y por el desnivel
+    // de la etapa los hay. Lo que falta lo pone el relleno por terreno, que no es real.
+    {
+      climbs: [
+        {
+          name: 'Eastern Mountain (Misfat al Abriyeen)',
+          summitKm: 191.3,
+          lengthKm: 3.3,
+          avgGradient: 8,
+        },
+      ],
+    },
+    // Etapa 4 Al Sawadi Beach -> Sohar (147 km): la ficha oficial no publica NINGUNA cota. No es lo
+    // mismo que decir que no las hay, así que se queda en null (perfil por terreno) y no en {}.
+    null,
+    // Etapa 5 Nizwa -> Jabal al Akhdhar (156 km): la reina, y otra carga a medias: solo el final en
+    // alto, con las mismas cifras exactas que el de la etapa 3 (ver la nota de la fuente).
+    {
+      climbs: [
+        {
+          name: 'Jabal al Akhdhar (Green Mountain)',
+          summitKm: 155.9,
+          lengthKm: 3.3,
+          avgGradient: 8,
+        },
+      ],
+    },
+  ],
   'race-pune': [
     // Prólogo CRI llano (8 km), sin puertos ni sprints.
     {},
