@@ -19,9 +19,9 @@ docs/inventario-recorridos.md`) cuando se carga un recorrido nuevo, y así no en
 | Nivel           | Etapas |       Real | Sin validar |   Inventado |
 | --------------- | -----: | ---------: | ----------: | ----------: |
 | **WorldTour**   |    161 | 139 (86 %) |   19 (12 %) |     3 (2 %) |
-| **ProSeries**   |    174 |  21 (12 %) |  118 (68 %) |   35 (20 %) |
+| **ProSeries**   |    174 |  29 (17 %) |  110 (63 %) |   35 (20 %) |
 | **Continental** |   1083 |    9 (1 %) |    94 (9 %) |  980 (90 %) |
-| **TOTAL**       |   1418 | 169 (12 %) |  231 (16 %) | 1018 (72 %) |
+| **TOTAL**       |   1418 | 177 (12 %) |  223 (16 %) | 1018 (72 %) |
 
 De las continentales inventadas, **532** son campeonatos nacionales: una prueba por país y categoría, sin recorrido publicado que cargar.
 
@@ -842,12 +842,12 @@ PRS · .Pro · una-semana · 5 etapas · día 216
 
 PRS · .Pro · una-semana · 4 etapas · día 225
 
-| #   | Tipo          | Salida    | Meta     |  km | Recorrido   |
-| --- | ------------- | --------- | -------- | --: | ----------- |
-| 1   | Hills         | Borkenes  | Harstad  | 182 | Sin validar |
-| 2   | Hills         | Tennevoll | Sorreisa | 167 | Sin validar |
-| 3   | Summit finish | Husoy     | Malselv  | 182 | Sin validar |
-| 4   | Hills         | Tromso    | Tromso   | 135 | Sin validar |
+| #   | Tipo  | Salida          | Meta     |  km | Recorrido |
+| --- | ----- | --------------- | -------- | --: | --------- |
+| 1   | Flat  | Evenes          | Myre     | 182 | Real      |
+| 2   | Flat  | Bo i Vesteralen | Andenes  | 180 | Real      |
+| 3   | Hills | Stokmarknes     | Storheia | 147 | Real      |
+| 4   | Hills | Sortland        | Narvik   | 191 | Real      |
 
 ### Race Czechia (CZ)
 
@@ -864,13 +864,13 @@ PRS · .Pro · una-semana · 4 etapas · día 225
 
 PRS · .Pro · una-semana · 5 etapas · día 231
 
-| #   | Tipo        | Salida   | Meta      |  km | Recorrido   |
-| --- | ----------- | -------- | --------- | --: | ----------- |
-| 1   | ITT (crono) | Essen    | Essen     |   3 | Sin validar |
-| 2   | Hills       | Essen    | Herford   | 203 | Sin validar |
-| 3   | Hills       | Herford  | Arnsberg  | 190 | Sin validar |
-| 4   | Hills       | Arnsberg | Kassel    | 176 | Sin validar |
-| 5   | Flat        | Halle    | Magdeburg | 164 | Sin validar |
+| #   | Tipo        | Salida              | Meta                    |  km | Recorrido   |
+| --- | ----------- | ------------------- | ----------------------- | --: | ----------- |
+| 1   | ITT (crono) | Bad Orb             | Bad Orb                 |   3 | Sin validar |
+| 2   | Hills       | Bad Orb             | Schwabisch Hall         | 215 | Real        |
+| 3   | Flat        | Schwabisch Hall     | Offenbach an der Queich | 197 | Real        |
+| 4   | Hills       | Herxheim bei Landau | Bad Durkheim            | 171 | Real        |
+| 5   | Hills       | Heilbronn           | Heilbronn               | 157 | Real        |
 
 ### Race Britain (GB)
 
