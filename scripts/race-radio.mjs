@@ -20,20 +20,29 @@
  *
  *  - **Banco** (por defecto): la etapa se corre AQUÍ, con el recorrido del calendario y un campo
  *    sembrado. Siempre fiel, porque la tabla describe la carrera que se acaba de correr.
- *  - **Producción** (`--db`): `stage_snapshots` guarda la semilla y la entrada de la etapa que se
- *    corrió de verdad, así que se puede re-simular… **solo si corrió con el motor de HOY**. Si
- *    `stage_snapshots.engineVersion` no coincide con `ENGINE_VERSION`, el replay cuenta una carrera
- *    distinta de la que quedó en el marcador (es el defecto por el que el journal está congelado,
- *    ver `apps/api/src/stageHistory.ts`), y entonces esta herramienta DICE QUE NO SE PUEDE
- *    RECONSTRUIR en vez de enseñar una carrera que no pasó.
+ *  - **Producción** (`--db` o `--api`): `stage_snapshots` guarda la semilla y la entrada de la etapa
+ *    que se corrió de verdad, así que se puede re-simular… **solo si corrió con el motor de HOY**.
+ *    Si `stage_snapshots.engineVersion` no coincide con `ENGINE_VERSION`, el replay cuenta una
+ *    carrera distinta de la que quedó en el marcador (es el defecto por el que el journal está
+ *    congelado, ver `apps/api/src/stageHistory.ts`), y entonces esta herramienta DICE QUE NO SE
+ *    PUEDE RECONSTRUIR en vez de enseñar una carrera que no pasó.
+ *
+ * Y hay DOS maneras de llegar a ese snapshot, la misma etapa por dos puertas:
+ *
+ *  - `--db` va directo a la base: necesita `DATABASE_URL` en la máquina desde la que se mira.
+ *  - `--api <url>` lo pide a `GET /api/admin/stage-snapshot/:raceId/:día`, que es la puerta de
+ *    ADMINISTRACIÓN de la API (cabecera `x-admin-token`, `ADMIN_TOKEN` del entorno). Así se puede
+ *    mirar una etapa de producción sin credenciales de base de datos delante.
  *
  * Uso:
  *   pnpm --filter @cyclingstar/engine build
  *   node scripts/race-radio.mjs <raceId> <día> [opciones]
  *   DATABASE_URL=… node scripts/race-radio.mjs <raceId> <día> --db [opciones]
+ *   ADMIN_TOKEN=… node scripts/race-radio.mjs <raceId> <día> --api https://… [opciones]
  *
  * Opciones:
  *   --db              lee la etapa de producción (`stage_snapshots`) en vez de correrla en el banco
+ *   --api <url>       igual, pero pidiéndosela a la API de administración (no necesita DATABASE_URL)
  *   --season <n>      temporada de la clave de carrera en producción (por defecto, la del mundo)
  *   --every <km>      cada cuántos km se pide la foto (por defecto 1)
  *   --from <km>       primer km que se imprime
@@ -75,7 +84,7 @@ const num = (name, fallback) => {
 const raceId = argv[0]
 const day = Number(argv[1])
 if (!raceId || !Number.isFinite(day)) {
-  console.error('Uso: node scripts/race-radio.mjs <raceId> <día> [--db] [opciones]')
+  console.error('Uso: node scripts/race-radio.mjs <raceId> <día> [--db|--api <url>] [opciones]')
   process.exit(1)
 }
 
@@ -180,10 +189,44 @@ function bankSource() {
 // ------------------------------------------------------------------- fuente: producción
 
 /**
- * La etapa que se corrió DE VERDAD, con la guarda de versión. Ver la cabecera: re-simular con un
- * motor distinto del que corrió la etapa cuenta otra carrera, así que aquí solo hay dos respuestas
- * posibles —replay fiel o «no se puede reconstruir»— y nunca una tercera con una carrera inventada.
+ * De un snapshot —venga de la base o de la API— a la fuente de la radio, CON LA GUARDA DE VERSIÓN.
+ * Ver la cabecera: re-simular con un motor distinto del que corrió la etapa cuenta otra carrera,
+ * así que aquí solo hay dos respuestas posibles —replay fiel o «no se puede reconstruir»— y nunca
+ * una tercera con una carrera inventada.
+ *
+ * La guarda se resuelve SIEMPRE contra el motor de ESTE árbol (`checkReplay` local), que es el que
+ * va a re-simular; el veredicto que traiga la API es el de su despliegue y no manda aquí.
  */
+function productionSource({ raceKey, snapshot, identities, via }) {
+  const replay = checkReplay(snapshot.engineVersion)
+  if (!replay.faithful) {
+    return {
+      refused:
+        `NO SE PUEDE RECONSTRUIR ${raceKey} día ${day}.\n` +
+        `  La etapa corrió con el motor v${replay.ranWith} y este árbol es el v${replay.today}.\n` +
+        `  Re-simularla contaría una carrera DISTINTA de la que quedó en el marcador, y esta\n` +
+        `  herramienta no enseña carreras que no pasaron. Corre la radio en el banco (sin --db\n` +
+        `  ni --api) o vuelve al árbol del v${replay.ranWith}.`,
+    }
+  }
+  // Maillots, dorsales y equipos NO los sabe el motor y no debe saberlos: se cruzan fuera, con la
+  // misma consulta que ya usa el journal (`apps/api/src/chronicle.ts`).
+  const names = new Map(identities.map((i) => [i.riderId, `${i.bib ?? '--'} ${lastName(i.name)}`]))
+  // El NOMBRE sale de la ficha del calendario de hoy y puede haber envejecido —el calendario se
+  // recalcula desde el código (`apps/api/src/stageHistory.ts`)—, pero lo que importa aquí no es el
+  // rótulo: los kilómetros, el recorrido y el campo salen todos del snapshot, que es lo que corrió.
+  const race = SEASON_CALENDAR.find((r) => r.id === raceId)
+  return {
+    input: snapshot.input,
+    seed: snapshot.seed,
+    names,
+    stageName: race?.stages[day - 1]?.name ?? `Stage ${day}`,
+    raceName: race?.name ?? raceId,
+    origin: `producción (${via} ${raceKey} día ${day}) — corrió con el motor v${replay.ranWith}, este árbol es el v${replay.today}: REPLAY FIEL`,
+  }
+}
+
+/** La etapa que se corrió de verdad, leída DIRECTAMENTE de la base (`DATABASE_URL`). */
 async function dbSource() {
   const url = process.env.DATABASE_URL
   if (!url) throw new Error('--db necesita DATABASE_URL')
@@ -200,40 +243,49 @@ async function dbSource() {
     if (!snapshot) {
       throw new Error(`No hay snapshot de ${raceKey} día ${day}: esa etapa no se ha corrido`)
     }
-    // LA GUARDA, y la regla vive en el motor (`checkReplay`), no aquí: reconstruir una etapa que
-    // corrió con otro motor cuenta una carrera distinta de la que quedó en el marcador.
-    const replay = checkReplay(snapshot.engineVersion)
-    if (!replay.faithful) {
-      return {
-        refused:
-          `NO SE PUEDE RECONSTRUIR ${raceKey} día ${day}.\n` +
-          `  La etapa corrió con el motor v${replay.ranWith} y este árbol es el v${replay.today}.\n` +
-          `  Re-simularla contaría una carrera DISTINTA de la que quedó en el marcador, y esta\n` +
-          `  herramienta no enseña carreras que no pasaron. Corre la radio en el banco (sin --db)\n` +
-          `  o vuelve al árbol del v${replay.ranWith}.`,
-      }
-    }
-    // Maillots, dorsales y equipos NO los sabe el motor y no debe saberlos: se cruzan aquí fuera,
-    // en la misma capa y con la misma consulta que ya usa el journal (`apps/api/src/chronicle.ts`).
     const identities = await db.getRaceRiderIdentities(conn.db, raceKey)
-    const names = new Map(
-      identities.map((i) => [i.riderId, `${i.bib ?? '--'} ${lastName(i.name)}`]),
-    )
-    // El NOMBRE sale de la ficha del calendario de hoy y puede haber envejecido —el calendario se
-    // recalcula desde el código (`apps/api/src/stageHistory.ts`)—, pero lo que importa aquí no es el
-    // rótulo: los kilómetros, el recorrido y el campo salen todos del snapshot, que es lo que corrió.
-    const race = SEASON_CALENDAR.find((r) => r.id === raceId)
-    return {
-      input: snapshot.input,
-      seed: snapshot.seed,
-      names,
-      stageName: race?.stages[day - 1]?.name ?? `Stage ${day}`,
-      raceName: race?.name ?? raceId,
-      origin: `producción (\`stage_snapshots\` ${raceKey} día ${day}) — corrió con el motor v${replay.ranWith}, este árbol es el v${replay.today}: REPLAY FIEL`,
-    }
+    return productionSource({ raceKey, snapshot, identities, via: '`stage_snapshots`' })
   } finally {
     await conn.client.end({ timeout: 5 })
   }
+}
+
+/**
+ * La misma etapa, pero pedida a la PUERTA DE ADMINISTRACIÓN de la API en vez de a la base:
+ * `GET /api/admin/stage-snapshot/:raceId/:día` con la cabecera `x-admin-token`.
+ *
+ * Es lo que hace que esta herramienta llegue a producción de verdad: hasta ahora `--db` exigía
+ * `DATABASE_URL` en la máquina desde la que se mira, y por eso el camino estaba escrito y sin
+ * correr. El endpoint sirve semilla, entrada y `engineVersion` —lo que pide `checkReplay`— más los
+ * dorsales del roster; la guarda de versión se resuelve igualmente aquí, contra el motor local.
+ */
+async function apiSource(base) {
+  const token = process.env.ADMIN_TOKEN
+  if (!token) throw new Error('--api necesita ADMIN_TOKEN en el entorno')
+  const season = num('season', null)
+  const url = new URL(
+    `/api/admin/stage-snapshot/${encodeURIComponent(raceId)}/${day}`,
+    base.startsWith('http') ? base : `https://${base}`,
+  )
+  if (season !== null) url.searchParams.set('season', String(season))
+  const res = await fetch(url, { headers: { 'x-admin-token': token } })
+  const body = await res.json().catch(() => null)
+  if (res.status === 401) throw new Error(`${url.origin} rechaza el ADMIN_TOKEN (401)`)
+  if (res.status === 404) {
+    throw new Error(
+      `No hay snapshot de ${raceId} día ${day} en ${url.origin}` +
+        (body?.error === 'sin_mundo' ? ': ese despliegue no tiene mundo' : ': no se ha corrido'),
+    )
+  }
+  if (!res.ok || !body?.ok) {
+    throw new Error(`${url.origin} respondió ${res.status} (${body?.error ?? 'sin cuerpo'})`)
+  }
+  return productionSource({
+    raceKey: body.raceKey,
+    snapshot: { seed: body.seed, engineVersion: body.engineVersion, input: body.input },
+    identities: body.riders ?? [],
+    via: `API admin de ${url.origin},`,
+  })
 }
 
 const lastName = (name) =>
@@ -337,9 +389,10 @@ function outcome(result, names) {
 
 // ---------------------------------------------------------------------------- main
 
+const apiBase = opt('api', null)
 let source
 try {
-  source = flag('db') ? await dbSource() : bankSource()
+  source = apiBase ? await apiSource(apiBase) : flag('db') ? await dbSource() : bankSource()
 } catch (err) {
   // Un fallo de fontanería es un mensaje, no un volcado de pila: esto se usa mirándolo.
   console.error(`\nrace-radio: ${err instanceof Error ? err.message : String(err)}\n`)

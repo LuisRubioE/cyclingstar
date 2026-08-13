@@ -139,6 +139,10 @@ describe('api: guarda de ADMIN_TOKEN', () => {
     { method: 'DELETE', url: `/api/admin/blocklist/${UUID}` },
     { method: 'GET', url: '/api/admin/health' },
     { method: 'POST', url: '/api/admin/premium' },
+    // El snapshot de una etapa expone la SEMILLA y la entrada completa (el estado de partida de
+    // todos los corredores): con las dos se predice el desenlace antes de que se publique. Si esta
+    // línea desaparece de la lista, la ruta ha dejado de estar protegida.
+    { method: 'GET', url: '/api/admin/stage-snapshot/race-andalusia/1' },
     { method: 'POST', url: '/api/world/advance?days=1' },
   ]
 
@@ -177,6 +181,45 @@ describe('api: guarda de ADMIN_TOKEN', () => {
     })
     expect(res.statusCode).toBe(200)
     expect(res.json()).toMatchObject({ ok: true, currentDay: 3 })
+  })
+})
+
+/**
+ * El snapshot de una etapa corrida es lo que la Race Radio (`scripts/race-radio.mjs --api`) necesita
+ * para reconstruirla sin `DATABASE_URL` delante. Aquí se fija lo que se comprueba ANTES de tocar la
+ * base: el token (arriba, con el resto de la puerta de admin) y la forma de la petición.
+ */
+describe('api: /api/admin/stage-snapshot', () => {
+  const adminApp = buildTestApp()
+  afterAll(async () => {
+    await adminApp.close()
+  })
+
+  const get = (url: string) =>
+    adminApp.inject({ method: 'GET', url, headers: { 'x-admin-token': ADMIN_TOKEN } })
+
+  it('rechaza un raceId que no tiene forma de slug', async () => {
+    const res = await get('/api/admin/stage-snapshot/No%20Soy%20Un%20Slug/1')
+    expect(res.statusCode).toBe(400)
+    expect(res.json()).toEqual({ ok: false, error: 'validacion' })
+  })
+
+  it('rechaza una carrera que no está en el calendario', async () => {
+    // Slug válido pero inexistente: se corta aquí y no acaba en una consulta con basura.
+    const res = await get('/api/admin/stage-snapshot/race-que-no-existe/1')
+    expect(res.statusCode).toBe(400)
+  })
+
+  it('rechaza un día de etapa que no es un entero válido', async () => {
+    for (const day of ['0', '-1', 'ayer', '999']) {
+      const res = await get(`/api/admin/stage-snapshot/race-andalusia/${day}`)
+      expect(res.statusCode).toBe(400)
+    }
+  })
+
+  it('rechaza una temporada que no es un entero', async () => {
+    const res = await get('/api/admin/stage-snapshot/race-andalusia/1?season=la-que-sea')
+    expect(res.statusCode).toBe(400)
   })
 })
 

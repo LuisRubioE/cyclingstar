@@ -111,11 +111,33 @@ Es la herramienta para no tener que reconstruir a mano lo que pasó desde el reg
 pnpm --filter @cyclingstar/engine build
 node scripts/race-radio.mjs race-andalusia 1 --riders 119     # banco: la etapa se corre aquí
 DATABASE_URL=… node scripts/race-radio.mjs race-andalusia 1 --db   # producción: replay del snapshot
+ADMIN_TOKEN=… node scripts/race-radio.mjs race-andalusia 1 \
+  --api https://cyclingstar.up.railway.app                    # producción, sin DATABASE_URL
 ```
 
-Con `--db` la etapa se re-simula desde `stage_snapshots` (semilla y entrada congeladas) y **solo si
-corrió con el motor de hoy**: si `engineVersion` no coincide, el comando dice que no se puede
-reconstruir en vez de enseñar una carrera que no pasó. `--help` en la cabecera del propio script.
+Con `--db` o `--api` la etapa se re-simula desde `stage_snapshots` (semilla y entrada congeladas) y
+**solo si corrió con el motor de hoy**: si `engineVersion` no coincide, el comando dice que no se
+puede reconstruir en vez de enseñar una carrera que no pasó. La guarda se resuelve siempre contra el
+motor de ESTE árbol, que es el que re-simula. `--help` en la cabecera del propio script.
+
+`--db` necesita credenciales de base de datos en la máquina desde la que se mira; `--api` no: pide
+la etapa a la puerta de administración de la API (ver abajo). Es la diferencia entre poder mirar una
+etapa rara de producción desde cualquier sitio y no poder.
+
+### `GET /api/admin/stage-snapshot/:raceId/:day` — el snapshot de una etapa corrida
+
+Devuelve lo que hace falta para reconstruir una etapa entera: `seed`, `input`, `engineVersion` y el
+veredicto de la guarda de versión (`replay`), más los dorsales del roster (`riders`) para poder poner
+nombre a quien sale en la tabla. Admite `?season=N` (por defecto, la temporada del mundo).
+
+**Va tras `ADMIN_TOKEN`** (cabecera `x-admin-token`), como el resto de `/api/admin/*`, y no puede
+dejar de estarlo: `input` lleva el estado de partida de todos los corredores y `seed` es la semilla
+exacta, así que con los dos se puede predecir el desenlace de una etapa antes de que se publique.
+
+```sh
+curl -H "x-admin-token: $ADMIN_TOKEN" \
+  https://cyclingstar.up.railway.app/api/admin/stage-snapshot/race-andalusia/1
+```
 
 ### Cobertura de tests
 
