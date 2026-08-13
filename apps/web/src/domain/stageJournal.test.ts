@@ -1658,7 +1658,7 @@ describe('el desenlace converge en quien decide la etapa (v27)', () => {
         plantilla: 'attack_sticks',
         km: 150,
         protagonists: named('Oliver Bailey'),
-        datos: { size: 1, gapS: 46, toGo: 1, respecto: 1 },
+        datos: { size: 1, gapS: 46, toGo: 1, respecto: 1, desenlace: 1 },
         mentions: { liderId: rider('Alexander Schwarz') },
       }),
     )
@@ -1666,6 +1666,20 @@ describe('el desenlace converge en quien decide la etapa (v27)', () => {
     expect(linea).toContain('46s')
     expect(linea).toContain('the stage is up the road with')
     expect(linea).toContain('Alexander Schwarz')
+  })
+
+  it('a mitad de etapa la subtrama va detrás del líder, sin dar la etapa por decidida', () => {
+    const linea = chronicleLine(
+      event({
+        plantilla: 'attack_sticks',
+        km: 40,
+        protagonists: named('Peter Schulz'),
+        datos: { size: 1, gapS: 46, toGo: 111, respecto: 1 },
+        mentions: { liderId: rider('Alexander Schwarz') },
+      }),
+    )
+    expect(linea).toContain('Behind Alexander Schwarz')
+    expect(linea).not.toContain('the stage is up the road')
   })
 
   it('el último kilómetro dice sobre cuántos va el margen', () => {

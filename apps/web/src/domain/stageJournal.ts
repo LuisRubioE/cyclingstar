@@ -333,6 +333,7 @@ function chronicleTemplate(e: ChronicleEntry): string {
       if (e.datos?.kind === 'ataque_final') {
         if (lider)
           return `${who} attack${jumped === 1 ? 's' : ''} with ${toGo} km to go, going after ${riderFull(lider)}.${tail}`
+        // (sin líder conocido la frase se queda como estaba: no se inventa a quién persigue)
         return pick([
           `${who} attack${jumped === 1 ? 's' : ''} with ${toGo} km to go.${tail}`,
           `It is ${who} who ${jumped === 1 ? 'goes' : 'go'}, ${toGo} km from the line.${tail}`,
@@ -388,8 +389,14 @@ function chronicleTemplate(e: ChronicleEntry): string {
       // hueco de quien no manda es cierto y se cuenta, pero contra el grupo del que salió y con el
       // líder de la etapa nombrado al lado.
       const lider = e.datos?.respecto === 1 ? e.mentions?.liderId : undefined
-      if (lider)
-        return `Behind, ${who} ${size === 1 ? 'has' : 'have'} ${gap} on the group ${size === 1 ? 'he' : 'they'} left with ${toGo} km to go — but the stage is up the road with ${riderFull(lider)}.`
+      if (lider) {
+        const suyo = `${who} ${size === 1 ? 'has' : 'have'} ${gap} on the group ${size === 1 ? 'he' : 'they'} left with ${toGo} km to go`
+        // En el desenlace se puede decir que la etapa ya está decidida; a cien kilómetros de meta,
+        // no. La misma información, con la prudencia que tiene el sitio de la carretera.
+        return e.datos?.desenlace === 1
+          ? `Behind, ${suyo} — but the stage is up the road with ${riderFull(lider)}.`
+          : `Behind ${riderFull(lider)}, ${suyo}.`
+      }
       if (size === 1) return `${who} has a real gap now — ${gap}, ${toGo} km from the finish.`
       return `The attack sticks: ${who} have ${gap} with ${toGo} km to go.`
     }

@@ -108,3 +108,51 @@ export function mergeGroups(a: Group, b: Group): Group {
     tension: (front.tension + back.tension) / 2,
   }
 }
+
+/**
+ * Un grupo de la carretera visto por el parte de ventaja: cuánta gente lleva y si SIGUE EN CARRERA
+ * —la fuga, los movimientos y el pelotón— o es un grupeto de descolgados.
+ */
+export interface ChaseCandidate {
+  size: number
+  racing: boolean
+}
+
+/**
+ * CONTRA QUIÉN SE MIDE LA VENTAJA (v25 + v27, docs/motor.md §6.15-bis). Es la regla que decide qué
+ * grupo de los que van detrás es «la persecución» en cada parte, y vive aquí —pura y probada— porque
+ * de ella salieron los dos defectos que más han estropeado un diario:
+ *
+ * - **v25**: era el primer reloj de detrás sin más, así que un puente en solitario en tierra de nadie
+ *   se convertía en «la caza» mientras el pelotón de 127 tiraba. De ahí sale el listón de MAGNITUD:
+ *   la referencia tiene que llevar al menos una fracción de la gente del mayor que va detrás.
+ * - **v27**: ese «mayor que va detrás» incluía a los DESCOLGADOS, y tras una criba masiva el mayor de
+ *   detrás es un grupeto. En Race Andalucía (119 → 13 en el km 26, con 80 fuera) la ventaja se midió
+ *   trece kilómetros contra un grupeto a casi siete minutos mientras la etapa la decidían seis
+ *   hombres que iban mucho más cerca.
+ *
+ * La regla, en orden:
+ *
+ * 1. Los candidatos son los que SIGUEN EN CARRERA y no van solos. Un descolgado no vuelve, y un
+ *    hombre suelto en tierra de nadie no es un grupo perseguidor: su historia la cuentan
+ *    `bridge_made` y `bridge_failed`.
+ * 2. Si no hay ninguno —el pelotón va en cabeza y detrás solo quedan grupetos, o la carrera se ha
+ *    quedado en cuatro corredores— la referencia se busca entre TODOS los de detrás: es la carrera
+ *    que hay, y callarse la ventaja sería peor.
+ * 3. Entre los candidatos manda la carretera: el PRIMERO que llegue al listón de magnitud, para que
+ *    la referencia sea siempre la más cercana de las que cuentan.
+ *
+ * `behind` viene en orden de carretera (el más cercano primero). Devuelve el índice elegido, o -1 si
+ * no hay nadie detrás.
+ */
+export function chaseReferenceIndex(
+  behind: readonly ChaseCandidate[],
+  mainFraction: number,
+): number {
+  if (behind.length === 0) return -1
+  const pool = behind.filter((x) => x.racing && x.size >= 2)
+  const candidates = pool.length > 0 ? pool : behind
+  const biggest = candidates.reduce((mx, x) => Math.max(mx, x.size), 0)
+  const chosen = candidates.find((x) => x.size >= biggest * mainFraction) ?? candidates[0]!
+  return behind.indexOf(chosen)
+}

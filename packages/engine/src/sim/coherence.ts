@@ -498,6 +498,15 @@ const SITUATION = new Set([
   'stage_win',
 ])
 
+/** Lo que PONE A ALGUIEN DELANTE: a partir de aquí hay una carrera de dos velocidades que seguir. */
+const PUTS_SOMEONE_AHEAD = new Set([
+  'breakaway_formed',
+  'front_group',
+  'attack_sticks',
+  'bridge_made',
+  'move_merge',
+])
+
 /**
  * LAS LÍNEAS QUE DICEN «FULANO TIENE HUECO». Cada una nombra a alguien y le pone una ventaja: si dos
  * de ellas conviven y hablan de gente distinta sin relacionarse, el lector no puede saber quién va
@@ -603,10 +612,14 @@ export const WATCHED_GROUP_NOUNS: readonly string[] = [
 export interface StoryMetrics {
   /** Km de la etapa según su última línea: el eje sobre el que se miden los silencios. */
   km: number
+  /** Cuántas líneas tiene la crónica. El hilo de situación cuesta líneas: hay que verlo. */
+  lineas: number
   /** El silencio más largo, en km, sin una línea de situación. */
   mudoKm: number
   /** Dónde empieza ese silencio, para poder ir a mirarlo. */
   mudoDesdeKm: number
+  /** ¿Había alguien delante durante ese silencio? Con la carrera junta el silencio no engaña. */
+  mudoConFuga: boolean
   /** Veces que dos protagonistas distintos aparecen «con hueco» a la vez sin relacionarse. */
   dosConHueco: number
   /** Líneas en los últimos `FINALE_KM` km. */
@@ -626,8 +639,10 @@ export function storyMetrics(entries: readonly AuditEntry[]): StoryMetrics {
   const km = entries.reduce((mx, e) => Math.max(mx, e.km), 0)
   const vacio: StoryMetrics = {
     km,
+    lineas: entries.length,
     mudoKm: 0,
     mudoDesdeKm: 0,
+    mudoConFuga: false,
     dosConHueco: 0,
     finalLineas: 0,
     finalDelGanador: 0,
@@ -638,20 +653,31 @@ export function storyMetrics(entries: readonly AuditEntry[]): StoryMetrics {
   // --- 1. El silencio más largo sin una línea de situación --------------------------------------
   // Se mide de la SALIDA a la META, no de la primera línea a la última: los primeros kilómetros sin
   // una palabra son silencio igual, y son justo los que el lector lee con más ganas.
+  //
+  // Y se anota si en ese tramo había ALGO EN LA CARRETERA, porque no es el mismo silencio: con la
+  // carrera junta y nadie fugado, el estado es «van todos juntos» y el lector lo sabe aunque no se
+  // lo repitan; con un hombre delante y una ventaja moviéndose, callarse es perderle.
   let mudoKm = 0
   let mudoDesdeKm = 0
+  let mudoConFuga = false
   let last = 0
+  let algoDelante = false
   for (const e of entries) {
-    if (!SITUATION.has(e.plantilla)) continue
-    if (e.km - last > mudoKm) {
-      mudoKm = e.km - last
-      mudoDesdeKm = last
+    if (SITUATION.has(e.plantilla)) {
+      if (e.km - last > mudoKm) {
+        mudoKm = e.km - last
+        mudoDesdeKm = last
+        mudoConFuga = algoDelante
+      }
+      last = e.km
     }
-    last = e.km
+    if (PUTS_SOMEONE_AHEAD.has(e.plantilla)) algoDelante = true
+    if (CLEARS_THE_ROAD.has(e.plantilla)) algoDelante = false
   }
   if (km - last > mudoKm) {
     mudoKm = km - last
     mudoDesdeKm = last
+    mudoConFuga = algoDelante
   }
 
   // --- 2. Dos hombres «con hueco» a la vez -------------------------------------------------------
@@ -674,8 +700,12 @@ export function storyMetrics(entries: readonly AuditEntry[]): StoryMetrics {
   // --- 3. El desenlace habla del que gana ---------------------------------------------------------
   const winner = entries.find((e) => e.plantilla === 'stage_win')?.riders[0] ?? null
   const finale = entries.filter((e) => e.km >= km - FINALE_KM)
+  // «Hablar del que gana» es nombrarle: como protagonista de la línea, o como el líder respecto del
+  // cual se cuenta una subtrama (`liderId`), que es la otra forma de que el lector lo lea.
   const finalDelGanador =
-    winner === null ? 0 : finale.filter((e) => e.riders.includes(winner)).length
+    winner === null
+      ? 0
+      : finale.filter((e) => e.riders.includes(winner) || e.datos.liderId === winner).length
 
   // --- 4. Cuántos nombres de grupo ------------------------------------------------------------------
   const palabras = new Set<string>()
@@ -683,8 +713,10 @@ export function storyMetrics(entries: readonly AuditEntry[]): StoryMetrics {
 
   return {
     km,
+    lineas: entries.length,
     mudoKm,
     mudoDesdeKm,
+    mudoConFuga,
     dosConHueco,
     finalLineas: finale.length,
     finalDelGanador,
@@ -713,10 +745,13 @@ export interface WorldStory {
   peorMudoEtapa: string
   /** Media de los silencios más largos de cada etapa. */
   mudoKmSuma: number
-  /** Etapas cuyo silencio más largo pasa del listón. */
+  /** Etapas cuyo silencio más largo pasa del listón, y de ésas, las que lo pasan CON alguien delante. */
   etapasMudas: number
+  etapasMudasConFuga: number
   dosConHueco: number
   etapasConDos: number
+  /** Líneas de crónica en total: el precio en texto del hilo de situación. */
+  lineasSuma: number
   finalLineas: number
   finalDelGanador: number
   /** Etapas que usan más de tres nombres de grupo, y el peor de todos. */
@@ -742,8 +777,10 @@ export function emptyWorldAudit(): WorldAudit {
       peorMudoEtapa: '',
       mudoKmSuma: 0,
       etapasMudas: 0,
+      etapasMudasConFuga: 0,
       dosConHueco: 0,
       etapasConDos: 0,
+      lineasSuma: 0,
       finalLineas: 0,
       finalDelGanador: 0,
       etapasConCuatroNombres: 0,
@@ -770,9 +807,13 @@ export function addStoryToWorld(world: WorldAudit, m: StoryMetrics, id: string):
     s.peorMudoEtapa = `${id} (km ${m.mudoDesdeKm}-${m.mudoDesdeKm + m.mudoKm})`
   }
   s.mudoKmSuma += m.mudoKm
-  if (m.mudoKm > MUTE_KM_LIMIT) s.etapasMudas += 1
+  if (m.mudoKm > MUTE_KM_LIMIT) {
+    s.etapasMudas += 1
+    if (m.mudoConFuga) s.etapasMudasConFuga += 1
+  }
   s.dosConHueco += m.dosConHueco
   if (m.dosConHueco > 0) s.etapasConDos += 1
+  s.lineasSuma += m.lineas
   s.finalLineas += m.finalLineas
   s.finalDelGanador += m.finalDelGanador
   if (m.nombresDeGrupo > 3) s.etapasConCuatroNombres += 1

@@ -15,7 +15,9 @@
 import { describe, expect, it } from 'vitest'
 import { simulateStage } from '../stage/simulate.js'
 import type { RaceEvent } from '../stage/types.js'
-import { type AuditEntry, type DefectKey, auditStage } from './coherence.js'
+import { STAGE } from '../constants.js'
+import { chaseReferenceIndex } from '../stage/group.js'
+import { type AuditEntry, type DefectKey, auditStage, storyMetrics } from './coherence.js'
 import {
   type Scenario,
   campaignSeeds,
@@ -170,6 +172,132 @@ describe('coherencia de la crónica (docs/motor.md §16, v25)', () => {
         }
       }
       expect(partes).toBeGreaterThan(0)
+    },
+    TIMEOUT_MS,
+  )
+})
+
+/**
+ * LAS INVARIANTES DE LA ESPINA DORSAL (v27).
+ *
+ * Las cinco de arriba vigilan que el relato no se CONTRADIGA. Éstas vigilan que se ENTIENDA, que es
+ * la queja de la v27: «si lees todo el Journal no SABES quién va ganando, quién va persiguiendo».
+ * Se miden sobre los eventos CRUDOS del motor por la misma razón que las otras: lo que se vigila es
+ * el contrato del motor, y los eventos se congelan y viven para siempre.
+ */
+describe('la espina dorsal del relato (docs/motor.md §16, v27)', () => {
+  const casos: readonly { name: string; scenario: Scenario; seeds: number }[] = [
+    { name: 'llana-180', scenario: flatScenario(), seeds: 20 },
+    { name: 'reina-150', scenario: queenScenario(), seeds: 20 },
+    { name: 'Race Andalucía', scenario: realRaceScenario('race-andalusia'), seeds: 20 },
+  ]
+
+  for (const caso of casos) {
+    it(
+      `${caso.name}: el parte de ventaja responde a las cuatro preguntas`,
+      () => {
+        let partes = 0
+        for (const seed of campaignSeeds(`espina-${caso.name}`, caso.seeds)) {
+          const out = simulateStage(caso.scenario.input, seed)
+          for (const e of out.events) {
+            if (e.plantilla !== 'time_gap') continue
+            partes += 1
+            const d = e.datos ?? {}
+            const lead = Number(d.leadSize ?? 0)
+            // QUIÉN: con la cabeza pequeña, el parte trae nombres. Sin ellos el lector se pasa la
+            // etapa siguiendo a «the lone leader» y en meta no reconoce al ganador.
+            if (lead > 0 && lead <= STAGE.frontNamesMaxRiders) {
+              expect(`km ${Math.round(e.km)} sin nombres`).toBe(
+                `km ${Math.round(e.km)} ${e.protagonistas.length > 0 ? 'sin nombres' : 'CON NOMBRES'}`,
+              )
+            }
+            // SOBRE QUIÉN y CUÁNTO QUEDA: los dos datos que convierten un número en una situación.
+            expect(String(d.chaseKind ?? '')).toMatch(/^(peloton|caza)$/)
+            expect(Number(d.toGo ?? -1)).toBeGreaterThanOrEqual(0)
+          }
+        }
+        expect(partes).toBeGreaterThan(0)
+      },
+      TIMEOUT_MS,
+    )
+  }
+
+  it('la ventaja no se mide nunca contra un grupeto de descolgados', () => {
+    /**
+     * EL CASO DEL ENCARGO, MIRADO DE FRENTE Y SOBRE LA REGLA. La elección del grupo de referencia es
+     * pura (`chaseReferenceIndex`), así que se prueba con la carretera puesta a mano: es la única
+     * forma de comprobar el caso EXACTO —una criba masiva— sin depender de que una semilla lo dé.
+     *
+     * El orden de la lista es el de la carretera: el más cercano al líder, primero.
+     */
+    const f = STAGE.gapChaseMainFraction
+    // Race Andalucía, km 137: delante Schwarz solo; detrás, el pelotón de seis que era la carrera y
+    // un grupeto de 31 descolgados a casi siete minutos. La referencia son los seis.
+    expect(
+      chaseReferenceIndex(
+        [
+          { size: 6, racing: true },
+          { size: 31, racing: false },
+        ],
+        f,
+      ),
+    ).toBe(0)
+    // Race Jaén, km 152: el puente en solitario de tierra de nadie no es «la caza»; el pelotón sí.
+    expect(
+      chaseReferenceIndex(
+        [
+          { size: 1, racing: true },
+          { size: 127, racing: true },
+        ],
+        f,
+      ),
+    ).toBe(1)
+    // Un grupo perseguidor de verdad SÍ cuenta, aunque el pelotón roto vaya más atrás.
+    expect(
+      chaseReferenceIndex(
+        [
+          { size: 8, racing: true },
+          { size: 12, racing: true },
+        ],
+        f,
+      ),
+    ).toBe(0)
+    // Y si detrás no queda nadie en carrera —todo grupetos—, la referencia es el mayor de ellos:
+    // callarse la ventaja sería peor que medirla contra la carrera que hay.
+    expect(
+      chaseReferenceIndex(
+        [
+          { size: 3, racing: false },
+          { size: 40, racing: false },
+        ],
+        f,
+      ),
+    ).toBe(1)
+    // …y un solo corredor en carrera detrás tampoco es «un grupo perseguidor» (invariante 5 de la
+    // v25): con un pelotón descolgado detrás, la referencia es el pelotón.
+    expect(
+      chaseReferenceIndex(
+        [
+          { size: 1, racing: true },
+          { size: 30, racing: false },
+        ],
+        f,
+      ),
+    ).toBe(1)
+    expect(chaseReferenceIndex([], f)).toBe(-1)
+  })
+
+  it(
+    'el vocabulario de grupos no pasa de tres nombres en ninguna etapa',
+    () => {
+      for (const caso of casos)
+        for (const seed of campaignSeeds(`vocabulario-${caso.name}`, caso.seeds)) {
+          const out = simulateStage(caso.scenario.input, seed)
+          const m = storyMetrics(rawChronicle(out.events))
+          expect(`${caso.name} nombres=${m.nombresDeGrupo}`).toBe(
+            `${caso.name} nombres=${Math.min(m.nombresDeGrupo, 3)}`,
+          )
+        }
     },
     TIMEOUT_MS,
   )

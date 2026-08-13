@@ -16,7 +16,14 @@ import {
 } from './abandon.js'
 import { chaseField, isFinisher, lerp } from './chase.js'
 import { EventLog } from './events.js'
-import { type Group, advanceGroup, createGroup, gapSeconds, percentile75 } from './group.js'
+import {
+  type Group,
+  advanceGroup,
+  chaseReferenceIndex,
+  createGroup,
+  gapSeconds,
+  percentile75,
+} from './group.js'
 import {
   blockCost,
   blockPerfil,
@@ -1165,48 +1172,17 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
       const racing = liveGroups.reduce((c, x) => c + x.members.length, 0)
       const lead = liveGroups[0]
       /**
-       * CONTRA QUÉ SE MIDE EL BOQUETE (v25). Era `liveGroups[1]`, el primer reloj de detrás sin más,
-       * y eso convierte en «la persecución» a cualquier cosa que quede en medio: en Race Jaén, el
-       * puente en solitario de Frédéric Muller (km 140) dejó un grupo intermedio de UN corredor, y
-       * el parte del km 152 salió con `chaseSize: 1` mientras el pelotón eran 127 y estaba tirando.
-       * De ahí salían dos defectos a la vez: la frase narraba la caza del pelotón sobre un dato que
-       * no era del pelotón, y —peor— la referencia CAMBIABA de un parte al siguiente, así que el
-       * hueco «iba y venía» sin física que lo explicara (28 s → 11 s → 29 s → 18 s en 24 km).
-       *
-       * La referencia es EL GRUESO DE LA CARRERA: el primer grupo de detrás que tenga al menos la
-       * mitad de los corredores del mayor que va por detrás de la cabeza. Un puente en tierra de
-       * nadie se salta —su historia la cuentan `bridge_made` y `bridge_failed`, no el parte de
-       * boquete—; un grupo perseguidor de verdad, aunque el pelotón roto vaya aún más atrás, sí
-       * cuenta. Y como el criterio no depende del reloj sino del tamaño, la referencia es la MISMA
-       * a lo largo de la etapa y la tendencia significa algo.
-       */
-      /**
-       * …Y EL GRUESO NO SON LOS DESCOLGADOS (v27). La regla de la v25 —el primer grupo de detrás con
-       * al menos la mitad de los corredores del MAYOR que va detrás— tiene un escenario que no
-       * cubre, y es el que hizo ilegible la etapa 1 de Race Andalucía: una criba masiva y temprana.
-       *
-       *   km  26  peloton_selection  before 119, dropped 80, remaining 13, escapados 26
-       *   km 137  time_gap_run       gapS 413, chaseSize 31      <<< 31 DESCOLGADOS, a 6:53
-       *   km 150  final_km           margin 16                   <<< la carrera de verdad
-       *
-       * Con 80 corredores fuera, el grupo MAYOR de detrás pasa a ser un grupeto de descolgados, y el
-       * listón de la mitad deja fuera al pelotón de seis que era la carrera. Resultado: trece
-       * kilómetros midiendo la ventaja contra gente que ya no corría por nada, y una ventaja que
-       * pasa de 6:53 a 16 s sin que ninguna línea lo cuente.
-       *
-       * La referencia son LOS QUE SIGUEN EN CARRERA: la fuga, los movimientos y el pelotón, nunca un
-       * grupeto. Un descolgado no vuelve —eso es lo que significa haberse descolgado— y medir contra
-       * él es medir contra la carrera de ayer. Dentro de los que corren se mantiene entera la regla
-       * de la v25, que sigue haciendo su trabajo (saltarse el puente en solitario de tierra de
-       * nadie). Si detrás no queda nadie en carrera —el pelotón va en cabeza y lo único que hay
-       * detrás son grupetos—, la referencia es la de siempre: el mayor de ellos.
+       * CONTRA QUÉ SE MIDE EL BOQUETE (v25 + v27). La regla entera —y el porqué de cada mitad— está
+       * en `chaseReferenceIndex` (stage/group.ts), que es pura y tiene sus propios casos: el puente
+       * en solitario de Race Jaén que se convertía en «la caza», y el grupeto de Race Andalucía
+       * contra el que se midió la ventaja trece kilómetros mientras la etapa la decidían otros.
        */
       const behind = liveGroups.slice(1)
-      const racingBehind = behind.filter((x) => x.rank !== SHED_RANK)
-      const pool = racingBehind.length > 0 ? racingBehind : behind
-      const biggestBehind = pool.reduce((mx, x) => Math.max(mx, x.members.length), 0)
-      const chase =
-        pool.find((x) => x.members.length >= biggestBehind * STAGE.gapChaseMainFraction) ?? pool[0]
+      const chaseIdx = chaseReferenceIndex(
+        behind.map((x) => ({ size: x.members.length, racing: x.rank !== SHED_RANK })),
+        STAGE.gapChaseMainFraction,
+      )
+      const chase = chaseIdx >= 0 ? behind[chaseIdx] : undefined
       /**
        * QUÉ ES ESE GRUPO, para que la frase pueda nombrarlo (v27). El vocabulario de grupos de
        * docs/motor.md §6.15-bis tiene tres palabras y ésta es la que las reparte: si el grupo contra

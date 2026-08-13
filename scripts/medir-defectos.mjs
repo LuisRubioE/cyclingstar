@@ -299,9 +299,15 @@ function imprimirEspina(s, ancho) {
     'km MAXIMOS sin una linea de situacion',
     s.peorMudoKm,
     `peor: ${s.peorMudoEtapa} · media por etapa ${(s.mudoKmSuma / s.stages).toFixed(1)} km · ` +
-      `${s.etapasMudas}/${s.stages} etapas pasan de ${MUTE_KM_LIMIT} km`,
+      `${s.etapasMudas}/${s.stages} etapas pasan de ${MUTE_KM_LIMIT} km ` +
+      `(${s.etapasMudasConFuga} con alguien delante)`,
   )
   fila('dos protagonistas «con hueco» a la vez', s.dosConHueco, `en ${s.etapasConDos} etapas`)
+  fila(
+    'lineas de cronica por etapa',
+    (s.lineasSuma / s.stages).toFixed(1),
+    `${s.lineasSuma} en total`,
+  )
   fila(
     `lineas de los ultimos ${FINALE_KM} km que hablan del ganador`,
     s.finalDelGanador,

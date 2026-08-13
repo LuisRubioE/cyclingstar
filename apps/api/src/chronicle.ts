@@ -544,19 +544,24 @@ function followTheLeader(entries: ChronicleEntry[]): ChronicleEntry[] {
       }
       return e
     }
-    // El desenlace: las subtramas se cuentan respecto del líder, y con su nombre dentro.
-    if (
-      front !== null &&
-      front.length > 0 &&
-      e.km >= lastKm - FINALE_KM &&
-      SUBPLOT.has(e.plantilla) &&
-      !tocaAlLider
-    ) {
+    /**
+     * LA SUBTRAMA SE CUENTA RESPECTO DE LA CARRERA. Mientras se sepa quién va delante, el hueco de
+     * quien NO va delante se cuenta con el líder nombrado al lado: es la única forma de que dos
+     * hombres «con hueco» a la vez no dejen al lector sin saber quién va ganando. `desenlace` marca
+     * las de los últimos kilómetros, que son las que además pueden decir que la etapa ya está
+     * decidida: a 100 km de meta eso no se puede afirmar, y la frase se escribe de otra manera.
+     */
+    if (front !== null && front.length > 0 && SUBPLOT.has(e.plantilla) && !tocaAlLider) {
       const lider = front[0]!
       return {
         ...e,
         mentions: { ...e.mentions, liderId: lider },
-        datos: { ...e.datos, respecto: 1, liderId: lider.name },
+        datos: {
+          ...e.datos,
+          respecto: 1,
+          liderId: lider.name,
+          ...(e.km >= lastKm - FINALE_KM ? { desenlace: 1 } : {}),
+        },
       }
     }
     return e
@@ -579,9 +584,9 @@ const EXITS_THE_RACE = new Set([
 ])
 
 /**
- * Las líneas del desenlace que RECLAMAN LA CARRETERA para alguien: un ataque, un hueco que se abre.
- * Son las que, contadas sueltas en los últimos quince kilómetros, hacen que el lector no sepa cuál
- * de los tres hombres con ventaja va ganando la etapa.
+ * Las líneas que RECLAMAN LA CARRETERA para alguien: un ataque, un hueco que se abre. Son las que,
+ * contadas sueltas, hacen que el lector no sepa cuál de los dos o tres hombres con ventaja va
+ * ganando la etapa —y en el último kilómetro de Race Andalucía eran literalmente dos—.
  */
 const SUBPLOT = new Set(['attack_go', 'attack_sticks', 'attack_short', 'bridge_made'])
 
