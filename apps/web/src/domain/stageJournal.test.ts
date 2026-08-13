@@ -448,18 +448,30 @@ describe('quién hizo el trabajo para cerrar', () => {
     expect(l).not.toContain('Bea')
   })
 
-  it('los equipos que no caben en la frase se cuentan, no se esconden', () => {
-    // El motor nombra tres como mucho, pero dice cuántos cazaron de verdad (`datos.teams`).
-    const l = chronicleLine(
+  const chased = (teamsCount: number): string =>
+    chronicleLine(
       event({
         plantilla: 'chase_work',
         km: 150,
         protagonists: twoTeams,
-        datos: { closedS: 155, km: 32, work: 6.4, teams: 4 },
+        datos: { closedS: 155, km: 32, work: 6.4, teams: teamsCount },
       }),
     )
+
+  it('los equipos que no caben en la frase se cuentan, no se esconden', () => {
+    // El motor nombra tres como mucho, pero dice cuántos cazaron de verdad (`datos.teams`).
+    const l = chased(4)
     expect(l).toContain('Summit Squad')
     expect(l).toContain('2 more teams')
+  })
+
+  it('cuando cazan cinco o más, la que tira es la carrera entera y así se cuenta', () => {
+    // Medido en el banco: el 69 % de las cazas las hacen más equipos de los que caben en la frase,
+    // hasta doce. «And 9 more teams» no es una crónica: eso es el pelotón entero tirando.
+    const l = chased(11)
+    expect(l).toContain('11 teams')
+    expect(l).toContain('Summit Squad') // los que más se vieron delante siguen con nombre
+    expect(l).not.toContain('more teams')
   })
 
   it('con un agente libre entre medias se vuelve a los nombres: no hay equipo que nombrar', () => {

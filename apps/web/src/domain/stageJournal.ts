@@ -954,14 +954,27 @@ function chronicleTemplate(e: ChronicleEntry): string {
        * frase (el motor nombra tres como mucho): los que no caben se cuentan, no se esconden. Si
        * entre los protagonistas hay un agente libre —sin equipo al que nombrar— se vuelve a los
        * nombres, que ahí sí son la verdad.
+       *
+       * Y hay un tercer caso que la medida destapó: en el banco, el 97 % de las cazas las hacen
+       * VARIOS equipos y en el 69 % cazan más de los tres que caben en la frase —hasta doce—. A
+       * partir de cinco, «and 9 more teams» no es una crónica: lo que ha pasado ahí es que se ha
+       * puesto a tirar el PELOTÓN, y así se cuenta, con los que más se vieron delante.
        */
       if (nTeams > 1 && allHaveTeam) {
         const realTeams = Math.max(nTeams, Number(e.datos?.teams ?? nTeams))
         const rest = realTeams - nTeams
-        const andMore = rest > 0 ? ` and ${rest} more team${rest === 1 ? '' : 's'}` : ''
+        if (realTeams >= 5)
+          return pick([
+            `It took the whole bunch: ${realTeams} teams on the front, ${teams} the most visible of them; a lead of ${peak}${peakAt} was gone${since}.`,
+            `No single team owned this chase — ${realTeams} of them took turns, ${teams} above all, until ${peak}${peakAt} had gone${since}.`,
+          ])
+        // «A and B and 2 more teams» no se lee: la coletilla entra como un miembro más de la lista,
+        // que es donde `listNames` pone la conjunción una sola vez y en su sitio.
+        const named =
+          rest > 0 ? listNames([...teamList, `${rest} more team${rest === 1 ? '' : 's'}`]) : teams
         return pick([
-          `${teams}${andMore} shared the chasing between them: the gap peaked at ${peak}${peakAt} and was gone${since}.`,
-          `The catch belongs to ${teams}${andMore} — from ${peak}${peakAt} at its high point to nothing${since}.`,
+          `${named} shared the chasing between them: the gap peaked at ${peak}${peakAt} and was gone${since}.`,
+          `The catch belongs to ${named} — from ${peak}${peakAt} at its high point to nothing${since}.`,
         ])
       }
       if (nTeams > 1)
