@@ -55,11 +55,13 @@ Las entidades de Wikidata (CC0) de cada edición están en `CLASSIC_ROUTE_SOURCE
 
 ### Carreras por etapas
 
-| Carrera del juego  | Carrera real                                         | Edición | Fuente                                                                                                 | Qué trae                                              |
-| ------------------ | ---------------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------ | ----------------------------------------------------- |
-| `race-rhone-alpes` | Tour Auvergne-Rhône-Alpes (ex Critérium du Dauphiné) | 2026    | [Web oficial, «Cols et côtes» de cada etapa](https://www.criterium-du-dauphine.fr/fr/parcours-general) | 32 puertos con categoría oficial en 7 de sus 8 etapas |
-| `race-guangxi`     | Gree-Tour of Guangxi                                 | 2025    | [fr: Tour du Guangxi 2025](https://fr.wikipedia.org/wiki/Tour_du_Guangxi_2025)                         | El final de Nongla (1 de 6 etapas)                    |
-| `race-oman`        | Tour of Oman                                         | 2026    | [Web oficial (ASO), «Mountain passes & hill» de cada etapa](https://www.tour-of-oman.com/en/stage-1)   | 7 cotas en 4 de sus 5 etapas                          |
+| Carrera del juego  | Carrera real                                         | Edición | Fuente                                                                                                        | Qué trae                                              |
+| ------------------ | ---------------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| `race-rhone-alpes` | Tour Auvergne-Rhône-Alpes (ex Critérium du Dauphiné) | 2026    | [Web oficial, «Cols et côtes» de cada etapa](https://www.criterium-du-dauphine.fr/fr/parcours-general)        | 32 puertos con categoría oficial en 7 de sus 8 etapas |
+| `race-guangxi`     | Gree-Tour of Guangxi                                 | 2025    | [fr: Tour du Guangxi 2025](https://fr.wikipedia.org/wiki/Tour_du_Guangxi_2025)                                | El final de Nongla (1 de 6 etapas)                    |
+| `race-oman`        | Tour of Oman                                         | 2026    | [Web oficial (ASO), «Mountain passes & hill» de cada etapa](https://www.tour-of-oman.com/en/stage-1)          | 7 cotas en 4 de sus 5 etapas                          |
+| `race-arctic`      | Arctic Race of Norway                                | 2026    | [Web oficial (ASO), «Mountain passes & hill» de cada etapa](https://www.arctic-race-of-norway.com/en/stage-1) | 12 cotas CON CATEGORÍA OFICIAL en sus 4 etapas        |
+| `race-germany`     | Lidl Deutschland Tour                                | 2026    | [Web oficial (ASO), bloque de cotas de cada etapa](https://www.deutschland-tour.com/de/etappe-1)              | 12 cotas en sus 4 etapas en línea (el prólogo, no)    |
 
 Las tres carreras en circuito (Great Ocean, Québec y Montréal) no traen tabla de cotas: traen el
 **circuito** (vueltas, longitud de la vuelta y a cuánto de meta pasa cada cota). Las cimas salen de
@@ -109,7 +111,18 @@ alguien publique dónde caen la Polytechnique y la côte de Pagnuelo dentro de l
    media y CATEGORÍA OFICIAL: es mejor dato que cualquier Wikipedia y no hay que asumir nada. Se
    comprueba su `robots.txt` como el de cualquier otro sitio (el suyo solo cierra `/admin`, `/api`,
    `/graphql` y `/login`; las páginas de etapa están abiertas).
-10. **Una fuente que se contradice a sí misma no se usa a medias.** La prosa del Tour du Guangxi 2025
+10. **Un final en alto se ancla al km de SU etapa.** Las distancias de `editions.ts` van en km
+    enteros, y el constructor del perfil añade cola de relleno siempre que la distancia de la etapa
+    supera el km de la última cima. Si la fuente pone la cima en el km 146,5 de una etapa de 146,5
+    (o sea: la cima ES la meta) y la etapa se redondea a 147, quedan 500 m de llano detrás de la
+    cima, el último segmento deja de ser `puerto` y **el final en alto desaparece** — medido en la
+    etapa 3 del Arctic Race 2026, que pasaba de ganarla un escalador a ganarla un clasicómano.
+    Bajar la etapa a 146 tampoco vale: el banner se guarda como `Math.round(summitKm)` = 147 y se
+    sale del recorrido (lo vigila `calendar.test.ts`). Lo que se hace es anclar la cima al km entero
+    de la etapa: el hecho publicado se conserva exacto y lo que se tira es medio km de redondeo.
+    **Solo aplica cuando la cima y la meta coinciden en la fuente**; una cima a 1 km de meta se deja
+    donde está.
+11. **Una fuente que se contradice a sí misma no se usa a medias.** La prosa del Tour du Guangxi 2025
     describe una etapa 2 de 179,6 km con final en Nanning y la lista oficial de etapas del MISMO
     artículo dice Chongzuo -> Jingxi, 177,4 km. De esa etapa no se carga nada: si la fuente falla en
     lo comprobable, no se le cree lo que no se puede comprobar.
@@ -158,31 +171,31 @@ y pendiente. Es de donde salieron el Tour Auvergne-Rhône-Alpes y ahora el Tour 
 la edición EN CURSO y no archiva las anteriores.** Sirve si la edición que usa `editions.ts` coincide
 con la que el sitio muestra hoy; si `editions.ts` congeló la de 2025, el dato ya no es alcanzable.
 
-| Carrera del juego      | Carrera real                    | Edición en `editions.ts` | Qué se encontró                                                                                                                                              |
-| ---------------------- | ------------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `race-oman`            | Tour of Oman                    | 2026                     | **CARGADA.** Web oficial ASO con «Mountain passes & hill» etapa por etapa                                                                                    |
-| `race-arabia`          | AlUla Tour                      | 2026                     | Web oficial ASO, pero publica **solo los sprints** con su km y **ni una cota**, ni siquiera el final de Harrat Uwayrid. Ver abajo por qué no se cargan solos |
-| `race-arctic`          | Arctic Race of Norway           | 2025                     | ASO publica tabla completa… **de 2026**. El sitio no archiva ediciones pasadas y el desplegable «The Route since 2013» va por rutas `ajax`, cerradas         |
-| `race-germany`         | Lidl Deutschland Tour           | 2025                     | Idéntico caso: tabla completa de 2026 (Kalmit, Rotsteig, Annaberg…) y ningún archivo de 2025                                                                 |
-| `race-burgos`          | Vuelta a Burgos                 | 2026                     | La web oficial da nombre, km y **categoría oficial** de cada puerto, pero **no su longitud ni su pendiente**. Falta la dureza: no es cargable (regla 3)      |
-| `race-slovenia`        | Tour of Slovenia                | 2026 (con reserva)       | Solo el Vršič de la etapa 4 está completo, pero las distancias no cuadran: ver la nota de abajo                                                              |
-| `race-valencia`        | Volta a la Comunitat Valenciana | 2026                     | La frwiki nombra el Muro del Pou con «pente jusqu'à 22 %», que es una pendiente **MÁXIMA** (regla 7); Alto Miserat y Puig de la Llorença, sin longitud ni km |
-| `race-wallonia`        | Ethias Tour de Wallonie         | 2026                     | Web oficial y frwiki nombran las côtes (Stockis, Magis, la Redoute) **sin km, longitud ni pendiente**                                                        |
-| `race-mayenne`         | Boucles de la Mayenne           | 2026                     | Web oficial: solo el desnivel acumulado por etapa (3.364 m D+). Once cotas citadas en prosa, ninguna con cifras                                              |
-| `race-hungary`         | Tour de Hongrie                 | 2026                     | Web oficial: lista de etapas, sin una sola cota                                                                                                              |
-| `race-hainan`          | Tour of Hainan                  | 2025                     | frwiki: etapas «de plaine» y «vallonnée», sin ninguna ascensión detallada                                                                                    |
-| `race-loire`           | Tour du Loir-et-Cher            | 2026 (parcial)           | Sin artículo de Wikipedia. Las etapas 4 y 5 de `editions.ts` además no cuadran con la edición real (189/98 contra 177,6/7,4)                                 |
-| `race-britain`         | Tour of Britain                 | 2025                     | La frwiki de 2026 marca su sección «Parcours» como **vacía**                                                                                                 |
-| `race-luxembourg`      | Skoda Tour de Luxembourg        | 2025                     | frwiki: etapas con su tipo (plaine / montagne), sin ninguna cota                                                                                             |
-| `race-denmark`         | PostNord Danmark Rundt          | 2025                     | La web oficial ya publica 2026, que es otro recorrido. Ninguna cota en ninguna de las dos                                                                    |
-| `race-norway`          | Tour of Norway                  | 2025                     | **La edición 2026 se anuló** (aviso en su propia portada). Sin fichas de cotas                                                                               |
-| `race-croatia`         | CRO Race                        | 2025/2026                | El único documento con el detalle es el **roadbook en PDF**                                                                                                  |
-| `race-turkiye`         | Presidential Tour of Türkiye    | 2026                     | Web oficial: **503** en todas sus rutas, repetido                                                                                                            |
-| `race-czechia`         | Czech Tour                      | 2025/2026                | Web oficial: **503**                                                                                                                                         |
-| `race-hauts-de-france` | Quatre Jours de Dunkerque       | 2026                     | Web oficial: **403** desde el proxy. La frwiki marca «Parcours» como vacía                                                                                   |
-| `race-belgium`         | Baloise Belgium Tour            | 2026                     | El dominio oficial redirige a `golazo.com` y allí da **404**                                                                                                 |
-| `race-langkawi`        | Le Tour de Langkawi             | —                        | El dominio oficial redirige a un portal de noticias sin relación                                                                                             |
-| `race-qinghai`         | Tour of Qinghai Lake            | —                        | Sin artículo de Wikipedia en fr ni en en, y sin web oficial alcanzable                                                                                       |
+| Carrera del juego      | Carrera real                    | Edición en `editions.ts` | Qué se encontró                                                                                                                                                    |
+| ---------------------- | ------------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `race-oman`            | Tour of Oman                    | 2026                     | **CARGADA.** Web oficial ASO con «Mountain passes & hill» etapa por etapa                                                                                          |
+| `race-arabia`          | AlUla Tour                      | 2026                     | Web oficial ASO, pero publica **solo los sprints** con su km y **ni una cota**, ni siquiera el final de Harrat Uwayrid. Ver abajo por qué no se cargan solos       |
+| `race-arctic`          | Arctic Race of Norway           | **2026**                 | **CARGADA** (13/08/2026). Se adelantó el reloj: la edición de `editions.ts` pasó de 2025 a 2026 y con eso la tabla ASO del sitio pasó a ser la de la misma edición |
+| `race-germany`         | Lidl Deutschland Tour           | **2026**                 | **CARGADA** (13/08/2026). Igual que el Arctic Race: edición actualizada a 2026 y tabla completa (Kalmit, Rotsteig, Annaberg…) leída el mismo día                   |
+| `race-burgos`          | Vuelta a Burgos                 | 2026                     | La web oficial da nombre, km y **categoría oficial** de cada puerto, pero **no su longitud ni su pendiente**. Falta la dureza: no es cargable (regla 3)            |
+| `race-slovenia`        | Tour of Slovenia                | 2026 (con reserva)       | Solo el Vršič de la etapa 4 está completo, pero las distancias no cuadran: ver la nota de abajo                                                                    |
+| `race-valencia`        | Volta a la Comunitat Valenciana | 2026                     | La frwiki nombra el Muro del Pou con «pente jusqu'à 22 %», que es una pendiente **MÁXIMA** (regla 7); Alto Miserat y Puig de la Llorença, sin longitud ni km       |
+| `race-wallonia`        | Ethias Tour de Wallonie         | 2026                     | Web oficial y frwiki nombran las côtes (Stockis, Magis, la Redoute) **sin km, longitud ni pendiente**                                                              |
+| `race-mayenne`         | Boucles de la Mayenne           | 2026                     | Web oficial: solo el desnivel acumulado por etapa (3.364 m D+). Once cotas citadas en prosa, ninguna con cifras                                                    |
+| `race-hungary`         | Tour de Hongrie                 | 2026                     | Web oficial: lista de etapas, sin una sola cota                                                                                                                    |
+| `race-hainan`          | Tour of Hainan                  | 2025                     | frwiki: etapas «de plaine» y «vallonnée», sin ninguna ascensión detallada                                                                                          |
+| `race-loire`           | Tour du Loir-et-Cher            | 2026 (parcial)           | Sin artículo de Wikipedia. Las etapas 4 y 5 de `editions.ts` además no cuadran con la edición real (189/98 contra 177,6/7,4)                                       |
+| `race-britain`         | Tour of Britain                 | 2025                     | La frwiki de 2026 marca su sección «Parcours» como **vacía**                                                                                                       |
+| `race-luxembourg`      | Skoda Tour de Luxembourg        | 2025                     | frwiki: etapas con su tipo (plaine / montagne), sin ninguna cota                                                                                                   |
+| `race-denmark`         | PostNord Danmark Rundt          | 2025                     | La web oficial ya publica 2026, que es otro recorrido. Ninguna cota en ninguna de las dos                                                                          |
+| `race-norway`          | Tour of Norway                  | 2025                     | **La edición 2026 se anuló** (aviso en su propia portada). Sin fichas de cotas                                                                                     |
+| `race-croatia`         | CRO Race                        | 2025/2026                | El único documento con el detalle es el **roadbook en PDF**                                                                                                        |
+| `race-turkiye`         | Presidential Tour of Türkiye    | 2026                     | Web oficial: **503** en todas sus rutas, repetido                                                                                                                  |
+| `race-czechia`         | Czech Tour                      | 2025/2026                | Web oficial: **503**                                                                                                                                               |
+| `race-hauts-de-france` | Quatre Jours de Dunkerque       | 2026                     | Web oficial: **403** desde el proxy. La frwiki marca «Parcours» como vacía                                                                                         |
+| `race-belgium`         | Baloise Belgium Tour            | 2026                     | El dominio oficial redirige a `golazo.com` y allí da **404**                                                                                                       |
+| `race-langkawi`        | Le Tour de Langkawi             | —                        | El dominio oficial redirige a un portal de noticias sin relación                                                                                                   |
+| `race-qinghai`         | Tour of Qinghai Lake            | —                        | Sin artículo de Wikipedia en fr ni en en, y sin web oficial alcanzable                                                                                             |
 
 ### Por qué el AlUla Tour no se carga aunque tenga dato
 
@@ -205,13 +218,38 @@ a 12,3 km de meta y no a 14. Es exactamente la mezcla que prohíbe la regla 2, y
 compensa. **Queda anotado como el primer candidato del día que se refresquen las distancias de
 `editions.ts`.**
 
-### El dato accionable de todo esto
+### El dato accionable de todo esto — HECHO el 13/08/2026
 
 Si se quiere seguir cargando ProSeries por etapas, el camino barato no es buscar más fuentes: es
 **adelantar el reloj**. Arctic Race of Norway y Deutschland Tour son carreras ASO con la tabla
 completa publicada ahora mismo para 2026, y lo único que las bloquea es que `editions.ts` guarda su
 edición de 2025. Actualizar esas dos ediciones a 2026 y leer la web oficial el mismo día son **9
 etapas más** con relieve real, que es casi el doble de lo que ha dado esta tanda entera.
+
+**Se hizo, y salió como se esperaba, con un matiz.** Las dos ediciones están actualizadas a 2026 y su
+relieve cargado de la web oficial del mismo día: **24 cotas en 8 etapas**. El matiz es que son 8 y no
+9: el Deutschland Tour 2026 abre con un **prólogo de 2,6 km** cuya ficha no tiene siquiera pestaña de
+cotas, y no se cuenta como recorrido real por las mismas razones del AlUla Tour (no se sube el
+marcador sin subir la verdad). El inventario pasa de **21 a 29 etapas reales** en ProSeries (del 12 %
+al 17 %) y de 169 a 177 en total.
+
+Y una lección que no estaba prevista, ahora regla 10 y anotada en `editions.ts` y en las notas de las
+dos fuentes: **un final en alto hay que anclarlo al km entero de su etapa.** La fuente pone la cima de
+Storheia en el km 146,5 de una etapa de 146,5 km —la cima ES la meta—, pero `editions.ts` va en km
+enteros: con la etapa en 147 y la cima en 146,5, `buildFeatureProfile()` metía medio kilómetro de llano
+detrás de la cima, el último segmento dejaba de ser `puerto` y el final en alto desaparecía; la etapa
+pasaba de ganarla un escalador a ganarla un clasicómano. Bajar la etapa a 146 arreglaba eso y rompía
+otra cosa: el banner de la cima es `Math.round(146,5)` = 147 y se salía del recorrido. La salida es
+anclar la cima al 147 de la etapa.
+
+Las dos veces se detectó **midiendo**, no leyendo el código: el falso llano, comparando la carrera
+antes y después (paso 7 del procedimiento); el banner fuera de rango, con `pnpm test`. Ninguna de las
+dos se habría visto solo mirando el diff.
+
+**Lo que queda de estas dos, para el día que se refresque:** la etapa 2 del Arctic (123 km sin cota
+publicada tras el km 57) y las etapas 1 y 2 del Deutschland Tour (54 y 158 km finales sin dificultad
+publicada). Y el aviso de siempre: el CMS de ASO **no archiva**, así que dentro de un año estas dos
+tablas ya no estarán y lo cargado hoy no se podrá volver a comprobar contra la fuente original.
 
 ## Cómo repetir o ampliar la extracción
 

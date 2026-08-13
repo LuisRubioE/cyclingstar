@@ -6568,6 +6568,113 @@ export const STAGE_FEATURES: Record<string, (StageFeatures | null)[]> = {
       ],
     },
   ],
+  /**
+   * Arctic Race of Norway 2026. Web oficial (ASO), bloque «Mountain passes & hill» de cada ficha de
+   * etapa: nombre, km de la CIMA, altitud, longitud y pendiente media. A diferencia de Omán, esta
+   * carrera SÍ publica la categoría oficial (Category 1 / 2 / HC) y se carga tal cual. No publica
+   * sprints intermedios (su ficha no tiene pestaña de sprints), así que no se carga ninguno.
+   */
+  'race-arctic': [
+    // Etapa 1 Evenes -> Myre (181,9 km): la ficha oficial la etiqueta «Flat» y aun así puntúa TRES
+    // cotas de 2.ª, las dos últimas en los 45 km finales. Se carga la etiqueta oficial y las tres.
+    {
+      climbs: [
+        { name: 'Karingen', summitKm: 87.8, lengthKm: 3.2, avgGradient: 4.8, category: 'cat2' },
+        { name: 'Storvatnet', summitKm: 139.8, lengthKm: 1.7, avgGradient: 7, category: 'cat2' },
+        { name: 'Storeidet', summitKm: 155.6, lengthKm: 2, avgGradient: 4.1, category: 'cat2' },
+      ],
+    },
+    // Etapa 2 Bo i Vesteralen -> Andenes (180 km): las dos cotas publicadas caen en el primer
+    // tercio (km 26,3 y 57). Los 123 km que quedan hasta Andenes no traen NINGUNA dificultad en la
+    // ficha; con la etiqueta oficial «Flat» encaja, pero la fuente calla, no afirma.
+    {
+      climbs: [
+        { name: 'Ryggedals', summitKm: 26.3, lengthKm: 1.4, avgGradient: 6.3, category: 'cat2' },
+        { name: 'Storvatnet', summitKm: 57, lengthKm: 2, avgGradient: 4.4, category: 'cat2' },
+      ],
+    },
+    // Etapa 3 Stokmarknes -> Storheia (146,5 km): la reina. Dos pasos por Storvatnet y FINAL EN ALTO
+    // en Storheia, único HC de la carrera y con diferencia la subida más dura de las dos ediciones
+    // cargadas en esta tanda: 3,5 km al 11,8 %, con la cima en el km 146,5 = la meta.
+    // La cima va anclada al 147 de la etapa, no al 146,5 de la fuente: el dato que importa es que la
+    // cima ES la meta, y con 146,5 en una etapa de 147 el perfil metía medio km de llano detrás.
+    {
+      climbs: [
+        { name: 'Storvatnet', summitKm: 26.8, lengthKm: 1.8, avgGradient: 7, category: 'cat2' },
+        { name: 'Storvatnet', summitKm: 55.9, lengthKm: 1.8, avgGradient: 7, category: 'cat2' },
+        { name: 'Storheia', summitKm: 147, lengthKm: 3.5, avgGradient: 11.8, category: 'HC' },
+      ],
+    },
+    // Etapa 4 Sortland -> Narvik (190,5 km): la etapa mejor documentada, cuatro cotas, y otro FINAL
+    // EN ALTO (Narvikfjellet, cima en el km 190,5 = la meta) precedido de dos cotas en los 65 km
+    // anteriores. La ficha la etiqueta «Hilly». Narvikfjellet va anclado al 191 de la etapa por lo
+    // mismo que Storheia en la etapa 3.
+    {
+      climbs: [
+        { name: 'Karingen', summitKm: 46.6, lengthKm: 2.9, avgGradient: 4.2, category: 'cat2' },
+        { name: 'Balteskaret', summitKm: 125.9, lengthKm: 2.1, avgGradient: 7.2, category: 'cat1' },
+        {
+          name: 'Skoddebergvatnet',
+          summitKm: 142.1,
+          lengthKm: 1.4,
+          avgGradient: 6.5,
+          category: 'cat2',
+        },
+        { name: 'Narvikfjellet', summitKm: 191, lengthKm: 3.9, avgGradient: 6.2, category: 'cat1' },
+      ],
+    },
+  ],
+  /**
+   * Lidl Deutschland Tour 2026. Misma fuente y mismo CMS (ASO), aquí en alemán: el bloque de cada
+   * ficha da nombre, km de la CIMA, altitud, longitud y pendiente media («2,5km Anstieg, 5.4%»).
+   * A diferencia del Arctic, esta carrera NO publica la categoría de sus cotas: se deja derivar de
+   * la longitud y la pendiente reales (SPEC 6.2). Tampoco publica sprints intermedios.
+   */
+  'race-germany': [
+    // Prologo Bad Orb (2,6 km, CRI). Su ficha NO tiene pestaña de cotas siquiera —no es que esté
+    // vacía, es que no existe—, así que no hay relieve que cargar. Se queda en null (perfil por
+    // terreno 'itt') y no en {}: no vamos a contar como recorrido REAL una etapa sin un solo dato.
+    null,
+    // Etapa 1 Bad Orb -> Schwabisch Hall (215,3 km): la etapa más larga de las dos carreras y solo
+    // dos cotas publicadas, ambas de paso (km 91,2 y 161). DEUDA DE DATO: los 54 km finales hasta
+    // Schwabisch Hall no traen ninguna dificultad en la ficha, y la etiqueta oficial es «Hugelig».
+    // Lo que falta lo pone el relleno por terreno, que no es real.
+    {
+      climbs: [
+        { name: 'Reicholzheim', summitKm: 91.2, lengthKm: 2.5, avgGradient: 5.4 },
+        { name: 'Hermersberg', summitKm: 161, lengthKm: 1.8, avgGradient: 6.8 },
+      ],
+    },
+    // Etapa 2 Schwabisch Hall -> Offenbach an der Queich (197 km): UNA sola cota publicada, el
+    // Juxkopf del km 38,9, y es la más empinada de toda la carga (1,1 km al 14,4 %). Los 158 km
+    // restantes van sin dificultad publicada; la ficha la etiqueta «Flachetappe», que es coherente.
+    {
+      climbs: [{ name: 'Juxkopf', summitKm: 38.9, lengthKm: 1.1, avgGradient: 14.4 }],
+    },
+    // Etapa 3 Herxheim bei Landau -> Bad Durkheim (170,8 km): la reina del Deutschland Tour, la
+    // etapa con más relieve publicado de las nueve (cinco cotas), con DOS pasos por la Kalmit (5,2
+    // km al 7,5 %, el puerto largo de la carrera) y el Annaberg a 16,4 km de meta.
+    {
+      climbs: [
+        { name: 'Lolosruhe', summitKm: 37.9, lengthKm: 3.7, avgGradient: 6.5 },
+        { name: 'Kalmit', summitKm: 56.4, lengthKm: 5.2, avgGradient: 7.5 },
+        { name: 'Kalmit', summitKm: 70.7, lengthKm: 5.2, avgGradient: 7.5 },
+        { name: 'Rotsteig', summitKm: 136.6, lengthKm: 1.6, avgGradient: 8 },
+        { name: 'Annaberg', summitKm: 154.4, lengthKm: 2, avgGradient: 6.2 },
+      ],
+    },
+    // Etapa 4 Heilbronn -> Heilbronn (156,5 km): circuito con TRES pasos por el Jagerhaus, el
+    // ultimo a 12 km de meta, y el Schloss Stocksberg nada más salir. La ficha publica los tres
+    // pasos con su km, así que aquí no hay que deducir el circuito: van tal cual.
+    {
+      climbs: [
+        { name: 'Schloss Stocksberg', summitKm: 15.8, lengthKm: 1.1, avgGradient: 8 },
+        { name: 'Jagerhaus', summitKm: 101.8, lengthKm: 2.3, avgGradient: 5.2 },
+        { name: 'Jagerhaus', summitKm: 123.2, lengthKm: 2.3, avgGradient: 5.2 },
+        { name: 'Jagerhaus', summitKm: 144.5, lengthKm: 2.3, avgGradient: 5.2 },
+      ],
+    },
+  ],
   'race-pune': [
     // Prólogo CRI llano (8 km), sin puertos ni sprints.
     {},

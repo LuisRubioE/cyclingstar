@@ -110,11 +110,12 @@ export const RACE_ROUTES: Record<string, [string, string][]> = {
     ['Winter Park', 'Hegra'],
     ['AlUla Old Town', 'Skyviews of Harrat Uwayrid'],
   ],
+  // Arctic Race of Norway 2026 (web oficial ASO); mismas localidades que editions.ts.
   'race-arctic': [
-    ['Borkenes', 'Harstad'],
-    ['Tennevoll', 'Sorreisa'],
-    ['Husoy', 'Malselv'],
-    ['Tromso', 'Tromso'],
+    ['Evenes', 'Myre'],
+    ['Bo i Vesteralen', 'Andenes'],
+    ['Stokmarknes', 'Storheia'],
+    ['Sortland', 'Narvik'],
   ],
   'race-ardeche': [['Guilherand-Granges', 'Aubenas']],
   'race-ardennes': [
@@ -431,12 +432,13 @@ export const RACE_ROUTES: Record<string, [string, string][]> = {
     ['A Pobra do Brollon', 'O Cebreiro'],
     ['Betanzos', 'Santiago de Compostela'],
   ],
+  // Lidl Deutschland Tour 2026 (web oficial ASO); mismas localidades que editions.ts.
   'race-germany': [
-    ['Essen', 'Essen'],
-    ['Essen', 'Herford'],
-    ['Herford', 'Arnsberg'],
-    ['Arnsberg', 'Kassel'],
-    ['Halle', 'Magdeburg'],
+    ['Bad Orb', 'Bad Orb'],
+    ['Bad Orb', 'Schwabisch Hall'],
+    ['Schwabisch Hall', 'Offenbach an der Queich'],
+    ['Herxheim bei Landau', 'Bad Durkheim'],
+    ['Heilbronn', 'Heilbronn'],
   ],
   'race-getxo': [['Getxo', 'Getxo']],
   'race-gila': [

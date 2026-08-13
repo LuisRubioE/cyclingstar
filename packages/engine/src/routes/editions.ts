@@ -172,13 +172,19 @@ export const RACE_EDITIONS: Record<string, RaceEdition> = {
       { from: 'AlUla Old Town', to: 'Skyviews of Harrat Uwayrid', km: 164, terrain: 'hilly' },
     ],
   },
+  // Arctic Race of Norway 2026 (13-16 de agosto), de la web oficial (ASO). El terreno es la etiqueta
+  // OFICIAL de cada ficha ("Flat" / "Hilly"), no una relectura nuestra: las etapas 1 y 2 van de
+  // llanas aunque puntuen tres y dos cotas de 2.ª. Ver docs/fuentes-recorridos.md.
+  // Las etapas 3 y 4 miden 146,5 y 190,5 km reales y las dos MUEREN ARRIBA. Van redondeadas a 147 y
+  // 191, y en stageFeatures.ts su cima final se ancla a ESE mismo km (no a 146,5 / 190,5): asi el
+  // perfil acaba en el puerto en vez de meterle medio km de llano detras. Ver la nota de la fuente.
   'race-arctic': {
     restAfter: [],
     stages: [
-      { from: 'Borkenes', to: 'Harstad', km: 182, terrain: 'hilly' },
-      { from: 'Tennevoll', to: 'Sorreisa', km: 167, terrain: 'hilly' },
-      { from: 'Husoy', to: 'Malselv', km: 182, terrain: 'mountain' },
-      { from: 'Tromso', to: 'Tromso', km: 135, terrain: 'hilly' },
+      { from: 'Evenes', to: 'Myre', km: 182, terrain: 'flat' },
+      { from: 'Bo i Vesteralen', to: 'Andenes', km: 180, terrain: 'flat' },
+      { from: 'Stokmarknes', to: 'Storheia', km: 147, terrain: 'hilly' },
+      { from: 'Sortland', to: 'Narvik', km: 191, terrain: 'hilly' },
     ],
   },
   'race-asturias': {
@@ -342,14 +348,17 @@ export const RACE_EDITIONS: Record<string, RaceEdition> = {
       { from: 'Betanzos', to: 'Santiago de Compostela', km: 160, terrain: 'hilly' },
     ],
   },
+  // Lidl Deutschland Tour 2026 (19-23 de agosto), de la web oficial (ASO): prologo de 2,6 km en Bad
+  // Orb y cuatro etapas. El terreno es la etiqueta OFICIAL de cada ficha (Prolog / Hugelig /
+  // Flachetappe). Ver docs/fuentes-recorridos.md.
   'race-germany': {
     restAfter: [],
     stages: [
-      { from: 'Essen', to: 'Essen', km: 3, terrain: 'itt' },
-      { from: 'Essen', to: 'Herford', km: 203, terrain: 'hilly' },
-      { from: 'Herford', to: 'Arnsberg', km: 190, terrain: 'hilly' },
-      { from: 'Arnsberg', to: 'Kassel', km: 176, terrain: 'hilly' },
-      { from: 'Halle', to: 'Magdeburg', km: 164, terrain: 'flat' },
+      { from: 'Bad Orb', to: 'Bad Orb', km: 3, terrain: 'itt' },
+      { from: 'Bad Orb', to: 'Schwabisch Hall', km: 215, terrain: 'hilly' },
+      { from: 'Schwabisch Hall', to: 'Offenbach an der Queich', km: 197, terrain: 'flat' },
+      { from: 'Herxheim bei Landau', to: 'Bad Durkheim', km: 171, terrain: 'hilly' },
+      { from: 'Heilbronn', to: 'Heilbronn', km: 157, terrain: 'hilly' },
     ],
   },
   'race-gila': {

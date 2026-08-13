@@ -281,6 +281,44 @@ export const STAGE_ROUTE_SOURCES: Record<string, RouteSource> = {
       'La enwiki de la edición 2026 se usó solo para contrastar la lista de etapas: no publica altimetría de ninguna de las dos subidas finales, así que no sirve para arbitrar lo anterior.',
     ],
   },
+  'race-arctic': {
+    race: 'Arctic Race of Norway',
+    edition: 2026,
+    distanceKm: 698.9,
+    official: 'https://www.arctic-race-of-norway.com/en/stage-1',
+    retrieved: '2026-08-13',
+    notes: [
+      'Web oficial (ASO), una ficha por etapa (`/en/stage-1` … `/en/stage-4`) con el bloque «Mountain passes & hill»: nombre, km de la CIMA, altitud, longitud, pendiente media Y CATEGORÍA OFICIAL. Es el mismo CMS del Tour Auvergne-Rhône-Alpes y del Tour of Oman; su robots.txt solo cierra /admin, /sonatadmin, /api, /graphql, /login y las rutas /*/ajax, /*/block y /*/sitemap: las páginas de etapa están abiertas.',
+      'La edición de `editions.ts` se ha ACTUALIZADO de 2025 a 2026 en esta misma carga, y por eso las tablas y las distancias son de la misma edición. Antes guardaba la de 2025 (Borkenes -> Harstad 182; Tennevoll -> Sorreisa 167; Husoy -> Malselv 182; Tromso 135), que el CMS de ASO ya no publica: el sitio solo muestra la edición EN CURSO y no archiva las anteriores.',
+      'Las cuatro distancias de 2026 son 181,9 / 180 / 146,5 / 190,5 km (suma 698,9) y en editions.ts van redondeadas al km: 182 / 180 / 147 / 191. Cada cota cae dentro de SU etapa con esas distancias; no se ha mezclado ninguna tabla con la distancia de otro año.',
+      'ÚNICO retoque sobre el km publicado, y conviene entenderlo antes de tocarlo. Las etapas 3 y 4 MUEREN ARRIBA: la fuente pone la cima de Storheia en el km 146,5 de una etapa de 146,5 km y la de Narvikfjellet en el 190,5 de una de 190,5, o sea, la cima ES la meta. Como editions.ts va en km enteros, esas cimas se anclan al 147 y al 191 de la etapa en vez de al 146,5 y 190,5 de la ficha. El hecho publicado (la etapa acaba en lo alto del puerto) se conserva EXACTO; lo que se descarta es medio kilómetro de redondeo.',
+      'Por qué se ancla, medido y no supuesto: `buildFeatureProfile()` añade cola de relleno siempre que la distancia de la etapa supera el km de la última cima, así que con 146,5 en una etapa de 147 quedaba medio kilómetro de llano detrás de Storheia, el último segmento dejaba de ser `puerto` y el final en alto desaparecía — la etapa pasaba de ganarla un escalador a ganarla un clasicómano o un contrarrelojista. Y redondear la etapa a la baja (146) tampoco vale: el banner de la cima se guarda como `Math.round(summitKm)` = 147 y se sale del recorrido, que es justo lo que vigila `calendar.test.ts`. Anclar la cima al km de la etapa es lo único que cumple las dos cosas.',
+      'El terreno de cada etapa es la ETIQUETA OFICIAL de su ficha, no una relectura nuestra: las etapas 1 y 2 van como «Flat» y las 3 y 4 como «Hilly». Queda anotado porque la etapa 1 puntúa tres cotas de 2.ª y la etiqueta oficial sigue siendo llana; se ha preferido el dato de la fuente a nuestro criterio.',
+      'La categoría SÍ la publica esta carrera (Category 2, Category 1, Category HC) y se carga tal cual en `category`, sin derivarla. No publica sprints intermedios —su ficha no tiene esa pestaña—, así que no se carga ninguno.',
+      'Dos de las cuatro etapas acaban en alto y la fuente lo confirma por aritmética, no por prosa: la cima de Storheia está en el km 146,5 de una etapa de 146,5 km, y la de Narvikfjellet en el km 190,5 de una de 190,5.',
+      'DEUDA DE DATO conocida en la etapa 2: sus dos únicas cotas publicadas están en los km 26,3 y 57, y los 123 km que quedan hasta Andenes no traen ninguna. Lo que falta lo pone el relleno por terreno, que no es real; no se ha completado a ojo.',
+    ],
+  },
+  'race-germany': {
+    race: 'Lidl Deutschland Tour',
+    edition: 2026,
+    distanceKm: 742.2,
+    // 2,6 / 215,3 / 197 / 170,8 / 156,5 -> 3 / 215 / 197 / 171 / 157. Aquí ninguna etapa muere
+    // arriba, así que el redondeo no toca ningún final (ver la nota del Arctic Race).
+    official: 'https://www.deutschland-tour.com/de/etappe-1',
+    retrieved: '2026-08-13',
+    notes: [
+      'Web oficial (ASO), una ficha por etapa (`/de/prolog-0` y `/de/etappe-1` … `/de/etappe-4`) con el mismo bloque de cotas del resto de carreras ASO, aquí en alemán: nombre, km de la CIMA, altitud y «longitud km Anstieg, pendiente %». Mismo robots.txt que el Arctic Race.',
+      'La edición de `editions.ts` se ha ACTUALIZADO de 2025 a 2026 en esta misma carga, por la misma razón que en el Arctic Race: el CMS de ASO solo publica la edición en curso. Antes guardaba la de 2025 (Essen CRI 3; Essen -> Herford 203; Herford -> Arnsberg 190; Arnsberg -> Kassel 176; Halle -> Magdeburg 164).',
+      'La edición 2026 son un PRÓLOGO y cuatro etapas: 2,6 / 215,3 / 197 / 170,8 / 156,5 km (suma 742,2), redondeadas en editions.ts a 3 / 215 / 197 / 171 / 157. Sigue siendo una carrera de cinco etapas, como la de 2025, así que el calendario no cambia de tamaño.',
+      'El terreno es la ETIQUETA OFICIAL de cada ficha: Prolog (-> itt), Hügelig (-> hilly) y Flachetappe (-> flat).',
+      'Esta carrera NO publica la categoría de sus cotas (a diferencia del Arctic Race): se deja derivar de la longitud y la pendiente reales (SPEC 6.2). Tampoco publica sprints intermedios.',
+      'El prólogo de 2,6 km NO tiene siquiera pestaña de cotas en su ficha (no está vacía: no existe). Se deja en null y no en {} para no contarlo como recorrido REAL en el inventario: no se ha cargado de él un solo dato de relieve.',
+      'DEUDA DE DATO conocida, y es la mitad del kilometraje: de la etapa 1 (215,3 km) la fuente publica dos cotas y ninguna en los 54 km finales, y de la etapa 2 (197 km) publica UNA sola, en el km 38,9, y nada en los 158 restantes. La etiqueta oficial de la 2 es «Flachetappe», que es coherente con un final llano, pero la fuente calla, no afirma.',
+      'El Juxkopf de la etapa 2 se publica como 1,1 km al 14,4 %. Es una pendiente MEDIA, no máxima (la fuente da máximas en otro formato y aquí no lo usa), y por eso se carga; queda anotado porque es la cifra más extrema de las dos carreras y roza el tope de credibilidad del test.',
+      'La etapa 4 es un circuito con tres pasos por el Jägerhaus, pero NO hay que deducir su aritmética: la ficha publica los tres pasos con su km propio (101,8 / 123,2 / 144,5), así que van tal cual y no por `circuitClimbs()`.',
+    ],
+  },
 }
 
 /**
