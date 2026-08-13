@@ -19,9 +19,9 @@ docs/inventario-recorridos.md`) cuando se carga un recorrido nuevo, y así no en
 | Nivel           | Etapas |       Real | Sin validar |   Inventado |
 | --------------- | -----: | ---------: | ----------: | ----------: |
 | **WorldTour**   |    161 | 139 (86 %) |   19 (12 %) |     3 (2 %) |
-| **ProSeries**   |    174 |  17 (10 %) |  122 (70 %) |   35 (20 %) |
+| **ProSeries**   |    174 |  21 (12 %) |  118 (68 %) |   35 (20 %) |
 | **Continental** |   1083 |    9 (1 %) |    94 (9 %) |  980 (90 %) |
-| **TOTAL**       |   1418 | 165 (12 %) |  235 (17 %) | 1018 (72 %) |
+| **TOTAL**       |   1418 | 169 (12 %) |  231 (16 %) | 1018 (72 %) |
 
 De las continentales inventadas, **532** son campeonatos nacionales: una prueba por país y categoría, sin recorrido publicado que cargar.
 
@@ -492,11 +492,11 @@ PRS · .Pro · una-semana · 5 etapas · día 38
 
 | #   | Tipo          | Salida              | Meta               |  km | Recorrido   |
 | --- | ------------- | ------------------- | ------------------ | --: | ----------- |
-| 1   | Flat          | Ministry of Tourism | Bimmah Sink Hole   | 171 | Sin validar |
-| 2   | Hills         | Al Rustaq Fort      | Yitti Hills        | 191 | Sin validar |
-| 3   | Hills         | Samail              | Misfat al Abriyeen | 191 | Sin validar |
+| 1   | Flat          | Ministry of Tourism | Bimmah Sink Hole   | 171 | Real        |
+| 2   | Hills         | Al Rustaq Fort      | Yitti Hills        | 191 | Real        |
+| 3   | Hills         | Samail              | Misfat al Abriyeen | 191 | Real        |
 | 4   | Flat          | Al Sawadi Beach     | Sohar              | 147 | Sin validar |
-| 5   | Summit finish | Nizwa               | Jabal al Akhdhar   | 156 | Sin validar |
+| 5   | Summit finish | Nizwa               | Jabal al Akhdhar   | 156 | Real        |
 
 ### Race Figueira (PT)
 
