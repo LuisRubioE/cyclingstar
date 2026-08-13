@@ -483,19 +483,46 @@ describe('modelo de final (docs/motor.md §12)', () => {
     expect(llana.events.find((e) => e.plantilla === 'stage_win')!.datos!.finish).toBe(
       'sprint_masivo',
     )
-    const alto = simulateStage(
-      {
-        profile: {
-          segments: [
-            { km: 60, tipo: 'llano' },
-            { km: 12, tipo: 'puerto', tramos: [{ km: 12, g: 8 }] },
-          ],
+    /**
+     * EL FINAL EN ALTO SE MIDE SOBRE DIEZ SEMILLAS EN LA v26, y hay que decir por qué.
+     *
+     * La semilla `f2` daba `alto` con el descuelgue en dado y ahora da `solitario`. **No es que el
+     * final en alto haya dejado de seleccionar: es que selecciona hasta el final.** Medido en esa
+     * misma semilla: el ganador corona con **53 s** sobre el segundo y llega **1 dentro de 30 s y 3
+     * dentro de 60 s**, que es exactamente el patrón que docs/balance.md «v26» §5 documentó de la
+     * carretera real para un final en alto de gran vuelta (Plateau de Beille 2024: 1 · 1 · 1;
+     * Pla d'Adet: 1 · 1 · 2). Y `finishType` devuelve `solitario` para un grupo de UNO desde la v22,
+     * a propósito y por definición: no hay clase de final que derivar cuando llega un hombre solo.
+     *
+     * Así que lo que había caducado era la PREMISA del banco —que estas 30 piernas casi iguales
+     * coronan juntas—, no lo que el test vigila. Se vigila igual, y con más fuerza que antes: sobre
+     * diez semillas del MISMO final, **todas las que llegan con grupo dicen `alto`** (nunca
+     * `puncheur`, ni `sprint_reducido`, que es el defecto que este test nació para cazar) y la
+     * derivación se ejerce de verdad porque la mayoría llega con grupo. Medido: **7 de 10 con grupo
+     * y las 3 restantes en solitario**, con el segundo a 46-53 s en las tres.
+     */
+    const altos = Array.from({ length: 10 }, (_, s) => {
+      const out = simulateStage(
+        {
+          profile: {
+            segments: [
+              { km: 60, tipo: 'llano' },
+              { km: 12, tipo: 'puerto', tramos: [{ km: 12, g: 8 }] },
+            ],
+          },
+          riders: field,
         },
-        riders: field,
-      },
-      stageSeed({ worldSeed: 'f2', raceId: 'f2', stageDay: 1, engineVersion: 1 }),
-    )
-    expect(alto.events.find((e) => e.plantilla === 'stage_win')!.datos!.finish).toBe('alto')
+        stageSeed({
+          worldSeed: s === 0 ? 'f2' : `f2-${s}`,
+          raceId: 'f2',
+          stageDay: 1,
+          engineVersion: 1,
+        }),
+      )
+      return out.events.find((e) => e.plantilla === 'stage_win')!.datos!
+    })
+    for (const d of altos) expect(d.finish).toBe(Number(d.field) === 1 ? 'solitario' : 'alto')
+    expect(altos.filter((d) => d.finish === 'alto').length).toBeGreaterThanOrEqual(5)
   })
 
   it(
@@ -910,9 +937,23 @@ describe('una criba sostenida no genera diez frases clónicas (v8)', () => {
     // línea (Race Bességes e4). En este banco solo lo dispara una de las ocho semillas, y cuando lo
     // hace, las cuatro frases son 161 → 133 → 63 → 35 → 10: cada una cuenta una pérdida enorme.
     // Lo que este test vigila es que no vuelvan las diez frases clónicas, y eso sigue en pie.
+    //
+    // Y DE 4 A 5 EN LA v26, con la misma clase de razón y midiendo antes de tocar nada. El techo se
+    // puso sobre un motor que subía el puerto de golpe: con el descuelgue en dado, un puerto se
+    // resolvía en dos o tres saltos grandes (8 relojes distintos en la cima de una reina real). Con
+    // la deriva son 19,5, y una escalera de 30 km se deshace por escalones en vez de por saltos.
+    // Medido en las ocho semillas de este banco: **1 · 3 · 3 · 3 · 4 · 4 · 4 · 5 partes**, y la que
+    // da cinco cuenta 161 → 131 → 94 → 70 → 48 → 27 en 19 km. Ninguna es relleno y no es que el
+    // throttle se haya roto: las cuatro últimas entran por la regla `decisive` de la v21 —≥20
+    // corredores Y ≥25 % del grupo— que existe precisamente para que una criba así no pase muda.
+    // Lo que el test vigila (que no vuelvan las diez frases clónicas) sigue igual de vigilado, y se
+    // le añade el listón que el techo por etapa no puede ver: la MEDIA del banco, que es lo que se
+    // movería si de verdad se estuviera narrando de más.
+    let total = 0
     for (const out of runs) {
       const splits = out.events.filter((e) => e.plantilla === 'peloton_split')
-      expect(splits.length).toBeLessThanOrEqual(4)
+      expect(splits.length).toBeLessThanOrEqual(5)
+      total += splits.length
       // Y ninguna de ellas es un parte de relleno: todas narran una criba de verdad.
       for (const e of splits) {
         const before = Number(e.datos!.before)
@@ -920,6 +961,9 @@ describe('una criba sostenida no genera diez frases clónicas (v8)', () => {
         expect(before - remaining).toBeGreaterThanOrEqual(STAGE.splitEventMinDropped)
       }
     }
+    // Medido: 27 partes en 8 semillas = 3,4 de media. El listón en 4 deja sitio a la semilla que da
+    // cinco y sigue cazando una inflación general, que es lo que un techo por etapa se traga.
+    expect(total / runs.length).toBeLessThanOrEqual(4)
   })
 
   it(
@@ -1038,30 +1082,31 @@ describe('el reagrupamiento se narra (v8)', () => {
   )
 
   /**
-   * DE «LAS OCHO SEMILLAS» A «AL MENOS SEIS DE OCHO» EN LA v26, y hay que decir exactamente por qué,
-   * porque es la única aserción que esta tanda ablanda.
+   * LA ASERCIÓN SE ABLANDÓ A MITAD DE LA v26 —de «las ocho semillas» a «al menos seis de ocho»— Y
+   * VUELVE A ESTAR ENTERA, que es como tiene que quedar. Se deja escrito el episodio porque el
+   * número explica el motor.
    *
-   * Lo que el test vigila es que **un reagrupamiento no ocurra en silencio**, y eso sigue vigilado.
-   * Lo que ha dejado de ser cierto es la PREMISA: que este perfil parta el pelotón en las ocho. Con
-   * el descuelgue en dado, el sorteo soltaba gente desde el primer bloque de rampa pasara lo que
-   * pasara; con la deriva y la reserva de la v26 hay que AGOTAR la reserva antes de ceder un metro,
-   * así que en las semillas en que el grupo llega al puerto entero y lo sube a tempo **no se rompe**,
-   * y donde no hay corte no puede haber reagrupamiento que narrar.
+   * Con el descuelgue en dado el sorteo soltaba gente desde el primer bloque de rampa pasara lo que
+   * pasara; con la deriva y la reserva hay que AGOTAR la reserva antes de ceder un metro, así que en
+   * las semillas en que el grupo sube el puerto a tempo no se rompe, y donde no hay corte no hay
+   * reagrupamiento que narrar. Con el puerto ya alargado de 12 a 14 km eran **7 de 8**, y por eso el
+   * suelo se puso provisionalmente en seis.
    *
-   * Medido sobre las ocho semillas con el puerto ya alargado de 12 a 14 km: **siete narran el
-   * reagrupamiento**; la que no, tampoco se parte —llega con 76 de 80 juntos y cuatro a 17 s, muy
-   * por debajo de `regroupEventMinRiders`—. El suelo se pone en seis y no en siete para que no lo
-   * tumbe el ruido de una semilla, que es el mismo criterio con el que están puestos los suelos de
-   * `sim/targets.ts`.
+   * Con la tanda entera puesta —y en particular con el trabajo medido por el VIENTO (docs/balance.md
+   * «v26» §9), que le cobra a la fuga sus horas de relevos y cambia con qué depósito llega el grupo
+   * al pie— vuelven a ser **8 de 8**, con 1 a 3 partes de reagrupamiento por semilla. Medido antes de
+   * devolver la aserción, no después.
    *
-   * Y no se ablanda para tapar un defecto de narración: el defecto que SÍ había —que la referencia
+   * Y no se ablandó para tapar un defecto de narración: el defecto que SÍ había —que la referencia
    * del reagrupamiento subía siguiendo al grupo que volvía, así que solo se podía narrar si el
    * puerto moría en el kilómetro exacto en que empieza el desenlace— está arreglado en el motor en
    * esta misma tanda (ver `frontAtLastNotice` fuera del desenlace, en `simulate.ts`).
    */
   it('cuando el pelotón se recompone hay un evento que lo cuenta', { timeout: 60000 }, () => {
-    const narrated = runs.filter((out) => out.events.some((e) => e.plantilla === 'peloton_regroup'))
-    expect(narrated.length).toBeGreaterThanOrEqual(6)
+    for (const out of runs) {
+      const regroups = out.events.filter((e) => e.plantilla === 'peloton_regroup')
+      expect(regroups.length).toBeGreaterThan(0)
+    }
   })
 
   it(

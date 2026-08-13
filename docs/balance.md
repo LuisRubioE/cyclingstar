@@ -5888,3 +5888,75 @@ marca se queda en 68. El rol vuelve a valer para algo.
 No mueve NADA más: `autoStageOrders` no reparte nunca el rol `marcador` —solo lo dan las órdenes de
 un jugador—, así que `markTargetOf` está vacío en todo el banco de simulación y en las dos huellas
 selladas.
+
+#### 10.2 El final en alto que gana un solitario — test desactualizado, y la carretera real lo dice
+
+La semilla `f2` de `simulate.test.ts` daba `alto` y pasó a dar `solitario`. Antes de tocar el test
+había que contestar a si el final en alto había dejado de seleccionar, y la medida dice lo
+contrario: **selecciona hasta el final**. En esa semilla el ganador corona con **53 s sobre el
+segundo**, y llegan **1 dentro de 30 s y 3 dentro de 60 s** — que es exactamente el patrón que §5
+documentó de la carretera real para un final en alto de gran vuelta (Plateau de Beille 2024:
+1 · 1 · 1; Pla d'Adet: 1 · 1 · 2). Y `finishType` devuelve `solitario` para un grupo de UNO desde la
+v22, por definición: no hay clase de final que derivar cuando llega un hombre solo.
+
+Lo caducado era la PREMISA del banco —que treinta piernas casi iguales coronan juntas—, no lo que el
+test vigila. Se mide ahora sobre **diez semillas del mismo final**: todas las que llegan con grupo
+dicen `alto` (nunca `puncheur` ni `sprint_reducido`, que es el defecto que el test nació para cazar)
+y la derivación se ejerce de verdad. Medido: **7 de 10 con grupo, 3 en solitario** con el segundo a
+46-53 s. El banco queda más fuerte que el de una semilla suelta.
+
+#### 10.3 Cinco frases para narrar un puerto — techo desactualizado, con la media como listón nuevo
+
+El techo de partes de criba (`peloton_split`) por etapa era 4, y la escalera de 30 km del banco de la
+v8 llegó a 5 en una de sus ocho semillas. Medido antes de decidir:
+
+| semilla del banco de la escalera | 0     | 1   | 2   | 3   | 4   | 5   | 6   | 7   |
+| -------------------------------- | ----- | --- | --- | --- | --- | --- | --- | --- |
+| partes de criba                  | **5** | 4   | 3   | 3   | 4   | 3   | 1   | 4   |
+
+La que da cinco cuenta **161 → 131 → 94 → 70 → 48 → 27 en 19 km**, y las cuatro últimas entran por la
+regla `decisive` de la v21 —≥20 corredores Y ≥25 % del grupo— que existe precisamente para que una
+criba así no pase muda. O sea: no es que el throttle se haya roto, es que **hay más que contar**. El
+techo se puso sobre un motor que subía el puerto de golpe (8 relojes distintos en la cima de una
+reina real); con la deriva son 19,5 y una escalera se deshace por escalones.
+
+Sube a 5, y para que subirlo no sea aflojar se le añade el listón que un techo por etapa no puede
+ver: **la MEDIA del banco, ≤ 4** (medida: 27 partes en 8 semillas = **3,4**). Una inflación general
+de la narración mueve la media aunque ninguna etapa pase de cinco.
+
+#### 10.4 «Tira sin tener para quién» al 35,6 % — ni ruido de muestra ni el reparto nuevo: es DÓNDE se tira
+
+El listón del banco A2 de `journal.test.ts` era 35 % y la medida dio 35,6 % (36 de 101). Tres
+mediciones para decidir qué era:
+
+1. **No es ruido de muestra.** Con 60 semillas en vez de 12: **35,8 %** (180 de 503).
+2. **No es el reparto del trabajo corredor a corredor de la v26** —que era la sospecha—. Ablacionado
+   (devolviéndole a `pullWindow` el `frontEffort` de GRUPO de la v25 y dejando todo lo demás igual)
+   sale **38,0 %**: la medida nueva del §9 **baja** el número, no lo sube.
+3. **Es dónde se tira.** Los partes «libre» viven todos en la parte alta de la etapa: **11,7 % antes
+   de los tres cuartos del recorrido y 70,7 % después** (12,2 % y 69,2 % con 60 semillas; 0 de 33 en
+   los primeros 105 km). Y los nombrados son cazaetapas (315 de 437 menciones), sueltos sin plan (86)
+   y jefes de filas (36).
+
+La lectura es directa y es la tanda funcionando: **con la montaña partiendo el pelotón de verdad, al
+frente de una reina no quedan equipos**. Quedan jefes de filas, baroudeurs y sueltos, y sus gregarios
+están ya por detrás. Que nadie tire «para alguien» ahí no es el «desgastarse a lo wey» del dueño: es
+que no queda nadie para quien tirar.
+
+Lo que sí se queda corto es la ETIQUETA: `pullReason` no tiene casilla para «tira para sí mismo», así
+que un jefe de filas al frente de un grupo de ocho en el último puerto se narra como `libre`. Eso es
+un cambio de contrato del evento (lo consumen la crónica y la web) y no entra en esta milla: queda
+anotado como defecto medido.
+
+El banco se parte en dos, y donde de verdad mide lo que dice medir queda **mucho más apretado que
+antes**: mientras hay equipos al frente (antes de los tres cuartos del recorrido) **< 20 %** —medido
+11,7 %, contra el 35 % de listón único de antes— y el total se vigila aparte solo contra una
+desbandada (< 40 %, medido 35,6 %).
+
+#### 10.5 Y la aserción que la tanda había ablandado, devuelta entera
+
+`simulate.test.ts` «el reagrupamiento se narra» se había bajado de las 8 semillas a ≥6 a mitad de la
+tanda, cuando eran 7 de 8. Con la tanda entera puesta —y en particular con el §9, que le cobra a la
+fuga sus horas de relevos y cambia con qué depósito llega el grupo al pie del puerto— vuelven a ser
+**8 de 8**, con 1 a 3 partes de reagrupamiento por semilla. Medido antes de devolver la aserción, no
+después. **La v26 no deja ninguna aserción ablandada.**

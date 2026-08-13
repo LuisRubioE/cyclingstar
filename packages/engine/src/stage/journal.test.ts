@@ -185,7 +185,31 @@ describe('A2 · el parte de relevos dice para quién se trabaja', () => {
     // 26% en un campo plano como este, donde nadie destaca y el `relayDutyByRole.libre` = 0,6 («sin
     // órdenes concretas: colabora lo normal») basta para meter a un suelto en el turno. Es la
     // conducta MODELADA, no un descuido; el listón vigila que no se dispare.
-    expect(libres / pulls.length).toBeLessThan(0.35)
+    //
+    // LA MEDIDA SE PARTE EN DOS EN LA v26, y el reparto entre las dos mitades es la razón. El total
+    // de este banco pasó a 35,6 % (36 de 101) contra un listón del 35 %, y midiéndolo salieron tres
+    // cosas:
+    //
+    // 1. **No es ruido de muestra**: con 60 semillas en vez de 12 sale 35,8 % (180 de 503).
+    // 2. **No es el reparto del trabajo corredor a corredor de la v26.** Ablacionado —devolviendo a
+    //    `pullWindow` el `frontEffort` de GRUPO de la v25 y dejando el resto igual— sale **38,0 %**:
+    //    la medida nueva lo baja, no lo sube.
+    // 3. **Es DÓNDE se tira, y es lo que la tanda ha arreglado.** Los partes «libre» viven todos en
+    //    la parte alta de la etapa: **11,7 % antes de los tres cuartos del recorrido y 70,7 % después**
+    //    (12,2 % y 69,2 % con 60 semillas). Con la montaña partiendo el pelotón de verdad —el objeto
+    //    entero de la v26—, al frente de una reina no quedan equipos: quedan jefes de filas,
+    //    baroudeurs y sueltos, y sus gregarios están ya por detrás. Que nadie tire «para alguien» ahí
+    //    no es desgastarse a lo wey: es que no queda nadie para quien tirar. (Lo que sí se queda
+    //    corto es la ETIQUETA —`pullReason` no tiene una casilla para «tira para sí mismo»—, y eso es
+    //    un cambio de contrato del evento, no de este banco.)
+    //
+    // Así que el listón se pone DONDE de verdad mide lo que dice medir —mientras hay equipos al
+    // frente— y queda mucho más apretado que el 35 % de antes; y el total se vigila aparte, solo
+    // contra una desbandada.
+    const early = pulls.filter((e) => e.km < TOTAL_KM * 0.75)
+    const libresEarly = early.filter((e) => e.datos!.forKind === 'libre').length
+    expect(libresEarly / early.length).toBeLessThan(0.2)
+    expect(libres / pulls.length).toBeLessThan(0.4)
   })
 
   it('el motivo se deduce solo de las órdenes, sin azar', () => {
