@@ -173,12 +173,45 @@ describe('desgaste (docs/motor.md §VI.1)', () => {
   const tired = queenThirdWeekScenario()
   const longClassic = longClassicScenario()
 
-  it('una llana rodada en pelotón no erosiona al corredor fresco', { timeout: 30000 }, () => {
+  /**
+   * EL PRESUPUESTO DE TIEMPO DE LAS CAMPAÑAS, medido y no estimado (v27).
+   *
+   * Estas dos pruebas corren campañas enteras y estuvieron MESES al filo de su presupuesto: 12,4 s
+   * medidos en local contra 30 s, y 139,5 s contra 300 s. En el runner de CI —unas **2,2 veces más
+   * lento** que la máquina de desarrollo, medido sobre la misma corrida: 1.506 s de tests allí
+   * contra 712 s aquí— eso son ~27 s y ~307 s. O sea, justo encima y justo debajo de la raya.
+   *
+   * El resultado era un CI que fallaba A VECES: los commits pasaban o no según cómo respirara el
+   * runner, y con el motor encareciéndose tanda a tanda (la deriva por corredor de la v26, la
+   * observación de la v27) el margen se acabó de comer. Cuatro despliegues seguidos se quedaron sin
+   * publicar la web —que espera al CI, al contrario que el tick— sin que nada estuviera roto.
+   *
+   * LA REGLA, para que esto no dependa de que alguien se acuerde: **el presupuesto de una campaña
+   * debe ser al menos CUATRO VECES lo que cuesta en CI**, o sea ~9 veces lo que cuesta en local. Se
+   * midieron las 45 de este fichero (`vitest run … --reporter=verbose`, 540 s en total) y se
+   * subieron las seis que no llegaban:
+   *
+   * ```
+   *                                            local     CI(×2,2)   antes → ahora
+   *   el pelotón adelgaza 12-20%               135,9 s     299 s     300 s → 1200 s
+   *   el mejor rematador gana bastantes        135,7 s     299 s     300 s → 1200 s
+   *   el último grupo entra al 8-14%            67,4 s     148 s     300 s →  600 s
+   *   ninguna clásica del WT satura             23,4 s      51 s     120 s →  300 s
+   *   una llana no erosiona al fresco           13,3 s      29 s      30 s →  180 s
+   *   una reina en fresco sí erosiona           11,7 s      26 s      30 s →  180 s
+   *   la clásica larga / la más dura           ~6,5 s       14 s      30 s →  120 s
+   * ```
+   *
+   * Las dos primeras se caían de verdad; las demás estaban a un mal día del runner de caerse.
+   * No es relajar un objetivo —el objetivo es la banda de §VI.1, y no se toca—: es dimensionar un
+   * reloj que se quedó pequeño cuando el motor se encareció.
+   */
+  it('una llana rodada en pelotón no erosiona al corredor fresco', { timeout: 180000 }, () => {
     const stats = analyzeErosion(flatScen, campaignSeeds(flatScen.name, 60))
     expectInRange(stats.medianErosion, TARGETS.erosion.flatFresh)
   })
 
-  it('una etapa reina en fresco sí erosiona', { timeout: 30000 }, () => {
+  it('una etapa reina en fresco sí erosiona', { timeout: 180000 }, () => {
     const stats = analyzeErosion(queen, campaignSeeds(queen.name, 60))
     expectInRange(stats.medianErosion, TARGETS.erosion.queenFresh)
   })
@@ -226,7 +259,7 @@ describe('desgaste (docs/motor.md §VI.1)', () => {
 
   it(
     'una clásica larga en fresco erosiona más que una reina, sin llegar a la 3.ª semana',
-    { timeout: 30000 },
+    { timeout: 120000 },
     () => {
       const stats = analyzeErosion(longClassic, campaignSeeds(longClassic.name, 12))
       expectInRange(stats.medianErosion, TARGETS.erosion.longClassicFresh)
@@ -304,7 +337,7 @@ describe('la erosión no satura en ninguna clásica (docs/motor.md §VI.1)', () 
 
   it(
     'la clásica más dura del calendario erosiona fuerte pero no satura',
-    { timeout: 30000 },
+    { timeout: 120000 },
     () => {
       const hardest = hardestClassicScenario()
       const stats = analyzeErosion(hardest, campaignSeeds(hardest.name, 12))
@@ -312,7 +345,7 @@ describe('la erosión no satura en ninguna clásica (docs/motor.md §VI.1)', () 
     },
   )
 
-  it('ninguna clásica del WorldTour satura con el pelotón fresco', { timeout: 120000 }, () => {
+  it('ninguna clásica del WorldTour satura con el pelotón fresco', { timeout: 300000 }, () => {
     expect(oneDayWt.length).toBeGreaterThan(10)
     // OJO: desde v6 la erosión lleva un techo estructural (`STAGE.erosionMax`), así que mirar la
     // erosión ya NO detecta la saturación —topa en 0,92 justo cuando hay que dar la alarma—. La
@@ -401,7 +434,9 @@ describe('abandonos en una gran vuelta (docs/motor.md §VI.3)', () => {
   let shared: GrandTourStats | null = null
   const tours = (): GrandTourStats => (shared ??= analyzeGrandTour(6))
 
-  it('el pelotón adelgaza entre un 12% y un 20% en tres semanas', { timeout: 300000 }, () => {
+  // 139,5 s en local ⇒ ~307 s en CI, con 300 s de presupuesto: se caía por doce segundos. Ver la
+  // nota del presupuesto de tiempo en la campaña de desgaste, arriba.
+  it('el pelotón adelgaza entre un 12% y un 20% en tres semanas', { timeout: 1200000 }, () => {
     const stats = tours()
     expect(stats.runs).toBe(6)
     expectInRange(stats.abandonPct, TARGETS.grandTour.abandonPct)
@@ -414,7 +449,7 @@ describe('abandonos en una gran vuelta (docs/motor.md §VI.3)', () => {
    * y la causa «fuera de control» no puede llegar a su 45 %; con más, el corte se llevaría por
    * delante media carrera todos los días.
    */
-  it('el último grupo de una etapa reina entra al 8-14%', { timeout: 300000 }, () => {
+  it('el último grupo de una etapa reina entra al 8-14%', { timeout: 600000 }, () => {
     const stats = tours()
     expect(stats.tails.reina.stages).toBeGreaterThanOrEqual(6 * 7)
     expectInRange(stats.tails.reina.medianLastGroupPct, TARGETS.grandTour.queenLastGroupPct)
@@ -562,7 +597,7 @@ describe('las carreras PEQUEÑAS con forma de producción (v23)', () => {
     expect(levels.size).toBeGreaterThanOrEqual(3)
   })
 
-  it('el mejor rematador gana bastantes, y no todas', { timeout: 300000 }, () => {
+  it('el mejor rematador gana bastantes, y no todas', { timeout: 1200000 }, () => {
     const stats = bench()
     expect(stats.share.races).toBe(SMALL_TOURS.length * 4)
     // …y el campo tiene un mejor sprinter CLARO, que es la premisa del objetivo: si el banco
