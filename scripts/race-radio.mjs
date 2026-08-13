@@ -219,6 +219,9 @@ async function dbSource() {
     const names = new Map(
       identities.map((i) => [i.riderId, `${i.bib ?? '--'} ${lastName(i.name)}`]),
     )
+    // El NOMBRE sale de la ficha del calendario de hoy y puede haber envejecido —el calendario se
+    // recalcula desde el código (`apps/api/src/stageHistory.ts`)—, pero lo que importa aquí no es el
+    // rótulo: los kilómetros, el recorrido y el campo salen todos del snapshot, que es lo que corrió.
     const race = SEASON_CALENDAR.find((r) => r.id === raceId)
     return {
       input: snapshot.input,
