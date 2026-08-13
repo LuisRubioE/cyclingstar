@@ -205,9 +205,13 @@ export {
 } from './training.js'
 export {
   getRiderRaceDays,
+  getRiderTravelDays,
   getRiderUpcomingRaces,
+  outboundTravelDays,
   retireFromRace,
+  ridersTravellingOutbound,
   type RetireOutcome,
+  type RiderTravelDay,
   type RiderUpcomingRace,
 } from './riderSchedule.js'
 export {

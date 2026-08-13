@@ -54,6 +54,7 @@ export function Training() {
   const [teamMsg, setTeamMsg] = useState<string | null>(null)
 
   const raceDays = new Set(query.data?.raceDays ?? [])
+  const travelByDay = new Map((query.data?.travelDays ?? []).map((t) => [t.gameDay, t]))
   const teamByDay = new Map((team.data?.plan ?? []).map((o) => [o.gameDay, o]))
 
   // El plan del servidor es un valor DERIVADO, no estado copiado con un efecto.
@@ -160,6 +161,25 @@ export function Training() {
                   </span>
                   <span className="text-sm font-semibold text-amber-700">🚴 Race day</span>
                   <span className="text-xs text-amber-600">No training — you're racing.</span>
+                </div>
+              )
+            }
+            // Día de VIAJE DE IDA: el plan lo enseña por adelantado, con destino. No se entrena.
+            const trip = travelByDay.get(gameDay)
+            if (trip) {
+              return (
+                <div
+                  key={gameDay}
+                  className="flex items-center gap-2 rounded-xl border border-sky-200 bg-sky-50 p-3"
+                >
+                  <span className="w-24 shrink-0 text-sm font-medium text-slate-500">
+                    Day {position.dayOfSeason}
+                  </span>
+                  <span className="text-sm font-semibold text-sky-700">✈️ Travel day</span>
+                  <span className="text-xs text-sky-600">
+                    On your way to {trip.raceName}
+                    {trip.country ? ` (${trip.country.toUpperCase()})` : ''} — no training.
+                  </span>
                 </div>
               )
             }

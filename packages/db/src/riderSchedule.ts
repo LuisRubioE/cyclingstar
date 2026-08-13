@@ -1,5 +1,6 @@
 import { SEASON_CALENDAR, TEST_TOUR, raceLastDay, stageDayOfSeason } from '@cyclingstar/engine'
-import { and, eq, isNull } from 'drizzle-orm'
+import { TRANSPORT_COST, travelTier } from '@cyclingstar/shared'
+import { and, eq, inArray, isNull } from 'drizzle-orm'
 import type { Database } from './client.js'
 import { emitNews } from './news.js'
 import { raceRosters, riders } from './schema.js'
@@ -48,6 +49,122 @@ export async function getRiderRaceDays(
     }
   }
   return [...days].sort((a, b) => a - b)
+}
+
+/*
+ * ── El viaje de IDA ─────────────────────────────────────────────────────────────────────────────
+ * El modelo de viajes (`shared/travel.ts`) siempre ha cobrado el desplazamiento en DOS monedas:
+ * dinero (transporte + hotel) y DÍAS de trabajo. El dinero se cobra entero al congelar la
+ * convocatoria, pero los días solo se aplicaban a la VUELTA: `riders.travel_until_day` se escribe
+ * cuando la carrera TERMINA (`calendarRun.ts`). La ida no existía, y el corredor entrenaba con
+ * normalidad la víspera de cruzar un océano —y el planificador se lo enseñaba como un día de
+ * trabajo más, que es como lo vio el jugador—.
+ *
+ * Los días de ida NO se guardan en una columna: se DEDUCEN de la convocatoria (que se congela ~2
+ * semanas antes) y de la residencia del corredor. Así el plan puede enseñarlos con antelación —un
+ * plan que no ve el viaje no es un plan— sin escribir nada por adelantado que luego haya que
+ * deshacer si el corredor cae enfermo o se le cambia la escuadra.
+ */
+
+/**
+ * Días de juego que el corredor pasa VIAJANDO hacia una carrera que sale el día `startGameDay`: los
+ * `k` días ANTERIORES a la salida, con `k` los días de transporte del tramo (0 en casa, 1 dentro del
+ * continente, 2 intercontinental). En casa la lista es vacía: se duerme en casa y se va por la
+ * mañana. Pura y determinista.
+ */
+export function outboundTravelDays(
+  startGameDay: number,
+  from: string | null,
+  to: string | null,
+): number[] {
+  const { days } = TRANSPORT_COST[travelTier(from, to)]
+  const out: number[] = []
+  for (let d = startGameDay - days; d < startGameDay; d++) out.push(d)
+  return out
+}
+
+/** Un día de viaje del plan: qué día, hacia qué carrera y a cuántos días de la salida. */
+export interface RiderTravelDay {
+  gameDay: number
+  raceKey: string
+  raceName: string
+  country: string | null
+}
+
+/**
+ * Días de VIAJE DE IDA del corredor dentro de [fromDay, toDay], deducidos de sus convocatorias ya
+ * congeladas. Es lo que el planificador pinta como «Travel» antes de que llegue el día: esos días no
+ * se entrena. La VUELTA no se deduce aquí —la escribe `calendarRun.ts` en `travel_until_day` cuando
+ * la carrera termina, porque depende de dónde y cuándo acabó realmente el corredor—.
+ */
+export async function getRiderTravelDays(
+  db: Database,
+  riderId: string,
+  fromDay: number,
+  toDay: number,
+): Promise<RiderTravelDay[]> {
+  const [rider] = await db
+    .select({ residence: riders.residence, country: riders.country })
+    .from(riders)
+    .where(eq(riders.id, riderId))
+  if (!rider) return []
+  const home = rider.residence ?? rider.country
+  const rosters = await db
+    .select({ raceId: raceRosters.raceId })
+    .from(raceRosters)
+    .where(eq(raceRosters.riderId, riderId))
+
+  const out: RiderTravelDay[] = []
+  for (const { raceId } of rosters) {
+    const m = /^(.*):s(\d+)$/.exec(raceId)
+    if (!m) continue // la vuelta de prueba no viaja
+    const race = SEASON_CALENDAR.find((r) => r.id === m[1])
+    if (!race) continue
+    const startGameDay = Number(m[2]) * SEASON_DAYS + race.startDay
+    for (const gameDay of outboundTravelDays(startGameDay, home, race.country ?? null)) {
+      if (gameDay < fromDay || gameDay > toDay) continue
+      out.push({ gameDay, raceKey: raceId, raceName: race.name, country: race.country ?? null })
+    }
+  }
+  return out.sort((a, b) => a.gameDay - b.gameDay)
+}
+
+/**
+ * Igual, pero para el MUNDO entero y un solo día: quién está hoy de camino a una carrera. Lo usa el
+ * tick de entrenamiento, que no puede permitirse una consulta por corredor. Recibe la residencia ya
+ * leída (el tick tiene los corredores en memoria) y devuelve solo los ids que viajan hoy.
+ */
+export async function ridersTravellingOutbound(
+  db: Pick<Database, 'select'>,
+  homeByRider: Map<string, string | null>,
+  gameDay: number,
+): Promise<Set<string>> {
+  const ids = [...homeByRider.keys()]
+  if (ids.length === 0) return new Set()
+  const rosters = await db
+    .select({ raceId: raceRosters.raceId, riderId: raceRosters.riderId })
+    .from(raceRosters)
+    .where(inArray(raceRosters.riderId, ids))
+
+  const travelling = new Set<string>()
+  for (const { raceId, riderId } of rosters) {
+    if (travelling.has(riderId)) continue
+    const m = /^(.*):s(\d+)$/.exec(raceId)
+    if (!m) continue
+    const race = SEASON_CALENDAR.find((r) => r.id === m[1])
+    if (!race) continue
+    const startGameDay = Number(m[2]) * SEASON_DAYS + race.startDay
+    // Solo las carreras que salen en los próximos dos días pueden tener viaje hoy (el tramo más
+    // largo son 2 días): descartarlas antes ahorra el cálculo en las ~40 carreras de la temporada.
+    if (startGameDay <= gameDay || startGameDay > gameDay + 2) continue
+    const days = outboundTravelDays(
+      startGameDay,
+      homeByRider.get(riderId) ?? null,
+      race.country ?? null,
+    )
+    if (days.includes(gameDay)) travelling.add(riderId)
+  }
+  return travelling
 }
 
 // Los resultados del corredor para su ficha viven en `riderResults.ts`: van AGRUPADOS POR CARRERA,

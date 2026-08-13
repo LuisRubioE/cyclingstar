@@ -22,15 +22,17 @@ export type DayEdit = Partial<Pick<DayPlan, 'session' | 'intensity'>>
 
 /**
  * Plan que propone el servidor para los próximos `horizon` días: sus órdenes guardadas y, donde no
- * hay ninguna, el plan por defecto del entrenador. Los días con carrera se saltan (#6).
+ * hay ninguna, el plan por defecto del entrenador. Los días con carrera se saltan (#6), y los de
+ * VIAJE también: el corredor que mañana sale en otro continente hoy está de camino, no entrenando.
  */
 export function buildServerPlan(data: OrdersResponse, horizon: number): DayPlan[] {
   const raceDays = new Set(data.raceDays)
+  const travelDays = new Set(data.travelDays.map((t) => t.gameDay))
   const byDay = new Map(data.orders.map((order) => [order.gameDay, order]))
   const plan: DayPlan[] = []
   for (let i = 1; i <= horizon; i++) {
     const gameDay = data.currentDay + i
-    if (raceDays.has(gameDay)) continue
+    if (raceDays.has(gameDay) || travelDays.has(gameDay)) continue
     const existing = byDay.get(gameDay)
     const fallback = defaultCoachPlan(gameDay)
     plan.push({

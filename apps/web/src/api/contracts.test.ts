@@ -80,7 +80,22 @@ describe('contratos: entrenamiento', () => {
   }
 
   it('acepta la respuesta de /api/riders/me/orders', () => {
-    expect(ordersResponseSchema.parse(payload)).toEqual(payload)
+    expect(ordersResponseSchema.parse({ ...payload, travelDays: [] })).toEqual({
+      ...payload,
+      travelDays: [],
+    })
+  })
+
+  // Los días de viaje llegan con destino, y sin ellos el planificador NO se cae: un despliegue en el
+  // que la web va por delante de la API dejaría el campo ausente, y perder el plan entero por eso
+  // sería peor que no enseñar el viaje.
+  it('acepta los días de viaje y rellena la lista vacía si la API aún no los manda', () => {
+    const viaje = {
+      ...payload,
+      travelDays: [{ gameDay: 14, raceKey: 'race-x:s0', raceName: 'Race X', country: 'co' }],
+    }
+    expect(ordersResponseSchema.parse(viaje)).toEqual(viaje)
+    expect(ordersResponseSchema.parse(payload).travelDays).toEqual([])
   })
 
   it('rechaza una sesión de entrenamiento desconocida', () => {

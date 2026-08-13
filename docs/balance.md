@@ -139,9 +139,10 @@ perillas ajustables.
 ### Viajes (`packages/shared/src/travel.ts`)
 
 - **Transporte fijo por tramo** (`TRANSPORT_COST`): casa `{0, 0d}`, continental `{40, 1d}`,
-  intercontinental `{150, 2d}`. Los días son "días de viaje" (sin entrenar) — modelados en el coste,
-  pero la penalización de entrenamiento aún NO se aplica en el tick (diferida: toca la progresión de
-  forma, sensible; mejor validar con el usuario delante).
+  intercontinental `{150, 2d}`. Los días son "días de viaje" (sin entrenar) y se cobran **en los dos
+  sentidos**: la VUELTA se marca en `travel_until_day` al terminar la carrera, y la IDA se DEDUCE de
+  la convocatoria (`ridersTravellingOutbound`, `riderSchedule.ts`) — son los `k` días anteriores a la
+  salida, con `k` los días del tramo entre la RESIDENCIA del corredor y el país de la carrera.
 - **Hotel por día de carrera** (`HOTEL_PER_RACE_DAY = 8`): parte variable, proporcional a las etapas.
 - `raceAttendanceCost(from, to, raceDays) = transporte(tramo) + 8·raceDays`. Lo paga el EQUIPO (de su
   presupuesto) por cada corredor que manda; un agente libre lo paga de su bolsillo al auto-inscribirse.
@@ -179,6 +180,13 @@ perillas ajustables.
   en) una carrera lejana, los días de viaje de vuelta (fin de carrera +1 continental / +2
   intercontinental) se marcan y `trainWorldDay` no entrena al corredor esos días. Las carreras de casa
   no cuestan días. Validado: los corredores marcan sus días de viaje y ninguno se queda bloqueado.
+- **El viaje de IDA** (#30, lo vio el dueño: «tengo en 3 días una carrera en otro país pero en mi plan
+  no sale el viaje reservado el día anterior»). Solo existía la vuelta, así que se cobraba medio
+  viaje: la víspera de cruzar un océano el corredor entrenaba con normalidad. La ida NO se guarda en
+  una columna —se deduce de la convocatoria, que se congela ~2 semanas antes, y de la residencia—,
+  de modo que el planificador puede enseñarla con antelación sin escribir nada que luego haya que
+  deshacer si el corredor cae enfermo o le cambian la escuadra. `/api/riders/me/orders` devuelve
+  `travelDays` con destino, y el plan semanal pinta «✈️ Travel day — on your way to X».
 
 ### Diferido (con razón)
 

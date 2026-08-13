@@ -2,6 +2,7 @@ import { ATTRIBUTES } from '@cyclingstar/shared'
 import { and, eq } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import {
+  raceRosters,
   riderAttrs,
   riderDailyLog,
   riderHidden,
@@ -21,15 +22,27 @@ import { trainWorldDay } from './train.js'
  * (viajar no descansaba nada) y no se escribía fila en `rider_daily_log`. Las dos consecuencias las
  * vio el dueño: "hice descanso activo y no mejoró mi frescura" (la sesión elegida ni se ejecutaba) y
  * un gráfico de forma que caía en vertical, porque cosía dos puntos con días de agujero en medio.
+ *
+ * Y el viaje de IDA (#30), que directamente no existía: solo se marcaba la VUELTA (`travel_until_day`
+ * se escribe cuando la carrera termina), así que la víspera de correr en otro país el corredor
+ * entrenaba con normalidad. La ida se DEDUCE de la convocatoria y de dónde reside el corredor: la
+ * carrera de abajo sale el día 101 en Holanda, de modo que el día 100 el español está de camino y el
+ * holandés, que la corre en casa, entrena como cualquier otro día.
  */
 
 const GAME_DAY = 100
+/** `race-braakman` sale el día 101 de la temporada 0, en NL: un día de viaje para quien no vive allí. */
+const RACE_KEY = 'race-braakman:s0'
 
 interface Seeded {
   worldId: string
   travelling: string
   resting: string
   racing: string
+  /** Convocado a la carrera de mañana en el extranjero: hoy vuela. */
+  flyingOut: string
+  /** Convocado a la MISMA carrera, pero vive en el país: no viaja, entrena. */
+  localToRace: string
 }
 
 async function seedWorld(t: TestDb): Promise<Seeded> {
@@ -55,33 +68,43 @@ async function seedWorld(t: TestDb): Promise<Seeded> {
   const inserted = await t.db
     .insert(riders)
     .values(
-      ['viajero', 'descansa', 'corre'].map((tag, i) => ({
+      ['viajero', 'descansa', 'corre', 'vuela', 'local'].map((tag, i) => ({
         worldId,
         teamId: team!.id,
         name: `Corredor ${tag}`,
         country: 'ES',
+        // El «local» vive en el país de la carrera de mañana: para él no hay viaje.
+        residence: tag === 'local' ? ('NL' as const) : ('ES' as const),
         gender: 'M' as const,
         birthSeason: -6, // 26 años el día 100: fuera de la zona de decaimiento por edad
         archetype: 'fondo' as const,
         faceSeed: `cara-${i}`,
         ctl: 60,
         atl: 130,
-        // El viajero aún no ha llegado a casa hoy; los otros dos no viajan.
+        // El viajero aún no ha llegado a casa hoy; los demás no vuelven de ninguna carrera.
         travelUntilDay: tag === 'viajero' ? GAME_DAY : null,
       })),
     )
     .returning({ id: riders.id })
-  const [travelling, resting, racing] = inserted.map((r) => r.id) as [string, string, string]
+  const [travelling, resting, racing, flyingOut, localToRace] = inserted.map((r) => r.id) as [
+    string,
+    string,
+    string,
+    string,
+    string,
+  ]
+  const all = [travelling, resting, racing, flyingOut, localToRace]
+
+  // Los dos convocados a la carrera de mañana. Lo único que los distingue es dónde viven.
+  await t.db
+    .insert(raceRosters)
+    .values([flyingOut, localToRace].map((riderId) => ({ raceId: RACE_KEY, riderId })))
 
   await t.db
     .insert(riderAttrs)
-    .values(
-      [travelling, resting, racing].flatMap((id) =>
-        ATTRIBUTES.map((attr) => ({ riderId: id, attr, value: 50 })),
-      ),
-    )
+    .values(all.flatMap((id) => ATTRIBUTES.map((attr) => ({ riderId: id, attr, value: 50 }))))
   await t.db.insert(riderHidden).values(
-    [travelling, resting, racing].map((id) => ({
+    all.map((id) => ({
       riderId: id,
       talent: 1,
       // Fragilidad 0 para que la tirada de enfermedad no ensucie la medición de la carga.
@@ -96,8 +119,11 @@ async function seedWorld(t: TestDb): Promise<Seeded> {
   await t.db.insert(trainingOrders).values([
     { riderId: travelling, gameDay: GAME_DAY, session: 'puertos', intensity: 'fuerte' },
     { riderId: resting, gameDay: GAME_DAY, session: 'descanso_total', intensity: 'normal' },
+    // Los dos convocados piden lo MISMO para hoy: si acaban distinto, es por el viaje y por nada más.
+    { riderId: flyingOut, gameDay: GAME_DAY, session: 'umbral', intensity: 'normal' },
+    { riderId: localToRace, gameDay: GAME_DAY, session: 'umbral', intensity: 'normal' },
   ])
-  return { worldId, travelling, resting, racing }
+  return { worldId, travelling, resting, racing, flyingOut, localToRace }
 }
 
 describe('db: el día de viaje cuenta como día vivido, no como día congelado', () => {
@@ -157,5 +183,20 @@ describe('db: el día de viaje cuenta como día vivido, no como día congelado',
   it('quien ha corrido hoy sigue sin entrenar: su carga la escribe la etapa', async () => {
     expect(await logOf(s.racing)).toBeUndefined()
     expect((await riderOf(s.racing)).atl).toBe(130)
+  })
+
+  it('la VÍSPERA de una carrera en el extranjero se vuela: la sesión pedida no se hace', async () => {
+    const log = await logOf(s.flyingOut)
+    expect(log).toBeDefined()
+    // Pidió `umbral`. Está en un aeropuerto: el viaje manda, igual que manda sobre la vuelta.
+    expect(log!.activity).toBe('viaje')
+  })
+
+  it('quien corre esa misma carrera EN CASA no viaja: entrena lo que pidió', async () => {
+    const log = await logOf(s.localToRace)
+    expect(log).toBeDefined()
+    expect(log!.activity).toBe('umbral')
+    // Y nada de esto se guarda en `travel_until_day`: la ida se deduce, no se escribe por adelantado.
+    expect((await riderOf(s.flyingOut)).travelUntilDay).toBeNull()
   })
 })

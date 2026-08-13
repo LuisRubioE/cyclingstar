@@ -21,6 +21,7 @@ import {
   getRiderHealth,
   getRiderLastRaceReport,
   getRiderRaceDays,
+  getRiderTravelDays,
   getRiderRaceResults,
   getRiderSummary,
   getRiderUpcomingRaces,
@@ -203,6 +204,7 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
         horizonDays: TRAINING_HORIZON_DAYS,
         orders: [],
         raceDays: [],
+        travelDays: [],
       }
     const orders = await getTrainingOrders(
       db,
@@ -210,14 +212,28 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
       world.currentDay + 1,
       world.currentDay + TRAINING_HORIZON_DAYS,
     )
-    // Días con carrera: no se entrenan (la carrera es su carga).
+    // Días con carrera: no se entrenan (la carrera es su carga). Y días de VIAJE DE IDA: tampoco se
+    // entrenan, y el plan tiene que enseñarlos ANTES de que lleguen —el jugador planifica su semana
+    // contando con ellos, igual que cuenta con las etapas—.
     const raceDays = await getRiderRaceDays(
       db,
       rider.id,
       world.currentDay + 1,
       world.currentDay + TRAINING_HORIZON_DAYS,
     )
-    return { currentDay: world.currentDay, horizonDays: TRAINING_HORIZON_DAYS, orders, raceDays }
+    const travelDays = await getRiderTravelDays(
+      db,
+      rider.id,
+      world.currentDay + 1,
+      world.currentDay + TRAINING_HORIZON_DAYS,
+    )
+    return {
+      currentDay: world.currentDay,
+      horizonDays: TRAINING_HORIZON_DAYS,
+      orders,
+      raceDays,
+      travelDays,
+    }
   })
 
   app.put('/api/riders/me/orders', async (request, reply) => {

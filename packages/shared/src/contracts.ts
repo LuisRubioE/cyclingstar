@@ -166,12 +166,26 @@ export const trainingOrderSchema = z.object({
 })
 export type TrainingOrder = z.infer<typeof trainingOrderSchema>
 
+/** Un día de VIAJE DE IDA del plan: hacia qué carrera vuela el corredor ese día. */
+export const travelDaySchema = z.object({
+  gameDay: z.number().int(),
+  raceKey: z.string(),
+  raceName: z.string(),
+  country: z.string().nullable(),
+})
+export type TravelDay = z.infer<typeof travelDaySchema>
+
 export const ordersResponseSchema = z.object({
   currentDay: z.number().int(),
   horizonDays: z.number().int(),
   orders: z.array(trainingOrderSchema),
   /** Días de juego (absolutos) del horizonte en los que el corredor tiene carrera (#6). */
   raceDays: z.array(z.number().int()),
+  /**
+   * Días de IDA a una carrera lejana: tampoco se entrenan. Con `default` a propósito, para que un
+   * despliegue en el que la web va por delante de la API no reviente el planificador entero.
+   */
+  travelDays: z.array(travelDaySchema).default([]),
 })
 export type OrdersResponse = z.infer<typeof ordersResponseSchema>
 

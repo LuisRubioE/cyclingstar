@@ -10,6 +10,7 @@ import {
 } from '@cyclingstar/shared'
 import { and, eq } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
+import { ridersTravellingOutbound } from './riderSchedule.js'
 import {
   riderAttrLog,
   riderAttrs,
@@ -50,11 +51,19 @@ export async function trainWorldDay(
   // NADA, el corredor quedaba literalmente congelado) y no se escribía fila en `rider_daily_log`,
   // así que el gráfico de forma cosía dos puntos separados por días y la caída salía en vertical.
   // Era la causa de "hice descanso activo y no mejoró mi frescura": la sesión elegida ni corría.
+  //
+  // El viaje tiene DOS sentidos. La VUELTA la marca `travel_until_day`, que se escribe al terminar
+  // la carrera. La IDA se deduce de la convocatoria (`ridersTravellingOutbound`): el corredor que
+  // mañana sale en otro continente hoy está en un avión, no entrenando. Sin esto solo se cobraba
+  // medio viaje, y el planificador enseñaba la víspera como un día de trabajo normal.
   const travelling = new Set<string>()
+  const homeByRider = new Map<string, string | null>()
   for (const rider of riderRows) {
     if (skip.has(rider.id)) continue // ya ha corrido hoy: la carrera manda sobre el viaje
     if (rider.travelUntilDay != null && rider.travelUntilDay >= gameDay) travelling.add(rider.id)
+    else homeByRider.set(rider.id, rider.residence ?? rider.country)
   }
+  for (const id of await ridersTravellingOutbound(tx, homeByRider, gameDay)) travelling.add(id)
 
   // Lecturas en lote para no hacer O(corredores) consultas por día (Paso 41, rendimiento del tick):
   // atributos, genoma y órdenes del día del mundo entero en tres consultas.

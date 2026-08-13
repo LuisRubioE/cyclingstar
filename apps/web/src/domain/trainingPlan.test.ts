@@ -7,6 +7,7 @@ const response = (over: Partial<OrdersResponse> = {}): OrdersResponse => ({
   horizonDays: 28,
   orders: [],
   raceDays: [],
+  travelDays: [],
   ...over,
 })
 
@@ -14,6 +15,20 @@ describe('web: plan semanal de entrenamiento', () => {
   it('propone los próximos días y salta los de carrera', () => {
     const plan = buildServerPlan(response({ raceDays: [12, 13] }), 5)
     expect(plan.map((d) => d.gameDay)).toEqual([11, 14, 15])
+  })
+
+  it('salta también los días de VIAJE DE IDA: ese día se vuela, no se entrena', () => {
+    const plan = buildServerPlan(
+      response({
+        raceDays: [14],
+        travelDays: [
+          { gameDay: 12, raceKey: 'race-x:s0', raceName: 'Race X', country: 'co' },
+          { gameDay: 13, raceKey: 'race-x:s0', raceName: 'Race X', country: 'co' },
+        ],
+      }),
+      5,
+    )
+    expect(plan.map((d) => d.gameDay)).toEqual([11, 15])
   })
 
   it('respeta las órdenes ya guardadas y rellena el resto con el plan del entrenador', () => {
