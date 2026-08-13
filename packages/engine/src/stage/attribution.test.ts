@@ -233,10 +233,10 @@ import type { Attribute } from '@cyclingstar/shared'
  * - **`reina-150`, primera semilla: la etapa se vuelve CONTINUA, que es el objetivo de la tanda.**
  *   Los relojes de grupo pasan de 7 a **9**, y sobre todo se deshace el escalón final: donde había
  *   **23 corredores compartiendo el último reloj** (15003) ahora hay 13 en 15018 y 6 en 15112. El
- *   grupo de cabeza sigue siendo de 5 (14397 → **14390**) y detrás aparecen los que antes no podían
- *   existir: `bar-3` a **+13 s** y `bar-5` a **+59 s**, que en el modelo del dado o iban con el grupo
- *   o aparecían a dos minutos. Los cinco primeros son los mismos cinco.
- * - **`reina-150`, segunda semilla: lo mismo, y más marcado.** De 5 relojes a **8**, y el escalón de
+ *   grupo de cabeza queda en 4 (14397 → **14390**) y detrás aparecen los que antes no podían
+ *   existir: `bar-4` a **+13 s** y dos hombres a **+57 s**, que en el modelo del dado o iban con el
+ *   grupo o aparecían a dos minutos. El podio es el mismo.
+ * - **`reina-150`, segunda semilla: lo mismo, y más marcado.** De 5 relojes a **9**, y el escalón de
  *   **23 corredores en 14743** se reparte en 6 · 10 · 6. El podio no cambia (`gc-1`, `gc-2`, `gc-0`)
  *   y el grupo de cabeza sigue siendo 5.
  * - **La cola ENTRA DESPUÉS** (15003 → 15112 y 14743 → 14836) y el frente casi no se mueve (±4 s).
@@ -260,11 +260,11 @@ const SEALED_RESULTS: Record<string, string> = {
   // v26: de 7 relojes a 10 y el escalón de 23 corredores en 15003 deshecho (11 + 6). El grupo de
   // cabeza pasa de 5 a 6 y aparecen los dos que el dado no podía dar: bar-3 a +8 s, bar-0 a +51 s.
   'reina-150-0|reina-150|1|v1':
-    '1:gc-1:14390,2:gc-0:14390,3:gc-3:14390,4:gc-2:14390,5:bar-4:14390,6:bar-3:14403,7:bar-5:14449,8:bar-0:14551,9:pel-7:14551,10:pel-19:14551,11:pel-18:14551,12:pel-8:14551,13:pel-4:14551,14:pel-1:14551,15:pel-12:14551,16:bar-1:14740,17:bar-2:14740,18:pel-10:14903,19:pel-21:14980,20:pel-20:14980,21:pel-5:14980,22:pel-6:15018,23:pel-17:15018,24:pel-11:15018,25:pel-23:15018,26:pel-13:15018,27:pel-25:15018,28:pel-26:15018,29:pel-16:15018,30:pel-14:15018,31:pel-15:15018,32:pel-0:15018,33:pel-3:15018,34:spr-2:15018,35:pel-9:15112,36:pel-24:15112,37:pel-22:15112,38:pel-2:15112,39:spr-0:15112,40:spr-1:15112',
+    '1:gc-1:14390,2:gc-0:14390,3:gc-3:14390,4:gc-2:14390,5:bar-3:14403,6:bar-5:14447,7:bar-4:14447,8:bar-0:14551,9:pel-7:14551,10:pel-19:14551,11:pel-18:14551,12:pel-8:14551,13:pel-4:14551,14:pel-1:14551,15:pel-12:14551,16:bar-1:14740,17:bar-2:14740,18:pel-10:14903,19:pel-21:14980,20:pel-20:14980,21:pel-5:14980,22:pel-6:15017,23:pel-17:15017,24:pel-11:15017,25:pel-23:15017,26:pel-13:15017,27:pel-25:15017,28:pel-26:15017,29:pel-16:15017,30:pel-14:15017,31:pel-15:15017,32:pel-0:15017,33:pel-3:15017,34:spr-2:15017,35:pel-9:15112,36:pel-24:15112,37:pel-22:15112,38:pel-2:15112,39:spr-0:15112,40:spr-1:15112',
   // v26: ídem — de 5 relojes a 8, y el escalón de 23 corredores en 14743 repartido en 6 · 10 · 6.
   // El podio no cambia y el grupo de cabeza sigue siendo 5.
   'reina-150-1|reina-150|1|v1':
-    '1:gc-1:14152,2:gc-2:14152,3:gc-0:14152,4:gc-3:14152,5:bar-0:14152,6:bar-5:14268,7:pel-7:14268,8:pel-24:14268,9:pel-12:14268,10:bar-2:14305,11:pel-8:14305,12:bar-3:14327,13:bar-4:14327,14:bar-1:14487,15:pel-20:14487,16:pel-21:14487,17:pel-5:14487,18:spr-1:14487,19:pel-23:14703,20:pel-13:14703,21:pel-17:14703,22:pel-9:14703,23:pel-18:14703,24:pel-3:14703,25:pel-10:14739,26:pel-14:14739,27:pel-4:14739,28:pel-0:14739,29:pel-22:14739,30:pel-25:14739,31:pel-15:14739,32:pel-11:14739,33:pel-6:14739,34:pel-16:14739,35:pel-2:14836,36:pel-19:14836,37:pel-26:14836,38:pel-1:14836,39:spr-2:14836,40:spr-0:14836',
+    '1:gc-1:14152,2:gc-2:14152,3:gc-0:14152,4:gc-3:14152,5:bar-0:14152,6:bar-5:14268,7:pel-7:14268,8:pel-24:14268,9:pel-12:14268,10:bar-2:14308,11:bar-3:14327,12:bar-4:14327,13:bar-1:14396,14:pel-20:14396,15:pel-21:14396,16:spr-1:14396,17:pel-5:14588,18:pel-8:14588,19:pel-23:14703,20:pel-13:14703,21:pel-17:14703,22:pel-9:14703,23:pel-18:14703,24:pel-3:14703,25:pel-10:14739,26:pel-14:14739,27:pel-4:14739,28:pel-0:14739,29:pel-22:14739,30:pel-25:14739,31:pel-15:14739,32:pel-11:14739,33:pel-6:14739,34:pel-16:14739,35:pel-2:14836,36:pel-19:14836,37:pel-26:14836,38:pel-1:14836,39:spr-2:14836,40:spr-0:14836',
 }
 
 const fingerprint = (out: StageOutput): string =>

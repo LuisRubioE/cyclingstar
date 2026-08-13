@@ -5,7 +5,7 @@
  *   finales en alto donde la ley de velocidad integra las diferencias sola.
  * Puro y determinista: todo el azar entra por los subflujos nominales del RNG (6.1).
  */
-import { normal, type Rng } from '../random.js'
+import { clamp, normal, type Rng } from '../random.js'
 import { ENGINE_VERSION, STAGE } from '../constants.js'
 import {
   applyTimeCut,
@@ -1554,11 +1554,17 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
         kind === 'shed' || frontEffort <= 0
           ? []
           : moves.filter((mv) => mv.g.id !== group.id && mv.g.tS < group.tS)
-      // LA RECARGA DE LA RESERVA (v26). Todo el que no ha tirado de ella en este bloque la recupera,
-      // con la constante de tiempo de W′ y contada en SEGUNDOS de carretera —los que ha durado el
-      // bloque para SU grupo—, no en kilómetros: así un valle de tres minutos la devuelve entera y
-      // media hora de puerto duro no la devuelve nunca, que es lo que se ve en carretera.
       const blockS = blockSeconds(next.vActual)
+      /**
+       * CUÁNTO ESTÁ APRETANDO EL GRUPO POR ENCIMA DEL TEMPO DE CARRETERA, de 0 a 1. Es la misma
+       * cuenta con la que se mide el TRABAJO AL FRENTE desde la v11 (`frontEffort`), normalizada:
+       * un pelotón que rueda a `frontWorkIdleCommit` vale 0 y uno a bloque, 1.
+       */
+      const push = clamp(
+        (group.compromiso - STAGE.frontWorkIdleCommit) / (1 - STAGE.frontWorkIdleCommit),
+        0,
+        1,
+      )
       for (const m of members) {
         // EL ACORDEÓN SE CIERRA EN EL LLANO (v26). La deriva es la goma de un grupo estirado por una
         // rampa; en cuanto el terreno deja de seleccionar, el que iba diez segundos por detrás
@@ -1567,11 +1573,6 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
         // los arrastraba hasta la meta ciento cuarenta kilómetros después, que es exactamente el
         // fantasma que la v16 quitó por el otro lado.
         if (block.tipo === 'llano') m.driftS = 0
-        if (spentReserve.has(m.input.riderId)) continue
-        m.reserveS = Math.min(
-          STAGE.reserveSeconds,
-          m.reserveS + (STAGE.reserveSeconds * blockS) / STAGE.reserveRecoverySeconds,
-        )
       }
       for (const m of members) {
         const relaying = relayers.has(m.input.riderId)
@@ -1627,6 +1628,33 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
               : relaying
                 ? STAGE.shelterRelay
                 : STAGE.shelterProtected
+        /**
+         * LA RESERVA SE RECARGA A RUEDA Y SE GASTA DANDO LA CARA (v26, corrección de la primera
+         * entrega). Estaba mal, y el defecto era exactamente el que dejó `mountain.breakawayWinPct`
+         * en el 61 % contra una banda de 25-45: los 120 del pelotón que van a rueda y los 6 de una
+         * fuga que llevan 150 km relevándose recargaban **igual**, así que la fuga llegaba al puerto
+         * final con el depósito lleno, sus gregarios aguantaban la rueda del mejor y no se deshacía.
+         *
+         * W′ solo se recarga POR DEBAJO del umbral, y ahí está todo dicho. Los dos términos que
+         * deciden si vas por debajo o por encima ya los tenía el motor y no había que inventar
+         * ninguna constante:
+         *
+         * - `cover` = cuánto rebufo estás recibiendo, normalizado sobre `shelterProtected`: 1 a
+         *   rueda, 0,56 relevando en una fuga, 0,44 dando la cara al frente del pelotón, 0 solo.
+         * - `push` = cuánto aprieta tu grupo por encima del tempo de carretera.
+         *
+         * El saldo es la resta. Un pelotón a tempo con el corredor arropado recarga a plena
+         * velocidad; una fuga de seis a bloque, en la que TODOS relevan, tiene saldo negativo y va
+         * mordiendo la reserva kilómetro a kilómetro. Es la física que faltaba —una fuga se caza en
+         * el puerto final porque lleva todo el día trabajando, no porque una perilla lo diga— y por
+         * eso el que se descuelga solo tampoco recupera nunca: paga el viento entero.
+         */
+        const cover = shelter / STAGE.shelterProtected
+        if (!spentReserve.has(m.input.riderId)) {
+          const balance =
+            ((STAGE.reserveSeconds * blockS) / STAGE.reserveRecoverySeconds) * (cover - push)
+          m.reserveS = clamp(m.reserveS + balance, 0, STAGE.reserveSeconds)
+        }
         let cost = blockCost(block, group.compromiso, shelter)
         // Protección de gregarios: un líder arropado que no está relevando gasta menos según cuántos
         // de sus gregarios lleve en el grupo (SPEC 6.18). Así fichar buen equipo rinde de verdad.

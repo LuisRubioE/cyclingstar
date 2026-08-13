@@ -5759,3 +5759,38 @@ de 5 a 8 en la segunda, con el **escalón de 23 corredores compartiendo el últi
 11 + 6 y 6 + 10 + 6. El grupo de cabeza pasa de 5 a 6 hombres y aparecen los dos que el dado no podía
 dar: `bar-3` a +8 s y `bar-0` a +51 s. La justificación completa, línea a línea, está en
 `stage/attribution.test.ts`.
+
+### 8. La recarga de la reserva, corregida — y por qué NO es la causa del 61 %
+
+El defecto que se señaló era real y está arreglado: la reserva se recargaba **igual** para los 120
+del pelotón que van a rueda que para los 6 de una fuga que llevan 150 km relevándose. W′ solo se
+recarga por debajo del umbral, y los dos términos que deciden si vas por debajo o por encima ya
+estaban en el motor —no ha hecho falta ninguna constante nueva—:
+
+```
+cover = shelter / shelterProtected      // 1 a rueda · 0,56 relevando en fuga · 0,44 al frente · 0 solo
+push  = clamp((compromiso − frontWorkIdleCommit) / (1 − frontWorkIdleCommit), 0, 1)
+reserva += (reserveSeconds · dt / reserveRecoverySeconds) · (cover − push)
+```
+
+**Pero medido, NO mueve el objetivo rojo: 61,4 % antes y 61,4 % después.** Y la traza dice por qué,
+así que no hay que suponerlo. Al pie del puerto final de `reina-150`, semillas 0 y 1:
+
+| Grupo               | `compromiso` | `cover` |    `push` | Reservas al pie |
+| ------------------- | -----------: | ------: | --------: | --------------- |
+| pelotón (31)        |    0,41-0,44 |    1,00 |      0,00 | 65 × 31 (lleno) |
+| fuga de 6 (`mov-3`) |         0,44 |    0,56 |      0,00 | 65 × 6 (lleno)  |
+| fuga de 4 (`mov-9`) |         0,48 |    0,56 |      0,00 | 65 × 4 (lleno)  |
+| escapado SOLO       |    0,64-0,71 |    0,00 | 0,28-0,43 | **0** (vacío)   |
+
+El mecanismo funciona y muerde exactamente donde debe —**el que va solo llega al puerto con la
+reserva a cero**— pero no puede explicar el 61 %, porque **una fuga de grupo no va por encima del
+tempo en este motor**: rueda a `compromiso` 0,44-0,48, por debajo de `frontWorkIdleCommit` = 0,5, así
+que `push` vale 0 y recarga. En la carretera una fuga consolidada de seis va al umbral durante horas;
+aquí va a tempo. **El siguiente sitio donde mirar no es la recarga: es a qué compromiso rueda una
+fuga consolidada** (`restCommit` y la sociología de 6.10), que es lo que decide si llega mordida o
+entera. El cambio de la recarga se conserva porque es la física correcta y porque el escapado en
+solitario ya paga lo que tiene que pagar.
+
+Las huellas: **`llana-180` sigue idéntica dígito a dígito** en las dos semillas; `reina-150` se mueve
+solo donde el escapado en solitario interviene (la segunda semilla gana un reloj más, de 8 a 9).
