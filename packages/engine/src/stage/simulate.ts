@@ -258,6 +258,16 @@ interface RiderSim {
    */
   abandonedKm: number | null
   incident: Incident | null
+  /**
+   * QUIÉN VA TIRANDO EN ESTE BLOQUE (v28), para la foto de `StageProbe`. Los dos los decide
+   * `advance()` en cada bloque —el turno de relevos y, dentro de él, quién da la cara al viento— y
+   * hasta ahora se consumían en el sitio y se perdían: fuera solo salía el trabajo acumulado.
+   *
+   * Es OBSERVACIÓN y nada más: solo se escriben cuando alguien ha pedido una foto (`probe`), no los
+   * lee ninguna ley física y su valor no entra en ninguna decisión de carrera.
+   */
+  relaying: boolean
+  onTheFront: boolean
 }
 
 /** ¿Está el corredor con la pájara (tanque a cero)? (SPEC 6.7). */
@@ -574,6 +584,8 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
       hurt: false,
       abandonedKm: null,
       incident: null,
+      relaying: false,
+      onTheFront: false,
     })
   }
   /**
@@ -1648,6 +1660,13 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
           frontTeamId !== null &&
           !rebels.has(m.input.riderId) &&
           teamOf.get(m.input.riderId) === frontTeamId
+        // …y aquí se ANOTA, solo si alguien ha pedido una foto (v28). El turno de relevos se decide
+        // cada bloque y se consumía en el sitio; la radio de carrera necesita justo esto para poder
+        // decir quién va tirando en el kilómetro que se mira. No lo lee nadie más.
+        if (probe) {
+          m.relaying = relaying
+          m.onTheFront = onTheFront
+        }
         // EL QUE VA SOLO PAGA EL VIENTO ENTERO (v15, docs/motor.md §8). `shelterAlone` llevaba
         // definido desde el Paso 21 sin que lo usara nadie, así que un escapado en solitario cobraba
         // el rebufo de un grupo que no tenía —y también el descolgado que rueda solo—. Un grupo de
@@ -1772,6 +1791,10 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
       // con una pérdida neta de 26, que es una contradicción de la crónica contra sí misma. Contarlo
       // AQUÍ cubre las tres vías por construcción, porque las tres pasan por esta puerta.
       if (group.id === PELOTON) droppedSinceNotice += 1
+      // El que acaba de soltarse no está relevando: solo importa para la foto (v28), donde si no un
+      // caído —el único descuelgue que ocurre DESPUÉS de `advance()`— saldría tirando de su grupeto.
+      m.relaying = false
+      m.onTheFront = false
       const tS = group.tS + delayS
       const near = m.hurt
         ? undefined
@@ -3151,6 +3174,11 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
           tS: tS + s.markLossS + s.driftS,
           energy: s.energy,
           energy0: s.energy0,
+          // QUIÉN VA TIRANDO (v28): el turno de este bloque, ya resuelto por `advance()` unas líneas
+          // más arriba en el mismo bloque, y la ventana de trabajo con la que se ordena.
+          relaying: s.relaying,
+          onTheFront: s.onTheFront,
+          pullWindow: s.pullWindow,
         })
       }
       probe.onSnapshot(probeAt.get(i)!, snapshot)

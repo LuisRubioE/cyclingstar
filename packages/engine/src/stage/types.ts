@@ -204,6 +204,25 @@ export interface SnapshotRider {
   /** Cuánto le queda en el depósito y con cuánto salió (SPEC 6.5). */
   energy: number
   energy0: number
+  /**
+   * ¿Estaba EN EL TURNO DE RELEVOS en el bloque de la foto? (SPEC 6.10, `relayTurn`). El motor lo
+   * decidía en cada bloque y lo tiraba: hacia fuera solo salía el trabajo ACUMULADO del día
+   * (`frontWorkPeloton`), que responde a «quién ha tirado más» pero no a «quién va tirando AHORA»,
+   * que es lo que anuncia una radio de carrera.
+   */
+  relaying: boolean
+  /**
+   * …y de los que relevan, ¿DA LA CARA AL VIENTO en cabeza del pelotón? (v15, `shelterWorking`).
+   * En un pelotón de 118 el turno son ~30 hombres; los que de verdad llevan el frente son los
+   * cuatro o cinco del equipo que lo ha tomado. Sin esta distinción «quién tira» nombra a treinta.
+   */
+  onTheFront: boolean
+  /**
+   * Trabajo al frente del pelotón CON OLVIDO (`pullWindowDecayPerKm`): la misma ventana con la que
+   * la crónica responde «quién tira ahora» en `peloton_pull`. Ordena a los relevistas por lo que
+   * están poniendo, en vez de por el orden en que aparecen en la lista. 0 fuera del pelotón.
+   */
+  pullWindow: number
 }
 
 export interface StageProbe {
