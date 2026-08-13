@@ -274,6 +274,36 @@ export function majorityOnTheRoad(size: number, aheadSize: number): number {
 }
 
 /**
+ * EL ESFUERZO DE UN CORREDOR, que no es la velocidad de su grupo (v26).
+ *
+ * El motor medía el TRABAJO AL FRENTE con `max(0, compromiso − frontWorkIdleCommit)`, y eso es un
+ * número de VELOCIDAD. Con él, una fuga de seis que rueda a `compromiso` 0,44 —dos minutos por
+ * delante de un pelotón de ciento cincuenta durante 150 km— anotaba **cero trabajo en todo el día**,
+ * y de ahí colgaban tres cosas: `break_share` («quién tira en la fuga y quién va de pasajero») se
+ * repartía sobre ceros, la reserva de un fugado se recargaba como la de uno que va a rueda, y su TSS
+ * salía subestimado.
+ *
+ * Lo que determina cuánto trabaja un hombre no es a qué velocidad va su grupo: es **cuánto viento le
+ * toca dar**. Y eso el motor ya lo sabía y ya lo había escrito, en `droppedCommit` (v16):
+ * «relevarse reparte el viento… el que va solo da la cara el 100 %». Allí se cobró en VELOCIDAD;
+ * esto es exactamente el mismo argumento cobrado en TRABAJO, con la misma pieza —el rebufo que de
+ * verdad recibe cada uno, `1 − draftMax·shelter`—.
+ *
+ * La referencia es lo que gasta un corredor ARROPADO en un grupo que rueda al tempo de carretera:
+ * por debajo de eso se está descansando y por encima se está trabajando. Para el pelotón el número
+ * sale casi idéntico al de antes —un relevo a 0,85 daba 0,35 y ahora da 0,40—, así que la voz de la
+ * crónica no se mueve; para una fuga de seis pasa de 0 a positivo, que es el defecto.
+ */
+export function riderEffort(block: Block, commit: number, shelter: number): number {
+  return commit * (1 - draftMax(block) * shelter)
+}
+
+/** El esfuerzo de referencia: ir arropado en un grupo que rueda al tempo de carretera. */
+export function idleEffort(block: Block): number {
+  return riderEffort(block, STAGE.frontWorkIdleCommit, STAGE.shelterProtected)
+}
+
+/**
  * Coste de energía de un corredor en un bloque (SPEC 6.5):
  * coste = dx·costeBase·ritmo(c)^1.6·(1 - draftMax·shelter).
  */

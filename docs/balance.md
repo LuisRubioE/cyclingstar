@@ -5794,3 +5794,53 @@ solitario ya paga lo que tiene que pagar.
 
 Las huellas: **`llana-180` sigue idéntica dígito a dígito** en las dos semillas; `reina-150` se mueve
 solo donde el escapado en solitario interviene (la segunda semilla gana un reloj más, de 8 a 9).
+
+### 9. LA CAUSA DE VERDAD: el motor no contaba como trabajo el trabajo de una fuga
+
+§8 dejó la pista y el sitio equivocado. El defecto no era la recarga: era **cómo se mide el
+trabajo**. `frontEffort` era `max(0, compromiso − frontWorkIdleCommit)`, y eso es un número de
+VELOCIDAD. Con una fuga rodando a `compromiso` 0,44 —por debajo del 0,5 de referencia— salía **cero**:
+seis corredores aguantando dos minutos sobre un pelotón de ciento cincuenta durante 150 km tenían
+anotado que **no habían hecho nada en todo el día**. De ahí colgaban tres defectos a la vez:
+`break_share` («quién tira en la fuga y quién va de pasajero») se repartía sobre ceros, la reserva de
+un fugado se recargaba igual que la de uno que va a rueda, y su erosión y su TSS iban subestimados.
+
+**Lo que determina cuánto trabaja un hombre no es a qué velocidad va su grupo: es cuánto viento le
+toca dar.** Y el motor ya lo tenía escrito, en `droppedCommit` (v16): «relevarse reparte el viento…
+el que va solo da la cara el 100 %». Allí se cobró en VELOCIDAD; aquí faltaba cobrarlo en TRABAJO,
+con la misma pieza —el rebufo que de verdad recibe cada uno—:
+
+```
+riderEffort(bloque, compromiso, shelter) = compromiso · (1 − draftMax(bloque) · shelter)
+idleEffort(bloque)                       = riderEffort(bloque, frontWorkIdleCommit, shelterProtected)
+frontEffort_i = max(0, riderEffort_i − idleEffort) · dx        // por CORREDOR, no por grupo
+reserva      += (reserveSeconds · dt / reserveRecoverySeconds) · (idleEffort − riderEffort_i)/idleEffort
+```
+
+Ni una constante nueva. Para el pelotón el número sale casi idéntico al de antes (un relevo a 0,85
+daba 0,35 y da 0,40), así que la voz de la crónica no se mueve.
+
+**Medido al pie del puerto final de `reina-150`**, que es la pregunta que había que contestar:
+
+| Grupo                                           | `compromiso` | `frontWorkMove` ANTES |                     **DESPUÉS** | Reserva al pie |
+| ----------------------------------------------- | -----------: | --------------------: | ------------------------------: | -------------: |
+| fuga de 6 (`mov-3`)                             |         0,44 |                 **0** |                   **12,5-12,6** |  **0** (vacía) |
+| fuga de 4 (`mov-9`)                             |         0,48 |                 **0** |                   **17,8-20,2** |  **0** (vacía) |
+| escapado solo                                   |    0,64-0,71 |                 **0** |                   **12,7-18,9** |  **0** (vacía) |
+| pelotón (31), gregario que ha llevado el frente |    0,41-0,44 |                     — | `frontWorkPeloton` **7,0-14,7** |           0-65 |
+
+Y el objetivo rojo **se arregla solo, sin tocar `reserveSeconds` ni ninguna banda**. La curva, que es
+lo que demuestra que es física y no un ajuste fino: donde antes crecía monótonamente con el tamaño de
+la reserva, **ahora es plana y dentro de banda**.
+
+|         `reserveSeconds` | `mountain.breakawayWinPct` §8 | **con el trabajo contado** |
+| -----------------------: | ----------------------------: | -------------------------: |
+|                        0 |                        28,3 % |                 **28,4 %** |
+|                       15 |                        43,2 % |                 **28,2 %** |
+|                       35 |                        56,3 % |                 **27,8 %** |
+| **65** (el valor físico) |                        61,4 % |                 **28,0 %** |
+
+O sea: el 61 % **no era la reserva**, era una fuga que llegaba al puerto final con el depósito lleno
+porque el motor no le cobraba las cuatro horas de relevos. Ahora llega mordida y se deshace, que es
+la razón por la que en la carretera casi siempre se caza. La reserva se queda en su valor físico
+(65 s) y con ella la queja del dueño sigue arreglada.

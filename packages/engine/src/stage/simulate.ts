@@ -24,7 +24,9 @@ import {
   droppedCommit,
   effNow,
   erosion,
+  idleEffort,
   rhythm,
+  riderEffort,
   tankState,
   targetSpeed,
 } from './physics.js'
@@ -1544,10 +1546,30 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
       const next = advanceGroup(group, block, p75, { isFinal })
       const idSet = new Set(members.map((m) => m.input.riderId))
       const relayers = relayTurn(members, idSet, paceFraction, domestiquesFor, driveOfRider)
-      // Lo que vale un relevo en este bloque: solo cuenta lo que se aprieta POR ENCIMA del tempo
-      // de carretera, así una captura que se cierra a 0,9 no se confunde con cien kilómetros de
-      // paseo (y una captura sin nadie apretando se queda, con razón, sin autor).
-      const frontEffort = Math.max(0, group.compromiso - STAGE.frontWorkIdleCommit) * STAGE.dx
+      /**
+       * LO QUE VALE UN RELEVO EN ESTE BLOQUE, MEDIDO POR EL VIENTO Y NO POR LA VELOCIDAD (v26).
+       *
+       * Era `max(0, compromiso − frontWorkIdleCommit)`, y eso es un número de VELOCIDAD: con una
+       * fuga de seis rodando a 0,44 daba **cero**, así que seis hombres dos minutos por delante de
+       * un pelotón de ciento cincuenta durante 150 km tenían anotado que no habían hecho nada en
+       * todo el día. De ahí colgaban tres defectos: `break_share` se repartía sobre ceros, la
+       * reserva de un fugado se recargaba como la de uno que va a rueda, y su TSS iba subestimado.
+       *
+       * Ahora se mide con `riderEffort` —el compromiso por el viento que de verdad le toca dar
+       * (`1 − draftMax·shelter`)— contra el esfuerzo de referencia de un corredor ARROPADO en un
+       * grupo que rueda al tempo. Es el argumento de `droppedCommit` (v16) —«relevarse reparte el
+       * viento; el que va solo da la cara el 100 %»— cobrado en TRABAJO en vez de en velocidad.
+       *
+       * Se calcula por CORREDOR y no por grupo, porque el viento que te toca depende de tu turno:
+       * el que da la cara al frente del pelotón, el que releva en una fuga y el que va a rueda no
+       * están haciendo lo mismo. Para el pelotón el número sale casi igual que antes (un relevo a
+       * 0,85 daba 0,35 y da 0,40), así que la voz de la crónica no se mueve.
+       */
+      const idle = idleEffort(block)
+      const workOf = (shelter: number): number =>
+        Math.max(0, riderEffort(block, group.compromiso, shelter) - idle) * STAGE.dx
+      // Para las decisiones que son del GRUPO —a quién se persigue— vale el del que releva.
+      const frontEffort = workOf(members.length === 1 ? STAGE.shelterAlone : STAGE.shelterRelay)
       // Los movimientos que van por DELANTE de este grupo: lo que se releva aquí es trabajo de
       // persecución contra ellos, y es lo que se nombra al cazarlos.
       const chased =
@@ -1555,16 +1577,6 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
           ? []
           : moves.filter((mv) => mv.g.id !== group.id && mv.g.tS < group.tS)
       const blockS = blockSeconds(next.vActual)
-      /**
-       * CUÁNTO ESTÁ APRETANDO EL GRUPO POR ENCIMA DEL TEMPO DE CARRETERA, de 0 a 1. Es la misma
-       * cuenta con la que se mide el TRABAJO AL FRENTE desde la v11 (`frontEffort`), normalizada:
-       * un pelotón que rueda a `frontWorkIdleCommit` vale 0 y uno a bloque, 1.
-       */
-      const push = clamp(
-        (group.compromiso - STAGE.frontWorkIdleCommit) / (1 - STAGE.frontWorkIdleCommit),
-        0,
-        1,
-      )
       for (const m of members) {
         // EL ACORDEÓN SE CIERRA EN EL LLANO (v26). La deriva es la goma de un grupo estirado por una
         // rampa; en cuanto el terreno deja de seleccionar, el que iba diez segundos por detrás
@@ -1593,29 +1605,6 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
           frontTeamId !== null &&
           !rebels.has(m.input.riderId) &&
           teamOf.get(m.input.riderId) === frontTeamId
-        if (relaying && frontEffort > 0) {
-          if (kind === 'peloton') {
-            m.frontWorkPeloton += frontEffort
-            // El parte responde «quién tira AHORA»: el que va en cabeza se lleva el trabajo entero
-            // y el que releva colocado detrás, su parte. Es observación, no física: no mueve un
-            // segundo. Sin equipo que lleve el frente, todos cuentan igual y esto es lo de siempre.
-            m.pullWindow +=
-              frontEffort * (frontTeamId === null || onTheFront ? 1 : STAGE.pullOffFrontShare)
-            // …y se lo apunta a SU EQUIPO (v15, §V.1). Es el presupuesto que se agota: cuando un
-            // equipo lleva 80 km al frente sus hombres salen del turno y el frente cambia de dueño.
-            // El rebelde no gasta presupuesto de nadie: no tira por su equipo.
-            const team = rebels.has(m.input.riderId) ? undefined : teamOf.get(m.input.riderId)
-            if (team != null) teamSpent.set(team, (teamSpent.get(team) ?? 0) + frontEffort)
-          } else if (kind === 'move') {
-            m.frontWorkMove += frontEffort
-          }
-          for (const mv of chased) {
-            mv.chaseLedger.set(
-              m.input.riderId,
-              (mv.chaseLedger.get(m.input.riderId) ?? 0) + frontEffort,
-            )
-          }
-        }
         // EL QUE VA SOLO PAGA EL VIENTO ENTERO (v15, docs/motor.md §8). `shelterAlone` llevaba
         // definido desde el Paso 21 sin que lo usara nadie, así que un escapado en solitario cobraba
         // el rebufo de un grupo que no tenía —y también el descolgado que rueda solo—. Un grupo de
@@ -1628,6 +1617,30 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
               : relaying
                 ? STAGE.shelterRelay
                 : STAGE.shelterProtected
+        const mineEffort = workOf(shelter)
+        if (relaying && mineEffort > 0) {
+          if (kind === 'peloton') {
+            m.frontWorkPeloton += mineEffort
+            // El parte responde «quién tira AHORA»: el que va en cabeza se lleva el trabajo entero
+            // y el que releva colocado detrás, su parte. Es observación, no física: no mueve un
+            // segundo. Sin equipo que lleve el frente, todos cuentan igual y esto es lo de siempre.
+            m.pullWindow +=
+              mineEffort * (frontTeamId === null || onTheFront ? 1 : STAGE.pullOffFrontShare)
+            // …y se lo apunta a SU EQUIPO (v15, §V.1). Es el presupuesto que se agota: cuando un
+            // equipo lleva 80 km al frente sus hombres salen del turno y el frente cambia de dueño.
+            // El rebelde no gasta presupuesto de nadie: no tira por su equipo.
+            const team = rebels.has(m.input.riderId) ? undefined : teamOf.get(m.input.riderId)
+            if (team != null) teamSpent.set(team, (teamSpent.get(team) ?? 0) + mineEffort)
+          } else if (kind === 'move') {
+            m.frontWorkMove += mineEffort
+          }
+          for (const mv of chased) {
+            mv.chaseLedger.set(
+              m.input.riderId,
+              (mv.chaseLedger.get(m.input.riderId) ?? 0) + mineEffort,
+            )
+          }
+        }
         /**
          * LA RESERVA SE RECARGA A RUEDA Y SE GASTA DANDO LA CARA (v26, corrección de la primera
          * entrega). Estaba mal, y el defecto era exactamente el que dejó `mountain.breakawayWinPct`
@@ -1649,11 +1662,22 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
          * el puerto final porque lleva todo el día trabajando, no porque una perilla lo diga— y por
          * eso el que se descuelga solo tampoco recupera nunca: paga el viento entero.
          */
-        const cover = shelter / STAGE.shelterProtected
         if (!spentReserve.has(m.input.riderId)) {
-          const balance =
-            ((STAGE.reserveSeconds * blockS) / STAGE.reserveRecoverySeconds) * (cover - push)
-          m.reserveS = clamp(m.reserveS + balance, 0, STAGE.reserveSeconds)
+          // …Y EL SALDO SALE DE LA MISMA CUENTA. W′ solo se recarga POR DEBAJO del umbral, así que
+          // el saldo es la distancia entre lo que este hombre está gastando ahora mismo
+          // (`riderEffort`, su compromiso por el viento que le toca dar) y el esfuerzo de un
+          // corredor arropado a tempo de carretera. El que va a rueda en el pelotón recarga; el que
+          // releva en una fuga de seis gasta, aunque su grupo ruede al mismo «compromiso» que el
+          // pelotón, porque le toca dar la cara una vez de cada seis; y el que va solo se vacía.
+          const mine = riderEffort(block, group.compromiso, shelter)
+          const balance = idle > 0 ? (idle - mine) / idle : 0
+          m.reserveS = clamp(
+            m.reserveS +
+              ((STAGE.reserveSeconds * blockS) / STAGE.reserveRecoverySeconds) *
+                clamp(balance, -1, 1),
+            0,
+            STAGE.reserveSeconds,
+          )
         }
         let cost = blockCost(block, group.compromiso, shelter)
         // Protección de gregarios: un líder arropado que no está relevando gasta menos según cuántos
