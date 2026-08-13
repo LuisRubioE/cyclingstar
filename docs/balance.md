@@ -6235,3 +6235,90 @@ y en lo congelado no hay con qué recalcularlo. De la etapa siguiente en adelant
   tocarlo solo habría movido tests sin cambiar una línea de lo que el dueño lee.
 - **No mide si el lector ENTIENDE.** Las cuatro medidas son aproximaciones honestas; la prueba de esta
   tanda es leer el diario del §7 de arriba abajo. El criterio no es un porcentaje.
+
+---
+
+## v28 — Una persecución la hacen equipos, no tres señores (`engine_version` 27 → 28)
+
+> **La queja, textual, y repetida:** «etapa 3 de Andalucía… antes de eso decía que era solo el Welle
+> Team… y **como te he dicho muchas veces, no tiene sentido que si 3 equipos colaboraron, solo 1 de
+> cada aparezca**».
+
+### 1. El defecto
+
+`chase_work` —la frase que dice quién cerró un hueco— nombraba a los **tres corredores** que más
+trabajo habían puesto en esa persecución. Cuando la caza la hacen tres escuadras, eso reparte
+exactamente **un nombre por equipo**, y la frase acaba contando individuos:
+
+```
+The catch belongs to 156 Peter Schulz, 43 Marc Maes and 71 Diogo Marques …
+```
+
+Dos líneas antes el diario había contado que **tiraba el Welle Team**. El lector no tiene manera de
+saber que esos tres nombres SON tres equipos: lee tres señores. La atribución era correcta —esos
+tres fueron los que más pusieron— pero **la unidad estaba mal elegida**. Una persecución no la firma
+un corredor: la firma una escuadra que se pone al frente y se quema.
+
+### 2. Lo que enseñó medirlo
+
+`scripts/medir-caza.mjs`, 10 carreras del banco × 2 corridas, **117 cazas con autor**:
+
+|                                                      |                  |
+| ---------------------------------------------------- | ---------------- |
+| la firma **un** equipo                               | 3 (2,6 %)        |
+| la firman **varios**                                 | **114 (97,4 %)** |
+| cazaron **más equipos de los que caben** en la frase | **81 (69,2 %)**  |
+| un nombre nombrando a dos del mismo equipo           | 0 (0,0 %)        |
+
+Reparto de cuántas escuadras cazan: `1→3 · 2→17 · 3→16 · 4→17 · 5→21 · 6→11 · 7→10 · 8→11 · 9→2 ·
+10→5 · 11→2 · 12→2`.
+
+Es decir: **casi ninguna caza la hace un equipo solo**, y en dos de cada tres cazan más de tres. La
+frase vieja no es que nombrara mal a tres: es que **enseñaba tres de doce** sin decirlo.
+
+### 3. Lo que se hizo
+
+- El trabajo de la persecución se **suma por EQUIPO**; se ordenan los equipos y de cada uno se nombra
+  a su hombre más gastado como representante. Un agente libre es su propio equipo y firma él.
+- El evento lleva `teams`: **cuántas escuadras cazaron de verdad**. Las que no caben se cuentan
+  («…and 2 more teams»), no se esconden.
+- **A partir de cinco equipos la frase cambia de sujeto**: eso ya no es una alianza, es el pelotón
+  entero tirando, y así se cuenta con los que más se vieron delante. «And 9 more teams» no es una
+  crónica.
+- El **umbral que decide si una captura tiene autor no se toca**: sigue midiéndose sobre el trabajo
+  individual, así que ni una sola captura gana o pierde autor por esta tanda.
+
+Las seis formas, leídas una a una:
+
+```
+2 equipos   Summit Squad and Team Sol shared the chasing between them: …
+3 equipos   Summit Squad, Team Sol and 1 more team shared the chasing between them: …
+4 equipos   Summit Squad, Team Sol and 2 more teams shared the chasing between them: …
+5 equipos   It took the whole bunch: 5 teams on the front, Summit Squad and Team Sol the most
+            visible of them; a lead of 2:35 back at km 26 was gone 32 km later.
+11 equipos  It took the whole bunch: 11 teams on the front, …
+```
+
+### 4. Un defecto que salió por el camino
+
+La frase de «un solo equipo» se disparaba **también cuando entre los que cazaban había un agente
+libre**, y lo borraba del parte: se atribuía la caza entera al único equipo con nombre. Ahora solo se
+habla en nombre de equipos si **todos** los que firman tienen uno.
+
+### 5. Verificación
+
+- **Huellas selladas idénticas** (`stage/attribution.test.ts`, `stage/timetrial.test.ts`): dígito a
+  dígito. Es la prueba de que no se ha consumido ni un dado — cambio de OBSERVACIÓN, como la v25 y la
+  v27.
+- **`sim/coherence.test.ts` en cero.**
+- Sube `ENGINE_VERSION` porque el **contenido de los eventos** cambia y `checkReplay()` compara
+  versiones para saber si un replay es comparable con lo que quedó guardado.
+- El test que sellaba esto **lo sellaba al revés** («si cerraron varios equipos, se nombra a los
+  corredores»): queda reescrito con el porqué, que es lo que hay que dejar cuando lo que se corrige
+  es una decisión, no un fallo.
+
+### 6. Lo que esta tanda NO arregla
+
+- **`peloton_pull` sigue nombrando tres corredores.** Ahí es defendible —«quién va al frente AHORA»
+  son tres tíos de verdad, no un resumen de 100 km— pero comparte el tope y conviene mirarlo.
+- **No toca la física**: quién caza, cuándo y con cuánta fuerza es exactamente lo de la v27.

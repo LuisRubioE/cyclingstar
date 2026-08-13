@@ -1015,6 +1015,29 @@ entero) y la crónica lo agrupa en racimo con número, igual que los descuelgues
 > **Y el vocabulario** (SPEC 6.15): tres cosas en la carretera, tres nombres. Race Andalucía exponía
 > al lector a quince. Medido en docs/balance.md, «v27».
 
+> **Octava entrega hecha (v28): LA UNIDAD DE LA CAZA ES EL EQUIPO.** El dueño lo dijo varias veces y
+> la última con esas palabras: **«no tiene sentido que si 3 equipos colaboraron, solo 1 de cada
+> aparezca»**. `chase_work` nombraba a los tres CORREDORES que más trabajo habían puesto, y como el
+> trabajo se reparte entre escuadras eso saca justo un nombre por equipo: la frase acaba contando
+> tres señores dos líneas después de haber contado que tiraba un equipo. La atribución era correcta;
+> **la unidad estaba mal elegida**.
+>
+> Medirlo enseñó que el problema era mayor de lo que parecía: en el banco (117 cazas con autor) el
+> **97,4 % las hacen varios equipos** y en el **69,2 % cazan más de los tres que caben en la frase**,
+> hasta doce. La frase vieja no es que nombrara mal a tres: enseñaba **tres de doce** sin decirlo.
+>
+> Ahora el trabajo se suma **por equipo**, de cada uno se nombra a su hombre más gastado como
+> representante, y el evento lleva `teams` —cuántas escuadras cazaron de verdad—, de modo que las que
+> no caben se cuentan en vez de esconderse. A partir de cinco el sujeto de la frase cambia: eso ya no
+> es una alianza, es el pelotón entero tirando. Un agente libre es su propio equipo y firma él. El
+> umbral que decide si una captura TIENE autor no se toca —sigue midiéndose sobre el trabajo
+> individual—, así que ni una captura gana o pierde autor. Cambio de OBSERVACIÓN: huellas selladas
+> idénticas y coherencia en cero. Medido en docs/balance.md, «v28».
+>
+> Queda anotado que **`peloton_pull` conserva el tope de tres corredores**: ahí es defendible —«quién
+> va al frente AHORA» son tres tíos de verdad, no el resumen de cien kilómetros— pero comparte la
+> constante y conviene mirarlo.
+
 > **Cuarta entrega hecha (v18): LA CONTRARRELOJ.** Era el agujero más grande que quedaba en lo que
 > el motor cuenta, y no era de matiz: una crono entera —130 corredores, 33 km— se resolvía con **un
 > solo evento**, el ganador en meta. La causa no estaba en la narración sino en el modelo: no había
