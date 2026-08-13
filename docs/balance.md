@@ -5960,3 +5960,270 @@ tanda, cuando eran 7 de 8. Con la tanda entera puesta —y en particular con el 
 fuga sus horas de relevos y cambia con qué depósito llega el grupo al pie del puerto— vuelven a ser
 **8 de 8**, con 1 a 3 partes de reagrupamiento por semilla. Medido antes de devolver la aserción, no
 después. **La v26 no deja ninguna aserción ablandada.**
+
+## v27 — El diario necesita espina dorsal (`engine_version` 26 → 27)
+
+> **La queja, textual:** el dueño leyó el diario de Race Andalucía etapa 1 —ya sin ninguna de las
+> doce contradicciones que la v25 arregló— y dijo que **«si lees todo el Journal no SABES quién va
+> ganando, quién va persiguiendo… es un lío los últimos mensajes»**.
+
+No es que el diario mienta: es que **no cuenta una historia**. Es una lista de incidentes de la que un
+lector no puede sacar el estado de la carrera. La v25 arregló que se contradijera; ésta, que no se
+entienda.
+
+### 1. El caso
+
+Los últimos 15 km de Race Andalucía e1 (reina, 151 km, 119 corredores), tal como los leyó el dueño:
+
+```
+km 137  «The lead grows and grows for the lone leader — 2:57 to 6:53 over the last 100 km.»
+km 137  «The sprinters' teams give up the chase.»
+km 140  156 Peter Schulz attacks with 11 km to go.
+km 144  «No panic behind: the favourites wave the break up the road.»
+km 148  «The gap closes and 14 riders get back on — the chase group is up from 5 to 19.»
+km 150  «Into the final kilometre 141 Alexander Schwarz leads alone by 16s.»
+km 150  «146 Oliver Bailey has a real gap now — 46s, 1 km from the finish.»
+km 151  «141 Alexander Schwarz holds on alone to win by 16s.»
+```
+
+El hombre que gana la etapa aparece **una vez** en los últimos 15 km. Y la ventaja pasa de 6:53 a 16
+segundos sin que una sola línea lo cuente.
+
+**LA REGLA QUE ORDENA LA TANDA**, y que queda escrita en SPEC 6.15: en cualquier punto del diario, un
+lector que haya leído desde el principio tiene que poder responder cuatro cosas — **quién va delante,
+con cuánta ventaja, sobre quién y cuánto queda**.
+
+### 2. La causa madre: se medía contra el grupo equivocado, y es del motor
+
+La v25 hizo que el boquete se midiera contra **el grueso de la carrera** y no contra el primer reloj
+que viniera detrás: la referencia es el primer grupo de detrás con al menos la mitad de los corredores
+del MAYOR que va detrás (`gapChaseMainFraction`). Arreglaba el puente en solitario de Race Jaén, y
+tiene un escenario que no cubre: **la criba masiva y temprana**.
+
+```
+km  26  peloton_selection  {before: 119, dropped: 80, remaining: 13, escapados: 26, toGo: 125}
+km 137  time_gap_run       {gapS: 413, chaseSize: 31}     <<< 31 DESCOLGADOS, a 6:53
+km 150  final_km           {margin: 16}                   <<< la carrera de verdad
+```
+
+Con 80 corredores fuera, el grupo mayor de detrás pasa a ser **un grupeto**, y el pelotón de seis que
+era la carrera no llega al listón de la mitad. Los resultados no dejan lugar a dudas: en meta hay un
+grupo a 2:58 (19 corredores), otro a **6:46** (37) y otro a 10:08 (60). Los «31 a 6:53» del km 137 son
+el grupo que acabó a 6:46, y **Peter Schulz, que sale del pelotón de seis en el km 140, acaba SEGUNDO
+a 15 s**. Trece kilómetros midiendo la ventaja contra gente que ya no corría por nada.
+
+La referencia pasa a ser **los que siguen en carrera** —la fuga, los movimientos y el pelotón, nunca
+un grupeto— y dentro de ellos sigue entera la regla de la v25. La regla completa sale de `simulate.ts`
+a una función pura con sus casos escritos: `chaseReferenceIndex`, en `stage/group.ts`.
+
+> **Y la red cazó una regresión de esta misma tanda.** Con «los que siguen en carrera» a secas, un
+> pelotón que se ha quedado en UN corredor con un grupeto de treinta detrás vuelve a producir un grupo
+> perseguidor de uno, que es la invariante 5 de la v25 (`perseguidorDeUno = 2` en reina-150). La regla
+> lleva por eso un suelo de dos corredores: un hombre suelto en tierra de nadie no es «la persecución»,
+> su historia la cuentan `bridge_made` y `bridge_failed`. Las cinco invariantes de la v25 siguen en
+> cero.
+
+### 3. Las otras tres respuestas, que el motor sabía y no contaba
+
+- **QUIÉN.** El parte de ventaja se emitía **sin un solo protagonista**: cien kilómetros de «the lone
+  leader» y en meta el lector no reconoce al ganador. Ahora nombra a los de cabeza cuando son pocos
+  (mismo umbral que el parte de cabeza, `frontNamesMaxRiders`).
+- **SOBRE QUIÉN.** `chaseKind` (`peloton` / `caza`) dice si la referencia es el grueso de la carrera o
+  un trozo que persigue por delante del resto. Es el dato que reparte los tres nombres del vocabulario.
+- **CUÁNTO QUEDA.** `toGo` en el parte de ventaja, y `chaseSize` en el último kilómetro: el margen de
+  meta se lleva sobre el SIGUIENTE grupo, y después de media etapa leyendo «6:53» hay que decirlo.
+
+Todo esto es **OBSERVACIÓN**: ni un dado nuevo, ni un subflujo, ni una constante de calibración movida.
+Las huellas selladas de `stage/attribution.test.ts` y `stage/timetrial.test.ts` salen **IDÉNTICAS y no
+se resellan**; no podían moverse, porque esta tanda no consume una sola tirada del RNG.
+
+### 4. La crónica: lo único que llega a las etapas ya corridas
+
+- **El hilo del líder** (`followTheLeader`). Lleva quién va delante según lo último que se le ha contado
+  al lector, y con eso nombra al protagonista de los partes de ventaja **solo cuando no hay duda**: el
+  motor dice cuántos van en cabeza y solo se ponen nombres si son exactamente los que presentó la última
+  línea que los nombró. Si el grupo ha crecido o el número no cuadra, la frase se queda como estaba.
+  Nombrar de más sería inventar una carrera.
+- **El desenlace converge.** Las subtramas de quien no manda se cuentan **respecto del líder**, con su
+  nombre en la misma frase. No se borran —Schulz, que ataca a 11 km, acabó segundo— y por eso el
+  arreglo es un cambio de SUJETO y no un recorte.
+- **El hilo no se enfría** (`groupGapRuns`). El resumen de rachas de la v21 se comió las tres únicas
+  líneas de situación de sesenta y cinco kilómetros. Fuera del desenlace el motor da el parte cada
+  25 km (`gapReportKmGap`) y **eso no es una racha repetitiva**; en el desenlace lo da cada 4
+  (`gapReportFinalKmGap`) y ahí sí. La racha solo se come partes PEGADOS (menos de 12 km).
+- **Cuánto queda** en lo congelado (`clockTheGaps`, con la meta que la propia crónica sabe dónde está)
+  y **un fracaso, una línea** (`foldSameFailure`: Markus Weber fallaba en el km 123 y otra vez en el
+  125). Y la concordancia de «152 Markus Weber **sit** up».
+
+### 5. El vocabulario: tres cosas, tres nombres
+
+`the lead group`, `the chase group`, `the bunch` (SPEC 6.15). Se retiran «the break», «the peloton»,
+«the favourites», «the sprinters' teams», «the fast men», «the lead-out trains», «the chasers», «the
+escapees» y «the front group». Dos motivos, los dos medidos: Race Andalucía e1 exponía al lector a
+**quince** nombres de grupo distintos, y —el que de verdad rompe la lectura— desde la criba del km 26
+«the bunch», «the chase» y «the favourites» **dejan de ser sinónimos**.
+
+La tabla de qué nombres puede imprimir cada plantilla vive con el medidor (`GROUP_NOUNS`) y
+`stageJournal.test.ts` comprueba que ninguna frase imprima uno que no tenga declarado: así la cuenta
+del mundo y el texto no se pueden separar.
+
+### 6. Los cuatro números, antes y después
+
+Las cuatro medidas nuevas viven en `sim/coherence.ts` (`storyMetrics`) y las imprime
+`scripts/medir-defectos.mjs`: la misma cuenta para producción y para el banco.
+
+**PRODUCCIÓN** (día de juego 50, 80 etapas con crónica). El «después» es la crónica de ESTE árbol
+reconstruida sobre lo que la API entrega (`--rehacer`), con el límite que la v25 ya dejó escrito.
+
+| Medida                                             | ANTES |   DESPUÉS |
+| -------------------------------------------------- | ----: | --------: |
+| km máximos sin una línea de situación              |   151 |       151 |
+| …media por etapa                                   |  53,9 |      53,9 |
+| dos protagonistas «con hueco» a la vez             |     5 |     **3** |
+| líneas de los últimos 15 km que hablan del ganador | 42,7% | **46,9%** |
+| nombres de grupo distintos (máximo en una etapa)   |    15 |     **3** |
+| etapas que usan más de tres nombres                | 72/80 |  **0/80** |
+| líneas de crónica por etapa                        |  22,9 |      22,9 |
+
+> **Por qué el silencio no se mueve en producción, y por qué SÍ se moverá al desplegar.** Los eventos
+> congelados no se sirven en crudo por ninguna ruta: la API construye la crónica al vuelo, y lo que
+> `--rehacer` puede releer es esa crónica **ya agrupada**. Los partes de ventaja que el resumen de la
+> v21 se comió no están en la respuesta y no hay forma honesta de devolverlos desde fuera. En cuanto
+> esto se despliegue, la API los reconstruirá desde los eventos crudos con la regla nueva. La evidencia
+> de que la regla funciona está en el banco, que sí parte de eventos crudos —y está aislada en §6-bis—.
+
+**EL BANCO** (10 carreras × 3 semillas = 123 etapas en línea), que es la cadena entera —motor nuevo,
+crónica nueva, plantillas nuevas— y lo único que se puede correr antes y después de verdad:
+
+| Medida                                             |   ANTES |    DESPUÉS |
+| -------------------------------------------------- | ------: | ---------: |
+| km máximos sin una línea de situación              |      80 |         80 |
+| …media por etapa                                   |    38,2 |   **28,7** |
+| …etapas con más de 30 km mudos                     |  71/123 | **23/123** |
+| …de ésas, las que callan CON alguien delante       |       — |      **3** |
+| dos protagonistas «con hueco» a la vez             |      19 |     **16** |
+| líneas de los últimos 15 km que hablan del ganador |   37,0% |  **44,6%** |
+| nombres de grupo distintos (máximo en una etapa)   |      16 |      **3** |
+| etapas que usan más de tres nombres                | 123/123 |  **0/123** |
+
+**Y las doce contradicciones de la v25 no se mueven**: 56 en el banco y 369 en producción, antes y
+después. Esta tanda no arregla ninguna de ellas y no rompe ninguna, que era la condición.
+
+> **Los «dos con hueco» bajan MENOS de lo que parece, y hay que decirlo al revés.** La medida se ha
+> vuelto más severa con la tanda puesta: ANTES el parte de ventaja no llevaba protagonistas, así que
+> **no podía competir con nadie** —una línea sin nombres no reclama la carretera para nadie—. DESPUÉS
+> sí los lleva, entra en la cuenta, y aun así el número baja (19 → 16 en el banco, 5 → 3 en
+> producción). Los 16 que quedan son casos en los que la crónica **no sabe quién va delante** en ese
+> punto (el líder se perdió de vista en una captura o una criba) y por tanto no puede contar la
+> subtrama respecto de nadie. Queda anotado, con su número.
+
+### 6-bis. La prueba aislada del hilo de situación, y lo que cuesta
+
+El mismo banco (1 semilla, 41 etapas) corrido dos veces, cambiando SOLO el listón de densidad del
+resumen de rachas (`GAP_RUN_DENSE_KM`, la regla de la v21 contra la de la v27):
+
+| Sobre las mismas 41 etapas    | regla v21 | regla v27 |
+| ----------------------------- | --------: | --------: |
+| silencio medio (km)           |      38,7 |  **29,6** |
+| etapas con más de 30 km mudos |     21/41 |  **8/41** |
+| …de ésas, con alguien delante |         7 |     **0** |
+| líneas de crónica por etapa   |      35,4 |      36,1 |
+
+**El hilo cuesta 0,7 líneas por etapa** —31 líneas en 41 etapas— y a ese precio no queda **ni una**
+etapa que se calle más de 30 km mientras hay alguien escapado. Es la mitad exacta de lo que la v21
+compró (menos ruido) devuelta donde hacía daño (el hilo), sin tocar el caso para el que la v21 se
+escribió: el desenlace, donde los partes vienen cada 4 km, se sigue resumiendo igual.
+
+### 7. El diario de Race Andalucía e1, como queda
+
+Sobre los eventos CONGELADOS, con la crónica y las plantillas de esta tanda (o sea: sin los partes de
+ventaja que la v21 ya se comió al servirlo, ver el recuadro del §6):
+
+```
+km   6  47 Nicolás Moreno (Berg Racing), 75 Antonio Ramírez (Relámpago Pro Cycling) and 161 Diego Medina (Bravo Ruta) go clear off the front. The bunch reacts at once and the pace goes up behind.
+km   7  The bunch closes it down and 75 Antonio Ramírez (Relámpago Pro Cycling), 161 Diego Medina (Bravo Ruta) and 26 Manuel Navarro (Aurora Escuadra) are back.
+km   8  The lead group holds 28s, 143 km to go.
+km  11  52 Donald Williams (Summit Cycling Team), 161 Diego Medina (Bravo Ruta) and 47 Nicolás Moreno (Berg Racing) go clear off the front. The bunch reacts at once and the pace goes up behind.
+km  12  Only 7 riders left in front with 139 km to go: 167 Richard Lopez (Bravo Ruta), 143 Andreas Schäfer (Stein Cycling), 25 Antonio Hernández (Aurora Escuadra), 97 Patrick Bonnet (Bika Racing), 161 Diego Medina (Bravo Ruta), 47 Nicolás Moreno (Berg Racing) and 52 Donald Williams (Summit Cycling Team), 44s clear.
+km  12  The elastic snaps back — 161 Diego Medina (Bravo Ruta), 52 Donald Williams (Summit Cycling Team) and 47 Nicolás Moreno (Berg Racing) sit up.
+km  17  The lead group of the day is a lone rider: 141 Alexander Schwarz (Stein Cycling) goes up the road.
+km  23  141 Alexander Schwarz (Stein Cycling) is first over the category 1 climb, taking 10 KOM points — and takes the lead in the mountains.
+km  26  Welle Team force the selection with 125 km still to go — 80 riders lose the wheel and only 13 of the 119 are left in the chase group.
+km  35  Nobody's orders behind it: 156 Peter Schulz (Welle Team) sets the pace in the bunch with 116 km to go on his own account.
+km  37  141 Alexander Schwarz (Stein Cycling) stretches the lead to 2:57, 114 km to go.
+km  40  Behind 141 Alexander Schwarz (Stein Cycling), 156 Peter Schulz (Welle Team) has 46s on the group he left with 111 km to go.
+km  48  155 Cornelis Bakker (Welle Team), 125 Hendrik Kuijpers (Freccia Cycling) and 137 Marc Maes (Feniks Wielerteam) are sharing the work on the front of the bunch with 103 km to go — different leaders, one shared interest: the lead group has to come back.
+km  60  141 Alexander Schwarz (Stein Cycling) is first over the category 3 climb, taking 2 KOM points.
+km  61  Stein Cycling take control, winding up the pace for 146 Oliver Bailey (Stein Cycling).
+km  72  The chase group brings 132 Diogo Marques (Feniks Wielerteam) and 156 Peter Schulz (Welle Team) back into the fold.
+km  72  131 Bram Lemmens (Feniks Wielerteam), 155 Cornelis Bakker (Welle Team) and 92 Levente Orsós (Bika Racing) shared the chasing between them: the gap peaked at 1:49 back at km 48 and was gone.
+km  74  Bika Racing turn the screw with 77 km to go: the front of the bunch is one long line now.
+km  80  141 Alexander Schwarz (Stein Cycling) is first over the category 3 climb, taking 2 KOM points.
+km 115  152 Markus Weber (Welle Team) jumps across, chasing 141 Alexander Schwarz (Stein Cycling) on his own.
+km 123  152 Markus Weber (Welle Team) runs out of legs in no man's land.
+km 137  Nobody answers over the last 100 km: the advantage of 141 Alexander Schwarz (Stein Cycling) goes from 2:57 to 6:53, 14 km to go.
+km 137  The bunch gives up: the catch is off.
+km 140  156 Peter Schulz (Welle Team) attacks with 11 km to go, going after 141 Alexander Schwarz (Stein Cycling). 1 more tries to go with him and cannot hold the wheel.
+km 144  No panic behind: the bunch waves the lead group up the road.
+km 148  The gap closes and 14 riders get back on — the chase group is up from 5 to 19.
+km 150  Into the final kilometre 141 Alexander Schwarz (Stein Cycling) leads alone by 16s — barring mishap the stage is won.
+km 150  Behind, 146 Oliver Bailey (Stein Cycling) has 46s on the group he left with 1 km to go — but the stage is up the road with 141 Alexander Schwarz (Stein Cycling).
+km 151  141 Alexander Schwarz (Stein Cycling) holds on alone to win by 16s.
+```
+
+Las cuatro preguntas, en cualquier punto: desde el km 17 el lector sabe que el que va delante es
+Schwarz y no le pierde de vista; en el km 137 sabe cuánto lleva y cuánto queda; en el 140 sabe que
+Schulz va **a por él**; y en el 150 sabe que los 46 s de Bailey no son la carrera. Antes, de las 8
+líneas de los últimos 15 km hablaban de él **3**; ahora, **6**.
+
+Lo que NO arregla, y se ve: el «6:53» del km 137 sigue ahí, porque es un número que el motor midió mal
+y en lo congelado no hay con qué recalcularlo. De la etapa siguiente en adelante, no vuelve a pasar.
+
+### 8. Lo que se probó y se DESCARTÓ
+
+- **Un presupuesto de líneas por kilómetro en el desenlace**, que es lo que el encargo proponía. Se
+  descartó al mirar los resultados: el hombre de la subtrama del km 140 —Peter Schulz— **acabó segundo
+  a 15 s**, y el del último kilómetro —Oliver Bailey— tercero. Borrar sus líneas habría dejado el
+  diario más limpio y **peor informado**. Lo que sobra no es que se cuenten: es que se cuenten como si
+  fueran la carrera. Por eso entra un cambio de SUJETO y no un recorte.
+- **Tirar la línea del boquete mal medido** en las etapas congeladas, como la v25 hace con el boquete
+  contra un corredor suelto. Es la ÚNICA línea de situación de ese tramo: quitarla deja al lector con
+  más silencio y menos historia. Se queda, con el nombre del líder y el reloj puestos.
+- **Contar `peloton_pull` como línea de situación** cuando la carrera va junta, que habría bajado los
+  kilómetros mudos de golpe. Es maquillar el medidor: un parte de relevos dice quién tira, no quién va
+  ganando. El número se queda como está y se explica (§9).
+- **Nombrar al líder SIEMPRE**, deduciéndolo del último grupo de cabeza aunque el número no cuadre. Se
+  escribió y se tiró: en cuanto la cabeza cambia de gente sin parte —que es lo que pasa en una etapa
+  rota— la frase nombra al hombre equivocado, y ésa es exactamente la clase de mentira que la v25 vino
+  a quitar.
+- **Retirar «the break» a medias**, dejándolo solo en la línea en que la fuga se forma. Es un cuarto
+  nombre para la misma gente, y el lector tiene que casarlo con «the lead group» veinte líneas después
+  —que es el defecto madre de la v25 con otro disfraz—. Se retira entero: la fuga del día ES el grupo
+  de cabeza desde la frase en que sale.
+
+### 9. Lo que esta tanda NO hace, con su número
+
+- **No baja el silencio máximo de producción** (151 km, Race Almería e1): no se puede arreglar desde
+  fuera, y el porqué está en el recuadro del §6.
+- **No llega a cero en kilómetros mudos**, y buena parte de lo que queda no es un defecto: de las 23
+  etapas del banco que pasan de 30 km, **20 se callan con la carrera JUNTA** —nadie escapado, y el
+  estado es «van todos juntos», que el lector sabe leer—. Las 3 que se callan con alguien delante son
+  la deuda de verdad, y la medida las señala sola (`mudoConFuga`).
+- **No baja los «dos con hueco» a cero**: quedan 16 en 14 etapas del banco, todos donde la crónica ha
+  perdido de vista al líder. Ver el recuadro del §6.
+- **No toca la física ni el reparto de la carrera.** `pnpm sim`: **33 de 33 objetivos en verde**, y
+  ninguno de `sim/targets.ts` se ha tocado. Gana la fuga 3,4 % · mejor sprinter 34,8 % · captura
+  21,3 km · fuga en montaña 28,0 % · brecha 1.º-10.º 248 s · p90-p10 de la crono 107 s · cola de las
+  cronos reales 13,5 % (peor 15,3 %) · erosión llana 0,010 / reina 0,190 / clásica larga 0,637 / reina
+  3.ª semana 0,668 / la más dura 0,875 · voz de equipo 56,6 % con 2,300 equipos al frente y el 100 %
+  de los partes con motivo · mejor rematador 35,9 % · barrido 0,0 % · con el ganador en una llana
+  99,3 % · grupos en una media 5 · medias al mismo segundo 6,3 % · la fuga que más gana en llano 73 s
+  · foto de meta 2,030 (peor carrera 3,000) y mismo ganador 19,5 %.
+- **No arregla las 56 contradicciones que el banco arrastra** (43 de ellas «entra o sale alguien del
+  grupo de cabeza sin decirlo», en 7 etapas de 123). Están medidas idénticas ANTES y DESPUÉS de esta
+  tanda, así que no son suyas: son deuda anterior y quedan anotadas con su número.
+- **No toca `domain/narration.ts`**, que conserva el vocabulario viejo en una tabla (`CHRONICLE`) que
+  **ninguna página usa** —el journal se pinta con `stageJournal.ts`—. Es código muerto para esto y
+  tocarlo solo habría movido tests sin cambiar una línea de lo que el dueño lee.
+- **No mide si el lector ENTIENDE.** Las cuatro medidas son aproximaciones honestas; la prueba de esta
+  tanda es leer el diario del §7 de arriba abajo. El criterio no es un porcentaje.
