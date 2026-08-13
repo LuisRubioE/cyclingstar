@@ -70,8 +70,10 @@ import { simulateTimeTrial } from './timetrial.js'
 import type {
   Block,
   Incident,
+  SnapshotRider,
   StageInput,
   StageOutput,
+  StageProbe,
   StageResult,
   StageRider,
   TankState,
@@ -392,7 +394,14 @@ export function pullReason(
   return { kind: 'equipo', targetId, leaders: 1 }
 }
 
-export function simulateStage(input: StageInput, seed: string): StageOutput {
+/**
+ * `probe` es OBSERVACIÓN PURA (v26): pide una foto del orden de la carrera en unos kilómetros dados
+ * y no altera nada —ni un dado, ni un compromiso, ni un reloj—. Sin él, y es el caso de producción,
+ * el motor corre exactamente igual que antes. La CONTRARRELOJ lo ignora a propósito: allí cada
+ * corredor es su propio grupo desde la salida y el orden dentro de la etapa no es una pregunta con
+ * sentido (SPEC 6.13).
+ */
+export function simulateStage(input: StageInput, seed: string, probe?: StageProbe): StageOutput {
   // Contrarreloj: grupos de un corredor, sin drafting ni hazards de ataque (SPEC 6.13).
   if (input.timeTrial) return simulateTimeTrial(input, seed)
 
@@ -629,6 +638,19 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
   let dayBreakFormed = false
 
   const kmAt = (i: number): number => (i + 0.5) * STAGE.dx
+
+  /**
+   * LAS FOTOS PEDIDAS (v26). Cada km del `probe` se resuelve UNA vez, aquí, al bloque cuyo centro le
+   * corresponde, para que el bucle no tenga que hacer aritmética por bloque: sin `probe` este mapa
+   * está vacío y lo único que se ejecuta en carretera es una comparación contra cero.
+   */
+  const probeAt = new Map<number, number>()
+  if (probe) {
+    for (const target of probe.atKm) {
+      const idx = Math.max(0, Math.min(n - 1, Math.round(target / STAGE.dx - 0.5)))
+      probeAt.set(idx, kmAt(idx))
+    }
+  }
 
   // --- ATRIBUCIÓN DEL TRABAJO (v11, docs/motor.md §16) --------------------------------------
   // Estado del parte de «quién tira del pelotón»: desde qué km no se cuenta y a quién se nombró.
@@ -2728,6 +2750,31 @@ export function simulateStage(input: StageInput, seed: string): StageOutput {
         .filter((g) => g.members.length > 0)
         .sort((a, b) => a.tS - b.tS)
       disputeClimb(groups, block, km, log, rngSprint, komLead)
+    }
+
+    /**
+     * LA FOTO DE LA CARRERA (v26), al final del bloque y con todo ya resuelto: quién se ha
+     * descolgado, quién ha vuelto y qué reloj lleva cada grupo. Es lo que le faltaba al banco para
+     * poder mirar DENTRO de un puerto —el orden al pie y el orden en la cima— sin suponer nada.
+     */
+    if (probe && probeAt.has(i)) {
+      const clocks = new Map<string, number>([[PELOTON, peloton.tS]])
+      for (const m of moves) clocks.set(m.g.id, m.g.tS)
+      for (const sg of shed) clocks.set(sg.id, sg.tS)
+      const snapshot: SnapshotRider[] = []
+      for (const s of sims.values()) {
+        if (s.abandonedKm !== null) continue
+        const tS = clocks.get(s.groupId)
+        if (tS === undefined) continue
+        snapshot.push({
+          riderId: s.input.riderId,
+          groupId: s.groupId,
+          tS,
+          energy: s.energy,
+          energy0: s.energy0,
+        })
+      }
+      probe.onSnapshot(probeAt.get(i)!, snapshot)
     }
   }
 

@@ -182,6 +182,37 @@ export interface Incident {
   diasBaja: number
 }
 
+/**
+ * UNA FOTO DE LA CARRERA EN UN PUNTO DEL RECORRIDO (v26, `sim/climbs.ts`).
+ *
+ * El motor sabe en todo momento dónde va cada corredor —en qué grupo y qué reloj lleva ese grupo— y
+ * esa información moría dentro del bucle: hacia fuera solo salían los eventos narrables y el
+ * resultado de meta. Con eso NO se puede responder a la pregunta de la v26 —«¿quién adelanta a quién
+ * DENTRO de un puerto?»—, porque entre el pie y la cima el motor no emite un solo dato con el orden
+ * de la carrera, y sin regla no se puede saber si un cambio de física funciona.
+ *
+ * Es OBSERVACIÓN PURA, como la atribución del trabajo de la v11: no tira un dado, no toca un
+ * compromiso, no mueve un reloj y no existe si nadie la pide. Sin `StageProbe` el motor corre
+ * exactamente igual —lo comprueban las huellas selladas, que no se movieron al entrar esto—.
+ */
+export interface SnapshotRider {
+  riderId: string
+  /** En qué grupo va: el pelotón, un movimiento o un grupeto. */
+  groupId: string
+  /** Reloj de SU grupo al cruzar el punto, en segundos desde la salida. Ordena la carrera. */
+  tS: number
+  /** Cuánto le queda en el depósito y con cuánto salió (SPEC 6.5). */
+  energy: number
+  energy0: number
+}
+
+export interface StageProbe {
+  /** Kilómetros del recorrido en los que se quiere la foto. */
+  atKm: readonly number[]
+  /** Recibe cada foto con el km REAL del bloque en que se tomó (múltiplo de `dx`). */
+  onSnapshot: (km: number, riders: readonly SnapshotRider[]) => void
+}
+
 /** Salida del motor (SPEC 6.1, 6.15). `workUnits` alimenta el TSS de 5.1. */
 export interface StageOutput {
   events: RaceEvent[]

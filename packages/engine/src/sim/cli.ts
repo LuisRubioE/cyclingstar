@@ -8,6 +8,7 @@
  * mientras CI pasaba en verde (docs/motor.md §3-bis-h).
  */
 import { analyzeErosion, analyzeFlat, analyzeMountain, analyzeTimeTrial } from './analyze.js'
+import { analyzeClimbs } from './climbs.js'
 import { abandonMix, analyzeGrandTour } from './grandTour.js'
 import { REAL_QUEENS, analyzeRealQueens, colombiaRegressionTails } from './realQueens.js'
 import { REAL_TIME_TRIALS, analyzeRealTimeTrials } from './timeTrials.js'
@@ -252,6 +253,27 @@ function main(): void {
       ...st.perRace.map(
         (row) =>
           `${row.tour.raceId.padEnd(18)} ${String(row.runs[0]?.riders ?? 0).padStart(3)} corredores · agrupadas ${String(row.share.bunchStages).padStart(3)} · gana el mejor ${row.share.bestSprinterWinPct.toFixed(0).padStart(3)}% · ${row.shape.medianGroups} grupos · con el ganador ${row.shape.medianWinnerGroupPct.toFixed(0)}% · mismo segundo ${row.shape.oneGroupPct.toFixed(0)}% · cola ${row.shape.medianLastGroupPct.toFixed(1)}%`,
+      ),
+    ].join('\n  '),
+  )
+
+  // LO QUE PASA DENTRO DE UN PUERTO (v26, `sim/climbs.ts`). El banco corre EXACTAMENTE las mismas
+  // etapas reina reales de arriba —mismo campo, misma semilla— y solo cambia lo que mira: tres fotos
+  // por puerto (pie, mitad y cima) con `StageProbe`. Es la única regla del banco que puede decir si
+  // hay remontadas y hundimientos DENTRO de la subida; todo lo demás se mide en meta.
+  const cl = analyzeClimbs(queenRuns)
+  console.log(
+    `\nDentro del PUERTO (v26) — reinas REALES (${REAL_QUEENS.length} etapas × ${queenRuns} semillas, ${cl.all.allClimbs.climbs} puertos de +4 km)\n`,
+  )
+  console.log(
+    [
+      `Puerto DECISIVO (el último de cada etapa): remontadas ${cl.all.decisive.medianGainers} · hundidos ${cl.all.decisive.medianLosers} · de libro ${cl.all.decisive.medianComebacks} remonta / ${cl.all.decisive.medianBlowups} revienta · mejor remontada ${cl.all.decisive.medianBestGain} puestos`,
+      `  …sin NI UNA remontada en el ${cl.all.decisive.zeroGainerPct.toFixed(0)}% de las corridas · relojes distintos en la cima ${cl.all.decisive.medianClocksAtTop} sobre ${cl.all.decisive.medianRiders} corredores · cede ${cl.all.decisive.medianLossPerKm.toFixed(1)} s/km`,
+      `Todos los puertos: remontadas ${cl.all.allClimbs.medianGainers} · remonta ${cl.all.allClimbs.medianComebacks} · revienta ${cl.all.allClimbs.medianBlowups} · sin ni una remontada el ${cl.all.allClimbs.zeroGainerPct.toFixed(0)}%`,
+      `Forma de la META: dentro de 10 s ${cl.all.finish.medianWithin10s} · 30 s ${cl.all.finish.medianWithin30s} · 60 s ${cl.all.finish.medianWithin60s} · relojes ${cl.all.finish.medianClocks} · escalón mayor ${cl.all.finish.medianMaxStepS.toFixed(0)}s · comparten reloj ${cl.all.finish.medianSharedPct.toFixed(0)}%`,
+      ...cl.perStage.map(
+        (row) =>
+          `${`${row.queen.raceId} e${row.queen.stageIndex}`.padEnd(24)} decisivo: ${row.stats.decisive.medianGainers} remontan · ${row.stats.decisive.medianBlowups} revientan · ${row.stats.decisive.medianClocksAtTop}/${row.stats.decisive.medianRiders} relojes en la cima · meta: ${row.stats.finish.medianWithin30s} en 30 s`,
       ),
     ].join('\n  '),
   )

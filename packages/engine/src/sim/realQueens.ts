@@ -23,7 +23,7 @@ import { SEASON_CALENDAR } from '../routes/calendar.js'
 import { matchCount } from '../stage/physics.js'
 import { stageSeed } from '../stage/rng.js'
 import { simulateStage } from '../stage/simulate.js'
-import type { StageOrders, StageRider } from '../stage/types.js'
+import type { StageInput, StageOrders, StageRider } from '../stage/types.js'
 import { autoStageOrders } from '../world/autoOrders.js'
 import { type Division, generateNpcRider, sampleNpcAge } from '../world/npc.js'
 import { type StageTail, type TailStats, tailStats } from './grandTour.js'
@@ -192,8 +192,17 @@ function runStage(
   }
 }
 
-/** Corre una etapa del banco con una semilla y devuelve cómo llegó la cola de la carrera. */
-export function runRealQueen(queen: RealQueen, run: number): StageTail {
+/**
+ * EL CAMPO Y LA SEMILLA DE UNA ETAPA DEL BANCO, aparte del que la corre (v26). El banco de puertos
+ * (`sim/climbs.ts`) corre EXACTAMENTE las mismas etapas con exactamente el mismo campo y la misma
+ * semilla, y lo único que cambia es lo que MIRA. Si cada banco se montara su pelotón, los dos
+ * medirían carreras distintas y no se podrían leer juntos —que es justo lo que hace falta para saber
+ * si lo que arregla el puerto rompe la cola—.
+ */
+export function realQueenSetup(
+  queen: RealQueen,
+  run: number,
+): { input: StageInput; seed: string; worldSeed: string } {
   const { race, stage } = findStage(queen.raceId, queen.stageIndex)
   const worldSeed = `reina-real-${queen.raceId}-${run}`
   const field = buildField(worldSeed, race.level)
@@ -217,11 +226,28 @@ export function runRealQueen(queen: RealQueen, run: number): StageTail {
       teamId: r.teamId,
     }
   })
+  return {
+    input: { profile: stage.profile, riders },
+    // `engineVersion: 1` FIJO en la semilla, exactamente como en `runStage`: el banco mide el
+    // comportamiento del motor, no los dados.
+    seed: stageSeed({
+      worldSeed,
+      raceId: queen.raceId,
+      stageDay: queen.stageIndex,
+      engineVersion: 1,
+    }),
+    worldSeed,
+  }
+}
+
+/** Corre una etapa del banco con una semilla y devuelve cómo llegó la cola de la carrera. */
+export function runRealQueen(queen: RealQueen, run: number): StageTail {
+  const { input, worldSeed } = realQueenSetup(queen, run)
   return runStage(
     `${queen.raceId}-e${queen.stageIndex}`,
     queen.raceId,
     queen.stageIndex,
-    riders,
+    input.riders,
     worldSeed,
   )
 }
