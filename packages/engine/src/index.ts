@@ -142,6 +142,21 @@ export {
   type Scenario,
 } from './sim/scenarios.js'
 export { TARGETS, type Target } from './sim/targets.js'
+// LA RADIO DE CARRERA (v28): la foto de `StageProbe` convertida en «estado de carrera por
+// kilómetro» —grupos, huecos y quién tira—. Se exporta porque la cuenta es la misma para la
+// herramienta de depuración (`scripts/race-radio.mjs`) y para la vista recorrible que viene detrás.
+export {
+  raceRadioCollector,
+  raceRadioFrom,
+  radioKmFrom,
+  radioKmPoints,
+  type RaceRadio,
+  type RaceRadioOptions,
+  type RadioGroup,
+  type RadioGroupKind,
+  type RadioKm,
+  type RadioPuller,
+} from './sim/raceRadio.js'
 export {
   advanceGroup,
   createGroup,
