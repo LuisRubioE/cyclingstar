@@ -5844,3 +5844,47 @@ O sea: el 61 % **no era la reserva**, era una fuga que llegaba al puerto final c
 porque el motor no le cobraba las cuatro horas de relevos. Ahora llega mordida y se deshace, que es
 la razón por la que en la carretera casi siempre se caza. La reserva se queda en su valor físico
 (65 s) y con ella la queja del dueño sigue arreglada.
+
+### 10. La última milla: los cuatro rojos de la batería, uno a uno
+
+La tanda entregó `pnpm sim` en 33/33 y `pnpm test` en 1166 de 1172. Los cuatro fallos eran
+consecuencias medidas de la física nueva, y cada uno hubo que mirarlo por separado para decidir si
+era un DEFECTO del motor o un test que había dejado de medir lo que decía medir.
+
+#### 10.1 El marcaje se había quedado INERTE en la subida — defecto del motor
+
+`marcador` (SPEC 6.18) es una orden que el jugador puede dar, y en el terreno donde más significa
+había dejado de hacer nada: **14 corridas de 60 con el marcador pegado a su objetivo contra 14 del
+corredor idéntico que no marcaba**. La causa es directa: `resolveMarking` solo se consultaba dentro
+de `comesOff`, que colgaba del dado del descuelgue; retirado el dado en la subida, `comesOff` pasó a
+llamarse **únicamente cuando la goma ya se había roto** (pasado `driftDropGapSeconds`), así que un
+marcador que nunca llega a ese umbral no se resolvía jamás.
+
+El arreglo es reenganchar el modelo que ya existía al eje nuevo, y es además lo que la orden
+significa: **un marcador no deriva respecto al GRUPO, deriva respecto a su HOMBRE.** Los tres
+desenlaces de `marcaje.ts` se leen ahora en el continuo (`markedPerfil`, en `simulate.ts`) y deciden
+con qué perfil se mide su deriva:
+
+| Desenlace de `resolveMarking` | margen = eff_m − eff_t + 4 | Perfil con el que deriva       | Qué es                                  |
+| ----------------------------- | -------------------------: | ------------------------------ | --------------------------------------- |
+| `stuck`                       |                        ≥ 0 | el de su OBJETIVO              | vive en su rueda: sube a lo que suba él |
+| `gives`                       |                    [−6, 0) | el suyo + `markDraftTolerance` | no le llega ni con la rueda: cede       |
+| `dropped`                     |                       < −6 | el suyo                        | ha perdido la rueda                     |
+
+Ni una constante nueva, ni un dado resucitado: el +4 es el MISMO rebufo que `markingMargin` ya usaba
+para decidir si la rueda le vale. Y el marcador nunca sube más de esos cuatro puntos por encima de
+su propio perfil, así que el marcaje no regala ningún esfuerzo supraumbral: lo que hace es que si su
+hombre aguanta, él aguanta, y si su hombre se hunde, **él se hunde con él** —el sacrificio que la
+orden ES, porque quien marca a un hombre peor que él renuncia a su propia carrera—.
+
+Con ello, `comesOff` mira además el grupo VIVO (`target.groupId === m.groupId`) y no la foto del
+principio del bloque: con la deriva, marcador y marcado llegan al umbral en el mismo bloque, y salvar
+al marcador después de haber soltado a su hombre sería justo lo contrario de la orden.
+
+**Medido, 60 corridas**: se pega a su objetivo **22 veces contra las 14 del que no marca** (antes
+14-14), y la distancia mediana a su hombre en meta baja de **68 s a 19 s** mientras la del que no
+marca se queda en 68. El rol vuelve a valer para algo.
+
+No mueve NADA más: `autoStageOrders` no reparte nunca el rol `marcador` —solo lo dan las órdenes de
+un jugador—, así que `markTargetOf` está vacío en todo el banco de simulación y en las dos huellas
+selladas.

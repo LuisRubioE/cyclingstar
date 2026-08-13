@@ -1797,6 +1797,52 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
     }
 
     /**
+     * ¿A QUÉ NIVEL SUBE UN MARCADOR? AL DE SU OBJETIVO (SPEC 6.18, v26 §10).
+     *
+     * «Sigo a ese hombre vaya donde vaya» es literalmente lo que la orden significa, y en un puerto
+     * eso quiere decir que **un marcador no deriva respecto al GRUPO: deriva respecto a su HOMBRE**.
+     * Si su hombre aguanta el ritmo, él aguanta; si su hombre se hunde, él se hunde con él. Devuelve
+     * el perfil con el que hay que medir su deriva, o `undefined` si aquí no hay marcaje que valga
+     * (no marca a nadie, o su objetivo ya no va en su grupo).
+     *
+     * POR QUÉ HACE FALTA: hasta ahora el rol se resolvía SOLO dentro de `comesOff`, que colgaba del
+     * dado del descuelgue. La v26 retiró ese dado en la subida, así que `resolveMarking` pasó a
+     * consultarse únicamente cuando la goma YA se había roto —pasado `driftDropGapSeconds`— y un
+     * marcador que nunca llega a ese umbral no se resolvía jamás: el rol quedó inerte en el terreno
+     * en el que más significa. Medido en el banco de `simulate.test.ts`, marcar salía exactamente
+     * igual que no marcar (14 contra 14 de 60 corridas).
+     *
+     * No hay modelo nuevo ni constante nueva: son los TRES desenlaces de `marcaje.ts` de siempre,
+     * leídos en el eje continuo en vez de en el dado, y el `markDraftTolerance` es el mismo +4 del
+     * rebufo que `markingMargin` ya usa para decidir si la rueda le vale.
+     *
+     * - `stuck` — vive en su rueda: sube exactamente a lo que suba su objetivo, más rápido o más
+     *   despacio de lo que él haría solo. Es el sacrificio que la orden ES: quien marca a un hombre
+     *   peor que él renuncia a su propia carrera.
+     * - `gives` — no le llega ni con la rueda: rueda a lo suyo MÁS el rebufo que sí recibe, por
+     *   debajo de su objetivo, y va cediendo. Los segundos cedidos siguen contándose donde se
+     *   contaban (`markLossS`, en `comesOff`, cuando el hueco llega a romperse).
+     * - `dropped` — ha perdido la rueda: deriva a lo suyo, como cualquiera.
+     *
+     * Nunca sube más de `markDraftTolerance` por encima de su propio perfil, y esos cuatro puntos
+     * son el rebufo, que es gratis por definición: el marcaje no regala un esfuerzo supraumbral.
+     */
+    const markedPerfil = (m: RiderSim, block: Block): number | undefined => {
+      const targetId = markTargetOf.get(m.input.riderId)
+      if (targetId == null) return undefined
+      const target = sims.get(targetId)
+      // Su objetivo tiene que ir AQUÍ, en su mismo grupo y ahora mismo: si se ha ido por delante o se
+      // ha quedado, la rueda ya no existe y el marcaje lo resuelve la capa táctica (`wheelProbability`).
+      if (!target || target.groupId !== m.groupId) return undefined
+      const own = riderPerfil(m, block)
+      const his = riderPerfil(target, block)
+      const outcome = resolveMarking(markingMargin(own, his))
+      if (outcome.kind === 'stuck') return his
+      if (outcome.kind === 'gives') return own + STAGE.markDraftTolerance
+      return undefined
+    }
+
+    /**
      * ¿SE ROMPE LA GOMA? Lo que pasa en el instante en que un corredor deja de poder con el ritmo:
      * primero el MARCAJE (SPEC 6.18) y después el CERILLO (SPEC 6.6). Devuelve `true` solo si de
      * verdad se suelta.
@@ -1823,10 +1869,14 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
       // MISMO grupo, la respuesta la resuelve el módulo oficial `marcaje.ts`: pegado a rueda, cede
       // unos segundos, o se suelta. Vale igual en el puerto, en el adoquín y en la bajada: un
       // marcador pegado a la rueda de su objetivo lo sigue estando ruede por donde ruede (v12).
+      // …y su objetivo tiene que seguir ahí AHORA MISMO (v26 §10): con la deriva, marcador y marcado
+      // llegan al umbral en el mismo bloque, y salvar al marcador después de haber soltado a su
+      // hombre sería justo lo contrario de lo que la orden dice. Por eso se mira el grupo vivo
+      // (`groupId`) y no la foto del principio del bloque.
       const targetId = markTargetOf.get(m.input.riderId)
       if (targetId && inGroup.has(targetId)) {
         const target = sims.get(targetId)
-        if (target) {
+        if (target && target.groupId === m.groupId) {
           const outcome = resolveMarking(
             markingMargin(riderPerfil(m, block), riderPerfil(target, block)),
           )
@@ -1931,7 +1981,10 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
           // Los `dropDeficitTolerance` puntos son lo que uno cubre APRETANDO LOS DIENTES, y eso es
           // justo lo que paga la reserva: sin reserva ya no se cubren, y el corredor cae de golpe a
           // su nivel de verdad. Ese escalón ES el hundimiento (v26).
-          const own = riderPerfil(m, block) + (m.reserveS > 0 ? STAGE.dropDeficitTolerance : 0)
+          // …y el MARCADOR mide su deriva contra su objetivo, no contra el grupo (`markedPerfil`).
+          const own =
+            (markedPerfil(m, block) ?? riderPerfil(m, block)) +
+            (m.reserveS > 0 ? STAGE.dropDeficitTolerance : 0)
           const drift = blockSeconds(targetSpeed(block, own, group.compromiso)) - vPace
           if (drift <= 0) {
             // Va sobrado: recupera reserva y cierra el hueco que llevara abierto. Es la otra mitad
