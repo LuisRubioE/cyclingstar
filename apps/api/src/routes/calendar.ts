@@ -21,7 +21,7 @@ import {
 } from '@cyclingstar/engine'
 import { DAYS_PER_SEASON, NO_LEADERS, currentSeason, raceLeaders } from '@cyclingstar/shared'
 import { notFound } from '../http.js'
-import { type RacedStage, stageHead } from '../stageHistory.js'
+import { type RacedStage, calendarStageSpec, stageHead } from '../stageHistory.js'
 import type { RoutePlugin } from './context.js'
 import { parseRaceId } from './params.js'
 
@@ -56,13 +56,15 @@ export const calendarRoutes: RoutePlugin = async (app, ctx) => {
       stages: race.stages.map((stage) => {
         // De dónde a dónde va la etapa: localidades reales del recorrido de autoría de la carrera.
         const ends = stageEndpoints(race.id, stage.index)
+        // La etiqueta del final la pone el RECORRIDO, no el terreno declarado (ver stageHistory.ts).
+        const spec = calendarStageSpec(stage, stageKm(stage.profile.segments))
         return {
           index: stage.index,
-          name: stage.name,
-          label: stage.label,
-          kind: stage.kind,
-          km: stageKm(stage.profile.segments),
-          timeTrial: stage.timeTrial ?? false,
+          name: spec.name,
+          label: spec.label,
+          kind: spec.kind,
+          km: spec.km,
+          timeTrial: spec.timeTrial,
           from: ends?.from ?? null,
           to: ends?.to ?? null,
         }
@@ -89,13 +91,7 @@ export const calendarRoutes: RoutePlugin = async (app, ctx) => {
     const planFrom = (raced: Map<number, RacedStage>) =>
       race.stages.map((stage) => {
         const ends = stageEndpoints(race.id, stage.index)
-        const spec = {
-          name: stage.name,
-          label: stage.label,
-          kind: stage.kind,
-          timeTrial: stage.timeTrial ?? false,
-          km: stageKm(stage.profile.segments),
-        }
+        const spec = calendarStageSpec(stage, stageKm(stage.profile.segments))
         const run = raced.get(stage.index)
         const head = run ? stageHead(stage.index, spec, run) : { ...spec, staleSpec: false }
         const profile = run?.profile ?? stage.profile

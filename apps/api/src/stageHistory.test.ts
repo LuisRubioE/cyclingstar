@@ -1,6 +1,6 @@
-import type { StageProfile } from '@cyclingstar/engine'
+import { SEASON_CALENDAR, type CalendarStage, type StageProfile } from '@cyclingstar/engine'
 import { describe, expect, it } from 'vitest'
-import { stageHead } from './stageHistory.js'
+import { calendarStageSpec, stageHead } from './stageHistory.js'
 
 /**
  * Los dos casos de producción del GD 46, reproducidos con recorridos generados igual que los suyos.
@@ -101,5 +101,97 @@ describe('api: una etapa corrida se describe con el recorrido que se corrió', (
     expect(head.staleSpec).toBe(false)
     expect(head.kind).toBe('cri')
     expect(head.timeTrial).toBe(true)
+  })
+})
+
+/** Una etapa de calendario de mentira, con el perfil que se le dé. */
+function fichaDe(
+  index: number,
+  kind: CalendarStage['kind'],
+  label: string,
+  profile: StageProfile,
+): CalendarStage {
+  return { index, kind, label, name: `Stage ${index} · ${label}`, profile }
+}
+
+const puerto = (km: number, g: number) =>
+  ({ km, tipo: 'puerto', tramos: [{ km, g }] }) as StageProfile['segments'][number]
+const llano = (km: number) =>
+  ({ km, tipo: 'llano', tramos: [{ km, g: 0.5 }] }) as StageProfile['segments'][number]
+const bajada = (km: number) => ({ km, tipo: 'descenso' }) as StageProfile['segments'][number]
+
+/**
+ * EL CASO DE PRODUCCIÓN: Race Andalucía e2 se anunciaba «Stage 2 · Summit finish» sobre un recorrido
+ * cuya última cima está a 80 km de meta, y acabó en sprint masivo de 113 sobre 118 ganado por un
+ * velocista puro. La etiqueta del final la tiene que decidir el recorrido.
+ */
+describe('api: la etiqueta del final la pone el recorrido, no el terreno declarado', () => {
+  it('«Summit finish» sobre una etapa que baja 80 km hasta la meta pasa a «Mountains»', () => {
+    const perfil: StageProfile = {
+      segments: [llano(40), puerto(11.5, 6.4), bajada(20), llano(60)],
+    }
+    const spec = calendarStageSpec(fichaDe(2, 'reina', 'Summit finish', perfil), 142)
+    expect(spec.label).toBe('Mountains')
+    expect(spec.name).toBe('Stage 2 · Mountains')
+    // La FAMILIA no se toca: sigue siendo una etapa reina, y es lo que el motor usa para las
+    // órdenes automáticas. Lo único que se corrige es la mitad de la etiqueta que habla de la meta.
+    expect(spec.kind).toBe('reina')
+  })
+
+  it('«Hills» sobre una etapa que muere en un puerto pasa a «Uphill finish»', () => {
+    // Race Arctic e3/e4: su edición las declara `hilly` y mueren en un HC de 3,5 km al 11,8 %.
+    const perfil: StageProfile = { segments: [llano(143.5), puerto(3.5, 11.8)] }
+    const spec = calendarStageSpec(fichaDe(3, 'media', 'Hills', perfil), 147)
+    expect(spec.label).toBe('Uphill finish')
+    expect(spec.kind).toBe('media')
+  })
+
+  it('una cola de redondeo tras la cima NO degrada un final en alto de verdad', () => {
+    // Race France e15 (Plateau de Solaison): el constructor de perfiles reales coloca cada puerto en
+    // su km de coronación, así que un final en alto legítimo queda con 0,1 km de llano detrás. El
+    // test ingenuo de «el último segmento es un puerto» lo llamaría «Mountains».
+    const perfil: StageProfile = { segments: [llano(177.2), puerto(6.7, 8.3), llano(0.1)] }
+    const spec = calendarStageSpec(fichaDe(15, 'reina', 'Summit finish', perfil), 184)
+    expect(spec.label).toBe('Summit finish')
+  })
+
+  it('lo que no promete nada sobre la meta se queda como está', () => {
+    for (const [kind, label] of [
+      ['llana', 'Flat'],
+      ['clasica', 'Cobbles'],
+    ] as const) {
+      const perfil: StageProfile = { segments: [llano(100), puerto(5, 7)] }
+      const spec = calendarStageSpec(fichaDe(1, kind, label, perfil), 105)
+      expect(spec.label).toBe(label)
+      expect(spec.name).toBe(`Stage 1 · ${label}`)
+    }
+    const crono: CalendarStage = {
+      ...fichaDe(1, 'cri', 'ITT', { segments: [llano(20)] }),
+      timeTrial: true,
+    }
+    expect(calendarStageSpec(crono, 20).label).toBe('ITT')
+  })
+
+  it('sobre el calendario entero solo cambia la etiqueta, nunca el tipo de etapa', () => {
+    // El tipo alimenta las órdenes automáticas del motor y el banco de simulación: si se moviera,
+    // se estaría cambiando cómo se corre la carrera y no cómo se anuncia.
+    let cambian = 0
+    for (const race of SEASON_CALENDAR) {
+      for (const stage of race.stages) {
+        const spec = calendarStageSpec(stage, 0)
+        expect(spec.kind).toBe(stage.kind)
+        expect(spec.timeTrial).toBe(stage.timeTrial ?? false)
+        // Y el nombre no puede contradecir a la etiqueta… salvo en las carreras con nombre propio
+        // (campeonatos nacionales), que no llevan la etiqueta en el nombre y no se renombran.
+        const conNombrePropio = stage.name !== `Stage ${stage.index} · ${stage.label}`
+        expect(spec.name).toBe(
+          conNombrePropio ? stage.name : `Stage ${stage.index} · ${spec.label}`,
+        )
+        if (spec.label !== stage.label) cambian++
+      }
+    }
+    // Medido: 30 de 1.418 etapas (14 dejan de anunciar final en alto, 16 pasan a anunciarlo). Es un
+    // arreglo acotado, no un cambio de producto; si esta cifra se dispara, algo se ha movido debajo.
+    expect(cambian).toBe(30)
   })
 })

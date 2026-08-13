@@ -31,7 +31,7 @@ import { NO_LEADERS, type RaceLeaders, currentSeason, raceLeaders } from '@cycli
 import { z } from 'zod'
 import { type ChronicleEvent, buildChronicle, buildMarkers, chronicleNames } from '../chronicle.js'
 import { badRequest, notFound, sendError, unauthorized } from '../http.js'
-import { stageHead } from '../stageHistory.js'
+import { calendarStageSpec, stageHead } from '../stageHistory.js'
 import type { RoutePlugin } from './context.js'
 import { parseRaceId, parseRaceKey, parseStageDay } from './params.js'
 
@@ -224,14 +224,21 @@ export const raceRoutes: RoutePlugin = async (app, ctx) => {
     if (!(await isOnRoster(db, raceKey, rider.id))) {
       return sendError(reply, 403, 'no_convocado')
     }
-    const stages = race.stages.map((stage, i) => ({
-      day: i + 1,
-      name: `Stage ${i + 1}`,
-      kind: stage.kind,
-      timeTrial: stage.timeTrial ?? false,
-      km: stageKm(stage.profile.segments),
-      altimetry: renderAltimetrySvg(stage.profile),
-    }))
+    // ESTA es la pantalla en la que el jugador decide a quién manda y qué le pide, así que la
+    // etiqueta que ve aquí tiene que ser la del RECORRIDO: con «Summit finish» sobre una etapa que
+    // acaba en sprint se gasta al escalador para nada (ver stageHistory.ts).
+    const stages = race.stages.map((stage, i) => {
+      const spec = calendarStageSpec(stage, stageKm(stage.profile.segments))
+      return {
+        day: i + 1,
+        name: `Stage ${i + 1}`,
+        label: spec.label,
+        kind: spec.kind,
+        timeTrial: spec.timeTrial,
+        km: spec.km,
+        altimetry: renderAltimetrySvg(stage.profile),
+      }
+    })
     const orders = await getStageOrders(db, raceKey, rider.id)
     const teammates = await getRosterTeammates(db, raceKey, rider.id)
     const rivals = await getRaceRivals(db, raceKey, rider.id)
@@ -283,16 +290,19 @@ export const raceRoutes: RoutePlugin = async (app, ctx) => {
         country: race.country ?? null,
         stageCount: race.stages.length,
       }
+      // La etiqueta del final la pone el RECORRIDO, no el terreno declarado (ver stageHistory.ts).
+      const spec = calendarStageSpec(stage, km)
       const snapshot = await getStageSnapshot(db, raceKey, day)
       if (!snapshot) {
         return {
           day,
-          name: stage.name,
+          name: spec.name,
           km,
           run: false,
           race: raceInfo,
-          kind: stage.kind,
-          timeTrial: stage.timeTrial ?? false,
+          label: spec.label,
+          kind: spec.kind,
+          timeTrial: spec.timeTrial,
           altimetry: renderAltimetrySvg(stage.profile),
         }
       }
@@ -301,21 +311,11 @@ export const raceRoutes: RoutePlugin = async (app, ctx) => {
       const racedInput = snapshot.input as StageInput
       const racedProfile = racedInput.profile
       const racedTimeTrial = racedInput.timeTrial === true
-      const head = stageHead(
-        day,
-        {
-          name: stage.name,
-          label: stage.label,
-          kind: stage.kind,
-          timeTrial: stage.timeTrial ?? false,
-          km,
-        },
-        {
-          profile: racedProfile,
-          timeTrial: racedTimeTrial,
-          km: stageKm(racedProfile.segments),
-        },
-      )
+      const head = stageHead(day, spec, {
+        profile: racedProfile,
+        timeTrial: racedTimeTrial,
+        km: stageKm(racedProfile.segments),
+      })
 
       const results = await getStageResults(db, raceKey, day)
       const gc = await getGcThroughStage(db, raceKey, day)
