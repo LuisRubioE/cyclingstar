@@ -1185,7 +1185,7 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
       const chase = chaseIdx >= 0 ? behind[chaseIdx] : undefined
       /**
        * QUÉ ES ESE GRUPO, para que la frase pueda nombrarlo (v27). El vocabulario de grupos de
-       * docs/motor.md §6.15-bis tiene tres palabras y ésta es la que las reparte: si el grupo contra
+       * SPEC 6.15 y docs/motor.md §16 tiene tres palabras y ésta es la que las reparte: si el grupo contra
        * el que se mide es el PELOTÓN y sigue siendo el grueso de la carrera, es «the bunch»; si es un
        * trozo de carrera que persigue por delante del resto, es «the chase group». Sin este dato la
        * crónica llamaba a las dos cosas igual, y desde una criba son grupos distintos.

@@ -985,6 +985,36 @@ entero) y la crónica lo agrupa en racimo con número, igual que los descuelgues
 > contradicciones pasan de **3098 a 10**, y las etapas sin ni una, de **0 a 113**. Medido en
 > docs/balance.md, «v25».
 
+> **Séptima entrega hecha (v27): LA ESPINA DORSAL.** La v25 quitó las CONTRADICCIONES; el dueño leyó
+> la etapa 1 de Race Andalucía —ya sin ninguna— y dijo otra cosa: **«si lees todo el Journal no SABES
+> quién va ganando, quién va persiguiendo… es un lío los últimos mensajes»**. No es que el diario
+> mienta: es que no cuenta una historia. En los últimos 15 km de esa etapa el hombre que la gana
+> aparecía UNA vez, y su ventaja pasaba de 6:53 a 16 s sin que ninguna línea lo contara.
+>
+> **La regla que ordena la versión, y que queda escrita en SPEC 6.15**: en cualquier punto del diario
+> el lector tiene que poder responder QUIÉN VA DELANTE, CON CUÁNTA VENTAJA, SOBRE QUIÉN y CUÁNTO
+> QUEDA. Las cuatro respuestas las tiene el motor y ninguna estaba entera.
+>
+> **Del motor** (cambio de OBSERVACIÓN: ni un dado, ni un subflujo, ni una constante de calibración,
+> y las huellas selladas salen dígito a dígito iguales): la causa madre es de medida y es de esta
+> casa. `gapChaseMainFraction` (v25) elige la referencia del boquete entre los grupos de detrás por
+> MAGNITUD, y tras una criba masiva el mayor de detrás es un GRUPETO de descolgados: en Race
+> Andalucía —119 → 13 en el km 26, con 80 fuera— la ventaja se midió trece kilómetros contra gente
+> que ya no corría por nada. La referencia pasa a ser LOS QUE SIGUEN EN CARRERA, con un suelo de dos
+> corredores para no reinventar el «perseguidor de uno» de la v25, y la regla entera sale a una
+> función pura con sus casos escritos (`chaseReferenceIndex`). Además el parte de ventaja NOMBRA a
+> quien va delante, dice contra qué clase de grupo se mide (`chaseKind`) y cuánto queda (`toGo`), y
+> el último kilómetro dice sobre cuántos se lleva el margen.
+>
+> **De la crónica** —la única capa que arregla las etapas YA CORRIDAS—: el hilo del líder
+> (`followTheLeader`) nombra al que va delante en los partes de ventaja cuando no hay duda y cuenta
+> las subtramas RESPECTO de él; el resumen de rachas de la v21 deja de comerse el hilo (solo agrupa
+> partes PEGADOS, porque fuera del desenlace el motor da uno cada 25 km y ésos no son ruido, son las
+> únicas líneas de situación que hay); el reloj se pone a la vista; y un fracaso ocupa una línea.
+>
+> **Y el vocabulario** (SPEC 6.15): tres cosas en la carretera, tres nombres. Race Andalucía exponía
+> al lector a quince. Medido en docs/balance.md, «v27».
+
 > **Cuarta entrega hecha (v18): LA CONTRARRELOJ.** Era el agujero más grande que quedaba en lo que
 > el motor cuenta, y no era de matiz: una crono entera —130 corredores, 33 km— se resolvía con **un
 > solo evento**, el ganador en meta. La causa no estaba en la narración sino en el modelo: no había

@@ -525,7 +525,7 @@ const GAP_CLAIM_WINDOW_KM = 3
 export const FINALE_KM = 15
 
 /**
- * EL VOCABULARIO DE GRUPOS (docs/motor.md §6.15-bis). En la carretera hay TRES cosas y por tanto
+ * EL VOCABULARIO DE GRUPOS (SPEC 6.15 y docs/motor.md §16). En la carretera hay TRES cosas y por tanto
  * caben tres nombres, ni uno más:
  *
  * - **the lead group** — los que van delante (con uno, su nombre y nada más).

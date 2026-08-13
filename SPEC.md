@@ -533,6 +533,36 @@ La `p` de etapa se reparte como intensidad `λ(bloque)` ponderada por los bloque
 - `workUnits` por dominio (alimenta 5.3 y el TSS de 5.1) e `incidents`.
 - La serie `t_s` por grupo permite al replay dibujar el cursor de cada grupo sobre la altimetría SVG.
 
+**La regla del diario (v27).** En cualquier punto de la crónica, un lector que haya leído desde el
+principio tiene que poder responder cuatro cosas: **quién va delante, con cuánta ventaja, sobre quién
+y cuánto queda**. De ahí salen los datos obligatorios del parte de ventaja (`time_gap`): los
+protagonistas cuando la cabeza es pequeña, `gapS`, `chaseKind` y `toGo`. Lo vigila
+`sim/coherence.test.ts` sobre los eventos crudos del motor.
+
+**El vocabulario de grupos (v27).** En la carretera hay TRES cosas, y por tanto hay tres nombres:
+
+| Nombre            | Qué es                                                                    |
+| ----------------- | ------------------------------------------------------------------------- |
+| `the lead group`  | los que van delante, sean la fuga del día o un trozo de pelotón cribado    |
+| `the chase group` | el grupo que persigue a los de delante, sea quien sea                      |
+| `the bunch`       | el grueso de la carrera, que ya no pelea por la etapa                      |
+
+Con tres corredores o menos, el grupo se nombra por sus corredores. `chaseKind` (`peloton` / `caza`)
+es lo que reparte los dos últimos: mientras el grupo que persigue ES el grueso, se le llama `the
+bunch`; en cuanto una criba los separa, el que persigue es `the chase group` y `the bunch` queda para
+lo que ya no decide.
+
+Se retiran «the break», «the peloton», «the favourites», «the sprinters' teams», «the fast men», «the
+lead-out trains», «the chasers», «the escapees» y «the front group». Los dos motivos, medidos:
+Race Andalucía e1 exponía al lector a **quince** nombres de grupo distintos en una sola etapa, y —el
+que de verdad rompe la lectura— desde una criba «the bunch», «the chase» y «the favourites» dejan de
+ser sinónimos y pasan a ser grupos DISTINTOS. Un papel dentro de un grupo (los sprinters, los
+favoritos) puede seguir nombrándose, pero nunca como sujeto de un grupo.
+
+La tabla de qué nombres puede imprimir cada plantilla vive en `sim/coherence.ts` (`GROUP_NOUNS`),
+porque es quien cuenta cuántos ve un lector por etapa; `stageJournal.test.ts` comprueba que ninguna
+frase imprima uno que no tenga declarado, y así la tabla y el texto no se pueden separar.
+
 **Carreras de un día.** Una prueba de un día NO lleva bonificaciones de tiempo: no hay general que
 construir, la etapa ES el resultado. El motor es puro y no sabe de calendarios, así que las reparte
 siempre; quien conoce la estructura de la carrera (`packages/db`) las anula antes de persistirlas.

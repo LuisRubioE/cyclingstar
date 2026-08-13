@@ -28,7 +28,7 @@ import { raceTeamLabel } from './labels'
 const SMALL_FRONT_GROUP = STAGE.frontNamesMaxRiders
 
 /**
- * EL VOCABULARIO DE GRUPOS (v27, docs/motor.md §6.15-bis). En la carretera hay TRES cosas y por
+ * EL VOCABULARIO DE GRUPOS (v27, SPEC 6.15 y docs/motor.md §16). En la carretera hay TRES cosas y por
  * tanto hay tres nombres, ni uno más:
  *
  * - `LEAD_GROUP` — los que van delante. Con tres o menos, sus nombres.
@@ -568,7 +568,7 @@ function chronicleTemplate(e: ChronicleEntry): string {
        * …Y LA FUGA DEL DÍA ES EL GRUPO DE CABEZA (v27). Se llamaba «the break» aquí y «the lead
        * group» veinte líneas después, y son la misma gente: el lector tenía que casar dos nombres
        * para seguir a los mismos hombres. Desde que sale se llama por el nombre con el que se le va
-       * a hablar el resto de la etapa (docs/motor.md §6.15-bis).
+       * a hablar el resto de la etapa (SPEC 6.15 y docs/motor.md §16).
        */
       if (riders.length === 1)
         return pick([

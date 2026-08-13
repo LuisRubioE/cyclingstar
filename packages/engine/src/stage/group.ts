@@ -119,7 +119,7 @@ export interface ChaseCandidate {
 }
 
 /**
- * CONTRA QUIÉN SE MIDE LA VENTAJA (v25 + v27, docs/motor.md §6.15-bis). Es la regla que decide qué
+ * CONTRA QUIÉN SE MIDE LA VENTAJA (v25 + v27, SPEC 6.15 y docs/motor.md §16). Es la regla que decide qué
  * grupo de los que van detrás es «la persecución» en cada parte, y vive aquí —pura y probada— porque
  * de ella salieron los dos defectos que más han estropeado un diario:
  *
