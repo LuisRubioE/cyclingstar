@@ -405,12 +405,49 @@ llano con fuga consolidada:                 λ_contraataque = 0.02 /km
 puente (saltar del peloton a la fuga):      λ = 0.08 /km si gap ∈ [30 s, 150 s]; 0 fuera de esa ventana
 puerto:                                     λ_ataque = 0.10 /km * (1 + agresividad media del grupo)
                                             ademas de los disparadores deterministas de 6.18
-descuelgue:                                 λ = 0.9 * max(0, -m) /km, con m = perfil_i - P75 del grupo
+descuelgue en PAVES y DESCENSO:             λ = 0.9 * max(0, -m) /km, con m = perfil_i - P75 del grupo
    al dispararse: si hay cerillo y las ordenes lo permiten -> lo quema (+10 por 5 bloques) y sigue;
    si no, sale del grupo y rueda a su propia velocidad (el boquete se integra, 6.3)
+descuelgue en SUBIDA:                       NO ES UN DADO desde la v26. Ver 6.8-bis
 caida:                                      la p de etapa (6.14) repartida como intensidad ponderada
                                             por bloques de riesgo (paves, descensos, ultimos 3 km)
 ```
+
+### 6.8-bis En una subida no hay dado: hay deriva y hay reserva (v26)
+
+El descuelgue en subida era la excepción a la regla de oro de 6.8, y no porque fuera un dado mal
+calibrado sino porque **un suceso aleatorio es el modelo equivocado para lo que pasa en un puerto**.
+Con él, un corredor solo podía estar en dos estados —clavado al ritmo del grupo, o de golpe en otro
+grupo— y de ahí salían tres hechos falsos a la vez: la etapa reina dejaba UN corredor en el tiempo
+del ganador, nadie remontaba dentro de un puerto y nadie se hundía por haberse pasado de rosca.
+
+```
+en cada bloque de SUBIDA, para cada corredor de un grupo:
+  ritmo   = P75 del perfil de quienes marcan (6.4)
+  propio  = perfil_i + (reserva_i > 0 ? dropDeficitTolerance : 0)
+  deriva  = 3600*dx/v(propio) - 3600*dx/v(ritmo)        // la MISMA ley de 6.4, no una ley nueva
+
+  deriva <= 0   -> recupera reserva y cierra el hueco que llevara (simetrico)
+  reserva > 0   -> reserva -= deriva   y NO cede un metro          // aguanta por encima de lo suyo
+  reserva <= 0  -> retraso_i += deriva
+                   retraso_i >= driftDropGapSeconds -> marcaje / cerillo y, si no le salvan,
+                                                       sale del grupo CON ese retraso ya encima
+fuera de la subida: la reserva se recarga con la constante de tiempo reserveRecoverySeconds
+en meta: el retraso no consumido separa el tiempo del corredor del de su grupo, como markLossS
+```
+
+Tres consecuencias, y son las tres que faltaban:
+
+- **La llegada de un final en alto es CONTINUA.** Los que aguantan con reserva llegan con el
+  ganador; los que la gastaron llegan a 4, a 9, a 17 s. Ya no es una foto de grupos-escalón.
+- **El que se pasa se hunde.** La reserva es W′/CP del modelo de potencia crítica (Monod-Scherrer;
+  W′bal de Skiba): 15-30 kJ sobre 250-400 W son 50-90 s de tiempo cedible antes de reventar, y ese
+  número **no depende de cuánto te pases**. Al agotarse se pierden además los
+  `dropDeficitTolerance` puntos que se cubrían apretando los dientes: ese escalón es el hundimiento.
+- **Y el que subió a lo suyo lo adelanta**, sin haber acelerado. Las dos salen de la MISMA pieza.
+
+El pavé y el descenso CONSERVAN el dado de 6.8, y es deliberado: allí no se pierde una rueda por no
+poder con el ritmo, sino por un error, un corte o un pinchazo —que es un suceso y no una deriva—.
 
 ### 6.9 El pelotón como controlador (decisiones a 1 km, física a 100 m)
 

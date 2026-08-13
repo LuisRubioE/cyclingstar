@@ -6,8 +6,9 @@ retrato de lo que había. En la Parte III cada cambio lleva su estado: **§12-bi
 **§16 segunda entrega** (v11), **§14 hecho** (v12), **§16 tercera entrega** (v13),
 **§15 hecho** (v14), **§V.1 hecho** (v15), **§9-bis hecho** (v16, el modelo de persecución: la
 última deuda de fondo), **§16 cuarta entrega** (v18, la contrarreloj), **§16 quinta entrega**
-(v21, la criba lejos de meta y el ruido del boquete) y **§13.1 reglas 4-5 corregidas** (v23, la
-fuga del día a la que nadie perseguía). Lo demás sigue siendo propuesta.
+(v21, la criba lejos de meta y el ruido del boquete), **§13.1 reglas 4-5 corregidas** (v23, la
+fuga del día a la que nadie perseguía) y **§9-ter hecho** (v26, la deriva y la reserva: el puerto
+se sube a tu ritmo). Lo demás sigue siendo propuesta.
 
 Ámbito: `packages/engine/src/stage/` (2.333 líneas sin tests). Referencias a SPEC 6.
 
@@ -394,6 +395,51 @@ etapa reina termina ya con el pelotón entero al mismo segundo.
 > `race-france`, todas finales en alto de 170-185 km—, y ninguna se parece a una reina de 232 km con
 > el último puerto a 62 km de meta. `sim/realQueens.ts` mide ahora la cola sobre ocho reinas REALES
 > elegidas por forma, con Race Colombia e5 dentro por nombre. Medido en docs/balance.md, «v17».
+
+### 9-ter. El puerto se sube a TU ritmo, no al del grupo (HECHO, v26)
+
+> **La queja del dueño, textual:** «una cosa que debería poder pasar y nunca pasa es que haya
+> remontadas en una subida… uno que empieza mal y luego va remontando… o uno que empieza muy bien,
+> muy fuerte, y luego se hunde». Medido y cerrado en docs/balance.md, «v26».
+
+**El defecto, y es UNO solo con tres síntomas.** El descuelgue en subida era un DADO
+(`rollHazard(rngHazard, λ(déficit))`, dentro de `shatter`), así que un corredor tenía exactamente
+dos estados posibles: clavado al ritmo del grupo, o de golpe en otro grupo. No había nada entre
+medias, y de ahí salían los tres a la vez:
+
+1. **La reina dejaba UN corredor** en el tiempo del ganador —el grupo de cabeza de 5 a 15 que la
+   carretera deja no podía existir, porque en el motor o llegabas con el grupo o llegabas cortado—.
+2. **Nadie remontaba dentro de un puerto**: para adelantar hay que ir más rápido que el de delante, y
+   dentro de un grupo todos van al mismo reloj.
+3. **Nadie se hundía por haber ido demasiado fuerte**: no se podía uno pasar de rosca porque no se
+   elegía nada. La única forma de reventar era la pájara, 4 veces en 81 etapas.
+
+**Lo que hay ahora** son dos piezas que en realidad son la misma (SPEC 6.8-bis):
+
+- **La DERIVA.** El que no llega al ritmo del grupo pierde tiempo poco a poco, en proporción a su
+  déficit, y solo cuando lo acumulado pasa de `driftDropGapSeconds` deja de ir en el grupo —para
+  entonces YA ha perdido esos segundos—. No hay ley nueva: la deriva es la resta de dos
+  `blockSeconds` de la MISMA ley de velocidad de SPEC 6.4, así que sale sola pequeña en una cota
+  tendida (exponente del aire, 0,39) y grande en una rampa al 9 % (exponente de la gravedad, 1).
+- **La RESERVA.** `reserveSeconds` es W′/CP del modelo de potencia crítica, y con W′ 15-30 kJ y CP
+  250-400 W valen 50-90 s **sea cual sea lo que te pases**. Mientras quede, se va por encima del
+  ritmo sostenible sin ceder un metro; cuando se acaba, se cede y además se pierden los
+  `dropDeficitTolerance` puntos que se cubrían apretando los dientes. Ese escalón es el hundimiento,
+  y su reflejo —el que subió a lo suyo y adelanta en la parte alta— sale de la misma pieza.
+
+**Justificación física, y no es un adorno:** en una rampa el rebufo casi no existe. `draftMax` lleva
+diciéndolo desde siempre —42 % en llano, **9,6 % al 8 %**—, así que en un puerto el grupo apenas es
+una entidad física. Lo que sostiene un grupo de cabeza en un final en alto no es la rueda: es que
+cada uno de sus hombres puede ir un rato por encima de lo suyo. Eso es exactamente la reserva.
+
+**Es el único dado que este motor ha QUITADO.** El subflujo `hazard` deja de consumirse en la
+montaña; como los subflujos nominales son independientes (SPEC 6.1), el pavé (`rough`), el sprint,
+las caídas y la táctica salen dígito a dígito iguales. El pavé y el descenso conservan su dado a
+propósito: allí no se pierde una rueda por no poder con el ritmo, sino por un error o un corte.
+
+**Y el banco que hacía falta para poder medirlo:** `sim/climbs.ts` con `StageProbe`, que pide tres
+fotos por puerto (pie, mitad y cima) sobre las mismas reinas reales de §9-bis. Antes de esta tanda
+no existía NADA que mirase dentro de un puerto: todo se medía en meta.
 
 ### 10. Por qué los invariantes pasan y aun así los resultados son malos
 

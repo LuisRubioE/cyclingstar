@@ -372,8 +372,27 @@
  * nombra a los que iban delante en ese momento; `leads` de la montaña dice «PASA a liderar»; la
  * fuga se fecha con el reloj que tenía al nacer; y lo que se abre se cierra (se retira
  * `tacticReeledNarrateKm`). Medido en docs/balance.md, «v25».
+ *
+ * **v26 — EL PUERTO SE SUBE A TU RITMO, NO AL DEL GRUPO.** En una subida el descuelgue era un DADO
+ * (`rollHazard` sobre el déficit contra el P75 de los punteros), y de ahí salía que un corredor solo
+ * pudiera estar en DOS estados: clavado al ritmo del grupo, o de golpe en otro grupo. Tres síntomas,
+ * una causa: la etapa reina dejaba UN corredor en el tiempo del ganador, nadie remontaba dentro de
+ * un puerto y nadie se hundía por haber ido demasiado fuerte —solo por la pájara, 4 veces en 81
+ * etapas—.
+ *
+ * Lo sustituyen DOS piezas que son la misma. La DERIVA: el que no llega al ritmo pierde tiempo poco
+ * a poco, integrado con la MISMA ley de velocidad de SPEC 6.4, y solo al pasar de
+ * `driftDropGapSeconds` deja de ir en el grupo —con esos segundos ya perdidos encima—. Y la RESERVA
+ * (`reserveSeconds`, que es W′/CP del modelo de potencia crítica): mientras quede se va por encima
+ * del ritmo sostenible sin ceder un metro, y cuando se acaba se cede el doble. De la reserva salen a
+ * la vez el grupo de cabeza de un final en alto, el que se hunde en la parte alta y el que lo
+ * adelanta sin haber acelerado.
+ *
+ * Es el único dado que este motor ha QUITADO: el subflujo `hazard` deja de consumirse en la montaña.
+ * No desplaza a nadie —los subflujos son independientes— así que el pavé, el sprint, las caídas y la
+ * táctica salen dígito a dígito iguales. Medido en docs/balance.md, «v26».
  */
-export const ENGINE_VERSION = 25 as const
+export const ENGINE_VERSION = 26 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -1086,6 +1105,69 @@ export const STAGE = {
   // 1º-10º de 377 s; con 4 baja a 285 sin perder la selección: el mejor escalador sigue ganando).
   dropDeficitTolerance: 4,
 
+  // --- LA DERIVA EN LA SUBIDA (v26, docs/balance.md «v26») -------------------------------------
+  // EN UN PUERTO EL DESCUELGUE DEJA DE SER UN DADO. Hasta la v25, `lambdaDropBase` sorteaba si un
+  // corredor con déficit se soltaba, y de ahí salía el único defecto que explicaba tres síntomas a
+  // la vez: un corredor solo podía estar en DOS estados —clavado al ritmo del grupo o, de golpe, en
+  // otro grupo—. Por eso la etapa reina dejaba UN corredor en el tiempo del ganador (la carretera
+  // deja de 5 a 15), nadie remontaba dentro de un puerto y nadie se hundía por haber ido fuerte.
+  //
+  // Lo que lo sustituye NO TRAE UNA LEY NUEVA: la deriva se integra con la MISMA ley de velocidad de
+  // SPEC 6.4 que mueve al grupo. El que va `d` puntos por debajo del ritmo rueda a la velocidad que
+  // le da SU perfil, y la diferencia de tiempo por bloque es la resta de los dos `blockSeconds`. Por
+  // eso la deriva sale sola pequeña en una cota tendida (donde el exponente es el del aire, 0,39) y
+  // grande en una rampa al 9 % (donde manda la gravedad y el exponente es 1): es el mismo par de
+  // hechos de física que la v19 metió en la ley, aplicado donde faltaba.
+  //
+  // CUÁNTO SE ESTIRA LA GOMA ANTES DE ROMPERSE. Es lo único que hay que elegir, y sale de dos
+  // anclajes que dicen lo mismo. El de carretera: un grupo de cuarenta subiendo en fila se estira
+  // unos 150 m, que a 20 km/h son 27 s de punta a punta, y un puñado de segundos más y ya no llevas
+  // la rueda de nadie. El del propio motor: `regroupGapSeconds` = 22 s es la PUERTA del pelotón —con
+  // cuánto boquete se considera que se va DENTRO del grupo— y esta constante es esa misma puerta
+  // vista desde dentro. 20 s, un pelo por debajo, para que el que se acaba de soltar no vuelva a
+  // entrar por la puerta el bloque siguiente (histéresis).
+  driftDropGapSeconds: 20,
+
+  // --- LA RESERVA: SE PUEDE IR DEMASIADO FUERTE (v26) ------------------------------------------
+  // Con la deriva SOLA el motor empeora, y está medido (docs/balance.md «v26»): un corredor cuatro
+  // puntos por debajo del ritmo empieza a ceder metros desde el primer bloque, cuando lo que hace en
+  // carretera es apretar los dientes y aguantar hasta arriba. Falta la pieza que el encargo pedía
+  // aparte y que resulta ser la MISMA: por encima de tu ritmo sostenible se puede ir, pero un rato,
+  // y luego se paga.
+  //
+  // Eso tiene nombre y número en fisiología: es W′, la capacidad de trabajo supraumbral del modelo
+  // de potencia crítica (Monod-Scherrer, 1965; el balance de W′ de Skiba, 2012). W′ vale 15-30 kJ y
+  // la CP de un profesional 250-400 W. Y hay una cuenta que sale redonda: yendo ΔP vatios por encima
+  // de tu CP aguantas W′/ΔP segundos, y en ese rato cedes una fracción ΔP/CP de tu tiempo.
+  // Multiplicando, **lo que se puede ceder ANTES de reventar no depende de cuánto te pases: son
+  // W′/CP segundos**. Con 20 kJ y 300 W, 67 s; con el rango entero, de 50 a 90.
+  //
+  // Por eso la reserva se mide DIRECTAMENTE en segundos de deriva absorbida —su unidad natural— y no
+  // hace falta inventar unos vatios que el motor no tiene. Mientras quede, el corredor va clavado al
+  // ritmo del grupo y no cede un metro; cuando se acaba empieza a ceder, y además pierde los
+  // `dropDeficitTolerance` puntos que estaba cubriendo apretando los dientes, porque eso es
+  // exactamente lo que la reserva le pagaba. De ahí sale el que se hunde en la parte alta tras haber
+  // ido delante en la baja, y de ahí sale su reflejo: el que subió a lo suyo, que lo adelanta.
+  reserveSeconds: 65,
+  // …Y CUÁNTO TARDA EN VOLVER. La constante de tiempo de recarga de W′ rodando por debajo del umbral
+  // es de 300-500 s (Skiba, W′bal). 400 s: un valle de tres o cuatro minutos devuelve la reserva
+  // entera —que es lo que se ve entre dos puertos— y media hora de puerto duro no la devuelve nunca.
+  // Se cuenta en SEGUNDOS de carretera y no por kilómetro, para que sea invariante a la resolución y
+  // para que un kilómetro de puerto (180 s) recupere más que uno de llano (86 s).
+  reserveRecoverySeconds: 400,
+  // …Y CUÁNTO CUESTA DE DEPÓSITO vaciarla entera. Sin cobrarla, ir por encima de lo tuyo sale GRATIS:
+  // medido, el pelotón llegaba entero y fresco, las pájaras se apagaban y `simulate.test.ts` pasaba
+  // de 5 corridas con «me dejo ir» a 1 de 24. El número sale de la física, no del balance: W′ son
+  // 20 kJ y una etapa reina de cinco horas son unos 3.500 kJ de trabajo, que es lo que representa un
+  // depósito de 100 unidades —o sea, W′ ≈ 0,6 unidades—. Se redondea a 1,0 para incluir el
+  // sobrecoste aeróbico del rato que se pasa por encima del umbral.
+  //
+  // NO es `matchCost` (5), y se probó: el cerillo es un esfuerzo DISCRETO y caro de 500 m, y cobrar
+  // la reserva a ese precio se lleva la cola de las reinas reales al 13,2 % de mediana y al 17,9 %
+  // en la peor etapa, contra un techo del 14 % y del 18 %. Con 1,0 la cola se queda donde estaba y
+  // el hundimiento sigue existiendo.
+  reserveEnergyCost: 1,
+
   // --- SELECCIÓN FUERA DE LA MONTAÑA (v12, docs/motor.md §14) ---------------------------------
   // El mecanismo NO cambia: sigue siendo el déficit contra el P75 de los punteros alimentando un
   // hazard, con el cerillo que te salva y el marcaje que te pega a la rueda. Lo que cambia entre
@@ -1097,12 +1179,11 @@ export const STAGE = {
   // v4 y no se leían para nada más que el coste. Un 3★ (la dureza mediana de Roubaix) vale
   // `dropPavesFactor`; un 5★ —Arenberg, Mons-en-Pévèle, Carrefour de l'Arbre— rompe casi el doble;
   // un 1★ apenas se nota. Es la perilla natural y estaba en el dato.
-  // …y CUÁNDO. Un puerto que se sube a TEMPO, lejos de meta, no descuelga como el puerto decisivo
-  // (v16): el pelotón va regulando y lo que se suelta ahí vuelve en el valle. Con 0,3 una cota a
-  // mitad de etapa sigue soltando a los más flojos —el grupeto de una gran vuelta se forma en el
-  // primer puerto de verdad, como en carretera— pero ya no parte el pelotón en dos. La etapa reina
-  // canónica NO se mueve ni un dígito: sus únicos km de subida están dentro de `climbRaceKmToGo`.
-  climbTempoSelection: 0.3,
+  // (`climbTempoSelection` = 0,3, v16, RETIRADA EN LA v26: escalaba la intensidad del dado del
+  // descuelgue en un puerto que se sube a tempo, y ese dado ya no existe. Lo que aquella perilla
+  // compraba —que una cota lejos de meta no parta el pelotón en dos— lo compra ahora la RESERVA, que
+  // es física en vez de un número elegido: en una cota a tempo el déficit contra el P75 es pequeño,
+  // la reserva lo absorbe entero y el valle la recarga. Ver `reserveSeconds` y docs/balance.md «v26».)
   dropPavesFactor: 0.34,
   dropPavesStarsReference: 3,
   // DESCENSO. Mucho más suave, y a propósito: en una bajada se pierde la rueda, no se revienta.

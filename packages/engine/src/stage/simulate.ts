@@ -20,11 +20,13 @@ import { type Group, advanceGroup, createGroup, gapSeconds, percentile75 } from 
 import {
   blockCost,
   blockPerfil,
+  blockSeconds,
   droppedCommit,
   effNow,
   erosion,
   rhythm,
   tankState,
+  targetSpeed,
 } from './physics.js'
 import { rollHazard } from './hazard.js'
 import { rollCrash } from './crash.js'
@@ -182,6 +184,33 @@ interface RiderSim {
   /** Segundos cedidos al objetivo marcado sin llegar a soltarse (`gives` de SPEC 6.18). */
   markLossS: number
   /**
+   * LA DERIVA (v26): segundos que lleva perdidos contra el frente de su grupo SIN haberse soltado
+   * todavía. Es el estado que el motor no tenía y por el que un corredor solo podía estar en dos
+   * sitios —clavado al ritmo del grupo o teletransportado atrás—: ahora la goma se estira.
+   *
+   * Se integra bloque a bloque con la MISMA ley de velocidad que mueve al grupo (SPEC 6.4), se
+   * recupera si el corredor vuelve a poder con el ritmo, y al pasar de `driftDropGapSeconds` deja de
+   * ir en el grupo y se convierte en su propio reloj —con esos segundos YA perdidos encima
+   * (`dropOut(m, group, driftS)`), que es exactamente lo que el dado no sabía hacer—.
+   *
+   * Y si llega a meta sin haberse soltado, esos segundos son tiempo cedido DE VERDAD en carretera y
+   * separan su tiempo del de su grupo, igual que `markLossS`. De ahí sale la llegada continua de un
+   * final en alto —el ganador, y detrás a 4, a 9, a 17 s— en vez del escalón de la foto de grupo.
+   */
+  driftS: number
+  /**
+   * LA RESERVA (v26): segundos de deriva que todavía puede ABSORBER apretando los dientes, antes de
+   * empezar a ceder de verdad. Es W′ —la capacidad de trabajo supraumbral del modelo de potencia
+   * crítica— medida en la unidad en la que aquí se gasta (ver `STAGE.reserveSeconds`).
+   *
+   * Mientras quede, el corredor va CLAVADO al ritmo del grupo aunque su nivel no llegue: eso es lo
+   * que hace que un final en alto deje llegar juntos a un grupo y no a un hombre. Cuando se acaba,
+   * la deriva empieza a contar Y el corredor pierde además los `dropDeficitTolerance` puntos que la
+   * reserva le estaba pagando: es el hundimiento. Se recupera rodando por debajo del ritmo
+   * (`reserveRecoverySeconds`), que es lo que hace el valle entre dos puertos.
+   */
+  reserveS: number
+  /**
    * Ya administró el esfuerzo (regla 8): se dejó ir a propósito. Un corredor solo puede rendirse UNA
    * vez —el que ya rueda a `giveUpCommit` en su grupeto no puede volver a «dejarse ir»—, y sin esta
    * marca `administerEffort` volvía a sortearlo cada bloque también sobre los grupos de descolgados:
@@ -262,10 +291,16 @@ function riderPerfil(sim: RiderSim, block: Block): number {
  * v11 —«así el pelotón no se destroza en cada cota y las diferencias las marca el último puerto,
  * como en la realidad»— aplicada donde faltaba.
  */
-function selectionFactor(block: Block, raceThisClimb = true): number {
+function selectionFactor(block: Block): number {
   switch (block.tipo) {
     case 'subida':
-      return raceThisClimb ? 1 : STAGE.climbTempoSelection
+      // LA SUBIDA YA NO PASA POR AQUÍ (v26): su descuelgue es deriva, no dado, y la deriva se integra
+      // con la ley de velocidad sin escalar por ninguna perilla. Lo que `climbTempoSelection` = 0,3
+      // hacía —que una cota de tempo lejos de meta no descuajaringase el pelotón— lo hace ahora la
+      // RESERVA, y lo hace mejor porque es física y no un número elegido: en una cota que se sube a
+      // tempo el déficit contra el P75 es pequeño (`climbTempoFraction` baja el ritmo que se marca),
+      // la reserva lo absorbe entero y el valle siguiente la recarga. La constante queda retirada.
+      return 1
     case 'paves':
       // Las estrellas del sector escalan la dureza: viajan en el dato desde la v4 y hasta ahora
       // solo se leían para el coste en energía. Un 5★ rompe casi el doble que un 3★.
@@ -283,10 +318,39 @@ function selectionFactor(block: Block, raceThisClimb = true): number {
  * se erosionan, el P75 cae y el grupo afloja aunque quiera (SPEC 6.9).
  */
 function pacemakerP75(members: RiderSim[], block: Block, fraction: number): number {
+  const first = topP75(members, block, fraction)
+  if (block.tipo !== 'subida') return first
+  const head = paceSetters(members, block, first)
+  return head.length === 0 ? first : topP75(head, block, fraction)
+}
+
+/** El P75 del perfil de la fracción más fuerte de un grupo: la cuenta de siempre (SPEC 6.4). */
+function topP75(members: RiderSim[], block: Block, fraction: number): number {
   if (members.length === 0) return 0
   const perfils = members.map((m) => riderPerfil(m, block)).sort((a, b) => b - a)
   const k = Math.max(1, Math.ceil(fraction * perfils.length))
   return percentile75(perfils.slice(0, k))
+}
+
+/**
+ * QUIÉNES MARCAN EL RITMO DE VERDAD (v26): en una subida, los que van pegados al frente del grupo y
+ * no los que ya se están descolgando de él.
+ *
+ * Sin esto, la deriva tenía un efecto colateral MEDIDO y grave: como el que cede metros sigue
+ * contando como miembro del grupo, el grupo dejaba de encoger, y `climbPaceFraction` es una
+ * FRACCIÓN —el 12 % de 60 son 8 hombres, el 12 % de 7 es uno—. Con el grupo entero el ritmo lo
+ * marcaba el 3.º y no el 1.º, el pelotón subía más despacio y la fuga pasaba a ganar el **65,4 %** de
+ * las reinas contra una banda del 25-45 %.
+ *
+ * Y la corrección no es un parche, es lo que pasa en la carretera: el que va estirado en la cola de
+ * un grupo por una rampa no está dando relevos ahí delante. Al restarlos, el ratchet de siempre
+ * vuelve —el grupo de cabeza encoge, el ritmo sube, se estira otro— pero ahora lo frena la reserva
+ * en vez de un dado, que es de lo que va toda la tanda.
+ */
+function paceSetters(members: RiderSim[], block: Block, pace: number): RiderSim[] {
+  return members.filter(
+    (m) => m.driftS <= 0 && riderPerfil(m, block) + STAGE.dropDeficitTolerance >= pace,
+  )
 }
 
 /**
@@ -419,10 +483,19 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
   // calibrados sin que ninguna ley del sprint haya cambiado. Con subflujo propio, un grupo pequeño
   // —donde la colocación no reparte nada— sale dígito a dígito igual que en la v23.
   const rngPlacement = streams('placement')
-  const rngHazard = streams('hazard')
+  /**
+   * EL SUBFLUJO `hazard` YA NO SE PIDE (v26), y hay que decirlo porque es el único dado que este
+   * motor ha QUITADO. Era el del descuelgue en subida: `rollHazard(rngHazard, λ(déficit))` bloque a
+   * bloque. La deriva de la v26 lo sustituye por física —la misma ley de velocidad de SPEC 6.4— y no
+   * tira nada, así que en una etapa de montaña ese flujo deja de consumirse entero.
+   *
+   * No desplaza a NADIE: los subflujos nominales son independientes por construcción (SPEC 6.1), así
+   * que el pavé (`rough`), el sprint, las caídas y la táctica salen dígito a dígito igual. Lo que se
+   * mueve es la montaña, y se mueve porque ha cambiado su física, no porque haya cambiado su azar.
+   */
   // Subflujo NOMINAL de la selección FUERA de la montaña (v12, SPEC 6.1, docs/motor.md §14). El
-  // descuelgue en pavé y en descenso NO puede tirar de `rngHazard`: ese flujo lo consume el
-  // descuelgue en subida bloque a bloque, y meterle tiradas nuevas DESPLAZARÍA su secuencia,
+  // descuelgue en pavé y en descenso NO podía tirar del `hazard` de la subida: ese flujo lo consumía
+  // el descuelgue en subida bloque a bloque, y meterle tiradas nuevas DESPLAZARÍA su secuencia,
   // moviendo resultados de montaña que hoy están calibrados (y con ellos los invariantes) sin que
   // ninguna ley de la montaña haya cambiado. Con un subflujo propio la montaña sale idéntica.
   const rngRough = streams('rough')
@@ -474,6 +547,8 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
       // array de entrada ni del tamaño del pelotón, solo de la semilla y del id (SPEC 6.1).
       workJitter: streams(`work:${r.riderId}`)(),
       markLossS: 0,
+      driftS: 0,
+      reserveS: STAGE.reserveSeconds,
       gaveUp: false,
       bonkNoticed: false,
       bonkKm: 0,
@@ -933,6 +1008,13 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
     const block = blocks[i]!
     const km = kmAt(i)
     const isFinal = n - i <= STAGE.finalBlocks
+    /**
+     * QUIÉN HA TIRADO DE LA RESERVA EN ESTE BLOQUE (v26). El resto la RECUPERA, y la recuperación
+     * vive en `advance` porque es donde se recorre a cada corredor con el reloj de su grupo delante
+     * —la recarga de W′ se cuenta en segundos de carretera, no en kilómetros—. Se llena en `shatter`,
+     * que corre antes que `advance` en el mismo bloque.
+     */
+    const spentReserve = new Set<string>()
 
     // Caduca el impulso de cerillo de todos los corredores en carrera.
     for (const s of sims.values()) if (s.climbBoostBlocks > 0) s.climbBoostBlocks -= 1
@@ -1472,6 +1554,25 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
         kind === 'shed' || frontEffort <= 0
           ? []
           : moves.filter((mv) => mv.g.id !== group.id && mv.g.tS < group.tS)
+      // LA RECARGA DE LA RESERVA (v26). Todo el que no ha tirado de ella en este bloque la recupera,
+      // con la constante de tiempo de W′ y contada en SEGUNDOS de carretera —los que ha durado el
+      // bloque para SU grupo—, no en kilómetros: así un valle de tres minutos la devuelve entera y
+      // media hora de puerto duro no la devuelve nunca, que es lo que se ve en carretera.
+      const blockS = blockSeconds(next.vActual)
+      for (const m of members) {
+        // EL ACORDEÓN SE CIERRA EN EL LLANO (v26). La deriva es la goma de un grupo estirado por una
+        // rampa; en cuanto el terreno deja de seleccionar, el que iba diez segundos por detrás
+        // DENTRO del grupo vuelve a la fila —con un 42 % de rebufo y sin gravedad, cerrar eso son
+        // doscientos metros—. Sin esto, un corredor que cediera unos segundos en una cota del km 40
+        // los arrastraba hasta la meta ciento cuarenta kilómetros después, que es exactamente el
+        // fantasma que la v16 quitó por el otro lado.
+        if (block.tipo === 'llano') m.driftS = 0
+        if (spentReserve.has(m.input.riderId)) continue
+        m.reserveS = Math.min(
+          STAGE.reserveSeconds,
+          m.reserveS + (STAGE.reserveSeconds * blockS) / STAGE.reserveRecoverySeconds,
+        )
+      }
       for (const m of members) {
         const relaying = relayers.has(m.input.riderId)
         /**
@@ -1570,6 +1671,12 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
      * quitarle el grupeto al que revienta devolvería los treinta grupos de un corredor de §3-bis-e—.
      */
     const dropOut = (m: RiderSim, group: Group, delayS = 0): void => {
+      // LA GOMA SE ROMPIÓ, SEA POR LO QUE SEA (v26). El bruto de descolgados que viaja en el parte
+      // de criba (`shed`) lo acumulaba solo `shatter`, así que el que se dejaba ir (regla 8) y el
+      // que se iba al suelo salían del pelotón sin contarse: medido, el parte podía decir «shed 25»
+      // con una pérdida neta de 26, que es una contradicción de la crónica contra sí misma. Contarlo
+      // AQUÍ cubre las tres vías por construcción, porque las tres pasan por esta puerta.
+      if (group.id === PELOTON) droppedSinceNotice += 1
       const tS = group.tS + delayS
       const near = m.hurt
         ? undefined
@@ -1637,6 +1744,81 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
       return able + (Math.min(able, STAGE.giveUpCommit) - able) / size
     }
 
+    /**
+     * ¿SE ROMPE LA GOMA? Lo que pasa en el instante en que un corredor deja de poder con el ritmo:
+     * primero el MARCAJE (SPEC 6.18) y después el CERILLO (SPEC 6.6). Devuelve `true` solo si de
+     * verdad se suelta.
+     *
+     * Estaba en línea dentro del sorteo del descuelgue y sale aquí en la v26 porque ahora lo llaman
+     * dos caminos —la deriva de la subida y el dado del pavé y el descenso— y tiene que ser LA MISMA
+     * respuesta en los dos: quien vive en la rueda de su objetivo la sigue teniendo ruede por donde
+     * ruede, y quien quema una cerilla la quema para lo mismo.
+     *
+     * Las tres salidas que NO son soltarse ponen la deriva a cero, y es lo que significan: el
+     * marcador pegado a la rueda no está cediendo metros, el que cede unos segundos los apunta en
+     * `markLossS` —que es donde se cuentan los cedidos de verdad— y el que quema un cerillo ha
+     * gastado 5 unidades de depósito precisamente en cerrar el hueco que llevaba abierto. Sin esto
+     * el que se salva volvería a estar por encima del umbral en el bloque siguiente y gastaría todas
+     * sus cerillas en medio kilómetro.
+     */
+    const comesOff = (
+      m: RiderSim,
+      block: Block,
+      inGroup: ReadonlySet<string>,
+      allowMatch: boolean,
+    ): boolean => {
+      // Marcaje (SPEC 6.18): ESTE es el momento de selección. Si m marca a un rival que va en su
+      // MISMO grupo, la respuesta la resuelve el módulo oficial `marcaje.ts`: pegado a rueda, cede
+      // unos segundos, o se suelta. Vale igual en el puerto, en el adoquín y en la bajada: un
+      // marcador pegado a la rueda de su objetivo lo sigue estando ruede por donde ruede (v12).
+      const targetId = markTargetOf.get(m.input.riderId)
+      if (targetId && inGroup.has(targetId)) {
+        const target = sims.get(targetId)
+        if (target) {
+          const outcome = resolveMarking(
+            markingMargin(riderPerfil(m, block), riderPerfil(target, block)),
+          )
+          if (outcome.kind === 'stuck') {
+            m.driftS = 0
+            return false
+          }
+          if (outcome.kind === 'gives') {
+            m.markLossS += outcome.secondsLost
+            m.driftS = 0
+            return false
+          }
+          // 'dropped': se suelta y sigue por el camino normal de descuelgue.
+        }
+      }
+      /**
+       * Quemar un cerillo salva el descuelgue, pero CUESTA energía (SPEC 6.6): `matchCost` estaba
+       * definido y no se restaba en ninguna parte, así que un cerillo salía gratis.
+       *
+       * EN LA SUBIDA YA NO SE QUEMA AQUÍ (v26), y es una consecuencia y no un recorte: el cerillo y
+       * la reserva son **el mismo depósito fisiológico** —los dos son trabajo supraumbral, W′— y la
+       * reserva es su versión continua. Cobrarlos por separado le daba al corredor cuatro depósitos
+       * en vez de uno: medido, con tres cerillos que además ponían la deriva a cero, un puerto de 12
+       * km al 6,5 % dejaba de descolgar a NADIE —las 80 corredores del banco de la v8 llegaban al
+       * mismo segundo, incluido el MON 48 contra un ritmo de 63—. El cerillo sigue existiendo, y
+       * sigue sirviendo para lo que la carretera lo usa: atacar, seguir un ataque y aguantar un
+       * sector de adoquines o una bajada, que son sucesos y no derivas.
+       */
+      if (
+        allowMatch &&
+        m.matches > 0 &&
+        m.input.orders.mentality !== 'reservon' &&
+        m.energy > STAGE.matchCost
+      ) {
+        m.matches -= 1
+        m.climbBoostBlocks = STAGE.matchBonusBlocks
+        m.energy = Math.max(0, m.energy - STAGE.matchCost)
+        m.work += STAGE.matchCost
+        m.driftS = 0
+        return false
+      }
+      return true
+    }
+
     // Descuelgue (SPEC 6.8): quien no aguanta el P75 de los punteros de su grupo o quema un cerillo
     // o se descuelga. Hasta la v11 esto solo pasaba EN SUBIDA (`if (block.tipo !== 'subida')`), y
     // por eso los 31 sectores reales de adoquines de Paris-Roubaix costaban energía pero no rompían
@@ -1666,54 +1848,87 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
           narra: narrate ? 1 : 0,
         })
       }
-      const factor = selectionFactor(block, raceThisClimb)
+      const factor = selectionFactor(block)
       if (factor <= 0) return dropped
-      // El dado: la montaña sigue con el suyo de siempre y el terreno nuevo estrena el suyo, para
-      // no desplazar una secuencia calibrada (ver `rngRough` arriba).
-      const rngDrop = block.tipo === 'subida' ? rngHazard : rngRough
       const alive = members.filter((m) => m.groupId === group.id)
       const pace = pacemakerP75(alive, block, paceFraction)
       const inGroup = new Set(alive.map((m) => m.input.riderId))
+      /**
+       * LA DERIVA, EN LUGAR DEL DADO (v26). En la SUBIDA el que no llega al ritmo del grupo ya no se
+       * juega un dado a soltarse: pierde tiempo, poco a poco y en proporción a su déficit, y solo
+       * cuando lo acumulado pasa de `driftDropGapSeconds` deja de ir en el grupo —para entonces YA
+       * ha perdido esos segundos, que es exactamente lo que el dado no sabía hacer—.
+       *
+       * No hay ley nueva: la velocidad que le da SU perfil sale de `targetSpeed` (SPEC 6.4), la misma
+       * que mueve al grupo, y lo que se integra es la resta de los dos tiempos de bloque. El déficit
+       * entra ya descontada la tolerancia —los `dropDeficitTolerance` puntos que uno aprieta los
+       * dientes y cubre— y todo se escala por `selectionFactor`, que es lo que dice cuánto selecciona
+       * este terreno (un puerto de tempo lejos de meta, 0,3; el decisivo, 1).
+       *
+       * Y es SIMÉTRICA, que es la otra mitad: el que vuelve a poder con el ritmo recupera lo cedido
+       * al mismo precio, así que un bache de un kilómetro no condena a nadie. Por debajo de cero no
+       * baja: nadie va por DELANTE del grupo en el que está.
+       *
+       * En el PAVÉ y en el DESCENSO se conserva el dado (`rngRough`, v12): allí no se pierde una
+       * rueda por no poder con el ritmo sino por un error, un corte o un pinchazo, que es un suceso y
+       * no una deriva. Y así el terreno de la v12 sigue calibrado dígito a dígito.
+       */
+      if (block.tipo === 'subida') {
+        const vPace = blockSeconds(targetSpeed(block, pace, group.compromiso))
+        for (const m of alive) {
+          // Los `dropDeficitTolerance` puntos son lo que uno cubre APRETANDO LOS DIENTES, y eso es
+          // justo lo que paga la reserva: sin reserva ya no se cubren, y el corredor cae de golpe a
+          // su nivel de verdad. Ese escalón ES el hundimiento (v26).
+          const own = riderPerfil(m, block) + (m.reserveS > 0 ? STAGE.dropDeficitTolerance : 0)
+          const drift = blockSeconds(targetSpeed(block, own, group.compromiso)) - vPace
+          if (drift <= 0) {
+            // Va sobrado: recupera reserva y cierra el hueco que llevara abierto. Es la otra mitad
+            // de la simetría —un bache de un kilómetro no condena a nadie— y es lo que permite que
+            // dos relojes que convergen vuelvan a ser uno.
+            m.reserveS = Math.min(STAGE.reserveSeconds, m.reserveS - drift)
+            m.driftS = Math.max(0, m.driftS + drift)
+            spentReserve.add(m.input.riderId)
+            continue
+          }
+          spentReserve.add(m.input.riderId)
+          if (m.reserveS > 0) {
+            // Tira de la reserva y NO cede un metro. Aquí vive el grupo de cabeza de un final en
+            // alto: no se sostiene por el rebufo —al 8 % vale un 9,6 %— sino porque cada uno de sus
+            // hombres puede ir un rato por encima de lo suyo.
+            //
+            // Y CUESTA DEPÓSITO, que es lo que lo hace una decisión y no un regalo. Es la misma
+            // clase de esfuerzo que un cerillo (SPEC 6.6) pero repartido, y su precio sale de la
+            // física: W′ contra el trabajo de una etapa (ver `reserveEnergyCost`). Sin este cobro
+            // aguantar por encima de lo tuyo salía GRATIS, el pelotón llegaba entero y fresco a meta
+            // y se apagaban de golpe la pájara, el «me dejo ir» de la regla 8 y media calibración de
+            // la erosión de §VI.1: medido, `simulate.test.ts` pasaba de 5 corridas con
+            // `abandona_ritmo` a 1 de 24, y el reagrupamiento del banco de la v8 dejaba de ocurrir.
+            const spend = Math.min(m.reserveS, drift)
+            const cost = (STAGE.reserveEnergyCost * spend) / STAGE.reserveSeconds
+            m.reserveS -= drift
+            m.energy = Math.max(0, m.energy - cost)
+            m.work += cost
+            continue
+          }
+          m.driftS += drift
+          if (m.driftS < STAGE.driftDropGapSeconds) continue
+          if (!comesOff(m, block, inGroup, false)) continue
+          dropOut(m, group, m.driftS)
+          m.driftS = 0
+          dropped.push(m.input.riderId)
+        }
+        return dropped
+      }
       for (const m of alive) {
         const deficit = pace - riderPerfil(m, block)
         if (deficit <= STAGE.dropDeficitTolerance) continue
         const lambda = (STAGE.lambdaDropBase * factor * deficit) / STAGE.dropDeficitDenom
-        if (!rollHazard(rngDrop, lambda)) continue
-        // Marcaje (SPEC 6.18): el hazard que acaba de saltar ES el momento de selección (el ataque).
-        // Si m marca a un rival que va en su MISMO grupo, la respuesta la resuelve el módulo
-        // oficial `marcaje.ts`: pegado a rueda, cede unos segundos, o se suelta. Vale igual en el
-        // puerto, en el adoquín y en la bajada: un marcador pegado a la rueda de su objetivo lo
-        // sigue estando ruede por donde ruede (v12).
-        const targetId = markTargetOf.get(m.input.riderId)
-        if (targetId && inGroup.has(targetId)) {
-          const target = sims.get(targetId)
-          if (target) {
-            const outcome = resolveMarking(
-              markingMargin(riderPerfil(m, block), riderPerfil(target, block)),
-            )
-            if (outcome.kind === 'stuck') continue
-            if (outcome.kind === 'gives') {
-              m.markLossS += outcome.secondsLost
-              continue
-            }
-            // 'dropped': se suelta y sigue por el camino normal de descuelgue.
-          }
-        }
-        // Quemar un cerillo salva el descuelgue, pero CUESTA energía (SPEC 6.6): `matchCost` estaba
-        // definido y no se restaba en ninguna parte, así que un cerillo salía gratis.
-        if (
-          m.matches > 0 &&
-          m.input.orders.mentality !== 'reservon' &&
-          m.energy > STAGE.matchCost
-        ) {
-          m.matches -= 1
-          m.climbBoostBlocks = STAGE.matchBonusBlocks
-          m.energy = Math.max(0, m.energy - STAGE.matchCost)
-          m.work += STAGE.matchCost
-        } else {
-          dropOut(m, group)
-          dropped.push(m.input.riderId)
-        }
+        if (!rollHazard(rngRough, lambda)) continue
+        // El hazard que acaba de saltar ES el momento de selección (el ataque, el corte, el error):
+        // lo que pasa a partir de ahí es lo mismo que en la subida y lo resuelve `comesOff`.
+        if (!comesOff(m, block, inGroup, true)) continue
+        dropOut(m, group)
+        dropped.push(m.input.riderId)
       }
       return dropped
     }
@@ -1859,7 +2074,7 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
     administerEffort(peloton, membersOf(PELOTON), false)
     for (const m of moves) administerEffort(m.g, membersOf(m.g.id), true)
     for (const sg of shed) administerEffort(sg, membersOf(sg.id), false)
-    const pelotonDropped = shatter(peloton, membersOf(PELOTON), pelFrac)
+    shatter(peloton, membersOf(PELOTON), pelFrac)
     for (const m of moves) shatter(m.g, membersOf(m.g.id), moveFrac(m))
     // Cómo cambia el pelotón en el desenlace: la CRIBA que lo parte y el REAGRUPAMIENTO que lo
     // recompone (SPEC 6.15). Ambos son la misma cuenta —de cuántos a cuántos ha pasado el grupo
@@ -1868,7 +2083,6 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
     // Solo dentro del desenlace: en un puerto de tempo a mitad de etapa el pelotón se rompe y se
     // recompone constantemente, y narrarlo sería ruido.
     if (raceThisClimb) {
-      droppedSinceNotice += pelotonDropped.length
       const front = membersOf(PELOTON)
       // Lo NARRADO es lo que el grupo ha perdido de verdad desde el aviso anterior. Con el recuento
       // bruto (`droppedSinceNotice`) la crónica decía «54 riders slip off the back» y acto seguido
@@ -1971,7 +2185,20 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
       // en un puerto de tempo no se arrastra a la cuenta de la criba que sí decide la etapa.
       droppedSinceNotice = 0
       escapedSinceNotice = 0
-      frontAtLastNotice = membersOf(PELOTON).length
+      /**
+       * …PERO LA REFERENCIA BAJA CON EL GRUPO Y NO SUBE CON ÉL (v26). Esta línea era
+       * `frontAtLastNotice = tamaño actual` en cada bloque, y con eso el REAGRUPAMIENTO solo se
+       * podía narrar si el puerto moría justo en el kilómetro en que empieza el desenlace: un metro
+       * más allá, la referencia ya había subido siguiendo al grupo que volvía y la resta daba cero.
+       * Medido en el banco de la v8: con el puerto en el borde exacto se narra en 6 de 8 semillas y
+       * moviendo la meta 15 km, en 0 de 8. Con la deriva de la v26 el caso NORMAL es justo ese —el
+       * pelotón se estira en la rampa y se cierra en el valle— así que la referencia pasa a ser el
+       * MÍNIMO por el que ha pasado, y solo vuelve a subir cuando el grupo se ha recompuesto del
+       * todo (`farAtPeak`, la misma marca que usa la criba lejana de la v21). Sin esto la crónica
+       * deja «41 delante» y en meta entran ciento veinte juntos.
+       */
+      const farFront = membersOf(PELOTON).length
+      frontAtLastNotice = farFront >= farAtPeak ? farFront : Math.min(frontAtLastNotice, farFront)
       splitPhase = 0
       lastSplitDriverId = null
 
@@ -2769,7 +2996,11 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
         snapshot.push({
           riderId: s.input.riderId,
           groupId: s.groupId,
-          tS,
+          // EL RELOJ DE VERDAD, no el de su grupo: el del grupo más lo que lleva cedido en carretera
+          // sin haberse soltado —la deriva de la v26 y los segundos del marcaje—. Es exactamente la
+          // cuenta con la que se le va a dar el tiempo en meta (`lossOf`), y sin ella la foto vería
+          // empatados a los cuarenta corredores de un grupo que en realidad va estirado en la rampa.
+          tS: tS + s.markLossS + s.driftS,
           energy: s.energy,
           energy0: s.energy0,
         })
@@ -3121,16 +3352,24 @@ function finishStage(
     // un corte inventado por el redondeo que además se acumulaba etapa tras etapa en la general y en
     // la clasificación por equipos. El orden vive ahora en `finishOrder`, no en el reloj.
     const groupTimeS = Math.round(group.tS)
-    ranked.forEach(({ m }, idx) => {
-      // Los segundos cedidos marcando (SPEC 6.18) son tiempo cedido DE VERDAD en carretera (el
-      // marcador no se soltó del grupo, pero llegó con ese retraso), así que sí separan su tiempo
-      // del de sus compañeros de grupo. Es la única separación legítima dentro de un grupo.
-      m.finishTs = groupTimeS + Math.round(m.markLossS)
+    // …Y EL QUE LLEGA ESTIRADO NO DISPUTA EL REMATE (v26). El orden dentro del grupo lo decide el
+    // remate, pero solo entre los que llegan JUNTOS: el que trae segundos cedidos en carretera entra
+    // por detrás de todos los que no traen ninguno, gane el sprint que gane. Con las dos pérdidas a
+    // cero —el caso de un grupo que llega compacto, que es el normal— este orden es el de siempre.
+    const lossOf = (m: RiderSim): number => Math.round(m.markLossS + m.driftS)
+    const strungOut = [...ranked].sort((a, b) => lossOf(a.m) - lossOf(b.m))
+    strungOut.forEach(({ m }, idx) => {
+      // Los segundos cedidos marcando (SPEC 6.18) y los de la DERIVA de la v26 son tiempo cedido DE
+      // VERDAD en carretera —ninguno de los dos se soltó del grupo, pero los dos llegaron con ese
+      // retraso—, así que sí separan su tiempo del de sus compañeros de grupo. Es la única
+      // separación legítima dentro de un grupo, y es de donde sale la llegada CONTINUA de un final
+      // en alto: el ganador, y detrás a 4, a 9, a 17 s, en vez del escalón de la foto de grupo.
+      m.finishTs = groupTimeS + lossOf(m)
       m.finishOrder = order + idx
     })
-    order += ranked.length
-    if (gi === 0 && ranked[0]) {
-      const field = ranked.length
+    order += strungOut.length
+    if (gi === 0 && strungOut[0]) {
+      const field = strungOut.length
       // Sprint masivo A EFECTOS DE CRÓNICA: un grupo numeroso que no llega trepando disputa la
       // meta al sprint, ruede por asfalto, por adoquín o cuesta abajo. Es el mismo criterio de
       // antes (`!finishUphill && field >= 8`) con una definición de "cuesta arriba" que ya no la
@@ -3139,8 +3378,8 @@ function finishStage(
       // Sprint masivo: si el grupo de cabeza es numeroso y la meta es llana, se narra el último km —
       // los rematadores que lo disputan y si el ganador remató bien lanzado por su tren (SPEC 6.15).
       if (isBunch) {
-        const top3 = ranked.slice(0, 3).map((r) => r.m.input.riderId)
-        const train = leadOutFor.get(ranked[0].m.input.riderId) ?? []
+        const top3 = strungOut.slice(0, 3).map((r) => r.m.input.riderId)
+        const train = leadOutFor.get(strungOut[0].m.input.riderId) ?? []
         const ledOut = train.some((id) => idSet.has(id)) ? 1 : 0
         log.emit(Math.max(0, totalKm - 1), group.tS, 'sprint', 'bunch_sprint', top3, {
           field,
@@ -3155,13 +3394,13 @@ function finishStage(
       // Reporte de último km cuando NO es un sprint masivo: quién manda en cabeza y con cuánta ventaja,
       // para que el desenlace no llegue de golpe (el sprint masivo ya lo cuenta bunch_sprint).
       if (!isBunch) {
-        const leaders = ranked.slice(0, Math.min(3, field)).map((r) => r.m.input.riderId)
+        const leaders = strungOut.slice(0, Math.min(3, field)).map((r) => r.m.input.riderId)
         log.emit(Math.max(0, totalKm - 1), group.tS, 'final', 'final_km', leaders, {
           margin,
           field,
         })
       }
-      log.emit(totalKm, group.tS, 'meta', 'stage_win', [ranked[0].m.input.riderId], {
+      log.emit(totalKm, group.tS, 'meta', 'stage_win', [strungOut[0].m.input.riderId], {
         won,
         margin,
         field,

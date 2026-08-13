@@ -5597,3 +5597,165 @@ que se abre se cierra». Los movimientos son los mismos; lo que cambia es cuánt
   los partes de cabeza que ahora sí se emiten cuando el grupo cambia de gente). El saldo se lee en la
   tabla de arriba, que es la pregunta que importaba: no cuántas líneas hay, sino cuántas se
   contradicen.
+
+## v26 — El puerto se sube a TU ritmo: la deriva y la reserva (`engine_version` 25 → 26)
+
+> **La queja del dueño, textual:** «una cosa que debería poder pasar y nunca pasa es que haya
+> remontadas en una subida… uno que empieza mal y luego va remontando… o uno que empieza muy bien,
+> muy fuerte, y luego se hunde». Y el encargo: que el resultado sea **hiperrealista**.
+>
+> **ESTA ENTRADA SE CIERRA CON UN OBJETIVO EN ROJO Y HAY QUE LEERLA ENTERA ANTES DE DESPLEGAR.**
+> Ver §6. La tanda entrega la pieza estructural medida y deja una tensión sin resolver, con números.
+
+### 1. Lo primero, la regla: un banco que mira DENTRO de un puerto
+
+Todo lo que la batería sabía medir de una etapa de montaña se medía EN META. Con eso no se puede
+contestar a la pregunta del dueño, porque entre el pie y la cima el motor no emitía un solo dato con
+el ORDEN de la carrera. Entra `StageProbe` (observación pura: ni un dado, ni un compromiso, ni un
+reloj) y `sim/climbs.ts`, que corre EXACTAMENTE las mismas nueve etapas reina reales de
+`sim/realQueens.ts` —mismo campo, misma semilla, vía `realQueenSetup`— y solo cambia lo que mira:
+tres fotos por puerto (pie, mitad y cima). Que sean las mismas etapas es lo que permite leer los dos
+bancos juntos y saber si lo que arregla el puerto rompe la cola.
+
+Que es OBSERVACIÓN y no física lo demuestran las huellas selladas: al entrar el banco, los 1170
+tests pasaron sin resellar una línea.
+
+### 2. El estado de partida, medido (v25, 9 etapas × 8 semillas, 240 puertos de +4 km)
+
+| Medida sobre el puerto DECISIVO de cada corrida                  |           v25 |
+| ---------------------------------------------------------------- | ------------: |
+| Remontadas (mejora ≥5 puestos entre el pie y la cima)            |         **0** |
+| Corridas SIN ni una remontada                                    |      **85 %** |
+| La mejor remontada de la corrida, en puestos                     |         **1** |
+| Hundimientos de libro (delante a mitad, se cae en la parte alta) |         **0** |
+| Relojes DISTINTOS en la cima, sobre 176 corredores               |         **8** |
+| Dentro de 10 s / 30 s / 60 s del ganador en META                 | **1 · 2 · 2** |
+| Escalón mayor entre dos clasificados                             |     **524 s** |
+| Comparten reloj con alguien                                      |      **98 %** |
+
+**El diagnóstico del encargo queda confirmado con números**: la montaña reparte el tiempo en OCHO
+escalones y dentro de un puerto no se adelanta a nadie. Es lo que produce un descuelgue que es un
+dado: un corredor solo puede estar clavado al ritmo del grupo o teletransportado atrás.
+
+### 3. Lo que se pone en su lugar
+
+**(a) La deriva.** En una subida el que no llega al ritmo ya no se juega un dado: pierde tiempo, poco
+a poco, integrado con la MISMA ley de velocidad de SPEC 6.4 (`blockSeconds(v(propio)) −
+blockSeconds(v(ritmo))`, sin ninguna perilla multiplicando). Al pasar de `driftDropGapSeconds` = 20 s
+deja de ir en el grupo **con esos segundos ya perdidos encima**, que es lo que el dado no sabía
+hacer. Es simétrica: el que vuelve a poder recupera lo cedido, y en el llano el acordeón se cierra.
+Lo no consumido separa su tiempo del de su grupo en meta, igual que `markLossS`.
+
+**(b) La reserva** (`reserveSeconds`): W′/CP del modelo de potencia crítica. Con W′ 15-30 kJ y CP
+250-400 W salen **50-90 s de tiempo cedible antes de reventar, sea cual sea lo que te pases**
+(Monod-Scherrer 1965; W′bal de Skiba 2012). Mientras quede se va por encima de lo sostenible sin
+ceder un metro; al agotarse se cede Y se pierden además los `dropDeficitTolerance` puntos que la
+reserva pagaba. Ese escalón es el hundimiento, y su reflejo —el que subió a lo suyo y adelanta— sale
+de la misma pieza. Se recarga con la constante de tiempo de W′ (400 s) y **cuesta depósito**
+(`reserveEnergyCost` = 1 unidad por reserva entera: W′ ≈ 20 kJ contra los ~3.500 kJ que representa un
+depósito de 100).
+
+**Es el único dado que este motor ha QUITADO.** El subflujo `hazard` deja de consumirse en la
+montaña; como los subflujos nominales son independientes, `rough`, `sprint`, `crash`, `tactics` y
+`placement` salen dígito a dígito iguales, y por eso **las dos huellas de `llana-180` no se mueven ni
+un segundo**. El pavé y el descenso CONSERVAN su dado a propósito: allí no se pierde una rueda por no
+poder con el ritmo sino por un error o un corte.
+
+Cuatro consecuencias que hubo que descubrir midiendo, y que son la mitad de la tanda:
+
+1. **La reserva no puede salir gratis en energía.** Sin cobrarla, el pelotón llegaba entero y fresco:
+   `simulate.test.ts` pasaba de 5 corridas con «me dejo ir» a **1 de 24** y el reagrupamiento del
+   banco de la v8 dejaba de ocurrir. Se cobró primero a precio de `matchCost` (5) y eso se llevaba la
+   cola de las reinas reales a **13,2 % de mediana y 17,9 % en la peor** (techos 14 % y 18 %); con el
+   precio físico (1) la cola se queda donde estaba.
+2. **El que va estirado no marca el ritmo.** Como el que cede metros seguía contando como miembro del
+   grupo, el grupo dejaba de encoger y `climbPaceFraction` es una FRACCIÓN: el 12 % de 60 son ocho
+   hombres y el 12 % de 7 es uno. Resultado medido: la fuga ganaba el **65,4 %** de las reinas
+   canónicas. `paceSetters` deja fuera del ritmo a quien ya está cediendo.
+3. **El cerillo y la reserva son el mismo depósito.** Cobrarlos por separado daba cuatro depósitos en
+   vez de uno: con tres cerillos que además ponían la deriva a cero, un puerto de 12 km al 6,5 %
+   dejaba de descolgar a NADIE —los 80 corredores del banco de la v8 al mismo segundo, incluido el
+   MON 48 contra un ritmo de 63—. En la subida el cerillo ya no se quema; sigue sirviendo para
+   atacar, seguir y aguantar un sector de adoquines.
+4. **La referencia del reagrupamiento subía siguiendo al grupo que volvía**, así que solo se podía
+   narrar si el puerto moría en el kilómetro exacto en que empieza el desenlace: medido, 6 de 8
+   semillas con el puerto en el borde y **0 de 8** moviendo la meta 15 km. Ahora baja con el grupo y
+   solo sube cuando se ha recompuesto del todo.
+
+### 4. Lo que consigue, medido (mismo banco, 9 × 4 semillas)
+
+| Puerto DECISIVO                        |   v25 |  **v26** |
+| -------------------------------------- | ----: | -------: |
+| Remontadas (mediana)                   |     0 |    **6** |
+| Corridas sin ni una remontada          |  85 % | **14 %** |
+| La mejor remontada, en puestos         |     1 |   **20** |
+| Hundimientos de libro                  |     0 |   **13** |
+| Relojes distintos en la cima /176      |     8 | **19,5** |
+| **Dentro de 30 s del ganador en META** | **2** |  **5,5** |
+| Comparten reloj con alguien            |  98 % | **96 %** |
+
+Y por etapa, el número que el encargo pedía —el grupo de cabeza de una reina, dentro de 30 s—:
+`race-france` e20 (el final en alto de control) pasa de **4 a 8,5**; `race-rhone-alpes` e8, de 1,5 a
+6,5; `race-colombia` e5 sigue en 1 porque la gana un solitario a 47 km rodadores de meta, que es lo
+que tiene que pasar.
+
+Las colas siguen en banda: reinas reales **12,2 % de mediana** (objetivo 7-14) y **16,3 % la peor**
+(techo 18).
+
+### 5. Los números reales que se buscaron para poner la banda, y una corrección al encargo
+
+El encargo daba por hecho que «la carretera real deja de 5 a 15» dentro de 30 s en una reina.
+**Buscados los datos, eso NO es cierto para un final en alto de gran vuelta moderna:**
+
+| Etapa real                                  | ≤10 s | ≤30 s | ≤60 s |
+| ------------------------------------------- | ----: | ----: | ----: |
+| Tour 2024 e4, Valloire                      |     1 | **1** |     5 |
+| Tour 2024 e14, Pla d'Adet                   |     1 | **1** |     2 |
+| Tour 2024 e15, Plateau de Beille            |     1 | **1** |     1 |
+| Vuelta 2023 e13, Tourmalet                  |     1 | **2** |     6 |
+| Tour 2024 e11, Le Lioran (repecho, no cima) |     2 | **4** |     4 |
+
+O sea: **el «1» del motor era realista para un final en alto y falso para todo lo demás.** Lo que no
+era realista era que valiese 1 en TODAS las reinas y que el tiempo se repartiese en ocho escalones.
+Por eso el número que esta tanda persigue no es «5-15 en la reina» sino la MEDIANA sobre las nueve
+formas del banco y, sobre todo, la CONTINUIDAD (relojes distintos y escalón mayor). No se ha puesto
+banda nueva en `sim/targets.ts` mientras el objetivo de §6 siga en rojo: un objetivo que nace sobre
+un motor sin cerrar no es un objetivo.
+
+### 6. LO QUE QUEDA EN ROJO, con su medida
+
+`mountain.breakawayWinPct` (la fuga que gana la reina canónica `reina-150`, banda 25-45 %) **se sale
+por arriba**, y depende monótonamente del tamaño de la reserva:
+
+|         `reserveSeconds` | Fuga gana la reina | Brecha 1.º-10.º | Grupo de cabeza en meta (≤30 s) |
+| -----------------------: | -----------------: | --------------: | ------------------------------: |
+|          0 (deriva sola) |         **28,3 %** |           264 s |                               2 |
+|                       10 |         **40,6 %** |           275 s |                               — |
+|                       15 |         **43,2 %** |           265 s |                               2 |
+|                       20 |             47,7 % |           253 s |                               — |
+|                       35 |             56,3 % |           234 s |                               — |
+| **65 (el valor físico)** |        **61-65 %** |           199 s |                         **5,5** |
+
+La causa medida: con reserva, un movimiento de seis hombres **no se deshace** en el puerto final —sus
+gregarios aguantan la rueda del mejor— mientras que con el dado se quedaba en uno o dos y el pelotón
+lo cazaba. Es un comportamiento defendible en carretera, pero saca de banda un guardarraíl
+calibrado, y la regla del encargo es explícita: si el cambio saca un objetivo de banda, el que está
+mal es el cambio.
+
+**Y la tensión es real y hay que decirla sin vestirla:** la reserva pequeña (15 s) deja TODO en verde
+pero **no arregla la queja del dueño** —el grupo de cabeza vuelve a 2 y los hundimientos a 0—; la
+reserva del tamaño que pide la fisiología la arregla y rompe ese objetivo. Lo que falta es la pieza
+que separa las dos cosas: que la reserva ayude a aguantar en el pelotón sin convertir una fuga de
+seis en un bloque indestructible —probablemente que un grupo escapado que lleva media hora relevando
+llegue al puerto con la reserva ya mordida, que hoy no se modela: la reserva se recarga igual para el
+que ha ido a rueda 100 km que para el que ha tirado—.
+
+### 7. Las huellas selladas
+
+`llana-180`, las dos semillas: **idénticas dígito a dígito** (14222 × 40 y 14385 × 39 + 14472), por
+construcción —180 km de llano de una pieza, ni un bloque de subida, y el dado retirado no alimentaba
+a nadie más—. `reina-150` se resella y se mueve donde debe: de 7 relojes a 10 en la primera semilla y
+de 5 a 8 en la segunda, con el **escalón de 23 corredores compartiendo el último reloj deshecho** en
+11 + 6 y 6 + 10 + 6. El grupo de cabeza pasa de 5 a 6 hombres y aparecen los dos que el dado no podía
+dar: `bar-3` a +8 s y `bar-0` a +51 s. La justificación completa, línea a línea, está en
+`stage/attribution.test.ts`.

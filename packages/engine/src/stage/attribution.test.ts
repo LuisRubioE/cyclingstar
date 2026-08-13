@@ -215,7 +215,38 @@ import type { Attribute } from '@cyclingstar/shared'
  * Es decir: cero movimiento en montaña, cero movimiento en la llana cuya fuga tenía cuerda, y en la
  * cuarta un pelotón que llega 54 s antes por perseguir diecinueve kilómetros más, sin partirse. No
  * hay azar nuevo ni subflujo nuevo: el cambio son dos predicados que además de `allowed` miran
- * `dayBreak`. Cualquier otra cosa que mueva esta huella hay que volver a justificarla aquí. */
+ * `dayBreak`. Cualquier otra cosa que mueva esta huella hay que volver a justificarla aquí.
+ *
+ * **RESELLADA EN LA v26** (la deriva y la reserva, docs/balance.md «v26»), y solo `reina-150`. Esta
+ * tanda cambia la FÍSICA de la subida —quita el dado del descuelgue y pone deriva continua más
+ * reserva— así que la montaña TENÍA que moverse; si `reina-150` no se hubiera movido, el cambio no
+ * estaría haciendo nada. Antes de resellar se ha comprobado, con la traza de eventos delante, que se
+ * mueve exactamente donde el cambio predice:
+ *
+ * - **`llana-180`, las DOS semillas: idénticas dígito a dígito.** Los 40 de la primera siguen
+ *   entrando en 14222 y los 39 de la segunda en 14385 con `pel-13` en 14472. Y es por construcción,
+ *   no por suerte: `llana-180` son 180 km de `llano` de una pieza, no tiene un solo bloque de
+ *   `subida`, así que la deriva nunca se evalúa y la reserva nunca se gasta. Además, el dado que se
+ *   retira es el subflujo `hazard`, que NO alimenta a nadie más: `rough`, `sprint`, `tactics`,
+ *   `crash` y `placement` conservan su secuencia entera (SPEC 6.1). Es la garantía de que esta tanda
+ *   no toca el llano, y sale gratis.
+ * - **`reina-150`, primera semilla: la etapa se vuelve CONTINUA, que es el objetivo de la tanda.**
+ *   Los relojes de grupo pasan de 7 a **9**, y sobre todo se deshace el escalón final: donde había
+ *   **23 corredores compartiendo el último reloj** (15003) ahora hay 13 en 15018 y 6 en 15112. El
+ *   grupo de cabeza sigue siendo de 5 (14397 → **14390**) y detrás aparecen los que antes no podían
+ *   existir: `bar-3` a **+13 s** y `bar-5` a **+59 s**, que en el modelo del dado o iban con el grupo
+ *   o aparecían a dos minutos. Los cinco primeros son los mismos cinco.
+ * - **`reina-150`, segunda semilla: lo mismo, y más marcado.** De 5 relojes a **8**, y el escalón de
+ *   **23 corredores en 14743** se reparte en 6 · 10 · 6. El podio no cambia (`gc-1`, `gc-2`, `gc-0`)
+ *   y el grupo de cabeza sigue siendo 5.
+ * - **La cola ENTRA DESPUÉS** (15003 → 15112 y 14743 → 14836) y el frente casi no se mueve (±4 s).
+ *   O sea: la etapa selecciona algo más y, sobre todo, reparte el tiempo de forma continua en vez de
+ *   a escalones. La brecha 1.º-10.º de la reina canónica se queda en **161 s y 153 s**, dentro de la
+ *   banda 60-300 de `sim/targets.ts`.
+ *
+ * Es decir: cero movimiento en el llano —ni un segundo, ni un puesto— y en la montaña el escalón de
+ * veintitrés corredores convertido en una progresión. Cualquier otra cosa que mueva esta huella hay
+ * que volver a justificarla aquí. */
 const SEALED_RESULTS: Record<string, string> = {
   // v23: 14276 → 14222 y el orden dentro del segundo. Los 40 siguen entrando en UN solo reloj; lo
   // que cambia es que la caza arranca en el km 72 en vez del 91 (ver la cabecera).
@@ -226,12 +257,14 @@ const SEALED_RESULTS: Record<string, string> = {
   // tres sprinters en el podio igualmente. Es el cambio que la tanda busca.
   'llana-180-1|llana-180|1|v1':
     '1:spr-0:14385,2:spr-2:14385,3:spr-1:14385,4:pel-19:14385,5:pel-3:14385,6:pel-15:14385,7:pel-24:14385,8:pel-30:14385,9:pel-28:14385,10:brk-1:14385,11:pel-26:14385,12:pel-4:14385,13:pel-22:14385,14:pel-23:14385,15:pel-1:14385,16:pel-0:14385,17:pel-2:14385,18:pel-11:14385,19:pel-21:14385,20:pel-9:14385,21:pel-8:14385,22:pel-6:14385,23:pel-17:14385,24:brk-0:14385,25:pel-25:14385,26:brk-5:14385,27:pel-14:14385,28:brk-4:14385,29:pel-5:14385,30:brk-3:14385,31:pel-7:14385,32:pel-12:14385,33:pel-27:14385,34:pel-20:14385,35:pel-16:14385,36:brk-2:14385,37:pel-10:14385,38:pel-29:14385,39:pel-18:14385,40:pel-13:14472',
-  // v24: los DIECISIETE primeros y TODOS los relojes, idénticos; reordena solo el grupeto de 23.
+  // v26: de 7 relojes a 10 y el escalón de 23 corredores en 15003 deshecho (11 + 6). El grupo de
+  // cabeza pasa de 5 a 6 y aparecen los dos que el dado no podía dar: bar-3 a +8 s, bar-0 a +51 s.
   'reina-150-0|reina-150|1|v1':
-    '1:gc-1:14397,2:gc-0:14397,3:gc-3:14397,4:gc-2:14397,5:bar-4:14397,6:pel-7:14461,7:pel-4:14461,8:pel-18:14461,9:pel-19:14461,10:bar-3:14509,11:pel-1:14509,12:bar-5:14558,13:bar-0:14558,14:pel-8:14763,15:pel-12:14763,16:bar-2:14857,17:bar-1:14857,18:pel-10:15003,19:pel-21:15003,20:pel-6:15003,21:pel-20:15003,22:pel-17:15003,23:pel-11:15003,24:pel-23:15003,25:pel-9:15003,26:pel-26:15003,27:pel-25:15003,28:pel-22:15003,29:pel-5:15003,30:pel-16:15003,31:pel-13:15003,32:pel-3:15003,33:pel-15:15003,34:pel-14:15003,35:pel-0:15003,36:pel-24:15003,37:pel-2:15003,38:spr-0:15003,39:spr-2:15003,40:spr-1:15003',
-  // v24: ídem — los diecisiete primeros y los relojes idénticos, reordena el grupeto de 23.
+    '1:gc-1:14390,2:gc-0:14390,3:gc-3:14390,4:gc-2:14390,5:bar-4:14390,6:bar-3:14403,7:bar-5:14449,8:bar-0:14551,9:pel-7:14551,10:pel-19:14551,11:pel-18:14551,12:pel-8:14551,13:pel-4:14551,14:pel-1:14551,15:pel-12:14551,16:bar-1:14740,17:bar-2:14740,18:pel-10:14903,19:pel-21:14980,20:pel-20:14980,21:pel-5:14980,22:pel-6:15018,23:pel-17:15018,24:pel-11:15018,25:pel-23:15018,26:pel-13:15018,27:pel-25:15018,28:pel-26:15018,29:pel-16:15018,30:pel-14:15018,31:pel-15:15018,32:pel-0:15018,33:pel-3:15018,34:spr-2:15018,35:pel-9:15112,36:pel-24:15112,37:pel-22:15112,38:pel-2:15112,39:spr-0:15112,40:spr-1:15112',
+  // v26: ídem — de 5 relojes a 8, y el escalón de 23 corredores en 14743 repartido en 6 · 10 · 6.
+  // El podio no cambia y el grupo de cabeza sigue siendo 5.
   'reina-150-1|reina-150|1|v1':
-    '1:gc-2:14148,2:gc-1:14148,3:gc-3:14148,4:gc-0:14148,5:bar-0:14197,6:pel-7:14294,7:pel-24:14294,8:pel-12:14294,9:bar-4:14376,10:bar-5:14376,11:bar-2:14376,12:pel-21:14376,13:pel-20:14376,14:pel-8:14376,15:pel-5:14376,16:bar-1:14376,17:spr-1:14376,18:pel-23:14743,19:pel-4:14743,20:bar-3:14743,21:pel-10:14743,22:pel-13:14743,23:pel-22:14743,24:pel-3:14743,25:pel-6:14743,26:pel-25:14743,27:pel-9:14743,28:pel-17:14743,29:pel-14:14743,30:pel-18:14743,31:pel-0:14743,32:pel-26:14743,33:pel-19:14743,34:pel-11:14743,35:pel-1:14743,36:pel-16:14743,37:pel-2:14743,38:pel-15:14743,39:spr-2:14743,40:spr-0:14743',
+    '1:gc-1:14152,2:gc-2:14152,3:gc-0:14152,4:gc-3:14152,5:bar-0:14152,6:bar-5:14268,7:pel-7:14268,8:pel-24:14268,9:pel-12:14268,10:bar-2:14305,11:pel-8:14305,12:bar-3:14327,13:bar-4:14327,14:bar-1:14487,15:pel-20:14487,16:pel-21:14487,17:pel-5:14487,18:spr-1:14487,19:pel-23:14703,20:pel-13:14703,21:pel-17:14703,22:pel-9:14703,23:pel-18:14703,24:pel-3:14703,25:pel-10:14739,26:pel-14:14739,27:pel-4:14739,28:pel-0:14739,29:pel-22:14739,30:pel-25:14739,31:pel-15:14739,32:pel-11:14739,33:pel-6:14739,34:pel-16:14739,35:pel-2:14836,36:pel-19:14836,37:pel-26:14836,38:pel-1:14836,39:spr-2:14836,40:spr-0:14836',
 }
 
 const fingerprint = (out: StageOutput): string =>
