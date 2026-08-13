@@ -164,10 +164,18 @@ export function LeadingTeamBib({
         stroke="rgba(0,0,0,0.35)"
         strokeWidth="1.5"
       />
-      {/* Los dígitos, sugeridos: a este tamaño un número real sería una mancha. */}
-      <rect x="14" y="19" width="5" height="11" rx="1.5" fill="#1f2937" />
-      <rect x="21.5" y="19" width="5" height="11" rx="1.5" fill="#1f2937" />
-      <rect x="29" y="19" width="5" height="11" rx="1.5" fill="#1f2937" />
+      {/*
+        EL HUECO DEL NÚMERO, no los dígitos.
+
+        Aquí había TRES BARRAS VERTICALES que insinuaban las cifras, con la idea correcta de que a
+        este tamaño un número de verdad sería una mancha. Pero tres barras verticales de 15 px no se
+        leen como un número: se leen como LETRAS. El dueño las vio en la clasificación por equipos y
+        preguntó qué significaba «Ill» —y en su móvil eso es exactamente lo que ponía—.
+
+        Una banda horizontal no puede confundirse con texto y sigue diciendo «esto es un dorsal»:
+        es el campo donde va la cifra, que es lo que se distingue de lejos en una cartulina real.
+      */}
+      <rect x="14" y="21" width="20" height="7" rx="1.5" fill="#1f2937" />
     </svg>
   )
 }
