@@ -33,9 +33,13 @@ import { applyDailyLoad, eff0, initialEnergy } from '../packages/engine/dist/ban
 import {
   DEFECTS,
   DEFECT_LABEL,
+  FINALE_KM,
+  MUTE_KM_LIMIT,
+  addStoryToWorld,
   addToWorld,
   auditStage,
   emptyWorldAudit,
+  storyMetrics,
 } from '../packages/engine/dist/sim/coherence.js'
 import { SEASON_CALENDAR } from '../packages/engine/dist/routes/calendar.js'
 import { SMALL_TOURS } from '../packages/engine/dist/sim/smallTours.js'
@@ -127,9 +131,12 @@ async function medirProduccion(base, rehacer = false) {
       // narración NUEVA sobre lo ya corrido es volver a construir la crónica encima de lo que la
       // API entrega. Es una aproximación por arriba —las pasadas viejas ya se le han aplicado una
       // vez— y por eso se dice: mide lo que la v25 AÑADE, no la crónica desde cero.
-      const result = auditStage(fromApi(rehacer ? rebuild(data.chronicle) : data.chronicle))
+      const entries = fromApi(rehacer ? rebuild(data.chronicle) : data.chronicle)
+      const result = auditStage(entries)
+      const id = `${race.id} e${stage.index}`
       addToWorld(world, result)
-      porEtapa.push({ id: `${race.id} e${stage.index}`, result })
+      addStoryToWorld(world, storyMetrics(entries), id)
+      porEtapa.push({ id, result })
     }
   }
   return { world, sinCronica, porEtapa, dayOfSeason: cal.dayOfSeason }
@@ -240,9 +247,12 @@ function medirBanco(runs) {
   for (const tour of SMALL_TOURS) {
     for (let run = 0; run < runs; run++) {
       for (const stage of correrCarrera(tour.raceId, run)) {
-        const result = auditStage(fromApi(stage.chronicle))
+        const entries = fromApi(stage.chronicle)
+        const result = auditStage(entries)
+        const id = `${stage.id} #${run}`
         addToWorld(world, result)
-        porEtapa.push({ id: `${stage.id} #${run}`, result })
+        addStoryToWorld(world, storyMetrics(entries), id)
+        porEtapa.push({ id, result })
       }
     }
   }
@@ -271,6 +281,36 @@ function imprimir(world, porEtapa) {
   ).length
   console.log(
     `${'etapas SIN una sola contradiccion'.padEnd(ancho)}  ${String(limpias).padStart(5)}`,
+  )
+  imprimirEspina(world.story, ancho)
+}
+
+/**
+ * LAS CUATRO MEDIDAS DE LA ESPINA DORSAL (v27). No son defectos que bajar a cero: son propiedades
+ * del relato que se leen contra un listón, y sin ellas no se puede saber si la tanda ha servido.
+ */
+function imprimirEspina(s, ancho) {
+  if (s.stages === 0) return
+  const pct = (a, b) => (b > 0 ? `${((100 * a) / b).toFixed(1)}%` : '—')
+  const fila = (etiqueta, valor, cola = '') =>
+    console.log(`${etiqueta.padEnd(ancho)}  ${String(valor).padStart(5)}   ${cola}`)
+  console.log('')
+  fila(
+    'km MAXIMOS sin una linea de situacion',
+    s.peorMudoKm,
+    `peor: ${s.peorMudoEtapa} · media por etapa ${(s.mudoKmSuma / s.stages).toFixed(1)} km · ` +
+      `${s.etapasMudas}/${s.stages} etapas pasan de ${MUTE_KM_LIMIT} km`,
+  )
+  fila('dos protagonistas «con hueco» a la vez', s.dosConHueco, `en ${s.etapasConDos} etapas`)
+  fila(
+    `lineas de los ultimos ${FINALE_KM} km que hablan del ganador`,
+    s.finalDelGanador,
+    `de ${s.finalLineas} (${pct(s.finalDelGanador, s.finalLineas)})`,
+  )
+  fila(
+    'nombres de grupo distintos (max por etapa)',
+    s.nombresMax,
+    `${s.etapasConCuatroNombres}/${s.stages} etapas usan mas de tres`,
   )
 }
 
@@ -316,13 +356,18 @@ if (modo === 'produccion') {
   const rehacer = args.includes('--rehacer')
   const [raceId, day, base = BASE] = args.filter((a) => !a.startsWith('--'))
   const data = await getJson(`${base}/api/races/${raceId}/stages/${day}`)
-  const { counts, findings } = auditStage(
-    fromApi(rehacer ? rebuild(data.chronicle ?? []) : (data.chronicle ?? [])),
-  )
+  const entries = fromApi(rehacer ? rebuild(data.chronicle ?? []) : (data.chronicle ?? []))
+  const { counts, findings } = auditStage(entries)
   console.log(`${raceId} e${day}: ${findings.length} hallazgos`)
   for (const f of findings)
     console.log(`  km ${String(f.km).padStart(3)}  ${f.defect}: ${f.detail}`)
   for (const d of DEFECTS) if (counts[d] > 0) console.log(`  ${d} = ${counts[d]}`)
+  const m = storyMetrics(entries)
+  console.log(
+    `  espina: mudo ${m.mudoKm} km (desde el ${m.mudoDesdeKm}) · ${m.dosConHueco} veces dos con hueco · ` +
+      `${m.finalDelGanador}/${m.finalLineas} lineas del ganador en los ultimos ${FINALE_KM} km · ` +
+      `${m.nombresDeGrupo} nombres de grupo`,
+  )
 } else {
   console.error('uso: medir-defectos.mjs produccion|banco|etapa …  (ver cabecera del fichero)')
   process.exit(1)

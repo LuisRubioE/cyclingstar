@@ -451,18 +451,275 @@ export function auditStage(entries: readonly AuditEntry[]): AuditResult {
   return { counts, findings }
 }
 
+// =================================================================================================
+// LA ESPINA DORSAL DEL RELATO (v27, docs/motor.md §16)
+// =================================================================================================
+//
+// La v25 arregló que el diario se CONTRADIJERA. El dueño leyó la etapa 1 de Race Andalucía —ya sin
+// contradicciones— y dijo otra cosa: «si lees todo el Journal no SABES quién va ganando, quién va
+// persiguiendo… es un lío los últimos mensajes». No es que mienta: es que no cuenta una historia.
+//
+// LA REGLA, que es la que ordena la tanda: en cualquier punto del diario, un lector que haya leído
+// desde el principio tiene que poder responder cuatro cosas — QUIÉN VA DELANTE, CON CUÁNTA VENTAJA,
+// SOBRE QUIÉN y CUÁNTO QUEDA. Eso no se cuenta con las doce contradicciones de arriba, que miran
+// pares de líneas; se cuenta con estas cuatro medidas, que miran el relato ENTERO:
+//
+//   1. cuántos km aguanta el diario sin una línea de situación (el silencio más largo);
+//   2. cuántas veces hay DOS protagonistas «con hueco» a la vez sin relacionarlos;
+//   3. en los últimos 15 km, qué fracción de las líneas habla del que gana;
+//   4. cuántos nombres distintos de grupo se usan en una misma etapa.
+//
+// Van aparte de `auditStage` a propósito: una contradicción es un defecto y se cuenta para bajarla a
+// cero; esto son PROPIEDADES del relato —hay un mínimo de silencio inevitable y un máximo de
+// vocabulario razonable— y se leen como listones, no como errores.
+
+/**
+ * LAS LÍNEAS DE SITUACIÓN. Las que dejan al lector sabiendo el estado de la carrera: quién va
+ * delante, con cuánto, sobre quién. No es «cualquier línea»: que alguien corone un puerto o que un
+ * equipo tire son noticias, pero no responden ninguna de las cuatro preguntas, y una etapa que solo
+ * las cuenta se lee como una lista de incidentes.
+ */
+const SITUATION = new Set([
+  'time_gap',
+  'time_gap_run',
+  'front_group',
+  'breakaway_formed',
+  'breakaway_caught',
+  'move_caught',
+  'move_merge',
+  'move_faded',
+  'bridge_made',
+  'attack_sticks',
+  'peloton_split',
+  'peloton_selection',
+  'peloton_regroup',
+  'final_km',
+  'bunch_sprint',
+  'stage_win',
+])
+
+/**
+ * LAS LÍNEAS QUE DICEN «FULANO TIENE HUECO». Cada una nombra a alguien y le pone una ventaja: si dos
+ * de ellas conviven y hablan de gente distinta sin relacionarse, el lector no puede saber quién va
+ * ganando. Es literal del último kilómetro de Race Andalucía: «Schwarz lidera por 16s» y «Bailey
+ * tiene 46s» en la misma línea de meta.
+ */
+const GAP_CLAIM = new Set(['attack_sticks', 'final_km', 'front_group', 'time_gap', 'time_gap_run'])
+
+/**
+ * Dentro de cuántos km dos anuncios de ventaja se leen como SIMULTÁNEOS. Tres: a esa distancia el
+ * lector todavía tiene el número anterior en la cabeza y los dos compiten por ser «la carrera».
+ */
+const GAP_CLAIM_WINDOW_KM = 3
+
+/** Los últimos kilómetros que deciden la etapa, y en los que el relato tiene que converger. */
+export const FINALE_KM = 15
+
+/**
+ * EL VOCABULARIO DE GRUPOS (docs/motor.md §6.15-bis). En la carretera hay TRES cosas y por tanto
+ * caben tres nombres, ni uno más:
+ *
+ * - **the lead group** — los que van delante (con uno, su nombre y nada más).
+ * - **the chase group** — el grupo que persigue a los de delante, sea quien sea.
+ * - **the bunch** — el grueso de la carrera, que ya no pelea por la etapa.
+ *
+ * «The favourites», «the sprinters' teams» y «the fast men» NO son nombres de grupo: son PAPELES
+ * dentro de uno, y usarlos como sujeto es lo que hace que, después de una criba, el lector tenga
+ * cuatro nombres para tres cosas y no pueda seguir la carrera.
+ *
+ * Esta tabla dice qué nombres puede imprimir cada plantilla, contando TODAS sus variantes: la
+ * redacción se elige por hash y este medidor no puede saber cuál sale, así que lo que se cuenta es
+ * el vocabulario al que la etapa expone al lector. Vive aquí, con el medidor, porque el número tiene
+ * que ser el mismo en producción y en el banco; y `stageJournal.test.ts` vigila la otra mitad —que
+ * ninguna frase de verdad imprima un nombre que no esté en su fila—, que es lo que impide que la
+ * tabla y las plantillas se separen.
+ */
+export const GROUP_NOUNS: Readonly<Record<string, readonly string[]>> = {
+  attack_go: ['the bunch'],
+  attack_short: ['the bunch'],
+  attack_swarm: ['the group'],
+  attack_sticks: ['the move'],
+  attack_reeled: ['the bunch'],
+  move_faded: ['the move'],
+  move_caught: ['the chase'],
+  move_merge: ['the lead'],
+  bridge_made: ['the leaders', 'the front group'],
+  breakaway_formed: ['the break'],
+  break_cooperation: ['the break'],
+  break_share: ['the break'],
+  riders_sit_up: ['the group'],
+  rider_sits_up: ['the group'],
+  sprinters_chase: ["the sprinters' teams", 'the bunch', 'the fast men'],
+  sprinters_give_up: ["the sprinters' teams", 'the lead-out trains', 'the fast men'],
+  peloton_concedes: ['the bunch', 'the peloton', 'the favourites', 'the chase', 'the break'],
+  peloton_pull: ['the bunch', 'the front group'],
+  peloton_split: ['the chase group', 'the lead group'],
+  peloton_selection: ['the chase group', 'the front group'],
+  peloton_regroup: ['the chase group', 'the front group', 'the chase'],
+  time_gap: ['the leaders', 'the chase', 'the break', 'the bunch'],
+  time_gap_run: ['the leaders', 'the chase', 'the break'],
+  front_group: ['the lead group', 'the front'],
+  chase_work: ['the chase', 'the chasers'],
+  breakaway_caught: ['the peloton', 'the bunch', 'the chase', 'the break'],
+  bunch_sprint: ['the bunch'],
+  stage_win: ['the chase', 'the bunch', 'the lead group'],
+}
+
+/** Qué nombres de grupo puede imprimir esta línea. */
+export function groupNounsOf(e: AuditEntry): readonly string[] {
+  return GROUP_NOUNS[e.plantilla] ?? []
+}
+
+/** Las cuatro medidas de una etapa. Números, no defectos: se leen contra un listón. */
+export interface StoryMetrics {
+  /** Km de la etapa según su última línea: el eje sobre el que se miden los silencios. */
+  km: number
+  /** El silencio más largo, en km, sin una línea de situación. */
+  mudoKm: number
+  /** Dónde empieza ese silencio, para poder ir a mirarlo. */
+  mudoDesdeKm: number
+  /** Veces que dos protagonistas distintos aparecen «con hueco» a la vez sin relacionarse. */
+  dosConHueco: number
+  /** Líneas en los últimos `FINALE_KM` km. */
+  finalLineas: number
+  /** …y cuántas de ellas hablan del que gana la etapa. */
+  finalDelGanador: number
+  /** Cuántos nombres distintos de grupo se usan en la etapa (el listón son tres). */
+  nombresDeGrupo: number
+}
+
+/**
+ * Mide la ESPINA DORSAL de una crónica: si el lector puede seguir la carrera leyéndola. Misma
+ * entrada que `auditStage` y mismo sitio, para que el número de producción y el del banco se
+ * comparen sin traducir nada.
+ */
+export function storyMetrics(entries: readonly AuditEntry[]): StoryMetrics {
+  const km = entries.reduce((mx, e) => Math.max(mx, e.km), 0)
+  const vacio: StoryMetrics = {
+    km,
+    mudoKm: 0,
+    mudoDesdeKm: 0,
+    dosConHueco: 0,
+    finalLineas: 0,
+    finalDelGanador: 0,
+    nombresDeGrupo: 0,
+  }
+  if (entries.length === 0) return vacio
+
+  // --- 1. El silencio más largo sin una línea de situación --------------------------------------
+  // Se mide de la SALIDA a la META, no de la primera línea a la última: los primeros kilómetros sin
+  // una palabra son silencio igual, y son justo los que el lector lee con más ganas.
+  let mudoKm = 0
+  let mudoDesdeKm = 0
+  let last = 0
+  for (const e of entries) {
+    if (!SITUATION.has(e.plantilla)) continue
+    if (e.km - last > mudoKm) {
+      mudoKm = e.km - last
+      mudoDesdeKm = last
+    }
+    last = e.km
+  }
+  if (km - last > mudoKm) {
+    mudoKm = km - last
+    mudoDesdeKm = last
+  }
+
+  // --- 2. Dos hombres «con hueco» a la vez -------------------------------------------------------
+  // Un anuncio de ventaja que se cuenta RESPECTO DEL LÍDER (`respecto`) no compite con él: es la
+  // misma carrera contada, que es exactamente lo que se pide en el desenlace.
+  let dosConHueco = 0
+  const abiertos: { km: number; riders: readonly string[] }[] = []
+  for (const e of entries) {
+    if (!GAP_CLAIM.has(e.plantilla)) continue
+    if (e.riders.length === 0) continue
+    if (Number(e.datos.gapS ?? e.datos.margin ?? 0) <= 0) continue
+    if (e.datos.respecto != null) continue
+    const choca = abiertos.some(
+      (o) => e.km - o.km <= GAP_CLAIM_WINDOW_KM && !o.riders.some((r) => e.riders.includes(r)),
+    )
+    if (choca) dosConHueco += 1
+    abiertos.push({ km: e.km, riders: e.riders })
+  }
+
+  // --- 3. El desenlace habla del que gana ---------------------------------------------------------
+  const winner = entries.find((e) => e.plantilla === 'stage_win')?.riders[0] ?? null
+  const finale = entries.filter((e) => e.km >= km - FINALE_KM)
+  const finalDelGanador =
+    winner === null ? 0 : finale.filter((e) => e.riders.includes(winner)).length
+
+  // --- 4. Cuántos nombres de grupo ------------------------------------------------------------------
+  const palabras = new Set<string>()
+  for (const e of entries) for (const w of groupNounsOf(e)) palabras.add(w)
+
+  return {
+    km,
+    mudoKm,
+    mudoDesdeKm,
+    dosConHueco,
+    finalLineas: finale.length,
+    finalDelGanador,
+    nombresDeGrupo: palabras.size,
+  }
+}
+
 /** Suma las cuentas de varias etapas, y de paso cuántas etapas tocan cada defecto. */
 export interface WorldAudit {
   stages: number
   counts: Record<DefectKey, number>
   stagesWith: Record<DefectKey, number>
+  /** Las cuatro medidas de la espina dorsal (v27), sumadas sobre el mundo. */
+  story: WorldStory
 }
+
+/**
+ * Las cuatro medidas de §5 del encargo, agregadas. El silencio se lee por su PEOR caso y por su
+ * media —un mundo con una etapa muda y setenta habladoras no es el mismo que setenta calladas— y el
+ * desenlace, por la fracción global de líneas que hablan del ganador.
+ */
+export interface WorldStory {
+  stages: number
+  /** El silencio más largo de todo el mundo, y en qué etapa está. */
+  peorMudoKm: number
+  peorMudoEtapa: string
+  /** Media de los silencios más largos de cada etapa. */
+  mudoKmSuma: number
+  /** Etapas cuyo silencio más largo pasa del listón. */
+  etapasMudas: number
+  dosConHueco: number
+  etapasConDos: number
+  finalLineas: number
+  finalDelGanador: number
+  /** Etapas que usan más de tres nombres de grupo, y el peor de todos. */
+  etapasConCuatroNombres: number
+  nombresMax: number
+}
+
+/**
+ * A partir de cuántos km sin una línea de situación se cuenta una etapa como MUDA. Treinta es lo que
+ * el dueño señaló leyendo Race Andalucía («el estado de carrera no puede quedarse mudo 35 km»), y en
+ * una etapa de 150-200 km es un tercio largo de carrera sin saber quién va ganando.
+ */
+export const MUTE_KM_LIMIT = 30
 
 export function emptyWorldAudit(): WorldAudit {
   return {
     stages: 0,
     counts: Object.fromEntries(DEFECTS.map((d) => [d, 0])) as Record<DefectKey, number>,
     stagesWith: Object.fromEntries(DEFECTS.map((d) => [d, 0])) as Record<DefectKey, number>,
+    story: {
+      stages: 0,
+      peorMudoKm: 0,
+      peorMudoEtapa: '',
+      mudoKmSuma: 0,
+      etapasMudas: 0,
+      dosConHueco: 0,
+      etapasConDos: 0,
+      finalLineas: 0,
+      finalDelGanador: 0,
+      etapasConCuatroNombres: 0,
+      nombresMax: 0,
+    },
   }
 }
 
@@ -472,5 +729,24 @@ export function addToWorld(world: WorldAudit, result: AuditResult): WorldAudit {
     world.counts[d] += result.counts[d]
     if (result.counts[d] > 0) world.stagesWith[d] += 1
   }
+  return world
+}
+
+/** Suma las cuatro medidas de una etapa al mundo. `id` solo se usa para poder ir a mirar el peor. */
+export function addStoryToWorld(world: WorldAudit, m: StoryMetrics, id: string): WorldAudit {
+  const s = world.story
+  s.stages += 1
+  if (m.mudoKm > s.peorMudoKm) {
+    s.peorMudoKm = m.mudoKm
+    s.peorMudoEtapa = `${id} (km ${m.mudoDesdeKm}-${m.mudoDesdeKm + m.mudoKm})`
+  }
+  s.mudoKmSuma += m.mudoKm
+  if (m.mudoKm > MUTE_KM_LIMIT) s.etapasMudas += 1
+  s.dosConHueco += m.dosConHueco
+  if (m.dosConHueco > 0) s.etapasConDos += 1
+  s.finalLineas += m.finalLineas
+  s.finalDelGanador += m.finalDelGanador
+  if (m.nombresDeGrupo > 3) s.etapasConCuatroNombres += 1
+  s.nombresMax = Math.max(s.nombresMax, m.nombresDeGrupo)
   return world
 }
