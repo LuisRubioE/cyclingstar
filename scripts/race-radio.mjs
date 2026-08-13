@@ -347,6 +347,17 @@ if (source.refused) {
   process.exit(2)
 }
 
+// UNA CRONO NO TIENE RADIO DE CARRERA, y decirlo es mejor que imprimir una tabla vacía: los grupos
+// son de uno, no hay huecos que anunciar ni nadie a quien relevar, y `simulateStage` la desvía a
+// `simulateTimeTrial`, que no toma fotos. Se lee por el reloj de meta, no por el kilómetro (v18).
+if (source.input.timeTrial === true) {
+  console.error(
+    `\nrace-radio: ${raceId} e${day} es una CRONO. No hay radio de carrera que dar —cada corredor` +
+      ` es su propio grupo—; su historia es el reloj de meta.\n`,
+  )
+  process.exit(3)
+}
+
 const totalKm = stageLengthKm(source.input.profile)
 const collector = raceRadioCollector(radioKmPoints(totalKm, EVERY), {
   starters: source.input.riders.length,
