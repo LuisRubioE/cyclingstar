@@ -391,8 +391,27 @@
  * Es el único dado que este motor ha QUITADO: el subflujo `hazard` deja de consumirse en la montaña.
  * No desplaza a nadie —los subflujos son independientes— así que el pavé, el sprint, las caídas y la
  * táctica salen dígito a dígito iguales. Medido en docs/balance.md, «v26».
+ *
+ * **v27 — EL DIARIO NECESITA ESPINA DORSAL.** La v25 quitó las contradicciones; el dueño leyó la
+ * etapa 1 de Race Andalucía —ya sin ellas— y dijo que «si lees todo el Journal no SABES quién va
+ * ganando, quién va persiguiendo». La regla que ordena esta versión: en cualquier punto del diario
+ * el lector tiene que poder responder QUIÉN VA DELANTE, CON CUÁNTA VENTAJA, SOBRE QUIÉN y CUÁNTO
+ * QUEDA. Del motor salen las cuatro respuestas y ninguna estaba entera.
+ *
+ * La causa madre es de medida y es de esta casa: `gapChaseMainFraction` elige como referencia el
+ * primer grupo de detrás con al menos la mitad de los corredores del MAYOR que va detrás, y tras una
+ * criba masiva el mayor de detrás es un GRUPETO de descolgados. En Race Andalucía —80 fuera en el
+ * km 26— la ventaja se midió trece kilómetros contra gente que ya no corría por nada: 6:53 en el
+ * km 137 y 16 s en meta, sin una línea que lo contara. Ahora la referencia son los que SIGUEN EN
+ * CARRERA (fuga, movimientos y pelotón, nunca un grupeto), y dentro de ellos sigue entera la regla
+ * de la v25. Además el parte de ventaja NOMBRA a quien va delante, dice contra qué clase de grupo se
+ * mide (`chaseKind`) y cuánto queda (`toGo`), y el último kilómetro dice sobre cuántos se lleva el
+ * margen (`chaseSize`).
+ *
+ * Cambio de OBSERVACIÓN, como la v25: ni un dado, ni un subflujo, ni una constante de calibración
+ * movida, y las huellas selladas salen dígito a dígito iguales. Medido en docs/balance.md, «v27».
  */
-export const ENGINE_VERSION = 26 as const
+export const ENGINE_VERSION = 27 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a

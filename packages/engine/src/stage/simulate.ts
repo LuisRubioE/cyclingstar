@@ -86,6 +86,16 @@ import type {
 const PELOTON = 'peloton'
 
 /**
+ * QUÉ CLASE DE GRUPO ES CADA UNO, para ordenar la carretera y para saber contra quién se mide el
+ * boquete (v27). El orden es el de la carretera —delante los movimientos, luego el pelotón y al
+ * final los descolgados— y desempata a igualdad de reloj (ver `liveGroups`); y la CLASE es lo que
+ * permite no medir nunca la ventaja contra un grupeto, que es la causa madre de esta tanda.
+ */
+const MOVE_RANK = 0
+const PELOTON_RANK = 1
+const SHED_RANK = 2
+
+/**
  * Un MOVIMIENTO en carretera: un grupo que se ha ido por delante del pelotón (docs/motor.md §13).
  * Un ataque logrado ES un grupo nuevo, así que lo único que hace falta añadir a `Group` es la
  * memoria táctica: de qué clase de intento nació, si el pelotón le ha dado cuerda, si ya ha cuajado
@@ -1145,9 +1155,9 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
       // ser el pelotón entero durante un instante y el parte de cabeza se dispara luego por partida
       // doble. Delante va la fuga; detrás, el pelotón; y al final, los descolgados.
       const liveGroups = [
-        ...moves.map((m) => ({ g: m.g, rank: 0 })),
-        { g: peloton, rank: 1 },
-        ...shed.map((g) => ({ g, rank: 2 })),
+        ...moves.map((m) => ({ g: m.g, rank: MOVE_RANK })),
+        { g: peloton, rank: PELOTON_RANK },
+        ...shed.map((g) => ({ g, rank: SHED_RANK })),
       ]
         .map((x) => ({ g: x.g, rank: x.rank, members: membersOf(x.g.id) }))
         .filter((x) => x.members.length > 0)
@@ -1170,11 +1180,43 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
        * cuenta. Y como el criterio no depende del reloj sino del tamaño, la referencia es la MISMA
        * a lo largo de la etapa y la tendencia significa algo.
        */
+      /**
+       * …Y EL GRUESO NO SON LOS DESCOLGADOS (v27). La regla de la v25 —el primer grupo de detrás con
+       * al menos la mitad de los corredores del MAYOR que va detrás— tiene un escenario que no
+       * cubre, y es el que hizo ilegible la etapa 1 de Race Andalucía: una criba masiva y temprana.
+       *
+       *   km  26  peloton_selection  before 119, dropped 80, remaining 13, escapados 26
+       *   km 137  time_gap_run       gapS 413, chaseSize 31      <<< 31 DESCOLGADOS, a 6:53
+       *   km 150  final_km           margin 16                   <<< la carrera de verdad
+       *
+       * Con 80 corredores fuera, el grupo MAYOR de detrás pasa a ser un grupeto de descolgados, y el
+       * listón de la mitad deja fuera al pelotón de seis que era la carrera. Resultado: trece
+       * kilómetros midiendo la ventaja contra gente que ya no corría por nada, y una ventaja que
+       * pasa de 6:53 a 16 s sin que ninguna línea lo cuente.
+       *
+       * La referencia son LOS QUE SIGUEN EN CARRERA: la fuga, los movimientos y el pelotón, nunca un
+       * grupeto. Un descolgado no vuelve —eso es lo que significa haberse descolgado— y medir contra
+       * él es medir contra la carrera de ayer. Dentro de los que corren se mantiene entera la regla
+       * de la v25, que sigue haciendo su trabajo (saltarse el puente en solitario de tierra de
+       * nadie). Si detrás no queda nadie en carrera —el pelotón va en cabeza y lo único que hay
+       * detrás son grupetos—, la referencia es la de siempre: el mayor de ellos.
+       */
       const behind = liveGroups.slice(1)
-      const biggestBehind = behind.reduce((mx, x) => Math.max(mx, x.members.length), 0)
+      const racingBehind = behind.filter((x) => x.rank !== SHED_RANK)
+      const pool = racingBehind.length > 0 ? racingBehind : behind
+      const biggestBehind = pool.reduce((mx, x) => Math.max(mx, x.members.length), 0)
       const chase =
-        behind.find((x) => x.members.length >= biggestBehind * STAGE.gapChaseMainFraction) ??
-        behind[0]
+        pool.find((x) => x.members.length >= biggestBehind * STAGE.gapChaseMainFraction) ?? pool[0]
+      /**
+       * QUÉ ES ESE GRUPO, para que la frase pueda nombrarlo (v27). El vocabulario de grupos de
+       * docs/motor.md §6.15-bis tiene tres palabras y ésta es la que las reparte: si el grupo contra
+       * el que se mide es el PELOTÓN y sigue siendo el grueso de la carrera, es «the bunch»; si es un
+       * trozo de carrera que persigue por delante del resto, es «the chase group». Sin este dato la
+       * crónica llamaba a las dos cosas igual, y desde una criba son grupos distintos.
+       */
+      const chaseIsBunch =
+        chase !== undefined && chase.rank === PELOTON_RANK && chase.members.length * 2 >= racing
+      const chaseKind = chaseIsBunch ? 'peloton' : 'caza'
 
       // Parte de cabeza: cuando delante quedan pocos, se dice QUIÉNES son. Es la pregunta directa
       // del dueño ("hay 5 ciclistas, ¡podrías haber dicho cuáles!"). Solo si la COMPOSICIÓN ha
@@ -1217,6 +1259,10 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
             size,
             gapS: chase ? Math.max(0, Math.round(chase.g.tS - lead.g.tS)) : 0,
             toGo: Math.round(kmRestantes),
+            // SOBRE QUIÉN (v27). La ventaja sin la referencia es media respuesta: el lector tiene
+            // que poder decir sobre quién se lleva, y desde una criba «el pelotón» y «la caza» son
+            // grupos distintos.
+            ...(chase ? { chaseSize: chase.members.length, chaseKind } : {}),
             // EL PARTE CUENTA EL CAMBIO, no solo la foto: cuántos han llegado y cuántos se han
             // caído desde la última vez. Es lo que hace que «ya solo quedan N delante» deje de
             // anunciarse con N CRECIENDO —69 veces en 31 etapas del día de juego 46— y que el
@@ -1271,11 +1317,32 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
                 : frontGap < prevGapS - STAGE.gapTrendThresholdSeconds
                   ? -1
                   : 0
-          log.emit(km, lead.g.tS, 'boquete', 'time_gap', [], {
+          /**
+           * EL PARTE DE VENTAJA DICE QUIÉN VA DELANTE (v27). Salía sin un solo protagonista: «the
+           * lead grows and grows for the lone leader — 2:57 to 6:53». El lector lleva cien
+           * kilómetros leyendo la ventaja de un hombre del que no se le dice el nombre, y cuando
+           * ese hombre gana la etapa no lo reconoce. Con la cabeza pequeña se nombra —es la misma
+           * regla y el mismo umbral del parte de cabeza—; con un grupo grande la frase habla del
+           * grupo, que es lo que un lector puede seguir.
+           */
+          const leadNames =
+            lead.members.length <= STAGE.frontNamesMaxRiders
+              ? lead.members
+                  .map((m) => ({ id: m.input.riderId, p: riderPerfil(m, block) }))
+                  .sort((a, b) => b.p - a.p || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+                  .slice(0, 3)
+                  .map((x) => x.id)
+              : []
+          log.emit(km, lead.g.tS, 'boquete', 'time_gap', leadNames, {
             gapS: Math.round(frontGap),
             trend,
             leadSize: lead.members.length,
             chaseSize: chase.members.length,
+            // …SOBRE QUIÉN y CUÁNTO QUEDA: las otras dos preguntas de la regla de la v27. El parte
+            // llevaba la ventaja y el tamaño de los dos grupos, y no el punto de la carretera en el
+            // que se lee, que es lo que convierte un número en una situación de carrera.
+            chaseKind,
+            toGo: Math.round(kmRestantes),
           })
           lastGapReportKm = km
           prevGapS = frontGap
@@ -3495,6 +3562,13 @@ function finishStage(
       // siguiente grupo), al sprint de un pelotón numeroso, o al esprint de un grupo reducido.
       const nextTs = withMembers[gi + 1]?.group.tS
       const margin = nextTs != null ? Math.max(0, Math.round(nextTs - group.tS)) : 0
+      /**
+       * …Y SOBRE QUIÉN SE LLEVA ESE MARGEN (v27). `margin` es el hueco al SIGUIENTE GRUPO, y el
+       * lector que lleva media etapa leyendo «6:53 sobre la persecución» necesita saber que estos
+       * 16 s no son sobre lo mismo: son sobre el que viene detrás, que puede ser un compañero de
+       * fuga que se acaba de soltar. Con `chaseSize` la frase puede decirlo en la misma línea.
+       */
+      const chaseSize = withMembers[gi + 1]?.members.length ?? 0
       const won = isBunch ? 'sprint' : field === 1 ? 'solo' : 'group'
       // Reporte de último km cuando NO es un sprint masivo: quién manda en cabeza y con cuánta ventaja,
       // para que el desenlace no llegue de golpe (el sprint masivo ya lo cuenta bunch_sprint).
@@ -3503,6 +3577,7 @@ function finishStage(
         log.emit(Math.max(0, totalKm - 1), group.tS, 'final', 'final_km', leaders, {
           margin,
           field,
+          chaseSize,
         })
       }
       log.emit(totalKm, group.tS, 'meta', 'stage_win', [strungOut[0].m.input.riderId], {

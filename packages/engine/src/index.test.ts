@@ -125,10 +125,16 @@ describe('engine: esqueleto', () => {
     // carrera, la captura nombra a los que iban delante en ese momento, `leads` dice «pasa a
     // liderar» y lo que se abre se cierra. Ni un dado, ni un subflujo, ni una constante de
     // calibración: las cuatro huellas selladas salen idénticas.
+    // v27: EL DIARIO NECESITA ESPINA DORSAL (docs/balance.md «v27») — el boquete se medía contra el
+    // grupo equivocado tras una criba masiva (el MAYOR de detrás es un grupeto de descolgados, y en
+    // Race Andalucía la ventaja se midió trece kilómetros contra gente que ya no corría por nada:
+    // 6:53 en el km 137 y 16 s en meta). La referencia pasa a ser los que SIGUEN EN CARRERA, el
+    // parte de ventaja NOMBRA a quien va delante y dice contra quién se mide y cuánto queda.
+    // Cambio de OBSERVACIÓN: ni un dado, ni un subflujo, ni una constante de calibración.
     // Sobre la v23 (la fuga del día), la v22 (la rampa de meta), la v21 (la criba lejana), la v18 (la contrarreloj), la v17 (el pelotón no se resigna), la v16 (modelo de persecución), la v15 (plan de equipo), la v14 (abandonos), la v13 (identidad y motivo en el journal), la v12 (selección en pavé y descenso), la
     // v11 (atribución del trabajo), la v10 (composición y caza), la v9 (capa táctica), la
     // v8 (tiempos de grupo), la v7 (modelo de final), la v6 (telemetría), la v5 (clásica larga), la
     // v4 (pavé en el recorrido) y la v3 (Cambio 0).
-    expect(ENGINE_VERSION).toBe(26)
+    expect(ENGINE_VERSION).toBe(27)
   })
 })
