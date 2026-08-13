@@ -1,4 +1,5 @@
 import type { ChronicleEntry, ChronicleRider, StageResultEntry } from '@cyclingstar/shared'
+import { GROUP_NOUNS, WATCHED_GROUP_NOUNS } from '@cyclingstar/engine'
 import { describe, expect, it } from 'vitest'
 import {
   chronicleLine,
@@ -193,9 +194,10 @@ describe('quién va delante y con cuánta ventaja', () => {
   })
 
   it('el parte de boquete dice cuántos van delante', () => {
+    // …y con el vocabulario de tres nombres de la v27: «the 5 out front», no «the 5 leaders».
     expect(
       chronicleLine(event({ plantilla: 'time_gap', datos: { gapS: 90, trend: 0, leadSize: 5 } })),
-    ).toContain('5 leaders')
+    ).toContain('5 out front')
     expect(
       chronicleLine(event({ plantilla: 'time_gap', datos: { gapS: 435, trend: 1, leadSize: 1 } })),
     ).toContain('lone leader')
@@ -623,7 +625,7 @@ describe('A2 · quién tira, y POR QUÉ tira', () => {
         }),
       ),
     )
-    expect(lineas.some((l) => l.includes('the break has to come back'))).toBe(true)
+    expect(lineas.some((l) => l.includes('the lead group has to come back'))).toBe(true)
     expect(lineas.every((l) => l.includes('Ana') && l.includes('Bea'))).toBe(true)
     expect(lineas.every((l) => !l.includes('working for'))).toBe(true)
   })
@@ -1195,8 +1197,10 @@ describe('la racha de partes de boquete se cuenta en una frase (v21)', () => {
     expect(run({ gapS: 38, fromGapS: 179, fromKm: 154, trend: -1, leadSize: 4 })).toContain(
       '4 out front',
     )
+    // Con un grupo grande no hay nombres que dar y manda el vocabulario (v27): el grupo de cabeza
+    // se llama igual toda la etapa, se llame fuga del día o trozo de pelotón.
     expect(run({ gapS: 38, fromGapS: 179, fromKm: 154, trend: -1, leadSize: 40 })).toContain(
-      'break',
+      'the lead group',
     )
   })
 })
@@ -1466,5 +1470,222 @@ describe('v25 · el relato no se contradice', () => {
       }),
     )
     expect(l).toContain('4 in front now')
+  })
+})
+
+// --- LA ESPINA DORSAL DEL RELATO (v27) ---------------------------------------------------------
+// El dueño leyó la etapa 1 de Race Andalucía —ya sin contradicciones, la v25 las había quitado— y
+// dijo que «si lees todo el Journal no SABES quién va ganando, quién va persiguiendo… es un lío los
+// últimos mensajes». Estas pruebas son la regla que ordenó la tanda: en cualquier punto del diario
+// se puede responder QUIÉN VA DELANTE, CON CUÁNTA VENTAJA, SOBRE QUIÉN y CUÁNTO QUEDA.
+
+describe('el vocabulario de grupos: tres cosas, tres nombres (v27)', () => {
+  /**
+   * Las frases se leen buscando los nombres de grupo VIGILADOS, de más largo a más corto —«the chase
+   * group» contiene «the chase», y quien no ordene contará dos donde hay uno—. Lo que aparezca tiene
+   * que estar declarado en `GROUP_NOUNS` para esa plantilla: así la tabla que cuenta el vocabulario
+   * sobre el mundo entero (`sim/coherence.ts`) y las frases de verdad no se pueden separar.
+   */
+  function nounsIn(line: string): string[] {
+    let resto = line
+    const found: string[] = []
+    for (const noun of WATCHED_GROUP_NOUNS) {
+      while (resto.toLowerCase().includes(noun)) {
+        found.push(noun)
+        resto = resto.replace(new RegExp(noun, 'i'), '·')
+      }
+    }
+    return [...new Set(found)]
+  }
+
+  /**
+   * Un ejemplar de cada plantilla, con datos plausibles y con las dos caras de cada bifurcación que
+   * cambia el nombre del grupo (persiguiendo o en cabeza, grupo grande o pequeño). El km se varía
+   * para recorrer TODAS las redacciones: la variante se elige por hash del km y los nombres.
+   */
+  const ejemplares: {
+    plantilla: string
+    datos: Record<string, number | string>
+    who?: string[]
+  }[] = [
+    { plantilla: 'attack_go', datos: { kind: 'fuga', saltan: 2, tierra: 1, cuerda: 0, toGo: 100 } },
+    { plantilla: 'attack_go', datos: { kind: 'ataque_final', saltan: 1, toGo: 8, solo: 1 } },
+    { plantilla: 'attack_go', datos: { kind: 'ataque_grupo', saltan: 2, toGo: 30 } },
+    { plantilla: 'attack_go', datos: { kind: 'puente', saltan: 1, toGo: 40, solo: 1 } },
+    { plantilla: 'attack_short', datos: { saltan: 1, km: 2, solo: 1 } },
+    { plantilla: 'attack_swarm', datos: { saltan: 14 } },
+    { plantilla: 'attack_sticks', datos: { size: 1, gapS: 40, toGo: 20 } },
+    { plantilla: 'attack_sticks', datos: { size: 3, gapS: 40, toGo: 20 } },
+    { plantilla: 'attack_reeled', datos: {} },
+    { plantilla: 'move_faded', datos: { km: 12 } },
+    { plantilla: 'move_caught', datos: { km: 30, kind: 'puente' } },
+    { plantilla: 'move_merge', datos: { entran: 2, size: 6 } },
+    { plantilla: 'bridge_made', datos: { size: 4, entran: 1 } },
+    { plantilla: 'bridge_failed', datos: { toGo: 28 } },
+    { plantilla: 'breakaway_formed', datos: {}, who: ['Ana'] },
+    { plantilla: 'breakaway_formed', datos: {}, who: ['Ana', 'Bea', 'Cris'] },
+    { plantilla: 'break_cooperation', datos: { cooperating: 1 }, who: ['Ana', 'Bea'] },
+    { plantilla: 'break_cooperation', datos: { cooperating: 0 }, who: ['Ana', 'Bea'] },
+    { plantilla: 'break_share', datos: { passengers: 2 } },
+    { plantilla: 'rider_sits_up', datos: { toGo: 30 } },
+    { plantilla: 'riders_sit_up', datos: { count: 9, toGo: 30 } },
+    { plantilla: 'rider_bonks', datos: { toGo: 30 } },
+    { plantilla: 'sprinters_chase', datos: {} },
+    { plantilla: 'sprinters_chase', datos: { porQue: 'maillot' } },
+    { plantilla: 'sprinters_give_up', datos: {} },
+    { plantilla: 'peloton_concedes', datos: {} },
+    { plantilla: 'peloton_concedes', datos: { cazada: 1 } },
+    { plantilla: 'peloton_pull', datos: { size: 120, effort: 'firme', toGo: 60, chasing: 1 } },
+    { plantilla: 'peloton_pull', datos: { size: 4, effort: 'tope', toGo: 20, chasing: 1 } },
+    { plantilla: 'peloton_pull', datos: { size: 120, effort: 'tope', toGo: 20, repite: 1 } },
+    { plantilla: 'peloton_split', datos: { before: 80, remaining: 40, dropped: 40, chasing: 1 } },
+    { plantilla: 'peloton_split', datos: { before: 80, remaining: 40, dropped: 40, chasing: 0 } },
+    {
+      plantilla: 'peloton_selection',
+      datos: { before: 119, remaining: 13, dropped: 80, toGo: 125, chasing: 1 },
+    },
+    {
+      plantilla: 'peloton_selection',
+      datos: { before: 119, remaining: 13, dropped: 80, toGo: 125, chasing: 0 },
+    },
+    { plantilla: 'peloton_regroup', datos: { joined: 14, remaining: 19, before: 5, chasing: 1 } },
+    { plantilla: 'peloton_regroup', datos: { joined: 14, remaining: 19, before: 5, chasing: 0 } },
+    { plantilla: 'time_gap', datos: { gapS: 90, trend: 1, leadSize: 40, chaseSize: 60 } },
+    {
+      plantilla: 'time_gap',
+      datos: { gapS: 90, trend: -1, leadSize: 3, chaseSize: 60, chaseKind: 'peloton', toGo: 40 },
+    },
+    {
+      plantilla: 'time_gap',
+      datos: { gapS: 90, trend: 0, leadSize: 3, chaseSize: 9, chaseKind: 'caza', toGo: 40 },
+    },
+    {
+      plantilla: 'time_gap_run',
+      datos: { gapS: 38, fromGapS: 179, fromKm: 90, trend: -1, leadSize: 40 },
+    },
+    {
+      plantilla: 'time_gap_run',
+      datos: { gapS: 380, fromGapS: 90, fromKm: 90, trend: 1, leadSize: 1, chaseKind: 'caza' },
+    },
+    { plantilla: 'front_group', datos: { size: 5, gapS: 90, toGo: 40 } },
+    { plantilla: 'front_group', datos: { size: 5, gapS: 90, toGo: 40, entran: 2, salen: 1 } },
+    { plantilla: 'chase_work', datos: { closedS: 180, km: 20, peakKm: 60 } },
+    { plantilla: 'breakaway_caught', datos: { size: 6, awayKm: 120, toGo: 30, juntos: 1 } },
+    { plantilla: 'breakaway_caught', datos: { size: 6, awayKm: 120, toGo: 30, juntos: 0 } },
+    { plantilla: 'breakaway_caught', datos: { size: 6, awayKm: 120, motivo: 'deshecha' } },
+    { plantilla: 'bunch_sprint', datos: { field: 90, ledOut: 1 } },
+    { plantilla: 'final_km', datos: { margin: 16, field: 1, chaseSize: 5 } },
+    { plantilla: 'stage_win', datos: { won: 'solo', margin: 16 } },
+    { plantilla: 'stage_win', datos: { won: 'sprint', margin: 0 } },
+    { plantilla: 'stage_win', datos: { won: 'group', margin: 4 } },
+  ]
+
+  it('ninguna frase usa un nombre de grupo que no tenga declarado', () => {
+    const malas: string[] = []
+    for (const caso of ejemplares) {
+      const permitidos = GROUP_NOUNS[caso.plantilla] ?? []
+      // Todas las redacciones: la variante se elige por hash del km y de los nombres.
+      for (const km of [10, 40, 70, 100, 130, 160]) {
+        const linea = chronicleLine(
+          event({
+            plantilla: caso.plantilla,
+            km,
+            protagonists: named(...(caso.who ?? ['Ana', 'Bea'])),
+            datos: caso.datos,
+          }),
+        )
+        for (const noun of nounsIn(linea)) {
+          if (!permitidos.includes(noun)) malas.push(`${caso.plantilla}: «${noun}» en «${linea}»`)
+        }
+      }
+    }
+    expect(malas).toEqual([])
+  })
+
+  it('los tres nombres que quedan son los tres del vocabulario', () => {
+    // Lo que la tabla declara, después de la v27, no puede ser más que las tres cosas que hay en la
+    // carretera. Si alguien añade un cuarto nombre a una plantilla, esta prueba lo caza.
+    const usados = new Set(Object.values(GROUP_NOUNS).flat())
+    expect([...usados].sort()).toEqual(['the bunch', 'the chase group', 'the lead group'])
+  })
+})
+
+describe('el parte de ventaja responde a las cuatro preguntas (v27)', () => {
+  const gap = (datos: Record<string, number | string>, who: ChronicleRider[] = []) =>
+    chronicleLine(event({ plantilla: 'time_gap', km: 137, protagonists: who, datos }))
+
+  it('dice QUIÉN va delante cuando se sabe quién es', () => {
+    const linea = gap(
+      { gapS: 177, trend: 1, leadSize: 1, chaseSize: 6, chaseKind: 'caza', toGo: 14 },
+      named('Alexander Schwarz'),
+    )
+    expect(linea).toContain('Alexander Schwarz')
+    expect(linea).toContain('2:57')
+    expect(linea).toContain('the chase group')
+    expect(linea).toContain('14 km to go')
+  })
+
+  it('sin nombres se queda con el grupo, y concuerda', () => {
+    expect(gap({ gapS: 90, trend: 0, leadSize: 40 })).toContain('The lead group holds')
+    expect(gap({ gapS: 90, trend: 0, leadSize: 4 })).toContain('The 4 out front hold')
+  })
+
+  it('una crónica congelada sin `chaseKind` no se inventa la referencia', () => {
+    const linea = gap({ gapS: 413, trend: 1, leadSize: 1 })
+    expect(linea).not.toContain('over')
+  })
+})
+
+describe('el desenlace converge en quien decide la etapa (v27)', () => {
+  it('el que ataca en los últimos km se cuenta yendo a por el líder', () => {
+    const linea = chronicleLine(
+      event({
+        plantilla: 'attack_go',
+        km: 140,
+        protagonists: named('Peter Schulz'),
+        datos: { kind: 'ataque_final', saltan: 1, toGo: 11, solo: 1, respecto: 1 },
+        mentions: { liderId: rider('Alexander Schwarz') },
+      }),
+    )
+    expect(linea).toContain('Peter Schulz')
+    expect(linea).toContain('going after')
+    expect(linea).toContain('Alexander Schwarz')
+  })
+
+  it('el hueco del que no manda se cuenta contra su grupo y con el líder al lado', () => {
+    const linea = chronicleLine(
+      event({
+        plantilla: 'attack_sticks',
+        km: 150,
+        protagonists: named('Oliver Bailey'),
+        datos: { size: 1, gapS: 46, toGo: 1, respecto: 1 },
+        mentions: { liderId: rider('Alexander Schwarz') },
+      }),
+    )
+    expect(linea).toContain('Oliver Bailey')
+    expect(linea).toContain('46s')
+    expect(linea).toContain('the stage is up the road with')
+    expect(linea).toContain('Alexander Schwarz')
+  })
+
+  it('el último kilómetro dice sobre cuántos va el margen', () => {
+    const linea = chronicleLine(
+      event({
+        plantilla: 'final_km',
+        km: 150,
+        protagonists: named('Alexander Schwarz'),
+        datos: { margin: 16, field: 1, chaseSize: 5 },
+      }),
+    )
+    expect(linea).toContain('16s')
+    expect(linea).toContain('next 5 on the road')
+  })
+
+  it('un corredor solo no «sit up»: concuerda en singular', () => {
+    const lineas = [10, 40, 70, 100].map((km) =>
+      chronicleLine(event({ plantilla: 'attack_reeled', km, protagonists: named('Markus Weber') })),
+    )
+    expect(lineas.every((l) => !/\bWeber\b.*\bsit up\b/.test(l))).toBe(true)
+    expect(lineas.some((l) => l.includes('sits up'))).toBe(true)
   })
 })

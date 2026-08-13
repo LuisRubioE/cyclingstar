@@ -326,6 +326,12 @@ export function buildChronicle(
   out = markReunion(out)
   out = dropUndoneSelections(out)
   out = groupGapRuns(out)
+  // LA ESPINA DORSAL DEL RELATO (v27). Las tres pasadas que hacen que en cualquier punto del diario
+  // se pueda responder quién va delante, con cuánto, sobre quién y cuánto queda. Van DESPUÉS de
+  // `groupGapRuns` porque el resumen de una racha es una línea nueva y también necesita su líder.
+  out = followTheLeader(out)
+  out = clockTheGaps(out)
+  out = foldSameFailure(out)
   out = markFrontDelta(out)
   out = dropAttackEcho(out)
   out = foldQuickAttacks(out)
@@ -456,6 +462,172 @@ function markFrontDelta(entries: ChronicleEntry[]): ChronicleEntry[] {
         ...(salen > 0 ? { salen } : {}),
       },
     }
+  })
+}
+
+/**
+ * Cuántos protagonistas puede nombrar una línea de situación. Tres es el límite de siempre de los
+ * eventos del motor, y por encima de eso una lista deja de ser una frase.
+ */
+const NAMED_IN_FRONT = 3
+
+/** Los últimos kilómetros que deciden la etapa: donde el relato tiene que converger (v27). */
+const FINALE_KM = 15
+
+/**
+ * Lo que hace que el último parte de cabeza deje de decir quién va delante SIN nombrar a nadie: la
+ * carrera se junta y ya no hay grupo de cabeza que seguir.
+ */
+const REGROUPS_THE_RACE = new Set(['peloton_regroup', 'bunch_sprint'])
+
+/**
+ * EL HILO DEL LÍDER (v27). El dueño leyó la etapa 1 de Race Andalucía y dijo que «si lees todo el
+ * Journal no SABES quién va ganando, quién va persiguiendo». La causa, en la crónica, es que el
+ * relato PIERDE al protagonista por el camino: el parte de ventaja se emitía sin un solo nombre
+ * —«the lead grows and grows for the lone leader»— y en los últimos quince kilómetros las líneas
+ * hablaban de tres carreras distintas sin decir cuál era la de la etapa.
+ *
+ * Esta pasada lleva el hilo: quién va delante AHORA, según lo último que se le ha contado al lector.
+ * Y hace dos cosas con él.
+ *
+ * **(1) El parte de ventaja NOMBRA a quien va delante**, y solo cuando no hay duda: el motor dice
+ * cuántos van en cabeza (`leadSize`) y esta pasada solo pone nombres si son EXACTAMENTE los mismos
+ * que la última línea que los presentó. Si el grupo ha crecido, si alguien ha atacado de él o si el
+ * número no cuadra, la frase se queda como estaba. Nombrar de más sería inventar una carrera.
+ *
+ * **(2) En el desenlace, lo que no es la carrera se cuenta RESPECTO DE LA CARRERA.** En el último
+ * kilómetro de Andalucía conviven «Schwarz lidera en solitario por 16s» y «Bailey tiene 46s»: el
+ * lector no puede saber quién va ganando. Las subtramas de quien no va a ganar no se borran —Peter
+ * Schulz, que ataca a 11 km, acabó SEGUNDO— pero se cuentan como lo que son: alguien que va detrás
+ * del líder, con el líder nombrado en la misma frase.
+ *
+ * Vive aquí y no en el motor porque es lo único que llega a las etapas YA CORRIDAS, que son las que
+ * el dueño está leyendo: el motor de la v27 ya nombra a los suyos, pero los eventos congelados no.
+ */
+function followTheLeader(entries: ChronicleEntry[]): ChronicleEntry[] {
+  /** Quiénes van delante según lo último que se ha contado; `null` cuando ya no se sabe. */
+  let front: ChronicleRider[] | null = null
+  const lastKm = entries.reduce((mx, e) => Math.max(mx, e.km), 0)
+  return entries.map((e) => {
+    const names = new Set((front ?? []).map((p) => p.name))
+    const tocaAlLider = e.protagonists.some((p) => names.has(p.name))
+    if (e.plantilla === 'breakaway_formed' || e.plantilla === 'front_group') {
+      front = e.protagonists
+      return e
+    }
+    // Al líder se le pierde de vista por dos vías: porque la línea diga que se acabó lo suyo (le
+    // cazan, se sienta, revienta, abandona) o porque la carrera se junte y deje de haber cabeza.
+    // Lo que le pasa a OTROS no le quita el sitio: que cacen a un puente de detrás no cambia quién
+    // va delante, y tratarlo como si lo cambiara es lo que dejaba mudo el resto de la etapa.
+    if (
+      front &&
+      ((CLEARS_THE_ROAD.has(e.plantilla) && tocaAlLider) ||
+        (EXITS_THE_RACE.has(e.plantilla) && tocaAlLider))
+    ) {
+      front = null
+      return e
+    }
+    if (front && REGROUPS_THE_RACE.has(e.plantilla) && Number(e.datos?.chasing ?? 0) !== 1) {
+      front = null
+      return e
+    }
+    if (e.plantilla === 'time_gap' || e.plantilla === 'time_gap_run') {
+      const size = Number(e.datos?.leadSize ?? 0)
+      if (
+        e.protagonists.length === 0 &&
+        front !== null &&
+        size > 0 &&
+        size <= NAMED_IN_FRONT &&
+        size === front.length
+      ) {
+        return { ...e, protagonists: front }
+      }
+      return e
+    }
+    // El desenlace: las subtramas se cuentan respecto del líder, y con su nombre dentro.
+    if (
+      front !== null &&
+      front.length > 0 &&
+      e.km >= lastKm - FINALE_KM &&
+      SUBPLOT.has(e.plantilla) &&
+      !tocaAlLider
+    ) {
+      const lider = front[0]!
+      return {
+        ...e,
+        mentions: { ...e.mentions, liderId: lider },
+        datos: { ...e.datos, respecto: 1, liderId: lider.name },
+      }
+    }
+    return e
+  })
+}
+
+/**
+ * Lo que saca a un corredor de la carrera de cabeza: si le pasa al que iba delante, deja de ir
+ * delante. `attack_go` no está —el que ataca desde la cabeza sigue delante— y su caso lo resuelve
+ * la cuenta de `leadSize`, que deja de cuadrar en cuanto el grupo se parte.
+ */
+const EXITS_THE_RACE = new Set([
+  'rider_sits_up',
+  'riders_sit_up',
+  'rider_bonks',
+  'riders_bonk',
+  'rider_abandons',
+  'riders_abandon',
+  'move_faded',
+])
+
+/**
+ * Las líneas del desenlace que RECLAMAN LA CARRETERA para alguien: un ataque, un hueco que se abre.
+ * Son las que, contadas sueltas en los últimos quince kilómetros, hacen que el lector no sepa cuál
+ * de los tres hombres con ventaja va ganando la etapa.
+ */
+const SUBPLOT = new Set(['attack_go', 'attack_sticks', 'attack_short', 'bridge_made'])
+
+/**
+ * CUÁNTO QUEDA (v27). La cuarta pregunta de la regla, y la más barata: una ventaja sin el punto de
+ * la carretera en el que se lee no sitúa nada («the lead grows to 6:53» — ¿a 100 km de meta o a
+ * 14?). El motor de la v27 manda `toGo` en el parte de ventaja; en las etapas ya corridas se
+ * reconstruye con lo que la crónica sabe de sobra: dónde está la meta.
+ */
+function clockTheGaps(entries: ChronicleEntry[]): ChronicleEntry[] {
+  const lastKm = entries.reduce((mx, e) => Math.max(mx, e.km), 0)
+  if (lastKm <= 0) return entries
+  return entries.map((e) => {
+    if (e.plantilla !== 'time_gap' && e.plantilla !== 'time_gap_run') return e
+    if (e.datos?.toGo != null) return e
+    return { ...e, datos: { ...e.datos, toGo: Math.max(0, lastKm - e.km) } }
+  })
+}
+
+/** Km dentro de los cuales dos desenlaces del mismo hombre son el MISMO fracaso. */
+const SAME_FAILURE_KM = 5
+
+/**
+ * UN FRACASO, UNA LÍNEA (v27). En Race Andalucía, Markus Weber se queda en tierra de nadie en el km
+ * 123 («runs out of legs in no man's land») y le reabsorben en el 125 («the elastic snaps back»).
+ * Son la misma historia contada dos veces, y en un tramo en el que el diario tiene tres líneas la
+ * repetición se lleva un tercio del relato.
+ *
+ * Se queda la PRIMERA, que es la que cuenta por qué falló; la segunda no añade nada que el lector no
+ * haya entendido ya. Es el mismo criterio que la v25 aplicó al eco del ataque y al manotazo de un
+ * kilómetro: el arco se cierra igual y ocupa la mitad.
+ */
+function foldSameFailure(entries: ChronicleEntry[]): ChronicleEntry[] {
+  /** Quién ya tiene contado su fracaso, y en qué km. */
+  const failed = new Map<string, number>()
+  return entries.filter((e) => {
+    if (e.plantilla === 'bridge_failed' || e.plantilla === 'move_faded') {
+      for (const p of e.protagonists) failed.set(p.name, e.km)
+      return true
+    }
+    if (e.plantilla !== 'attack_reeled' && e.plantilla !== 'move_caught') return true
+    const repetido = e.protagonists.every((p) => {
+      const km = failed.get(p.name)
+      return km != null && e.km - km <= SAME_FAILURE_KM
+    })
+    return !(repetido && e.protagonists.length > 0)
   })
 }
 
@@ -752,6 +924,20 @@ const GAP_RUN_MIN = 3
 const GAP_TREND_SECONDS = 3
 
 /**
+ * …Y A QUÉ DISTANCIA DEJA DE SER RUIDO (v27). El resumen de la v21 se comió el HILO de la etapa 1 de
+ * Race Andalucía: el motor da el parte de ventaja cada 25 km fuera del desenlace
+ * (`gapReportKmGap`), así que los partes de los km 62, 87 y 112 no eran una racha repetitiva —eran
+ * las tres únicas líneas de situación de sesenta y cinco kilómetros— y la racha se los llevó a los
+ * tres, dejando el diario mudo del km 72 al 137.
+ *
+ * Una línea que es la única en más de doce kilómetros no es ruido: es el hilo. La racha solo se come
+ * partes que vienen PEGADOS, que es el caso para el que se escribió —la fuga que se hunde en el
+ * desenlace, donde el parte sale cada 4 km (`gapReportFinalKmGap`) y nueve líneas seguidas cuentan
+ * una sola noticia—. El listón está entre los dos ritmos del motor y no toca ninguno.
+ */
+const GAP_RUN_DENSE_KM = 12
+
+/**
  * LA FUGA QUE SE HUNDE, EN DOS LÍNEAS Y NO EN NUEVE (v21). El caso es literal de producción:
  *
  * ```
@@ -795,8 +981,9 @@ function groupGapRuns(entries: ChronicleEntry[]): ChronicleEntry[] {
     while (b + 1 < idx.length) {
       const prev = entries[idx[b]!]!
       const next = entries[idx[b + 1]!]!
-      // La racha es de UNA dirección y de UN grupo de cabeza: en cuanto una de las dos cambia, lo
-      // que viene es otra noticia y merece su frase.
+      // La racha es de UNA dirección, de UN grupo de cabeza y de partes PEGADOS: en cuanto una de
+      // las tres cambia, lo que viene es otra noticia y merece su frase.
+      if (next.km - prev.km >= GAP_RUN_DENSE_KM) break
       const d = dirOf(next, prev)
       if (dir === null) dir = d
       else if (d !== dir) break

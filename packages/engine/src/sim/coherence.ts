@@ -535,40 +535,69 @@ export const FINALE_KM = 15
  * tabla y las plantillas se separen.
  */
 export const GROUP_NOUNS: Readonly<Record<string, readonly string[]>> = {
-  attack_go: ['the bunch'],
+  attack_go: ['the bunch', 'the lead group'],
   attack_short: ['the bunch'],
-  attack_swarm: ['the group'],
-  attack_sticks: ['the move'],
+  attack_swarm: [],
+  attack_sticks: [],
   attack_reeled: ['the bunch'],
-  move_faded: ['the move'],
-  move_caught: ['the chase'],
-  move_merge: ['the lead'],
-  bridge_made: ['the leaders', 'the front group'],
-  breakaway_formed: ['the break'],
-  break_cooperation: ['the break'],
-  break_share: ['the break'],
-  riders_sit_up: ['the group'],
-  rider_sits_up: ['the group'],
-  sprinters_chase: ["the sprinters' teams", 'the bunch', 'the fast men'],
-  sprinters_give_up: ["the sprinters' teams", 'the lead-out trains', 'the fast men'],
-  peloton_concedes: ['the bunch', 'the peloton', 'the favourites', 'the chase', 'the break'],
-  peloton_pull: ['the bunch', 'the front group'],
+  move_faded: [],
+  move_caught: ['the chase group'],
+  move_merge: [],
+  bridge_made: ['the lead group'],
+  breakaway_formed: ['the lead group'],
+  break_cooperation: ['the lead group'],
+  break_share: ['the lead group'],
+  riders_sit_up: [],
+  rider_sits_up: [],
+  sprinters_chase: ['the bunch', 'the lead group'],
+  sprinters_give_up: ['the bunch'],
+  peloton_concedes: ['the bunch', 'the lead group'],
+  peloton_pull: ['the bunch', 'the lead group'],
   peloton_split: ['the chase group', 'the lead group'],
-  peloton_selection: ['the chase group', 'the front group'],
-  peloton_regroup: ['the chase group', 'the front group', 'the chase'],
-  time_gap: ['the leaders', 'the chase', 'the break', 'the bunch'],
-  time_gap_run: ['the leaders', 'the chase', 'the break'],
-  front_group: ['the lead group', 'the front'],
-  chase_work: ['the chase', 'the chasers'],
-  breakaway_caught: ['the peloton', 'the bunch', 'the chase', 'the break'],
+  peloton_selection: ['the chase group', 'the lead group'],
+  peloton_regroup: ['the chase group', 'the lead group'],
+  time_gap: ['the lead group', 'the chase group', 'the bunch'],
+  time_gap_run: ['the lead group', 'the chase group', 'the bunch'],
+  front_group: ['the lead group'],
+  chase_work: ['the chase group'],
+  breakaway_caught: ['the bunch', 'the lead group'],
   bunch_sprint: ['the bunch'],
-  stage_win: ['the chase', 'the bunch', 'the lead group'],
+  stage_win: ['the chase group', 'the bunch', 'the lead group'],
 }
 
 /** Qué nombres de grupo puede imprimir esta línea. */
 export function groupNounsOf(e: AuditEntry): readonly string[] {
   return GROUP_NOUNS[e.plantilla] ?? []
 }
+
+/**
+ * TODOS los nombres de grupo que se vigilan, incluidos los que la v27 retira. Es la lista contra la
+ * que `stageJournal.test.ts` lee las frases de verdad: si aparece uno que la plantilla no tiene
+ * declarado en `GROUP_NOUNS`, el test falla y la tabla y el texto no se pueden separar.
+ *
+ * Va ordenada de más larga a más corta a propósito: «the chase group» contiene «the chase», y quien
+ * la recorra tiene que quedarse con la más larga primero o contará dos nombres donde hay uno.
+ */
+export const WATCHED_GROUP_NOUNS: readonly string[] = [
+  "the sprinters' teams",
+  'the lead-out trains',
+  'the chase group',
+  'the front group',
+  'the lead group',
+  'the favourites',
+  'the fast men',
+  'the escapees',
+  'the chasers',
+  'the peloton',
+  'the leaders',
+  'the chase',
+  'the bunch',
+  'the break',
+  'the group',
+  'the field',
+  'the move',
+  'the pack',
+]
 
 /** Las cuatro medidas de una etapa. Números, no defectos: se leen contra un listón. */
 export interface StoryMetrics {

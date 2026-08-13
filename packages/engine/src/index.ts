@@ -22,6 +22,10 @@ export { stageRng, stageSeed, type StageSeedParts } from './stage/rng.js'
 export { blockProbability, rollHazard } from './stage/hazard.js'
 export { simulateStage, stageTss } from './stage/simulate.js'
 export { simulateTimeTrial } from './stage/timetrial.js'
+// EL VOCABULARIO DE GRUPOS (v27, docs/motor.md §6.15-bis). La tabla de qué nombres puede imprimir
+// cada plantilla vive con el medidor —es quien cuenta cuántos ve un lector por etapa— y la exporta
+// para que el test del journal compruebe que ninguna frase usa uno que no esté declarado.
+export { GROUP_NOUNS, WATCHED_GROUP_NOUNS } from './sim/coherence.js'
 // El orden de salida de una crono (v18): regla pura, exportada y con test propio. Fuera del motor
 // la usa la web para explicar el formato antes de que la etapa se corra.
 export {
