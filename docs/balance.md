@@ -5934,9 +5934,9 @@ mediciones para decidir qué era:
    (devolviéndole a `pullWindow` el `frontEffort` de GRUPO de la v25 y dejando todo lo demás igual)
    sale **38,0 %**: la medida nueva del §9 **baja** el número, no lo sube.
 3. **Es dónde se tira.** Los partes «libre» viven todos en la parte alta de la etapa: **11,7 % antes
-   de los tres cuartos del recorrido y 70,7 % después** (12,2 % y 69,2 % con 60 semillas; 0 de 33 en
-   los primeros 105 km). Y los nombrados son cazaetapas (315 de 437 menciones), sueltos sin plan (86)
-   y jefes de filas (36).
+   de los tres cuartos del recorrido y 70,7 % después** (12,2 % y 69,2 % con 60 semillas; por tramos,
+   0 de 11 en los primeros 53 km y 0 de 22 entre el 105 y el 158, contra 16 de 16 en los últimos 21).
+   Y los nombrados son cazaetapas (315 de 437 menciones), sueltos sin plan (86) y jefes de filas (36).
 
 La lectura es directa y es la tanda funcionando: **con la montaña partiendo el pelotón de verdad, al
 frente de una reina no quedan equipos**. Quedan jefes de filas, baroudeurs y sueltos, y sus gregarios
