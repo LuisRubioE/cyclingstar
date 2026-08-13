@@ -22,6 +22,21 @@ El motor mueve **grupos**, no corredores. Cada grupo es un cursor que avanza el 
 de 100 m arrastrando su propio cronómetro; un boquete no se estima, se integra bloque a bloque; una
 captura es la fusión de dos relojes que se juntan.
 
+> **CÓMO SE LLAMA CADA GRUPO (v29).** Los ids del motor —`peloton`, `mov-N`, `shed-N`— dicen de
+> DÓNDE SALIÓ cada grupo, y eso no caduca: uno nacido del pelotón seguía llamándose «pelotón» con dos
+> corredores y uno descolgado seguía siendo «grupeto» con cien. Medido sobre 8.510 fotos del banco,
+> **la etiqueta mentía en el 22,1 %** y en el 21,0 % iba más gente por detrás del falso pelotón que
+> dentro de él. La regla que faltaba está en **`mainGroupId` (`stage/group.ts`)**: **el pelotón es el
+> grupo que lleva la gente**, con histéresis (`mainGroupTakeoverRatio`) para que dos mitades
+> parecidas no se turnen el título cada bloque. De ahí cuelgan «seguir en carrera» (ir por delante
+> del pelotón o serlo) y el vocabulario de la crónica. La misma función la usa la Race Radio, para
+> que la tabla y la carrera no puedan discrepar.
+>
+> **Y aquí está la costura, que conviene tener presente:** el motor **NOMBRA** los grupos por su
+> gente pero sigue corriendo la **FÍSICA** de cada uno por su origen. Un `shed-N` de cien que ya se
+> llama pelotón no puede tener equipo al frente (`onTheFront`) ni entra su trabajo en el libro de la
+> persecución. Es deuda medida y anotada en docs/balance.md, «v29» §6.
+
 ```
 StageProfile (tramos de autoría)
       │  sample.ts

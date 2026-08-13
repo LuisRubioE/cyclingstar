@@ -427,8 +427,30 @@
  * Cambio de OBSERVACIÓN otra vez: ni un dado ni un subflujo, huellas selladas idénticas y
  * `sim/coherence.test.ts` en cero. Sube la versión porque el CONTENIDO de los eventos cambia y
  * `checkReplay()` compara versiones para saber si un replay es comparable con lo que se guardó.
+ *
+ * ── v29 · el pelotón es quien lleva la gente, no quien lleva la etiqueta ────────────────────────
+ *
+ * Los grupos del motor se llaman por su ORIGEN —`peloton`, `mov-N`, `shed-N`— y esos nombres no
+ * caducan: un grupo nacido del pelotón seguía siendo «el pelotón» con dos corredores, y uno
+ * descolgado seguía siendo «grupeto» con cien. De esa etiqueta colgaban la crónica y la medida de
+ * los boquetes, y de ahí salieron TRES parches sucesivos —v17, v25 y v27— que son tres
+ * aproximaciones al mismo hecho que el motor no representaba.
+ *
+ * Medido sobre 8.510 fotos de carrera del banco: **el grupo llamado «pelotón» no era el pelotón en
+ * el 22,1 %**, y en el 21,0 % iba MÁS gente por detrás de él que dentro. Peor caso, un «pelotón» de
+ * UN corredor; mayor discrepancia, 115 corredores.
+ *
+ * La regla que faltaba es corta y vive en `mainGroupId` (stage/group.ts): el pelotón es el grupo
+ * mayor, con histéresis para que dos mitades parecidas no se turnen el título cada bloque. Con ella,
+ * «seguir en carrera» pasa a ser IR DELANTE DEL PELOTÓN O SERLO, en vez de «no haberse llamado
+ * shed-N», que es lo que decidía antes contra quién se mide un boquete.
+ *
+ * Cambio de OBSERVACIÓN: huellas selladas idénticas dígito a dígito. Los tres parches NO sobran
+ * —`majorityOnTheRoad` es física y los otros dos siguen eligiendo entre los que cuentan—, y el
+ * porqué está en docs/balance.md, «v29», junto con la deuda que deja: el motor sigue corriendo la
+ * FÍSICA de cada grupo por su origen aunque ya lo NOMBRE por su gente.
  */
-export const ENGINE_VERSION = 28 as const
+export const ENGINE_VERSION = 29 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -963,6 +985,21 @@ export const STAGE = {
    * y es del que hay que hablar; un puñado suelto entre medias, no.
    */
   gapChaseMainFraction: 0.5,
+  /**
+   * CUÁNTO HAY QUE SUPERAR AL PELOTÓN PARA QUITARLE EL NOMBRE (v29, `mainGroupId`). El pelotón es el
+   * grupo que lleva la gente, no el que salió llamándose así; pero la etiqueta no puede cambiar de
+   * dueño cada bloque cuando el pelotón se parte en dos mitades parecidas. El retador tiene que
+   * llevar un 25 % más que el que tiene el título.
+   *
+   * El número sale de los dos casos que hay que separar, y no de un gusto:
+   *
+   * - Race Andalucía e1, km 151: «pelotón» 2 contra un grupo de 100. `100 ≥ 2·1,25` — cambia, y debe
+   *   cambiar: llamar pelotón a dos corredores es lo que estropeó tres versiones de partes.
+   * - Race Andalucía e1, km 11-14: dos grupos de 53 y 55 que se adelantan mutuamente. `55 ≥ 53·1,25`
+   *   es falso — NO cambia, y no debe: es una carrera partida en dos mitades y el título se queda
+   *   donde estaba hasta que una de las dos sea claramente la carrera.
+   */
+  mainGroupTakeoverRatio: 1.25,
   // Journal: cada cuántos km se reporta la ventaja de cabeza, y el boquete mínimo para reportarlo.
   gapReportKmGap: 25,
   // En el DESENLACE la carrera se decide y 25 km sin noticias hacen aparecer siete minutos de la

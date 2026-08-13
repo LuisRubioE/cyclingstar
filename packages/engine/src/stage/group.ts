@@ -118,6 +118,56 @@ export interface ChaseCandidate {
   racing: boolean
 }
 
+/** Un grupo de la carretera para decidir cuál es el principal: su id y cuánta gente lleva. */
+export interface RoadGroup {
+  id: string
+  size: number
+}
+
+/**
+ * QUIÉN ES EL PELOTÓN (v29, docs/motor.md §6.3).
+ *
+ * Los grupos del motor se llaman por su ORIGEN: `peloton` es el que salió del pelotón, `shed-N` el
+ * que se descolgó de él, `mov-N` el que atacó. Esos nombres no caducan. Un grupo que nació del
+ * pelotón sigue llamándose «pelotón» aunque le queden dos corredores, y un `shed-N` sigue siendo
+ * «grupeto» aunque lleve cien. La Race Radio de Race Andalucía e1 lo enseña en una línea:
+ *
+ * ```
+ * km 151  [1] fuga 1  [2] contra 1  [3] pelotón 2  [4] grupeto 15  …  cola 100 en 4 grupos
+ * ```
+ *
+ * Un «pelotón» de DOS corredores con cien detrás llamados «grupeto». Y de esa etiqueta cuelgan la
+ * crónica entera y las decisiones que miden huecos: de ahí salieron tres parches sucesivos —v17
+ * (`majorityOnTheRoad`), v25 (`gapChaseMainFraction`) y v27 (`chaseReferenceIndex`)— que son tres
+ * aproximaciones al mismo hecho que el motor no representaba.
+ *
+ * La regla que faltaba es corta: **el pelotón es el grupo que lleva la gente**. Con dos matices que
+ * no son de gusto:
+ *
+ * - **Histéresis.** Cuando el pelotón se parte en dos mitades parecidas, la etiqueta no puede bailar
+ *   cada bloque: el retador tiene que SUPERAR al actual por un margen (`takeover`) para quitarle el
+ *   nombre. Es el caso que la v17 dejó deliberadamente «cerca del centro», y sin margen dos grupos
+ *   de 55 y 53 se intercambiarían el título kilómetro sí, kilómetro no.
+ * - **Si el grupo que tenía el título ya no existe** —se ha fundido con otro o se ha quedado vacío—
+ *   no hay nada que conservar y manda el tamaño.
+ *
+ * Puro y total: el desempate por id hace que dos grupos del mismo tamaño den siempre la misma
+ * respuesta, venga como venga la lista.
+ */
+export function mainGroupId(
+  groups: readonly RoadGroup[],
+  current: string | null,
+  takeover: number,
+): string | null {
+  if (groups.length === 0) return null
+  const biggest = groups.reduce((mx, g) =>
+    g.size > mx.size || (g.size === mx.size && g.id < mx.id) ? g : mx,
+  )
+  const held = current === null ? undefined : groups.find((g) => g.id === current)
+  if (held === undefined) return biggest.id
+  return biggest.size >= held.size * takeover ? biggest.id : held.id
+}
+
 /**
  * CONTRA QUIÉN SE MIDE LA VENTAJA (v25 + v27, SPEC 6.15 y docs/motor.md §16). Es la regla que decide qué
  * grupo de los que van detrás es «la persecución» en cada parte, y vive aquí —pura y probada— porque

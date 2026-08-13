@@ -19,6 +19,7 @@
  * inserción (todo empate se rompe por id).
  */
 import { ENGINE_VERSION, STAGE } from '../constants.js'
+import { mainGroupId } from '../stage/group.js'
 import type { SnapshotRider, StageProbe } from '../stage/types.js'
 
 /** ¿Se puede volver a correr una etapa YA CORRIDA y obtener la misma carrera? */
@@ -54,10 +55,10 @@ export function checkReplay(snapshotEngineVersion: number): ReplayCheck {
 }
 
 /**
- * Qué es cada grupo en la carretera. Se deduce de DOS cosas y de nada más: del id que el motor le
- * puso (`peloton`, `mov-N` para un movimiento, `shed-N` para un descolgado) y de su sitio en la
- * carretera respecto al pelotón. No hay heurística de tamaños: un pelotón de 6 sigue siendo el
- * pelotón, que es exactamente el matiz que se pierde al leer los eventos.
+ * Qué es cada grupo en la carretera. Se deduce de dónde está respecto al PELOTÓN, y el pelotón es el
+ * grupo que lleva la gente (v29, `mainGroupId`), no el que salió con ese id. Antes mandaba el id, y
+ * por eso esta tabla llegó a imprimir «[3] pelotón 2 · [4] grupeto 15 … cola 100 en 4 grupos»: un
+ * pelotón de dos corredores con cien detrás llamados grupeto.
  */
 export type RadioGroupKind =
   /** Va en cabeza de carrera y salió como movimiento: la fuga. */
@@ -110,6 +111,8 @@ export interface RadioKm {
   racing: number
   /** Cuántos de los que tomaron la salida ya no están (abandonos). */
   gone: number
+  /** Qué grupo lleva el título de PELOTÓN en esta foto (v29). Se pasa a la siguiente por histéresis. */
+  mainId: string | null
 }
 
 /** La etapa entera, kilómetro a kilómetro. */
@@ -154,15 +157,19 @@ export function radioKmPoints(totalKm: number, everyKm = 1): readonly number[] {
   return kms
 }
 
-/** El id que `simulate.ts` le da al pelotón. Los demás grupos son `mov-N` y `shed-N`. */
-const PELOTON_ID = 'peloton'
-
 /** El estado de la carrera en UNA foto: los grupos, ordenados por carretera, con sus huecos. */
 export function radioKmFrom(
   km: number,
   riders: readonly SnapshotRider[],
   starters: number,
   maxPullers: number = DEFAULT_MAX_PULLERS,
+  /**
+   * Quién llevaba el título de PELOTÓN en la foto anterior (v29). La radio se lee kilómetro a
+   * kilómetro y el título se defiende por tamaño con histéresis: sin este dato, dos mitades
+   * parecidas se lo intercambiarían de fila en fila y la tabla sería ilegible justo donde importa.
+   * `null` en la primera foto: manda el tamaño.
+   */
+  previousMainId: string | null = null,
 ): RadioKm {
   const byGroup = new Map<string, SnapshotRider[]>()
   for (const r of riders) {
@@ -199,10 +206,17 @@ export function radioKmFrom(
   // Orden de CARRETERA: manda el reloj, y el id desempata para que dos grupos clavados no bailen.
   raw.sort((a, b) => a.tS - b.tS || (a.id < b.id ? -1 : 1))
   const leadTs = raw.length > 0 ? raw[0]!.tS : 0
-  const pelotonTs = raw.find((g) => g.id === PELOTON_ID)?.tS ?? null
+  /**
+   * EL PELOTÓN ES EL QUE LLEVA LA GENTE (v29). Era el grupo con id `peloton`, y por eso esta misma
+   * tabla llegó a imprimir «[3] pelotón 2 · [4] grupeto 15 … cola 100 en 4 grupos»: un pelotón de
+   * dos corredores con cien detrás llamados grupeto. La regla vive en `stage/group.ts` y es la
+   * MISMA que usa el motor para medir los boquetes, para que la radio y la carrera no discrepen.
+   */
+  const mainId = mainGroupId(raw, previousMainId, STAGE.mainGroupTakeoverRatio)
+  const mainTs = raw.find((g) => g.id === mainId)?.tS ?? null
   let movesAhead = 0
   const groups: RadioGroup[] = raw.map((g, i) => {
-    const kind = kindOf(g.id, g.tS, pelotonTs, movesAhead)
+    const kind = kindOf(g.id, g.tS, mainId, mainTs, movesAhead)
     if (kind === 'fuga' || kind === 'contra') movesAhead += 1
     return {
       id: g.id,
@@ -217,20 +231,35 @@ export function radioKmFrom(
     }
   })
   const racing = riders.length
-  return { km: roundKm(km), groups, racing, gone: Math.max(0, starters - racing) }
+  return { km: roundKm(km), groups, racing, mainId, gone: Math.max(0, starters - racing) }
 }
 
+/**
+ * Qué es cada grupo, decidido por DÓNDE ESTÁ y CUÁNTA GENTE LLEVA, no por su id (v29):
+ *
+ * - el grupo principal es el pelotón, se llame `peloton`, `shed-4` o `mov-2`;
+ * - por DELANTE del pelotón se va escapado (la fuga y, tras ella, los contraataques);
+ * - por DETRÁS del pelotón se va descolgado, aunque el grupo naciera con el nombre de pelotón;
+ * - y `tierra` es lo de siempre: un movimiento que ya no va por delante y aún no ha sido absorbido.
+ */
 function kindOf(
   id: string,
   tS: number,
-  pelotonTs: number | null,
+  mainId: string | null,
+  mainTs: number | null,
   movesAhead: number,
 ): RadioGroupKind {
-  if (id === PELOTON_ID) return 'peloton'
-  if (id.startsWith('shed-')) return 'grupeto'
-  // Un movimiento cuenta como escapado mientras vaya por delante del pelotón. Si el pelotón ya no
-  // existe —se ha roto entero y solo quedan movimientos— el primero de carretera es la fuga.
-  if (pelotonTs !== null && tS >= pelotonTs) return 'tierra'
+  if (id === mainId) return 'peloton'
+  if (mainTs === null) return id.startsWith('shed-') ? 'grupeto' : 'fuga'
+  if (tS > mainTs) {
+    // Detrás del pelotón. El ORIGEN sí informa aquí, y es la única vez que lo hace: uno que atacó y
+    // se quedó sin piernas está en tierra de nadie; uno que se descolgó —o lo que quede del grupo
+    // que se llamaba pelotón y ha perdido el título— es grupeto.
+    return id.startsWith('mov-') ? 'tierra' : 'grupeto'
+  }
+  // Un movimiento cuenta como escapado mientras vaya por delante del pelotón; a la misma altura, ni
+  // una cosa ni la otra.
+  if (tS === mainTs) return 'tierra'
   return movesAhead === 0 ? 'fuga' : 'contra'
 }
 
@@ -274,8 +303,15 @@ export function raceRadioFrom(
   let seen = 0
   for (const s of shots) seen = Math.max(seen, s.riders.length)
   const starters = options.starters ?? seen
+  // El título de PELOTÓN se hereda de una foto a la siguiente (v29): la histéresis de `mainGroupId`
+  // necesita saber quién lo tenía, o dos mitades parecidas se lo intercambiarían fila sí, fila no.
+  let mainId: string | null = null
   const kms = [...shots]
     .sort((a, b) => a.km - b.km)
-    .map((s) => radioKmFrom(s.km, s.riders, starters, maxPullers))
+    .map((s) => {
+      const row = radioKmFrom(s.km, s.riders, starters, maxPullers, mainId)
+      mainId = row.mainId
+      return row
+    })
   return { starters, kms }
 }

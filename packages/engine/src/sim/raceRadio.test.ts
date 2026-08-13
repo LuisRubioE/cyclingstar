@@ -74,6 +74,44 @@ describe('radioKmFrom', () => {
     expect(km.groups.map((g) => g.kind)).toEqual(['fuga', 'contra', 'peloton', 'tierra', 'grupeto'])
   })
 
+  /**
+   * EL PELOTÓN ES EL QUE LLEVA LA GENTE (v29). Esta tabla llegó a imprimir «[3] pelotón 2 · [4]
+   * grupeto 15 … cola 100 en 4 grupos»: un pelotón de dos corredores con cien detrás llamados
+   * grupeto, porque el nombre venía del ORIGEN del grupo y esos nombres no caducan.
+   */
+  it('dos supervivientes no son el pelotón cuando detrás van cien', () => {
+    const km = radioKmFrom(
+      151,
+      [
+        rider('f1', 'mov-1', 4000),
+        ...Array.from({ length: 2 }, (_, i) => rider(`p${i}`, 'peloton', 4300)),
+        ...Array.from({ length: 100 }, (_, i) => rider(`s${i}`, 'shed-3', 4700)),
+      ],
+      103,
+    )
+    // El de cien es el pelotón; los dos de delante, un grupo escapado; y la etiqueta vieja se cae.
+    expect(km.groups.map((g) => g.kind)).toEqual(['fuga', 'contra', 'peloton'])
+    expect(km.mainId).toBe('shed-3')
+  })
+
+  it('dos mitades parecidas no se turnan el título de una foto a la otra', () => {
+    const foto = (previous: string | null) =>
+      radioKmFrom(
+        12,
+        [
+          ...Array.from({ length: 53 }, (_, i) => rider(`p${i}`, 'peloton', 4300)),
+          ...Array.from({ length: 55 }, (_, i) => rider(`s${i}`, 'shed-1', 4310)),
+        ],
+        108,
+        3,
+        previous,
+      )
+    // Sin memoria manda el tamaño; con memoria, el que lo tenía lo conserva —55 no supera a 53 con
+    // el margen que exige `mainGroupId`— y la tabla no baila kilómetro sí, kilómetro no.
+    expect(foto(null).mainId).toBe('shed-1')
+    expect(foto('peloton').mainId).toBe('peloton')
+  })
+
   it('cuenta los que faltan contra los que tomaron la salida', () => {
     const km = radioKmFrom(80, [rider('a', 'peloton', 100), rider('b', 'peloton', 100)], 119)
     expect(km.racing).toBe(2)

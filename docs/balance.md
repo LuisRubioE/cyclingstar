@@ -6322,3 +6322,84 @@ habla en nombre de equipos si **todos** los que firman tienen uno.
 - **`peloton_pull` sigue nombrando tres corredores.** Ahí es defendible —«quién va al frente AHORA»
   son tres tíos de verdad, no un resumen de 100 km— pero comparte el tope y conviene mirarlo.
 - **No toca la física**: quién caza, cuándo y con cuánta fuerza es exactamente lo de la v27.
+
+---
+
+## v29 — El pelotón es quien lleva la gente, no quien lleva la etiqueta (`engine_version` 28 → 29)
+
+### 1. El defecto
+
+Los grupos del motor se llaman por su **ORIGEN**: `peloton` es el que salió del pelotón, `mov-N` el
+que atacó, `shed-N` el que se descolgó. Y esos nombres **no caducan**. Un grupo nacido del pelotón
+sigue llamándose «pelotón» aunque le queden dos corredores; un `shed-N` sigue siendo «grupeto» aunque
+lleve cien. La Race Radio lo enseña en una línea:
+
+```
+km 151  [1] fuga 1   [2] contra 1   [3] pelotón 2   [4] grupeto 15  …  cola 100 en 4 grupos
+```
+
+**Un «pelotón» de dos corredores, con cien detrás llamados «grupeto».** Y de esa etiqueta cuelgan la
+crónica entera y las decisiones que miden huecos.
+
+### 2. Cuánto mentía
+
+`scripts/medir-peloton.mjs`, 10 carreras del banco, **8.510 fotos de carrera**:
+
+|                                                  |                                                            |
+| ------------------------------------------------ | ---------------------------------------------------------- |
+| el grupo llamado «pelotón» **no era** el pelotón | **1.883 (22,1 %)**                                         |
+| …y por detrás de él iba **más gente que dentro** | **1.790 (21,0 %)**                                         |
+| peor caso por tamaño                             | un «pelotón» de **1 corredor** (`race-tachira` e2, km 101) |
+| mayor diferencia entre el bueno y el del id      | **115 corredores** (`race-arabia` e5, km 117)              |
+
+Una foto de cada cinco. No es un caso raro de una etapa rara: es el estado normal de cualquier etapa
+que se rompa.
+
+### 3. La regla que faltaba
+
+`mainGroupId` (`stage/group.ts`): **el pelotón es el grupo que lleva la gente**, con dos matices que
+no son de gusto:
+
+- **Histéresis** (`mainGroupTakeoverRatio = 1,25`): el retador tiene que llevar un 25 % más para
+  quitarle el título al que lo tiene. Los dos casos que fijan el número son de la misma etapa:
+  «pelotón» 2 contra 100 (`100 ≥ 2·1,25`, cambia y debe cambiar) y dos mitades de 53 y 55
+  (`55 ≥ 53·1,25` es falso, no cambia y no debe — es el caso que la v17 dejó deliberadamente «cerca
+  del centro»).
+- **Si el que tenía el título ya no existe**, manda el tamaño.
+
+Con ella, «seguir en carrera» pasa a ser **ir por delante del pelotón o serlo**, en vez de «no
+haberse llamado `shed-N`», que es lo que decidía contra qué grupo se mide un boquete. Y la Race Radio
+usa **la misma función que el motor**, para que la tabla y la carrera no puedan discrepar.
+
+### 4. La pregunta de la tanda: ¿sobran los tres parches?
+
+**No sobra ninguno, y el porqué importa más que la respuesta:**
+
+- **v17, `majorityOnTheRoad`** — no es una etiqueta, es **física**: cuánto pelea un grupo descolgado
+  según la razón de tamaños con los de delante, cobrada a precio de rebufo. Sigue haciendo falta
+  exactamente igual, y por una razón incómoda que esta tanda deja escrita: el motor ahora **NOMBRA**
+  los grupos por su gente pero sigue corriendo la **FÍSICA** de cada uno por su origen. Un `shed-N`
+  de cien que ya se llama pelotón sigue rodando con las reglas de un grupeto, y es `majorityOnTheRoad`
+  quien evita que se resigne.
+- **v25, `gapChaseMainFraction`** — elige entre los que cuentan por MAGNITUD. Sigue haciendo falta:
+  un puente en solitario entre la fuga y el pelotón va por delante del pelotón, así que ahora
+  «cuenta», y sin el listón de magnitud volvería a disfrazarse de persecución (Race Jaén).
+- **v27, `chaseReferenceIndex`** — la función se queda; lo que cambia es que **su entrada por fin
+  dice la verdad**. Era ella la que recibía `racing = rank !== SHED_RANK`, es decir el origen.
+
+### 5. Verificación
+
+- **Huellas selladas idénticas** dígito a dígito (`stage/attribution.test.ts`,
+  `stage/timetrial.test.ts`): cambio de OBSERVACIÓN, ni un dado ni un subflujo.
+- **`sim/coherence.test.ts` en cero.**
+- Sube `ENGINE_VERSION` porque el contenido de los eventos cambia (`chaseKind`, `chaseSize` y contra
+  qué grupo se mide la ventaja) y `checkReplay()` compara versiones.
+
+### 6. La deuda que deja, dicha con todas las letras
+
+**El motor nombra por la gente y corre por el origen.** Esta tanda arregla la observación —quién se
+llama qué, contra quién se mide un boquete, qué lee el jugador— y NO toca el camino de física que
+recorre cada grupo: un `shed-N` que ya es el pelotón sigue sin poder tener «equipo al frente»
+(`onTheFront`, y con él `shelterWorking`), y su trabajo no entra en el libro de la persecución
+(`chaseLedger`), porque las dos cosas están atadas a `kind === 'peloton'`. Es el siguiente escalón y
+es de física: moverá las huellas y hay que medirlo aparte.

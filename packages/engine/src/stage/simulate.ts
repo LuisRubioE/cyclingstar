@@ -22,6 +22,7 @@ import {
   chaseReferenceIndex,
   createGroup,
   gapSeconds,
+  mainGroupId,
   percentile75,
 } from './group.js'
 import {
@@ -668,6 +669,13 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
   let lastFrontNoticeKm = Number.NEGATIVE_INFINITY
   let lastGapReportKm = Number.NEGATIVE_INFINITY
   let prevGapS = Number.POSITIVE_INFINITY
+  /**
+   * QUIÉN LLEVA EL TÍTULO DE PELOTÓN (v29). Empieza en el grupo que se llama así —que al salir de
+   * meta lo es— y a partir de ahí lo defiende o lo pierde por TAMAÑO, con la histéresis de
+   * `mainGroupId`. Es estado porque la histéresis lo exige: sin memoria de quién lo tenía, dos
+   * mitades parecidas se lo intercambiarían cada bloque.
+   */
+  let mainId: string | null = PELOTON
   // Descuelgues BRUTOS del pelotón desde el último aviso narrado, y cuántos corredores iban en él
   // entonces. El bruto es telemetría verdadera —cuántas veces se rompió la goma— pero NO es lo que
   // se narra: en el desenlace los mismos corredores se sueltan y se reenganchan una y otra vez, así
@@ -1217,6 +1225,18 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
       const racing = liveGroups.reduce((c, x) => c + x.members.length, 0)
       const lead = liveGroups[0]
       /**
+       * QUIÉN ES EL PELOTÓN AHORA MISMO (v29, `mainGroupId` en stage/group.ts). Hasta aquí el rango
+       * de un grupo era su ORIGEN —el que salió del pelotón era «el pelotón» aunque le quedaran dos
+       * corredores, y el que se descolgó era «grupeto» aunque llevara cien—, y de esa etiqueta
+       * colgaban la crónica y la medida del boquete. El pelotón es EL GRUPO QUE LLEVA LA GENTE.
+       */
+      mainId = mainGroupId(
+        liveGroups.map((x) => ({ id: x.g.id, size: x.members.length })),
+        mainId,
+        STAGE.mainGroupTakeoverRatio,
+      )
+      const mainIdx = liveGroups.findIndex((x) => x.g.id === mainId)
+      /**
        * CONTRA QUÉ SE MIDE EL BOQUETE (v25 + v27). La regla entera —y el porqué de cada mitad— está
        * en `chaseReferenceIndex` (stage/group.ts), que es pura y tiene sus propios casos: el puente
        * en solitario de Race Jaén que se convertía en «la caza», y el grupeto de Race Andalucía
@@ -1224,7 +1244,11 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
        */
       const behind = liveGroups.slice(1)
       const chaseIdx = chaseReferenceIndex(
-        behind.map((x) => ({ size: x.members.length, racing: x.rank !== SHED_RANK })),
+        // …Y «SEGUIR EN CARRERA» ES IR DELANTE DEL PELOTÓN O SER EL PELOTÓN (v29). Era `rank !==
+        // SHED_RANK`, es decir el ORIGEN: un grupo de cien descolgados no contaba como carrera y
+        // dos corredores que salieron del pelotón sí. Grupeto es quien va por DETRÁS del grueso,
+        // venga de donde venga; y `liveGroups` va en orden de carretera, así que la posición lo dice.
+        behind.map((x, i) => ({ size: x.members.length, racing: mainIdx < 0 || i + 1 <= mainIdx })),
         STAGE.gapChaseMainFraction,
       )
       const chase = chaseIdx >= 0 ? behind[chaseIdx] : undefined
@@ -1235,8 +1259,9 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
        * trozo de carrera que persigue por delante del resto, es «the chase group». Sin este dato la
        * crónica llamaba a las dos cosas igual, y desde una criba son grupos distintos.
        */
+      // …y «el pelotón» es el grupo que lleva la gente (v29), no el que salió con ese nombre.
       const chaseIsBunch =
-        chase !== undefined && chase.rank === PELOTON_RANK && chase.members.length * 2 >= racing
+        chase !== undefined && chase.g.id === mainId && chase.members.length * 2 >= racing
       const chaseKind = chaseIsBunch ? 'peloton' : 'caza'
 
       // Parte de cabeza: cuando delante quedan pocos, se dice QUIÉNES son. Es la pregunta directa

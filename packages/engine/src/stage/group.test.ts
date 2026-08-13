@@ -6,6 +6,7 @@ import {
   createGroup,
   gapSeconds,
   isCapture,
+  mainGroupId,
   mergeGroups,
   percentile75,
 } from './group.js'
@@ -90,5 +91,72 @@ describe('percentile75', () => {
   it('interpola el percentil 75 de los que marcan el ritmo', () => {
     expect(percentile75([10])).toBe(10)
     expect(percentile75([1, 2, 3, 4, 5])).toBeCloseTo(4)
+  })
+})
+
+/**
+ * QUIÉN ES EL PELOTÓN (v29). Los grupos del motor se llaman por su ORIGEN y esos nombres no caducan:
+ * un grupo nacido del pelotón seguía siendo «el pelotón» con dos corredores, y uno descolgado seguía
+ * siendo «grupeto» con cien. Medido sobre 8.510 fotos del banco, la etiqueta mentía en el 22,1 % —y
+ * en el 21,0 % iba MÁS gente detrás del falso pelotón que dentro de él—.
+ */
+describe('mainGroupId: el pelotón es el que lleva la gente', () => {
+  const T = 1.25
+
+  it('sin grupos no hay pelotón', () => {
+    expect(mainGroupId([], 'peloton', T)).toBeNull()
+  })
+
+  it('el caso de Race Andalucía: dos corredores no son un pelotón con cien detrás', () => {
+    const road = [
+      { id: 'mov-1', size: 1 },
+      { id: 'peloton', size: 2 },
+      { id: 'shed-3', size: 100 },
+    ]
+    expect(mainGroupId(road, 'peloton', T)).toBe('shed-3')
+  })
+
+  it('dos mitades parecidas NO se intercambian el título: hace falta superarlo con margen', () => {
+    const road = [
+      { id: 'peloton', size: 53 },
+      { id: 'shed-1', size: 55 },
+    ]
+    // 55 no llega a 53·1,25 = 66,25: la etiqueta se queda donde estaba (el caso que la v17 dejó
+    // deliberadamente «cerca del centro»).
+    expect(mainGroupId(road, 'peloton', T)).toBe('peloton')
+    // …y al revés: si el título lo tenía el otro, tampoco se lo quita el de 53.
+    expect(mainGroupId(road, 'shed-1', T)).toBe('shed-1')
+  })
+
+  it('cuando uno se lleva claramente la carrera, el título cambia de dueño', () => {
+    const road = [
+      { id: 'peloton', size: 40 },
+      { id: 'shed-1', size: 60 },
+    ]
+    expect(mainGroupId(road, 'peloton', T)).toBe('shed-1')
+  })
+
+  it('si el que tenía el título ya no existe —fundido o vacío— manda el tamaño', () => {
+    const road = [
+      { id: 'mov-2', size: 8 },
+      { id: 'shed-1', size: 90 },
+    ]
+    expect(mainGroupId(road, 'peloton', T)).toBe('shed-1')
+    expect(mainGroupId(road, null, T)).toBe('shed-1')
+  })
+
+  it('es TOTAL: dos grupos del mismo tamaño dan la misma respuesta venga como venga la lista', () => {
+    const a = { id: 'aaa', size: 50 }
+    const b = { id: 'bbb', size: 50 }
+    expect(mainGroupId([a, b], null, T)).toBe('aaa')
+    expect(mainGroupId([b, a], null, T)).toBe('aaa')
+  })
+
+  it('el pelotón entero al completo se queda con su nombre, que es el caso normal', () => {
+    const road = [
+      { id: 'mov-1', size: 6 },
+      { id: 'peloton', size: 140 },
+    ]
+    expect(mainGroupId(road, 'peloton', T)).toBe('peloton')
   })
 })
