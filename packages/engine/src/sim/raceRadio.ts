@@ -154,6 +154,9 @@ export function radioKmPoints(totalKm: number, everyKm = 1): readonly number[] {
   return kms
 }
 
+/** El id que `simulate.ts` le da al pelotón. Los demás grupos son `mov-N` y `shed-N`. */
+const PELOTON_ID = 'peloton'
+
 /** El estado de la carrera en UNA foto: los grupos, ordenados por carretera, con sus huecos. */
 export function radioKmFrom(
   km: number,
@@ -216,8 +219,6 @@ export function radioKmFrom(
   const racing = riders.length
   return { km: roundKm(km), groups, racing, gone: Math.max(0, starters - racing) }
 }
-
-const PELOTON_ID = 'peloton'
 
 function kindOf(
   id: string,
