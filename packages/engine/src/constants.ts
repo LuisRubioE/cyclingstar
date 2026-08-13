@@ -410,8 +410,25 @@
  *
  * Cambio de OBSERVACIÓN, como la v25: ni un dado, ni un subflujo, ni una constante de calibración
  * movida, y las huellas selladas salen dígito a dígito iguales. Medido en docs/balance.md, «v27».
+ *
+ * ── v28 · una persecución la hacen EQUIPOS, no tres señores ────────────────────────────────────
+ *
+ * `chase_work` nombraba a los tres corredores que más habían puesto en la caza. Con tres escuadras
+ * colaborando eso reparte un nombre por equipo, y la frase acaba contando individuos justo después
+ * de haber contado que tiraba un equipo. El dueño lo señaló varias veces con esas palabras: «no
+ * tiene sentido que si 3 equipos colaboraron, solo 1 de cada aparezca».
+ *
+ * Ahora el trabajo de la persecución se suma POR EQUIPO, se ordenan los equipos y de cada uno se
+ * nombra a su hombre más gastado como representante; el evento lleva además `teams`, cuántas
+ * escuadras cazaron DE VERDAD, que puede ser más de las tres que caben en la frase. Un agente libre
+ * es su propio equipo y firma él. El UMBRAL que decide si una captura tiene autor no se toca: sigue
+ * midiéndose sobre el trabajo individual, así que ni una captura gana o pierde autor por esto.
+ *
+ * Cambio de OBSERVACIÓN otra vez: ni un dado ni un subflujo, huellas selladas idénticas y
+ * `sim/coherence.test.ts` en cero. Sube la versión porque el CONTENIDO de los eventos cambia y
+ * `checkReplay()` compara versiones para saber si un replay es comparable con lo que se guardó.
  */
-export const ENGINE_VERSION = 27 as const
+export const ENGINE_VERSION = 28 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a

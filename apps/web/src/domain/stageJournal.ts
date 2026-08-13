@@ -934,12 +934,36 @@ function chronicleTemplate(e: ChronicleEntry): string {
       // lee como una contradicción; «3:04 allá por el km 26» es un sitio de la etapa.
       const peakAt = e.datos?.peakKm == null ? '' : ` back at km ${Number(e.datos.peakKm)}`
       const nTeams = teamList.length
-      if (nTeams === 1 && team)
+      // Solo se habla en nombre de equipos si TODOS los que firman tienen uno. Con un agente libre
+      // entre medias, atribuirlo a «el equipo» lo borraría del parte: cazó él, y él firma.
+      const allHaveTeam = riders.length > 0 && riders.every((r) => !!r.team)
+      if (nTeams === 1 && team && allHaveTeam)
         return pick([
           `The work was ${team}'s: the lead peaked at ${peak}${peakAt} and was gone${since}.`,
           `${team} did the closing — from a high of ${peak}${peakAt} to nothing${since}.`,
           `It is ${team} who have driven the chase: ${peak}${peakAt} at its best, and gone${since}.`,
         ])
+      /*
+       * UNA PERSECUCIÓN LA HACEN EQUIPOS (v28). El dueño lo repitió varias veces: «no tiene sentido
+       * que si 3 equipos colaboraron, solo 1 de cada aparezca». La frase nombraba a los tres
+       * corredores que más habían puesto —uno por escuadra— y se leía como si la caza la hubieran
+       * hecho tres señores, justo después de haber contado que tiraba un equipo. Aquí se nombra a
+       * los EQUIPOS, que es como se cuenta una caza en cualquier crónica de verdad.
+       *
+       * Y `datos.teams` dice cuántos cazaron DE VERDAD, que puede ser más de los que caben en la
+       * frase (el motor nombra tres como mucho): los que no caben se cuentan, no se esconden. Si
+       * entre los protagonistas hay un agente libre —sin equipo al que nombrar— se vuelve a los
+       * nombres, que ahí sí son la verdad.
+       */
+      if (nTeams > 1 && allHaveTeam) {
+        const realTeams = Math.max(nTeams, Number(e.datos?.teams ?? nTeams))
+        const rest = realTeams - nTeams
+        const andMore = rest > 0 ? ` and ${rest} more team${rest === 1 ? '' : 's'}` : ''
+        return pick([
+          `${teams}${andMore} shared the chasing between them: the gap peaked at ${peak}${peakAt} and was gone${since}.`,
+          `The catch belongs to ${teams}${andMore} — from ${peak}${peakAt} at its high point to nothing${since}.`,
+        ])
+      }
       if (nTeams > 1)
         return pick([
           `${who} shared the chasing between them: the gap peaked at ${peak}${peakAt} and was gone${since}.`,

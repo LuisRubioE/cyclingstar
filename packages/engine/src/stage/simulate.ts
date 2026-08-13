@@ -796,21 +796,54 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
    */
   const attributeChase = (mv: Move, atKm: number, atTs: number): void => {
     if (mv.peakGapS < STAGE.chaseWorkMinGapSeconds) return
-    const { ids, best } = topWorkers(
-      // EL QUE SE RINDIÓ NO FIRMA LA CAZA (v21). En producción, Race Bességes e4 atribuía la captura
-      // a Patrick Henry, que se había dejado ir diecisiete kilómetros antes. El trabajo que hizo es
-      // REAL y no se borra del libro —lo hizo—, pero la frase habla en presente («the catch belongs
-      // to»): la firman los que seguían peleando cuando ocurrió. Si no queda ninguno, la captura se
-      // queda sin autor, que es lo que este evento ya hacía cuando la fuga se hundía sola.
-      [...mv.chaseLedger].filter(([id]) => {
-        const s = sims.get(id)
-        return s != null && !s.gaveUp && s.abandonedKm === null
-      }),
+    // EL QUE SE RINDIÓ NO FIRMA LA CAZA (v21). En producción, Race Bességes e4 atribuía la captura
+    // a Patrick Henry, que se había dejado ir diecisiete kilómetros antes. El trabajo que hizo es
+    // REAL y no se borra del libro —lo hizo—, pero la frase habla en presente («the catch belongs
+    // to»): la firman los que seguían peleando cuando ocurrió. Si no queda ninguno, la captura se
+    // queda sin autor, que es lo que este evento ya hacía cuando la fuga se hundía sola.
+    const alive = [...mv.chaseLedger].filter(([id]) => {
+      const s = sims.get(id)
+      return s != null && !s.gaveUp && s.abandonedKm === null
+    })
+    // El UMBRAL sigue midiéndose sobre el trabajo INDIVIDUAL, exactamente como antes: lo que decide
+    // si una captura tiene autor no cambia, solo cambia a quién se nombra.
+    const { ids: soloIds, best } = topWorkers(
+      alive,
       STAGE.chaseWorkNamesMax,
       STAGE.chaseWorkNamesMinShare,
     )
-    if (ids.length === 0 || best < STAGE.chaseWorkMinUnits) return
+    if (soloIds.length === 0 || best < STAGE.chaseWorkMinUnits) return
+    // …PERO UNA PERSECUCIÓN LA HACEN EQUIPOS, NO TRES SEÑORES (v28). El dueño lo dijo varias veces:
+    // «no tiene sentido que si 3 equipos colaboraron, solo 1 de cada aparezca». Nombrar a los tres
+    // que más pusieron reparte un nombre por equipo y la frase queda contando individuos, cuando lo
+    // que pasó fue que tres ESCUADRAS se pusieron a cazar. Así que el trabajo se suma POR EQUIPO,
+    // se ordenan los equipos, y de cada uno se nombra a su hombre más gastado como su representante.
+    // Un agente libre es su propio «equipo»: firma él, que es la verdad.
+    const teamWork = new Map<string, number>()
+    const faceOfTeam = new Map<string, [string, number]>()
+    for (const [id, w] of alive) {
+      if (w <= 0) continue
+      const key = teamOf.get(id) ?? `libre:${id}`
+      teamWork.set(key, (teamWork.get(key) ?? 0) + w)
+      const cur = faceOfTeam.get(key)
+      if (!cur || w > cur[1] || (w === cur[1] && id < cur[0])) faceOfTeam.set(key, [id, w])
+    }
+    const rankedTeams = [...teamWork].sort(
+      (a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0),
+    )
+    const topTeam = rankedTeams[0]?.[1] ?? 0
+    // Los que pusieron una parte apreciable de lo que puso el que más: si cazó uno solo, sale uno.
+    const working = rankedTeams.filter(([, w]) => w >= topTeam * STAGE.chaseWorkNamesMinShare)
+    const ids = working
+      .slice(0, STAGE.chaseWorkNamesMax)
+      .map(([key]) => faceOfTeam.get(key)?.[0] ?? '')
+      .filter((id) => id !== '')
+    if (ids.length === 0) return
     log.emit(atKm, atTs, 'trabajo', 'chase_work', ids, {
+      // CUÁNTOS equipos cazaron de verdad, que no tiene por qué ser cuántos caben en la frase. Sin
+      // este número la crónica solo puede contar los nombres que le llegan (tres como mucho) y una
+      // caza a cinco bandas se lee como una alianza de tres. Con él puede decir «and two more».
+      teams: working.length,
       // Lo que se cerró: la CÚSPIDE del boquete y en cuántos km se fue desde ella. Son los dos
       // números que la frase tiene que decir tal cual: contarlo como «cerraron 2:20 en 5 km» hacía
       // que chocara con el último parte narrado («1:50» dos kilómetros antes), y las dos cosas eran

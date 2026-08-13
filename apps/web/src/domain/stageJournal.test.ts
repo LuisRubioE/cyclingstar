@@ -434,11 +434,38 @@ describe('quién hizo el trabajo para cerrar', () => {
     expect(work(oneTeam)).toContain('Summit Squad')
   })
 
-  it('si cerraron varios equipos, se nombra a los corredores', () => {
+  /*
+   * ESTO SE SELLABA AL REVÉS (v28). El test decía «si cerraron varios equipos, se nombra a los
+   * corredores» y comprobaba que salieran Ana y Bea: nombraba a un corredor por escuadra y la frase
+   * se leía como si la caza la hubieran hecho dos señores, dos líneas después de haber contado que
+   * tiraba un equipo. El dueño lo señaló varias veces. Una persecución la hacen EQUIPOS.
+   */
+  it('si cerraron varios equipos, se nombra a los EQUIPOS, no a un corredor de cada uno', () => {
     const l = work(twoTeams)
+    expect(l).toContain('Summit Squad')
+    expect(l).toContain('Team Sol')
+    expect(l).not.toContain('Ana')
+    expect(l).not.toContain('Bea')
+  })
+
+  it('los equipos que no caben en la frase se cuentan, no se esconden', () => {
+    // El motor nombra tres como mucho, pero dice cuántos cazaron de verdad (`datos.teams`).
+    const l = chronicleLine(
+      event({
+        plantilla: 'chase_work',
+        km: 150,
+        protagonists: twoTeams,
+        datos: { closedS: 155, km: 32, work: 6.4, teams: 4 },
+      }),
+    )
+    expect(l).toContain('Summit Squad')
+    expect(l).toContain('2 more teams')
+  })
+
+  it('con un agente libre entre medias se vuelve a los nombres: no hay equipo que nombrar', () => {
+    const l = work([rider('Ana', { team: 'Summit Squad' }), rider('Bea')])
     expect(l).toContain('Ana')
     expect(l).toContain('Bea')
-    expect(l).not.toMatch(/^The work was Summit Squad|^Summit Squad did/)
   })
 
   it('sin equipo conocido la frase sigue siendo una frase', () => {
