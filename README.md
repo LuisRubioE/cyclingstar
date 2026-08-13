@@ -101,6 +101,22 @@ El servicio `tick` solo necesita `DATABASE_URL` y `TICK_INTERVAL_MINUTES`.
 
 Antes de cerrar cualquier paso: `pnpm typecheck && pnpm test` en verde (Claude.md).
 
+### Race Radio — depurar una etapa kilómetro a kilómetro
+
+`scripts/race-radio.mjs` imprime el estado de la carrera en cada kilómetro: qué grupos hay, quién va
+en cada uno, el hueco al líder (la resta de sus relojes, exacta) y quién va en el turno de relevos.
+Es la herramienta para no tener que reconstruir a mano lo que pasó desde el reguero de eventos.
+
+```sh
+pnpm --filter @cyclingstar/engine build
+node scripts/race-radio.mjs race-andalusia 1 --riders 119     # banco: la etapa se corre aquí
+DATABASE_URL=… node scripts/race-radio.mjs race-andalusia 1 --db   # producción: replay del snapshot
+```
+
+Con `--db` la etapa se re-simula desde `stage_snapshots` (semilla y entrada congeladas) y **solo si
+corrió con el motor de hoy**: si `engineVersion` no coincide, el comando dice que no se puede
+reconstruir en vez de enseñar una carrera que no pasó. `--help` en la cabecera del propio script.
+
 ### Cobertura de tests
 
 `pnpm test:coverage` mide con `@vitest/coverage-v8` sobre todo `src` (también los ficheros sin

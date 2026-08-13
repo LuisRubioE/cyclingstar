@@ -13,12 +13,12 @@
  *    contra el camino nuevo.
  */
 import { describe, expect, it } from 'vitest'
-import { STAGE } from '../constants.js'
+import { ENGINE_VERSION, STAGE } from '../constants.js'
 import { simulateStage } from '../stage/simulate.js'
 import { stageSeed } from '../stage/rng.js'
 import type { SnapshotRider } from '../stage/types.js'
 import { queenScenario } from './scenarios.js'
-import { raceRadioCollector, radioKmFrom, radioKmPoints } from './raceRadio.js'
+import { checkReplay, raceRadioCollector, radioKmFrom, radioKmPoints } from './raceRadio.js'
 
 function rider(
   riderId: string,
@@ -115,6 +115,24 @@ describe('radioKmPoints', () => {
     expect(kms).toContain(75)
     expect(kms[kms.length - 1]).toBeCloseTo(151 - STAGE.dx, 6)
     expect(kms.every((km, i) => i === 0 || km > kms[i - 1]!)).toBe(true)
+  })
+})
+
+describe('checkReplay', () => {
+  it('una etapa que corrió con el motor de hoy se puede reconstruir', () => {
+    expect(checkReplay(ENGINE_VERSION).faithful).toBe(true)
+  })
+
+  it('una etapa que corrió con OTRO motor no se puede reconstruir, ni la anterior ni la siguiente', () => {
+    // Las dos direcciones importan: un snapshot viejo re-simulado con el motor nuevo cuenta otra
+    // carrera, y un árbol viejo leyendo un snapshot nuevo, también. La regla es la IGUALDAD.
+    expect(checkReplay(ENGINE_VERSION - 1).faithful).toBe(false)
+    expect(checkReplay(ENGINE_VERSION + 1).faithful).toBe(false)
+    expect(checkReplay(ENGINE_VERSION - 1)).toEqual({
+      faithful: false,
+      ranWith: ENGINE_VERSION - 1,
+      today: ENGINE_VERSION,
+    })
   })
 })
 

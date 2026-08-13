@@ -18,8 +18,40 @@
  * Puro y determinista: sin azar, sin reloj de pared y sin ordenaciones que dependan del orden de
  * inserción (todo empate se rompe por id).
  */
-import { STAGE } from '../constants.js'
+import { ENGINE_VERSION, STAGE } from '../constants.js'
 import type { SnapshotRider, StageProbe } from '../stage/types.js'
+
+/** ¿Se puede volver a correr una etapa YA CORRIDA y obtener la misma carrera? */
+export interface ReplayCheck {
+  /** true si el replay es FIEL: la etapa corrió con este mismo motor. */
+  faithful: boolean
+  /** Versión del motor con la que corrió (la de su `stage_snapshots.engineVersion`). */
+  ranWith: number
+  /** Versión del motor de este árbol. */
+  today: number
+}
+
+/**
+ * LA GUARDA DEL REPLAY, y es la regla más importante de todo esto.
+ *
+ * Una etapa ya corrida se puede reconstruir entera desde su snapshot —la semilla y la entrada están
+ * guardadas y el motor es determinista—, pero SOLO si corrió con el motor de hoy. Con un motor
+ * distinto la re-simulación cuenta una carrera diferente de la que quedó en el marcador: es
+ * literalmente el defecto por el que el journal se congeló en `stage_snapshots.events` en vez de
+ * re-simularse al vuelo (ver `apps/api/src/stageHistory.ts`).
+ *
+ * Así que hay dos respuestas y solo dos —replay fiel, o no se puede reconstruir—, y nunca una
+ * tercera que enseñe una carrera que no pasó. La regla vive aquí, con la radio, porque el que
+ * reconstruye una etapa es exactamente quien tiene que preguntarla: hoy la herramienta de
+ * depuración, mañana la vista del jugador.
+ */
+export function checkReplay(snapshotEngineVersion: number): ReplayCheck {
+  return {
+    faithful: snapshotEngineVersion === ENGINE_VERSION,
+    ranWith: snapshotEngineVersion,
+    today: ENGINE_VERSION,
+  }
+}
 
 /**
  * Qué es cada grupo en la carretera. Se deduce de DOS cosas y de nada más: del id que el motor le

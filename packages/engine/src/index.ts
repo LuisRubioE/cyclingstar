@@ -146,6 +146,7 @@ export { TARGETS, type Target } from './sim/targets.js'
 // kilómetro» —grupos, huecos y quién tira—. Se exporta porque la cuenta es la misma para la
 // herramienta de depuración (`scripts/race-radio.mjs`) y para la vista recorrible que viene detrás.
 export {
+  checkReplay,
   raceRadioCollector,
   raceRadioFrom,
   radioKmFrom,
@@ -156,6 +157,7 @@ export {
   type RadioGroupKind,
   type RadioKm,
   type RadioPuller,
+  type ReplayCheck,
 } from './sim/raceRadio.js'
 export {
   advanceGroup,
