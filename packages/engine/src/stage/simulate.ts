@@ -15,7 +15,7 @@ import {
   timeCutFraction,
 } from './abandon.js'
 import { chaseField, isFinisher, lerp } from './chase.js'
-import { EventLog } from './events.js'
+import { EventLog, announceRebels } from './events.js'
 import {
   type Group,
   advanceGroup,
@@ -1026,16 +1026,11 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
   const spentFractionOf = (plan: TeamPlan): number =>
     plan.budget > 0 ? (teamSpent.get(plan.teamId) ?? 0) / plan.budget : 1
   /**
-   * DESOBEDECER (docs/motor.md §VI.2): quien sale hoy por su cuenta se anuncia una vez, al principio,
-   * y se acabó. Es raro por construcción —`autoOrders` nunca nombra dos jefes en un equipo, así que
-   * solo pasa cuando un jugador humano da una orden que contradice el plan— y por eso merece una
-   * línea cuando pasa. Una sola: la crónica no es un inventario.
+   * DESOBEDECER (docs/motor.md §VI.2): quien sale hoy por su cuenta queda FUERA del plan de su
+   * equipo —ni le empujan al frente ni le arropan—, y eso es lo que aplican las dos funciones de
+   * arriba. La CRÓNICA de esa desobediencia NO se emite aquí: se coloca al final, en el kilómetro en
+   * que el rebelde aparece por primera vez haciendo algo (`announceRebels`, stage/events.ts).
    */
-  if (rebels.size > 0) {
-    log.emit(0, 0, 'por_libre', 'rider_defies_team', [...rebels].sort().slice(0, 3), {
-      total: rebels.size,
-    })
-  }
 
   // --- ABANDONOS (v14, docs/motor.md §VI.3) -------------------------------------------------
   /** Los que se han bajado de la bici, en orden de retirada. */
@@ -3284,7 +3279,8 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
   }
 
   return {
-    events: log.toArray(),
+    // La línea del que corre por su cuenta se coloca donde APARECE, no en el km 0 (v31).
+    events: announceRebels(log.toArray(), rebels),
     results,
     workUnits,
     incidents,

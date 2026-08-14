@@ -467,8 +467,26 @@
  * Y el diagnóstico que había anotado era FALSO y queda desmentido con datos: no hay muros mal
  * clasificados. De 1.418 etapas, cero cotas de ≥1,5 km al ≥7 % que mueran en meta salen «puncheur»;
  * el Muro de Huy del calendario (1,4 km al 8,5 %) sale puncheur y eso es lo correcto.
+ *
+ * ── v31 · la desobediencia se cuenta donde se ve ───────────────────────────────────────────────
+ *
+ * `rider_defies_team` se emitía en el **km 0**: la primera línea del diario decía «Team orders are
+ * one thing — 175 Rui Correia is racing his own race today» antes de que la carrera empezara. El
+ * dueño lo llamó por su nombre: «esta tontería absurda y que no se entiende». Dos defectos:
+ *
+ * 1. En el km 0 no ha pasado nada — es una declaración de intenciones, y el diario cuenta hechos.
+ * 2. La frase no decía qué hacía distinto, así que no había nada que mirar.
+ *
+ * Ahora la línea se coloca donde el rebelde APARECE por primera vez en la crónica (`announceRebels`,
+ * stage/events.ts), con el kilómetro de esa aparición y con `doing` —atacar, tirar o salir nombrado—
+ * para que la frase explique lo que el lector acaba de leer. Si no aparece en todo el día, no hay
+ * línea: una desobediencia sin consecuencia no es noticia. Es la misma regla que la v25 aplicó a los
+ * grupos: no se habla de algo cuya salida no se ha contado.
+ *
+ * Cambio de OBSERVACIÓN: recoloca eventos ya emitidos, no consume un dado, y las huellas selladas
+ * salen idénticas.
  */
-export const ENGINE_VERSION = 30 as const
+export const ENGINE_VERSION = 31 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a

@@ -483,15 +483,32 @@ function chronicleTemplate(e: ChronicleEntry): string {
       ])
     }
     case 'rider_defies_team': {
-      // DESOBEDECER LAS ÓRDENES (docs/motor.md §VI.2, motor v15). El equipo ya tiene jefe de filas
-      // y este corredor sale a lo suyo: queda fuera del plan, así que ni le empujan sus compañeros
-      // ni le arropan. Es raro por construcción —solo pasa con una orden humana que contradice el
-      // plan— y por eso se cuenta una vez, al principio, y no se vuelve a mencionar.
-      const total = Number(e.datos?.total ?? e.protagonists.length)
-      if (total > 1) return `${who} are riding to their own orders today, not their teams'.`
+      /*
+       * DESOBEDECER LAS ÓRDENES (docs/motor.md §VI.2). El equipo ya tiene jefe de filas y este
+       * corredor sale a lo suyo: queda fuera del plan, así que ni le empujan sus compañeros ni le
+       * arropan.
+       *
+       * ESTA LÍNEA SALÍA EN EL KM 0 (v31). Decía «Team orders are one thing — 175 Rui Correia is
+       * racing his own race today» antes de que la carrera empezara, y el dueño la llamó por su
+       * nombre: «esta tontería absurda y que no se entiende». Ahora el motor la coloca donde el
+       * corredor APARECE por primera vez, y `datos.doing` dice qué está haciendo justo ahí: la
+       * frase deja de ser una declaración de intenciones y pasa a explicar lo que el lector acaba
+       * de ver. Si el rebelde no aparece en todo el día, no hay línea.
+       */
+      const doing = String(e.datos?.doing ?? 'aparece')
+      if (doing === 'ataca')
+        return pick([
+          `${who} is doing this on his own account: his team has a leader today, and it is not him.`,
+          `Nobody sent ${who} up the road — he is riding to his own orders, not his team's.`,
+        ])
+      if (doing === 'tira')
+        return pick([
+          `${who} is putting in that work for himself, not for his team leader.`,
+          `That is ${who} riding his own race: his team's plan has another man at the front of it.`,
+        ])
       return pick([
-        `${who} has other ideas: he is riding for himself today, not for his team leader.`,
-        `Team orders are one thing — ${who} is racing his own race today.`,
+        `${who} has other ideas today: he is riding for himself, not for his team leader.`,
+        `${who} is out of his team's plan today, by his own choice.`,
       ])
     }
     case 'rider_bonks': {

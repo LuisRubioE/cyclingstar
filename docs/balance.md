@@ -6455,3 +6455,44 @@ mueve: `race-france` e6 (8,7 km al 4,4 %) sigue siendo final en alto, y también
   las seis está entre las canónicas selladas, así que la huella no se mueve pese a ser un cambio que
   SÍ cambia resultados.
 - Sube `ENGINE_VERSION` porque el remate de esas seis etapas cambia de dueño.
+
+---
+
+## v31 — La desobediencia se cuenta donde se ve (`engine_version` 30 → 31)
+
+> **La queja, textual:** «sigo viendo esta tontería absurda y que no se entiende:
+> `km 0 — Team orders are one thing — 175 Rui Correia (Lince Racing) is racing his own race today.`»
+
+### 1. Dos defectos en una línea
+
+`rider_defies_team` se emitía en el **km 0**, y ahí no ha pasado nada. Es una **declaración de
+intenciones**, no un hecho de carrera, y el diario cuenta lo que pasa. Peor: si el rebelde no vuelve
+a salir en todo el día —que es lo normal— esa línea se queda sola, sin consecuencia, abriendo el
+diario con algo que el lector no puede seguir.
+
+Y la frase **no decía qué hacía distinto**. «Corre su propia carrera» no se ve en ninguna parte: no
+es información, es una etiqueta.
+
+### 2. La regla, que ya existía en la casa
+
+Es la misma que la v25 aplicó a los grupos —**no se habla de algo cuya salida no se ha contado**—:
+el rebelde se anuncia **la primera vez que aparece en la crónica**, en el kilómetro de esa aparición,
+y la frase se cuelga de **lo que está haciendo ahí** (`datos.doing`: atacar, tirar, o simplemente
+salir nombrado). Si no aparece nunca, **no hay línea**.
+
+```
+antes   km 0    Team orders are one thing — 175 Rui Correia is racing his own race today.
+después km 78   Nobody sent 175 Rui Correia up the road — he is riding to his own orders, not
+                his team's.
+        km 78   175 Rui Correia attacks with 34 km to go…
+```
+
+La cuenta vive en `announceRebels` (`stage/events.ts`), es **pura** —recoloca eventos ya emitidos, no
+consume un dado— y tiene sus seis casos sellados en `stage/events.test.ts`, incluido el que más
+importa: **el rebelde que no aparece no genera línea**.
+
+### 3. Verificación
+
+- **Huellas selladas idénticas**: cambio de OBSERVACIÓN puro.
+- Sube `ENGINE_VERSION` porque cambia el contenido y la colocación de un evento, y `checkReplay()`
+  compara versiones.
