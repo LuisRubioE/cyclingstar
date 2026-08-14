@@ -1,0 +1,82 @@
+name: Cobertura y auditoría
+
+# LAS DOS SEÑALES QUE NO SON DE COMMIT.
+#
+# El CI de cada push contesta una pregunta: «¿pasa la suite con este cambio?». Estas dos no dependen
+# del cambio: el porcentaje de cobertura se lee de vez en cuando para decidir dónde faltan pruebas, y
+# una dependencia vulnerable no aparece porque alguien empuje código sino porque se publica un aviso.
+# Correrlas en cada push era pagar minutos por una respuesta que nadie leía hasta el día siguiente.
+#
+# Y los minutos importan porque el repositorio es PRIVADO: Actions se descuenta de la cuota de la
+# cuenta. Medido sobre el último CI verde, un push costaba 39 minutos facturables y 34 eran el job de
+# tests; la instrumentación de la cobertura multiplica la suite por 1,76 (530 s contra 934 s en
+# local). Sacarla de aquí es el único recorte que mueve la aguja: los otros cinco jobs juntos suman
+# cinco minutos.
+#
+# `workflow_dispatch` está a propósito: `ci.yml` no lo tiene, así que este es el único sitio desde el
+# que se puede lanzar una pasada a mano sin empujar un commit.
+
+on:
+  schedule:
+    # 04:15 UTC. La hora no es redonda a posta: las tareas programadas a en punto se agolpan en la
+    # cola de GitHub y arrancan tarde.
+    - cron: '15 4 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  coverage:
+    name: Cobertura
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: cyclingstar_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/cyclingstar_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+
+      # Mismo camino que el job de tests del CI: `packages/db` compilado y esquema aplicado, para que
+      # la cobertura se mida sobre la misma suite y no sobre una versión mutilada de ella.
+      - name: Build de packages/db
+        run: pnpm exec tsc -b packages/db
+      - name: Migraciones sobre la base de tests
+        run: node scripts/migrate.mjs
+
+      - name: Test con cobertura
+        run: pnpm test:coverage
+
+      - name: Sube el informe de cobertura
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage/
+          retention-days: 7
+          if-no-files-found: ignore
+
+  audit:
+    name: Auditoría de dependencias (informativo)
+    runs-on: ubuntu-latest
+    # No bloquea nada: es una señal para revisar, no una puerta. Si se quiere bloquear algún día,
+    # quitar `continue-on-error`.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - name: pnpm audit
+        run: pnpm audit --audit-level=high

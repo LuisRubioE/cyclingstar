@@ -59,17 +59,17 @@ jobs:
       - name: Migraciones sobre la base de tests
         run: node scripts/migrate.mjs
 
-      - name: Test con cobertura
-        run: pnpm test:coverage
-
-      - name: Sube el informe de cobertura
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage
-          path: coverage/
-          retention-days: 7
-          if-no-files-found: ignore
+      # SIN COBERTURA, y es una decisión de coste medida, no un descuido. Este job es el 87 % de lo
+      # que cuesta el CI: de los 39 minutos facturables de un push, 34 son este, y dentro de él la
+      # instrumentación de la cobertura multiplica la suite por 1,76 (medido en local: 530 s contra
+      # 934 s sobre las mismas 1.249 pruebas). El repositorio es PRIVADO, así que esos minutos se
+      # descuentan de la cuota de la cuenta, y el día que se agota no falla un test: se queda sin
+      # arrancar el CI entero y con él el despliegue, que espera a la señal verde.
+      #
+      # La cobertura no se pierde: la mide `cobertura.yml` una vez al día, que es la cadencia a la
+      # que se lee. Lo que se mira en CADA push es si la suite pasa, y eso es lo que sigue aquí.
+      - name: Test
+        run: pnpm test
 
   quality:
     name: Lint · Format
@@ -123,15 +123,6 @@ jobs:
         run: pnpm exec tsc -b packages/db
       - name: Aplica las migraciones
         run: node scripts/migrate.mjs --verify-idempotent
-
-  audit:
-    name: Auditoría de dependencias (informativo)
-    runs-on: ubuntu-latest
-    # No bloquea el merge: es una señal para revisar, no una puerta. Si se quiere
-    # bloquear algún día, quitar `continue-on-error`.
-    continue-on-error: true
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/setup
-      - name: pnpm audit
-        run: pnpm audit --audit-level=high
+# La AUDITORÍA de dependencias vivía aquí y se ha mudado a `cobertura.yml`: no bloqueaba el merge
+# (`continue-on-error`), nadie la miraba push a push, y una dependencia vulnerable no aparece por
+# empujar código sino por pasar el tiempo. Es una señal DIARIA, no por commit.
