@@ -7,11 +7,14 @@ name: Cobertura y auditoría
 # una dependencia vulnerable no aparece porque alguien empuje código sino porque se publica un aviso.
 # Correrlas en cada push era pagar minutos por una respuesta que nadie leía hasta el día siguiente.
 #
-# Y los minutos importan porque el repositorio es PRIVADO: Actions se descuenta de la cuota de la
-# cuenta. Medido sobre el último CI verde, un push costaba 39 minutos facturables y 34 eran el job de
-# tests; la instrumentación de la cobertura multiplica la suite por 1,76 (530 s contra 934 s en
-# local). Sacarla de aquí es el único recorte que mueve la aguja: los otros cinco jobs juntos suman
-# cinco minutos.
+# Esto se montó el día que el repositorio era PRIVADO y se agotaron los minutos de Actions: no falló
+# una prueba, se quedó sin ARRANCAR el CI entero y con él el despliegue. Un push costaba 39 minutos
+# facturables y 34 eran el job de tests; la instrumentación de la cobertura multiplica la suite por
+# 1,76 (530 s contra 934 s en local).
+#
+# El repositorio es público desde el 14/08/2026 y los minutos ya no se pagan, pero esto se queda: la
+# cobertura y la auditoría se leen una vez al día, no cincuenta, y sacarlas del push es lo que hace
+# que el CI conteste en seis minutos en vez de en treinta y nueve.
 #
 # `workflow_dispatch` está a propósito: `ci.yml` no lo tiene, así que este es el único sitio desde el
 # que se puede lanzar una pasada a mano sin empujar un commit.

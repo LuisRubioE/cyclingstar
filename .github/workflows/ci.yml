@@ -69,10 +69,16 @@ jobs:
       # porque no son pruebas: son BANCOS que corren cientos de etapas enteras. Y la instrumentación
       # de la cobertura multiplica además la suite por 1,76 (530 s contra 934 s en local).
       #
-      # Importa porque el repositorio es PRIVADO y los minutos de Actions se descuentan de la cuota
-      # de la cuenta; el día que se agota no falla una prueba, se queda sin arrancar el CI entero y
-      # con él el despliegue, que espera a la señal verde. Medido sobre el último CI verde, un push
-      # costaba 39 minutos facturables y 34 eran este job.
+      # ESTE RECORTE NACIÓ POR DINERO Y SE QUEDA POR TIEMPO, y conviene dejarlo dicho para que nadie
+      # lo deshaga pensando que ya no hace falta. Nació el día que el repositorio era PRIVADO y se
+      # agotaron los minutos de Actions: no falló una prueba, se quedó sin ARRANCAR el CI entero —
+      # seis jobs muertos en dos segundos, sin runner y sin logs— y con él el despliegue, que espera
+      # a la señal verde. Un push costaba entonces 39 minutos facturables y 34 eran este job.
+      #
+      # El repositorio es público desde el 14/08/2026, así que los minutos ya no se pagan. La razón
+      # de ahora es otra y es mejor: un CI que contesta en seis minutos se mira, y uno que tarda
+      # treinta y nueve se ignora hasta el día siguiente. Los bancos siguen corriéndose enteros
+      # cuando pueden romperse, que es lo único que había que garantizar.
       #
       # No se pierde nada: los bancos los corre el job `benches` de aquí abajo EN CUANTO SE TOCA EL
       # MOTOR, que es cuando pueden romperse, y `cobertura.yml` los corre enteros con cobertura una
