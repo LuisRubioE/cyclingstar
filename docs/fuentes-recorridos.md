@@ -72,7 +72,46 @@ coronación. Ahí hace falta otra fuente, no otra tarde.
 | `race-quebec`          | GP cycliste de Québec             | 2025    | [fr: Grand Prix cycliste de Québec 2025](https://fr.wikipedia.org/wiki/Grand_Prix_cycliste_de_Qu%C3%A9bec_2025) + [fr: artículo general](https://fr.wikipedia.org/wiki/Grand_Prix_cycliste_de_Qu%C3%A9bec)       | 18 vueltas x 2 cotas          |
 | `race-montreal`        | GP cycliste de Montréal           | 2025    | [fr: Grand Prix cycliste de Montréal 2025](https://fr.wikipedia.org/wiki/Grand_Prix_cycliste_de_Montr%C3%A9al_2025) + [en: artículo general](https://en.wikipedia.org/wiki/Grand_Prix_Cycliste_de_Montr%C3%A9al) | 17 vueltas x 2 de sus 4 cotas |
 
+| `race-liege`           | Liège-Bastogne-Liège              | 2025    | [fr: Liège-Bastogne-Liège 2025](https://fr.wikipedia.org/wiki/Li%C3%A8ge-Bastogne-Li%C3%A8ge_2025)                                                                                                               | 11 cotas                      |
+| `race-amstel`          | Amstel Gold Race                  | 2025    | [fr: Amstel Gold Race 2025](https://fr.wikipedia.org/wiki/Amstel_Gold_Race_2025)                                                                                                                                 | 34 cotas                      |
+| `race-walloon-wall`    | La Flèche Wallonne                | 2025    | [fr: Flèche wallonne 2025](https://fr.wikipedia.org/wiki/Fl%C3%A8che_wallonne_2025)                                                                                                                              | 11 cotas (3 × Mur de Huy)     |
+
 Las entidades de Wikidata (CC0) de cada edición están en `CLASSIC_ROUTE_SOURCES[...].wikidata`.
+
+### Las tres de los Ardenas: qué cambia y qué NO, dicho con cuidado
+
+Lieja, el Amstel y la Flecha **no estaban inventadas**. Tenían puertos en `stageFeatures.ts` desde
+mucho antes, con la procedencia que declara la cabecera de ese fichero («perfiles oficiales /
+PCS-La Flamme Rouge»). Lo que cambia con esta tanda son dos cosas distintas:
+
+1. **La atribución.** El dato viejo no citaba artículo, edición ni fecha, así que no se podía
+   auditar ni saber de qué año era. El nuevo entra por `CLASSIC_FEATURES` con su `RouteSource` al
+   lado, como el resto. Y por eso los tres bloques viejos se han **borrado** de `stageFeatures.ts`:
+   ese objeto se construye con `{ ...CLASSIC_FEATURES, …explícitos }` y **el explícito gana**, así
+   que dejar los dos habría hecho que el dato citado no llegara nunca al motor.
+2. **Un final que estaba mal, y solo en la Flecha.** El dato viejo ponía el tercer y último paso por
+   el Mur de Huy en el km 162,8 de una carrera de 200: a **37 km de meta**. La Flecha Valona termina
+   ARRIBA del Mur. Ahora el Mur es el km 205,2 de 205,2, que es la línea.
+
+**Medido con `scripts/medir-carrera.mjs`, 12 simulaciones por carrera:**
+
+| carrera | grupos en meta | cola % (mediana) | % del pelotón en el grupo del ganador | quién gana (de 12) |
+| --- | --- | --- | --- | --- |
+| Lieja **antes** | 6,0 | 6,86 | 19 % | clásicas 4 · **velocidad 4** · escalada 3 · crono 1 |
+| Lieja **después** | 7,0 | 7,68 | **4 %** | **clásicas 10** · velocidad 1 · escalada 1 |
+| Amstel antes | 7,5 | 10,94 | 38 % | escalada 9 · fondo 1 · clásicas 1 · velocidad 1 |
+| Amstel después | 9,5 | 7,68 | 36 % | escalada 7 · clásicas 3 · velocidad 1 · crono 1 |
+| Flecha antes | 11,5 | 5,99 | 1 % | clásicas 7 · escalada 5 |
+| Flecha después | 11,5 | 8,08 | 1 % | clásicas 8 · escalada 4 |
+
+**Lieja es el cambio de verdad.** Antes la ganaba un VELOCISTA cuatro veces de doce y el grupo del
+ganador era el 19 % del pelotón: eso no es Lieja-Bastoña-Lieja, es una clásica llana con un repecho.
+Con las once cotas en su sitio —la Redoute a 34 km, las Forges a 23 y la Roche-aux-Faucons al 11 % a
+13— llegan diez de doce para un hombre de clásicas y el grupo del ganador se queda en el 4 %.
+
+El Amstel y la Flecha se mueven poco, y era esperable: el dato viejo, aunque sin fuente, ya ponía sus
+cotas donde van. En el Amstel la única diferencia real es que las cimas dejan de estar todas en un
+`.2` sospechosamente uniforme y pasan a ser el pie más la longitud publicada.
 
 ### Carreras por etapas
 
@@ -170,6 +209,8 @@ resuelve, por tanto, como llegada de pavé y no como el repecho brutal que es en
 | `race-brittany`   | Bretagne Classic. La fuente **sí** publica las tres cotas del circuito final (Rostervel 1,5 km al 4,5 %; Lezot 900 m al 5,3 %; Kerscoulic 225 m al 8,9 %) pero **no dice dónde caen** dentro de los 11,8 km del circuito, ni en qué orden. Falta el km: se descarta (regla 3)               |
 | `race-poland`     | Tour de Pologne. La web oficial describe las «Premie Górskie» por localidad, sin longitud ni pendiente; el único documento con el roadbook completo es un PDF de **121 MB** y en este entorno no hay con qué leerlo. Wikipedia (de, fr, nl, pl) no trae tabla                               |
 | `race-benelux`    | Renewi Tour. La web oficial no es alcanzable desde aquí (el proxy la deniega) y la prosa de frwiki da longitud y pendiente de tres muros de la etapa 3 (Mur de Grammont, Taaienberg, Bosberg) **sin un solo km**. Falta el km: se descarta                                                  |
+| `race-wevelgem`   | Gante-Wevelgem. La frwiki de 2025 **sí** publica los nueve montes con longitud, pendiente y firme (el Kemmel es pavé), pero titula sus dos columnas de kilómetros «(à confirmer)» y no se sostiene: los km implican 253,1 km de carrera y el infobox del mismo artículo dice 250,3. La nlwiki no trae tabla con la que desempatar. Fuente que se contradice a sí misma: no se usa a medias (regla 10). Se queda con los puertos que ya tenía, sin fuente citada |
+| `race-san-sebastian` | Clásica de San Sebastián. El artículo de 2025 existe en eswiki pero **no publica tabla de puertos ni distancia**; la frwiki de esa edición no existe (404 con los dos títulos probados). Sin tabla no hay nada que citar. Se queda con los siete puertos que ya tenía —Jaizkibel, Erlaitz y Murgil entre ellos—, sin fuente |
 
 ## El ProSeries por etapas: el mapa de fuentes (agosto de 2026)
 

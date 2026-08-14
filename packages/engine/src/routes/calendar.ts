@@ -1062,7 +1062,7 @@ const WT_TABLE: RaceRow[] = [
     d: 19,
     raceClass: 'WT',
     terrain: 'hilly',
-    km: 257,
+    km: 255.9, // distancia oficial (ver classicRoutes.ts)
   },
   {
     id: 'race-walloon-wall',
@@ -1071,7 +1071,7 @@ const WT_TABLE: RaceRow[] = [
     d: 22,
     raceClass: 'WT',
     terrain: 'mountain',
-    km: 200,
+    km: 205.2, // distancia oficial (ver classicRoutes.ts)
   },
   {
     id: 'race-liege',
@@ -1080,7 +1080,7 @@ const WT_TABLE: RaceRow[] = [
     d: 26,
     raceClass: 'WT',
     terrain: 'classic',
-    km: 260,
+    km: 252, // distancia oficial (ver classicRoutes.ts)
   },
   {
     id: 'race-romandy',

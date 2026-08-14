@@ -222,6 +222,42 @@ export const CLASSIC_ROUTE_SOURCES: Record<string, RouteSource> = {
       'Distancia contrastada con Wikidata (P3157): 198,5 km.',
     ],
   },
+  'race-liege': {
+    race: 'Liège-Bastogne-Liège',
+    edition: 2025,
+    distanceKm: 252,
+    wikipedia: 'https://fr.wikipedia.org/wiki/Li%C3%A8ge-Bastogne-Li%C3%A8ge_2025',
+    retrieved: '2026-08-14',
+    notes: [
+      'Tabla «Détail des côtes» completa: las once cotas con nombre, km, longitud en metros, pendiente media y km de meta. Es la fuente más completa de todas las cargadas.',
+      'El km es el de la CIMA, no el del pie. Lo dice la aritmética de la propia tabla: km + km-de-meta = 252,0 en las once filas, y La Redoute cae en el km 218 con 34 de meta, que es la cifra con la que se anuncia esa cota en la carrera.',
+      'Distancia 252 km, la del infobox, y la que cierra la suma de la tabla (regla 6).',
+    ],
+  },
+  'race-amstel': {
+    race: 'Amstel Gold Race',
+    edition: 2025,
+    distanceKm: 255.9,
+    wikipedia: 'https://fr.wikipedia.org/wiki/Amstel_Gold_Race_2025',
+    retrieved: '2026-08-14',
+    notes: [
+      'Treinta y cuatro cotas, todas con km, longitud y pendiente media. La tabla se cierra sola: incluye los dos pasos por meta (km 173,3 y 236,1) y la llegada en el 255,9, que es la distancia del infobox.',
+      'Aquí el km es el del PIE, al revés que en Lieja y en la Flecha (regla 4: se interpreta tabla a tabla). Lo fija el Cauberg: el último arranca en el 253,4 y mide 800 m, así que se corona en el 254,2 y la meta está 1,7 km después — que es exactamente donde está en la realidad. Si el km fuese la cima, la meta caería a 2,5 km del alto y el final dejaría de ser el que es. Por eso aquí se carga `summitKm = km + longitud`.',
+      'La pendiente MÁXIMA que publica la tabla (hasta el 22 % en el Keutenberg) no se usa: solo la media (regla 7).',
+    ],
+  },
+  'race-walloon-wall': {
+    race: 'La Flèche Wallonne',
+    edition: 2025,
+    distanceKm: 205.2,
+    wikipedia: 'https://fr.wikipedia.org/wiki/Fl%C3%A8che_wallonne_2025',
+    retrieved: '2026-08-14',
+    notes: [
+      'Once cotas con longitud, pendiente media, km y km restante. Son cuatro cotas distintas: la Côte de Ver y la de Petite-Somme una vez, y luego el bucle Ereffe → Chérave → Mur de Huy repetido TRES veces.',
+      'El km es el de la CIMA. Lo prueba la última fila: el tercer paso por el Mur de Huy está en el km 205,2 con 0 km restantes, y la meta de la Flecha está ARRIBA del Mur. Si el km fuese el pie, la carrera mediría 206,5 y no los 205,2 que dice el infobox.',
+      'El Mur de Huy entra con su pendiente media publicada, el 10,2 % sobre 1.300 m. La rampa del 19 % del último tramo no está en la fuente como dato separado y no se inventa.',
+    ],
+  },
 }
 
 /**
@@ -609,6 +645,86 @@ export const CLASSIC_FEATURES: Record<string, [StageFeatures]> = {
         { name: 'Côte Camilien-Houde', kmToLine: 10.5, lengthKm: 1.8, avgGradient: 8 },
         { name: 'Avenue du Parc', kmToLine: 0, lengthKm: 0.56, avgGradient: 4 },
       ]),
+    },
+  ],
+  // Lieja-Bastoña-Lieja: las once cotas de la tabla, de la Saint-Roch al 11,2 % hasta la Roche aux
+  // Faucons al 11 % a trece kilómetros de meta, con La Redoute y las Forges por medio.
+  'race-liege': [
+    {
+      climbs: [
+        { name: 'Côte de Saint-Roch', summitKm: 70.7, lengthKm: 1, avgGradient: 11.2 },
+        { name: 'Col de Haussire', summitKm: 119.4, lengthKm: 3.9, avgGradient: 6.8 },
+        { name: 'Côte de Mont-le-Soie', summitKm: 158.7, lengthKm: 4, avgGradient: 6.1 },
+        { name: 'Côte de Wanne', summitKm: 167, lengthKm: 2.8, avgGradient: 7.4 },
+        { name: 'Côte de Stockeu', summitKm: 173.5, lengthKm: 1, avgGradient: 12.5 },
+        { name: 'Côte de la Haute-Levée', summitKm: 177.7, lengthKm: 3.6, avgGradient: 5.6 },
+        { name: 'Col du Rosier', summitKm: 192, lengthKm: 4.4, avgGradient: 5.9 },
+        { name: 'Côte de Desnié', summitKm: 205.3, lengthKm: 1.6, avgGradient: 8.1 },
+        { name: 'Côte de La Redoute', summitKm: 218, lengthKm: 2, avgGradient: 8.9 },
+        { name: 'Côte des Forges', summitKm: 228.7, lengthKm: 1.3, avgGradient: 7.8 },
+        { name: 'Côte de la Roche aux Faucons', summitKm: 238.7, lengthKm: 1.3, avgGradient: 11 },
+      ],
+    },
+  ],
+  // Amstel Gold Race: treinta y cuatro cotas, tres pasos por el Cauberg y el último a 1,7 km de la
+  // línea. La tabla da el PIE (ver la nota de procedencia), así que aquí va el pie más la longitud.
+  'race-amstel': [
+    {
+      climbs: [
+        { name: 'Maasberg', summitKm: 12.3, lengthKm: 0.7, avgGradient: 3.7 },
+        { name: 'Adsteeg', summitKm: 30.8, lengthKm: 0.7, avgGradient: 4.3 },
+        { name: 'Bergseweg', summitKm: 48.3, lengthKm: 2.7, avgGradient: 3.3 },
+        { name: 'Korenweg', summitKm: 50, lengthKm: 0.9, avgGradient: 5.7 },
+        { name: 'Nijswillerweg', summitKm: 55.9, lengthKm: 1.3, avgGradient: 2.7 },
+        { name: 'Rijksweg', summitKm: 67.2, lengthKm: 3.1, avgGradient: 2.8 },
+        { name: 'Wolfsberg', summitKm: 85.4, lengthKm: 1.2, avgGradient: 2.8 },
+        { name: 'Loorberg', summitKm: 89.4, lengthKm: 1.5, avgGradient: 5.3 },
+        { name: 'Schweibergerweg', summitKm: 101.9, lengthKm: 2.7, avgGradient: 4.5 },
+        { name: 'Camerig', summitKm: 110, lengthKm: 4.4, avgGradient: 4 },
+        { name: 'Drielandenpunt', summitKm: 121.3, lengthKm: 3.2, avgGradient: 4.4 },
+        { name: 'Gemmenich', summitKm: 123.2, lengthKm: 0.8, avgGradient: 7.2 },
+        { name: 'Vijlenerbos', summitKm: 129.1, lengthKm: 2.7, avgGradient: 3.8 },
+        { name: 'Erperheide', summitKm: 135.6, lengthKm: 2.1, avgGradient: 4.7 },
+        { name: 'Gulperberg', summitKm: 143.92, lengthKm: 0.92, avgGradient: 5.6 },
+        { name: 'Plettenberg', summitKm: 148.5, lengthKm: 1.2, avgGradient: 3.7 },
+        { name: 'Eyserweg', summitKm: 151.6, lengthKm: 2.1, avgGradient: 4.4 },
+        { name: 'Schanternelsweg', summitKm: 154.4, lengthKm: 1, avgGradient: 5.6 },
+        { name: 'Vrakelberg', summitKm: 159.2, lengthKm: 0.6, avgGradient: 7.2 },
+        { name: 'Sibbergrubbe', summitKm: 168.5, lengthKm: 2.1, avgGradient: 3.6 },
+        { name: 'Cauberg', summitKm: 171.6, lengthKm: 0.8, avgGradient: 6.5 },
+        { name: 'Geulhemmerberg', summitKm: 176.6, lengthKm: 1.2, avgGradient: 4.6 },
+        { name: 'Keederberg', summitKm: 184.8, lengthKm: 2, avgGradient: 3.1 },
+        { name: 'Bemelerberg', summitKm: 187, lengthKm: 0.9, avgGradient: 4.5 },
+        { name: 'Loorberg', summitKm: 202.8, lengthKm: 1.5, avgGradient: 5.3 },
+        { name: 'Gulperberg', summitKm: 209.22, lengthKm: 0.92, avgGradient: 5.6 },
+        { name: 'Kruisberg', summitKm: 214, lengthKm: 0.6, avgGradient: 8.8 },
+        { name: 'Eyserbosweg', summitKm: 216.2, lengthKm: 0.9, avgGradient: 9.3 },
+        { name: 'Fromberg', summitKm: 220.6, lengthKm: 1.6, avgGradient: 3.6 },
+        { name: 'Keutenberg', summitKm: 224.1, lengthKm: 1.2, avgGradient: 5.9 },
+        { name: 'Cauberg', summitKm: 234.4, lengthKm: 0.8, avgGradient: 6.5 },
+        { name: 'Geulhemmerberg', summitKm: 239.4, lengthKm: 1, avgGradient: 5 },
+        { name: 'Bemelerberg', summitKm: 246, lengthKm: 0.9, avgGradient: 4.5 },
+        { name: 'Cauberg', summitKm: 254.2, lengthKm: 0.8, avgGradient: 6.5 },
+      ],
+    },
+  ],
+  // La Flecha Valona: cuatro cotas distintas y el bucle Ereffe → Chérave → Mur de Huy TRES veces. La
+  // meta está arriba del Mur, así que la última cima de la lista ES la línea (km 205,2).
+  'race-walloon-wall': [
+    {
+      climbs: [
+        { name: 'Côte de Ver', summitKm: 18.2, lengthKm: 0.7, avgGradient: 12.5 },
+        { name: 'Côte de Petite-Somme', summitKm: 85.8, lengthKm: 0.8, avgGradient: 10.8 },
+        { name: "Côte d'Ereffe", summitKm: 112.4, lengthKm: 2.2, avgGradient: 5.6 },
+        { name: 'Côte de Chérave', summitKm: 125.1, lengthKm: 1.3, avgGradient: 8.1 },
+        { name: 'Mur de Huy', summitKm: 130.8, lengthKm: 1.3, avgGradient: 10.2 },
+        { name: "Côte d'Ereffe", summitKm: 149.6, lengthKm: 2.2, avgGradient: 5.6 },
+        { name: 'Côte de Chérave', summitKm: 162.3, lengthKm: 1.3, avgGradient: 8.1 },
+        { name: 'Mur de Huy', summitKm: 168, lengthKm: 1.3, avgGradient: 10.2 },
+        { name: "Côte d'Ereffe", summitKm: 186.8, lengthKm: 2.2, avgGradient: 5.6 },
+        { name: 'Côte de Chérave', summitKm: 199.5, lengthKm: 1.3, avgGradient: 8.1 },
+        { name: 'Mur de Huy', summitKm: 205.2, lengthKm: 1.3, avgGradient: 10.2 },
+      ],
     },
   ],
   // Cyclassics Hamburg: tres pasos por el Waseberg en el tramo final y tres sprints intermedios.

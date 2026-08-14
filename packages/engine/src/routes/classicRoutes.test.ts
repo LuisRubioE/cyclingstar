@@ -27,12 +27,15 @@ function gainM(segments: readonly { km: number; tramos?: { km: number; g: number
 }
 
 describe('routes: recorridos reales de las clásicas (dato cargado de fuentes abiertas)', () => {
-  it('carga las doce clásicas que tenían fuente', () => {
+  it('carga las quince clásicas que tenían fuente', () => {
     // Ocho desde la v4; Strade Bianche entra en la v12, cuando el motor por fin descuelga en el
     // firme roto (docs/motor.md §14) y una carrera cuya única dificultad es el sterrato tiene
     // sentido cargarla; las tres de circuito (Great Ocean, Québec y Montréal) entran con la tanda
-    // de perfiles del WorldTour (ver docs/fuentes-recorridos.md).
-    expect(IDS).toHaveLength(12)
+    // de perfiles del WorldTour (ver docs/fuentes-recorridos.md). Las tres últimas —Lieja, el
+    // Amstel y la Flecha Valona— no estaban inventadas: tenían puertos en `stageFeatures.ts` SIN
+    // fuente citada, y lo que cambia es que ahora los traen de una tabla con atribución. En la
+    // Flecha además arreglan un final que estaba mal (ver docs/fuentes-recorridos.md).
+    expect(IDS).toHaveLength(15)
   })
 
   it('cada recorrido declara su procedencia: carrera real, edición, artículo y fecha', () => {
