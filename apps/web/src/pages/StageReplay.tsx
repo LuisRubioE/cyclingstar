@@ -59,6 +59,17 @@ const STAGE_CLASS_PANEL = 'stage-classification'
 /**
  * Resultado de la etapa: top 20 y "Show all" (antes se truncaba a 15 sin forma de ver el resto).
  *
+ * LOS MAILLOTS DE ESTA TABLA SON LOS DE LA CARRETERA (`leaders.onRoad`), no los de después. Es la
+ * única tabla de la página en la que es así, y tiene su razón: esta tabla no es una clasificación,
+ * es el ORDEN DE LLEGADA de una tarde concreta. El corredor que cruzó la meta el segundo día de la
+ * Vuelta a Andalucía llevaba puesto el amarillo de la etapa 1, y ese es el que se vio en la
+ * televisión; pintarle el de la etapa 2 —que se lo acaba de quitar en esa misma meta— era el fallo
+ * que se reportó: «sale ya con maillot amarillo el que va líder después de la etapa 2, no el que
+ * iba líder después de la etapa 1, que es lo que debería mostrar».
+ *
+ * La pestaña `Classifications` sigue llevando los de DESPUÉS, porque ahí sí se está mostrando el
+ * estado nuevo. Son dos preguntas distintas y cada tabla contesta la suya.
+ *
  * Las tres tablas de esta página se exportan para poder probarlas sueltas (`stageTables.test.tsx`):
  * lo que hay que verificar de ellas es qué fila lleva qué maillot, y montar la página entera con su
  * `react-query` y su router para eso no prueba nada más y sí puede fallar por otra cosa.
@@ -208,9 +219,11 @@ export function PointsTable({
  * el resultado (esta página redirige allí), así que aquí no hay caso especial que atender.
  *
  * LOS MAILLOTS QUE SE PINTAN AQUÍ SON LOS DE DESPUÉS DE LA ETAPA (`leaders.afterStage`), porque es
- * el estado que estas tablas están mostrando. La crónica de la pestaña `Story` lleva los de ANTES
- * —los que se llevaban puestos en la carretera ese día— y lo dice en su propia línea, para que la
- * diferencia se lea como lo que es y no como una contradicción.
+ * el estado que estas tablas están mostrando: si el amarillo cambió de dueño en la meta de hoy, la
+ * general de hoy tiene que enseñar al dueño nuevo. La crónica de la pestaña `Story` y el orden de
+ * llegada de `Result` llevan los de ANTES —los que se llevaban puestos en la carretera ese día— y
+ * la crónica lo dice además en su propia línea, para que la diferencia se lea como lo que es y no
+ * como una contradicción.
  */
 function StageClassifications({
   gc,
@@ -411,7 +424,8 @@ export function StageReplay() {
           (data.results && data.results.length > 0 ? (
             <div className={card}>
               <h2 className={head}>Stage result</h2>
-              <ResultTable rows={data.results} leaders={data.leaders?.afterStage} />
+              {/* `onRoad`, no `afterStage`: ver la cabecera de `ResultTable`. */}
+              <ResultTable rows={data.results} leaders={data.leaders?.onRoad} />
             </div>
           ) : (
             <div className={card}>

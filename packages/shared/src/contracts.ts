@@ -1116,9 +1116,11 @@ export const stageReplaySchema = z.object({
    *
    * - `onRoad`: la clasificación tras la etapa N−1, o sea **el maillot que se llevaba puesto ESE
    *   día en la carretera**. Es el que usa el journal: «el amarillo ataca en el km 120» solo es
-   *   verdad si es el amarillo de ese día, no el que acabó ganando la etapa.
+   *   verdad si es el amarillo de ese día, no el que acabó ganando la etapa. Y por lo mismo es el
+   *   del ORDEN DE LLEGADA —la tabla `Result` y el podio de `Story`—, que no es una clasificación
+   *   sino la foto de una tarde: quien cruzó la meta segundo llevaba encima el maillot de ayer.
    * - `afterStage`: la clasificación tras la etapa N, que es lo que están mostrando las tablas de
-   *   general, puntos, montaña y equipos de esta ficha.
+   *   general, puntos, montaña y equipos de esta ficha, y solo esas.
    *
    * Los dos van a null en la etapa 1 y en una carrera de un día. El `onRoad` va además repetido
    * DENTRO de cada corredor de la crónica (`chronicleRiderSchema.jersey`), porque una entrada de la

@@ -36,7 +36,9 @@ export function StageStory({
     ? (data.chronicle?.length ?? 0) > 1
     : (data.chronicle?.length ?? 0) > 0
   // Los maillots que se llevaban PUESTOS ese día (la clasificación tras la etapa anterior). Son los
-  // que nombra la crónica, y no los de las tablas de esta misma página, que son los de DESPUÉS.
+  // que nombra la crónica y los que van en el podio, porque las dos cosas cuentan la tarde tal como
+  // se vio. Los de DESPUÉS solo salen en la pestaña `Classifications`, que es la que enseña el
+  // estado nuevo.
   const onRoad = data.leaders?.onRoad
   // El nombre de cada líder sale de lo que ya trae la página (la general de la etapa y el
   // resultado): no hace falta que la API lo repita. Y un maillot cuyo dueño no se sepa nombrar no
@@ -134,9 +136,11 @@ export function StageStory({
               <li key={r.riderId} className="flex items-center gap-3 text-sm">
                 <span className="w-5 shrink-0 tabular-nums text-slate-400">{r.puesto}</span>
                 <Flag code={r.country} size={16} />
-                {/* El podio es el RESULTADO, así que lleva los maillots de DESPUÉS de la etapa,
-                    como el resto de tablas de la página; la crónica de arriba lleva los de antes. */}
-                <RiderJersey leaders={data.leaders?.afterStage} riderId={r.riderId} className="" />
+                {/* El podio es el RESULTADO —el orden de llegada de esta tarde—, así que lleva los
+                    maillots que se llevaban PUESTOS en la carretera, igual que la crónica de arriba
+                    y que la tabla de `Result`. Los de después de la etapa están en
+                    `Classifications`, que es la pestaña que muestra el estado nuevo. */}
+                <RiderJersey leaders={data.leaders?.onRoad} riderId={r.riderId} className="" />
                 <RiderName riderId={r.riderId} name={r.name} isBot={r.isBot} />
                 <span className="text-xs text-slate-400">{raceTeamLabel(r.teamName)}</span>
               </li>

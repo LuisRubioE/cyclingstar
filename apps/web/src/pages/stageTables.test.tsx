@@ -125,7 +125,9 @@ describe('la clasificación por puntos', () => {
 })
 
 describe('el resultado de la etapa', () => {
-  it('lleva los maillots de DESPUÉS de la etapa, que es lo que la página está enseñando', () => {
+  // La tabla pinta el juego de maillots que le den; QUÉ juego le da la página —`onRoad`, los de la
+  // carretera, y no `afterStage`— se prueba abajo, en «la ficha de etapa».
+  it('marca el maillot de quien lo lleve, esté en la fila que esté', () => {
     const markup = html(
       <ResultTable rows={[resultRow('b', 1), resultRow('a', 2)]} leaders={leaders} />,
     )
