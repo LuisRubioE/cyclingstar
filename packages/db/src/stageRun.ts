@@ -351,6 +351,16 @@ export async function runOneStage(
    */
   const radio = raceRadioCollector(radioKmPoints(stageLengthKm(spec.profile)))
   const output = simulateStage(input, seed, radio.probe)
+  // A quién hay que poder seguir por la radio aunque no esté tirando: los diez primeros de la
+  // general con la que se salió hoy y los diez primeros de la etapa que se acaba de correr.
+  const radioWatchList = new Set<string>([
+    ...gcRows.slice(0, 10).map((r) => r.riderId),
+    ...[...output.results]
+      .filter((r) => r.estado === 'finish')
+      .sort((a, b) => a.puesto - b.puesto)
+      .slice(0, 10)
+      .map((r) => r.riderId),
+  ])
 
   await tx
     .insert(stageSnapshots)
@@ -363,8 +373,10 @@ export async function runOneStage(
       // Congela la crónica JUNTO al resultado: el journal se leerá de aquí, no se re-simula al vuelo,
       // así siempre cuadra con el resultado guardado aunque el motor cambie después.
       events: output.events as unknown,
-      // …y la radio, adelgazada a lo que la vista lee (sin la lista entera de cada grupo).
-      radio: radioForStorage(radio.radio()) as unknown,
+      // …y la radio, adelgazada a lo que la vista lee. La LISTA DE SEGUIMIENTO son los que hay que
+      // poder nombrar aunque vayan a rueda: los diez primeros de la general que se corre hoy y los
+      // diez primeros de la etapa. Sin ella, «el equipo tira para X» se lee sin ver nunca a X.
+      radio: radioForStorage(radio.radio(), radioWatchList) as unknown,
     })
     .onConflictDoNothing()
 

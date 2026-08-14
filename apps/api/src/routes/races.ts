@@ -382,7 +382,8 @@ export const raceRoutes: RoutePlugin = async (app, ctx) => {
       )
       const altimetry = renderAltimetrySvg(racedProfile, { markers: buildMarkers(storedEvents) })
       // LA RADIO DE CARRERA, con la misma gente que el journal. `null` en las etapas corridas antes
-      // de guardarla, y ahí la vista lo dice en vez de inventarla.
+      // de guardarla, y ahí la vista lo dice en vez de inventarla. A quién se sigue lo decidió quien
+      // la escribió; aquí solo se le pone cara.
       const radio = buildRaceRadio(snapshot.radio, names)
       return {
         day,

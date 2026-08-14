@@ -1034,24 +1034,44 @@ export type StageRaceContext = z.infer<typeof stageRaceContextSchema>
 export const radioGroupKindSchema = z.enum(['fuga', 'contra', 'peloton', 'tierra', 'grupeto'])
 export type RadioGroupKind = z.infer<typeof radioGroupKindSchema>
 
+/** Cómo va un corredor dentro de su grupo, que son tres cosas distintas y se ven distintas. */
+export const radioRoleSchema = z.enum([
+  /** Da la cara al viento en cabeza del grupo. */
+  'front',
+  /** Está en el turno de relevos, colocado detrás de los que dan la cara. */
+  'relay',
+  /** Va a rueda, guardándose: el jefe de filas al que el resto está llevando. */
+  'sheltered',
+])
+export type RadioRole = z.infer<typeof radioRoleSchema>
+
+export const radioRiderSchema = chronicleRiderSchema.extend({ role: radioRoleSchema })
+export type RadioRider = z.infer<typeof radioRiderSchema>
+
 export const radioGroupSchema = z.object({
   kind: radioGroupKindSchema,
+  /** Cuántos van en el grupo. Es el número, no cuántos se nombran debajo. */
   size: z.number().int(),
-  /** Hueco al líder de carrera, en segundos. Exacto. */
+  /** Hueco al LÍDER DE CARRERA (el primero de la carretera), en segundos. */
   gapS: z.number(),
-  /** Depósito medio de los suyos, en % de con lo que salieron. */
-  energyPct: z.number(),
-  /** Quién va dando la cara, ya resuelto a nombre/dorsal/equipo/país. */
-  pulling: z.array(chronicleRiderSchema),
+  /** Hueco al grupo INMEDIATAMENTE ANTERIOR, en segundos. 0 en el de cabeza. */
+  gapToPrevS: z.number(),
+  /** Velocidad media en este kilómetro (km/h). `null` en el último punto: no hay km siguiente. */
+  speedKmh: z.number().nullable(),
+  /**
+   * A quién se nombra: primero los que TIRAN (todos), luego los que hay que ver aunque vayan a
+   * rueda —maillots y jefes de filas—. El resto se cuenta en `unnamed`, no se esconde.
+   */
+  riders: z.array(radioRiderSchema),
+  /** Cuántos del grupo no se nombran («+56 riders more»). */
+  unnamed: z.number().int(),
 })
 export type RadioGroup = z.infer<typeof radioGroupSchema>
 
 export const radioKmSchema = z.object({
   km: z.number(),
   groups: z.array(radioGroupSchema),
-  /** Cuántos siguen en carrera en este punto. */
   racing: z.number().int(),
-  /** Cuántos de los que tomaron la salida ya no están. */
   gone: z.number().int(),
 })
 export type RadioKm = z.infer<typeof radioKmSchema>

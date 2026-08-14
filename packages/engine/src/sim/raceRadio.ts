@@ -129,15 +129,19 @@ export interface RaceRadioOptions {
    */
   starters?: number
   /**
-   * Cuántos relevistas se nombran como mucho por grupo. En una fuga de cuatro se nombran los
-   * cuatro; en un pelotón de ciento veinte el turno son treinta hombres y nombrarlos a todos no es
-   * un parte, es un volcado.
+   * Cuántos relevistas se nombran como mucho por grupo. Por defecto, TODOS. Solo lo baja quien tiene
+   * un ancho de columna que respetar; el dato guardado los lleva todos.
    */
   maxPullers?: number
 }
 
-/** Por defecto se nombran hasta tres, que es lo que cabe leído de un vistazo. */
-const DEFAULT_MAX_PULLERS = 3
+/**
+ * Por defecto se nombran TODOS los que están relevando, que es la verdad de la carretera: si en un
+ * grupo se están pasando los relevos veinte hombres, están tirando veinte. El tope existe solo para
+ * quien PINTA una tabla estrecha —la de terminal de `scripts/race-radio.mjs` pide dos— y nunca para
+ * lo que se guarda: recortar ahí sería tirar un dato que luego no se puede recuperar.
+ */
+const DEFAULT_MAX_PULLERS = Number.POSITIVE_INFINITY
 
 /** Km redondeado a la décima: el motor da múltiplos de `dx` y en coma flotante eso no es exacto. */
 function roundKm(km: number): number {
@@ -319,30 +323,48 @@ export function raceRadioFrom(
 /*
  * ── LA RADIO QUE SE GUARDA ──────────────────────────────────────────────────────────────────────
  *
- * La radio de arriba es la foto COMPLETA: lleva la lista entera de corredores de cada grupo, que en
- * un pelotón de 176 son 176 identificadores por kilómetro. Guardar eso son ~200 KB por etapa y no
- * hace falta para nada de lo que se mira.
+ * La radio de arriba es la foto COMPLETA y repite la lista de corredores de cada grupo en cada
+ * kilómetro: en un pelotón de 176 eso son 176 identificadores por km, ~200 KB por etapa.
  *
- * Y guardarla hay que guardarla, no re-simularla: es exactamente la razón por la que la crónica se
- * congela en `stage_snapshots.events` en vez de recalcularse al vuelo. Una etapa corrida con el
- * motor de ayer no se puede reconstruir con el de hoy —lo dice `checkReplay()`—, así que una radio
- * calculada al vuelo estaría VACÍA para todas las etapas ya corridas, que son justo las que el
- * jugador quiere mirar.
+ * Aquí se guarda lo mismo sin repetirlo: la LISTA DE CORREDORES una sola vez y, por kilómetro, un
+ * vector de enteros que dice en qué grupo va cada uno. Con eso la vista lo sabe TODO —dónde está
+ * cada maillot, dónde va cada favorito— por ~55 KB, y no hay que elegir a quién sacrificar.
  *
- * Esto es la versión ADELGAZADA: cuántos van en cada grupo, qué es cada grupo, cuánto hueco llevan,
- * cómo van de depósito y quién está dando la cara. ~22 KB por etapa.
+ * Y guardarla hay que guardarla, no re-simularla: es la razón por la que la crónica se congela en
+ * `stage_snapshots.events`. Una etapa corrida con el motor de ayer no se puede reconstruir con el de
+ * hoy (`checkReplay`), así que una radio al vuelo estaría vacía justo para las etapas ya corridas.
  */
 
-/** Un grupo en la radio guardada: sin la lista entera de sus corredores. */
+/** Un grupo en la radio guardada. Los corredores van por ÍNDICE sobre `StoredRaceRadio.riders`. */
 export interface StoredRadioGroup {
   kind: RadioGroupKind
   size: number
-  /** Hueco al líder de carrera, en segundos. Exacto: resta de relojes. */
+  /** Hueco al LÍDER DE CARRERA, en segundos. Exacto: resta de relojes. */
   gapS: number
-  /** Depósito medio de los suyos, en % de con lo que salieron. */
-  energyPct: number
-  /** Quién va dando la cara, de más a menos trabajo reciente. */
-  pulling: readonly string[]
+  /**
+   * Velocidad media del grupo en ESTE kilómetro (km/h), o `null` en el último punto, donde no hay
+   * kilómetro siguiente contra el que medirla. No es una estimación: sale de la resta de los relojes
+   * del mismo grupo en dos fotos consecutivas, que es espacio partido por tiempo.
+   */
+  speedKmh: number | null
+  /**
+   * Quiénes LLEVAN EL GRUPO, de más a menos trabajo reciente. Los primeros son los que dan la cara
+   * al viento (`onTheFront`).
+   *
+   * El tope no es pereza, es que el dato de abajo no dice lo que parece: `relayTurn` devuelve
+   * `ceil(paceFraction · N)`, y en un puerto a tope eso son TODOS —noventa y uno de noventa y uno—,
+   * porque subiendo al límite nadie va a rueda. Listar noventa y uno no es un parte de radio, es un
+   * volcado. Se guardan los que de verdad llevan el frente; el número entero está en `size`.
+   */
+  pulling: readonly number[]
+  /** Cuántos de `pulling` van dando la cara al viento en cabeza (los demás relevan colocados). */
+  onTheFront: number
+  /**
+   * Los de la LISTA DE SEGUIMIENTO que van en este grupo y NO están en `pulling`: maillots, jefes de
+   * filas y favoritos. Es lo que permite decir «el equipo tira para X» y que X aparezca, en vez de
+   * quedar enterrado en un «+56 more». Quien llama decide a quién sigue; el motor solo los coloca.
+   */
+  watching: readonly number[]
 }
 
 /** Un kilómetro de la radio guardada. */
@@ -356,27 +378,62 @@ export interface StoredRadioKm {
 /** La etapa entera, lista para guardar en `stage_snapshots.radio`. */
 export interface StoredRaceRadio {
   starters: number
+  /** Los corredores nombrados en algún punto, en orden fijo. `pulling` y `watching` indexan aquí. */
+  riders: readonly string[]
   kms: readonly StoredRadioKm[]
 }
 
+/** Cuántos se guardan como «llevan el grupo». Ver el porqué del tope en `StoredRadioGroup.pulling`. */
+const STORED_PULLERS_MAX = 12
+
 /**
- * De la radio completa a la que se guarda. Pura: quita las listas de corredores por grupo (lo
- * pesado) y el reloj absoluto, que no se pinta —el hueco al líder sí, y ése se conserva—.
+ * De la radio completa a la que se guarda.
+ *
+ * `watch` son los corredores que hay que poder nombrar SIEMPRE, vayan o no tirando. El motor no sabe
+ * quién lleva maillot ni quién es favorito —eso vive en la base—, así que lo recibe de fuera y se
+ * limita a decir en qué grupo está cada uno en cada kilómetro.
+ *
+ * La VELOCIDAD se calcula aquí, mirando el reloj del mismo grupo en la foto siguiente: es el único
+ * sitio donde están las dos fotos a la vez.
  */
-export function radioForStorage(radio: RaceRadio): StoredRaceRadio {
-  return {
-    starters: radio.starters,
-    kms: radio.kms.map((k) => ({
-      km: k.km,
-      racing: k.racing,
-      gone: k.gone,
-      groups: k.groups.map((g) => ({
+export function radioForStorage(
+  radio: RaceRadio,
+  watch: ReadonlySet<string> = new Set(),
+): StoredRaceRadio {
+  const index = new Map<string, number>()
+  const riders: string[] = []
+  const idx = (id: string): number => {
+    const found = index.get(id)
+    if (found !== undefined) return found
+    index.set(id, riders.length)
+    riders.push(id)
+    return riders.length - 1
+  }
+
+  const kms = radio.kms.map((k, i) => {
+    const next = radio.kms[i + 1]
+    const groups = k.groups.map((g) => {
+      const pull = g.pulling.slice(0, STORED_PULLERS_MAX)
+      const pulling = pull.map((p) => idx(p.riderId))
+      const inPull = new Set(pull.map((p) => p.riderId))
+      const watching = g.riderIds.filter((id) => watch.has(id) && !inPull.has(id)).map(idx)
+      // La velocidad del grupo en este km. Se busca el MISMO grupo en la foto siguiente (por id): si
+      // se ha fundido o roto no hay medida honesta que dar, y se deja en null antes que inventarla.
+      const there = next?.groups.find((x) => x.id === g.id)
+      const dt = there ? there.tS - g.tS : 0
+      const dKm = next ? next.km - k.km : 0
+      const speedKmh = there && dt > 0 && dKm > 0 ? Math.round((10 * (3600 * dKm)) / dt) / 10 : null
+      return {
         kind: g.kind,
         size: g.size,
         gapS: Math.round(g.gapS),
-        energyPct: Math.round(g.energyPct),
-        pulling: g.pulling.map((x) => x.riderId),
-      })),
-    })),
-  }
+        speedKmh,
+        pulling,
+        onTheFront: pull.filter((p) => p.onTheFront).length,
+        watching,
+      }
+    })
+    return { km: k.km, groups, racing: k.racing, gone: k.gone }
+  })
+  return { starters: radio.starters, riders, kms }
 }

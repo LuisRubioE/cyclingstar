@@ -3,6 +3,7 @@ import {
   type ChronicleRider,
   type RaceLeaders,
   type RaceRadio,
+  type RadioRider,
   jerseyOf,
   radioGroupKindSchema,
 } from '@cyclingstar/shared'
@@ -1216,12 +1217,13 @@ export function buildMarkers(events: readonly ChronicleEvent[]): AltimetryMarker
 }
 
 /**
- * Lo que hay GUARDADO en `stage_snapshots.radio`: los mismos campos que la vista, pero con los
- * relevistas como ids. Se valida y no se confía: una fila escrita por un motor anterior puede no
- * tener esta forma, y ahí la respuesta correcta es «esta etapa no tiene radio», no un 500.
+ * Lo que hay GUARDADO en `stage_snapshots.radio`. Los corredores van por ÍNDICE sobre `riders`, y
+ * `member` dice en qué grupo va cada uno. Se valida y no se confía: una fila escrita por un motor
+ * anterior no tiene esta forma, y ahí la respuesta correcta es «esta etapa no tiene radio», no un 500.
  */
 const storedRaceRadioSchema = z.object({
   starters: z.number(),
+  riders: z.array(z.string()),
   kms: z.array(
     z.object({
       km: z.number(),
@@ -1232,8 +1234,10 @@ const storedRaceRadioSchema = z.object({
           kind: radioGroupKindSchema,
           size: z.number(),
           gapS: z.number(),
-          energyPct: z.number(),
-          pulling: z.array(z.string()),
+          speedKmh: z.number().nullable(),
+          pulling: z.array(z.number()),
+          onTheFront: z.number(),
+          watching: z.array(z.number()),
         }),
       ),
     }),
@@ -1241,32 +1245,67 @@ const storedRaceRadioSchema = z.object({
 })
 
 /**
- * LA RADIO DE CARRERA, con la gente resuelta. Lo guardado son ids —es lo que el motor conoce— y la
- * vista necesita nombre, dorsal, equipo, país y el maillot que ese hombre llevaba PUESTO ese día. Se
- * resuelve con el MISMO índice que la crónica, así que la radio y el journal no pueden llamar de dos
- * maneras distintas al mismo corredor.
+ * A cuántos corredores se nombra como mucho en un grupo. En una fuga de seis se nombran los seis; en
+ * un pelotón de ciento veinte, los que tiran y los que hay que ver —maillots y jefes de filas—, y el
+ * resto se CUENTA. El tope es de lectura, no de dato: lo guardado los lleva a todos.
+ */
+const MAX_NAMED_PER_GROUP = 24
+
+/**
+ * LA RADIO DE CARRERA, con la gente puesta donde va.
  *
- * A quien no esté en el índice se le deja fuera del relevo en vez de inventarle un nombre: la tabla
- * degrada sola, igual que la crónica.
+ * Tres cosas distintas que la vista tiene que poder separar, y que antes se mezclaban en una lista:
+ *
+ *  - quién **tira** (turno de relevos), y de ésos quién **da la cara** al viento en cabeza;
+ *  - quién va **a rueda** pero hay que ver igualmente: los maillots y los jefes de filas, porque
+ *    «el equipo tira para X» no se entiende si X no aparece por ninguna parte;
+ *  - y cuántos quedan sin nombrar, que se cuentan en vez de esconderse.
+ *
+ * A quién se sigue lo decidió quien ESCRIBIÓ la radio (`stageRun.ts`: los diez primeros de la
+ * general y los diez de la etapa); aquí solo se les pone cara con el mismo índice de identidades que
+ * usa el journal, así que la radio y la crónica no pueden llamar de dos maneras al mismo corredor.
  */
 export function buildRaceRadio(stored: unknown, names: ChronicleNames): RaceRadio | null {
   const parsed = storedRaceRadioSchema.safeParse(stored)
   if (!parsed.success) return null
+  const ids = parsed.data.riders
   return {
     starters: parsed.data.starters,
-    kms: parsed.data.kms.map((k) => ({
-      km: k.km,
-      racing: k.racing,
-      gone: k.gone,
-      groups: k.groups.map((g) => ({
-        kind: g.kind,
-        size: g.size,
-        gapS: g.gapS,
-        energyPct: g.energyPct,
-        pulling: g.pulling
-          .map((id) => names.riderOf.get(id))
-          .filter((r): r is ChronicleRider => r !== undefined),
-      })),
-    })),
+    kms: parsed.data.kms.map((k) => {
+      // El líder de carrera es el primero de la carretera; los huecos se cuelgan de él y del grupo
+      // de delante, que son las DOS preguntas que se hacen mirando una tabla de radio.
+      let prevGap = 0
+      return {
+        km: k.km,
+        racing: k.racing,
+        gone: k.gone,
+        groups: k.groups.map((g, gi) => {
+          const named: RadioRider[] = []
+          // 1) Los que LLEVAN el grupo, en su orden (los que dan la cara al viento primero).
+          g.pulling.forEach((i2, n) => {
+            const r = names.riderOf.get(ids[i2] ?? '')
+            if (r) named.push({ ...r, role: n < g.onTheFront ? 'front' : 'relay' })
+          })
+          // 2) Los que hay que ver aunque vayan a rueda: el motor los colocó, aquí se les pone cara.
+          //    `protect` deja además que quien llama añada a alguien sin tocar lo guardado.
+          for (const i2 of g.watching) {
+            const r = names.riderOf.get(ids[i2] ?? '')
+            if (r) named.push({ ...r, role: 'sheltered' })
+          }
+          const shown = named.slice(0, MAX_NAMED_PER_GROUP)
+          const gapToPrevS = gi === 0 ? 0 : Math.max(0, g.gapS - prevGap)
+          prevGap = g.gapS
+          return {
+            kind: g.kind,
+            size: g.size,
+            gapS: g.gapS,
+            gapToPrevS,
+            speedKmh: g.speedKmh,
+            riders: shown,
+            unnamed: Math.max(0, g.size - shown.length),
+          }
+        }),
+      }
+    }),
   }
 }
