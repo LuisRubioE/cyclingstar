@@ -5,7 +5,9 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { gcFinishersWhere, gcOrderBy, gcRosterOn } from './gcSort.js'
 import { getRiderGcStandings } from './riderResults.js'
 import { getGcThroughStage, getRaceGc } from './results.js'
+import { runCalendarDay } from './calendarRun.js'
 import {
+  palmares,
   raceGc,
   raceRosters,
   riderAttrs,
@@ -216,6 +218,68 @@ describe('db: general coherente en carreras de un día y con desempate por puest
     expect(muestra.map((r) => r.riderId)).toEqual([b!, c!, a!])
     expect(muestra[2]!.dnf).toBe(true)
   }, 60_000)
+
+  /**
+   * …Y EL PALMARÉS YA ESCRITO SE LIMPIA (reparación v2). Arreglar el reparto solo vale para lo que
+   * venga; los honores de general que el abandonado ya se llevó siguen en la base, que es justo lo
+   * que el dueño estaba viendo en la ficha de Iván García.
+   */
+  it('la reparación borra el honor de GENERAL del que abandonó, y respeta su victoria de etapa', async () => {
+    const [a, b] = riderIds
+    const KEY = 'race-repair:s0'
+    await t.db.insert(raceRosters).values([
+      { raceId: KEY, riderId: a!, abandonedDay: 1, abandonedReason: 'voluntario' },
+      { raceId: KEY, riderId: b! },
+    ])
+    await t.db.insert(palmares).values([
+      // El honor falso: ganó la general retirándose el primer día.
+      {
+        worldId,
+        riderId: a!,
+        season: 0,
+        raceId: 'race-repair',
+        raceName: 'X',
+        kind: 'gc',
+        detail: '',
+        gameDay: 5,
+      },
+      // Éste es LEGÍTIMO: ganó una etapa y luego abandonó, que en carretera pasa constantemente.
+      {
+        worldId,
+        riderId: a!,
+        season: 0,
+        raceId: 'race-repair',
+        raceName: 'X',
+        kind: 'stage',
+        detail: 'Stage 1',
+        gameDay: 1,
+      },
+      // Y el de quien de verdad ganó, que no se puede tocar.
+      {
+        worldId,
+        riderId: b!,
+        season: 0,
+        raceId: 'race-repair',
+        raceName: 'X',
+        kind: 'gc',
+        detail: '',
+        gameDay: 5,
+      },
+    ])
+
+    await t.db.transaction((tx) =>
+      runCalendarDay(tx, worldId, 5, 'semilla-reparacion', { repairWorld: true }),
+    )
+
+    const quedan = await t.db
+      .select({ riderId: palmares.riderId, kind: palmares.kind })
+      .from(palmares)
+      .where(and(eq(palmares.worldId, worldId), eq(palmares.raceId, 'race-repair')))
+    const gc = quedan.filter((x) => x.kind === 'gc').map((x) => x.riderId)
+    const etapas = quedan.filter((x) => x.kind === 'stage').map((x) => x.riderId)
+    expect(gc).toEqual([b!])
+    expect(etapas).toEqual([a!])
+  }, 120_000)
 
   it('a igualdad de tiempo manda quien acumula mejores puestos, luego la última etapa, luego el id', async () => {
     // General de una carrera POR ETAPAS con cuatro empatados a tiempo: el orden lo deciden los

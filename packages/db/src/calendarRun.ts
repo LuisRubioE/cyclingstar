@@ -1202,6 +1202,36 @@ async function backfillWorldData(tx: Tx, worldId: string, gameDay: number): Prom
   const stale = stageHonors.filter((h) => oneDayBases.has(h.raceId)).map((h) => h.id)
   if (stale.length > 0) await tx.delete(palmares).where(inArray(palmares.id, stale))
 
+  /*
+   * EL PALMARÉS DEL QUE ABANDONÓ (reparación v2). Mientras la general que repartía no filtró a los
+   * abandonados, el que se retiraba pronto se llevaba el honor de general: su reloj era el más bajo
+   * de la carrera porque había corrido menos etapas. Aquí se borran esos honores ya escritos.
+   *
+   * El cruce es por el id BASE de la carrera —el palmarés no guarda el sufijo `:s{season}`— y por
+   * temporada, que es lo que reconstruye la clave del roster. Solo toca `kind: 'gc'`: una victoria de
+   * ETAPA de alguien que luego abandonó es legítima y no se toca, igual que en carretera.
+   */
+  const gcHonors = await tx
+    .select({
+      id: palmares.id,
+      raceId: palmares.raceId,
+      season: palmares.season,
+      riderId: palmares.riderId,
+    })
+    .from(palmares)
+    .where(and(eq(palmares.worldId, worldId), eq(palmares.kind, 'gc')))
+  const bogus: string[] = []
+  for (const h of gcHonors) {
+    const key = `${h.raceId}:s${h.season}`
+    const rows = await tx
+      .select({ abandonedDay: raceRosters.abandonedDay })
+      .from(raceRosters)
+      .where(and(eq(raceRosters.raceId, key), eq(raceRosters.riderId, h.riderId)))
+      .limit(1)
+    if (rows[0]?.abandonedDay != null) bogus.push(h.id)
+  }
+  if (bogus.length > 0) await tx.delete(palmares).where(inArray(palmares.id, bogus))
+
   const nullBib = await tx
     .selectDistinct({ raceId: raceRosters.raceId })
     .from(raceRosters)

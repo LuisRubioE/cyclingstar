@@ -18,8 +18,16 @@ import { worlds } from './schema.js'
 type Db = ReturnType<typeof drizzle>
 type Tx = Parameters<Parameters<Db['transaction']>[0]>[0]
 
-/** Versión de reparaciones que conoce este código. Un mundo por debajo aún tiene que pasarlas. */
-export const WORLD_REPAIR_VERSION = 1
+/**
+ * Versión de reparaciones que conoce este código. Un mundo por debajo aún tiene que pasarlas.
+ *
+ * - **v2**: el que se retiraba el primer día GANABA la carrera. Su fila de `race_gc` se queda a
+ *   propósito (la ficha lo enseña como DNF) pero con el tiempo de las etapas que corrió, o sea el
+ *   más bajo de todos, y la general que repartía no lo filtraba. El dueño lo vio: «Iván García en su
+ *   palmarés pone que ganó la vuelta a Andalucía; se retiró en la primera etapa». Arreglado el
+ *   reparto, quedan por limpiar los honores de general ya escritos y los puntos ya sumados.
+ */
+export const WORLD_REPAIR_VERSION = 2
 
 /** ¿Este mundo tiene reparaciones pendientes? (barato: una fila por PK). */
 export async function worldNeedsRepair(tx: Tx | Db, worldId: string): Promise<boolean> {
