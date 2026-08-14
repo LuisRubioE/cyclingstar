@@ -59,17 +59,64 @@ jobs:
       - name: Migraciones sobre la base de tests
         run: node scripts/migrate.mjs
 
-      # SIN COBERTURA, y es una decisión de coste medida, no un descuido. Este job es el 87 % de lo
-      # que cuesta el CI: de los 39 minutos facturables de un push, 34 son este, y dentro de él la
-      # instrumentación de la cobertura multiplica la suite por 1,76 (medido en local: 530 s contra
-      # 934 s sobre las mismas 1.249 pruebas). El repositorio es PRIVADO, así que esos minutos se
-      # descuentan de la cuota de la cuenta, y el día que se agota no falla un test: se queda sin
-      # arrancar el CI entero y con él el despliegue, que espera a la señal verde.
+      # LA SUITE MENOS LOS BANCOS DE SIMULACIÓN, y sin cobertura. Las dos son decisiones de coste
+      # MEDIDAS, no descuidos, y el reparto es tan desigual que sorprende:
       #
-      # La cobertura no se pierde: la mide `cobertura.yml` una vez al día, que es la cadencia a la
-      # que se lee. Lo que se mira en CADA push es si la suite pasa, y eso es lo que sigue aquí.
-      - name: Test
-        run: pnpm test
+      #   packages/engine/src/sim/   3 ficheros    69 pruebas    536 s
+      #   todo lo demás             95 ficheros  1.201 pruebas   102 s
+      #
+      # Tres ficheros de noventa y ocho se llevan el 84 % del tiempo por el 5 % de las pruebas,
+      # porque no son pruebas: son BANCOS que corren cientos de etapas enteras. Y la instrumentación
+      # de la cobertura multiplica además la suite por 1,76 (530 s contra 934 s en local).
+      #
+      # Importa porque el repositorio es PRIVADO y los minutos de Actions se descuentan de la cuota
+      # de la cuenta; el día que se agota no falla una prueba, se queda sin arrancar el CI entero y
+      # con él el despliegue, que espera a la señal verde. Medido sobre el último CI verde, un push
+      # costaba 39 minutos facturables y 34 eran este job.
+      #
+      # No se pierde nada: los bancos los corre el job `benches` de aquí abajo EN CUANTO SE TOCA EL
+      # MOTOR, que es cuando pueden romperse, y `cobertura.yml` los corre enteros con cobertura una
+      # vez al día pase lo que pase.
+      - name: Test (sin los bancos)
+        run: pnpm test:rapido
+
+  benches:
+    name: Bancos de simulación
+    runs-on: ubuntu-latest
+    # Los bancos (`sim/invariants`, `sim/coherence`, `sim/raceRadio`) tardan nueve minutos porque
+    # simulan cientos de etapas completas. Lo que vigilan es la FÍSICA, así que solo pueden romperse
+    # cuando cambia el motor: en un push que toca la web, la API o un documento, correrlos es pagar
+    # nueve minutos por una respuesta que ya se sabe.
+    #
+    # Por eso el job existe siempre —así la comprobación aparece en la lista y nadie se cree que se
+    # ha saltado en silencio— y lo que se salta es el trabajo. Cuando no hay base fiable con la que
+    # comparar (un primer push a una rama, un `github.event.before` vacío) los bancos SE CORREN: ante
+    # la duda, se paga el minuto y no se mira para otro lado.
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: ¿Ha cambiado el motor?
+        id: motor
+        env:
+          BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          HEAD: ${{ github.sha }}
+        run: |
+          if [ -z "$BASE" ] || ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+            echo 'Sin base con la que comparar: se corren los bancos.'
+            echo 'correr=si' >> "$GITHUB_OUTPUT"
+          elif git diff --name-only "$BASE" "$HEAD" | grep -q '^packages/engine/'; then
+            echo 'El motor cambia: se corren los bancos.'
+            echo 'correr=si' >> "$GITHUB_OUTPUT"
+          else
+            echo 'El motor no cambia: los bancos se saltan (los corre cobertura.yml esta noche).'
+            echo 'correr=no' >> "$GITHUB_OUTPUT"
+          fi
+      - uses: ./.github/actions/setup
+        if: steps.motor.outputs.correr == 'si'
+      - name: Bancos
+        if: steps.motor.outputs.correr == 'si'
+        run: pnpm test:bancos
 
   quality:
     name: Lint · Format
