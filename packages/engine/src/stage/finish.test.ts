@@ -71,6 +71,40 @@ describe('tipo de final derivado del recorrido (docs/motor.md §12)', () => {
     ).toBe('sprint_masivo')
   })
 
+  /*
+   * UNA COTA PUEDE MEDIR CUATRO KILÓMETROS Y NO SER UNA SUBIDA (v30). La condición de «final en
+   * alto» era solo de LONGITUD, así que `race-basque-country` e2 —4,0 km al 3,0 %, 120 metros de
+   * desnivel, un arrastre hasta la línea— repartía el remate con MON al 0,60 y lo ganaba el mejor
+   * escalador del pelotón. Medido: 9 de los 197 finales en alto del calendario (5 %) por debajo del
+   * 4 % de pendiente, contra una mediana de 728 m de desnivel.
+   */
+  it('un ARRASTRE de 4 km al 3% hasta la meta no es un final en alto', () => {
+    expect(
+      typeOf([
+        { km: 146, tipo: 'llano' },
+        { km: 4, tipo: 'puerto', tramos: [{ km: 4, g: 3 }] },
+      ]),
+    ).toBe('puncheur')
+  })
+
+  it('…pero un cat-2 TENDIDO sí lo es: el listón es una O, no una Y', () => {
+    // Empinada: 4 km al 6% (240 m) pasa por pendiente aunque no llegue a los 300 m.
+    expect(
+      typeOf([
+        { km: 146, tipo: 'llano' },
+        { km: 4, tipo: 'puerto', tramos: [{ km: 4, g: 6 }] },
+      ]),
+    ).toBe('alto')
+    // Larga: 11 km al 3,2% (352 m) pasa por desnivel aunque la pendiente sea de arrastre. Un puerto
+    // tendido de once kilómetros decide igual, porque acumula.
+    expect(
+      typeOf([
+        { km: 139, tipo: 'llano' },
+        { km: 11, tipo: 'puerto', tramos: [{ km: 11, g: 3.2 }] },
+      ]),
+    ).toBe('alto')
+  })
+
   it('un puerto largo que muere en la meta es un final en alto', () => {
     expect(
       typeOf([

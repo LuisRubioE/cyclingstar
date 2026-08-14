@@ -123,11 +123,31 @@ export function deriveFinishTerrain(blocks: Block[], dx: number = STAGE.dx): Fin
  */
 export function finishType(t: FinishTerrain, groupSize: number): FinishType {
   if (groupSize <= 1) return 'solitario'
-  // Final en alto: manda el escalador. Dos caminos, y los dos exigen una cota LARGA (por debajo de
-  // `finishAltoMinKm` es un muro, y un muro lo gana un puncheur): que la cota muera en la meta, o
-  // que se cumpla la definición del SPEC 6.12 —los últimos 3 km al 5% de media—, que cubre la
-  // cumbre con rellano final donde la racha ascendente se corta un poco antes de la pancarta.
-  if (t.climbKm >= STAGE.finishAltoMinKm) {
+  /*
+   * Final en alto: manda el escalador. Exige tres cosas, no dos.
+   *
+   * LARGA (`finishAltoMinKm`): por debajo es un muro, y un muro lo gana un puncheur —el Muro de Huy
+   * del calendario, 1,4 km al 8,5 % en la línea, sale «puncheur» y eso es correcto—.
+   *
+   * DE VERDAD (v30): una cota puede medir cuatro kilómetros y no ser una subida. La condición era
+   * solo de LONGITUD, así que `race-basque-country` e2 —**4,0 km al 3,0 %, 120 metros de desnivel**,
+   * un falso llano hasta la meta— repartía el remate con MON al 0,60 y lo ganaba el mejor escalador
+   * del pelotón. Medido sobre el calendario entero: 9 de los 197 finales en alto (5 %) tenían menos
+   * del 4 % de pendiente media, contra una mediana de 728 m de desnivel.
+   *
+   * El listón es una O, no una Y, y las dos mitades dicen algo distinto: o la cota es EMPINADA
+   * (`finishAltoMinGradient`) o es tan LARGA que acumula subida de verdad (`finishAltoMinMetres`),
+   * que es el caso de un puerto tendido de once kilómetros. Con las dos juntas se quedan fuera los
+   * arrastres a la línea y se quedan dentro los cat-2 tendidos: `race-france` e6 (8,7 km al 4,4 %)
+   * sigue siendo final en alto, y `race-basque-country` e2 deja de serlo.
+   *
+   * QUE MUERA EN LA META, o que se cumpla la definición del SPEC 6.12 —los últimos 3 km al 5 % de
+   * media—, que cubre la cumbre con rellano final donde la racha ascendente se corta antes.
+   */
+  const climbHard =
+    t.climbGradient >= STAGE.finishAltoMinGradient ||
+    t.climbKm * t.climbGradient * 10 >= STAGE.finishAltoMinMetres
+  if (t.climbKm >= STAGE.finishAltoMinKm && climbHard) {
     if (t.climbKmToFinish <= STAGE.finishSummitKm) return 'alto'
     if (t.hilltopGradient >= STAGE.hilltopFinishGradient) return 'alto'
   }

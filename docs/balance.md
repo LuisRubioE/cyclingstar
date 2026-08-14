@@ -6403,3 +6403,55 @@ recorre cada grupo: un `shed-N` que ya es el pelotón sigue sin poder tener «eq
 (`onTheFront`, y con él `shelterWorking`), y su trabajo no entra en el libro de la persecución
 (`chaseLedger`), porque las dos cosas están atadas a `kind === 'peloton'`. Es el siguiente escalón y
 es de física: moverá las huellas y hay que medirlo aparte.
+
+---
+
+## v30 — Un final en alto tiene que SUBIR, no solo medir (`engine_version` 29 → 30)
+
+### 1. El diagnóstico que traía era FALSO
+
+La deuda estaba anotada como «el muro de 3 km lo gana un cronista, no un escalador»: finales cortos y
+empinados (3-4 km al 8-12 %) que se resolvían como si fueran de puncheur. **Medido, no ocurre.** De
+las 1.418 etapas del calendario, **cero** cotas de ≥1,5 km al ≥7 % que mueran en meta salen como
+`puncheur`. El Muro de Huy del calendario (`race-walloon-wall` e1, 1,4 km al 8,5 % en la línea) sale
+`puncheur` y eso es **lo correcto**: Huy lo gana un Alaphilippe, no un escalador de gran vuelta.
+
+### 2. El defecto real va por el lado contrario
+
+`finishType` exigía que la cota final midiera 3 km, **pero no que fuera dura**. Y una cota puede medir
+cuatro kilómetros sin ser una subida:
+
+| etapa                    | cota final          | desnivel  | qué era                  |
+| ------------------------ | ------------------- | --------- | ------------------------ |
+| `race-basque-country` e2 | 4,0 km al **3,0 %** | **120 m** | final en alto (MON 0,60) |
+| `race-aulne` e1          | 5,9 km al 3,0 %     | 177 m     | final en alto            |
+| `race-italy` e17         | 5,7 km al 3,3 %     | 188 m     | final en alto            |
+| `race-two-seas` e2       | 6,8 km al 3,2 %     | 218 m     | final en alto            |
+| `race-france` e3         | 7,0 km al 3,8 %     | 266 m     | final en alto            |
+| `race-alps` e2           | 7,5 km al 3,9 %     | 293 m     | final en alto            |
+
+Cuatro kilómetros al 3 % son **un arrastre hasta la línea**, y ahí no gana el mejor escalador del
+pelotón: gana el más rápido de los que aguantan. Sobre los 197 finales en alto del calendario, **9
+(5 %) estaban por debajo del 4 % de pendiente media**, contra una **mediana de 728 m** de desnivel.
+
+### 3. El listón nuevo es una O, no una Y
+
+Un final en alto lo es si la cota mide 3 km **y además** o es **empinada** (`finishAltoMinGradient` =
+4 %) o es **larga de verdad** (`finishAltoMinMetres` = 300 m). Cada mitad cubre una forma distinta de
+subir y las dos deciden:
+
+- la **rampa que rompe el grupo** — por debajo del 4 % un rodador fuerte aguanta la rueda de un
+  escalador y el remate no es suyo;
+- el **puerto tendido que acumula** — `race-to-the-sun` e4 son 10,9 km al 3,2 % (349 m) y siguen
+  siendo final en alto, porque once kilómetros de subida deciden aunque sean suaves.
+
+**Cambian 6 etapas de 1.418**, las de la tabla, y las seis pasan a `puncheur`. Ni un cat-2 tendido se
+mueve: `race-france` e6 (8,7 km al 4,4 %) sigue siendo final en alto, y también `race-morocco` e2
+(4,1 km al 5,7 %, solo 235 m) porque pasa por pendiente.
+
+### 4. Verificación
+
+- **Huellas selladas idénticas** (`stage/attribution.test.ts`, `stage/timetrial.test.ts`): ninguna de
+  las seis está entre las canónicas selladas, así que la huella no se mueve pese a ser un cambio que
+  SÍ cambia resultados.
+- Sube `ENGINE_VERSION` porque el remate de esas seis etapas cambia de dueño.

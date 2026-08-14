@@ -449,8 +449,26 @@
  * —`majorityOnTheRoad` es física y los otros dos siguen eligiendo entre los que cuentan—, y el
  * porqué está en docs/balance.md, «v29», junto con la deuda que deja: el motor sigue corriendo la
  * FÍSICA de cada grupo por su origen aunque ya lo NOMBRE por su gente.
+ *
+ * ── v30 · un final en alto tiene que SUBIR, no solo medir ──────────────────────────────────────
+ *
+ * `finishType` exigía que la cota final midiera 3 km, pero no que fuera dura. Una cota puede medir
+ * cuatro kilómetros y no ser una subida: `race-basque-country` e2 son **4,0 km al 3,0 %, 120 metros
+ * de desnivel** —un arrastre hasta la línea— y repartía el remate con MON al 0,60, de modo que lo
+ * ganaba el mejor escalador del pelotón en vez del más rápido de los que aguantan.
+ *
+ * Medido sobre el calendario entero: **9 de los 197 finales en alto (5 %) por debajo del 4 % de
+ * pendiente media**, contra una mediana de 728 m de desnivel. El listón nuevo es una O —o empinada
+ * (4 %) o larga de verdad (300 m)— porque las dos formas de subir deciden: la rampa que rompe el
+ * grupo y el puerto tendido que acumula. **Cambian 6 etapas de 1.418**, todas arrastres del 3,0-3,9 %,
+ * y todas pasan a «puncheur», que es quien gana un arrastre. Ni un cat-2 tendido se mueve:
+ * `race-france` e6 (8,7 km al 4,4 %) sigue siendo final en alto.
+ *
+ * Y el diagnóstico que había anotado era FALSO y queda desmentido con datos: no hay muros mal
+ * clasificados. De 1.418 etapas, cero cotas de ≥1,5 km al ≥7 % que mueran en meta salen «puncheur»;
+ * el Muro de Huy del calendario (1,4 km al 8,5 %) sale puncheur y eso es lo correcto.
  */
-export const ENGINE_VERSION = 29 as const
+export const ENGINE_VERSION = 30 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -1911,6 +1929,25 @@ export const STAGE = {
   // …y es un final en ALTO (manda el escalador puro) si además mide al menos estos km. Por debajo
   // es un muro: lo gana un puncheur, no un escalador de gran vuelta.
   finishAltoMinKm: 3,
+  /**
+   * …Y SI ADEMÁS SUBE DE VERDAD (v30). La condición era solo de longitud, y una cota puede medir
+   * cuatro kilómetros sin ser una subida: `race-basque-country` e2 son **4,0 km al 3,0 %, 120 metros
+   * de desnivel** —un arrastre hasta la línea— y repartía el remate con MON al 0,60. Medido sobre el
+   * calendario: 9 de 197 finales en alto (5 %) por debajo del 4 % de pendiente, contra una mediana
+   * de 728 m de desnivel.
+   *
+   * Es una O, no una Y, y cada mitad cubre una forma distinta de subir:
+   *
+   * - **empinada** (`finishAltoMinGradient` = 4 %): la rampa que rompe el grupo. Por debajo del 4 %
+   *   un rodador fuerte aguanta la rueda de un escalador, y el remate no es suyo.
+   * - **larga de verdad** (`finishAltoMinMetres` = 300 m): un puerto tendido de once kilómetros al
+   *   3 % también decide, porque acumula. `race-to-the-sun` e4 (10,9 km, 349 m) se queda dentro.
+   *
+   * Las dos juntas dejan fuera los seis arrastres del calendario y no tocan un solo cat-2 tendido:
+   * `race-france` e6 (8,7 km al 4,4 %) sigue siendo final en alto.
+   */
+  finishAltoMinGradient: 4,
+  finishAltoMinMetres: 300,
   // Puncheur: cota que corona dentro de estos km de meta…
   finishPuncheurKmToGo: 5,
   // …y con esta dureza mínima (km·g², el baremo de la categoría de cima). 15 son ~1 km al 4% o
