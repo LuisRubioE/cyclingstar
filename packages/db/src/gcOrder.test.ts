@@ -2,6 +2,7 @@ import { TEST_TOUR } from '@cyclingstar/engine'
 import { ATTRIBUTES } from '@cyclingstar/shared'
 import { and, asc, eq } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { gcFinishersWhere, gcOrderBy, gcRosterOn } from './gcSort.js'
 import { getRiderGcStandings } from './riderResults.js'
 import { getGcThroughStage, getRaceGc } from './results.js'
 import {
@@ -164,6 +165,57 @@ describe('db: general coherente en carreras de un día y con desempate por puest
     const gcOtraVez = await getRaceGc(t.db, ONE_DAY_KEY)
     expect(gcOtraVez.map((r) => r.riderId)).toEqual(stageOrder)
   }, 180_000)
+
+  /**
+   * EL QUE SE RETIRA EL PRIMER DÍA NO GANA LA CARRERA (v31). Lo vio el dueño en producción: «Iván
+   * García en su palmarés pone que ganó la vuelta a Andalucía; no es cierto, se retiró en la primera
+   * etapa». Y así era: un abandono CONSERVA su fila en `race_gc` —a propósito, para que la ficha lo
+   * enseñe como DNF con lo que llevaba hecho— pero con el tiempo de las etapas que corrió, o sea
+   * MENOS que el de cualquiera que las corriera todas. Ordenando por tiempo ascendente, gana él.
+   *
+   * Y lo peor: la general que se MUESTRA ya lo hacía bien; la que REPARTE —premios, puntos UCI,
+   * palmarés y el dorsal 1 del año siguiente— no. Dos definiciones de lo mismo, una sola arreglada.
+   * Por eso el filtro vive junto al orden, en `gcSort.ts`, y esto lo sella.
+   */
+  it('el que se retira el primer día NO está clasificado, por mucho que su reloj sea el más bajo', async () => {
+    const [a, b, c] = riderIds
+    const KEY = 'race-dnf:s0'
+    await t.db.insert(raceGc).values([
+      // El que se retiró tras la etapa 1: UNA etapa de tiempo, el más bajo de la carrera con mucho.
+      { raceId: KEY, riderId: a!, tiempoTotalS: 13654, sumaPuestos: 40, ultimoPuesto: 40 },
+      // Los que la acabaron entera: cinco días de reloj.
+      { raceId: KEY, riderId: b!, tiempoTotalS: 67425, sumaPuestos: 12, ultimoPuesto: 3 },
+      { raceId: KEY, riderId: c!, tiempoTotalS: 67480, sumaPuestos: 20, ultimoPuesto: 8 },
+    ])
+    await t.db.insert(raceRosters).values([
+      { raceId: KEY, riderId: a!, abandonedDay: 1, abandonedReason: 'voluntario' },
+      { raceId: KEY, riderId: b! },
+      { raceId: KEY, riderId: c! },
+    ])
+
+    // ASÍ ERA EL FALLO, y queda escrito para que se vea el tamaño: sin filtrar, el que se retiró el
+    // primer día sale PRIMERO de la general, por delante de los que la corrieron entera.
+    const comoEstaba = await t.db
+      .select({ riderId: raceGc.riderId })
+      .from(raceGc)
+      .where(eq(raceGc.raceId, KEY))
+      .orderBy(...gcOrderBy())
+    expect(comoEstaba[0]!.riderId).toBe(a!)
+
+    // La general que REPARTE: el retirado no está, y el primero es quien de verdad ganó.
+    const reparte = await t.db
+      .select({ riderId: raceGc.riderId })
+      .from(raceGc)
+      .leftJoin(raceRosters, gcRosterOn())
+      .where(gcFinishersWhere(KEY))
+      .orderBy(...gcOrderBy())
+    expect(reparte.map((r) => r.riderId)).toEqual([b!, c!])
+
+    // La general que se MUESTRA sí lo lleva, al final y marcado: la ficha tiene que poder enseñarlo.
+    const muestra = await getRaceGc(t.db, KEY)
+    expect(muestra.map((r) => r.riderId)).toEqual([b!, c!, a!])
+    expect(muestra[2]!.dnf).toBe(true)
+  }, 60_000)
 
   it('a igualdad de tiempo manda quien acumula mejores puestos, luego la última etapa, luego el id', async () => {
     // General de una carrera POR ETAPAS con cuatro empatados a tiempo: el orden lo deciden los

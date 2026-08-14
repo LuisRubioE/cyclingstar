@@ -30,7 +30,7 @@ import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import { BATCH_ROWS, type BatchValue, inChunks, valuesList } from './batch.js'
 import { awardRacePrizes } from './economy.js'
-import { gcOrderBy } from './gcSort.js'
+import { gcFinishersWhere, gcOrderBy, gcRosterOn } from './gcSort.js'
 import { emitNews } from './news.js'
 import { addSeasonPointsBatch, recordPalmares } from './ranking.js'
 import {
@@ -140,10 +140,24 @@ export async function runOneStage(
   // puesto en la última etapa), porque desde la v19 al motor no le viaja solo el tiempo sino también
   // el PUESTO: en una crono el orden inverso de salida se reparte por puesto, y con el tiempo a
   // secas los 112 empatados de una etapa 2 le llegaban indistinguibles.
+  //
+  // …y SIN LOS ABANDONADOS (v31), que es lo que de verdad dolía aquí: su fila se queda en `race_gc`
+  // con el tiempo de las etapas que corrieron, o sea MENOS que el de nadie, así que `gcLeader` pasaba
+  // a ser el reloj de un corredor que ya no está en la carrera. Con él, el `gcDeficitSeconds` que le
+  // llega al motor mide a TODOS contra un fantasma y sale inflado: los equipos planifican la etapa
+  // creyendo que van minutos por detrás de alguien que se bajó de la bici.
   const gcRows = await tx
-    .select()
+    .select({
+      riderId: raceGc.riderId,
+      tiempoTotalS: raceGc.tiempoTotalS,
+      puntosVolante: raceGc.puntosVolante,
+      puntosMontana: raceGc.puntosMontana,
+      sumaPuestos: raceGc.sumaPuestos,
+      ultimoPuesto: raceGc.ultimoPuesto,
+    })
     .from(raceGc)
-    .where(eq(raceGc.raceId, spec.raceKey))
+    .leftJoin(raceRosters, gcRosterOn())
+    .where(gcFinishersWhere(spec.raceKey))
     .orderBy(...gcOrderBy())
   const gcTime = new Map(gcRows.map((r) => [r.riderId, r.tiempoTotalS]))
   const gcRank = new Map(gcRows.map((r, i) => [r.riderId, i + 1]))
@@ -761,11 +775,18 @@ async function awardOutcome(
   // Orden de la general con desempate real (ver `gcSort.ts`). Es el que reparte premios y puntos UCI,
   // así que tiene que ser total y determinista: antes, con todo el pelotón empatado a tiempo, los
   // puntos se repartían por el orden arbitrario que devolviera Postgres.
+  //
+  // …Y SOLO LOS QUE SIGUEN EN CARRERA (v31). Un abandono conserva su fila en `race_gc` a propósito
+  // —la ficha lo enseña como DNF con lo que llevaba hecho— pero con el tiempo de las etapas que
+  // corrió, que es MENOS que el de los que acabaron. Ordenando por tiempo ascendente y sin filtrar,
+  // el que se retira antes gana la carrera: Iván García ganó Andalucía retirándose en la etapa 1,
+  // con 13.654 s contra los cinco días de los demás. Se llevó el palmarés, el premio y los puntos.
   const gcOrder = (
     await tx
       .select({ riderId: raceGc.riderId })
       .from(raceGc)
-      .where(eq(raceGc.raceId, spec.raceKey))
+      .leftJoin(raceRosters, gcRosterOn())
+      .where(gcFinishersWhere(spec.raceKey))
       .orderBy(...gcOrderBy())
   ).map((r) => r.riderId)
 

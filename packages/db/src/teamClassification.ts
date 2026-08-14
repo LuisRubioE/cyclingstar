@@ -1,7 +1,7 @@
 import { and, asc, eq, lte, sql } from 'drizzle-orm'
 import type { Database } from './client.js'
-import { gcOrderBy } from './gcSort.js'
-import { raceGc, riders, stageResults, stageTeamResults, teams } from './schema.js'
+import { gcFinishersWhere, gcOrderBy, gcRosterOn } from './gcSort.js'
+import { raceGc, raceRosters, riders, stageResults, stageTeamResults, teams } from './schema.js'
 
 /**
  * CLASIFICACIÓN POR EQUIPOS (SPEC, regla del ciclismo real).
@@ -375,7 +375,10 @@ async function teamBestGcRank(
           .select({ teamId: riders.teamId })
           .from(raceGc)
           .innerJoin(riders, eq(riders.id, raceGc.riderId))
-          .where(eq(raceGc.raceId, raceId))
+          // Sin los abandonados (v31): un retirado conserva su fila con menos tiempo que nadie y
+          // colocaba a su equipo el primero de la general por equipos.
+          .leftJoin(raceRosters, gcRosterOn())
+          .where(gcFinishersWhere(raceId))
           .orderBy(...gcOrderBy())
   const best = new Map<string, number>()
   ordered.forEach((row, i) => {

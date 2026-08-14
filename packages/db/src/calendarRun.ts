@@ -25,7 +25,7 @@ import { and, desc, eq, inArray, isNotNull, isNull, lt, notInArray, or, sql } fr
 import { drizzle } from 'drizzle-orm/postgres-js'
 import { BATCH_ROWS, type BatchValue, inChunks, valuesList } from './batch.js'
 import { creditRider } from './economy.js'
-import { gcOrderBy } from './gcSort.js'
+import { gcFinishersWhere, gcOrderBy, gcRosterOn } from './gcSort.js'
 import { LOCK_CLASS, hashInt, raceLockKey } from './locks.js'
 import {
   gameState,
@@ -934,9 +934,12 @@ async function assignBibs(tx: Tx, race: CalendarRace, season: number): Promise<v
     const winner = await tx
       .select({ riderId: raceGc.riderId })
       .from(raceGc)
-      .where(eq(raceGc.raceId, prevKey))
+      .leftJoin(raceRosters, gcRosterOn())
       // Mismo desempate que en el resto de la general (gcSort.ts): quién fue el campeón no puede
-      // depender del orden que devuelva Postgres cuando hay empate a tiempo.
+      // depender del orden que devuelva Postgres cuando hay empate a tiempo. Y SIN LOS ABANDONADOS
+      // (v31): el que se retiró en la etapa 1 tiene el tiempo más bajo de la carrera y se llevaba el
+      // dorsal 1 del año siguiente.
+      .where(gcFinishersWhere(prevKey))
       .orderBy(...gcOrderBy())
       .limit(1)
     championRiderId = winner[0]?.riderId ?? null
@@ -1358,9 +1361,11 @@ async function recomputeSeasonPoints(tx: Tx, worldId: string, season: number): P
       const gc = await tx
         .select({ riderId: raceGc.riderId })
         .from(raceGc)
-        .where(eq(raceGc.raceId, key))
-        // Con el mismo desempate que usó el reparto original (gcSort.ts): si aquí se ordenara de otra
-        // forma, la reconciliación "corregiría" los puntos a un orden distinto del que se repartió.
+        .leftJoin(raceRosters, gcRosterOn())
+        // Con el mismo desempate Y el mismo filtro que usó el reparto original (gcSort.ts): si aquí
+        // se ordenara —o se filtrara— de otra forma, la reconciliación «corregiría» los puntos a un
+        // orden distinto del que se repartió, que es peor que no reconciliar.
+        .where(gcFinishersWhere(key))
         .orderBy(...gcOrderBy())
       gc.forEach((row, i) => add(row.riderId, gcPointsByClass(race.raceClass, i)))
     }
