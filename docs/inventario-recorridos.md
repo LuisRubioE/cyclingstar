@@ -21,19 +21,19 @@ de principio a fin.
 
 | | etapas | % |
 |---|---:|---:|
-| ✅ Real | 20 | 1.4 % |
-| 🟡 Sin validar | 380 | 26.8 % |
-| 🔴 Inventado | 1018 | 71.8 % |
+| ✅ Real | 177 | 12.5 % |
+| 🟡 Sin validar | 226 | 15.9 % |
+| 🔴 Inventado | 1015 | 71.6 % |
 
 ### Por clase de carrera
 
 | clase | etapas | ✅ real | 🟡 sin validar | 🔴 inventado |
 |---|---:|---:|---:|---:|
 | NC | 532 | 0 | 0 | 532 |
-| 2 | 321 | 0 | 50 | 271 |
-| 1 | 230 | 0 | 53 | 177 |
-| Pro | 174 | 2 | 137 | 35 |
-| WT | 161 | 18 | 140 | 3 |
+| 2 | 321 | 5 | 45 | 271 |
+| 1 | 230 | 4 | 49 | 177 |
+| Pro | 174 | 29 | 110 | 35 |
+| WT | 161 | 139 | 22 | 0 |
 
 ## Carrera por carrera
 
@@ -121,27 +121,27 @@ Clase **NC** · TH · día 18 · 1 etapa · 🔴 Inventado 1
 
 ### Race Pune `race-pune`
 
-Clase **2** · IN · día 19 · 5 etapas · 🟡 Sin validar 5
+Clase **2** · IN · día 19 · 5 etapas · ✅ Real 5
 
 | # | tipo | origen | destino | km | procedencia |
 |---:|---|---|---|---:|---|
-| 1 | Contrarreloj · ITT | Pune | Pune | 8 | 🟡 Sin validar |
-| 2 | Llana · Flat | Mulshi | Haveli | 88 | 🟡 Sin validar |
-| 3 | Media montaña · Hills | Pune | Nanded City | 105 | 🟡 Sin validar |
-| 4 | Llana · Flat | Chandan Tekadi | Baramati | 135 | 🟡 Sin validar |
-| 5 | Llana · Flat | Pune | Pune | 95 | 🟡 Sin validar |
+| 1 | Contrarreloj · ITT | Pune | Pune | 8 | ✅ Real |
+| 2 | Llana · Flat | Mulshi | Haveli | 88 | ✅ Real |
+| 3 | Media montaña · Hills | Pune | Nanded City | 105 | ✅ Real |
+| 4 | Llana · Flat | Chandan Tekadi | Baramati | 135 | ✅ Real |
+| 5 | Llana · Flat | Pune | Pune | 95 | ✅ Real |
 
 ### Race Down Under `race-down-under`
 
-Clase **WT** · AU · día 20 · 5 etapas · 🟡 Sin validar 5
+Clase **WT** · AU · día 20 · 5 etapas · ✅ Real 5
 
 | # | tipo | origen | destino | km | procedencia |
 |---:|---|---|---|---:|---|
-| 1 | Media montaña · Hills | Tanunda | Tanunda | 123 | 🟡 Sin validar |
-| 2 | Media montaña · Hills | Norwood | Uraidla | 148 | 🟡 Sin validar |
-| 3 | Media montaña · Hills | Henley Beach | Nairne | 139 | 🟡 Sin validar |
-| 4 | Media montaña · Hills | Brighton | Willunga Hill | 178 | 🟡 Sin validar |
-| 5 | Media montaña · Hills | Stirling | Stirling | 165 | 🟡 Sin validar |
+| 1 | Media montaña · Hills | Tanunda | Tanunda | 123 | ✅ Real |
+| 2 | Media montaña · Hills | Norwood | Uraidla | 148 | ✅ Real |
+| 3 | Media montaña · Hills | Henley Beach | Nairne | 139 | ✅ Real |
+| 4 | Media montaña · Hills | Brighton | Willunga Hill | 178 | ✅ Real |
+| 5 | Media montaña · Hills | Stirling | Stirling | 165 | ✅ Real |
 
 ### Race Morvedre `race-morvedre`
 
@@ -421,15 +421,15 @@ Clase **NC** · ZW · día 37 · 1 etapa · 🔴 Inventado 1
 
 ### Race Oman `race-oman`
 
-Clase **Pro** · OM · día 38 · 5 etapas · 🟡 Sin validar 5
+Clase **Pro** · OM · día 38 · 5 etapas · ✅ Real 4 · 🟡 Sin validar 1
 
 | # | tipo | origen | destino | km | procedencia |
 |---:|---|---|---|---:|---|
-| 1 | Llana · Flat | Ministry of Tourism | Bimmah Sink Hole | 171 | 🟡 Sin validar |
-| 2 | Media montaña · Hills | Al Rustaq Fort | Yitti Hills | 191 | 🟡 Sin validar |
-| 3 | Media montaña · Hills | Samail | Misfat al Abriyeen | 191 | 🟡 Sin validar |
+| 1 | Llana · Flat | Ministry of Tourism | Bimmah Sink Hole | 171 | ✅ Real |
+| 2 | Media montaña · Hills | Al Rustaq Fort | Yitti Hills | 191 | ✅ Real |
+| 3 | Media montaña · Hills | Samail | Misfat al Abriyeen | 191 | ✅ Real |
 | 4 | Llana · Flat | Al Sawadi Beach | Sohar | 147 | 🟡 Sin validar |
-| 5 | Montaña · Summit finish | Nizwa | Jabal al Akhdhar | 156 | 🟡 Sin validar |
+| 5 | Montaña · Summit finish | Nizwa | Jabal al Akhdhar | 156 | ✅ Real |
 
 ### Race Antalya GP `race-antalya-gp`
 
@@ -572,17 +572,17 @@ Clase **Pro** · ES · día 46 · 1 etapa · 🔴 Inventado 1
 
 ### Race Emirates `race-emirates`
 
-Clase **WT** · AE · día 47 · 7 etapas · 🟡 Sin validar 7
+Clase **WT** · AE · día 47 · 7 etapas · ✅ Real 7
 
 | # | tipo | origen | destino | km | procedencia |
 |---:|---|---|---|---:|---|
-| 1 | Llana · Flat | Madinat Zayed | Liwa | 144 | 🟡 Sin validar |
-| 2 | Contrarreloj · ITT | Al Hudayriat Island | Al Hudayriat Island | 12 | 🟡 Sin validar |
-| 3 | Montaña · Summit finish | Umm Al Quwain | Jebel Mobrah | 183 | 🟡 Sin validar |
-| 4 | Llana · Flat | Fujairah | Fujairah | 182 | 🟡 Sin validar |
-| 5 | Llana · Flat | Dubai | Hamdan Bin Mohammed Smart University | 166 | 🟡 Sin validar |
-| 6 | Montaña · Summit finish | Al Ain | Jebel Hafeet | 168 | 🟡 Sin validar |
-| 7 | Llana · Flat | Abu Dhabi | Abu Dhabi | 149 | 🟡 Sin validar |
+| 1 | Llana · Flat | Madinat Zayed | Liwa | 144 | ✅ Real |
+| 2 | Contrarreloj · ITT | Al Hudayriat Island | Al Hudayriat Island | 12 | ✅ Real |
+| 3 | Montaña · Summit finish | Umm Al Quwain | Jebel Mobrah | 183 | ✅ Real |
+| 4 | Llana · Flat | Fujairah | Fujairah | 182 | ✅ Real |
+| 5 | Llana · Flat | Dubai | Hamdan Bin Mohammed Smart University | 166 | ✅ Real |
+| 6 | Montaña · Summit finish | Al Ain | Jebel Hafeet | 168 | ✅ Real |
+| 7 | Llana · Flat | Abu Dhabi | Abu Dhabi | 149 | ✅ Real |
 
 ### Race Jaén `race-jaen`
 
@@ -594,27 +594,27 @@ Clase **1** · ES · día 47 · 1 etapa · 🔴 Inventado 1
 
 ### Race Algarve `race-algarve`
 
-Clase **Pro** · PT · día 49 · 5 etapas · 🟡 Sin validar 5
+Clase **Pro** · PT · día 49 · 5 etapas · ✅ Real 5
 
 | # | tipo | origen | destino | km | procedencia |
 |---:|---|---|---|---:|---|
-| 1 | Media montaña · Hills | Vila Real de Santo Antonio | Tavira | 183 | 🟡 Sin validar |
-| 2 | Montaña · Summit finish | Portimao | Foia | 148 | 🟡 Sin validar |
-| 3 | Contrarreloj · ITT | Vilamoura | Vilamoura | 20 | 🟡 Sin validar |
-| 4 | Media montaña · Hills | Albufeira | Lagos | 176 | 🟡 Sin validar |
-| 5 | Montaña · Summit finish | Faro | Malhao | 150 | 🟡 Sin validar |
+| 1 | Media montaña · Hills | Vila Real de Santo Antonio | Tavira | 183 | ✅ Real |
+| 2 | Montaña · Summit finish | Portimao | Foia | 148 | ✅ Real |
+| 3 | Contrarreloj · ITT | Vilamoura | Vilamoura | 20 | ✅ Real |
+| 4 | Media montaña · Hills | Albufeira | Lagos | 176 | ✅ Real |
+| 5 | Montaña · Summit finish | Faro | Malhao | 150 | ✅ Real |
 
 ### Race Andalusia `race-andalusia`
 
-Clase **Pro** · ES · día 49 · 5 etapas · 🟡 Sin validar 5
+Clase **Pro** · ES · día 49 · 5 etapas · ✅ Real 5
 
 | # | tipo | origen | destino | km | procedencia |
 |---:|---|---|---|---:|---|
-| 1 | Montaña · Summit finish | Benahavis | Pizarra | 151 | 🟡 Sin validar |
-| 2 | Montaña · Summit finish | Torrox | Otura | 142 | 🟡 Sin validar |
-| 3 | Media montaña · Hills | Jaen | Lopera | 181 | 🟡 Sin validar |
-| 4 | Media montaña · Hills | Montoro | Pozoblanco | 167 | 🟡 Sin validar |
-| 5 | Media montaña · Hills | La Roda de Andalucia | Lucena | 163 | 🟡 Sin validar |
+| 1 | Montaña · Summit finish | Benahavis | Pizarra | 151 | ✅ Real |
+| 2 | Montaña · Summit finish | Torrox | Otura | 142 | ✅ Real |
+| 3 | Media montaña · Hills | Jaen | Lopera | 181 | ✅ Real |
+| 4 | Media montaña · Hills | Montoro | Pozoblanco | 167 | ✅ Real |
+| 5 | Media montaña · Hills | La Roda de Andalucia | Lucena | 163 | ✅ Real |
 
 ### Race Var `race-var`
 
@@ -877,18 +877,18 @@ Clase **NC** · CL · día 66 · 1 etapa · 🔴 Inventado 1
 
 ### Race to the Sun `race-to-the-sun`
 
-Clase **WT** · FR · día 67 · 8 etapas · 🟡 Sin validar 8
+Clase **WT** · FR · día 67 · 8 etapas · ✅ Real 8
 
 | # | tipo | origen | destino | km | procedencia |
 |---:|---|---|---|---:|---|
-| 1 | Media montaña · Hills | Acheres | Carrieres-sous-Poissy | 171 | 🟡 Sin validar |
-| 2 | Llana · Flat | Epone | Montargis | 187 | 🟡 Sin validar |
-| 3 | Contrarreloj · ITT | Cosne-Cours-sur-Loire | Pouilly-sur-Loire | 24 | 🟡 Sin validar |
-| 4 | Montaña · Summit finish | Bourges | Uchon | 195 | 🟡 Sin validar |
-| 5 | Media montaña · Hills | Cormoranche-sur-Saone | Colombier-le-Vieux | 206 | 🟡 Sin validar |
-| 6 | Media montaña · Hills | Barbentane | Apt | 179 | 🟡 Sin validar |
-| 7 | Montaña · Summit finish | Nice | Auron | 139 | 🟡 Sin validar |
-| 8 | Media montaña · Hills | Nice | Nice | 129 | 🟡 Sin validar |
+| 1 | Media montaña · Hills | Acheres | Carrieres-sous-Poissy | 171 | ✅ Real |
+| 2 | Llana · Flat | Epone | Montargis | 187 | ✅ Real |
+| 3 | Contrarreloj · ITT | Cosne-Cours-sur-Loire | Pouilly-sur-Loire | 24 | ✅ Real |
+| 4 | Montaña · Summit finish | Bourges | Uchon | 195 | ✅ Real |
+| 5 | Media montaña · Hills | Cormoranche-sur-Saone | Colombier-le-Vieux | 206 | ✅ Real |
+| 6 | Media montaña · Hills | Barbentane | Apt | 179 | ✅ Real |
+| 7 | Montaña · Summit finish | Nice | Auron | 139 | ✅ Real |
+| 8 | Media montaña · Hills | Nice | Nice | 129 | ✅ Real |
 
 ### Race Rucphen `race-rucphen`
 
@@ -924,17 +924,17 @@ Clase **NC** · CL · día 67 · 1 etapa · 🔴 Inventado 1
 
 ### Race Two Seas `race-two-seas`
 
-Clase **WT** · IT · día 68 · 7 etapas · 🟡 Sin validar 7
+Clase **WT** · IT · día 68 · 7 etapas · ✅ Real 7
 
 | # | tipo | origen | destino | km | procedencia |
 |---:|---|---|---|---:|---|
-| 1 | Contrarreloj · ITT | Lido di Camaiore | Lido di Camaiore | 12 | 🟡 Sin validar |
-| 2 | Media montaña · Hills | Camaiore | San Gimignano | 206 | 🟡 Sin validar |
-| 3 | Media montaña · Hills | Cortona | Magliano dei Marsi | 225 | 🟡 Sin validar |
-| 4 | Montaña · Summit finish | Tagliacozzo | Martinsicuro | 210 | 🟡 Sin validar |
-| 5 | Media montaña · Hills | Marotta-Mondolfo | Mombaroccio | 186 | 🟡 Sin validar |
-| 6 | Montaña · Summit finish | San Severino Marche | Camerino | 189 | 🟡 Sin validar |
-| 7 | Llana · Flat | Civitanova Marche | San Benedetto del Tronto | 143 | 🟡 Sin validar |
+| 1 | Contrarreloj · ITT | Lido di Camaiore | Lido di Camaiore | 12 | ✅ Real |
+| 2 | Media montaña · Hills | Camaiore | San Gimignano | 206 | ✅ Real |
+| 3 | Media montaña · Hills | Cortona | Magliano dei Marsi | 225 | ✅ Real |
+| 4 | Montaña · Summit finish | Tagliacozzo | Martinsicuro | 210 | ✅ Real |
+| 5 | Media montaña · Hills | Marotta-Mondolfo | Mombaroccio | 186 | ✅ Real |
+| 6 | Montaña · Summit finish | San Severino Marche | Camerino | 189 | ✅ Real |
+| 7 | Llana · Flat | Civitanova Marche | San Benedetto del Tronto | 143 | ✅ Real |
 
 ### Race Istria `race-istria`
 
@@ -1079,17 +1079,17 @@ Clase **2** · PT · día 81 · 1 etapa · 🔴 Inventado 1
 
 ### Race Catalonia `race-catalonia`
 
-Clase **WT** · ES · día 82 · 7 etapas · 🟡 Sin validar 7
+Clase **WT** · ES · día 82 · 7 etapas · ✅ Real 7
 
 | # | tipo | origen | destino | km | procedencia |
 |---:|---|---|---|---:|---|
-| 1 | Llana · Flat | Sant Feliu de Guixols | Sant Feliu de Guixols | 173 | 🟡 Sin validar |
-| 2 | Llana · Flat | Figueres | Banyoles | 167 | 🟡 Sin validar |
-| 3 | Media montaña · Hills | Mont-roig del Camp | Vila-seca | 160 | 🟡 Sin validar |
-| 4 | Montaña · Summit finish | Mataro | Vallter 2000 | 173 | 🟡 Sin validar |
-| 5 | Montaña · Summit finish | La Seu d'Urgell | Coll de Pal | 155 | 🟡 Sin validar |
-| 6 | Montaña · Summit finish | Berga | Queralt | 158 | 🟡 Sin validar |
-| 7 | Media montaña · Hills | Barcelona | Barcelona | 95 | 🟡 Sin validar |
+| 1 | Llana · Flat | Sant Feliu de Guixols | Sant Feliu de Guixols | 173 | ✅ Real |
+| 2 | Llana · Flat | Figueres | Banyoles | 167 | ✅ Real |
+| 3 | Media montaña · Hills | Mont-roig del Camp | Vila-seca | 160 | ✅ Real |
+| 4 | Montaña · Summit finish | Mataro | Vallter 2000 | 173 | ✅ Real |
+| 5 | Montaña · Summit finish | La Seu d'Urgell | Coll de Pal | 155 | ✅ Real |
+| 6 | Montaña · Summit finish | Berga | Queralt | 158 | ✅ Real |
+| 7 | Media montaña · Hills | Barcelona | Barcelona | 95 | ✅ Real |
 
 ### Race Thailand `race-thailand`
 
@@ -1106,11 +1106,11 @@ Clase **1** · TH · día 83 · 6 etapas · 🟡 Sin validar 6
 
 ### Race Bruges `race-bruges`
 
-Clase **WT** · BE · día 84 · 1 etapa · 🔴 Inventado 1
+Clase **WT** · BE · día 84 · 1 etapa · 🟡 Sin validar 1
 
 | # | tipo | origen | destino | km | procedencia |
 |---:|---|---|---|---:|---|
-| 1 | Clásica · Cobbles | — | — | 205 | 🔴 Inventado |
+| 1 | Llana · Flat | Brugge | De Panne | 196 | 🟡 Sin validar |
 
 ### Race Romagna `race-romagna`
 
@@ -1294,16 +1294,16 @@ Clase **2** · IT · día 95 · 1 etapa · 🔴 Inventado 1
 
 ### Race Basque Country `race-basque-country`
 
-Clase **WT** · ES · día 96 · 6 etapas · 🟡 Sin validar 6
+Clase **WT** · ES · día 96 · 6 etapas · ✅ Real 6
 
 | # | tipo | origen | destino | km | procedencia |
 |---:|---|---|---|---:|---|
-| 1 | Contrarreloj · ITT | Bilbao | Bilbao | 14 | 🟡 Sin validar |
-| 2 | Media montaña · Hills | Pamplona | Cuevas de Mendukilo | 164 | 🟡 Sin validar |
-| 3 | Media montaña · Hills | Basauri | Basauri | 153 | 🟡 Sin validar |
-| 4 | Media montaña · Hills | Galdakao | Galdakao | 167 | 🟡 Sin validar |
-| 5 | Montaña · Summit finish | Eibar | Eibar | 176 | 🟡 Sin validar |
-| 6 | Montaña · Summit finish | Antzuola | Bergara | 135 | 🟡 Sin validar |
+| 1 | Contrarreloj · ITT | Bilbao | Bilbao | 14 | ✅ Real |
+| 2 | Media montaña · Hills | Pamplona | Cuevas de Mendukilo | 164 | ✅ Real |
+| 3 | Media montaña · Hills | Basauri | Basauri | 153 | ✅ Real |
+| 4 | Media montaña · Hills | Galdakao | Galdakao | 167 | ✅ Real |
+| 5 | Montaña · Summit finish | Eibar | Eibar | 176 | ✅ Real |
+| 6 | Montaña · Summit finish | Antzuola | Bergara | 135 | ✅ Real |
 
 ### Race Belvedere `race-belvedere`
 
@@ -1472,15 +1472,15 @@ Clase **NC** · AE · día 102 · 1 etapa · 🔴 Inventado 1
 
 ### Race Galicia `race-galicia`
 
-Clase **1** · ES · día 104 · 5 etapas · 🟡 Sin validar 5
+Clase **1** · ES · día 104 · 5 etapas · ✅ Real 4 · 🟡 Sin validar 1
 
 | # | tipo | origen | destino | km | procedencia |
 |---:|---|---|---|---:|---|
-| 1 | Llana · Flat | Maia | Matosinhos | 190 | 🟡 Sin validar |
-| 2 | Media montaña · Hills | Marin | A Estrada | 133 | 🟡 Sin validar |
+| 1 | Llana · Flat | Maia | Matosinhos | 190 | ✅ Real |
+| 2 | Media montaña · Hills | Marin | A Estrada | 133 | ✅ Real |
 | 3 | Contrarreloj · ITT | Ourense | O Pereiro de Aguiar | 16 | 🟡 Sin validar |
-| 4 | Montaña · Summit finish | A Pobra do Brollon | O Cebreiro | 137 | 🟡 Sin validar |
-| 5 | Media montaña · Hills | Betanzos | Santiago de Compostela | 160 | 🟡 Sin validar |
+| 4 | Montaña · Summit finish | A Pobra do Brollon | O Cebreiro | 137 | ✅ Real |
+| 5 | Media montaña · Hills | Betanzos | Santiago de Compostela | 160 | ✅ Real |
 
 ### Race Hainan `race-hainan`
 
@@ -1627,15 +1627,15 @@ Clase **NC** · CR · día 109 · 1 etapa · 🔴 Inventado 1
 
 ### Race Alps `race-alps`
 
-Clase **Pro** · IT · día 110 · 5 etapas · 🟡 Sin validar 5
+Clase **Pro** · IT · día 110 · 5 etapas · ✅ Real 5
 
 | # | tipo | origen | destino | km | procedencia |
 |---:|---|---|---|---:|---|
-| 1 | Montaña · Summit finish | Innsbruck | Innsbruck | 144 | 🟡 Sin validar |
-| 2 | Montaña · Summit finish | Telfs | Martello | 148 | 🟡 Sin validar |
-| 3 | Montaña · Summit finish | Laces | Arco | 175 | 🟡 Sin validar |
-| 4 | Montaña · Summit finish | Arco | Trento | 168 | 🟡 Sin validar |
-| 5 | Montaña · Summit finish | Trento | Bolzano | 129 | 🟡 Sin validar |
+| 1 | Montaña · Summit finish | Innsbruck | Innsbruck | 144 | ✅ Real |
+| 2 | Montaña · Summit finish | Telfs | Martello | 148 | ✅ Real |
+| 3 | Montaña · Summit finish | Laces | Arco | 175 | ✅ Real |
+| 4 | Montaña · Summit finish | Arco | Trento | 168 | ✅ Real |
+| 5 | Montaña · Summit finish | Trento | Bolzano | 129 | ✅ Real |
 
 ### Race Walloon Wall `race-walloon-wall`
 
@@ -1806,16 +1806,16 @@ Clase **2** · BJ · día 117 · 5 etapas · 🔴 Inventado 5
 
 ### Race Romandy `race-romandy`
 
-Clase **WT** · CH · día 118 · 6 etapas · 🟡 Sin validar 6
+Clase **WT** · CH · día 118 · 6 etapas · ✅ Real 6
 
 | # | tipo | origen | destino | km | procedencia |
 |---:|---|---|---|---:|---|
-| 1 | Contrarreloj · ITT | Villars-sur-Glane | Villars-sur-Glane | 3 | 🟡 Sin validar |
-| 2 | Media montaña · Hills | Martigny | Martigny | 171 | 🟡 Sin validar |
-| 3 | Media montaña · Hills | Rue | Vucherens | 173 | 🟡 Sin validar |
-| 4 | Media montaña · Hills | Orbe | Orbe | 177 | 🟡 Sin validar |
-| 5 | Montaña · Summit finish | Broc | Charmey | 150 | 🟡 Sin validar |
-| 6 | Montaña · Summit finish | Lucens | Leysin | 178 | 🟡 Sin validar |
+| 1 | Contrarreloj · ITT | Villars-sur-Glane | Villars-sur-Glane | 3 | ✅ Real |
+| 2 | Media montaña · Hills | Martigny | Martigny | 171 | ✅ Real |
+| 3 | Media montaña · Hills | Rue | Vucherens | 173 | ✅ Real |
+| 4 | Media montaña · Hills | Orbe | Orbe | 177 | ✅ Real |
+| 5 | Montaña · Summit finish | Broc | Charmey | 150 | ✅ Real |
+| 6 | Montaña · Summit finish | Lucens | Leysin | 178 | ✅ Real |
 
 ### Race Gila `race-gila`
 
@@ -1969,31 +1969,31 @@ Clase **2** · JP · día 127 · 4 etapas · 🟡 Sin validar 4
 
 ### Race Italy `race-italy`
 
-Clase **WT** · IT · día 128 · 21 etapas · 🟡 Sin validar 21
+Clase **WT** · IT · día 128 · 21 etapas · ✅ Real 21
 
 | # | tipo | origen | destino | km | procedencia |
 |---:|---|---|---|---:|---|
-| 1 | Llana · Flat | Nessebar | Burgas | 147 | 🟡 Sin validar |
-| 2 | Media montaña · Hills | Burgas | Veliko Tarnovo | 221 | 🟡 Sin validar |
-| 3 | Llana · Flat | Plovdiv | Sofia | 175 | 🟡 Sin validar |
-| 4 | Llana · Flat | Catanzaro | Cosenza | 138 | 🟡 Sin validar |
-| 5 | Media montaña · Hills | Praia a Mare | Potenza | 203 | 🟡 Sin validar |
-| 6 | Llana · Flat | Paestum | Napoli | 141 | 🟡 Sin validar |
-| 7 | Montaña · Summit finish | Formia | Blockhaus | 244 | 🟡 Sin validar |
-| 8 | Media montaña · Hills | Chieti | Fermo | 156 | 🟡 Sin validar |
-| 9 | Montaña · Summit finish | Cervia | Corno alle Scale | 184 | 🟡 Sin validar |
-| 10 | Contrarreloj · ITT | Viareggio | Massa | 42 | 🟡 Sin validar |
-| 11 | Media montaña · Hills | Porcari | Chiavari | 195 | 🟡 Sin validar |
-| 12 | Llana · Flat | Imperia | Novi Ligure | 175 | 🟡 Sin validar |
-| 13 | Media montaña · Hills | Alessandria | Verbania | 186 | 🟡 Sin validar |
-| 14 | Montaña · Summit finish | Aosta | Pila | 133 | 🟡 Sin validar |
-| 15 | Llana · Flat | Voghera | Milano | 157 | 🟡 Sin validar |
-| 16 | Montaña · Summit finish | Bellinzona | Cari | 113 | 🟡 Sin validar |
-| 17 | Media montaña · Hills | Cassano d'Adda | Andalo | 202 | 🟡 Sin validar |
-| 18 | Media montaña · Hills | Fai della Paganella | Pieve di Soligo | 171 | 🟡 Sin validar |
-| 19 | Montaña · Summit finish | Feltre | Piani di Pezze | 151 | 🟡 Sin validar |
-| 20 | Montaña · Summit finish | Gemona del Friuli | Piancavallo | 200 | 🟡 Sin validar |
-| 21 | Llana · Flat | Roma | Roma | 131 | 🟡 Sin validar |
+| 1 | Llana · Flat | Nessebar | Burgas | 147 | ✅ Real |
+| 2 | Media montaña · Hills | Burgas | Veliko Tarnovo | 221 | ✅ Real |
+| 3 | Llana · Flat | Plovdiv | Sofia | 175 | ✅ Real |
+| 4 | Llana · Flat | Catanzaro | Cosenza | 138 | ✅ Real |
+| 5 | Media montaña · Hills | Praia a Mare | Potenza | 203 | ✅ Real |
+| 6 | Llana · Flat | Paestum | Napoli | 141 | ✅ Real |
+| 7 | Montaña · Summit finish | Formia | Blockhaus | 244 | ✅ Real |
+| 8 | Media montaña · Hills | Chieti | Fermo | 156 | ✅ Real |
+| 9 | Montaña · Summit finish | Cervia | Corno alle Scale | 184 | ✅ Real |
+| 10 | Contrarreloj · ITT | Viareggio | Massa | 42 | ✅ Real |
+| 11 | Media montaña · Hills | Porcari | Chiavari | 195 | ✅ Real |
+| 12 | Llana · Flat | Imperia | Novi Ligure | 175 | ✅ Real |
+| 13 | Media montaña · Hills | Alessandria | Verbania | 186 | ✅ Real |
+| 14 | Montaña · Summit finish | Aosta | Pila | 133 | ✅ Real |
+| 15 | Llana · Flat | Voghera | Milano | 157 | ✅ Real |
+| 16 | Montaña · Summit finish | Bellinzona | Cari | 113 | ✅ Real |
+| 17 | Media montaña · Hills | Cassano d'Adda | Andalo | 202 | ✅ Real |
+| 18 | Media montaña · Hills | Fai della Paganella | Pieve di Soligo | 171 | ✅ Real |
+| 19 | Montaña · Summit finish | Feltre | Piani di Pezze | 151 | ✅ Real |
+| 20 | Montaña · Summit finish | Gemona del Friuli | Piancavallo | 200 | ✅ Real |
+| 21 | Llana · Flat | Roma | Roma | 131 | ✅ Real |
 
 ### Race Morbihan `race-morbihan`
 
@@ -2350,18 +2350,18 @@ Clase **1** · BE · día 157 · 1 etapa · 🔴 Inventado 1
 
 ### Race Rhône-Alpes `race-rhone-alpes`
 
-Clase **WT** · FR · día 158 · 8 etapas · 🟡 Sin validar 8
+Clase **WT** · FR · día 158 · 8 etapas · ✅ Real 7 · 🟡 Sin validar 1
 
 | # | tipo | origen | destino | km | procedencia |
 |---:|---|---|---|---:|---|
-| 1 | Montaña · Summit finish | Vizille | Saint-Ismier | 146 | 🟡 Sin validar |
-| 2 | Media montaña · Hills | Saint-Martin-le-Vinoux | Le Puy-en-Velay | 234 | 🟡 Sin validar |
+| 1 | Montaña · Summit finish | Vizille | Saint-Ismier | 146 | ✅ Real |
+| 2 | Media montaña · Hills | Saint-Martin-le-Vinoux | Le Puy-en-Velay | 234 | ✅ Real |
 | 3 | Contrarreloj · ITT | Perreux | Perreux | 28 | 🟡 Sin validar |
-| 4 | Media montaña · Hills | Le Puy-en-Velay | Montrond-les-Bains | 167 | 🟡 Sin validar |
-| 5 | Llana · Flat | Saint-Chamond | Villars-les-Dombes | 196 | 🟡 Sin validar |
-| 6 | Montaña · Summit finish | Saint-Vulbas | Crest-Voland | 182 | 🟡 Sin validar |
-| 7 | Montaña · Summit finish | La Bridoire | Grand Colombier | 134 | 🟡 Sin validar |
-| 8 | Montaña · Summit finish | Beaufort | Plateau de Solaison | 120 | 🟡 Sin validar |
+| 4 | Media montaña · Hills | Le Puy-en-Velay | Montrond-les-Bains | 167 | ✅ Real |
+| 5 | Llana · Flat | Saint-Chamond | Villars-les-Dombes | 196 | ✅ Real |
+| 6 | Montaña · Summit finish | Saint-Vulbas | Crest-Voland | 182 | ✅ Real |
+| 7 | Montaña · Summit finish | La Bridoire | Grand Colombier | 134 | ✅ Real |
+| 8 | Montaña · Summit finish | Beaufort | Plateau de Solaison | 120 | ✅ Real |
 
 ### Race Brussels `race-brussels`
 
@@ -2443,11 +2443,11 @@ Clase **NC** · EC · día 163 · 1 etapa · 🔴 Inventado 1
 
 ### Race Copenhagen `race-copenhagen`
 
-Clase **WT** · DK · día 165 · 1 etapa · 🔴 Inventado 1
+Clase **WT** · DK · día 165 · 1 etapa · 🟡 Sin validar 1
 
 | # | tipo | origen | destino | km | procedencia |
 |---:|---|---|---|---:|---|
-| 1 | Llana · Flat | — | — | 210 | 🔴 Inventado |
+| 1 | Llana · Flat | Roskilde | Copenhagen | 236 | 🟡 Sin validar |
 
 ### Race Elfsteden `race-elfsteden`
 
@@ -2475,15 +2475,15 @@ Clase **1** · BE · día 165 · 1 etapa · 🔴 Inventado 1
 
 ### Race Switzerland `race-switzerland`
 
-Clase **WT** · CH · día 168 · 5 etapas · 🟡 Sin validar 5
+Clase **WT** · CH · día 168 · 5 etapas · ✅ Real 5
 
 | # | tipo | origen | destino | km | procedencia |
 |---:|---|---|---|---:|---|
-| 1 | Montaña · Summit finish | Morbegno | Sondrio | 144 | 🟡 Sin validar |
-| 2 | Media montaña · Hills | Lugano | Bellinzona | 158 | 🟡 Sin validar |
-| 3 | Montaña · Summit finish | Buchs | Sargans | 157 | 🟡 Sin validar |
-| 4 | Contrarreloj · ITT | Neundorf | Fulenbach | 24 | 🟡 Sin validar |
-| 5 | Montaña · Summit finish | Les Diablerets | Villars-sur-Ollon | 151 | 🟡 Sin validar |
+| 1 | Montaña · Summit finish | Morbegno | Sondrio | 144 | ✅ Real |
+| 2 | Media montaña · Hills | Lugano | Bellinzona | 158 | ✅ Real |
+| 3 | Montaña · Summit finish | Buchs | Sargans | 157 | ✅ Real |
+| 4 | Contrarreloj · ITT | Neundorf | Fulenbach | 24 | ✅ Real |
+| 5 | Montaña · Summit finish | Les Diablerets | Villars-sur-Ollon | 151 | ✅ Real |
 
 ### Race Belgium `race-belgium`
 
@@ -6209,30 +6209,30 @@ Clase **NC** · JM · día 183 · 1 etapa · 🔴 Inventado 1
 
 ### Race France `race-france`
 
-Clase **WT** · FR · día 185 · 21 etapas · 🟡 Sin validar 21
+Clase **WT** · FR · día 185 · 21 etapas · ✅ Real 20 · 🟡 Sin validar 1
 
 | # | tipo | origen | destino | km | procedencia |
 |---:|---|---|---|---:|---|
-| 1 | Contrarreloj · ITT | Barcelona | Barcelona | 20 | 🟡 Sin validar |
-| 2 | Media montaña · Hills | Tarragona | Barcelona | 169 | 🟡 Sin validar |
-| 3 | Media montaña · Hills | Granollers | Les Angles | 196 | 🟡 Sin validar |
-| 4 | Media montaña · Hills | Carcassonne | Foix | 182 | 🟡 Sin validar |
-| 5 | Llana · Flat | Lannemezan | Pau | 158 | 🟡 Sin validar |
-| 6 | Montaña · Summit finish | Pau | Gavarnie-Gedre | 186 | 🟡 Sin validar |
-| 7 | Llana · Flat | Hagetmau | Bordeaux | 175 | 🟡 Sin validar |
-| 8 | Llana · Flat | Perigueux | Bergerac | 180 | 🟡 Sin validar |
-| 9 | Media montaña · Hills | Malemort | Ussel | 185 | 🟡 Sin validar |
-| 10 | Montaña · Summit finish | Aurillac | Le Lioran | 167 | 🟡 Sin validar |
-| 11 | Llana · Flat | Vichy | Nevers | 161 | 🟡 Sin validar |
-| 12 | Llana · Flat | Magny-Cours | Chalon-sur-Saone | 179 | 🟡 Sin validar |
-| 13 | Media montaña · Hills | Dole | Belfort | 206 | 🟡 Sin validar |
-| 14 | Montaña · Summit finish | Mulhouse | Le Markstein | 155 | 🟡 Sin validar |
-| 15 | Montaña · Summit finish | Champagnole | Plateau de Solaison | 184 | 🟡 Sin validar |
-| 16 | Contrarreloj · ITT | Evian-les-Bains | Thonon-les-Bains | 26 | 🟡 Sin validar |
-| 17 | Media montaña · Hills | Chambery | Voiron | 175 | 🟡 Sin validar |
-| 18 | Montaña · Summit finish | Voiron | Orcieres-Merlette | 185 | 🟡 Sin validar |
-| 19 | Montaña · Summit finish | Gap | Alpe d'Huez | 128 | 🟡 Sin validar |
-| 20 | Montaña · Summit finish | Le Bourg-d'Oisans | Alpe d'Huez | 171 | 🟡 Sin validar |
+| 1 | Contrarreloj · ITT | Barcelona | Barcelona | 20 | ✅ Real |
+| 2 | Media montaña · Hills | Tarragona | Barcelona | 169 | ✅ Real |
+| 3 | Media montaña · Hills | Granollers | Les Angles | 196 | ✅ Real |
+| 4 | Media montaña · Hills | Carcassonne | Foix | 182 | ✅ Real |
+| 5 | Llana · Flat | Lannemezan | Pau | 158 | ✅ Real |
+| 6 | Montaña · Summit finish | Pau | Gavarnie-Gedre | 186 | ✅ Real |
+| 7 | Llana · Flat | Hagetmau | Bordeaux | 175 | ✅ Real |
+| 8 | Llana · Flat | Perigueux | Bergerac | 180 | ✅ Real |
+| 9 | Media montaña · Hills | Malemort | Ussel | 185 | ✅ Real |
+| 10 | Montaña · Summit finish | Aurillac | Le Lioran | 167 | ✅ Real |
+| 11 | Llana · Flat | Vichy | Nevers | 161 | ✅ Real |
+| 12 | Llana · Flat | Magny-Cours | Chalon-sur-Saone | 179 | ✅ Real |
+| 13 | Media montaña · Hills | Dole | Belfort | 206 | ✅ Real |
+| 14 | Montaña · Summit finish | Mulhouse | Le Markstein | 155 | ✅ Real |
+| 15 | Montaña · Summit finish | Champagnole | Plateau de Solaison | 184 | ✅ Real |
+| 16 | Contrarreloj · ITT | Evian-les-Bains | Thonon-les-Bains | 26 | ✅ Real |
+| 17 | Media montaña · Hills | Chambery | Voiron | 175 | ✅ Real |
+| 18 | Montaña · Summit finish | Voiron | Orcieres-Merlette | 185 | ✅ Real |
+| 19 | Montaña · Summit finish | Gap | Alpe d'Huez | 128 | ✅ Real |
+| 20 | Montaña · Summit finish | Le Bourg-d'Oisans | Alpe d'Huez | 171 | ✅ Real |
 | 21 | Llana · Flat | Thoiry | Paris | 130 | 🟡 Sin validar |
 
 ### Race Sibiu `race-sibiu`
@@ -6490,14 +6490,14 @@ Clase **2** · CO · día 220 · 9 etapas · 🔴 Inventado 9
 
 ### Race Arctic `race-arctic`
 
-Clase **Pro** · NO · día 225 · 4 etapas · 🟡 Sin validar 4
+Clase **Pro** · NO · día 225 · 4 etapas · ✅ Real 4
 
 | # | tipo | origen | destino | km | procedencia |
 |---:|---|---|---|---:|---|
-| 1 | Llana · Flat | Evenes | Myre | 182 | 🟡 Sin validar |
-| 2 | Llana · Flat | Bo i Vesteralen | Andenes | 180 | 🟡 Sin validar |
-| 3 | Media montaña · Hills | Stokmarknes | Storheia | 147 | 🟡 Sin validar |
-| 4 | Media montaña · Hills | Sortland | Narvik | 191 | 🟡 Sin validar |
+| 1 | Llana · Flat | Evenes | Myre | 182 | ✅ Real |
+| 2 | Llana · Flat | Bo i Vesteralen | Andenes | 180 | ✅ Real |
+| 3 | Media montaña · Hills | Stokmarknes | Storheia | 147 | ✅ Real |
+| 4 | Media montaña · Hills | Sortland | Narvik | 191 | ✅ Real |
 
 ### Race Czechia `race-czechia`
 
@@ -6551,15 +6551,15 @@ Clase **WT** · BE · día 231 · 5 etapas · 🟡 Sin validar 5
 
 ### Race Germany `race-germany`
 
-Clase **Pro** · DE · día 231 · 5 etapas · 🟡 Sin validar 5
+Clase **Pro** · DE · día 231 · 5 etapas · ✅ Real 4 · 🟡 Sin validar 1
 
 | # | tipo | origen | destino | km | procedencia |
 |---:|---|---|---|---:|---|
 | 1 | Contrarreloj · ITT | Bad Orb | Bad Orb | 3 | 🟡 Sin validar |
-| 2 | Media montaña · Hills | Bad Orb | Schwabisch Hall | 215 | 🟡 Sin validar |
-| 3 | Llana · Flat | Schwabisch Hall | Offenbach an der Queich | 197 | 🟡 Sin validar |
-| 4 | Media montaña · Hills | Herxheim bei Landau | Bad Durkheim | 171 | 🟡 Sin validar |
-| 5 | Media montaña · Hills | Heilbronn | Heilbronn | 157 | 🟡 Sin validar |
+| 2 | Media montaña · Hills | Bad Orb | Schwabisch Hall | 215 | ✅ Real |
+| 3 | Llana · Flat | Schwabisch Hall | Offenbach an der Queich | 197 | ✅ Real |
+| 4 | Media montaña · Hills | Herxheim bei Landau | Bad Durkheim | 171 | ✅ Real |
+| 5 | Media montaña · Hills | Heilbronn | Heilbronn | 157 | ✅ Real |
 
 ### Race West Bohemia `race-west-bohemia`
 
@@ -6600,31 +6600,31 @@ Clase **2** · LT · día 233 · 3 etapas · 🔴 Inventado 3
 
 ### Race Spain `race-spain`
 
-Clase **WT** · ES · día 234 · 21 etapas · 🟡 Sin validar 21
+Clase **WT** · ES · día 234 · 21 etapas · ✅ Real 21
 
 | # | tipo | origen | destino | km | procedencia |
 |---:|---|---|---|---:|---|
-| 1 | Contrarreloj · ITT | Monaco | Monaco | 10 | 🟡 Sin validar |
-| 2 | Media montaña · Hills | Monaco | Manosque | 215 | 🟡 Sin validar |
-| 3 | Montaña · Summit finish | Gruissan | Font Romeu | 167 | 🟡 Sin validar |
-| 4 | Montaña · Summit finish | Andorra la Vella | Andorra la Vella | 105 | 🟡 Sin validar |
-| 5 | Media montaña · Hills | Falset | Roquetes | 171 | 🟡 Sin validar |
-| 6 | Clásica · Cobbles | Alcossebre | Castello | 177 | 🟡 Sin validar |
-| 7 | Montaña · Summit finish | Vall d'Alba | Valdelinares | 150 | 🟡 Sin validar |
-| 8 | Llana · Flat | Pucol | Xeraco | 167 | 🟡 Sin validar |
-| 9 | Montaña · Summit finish | Villajoyosa | Alto de Aitana | 188 | 🟡 Sin validar |
-| 10 | Media montaña · Hills | Alcaraz | Elche de la Sierra | 185 | 🟡 Sin validar |
-| 11 | Llana · Flat | Cartagena | Lorca | 156 | 🟡 Sin validar |
-| 12 | Montaña · Summit finish | Vera | Calar Alto | 167 | 🟡 Sin validar |
-| 13 | Media montaña · Hills | Almunecar | Loja | 193 | 🟡 Sin validar |
-| 14 | Montaña · Summit finish | Jaen | Sierra de la Pandera | 153 | 🟡 Sin validar |
-| 15 | Media montaña · Hills | Palma del Rio | Cordoba | 181 | 🟡 Sin validar |
-| 16 | Llana · Flat | Cortegana | La Rabida | 186 | 🟡 Sin validar |
-| 17 | Llana · Flat | Dos Hermanas | Sevilla | 189 | 🟡 Sin validar |
-| 18 | Contrarreloj · ITT | El Puerto de Santa Maria | Jerez de la Frontera | 33 | 🟡 Sin validar |
-| 19 | Montaña · Summit finish | Velez-Malaga | Penas Blancas | 205 | 🟡 Sin validar |
-| 20 | Montaña · Summit finish | La Calahorra | Collada de Alguacil | 187 | 🟡 Sin validar |
-| 21 | Media montaña · Hills | Granada | Granada | 99 | 🟡 Sin validar |
+| 1 | Contrarreloj · ITT | Monaco | Monaco | 10 | ✅ Real |
+| 2 | Media montaña · Hills | Monaco | Manosque | 215 | ✅ Real |
+| 3 | Montaña · Summit finish | Gruissan | Font Romeu | 167 | ✅ Real |
+| 4 | Montaña · Summit finish | Andorra la Vella | Andorra la Vella | 105 | ✅ Real |
+| 5 | Media montaña · Hills | Falset | Roquetes | 171 | ✅ Real |
+| 6 | Clásica · Cobbles | Alcossebre | Castello | 177 | ✅ Real |
+| 7 | Montaña · Summit finish | Vall d'Alba | Valdelinares | 150 | ✅ Real |
+| 8 | Llana · Flat | Pucol | Xeraco | 167 | ✅ Real |
+| 9 | Montaña · Summit finish | Villajoyosa | Alto de Aitana | 188 | ✅ Real |
+| 10 | Media montaña · Hills | Alcaraz | Elche de la Sierra | 185 | ✅ Real |
+| 11 | Llana · Flat | Cartagena | Lorca | 156 | ✅ Real |
+| 12 | Montaña · Summit finish | Vera | Calar Alto | 167 | ✅ Real |
+| 13 | Media montaña · Hills | Almunecar | Loja | 193 | ✅ Real |
+| 14 | Montaña · Summit finish | Jaen | Sierra de la Pandera | 153 | ✅ Real |
+| 15 | Media montaña · Hills | Palma del Rio | Cordoba | 181 | ✅ Real |
+| 16 | Llana · Flat | Cortegana | La Rabida | 186 | ✅ Real |
+| 17 | Llana · Flat | Dos Hermanas | Sevilla | 189 | ✅ Real |
+| 18 | Contrarreloj · ITT | El Puerto de Santa Maria | Jerez de la Frontera | 33 | ✅ Real |
+| 19 | Montaña · Summit finish | Velez-Malaga | Penas Blancas | 205 | ✅ Real |
+| 20 | Montaña · Summit finish | La Calahorra | Collada de Alguacil | 187 | ✅ Real |
+| 21 | Media montaña · Hills | Granada | Granada | 99 | ✅ Real |
 
 ### Kyrgyzstan U23 Road Championship `nc-kg-u23-road`
 
@@ -6679,11 +6679,11 @@ Clase **2** · BG · día 241 · 6 etapas · 🔴 Inventado 6
 
 ### Race Brittany `race-brittany`
 
-Clase **WT** · FR · día 242 · 1 etapa · 🔴 Inventado 1
+Clase **WT** · FR · día 242 · 1 etapa · 🟡 Sin validar 1
 
 | # | tipo | origen | destino | km | procedencia |
 |---:|---|---|---|---:|---|
-| 1 | Media montaña · Hills | — | — | 190 | 🔴 Inventado |
+| 1 | Media montaña · Hills | Plouay | Plouay | 247 | 🟡 Sin validar |
 
 ### Race Kranj `race-kranj`
 
@@ -7282,7 +7282,7 @@ Clase **1** · IT · día 284 · 1 etapa · 🔴 Inventado 1
 
 ### Race Guangxi `race-guangxi`
 
-Clase **WT** · CN · día 286 · 6 etapas · 🟡 Sin validar 6
+Clase **WT** · CN · día 286 · 6 etapas · ✅ Real 1 · 🟡 Sin validar 5
 
 | # | tipo | origen | destino | km | procedencia |
 |---:|---|---|---|---:|---|
@@ -7290,7 +7290,7 @@ Clase **WT** · CN · día 286 · 6 etapas · 🟡 Sin validar 6
 | 2 | Media montaña · Hills | Chongzuo | Jingxi | 177 | 🟡 Sin validar |
 | 3 | Media montaña · Hills | Jingxi | Bama | 214 | 🟡 Sin validar |
 | 4 | Media montaña · Hills | Bama | Jinchengjiang | 177 | 🟡 Sin validar |
-| 5 | Montaña · Summit finish | Yizhou | Nongla | 166 | 🟡 Sin validar |
+| 5 | Montaña · Summit finish | Yizhou | Nongla | 166 | ✅ Real |
 | 6 | Llana · Flat | Nanning | Nanning | 134 | 🟡 Sin validar |
 
 ### Race Holland `race-holland`

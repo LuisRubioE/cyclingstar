@@ -26,6 +26,27 @@ carrera cargada lleva el enlace al artículo exacto y la fecha en que se leyó.
 proxies: su `robots.txt` nos prohíbe el paso. Algún artículo de Wikipedia cita a PCS entre sus
 referencias; el enlace no se ha seguido — lo que se ha leído es el artículo de Wikipedia.
 
+## Lo que se cargó SIN relieve, y por qué
+
+Tres clásicas del WorldTour estaban **inventadas enteras**: sin edición, el generador les ponía
+recorrido, ciudades y kilómetros. Ahora traen los reales. Lo que **no** traen es el relieve: la
+fuente da la distancia y las ciudades, pero **no el km de coronación de cada puerto**, y la regla de
+`stageFeatures.ts` es tajante — un puerto solo se anota con km de cima + longitud + pendiente; si
+falta uno, se descarta, porque inventarle el sitio es peor que no ponerlo.
+
+| Carrera del juego | Carrera real                  | Edición | Artículo (CC BY-SA)                                                                                            | Qué trae                      |
+| ----------------- | ----------------------------- | ------- | -------------------------------------------------------------------------------------------------------------- | ----------------------------- |
+| `race-bruges`     | Classic Brugge–De Panne       | 2025    | [en: 2025 Classic Brugge–De Panne](https://en.wikipedia.org/wiki/2025_Classic_Brugge%E2%80%93De_Panne)         | Brugge → De Panne, 196 km     |
+| `race-copenhagen` | Copenhagen Sprint             | 2025    | [en: 2025 Copenhagen Sprint (men's race)](<https://en.wikipedia.org/wiki/2025_Copenhagen_Sprint_(men's_race)>) | Roskilde → Copenhagen, 236 km |
+| `race-brittany`   | Bretagne Classic Ouest-France | 2025    | [en: Bretagne Classic Ouest-France](https://en.wikipedia.org/wiki/Bretagne_Classic_Ouest-France)               | Plouay → Plouay, 247 km       |
+
+**Y lo que NO se pudo cargar, dicho para que no se vuelva a intentar a ciegas.** El Tour de Pologne
+(7 etapas), el Benelux Tour (5) y Guangxi (5) son WorldTour con ciudades y kilómetros reales pero
+**relieve inventado**, y siguen así por una razón de fuente, no de tiempo: el artículo de Wikipedia
+del Tour de Pologne **no tiene tabla de puertos**, y en la web oficial —cuyo `robots.txt` sí nos deja
+pasar (`Disallow:` vacío)— **los perfiles son imágenes**, de las que no se puede leer un km de
+coronación. Ahí hace falta otra fuente, no otra tarde.
+
 ## Higiene con las fuentes
 
 - User-agent honesto y fijo en toda petición: `cyclingstar-data/1.0 (contacto: luis.bidaiak@gmail.com)`.

@@ -706,4 +706,25 @@ export const RACE_EDITIONS: Record<string, RaceEdition> = {
       { from: 'Bassenge', to: 'Aubel', km: 177, terrain: 'hilly' },
     ],
   },
+  /*
+   * Tres clasicas del WorldTour que estaban inventadas ENTERAS: sin edicion, el generador les ponia
+   * recorrido, ciudades y kilometros. Ahora traen los de verdad. Lo que NO traen es el relieve real:
+   * la fuente da la distancia y las ciudades pero no el km de coronacion de cada puerto, y la regla
+   * de la casa es no anotar un puerto sin su sitio (ver stageFeatures.ts). Quedan, por tanto, como
+   * "sin validar": ciudades y km reales, relieve del generador.
+   *
+   * Fuentes en docs/fuentes-recorridos.md (Wikipedia, CC BY-SA).
+   */
+  'race-bruges': {
+    restAfter: [],
+    stages: [{ from: 'Brugge', to: 'De Panne', km: 196, terrain: 'flat' }],
+  },
+  'race-copenhagen': {
+    restAfter: [],
+    stages: [{ from: 'Roskilde', to: 'Copenhagen', km: 236, terrain: 'flat' }],
+  },
+  'race-brittany': {
+    restAfter: [],
+    stages: [{ from: 'Plouay', to: 'Plouay', km: 247, terrain: 'hilly' }],
+  },
 }

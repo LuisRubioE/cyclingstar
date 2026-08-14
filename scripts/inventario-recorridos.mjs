@@ -38,9 +38,19 @@ const KIND = {
 }
 
 /** Procedencia de una etapa: la pregunta que el documento viene a responder. */
+/**
+ * La procedencia de UNA etapa.
+ *
+ * OJO CON LA CLAVE, que es donde este documento mintió: `STAGE_FEATURES` se indexa por id de CARRERA
+ * y su valor es un ARRAY por etapa (`null` en las que no tienen rasgos). No hay claves `id:n`. Con la
+ * clave equivocada, las 145 etapas con relieve real de las grandes vueltas y de las de una semana del
+ * WorldTour salían como «inventadas», y el inventario decía que solo el 1,4 % del juego era fiel
+ * cuando la cifra de verdad es el 12 %.
+ */
 function provenance(race, index) {
-  const oneDay = race.stages.length === 1
-  if (STAGE_FEATURES[`${race.id}:${index}`] || (oneDay && STAGE_FEATURES[race.id])) return 'Real'
+  const feats = STAGE_FEATURES[race.id]
+  const hit = Array.isArray(feats) ? feats[index - 1] : race.stages.length === 1 ? feats : null
+  if (hit) return 'Real'
   return RACE_EDITIONS[race.id] ? 'Sin validar' : 'Inventado'
 }
 
