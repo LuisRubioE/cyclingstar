@@ -29,7 +29,13 @@ import {
 } from '@cyclingstar/engine'
 import { NO_LEADERS, type RaceLeaders, currentSeason, raceLeaders } from '@cyclingstar/shared'
 import { z } from 'zod'
-import { type ChronicleEvent, buildChronicle, buildMarkers, chronicleNames } from '../chronicle.js'
+import {
+  type ChronicleEvent,
+  buildChronicle,
+  buildMarkers,
+  buildRaceRadio,
+  chronicleNames,
+} from '../chronicle.js'
 import { badRequest, notFound, sendError, unauthorized } from '../http.js'
 import { calendarStageSpec, stageHead } from '../stageHistory.js'
 import type { RoutePlugin } from './context.js'
@@ -364,14 +370,20 @@ export const raceRoutes: RoutePlugin = async (app, ctx) => {
       const identities = await getRaceRiderIdentities(db, raceKey)
       // …y con el maillot que llevaba PUESTO ese día, que es parte de su identidad en la carretera
       // exactamente igual que el dorsal: así sale en TODAS las menciones sin tocar una sola frase.
+      // El índice de identidades se construye UNA vez: lo comparten el journal y la radio, así que
+      // no pueden llamar de dos maneras distintas al mismo corredor.
+      const names = chronicleNames([...identities, ...results], onRoad)
       const chronicle = buildChronicle(
         storedEvents,
-        chronicleNames([...identities, ...results], onRoad),
+        names,
         // Una crono se lee por el reloj de carrera, no por el kilómetro (v18); y si se corrió contra
         // el reloj lo dice el snapshot, que es quien vio la etapa.
         { byClock: racedTimeTrial },
       )
       const altimetry = renderAltimetrySvg(racedProfile, { markers: buildMarkers(storedEvents) })
+      // LA RADIO DE CARRERA, con la misma gente que el journal. `null` en las etapas corridas antes
+      // de guardarla, y ahí la vista lo dice en vez de inventarla.
+      const radio = buildRaceRadio(snapshot.radio, names)
       return {
         day,
         name: head.name,
@@ -389,6 +401,7 @@ export const raceRoutes: RoutePlugin = async (app, ctx) => {
         teamStage,
         teamGc,
         leaders,
+        ...(radio ? { radio } : {}),
       }
     },
   )

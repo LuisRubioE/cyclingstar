@@ -13,6 +13,7 @@ import { Flag } from '../components/Flag'
 import { RiderJersey, TeamBib } from '../components/Jersey'
 import { RiderName } from '../components/RiderName'
 import { ShowAllButton, TOP_ROWS } from '../components/ShowAll'
+import { RaceRadioPanel } from '../components/RaceRadioPanel'
 import { StageStory } from '../components/StageStory'
 import { type TabOption, TabPanel, Tabs, useTabParam } from '../components/Tabs'
 import { TeamClassNote, TeamClassTable } from '../components/TeamClassTable'
@@ -23,13 +24,22 @@ import { oneDayStageTarget } from '../domain/raceTabs'
 const card = 'rounded-2xl border border-slate-200 bg-white p-5 shadow-sm'
 const head = 'text-xs font-semibold uppercase tracking-wide text-slate-400'
 
-type StageTabId = 'story' | 'result' | 'classifications' | 'profile'
+type StageTabId = 'story' | 'result' | 'radio' | 'classifications' | 'profile'
 
 /** Orden de las pestañas: `Story` primero, que es la carga emocional de la etapa (§7.2). */
-const STAGE_TAB_IDS: readonly StageTabId[] = ['story', 'result', 'classifications', 'profile']
+const STAGE_TAB_IDS: readonly StageTabId[] = [
+  'story',
+  'result',
+  'radio',
+  'classifications',
+  'profile',
+]
 const STAGE_TAB_LABEL: Record<StageTabId, string> = {
   story: 'Story',
   result: 'Result',
+  // La RACE RADIO va pegada al resultado y antes de las clasificaciones: es el «qué pasó» en crudo,
+  // entre la historia contada y las tablas frías.
+  radio: 'Race Radio',
   classifications: 'Classifications',
   profile: 'Profile',
 }
@@ -406,6 +416,20 @@ export function StageReplay() {
           ) : (
             <div className={card}>
               <p className="text-sm text-slate-400">No result for this stage.</p>
+            </div>
+          ))}
+
+        {active === 'radio' &&
+          (data.radio ? (
+            <RaceRadioPanel radio={data.radio} />
+          ) : (
+            <div className={card}>
+              <h2 className={head}>Race Radio</h2>
+              <p className="mt-1 text-sm text-slate-500">
+                This stage was raced before the race radio was recorded, so there is nothing to
+                replay. We don't rebuild it from scratch: a re-run with today's engine would tell a
+                different race from the one on the result sheet.
+              </p>
             </div>
           ))}
 

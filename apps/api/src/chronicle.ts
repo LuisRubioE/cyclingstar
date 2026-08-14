@@ -1,5 +1,12 @@
 import type { AltimetryMarker } from '@cyclingstar/engine'
-import { type ChronicleRider, type RaceLeaders, jerseyOf } from '@cyclingstar/shared'
+import {
+  type ChronicleRider,
+  type RaceLeaders,
+  type RaceRadio,
+  jerseyOf,
+  radioGroupKindSchema,
+} from '@cyclingstar/shared'
+import { z } from 'zod'
 
 /**
  * Construcción de la crónica de una etapa. La comparten las dos rutas que la sirven —el replay de
@@ -1206,4 +1213,60 @@ export function buildMarkers(events: readonly ChronicleEvent[]): AltimetryMarker
   return events
     .filter((e) => Object.hasOwn(MARKER_LABEL, e.tipo))
     .map((e) => ({ km: e.km, label: MARKER_LABEL[e.tipo] ?? '•' }))
+}
+
+/**
+ * Lo que hay GUARDADO en `stage_snapshots.radio`: los mismos campos que la vista, pero con los
+ * relevistas como ids. Se valida y no se confía: una fila escrita por un motor anterior puede no
+ * tener esta forma, y ahí la respuesta correcta es «esta etapa no tiene radio», no un 500.
+ */
+const storedRaceRadioSchema = z.object({
+  starters: z.number(),
+  kms: z.array(
+    z.object({
+      km: z.number(),
+      racing: z.number(),
+      gone: z.number(),
+      groups: z.array(
+        z.object({
+          kind: radioGroupKindSchema,
+          size: z.number(),
+          gapS: z.number(),
+          energyPct: z.number(),
+          pulling: z.array(z.string()),
+        }),
+      ),
+    }),
+  ),
+})
+
+/**
+ * LA RADIO DE CARRERA, con la gente resuelta. Lo guardado son ids —es lo que el motor conoce— y la
+ * vista necesita nombre, dorsal, equipo, país y el maillot que ese hombre llevaba PUESTO ese día. Se
+ * resuelve con el MISMO índice que la crónica, así que la radio y el journal no pueden llamar de dos
+ * maneras distintas al mismo corredor.
+ *
+ * A quien no esté en el índice se le deja fuera del relevo en vez de inventarle un nombre: la tabla
+ * degrada sola, igual que la crónica.
+ */
+export function buildRaceRadio(stored: unknown, names: ChronicleNames): RaceRadio | null {
+  const parsed = storedRaceRadioSchema.safeParse(stored)
+  if (!parsed.success) return null
+  return {
+    starters: parsed.data.starters,
+    kms: parsed.data.kms.map((k) => ({
+      km: k.km,
+      racing: k.racing,
+      gone: k.gone,
+      groups: k.groups.map((g) => ({
+        kind: g.kind,
+        size: g.size,
+        gapS: g.gapS,
+        energyPct: g.energyPct,
+        pulling: g.pulling
+          .map((id) => names.riderOf.get(id))
+          .filter((r): r is ChronicleRider => r !== undefined),
+      })),
+    })),
+  }
 }

@@ -16,7 +16,11 @@ import {
   isDeepDepleted,
   matchCount,
   raceIllnessProbability,
+  raceRadioCollector,
+  radioForStorage,
+  radioKmPoints,
   simulateStage,
+  stageLengthKm,
   stagePointsByClass,
   stageSeed,
   stageTss,
@@ -323,7 +327,16 @@ export async function runOneStage(
     riders: stageRiders,
     ...(spec.timeTrial ? { timeTrial: true } : {}),
   }
-  const output = simulateStage(input, seed)
+  /*
+   * LA RADIO DE CARRERA SE RECOGE MIENTRAS LA ETAPA SE CORRE. El motor lo sabe todo bloque a bloque
+   * y lo tira; la foto de `StageProbe` es lo que lo rescata, y medido cuesta CERO (−1 % sobre una
+   * etapa reina de 176 corredores, dentro del ruido). Se guarda junto al resultado por la misma
+   * razón por la que se congela la crónica: una etapa corrida con el motor de ayer no se puede
+   * reconstruir con el de hoy, así que calcularla al vuelo la dejaría vacía justo para las etapas
+   * que el jugador quiere mirar.
+   */
+  const radio = raceRadioCollector(radioKmPoints(stageLengthKm(spec.profile)))
+  const output = simulateStage(input, seed, radio.probe)
 
   await tx
     .insert(stageSnapshots)
@@ -336,6 +349,8 @@ export async function runOneStage(
       // Congela la crónica JUNTO al resultado: el journal se leerá de aquí, no se re-simula al vuelo,
       // así siempre cuadra con el resultado guardado aunque el motor cambie después.
       events: output.events as unknown,
+      // …y la radio, adelgazada a lo que la vista lee (sin la lista entera de cada grupo).
+      radio: radioForStorage(radio.radio()) as unknown,
     })
     .onConflictDoNothing()
 

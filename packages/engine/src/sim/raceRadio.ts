@@ -315,3 +315,68 @@ export function raceRadioFrom(
     })
   return { starters, kms }
 }
+
+/*
+ * ── LA RADIO QUE SE GUARDA ──────────────────────────────────────────────────────────────────────
+ *
+ * La radio de arriba es la foto COMPLETA: lleva la lista entera de corredores de cada grupo, que en
+ * un pelotón de 176 son 176 identificadores por kilómetro. Guardar eso son ~200 KB por etapa y no
+ * hace falta para nada de lo que se mira.
+ *
+ * Y guardarla hay que guardarla, no re-simularla: es exactamente la razón por la que la crónica se
+ * congela en `stage_snapshots.events` en vez de recalcularse al vuelo. Una etapa corrida con el
+ * motor de ayer no se puede reconstruir con el de hoy —lo dice `checkReplay()`—, así que una radio
+ * calculada al vuelo estaría VACÍA para todas las etapas ya corridas, que son justo las que el
+ * jugador quiere mirar.
+ *
+ * Esto es la versión ADELGAZADA: cuántos van en cada grupo, qué es cada grupo, cuánto hueco llevan,
+ * cómo van de depósito y quién está dando la cara. ~22 KB por etapa.
+ */
+
+/** Un grupo en la radio guardada: sin la lista entera de sus corredores. */
+export interface StoredRadioGroup {
+  kind: RadioGroupKind
+  size: number
+  /** Hueco al líder de carrera, en segundos. Exacto: resta de relojes. */
+  gapS: number
+  /** Depósito medio de los suyos, en % de con lo que salieron. */
+  energyPct: number
+  /** Quién va dando la cara, de más a menos trabajo reciente. */
+  pulling: readonly string[]
+}
+
+/** Un kilómetro de la radio guardada. */
+export interface StoredRadioKm {
+  km: number
+  groups: readonly StoredRadioGroup[]
+  racing: number
+  gone: number
+}
+
+/** La etapa entera, lista para guardar en `stage_snapshots.radio`. */
+export interface StoredRaceRadio {
+  starters: number
+  kms: readonly StoredRadioKm[]
+}
+
+/**
+ * De la radio completa a la que se guarda. Pura: quita las listas de corredores por grupo (lo
+ * pesado) y el reloj absoluto, que no se pinta —el hueco al líder sí, y ése se conserva—.
+ */
+export function radioForStorage(radio: RaceRadio): StoredRaceRadio {
+  return {
+    starters: radio.starters,
+    kms: radio.kms.map((k) => ({
+      km: k.km,
+      racing: k.racing,
+      gone: k.gone,
+      groups: k.groups.map((g) => ({
+        kind: g.kind,
+        size: g.size,
+        gapS: Math.round(g.gapS),
+        energyPct: Math.round(g.energyPct),
+        pulling: g.pulling.map((x) => x.riderId),
+      })),
+    })),
+  }
+}

@@ -323,6 +323,8 @@ export interface StageSnapshotRow {
   input: unknown
   /** Crónica congelada al correr la etapa; null en snapshots antiguos (sin journal detallado). */
   events: unknown
+  /** Radio de carrera congelada al correr la etapa; null en snapshots anteriores a guardarla. */
+  radio: unknown
 }
 
 export async function getStageSnapshot(
@@ -336,6 +338,7 @@ export async function getStageSnapshot(
       engineVersion: stageSnapshots.engineVersion,
       input: stageSnapshots.input,
       events: stageSnapshots.events,
+      radio: stageSnapshots.radio,
     })
     .from(stageSnapshots)
     .where(and(eq(stageSnapshots.raceId, raceId), eq(stageSnapshots.stageDay, stageDay)))

@@ -509,6 +509,14 @@ export const stageSnapshots = pgTable(
     // NO se re-simula al vuelo: así siempre cuadra con el resultado guardado aunque cambie el motor.
     // Null en snapshots antiguos (anteriores a guardar la crónica): esos no tienen journal detallado.
     events: jsonb('events'),
+    /**
+     * LA RADIO DE CARRERA, kilómetro a kilómetro (`StoredRaceRadio`): qué grupos hay, cuántos van en
+     * cada uno, qué hueco llevan y quién está dando la cara. Se congela aquí por la MISMA razón que
+     * `events`: una etapa corrida con el motor de ayer no se puede reconstruir con el de hoy
+     * (`checkReplay`), así que calcularla al vuelo la dejaría vacía justo para las etapas ya
+     * corridas. ~22 KB por etapa. Null en los snapshots anteriores a esta columna.
+     */
+    radio: jsonb('radio'),
   },
   (t) => [primaryKey({ columns: [t.raceId, t.stageDay] })],
 )

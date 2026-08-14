@@ -1021,6 +1021,47 @@ export const stageRaceContextSchema = z.object({
 })
 export type StageRaceContext = z.infer<typeof stageRaceContextSchema>
 
+/*
+ * ── LA RADIO DE CARRERA ─────────────────────────────────────────────────────────────────────────
+ * El journal cuenta la etapa DESPUÉS, con frases. Esto es lo otro, y lo pidió el dueño con estas
+ * palabras: «ver km por km qué grupos hay, quién va en cada grupo (por lo menos número, maillots de
+ * colores y quiénes tiran…) y las distancias entre grupos».
+ *
+ * Viaja CONGELADA desde `stage_snapshots.radio` —se recogió mientras la etapa se corría— por la
+ * misma razón que la crónica: una etapa corrida con el motor de ayer no se puede reconstruir con el
+ * de hoy. Los huecos no son estimaciones: son la resta de los relojes de dos grupos en el mismo km.
+ */
+export const radioGroupKindSchema = z.enum(['fuga', 'contra', 'peloton', 'tierra', 'grupeto'])
+export type RadioGroupKind = z.infer<typeof radioGroupKindSchema>
+
+export const radioGroupSchema = z.object({
+  kind: radioGroupKindSchema,
+  size: z.number().int(),
+  /** Hueco al líder de carrera, en segundos. Exacto. */
+  gapS: z.number(),
+  /** Depósito medio de los suyos, en % de con lo que salieron. */
+  energyPct: z.number(),
+  /** Quién va dando la cara, ya resuelto a nombre/dorsal/equipo/país. */
+  pulling: z.array(chronicleRiderSchema),
+})
+export type RadioGroup = z.infer<typeof radioGroupSchema>
+
+export const radioKmSchema = z.object({
+  km: z.number(),
+  groups: z.array(radioGroupSchema),
+  /** Cuántos siguen en carrera en este punto. */
+  racing: z.number().int(),
+  /** Cuántos de los que tomaron la salida ya no están. */
+  gone: z.number().int(),
+})
+export type RadioKm = z.infer<typeof radioKmSchema>
+
+export const raceRadioSchema = z.object({
+  starters: z.number().int(),
+  kms: z.array(radioKmSchema),
+})
+export type RaceRadio = z.infer<typeof raceRadioSchema>
+
 export const stageReplaySchema = z.object({
   day: z.number().int(),
   name: z.string(),
@@ -1064,6 +1105,11 @@ export const stageReplaySchema = z.object({
    * crónica no lleva ids; se calcula una sola vez y se proyecta, así que no pueden discrepar.
    */
   leaders: z.object({ onRoad: raceLeadersSchema, afterStage: raceLeadersSchema }).optional(),
+  /**
+   * LA RADIO DE CARRERA, km a km. Ausente en las etapas corridas antes de guardarla: no se inventa
+   * re-simulando, que contaría una carrera distinta de la que quedó en el marcador.
+   */
+  radio: raceRadioSchema.optional(),
 })
 export type StageReplay = z.infer<typeof stageReplaySchema>
 

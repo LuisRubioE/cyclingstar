@@ -204,6 +204,13 @@
       "when": 1786355779187,
       "tag": "0028_abandonos_motivo",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1786442179187,
+      "tag": "0029_radio_de_carrera",
+      "breakpoints": true
     }
   ]
 }

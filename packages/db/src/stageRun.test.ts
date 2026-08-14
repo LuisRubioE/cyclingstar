@@ -11,6 +11,7 @@ import {
   riderHidden,
   riders,
   stageResults,
+  stageSnapshots,
   stageTeamResults,
   teams,
   worlds,
@@ -282,4 +283,32 @@ describe('db: runOneStage escribe en lote con la misma semántica', () => {
     expect(persistida.overall[0]!.tiempoS).toBe(teamRows[0]!.tiempoS + teamRows[1]!.tiempoS)
     expect(persistida.overall[0]!.stagesScored).toBe(2)
   }, 180_000)
+
+  /**
+   * LA RADIO SE GUARDA AL CORRER. El dueño la pidió y durante toda una tanda existió solo como
+   * script de línea de comandos: la vista no podía existir porque el dato no se guardaba. Y guardarlo
+   * es obligatorio, no una optimización: una etapa corrida con el motor de ayer no se puede
+   * reconstruir con el de hoy (`checkReplay`), así que calcularla al vuelo la dejaría vacía justo
+   * para las etapas ya corridas, que son las que se quieren mirar.
+   *
+   * Se lee la etapa 1 que acaba de correr el caso de arriba: es la misma escritura de producción.
+   */
+  it('la etapa corrida deja su RADIO guardada, con grupos y huecos', async () => {
+    const [row] = await t.db
+      .select({ radio: stageSnapshots.radio })
+      .from(stageSnapshots)
+      .where(and(eq(stageSnapshots.raceId, RACE_KEY), eq(stageSnapshots.stageDay, 1)))
+    const radio = row?.radio as
+      | { starters: number; kms: { km: number; groups: { size: number; gapS: number }[] }[] }
+      | null
+      | undefined
+    expect(radio).toBeTruthy()
+    expect(radio!.starters).toBeGreaterThan(0)
+    // Una foto por kilómetro, y cada una con al menos un grupo: si esto sale vacío, la vista sale
+    // vacía y el dueño vuelve a ver una pestaña que no enseña nada.
+    expect(radio!.kms.length).toBeGreaterThan(10)
+    for (const k of radio!.kms) expect(k.groups.length).toBeGreaterThan(0)
+    // El primer grupo de carretera es el líder: su hueco al líder es cero por construcción.
+    expect(radio!.kms[0]!.groups[0]!.gapS).toBe(0)
+  })
 })
