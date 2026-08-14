@@ -1,7354 +1,7352 @@
 # Inventario de recorridos
 
-Qué etapa del calendario corre sobre un trazado REAL y cuál sobre uno inventado.
+Todas las carreras del calendario y todas sus etapas, con su **procedencia**: si el recorrido es
+fiel a la realidad, si viene de una edición real pero con el relieve generado, o si está inventado
+de principio a fin.
 
-> Este documento LO GENERA `scripts/inventario-recorridos.mjs` desde el propio calendario del
-> motor. No se edita a mano: se regenera (`node scripts/inventario-recorridos.mjs --doc >
-docs/inventario-recorridos.md`) cuando se carga un recorrido nuevo, y así no envejece.
+> **Generado**, no escrito a mano: `node scripts/inventario-recorridos.mjs`. Si algo aquí no
+> cuadra con el juego, el que miente es el documento y se regenera.
 
-## Las tres procedencias
+## Qué significa cada procedencia
 
-|                 | Qué es real                                                                                                                                      | Qué no                                                                                                               |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
-| **Real**        | Puertos, sectores de adoquín y metas volantes **en su kilómetro**, con la fuente anotada en `docs/fuentes-recorridos.md`. La altimetría es fiel. | —                                                                                                                    |
-| **Sin validar** | Salida, meta, kilómetros y terreno vienen de una edición verificada (`RACE_EDITIONS`).                                                           | El RELIEVE se genera por terreno: la etapa dura lo que debe y va de donde va, pero **sus puertos no son los suyos**. |
-| **Inventado**   | Solo las localidades de salida y meta (`RACE_ROUTES`), que sí son geografía de verdad.                                                           | Todo lo demás: la composición de etapas la genera `stageMix` y el relieve `profileGen`. Verosímil, no real.          |
+| | qué es | qué se puede fiar |
+|---|---|---|
+| ✅ **Real** | rasgos autorizados en `STAGE_FEATURES`, puestos a mano desde fuente citada (`docs/fuentes-recorridos.md`) | los puertos y el pavé están donde están de verdad |
+| 🟡 **Sin validar** | viene de una edición real (`RACE_EDITIONS`): origen, destino y km son los de verdad | la distancia y las ciudades; **el relieve lo genera el motor** |
+| 🔴 **Inventado** | no hay edición: recorrido entero del generador | nada: es plausible, no es real |
 
-## El recuento
+## El estado, en una tabla
 
-| Nivel           | Etapas |       Real | Sin validar |   Inventado |
-| --------------- | -----: | ---------: | ----------: | ----------: |
-| **WorldTour**   |    161 | 139 (86 %) |   19 (12 %) |     3 (2 %) |
-| **ProSeries**   |    174 |  29 (17 %) |  110 (63 %) |   35 (20 %) |
-| **Continental** |   1083 |    9 (1 %) |    94 (9 %) |  980 (90 %) |
-| **TOTAL**       |   1418 | 177 (12 %) |  223 (16 %) | 1018 (72 %) |
+**1418 etapas** en 842 carreras.
 
-De las continentales inventadas, **532** son campeonatos nacionales: una prueba por país y categoría, sin recorrido publicado que cargar.
+| | etapas | % |
+|---|---:|---:|
+| ✅ Real | 20 | 1.4 % |
+| 🟡 Sin validar | 380 | 26.8 % |
+| 🔴 Inventado | 1018 | 71.8 % |
 
-## WorldTour
+### Por clase de carrera
 
-El circuito de arriba. Es donde se ha cargado casi todo lo real.
+| clase | etapas | ✅ real | 🟡 sin validar | 🔴 inventado |
+|---|---:|---:|---:|---:|
+| NC | 532 | 0 | 0 | 532 |
+| 2 | 321 | 0 | 50 | 271 |
+| 1 | 230 | 0 | 53 | 177 |
+| Pro | 174 | 2 | 137 | 35 |
+| WT | 161 | 18 | 140 | 3 |
 
-### Race Down Under (AU)
+## Carrera por carrera
 
-WT · .WT · una-semana · 5 etapas · día 20
 
-| #   | Tipo  | Salida       | Meta          |  km | Recorrido |
-| --- | ----- | ------------ | ------------- | --: | --------- |
-| 1   | Hills | Tanunda      | Tanunda       | 123 | Real      |
-| 2   | Hills | Norwood      | Uraidla       | 148 | Real      |
-| 3   | Hills | Henley Beach | Nairne        | 139 | Real      |
-| 4   | Hills | Brighton     | Willunga Hill | 178 | Real      |
-| 5   | Hills | Stirling     | Stirling      | 165 | Real      |
+### Australia ITT Championship `nc-au-itt`
 
-### Race Great Ocean (AU)
+Clase **NC** · AU · día 8 · 1 etapa · 🔴 Inventado 1
 
-WT · .WT · un-dia · 1 etapa · día 32
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-| #   | Tipo  | Salida  | Meta    |  km | Recorrido |
-| --- | ----- | ------- | ------- | --: | --------- |
-| 1   | Hills | Torquay | Torquay | 188 | Real      |
+### Australia U23 ITT Championship `nc-au-u23-itt`
 
-### Race Emirates (AE)
+Clase **NC** · AU · día 8 · 1 etapa · 🔴 Inventado 1
 
-WT · .WT · una-semana · 7 etapas · día 47
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-| #   | Tipo          | Salida              | Meta                                 |  km | Recorrido |
-| --- | ------------- | ------------------- | ------------------------------------ | --: | --------- |
-| 1   | Flat          | Madinat Zayed       | Liwa                                 | 144 | Real      |
-| 2   | ITT (crono)   | Al Hudayriat Island | Al Hudayriat Island                  |  12 | Real      |
-| 3   | Summit finish | Umm Al Quwain       | Jebel Mobrah                         | 183 | Real      |
-| 4   | Flat          | Fujairah            | Fujairah                             | 182 | Real      |
-| 5   | Flat          | Dubai               | Hamdan Bin Mohammed Smart University | 166 | Real      |
-| 6   | Summit finish | Al Ain              | Jebel Hafeet                         | 168 | Real      |
-| 7   | Flat          | Abu Dhabi           | Abu Dhabi                            | 149 | Real      |
+### Race Táchira `race-tachira`
 
-### Race Opening Classic (BE)
+Clase **2** · VE · día 9 · 10 etapas · 🟡 Sin validar 10
 
-WT · .WT · un-dia · 1 etapa · día 59
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | San Cristobal | Socopo | 210 | 🟡 Sin validar |
+| 2 | Media montaña · Hills | Socopo | San Cristobal | 210 | 🟡 Sin validar |
+| 3 | Media montaña · Hills | San Cristobal | San Cristobal | 117 | 🟡 Sin validar |
+| 4 | Montaña · Summit finish | La Fria | Merida | 163 | 🟡 Sin validar |
+| 5 | Media montaña · Hills | Merida | Merida | 121 | 🟡 Sin validar |
+| 6 | Montaña · Summit finish | El Vigia | La Grita | 166 | 🟡 Sin validar |
+| 7 | Media montaña · Hills | Tariba | San Cristobal | 151 | 🟡 Sin validar |
+| 8 | Media montaña · Hills | Abejales | Capacho | 155 | 🟡 Sin validar |
+| 9 | Media montaña · Hills | Junin | Junin | 134 | 🟡 Sin validar |
+| 10 | Llana · Flat | Urena | San Cristobal | 99 | 🟡 Sin validar |
 
-| #   | Tipo    | Salida | Meta   |  km | Recorrido |
-| --- | ------- | ------ | ------ | --: | --------- |
-| 1   | Cobbles | Gent   | Ninove | 202 | Real      |
+### Australia U23 Road Championship `nc-au-u23-road`
 
-### Race White Roads (IT)
+Clase **NC** · AU · día 11 · 1 etapa · 🔴 Inventado 1
 
-WT · .WT · un-dia · 1 etapa · día 66
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-| #   | Tipo    | Salida | Meta  |  km | Recorrido |
-| --- | ------- | ------ | ----- | --: | --------- |
-| 1   | Classic | Siena  | Siena | 215 | Real      |
+### Australia Road Championship `nc-au-road`
 
-### Race to the Sun (FR)
+Clase **NC** · AU · día 11 · 1 etapa · 🔴 Inventado 1
 
-WT · .WT · una-semana · 8 etapas · día 67
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-| #   | Tipo          | Salida                | Meta                  |  km | Recorrido |
-| --- | ------------- | --------------------- | --------------------- | --: | --------- |
-| 1   | Hills         | Acheres               | Carrieres-sous-Poissy | 171 | Real      |
-| 2   | Flat          | Epone                 | Montargis             | 187 | Real      |
-| 3   | ITT (crono)   | Cosne-Cours-sur-Loire | Pouilly-sur-Loire     |  24 | Real      |
-| 4   | Summit finish | Bourges               | Uchon                 | 195 | Real      |
-| 5   | Hills         | Cormoranche-sur-Saone | Colombier-le-Vieux    | 206 | Real      |
-| 6   | Hills         | Barbentane            | Apt                   | 179 | Real      |
-| 7   | Summit finish | Nice                  | Auron                 | 139 | Real      |
-| 8   | Hills         | Nice                  | Nice                  | 129 | Real      |
+### Thailand ITT Championship `nc-th-itt`
 
-### Race Two Seas (IT)
+Clase **NC** · TH · día 15 · 1 etapa · 🔴 Inventado 1
 
-WT · .WT · una-semana · 7 etapas · día 68
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-| #   | Tipo          | Salida              | Meta                     |  km | Recorrido |
-| --- | ------------- | ------------------- | ------------------------ | --: | --------- |
-| 1   | ITT (crono)   | Lido di Camaiore    | Lido di Camaiore         |  12 | Real      |
-| 2   | Hills         | Camaiore            | San Gimignano            | 206 | Real      |
-| 3   | Hills         | Cortona             | Magliano dei Marsi       | 225 | Real      |
-| 4   | Summit finish | Tagliacozzo         | Martinsicuro             | 210 | Real      |
-| 5   | Hills         | Marotta-Mondolfo    | Mombaroccio              | 186 | Real      |
-| 6   | Summit finish | San Severino Marche | Camerino                 | 189 | Real      |
-| 7   | Flat          | Civitanova Marche   | San Benedetto del Tronto | 143 | Real      |
+### Thailand U23 ITT Championship `nc-th-u23-itt`
 
-### Race Sanremo (IT)
+Clase **NC** · TH · día 15 · 1 etapa · 🔴 Inventado 1
 
-WT · .WT · un-dia · 1 etapa · día 80
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-| #   | Tipo  | Salida | Meta    |  km | Recorrido |
-| --- | ----- | ------ | ------- | --: | --------- |
-| 1   | Hills | Milano | Sanremo | 288 | Real      |
+### Thailand U23 Road Championship `nc-th-u23-road`
 
-### Race Catalonia (ES)
+Clase **NC** · TH · día 18 · 1 etapa · 🔴 Inventado 1
 
-WT · .WT · una-semana · 7 etapas · día 82
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-| #   | Tipo          | Salida                | Meta                  |  km | Recorrido |
-| --- | ------------- | --------------------- | --------------------- | --: | --------- |
-| 1   | Flat          | Sant Feliu de Guixols | Sant Feliu de Guixols | 173 | Real      |
-| 2   | Flat          | Figueres              | Banyoles              | 167 | Real      |
-| 3   | Hills         | Mont-roig del Camp    | Vila-seca             | 160 | Real      |
-| 4   | Summit finish | Mataro                | Vallter 2000          | 173 | Real      |
-| 5   | Summit finish | La Seu d'Urgell       | Coll de Pal           | 155 | Real      |
-| 6   | Summit finish | Berga                 | Queralt               | 158 | Real      |
-| 7   | Hills         | Barcelona             | Barcelona             |  95 | Real      |
+### Thailand Road Championship `nc-th-road`
 
-### Race Bruges (BE)
+Clase **NC** · TH · día 18 · 1 etapa · 🔴 Inventado 1
 
-WT · .WT · un-dia · 1 etapa · día 84
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-| #   | Tipo    | Salida | Meta     |  km | Recorrido |
-| --- | ------- | ------ | -------- | --: | --------- |
-| 1   | Cobbles | Brugge | De Panne | 205 | Inventado |
+### Race Pune `race-pune`
 
-### Race Harelbeke (BE)
+Clase **2** · IN · día 19 · 5 etapas · 🟡 Sin validar 5
 
-WT · .WT · un-dia · 1 etapa · día 86
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | Pune | Pune | 8 | 🟡 Sin validar |
+| 2 | Llana · Flat | Mulshi | Haveli | 88 | 🟡 Sin validar |
+| 3 | Media montaña · Hills | Pune | Nanded City | 105 | 🟡 Sin validar |
+| 4 | Llana · Flat | Chandan Tekadi | Baramati | 135 | 🟡 Sin validar |
+| 5 | Llana · Flat | Pune | Pune | 95 | 🟡 Sin validar |
 
-| #   | Tipo    | Salida    | Meta      |  km | Recorrido |
-| --- | ------- | --------- | --------- | --: | --------- |
-| 1   | Cobbles | Harelbeke | Harelbeke | 209 | Real      |
+### Race Down Under `race-down-under`
 
-### Race Wevelgem (BE)
+Clase **WT** · AU · día 20 · 5 etapas · 🟡 Sin validar 5
 
-WT · .WT · un-dia · 1 etapa · día 88
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | Tanunda | Tanunda | 123 | 🟡 Sin validar |
+| 2 | Media montaña · Hills | Norwood | Uraidla | 148 | 🟡 Sin validar |
+| 3 | Media montaña · Hills | Henley Beach | Nairne | 139 | 🟡 Sin validar |
+| 4 | Media montaña · Hills | Brighton | Willunga Hill | 178 | 🟡 Sin validar |
+| 5 | Media montaña · Hills | Stirling | Stirling | 165 | 🟡 Sin validar |
 
-| #   | Tipo    | Salida | Meta     |  km | Recorrido |
-| --- | ------- | ------ | -------- | --: | --------- |
-| 1   | Cobbles | Ieper  | Wevelgem | 250 | Real      |
+### Race Morvedre `race-morvedre`
 
-### Race Across Flanders (BE)
+Clase **1** · ES · día 23 · 1 etapa · 🔴 Inventado 1
 
-WT · .WT · un-dia · 1 etapa · día 91
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo    | Salida    | Meta    |  km | Recorrido |
-| --- | ------- | --------- | ------- | --: | --------- |
-| 1   | Cobbles | Roeselare | Waregem | 189 | Real      |
+### Race Sharjah `race-sharjah`
 
-### Race Flanders (BE)
+Clase **2** · AE · día 23 · 5 etapas · 🔴 Inventado 5
 
-WT · .WT · un-dia · 1 etapa · día 95
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 169 | 🔴 Inventado |
+| 2 | Llana · Flat | — | — | 176 | 🔴 Inventado |
+| 3 | Media montaña · Hills | — | — | 181 | 🔴 Inventado |
+| 4 | Contrarreloj · ITT | — | — | 15 | 🔴 Inventado |
+| 5 | Media montaña · Uphill finish | — | — | 130 | 🔴 Inventado |
 
-| #   | Tipo    | Salida    | Meta       |  km | Recorrido |
-| --- | ------- | --------- | ---------- | --: | --------- |
-| 1   | Cobbles | Antwerpen | Oudenaarde | 278 | Real      |
+### Race Castellón `race-castellon`
 
-### Race Basque Country (ES)
+Clase **1** · ES · día 24 · 1 etapa · 🔴 Inventado 1
 
-WT · .WT · una-semana · 6 etapas · día 96
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo          | Salida   | Meta                |  km | Recorrido |
-| --- | ------------- | -------- | ------------------- | --: | --------- |
-| 1   | ITT (crono)   | Bilbao   | Bilbao              |  14 | Real      |
-| 2   | Hills         | Pamplona | Cuevas de Mendukilo | 164 | Real      |
-| 3   | Hills         | Basauri  | Basauri             | 153 | Real      |
-| 4   | Hills         | Galdakao | Galdakao            | 167 | Real      |
-| 5   | Summit finish | Eibar    | Eibar               | 176 | Real      |
-| 6   | Summit finish | Antzuola | Bergara             | 135 | Real      |
+### Race Valencia GP `race-valencia-gp`
 
-### Race Roubaix (FR)
+Clase **1** · ES · día 25 · 1 etapa · 🔴 Inventado 1
 
-WT · .WT · un-dia · 1 etapa · día 102
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo    | Salida    | Meta    |  km | Recorrido |
-| --- | ------- | --------- | ------- | --: | --------- |
-| 1   | Cobbles | Compiegne | Roubaix | 258 | Real      |
+### Race Arabia `race-arabia`
 
-### Race Amstel (NL)
+Clase **Pro** · SA · día 27 · 5 etapas · 🟡 Sin validar 5
 
-WT · .WT · un-dia · 1 etapa · día 109
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | AlUla Camel Cup Track | AlUla Camel Cup Track | 158 | 🟡 Sin validar |
+| 2 | Llana · Flat | Al Manshiyah Train Station | Al Manshiyah Train Station | 152 | 🟡 Sin validar |
+| 3 | Media montaña · Hills | Winter Park | Bir Jaydah Mountain Wirkah | 142 | 🟡 Sin validar |
+| 4 | Llana · Flat | Winter Park | Hegra | 173 | 🟡 Sin validar |
+| 5 | Media montaña · Hills | AlUla Old Town | Skyviews of Harrat Uwayrid | 164 | 🟡 Sin validar |
 
-| #   | Tipo  | Salida     | Meta       |  km | Recorrido |
-| --- | ----- | ---------- | ---------- | --: | --------- |
-| 1   | Hills | Maastricht | Valkenburg | 257 | Real      |
+### Race Calvià `race-calvia`
 
-### Race Walloon Wall (BE)
+Clase **1** · ES · día 28 · 1 etapa · 🔴 Inventado 1
 
-WT · .WT · un-dia · 1 etapa · día 112
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo          | Salida | Meta |  km | Recorrido |
-| --- | ------------- | ------ | ---- | --: | --------- |
-| 1   | Summit finish | Namur  | Huy  | 200 | Real      |
+### Race Surf Coast `race-surf-coast`
 
-### Race Liège (BE)
+Clase **Pro** · AU · día 29 · 1 etapa · 🔴 Inventado 1
 
-WT · .WT · un-dia · 1 etapa · día 116
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo    | Salida | Meta  |  km | Recorrido |
-| --- | ------- | ------ | ----- | --: | --------- |
-| 1   | Classic | Liege  | Liege | 260 | Real      |
+### Race Ses Salines `race-ses-salines`
 
-### Race Romandy (CH)
+Clase **1** · ES · día 29 · 1 etapa · 🔴 Inventado 1
 
-WT · .WT · una-semana · 6 etapas · día 118
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Montaña · Summit finish | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo          | Salida            | Meta              |  km | Recorrido |
-| --- | ------------- | ----------------- | ----------------- | --: | --------- |
-| 1   | ITT (crono)   | Villars-sur-Glane | Villars-sur-Glane |   3 | Real      |
-| 2   | Hills         | Martigny          | Martigny          | 171 | Real      |
-| 3   | Hills         | Rue               | Vucherens         | 173 | Real      |
-| 4   | Hills         | Orbe              | Orbe              | 177 | Real      |
-| 5   | Summit finish | Broc              | Charmey           | 150 | Real      |
-| 6   | Summit finish | Lucens            | Leysin            | 178 | Real      |
+### Race Tramuntana `race-tramuntana`
 
-### Race Frankfurt (DE)
+Clase **1** · ES · día 30 · 1 etapa · 🔴 Inventado 1
 
-WT · .WT · un-dia · 1 etapa · día 121
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Montaña · Summit finish | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo  | Salida   | Meta      |  km | Recorrido |
-| --- | ----- | -------- | --------- | --: | --------- |
-| 1   | Hills | Eschborn | Frankfurt | 204 | Real      |
+### Race Andratx `race-andratx`
 
-### Race Italy (IT)
+Clase **1** · ES · día 31 · 1 etapa · 🔴 Inventado 1
 
-WT · .WT · gran-vuelta · 21 etapas · día 128
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo          | Salida              | Meta             |  km | Recorrido |
-| --- | ------------- | ------------------- | ---------------- | --: | --------- |
-| 1   | Flat          | Nessebar            | Burgas           | 147 | Real      |
-| 2   | Hills         | Burgas              | Veliko Tarnovo   | 221 | Real      |
-| 3   | Flat          | Plovdiv             | Sofia            | 175 | Real      |
-| 4   | Flat          | Catanzaro           | Cosenza          | 138 | Real      |
-| 5   | Hills         | Praia a Mare        | Potenza          | 203 | Real      |
-| 6   | Flat          | Paestum             | Napoli           | 141 | Real      |
-| 7   | Summit finish | Formia              | Blockhaus        | 244 | Real      |
-| 8   | Hills         | Chieti              | Fermo            | 156 | Real      |
-| 9   | Summit finish | Cervia              | Corno alle Scale | 184 | Real      |
-| 10  | ITT (crono)   | Viareggio           | Massa            |  42 | Real      |
-| 11  | Hills         | Porcari             | Chiavari         | 195 | Real      |
-| 12  | Flat          | Imperia             | Novi Ligure      | 175 | Real      |
-| 13  | Hills         | Alessandria         | Verbania         | 186 | Real      |
-| 14  | Summit finish | Aosta               | Pila             | 133 | Real      |
-| 15  | Flat          | Voghera             | Milano           | 157 | Real      |
-| 16  | Summit finish | Bellinzona          | Cari             | 113 | Real      |
-| 17  | Hills         | Cassano d'Adda      | Andalo           | 202 | Real      |
-| 18  | Hills         | Fai della Paganella | Pieve di Soligo  | 171 | Real      |
-| 19  | Summit finish | Feltre              | Piani di Pezze   | 151 | Real      |
-| 20  | Summit finish | Gemona del Friuli   | Piancavallo      | 200 | Real      |
-| 21  | Flat          | Roma                | Roma             | 131 | Real      |
+### Race Great Ocean `race-great-ocean`
 
-### Race Rhône-Alpes (FR)
+Clase **WT** · AU · día 32 · 1 etapa · ✅ Real 1
 
-WT · .WT · una-semana · 8 etapas · día 158
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 188 | ✅ Real |
 
-| #   | Tipo          | Salida                 | Meta                |  km | Recorrido   |
-| --- | ------------- | ---------------------- | ------------------- | --: | ----------- |
-| 1   | Summit finish | Vizille                | Saint-Ismier        | 146 | Real        |
-| 2   | Hills         | Saint-Martin-le-Vinoux | Le Puy-en-Velay     | 234 | Real        |
-| 3   | ITT (crono)   | Perreux                | Perreux             |  28 | Sin validar |
-| 4   | Hills         | Le Puy-en-Velay        | Montrond-les-Bains  | 167 | Real        |
-| 5   | Flat          | Saint-Chamond          | Villars-les-Dombes  | 196 | Real        |
-| 6   | Summit finish | Saint-Vulbas           | Crest-Voland        | 182 | Real        |
-| 7   | Summit finish | La Bridoire            | Grand Colombier     | 134 | Real        |
-| 8   | Summit finish | Beaufort               | Plateau de Solaison | 120 | Real        |
+### Race Marseille `race-marseille`
 
-### Race Copenhagen (DK)
+Clase **1** · FR · día 32 · 1 etapa · 🔴 Inventado 1
 
-WT · .WT · un-dia · 1 etapa · día 165
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo | Salida     | Meta       |  km | Recorrido |
-| --- | ---- | ---------- | ---------- | --: | --------- |
-| 1   | Flat | Copenhagen | Copenhagen | 210 | Inventado |
+### Race Palma `race-palma`
 
-### Race Switzerland (CH)
+Clase **1** · ES · día 32 · 1 etapa · 🔴 Inventado 1
 
-WT · .WT · una-semana · 5 etapas · día 168
-
-| #   | Tipo          | Salida         | Meta              |  km | Recorrido |
-| --- | ------------- | -------------- | ----------------- | --: | --------- |
-| 1   | Summit finish | Morbegno       | Sondrio           | 144 | Real      |
-| 2   | Hills         | Lugano         | Bellinzona        | 158 | Real      |
-| 3   | Summit finish | Buchs          | Sargans           | 157 | Real      |
-| 4   | ITT (crono)   | Neundorf       | Fulenbach         |  24 | Real      |
-| 5   | Summit finish | Les Diablerets | Villars-sur-Ollon | 151 | Real      |
-
-### Race France (FR)
-
-WT · .WT · gran-vuelta · 21 etapas · día 185
-
-| #   | Tipo          | Salida            | Meta                |  km | Recorrido   |
-| --- | ------------- | ----------------- | ------------------- | --: | ----------- |
-| 1   | ITT (crono)   | Barcelona         | Barcelona           |  20 | Real        |
-| 2   | Hills         | Tarragona         | Barcelona           | 169 | Real        |
-| 3   | Hills         | Granollers        | Les Angles          | 196 | Real        |
-| 4   | Hills         | Carcassonne       | Foix                | 182 | Real        |
-| 5   | Flat          | Lannemezan        | Pau                 | 158 | Real        |
-| 6   | Summit finish | Pau               | Gavarnie-Gedre      | 186 | Real        |
-| 7   | Flat          | Hagetmau          | Bordeaux            | 175 | Real        |
-| 8   | Flat          | Perigueux         | Bergerac            | 180 | Real        |
-| 9   | Hills         | Malemort          | Ussel               | 185 | Real        |
-| 10  | Summit finish | Aurillac          | Le Lioran           | 167 | Real        |
-| 11  | Flat          | Vichy             | Nevers              | 161 | Real        |
-| 12  | Flat          | Magny-Cours       | Chalon-sur-Saone    | 179 | Real        |
-| 13  | Hills         | Dole              | Belfort             | 206 | Real        |
-| 14  | Summit finish | Mulhouse          | Le Markstein        | 155 | Real        |
-| 15  | Summit finish | Champagnole       | Plateau de Solaison | 184 | Real        |
-| 16  | ITT (crono)   | Evian-les-Bains   | Thonon-les-Bains    |  26 | Real        |
-| 17  | Hills         | Chambery          | Voiron              | 175 | Real        |
-| 18  | Summit finish | Voiron            | Orcieres-Merlette   | 185 | Real        |
-| 19  | Summit finish | Gap               | Alpe d'Huez         | 128 | Real        |
-| 20  | Summit finish | Le Bourg-d'Oisans | Alpe d'Huez         | 171 | Real        |
-| 21  | Flat          | Thoiry            | Paris               | 130 | Sin validar |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 210 | 🔴 Inventado |
 
-### Race San Sebastián (ES)
+### Race Colombia `race-colombia`
 
-WT · .WT · un-dia · 1 etapa · día 213
+Clase **1** · CO · día 34 · 9 etapas · 🟡 Sin validar 9
 
-| #   | Tipo    | Salida        | Meta          |  km | Recorrido |
-| --- | ------- | ------------- | ------------- | --: | --------- |
-| 1   | Classic | San Sebastian | San Sebastian | 221 | Real      |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | Yopal | Yopal | 206 | 🟡 Sin validar |
+| 2 | Montaña · Summit finish | Yopal | Alto del Porvenir | 153 | 🟡 Sin validar |
+| 3 | Contrarreloj · ITT | Curisi | Toquilla | 33 | 🟡 Sin validar |
+| 4 | Media montaña · Hills | Duitama | Duitama | 125 | 🟡 Sin validar |
+| 5 | Montaña · Summit finish | Mosquera | Alto de La Linea | 232 | 🟡 Sin validar |
+| 6 | Llana · Flat | Armenia | Cali | 185 | 🟡 Sin validar |
+| 7 | Media montaña · Hills | Cali | La Tebaida | 171 | 🟡 Sin validar |
+| 8 | Montaña · Summit finish | Alvarado | Alto del Vino | 217 | 🟡 Sin validar |
+| 9 | Media montaña · Hills | Sopo | Bogota | 139 | 🟡 Sin validar |
 
-### Race Poland (PL)
+### Zimbabwe ITT Championship `nc-zw-itt`
 
-WT · .WT · una-semana · 7 etapas · día 215
+Clase **NC** · ZW · día 34 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo          | Salida              | Meta                |  km | Recorrido   |
-| --- | ------------- | ------------------- | ------------------- | --: | ----------- |
-| 1   | Hills         | Gdynia              | Koszalin            | 234 | Sin validar |
-| 2   | Flat          | Miedzyzdroje        | Szczecin            | 151 | Sin validar |
-| 3   | Hills         | Gorzow Wielkopolski | Zielona Gora        | 194 | Sin validar |
-| 4   | Summit finish | Zagan               | Karpacz             | 176 | Sin validar |
-| 5   | Summit finish | Opole               | Kocierz Resort      | 219 | Sin validar |
-| 6   | Summit finish | Bukovina Resort     | Bukowina Tatrzanska | 126 | Sin validar |
-| 7   | ITT (crono)   | Wieliczka           | Wieliczka           |  12 | Sin validar |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Race Hamburg (DE)
+### Race Valencia `race-valencia`
 
-WT · .WT · un-dia · 1 etapa · día 228
+Clase **Pro** · ES · día 35 · 5 etapas · 🟡 Sin validar 5
 
-| #   | Tipo | Salida    | Meta    |  km | Recorrido |
-| --- | ---- | --------- | ------- | --: | --------- |
-| 1   | Flat | Buxtehude | Hamburg | 198 | Real      |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | Segorbe | Torreblanca | 160 | 🟡 Sin validar |
+| 2 | Contrarreloj · ITT | Carlet | Alginet | 18 | 🟡 Sin validar |
+| 3 | Montaña · Summit finish | Orihuela | San Vicente del Raspeig | 158 | 🟡 Sin validar |
+| 4 | Media montaña · Hills | La Nucia | Teulada Moraira | 172 | 🟡 Sin validar |
+| 5 | Llana · Flat | Betera | Valencia | 95 | 🟡 Sin validar |
 
-### Race Benelux (BE)
+### Race Bessèges `race-besseges`
 
-WT · .WT · una-semana · 5 etapas · día 231
+Clase **1** · FR · día 35 · 5 etapas · 🔴 Inventado 5
 
-| #   | Tipo    | Salida       | Meta           |  km | Recorrido   |
-| --- | ------- | ------------ | -------------- | --: | ----------- |
-| 1   | Flat    | Diest        | Diest          | 188 | Sin validar |
-| 2   | Flat    | Blankenberge | Ardooie        | 174 | Sin validar |
-| 3   | Cobbles | Celles       | Geraardsbergen | 185 | Sin validar |
-| 4   | Hills   | Riemst       | Bilzen-Hoeselt | 196 | Sin validar |
-| 5   | Hills   | Leuven       | Leuven         | 178 | Sin validar |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 184 | 🔴 Inventado |
+| 2 | Media montaña · Hills | — | — | 165 | 🔴 Inventado |
+| 3 | Media montaña · Hills | — | — | 180 | 🔴 Inventado |
+| 4 | Media montaña · Uphill finish | — | — | 164 | 🔴 Inventado |
+| 5 | Llana · Flat | — | — | 159 | 🔴 Inventado |
 
-### Race Spain (ES)
+### Race Victoria `race-victoria`
 
-WT · .WT · gran-vuelta · 21 etapas · día 234
+Clase **1** · AU · día 35 · 5 etapas · 🔴 Inventado 5
 
-| #   | Tipo          | Salida                   | Meta                 |  km | Recorrido |
-| --- | ------------- | ------------------------ | -------------------- | --: | --------- |
-| 1   | ITT (crono)   | Monaco                   | Monaco               |  10 | Real      |
-| 2   | Hills         | Monaco                   | Manosque             | 215 | Real      |
-| 3   | Summit finish | Gruissan                 | Font Romeu           | 167 | Real      |
-| 4   | Summit finish | Andorra la Vella         | Andorra la Vella     | 105 | Real      |
-| 5   | Hills         | Falset                   | Roquetes             | 171 | Real      |
-| 6   | Cobbles       | Alcossebre               | Castello             | 177 | Real      |
-| 7   | Summit finish | Vall d'Alba              | Valdelinares         | 150 | Real      |
-| 8   | Flat          | Pucol                    | Xeraco               | 167 | Real      |
-| 9   | Summit finish | Villajoyosa              | Alto de Aitana       | 188 | Real      |
-| 10  | Hills         | Alcaraz                  | Elche de la Sierra   | 185 | Real      |
-| 11  | Flat          | Cartagena                | Lorca                | 156 | Real      |
-| 12  | Summit finish | Vera                     | Calar Alto           | 167 | Real      |
-| 13  | Hills         | Almunecar                | Loja                 | 193 | Real      |
-| 14  | Summit finish | Jaen                     | Sierra de la Pandera | 153 | Real      |
-| 15  | Hills         | Palma del Rio            | Cordoba              | 181 | Real      |
-| 16  | Flat          | Cortegana                | La Rabida            | 186 | Real      |
-| 17  | Flat          | Dos Hermanas             | Sevilla              | 189 | Real      |
-| 18  | ITT (crono)   | El Puerto de Santa Maria | Jerez de la Frontera |  33 | Real      |
-| 19  | Summit finish | Velez-Malaga             | Penas Blancas        | 205 | Real      |
-| 20  | Summit finish | La Calahorra             | Collada de Alguacil  | 187 | Real      |
-| 21  | Hills         | Granada                  | Granada              |  99 | Real      |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 180 | 🔴 Inventado |
+| 2 | Media montaña · Uphill finish | — | — | 150 | 🔴 Inventado |
+| 3 | Contrarreloj · ITT | — | — | 15 | 🔴 Inventado |
+| 4 | Media montaña · Hills | — | — | 162 | 🔴 Inventado |
+| 5 | Media montaña · Hills | — | — | 150 | 🔴 Inventado |
 
-### Race Brittany (FR)
+### Colombia ITT Championship `nc-co-itt`
 
-WT · .WT · un-dia · 1 etapa · día 242
+Clase **NC** · CO · día 35 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo  | Salida | Meta   |  km | Recorrido |
-| --- | ----- | ------ | ------ | --: | --------- |
-| 1   | Hills | Rennes | Rennes | 190 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Race Québec (CA)
+### New Zealand ITT Championship `nc-nz-itt`
 
-WT · .WT · un-dia · 1 etapa · día 254
+Clase **NC** · NZ · día 35 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo  | Salida      | Meta        |  km | Recorrido |
-| --- | ----- | ----------- | ----------- | --: | --------- |
-| 1   | Hills | Quebec City | Quebec City | 216 | Real      |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Race Montréal (CA)
+### New Zealand U23 ITT Championship `nc-nz-u23-itt`
 
-WT · .WT · un-dia · 1 etapa · día 256
+Clase **NC** · NZ · día 35 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo  | Salida   | Meta     |  km | Recorrido |
-| --- | ----- | -------- | -------- | --: | --------- |
-| 1   | Hills | Montreal | Montreal | 209 | Real      |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Race Lombardy (IT)
+### Zimbabwe U23 ITT Championship `nc-zw-u23-itt`
 
-WT · .WT · un-dia · 1 etapa · día 283
+Clase **NC** · ZW · día 35 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta    |  km | Recorrido |
-| --- | ------- | ------ | ------- | --: | --------- |
-| 1   | Classic | Como   | Bergamo | 241 | Real      |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Race Guangxi (CN)
+### Colombia U23 ITT Championship `nc-co-u23-itt`
 
-WT · .WT · una-semana · 6 etapas · día 286
+Clase **NC** · CO · día 36 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo          | Salida        | Meta          |  km | Recorrido   |
-| --- | ------------- | ------------- | ------------- | --: | ----------- |
-| 1   | Flat          | Fangchenggang | Fangchenggang | 149 | Sin validar |
-| 2   | Hills         | Chongzuo      | Jingxi        | 177 | Sin validar |
-| 3   | Hills         | Jingxi        | Bama          | 214 | Sin validar |
-| 4   | Hills         | Bama          | Jinchengjiang | 177 | Sin validar |
-| 5   | Summit finish | Yizhou        | Nongla        | 166 | Real        |
-| 6   | Flat          | Nanning       | Nanning       | 134 | Sin validar |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-## ProSeries
+### South Africa ITT Championship `nc-za-itt`
 
-El segundo escalón. La mayoría corre sobre ediciones verificadas SIN relieve real: es el frente de trabajo con más recorrido por delante.
+Clase **NC** · ZA · día 36 · 1 etapa · 🔴 Inventado 1
 
-### Race Arabia (SA)
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-PRS · .Pro · una-semana · 5 etapas · día 27
+### South Africa U23 ITT Championship `nc-za-u23-itt`
 
-| #   | Tipo  | Salida                     | Meta                       |  km | Recorrido   |
-| --- | ----- | -------------------------- | -------------------------- | --: | ----------- |
-| 1   | Flat  | AlUla Camel Cup Track      | AlUla Camel Cup Track      | 158 | Sin validar |
-| 2   | Flat  | Al Manshiyah Train Station | Al Manshiyah Train Station | 152 | Sin validar |
-| 3   | Hills | Winter Park                | Bir Jaydah Mountain Wirkah | 142 | Sin validar |
-| 4   | Flat  | Winter Park                | Hegra                      | 173 | Sin validar |
-| 5   | Hills | AlUla Old Town             | Skyviews of Harrat Uwayrid | 164 | Sin validar |
+Clase **NC** · ZA · día 36 · 1 etapa · 🔴 Inventado 1
 
-### Race Surf Coast (AU)
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-PRS · .Pro · un-dia · 1 etapa · día 29
+### Uruguay ITT Championship `nc-uy-itt`
 
-| #   | Tipo  | Salida  | Meta    |  km | Recorrido |
-| --- | ----- | ------- | ------- | --: | --------- |
-| 1   | Hills | Geelong | Geelong | 210 | Inventado |
+Clase **NC** · UY · día 36 · 1 etapa · 🔴 Inventado 1
 
-### Race Valencia (ES)
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-PRS · .Pro · una-semana · 5 etapas · día 35
+### Uruguay U23 ITT Championship `nc-uy-u23-itt`
 
-| #   | Tipo          | Salida   | Meta                    |  km | Recorrido   |
-| --- | ------------- | -------- | ----------------------- | --: | ----------- |
-| 1   | Hills         | Segorbe  | Torreblanca             | 160 | Sin validar |
-| 2   | ITT (crono)   | Carlet   | Alginet                 |  18 | Sin validar |
-| 3   | Summit finish | Orihuela | San Vicente del Raspeig | 158 | Sin validar |
-| 4   | Hills         | La Nucia | Teulada Moraira         | 172 | Sin validar |
-| 5   | Flat          | Betera   | Valencia                |  95 | Sin validar |
+Clase **NC** · UY · día 36 · 1 etapa · 🔴 Inventado 1
 
-### Race Muscat (OM)
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-PRS · .Pro · un-dia · 1 etapa · día 37
+### Namibia ITT Championship `nc-na-itt`
 
-| #   | Tipo | Salida | Meta  |  km | Recorrido |
-| --- | ---- | ------ | ----- | --: | --------- |
-| 1   | Flat | Muscat | Barka | 210 | Inventado |
+Clase **NC** · NA · día 36 · 1 etapa · 🔴 Inventado 1
 
-### Race Oman (OM)
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-PRS · .Pro · una-semana · 5 etapas · día 38
+### Namibia U23 ITT Championship `nc-na-u23-itt`
 
-| #   | Tipo          | Salida              | Meta               |  km | Recorrido   |
-| --- | ------------- | ------------------- | ------------------ | --: | ----------- |
-| 1   | Flat          | Ministry of Tourism | Bimmah Sink Hole   | 171 | Real        |
-| 2   | Hills         | Al Rustaq Fort      | Yitti Hills        | 191 | Real        |
-| 3   | Hills         | Samail              | Misfat al Abriyeen | 191 | Real        |
-| 4   | Flat          | Al Sawadi Beach     | Sohar              | 147 | Sin validar |
-| 5   | Summit finish | Nizwa               | Jabal al Akhdhar   | 156 | Real        |
+Clase **NC** · NA · día 36 · 1 etapa · 🔴 Inventado 1
 
-### Race Figueira (PT)
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-PRS · .Pro · un-dia · 1 etapa · día 45
+### Race Muscat `race-muscat`
 
-| #   | Tipo | Salida          | Meta             |  km | Recorrido |
-| --- | ---- | --------------- | ---------------- | --: | --------- |
-| 1   | Flat | Figueira da Foz | Montemor-o-Velho | 210 | Inventado |
+Clase **Pro** · OM · día 37 · 1 etapa · 🔴 Inventado 1
 
-### Race Almería (ES)
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 210 | 🔴 Inventado |
 
-PRS · .Pro · un-dia · 1 etapa · día 46
+### Zimbabwe U23 Road Championship `nc-zw-u23-road`
 
-| #   | Tipo | Salida  | Meta            |  km | Recorrido |
-| --- | ---- | ------- | --------------- | --: | --------- |
-| 1   | Flat | Almeria | Roquetas de Mar | 210 | Inventado |
+Clase **NC** · ZW · día 37 · 1 etapa · 🔴 Inventado 1
 
-### Race Algarve (PT)
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-PRS · .Pro · una-semana · 5 etapas · día 49
+### Race Oman `race-oman`
 
-| #   | Tipo          | Salida                     | Meta      |  km | Recorrido |
-| --- | ------------- | -------------------------- | --------- | --: | --------- |
-| 1   | Hills         | Vila Real de Santo Antonio | Tavira    | 183 | Real      |
-| 2   | Summit finish | Portimao                   | Foia      | 148 | Real      |
-| 3   | ITT (crono)   | Vilamoura                  | Vilamoura |  20 | Real      |
-| 4   | Hills         | Albufeira                  | Lagos     | 176 | Real      |
-| 5   | Summit finish | Faro                       | Malhao    | 150 | Real      |
+Clase **Pro** · OM · día 38 · 5 etapas · 🟡 Sin validar 5
 
-### Race Andalusia (ES)
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | Ministry of Tourism | Bimmah Sink Hole | 171 | 🟡 Sin validar |
+| 2 | Media montaña · Hills | Al Rustaq Fort | Yitti Hills | 191 | 🟡 Sin validar |
+| 3 | Media montaña · Hills | Samail | Misfat al Abriyeen | 191 | 🟡 Sin validar |
+| 4 | Llana · Flat | Al Sawadi Beach | Sohar | 147 | 🟡 Sin validar |
+| 5 | Montaña · Summit finish | Nizwa | Jabal al Akhdhar | 156 | 🟡 Sin validar |
 
-PRS · .Pro · una-semana · 5 etapas · día 49
+### Race Antalya GP `race-antalya-gp`
 
-| #   | Tipo          | Salida               | Meta       |  km | Recorrido |
-| --- | ------------- | -------------------- | ---------- | --: | --------- |
-| 1   | Summit finish | Benahavis            | Pizarra    | 151 | Real      |
-| 2   | Summit finish | Torrox               | Otura      | 142 | Real      |
-| 3   | Hills         | Jaen                 | Lopera     | 181 | Real      |
-| 4   | Hills         | Montoro              | Pozoblanco | 167 | Real      |
-| 5   | Hills         | La Roda de Andalucia | Lucena     | 163 | Real      |
+Clase **2** · TR · día 38 · 1 etapa · 🔴 Inventado 1
 
-### Race Ardèche (FR)
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 210 | 🔴 Inventado |
 
-PRS · .Pro · un-dia · 1 etapa · día 59
+### Colombia U23 Road Championship `nc-co-u23-road`
 
-| #   | Tipo  | Salida             | Meta    |  km | Recorrido |
-| --- | ----- | ------------------ | ------- | --: | --------- |
-| 1   | Hills | Guilherand-Granges | Aubenas | 210 | Inventado |
+Clase **NC** · CO · día 38 · 1 etapa · 🔴 Inventado 1
 
-### Race Drôme (FR)
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-PRS · .Pro · un-dia · 1 etapa · día 60
+### New Zealand U23 Road Championship `nc-nz-u23-road`
 
-| #   | Tipo  | Salida  | Meta    |  km | Recorrido |
-| --- | ----- | ------- | ------- | --: | --------- |
-| 1   | Hills | Valence | Valence | 210 | Inventado |
+Clase **NC** · NZ · día 38 · 1 etapa · 🔴 Inventado 1
 
-### Race Kuurne (BE)
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-PRS · .Pro · un-dia · 1 etapa · día 60
+### New Zealand Road Championship `nc-nz-road`
 
-| #   | Tipo    | Salida | Meta   |  km | Recorrido |
-| --- | ------- | ------ | ------ | --: | --------- |
-| 1   | Cobbles | Kuurne | Kuurne | 200 | Inventado |
+Clase **NC** · NZ · día 38 · 1 etapa · 🔴 Inventado 1
 
-### Race Laigueglia (IT)
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-PRS · .Pro · un-dia · 1 etapa · día 63
+### South Africa U23 Road Championship `nc-za-u23-road`
 
-| #   | Tipo  | Salida     | Meta       |  km | Recorrido |
-| --- | ----- | ---------- | ---------- | --: | --------- |
-| 1   | Hills | Laigueglia | Laigueglia | 192 | Real      |
+Clase **NC** · ZA · día 38 · 1 etapa · 🔴 Inventado 1
 
-### Race Nokere (BE)
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-PRS · .Pro · un-dia · 1 etapa · día 77
+### Uruguay U23 Road Championship `nc-uy-u23-road`
 
-| #   | Tipo    | Salida | Meta   |  km | Recorrido |
-| --- | ------- | ------ | ------ | --: | --------- |
-| 1   | Cobbles | Deinze | Nokere | 190 | Inventado |
+Clase **NC** · UY · día 38 · 1 etapa · 🔴 Inventado 1
 
-### Race Turin (IT)
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-PRS · .Pro · un-dia · 1 etapa · día 77
+### Namibia U23 Road Championship `nc-na-u23-road`
 
-| #   | Tipo  | Salida | Meta   |  km | Recorrido |
-| --- | ----- | ------ | ------ | --: | --------- |
-| 1   | Hills | Milano | Torino | 210 | Inventado |
+Clase **NC** · NA · día 38 · 1 etapa · 🔴 Inventado 1
 
-### Race Denain (FR)
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-PRS · .Pro · un-dia · 1 etapa · día 78
+### Zimbabwe Road Championship `nc-zw-road`
 
-| #   | Tipo    | Salida | Meta   |  km | Recorrido |
-| --- | ------- | ------ | ------ | --: | --------- |
-| 1   | Cobbles | Denain | Denain | 200 | Inventado |
+Clase **NC** · ZW · día 38 · 1 etapa · 🔴 Inventado 1
 
-### Race Bredene (BE)
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-PRS · .Pro · un-dia · 1 etapa · día 79
+### Race Aveiro `race-aveiro`
 
-| #   | Tipo | Salida  | Meta     |  km | Recorrido |
-| --- | ---- | ------- | -------- | --: | --------- |
-| 1   | Flat | Bredene | Koksijde | 210 | Inventado |
+Clase **1** · PT · día 39 · 1 etapa · 🔴 Inventado 1
 
-### Race Navarre (ES)
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 210 | 🔴 Inventado |
 
-PRS · .Pro · un-dia · 1 etapa · día 94
+### Colombia Road Championship `nc-co-road`
 
-| #   | Tipo  | Salida  | Meta     |  km | Recorrido |
-| --- | ----- | ------- | -------- | --: | --------- |
-| 1   | Hills | Estella | Pamplona | 210 | Inventado |
+Clase **NC** · CO · día 39 · 1 etapa · 🔴 Inventado 1
 
-### Race Loire (FR)
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-PRS · .Pro · una-semana · 5 etapas · día 97
+### South Africa Road Championship `nc-za-road`
 
-| #   | Tipo  | Salida     | Meta                   |  km | Recorrido   |
-| --- | ----- | ---------- | ---------------------- | --: | ----------- |
-| 1   | Flat  | Blois      | Vouzon                 | 180 | Sin validar |
-| 2   | Hills | Chemery    | Saint-Georges-sur-Cher | 189 | Sin validar |
-| 3   | Hills | Moree      | Montoire-sur-le-Loir   | 195 | Sin validar |
-| 4   | Flat  | Romorantin | Romorantin             | 189 | Sin validar |
-| 5   | Hills | Blois      | Blois                  |  98 | Sin validar |
+Clase **NC** · ZA · día 39 · 1 etapa · 🔴 Inventado 1
 
-### Race Schelde (BE)
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-PRS · .Pro · un-dia · 1 etapa · día 98
+### Uruguay Road Championship `nc-uy-road`
 
-| #   | Tipo | Salida    | Meta    |  km | Recorrido |
-| --- | ---- | --------- | ------- | --: | --------- |
-| 1   | Flat | Antwerpen | Schoten | 210 | Inventado |
+Clase **NC** · UY · día 39 · 1 etapa · 🔴 Inventado 1
 
-### Race Hainan (CN)
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-PRS · .Pro · una-semana · 5 etapas · día 105
+### Namibia Road Championship `nc-na-road`
 
-| #   | Tipo  | Salida     | Meta     |  km | Recorrido   |
-| --- | ----- | ---------- | -------- | --: | ----------- |
-| 1   | Flat  | Qionghai   | Qionghai |  90 | Sin validar |
-| 2   | Flat  | Qionghai   | Lingshui | 178 | Sin validar |
-| 3   | Hills | Lingshui   | Baoting  | 213 | Sin validar |
-| 4   | Hills | Baoting    | Dongfang | 191 | Sin validar |
-| 5   | Flat  | Changjiang | Sanya    | 183 | Sin validar |
+Clase **NC** · NA · día 39 · 1 etapa · 🔴 Inventado 1
 
-### Race Brabant (BE)
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-PRS · .Pro · un-dia · 1 etapa · día 107
+### Race Provence `race-provence`
 
-| #   | Tipo  | Salida | Meta     |  km | Recorrido |
-| --- | ----- | ------ | -------- | --: | --------- |
-| 1   | Hills | Leuven | Overijse | 163 | Real      |
+Clase **1** · FR · día 44 · 3 etapas · 🔴 Inventado 3
 
-### Race Alps (IT)
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 188 | 🔴 Inventado |
+| 2 | Media montaña · Uphill finish | — | — | 169 | 🔴 Inventado |
+| 3 | Montaña · Summit finish | — | — | 128 | 🔴 Inventado |
 
-PRS · .Pro · una-semana · 5 etapas · día 110
+### Race Murcia `race-murcia`
 
-| #   | Tipo          | Salida    | Meta      |  km | Recorrido |
-| --- | ------------- | --------- | --------- | --: | --------- |
-| 1   | Summit finish | Innsbruck | Innsbruck | 144 | Real      |
-| 2   | Summit finish | Telfs     | Martello  | 148 | Real      |
-| 3   | Summit finish | Laces     | Arco      | 175 | Real      |
-| 4   | Summit finish | Arco      | Trento    | 168 | Real      |
-| 5   | Summit finish | Trento    | Bolzano   | 129 | Real      |
+Clase **1** · ES · día 44 · 2 etapas · 🔴 Inventado 2
 
-### Race Türkiye (TR)
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 189 | 🔴 Inventado |
+| 2 | Montaña · Summit finish | — | — | 143 | 🔴 Inventado |
 
-PRS · .Pro · una-semana · 8 etapas · día 116
+### Race Figueira `race-figueira`
 
-| #   | Tipo          | Salida   | Meta     |  km | Recorrido   |
-| --- | ------------- | -------- | -------- | --: | ----------- |
-| 1   | Flat          | Cesme    | Selcuk   | 149 | Sin validar |
-| 2   | Hills         | Aydin    | Marmaris | 153 | Sin validar |
-| 3   | Summit finish | Marmaris | Kiran    | 133 | Sin validar |
-| 4   | Flat          | Marmaris | Fethiye  | 130 | Sin validar |
-| 5   | Hills         | Patara   | Kemer    | 181 | Sin validar |
-| 6   | Summit finish | Antalya  | Feslikan | 128 | Sin validar |
-| 7   | Hills         | Antalya  | Antalya  | 153 | Sin validar |
-| 8   | Flat          | Ankara   | Ankara   | 105 | Sin validar |
+Clase **Pro** · PT · día 45 · 1 etapa · 🔴 Inventado 1
 
-### Race Morbihan (FR)
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 210 | 🔴 Inventado |
 
-PRS · .Pro · un-dia · 1 etapa · día 129
+### Race Almería `race-almeria`
 
-| #   | Tipo  | Salida      | Meta        |  km | Recorrido |
-| --- | ----- | ----------- | ----------- | --: | --------- |
-| 1   | Hills | Grand-Champ | Grand-Champ | 210 | Inventado |
+Clase **Pro** · ES · día 46 · 1 etapa · 🔴 Inventado 1
 
-### Race Léon (ES)
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 210 | 🔴 Inventado |
 
-PRS · .Pro · un-dia · 1 etapa · día 130
+### Race Emirates `race-emirates`
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Cobbles | Leon   | Leon | 185 | Inventado |
+Clase **WT** · AE · día 47 · 7 etapas · 🟡 Sin validar 7
 
-### Race Hungary (HU)
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | Madinat Zayed | Liwa | 144 | 🟡 Sin validar |
+| 2 | Contrarreloj · ITT | Al Hudayriat Island | Al Hudayriat Island | 12 | 🟡 Sin validar |
+| 3 | Montaña · Summit finish | Umm Al Quwain | Jebel Mobrah | 183 | 🟡 Sin validar |
+| 4 | Llana · Flat | Fujairah | Fujairah | 182 | 🟡 Sin validar |
+| 5 | Llana · Flat | Dubai | Hamdan Bin Mohammed Smart University | 166 | 🟡 Sin validar |
+| 6 | Montaña · Summit finish | Al Ain | Jebel Hafeet | 168 | 🟡 Sin validar |
+| 7 | Llana · Flat | Abu Dhabi | Abu Dhabi | 149 | 🟡 Sin validar |
 
-PRS · .Pro · una-semana · 5 etapas · día 133
+### Race Jaén `race-jaen`
 
-| #   | Tipo          | Salida        | Meta       |  km | Recorrido   |
-| --- | ------------- | ------------- | ---------- | --: | ----------- |
-| 1   | Flat          | Gyula         | Bekescsaba | 143 | Sin validar |
-| 2   | Flat          | Szarvas       | Paks       | 206 | Sin validar |
-| 3   | Hills         | Kaposvar      | Szekszard  | 152 | Sin validar |
-| 4   | Summit finish | Mohacs        | Pecs       | 188 | Sin validar |
-| 5   | Hills         | Balatonalmadi | Veszprem   | 147 | Sin validar |
+Clase **1** · ES · día 47 · 1 etapa · 🔴 Inventado 1
 
-### Race Dunkerque (FR)
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-PRS · .Pro · un-dia · 1 etapa · día 139
+### Race Algarve `race-algarve`
 
-| #   | Tipo | Salida    | Meta      |  km | Recorrido |
-| --- | ---- | --------- | --------- | --: | --------- |
-| 1   | Flat | Dunkerque | Dunkerque | 210 | Inventado |
+Clase **Pro** · PT · día 49 · 5 etapas · 🟡 Sin validar 5
 
-### Race Hauts-de-France (FR)
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | Vila Real de Santo Antonio | Tavira | 183 | 🟡 Sin validar |
+| 2 | Montaña · Summit finish | Portimao | Foia | 148 | 🟡 Sin validar |
+| 3 | Contrarreloj · ITT | Vilamoura | Vilamoura | 20 | 🟡 Sin validar |
+| 4 | Media montaña · Hills | Albufeira | Lagos | 176 | 🟡 Sin validar |
+| 5 | Montaña · Summit finish | Faro | Malhao | 150 | 🟡 Sin validar |
 
-PRS · .Pro · una-semana · 5 etapas · día 140
+### Race Andalusia `race-andalusia`
 
-| #   | Tipo    | Salida        | Meta             |  km | Recorrido   |
-| --- | ------- | ------------- | ---------------- | --: | ----------- |
-| 1   | Hills   | Lagny-le-Sec  | Laon             | 178 | Sin validar |
-| 2   | Flat    | Glisy         | Lievin           | 188 | Sin validar |
-| 3   | Cobbles | La Sentinelle | Wallers-Arenberg | 156 | Sin validar |
-| 4   | Hills   | Bergues       | Cassel           | 166 | Sin validar |
-| 5   | Flat    | Saint-Omer    | Dunkerque        | 184 | Sin validar |
+Clase **Pro** · ES · día 49 · 5 etapas · 🟡 Sin validar 5
 
-### Race Mayenne (FR)
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Montaña · Summit finish | Benahavis | Pizarra | 151 | 🟡 Sin validar |
+| 2 | Montaña · Summit finish | Torrox | Otura | 142 | 🟡 Sin validar |
+| 3 | Media montaña · Hills | Jaen | Lopera | 181 | 🟡 Sin validar |
+| 4 | Media montaña · Hills | Montoro | Pozoblanco | 167 | 🟡 Sin validar |
+| 5 | Media montaña · Hills | La Roda de Andalucia | Lucena | 163 | 🟡 Sin validar |
 
-PRS · .Pro · una-semana · 4 etapas · día 148
+### Race Var `race-var`
 
-| #   | Tipo        | Salida          | Meta                        |  km | Recorrido   |
-| --- | ----------- | --------------- | --------------------------- | --: | ----------- |
-| 1   | ITT (crono) | Laval           | Laval                       |   5 | Sin validar |
-| 2   | Hills       | Saint-Berthevin | Chateau-Gontier-sur-Mayenne | 172 | Sin validar |
-| 3   | Hills       | Aron            | Pre-en-Pail-Saint-Samson    | 215 | Sin validar |
-| 4   | Flat        | Cosse-le-Vivien | Laval                       | 148 | Sin validar |
+Clase **1** · FR · día 52 · 1 etapa · 🔴 Inventado 1
 
-### Race Norway (NO)
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-PRS · .Pro · una-semana · 4 etapas · día 148
+### Race Alaiye `race-alaiye`
 
-| #   | Tipo  | Salida      | Meta        |  km | Recorrido   |
-| --- | ----- | ----------- | ----------- | --: | ----------- |
-| 1   | Flat  | Solakrossen | Solakrossen | 179 | Sin validar |
-| 2   | Hills | Egersund    | Oltedal     | 208 | Sin validar |
-| 3   | Hills | Jorpeland   | Heia        | 142 | Sin validar |
-| 4   | Hills | Stavanger   | Stavanger   | 130 | Sin validar |
+Clase **2** · TR · día 52 · 1 etapa · 🔴 Inventado 1
 
-### Race Wallonia (BE)
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 210 | 🔴 Inventado |
 
-PRS · .Pro · una-semana · 5 etapas · día 152
+### Race Alpes-Maritimes `race-alpes-maritimes`
 
-| #   | Tipo  | Salida   | Meta               |  km | Recorrido   |
-| --- | ----- | -------- | ------------------ | --: | ----------- |
-| 1   | Hills | Manage   | Lobbes             | 181 | Sin validar |
-| 2   | Hills | Jodoigne | Libramont-Chevigny | 192 | Sin validar |
-| 3   | Hills | Habay    | Vaux-sur-Sure      | 177 | Sin validar |
-| 4   | Hills | Dison    | Eupen              | 167 | Sin validar |
-| 5   | Hills | Bassenge | Aubel              | 177 | Sin validar |
+Clase **1** · FR · día 53 · 1 etapa · 🔴 Inventado 1
 
-### Race Brussels (BE)
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-PRS · .Pro · un-dia · 1 etapa · día 158
+### Race Rwanda `race-rwanda`
 
-| #   | Tipo | Salida  | Meta    |  km | Recorrido |
-| --- | ---- | ------- | ------- | --: | --------- |
-| 1   | Flat | Brussel | Brussel | 210 | Inventado |
+Clase **1** · RW · día 53 · 8 etapas · 🟡 Sin validar 8
 
-### Race Franco-Belgian (FR)
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | Rukomo | Rwamagana | 174 | 🟡 Sin validar |
+| 2 | Media montaña · Hills | Nyamata | Huye | 135 | 🟡 Sin validar |
+| 3 | Media montaña · Hills | Huye | Rusizi | 145 | 🟡 Sin validar |
+| 4 | Media montaña · Hills | Karongi | Rubavu | 127 | 🟡 Sin validar |
+| 5 | Llana · Flat | Rubavu | Rubavu | 82 | 🟡 Sin validar |
+| 6 | Montaña · Summit finish | Rubavu | Musanze | 84 | 🟡 Sin validar |
+| 7 | Media montaña · Hills | Musanze | Kigali | 147 | 🟡 Sin validar |
+| 8 | Media montaña · Hills | Kigali | Kigali | 84 | 🟡 Sin validar |
 
-PRS · .Pro · un-dia · 1 etapa · día 161
+### Philippines ITT Championship `nc-ph-itt`
 
-| #   | Tipo | Salida | Meta    |  km | Recorrido |
-| --- | ---- | ------ | ------- | --: | --------- |
-| 1   | Flat | Lille  | Roubaix | 210 | Inventado |
+Clase **NC** · PH · día 55 · 1 etapa · 🔴 Inventado 1
 
-### Race Belgium (BE)
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-PRS · .Pro · una-semana · 5 etapas · día 168
+### Philippines U23 ITT Championship `nc-ph-u23-itt`
 
-| #   | Tipo    | Salida                | Meta                  |  km | Recorrido   |
-| --- | ------- | --------------------- | --------------------- | --: | ----------- |
-| 1   | Hills   | Scherpenheuvel-Zichem | Scherpenheuvel-Zichem | 188 | Sin validar |
-| 2   | Flat    | Merelbeke-Melle       | Knokke-Heist          | 198 | Sin validar |
-| 3   | Hills   | Durbuy                | Durbuy                | 173 | Sin validar |
-| 4   | Flat    | Begijnendijk-Betekom  | Aarschot              | 184 | Sin validar |
-| 5   | Cobbles | Gingelom              | Hoeilaart             | 184 | Sin validar |
+Clase **NC** · PH · día 55 · 1 etapa · 🔴 Inventado 1
 
-### Race Slovenia (SI)
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-PRS · .Pro · una-semana · 5 etapas · día 168
+### Race Sardegna `race-sardegna`
 
-| #   | Tipo          | Salida          | Meta            |  km | Recorrido   |
-| --- | ------------- | --------------- | --------------- | --: | ----------- |
-| 1   | Hills         | Velenje         | Rogaska Slatina | 142 | Sin validar |
-| 2   | Hills         | Radlje ob Dravi | Ormoz           | 177 | Sin validar |
-| 3   | Hills         | Maribor         | Celje           | 137 | Sin validar |
-| 4   | Summit finish | Kranj           | Kranjska Gora   | 183 | Sin validar |
-| 5   | Hills         | Litija          | Novo Mesto      | 162 | Sin validar |
+Clase **1** · IT · día 56 · 5 etapas · 🟡 Sin validar 5
 
-### Race Qinghai (CN)
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | Castelsardo | Bosa | 190 | 🟡 Sin validar |
+| 2 | Llana · Flat | Oristano | Carbonia | 136 | 🟡 Sin validar |
+| 3 | Media montaña · Hills | Cagliari | Tortoli | 168 | 🟡 Sin validar |
+| 4 | Montaña · Summit finish | Arbatax | Nuoro | 154 | 🟡 Sin validar |
+| 5 | Media montaña · Hills | Nuoro | Olbia | 177 | 🟡 Sin validar |
 
-PRS · .Pro · una-semana · 8 etapas · día 192
+### Bolivia ITT Championship `nc-bo-itt`
 
-| #   | Tipo          | Salida    | Meta      |  km | Recorrido   |
-| --- | ------------- | --------- | --------- | --: | ----------- |
-| 1   | Flat          | Xining    | Xining    | 121 | Sin validar |
-| 2   | Hills         | Duoba     | Huzhu     | 151 | Sin validar |
-| 3   | Hills         | Huzhu     | Menyuan   | 220 | Sin validar |
-| 4   | Summit finish | Menyuan   | Qilian    | 173 | Sin validar |
-| 5   | Hills         | Qilian    | Gangcha   | 169 | Sin validar |
-| 6   | Hills         | Gangcha   | Gonghe    | 233 | Sin validar |
-| 7   | Hills         | Gonghe    | Haiyan    | 137 | Sin validar |
-| 8   | Hills         | Xihaizhen | Xihaizhen | 121 | Sin validar |
+Clase **NC** · BO · día 56 · 1 etapa · 🔴 Inventado 1
 
-### Race Denmark (DK)
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-PRS · .Pro · una-semana · 5 etapas · día 210
+### Bolivia U23 ITT Championship `nc-bo-u23-itt`
 
-| #   | Tipo        | Salida     | Meta       |  km | Recorrido   |
-| --- | ----------- | ---------- | ---------- | --: | ----------- |
-| 1   | Hills       | Nexo       | Ronne      | 178 | Sin validar |
-| 2   | Flat        | Rodovre    | Gladsaxe   | 111 | Sin validar |
-| 3   | ITT (crono) | Kerteminde | Kerteminde |  14 | Sin validar |
-| 4   | Hills       | Svendborg  | Vejle      | 227 | Sin validar |
-| 5   | Hills       | Hobro      | Silkeborg  | 157 | Sin validar |
+Clase **NC** · BO · día 57 · 1 etapa · 🔴 Inventado 1
 
-### Race Burgos (ES)
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-PRS · .Pro · una-semana · 5 etapas · día 216
+### Philippines U23 Road Championship `nc-ph-u23-road`
 
-| #   | Tipo          | Salida              | Meta                |  km | Recorrido   |
-| --- | ------------- | ------------------- | ------------------- | --: | ----------- |
-| 1   | Hills         | Gumiel de Izan      | Burgos              | 165 | Sin validar |
-| 2   | Summit finish | Arcos de la Llana   | Pineda de la Sierra | 178 | Sin validar |
-| 3   | Summit finish | Merindad de Montija | Corconte            | 184 | Sin validar |
-| 4   | Flat          | Palazuelos de Muno  | Briviesca           | 178 | Sin validar |
-| 5   | Summit finish | Caleruega           | Lagunas de Neila    | 137 | Sin validar |
+Clase **NC** · PH · día 57 · 1 etapa · 🔴 Inventado 1
 
-### Race Arctic (NO)
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-PRS · .Pro · una-semana · 4 etapas · día 225
+### Philippines Road Championship `nc-ph-road`
 
-| #   | Tipo  | Salida          | Meta     |  km | Recorrido |
-| --- | ----- | --------------- | -------- | --: | --------- |
-| 1   | Flat  | Evenes          | Myre     | 182 | Real      |
-| 2   | Flat  | Bo i Vesteralen | Andenes  | 180 | Real      |
-| 3   | Hills | Stokmarknes     | Storheia | 147 | Real      |
-| 4   | Hills | Sortland        | Narvik   | 191 | Real      |
+Clase **NC** · PH · día 58 · 1 etapa · 🔴 Inventado 1
 
-### Race Czechia (CZ)
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-PRS · .Pro · una-semana · 4 etapas · día 225
+### Race Opening Classic `race-opening-classic`
 
-| #   | Tipo          | Salida         | Meta          |  km | Recorrido   |
-| --- | ------------- | -------------- | ------------- | --: | ----------- |
-| 1   | Hills         | Prague         | Karlovy Vary  | 163 | Sin validar |
-| 2   | Summit finish | Mlada Boleslav | Jested        | 155 | Sin validar |
-| 3   | Summit finish | Pardubice      | Dlouhe strane | 171 | Sin validar |
-| 4   | Summit finish | Kromeriz       | Pustevny      | 160 | Sin validar |
+Clase **WT** · BE · día 59 · 1 etapa · ✅ Real 1
 
-### Race Germany (DE)
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Cobbles | — | — | 202 | ✅ Real |
 
-PRS · .Pro · una-semana · 5 etapas · día 231
+### Race Ardèche `race-ardeche`
 
-| #   | Tipo        | Salida              | Meta                    |  km | Recorrido   |
-| --- | ----------- | ------------------- | ----------------------- | --: | ----------- |
-| 1   | ITT (crono) | Bad Orb             | Bad Orb                 |   3 | Sin validar |
-| 2   | Hills       | Bad Orb             | Schwabisch Hall         | 215 | Real        |
-| 3   | Flat        | Schwabisch Hall     | Offenbach an der Queich | 197 | Real        |
-| 4   | Hills       | Herxheim bei Landau | Bad Durkheim            | 171 | Real        |
-| 5   | Hills       | Heilbronn           | Heilbronn               | 157 | Real        |
+Clase **Pro** · FR · día 59 · 1 etapa · 🔴 Inventado 1
 
-### Race Britain (GB)
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-PRS · .Pro · una-semana · 6 etapas · día 245
+### Race Aegean `race-aegean`
 
-| #   | Tipo          | Salida        | Meta           |  km | Recorrido   |
-| --- | ------------- | ------------- | -------------- | --: | ----------- |
-| 1   | Flat          | Woodbridge    | Southwold      | 168 | Sin validar |
-| 2   | Flat          | Stowmarket    | Stowmarket     | 174 | Sin validar |
-| 3   | Hills         | Milton Keynes | Ampthill       | 123 | Sin validar |
-| 4   | Hills         | Atherstone    | Burton Dassett | 187 | Sin validar |
-| 5   | Summit finish | Pontypool     | The Tumble     | 134 | Sin validar |
-| 6   | Hills         | Newport       | Cardiff        | 112 | Sin validar |
+Clase **1** · TR · día 59 · 1 etapa · 🔴 Inventado 1
 
-### Race Maryland (US)
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-PRS · .Pro · una-semana · 3 etapas · día 248
+### Race Pedalia `race-pedalia`
 
-| #   | Tipo        | Salida     | Meta       |  km | Recorrido |
-| --- | ----------- | ---------- | ---------- | --: | --------- |
-| 1   | Flat        | Baltimore  | Frederick  | 188 | Inventado |
-| 2   | ITT (crono) | Frederick  | Cumberland |  20 | Inventado |
-| 3   | Hills       | Cumberland | Hagerstown | 147 | Inventado |
+Clase **2** · GR · día 59 · 1 etapa · 🔴 Inventado 1
 
-### Race Prato (IT)
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 210 | 🔴 Inventado |
 
-PRS · .Pro · un-dia · 1 etapa · día 249
+### Bolivia U23 Road Championship `nc-bo-u23-road`
 
-| #   | Tipo  | Salida | Meta  |  km | Recorrido |
-| --- | ----- | ------ | ----- | --: | --------- |
-| 1   | Hills | Prato  | Prato | 210 | Inventado |
+Clase **NC** · BO · día 59 · 1 etapa · 🔴 Inventado 1
 
-### Race Peccioli (IT)
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-PRS · .Pro · un-dia · 1 etapa · día 253
+### Race Drôme `race-drome`
 
-| #   | Tipo  | Salida   | Meta     |  km | Recorrido |
-| --- | ----- | -------- | -------- | --: | --------- |
-| 1   | Hills | Peccioli | Peccioli | 210 | Inventado |
+Clase **Pro** · FR · día 60 · 1 etapa · 🔴 Inventado 1
 
-### Race Fourmies (FR)
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-PRS · .Pro · un-dia · 1 etapa · día 256
+### Race Kuurne `race-kuurne`
 
-| #   | Tipo | Salida   | Meta     |  km | Recorrido |
-| --- | ---- | -------- | -------- | --: | --------- |
-| 1   | Flat | Fourmies | Fourmies | 210 | Inventado |
+Clase **Pro** · BE · día 60 · 1 etapa · 🔴 Inventado 1
 
-### Race Luxembourg (LU)
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Cobbles | — | — | 200 | 🔴 Inventado |
 
-PRS · .Pro · una-semana · 5 etapas · día 259
+### Race Dodecanese `race-dodecanese`
 
-| #   | Tipo        | Salida      | Meta        |  km | Recorrido   |
-| --- | ----------- | ----------- | ----------- | --: | ----------- |
-| 1   | Hills       | Luxembourg  | Luxembourg  | 153 | Sin validar |
-| 2   | Hills       | Remich      | Mamer       | 168 | Sin validar |
-| 3   | Hills       | Mertert     | Vianden     | 171 | Sin validar |
-| 4   | ITT (crono) | Niederanven | Niederanven |  26 | Sin validar |
-| 5   | Hills       | Mersch      | Luxembourg  | 176 | Sin validar |
+Clase **1** · GR · día 60 · 1 etapa · 🔴 Inventado 1
 
-### Race Namur (BE)
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-PRS · .Pro · un-dia · 1 etapa · día 259
+### Bolivia Road Championship `nc-bo-road`
 
-| #   | Tipo  | Salida | Meta  |  km | Recorrido |
-| --- | ----- | ------ | ----- | --: | --------- |
-| 1   | Hills | Namur  | Namur | 210 | Inventado |
+Clase **NC** · BO · día 60 · 1 etapa · 🔴 Inventado 1
 
-### Race Flandrien (BE)
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-PRS · .Pro · un-dia · 1 etapa · día 262
+### Race Samyn `race-samyn`
 
-| #   | Tipo    | Salida   | Meta       |  km | Recorrido |
-| --- | ------- | -------- | ---------- | --: | --------- |
-| 1   | Cobbles | Zottegem | Oudenaarde | 190 | Inventado |
+Clase **1** · BE · día 62 · 1 etapa · 🔴 Inventado 1
 
-### Race Croatia (HR)
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Cobbles | — | — | 200 | 🔴 Inventado |
 
-PRS · .Pro · una-semana · 6 etapas · día 265
+### Race Laigueglia `race-laigueglia`
 
-| #   | Tipo          | Salida          | Meta          |  km | Recorrido   |
-| --- | ------------- | --------------- | ------------- | --: | ----------- |
-| 1   | Hills         | Split           | Sinj          | 163 | Sin validar |
-| 2   | Flat          | Biograd na Moru | Novalja       | 115 | Sin validar |
-| 3   | Hills         | Gospic          | Rijeka        | 151 | Sin validar |
-| 4   | Summit finish | Krk             | Labin         | 191 | Sin validar |
-| 5   | Hills         | Karlovac        | Sveta Nedelja | 151 | Sin validar |
-| 6   | Flat          | Samobor         | Zagreb        | 157 | Sin validar |
+Clase **Pro** · IT · día 63 · 1 etapa · ✅ Real 1
 
-### Race Langkawi (MY)
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 192 | ✅ Real |
 
-PRS · .Pro · una-semana · 8 etapas · día 270
+### Race Umag `race-umag`
 
-| #   | Tipo          | Salida        | Meta              |  km | Recorrido   |
-| --- | ------------- | ------------- | ----------------- | --: | ----------- |
-| 1   | Flat          | Shah Alam     | Kampar            | 193 | Sin validar |
-| 2   | Summit finish | Taiping       | Gunung Jerai      | 146 | Sin validar |
-| 3   | Hills         | Sungai Petani | Kuala Kangsar     | 190 | Sin validar |
-| 4   | Summit finish | Tambun        | Cameron Highlands | 140 | Sin validar |
-| 5   | Summit finish | Tapah         | Genting Highlands | 126 | Sin validar |
-| 6   | Hills         | Pandan Indah  | Rembau            | 121 | Sin validar |
-| 7   | Flat          | Melaka        | Batu Pahat        | 159 | Sin validar |
-| 8   | Flat          | Muar          | Putrajaya         | 184 | Sin validar |
+Clase **2** · HR · día 63 · 1 etapa · 🔴 Inventado 1
 
-### Race Emilia (IT)
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 210 | 🔴 Inventado |
 
-PRS · .Pro · un-dia · 1 etapa · día 276
+### Chile ITT Championship `nc-cl-itt`
 
-| #   | Tipo  | Salida | Meta    |  km | Recorrido |
-| --- | ----- | ------ | ------- | --: | --------- |
-| 1   | Hills | Carpi  | Bologna | 210 | Inventado |
+Clase **NC** · CL · día 64 · 1 etapa · 🔴 Inventado 1
 
-### Race Münster (DE)
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-PRS · .Pro · un-dia · 1 etapa · día 276
+### Chile U23 ITT Championship `nc-cl-u23-itt`
 
-| #   | Tipo | Salida  | Meta   |  km | Recorrido |
-| --- | ---- | ------- | ------ | --: | --------- |
-| 1   | Flat | Munster | Telgte | 210 | Inventado |
+Clase **NC** · CL · día 64 · 1 etapa · 🔴 Inventado 1
 
-### Race Legnano (IT)
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-PRS · .Pro · un-dia · 1 etapa · día 278
+### Race White Roads `race-white-roads`
 
-| #   | Tipo  | Salida  | Meta    |  km | Recorrido |
-| --- | ----- | ------- | ------- | --: | --------- |
-| 1   | Hills | Legnano | Legnano | 210 | Inventado |
+Clase **WT** · IT · día 66 · 1 etapa · ✅ Real 1
 
-### Race Varese (IT)
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 215 | ✅ Real |
 
-PRS · .Pro · un-dia · 1 etapa · día 279
+### Race Apollon `race-apollon`
 
-| #   | Tipo  | Salida | Meta   |  km | Recorrido |
-| --- | ----- | ------ | ------ | --: | --------- |
-| 1   | Hills | Varese | Varese | 210 | Inventado |
+Clase **2** · CY · día 66 · 1 etapa · 🔴 Inventado 1
 
-### Race Piedmont (IT)
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 210 | 🔴 Inventado |
 
-PRS · .Pro · un-dia · 1 etapa · día 281
+### Race Communes `race-communes`
 
-| #   | Tipo  | Salida | Meta   |  km | Recorrido |
-| --- | ----- | ------ | ------ | --: | --------- |
-| 1   | Hills | Omegna | Torino | 210 | Inventado |
+Clase **2** · BE · día 66 · 1 etapa · 🔴 Inventado 1
 
-### Race Tours (FR)
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 210 | 🔴 Inventado |
 
-PRS · .Pro · un-dia · 1 etapa · día 284
+### Race Rhodes GP `race-rhodes-gp`
 
-| #   | Tipo    | Salida   | Meta  |  km | Recorrido |
-| --- | ------- | -------- | ----- | --: | --------- |
-| 1   | Cobbles | Chartres | Tours | 210 | Inventado |
+Clase **2** · GR · día 66 · 1 etapa · 🔴 Inventado 1
 
-### Race Veneto (IT)
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-PRS · .Pro · un-dia · 1 etapa · día 287
+### Race Zwolle `race-zwolle`
 
-| #   | Tipo  | Salida | Meta    |  km | Recorrido |
-| --- | ----- | ------ | ------- | --: | --------- |
-| 1   | Hills | Padova | Vicenza | 210 | Inventado |
+Clase **2** · NL · día 66 · 1 etapa · 🔴 Inventado 1
 
-### Race Japan (JP)
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 210 | 🔴 Inventado |
 
-PRS · .Pro · un-dia · 1 etapa · día 291
+### Chile U23 Road Championship `nc-cl-u23-road`
 
-| #   | Tipo  | Salida | Meta  |  km | Recorrido |
-| --- | ----- | ------ | ----- | --: | --------- |
-| 1   | Hills | Kyoto  | Kyoto | 210 | Inventado |
+Clase **NC** · CL · día 66 · 1 etapa · 🔴 Inventado 1
 
-### Race Veneto Classic (IT)
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-PRS · .Pro · un-dia · 1 etapa · día 291
+### Race to the Sun `race-to-the-sun`
 
-| #   | Tipo    | Salida  | Meta               |  km | Recorrido |
-| --- | ------- | ------- | ------------------ | --: | --------- |
-| 1   | Cobbles | Venezia | Bassano del Grappa | 195 | Inventado |
+Clase **WT** · FR · día 67 · 8 etapas · 🟡 Sin validar 8
 
-## Continental
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | Acheres | Carrieres-sous-Poissy | 171 | 🟡 Sin validar |
+| 2 | Llana · Flat | Epone | Montargis | 187 | 🟡 Sin validar |
+| 3 | Contrarreloj · ITT | Cosne-Cours-sur-Loire | Pouilly-sur-Loire | 24 | 🟡 Sin validar |
+| 4 | Montaña · Summit finish | Bourges | Uchon | 195 | 🟡 Sin validar |
+| 5 | Media montaña · Hills | Cormoranche-sur-Saone | Colombier-le-Vieux | 206 | 🟡 Sin validar |
+| 6 | Media montaña · Hills | Barbentane | Apt | 179 | 🟡 Sin validar |
+| 7 | Montaña · Summit finish | Nice | Auron | 139 | 🟡 Sin validar |
+| 8 | Media montaña · Hills | Nice | Nice | 129 | 🟡 Sin validar |
 
-Carreras .1 y .2 de todos los continentes.
+### Race Rucphen `race-rucphen`
 
-### Race Táchira (VE)
+Clase **2** · NL · día 67 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · una-semana · 10 etapas · día 9
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo          | Salida        | Meta          |  km | Recorrido   |
-| --- | ------------- | ------------- | ------------- | --: | ----------- |
-| 1   | Flat          | San Cristobal | Socopo        | 210 | Sin validar |
-| 2   | Hills         | Socopo        | San Cristobal | 210 | Sin validar |
-| 3   | Hills         | San Cristobal | San Cristobal | 117 | Sin validar |
-| 4   | Summit finish | La Fria       | Merida        | 163 | Sin validar |
-| 5   | Hills         | Merida        | Merida        | 121 | Sin validar |
-| 6   | Summit finish | El Vigia      | La Grita      | 166 | Sin validar |
-| 7   | Hills         | Tariba        | San Cristobal | 151 | Sin validar |
-| 8   | Hills         | Abejales      | Capacho       | 155 | Sin validar |
-| 9   | Hills         | Junin         | Junin         | 134 | Sin validar |
-| 10  | Flat          | Urena         | San Cristobal |  99 | Sin validar |
+### Race Lillers `race-lillers`
 
-### Race Pune (IN)
+Clase **2** · FR · día 67 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · una-semana · 5 etapas · día 19
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo        | Salida        | Meta          |  km | Recorrido |
-| --- | ----------- | ------------- | ------------- | --: | --------- |
-| 1   | ITT (crono) | Pune          | Lonavala      |   8 | Real      |
-| 2   | Flat        | Lonavala      | Lavasa        |  88 | Real      |
-| 3   | Hills       | Lavasa        | Panchgani     | 105 | Real      |
-| 4   | Flat        | Panchgani     | Mahabaleshwar | 135 | Real      |
-| 5   | Flat        | Mahabaleshwar | Sinhagad      |  95 | Real      |
+### Race Poreč `race-porec`
 
-### Race Morvedre (ES)
+Clase **2** · HR · día 67 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · un-dia · 1 etapa · día 23
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo  | Salida  | Meta    |  km | Recorrido |
-| --- | ----- | ------- | ------- | --: | --------- |
-| 1   | Hills | Sagunto | Segorbe | 210 | Inventado |
+### Chile Road Championship `nc-cl-road`
 
-### Race Sharjah (AE)
+Clase **NC** · CL · día 67 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · una-semana · 5 etapas · día 23
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-| #   | Tipo          | Salida         | Meta           |  km | Recorrido |
-| --- | ------------- | -------------- | -------------- | --: | --------- |
-| 1   | Flat          | Sharjah        | Ajman          | 169 | Inventado |
-| 2   | Flat          | Ajman          | Ras Al Khaimah | 176 | Inventado |
-| 3   | Hills         | Ras Al Khaimah | Dibba          | 181 | Inventado |
-| 4   | ITT (crono)   | Dibba          | Khor Fakkan    |  15 | Inventado |
-| 5   | Uphill finish | Khor Fakkan    | Fujairah       | 130 | Inventado |
+### Race Two Seas `race-two-seas`
 
-### Race Castellón (ES)
+Clase **WT** · IT · día 68 · 7 etapas · 🟡 Sin validar 7
 
-CON · .1 · un-dia · 1 etapa · día 24
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | Lido di Camaiore | Lido di Camaiore | 12 | 🟡 Sin validar |
+| 2 | Media montaña · Hills | Camaiore | San Gimignano | 206 | 🟡 Sin validar |
+| 3 | Media montaña · Hills | Cortona | Magliano dei Marsi | 225 | 🟡 Sin validar |
+| 4 | Montaña · Summit finish | Tagliacozzo | Martinsicuro | 210 | 🟡 Sin validar |
+| 5 | Media montaña · Hills | Marotta-Mondolfo | Mombaroccio | 186 | 🟡 Sin validar |
+| 6 | Montaña · Summit finish | San Severino Marche | Camerino | 189 | 🟡 Sin validar |
+| 7 | Llana · Flat | Civitanova Marche | San Benedetto del Tronto | 143 | 🟡 Sin validar |
 
-| #   | Tipo | Salida    | Meta     |  km | Recorrido |
-| --- | ---- | --------- | -------- | --: | --------- |
-| 1   | Flat | Castellon | Valencia | 210 | Inventado |
+### Race Istria `race-istria`
 
-### Race Valencia GP (ES)
+Clase **2** · HR · día 71 · 4 etapas · 🟡 Sin validar 4
 
-CON · .1 · un-dia · 1 etapa · día 25
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | Vrsar | Vrsar | 2 | 🟡 Sin validar |
+| 2 | Media montaña · Hills | Porec | Funtana | 142 | 🟡 Sin validar |
+| 3 | Media montaña · Hills | Novigrad | Motovun | 132 | 🟡 Sin validar |
+| 4 | Media montaña · Hills | Pazin | Umag | 118 | 🟡 Sin validar |
 
-| #   | Tipo | Salida   | Meta     |  km | Recorrido |
-| --- | ---- | -------- | -------- | --: | --------- |
-| 1   | Flat | Valencia | Valencia | 210 | Inventado |
+### Race Antalya `race-antalya`
 
-### Race Calvià (ES)
+Clase **2** · TR · día 71 · 4 etapas · 🔴 Inventado 4
 
-CON · .1 · un-dia · 1 etapa · día 28
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 165 | 🔴 Inventado |
+| 2 | Contrarreloj · ITT | — | — | 15 | 🔴 Inventado |
+| 3 | Media montaña · Hills | — | — | 186 | 🔴 Inventado |
+| 4 | Media montaña · Uphill finish | — | — | 143 | 🔴 Inventado |
 
-| #   | Tipo  | Salida | Meta  |  km | Recorrido |
-| --- | ----- | ------ | ----- | --: | --------- |
-| 1   | Hills | Calvia | Palma | 210 | Inventado |
+### Race Rhodes `race-rhodes`
 
-### Race Ses Salines (ES)
+Clase **2** · GR · día 71 · 4 etapas · 🔴 Inventado 4
 
-CON · .1 · un-dia · 1 etapa · día 29
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 179 | 🔴 Inventado |
+| 2 | Contrarreloj · ITT | — | — | 23 | 🔴 Inventado |
+| 3 | Media montaña · Uphill finish | — | — | 179 | 🔴 Inventado |
+| 4 | Media montaña · Hills | — | — | 151 | 🔴 Inventado |
 
-| #   | Tipo          | Salida      | Meta       |  km | Recorrido |
-| --- | ------------- | ----------- | ---------- | --: | --------- |
-| 1   | Summit finish | Ses Salines | Sa Calobra | 210 | Inventado |
+### Race Popolarissima `race-popolarissima`
 
-### Race Tramuntana (ES)
+Clase **2** · IT · día 74 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · un-dia · 1 etapa · día 30
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo          | Salida | Meta       |  km | Recorrido |
-| --- | ------------- | ------ | ---------- | --: | --------- |
-| 1   | Summit finish | Soller | Sa Calobra | 210 | Inventado |
+### Race Taiwan `race-taiwan`
 
-### Race Andratx (ES)
+Clase **1** · TW · día 74 · 5 etapas · 🟡 Sin validar 5
 
-CON · .1 · un-dia · 1 etapa · día 31
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | Taipei | Taipei | 81 | 🟡 Sin validar |
+| 2 | Media montaña · Hills | Taoyuan | Jiaobanshan | 123 | 🟡 Sin validar |
+| 3 | Media montaña · Hills | Fo Guang Shan | Kaohsiung | 146 | 🟡 Sin validar |
+| 4 | Llana · Flat | Gaoshu | Liudui | 131 | 🟡 Sin validar |
+| 5 | Media montaña · Hills | Luye | Liyu Lake | 154 | 🟡 Sin validar |
 
-| #   | Tipo  | Salida  | Meta  |  km | Recorrido |
-| --- | ----- | ------- | ----- | --: | --------- |
-| 1   | Hills | Andratx | Palma | 210 | Inventado |
+### Race Nokere `race-nokere`
 
-### Race Marseille (FR)
+Clase **Pro** · BE · día 77 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · un-dia · 1 etapa · día 32
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Cobbles | — | — | 190 | 🔴 Inventado |
 
-| #   | Tipo  | Salida    | Meta      |  km | Recorrido |
-| --- | ----- | --------- | --------- | --: | --------- |
-| 1   | Hills | Marseille | Marseille | 210 | Inventado |
+### Race Turin `race-turin`
 
-### Race Palma (ES)
+Clase **Pro** · IT · día 77 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · un-dia · 1 etapa · día 32
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo | Salida | Meta  |  km | Recorrido |
-| --- | ---- | ------ | ----- | --: | --------- |
-| 1   | Flat | Palma  | Palma | 210 | Inventado |
+### Race Denain `race-denain`
 
-### Race Colombia (CO)
+Clase **Pro** · FR · día 78 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · una-semana · 9 etapas · día 34
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Cobbles | — | — | 200 | 🔴 Inventado |
 
-| #   | Tipo          | Salida   | Meta              |  km | Recorrido   |
-| --- | ------------- | -------- | ----------------- | --: | ----------- |
-| 1   | Flat          | Yopal    | Yopal             | 206 | Sin validar |
-| 2   | Summit finish | Yopal    | Alto del Porvenir | 153 | Sin validar |
-| 3   | ITT (crono)   | Curisi   | Toquilla          |  33 | Sin validar |
-| 4   | Hills         | Duitama  | Duitama           | 125 | Sin validar |
-| 5   | Summit finish | Mosquera | Alto de La Linea  | 232 | Sin validar |
-| 6   | Flat          | Armenia  | Cali              | 185 | Sin validar |
-| 7   | Hills         | Cali     | La Tebaida        | 171 | Sin validar |
-| 8   | Summit finish | Alvarado | Alto del Vino     | 217 | Sin validar |
-| 9   | Hills         | Sopo     | Bogota            | 139 | Sin validar |
+### Race Bredene `race-bredene`
 
-### Race Bessèges (FR)
+Clase **Pro** · BE · día 79 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · una-semana · 5 etapas · día 35
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo          | Salida     | Meta            |  km | Recorrido |
-| --- | ------------- | ---------- | --------------- | --: | --------- |
-| 1   | Flat          | Bellegarde | Nimes           | 184 | Inventado |
-| 2   | Hills         | Nimes      | Besseges        | 165 | Inventado |
-| 3   | Hills         | Besseges   | Ales            | 180 | Inventado |
-| 4   | Uphill finish | Ales       | Laudun          | 164 | Inventado |
-| 5   | Flat          | Laudun     | La Grande-Motte | 159 | Inventado |
+### Race Youngster Coast `race-youngster`
 
-### Race Victoria (AU)
+Clase **2** · BE · día 79 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · una-semana · 5 etapas · día 35
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Cobbles | — | — | 175 | 🔴 Inventado |
 
-| #   | Tipo          | Salida       | Meta         |  km | Recorrido |
-| --- | ------------- | ------------ | ------------ | --: | --------- |
-| 1   | Flat          | Melbourne    | Sorrento     | 180 | Inventado |
-| 2   | Uphill finish | Sorrento     | Arthurs Seat | 150 | Inventado |
-| 3   | ITT (crono)   | Arthurs Seat | Melbourne    |  15 | Inventado |
-| 4   | Hills         | Melbourne    | Kinglake     | 162 | Inventado |
-| 5   | Hills         | Kinglake     | Healesville  | 150 | Inventado |
+### Race Sanremo `race-sanremo`
 
-### Race Antalya GP (TR)
+Clase **WT** · IT · día 80 · 1 etapa · ✅ Real 1
 
-CON · .2 · un-dia · 1 etapa · día 38
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 288 | ✅ Real |
 
-| #   | Tipo | Salida  | Meta |  km | Recorrido |
-| --- | ---- | ------- | ---- | --: | --------- |
-| 1   | Flat | Antalya | Side | 210 | Inventado |
+### Race Ebre `race-ebre`
 
-### Race Aveiro (PT)
+Clase **1** · ES · día 80 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · un-dia · 1 etapa · día 39
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo | Salida | Meta |  km | Recorrido |
-| --- | ---- | ------ | ---- | --: | --------- |
-| 1   | Flat | Aveiro | Ovar | 210 | Inventado |
+### Race Monseré `race-monsere`
 
-### Race Murcia (ES)
+Clase **1** · BE · día 81 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · una-semana · 2 etapas · día 44
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo          | Salida    | Meta             |  km | Recorrido |
-| --- | ------------- | --------- | ---------------- | --: | --------- |
-| 1   | Flat          | Murcia    | Cartagena        | 189 | Inventado |
-| 2   | Summit finish | Cartagena | Alhama de Murcia | 143 | Inventado |
+### Race Slovenian Istria `race-slovenian-istria`
 
-### Race Provence (FR)
+Clase **2** · SI · día 81 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · una-semana · 3 etapas · día 44
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo          | Salida            | Meta              |  km | Recorrido |
-| --- | ------------- | ----------------- | ----------------- | --: | --------- |
-| 1   | Flat          | Marseille         | Salon-de-Provence | 188 | Inventado |
-| 2   | Uphill finish | Salon-de-Provence | Montagne de Lure  | 169 | Inventado |
-| 3   | Summit finish | Montagne de Lure  | Chalet Reynard    | 128 | Inventado |
+### Race Ontur `race-ontur`
 
-### Race Jaén (ES)
+Clase **2** · ES · día 81 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · un-dia · 1 etapa · día 47
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo  | Salida | Meta |  km | Recorrido |
-| --- | ----- | ------ | ---- | --: | --------- |
-| 1   | Hills | Ubeda  | Jaen | 210 | Inventado |
+### Race Arrábida `race-arrabida`
 
-### Race Alaiye (TR)
+Clase **2** · PT · día 81 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · un-dia · 1 etapa · día 52
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo | Salida | Meta     |  km | Recorrido |
-| --- | ---- | ------ | -------- | --: | --------- |
-| 1   | Flat | Alanya | Manavgat | 210 | Inventado |
+### Race Catalonia `race-catalonia`
 
-### Race Var (FR)
+Clase **WT** · ES · día 82 · 7 etapas · 🟡 Sin validar 7
 
-CON · .1 · un-dia · 1 etapa · día 52
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | Sant Feliu de Guixols | Sant Feliu de Guixols | 173 | 🟡 Sin validar |
+| 2 | Llana · Flat | Figueres | Banyoles | 167 | 🟡 Sin validar |
+| 3 | Media montaña · Hills | Mont-roig del Camp | Vila-seca | 160 | 🟡 Sin validar |
+| 4 | Montaña · Summit finish | Mataro | Vallter 2000 | 173 | 🟡 Sin validar |
+| 5 | Montaña · Summit finish | La Seu d'Urgell | Coll de Pal | 155 | 🟡 Sin validar |
+| 6 | Montaña · Summit finish | Berga | Queralt | 158 | 🟡 Sin validar |
+| 7 | Media montaña · Hills | Barcelona | Barcelona | 95 | 🟡 Sin validar |
 
-| #   | Tipo  | Salida     | Meta       |  km | Recorrido |
-| --- | ----- | ---------- | ---------- | --: | --------- |
-| 1   | Hills | Draguignan | Draguignan | 210 | Inventado |
+### Race Thailand `race-thailand`
 
-### Race Alpes-Maritimes (FR)
+Clase **1** · TH · día 83 · 6 etapas · 🟡 Sin validar 6
 
-CON · .1 · un-dia · 1 etapa · día 53
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | Nong Khai | Nong Khai | 109 | 🟡 Sin validar |
+| 2 | Llana · Flat | Phon Phisai | Nong Khai | 150 | 🟡 Sin validar |
+| 3 | Montaña · Summit finish | Nong Khai | Phu Foi Lom | 142 | 🟡 Sin validar |
+| 4 | Llana · Flat | Nong Khai | Tha Bo | 155 | 🟡 Sin validar |
+| 5 | Llana · Flat | Si Chiang Mai | Si Chiang Mai | 136 | 🟡 Sin validar |
+| 6 | Llana · Flat | Nong Khai | Nong Khai | 126 | 🟡 Sin validar |
 
-| #   | Tipo  | Salida | Meta |  km | Recorrido |
-| --- | ----- | ------ | ---- | --: | --------- |
-| 1   | Hills | Nice   | Nice | 210 | Inventado |
+### Race Bruges `race-bruges`
 
-### Race Rwanda (RW)
+Clase **WT** · BE · día 84 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · una-semana · 8 etapas · día 53
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Cobbles | — | — | 205 | 🔴 Inventado |
 
-| #   | Tipo          | Salida  | Meta      |  km | Recorrido   |
-| --- | ------------- | ------- | --------- | --: | ----------- |
-| 1   | Hills         | Rukomo  | Rwamagana | 174 | Sin validar |
-| 2   | Hills         | Nyamata | Huye      | 135 | Sin validar |
-| 3   | Hills         | Huye    | Rusizi    | 145 | Sin validar |
-| 4   | Hills         | Karongi | Rubavu    | 127 | Sin validar |
-| 5   | Flat          | Rubavu  | Rubavu    |  82 | Sin validar |
-| 6   | Summit finish | Rubavu  | Musanze   |  84 | Sin validar |
-| 7   | Hills         | Musanze | Kigali    | 147 | Sin validar |
-| 8   | Hills         | Kigali  | Kigali    |  84 | Sin validar |
+### Race Romagna `race-romagna`
 
-### Race Sardegna (IT)
+Clase **1** · IT · día 84 · 5 etapas · 🔴 Inventado 5
 
-CON · .1 · una-semana · 5 etapas · día 56
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 191 | 🔴 Inventado |
+| 2 | Media montaña · Uphill finish | — | — | 171 | 🔴 Inventado |
+| 3 | Montaña · Summit finish | — | — | 175 | 🔴 Inventado |
+| 4 | Montaña · Summit finish | — | — | 148 | 🔴 Inventado |
+| 5 | Llana · Flat | — | — | 150 | 🔴 Inventado |
 
-| #   | Tipo          | Salida      | Meta     |  km | Recorrido   |
-| --- | ------------- | ----------- | -------- | --: | ----------- |
-| 1   | Hills         | Castelsardo | Bosa     | 190 | Sin validar |
-| 2   | Flat          | Oristano    | Carbonia | 136 | Sin validar |
-| 3   | Hills         | Cagliari    | Tortoli  | 168 | Sin validar |
-| 4   | Summit finish | Arbatax     | Nuoro    | 154 | Sin validar |
-| 5   | Hills         | Nuoro       | Olbia    | 177 | Sin validar |
+### Race Olympia `race-olympia`
 
-### Race Aegean (TR)
+Clase **2** · NL · día 84 · 5 etapas · 🔴 Inventado 5
 
-CON · .1 · un-dia · 1 etapa · día 59
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 169 | 🔴 Inventado |
+| 2 | Llana · Flat | — | — | 181 | 🔴 Inventado |
+| 3 | Media montaña · Hills | — | — | 168 | 🔴 Inventado |
+| 4 | Contrarreloj · ITT | — | — | 20 | 🔴 Inventado |
+| 5 | Media montaña · Uphill finish | — | — | 131 | 🔴 Inventado |
 
-| #   | Tipo  | Salida | Meta   |  km | Recorrido |
-| --- | ----- | ------ | ------ | --: | --------- |
-| 1   | Hills | Izmir  | Selcuk | 210 | Inventado |
+### Race Alentejo `race-alentejo`
 
-### Race Pedalia (GR)
+Clase **2** · PT · día 84 · 5 etapas · 🟡 Sin validar 5
 
-CON · .2 · un-dia · 1 etapa · día 59
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | Beja | Moura | 167 | 🟡 Sin validar |
+| 2 | Llana · Flat | Castro Verde | Grandola | 172 | 🟡 Sin validar |
+| 3 | Llana · Flat | Carvalhal | Arraiolos | 182 | 🟡 Sin validar |
+| 4 | Media montaña · Hills | Monforte | Castelo de Vide | 148 | 🟡 Sin validar |
+| 5 | Media montaña · Hills | Estremoz | Evora | 152 | 🟡 Sin validar |
 
-| #   | Tipo | Salida   | Meta   |  km | Recorrido |
-| --- | ---- | -------- | ------ | --: | --------- |
-| 1   | Flat | Marathon | Athens | 210 | Inventado |
+### Race Brda `race-brda`
 
-### Race Dodecanese (GR)
+Clase **2** · SI · día 85 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · un-dia · 1 etapa · día 60
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo  | Salida | Meta   |  km | Recorrido |
-| --- | ----- | ------ | ------ | --: | --------- |
-| 1   | Hills | Lindos | Rhodes | 210 | Inventado |
+### Race Harelbeke `race-harelbeke`
 
-### Race Samyn (BE)
+Clase **WT** · BE · día 86 · 1 etapa · ✅ Real 1
 
-CON · .1 · un-dia · 1 etapa · día 62
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Cobbles | — | — | 209 | ✅ Real |
 
-| #   | Tipo    | Salida    | Meta |  km | Recorrido |
-| --- | ------- | --------- | ---- | --: | --------- |
-| 1   | Cobbles | Quaregnon | Dour | 200 | Inventado |
+### Race Loire Atlantique `race-loire-atlantique`
 
-### Race Umag (HR)
+Clase **2** · FR · día 87 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · un-dia · 1 etapa · día 63
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo | Salida   | Meta |  km | Recorrido |
-| --- | ---- | -------- | ---- | --: | --------- |
-| 1   | Flat | Novigrad | Umag | 210 | Inventado |
+### Race Syedra `race-syedra`
 
-### Race Apollon (CY)
+Clase **2** · TR · día 87 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · un-dia · 1 etapa · día 66
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo | Salida   | Meta    |  km | Recorrido |
-| --- | ---- | -------- | ------- | --: | --------- |
-| 1   | Flat | Limassol | Larnaca | 210 | Inventado |
+### Race Wevelgem `race-wevelgem`
 
-### Race Communes (BE)
+Clase **WT** · BE · día 88 · 1 etapa · ✅ Real 1
 
-CON · .2 · un-dia · 1 etapa · día 66
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Cobbles | — | — | 250 | ✅ Real |
 
-| #   | Tipo | Salida | Meta        |  km | Recorrido |
-| --- | ---- | ------ | ----------- | --: | --------- |
-| 1   | Flat | Mons   | La Louviere | 210 | Inventado |
+### Race Emilia GP `race-emilia-gp`
 
-### Race Rhodes GP (GR)
+Clase **1** · IT · día 88 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · un-dia · 1 etapa · día 66
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo  | Salida | Meta   |  km | Recorrido |
-| --- | ----- | ------ | ------ | --: | --------- |
-| 1   | Hills | Rhodes | Lindos | 210 | Inventado |
+### Race Tourangelle `race-tourangelle`
 
-### Race Zwolle (NL)
+Clase **1** · FR · día 88 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · un-dia · 1 etapa · día 66
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo | Salida | Meta   |  km | Recorrido |
-| --- | ---- | ------ | ------ | --: | --------- |
-| 1   | Flat | Zwolle | Zwolle | 210 | Inventado |
+### Race Annemasse `race-annemasse`
 
-### Race Lillers (FR)
+Clase **2** · FR · día 88 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · un-dia · 1 etapa · día 67
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo | Salida  | Meta    |  km | Recorrido |
-| --- | ---- | ------- | ------- | --: | --------- |
-| 1   | Flat | Lillers | Lillers | 210 | Inventado |
+### Race Novo Mesto `race-novo-mesto`
 
-### Race Poreč (HR)
+Clase **2** · SI · día 88 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · un-dia · 1 etapa · día 67
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo  | Salida  | Meta  |  km | Recorrido |
-| --- | ----- | ------- | ----- | --: | --------- |
-| 1   | Hills | Motovun | Porec | 210 | Inventado |
+### Race Camembert `race-camembert`
 
-### Race Rucphen (NL)
+Clase **1** · FR · día 90 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · un-dia · 1 etapa · día 67
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo | Salida     | Meta    |  km | Recorrido |
-| --- | ---- | ---------- | ------- | --: | --------- |
-| 1   | Flat | Roosendaal | Rucphen | 210 | Inventado |
+### Race Across Flanders `race-across-flanders`
 
-### Race Antalya (TR)
+Clase **WT** · BE · día 91 · 1 etapa · ✅ Real 1
 
-CON · .2 · una-semana · 4 etapas · día 71
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Cobbles | — | — | 189 | ✅ Real |
 
-| #   | Tipo          | Salida    | Meta      |  km | Recorrido |
-| --- | ------------- | --------- | --------- | --: | --------- |
-| 1   | Flat          | Antalya   | Kemer     | 165 | Inventado |
-| 2   | ITT (crono)   | Kemer     | Elmali    |  15 | Inventado |
-| 3   | Hills         | Elmali    | Korkuteli | 186 | Inventado |
-| 4   | Uphill finish | Korkuteli | Serik     | 143 | Inventado |
+### Race Vitré `race-vitre`
 
-### Race Istria (HR)
+Clase **1** · FR · día 93 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · una-semana · 4 etapas · día 71
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo        | Salida   | Meta    |  km | Recorrido   |
-| --- | ----------- | -------- | ------- | --: | ----------- |
-| 1   | ITT (crono) | Vrsar    | Vrsar   |   2 | Sin validar |
-| 2   | Hills       | Porec    | Funtana | 142 | Sin validar |
-| 3   | Hills       | Novigrad | Motovun | 132 | Sin validar |
-| 4   | Hills       | Pazin    | Umag    | 118 | Sin validar |
+### Race Alanya `race-alanya`
 
-### Race Rhodes (GR)
+Clase **2** · TR · día 93 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · una-semana · 4 etapas · día 71
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo          | Salida      | Meta        |  km | Recorrido |
-| --- | ------------- | ----------- | ----------- | --: | --------- |
-| 1   | Flat          | Rhodes      | Faliraki    | 179 | Inventado |
-| 2   | ITT (crono)   | Faliraki    | Archangelos |  23 | Inventado |
-| 3   | Uphill finish | Archangelos | Lindos      | 179 | Inventado |
-| 4   | Hills         | Lindos      | Ialysos     | 151 | Inventado |
+### Race Navarre `race-navarre`
 
-### Race Popolarissima (IT)
+Clase **Pro** · ES · día 94 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · un-dia · 1 etapa · día 74
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo | Salida  | Meta    |  km | Recorrido |
-| --- | ---- | ------- | ------- | --: | --------- |
-| 1   | Flat | Treviso | Treviso | 210 | Inventado |
+### Race NXT `race-nxt`
 
-### Race Taiwan (TW)
+Clase **1** · NL · día 94 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · una-semana · 5 etapas · día 74
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo  | Salida        | Meta        |  km | Recorrido   |
-| --- | ----- | ------------- | ----------- | --: | ----------- |
-| 1   | Flat  | Taipei        | Taipei      |  81 | Sin validar |
-| 2   | Hills | Taoyuan       | Jiaobanshan | 123 | Sin validar |
-| 3   | Hills | Fo Guang Shan | Kaohsiung   | 146 | Sin validar |
-| 4   | Flat  | Gaoshu        | Liudui      | 131 | Sin validar |
-| 5   | Hills | Luye          | Liyu Lake   | 154 | Sin validar |
+### Race Artois `race-artois`
 
-### Race Youngster Coast (BE)
+Clase **2** · FR · día 94 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · un-dia · 1 etapa · día 79
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo    | Salida     | Meta     |  km | Recorrido |
-| --- | ------- | ---------- | -------- | --: | --------- |
-| 1   | Cobbles | Nieuwpoort | Koksijde | 175 | Inventado |
+### Race Flanders `race-flanders`
 
-### Race Ebre (ES)
+Clase **WT** · BE · día 95 · 1 etapa · ✅ Real 1
 
-CON · .1 · un-dia · 1 etapa · día 80
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Cobbles | — | — | 278 | ✅ Real |
 
-| #   | Tipo  | Salida  | Meta    |  km | Recorrido |
-| --- | ----- | ------- | ------- | --: | --------- |
-| 1   | Hills | Tortosa | Gandesa | 210 | Inventado |
+### Race Piva `race-piva`
 
-### Race Arrábida (PT)
+Clase **2** · IT · día 95 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · un-dia · 1 etapa · día 81
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo  | Salida  | Meta     |  km | Recorrido |
-| --- | ----- | ------- | -------- | --: | --------- |
-| 1   | Hills | Setubal | Sesimbra | 210 | Inventado |
+### Race Basque Country `race-basque-country`
 
-### Race Monseré (BE)
+Clase **WT** · ES · día 96 · 6 etapas · 🟡 Sin validar 6
 
-CON · .1 · un-dia · 1 etapa · día 81
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | Bilbao | Bilbao | 14 | 🟡 Sin validar |
+| 2 | Media montaña · Hills | Pamplona | Cuevas de Mendukilo | 164 | 🟡 Sin validar |
+| 3 | Media montaña · Hills | Basauri | Basauri | 153 | 🟡 Sin validar |
+| 4 | Media montaña · Hills | Galdakao | Galdakao | 167 | 🟡 Sin validar |
+| 5 | Montaña · Summit finish | Eibar | Eibar | 176 | 🟡 Sin validar |
+| 6 | Montaña · Summit finish | Antzuola | Bergara | 135 | 🟡 Sin validar |
 
-| #   | Tipo | Salida    | Meta     |  km | Recorrido |
-| --- | ---- | --------- | -------- | --: | --------- |
-| 1   | Flat | Roeselare | Hooglede | 210 | Inventado |
+### Race Belvedere `race-belvedere`
 
-### Race Ontur (ES)
+Clase **2** · IT · día 96 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · un-dia · 1 etapa · día 81
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo | Salida | Meta   |  km | Recorrido |
-| --- | ---- | ------ | ------ | --: | --------- |
-| 1   | Flat | Ontur  | Hellin | 210 | Inventado |
+### Race Huy `race-huy`
 
-### Race Slovenian Istria (SI)
+Clase **2** · BE · día 96 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · un-dia · 1 etapa · día 81
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Montaña · Summit finish | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo  | Salida | Meta  |  km | Recorrido |
-| --- | ----- | ------ | ----- | --: | --------- |
-| 1   | Hills | Koper  | Piran | 210 | Inventado |
+### Race Loire `race-loire`
 
-### Race Thailand (TH)
+Clase **Pro** · FR · día 97 · 5 etapas · 🟡 Sin validar 5
 
-CON · .1 · una-semana · 6 etapas · día 83
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | Blois | Vouzon | 180 | 🟡 Sin validar |
+| 2 | Media montaña · Hills | Chemery | Saint-Georges-sur-Cher | 189 | 🟡 Sin validar |
+| 3 | Media montaña · Hills | Moree | Montoire-sur-le-Loir | 195 | 🟡 Sin validar |
+| 4 | Llana · Flat | Romorantin | Romorantin | 189 | 🟡 Sin validar |
+| 5 | Media montaña · Hills | Blois | Blois | 98 | 🟡 Sin validar |
 
-| #   | Tipo          | Salida        | Meta          |  km | Recorrido   |
-| --- | ------------- | ------------- | ------------- | --: | ----------- |
-| 1   | Flat          | Nong Khai     | Nong Khai     | 109 | Sin validar |
-| 2   | Flat          | Phon Phisai   | Nong Khai     | 150 | Sin validar |
-| 3   | Summit finish | Nong Khai     | Phu Foi Lom   | 142 | Sin validar |
-| 4   | Flat          | Nong Khai     | Tha Bo        | 155 | Sin validar |
-| 5   | Flat          | Si Chiang Mai | Si Chiang Mai | 136 | Sin validar |
-| 6   | Flat          | Nong Khai     | Nong Khai     | 126 | Sin validar |
+### Race Recioto `race-recioto`
 
-### Race Alentejo (PT)
+Clase **2** · IT · día 97 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · una-semana · 5 etapas · día 84
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo  | Salida       | Meta            |  km | Recorrido   |
-| --- | ----- | ------------ | --------------- | --: | ----------- |
-| 1   | Flat  | Beja         | Moura           | 167 | Sin validar |
-| 2   | Flat  | Castro Verde | Grandola        | 172 | Sin validar |
-| 3   | Flat  | Carvalhal    | Arraiolos       | 182 | Sin validar |
-| 4   | Hills | Monforte     | Castelo de Vide | 148 | Sin validar |
-| 5   | Hills | Estremoz     | Evora           | 152 | Sin validar |
+### Race Schelde `race-schelde`
 
-### Race Olympia (NL)
+Clase **Pro** · BE · día 98 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · una-semana · 5 etapas · día 84
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo          | Salida     | Meta       |  km | Recorrido |
-| --- | ------------- | ---------- | ---------- | --: | --------- |
-| 1   | Flat          | Apeldoorn  | Nijmegen   | 169 | Inventado |
-| 2   | Flat          | Nijmegen   | Arnhem     | 181 | Inventado |
-| 3   | Hills         | Arnhem     | Venlo      | 168 | Inventado |
-| 4   | ITT (crono)   | Venlo      | Valkenburg |  20 | Inventado |
-| 5   | Uphill finish | Valkenburg | Maastricht | 131 | Inventado |
+### Race Ardennes `race-ardennes`
 
-### Race Romagna (IT)
+Clase **2** · BE · día 98 · 5 etapas · 🔴 Inventado 5
 
-CON · .1 · una-semana · 5 etapas · día 84
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 174 | 🔴 Inventado |
+| 2 | Media montaña · Hills | — | — | 171 | 🔴 Inventado |
+| 3 | Media montaña · Uphill finish | — | — | 166 | 🔴 Inventado |
+| 4 | Contrarreloj · ITT | — | — | 23 | 🔴 Inventado |
+| 5 | Media montaña · Hills | — | — | 157 | 🔴 Inventado |
 
-| #   | Tipo          | Salida     | Meta       |  km | Recorrido |
-| --- | ------------- | ---------- | ---------- | --: | --------- |
-| 1   | Flat          | Rimini     | Cesenatico | 191 | Inventado |
-| 2   | Uphill finish | Cesenatico | Cesena     | 171 | Inventado |
-| 3   | Summit finish | Cesena     | Forli      | 175 | Inventado |
-| 4   | Summit finish | Forli      | Faenza     | 148 | Inventado |
-| 5   | Flat          | Faenza     | Imola      | 150 | Inventado |
+### Race Mersin `race-mersin`
 
-### Race Brda (SI)
+Clase **2** · TR · día 99 · 4 etapas · 🔴 Inventado 4
 
-CON · .2 · un-dia · 1 etapa · día 85
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 182 | 🔴 Inventado |
+| 2 | Media montaña · Hills | — | — | 177 | 🔴 Inventado |
+| 3 | Contrarreloj · ITT | — | — | 16 | 🔴 Inventado |
+| 4 | Media montaña · Uphill finish | — | — | 136 | 🔴 Inventado |
 
-| #   | Tipo  | Salida      | Meta    |  km | Recorrido |
-| --- | ----- | ----------- | ------- | --: | --------- |
-| 1   | Hills | Nova Gorica | Dobrovo | 210 | Inventado |
+### United Arab Emirates ITT Championship `nc-ae-itt`
 
-### Race Loire Atlantique (FR)
+Clase **NC** · AE · día 99 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · un-dia · 1 etapa · día 87
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-| #   | Tipo | Salida | Meta          |  km | Recorrido |
-| --- | ---- | ------ | ------------- | --: | --------- |
-| 1   | Flat | Nantes | Saint-Nazaire | 210 | Inventado |
+### United Arab Emirates U23 ITT Championship `nc-ae-u23-itt`
 
-### Race Syedra (TR)
+Clase **NC** · AE · día 99 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · un-dia · 1 etapa · día 87
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-| #   | Tipo | Salida | Meta     |  km | Recorrido |
-| --- | ---- | ------ | -------- | --: | --------- |
-| 1   | Flat | Alanya | Gazipasa | 210 | Inventado |
+### Race Reggio `race-reggio`
 
-### Race Annemasse (FR)
+Clase **1** · IT · día 100 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · un-dia · 1 etapa · día 88
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo  | Salida    | Meta      |  km | Recorrido |
-| --- | ----- | --------- | --------- | --: | --------- |
-| 1   | Hills | Annemasse | Annemasse | 210 | Inventado |
+### Race Magna Grecia `race-magna-grecia`
 
-### Race Emilia GP (IT)
+Clase **1** · IT · día 101 · 3 etapas · 🔴 Inventado 3
 
-CON · .1 · un-dia · 1 etapa · día 88
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 177 | 🔴 Inventado |
+| 2 | Montaña · Summit finish | — | — | 152 | 🔴 Inventado |
+| 3 | Media montaña · Hills | — | — | 149 | 🔴 Inventado |
 
-| #   | Tipo  | Salida        | Meta   |  km | Recorrido |
-| --- | ----- | ------------- | ------ | --: | --------- |
-| 1   | Hills | Reggio Emilia | Modena | 210 | Inventado |
+### Race Braakman `race-braakman`
 
-### Race Novo Mesto (SI)
+Clase **2** · NL · día 101 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · un-dia · 1 etapa · día 88
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo  | Salida     | Meta   |  km | Recorrido |
-| --- | ----- | ---------- | ------ | --: | --------- |
-| 1   | Hills | Novo Mesto | Otocec | 210 | Inventado |
+### United Arab Emirates U23 Road Championship `nc-ae-u23-road`
 
-### Race Tourangelle (FR)
+Clase **NC** · AE · día 101 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · un-dia · 1 etapa · día 88
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-| #   | Tipo  | Salida         | Meta  |  km | Recorrido |
-| --- | ----- | -------------- | ----- | --: | --------- |
-| 1   | Hills | Azay-le-Rideau | Tours | 210 | Inventado |
+### Race Roubaix `race-roubaix`
 
-### Race Camembert (FR)
+Clase **WT** · FR · día 102 · 1 etapa · ✅ Real 1
 
-CON · .1 · un-dia · 1 etapa · día 90
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Cobbles | — | — | 258 | ✅ Real |
 
-| #   | Tipo  | Salida    | Meta       |  km | Recorrido |
-| --- | ----- | --------- | ---------- | --: | --------- |
-| 1   | Hills | Camembert | Vimoutiers | 210 | Inventado |
+### Race Pascua `race-pascua`
 
-### Race Alanya (TR)
+Clase **2** · ES · día 102 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · un-dia · 1 etapa · día 93
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo | Salida | Meta |  km | Recorrido |
-| --- | ---- | ------ | ---- | --: | --------- |
-| 1   | Flat | Alanya | Side | 210 | Inventado |
+### Race Roubaix Espoirs `race-roubaix-espoirs`
 
-### Race Vitré (FR)
+Clase **2** · FR · día 102 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · un-dia · 1 etapa · día 93
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Cobbles | — | — | 190 | 🔴 Inventado |
 
-| #   | Tipo | Salida | Meta  |  km | Recorrido |
-| --- | ---- | ------ | ----- | --: | --------- |
-| 1   | Flat | Vitre  | Vitre | 210 | Inventado |
+### Race Ślężański `race-slezanski`
 
-### Race Artois (FR)
+Clase **2** · PL · día 102 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · un-dia · 1 etapa · día 94
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo | Salida | Meta  |  km | Recorrido |
-| --- | ---- | ------ | ----- | --: | --------- |
-| 1   | Flat | Arras  | Arras | 210 | Inventado |
+### Race Vendemiano `race-vendemiano`
 
-### Race NXT (NL)
+Clase **2** · IT · día 102 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · un-dia · 1 etapa · día 94
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo | Salida | Meta      |  km | Recorrido |
-| --- | ---- | ------ | --------- | --: | --------- |
-| 1   | Flat | Emmen  | Hoogeveen | 210 | Inventado |
+### United Arab Emirates Road Championship `nc-ae-road`
 
-### Race Piva (IT)
+Clase **NC** · AE · día 102 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · un-dia · 1 etapa · día 95
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-| #   | Tipo  | Salida          | Meta            |  km | Recorrido |
-| --- | ----- | --------------- | --------------- | --: | --------- |
-| 1   | Hills | Farra di Soligo | Farra di Soligo | 210 | Inventado |
+### Race Galicia `race-galicia`
 
-### Race Belvedere (IT)
+Clase **1** · ES · día 104 · 5 etapas · 🟡 Sin validar 5
 
-CON · .2 · un-dia · 1 etapa · día 96
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | Maia | Matosinhos | 190 | 🟡 Sin validar |
+| 2 | Media montaña · Hills | Marin | A Estrada | 133 | 🟡 Sin validar |
+| 3 | Contrarreloj · ITT | Ourense | O Pereiro de Aguiar | 16 | 🟡 Sin validar |
+| 4 | Montaña · Summit finish | A Pobra do Brollon | O Cebreiro | 137 | 🟡 Sin validar |
+| 5 | Media montaña · Hills | Betanzos | Santiago de Compostela | 160 | 🟡 Sin validar |
 
-| #   | Tipo  | Salida         | Meta           |  km | Recorrido |
-| --- | ----- | -------------- | -------------- | --: | --------- |
-| 1   | Hills | Villa Lagarina | Villa Lagarina | 210 | Inventado |
+### Race Hainan `race-hainan`
 
-### Race Huy (BE)
+Clase **Pro** · CN · día 105 · 5 etapas · 🟡 Sin validar 5
 
-CON · .2 · un-dia · 1 etapa · día 96
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | Qionghai | Qionghai | 90 | 🟡 Sin validar |
+| 2 | Llana · Flat | Qionghai | Lingshui | 178 | 🟡 Sin validar |
+| 3 | Media montaña · Hills | Lingshui | Baoting | 213 | 🟡 Sin validar |
+| 4 | Media montaña · Hills | Baoting | Dongfang | 191 | 🟡 Sin validar |
+| 5 | Llana · Flat | Changjiang | Sanya | 183 | 🟡 Sin validar |
 
-| #   | Tipo          | Salida    | Meta |  km | Recorrido |
-| --- | ------------- | --------- | ---- | --: | --------- |
-| 1   | Summit finish | Charleroi | Huy  | 210 | Inventado |
+### Race Limburg `race-limburg`
 
-### Race Recioto (IT)
+Clase **1** · NL · día 105 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · un-dia · 1 etapa · día 97
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo  | Salida | Meta   |  km | Recorrido |
-| --- | ----- | ------ | ------ | --: | --------- |
-| 1   | Hills | Negrar | Negrar | 210 | Inventado |
+### Race Loir-et-Cher `race-loir-cher`
 
-### Race Ardennes (BE)
+Clase **2** · FR · día 105 · 5 etapas · 🔴 Inventado 5
 
-CON · .2 · una-semana · 5 etapas · día 98
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 180 | 🔴 Inventado |
+| 2 | Media montaña · Hills | — | — | 175 | 🔴 Inventado |
+| 3 | Media montaña · Uphill finish | — | — | 155 | 🔴 Inventado |
+| 4 | Contrarreloj · ITT | — | — | 16 | 🔴 Inventado |
+| 5 | Llana · Flat | — | — | 150 | 🔴 Inventado |
 
-| #   | Tipo          | Salida   | Meta     |  km | Recorrido |
-| --- | ------------- | -------- | -------- | --: | --------- |
-| 1   | Flat          | Liege    | Huy      | 174 | Inventado |
-| 2   | Hills         | Huy      | Aywaille | 171 | Inventado |
-| 3   | Uphill finish | Aywaille | Stavelot | 166 | Inventado |
-| 4   | ITT (crono)   | Stavelot | Spa      |  23 | Inventado |
-| 5   | Hills         | Spa      | Liege    | 157 | Inventado |
+### Costa Rica ITT Championship `nc-cr-itt`
 
-### Race Mersin (TR)
+Clase **NC** · CR · día 106 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · una-semana · 4 etapas · día 99
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-| #   | Tipo          | Salida  | Meta    |  km | Recorrido |
-| --- | ------------- | ------- | ------- | --: | --------- |
-| 1   | Flat          | Mersin  | Erdemli | 182 | Inventado |
-| 2   | Hills         | Erdemli | Silifke | 177 | Inventado |
-| 3   | ITT (crono)   | Silifke | Tarsus  |  16 | Inventado |
-| 4   | Uphill finish | Tarsus  | Adana   | 136 | Inventado |
+### Costa Rica U23 ITT Championship `nc-cr-u23-itt`
 
-### Race Reggio (IT)
+Clase **NC** · CR · día 106 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · un-dia · 1 etapa · día 100
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-| #   | Tipo  | Salida        | Meta          |  km | Recorrido |
-| --- | ----- | ------------- | ------------- | --: | --------- |
-| 1   | Hills | Reggio Emilia | Reggio Emilia | 210 | Inventado |
+### Race Brabant `race-brabant`
 
-### Race Braakman (NL)
+Clase **Pro** · BE · día 107 · 1 etapa · ✅ Real 1
 
-CON · .2 · un-dia · 1 etapa · día 101
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 163 | ✅ Real |
 
-| #   | Tipo | Salida    | Meta      |  km | Recorrido |
-| --- | ---- | --------- | --------- | --: | --------- |
-| 1   | Flat | Terneuzen | Terneuzen | 210 | Inventado |
+### Race Besançon `race-besancon`
 
-### Race Magna Grecia (IT)
+Clase **1** · FR · día 107 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · una-semana · 3 etapas · día 101
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo          | Salida               | Meta                 |  km | Recorrido |
-| --- | ------------- | -------------------- | -------------------- | --: | --------- |
-| 1   | Flat          | Sibari               | Crotone              | 177 | Inventado |
-| 2   | Summit finish | Crotone              | Camigliatello Silano | 152 | Inventado |
-| 3   | Hills         | Camigliatello Silano | Gambarie             | 149 | Inventado |
+### Race Bosnia `race-bosnia`
 
-### Race Pascua (ES)
+Clase **2** · BA · día 107 · 3 etapas · 🔴 Inventado 3
 
-CON · .2 · un-dia · 1 etapa · día 102
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 185 | 🔴 Inventado |
+| 2 | Contrarreloj · ITT | — | — | 16 | 🔴 Inventado |
+| 3 | Media montaña · Uphill finish | — | — | 141 | 🔴 Inventado |
 
-| #   | Tipo  | Salida  | Meta    |  km | Recorrido |
-| --- | ----- | ------- | ------- | --: | --------- |
-| 1   | Hills | Estella | Estella | 210 | Inventado |
+### Race Algeria `race-algeria`
 
-### Race Roubaix Espoirs (FR)
+Clase **2** · DZ · día 107 · 6 etapas · 🔴 Inventado 6
 
-CON · .2 · un-dia · 1 etapa · día 102
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 171 | 🔴 Inventado |
+| 2 | Media montaña · Uphill finish | — | — | 160 | 🔴 Inventado |
+| 3 | Media montaña · Hills | — | — | 189 | 🔴 Inventado |
+| 4 | Montaña · Summit finish | — | — | 173 | 🔴 Inventado |
+| 5 | Contrarreloj · ITT | — | — | 17 | 🔴 Inventado |
+| 6 | Media montaña · Hills | — | — | 138 | 🔴 Inventado |
 
-| #   | Tipo    | Salida               | Meta    |  km | Recorrido |
-| --- | ------- | -------------------- | ------- | --: | --------- |
-| 1   | Cobbles | Bohain-en-Vermandois | Roubaix | 190 | Inventado |
+### Race Jura `race-jura`
 
-### Race Ślężański (PL)
+Clase **1** · FR · día 108 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · un-dia · 1 etapa · día 102
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Montaña · Summit finish | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo | Salida  | Meta    |  km | Recorrido |
-| --- | ---- | ------- | ------- | --: | --------- |
-| 1   | Flat | Wroclaw | Sobotka | 210 | Inventado |
+### Race Liège Espoirs `race-liege-espoirs`
 
-### Race Vendemiano (IT)
+Clase **2** · BE · día 108 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · un-dia · 1 etapa · día 102
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 190 | 🔴 Inventado |
 
-| #   | Tipo  | Salida     | Meta           |  km | Recorrido |
-| --- | ----- | ---------- | -------------- | --: | --------- |
-| 1   | Hills | Conegliano | San Vendemiano | 210 | Inventado |
+### Costa Rica U23 Road Championship `nc-cr-u23-road`
 
-### Race Galicia (ES)
+Clase **NC** · CR · día 108 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · una-semana · 5 etapas · día 104
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-| #   | Tipo          | Salida             | Meta                   |  km | Recorrido   |
-| --- | ------------- | ------------------ | ---------------------- | --: | ----------- |
-| 1   | Flat          | Maia               | Matosinhos             | 190 | Real        |
-| 2   | Hills         | Marin              | A Estrada              | 133 | Real        |
-| 3   | ITT (crono)   | Ourense            | O Pereiro de Aguiar    |  16 | Sin validar |
-| 4   | Summit finish | A Pobra do Brollon | O Cebreiro             | 137 | Real        |
-| 5   | Hills         | Betanzos           | Santiago de Compostela | 160 | Real        |
+### Race Amstel `race-amstel`
 
-### Race Limburg (NL)
+Clase **WT** · NL · día 109 · 1 etapa · ✅ Real 1
 
-CON · .1 · un-dia · 1 etapa · día 105
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 257 | ✅ Real |
 
-| #   | Tipo  | Salida     | Meta       |  km | Recorrido |
-| --- | ----- | ---------- | ---------- | --: | --------- |
-| 1   | Hills | Maastricht | Valkenburg | 210 | Inventado |
+### Race Doubs `race-doubs`
 
-### Race Loir-et-Cher (FR)
+Clase **1** · FR · día 109 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · una-semana · 5 etapas · día 105
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo          | Salida               | Meta                 |  km | Recorrido |
-| --- | ------------- | -------------------- | -------------------- | --: | --------- |
-| 1   | Flat          | Blois                | Vendome              | 180 | Inventado |
-| 2   | Hills         | Vendome              | Montoire-sur-le-Loir | 175 | Inventado |
-| 3   | Uphill finish | Montoire-sur-le-Loir | Romorantin-Lanthenay | 155 | Inventado |
-| 4   | ITT (crono)   | Romorantin-Lanthenay | Salbris              |  16 | Inventado |
-| 5   | Flat          | Salbris              | Blois                | 150 | Inventado |
+### Race Biella `race-biella`
 
-### Race Algeria (DZ)
+Clase **2** · IT · día 109 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · una-semana · 6 etapas · día 107
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo          | Salida  | Meta        |  km | Recorrido |
-| --- | ------------- | ------- | ----------- | --: | --------- |
-| 1   | Flat          | Algiers | Blida       | 171 | Inventado |
-| 2   | Uphill finish | Blida   | Medea       | 160 | Inventado |
-| 3   | Hills         | Medea   | Bouira      | 189 | Inventado |
-| 4   | Summit finish | Bouira  | Setif       | 173 | Inventado |
-| 5   | ITT (crono)   | Setif   | Setif       |  17 | Inventado |
-| 6   | Hills         | Setif   | Constantine | 138 | Inventado |
+### Costa Rica Road Championship `nc-cr-road`
 
-### Race Besançon (FR)
+Clase **NC** · CR · día 109 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · un-dia · 1 etapa · día 107
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-| #   | Tipo  | Salida   | Meta     |  km | Recorrido |
-| --- | ----- | -------- | -------- | --: | --------- |
-| 1   | Hills | Besancon | Besancon | 210 | Inventado |
+### Race Alps `race-alps`
 
-### Race Bosnia (BA)
+Clase **Pro** · IT · día 110 · 5 etapas · 🟡 Sin validar 5
 
-CON · .2 · una-semana · 3 etapas · día 107
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Montaña · Summit finish | Innsbruck | Innsbruck | 144 | 🟡 Sin validar |
+| 2 | Montaña · Summit finish | Telfs | Martello | 148 | 🟡 Sin validar |
+| 3 | Montaña · Summit finish | Laces | Arco | 175 | 🟡 Sin validar |
+| 4 | Montaña · Summit finish | Arco | Trento | 168 | 🟡 Sin validar |
+| 5 | Montaña · Summit finish | Trento | Bolzano | 129 | 🟡 Sin validar |
 
-| #   | Tipo          | Salida   | Meta       |  km | Recorrido |
-| --- | ------------- | -------- | ---------- | --: | --------- |
-| 1   | Flat          | Mostar   | Sarajevo   | 185 | Inventado |
-| 2   | ITT (crono)   | Sarajevo | Jahorina   |  16 | Inventado |
-| 3   | Uphill finish | Jahorina | Bjelasnica | 141 | Inventado |
+### Race Walloon Wall `race-walloon-wall`
 
-### Race Jura (FR)
+Clase **WT** · BE · día 112 · 1 etapa · ✅ Real 1
 
-CON · .1 · un-dia · 1 etapa · día 108
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Montaña · Summit finish | — | — | 200 | ✅ Real |
 
-| #   | Tipo          | Salida          | Meta        |  km | Recorrido |
-| --- | ------------- | --------------- | ----------- | --: | --------- |
-| 1   | Summit finish | Lons-le-Saunier | Les Rousses | 210 | Inventado |
+### Race Belgrade `race-belgrade`
 
-### Race Liège Espoirs (BE)
+Clase **2** · RS · día 112 · 4 etapas · 🔴 Inventado 4
 
-CON · .2 · un-dia · 1 etapa · día 108
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 172 | 🔴 Inventado |
+| 2 | Media montaña · Uphill finish | — | — | 178 | 🔴 Inventado |
+| 3 | Contrarreloj · ITT | — | — | 25 | 🔴 Inventado |
+| 4 | Media montaña · Uphill finish | — | — | 130 | 🔴 Inventado |
 
-| #   | Tipo    | Salida   | Meta  |  km | Recorrido |
-| --- | ------- | -------- | ----- | --: | --------- |
-| 1   | Classic | Bastogne | Liege | 190 | Inventado |
+### Egypt ITT Championship `nc-eg-itt`
 
-### Race Biella (IT)
+Clase **NC** · EG · día 112 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · un-dia · 1 etapa · día 109
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-| #   | Tipo  | Salida | Meta   |  km | Recorrido |
-| --- | ----- | ------ | ------ | --: | --------- |
-| 1   | Hills | Biella | Biella | 210 | Inventado |
+### Egypt U23 ITT Championship `nc-eg-u23-itt`
 
-### Race Doubs (FR)
+Clase **NC** · EG · día 112 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · un-dia · 1 etapa · día 109
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-| #   | Tipo  | Salida     | Meta       |  km | Recorrido |
-| --- | ----- | ---------- | ---------- | --: | --------- |
-| 1   | Hills | Pontarlier | Pontarlier | 210 | Inventado |
+### Race Asturias `race-asturias`
 
-### Race Belgrade (RS)
+Clase **1** · ES · día 113 · 4 etapas · 🟡 Sin validar 4
 
-CON · .2 · una-semana · 4 etapas · día 112
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Montaña · Summit finish | Oviedo | Llanes | 164 | 🟡 Sin validar |
+| 2 | Montaña · Summit finish | Benia de Onis | Pola de Lena | 144 | 🟡 Sin validar |
+| 3 | Media montaña · Hills | Castropol | Vegadeo | 166 | 🟡 Sin validar |
+| 4 | Media montaña · Hills | Navia | Oviedo | 136 | 🟡 Sin validar |
 
-| #   | Tipo          | Salida    | Meta             |  km | Recorrido |
-| --- | ------------- | --------- | ---------------- | --: | --------- |
-| 1   | Flat          | Belgrade  | Smederevo        | 172 | Inventado |
-| 2   | Uphill finish | Smederevo | Pancevo          | 178 | Inventado |
-| 3   | ITT (crono)   | Pancevo   | Novi Sad         |  25 | Inventado |
-| 4   | Uphill finish | Novi Sad  | Sremski Karlovci | 130 | Inventado |
+### Panama ITT Championship `nc-pa-itt`
 
-### Race Asturias (ES)
+Clase **NC** · PA · día 113 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · una-semana · 4 etapas · día 113
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-| #   | Tipo          | Salida        | Meta         |  km | Recorrido   |
-| --- | ------------- | ------------- | ------------ | --: | ----------- |
-| 1   | Summit finish | Oviedo        | Llanes       | 164 | Sin validar |
-| 2   | Summit finish | Benia de Onis | Pola de Lena | 144 | Sin validar |
-| 3   | Hills         | Castropol     | Vegadeo      | 166 | Sin validar |
-| 4   | Hills         | Navia         | Oviedo       | 136 | Sin validar |
+### Panama U23 ITT Championship `nc-pa-u23-itt`
 
-### Race Bretagne (FR)
+Clase **NC** · PA · día 113 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · una-semana · 7 etapas · día 115
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-| #   | Tipo  | Salida           | Meta             |  km | Recorrido   |
-| --- | ----- | ---------------- | ---------------- | --: | ----------- |
-| 1   | Flat  | Hirel            | La Fresnais      | 143 | Sin validar |
-| 2   | Hills | La Gouesniere    | Le Cambout       | 182 | Sin validar |
-| 3   | Hills | Loudeac          | Ploneour-Lanvern | 206 | Sin validar |
-| 4   | Hills | Ploneour-Lanvern | Landevant        | 205 | Sin validar |
-| 5   | Hills | Erdeven          | Guenrouet        | 164 | Sin validar |
-| 6   | Hills | Missillac        | Le Pertre        | 180 | Sin validar |
-| 7   | Hills | Landebia         | Plancoet         | 159 | Sin validar |
+### Egypt U23 Road Championship `nc-eg-u23-road`
 
-### Race Liberazione (IT)
+Clase **NC** · EG · día 114 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · un-dia · 1 etapa · día 115
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-| #   | Tipo | Salida | Meta |  km | Recorrido |
-| --- | ---- | ------ | ---- | --: | --------- |
-| 1   | Flat | Roma   | Roma | 210 | Inventado |
+### Race Liberazione `race-liberazione`
 
-### Race Appennino (IT)
+Clase **2** · IT · día 115 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · un-dia · 1 etapa · día 116
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo          | Salida      | Meta   |  km | Recorrido |
-| --- | ------------- | ----------- | ------ | --: | --------- |
-| 1   | Summit finish | Novi Ligure | Genova | 210 | Inventado |
+### Race Bretagne `race-bretagne`
 
-### Race Rutland (GB)
+Clase **2** · FR · día 115 · 7 etapas · 🟡 Sin validar 7
 
-CON · .2 · un-dia · 1 etapa · día 116
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | Hirel | La Fresnais | 143 | 🟡 Sin validar |
+| 2 | Media montaña · Hills | La Gouesniere | Le Cambout | 182 | 🟡 Sin validar |
+| 3 | Media montaña · Hills | Loudeac | Ploneour-Lanvern | 206 | 🟡 Sin validar |
+| 4 | Media montaña · Hills | Ploneour-Lanvern | Landevant | 205 | 🟡 Sin validar |
+| 5 | Media montaña · Hills | Erdeven | Guenrouet | 164 | 🟡 Sin validar |
+| 6 | Media montaña · Hills | Missillac | Le Pertre | 180 | 🟡 Sin validar |
+| 7 | Media montaña · Hills | Landebia | Plancoet | 159 | 🟡 Sin validar |
 
-| #   | Tipo    | Salida | Meta   |  km | Recorrido |
-| --- | ------- | ------ | ------ | --: | --------- |
-| 1   | Cobbles | Oakham | Oakham | 180 | Inventado |
+### Egypt Road Championship `nc-eg-road`
 
-### Race Benin (BJ)
+Clase **NC** · EG · día 115 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · una-semana · 5 etapas · día 117
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-| #   | Tipo          | Salida      | Meta        |  km | Recorrido |
-| --- | ------------- | ----------- | ----------- | --: | --------- |
-| 1   | Flat          | Cotonou     | Porto-Novo  | 188 | Inventado |
-| 2   | Hills         | Porto-Novo  | Dassa-Zoume | 181 | Inventado |
-| 3   | Uphill finish | Dassa-Zoume | Parakou     | 177 | Inventado |
-| 4   | ITT (crono)   | Parakou     | Natitingou  |  23 | Inventado |
-| 5   | Flat          | Natitingou  | Djougou     | 161 | Inventado |
+### Race Liège `race-liege`
 
-### Race Gila (US)
+Clase **WT** · BE · día 116 · 1 etapa · ✅ Real 1
 
-CON · .2 · una-semana · 5 etapas · día 119
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 260 | ✅ Real |
 
-| #   | Tipo          | Salida      | Meta        |  km | Recorrido   |
-| --- | ------------- | ----------- | ----------- | --: | ----------- |
-| 1   | ITT (crono)   | Tyrone      | Tyrone      |  26 | Sin validar |
-| 2   | Summit finish | Silver City | Mogollon    | 117 | Sin validar |
-| 3   | Hills         | Fort Bayard | Fort Bayard | 123 | Sin validar |
-| 4   | Flat          | Silver City | Silver City |  45 | Sin validar |
-| 5   | Summit finish | Silver City | Silver City | 161 | Sin validar |
+### Race Türkiye `race-turkiye`
 
-### Race Guatemala (GT)
+Clase **Pro** · TR · día 116 · 8 etapas · 🟡 Sin validar 8
 
-CON · .2 · una-semana · 10 etapas · día 119
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | Cesme | Selcuk | 149 | 🟡 Sin validar |
+| 2 | Media montaña · Hills | Aydin | Marmaris | 153 | 🟡 Sin validar |
+| 3 | Montaña · Summit finish | Marmaris | Kiran | 133 | 🟡 Sin validar |
+| 4 | Llana · Flat | Marmaris | Fethiye | 130 | 🟡 Sin validar |
+| 5 | Media montaña · Hills | Patara | Kemer | 181 | 🟡 Sin validar |
+| 6 | Montaña · Summit finish | Antalya | Feslikan | 128 | 🟡 Sin validar |
+| 7 | Media montaña · Hills | Antalya | Antalya | 153 | 🟡 Sin validar |
+| 8 | Llana · Flat | Ankara | Ankara | 105 | 🟡 Sin validar |
 
-| #   | Tipo          | Salida                | Meta                        |  km | Recorrido   |
-| --- | ------------- | --------------------- | --------------------------- | --: | ----------- |
-| 1   | Flat          | Teculutan             | Puerto Barrios              | 172 | Sin validar |
-| 2   | Summit finish | Gualan                | El Corcovado                | 161 | Sin validar |
-| 3   | Summit finish | Monjas                | Fraijanes                   | 126 | Sin validar |
-| 4   | Flat          | Ciudad Vieja          | Coatepeque                  | 192 | Sin validar |
-| 5   | Hills         | Retalhuleu            | San Rafael Pie de la Cuesta | 109 | Sin validar |
-| 6   | Summit finish | Catarina              | San Juan Ostuncalco         |  91 | Sin validar |
-| 7   | Summit finish | San Francisco El Alto | San Pedro                   | 134 | Sin validar |
-| 8   | Summit finish | San Juan La Laguna    | Tecpan                      | 128 | Sin validar |
-| 9   | Summit finish | Chimaltenango         | Antigua Guatemala           | 200 | Sin validar |
-| 10  | Flat          | Villa Linda           | Guatemala City              | 121 | Sin validar |
+### Race Appennino `race-appennino`
 
-### Race Anicolor (PT)
+Clase **1** · IT · día 116 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · una-semana · 3 etapas · día 121
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Montaña · Summit finish | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo          | Salida    | Meta      |  km | Recorrido |
-| --- | ------------- | --------- | --------- | --: | --------- |
-| 1   | Flat          | Aveiro    | Porto     | 193 | Inventado |
-| 2   | ITT (crono)   | Porto     | Guimaraes |  21 | Inventado |
-| 3   | Uphill finish | Guimaraes | Braga     | 145 | Inventado |
+### Race Rutland `race-rutland`
 
-### Race Vorarlberg (AT)
+Clase **2** · GB · día 116 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · un-dia · 1 etapa · día 121
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Cobbles | — | — | 180 | 🔴 Inventado |
 
-| #   | Tipo  | Salida  | Meta    |  km | Recorrido |
-| --- | ----- | ------- | ------- | --: | --------- |
-| 1   | Hills | Bregenz | Bludenz | 210 | Inventado |
+### Panama U23 Road Championship `nc-pa-u23-road`
 
-### Race Waasland (BE)
+Clase **NC** · PA · día 116 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · un-dia · 1 etapa · día 121
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-| #   | Tipo | Salida       | Meta    |  km | Recorrido |
-| --- | ---- | ------------ | ------- | --: | --------- |
-| 1   | Flat | Sint-Niklaas | Lokeren | 210 | Inventado |
+### Panama Road Championship `nc-pa-road`
 
-### Race Herning (DK)
+Clase **NC** · PA · día 116 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · un-dia · 1 etapa · día 122
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-| #   | Tipo | Salida  | Meta    |  km | Recorrido |
-| --- | ---- | ------- | ------- | --: | --------- |
-| 1   | Flat | Herning | Herning | 210 | Inventado |
+### Race Benin `race-benin`
 
-### Race Overijssel (NL)
+Clase **2** · BJ · día 117 · 5 etapas · 🔴 Inventado 5
 
-CON · .2 · un-dia · 1 etapa · día 122
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 188 | 🔴 Inventado |
+| 2 | Media montaña · Hills | — | — | 181 | 🔴 Inventado |
+| 3 | Media montaña · Uphill finish | — | — | 177 | 🔴 Inventado |
+| 4 | Contrarreloj · ITT | — | — | 23 | 🔴 Inventado |
+| 5 | Llana · Flat | — | — | 161 | 🔴 Inventado |
 
-| #   | Tipo | Salida  | Meta    |  km | Recorrido |
-| --- | ---- | ------- | ------- | --: | --------- |
-| 1   | Flat | Rijssen | Rijssen | 210 | Inventado |
+### Race Romandy `race-romandy`
 
-### Race Famenne (BE)
+Clase **WT** · CH · día 118 · 6 etapas · 🟡 Sin validar 6
 
-CON · .1 · un-dia · 1 etapa · día 123
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | Villars-sur-Glane | Villars-sur-Glane | 3 | 🟡 Sin validar |
+| 2 | Media montaña · Hills | Martigny | Martigny | 171 | 🟡 Sin validar |
+| 3 | Media montaña · Hills | Rue | Vucherens | 173 | 🟡 Sin validar |
+| 4 | Media montaña · Hills | Orbe | Orbe | 177 | 🟡 Sin validar |
+| 5 | Montaña · Summit finish | Broc | Charmey | 150 | 🟡 Sin validar |
+| 6 | Montaña · Summit finish | Lucens | Leysin | 178 | 🟡 Sin validar |
 
-| #   | Tipo  | Salida            | Meta              |  km | Recorrido |
-| --- | ----- | ----------------- | ----------------- | --: | --------- |
-| 1   | Hills | Marche-en-Famenne | Marche-en-Famenne | 210 | Inventado |
+### Race Gila `race-gila`
 
-### Race Funen (DK)
+Clase **2** · US · día 119 · 5 etapas · 🟡 Sin validar 5
 
-CON · .2 · un-dia · 1 etapa · día 123
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | Tyrone | Tyrone | 26 | 🟡 Sin validar |
+| 2 | Montaña · Summit finish | Silver City | Mogollon | 117 | 🟡 Sin validar |
+| 3 | Media montaña · Hills | Fort Bayard | Fort Bayard | 123 | 🟡 Sin validar |
+| 4 | Llana · Flat | Silver City | Silver City | 45 | 🟡 Sin validar |
+| 5 | Montaña · Summit finish | Silver City | Silver City | 161 | 🟡 Sin validar |
 
-| #   | Tipo | Salida | Meta   |  km | Recorrido |
-| --- | ---- | ------ | ------ | --: | --------- |
-| 1   | Flat | Odense | Odense | 210 | Inventado |
+### Race Guatemala `race-guatemala`
 
-### Race Woensdrecht (NL)
+Clase **2** · GT · día 119 · 10 etapas · 🟡 Sin validar 10
 
-CON · .2 · un-dia · 1 etapa · día 123
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | Teculutan | Puerto Barrios | 172 | 🟡 Sin validar |
+| 2 | Montaña · Summit finish | Gualan | El Corcovado | 161 | 🟡 Sin validar |
+| 3 | Montaña · Summit finish | Monjas | Fraijanes | 126 | 🟡 Sin validar |
+| 4 | Llana · Flat | Ciudad Vieja | Coatepeque | 192 | 🟡 Sin validar |
+| 5 | Media montaña · Hills | Retalhuleu | San Rafael Pie de la Cuesta | 109 | 🟡 Sin validar |
+| 6 | Montaña · Summit finish | Catarina | San Juan Ostuncalco | 91 | 🟡 Sin validar |
+| 7 | Montaña · Summit finish | San Francisco El Alto | San Pedro | 134 | 🟡 Sin validar |
+| 8 | Montaña · Summit finish | San Juan La Laguna | Tecpan | 128 | 🟡 Sin validar |
+| 9 | Montaña · Summit finish | Chimaltenango | Antigua Guatemala | 200 | 🟡 Sin validar |
+| 10 | Llana · Flat | Villa Linda | Guatemala City | 121 | 🟡 Sin validar |
 
-| #   | Tipo | Salida         | Meta        |  km | Recorrido |
-| --- | ---- | -------------- | ----------- | --: | --------- |
-| 1   | Flat | Bergen op Zoom | Woensdrecht | 210 | Inventado |
+### Race Frankfurt `race-frankfurt`
 
-### Race Fagnes (BE)
+Clase **WT** · DE · día 121 · 1 etapa · ✅ Real 1
 
-CON · .2 · un-dia · 1 etapa · día 126
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 204 | ✅ Real |
 
-| #   | Tipo  | Salida | Meta    |  km | Recorrido |
-| --- | ----- | ------ | ------- | --: | --------- |
-| 1   | Hills | Eupen  | Malmedy | 210 | Inventado |
+### Race Anicolor `race-anicolor`
 
-### Race Hellas (GR)
+Clase **1** · PT · día 121 · 3 etapas · 🔴 Inventado 3
 
-CON · .1 · una-semana · 5 etapas · día 126
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 193 | 🔴 Inventado |
+| 2 | Contrarreloj · ITT | — | — | 21 | 🔴 Inventado |
+| 3 | Media montaña · Uphill finish | — | — | 145 | 🔴 Inventado |
 
-| #   | Tipo          | Salida   | Meta     |  km | Recorrido |
-| --- | ------------- | -------- | -------- | --: | --------- |
-| 1   | Flat          | Athens   | Thebes   | 175 | Inventado |
-| 2   | Hills         | Thebes   | Livadia  | 176 | Inventado |
-| 3   | Hills         | Livadia  | Delphi   | 176 | Inventado |
-| 4   | Uphill finish | Delphi   | Arachova | 152 | Inventado |
-| 5   | Summit finish | Arachova | Lamia    | 136 | Inventado |
+### Race Vorarlberg `race-vorarlberg`
 
-### Race Ardennaise (BE)
+Clase **2** · AT · día 121 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · un-dia · 1 etapa · día 127
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo  | Salida  | Meta     |  km | Recorrido |
-| --- | ----- | ------- | -------- | --: | --------- |
-| 1   | Hills | Malmedy | Aywaille | 210 | Inventado |
+### Race Waasland `race-waasland`
 
-### Race Beskid (PL)
+Clase **2** · BE · día 121 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · un-dia · 1 etapa · día 127
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo  | Salida        | Meta    |  km | Recorrido |
-| --- | ----- | ------------- | ------- | --: | --------- |
-| 1   | Hills | Bielsko-Biala | Szczyrk | 210 | Inventado |
+### Race Herning `race-herning`
 
-### Race Kumano (JP)
+Clase **2** · DK · día 122 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · una-semana · 4 etapas · día 127
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo          | Salida   | Meta     |  km | Recorrido   |
-| --- | ------------- | -------- | -------- | --: | ----------- |
-| 1   | Hills         | Inami    | Inami    | 125 | Sin validar |
-| 2   | Hills         | Kozagawa | Kozagawa | 128 | Sin validar |
-| 3   | Summit finish | Kumano   | Kumano   | 108 | Sin validar |
-| 4   | Hills         | Taiji    | Taiji    | 105 | Sin validar |
+### Race Overijssel `race-overijssel`
 
-### Race Beskid Classic (PL)
+Clase **2** · NL · día 122 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · un-dia · 1 etapa · día 129
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo  | Salida | Meta  |  km | Recorrido |
-| --- | ----- | ------ | ----- | --: | --------- |
-| 1   | Hills | Zywiec | Wisla | 210 | Inventado |
+### Race Famenne `race-famenne`
 
-### Race Sundvolden (NO)
+Clase **1** · BE · día 123 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · un-dia · 1 etapa · día 129
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo  | Salida     | Meta      |  km | Recorrido |
-| --- | ----- | ---------- | --------- | --: | --------- |
-| 1   | Hills | Sundvollen | Norefjell | 210 | Inventado |
+### Race Woensdrecht `race-woensdrecht`
 
-### Race Baku (AZ)
+Clase **2** · NL · día 123 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · una-semana · 5 etapas · día 130
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo          | Salida   | Meta     |  km | Recorrido |
-| --- | ------------- | -------- | -------- | --: | --------- |
-| 1   | Flat          | Baku     | Sumqayit | 178 | Inventado |
-| 2   | Hills         | Sumqayit | Shamakhi | 163 | Inventado |
-| 3   | Hills         | Shamakhi | Kurdamir | 170 | Inventado |
-| 4   | Uphill finish | Kurdamir | Gabala   | 151 | Inventado |
-| 5   | Flat          | Gabala   | Ganja    | 142 | Inventado |
+### Race Funen `race-funen`
 
-### Race Ringerike (NO)
+Clase **2** · DK · día 123 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · un-dia · 1 etapa · día 130
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo | Salida   | Meta     |  km | Recorrido |
-| --- | ---- | -------- | -------- | --: | --------- |
-| 1   | Flat | Honefoss | Honefoss | 210 | Inventado |
+### Race Hellas `race-hellas`
 
-### Race Zagłębie (PL)
+Clase **1** · GR · día 126 · 5 etapas · 🔴 Inventado 5
 
-CON · .2 · un-dia · 1 etapa · día 130
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 175 | 🔴 Inventado |
+| 2 | Media montaña · Hills | — | — | 176 | 🔴 Inventado |
+| 3 | Media montaña · Hills | — | — | 176 | 🔴 Inventado |
+| 4 | Media montaña · Uphill finish | — | — | 152 | 🔴 Inventado |
+| 5 | Montaña · Summit finish | — | — | 136 | 🔴 Inventado |
 
-| #   | Tipo | Salida    | Meta             |  km | Recorrido |
-| --- | ---- | --------- | ---------------- | --: | --------- |
-| 1   | Flat | Sosnowiec | Dabrowa Gornicza | 210 | Inventado |
+### Race Fagnes `race-fagnes`
 
-### Race Flèche du Sud (LU)
+Clase **2** · BE · día 126 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · una-semana · 5 etapas · día 133
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo          | Salida           | Meta             |  km | Recorrido |
-| --- | ------------- | ---------------- | ---------------- | --: | --------- |
-| 1   | Flat          | Esch-sur-Alzette | Dudelange        | 195 | Inventado |
-| 2   | Hills         | Dudelange        | Rumelange        | 180 | Inventado |
-| 3   | ITT (crono)   | Rumelange        | Differdange      |  24 | Inventado |
-| 4   | Summit finish | Differdange      | Petange          | 169 | Inventado |
-| 5   | Summit finish | Petange          | Esch-sur-Alzette | 147 | Inventado |
+### Race Ardennaise `race-fleche-ardennaise`
 
-### Race Wallonie Circuit (BE)
+Clase **2** · BE · día 127 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · un-dia · 1 etapa · día 134
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo  | Salida    | Meta  |  km | Recorrido |
-| --- | ----- | --------- | ----- | --: | --------- |
-| 1   | Hills | Charleroi | Namur | 210 | Inventado |
+### Race Beskid `race-beskid`
 
-### Race Finistère (FR)
+Clase **2** · PL · día 127 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · un-dia · 1 etapa · día 136
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo  | Salida  | Meta    |  km | Recorrido |
-| --- | ----- | ------- | ------- | --: | --------- |
-| 1   | Hills | Quimper | Quimper | 210 | Inventado |
+### Race Kumano `race-kumano`
 
-### Race Arvedi (IT)
+Clase **2** · JP · día 127 · 4 etapas · 🟡 Sin validar 4
 
-CON · .2 · un-dia · 1 etapa · día 137
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | Inami | Inami | 125 | 🟡 Sin validar |
+| 2 | Media montaña · Hills | Kozagawa | Kozagawa | 128 | 🟡 Sin validar |
+| 3 | Montaña · Summit finish | Kumano | Kumano | 108 | 🟡 Sin validar |
+| 4 | Media montaña · Hills | Taiji | Taiji | 105 | 🟡 Sin validar |
 
-| #   | Tipo | Salida  | Meta    |  km | Recorrido |
-| --- | ---- | ------- | ------- | --: | --------- |
-| 1   | Flat | Cremona | Cremona | 210 | Inventado |
+### Race Italy `race-italy`
 
-### Race Aulne (FR)
+Clase **WT** · IT · día 128 · 21 etapas · 🟡 Sin validar 21
 
-CON · .1 · un-dia · 1 etapa · día 137
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | Nessebar | Burgas | 147 | 🟡 Sin validar |
+| 2 | Media montaña · Hills | Burgas | Veliko Tarnovo | 221 | 🟡 Sin validar |
+| 3 | Llana · Flat | Plovdiv | Sofia | 175 | 🟡 Sin validar |
+| 4 | Llana · Flat | Catanzaro | Cosenza | 138 | 🟡 Sin validar |
+| 5 | Media montaña · Hills | Praia a Mare | Potenza | 203 | 🟡 Sin validar |
+| 6 | Llana · Flat | Paestum | Napoli | 141 | 🟡 Sin validar |
+| 7 | Montaña · Summit finish | Formia | Blockhaus | 244 | 🟡 Sin validar |
+| 8 | Media montaña · Hills | Chieti | Fermo | 156 | 🟡 Sin validar |
+| 9 | Montaña · Summit finish | Cervia | Corno alle Scale | 184 | 🟡 Sin validar |
+| 10 | Contrarreloj · ITT | Viareggio | Massa | 42 | 🟡 Sin validar |
+| 11 | Media montaña · Hills | Porcari | Chiavari | 195 | 🟡 Sin validar |
+| 12 | Llana · Flat | Imperia | Novi Ligure | 175 | 🟡 Sin validar |
+| 13 | Media montaña · Hills | Alessandria | Verbania | 186 | 🟡 Sin validar |
+| 14 | Montaña · Summit finish | Aosta | Pila | 133 | 🟡 Sin validar |
+| 15 | Llana · Flat | Voghera | Milano | 157 | 🟡 Sin validar |
+| 16 | Montaña · Summit finish | Bellinzona | Cari | 113 | 🟡 Sin validar |
+| 17 | Media montaña · Hills | Cassano d'Adda | Andalo | 202 | 🟡 Sin validar |
+| 18 | Media montaña · Hills | Fai della Paganella | Pieve di Soligo | 171 | 🟡 Sin validar |
+| 19 | Montaña · Summit finish | Feltre | Piani di Pezze | 151 | 🟡 Sin validar |
+| 20 | Montaña · Summit finish | Gemona del Friuli | Piancavallo | 200 | 🟡 Sin validar |
+| 21 | Llana · Flat | Roma | Roma | 131 | 🟡 Sin validar |
 
-| #   | Tipo  | Salida     | Meta       |  km | Recorrido |
-| --- | ----- | ---------- | ---------- | --: | --------- |
-| 1   | Hills | Chateaulin | Chateaulin | 210 | Inventado |
+### Race Morbihan `race-morbihan`
 
-### Race Kempen (BE)
+Clase **Pro** · FR · día 129 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · un-dia · 1 etapa · día 137
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo | Salida    | Meta     |  km | Recorrido |
-| --- | ---- | --------- | -------- | --: | --------- |
-| 1   | Flat | Herentals | Turnhout | 210 | Inventado |
+### Race Beskid Classic `race-beskid-race`
 
-### Race Köln (DE)
+Clase **2** · PL · día 129 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · un-dia · 1 etapa · día 137
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo  | Salida | Meta |  km | Recorrido |
-| --- | ----- | ------ | ---- | --: | --------- |
-| 1   | Hills | Koln   | Bonn | 210 | Inventado |
+### Race Sundvolden `race-sundvolden`
 
-### Race Albania (AL)
+Clase **2** · NO · día 129 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · una-semana · 5 etapas · día 138
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo          | Salida | Meta   |  km | Recorrido |
-| --- | ------------- | ------ | ------ | --: | --------- |
-| 1   | Flat          | Tirana | Durres | 187 | Inventado |
-| 2   | Flat          | Durres | Kavaje | 167 | Inventado |
-| 3   | Hills         | Kavaje | Fier   | 190 | Inventado |
-| 4   | Hills         | Fier   | Vlore  | 186 | Inventado |
-| 5   | Summit finish | Vlore  | Berat  | 140 | Inventado |
+### Race Léon `race-leon`
 
-### Race Estrela (PT)
+Clase **Pro** · ES · día 130 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · una-semana · 3 etapas · día 142
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Cobbles | — | — | 185 | 🔴 Inventado |
 
-| #   | Tipo          | Salida  | Meta            |  km | Recorrido |
-| --- | ------------- | ------- | --------------- | --: | --------- |
-| 1   | Flat          | Guarda  | Covilha         | 176 | Inventado |
-| 2   | ITT (crono)   | Covilha | Torre           |  24 | Inventado |
-| 3   | Uphill finish | Torre   | Penhas da Saude | 138 | Inventado |
+### Race Baku `race-baku`
 
-### Race Veenendaal (NL)
+Clase **1** · AZ · día 130 · 5 etapas · 🔴 Inventado 5
 
-CON · .1 · un-dia · 1 etapa · día 143
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 178 | 🔴 Inventado |
+| 2 | Media montaña · Hills | — | — | 163 | 🔴 Inventado |
+| 3 | Media montaña · Hills | — | — | 170 | 🔴 Inventado |
+| 4 | Media montaña · Uphill finish | — | — | 151 | 🔴 Inventado |
+| 5 | Llana · Flat | — | — | 142 | 🔴 Inventado |
 
-| #   | Tipo | Salida     | Meta       |  km | Recorrido |
-| --- | ---- | ---------- | ---------- | --: | --------- |
-| 1   | Flat | Veenendaal | Veenendaal | 210 | Inventado |
+### Race Zagłębie `race-zaglebie`
 
-### Race Criquielion (BE)
+Clase **2** · PL · día 130 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · un-dia · 1 etapa · día 144
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo  | Salida   | Meta     |  km | Recorrido |
-| --- | ----- | -------- | -------- | --: | --------- |
-| 1   | Hills | Lessines | Lessines | 210 | Inventado |
+### Race Ringerike `race-ringerike`
 
-### Race Nippon (JP)
+Clase **2** · NO · día 130 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · una-semana · 8 etapas · día 144
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo          | Salida      | Meta        |  km | Recorrido |
-| --- | ------------- | ----------- | ----------- | --: | --------- |
-| 1   | Flat          | Shizuoka    | Numazu      | 193 | Inventado |
-| 2   | Summit finish | Numazu      | Izu         | 160 | Inventado |
-| 3   | Summit finish | Izu         | Ito         | 179 | Inventado |
-| 4   | Hills         | Ito         | Hakone      | 182 | Inventado |
-| 5   | Summit finish | Hakone      | Gotemba     | 170 | Inventado |
-| 6   | Hills         | Gotemba     | Fujiyoshida | 190 | Inventado |
-| 7   | ITT (crono)   | Fujiyoshida | Yamanakako  |  19 | Inventado |
-| 8   | Hills         | Yamanakako  | Fujinomiya  | 145 | Inventado |
+### Race Hungary `race-hungary`
 
-### Race Antwerp (BE)
+Clase **Pro** · HU · día 133 · 5 etapas · 🟡 Sin validar 5
 
-CON · .1 · un-dia · 1 etapa · día 145
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | Gyula | Bekescsaba | 143 | 🟡 Sin validar |
+| 2 | Llana · Flat | Szarvas | Paks | 206 | 🟡 Sin validar |
+| 3 | Media montaña · Hills | Kaposvar | Szekszard | 152 | 🟡 Sin validar |
+| 4 | Montaña · Summit finish | Mohacs | Pecs | 188 | 🟡 Sin validar |
+| 5 | Media montaña · Hills | Balatonalmadi | Veszprem | 147 | 🟡 Sin validar |
 
-| #   | Tipo    | Salida    | Meta      |  km | Recorrido |
-| --- | ------- | --------- | --------- | --: | --------- |
-| 1   | Cobbles | Antwerpen | Antwerpen | 190 | Inventado |
+### Race Flèche du Sud `race-fleche-sud`
 
-### Race Troyes (FR)
+Clase **1** · LU · día 133 · 5 etapas · 🔴 Inventado 5
 
-CON · .2 · un-dia · 1 etapa · día 145
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 195 | 🔴 Inventado |
+| 2 | Media montaña · Hills | — | — | 180 | 🔴 Inventado |
+| 3 | Contrarreloj · ITT | — | — | 24 | 🔴 Inventado |
+| 4 | Montaña · Summit finish | — | — | 169 | 🔴 Inventado |
+| 5 | Montaña · Summit finish | — | — | 147 | 🔴 Inventado |
 
-| #   | Tipo | Salida | Meta   |  km | Recorrido |
-| --- | ---- | ------ | ------ | --: | --------- |
-| 1   | Flat | Troyes | Troyes | 210 | Inventado |
+### Race Wallonie Circuit `race-wallonie-circuit`
 
-### Race Isère (FR)
+Clase **1** · BE · día 134 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · una-semana · 5 etapas · día 147
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo          | Salida          | Meta            |  km | Recorrido |
-| --- | ------------- | --------------- | --------------- | --: | --------- |
-| 1   | Flat          | Vienne          | Grenoble        | 184 | Inventado |
-| 2   | Summit finish | Grenoble        | Chamrousse      | 165 | Inventado |
-| 3   | Summit finish | Chamrousse      | Villard-de-Lans | 164 | Inventado |
-| 4   | ITT (crono)   | Villard-de-Lans | Alpe d'Huez     |  19 | Inventado |
-| 5   | Summit finish | Alpe d'Huez     | Les Deux Alpes  | 124 | Inventado |
+### Race Finistère `race-finistere`
 
-### Race Lithuania (LT)
+Clase **1** · FR · día 136 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · una-semana · 5 etapas · día 147
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo          | Salida       | Meta         |  km | Recorrido |
-| --- | ------------- | ------------ | ------------ | --: | --------- |
-| 1   | Flat          | Vilnius      | Trakai       | 169 | Inventado |
-| 2   | Hills         | Trakai       | Alytus       | 167 | Inventado |
-| 3   | ITT (crono)   | Alytus       | Druskininkai |  18 | Inventado |
-| 4   | Summit finish | Druskininkai | Kaunas       | 159 | Inventado |
-| 5   | Flat          | Kaunas       | Kedainiai    | 156 | Inventado |
+### Race Aulne `race-aulne`
 
-### Race Mauritius (MU)
+Clase **1** · FR · día 137 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · una-semana · 4 etapas · día 153
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo          | Salida     | Meta       |  km | Recorrido |
-| --- | ------------- | ---------- | ---------- | --: | --------- |
-| 1   | Flat          | Port Louis | Grand Baie | 177 | Inventado |
-| 2   | Summit finish | Grand Baie | Curepipe   | 156 | Inventado |
-| 3   | ITT (crono)   | Curepipe   | Mahebourg  |  23 | Inventado |
-| 4   | Summit finish | Mahebourg  | Port Louis | 152 | Inventado |
+### Race Köln `race-koln`
 
-### Race Cameroon (CM)
+Clase **1** · DE · día 137 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · una-semana · 8 etapas · día 154
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo          | Salida    | Meta      |  km | Recorrido |
-| --- | ------------- | --------- | --------- | --: | --------- |
-| 1   | Flat          | Yaounde   | Douala    | 184 | Inventado |
-| 2   | Hills         | Douala    | Bafoussam | 186 | Inventado |
-| 3   | Uphill finish | Bafoussam | Foumban   | 172 | Inventado |
-| 4   | Hills         | Foumban   | Dschang   | 185 | Inventado |
-| 5   | Summit finish | Dschang   | Bafang    | 154 | Inventado |
-| 6   | Hills         | Bafang    | Bamenda   | 174 | Inventado |
-| 7   | ITT (crono)   | Bamenda   | Bamenda   |  18 | Inventado |
-| 8   | Uphill finish | Bamenda   | Bafoussam | 132 | Inventado |
+### Race Arvedi `race-arvedi`
 
-### Race Mercantour (FR)
+Clase **2** · IT · día 137 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · un-dia · 1 etapa · día 154
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo          | Salida | Meta       |  km | Recorrido |
-| --- | ------------- | ------ | ---------- | --: | --------- |
-| 1   | Summit finish | Nice   | Isola 2000 | 210 | Inventado |
+### Race Kempen `race-kempen`
 
-### Race Estonia (EE)
+Clase **2** · BE · día 137 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · una-semana · 3 etapas · día 155
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo        | Salida   | Meta     |  km | Recorrido |
-| --- | ----------- | -------- | -------- | --: | --------- |
-| 1   | Flat        | Tallinn  | Parnu    | 176 | Inventado |
-| 2   | ITT (crono) | Parnu    | Viljandi |  23 | Inventado |
-| 3   | Hills       | Viljandi | Tartu    | 142 | Inventado |
+### Race Albania `race-albania`
 
-### Race Oberösterreich (AT)
+Clase **2** · AL · día 138 · 5 etapas · 🔴 Inventado 5
 
-CON · .2 · una-semana · 4 etapas · día 155
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 187 | 🔴 Inventado |
+| 2 | Llana · Flat | — | — | 167 | 🔴 Inventado |
+| 3 | Media montaña · Hills | — | — | 190 | 🔴 Inventado |
+| 4 | Media montaña · Hills | — | — | 186 | 🔴 Inventado |
+| 5 | Montaña · Summit finish | — | — | 140 | 🔴 Inventado |
 
-| #   | Tipo          | Salida | Meta  |  km | Recorrido |
-| --- | ------------- | ------ | ----- | --: | --------- |
-| 1   | Flat          | Linz   | Wels  | 193 | Inventado |
-| 2   | Summit finish | Wels   | Steyr | 155 | Inventado |
-| 3   | ITT (crono)   | Steyr  | Enns  |  15 | Inventado |
-| 4   | Hills         | Enns   | Linz  | 161 | Inventado |
+### Race Dunkerque `race-dunkerque`
 
-### Race Oise (FR)
+Clase **Pro** · FR · día 139 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · una-semana · 4 etapas · día 155
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo          | Salida    | Meta      |  km | Recorrido |
-| --- | ------------- | --------- | --------- | --: | --------- |
-| 1   | Flat          | Beauvais  | Clermont  | 166 | Inventado |
-| 2   | Uphill finish | Clermont  | Senlis    | 174 | Inventado |
-| 3   | ITT (crono)   | Senlis    | Compiegne |  23 | Inventado |
-| 4   | Hills         | Compiegne | Noyon     | 140 | Inventado |
+### Race Hauts-de-France `race-hauts-de-france`
 
-### Race Heist (BE)
+Clase **Pro** · FR · día 140 · 5 etapas · 🟡 Sin validar 5
 
-CON · .1 · un-dia · 1 etapa · día 157
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | Lagny-le-Sec | Laon | 178 | 🟡 Sin validar |
+| 2 | Llana · Flat | Glisy | Lievin | 188 | 🟡 Sin validar |
+| 3 | Clásica · Cobbles | La Sentinelle | Wallers-Arenberg | 156 | 🟡 Sin validar |
+| 4 | Media montaña · Hills | Bergues | Cassel | 166 | 🟡 Sin validar |
+| 5 | Llana · Flat | Saint-Omer | Dunkerque | 184 | 🟡 Sin validar |
 
-| #   | Tipo | Salida            | Meta              |  km | Recorrido |
-| --- | ---- | ----------------- | ----------------- | --: | --------- |
-| 1   | Flat | Heist-op-den-Berg | Heist-op-den-Berg | 210 | Inventado |
+### Race Estrela `race-estrela`
 
-### Race Visegrad (CZ)
+Clase **1** · PT · día 142 · 3 etapas · 🔴 Inventado 3
 
-CON · .2 · un-dia · 1 etapa · día 158
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 176 | 🔴 Inventado |
+| 2 | Contrarreloj · ITT | — | — | 24 | 🔴 Inventado |
+| 3 | Media montaña · Uphill finish | — | — | 138 | 🔴 Inventado |
 
-| #   | Tipo  | Salida | Meta    |  km | Recorrido |
-| --- | ----- | ------ | ------- | --: | --------- |
-| 1   | Hills | Brno   | Blansko | 210 | Inventado |
+### Race Veenendaal `race-veenendaal`
 
-### Race Beauce (CA)
+Clase **1** · NL · día 143 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · una-semana · 5 etapas · día 161
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo          | Salida                 | Meta                   |  km | Recorrido |
-| --- | ------------- | ---------------------- | ---------------------- | --: | --------- |
-| 1   | Flat          | Sainte-Marie           | Saint-Georges          | 173 | Inventado |
-| 2   | Hills         | Saint-Georges          | Lac-Megantic           | 189 | Inventado |
-| 3   | ITT (crono)   | Lac-Megantic           | Beauceville            |  20 | Inventado |
-| 4   | Summit finish | Beauceville            | Saint-Joseph-de-Beauce | 163 | Inventado |
-| 5   | Hills         | Saint-Joseph-de-Beauce | Saint-Georges          | 148 | Inventado |
+### Race Criquielion `race-criquielion`
 
-### Race Malopolska (PL)
+Clase **1** · BE · día 144 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · una-semana · 3 etapas · día 162
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo          | Salida    | Meta      |  km | Recorrido |
-| --- | ------------- | --------- | --------- | --: | --------- |
-| 1   | Flat          | Krakow    | Tarnow    | 194 | Inventado |
-| 2   | Uphill finish | Tarnow    | Nowy Sacz | 175 | Inventado |
-| 3   | Uphill finish | Nowy Sacz | Krakow    | 141 | Inventado |
+### Race Nippon `race-nippon`
 
-### Race Elfsteden (NL)
+Clase **2** · JP · día 144 · 8 etapas · 🔴 Inventado 8
 
-CON · .1 · un-dia · 1 etapa · día 165
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 193 | 🔴 Inventado |
+| 2 | Montaña · Summit finish | — | — | 160 | 🔴 Inventado |
+| 3 | Montaña · Summit finish | — | — | 179 | 🔴 Inventado |
+| 4 | Media montaña · Hills | — | — | 182 | 🔴 Inventado |
+| 5 | Montaña · Summit finish | — | — | 170 | 🔴 Inventado |
+| 6 | Media montaña · Hills | — | — | 190 | 🔴 Inventado |
+| 7 | Contrarreloj · ITT | — | — | 19 | 🔴 Inventado |
+| 8 | Media montaña · Hills | — | — | 145 | 🔴 Inventado |
 
-| #   | Tipo | Salida   | Meta     |  km | Recorrido |
-| --- | ---- | -------- | -------- | --: | --------- |
-| 1   | Flat | Bolsward | Bolsward | 210 | Inventado |
+### Race Antwerp `race-antwerp`
 
-### Race Gippingen (CH)
+Clase **1** · BE · día 145 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · un-dia · 1 etapa · día 165
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Cobbles | — | — | 190 | 🔴 Inventado |
 
-| #   | Tipo  | Salida | Meta        |  km | Recorrido |
-| --- | ----- | ------ | ----------- | --: | --------- |
-| 1   | Hills | Baden  | Bad Zurzach | 210 | Inventado |
+### Race Troyes `race-troyes`
 
-### Race Muur (BE)
+Clase **2** · FR · día 145 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · un-dia · 1 etapa · día 165
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo    | Salida | Meta           |  km | Recorrido |
-| --- | ------- | ------ | -------------- | --: | --------- |
-| 1   | Cobbles | Ninove | Geraardsbergen | 190 | Inventado |
+### Race Isère `race-isere`
 
-### Race Occitanie (FR)
+Clase **2** · FR · día 147 · 5 etapas · 🔴 Inventado 5
 
-CON · .1 · una-semana · 4 etapas · día 169
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 184 | 🔴 Inventado |
+| 2 | Montaña · Summit finish | — | — | 165 | 🔴 Inventado |
+| 3 | Montaña · Summit finish | — | — | 164 | 🔴 Inventado |
+| 4 | Contrarreloj · ITT | — | — | 19 | 🔴 Inventado |
+| 5 | Montaña · Summit finish | — | — | 124 | 🔴 Inventado |
 
-| #   | Tipo          | Salida      | Meta        |  km | Recorrido |
-| --- | ------------- | ----------- | ----------- | --: | --------- |
-| 1   | Flat          | Auch        | Toulouse    | 193 | Inventado |
-| 2   | Uphill finish | Toulouse    | Luz Ardiden | 153 | Inventado |
-| 3   | Hills         | Luz Ardiden | Tarbes      | 169 | Inventado |
-| 4   | Hills         | Tarbes      | Peyragudes  | 147 | Inventado |
+### Race Lithuania `race-lithuania`
 
-### Race Mazury (PL)
+Clase **2** · LT · día 147 · 5 etapas · 🔴 Inventado 5
 
-CON · .2 · una-semana · 3 etapas · día 170
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 169 | 🔴 Inventado |
+| 2 | Media montaña · Hills | — | — | 167 | 🔴 Inventado |
+| 3 | Contrarreloj · ITT | — | — | 18 | 🔴 Inventado |
+| 4 | Montaña · Summit finish | — | — | 159 | 🔴 Inventado |
+| 5 | Llana · Flat | — | — | 156 | 🔴 Inventado |
 
-| #   | Tipo          | Salida  | Meta    |  km | Recorrido |
-| --- | ------------- | ------- | ------- | --: | --------- |
-| 1   | Flat          | Olsztyn | Mragowo | 192 | Inventado |
-| 2   | Uphill finish | Mragowo | Gizycko | 151 | Inventado |
-| 3   | Hills         | Gizycko | Elk     | 146 | Inventado |
+### Race Mayenne `race-mayenne`
 
-### Race Andorra Classic (AD)
+Clase **Pro** · FR · día 148 · 4 etapas · 🟡 Sin validar 4
 
-CON · .1 · un-dia · 1 etapa · día 172
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | Laval | Laval | 5 | 🟡 Sin validar |
+| 2 | Media montaña · Hills | Saint-Berthevin | Chateau-Gontier-sur-Mayenne | 172 | 🟡 Sin validar |
+| 3 | Media montaña · Hills | Aron | Pre-en-Pail-Saint-Samson | 215 | 🟡 Sin validar |
+| 4 | Llana · Flat | Cosse-le-Vivien | Laval | 148 | 🟡 Sin validar |
 
-| #   | Tipo          | Salida           | Meta    |  km | Recorrido |
-| --- | ------------- | ---------------- | ------- | --: | --------- |
-| 1   | Summit finish | Andorra la Vella | Arcalis | 210 | Inventado |
+### Race Norway `race-norway`
 
-### Race Lyon (FR)
+Clase **Pro** · NO · día 148 · 4 etapas · 🟡 Sin validar 4
 
-CON · .1 · una-semana · 3 etapas · día 182
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | Solakrossen | Solakrossen | 179 | 🟡 Sin validar |
+| 2 | Media montaña · Hills | Egersund | Oltedal | 208 | 🟡 Sin validar |
+| 3 | Media montaña · Hills | Jorpeland | Heia | 142 | 🟡 Sin validar |
+| 4 | Media montaña · Hills | Stavanger | Stavanger | 130 | 🟡 Sin validar |
 
-| #   | Tipo          | Salida                 | Meta                   |  km | Recorrido |
-| --- | ------------- | ---------------------- | ---------------------- | --: | --------- |
-| 1   | Flat          | Lyon                   | Villefranche-sur-Saone | 167 | Inventado |
-| 2   | ITT (crono)   | Villefranche-sur-Saone | Chiroubles             |  25 | Inventado |
-| 3   | Uphill finish | Chiroubles             | Yzeron                 | 139 | Inventado |
+### Race Wallonia `race-wallonia`
 
-### Race Solidarnosc (PL)
+Clase **Pro** · BE · día 152 · 5 etapas · 🟡 Sin validar 5
 
-CON · .2 · una-semana · 4 etapas · día 182
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | Manage | Lobbes | 181 | 🟡 Sin validar |
+| 2 | Media montaña · Hills | Jodoigne | Libramont-Chevigny | 192 | 🟡 Sin validar |
+| 3 | Media montaña · Hills | Habay | Vaux-sur-Sure | 177 | 🟡 Sin validar |
+| 4 | Media montaña · Hills | Dison | Eupen | 167 | 🟡 Sin validar |
+| 5 | Media montaña · Hills | Bassenge | Aubel | 177 | 🟡 Sin validar |
 
-| #   | Tipo          | Salida               | Meta                 |  km | Recorrido |
-| --- | ------------- | -------------------- | -------------------- | --: | --------- |
-| 1   | Flat          | Lodz                 | Piotrkow Trybunalski | 186 | Inventado |
-| 2   | Hills         | Piotrkow Trybunalski | Czestochowa          | 185 | Inventado |
-| 3   | Hills         | Czestochowa          | Radomsko             | 181 | Inventado |
-| 4   | Uphill finish | Radomsko             | Lodz                 | 134 | Inventado |
+### Race Mauritius `race-mauritius`
 
-### Race Sibiu (RO)
+Clase **2** · MU · día 153 · 4 etapas · 🔴 Inventado 4
 
-CON · .1 · una-semana · 4 etapas · día 185
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 177 | 🔴 Inventado |
+| 2 | Montaña · Summit finish | — | — | 156 | 🔴 Inventado |
+| 3 | Contrarreloj · ITT | — | — | 23 | 🔴 Inventado |
+| 4 | Montaña · Summit finish | — | — | 152 | 🔴 Inventado |
 
-| #   | Tipo          | Salida   | Meta      |  km | Recorrido |
-| --- | ------------- | -------- | --------- | --: | --------- |
-| 1   | Flat          | Sibiu    | Medias    | 182 | Inventado |
-| 2   | Hills         | Medias   | Paltinis  | 169 | Inventado |
-| 3   | ITT (crono)   | Paltinis | Fagaras   |  19 | Inventado |
-| 4   | Summit finish | Fagaras  | Balea Lac | 126 | Inventado |
+### Race Mercantour `race-mercantour`
 
-### Race Austria (AT)
+Clase **1** · FR · día 154 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · una-semana · 5 etapas · día 189
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Montaña · Summit finish | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo          | Salida                 | Meta                   |  km | Recorrido |
-| --- | ------------- | ---------------------- | ---------------------- | --: | --------- |
-| 1   | Flat          | Salzburg               | Zell am See            | 178 | Inventado |
-| 2   | Hills         | Zell am See            | Heiligenblut           | 173 | Inventado |
-| 3   | ITT (crono)   | Heiligenblut           | Sankt Johann im Pongau |  17 | Inventado |
-| 4   | Summit finish | Sankt Johann im Pongau | Bad Gastein            | 177 | Inventado |
-| 5   | Summit finish | Bad Gastein            | Kitzbuhel              | 139 | Inventado |
+### Race Cameroon `race-cameroon`
 
-### Race Torres Vedras (PT)
+Clase **2** · CM · día 154 · 8 etapas · 🔴 Inventado 8
 
-CON · .2 · una-semana · 3 etapas · día 191
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 184 | 🔴 Inventado |
+| 2 | Media montaña · Hills | — | — | 186 | 🔴 Inventado |
+| 3 | Media montaña · Uphill finish | — | — | 172 | 🔴 Inventado |
+| 4 | Media montaña · Hills | — | — | 185 | 🔴 Inventado |
+| 5 | Montaña · Summit finish | — | — | 154 | 🔴 Inventado |
+| 6 | Media montaña · Hills | — | — | 174 | 🔴 Inventado |
+| 7 | Contrarreloj · ITT | — | — | 18 | 🔴 Inventado |
+| 8 | Media montaña · Uphill finish | — | — | 132 | 🔴 Inventado |
 
-| #   | Tipo          | Salida        | Meta          |  km | Recorrido |
-| --- | ------------- | ------------- | ------------- | --: | --------- |
-| 1   | Flat          | Torres Vedras | Lourinha      | 192 | Inventado |
-| 2   | Summit finish | Lourinha      | Mafra         | 167 | Inventado |
-| 3   | Hills         | Mafra         | Torres Vedras | 153 | Inventado |
+### Race Estonia `race-estonia`
 
-### Race Venezuela (VE)
+Clase **1** · EE · día 155 · 3 etapas · 🔴 Inventado 3
 
-CON · .2 · una-semana · 8 etapas · día 193
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 176 | 🔴 Inventado |
+| 2 | Contrarreloj · ITT | — | — | 23 | 🔴 Inventado |
+| 3 | Media montaña · Hills | — | — | 142 | 🔴 Inventado |
 
-| #   | Tipo          | Salida        | Meta       |  km | Recorrido |
-| --- | ------------- | ------------- | ---------- | --: | --------- |
-| 1   | Flat          | San Cristobal | La Fria    | 182 | Inventado |
-| 2   | Summit finish | La Fria       | La Grita   | 169 | Inventado |
-| 3   | Summit finish | La Grita      | Bailadores | 170 | Inventado |
-| 4   | Summit finish | Bailadores    | Merida     | 157 | Inventado |
-| 5   | Uphill finish | Merida        | Timotes    | 153 | Inventado |
-| 6   | Summit finish | Timotes       | La Puerta  | 154 | Inventado |
-| 7   | ITT (crono)   | La Puerta     | Valera     |  19 | Inventado |
-| 8   | Summit finish | Valera        | Bocono     | 151 | Inventado |
+### Race Oberösterreich `race-oberosterreich`
 
-### Race Ordizia (ES)
+Clase **2** · AT · día 155 · 4 etapas · 🔴 Inventado 4
 
-CON · .1 · un-dia · 1 etapa · día 206
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 193 | 🔴 Inventado |
+| 2 | Montaña · Summit finish | — | — | 155 | 🔴 Inventado |
+| 3 | Contrarreloj · ITT | — | — | 15 | 🔴 Inventado |
+| 4 | Media montaña · Hills | — | — | 161 | 🔴 Inventado |
 
-| #   | Tipo  | Salida  | Meta    |  km | Recorrido |
-| --- | ----- | ------- | ------- | --: | --------- |
-| 1   | Hills | Ordizia | Ordizia | 210 | Inventado |
+### Race Oise `race-oise`
 
-### Race Castilla y León (ES)
+Clase **2** · FR · día 155 · 4 etapas · 🔴 Inventado 4
 
-CON · .1 · un-dia · 1 etapa · día 207
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 166 | 🔴 Inventado |
+| 2 | Media montaña · Uphill finish | — | — | 174 | 🔴 Inventado |
+| 3 | Contrarreloj · ITT | — | — | 23 | 🔴 Inventado |
+| 4 | Media montaña · Hills | — | — | 140 | 🔴 Inventado |
 
-| #   | Tipo  | Salida     | Meta    |  km | Recorrido |
-| --- | ----- | ---------- | ------- | --: | --------- |
-| 1   | Hills | Valladolid | Segovia | 210 | Inventado |
+### Race Heist `race-heist`
 
-### Race Ain (FR)
+Clase **1** · BE · día 157 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · una-semana · 3 etapas · día 209
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo        | Salida          | Meta            |  km | Recorrido |
-| --- | ----------- | --------------- | --------------- | --: | --------- |
-| 1   | Flat        | Bourg-en-Bresse | Oyonnax         | 187 | Inventado |
-| 2   | ITT (crono) | Oyonnax         | Lelex           |  15 | Inventado |
-| 3   | Hills       | Lelex           | Grand Colombier | 141 | Inventado |
+### Race Rhône-Alpes `race-rhone-alpes`
 
-### Race Alsace (FR)
+Clase **WT** · FR · día 158 · 8 etapas · 🟡 Sin validar 8
 
-CON · .2 · una-semana · 5 etapas · día 210
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Montaña · Summit finish | Vizille | Saint-Ismier | 146 | 🟡 Sin validar |
+| 2 | Media montaña · Hills | Saint-Martin-le-Vinoux | Le Puy-en-Velay | 234 | 🟡 Sin validar |
+| 3 | Contrarreloj · ITT | Perreux | Perreux | 28 | 🟡 Sin validar |
+| 4 | Media montaña · Hills | Le Puy-en-Velay | Montrond-les-Bains | 167 | 🟡 Sin validar |
+| 5 | Llana · Flat | Saint-Chamond | Villars-les-Dombes | 196 | 🟡 Sin validar |
+| 6 | Montaña · Summit finish | Saint-Vulbas | Crest-Voland | 182 | 🟡 Sin validar |
+| 7 | Montaña · Summit finish | La Bridoire | Grand Colombier | 134 | 🟡 Sin validar |
+| 8 | Montaña · Summit finish | Beaufort | Plateau de Solaison | 120 | 🟡 Sin validar |
 
-| #   | Tipo          | Salida          | Meta            |  km | Recorrido |
-| --- | ------------- | --------------- | --------------- | --: | --------- |
-| 1   | Flat          | Strasbourg      | Colmar          | 187 | Inventado |
-| 2   | Summit finish | Colmar          | Le Markstein    | 174 | Inventado |
-| 3   | Hills         | Le Markstein    | Mulhouse        | 176 | Inventado |
-| 4   | ITT (crono)   | Mulhouse        | Ballon d'Alsace |  16 | Inventado |
-| 5   | Summit finish | Ballon d'Alsace | Grand Ballon    | 129 | Inventado |
+### Race Brussels `race-brussels`
 
-### Race Kreiz Breizh (FR)
+Clase **Pro** · BE · día 158 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · una-semana · 4 etapas · día 212
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo          | Salida          | Meta            |  km | Recorrido |
-| --- | ------------- | --------------- | --------------- | --: | --------- |
-| 1   | Flat          | Rostrenen       | Carhaix         | 183 | Inventado |
-| 2   | Hills         | Carhaix         | Mur-de-Bretagne | 175 | Inventado |
-| 3   | Summit finish | Mur-de-Bretagne | Gouarec         | 155 | Inventado |
-| 4   | Summit finish | Gouarec         | Callac          | 128 | Inventado |
+### Race Visegrad `race-visegrad-cz`
 
-### Race Getxo (ES)
+Clase **2** · CZ · día 158 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · un-dia · 1 etapa · día 214
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo  | Salida | Meta  |  km | Recorrido |
-| --- | ----- | ------ | ----- | --: | --------- |
-| 1   | Hills | Getxo  | Getxo | 210 | Inventado |
+### Ecuador ITT Championship `nc-ec-itt`
 
-### Race Maraş (TR)
+Clase **NC** · EC · día 159 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · una-semana · 4 etapas · día 216
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-| #   | Tipo          | Salida        | Meta      |  km | Recorrido |
-| --- | ------------- | ------------- | --------- | --: | --------- |
-| 1   | Flat          | Kahramanmaras | Gaziantep | 166 | Inventado |
-| 2   | Hills         | Gaziantep     | Islahiye  | 161 | Inventado |
-| 3   | Uphill finish | Islahiye      | Osmaniye  | 179 | Inventado |
-| 4   | Hills         | Osmaniye      | Adana     | 152 | Inventado |
+### Ecuador U23 ITT Championship `nc-ec-u23-itt`
 
-### Race Portugal (PT)
+Clase **NC** · EC · día 160 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · una-semana · 11 etapas · día 217
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-| #   | Tipo          | Salida             | Meta               |  km | Recorrido   |
-| --- | ------------- | ------------------ | ------------------ | --: | ----------- |
-| 1   | ITT (crono)   | Maia               | Maia               |   3 | Sin validar |
-| 2   | Hills         | Viana do Castelo   | Braga              | 162 | Sin validar |
-| 3   | Hills         | Felgueiras         | Fafe               | 168 | Sin validar |
-| 4   | Hills         | Boticas            | Braganca           | 185 | Sin validar |
-| 5   | Summit finish | Braganca           | Mondim de Basto    | 183 | Sin validar |
-| 6   | Flat          | Lamego             | Viseu              | 156 | Sin validar |
-| 7   | Hills         | Agueda             | Guarda             | 175 | Sin validar |
-| 8   | Summit finish | Sabugal            | Covilha            | 179 | Sin validar |
-| 9   | Flat          | Ferreira do Zezere | Santarem           | 178 | Sin validar |
-| 10  | Summit finish | Alcobaca           | Alto de Montejunto | 174 | Sin validar |
-| 11  | ITT (crono)   | Lisboa             | Lisboa             |  17 | Sin validar |
+### Race Franco-Belgian `race-franco-belgian`
 
-### Race Szeklerland (RO)
+Clase **Pro** · FR · día 161 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · una-semana · 3 etapas · día 218
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo          | Salida          | Meta              |  km | Recorrido |
-| --- | ------------- | --------------- | ----------------- | --: | --------- |
-| 1   | Flat          | Sfantu Gheorghe | Miercurea Ciuc    | 186 | Inventado |
-| 2   | Uphill finish | Miercurea Ciuc  | Gheorgheni        | 151 | Inventado |
-| 3   | Hills         | Gheorgheni      | Odorheiu Secuiesc | 155 | Inventado |
+### Race Beauce `race-beauce`
 
-### Race Colombia Tour (CO)
+Clase **2** · CA · día 161 · 5 etapas · 🔴 Inventado 5
 
-CON · .2 · una-semana · 9 etapas · día 220
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 173 | 🔴 Inventado |
+| 2 | Media montaña · Hills | — | — | 189 | 🔴 Inventado |
+| 3 | Contrarreloj · ITT | — | — | 20 | 🔴 Inventado |
+| 4 | Montaña · Summit finish | — | — | 163 | 🔴 Inventado |
+| 5 | Media montaña · Hills | — | — | 148 | 🔴 Inventado |
 
-| #   | Tipo          | Salida        | Meta          |  km | Recorrido |
-| --- | ------------- | ------------- | ------------- | --: | --------- |
-| 1   | Flat          | Medellin      | Rionegro      | 194 | Inventado |
-| 2   | Uphill finish | Rionegro      | La Union      | 151 | Inventado |
-| 3   | Summit finish | La Union      | Sonson        | 154 | Inventado |
-| 4   | Hills         | Sonson        | Abejorral     | 171 | Inventado |
-| 5   | Hills         | Abejorral     | Santa Barbara | 168 | Inventado |
-| 6   | Summit finish | Santa Barbara | Alto de Minas | 166 | Inventado |
-| 7   | Hills         | Alto de Minas | Amaga         | 189 | Inventado |
-| 8   | ITT (crono)   | Amaga         | Caldas        |  20 | Inventado |
-| 9   | Uphill finish | Caldas        | Medellin      | 137 | Inventado |
+### Race Malopolska `race-malopolska`
 
-### Race Polynormande (FR)
+Clase **2** · PL · día 162 · 3 etapas · 🔴 Inventado 3
 
-CON · .1 · un-dia · 1 etapa · día 228
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 194 | 🔴 Inventado |
+| 2 | Media montaña · Uphill finish | — | — | 175 | 🔴 Inventado |
+| 3 | Media montaña · Uphill finish | — | — | 141 | 🔴 Inventado |
 
-| #   | Tipo  | Salida                    | Meta                      |  km | Recorrido |
-| --- | ----- | ------------------------- | ------------------------- | --: | --------- |
-| 1   | Hills | Saint-Martin-de-Landelles | Saint-Martin-de-Landelles | 210 | Inventado |
+### Ecuador U23 Road Championship `nc-ec-u23-road`
 
-### Race Limousin (FR)
+Clase **NC** · EC · día 162 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · una-semana · 4 etapas · día 230
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-| #   | Tipo          | Salida                 | Meta                   |  km | Recorrido |
-| --- | ------------- | ---------------------- | ---------------------- | --: | --------- |
-| 1   | Flat          | Limoges                | Saint-Yrieix-la-Perche | 168 | Inventado |
-| 2   | Uphill finish | Saint-Yrieix-la-Perche | Brive-la-Gaillarde     | 164 | Inventado |
-| 3   | ITT (crono)   | Brive-la-Gaillarde     | Tulle                  |  22 | Inventado |
-| 4   | Hills         | Tulle                  | Gueret                 | 149 | Inventado |
+### Ecuador Road Championship `nc-ec-road`
 
-### Race West Bohemia (CZ)
+Clase **NC** · EC · día 163 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · una-semana · 4 etapas · día 232
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-| #   | Tipo          | Salida          | Meta            |  km | Recorrido |
-| --- | ------------- | --------------- | --------------- | --: | --------- |
-| 1   | Flat          | Plzen           | Karlovy Vary    | 170 | Inventado |
-| 2   | Hills         | Karlovy Vary    | Marianske Lazne | 177 | Inventado |
-| 3   | Hills         | Marianske Lazne | Cheb            | 173 | Inventado |
-| 4   | Summit finish | Cheb            | Plzen           | 146 | Inventado |
+### Race Copenhagen `race-copenhagen`
 
-### Race Baltic (LT)
+Clase **WT** · DK · día 165 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · una-semana · 3 etapas · día 233
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo          | Salida   | Meta     |  km | Recorrido |
-| --- | ------------- | -------- | -------- | --: | --------- |
-| 1   | Flat          | Klaipeda | Palanga  | 179 | Inventado |
-| 2   | Uphill finish | Palanga  | Telsiai  | 178 | Inventado |
-| 3   | Hills         | Telsiai  | Kretinga | 147 | Inventado |
+### Race Elfsteden `race-elfsteden`
 
-### Race Aquitaine (FR)
+Clase **1** · NL · día 165 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · una-semana · 4 etapas · día 237
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo          | Salida    | Meta      |  km | Recorrido |
-| --- | ------------- | --------- | --------- | --: | --------- |
-| 1   | Flat          | Bordeaux  | Libourne  | 172 | Inventado |
-| 2   | ITT (crono)   | Libourne  | Bergerac  |  24 | Inventado |
-| 3   | Uphill finish | Bergerac  | Perigueux | 155 | Inventado |
-| 4   | Hills         | Perigueux | Agen      | 160 | Inventado |
+### Race Gippingen `race-gippingen`
 
-### Race Samsun (TR)
+Clase **1** · CH · día 165 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · una-semana · 4 etapas · día 239
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo          | Salida   | Meta     |  km | Recorrido |
-| --- | ------------- | -------- | -------- | --: | --------- |
-| 1   | Flat          | Samsun   | Carsamba | 173 | Inventado |
-| 2   | Summit finish | Carsamba | Unye     | 151 | Inventado |
-| 3   | ITT (crono)   | Unye     | Fatsa    |  16 | Inventado |
-| 4   | Hills         | Fatsa    | Ordu     | 139 | Inventado |
+### Race Muur `race-muur`
 
-### Race Bulgaria (BG)
+Clase **1** · BE · día 165 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · una-semana · 6 etapas · día 241
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Cobbles | — | — | 190 | 🔴 Inventado |
 
-| #   | Tipo          | Salida   | Meta     |  km | Recorrido |
-| --- | ------------- | -------- | -------- | --: | --------- |
-| 1   | Flat          | Sofia    | Plovdiv  | 176 | Inventado |
-| 2   | Hills         | Plovdiv  | Karlovo  | 187 | Inventado |
-| 3   | Uphill finish | Karlovo  | Kazanlak | 168 | Inventado |
-| 4   | Hills         | Kazanlak | Sliven   | 163 | Inventado |
-| 5   | ITT (crono)   | Sliven   | Yambol   |  17 | Inventado |
-| 6   | Uphill finish | Yambol   | Burgas   | 133 | Inventado |
+### Race Switzerland `race-switzerland`
 
-### Race Achterhoek (NL)
+Clase **WT** · CH · día 168 · 5 etapas · 🟡 Sin validar 5
 
-CON · .2 · un-dia · 1 etapa · día 242
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Montaña · Summit finish | Morbegno | Sondrio | 144 | 🟡 Sin validar |
+| 2 | Media montaña · Hills | Lugano | Bellinzona | 158 | 🟡 Sin validar |
+| 3 | Montaña · Summit finish | Buchs | Sargans | 157 | 🟡 Sin validar |
+| 4 | Contrarreloj · ITT | Neundorf | Fulenbach | 24 | 🟡 Sin validar |
+| 5 | Montaña · Summit finish | Les Diablerets | Villars-sur-Ollon | 151 | 🟡 Sin validar |
 
-| #   | Tipo | Salida     | Meta        |  km | Recorrido |
-| --- | ---- | ---------- | ----------- | --: | --------- |
-| 1   | Flat | Doetinchem | Winterswijk | 210 | Inventado |
+### Race Belgium `race-belgium`
 
-### Race Halle (BE)
+Clase **Pro** · BE · día 168 · 5 etapas · 🟡 Sin validar 5
 
-CON · .2 · un-dia · 1 etapa · día 242
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | Scherpenheuvel-Zichem | Scherpenheuvel-Zichem | 188 | 🟡 Sin validar |
+| 2 | Llana · Flat | Merelbeke-Melle | Knokke-Heist | 198 | 🟡 Sin validar |
+| 3 | Media montaña · Hills | Durbuy | Durbuy | 173 | 🟡 Sin validar |
+| 4 | Llana · Flat | Begijnendijk-Betekom | Aarschot | 184 | 🟡 Sin validar |
+| 5 | Clásica · Cobbles | Gingelom | Hoeilaart | 184 | 🟡 Sin validar |
 
-| #   | Tipo | Salida | Meta      |  km | Recorrido |
-| --- | ---- | ------ | --------- | --: | --------- |
-| 1   | Flat | Halle  | Ingooigem | 210 | Inventado |
+### Race Slovenia `race-slovenia`
 
-### Race Kranj (SI)
+Clase **Pro** · SI · día 168 · 5 etapas · 🟡 Sin validar 5
 
-CON · .1 · un-dia · 1 etapa · día 242
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | Velenje | Rogaska Slatina | 142 | 🟡 Sin validar |
+| 2 | Media montaña · Hills | Radlje ob Dravi | Ormoz | 177 | 🟡 Sin validar |
+| 3 | Media montaña · Hills | Maribor | Celje | 137 | 🟡 Sin validar |
+| 4 | Montaña · Summit finish | Kranj | Kranjska Gora | 183 | 🟡 Sin validar |
+| 5 | Media montaña · Hills | Litija | Novo Mesto | 162 | 🟡 Sin validar |
 
-| #   | Tipo  | Salida | Meta  |  km | Recorrido |
-| --- | ----- | ------ | ----- | --: | --------- |
-| 1   | Hills | Kranj  | Trzic | 210 | Inventado |
+### Macau ITT Championship `nc-mo-itt`
 
-### Race Philadelphia (US)
+Clase **NC** · MO · día 168 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · un-dia · 1 etapa · día 242
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-| #   | Tipo  | Salida       | Meta         |  km | Recorrido |
-| --- | ----- | ------------ | ------------ | --: | --------- |
-| 1   | Hills | Philadelphia | Philadelphia | 210 | Inventado |
+### Race Occitanie `race-occitanie`
 
-### Race Plouay (FR)
+Clase **1** · FR · día 169 · 4 etapas · 🔴 Inventado 4
 
-CON · .2 · un-dia · 1 etapa · día 242
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 193 | 🔴 Inventado |
+| 2 | Media montaña · Uphill finish | — | — | 153 | 🔴 Inventado |
+| 3 | Media montaña · Hills | — | — | 169 | 🔴 Inventado |
+| 4 | Media montaña · Hills | — | — | 147 | 🔴 Inventado |
 
-| #   | Tipo  | Salida | Meta   |  km | Recorrido |
-| --- | ----- | ------ | ------ | --: | --------- |
-| 1   | Hills | Plouay | Plouay | 210 | Inventado |
+### Macau U23 ITT Championship `nc-mo-u23-itt`
 
-### Race Korea (KR)
+Clase **NC** · MO · día 169 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · una-semana · 5 etapas · día 243
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-| #   | Tipo          | Salida    | Meta      |  km | Recorrido |
-| --- | ------------- | --------- | --------- | --: | --------- |
-| 1   | Flat          | Seoul     | Chungju   | 193 | Inventado |
-| 2   | Hills         | Chungju   | Mungyeong | 189 | Inventado |
-| 3   | Uphill finish | Mungyeong | Andong    | 163 | Inventado |
-| 4   | ITT (crono)   | Andong    | Yeongju   |  21 | Inventado |
-| 5   | Hills         | Yeongju   | Danyang   | 151 | Inventado |
+### Race Mazury `race-mazury`
 
-### Race ZLM (NL)
+Clase **2** · PL · día 170 · 3 etapas · 🔴 Inventado 3
 
-CON · .1 · una-semana · 5 etapas · día 245
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 192 | 🔴 Inventado |
+| 2 | Media montaña · Uphill finish | — | — | 151 | 🔴 Inventado |
+| 3 | Media montaña · Hills | — | — | 146 | 🔴 Inventado |
 
-| #   | Tipo          | Salida     | Meta       |  km | Recorrido |
-| --- | ------------- | ---------- | ---------- | --: | --------- |
-| 1   | Flat          | Eindhoven  | Weert      | 182 | Inventado |
-| 2   | Hills         | Weert      | Sittard    | 161 | Inventado |
-| 3   | Uphill finish | Sittard    | Roermond   | 173 | Inventado |
-| 4   | ITT (crono)   | Roermond   | Valkenburg |  21 | Inventado |
-| 5   | Flat          | Valkenburg | Maastricht | 162 | Inventado |
+### Macau U23 Road Championship `nc-mo-u23-road`
 
-### Race Friuli (IT)
+Clase **NC** · MO · día 171 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · una-semana · 4 etapas · día 246
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-| #   | Tipo          | Salida              | Meta                |  km | Recorrido |
-| --- | ------------- | ------------------- | ------------------- | --: | --------- |
-| 1   | Flat          | Pordenone           | Udine               | 193 | Inventado |
-| 2   | ITT (crono)   | Udine               | Cividale del Friuli |  20 | Inventado |
-| 3   | Hills         | Cividale del Friuli | Gorizia             | 161 | Inventado |
-| 4   | Summit finish | Gorizia             | Trieste             | 150 | Inventado |
+### Race Andorra Classic `race-andorra-classic`
 
-### Race Istanbul (TR)
+Clase **1** · AD · día 172 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · una-semana · 4 etapas · día 246
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Montaña · Summit finish | — | — | 210 | 🔴 Inventado |
 
-| #   | Tipo          | Salida   | Meta      |  km | Recorrido |
-| --- | ------------- | -------- | --------- | --: | --------- |
-| 1   | Flat          | Istanbul | Gebze     | 184 | Inventado |
-| 2   | Hills         | Gebze    | Kartepe   | 176 | Inventado |
-| 3   | Uphill finish | Kartepe  | Sapanca   | 170 | Inventado |
-| 4   | Hills         | Sapanca  | Adapazari | 146 | Inventado |
+### Macau Road Championship `nc-mo-road`
 
-### Race Kosovo (XK)
+Clase **NC** · MO · día 172 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · una-semana · 4 etapas · día 246
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-| #   | Tipo          | Salida   | Meta    |  km | Recorrido |
-| --- | ------------- | -------- | ------- | --: | --------- |
-| 1   | Flat          | Pristina | Ferizaj | 170 | Inventado |
-| 2   | Hills         | Ferizaj  | Prizren | 162 | Inventado |
-| 3   | ITT (crono)   | Prizren  | Gjakova |  21 | Inventado |
-| 4   | Summit finish | Gjakova  | Peja    | 146 | Inventado |
+### Germany ITT Championship `nc-de-itt`
 
-### Race Sauerland (DE)
+Clase **NC** · DE · día 175 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · una-semana · 4 etapas · día 246
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-| #   | Tipo          | Salida     | Meta       |  km | Recorrido |
-| --- | ------------- | ---------- | ---------- | --: | --------- |
-| 1   | Flat          | Arnsberg   | Meschede   | 185 | Inventado |
-| 2   | Summit finish | Meschede   | Winterberg | 157 | Inventado |
-| 3   | ITT (crono)   | Winterberg | Brilon     |  23 | Inventado |
-| 4   | Uphill finish | Brilon     | Arnsberg   | 150 | Inventado |
+### Portugal ITT Championship `nc-pt-itt`
 
-### Race South Bohemia (CZ)
+Clase **NC** · PT · día 175 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · una-semana · 4 etapas · día 246
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-| #   | Tipo          | Salida            | Meta              |  km | Recorrido |
-| --- | ------------- | ----------------- | ----------------- | --: | --------- |
-| 1   | Flat          | Ceske Budejovice  | Tabor             | 185 | Inventado |
-| 2   | Summit finish | Tabor             | Jindrichuv Hradec | 169 | Inventado |
-| 3   | ITT (crono)   | Jindrichuv Hradec | Trebon            |  17 | Inventado |
-| 4   | Summit finish | Trebon            | Ceske Budejovice  | 149 | Inventado |
+### Norway ITT Championship `nc-no-itt`
 
-### Race Somme (FR)
+Clase **NC** · NO · día 175 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · un-dia · 1 etapa · día 249
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-| #   | Tipo | Salida | Meta   |  km | Recorrido |
-| --- | ---- | ------ | ------ | --: | --------- |
-| 1   | Flat | Amiens | Amiens | 210 | Inventado |
+### Slovenia ITT Championship `nc-si-itt`
 
-### Race Ecuador (EC)
+Clase **NC** · SI · día 175 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · una-semana · 6 etapas · día 250
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-| #   | Tipo          | Salida    | Meta      |  km | Recorrido |
-| --- | ------------- | --------- | --------- | --: | --------- |
-| 1   | Flat          | Quito     | Latacunga | 194 | Inventado |
-| 2   | Hills         | Latacunga | Zumbahua  | 173 | Inventado |
-| 3   | Hills         | Zumbahua  | Ambato    | 182 | Inventado |
-| 4   | Hills         | Ambato    | Riobamba  | 162 | Inventado |
-| 5   | ITT (crono)   | Riobamba  | Guano     |  23 | Inventado |
-| 6   | Summit finish | Guano     | Banos     | 146 | Inventado |
+### Switzerland ITT Championship `nc-ch-itt`
 
-### Race Romania (RO)
+Clase **NC** · CH · día 175 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · una-semana · 5 etapas · día 252
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-| #   | Tipo          | Salida      | Meta        |  km | Recorrido |
-| --- | ------------- | ----------- | ----------- | --: | --------- |
-| 1   | Flat          | Cluj-Napoca | Targu Mures | 191 | Inventado |
-| 2   | Flat          | Targu Mures | Sighisoara  | 188 | Inventado |
-| 3   | Hills         | Sighisoara  | Medias      | 177 | Inventado |
-| 4   | Hills         | Medias      | Sibiu       | 177 | Inventado |
-| 5   | Summit finish | Sibiu       | Alba Iulia  | 140 | Inventado |
+### Poland ITT Championship `nc-pl-itt`
 
-### Race Toscana (IT)
+Clase **NC** · PL · día 175 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · un-dia · 1 etapa · día 252
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-| #   | Tipo  | Salida | Meta  |  km | Recorrido |
-| --- | ----- | ------ | ----- | --: | --------- |
-| 1   | Hills | Arezzo | Siena | 210 | Inventado |
+### Czechia ITT Championship `nc-cz-itt`
 
-### Race Morocco (MA)
+Clase **NC** · CZ · día 175 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · una-semana · 8 etapas · día 254
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-| #   | Tipo          | Salida      | Meta        |  km | Recorrido |
-| --- | ------------- | ----------- | ----------- | --: | --------- |
-| 1   | Flat          | Casablanca  | Marrakesh   | 192 | Inventado |
-| 2   | Uphill finish | Marrakesh   | Asni        | 152 | Inventado |
-| 3   | Uphill finish | Asni        | Amizmiz     | 172 | Inventado |
-| 4   | Hills         | Amizmiz     | Setti Fatma | 165 | Inventado |
-| 5   | Hills         | Setti Fatma | Tahannaout  | 175 | Inventado |
-| 6   | ITT (crono)   | Tahannaout  | Oukaimeden  |  22 | Inventado |
-| 7   | Summit finish | Oukaimeden  | Oukaimeden  | 178 | Inventado |
-| 8   | Hills         | Oukaimeden  | Asni        | 147 | Inventado |
+### Ukraine ITT Championship `nc-ua-itt`
 
-### Race Pantani (IT)
+Clase **NC** · UA · día 175 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · un-dia · 1 etapa · día 255
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-| #   | Tipo          | Salida     | Meta           |  km | Recorrido |
-| --- | ------------- | ---------- | -------------- | --: | --------- |
-| 1   | Summit finish | Cesenatico | Monte Carpegna | 210 | Inventado |
+### Lithuania ITT Championship `nc-lt-itt`
 
-### Race Taihu (CN)
+Clase **NC** · LT · día 175 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · una-semana · 5 etapas · día 255
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-| #   | Tipo          | Salida  | Meta    |  km | Recorrido |
-| --- | ------------- | ------- | ------- | --: | --------- |
-| 1   | Flat          | Wuxi    | Suzhou  | 192 | Inventado |
-| 2   | Hills         | Suzhou  | Wujiang | 187 | Inventado |
-| 3   | Uphill finish | Wujiang | Huzhou  | 174 | Inventado |
-| 4   | ITT (crono)   | Huzhou  | Yixing  |  22 | Inventado |
-| 5   | Flat          | Yixing  | Wuxi    | 151 | Inventado |
+### Belarus ITT Championship `nc-by-itt`
 
-### Race Matteotti (IT)
+Clase **NC** · BY · día 175 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · un-dia · 1 etapa · día 256
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-| #   | Tipo  | Salida  | Meta    |  km | Recorrido |
-| --- | ----- | ------- | ------- | --: | --------- |
-| 1   | Hills | Pescara | Pescara | 210 | Inventado |
+### Venezuela ITT Championship `nc-ve-itt`
 
-### Race Abruzzo (IT)
+Clase **NC** · VE · día 175 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · una-semana · 4 etapas · día 258
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-| #   | Tipo          | Salida    | Meta      |  km | Recorrido |
-| --- | ------------- | --------- | --------- | --: | --------- |
-| 1   | Flat          | Pescara   | Vasto     | 180 | Inventado |
-| 2   | Summit finish | Vasto     | Roccaraso | 172 | Inventado |
-| 3   | ITT (crono)   | Roccaraso | Sulmona   |  16 | Inventado |
-| 4   | Summit finish | Sulmona   | Blockhaus | 133 | Inventado |
+### Finland ITT Championship `nc-fi-itt`
 
-### Race Slovakia (SK)
+Clase **NC** · FI · día 175 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · una-semana · 5 etapas · día 259
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-| #   | Tipo          | Salida          | Meta            |  km | Recorrido |
-| --- | ------------- | --------------- | --------------- | --: | --------- |
-| 1   | Flat          | Bratislava      | Trnava          | 172 | Inventado |
-| 2   | Flat          | Trnava          | Nitra           | 182 | Inventado |
-| 3   | Hills         | Nitra           | Banska Bystrica | 170 | Inventado |
-| 4   | Summit finish | Banska Bystrica | Poprad          | 173 | Inventado |
-| 5   | Uphill finish | Poprad          | Kosice          | 153 | Inventado |
+### Russia ITT Championship `nc-ru-itt`
 
-### Race Serbia (RS)
+Clase **NC** · RU · día 175 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · una-semana · 4 etapas · día 260
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-| #   | Tipo          | Salida     | Meta       |  km | Recorrido |
-| --- | ------------- | ---------- | ---------- | --: | --------- |
-| 1   | Flat          | Belgrade   | Kragujevac | 191 | Inventado |
-| 2   | Summit finish | Kragujevac | Kraljevo   | 150 | Inventado |
-| 3   | ITT (crono)   | Kraljevo   | Cacak      |  14 | Inventado |
-| 4   | Hills         | Cacak      | Uzice      | 155 | Inventado |
+### Serbia ITT Championship `nc-rs-itt`
 
-### Race Vlaanderen (BE)
+Clase **NC** · RS · día 175 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · un-dia · 1 etapa · día 261
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-| #   | Tipo | Salida | Meta |  km | Recorrido |
-| --- | ---- | ------ | ---- | --: | --------- |
-| 1   | Flat | Brugge | Gent | 210 | Inventado |
+### Israel ITT Championship `nc-il-itt`
 
-### Race Lazio (IT)
+Clase **NC** · IL · día 175 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · un-dia · 1 etapa · día 262
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-| #   | Tipo  | Salida    | Meta |  km | Recorrido |
-| --- | ----- | --------- | ---- | --: | --------- |
-| 1   | Hills | Frosinone | Roma | 210 | Inventado |
+### Eritrea ITT Championship `nc-er-itt`
 
-### Race Gooik (BE)
+Clase **NC** · ER · día 175 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · un-dia · 1 etapa · día 263
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-| #   | Tipo | Salida | Meta  |  km | Recorrido |
-| --- | ---- | ------ | ----- | --: | --------- |
-| 1   | Flat | Gooik  | Gooik | 210 | Inventado |
+### Guatemala ITT Championship `nc-gt-itt`
 
-### Race Isbergues (FR)
+Clase **NC** · GT · día 175 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · un-dia · 1 etapa · día 263
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-| #   | Tipo | Salida    | Meta      |  km | Recorrido |
-| --- | ---- | --------- | --------- | --: | --------- |
-| 1   | Flat | Isbergues | Isbergues | 210 | Inventado |
+### Georgia ITT Championship `nc-ge-itt`
 
-### Race Poyang (CN)
+Clase **NC** · GE · día 175 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · una-semana · 6 etapas · día 263
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-| #   | Tipo          | Salida     | Meta       |  km | Recorrido |
-| --- | ------------- | ---------- | ---------- | --: | --------- |
-| 1   | Flat          | Nanchang   | Jiujiang   | 193 | Inventado |
-| 2   | Hills         | Jiujiang   | Lushan     | 184 | Inventado |
-| 3   | Summit finish | Lushan     | Jingdezhen | 159 | Inventado |
-| 4   | Hills         | Jingdezhen | Wuyuan     | 174 | Inventado |
-| 5   | ITT (crono)   | Wuyuan     | Shangrao   |  15 | Inventado |
-| 6   | Uphill finish | Shangrao   | Poyang     | 151 | Inventado |
+### Iceland ITT Championship `nc-is-itt`
 
-### Race Romagna Classic (IT)
+Clase **NC** · IS · día 175 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · un-dia · 1 etapa · día 263
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-| #   | Tipo  | Salida | Meta   |  km | Recorrido |
-| --- | ----- | ------ | ------ | --: | --------- |
-| 1   | Hills | Lugo   | Faenza | 210 | Inventado |
+### Singapore ITT Championship `nc-sg-itt`
 
-### Race Houtland (BE)
+Clase **NC** · SG · día 175 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · un-dia · 1 etapa · día 266
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-| #   | Tipo | Salida  | Meta         |  km | Recorrido |
-| --- | ---- | ------- | ------------ | --: | --------- |
-| 1   | Flat | Torhout | Lichtervelde | 210 | Inventado |
+### Dominican Republic ITT Championship `nc-do-itt`
 
-### Race Mirabelle (FR)
+Clase **NC** · DO · día 175 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · un-dia · 1 etapa · día 268
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-| #   | Tipo  | Salida | Meta  |  km | Recorrido |
-| --- | ----- | ------ | ----- | --: | --------- |
-| 1   | Hills | Nancy  | Nancy | 210 | Inventado |
+### Bahrain ITT Championship `nc-bh-itt`
 
-### Race Cerami (BE)
+Clase **NC** · BH · día 175 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · un-dia · 1 etapa · día 269
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-| #   | Tipo | Salida    | Meta      |  km | Recorrido |
-| --- | ---- | --------- | --------- | --: | --------- |
-| 1   | Flat | Quaregnon | Frameries | 210 | Inventado |
+### Kosovo ITT Championship `nc-xk-itt`
 
-### Race Chauny (FR)
+Clase **NC** · XK · día 175 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · un-dia · 1 etapa · día 270
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-| #   | Tipo | Salida | Meta   |  km | Recorrido |
-| --- | ---- | ------ | ------ | --: | --------- |
-| 1   | Flat | Chauny | Chauny | 210 | Inventado |
+### Andorra ITT Championship `nc-ad-itt`
 
-### Race Cholet (FR)
+Clase **NC** · AD · día 175 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · un-dia · 1 etapa · día 276
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-| #   | Tipo | Salida | Meta   |  km | Recorrido |
-| --- | ---- | ------ | ------ | --: | --------- |
-| 1   | Flat | Cholet | Cholet | 210 | Inventado |
+### Bosnia and Herzegovina ITT Championship `nc-ba-itt`
 
-### Race Agostoni (IT)
+Clase **NC** · BA · día 175 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · un-dia · 1 etapa · día 277
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-| #   | Tipo  | Salida  | Meta    |  km | Recorrido |
-| --- | ----- | ------- | ------- | --: | --------- |
-| 1   | Hills | Lissone | Lissone | 210 | Inventado |
+### Cyprus ITT Championship `nc-cy-itt`
 
-### Race Continental Championship (FR)
+Clase **NC** · CY · día 175 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · un-dia · 1 etapa · día 277
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-| #   | Tipo  | Salida   | Meta     |  km | Recorrido |
-| --- | ----- | -------- | -------- | --: | --------- |
-| 1   | Hills | Plumelec | Plumelec | 210 | Inventado |
+### Antigua and Barbuda ITT Championship `nc-ag-itt`
 
-### Race Vendée (FR)
+Clase **NC** · AG · día 175 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · un-dia · 1 etapa · día 277
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-| #   | Tipo | Salida           | Meta             |  km | Recorrido |
-| --- | ---- | ---------------- | ---------------- | --: | --------- |
-| 1   | Flat | La Roche-sur-Yon | La Roche-sur-Yon | 210 | Inventado |
+### Barbados ITT Championship `nc-bb-itt`
 
-### Race Binche (BE)
+Clase **NC** · BB · día 175 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · un-dia · 1 etapa · día 279
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-| #   | Tipo  | Salida | Meta   |  km | Recorrido |
-| --- | ----- | ------ | ------ | --: | --------- |
-| 1   | Hills | Binche | Binche | 210 | Inventado |
+### Belize ITT Championship `nc-bz-itt`
 
-### Race San Daniele (IT)
+Clase **NC** · BZ · día 175 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · un-dia · 1 etapa · día 279
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-| #   | Tipo  | Salida                 | Meta                   |  km | Recorrido |
-| --- | ----- | ---------------------- | ---------------------- | --: | --------- |
-| 1   | Hills | San Daniele del Friuli | San Daniele del Friuli | 210 | Inventado |
+### Jordan ITT Championship `nc-jo-itt`
 
-### Race Kyushu (JP)
+Clase **NC** · JO · día 175 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · una-semana · 3 etapas · día 283
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-| #   | Tipo          | Salida  | Meta    |  km | Recorrido |
-| --- | ------------- | ------- | ------- | --: | --------- |
-| 1   | Flat          | Fukuoka | Hita    | 180 | Inventado |
-| 2   | Hills         | Hita    | Kokonoe | 190 | Inventado |
-| 3   | Uphill finish | Kokonoe | Beppu   | 152 | Inventado |
+### Laos ITT Championship `nc-la-itt`
 
-### Race Oropa (IT)
+Clase **NC** · LA · día 175 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · un-dia · 1 etapa · día 284
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-| #   | Tipo          | Salida | Meta  |  km | Recorrido |
-| --- | ------------- | ------ | ----- | --: | --------- |
-| 1   | Summit finish | Biella | Oropa | 210 | Inventado |
+### Montenegro ITT Championship `nc-me-itt`
 
-### Race Holland (NL)
+Clase **NC** · ME · día 175 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · una-semana · 6 etapas · día 286
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-| #   | Tipo          | Salida     | Meta       |  km | Recorrido |
-| --- | ------------- | ---------- | ---------- | --: | --------- |
-| 1   | Flat          | Amsterdam  | Utrecht    | 170 | Inventado |
-| 2   | Hills         | Utrecht    | Arnhem     | 170 | Inventado |
-| 3   | Hills         | Arnhem     | Venlo      | 169 | Inventado |
-| 4   | Uphill finish | Venlo      | Valkenburg | 156 | Inventado |
-| 5   | ITT (crono)   | Valkenburg | Sittard    |  16 | Inventado |
-| 6   | Flat          | Sittard    | Maastricht | 142 | Inventado |
+### Mali ITT Championship `nc-ml-itt`
 
-### Race Chrono (FR)
+Clase **NC** · ML · día 175 · 1 etapa · 🔴 Inventado 1
 
-CON · .1 · un-dia · 1 etapa · día 291
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-| #   | Tipo        | Salida       | Meta         |  km | Recorrido |
-| --- | ----------- | ------------ | ------------ | --: | --------- |
-| 1   | ITT (crono) | Les Herbiers | Les Herbiers |  45 | Inventado |
+### El Salvador ITT Championship `nc-sv-itt`
 
-### Race Faso (BF)
+Clase **NC** · SV · día 175 · 1 etapa · 🔴 Inventado 1
 
-CON · .2 · una-semana · 5 etapas · día 303
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-| #   | Tipo          | Salida         | Meta           |  km | Recorrido |
-| --- | ------------- | -------------- | -------------- | --: | --------- |
-| 1   | Flat          | Ouagadougou    | Koudougou      | 171 | Inventado |
-| 2   | Hills         | Koudougou      | Bobo-Dioulasso | 190 | Inventado |
-| 3   | Uphill finish | Bobo-Dioulasso | Banfora        | 161 | Inventado |
-| 4   | ITT (crono)   | Banfora        | Sindou         |  18 | Inventado |
-| 5   | Flat          | Sindou         | Bobo-Dioulasso | 154 | Inventado |
+### Sint Maarten ITT Championship `nc-sx-itt`
 
-## Campeonatos nacionales
+Clase **NC** · SX · día 175 · 1 etapa · 🔴 Inventado 1
 
-Una prueba en línea y una contrarreloj por país y categoría. Recorrido generado: no hay trazado publicado que cargar.
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Australia ITT Championship (AU)
+### Spain ITT Championship `nc-es-itt`
 
-CON · .NC · un-dia · 1 etapa · día 8
+Clase **NC** · ES · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Australia U23 ITT Championship (AU)
+### Spain U23 ITT Championship `nc-es-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 8
+Clase **NC** · ES · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Australia Road Championship (AU)
+### France ITT Championship `nc-fr-itt`
 
-CON · .NC · un-dia · 1 etapa · día 11
+Clase **NC** · FR · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Australia U23 Road Championship (AU)
+### France U23 ITT Championship `nc-fr-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 11
+Clase **NC** · FR · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Thailand ITT Championship (TH)
+### Italy ITT Championship `nc-it-itt`
 
-CON · .NC · un-dia · 1 etapa · día 15
+Clase **NC** · IT · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Thailand U23 ITT Championship (TH)
+### Italy U23 ITT Championship `nc-it-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 15
+Clase **NC** · IT · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Thailand Road Championship (TH)
+### Belgium ITT Championship `nc-be-itt`
 
-CON · .NC · un-dia · 1 etapa · día 18
+Clase **NC** · BE · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Thailand U23 Road Championship (TH)
+### Belgium U23 ITT Championship `nc-be-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 18
+Clase **NC** · BE · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Zimbabwe ITT Championship (ZW)
+### Netherlands ITT Championship `nc-nl-itt`
 
-CON · .NC · un-dia · 1 etapa · día 34
+Clase **NC** · NL · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Colombia ITT Championship (CO)
+### Netherlands U23 ITT Championship `nc-nl-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 35
+Clase **NC** · NL · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### New Zealand ITT Championship (NZ)
+### United Kingdom ITT Championship `nc-gb-itt`
 
-CON · .NC · un-dia · 1 etapa · día 35
+Clase **NC** · GB · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### New Zealand U23 ITT Championship (NZ)
+### United Kingdom U23 ITT Championship `nc-gb-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 35
+Clase **NC** · GB · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Zimbabwe U23 ITT Championship (ZW)
+### Germany U23 ITT Championship `nc-de-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 35
+Clase **NC** · DE · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Colombia U23 ITT Championship (CO)
+### Portugal U23 ITT Championship `nc-pt-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 36
+Clase **NC** · PT · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Namibia ITT Championship (NA)
+### Denmark ITT Championship `nc-dk-itt`
 
-CON · .NC · un-dia · 1 etapa · día 36
+Clase **NC** · DK · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Namibia U23 ITT Championship (NA)
+### Denmark U23 ITT Championship `nc-dk-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 36
+Clase **NC** · DK · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### South Africa ITT Championship (ZA)
+### Norway U23 ITT Championship `nc-no-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 36
+Clase **NC** · NO · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### South Africa U23 ITT Championship (ZA)
+### Slovenia U23 ITT Championship `nc-si-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 36
+Clase **NC** · SI · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Uruguay ITT Championship (UY)
+### Slovakia ITT Championship `nc-sk-itt`
 
-CON · .NC · un-dia · 1 etapa · día 36
+Clase **NC** · SK · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Uruguay U23 ITT Championship (UY)
+### Slovakia U23 ITT Championship `nc-sk-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 36
+Clase **NC** · SK · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Zimbabwe U23 Road Championship (ZW)
+### United States ITT Championship `nc-us-itt`
 
-CON · .NC · un-dia · 1 etapa · día 37
+Clase **NC** · US · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Colombia U23 Road Championship (CO)
+### United States U23 ITT Championship `nc-us-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 38
+Clase **NC** · US · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Namibia U23 Road Championship (NA)
+### Switzerland U23 ITT Championship `nc-ch-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 38
+Clase **NC** · CH · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### New Zealand Road Championship (NZ)
+### Argentina ITT Championship `nc-ar-itt`
 
-CON · .NC · un-dia · 1 etapa · día 38
+Clase **NC** · AR · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### New Zealand U23 Road Championship (NZ)
+### Argentina U23 ITT Championship `nc-ar-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 38
+Clase **NC** · AR · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### South Africa U23 Road Championship (ZA)
+### Mexico ITT Championship `nc-mx-itt`
 
-CON · .NC · un-dia · 1 etapa · día 38
+Clase **NC** · MX · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Uruguay U23 Road Championship (UY)
+### Mexico U23 ITT Championship `nc-mx-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 38
+Clase **NC** · MX · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Zimbabwe Road Championship (ZW)
+### Poland U23 ITT Championship `nc-pl-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 38
+Clase **NC** · PL · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Colombia Road Championship (CO)
+### Austria ITT Championship `nc-at-itt`
 
-CON · .NC · un-dia · 1 etapa · día 39
+Clase **NC** · AT · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Namibia Road Championship (NA)
+### Austria U23 ITT Championship `nc-at-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 39
+Clase **NC** · AT · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### South Africa Road Championship (ZA)
+### Ireland ITT Championship `nc-ie-itt`
 
-CON · .NC · un-dia · 1 etapa · día 39
+Clase **NC** · IE · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Uruguay Road Championship (UY)
+### Ireland U23 ITT Championship `nc-ie-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 39
+Clase **NC** · IE · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Philippines ITT Championship (PH)
+### Czechia U23 ITT Championship `nc-cz-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 55
+Clase **NC** · CZ · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Philippines U23 ITT Championship (PH)
+### Canada ITT Championship `nc-ca-itt`
 
-CON · .NC · un-dia · 1 etapa · día 55
+Clase **NC** · CA · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Bolivia ITT Championship (BO)
+### Canada U23 ITT Championship `nc-ca-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 56
+Clase **NC** · CA · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Bolivia U23 ITT Championship (BO)
+### Sweden ITT Championship `nc-se-itt`
 
-CON · .NC · un-dia · 1 etapa · día 57
+Clase **NC** · SE · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Philippines U23 Road Championship (PH)
+### Sweden U23 ITT Championship `nc-se-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 57
+Clase **NC** · SE · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Philippines Road Championship (PH)
+### Japan ITT Championship `nc-jp-itt`
 
-CON · .NC · un-dia · 1 etapa · día 58
+Clase **NC** · JP · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Bolivia U23 Road Championship (BO)
+### Japan U23 ITT Championship `nc-jp-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 59
+Clase **NC** · JP · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Bolivia Road Championship (BO)
+### Kazakhstan ITT Championship `nc-kz-itt`
 
-CON · .NC · un-dia · 1 etapa · día 60
+Clase **NC** · KZ · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Chile ITT Championship (CL)
+### Kazakhstan U23 ITT Championship `nc-kz-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 64
+Clase **NC** · KZ · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Chile U23 ITT Championship (CL)
+### Ukraine U23 ITT Championship `nc-ua-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 64
+Clase **NC** · UA · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Chile U23 Road Championship (CL)
+### Estonia ITT Championship `nc-ee-itt`
 
-CON · .NC · un-dia · 1 etapa · día 66
+Clase **NC** · EE · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Chile Road Championship (CL)
+### Estonia U23 ITT Championship `nc-ee-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 67
+Clase **NC** · EE · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### United Arab Emirates ITT Championship (AE)
+### Latvia ITT Championship `nc-lv-itt`
 
-CON · .NC · un-dia · 1 etapa · día 99
+Clase **NC** · LV · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### United Arab Emirates U23 ITT Championship (AE)
+### Latvia U23 ITT Championship `nc-lv-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 99
+Clase **NC** · LV · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### United Arab Emirates U23 Road Championship (AE)
+### Lithuania U23 ITT Championship `nc-lt-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 101
+Clase **NC** · LT · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### United Arab Emirates Road Championship (AE)
+### Belarus U23 ITT Championship `nc-by-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 102
+Clase **NC** · BY · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Costa Rica ITT Championship (CR)
+### Brazil ITT Championship `nc-br-itt`
 
-CON · .NC · un-dia · 1 etapa · día 106
+Clase **NC** · BR · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Costa Rica U23 ITT Championship (CR)
+### Brazil U23 ITT Championship `nc-br-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 106
+Clase **NC** · BR · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Costa Rica U23 Road Championship (CR)
+### Venezuela U23 ITT Championship `nc-ve-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 108
+Clase **NC** · VE · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Costa Rica Road Championship (CR)
+### Finland U23 ITT Championship `nc-fi-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 109
+Clase **NC** · FI · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Egypt ITT Championship (EG)
+### Croatia ITT Championship `nc-hr-itt`
 
-CON · .NC · un-dia · 1 etapa · día 112
+Clase **NC** · HR · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Egypt U23 ITT Championship (EG)
+### Croatia U23 ITT Championship `nc-hr-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 112
+Clase **NC** · HR · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Panama ITT Championship (PA)
+### Hungary ITT Championship `nc-hu-itt`
 
-CON · .NC · un-dia · 1 etapa · día 113
+Clase **NC** · HU · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Panama U23 ITT Championship (PA)
+### Hungary U23 ITT Championship `nc-hu-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 113
+Clase **NC** · HU · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Egypt U23 Road Championship (EG)
+### Romania ITT Championship `nc-ro-itt`
 
-CON · .NC · un-dia · 1 etapa · día 114
+Clase **NC** · RO · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Egypt Road Championship (EG)
+### Romania U23 ITT Championship `nc-ro-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 115
+Clase **NC** · RO · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Panama Road Championship (PA)
+### Russia U23 ITT Championship `nc-ru-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 116
+Clase **NC** · RU · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Panama U23 Road Championship (PA)
+### Serbia U23 ITT Championship `nc-rs-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 116
+Clase **NC** · RS · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Ecuador ITT Championship (EC)
+### Bulgaria ITT Championship `nc-bg-itt`
 
-CON · .NC · un-dia · 1 etapa · día 159
+Clase **NC** · BG · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Ecuador U23 ITT Championship (EC)
+### Bulgaria U23 ITT Championship `nc-bg-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 160
+Clase **NC** · BG · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Ecuador U23 Road Championship (EC)
+### Greece ITT Championship `nc-gr-itt`
 
-CON · .NC · un-dia · 1 etapa · día 162
+Clase **NC** · GR · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Ecuador Road Championship (EC)
+### Greece U23 ITT Championship `nc-gr-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 163
+Clase **NC** · GR · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Macau ITT Championship (MO)
+### Turkey ITT Championship `nc-tr-itt`
 
-CON · .NC · un-dia · 1 etapa · día 168
+Clase **NC** · TR · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Macau U23 ITT Championship (MO)
+### Turkey U23 ITT Championship `nc-tr-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 169
+Clase **NC** · TR · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Macau U23 Road Championship (MO)
+### Israel U23 ITT Championship `nc-il-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 171
+Clase **NC** · IL · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Macau Road Championship (MO)
+### South Korea ITT Championship `nc-kr-itt`
 
-CON · .NC · un-dia · 1 etapa · día 172
+Clase **NC** · KR · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Andorra ITT Championship (AD)
+### South Korea U23 ITT Championship `nc-kr-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 175
+Clase **NC** · KR · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Antigua and Barbuda ITT Championship (AG)
+### China ITT Championship `nc-cn-itt`
 
-CON · .NC · un-dia · 1 etapa · día 175
+Clase **NC** · CN · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Bahrain ITT Championship (BH)
+### China U23 ITT Championship `nc-cn-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 175
+Clase **NC** · CN · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Barbados ITT Championship (BB)
+### Peru ITT Championship `nc-pe-itt`
 
-CON · .NC · un-dia · 1 etapa · día 175
+Clase **NC** · PE · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Belarus ITT Championship (BY)
+### Peru U23 ITT Championship `nc-pe-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 175
+Clase **NC** · PE · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Belize ITT Championship (BZ)
+### Morocco ITT Championship `nc-ma-itt`
 
-CON · .NC · un-dia · 1 etapa · día 175
+Clase **NC** · MA · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Bosnia and Herzegovina ITT Championship (BA)
+### Morocco U23 ITT Championship `nc-ma-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 175
+Clase **NC** · MA · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Cyprus ITT Championship (CY)
+### Eritrea U23 ITT Championship `nc-er-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 175
+Clase **NC** · ER · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Czechia ITT Championship (CZ)
+### Luxembourg ITT Championship `nc-lu-itt`
 
-CON · .NC · un-dia · 1 etapa · día 175
+Clase **NC** · LU · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Dominican Republic ITT Championship (DO)
+### Luxembourg U23 ITT Championship `nc-lu-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 175
+Clase **NC** · LU · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### El Salvador ITT Championship (SV)
+### Rwanda ITT Championship `nc-rw-itt`
 
-CON · .NC · un-dia · 1 etapa · día 175
+Clase **NC** · RW · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Eritrea ITT Championship (ER)
+### Rwanda U23 ITT Championship `nc-rw-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 175
+Clase **NC** · RW · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Finland ITT Championship (FI)
+### Algeria ITT Championship `nc-dz-itt`
 
-CON · .NC · un-dia · 1 etapa · día 175
+Clase **NC** · DZ · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Georgia ITT Championship (GE)
+### Algeria U23 ITT Championship `nc-dz-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 175
+Clase **NC** · DZ · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Germany ITT Championship (DE)
+### Guatemala U23 ITT Championship `nc-gt-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 175
+Clase **NC** · GT · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Guatemala ITT Championship (GT)
+### Georgia U23 ITT Championship `nc-ge-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 175
+Clase **NC** · GE · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Iceland ITT Championship (IS)
+### India ITT Championship `nc-in-itt`
 
-CON · .NC · un-dia · 1 etapa · día 175
+Clase **NC** · IN · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Israel ITT Championship (IL)
+### India U23 ITT Championship `nc-in-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 175
+Clase **NC** · IN · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Jordan ITT Championship (JO)
+### Ethiopia ITT Championship `nc-et-itt`
 
-CON · .NC · un-dia · 1 etapa · día 175
+Clase **NC** · ET · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Kosovo ITT Championship (XK)
+### Ethiopia U23 ITT Championship `nc-et-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 175
+Clase **NC** · ET · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Laos ITT Championship (LA)
+### Indonesia ITT Championship `nc-id-itt`
 
-CON · .NC · un-dia · 1 etapa · día 175
+Clase **NC** · ID · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Lithuania ITT Championship (LT)
+### Indonesia U23 ITT Championship `nc-id-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 175
+Clase **NC** · ID · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Mali ITT Championship (ML)
+### Cuba ITT Championship `nc-cu-itt`
 
-CON · .NC · un-dia · 1 etapa · día 175
+Clase **NC** · CU · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Montenegro ITT Championship (ME)
+### Cuba U23 ITT Championship `nc-cu-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 175
+Clase **NC** · CU · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Norway ITT Championship (NO)
+### Moldova ITT Championship `nc-md-itt`
 
-CON · .NC · un-dia · 1 etapa · día 175
+Clase **NC** · MD · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Poland ITT Championship (PL)
+### Moldova U23 ITT Championship `nc-md-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 175
+Clase **NC** · MD · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Portugal ITT Championship (PT)
+### Nigeria ITT Championship `nc-ng-itt`
 
-CON · .NC · un-dia · 1 etapa · día 175
+Clase **NC** · NG · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Russia ITT Championship (RU)
+### Nigeria U23 ITT Championship `nc-ng-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 175
+Clase **NC** · NG · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Serbia ITT Championship (RS)
+### Kenya ITT Championship `nc-ke-itt`
 
-CON · .NC · un-dia · 1 etapa · día 175
+Clase **NC** · KE · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Singapore ITT Championship (SG)
+### Kenya U23 ITT Championship `nc-ke-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 175
+Clase **NC** · KE · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Sint Maarten ITT Championship (SX)
+### Tunisia ITT Championship `nc-tn-itt`
 
-CON · .NC · un-dia · 1 etapa · día 175
+Clase **NC** · TN · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Slovenia ITT Championship (SI)
+### Tunisia U23 ITT Championship `nc-tn-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 175
+Clase **NC** · TN · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Switzerland ITT Championship (CH)
+### Vietnam ITT Championship `nc-vn-itt`
 
-CON · .NC · un-dia · 1 etapa · día 175
+Clase **NC** · VN · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Ukraine ITT Championship (UA)
+### Vietnam U23 ITT Championship `nc-vn-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 175
+Clase **NC** · VN · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Venezuela ITT Championship (VE)
+### Armenia ITT Championship `nc-am-itt`
 
-CON · .NC · un-dia · 1 etapa · día 175
+Clase **NC** · AM · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Albania ITT Championship (AL)
+### Armenia U23 ITT Championship `nc-am-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · AM · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Albania U23 ITT Championship (AL)
+### Iceland U23 ITT Championship `nc-is-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · IS · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Algeria ITT Championship (DZ)
+### Azerbaijan ITT Championship `nc-az-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · AZ · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Algeria U23 ITT Championship (DZ)
+### Azerbaijan U23 ITT Championship `nc-az-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · AZ · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Andorra U23 ITT Championship (AD)
+### Uzbekistan ITT Championship `nc-uz-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · UZ · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Antigua and Barbuda U23 ITT Championship (AG)
+### Uzbekistan U23 ITT Championship `nc-uz-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · UZ · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Argentina ITT Championship (AR)
+### Saudi Arabia ITT Championship `nc-sa-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · SA · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Argentina U23 ITT Championship (AR)
+### Saudi Arabia U23 ITT Championship `nc-sa-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · SA · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Armenia ITT Championship (AM)
+### Qatar ITT Championship `nc-qa-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · QA · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Armenia U23 ITT Championship (AM)
+### Qatar U23 ITT Championship `nc-qa-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · QA · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Austria ITT Championship (AT)
+### Singapore U23 ITT Championship `nc-sg-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · SG · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Austria U23 ITT Championship (AT)
+### Dominican Republic U23 ITT Championship `nc-do-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · DO · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Azerbaijan ITT Championship (AZ)
+### Paraguay ITT Championship `nc-py-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · PY · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Azerbaijan U23 ITT Championship (AZ)
+### Paraguay U23 ITT Championship `nc-py-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · PY · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Bahrain U23 ITT Championship (BH)
+### North Macedonia ITT Championship `nc-mk-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · MK · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Barbados U23 ITT Championship (BB)
+### North Macedonia U23 ITT Championship `nc-mk-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · MK · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Belarus U23 ITT Championship (BY)
+### Hong Kong ITT Championship `nc-hk-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · HK · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Belgium ITT Championship (BE)
+### Hong Kong U23 ITT Championship `nc-hk-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · HK · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Belgium U23 ITT Championship (BE)
+### Guam ITT Championship `nc-gu-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · GU · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Belize U23 ITT Championship (BZ)
+### Guam U23 ITT Championship `nc-gu-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · GU · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Benin ITT Championship (BJ)
+### Bahrain U23 ITT Championship `nc-bh-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · BH · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Benin U23 ITT Championship (BJ)
+### Kosovo U23 ITT Championship `nc-xk-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · XK · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Bermuda ITT Championship (BM)
+### Honduras ITT Championship `nc-hn-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · HN · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Bermuda U23 ITT Championship (BM)
+### Honduras U23 ITT Championship `nc-hn-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · HN · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Bosnia and Herzegovina U23 ITT Championship (BA)
+### Andorra U23 ITT Championship `nc-ad-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · AD · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Brazil ITT Championship (BR)
+### Albania ITT Championship `nc-al-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · AL · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Brazil U23 ITT Championship (BR)
+### Albania U23 ITT Championship `nc-al-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · AL · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Bulgaria ITT Championship (BG)
+### Bosnia and Herzegovina U23 ITT Championship `nc-ba-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · BA · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Bulgaria U23 ITT Championship (BG)
+### Burkina Faso ITT Championship `nc-bf-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · BF · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Burkina Faso ITT Championship (BF)
+### Burkina Faso U23 ITT Championship `nc-bf-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · BF · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Burkina Faso U23 ITT Championship (BF)
+### Benin ITT Championship `nc-bj-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · BJ · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Cameroon ITT Championship (CM)
+### Benin U23 ITT Championship `nc-bj-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · BJ · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Cameroon U23 ITT Championship (CM)
+### Cameroon ITT Championship `nc-cm-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · CM · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Canada ITT Championship (CA)
+### Cameroon U23 ITT Championship `nc-cm-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · CM · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Canada U23 ITT Championship (CA)
+### Cyprus U23 ITT Championship `nc-cy-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · CY · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Cape Verde ITT Championship (CV)
+### Mauritius ITT Championship `nc-mu-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · MU · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Cape Verde U23 ITT Championship (CV)
+### Mauritius U23 ITT Championship `nc-mu-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · MU · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Cayman Islands ITT Championship (KY)
+### Oman ITT Championship `nc-om-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · OM · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Cayman Islands U23 ITT Championship (KY)
+### Oman U23 ITT Championship `nc-om-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · OM · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### China ITT Championship (CN)
+### Taiwan ITT Championship `nc-tw-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · TW · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### China U23 ITT Championship (CN)
+### Taiwan U23 ITT Championship `nc-tw-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · TW · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Croatia ITT Championship (HR)
+### Antigua and Barbuda U23 ITT Championship `nc-ag-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · AG · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Croatia U23 ITT Championship (HR)
+### Barbados U23 ITT Championship `nc-bb-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · BB · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Cuba ITT Championship (CU)
+### Bermuda ITT Championship `nc-bm-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · BM · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Cuba U23 ITT Championship (CU)
+### Bermuda U23 ITT Championship `nc-bm-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · BM · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Cyprus U23 ITT Championship (CY)
+### Belize U23 ITT Championship `nc-bz-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · BZ · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Czechia U23 ITT Championship (CZ)
+### Ivory Coast ITT Championship `nc-ci-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · CI · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Denmark ITT Championship (DK)
+### Ivory Coast U23 ITT Championship `nc-ci-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · CI · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Denmark U23 ITT Championship (DK)
+### Cape Verde ITT Championship `nc-cv-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · CV · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Dominica ITT Championship (DM)
+### Cape Verde U23 ITT Championship `nc-cv-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · CV · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Dominica U23 ITT Championship (DM)
+### Dominica ITT Championship `nc-dm-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · DM · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Dominican Republic U23 ITT Championship (DO)
+### Dominica U23 ITT Championship `nc-dm-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · DM · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### El Salvador U23 ITT Championship (SV)
+### Guinea-Bissau ITT Championship `nc-gw-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · GW · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Eritrea U23 ITT Championship (ER)
+### Guinea-Bissau U23 ITT Championship `nc-gw-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · GW · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Estonia ITT Championship (EE)
+### Jordan U23 ITT Championship `nc-jo-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · JO · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Estonia U23 ITT Championship (EE)
+### Cayman Islands ITT Championship `nc-ky-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · KY · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Eswatini ITT Championship (SZ)
+### Cayman Islands U23 ITT Championship `nc-ky-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · KY · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Eswatini U23 ITT Championship (SZ)
+### Laos U23 ITT Championship `nc-la-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · LA · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Ethiopia ITT Championship (ET)
+### Lebanon ITT Championship `nc-lb-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · LB · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Ethiopia U23 ITT Championship (ET)
+### Lebanon U23 ITT Championship `nc-lb-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · LB · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Finland U23 ITT Championship (FI)
+### Saint Lucia ITT Championship `nc-lc-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · LC · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### France ITT Championship (FR)
+### Saint Lucia U23 ITT Championship `nc-lc-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · LC · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### France U23 ITT Championship (FR)
+### Monaco ITT Championship `nc-mc-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · MC · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Georgia U23 ITT Championship (GE)
+### Monaco U23 ITT Championship `nc-mc-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · MC · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Germany U23 ITT Championship (DE)
+### Montenegro U23 ITT Championship `nc-me-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · ME · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Greece ITT Championship (GR)
+### Mali U23 ITT Championship `nc-ml-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · ML · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Greece U23 ITT Championship (GR)
+### Malta ITT Championship `nc-mt-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · MT · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Guam ITT Championship (GU)
+### Malta U23 ITT Championship `nc-mt-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · MT · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Guam U23 ITT Championship (GU)
+### Puerto Rico ITT Championship `nc-pr-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · PR · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Guatemala U23 ITT Championship (GT)
+### Puerto Rico U23 ITT Championship `nc-pr-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · PR · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Guinea-Bissau ITT Championship (GW)
+### Seychelles ITT Championship `nc-sc-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · SC · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Guinea-Bissau U23 ITT Championship (GW)
+### Seychelles U23 ITT Championship `nc-sc-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · SC · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Honduras ITT Championship (HN)
+### Senegal ITT Championship `nc-sn-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · SN · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Honduras U23 ITT Championship (HN)
+### Senegal U23 ITT Championship `nc-sn-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · SN · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Hong Kong ITT Championship (HK)
+### Suriname ITT Championship `nc-sr-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · SR · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Hong Kong U23 ITT Championship (HK)
+### Suriname U23 ITT Championship `nc-sr-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · SR · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Hungary ITT Championship (HU)
+### El Salvador U23 ITT Championship `nc-sv-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · SV · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Hungary U23 ITT Championship (HU)
+### Sint Maarten U23 ITT Championship `nc-sx-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · SX · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Iceland U23 ITT Championship (IS)
+### Eswatini ITT Championship `nc-sz-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · SZ · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### India ITT Championship (IN)
+### Eswatini U23 ITT Championship `nc-sz-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · SZ · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### India U23 ITT Championship (IN)
+### Trinidad and Tobago ITT Championship `nc-tt-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · TT · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Indonesia ITT Championship (ID)
+### Trinidad and Tobago U23 ITT Championship `nc-tt-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · TT · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Indonesia U23 ITT Championship (ID)
+### Saint Vincent and the Grenadines ITT Championship `nc-vc-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · VC · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Ireland ITT Championship (IE)
+### Saint Vincent and the Grenadines U23 ITT Championship `nc-vc-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · VC · día 176 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Ireland U23 ITT Championship (IE)
+### Spain U23 Road Championship `nc-es-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · ES · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Israel U23 ITT Championship (IL)
+### France U23 Road Championship `nc-fr-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · FR · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Italy ITT Championship (IT)
+### United Kingdom U23 Road Championship `nc-gb-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · GB · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Italy U23 ITT Championship (IT)
+### Germany U23 Road Championship `nc-de-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · DE · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Ivory Coast ITT Championship (CI)
+### Portugal U23 Road Championship `nc-pt-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · PT · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Ivory Coast U23 ITT Championship (CI)
+### Norway U23 Road Championship `nc-no-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · NO · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Japan ITT Championship (JP)
+### Slovenia U23 Road Championship `nc-si-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · SI · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Japan U23 ITT Championship (JP)
+### Slovakia U23 Road Championship `nc-sk-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · SK · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Jordan U23 ITT Championship (JO)
+### United States U23 Road Championship `nc-us-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · US · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Kazakhstan ITT Championship (KZ)
+### Switzerland U23 Road Championship `nc-ch-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · CH · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Kazakhstan U23 ITT Championship (KZ)
+### Argentina U23 Road Championship `nc-ar-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · AR · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Kenya ITT Championship (KE)
+### Mexico U23 Road Championship `nc-mx-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · MX · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Kenya U23 ITT Championship (KE)
+### Poland U23 Road Championship `nc-pl-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · PL · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Kosovo U23 ITT Championship (XK)
+### Austria U23 Road Championship `nc-at-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · AT · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Laos U23 ITT Championship (LA)
+### Czechia U23 Road Championship `nc-cz-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · CZ · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Latvia ITT Championship (LV)
+### Japan U23 Road Championship `nc-jp-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · JP · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Latvia U23 ITT Championship (LV)
+### Ukraine U23 Road Championship `nc-ua-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · UA · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Lebanon ITT Championship (LB)
+### Latvia U23 Road Championship `nc-lv-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · LV · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Lebanon U23 ITT Championship (LB)
+### Lithuania U23 Road Championship `nc-lt-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · LT · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Lithuania U23 ITT Championship (LT)
+### Belarus U23 Road Championship `nc-by-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · BY · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Luxembourg ITT Championship (LU)
+### Brazil U23 Road Championship `nc-br-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · BR · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Luxembourg U23 ITT Championship (LU)
+### Venezuela U23 Road Championship `nc-ve-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · VE · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Mali U23 ITT Championship (ML)
+### Finland U23 Road Championship `nc-fi-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · FI · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Malta ITT Championship (MT)
+### Russia U23 Road Championship `nc-ru-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · RU · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Malta U23 ITT Championship (MT)
+### Serbia U23 Road Championship `nc-rs-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · RS · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Mauritius ITT Championship (MU)
+### Bulgaria U23 Road Championship `nc-bg-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · BG · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Mauritius U23 ITT Championship (MU)
+### Israel U23 Road Championship `nc-il-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · IL · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Mexico ITT Championship (MX)
+### South Korea U23 Road Championship `nc-kr-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · KR · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Mexico U23 ITT Championship (MX)
+### Peru U23 Road Championship `nc-pe-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · PE · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Moldova ITT Championship (MD)
+### Eritrea U23 Road Championship `nc-er-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · ER · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Moldova U23 ITT Championship (MD)
+### Iran ITT Championship `nc-ir-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · IR · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Monaco ITT Championship (MC)
+### Iran U23 ITT Championship `nc-ir-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · IR · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Monaco U23 ITT Championship (MC)
+### Guatemala U23 Road Championship `nc-gt-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · GT · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Montenegro U23 ITT Championship (ME)
+### Georgia U23 Road Championship `nc-ge-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · GE · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Morocco ITT Championship (MA)
+### Indonesia U23 Road Championship `nc-id-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · ID · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Morocco U23 ITT Championship (MA)
+### Nigeria U23 Road Championship `nc-ng-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · NG · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Netherlands ITT Championship (NL)
+### Kenya U23 Road Championship `nc-ke-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · KE · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Netherlands U23 ITT Championship (NL)
+### Tunisia U23 Road Championship `nc-tn-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · TN · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Nigeria ITT Championship (NG)
+### Vietnam U23 Road Championship `nc-vn-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · VN · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Nigeria U23 ITT Championship (NG)
+### Iceland U23 Road Championship `nc-is-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · IS · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### North Macedonia ITT Championship (MK)
+### Saudi Arabia U23 Road Championship `nc-sa-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · SA · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### North Macedonia U23 ITT Championship (MK)
+### Qatar U23 Road Championship `nc-qa-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · QA · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Norway U23 ITT Championship (NO)
+### Singapore U23 Road Championship `nc-sg-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · SG · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Oman ITT Championship (OM)
+### Dominican Republic U23 Road Championship `nc-do-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · DO · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Oman U23 ITT Championship (OM)
+### Paraguay U23 Road Championship `nc-py-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · PY · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Paraguay ITT Championship (PY)
+### Hong Kong U23 Road Championship `nc-hk-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · HK · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Paraguay U23 ITT Championship (PY)
+### Guam U23 Road Championship `nc-gu-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · GU · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Peru ITT Championship (PE)
+### Bahrain U23 Road Championship `nc-bh-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · BH · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Peru U23 ITT Championship (PE)
+### Kosovo U23 Road Championship `nc-xk-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · XK · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Poland U23 ITT Championship (PL)
+### Honduras U23 Road Championship `nc-hn-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · HN · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Portugal U23 ITT Championship (PT)
+### Andorra U23 Road Championship `nc-ad-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · AD · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Puerto Rico ITT Championship (PR)
+### Albania U23 Road Championship `nc-al-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · AL · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Puerto Rico U23 ITT Championship (PR)
+### Bosnia and Herzegovina U23 Road Championship `nc-ba-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · BA · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Qatar ITT Championship (QA)
+### Cyprus U23 Road Championship `nc-cy-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · CY · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Qatar U23 ITT Championship (QA)
+### Antigua and Barbuda U23 Road Championship `nc-ag-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · AG · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Romania ITT Championship (RO)
+### Barbados U23 Road Championship `nc-bb-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · BB · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Romania U23 ITT Championship (RO)
+### Bermuda U23 Road Championship `nc-bm-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · BM · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Russia U23 ITT Championship (RU)
+### Belize U23 Road Championship `nc-bz-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · BZ · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Rwanda ITT Championship (RW)
+### Ivory Coast U23 Road Championship `nc-ci-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · CI · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Rwanda U23 ITT Championship (RW)
+### Jordan U23 Road Championship `nc-jo-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · JO · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Saint Lucia ITT Championship (LC)
+### Laos U23 Road Championship `nc-la-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · LA · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Saint Lucia U23 ITT Championship (LC)
+### Saint Lucia U23 Road Championship `nc-lc-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · LC · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Saint Vincent and the Grenadines ITT Championship (VC)
+### Monaco U23 Road Championship `nc-mc-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · MC · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Saint Vincent and the Grenadines U23 ITT Championship (VC)
+### Montenegro U23 Road Championship `nc-me-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · ME · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Saudi Arabia ITT Championship (SA)
+### Mali U23 Road Championship `nc-ml-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · ML · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Saudi Arabia U23 ITT Championship (SA)
+### Malta U23 Road Championship `nc-mt-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · MT · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Senegal ITT Championship (SN)
+### Senegal U23 Road Championship `nc-sn-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · SN · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Senegal U23 ITT Championship (SN)
+### El Salvador U23 Road Championship `nc-sv-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · SV · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Serbia U23 ITT Championship (RS)
+### Sint Maarten U23 Road Championship `nc-sx-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · SX · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Seychelles ITT Championship (SC)
+### Eswatini U23 Road Championship `nc-sz-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · SZ · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Seychelles U23 ITT Championship (SC)
+### Saint Vincent and the Grenadines U23 Road Championship `nc-vc-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · VC · día 178 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Singapore U23 ITT Championship (SG)
+### Spain Road Championship `nc-es-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · ES · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Sint Maarten U23 ITT Championship (SX)
+### France Road Championship `nc-fr-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · FR · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Slovakia ITT Championship (SK)
+### Italy U23 Road Championship `nc-it-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · IT · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Slovakia U23 ITT Championship (SK)
+### Italy Road Championship `nc-it-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · IT · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Slovenia U23 ITT Championship (SI)
+### Belgium U23 Road Championship `nc-be-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · BE · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### South Korea ITT Championship (KR)
+### Belgium Road Championship `nc-be-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · BE · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### South Korea U23 ITT Championship (KR)
+### Netherlands U23 Road Championship `nc-nl-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · NL · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Spain ITT Championship (ES)
+### Netherlands Road Championship `nc-nl-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · NL · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Spain U23 ITT Championship (ES)
+### United Kingdom Road Championship `nc-gb-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · GB · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Suriname ITT Championship (SR)
+### Germany Road Championship `nc-de-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · DE · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Suriname U23 ITT Championship (SR)
+### Portugal Road Championship `nc-pt-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · PT · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Sweden ITT Championship (SE)
+### Denmark U23 Road Championship `nc-dk-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · DK · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Sweden U23 ITT Championship (SE)
+### Denmark Road Championship `nc-dk-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · DK · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Switzerland U23 ITT Championship (CH)
+### Norway Road Championship `nc-no-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · NO · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Taiwan ITT Championship (TW)
+### Slovenia Road Championship `nc-si-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · SI · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Taiwan U23 ITT Championship (TW)
+### Slovakia Road Championship `nc-sk-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · SK · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Trinidad and Tobago ITT Championship (TT)
+### United States Road Championship `nc-us-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · US · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Trinidad and Tobago U23 ITT Championship (TT)
+### Switzerland Road Championship `nc-ch-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · CH · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Tunisia ITT Championship (TN)
+### Argentina Road Championship `nc-ar-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · AR · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Tunisia U23 ITT Championship (TN)
+### Mexico Road Championship `nc-mx-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · MX · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Turkey ITT Championship (TR)
+### Poland Road Championship `nc-pl-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · PL · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Turkey U23 ITT Championship (TR)
+### Austria Road Championship `nc-at-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · AT · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Ukraine U23 ITT Championship (UA)
+### Ireland U23 Road Championship `nc-ie-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · IE · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### United Kingdom ITT Championship (GB)
+### Ireland Road Championship `nc-ie-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · IE · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### United Kingdom U23 ITT Championship (GB)
+### Czechia Road Championship `nc-cz-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · CZ · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### United States ITT Championship (US)
+### Canada U23 Road Championship `nc-ca-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · CA · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### United States U23 ITT Championship (US)
+### Canada Road Championship `nc-ca-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · CA · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Uzbekistan ITT Championship (UZ)
+### Sweden U23 Road Championship `nc-se-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · SE · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Uzbekistan U23 ITT Championship (UZ)
+### Sweden Road Championship `nc-se-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · SE · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Venezuela U23 ITT Championship (VE)
+### Japan Road Championship `nc-jp-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · JP · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Vietnam ITT Championship (VN)
+### Kazakhstan U23 Road Championship `nc-kz-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · KZ · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Vietnam U23 ITT Championship (VN)
+### Kazakhstan Road Championship `nc-kz-road`
 
-CON · .NC · un-dia · 1 etapa · día 176
+Clase **NC** · KZ · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Albania U23 Road Championship (AL)
+### Ukraine Road Championship `nc-ua-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · UA · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Andorra U23 Road Championship (AD)
+### Estonia U23 Road Championship `nc-ee-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · EE · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Antigua and Barbuda U23 Road Championship (AG)
+### Estonia Road Championship `nc-ee-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · EE · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Argentina U23 Road Championship (AR)
+### Latvia Road Championship `nc-lv-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · LV · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Austria U23 Road Championship (AT)
+### Lithuania Road Championship `nc-lt-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · LT · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Bahrain U23 Road Championship (BH)
+### Belarus Road Championship `nc-by-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · BY · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Barbados U23 Road Championship (BB)
+### Brazil Road Championship `nc-br-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · BR · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Belarus U23 Road Championship (BY)
+### Venezuela Road Championship `nc-ve-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · VE · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Belize U23 Road Championship (BZ)
+### Finland Road Championship `nc-fi-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · FI · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Bermuda U23 Road Championship (BM)
+### Croatia U23 Road Championship `nc-hr-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · HR · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Bosnia and Herzegovina U23 Road Championship (BA)
+### Croatia Road Championship `nc-hr-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · HR · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Brazil U23 Road Championship (BR)
+### Hungary U23 Road Championship `nc-hu-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · HU · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Bulgaria U23 Road Championship (BG)
+### Hungary Road Championship `nc-hu-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · HU · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Cyprus U23 Road Championship (CY)
+### Romania U23 Road Championship `nc-ro-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · RO · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Czechia U23 Road Championship (CZ)
+### Romania Road Championship `nc-ro-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · RO · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Dominican Republic U23 Road Championship (DO)
+### Russia Road Championship `nc-ru-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · RU · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### El Salvador U23 Road Championship (SV)
+### Serbia Road Championship `nc-rs-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · RS · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Eritrea U23 Road Championship (ER)
+### Bulgaria Road Championship `nc-bg-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · BG · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Eswatini U23 Road Championship (SZ)
+### Greece U23 Road Championship `nc-gr-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · GR · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Finland U23 Road Championship (FI)
+### Greece Road Championship `nc-gr-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · GR · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### France U23 Road Championship (FR)
+### Turkey U23 Road Championship `nc-tr-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · TR · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Georgia U23 Road Championship (GE)
+### Turkey Road Championship `nc-tr-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · TR · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Germany U23 Road Championship (DE)
+### Israel Road Championship `nc-il-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · IL · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Guam U23 Road Championship (GU)
+### South Korea Road Championship `nc-kr-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · KR · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Guatemala U23 Road Championship (GT)
+### China U23 Road Championship `nc-cn-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · CN · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Honduras U23 Road Championship (HN)
+### China Road Championship `nc-cn-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · CN · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Hong Kong U23 Road Championship (HK)
+### Peru Road Championship `nc-pe-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · PE · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Iceland U23 Road Championship (IS)
+### Morocco U23 Road Championship `nc-ma-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · MA · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Indonesia U23 Road Championship (ID)
+### Morocco Road Championship `nc-ma-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · MA · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Iran ITT Championship (IR)
+### Eritrea Road Championship `nc-er-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · ER · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Iran U23 ITT Championship (IR)
+### Luxembourg U23 Road Championship `nc-lu-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · LU · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Israel U23 Road Championship (IL)
+### Luxembourg Road Championship `nc-lu-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · LU · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Ivory Coast U23 Road Championship (CI)
+### Rwanda U23 Road Championship `nc-rw-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · RW · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Japan U23 Road Championship (JP)
+### Rwanda Road Championship `nc-rw-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · RW · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Jordan U23 Road Championship (JO)
+### Algeria U23 Road Championship `nc-dz-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · DZ · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Kenya U23 Road Championship (KE)
+### Algeria Road Championship `nc-dz-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · DZ · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Kosovo U23 Road Championship (XK)
+### Guatemala Road Championship `nc-gt-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · GT · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Laos U23 Road Championship (LA)
+### Georgia Road Championship `nc-ge-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · GE · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Latvia U23 Road Championship (LV)
+### India U23 Road Championship `nc-in-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · IN · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Lithuania U23 Road Championship (LT)
+### India Road Championship `nc-in-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · IN · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Mali U23 Road Championship (ML)
+### Ethiopia U23 Road Championship `nc-et-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · ET · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Malta U23 Road Championship (MT)
+### Ethiopia Road Championship `nc-et-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · ET · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Mexico U23 Road Championship (MX)
+### Indonesia Road Championship `nc-id-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · ID · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Monaco U23 Road Championship (MC)
+### Cuba U23 Road Championship `nc-cu-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · CU · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Montenegro U23 Road Championship (ME)
+### Cuba Road Championship `nc-cu-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · CU · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Nigeria U23 Road Championship (NG)
+### Moldova U23 Road Championship `nc-md-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · MD · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Norway U23 Road Championship (NO)
+### Moldova Road Championship `nc-md-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · MD · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Paraguay U23 Road Championship (PY)
+### Nigeria Road Championship `nc-ng-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · NG · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Peru U23 Road Championship (PE)
+### Kenya Road Championship `nc-ke-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · KE · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Poland U23 Road Championship (PL)
+### Tunisia Road Championship `nc-tn-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · TN · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Portugal U23 Road Championship (PT)
+### Vietnam Road Championship `nc-vn-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · VN · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Qatar U23 Road Championship (QA)
+### Armenia U23 Road Championship `nc-am-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · AM · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Russia U23 Road Championship (RU)
+### Armenia Road Championship `nc-am-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · AM · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Saint Lucia U23 Road Championship (LC)
+### Iceland Road Championship `nc-is-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · IS · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Saint Vincent and the Grenadines U23 Road Championship (VC)
+### Azerbaijan U23 Road Championship `nc-az-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · AZ · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Saudi Arabia U23 Road Championship (SA)
+### Azerbaijan Road Championship `nc-az-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · AZ · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Senegal U23 Road Championship (SN)
+### Uzbekistan U23 Road Championship `nc-uz-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · UZ · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Serbia U23 Road Championship (RS)
+### Uzbekistan Road Championship `nc-uz-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · UZ · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Singapore U23 Road Championship (SG)
+### Saudi Arabia Road Championship `nc-sa-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · SA · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Sint Maarten U23 Road Championship (SX)
+### Qatar Road Championship `nc-qa-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · QA · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Slovakia U23 Road Championship (SK)
+### Singapore Road Championship `nc-sg-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · SG · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Slovenia U23 Road Championship (SI)
+### Dominican Republic Road Championship `nc-do-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · DO · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### South Korea U23 Road Championship (KR)
+### Paraguay Road Championship `nc-py-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · PY · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Spain U23 Road Championship (ES)
+### North Macedonia U23 Road Championship `nc-mk-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · MK · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Switzerland U23 Road Championship (CH)
+### North Macedonia Road Championship `nc-mk-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · MK · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Tunisia U23 Road Championship (TN)
+### Hong Kong Road Championship `nc-hk-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · HK · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Ukraine U23 Road Championship (UA)
+### Guam Road Championship `nc-gu-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · GU · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### United Kingdom U23 Road Championship (GB)
+### Bahrain Road Championship `nc-bh-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · BH · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### United States U23 Road Championship (US)
+### Kosovo Road Championship `nc-xk-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · XK · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Venezuela U23 Road Championship (VE)
+### Honduras Road Championship `nc-hn-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · HN · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Vietnam U23 Road Championship (VN)
+### Andorra Road Championship `nc-ad-road`
 
-CON · .NC · un-dia · 1 etapa · día 178
+Clase **NC** · AD · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Albania Road Championship (AL)
+### Albania Road Championship `nc-al-road`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · AL · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Algeria Road Championship (DZ)
+### Bosnia and Herzegovina Road Championship `nc-ba-road`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · BA · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Algeria U23 Road Championship (DZ)
+### Burkina Faso U23 Road Championship `nc-bf-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · BF · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Andorra Road Championship (AD)
+### Burkina Faso Road Championship `nc-bf-road`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · BF · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Antigua and Barbuda Road Championship (AG)
+### Benin U23 Road Championship `nc-bj-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · BJ · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Argentina Road Championship (AR)
+### Benin Road Championship `nc-bj-road`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · BJ · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Armenia Road Championship (AM)
+### Cameroon U23 Road Championship `nc-cm-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · CM · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Armenia U23 Road Championship (AM)
+### Cameroon Road Championship `nc-cm-road`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · CM · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Austria Road Championship (AT)
+### Cyprus Road Championship `nc-cy-road`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · CY · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Azerbaijan Road Championship (AZ)
+### Mauritius U23 Road Championship `nc-mu-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · MU · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Azerbaijan U23 Road Championship (AZ)
+### Mauritius Road Championship `nc-mu-road`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · MU · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Bahrain Road Championship (BH)
+### Oman U23 Road Championship `nc-om-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · OM · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Barbados Road Championship (BB)
+### Oman Road Championship `nc-om-road`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · OM · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Belarus Road Championship (BY)
+### Taiwan U23 Road Championship `nc-tw-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · TW · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Belgium Road Championship (BE)
+### Taiwan Road Championship `nc-tw-road`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · TW · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Belgium U23 Road Championship (BE)
+### Antigua and Barbuda Road Championship `nc-ag-road`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · AG · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Belize Road Championship (BZ)
+### Barbados Road Championship `nc-bb-road`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · BB · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Benin Road Championship (BJ)
+### Bermuda Road Championship `nc-bm-road`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · BM · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Benin U23 Road Championship (BJ)
+### Belize Road Championship `nc-bz-road`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · BZ · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Bermuda Road Championship (BM)
+### Ivory Coast Road Championship `nc-ci-road`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · CI · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Bosnia and Herzegovina Road Championship (BA)
+### Cape Verde U23 Road Championship `nc-cv-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · CV · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Brazil Road Championship (BR)
+### Cape Verde Road Championship `nc-cv-road`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · CV · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Bulgaria Road Championship (BG)
+### Dominica U23 Road Championship `nc-dm-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · DM · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Burkina Faso Road Championship (BF)
+### Dominica Road Championship `nc-dm-road`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · DM · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Burkina Faso U23 Road Championship (BF)
+### Guinea-Bissau U23 Road Championship `nc-gw-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · GW · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Cameroon Road Championship (CM)
+### Guinea-Bissau Road Championship `nc-gw-road`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · GW · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Cameroon U23 Road Championship (CM)
+### Jordan Road Championship `nc-jo-road`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · JO · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Canada Road Championship (CA)
+### Cayman Islands U23 Road Championship `nc-ky-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · KY · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Canada U23 Road Championship (CA)
+### Cayman Islands Road Championship `nc-ky-road`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · KY · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Cape Verde Road Championship (CV)
+### Laos Road Championship `nc-la-road`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · LA · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Cape Verde U23 Road Championship (CV)
+### Lebanon U23 Road Championship `nc-lb-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · LB · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Cayman Islands Road Championship (KY)
+### Lebanon Road Championship `nc-lb-road`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · LB · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Cayman Islands U23 Road Championship (KY)
+### Saint Lucia Road Championship `nc-lc-road`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · LC · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### China Road Championship (CN)
+### Monaco Road Championship `nc-mc-road`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · MC · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### China U23 Road Championship (CN)
+### Montenegro Road Championship `nc-me-road`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · ME · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Croatia Road Championship (HR)
+### Mali Road Championship `nc-ml-road`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · ML · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Croatia U23 Road Championship (HR)
+### Malta Road Championship `nc-mt-road`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · MT · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Cuba Road Championship (CU)
+### Puerto Rico U23 Road Championship `nc-pr-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · PR · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Cuba U23 Road Championship (CU)
+### Puerto Rico Road Championship `nc-pr-road`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · PR · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Cyprus Road Championship (CY)
+### Seychelles U23 Road Championship `nc-sc-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · SC · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Czechia Road Championship (CZ)
+### Seychelles Road Championship `nc-sc-road`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · SC · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Denmark Road Championship (DK)
+### Senegal Road Championship `nc-sn-road`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · SN · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Denmark U23 Road Championship (DK)
+### Suriname U23 Road Championship `nc-sr-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · SR · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Dominica Road Championship (DM)
+### Suriname Road Championship `nc-sr-road`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · SR · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Dominica U23 Road Championship (DM)
+### El Salvador Road Championship `nc-sv-road`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · SV · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Dominican Republic Road Championship (DO)
+### Sint Maarten Road Championship `nc-sx-road`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · SX · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### El Salvador Road Championship (SV)
+### Eswatini Road Championship `nc-sz-road`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · SZ · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Eritrea Road Championship (ER)
+### Trinidad and Tobago U23 Road Championship `nc-tt-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · TT · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Estonia Road Championship (EE)
+### Trinidad and Tobago Road Championship `nc-tt-road`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · TT · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Estonia U23 Road Championship (EE)
+### Saint Vincent and the Grenadines Road Championship `nc-vc-road`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · VC · día 179 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Eswatini Road Championship (SZ)
+### Iran U23 Road Championship `nc-ir-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · IR · día 181 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Ethiopia Road Championship (ET)
+### Iran Road Championship `nc-ir-road`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · IR · día 181 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Ethiopia U23 Road Championship (ET)
+### Race Lyon `race-lyon`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **1** · FR · día 182 · 3 etapas · 🔴 Inventado 3
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 167 | 🔴 Inventado |
+| 2 | Contrarreloj · ITT | — | — | 25 | 🔴 Inventado |
+| 3 | Media montaña · Uphill finish | — | — | 139 | 🔴 Inventado |
 
-### Finland Road Championship (FI)
+### Race Solidarnosc `race-solidarnosc`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **2** · PL · día 182 · 4 etapas · 🔴 Inventado 4
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 186 | 🔴 Inventado |
+| 2 | Media montaña · Hills | — | — | 185 | 🔴 Inventado |
+| 3 | Media montaña · Hills | — | — | 181 | 🔴 Inventado |
+| 4 | Media montaña · Uphill finish | — | — | 134 | 🔴 Inventado |
 
-### France Road Championship (FR)
+### Mongolia ITT Championship `nc-mn-itt`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · MN · día 182 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Georgia Road Championship (GE)
+### Mongolia U23 ITT Championship `nc-mn-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · MN · día 182 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Germany Road Championship (DE)
+### Jamaica ITT Championship `nc-jm-itt`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · JM · día 183 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Greece Road Championship (GR)
+### Jamaica U23 ITT Championship `nc-jm-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · JM · día 183 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Greece U23 Road Championship (GR)
+### Race France `race-france`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **WT** · FR · día 185 · 21 etapas · 🟡 Sin validar 21
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | Barcelona | Barcelona | 20 | 🟡 Sin validar |
+| 2 | Media montaña · Hills | Tarragona | Barcelona | 169 | 🟡 Sin validar |
+| 3 | Media montaña · Hills | Granollers | Les Angles | 196 | 🟡 Sin validar |
+| 4 | Media montaña · Hills | Carcassonne | Foix | 182 | 🟡 Sin validar |
+| 5 | Llana · Flat | Lannemezan | Pau | 158 | 🟡 Sin validar |
+| 6 | Montaña · Summit finish | Pau | Gavarnie-Gedre | 186 | 🟡 Sin validar |
+| 7 | Llana · Flat | Hagetmau | Bordeaux | 175 | 🟡 Sin validar |
+| 8 | Llana · Flat | Perigueux | Bergerac | 180 | 🟡 Sin validar |
+| 9 | Media montaña · Hills | Malemort | Ussel | 185 | 🟡 Sin validar |
+| 10 | Montaña · Summit finish | Aurillac | Le Lioran | 167 | 🟡 Sin validar |
+| 11 | Llana · Flat | Vichy | Nevers | 161 | 🟡 Sin validar |
+| 12 | Llana · Flat | Magny-Cours | Chalon-sur-Saone | 179 | 🟡 Sin validar |
+| 13 | Media montaña · Hills | Dole | Belfort | 206 | 🟡 Sin validar |
+| 14 | Montaña · Summit finish | Mulhouse | Le Markstein | 155 | 🟡 Sin validar |
+| 15 | Montaña · Summit finish | Champagnole | Plateau de Solaison | 184 | 🟡 Sin validar |
+| 16 | Contrarreloj · ITT | Evian-les-Bains | Thonon-les-Bains | 26 | 🟡 Sin validar |
+| 17 | Media montaña · Hills | Chambery | Voiron | 175 | 🟡 Sin validar |
+| 18 | Montaña · Summit finish | Voiron | Orcieres-Merlette | 185 | 🟡 Sin validar |
+| 19 | Montaña · Summit finish | Gap | Alpe d'Huez | 128 | 🟡 Sin validar |
+| 20 | Montaña · Summit finish | Le Bourg-d'Oisans | Alpe d'Huez | 171 | 🟡 Sin validar |
+| 21 | Llana · Flat | Thoiry | Paris | 130 | 🟡 Sin validar |
 
-### Guam Road Championship (GU)
+### Race Sibiu `race-sibiu`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **1** · RO · día 185 · 4 etapas · 🔴 Inventado 4
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 182 | 🔴 Inventado |
+| 2 | Media montaña · Hills | — | — | 169 | 🔴 Inventado |
+| 3 | Contrarreloj · ITT | — | — | 19 | 🔴 Inventado |
+| 4 | Montaña · Summit finish | — | — | 126 | 🔴 Inventado |
 
-### Guatemala Road Championship (GT)
+### Jamaica U23 Road Championship `nc-jm-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · JM · día 185 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Guinea-Bissau Road Championship (GW)
+### Mongolia U23 Road Championship `nc-mn-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · MN · día 185 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Guinea-Bissau U23 Road Championship (GW)
+### Mongolia Road Championship `nc-mn-road`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · MN · día 185 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Honduras Road Championship (HN)
+### Jamaica Road Championship `nc-jm-road`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · JM · día 186 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Hong Kong Road Championship (HK)
+### Race Austria `race-austria`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **1** · AT · día 189 · 5 etapas · 🔴 Inventado 5
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 178 | 🔴 Inventado |
+| 2 | Media montaña · Hills | — | — | 173 | 🔴 Inventado |
+| 3 | Contrarreloj · ITT | — | — | 17 | 🔴 Inventado |
+| 4 | Montaña · Summit finish | — | — | 177 | 🔴 Inventado |
+| 5 | Montaña · Summit finish | — | — | 139 | 🔴 Inventado |
 
-### Hungary Road Championship (HU)
+### Race Torres Vedras `race-torres-vedras`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **2** · PT · día 191 · 3 etapas · 🔴 Inventado 3
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 192 | 🔴 Inventado |
+| 2 | Montaña · Summit finish | — | — | 167 | 🔴 Inventado |
+| 3 | Media montaña · Hills | — | — | 153 | 🔴 Inventado |
 
-### Hungary U23 Road Championship (HU)
+### Race Qinghai `race-qinghai`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **Pro** · CN · día 192 · 8 etapas · 🟡 Sin validar 8
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | Xining | Xining | 121 | 🟡 Sin validar |
+| 2 | Media montaña · Hills | Duoba | Huzhu | 151 | 🟡 Sin validar |
+| 3 | Media montaña · Hills | Huzhu | Menyuan | 220 | 🟡 Sin validar |
+| 4 | Montaña · Summit finish | Menyuan | Qilian | 173 | 🟡 Sin validar |
+| 5 | Media montaña · Hills | Qilian | Gangcha | 169 | 🟡 Sin validar |
+| 6 | Media montaña · Hills | Gangcha | Gonghe | 233 | 🟡 Sin validar |
+| 7 | Media montaña · Hills | Gonghe | Haiyan | 137 | 🟡 Sin validar |
+| 8 | Media montaña · Hills | Xihaizhen | Xihaizhen | 121 | 🟡 Sin validar |
 
-### Iceland Road Championship (IS)
+### Race Venezuela `race-venezuela`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **2** · VE · día 193 · 8 etapas · 🔴 Inventado 8
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 182 | 🔴 Inventado |
+| 2 | Montaña · Summit finish | — | — | 169 | 🔴 Inventado |
+| 3 | Montaña · Summit finish | — | — | 170 | 🔴 Inventado |
+| 4 | Montaña · Summit finish | — | — | 157 | 🔴 Inventado |
+| 5 | Media montaña · Uphill finish | — | — | 153 | 🔴 Inventado |
+| 6 | Montaña · Summit finish | — | — | 154 | 🔴 Inventado |
+| 7 | Contrarreloj · ITT | — | — | 19 | 🔴 Inventado |
+| 8 | Montaña · Summit finish | — | — | 151 | 🔴 Inventado |
 
-### India Road Championship (IN)
+### Race Ordizia `race-ordizia`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **1** · ES · día 206 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-### India U23 Road Championship (IN)
+### Race Castilla y León `race-castilla-leon`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **1** · ES · día 207 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-### Indonesia Road Championship (ID)
+### Race Ain `race-ain`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **1** · FR · día 209 · 3 etapas · 🔴 Inventado 3
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 187 | 🔴 Inventado |
+| 2 | Contrarreloj · ITT | — | — | 15 | 🔴 Inventado |
+| 3 | Media montaña · Hills | — | — | 141 | 🔴 Inventado |
 
-### Ireland Road Championship (IE)
+### Race Denmark `race-denmark`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **Pro** · DK · día 210 · 5 etapas · 🟡 Sin validar 5
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | Nexo | Ronne | 178 | 🟡 Sin validar |
+| 2 | Llana · Flat | Rodovre | Gladsaxe | 111 | 🟡 Sin validar |
+| 3 | Contrarreloj · ITT | Kerteminde | Kerteminde | 14 | 🟡 Sin validar |
+| 4 | Media montaña · Hills | Svendborg | Vejle | 227 | 🟡 Sin validar |
+| 5 | Media montaña · Hills | Hobro | Silkeborg | 157 | 🟡 Sin validar |
 
-### Ireland U23 Road Championship (IE)
+### Race Alsace `race-alsace`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **2** · FR · día 210 · 5 etapas · 🔴 Inventado 5
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 187 | 🔴 Inventado |
+| 2 | Montaña · Summit finish | — | — | 174 | 🔴 Inventado |
+| 3 | Media montaña · Hills | — | — | 176 | 🔴 Inventado |
+| 4 | Contrarreloj · ITT | — | — | 16 | 🔴 Inventado |
+| 5 | Montaña · Summit finish | — | — | 129 | 🔴 Inventado |
 
-### Israel Road Championship (IL)
+### Race Kreiz Breizh `race-kreiz-breizh`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **2** · FR · día 212 · 4 etapas · 🔴 Inventado 4
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 183 | 🔴 Inventado |
+| 2 | Media montaña · Hills | — | — | 175 | 🔴 Inventado |
+| 3 | Montaña · Summit finish | — | — | 155 | 🔴 Inventado |
+| 4 | Montaña · Summit finish | — | — | 128 | 🔴 Inventado |
 
-### Italy Road Championship (IT)
+### Race San Sebastián `race-san-sebastian`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **WT** · ES · día 213 · 1 etapa · ✅ Real 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 221 | ✅ Real |
 
-### Italy U23 Road Championship (IT)
+### Race Getxo `race-getxo`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **1** · ES · día 214 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-### Ivory Coast Road Championship (CI)
+### Race Poland `race-poland`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **WT** · PL · día 215 · 7 etapas · 🟡 Sin validar 7
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | Gdynia | Koszalin | 234 | 🟡 Sin validar |
+| 2 | Llana · Flat | Miedzyzdroje | Szczecin | 151 | 🟡 Sin validar |
+| 3 | Media montaña · Hills | Gorzow Wielkopolski | Zielona Gora | 194 | 🟡 Sin validar |
+| 4 | Montaña · Summit finish | Zagan | Karpacz | 176 | 🟡 Sin validar |
+| 5 | Montaña · Summit finish | Opole | Kocierz Resort | 219 | 🟡 Sin validar |
+| 6 | Montaña · Summit finish | Bukovina Resort | Bukowina Tatrzanska | 126 | 🟡 Sin validar |
+| 7 | Contrarreloj · ITT | Wieliczka | Wieliczka | 12 | 🟡 Sin validar |
 
-### Japan Road Championship (JP)
+### Race Burgos `race-burgos`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **Pro** · ES · día 216 · 5 etapas · 🟡 Sin validar 5
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | Gumiel de Izan | Burgos | 165 | 🟡 Sin validar |
+| 2 | Montaña · Summit finish | Arcos de la Llana | Pineda de la Sierra | 178 | 🟡 Sin validar |
+| 3 | Montaña · Summit finish | Merindad de Montija | Corconte | 184 | 🟡 Sin validar |
+| 4 | Llana · Flat | Palazuelos de Muno | Briviesca | 178 | 🟡 Sin validar |
+| 5 | Montaña · Summit finish | Caleruega | Lagunas de Neila | 137 | 🟡 Sin validar |
 
-### Jordan Road Championship (JO)
+### Race Maraş `race-maras`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **2** · TR · día 216 · 4 etapas · 🔴 Inventado 4
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 166 | 🔴 Inventado |
+| 2 | Media montaña · Hills | — | — | 161 | 🔴 Inventado |
+| 3 | Media montaña · Uphill finish | — | — | 179 | 🔴 Inventado |
+| 4 | Media montaña · Hills | — | — | 152 | 🔴 Inventado |
 
-### Kazakhstan Road Championship (KZ)
+### Race Portugal `race-portugal`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **1** · PT · día 217 · 11 etapas · 🟡 Sin validar 11
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | Maia | Maia | 3 | 🟡 Sin validar |
+| 2 | Media montaña · Hills | Viana do Castelo | Braga | 162 | 🟡 Sin validar |
+| 3 | Media montaña · Hills | Felgueiras | Fafe | 168 | 🟡 Sin validar |
+| 4 | Media montaña · Hills | Boticas | Braganca | 185 | 🟡 Sin validar |
+| 5 | Montaña · Summit finish | Braganca | Mondim de Basto | 183 | 🟡 Sin validar |
+| 6 | Llana · Flat | Lamego | Viseu | 156 | 🟡 Sin validar |
+| 7 | Media montaña · Hills | Agueda | Guarda | 175 | 🟡 Sin validar |
+| 8 | Montaña · Summit finish | Sabugal | Covilha | 179 | 🟡 Sin validar |
+| 9 | Llana · Flat | Ferreira do Zezere | Santarem | 178 | 🟡 Sin validar |
+| 10 | Montaña · Summit finish | Alcobaca | Alto de Montejunto | 174 | 🟡 Sin validar |
+| 11 | Contrarreloj · ITT | Lisboa | Lisboa | 17 | 🟡 Sin validar |
 
-### Kazakhstan U23 Road Championship (KZ)
+### Race Szeklerland `race-szekler`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **2** · RO · día 218 · 3 etapas · 🔴 Inventado 3
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 186 | 🔴 Inventado |
+| 2 | Media montaña · Uphill finish | — | — | 151 | 🔴 Inventado |
+| 3 | Media montaña · Hills | — | — | 155 | 🔴 Inventado |
 
-### Kenya Road Championship (KE)
+### Race Colombia Tour `race-colombia-tour`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **2** · CO · día 220 · 9 etapas · 🔴 Inventado 9
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 194 | 🔴 Inventado |
+| 2 | Media montaña · Uphill finish | — | — | 151 | 🔴 Inventado |
+| 3 | Montaña · Summit finish | — | — | 154 | 🔴 Inventado |
+| 4 | Media montaña · Hills | — | — | 171 | 🔴 Inventado |
+| 5 | Media montaña · Hills | — | — | 168 | 🔴 Inventado |
+| 6 | Montaña · Summit finish | — | — | 166 | 🔴 Inventado |
+| 7 | Media montaña · Hills | — | — | 189 | 🔴 Inventado |
+| 8 | Contrarreloj · ITT | — | — | 20 | 🔴 Inventado |
+| 9 | Media montaña · Uphill finish | — | — | 137 | 🔴 Inventado |
 
-### Kosovo Road Championship (XK)
+### Race Arctic `race-arctic`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **Pro** · NO · día 225 · 4 etapas · 🟡 Sin validar 4
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | Evenes | Myre | 182 | 🟡 Sin validar |
+| 2 | Llana · Flat | Bo i Vesteralen | Andenes | 180 | 🟡 Sin validar |
+| 3 | Media montaña · Hills | Stokmarknes | Storheia | 147 | 🟡 Sin validar |
+| 4 | Media montaña · Hills | Sortland | Narvik | 191 | 🟡 Sin validar |
 
-### Laos Road Championship (LA)
+### Race Czechia `race-czechia`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **Pro** · CZ · día 225 · 4 etapas · 🟡 Sin validar 4
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | Prague | Karlovy Vary | 163 | 🟡 Sin validar |
+| 2 | Montaña · Summit finish | Mlada Boleslav | Jested | 155 | 🟡 Sin validar |
+| 3 | Montaña · Summit finish | Pardubice | Dlouhe strane | 171 | 🟡 Sin validar |
+| 4 | Montaña · Summit finish | Kromeriz | Pustevny | 160 | 🟡 Sin validar |
 
-### Latvia Road Championship (LV)
+### Race Hamburg `race-hamburg`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **WT** · DE · día 228 · 1 etapa · ✅ Real 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 198 | ✅ Real |
 
-### Lebanon Road Championship (LB)
+### Race Polynormande `race-polynormande`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **1** · FR · día 228 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-### Lebanon U23 Road Championship (LB)
+### Race Limousin `race-limousin`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **1** · FR · día 230 · 4 etapas · 🔴 Inventado 4
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 168 | 🔴 Inventado |
+| 2 | Media montaña · Uphill finish | — | — | 164 | 🔴 Inventado |
+| 3 | Contrarreloj · ITT | — | — | 22 | 🔴 Inventado |
+| 4 | Media montaña · Hills | — | — | 149 | 🔴 Inventado |
 
-### Lithuania Road Championship (LT)
+### Race Benelux `race-benelux`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **WT** · BE · día 231 · 5 etapas · 🟡 Sin validar 5
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | Diest | Diest | 188 | 🟡 Sin validar |
+| 2 | Llana · Flat | Blankenberge | Ardooie | 174 | 🟡 Sin validar |
+| 3 | Clásica · Cobbles | Celles | Geraardsbergen | 185 | 🟡 Sin validar |
+| 4 | Media montaña · Hills | Riemst | Bilzen-Hoeselt | 196 | 🟡 Sin validar |
+| 5 | Media montaña · Hills | Leuven | Leuven | 178 | 🟡 Sin validar |
 
-### Luxembourg Road Championship (LU)
+### Race Germany `race-germany`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **Pro** · DE · día 231 · 5 etapas · 🟡 Sin validar 5
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | Bad Orb | Bad Orb | 3 | 🟡 Sin validar |
+| 2 | Media montaña · Hills | Bad Orb | Schwabisch Hall | 215 | 🟡 Sin validar |
+| 3 | Llana · Flat | Schwabisch Hall | Offenbach an der Queich | 197 | 🟡 Sin validar |
+| 4 | Media montaña · Hills | Herxheim bei Landau | Bad Durkheim | 171 | 🟡 Sin validar |
+| 5 | Media montaña · Hills | Heilbronn | Heilbronn | 157 | 🟡 Sin validar |
 
-### Luxembourg U23 Road Championship (LU)
+### Race West Bohemia `race-west-bohemia`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **2** · CZ · día 232 · 4 etapas · 🔴 Inventado 4
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 170 | 🔴 Inventado |
+| 2 | Media montaña · Hills | — | — | 177 | 🔴 Inventado |
+| 3 | Media montaña · Hills | — | — | 173 | 🔴 Inventado |
+| 4 | Montaña · Summit finish | — | — | 146 | 🔴 Inventado |
 
-### Mali Road Championship (ML)
+### Kyrgyzstan ITT Championship `nc-kg-itt`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · KG · día 232 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Malta Road Championship (MT)
+### Kyrgyzstan U23 ITT Championship `nc-kg-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · KG · día 232 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Mauritius Road Championship (MU)
+### Race Baltic `race-baltic`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **2** · LT · día 233 · 3 etapas · 🔴 Inventado 3
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 179 | 🔴 Inventado |
+| 2 | Media montaña · Uphill finish | — | — | 178 | 🔴 Inventado |
+| 3 | Media montaña · Hills | — | — | 147 | 🔴 Inventado |
 
-### Mauritius U23 Road Championship (MU)
+### Race Spain `race-spain`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **WT** · ES · día 234 · 21 etapas · 🟡 Sin validar 21
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | Monaco | Monaco | 10 | 🟡 Sin validar |
+| 2 | Media montaña · Hills | Monaco | Manosque | 215 | 🟡 Sin validar |
+| 3 | Montaña · Summit finish | Gruissan | Font Romeu | 167 | 🟡 Sin validar |
+| 4 | Montaña · Summit finish | Andorra la Vella | Andorra la Vella | 105 | 🟡 Sin validar |
+| 5 | Media montaña · Hills | Falset | Roquetes | 171 | 🟡 Sin validar |
+| 6 | Clásica · Cobbles | Alcossebre | Castello | 177 | 🟡 Sin validar |
+| 7 | Montaña · Summit finish | Vall d'Alba | Valdelinares | 150 | 🟡 Sin validar |
+| 8 | Llana · Flat | Pucol | Xeraco | 167 | 🟡 Sin validar |
+| 9 | Montaña · Summit finish | Villajoyosa | Alto de Aitana | 188 | 🟡 Sin validar |
+| 10 | Media montaña · Hills | Alcaraz | Elche de la Sierra | 185 | 🟡 Sin validar |
+| 11 | Llana · Flat | Cartagena | Lorca | 156 | 🟡 Sin validar |
+| 12 | Montaña · Summit finish | Vera | Calar Alto | 167 | 🟡 Sin validar |
+| 13 | Media montaña · Hills | Almunecar | Loja | 193 | 🟡 Sin validar |
+| 14 | Montaña · Summit finish | Jaen | Sierra de la Pandera | 153 | 🟡 Sin validar |
+| 15 | Media montaña · Hills | Palma del Rio | Cordoba | 181 | 🟡 Sin validar |
+| 16 | Llana · Flat | Cortegana | La Rabida | 186 | 🟡 Sin validar |
+| 17 | Llana · Flat | Dos Hermanas | Sevilla | 189 | 🟡 Sin validar |
+| 18 | Contrarreloj · ITT | El Puerto de Santa Maria | Jerez de la Frontera | 33 | 🟡 Sin validar |
+| 19 | Montaña · Summit finish | Velez-Malaga | Penas Blancas | 205 | 🟡 Sin validar |
+| 20 | Montaña · Summit finish | La Calahorra | Collada de Alguacil | 187 | 🟡 Sin validar |
+| 21 | Media montaña · Hills | Granada | Granada | 99 | 🟡 Sin validar |
 
-### Mexico Road Championship (MX)
+### Kyrgyzstan U23 Road Championship `nc-kg-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · KG · día 235 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Moldova Road Championship (MD)
+### Kyrgyzstan Road Championship `nc-kg-road`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · KG · día 235 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Moldova U23 Road Championship (MD)
+### Race Aquitaine `race-aquitaine`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **1** · FR · día 237 · 4 etapas · 🔴 Inventado 4
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 172 | 🔴 Inventado |
+| 2 | Contrarreloj · ITT | — | — | 24 | 🔴 Inventado |
+| 3 | Media montaña · Uphill finish | — | — | 155 | 🔴 Inventado |
+| 4 | Media montaña · Hills | — | — | 160 | 🔴 Inventado |
 
-### Monaco Road Championship (MC)
+### Race Samsun `race-samsun`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **2** · TR · día 239 · 4 etapas · 🔴 Inventado 4
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 173 | 🔴 Inventado |
+| 2 | Montaña · Summit finish | — | — | 151 | 🔴 Inventado |
+| 3 | Contrarreloj · ITT | — | — | 16 | 🔴 Inventado |
+| 4 | Media montaña · Hills | — | — | 139 | 🔴 Inventado |
 
-### Montenegro Road Championship (ME)
+### Race Bulgaria `race-bulgaria`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **2** · BG · día 241 · 6 etapas · 🔴 Inventado 6
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 176 | 🔴 Inventado |
+| 2 | Media montaña · Hills | — | — | 187 | 🔴 Inventado |
+| 3 | Media montaña · Uphill finish | — | — | 168 | 🔴 Inventado |
+| 4 | Media montaña · Hills | — | — | 163 | 🔴 Inventado |
+| 5 | Contrarreloj · ITT | — | — | 17 | 🔴 Inventado |
+| 6 | Media montaña · Uphill finish | — | — | 133 | 🔴 Inventado |
 
-### Morocco Road Championship (MA)
+### Race Brittany `race-brittany`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **WT** · FR · día 242 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 190 | 🔴 Inventado |
 
-### Morocco U23 Road Championship (MA)
+### Race Kranj `race-kranj`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **1** · SI · día 242 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-### Netherlands Road Championship (NL)
+### Race Plouay `race-plouay`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **2** · FR · día 242 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-### Netherlands U23 Road Championship (NL)
+### Race Halle `race-halle`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **2** · BE · día 242 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 210 | 🔴 Inventado |
 
-### Nigeria Road Championship (NG)
+### Race Achterhoek `race-achterhoek`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **2** · NL · día 242 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 210 | 🔴 Inventado |
 
-### North Macedonia Road Championship (MK)
+### Race Philadelphia `race-philadelphia`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **1** · US · día 242 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-### North Macedonia U23 Road Championship (MK)
+### Race Korea `race-korea`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **1** · KR · día 243 · 5 etapas · 🔴 Inventado 5
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 193 | 🔴 Inventado |
+| 2 | Media montaña · Hills | — | — | 189 | 🔴 Inventado |
+| 3 | Media montaña · Uphill finish | — | — | 163 | 🔴 Inventado |
+| 4 | Contrarreloj · ITT | — | — | 21 | 🔴 Inventado |
+| 5 | Media montaña · Hills | — | — | 151 | 🔴 Inventado |
 
-### Norway Road Championship (NO)
+### Race Britain `race-britain`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **Pro** · GB · día 245 · 6 etapas · 🟡 Sin validar 6
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | Woodbridge | Southwold | 168 | 🟡 Sin validar |
+| 2 | Llana · Flat | Stowmarket | Stowmarket | 174 | 🟡 Sin validar |
+| 3 | Media montaña · Hills | Milton Keynes | Ampthill | 123 | 🟡 Sin validar |
+| 4 | Media montaña · Hills | Atherstone | Burton Dassett | 187 | 🟡 Sin validar |
+| 5 | Montaña · Summit finish | Pontypool | The Tumble | 134 | 🟡 Sin validar |
+| 6 | Media montaña · Hills | Newport | Cardiff | 112 | 🟡 Sin validar |
 
-### Oman Road Championship (OM)
+### Race ZLM `race-zlm`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **1** · NL · día 245 · 5 etapas · 🔴 Inventado 5
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 182 | 🔴 Inventado |
+| 2 | Media montaña · Hills | — | — | 161 | 🔴 Inventado |
+| 3 | Media montaña · Uphill finish | — | — | 173 | 🔴 Inventado |
+| 4 | Contrarreloj · ITT | — | — | 21 | 🔴 Inventado |
+| 5 | Llana · Flat | — | — | 162 | 🔴 Inventado |
 
-### Oman U23 Road Championship (OM)
+### Race Istanbul `race-istanbul`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **1** · TR · día 246 · 4 etapas · 🔴 Inventado 4
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 184 | 🔴 Inventado |
+| 2 | Media montaña · Hills | — | — | 176 | 🔴 Inventado |
+| 3 | Media montaña · Uphill finish | — | — | 170 | 🔴 Inventado |
+| 4 | Media montaña · Hills | — | — | 146 | 🔴 Inventado |
 
-### Paraguay Road Championship (PY)
+### Race Friuli `race-friuli`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **2** · IT · día 246 · 4 etapas · 🔴 Inventado 4
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 193 | 🔴 Inventado |
+| 2 | Contrarreloj · ITT | — | — | 20 | 🔴 Inventado |
+| 3 | Media montaña · Hills | — | — | 161 | 🔴 Inventado |
+| 4 | Montaña · Summit finish | — | — | 150 | 🔴 Inventado |
 
-### Peru Road Championship (PE)
+### Race South Bohemia `race-south-bohemia`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **2** · CZ · día 246 · 4 etapas · 🔴 Inventado 4
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 185 | 🔴 Inventado |
+| 2 | Montaña · Summit finish | — | — | 169 | 🔴 Inventado |
+| 3 | Contrarreloj · ITT | — | — | 17 | 🔴 Inventado |
+| 4 | Montaña · Summit finish | — | — | 149 | 🔴 Inventado |
 
-### Poland Road Championship (PL)
+### Race Sauerland `race-sauerland`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **2** · DE · día 246 · 4 etapas · 🔴 Inventado 4
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 185 | 🔴 Inventado |
+| 2 | Montaña · Summit finish | — | — | 157 | 🔴 Inventado |
+| 3 | Contrarreloj · ITT | — | — | 23 | 🔴 Inventado |
+| 4 | Media montaña · Uphill finish | — | — | 150 | 🔴 Inventado |
 
-### Portugal Road Championship (PT)
+### Race Kosovo `race-kosovo`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **2** · XK · día 246 · 4 etapas · 🔴 Inventado 4
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 170 | 🔴 Inventado |
+| 2 | Media montaña · Hills | — | — | 162 | 🔴 Inventado |
+| 3 | Contrarreloj · ITT | — | — | 21 | 🔴 Inventado |
+| 4 | Montaña · Summit finish | — | — | 146 | 🔴 Inventado |
 
-### Puerto Rico Road Championship (PR)
+### Race Maryland `race-maryland`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **Pro** · US · día 248 · 3 etapas · 🔴 Inventado 3
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 188 | 🔴 Inventado |
+| 2 | Contrarreloj · ITT | — | — | 20 | 🔴 Inventado |
+| 3 | Media montaña · Hills | — | — | 147 | 🔴 Inventado |
 
-### Puerto Rico U23 Road Championship (PR)
+### Race Prato `race-prato`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **Pro** · IT · día 249 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-### Qatar Road Championship (QA)
+### Race Somme `race-somme`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **2** · FR · día 249 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 210 | 🔴 Inventado |
 
-### Romania Road Championship (RO)
+### Race Ecuador `race-ecuador`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **2** · EC · día 250 · 6 etapas · 🔴 Inventado 6
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 194 | 🔴 Inventado |
+| 2 | Media montaña · Hills | — | — | 173 | 🔴 Inventado |
+| 3 | Media montaña · Hills | — | — | 182 | 🔴 Inventado |
+| 4 | Media montaña · Hills | — | — | 162 | 🔴 Inventado |
+| 5 | Contrarreloj · ITT | — | — | 23 | 🔴 Inventado |
+| 6 | Montaña · Summit finish | — | — | 146 | 🔴 Inventado |
 
-### Romania U23 Road Championship (RO)
+### Race Toscana `race-toscana`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **1** · IT · día 252 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-### Russia Road Championship (RU)
+### Race Romania `race-romania`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **2** · RO · día 252 · 5 etapas · 🔴 Inventado 5
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 191 | 🔴 Inventado |
+| 2 | Llana · Flat | — | — | 188 | 🔴 Inventado |
+| 3 | Media montaña · Hills | — | — | 177 | 🔴 Inventado |
+| 4 | Media montaña · Hills | — | — | 177 | 🔴 Inventado |
+| 5 | Montaña · Summit finish | — | — | 140 | 🔴 Inventado |
 
-### Rwanda Road Championship (RW)
+### Race Peccioli `race-peccioli`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **Pro** · IT · día 253 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-### Rwanda U23 Road Championship (RW)
+### Malaysia ITT Championship `nc-my-itt`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · MY · día 253 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 38 | 🔴 Inventado |
 
-### Saint Lucia Road Championship (LC)
+### Malaysia U23 ITT Championship `nc-my-u23-itt`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · MY · día 253 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 30 | 🔴 Inventado |
 
-### Saint Vincent and the Grenadines Road Championship (VC)
+### Race Québec `race-quebec`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **WT** · CA · día 254 · 1 etapa · ✅ Real 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 216 | ✅ Real |
 
-### Saudi Arabia Road Championship (SA)
+### Race Morocco `race-morocco`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **2** · MA · día 254 · 8 etapas · 🔴 Inventado 8
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 192 | 🔴 Inventado |
+| 2 | Media montaña · Uphill finish | — | — | 152 | 🔴 Inventado |
+| 3 | Media montaña · Uphill finish | — | — | 172 | 🔴 Inventado |
+| 4 | Media montaña · Hills | — | — | 165 | 🔴 Inventado |
+| 5 | Media montaña · Hills | — | — | 175 | 🔴 Inventado |
+| 6 | Contrarreloj · ITT | — | — | 22 | 🔴 Inventado |
+| 7 | Montaña · Summit finish | — | — | 178 | 🔴 Inventado |
+| 8 | Media montaña · Hills | — | — | 147 | 🔴 Inventado |
 
-### Senegal Road Championship (SN)
+### Race Pantani `race-pantani`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **1** · IT · día 255 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Montaña · Summit finish | — | — | 210 | 🔴 Inventado |
 
-### Serbia Road Championship (RS)
+### Race Taihu `race-taihu`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **1** · CN · día 255 · 5 etapas · 🔴 Inventado 5
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 192 | 🔴 Inventado |
+| 2 | Media montaña · Hills | — | — | 187 | 🔴 Inventado |
+| 3 | Media montaña · Uphill finish | — | — | 174 | 🔴 Inventado |
+| 4 | Contrarreloj · ITT | — | — | 22 | 🔴 Inventado |
+| 5 | Llana · Flat | — | — | 151 | 🔴 Inventado |
 
-### Seychelles Road Championship (SC)
+### Race Montréal `race-montreal`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **WT** · CA · día 256 · 1 etapa · ✅ Real 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 209 | ✅ Real |
 
-### Seychelles U23 Road Championship (SC)
+### Race Fourmies `race-fourmies`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **Pro** · FR · día 256 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 210 | 🔴 Inventado |
 
-### Singapore Road Championship (SG)
+### Race Matteotti `race-matteotti`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **1** · IT · día 256 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-### Sint Maarten Road Championship (SX)
+### Malaysia U23 Road Championship `nc-my-u23-road`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · MY · día 256 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 180 | 🔴 Inventado |
 
-### Slovakia Road Championship (SK)
+### Malaysia Road Championship `nc-my-road`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **NC** · MY · día 256 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 220 | 🔴 Inventado |
 
-### Slovenia Road Championship (SI)
+### Race Abruzzo `race-abruzzo`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **1** · IT · día 258 · 4 etapas · 🔴 Inventado 4
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 180 | 🔴 Inventado |
+| 2 | Montaña · Summit finish | — | — | 172 | 🔴 Inventado |
+| 3 | Contrarreloj · ITT | — | — | 16 | 🔴 Inventado |
+| 4 | Montaña · Summit finish | — | — | 133 | 🔴 Inventado |
 
-### South Korea Road Championship (KR)
+### Race Namur `race-namur`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **Pro** · BE · día 259 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-### Spain Road Championship (ES)
+### Race Luxembourg `race-luxembourg`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **Pro** · LU · día 259 · 5 etapas · 🟡 Sin validar 5
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | Luxembourg | Luxembourg | 153 | 🟡 Sin validar |
+| 2 | Media montaña · Hills | Remich | Mamer | 168 | 🟡 Sin validar |
+| 3 | Media montaña · Hills | Mertert | Vianden | 171 | 🟡 Sin validar |
+| 4 | Contrarreloj · ITT | Niederanven | Niederanven | 26 | 🟡 Sin validar |
+| 5 | Media montaña · Hills | Mersch | Luxembourg | 176 | 🟡 Sin validar |
 
-### Suriname Road Championship (SR)
+### Race Slovakia `race-slovakia`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **1** · SK · día 259 · 5 etapas · 🔴 Inventado 5
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 172 | 🔴 Inventado |
+| 2 | Llana · Flat | — | — | 182 | 🔴 Inventado |
+| 3 | Media montaña · Hills | — | — | 170 | 🔴 Inventado |
+| 4 | Montaña · Summit finish | — | — | 173 | 🔴 Inventado |
+| 5 | Media montaña · Uphill finish | — | — | 153 | 🔴 Inventado |
 
-### Suriname U23 Road Championship (SR)
+### Race Serbia `race-serbie`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **2** · RS · día 260 · 4 etapas · 🔴 Inventado 4
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 191 | 🔴 Inventado |
+| 2 | Montaña · Summit finish | — | — | 150 | 🔴 Inventado |
+| 3 | Contrarreloj · ITT | — | — | 14 | 🔴 Inventado |
+| 4 | Media montaña · Hills | — | — | 155 | 🔴 Inventado |
 
-### Sweden Road Championship (SE)
+### Race Vlaanderen `race-vlaanderen`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **1** · BE · día 261 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 210 | 🔴 Inventado |
 
-### Sweden U23 Road Championship (SE)
+### Race Flandrien `race-flandrien`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **Pro** · BE · día 262 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Cobbles | — | — | 190 | 🔴 Inventado |
 
-### Switzerland Road Championship (CH)
+### Race Lazio `race-lazio`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **1** · IT · día 262 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-### Taiwan Road Championship (TW)
+### Race Romagna Classic `race-romagna-giro`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **1** · IT · día 263 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-### Taiwan U23 Road Championship (TW)
+### Race Gooik `race-gooik`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **1** · BE · día 263 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 210 | 🔴 Inventado |
 
-### Trinidad and Tobago Road Championship (TT)
+### Race Isbergues `race-isbergues`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **1** · FR · día 263 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 210 | 🔴 Inventado |
 
-### Trinidad and Tobago U23 Road Championship (TT)
+### Race Poyang `race-poyang`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **2** · CN · día 263 · 6 etapas · 🔴 Inventado 6
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 193 | 🔴 Inventado |
+| 2 | Media montaña · Hills | — | — | 184 | 🔴 Inventado |
+| 3 | Montaña · Summit finish | — | — | 159 | 🔴 Inventado |
+| 4 | Media montaña · Hills | — | — | 174 | 🔴 Inventado |
+| 5 | Contrarreloj · ITT | — | — | 15 | 🔴 Inventado |
+| 6 | Media montaña · Uphill finish | — | — | 151 | 🔴 Inventado |
 
-### Tunisia Road Championship (TN)
+### Race Croatia `race-croatia`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **Pro** · HR · día 265 · 6 etapas · 🟡 Sin validar 6
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | Split | Sinj | 163 | 🟡 Sin validar |
+| 2 | Llana · Flat | Biograd na Moru | Novalja | 115 | 🟡 Sin validar |
+| 3 | Media montaña · Hills | Gospic | Rijeka | 151 | 🟡 Sin validar |
+| 4 | Montaña · Summit finish | Krk | Labin | 191 | 🟡 Sin validar |
+| 5 | Media montaña · Hills | Karlovac | Sveta Nedelja | 151 | 🟡 Sin validar |
+| 6 | Llana · Flat | Samobor | Zagreb | 157 | 🟡 Sin validar |
 
-### Turkey Road Championship (TR)
+### Race Houtland `race-houtland`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **1** · BE · día 266 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 210 | 🔴 Inventado |
 
-### Turkey U23 Road Championship (TR)
+### Race Mirabelle `race-mirabelle`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **2** · FR · día 268 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-### Ukraine Road Championship (UA)
+### Race Cerami `race-cerami`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **2** · BE · día 269 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 210 | 🔴 Inventado |
 
-### United Kingdom Road Championship (GB)
+### Race Langkawi `race-langkawi`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **Pro** · MY · día 270 · 8 etapas · 🟡 Sin validar 8
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | Shah Alam | Kampar | 193 | 🟡 Sin validar |
+| 2 | Montaña · Summit finish | Taiping | Gunung Jerai | 146 | 🟡 Sin validar |
+| 3 | Media montaña · Hills | Sungai Petani | Kuala Kangsar | 190 | 🟡 Sin validar |
+| 4 | Montaña · Summit finish | Tambun | Cameron Highlands | 140 | 🟡 Sin validar |
+| 5 | Montaña · Summit finish | Tapah | Genting Highlands | 126 | 🟡 Sin validar |
+| 6 | Media montaña · Hills | Pandan Indah | Rembau | 121 | 🟡 Sin validar |
+| 7 | Llana · Flat | Melaka | Batu Pahat | 159 | 🟡 Sin validar |
+| 8 | Llana · Flat | Muar | Putrajaya | 184 | 🟡 Sin validar |
 
-### United States Road Championship (US)
+### Race Chauny `race-chauny`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **1** · FR · día 270 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 210 | 🔴 Inventado |
 
-### Uzbekistan Road Championship (UZ)
+### Race Emilia `race-emilia`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **Pro** · IT · día 276 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-### Uzbekistan U23 Road Championship (UZ)
+### Race Münster `race-munster`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **Pro** · DE · día 276 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 210 | 🔴 Inventado |
 
-### Venezuela Road Championship (VE)
+### Race Cholet `race-cholet`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **1** · FR · día 276 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 210 | 🔴 Inventado |
 
-### Vietnam Road Championship (VN)
+### Race Continental Championship `race-euro-champs`
 
-CON · .NC · un-dia · 1 etapa · día 179
+Clase **1** · FR · día 277 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-### Iran Road Championship (IR)
+### Race Agostoni `race-agostoni`
 
-CON · .NC · un-dia · 1 etapa · día 181
+Clase **1** · IT · día 277 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-### Iran U23 Road Championship (IR)
+### Race Vendée `race-vendee`
 
-CON · .NC · un-dia · 1 etapa · día 181
+Clase **1** · FR · día 277 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 210 | 🔴 Inventado |
 
-### Mongolia ITT Championship (MN)
+### Race Legnano `race-legnano`
 
-CON · .NC · un-dia · 1 etapa · día 182
+Clase **Pro** · IT · día 278 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-### Mongolia U23 ITT Championship (MN)
+### Race Varese `race-varese`
 
-CON · .NC · un-dia · 1 etapa · día 182
+Clase **Pro** · IT · día 279 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-### Jamaica ITT Championship (JM)
+### Race Binche `race-binche`
 
-CON · .NC · un-dia · 1 etapa · día 183
+Clase **1** · BE · día 279 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-### Jamaica U23 ITT Championship (JM)
+### Race San Daniele `race-san-daniele`
 
-CON · .NC · un-dia · 1 etapa · día 183
+Clase **2** · IT · día 279 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-### Jamaica U23 Road Championship (JM)
+### Race Piedmont `race-piedmont`
 
-CON · .NC · un-dia · 1 etapa · día 185
+Clase **Pro** · IT · día 281 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-### Mongolia Road Championship (MN)
+### Race Lombardy `race-lombardy`
 
-CON · .NC · un-dia · 1 etapa · día 185
+Clase **WT** · IT · día 283 · 1 etapa · ✅ Real 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Classic | — | — | 241 | ✅ Real |
 
-### Mongolia U23 Road Championship (MN)
+### Race Kyushu `race-kyushu`
 
-CON · .NC · un-dia · 1 etapa · día 185
+Clase **1** · JP · día 283 · 3 etapas · 🔴 Inventado 3
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 180 | 🔴 Inventado |
+| 2 | Media montaña · Hills | — | — | 190 | 🔴 Inventado |
+| 3 | Media montaña · Uphill finish | — | — | 152 | 🔴 Inventado |
 
-### Jamaica Road Championship (JM)
+### Race Tours `race-tours`
 
-CON · .NC · un-dia · 1 etapa · día 186
+Clase **Pro** · FR · día 284 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Cobbles | — | — | 210 | 🔴 Inventado |
 
-### Kyrgyzstan ITT Championship (KG)
+### Race Oropa `race-oropa`
 
-CON · .NC · un-dia · 1 etapa · día 232
+Clase **1** · IT · día 284 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Montaña · Summit finish | — | — | 210 | 🔴 Inventado |
 
-### Kyrgyzstan U23 ITT Championship (KG)
+### Race Guangxi `race-guangxi`
 
-CON · .NC · un-dia · 1 etapa · día 232
+Clase **WT** · CN · día 286 · 6 etapas · 🟡 Sin validar 6
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | Fangchenggang | Fangchenggang | 149 | 🟡 Sin validar |
+| 2 | Media montaña · Hills | Chongzuo | Jingxi | 177 | 🟡 Sin validar |
+| 3 | Media montaña · Hills | Jingxi | Bama | 214 | 🟡 Sin validar |
+| 4 | Media montaña · Hills | Bama | Jinchengjiang | 177 | 🟡 Sin validar |
+| 5 | Montaña · Summit finish | Yizhou | Nongla | 166 | 🟡 Sin validar |
+| 6 | Llana · Flat | Nanning | Nanning | 134 | 🟡 Sin validar |
 
-### Kyrgyzstan Road Championship (KG)
+### Race Holland `race-holland`
 
-CON · .NC · un-dia · 1 etapa · día 235
+Clase **1** · NL · día 286 · 6 etapas · 🔴 Inventado 6
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 170 | 🔴 Inventado |
+| 2 | Media montaña · Hills | — | — | 170 | 🔴 Inventado |
+| 3 | Media montaña · Hills | — | — | 169 | 🔴 Inventado |
+| 4 | Media montaña · Uphill finish | — | — | 156 | 🔴 Inventado |
+| 5 | Contrarreloj · ITT | — | — | 16 | 🔴 Inventado |
+| 6 | Llana · Flat | — | — | 142 | 🔴 Inventado |
 
-### Kyrgyzstan U23 Road Championship (KG)
+### Race Veneto `race-veneto`
 
-CON · .NC · un-dia · 1 etapa · día 235
+Clase **Pro** · IT · día 287 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-### Malaysia ITT Championship (MY)
+### Race Japan `race-japan`
 
-CON · .NC · un-dia · 1 etapa · día 253
+Clase **Pro** · JP · día 291 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  38 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Media montaña · Hills | — | — | 210 | 🔴 Inventado |
 
-### Malaysia U23 ITT Championship (MY)
+### Race Veneto Classic `race-veneto-classic`
 
-CON · .NC · un-dia · 1 etapa · día 253
+Clase **Pro** · IT · día 291 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo        | Salida | Meta |  km | Recorrido |
-| --- | ----------- | ------ | ---- | --: | --------- |
-| 1   | ITT (crono) | —      | —    |  30 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Clásica · Cobbles | — | — | 195 | 🔴 Inventado |
 
-### Malaysia Road Championship (MY)
+### Race Chrono `race-chrono`
 
-CON · .NC · un-dia · 1 etapa · día 256
+Clase **1** · FR · día 291 · 1 etapa · 🔴 Inventado 1
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 220 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Contrarreloj · ITT | — | — | 45 | 🔴 Inventado |
 
-### Malaysia U23 Road Championship (MY)
+### Race Faso `race-faso`
 
-CON · .NC · un-dia · 1 etapa · día 256
+Clase **2** · BF · día 303 · 5 etapas · 🔴 Inventado 5
 
-| #   | Tipo    | Salida | Meta |  km | Recorrido |
-| --- | ------- | ------ | ---- | --: | --------- |
-| 1   | Classic | —      | —    | 180 | Inventado |
+| # | tipo | origen | destino | km | procedencia |
+|---:|---|---|---|---:|---|
+| 1 | Llana · Flat | — | — | 171 | 🔴 Inventado |
+| 2 | Media montaña · Hills | — | — | 190 | 🔴 Inventado |
+| 3 | Media montaña · Uphill finish | — | — | 161 | 🔴 Inventado |
+| 4 | Contrarreloj · ITT | — | — | 18 | 🔴 Inventado |
+| 5 | Llana · Flat | — | — | 154 | 🔴 Inventado |
+

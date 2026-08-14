@@ -1,248 +1,169 @@
 #!/usr/bin/env node
 /**
- * INVENTARIO DE RECORRIDOS: qué carrera y qué etapa del calendario corre sobre un trazado REAL y cuál
- * sobre uno inventado.
+ * INVENTARIO DE RECORRIDOS: todas las carreras y todas sus etapas, con su PROCEDENCIA.
  *
- * El motor mezcla tres orígenes distintos y desde fuera no se distinguen, así que una etapa puede
- * parecer fiel y no serlo. Este inventario los separa y los cuenta, para poder decidir por dónde
- * seguir cargando recorridos de verdad y para no volver a pelearse con un número a ojo:
+ * Lo pidió el dueño así: «un documento con el listado de todas las carreras y etapas; para cada una
+ * pon clase, tipo de etapa, origen, destino, número de km, y si está ya correcta con la realidad o
+ * está inventada o en teoría bien pero sin validar».
  *
- *   REAL       la etapa tiene RASGOS reales autorizados en `STAGE_FEATURES` (o `CLASSIC_FEATURES`):
- *              puertos, sectores de adoquín y metas volantes en SU kilómetro, con su fuente anotada
- *              en `docs/fuentes-recorridos.md`. La altimetría es fiel.
+ * Las tres procedencias son reales y distintas, y la diferencia importa para saber dónde compensa
+ * buscar recorridos:
  *
- *   EDICIÓN    la carrera viene de una edición verificada (`RACE_EDITIONS`): salida, meta, kilómetros
- *              y terreno de cada etapa son los de verdad, pero el RELIEVE se genera por terreno. En
- *              teoría bien y sin validar: la etapa dura lo que debe y va de donde va, pero sus
- *              puertos no son los suyos.
+ *  - **Real** — la etapa tiene RASGOS AUTORIZADOS en `STAGE_FEATURES`: los puertos y los sectores de
+ *    pavé están puestos a mano desde una fuente citada (docs/fuentes-recorridos.md). Es lo único que
+ *    se puede llamar fiel.
+ *  - **Sin validar** — la etapa viene de una EDICIÓN REAL (`RACE_EDITIONS`): el origen, el destino y
+ *    los kilómetros son los de verdad, pero el relieve lo genera el motor a partir del terreno
+ *    declarado. La silueta es plausible, no es la de la carretera.
+ *  - **Inventado** — no hay edición: el recorrido entero sale del generador (`stageMix` + `profileGen`).
  *
- *   INVENTADO  ni edición ni rasgos: la composición de etapas la genera `stageMix` y el relieve
- *              `profileGen`. Verosímil, no real. Solo las localidades de salida y meta salen de
- *              `RACE_ROUTES`, que sí son geografía de verdad.
+ * Genera `docs/inventario-recorridos.md`. Lee del `dist` compilado, como el resto del banco.
  *
- * Uso:
- *   node scripts/inventario-recorridos.mjs            → resumen por nivel y clase, en el terminal
- *   node scripts/inventario-recorridos.mjs --doc      → el documento entero (docs/inventario-recorridos.md)
- *
- * Lee del `dist` ya compilado, como el resto de herramientas de banco (`pnpm sim`, `medir-defectos`).
+ *   pnpm --filter @cyclingstar/engine build
+ *   node scripts/inventario-recorridos.mjs
  */
+import { writeFileSync } from 'node:fs'
 import { SEASON_CALENDAR } from '../packages/engine/dist/routes/calendar.js'
 import { RACE_EDITIONS } from '../packages/engine/dist/routes/editions.js'
-import { RACE_CLASS_INFO } from '../packages/engine/dist/routes/uci.js'
-import { stageEndpoints } from '../packages/engine/dist/routes/raceRoutes.js'
 import { STAGE_FEATURES } from '../packages/engine/dist/routes/stageFeatures.js'
+import { stageLengthKm } from '../packages/engine/dist/stage/sample.js'
 
-const KM = (segments) => Math.round(segments.reduce((a, s) => a + s.km, 0))
-
-/** Los tres orígenes posibles de una etapa, del más fiel al menos. */
-const REAL = 'real'
-const EDICION = 'edicion'
-const INVENTADO = 'inventado'
-
-const ORIGEN_LABEL = {
-  [REAL]: 'Real',
-  [EDICION]: 'Sin validar',
-  [INVENTADO]: 'Inventado',
+/** Cómo se llama cada tipo de etapa del motor en el documento. */
+const KIND = {
+  llana: 'Llana',
+  media: 'Media montaña',
+  reina: 'Montaña',
+  cri: 'Contrarreloj',
+  clasica: 'Clásica',
 }
 
-function origenDe(raceId, stageIndex) {
-  if (STAGE_FEATURES[raceId]?.[stageIndex - 1]) return REAL
-  if (RACE_EDITIONS[raceId]) return EDICION
-  return INVENTADO
+/** Procedencia de una etapa: la pregunta que el documento viene a responder. */
+function provenance(race, index) {
+  const oneDay = race.stages.length === 1
+  if (STAGE_FEATURES[`${race.id}:${index}`] || (oneDay && STAGE_FEATURES[race.id])) return 'Real'
+  return RACE_EDITIONS[race.id] ? 'Sin validar' : 'Inventado'
 }
 
-/** Una fila por etapa, que es la unidad de la que se habla. */
-function filas() {
-  const out = []
-  for (const race of SEASON_CALENDAR) {
-    for (const stage of race.stages) {
-      const ends = stageEndpoints(race.id, stage.index)
-      out.push({
-        raceId: race.id,
-        race: race.name,
-        level: race.level,
-        raceClass: race.raceClass,
-        country: race.country ?? '',
-        format: race.format,
-        startDay: race.startDay,
-        stages: race.stages.length,
-        index: stage.index,
-        label: stage.label,
-        kind: stage.kind,
-        timeTrial: stage.timeTrial === true,
-        from: ends?.from ?? '',
-        to: ends?.to ?? '',
-        km: KM(stage.profile.segments),
-        origen: origenDe(race.id, stage.index),
-      })
+const MARK = { Real: '✅ Real', 'Sin validar': '🟡 Sin validar', Inventado: '🔴 Inventado' }
+
+const rows = []
+for (const race of SEASON_CALENDAR) {
+  const edition = RACE_EDITIONS[race.id]
+  for (const [i, stage] of race.stages.entries()) {
+    const index = i + 1
+    const ed = edition?.stages?.[i]
+    rows.push({
+      raceId: race.id,
+      raceName: race.name,
+      raceClass: race.raceClass,
+      country: race.country ?? '',
+      startDay: race.startDay,
+      index,
+      kind: KIND[stage.kind] ?? stage.kind,
+      label: stage.label ?? '',
+      // Origen y destino solo existen si la etapa viene de una edición real. En una inventada no hay
+      // ciudades que poner y decir una sería mentir: se deja en blanco a propósito.
+      from: ed?.from ?? '',
+      to: ed?.to ?? '',
+      km: Math.round(ed?.km ?? stageLengthKm(stage.profile)),
+      prov: provenance(race, index),
+    })
+  }
+}
+
+const total = rows.length
+const count = (p) => rows.filter((r) => r.prov === p).length
+const pct = (n) => `${((100 * n) / total).toFixed(1)} %`
+
+// Recuento por clase, que es lo que dice dónde compensa trabajar.
+const classes = [...new Set(rows.map((r) => r.raceClass))]
+const byClass = classes
+  .map((c) => {
+    const rs = rows.filter((r) => r.raceClass === c)
+    return {
+      c,
+      total: rs.length,
+      real: rs.filter((r) => r.prov === 'Real').length,
+      sin: rs.filter((r) => r.prov === 'Sin validar').length,
+      inv: rs.filter((r) => r.prov === 'Inventado').length,
     }
-  }
-  return out
+  })
+  .sort((a, b) => b.inv - a.inv)
+
+const out = []
+out.push('# Inventario de recorridos')
+out.push('')
+out.push(
+  'Todas las carreras del calendario y todas sus etapas, con su **procedencia**: si el recorrido es',
+  'fiel a la realidad, si viene de una edición real pero con el relieve generado, o si está inventado',
+  'de principio a fin.',
+)
+out.push('')
+out.push(
+  '> **Generado**, no escrito a mano: `node scripts/inventario-recorridos.mjs`. Si algo aquí no',
+)
+out.push('> cuadra con el juego, el que miente es el documento y se regenera.')
+out.push('')
+out.push('## Qué significa cada procedencia')
+out.push('')
+out.push(
+  '| | qué es | qué se puede fiar |',
+  '|---|---|---|',
+  '| ✅ **Real** | rasgos autorizados en `STAGE_FEATURES`, puestos a mano desde fuente citada (`docs/fuentes-recorridos.md`) | los puertos y el pavé están donde están de verdad |',
+  '| 🟡 **Sin validar** | viene de una edición real (`RACE_EDITIONS`): origen, destino y km son los de verdad | la distancia y las ciudades; **el relieve lo genera el motor** |',
+  '| 🔴 **Inventado** | no hay edición: recorrido entero del generador | nada: es plausible, no es real |',
+)
+out.push('')
+out.push('## El estado, en una tabla')
+out.push('')
+out.push(`**${total} etapas** en ${SEASON_CALENDAR.length} carreras.`)
+out.push('')
+out.push('| | etapas | % |')
+out.push('|---|---:|---:|')
+for (const p of ['Real', 'Sin validar', 'Inventado']) {
+  out.push(`| ${MARK[p]} | ${count(p)} | ${pct(count(p))} |`)
 }
+out.push('')
+out.push('### Por clase de carrera')
+out.push('')
+out.push('| clase | etapas | ✅ real | 🟡 sin validar | 🔴 inventado |')
+out.push('|---|---:|---:|---:|---:|')
+for (const b of byClass) {
+  out.push(`| ${b.c} | ${b.total} | ${b.real} | ${b.sin} | ${b.inv} |`)
+}
+out.push('')
+out.push('## Carrera por carrera')
+out.push('')
 
-function resumen(rows) {
-  const cuenta = (sel) => {
-    const s = rows.filter(sel)
-    const n = (o) => s.filter((r) => r.origen === o).length
-    return { total: s.length, real: n(REAL), edicion: n(EDICION), inventado: n(INVENTADO) }
-  }
-  const pct = (a, b) => (b === 0 ? '—' : `${Math.round((100 * a) / b)}%`)
-  const linea = (nombre, c) =>
-    `${nombre.padEnd(16)} ${String(c.total).padStart(5)}  ${String(c.real).padStart(5)} ${pct(c.real, c.total).padStart(5)}  ${String(c.edicion).padStart(5)} ${pct(c.edicion, c.total).padStart(5)}  ${String(c.inventado).padStart(5)} ${pct(c.inventado, c.total).padStart(5)}`
-
-  console.log('ETAPAS DEL CALENDARIO, por origen del recorrido\n')
-  console.log(
-    `${''.padEnd(16)} ${'total'.padStart(5)}  ${'real'.padStart(11)}  ${'sin val.'.padStart(11)}  ${'inventado'.padStart(11)}`,
-  )
-  for (const lvl of ['WT', 'PRS', 'CON'])
-    console.log(
-      linea(
-        lvl,
-        cuenta((r) => r.level === lvl),
-      ),
+let lastRace = null
+for (const r of rows) {
+  if (r.raceId !== lastRace) {
+    lastRace = r.raceId
+    const rs = rows.filter((x) => x.raceId === r.raceId)
+    const resumen = ['Real', 'Sin validar', 'Inventado']
+      .map((p) => [p, rs.filter((x) => x.prov === p).length])
+      .filter(([, n]) => n > 0)
+      .map(([p, n]) => `${MARK[p]} ${n}`)
+      .join(' · ')
+    out.push('')
+    out.push(
+      `### ${r.raceName} \`${r.raceId}\``,
+      '',
+      `Clase **${r.raceClass}**${r.country ? ` · ${r.country.toUpperCase()}` : ''} · día ${r.startDay} · ${rs.length} etapa${rs.length === 1 ? '' : 's'} · ${resumen}`,
+      '',
+      '| # | tipo | origen | destino | km | procedencia |',
+      '|---:|---|---|---|---:|---|',
     )
-  console.log(
-    linea(
-      'TOTAL',
-      cuenta(() => true),
-    ),
+  }
+  const kind = r.label ? `${r.kind} · ${r.label}` : r.kind
+  out.push(
+    `| ${r.index} | ${kind} | ${r.from || '—'} | ${r.to || '—'} | ${r.km} | ${MARK[r.prov]} |`,
   )
-
-  console.log('\nCARRERAS (no etapas) enteramente inventadas, por nivel y clase:')
-  const porCarrera = new Map()
-  for (const r of filas()) {
-    const cur = porCarrera.get(r.raceId) ?? { ...r, origenes: new Set() }
-    cur.origenes.add(r.origen)
-    porCarrera.set(r.raceId, cur)
-  }
-  const tally = {}
-  for (const c of porCarrera.values()) {
-    if (!c.origenes.has(INVENTADO)) continue
-    const k = `${c.level} ${c.raceClass}`
-    tally[k] = (tally[k] ?? 0) + 1
-  }
-  for (const [k, v] of Object.entries(tally).sort((a, b) => b[1] - a[1]))
-    console.log(`  ${k.padEnd(10)} ${v}`)
 }
+out.push('')
 
-/** Bloque de carreras de un nivel, en Markdown. */
-function bloque(rows, titulo, intro) {
-  if (rows.length === 0) return []
-  const porCarrera = new Map()
-  for (const r of rows) {
-    if (!porCarrera.has(r.raceId)) porCarrera.set(r.raceId, [])
-    porCarrera.get(r.raceId).push(r)
-  }
-  const carreras = [...porCarrera.values()].sort(
-    (a, b) => a[0].startDay - b[0].startDay || a[0].race.localeCompare(b[0].race),
-  )
-  const lines = [`\n## ${titulo}\n`, intro, '']
-  for (const etapas of carreras) {
-    const c = etapas[0]
-    const info = RACE_CLASS_INFO[c.raceClass]
-    const clase = info ? `${c.level} · ${info.label ?? c.raceClass}` : `${c.level} · ${c.raceClass}`
-    const dia = `día ${c.startDay}`
-    lines.push(`\n### ${c.race}${c.country ? ` (${c.country})` : ''}`)
-    lines.push(
-      `${clase} · ${c.format} · ${etapas.length} ${etapas.length === 1 ? 'etapa' : 'etapas'} · ${dia}\n`,
-    )
-    lines.push('| # | Tipo | Salida | Meta | km | Recorrido |')
-    lines.push('|---|---|---|---|---:|---|')
-    for (const e of etapas) {
-      const tipo = e.timeTrial ? `${e.label} (crono)` : e.label
-      lines.push(
-        `| ${e.index} | ${tipo} | ${e.from || '—'} | ${e.to || '—'} | ${e.km} | ${ORIGEN_LABEL[e.origen]} |`,
-      )
-    }
-  }
-  return lines
+writeFileSync('docs/inventario-recorridos.md', `${out.join('\n')}\n`)
+console.log(`docs/inventario-recorridos.md — ${total} etapas en ${SEASON_CALENDAR.length} carreras`)
+for (const p of ['Real', 'Sin validar', 'Inventado']) {
+  console.log(`  ${p.padEnd(12)} ${String(count(p)).padStart(5)}  ${pct(count(p))}`)
 }
-
-/** El documento entero: cabecera con el recuento y la leyenda, y después nivel por nivel. */
-function documento() {
-  const rows = filas()
-  const cuenta = (sel) => {
-    const s = rows.filter(sel)
-    const n = (o) => s.filter((r) => r.origen === o).length
-    return { total: s.length, real: n(REAL), edicion: n(EDICION), inventado: n(INVENTADO) }
-  }
-  const pct = (a, b) => (b === 0 ? '—' : `${Math.round((100 * a) / b)} %`)
-  const fila = (nombre, c) =>
-    `| ${nombre} | ${c.total} | ${c.real} (${pct(c.real, c.total)}) | ${c.edicion} (${pct(c.edicion, c.total)}) | ${c.inventado} (${pct(c.inventado, c.total)}) |`
-
-  const out = [
-    '# Inventario de recorridos',
-    '',
-    'Qué etapa del calendario corre sobre un trazado REAL y cuál sobre uno inventado.',
-    '',
-    '> Este documento LO GENERA `scripts/inventario-recorridos.mjs` desde el propio calendario del',
-    '> motor. No se edita a mano: se regenera (`node scripts/inventario-recorridos.mjs --doc >',
-    '> docs/inventario-recorridos.md`) cuando se carga un recorrido nuevo, y así no envejece.',
-    '',
-    '## Las tres procedencias',
-    '',
-    '| | Qué es real | Qué no |',
-    '|---|---|---|',
-    '| **Real** | Puertos, sectores de adoquín y metas volantes **en su kilómetro**, con la fuente anotada en `docs/fuentes-recorridos.md`. La altimetría es fiel. | — |',
-    '| **Sin validar** | Salida, meta, kilómetros y terreno vienen de una edición verificada (`RACE_EDITIONS`). | El RELIEVE se genera por terreno: la etapa dura lo que debe y va de donde va, pero **sus puertos no son los suyos**. |',
-    '| **Inventado** | Solo las localidades de salida y meta (`RACE_ROUTES`), que sí son geografía de verdad. | Todo lo demás: la composición de etapas la genera `stageMix` y el relieve `profileGen`. Verosímil, no real. |',
-    '',
-    '## El recuento',
-    '',
-    '| Nivel | Etapas | Real | Sin validar | Inventado |',
-    '|---|---:|---:|---:|---:|',
-    fila(
-      '**WorldTour**',
-      cuenta((r) => r.level === 'WT'),
-    ),
-    fila(
-      '**ProSeries**',
-      cuenta((r) => r.level === 'PRS'),
-    ),
-    fila(
-      '**Continental**',
-      cuenta((r) => r.level === 'CON'),
-    ),
-    fila(
-      '**TOTAL**',
-      cuenta(() => true),
-    ),
-    '',
-    'De las continentales inventadas, **' +
-      new Set(rows.filter((r) => r.raceClass === 'NC').map((r) => r.raceId)).size +
-      '** son campeonatos nacionales: una prueba por país y categoría, sin recorrido publicado que cargar.',
-  ]
-  out.push(
-    ...bloque(
-      rows.filter((r) => r.level === 'WT'),
-      'WorldTour',
-      'El circuito de arriba. Es donde se ha cargado casi todo lo real.',
-    ),
-  )
-  out.push(
-    ...bloque(
-      rows.filter((r) => r.level === 'PRS'),
-      'ProSeries',
-      'El segundo escalón. La mayoría corre sobre ediciones verificadas SIN relieve real: es el frente de trabajo con más recorrido por delante.',
-    ),
-  )
-  out.push(
-    ...bloque(
-      rows.filter((r) => r.level === 'CON' && r.raceClass !== 'NC'),
-      'Continental',
-      'Carreras .1 y .2 de todos los continentes.',
-    ),
-  )
-  out.push(
-    ...bloque(
-      rows.filter((r) => r.raceClass === 'NC'),
-      'Campeonatos nacionales',
-      'Una prueba en línea y una contrarreloj por país y categoría. Recorrido generado: no hay trazado publicado que cargar.',
-    ),
-  )
-  console.log(out.join('\n'))
-}
-
-const args = process.argv.slice(2)
-if (args[0] === '--doc') documento()
-else resumen(filas())

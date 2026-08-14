@@ -14,3 +14,8 @@ SPEC.md
 MVP.md
 Claude.md
 CLAUDE.md
+
+# Inventario de recorridos: lo ESCRIBE `scripts/inventario-recorridos.mjs`, no una persona. Si
+# prettier lo reformatea, la siguiente regeneración lo deshace y el CI se cae en bucle. Mismo
+# criterio que las migraciones de drizzle: lo generado manda sobre el formateador.
+docs/inventario-recorridos.md
