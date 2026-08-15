@@ -10,7 +10,7 @@ import {
 } from '../api/results'
 import type { RaceLeaders } from '@cyclingstar/shared'
 import { Flag } from '../components/Flag'
-import { RiderJersey, TeamBib } from '../components/Jersey'
+import { RiderJersey } from '../components/Jersey'
 import { RiderName } from '../components/RiderName'
 import { ShowAllButton, TOP_ROWS } from '../components/ShowAll'
 import { RaceRadioPanel } from '../components/RaceRadioPanel'
@@ -98,10 +98,7 @@ export function ResultTable({
               <td className="py-1 text-slate-700">
                 <RiderJersey leaders={leaders} riderId={r.riderId} />
                 <RiderName riderId={r.riderId} name={r.name} isBot={r.isBot} />
-                <span className="ml-2 text-xs text-slate-400">
-                  {raceTeamLabel(r.teamName)}
-                  <TeamBib leaders={leaders} teamId={r.teamId} />
-                </span>
+                <span className="ml-2 text-xs text-slate-400">{raceTeamLabel(r.teamName)}</span>
               </td>
               <td className="py-1 text-right tabular-nums text-slate-500">
                 {r.puesto === 1 ? formatTime(r.tiempoS) : `+${formatTime(r.tiempoS - winnerTime)}`}
@@ -150,10 +147,7 @@ export function GcTable({
               <td className={`py-1 ${r.dnf ? 'text-slate-400 line-through' : 'text-slate-700'}`}>
                 <RiderJersey leaders={leaders} riderId={r.riderId} />
                 <RiderName riderId={r.riderId} name={r.name} isBot={r.isBot} />
-                <span className="ml-2 text-xs text-slate-400">
-                  {raceTeamLabel(r.teamName)}
-                  <TeamBib leaders={leaders} teamId={r.teamId} />
-                </span>
+                <span className="ml-2 text-xs text-slate-400">{raceTeamLabel(r.teamName)}</span>
               </td>
               <td className="py-1 text-right tabular-nums text-slate-500">
                 {r.dnf ? (
@@ -280,13 +274,13 @@ function StageClassifications({
               {teamStage.length > 0 && (
                 <div>
                   <h3 className={head}>Stage</h3>
-                  <TeamClassTable rows={teamStage} leaders={leaders} />
+                  <TeamClassTable rows={teamStage} />
                 </div>
               )}
               {teamGc.length > 0 && (
                 <div>
                   <h3 className={head}>Overall after this stage</h3>
-                  <TeamClassTable rows={teamGc} leaders={leaders} />
+                  <TeamClassTable rows={teamGc} />
                 </div>
               )}
               <TeamClassNote />

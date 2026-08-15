@@ -83,10 +83,10 @@ describe('la general de la etapa', () => {
     expect(wearers(markup, 'Mountains leader')).toEqual(['Ces'])
   })
 
-  it('marca al equipo líder junto al nombre del equipo, y solo a ese', () => {
+  it('el equipo líder ya NO se marca: el nombre del equipo va solo', () => {
     const markup = html(<GcTable rows={[gcRow('a', 'Ana'), gcRow('b', 'Bea')]} leaders={leaders} />)
-    expect(count(markup, 'Leading team')).toBe(1)
-    expect(markup).toContain('Equipo a<svg')
+    expect(count(markup, 'Leading team')).toBe(0)
+    expect(markup).not.toContain('Equipo a<svg')
   })
 
   it('UN CORREDOR QUE ABANDONÓ NO SALE DE AMARILLO, aunque encabece la tabla', () => {

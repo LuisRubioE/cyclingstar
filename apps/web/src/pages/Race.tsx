@@ -18,7 +18,7 @@ import {
 import { fetchCalendarStage } from '../api/results'
 import type { RaceLeaders } from '@cyclingstar/shared'
 import { Flag } from '../components/Flag'
-import { Jersey, RiderJersey, TeamBib } from '../components/Jersey'
+import { Jersey, RiderJersey } from '../components/Jersey'
 import { RiderName } from '../components/RiderName'
 import { ShowAllButton, TOP_ROWS } from '../components/ShowAll'
 import { StageStory } from '../components/StageStory'
@@ -179,10 +179,7 @@ function GcTable({ rows, leaders }: { rows: GcRow[]; leaders: RaceLeaders | unde
               <td className={`py-1 ${r.dnf ? 'text-slate-400 line-through' : 'text-slate-700'}`}>
                 <RiderJersey leaders={leaders} riderId={r.riderId} />
                 <RiderName riderId={r.riderId} name={r.name} isBot={r.isBot} />
-                <span className="ml-2 text-xs text-slate-400">
-                  {raceTeamLabel(r.teamName)}
-                  <TeamBib leaders={leaders} teamId={r.teamId} />
-                </span>
+                <span className="ml-2 text-xs text-slate-400">{raceTeamLabel(r.teamName)}</span>
               </td>
               <td className="py-1 text-right tabular-nums text-slate-500">
                 {r.dnf ? (
@@ -439,7 +436,7 @@ function ClassificationsTab({ data }: { data: RaceView }) {
         {active === 'teams' &&
           (data.teamGc.length > 0 ? (
             <>
-              <TeamClassTable rows={data.teamGc} leaders={data.leaders} />
+              <TeamClassTable rows={data.teamGc} />
               <TeamClassNote />
             </>
           ) : (

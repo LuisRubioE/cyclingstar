@@ -1,10 +1,4 @@
-import {
-  JERSEY_LABEL,
-  type JerseyKind,
-  LEADING_TEAM_LABEL,
-  type RaceLeaders,
-  jerseyOf,
-} from '@cyclingstar/shared'
+import { JERSEY_LABEL, type JerseyKind, type RaceLeaders, jerseyOf } from '@cyclingstar/shared'
 import { jerseyStyle } from './visuals'
 
 /**
@@ -123,64 +117,6 @@ export function LeaderJersey({
 }
 
 /**
- * EL EQUIPO LÍDER NO LLEVA MAILLOT: lleva DORSAL AMARILLO.
- *
- * En el ciclismo real la clasificación por equipos no reparte camiseta —el Tour pone el dorsal
- * amarillo a los corredores del equipo líder—, así que dibujar un cuarto maillot sería mentira
- * visual, y encima chocaría con el maillot procedural de equipo de aquí arriba, que es su equipación
- * de verdad. El icono honesto es el dorsal.
- *
- * Por eso tampoco entra en la cadena de prioridad de los tres maillots: un corredor puede ir de
- * amarillo Y ser del equipo líder a la vez, y de hecho es lo normal.
- *
- * Accesibilidad, igual que los maillots: la forma (un dorsal, que no se parece a una camiseta)
- * distingue sin depender del color, y el `aria-label` y el `<title>` dicen «Leading team».
- */
-export function LeadingTeamBib({
-  size = 15,
-  className = '',
-}: {
-  size?: number
-  className?: string
-}) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 48 48"
-      role="img"
-      aria-label={LEADING_TEAM_LABEL}
-      className={`inline-block shrink-0 align-text-bottom ${className}`}
-    >
-      <title>{LEADING_TEAM_LABEL}</title>
-      {/* La cartulina del dorsal, con sus dos imperdibles arriba. */}
-      <rect
-        x="8"
-        y="11"
-        width="32"
-        height="26"
-        rx="3"
-        fill="#facc15"
-        stroke="rgba(0,0,0,0.35)"
-        strokeWidth="1.5"
-      />
-      {/*
-        EL HUECO DEL NÚMERO, no los dígitos.
-
-        Aquí había TRES BARRAS VERTICALES que insinuaban las cifras, con la idea correcta de que a
-        este tamaño un número de verdad sería una mancha. Pero tres barras verticales de 15 px no se
-        leen como un número: se leen como LETRAS. El dueño las vio en la clasificación por equipos y
-        preguntó qué significaba «Ill» —y en su móvil eso es exactamente lo que ponía—.
-
-        Una banda horizontal no puede confundirse con texto y sigue diciendo «esto es un dorsal»:
-        es el campo donde va la cifra, que es lo que se distingue de lejos en una cartulina real.
-      */}
-      <rect x="14" y="21" width="20" height="7" rx="1.5" fill="#1f2937" />
-    </svg>
-  )
-}
-
-/**
  * El maillot que lleva ESTE corredor, si lleva alguno. Es el atajo que usan todas las tablas: se
  * les pasa el juego de líderes de la clasificación que están enseñando y cada fila se marca sola.
  * Sin líderes (etapa 1, carrera de un día, carrera sin correr) no pinta nada.
@@ -196,18 +132,4 @@ export function RiderJersey({
 }) {
   const kind = jerseyOf(leaders, riderId)
   return kind ? <LeaderJersey kind={kind} className={className} /> : null
-}
-
-/** El dorsal de líder junto al nombre de un equipo, si es el que va primero por equipos. */
-export function TeamBib({
-  leaders,
-  teamId,
-  className = 'ml-1',
-}: {
-  leaders: RaceLeaders | undefined
-  teamId: string | null | undefined
-  className?: string
-}) {
-  if (!leaders?.team || !teamId || leaders.team !== teamId) return null
-  return <LeadingTeamBib className={className} />
 }

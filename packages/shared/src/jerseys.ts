@@ -135,6 +135,3 @@ export const JERSEY_LABEL: Record<JerseyKind, string> = {
   points: 'Points leader',
   kom: 'Mountains leader',
 }
-
-/** Rótulo del dorsal de líder por equipos. */
-export const LEADING_TEAM_LABEL = 'Leading team'

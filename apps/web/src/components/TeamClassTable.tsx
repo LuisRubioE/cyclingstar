@@ -1,9 +1,7 @@
-import type { RaceLeaders } from '@cyclingstar/shared'
 import { useState } from 'react'
 import type { TeamClassEntry } from '../api/race'
 import { formatTime } from '../domain/format'
 import { Flag } from './Flag'
-import { TeamBib } from './Jersey'
 import { ShowAllButton, TOP_ROWS } from './ShowAll'
 import { TeamLink } from './TeamLink'
 
@@ -16,20 +14,8 @@ import { TeamLink } from './TeamLink'
  *
  * Los equipos FUERA de clasificación —los que se quedaron sin tres corredores en alguna etapa— van
  * al final, atenuados y sin puesto, igual que los DNF en la general individual.
- *
- * EL DORSAL DE LÍDER marca al equipo que va primero en la ACUMULADA, y se pinta igual en las dos
- * vistas. Ojo con la trampa: en la tabla de UNA ETAPA la fila 1 es la que mejor lo hizo ESE DÍA, que
- * no tiene por qué ser el líder de la carrera; el que lleva los dorsales al día siguiente es el
- * primero de la acumulada, y ese es el que se marca aquí también. Por eso el marcador no puede
- * deducirse de la posición en la tabla y viene dado.
  */
-export function TeamClassTable({
-  rows,
-  leaders,
-}: {
-  rows: readonly TeamClassEntry[]
-  leaders: RaceLeaders | undefined
-}) {
+export function TeamClassTable({ rows }: { rows: readonly TeamClassEntry[] }) {
   const [showAll, setShowAll] = useState(false)
   const leader = rows.find((r) => !r.out)?.tiempoS ?? 0
   const visible = showAll ? rows : rows.slice(0, TOP_ROWS)
@@ -49,7 +35,6 @@ export function TeamClassTable({
               <td className="w-6 py-1">{r.country && <Flag code={r.country} size={16} />}</td>
               <td className={`py-1 ${r.out ? 'text-slate-400' : 'text-slate-700'}`}>
                 <TeamLink teamId={r.teamId} name={r.teamName} />
-                <TeamBib leaders={leaders} teamId={r.teamId} />
               </td>
               <td className="py-1 text-right tabular-nums text-slate-500">
                 {r.out ? (

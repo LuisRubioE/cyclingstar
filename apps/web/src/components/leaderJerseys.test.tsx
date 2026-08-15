@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it } from 'vitest'
 import type { ReactElement } from 'react'
-import { LeaderJersey, LeadingTeamBib, RiderJersey, TeamBib } from './Jersey'
+import { LeaderJersey, RiderJersey } from './Jersey'
 import { TeamClassTable } from './TeamClassTable'
 
 /**
@@ -29,7 +29,6 @@ describe('el maillot de líder que se pinta', () => {
     expect(html(<LeaderJersey kind="gc" />)).toContain('aria-label="Race leader"')
     expect(html(<LeaderJersey kind="points" />)).toContain('aria-label="Points leader"')
     expect(html(<LeaderJersey kind="kom" />)).toContain('aria-label="Mountains leader"')
-    expect(html(<LeadingTeamBib />)).toContain('aria-label="Leading team"')
   })
 
   it('y un `<title>` con el mismo texto, que el navegador enseña al pasar el ratón', () => {
@@ -44,16 +43,15 @@ describe('el maillot de líder que se pinta', () => {
     expect(html(<LeaderJersey kind="kom" />)).toContain('<circle')
   })
 
-  it('los tres maillots y el dorsal son cuatro dibujos distintos', () => {
+  it('los tres maillots son tres dibujos distintos', () => {
     const dibujos = new Set(
       [
         html(<LeaderJersey kind="gc" />),
         html(<LeaderJersey kind="points" />),
         html(<LeaderJersey kind="kom" />),
-        html(<LeadingTeamBib />),
       ].map((m) => m.replace(/aria-label="[^"]*"|<title>[^<]*<\/title>/g, '')),
     )
-    expect(dibujos.size).toBe(4)
+    expect(dibujos.size).toBe(3)
   })
 
   it('cada corredor lleva SOLO el maillot que le toca, y el resto no lleva ninguno', () => {
@@ -65,13 +63,6 @@ describe('el maillot de líder que se pinta', () => {
 
   it('sin maillots —etapa 1, carrera de un día— no se pinta nada', () => {
     expect(html(<RiderJersey leaders={undefined} riderId="a" />)).toBe('')
-    expect(html(<TeamBib leaders={undefined} teamId="t1" />)).toBe('')
-  })
-
-  it('el dorsal de líder solo lo lleva el equipo líder', () => {
-    expect(html(<TeamBib leaders={leaders} teamId="t1" />)).toContain('Leading team')
-    expect(html(<TeamBib leaders={leaders} teamId="t2" />)).toBe('')
-    expect(html(<TeamBib leaders={leaders} teamId={null} />)).toBe('')
   })
 })
 
@@ -87,35 +78,12 @@ const team = (teamId: string, teamName: string, over: Partial<{ out: boolean }> 
 })
 
 describe('la clasificación por equipos', () => {
-  it('marca al líder de la ACUMULADA aunque no sea la primera fila de la tabla', () => {
-    // La trampa de la vista «de esta etapa»: la fila 1 es quien mejor lo hizo HOY, y los dorsales
-    // los lleva el primero de la acumulada. Aquí el líder (t1) va tercero en la etapa y aun así es
-    // el que sale marcado.
+  it('se pinta sin marcar a nadie: el equipo líder ya no lleva dorsal', () => {
     const markup = html(
-      <TeamClassTable
-        rows={[team('t9', 'Nueve'), team('t5', 'Cinco'), team('t1', 'Uno')]}
-        leaders={leaders}
-      />,
+      <TeamClassTable rows={[team('t9', 'Nueve'), team('t5', 'Cinco'), team('t1', 'Uno')]} />,
     )
-    expect(count(markup, 'Leading team')).toBe(1)
-    // El dorsal va pegado al nombre del equipo líder, no al de la primera fila.
-    expect(markup).toContain('>Uno</a><svg')
-    expect(markup).not.toContain('>Nueve</a><svg')
-  })
-
-  it('sin líderes (carrera de un día) la tabla se pinta igual, sin dorsales', () => {
-    const markup = html(<TeamClassTable rows={[team('t1', 'Uno')]} leaders={undefined} />)
     expect(markup).toContain('Uno')
     expect(count(markup, 'Leading team')).toBe(0)
-  })
-
-  it('un equipo fuera de clasificación no se lleva el dorsal por estar el primero', () => {
-    const markup = html(
-      <TeamClassTable
-        rows={[team('t1', 'Uno', { out: true })]}
-        leaders={{ ...leaders, team: null }}
-      />,
-    )
-    expect(count(markup, 'Leading team')).toBe(0)
+    expect(markup).not.toContain('</a><svg')
   })
 })
