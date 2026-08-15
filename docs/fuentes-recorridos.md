@@ -341,3 +341,45 @@ El procedimiento, para quien tenga que repetirlo:
    `sampleProfile()`.
 7. Medir antes y después con `node scripts/medir-carrera.mjs <raceId>` y anotar en `docs/balance.md`
    qué ha cambiado en la carrera. Cargar un recorrido no es rellenar una tabla: es cambiar la carrera.
+
+## Lo que le falta al WorldTour, y por qué no está
+
+El inventario deja el WorldTour en **139 etapas reales de 161, ninguna inventada** y **22 sin
+validar**. Esas 22 no son trabajo pendiente de hacer: son trabajo INTENTADO Y BLOQUEADO, y conviene
+dejar escrito dónde, para que el siguiente no repita la búsqueda entera.
+
+| carrera                | sin validar | qué falta                         |
+| ---------------------- | ----------- | --------------------------------- |
+| `race-poland`          | 7 de 7      | longitud y pendiente de las cimas |
+| `race-benelux`         | 5 de 5      | sin comprobar                     |
+| `race-guangxi`         | 5 de 6      | sin comprobar                     |
+| `race-bruges`          | 1 de 1      | sin comprobar                     |
+| `race-copenhagen`      | 1 de 1      | sin comprobar                     |
+| `race-brittany`        | 1 de 1      | sin comprobar                     |
+| `race-rhone-alpes` (3) | 1 de 8      | perfil de una crono de 28 km      |
+| `race-france` (21)     | 1 de 21     | km de cima de los bucles de París |
+
+**El Tour de Pologne, comprobado el 15/08/2026.** La edición es la 83ª, del 3 al 9 de agosto de 2026,
+y las siete etapas de `editions.ts` coinciden una a una con ella. Se miraron la web oficial
+(`tourdepologne.pl`, sus páginas de etapa), la Wikipedia inglesa y la polaca del año, y la guía de
+recorrido de Domestique. Todas publican lo mismo: **nombre de la cima, altitud, categoría oficial y a
+cuántos kilómetros de meta está** — y ninguna publica longitud ni pendiente. De las diez cimas
+distintas de la carrera, solo tres traen los tres números que exige la regla de arriba: Antoniów
+(1,4 km al 7,8 %), Karpacz (7 km al 6,1 %) y la Ściana Bukovina (2,5 km al 8 %, que se sube tres
+veces). ProCyclingStats, que sí los tendría, responde `403` a un cliente automático, y eso se
+respeta.
+
+Anotar solo esas tres dejaría la etapa reina con dos puertos de tres y la marcaría ✅ Real. Sería
+peor que no hacer nada: el perfil por terreno al menos no promete fidelidad, y este documento existe
+para que la marca verde signifique algo. Se queda en 🟡, que es la verdad.
+
+**La 21 del Tour, comprobada el mismo día.** `editions.ts` lleva el recorrido PREVISTO, Thoiry-París
+de 130 km. La etapa que se corrió de verdad se acortó a 89 km por seguridad ante el calor, saliendo
+ya desde dentro de París, y mantuvo los tres bucles del Sacré-Cœur. La Wikipedia francesa cuenta el
+cambio pero no publica tabla de cotas, así que del Montmartre hay nombre y no hay kilómetro de cima.
+
+**El camino que queda, si algún día se toma.** Las oficiales dan la POSICIÓN («a 6 km de meta»), que
+con la distancia de la etapa da el km de cima; una base de datos de puertos daría longitud y
+pendiente. Es cruzar dos fuentes, y el riesgo es real: una base de datos describe la subida por SU
+vertiente, que no tiene por qué ser la que sube la carrera. No se hace sin decidirlo antes a
+sabiendas, y sin dejar constancia de las dos fuentes por cada puerto.
