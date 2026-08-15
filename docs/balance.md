@@ -6496,3 +6496,51 @@ importa: **el rebelde que no aparece no genera línea**.
 - **Huellas selladas idénticas**: cambio de OBSERVACIÓN puro.
 - Sube `ENGINE_VERSION` porque cambia el contenido y la colocación de un evento, y `checkReplay()`
   compara versiones.
+
+## v32 — El que se queda colgado delante paga el viento igual que el de atrás (`engine_version` 31 → 32)
+
+### 1. Lo que se veía
+
+Reportado sobre Race Sardegna e2 —«qué pinche despropósito»—. La radio de carrera de esa etapa, 136
+km llanos, daba **27 cambios de composición** y una fuga que **crecía estando escapada**: 4 → 7 → 10
+→ 12 → 14. El detalle que lo delata: `contra 1`, un corredor **solo**, cruzando desde el pelotón un
+hueco de 1:30 mientras siete se relevaban delante.
+
+No era de esa etapa ni de esa semilla. Las cinco de Sardegna, con 119 corredores:
+
+| etapa | km  | cambios de composición | km con un hombre solo colgado |
+| ----- | --- | ---------------------- | ----------------------------- |
+| 1     | 190 | 28                     | 16                            |
+| 2     | 136 | 27                     | 30                            |
+| 3     | 168 | 24                     | 36                            |
+| 4     | 154 | 25                     | 46                            |
+| 5     | 177 | 36                     | **90**                        |
+
+### 2. La causa
+
+`simulate.ts`, al fallar un puente: `m.g.compromiso = m.restCommit`. A un hombre que se ha quedado
+**solo** se le devolvía el compromiso de **un grupo que colabora**. Y ese es justo el error que la
+v16 ya había corregido… pero solo en un lado de la carretera: `droppedCommit` reparte el viento entre
+`n` (a cada uno le toca dar la cara 1/n del tiempo) y lo cobra a precio de rebufo del terreno, de
+modo que el que se descuelga **por detrás** no puede sostener el ritmo de un pelotón. El que se queda
+colgado **por delante** tiene el mismo problema de física y no lo pagaba.
+
+El término del viento sale de `droppedCommit` a `relayCommit(block, size)`, y `droppedCommit` pasa a
+**llamarlo** en vez de calcularlo, para que los dos lados no puedan desincronizarse nunca. El puente
+fallido se marca `stranded` y se le recalcula el ritmo **cada bloque** —como al descolgado, y por la
+misma razón: cambian el terreno y el tamaño—, con `restCommit` de techo, así que la regla solo puede
+frenar a quien no se lo puede permitir, nunca acelerar a nadie.
+
+### 3. Verificación
+
+Medido sobre las mismas cinco etapas, mismo campo sembrado. Los kilómetros en tierra de nadie bajan
+donde el puente fallido era la causa —e5 **90 → 69**, e2 30 → 23, e1 16 → 15— y los ganadores no
+cambian. Los cambios de composición **no se mueven** (27 → 27), y eso es un resultado, no un fallo:
+
+**LO QUE ESTA VERSIÓN NO ARREGLA.** Instrumentando la e5 se ve que el puente fallido es la causa
+**menor**. El grueso es otra cosa: un movimiento de tipo `fuga` reducido a **un solo corredor**, que
+no está `stranded` y por tanto no pasa por esta regla, aguantando **121 de los 177 km** de la etapa.
+Se probó la extensión evidente —el techo de `relayCommit` aplicado a **todo** movimiento, no solo al
+puente— y **empeora**: los cambios de composición suben (e1 28 → 37, e4 25 → 43) porque frenar todas
+las fugas hace que se cacen antes y que salten más ataques. Es un cambio de equilibrio y exige
+campaña de Montecarlo, no una carrera con una semilla. Queda pendiente y medido.

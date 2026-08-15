@@ -30,6 +30,7 @@ import {
   blockPerfil,
   blockSeconds,
   droppedCommit,
+  relayCommit,
   effNow,
   erosion,
   idleEffort,
@@ -142,8 +143,14 @@ interface Move {
   targetId: string | null
   /** Hasta qué km aguanta el esfuerzo de puente; pasado eso, se acabó (regla 7). */
   bridgeUntilKm: number | null
-  /** Ritmo al que rueda cuando deja de puentear: el de un grupo que colabora y ya está. */
+  /** Ritmo al que rueda cuando deja de puentear, como TECHO: nunca por encima de lo que sostenga. */
   restCommit: number
+  /**
+   * El puente ya falló y esto es tierra de nadie (v32). Mientras dure, el ritmo lo manda el viento
+   * repartido entre los que sean (`relayCommit`) y no una constante: un hombre solo no rueda al
+   * ritmo de una fuga que se releva, y por eso el pelotón acaba comiéndoselo.
+   */
+  stranded: boolean
   /**
    * ATRIBUCIÓN (v11): trabajo al frente que han hecho SUS PERSEGUIDORES desde que el movimiento
    * salió. Es la cuenta que responde a «no sé quién hizo el trabajo para reducir la distancia»:
@@ -2676,6 +2683,7 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
         targetId: target?.id ?? null,
         bridgeUntilKm: kind === 'puente' ? km + STAGE.tacticBridgeKm : null,
         restCommit: coop,
+        stranded: false,
         chaseLedger: new Map(),
         lastIds: ids,
         peakGapS: gap,
@@ -2748,6 +2756,15 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
     }
 
     peloton = advance(peloton, membersOf(PELOTON), pelFrac, 'peloton')
+    // EL RITMO DEL COLGADO, CADA BLOQUE (v32). Mismo trato que el descolgado de atrás y por la misma
+    // razón: se recalcula porque las dos entradas cambian —el terreno bloque a bloque y el tamaño
+    // cuando se le suma o se le cae alguien—. `restCommit` queda de techo, así que esto solo puede
+    // frenar a quien no se lo puede permitir, nunca acelerar a nadie.
+    for (const m of moves) {
+      if (!m.stranded) continue
+      const n = membersOf(m.g.id).length
+      if (n > 0) m.g.compromiso = Math.min(m.restCommit, relayCommit(block, n))
+    }
     for (const m of moves) {
       m.g = advance(m.g, membersOf(m.g.id), moveFrac(m), 'move')
       // La TENSIÓN del grupo escapado (SPEC 6.10): se acumula km a km y, pasado el umbral, dispara
@@ -2919,7 +2936,8 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
       if (m.bridgeUntilKm === null || km <= m.bridgeUntilKm) continue
       m.bridgeUntilKm = null
       m.targetId = null
-      m.g.compromiso = m.restCommit
+      m.stranded = true
+      m.g.compromiso = Math.min(m.restCommit, relayCommit(block, membersOf(m.g.id).length))
       log.emit(km, m.g.tS, 'puente_fallido', 'bridge_failed', m.g.riderIds.slice(0, 3), {
         toGo: Math.round(totalKm - km),
         narra: m.narrated ? 1 : 0,

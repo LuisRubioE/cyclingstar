@@ -230,6 +230,25 @@ export function draftMax(block: Block): number {
  * no hay rueda a la que ir y ser cuarenta no sirve de nada. Por eso el grupeto de la etapa reina
  * —que se resigna EN EL PUERTO— sigue existiendo exactamente igual que en la v16.
  */
+/**
+ * EL RITMO QUE SOSTIENE UN GRUPO DE `size` (v32). Es el término del viento, y solo ese: relevarse
+ * lo reparte —en un grupo de `n` que rota a cada uno le toca dar la cara 1/n del tiempo, y el que
+ * va SOLO lo da entero— y eso vale lo que valga el rebufo en este terreno (`draftMax`: en el llano
+ * un 42 %, en una rampa al 8 % un 9,6 %, y por eso arriba ser muchos no sirve de nada).
+ *
+ * Estaba escrito dentro de `droppedCommit` y solo lo veían los que se descolgaban POR DETRÁS. Sale
+ * aquí porque el que se queda colgado POR DELANTE —un puente que no llega— tiene exactamente el
+ * mismo problema de física y no lo estaba pagando: se le devolvía el compromiso de un grupo que
+ * colabora, así que un hombre solo rodaba al ritmo de una fuga que se releva y se quedaba vivo en
+ * tierra de nadie media etapa (docs/balance.md «v32»). `droppedCommit` lo llama ahora en vez de
+ * calcularlo, para que los dos lados de la carretera no se puedan desincronizar nunca.
+ */
+export function relayCommit(block: Block, size: number): number {
+  const rotation = 1 - 1 / Math.max(1, size)
+  const wind = draftMax(block) / STAGE.draftFlat
+  return STAGE.shedCommitAlone + (STAGE.shedCommitBunch - STAGE.shedCommitAlone) * rotation * wind
+}
+
 export function droppedCommit(
   block: Block,
   size: number,
@@ -237,10 +256,8 @@ export function droppedCommit(
   gapSeconds: number,
   aheadSize: number,
 ): number {
-  const rotation = 1 - 1 / Math.max(1, size)
   const wind = draftMax(block) / STAGE.draftFlat
-  const able =
-    STAGE.shedCommitAlone + (STAGE.shedCommitBunch - STAGE.shedCommitAlone) * rotation * wind
+  const able = relayCommit(block, size)
   const legs =
     STAGE.shedEmptyCommitFactor + (1 - STAGE.shedEmptyCommitFactor) * clamp(freshness, 0, 1)
   // La frescura pesa sobre el ritmo del GRUPETO y no sobre el del que pelea, y no es un detalle: lo

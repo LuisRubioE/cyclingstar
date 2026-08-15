@@ -486,7 +486,7 @@
  * Cambio de OBSERVACIÓN: recoloca eventos ya emitidos, no consume un dado, y las huellas selladas
  * salen idénticas.
  */
-export const ENGINE_VERSION = 31 as const
+export const ENGINE_VERSION = 32 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
