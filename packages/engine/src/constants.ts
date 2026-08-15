@@ -485,8 +485,29 @@
  *
  * Cambio de OBSERVACIÓN: recoloca eventos ya emitidos, no consume un dado, y las huellas selladas
  * salen idénticas.
+ *
+ * ── v32 · el maillot no se va en la fuga del día ───────────────────────────────────────────────
+ *
+ * Reportado en producción (Race Sardegna e2, 136 km llanos): el líder de la general, escalador, en
+ * la fuga del día y ganando al sprint una etapa de velocistas. `pelotonAllows` (stage/tactics.ts)
+ * trataba la amenaza para la general como un ESCALÓN —un descuento plano de probabilidad para
+ * cualquiera dentro de los 258 s de la ventana—, así que el motor daba EXACTAMENTE el mismo trato
+ * al que lleva el maillot puesto y al que va a 4:10. Medido llamando a la decisión directamente
+ * (200.000 tiradas): 6,2 % / 12,4 % / 18,7 % al empezar, a mitad y al final de la etapa, idéntico
+ * en las dos filas. Y compuesto sobre la docena larga de intentos que hace una etapa, el líder se
+ * escapaba alguna vez con probabilidad 73 % (10 intentos), 93 % (20) o 98 % (30): pasaba siempre.
+ *
+ * Dos correcciones: el maillot es **VETO** y no descuento en los movimientos de los que sale la
+ * fuga del día (`fuga`, `contraataque`, `puente`; `ataque_final` NO, que el líder ataque en el
+ * desenlace es la carrera), y el castigo de amenaza **escala con la distancia real** en la general
+ * en vez del escalón que igualaba al líder con uno a 258 s.
+ *
+ * El veto TIRA EL DADO IGUALMENTE antes de decidir: `rngTactics` es un flujo compartido y
+ * ahorrarse una tirada correría el flujo de todas las etapas del juego. Por eso las huellas
+ * selladas salen idénticas —sus escenarios corren sin general en juego— y solo se mueve lo que
+ * tiene general de verdad.
  */
-export const ENGINE_VERSION = 31 as const
+export const ENGINE_VERSION = 32 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -1594,6 +1615,10 @@ export const STAGE = {
   tacticAllowBase: 0.3,
   tacticAllowKmGain: 0.5,
   tacticAllowSizePenalty: 0.05,
+  // El castigo de amenaza es el TECHO de una rampa, no un escalón (v32): vale entero pegado al
+  // maillot y baja a cero en el borde de la ventana (`gcThreatFraction`). El número no se ha
+  // tocado; lo que cambia es a quién se le aplica entero. Y al líder ya no le hace falta ninguno:
+  // el maillot es VETO en la fuga del día, no descuento (`pelotonAllows`).
   tacticAllowGcPenalty: 0.75,
   tacticAllowMax: 0.7,
   // Ritmo al que el pelotón cierra un movimiento al que NO da cuerda. Por encima del tempo de
@@ -1820,6 +1845,10 @@ export const STAGE = {
   // menor que esta fracción de la cuerda máxima que el pelotón está dispuesto a dar. Con 0,6 y una
   // cuerda de 175 s, quien esté a menos de 105 s del líder no se va de rositas: si le dejan la
   // cuerda entera, se pone líder.
+  //
+  // Desde la v32 esto ya no es una PUERTA sino el BORDE DE UNA RAMPA: marca dónde deja de haber
+  // castigo, y cuánto castigo hay depende de lo cerca que esté el hombre del maillot. Era una
+  // puerta y por eso el líder de la general y un rival a 4:10 recibían exactamente el mismo trato.
   gcThreatFraction: 0.6,
   // Ritmo del pelotón cuando NO hay nada que cazar por delante (sin fuga, o ya cazada). Antes esto
   // no existía: el controlador vivía dentro de `if (breakaway && !caught)` y el pelotón se quedaba

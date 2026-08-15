@@ -60,6 +60,7 @@ import {
   followProbability,
   giveUpLambda,
   jumpGapSeconds,
+  carriesGcLeader,
   moveCooperation,
   pelotonAllows,
   rankOf,
@@ -3044,11 +3045,22 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
           // Regla 5: la fuga del día es **el primero que prospera tras varios fracasos**. Solo
           // dentro de la ventana: un movimiento que cuaja a falta de 40 km es un ataque tardío, y
           // la crónica no puede llamarlo igual.
+          // …Y LA CORONA TAMPOCO ES PARA EL MAILLOT (v32). Negarle la cuerda en `pelotonAllows` no
+          // bastaba: un movimiento puede PROSPERAR sin cuerda —el agujero que documenta §13, por el
+          // que un intento que nadie autorizó acaba siendo la fuga del día— y medido, los 17 casos
+          // que seguían colándose eran exactamente eso: el líder dentro, sin cuerda, coronado
+          // igual. La corona no es una etiqueta: de ella cuelga que el pelotón DEJE DE CERRAR y le
+          // conceda la cuerda de `gcControlLeash`. Sin corona el pelotón sigue cerrando, que es lo
+          // que hace un pelotón cuando el maillot se le ha ido por delante.
           if (
             !dayBreakFormed &&
             m.kind !== 'puente' &&
             m.sourceId === PELOTON &&
-            km <= totalKm * STAGE.tacticBreakWindowFraction
+            km <= totalKm * STAGE.tacticBreakWindowFraction &&
+            !carriesGcLeader(
+              mem.map((x) => x.input.gcDeficitSeconds),
+              hasGcContext,
+            )
           ) {
             dayBreakFormed = true
             m.dayBreak = true

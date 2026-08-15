@@ -6496,3 +6496,126 @@ importa: **el rebelde que no aparece no genera línea**.
 - **Huellas selladas idénticas**: cambio de OBSERVACIÓN puro.
 - Sube `ENGINE_VERSION` porque cambia el contenido y la colocación de un evento, y `checkReplay()`
   compara versiones.
+
+---
+
+## v32 — El maillot no se va en la fuga del día (`engine_version` 31 → 32)
+
+> **El parte, de producción:** Race Sardegna e2, 136 km llanos. El maillot amarillo —un escalador—
+> en la fuga del día, y ganando al sprint una etapa de velocistas.
+
+### 1. El defecto: la amenaza era un SÍ/NO, y el maillot solo un descuento
+
+`pelotonAllows` (`stage/tactics.ts`) decide si el pelotón deja marchar un movimiento. La amenaza
+para la general entraba como un **escalón**: quien estuviera dentro de la ventana de amenaza
+—`gcThreatFraction` × `gcControlLeash` = 258 s— se llevaba el mismo castigo plano y ya está.
+
+```ts
+if (threat) p *= 1 - STAGE.tacticAllowGcPenalty // 0,75, igual para todos
+```
+
+Medido llamando a la decisión directamente (200.000 tiradas por casilla, etapa de 136 km, fuga de 4):
+
+| caso                 | km 0      | mitad      | últimos km |
+| -------------------- | --------- | ---------- | ---------- |
+| **el LÍDER (0 s)**   | **6,3 %** | **12,5 %** | **18,7 %** |
+| un rival a 60 s      | 6,2 %     | 12,5 %     | 18,9 %     |
+| un rival a 150 s     | 6,3 %     | 12,5 %     | 18,6 %     |
+| **un rival a 250 s** | **6,3 %** | **12,5 %** | **18,6 %** |
+| sin amenaza (300 s)  | 24,9 %    | 49,8 %     | 70,1 %     |
+
+Las cuatro primeras filas son **idénticas**: el motor no distinguía al que lleva el maillot puesto
+de uno a 4:10. Y un 6-19 % por intento no es «poco»: una etapa hace una docena larga de intentos y
+basta con que UNO salga. Compuesto, el líder se escapaba alguna vez con probabilidad **74 %** (10
+intentos), **93 %** (20) o **98 %** (30). Que pasara era lo normal, no mala suerte.
+
+### 2. Por qué el banco no lo veía
+
+`scripts/medir-carrera.mjs` corre cada etapa con `gcDeficitSeconds` = 0 en todo el campo, así que
+`hasGcContext` sale **falso** y la maquinaria de la general no llega a encenderse: ese banco no podía
+ver este defecto ni para bien ni para mal. El banco nuevo, `scripts/medir-maillot.mjs`, **arrastra la
+general etapa a etapa** —como producción, y como ya hacía `analyzeSharjah`—, y con eso el fallo
+aparece solo: sobre 800 etapas con general en juego (`race-sardegna`, 200 semillas), el maillot se
+iba en la fuga del día **29 veces** y **ganaba 3 etapas** desde ella, **una de ellas la e2 llana**,
+que es exactamente el parte.
+
+### 3. Las dos correcciones… y la tercera, que hizo falta medir
+
+**El maillot es VETO, no descuento**, en los movimientos de los que sale la fuga del día (`fuga`,
+`contraataque`, `puente`). **`ataque_final` NO lleva veto**, y es deliberado: que el líder ataque en
+el puerto decisivo o en los últimos kilómetros es la carrera, no una fuga que se le escapa al
+pelotón.
+
+**La amenaza escala con la distancia real**: el castigo lo pone el más peligroso del grupo y vale lo
+que valga su cercanía —entero pegado al maillot, cero en el borde de la ventana, rampa lineal entre
+medias— en vez del escalón que igualaba al líder con uno a 258 s.
+
+Con eso, la decisión queda bien… **y el defecto seguía vivo**: el maillot bajaba de 29 a 17, no a 0.
+Medido el camino que quedaba, **17 de 17** eran movimientos de tipo `fuga` **sin cuerda** (`allowed`
+= 0) **coronados igualmente** como fuga del día. Es el agujero que documenta §13: un intento que
+nadie autorizó puede **prosperar** por su cuenta, y la corona no consultaba `allowed`. Así que la
+corona también se le niega al maillot, y **no es cosmética**: de `dayBreak` cuelga que el pelotón
+deje de cerrar y le conceda la cuerda de `gcControlLeash`. Sin corona, el pelotón sigue cerrando,
+que es lo que hace un pelotón cuando el maillot se le ha ido por delante.
+
+La pregunta «¿va el maillot aquí?» vive en **una sola función** (`carriesGcLeader`), porque la
+aplican dos capas y no se pueden desincronizar.
+
+### 4. Después
+
+| caso                     | km 0      | mitad     | últimos km |
+| ------------------------ | --------- | --------- | ---------- |
+| **el LÍDER (0 s)**       | **0,0 %** | **0,0 %** | **0,0 %**  |
+| un rival a 60 s          | 10,6 %    | 21,2 %    | 31,9 %     |
+| un rival a 150 s         | 17,1 %    | 34,2 %    | 51,3 %     |
+| un rival a 250 s         | 24,4 %    | 48,8 %    | 70,0 %     |
+| sin amenaza (300 s)      | 24,9 %    | 49,8 %    | 70,1 %     |
+| el LÍDER, `ataque_final` | 6,3 %     | 12,4 %    | 18,9 %     |
+
+La última fila es la que prueba que el veto está donde tiene que estar: **el líder atacando en el
+desenlace sigue exactamente igual que antes de esta tanda** (6,3 / 12,4 / 18,9 contra 6,3 / 12,5 /
+18,7). Y la rampa hace lo suyo: el que va a 250 s pasa a moverse como quien no amenaza nada, porque
+a 4:10 **no amenaza nada**.
+
+En la carrera (`race-sardegna`, 200 semillas, 800 etapas con general en juego):
+
+|                                             | antes  | solo veto | veto + corona |
+| ------------------------------------------- | ------ | --------- | ------------- |
+| etapas con fuga del día formada             | 595    | 642       | 624           |
+| **el maillot en la fuga del día**           | **29** | 17        | **0**         |
+| **…y además gana la etapa** (el parte)      | **3**  | 2         | **0**         |
+| el maillot gana la etapa de cualquier forma | 10,5 % | 11,1 %    | 11,5 %        |
+
+Dos cosas que importan tanto como el cero:
+
+- **La fuga del día no se ha muerto**: se forman más que antes (595 → 624), porque la rampa le
+  devuelve la cuerda al que va a dos o tres minutos y antes cobraba el castigo entero. La corrección
+  quita al maillot de la fuga, no quita fugas.
+- **El líder no queda castrado**: sigue ganando etapas —y algo más que antes, 10,5 % → 11,5 %— pero
+  ganándolas **donde se ganan**, en el desenlace, y no colándose en la fuga de la mañana.
+
+### 5. Verificación
+
+- **Huellas selladas idénticas dígito a dígito** (`stage/attribution.test.ts`,
+  `stage/timetrial.test.ts`), y no por casualidad, por dos razones que se sostienen solas:
+  1. sus escenarios (`flatScenario`, `queenScenario`) corren con `gcDeficitSeconds` = 0 en todo el
+     campo, así que `hasGcContext` es falso y este cambio **ni se mira**;
+  2. **el veto tira el dado igualmente** antes de decidir. `rngTactics` es un flujo compartido por
+     toda la etapa: ahorrarse una tirada correría el flujo de TODAS las etapas del juego y movería
+     huellas que no tienen nada que ver con esto. Es la misma lección de la v21, que quitó la FRASE
+     del ataque del km 0 y no el movimiento. Hay un test que sella justo eso.
+- **Suite completa en verde**: 1.272 pasan, 0 fallan.
+- Los invariantes de llano y montaña (`sim/invariants.test.ts`) **no se mueven**, y por lo mismo del
+  punto 1: sus escenarios no tienen general en juego.
+- Sube `ENGINE_VERSION` porque cambia quién se va en la fuga y quién gana etapas, y `checkReplay()`
+  compara versiones.
+
+### 6. La deuda que deja, dicha con todas las letras
+
+**Quedan dos escalones más de general sin graduar**, los dos en `stage/tactics.ts` y los dos con la
+misma forma que tenía este: `attackAppetite` («el que se juega la general ataca más») y
+`followProbability` («el que va cerca en la general no deja marchar al que ataca») siguen leyendo
+`gcDeficitSeconds <= gcThreatFraction × gcControlLeash` como un SÍ/NO, así que para ellos uno a 10 s
+y uno a 250 s siguen siendo el mismo corredor. No se tocan aquí porque son de MOTIVACIÓN del
+corredor y no de PERMISO del pelotón —otra pregunta, otra medición— y porque mezclarlos habría hecho
+imposible justificar qué movía cada cosa. Es el siguiente escalón y es medible con el mismo banco.

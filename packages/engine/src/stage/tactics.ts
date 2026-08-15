@@ -335,23 +335,87 @@ export function moveCooperation(
 }
 
 /**
+ * LOS MOVIMIENTOS DE LOS QUE SALE LA FUGA DEL DÍA: los que se marchan del pelotón camino de meta y
+ * se juegan la etapa por delante. Son los que el maillot NO puede coger (v32, ver `pelotonAllows`).
+ *
+ * La lista es cerrada a propósito, y lo que falta importa más que lo que hay: **`ataque_final` no
+ * está**. El líder que ataca en el puerto decisivo o en los últimos kilómetros no es una fuga que
+ * se le escapa al pelotón, es la carrera —el maillot atacando para sentenciar es de las mejores
+ * cosas que tiene el ciclismo— y ahí no hay veto que valga. `ataque_grupo` tampoco está porque
+ * jamás llega hasta aquí: los ataques que salen de un grupo YA escapado no pasan por esta aduana.
+ */
+const DAY_BREAK_KINDS: readonly MoveKind[] = ['fuga', 'contraataque', 'puente']
+
+/**
+ * ¿VA EL MAILLOT EN ESTE MOVIMIENTO? Deficit 0 es, por definición, quien lleva el maillot
+ * (`gcDeficitSeconds` se mide contra el mejor de la general), y empatar a cero es ir de co-líder.
+ *
+ * Vive aquí y no suelto en dos sitios porque la regla la aplican DOS capas y tienen que decir lo
+ * mismo: `pelotonAllows` niega la cuerda, y `simulate.ts` niega además la CORONA de fuga del día
+ * —un movimiento puede prosperar sin cuerda, y sin esto el veto se quedaba a medias (medido: 17 de
+ * 17 casos que se colaban eran movimientos SIN cuerda coronados igualmente)—.
+ *
+ * `hasGcContext` es imprescindible: en la etapa 1 de una vuelta y en las carreras de un día todos
+ * llegan con 0, y leerlo literal diría que el pelotón entero lleva el maillot.
+ */
+export function carriesGcLeader(
+  gcDeficitsSeconds: Iterable<number>,
+  hasGcContext: boolean,
+): boolean {
+  if (!hasGcContext) return false
+  for (const d of gcDeficitsSeconds) if (d <= 0) return true
+  return false
+}
+
+/**
  * ¿Le da el pelotón cuerda a este movimiento? (reglas 4 y 5: **muchos intentos fracasan** y **lo
  * normal es que haya muchos intentos antes de que cuaje la fuga del día**).
  *
  * No es azar puro: el pelotón deja marchar más según avanza la etapa —lleva rato peleando y se
  * cansa de cerrar—, menos si el grupo es numeroso, y **nunca de buena gana** si ahí va alguien
- * peligroso para la general (`gcDeficitSeconds` y `gcThreatFraction`, ambos definidos y sin leer
- * hasta ahora).
+ * peligroso para la general (`gcDeficitSeconds` y `gcThreatFraction`).
+ *
+ * LA AMENAZA SE MIDE EN SEGUNDOS, NO EN UN SÍ/NO (v32). Hasta la v31 esto era un ESCALÓN: quien
+ * estuviera dentro de la ventana de amenaza —258 s— se llevaba el mismo castigo plano
+ * (`tacticAllowGcPenalty`) tanto si iba a 4:10 como si llevaba el maillot puesto. Medido, las dos
+ * filas salían IDÉNTICAS (6,2 % / 12,4 % / 18,7 % al empezar, a mitad y al final de la etapa): el
+ * motor no distinguía al líder de la general de un rival a cuatro minutos. Ahora el castigo lo pone
+ * el MÁS PELIGROSO del grupo y vale lo que valga su cercanía real: entero pegado al maillot, cero
+ * en el borde de la ventana, y una rampa lineal entre medias.
+ *
+ * Y EL MAILLOT ES VETO, NO DESCUENTO. Un descuento del 75 % por intento parece mucho y no lo es:
+ * una etapa hace una docena larga de intentos y basta con que UNO salga, así que compuesto daba un
+ * 73 % (10 intentos), 93 % (20) o 98 % (30) de que el líder se fuera en la fuga alguna vez. Que
+ * pasara era lo normal, no mala suerte —y en producción pasó: Race Sardegna e2, 136 km llanos, el
+ * maillot escalador en la fuga ganando al sprint una etapa de velocistas—. La fuga del día no se
+ * lleva al líder de la general: el pelotón entero vive de que eso no ocurra.
  */
 export function pelotonAllows(move: MoveRider[], ctx: MoveContext, rng: Rng): boolean {
   const run = ctx.totalKm > 0 ? clamp(1 - ctx.kmToGo / ctx.totalKm, 0, 1) : 0
   let p = STAGE.tacticAllowBase + STAGE.tacticAllowKmGain * run
   p -= STAGE.tacticAllowSizePenalty * Math.max(0, move.length - STAGE.breakawaySizeMin)
-  const threat =
-    ctx.hasGcContext &&
-    move.some((r) => r.gcDeficitSeconds <= STAGE.gcThreatFraction * STAGE.gcControlLeash)
-  if (threat) p *= 1 - STAGE.tacticAllowGcPenalty
-  return rng() < clamp(p, 0, STAGE.tacticAllowMax)
+  let vetoed = false
+  if (ctx.hasGcContext) {
+    // El que manda es el más cercano al maillot: un grupo es tan peligroso como su hombre peligroso.
+    let closest = Number.POSITIVE_INFINITY
+    for (const r of move) closest = Math.min(closest, r.gcDeficitSeconds)
+    const threatWindow = STAGE.gcThreatFraction * STAGE.gcControlLeash
+    if (closest < threatWindow) {
+      p *= 1 - STAGE.tacticAllowGcPenalty * clamp(1 - closest / threatWindow, 0, 1)
+    }
+    vetoed =
+      DAY_BREAK_KINDS.includes(ctx.kind) &&
+      carriesGcLeader(
+        move.map((r) => r.gcDeficitSeconds),
+        ctx.hasGcContext,
+      )
+  }
+  // EL DADO SE TIRA SIEMPRE, decida lo que decida el veto, y no es manía: `rngTactics` es un flujo
+  // compartido por toda la etapa, así que ahorrarse una tirada aquí correría el flujo de TODAS las
+  // etapas del juego —el mismo motivo por el que la v21 quitó la FRASE del ataque del km 0 y no el
+  // movimiento—. Vetar sin tirar movería huellas selladas que no tienen nada que ver con esto.
+  const allowed = rng() < clamp(p, 0, STAGE.tacticAllowMax)
+  return allowed && !vetoed
 }
 
 // --- Regla 8: el agotado que se deja ir ----------------------------------------------------
