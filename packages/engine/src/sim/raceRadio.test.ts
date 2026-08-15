@@ -18,7 +18,13 @@ import { simulateStage } from '../stage/simulate.js'
 import { stageSeed } from '../stage/rng.js'
 import type { SnapshotRider } from '../stage/types.js'
 import { queenScenario } from './scenarios.js'
-import { checkReplay, raceRadioCollector, radioKmFrom, radioKmPoints } from './raceRadio.js'
+import {
+  checkReplay,
+  raceRadioCollector,
+  radioForStorage,
+  radioKmFrom,
+  radioKmPoints,
+} from './raceRadio.js'
 
 function rider(
   riderId: string,
@@ -158,6 +164,40 @@ describe('radioKmPoints', () => {
     expect(kms).toContain(75)
     expect(kms[kms.length - 1]).toBeCloseTo(151 - STAGE.dx, 6)
     expect(kms.every((km, i) => i === 0 || km > kms[i - 1]!)).toBe(true)
+  })
+})
+
+describe('radioForStorage: a quién se puede nombrar', () => {
+  /** Una foto con un grupo del tamaño que se pida, sin nadie relevando salvo el primero. */
+  const fotoDe = (size: number): SnapshotRider[] =>
+    Array.from({ length: size }, (_, i) =>
+      rider(`r-${i}`, 'mov-1', 100, { relaying: i === 0, onTheFront: i === 0 }),
+    )
+
+  it('en un grupo PEQUEÑO se nombra a todos, tiren o no y lleven maillot o no', () => {
+    // La queja, textual: una escapada de DOS enseñaba a uno y «+1 rider more». En carretera, de un
+    // grupo de dos se sabe quién va: son dos.
+    const km = radioKmFrom(10, fotoDe(2), 2)
+    const stored = radioForStorage({ starters: 2, kms: [km] }, new Set())
+    const g = stored.kms[0]!.groups[0]!
+    expect(g.pulling.length + g.watching.length).toBe(2)
+  })
+
+  it('y en uno de once perseguidores, a los once', () => {
+    const km = radioKmFrom(10, fotoDe(11), 11)
+    const stored = radioForStorage({ starters: 11, kms: [km] }, new Set())
+    const g = stored.kms[0]!.groups[0]!
+    expect(g.pulling.length + g.watching.length).toBe(11)
+  })
+
+  it('pero en el PELOTÓN no: ahí se nombra a quien hay que seguir y el resto se cuenta', () => {
+    // Nombrar a ciento veinte no es información, es ruido: para eso está el «+N more».
+    const km = radioKmFrom(10, fotoDe(120), 120)
+    const stored = radioForStorage({ starters: 120, kms: [km] }, new Set(['r-77']))
+    const g = stored.kms[0]!.groups[0]!
+    expect(g.pulling.length + g.watching.length).toBeLessThan(120)
+    // …y el que hay que seguir sigue estando.
+    expect(g.watching.length).toBe(1)
   })
 })
 

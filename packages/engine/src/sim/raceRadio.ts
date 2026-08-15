@@ -393,6 +393,20 @@ export interface StoredRaceRadio {
 const STORED_PULLERS_MAX = 12
 
 /**
+ * HASTA ESTE TAMAÑO SE NOMBRA AL GRUPO ENTERO, tire quien tire y lleve maillot quien lo lleve.
+ *
+ * `watch` resuelve «a quién hay que poder seguir SIEMPRE» —maillots y jefes de filas— y está pensado
+ * para el pelotón, donde nombrar a ciento veinte no es información sino ruido. Pero aplicado a un
+ * grupo pequeño daba justo lo contrario de lo que se quería: en una escapada de DOS, con uno
+ * relevando y el otro a rueda, se nombraba a uno y el otro salía como «+1 rider more». Y en un grupo
+ * de once perseguidores, seis tirando y el maillot, los otros cuatro se contaban en vez de decirse.
+ *
+ * En carretera, de un grupo pequeño se sabe quién va: son pocos y se les ve. El «+N more» es para
+ * cuando de verdad no se puede nombrar a todos.
+ */
+const NAME_WHOLE_GROUP_UP_TO = 12
+
+/**
  * De la radio completa a la que se guarda.
  *
  * `watch` son los corredores que hay que poder nombrar SIEMPRE, vayan o no tirando. El motor no sabe
@@ -422,7 +436,11 @@ export function radioForStorage(
       const pull = g.pulling.slice(0, STORED_PULLERS_MAX)
       const pulling = pull.map((p) => idx(p.riderId))
       const inPull = new Set(pull.map((p) => p.riderId))
-      const watching = g.riderIds.filter((id) => watch.has(id) && !inPull.has(id)).map(idx)
+      // En un grupo pequeño se nombra a todos; en el pelotón, a los que hay que poder seguir.
+      const nameAll = g.size <= NAME_WHOLE_GROUP_UP_TO
+      const watching = g.riderIds
+        .filter((id) => (nameAll || watch.has(id)) && !inPull.has(id))
+        .map(idx)
       // La velocidad del grupo en este km. Se busca el MISMO grupo en la foto siguiente (por id): si
       // se ha fundido o roto no hay medida honesta que dar, y se deja en null antes que inventarla.
       const there = next?.groups.find((x) => x.id === g.id)
