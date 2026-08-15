@@ -201,6 +201,95 @@ describe('radioForStorage: a quién se puede nombrar', () => {
   })
 })
 
+describe('radioForStorage: el que releva nunca sale como que va a rueda', () => {
+  it('un relevista que no entra en el corte se queda sin nombrar, pero NO se pinta guarecido', () => {
+    // El «símbolo de tirar que no sale en algunos que tiran»: `inPull` se calculaba sobre el corte
+    // de doce, así que el relevista trece caía en la lista de los que van a rueda y se pintaba con
+    // el icono contrario. Mentir sobre lo que hace es peor que no nombrarlo.
+    const veinte = Array.from({ length: 20 }, (_, i) =>
+      rider(`r-${i}`, 'peloton', 100, { relaying: true, pullWindow: 20 - i }),
+    )
+    // Un grupo grande, para que no entre por la regla de «grupo pequeño, se nombran todos».
+    const foto = [
+      ...veinte,
+      ...Array.from({ length: 100 }, (_, i) => rider(`x-${i}`, 'peloton', 100)),
+    ]
+    const km = radioKmFrom(10, foto, 120)
+    const stored = radioForStorage({ starters: 120, kms: [km] }, new Set())
+    const g = stored.kms[0]!.groups[0]!
+    const nombrados = new Set([...g.pulling, ...g.watching].map((i) => stored.riders[i]))
+    const enRueda = new Set(g.watching.map((i) => stored.riders[i]))
+    // Ninguno de los veinte que relevan aparece entre los que van a rueda.
+    for (const r of veinte) expect(enRueda.has(r.riderId)).toBe(false)
+    // Y del corte para abajo, sencillamente no se les nombra.
+    expect(nombrados.has('r-19')).toBe(false)
+  })
+
+  it('pero al maillot se le guarda aunque el corte lo dejara fuera: si tira, es la noticia', () => {
+    const veinte = Array.from({ length: 20 }, (_, i) =>
+      rider(`r-${i}`, 'peloton', 100, { relaying: true, pullWindow: 20 - i }),
+    )
+    const foto = [
+      ...veinte,
+      ...Array.from({ length: 100 }, (_, i) => rider(`x-${i}`, 'peloton', 100)),
+    ]
+    const km = radioKmFrom(10, foto, 120)
+    const stored = radioForStorage({ starters: 120, kms: [km] }, new Set(['r-19']))
+    const g = stored.kms[0]!.groups[0]!
+    expect(g.pulling.map((i) => stored.riders[i])).toContain('r-19')
+  })
+})
+
+describe('radioForStorage: la velocidad se le sigue midiendo al grupo que se funde', () => {
+  /** Dos fotos seguidas, a un km de distancia, con los relojes que se le pasen. */
+  const dos = (a: SnapshotRider[], b: SnapshotRider[]) =>
+    radioForStorage({ starters: 4, kms: [radioKmFrom(10, a, 4), radioKmFrom(11, b, 4)] }, new Set())
+
+  it('un grupo que se FUNDE con otro conserva su velocidad', () => {
+    // Se buscaba por id: al fundirse, el grupo desaparecía de la foto siguiente y se quedaba sin
+    // velocidad. Pero el dato existe —sus corredores han cubierto el km igual— y basta con seguir a
+    // la gente en vez de a la etiqueta.
+    const antes = [
+      rider('a', 'mov-1', 3600),
+      rider('b', 'mov-1', 3600),
+      rider('p', 'peloton', 3660),
+    ]
+    const despues = [
+      rider('a', 'peloton', 3700),
+      rider('b', 'peloton', 3700),
+      rider('p', 'peloton', 3700),
+    ]
+    const g = dos(antes, despues).kms[0]!.groups.find((x) => x.size === 2)!
+    // 1 km en 100 s = 36 km/h. Antes: null.
+    expect(g.speedKmh).toBeCloseTo(36, 1)
+  })
+
+  it('y uno que se ROMPE se mide por el trozo que se lleva a más gente', () => {
+    const antes = [
+      rider('a', 'mov-1', 3600),
+      rider('b', 'mov-1', 3600),
+      rider('c', 'mov-1', 3600),
+      rider('p', 'peloton', 3900),
+    ]
+    // `mov-1` se parte: dos siguen en `mov-9` y uno se descuelga a `shed-1` con otro reloj.
+    const despues = [
+      rider('a', 'mov-9', 3700),
+      rider('b', 'mov-9', 3700),
+      rider('c', 'shed-1', 3800),
+      rider('p', 'peloton', 3990),
+    ]
+    const g = dos(antes, despues).kms[0]!.groups.find((x) => x.size === 3)!
+    expect(g.speedKmh).toBeCloseTo(36, 1)
+  })
+
+  it('sin nadie a quien seguir no se inventa una velocidad', () => {
+    const antes = [rider('a', 'mov-1', 3600), rider('p', 'peloton', 3900)]
+    const despues = [rider('p', 'peloton', 3990)]
+    const g = dos(antes, despues).kms[0]!.groups.find((x) => x.size === 1)!
+    expect(g.speedKmh).toBeNull()
+  })
+})
+
 describe('checkReplay', () => {
   it('una etapa que corrió con el motor de hoy se puede reconstruir', () => {
     expect(checkReplay(ENGINE_VERSION).faithful).toBe(true)
