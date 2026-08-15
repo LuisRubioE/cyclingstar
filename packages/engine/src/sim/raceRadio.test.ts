@@ -147,9 +147,14 @@ describe('radioKmFrom', () => {
 })
 
 describe('radioKmPoints', () => {
-  it('pide un km de cada uno y remata en el último bloque del recorrido', () => {
+  it('pide un km de cada uno, EMPIEZA EN LA SALIDA y remata en el último bloque', () => {
     const kms = radioKmPoints(151)
-    expect(kms[0]).toBe(1)
+    // La primera foto es la de la SALIDA. Era la del km 1, y para entonces la carrera ya ha pasado
+    // por diez bloques de decisión —medido, un 73,5 % de las etapas llega al km 1 con más de un
+    // grupo—, así que la tabla abría siempre con una fuga hecha y no enseñaba nunca el pelotón
+    // junto del que sale.
+    expect(kms[0]).toBe(0)
+    expect(kms).toContain(1)
     expect(kms).toContain(75)
     expect(kms[kms.length - 1]).toBeCloseTo(151 - STAGE.dx, 6)
     expect(kms.every((km, i) => i === 0 || km > kms[i - 1]!)).toBe(true)

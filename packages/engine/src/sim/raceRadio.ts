@@ -149,13 +149,19 @@ function roundKm(km: number): number {
 }
 
 /**
- * Los kilómetros que se le piden a la foto para una etapa: uno de cada `everyKm` más el último
- * bloque, que es donde se decide. `simulateStage` resuelve cada uno al bloque que le toca, así que
- * no hace falta que caigan en un múltiplo exacto de `dx`.
+ * Los kilómetros que se le piden a la foto para una etapa: uno de cada `everyKm` **empezando por la
+ * salida**, más el último bloque, que es donde se decide. `simulateStage` resuelve cada uno al
+ * bloque que le toca, así que no hace falta que caigan en un múltiplo exacto de `dx`.
+ *
+ * EMPIEZA EN 0 Y NO EN `everyKm`: la primera foto de la tabla era la del km 1, y ahí la carrera ya
+ * ha pasado por diez bloques de decisión —medido, un 73,5 % de las etapas llega al km 1 con más de
+ * un grupo en carretera—, así que la radio abría SIEMPRE con una fuga ya hecha y el lector no veía
+ * nunca el pelotón junto del que sale. La salida es un estado de carrera como cualquier otro y la
+ * tabla tiene que poder enseñarlo.
  */
 export function radioKmPoints(totalKm: number, everyKm = 1): readonly number[] {
   const kms: number[] = []
-  for (let km = everyKm; km < totalKm; km += everyKm) kms.push(Math.round(km * 10) / 10)
+  for (let km = 0; km < totalKm; km += everyKm) kms.push(Math.round(km * 10) / 10)
   const last = Math.max(0, totalKm - STAGE.dx)
   if (kms.length === 0 || kms[kms.length - 1]! < last) kms.push(Math.round(last * 10) / 10)
   return kms
