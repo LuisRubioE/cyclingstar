@@ -6732,3 +6732,85 @@ Sospechosos para quien retome la recalibración, por orden:
 
 Y lo que NO se ha verificado en ningún momento, del mismo parte: el descolgado que rueda tan rápido
 como el pelotón, los 30 s de hueco cerrados en un kilómetro, y los grupos que se reúnen de golpe.
+
+---
+
+## Banco de huecos: las tres rarezas de la Race Radio, medidas (sin `engine_version`)
+
+`scripts/medir-huecos.mjs`, 6 carreras × 2 semillas, **9.999 pares de fotos consecutivas**. Las tres
+quejas del parte de Sardegna e3 son la misma pregunta —qué le pasa a los huecos de una foto a la
+siguiente— y ninguna se había medido nunca. **Dos de las tres se caen al medirlas bien.**
+
+### 0. Primero, dos artefactos MÍOS, que es por lo que este banco tardó dos intentos
+
+- **El pelotón cambia de dueño entre dos fotos** (`mainGroupId` y su histéresis). Restar el hueco de
+  un grupo «contra el pelotón» en las dos es restar contra DOS referencias distintas. Sin apartar
+  esos pares (177 de 10.176) salían cierres inventados.
+- **La «velocidad» de un grupo que se funde** mezcla su velocidad con el hueco que cerró de golpe.
+  Con eso dentro, el peor descolgado solitario «corría» a **91,8 km/h**; apartándolo, a 47,6.
+
+Las dos correcciones están en el banco y comentadas: un banco que no controla sus propios artefactos
+acusa al motor de lo que ha hecho el banco.
+
+### 1. El descolgado solitario NO es un defecto
+
+> «Hay un ciclista suelto que se quedó descolgado del pelotón… ¿cómo es posible que vaya tan rápido
+> como el pelotón?»
+
+|                                                     |                                  |
+| --------------------------------------------------- | -------------------------------- |
+| diferencia de velocidad contra el pelotón (mediana) | **−4,8 km/h**                    |
+| p99                                                 | +4,1 km/h                        |
+| peor caso                                           | **+7,8 km/h** (47,6 contra 39,8) |
+| va igual o más rápido que el pelotón                | 10,49 %                          |
+
+La mediana es la que tiene que ser: **un hombre solo va casi 5 km/h más lento**, que es lo que cuesta
+pagar el viento entero (`shelterAlone`) contra el 42 % de rebufo de un grupo. Y el peor caso tampoco
+es raro visto de cerca: 47,6 km/h de un tipo a tumba abierta contra 39,8 de un pelotón rodando a
+tempo es exactamente cómo se vuelve a enganchar alguien. **No hay defecto: hay un hombre peleando.**
+
+### 2. Los 30 s en un kilómetro existen, pero son la cola de la cola
+
+|                         |                                        |
+| ----------------------- | -------------------------------------- |
+| cierre por km (mediana) | **1,3 s**                              |
+| p90 / p99               | 6,4 / 20,9 s                           |
+| ≥ 20 s/km               | 1,11 %                                 |
+| **≥ 30 s/km**           | **0,35 %**                             |
+| peor caso               | 70,4 s en 1 km (`race-oman` e3 km 189) |
+
+O sea: lo normal es un segundo y pico por kilómetro, y lo que el dueño vio está en el 0,35 %. Existe,
+pero no es el comportamiento del motor: es su cola. (Los huecos que se ABREN son otra cosa y llegan a
+108 s/km sin que eso sea raro: un grupo que revienta se va de golpe.)
+
+### 3. Las fusiones «mágicas» eran mi métrica mal planteada
+
+Medí el hueco contra el PELOTÓN, y así un grupeto a veinte minutos que se junta con otro grupeto que
+va a su lado salía como un salto de **1.217 s**. Medido contra el grupo que de verdad se lo come:
+
+|                             |                                               |
+| --------------------------- | --------------------------------------------- |
+| hueco al fundirse (mediana) | **7,3 s**                                     |
+| p90                         | 27,2 s                                        |
+| se funden con ≥ 20 s        | 23,38 %                                       |
+| peor caso                   | 437 s (grupo de 1, `race-colombia` e5 km 195) |
+
+Lo normal es fundirse a siete segundos, que es fundirse de verdad. Queda una cola del 23 % por encima
+de 20 s que sí merece mirarse.
+
+### 4. La hipótesis para lo que queda, y por qué NO es física
+
+Lo que sobrevive a las tres medidas —la cola de cierres y la de fusiones— tiene un sospechoso que no
+está en la carretera sino en cómo se mide el grupo:
+
+> `raceRadio.ts`: «El reloj del GRUPO es el de su primer hombre».
+
+El reloj de un grupo es el MÍNIMO de los de su gente. Así que **si el hombre de cabeza se cae del
+grupo, o se le suma uno más rápido, el reloj del grupo salta sin que nadie haya cambiado de
+velocidad** — y el hueco que enseña la radio salta con él. Eso explica a la vez un cierre de 70 s en
+un kilómetro y una fusión con 437 s de hueco, y explica por qué son raros: hacen falta un grupo
+estirado y un cambio de composición en el mismo kilómetro.
+
+Si se confirma, **no es un defecto de física sino de observación**, y el arreglo iría en cómo la
+radio fecha un grupo (una mediana, o el reloj de su pelotón de referencia) y no en el motor. Queda
+sin verificar: es la siguiente medida, y el banco para hacerla ya está escrito.
