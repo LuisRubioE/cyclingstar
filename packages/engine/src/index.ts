@@ -187,6 +187,7 @@ export {
   depletion,
   isDeepDepleted,
   matchCount,
+  maxMatchCount,
   rhythm,
   tankState,
   stepSpeed,

@@ -7,7 +7,7 @@ import {
   birthdayDayOfSeason,
   raceIdFromKey,
 } from '@cyclingstar/shared'
-import { type Eff, eff0, matchCount } from '@cyclingstar/engine'
+import { type Eff, eff0, matchCount, maxMatchCount } from '@cyclingstar/engine'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
 import { type PublicRiderDetail, fetchPublicRider } from '../api/browse'
@@ -120,6 +120,45 @@ function ConditionBar({
 }
 
 /**
+ * LOS CERILLOS DEL DÍA, con su escala a la vista (SPEC 6.6).
+ *
+ * Era una casilla pelada con un número dentro —«Matches / 1»— al lado de dos barras que sí se
+ * explican, y el dueño la mandó a paseo con razón: «eso no aporta, ni se entiende». No lo hacía
+ * porque un cerillo suelto no significa nada: **«1» solo se entiende si sabes que el máximo es 5**,
+ * y ahí lo que estaba diciendo la casilla es que ese día sales al suelo de la escala, que es
+ * justamente lo que más importa saber antes de una carrera.
+ *
+ * Así que se cuenta como las de al lado: escala visible (`n de N`, con el techo que da el motor),
+ * los cerillos dibujados uno a uno, y una línea que dice para qué sirven y qué te los quita.
+ */
+function MatchRow({ value, max }: { value: number | null; max: number }) {
+  return (
+    <div>
+      <div className="flex items-center justify-between text-xs text-slate-500">
+        <span>Matches — hard efforts you can make today</span>
+        <span className="font-semibold text-slate-700 tabular-nums">
+          {value == null ? '—' : `${value} of ${max}`}
+        </span>
+      </div>
+      <div className="mt-1 flex gap-1" aria-hidden="true">
+        {Array.from({ length: max }, (_, i) => (
+          <span
+            key={i}
+            className={`h-2 flex-1 rounded-full ${
+              value != null && i < value ? 'bg-amber-500' : 'bg-slate-200'
+            }`}
+          />
+        ))}
+      </div>
+      <p className="mt-1.5 text-xs text-slate-500">
+        Every attack, chase or surge burns one. With none left you can still ride, but you cannot
+        answer a move. Racing tired costs you one before the start.
+      </p>
+    </div>
+  )
+}
+
+/**
  * Bloque privado: forma, frescura, salud, cerillos y moral. Solo se monta si el perfil es MÍO, así
  * que sus consultas (`/api/riders/me/...`) no se disparan nunca en la vista pública.
  */
@@ -191,21 +230,18 @@ function OwnerCondition({ attributes }: { attributes: Record<Attribute, number> 
         </div>
       )}
 
-      <dl className="mt-4 grid grid-cols-2 gap-3">
-        {[
-          { label: 'Matches', value: matches ?? '—' },
-          {
-            label: 'Morale',
-            value: summaryQuery.data ? `${Math.round(summaryQuery.data.morale)}%` : '—',
-          },
-        ].map((s) => (
-          <div key={s.label} className="rounded-md bg-slate-50 p-2.5">
-            <dt className="text-xs font-medium uppercase tracking-wide text-slate-400">
-              {s.label}
-            </dt>
-            <dd className="mt-0.5 text-sm font-bold tabular-nums text-slate-800">{s.value}</dd>
-          </div>
-        ))}
+      {/* Los cerillos van CON las barras: las tres dicen con qué sales hoy, y las tres se explican. */}
+      <div className="mt-3">
+        <MatchRow value={matches} max={maxMatchCount()} />
+      </div>
+
+      <dl className="mt-4">
+        <div className="rounded-md bg-slate-50 p-2.5">
+          <dt className="text-xs font-medium tracking-wide text-slate-400 uppercase">Morale</dt>
+          <dd className="mt-0.5 text-sm font-bold text-slate-800 tabular-nums">
+            {summaryQuery.data ? `${Math.round(summaryQuery.data.morale)}%` : '—'}
+          </dd>
+        </div>
       </dl>
 
       <div className="mt-4">
