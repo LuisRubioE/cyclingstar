@@ -21,6 +21,7 @@ import { Flag } from '../components/Flag'
 import { Jersey, RiderJersey } from '../components/Jersey'
 import { RiderName } from '../components/RiderName'
 import { ShowAllButton, TOP_ROWS } from '../components/ShowAll'
+import { RaceRadioPanel } from '../components/RaceRadioPanel'
 import { StageStory } from '../components/StageStory'
 import { TeamClassNote, TeamClassTable } from '../components/TeamClassTable'
 import { type TabOption, TabPanel, Tabs, useTabParam } from '../components/Tabs'
@@ -464,6 +465,32 @@ function OneDayStory({ raceId, onFullResult }: { raceId: string; onFullResult: (
   return <StageStory data={data} onFullResult={onFullResult} />
 }
 
+/**
+ * Pestaña `Race Radio` de una carrera de UN DÍA: la carrera kilómetro a kilómetro de su única etapa.
+ *
+ * Cuelga de la MISMA consulta que la crónica (`['stage-replay', raceId, 1]`), así que abrir las dos
+ * pestañas no pide nada dos veces.
+ */
+function OneDayRadio({ raceId }: { raceId: string }) {
+  const { data, isPending, isError } = useQuery({
+    queryKey: ['stage-replay', raceId, 1],
+    queryFn: () => fetchCalendarStage(raceId, 1),
+  })
+  if (isPending) return <p className="text-slate-500">Loading…</p>
+  if (isError) return <p className="text-red-600">Could not load the race radio.</p>
+  if (!data.radio) {
+    return (
+      <div className={card}>
+        <h2 className={head}>Race Radio</h2>
+        <p className="text-sm text-slate-500">
+          This race was run before the race radio was recorded, so there is nothing to replay.
+        </p>
+      </div>
+    )
+  }
+  return <RaceRadioPanel radio={data.radio} />
+}
+
 /** Pestaña `Roll of honour`: quién ganó la carrera en temporadas anteriores. */
 function HonoursTab({ data }: { data: RaceView }) {
   return (
@@ -533,6 +560,7 @@ function RaceSections({
         {active === 'story' && (
           <OneDayStory raceId={raceId} onFullResult={() => setActive('result')} />
         )}
+        {active === 'radio' && <OneDayRadio raceId={raceId} />}
         {active === 'stages' && <StagesTab data={data} raceId={raceId} />}
         {active === 'route' && <RouteTab data={data} />}
         {active === 'startlist' &&
