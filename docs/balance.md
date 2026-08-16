@@ -6496,3 +6496,239 @@ importa: **el rebelde que no aparece no genera línea**.
 - **Huellas selladas idénticas**: cambio de OBSERVACIÓN puro.
 - Sube `ENGINE_VERSION` porque cambia el contenido y la colocación de un evento, y `checkReplay()`
   compara versiones.
+
+---
+
+## v32 — El maillot no se va en la fuga del día (`engine_version` 31 → 32)
+
+> **El parte, de producción:** Race Sardegna e2, 136 km llanos. El maillot amarillo —un escalador—
+> en la fuga del día, y ganando al sprint una etapa de velocistas.
+
+### 1. El defecto: la amenaza era un SÍ/NO, y el maillot solo un descuento
+
+`pelotonAllows` (`stage/tactics.ts`) decide si el pelotón deja marchar un movimiento. La amenaza
+para la general entraba como un **escalón**: quien estuviera dentro de la ventana de amenaza
+—`gcThreatFraction` × `gcControlLeash` = 258 s— se llevaba el mismo castigo plano y ya está.
+
+```ts
+if (threat) p *= 1 - STAGE.tacticAllowGcPenalty // 0,75, igual para todos
+```
+
+Medido llamando a la decisión directamente (200.000 tiradas por casilla, etapa de 136 km, fuga de 4):
+
+| caso                 | km 0      | mitad      | últimos km |
+| -------------------- | --------- | ---------- | ---------- |
+| **el LÍDER (0 s)**   | **6,3 %** | **12,5 %** | **18,7 %** |
+| un rival a 60 s      | 6,2 %     | 12,5 %     | 18,9 %     |
+| un rival a 150 s     | 6,3 %     | 12,5 %     | 18,6 %     |
+| **un rival a 250 s** | **6,3 %** | **12,5 %** | **18,6 %** |
+| sin amenaza (300 s)  | 24,9 %    | 49,8 %     | 70,1 %     |
+
+Las cuatro primeras filas son **idénticas**: el motor no distinguía al que lleva el maillot puesto
+de uno a 4:10. Y un 6-19 % por intento no es «poco»: una etapa hace una docena larga de intentos y
+basta con que UNO salga. Compuesto, el líder se escapaba alguna vez con probabilidad **74 %** (10
+intentos), **93 %** (20) o **98 %** (30). Que pasara era lo normal, no mala suerte.
+
+### 2. Por qué el banco no lo veía
+
+`scripts/medir-carrera.mjs` corre cada etapa con `gcDeficitSeconds` = 0 en todo el campo, así que
+`hasGcContext` sale **falso** y la maquinaria de la general no llega a encenderse: ese banco no podía
+ver este defecto ni para bien ni para mal. El banco nuevo, `scripts/medir-maillot.mjs`, **arrastra la
+general etapa a etapa** —como producción, y como ya hacía `analyzeSharjah`—, y con eso el fallo
+aparece solo: sobre 800 etapas con general en juego (`race-sardegna`, 200 semillas), el maillot se
+iba en la fuga del día **29 veces** y **ganaba 3 etapas** desde ella, **una de ellas la e2 llana**,
+que es exactamente el parte.
+
+### 3. Las dos correcciones… y la tercera, que hizo falta medir
+
+**El maillot es VETO, no descuento**, en los movimientos de los que sale la fuga del día (`fuga`,
+`contraataque`, `puente`). **`ataque_final` NO lleva veto**, y es deliberado: que el líder ataque en
+el puerto decisivo o en los últimos kilómetros es la carrera, no una fuga que se le escapa al
+pelotón.
+
+**La amenaza escala con la distancia real**: el castigo lo pone el más peligroso del grupo y vale lo
+que valga su cercanía —entero pegado al maillot, cero en el borde de la ventana, rampa lineal entre
+medias— en vez del escalón que igualaba al líder con uno a 258 s.
+
+Con eso, la decisión queda bien… **y el defecto seguía vivo**: el maillot bajaba de 29 a 17, no a 0.
+Medido el camino que quedaba, **17 de 17** eran movimientos de tipo `fuga` **sin cuerda** (`allowed`
+= 0) **coronados igualmente** como fuga del día. Es el agujero que documenta §13: un intento que
+nadie autorizó puede **prosperar** por su cuenta, y la corona no consultaba `allowed`. Así que la
+corona también se le niega al maillot, y **no es cosmética**: de `dayBreak` cuelga que el pelotón
+deje de cerrar y le conceda la cuerda de `gcControlLeash`. Sin corona, el pelotón sigue cerrando,
+que es lo que hace un pelotón cuando el maillot se le ha ido por delante.
+
+La pregunta «¿va el maillot aquí?» vive en **una sola función** (`carriesGcLeader`), porque la
+aplican dos capas y no se pueden desincronizar.
+
+### 4. Después
+
+| caso                     | km 0      | mitad     | últimos km |
+| ------------------------ | --------- | --------- | ---------- |
+| **el LÍDER (0 s)**       | **0,0 %** | **0,0 %** | **0,0 %**  |
+| un rival a 60 s          | 10,6 %    | 21,2 %    | 31,9 %     |
+| un rival a 150 s         | 17,1 %    | 34,2 %    | 51,3 %     |
+| un rival a 250 s         | 24,4 %    | 48,8 %    | 70,0 %     |
+| sin amenaza (300 s)      | 24,9 %    | 49,8 %    | 70,1 %     |
+| el LÍDER, `ataque_final` | 6,3 %     | 12,4 %    | 18,9 %     |
+
+La última fila es la que prueba que el veto está donde tiene que estar: **el líder atacando en el
+desenlace sigue exactamente igual que antes de esta tanda** (6,3 / 12,4 / 18,9 contra 6,3 / 12,5 /
+18,7). Y la rampa hace lo suyo: el que va a 250 s pasa a moverse como quien no amenaza nada, porque
+a 4:10 **no amenaza nada**.
+
+En la carrera (`race-sardegna`, 200 semillas, 800 etapas con general en juego):
+
+|                                             | antes  | solo veto | veto + corona |
+| ------------------------------------------- | ------ | --------- | ------------- |
+| etapas con fuga del día formada             | 595    | 642       | 624           |
+| **el maillot en la fuga del día**           | **29** | 17        | **0**         |
+| **…y además gana la etapa** (el parte)      | **3**  | 2         | **0**         |
+| el maillot gana la etapa de cualquier forma | 10,5 % | 11,1 %    | 11,5 %        |
+
+Dos cosas que importan tanto como el cero:
+
+- **La fuga del día no se ha muerto**: se forman más que antes (595 → 624), porque la rampa le
+  devuelve la cuerda al que va a dos o tres minutos y antes cobraba el castigo entero. La corrección
+  quita al maillot de la fuga, no quita fugas.
+- **El líder no queda castrado**: sigue ganando etapas —y algo más que antes, 10,5 % → 11,5 %— pero
+  ganándolas **donde se ganan**, en el desenlace, y no colándose en la fuga de la mañana.
+
+### 5. Verificación
+
+- **Huellas selladas idénticas dígito a dígito** (`stage/attribution.test.ts`,
+  `stage/timetrial.test.ts`), y no por casualidad, por dos razones que se sostienen solas:
+  1. sus escenarios (`flatScenario`, `queenScenario`) corren con `gcDeficitSeconds` = 0 en todo el
+     campo, así que `hasGcContext` es falso y este cambio **ni se mira**;
+  2. **el veto tira el dado igualmente** antes de decidir. `rngTactics` es un flujo compartido por
+     toda la etapa: ahorrarse una tirada correría el flujo de TODAS las etapas del juego y movería
+     huellas que no tienen nada que ver con esto. Es la misma lección de la v21, que quitó la FRASE
+     del ataque del km 0 y no el movimiento. Hay un test que sella justo eso.
+- **Suite completa en verde**: 1.272 pasan, 0 fallan.
+- Los invariantes de llano y montaña (`sim/invariants.test.ts`) **no se mueven**, y por lo mismo del
+  punto 1: sus escenarios no tienen general en juego.
+- Sube `ENGINE_VERSION` porque cambia quién se va en la fuga y quién gana etapas, y `checkReplay()`
+  compara versiones.
+
+### 6. La deuda que deja, dicha con todas las letras
+
+**Quedan dos escalones más de general sin graduar**, los dos en `stage/tactics.ts` y los dos con la
+misma forma que tenía este: `attackAppetite` («el que se juega la general ataca más») y
+`followProbability` («el que va cerca en la general no deja marchar al que ataca») siguen leyendo
+`gcDeficitSeconds <= gcThreatFraction × gcControlLeash` como un SÍ/NO, así que para ellos uno a 10 s
+y uno a 250 s siguen siendo el mismo corredor. No se tocan aquí porque son de MOTIVACIÓN del
+corredor y no de PERMISO del pelotón —otra pregunta, otra medición— y porque mezclarlos habría hecho
+imposible justificar qué movía cada cosa. Es el siguiente escalón y es medible con el mismo banco.
+
+---
+
+## v33 — El arranque, el tren del final y el que no colabora en la fuga de los suyos (`engine_version` 32 → 33)
+
+Tres defectos del parte del dueño sobre Race Sardegna e3. Los tres reales, los tres medidos.
+
+### 1. La carrera llegaba al km 1 ya rota
+
+> **La queja, textual:** «siempre se intenta una fuga en el primer km, lo cual está mal».
+
+`moveLambda` valía su máximo nominal **desde el metro cero**: el pelotón entero da la cohesión más
+alta que hay y no había nada que modulara el arranque. Medido, 200 corridas de `race-sardegna` e3:
+
+|                                                   | antes       | después     |
+| ------------------------------------------------- | ----------- | ----------- |
+| primer intento de la etapa (mediana)              | km **0,55** | km **2,25** |
+| corridas que atacan antes del km 1                | **69,5 %**  | **12,0 %**  |
+| con más de un grupo en el primer bloque (km 0,05) | **13 %**    | **0 %**     |
+| …en el km 1                                       | **73,5 %**  | **15,0 %**  |
+| …en el km 2                                       | 91 %        | 44,5 %      |
+| …en el km 5                                       | 87,5 %      | 83,5 %      |
+| …en el km 10                                      | 80 %        | 79 %        |
+
+Que las fugas salgan del disparo es verdad y no se toca. Lo que no es verdad es que la carrera esté
+ROTA antes de que el pelotón se haya estirado. `tacticSettleKm` (5 km) sube el λ desde cero durante
+el arranque, y las dos últimas filas son la comprobación de que **arregla la salida y nada más**: por
+el km 5 la etapa ya ha convergido al mismo estado de antes.
+
+### 2. En el último kilómetro no había tren
+
+> **La queja:** «es el último km… deberíamos ver aquí a los equipos de los sprinters llevando al
+> pelotón a toda velocidad para lanzarles el sprint».
+
+Dos causas encadenadas, y la segunda es la gorda:
+
+- **`menInPeloton` contaba `groupId === PELOTON`**, el id literal. Cuando el grueso de la carrera
+  nace de un descuelgue, todos los equipos cuentan cero hombres «en el pelotón» y nadie reclama el
+  frente. Medido en el km 167 de una etapa de 168: **solo el 44 % de las corridas** conservan el
+  grupo mayor llamado `peloton`. Es la deuda que dejó escrita la v29 —`onTheFront` atado a
+  `kind === 'peloton'`—, aquí medida con su consecuencia visible.
+- **Y el frente, una vez perdido, no se recuperaba nunca.** El relevo exige un equipo con baza **y
+  fresco**; si el que lo llevaba desaparece y no queda nadie fresco, `frontTeamId` se queda en `null`
+  y de ahí no se sale. Medido en los últimos 20 km: **el 59 % de los bloques sin nadie al frente**,
+  con 3,9 equipos frescos de 18 y 1,9 con intención de lanzar el sprint.
+
+Sin `frontTeamId` nadie puede ser `onTheFront`: ni se paga `shelterWorking`, ni hay tren, ni la
+crónica puede decir quién lleva al pelotón. El presupuesto dice que un equipo no puede llevar el
+frente **ochenta kilómetros**, no que no pueda lanzar un sprint —el lanzamiento es exactamente el
+momento de vaciar lo que quede—, así que cuando no hay nadie fresco manda la baza aunque venga
+fundido. Medido: hombres dando la cara en el km 167, **de 0 a 2, de un solo equipo**.
+
+### 3. El equipo que se saboteaba
+
+> **La queja:** «hay un equipo que tiene a 1 ciclista tirando del pelotón pero tiene a 1 ciclista
+> tirando de la fuga… eso es sabotearse a su trabajo».
+
+La regla de no perseguir lo que lleva a un compañero **ya existía** (`teamStance`), con una excepción
+deliberada: el equipo del maillot sí cierra el boquete aunque el fugado sea suyo. Y esa excepción es
+CORRECTA —el liderato es suyo—, así que el que sobra no es el de atrás sino el de delante, tal como
+lo dijo el dueño: «el escapado de ese equipo no debería entrar a los relevos… así además llega más
+fresco al final».
+
+`relaySittingOnPenalty` lo saca del turno. **No frena a la fuga**: el turno tiene tamaño fijo
+(`ceil(paceFraction · N)`), así que al apartarse él releva otro en su lugar; lo único que cambia es
+quién paga el viento. Medido, equipos que dan la cara teniendo a la vez hombre relevando en la fuga:
+
+| km  | antes    | después  |
+| --- | -------- | -------- |
+| 84  | **23 %** | **13 %** |
+| 167 | **41 %** | **19 %** |
+
+No baja a cero porque en una fuga de dos el turno es de uno y alguien tiene que dar la cara.
+
+### 4. Verificación, y lo que esta tanda DEJA EN DEUDA
+
+**Las huellas selladas se mueven, y es la primera tanda que lo hace desde la v30.** Es lo esperado:
+los tres cambios tocan quién paga el viento y cuándo se ataca, o sea física. El dato a mirar es que
+la llana canónica pasa de **14222 s a 14507 s, un 2 % más lenta** —con la rampa de arranque el
+pelotón no pelea desde el metro cero, y una llana sin fuga temprana rueda más despacio—, mientras la
+reina apenas se mueve (14395 → 14398), que confirma que el cambio vive en el arranque y no en el
+desenlace.
+
+**Y mueve tres bandas de calibración, que se ensanchan de forma PROVISIONAL Y MARCADA.** Esto no es
+una calibración: es una deuda aceptada a sabiendas, por decisión del dueño —«me parecen buenos esos
+valores, están cerca de los objetivos… luego ya recalibraremos si hace falta; el motor está lejos de
+estar acabado»— para no bloquear tres defectos reales con el motor a medio hacer.
+
+| invariante                     | banda vieja | medido               | banda nueva |
+| ------------------------------ | ----------- | -------------------- | ----------- |
+| gana la fuga (llano)           | 2-8 %       | **9,17 %**           | 2-10 %      |
+| gana la fuga (montaña)         | 25-45 %     | **24,17 %**          | 24-45 %     |
+| pájaras en la clásica más dura | ≤ 10 %      | **11 %** (Lombardía) | ≤ 12 %      |
+
+De las tres, **la que hay que vigilar es la tercera**: Il Lombardia pasa de un 3 % a un 11 % de
+pájaras, que es el movimiento relativo más grande de la tanda. El VACIADO, que es la señal buena de
+saturación —la erosión lleva techo estructural desde la v6 y por eso no sirve para dar la alarma—,
+sigue por debajo del listón (**0,945** contra 0,95), así que el modelo NO ha dejado de discriminar.
+Pero está cerca.
+
+Sospechosos para quien retome la recalibración, por orden:
+
+- el **llano** no lo mueve el arranque: con la rampa a 2 km en vez de 5 el número se queda clavado en
+  9,17 %. Apunta a `relaySittingOnPenalty` —sacar del turno al fugado le ahorra viento y la fuga
+  llega más fresca—, que es el mismo mecanismo que la v21 midió al probar a sacar del turno al
+  rendido y por el que decidió NO hacerlo.
+- la **montaña** sí se mueve con la rampa, y en el sentido malo: con la rampa a 2 km baja a 21,67 %.
+  Menos intentos tempranos, fuga del día más tardía y más pequeña.
+- las **pájaras de Lombardía** apuntan al cambio de grupo principal: un `shed-N` que ahora puede
+  tener equipo al frente pasa a pagar `shelterWorking`, o sea más viento sobre más gente.
+
+Y lo que NO se ha verificado en ningún momento, del mismo parte: el descolgado que rueda tan rápido
+como el pelotón, los 30 s de hueco cerrados en un kilómetro, y los grupos que se reúnen de golpe.

@@ -485,8 +485,49 @@
  *
  * Cambio de OBSERVACIÓN: recoloca eventos ya emitidos, no consume un dado, y las huellas selladas
  * salen idénticas.
+ *
+ * ── v32 · el maillot no se va en la fuga del día ───────────────────────────────────────────────
+ *
+ * Reportado en producción (Race Sardegna e2, 136 km llanos): el líder de la general, escalador, en
+ * la fuga del día y ganando al sprint una etapa de velocistas. `pelotonAllows` (stage/tactics.ts)
+ * trataba la amenaza para la general como un ESCALÓN —un descuento plano de probabilidad para
+ * cualquiera dentro de los 258 s de la ventana—, así que el motor daba EXACTAMENTE el mismo trato
+ * al que lleva el maillot puesto y al que va a 4:10. Medido llamando a la decisión directamente
+ * (200.000 tiradas): 6,2 % / 12,4 % / 18,7 % al empezar, a mitad y al final de la etapa, idéntico
+ * en las dos filas. Y compuesto sobre la docena larga de intentos que hace una etapa, el líder se
+ * escapaba alguna vez con probabilidad 73 % (10 intentos), 93 % (20) o 98 % (30): pasaba siempre.
+ *
+ * Dos correcciones: el maillot es **VETO** y no descuento en los movimientos de los que sale la
+ * fuga del día (`fuga`, `contraataque`, `puente`; `ataque_final` NO, que el líder ataque en el
+ * desenlace es la carrera), y el castigo de amenaza **escala con la distancia real** en la general
+ * en vez del escalón que igualaba al líder con uno a 258 s.
+ *
+ * El veto TIRA EL DADO IGUALMENTE antes de decidir: `rngTactics` es un flujo compartido y
+ * ahorrarse una tirada correría el flujo de todas las etapas del juego. Por eso las huellas
+ * selladas salen idénticas —sus escenarios corren sin general en juego— y solo se mueve lo que
+ * tiene general de verdad.
+ *
+ * ── v33 · el arranque, el tren del final y el que no colabora en la fuga de los suyos ──────────
+ *
+ * Tres defectos del parte de Race Sardegna e3, los tres medidos:
+ *
+ * 1. LA CARRERA LLEGABA AL KM 1 YA ROTA. `moveLambda` valía su máximo nominal desde el metro cero.
+ *    Medido: primer intento en la mediana del km 0,55 y el 73,5 % de las etapas con más de un grupo
+ *    en el km 1. Con la rampa de arranque (`tacticSettleKm`), el 15 %.
+ * 2. EN EL ÚLTIMO KM NO HABÍA TREN. Dos causas: «en el pelotón» se contaba por el id literal del
+ *    grupo (y en el km 167 solo el 44 % de las corridas lo conservan), y sobre todo el frente, una
+ *    vez perdido, no se recuperaba nunca —el relevo exigía un equipo con baza Y FRESCO, y en el
+ *    desenlace no queda ninguno—. Medido: 59 % de los bloques sin nadie al frente en los últimos
+ *    20 km; ahora hay tren.
+ * 3. EL EQUIPO QUE SE SABOTEA. El que sobra no es el que persigue detrás —el equipo del maillot
+ *    tiene que cerrar el boquete aunque el fugado sea suyo— sino el fugado, que no debe entrar a los
+ *    relevos de una fuga que los suyos cazan. Medido: 23 % → 13 % en el km 84.
+ *
+ * MUEVE LA CALIBRACIÓN, y se sube así a propósito: decisión del dueño, con el motor lejos de estar
+ * acabado y los valores al borde de sus rangos. Lo ensanchado queda MARCADO como provisional en
+ * `sim/targets.ts`, con el detalle en docs/balance.md «v33».
  */
-export const ENGINE_VERSION = 31 as const
+export const ENGINE_VERSION = 33 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -1131,6 +1172,16 @@ export const STAGE = {
   // Penalización al deber de relevo de un corredor que lleva gregarios suyos en el grupo: si tiene
   // equipo alrededor, el equipo trabaja por él (SPEC 6.18) y él pasa al final de la cola de relevos.
   relayProtectedPenalty: 0.5,
+  // EL FUGADO CUYO EQUIPO PERSIGUE POR DETRÁS NO ENTRA A LOS RELEVOS (v33). Es la regla más vieja
+  // del ciclismo vista desde el otro lado: si mi equipo está tirando del pelotón para cazar esta
+  // fuga, yo no colaboro en ella —sería trabajar contra los míos—, me quedo a rueda y llego más
+  // fresco al final. Los demás se enfadarán, pero eso es la carrera.
+  //
+  // No cambia el RITMO del grupo, solo quién paga el viento: el turno tiene tamaño fijo
+  // (`ceil(paceFraction · N)`), así que al apartarse él releva otro en su lugar. Es deliberadamente
+  // grande —lo saca del turno salvo que no quede nadie más— porque es una orden de equipo, no una
+  // preferencia.
+  relaySittingOnPenalty: 2,
   // Amplitud del desempate aleatorio (determinista, sembrado) del deber de relevo.
   relayJitterWeight: 0.05,
 
@@ -1535,6 +1586,17 @@ export const STAGE = {
   // Regla 1, «sube si el grupo va junto»: suelo del factor de cohesión. Con el pelotón entero el
   // factor vale 1; con la carrera ya rota no se apaga del todo, pero baja a este suelo.
   tacticCohesionFloor: 0.35,
+  // LA CARRERA NO SE ROMPE EN LOS PRIMEROS CIEN METROS (v33). El λ del intento valía su máximo
+  // nominal desde el metro cero —el pelotón entero da cohesión 1—, y medido sobre 200 corridas de
+  // race-sardegna e3 eso daba: primer intento en la mediana del km 0,55, el 69,5 % de las etapas
+  // atacando antes del km 1, y el 73,5 % llegando al km 1 con más de un grupo en carretera (un 13 %
+  // ya en el primer bloque, o sea a los cien metros). La queja del dueño era exacta: «siempre se
+  // intenta una fuga en el primer km, lo cual está mal».
+  //
+  // Que las fugas salgan del disparo es verdad y no se toca; lo que no es verdad es que la carrera
+  // esté ROTA antes de que el pelotón se haya estirado. Estos son los km en los que el intento sube
+  // desde cero hasta su intensidad normal: el tramo en que la carrera se pone en marcha.
+  tacticSettleKm: 5,
   // Regla 1, «sube cuanto más cerca está la meta»: cuánto multiplica λ al final de la etapa. Es
   // cuadrático en la fracción recorrida, así que el último cuarto pesa mucho más que el primero.
   tacticProximityGain: 1.5,
@@ -1594,6 +1656,10 @@ export const STAGE = {
   tacticAllowBase: 0.3,
   tacticAllowKmGain: 0.5,
   tacticAllowSizePenalty: 0.05,
+  // El castigo de amenaza es el TECHO de una rampa, no un escalón (v32): vale entero pegado al
+  // maillot y baja a cero en el borde de la ventana (`gcThreatFraction`). El número no se ha
+  // tocado; lo que cambia es a quién se le aplica entero. Y al líder ya no le hace falta ninguno:
+  // el maillot es VETO en la fuga del día, no descuento (`pelotonAllows`).
   tacticAllowGcPenalty: 0.75,
   tacticAllowMax: 0.7,
   // Ritmo al que el pelotón cierra un movimiento al que NO da cuerda. Por encima del tempo de
@@ -1820,6 +1886,10 @@ export const STAGE = {
   // menor que esta fracción de la cuerda máxima que el pelotón está dispuesto a dar. Con 0,6 y una
   // cuerda de 175 s, quien esté a menos de 105 s del líder no se va de rositas: si le dejan la
   // cuerda entera, se pone líder.
+  //
+  // Desde la v32 esto ya no es una PUERTA sino el BORDE DE UNA RAMPA: marca dónde deja de haber
+  // castigo, y cuánto castigo hay depende de lo cerca que esté el hombre del maillot. Era una
+  // puerta y por eso el líder de la general y un rival a 4:10 recibían exactamente el mismo trato.
   gcThreatFraction: 0.6,
   // Ritmo del pelotón cuando NO hay nada que cazar por delante (sin fuga, o ya cazada). Antes esto
   // no existía: el controlador vivía dentro de `if (breakaway && !caught)` y el pelotón se quedaba

@@ -25,15 +25,46 @@ import { LeaderJersey } from './Jersey'
  *    jefes de filas). Los demás se cuentan.
  */
 
+/**
+ * QUÉ PARTE DE LA CARRERA HAY QUE LLEVAR PARA LLAMARSE PELOTÓN. Dos tercios de los que siguen en
+ * carrera. El número sale de las dos quejas que lo fijan, una por cada lado:
+ *
+ *  - un grupo de **129** con la carrera casi entera dentro salía como «Lead group» solo por haber
+ *    perdido a alguien —el listón era `size >= racing`, o sea el pelotón EN PLENO—, y un pelotón
+ *    sigue siendo el pelotón aunque se le haya escapado una fuga y se le haya caído un grupeto;
+ *  - y cuando la carrera se parte en **59 y 65**, el de 65 tampoco es «el pelotón»: es media
+ *    carrera. Con mayoría simple (65 de 124 es un 52 %) se habría seguido llamando pelotón, así que
+ *    la mayoría no vale como listón.
+ */
+const PELOTON_MIN_SHARE = 2 / 3
+
+/** `2nd`, `3rd`… para cuando no hay pelotón y a los grupos hay que llamarlos por su sitio. */
+function ordinal(n: number): string {
+  const rest = n % 100
+  if (rest >= 11 && rest <= 13) return `${n}th`
+  const last = n % 10
+  return `${n}${last === 1 ? 'st' : last === 2 ? 'nd' : last === 3 ? 'rd' : 'th'}`
+}
+
 /** El nombre de carretera de cada grupo, que es como se anuncia por la radio. */
-function groupName(kind: RadioGroupKind, position: number, size: number, racing: number): string {
-  // El de cabeza se llama por lo que ES, no por su origen: si el pelotón va entero en cabeza, no es
-  // «una fuga», es el pelotón. El listón es haber perdido a alguien, no un porcentaje.
-  if (position === 0) return kind === 'peloton' && size >= racing ? 'Bunch together' : 'Lead group'
-  if (kind === 'peloton') return 'Peloton'
+export function groupName(
+  kind: RadioGroupKind,
+  position: number,
+  size: number,
+  racing: number,
+): string {
+  // El pelotón se llama por lo que ES —cuánta carrera lleva dentro— y no por dónde va: si va en
+  // cabeza porque no se ha escapado nadie, sigue siendo el pelotón y no «una fuga».
+  if (kind === 'peloton' && size >= racing * PELOTON_MIN_SHARE) {
+    return size >= racing ? 'Bunch together' : 'Peloton'
+  }
+  if (position === 0) return 'Lead group'
   if (kind === 'contra') return 'Chase group'
   if (kind === 'tierra') return 'No man’s land'
   if (kind === 'grupeto') return 'Grupetto'
+  // Llevaba el título de pelotón pero ya no manda en la carrera: se le llama por su sitio en la
+  // carretera, que es lo único cierto que se puede decir de él.
+  if (kind === 'peloton') return `${ordinal(position + 1)} group`
   return 'Group'
 }
 
@@ -86,7 +117,20 @@ function RiderLine({ r }: { r: RadioRider }) {
 }
 
 function GroupCard({ g, position, racing }: { g: RadioGroup; position: number; racing: number }) {
-  const pulling = g.riders.filter((r) => r.role !== 'sheltered')
+  /**
+   * TRES LISTAS Y NO DOS, porque son tres cosas distintas y el motor las distingue desde la v15.
+   *
+   * «Driving the group» las juntaba, y de ahí la queja: en el km 1 salían doce hombres de seis
+   * equipos «tirando del pelotón», que no tiene ningún sentido. Y no lo tenía porque no era verdad:
+   * en un pelotón el turno de relevos son cuarenta hombres, y de esos **los que de verdad dan la
+   * cara al viento son los del equipo que ha tomado el frente** (`onTheFront` en el motor, que paga
+   * `shelterWorking`); el resto van en el turno pero colocados detrás, a `shelterRelay`.
+   *
+   * Juntarlos convertía «el equipo X está tirando» —que es la frase que se quiere leer— en una
+   * ensalada de nombres sueltos de media parrilla.
+   */
+  const front = g.riders.filter((r) => r.role === 'front')
+  const rotation = g.riders.filter((r) => r.role === 'relay')
   const sitting = g.riders.filter((r) => r.role === 'sheltered')
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-3">
@@ -116,13 +160,29 @@ function GroupCard({ g, position, racing }: { g: RadioGroup; position: number; r
         </div>
       )}
 
-      {pulling.length > 0 && (
+      {front.length > 0 && (
         <>
           <p className="mt-2 text-[11px] font-semibold tracking-wide text-slate-400 uppercase">
-            Driving the group ({pulling.length})
+            On the front ({front.length})
           </p>
           <ul className="mt-0.5 space-y-0.5">
-            {pulling.map((r) => (
+            {front.map((r) => (
+              <RiderLine key={`${r.name}-${r.bib ?? ''}`} r={r} />
+            ))}
+          </ul>
+        </>
+      )}
+      {rotation.length > 0 && (
+        <>
+          <p className="mt-2 text-[11px] font-semibold tracking-wide text-slate-400 uppercase">
+            {/* En una fuga NO hay «equipo al frente», así que aquí van los que se relevan: los seis
+                de la fuga rodando a turnos son, literalmente, quien la lleva. */}
+            {front.length > 0
+              ? `In the rotation (${rotation.length})`
+              : `Taking turns (${rotation.length})`}
+          </p>
+          <ul className="mt-0.5 space-y-0.5">
+            {rotation.map((r) => (
               <RiderLine key={`${r.name}-${r.bib ?? ''}`} r={r} />
             ))}
           </ul>

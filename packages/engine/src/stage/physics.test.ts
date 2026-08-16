@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { Attribute } from '@cyclingstar/shared'
+import { ATTRIBUTES, type Attribute } from '@cyclingstar/shared'
 import {
   blockCost,
   blockPerfil,
@@ -11,6 +11,7 @@ import {
   erosion,
   majorityOnTheRoad,
   matchCount,
+  maxMatchCount,
   stepSpeed,
   targetSpeed,
   vRef,
@@ -304,5 +305,20 @@ describe('erosión (6.7)', () => {
     const now = effNow(base, 0, true)
     expect(now.SPR).toBeCloseTo(80 * 0.55)
     expect(now.TAC).toBeCloseTo(80) // la cabeza no se vacía
+  })
+})
+
+describe('el techo de cerillos (para que la interfaz enseñe la escala)', () => {
+  it('es la base más los umbrales, y ningún corredor lo pasa', () => {
+    // «Matches 1» no se entiende sin saber que el máximo es 5: la escala tiene que salir del motor
+    // y no de un número escrito a mano en la web.
+    expect(maxMatchCount()).toBe(STAGE.matchBase + STAGE.matchThresholds.length)
+    const tope = {} as Record<Attribute, number>
+    for (const a of ATTRIBUTES) tope[a] = 100
+    expect(matchCount(tope, 0)).toBeLessThanOrEqual(maxMatchCount())
+    // Y el suelo es 1, que es lo que veía el dueño en su perfil.
+    const suelo = {} as Record<Attribute, number>
+    for (const a of ATTRIBUTES) suelo[a] = 1
+    expect(matchCount(suelo, -100, true)).toBe(STAGE.matchMin)
   })
 })

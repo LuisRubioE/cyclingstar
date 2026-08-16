@@ -149,13 +149,19 @@ function roundKm(km: number): number {
 }
 
 /**
- * Los kilómetros que se le piden a la foto para una etapa: uno de cada `everyKm` más el último
- * bloque, que es donde se decide. `simulateStage` resuelve cada uno al bloque que le toca, así que
- * no hace falta que caigan en un múltiplo exacto de `dx`.
+ * Los kilómetros que se le piden a la foto para una etapa: uno de cada `everyKm` **empezando por la
+ * salida**, más el último bloque, que es donde se decide. `simulateStage` resuelve cada uno al
+ * bloque que le toca, así que no hace falta que caigan en un múltiplo exacto de `dx`.
+ *
+ * EMPIEZA EN 0 Y NO EN `everyKm`: la primera foto de la tabla era la del km 1, y ahí la carrera ya
+ * ha pasado por diez bloques de decisión —medido, un 73,5 % de las etapas llega al km 1 con más de
+ * un grupo en carretera—, así que la radio abría SIEMPRE con una fuga ya hecha y el lector no veía
+ * nunca el pelotón junto del que sale. La salida es un estado de carrera como cualquier otro y la
+ * tabla tiene que poder enseñarlo.
  */
 export function radioKmPoints(totalKm: number, everyKm = 1): readonly number[] {
   const kms: number[] = []
-  for (let km = everyKm; km < totalKm; km += everyKm) kms.push(Math.round(km * 10) / 10)
+  for (let km = 0; km < totalKm; km += everyKm) kms.push(Math.round(km * 10) / 10)
   const last = Math.max(0, totalKm - STAGE.dx)
   if (kms.length === 0 || kms[kms.length - 1]! < last) kms.push(Math.round(last * 10) / 10)
   return kms
@@ -387,6 +393,60 @@ export interface StoredRaceRadio {
 const STORED_PULLERS_MAX = 12
 
 /**
+ * HASTA ESTE TAMAÑO SE NOMBRA AL GRUPO ENTERO, tire quien tire y lleve maillot quien lo lleve.
+ *
+ * `watch` resuelve «a quién hay que poder seguir SIEMPRE» —maillots y jefes de filas— y está pensado
+ * para el pelotón, donde nombrar a ciento veinte no es información sino ruido. Pero aplicado a un
+ * grupo pequeño daba justo lo contrario de lo que se quería: en una escapada de DOS, con uno
+ * relevando y el otro a rueda, se nombraba a uno y el otro salía como «+1 rider more». Y en un grupo
+ * de once perseguidores, seis tirando y el maillot, los otros cuatro se contaban en vez de decirse.
+ *
+ * En carretera, de un grupo pequeño se sabe quién va: son pocos y se les ve. El «+N more» es para
+ * cuando de verdad no se puede nombrar a todos.
+ */
+const NAME_WHOLE_GROUP_UP_TO = 12
+
+/**
+ * DÓNDE ESTÁ ESTE GRUPO UN KILÓMETRO MÁS ALLÁ, para poder medirle la velocidad.
+ *
+ * Se buscaba por `id`, y así un grupo que se fundía o se rompía **desaparecía** y se quedaba sin
+ * velocidad: en la tabla salían huecos justo en los kilómetros más interesantes —los de la reunión
+ * de dos grupos—, que es exactamente donde el lector quiere saber a qué iban.
+ *
+ * Y no hacía falta rendirse, porque **el dato existe igual**: el reloj de un grupo es el tiempo de
+ * carrera de su gente al pasar por ahí, así que el tiempo que tardan en cubrir el kilómetro se puede
+ * restar aunque por el camino se hayan juntado con otros. Se sigue a LA GENTE, no a la etiqueta:
+ *
+ *  - si el grupo sigue existiendo, es él;
+ *  - si se **fundió**, es el grupo en el que han acabado sus corredores;
+ *  - si se **rompió**, es el trozo que se lleva a más de ellos (el mayor), que es el que hereda la
+ *    identidad del grupo del que hablábamos.
+ *
+ * Solo se devuelve `undefined` cuando no queda ni uno —abandonos, o la última foto—, y ahí sí que no
+ * hay nada que medir.
+ */
+function whereItWent(
+  g: { id: string; riderIds: readonly string[] },
+  next: RadioKm | undefined,
+): { tS: number } | undefined {
+  if (!next) return undefined
+  const same = next.groups.find((x) => x.id === g.id)
+  if (same) return same
+  const mine = new Set(g.riderIds)
+  let best: RadioGroup | undefined
+  let bestCount = 0
+  for (const x of next.groups) {
+    let n = 0
+    for (const id of x.riderIds) if (mine.has(id)) n += 1
+    if (n > bestCount) {
+      bestCount = n
+      best = x
+    }
+  }
+  return bestCount > 0 ? best : undefined
+}
+
+/**
  * De la radio completa a la que se guarda.
  *
  * `watch` son los corredores que hay que poder nombrar SIEMPRE, vayan o no tirando. El motor no sabe
@@ -413,13 +473,31 @@ export function radioForStorage(
   const kms = radio.kms.map((k, i) => {
     const next = radio.kms[i + 1]
     const groups = k.groups.map((g) => {
-      const pull = g.pulling.slice(0, STORED_PULLERS_MAX)
+      /**
+       * A QUIÉN SE GUARDA COMO QUE TIRA. El tope existe porque en un pelotón el turno son cuarenta
+       * hombres y no caben; pero al que se cae del corte hay que dejarlo FUERA de los nombrados, no
+       * moverlo a la otra lista: `inPull` se calculaba sobre el corte, así que un corredor que
+       * estaba relevando y no entraba en los doce reaparecía entre los que van «a rueda», con el
+       * icono de ir guarecido. Era el «símbolo de tirar que no sale en algunos que tiran»: no es que
+       * faltara el icono, es que le poníamos el contrario.
+       *
+       * Y a los que hay que poder seguir SIEMPRE —los maillots— se les guarda tiren donde tiren,
+       * aunque el corte los dejara fuera: si el maillot está dando la cara, eso es la noticia.
+       */
+      const keep = new Set(g.pulling.slice(0, STORED_PULLERS_MAX).map((p) => p.riderId))
+      for (const p of g.pulling) if (watch.has(p.riderId)) keep.add(p.riderId)
+      // Se filtra conservando el orden, que viene con los que dan la cara al viento primero.
+      const pull = g.pulling.filter((p) => keep.has(p.riderId))
       const pulling = pull.map((p) => idx(p.riderId))
-      const inPull = new Set(pull.map((p) => p.riderId))
-      const watching = g.riderIds.filter((id) => watch.has(id) && !inPull.has(id)).map(idx)
-      // La velocidad del grupo en este km. Se busca el MISMO grupo en la foto siguiente (por id): si
-      // se ha fundido o roto no hay medida honesta que dar, y se deja en null antes que inventarla.
-      const there = next?.groups.find((x) => x.id === g.id)
+      // TODO el que releva queda excluido de los que van a rueda, entre en el corte o no.
+      const relaying = new Set(g.pulling.map((p) => p.riderId))
+      // En un grupo pequeño se nombra a todos; en el pelotón, a los que hay que poder seguir.
+      const nameAll = g.size <= NAME_WHOLE_GROUP_UP_TO
+      const watching = g.riderIds
+        .filter((id) => (nameAll || watch.has(id)) && !relaying.has(id))
+        .map(idx)
+      // La velocidad del grupo en este km: dónde está SU GENTE un kilómetro más allá.
+      const there = whereItWent(g, next)
       const dt = there ? there.tS - g.tS : 0
       const dKm = next ? next.km - k.km : 0
       const speedKmh = there && dt > 0 && dKm > 0 ? Math.round((10 * (3600 * dKm)) / dt) / 10 : null

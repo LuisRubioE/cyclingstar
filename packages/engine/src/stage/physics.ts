@@ -323,6 +323,16 @@ export function blockCost(block: Block, c: number, shelter: number, dx: number =
  * cerillos = 2 + umbrales; con TSB < -25 se resta uno; el vaciado profundo del día anterior
  * resta otro. Mínimo 1.
  */
+/**
+ * EL TECHO DE CERILLOS, para que la interfaz pueda enseñar la ESCALA sin inventársela. Un número de
+ * cerillos a pelo no dice nada —el dueño, mirando su perfil: «pone matches 1… eso no aporta, ni se
+ * entiende»— porque «1» solo significa algo si sabes que el máximo es 5. Los dos descuentos (ir muy
+ * cargado y venir vaciado) solo RESTAN, así que el techo es la base más los umbrales.
+ */
+export function maxMatchCount(): number {
+  return STAGE.matchBase + STAGE.matchThresholds.length
+}
+
 export function matchCount(eff0: Eff, tsb: number, deepDepleted = false): number {
   const comp =
     STAGE.matchCompMonWeight * Math.max(eff0.MON, eff0.COL) +

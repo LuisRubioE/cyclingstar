@@ -60,6 +60,7 @@ import {
   followProbability,
   giveUpLambda,
   jumpGapSeconds,
+  carriesGcLeader,
   moveCooperation,
   pelotonAllows,
   rankOf,
@@ -390,13 +391,20 @@ function paceSetters(members: RiderSim[], block: Block, pace: number): RiderSim[
  * porque su equipo trabaja por él. Un jitter fijo por corredor y etapa rompe empates.
  * Deliberadamente NO interviene la posición en el array de entrada.
  */
-function relayDuty(m: RiderSim, protectedByTeam: boolean, teamDriveNow: number): number {
+function relayDuty(
+  m: RiderSim,
+  protectedByTeam: boolean,
+  teamDriveNow: number,
+  sittingOn: boolean,
+): number {
   const duty = STAGE.relayDutyByRole[m.input.orders.role]
   const freshness = m.energy0 > 0 ? Math.max(0, Math.min(1, m.energy / m.energy0)) : 0
   return (
     duty +
     STAGE.relayFreshnessWeight * freshness -
-    (protectedByTeam ? STAGE.relayProtectedPenalty : 0) +
+    (protectedByTeam ? STAGE.relayProtectedPenalty : 0) -
+    // Su equipo persigue esta fuga por detrás: no colabora en ella (v33).
+    (sittingOn ? STAGE.relaySittingOnPenalty : 0) +
     // EL PLAN DE EQUIPO (v15, docs/motor.md §V.1). Este es el término que hace que el frente del
     // pelotón tenga DUEÑO: el equipo que persigue empuja a los suyos al turno y el que se esconde
     // los saca. Vale 0 para el agente libre y para el que corre por su cuenta (regla 1 de §V.1),
@@ -418,6 +426,8 @@ function relayTurn(
   paceFraction: number,
   domestiquesFor: Map<string, string[]>,
   driveOfRider: (riderId: string) => number,
+  /** ¿Va este hombre en una fuga que SU PROPIO equipo está persiguiendo por detrás? (v33). */
+  sittingOn: (riderId: string) => boolean = () => false,
 ): Set<string> {
   /**
    * EL QUE SE RINDIÓ NO TIRA — PERO ESO SE ARREGLA EN LO QUE SE CUENTA, NO EN EL REPARTO DEL VIENTO
@@ -443,7 +453,12 @@ function relayTurn(
     const protectedByTeam = helpers != null && helpers.some((id) => idSet.has(id))
     return {
       id: m.input.riderId,
-      duty: relayDuty(m, protectedByTeam, driveOfRider(m.input.riderId)),
+      duty: relayDuty(
+        m,
+        protectedByTeam,
+        driveOfRider(m.input.riderId),
+        sittingOn(m.input.riderId),
+      ),
     }
   })
   // Desempate final por id para que el orden sea total y no herede el orden de inserción.
@@ -1134,8 +1149,15 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
       if (teamPlans.size > 0) {
         const inMove = new Set<string>()
         for (const mv of moves) for (const m of membersOf(mv.g.id)) inMove.add(m.input.riderId)
+        // …Y «EN EL PELOTÓN» ES EN EL GRUPO QUE LLEVA LA GENTE, no en el que conserva el id (v33).
+        // Era `groupId === PELOTON`: cuando el grueso de la carrera nacía de un descuelgue —un
+        // `shed-N` que se come al pelotón, o el corte de un abanico—, TODOS los equipos contaban
+        // cero hombres «en el pelotón», nadie reclamaba el frente y `frontTeamId` se quedaba en
+        // null. Medido en el km 167 de una etapa de 168: cero hombres dando la cara en la MITAD de
+        // las corridas, o sea ningún equipo de sprinters lanzando en el último kilómetro.
+        const bunchId = mainId ?? PELOTON
         const menInPeloton = (plan: TeamPlan): number =>
-          plan.memberIds.filter((id) => !rebels.has(id) && sims.get(id)?.groupId === PELOTON).length
+          plan.memberIds.filter((id) => !rebels.has(id) && sims.get(id)?.groupId === bunchId).length
         // 1. Qué juega cada equipo AHORA, y POR QUÉ. La amenaza se mide con el MEJOR CLASIFICADO
         //    que va delante: es la cuenta de `gcLeash()` mirada equipo a equipo, que es lo que
         //    distingue al equipo del maillot —al que esa fuga sí le quita el liderato— del equipo
@@ -1175,10 +1197,37 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
                 b.quality - a.quality ||
                 (a.teamId < b.teamId ? -1 : 1),
             )[0]
-          // Si no queda nadie fresco con derecho al frente, sigue el que estaba (fundido) hasta que
-          // alguien recupere la baza: la carretera no se queda sin nadie delante.
+          /**
+           * Si no queda nadie fresco con derecho al frente, sigue el que estaba (fundido) hasta que
+           * alguien recupere la baza: la carretera no se queda sin nadie delante.
+           *
+           * …salvo que EL QUE ESTABA YA NO ESTUVIERA (v33). Ese caso caía en `frontTeamId = null`, y
+           * de ahí no se salía: para volver a poner a alguien delante hacía falta un equipo con baza
+           * Y FRESCO, y en el desenlace ya no queda ninguno. Medido en los últimos 20 km de una
+           * etapa de 168: **el 59 % de los bloques sin nadie al frente**, con 3,9 equipos frescos de
+           * 18 y 1,9 con intención de lanzar el sprint. Justo cuando los trenes tienen que estar
+           * volando no había tren: sin `frontTeamId` nadie puede ser `onTheFront`, así que ni se
+           * paga `shelterWorking` ni la crónica puede decir quién lleva al pelotón.
+           *
+           * El presupuesto dice que un equipo no puede llevar el frente OCHENTA kilómetros, no que
+           * no pueda lanzar un sprint: el lanzamiento es exactamente el momento de vaciar lo que
+           * quede. Así que cuando no hay nadie fresco, manda la baza aunque venga fundido.
+           */
           if (relief) frontTeamId = relief.teamId
-          else if (!current || claimOf(current) === 0) frontTeamId = null
+          else if (current && claimOf(current) > 0) {
+            // Sigue el que estaba, fundido y todo.
+          } else {
+            const fundido = [...teamPlans.values()]
+              .filter((p) => claimOf(p) > 0)
+              .sort(
+                (a, b) =>
+                  claimOf(b) - claimOf(a) ||
+                  spentFractionOf(a) - spentFractionOf(b) ||
+                  b.quality - a.quality ||
+                  (a.teamId < b.teamId ? -1 : 1),
+              )[0]
+            frontTeamId = fundido ? fundido.teamId : null
+          }
         }
         // 3. El empuje de cada uno, y la fuerza que le QUEDA a la caza.
         let chaseReady = 0
@@ -1650,10 +1699,34 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
       kind: 'peloton' | 'move' | 'shed' = 'shed',
     ): Group => {
       if (members.length === 0) return group
+      /**
+       * ¿ES ESTE GRUPO EL PELOTÓN? Por la GENTE que lleva y no por el id con el que nació (v33, la
+       * deuda que dejó escrita la v29). De esto cuelgan el equipo al frente y el libro del trabajo,
+       * y estaban atados a `kind === 'peloton'`: un `shed-N` que ya era el grueso de la carrera no
+       * podía tener equipo al frente ni cobrar `shelterWorking`, y su trabajo no se apuntaba.
+       */
+      const isBunch = group.id === (mainId ?? PELOTON)
       const p75 = pacemakerP75(members, block, paceFraction)
       const next = advanceGroup(group, block, p75, { isFinal })
       const idSet = new Set(members.map((m) => m.input.riderId))
-      const relayers = relayTurn(members, idSet, paceFraction, domestiquesFor, driveOfRider)
+      /**
+       * EL QUE NO COLABORA EN LA FUGA PORQUE LOS SUYOS LA PERSIGUEN (v33). La queja, textual: «hay
+       * un equipo que tiene a 1 ciclista tirando del pelotón pero tiene a 1 ciclista tirando de la
+       * fuga… eso es sabotearse a su trabajo». Y la salida es la que da el dueño: el que sobra no es
+       * el de atrás sino el de delante —«el escapado de ese equipo no debería entrar a los relevos…
+       * así además llega más fresco al final»—, porque el equipo del maillot SÍ tiene que cerrar el
+       * boquete aunque el fugado sea suyo, y esa excepción es correcta.
+       *
+       * El turno tiene tamaño fijo, así que apartarlo no frena al grupo: releva otro en su lugar.
+       */
+      const relayers = relayTurn(
+        members,
+        idSet,
+        paceFraction,
+        domestiquesFor,
+        driveOfRider,
+        (riderId) => !isBunch && frontTeamId !== null && teamOf.get(riderId) === frontTeamId,
+      )
       /**
        * LO QUE VALE UN RELEVO EN ESTE BLOQUE, MEDIDO POR EL VIENTO Y NO POR LA VELOCIDAD (v26).
        *
@@ -1709,7 +1782,7 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
          */
         const onTheFront =
           relaying &&
-          kind === 'peloton' &&
+          isBunch &&
           frontTeamId !== null &&
           !rebels.has(m.input.riderId) &&
           teamOf.get(m.input.riderId) === frontTeamId
@@ -1734,7 +1807,7 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
                 : STAGE.shelterProtected
         const mineEffort = workOf(shelter)
         if (relaying && mineEffort > 0) {
-          if (kind === 'peloton') {
+          if (isBunch) {
             m.frontWorkPeloton += mineEffort
             // El parte responde «quién tira AHORA»: el que va en cabeza se lleva el trabajo entero
             // y el que releva colocado detrás, su parte. Es observación, no física: no mueve un
@@ -3044,11 +3117,22 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
           // Regla 5: la fuga del día es **el primero que prospera tras varios fracasos**. Solo
           // dentro de la ventana: un movimiento que cuaja a falta de 40 km es un ataque tardío, y
           // la crónica no puede llamarlo igual.
+          // …Y LA CORONA TAMPOCO ES PARA EL MAILLOT (v32). Negarle la cuerda en `pelotonAllows` no
+          // bastaba: un movimiento puede PROSPERAR sin cuerda —el agujero que documenta §13, por el
+          // que un intento que nadie autorizó acaba siendo la fuga del día— y medido, los 17 casos
+          // que seguían colándose eran exactamente eso: el líder dentro, sin cuerda, coronado
+          // igual. La corona no es una etiqueta: de ella cuelga que el pelotón DEJE DE CERRAR y le
+          // conceda la cuerda de `gcControlLeash`. Sin corona el pelotón sigue cerrando, que es lo
+          // que hace un pelotón cuando el maillot se le ha ido por delante.
           if (
             !dayBreakFormed &&
             m.kind !== 'puente' &&
             m.sourceId === PELOTON &&
-            km <= totalKm * STAGE.tacticBreakWindowFraction
+            km <= totalKm * STAGE.tacticBreakWindowFraction &&
+            !carriesGcLeader(
+              mem.map((x) => x.input.gcDeficitSeconds),
+              hasGcContext,
+            )
           ) {
             dayBreakFormed = true
             m.dayBreak = true

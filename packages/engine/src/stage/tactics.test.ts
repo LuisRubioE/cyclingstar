@@ -9,6 +9,7 @@ import {
   type MoveContext,
   type MoveRider,
   attackAppetite,
+  carriesGcLeader,
   chooseInstigator,
   followProbability,
   giveUpLambda,
@@ -205,6 +206,79 @@ describe('reglas 4 y 5 — muchos intentos fracasan, y hacen falta muchos antes 
     const ceros = [moveRider('a', { gcDeficitSeconds: 0 }), moveRider('b', { gcDeficitSeconds: 0 })]
     const dado = STAGE.tacticAllowBase * (1 - STAGE.tacticAllowGcPenalty) + 0.01
     expect(allows(ceros, ctx({ kmToGo: 180, totalKm: 180 }), dado)).toBe(true)
+  })
+
+  // --- v32: el maillot es VETO, y la amenaza se mide en segundos ---------------------------
+
+  it('LA FUGA DEL DÍA NO SE LLEVA AL LÍDER DE LA GENERAL, por bueno que sea el dado', () => {
+    // El caso del parte de producción (Race Sardegna e2): el maillot en la fuga de una etapa llana.
+    // No es «poco probable»: con el dado más favorable posible sigue siendo NO.
+    const conMaillot = [
+      moveRider('lider', { gcDeficitSeconds: 0 }),
+      moveRider('b', { gcDeficitSeconds: 900 }),
+    ]
+    for (const kind of ['fuga', 'contraataque', 'puente'] as const) {
+      const c = ctx({ kind, kmToGo: 20, totalKm: 180, hasGcContext: true })
+      expect(allows(conMaillot, c, 0)).toBe(false)
+    }
+  })
+
+  it('…pero el líder SÍ puede atacar en el desenlace: `ataque_final` no lleva veto', () => {
+    // El maillot atacando en el puerto decisivo es la carrera, no una fuga que se le escapa al
+    // pelotón. El veto es de la fuga del día, no del líder.
+    const conMaillot = [
+      moveRider('lider', { gcDeficitSeconds: 0 }),
+      moveRider('b', { gcDeficitSeconds: 900 }),
+    ]
+    const c = ctx({ kind: 'ataque_final', kmToGo: 20, totalKm: 180, hasGcContext: true })
+    expect(allows(conMaillot, c, 0)).toBe(true)
+  })
+
+  it('la amenaza ESCALA con la distancia real en la general, no es un escalón', () => {
+    // El defecto de fondo: a 10 s y a 250 s cobraban EXACTAMENTE el mismo castigo plano, así que el
+    // motor no distinguía al que se juega la general del que no.
+    const ventana = STAGE.gcThreatFraction * STAGE.gcControlLeash
+    const cerca = [moveRider('a', { gcDeficitSeconds: 10 })]
+    const lejos = [moveRider('a', { gcDeficitSeconds: ventana - 10 })]
+    const c = ctx({ kmToGo: 180, totalKm: 180, hasGcContext: true })
+    // Un dado entre los dos: al de cerca no le llega y al del borde sí. Con el escalón de antes las
+    // dos respuestas eran la misma, fuera cual fuera el dado.
+    const dado = STAGE.tacticAllowBase / 2
+    expect(allows(cerca, c, dado)).toBe(false)
+    expect(allows(lejos, c, dado)).toBe(true)
+  })
+
+  it('y en el borde de la ventana ya no queda castigo', () => {
+    const ventana = STAGE.gcThreatFraction * STAGE.gcControlLeash
+    const fuera = [moveRider('a', { gcDeficitSeconds: ventana + 1 })]
+    const c = ctx({ kmToGo: 180, totalKm: 180, hasGcContext: true })
+    expect(allows(fuera, c, STAGE.tacticAllowBase - 0.01)).toBe(true)
+  })
+
+  it('«va el maillot aquí» lo contesta UNA sola función, que usan la cuerda y la corona', () => {
+    // La misma regla la aplican dos capas —`pelotonAllows` niega la cuerda y `simulate.ts` niega la
+    // corona de fuga del día—, así que vive en un solo sitio y no puede desincronizarse.
+    expect(carriesGcLeader([0, 900], true)).toBe(true)
+    expect(carriesGcLeader([30, 900], true)).toBe(false)
+    // Empatar a cero es ir de co-líder: ese tampoco se va.
+    expect(carriesGcLeader([0, 0], true)).toBe(true)
+    // Y sin general en juego no hay maillot: en la e1 de una vuelta y en un día TODOS llevan 0.
+    expect(carriesGcLeader([0, 0], false)).toBe(false)
+  })
+
+  it('EL VETO NO SE AHORRA EL DADO: `rngTactics` es un flujo compartido', () => {
+    // Si el veto volviera sin tirar, el flujo se correría y con él TODAS las etapas del juego (el
+    // motivo por el que la v21 quitó la FRASE del ataque del km 0 y no el movimiento). Es la
+    // propiedad que mantiene el cambio acotado a donde se quiere mover.
+    let tiradas = 0
+    const contando = (): number => {
+      tiradas += 1
+      return 0
+    }
+    const conMaillot = [moveRider('lider', { gcDeficitSeconds: 0 })]
+    const c = ctx({ kmToGo: 20, totalKm: 180, hasGcContext: true })
+    expect(pelotonAllows(conMaillot, c, contando)).toBe(false)
+    expect(tiradas).toBe(1)
   })
 })
 

@@ -25,7 +25,7 @@ import {
   stageSeed,
   stageTss,
 } from '@cyclingstar/engine'
-import { ATTRIBUTES, type Attribute, seededRng } from '@cyclingstar/shared'
+import { ATTRIBUTES, type Attribute, assignLeaderJerseys, seededRng } from '@cyclingstar/shared'
 import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import { BATCH_ROWS, type BatchValue, inChunks, valuesList } from './batch.js'
@@ -351,9 +351,31 @@ export async function runOneStage(
    */
   const radio = raceRadioCollector(radioKmPoints(stageLengthKm(spec.profile)))
   const output = simulateStage(input, seed, radio.probe)
-  // A quién hay que poder seguir por la radio aunque no esté tirando: los diez primeros de la
-  // general con la que se salió hoy y los diez primeros de la etapa que se acaba de correr.
+  /**
+   * LOS TRES MAILLOTS DE LA CARRETERA, que es lo que se veía mal: la radio enseñaba el amarillo y
+   * ningún otro. No era un fallo de la vista —el amarillo entraba de rebote, por ser el primero de
+   * la general— sino de esta lista: el verde y el azul no estaban, así que su identidad no se
+   * guardaba y luego no había forma de nombrarlos aunque la vista supiera quién los lleva.
+   *
+   * Se reparten con `assignLeaderJerseys` y no a mano porque la regla no es «el primero de cada
+   * clasificación»: cuando el líder de la general va además primero por puntos, el verde PASA AL
+   * SIGUIENTE, que es la regla real. Duplicarla aquí sería la manera de que la radio y la ficha de
+   * la etapa acabaran diciendo que el maillot lo llevan dos corredores distintos.
+   *
+   * Son los de la general con la que se SALIÓ hoy —`gcRows`—, que es la de la carretera: el maillot
+   * que se ve en la etapa es el que se ganó ayer.
+   */
+  const byPoints = [...gcRows].sort((a, b) => b.puntosVolante - a.puntosVolante)
+  const byKom = [...gcRows].sort((a, b) => b.puntosMontana - a.puntosMontana)
+  const jerseys = assignLeaderJerseys({
+    gc: gcRows.map((r) => ({ riderId: r.riderId })),
+    points: byPoints.map((r) => ({ riderId: r.riderId })),
+    kom: byKom.map((r) => ({ riderId: r.riderId })),
+  })
+  // A quién hay que poder seguir por la radio aunque no esté tirando: los tres maillots, los diez
+  // primeros de la general con la que se salió hoy y los diez primeros de la etapa recién corrida.
   const radioWatchList = new Set<string>([
+    ...[jerseys.gc, jerseys.points, jerseys.kom].filter((id): id is string => id !== null),
     ...gcRows.slice(0, 10).map((r) => r.riderId),
     ...[...output.results]
       .filter((r) => r.estado === 'finish')
