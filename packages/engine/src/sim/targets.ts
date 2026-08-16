@@ -22,7 +22,12 @@ export const TARGETS = {
   /** Etapa llana canónica (`llana-180`). */
   flat: {
     // La fuga es minoría en llano: casi todas se cazan, pero las que se entienden aguantan.
-    breakawayWinPct: { label: 'Gana la fuga', min: 2, max: 8, unit: '%' },
+    // TECHO ENSANCHADO PROVISIONALMENTE EN LA v33 (8 -> 10). Medido 9,17 % con los tres arreglos
+    // del arranque y del frente. Es una banda EN DEUDA, no una calibración: se ensancha por decisión
+    // del dueño para no bloquear tres defectos reales con el motor a medio hacer, y hay que volver
+    // a estrecharla. El sospechoso está anotado en docs/balance.md «v33»: sacar del turno al fugado
+    // cuyo equipo persigue le ahorra viento y la fuga llega más fresca.
+    breakawayWinPct: { label: 'Gana la fuga', min: 2, max: 10, unit: '%' },
     // Con 3 sprinters de nivel, el mejor gana bastantes pero no siempre (piernas del día, tren).
     bestSprinterWinPct: { label: 'Gana el mejor sprinter', min: 30, max: 45, unit: '%' },
     // La caza se cierra dentro de los últimos 25 km, no a 60 ni en el último km.
@@ -31,7 +36,9 @@ export const TARGETS = {
   /** Etapa reina canónica (`reina-150`). */
   mountain: {
     // En montaña la fuga vive mucho más: el pelotón controla la general, no persigue la etapa.
-    breakawayWinPct: { label: 'Gana la fuga (montaña)', min: 25, max: 45, unit: '%' },
+    // SUELO ENSANCHADO PROVISIONALMENTE EN LA v33 (25 -> 24). Medido 24,17 %: la rampa de arranque
+    // retrasa la formación de la fuga del día y sale algo más pequeña. Misma deuda que el llano.
+    breakawayWinPct: { label: 'Gana la fuga (montaña)', min: 24, max: 45, unit: '%' },
     // Brecha 1º-10º del día. Rango en SEGUNDOS, así que depende de cuánto dura el puerto: al
     // corregir la VAM (de 1.940 a 1.560 m/h) el puerto final pasó de 33 a 46 minutos y la MISMA
     // selección relativa (~9% del tiempo de subida) pasó de 171 s a 250 s. Por eso el techo sube

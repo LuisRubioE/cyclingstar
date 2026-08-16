@@ -131,6 +131,13 @@ describe('engine: esqueleto', () => {
     // 6:53 en el km 137 y 16 s en meta). La referencia pasa a ser los que SIGUEN EN CARRERA, el
     // parte de ventaja NOMBRA a quien va delante y dice contra quién se mide y cuánto queda.
     // Cambio de OBSERVACIÓN: ni un dado, ni un subflujo, ni una constante de calibración.
+    // v33: EL ARRANQUE, EL TREN DEL FINAL Y EL QUE NO COLABORA EN LA FUGA DE LOS SUYOS
+    // (docs/balance.md «v33»). La carrera llegaba al km 1 ya rota el 73,5 % de las veces (el λ del
+    // intento valía su máximo desde el metro cero); en el último km no había tren porque el frente,
+    // una vez perdido, no se recuperaba nunca —59 % de los bloques sin nadie delante en los últimos
+    // 20 km—; y el fugado cuyo equipo perseguía por detrás seguía dando relevos en la fuga. Es la
+    // primera tanda que MUEVE las huellas selladas desde la v30, y mueve además tres bandas de
+    // calibración, ensanchadas de forma provisional y marcada.
     // v32: EL MAILLOT NO SE VA EN LA FUGA DEL DÍA (docs/balance.md «v32»). `pelotonAllows` trataba
     // la amenaza para la general como un ESCALÓN, y por eso daba el MISMO trato al que lleva el
     // maillot puesto y al que va a 4:10: medido, 6,2 % / 12,4 % / 18,7 % de cuerda en las dos filas,
@@ -151,6 +158,6 @@ describe('engine: esqueleto', () => {
     // v11 (atribución del trabajo), la v10 (composición y caza), la v9 (capa táctica), la
     // v8 (tiempos de grupo), la v7 (modelo de final), la v6 (telemetría), la v5 (clásica larga), la
     // v4 (pavé en el recorrido) y la v3 (Cambio 0).
-    expect(ENGINE_VERSION).toBe(32)
+    expect(ENGINE_VERSION).toBe(33)
   })
 })

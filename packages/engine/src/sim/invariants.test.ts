@@ -49,7 +49,14 @@ const flat: Block = { tipo: 'llano', g: 0, estrellas: 0 }
  * además que las pájaras sean marginales.
  */
 const SATURATION_DEPLETION = 0.95
-const SATURATION_BONK_PCT = 10
+/**
+ * ENSANCHADO PROVISIONALMENTE EN LA v33 (10 -> 12). Con los tres arreglos del arranque y del frente,
+ * Il Lombardia —la clásica más dura del calendario, y el peor caso por diseño— pasa de un 3 % a un
+ * 11 % de pájaras. El VACIADO, que es la señal buena de saturación, sigue por debajo del listón
+ * (0,945 contra 0,95), así que el modelo no ha dejado de discriminar; pero cuadruplicar las pájaras
+ * es el movimiento más grande que dejó esa tanda y está anotado como deuda en docs/balance.md «v33».
+ */
+const SATURATION_BONK_PCT = 12
 
 /** Comprueba un estadístico contra su rango objetivo compartido. */
 function expectInRange(value: number, target: Target): void {

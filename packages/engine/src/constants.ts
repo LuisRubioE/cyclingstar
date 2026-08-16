@@ -506,8 +506,28 @@
  * ahorrarse una tirada correría el flujo de todas las etapas del juego. Por eso las huellas
  * selladas salen idénticas —sus escenarios corren sin general en juego— y solo se mueve lo que
  * tiene general de verdad.
+ *
+ * ── v33 · el arranque, el tren del final y el que no colabora en la fuga de los suyos ──────────
+ *
+ * Tres defectos del parte de Race Sardegna e3, los tres medidos:
+ *
+ * 1. LA CARRERA LLEGABA AL KM 1 YA ROTA. `moveLambda` valía su máximo nominal desde el metro cero.
+ *    Medido: primer intento en la mediana del km 0,55 y el 73,5 % de las etapas con más de un grupo
+ *    en el km 1. Con la rampa de arranque (`tacticSettleKm`), el 15 %.
+ * 2. EN EL ÚLTIMO KM NO HABÍA TREN. Dos causas: «en el pelotón» se contaba por el id literal del
+ *    grupo (y en el km 167 solo el 44 % de las corridas lo conservan), y sobre todo el frente, una
+ *    vez perdido, no se recuperaba nunca —el relevo exigía un equipo con baza Y FRESCO, y en el
+ *    desenlace no queda ninguno—. Medido: 59 % de los bloques sin nadie al frente en los últimos
+ *    20 km; ahora hay tren.
+ * 3. EL EQUIPO QUE SE SABOTEA. El que sobra no es el que persigue detrás —el equipo del maillot
+ *    tiene que cerrar el boquete aunque el fugado sea suyo— sino el fugado, que no debe entrar a los
+ *    relevos de una fuga que los suyos cazan. Medido: 23 % → 13 % en el km 84.
+ *
+ * MUEVE LA CALIBRACIÓN, y se sube así a propósito: decisión del dueño, con el motor lejos de estar
+ * acabado y los valores al borde de sus rangos. Lo ensanchado queda MARCADO como provisional en
+ * `sim/targets.ts`, con el detalle en docs/balance.md «v33».
  */
-export const ENGINE_VERSION = 32 as const
+export const ENGINE_VERSION = 33 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -1152,6 +1172,16 @@ export const STAGE = {
   // Penalización al deber de relevo de un corredor que lleva gregarios suyos en el grupo: si tiene
   // equipo alrededor, el equipo trabaja por él (SPEC 6.18) y él pasa al final de la cola de relevos.
   relayProtectedPenalty: 0.5,
+  // EL FUGADO CUYO EQUIPO PERSIGUE POR DETRÁS NO ENTRA A LOS RELEVOS (v33). Es la regla más vieja
+  // del ciclismo vista desde el otro lado: si mi equipo está tirando del pelotón para cazar esta
+  // fuga, yo no colaboro en ella —sería trabajar contra los míos—, me quedo a rueda y llego más
+  // fresco al final. Los demás se enfadarán, pero eso es la carrera.
+  //
+  // No cambia el RITMO del grupo, solo quién paga el viento: el turno tiene tamaño fijo
+  // (`ceil(paceFraction · N)`), así que al apartarse él releva otro en su lugar. Es deliberadamente
+  // grande —lo saca del turno salvo que no quede nadie más— porque es una orden de equipo, no una
+  // preferencia.
+  relaySittingOnPenalty: 2,
   // Amplitud del desempate aleatorio (determinista, sembrado) del deber de relevo.
   relayJitterWeight: 0.05,
 
@@ -1556,6 +1586,17 @@ export const STAGE = {
   // Regla 1, «sube si el grupo va junto»: suelo del factor de cohesión. Con el pelotón entero el
   // factor vale 1; con la carrera ya rota no se apaga del todo, pero baja a este suelo.
   tacticCohesionFloor: 0.35,
+  // LA CARRERA NO SE ROMPE EN LOS PRIMEROS CIEN METROS (v33). El λ del intento valía su máximo
+  // nominal desde el metro cero —el pelotón entero da cohesión 1—, y medido sobre 200 corridas de
+  // race-sardegna e3 eso daba: primer intento en la mediana del km 0,55, el 69,5 % de las etapas
+  // atacando antes del km 1, y el 73,5 % llegando al km 1 con más de un grupo en carretera (un 13 %
+  // ya en el primer bloque, o sea a los cien metros). La queja del dueño era exacta: «siempre se
+  // intenta una fuga en el primer km, lo cual está mal».
+  //
+  // Que las fugas salgan del disparo es verdad y no se toca; lo que no es verdad es que la carrera
+  // esté ROTA antes de que el pelotón se haya estirado. Estos son los km en los que el intento sube
+  // desde cero hasta su intensidad normal: el tramo en que la carrera se pone en marcha.
+  tacticSettleKm: 5,
   // Regla 1, «sube cuanto más cerca está la meta»: cuánto multiplica λ al final de la etapa. Es
   // cuadrático en la fracción recorrida, así que el último cuarto pesa mucho más que el primero.
   tacticProximityGain: 1.5,

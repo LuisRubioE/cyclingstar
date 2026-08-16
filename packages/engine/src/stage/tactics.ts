@@ -121,6 +121,11 @@ export function moveLambda(ctx: MoveContext): number {
   // que nadie leía nunca (SPEC 6.10).
   const tense =
     ctx.tension >= STAGE.breakawayTensionThreshold ? STAGE.breakawayTensionAttackFactor : 1
+  // LA SALIDA (v33): el intento sube desde cero durante los primeros kilómetros. Sin esto el λ valía
+  // su máximo desde el metro cero —el pelotón entero da la cohesión más alta que hay— y la carrera
+  // llegaba al km 1 ya rota tres de cada cuatro veces.
+  const kmRun = ctx.totalKm - ctx.kmToGo
+  const settle = STAGE.tacticSettleKm > 0 ? clamp(kmRun / STAGE.tacticSettleKm, 0, 1) : 1
   // Ventana de ataques tardíos (SPEC 6.12): dentro de los últimos `lateAttackKm` la intensidad de
   // un ataque dentro del grupo sube a `lambdaLateAttack` sea cual sea el terreno. Es el ataque que
   // se juega la etapa a una carta.
@@ -129,7 +134,7 @@ export function moveLambda(ctx: MoveContext): number {
     inside && ctx.kmToGo <= STAGE.lateAttackKm
       ? Math.max(baseLambda(ctx.kind), STAGE.lambdaLateAttack)
       : baseLambda(ctx.kind)
-  return base * cohesion * proximity * tense
+  return base * cohesion * proximity * tense * settle
 }
 
 /** ¿Salta el intento en este bloque? (marco de hazard de SPEC 6.8: p = 1 − e^{−λ·dx}). */
