@@ -28,7 +28,9 @@ describe('pestañas de una carrera por etapas', () => {
 
 describe('pestañas de una carrera de un día', () => {
   it('terminada abre en el resultado y tiene la crónica a un clic', () => {
-    expect(raceTabs('finished', 1)).toEqual(['result', 'story', 'route', 'honours'])
+    // La Race Radio entra detrás de la crónica: es lo mismo que se lee en la ficha de etapa de
+    // una vuelta, y en un día esta ficha ES la de etapa.
+    expect(raceTabs('finished', 1)).toEqual(['result', 'story', 'radio', 'route', 'honours'])
     expect(defaultRaceTab('finished', 1)).toBe('result')
   })
 
@@ -82,5 +84,30 @@ describe('redirección de la etapa de una carrera de un día', () => {
     expect(oneDayStageTarget('paris-roubaix', new URLSearchParams())).toBe(
       '/world/races/paris-roubaix?tab=story',
     )
+  })
+})
+
+describe('la Race Radio de una carrera de UN DÍA', () => {
+  it('tiene pestaña propia cuando la carrera ya se ha corrido', () => {
+    // No la tenía, y no era que estuviera escondida: era INALCANZABLE. En una vuelta la radio vive
+    // en la ficha de ETAPA, y como en una carrera de un día esa ficha redirige a la de carrera, no
+    // había ninguna puerta por la que entrar.
+    expect(raceTabs('finished', 1)).toContain('radio')
+  })
+
+  it('y el enlace que pedía la radio de la etapa aterriza en ella, no en la crónica', () => {
+    // `oneDayStageTab('radio')` caía en la rama por defecto y devolvía 'story'.
+    expect(oneDayStageTab('radio')).toBe('radio')
+    const url = oneDayStageTarget('race-lombardy', new URLSearchParams('tab=radio'))
+    expect(url).toContain('tab=radio')
+  })
+
+  it('pero antes de correrse no hay radio que enseñar', () => {
+    expect(raceTabs('upcoming', 1)).not.toContain('radio')
+    expect(raceTabs('racing', 1)).not.toContain('radio')
+  })
+
+  it('y una carrera POR ETAPAS no la lleva aquí: la tiene en cada etapa', () => {
+    expect(raceTabs('finished', 21)).not.toContain('radio')
   })
 })

@@ -14,12 +14,13 @@
 import type { RaceStatus } from '@cyclingstar/shared'
 
 export type RaceTabId =
-  'classifications' | 'result' | 'story' | 'stages' | 'route' | 'startlist' | 'honours'
+  'classifications' | 'result' | 'story' | 'radio' | 'stages' | 'route' | 'startlist' | 'honours'
 
 export const RACE_TAB_LABEL: Record<RaceTabId, string> = {
   classifications: 'Classifications',
   result: 'Result',
   story: 'Story',
+  radio: 'Race Radio',
   stages: 'Stages',
   route: 'Route',
   startlist: 'Startlist',
@@ -37,11 +38,16 @@ const STAGE_RACE_TABS: Record<RaceStatus, readonly RaceTabId[]> = {
  * Pestañas de una carrera de UN DÍA. Terminada abre en `Result` —el desenlace es lo primero que se
  * busca— y tiene `Story` al lado, a un clic. En curso no hay resultado todavía, así que se queda con
  * lo previo, igual que una vuelta el día de su salida.
+ *
+ * Y LLEVA `Race Radio`, que se había quedado fuera. En una vuelta la radio vive en la ficha de
+ * ETAPA; como en una carrera de un día esa ficha redirige aquí —la carrera y la etapa son la misma
+ * cosa—, sin pestaña propia la radio no era que estuviera escondida: **era inalcanzable**. Se pedía
+ * `?tab=radio` y `oneDayStageTab` la mandaba a `story` por su rama por defecto.
  */
 const ONE_DAY_TABS: Record<RaceStatus, readonly RaceTabId[]> = {
   upcoming: ['route', 'startlist', 'honours'],
   racing: ['route', 'startlist'],
-  finished: ['result', 'story', 'route', 'honours'],
+  finished: ['result', 'story', 'radio', 'route', 'honours'],
 }
 
 export function raceTabs(status: RaceStatus, stageCount: number): readonly RaceTabId[] {
@@ -67,6 +73,8 @@ export function oneDayStageTab(stageTab: string | null): RaceTabId {
     case 'result':
     case 'classifications':
       return 'result'
+    case 'radio':
+      return 'radio'
     case 'profile':
       return 'route'
     default:

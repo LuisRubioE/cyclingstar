@@ -11,6 +11,7 @@ import {
   NO_FILTER,
   type NewsFilter,
   groupByGameDay,
+  headlineTarget,
   matchesFilter,
   raceOfHeadline,
 } from '../domain/newsFeed'
@@ -56,7 +57,8 @@ function FilterSelect({
 }
 
 /** Un titular: familia a la izquierda, hecho en el cuerpo. Sin iconos, con jerarquía tipográfica. */
-function Headline({ item }: { item: NewsItem }) {
+function Headline({ item, raceId }: { item: NewsItem; raceId: string | null }) {
+  const target = headlineTarget(item, raceId)
   return (
     <li className="flex flex-wrap items-baseline gap-x-3 gap-y-1 px-4 py-2.5">
       <span className="w-20 shrink-0 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
@@ -64,11 +66,8 @@ function Headline({ item }: { item: NewsItem }) {
       </span>
       <p className="min-w-0 flex-1 text-sm leading-relaxed text-slate-700">
         {item.country && <Flag code={item.country} size={13} className="mr-1.5" />}
-        {item.riderId ? (
-          <Link
-            to={`/world/riders/${item.riderId}`}
-            className="hover:text-brand-cyan hover:underline"
-          >
+        {target ? (
+          <Link to={target} className="hover:text-brand-cyan hover:underline">
             {item.text}
           </Link>
         ) : (
@@ -133,9 +132,11 @@ export function News() {
   if (isPending) return <p className="text-slate-500">Loading…</p>
   if (isError) return <p className="text-red-600">Could not load the news feed.</p>
 
-  const visible = withRace
-    .filter(({ item, raceId }) => matchesFilter(item, filter, raceId))
-    .map(({ item }) => item)
+  const shown = withRace.filter(({ item, raceId }) => matchesFilter(item, filter, raceId))
+  // La carrera de cada titular ya está calculada para el filtro; se guarda por referencia para que
+  // el enlace no tenga que volver a adivinarla del texto.
+  const raceOfItem = new Map(shown.map(({ item, raceId }) => [item, raceId]))
+  const visible = shown.map(({ item }) => item)
   const days = groupByGameDay(visible)
   const filtered = Object.values(filter).some((v) => v !== null)
 
@@ -207,7 +208,11 @@ export function News() {
                 <div className="overflow-hidden rounded-md bg-white shadow-sm ring-1 ring-black/5">
                   <ol className="divide-y divide-slate-100">
                     {day.items.map((item, i) => (
-                      <Headline key={`${day.gameDay}-${i}`} item={item} />
+                      <Headline
+                        key={`${day.gameDay}-${i}`}
+                        item={item}
+                        raceId={raceOfItem.get(item) ?? null}
+                      />
                     ))}
                   </ol>
                 </div>
