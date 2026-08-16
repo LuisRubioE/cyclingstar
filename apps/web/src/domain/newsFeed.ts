@@ -53,3 +53,28 @@ export function groupByGameDay(items: NewsItem[]): { gameDay: number; items: New
     .sort((a, b) => b[0] - a[0])
     .map(([gameDay, dayItems]) => ({ gameDay, items: dayItems }))
 }
+
+/**
+ * LOS TITULARES QUE CUENTAN UN RESULTADO. Un «X gana la etapa 4 de la Volta» habla de una carrera,
+ * y al hacerle clic lo que se quiere abrir es LA CARRERA —el resultado, la crónica, la radio— y no
+ * la ficha del corredor, que es a donde iban TODOS los titulares por llevar protagonista.
+ */
+const RACE_RESULT_KINDS: ReadonlySet<string> = new Set([
+  'stage_win',
+  'tt_win',
+  'breakaway_win',
+  'one_day_win',
+  'one_day_tt_win',
+  'gc_win',
+  'kom',
+])
+
+/**
+ * A dónde lleva un titular. La carrera manda cuando el titular cuenta un resultado y se sabe cuál
+ * es; si no —un fichaje, una lesión, una retirada— sigue llevando a su protagonista, que ahí sí es
+ * de quien va la noticia. Y si no hay ni una cosa ni la otra, el titular no es un enlace.
+ */
+export function headlineTarget(item: NewsItem, raceId: string | null): string | null {
+  if (raceId && RACE_RESULT_KINDS.has(item.kind)) return `/world/races/${raceId}`
+  return item.riderId ? `/world/riders/${item.riderId}` : null
+}

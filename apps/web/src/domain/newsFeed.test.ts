@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import type { NewsItem } from '@cyclingstar/shared'
-import { NO_FILTER, groupByGameDay, matchesFilter, raceOfHeadline } from './newsFeed'
+import {
+  NO_FILTER,
+  groupByGameDay,
+  headlineTarget,
+  matchesFilter,
+  raceOfHeadline,
+} from './newsFeed'
 
 const RACES = [
   { id: 'race-france', name: 'Race France' },
@@ -67,5 +73,51 @@ describe('groupByGameDay', () => {
     ])
     expect(groups.map((g) => g.gameDay)).toEqual([12, 10])
     expect(groups[0]!.items.map((i) => i.text)).toEqual(['a', 'c'])
+  })
+})
+
+describe('a dónde lleva un titular', () => {
+  const noticia = (over: Partial<NewsItem>): NewsItem => ({
+    gameDay: 1,
+    kind: 'stage_win',
+    text: 'Someone wins stage 4 of Race Sardegna',
+    personal: false,
+    riderId: 'r-1',
+    riderName: 'Someone',
+    country: 'ES',
+    teamId: 't-1',
+    teamName: 'Equipo',
+    ...over,
+  })
+
+  it('una carrera GANADA abre la carrera, no la ficha del corredor', () => {
+    // La queja: «cuando aparece una noticia de una carrera ganada, si le hago clic sale el
+    // ciclista… yo querría que salga mejor la carrera».
+    expect(headlineTarget(noticia({}), 'race-sardegna')).toBe('/world/races/race-sardegna')
+  })
+
+  it('y vale para todas las formas de ganar', () => {
+    for (const kind of [
+      'tt_win',
+      'breakaway_win',
+      'one_day_win',
+      'one_day_tt_win',
+      'gc_win',
+      'kom',
+    ])
+      expect(headlineTarget(noticia({ kind }), 'race-x')).toBe('/world/races/race-x')
+  })
+
+  it('pero un fichaje o una lesión siguen llevando a su protagonista: la noticia va de él', () => {
+    expect(headlineTarget(noticia({ kind: 'contract' }), 'race-x')).toBe('/world/riders/r-1')
+    expect(headlineTarget(noticia({ kind: 'injury' }), null)).toBe('/world/riders/r-1')
+  })
+
+  it('si no se sabe de qué carrera habla, no se inventa: se queda con el corredor', () => {
+    expect(headlineTarget(noticia({}), null)).toBe('/world/riders/r-1')
+  })
+
+  it('y un titular sin corredor ni carrera no es un enlace', () => {
+    expect(headlineTarget(noticia({ kind: 'contract', riderId: null }), null)).toBeNull()
   })
 })
