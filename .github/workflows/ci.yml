@@ -120,6 +120,14 @@ jobs:
           fi
       - uses: ./.github/actions/setup
         if: steps.motor.outputs.correr == 'si'
+      # Los bancos importan `@cyclingstar/shared`, que resuelve a su `dist`: sin construir antes, el
+      # job muere en catorce segundos con «Failed to resolve entry for package» y jamás llega a
+      # simular una etapa. Y como este job SOLO corre cuando cambia el motor, llevaba roto justo en
+      # los push en los que hace falta. Es la trampa que ya está escrita en `sim/invariants.test.ts`:
+      # CI en verde mientras el simulador no se ha ejecutado.
+      - name: Build del motor y sus dependencias
+        if: steps.motor.outputs.correr == 'si'
+        run: pnpm exec tsc -b packages/engine
       - name: Bancos
         if: steps.motor.outputs.correr == 'si'
         run: pnpm test:bancos
