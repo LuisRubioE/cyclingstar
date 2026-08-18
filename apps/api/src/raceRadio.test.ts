@@ -29,7 +29,6 @@ const stored = {
           gapS: 0,
           speedKmh: 41.2,
           pulling: [0],
-          onTheFront: 1,
           watching: [],
         },
         {
@@ -38,7 +37,6 @@ const stored = {
           gapS: 214,
           speedKmh: 39.8,
           pulling: [1, 3],
-          onTheFront: 1,
           watching: [2],
         },
       ],
@@ -56,7 +54,7 @@ describe('buildRaceRadio', () => {
       bib: 11,
       team: 'Summit Squad',
       country: 'es',
-      role: 'front',
+      role: 'pulling',
     })
   })
 
@@ -93,9 +91,9 @@ describe('buildRaceRadio', () => {
     expect(x?.role).toBe('sheltered')
   })
 
-  it('los que tiran van primero, y los de cabeza antes que los que relevan colocados', () => {
+  it('los que TIRAN van primero, y después los que van a rueda', () => {
     const bunch = buildRaceRadio(stored, names)!.kms[0]!.groups[1]!
-    expect(bunch.riders.map((r) => r.role)).toEqual(['front', 'sheltered'])
+    expect(bunch.riders.map((r) => r.role)).toEqual(['pulling', 'sheltered'])
   })
 
   it('una etapa SIN radio guardada devuelve null, no revienta', () => {

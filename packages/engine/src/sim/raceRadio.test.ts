@@ -38,8 +38,7 @@ function rider(
     tS,
     energy: 500,
     energy0: 1000,
-    relaying: false,
-    onTheFront: false,
+    pulling: false,
     pullWindow: 0,
     ...extra,
   }
@@ -124,19 +123,22 @@ describe('radioKmFrom', () => {
     expect(km.gone).toBe(117)
   })
 
-  it('nombra primero al que da la cara al viento y luego al que más lleva puesto', () => {
+  it('nombra a los que TIRAN, y entre ellos primero al que más lleva puesto', () => {
+    // Desde la v34 todos los que tiran pagan el mismo viento, así que lo único que ordena esta
+    // lista es cuánto trabajo lleva cada uno en la ventana: no hay un «da la cara» que adelante a
+    // nadie con dos unidades puestas por delante de otro con cuarenta.
     const km = radioKmFrom(
       60,
       [
-        rider('a', 'peloton', 100, { relaying: true, pullWindow: 9 }),
-        rider('b', 'peloton', 100, { relaying: true, onTheFront: true, pullWindow: 2 }),
-        rider('c', 'peloton', 100, { relaying: true, pullWindow: 40 }),
+        rider('a', 'peloton', 100, { pulling: true, pullWindow: 9 }),
+        rider('b', 'peloton', 100, { pulling: true, pullWindow: 2 }),
+        rider('c', 'peloton', 100, { pulling: true, pullWindow: 40 }),
         rider('d', 'peloton', 100),
       ],
       4,
       2,
     )
-    expect(km.groups[0]!.pulling.map((p) => p.riderId)).toEqual(['b', 'c'])
+    expect(km.groups[0]!.pulling.map((p) => p.riderId)).toEqual(['c', 'a'])
   })
 
   it('da el depósito medio del grupo en % de con lo que salieron', () => {
@@ -170,9 +172,7 @@ describe('radioKmPoints', () => {
 describe('radioForStorage: a quién se puede nombrar', () => {
   /** Una foto con un grupo del tamaño que se pida, sin nadie relevando salvo el primero. */
   const fotoDe = (size: number): SnapshotRider[] =>
-    Array.from({ length: size }, (_, i) =>
-      rider(`r-${i}`, 'mov-1', 100, { relaying: i === 0, onTheFront: i === 0 }),
-    )
+    Array.from({ length: size }, (_, i) => rider(`r-${i}`, 'mov-1', 100, { pulling: i === 0 }))
 
   it('en un grupo PEQUEÑO se nombra a todos, tiren o no y lleven maillot o no', () => {
     // La queja, textual: una escapada de DOS enseñaba a uno y «+1 rider more». En carretera, de un
@@ -207,7 +207,7 @@ describe('radioForStorage: el que releva nunca sale como que va a rueda', () => 
     // de doce, así que el relevista trece caía en la lista de los que van a rueda y se pintaba con
     // el icono contrario. Mentir sobre lo que hace es peor que no nombrarlo.
     const veinte = Array.from({ length: 20 }, (_, i) =>
-      rider(`r-${i}`, 'peloton', 100, { relaying: true, pullWindow: 20 - i }),
+      rider(`r-${i}`, 'peloton', 100, { pulling: true, pullWindow: 20 - i }),
     )
     // Un grupo grande, para que no entre por la regla de «grupo pequeño, se nombran todos».
     const foto = [
@@ -227,7 +227,7 @@ describe('radioForStorage: el que releva nunca sale como que va a rueda', () => 
 
   it('pero al maillot se le guarda aunque el corte lo dejara fuera: si tira, es la noticia', () => {
     const veinte = Array.from({ length: 20 }, (_, i) =>
-      rider(`r-${i}`, 'peloton', 100, { relaying: true, pullWindow: 20 - i }),
+      rider(`r-${i}`, 'peloton', 100, { pulling: true, pullWindow: 20 - i }),
     )
     const foto = [
       ...veinte,

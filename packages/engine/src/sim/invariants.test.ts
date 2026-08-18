@@ -50,11 +50,16 @@ const flat: Block = { tipo: 'llano', g: 0, estrellas: 0 }
  */
 const SATURATION_DEPLETION = 0.95
 /**
- * ENSANCHADO PROVISIONALMENTE EN LA v33 (10 -> 12). Con los tres arreglos del arranque y del frente,
- * Il Lombardia —la clásica más dura del calendario, y el peor caso por diseño— pasa de un 3 % a un
- * 11 % de pájaras. El VACIADO, que es la señal buena de saturación, sigue por debajo del listón
- * (0,945 contra 0,95), así que el modelo no ha dejado de discriminar; pero cuadruplicar las pájaras
- * es el movimiento más grande que dejó esa tanda y está anotado como deuda en docs/balance.md «v33».
+ * ENSANCHADO PROVISIONALMENTE EN LA v33 (10 -> 12), y NO se estrecha en la v34 porque la medida no
+ * lo permite: este bucle corre **3 semillas por clásica** (unos 120 corredores), y sobre Il
+ * Lombardia —la más dura del calendario, y el peor caso por diseño— el número salta entre el 8,5 %
+ * y el 11,7 % según cuántas semillas se le den, sin que el motor cambie (medido con la v34: 11,7 %
+ * con 3, 11,3 % con 6, 8,5 % con 12). Estrechar la banda contra una muestra así sería dejar CI a
+ * merced del dado.
+ *
+ * Lo que SÍ mejora en la v34 es la señal buena de saturación, que es la que de verdad dice si el
+ * modelo sigue discriminando: el VACIADO de Lombardia baja de **0,945 a 0,923** contra el listón de
+ * 0,95. Ver docs/balance.md «v34».
  */
 const SATURATION_BONK_PCT = 12
 

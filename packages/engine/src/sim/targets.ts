@@ -22,11 +22,15 @@ export const TARGETS = {
   /** Etapa llana canónica (`llana-180`). */
   flat: {
     // La fuga es minoría en llano: casi todas se cazan, pero las que se entienden aguantan.
-    // TECHO ENSANCHADO PROVISIONALMENTE EN LA v33 (8 -> 10). Medido 9,17 % con los tres arreglos
-    // del arranque y del frente. Es una banda EN DEUDA, no una calibración: se ensancha por decisión
-    // del dueño para no bloquear tres defectos reales con el motor a medio hacer, y hay que volver
-    // a estrecharla. El sospechoso está anotado en docs/balance.md «v33»: sacar del turno al fugado
-    // cuyo equipo persigue le ahorra viento y la fuga llega más fresca.
+    //
+    // TECHO ENSANCHADO PROVISIONALMENTE EN LA v33 (8 -> 10), y NO se estrecha en la v34: la razón
+    // resultó ser de MUESTREO y no del motor. Medido con la v34 sobre el mismo escenario, el mismo
+    // estadístico vale **10,00 % con 120 semillas, 6,33 % con 300 y 4,20 % con 500**, porque 120
+    // carreras no distinguen un 6 % de un 10 % (σ ≈ 2,2 puntos). El invariante de CI corre 120
+    // (`sim/invariants.test.ts`) y `pnpm sim` corre 500, así que esta banda tiene que dar cabida a
+    // la más ruidosa de las dos: su techo describe el tamaño de la muestra, no la carrera. Quien
+    // quiera estrecharla de verdad tiene que subir primero las semillas del invariante; se deja
+    // anotado en docs/balance.md «v34» en vez de tocarlo de paso en una tanda de motor.
     breakawayWinPct: { label: 'Gana la fuga', min: 2, max: 10, unit: '%' },
     // Con 3 sprinters de nivel, el mejor gana bastantes pero no siempre (piernas del día, tren).
     bestSprinterWinPct: { label: 'Gana el mejor sprinter', min: 30, max: 45, unit: '%' },
@@ -36,9 +40,13 @@ export const TARGETS = {
   /** Etapa reina canónica (`reina-150`). */
   mountain: {
     // En montaña la fuga vive mucho más: el pelotón controla la general, no persigue la etapa.
-    // SUELO ENSANCHADO PROVISIONALMENTE EN LA v33 (25 -> 24). Medido 24,17 %: la rampa de arranque
-    // retrasa la formación de la fuga del día y sale algo más pequeña. Misma deuda que el llano.
-    breakawayWinPct: { label: 'Gana la fuga (montaña)', min: 24, max: 45, unit: '%' },
+    //
+    // SUELO ESTRECHADO DE VUELTA EN LA v34 (24 -> 25), que es donde estaba antes de la v33. Aquella
+    // tanda lo bajó porque la rampa de arranque retrasaba la fuga del día y la dejaba en 24,17 %,
+    // pegada al suelo. Con el reparto del viento de la v34 —el pelotón deja de pagar diecisiete
+    // hombres de viento, pero la fuga, que rota entera, apenas nota el cambio en un puerto— mide
+    // **27,50 % con 120 semillas y 30,00 % con 300**. La deuda queda saldada.
+    breakawayWinPct: { label: 'Gana la fuga (montaña)', min: 25, max: 45, unit: '%' },
     // Brecha 1º-10º del día. Rango en SEGUNDOS, así que depende de cuánto dura el puerto: al
     // corregir la VAM (de 1.940 a 1.560 m/h) el puerto final pasó de 33 a 46 minutos y la MISMA
     // selección relativa (~9% del tiempo de subida) pasó de 171 s a 250 s. Por eso el techo sube

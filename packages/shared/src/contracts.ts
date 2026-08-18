@@ -1034,12 +1034,17 @@ export type StageRaceContext = z.infer<typeof stageRaceContextSchema>
 export const radioGroupKindSchema = z.enum(['fuga', 'contra', 'peloton', 'tierra', 'grupeto'])
 export type RadioGroupKind = z.infer<typeof radioGroupKindSchema>
 
-/** Cómo va un corredor dentro de su grupo, que son tres cosas distintas y se ven distintas. */
+/**
+ * Cómo va un corredor dentro de su grupo: O TIRA O NO TIRA (v34).
+ *
+ * Eran tres —«da la cara», «está en el turno colocado detrás» y «va a rueda»—, y el de en medio no
+ * significaba nada: en el pelotón salían 36,5 nombres de 14,9 equipos distintos, una lista de media
+ * parrilla que no es un parte de radio. El motor tampoco lo distingue ya (`shelterOf`): los que
+ * tiran se reparten el viento entre ellos y los demás van a rueda.
+ */
 export const radioRoleSchema = z.enum([
-  /** Da la cara al viento en cabeza del grupo. */
-  'front',
-  /** Está en el turno de relevos, colocado detrás de los que dan la cara. */
-  'relay',
+  /** Tira del grupo: está en la rotación que se reparte el viento. */
+  'pulling',
   /** Va a rueda, guardándose: el jefe de filas al que el resto está llevando. */
   'sheltered',
 ])

@@ -6735,6 +6735,212 @@ como el pelotón, los 30 s de hueco cerrados en un kilómetro, y los grupos que 
 
 ---
 
+## v34 — O tiras o no tiras (`engine_version` 33 → 34)
+
+> **La decisión del dueño, textual:** «Binario: o tiras o no tiras. Se acabó el tercer estado
+> intermedio. Un solo concepto, con el mismo nombre, en el motor y en la Race Radio.»
+
+### 0. El banco que faltaba: `scripts/medir-rebufo.mjs`
+
+El motor decide en cada bloque, para cada corredor, cuánto rebufo aprovecha, y de ahí cuelga todo lo
+que se gasta. **Nunca se había mirado desde fuera.** El banco nuevo lo mira y resume el reparto en la
+única cifra que se puede contrastar con la carretera, la **FACTURA** del grupo en «hombres al
+viento»:
+
+```
+factura = Σ (shelterProtected − shelter_i) / shelterProtected
+```
+
+Un grupo que se releva tiene, en cada instante, **UN** hombre dando la cara y el resto a rueda. La
+factura de un pelotón es 1. Lo que salga por encima es viento que el motor se inventa.
+
+6 carreras × 2 semillas, 1,31 M de bloques-corredor:
+
+|                                           | v33                       | v34                      |
+| ----------------------------------------- | ------------------------- | ------------------------ |
+| **factura del pelotón** (la carretera: 1) | **17,91** (peor **57,6**) | **1,00** (peor **1,00**) |
+| corredores «a rueda»                      | 55,3 %                    | **89,3 %**               |
+| corredores en el estado intermedio        | **41,5 %**                | —                        |
+| los que DAN LA CARA (v33: «al frente»)    | 2,4 %                     | 9,8 %                    |
+| el que va solo                            | 0,8 %                     | 0,9 %                    |
+
+(La columna de la v33 se midió con el mismo banco sobre `c1ace88`, con `shelterOf` devolviendo
+todavía los cuatro estados; el banco pide el rebufo al motor y no lo reimplementa, así que las dos
+columnas comparan lo mismo.)
+
+### 1. Los cuatro estados eran cuatro nombres para un continuo
+
+`shelterProtected` 0,9 · `shelterWorking` 0,4 · `shelterRelay` 0,5 · `shelterAlone` 0,0. Lo que los
+sostenía era un turno de relevos del tamaño del **cuarto delantero** del pelotón: `ceil(0,25 · 176)`
+= 44 hombres pagando viento a la vez. De ahí salía la ensalada que vio el dueño en Race Sardegna e3.
+
+La regla nueva cabe en una línea y es la de la carretera: **en una rotación de n, a cada uno le toca
+la cabeza 1/n del tiempo**, así que su rebufo medio es `shelterProtected · (1 − 1/n)`
+(`shelterOf`, `stage/physics.ts`). De ella salen solos los tres estados que pidió el dueño:
+
+- **solo** es `n = 1` y da exactamente 0: el que no tiene quien le releve paga el viento entero. Ya
+  no hace falta preguntar por él —el escapado en solitario, el descolgado suelto y el corredor de una
+  crono son el mismo hombre—.
+- **tira** es cualquier `n > 1`, y duele menos cuanto más grande es el turno. Uno de veinte pasando
+  turnos no se desgasta como uno solo, que es la mitad del encargo.
+- **no tira** es `shelterProtected`, y ahí va el jefe de filas al que llevan los suyos.
+
+Y **la factura del grupo vale 1 sea cual sea n**, porque `n · (1/n) = 1`. Es la identidad que hace
+honesto el argumento: el tamaño de la rotación decide **entre quiénes** se reparte el viento, nunca
+cuánto viento hay. Está sellada como invariante en `physics.test.ts`.
+
+Es el mismo `1 − 1/n` que `droppedCommit` (v16) cobraba en VELOCIDAD —«relevarse reparte el viento;
+el que va solo da la cara el 100 %»— y que hasta hoy solo usaban los grupos descolgados.
+
+### 2. El líder arropado: la lectura del código era MEDIA verdad
+
+El encargo pedía comprobarlo antes de tocar nada, y menos mal:
+
+|                                                   | v33        | v34       |
+| ------------------------------------------------- | ---------- | --------- |
+| rebufo medio del jefe de filas con equipo al lado | 0,83       | **0,90**  |
+| …de un gregario o un agente libre cualquiera      | 0,71       | 0,89      |
+| bloques en que el líder ENTRA al turno            | **16,6 %** | **0,0 %** |
+
+O sea: el líder ya iba mejor arropado que el resto (0,83 contra 0,71), pero **NO iba a rueda**:
+`relayProtectedPenalty` lo empujaba al final de la cola y aun así entraba al turno uno de cada seis
+bloques, porque el turno se llevaba a 44 hombres de 176 y en esa red cae cualquiera. Con la rotación
+corta, ya no. «Va protegido y punto.»
+
+### 3. Una sola lista, y con dueño
+
+La rotación deja de ser una fracción del grupo —en la cabeza de una carretera caben unos pocos
+hombres, `relayRotationMax` = 8— y, **si el frente tiene dueño, rotan los suyos**. Esto último es la
+regla 3 de §V.1 («el frente lo lleva UNO») dicha por fin donde se decide quién paga viento: hasta la
+v33 se decía DESPUÉS, descontando al 30 % el trabajo del que no era del equipo dueño
+(`pullOffFrontShare`, retirada), y eso ya no se sostiene —dos hombres que pagan el mismo viento no
+pueden trabajar cantidades distintas—.
+
+|                                           | v33                                  | v34                                |
+| ----------------------------------------- | ------------------------------------ | ---------------------------------- |
+| «en el turno» (la lista de en medio)      | **36,5 nombres** de **14,9 equipos** | —                                  |
+| «al frente»                               | 3,0 nombres de 0,9 equipos           | —                                  |
+| **«los que tiran»** (lista única)         | —                                    | **4,7 nombres** de **2,5 equipos** |
+| …de ellos, del equipo que lleva el frente | —                                    | **3,0**                            |
+
+En la Race Radio eso son **tres listas menos dos**: `radioRoleSchema` pasa de `front | relay |
+sheltered` a `pulling | sheltered`, el panel de la web pinta «Pulling (n)» y «Sitting in», y
+`SnapshotRider` pierde `onTheFront`. La radio guardada cambia de forma, así que las etapas corridas
+con el motor viejo dejan de tener radio: es lo que ya decía el esquema de `apps/api/src/chronicle.ts`
+—«una fila escrita por un motor anterior no tiene esta forma, y ahí la respuesta correcta es _esta
+etapa no tiene radio_, no un 500»—.
+
+Y la crónica sale ganando, que era el riesgo de la tanda: la voz de EQUIPO del parte de relevos pasa
+de **66,3 % a 76,6 %** y los equipos que llevan el frente en una llana se quedan clavados en **2,56**,
+el mismo número de la v33. El mecanismo es mejor que el de la v33 porque es físico: los del dueño están en la rotación
+**todos los bloques** y los demás entran y salen, así que la ventana de trabajo los ordena sola.
+
+### 4. Lo que hay que pagar: el coste base del llano
+
+Quitar diecisiete hombres de viento de un pelotón abarata el día. Medido: el gasto del tanque cae un
+4-6 % y con él toda la familia de la erosión de §VI.1, y **la reina en fresco se salía por abajo**
+(0,163 contra un suelo de 0,18). No es una banda que sobre: es que el sobreprecio del viento estaba
+haciendo, sin decirlo, el trabajo del coste base.
+
+`costFlatBase` sube de **0,22 a 0,24**, y se sube el LLANO y no la pendiente porque ahí estaba el
+defecto: el rebufo del llano vale 0,42 y el de una rampa al 8 %, 0,096, así que retirar viento
+abarata el llano un 6 % y la subida un 0,5 %.
+
+| erosión mediana (§VI.1, `pnpm sim`) | banda     | v33   | v34 sin tocar nada | v34 final |
+| ----------------------------------- | --------- | ----- | ------------------ | --------- |
+| llana en fresco                     | 0-0,02    | 0,010 | 0,000              | **0,014** |
+| reina en fresco                     | 0,18-0,5  | 0,191 | **0,163** ✗        | **0,195** |
+| clásica larga                       | 0,45-0,8  | 0,633 | 0,572              | **0,619** |
+| reina de tercera semana             | 0,6-0,85  | 0,661 | 0,613              | **0,654** |
+| la clásica más dura                 | 0,45-0,92 | 0,875 | 0,814              | **0,852** |
+| …y sus pájaras                      | ≤ 12 %    | 9 %   | 6 %                | **8 %**   |
+
+Es decir: la familia entera vuelve a donde la pide §VI.1 y prácticamente clavada en la v33, que es
+lo que tenía que salir. **El reparto del viento cambia; el desgaste del día no.**
+
+### 5. Las tres bandas EN DEUDA que dejó la v33
+
+El objetivo declarado de esta tanda era estrecharlas de vuelta. Se estrecha **una**, y las otras dos
+se dejan donde estaban con la medida delante:
+
+| invariante                     | banda v33 | medido v34                                      | banda v34        |
+| ------------------------------ | --------- | ----------------------------------------------- | ---------------- |
+| gana la fuga (montaña)         | **24**-45 | **27,50 %** (120 semillas)                      | **25**-45 ✅     |
+| gana la fuga (llano)           | 2-**10**  | **10,00 %** (120) · 6,33 % (300) · 4,20 % (500) | 2-10 (sin tocar) |
+| pájaras en la clásica más dura | ≤ **12**  | 11,7 % (3 semillas) · 11,3 % (6) · 8,5 % (12)   | ≤ 12 (sin tocar) |
+
+- **La montaña se estrecha y vuelve a su suelo de siempre.** Medía 24,17 % —pegada al suelo
+  provisional— y ahora 27,50 %: la fuga de montaña ya no vive de milagro.
+- **El llano NO se puede estrechar, y la razón es de MUESTREO, no del motor.** El mismo estadístico
+  vale 10,00 % con 120 semillas, 6,33 % con 300 y 4,20 % con 500, porque 120 carreras no distinguen
+  un 6 % de un 10 % (σ ≈ 2,2 puntos). El invariante de CI corre 120 y el `pnpm sim` corre 500, así
+  que la banda tiene que dar cabida a la medida más ruidosa de las dos. **No se ensancha** —sigue en
+  2-10—, pero queda anotado que su techo describe el tamaño de la muestra y no la carrera.
+- **Las pájaras de Il Lombardia tampoco.** El test las mide con **3 semillas** por clásica (unos 120
+  corredores), y ahí el número salta entre el 8,5 % y el 11,7 % según la muestra sin que el motor
+  cambie. Lo que SÍ mejora es la señal buena de saturación, el vaciado del depósito, que baja de
+  **0,945 a 0,923** contra un listón de 0,95: el modelo discrimina con más margen que en la v33.
+
+### 6. Las huellas selladas, RESELLADAS
+
+Se mueven las cuatro, y tenían que moverse: esta tanda cambia quién paga el viento en el 41,5 % de
+los bloques-corredor. Lo que se ha comprobado antes de resellar es que se mueven **donde el cambio
+predice y en la dirección que predice**:
+
+- **`llana-180`: el pelotón sigue entrando ENTERO y al mismo segundo en las dos semillas** (14507 →
+  14514 y 14321 → 14321), que es el invariante que la llana tiene que cumplir. En la segunda semilla
+  ni un reloj de grupo se mueve: solo el cortado `brk-2` entra 2 s antes (14442 → 14440), que es un
+  hombre SOLO pagando exactamente el mismo viento que antes —`shelterAlone` no ha cambiado— con las
+  piernas de otro reparto. Los puestos se permutan DENTRO del mismo segundo, que es lo que arrastra
+  un peaje de trabajo distinto.
+- **`reina-150` se mueve más, y en montaña es lo esperado**: el puerto reparte el tiempo según con
+  cuánto tanque se llega, y el tanque es justo lo que esta tanda cambia. La segunda semilla conserva
+  el podio entero (`gc-1`, `gc-2`, `gc-3`) y mueve los relojes ±5 s; la primera cambia el orden de
+  cabeza —ganaba `bar-0` con `gc-2` a 46 s, gana `gc-2` con `bar-0` a 63 s— y estira la selección,
+  de 10 relojes de grupo a 12. Ninguna de las dos gana ni pierde corredores de forma anómala.
+
+Ninguna de las dos huellas consume azar nuevo: no hay dado añadido ni subflujo nuevo, así que lo que
+se mueve es física y no secuencia.
+
+### 7. La campaña, antes y después
+
+`pnpm sim` entero, **33 invariantes en verde y ninguno rojo**. Lo que se mueve de verdad:
+
+|                                             | v33    | v34        |
+| ------------------------------------------- | ------ | ---------- |
+| gana la fuga (llana canónica, 500)          | 4,6 %  | 4,2 %      |
+| gana la fuga (reina canónica, 500)          | 25,6 % | **29,6 %** |
+| voz de EQUIPO en el parte                   | 66,3 % | **76,6 %** |
+| equipos que llevan el frente (llana)        | 2,56   | 2,56       |
+| último grupo en la reina (gran vuelta)      | 9,6 %  | 9,8 %      |
+| último grupo en las reinas REALES           | 11,8 % | 11,2 %     |
+| abandonos en una gran vuelta                | 14,4 % | 15,3 %     |
+| fugas de MINUTOS en llano (carreras reales) | 6 %    | **0 %**    |
+| grupo de cabeza en una MEDIA (deuda vieja)  | 7      | **15**     |
+
+Las dos últimas filas son propina y van con su aviso: la fuga que ganaba «por minutos» en una llana
+de carrera real —que era ruido, no carrera— desaparece, y la etapa de media montaña deja un grupo de
+cabeza del tamaño que deja en la carretera. Las dos se mueven en la dirección que uno esperaría de
+un pelotón que ya no se desgasta persiguiendo con cuarenta y cuatro hombres al viento, pero **eso es
+una lectura, no una medida**: no se ha aislado la causa y las dos son cifras de banco pequeñas (60
+corridas). Quien las quiera dar por buenas tiene que medirlas aparte.
+
+### 8. Dos cosas que salieron por el camino
+
+- **El radio de terminal y la web ya no dicen cosas distintas del mismo grupo.** El listón de «esto
+  es el pelotón» —dos tercios de los que siguen en carrera— vivía escrito solo en `apps/web`, así
+  que `scripts/race-radio.mjs` seguía llamando pelotón a cualquier grupo que llevara esa etiqueta.
+  La regla se muda al motor (`isTheBunch`, `sim/raceRadio.ts`) y la usan las dos; los rótulos siguen
+  cada uno en su idioma. Medido en `race-sardegna` e3 km 90: un grupo de 75 de 126 que la tabla
+  llamaba «pelotón» pasa a llamarse «4.º gr.», que es lo que ya decía la web.
+- **Un test de coherencia pedía algo que nunca se había dado.** `breakaway_caught` emite `deLos`
+  —«tres de los seis que salieron»— solo cuando el NÚMERO cambia, porque «tres de los tres» no dice
+  nada; el test lo exigía siempre que cambiara la LISTA. La v34 sacó por fin el caso a la luz (la
+  fuga se caza con tres hombres distintos de los tres que salieron) y el que estaba mal era el test,
+  no el motor: se estrecha a lo que describe su propio comentario.
+
+---
+
 ## Banco de huecos: las tres rarezas de la Race Radio, medidas (sin `engine_version`)
 
 `scripts/medir-huecos.mjs`, 6 carreras × 2 semillas, **9.999 pares de fotos consecutivas**. Las tres

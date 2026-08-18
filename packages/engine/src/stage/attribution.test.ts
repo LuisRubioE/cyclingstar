@@ -248,21 +248,31 @@ import type { Attribute } from '@cyclingstar/shared'
  * veintitrés corredores convertido en una progresión. Cualquier otra cosa que mueva esta huella hay
  * que volver a justificarla aquí. */
 const SEALED_RESULTS: Record<string, string> = {
-  // v33: PRIMERA TANDA QUE MUEVE ESTA HUELLA DESDE LA v30, y mueve las cuatro. Es lo esperado: los
-  // tres arreglos del arranque y del frente cambian QUIÉN PAGA EL VIENTO y CUÁNDO se ataca, que es
-  // física, no observación. Lo que hay que mirar —y queda anotado en docs/balance.md «v33»— es que
-  // la llana canónica se va de 14222 s a 14507 s, un 2 % más lenta: con la rampa de arranque el
-  // pelotón no se pone a pelear desde el metro cero, y una llana sin fuga temprana rueda más
-  // despacio. La reina apenas se mueve (14395 -> 14398), que es la comprobación de que el cambio
-  // vive en el arranque y no en el desenlace.
+  // v34: se mueven las cuatro, y tenían que moverse: esta tanda cambia QUIÉN PAGA EL VIENTO en el
+  // 41,5 % de los bloques-corredor (docs/balance.md «v34»). Lo comprobado antes de resellar es que
+  // se mueven donde el cambio predice:
+  //
+  // - `llana-180` sigue metiendo al PELOTÓN ENTERO al mismo segundo en las dos semillas (14507 ->
+  //   14514 y 14321 -> 14321), que es el invariante que una llana con sprint tiene que cumplir. En
+  //   la segunda semilla no se mueve ni un reloj de grupo: solo el cortado `brk-2` entra 2 s antes
+  //   (14442 -> 14440), y es un hombre SOLO, que paga exactamente el mismo viento que antes
+  //   —`shelterAlone` no ha cambiado— con las piernas de otro reparto. Lo demás son permutaciones
+  //   DENTRO del mismo segundo.
+  // - `reina-150` se mueve más, y en montaña es lo esperado: el puerto reparte el tiempo según con
+  //   cuánto tanque se llega, y el tanque es justo lo que esta tanda cambia. La segunda semilla
+  //   conserva el podio entero (`gc-1`, `gc-2`, `gc-3`) y mueve los relojes ±5 s; la primera cambia
+  //   el orden de cabeza (ganaba `bar-0`, gana `gc-2`) y estira la selección, de 10 relojes de grupo
+  //   a 12. Ninguna de las dos gana ni pierde corredores de forma anómala.
+  //
+  // No hay dado nuevo ni subflujo nuevo: lo que se mueve es física, no secuencia.
   'llana-180-0|llana-180|1|v1':
-    '1:spr-2:14507,2:spr-0:14507,3:spr-1:14507,4:pel-25:14507,5:pel-12:14507,6:pel-6:14507,7:pel-23:14507,8:pel-19:14507,9:pel-18:14507,10:pel-5:14507,11:pel-16:14507,12:pel-9:14507,13:pel-27:14507,14:pel-13:14507,15:pel-7:14507,16:brk-0:14507,17:pel-1:14507,18:brk-4:14507,19:pel-26:14507,20:pel-22:14507,21:pel-0:14507,22:pel-8:14507,23:brk-2:14507,24:pel-29:14507,25:pel-2:14507,26:pel-17:14507,27:pel-15:14507,28:brk-3:14507,29:pel-4:14507,30:pel-10:14507,31:pel-3:14507,32:pel-21:14507,33:pel-20:14507,34:pel-11:14507,35:pel-28:14507,36:pel-14:14507,37:brk-5:14507,38:pel-30:14507,39:pel-24:14507,40:brk-1:14507',
+    '1:spr-2:14514,2:spr-0:14514,3:spr-1:14514,4:pel-25:14514,5:pel-12:14514,6:pel-23:14514,7:pel-19:14514,8:pel-6:14514,9:brk-4:14514,10:pel-27:14514,11:pel-16:14514,12:pel-18:14514,13:pel-5:14514,14:pel-29:14514,15:pel-0:14514,16:pel-13:14514,17:pel-9:14514,18:pel-26:14514,19:pel-1:14514,20:pel-7:14514,21:brk-0:14514,22:pel-8:14514,23:pel-22:14514,24:pel-11:14514,25:pel-3:14514,26:pel-15:14514,27:pel-2:14514,28:pel-17:14514,29:pel-21:14514,30:brk-2:14514,31:pel-20:14514,32:pel-28:14514,33:pel-4:14514,34:pel-10:14514,35:brk-3:14514,36:brk-5:14514,37:pel-14:14514,38:pel-24:14514,39:pel-30:14514,40:brk-1:14514',
   'llana-180-1|llana-180|1|v1':
-    '1:spr-2:14321,2:spr-0:14321,3:spr-1:14321,4:pel-19:14321,5:pel-15:14321,6:brk-1:14321,7:pel-30:14321,8:pel-23:14321,9:pel-25:14321,10:pel-3:14321,11:pel-22:14321,12:pel-6:14321,13:pel-4:14321,14:pel-1:14321,15:pel-11:14321,16:pel-17:14321,17:pel-0:14321,18:pel-28:14321,19:pel-21:14321,20:brk-0:14321,21:pel-2:14321,22:pel-26:14321,23:pel-9:14321,24:pel-24:14321,25:pel-7:14321,26:pel-5:14321,27:pel-14:14321,28:pel-20:14321,29:pel-12:14321,30:brk-5:14321,31:pel-13:14321,32:brk-4:14321,33:pel-8:14321,34:pel-27:14321,35:pel-16:14321,36:pel-29:14321,37:pel-18:14321,38:brk-3:14321,39:pel-10:14321,40:brk-2:14442',
+    '1:spr-2:14321,2:spr-0:14321,3:spr-1:14321,4:pel-19:14321,5:pel-6:14321,6:pel-23:14321,7:pel-0:14321,8:pel-15:14321,9:brk-1:14321,10:pel-21:14321,11:pel-30:14321,12:pel-25:14321,13:pel-4:14321,14:pel-11:14321,15:pel-22:14321,16:pel-3:14321,17:pel-7:14321,18:pel-5:14321,19:pel-20:14321,20:pel-1:14321,21:pel-12:14321,22:pel-14:14321,23:brk-0:14321,24:pel-17:14321,25:pel-26:14321,26:pel-28:14321,27:pel-2:14321,28:pel-9:14321,29:brk-5:14321,30:pel-13:14321,31:pel-24:14321,32:brk-4:14321,33:pel-27:14321,34:pel-16:14321,35:pel-8:14321,36:pel-29:14321,37:pel-18:14321,38:pel-10:14321,39:brk-3:14321,40:brk-2:14440',
   'reina-150-0|reina-150|1|v1':
-    '1:bar-0:14236,2:gc-2:14282,3:gc-3:14327,4:gc-1:14327,5:gc-0:14327,6:bar-4:14372,7:bar-5:14372,8:bar-3:14372,9:pel-13:14372,10:pel-3:14372,11:pel-0:14372,12:bar-2:14495,13:bar-1:14662,14:pel-21:14662,15:pel-12:14662,16:pel-19:14897,17:pel-17:14938,18:pel-5:14938,19:pel-26:14938,20:pel-25:14938,21:pel-10:14958,22:pel-20:14958,23:pel-16:14958,24:pel-23:14958,25:pel-9:14958,26:pel-6:14958,27:pel-2:14958,28:pel-1:14958,29:pel-24:14958,30:spr-0:14958,31:pel-11:15028,32:pel-7:15028,33:pel-4:15028,34:pel-8:15028,35:pel-22:15028,36:pel-18:15028,37:pel-14:15028,38:pel-15:15028,39:spr-2:15028,40:spr-1:15028',
+    '1:gc-2:14172,2:bar-0:14235,3:bar-3:14268,4:gc-1:14324,5:gc-3:14324,6:gc-0:14324,7:bar-4:14394,8:bar-5:14394,9:bar-2:14508,10:pel-3:14508,11:pel-13:14508,12:pel-0:14508,13:pel-21:14658,14:bar-1:14658,15:pel-12:14658,16:pel-10:14834,17:pel-19:14876,18:pel-20:14876,19:pel-7:14876,20:pel-5:14876,21:pel-17:14876,22:pel-11:14941,23:pel-6:14941,24:pel-14:14941,25:pel-16:14941,26:pel-25:14941,27:pel-26:14941,28:pel-1:14941,29:pel-4:14941,30:spr-2:14941,31:pel-8:15004,32:pel-18:15004,33:pel-23:15004,34:pel-22:15004,35:pel-2:15004,36:pel-15:15004,37:pel-24:15004,38:spr-0:15004,39:spr-1:15004,40:pel-9:15128',
   'reina-150-1|reina-150|1|v1':
-    '1:gc-1:14210,2:gc-2:14210,3:gc-3:14210,4:gc-0:14210,5:bar-0:14210,6:bar-1:14234,7:pel-25:14234,8:pel-24:14234,9:bar-5:14256,10:bar-3:14279,11:bar-2:14374,12:pel-3:14374,13:bar-4:14451,14:pel-21:14739,15:pel-17:14739,16:pel-8:14739,17:pel-1:14739,18:pel-23:14809,19:pel-13:14809,20:pel-20:14809,21:pel-22:14809,22:pel-4:14809,23:pel-0:14809,24:spr-1:14809,25:pel-18:14860,26:pel-9:14860,27:pel-7:14860,28:pel-14:14860,29:pel-19:14860,30:pel-10:14860,31:pel-11:14860,32:pel-16:14860,33:pel-26:14860,34:pel-15:14860,35:pel-5:14860,36:pel-6:14860,37:pel-12:14860,38:pel-2:14860,39:spr-2:14860,40:spr-0:14860',
+    '1:gc-1:14215,2:gc-2:14215,3:gc-3:14215,4:gc-0:14215,5:bar-0:14215,6:bar-1:14232,7:pel-25:14232,8:pel-24:14232,9:bar-3:14271,10:bar-5:14271,11:bar-2:14381,12:pel-3:14381,13:bar-4:14456,14:pel-21:14739,15:pel-8:14739,16:pel-17:14739,17:pel-1:14739,18:pel-23:14804,19:pel-20:14804,20:pel-9:14804,21:pel-16:14804,22:pel-22:14804,23:pel-13:14804,24:pel-10:14804,25:pel-18:14876,26:pel-4:14876,27:pel-11:14876,28:pel-14:14876,29:pel-19:14876,30:pel-5:14876,31:pel-15:14876,32:pel-0:14876,33:pel-7:14876,34:pel-26:14876,35:pel-6:14876,36:pel-12:14876,37:pel-2:14876,38:spr-1:14876,39:spr-0:14876,40:spr-2:14876',
 }
 
 const fingerprint = (out: StageOutput): string =>

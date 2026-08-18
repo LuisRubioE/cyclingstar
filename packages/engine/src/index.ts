@@ -147,6 +147,8 @@ export { TARGETS, type Target } from './sim/targets.js'
 // herramienta de depuración (`scripts/race-radio.mjs`) y para la vista recorrible que viene detrás.
 export {
   checkReplay,
+  isTheBunch,
+  PELOTON_MIN_SHARE,
   raceRadioCollector,
   raceRadioFrom,
   radioKmFrom,

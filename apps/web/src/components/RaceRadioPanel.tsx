@@ -1,5 +1,8 @@
 import { useMemo, useState } from 'react'
 import type { RaceRadio, RadioGroup, RadioGroupKind, RadioRider } from '@cyclingstar/shared'
+// El listón de «esto es el pelotón» vive en el motor (v34), que es quien lo usa también para la
+// radio de terminal: web y terminal no pueden decir cosas distintas del mismo grupo.
+import { isTheBunch } from '@cyclingstar/engine'
 import { Flag } from './Flag'
 import { LeaderJersey } from './Jersey'
 
@@ -25,19 +28,6 @@ import { LeaderJersey } from './Jersey'
  *    jefes de filas). Los demás se cuentan.
  */
 
-/**
- * QUÉ PARTE DE LA CARRERA HAY QUE LLEVAR PARA LLAMARSE PELOTÓN. Dos tercios de los que siguen en
- * carrera. El número sale de las dos quejas que lo fijan, una por cada lado:
- *
- *  - un grupo de **129** con la carrera casi entera dentro salía como «Lead group» solo por haber
- *    perdido a alguien —el listón era `size >= racing`, o sea el pelotón EN PLENO—, y un pelotón
- *    sigue siendo el pelotón aunque se le haya escapado una fuga y se le haya caído un grupeto;
- *  - y cuando la carrera se parte en **59 y 65**, el de 65 tampoco es «el pelotón»: es media
- *    carrera. Con mayoría simple (65 de 124 es un 52 %) se habría seguido llamando pelotón, así que
- *    la mayoría no vale como listón.
- */
-const PELOTON_MIN_SHARE = 2 / 3
-
 /** `2nd`, `3rd`… para cuando no hay pelotón y a los grupos hay que llamarlos por su sitio. */
 function ordinal(n: number): string {
   const rest = n % 100
@@ -55,7 +45,7 @@ export function groupName(
 ): string {
   // El pelotón se llama por lo que ES —cuánta carrera lleva dentro— y no por dónde va: si va en
   // cabeza porque no se ha escapado nadie, sigue siendo el pelotón y no «una fuga».
-  if (kind === 'peloton' && size >= racing * PELOTON_MIN_SHARE) {
+  if (isTheBunch(kind, size, racing)) {
     return size >= racing ? 'Bunch together' : 'Peloton'
   }
   if (position === 0) return 'Lead group'
@@ -83,10 +73,9 @@ export function radioGap(seconds: number): string {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
 }
 
-/** Cómo va este hombre: dando la cara, relevando colocado, o a rueda. */
+/** Cómo va este hombre: o tira o no tira. */
 const ROLE_MARK: Record<RadioRider['role'], { icon: string; title: string; cls: string }> = {
-  front: { icon: '⏵', title: 'On the front, into the wind', cls: 'text-rose-600' },
-  relay: { icon: '↻', title: 'Taking turns in the rotation', cls: 'text-amber-600' },
+  pulling: { icon: '⏵', title: 'Pulling: taking turns into the wind', cls: 'text-rose-600' },
   sheltered: { icon: '⌂', title: 'Sitting in, sheltered', cls: 'text-slate-400' },
 }
 
@@ -118,19 +107,16 @@ function RiderLine({ r }: { r: RadioRider }) {
 
 function GroupCard({ g, position, racing }: { g: RadioGroup; position: number; racing: number }) {
   /**
-   * TRES LISTAS Y NO DOS, porque son tres cosas distintas y el motor las distingue desde la v15.
+   * UNA LISTA DE LOS QUE TIRAN, Y LOS QUE VAN A RUEDA (v34). Eran tres —«on the front», «in the
+   * rotation» y «sitting in»— y la de en medio era el problema: en el pelotón salían 36,5 nombres
+   * de 14,9 equipos distintos, que no es «el equipo X está tirando» sino una ensalada de nombres
+   * sueltos de media parrilla.
    *
-   * «Driving the group» las juntaba, y de ahí la queja: en el km 1 salían doce hombres de seis
-   * equipos «tirando del pelotón», que no tiene ningún sentido. Y no lo tenía porque no era verdad:
-   * en un pelotón el turno de relevos son cuarenta hombres, y de esos **los que de verdad dan la
-   * cara al viento son los del equipo que ha tomado el frente** (`onTheFront` en el motor, que paga
-   * `shelterWorking`); el resto van en el turno pero colocados detrás, a `shelterRelay`.
-   *
-   * Juntarlos convertía «el equipo X está tirando» —que es la frase que se quiere leer— en una
-   * ensalada de nombres sueltos de media parrilla.
+   * El motor ya no distingue esos dos estados (`shelterOf`): o tiras —y entonces te repartes el
+   * viento con los otros que tiran— o vas a rueda. La radio dice exactamente lo mismo, con las
+   * mismas palabras, que es de lo que iba el encargo.
    */
-  const front = g.riders.filter((r) => r.role === 'front')
-  const rotation = g.riders.filter((r) => r.role === 'relay')
+  const pulling = g.riders.filter((r) => r.role === 'pulling')
   const sitting = g.riders.filter((r) => r.role === 'sheltered')
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-3">
@@ -160,29 +146,13 @@ function GroupCard({ g, position, racing }: { g: RadioGroup; position: number; r
         </div>
       )}
 
-      {front.length > 0 && (
+      {pulling.length > 0 && (
         <>
           <p className="mt-2 text-[11px] font-semibold tracking-wide text-slate-400 uppercase">
-            On the front ({front.length})
+            Pulling ({pulling.length})
           </p>
           <ul className="mt-0.5 space-y-0.5">
-            {front.map((r) => (
-              <RiderLine key={`${r.name}-${r.bib ?? ''}`} r={r} />
-            ))}
-          </ul>
-        </>
-      )}
-      {rotation.length > 0 && (
-        <>
-          <p className="mt-2 text-[11px] font-semibold tracking-wide text-slate-400 uppercase">
-            {/* En una fuga NO hay «equipo al frente», así que aquí van los que se relevan: los seis
-                de la fuga rodando a turnos son, literalmente, quien la lleva. */}
-            {front.length > 0
-              ? `In the rotation (${rotation.length})`
-              : `Taking turns (${rotation.length})`}
-          </p>
-          <ul className="mt-0.5 space-y-0.5">
-            {rotation.map((r) => (
+            {pulling.map((r) => (
               <RiderLine key={`${r.name}-${r.bib ?? ''}`} r={r} />
             ))}
           </ul>

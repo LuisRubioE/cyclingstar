@@ -143,9 +143,18 @@ describe('coherencia de la crónica (docs/motor.md §16, v25)', () => {
             formed.protagonistas.every((id) => caught.protagonistas.includes(id))
           if (mismos) continue
           comprobadas += 1
-          // Si la lista cambió, el evento tiene que decir de cuántos salió y cuántos quedaban.
+          // Lo que se comprueba SIEMPRE: el evento cuenta a los que iban delante al cazarlos, no a
+          // los de la lista congelada.
           expect(Number(caught.datos?.size ?? 0)).toBe(caught.protagonistas.length)
-          expect(Number(caught.datos?.deLos ?? 0)).toBe(formed.protagonistas.length)
+          // Y `deLos` —«tres de los seis que salieron»— solo cuando el NÚMERO cambió, que es la
+          // mitad de la historia que `size` no puede contar. Con la misma gente cambiada de sitio
+          // pero el mismo número, «tres de los tres» no dice nada y el evento no lo emite: es la
+          // condición literal de `simulate.ts`. La v34 sacó ese caso a la luz —la fuga se caza con
+          // tres hombres distintos de los tres que salieron— y hasta entonces no se había dado en
+          // el banco, así que este test lo pedía sin haberlo visto nunca.
+          if (formed.protagonistas.length !== caught.protagonistas.length) {
+            expect(Number(caught.datos?.deLos ?? 0)).toBe(formed.protagonistas.length)
+          }
         }
       // Y que el caso EXISTE de verdad en el banco: si no se diera nunca, esta prueba no estaría
       // comprobando nada. Es el caso del encargo —la fuga cambia de gente por el camino— y sale.

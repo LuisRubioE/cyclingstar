@@ -12,6 +12,8 @@ import {
   majorityOnTheRoad,
   matchCount,
   maxMatchCount,
+  relayRotation,
+  shelterOf,
   stepSpeed,
   targetSpeed,
   vRef,
@@ -146,6 +148,57 @@ describe('coste y drafting (6.5)', () => {
 
   it('el rebufo mengua en subida', () => {
     expect(draftMax(block('subida', 8))).toBeLessThan(draftMax(block('llano', 0)))
+  })
+})
+
+describe('o tiras o no tiras (v34, SPEC 6.5)', () => {
+  it('el que no tira va a rueda, tire quien tire y sean los que sean', () => {
+    expect(shelterOf(false, 1)).toBe(STAGE.shelterProtected)
+    expect(shelterOf(false, 8)).toBe(STAGE.shelterProtected)
+  })
+
+  it('el que tira SIN NADIE QUE LE RELEVE paga el viento entero', () => {
+    // Es el caso n = 1 de la misma regla, no un estado aparte: el escapado en solitario, el
+    // descolgado que rueda solo y el corredor de una contrarreloj son el mismo hombre.
+    expect(shelterOf(true, 1)).toBe(STAGE.shelterAlone)
+  })
+
+  it('y duele menos cuanto más grande es la rotación, sin llegar nunca a ir a rueda', () => {
+    const dos = shelterOf(true, 2)
+    const seis = shelterOf(true, 6)
+    const veinte = shelterOf(true, 20)
+    expect(dos).toBeLessThan(seis)
+    expect(seis).toBeLessThan(veinte)
+    expect(veinte).toBeLessThan(STAGE.shelterProtected)
+    // Uno de dos da la cara la mitad del tiempo: la mitad del rebufo de ir a rueda.
+    expect(dos).toBeCloseTo(STAGE.shelterProtected / 2, 12)
+  })
+
+  it('LA FACTURA DEL GRUPO VALE UN HOMBRE, sea cual sea el tamaño de la rotación', () => {
+    // El invariante que sostiene toda la regla, y la razón de que el tamaño de la rotación decida
+    // entre quiénes se reparte el viento y nunca cuánto viento hay: en cada instante hay UN hombre
+    // dando la cara y el resto va a rueda.
+    for (const n of [1, 2, 3, 6, 8, 20, 176]) {
+      const factura = n * ((STAGE.shelterProtected - shelterOf(true, n)) / STAGE.shelterProtected)
+      expect(factura).toBeCloseTo(1, 12)
+    }
+  })
+})
+
+describe('cuántos tiran (v34)', () => {
+  it('en un grupo grande manda el tope de la carretera, no la fracción de ritmo', () => {
+    // El cuarto delantero de un pelotón de 176 son 44 hombres, y en la cabeza no caben 44.
+    expect(relayRotation(176, STAGE.pelotonPaceFraction)).toBe(STAGE.relayRotationMax)
+  })
+
+  it('en un grupo pequeño manda la fracción, y nunca tira menos de uno', () => {
+    expect(relayRotation(6, 0.635)).toBe(4)
+    expect(relayRotation(1, 1)).toBe(1)
+    expect(relayRotation(3, 0.12)).toBe(1)
+  })
+
+  it('nunca pide más relevistas que corredores hay', () => {
+    for (let n = 1; n <= 30; n++) expect(relayRotation(n, 1)).toBeLessThanOrEqual(n)
   })
 })
 
