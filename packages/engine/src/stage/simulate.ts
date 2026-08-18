@@ -33,8 +33,10 @@ import {
   effNow,
   erosion,
   idleEffort,
+  relayRotation,
   rhythm,
   riderEffort,
+  shelterOf,
   tankState,
   targetSpeed,
 } from './physics.js'
@@ -261,15 +263,15 @@ interface RiderSim {
   abandonedKm: number | null
   incident: Incident | null
   /**
-   * QUIÉN VA TIRANDO EN ESTE BLOQUE (v28), para la foto de `StageProbe`. Los dos los decide
-   * `advance()` en cada bloque —el turno de relevos y, dentro de él, quién da la cara al viento— y
-   * hasta ahora se consumían en el sitio y se perdían: fuera solo salía el trabajo acumulado.
+   * ¿TIRA ESTE HOMBRE EN ESTE BLOQUE? (v28, binario desde la v34), para la foto de `StageProbe`. Lo
+   * decide `advance()` en cada bloque y hasta la v28 se consumía en el sitio: fuera solo salía el
+   * trabajo acumulado del día. Eran DOS banderas —el turno y, dentro de él, quién daba la cara al
+   * viento— y desde la v34 es una sola, porque el motor ya no distingue esos dos estados.
    *
-   * Es OBSERVACIÓN y nada más: solo se escriben cuando alguien ha pedido una foto (`probe`), no los
+   * Es OBSERVACIÓN y nada más: solo se escribe cuando alguien ha pedido una foto (`probe`), no la
    * lee ninguna ley física y su valor no entra en ninguna decisión de carrera.
    */
-  relaying: boolean
-  onTheFront: boolean
+  pulling: boolean
 }
 
 /** ¿Está el corredor con la pájara (tanque a cero)? (SPEC 6.7). */
@@ -415,10 +417,24 @@ function relayDuty(
 }
 
 /**
- * Quién releva en este bloque: los `ceil(paceFraction · N)` corredores con más deber de relevo
- * (SPEC 6.5). El resto va a rueda y paga `shelterProtected`. El tamaño del turno lo fija la misma
- * fracción de ritmo que marca el P75, así el número de corredores que trabajan no cambia; lo que
- * cambia (y es el arreglo) es QUIÉNES son: antes salían del orden del array `input.riders`.
+ * Quién TIRA en este bloque: los `relayRotation(N, paceFraction)` corredores con más deber de
+ * relevo (SPEC 6.5). El resto va a rueda y paga `shelterProtected`. Quiénes son no puede salir del
+ * orden del array `input.riders` —de ahí el deber de relevo— y CUÁNTOS son ya no es una fracción
+ * del grupo desde la v34: en la cabeza de una carretera caben unos pocos hombres rotando, y el
+ * viento que pagan se reparte entre ellos (`shelterOf`).
+ *
+ * …Y SI EL FRENTE TIENE DUEÑO, ROTAN LOS SUYOS (v34). Es la regla 3 de §V.1 —«el frente lo lleva
+ * UNO»— dicha por fin donde se decide quién paga viento, en vez de en un descuento aplicado después
+ * al contarlo. Hasta la v33 el turno era tan grande (44 hombres de 176) que el equipo dueño del
+ * frente cabía dentro con sitio de sobra para media parrilla, y la crónica solo podía nombrarlo
+ * porque el trabajo de los demás se apuntaba al 30 % (`pullOffFrontShare`, retirada aquí): dos
+ * hombres que pagan el MISMO viento no pueden trabajar cantidades distintas.
+ *
+ * Ahora la rotación es corta, así que el dueño la llena: de los que más deber tienen se quedan los
+ * SUYOS, y los demás se colocan detrás. Si no queda ninguno —o si nadie lleva el frente, que es lo
+ * normal en una fuga o en un grupeto— rotan los de más deber, como siempre. De aquí salen a la vez
+ * las tres cosas que la v33 tenía repartidas en tres sitios: quién paga el viento, a quién se le
+ * gasta el presupuesto de equipo y a quién nombra el parte.
  */
 function relayTurn(
   members: RiderSim[],
@@ -428,6 +444,8 @@ function relayTurn(
   driveOfRider: (riderId: string) => number,
   /** ¿Va este hombre en una fuga que SU PROPIO equipo está persiguiendo por detrás? (v33). */
   sittingOn: (riderId: string) => boolean = () => false,
+  /** ¿Es este hombre del equipo que LLEVA EL FRENTE de este grupo? (v34, §V.1). */
+  ownsTheFront: (riderId: string) => boolean = () => false,
 ): Set<string> {
   /**
    * EL QUE SE RINDIÓ NO TIRA — PERO ESO SE ARREGLA EN LO QUE SE CUENTA, NO EN EL REPARTO DEL VIENTO
@@ -447,7 +465,7 @@ function relayTurn(
    * parte de «quién tira» ni en la firma de la captura (ver `topWorkers` más abajo y `attributeChase`).
    * Queda anotado como defecto medido en docs/balance.md, «v21».
    */
-  const count = Math.min(members.length, Math.max(1, Math.ceil(paceFraction * members.length)))
+  const count = relayRotation(members.length, paceFraction)
   const scored = members.map((m) => {
     const helpers = domestiquesFor.get(m.input.riderId)
     const protectedByTeam = helpers != null && helpers.some((id) => idSet.has(id))
@@ -463,7 +481,9 @@ function relayTurn(
   })
   // Desempate final por id para que el orden sea total y no herede el orden de inserción.
   scored.sort((a, b) => b.duty - a.duty || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
-  return new Set(scored.slice(0, count).map((s) => s.id))
+  const head = scored.slice(0, count)
+  const owners = head.filter((s) => ownsTheFront(s.id))
+  return new Set((owners.length > 0 ? owners : head).map((s) => s.id))
 }
 
 /**
@@ -600,8 +620,7 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
       hurt: false,
       abandonedKm: null,
       incident: null,
-      relaying: false,
-      onTheFront: false,
+      pulling: false,
     })
   }
   /**
@@ -1206,8 +1225,8 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
            * Y FRESCO, y en el desenlace ya no queda ninguno. Medido en los últimos 20 km de una
            * etapa de 168: **el 59 % de los bloques sin nadie al frente**, con 3,9 equipos frescos de
            * 18 y 1,9 con intención de lanzar el sprint. Justo cuando los trenes tienen que estar
-           * volando no había tren: sin `frontTeamId` nadie puede ser `onTheFront`, así que ni se
-           * paga `shelterWorking` ni la crónica puede decir quién lleva al pelotón.
+           * volando no había tren: sin `frontTeamId` nadie empuja a los suyos a la rotación, así
+           * que ni el frente tiene dueño ni la crónica puede decir quién lleva al pelotón.
            *
            * El presupuesto dice que un equipo no puede llevar el frente OCHENTA kilómetros, no que
            * no pueda lanzar un sprint: el lanzamiento es exactamente el momento de vaciar lo que
@@ -1703,7 +1722,7 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
        * ¿ES ESTE GRUPO EL PELOTÓN? Por la GENTE que lleva y no por el id con el que nació (v33, la
        * deuda que dejó escrita la v29). De esto cuelgan el equipo al frente y el libro del trabajo,
        * y estaban atados a `kind === 'peloton'`: un `shed-N` que ya era el grueso de la carrera no
-       * podía tener equipo al frente ni cobrar `shelterWorking`, y su trabajo no se apuntaba.
+       * podía tener equipo al frente, y su trabajo no se apuntaba.
        */
       const isBunch = group.id === (mainId ?? PELOTON)
       const p75 = pacemakerP75(members, block, paceFraction)
@@ -1726,6 +1745,13 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
         domestiquesFor,
         driveOfRider,
         (riderId) => !isBunch && frontTeamId !== null && teamOf.get(riderId) === frontTeamId,
+        // El dueño del frente solo existe en el PELOTÓN: una fuga no tiene equipo que la lleve, y
+        // el rebelde no trabaja para el suyo aunque lleve su maillot (§VI.2).
+        (riderId) =>
+          isBunch &&
+          frontTeamId !== null &&
+          !rebels.has(riderId) &&
+          teamOf.get(riderId) === frontTeamId,
       )
       /**
        * LO QUE VALE UN RELEVO EN ESTE BLOQUE, MEDIDO POR EL VIENTO Y NO POR LA VELOCIDAD (v26).
@@ -1749,8 +1775,8 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
       const idle = idleEffort(block)
       const workOf = (shelter: number): number =>
         Math.max(0, riderEffort(block, group.compromiso, shelter) - idle) * STAGE.dx
-      // Para las decisiones que son del GRUPO —a quién se persigue— vale el del que releva.
-      const frontEffort = workOf(members.length === 1 ? STAGE.shelterAlone : STAGE.shelterRelay)
+      // Para las decisiones que son del GRUPO —a quién se persigue— vale el del que tira.
+      const frontEffort = workOf(shelterOf(true, relayers.size))
       // Los movimientos que van por DELANTE de este grupo: lo que se releva aquí es trabajo de
       // persecución contra ellos, y es lo que se nombra al cazarlos.
       const chased =
@@ -1768,52 +1794,27 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
         if (block.tipo === 'llano') m.driftS = 0
       }
       for (const m of members) {
-        const relaying = relayers.has(m.input.riderId)
-        /**
-         * ¿Va este hombre EN CABEZA DEL PELOTÓN, o solo dentro del cuarto delantero? (v15, §V.1).
-         * El turno de relevos es una aproximación binaria de un continuo: en un pelotón de 176 el
-         * turno son 44 hombres, y de esos los que de verdad dan la cara al viento son los cuatro o
-         * cinco del equipo que ha tomado el frente. Los demás van colocados detrás de ellos.
-         *
-         * Esta es la distinción que activa el TERCER estado de rebufo de SPEC 6.5
-         * (`shelterWorking`, definido desde el Paso 21 y sin usar): rotando en cabeza se paga más
-         * viento que relevando en una fuga. Y es también lo que hace que el parte de «quién tira»
-         * pueda nombrar a un EQUIPO: sin ella, los 44 acumulan exactamente el mismo trabajo.
-         */
-        const onTheFront =
-          relaying &&
-          isBunch &&
-          frontTeamId !== null &&
-          !rebels.has(m.input.riderId) &&
-          teamOf.get(m.input.riderId) === frontTeamId
-        // …y aquí se ANOTA, solo si alguien ha pedido una foto (v28). El turno de relevos se decide
-        // cada bloque y se consumía en el sitio; la radio de carrera necesita justo esto para poder
-        // decir quién va tirando en el kilómetro que se mira. No lo lee nadie más.
-        if (probe) {
-          m.relaying = relaying
-          m.onTheFront = onTheFront
-        }
-        // EL QUE VA SOLO PAGA EL VIENTO ENTERO (v15, docs/motor.md §8). `shelterAlone` llevaba
-        // definido desde el Paso 21 sin que lo usara nadie, así que un escapado en solitario cobraba
-        // el rebufo de un grupo que no tenía —y también el descolgado que rueda solo—. Un grupo de
-        // UNO no tiene rueda a la que ir: paga 0 de rebufo, igual que en la contrarreloj.
-        const shelter =
-          members.length === 1
-            ? STAGE.shelterAlone
-            : onTheFront
-              ? STAGE.shelterWorking
-              : relaying
-                ? STAGE.shelterRelay
-                : STAGE.shelterProtected
+        // O TIRA O NO TIRA (v34). Aquí había un tercer estado —«va en el turno pero colocado detrás
+        // de los que dan la cara»— que era un nombre para un continuo y dejaba al 41,5 % del
+        // pelotón pagando un viento intermedio que nadie paga en la carretera. Ya no: el que está
+        // en la rotación paga el viento repartido entre los que rotan (`shelterOf`) y el que no,
+        // va a rueda. Lo que SÍ sigue existiendo es el DUEÑO del frente (`frontTeamId`), que es
+        // cosa de equipos y no de rebufo: decide quién entra a la rotación (`relayDuty`) y quién
+        // gasta presupuesto, unas líneas más abajo.
+        const pulling = relayers.has(m.input.riderId)
+        // …y aquí se ANOTA, solo si alguien ha pedido una foto (v28). El turno se decide cada bloque
+        // y se consumía en el sitio; la radio de carrera necesita justo esto para poder decir quién
+        // va tirando en el kilómetro que se mira. No lo lee nadie más.
+        if (probe) m.pulling = pulling
+        const shelter = shelterOf(pulling, relayers.size)
         const mineEffort = workOf(shelter)
-        if (relaying && mineEffort > 0) {
+        if (pulling && mineEffort > 0) {
           if (isBunch) {
             m.frontWorkPeloton += mineEffort
-            // El parte responde «quién tira AHORA»: el que va en cabeza se lleva el trabajo entero
-            // y el que releva colocado detrás, su parte. Es observación, no física: no mueve un
-            // segundo. Sin equipo que lleve el frente, todos cuentan igual y esto es lo de siempre.
-            m.pullWindow +=
-              mineEffort * (frontTeamId === null || onTheFront ? 1 : STAGE.pullOffFrontShare)
+            // El parte responde «quién tira AHORA», y desde la v34 todos los que tiran pagan lo
+            // mismo, así que lo que ordena esta ventana es cuántos bloques lleva cada uno en la
+            // rotación. Es observación, no física: no mueve un segundo.
+            m.pullWindow += mineEffort
             // …y se lo apunta a SU EQUIPO (v15, §V.1). Es el presupuesto que se agota: cuando un
             // equipo lleva 80 km al frente sus hombres salen del turno y el frente cambia de dueño.
             // El rebelde no gasta presupuesto de nadie: no tira por su equipo.
@@ -1870,7 +1871,7 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
         let cost = blockCost(block, group.compromiso, shelter)
         // Protección de gregarios: un líder arropado que no está relevando gasta menos según cuántos
         // de sus gregarios lleve en el grupo (SPEC 6.18). Así fichar buen equipo rinde de verdad.
-        if (!relaying) {
+        if (!pulling) {
           const helpers = domestiquesFor.get(m.input.riderId)
           if (helpers) {
             const present = helpers.reduce((c, id) => c + (idSet.has(id) ? 1 : 0), 0)
@@ -1919,8 +1920,7 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
       if (group.id === PELOTON) droppedSinceNotice += 1
       // El que acaba de soltarse no está relevando: solo importa para la foto (v28), donde si no un
       // caído —el único descuelgue que ocurre DESPUÉS de `advance()`— saldría tirando de su grupeto.
-      m.relaying = false
-      m.onTheFront = false
+      m.pulling = false
       const tS = group.tS + delayS
       const near = m.hurt
         ? undefined
@@ -3313,8 +3313,7 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
           energy0: s.energy0,
           // QUIÉN VA TIRANDO (v28): el turno de este bloque, ya resuelto por `advance()` unas líneas
           // más arriba en el mismo bloque, y la ventana de trabajo con la que se ordena.
-          relaying: s.relaying,
-          onTheFront: s.onTheFront,
+          pulling: s.pulling,
           pullWindow: s.pullWindow,
         })
       }

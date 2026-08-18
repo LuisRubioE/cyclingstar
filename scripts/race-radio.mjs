@@ -62,6 +62,7 @@ import { simulateStage } from '../packages/engine/dist/stage/simulate.js'
 import { stageLengthKm } from '../packages/engine/dist/stage/sample.js'
 import {
   checkReplay,
+  isTheBunch,
   raceRadioCollector,
   radioKmPoints,
 } from '../packages/engine/dist/sim/raceRadio.js'
@@ -304,6 +305,19 @@ const NOUN = {
   grupeto: 'grupeto',
 }
 
+/**
+ * CÓMO SE LLAMA ESTE GRUPO, con la MISMA regla que la web (v34). `kind` es la etiqueta con la que
+ * nació el grupo, y un grupo que la lleva puesta puede haber dejado de ser el pelotón hace rato: el
+ * listón —dos tercios de los que siguen en carrera— vive en el motor (`isTheBunch`) desde la v34,
+ * porque hasta entonces estaba escrito solo en `apps/web` y esta tabla seguía llamando pelotón a
+ * cualquier cosa con esa etiqueta. Web y terminal no pueden decir cosas distintas del mismo grupo.
+ */
+const groupNoun = (g, racing) => {
+  if (g.kind === 'peloton')
+    return isTheBunch(g.kind, g.size, racing) ? 'pelotón' : `${g.position}.º gr.`
+  return NOUN[g.kind]
+}
+
 function mmss(s) {
   const t = Math.round(s)
   const m = Math.floor(t / 60)
@@ -350,7 +364,9 @@ function render(radio, names, head) {
     for (let i = 0; i < MAX_GROUPS; i++) {
       const g = shown[i]
       line1 += pad(
-        g ? `[${g.position}] ${NOUN[g.kind]} ${g.size} · ${g.energyPct.toFixed(0)}%` : '',
+        g
+          ? `[${g.position}] ${groupNoun(g, row.racing)} ${g.size} · ${g.energyPct.toFixed(0)}%`
+          : '',
         WIDTH,
       )
       const who = g ? g.pulling.slice(0, MAX_PULLERS).map((p) => label(p.riderId)) : []

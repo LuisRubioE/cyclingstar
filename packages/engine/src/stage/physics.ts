@@ -298,6 +298,56 @@ export function riderEffort(block: Block, commit: number, shelter: number): numb
   return commit * (1 - draftMax(block) * shelter)
 }
 
+/**
+ * O TIRAS O NO TIRAS, Y TIRAR CUESTA LO QUE CUESTE REPARTIRLO (v34, SPEC 6.5).
+ *
+ * Hasta la v33 había CUATRO estados de rebufo —a rueda 0,9 | rotando en cabeza 0,4 | relevando 0,5
+ * | solo 0,0— y eran cuatro nombres para un continuo. Medido sobre seis carreras del banco
+ * (`scripts/medir-rebufo.mjs`): el 41,5 % de los bloques-corredor caían en el estado intermedio, y
+ * en el pelotón eso son **36,5 nombres de 14,9 equipos distintos** «en el turno» contra 3 de un solo
+ * equipo «al frente». No es un reparto de trabajo: es media parrilla pagando viento a la vez.
+ *
+ * Y la cifra que lo cierra: la FACTURA del pelotón —cuántos hombres de viento paga el grupo entero,
+ * `Σ (shelterProtected − shelter_i) / shelterProtected`— salía **17,91 de media y 57,6 en el peor
+ * caso**. En la carretera esa cifra es 1: en cada instante hay UN hombre dando la cara y todos los
+ * demás van a rueda. El motor se estaba inventando dieciocho.
+ *
+ * La regla nueva es la de la carretera y cabe en una línea: **en una rotación de n, a cada uno le
+ * toca la cabeza 1/n del tiempo**, así que su rebufo medio es `shelterProtected · (1 − 1/n)`. De
+ * ahí salen solas las tres cosas que el dueño pidió que fueran una sola:
+ *
+ *  - **solo** es n = 1 y da exactamente `shelterAlone` = 0: el que no tiene quien le releve paga el
+ *    viento entero. No hace falta preguntar por él.
+ *  - **tira** es cualquier n > 1, y duele MENOS cuanto más grande sea el turno, que es de lo que se
+ *    trata: uno de veinte pasando turnos no se desgasta como uno solo.
+ *  - **no tira** es `shelterProtected`, y ahí va el jefe de filas al que llevan los suyos: protegido
+ *    y punto, ni un vatio más que el último del pelotón.
+ *
+ * Y la factura del grupo vale 1 sea cual sea n, porque `n · (1/n) = 1`. Es la misma identidad que
+ * hace honesto el argumento: cambiar el tamaño de la rotación cambia ENTRE QUIÉNES se reparte el
+ * viento, nunca cuánto viento hay.
+ *
+ * Es el mismo 1 − 1/n que `droppedCommit` (v16) cobraba en VELOCIDAD —«relevarse reparte el viento;
+ * el que va solo da la cara el 100 %»— y que hasta hoy solo usaban los grupos descolgados.
+ */
+export function shelterOf(pulling: boolean, pullers: number): number {
+  if (!pulling) return STAGE.shelterProtected
+  const n = Math.max(1, pullers)
+  return STAGE.shelterAlone + (STAGE.shelterProtected - STAGE.shelterAlone) * (1 - 1 / n)
+}
+
+/**
+ * CUÁNTOS TIRAN de este grupo. El ritmo pide una fracción del grupo (`paceFraction`: el cuarto
+ * delantero del pelotón, el 12 % en un puerto, la cooperación de una fuga) y la carretera pone el
+ * techo: en la cabeza de un grupo caben unos pocos hombres rotando, no un cuarto del pelotón
+ * (`relayRotationMax`). El turno es el menor de los dos, y nunca menos de uno: si el grupo rueda,
+ * alguien está dando la cara.
+ */
+export function relayRotation(size: number, paceFraction: number): number {
+  const asked = Math.ceil(paceFraction * size)
+  return Math.max(1, Math.min(size, asked, STAGE.relayRotationMax))
+}
+
 /** El esfuerzo de referencia: ir arropado en un grupo que rueda al tempo de carretera. */
 export function idleEffort(block: Block): number {
   return riderEffort(block, STAGE.frontWorkIdleCommit, STAGE.shelterProtected)

@@ -300,7 +300,9 @@ desde ninguna parte.** El motor promete una carrera táctica y ejecuta una carre
 > los abandonos y el fuera de control entraron en la v14; el marcaje lo resuelve `marcaje.ts` desde
 > la v9; el **rebufo del que va solo (`shelterAlone`) y el de quien rota en cabeza del pelotón
 > (`shelterWorking`) entran en la v15** —los dos estados que faltaban de la tabla de rebufo de
-> SPEC 6.5—, y con ellos el umbral de lesión de §VI.3 (`abandonInjuryDays`), que era inalcanzable
+> SPEC 6.5; el segundo se RETIRÓ en la v34, donde los cuatro estados se colapsan en una regla,
+> `shelterProtected · (1 − 1/n)`, ver docs/balance.md «v34»—, y con ellos el umbral de lesión de
+> §VI.3 (`abandonInjuryDays`), que era inalcanzable
 > por construcción. Solo quedan sin usar las constantes de la **CRE**, y eso es una decisión tomada
 > (§V.4): ninguna carrera del calendario la corre, y se conservan marcadas como pendientes.
 >

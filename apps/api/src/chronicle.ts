@@ -1236,7 +1236,6 @@ const storedRaceRadioSchema = z.object({
           gapS: z.number(),
           speedKmh: z.number().nullable(),
           pulling: z.array(z.number()),
-          onTheFront: z.number(),
           watching: z.array(z.number()),
         }),
       ),
@@ -1256,7 +1255,7 @@ const MAX_NAMED_PER_GROUP = 24
  *
  * Tres cosas distintas que la vista tiene que poder separar, y que antes se mezclaban en una lista:
  *
- *  - quién **tira** (turno de relevos), y de ésos quién **da la cara** al viento en cabeza;
+ *  - quién **tira**, que desde la v34 es una sola lista y no dos;
  *  - quién va **a rueda** pero hay que ver igualmente: los maillots y los jefes de filas, porque
  *    «el equipo tira para X» no se entiende si X no aparece por ninguna parte;
  *  - y cuántos quedan sin nombrar, que se cuentan en vez de esconderse.
@@ -1281,11 +1280,11 @@ export function buildRaceRadio(stored: unknown, names: ChronicleNames): RaceRadi
         gone: k.gone,
         groups: k.groups.map((g, gi) => {
           const named: RadioRider[] = []
-          // 1) Los que LLEVAN el grupo, en su orden (los que dan la cara al viento primero).
-          g.pulling.forEach((i2, n) => {
+          // 1) Los que TIRAN del grupo, en su orden (de más a menos trabajo reciente).
+          for (const i2 of g.pulling) {
             const r = names.riderOf.get(ids[i2] ?? '')
-            if (r) named.push({ ...r, role: n < g.onTheFront ? 'front' : 'relay' })
-          })
+            if (r) named.push({ ...r, role: 'pulling' })
+          }
           // 2) Los que hay que ver aunque vayan a rueda: el motor los colocó, aquí se les pone cara.
           //    `protect` deja además que quien llama añada a alguien sin tocar lo guardado.
           for (const i2 of g.watching) {

@@ -8,7 +8,7 @@
  * **Por qué vive aquí y no dentro del script.** El motor ya sabía todo esto —lo dice la foto de
  * `StageProbe`— pero repartido en corredores sueltos; lo que faltaba era la vuelta de tuerca que
  * agrupa una foto en «estado de carrera»: ordenar los grupos por carretera, medir los huecos y
- * nombrar el turno de relevos. Esa cuenta es la misma para la herramienta de depuración de hoy y
+ * nombrar a los que tiran. Esa cuenta es la misma para la herramienta de depuración de hoy y
  * para la vista recorrible de mañana, así que no puede vivir dentro de ninguna de las dos.
  *
  * **Y es OBSERVACIÓN, como la foto de la que sale**: aquí no se estima nada. El hueco entre dos
@@ -72,11 +72,35 @@ export type RadioGroupKind =
   /** Descolgados: el grupeto y sus astillas. */
   | 'grupeto'
 
-/** Un corredor en el turno de relevos, con lo que está poniendo. */
+/**
+ * QUÉ PARTE DE LA CARRERA HAY QUE LLEVAR PARA LLAMARSE PELOTÓN. Dos tercios de los que siguen en
+ * carrera. El número sale de las dos quejas que lo fijan, una por cada lado:
+ *
+ *  - un grupo de **129** con la carrera casi entera dentro salía como «grupo de cabeza» solo por
+ *    haber perdido a alguien —el listón era el pelotón EN PLENO—, y un pelotón sigue siendo el
+ *    pelotón aunque se le haya escapado una fuga y se le haya caído un grupeto;
+ *  - y cuando la carrera se parte en **59 y 65**, el de 65 tampoco es «el pelotón»: es media
+ *    carrera. Con mayoría simple (65 de 124 es un 52 %) se habría seguido llamando pelotón, así que
+ *    la mayoría no vale como listón.
+ *
+ * VIVE AQUÍ DESDE LA v34, y no en la vista. Estaba escrita solo en `apps/web` y el radio de terminal
+ * (`scripts/race-radio.mjs`) seguía llamando pelotón a lo que llevara la etiqueta, así que las dos
+ * herramientas decían cosas distintas del MISMO grupo. La regla es una; los rótulos, cada uno en su
+ * idioma.
+ */
+export const PELOTON_MIN_SHARE = 2 / 3
+
+/**
+ * ¿Es este grupo EL PELOTÓN, o solo lleva su etiqueta? La etiqueta (`kind`) la pone el motor por el
+ * id con el que nació el grupo; esto pregunta por lo que ES: cuánta carrera lleva dentro.
+ */
+export function isTheBunch(kind: RadioGroupKind, size: number, racing: number): boolean {
+  return kind === 'peloton' && size >= racing * PELOTON_MIN_SHARE
+}
+
+/** Un corredor de los que TIRAN, con lo que está poniendo. */
 export interface RadioPuller {
   riderId: string
-  /** Da la cara al viento en cabeza del pelotón (el equipo que lleva el frente). */
-  onTheFront: boolean
   /** Trabajo al frente reciente (ventana con olvido). 0 fuera del pelotón. */
   pullWindow: number
 }
@@ -97,7 +121,7 @@ export interface RadioGroup {
   gapS: number
   /** Depósito medio de los suyos, en % de con lo que salieron (SPEC 6.5). */
   energyPct: number
-  /** Quién va en el turno de relevos, de más a menos trabajo reciente. */
+  /** Quiénes TIRAN, de más a menos trabajo reciente. */
   pulling: readonly RadioPuller[]
 }
 
@@ -195,15 +219,10 @@ export function radioKmFrom(
     for (const m of sorted)
       fresh += m.energy0 > 0 ? Math.max(0, Math.min(1, m.energy / m.energy0)) : 0
     const pulling = sorted
-      .filter((m) => m.relaying)
-      .sort(
-        (a, b) =>
-          Number(b.onTheFront) - Number(a.onTheFront) ||
-          b.pullWindow - a.pullWindow ||
-          (a.riderId < b.riderId ? -1 : 1),
-      )
+      .filter((m) => m.pulling)
+      .sort((a, b) => b.pullWindow - a.pullWindow || (a.riderId < b.riderId ? -1 : 1))
       .slice(0, maxPullers)
-      .map((m) => ({ riderId: m.riderId, onTheFront: m.onTheFront, pullWindow: m.pullWindow }))
+      .map((m) => ({ riderId: m.riderId, pullWindow: m.pullWindow }))
     return {
       id,
       tS: sorted[0]!.tS,
@@ -354,17 +373,14 @@ export interface StoredRadioGroup {
    */
   speedKmh: number | null
   /**
-   * Quiénes LLEVAN EL GRUPO, de más a menos trabajo reciente. Los primeros son los que dan la cara
-   * al viento (`onTheFront`).
+   * Quiénes TIRAN del grupo, de más a menos trabajo reciente. Una sola lista desde la v34: o tiras
+   * o no tiras, y los que tiran se reparten el viento entre ellos (`shelterOf`).
    *
-   * El tope no es pereza, es que el dato de abajo no dice lo que parece: `relayTurn` devuelve
-   * `ceil(paceFraction · N)`, y en un puerto a tope eso son TODOS —noventa y uno de noventa y uno—,
-   * porque subiendo al límite nadie va a rueda. Listar noventa y uno no es un parte de radio, es un
-   * volcado. Se guardan los que de verdad llevan el frente; el número entero está en `size`.
+   * El tope sigue estando por lo mismo de siempre —una lista larga no es un parte de radio— aunque
+   * desde la v34 la rotación ya no puede pasar de `relayRotationMax`, así que rara vez se llega.
+   * El número entero del grupo está en `size`.
    */
   pulling: readonly number[]
-  /** Cuántos de `pulling` van dando la cara al viento en cabeza (los demás relevan colocados). */
-  onTheFront: number
   /**
    * Los de la LISTA DE SEGUIMIENTO que van en este grupo y NO están en `pulling`: maillots, jefes de
    * filas y favoritos. Es lo que permite decir «el equipo tira para X» y que X aparezca, en vez de
@@ -489,12 +505,12 @@ export function radioForStorage(
       // Se filtra conservando el orden, que viene con los que dan la cara al viento primero.
       const pull = g.pulling.filter((p) => keep.has(p.riderId))
       const pulling = pull.map((p) => idx(p.riderId))
-      // TODO el que releva queda excluido de los que van a rueda, entre en el corte o no.
-      const relaying = new Set(g.pulling.map((p) => p.riderId))
+      // TODO el que tira queda excluido de los que van a rueda, entre en el corte o no.
+      const pullingAll = new Set(g.pulling.map((p) => p.riderId))
       // En un grupo pequeño se nombra a todos; en el pelotón, a los que hay que poder seguir.
       const nameAll = g.size <= NAME_WHOLE_GROUP_UP_TO
       const watching = g.riderIds
-        .filter((id) => (nameAll || watch.has(id)) && !relaying.has(id))
+        .filter((id) => (nameAll || watch.has(id)) && !pullingAll.has(id))
         .map(idx)
       // La velocidad del grupo en este km: dónde está SU GENTE un kilómetro más allá.
       const there = whereItWent(g, next)
@@ -507,7 +523,6 @@ export function radioForStorage(
         gapS: Math.round(g.gapS),
         speedKmh,
         pulling,
-        onTheFront: pull.filter((p) => p.onTheFront).length,
         watching,
       }
     })

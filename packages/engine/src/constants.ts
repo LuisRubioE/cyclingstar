@@ -185,7 +185,8 @@
  *
  * Entran además los dos estados de rebufo que llevaban definidos desde el Paso 21 y no usaba nadie
  * (§8): `shelterAlone` —el que rueda solo paga el viento entero— y `shelterWorking` —rotar en cabeza
- * del pelotón cuesta más que relevar colocado—.
+ * del pelotón cuesta más que relevar colocado—. (El segundo se retiró en la v34: aquellos cuatro
+ * estados eran cuatro nombres para un continuo, y hoy o tiras o no tiras.)
  *
  * Y se RE-ANCLA §VI.1 sobre una etapa reina realista: la curva de frescura del depósito vuelve a la
  * fórmula de §VI.1 y el objetivo de tercera semana se mide sobre la reina REAL (Race France e18) en
@@ -526,8 +527,49 @@
  * MUEVE LA CALIBRACIÓN, y se sube así a propósito: decisión del dueño, con el motor lejos de estar
  * acabado y los valores al borde de sus rangos. Lo ensanchado queda MARCADO como provisional en
  * `sim/targets.ts`, con el detalle en docs/balance.md «v33».
+ *
+ * ── v34 · o tiras o no tiras ───────────────────────────────────────────────────────────────────
+ *
+ * UN SOLO CONCEPTO, con el mismo nombre en el motor y en la Race Radio. Había CUATRO estados de
+ * rebufo —a rueda 0,9 | rotando en cabeza 0,4 | relevando 0,5 | solo 0,0— y eran cuatro nombres
+ * para un continuo. Lo que los sostenía era un turno de relevos del tamaño del CUARTO DELANTERO del
+ * pelotón: 44 hombres de 176 pagando viento a la vez.
+ *
+ * Medido con el banco nuevo (`scripts/medir-rebufo.mjs`, 6 carreras × 2 semillas, 1,31 M de
+ * bloques-corredor):
+ *
+ * - el 41,5 % de los bloques caían en el estado intermedio, y en el pelotón eso son **36,5 nombres
+ *   de 14,9 equipos distintos** «en el turno» contra 3 de un solo equipo «al frente»;
+ * - la FACTURA del pelotón —cuántos hombres de viento paga el grupo entero— salía **17,91 de media
+ *   y 57,6 en el peor caso**, cuando en la carretera es 1: hay UN hombre dando la cara y el resto
+ *   va a rueda;
+ * - y el jefe de filas arropado por los suyos entraba al turno el **16,6 %** de los bloques, así
+ *   que sí se cansaba más que uno del fondo del pelotón (rebufo medio 0,83 contra 0,9).
+ *
+ * La regla nueva cabe en una línea y es la de la carretera: **en una rotación de n, a cada uno le
+ * toca la cabeza 1/n del tiempo**, o sea `shelterProtected · (1 − 1/n)` (`shelterOf`). «Solo» es el
+ * caso n = 1 y sale de la fórmula sin preguntar por él. Es el mismo 1 − 1/n que `droppedCommit`
+ * (v16) ya cobraba en VELOCIDAD y que hasta hoy solo usaban los grupos descolgados.
+ *
+ * Y la rotación deja de ser una fracción del grupo: en la cabeza de una carretera caben unos pocos
+ * hombres (`relayRotationMax` = 8), no un cuarto del pelotón, y **si el frente tiene dueño rotan los
+ * SUYOS** (§V.1: «el frente lo lleva uno»), que hasta ahora se decía descontando el trabajo de los
+ * demás al contarlo (`pullOffFrontShare`, retirada) en vez de decidiendo quién da la cara. Nada de
+ * eso cambia cuánto viento paga el grupo —la factura vale 1 sea cual sea n, que es justo la gracia
+ * de 1 − 1/n— sino entre cuántos se reparte, y con ello quién se vacía, a quién se le gasta el
+ * presupuesto de equipo y a quién nombra la radio.
+ *
+ * Medido después: factura 1,00 (peor caso 1,00), el líder arropado a 0,90 y fuera del turno el
+ * 100 % de los bloques, y la lista de la radio en **4,7 nombres de 2,5 equipos, 3 de ellos del que
+ * lleva el frente**. La voz de equipo de la crónica sube de 66,3 % a 76,6 %.
+ *
+ * MUEVE LA CALIBRACIÓN, y hay que pagarla en un sitio: quitar diecisiete hombres de viento del
+ * pelotón abarata el día un 4-6 % y con él toda la familia de la erosión —la reina en fresco se
+ * salía por abajo de §VI.1 (0,163 contra un suelo de 0,18)—. El coste base del llano vuelve a su
+ * sitio (`costFlatBase`, 0,22 → 0,24) y la familia entera queda donde la pide §VI.1. El detalle,
+ * con la tabla de antes y después, está en docs/balance.md «v34».
  */
-export const ENGINE_VERSION = 33 as const
+export const ENGINE_VERSION = 34 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -1122,7 +1164,23 @@ export const STAGE = {
   // saturar. La razón llana/reina (0,65) y el umbral de erosión son las dos ataduras: ver
   // docs/balance.md, «la aritmética de la clásica larga».
   costDescentFloor: 0.1,
-  costFlatBase: 0.22,
+  /**
+   * SUBE DE 0,22 A 0,24 EN LA v34, y no es una perilla: es la contrapartida de haber quitado el
+   * viento que el motor se inventaba. Hasta la v33 un cuarto del pelotón pagaba viento a la vez
+   * —una factura de 17,91 hombres cuando en la carretera es 1 (`shelterOf`)— y ese sobreprecio
+   * estaba haciendo, sin decirlo, el trabajo del coste base: al retirarlo, el gasto del día cayó un
+   * 4-6 % y con él TODA la familia de la erosión de §VI.1. La reina en fresco se salió por abajo
+   * (0,163 contra un suelo de 0,18) y la llana se quedó clavada en 0,000.
+   *
+   * Se sube el coste del llano y no la pendiente porque ahí es donde estaba el defecto: el rebufo
+   * del llano vale 0,42 y el de una rampa al 8 %, 0,096, así que quitar viento abarata el LLANO un
+   * 6 % y la subida un 0,5 %. Medido después (`pnpm sim`): llana 0,014 · reina 0,195 · clásica
+   * larga 0,619 · reina de tercera semana 0,654 · la más dura 0,852, o sea la familia entera donde
+   * la pide §VI.1 y prácticamente clavada en los números de la v33 (0,010 · 0,191 · 0,633 · 0,661 ·
+   * 0,875), que es exactamente lo que tenía que salir: el reparto del viento cambia, el desgaste
+   * del día no.
+   */
+  costFlatBase: 0.24,
   costClimbSlope: 0.135,
   costDescentGradient: -3,
   // draftMax por terreno: llano 0.42 | descenso 0.25 | paves 0.18 | subida clamp(0.32 - 0.028·g, 0.08, 0.42).
@@ -1135,28 +1193,30 @@ export const STAGE = {
   draftClimbBase: 0.32,
   draftClimbSlope: 0.028,
   draftClimbMin: 0.08,
-  // shelter_i: protegido 0.9 | rotando/trabajando 0.4 | fugado que releva 0.5 | solo 0.0.
+  // shelter_i: O TIRAS O NO TIRAS (v34). Dos valores y una regla, en vez de los cuatro estados que
+  // había hasta la v33 —protegido 0,9 | rotando en cabeza 0,4 | relevando 0,5 | solo 0,0—, que eran
+  // cuatro nombres para un continuo y dejaban al 41,5 % del pelotón en un estado intermedio que no
+  // significaba nada (medido, `scripts/medir-rebufo.mjs`).
+  //
+  // El que va a rueda cobra `shelterProtected` y el que tira paga el viento REPARTIDO entre los que
+  // de verdad tiran: en una rotación de n, a cada uno le toca la cabeza 1/n del tiempo y el resto va
+  // colocado, así que su rebufo es `shelterProtected · (1 − 1/n)` (`shelterOf`, stage/physics.ts).
+  // Es el mismo 1 − 1/n que `droppedCommit` (v16) ya cobraba en VELOCIDAD a los descolgados,
+  // cobrado ahora en VIENTO y en cualquier grupo.
   shelterProtected: 0.9,
-  // ROTANDO EN CABEZA DEL PELOTÓN (v15): el tercer estado de la tabla de SPEC 6.5, que llevaba
-  // definido desde el Paso 21 sin efecto ninguno porque el motor solo distinguía «protegido» y
-  // «relevando». Ahora lo pagan los hombres del equipo que ha TOMADO EL FRENTE (`teamPlan.ts`):
-  // dar la cara al viento en cabeza cuesta más que relevar colocado dentro del cuarto delantero, y
-  // es lo que hace que el presupuesto de un equipo se gaste de verdad. Sin equipos no se activa.
-  shelterWorking: 0.4,
-  shelterRelay: 0.5,
-  // EL QUE VA SOLO PAGA EL VIENTO ENTERO (v15, docs/motor.md §8). Llevaba definido desde el Paso 21
-  // y no lo usaba nadie: `advance()` solo conocía `shelterRelay` y `shelterProtected`, así que un
-  // escapado en solitario —y todo grupeto de un corredor— cobraba el rebufo de un grupo que no
-  // tenía. Ahora un grupo de UN corredor paga 0 de rebufo, como ya hacía la contrarreloj.
+  // EL QUE VA SOLO PAGA EL VIENTO ENTERO (v15, docs/motor.md §8). Ya no es un estado aparte: es el
+  // caso n = 1 de la regla de arriba —el que tira sin nadie que le releve— y sale de la fórmula sin
+  // que haya que preguntar por él. Se queda escrito porque es la ANCLA de la escala: si algún día
+  // el rebufo del que da la cara deja de ser cero, se cambia aquí y la regla entera se mueve con él.
   shelterAlone: 0.0,
   // coste = dx·costeBase·ritmo(c)^1.6·(1 - draftMax·shelter).
   costRhythmExponent: 1.6,
 
-  // 6.5/6.18 — Reparto del trabajo dentro del grupo: quién releva (paga `shelterRelay`) y quién
-  // va a rueda (`shelterProtected`). NO puede decidirlo el orden del array de entrada: se ordena
-  // por "deber de relevo", con el rol como criterio principal, la frescura restante como segundo
-  // y un jitter determinista del RNG sembrado (subflujo `work:<riderId>`) para romper empates.
-  // Así un líder que aparezca el primero en el input ya no se pasa la etapa tirando.
+  // 6.5/6.18 — Reparto del trabajo dentro del grupo: quién TIRA y quién va a rueda. NO puede
+  // decidirlo el orden del array de entrada: se ordena por "deber de relevo", con el rol como
+  // criterio principal, la frescura restante como segundo y un jitter determinista del RNG sembrado
+  // (subflujo `work:<riderId>`) para romper empates. Así un líder que aparezca el primero en el
+  // input ya no se pasa la etapa tirando.
   relayDutyByRole: {
     gregario: 1.0, // su oficio es tirar y proteger al jefe
     lanzador: 0.85, // tira, pero se reserva algo para el último km
@@ -1177,13 +1237,32 @@ export const STAGE = {
   // fuga, yo no colaboro en ella —sería trabajar contra los míos—, me quedo a rueda y llego más
   // fresco al final. Los demás se enfadarán, pero eso es la carrera.
   //
-  // No cambia el RITMO del grupo, solo quién paga el viento: el turno tiene tamaño fijo
-  // (`ceil(paceFraction · N)`), así que al apartarse él releva otro en su lugar. Es deliberadamente
-  // grande —lo saca del turno salvo que no quede nadie más— porque es una orden de equipo, no una
+  // No cambia el RITMO del grupo, solo quién paga el viento: la rotación tiene tamaño fijo
+  // (`relayRotation`), así que al apartarse él tira otro en su lugar. Es deliberadamente grande
+  // —lo saca del turno salvo que no quede nadie más— porque es una orden de equipo, no una
   // preferencia.
   relaySittingOnPenalty: 2,
   // Amplitud del desempate aleatorio (determinista, sembrado) del deber de relevo.
   relayJitterWeight: 0.05,
+  /**
+   * CUÁNTOS CABEN ROTANDO EN LA CABEZA DE UN GRUPO (v34). El tope que faltaba, y sin él la regla
+   * nueva del rebufo no dice nada: si el que tira paga el viento repartido entre n, hay que decir
+   * quiénes son esos n, y hasta la v33 eran `ceil(paceFraction · N)` —el CUARTO DELANTERO del
+   * pelotón, 44 hombres de 176—.
+   *
+   * Una rotación no es una fracción del grupo, es un puñado de hombres: el equipo que lleva el
+   * frente pone cuatro o cinco, y en una fuga rotan los que van. Por eso el turno es el menor de
+   * los dos: lo que pida el ritmo del grupo y lo que cabe en la cabeza de una carretera. En un
+   * pelotón de 176 manda este tope; en una fuga de seis manda la cooperación y nunca se llega aquí.
+   *
+   * OCHO, que es un equipo entero de una grande, y es un TECHO: cuando el frente tiene dueño la
+   * rotación se queda en los suyos que caben ahí dentro (`relayTurn`), que medido son 4,1 hombres
+   * de 1,9 equipos en el pelotón. No mueve la FACTURA del grupo —la suma del viento que paga el
+   * grupo vale un hombre sea n el que sea, que es justo la gracia de 1 − 1/n— pero sí decide entre
+   * cuántos se reparte, y con ello quién se vacía, a quién se le gasta el presupuesto de equipo y a
+   * quién puede nombrar la radio.
+   */
+  relayRotationMax: 8,
 
   // 6.6 — Cerillos (esfuerzos supraumbral discretos).
   // comp = 0.50·max(MON,COL) + 0.30·RES + 0.20·LLA; cerillos = 2 + (comp>=55)+(>=72)+(>=88).
@@ -1485,6 +1564,13 @@ export const STAGE = {
   // con cuatro hombres rotando en cabeza) o bastante más de 100 km a ritmo de control. Es el número
   // del encargo —«un equipo que lleva 80 km tirando no puede seguir a tope»— leído como lo que es:
   // ochenta kilómetros de trabajo de verdad, no ochenta kilómetros de estar delante.
+  //
+  // REVISADO EN LA v34 y NO SE TOCA. La escala de `frontWork` sí se movió —la rotación es más corta
+  // y cada relevo cuesta otra cosa— así que había que volver a medirlo, porque un presupuesto que
+  // no se agota deja el frente en manos del mismo equipo toda la etapa. Medido sobre el mismo banco
+  // que la v15: **2,56 equipos llevan el frente en una llana, exactamente el número de la v33**
+  // (objetivo 1,8-4). Los dos cambios se compensan: rotan menos hombres, pero cada uno paga más
+  // viento porque el reparto es 1 − 1/n.
   teamBudgetPerRider: 9,
   // EL FRENTE LO LLEVA UNO. Aunque cuatro equipos quieran el mismo sprint, en carretera el frente
   // tiene dueño y los demás se colocan detrás esperando su turno. Sin esa distinción, cuatro
@@ -1923,12 +2009,6 @@ export const STAGE = {
   // así el parte dice «X y Z» cuando de verdad tiran dos y «X» cuando tira uno solo.
   pullNamesMax: 3,
   pullNamesMinShare: 0.55,
-  // …y cuánto del trabajo se lleva el que releva SIN ir en cabeza (v15, docs/motor.md §V.1). El
-  // turno de relevos es una aproximación binaria: en un pelotón de 176 son 44 hombres, y los que
-  // de verdad dan la cara al viento son los del equipo que ha tomado el frente. Con todos contando
-  // igual, los tres que más trabajo acumulaban salían de tres equipos distintos y la crónica no
-  // podía nombrar a nadie. Es OBSERVACIÓN: no mueve un segundo. Sin equipo al frente vale 1.
-  pullOffFrontShare: 0.3,
   // Trabajo mínimo del que más ha tirado en la ventana para que haya parte. Es lo que impide narrar
   // «tiran fulano y mengano» de un pelotón que va de paseo detrás de una fuga consentida.
   pullMinWork: 0.35,
