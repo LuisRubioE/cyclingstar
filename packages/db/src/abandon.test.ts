@@ -1,6 +1,6 @@
 import { SEASON_CALENDAR } from '@cyclingstar/engine'
 import { ATTRIBUTES } from '@cyclingstar/shared'
-import { and, eq } from 'drizzle-orm'
+import { and, eq, isNull } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { getRaceGc, getStageResults } from './results.js'
 import { getRiderUpcomingRaces, retireFromRace } from './riderSchedule.js'
@@ -138,7 +138,16 @@ describe('db: consecuencias de un abandono', () => {
     )
     // Ni corre…
     expect(raced2.has(out)).toBe(false)
-    expect(raced2.size).toBe(FIELD - 1)
+    // …y no se ha caído NADIE MÁS por la puerta del abandono: los que corren son los que quedan en
+    // la lista de salida. Se compara contra el ROSTER y no contra `FIELD - 1` a secas, que es lo
+    // que hacía este test y lo que lo volvía frágil: el motor puede retirar a alguien DENTRO de la
+    // etapa (colapso o fuera de control, v14) y eso es comportamiento legítimo, no un fallo de lo
+    // que aquí se comprueba. Medido: el nocturno del 17/08 falló exactamente por eso.
+    const enLista = await t.db
+      .select({ riderId: raceRosters.riderId })
+      .from(raceRosters)
+      .where(and(eq(raceRosters.raceId, RACE_KEY), isNull(raceRosters.abandonedDay)))
+    expect(raced2.size).toBe(enLista.length)
     // …ni tiene resultado en esa etapa…
     const res3 = await getStageResults(t.db, RACE_KEY, 3)
     expect(res3.some((r) => r.riderId === out)).toBe(false)
@@ -174,9 +183,14 @@ describe('db: consecuencias de un abandono', () => {
       .where(and(eq(raceRosters.raceId, RACE_KEY), eq(raceRosters.riderId, me)))
     expect(row).toEqual({ abandonedDay: day, abandonedReason: 'voluntario' })
 
-    // Se le narra en el feed, una sola vez.
-    const headlines = await t.db.select({ kind: news.kind, text: news.text }).from(news)
-    const mine = headlines.filter((h) => h.kind === 'abandon')
+    // Se le narra en el feed, una sola vez. SUYA: se filtra por el corredor y no por el `kind`,
+    // porque en el feed puede haber abandonos de otros —el motor retira gente dentro de la etapa
+    // (v14)— y contarlos todos convertía «no se duplica el titular» en «no abandona nadie más»,
+    // que es otra cosa y además no es verdad.
+    const headlines = await t.db
+      .select({ kind: news.kind, text: news.text, riderId: news.riderId })
+      .from(news)
+    const mine = headlines.filter((h) => h.kind === 'abandon' && h.riderId === me)
     expect(mine).toHaveLength(1)
     expect(mine[0]!.text).toContain('abandons the Race France')
 

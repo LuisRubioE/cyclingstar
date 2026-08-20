@@ -6939,6 +6939,53 @@ corridas). Quien las quiera dar por buenas tiene que medirlas aparte.
   fuga se caza con tres hombres distintos de los tres que salieron) y el que estaba mal era el test,
   no el motor: se estrecha a lo que describe su propio comentario.
 
+## El motor depende del ORDEN DE ENTRADA (defecto medido, sin arreglar — sin `engine_version`)
+
+Salió tirando del hilo de un test que fallaba una noche sí y otra no. El nocturno del **17/08** y el
+del **18/08** corrieron el **MISMO commit** (`c1ace88`) y solo uno pasó: en el que falló,
+`packages/db/src/abandon.test.ts` vio **un abandono de más** en la etapa que simula, y con él un
+titular de más en el feed. Un test que corre con semilla fija no puede dar dos resultados.
+
+### La medida
+
+Se baraja el MISMO campo con las MISMAS semillas y se compara la huella de llegada:
+
+| escenario   | barajadas | idénticas | **distintas** |
+| ----------- | --------- | --------- | ------------- |
+| `llana-180` | 36        | 0         | **36**        |
+| `reina-150` | 36        | 0         | **36**        |
+
+No se mueve la cola: **se mueve el ganador**. `llana-180` pasa de `1:spr-2:14514` a
+`1:spr-2:14342`; `reina-150`, de `1:gc-2:14172` a `1:gc-1:14155`.
+
+### Por qué pasa
+
+El motor sí protege lo que dijo que protegería: el deber de relevo tiene su subflujo NOMINAL por
+corredor (`work:<riderId>`, v15) y no depende del array. Pero los flujos COMPARTIDOS —`sprint`,
+`placement`, `crash`, `rough`— se consumen **recorriendo la lista de miembros**, así que el corredor
+que se lleva cada tirada depende de en qué posición del array viene. Cambia el array, cambia quién
+se cae y quién gana el sprint.
+
+### Y por qué llegaba a producción
+
+`runOneStage` (`packages/db/src/stageRun.ts`) leía el `roster` **sin `ORDER BY`**. De esa consulta
+sale `riderIds`, y de `riderIds` sale `input.riders`. O sea: **el planificador de Postgres decidía la
+carrera**, y la cambiaba con un UPDATE, un vacuum o un plan distinto. Consecuencia seria: una etapa
+guardada en `stage_snapshots` no se podía volver a correr con su propia semilla y obtener la misma
+carrera, que es justo lo que `checkReplay` promete.
+
+### Lo que se ha hecho, y lo que NO
+
+**Hecho:** la consulta ordena por dorsal y, como `bib` admite nulos, con el id de desempate, así que
+la lista es total y estable. Con eso el flake se acaba y el replay vuelve a ser fiel.
+
+**No hecho, y es la causa de verdad:** que el motor dependa del orden es un defecto SUYO. El arreglo
+honesto es canonizar el orden dentro de `simulateStage` —ordenar por `riderId` al entrar, de modo
+que ninguna llamada pueda cambiar la carrera pasándole la misma gente en otro orden— y eso **mueve
+las cuatro huellas selladas** y pide subir `engine_version`. Es una tanda propia, no un apaño de
+paso. Mientras no se haga, cualquier otro sitio que arme un `StageInput` con un orden distinto
+(un banco, un script, una migración futura) vuelve a tener el problema.
+
 ---
 
 ## Banco de huecos: las tres rarezas de la Race Radio, medidas (sin `engine_version`)

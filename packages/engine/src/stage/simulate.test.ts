@@ -439,7 +439,12 @@ describe('trabajo de equipo (SPEC 6.18)', () => {
 
   it(
     'un marcador se pega a su objetivo en la subida más que un igual que no marca',
-    { timeout: 30000 },
+    // 60 ETAPAS SIMULADAS, y por eso este necesita más que el suelo de 30 s: es el test más caro de
+    // este fichero. Medido, 8,66 s aquí; 17,50 s con la instrumentación de la cobertura puesta
+    // (×2,02); y **36,7 s en el nocturno**, que es donde se pasó de los 30 s que tenía y dejó el
+    // workflow en rojo dos noches seguidas. No es que el test se haya vuelto lento —con la v33
+    // tardaba 9,02 s, o sea algo MÁS— es que su límite se calibró sobre la suite sin instrumentar.
+    { timeout: 180000 },
     () => {
       let markWith = 0
       let freeWith = 0

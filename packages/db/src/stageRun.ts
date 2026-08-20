@@ -126,6 +126,30 @@ export async function runOneStage(
         isNull(raceRosters.abandonedDay),
       ),
     )
+    /**
+     * EL ORDEN DE ESTA LISTA ES EL DE LA CARRERA, y por eso no puede decidirlo Postgres.
+     *
+     * De aquí sale `riderIds`, y de `riderIds` sale el array `input.riders` que ve el motor. Sin
+     * `ORDER BY`, el planificador devuelve las filas en el orden que le conviene —y lo cambia con
+     * los UPDATE, el vacuum o un plan distinto—, así que **la misma etapa con la misma semilla no
+     * daba la misma carrera**.
+     *
+     * No es teoría: medido barajando el mismo campo con las mismas semillas sobre los dos
+     * escenarios canónicos, **36 de 36 barajadas dieron un resultado distinto, ganador incluido**
+     * (`llana-180`: `1:spr-2:14514` -> `1:spr-2:14342`). Y se veía en CI: el nocturno del 17/08 y
+     * el del 18/08 corrieron el MISMO commit y solo uno pasó, porque en uno de los dos la etapa que
+     * simula `abandon.test.ts` retiró a un corredor de más.
+     *
+     * Con el dorsal por delante —y el id como desempate, porque `bib` admite nulos— la lista es
+     * total y estable, así que una etapa guardada en `stage_snapshots` se puede volver a correr y
+     * cuenta la misma carrera.
+     *
+     * OJO, ESTO TAPA EL SÍNTOMA Y NO LA CAUSA: que el motor dependa del orden de entrada es un
+     * defecto suyo —sus flujos compartidos (`sprint`, `placement`, `crash`) se consumen recorriendo
+     * el array— y arreglarlo de verdad es canonizar el orden DENTRO de `simulateStage`, lo que mueve
+     * las huellas selladas y pide subir `engine_version`. Queda anotado en docs/balance.md.
+     */
+    .orderBy(raceRosters.bib, raceRosters.riderId)
   const riderIds = roster.map((r) => r.riderId)
   if (riderIds.length === 0) return new Set()
   const bibOf = new Map(roster.map((r) => [r.riderId, r.bib]))

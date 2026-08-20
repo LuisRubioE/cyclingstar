@@ -115,6 +115,12 @@ export interface RadioGroup {
   size: number
   /** Quiénes van dentro, ordenados por su reloj (el que va más adelantado, primero). */
   riderIds: readonly string[]
+  /**
+   * …y el reloj de CADA UNO, en el mismo orden que `riderIds`. Es lo que permite medir la velocidad
+   * del grupo por los HOMBRES y no por los relojes de dos grupos (ver `groupSpeedKmh`), que es de
+   * donde salían los 62 km/h de un pelotón partido y los 56 de un descolgado solitario.
+   */
+  riderTs: readonly number[]
   /** Reloj del grupo en este punto, en segundos desde la salida: el del primero de los suyos. */
   tS: number
   /** Hueco al LÍDER DE CARRERA, en segundos. Exacto: es una resta de relojes, no una estimación. */
@@ -228,6 +234,7 @@ export function radioKmFrom(
       tS: sorted[0]!.tS,
       size: sorted.length,
       riderIds: sorted.map((m) => m.riderId),
+      riderTs: sorted.map((m) => m.tS),
       energyPct: (100 * fresh) / sorted.length,
       pulling,
     }
@@ -253,6 +260,7 @@ export function radioKmFrom(
       position: i + 1,
       size: g.size,
       riderIds: g.riderIds,
+      riderTs: g.riderTs,
       tS: g.tS,
       gapS: g.tS - leadTs,
       energyPct: g.energyPct,
@@ -367,9 +375,14 @@ export interface StoredRadioGroup {
   /** Hueco al LÍDER DE CARRERA, en segundos. Exacto: resta de relojes. */
   gapS: number
   /**
-   * Velocidad media del grupo en ESTE kilómetro (km/h), o `null` en el último punto, donde no hay
-   * kilómetro siguiente contra el que medirla. No es una estimación: sale de la resta de los relojes
-   * del mismo grupo en dos fotos consecutivas, que es espacio partido por tiempo.
+   * Velocidad media del grupo en ESTE kilómetro (km/h), o `null` cuando no hay con qué medirla: el
+   * último punto del recorrido, o un grupo del que no queda nadie en la foto siguiente.
+   *
+   * No es una estimación: es la MEDIANA de lo que tardaron SUS CORREDORES en cubrir el kilómetro,
+   * medida en el reloj de cada uno. Hasta la v34 se restaban los relojes de dos GRUPOS —el de aquí
+   * y el de donde fue a parar su gente—, y como el reloj de un grupo es el mínimo de sus miembros,
+   * un cambio de composición lo hacía saltar: de ahí salían los 62 km/h de un pelotón recién
+   * partido y los 56 de un descolgado al que estaban cazando. Ver `groupSpeedKmh`.
    */
   speedKmh: number | null
   /**
@@ -441,25 +454,55 @@ const NAME_WHOLE_GROUP_UP_TO = 12
  * Solo se devuelve `undefined` cuando no queda ni uno —abandonos, o la última foto—, y ahí sí que no
  * hay nada que medir.
  */
-function whereItWent(
-  g: { id: string; riderIds: readonly string[] },
-  next: RadioKm | undefined,
-): { tS: number } | undefined {
-  if (!next) return undefined
-  const same = next.groups.find((x) => x.id === g.id)
-  if (same) return same
-  const mine = new Set(g.riderIds)
-  let best: RadioGroup | undefined
-  let bestCount = 0
-  for (const x of next.groups) {
-    let n = 0
-    for (const id of x.riderIds) if (mine.has(id)) n += 1
-    if (n > bestCount) {
-      bestCount = n
-      best = x
-    }
+/**
+ * LA VELOCIDAD DE UN GRUPO SE MIDE POR SUS HOMBRES, NO POR DOS RELOJES DE GRUPO (v34).
+ *
+ * Aquí había un defecto de OBSERVACIÓN que el dueño vio en pantalla tres veces seguidas: «2nd group
+ * 31 riders — 62,2 km/h», «Grupetto 1 rider — 56,8 km/h mientras el de delante va a 40». Nadie
+ * pedalea a eso, y no lo pedaleaba nadie: la cuenta era mala.
+ *
+ * Lo que se hacía era buscar «dónde fue a parar la gente de este grupo» y restar el reloj de AQUEL
+ * grupo menos el de ESTE. Los dos relojes son el MÍNIMO de sus miembros (el grupo va donde va su
+ * cabeza), así que mientras la composición no cambie la resta es tiempo de carretera… y en cuanto
+ * cambia, no lo es: es el salto del mínimo al cambiar de población. Y cambia justo en los momentos
+ * en que uno mira la radio —un pelotón que se parte en dos, un descolgado al que cazan, un hombre
+ * que entra en otro grupo—, porque el destino trae gente que iba por delante y el mínimo se
+ * desploma. Un descolgado SOLO era el peor caso: su propio reloj es exacto y aun así se le medía
+ * contra el mínimo del grupo que se lo comía.
+ *
+ * Medido antes del arreglo (3 carreras × 3 semillas, 17.982 grupo-kilómetro): la cifra coincidía
+ * con la carretera en la mediana (0,03 km/h) y en el p90 (0,05), pero **el 2,18 % enseñaba 55 km/h
+ * o más y el 0,57 % pasaba de 60**, y el peor caso decía 48,9 km/h donde la carretera hizo 13,1.
+ * O sea: bien en el 98 % de los kilómetros y basura en uno de cada 175.
+ *
+ * Ahora se mide con el dato que ya estaba y no se usaba: el reloj de CADA hombre en las dos fotos.
+ * La velocidad del grupo es la MEDIANA de lo que tardaron los suyos en cubrir el kilómetro, vayan
+ * después al grupo que vayan. Es la misma pregunta hecha a quien la puede contestar, no puede
+ * saltar por un cambio de composición, y la mediana aguanta a los dos o tres que se descuelgan.
+ *
+ * Si no queda ni uno de los suyos en la foto siguiente —todos han llegado a meta o se han
+ * retirado—, no hay velocidad que dar y se devuelve `null`, que es lo honesto.
+ */
+function groupSpeedKmh(
+  g: RadioGroup,
+  clockAhead: ReadonlyMap<string, number>,
+  dKm: number,
+): number | null {
+  if (dKm <= 0) return null
+  const dts: number[] = []
+  for (let i = 0; i < g.riderIds.length; i++) {
+    const then = clockAhead.get(g.riderIds[i]!)
+    if (then === undefined) continue
+    const dt = then - g.riderTs[i]!
+    if (dt > 0) dts.push(dt)
   }
-  return bestCount > 0 ? best : undefined
+  if (dts.length === 0) return null
+  dts.sort((a, b) => a - b)
+  const mid =
+    dts.length % 2
+      ? dts[(dts.length - 1) / 2]!
+      : (dts[dts.length / 2 - 1]! + dts[dts.length / 2]!) / 2
+  return Math.round((10 * (3600 * dKm)) / mid) / 10
 }
 
 /**
@@ -488,6 +531,13 @@ export function radioForStorage(
 
   const kms = radio.kms.map((k, i) => {
     const next = radio.kms[i + 1]
+    // El reloj de cada corredor en la foto SIGUIENTE, una vez por kilómetro: es lo que necesita
+    // `groupSpeedKmh` para medir la velocidad por los hombres en vez de por dos relojes de grupo.
+    const clockAhead = new Map<string, number>()
+    if (next) {
+      for (const g of next.groups)
+        for (let j = 0; j < g.riderIds.length; j++) clockAhead.set(g.riderIds[j]!, g.riderTs[j]!)
+    }
     const groups = k.groups.map((g) => {
       /**
        * A QUIÉN SE GUARDA COMO QUE TIRA. El tope existe porque en un pelotón el turno son cuarenta
@@ -512,11 +562,8 @@ export function radioForStorage(
       const watching = g.riderIds
         .filter((id) => (nameAll || watch.has(id)) && !pullingAll.has(id))
         .map(idx)
-      // La velocidad del grupo en este km: dónde está SU GENTE un kilómetro más allá.
-      const there = whereItWent(g, next)
-      const dt = there ? there.tS - g.tS : 0
-      const dKm = next ? next.km - k.km : 0
-      const speedKmh = there && dt > 0 && dKm > 0 ? Math.round((10 * (3600 * dKm)) / dt) / 10 : null
+      // La velocidad del grupo en este km, medida por los suyos (ver `groupSpeedKmh`).
+      const speedKmh = groupSpeedKmh(g, clockAhead, next ? next.km - k.km : 0)
       return {
         kind: g.kind,
         size: g.size,
