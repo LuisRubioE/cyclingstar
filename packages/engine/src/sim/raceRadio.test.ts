@@ -201,6 +201,63 @@ describe('radioForStorage: a quién se puede nombrar', () => {
   })
 })
 
+describe('radioForStorage: la velocidad de un grupo la miden SUS HOMBRES', () => {
+  /**
+   * El defecto que arregla, visto en producción tres veces seguidas: «2nd group 31 riders — 62,2
+   * km/h», «Grupetto 1 rider — 56,8 km/h» con el grupo de delante a 40. La velocidad se calculaba
+   * restando el reloj del grupo de destino menos el de este, y los dos son el MÍNIMO de sus
+   * miembros: en cuanto la composición cambia —y cambia justo cuando uno mira la radio: un pelotón
+   * que se parte, un descolgado al que cazan— la resta deja de ser tiempo de carretera.
+   */
+  it('a un descolgado al que cazan se le mide por SU reloj, no por el del grupo que se lo come', () => {
+    // km 10: el solitario va 90 s detrás del pelotón. km 11: ya va dentro, pero con su deriva
+    // encima (1170), mientras la cabeza del pelotón marca 1100. Su kilómetro le costó 80 s: 45 km/h.
+    const aqui = radioKmFrom(
+      10,
+      [
+        ...Array.from({ length: 30 }, (_, i) => rider(`pel-${i}`, 'peloton', 1000)),
+        rider('solo', 'shed-1', 1090, { pulling: true }),
+      ],
+      31,
+    )
+    const luego = radioKmFrom(
+      11,
+      [
+        ...Array.from({ length: 30 }, (_, i) => rider(`pel-${i}`, 'peloton', 1100)),
+        rider('solo', 'peloton', 1170),
+      ],
+      31,
+    )
+    const stored = radioForStorage({ starters: 31, kms: [aqui, luego] }, new Set())
+    const suyo = stored.kms[0]!.groups.find((g) => g.size === 1)!
+    // Con la cuenta vieja salían 1 km en 10 s (1100 − 1090), o sea 360 km/h.
+    expect(suyo.speedKmh).toBeCloseTo(45, 1)
+  })
+
+  it('la mediana aguanta a los dos que se están descolgando del grupo', () => {
+    // Veinte a 80 s el kilómetro (45 km/h) y dos que ceden treinta: el grupo va a 45, no a 40.
+    const aqui = radioKmFrom(
+      20,
+      Array.from({ length: 22 }, (_, i) => rider(`r-${i}`, 'peloton', 2000)),
+      22,
+    )
+    const luego = radioKmFrom(
+      21,
+      Array.from({ length: 22 }, (_, i) => rider(`r-${i}`, 'peloton', i < 20 ? 2080 : 2110)),
+      22,
+    )
+    const stored = radioForStorage({ starters: 22, kms: [aqui, luego] }, new Set())
+    expect(stored.kms[0]!.groups[0]!.speedKmh).toBeCloseTo(45, 1)
+  })
+
+  it('si no queda ni uno de los suyos en la foto siguiente, no se inventa una velocidad', () => {
+    const aqui = radioKmFrom(100, [rider('a', 'peloton', 5000), rider('b', 'peloton', 5000)], 2)
+    const luego = radioKmFrom(101, [rider('c', 'peloton', 5080)], 3)
+    const stored = radioForStorage({ starters: 3, kms: [aqui, luego] }, new Set())
+    expect(stored.kms[0]!.groups[0]!.speedKmh).toBeNull()
+  })
+})
+
 describe('radioForStorage: el que releva nunca sale como que va a rueda', () => {
   it('un relevista que no entra en el corte se queda sin nombrar, pero NO se pinta guarecido', () => {
     // El «símbolo de tirar que no sale en algunos que tiran»: `inPull` se calculaba sobre el corte
