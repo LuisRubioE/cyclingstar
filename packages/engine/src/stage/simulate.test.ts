@@ -219,6 +219,138 @@ function terrainCases(): { name: string; input: StageInput }[] {
  * Se mide con la sonda del motor (`StageProbe`), que dice quién PAGA VIENTO en el bloque de la
  * foto: es el dato de verdad, no la lista de tres nombres que publica el parte.
  */
+/**
+ * LOS SUYOS SE DEJAN CAER A POR ÉL (v36, §V.1). Hasta la v35 el trabajo de equipo se acababa en el
+ * borde del grupo: los tres mecanismos que existen —el descuento de coste del gregario, el deber de
+ * relevo y el marcaje— piden LOS TRES ir en el mismo grupo, así que un jefe caído o descolgado
+ * dejaba de tener equipo. Medido sobre 120 etapas del banco: pasa 3,18 veces por etapa y en el 40 %
+ * de ellas con dos o más de los suyos dentro del pelotón.
+ *
+ * El banco monta el caso a mano: un jefe que NO puede con el puerto y cinco gregarios suyos que sí,
+ * y detrás una llanura larga donde el rescate tiene sentido.
+ */
+describe('los suyos se dejan caer a por él (v36, §V.1)', () => {
+  const conJefeQueSeCae = (gcEnJuego: boolean): StageInput => {
+    const riders: StageRider[] = []
+    // El equipo del jefe: él flojo en montaña, sus cinco hombres enteros.
+    riders.push(
+      rider('jefe', {
+        eff0: eff(64, { MON: 34, COL: 34 }),
+        teamId: 'equipo-jefe',
+        orders: orders({ role: 'lider' }),
+        gcDeficitSeconds: gcEnJuego ? 20 : 0,
+      }),
+    )
+    for (let i = 0; i < 5; i++) {
+      riders.push(
+        rider(`greg-${i}`, {
+          eff0: eff(62),
+          teamId: 'equipo-jefe',
+          orders: orders({ role: 'gregario', targetRiderId: 'jefe' }),
+          gcDeficitSeconds: gcEnJuego ? 900 + i : 0,
+        }),
+      )
+    }
+    // Y el resto de la carrera, en equipos normales.
+    for (let t = 0; t < 6; t++) {
+      for (let k = 0; k < 6; k++) {
+        riders.push(
+          rider(`t${t}-${k}`, {
+            eff0: eff(60 + ((t + k) % 4)),
+            teamId: `equipo-${t}`,
+            orders: orders({ role: k === 0 ? 'lider' : 'gregario', targetRiderId: `t${t}-0` }),
+            gcDeficitSeconds: gcEnJuego ? (k === 0 ? 40 + t * 30 : 800 + t * 20 + k) : 0,
+          }),
+        )
+      }
+    }
+    return {
+      profile: {
+        segments: [
+          { km: 20, tipo: 'llano' },
+          // Un puerto corto y duro que suelta al jefe (MON 34) y no al resto del campo (MON 60-63),
+          // y detrás una llanura larga donde el rescate tiene sentido.
+          { km: 5, tipo: 'puerto', tramos: [{ km: 5, g: 6 }] },
+          { km: 95, tipo: 'llano' },
+        ],
+      },
+      riders,
+    }
+  }
+
+  const partes = (input: StageInput, tag: string): RaceEvent[] =>
+    seedsFor(tag, 6).flatMap((seed) =>
+      simulateStage(input, seed).events.filter((e) => e.plantilla === 'domestiques_drop_back'),
+    )
+
+  it('cuando el jefe se queda, sus gregarios bajan a por él', () => {
+    const avisos = partes(conJefeQueSeCae(false), 'ayuda')
+    expect(avisos.length).toBeGreaterThan(0)
+    for (const e of avisos) {
+      expect(e.datos?.jefeId).toBeDefined()
+      // Nunca baja NADIE por un boquete de acordeón: el suelo es la puerta del pelotón.
+      expect(Number(e.datos!.gapS)).toBeGreaterThanOrEqual(STAGE.regroupGapSeconds)
+      expect(Number(e.datos!.gapS)).toBeLessThanOrEqual(STAGE.helpBackMaxGapSeconds)
+      // …ni en el desenlace: bajar a 3 km de meta no ayuda a nadie.
+      expect(Number(e.datos!.toGo)).toBeGreaterThanOrEqual(STAGE.helpBackMinKmToGo)
+    }
+  })
+
+  it('por la ETAPA bajan dos; por la GENERAL, todos menos uno', () => {
+    // La regla del dueño: «si es el favorito para una gran vuelta, puede justificar descolgar a todo
+    // el equipo menos 1; si es una carrera de 1 día no, salvo que la diferencia sea pequeña». Las
+    // dos ramas salen del motivo del plan, y `general` solo existe con general en juego.
+    const unDia = partes(conJefeQueSeCae(false), 'ayuda')
+    expect(unDia.length).toBeGreaterThan(0)
+    for (const e of unDia) {
+      expect(e.datos?.porQue).toBe('etapa')
+      expect(Number(e.datos!.cuantos)).toBeLessThanOrEqual(STAGE.helpBackStageHelpers)
+      // «salvo que la diferencia sea pequeña»
+      expect(Number(e.datos!.gapS)).toBeLessThanOrEqual(STAGE.helpBackStageGapSeconds)
+    }
+    const porLaGeneral = partes(conJefeQueSeCae(true), 'ayuda-gc').filter(
+      (e) => e.datos?.porQue === 'general',
+    )
+    expect(porLaGeneral.length).toBeGreaterThan(0)
+    // Por la general se baja aunque el boquete sea grande, y se baja con más gente.
+    expect(Math.max(...porLaGeneral.map((e) => Number(e.datos!.gapS)))).toBeGreaterThan(
+      STAGE.helpBackStageGapSeconds,
+    )
+    expect(Math.max(...porLaGeneral.map((e) => Number(e.datos!.cuantos)))).toBeGreaterThan(
+      STAGE.helpBackStageHelpers,
+    )
+  })
+
+  it('…y con los suyos al lado el jefe NO tira: se reserva', () => {
+    // La otra mitad de la frase del dueño. `relayProtectedPenalty` no bastaba en grupo pequeño,
+    // donde el turno es el grupo entero: medido antes de la v36, el jefe tiraba en el 6,3 % de las
+    // fotos con los suyos al lado.
+    let fotos = 0
+    let tirando = 0
+    for (const seed of seedsFor('ayuda-turno', 6)) {
+      simulateStage(conJefeQueSeCae(false), seed, {
+        // Justo después del puerto, que es donde el rescate ocurre y donde se puede mirar si el
+        // jefe da la cara: en cuanto vuelven al pelotón la pregunta deja de tener sentido.
+        atKm: Array.from({ length: 16 }, (_, i) => 22 + i),
+        onSnapshot: (_km, snap) => {
+          const jefe = snap.find((r) => r.riderId === 'jefe')
+          if (!jefe) return
+          const conEl = snap.filter(
+            (r) => r.groupId === jefe.groupId && r.riderId.startsWith('greg-'),
+          ).length
+          const grupo = snap.filter((r) => r.groupId === jefe.groupId).length
+          // Solo cuenta cuando lleva a los suyos Y no es el grupo entero de la carrera.
+          if (conEl === 0 || grupo > 12) return
+          fotos += 1
+          if (jefe.pulling) tirando += 1
+        },
+      })
+    }
+    expect(fotos).toBeGreaterThan(5)
+    expect(tirando / fotos).toBeLessThan(0.1)
+  })
+})
+
 describe('quién tira cuando nadie lleva el frente (v35, §V.1)', () => {
   const campo = (): StageInput => {
     const riders: StageRider[] = []

@@ -1691,6 +1691,35 @@ describe('el desenlace converge en quien decide la etapa (v27)', () => {
     expect(linea).toContain('Alexander Schwarz')
   })
 
+  it('los suyos se dejan caer a por él, y la línea dice a por quién y por qué (v36)', () => {
+    // La conducta nueva de la v36: hasta la v35 el lector veía desaparecer a dos hombres del
+    // pelotón sin explicación, porque el motor no tenía esta decisión y nadie se dejaba caer nunca.
+    const porLaEtapa = chronicleLine(
+      event({
+        plantilla: 'domestiques_drop_back',
+        km: 60,
+        protagonists: named('Peter Schulz', 'Oliver Bailey'),
+        datos: { cuantos: 2, gapS: 34, porQue: 'etapa', toGo: 90 },
+        mentions: { jefeId: rider('Alexander Schwarz') },
+      }),
+    )
+    expect(porLaEtapa).toContain('Alexander Schwarz')
+    expect(porLaEtapa).toContain('34s')
+    const porLaGeneral = chronicleLine(
+      event({
+        plantilla: 'domestiques_drop_back',
+        km: 60,
+        protagonists: named('Peter Schulz', 'Oliver Bailey'),
+        datos: { cuantos: 4, gapS: 120, porQue: 'general', toGo: 90 },
+        mentions: { jefeId: rider('Alexander Schwarz') },
+      }),
+    )
+    // Por la general la frase dice lo que el equipo está haciendo: renunciar al día entero.
+    expect(porLaGeneral).toContain('general classification')
+    expect(porLaGeneral).toContain('4 riders')
+    expect(porLaGeneral).toContain('Alexander Schwarz')
+  })
+
   it('el hueco del que no manda se cuenta contra su grupo y con el líder al lado', () => {
     const linea = chronicleLine(
       event({

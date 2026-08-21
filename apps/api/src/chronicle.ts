@@ -84,6 +84,9 @@ const EVENT_ORDER: Record<string, number> = {
   // El reagrupamiento comparte sitio con el corte: son la misma cuenta (de cuántos a cuántos ha
   // pasado el grupo) contada en las dos direcciones, y nunca coinciden en el mismo kilómetro.
   peloton_regroup: 4,
+  // Los que se dejan caer a por su jefe (v36) van en el sitio del corte: es la misma noticia —gente
+  // que sale del grupo de cabeza— contada por su motivo, y nunca coincide en el mismo kilómetro.
+  domestiques_drop_back: 4,
   // El parte de quién va en cabeza va DESPUÉS de lo que lo ha producido —el corte del grupo o la
   // captura de la fuga—: primero se cuenta qué ha pasado y luego quiénes han quedado delante.
   breakaway_caught: 5,
@@ -582,6 +585,8 @@ function followTheLeader(entries: ChronicleEntry[]): ChronicleEntry[] {
  * la cuenta de `leadSize`, que deja de cuadrar en cuanto el grupo se parte.
  */
 const EXITS_THE_RACE = new Set([
+  // El que se deja caer a por su jefe sale del grupo de cabeza por su propio pie (v36).
+  'domestiques_drop_back',
   'rider_sits_up',
   'riders_sit_up',
   'rider_bonks',

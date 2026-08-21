@@ -1122,6 +1122,31 @@ function chronicleTemplate(e: ChronicleEntry): string {
       const leadPart = e.datos?.leads === 1 ? ' — and takes the lead in the mountains' : ''
       return `${who} is first over the ${catLabel}${ptsPart}${leadPart}.`
     }
+    case 'domestiques_drop_back': {
+      /**
+       * LOS SUYOS SE DEJAN CAER A POR ÉL (v36). Hasta la v35 el lector veía desaparecer a dos o tres
+       * hombres del pelotón sin explicación —el motor no tenía esta conducta y nadie se dejaba caer
+       * nunca—. Ahora la línea dice las tres cosas que la carretera enseña: quién baja, a por quién,
+       * y por qué (la general o el día de hoy).
+       */
+      const jefe = e.mentions?.jefeId
+      const cuantos = Number(e.datos?.cuantos ?? e.protagonists.length)
+      const gap = Number(e.datos?.gapS ?? 0)
+      const porLaGeneral = e.datos?.porQue === 'general'
+      const quien = jefe ? riderFull(jefe) : 'their leader'
+      const hueco = gap > 0 ? ` ${gap}s back` : ''
+      if (cuantos === 1)
+        return pick([
+          `${who} drops back out of the bunch to pace ${quien}${hueco}.`,
+          `${who} sits up and waits for ${quien}, adrift${hueco}.`,
+        ])
+      return porLaGeneral
+        ? `The team commits to the general classification: ${cuantos} riders drop out of the bunch to drag ${quien} back${hueco}.`
+        : pick([
+            `${cuantos} teammates drop back to pace ${quien}${hueco} — the gap is small enough to try.`,
+            `${who} slide out of the bunch to help ${quien}${hueco}.`,
+          ])
+    }
     case 'peloton_regroup': {
       // El reagrupamiento (v8). Existía en el modelo desde siempre y no se narraba nunca: la crónica
       // dejaba «about 51 left in front» y en meta llegaban más de cien juntos, sin nada que lo

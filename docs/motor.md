@@ -1247,6 +1247,19 @@ Resueltas con el dueño. Sustituyen a las cuestiones abiertas de la v1.
 > **peor caso 6 → 3 y media 2,18 → 1,71**, con la voz de equipo de la crónica en 72,4 % (objetivo
 > 50-85 %) y el frente cambiando de manos 2,48 veces por etapa. En una FUGA no se aplica: allí se
 > relevan todos, que es lo que una fuga es.
+>
+> **v36: y el equipo no se acaba en el borde del grupo.** Los tres mecanismos de trabajo de equipo
+> —el descuento de coste del gregario, el deber de relevo y el marcaje— pedían LOS TRES ir en el
+> mismo grupo, así que un jefe que se caía o se descolgaba dejaba de tener equipo. Medido: pasa
+> **3,18 veces por etapa**, en el 40 % de ellas con dos o más de los suyos dentro del pelotón, y el
+> que no vuelve pierde 443 s de mediana. Ahora **los suyos se dejan caer a por él**, y cuántos lo
+> dicta lo que se juegue el equipo, con la regla del dueño: **por la general, todos menos uno** —y
+> los motivos de general solo existen con general en juego, que es lo que separa una vuelta de una
+> clásica—; **por la etapa, dos y solo si el boquete es pequeño**. Con ellos al lado el jefe deja de
+> tirar también en grupo pequeño (6,3 % → 1,1 % de las fotos): «que el líder no pase a tirar, él se
+> reserva». Y lo que pasa después no hubo que escribirlo —son un grupo que se releva y el tope de la
+> v35 decide si vuelven—: el jefe ayudado vuelve el **80 %** de las veces contra el 63 % del que se
+> queda solo. Detalle en docs/balance.md, «v36».
 
 Modelo de **intenciones por equipo** (cada equipo con objetivos y presupuesto de esfuerzo), pero con
 dos reglas que mandan sobre él:

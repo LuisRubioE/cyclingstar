@@ -605,8 +605,37 @@
  * reagrupamiento de siempre —medio pelotón que se parte en un puerto y se recompone en el valle—:
  * un grupo de 9+ con el pelotón a tempo sigue volviendo el 81 % de las veces, y tiene que seguir
  * haciéndolo. El detalle está en docs/balance.md «v35».
+ *
+ * ── v36 · los suyos se dejan caer a por él ─────────────────────────────────────────────────────
+ *
+ * El trabajo de equipo se acababa en el instante en que el jefe salía del grupo. Los tres
+ * mecanismos que el motor tiene —el descuento de coste del gregario presente, el deber de relevo y
+ * el marcaje— piden LOS TRES ir en el mismo grupo, así que un jefe que se caía o se descolgaba
+ * dejaba de tener equipo: sus hombres seguían delante rodando como si nada. Medido sobre 120 etapas
+ * del banco: un jefe con gregarios propios se queda a 30 s o más **3,18 veces por etapa**, en el
+ * **40 %** de esas veces con dos o más de los suyos dentro del pelotón, y el que no vuelve pierde
+ * **443 s** de mediana. Nadie se dejaba caer NUNCA.
+ *
+ * Cuántos van a por él no es un número fijo, y la regla es del dueño: «si es el favorito para una
+ * gran vuelta o carrera por etapas, puede justificar descolgar a todo el equipo menos 1; si es una
+ * carrera de 1 día no, salvo que la diferencia sea pequeña (y en ese caso que el líder no pase a
+ * tirar, él se reserva)». Las dos ramas ya existían en el plan de equipo: `maillot`/`general` solo
+ * son motivo **con general en juego** —que es exactamente lo que separa una vuelta de una clásica—
+ * y `etapa` es el día de hoy.
+ *
+ * Y la otra mitad de la frase se cumplía a medias: `relayProtectedPenalty` manda al jefe arropado
+ * al final de la cola del turno, pero en un GRUPO PEQUEÑO el turno es el grupo entero, así que
+ * tiraba igual (medido: el 6,3 % de las fotos con los suyos al lado). Ahora el arropado se aparta
+ * del turno mientras quede alguien que tire: **1,1 %**.
+ *
+ * Lo que NO hace falta escribir es lo que pasa después, y por eso esto es una decisión y no una
+ * física nueva: en cuanto están con él son un grupo que se releva, y el tope de la v35 decide solo
+ * —vuelven si el pelotón va sin prisa y no vuelven si va cazando—. Medido: el jefe al que los suyos
+ * bajan a buscar vuelve el **80 %** de las veces contra el **63 %** del que se queda solo, y el que
+ * no vuelve pierde 360 s en vez de 443. Montecarlo entero verde sin tocar una banda, y las cuatro
+ * huellas selladas NO se mueven: sus escenarios corren sin equipos, así que esta tanda no las ve.
  */
-export const ENGINE_VERSION = 35 as const
+export const ENGINE_VERSION = 36 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -2413,6 +2442,30 @@ export const STAGE = {
   // equipo rinde de verdad. Los gregarios que acompañan a su líder en el grupo le ahorran energía
   // (le protegen del viento, le llevan bidones, cierran huecos); un tren de lanzadores lanza al
   // sprinter en la última rampa. Solo cuentan los compañeros presentes en el MISMO grupo del líder.
+  // --- LOS SUYOS SE DEJAN CAER A POR ÉL (v36, docs/motor.md §V.1) -----------------------------
+  // Hasta la v35 el trabajo de equipo se acababa en el instante en que el jefe salía del grupo: los
+  // tres mecanismos que existen —el descuento de coste de aquí abajo, el deber de relevo y el
+  // marcaje— piden todos ir EN EL MISMO GRUPO, así que un jefe que se cae o se descuelga dejaba de
+  // tener equipo. Medido sobre 120 etapas del banco: un jefe con gregarios propios se queda a 30 s
+  // o más 3,18 veces por etapa, y en el 40 % de esas veces tiene DOS O MÁS de los suyos dentro del
+  // pelotón mirando hacia delante. El que no vuelve pierde 443 s de mediana.
+  //
+  // Cuántos se dejan caer NO es un número fijo: lo dictó el dueño y depende de lo que se juegue el
+  // equipo. «Si es el favorito para una gran vuelta o carrera por etapas, puede justificar descolgar
+  // a todo el equipo menos 1; si es una carrera de 1 día no, salvo que la diferencia sea pequeña (y
+  // en ese caso que el líder no pase a tirar, él se reserva)». Las dos ramas salen del motivo que el
+  // plan de equipo ya calcula (`TeamPurpose`): `maillot`/`general` son la general —y solo existen
+  // con general en juego, que es justo lo que separa una vuelta de una clásica— y `etapa` es el día.
+  helpBackGcKeepInBunch: 1, //  por la general: se quedan los que hagan falta, MENOS UNO delante.
+  helpBackStageHelpers: 2, //   por la etapa: dos hombres, y solo si el boquete es pequeño.
+  helpBackStageGapSeconds: 45, // «que la diferencia sea pequeña», en segundos.
+  // Y el techo es el mismo con el que un descolgado deja de mirar hacia delante
+  // (`shedResignGapSeconds`): mientras el grupo de cabeza siga a la vista se va a por el jefe; a
+  // cinco minutos ya no es un rescate, es acompañarle a meta. Solo muerde en la rama de la general,
+  // porque la de la etapa se corta mucho antes en `helpBackStageGapSeconds`.
+  helpBackMaxGapSeconds: 300,
+  helpBackMinKmToGo: 5, //      y no en el desenlace: dejarse caer a 3 km de meta no ayuda a nadie.
+  helpBackMinFreshness: 0.35, // el que va vacío no sirve de gregario; se queda donde está.
   domestiqueProtectPerHelper: 0.05, // cada gregario presente rebaja un 5% el coste del líder...
   domestiqueProtectMax: 0.15, //       ...hasta un 15% (≈3 gregarios): un equipo fuerte ahorra mucho.
   leadOutBoostPerHelper: 0.05, // cada lanzador presente sube un 5% la puntuación de sprint del líder...

@@ -7154,6 +7154,131 @@ abajo: lo que se abre, se cierra. Arreglado leyendo la bandera del ATAQUE antes 
   tapa donde se veía —el tope de la pelea del descolgado— pero el agujero de fondo sigue ahí, y es
   lo que haría que un grupo de cinco fuera más lento que uno de cincuenta sin necesidad de topes.
 
+## v36 — Los suyos se dejan caer a por él (`engine_version` 35 → 36)
+
+> **La pregunta del dueño, textual:** «oye, pero ¿está implementado que si el líder del equipo se
+> cae, se descuelgue parte de su equipo para ayudarle? porque igual no es solo un tema de etiquetas
+> sino de construir algo que no existe en el motor… o también si necesita ayuda un líder y tiene
+> gente en el grupo anterior, sin muchas opciones de ganar la etapa».
+>
+> No estaba implementado. Y la respuesta a cuántos bajan también es suya: «depende del caso… si es
+> el favorito para una gran vuelta o carrera por etapas, puede justificar descolgar a todo el equipo
+> menos 1; si es una carrera de 1 día no, salvo que la diferencia sea pequeña (y en ese caso que el
+> líder no pase a tirar, él se reserva)».
+
+### 1. El agujero: el equipo se acababa en el borde del grupo
+
+El motor tiene tres mecanismos de trabajo de equipo y **los tres piden ir en el mismo grupo**:
+
+| mecanismo                                | qué hace                                                        | condición                                                                                |
+| ---------------------------------------- | --------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `domestiqueProtectPerHelper` (SPEC 6.18) | el jefe arropado gasta un 5 % menos por gregario, hasta el 15 % | mismo grupo                                                                              |
+| `relayDuty` / `relayProtectedPenalty`    | el gregario tira y el jefe sale del turno                       | mismo grupo                                                                              |
+| `markedPerfil` (marcaje, SPEC 6.18)      | vivir en la rueda de un hombre                                  | mismo grupo — literal: «si se ha ido por delante o se ha quedado, la rueda ya no existe» |
+
+En el instante en que el jefe se cae o se descuelga, el motor **deja de saber que ese hombre tiene
+equipo**. Medido sobre 120 etapas del banco (6 carreras × 4 semillas, campo de 18 equipos de 7):
+
+- un jefe con gregarios propios se queda a 30 s o más **3,18 veces por etapa**;
+- en el **40 %** de esas veces tiene **dos o más de los suyos dentro del pelotón**;
+- el **9 %** son a menos de 3 km de una caída suya —el caso exacto de la pregunta—;
+- y **el que no vuelve pierde 443 s de mediana** (el peor, 25 minutos).
+
+Nadie se dejaba caer nunca, porque la conducta no existía.
+
+### 2. La regla, que es la del dueño
+
+La decisión vive donde vive el plan de equipo (`simulate.ts`, junto a «quién lleva el frente») y usa
+lo que el plan YA calcula, sin inventar ningún dato:
+
+```
+por la general (`maillot` o `general`)  → se quedan todos con él MENOS UNO delante
+por la etapa   (`etapa` o sin motivo)   → dos hombres, y solo si el boquete es pequeño (≤ 45 s)
+```
+
+Y `maillot`/`general` **solo existen con general en juego** (`hasGcContext`), que es exactamente lo
+que separa una vuelta por etapas de una carrera de un día: en una clásica esos motivos no se
+disparan nunca, y ahí la regla es la segunda. No hay una bandera nueva de «esto es una gran vuelta».
+
+Los guardarraíles, todos medidos:
+
+- **el suelo es la puerta del pelotón** (`regroupGapSeconds` = 22 s): por debajo de eso el jefe está
+  en la fila y vuelve solo —el acordeón pasa 24 veces por etapa—, y nadie baja por diez segundos.
+  Sin este suelo la regla saltaba 6,35 veces por etapa;
+- **el techo son dos minutos** (`helpBackMaxGapSeconds`): más allá se le da por perdido;
+- **no en el desenlace** (`helpBackMinKmToGo` = 5): dejarse caer a 3 km de meta no ayuda a nadie;
+- **el que va vacío no baja** (`helpBackMinFreshness` = 0,35): no sería un gregario, sería otro
+  descolgado;
+- **la carta del día no se sacrifica**: si el equipo además se juega la etapa con otro hombre, ése
+  se queda delante. Un equipo puede perder a su jefe y ganar la etapa;
+- **el que corre por su cuenta no baja** (§VI.2): un rebelde no trabaja para el equipo aunque lleve
+  su maillot.
+
+### 3. Y el jefe no pasa a tirar
+
+La otra mitad de la frase del dueño estaba a medias. `relayProtectedPenalty` manda al jefe arropado
+al final de la cola del turno, y en el pelotón con eso basta —el turno son ocho de ciento setenta—;
+pero en un **grupo pequeño** el turno es el grupo entero (`paceFraction` = 1), así que el jefe
+rodeado de los suyos acababa dando la cara igual: medido, **tiraba en el 6,3 %** de las fotos en las
+que llevaba a los suyos al lado.
+
+Ahora el arropado se aparta del turno **mientras quede alguien que tire** —un grupo rueda porque
+alguien da la cara; si el único que puede es él, tira él—: **1,1 %**. No cambia el ritmo del grupo,
+solo entre quiénes se reparte el viento, así que la factura de la v34 sigue valiendo 1.
+
+### 4. Lo que NO hubo que escribir
+
+Esto es una decisión, no una física nueva, y ahí está la gracia: en cuanto los gregarios están con
+él son **un grupo que se releva**, y todo lo demás ya estaba escrito. `droppedCommit` les da el
+ritmo de una rotación de tres o cuatro hombres **enteros**, y el tope de la v35 decide solo:
+
+- con el pelotón rodando a tempo, el tope (`aheadCommit + shedChaseEdge·(1 − 1/n)`) les deja volver;
+- con el pelotón cazando, no les deja: la diferencia sigue creciendo.
+
+Que es literalmente lo que el dueño pidió dos mensajes antes: «si fue un líder del equipo que se
+cayó y los otros 4 son compañeros suyos que se descuelgan para ayudarle, ahí lo normal es que si el
+pelotón va sin prisa, casi siempre lo consigan».
+
+### 5. Lo que se mide después
+
+|                                       | sin ayuda            | con los suyos bajando |
+| ------------------------------------- | -------------------- | --------------------- |
+| el jefe **vuelve**                    | 63 % (243 episodios) | **81 %** (146)        |
+| …solo en llano y descenso             | 66 % (32)            | **81 %** (16)         |
+| el que no vuelve **pierde** (mediana) | 443 s (v35)          | **403 s**             |
+
+Frecuencia: **6,6 avisos por etapa** en un campo de 18 equipos sin general en juego (0,37 por equipo
+y etapa, 1,3 hombres por aviso), y **9,5 con general en juego**, donde la rama de la general manda
+**2,5 hombres** por aviso y la de la etapa 1,3.
+
+El jefe con los suyos al lado tira en el **1,1 %** de las fotos (era el 6,3 %).
+
+### 6. El montecarlo y las huellas
+
+Campaña entera **verde, sin ensanchar ni una banda**, y con los escenarios canónicos idénticos
+dígito a dígito: `llana-180` y `reina-150` corren **sin equipos**, así que esta tanda no las ve y
+**las cuatro huellas selladas no se mueven**. Lo que sí se mueve, poco, es el escenario de plan de
+equipo (voz 72,4 % → 72,7 %, frentes 2,48 → 2,46) y las carreras reales.
+
+### 7. Lo que queda anotado y no se ha hecho
+
+- **El gregario que va POR DELANTE no se deja caer todavía.** La segunda mitad de la pregunta del
+  dueño —«si necesita ayuda un líder y tiene gente en el grupo anterior, sin muchas opciones de
+  ganar la etapa»— pide sacar a un hombre de una FUGA para bajarlo a por su jefe. La decisión es la
+  misma; lo que no es lo mismo es lo que arrastra: un fugado que se descuelga toca la fuga del día,
+  su atribución (`dayBreakEver`, `chaseLedger`) y la cuenta de quién sigue delante. Se hace aparte y
+  con su propia medida, no de rebote en esta.
+- **Se probó que el grupo rodara al ritmo del JEFE y no se ha hecho.** La idea: los gregarios que
+  bajan llegan enteros, así que su P75 marca un ritmo que el jefe reventado no puede seguir y el
+  grupo debería rodar a lo que puede él (`markDraftTolerance`, el +4 del marcaje). No hace falta
+  —`shatter` no se ejecuta sobre los grupos de descolgados, así que un grupeto nunca suelta a nadie
+  y el jefe no puede quedarse atrás de su propio rescate— y **rompe justo lo que viene a arreglar**:
+  con el tope puesto, el jefe ayudado volvía el **66 %** de las veces contra el 70 % del que se
+  quedaba solo (en llano, 68 % contra 82 %), o sea que la ayuda le PERJUDICABA. Queda escrito en
+  `simulate.ts` para que no se vuelva a intentar sin mirar esto.
+- **El jefe no pide la ayuda: se la mandan.** La decisión la toma el equipo mirando el boquete, no
+  el corredor. No hay «espera a mi compañero» ni un director que decida distinto según el día.
+
 ## El motor depende del ORDEN DE ENTRADA (defecto medido — ARREGLADO en la v35)
 
 > **ARREGLADO EN LA v35** (ver «v35 — Volver cuesta», §4): `simulateStage` ordena el campo por
