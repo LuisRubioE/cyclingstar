@@ -248,31 +248,34 @@ import type { Attribute } from '@cyclingstar/shared'
  * veintitrés corredores convertido en una progresión. Cualquier otra cosa que mueva esta huella hay
  * que volver a justificarla aquí. */
 const SEALED_RESULTS: Record<string, string> = {
-  // v34: se mueven las cuatro, y tenían que moverse: esta tanda cambia QUIÉN PAGA EL VIENTO en el
-  // 41,5 % de los bloques-corredor (docs/balance.md «v34»). Lo comprobado antes de resellar es que
-  // se mueven donde el cambio predice:
+  // v35: se mueven las cuatro, y tenían que moverse por DOS razones distintas (docs/balance.md
+  // «v35»), las dos previstas antes de resellar:
   //
-  // - `llana-180` sigue metiendo al PELOTÓN ENTERO al mismo segundo en las dos semillas (14507 ->
-  //   14514 y 14321 -> 14321), que es el invariante que una llana con sprint tiene que cumplir. En
-  //   la segunda semilla no se mueve ni un reloj de grupo: solo el cortado `brk-2` entra 2 s antes
-  //   (14442 -> 14440), y es un hombre SOLO, que paga exactamente el mismo viento que antes
-  //   —`shelterAlone` no ha cambiado— con las piernas de otro reparto. Lo demás son permutaciones
-  //   DENTRO del mismo segundo.
-  // - `reina-150` se mueve más, y en montaña es lo esperado: el puerto reparte el tiempo según con
-  //   cuánto tanque se llega, y el tanque es justo lo que esta tanda cambia. La segunda semilla
-  //   conserva el podio entero (`gc-1`, `gc-2`, `gc-3`) y mueve los relojes ±5 s; la primera cambia
-  //   el orden de cabeza (ganaba `bar-0`, gana `gc-2`) y estira la selección, de 10 relojes de grupo
-  //   a 12. Ninguna de las dos gana ni pierde corredores de forma anómala.
+  // 1. EL ORDEN CANÓNICO. `simulateStage` ordena por `riderId` antes de mirar nada, y las piernas
+  //    del día (`rngDay`) se reparten recorriendo el array: con el mismo campo y la misma semilla,
+  //    a cada corredor le toca otro factor. Eso solo permuta quién tiene buen día, así que mueve
+  //    las cuatro huellas sin cambiar de qué van: en `llana-180` los 40 siguen entrando en UN solo
+  //    reloj salvo el rezagado de siempre (39 + 1 en las dos semillas, igual que en la v34), y el
+  //    tiempo del pelotón se mueve un 0,3-0,9 % —14514 -> 14559 y 14321 -> 14449— porque el P75 de
+  //    los que marcan el ritmo lo ponen otros hombres. La MEDIA no se mueve: la velocidad del
+  //    ganador en llano del montecarlo entero se queda en 45,3 km/h contra 45,4 de la v34.
+  // 2. EL RITMO DEL DESCOLGADO Y LA PUERTA. Es la física que esta tanda cambia, y se ve donde tiene
+  //    que verse: en `reina-150` la cola entra ANTES (15128 -> 14989 y 14876 -> 14851) porque el
+  //    grupeto ya no pelea a 0,82 contra un pelotón que rueda a tempo —rueda a lo que da su
+  //    rotación, que en el valle es menos— y a la vez el frente se estira algo más. Los relojes de
+  //    grupo pasan de 12 a 10 y de 12 a 10: la etapa reparte el tiempo en menos escalones y más
+  //    anchos, que es exactamente lo que hace no reenganchar gratis.
   //
-  // No hay dado nuevo ni subflujo nuevo: lo que se mueve es física, no secuencia.
+  // Ninguna de las dos gana ni pierde corredores de forma anómala, y ninguna banda de calibración
+  // se mueve: el montecarlo entero sale verde antes y después (docs/balance.md «v35» §5).
   'llana-180-0|llana-180|1|v1':
-    '1:spr-2:14514,2:spr-0:14514,3:spr-1:14514,4:pel-25:14514,5:pel-12:14514,6:pel-23:14514,7:pel-19:14514,8:pel-6:14514,9:brk-4:14514,10:pel-27:14514,11:pel-16:14514,12:pel-18:14514,13:pel-5:14514,14:pel-29:14514,15:pel-0:14514,16:pel-13:14514,17:pel-9:14514,18:pel-26:14514,19:pel-1:14514,20:pel-7:14514,21:brk-0:14514,22:pel-8:14514,23:pel-22:14514,24:pel-11:14514,25:pel-3:14514,26:pel-15:14514,27:pel-2:14514,28:pel-17:14514,29:pel-21:14514,30:brk-2:14514,31:pel-20:14514,32:pel-28:14514,33:pel-4:14514,34:pel-10:14514,35:brk-3:14514,36:brk-5:14514,37:pel-14:14514,38:pel-24:14514,39:pel-30:14514,40:brk-1:14514',
+    '1:spr-2:14559,2:spr-0:14559,3:spr-1:14559,4:pel-8:14559,5:pel-19:14559,6:pel-13:14559,7:pel-1:14559,8:pel-4:14559,9:pel-6:14559,10:pel-18:14559,11:pel-16:14559,12:brk-4:14559,13:pel-23:14559,14:pel-28:14559,15:pel-26:14559,16:pel-7:14559,17:pel-29:14559,18:pel-5:14559,19:pel-25:14559,20:pel-14:14559,21:pel-27:14559,22:brk-5:14559,23:pel-22:14559,24:pel-3:14559,25:pel-10:14559,26:pel-11:14559,27:brk-3:14559,28:pel-17:14559,29:pel-12:14559,30:pel-0:14559,31:pel-2:14559,32:pel-15:14559,33:pel-30:14559,34:brk-2:14559,35:brk-0:14559,36:pel-9:14559,37:pel-24:14559,38:brk-1:14559,39:pel-21:14559,40:pel-20:14711',
   'llana-180-1|llana-180|1|v1':
-    '1:spr-2:14321,2:spr-0:14321,3:spr-1:14321,4:pel-19:14321,5:pel-6:14321,6:pel-23:14321,7:pel-0:14321,8:pel-15:14321,9:brk-1:14321,10:pel-21:14321,11:pel-30:14321,12:pel-25:14321,13:pel-4:14321,14:pel-11:14321,15:pel-22:14321,16:pel-3:14321,17:pel-7:14321,18:pel-5:14321,19:pel-20:14321,20:pel-1:14321,21:pel-12:14321,22:pel-14:14321,23:brk-0:14321,24:pel-17:14321,25:pel-26:14321,26:pel-28:14321,27:pel-2:14321,28:pel-9:14321,29:brk-5:14321,30:pel-13:14321,31:pel-24:14321,32:brk-4:14321,33:pel-27:14321,34:pel-16:14321,35:pel-8:14321,36:pel-29:14321,37:pel-18:14321,38:pel-10:14321,39:brk-3:14321,40:brk-2:14440',
+    '1:spr-1:14449,2:spr-2:14449,3:spr-0:14449,4:pel-3:14449,5:pel-11:14449,6:pel-21:14449,7:pel-30:14449,8:pel-6:14449,9:pel-17:14449,10:brk-1:14449,11:pel-18:14449,12:pel-16:14449,13:brk-3:14449,14:pel-15:14449,15:pel-7:14449,16:pel-28:14449,17:pel-25:14449,18:pel-27:14449,19:pel-13:14449,20:pel-4:14449,21:pel-22:14449,22:pel-24:14449,23:pel-10:14449,24:pel-5:14449,25:pel-0:14449,26:pel-9:14449,27:pel-14:14449,28:pel-8:14449,29:pel-19:14449,30:pel-29:14449,31:pel-12:14449,32:pel-26:14449,33:brk-4:14449,34:pel-1:14449,35:brk-0:14449,36:brk-2:14449,37:pel-2:14449,38:pel-20:14449,39:brk-5:14449,40:pel-23:14548',
   'reina-150-0|reina-150|1|v1':
-    '1:gc-2:14172,2:bar-0:14235,3:bar-3:14268,4:gc-1:14324,5:gc-3:14324,6:gc-0:14324,7:bar-4:14394,8:bar-5:14394,9:bar-2:14508,10:pel-3:14508,11:pel-13:14508,12:pel-0:14508,13:pel-21:14658,14:bar-1:14658,15:pel-12:14658,16:pel-10:14834,17:pel-19:14876,18:pel-20:14876,19:pel-7:14876,20:pel-5:14876,21:pel-17:14876,22:pel-11:14941,23:pel-6:14941,24:pel-14:14941,25:pel-16:14941,26:pel-25:14941,27:pel-26:14941,28:pel-1:14941,29:pel-4:14941,30:spr-2:14941,31:pel-8:15004,32:pel-18:15004,33:pel-23:15004,34:pel-22:15004,35:pel-2:15004,36:pel-15:15004,37:pel-24:15004,38:spr-0:15004,39:spr-1:15004,40:pel-9:15128',
+    '1:gc-3:14254,2:gc-2:14254,3:gc-1:14254,4:bar-2:14254,5:bar-4:14254,6:gc-0:14335,7:bar-1:14382,8:bar-3:14414,9:pel-11:14414,10:bar-0:14549,11:pel-7:14549,12:pel-18:14549,13:pel-23:14549,14:pel-12:14549,15:bar-5:14674,16:pel-20:14803,17:pel-6:14873,18:pel-5:14873,19:pel-21:14897,20:pel-10:14897,21:pel-3:14897,22:pel-17:14897,23:pel-9:14897,24:pel-26:14897,25:pel-25:14897,26:pel-19:14897,27:pel-24:14897,28:pel-15:14897,29:pel-16:14897,30:pel-0:14897,31:pel-4:14989,32:pel-22:14989,33:pel-1:14989,34:pel-2:14989,35:pel-14:14989,36:pel-8:14989,37:pel-13:14989,38:spr-2:14989,39:spr-1:14989,40:spr-0:14989',
   'reina-150-1|reina-150|1|v1':
-    '1:gc-1:14215,2:gc-2:14215,3:gc-3:14215,4:gc-0:14215,5:bar-0:14215,6:bar-1:14232,7:pel-25:14232,8:pel-24:14232,9:bar-3:14271,10:bar-5:14271,11:bar-2:14381,12:pel-3:14381,13:bar-4:14456,14:pel-21:14739,15:pel-8:14739,16:pel-17:14739,17:pel-1:14739,18:pel-23:14804,19:pel-20:14804,20:pel-9:14804,21:pel-16:14804,22:pel-22:14804,23:pel-13:14804,24:pel-10:14804,25:pel-18:14876,26:pel-4:14876,27:pel-11:14876,28:pel-14:14876,29:pel-19:14876,30:pel-5:14876,31:pel-15:14876,32:pel-0:14876,33:pel-7:14876,34:pel-26:14876,35:pel-6:14876,36:pel-12:14876,37:pel-2:14876,38:spr-1:14876,39:spr-0:14876,40:spr-2:14876',
+    '1:bar-5:14209,2:gc-2:14220,3:gc-0:14220,4:gc-1:14220,5:bar-1:14220,6:gc-3:14221,7:bar-3:14262,8:bar-0:14262,9:bar-2:14363,10:pel-14:14363,11:pel-1:14363,12:spr-1:14363,13:spr-0:14363,14:bar-4:14407,15:pel-9:14742,16:pel-20:14742,17:pel-26:14742,18:pel-13:14742,19:pel-4:14780,20:pel-23:14780,21:pel-19:14780,22:pel-25:14816,23:pel-3:14816,24:pel-17:14816,25:pel-7:14816,26:pel-10:14816,27:pel-0:14816,28:pel-6:14851,29:pel-11:14851,30:pel-15:14851,31:pel-22:14851,32:pel-21:14851,33:pel-8:14851,34:pel-16:14851,35:pel-24:14851,36:pel-2:14851,37:pel-5:14851,38:pel-18:14851,39:pel-12:14851,40:spr-2:14851',
 }
 
 const fingerprint = (out: StageOutput): string =>

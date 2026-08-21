@@ -202,7 +202,7 @@ describe('cuántos tiran (v34)', () => {
   })
 })
 
-describe('el ritmo del descolgado (v16, docs/motor.md §9)', () => {
+describe('el ritmo del descolgado (v16, docs/motor.md §9; v35, el tope de la pelea)', () => {
   const llano = block('llano', 0)
   const puerto = block('subida', 8)
   // Resignado del todo: el grupo de cabeza hace rato que se perdió de vista.
@@ -210,17 +210,40 @@ describe('el ritmo del descolgado (v16, docs/motor.md §9)', () => {
   // Un grupeto NORMAL: por detrás de un pelotón que le dobla o le triplica en número. Es el caso de
   // toda la vida y el que fija estos invariantes; la mayoría en la carretera se prueba aparte.
   const PEL = 120
+  // CONTRA QUÉ SE PELEA (v35). El de delante entra ahora en la cuenta: contra un pelotón lanzado el
+  // tope no muerde y todo lo de la v16 sigue en pie; contra uno que rueda a tempo, sí.
+  const LANZADO = STAGE.shedFightCommit
+  const TEMPO = STAGE.pelotonTempoCommit
 
-  it('el que acaba de soltarse va a SU UMBRAL, vaya solo o acompañado', () => {
+  it('el que acaba de soltarse de un pelotón LANZADO va a SU UMBRAL, vaya solo o acompañado', () => {
     // Es el `shedCommit` = 0,82 de toda la vida, y es deliberado que no se haya movido: el que
     // pierde una rueda no se sienta. Lo que cambia es lo que pasa DESPUÉS.
-    expect(droppedCommit(llano, 1, 1, 0, PEL)).toBeCloseTo(STAGE.shedFightCommit)
-    expect(droppedCommit(puerto, 40, 0.2, 0, PEL)).toBeCloseTo(STAGE.shedFightCommit)
+    expect(droppedCommit(llano, 1, 1, 0, PEL, LANZADO)).toBeCloseTo(STAGE.shedFightCommit)
+    expect(droppedCommit(puerto, 40, 1, 0, PEL, LANZADO)).toBeCloseTo(STAGE.shedFightCommit)
+  })
+
+  it('…pero contra un pelotón que rueda a TEMPO no se pelea a 0,82: el tope es lo que dé relevarse (v35)', () => {
+    // El defecto de la v34: 0,82 es un número absoluto —el ritmo de un pelotón lanzado—, así que
+    // un descolgado peleando contra un pelotón a tempo iba SIEMPRE más rápido que él.
+    const solo = droppedCommit(llano, 1, 1, 0, PEL, TEMPO)
+    const grupo = droppedCommit(llano, 8, 1, 0, PEL, TEMPO)
+    // Uno solo no le saca NADA a un grupo que va a rueda: no tiene con quién relevarse.
+    expect(solo).toBeCloseTo(STAGE.shedCommitAlone)
+    expect(grupo).toBeGreaterThan(solo)
+    expect(grupo).toBeLessThan(STAGE.shedFightCommit)
+  })
+
+  it('…y en el puerto el tope apenas existe: allí no hay rueda a la que ir (§VI.1 intacto)', () => {
+    // Lo que la v35 cobra es rebufo, así que se cobra donde hay rebufo. En una rampa al 8 % el que
+    // se suelta sigue peleando a su umbral aunque el pelotón suba a tempo, que es lo que separa una
+    // selección de una debacle (el argumento de la v16).
+    const enPuerto = droppedCommit(puerto, 1, 1, 0, PEL, TEMPO)
+    expect(enPuerto).toBeGreaterThan(0.9 * STAGE.shedFightCommit)
   })
 
   it('resignado, el grupo grande rueda MÁS RÁPIDO que el que va solo: se relevan', () => {
-    const autobus = droppedCommit(llano, 40, 1, lejos, PEL)
-    const suelto = droppedCommit(llano, 1, 1, lejos, PEL)
+    const autobus = droppedCommit(llano, 40, 1, lejos, PEL, LANZADO)
+    const suelto = droppedCommit(llano, 1, 1, lejos, PEL, LANZADO)
     expect(autobus).toBeGreaterThan(suelto)
     expect(suelto).toBeCloseTo(STAGE.shedCommitAlone)
     expect(autobus).toBeLessThanOrEqual(STAGE.shedCommitBunch)
@@ -228,28 +251,45 @@ describe('el ritmo del descolgado (v16, docs/motor.md §9)', () => {
 
   it('…pero en el puerto ser cuarenta no sirve de nada: ahí no hay rueda a la que ir', () => {
     const ventajaLlano =
-      droppedCommit(llano, 40, 1, lejos, PEL) - droppedCommit(llano, 1, 1, lejos, PEL)
+      droppedCommit(llano, 40, 1, lejos, PEL, LANZADO) -
+      droppedCommit(llano, 1, 1, lejos, PEL, LANZADO)
     const ventajaPuerto =
-      droppedCommit(puerto, 40, 1, lejos, PEL) - droppedCommit(puerto, 1, 1, lejos, PEL)
+      droppedCommit(puerto, 40, 1, lejos, PEL, LANZADO) -
+      droppedCommit(puerto, 1, 1, lejos, PEL, LANZADO)
     expect(ventajaPuerto).toBeGreaterThan(0)
     expect(ventajaPuerto).toBeLessThan(ventajaLlano / 3)
   })
 
   it('el grupeto vaciado administra; con las piernas enteras, no', () => {
-    expect(droppedCommit(llano, 20, 0, lejos, PEL)).toBeLessThan(
-      droppedCommit(llano, 20, 1, lejos, PEL),
+    expect(droppedCommit(llano, 20, 0, lejos, PEL, LANZADO)).toBeLessThan(
+      droppedCommit(llano, 20, 1, lejos, PEL, LANZADO),
     )
-    // La frescura pesa sobre el resignado, NUNCA sobre el que pelea: eso ya lo cobra la erosión.
-    expect(droppedCommit(llano, 20, 0, 0, PEL)).toBeCloseTo(droppedCommit(llano, 20, 1, 0, PEL))
+  })
+
+  it('…y la frescura pesa sobre el que administra, NUNCA sobre el que pelea (v16 intacto)', () => {
+    // Se probó en la v35 cobrarle también la frescura al que pelea y NO se ha hecho: la limitación
+    // de ir vacío ya la cobra la erosión sobre el P75, y cobrarla dos veces manda al grupeto a
+    // cualquiera que pierda una rueda. Medido en el montecarlo de la v35: la brecha 1.º-10.º de la
+    // reina se iba de 254 s a 308 s (§VI.1 pide ≤ 300) y la fuga de montaña ganaba el 53 % de las
+    // etapas (objetivo 25-45 %). Lo que la v35 sí le cobra al que pelea es el VIENTO, aquí abajo.
+    expect(droppedCommit(llano, 20, 0, 0, PEL, LANZADO)).toBeCloseTo(
+      droppedCommit(llano, 20, 1, 0, PEL, LANZADO),
+    )
   })
 
   it('se pelea al principio y se resigna al final, sin escalones', () => {
     const gaps = [0, 60, 120, 180, 240, 300, 600]
-    const commits = gaps.map((g) => droppedCommit(llano, 8, 0.5, g, PEL))
+    const commits = gaps.map((g) => droppedCommit(llano, 8, 0.5, g, PEL, LANZADO))
     for (let i = 1; i < commits.length; i++)
       expect(commits[i]!).toBeLessThanOrEqual(commits[i - 1]!)
     // Y una vez resignado, el ritmo ya no depende del boquete: no hay espiral.
     expect(commits[6]!).toBeCloseTo(commits[5]!)
+  })
+
+  it('el tope de la pelea nunca baja del ritmo que el grupo puede SOSTENER', () => {
+    // Un autobús detrás de un pelotón parado no se frena para no adelantarlo: `able` es un suelo.
+    const autobus = droppedCommit(llano, 60, 1, 0, 4, 0.2)
+    expect(autobus).toBeGreaterThan(STAGE.shedCommitAlone)
   })
 })
 
@@ -263,18 +303,23 @@ describe('la mayoría en la carretera (v17)', () => {
   const llano = block('llano', 0)
   const puerto = block('subida', 8)
   const lejos = STAGE.shedResignGapSeconds * 2
+  // El de delante va lanzado: así el tope de la v35 no muerde y esto mide solo la mayoría.
+  const LANZADO = STAGE.shedFightCommit
+  // El techo de estas cuentas es el 0,82 de siempre: con el de delante LANZADO el tope de la v35
+  // no muerde, que es justo lo que aísla el término de la mayoría.
+  const TOPE = STAGE.shedFightCommit
 
   it('126 detrás de 4 NO se resignan: son la carrera, no un grupeto', () => {
-    expect(droppedCommit(llano, 126, 0.3, lejos, 4)).toBeCloseTo(STAGE.shedFightCommit)
+    expect(droppedCommit(llano, 126, 0.3, lejos, 4, LANZADO)).toBeCloseTo(TOPE)
   })
 
   it('…y un grupeto normal detrás de un pelotón entero sigue resignándose igual que en la v16', () => {
     // 40 detrás de 120: la razón es 0,33, muy por debajo de la paridad, así que este término no
     // existe para él. Es la garantía de que la corrección no se lleva por delante al autobús.
-    const grupeto = droppedCommit(llano, 40, 0.3, lejos, 120)
-    const sinMayoria = droppedCommit(llano, 40, 0.3, lejos, Number.MAX_SAFE_INTEGER)
+    const grupeto = droppedCommit(llano, 40, 0.3, lejos, 120, LANZADO)
+    const sinMayoria = droppedCommit(llano, 40, 0.3, lejos, Number.MAX_SAFE_INTEGER, LANZADO)
     expect(grupeto).toBeCloseTo(sinMayoria)
-    expect(grupeto).toBeLessThan(STAGE.shedFightCommit)
+    expect(grupeto).toBeLessThan(TOPE)
   })
 
   it('la rampa va de «me triplican» a «los triplico», y es continua', () => {
@@ -285,7 +330,9 @@ describe('la mayoría en la carretera (v17)', () => {
     expect(majorityOnTheRoad(90, 10)).toBe(1)
     // …y en la paridad se está a un cuarto del camino, ni grupeto ni pelotón.
     expect(majorityOnTheRoad(10, 10)).toBeCloseTo(0.25)
-    const rampa = [4, 10, 14, 18, 22, 26, 30].map((n) => droppedCommit(llano, n, 0.3, lejos, 10))
+    const rampa = [4, 10, 14, 18, 22, 26, 30].map((n) =>
+      droppedCommit(llano, n, 0.3, lejos, 10, LANZADO),
+    )
     for (let i = 1; i < rampa.length; i++) expect(rampa[i]!).toBeGreaterThan(rampa[i - 1]!)
   })
 
@@ -294,13 +341,13 @@ describe('la mayoría en la carretera (v17)', () => {
     // grupeto de la etapa reina se resigna EN EL PUERTO casi igual que en la v16. Se mide en
     // FRACCIÓN de lo que había que recorrer hasta el umbral, que es lo que el término reparte.
     const ganaPuerto =
-      (droppedCommit(puerto, 126, 0.3, lejos, 4) -
-        droppedCommit(puerto, 126, 0.3, lejos, Number.MAX_SAFE_INTEGER)) /
-      (STAGE.shedFightCommit - droppedCommit(puerto, 126, 0.3, lejos, Number.MAX_SAFE_INTEGER))
+      (droppedCommit(puerto, 126, 0.3, lejos, 4, LANZADO) -
+        droppedCommit(puerto, 126, 0.3, lejos, Number.MAX_SAFE_INTEGER, LANZADO)) /
+      (TOPE - droppedCommit(puerto, 126, 0.3, lejos, Number.MAX_SAFE_INTEGER, LANZADO))
     const ganaLlano =
-      (droppedCommit(llano, 126, 0.3, lejos, 4) -
-        droppedCommit(llano, 126, 0.3, lejos, Number.MAX_SAFE_INTEGER)) /
-      (STAGE.shedFightCommit - droppedCommit(llano, 126, 0.3, lejos, Number.MAX_SAFE_INTEGER))
+      (droppedCommit(llano, 126, 0.3, lejos, 4, LANZADO) -
+        droppedCommit(llano, 126, 0.3, lejos, Number.MAX_SAFE_INTEGER, LANZADO)) /
+      (TOPE - droppedCommit(llano, 126, 0.3, lejos, Number.MAX_SAFE_INTEGER, LANZADO))
     // En el llano la mayoría se cobra ENTERA (el autobús no se resigna) y en la rampa al 8 % se
     // queda en el rebufo que hay allí arriba: menos de un tercio.
     expect(ganaLlano).toBeCloseTo(1)

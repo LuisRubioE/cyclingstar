@@ -6939,7 +6939,227 @@ corridas). Quien las quiera dar por buenas tiene que medirlas aparte.
   fuga se caza con tres hombres distintos de los tres que salieron) y el que estaba mal era el test,
   no el motor: se estrecha a lo que describe su propio comentario.
 
-## El motor depende del ORDEN DE ENTRADA (defecto medido, sin arreglar — sin `engine_version`)
+## v35 — Volver cuesta (`engine_version` 34 → 35)
+
+> **Lo que dijo el dueño, textual:** «es muy fácil reengancharse después de haberse descolgado… lo
+> normal es que el que está atrás está agotado, y es una lucha de varios que tiran del pelotón vs
+> uno solo; salvo en los casos en los que el pelotón va lento sin prisa, lo normal debería ser que
+> la diferencia siga y siga aumentando». Y sobre la foto de la radio: «si el frente no tiene dueño
+> único, debería haber 1, 2 o 3 equipos que tiren, pero con menor intensidad».
+
+### 0. Antes de tocar nada: ¿cuántas veces va el pelotón con prisa?
+
+La calibración entera cuelga de esa pregunta —«un grupo de 5 creo razonable que vuelva la mitad de
+las veces» vale **cuando el pelotón va sin prisa**, y sin saber cuántos kilómetros de carrera son de
+ésos no se puede pedir nada—. Se midió con un gancho temporal dentro de `simulate.ts` que entrega,
+en cada bloque de decisión, el compromiso del pelotón y por qué va a ése (6 carreras × 2 semillas,
+10.176 bloques):
+
+| compromiso | qué es               | % de la carrera |
+| ---------- | -------------------- | --------------- |
+| ≤ 0,60     | **sin prisa**, tempo | **43,3 %**      |
+| 0,60-0,75  | apretando            | 35,8 %          |
+| 0,75-0,88  | cazando de verdad    | 18,0 %          |
+| > 0,88     | a muerte             | 2,9 %           |
+
+Y por qué: **cazando (trenes de sprint) el 51,1 % del tiempo… a 0,64 de mediana**, control de la
+general 27,4 % a 0,53, cerrando un movimiento 10,8 % a 0,72, carretera libre 6,4 % a 0,55, tirón
+final 3,8 % a 0,83. Es decir: el pelotón se pasa media carrera «cazando» a un ritmo que es
+prácticamente tempo, porque el lazo cerrado casi siempre encuentra el boquete donde lo quiere.
+
+### 1. Pelear es ir más rápido que el de delante, y eso lo compra el relevo
+
+`shedFightCommit` = 0,82 es el ritmo de un pelotón lanzado, y era un número **absoluto**: el que
+acaba de soltarse rodaba a 0,82 estuviera el pelotón a 0,85 o a 0,55. Contra un pelotón que rueda a
+tempo eso significa ir SIEMPRE más rápido que aquel del que te acabas de descolgar.
+
+Medido sobre seis carreras del banco, en llano, comparando el km/h de cada grupo descolgado con el
+del pelotón en el MISMO kilómetro (las dos velocidades salen del reloj de los mismos hombres en dos
+fotos, así que un cambio de composición no las mueve):
+
+| tamaño del grupo | v34 (mediana) | va más rápido que el pelotón |
+| ---------------- | ------------- | ---------------------------- |
+| 1 (solo)         | −8,2 %        | 15 % de los km               |
+| 2-3              | −4,6 %        | 19 %                         |
+| **4-10**         | **+1,6 %**    | **56 %**                     |
+| 11+              | −2,2 %        | 38 %                         |
+
+El hombre solo estaba bien —paga el viento entero y su P75 es el suyo—; el GRUPO era el defecto.
+
+La regla nueva: el tope de la pelea es **el ritmo del de delante más lo que valga la propia
+rotación**, `aheadCommit + shedChaseEdge · (1 − 1/n)`, y se mezcla con el 0,82 de siempre **a precio
+de rebufo** (`wind = draftMax(bloque) / draftFlat`), igual que `majorityOnTheRoad` (v17):
+
+```
+ceiling = shedFightCommit − wind · (shedFightCommit − min(shedFightCommit, chase))
+```
+
+En el llano manda el tope: ir a rueda es lo que decide, y un grupo solo le saca al pelotón lo que le
+dé relevarse. En una rampa al 8 % `wind` vale 0,36 y el tope casi no existe: allí no hay rueda a la
+que ir y queda **la v16 intacta**, que es lo que mantiene la selección de la etapa reina (§VI.1).
+
+Y hay un suelo: `able · legs`, el ritmo que el grupo puede SOSTENER. Un autobús detrás de un pelotón
+que se ha parado no frena para no adelantarlo.
+
+**Lo que NO se ha hecho, y se probó:** cobrarle también las piernas al que pelea (`legs` sobre el
+término de pelea, en vez de solo sobre el que administra). Suena bien —«el que está atrás está
+agotado»— y es doble contabilidad: la limitación de ir vacío ya la cobra la erosión sobre el P75.
+Medido en el montecarlo: la brecha 1.º-10.º de la reina se iba de 254 s a **308 s** (§VI.1 pide
+≤ 300) y la fuga de montaña ganaba el **53 %** de las etapas (objetivo 25-45 %). Queda escrito en
+`physics.test.ts` para que no se vuelva a intentar sin mirar esto.
+
+### 2. La puerta del pelotón no absorbe
+
+Estar a menos de `regroupGapSeconds` = 22 s bastaba para volver dentro, **aunque el hueco estuviera
+creciendo**. Medido en el banco de huecos: en los descensos volvían **196 de 196** grupos, y el
+hueco de los que volvían crecía +0,1 s/km mientras tanto. Eso no es reengancharse; es que la puerta
+se los traga. El dueño: «en una bajada es normal que algunos de los que perdieron contacto al subir
+se reenganchen, pero no todos, wey… no tiene que reducirse siempre».
+
+Ahora la puerta pide además estar VOLVIENDO: ir más rápido que ellos en ese bloque. Los dos grupos
+pisan el mismo bloque del recorrido, así que la comparación es de carretera y no de reloj. El que
+alcanza de verdad (`caught`) entra igual, y el autobús que triplica en número conserva su puerta de
+par en par —lo que no conserva es el remolque gratis—.
+
+### 3. Un frente sin dueño son uno, dos o tres equipos, y tira menos
+
+La foto que enseñó el dueño: **PULLING (8) de cinco equipos distintos**. Pasa cuando ningún equipo
+lleva el frente (o cuando el que lo lleva no tiene hombres en la cabeza): hasta la v34 el turno era
+sencillamente el de más deber de relevo, salieran de donde salieran.
+
+Ahora, si no hay dueño, se eligen primero los **equipos** —los que más deber acumulan en la cabeza,
+hasta `relayTeamsNoOwner` = 3— y tiran solo sus hombres. El turno se queda más corto, así que además
+cada uno paga más viento: una alianza sin dueño es menos eficiente que un tren, y eso es carretera.
+Y la segunda mitad de la frase, la intensidad, se cobra donde es —en el ritmo del pelotón—:
+`noOwnerCommitFactor` = 0,94.
+
+La regla vale SOLO en el pelotón: en una fuga se relevan todos, que es lo que una fuga es. Un campo
+sin equipos (el banco canónico) no la ve: todos los agentes libres caen en el mismo cubo.
+
+### 4. Y el orden de entrada deja de decidir la carrera
+
+Estaba medido y anotado como deuda en la v34 («El motor depende del ORDEN DE ENTRADA»): las piernas
+del día (`rngDay`) se reparten recorriendo `input.riders`, así que barajar a los mismos corredores
+con la misma semilla daba **otra carrera en 36 de 36 barajados**. La v34 lo tapó donde se veía —el
+roster de producción sale ordenado por dorsal— pero el agujero seguía abierto para cualquier otro
+que llame al motor.
+
+`simulateStage` ordena ahora por `riderId` antes de mirar nada: **36 de 36 barajados dan exactamente
+la misma carrera**. El dorsal, la general y las órdenes siguen decidiendo lo que decidían; lo que ya
+no decide nada es la posición en el array.
+
+### 5. Lo que se mide después
+
+**El reenganche, cruzado con la prisa del pelotón** (6 carreras × 6 semillas, episodios que llegaron
+a 30 s o más de hueco; «sin prisa» = compromiso medio del pelotón ≤ 0,60 durante el episodio):
+
+| grupo descolgado | pelotón sin prisa | apretando (0,60-0,75) | con prisa (> 0,75) |
+| ---------------- | ----------------- | --------------------- | ------------------ |
+| solo             | 68 % → **28 %**   | 18 % → **2 %**        | 3 % → **0 %**      |
+| 2-3              | 77 % → **44 %**   | 20 % → **14 %**       | 0 % → 0 %          |
+| **4-8**          | 71 % → **60 %**   | 28 % → **6 %**        | 0 % → 2 %          |
+| 9+               | 92 % → **81 %**   | 47 % → 46 %           | 0 % → 0 %          |
+
+El dueño pidió «un grupo de 5 creo razonable que vuelva la mitad de las veces» con el pelotón
+tranquilo: sale **60 %** (121 episodios). Y pidió que con el pelotón trabajando la diferencia siga
+creciendo: sale **6 % y 2 %**. El grupo de 9+ que vuelve con el pelotón a tempo es el
+reagrupamiento de toda la vida —medio pelotón que se parte en un puerto y se recompone en el
+valle—, y ése tiene que seguir pasando.
+
+**La velocidad, que es de donde salía todo** (llano, cada grupo contra el pelotón en el mismo km):
+
+| tamaño   | v34 (mediana) | v35 (mediana) | va más rápido que el pelotón |
+| -------- | ------------- | ------------- | ---------------------------- |
+| 1 (solo) | −8,2 %        | −6,2 %        | 15 % → 10 % de los km        |
+| 2-3      | −4,6 %        | −5,4 %        | 19 % → 29 %                  |
+| **4-10** | **+1,6 %**    | **−2,0 %**    | **56 % → 36 %**              |
+| 11+      | −2,2 %        | +1,5 %        | 38 % → 61 %                  |
+
+El defecto era el grupo de 4-10 y ahí está corregido. El autobús de 11+ pasa a ganar terreno con el
+pelotón tranquilo, y es lo que se quiere: un corte numeroso que se releva bien SÍ vuelve en el valle
+—de eso va `majorityOnTheRoad` (v17)— y su puerta sigue abierta de par en par.
+
+**El frente sin dueño** (8 equipos de 5, llana, cuatro semillas, mirando quién PAGA VIENTO en la
+sonda del motor): equipos pagando viento a la vez en el pelotón, **peor caso 6 → 3, media 2,18 →
+1,71**. La voz de equipo de la crónica se queda en **72,4 %** (objetivo 50-85 %), y el frente sigue
+cambiando de manos 2,48 veces por etapa (objetivo 1,8-4).
+
+**El orden de entrada**: 36 de 36 barajados dan exactamente la misma carrera (antes, 0 de 36).
+
+### 6. El montecarlo, antes y después
+
+Campaña entera, verde antes y verde después, **sin ensanchar ni una banda**:
+
+| escenario                                | v34    | v35    | objetivo  |
+| ---------------------------------------- | ------ | ------ | --------- |
+| Gana la fuga (llana)                     | 4,2 %  | 5,6 %  | 2-10 %    |
+| Gana el mejor sprinter                   | 35,2 % | 40,2 % | 30-45 %   |
+| Captura mediana (km a meta)              | 21,0   | 21,3   | 8-25      |
+| Gana la fuga (montaña)                   | 29,6 % | 35,4 % | 25-45 %   |
+| Brecha 1.º-10.º de la reina (s)          | 254    | 256    | 60-300    |
+| Erosión, reina en fresco                 | 0,195  | 0,195  | 0,18-0,5  |
+| Erosión, la clásica más dura             | 0,852  | 0,854  | 0,45-0,92 |
+| Voz de EQUIPO en el parte (llana)        | 76,6 % | 72,4 % | 50-85 %   |
+| Equipos que llevan el frente (llana)     | 2,56   | 2,48   | 1,8-4     |
+| Último grupo en la reina (% del ganador) | 10,3 % | 10,6 % | 8-14 %    |
+| Abandonos en una gran vuelta             | 14,5 % | 14,4 % | 12-20 %   |
+
+Las tres bandas que la v33 dejó ensanchadas de forma provisional siguen donde las dejó la v34: el
+suelo de montaña volvió a 25 en la v34 y las otras dos (rotura en llano 2-10, pájaras de la clásica
+más dura ≤ 12) siguen marcadas y sin poder estrecharse por ruido de muestreo, no por el motor.
+
+### 7. Las huellas selladas y los dos bancos que se movieron
+
+`SEALED_RESULTS` (`stage/attribution.test.ts`) se resella entero, con la justificación caso a caso
+en el propio fichero: el orden canónico permuta a quién le toca cada factor de piernas del día
+—`llana-180` sigue metiendo a los 40 en un solo reloj salvo el rezagado de siempre— y el ritmo del
+descolgado mueve la cola de `reina-150` (entra antes, en menos escalones y más anchos).
+
+Y se movieron dos bancos de escenario, los dos por el mismo motivo (el reparto de las piernas del
+día) y los dos documentados donde están:
+
+- **la meta volante con erosión**: `fuerte` gana 11 de 12 semillas en vez de 12 de 12 (SPR 82 contra
+  70 son doce puntos y `dayFormSd` los puede tapar). Lo que el banco mide —el contraste entre
+  depósito lleno y depósito vacío— sigue entero: con el depósito vacío no gana NUNCA.
+- **el corte de tiempo**: la semilla pasa de `'c'` a `'d'`. Medido sobre seis semillas con el motor
+  de la v35, en cinco los tres flojos entran a un 67-70 % del ganador y hay corte; en `'c'` —y solo
+  en `'c'`— la carrera se va tan lenta que entran al 4,1 % y no lo hay.
+
+### 8. Un defecto de narración que esto destapó
+
+Con el reenganche gratis, un ataque de dos dentro de la fuga del día volvía a su grupo enseguida y
+casi nunca se notaba. Sin él, en `llana-180` el ataque se quedó un par de kilómetros fuera, volvió,
+y dos kilómetros después la crónica cazaba a CUATRO cuando el último parte de cabeza decía DOS
+(`cazadaFantasma`, la invariante de coherencia que exige cero).
+
+No era del modelo de persecución: en `simulate.ts`, el grupo que sobrevive a la reabsorción hereda
+la narración del padre (`front.narrated = back.narrated`) **antes** de leer si el desenlace se
+cuenta, así que un ataque que se abrió con su frase se cerraba en silencio cuando el grupo del que
+salió no estaba narrado. Es justo lo contrario de la regla de la v25 que hay escrita tres líneas más
+abajo: lo que se abre, se cierra. Arreglado leyendo la bandera del ATAQUE antes de sobrescribirla.
+
+### 9. Lo que queda anotado y no se ha hecho
+
+- **El motivo por el que uno se descuelga sigue sin existir.** El dueño lo pidió explícito: «si era
+  porque no aguantaron el ritmo del pelotón, deberían reintegrarse menos de la mitad de las veces…
+  si fue un líder del equipo que se cayó y los otros 4 son compañeros suyos que se descuelgan para
+  ayudarle, ahí lo normal es que si el pelotón va sin prisa, casi siempre lo consigan». Hoy el motor
+  distingue el depósito (0-30 % de tanque vuelve el 0 % de las veces; 70-100 %, el 64 %) y el
+  TOCADO (`hurt`, v20), pero **no** sabe que unos gregarios se han dejado caer POR su jefe: medido,
+  un grupo de 3-8 con dos o más compañeros del mismo equipo vuelve el 28 %, menos que el que lleva
+  uno solo (34 %). Para que ese caso exista hace falta que los gregarios se dejen caer a propósito,
+  que es una conducta nueva y no una calibración.
+- **La velocidad de un grupo sigue sin pagar el rebufo.** `targetSpeed` convierte compromiso en
+  velocidad sin mirar cuánto viento paga cada hombre; el rebufo solo se cobra en el COSTE. La v35 lo
+  tapa donde se veía —el tope de la pelea del descolgado— pero el agujero de fondo sigue ahí, y es
+  lo que haría que un grupo de cinco fuera más lento que uno de cincuenta sin necesidad de topes.
+
+## El motor depende del ORDEN DE ENTRADA (defecto medido — ARREGLADO en la v35)
+
+> **ARREGLADO EN LA v35** (ver «v35 — Volver cuesta», §4): `simulateStage` ordena el campo por
+> `riderId` antes de mirar nada, así que el orden en que le lleguen los corredores ya no decide
+> nada. Los 36 de 36 barajados que daban otra carrera dan ahora exactamente la misma. Se deja la
+> medida entera porque explica POR QUÉ el motor era sensible al orden y qué lo destapó.
 
 Salió tirando del hilo de un test que fallaba una noche sí y otra no. El nocturno del **17/08** y el
 del **18/08** corrieron el **MISMO commit** (`c1ace88`) y solo uno pasó: en el que falló,

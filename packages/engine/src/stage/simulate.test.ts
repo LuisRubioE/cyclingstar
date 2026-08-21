@@ -211,6 +211,74 @@ function terrainCases(): { name: string; input: StageInput }[] {
   ]
 }
 
+/**
+ * EL FRENTE SIN DUEÑO SON UNO, DOS O TRES EQUIPOS (v35, §V.1). Lo pidió el dueño sobre una foto de
+ * la Race Radio con **PULLING (8) de cinco equipos distintos**: «si el frente no tiene dueño único,
+ * debería haber 1, 2 o 3 equipos que tiren, pero con menor intensidad».
+ *
+ * Se mide con la sonda del motor (`StageProbe`), que dice quién PAGA VIENTO en el bloque de la
+ * foto: es el dato de verdad, no la lista de tres nombres que publica el parte.
+ */
+describe('quién tira cuando nadie lleva el frente (v35, §V.1)', () => {
+  const campo = (): StageInput => {
+    const riders: StageRider[] = []
+    // Ocho equipos de cinco, todos parecidos: sin un favorito claro no hay dueño natural del frente,
+    // que es justo el caso que la regla tiene que gobernar.
+    for (let t = 0; t < 8; t++) {
+      for (let k = 0; k < 5; k++) {
+        riders.push(
+          rider(`t${t}-${k}`, {
+            eff0: eff(55 + ((t + k) % 5)),
+            teamId: `equipo-${t}`,
+            orders: orders({ role: k === 0 ? 'lider' : 'gregario', targetRiderId: `t${t}-0` }),
+          }),
+        )
+      }
+    }
+    return { profile: { segments: [{ km: 160, tipo: 'llano' }] }, riders }
+  }
+
+  it('nunca hay más de tres equipos pagando viento en el pelotón', () => {
+    const input = campo()
+    const equipoDe = new Map(input.riders.map((r) => [r.riderId, r.teamId!]))
+    let fotos = 0
+    let peor = 0
+    for (let i = 0; i < 4; i++) {
+      simulateStage(
+        input,
+        stageSeed({ worldSeed: `duenno-${i}`, raceId: 'duenno', stageDay: 1, engineVersion: 1 }),
+        {
+          atKm: [20, 40, 60, 80, 100, 120, 140],
+          onSnapshot: (_km, snap) => {
+            // El pelotón es el grupo que lleva la gente (v29), y solo ahí manda esta regla: en una
+            // fuga se relevan todos.
+            const porGrupo = new Map<string, number>()
+            for (const r of snap) porGrupo.set(r.groupId, (porGrupo.get(r.groupId) ?? 0) + 1)
+            let bunch = ''
+            let mayor = 0
+            for (const [id, n] of porGrupo) {
+              if (n > mayor) {
+                mayor = n
+                bunch = id
+              }
+            }
+            const equipos = new Set(
+              snap
+                .filter((r) => r.pulling && r.groupId === bunch)
+                .map((r) => equipoDe.get(r.riderId)),
+            )
+            if (equipos.size === 0) return
+            fotos += 1
+            peor = Math.max(peor, equipos.size)
+          },
+        },
+      )
+    }
+    expect(fotos).toBeGreaterThan(10)
+    expect(peor).toBeLessThanOrEqual(STAGE.relayTeamsNoOwner)
+  })
+})
+
 describe.each(terrainCases())('invariantes del motor — $name', ({ name, input }) => {
   const seed = stageSeed({ worldSeed: 'inv', raceId: name, stageDay: 1, engineVersion: 1 })
   const out = simulateStage(input, seed)
@@ -221,6 +289,32 @@ describe.each(terrainCases())('invariantes del motor — $name', ({ name, input 
     // Compara events + results + workUnits + incidents + engineVersion de una vez: cualquier
     // no-determinismo en tiempos, crónica, gasto o incidentes hace fallar este test.
     expect(again).toEqual(out)
+  })
+
+  it('…Y EL ORDEN DE ENTRADA TAMPOCO DECIDE NADA (v35)', () => {
+    /**
+     * El motor era determinista dada la semilla pero NO invariante a permutaciones del campo: las
+     * piernas del día (`rngDay`) se reparten recorriendo `input.riders`, así que barajar a los
+     * MISMOS corredores con la MISMA semilla daba otra carrera. Medido en la v34 sobre una etapa
+     * real: 36 de 36 barajados cambiaban el resultado, y eso convertía en física el orden de una
+     * consulta SQL (docs/balance.md «El motor depende del ORDEN DE ENTRADA»).
+     *
+     * Se baraja con un mezclador determinista —nada de `Math.random`, que este banco no puede usar—
+     * y se exige el `StageOutput` ENTERO idéntico, no solo el ganador.
+     */
+    let x = 12345
+    const rnd = (): number => {
+      x = (x * 1103515245 + 12345) % 2147483648
+      return x / 2147483648
+    }
+    for (let ronda = 0; ronda < 3; ronda++) {
+      const barajado = [...input.riders]
+      for (let i = barajado.length - 1; i > 0; i--) {
+        const j = Math.floor(rnd() * (i + 1))
+        ;[barajado[i], barajado[j]] = [barajado[j]!, barajado[i]!]
+      }
+      expect(simulateStage({ ...input, riders: barajado }, seed)).toEqual(out)
+    }
   })
 
   it('clasifica a todos exactamente una vez, con puestos 1..N sin huecos', () => {
@@ -642,7 +736,13 @@ describe('modelo de final (docs/motor.md §12)', () => {
           .map((e) => e.protagonistas[0]!)
 
       const fresco = winners(100)
-      expect(fresco.every((w) => w === 'fuerte')).toBe(true)
+      // ONCE DE DOCE, y no doce, desde la v35: repartir las piernas del día por ORDEN CANÓNICO
+      // (`simulateStage` ordena por `riderId` antes de mirar nada) cambia qué factor le toca a
+      // cada uno, y hay una semilla en la que «entero» tiene un buen día y «fuerte» uno malo. SPR
+      // 82 contra 70 son doce puntos y `dayFormSd` los puede tapar: es el modelo funcionando.
+      // Lo que este banco mide no es esa semilla, es el CONTRASTE de las dos filas —con el depósito
+      // lleno gana «fuerte» casi siempre; con el depósito vacío no gana NUNCA—, y eso sigue entero.
+      expect(fresco.filter((w) => w === 'fuerte').length).toBeGreaterThanOrEqual(11)
       // Con un depósito de 16 el "fuerte" llega al km 80 con la erosión por las nubes y su punta
       // de velocidad (coef 0.45, el más castigado de la tabla) ya no le da para ganar la volante.
       const reventado = winners(16)
@@ -1706,7 +1806,13 @@ describe('abandonos en carretera y fuera de control (docs/motor.md §VI.3)', () 
   })
 
   it('con tope de sobra, el que llega fuera de control queda sin clasificar (dnf)', () => {
-    const out = run(cruelStage(3, 100), 'c')
+    // La semilla era 'c' hasta la v35 y pasa a ser 'd' porque el ORDEN CANÓNICO de la v35 mueve el
+    // reparto de las piernas del día, y con él lo que hace esta etapa concreta. Medido sobre seis
+    // semillas con el motor de la v35: en cinco los tres flojos entran a un 67-70 % del ganador y
+    // hay corte; en 'c' —y solo en 'c'— la carrera se va tan lenta que entran al 4,1 % y no lo hay.
+    // No se ha tocado ni el escenario ni la aserción: lo que se elige es una etapa donde el corte
+    // OCURRA, que es lo que este banco necesita para poder comprobar cómo se contabiliza.
+    const out = run(cruelStage(3, 100), 'd')
     const cut = out.events.find((e) => e.plantilla === 'time_cut')
     expect(cut).toBeDefined()
     const dnf = out.results.filter((r) => r.estado === 'dnf')

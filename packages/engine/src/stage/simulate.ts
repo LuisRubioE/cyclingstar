@@ -446,6 +446,8 @@ function relayTurn(
   sittingOn: (riderId: string) => boolean = () => false,
   /** ¿Es este hombre del equipo que LLEVA EL FRENTE de este grupo? (v34, §V.1). */
   ownsTheFront: (riderId: string) => boolean = () => false,
+  /** El equipo de cada hombre; `null` es agente libre y todos los libres cuentan como uno (v35). */
+  teamOfRider: (riderId: string) => string | null = () => null,
 ): Set<string> {
   /**
    * EL QUE SE RINDIÓ NO TIRA — PERO ESO SE ARREGLA EN LO QUE SE CUENTA, NO EN EL REPARTO DEL VIENTO
@@ -483,7 +485,33 @@ function relayTurn(
   scored.sort((a, b) => b.duty - a.duty || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
   const head = scored.slice(0, count)
   const owners = head.filter((s) => ownsTheFront(s.id))
-  return new Set((owners.length > 0 ? owners : head).map((s) => s.id))
+  if (owners.length > 0) return new Set(owners.map((s) => s.id))
+  /**
+   * …Y SI EL FRENTE NO TIENE DUEÑO, TIRAN UNO, DOS O TRES EQUIPOS (v35, §V.1). Lo pidió el dueño
+   * con esas palabras: «si el frente no tiene dueño único, debería haber 1, 2 o 3 equipos que
+   * tiren, pero con menor intensidad». Hasta la v34 el turno sin dueño era sencillamente el de más
+   * deber de relevo, y eso produce la foto que él enseñó: **PULLING (8) de 5 equipos distintos**,
+   * media parrilla dando la cara a la vez. En la carretera no pasa: cuando ningún equipo manda, se
+   * ponen de acuerdo dos o tres y el resto va a rueda.
+   *
+   * El reparto es el mismo de siempre —el deber de relevo—, solo que primero se eligen los EQUIPOS
+   * (los que más deber acumulan en la cabeza) y luego se llena la rotación con sus hombres. El
+   * campo sin equipos no se entera: todos los agentes libres caen en el mismo cubo y el turno sale
+   * exactamente igual que en la v34, que es lo que sella la huella del banco.
+   *
+   * La «menor intensidad» no vive aquí sino en el ritmo del pelotón (`noOwnerCommitFactor`): esto
+   * decide QUIÉN paga el viento, no a qué velocidad se va.
+   */
+  const key = (id: string): string => teamOfRider(id) ?? ''
+  const dutyByTeam = new Map<string, number>()
+  for (const s of head) dutyByTeam.set(key(s.id), (dutyByTeam.get(key(s.id)) ?? 0) + s.duty)
+  const teams = [...dutyByTeam.entries()]
+    .sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))
+    .slice(0, STAGE.relayTeamsNoOwner)
+    .map(([t]) => t)
+  if (teams.length >= dutyByTeam.size) return new Set(head.map((s) => s.id))
+  const allowed = new Set(teams)
+  return new Set(head.filter((s) => allowed.has(key(s.id))).map((s) => s.id))
 }
 
 /**
@@ -530,7 +558,27 @@ export function pullReason(
  * corredor es su propio grupo desde la salida y el orden dentro de la etapa no es una pregunta con
  * sentido (SPEC 6.13).
  */
-export function simulateStage(input: StageInput, seed: string, probe?: StageProbe): StageOutput {
+export function simulateStage(entrada: StageInput, seed: string, probe?: StageProbe): StageOutput {
+  /**
+   * LA CARRERA NO LA PUEDE DECIDIR EL ORDEN EN QUE LLEGAN LOS CORREDORES (v35, docs/balance.md
+   * «El motor depende del ORDEN DE ENTRADA»). El motor es determinista dada la semilla, pero NO era
+   * invariante a permutaciones de `input.riders`: las piernas del día (`rngDay`) se reparten
+   * recorriendo el array, así que barajar a los mismos corredores con la misma semilla daba otra
+   * carrera. Medido en la v34: 36 de 36 barajados cambiaban el resultado.
+   *
+   * Eso convertía en física el orden de una consulta SQL. La v34 lo tapó donde se veía —el roster
+   * de producción sale ordenado por dorsal (`packages/db/src/stageRun.ts`)—, pero el agujero
+   * seguía abierto para cualquier otro que llame al motor. Aquí se cierra donde tiene que estar:
+   * el motor ORDENA por `riderId` antes de mirar nada, así que da igual con qué orden le lleguen.
+   * El dorsal, la general y las órdenes siguen decidiendo lo que decidían; lo que ya no decide
+   * nada es la posición en el array.
+   */
+  const input: StageInput = {
+    ...entrada,
+    riders: [...entrada.riders].sort((a, b) =>
+      a.riderId < b.riderId ? -1 : a.riderId > b.riderId ? 1 : 0,
+    ),
+  }
   // Contrarreloj: grupos de un corredor, sin drafting ni hazards de ataque (SPEC 6.13).
   if (input.timeTrial) return simulateTimeTrial(input, seed)
 
@@ -1674,6 +1722,15 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
       if (onPaves || kmToNextPaves[i]! <= STAGE.pavesApproachKm) {
         target = Math.max(target, STAGE.pavesRaceCommit)
       }
+      /**
+       * …Y UN FRENTE SIN DUEÑO TIRA MENOS (v35, §V.1). La segunda mitad de la frase del dueño —«si
+       * el frente no tiene dueño único, debería haber 1, 2 o 3 equipos que tiren, pero con MENOR
+       * INTENSIDAD»—. Quién paga el viento lo decide `relayTurn`; a qué velocidad se va, esto: un
+       * acuerdo entre equipos no es un tren, y el pelotón que nadie lleva rueda algo más despacio.
+       * Con el campo sin equipos (`teamPlans` vacío) no hay dueño posible y esto no se aplica: el
+       * banco canónico y sus huellas selladas no lo ven.
+       */
+      if (teamPlans.size > 0 && frontTeamId === null) target *= STAGE.noOwnerCommitFactor
       peloton = {
         ...peloton,
         compromiso: peloton.compromiso + (target - peloton.compromiso) * STAGE.commitHysteresis,
@@ -1752,6 +1809,9 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
           frontTeamId !== null &&
           !rebels.has(riderId) &&
           teamOf.get(riderId) === frontTeamId,
+        // …y los EQUIPOS solo mandan en el pelotón: en una fuga se relevan todos, que es lo que
+        // una fuga es. Con `null` todos caen en el mismo cubo y `relayTurn` no filtra nada.
+        (riderId) => (isBunch ? (teamOf.get(riderId) ?? null) : null),
       )
       /**
        * LO QUE VALE UN RELEVO EN ESTE BLOQUE, MEDIDO POR EL VIENTO Y NO POR LA VELOCIDAD (v26).
@@ -1946,6 +2006,7 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
             m.energy0 > 0 ? Math.max(0, Math.min(1, m.energy / m.energy0)) : 0,
             tS - peloton.tS,
             membersOf(PELOTON).length,
+            peloton.compromiso,
           ),
         }),
       )
@@ -1982,6 +2043,7 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
         fresh,
         STAGE.shedResignGapSeconds,
         membersOf(PELOTON).length,
+        peloton.compromiso,
       )
       // …y el que se ha dejado ir arrastra al grupo en la proporción en que sean los suyos, que es
       // la misma línea del bucle principal. Si cae solo, el grupeto ES él y rueda a lo suyo.
@@ -2866,6 +2928,7 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
         fresh / mem.length,
         sg.tS - peloton.tS,
         membersOf(PELOTON).length,
+        peloton.compromiso,
       )
       // …y el que SE HA DEJADO IR (regla 8) ya no pelea por nada: rueda a lo suyo y arrastra al
       // grupo en la proporción en que sean los suyos. Un grupeto donde la mitad se ha sentado va
@@ -2935,9 +2998,26 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
          * pasar por delante de lo que quede del pelotón y la selección debe mantenerse.
          */
         const caught = !onClimb && sg.tS <= peloton.tS
+        /**
+         * …Y LA PUERTA NO ABSORBE (v35). Hasta la v34 bastaba con ESTAR a menos de 22 s: un grupo
+         * que rodaba a la misma velocidad que el pelotón —o incluso perdiendo una décima por
+         * kilómetro— entraba igual, porque la puerta no preguntaba si se estaba acercando. Medido
+         * en el banco de huecos: en los descensos, 196 de 196 grupos volvían, y el hueco de los que
+         * volvían crecía +0,1 s/km mientras tanto. Eso no es reengancharse, es que la puerta se los
+         * tragaba. Es la queja del dueño («es muy fácil reengancharse»; «en una bajada es normal
+         * que algunos se reenganchen, pero no todos, wey»).
+         *
+         * Ahora hay que estar VOLVIENDO: ir más rápido que ellos en este bloque. Los dos grupos
+         * pisan el mismo bloque del recorrido, así que la comparación es de carretera y no de
+         * reloj. El que alcanza de verdad (`caught`) entra igual, y el autobús que triplica en
+         * número sigue teniendo su puerta de par en par —lo que no tiene es un remolque gratis—.
+         */
+        const cerrando = sg.vActual > peloton.vActual
         if (
           caught ||
-          (!onRough && gapSeconds(peloton, sg) <= STAGE.regroupGapSeconds * shutFor(mem.length))
+          (!onRough &&
+            cerrando &&
+            gapSeconds(peloton, sg) <= STAGE.regroupGapSeconds * shutFor(mem.length))
         ) {
           for (const m of mem) m.groupId = PELOTON
           peloton = { ...peloton, riderIds: [...peloton.riderIds, ...sg.riderIds] }
@@ -3032,6 +3112,19 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
           // historia que continúa es la suya. Sin esto, un manotazo narrado dentro de una fuga que
           // nunca tuvo frase convertía a la fuga entera en «narrada», y el parte de cabeza empezaba
           // a nombrar delante a gente a la que el lector no había visto salir.
+          /**
+           * …Y EL DESENLACE ES DEL ATAQUE, NO DEL PADRE (v35). La línea de abajo —el grupo que
+           * sobrevive hereda la narración del padre— se ejecutaba ANTES de leer `narra`, así que un
+           * ataque contado con su frase («two riders jump clear») se cerraba en silencio si el grupo
+           * del que había salido no estaba narrado. Es justo lo contrario de la regla de la v25 que
+           * hay escrita tres líneas más abajo: lo que se abre, se cierra.
+           *
+           * Lo destapó la v35 al dejar de regalar reenganches: en `llana-180` un ataque de dos
+           * dentro de la fuga del día volvía a su grupo sin una línea, y dos kilómetros después la
+           * crónica cazaba a CUATRO cuando el último parte de cabeza decía dos. El lector leía una
+           * contradicción (`cazadaFantasma`) que no era del motor sino de este orden de dos líneas.
+           */
+          const narraCierre = front.narrated
           front.narrated = back.narrated
           const attackers = membersOf(front.g.id)
             .map((x) => x.input.riderId)
@@ -3043,7 +3136,7 @@ export function simulateStage(input: StageInput, seed: string, probe?: StageProb
           // ruido en los intentos que NO se contaron; para los que sí, callarse el desenlace no
           // ahorra una línea, deja una historia sin final. Se cuenta cómo acaba TODO lo que se
           // contó cómo empezaba.
-          const narra = front.narrated
+          const narra = narraCierre
           log.emit(km, front.g.tS, 'intento_fallido', 'attack_reeled', attackers.slice(0, 3), {
             kind: front.kind,
             km: Math.max(1, Math.round(km - front.bornKm)),

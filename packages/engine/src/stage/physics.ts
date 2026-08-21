@@ -236,6 +236,7 @@ export function droppedCommit(
   freshness: number,
   gapSeconds: number,
   aheadSize: number,
+  aheadCommit: number,
 ): number {
   const rotation = 1 - 1 / Math.max(1, size)
   const wind = draftMax(block) / STAGE.draftFlat
@@ -250,7 +251,23 @@ export function droppedCommit(
   // no.
   const seen = 1 - clamp(gapSeconds / STAGE.shedResignGapSeconds, 0, 1)
   const fight = seen + (1 - seen) * majorityOnTheRoad(size, aheadSize) * wind
-  return able * legs + (STAGE.shedFightCommit - able * legs) * fight
+  /**
+   * …Y PELEAR ES IR MÁS RÁPIDO QUE EL DE DELANTE (v35). El 0,82 de la v16 es un número absoluto —el
+   * ritmo de un pelotón lanzado— y contra un pelotón que rueda a tempo (0,55-0,65) eso significaba
+   * que el descolgado iba SIEMPRE más rápido que aquel del que se había descolgado. La ventaja de
+   * un grupo sobre el que va delante es la que le da RELEVARSE, así que el tope es el ritmo del de
+   * delante más lo que valga su rotación, y se mezcla con el 0,82 de siempre a precio de rebufo:
+   * en el llano manda el tope, en la rampa no hay rueda a la que ir y queda la v16 intacta.
+   */
+  const chase = clamp(aheadCommit, 0, 1) + STAGE.shedChaseEdge * rotation
+  const ceiling =
+    STAGE.shedFightCommit - wind * (STAGE.shedFightCommit - Math.min(STAGE.shedFightCommit, chase))
+  // El tope es una LIMITACIÓN, no una decisión, así que se aplica al final y no se mezcla con las
+  // piernas: pelear se sigue peleando igual que en la v16 —el que pierde una rueda no se sienta— y
+  // lo que la v35 dice es para cuánto le da esa pelea contra un grupo que va a rueda. Por debajo
+  // del ritmo que el grupo SOSTIENE no se baja: `able · legs` es el suelo.
+  const peleando = able * legs + (STAGE.shedFightCommit - able * legs) * fight
+  return Math.max(able * legs, Math.min(peleando, ceiling))
 }
 
 /**

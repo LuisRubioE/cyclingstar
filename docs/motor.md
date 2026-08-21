@@ -413,6 +413,25 @@ etapa reina termina ya con el pelotón entero al mismo segundo.
 > el último puerto a 62 km de meta. `sim/realQueens.ts` mide ahora la cola sobre ocho reinas REALES
 > elegidas por forma, con Race Colombia e5 dentro por nombre. Medido en docs/balance.md, «v17».
 
+> **COMPLETADO EN LA v35: pelear es ir más rápido QUE EL DE DELANTE.** El punto 4 de arriba —«el que
+> acaba de soltarse va a su umbral, el 0,82 de siempre»— era un número ABSOLUTO, y contra un pelotón
+> que rueda a tempo (0,55-0,65) eso significa ir SIEMPRE más rápido que aquel del que te acabas de
+> descolgar. Medido sobre seis carreras del banco: un grupo descolgado de 4-10 hombres rodaba un
+> **+1,6 %** más rápido que el pelotón y le ganaba terreno en el **56 %** de los kilómetros, y con
+> el pelotón rodando tranquilo volvía **el 71 % de las veces**. Es la queja del dueño: «es muy fácil
+> reengancharse… salvo que el pelotón vaya lento sin prisa, lo normal debería ser que la diferencia
+> siga y siga aumentando».
+>
+> El tope de la pelea pasa a ser **el ritmo del de delante más lo que valga la propia rotación**
+> (`shedChaseEdge · (1 − 1/n)`), mezclado con el 0,82 de siempre **a precio de rebufo**, igual que la
+> mayoría en la carretera de la v17: en el llano manda el tope —ir a rueda es lo que decide— y en la
+> rampa no hay rueda a la que ir, así que la selección de la montaña queda intacta. Y la PUERTA del
+> pelotón deja de absorber: estar a menos de 22 s ya no basta, hay que estar volviendo de verdad
+> (medido antes: 196 de 196 grupos volvían en los descensos, con el hueco CRECIENDO +0,1 s/km).
+> Medido después, con el pelotón tranquilo: el hombre solo vuelve el 28 % de las veces (era el 68 %)
+> y el grupo de 4-8 el 60 % (era el 71 %); con el pelotón trabajando, el 2 % y el 6 %. Detalle en
+> docs/balance.md, «v35».
+
 ### 9-ter. El puerto se sube a TU ritmo, no al del grupo (HECHO, v26)
 
 > **La queja del dueño, textual:** «una cosa que debería poder pasar y nunca pasa es que haya
@@ -1218,6 +1237,16 @@ Resueltas con el dueño. Sustituyen a las cuestiones abiertas de la v1.
 > Las dos reglas que mandan sobre el plan están implementadas: el que corre por su cuenta (§VI.2)
 > queda FUERA del plan —ni le empuja ni le frena— y el agente libre no participa de ninguno. Un
 > campo entero sin equipos se comporta exactamente como en la v14.
+>
+> **v34: el frente lo lleva UNO, y eso se dice donde se decide quién paga viento.** Si el frente
+> tiene dueño, la rotación son SUS hombres (`relayTurn`), en vez de descontarle el trabajo a los
+> demás al contarlo. **v35: y si NO tiene dueño, son uno, dos o tres equipos** (`relayTeamsNoOwner`),
+> no media parrilla —el dueño lo pidió sobre una foto de la radio con «PULLING (8)» de cinco equipos
+> distintos—, **y tiran con menos intensidad** (`noOwnerCommitFactor`): una alianza no es un tren.
+> Medido con la sonda del motor sobre 8 equipos de 5 en llana: equipos pagando viento a la vez,
+> **peor caso 6 → 3 y media 2,18 → 1,71**, con la voz de equipo de la crónica en 72,4 % (objetivo
+> 50-85 %) y el frente cambiando de manos 2,48 veces por etapa. En una FUGA no se aplica: allí se
+> relevan todos, que es lo que una fuga es.
 
 Modelo de **intenciones por equipo** (cada equipo con objetivos y presupuesto de esfuerzo), pero con
 dos reglas que mandan sobre él:
