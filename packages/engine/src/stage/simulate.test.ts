@@ -321,6 +321,41 @@ describe('los suyos se dejan caer a por él (v36, §V.1)', () => {
     )
   })
 
+  it('de la FUGA no baja nadie; del pelotón y de los grupos de delante, sí', () => {
+    /**
+     * La regla del dueño sobre DE DÓNDE sale el que baja: «alguien de la fuga no lo mandes para
+     * atrás… alguien del pelotón sí. Salvo que sea con carrera rota… y uno que va en grupo 2 podría
+     * esperar a uno del grupo 3 y ayudarlo». Se comprueba con la sonda: en la foto ANTERIOR al
+     * aviso, ninguno de los que bajan iba en un movimiento.
+     */
+    let comprobados = 0
+    for (const seed of seedsFor('ayuda-origen', 8)) {
+      const input = conJefeQueSeCae(false)
+      const avisos = simulateStage(input, seed).events.filter(
+        (e) => e.plantilla === 'domestiques_drop_back',
+      )
+      if (avisos.length === 0) continue
+      const fotos = new Map<number, ReadonlyMap<string, string>>()
+      simulateStage(input, seed, {
+        atKm: Array.from({ length: 120 }, (_, i) => i + 1),
+        onSnapshot: (km, snap) => {
+          fotos.set(Math.round(km), new Map(snap.map((r) => [r.riderId, r.groupId])))
+        },
+      })
+      for (const aviso of avisos) {
+        const antes = fotos.get(Math.floor(aviso.km))
+        if (!antes) continue
+        for (const id of aviso.protagonistas) {
+          const grupo = antes.get(id)
+          if (grupo === undefined) continue
+          comprobados += 1
+          expect(grupo.startsWith('mov')).toBe(false)
+        }
+      }
+    }
+    expect(comprobados).toBeGreaterThan(5)
+  })
+
   it('…y con los suyos al lado el jefe NO tira: se reserva', () => {
     // La otra mitad de la frase del dueño. `relayProtectedPenalty` no bastaba en grupo pequeño,
     // donde el turno es el grupo entero: medido antes de la v36, el jefe tiraba en el 6,3 % de las

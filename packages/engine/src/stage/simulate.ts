@@ -1374,8 +1374,31 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
             const conEl = plan.memberIds.filter(
               (id) => id !== leaderId && sims.get(id)?.groupId === jefe.groupId,
             ).length
-            // Quién PUEDE ir: los suyos que van en el pelotón, enteros y no rebeldes (§VI.2: el que
-            // corre por su cuenta no trabaja para el equipo aunque lleve su maillot).
+            /**
+             * DE DÓNDE SALE EL QUE BAJA, que es la otra decisión y la dio el dueño: «alguien de la
+             * fuga no lo mandes para atrás… alguien del pelotón sí. Salvo que sea con carrera
+             * rota… y uno que va en grupo 2 podría esperar a uno del grupo 3 y ayudarlo».
+             *
+             * Las tres clases de grupo del motor lo dicen solas, sin inventar ninguna bandera:
+             *
+             * - **de un `mov` no baja nadie.** Una fuga es una fuga: el que está ahí se está jugando
+             *   la carrera, y mandarlo atrás sería tirar a la basura lo único que su equipo tiene
+             *   en la carretera. Salen de la lista por construcción, no por un filtro.
+             * - **del pelotón, sí**, que es el caso normal.
+             * - **y con la CARRERA ROTA, de cualquier grupo que vaya por delante del suyo**: el que
+             *   rueda en el segundo grupo no está corriendo por nada que su equipo pueda ganar, así
+             *   que espera a su jefe del tercero. Eso es exactamente lo que distingue un grupo de
+             *   una fuga aquí: los grupos rotos son `shed`, la fuga es `mov`.
+             *
+             * Y el que ya va por detrás en un grupeto NO cuenta: esperar hacia atrás no existe.
+             */
+            const puedeBajar = (m: RiderSim): boolean => {
+              if (m.groupId === bunchNow) return true
+              const suyo = shed.find((g) => g.id === m.groupId)
+              return suyo !== undefined && suyo.id !== suGrupo.id && suyo.tS < suGrupo.tS
+            }
+            // Quién PUEDE ir: los suyos, enteros y no rebeldes (§VI.2: el que corre por su cuenta no
+            // trabaja para el equipo aunque lleve su maillot).
             const disponibles = plan.memberIds
               .filter((id) => id !== leaderId && !rebels.has(id))
               // …y la carta del día no se sacrifica: si el equipo además se juega la etapa con otro
@@ -1385,14 +1408,20 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
               .filter(
                 (m): m is RiderSim =>
                   m != null &&
-                  m.groupId === bunchNow &&
+                  puedeBajar(m) &&
                   !m.hurt &&
                   !m.gaveUp &&
                   m.energy0 > 0 &&
                   m.energy / m.energy0 >= STAGE.helpBackMinFreshness,
               )
+            // El hombre que se queda delante es un hombre EN EL PELOTÓN: si no queda ninguno ahí, no
+            // hay nada que guardar y bajan todos los que puedan.
+            const guarda = Math.min(
+              STAGE.helpBackGcKeepInBunch,
+              disponibles.filter((m) => m.groupId === bunchNow).length,
+            )
             const quiere = porLaGeneral
-              ? disponibles.length - STAGE.helpBackGcKeepInBunch
+              ? disponibles.length - guarda
               : gap <= STAGE.helpBackStageGapSeconds
                 ? STAGE.helpBackStageHelpers - conEl
                 : 0
@@ -1403,6 +1432,9 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
             const van = disponibles
               .sort(
                 (a, b) =>
+                  // Primero el que ya va a medio camino: el del grupo de delante espera, y el del
+                  // pelotón solo baja si con eso no basta.
+                  Number(a.groupId === bunchNow) - Number(b.groupId === bunchNow) ||
                   b.energy / b.energy0 - a.energy / a.energy0 ||
                   (a.input.riderId < b.input.riderId ? -1 : 1),
               )

@@ -1257,9 +1257,13 @@ Resueltas con el dueño. Sustituyen a las cuestiones abiertas de la v1.
 > los motivos de general solo existen con general en juego, que es lo que separa una vuelta de una
 > clásica—; **por la etapa, dos y solo si el boquete es pequeño**. Con ellos al lado el jefe deja de
 > tirar también en grupo pequeño (6,3 % → 1,1 % de las fotos): «que el líder no pase a tirar, él se
-> reserva». Y lo que pasa después no hubo que escribirlo —son un grupo que se releva y el tope de la
-> v35 decide si vuelven—: el jefe ayudado vuelve el **80 %** de las veces contra el 63 % del que se
-> queda solo. Detalle en docs/balance.md, «v36».
+> reserva». **De dónde sale el que baja** también lo dictó el dueño: de una FUGA no baja nadie, del
+> pelotón sí, y con la carrera rota, de cualquier grupo que vaya por delante del suyo —«uno que va en
+> grupo 2 podría esperar a uno del grupo 3 y ayudarlo»—. Y lo que pasa después no hubo que
+> escribirlo —son un grupo que se releva y el tope de la v35 decide si vuelven—: apagando y
+> encendiendo el mecanismo sobre las mismas 240 etapas, el jefe descolgado vuelve el 69 % → **71 %**
+> de las veces, en llano y descenso el 60 % → **74 %**, y el que no vuelve pierde **444 s → 357 s**.
+> Detalle en docs/balance.md, «v36».
 
 Modelo de **intenciones por equipo** (cada equipo con objetivos y presupuesto de esfuerzo), pero con
 dos reglas que mandan sobre él:

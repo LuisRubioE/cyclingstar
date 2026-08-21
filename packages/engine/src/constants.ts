@@ -628,12 +628,22 @@
  * tiraba igual (medido: el 6,3 % de las fotos con los suyos al lado). Ahora el arropado se aparta
  * del turno mientras quede alguien que tire: **1,1 %**.
  *
+ * DE DÓNDE SALE EL QUE BAJA es la otra decisión, y también es del dueño: «alguien de la fuga no lo
+ * mandes para atrás… alguien del pelotón sí. Salvo que sea con carrera rota… y uno que va en grupo
+ * 2 podría esperar a uno del grupo 3 y ayudarlo». Las tres clases de grupo del motor lo dicen solas:
+ * de un `mov` no baja nadie —una fuga es lo único que su equipo tiene en la carretera—, del pelotón
+ * sí, y con la carrera rota también de cualquier `shed` que vaya por delante del suyo. Y baja antes
+ * el que ya va a medio camino que el que sigue en el pelotón.
+ *
  * Lo que NO hace falta escribir es lo que pasa después, y por eso esto es una decisión y no una
  * física nueva: en cuanto están con él son un grupo que se releva, y el tope de la v35 decide solo
- * —vuelven si el pelotón va sin prisa y no vuelven si va cazando—. Medido: el jefe al que los suyos
- * bajan a buscar vuelve el **80 %** de las veces contra el **63 %** del que se queda solo, y el que
- * no vuelve pierde 360 s en vez de 443. Montecarlo entero verde sin tocar una banda, y las cuatro
- * huellas selladas NO se mueven: sus escenarios corren sin equipos, así que esta tanda no las ve.
+ * —vuelven si el pelotón va sin prisa y no vuelven si va cazando—. Medido con el mecanismo APAGADO
+ * y ENCENDIDO sobre las mismas 240 etapas: el jefe descolgado vuelve el 69 % → **71 %** de las
+ * veces, en llano y descenso el 60 % → **74 %**, y el que no vuelve pierde **444 s → 357 s**.
+ * (Comparar dentro de la misma corrida «con ayuda» contra «sin ayuda» ENGAÑA: la regla salta justo
+ * en los casos peores —el jefe que ya no volvía solo—, así que ese corte está sesgado y por eso se
+ * mide apagando el mecanismo.) Montecarlo entero verde sin tocar una banda, y las cuatro huellas
+ * selladas NO se mueven: sus escenarios corren sin equipos, así que esta tanda no las ve.
  */
 export const ENGINE_VERSION = 36 as const
 

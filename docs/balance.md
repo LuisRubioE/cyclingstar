@@ -7214,6 +7214,20 @@ Los guardarraíles, todos medidos:
 - **el que corre por su cuenta no baja** (§VI.2): un rebelde no trabaja para el equipo aunque lleve
   su maillot.
 
+Y **de dónde sale el que baja** es la otra decisión, también del dueño: «alguien de la fuga no lo
+mandes para atrás… alguien del pelotón sí. Salvo que sea con carrera rota… y uno que va en grupo 2
+podría esperar a uno del grupo 3 y ayudarlo». Las tres clases de grupo del motor lo dicen solas, sin
+inventar ninguna bandera:
+
+- **de un `mov` no baja nadie.** Una fuga es una fuga: el que está ahí se juega la carrera y es lo
+  único que su equipo tiene en la carretera. Salen de la lista por construcción, no por un filtro.
+- **del pelotón, sí**, que es el caso normal.
+- **y con la CARRERA ROTA, de cualquier grupo `shed` que vaya por delante del suyo**: el segundo
+  grupo no corre por nada que su equipo pueda ganar, así que espera al jefe del tercero. Eso es lo
+  que distingue aquí un grupo de una fuga: los grupos rotos son `shed`, la fuga es `mov`.
+- y **baja antes el que ya va a medio camino** que el que sigue en el pelotón: al de delante no se
+  le saca de la carrera si con el del segundo grupo basta.
+
 ### 3. Y el jefe no pasa a tirar
 
 La otra mitad de la frase del dueño estaba a medias. `relayProtectedPenalty` manda al jefe arropado
@@ -7241,11 +7255,16 @@ pelotón va sin prisa, casi siempre lo consigan».
 
 ### 5. Lo que se mide después
 
-|                                       | sin ayuda            | con los suyos bajando |
-| ------------------------------------- | -------------------- | --------------------- |
-| el jefe **vuelve**                    | 63 % (243 episodios) | **81 %** (146)        |
-| …solo en llano y descenso             | 66 % (32)            | **81 %** (16)         |
-| el que no vuelve **pierde** (mediana) | 443 s (v35)          | **403 s**             |
+Medido **apagando y encendiendo el mecanismo sobre las mismas 240 etapas**, que es la única forma
+honesta de leerlo: comparar dentro de una misma corrida «los que tuvieron ayuda» contra «los que no»
+está sesgado, porque la regla salta justo en los casos peores —el jefe que ya no volvía solo— y sale
+diciendo que la ayuda perjudica.
+
+|                                       | mecanismo APAGADO | mecanismo ENCENDIDO |
+| ------------------------------------- | ----------------- | ------------------- |
+| el jefe descolgado **vuelve**         | 69 %              | **71 %**            |
+| …en llano y descenso                  | 60 %              | **74 %**            |
+| el que no vuelve **pierde** (mediana) | 444 s             | **357 s**           |
 
 Frecuencia: **6,6 avisos por etapa** en un campo de 18 equipos sin general en juego (0,37 por equipo
 y etapa, 1,3 hombres por aviso), y **9,5 con general en juego**, donde la rama de la general manda
