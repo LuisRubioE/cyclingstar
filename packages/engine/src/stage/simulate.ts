@@ -14,7 +14,7 @@ import {
   shouldCollapse,
   timeCutFraction,
 } from './abandon.js'
-import { chaseField, isFinisher, lerp } from './chase.js'
+import { chaseField, chaseForce, isFinisher, lerp } from './chase.js'
 import { EventLog, announceRebels } from './events.js'
 import {
   type Group,
@@ -27,6 +27,7 @@ import {
 } from './group.js'
 import {
   blockCost,
+  bonkPenalty,
   blockPerfil,
   blockSeconds,
   droppedCommit,
@@ -296,7 +297,9 @@ function isBonked(sim: RiderSim): boolean {
  */
 function riderEff(sim: RiderSim): ReturnType<typeof effNow> {
   const e = erosion(sim.energy, sim.energy0, sim.input.eff0.RES)
-  return effNow(sim.input.eff0, e, isBonked(sim))
+  // …y el castigo de la pájara entra por una RAMPA sobre el último tramo del depósito (v38), no por
+  // el interruptor de `isBonked` —que se queda para lo que sí es un suceso: narrarla—.
+  return effNow(sim.input.eff0, e, bonkPenalty(sim.energy, sim.energy0))
 }
 
 /**
@@ -1343,7 +1346,38 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
           chaseReady += present * Math.max(0, 1 - spent)
         }
         const avail = chaseFull > 0 ? chaseReady / chaseFull : 1
-        gear = chaseGear(chaseStrength.force * lerp(STAGE.teamChaseTiredForce, 1, avail))
+        /**
+         * EL EQUIPO QUE TIENE UN HOMBRE EN LA FUGA NO TIRA (v38, §V.1). El dueño, explicando por qué
+         * a veces una escapada se va a quince minutos en una llana: «puede ocurrir y ocurre a veces,
+         * que el pelotón se despista, deja hacer a una escapada —especialmente si los equipos de los
+         * sprinters tienen a alguien metido en la fuga y entonces no van a tirar— y la escapada se va
+         * a 15 o 20 minutos».
+         *
+         * Es la misma idea que la v33 —el que no colabora en la fuga porque los suyos la persiguen—
+         * leída desde el otro lado: si tu hombre está delante, no organizas el tren para cazarlo. Y
+         * no es una bandera nueva: los trenes de caza ya están identificados (`chaseField`) y quién
+         * va en la fuga del día también, así que basta con no contar los trenes cuyo equipo tenga
+         * gente delante y volver a sumar la fuerza (`chaseForce`).
+         *
+         * Con ello la caza deja de ser una propiedad fija de la etapa y pasa a depender de QUIÉN se
+         * ha metido en la fuga, que es de lo que va la mañana de una llana.
+         */
+        const enLaFuga = new Set<string>()
+        for (const mv of moves) {
+          if (!mv.dayBreak) continue
+          for (const id of membersOf(mv.g.id)) {
+            const equipo = teamOf.get(id.input.riderId)
+            if (equipo != null) enLaFuga.add(equipo)
+          }
+        }
+        const trenesQueTiran = chaseStrength.trains.filter(
+          (t) => !enLaFuga.has(teamOf.get(t.riderId) ?? ''),
+        )
+        const fuerza =
+          trenesQueTiran.length === chaseStrength.trains.length
+            ? chaseStrength.force
+            : chaseForce(trenesQueTiran)
+        gear = chaseGear(fuerza * lerp(STAGE.teamChaseTiredForce, 1, avail))
 
         /**
          * 4. LOS SUYOS SE DEJAN CAER A POR ÉL (v36, §V.1). Hasta la v35 el trabajo de equipo se

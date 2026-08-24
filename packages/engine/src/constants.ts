@@ -1545,6 +1545,18 @@ export const STAGE = {
   },
   // Pájara: E <= 0 -> atributos físicos · 0.55 y descuelgue automático.
   bonkFactor: 0.55,
+  /**
+   * …Y LA PÁJARA ENTRA POR UNA RAMPA, NO POR UN INTERRUPTOR (v38, `bonkPenalty`). Con el booleano
+   * sobre `energy <= 0`, el depósito a 0,001 no costaba nada y a 0 costaba el 45 % de golpe, así que
+   * el motor era extremadamente sensible al nivel del coste justo en el borde: al recalibrar la v38,
+   * la clásica más dura pasaba del 8 % del campo con pájara al 46 % y al 100 % con empujones
+   * pequeños, sin que ninguna banda lo cazara. El dueño: «las pájaras igual hay que recalibrar
+   * cuándo se produce una pájara».
+   *
+   * Con el 8 %: al hombre le quedan unos kilómetros de reserva y ya se le empieza a notar, que es lo
+   * que se ve en carretera —nadie revienta de una pedalada—. A cero se paga entero, como siempre.
+   */
+  bonkOnset: 0.08,
 
   // 6.8 — Intensidades de riesgo (eventos/km). Ajustables desde docs/balance.md.
   // Ataques de salida (docs/motor.md §13, regla 5): la intensidad con que alguien lo intenta en la
@@ -1755,7 +1767,11 @@ export const STAGE = {
   // tempo de mantenimiento + ganancia proporcional al exceso sobre el boquete deseado.
   // Sube de 150 a 175: con el controlador liberado la caza se cerraba a 29 km de meta (objetivo
   // 8-25); con 175 la captura mediana vuelve a los 23-24 km.
-  chaseMaxLeashSeconds: 195,
+  // …Y SUBE A 300 EN LA v38, al recentrar la banda de la fuga en llano en el 10 % (el dueño: «una
+  // etapa llana debería tener una banda más centrada en el 10 %»). Es la cuerda que los trenes de
+  // sprint le dan a la fuga del día antes de empezar a cerrar, así que es la perilla que dice cuánto
+  // margen tiene la fuga para que le salga bien.
+  chaseMaxLeashSeconds: 300,
   chaseHoldCommit: 0.62,
   chaseGain: 0.016,
 
@@ -2212,7 +2228,10 @@ export const STAGE = {
   // Solo se ataca un puerto (ritmo duro, selección) si quedan estos km o menos para meta (o final en alto).
   climbRaceKmToGo: 30,
   decisionEveryBlocks: 10,
-  chaseFeasibleSecondsPerKm: 8,
+  // …Y BAJA A 5 EN LA v38, al recentrar la banda de la fuga en llano en el 10 %. Es el ritmo de
+  // cierre que los trenes consideran VIABLE: por encima de eso dan la fuga por perdida y dejan de
+  // tirar. Con 8 s/km el pelotón no se rendía casi nunca y la fuga ganaba el 2,5 % de las llanas.
+  chaseFeasibleSecondsPerKm: 5,
   // …pero por debajo de este boquete la caza no se da nunca por perdida. La fórmula de viabilidad
   // divide por los km que faltan hasta el punto de captura, así que cerca de meta declara inviable
   // cualquier cosa: sin este suelo, un ataque de 15 s a 14 km de meta hacía sentarse a los trenes.

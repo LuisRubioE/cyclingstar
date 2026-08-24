@@ -613,14 +613,41 @@ export function effNowAttr(eff0Value: number, attr: Attribute, erosionValue: num
 }
 
 /**
- * Efectividades actuales de todos los atributos (SPEC 6.7). Con `bonk` (tanque a cero) los
- * atributos físicos caen a 0.55 y el corredor se descuelga automáticamente.
+ * LA PÁJARA NO ES UN ACANTILADO (v38). Hasta la v37 la pájara era un booleano sobre `energy <= 0`:
+ * con el depósito en 0,001 no pasaba nada y con el depósito en 0 los atributos físicos caían de
+ * golpe un 45 %. Eso hace que el motor sea EXTREMADAMENTE sensible al nivel del coste justo en el
+ * borde: medido al recalibrar la v38, la clásica más dura pasaba del 8 % del campo con pájara al
+ * 46 % y al 100 % con empujones pequeños del nivel, sin que ninguna banda lo cazara.
+ *
+ * El dueño: «las pájaras igual hay que recalibrar cuándo se produce una pájara». Y en la carretera
+ * tampoco es un interruptor: el glucógeno no se acaba de golpe, se va acabando, y el hombre se va
+ * apagando en los últimos kilómetros antes de reventar del todo. Así que el castigo entra por una
+ * RAMPA sobre el último `bonkOnset` del depósito: al 8 % de reserva no pasa nada, a cero se paga
+ * entero, y entre medias se paga la parte proporcional.
+ *
+ * `bonkFactor` no se mueve —la pájara con el depósito a cero cuesta lo que costaba— y el booleano
+ * de la crónica sigue siendo `energy <= 0`, así que lo que se narra sigue siendo la pájara de
+ * verdad y no el aviso.
  */
-export function effNow(eff0: Eff, erosionValue: number, bonk = false): Eff {
+export function bonkPenalty(energy: number, energy0: number): number {
+  if (energy <= 0) return STAGE.bonkFactor
+  const onset = STAGE.bonkOnset * Math.max(1e-9, energy0)
+  if (energy >= onset) return 1
+  const t = energy / onset
+  return STAGE.bonkFactor + (1 - STAGE.bonkFactor) * t
+}
+
+/**
+ * Efectividades actuales de todos los atributos (SPEC 6.7). `bonk` es cuánto se paga por tener el
+ * depósito en las últimas: 1 mientras quede reserva y `bonkFactor` con el tanque a cero, con la
+ * rampa de `bonkPenalty` entre medias. Se admite un booleano por compatibilidad con los bancos.
+ */
+export function effNow(eff0: Eff, erosionValue: number, bonk: boolean | number = false): Eff {
+  const penalty = typeof bonk === 'number' ? bonk : bonk ? STAGE.bonkFactor : 1
   const out = {} as Eff
   for (const attr of Object.keys(eff0) as Attribute[]) {
     let value = effNowAttr(eff0[attr], attr, erosionValue)
-    if (bonk && PHYSICAL.includes(attr)) value *= STAGE.bonkFactor
+    if (penalty < 1 && PHYSICAL.includes(attr)) value *= penalty
     out[attr] = value
   }
   return out
