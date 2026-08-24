@@ -463,58 +463,23 @@ export function idleEffort(block: Block): number {
  * es eso. La potencia sí va en esa proporción —el rebufo ahorra un 40 % de vatios, no un 90 %—,
  * pero lo que este motor gasta no son vatios: es el DEPÓSITO, y el depósito no es lineal en la
  * potencia. A 45 km/h el que da la cara va por encima de su umbral quemando glucógeno y el que va a
- * rueda va en fondo, donde casi no se gasta. Por eso la exposición entra por un exponente
- * (`costExposureExponent`) y no a pelo.
+ * rueda va en fondo, donde casi no se gasta. Por eso la exposición entra por un exponente.
  *
- * Se ancla en el que va DESCUBIERTO (`shelterAlone`), no en el arropado, y eso es deliberado: así el
- * que paga el viento entero cuesta exactamente lo que costaba —la contrarreloj, que es justo eso,
- * no se mueve ni un dígito— y lo que la v38 cambia es que ir a rueda pasa a ser MUCHO más barato,
- * que es lo que el dueño describe.
- */
-export function exposureCost(block: Block, shelter: number): number {
-  const d = draftMax(block)
-  /**
-   * EL PIVOTE ES EL NIVEL, EL EXPONENTE ES LA PROPORCIÓN, y separarlos es lo que hace la v38
-   * calibrable. El exponente dice cuánto más barata es la rueda que dar la cara —el principio del
-   * dueño—; el pivote dice a quién NO se le mueve la factura, y ése tiene que ser el corredor que
-   * lleva la calibración a cuestas: el que va a rueda, que son ciento setenta de ciento setenta y
-   * seis en cada foto. Si se abarata a ÉL, el pelotón entero llega a meta entero y la erosión se
-   * hunde —medido: la reina se fue de 0,195 a 0,061 con la banda en 0,18-0,50—.
-   */
-  const pivot = Math.pow(1 - d * STAGE.costExposurePivot, STAGE.costExposureExponent - 1)
-  return Math.pow(1 - d * shelter, STAGE.costExposureExponent) / pivot
-}
-
-/**
- * Coste de energía de un corredor en un bloque (SPEC 6.5):
- * coste = dx · costeBase · ritmo(c)^1.6 · exposición_del_turno.
+ * Y LA REFERENCIA DE CADA HOMBRE ES LO QUE SOSTENDRÍA ÉL SOLO, no un absoluto. Ésta es la
+ * corrección que hace que el modelo no se rompa por los extremos: la convexidad describe lo que
+ * cuesta ir POR ENCIMA de tu propio umbral, que es lo que le pasa al que da la cara en un grupo que
+ * rueda más rápido de lo que él aguantaría solo. Cuánto más rápido va ese grupo ya lo dice la ley de
+ * velocidad (`relayPaceEdge`), leída contra `n = 1`. De ahí sale sola la propiedad que hace falta:
  *
- * Y LA EXPOSICIÓN SE PROMEDIA SOBRE EL TURNO, NO SOBRE EL REBUFO (v38). Hasta la v37 se calculaba el
- * rebufo MEDIO del que tira (`shelterOf`: `shelterProtected·(1 − 1/n)`) y se cobraba una vez. Es la
- * cuenta del dueño, pero hecha en el orden que engaña: lo que un hombre hace de verdad en una
- * rotación de dos no es ir a medio rebufo todo el rato, es ir **la mitad del tiempo dando la cara y
- * la mitad a rueda**, y como el coste no es lineal, promediar antes o después NO da lo mismo.
+ *  - **el que va SOLO no paga convexidad ninguna** —su excursión vale 1— porque va a su umbral por
+ *    definición. Es el mismo argumento que ancla la contrarreloj, y ahora no hace falta escribirlo
+ *    como excepción: sale de la fórmula.
+ *  - **el que rota en un pelotón sí la paga**, porque el pelotón va más rápido de lo que él
+ *    sostendría solo, y por eso da la cara por turnos y no todo el rato.
  *
- * Textual: «si solo tira 1, el coste debería ser prácticamente el doble que si tiran 2 (un poquito
- * menos que el doble, pero casi… porque si tiran 2, pues el 50 % está tirando y el 50 % está a
- * rueda), y si tiran 4 pues la cosa se reparte mucho más, y si tiran 10 pues aún más». Eso es
- * literalmente esta línea: `1/n` del bloque descubierto y `1 − 1/n` a rueda.
- *
- * Y el COMPROMISO sigue pesando por `ritmo(c)^costRhythmExponent`, que es la otra mitad de la frase
- * —«si se tira sin compromiso pues casi no debería haber coste»—: rodar a tempo cuesta la mitad que
- * rodar a bloque, y el que tira en un grupo que va tranquilo casi no lo nota.
- */
-/**
- * EL COSTE DE LA CONTRARRELOJ, QUE ES EL ANCLA Y NO SE TOCA (v38).
- *
- * `costExposureExponent` dice lo que cuesta ir POR ENCIMA de lo que sostendrías tú solo, que es lo
- * que hace el que da la cara en un grupo que rueda más rápido de lo que él aguantaría en solitario.
- * Un cronoman no hace eso: va a SU umbral de principio a fin, y a qué ritmo lo hace ya lo dice
- * `ttCommitment`, calibrado contra cronos reales del calendario. Cobrarle la convexidad sería
- * cobrarle dos veces por lo mismo y, medido, se le iba el coste de la etapa por un factor de dos.
- *
- * Así que la crono paga la ley LINEAL de siempre, y por eso las bandas de la crono no se han movido
- * ni un dígito en toda la v38.
+ * Sin esto, el descolgado solo pagaba el coste de «ir en cabeza del pelotón» aunque fuera diez
+ * km/h más despacio, y con el exponente alto eso lo mandaba fuera de control: medido, el 24,7 % de
+ * los abandonos de una gran vuelta contra una banda de 1-15 %.
  */
 export function timeTrialCost(block: Block, c: number, dx: number = STAGE.dx): number {
   return dx * costBase(block) * Math.pow(rhythm(c), STAGE.costRhythmExponent)
@@ -527,11 +492,40 @@ export function blockCost(
   pullers: number,
   dx: number = STAGE.dx,
 ): number {
-  const share = pulling ? 1 / Math.max(1, pullers) : 0
-  const exposicion =
-    share * exposureCost(block, STAGE.shelterAlone) +
-    (1 - share) * exposureCost(block, STAGE.shelterProtected)
-  return dx * costBase(block) * Math.pow(rhythm(c), STAGE.costRhythmExponent) * exposicion
+  const d = draftMax(block)
+  const n = Math.max(1, pullers)
+  /**
+   * LO QUE CUESTA CADA ESTADO, con el NIVEL fuera del exponente. `costExposureLevel` no entra en la
+   * proporción: multiplica a los dos por igual, así que la proporción es solo del exponente y el
+   * nivel es solo suyo. Separarlos es lo que hace esto calibrable.
+   */
+  const cara = STAGE.costExposureLevel
+  const rueda =
+    STAGE.costExposureLevel * Math.pow(1 - d * STAGE.shelterProtected, STAGE.costExposureExponent)
+  /**
+   * Y LA EXPOSICIÓN SE PROMEDIA SOBRE EL TURNO, NO SOBRE EL REBUFO (v38). Hasta la v37 se calculaba
+   * el rebufo MEDIO del que tira (`shelterOf`: `shelterProtected·(1 − 1/n)`) y se cobraba una vez.
+   * Es la cuenta del dueño, pero hecha en el orden que engaña: lo que un hombre hace de verdad en
+   * una rotación de dos no es ir a medio rebufo todo el rato, es ir **la mitad del tiempo dando la
+   * cara y la mitad a rueda**, y como el coste no es lineal, promediar antes o después NO da lo
+   * mismo. Textual: «si solo tira 1, el coste debería ser prácticamente el doble que si tiran 2…
+   * porque si tiran 2, pues el 50 % está tirando y el 50 % está a rueda».
+   */
+  const share = pulling ? 1 / n : 0
+  /**
+   * …Y SE PAGA A LA VELOCIDAD A LA QUE DE VERDAD VA EL GRUPO (v38). El compromiso dice a qué ritmo
+   * QUIERE ir el grupo, pero desde que la ley de velocidad sabe entre cuántos se reparte el viento,
+   * un grupo pequeño con el mismo compromiso va MÁS DESPACIO. Sin esta línea el descolgado solo
+   * pagaba el coste de ir a la velocidad del pelotón yendo diez km/h más lento, y con el exponente
+   * alto eso lo mandaba fuera de control.
+   */
+  const marcha = rhythm(c) * relayPaceEdge(block, n)
+  return (
+    dx *
+    costBase(block) *
+    Math.pow(marcha, STAGE.costRhythmExponent) *
+    (share * cara + (1 - share) * rueda)
+  )
 }
 
 // --- 6.6 Cerillos ---------------------------------------------------------------------------

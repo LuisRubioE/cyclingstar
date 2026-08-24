@@ -1383,16 +1383,18 @@ export const STAGE = {
    * Se ancla en el que va DESCUBIERTO, así que el que paga el viento entero cuesta lo que costaba
    * (la contrarreloj no se mueve) y lo que cambia es que la rueda sale barata.
    */
-  costExposureExponent: 2,
+  costExposureExponent: 4.85,
   /**
-   * …Y A QUIÉN NO SE LE MUEVE LA FACTURA. El exponente es una PROPORCIÓN (cuánto más barata es la
-   * rueda que dar la cara) y no un nivel: aplicado a pelo abarata a todo el mundo, porque casi todo
-   * el mundo va a rueda casi todo el rato. El pivote fija el nivel en el corredor arropado —ciento
-   * setenta de ciento setenta y seis en cada foto—, así que la energía que gasta el pelotón en una
-   * etapa es la misma que antes de la v38 y lo que cambia es CÓMO SE REPARTE: el que da la cara paga
-   * más, el que va a rueda paga menos.
+   * …Y EL NIVEL, QUE ES OTRA COSA. El exponente es una PROPORCIÓN (cuánto más barata es la rueda que
+   * dar la cara) y no un nivel: con la referencia puesta en el hombre solo, subir el exponente
+   * abarata a TODO EL MUNDO menos a él, porque casi todo el mundo va a rueda casi todo el rato, y la
+   * erosión del pelotón se hunde. Este factor devuelve el nivel: lo que gasta el campo en una etapa
+   * vuelve a ser lo que gastaba, y lo que cambia es CÓMO SE REPARTE.
+   *
+   * Es la única perilla de las dos que toca al que va solo, así que es también la que decide cuánta
+   * gente se va fuera de control.
    */
-  costExposurePivot: 0.8,
+  costExposureLevel: 2.5,
 
   // 6.5/6.18 — Reparto del trabajo dentro del grupo: quién TIRA y quién va a rueda. NO puede
   // decidirlo el orden del array de entrada: se ordena por "deber de relevo", con el rol como
@@ -1883,7 +1885,7 @@ export const STAGE = {
   // con la física puesta, un pelotón que rota siete hombres cierra mejor que antes, así que para que
   // la fuga siga teniendo la misma opción hay que darle la cuerda que de verdad le dan —«los de la
   // general tiran para que no se vaya a 20 minutos», no para cazarla—.
-  gcControlLeash: 520,
+  gcControlLeash: 610,
   // Compromiso de los favoritos en la subida decisiva: tempo duro que descuelga poco a poco
   // (no máximo, o el grupo llegaría junto). Calibra la caza de la fuga y el estiramiento.
   climbRaceCommit: 0.85,
@@ -2232,16 +2234,20 @@ export const STAGE = {
   // no existía: el controlador vivía dentro de `if (breakaway && !caught)` y el pelotón se quedaba
   // en `commitIdle` toda la etapa. Un pelotón rueda a tempo de carretera, no a paseo.
   //
-  // SE PROBÓ BAJARLO EN LA v38 Y NO SALE. El dueño, al ver que con el coste de la rueda subido los
-  // descolgados se iban fuera de control: «quizás un problema que tengas es que el pelotón va
-  // demasiado rápido normalmente… muchas veces el pelotón debería tener flojera y dejar hacer». La
-  // idea es buena y por eso se midió: con 0,46 y con 0,36, sobre la campaña entera. Y NO hace lo que
-  // parece que tiene que hacer —bajarlo empeora las tres cosas a la vez: la fuga gana el 1,5 % de las
-  // llanas (era 2,0) y el 24,0 % de las montañas (era 28,0), y los abandonos fuera de control suben
-  // del 10,0 % al 15,0 %—. El motivo es que el pelotón no rueda a este número cuando hay algo que
-  // cazar: entonces manda el lazo cerrado (`chaseHoldCommit` + ganancia), así que aflojar aquí solo
-  // afecta a los tramos en que no pasa nada, y lo que hace es que la fuga coja ventaja ANTES, con
-  // más kilómetros por delante para que la cacen. Queda medido para no repetirlo.
+  // LO QUE SE MIDIÓ AL BAJARLO EN LA v38, Y LO QUE RESULTÓ SER. El dueño, al ver que con el coste de
+  // la rueda subido los descolgados se iban fuera de control: «quizás un problema que tengas es que
+  // el pelotón va demasiado rápido normalmente… muchas veces el pelotón debería tener flojera y
+  // dejar hacer». La primera medida dijo que bajarlo EMPEORABA los abandonos fuera de control
+  // (10,0 % → 15,0 %), que es absurdo, y el dueño lo cazó: «no tiene sentido… o es que hay algo mal
+  // programado». Lo había: esta constante hacía además de normalizador de la PUERTA del pelotón, así
+  // que bajarla estrechaba la puerta y los descolgados dejaban de reengancharse. Arreglado con
+  // `chaseBackShutTempo`; con el arreglo puesto, bajar el tempo deja el fuera de control en 10,8 %,
+  // que es lo que tenía que pasar.
+  //
+  // Lo que queda de aquella medida —la fuga ganando el 1,5 % de las llanas contra el 2,0 %— es RUIDO
+  // y no efecto: son 3 etapas contra 4 sobre 200, y en montaña 48 contra 56, que es 1,3σ. Este
+  // número solo manda cuando NO hay nada que cazar (con fuga delante manda el lazo cerrado), así que
+  // su efecto sobre quién gana es pequeño por construcción.
   pelotonTempoCommit: 0.55,
   // Ritmo del pelotón en un puerto que NO es decisivo (lejos de meta): se sube a tempo.
   climbTempoCommit: 0.62,
