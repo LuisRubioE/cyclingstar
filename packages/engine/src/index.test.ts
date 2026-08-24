@@ -131,6 +131,19 @@ describe('engine: esqueleto', () => {
     // 6:53 en el km 137 y 16 s en meta). La referencia pasa a ser los que SIGUEN EN CARRERA, el
     // parte de ventaja NOMBRA a quien va delante y dice contra quién se mide y cuánto queda.
     // Cambio de OBSERVACIÓN: ni un dado, ni un subflujo, ni una constante de calibración.
+    // v38: EL VIENTO LO REPARTEN LOS QUE TIRAN (docs/balance.md «v38»). La ley de velocidad pasa a
+    // saber cuántos tiran (`relayPaceEdge`): hasta la v37 un grupo de 1, 4, 8, 30 y 150 hombres con
+    // el mismo compromiso y el mismo P75 iba a la MISMA velocidad exacta, y por eso la fuga del día
+    // sobrevivía más siendo 2-3 (11,9 %) que siendo 4-6 (2,1 %). Cuántos se ponen delante pasa a ser
+    // una DECISIÓN escalada con el compromiso, con lo que el motor gana la mecánica que le faltaba:
+    // un pelotón no caza una fuga solo queriendo, la caza poniendo más hombres delante. El coste
+    // distingue de verdad al que da la cara del que va a rueda —en llano la rueda cuesta el 10 % de
+    // la cara y en una rampa al 8 % el 69 %, que sale solo del rebufo— y se paga a la marcha real
+    // del grupo. Se retiran tres parches que metían esto a mano donde no tocaba (la rotación del
+    // compromiso del descolgado, el término de rotación del tope de la v35 y el descuento de coste
+    // por llevar gregarios). Y tres conductas nuevas: el equipo con un hombre en la fuga no tira, el
+    // descolgado espera al grupeto, y el pelotón tiene días de echar la hueva. La pájara deja de ser
+    // un acantilado y entra por una rampa. Campaña de 500: los 33 invariantes en verde.
     // v37: POR LA ETAPA NO SE BAJA NADIE, Y EL DE CABEZA NO TIRA (docs/balance.md «v37»). Dos
     // correcciones del dueño sobre la v36. La rama de la etapa dejaba bajar a dos hombres cada vez
     // que el jefe se quedaba a 22-45 s —6,6 avisos por etapa, media parrilla renunciando a su
@@ -199,6 +212,6 @@ describe('engine: esqueleto', () => {
     // v11 (atribución del trabajo), la v10 (composición y caza), la v9 (capa táctica), la
     // v8 (tiempos de grupo), la v7 (modelo de final), la v6 (telemetría), la v5 (clásica larga), la
     // v4 (pavé en el recorrido) y la v3 (Cambio 0).
-    expect(ENGINE_VERSION).toBe(37)
+    expect(ENGINE_VERSION).toBe(38)
   })
 })

@@ -676,7 +676,7 @@
  *    todos y ahora tira el **8,2 %**, y de ésos, tres de cada cuatro son grupos donde no queda nadie
  *    más que pueda tirar —el «salvo que vaya solo» del dueño, que sale gratis—.
  *
- * ── v38 · el viento lo reparten los que tiran (EN CURSO, ver docs/balance.md «v38») ────────────
+ * ── v38 · el viento lo reparten los que tiran ─────────────────────────────────────────────────
  *
  * La corrección del dueño: «el tamaño a medir no es el tamaño del grupo, sino el tamaño de la gente
  * que va tirando… si hay 10 personas tirando, ya sea del pelotón, de una fuga o de lo que sea,
@@ -702,14 +702,20 @@
  * Y con ello se han podido RETIRAR dos parches que metían este mismo hecho a mano donde no tocaba:
  * el compromiso del descolgado por rotación (v16) y el término de rotación del tope de la v35.
  *
- * PENDIENTE DE DECISIÓN DEL DUEÑO: cobrado entero, el principio 1 deja la fuga de montaña en el
- * 20,8 % contra una banda de 25-45. No es un fallo de implementación —la fuga era más rápida de lo
- * que le tocaba porque el motor no cobraba el reparto del viento en la velocidad— y recuperar la
- * banda pide mover la capa TÁCTICA, que es decidir cómo tiene que verse el deporte. Por eso
- * `relayPaceWeight` está en 0,5 (el nivel exacto del parche de la v16 al que sustituye) y por eso
- * `ENGINE_VERSION` sigue en 37: esto no se sube hasta que el dueño decida.
+ * 4. **LA RUEDA CUESTA EL 10 % DE DAR LA CARA EN LLANO**, que es el número que puso el dueño, y la
+ *    diferencia por terreno sale sola del rebufo: en una rampa al 8 % la rueda cuesta el 69 %,
+ *    porque allí no hay dónde esconderse. El NIVEL se separa de la PROPORCIÓN
+ *    (`costExposureLevel`) y el coste se paga a la MARCHA REAL del grupo, no a la que querría.
+ *
+ * 5. **TRES CONDUCTAS NUEVAS**: el equipo que tiene un hombre en la fuga no tira (y con eso la fuga
+ *    del día llega a ganar por diez minutos, que antes no pasaba nunca), el descolgado espera al que
+ *    viene detrás, y el pelotón tiene días de echar la hueva (`pelotonMoodSpread`). Y la PÁJARA deja
+ *    de ser un acantilado: entra por una rampa sobre el último 8 % del depósito.
+ *
+ * Campaña canónica de 500 corridas: **los 33 invariantes en verde**. La contrarreloj no se mueve ni
+ * un dígito —es el ancla del esfuerzo individual y paga la ley lineal de siempre—.
  */
-export const ENGINE_VERSION = 37 as const
+export const ENGINE_VERSION = 38 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -1410,7 +1416,7 @@ export const STAGE = {
    * Es la única perilla de las dos que toca al que va solo, así que es también la que decide cuánta
    * gente se va fuera de control.
    */
-  costExposureLevel: 2.58,
+  costExposureLevel: 2.56,
 
   // 6.5/6.18 — Reparto del trabajo dentro del grupo: quién TIRA y quién va a rueda. NO puede
   // decidirlo el orden del array de entrada: se ordena por "deber de relevo", con el rol como
