@@ -1148,9 +1148,26 @@ export const STAGE = {
   // lo regale. Ver docs/balance.md, «v16».
   regroupGapSeconds: 22,
   // …y ese umbral se estrecha según lo que esté apretando el pelotón: se escala por
-  // `clamp((1 − c) / (1 − pelotonTempoCommit), chaseBackShutFloor, 1)`, así que a tempo de carretera
+  // `clamp((1 − c) / (1 − chaseBackShutTempo), chaseBackShutFloor, 1)`, así que a tempo de carretera
   // (0,55) o por debajo vale 1 —el llano y el valle de la reina no se mueven— y con los trenes
   // lanzados a 0,85 quedan 7 s: a esa velocidad, veinte metros ya no son «ir en el grupo» (v12).
+  /**
+   * EL TEMPO CONTRA EL QUE SE MIDE LA PUERTA (v38, defecto medido). La puerta del pelotón se abre o
+   * se cierra según lo lanzado que vaya el grupo, y esa cuenta necesita saber qué es «ir a tempo».
+   * Hasta la v37 usaba `pelotonTempoCommit`, que es OTRA cosa —el ritmo al que el pelotón rueda
+   * cuando no tiene nada que cazar— y eso ataba dos decisiones que no tienen nada que ver.
+   *
+   * El defecto solo se ve al tocar la perilla, y por eso llevaba ahí desde la v12: al bajar
+   * `pelotonTempoCommit` de 0,55 a 0,46 para probar si el pelotón «va demasiado rápido», el
+   * denominador `1 − tempo` crecía y la puerta se ESTRECHABA, así que los descolgados dejaban de
+   * reengancharse aunque el pelotón fuera más despacio —justo lo contrario de lo que la prueba
+   * quería medir—. Medido: los abandonos fuera de control subían del 10,0 % al 15,0 %.
+   *
+   * Se queda en 0,55, que es el valor con el que la puerta está calibrada desde la v12: así el
+   * arreglo no mueve un dígito de nada, y `pelotonTempoCommit` pasa a ser una perilla que se puede
+   * girar sin romper otra cosa por detrás.
+   */
+  chaseBackShutTempo: 0.55,
   chaseBackShutFloor: 0.15,
   // …con una salvedad que es pura física de rebufo: la puerta NO se cierra para quien viene con
   // MUCHA más gente de la que va delante. Un autobús que TRIPLICA en número al grupo de cabeza se

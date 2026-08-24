@@ -3237,9 +3237,13 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       // grupo depende de a qué ritmo vaya ese grupo: a tempo, veinte metros son la misma fila; con
       // los trenes lanzados, no. Ver `chaseBackShutFloor`: por debajo del tempo de carretera el
       // factor vale 1 y esto es lo de siempre (el llano canónico y el valle de la reina no se mueven).
+      // …y «ir a tempo» se mide contra `chaseBackShutTempo` y NO contra `pelotonTempoCommit` (v38).
+      // Eran la misma constante y son dos decisiones distintas: una dice a qué ritmo rueda el
+      // pelotón cuando no tiene nada que cazar y la otra, contra qué se compara ese ritmo para saber
+      // si la fila sigue siendo una fila. Atadas, bajar la primera ESTRECHABA la puerta.
       const paceShut = Math.max(
         STAGE.chaseBackShutFloor,
-        Math.min(1, (1 - peloton.compromiso) / (1 - STAGE.pelotonTempoCommit)),
+        Math.min(1, (1 - peloton.compromiso) / (1 - STAGE.chaseBackShutTempo)),
       )
       const pelotonSize = membersOf(PELOTON).length
       /**
