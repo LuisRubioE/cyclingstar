@@ -2214,6 +2214,17 @@ export const STAGE = {
   // Ritmo del pelotón cuando NO hay nada que cazar por delante (sin fuga, o ya cazada). Antes esto
   // no existía: el controlador vivía dentro de `if (breakaway && !caught)` y el pelotón se quedaba
   // en `commitIdle` toda la etapa. Un pelotón rueda a tempo de carretera, no a paseo.
+  //
+  // SE PROBÓ BAJARLO EN LA v38 Y NO SALE. El dueño, al ver que con el coste de la rueda subido los
+  // descolgados se iban fuera de control: «quizás un problema que tengas es que el pelotón va
+  // demasiado rápido normalmente… muchas veces el pelotón debería tener flojera y dejar hacer». La
+  // idea es buena y por eso se midió: con 0,46 y con 0,36, sobre la campaña entera. Y NO hace lo que
+  // parece que tiene que hacer —bajarlo empeora las tres cosas a la vez: la fuga gana el 1,5 % de las
+  // llanas (era 2,0) y el 24,0 % de las montañas (era 28,0), y los abandonos fuera de control suben
+  // del 10,0 % al 15,0 %—. El motivo es que el pelotón no rueda a este número cuando hay algo que
+  // cazar: entonces manda el lazo cerrado (`chaseHoldCommit` + ganancia), así que aflojar aquí solo
+  // afecta a los tramos en que no pasa nada, y lo que hace es que la fuga coja ventaja ANTES, con
+  // más kilómetros por delante para que la cacen. Queda medido para no repetirlo.
   pelotonTempoCommit: 0.55,
   // Ritmo del pelotón en un puerto que NO es decisivo (lejos de meta): se sube a tempo.
   climbTempoCommit: 0.62,
