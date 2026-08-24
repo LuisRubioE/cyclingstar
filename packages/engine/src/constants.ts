@@ -644,8 +644,39 @@
  * en los casos peores —el jefe que ya no volvía solo—, así que ese corte está sesgado y por eso se
  * mide apagando el mecanismo.) Montecarlo entero verde sin tocar una banda, y las cuatro huellas
  * selladas NO se mueven: sus escenarios corren sin equipos, así que esta tanda no las ve.
+ *
+ * ── v37 · por la etapa no se baja nadie, y el de cabeza no tira ────────────────────────────────
+ *
+ * Dos correcciones del dueño sobre la v36, las dos de carretera.
+ *
+ * 1. **POR LA ETAPA CASI NADIE DEBERÍA BAJARSE.** «Yo creo que nadie debería bajarse… salvo que sea
+ *    un pinchazo/caída y la distancia sea pequeña, y sea gran favorito para ganar la etapa, según
+ *    el tipo de etapa. Otra cosa es la general.» La v36 dejaba bajar a dos hombres cada vez que el
+ *    jefe se quedaba a 22-45 s, y eso son **6,6 avisos por etapa**: media parrilla renunciando a su
+ *    carrera por una etapa que su jefe ya había perdido. Ahora la rama de la etapa pide además un
+ *    PERCANCE reciente (`mishapKm`), que el jefe sea la carta del día de su equipo y que esa carta
+ *    esté entre las tres mejores del pelotón para el final de HOY. Medido: **0,01 avisos por etapa**.
+ *
+ *    Y ojo con qué percance, que es donde la primera versión se equivocó: pedir `hurt` —la caída
+ *    SERIA de la v20— hace la regla IMPOSIBLE, porque una caída seria cuesta 60-300 s y «distancia
+ *    pequeña» son 60. La caída que deja al hombre a tiro es la LEVE (30-90 s, el 90 % de ellas).
+ *
+ * 2. **EL QUE VA EN CABEZA DE CARRERA NO SE DEJA CAER, PERO TAMPOCO TIRA.** «Si va en cabeza de
+ *    carrera lo normal es que no se deje caer, pero que tampoco tire de la fuga (salvo que vaya
+ *    solo, claro está). Si va en un grupo de perseguidores y su jefe está en problemas… pues ahí sí,
+ *    que se descuelgue.» Son dos reglas: la fuga que va delante del todo ya no manda a nadie atrás
+ *    —eso ya estaba— pero ahora sus hombres SE APARTAN DEL TURNO si su jefe se ha quedado; y el que
+ *    va en un grupo de PERSEGUIDORES sí puede bajar, sea `mov` o `shed`, porque lo que decide no es
+ *    de dónde nació el grupo sino si va en cabeza o persiguiendo.
+ *
+ *    Y con ello se tapa un agujero que venía de la v33: las penalizaciones del deber de relevo
+ *    mandan al que no colabora al final de la cola, y en el PELOTÓN eso basta —el turno son ocho de
+ *    ciento setenta— pero en un grupo pequeño el turno es el grupo entero, así que daba la cara
+ *    igual. Medido: de los hombres con el jefe descolgado que ruedan fuera del pelotón, tiraban
+ *    todos y ahora tira el **8,2 %**, y de ésos, tres de cada cuatro son grupos donde no queda nadie
+ *    más que pueda tirar —el «salvo que vaya solo» del dueño, que sale gratis—.
  */
-export const ENGINE_VERSION = 36 as const
+export const ENGINE_VERSION = 37 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -2468,7 +2499,28 @@ export const STAGE = {
   // con general en juego, que es justo lo que separa una vuelta de una clásica— y `etapa` es el día.
   helpBackGcKeepInBunch: 1, //  por la general: se quedan los que hagan falta, MENOS UNO delante.
   helpBackStageHelpers: 2, //   por la etapa: dos hombres, y solo si el boquete es pequeño.
-  helpBackStageGapSeconds: 45, // «que la diferencia sea pequeña», en segundos.
+  helpBackStageGapSeconds: 60, // «que la diferencia sea pequeña», en segundos.
+  // …Y POR LA ETAPA CASI NUNCA SE BAJA NADIE (v37). La v36 dejó la rama de la etapa demasiado
+  // abierta —dos hombres cada vez que el jefe se quedaba a 22-45 s, medido: 6,6 avisos por etapa—
+  // y el dueño la corrigió: «por la etapa yo creo que nadie debería bajarse… salvo que sea un
+  // pinchazo/caída y la distancia sea pequeña, y sea gran favorito para ganar la etapa». Tiene
+  // sentido de carretera: renunciar a tu propia carrera por una etapa que tu jefe ya ha perdido no
+  // lo hace nadie; hacerlo por el favorito que se acaba de ir al suelo, sí.
+  //
+  // Así que la rama pide ADEMÁS tres cosas: que haya habido un PERCANCE reciente (`mishapKm`), que
+  // el jefe sea la carta del día de su equipo, y que esa carta esté entre las mejores del pelotón
+  // para el final de HOY (`finishScore`, que ya sabe de qué tipo de etapa se trata). Con menos de
+  // eso, el equipo sigue corriendo su carrera. Medido después: 0,01 avisos por etapa.
+  //
+  // Y el percance se cuenta con CUALQUIER severidad de caída, no solo con `hurt` (la caída seria de
+  // la v20): pedir `hurt` hace la regla imposible, porque una caída seria cuesta 60-300 s y «que la
+  // distancia sea pequeña» son 60 —medido: 0 avisos en 120 etapas—. La que deja al hombre a tiro es
+  // la leve, que además son el 90 % de las caídas. El PINCHAZO y la avería mecánica NO existen
+  // todavía en el motor y quedan anotados: cuando existan marcan `mishapKm` y esta regla los ve.
+  helpBackStageFavouriteTeams: 3,
+  // Y el percance tiene que ser de HACE NADA: a diez kilómetros de la caída, o ya ha vuelto o su
+  // etapa se acabó. Cinco kilómetros son los que tarda un equipo en organizarse y bajar a por él.
+  helpBackMishapKm: 5,
   // Y el techo es el mismo con el que un descolgado deja de mirar hacia delante
   // (`shedResignGapSeconds`): mientras el grupo de cabeza siga a la vista se va a por el jefe; a
   // cinco minutos ya no es un rescate, es acompañarle a meta. Solo muerde en la rama de la general,

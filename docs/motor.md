@@ -1264,6 +1264,25 @@ Resueltas con el dueño. Sustituyen a las cuestiones abiertas de la v1.
 > encendiendo el mecanismo sobre las mismas 240 etapas, el jefe descolgado vuelve el 69 % → **71 %**
 > de las veces, en llano y descenso el 60 % → **74 %**, y el que no vuelve pierde **444 s → 357 s**.
 > Detalle en docs/balance.md, «v36».
+>
+> **v37: pero por la etapa casi nadie se baja, y el que va en cabeza no tira.** Dos correcciones del
+> dueño a la v36. La primera: «por la etapa yo creo que nadie debería bajarse… salvo que sea un
+> pinchazo/caída y la distancia sea pequeña, y sea gran favorito para ganar la etapa, según el tipo
+> de etapa». La v36 mandaba dos hombres atrás cada vez que un jefe se quedaba a 22-45 s —**6,59
+> avisos por etapa**, media parrilla renunciando a su carrera por una etapa ya perdida—; ahora la
+> rama de la etapa pide además **percance reciente** (`mishapKm`, cualquier severidad: la caída
+> seria cuesta 60-300 s y nunca deja «distancia pequeña»), ser la **carta del día** del equipo y que
+> esa carta esté **entre las mejores del pelotón para el final de HOY** —«según el tipo de etapa» no
+> hay que escribirlo: `finishScore` ya mira qué final dibuja el recorrido—. Medido: **0,01 avisos por
+> etapa**. La segunda: «si va en cabeza de carrera lo normal es que no se deje caer, pero que tampoco
+> tire de la fuga (salvo que vaya solo); si va en un grupo de perseguidores y su jefe está en
+> problemas, ahí sí, que se descuelgue». Lo que decide ya no es si el grupo es `mov` o `shed` sino si
+> va **en cabeza o persiguiendo**: de la cabeza no baja nadie pero **sale del turno de relevos**, y de
+> un grupo de perseguidores sí se baja. Con ello se tapa un agujero de la v33: la penalización de
+> `relayDuty` manda al que no colabora al final de la cola y en el pelotón basta, pero en **grupo
+> pequeño el turno es el grupo entero** y daba la cara igual —medido, tiraban todos y ahora tira el
+> **8,2 %**, y tres de cada cuatro de esos son grupos donde no queda nadie más: el «salvo que vaya
+> solo» sale gratis—. Detalle en docs/balance.md, «v37».
 
 Modelo de **intenciones por equipo** (cada equipo con objetivos y presupuesto de esfuerzo), pero con
 dos reglas que mandan sobre él:

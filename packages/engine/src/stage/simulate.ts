@@ -257,6 +257,16 @@ interface RiderSim {
    */
   hurt: boolean
   /**
+   * EL KM DEL ÚLTIMO PERCANCE, sea de la gravedad que sea (v37). `hurt` solo marca las caídas SERIAS
+   * —el 10 % de ellas, que cuestan 60-300 s—, y para decidir si el equipo baja a por su favorito
+   * hace falta también la otra clase de percance: el susto o los rasguños, que cuestan 30-90 s y son
+   * el 90 % de las caídas. Ésos son los que dejan al hombre a una distancia que todavía se puede
+   * cerrar, que es justo la condición que puso el dueño («salvo que sea un pinchazo/caída y la
+   * distancia sea pequeña»). El PINCHAZO y la avería mecánica no existen todavía en el motor y
+   * quedan anotados en docs/balance.md: cuando existan, marcan aquí y esta regla los ve sola.
+   */
+  mishapKm: number | null
+  /**
    * Se BAJÓ DE LA BICI en carretera: no llega a meta (`estado: 'abandon'`). Guarda el km para la
    * crónica; `null` mientras siga en carrera.
    */
@@ -471,33 +481,36 @@ function relayTurn(
   const scored = members.map((m) => {
     const helpers = domestiquesFor.get(m.input.riderId)
     const protectedByTeam = helpers != null && helpers.some((id) => idSet.has(id))
+    const sitting = sittingOn(m.input.riderId)
     return {
       id: m.input.riderId,
-      protectedByTeam,
-      duty: relayDuty(
-        m,
-        protectedByTeam,
-        driveOfRider(m.input.riderId),
-        sittingOn(m.input.riderId),
-      ),
+      /**
+       * QUIÉN NO TIENE NADA QUE HACER EN ESTE TURNO. Dos motivos distintos con el mismo desenlace:
+       * el JEFE ARROPADO por los suyos (v36) y el que NO COLABORA —porque su equipo persigue este
+       * movimiento por detrás (v33) o porque su jefe se ha quedado y esto ya no le sirve (v37)—.
+       */
+      fuera: protectedByTeam || sitting,
+      duty: relayDuty(m, protectedByTeam, driveOfRider(m.input.riderId), sitting),
     }
   })
   // Desempate final por id para que el orden sea total y no herede el orden de inserción.
   scored.sort((a, b) => b.duty - a.duty || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
   /**
-   * EL JEFE ARROPADO NO ENTRA AL TURNO (v36). `relayProtectedPenalty` le manda al final de la
-   * cola, y en el pelotón con eso basta —el turno son ocho de ciento setenta—; pero en un GRUPO
-   * PEQUEÑO el turno es el grupo entero (`paceFraction` = 1), así que el jefe rodeado de los suyos
-   * acababa dando la cara igual. Es exactamente la mitad de la frase del dueño que faltaba: «en ese
-   * caso que el líder no pase a tirar, él se reserva». Medido antes: con los suyos al lado, el jefe
-   * tiraba en el 6,3 % de las fotos.
+   * EL QUE NO PINTA NADA EN EL TURNO NO ENTRA AL TURNO (v36 el jefe arropado, v37 el que no
+   * colabora). Las penalizaciones de `relayDuty` le mandan al final de la cola, y en el pelotón con
+   * eso basta —el turno son ocho de ciento setenta—; pero en un GRUPO PEQUEÑO el turno es el grupo
+   * entero (`paceFraction` = 1), así que acababa dando la cara igual. Medido: el jefe arropado
+   * tiraba en el 6,3 % de las fotos con los suyos al lado, y el fugado con su jefe descolgado en el
+   * 93,1 % —o sea, la penalización no hacía nada donde más se nota—.
    *
-   * Se aparta solo si queda alguien que tire: un grupo rueda porque alguien da la cara, y si el
-   * único que puede es él, tira él. Y no cambia el ritmo del grupo, solo entre quiénes se reparte
+   * Es la mitad que faltaba de dos frases del dueño: «que el líder no pase a tirar, él se reserva»
+   * y «que tampoco tire de la fuga (salvo que vaya solo, claro está)». Ese «salvo que vaya solo»
+   * sale gratis de la línea de abajo: se aparta solo si queda alguien que tire, porque un grupo
+   * rueda porque alguien da la cara. Y no cambia el ritmo del grupo, solo entre quiénes se reparte
    * el viento —la factura de la v34 sigue valiendo 1—.
    */
   const cabeza = scored.slice(0, count)
-  const conTurno = cabeza.filter((s) => !s.protectedByTeam)
+  const conTurno = cabeza.filter((s) => !s.fuera)
   const head = conTurno.length > 0 ? conTurno : cabeza
   const owners = head.filter((s) => ownsTheFront(s.id))
   if (owners.length > 0) return new Set(owners.map((s) => s.id))
@@ -681,6 +694,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       bonkNoticed: false,
       bonkKm: 0,
       hurt: false,
+      mishapKm: null,
       abandonedKm: null,
       incident: null,
       pulling: false,
@@ -1371,6 +1385,32 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
             if (gap < STAGE.regroupGapSeconds || gap > STAGE.helpBackMaxGapSeconds) continue
             const porLaGeneral =
               plan.purposes.includes('maillot') || plan.purposes.includes('general')
+            /**
+             * …Y POR LA ETAPA CASI NUNCA (v37). El dueño corrigió la v36: «por la etapa yo creo que
+             * nadie debería bajarse… salvo que sea un pinchazo/caída y la distancia sea pequeña, y
+             * sea gran favorito para ganar la etapa, según el tipo de etapa». Es de carretera:
+             * renunciar a tu propia carrera por una etapa que tu jefe YA ha perdido no lo hace
+             * nadie; hacerlo por el favorito que se acaba de ir al suelo, sí.
+             *
+             * Las tres condiciones salen de lo que el motor ya sabe: el PERCANCE es `mishapKm` —una
+             * caída de CUALQUIER gravedad en los últimos kilómetros; el pinchazo y la avería mecánica
+             * no existen todavía y quedan anotados—, la CARTA DEL DÍA es `stageCandidateId`, y «gran
+             * favorito» es que su `finishScore` —que ya mira qué tipo de final dibuja el recorrido—
+             * esté entre los mejores del pelotón (`helpBackStageFavouriteTeams`).
+             *
+             * Y OJO CON EL PERCANCE QUE SE USA, que es donde la primera versión de esto se equivocó:
+             * pedir `hurt` (la caída SERIA de la v20) hacía la regla IMPOSIBLE, porque una caída
+             * seria cuesta 60-300 s y la condición de «distancia pequeña» son 60. Medido: 0 avisos
+             * en 120 etapas. La caída que deja al hombre a una distancia que todavía se cierra es la
+             * LEVE —30-90 s, el 90 % de las caídas—, y ésa es la que ahora se mira. La seria sigue
+             * contando si por lo que sea el hueco se queda corto, que también pasa.
+             */
+            const favoritoDeHoy =
+              plan.stageCandidateId === leaderId &&
+              jefe.mishapKm !== null &&
+              km - jefe.mishapKm <= STAGE.helpBackMishapKm &&
+              [...teamPlans.values()].filter((p) => p.quality > plan.quality).length <
+                STAGE.helpBackStageFavouriteTeams
             const conEl = plan.memberIds.filter(
               (id) => id !== leaderId && sims.get(id)?.groupId === jefe.groupId,
             ).length
@@ -1381,21 +1421,43 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
              *
              * Las tres clases de grupo del motor lo dicen solas, sin inventar ninguna bandera:
              *
-             * - **de un `mov` no baja nadie.** Una fuga es una fuga: el que está ahí se está jugando
-             *   la carrera, y mandarlo atrás sería tirar a la basura lo único que su equipo tiene
-             *   en la carretera. Salen de la lista por construcción, no por un filtro.
+             * - **de la CABEZA DE CARRERA no baja nadie.** El que va delante del todo se está
+             *   jugando la carrera y es lo único que su equipo tiene ahí fuera; lo que hace es
+             *   dejar de tirar (ver `jefeEnApuros`), no dar media vuelta.
              * - **del pelotón, sí**, que es el caso normal.
+             * - **de un grupo de PERSEGUIDORES, también** (v37, corrección del dueño: «si va en un
+             *   grupo de perseguidores y su jefe está en problemas… pues ahí sí, que se descuelgue»).
+             *   Da igual que el motor lo llame `mov` o `shed`: lo que decide no es de dónde nació el
+             *   grupo, es si va en cabeza de carrera o persiguiendo a alguien.
              * - **y con la CARRERA ROTA, de cualquier grupo que vaya por delante del suyo**: el que
-             *   rueda en el segundo grupo no está corriendo por nada que su equipo pueda ganar, así
-             *   que espera a su jefe del tercero. Eso es exactamente lo que distingue un grupo de
-             *   una fuga aquí: los grupos rotos son `shed`, la fuga es `mov`.
+             *   rueda en el segundo grupo no corre por nada que su equipo pueda ganar, así que
+             *   espera al jefe del tercero.
              *
              * Y el que ya va por detrás en un grupeto NO cuenta: esperar hacia atrás no existe.
              */
+            // La CABEZA DE CARRERA: el movimiento que va delante del todo, o el pelotón si no hay
+            // ninguno por delante. Se calcula aquí y no se toma de la telemetría de más abajo
+            // porque esta decisión ocurre antes en el bloque.
+            let cabeza = PELOTON
+            let relojCabeza = peloton.tS
+            for (const mv of moves) {
+              if (membersOf(mv.g.id).length === 0) continue
+              if (mv.g.tS < relojCabeza) {
+                relojCabeza = mv.g.tS
+                cabeza = mv.g.id
+              }
+            }
+            const relojDe = (groupId: string): number | null => {
+              if (groupId === PELOTON) return peloton.tS
+              const mv = moves.find((x) => x.g.id === groupId)
+              if (mv) return mv.g.tS
+              return shed.find((g) => g.id === groupId)?.tS ?? null
+            }
             const puedeBajar = (m: RiderSim): boolean => {
               if (m.groupId === bunchNow) return true
-              const suyo = shed.find((g) => g.id === m.groupId)
-              return suyo !== undefined && suyo.id !== suGrupo.id && suyo.tS < suGrupo.tS
+              if (m.groupId === cabeza || m.groupId === suGrupo.id) return false
+              const suyo = relojDe(m.groupId)
+              return suyo !== null && suyo < suGrupo.tS
             }
             // Quién PUEDE ir: los suyos, enteros y no rebeldes (§VI.2: el que corre por su cuenta no
             // trabaja para el equipo aunque lleve su maillot).
@@ -1422,7 +1484,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
             )
             const quiere = porLaGeneral
               ? disponibles.length - guarda
-              : gap <= STAGE.helpBackStageGapSeconds
+              : favoritoDeHoy && gap <= STAGE.helpBackStageGapSeconds
                 ? STAGE.helpBackStageHelpers - conEl
                 : 0
             const cuantos = Math.min(disponibles.length, Math.max(0, quiere))
@@ -1917,6 +1979,37 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
     // `kind` no cambia nada de la física: solo dice a qué contador de TRABAJO AL FRENTE va lo que
     // se releva aquí (v11). Tirar del pelotón, colaborar en la fuga y arrastrarse en un grupeto
     // son tres cosas distintas y la crónica las cuenta distinto.
+    /**
+     * ¿QUIÉN TIENE A SU JEFE EN APUROS POR DETRÁS? (v37, §V.1). El dueño, sobre el gregario que va
+     * en la fuga: «si va en cabeza de carrera lo normal es que no se deje caer, pero que tampoco
+     * tire de la fuga (salvo que vaya solo, claro está)».
+     *
+     * Es la misma idea que la v33 —el que no colabora en la fuga porque los suyos la persiguen— con
+     * otro motivo: aquí no es que su equipo esté cazando, es que su jefe se ha quedado y esto ya no
+     * le sirve para nada. Lo que se hace con él es lo mismo: sale del turno. Y no se le manda atrás,
+     * porque en cabeza de carrera está lo único que su equipo tiene en la carretera.
+     *
+     * «Salvo que vaya solo» sale gratis: `relayTurn` garantiza que siempre tire alguien, así que un
+     * escapado en solitario da la cara igual por mucho que su jefe se haya quedado.
+     */
+    const jefeEnApuros = new Set<string>()
+    for (const plan of teamPlans.values()) {
+      const leaderId = plan.leaderId
+      if (leaderId == null) continue
+      const jefe = sims.get(leaderId)
+      if (!jefe || jefe.finishTs !== null || jefe.abandonedKm !== null) continue
+      const suGrupo = shed.find((g) => g.id === jefe.groupId)
+      if (!suGrupo) continue
+      const gap = suGrupo.tS - peloton.tS
+      if (gap < STAGE.regroupGapSeconds || gap > STAGE.helpBackMaxGapSeconds) continue
+      // …y el que ya está CON él no cuenta: ése ha bajado a ayudarle y tira, que es a lo que fue.
+      for (const id of plan.memberIds) {
+        if (id === leaderId) continue
+        const m = sims.get(id)
+        if (m && m.groupId !== jefe.groupId) jefeEnApuros.add(id)
+      }
+    }
+
     const advance = (
       group: Group,
       members: RiderSim[],
@@ -1964,7 +2057,10 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         paceFraction,
         domestiquesFor,
         driveOfRider,
-        (riderId) => !isBunch && frontTeamId !== null && teamOf.get(riderId) === frontTeamId,
+        (riderId) =>
+          (!isBunch && frontTeamId !== null && teamOf.get(riderId) === frontTeamId) ||
+          // …o su jefe se ha quedado atrás (v37): en la fuga ya no tira, pero no se le manda atrás.
+          (!isBunch && jefeEnApuros.has(riderId)),
         // El dueño del frente solo existe en el PELOTÓN: una fuga no tiene equipo que la lleve, y
         // el rebelde no trabaja para el suyo aunque lleve su maillot (§VI.2).
         (riderId) =>
@@ -3215,6 +3311,9 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         // severidades que `injuryEndsRace` ya sacaba de la carrera al día siguiente; un rasguño o un
         // susto (el 90 % de las caídas) se levanta y vuelve al grupeto como siempre.
         if (out.severidad === 'minor' || out.severidad === 'major') m.hurt = true
+        // …y el percance se apunta SIEMPRE, con su kilómetro: el susto y los rasguños también
+        // cuentan para que su equipo decida si baja a por él (v37).
+        m.mishapKm = km
         dropOut(m, group, out.perdidaS)
       }
     }

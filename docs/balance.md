@@ -7298,6 +7298,132 @@ equipo (voz 72,4 % → 72,7 %, frentes 2,48 → 2,46) y las carreras reales.
 - **El jefe no pide la ayuda: se la mandan.** La decisión la toma el equipo mirando el boquete, no
   el corredor. No hay «espera a mi compañero» ni un director que decida distinto según el día.
 
+## v37 — Por la etapa no se baja nadie, y el de cabeza no tira (`engine_version` 36 → 37)
+
+> **Las dos correcciones del dueño a la v36, textuales:**
+>
+> «A ver, por la etapa yo creo que nadie debería bajarse… no? A ver, salvo que sea un pinchazo/caída
+> y la distancia sea pequeña, y sea gran favorito para ganar la etapa, según el tipo de etapa. Otra
+> cosa es la general.»
+>
+> «Lo del gregario que va por delante en una fuga: si va en cabeza de carrera lo normal es que no se
+> deje caer, pero que tampoco tire de la fuga (salvo que vaya solo, claro está). Si va en un grupo de
+> perseguidores y su jefe está en problemas… pues ahí sí, que se descuelgue.»
+
+La v36 acertó el mecanismo y se pasó con la puerta. Esta tanda no añade conducta nueva: **cierra** la
+rama de la etapa y **abre** la del que va por delante, que eran las dos que estaban al revés.
+
+### 1. Por la etapa, casi nadie
+
+La v36 mandaba dos hombres atrás cada vez que un jefe se quedaba a 22-45 s, con general en juego o
+sin ella. Medido en el banco de 120 etapas: **6,59 avisos por etapa**. Eso es media parrilla
+renunciando a su propia carrera por una etapa que su jefe ya había perdido, y el dueño tiene razón:
+en la carretera eso no lo hace nadie.
+
+La rama de la etapa pide ahora **tres cosas a la vez**, y las tres salen de lo que el motor ya sabe:
+
+| condición                 | de dónde sale                                     | perilla                           |
+| ------------------------- | ------------------------------------------------- | --------------------------------- |
+| ha habido un **percance** | `mishapKm`, el km de la última caída (cualquiera) | `helpBackMishapKm` = 5 km         |
+| es la **carta del día**   | `plan.stageCandidateId === leaderId`              | —                                 |
+| y es **gran favorito**    | su `finishScore` entre los mejores del pelotón    | `helpBackStageFavouriteTeams` = 3 |
+| y la distancia es pequeña | el boquete al pelotón                             | `helpBackStageGapSeconds` = 60 s  |
+
+«Según el tipo de etapa» no hace falta escribirlo: `finishScore` **ya** mira qué final dibuja el
+recorrido, así que el gran favorito de una llana es el sprinter y el de una reina es el escalador, y
+la misma línea vale para las dos.
+
+Medido después: **0,01 avisos por etapa**. Sigue existiendo —es el caso exacto que el dueño describe,
+el favorito que se va al suelo a 40 s del pelotón— y ya no es la norma.
+
+#### Y ojo con QUÉ percance, que aquí me equivoqué primero
+
+La primera versión pedía `hurt`, que es la caída SERIA de la v20 (`minor`/`major`). Con eso la regla
+es **imposible**: una caída seria cuesta **60-300 s** y la condición de «distancia pequeña» son 60.
+Medido: **0 avisos en 120 etapas**. La caída que deja al hombre a una distancia que todavía se cierra
+es la LEVE —30-90 s, y son el **90 %** de las caídas—, así que `mishapKm` se apunta con **cualquier**
+severidad y `hurt` se queda para lo que era.
+
+**El PINCHAZO y la avería mecánica no existen todavía en el motor.** Queda anotado abajo: el día que
+existan, marcan `mishapKm` y esta regla los ve sola, sin tocar nada.
+
+### 2. El que va en cabeza de carrera no se deja caer… pero tampoco tira
+
+La v36 sacaba de la lista a todo lo que fuera un `mov` —«de una fuga no baja nadie»—. El dueño afina:
+lo que decide **no es de dónde nació el grupo**, es si va **en cabeza de carrera** o **persiguiendo**.
+
+- **de la cabeza de carrera** (el grupo con el reloj más bajo, sea `mov` o el pelotón) **no baja
+  nadie**: ahí está lo único que su equipo tiene en la carretera;
+- **de un grupo de perseguidores, sí**, aunque el motor lo llame `mov`: un segundo grupo que persigue
+  no corre por nada que su equipo pueda ganar hoy;
+- del pelotón, sí, como siempre;
+- y hacia atrás no se espera nunca.
+
+Y la otra mitad: el que va delante y tiene al jefe en apuros **sale del turno de relevos**. Es la
+misma pieza de la v33 —el que no colabora en la fuga porque los suyos la persiguen— con otro motivo.
+El «salvo que vaya solo» **sale gratis**: `relayTurn` garantiza que en un grupo siempre tire alguien,
+así que el escapado en solitario da la cara igual por mucho que su jefe se haya quedado.
+
+#### Un agujero de la v33 que solo se veía en grupo pequeño
+
+Las penalizaciones de `relayDuty` mandan al que no colabora **al final de la cola** del turno. En el
+PELOTÓN con eso basta —el turno son ocho de ciento setenta, y el último de la cola no entra nunca—,
+pero en un **grupo pequeño el turno es el grupo entero** (`paceFraction` = 1), así que el penalizado
+daba la cara igual. Es literalmente el mismo defecto que la v36 arregló para el jefe arropado, en
+otro sitio.
+
+Medido sobre los hombres que ruedan **fuera del pelotón con su jefe descolgado**: tiraban **todos** y
+ahora tira el **8,2 %** —y de esos 1.197 casos, **916 son grupos donde no queda nadie más que pueda
+tirar**, o sea el «salvo que vaya solo» del dueño—.
+
+Ahora los tres motivos para salir del turno comparten una sola línea (`fuera`): el jefe arropado
+(v36), el que persigue por detrás con los suyos (v33) y el que tiene al jefe atrás (v37).
+
+### 3. El montecarlo y las huellas
+
+Campaña entera **verde, sin ensanchar ni una banda**:
+
+| escenario   | invariante                | v36    | v37    | banda    |
+| ----------- | ------------------------- | ------ | ------ | -------- |
+| `llana-180` | gana la fuga              | 5,6 %  | 5,6 %  | 2-10 %   |
+| `llana-180` | gana el mejor sprinter    | 40,2 % | 40,2 % | 30-45 %  |
+| `reina-150` | gana la fuga (montaña)    | 35,4 % | 35,4 % | 25-45 %  |
+| `reina-150` | brecha 1º-10º             | 256 s  | 256 s  | 60-300 s |
+| equipos     | voz de EQUIPO en el parte | 72,7 % | 72,8 % | 50-85 %  |
+| equipos     | equipos que llevan frente | 2,46   | 2,48   | 1,8-4    |
+
+Los escenarios sellados (`llana-180`, `reina-150`) corren **sin equipos**, así que esta tanda no los
+ve y **las cuatro huellas selladas no se mueven**. Lo único que se mueve es el escenario de plan de
+equipo, dentro de banda.
+
+### 4. Lo que queda anotado y no se ha hecho
+
+- **El pinchazo y la avería mecánica no existen.** El motor tiene caídas (v20) y no tiene averías.
+  `mishapKm` está escrito para las dos: cuando exista el pinchazo, marca ahí y la regla del favorito
+  lo cuenta sin tocar una línea.
+- **La velocidad de un grupo SIGUE sin pagar el rebufo** (viene de la v35 y sigue abierto; es la
+  pregunta que el dueño hizo en esta tanda). `targetSpeed` convierte compromiso en velocidad
+  **sin mirar cuánta gente hay**, y el rebufo solo se cobra en el COSTE:
+
+  ```
+  v = vRef(terreno) · relPower(P75 de los que tiran)^loadExponent · ritmo(compromiso)
+  coste = dx · costeBase · ritmo^1.6 · (1 − draftMax · rebufo)   ← el rebufo vive AQUÍ, y solo aquí
+  ```
+
+  Medido: un grupo de **1, 4, 8, 30 y 150** hombres con el mismo compromiso (0,80) y el mismo P75
+  (70) va **a la misma velocidad exacta** —47,31 km/h en llano, los cinco—; lo único que cambia es lo
+  que le cuesta a cada uno (**0,0296** de tanque por bloque el que va solo contra **0,0186** el que
+  va en un grupo de ocho, un 37 % menos). O sea: **el tamaño del grupo no da velocidad, da
+  autonomía**. Consecuencia medida sobre 200 semillas de `llana-180`: una
+  fuga de **2-3** hombres sobrevive el **11,9 %** de las veces, una de **4-6** el **2,1 %** y una de
+  **7-9** el **4,2 %** — está **al revés** de la carretera, porque el grupo grande se lleva a más
+  gente pero no rueda más rápido, y a cambio arrastra a hombres peores que bajan su P75.
+  Los topes de la v34 y la v35 tapan el síntoma donde se veía; el agujero de fondo sigue ahí y
+  arreglarlo es meter el tamaño del grupo en la LEY DE VELOCIDAD, que es la pieza más cara del motor.
+
+- **El que baja no habla con el jefe.** Sigue siendo una decisión del equipo mirando el boquete, no
+  del corredor: no hay «espérame» ni director que decida distinto según el día.
+
 ## El motor depende del ORDEN DE ENTRADA (defecto medido — ARREGLADO en la v35)
 
 > **ARREGLADO EN LA v35** (ver «v35 — Volver cuesta», §4): `simulateStage` ordena el campo por

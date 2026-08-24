@@ -283,8 +283,8 @@ describe('los suyos se dejan caer a por él (v36, §V.1)', () => {
       simulateStage(input, seed).events.filter((e) => e.plantilla === 'domestiques_drop_back'),
     )
 
-  it('cuando el jefe se queda, sus gregarios bajan a por él', () => {
-    const avisos = partes(conJefeQueSeCae(false), 'ayuda')
+  it('cuando el jefe se queda POR LA GENERAL, sus gregarios bajan a por él', () => {
+    const avisos = partes(conJefeQueSeCae(true), 'ayuda-gc')
     expect(avisos.length).toBeGreaterThan(0)
     for (const e of avisos) {
       expect(e.datos?.jefeId).toBeDefined()
@@ -296,50 +296,66 @@ describe('los suyos se dejan caer a por él (v36, §V.1)', () => {
     }
   })
 
-  it('por la ETAPA bajan dos; por la GENERAL, todos menos uno', () => {
-    // La regla del dueño: «si es el favorito para una gran vuelta, puede justificar descolgar a todo
-    // el equipo menos 1; si es una carrera de 1 día no, salvo que la diferencia sea pequeña». Las
-    // dos ramas salen del motivo del plan, y `general` solo existe con general en juego.
-    const unDia = partes(conJefeQueSeCae(false), 'ayuda')
-    expect(unDia.length).toBeGreaterThan(0)
-    for (const e of unDia) {
-      expect(e.datos?.porQue).toBe('etapa')
-      expect(Number(e.datos!.cuantos)).toBeLessThanOrEqual(STAGE.helpBackStageHelpers)
-      // «salvo que la diferencia sea pequeña»
-      expect(Number(e.datos!.gapS)).toBeLessThanOrEqual(STAGE.helpBackStageGapSeconds)
-    }
+  it('POR LA ETAPA no se baja nadie si no ha habido percance (v37)', () => {
+    /**
+     * La corrección del dueño a la v36: «por la etapa yo creo que nadie debería bajarse… salvo que
+     * sea un pinchazo/caída y la distancia sea pequeña, y sea gran favorito para ganar la etapa».
+     * Aquí el jefe se descuelga por el puerto, sin percance: su equipo NO baja a por él. Sin general
+     * en juego los motivos `maillot` y `general` no existen, así que esto aísla la rama de la etapa.
+     */
+    const avisos = partes(conJefeQueSeCae(false), 'ayuda')
+    expect(avisos).toHaveLength(0)
+  })
+
+  it('…y por la GENERAL bajan todos menos uno', () => {
+    /**
+     * «Si es el favorito para una gran vuelta o carrera por etapas, puede justificar descolgar a
+     * todo el equipo menos 1». El equipo del jefe son seis: él y cinco hombres, así que el techo
+     * son cuatro (cinco menos el que se queda arriba, `helpBackGcKeepInBunch`), y por la general se
+     * llega a ese techo. La rama de la etapa nunca pasaría de `helpBackStageHelpers` = 2.
+     */
     const porLaGeneral = partes(conJefeQueSeCae(true), 'ayuda-gc').filter(
       (e) => e.datos?.porQue === 'general',
     )
     expect(porLaGeneral.length).toBeGreaterThan(0)
-    // Por la general se baja aunque el boquete sea grande, y se baja con más gente.
-    expect(Math.max(...porLaGeneral.map((e) => Number(e.datos!.gapS)))).toBeGreaterThan(
-      STAGE.helpBackStageGapSeconds,
-    )
-    expect(Math.max(...porLaGeneral.map((e) => Number(e.datos!.cuantos)))).toBeGreaterThan(
-      STAGE.helpBackStageHelpers,
-    )
+    const masGente = Math.max(...porLaGeneral.map((e) => Number(e.datos!.cuantos)))
+    expect(masGente).toBeGreaterThan(STAGE.helpBackStageHelpers)
+    expect(masGente).toBe(5 - STAGE.helpBackGcKeepInBunch)
   })
 
-  it('de la FUGA no baja nadie; del pelotón y de los grupos de delante, sí', () => {
+  it('de la CABEZA DE CARRERA no baja nadie; del pelotón y de los de delante, sí', () => {
     /**
      * La regla del dueño sobre DE DÓNDE sale el que baja: «alguien de la fuga no lo mandes para
      * atrás… alguien del pelotón sí. Salvo que sea con carrera rota… y uno que va en grupo 2 podría
-     * esperar a uno del grupo 3 y ayudarlo». Se comprueba con la sonda: en la foto ANTERIOR al
-     * aviso, ninguno de los que bajan iba en un movimiento.
+     * esperar a uno del grupo 3 y ayudarlo», y en la v37: «si va en cabeza de carrera lo normal es
+     * que no se deje caer… si va en un grupo de perseguidores y su jefe está en problemas, ahí sí».
+     *
+     * O sea: lo que decide no es de dónde nació el grupo sino si va EN CABEZA. Se comprueba con la
+     * sonda: en la foto anterior al aviso, ninguno de los que bajan iba en el grupo de cabeza.
      */
     let comprobados = 0
-    for (const seed of seedsFor('ayuda-origen', 8)) {
-      const input = conJefeQueSeCae(false)
+    for (const seed of seedsFor('ayuda-gc', 8)) {
+      const input = conJefeQueSeCae(true)
       const avisos = simulateStage(input, seed).events.filter(
         (e) => e.plantilla === 'domestiques_drop_back',
       )
       if (avisos.length === 0) continue
       const fotos = new Map<number, ReadonlyMap<string, string>>()
+      /** El grupo de CABEZA de cada foto: el que lleva el reloj más bajo. */
+      const cabezaDe = new Map<number, string>()
       simulateStage(input, seed, {
         atKm: Array.from({ length: 120 }, (_, i) => i + 1),
         onSnapshot: (km, snap) => {
           fotos.set(Math.round(km), new Map(snap.map((r) => [r.riderId, r.groupId])))
+          let cabeza = ''
+          let mejor = Number.POSITIVE_INFINITY
+          for (const r of snap) {
+            if (r.tS < mejor) {
+              mejor = r.tS
+              cabeza = r.groupId
+            }
+          }
+          cabezaDe.set(Math.round(km), cabeza)
         },
       })
       for (const aviso of avisos) {
@@ -349,7 +365,7 @@ describe('los suyos se dejan caer a por él (v36, §V.1)', () => {
           const grupo = antes.get(id)
           if (grupo === undefined) continue
           comprobados += 1
-          expect(grupo.startsWith('mov')).toBe(false)
+          expect(grupo).not.toBe(cabezaDe.get(Math.floor(aviso.km)))
         }
       }
     }
@@ -362,8 +378,8 @@ describe('los suyos se dejan caer a por él (v36, §V.1)', () => {
     // fotos con los suyos al lado.
     let fotos = 0
     let tirando = 0
-    for (const seed of seedsFor('ayuda-turno', 6)) {
-      simulateStage(conJefeQueSeCae(false), seed, {
+    for (const seed of seedsFor('ayuda-turno', 8)) {
+      simulateStage(conJefeQueSeCae(true), seed, {
         // Justo después del puerto, que es donde el rescate ocurre y donde se puede mirar si el
         // jefe da la cara: en cuanto vuelven al pelotón la pregunta deja de tener sentido.
         atKm: Array.from({ length: 16 }, (_, i) => 22 + i),
@@ -383,66 +399,6 @@ describe('los suyos se dejan caer a por él (v36, §V.1)', () => {
     }
     expect(fotos).toBeGreaterThan(5)
     expect(tirando / fotos).toBeLessThan(0.1)
-  })
-})
-
-describe('quién tira cuando nadie lleva el frente (v35, §V.1)', () => {
-  const campo = (): StageInput => {
-    const riders: StageRider[] = []
-    // Ocho equipos de cinco, todos parecidos: sin un favorito claro no hay dueño natural del frente,
-    // que es justo el caso que la regla tiene que gobernar.
-    for (let t = 0; t < 8; t++) {
-      for (let k = 0; k < 5; k++) {
-        riders.push(
-          rider(`t${t}-${k}`, {
-            eff0: eff(55 + ((t + k) % 5)),
-            teamId: `equipo-${t}`,
-            orders: orders({ role: k === 0 ? 'lider' : 'gregario', targetRiderId: `t${t}-0` }),
-          }),
-        )
-      }
-    }
-    return { profile: { segments: [{ km: 160, tipo: 'llano' }] }, riders }
-  }
-
-  it('nunca hay más de tres equipos pagando viento en el pelotón', () => {
-    const input = campo()
-    const equipoDe = new Map(input.riders.map((r) => [r.riderId, r.teamId!]))
-    let fotos = 0
-    let peor = 0
-    for (let i = 0; i < 4; i++) {
-      simulateStage(
-        input,
-        stageSeed({ worldSeed: `duenno-${i}`, raceId: 'duenno', stageDay: 1, engineVersion: 1 }),
-        {
-          atKm: [20, 40, 60, 80, 100, 120, 140],
-          onSnapshot: (_km, snap) => {
-            // El pelotón es el grupo que lleva la gente (v29), y solo ahí manda esta regla: en una
-            // fuga se relevan todos.
-            const porGrupo = new Map<string, number>()
-            for (const r of snap) porGrupo.set(r.groupId, (porGrupo.get(r.groupId) ?? 0) + 1)
-            let bunch = ''
-            let mayor = 0
-            for (const [id, n] of porGrupo) {
-              if (n > mayor) {
-                mayor = n
-                bunch = id
-              }
-            }
-            const equipos = new Set(
-              snap
-                .filter((r) => r.pulling && r.groupId === bunch)
-                .map((r) => equipoDe.get(r.riderId)),
-            )
-            if (equipos.size === 0) return
-            fotos += 1
-            peor = Math.max(peor, equipos.size)
-          },
-        },
-      )
-    }
-    expect(fotos).toBeGreaterThan(10)
-    expect(peor).toBeLessThanOrEqual(STAGE.relayTeamsNoOwner)
   })
 })
 

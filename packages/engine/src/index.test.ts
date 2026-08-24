@@ -131,6 +131,14 @@ describe('engine: esqueleto', () => {
     // 6:53 en el km 137 y 16 s en meta). La referencia pasa a ser los que SIGUEN EN CARRERA, el
     // parte de ventaja NOMBRA a quien va delante y dice contra quién se mide y cuánto queda.
     // Cambio de OBSERVACIÓN: ni un dado, ni un subflujo, ni una constante de calibración.
+    // v37: POR LA ETAPA NO SE BAJA NADIE, Y EL DE CABEZA NO TIRA (docs/balance.md «v37»). Dos
+    // correcciones del dueño sobre la v36. La rama de la etapa dejaba bajar a dos hombres cada vez
+    // que el jefe se quedaba a 22-45 s —6,6 avisos por etapa, media parrilla renunciando a su
+    // carrera por una etapa ya perdida— y ahora pide además un percance reciente, que el jefe sea la
+    // carta del día y que esté entre las tres mejores del pelotón para el final de hoy: 0,01 avisos
+    // por etapa. Y el que va en CABEZA DE CARRERA con su jefe descolgado no se deja caer pero deja
+    // de tirar (tiraban todos, ahora tira el 8,2 % y tres de cada cuatro de ésos van solos), mientras
+    // que el que va en un grupo de PERSEGUIDORES sí puede bajar.
     // v36: LOS SUYOS SE DEJAN CAER A POR ÉL (docs/balance.md «v36»). El trabajo de equipo se
     // acababa cuando el jefe salía del grupo: los tres mecanismos que existen —descuento de coste,
     // deber de relevo y marcaje— piden ir en el MISMO grupo. Medido: un jefe con gregarios se queda
@@ -191,6 +199,6 @@ describe('engine: esqueleto', () => {
     // v11 (atribución del trabajo), la v10 (composición y caza), la v9 (capa táctica), la
     // v8 (tiempos de grupo), la v7 (modelo de final), la v6 (telemetría), la v5 (clásica larga), la
     // v4 (pavé en el recorrido) y la v3 (Cambio 0).
-    expect(ENGINE_VERSION).toBe(36)
+    expect(ENGINE_VERSION).toBe(37)
   })
 })
