@@ -1410,7 +1410,7 @@ export const STAGE = {
    * Es la única perilla de las dos que toca al que va solo, así que es también la que decide cuánta
    * gente se va fuera de control.
    */
-  costExposureLevel: 2.5,
+  costExposureLevel: 2.58,
 
   // 6.5/6.18 — Reparto del trabajo dentro del grupo: quién TIRA y quién va a rueda. NO puede
   // decidirlo el orden del array de entrada: se ordena por "deber de relevo", con el rol como
@@ -2294,7 +2294,7 @@ export const STAGE = {
    * pelotón DECIDE, nunca a los suelos de carretera —el tirón final y el pavé—. Con 0,18, un día
    * flojo rueda al 82 % de lo que rodaría y uno nervioso al 118 %.
    */
-  pelotonMoodSpread: 0.18,
+  pelotonMoodSpread: 0.14,
   // Ritmo del pelotón en un puerto que NO es decisivo (lejos de meta): se sube a tempo.
   climbTempoCommit: 0.62,
   // Los últimos km de una etapa de meta llana: los trenes se organizan y el pelotón vuela.
