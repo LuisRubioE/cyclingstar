@@ -1180,6 +1180,22 @@ export const STAGE = {
   // SUBIDA, donde no hay recorte (la selección debe mantenerse) pero los que se sueltan a la vez
   // sí forman un grupo. Sin él la etapa reina terminaba con 30 grupos de un corredor (§3-bis-e).
   // Estrecho a propósito: fusiona a los que van realmente juntos, no a los que están cortados.
+  /**
+   * EL DESCOLGADO ESPERA AL QUE VIENE DETRÁS (v38). La conducta más básica de la cola de una
+   * carrera, y el motor no la tenía: cada descolgado moría por su cuenta. Medido sobre dos giras del
+   * banco de la gran vuelta, de los ocho corredores que se fueron fuera de control **los ocho iban
+   * solos**, ninguno en un grupeto. Con la ley de velocidad de la v38 se agrava solo, porque un
+   * hombre suelto va un 14,5 % más lento que un grupo que se releva: los huecos entre descolgados
+   * sueltos crecen en vez de cerrarse.
+   *
+   * Tres guardarraíles, los tres de carretera: solo espera el que va poco acompañado —un grupeto
+   * hecho no para a recoger a nadie—, solo espera a quien está cerca —a tres minutos no se espera—
+   * y solo lejos de meta —en el desenlace ya no hay grupeto que hacer, hay que llegar—.
+   */
+  grupetoWaitSize: 4,
+  grupetoWaitSeconds: 90,
+  grupetoWaitCommit: 0.3,
+  grupetoWaitMinKmToGo: 10,
   grupetoJoinGapSeconds: 12,
   // Nº mínimo de corredores que el grupo tiene que haber PERDIDO desde el último aviso narrado para
   // volver a narrarlo. Es la pérdida NETA (de cuántos a cuántos ha quedado el grupo), no el recuento
@@ -2268,6 +2284,17 @@ export const STAGE = {
   // número solo manda cuando NO hay nada que cazar (con fuga delante manda el lazo cerrado), así que
   // su efecto sobre quién gana es pequeño por construcción.
   pelotonTempoCommit: 0.55,
+  /**
+   * EL HUMOR DEL PELOTÓN (v38). El dueño: «también la probabilidad de que el pelotón eche la hueva y
+   * vaya lento». Hasta la v37 el pelotón corría siempre igual de nervioso y la única variación venía
+   * de quién atacaba; en la carretera hay días de cierre a muerte y días en que la carrera no
+   * arranca, y esa diferencia decide si el que se cae en el km 5 vuelve o no vuelve.
+   *
+   * Es un dado por ETAPA (un pelotón no cambia de humor cada cien metros) y se aplica a lo que el
+   * pelotón DECIDE, nunca a los suelos de carretera —el tirón final y el pavé—. Con 0,18, un día
+   * flojo rueda al 82 % de lo que rodaría y uno nervioso al 118 %.
+   */
+  pelotonMoodSpread: 0.18,
   // Ritmo del pelotón en un puerto que NO es decisivo (lejos de meta): se sube a tempo.
   climbTempoCommit: 0.62,
   // Los últimos km de una etapa de meta llana: los trenes se organizan y el pelotón vuela.

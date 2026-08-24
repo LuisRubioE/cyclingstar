@@ -653,6 +653,20 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
   const rngAbandon = streams('abandon')
   const rngCrash = streams('crash')
   const rngDay = streams('day')
+  /**
+   * EL HUMOR DEL PELOTÓN (v38). El dueño: «también la probabilidad de que el pelotón eche la hueva y
+   * vaya lento… muchas veces el pelotón debería tener flojera y dejar hacer».
+   *
+   * Hasta la v37 el pelotón corría SIEMPRE igual de nervioso: mismas constantes, misma etapa, y la
+   * única variación venía de quién atacaba. En la carretera no es así —hay días de cierre a muerte y
+   * días en los que la carrera no arranca— y esa diferencia decide cosas: si el que se cae en el km
+   * 5 vuelve o no vuelve, y si la fuga del día se va o no se va.
+   *
+   * Es un dado por ETAPA, no por bloque: un pelotón no cambia de humor cada cien metros. Y se aplica
+   * a lo que el pelotón DECIDE, nunca a los suelos que son de carretera —el tirón final de los
+   * trenes y el pavé—, porque esos no son ganas, son la carretera obligando.
+   */
+  const humorDelPeloton = 1 + STAGE.pelotonMoodSpread * (2 * streams('mood')() - 1)
   const incidents: Incident[] = []
 
   const blocks = sampleProfile(input.profile)
@@ -1954,6 +1968,10 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
           ? freeRunTarget
           : Math.min(1, Math.max(0.1, STAGE.chaseHoldCommit + STAGE.chaseGain * err))
       }
+      // …Y EL HUMOR DEL DÍA (v38): hay días en que el pelotón echa la hueva y deja hacer. Se aplica
+      // aquí, sobre lo que el pelotón DECIDE, y no más abajo: los suelos del tirón final y del pavé
+      // no son ganas, son la carretera obligando, y ésos no dependen del humor de nadie.
+      target = Math.max(0.1, Math.min(1, target * humorDelPeloton))
       // En los últimos km de una etapa de meta llana los trenes toman la carretera y el pelotón
       // vuela: el controlador de boquete NO puede dejarlo rodar por debajo de eso. Sin este suelo,
       // un ataque tardío de 20 s hacía que el lazo cerrado pidiera 0,72 —menos que el 0,85 del
@@ -3250,6 +3268,34 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       // más lento que uno donde nadie lo ha hecho, que es lo que se ve en carretera.
       const share = gaveUp / mem.length
       sg.compromiso = able + (Math.min(able, STAGE.giveUpCommit) - able) * share
+      /**
+       * EL DESCOLGADO ESPERA AL QUE VIENE DETRÁS (v38). Es la conducta más básica del ciclismo en la
+       * cola de la carrera y el motor no la tenía: el que se suelta afloja hasta que le coge el
+       * siguiente, y entre los dos hacen el grupeto que les lleva a meta dentro del corte.
+       *
+       * Sin ella, cada descolgado moría por su cuenta. Medido sobre dos giras completas del banco de
+       * la gran vuelta: de los ocho corredores que se fueron FUERA DE CONTROL, **los ocho iban
+       * solos** —ni uno en un grupeto—. Y con la ley de velocidad de la v38 eso se agrava solo,
+       * porque un hombre suelto va un 14,5 % más lento que un grupo que se releva, así que los
+       * huecos entre descolgados sueltos CRECEN en vez de cerrarse y no llegan a juntarse nunca.
+       *
+       * Solo espera el que va POCO ACOMPAÑADO (`grupetoWaitSize`): un grupeto hecho ya no para a
+       * recoger a nadie. Solo espera a quien está CERCA (`grupetoWaitSeconds`): a tres minutos no se
+       * espera, se sigue. Y solo lejos de meta: en el desenlace ya no hay grupeto que hacer, hay que
+       * llegar.
+       */
+      const yaEsGrupeto = mem.length >= STAGE.grupetoWaitSize
+      if (!yaEsGrupeto && totalKm - km >= STAGE.grupetoWaitMinKmToGo) {
+        let masCerca: number | null = null
+        for (const otro of shed) {
+          if (otro.id === sg.id || membersOf(otro.id).length === 0) continue
+          if (otro.tS <= sg.tS) continue
+          if (masCerca === null || otro.tS < masCerca) masCerca = otro.tS
+        }
+        if (masCerca !== null && masCerca - sg.tS <= STAGE.grupetoWaitSeconds) {
+          sg.compromiso = Math.min(sg.compromiso, STAGE.grupetoWaitCommit)
+        }
+      }
     }
     for (let g = 0; g < shed.length; g++) {
       shed[g] = advance(shed[g]!, membersOf(shed[g]!.id), 1, 'shed')
