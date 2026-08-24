@@ -433,7 +433,19 @@ export function shelterOf(pulling: boolean, pullers: number): number {
  */
 export function relayRotation(size: number, paceFraction: number, commit = 1): number {
   const asked = Math.ceil(paceFraction * size)
-  const road = Math.max(1, Math.round(STAGE.relayRotationMax * clamp(commit, 0, 1)))
+  /**
+   * …Y EL SUELO NO ES UNO, ES `relayRotationMin`. Un turno de UN hombre significa «uno se come el
+   * 100 % del viento y nadie le releva», y eso solo es verdad del que va solo —que ya lo dice
+   * `min(size, …)`—. Un grupo rodando suave no pone a un tío a tirar toda la etapa: se turnan un
+   * par. Sin este suelo, el pelotón a compromiso bajo se quedaba con turno de uno, y como la red de
+   * seguridad de `relayTurn` dice «si el único candidato está apartado, que tire igual», el que
+   * acababa dando la cara era justo el JEFE ARROPADO al que la v36 sacó del turno: medido, cap-a
+   * (con tres gregarios) tiraba en 17 fotos y cap-b (sin equipo) en 5, o sea al revés.
+   */
+  const road = Math.max(
+    STAGE.relayRotationMin,
+    Math.round(STAGE.relayRotationMax * clamp(commit, 0, 1)),
+  )
   return Math.max(1, Math.min(size, asked, road))
 }
 

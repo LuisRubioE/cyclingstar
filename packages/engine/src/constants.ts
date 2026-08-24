@@ -1428,6 +1428,9 @@ export const STAGE = {
    * quién puede nombrar la radio.
    */
   relayRotationMax: 8,
+  // …y el SUELO del turno (v38): un grupo que rueda se turna al menos entre un par. El uno solo es
+  // el hombre que va solo, y de ése ya se encarga el `min(size, …)` de `relayRotation`.
+  relayRotationMin: 2,
   /**
    * LA ROTACIÓN QUE `vRef` YA LLEVA DENTRO (v38). La ley de velocidad pasa a saber cuánta gente tira
    * (`relayPaceEdge`), y eso obliga a decir respecto a QUÉ. La respuesta es `relayRotationMax`: un
