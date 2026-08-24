@@ -131,6 +131,27 @@ describe('engine: esqueleto', () => {
     // 6:53 en el km 137 y 16 s en meta). La referencia pasa a ser los que SIGUEN EN CARRERA, el
     // parte de ventaja NOMBRA a quien va delante y dice contra quién se mide y cuánto queda.
     // Cambio de OBSERVACIÓN: ni un dado, ni un subflujo, ni una constante de calibración.
+    // v36: LOS SUYOS SE DEJAN CAER A POR ÉL (docs/balance.md «v36»). El trabajo de equipo se
+    // acababa cuando el jefe salía del grupo: los tres mecanismos que existen —descuento de coste,
+    // deber de relevo y marcaje— piden ir en el MISMO grupo. Medido: un jefe con gregarios se queda
+    // a 30 s o más 3,18 veces por etapa, en el 40 % de ellas con dos o más de los suyos delante, y
+    // el que no vuelve pierde 443 s de mediana; nadie se dejaba caer nunca. Cuántos bajan lo dicta
+    // lo que se juega el equipo (regla del dueño): por la general, todos menos uno; por la etapa,
+    // dos y solo si el boquete es pequeño. Y el jefe arropado deja de tirar también en grupo
+    // pequeño (6,3 % -> 1,1 % de las fotos). Las huellas selladas NO se mueven: sus escenarios
+    // corren sin equipos.
+    // v35: VOLVER CUESTA (docs/balance.md «v35»). Cuatro cosas. (1) `shedFightCommit` = 0,82 es un
+    // ritmo ABSOLUTO, así que un descolgado peleando contra un pelotón que rueda a tempo iba SIEMPRE
+    // más rápido que él: medido, un grupo de 4-10 rodaba un +1,6 % más rápido que el pelotón y le
+    // ganaba terreno en el 56 % de los kilómetros. El tope de la pelea pasa a ser el ritmo del de
+    // delante más lo que valga la rotación propia, cobrado a precio de rebufo (en la rampa no hay
+    // rueda a la que ir y la v16 queda intacta). (2) La puerta del pelotón deja de ABSORBER: estar
+    // a menos de 22 s bastaba aunque el hueco estuviera creciendo —196 de 196 grupos volvían en los
+    // descensos del banco—, y ahora hay que estar volviendo de verdad. (3) Un frente sin dueño lo
+    // llevan 1-3 equipos y con menos intensidad, que es lo que el dueño pidió al ver PULLING (8) de
+    // cinco equipos distintos. (4) Y el ORDEN DE ENTRADA deja de decidir la carrera: 36 de 36
+    // barajados daban otro resultado con la misma semilla y ahora dan el mismo. Mueve las huellas
+    // selladas —(1) y (4) cambian física y reparto de dados— y ninguna banda de calibración.
     // v34: O TIRAS O NO TIRAS (docs/balance.md «v34»). El motor tenía CUATRO estados de rebufo —a
     // rueda 0,9 | rotando en cabeza 0,4 | relevando 0,5 | solo 0,0— que eran cuatro nombres para un
     // continuo, sostenidos por un turno de relevos del tamaño del cuarto delantero del pelotón: 44
@@ -170,6 +191,6 @@ describe('engine: esqueleto', () => {
     // v11 (atribución del trabajo), la v10 (composición y caza), la v9 (capa táctica), la
     // v8 (tiempos de grupo), la v7 (modelo de final), la v6 (telemetría), la v5 (clásica larga), la
     // v4 (pavé en el recorrido) y la v3 (Cambio 0).
-    expect(ENGINE_VERSION).toBe(34)
+    expect(ENGINE_VERSION).toBe(36)
   })
 })

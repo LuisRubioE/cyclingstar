@@ -568,8 +568,84 @@
  * salía por abajo de §VI.1 (0,163 contra un suelo de 0,18)—. El coste base del llano vuelve a su
  * sitio (`costFlatBase`, 0,22 → 0,24) y la familia entera queda donde la pide §VI.1. El detalle,
  * con la tabla de antes y después, está en docs/balance.md «v34».
+ *
+ * ── v35 · volver cuesta ────────────────────────────────────────────────────────────────────────
+ *
+ * Cuatro cosas, y las tres primeras son la misma queja del dueño: «es muy fácil reengancharse
+ * después de haberse descolgado… lo normal es que el que está atrás esté agotado, y es una lucha de
+ * varios que tiran del pelotón contra uno solo; salvo que el pelotón vaya lento sin prisa, lo normal
+ * debería ser que la diferencia siga y siga aumentando».
+ *
+ * 1. PELEAR ES IR MÁS RÁPIDO QUE EL DE DELANTE, y eso lo compra el relevo. `shedFightCommit` = 0,82
+ *    es un número ABSOLUTO —el ritmo de un pelotón lanzado—, así que un descolgado peleando contra
+ *    un pelotón que rueda a tempo iba SIEMPRE más rápido que él. Medido sobre seis carreras del
+ *    banco: un grupo de 4-10 hombres rodaba un **+1,6 %** más rápido que el pelotón y le ganaba
+ *    terreno en el **56 %** de los kilómetros. Ahora el tope de la pelea es el ritmo del de delante
+ *    más lo que valga la rotación propia (`shedChaseEdge · (1 − 1/n)`), mezclado con el 0,82 de
+ *    siempre a precio de rebufo: en el llano manda el tope y en la rampa no hay rueda a la que ir,
+ *    así que la selección de la etapa reina (§VI.1) queda intacta.
+ * 2. LA PUERTA DEL PELOTÓN NO ABSORBE. Estar a menos de 22 s bastaba para volver dentro aunque el
+ *    hueco estuviera CRECIENDO: en los descensos del banco volvían 196 de 196 grupos, con el hueco
+ *    creciendo +0,1 s/km mientras tanto. Ahora hay que estar volviendo de verdad —ir más rápido que
+ *    ellos en ese bloque— o alcanzarlos.
+ * 3. UN FRENTE SIN DUEÑO SON UNO, DOS O TRES EQUIPOS, Y TIRA MENOS. También del dueño, sobre la
+ *    foto de la radio con **PULLING (8) de cinco equipos distintos**: «si el frente no tiene dueño
+ *    único, debería haber 1, 2 o 3 equipos que tiren, pero con menor intensidad».
+ * 4. Y EL ORDEN DE ENTRADA DEJA DE DECIDIR LA CARRERA. Estaba medido y anotado en la v34 como deuda
+ *    (36 de 36 barajados daban otra carrera con la misma semilla, porque las piernas del día se
+ *    reparten recorriendo el array). El motor ordena ahora por `riderId` antes de mirar nada: 36 de
+ *    36 dan exactamente la misma carrera.
+ *
+ * MEDIDO DESPUÉS, con el pelotón clasificado por lo que está haciendo de verdad —va **sin prisa
+ * (compromiso ≤ 0,60) el 43 % de la carrera**—, sobre 6 carreras × 6 semillas: con el pelotón
+ * tranquilo, un hombre solo pasa de volver el **68 % de las veces al 28 %**, un grupo de 2-3 del
+ * 77 % al 44 % y uno de 4-8 del 71 % al **60 %** —que es justo «la mitad de las veces» que pidió el
+ * dueño—. Y con el pelotón apretando, que es donde estaba la queja: el hombre solo del 18 % al 2 %,
+ * el grupo de 2-3 del 20 % al 14 % y el de 4-8 del 28 % al **6 %**. Lo que NO cambia es el
+ * reagrupamiento de siempre —medio pelotón que se parte en un puerto y se recompone en el valle—:
+ * un grupo de 9+ con el pelotón a tempo sigue volviendo el 81 % de las veces, y tiene que seguir
+ * haciéndolo. El detalle está en docs/balance.md «v35».
+ *
+ * ── v36 · los suyos se dejan caer a por él ─────────────────────────────────────────────────────
+ *
+ * El trabajo de equipo se acababa en el instante en que el jefe salía del grupo. Los tres
+ * mecanismos que el motor tiene —el descuento de coste del gregario presente, el deber de relevo y
+ * el marcaje— piden LOS TRES ir en el mismo grupo, así que un jefe que se caía o se descolgaba
+ * dejaba de tener equipo: sus hombres seguían delante rodando como si nada. Medido sobre 120 etapas
+ * del banco: un jefe con gregarios propios se queda a 30 s o más **3,18 veces por etapa**, en el
+ * **40 %** de esas veces con dos o más de los suyos dentro del pelotón, y el que no vuelve pierde
+ * **443 s** de mediana. Nadie se dejaba caer NUNCA.
+ *
+ * Cuántos van a por él no es un número fijo, y la regla es del dueño: «si es el favorito para una
+ * gran vuelta o carrera por etapas, puede justificar descolgar a todo el equipo menos 1; si es una
+ * carrera de 1 día no, salvo que la diferencia sea pequeña (y en ese caso que el líder no pase a
+ * tirar, él se reserva)». Las dos ramas ya existían en el plan de equipo: `maillot`/`general` solo
+ * son motivo **con general en juego** —que es exactamente lo que separa una vuelta de una clásica—
+ * y `etapa` es el día de hoy.
+ *
+ * Y la otra mitad de la frase se cumplía a medias: `relayProtectedPenalty` manda al jefe arropado
+ * al final de la cola del turno, pero en un GRUPO PEQUEÑO el turno es el grupo entero, así que
+ * tiraba igual (medido: el 6,3 % de las fotos con los suyos al lado). Ahora el arropado se aparta
+ * del turno mientras quede alguien que tire: **1,1 %**.
+ *
+ * DE DÓNDE SALE EL QUE BAJA es la otra decisión, y también es del dueño: «alguien de la fuga no lo
+ * mandes para atrás… alguien del pelotón sí. Salvo que sea con carrera rota… y uno que va en grupo
+ * 2 podría esperar a uno del grupo 3 y ayudarlo». Las tres clases de grupo del motor lo dicen solas:
+ * de un `mov` no baja nadie —una fuga es lo único que su equipo tiene en la carretera—, del pelotón
+ * sí, y con la carrera rota también de cualquier `shed` que vaya por delante del suyo. Y baja antes
+ * el que ya va a medio camino que el que sigue en el pelotón.
+ *
+ * Lo que NO hace falta escribir es lo que pasa después, y por eso esto es una decisión y no una
+ * física nueva: en cuanto están con él son un grupo que se releva, y el tope de la v35 decide solo
+ * —vuelven si el pelotón va sin prisa y no vuelven si va cazando—. Medido con el mecanismo APAGADO
+ * y ENCENDIDO sobre las mismas 240 etapas: el jefe descolgado vuelve el 69 % → **71 %** de las
+ * veces, en llano y descenso el 60 % → **74 %**, y el que no vuelve pierde **444 s → 357 s**.
+ * (Comparar dentro de la misma corrida «con ayuda» contra «sin ayuda» ENGAÑA: la regla salta justo
+ * en los casos peores —el jefe que ya no volvía solo—, así que ese corte está sesgado y por eso se
+ * mide apagando el mecanismo.) Montecarlo entero verde sin tocar una banda, y las cuatro huellas
+ * selladas NO se mueven: sus escenarios corren sin equipos, así que esta tanda no las ve.
  */
-export const ENGINE_VERSION = 34 as const
+export const ENGINE_VERSION = 36 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -1263,6 +1339,17 @@ export const STAGE = {
    * quién puede nombrar la radio.
    */
   relayRotationMax: 8,
+  // …Y CUÁNTOS EQUIPOS CABEN EN ESA CABEZA CUANDO NADIE MANDA (v35, §V.1). El dueño lo pidió con
+  // estas palabras: «si el frente no tiene dueño único, debería haber 1, 2 o 3 equipos que tiren,
+  // pero con menor intensidad». Tres es el tope: por debajo de eso lo pone la carretera —si solo
+  // dos equipos tienen deber, tiran dos—. Sin esto el turno sin dueño era el de más deber a secas,
+  // y salía la foto que enseñó el dueño: ocho hombres de CINCO equipos distintos dando la cara.
+  relayTeamsNoOwner: 3,
+  // La otra mitad de la misma frase: MENOS INTENSIDAD. Un frente sin dueño es un acuerdo, no un
+  // tren, y un acuerdo tira menos. Se cobra sobre el ritmo del pelotón —no sobre el turno— porque
+  // es una cuestión de velocidad y no de quién paga el viento. Un 6 %: lo justo para que se note
+  // en el boquete (la caza sigue existiendo) sin regalarle la etapa a la fuga.
+  noOwnerCommitFactor: 0.94,
 
   // 6.6 — Cerillos (esfuerzos supraumbral discretos).
   // comp = 0.50·max(MON,COL) + 0.30·RES + 0.20·LLA; cerillos = 2 + (comp>=55)+(>=72)+(>=88).
@@ -1483,6 +1570,22 @@ export const STAGE = {
   // vuelve en el valle y el grupeto que entra a un cuarto de hora—. El paso entre las dos es
   // continuo a propósito: un umbral duro haría que el mismo corredor cambiara de ritmo de golpe.
   shedResignGapSeconds: 300,
+  // …Y PELEAR ES IR MÁS RÁPIDO QUE EL DE DELANTE, QUE NO ES GRATIS (v35). `shedFightCommit` es un
+  // número ABSOLUTO, y ahí estaba el agujero: 0,82 es el ritmo de un pelotón lanzado, así que un
+  // grupo descolgado que peleara contra un pelotón rodando a tempo (0,55-0,65) iba SIEMPRE más
+  // rápido que él. Medido sobre seis carreras del banco: un grupo de 4-10 rodaba un +1,6 % más
+  // rápido que el pelotón y le ganaba terreno en el 56 % de los kilómetros; un grupo de 4-8 con el
+  // pelotón tranquilo se reenganchaba el 71 % de las veces. En carretera eso no pasa: los de
+  // delante van a rueda y los de atrás dan la cara.
+  //
+  // La ventaja que un grupo puede sacarle al que va delante es la que le dé RELEVARSE, y por eso se
+  // cobra a precio de rebufo, igual que `majorityOnTheRoad`: el tope es `compromiso del de delante
+  // + shedChaseEdge · (1 − 1/n)`, y la mezcla entre ese tope y el 0,82 de siempre la pone `wind`.
+  // En el llano manda el tope —es donde ir a rueda decide—; en una rampa al 8 % no hay rueda que
+  // valga y queda el 0,82 de la v16 casi intacto, así que la SELECCIÓN de la etapa reina (§VI.1)
+  // no se toca. El valor sale de calibrar contra lo que pidió el dueño: un grupo de cinco vuelve
+  // «la mitad de las veces» con el pelotón sin prisa, no siempre.
+  shedChaseEdge: 0.12,
   // 6.10 — Fuga: consolida si el compromiso del pelotón < 0.25 durante 2 km.
   breakawayCommitThreshold: 0.25,
   breakawayConsolidateKm: 2,
@@ -2349,6 +2452,30 @@ export const STAGE = {
   // equipo rinde de verdad. Los gregarios que acompañan a su líder en el grupo le ahorran energía
   // (le protegen del viento, le llevan bidones, cierran huecos); un tren de lanzadores lanza al
   // sprinter en la última rampa. Solo cuentan los compañeros presentes en el MISMO grupo del líder.
+  // --- LOS SUYOS SE DEJAN CAER A POR ÉL (v36, docs/motor.md §V.1) -----------------------------
+  // Hasta la v35 el trabajo de equipo se acababa en el instante en que el jefe salía del grupo: los
+  // tres mecanismos que existen —el descuento de coste de aquí abajo, el deber de relevo y el
+  // marcaje— piden todos ir EN EL MISMO GRUPO, así que un jefe que se cae o se descuelga dejaba de
+  // tener equipo. Medido sobre 120 etapas del banco: un jefe con gregarios propios se queda a 30 s
+  // o más 3,18 veces por etapa, y en el 40 % de esas veces tiene DOS O MÁS de los suyos dentro del
+  // pelotón mirando hacia delante. El que no vuelve pierde 443 s de mediana.
+  //
+  // Cuántos se dejan caer NO es un número fijo: lo dictó el dueño y depende de lo que se juegue el
+  // equipo. «Si es el favorito para una gran vuelta o carrera por etapas, puede justificar descolgar
+  // a todo el equipo menos 1; si es una carrera de 1 día no, salvo que la diferencia sea pequeña (y
+  // en ese caso que el líder no pase a tirar, él se reserva)». Las dos ramas salen del motivo que el
+  // plan de equipo ya calcula (`TeamPurpose`): `maillot`/`general` son la general —y solo existen
+  // con general en juego, que es justo lo que separa una vuelta de una clásica— y `etapa` es el día.
+  helpBackGcKeepInBunch: 1, //  por la general: se quedan los que hagan falta, MENOS UNO delante.
+  helpBackStageHelpers: 2, //   por la etapa: dos hombres, y solo si el boquete es pequeño.
+  helpBackStageGapSeconds: 45, // «que la diferencia sea pequeña», en segundos.
+  // Y el techo es el mismo con el que un descolgado deja de mirar hacia delante
+  // (`shedResignGapSeconds`): mientras el grupo de cabeza siga a la vista se va a por el jefe; a
+  // cinco minutos ya no es un rescate, es acompañarle a meta. Solo muerde en la rama de la general,
+  // porque la de la etapa se corta mucho antes en `helpBackStageGapSeconds`.
+  helpBackMaxGapSeconds: 300,
+  helpBackMinKmToGo: 5, //      y no en el desenlace: dejarse caer a 3 km de meta no ayuda a nadie.
+  helpBackMinFreshness: 0.35, // el que va vacío no sirve de gregario; se queda donde está.
   domestiqueProtectPerHelper: 0.05, // cada gregario presente rebaja un 5% el coste del líder...
   domestiqueProtectMax: 0.15, //       ...hasta un 15% (≈3 gregarios): un equipo fuerte ahorra mucho.
   leadOutBoostPerHelper: 0.05, // cada lanzador presente sube un 5% la puntuación de sprint del líder...
