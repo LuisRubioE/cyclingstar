@@ -2231,7 +2231,7 @@ export const STAGE = {
   // …Y BAJA A 5 EN LA v38, al recentrar la banda de la fuga en llano en el 10 %. Es el ritmo de
   // cierre que los trenes consideran VIABLE: por encima de eso dan la fuga por perdida y dejan de
   // tirar. Con 8 s/km el pelotón no se rendía casi nunca y la fuga ganaba el 2,5 % de las llanas.
-  chaseFeasibleSecondsPerKm: 5,
+  chaseFeasibleSecondsPerKm: 3,
   // …pero por debajo de este boquete la caza no se da nunca por perdida. La fórmula de viabilidad
   // divide por los km que faltan hasta el punto de captura, así que cerca de meta declara inviable
   // cualquier cosa: sin este suelo, un ataque de 15 s a 14 km de meta hacía sentarse a los trenes.
