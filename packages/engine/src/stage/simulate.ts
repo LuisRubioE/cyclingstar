@@ -458,6 +458,8 @@ function relayTurn(
   ownsTheFront: (riderId: string) => boolean = () => false,
   /** El equipo de cada hombre; `null` es agente libre y todos los libres cuentan como uno (v35). */
   teamOfRider: (riderId: string) => string | null = () => null,
+  /** El compromiso del grupo: cuántos se ponen delante es una decisión suya (v38). */
+  commit = 1,
 ): Set<string> {
   /**
    * EL QUE SE RINDIÓ NO TIRA — PERO ESO SE ARREGLA EN LO QUE SE CUENTA, NO EN EL REPARTO DEL VIENTO
@@ -477,7 +479,7 @@ function relayTurn(
    * parte de «quién tira» ni en la firma de la captura (ver `topWorkers` más abajo y `attributeChase`).
    * Queda anotado como defecto medido en docs/balance.md, «v21».
    */
-  const count = relayRotation(members.length, paceFraction)
+  const count = relayRotation(members.length, paceFraction, commit)
   const scored = members.map((m) => {
     const helpers = domestiquesFor.get(m.input.riderId)
     const protectedByTeam = helpers != null && helpers.some((id) => idSet.has(id))
@@ -2040,7 +2042,6 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
        * es el modelo que el motor ya tenía para todos los grupetos, y el rescate no es una excepción.
        */
       const p75 = pacemakerP75(members, block, paceFraction)
-      const next = advanceGroup(group, block, p75, { isFinal })
       /**
        * EL QUE NO COLABORA EN LA FUGA PORQUE LOS SUYOS LA PERSIGUEN (v33). La queja, textual: «hay
        * un equipo que tiene a 1 ciclista tirando del pelotón pero tiene a 1 ciclista tirando de la
@@ -2071,7 +2072,26 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         // …y los EQUIPOS solo mandan en el pelotón: en una fuga se relevan todos, que es lo que
         // una fuga es. Con `null` todos caen en el mismo cubo y `relayTurn` no filtra nada.
         (riderId) => (isBunch ? (teamOf.get(riderId) ?? null) : null),
+        group.compromiso,
       )
+      /**
+       * CUÁNTOS SE REPARTEN EL VIENTO AL FRENTE (v38) — y no es lo mismo que quién acaba pagándolo.
+       *
+       * La VELOCIDAD la marca la rotación que cabe en la cabeza de este grupo (`relayRotation`): un
+       * pelotón rota los ocho de `relayRotationMax`, una fuga de cinco rota cinco y el que va solo
+       * da la cara el 100 % del tiempo. El COSTE, unas líneas más abajo, lo pagan los que de verdad
+       * están en el turno (`relayers`), que son menos —el dueño del frente se lleva la rotación
+       * (v34), el que persigue por detrás con los suyos se aparta (v33), el jefe arropado no entra
+       * (v36) y el que tiene al jefe descolgado tampoco (v37)—.
+       *
+       * Esa separación no es un apaño: es lo que el repo lleva escrito desde la v34 —«no cambia el
+       * ritmo del grupo, solo entre quiénes se reparte el viento»—. Las reglas de equipo dicen a
+       * quién se le apunta la factura; la carretera dice cuántos caben delante. Medido, atar la
+       * velocidad a la factura hundía la fuga de montaña del 35,4 % al 13,0 % (banda 25-45), porque
+       * un pelotón con dueño «rota 3» y una fuga rota entera.
+       */
+      const alFrente = relayRotation(members.length, paceFraction, group.compromiso)
+      const next = advanceGroup(group, block, p75, alFrente, { isFinal })
       /**
        * LO QUE VALE UN RELEVO EN ESTE BLOQUE, MEDIDO POR EL VIENTO Y NO POR LA VELOCIDAD (v26).
        *
@@ -2187,7 +2207,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
             STAGE.reserveSeconds,
           )
         }
-        let cost = blockCost(block, group.compromiso, shelter)
+        let cost = blockCost(block, group.compromiso, pulling, relayers.size)
         // Protección de gregarios: un líder arropado que no está relevando gasta menos según cuántos
         // de sus gregarios lleve en el grupo (SPEC 6.18). Así fichar buen equipo rinde de verdad.
         if (!pulling) {
@@ -2489,7 +2509,10 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
        * no una deriva. Y así el terreno de la v12 sigue calibrado dígito a dígito.
        */
       if (block.tipo === 'subida') {
-        const vPace = blockSeconds(targetSpeed(block, pace, group.compromiso))
+        // Los dos relojes se miden con el MISMO turno (v38): lo que se compara es lo que puede el
+        // hombre contra lo que puede el grupo, no un turno contra otro.
+        const turno = relayRotation(alive.length, paceFraction, group.compromiso)
+        const vPace = blockSeconds(targetSpeed(block, pace, group.compromiso, turno))
         for (const m of alive) {
           // Los `dropDeficitTolerance` puntos son lo que uno cubre APRETANDO LOS DIENTES, y eso es
           // justo lo que paga la reserva: sin reserva ya no se cubren, y el corredor cae de golpe a
@@ -2498,7 +2521,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
           const own =
             (markedPerfil(m, block) ?? riderPerfil(m, block)) +
             (m.reserveS > 0 ? STAGE.dropDeficitTolerance : 0)
-          const drift = blockSeconds(targetSpeed(block, own, group.compromiso)) - vPace
+          const drift = blockSeconds(targetSpeed(block, own, group.compromiso, turno)) - vPace
           if (drift <= 0) {
             // Va sobrado: recupera reserva y cierra el hueco que llevara abierto. Es la otra mitad
             // de la simetría —un bache de un kilómetro no condena a nadie— y es lo que permite que

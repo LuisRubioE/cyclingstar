@@ -51,7 +51,7 @@ describe('grupos y relojes (6.3)', () => {
   it('el reloj avanza y la velocidad persigue a la objetivo', () => {
     const g0 = createGroup('peloton', ['a', 'b', 'c'], { compromiso: 1 })
     expect(g0.vActual).toBe(35)
-    const g1 = advanceGroup(g0, flat, 75, {})
+    const g1 = advanceGroup(g0, flat, 75, undefined, {})
     expect(g1.tS).toBeGreaterThan(0)
     expect(g1.vActual).toBeGreaterThan(35) // acelera hacia la objetivo (~44 a P75=75, c=1)
   })
@@ -63,8 +63,8 @@ describe('grupos y relojes (6.3)', () => {
       let slow = createGroup('grupeto', ['y'], { compromiso: 0.2 })
       const blocks = Math.round(10 / dx)
       for (let i = 0; i < blocks; i++) {
-        fast = advanceGroup(fast, flat, 90, {}, dx)
-        slow = advanceGroup(slow, flat, 45, {}, dx)
+        fast = advanceGroup(fast, flat, 90, undefined, {}, dx)
+        slow = advanceGroup(slow, flat, 45, undefined, {}, dx)
       }
       return gapSeconds(fast, slow)
     }

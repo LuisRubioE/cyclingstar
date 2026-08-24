@@ -675,6 +675,39 @@
  *    igual. Medido: de los hombres con el jefe descolgado que ruedan fuera del pelotón, tiraban
  *    todos y ahora tira el **8,2 %**, y de ésos, tres de cada cuatro son grupos donde no queda nadie
  *    más que pueda tirar —el «salvo que vaya solo» del dueño, que sale gratis—.
+ *
+ * ── v38 · el viento lo reparten los que tiran (EN CURSO, ver docs/balance.md «v38») ────────────
+ *
+ * La corrección del dueño: «el tamaño a medir no es el tamaño del grupo, sino el tamaño de la gente
+ * que va tirando… si hay 10 personas tirando, ya sea del pelotón, de una fuga o de lo que sea,
+ * tienen potencial para ir más rápido que un grupo donde solo tire 1», y «el que va a rueda va
+ * muuucho más cómodo y por tanto muchísimo menor coste… si solo tira 1, el coste debería ser
+ * prácticamente el doble que si tiran 2».
+ *
+ * 1. **LA LEY DE VELOCIDAD SABE CUÁNTOS TIRAN** (`relayPaceEdge`). En una rotación de `n` a cada uno
+ *    le toca la cabeza 1/n del tiempo, así que su potencia media es la del que va delante por su
+ *    exposición; al revés, el que va en cabeza puede ir a `umbral / exposición`. Es la MISMA pieza
+ *    que el coste cobraba, leída en el otro sentido, y se cobra a precio de rebufo por construcción:
+ *    en el llano un turno de ocho compra un 4,5 % y en una rampa al 8 %, un 1,9 %.
+ *
+ * 2. **CUÁNTOS SE PONEN DELANTE ES UNA DECISIÓN** (`relayRotation` con el compromiso). Un pelotón a
+ *    tempo lleva cuatro hombres dando la cara y uno cazando lleva siete, y con eso el motor gana la
+ *    mecánica que le faltaba: un pelotón no caza una fuga solo queriendo, la caza poniendo más
+ *    hombres delante.
+ *
+ * 3. **LA RUEDA ES MUCHO MÁS BARATA** (`costExposureExponent`, `costExposurePivot`) y la exposición
+ *    se promedia sobre el TURNO y no sobre el rebufo: lo que hace un hombre en una rotación de dos
+ *    no es ir a medio rebufo, es ir la mitad del tiempo descubierto y la mitad a rueda.
+ *
+ * Y con ello se han podido RETIRAR dos parches que metían este mismo hecho a mano donde no tocaba:
+ * el compromiso del descolgado por rotación (v16) y el término de rotación del tope de la v35.
+ *
+ * PENDIENTE DE DECISIÓN DEL DUEÑO: cobrado entero, el principio 1 deja la fuga de montaña en el
+ * 20,8 % contra una banda de 25-45. No es un fallo de implementación —la fuga era más rápida de lo
+ * que le tocaba porque el motor no cobraba el reparto del viento en la velocidad— y recuperar la
+ * banda pide mover la capa TÁCTICA, que es decidir cómo tiene que verse el deporte. Por eso
+ * `relayPaceWeight` está en 0,5 (el nivel exacto del parche de la v16 al que sustituye) y por eso
+ * `ENGINE_VERSION` sigue en 37: esto no se sube hasta que el dueño decida.
  */
 export const ENGINE_VERSION = 37 as const
 
@@ -1318,6 +1351,31 @@ export const STAGE = {
   shelterAlone: 0.0,
   // coste = dx·costeBase·ritmo(c)^1.6·(1 - draftMax·shelter).
   costRhythmExponent: 1.6,
+  /**
+   * LA CONVEXIDAD DEL VIENTO (v38). El coste era LINEAL en la exposición (`1 − draftMax·shelter`):
+   * 1,00 dando la cara y 0,62 a rueda, o sea que ir a rueda costaba el 62 % de dar la cara. El
+   * dueño: «el que va a rueda va muuucho más cómodo y por tanto muchísimo menor coste… si solo tira
+   * 1, el coste debería ser prácticamente el doble que si tiran 2».
+   *
+   * Y tiene razón de fisiología: la POTENCIA sí va en proporción lineal —el rebufo ahorra un 40 % de
+   * vatios— pero lo que este motor gasta es el DEPÓSITO, y el depósito no es lineal en la potencia.
+   * A 45 km/h el que da la cara va por encima del umbral quemando glucógeno y el que va a rueda va
+   * en fondo, donde apenas se gasta. Con el exponente, ir a rueda pasa a costar el 39 % de dar la
+   * cara en vez del 62 %.
+   *
+   * Se ancla en el que va DESCUBIERTO, así que el que paga el viento entero cuesta lo que costaba
+   * (la contrarreloj no se mueve) y lo que cambia es que la rueda sale barata.
+   */
+  costExposureExponent: 1.3,
+  /**
+   * …Y A QUIÉN NO SE LE MUEVE LA FACTURA. El exponente es una PROPORCIÓN (cuánto más barata es la
+   * rueda que dar la cara) y no un nivel: aplicado a pelo abarata a todo el mundo, porque casi todo
+   * el mundo va a rueda casi todo el rato. El pivote fija el nivel en el corredor arropado —ciento
+   * setenta de ciento setenta y seis en cada foto—, así que la energía que gasta el pelotón en una
+   * etapa es la misma que antes de la v38 y lo que cambia es CÓMO SE REPARTE: el que da la cara paga
+   * más, el que va a rueda paga menos.
+   */
+  costExposurePivot: 0.9,
 
   // 6.5/6.18 — Reparto del trabajo dentro del grupo: quién TIRA y quién va a rueda. NO puede
   // decidirlo el orden del array de entrada: se ordena por "deber de relevo", con el rol como
@@ -1370,6 +1428,38 @@ export const STAGE = {
    * quién puede nombrar la radio.
    */
   relayRotationMax: 8,
+  /**
+   * LA ROTACIÓN QUE `vRef` YA LLEVA DENTRO (v38). La ley de velocidad pasa a saber cuánta gente tira
+   * (`relayPaceEdge`), y eso obliga a decir respecto a QUÉ. La respuesta es `relayRotationMax`: un
+   * PELOTÓN rota los hombres que caben en la cabeza de un grupo, y `vRefFlat` y compañía están
+   * calibrados contra el pelotón. Con esta referencia el pelotón no se mueve ni un dígito y el
+   * relevo solo puede RESTAR: el hombre solo pierde un 14,5 % de velocidad en llano, una pareja un
+   * 7,2 % y una fuga de cinco un 1,6 %.
+   *
+   * Y se probó con 3 —el turno MEDIDO del pelotón cuando el frente tiene dueño (3,20 de media sobre
+   * 11.952 fotos, v34/v35)— y NO vale: los escenarios canónicos con los que están calibradas las
+   * bandas corren SIN equipos, así que allí rotan ocho, y con la referencia en 3 el pelotón pasaba a
+   * ir un 4,5 % más rápido que la fuga. Medido: la fuga de montaña se hundió del 35,4 % al 13,0 %
+   * (banda 25-45). El turno de 3 es un reparto de FACTURA, no una rotación más corta en la
+   * carretera, y por eso la velocidad se mide con `relayRotation` y no con quién acaba pagando.
+   */
+  relayPaceReference: 8,
+  /**
+   * CUÁNTA DE ESA LEY SE COBRA (v38). El argumento del reparto del viento, cobrado ENTERO, dice que
+   * un hombre solo va un 14,5 % más lento que un pelotón que rota ocho, y eso es carretera: el
+   * problema es que el motor llevaba desde siempre metiendo ese mismo hecho a mano en otros sitios
+   * —el compromiso del descolgado (v16), el tope de la pelea (v35)— y las bandas están calibradas
+   * con esos parches puestos.
+   *
+   * Con el peso en 0,5 el castigo por ir solo vale un 7,2 %, que es justo lo que valía el parche de
+   * la v16 al que sustituye (`shedCommitAlone` = 0,55 contra 0,82 son un 7,1 %). O sea: la v38 no
+   * hace el efecto más GRANDE, lo pone donde tiene que estar —en la ley, ordenado por tamaño y a
+   * precio de rebufo— sin mover el nivel que el corte de control y la fuga del día ya tenían
+   * calibrado. El coste entero (peso 1) queda medido en docs/balance.md: hunde la fuga de montaña al
+   * 9 % (banda 25-45) y manda al 31,5 % de los abandonos fuera de control (banda 1-15), y subirlo
+   * es una decisión de cómo tiene que verse el deporte, no un arreglo.
+   */
+  relayPaceWeight: 0.5,
   // …Y CUÁNTOS EQUIPOS CABEN EN ESA CABEZA CUANDO NADIE MANDA (v35, §V.1). El dueño lo pidió con
   // estas palabras: «si el frente no tiene dueño único, debería haber 1, 2 o 3 equipos que tiren,
   // pero con menor intensidad». Tres es el tope: por debajo de eso lo pone la carretera —si solo

@@ -106,14 +106,61 @@ export function loadExponent(block: Block): number {
 }
 
 /**
- * Velocidad objetivo del grupo en un bloque (SPEC 6.4):
- * v_obj = vRef(g)·carga(P75_perfil)·ritmo(c). El P75 lo aportan quienes marcan el ritmo, y la carga
- * es la potencia relativa elevada al exponente del terreno (v19; hasta la v18, `(P75/75)^0.39` en
- * todas partes).
+ * LO QUE VALE RELEVARSE, EN VELOCIDAD (v38, principio 1 del dueño): «el tamaño a medir no es el
+ * tamaño del grupo, sino el tamaño de la gente que va tirando… si hay 10 personas tirando, ya sea
+ * del pelotón, de una fuga o de lo que sea, tienen potencial para ir más rápido que un grupo donde
+ * solo tire 1 (aunque claro, si ese 1 es un crack y no está desfondado… quizás pueda ir más
+ * rápido)».
+ *
+ * Hasta la v37 la ley de velocidad no sabía cuánta gente tiraba: `v = vRef · relPower(P75)^e ·
+ * ritmo(c)`, y medido, un grupo de 1, 4, 8, 30 y 150 hombres con el mismo compromiso y el mismo P75
+ * iba a la MISMA velocidad exacta (47,31 km/h en llano). El rebufo solo se cobraba en el COSTE, así
+ * que el tamaño del turno daba autonomía y no daba velocidad. De ahí salía el defecto que se veía en
+ * la carretera: la fuga del día sobrevivía MÁS siendo 2-3 (11,9 %) que siendo 4-6 (2,1 %).
+ *
+ * Y no hace falta inventar física para arreglarlo, porque el motor ya la tenía escrita en el otro
+ * lado del libro. En una rotación de `n`, a cada hombre le toca la cabeza 1/n del tiempo, así que su
+ * potencia media es la del que va delante por su exposición, `1 − draftMax·shelterOf(true, n)`. Al
+ * revés: **si lo que puede sostener es su umbral, el que va en cabeza puede ir a `umbral /
+ * exposición`**, y por eso diez rotando van más rápido que uno solo con las mismas piernas. Es
+ * exactamente la misma pieza que `blockCost` cobra en energía, leída en el otro sentido.
+ *
+ * Se normaliza en `relayPaceReference` porque `vRef` está calibrado contra el pelotón **tal y como
+ * el motor lo rueda**: medido sobre cuatro carreras del banco, el turno del pelotón es de 3,20
+ * hombres de media (mediana 3, p90 6) —no de ocho: desde la v34 el frente tiene dueño y rotan SUS
+ * hombres—. Con esa referencia el pelotón no se mueve ni un dígito y lo que cambia es todo lo demás:
+ * el hombre solo pierde, la fuga que se releva entera gana.
+ *
+ * Y se cobra a precio de rebufo por construcción, sin una línea extra: `draftMax` vale 0,42 en el
+ * llano y 0,096 en una rampa al 8 %, así que arriba relevarse casi no compra nada —no hay rueda a la
+ * que ir— y el que sube solo sube casi igual que el grupo. Es el mismo argumento de `droppedCommit`
+ * (v16), que ahora vive donde tenía que vivir: en la ley.
  */
-export function targetSpeed(block: Block, p75Perfil: number, c: number): number {
+export function relayPaceEdge(block: Block, pullers: number): number {
+  const exposure = (n: number): number => 1 - draftMax(block) * shelterOf(true, n)
+  const full = exposure(STAGE.relayPaceReference) / exposure(Math.max(1, pullers))
+  return Math.pow(full, STAGE.relayPaceWeight)
+}
+
+/**
+ * Velocidad objetivo del grupo en un bloque (SPEC 6.4):
+ * v_obj = vRef(g)·carga(P75_perfil · relevo)·ritmo(c). El P75 lo aportan quienes marcan el ritmo, la
+ * carga es la potencia relativa elevada al exponente del terreno (v19; hasta la v18, `(P75/75)^0.39`
+ * en todas partes) y el relevo es lo que valga repartirse el viento entre los que tiran (v38).
+ *
+ * El relevo entra DENTRO del exponente y no fuera, porque es potencia y no velocidad: en el llano la
+ * velocidad va como la raíz cúbica de los vatios (0,39) y subiendo va como los vatios enteros. Así
+ * un turno de ocho compra un 4,5 % de velocidad en el llano y un 1,9 % en una rampa dura, que es la
+ * carretera.
+ */
+export function targetSpeed(
+  block: Block,
+  p75Perfil: number,
+  c: number,
+  pullers: number = STAGE.relayPaceReference,
+): number {
   const base = vRef(block.g, block.tipo)
-  const load = Math.pow(relPower(p75Perfil), loadExponent(block))
+  const load = Math.pow(relPower(p75Perfil) * relayPaceEdge(block, pullers), loadExponent(block))
   return base * load * rhythm(c)
 }
 
@@ -238,10 +285,21 @@ export function droppedCommit(
   aheadSize: number,
   aheadCommit: number,
 ): number {
-  const rotation = 1 - 1 / Math.max(1, size)
   const wind = draftMax(block) / STAGE.draftFlat
-  const able =
-    STAGE.shedCommitAlone + (STAGE.shedCommitBunch - STAGE.shedCommitAlone) * rotation * wind
+  /**
+   * …Y LO QUE VALE RELEVARSE YA NO SE COBRA AQUÍ (v38). Hasta la v37 este término era
+   * `shedCommitAlone + (shedCommitBunch − shedCommitAlone)·rotación·viento`: el hombre solo rodaba a
+   * 0,55 y el autobús a 0,82, y eso era la v16 metiendo A MANO en el COMPROMISO lo que la ley de
+   * velocidad no sabía —que relevarse reparte el viento—. Desde la v38 la ley lo sabe
+   * (`relayPaceEdge`), así que dejarlo aquí sería cobrarlo DOS VECES: medido con las dos, el hombre
+   * solo perdía un 7 % por el compromiso más un 10,7 % por la ley, y los grupetos se iban fuera de
+   * control en el 41,5 % de los abandonos de una gran vuelta (banda 1-15 %).
+   *
+   * Lo que queda aquí es lo que siempre fue una DECISIÓN y no una física: a qué ritmo QUIERE rodar
+   * un grupo que se ha ido por detrás. Y quiere rodar al de un pelotón —lo que pueda darle su turno
+   * ya lo dice la ley—.
+   */
+  const able = STAGE.shedCommitBunch
   const legs =
     STAGE.shedEmptyCommitFactor + (1 - STAGE.shedEmptyCommitFactor) * clamp(freshness, 0, 1)
   // La frescura pesa sobre el ritmo del GRUPETO y no sobre el del que pelea, y no es un detalle: lo
@@ -259,7 +317,7 @@ export function droppedCommit(
    * delante más lo que valga su rotación, y se mezcla con el 0,82 de siempre a precio de rebufo:
    * en el llano manda el tope, en la rampa no hay rueda a la que ir y queda la v16 intacta.
    */
-  const chase = clamp(aheadCommit, 0, 1) + STAGE.shedChaseEdge * rotation
+  const chase = clamp(aheadCommit, 0, 1)
   const ceiling =
     STAGE.shedFightCommit - wind * (STAGE.shedFightCommit - Math.min(STAGE.shedFightCommit, chase))
   // El tope es una LIMITACIÓN, no una decisión, así que se aplica al final y no se mezcla con las
@@ -359,10 +417,24 @@ export function shelterOf(pulling: boolean, pullers: number): number {
  * techo: en la cabeza de un grupo caben unos pocos hombres rotando, no un cuarto del pelotón
  * (`relayRotationMax`). El turno es el menor de los dos, y nunca menos de uno: si el grupo rueda,
  * alguien está dando la cara.
+ *
+ * …Y CUÁNTOS SE PONEN DELANTE ES UNA DECISIÓN, NO UNA CONSTANTE (v38). Hasta la v37 daba igual, pero
+ * desde que la ley de velocidad sabe entre cuántos se reparte el viento (`relayPaceEdge`), el
+ * tamaño del turno ES el ritmo, y un pelotón no lleva ocho hombres dando la cara cuando rueda a
+ * tempo: lleva dos o tres. Medido con la sonda sobre cuatro carreras del banco y 11.952 fotos, el
+ * turno REAL de un pelotón con equipos es de 3,20 hombres de media.
+ *
+ * Así que el techo de la carretera se escala con el COMPROMISO del grupo, y con eso el motor gana la
+ * mecánica que le faltaba y que es la de verdad: **un pelotón no caza una fuga solo queriendo, la
+ * caza poniendo más hombres delante**. A tempo (0,50) rotan cuatro y no le comen un metro a una fuga
+ * de cuatro que se releva entera; cazando (0,85) rotan siete y la cierran. Sin esto, la fuga de
+ * montaña se hundía del 35,4 % al 9,0 % (banda 25-45), porque el pelotón rotaba ocho a cualquier
+ * ritmo y ninguna fuga podía igualar ese reparto.
  */
-export function relayRotation(size: number, paceFraction: number): number {
+export function relayRotation(size: number, paceFraction: number, commit = 1): number {
   const asked = Math.ceil(paceFraction * size)
-  return Math.max(1, Math.min(size, asked, STAGE.relayRotationMax))
+  const road = Math.max(1, Math.round(STAGE.relayRotationMax * clamp(commit, 0, 1)))
+  return Math.max(1, Math.min(size, asked, road))
 }
 
 /** El esfuerzo de referencia: ir arropado en un grupo que rueda al tempo de carretera. */
@@ -371,16 +443,67 @@ export function idleEffort(block: Block): number {
 }
 
 /**
- * Coste de energía de un corredor en un bloque (SPEC 6.5):
- * coste = dx·costeBase·ritmo(c)^1.6·(1 - draftMax·shelter).
+ * LO QUE CUESTA EL VIENTO QUE TE TOCA (v38, principio 2 del dueño): «el que va a rueda va muuucho
+ * más cómodo y por tanto muchísimo menor coste».
+ *
+ * Hasta la v37 el coste era LINEAL en la exposición: `1 − draftMax·shelter`, o sea 1,00 dando la
+ * cara y 0,62 a rueda. Eso dice que ir a rueda cuesta el 62 % de dar la cara, y en la carretera no
+ * es eso. La potencia sí va en esa proporción —el rebufo ahorra un 40 % de vatios, no un 90 %—,
+ * pero lo que este motor gasta no son vatios: es el DEPÓSITO, y el depósito no es lineal en la
+ * potencia. A 45 km/h el que da la cara va por encima de su umbral quemando glucógeno y el que va a
+ * rueda va en fondo, donde casi no se gasta. Por eso la exposición entra por un exponente
+ * (`costExposureExponent`) y no a pelo.
+ *
+ * Se ancla en el que va DESCUBIERTO (`shelterAlone`), no en el arropado, y eso es deliberado: así el
+ * que paga el viento entero cuesta exactamente lo que costaba —la contrarreloj, que es justo eso,
+ * no se mueve ni un dígito— y lo que la v38 cambia es que ir a rueda pasa a ser MUCHO más barato,
+ * que es lo que el dueño describe.
  */
-export function blockCost(block: Block, c: number, shelter: number, dx: number = STAGE.dx): number {
-  return (
-    dx *
-    costBase(block) *
-    Math.pow(rhythm(c), STAGE.costRhythmExponent) *
-    (1 - draftMax(block) * shelter)
-  )
+export function exposureCost(block: Block, shelter: number): number {
+  const d = draftMax(block)
+  /**
+   * EL PIVOTE ES EL NIVEL, EL EXPONENTE ES LA PROPORCIÓN, y separarlos es lo que hace la v38
+   * calibrable. El exponente dice cuánto más barata es la rueda que dar la cara —el principio del
+   * dueño—; el pivote dice a quién NO se le mueve la factura, y ése tiene que ser el corredor que
+   * lleva la calibración a cuestas: el que va a rueda, que son ciento setenta de ciento setenta y
+   * seis en cada foto. Si se abarata a ÉL, el pelotón entero llega a meta entero y la erosión se
+   * hunde —medido: la reina se fue de 0,195 a 0,061 con la banda en 0,18-0,50—.
+   */
+  const pivot = Math.pow(1 - d * STAGE.costExposurePivot, STAGE.costExposureExponent - 1)
+  return Math.pow(1 - d * shelter, STAGE.costExposureExponent) / pivot
+}
+
+/**
+ * Coste de energía de un corredor en un bloque (SPEC 6.5):
+ * coste = dx · costeBase · ritmo(c)^1.6 · exposición_del_turno.
+ *
+ * Y LA EXPOSICIÓN SE PROMEDIA SOBRE EL TURNO, NO SOBRE EL REBUFO (v38). Hasta la v37 se calculaba el
+ * rebufo MEDIO del que tira (`shelterOf`: `shelterProtected·(1 − 1/n)`) y se cobraba una vez. Es la
+ * cuenta del dueño, pero hecha en el orden que engaña: lo que un hombre hace de verdad en una
+ * rotación de dos no es ir a medio rebufo todo el rato, es ir **la mitad del tiempo dando la cara y
+ * la mitad a rueda**, y como el coste no es lineal, promediar antes o después NO da lo mismo.
+ *
+ * Textual: «si solo tira 1, el coste debería ser prácticamente el doble que si tiran 2 (un poquito
+ * menos que el doble, pero casi… porque si tiran 2, pues el 50 % está tirando y el 50 % está a
+ * rueda), y si tiran 4 pues la cosa se reparte mucho más, y si tiran 10 pues aún más». Eso es
+ * literalmente esta línea: `1/n` del bloque descubierto y `1 − 1/n` a rueda.
+ *
+ * Y el COMPROMISO sigue pesando por `ritmo(c)^costRhythmExponent`, que es la otra mitad de la frase
+ * —«si se tira sin compromiso pues casi no debería haber coste»—: rodar a tempo cuesta la mitad que
+ * rodar a bloque, y el que tira en un grupo que va tranquilo casi no lo nota.
+ */
+export function blockCost(
+  block: Block,
+  c: number,
+  pulling: boolean,
+  pullers: number,
+  dx: number = STAGE.dx,
+): number {
+  const share = pulling ? 1 / Math.max(1, pullers) : 0
+  const exposicion =
+    share * exposureCost(block, STAGE.shelterAlone) +
+    (1 - share) * exposureCost(block, STAGE.shelterProtected)
+  return dx * costBase(block) * Math.pow(rhythm(c), STAGE.costRhythmExponent) * exposicion
 }
 
 // --- 6.6 Cerillos ---------------------------------------------------------------------------

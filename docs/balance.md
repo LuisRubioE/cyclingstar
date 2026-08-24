@@ -7424,6 +7424,192 @@ equipo, dentro de banda.
 - **El que baja no habla con el jefe.** Sigue siendo una decisión del equipo mirando el boquete, no
   del corredor: no hay «espérame» ni director que decida distinto según el día.
 
+## v38 — El viento lo reparten los que tiran (`engine_version` 37 → 38) · EN CURSO, PENDIENTE DE DECISIÓN
+
+> **La corrección del dueño, textual:**
+>
+> «Ojo, el tamaño a medir no es el tamaño del grupo, sino el tamaño de la gente que va tirando… si
+> hay 10 personas tirando, ya sea del pelotón, de una fuga o de lo que sea, tienen potencial para ir
+> más rápido que un grupo donde solo tire 1 (aunque claro, si ese 1 es un crack y no está
+> desfondado… quizás pueda ir más rápido).»
+>
+> «Por otro lado, el coste supongo que es la fatiga que le supone a cada ciclista… aquí hay que
+> distinguir la fatiga del que va tirando del que va a rueda sin tirar… el que va a rueda va muuucho
+> más cómodo y por tanto muchísimo menor coste… luego ya si solo tira 1 el coste debería ser
+> prácticamente el doble que si tiran 2 (un poquito menos que el doble, pero casi… porque si tiran
+> 2, pues el 50 % está tirando y el 50 % está a rueda), y si tiran 4 pues la cosa se reparte mucho
+> más, y si tiran 10 pues aún más. Ojo, el compromiso también debe afectar al coste.»
+
+**Esta entrada está a medias a propósito.** Los dos principios están implementados y medidos; lo que
+falta es una decisión que no es mía, y está en la §6.
+
+### 1. El agujero, dicho con precisión
+
+Hasta la v37 la ley de velocidad no sabía cuánta gente tiraba:
+
+```
+v      = vRef(terreno) · relPower(P75 de los que marcan el ritmo)^e · ritmo(compromiso)
+coste  = dx · costeBase · ritmo^1,6 · (1 − draftMax · rebufo)      ← el rebufo vivía SOLO aquí
+```
+
+Medido: un grupo de **1, 4, 8, 30 y 150** hombres con el mismo compromiso y el mismo P75 iba a la
+**misma velocidad exacta** (47,31 km/h en llano). El tamaño del turno daba autonomía, no velocidad.
+Y de ahí salía el defecto de carretera: la fuga del día sobrevivía **más siendo 2-3 (11,9 %) que
+siendo 4-6 (2,1 %)**, porque la fuga grande se llevaba a más gente pero no rodaba más rápido y a
+cambio arrastraba hombres peores que le bajaban el P75.
+
+### 2. Principio 1 — la velocidad la marcan los que tiran
+
+No hace falta física nueva: el motor ya tenía la pieza escrita en el otro lado del libro. En una
+rotación de `n`, a cada hombre le toca la cabeza `1/n` del tiempo, así que su potencia media es la
+del que va delante por su exposición, `1 − draftMax·shelterOf(true, n)`. **Leído al revés: si lo que
+un hombre sostiene es su umbral, el que va en cabeza puede ir a `umbral / exposición`.** Diez rotando
+van más rápido que uno solo con las mismas piernas, y el «salvo que ese 1 sea un crack» ya lo dice el
+P75, que no se toca.
+
+```
+relayPaceEdge(n) = [ exposición(referencia) / exposición(n) ] ^ relayPaceWeight
+v = vRef · ( relPower(P75) · relayPaceEdge(n) )^e · ritmo(c)
+```
+
+Entra **dentro** del exponente porque es potencia y no velocidad, y se cobra a precio de rebufo por
+construcción: `draftMax` vale 0,42 en el llano y 0,096 en una rampa al 8 %, así que arriba relevarse
+casi no compra nada y el que sube solo sube casi igual que el grupo.
+
+| tiran | llano      | puerto 8 % |
+| ----- | ---------- | ---------- |
+| 1     | 43,75 km/h | 17,38 km/h |
+| 2     | 45,57 km/h | 17,77 km/h |
+| 4     | 46,69 km/h | 17,97 km/h |
+| 8     | 47,31 km/h | 18,08 km/h |
+| 10    | 47,45 km/h | 18,10 km/h |
+
+### 3. …y cuántos se ponen delante es una DECISIÓN, no una constante
+
+Esta es la pieza que hace que todo lo demás encaje, y es la mecánica de verdad que al motor le
+faltaba: **un pelotón no caza una fuga solo queriendo, la caza poniendo más hombres delante.**
+`relayRotation` escala el techo de la carretera con el compromiso del grupo:
+
+| compromiso del pelotón | hombres delante |
+| ---------------------- | --------------- |
+| 0,50 (tempo)           | 4               |
+| 0,60                   | 5               |
+| 0,70                   | 6               |
+| 0,85 (cazando)         | 7               |
+| 1,00 (a bloque)        | 8               |
+
+Una fuga de cinco rota cinco a cualquier compromiso: no tiene más gente. Así, con el pelotón a tempo
+la fuga no pierde un metro, y en cuanto el pelotón se pone a cazar, la cierra.
+
+Y hay una separación que **no** es un apaño: la VELOCIDAD la marca la rotación que cabe en la
+carretera (`relayRotation`) y el COSTE lo pagan los que de verdad están en el turno (`relayers`), que
+son menos porque el dueño del frente se lleva la rotación (v34), el que persigue con los suyos se
+aparta (v33), el jefe arropado no entra (v36) y el que tiene al jefe descolgado tampoco (v37). Es
+literalmente lo que el repo lleva escrito desde la v34: «no cambia el ritmo del grupo, solo entre
+quiénes se reparte el viento». Medido, atar la velocidad a la FACTURA hundía la fuga de montaña del
+35,4 % al 13,0 %, porque un pelotón con dueño «rota 3» y una fuga rota entera.
+
+### 4. Principio 2 — la rueda es mucho más barata que dar la cara
+
+Dos cosas, y las dos son del dueño:
+
+**(a) La exposición entra por un exponente, no a pelo.** El coste era lineal —1,00 dando la cara,
+0,62 a rueda— y eso dice que ir a rueda cuesta el 62 % de dar la cara. La POTENCIA sí va en esa
+proporción (el rebufo ahorra un 40 % de vatios), pero lo que este motor gasta es el DEPÓSITO, y el
+depósito no es lineal en la potencia: a 45 km/h el que da la cara va por encima del umbral quemando
+glucógeno y el que va a rueda va en fondo. Con `costExposureExponent` la rueda pasa a costar el
+**51 %** de dar la cara.
+
+**(b) La exposición se promedia sobre el TURNO, no sobre el rebufo.** Es la cuenta del dueño hecha en
+el orden correcto: lo que un hombre hace en una rotación de dos no es ir a medio rebufo todo el rato,
+es ir **la mitad del tiempo descubierto y la mitad a rueda**, y como el coste no es lineal, promediar
+antes o después no da lo mismo.
+
+Y un pivote (`costExposurePivot`) que separa la PROPORCIÓN del NIVEL: el exponente aplicado a pelo
+abarata a todo el mundo —casi todo el mundo va a rueda casi todo el rato— y la erosión se hundía
+(medido: la reina de 0,195 a **0,061**, banda 0,18-0,50). Anclado en el corredor arropado, la energía
+que gasta el pelotón en una etapa es la misma y lo que cambia es **cómo se reparte**.
+
+| coste por bloque (llano, compromiso 0,80) | v37   | v38       |
+| ----------------------------------------- | ----- | --------- |
+| a rueda sin tirar                         | ref   | ref       |
+| tirando, turno de 1                       | ×1,61 | **×1,94** |
+| tirando, turno de 2                       | ×1,30 | **×1,47** |
+| tirando, turno de 4                       | ×1,15 | ×1,24     |
+| tirando, turno de 10                      | ×1,06 | ×1,09     |
+| **1 contra 2 («casi el doble»)**          | ×1,23 | **×1,32** |
+| **la rueda contra dar la cara**           | 62 %  | **51 %**  |
+
+### 5. Lo que se ha podido quitar
+
+`droppedCommit` (v16) metía A MANO en el COMPROMISO lo que la ley no sabía —el hombre solo rodaba a
+0,55 y el autobús a 0,82— y el tope de la v35 hacía lo mismo con la pelea. Las dos piezas **se han
+retirado**: ahora la ley lo dice sola, ordenado por tamaño y a precio de rebufo. Dejarlas era cobrar
+el mismo hecho dos veces, y medido, los grupetos se iban fuera de control en el 41,5 % de los
+abandonos de una gran vuelta (banda 1-15 %).
+
+### 6. LO QUE NO SALE, Y POR QUÉ ESTO ESTÁ PARADO
+
+Con los dos principios cobrados **enteros** (`relayPaceWeight` = 1, `costExposureExponent` = 2), el
+Montecarlo se cae por tres sitios a la vez, y no es ruido:
+
+| invariante                       | v37    | v38 entera | banda   |
+| -------------------------------- | ------ | ---------- | ------- |
+| Gana la fuga (montaña)           | 35,4 % | **9,0 %**  | 25-45 % |
+| Abandonos FUERA DE CONTROL       | ~9 %   | **31,5 %** | 1-15 %  |
+| Erosión mediana, llana en fresco | 0,014  | **0,036**  | 0-0,02  |
+
+Y el motivo es de fondo, no de perilla: **la fuga era más rápida de lo que le tocaba porque el motor
+no cobraba el reparto del viento en la velocidad.** Con el reparto cobrado, un pelotón que pone siete
+hombres delante es más rápido que una fuga de cuatro que rota cuatro —eso es carretera— y la fuga
+deja de llegar. Recuperar el 25-45 % con la física puesta pide mover la capa TÁCTICA: que el pelotón
+persiga menos, o más tarde, o que la fuga salga con más ventaja. Eso ya no es implementar el
+principio del dueño: es decidir cómo tiene que verse el deporte, y esa decisión es suya.
+
+Aisladas, con `costExposureExponent` = 1 (coste idéntico a la v37), la fuga de montaña seguía en el
+**14,0 %**: o sea que quien mueve las tres bandas es el PRINCIPIO 1, y ninguna cantidad de ajuste del
+coste lo arregla.
+
+**Lo que sí está entregado** es la versión con el efecto puesto donde tiene que estar pero sin subir
+el NIVEL que las bandas ya tenían calibrado (`relayPaceWeight` = 0,5, `costExposureExponent` = 1,3):
+con ese peso, ir solo cuesta un 7,2 % de velocidad, que es exactamente lo que valía el parche de la
+v16 al que sustituye (`shedCommitAlone` 0,55 contra 0,82 son un 7,1 %). O sea: la v38 no hace el
+efecto más GRANDE, lo pone donde tiene que estar —en la ley, ordenado por tamaño y a precio de
+rebufo—.
+
+Campaña de 500 corridas con esa configuración: **32 invariantes verdes de 33**, y el que queda es
+justo el de la §6:
+
+| invariante                       | v37    | v38 (peso 0,5) | banda    |
+| -------------------------------- | ------ | -------------- | -------- |
+| Gana la fuga (llana)             | 5,6 %  | 2,4 %          | 2-10 %   |
+| **Gana la fuga (montaña)**       | 35,4 % | **20,8 %**     | 25-45 %  |
+| Brecha 1.º-10.º (reina)          | 256 s  | 187,5 s        | 60-300 s |
+| Cola de una crono real           | 14,0 % | 14,0 %         | 8-15 %   |
+| Erosión mediana, llana en fresco | 0,014  | 0,018          | 0-0,02   |
+| Erosión mediana, reina en fresco | 0,195  | 0,210          | 0,18-0,5 |
+| Voz de EQUIPO en el parte        | 72,8 % | 78,6 %         | 50-85 %  |
+| Abandonos FUERA DE CONTROL       | ~9 %   | 4,2 %          | 1-15 %   |
+
+La contrarreloj no se mueve **ni un dígito**, y es a propósito: es el ancla del esfuerzo individual
+—allí no hay rotación que repartir y el ritmo lo pone `ttCommitment`, calibrado contra cronos reales
+del calendario—, así que cobrarle una penalización por no tener con quién relevarse sería contar dos
+veces lo mismo.
+
+### 7. La decisión que hace falta
+
+Con la física puesta, la fuga de montaña se queda en el **20,8 %** contra una banda de 25-45. No es
+un fallo de implementación: es que la fuga era más rápida de lo que le tocaba. Hay tres salidas y
+las tres son del dueño:
+
+1. **Recalibrar la capa táctica** para devolver la fuga al 25-45 % con la física puesta: que el
+   pelotón persiga más tarde o con menos hombres delante. Es la salida correcta y es otra tanda.
+2. **Bajar la banda** a 20-45 %, si al mirarlo se decide que una fuga de montaña que gana una de cada
+   cinco veces es lo que tiene que ser. No lo hago yo.
+3. **Dejar el principio 1 fuera** y quedarse solo con el principio 2 (el coste), que sí sale limpio.
+
+Mientras tanto esto NO se sube a `main`: queda en la rama, medido y documentado.
+
 ## El motor depende del ORDEN DE ENTRADA (defecto medido — ARREGLADO en la v35)
 
 > **ARREGLADO EN LA v35** (ver «v35 — Volver cuesta», §4): `simulateStage` ordena el campo por

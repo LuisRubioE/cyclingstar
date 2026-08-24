@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { Attribute } from '@cyclingstar/shared'
 import { STAGE } from '../constants.js'
 import { simulateStage, stageTss } from './simulate.js'
-import { blockCost, shelterOf } from './physics.js'
+import { blockCost } from './physics.js'
 import { stageSeed } from './rng.js'
 import type { RaceEvent, StageInput, StageOrders, StageOutput, StageRider } from './types.js'
 
@@ -508,13 +508,18 @@ describe('energía nunca negativa (SPEC 6.5, 6.7)', () => {
   // NINGÚN coste de bloque es negativo (un coste negativo rellenaría el tanque y rompería la
   // erosión). Se barre toda la rejilla de terreno, compromiso y abrigo que usa el motor.
   it('el coste de un bloque nunca es negativo, en ningún terreno ni abrigo', () => {
-    const shelters = [STAGE.shelterAlone, shelterOf(true, 2), STAGE.shelterProtected, 1]
+    const turnos: Array<[boolean, number]> = [
+      [true, 1],
+      [true, 2],
+      [true, 8],
+      [false, 8],
+    ]
     for (const tipo of ['llano', 'subida', 'descenso', 'paves'] as const) {
       for (let g = -15; g <= 20; g++) {
         for (const estrellas of [0, 1, 2, 3, 4, 5]) {
           for (let c = 0; c <= 1.0001; c += 0.1) {
-            for (const shelter of shelters) {
-              const cost = blockCost({ tipo, g, estrellas }, c, shelter)
+            for (const [pulling, pullers] of turnos) {
+              const cost = blockCost({ tipo, g, estrellas }, c, pulling, pullers)
               expect(Number.isFinite(cost)).toBe(true)
               expect(cost).toBeGreaterThanOrEqual(0)
             }

@@ -141,8 +141,8 @@ describe('coste y drafting (6.5)', () => {
 
   it('el rebufo abarata el bloque; ir protegido gasta menos que ir solo', () => {
     const b = block('llano', 0)
-    const protegido = blockCost(b, 0.5, 0.9)
-    const solo = blockCost(b, 0.5, 0.0)
+    const protegido = blockCost(b, 0.5, false, 8)
+    const solo = blockCost(b, 0.5, true, 1)
     expect(protegido).toBeLessThan(solo)
   })
 

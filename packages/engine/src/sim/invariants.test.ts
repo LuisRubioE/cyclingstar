@@ -731,13 +731,13 @@ describe('cierre del pelotón comprometido (6.17)', () => {
     let brk = createGroup('brk', ['b'], { compromiso: 0.6 })
     let pel = createGroup('pel', ['p'], { compromiso: 0.85 })
     for (let i = 0; i < 50; i++) {
-      brk = advanceGroup(brk, flat, 68, {})
-      pel = advanceGroup(pel, flat, 68, {})
+      brk = advanceGroup(brk, flat, 68, undefined, {})
+      pel = advanceGroup(pel, flat, 68, undefined, {})
     }
     const gap0 = pel.tS - brk.tS
     for (let i = 0; i < 100; i++) {
-      brk = advanceGroup(brk, flat, 68, {})
-      pel = advanceGroup(pel, flat, 68, {})
+      brk = advanceGroup(brk, flat, 68, undefined, {})
+      pel = advanceGroup(pel, flat, 68, undefined, {})
     }
     const cierre = gap0 - (pel.tS - brk.tS)
     expect(cierre).toBeGreaterThanOrEqual(50)
