@@ -504,6 +504,22 @@ export function exposureCost(block: Block, shelter: number): number {
  * —«si se tira sin compromiso pues casi no debería haber coste»—: rodar a tempo cuesta la mitad que
  * rodar a bloque, y el que tira en un grupo que va tranquilo casi no lo nota.
  */
+/**
+ * EL COSTE DE LA CONTRARRELOJ, QUE ES EL ANCLA Y NO SE TOCA (v38).
+ *
+ * `costExposureExponent` dice lo que cuesta ir POR ENCIMA de lo que sostendrías tú solo, que es lo
+ * que hace el que da la cara en un grupo que rueda más rápido de lo que él aguantaría en solitario.
+ * Un cronoman no hace eso: va a SU umbral de principio a fin, y a qué ritmo lo hace ya lo dice
+ * `ttCommitment`, calibrado contra cronos reales del calendario. Cobrarle la convexidad sería
+ * cobrarle dos veces por lo mismo y, medido, se le iba el coste de la etapa por un factor de dos.
+ *
+ * Así que la crono paga la ley LINEAL de siempre, y por eso las bandas de la crono no se han movido
+ * ni un dígito en toda la v38.
+ */
+export function timeTrialCost(block: Block, c: number, dx: number = STAGE.dx): number {
+  return dx * costBase(block) * Math.pow(rhythm(c), STAGE.costRhythmExponent)
+}
+
 export function blockCost(
   block: Block,
   c: number,

@@ -1366,7 +1366,7 @@ export const STAGE = {
    * Se ancla en el que va DESCUBIERTO, así que el que paga el viento entero cuesta lo que costaba
    * (la contrarreloj no se mueve) y lo que cambia es que la rueda sale barata.
    */
-  costExposureExponent: 1.3,
+  costExposureExponent: 2,
   /**
    * …Y A QUIÉN NO SE LE MUEVE LA FACTURA. El exponente es una PROPORCIÓN (cuánto más barata es la
    * rueda que dar la cara) y no un nivel: aplicado a pelo abarata a todo el mundo, porque casi todo
@@ -1375,7 +1375,7 @@ export const STAGE = {
    * etapa es la misma que antes de la v38 y lo que cambia es CÓMO SE REPARTE: el que da la cara paga
    * más, el que va a rueda paga menos.
    */
-  costExposurePivot: 0.9,
+  costExposurePivot: 0.8,
 
   // 6.5/6.18 — Reparto del trabajo dentro del grupo: quién TIRA y quién va a rueda. NO puede
   // decidirlo el orden del array de entrada: se ordena por "deber de relevo", con el rol como
@@ -1859,7 +1859,14 @@ export const STAGE = {
   // y el estadístico tiene mucha varianza: medido con 120 / 500 semillas, 335 -> 22% / 26%,
   // 342 -> 26% / 31%, 350 -> 29% / 35%, 365 -> 37% / 47%. Con 350 el rango 25-45% se cumple en las
   // DOS campañas (la de CI y la de `pnpm sim`), que es la condición que hay que exigir.
-  gcControlLeash: 430,
+  // …Y SUBE A 520 EN LA v38, que es la recalibración táctica que el dueño autorizó al ver que la
+  // ley de velocidad nueva —el reparto del viento cobrado también en la velocidad— dejaba la fuga de
+  // montaña en el 18,5 %: «recalibremos la capa táctica para que la fuga en una etapa de montaña
+  // gane en más casos». Tiene sentido de carretera y es literalmente lo que esta perilla significa:
+  // con la física puesta, un pelotón que rota siete hombres cierra mejor que antes, así que para que
+  // la fuga siga teniendo la misma opción hay que darle la cuerda que de verdad le dan —«los de la
+  // general tiran para que no se vaya a 20 minutos», no para cazarla—.
+  gcControlLeash: 520,
   // Compromiso de los favoritos en la subida decisiva: tempo duro que descuelga poco a poco
   // (no máximo, o el grupo llegaría junto). Calibra la caza de la fuga y el estiramiento.
   climbRaceCommit: 0.85,
@@ -2621,8 +2628,13 @@ export const STAGE = {
   helpBackMaxGapSeconds: 300,
   helpBackMinKmToGo: 5, //      y no en el desenlace: dejarse caer a 3 km de meta no ayuda a nadie.
   helpBackMinFreshness: 0.35, // el que va vacío no sirve de gregario; se queda donde está.
-  domestiqueProtectPerHelper: 0.05, // cada gregario presente rebaja un 5% el coste del líder...
-  domestiqueProtectMax: 0.15, //       ...hasta un 15% (≈3 gregarios): un equipo fuerte ahorra mucho.
+  // RETIRADAS EN LA v38: `domestiqueProtectPerHelper` (5 % menos por gregario presente) y
+  // `domestiqueProtectMax` (tope del 15 %). El dueño: «un líder arropado por gregarios dentro del
+  // pelotón gasta LO MISMO que uno que va a rueda en el pelotón cómodamente sin entrar a los
+  // relevos». Lo que ahorra energía es ir a rueda, y eso ya lo cobra `shelterProtected` igual para
+  // todos; llevar equipo no te pone más a rueda de lo que ya vas. Lo que sí te da tu equipo es que
+  // ellos entren al turno y paguen el viento (y eso ya está cobrado donde toca) y que te saquen del
+  // turno cuando hace falta (v36). Detalle en docs/balance.md «v38».
   leadOutBoostPerHelper: 0.05, // cada lanzador presente sube un 5% la puntuación de sprint del líder...
   leadOutMaxHelpers: 2, //             ...con dos ya se satura (un tren de más de dos no suma más).
 

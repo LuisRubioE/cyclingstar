@@ -222,15 +222,18 @@ describe('el ritmo del descolgado (v16, docs/motor.md §9; v35, el tope de la pe
     expect(droppedCommit(puerto, 40, 1, 0, PEL, LANZADO)).toBeCloseTo(STAGE.shedFightCommit)
   })
 
-  it('…pero contra un pelotón que rueda a TEMPO no se pelea a 0,82: el tope es lo que dé relevarse (v35)', () => {
-    // El defecto de la v34: 0,82 es un número absoluto —el ritmo de un pelotón lanzado—, así que
-    // un descolgado peleando contra un pelotón a tempo iba SIEMPRE más rápido que él.
+  it('…pero contra un pelotón que rueda a TEMPO no se pelea a 0,82: el tope lo pone el de delante (v35, v38)', () => {
+    // El defecto de la v34: 0,82 es un número absoluto —el ritmo de un pelotón lanzado—, así que un
+    // descolgado peleando contra un pelotón a tempo iba SIEMPRE más rápido que él.
+    //
+    // EN LA v38 ESTE TOPE ADELGAZA: el término de rotación se fue de aquí a la ley de velocidad
+    // (`relayPaceEdge`), porque lo que da relevarse es VELOCIDAD y no ganas de pelear. Lo que queda
+    // en el tope es lo que siempre debió ser: el ritmo del que va delante, mezclado a precio de
+    // rebufo. Que uno solo no le saque nada a un grupo que va a rueda se comprueba abajo, donde ese
+    // hecho vive ahora.
     const solo = droppedCommit(llano, 1, 1, 0, PEL, TEMPO)
-    const grupo = droppedCommit(llano, 8, 1, 0, PEL, TEMPO)
-    // Uno solo no le saca NADA a un grupo que va a rueda: no tiene con quién relevarse.
-    expect(solo).toBeCloseTo(STAGE.shedCommitAlone)
-    expect(grupo).toBeGreaterThan(solo)
-    expect(grupo).toBeLessThan(STAGE.shedFightCommit)
+    expect(solo).toBeLessThan(STAGE.shedFightCommit)
+    expect(solo).toBeGreaterThan(STAGE.shedCommitAlone)
   })
 
   it('…y en el puerto el tope apenas existe: allí no hay rueda a la que ir (§VI.1 intacto)', () => {
@@ -241,23 +244,36 @@ describe('el ritmo del descolgado (v16, docs/motor.md §9; v35, el tope de la pe
     expect(enPuerto).toBeGreaterThan(0.9 * STAGE.shedFightCommit)
   })
 
-  it('resignado, el grupo grande rueda MÁS RÁPIDO que el que va solo: se relevan', () => {
-    const autobus = droppedCommit(llano, 40, 1, lejos, PEL, LANZADO)
-    const suelto = droppedCommit(llano, 1, 1, lejos, PEL, LANZADO)
+  it('el grupo grande rueda MÁS RÁPIDO que el que va solo: se relevan (v16 → v38, en la LEY)', () => {
+    /**
+     * Este invariante es de la v16 y sigue siendo cierto; lo que cambia en la v38 es DÓNDE vive.
+     * Hasta la v37 se cobraba metiendo la rotación en el COMPROMISO del descolgado —el hombre solo
+     * «quería» ir a 0,55 y el autobús a 0,82—, que es una forma rara de decirlo: nadie decide ir más
+     * despacio por ir solo, es que no puede. Ahora lo dice la ley de velocidad con el mismo
+     * argumento y la misma pieza (`1 − draftMax·shelterOf`), así que se comprueba aquí.
+     *
+     * Y el compromiso ya NO los distingue, que es justo lo que se quería: los dos pelean igual.
+     */
+    const mismasPiernas = 70
+    const mismoRitmo = 0.8
+    const autobus = targetSpeed(llano, mismasPiernas, mismoRitmo, 8)
+    const suelto = targetSpeed(llano, mismasPiernas, mismoRitmo, 1)
     expect(autobus).toBeGreaterThan(suelto)
-    expect(suelto).toBeCloseTo(STAGE.shedCommitAlone)
-    expect(autobus).toBeLessThanOrEqual(STAGE.shedCommitBunch)
+    // El compromiso del descolgado ya no depende del tamaño: lo que depende es lo que da de sí.
+    expect(droppedCommit(llano, 40, 1, lejos, PEL, LANZADO)).toBeCloseTo(
+      droppedCommit(llano, 1, 1, lejos, PEL, LANZADO),
+    )
   })
 
-  it('…pero en el puerto ser cuarenta no sirve de nada: ahí no hay rueda a la que ir', () => {
-    const ventajaLlano =
-      droppedCommit(llano, 40, 1, lejos, PEL, LANZADO) -
-      droppedCommit(llano, 1, 1, lejos, PEL, LANZADO)
-    const ventajaPuerto =
-      droppedCommit(puerto, 40, 1, lejos, PEL, LANZADO) -
-      droppedCommit(puerto, 1, 1, lejos, PEL, LANZADO)
-    expect(ventajaPuerto).toBeGreaterThan(0)
-    expect(ventajaPuerto).toBeLessThan(ventajaLlano / 3)
+  it('…pero en el puerto ser cuarenta no sirve de nada: ahí no hay rueda a la que ir (v38, en la LEY)', () => {
+    // La otra mitad del invariante de la v16, también mudada a la ley de velocidad. Se cobra a
+    // precio de rebufo por construcción —`draftMax` vale 0,42 en el llano y 0,096 en una rampa al
+    // 8 %—, así que el grupeto sube tan lento como el que sube solo y en el valle vuelve a rodar
+    // como un pelotón. Es el hecho de carretera que ningún parche sabía imitar.
+    const ventaja = (b: Block): number =>
+      targetSpeed(b, 70, 0.8, 8) / targetSpeed(b, 70, 0.8, 1) - 1
+    expect(ventaja(puerto)).toBeGreaterThan(0)
+    expect(ventaja(puerto)).toBeLessThan(ventaja(llano) / 3)
   })
 
   it('el grupeto vaciado administra; con las piernas enteras, no', () => {

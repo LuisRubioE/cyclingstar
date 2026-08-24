@@ -25,7 +25,7 @@ import { applyTimeCut } from './abandon.js'
 import { EventLog } from './events.js'
 import {
   type Eff,
-  blockCost,
+  timeTrialCost,
   blockSeconds,
   climbWeight,
   effNow,
@@ -258,9 +258,8 @@ export function simulateTimeTrial(input: StageInput, seed: string): StageOutput 
       vActual = stepSpeed(vActual, vObj, block.g, dtIn)
       tS += blockSeconds(vActual)
       raw[i] = tS
-      // Solo, sin rebufo: el crono se paga entero. Es el ancla de `costExposureExponent` (v38), así
-      // que este coste vale exactamente lo que valía antes de que la rueda se abaratara.
-      const cost = blockCost(block, STAGE.ttCommitment, true, 1)
+      // Solo, sin rebufo: el crono se paga entero, y con la ley LINEAL — ver `timeTrialCost`.
+      const cost = timeTrialCost(block, STAGE.ttCommitment)
       energy = Math.max(0, energy - cost)
       work += cost
     }

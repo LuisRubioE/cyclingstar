@@ -2207,22 +2207,21 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
             STAGE.reserveSeconds,
           )
         }
-        let cost = blockCost(block, group.compromiso, pulling, relayers.size)
-        // Protección de gregarios: un líder arropado que no está relevando gasta menos según cuántos
-        // de sus gregarios lleve en el grupo (SPEC 6.18). Así fichar buen equipo rinde de verdad.
-        if (!pulling) {
-          const helpers = domestiquesFor.get(m.input.riderId)
-          if (helpers) {
-            const present = helpers.reduce((c, id) => c + (idSet.has(id) ? 1 : 0), 0)
-            if (present > 0) {
-              const protect = Math.min(
-                present * STAGE.domestiqueProtectPerHelper,
-                STAGE.domestiqueProtectMax,
-              )
-              cost *= 1 - protect
-            }
-          }
-        }
+        /**
+         * LO QUE CUESTA ESTE BLOQUE, Y NO HAY DESCUENTO POR LLEVAR EQUIPO (v38). Hasta la v37 un
+         * líder arropado que no relevaba pagaba un 5 % menos por gregario presente hasta el 15 %
+         * (`domestiqueProtectPerHelper`, SPEC 6.18), «para que fichar buen equipo rinda de verdad».
+         * El dueño lo tumbó con una frase: «un líder arropado por gregarios dentro del pelotón gasta
+         * LO MISMO que uno que va a rueda en el pelotón cómodamente sin entrar a los relevos».
+         *
+         * Y tiene razón de carretera: lo que te ahorra energía es IR A RUEDA, y eso ya lo cobra
+         * `shelterProtected` igual para todos —es la frase de la v34, «protegido y punto, ni un
+         * vatio más que el último del pelotón»—. Llevar gregarios no te pone MÁS a rueda de lo que
+         * ya vas; lo que te da es que ellos tiren por ti (y eso ya se paga solo, porque son ellos
+         * los que entran al turno y pagan el viento) y que te saquen del turno cuando hace falta
+         * (v36). El descuento era una tercera vía que cobraba dos veces lo mismo.
+         */
+        const cost = blockCost(block, group.compromiso, pulling, relayers.size)
         m.energy = Math.max(0, m.energy - cost)
         m.work += cost
       }

@@ -627,12 +627,24 @@ describe('trabajo de equipo (SPEC 6.18)', () => {
     return { profile: { segments: [{ km: 120, tipo: 'llano' }] }, riders }
   }
 
-  it('un líder arropado por gregarios gasta menos energía que uno idéntico sin equipo', () => {
+  it('un líder arropado por gregarios gasta LO MISMO que uno a rueda sin equipo (v38)', () => {
+    /**
+     * Hasta la v37 este test pedía que el arropado gastara MENOS, y era falso de carretera. El
+     * dueño: «un líder arropado por gregarios dentro del pelotón gasta lo mismo que uno que va a
+     * rueda en el pelotón cómodamente sin entrar a los relevos». Lo que ahorra energía es ir a
+     * rueda, y eso lo cobra `shelterProtected` igual para todos; llevar equipo no te pone más a
+     * rueda de lo que ya vas. Se retiró `domestiqueProtectPerHelper` (docs/balance.md «v38»).
+     *
+     * Lo que un equipo SÍ te da sigue existiendo y se comprueba en otros sitios: que ellos entren
+     * al turno y paguen el viento por ti, y que te saquen del turno cuando hace falta (v36).
+     */
     const seed = stageSeed({ worldSeed: 'dom', raceId: 'dom', stageDay: 1, engineVersion: 1 })
     const out = simulateStage(domestiqueInput(), seed)
     const workA = out.workUnits.get('cap-a')!
     const workB = out.workUnits.get('cap-b')!
-    expect(workA).toBeLessThan(workB)
+    // Los dos van a rueda y son idénticos; lo poco que separa a uno de otro es en qué bloques les
+    // toca el turno, no un descuento por llevar maillot del mismo equipo.
+    expect(Math.abs(workA - workB) / workB).toBeLessThan(0.15)
   })
 
   // Un escalador fuerte (objetivo) y dos escaladores medianos idénticos; solo uno (mark) marca al fuerte.
@@ -1098,8 +1110,14 @@ describe('telemetría de la crónica (docs/motor.md §16)', () => {
       // veinte en meta. El peor caso medido de este banco pasa de 46 a 47, y el techo se deja en 48
       // por el mismo margen de uno con el que se dejó en la v11. No hay ninguna familia de frase
       // repetida: está comprobado arriba, en «el puerto se cuenta en pocas frases de progresión».
+      //
+      // Y DE 48 A 100 EN LA v38, por decisión del dueño: «el tope de 48 para el journal podemos
+      // cambiarlo a 100 sin problema, y no me preocupa de momento». Este techo nunca fue una
+      // calibración, era un centinela contra el muro de texto, y con la ley de velocidad nueva las
+      // carreras se rompen y se recomponen más veces, así que el peor caso de este banco sube a 50.
+      // Lo que SÍ sigue vigilado —que no se repita una familia de frase— se comprueba aparte.
       const narrated = out.events.filter((e) => e.datos?.narra !== 0)
-      expect(narrated.length).toBeLessThanOrEqual(48)
+      expect(narrated.length).toBeLessThanOrEqual(100)
     }
   })
 
