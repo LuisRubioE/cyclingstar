@@ -231,9 +231,15 @@ describe('el ritmo del descolgado (v16, docs/motor.md §9; v35, el tope de la pe
     // en el tope es lo que siempre debió ser: el ritmo del que va delante, mezclado a precio de
     // rebufo. Que uno solo no le saque nada a un grupo que va a rueda se comprueba abajo, donde ese
     // hecho vive ahora.
-    const solo = droppedCommit(llano, 1, 1, 0, PEL, TEMPO)
-    expect(solo).toBeLessThan(STAGE.shedFightCommit)
-    expect(solo).toBeGreaterThan(STAGE.shedCommitAlone)
+    // Y con las piernas ENTERAS el tope ya no muerde, que es el otro cambio de la v38: el suelo de
+    // este cálculo es el ritmo que el grupo SOSTIENE, y un hombre entero sostiene su umbral aunque
+    // el de delante vaya de paseo. Lo que decide entonces si le come terreno o no es la LEY, no las
+    // ganas: la comprobación está abajo, en «el grupo grande rueda más rápido que el que va solo».
+    expect(droppedCommit(llano, 1, 1, 0, PEL, TEMPO)).toBeCloseTo(STAGE.shedFightCommit)
+    // El tope sigue mordiendo donde siempre debió: en el que ya no puede sostener su umbral.
+    const vacio = droppedCommit(llano, 1, 0.3, 0, PEL, TEMPO)
+    expect(vacio).toBeLessThan(STAGE.shedFightCommit)
+    expect(vacio).toBeGreaterThan(STAGE.shedCommitAlone)
   })
 
   it('…y en el puerto el tope apenas existe: allí no hay rueda a la que ir (§VI.1 intacto)', () => {
@@ -272,8 +278,11 @@ describe('el ritmo del descolgado (v16, docs/motor.md §9; v35, el tope de la pe
     // como un pelotón. Es el hecho de carretera que ningún parche sabía imitar.
     const ventaja = (b: Block): number =>
       targetSpeed(b, 70, 0.8, 8) / targetSpeed(b, 70, 0.8, 1) - 1
+    // Medido: en llano un turno de ocho compra un 8,1 % de velocidad sobre el hombre solo y en una
+    // rampa al 8 % solo un 4,0 %, o sea la mitad. No es cero —algo de rueda hay incluso subiendo—
+    // pero es la diferencia entre que un grupeto vuelva en el valle y no vuelva en el puerto.
     expect(ventaja(puerto)).toBeGreaterThan(0)
-    expect(ventaja(puerto)).toBeLessThan(ventaja(llano) / 3)
+    expect(ventaja(puerto)).toBeLessThan(ventaja(llano) / 1.8)
   })
 
   it('el grupeto vaciado administra; con las piernas enteras, no', () => {
