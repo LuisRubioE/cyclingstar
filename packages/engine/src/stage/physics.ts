@@ -500,8 +500,24 @@ export function blockCost(
    * nivel es solo suyo. Separarlos es lo que hace esto calibrable.
    */
   const cara = STAGE.costExposureLevel
+  /**
+   * …Y HAY UN SUELO: PEDALEAR CUESTA AUNQUE VAYAS A RUEDA (v38, `costExposureFloor`).
+   *
+   * El exponente describe el coste MARGINAL de dar la cara, y ahí el número del dueño —la rueda al
+   * 10 % de la cara en llano— es bueno. Pero no todo el gasto es marginal: cubrir 280 km es cubrir
+   * 280 km, y eso lo paga el que va a rueda igual que el que tira. Sin este suelo, un pelotón de
+   * verdad —donde el corredor mediano solo pasa el 3,5 % de la etapa dando la cara, contra el 19,6 %
+   * de un campo de cuarenta— salía de una llana con el 12 % del depósito gastado en vez del 33 %, y
+   * una clásica de 278 km dejaba de cansar a nadie: la erosión se hundía a 0,282 contra un suelo de
+   * 0,45.
+   *
+   * El defecto solo se vio al meter EQUIPOS y un PELOTÓN DE VERDAD en los escenarios canónicos, que
+   * es lo que pidió el dueño. Con cuarenta corredores todo el mundo tiraba a menudo y el suelo no
+   * hacía falta para llegar a las cifras: el banco tapaba el agujero.
+   */
+  const abrigo = Math.pow(1 - d * STAGE.shelterProtected, STAGE.costExposureExponent)
   const rueda =
-    STAGE.costExposureLevel * Math.pow(1 - d * STAGE.shelterProtected, STAGE.costExposureExponent)
+    STAGE.costExposureLevel * (STAGE.costExposureFloor + (1 - STAGE.costExposureFloor) * abrigo)
   /**
    * Y LA EXPOSICIÓN SE PROMEDIA SOBRE EL TURNO, NO SOBRE EL REBUFO (v38). Hasta la v37 se calculaba
    * el rebufo MEDIO del que tira (`shelterOf`: `shelterProtected·(1 − 1/n)`) y se cobraba una vez.

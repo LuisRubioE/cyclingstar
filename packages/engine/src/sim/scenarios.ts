@@ -78,32 +78,45 @@ export interface Scenario {
  * único que cambia es de quién es cada uno.
  */
 function inTeams(riders: StageRider[], teamSize: number): StageRider[] {
-  const jefes = riders.filter((r) => r.orders.role !== 'libre')
+  const equipos = Math.max(1, Math.ceil(riders.length / teamSize))
+  const propios = riders.filter((r) => r.orders.role !== 'libre')
   const relleno = riders.filter((r) => r.orders.role === 'libre')
-  if (jefes.length === 0) return riders
-  const equipos = Math.max(1, Math.min(jefes.length, Math.ceil(riders.length / teamSize)))
   const teamOf = new Map<string, string>()
   const jefeDe = new Map<string, string>()
-  jefes.forEach((r, i) => {
+  // Los hombres con carrera propia se reparten UNO POR EQUIPO: en una carrera no van los tres
+  // sprinters en el mismo autobús.
+  propios.forEach((r, i) => {
     const t = `eq-${i % equipos}`
     teamOf.set(r.riderId, t)
-    // El primer jefe de cada equipo es EL jefe; si a un equipo le tocan dos hombres con rol propio,
-    // el segundo sigue corriendo su carrera pero es el primero quien tiene tren.
     if (!jefeDe.has(t)) jefeDe.set(t, r.riderId)
   })
-  relleno.forEach((r, i) => teamOf.set(r.riderId, `eq-${i % equipos}`))
+  // …y el resto rellena. Al equipo que no tenga un hombre con carrera propia se le nombra jefe de
+  // filas al primero que le toque: todo equipo lleva un protegido, aunque no sea nadie para ganar.
+  const promovidos = new Set<string>()
+  relleno.forEach((r, i) => {
+    const t = `eq-${i % equipos}`
+    teamOf.set(r.riderId, t)
+    if (!jefeDe.has(t)) {
+      jefeDe.set(t, r.riderId)
+      promovidos.add(r.riderId)
+    }
+  })
   return riders.map((r) => {
     const team = teamOf.get(r.riderId)!
     if (r.orders.role !== 'libre') return { ...r, teamId: team }
+    if (promovidos.has(r.riderId)) {
+      return { ...r, teamId: team, orders: orders({ ...r.orders, role: 'lider' }) }
+    }
     const jefe = jefeDe.get(team)
     if (jefe == null) return { ...r, teamId: team }
-    const suJefe = riders.find((x) => x.riderId === jefe)!
+    const suJefe = riders.find((x) => x.riderId === jefe)
+    const esSprinter = suJefe?.orders.role === 'sprinter'
     return {
       ...r,
       teamId: team,
       orders: orders({
         ...r.orders,
-        role: suJefe.orders.role === 'sprinter' ? 'lanzador' : 'gregario',
+        role: esSprinter ? 'lanzador' : 'gregario',
         targetRiderId: jefe,
       }),
     }
@@ -132,7 +145,22 @@ export function flatScenario(): Scenario {
       }),
     )
   }
-  for (let i = 0; i < 31; i++) {
+  /**
+   * UN PELOTÓN DE VERDAD (v38). El dueño, al ver que con 40 corredores en 8 equipos la fuga ganaba
+   * el 58,5 % de las llanas: «no te creo… en lo que veo del motor en las llanas la fuga NUNCA gana;
+   * quizás tienes que poner más ciclistas en la simulación para que salga algo real… sí, pon un
+   * pelotón de verdad en el escenario canónico».
+   *
+   * Y es que 40 hombres en 8 equipos de 5 no son un pelotón: son una continental. Solo tres equipos
+   * tienen sprinter, sus trenes son de cinco, el presupuesto de esfuerzo se agota enseguida y los
+   * equipos que llegan a llevar el frente se quedan en 1,8 — con lo que la fuga llega, que es lo que
+   * pasa en una carrera pequeña de verdad—. El juego corre 176 corredores en 22 equipos de 8, y ése
+   * es el pelotón contra el que tienen que estar calibradas las bandas de la llana canónica.
+   *
+   * Lo que NO cambia es el carácter del escenario: siguen siendo tres sprinters de nivel y seis
+   * cazaetapas; lo que crece es el pelotón que llevan detrás.
+   */
+  for (let i = 0; i < 167; i++) {
     riders.push(rider(`pel-${i}`, { eff0: eff(56, { LLA: 62 + (i % 8) }) }))
   }
   return {
@@ -145,7 +173,7 @@ export function flatScenario(): Scenario {
       // CON EQUIPOS desde la v38: sin ellos no hay trenes que cacen, ni dueño del frente, ni
       // presupuesto que se agote, y la fuga del día vivía en un mundo que no es el que corre el
       // juego. Ver `inTeams`.
-      riders: inTeams(riders, 5),
+      riders: inTeams(riders, 8),
     },
     bestSprinterId: 'spr-2',
   }
@@ -193,7 +221,7 @@ export function mediumMountainScenario(): Scenario {
       }),
     )
   }
-  for (let i = 0; i < 27; i++) {
+  for (let i = 0; i < 163; i++) {
     riders.push(rider(`pel-${i}`, { eff0: eff(56, { LLA: 62 + (i % 8), MON: 56 + (i % 6) }) }))
   }
   const segments = []
@@ -210,7 +238,7 @@ export function mediumMountainScenario(): Scenario {
   segments.push({ km: 2, tipo: 'puerto' as const, tramos: [{ km: 2, g: 5 }] })
   return {
     name: 'media-190',
-    input: { profile: { segments, banners: [] }, riders: inTeams(riders, 5) },
+    input: { profile: { segments, banners: [] }, riders: inTeams(riders, 8) },
     bestSprinterId: 'spr-2',
   }
 }
@@ -241,7 +269,8 @@ export function queenScenario(): Scenario {
   for (let i = 0; i < 3; i++) {
     riders.push(rider(`spr-${i}`, { eff0: eff(52, { SPR: 84, LLA: 66, MON: 42 }) }))
   }
-  for (let i = 0; i < 27; i++) {
+  // Un pelotón de verdad (v38): 176 corredores en 22 equipos de 8, que es lo que corre el juego.
+  for (let i = 0; i < 163; i++) {
     riders.push(rider(`pel-${i}`, { eff0: eff(55, { MON: 54 + (i % 12), LLA: 60 }) }))
   }
   return {
@@ -254,7 +283,7 @@ export function queenScenario(): Scenario {
         ],
         banners: [{ km: 150, tipo: 'cima' }],
       },
-      riders: inTeams(riders, 5),
+      riders: inTeams(riders, 8),
     },
     bestSprinterId: 'gc-3',
   }
@@ -287,20 +316,22 @@ export function queenThirdWeekScenario(): Scenario {
  */
 function uniformField(): StageRider[] {
   /**
-   * …Y CON EQUIPOS DESDE LA v38. El campo sigue siendo homogéneo en ATRIBUTOS —que es de lo que iba
+   * …Y CON EQUIPOS Y PELOTÓN DE VERDAD DESDE LA v38. El campo sigue siendo homogéneo en ATRIBUTOS —que es de lo que iba
    * este banco: que lo único que explique la erosión sea el recorrido— pero ya no es un campo de
-   * cuarenta agentes libres. Sin equipos no hay dueño del frente ni presupuesto que se agote, así
-   * que el viento se repartía entre otra gente y el desgaste medido no era el del pelotón que corre
-   * el juego. Ocho jefes de filas y cuatro gregarios cada uno; nadie cambia de piernas.
+   * cuarenta agentes libres. Sin equipos no hay dueño del frente ni presupuesto que se agote; y con
+   * cuarenta corredores, el turno de ocho hace que el corredor MEDIANO pase el 19,6 % de la etapa
+   * dando la cara, contra el 3,5 % de un pelotón de 176 (medido con la sonda). Con el coste del
+   * viento de la v38 esa diferencia lo es todo, así que el desgaste medido no era el del pelotón que
+   * corre el juego. Ahora son 176 en 22 equipos de 8; nadie cambia de piernas.
    */
-  const riders = Array.from({ length: 40 }, (_, i) =>
+  const riders = Array.from({ length: 176 }, (_, i) =>
     rider(`uni-${i}`, {
       eff0: eff(60),
       fragility: 1,
-      ...(i < 8 ? { orders: orders({ role: 'lider' }) } : {}),
+      ...(i < 22 ? { orders: orders({ role: 'lider' }) } : {}),
     }),
   )
-  return inTeams(riders, 5)
+  return inTeams(riders, 8)
 }
 
 /**

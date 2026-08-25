@@ -1416,7 +1416,18 @@ export const STAGE = {
    * Es la única perilla de las dos que toca al que va solo, así que es también la que decide cuánta
    * gente se va fuera de control.
    */
-  costExposureLevel: 2.56,
+  costExposureLevel: 2.2,
+  /**
+   * EL SUELO DEL COSTE: PEDALEAR CUESTA AUNQUE VAYAS A RUEDA (v38). El exponente describe el coste
+   * MARGINAL de dar la cara y ahí el 10 % del dueño es bueno; pero no todo el gasto es marginal:
+   * cubrir 280 km es cubrir 280 km, y eso lo paga el arropado igual que el que tira.
+   *
+   * Se vio al meter equipos y un PELOTÓN DE VERDAD en los escenarios canónicos: con 176 corredores
+   * el mediano solo pasa el 3,5 % de la etapa dando la cara (contra el 19,6 % de un campo de 40), así
+   * que sin suelo una llana gastaba el 12 % del depósito en vez del 33 % y una clásica de 278 km
+   * dejaba de cansar a nadie (erosión 0,282 contra un suelo de 0,45).
+   */
+  costExposureFloor: 0.16,
 
   // 6.5/6.18 — Reparto del trabajo dentro del grupo: quién TIRA y quién va a rueda. NO puede
   // decidirlo el orden del array de entrada: se ordena por "deber de relevo", con el rol como
@@ -1923,7 +1934,7 @@ export const STAGE = {
   // con la física puesta, un pelotón que rota siete hombres cierra mejor que antes, así que para que
   // la fuga siga teniendo la misma opción hay que darle la cuerda que de verdad le dan —«los de la
   // general tiran para que no se vaya a 20 minutos», no para cazarla—.
-  gcControlLeash: 610,
+  gcControlLeash: 700,
   // Compromiso de los favoritos en la subida decisiva: tempo duro que descuelga poco a poco
   // (no máximo, o el grupo llegaría junto). Calibra la caza de la fuga y el estiramiento.
   climbRaceCommit: 0.85,
