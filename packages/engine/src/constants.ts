@@ -2641,8 +2641,13 @@ export const STAGE = {
    * fuera de control— o en un grupo que se releva y llega. Un susto se lleva a un par; una caída
    * seria, a un montón.
    */
-  crashPileLightMax: 3,
-  crashPileSeriousMax: 7,
+  crashPileLightMax: 2,
+  crashPileSeriousMax: 5,
+  // …y de los arrastrados, solo esta fracción se hace daño de verdad: el resto se levanta con un
+  // rasguño. El que provoca la caída se lleva la peor parte; los que caen encima lo hacen a menos
+  // velocidad y sobre cuerpos y bicis. Sin esto cada montón multiplicaba las lesiones por su tamaño:
+  // los abandonos de una gran vuelta se iban al 28,4 % (banda 12-20) y el 81,5 % eran por caída.
+  crashPileHurtChance: 0.08,
   crashLambdaPaves: 0.0045,
   crashLambdaFinal: 0.0008,
   // severidad: 60% sin daño (30-90 s) | 30% rasguños (eff -3%, 3-6 d) | 9% leve (5-15 d) | 1% grave (20-60 d).

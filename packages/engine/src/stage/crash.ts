@@ -61,6 +61,24 @@ export function rollCrashSeverity(rng: Rng, fragility: number): CrashOutcome {
 }
 
 /**
+ * EL QUE SE LEVANTA Y SIGUE (v38). En un montón, el que lo provoca se lleva la peor parte; los que
+ * caen encima lo hacen a menos velocidad y sobre cuerpos y bicis, y casi siempre se levantan con un
+ * rasguño. Sin esto, cada montón multiplicaba las lesiones por su propio tamaño.
+ */
+export function rollCrashSeverityLight(rng: Rng): CrashOutcome {
+  const roll = rng()
+  const noneLoss = (): number => STAGE.crashLossNoneMinS + rng() * STAGE.crashLossNoneRangeS
+  if (roll < STAGE.crashSeverity.none) {
+    return { severidad: 'none', perdidaS: noneLoss(), diasBaja: 0 }
+  }
+  return {
+    severidad: 'scratches',
+    perdidaS: noneLoss(),
+    diasBaja: Math.round(STAGE.crashDaysScratchesMin + rng() * STAGE.crashDaysScratchesRange),
+  }
+}
+
+/**
  * CUÁNTOS SE VAN AL SUELO CON ÉL (v38). El dueño: «normalmente cuando se cae alguien en el pelotón,
  * casi siempre se caen varios… y depende de la gravedad puede haber uno o varios que se vayan de la
  * carrera, otros que se queden muy cortados, pero normalmente VARIOS, con lo cual podrían tirar».

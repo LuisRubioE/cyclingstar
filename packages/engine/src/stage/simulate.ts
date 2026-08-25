@@ -42,7 +42,13 @@ import {
   targetSpeed,
 } from './physics.js'
 import { rollHazard } from './hazard.js'
-import { type CrashOutcome, crashPile, rollCrash, rollCrashSeverity } from './crash.js'
+import {
+  type CrashOutcome,
+  crashPile,
+  rollCrash,
+  rollCrashSeverity,
+  rollCrashSeverityLight,
+} from './crash.js'
 import {
   type FinishTerrain,
   type FinishType,
@@ -3450,7 +3456,17 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
           for (let k = 0; k < cuantos; k++) {
             const otro = disponibles[(inicio + k) % disponibles.length]!
             if (yaEnElSuelo.has(otro.input.riderId)) continue
-            const suyo = rollCrashSeverity(rngCrash, otro.input.fragility ?? 1)
+            /**
+             * …Y EN UN MONTÓN LA MAYORÍA SE LEVANTA Y SIGUE. El que provoca la caída se lleva la
+             * peor parte; los que van detrás caen encima, a menos velocidad y sobre cuerpos y
+             * bicis, y casi siempre se levantan con un rasguño. Sin esto cada montón multiplicaba
+             * las lesiones por el tamaño del montón: medido, los abandonos de una gran vuelta se
+             * iban al 28,4 % (banda 12-20) y el 81,5 % eran por caída (banda 30-67).
+             */
+            const seLastima = rngCrash() < STAGE.crashPileHurtChance
+            const suyo = seLastima
+              ? rollCrashSeverity(rngCrash, otro.input.fragility ?? 1)
+              : rollCrashSeverityLight(rngCrash)
             alSuelo(otro, suyo, Math.max(out.perdidaS, suyo.perdidaS))
           }
         }
