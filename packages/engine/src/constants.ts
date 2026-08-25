@@ -2633,6 +2633,16 @@ export const STAGE = {
   // Calibrada para que una etapa de pavés deje un 5-12% de bajas por caída.
   crashLambdaBase: 0.00005,
   crashLambdaDescent: 0.0018,
+  /**
+   * CUÁNTOS SE VAN AL SUELO CON ÉL (v38, `crashPile`). El dueño: «normalmente cuando se cae alguien
+   * en el pelotón casi siempre se caen varios… normalmente VARIOS, con lo cual podrían tirar».
+   * Hasta la v37 cada caída era de uno porque el dado se tiraba corredor a corredor y nadie miraba a
+   * los de al lado, y eso decide algo gordo: si el cortado acaba SOLO —y entonces no vuelve y se va
+   * fuera de control— o en un grupo que se releva y llega. Un susto se lleva a un par; una caída
+   * seria, a un montón.
+   */
+  crashPileLightMax: 3,
+  crashPileSeriousMax: 7,
   crashLambdaPaves: 0.0045,
   crashLambdaFinal: 0.0008,
   // severidad: 60% sin daño (30-90 s) | 30% rasguños (eff -3%, 3-6 d) | 9% leve (5-15 d) | 1% grave (20-60 d).

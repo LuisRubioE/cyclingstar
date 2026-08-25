@@ -42,7 +42,7 @@ import {
   targetSpeed,
 } from './physics.js'
 import { rollHazard } from './hazard.js'
-import { rollCrash } from './crash.js'
+import { type CrashOutcome, crashPile, rollCrash, rollCrashSeverity } from './crash.js'
 import {
   type FinishTerrain,
   type FinishType,
@@ -3406,12 +3406,12 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
     // Caídas e incidentes (SPEC 6.14): en pavés, descensos y el embudo final. El caído pierde
     // tiempo y sale del grupo; una lesión se arrastra días (lo consume el tick, no el motor).
     const crashCheck = (group: Group): void => {
-      for (const m of membersOf(group.id)) {
-        const e = erosion(m.energy, m.energy0, m.input.eff0.RES)
-        const eff = riderEff(m)
-        const out = rollCrash(rngCrash, block, isFinal, eff, e, m.input.fragility ?? 1)
-        if (!out) continue
-        incidents.push({ riderId: m.input.riderId, km, tipo: 'caida', ...out })
+      const miembros = membersOf(group.id)
+      const yaEnElSuelo = new Set<string>()
+      /** Lo que le pasa a UNO que se ha ido al suelo: se apunta, se marca y sale del grupo. */
+      const alSuelo = (m: RiderSim, out: CrashOutcome, perdidaS: number): void => {
+        yaEnElSuelo.add(m.input.riderId)
+        incidents.push({ riderId: m.input.riderId, km, tipo: 'caida', ...out, perdidaS })
         // EL CORREDOR EN APUROS (v20): la caída SERIA lo marca antes de sacarlo del grupo, porque es
         // lo que decide si `dropOut` le da autobús o lo deja solo. `minor` y `major` son las mismas
         // severidades que `injuryEndsRace` ya sacaba de la carrera al día siguiente; un rasguño o un
@@ -3420,7 +3420,40 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         // …y el percance se apunta SIEMPRE, con su kilómetro: el susto y los rasguños también
         // cuentan para que su equipo decida si baja a por él (v37).
         m.mishapKm = km
-        dropOut(m, group, out.perdidaS)
+        dropOut(m, group, perdidaS)
+      }
+      for (const m of miembros) {
+        if (yaEnElSuelo.has(m.input.riderId)) continue
+        const e = erosion(m.energy, m.energy0, m.input.eff0.RES)
+        const eff = riderEff(m)
+        const out = rollCrash(rngCrash, block, isFinal, eff, e, m.input.fragility ?? 1)
+        if (!out) continue
+        alSuelo(m, out, out.perdidaS)
+        /**
+         * …Y SE LLEVA A LOS DE AL LADO (v38). El dueño: «normalmente cuando se cae alguien en el
+         * pelotón casi siempre se caen varios… normalmente VARIOS, con lo cual podrían tirar». No es
+         * narración: decide si el cortado acaba SOLO —y entonces no vuelve y se va fuera de
+         * control— o en un grupo que se releva y llega.
+         *
+         * Se los lleva de una TIRADA CONTIGUA de la lista, que es lo más parecido a «los que iban a
+         * su alrededor» que puede decir un motor sin posiciones dentro del grupo. Y todos pierden
+         * **el mismo tiempo**, que es la parte que importa: un montón para a todos en el mismo sitio,
+         * así que salen del suelo juntos y forman grupo en vez de quedar desperdigados a un minuto
+         * unos de otros. El que se hace daño de verdad pierde lo suyo por encima de eso.
+         */
+        const disponibles = miembros.filter(
+          (x) => x !== m && !yaEnElSuelo.has(x.input.riderId) && x.groupId === group.id,
+        )
+        const cuantos = crashPile(rngCrash, out.severidad, disponibles.length + 1)
+        if (cuantos > 0 && disponibles.length > 0) {
+          const inicio = Math.floor(rngCrash() * disponibles.length)
+          for (let k = 0; k < cuantos; k++) {
+            const otro = disponibles[(inicio + k) % disponibles.length]!
+            if (yaEnElSuelo.has(otro.input.riderId)) continue
+            const suyo = rollCrashSeverity(rngCrash, otro.input.fragility ?? 1)
+            alSuelo(otro, suyo, Math.max(out.perdidaS, suyo.perdidaS))
+          }
+        }
       }
     }
     crashCheck(peloton)
