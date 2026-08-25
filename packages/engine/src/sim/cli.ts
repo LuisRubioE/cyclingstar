@@ -18,6 +18,7 @@ import { STAGE } from '../constants.js'
 import {
   campaignSeeds,
   flatScenario,
+  mediumMountainScenario,
   hardestClassicScenario,
   longClassicScenario,
   queenScenario,
@@ -60,6 +61,21 @@ function main(): void {
       { target: TARGETS.flat.catchKmToFinish, value: flatStats.medianCatchKmToFinish },
     ],
     `Capturas: ${flatStats.capturePct.toFixed(0)}% de las etapas`,
+  )
+
+  /**
+   * MEDIA MONTAÑA (v38) — INFORMATIVO, todavía sin banda. Es el hueco que señaló el dueño: el banco
+   * tenía dos caricaturas (una llana que es g = 0 durante 180 km y una reina que es un solo puerto
+   * al 8 %) y ningún término medio. Se imprime sin objetivo a propósito: primero se mide qué hace el
+   * motor con siete cotas cortas, y las bandas se deciden mirando esos números, no al revés.
+   */
+  const media = mediumMountainScenario()
+  const mediaStats = analyzeFlat(media, campaignSeeds(media.name, runs))
+  console.log(`\nInformativo — "${media.name}" (media montaña, ${mediaStats.runs} simulaciones)\n`)
+  console.log(
+    `  gana la fuga ${mediaStats.breakawayWinPct.toFixed(1)}% · gana el mejor sprinter ` +
+      `${mediaStats.bestSprinterWinPct.toFixed(1)}% · se forma fuga en el ${mediaStats.breakFormedPct.toFixed(0)}% ` +
+      `· captura mediana a ${mediaStats.medianCatchKmToFinish.toFixed(1)} km de meta`,
   )
 
   const queen = queenScenario()

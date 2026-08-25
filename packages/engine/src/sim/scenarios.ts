@@ -61,6 +61,56 @@ export interface Scenario {
 }
 
 /**
+ * REPARTE EL CAMPO EN EQUIPOS (v38). Hasta ahora los escenarios canónicos corrían SIN equipos, y el
+ * dueño lo cazó: «sin equipo no hay motivo para que el pelotón tire para acabar con una fuga, y las
+ * fugas deberían llegar mucho más de lo que llegan… o en otros términos, al introducir equipos
+ * reduces las probabilidades de que las fugas lleguen drásticamente, y por tanto esas simulaciones
+ * no valen para nada».
+ *
+ * Tiene razón y es serio: la caza de una llana la organizan los TRENES (`chaseField`), el frente lo
+ * lleva un DUEÑO (v34) y el presupuesto que se agota es de EQUIPO (v15). Con el campo suelto nada de
+ * eso existe, así que las bandas de supervivencia de la fuga estaban medidas contra un pelotón que
+ * no es el que corre el juego.
+ *
+ * El reparto es el de una carrera: cada corredor con un rol propio —sprinter, cazaetapas, líder— es
+ * el JEFE de un equipo, y los de relleno se reparten entre ellos como gregarios (lanzadores si su
+ * jefe es sprinter, que es lo que `chaseField` cuenta como tren). Los atributos no se tocan: lo
+ * único que cambia es de quién es cada uno.
+ */
+function inTeams(riders: StageRider[], teamSize: number): StageRider[] {
+  const jefes = riders.filter((r) => r.orders.role !== 'libre')
+  const relleno = riders.filter((r) => r.orders.role === 'libre')
+  if (jefes.length === 0) return riders
+  const equipos = Math.max(1, Math.min(jefes.length, Math.ceil(riders.length / teamSize)))
+  const teamOf = new Map<string, string>()
+  const jefeDe = new Map<string, string>()
+  jefes.forEach((r, i) => {
+    const t = `eq-${i % equipos}`
+    teamOf.set(r.riderId, t)
+    // El primer jefe de cada equipo es EL jefe; si a un equipo le tocan dos hombres con rol propio,
+    // el segundo sigue corriendo su carrera pero es el primero quien tiene tren.
+    if (!jefeDe.has(t)) jefeDe.set(t, r.riderId)
+  })
+  relleno.forEach((r, i) => teamOf.set(r.riderId, `eq-${i % equipos}`))
+  return riders.map((r) => {
+    const team = teamOf.get(r.riderId)!
+    if (r.orders.role !== 'libre') return { ...r, teamId: team }
+    const jefe = jefeDe.get(team)
+    if (jefe == null) return { ...r, teamId: team }
+    const suJefe = riders.find((x) => x.riderId === jefe)!
+    return {
+      ...r,
+      teamId: team,
+      orders: orders({
+        ...r.orders,
+        role: suJefe.orders.role === 'sprinter' ? 'lanzador' : 'gregario',
+        targetRiderId: jefe,
+      }),
+    }
+  })
+}
+
+/**
  * Etapa llana de 180 km con una meta volante: 3 sprinters de nivel, un puñado de cazaetapas y un
  * pelotón de rodadores (SPEC 6.17). El campo es fijo; la semilla mueve el resto.
  */
@@ -92,8 +142,75 @@ export function flatScenario(): Scenario {
         segments: [{ km: 180, tipo: 'llano' }],
         banners: [{ km: 100, tipo: 'meta_volante' }],
       },
-      riders,
+      // CON EQUIPOS desde la v38: sin ellos no hay trenes que cacen, ni dueño del frente, ni
+      // presupuesto que se agote, y la fuga del día vivía en un mundo que no es el que corre el
+      // juego. Ver `inTeams`.
+      riders: inTeams(riders, 5),
     },
+    bestSprinterId: 'spr-2',
+  }
+}
+
+/**
+ * MEDIA MONTAÑA (v38): 190 km con SIETE cotas que no son puertos —3 a 5 km al 5-7 %— y llegada en
+ * un repecho. Es el hueco que el dueño señaló en el banco: «estaría bien poner también algunas de
+ * media montaña… o sea, muchas montañitas no tan duras, pero que disminuyan las probabilidades de
+ * que los sprinters lleguen o que lleguen con fuerzas, y que una fuga con escaladores/rodadores
+ * tenga más opciones de ganar».
+ *
+ * Y es un banco que hacía falta de verdad, porque el motor tenía DOS caricaturas y ningún término
+ * medio: una llana que es g = 0 durante 180 km y una reina que es un solo puerto al 8 %. La media
+ * montaña no la decide un puerto sino la ACUMULACIÓN —siete cotas cortas no descuelgan a nadie de
+ * golpe pero vacían el depósito— y en ella el sprinter puro llega, pero llega sin piernas.
+ *
+ * El campo es el de la llana con dos manos de escaladores-rodadores más: los que en la carretera
+ * ganan estas etapas.
+ */
+export function mediumMountainScenario(): Scenario {
+  const riders: StageRider[] = []
+  for (let i = 0; i < 3; i++) {
+    riders.push(
+      rider(`spr-${i}`, {
+        eff0: eff(55, { SPR: 84 + i, LLA: 68, MON: 48 }),
+        orders: orders({ role: 'sprinter', contestSprints: true }),
+      }),
+    )
+  }
+  // Los que ganan una media montaña: aguantan las cotas y rematan un grupo pequeño.
+  for (let i = 0; i < 5; i++) {
+    riders.push(
+      rider(`pun-${i}`, {
+        eff0: eff(58, { MON: 70 + (i % 4), COL: 68, LLA: 68, SPR: 70, TAC: 62 }),
+        orders: orders({ role: 'cazaetapas', mentality: 'combativo', contestClimbs: true }),
+      }),
+    )
+  }
+  for (let i = 0; i < 5; i++) {
+    riders.push(
+      rider(`brk-${i}`, {
+        eff0: eff(56, { TAC: 62, LLA: 68, MON: 64 }),
+        orders: orders({ role: 'cazaetapas', mentality: 'combativo', contestSprints: true }),
+      }),
+    )
+  }
+  for (let i = 0; i < 27; i++) {
+    riders.push(rider(`pel-${i}`, { eff0: eff(56, { LLA: 62 + (i % 8), MON: 56 + (i % 6) }) }))
+  }
+  const segments = []
+  for (let c = 0; c < 7; c++) {
+    segments.push({ km: 20, tipo: 'llano' as const })
+    const largo = 3 + (c % 3)
+    segments.push({
+      km: largo,
+      tipo: 'puerto' as const,
+      tramos: [{ km: largo, g: 5 + (c % 3) }],
+    })
+  }
+  segments.push({ km: 15, tipo: 'llano' as const })
+  segments.push({ km: 2, tipo: 'puerto' as const, tramos: [{ km: 2, g: 5 }] })
+  return {
+    name: 'media-190',
+    input: { profile: { segments, banners: [] }, riders: inTeams(riders, 5) },
     bestSprinterId: 'spr-2',
   }
 }
@@ -137,7 +254,7 @@ export function queenScenario(): Scenario {
         ],
         banners: [{ km: 150, tipo: 'cima' }],
       },
-      riders,
+      riders: inTeams(riders, 5),
     },
     bestSprinterId: 'gc-3',
   }
@@ -169,7 +286,21 @@ export function queenThirdWeekScenario(): Scenario {
  * en 0.31 (`erosionThresholdBase + 0.40·RES/100`).
  */
 function uniformField(): StageRider[] {
-  return Array.from({ length: 40 }, (_, i) => rider(`uni-${i}`, { eff0: eff(60), fragility: 1 }))
+  /**
+   * …Y CON EQUIPOS DESDE LA v38. El campo sigue siendo homogéneo en ATRIBUTOS —que es de lo que iba
+   * este banco: que lo único que explique la erosión sea el recorrido— pero ya no es un campo de
+   * cuarenta agentes libres. Sin equipos no hay dueño del frente ni presupuesto que se agote, así
+   * que el viento se repartía entre otra gente y el desgaste medido no era el del pelotón que corre
+   * el juego. Ocho jefes de filas y cuatro gregarios cada uno; nadie cambia de piernas.
+   */
+  const riders = Array.from({ length: 40 }, (_, i) =>
+    rider(`uni-${i}`, {
+      eff0: eff(60),
+      fragility: 1,
+      ...(i < 8 ? { orders: orders({ role: 'lider' }) } : {}),
+    }),
+  )
+  return inTeams(riders, 5)
 }
 
 /**
