@@ -1491,7 +1491,7 @@ export const STAGE = {
    * significa exactamente lo que se ve en carretera: **tira el equipo que ha tomado el frente y
    * poco más**, y el que tiene un hombre en la fuga no mueve un dedo.
    */
-  relayDutyThreshold: 1.5,
+  relayDutyThreshold: 1.2,
   /**
    * …Y EL LISTÓN FUERA DEL PELOTÓN. En una fuga o en un grupeto no hay equipo que empuje a nadie y
    * la norma es la contraria a la del pelotón: se relevan todos, porque el que va ahí o colabora o
