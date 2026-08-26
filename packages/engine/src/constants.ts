@@ -1491,7 +1491,7 @@ export const STAGE = {
    * significa exactamente lo que se ve en carretera: **tira el equipo que ha tomado el frente y
    * poco más**, y el que tiene un hombre en la fuga no mueve un dedo.
    */
-  relayDutyThreshold: 1.2,
+  relayDutyThreshold: 1.5,
   /**
    * …Y EL LISTÓN FUERA DEL PELOTÓN. En una fuga o en un grupeto no hay equipo que empuje a nadie y
    * la norma es la contraria a la del pelotón: se relevan todos, porque el que va ahí o colabora o
@@ -1889,6 +1889,15 @@ export const STAGE = {
   // (objetivo 1,8-4). Los dos cambios se compensan: rotan menos hombres, pero cada uno paga más
   // viento porque el reparto es 1 − 1/n.
   teamBudgetPerRider: 9,
+  /**
+   * CUÁNDO SE CEDE EL FRENTE (v38). Dos números para un relevo entre equipos que no es un colapso:
+   * el que manda tiene que haber puesto ya lo suyo (`Spent`, fracción de su presupuesto) y el que
+   * entra tiene que venir con bastante más depósito (`Edge`, diferencia de fracción gastada). Sin
+   * esto solo se cedía al agotar el presupuesto ENTERO, y con el turno largo de la v38 eso no
+   * llegaba a pasar: 1,02 equipos distintos al frente por etapa contra un objetivo de 1,8-4.
+   */
+  teamFrontHandoverSpent: 0.35,
+  teamFrontHandoverEdge: 0.2,
   // EL FRENTE LO LLEVA UNO. Aunque cuatro equipos quieran el mismo sprint, en carretera el frente
   // tiene dueño y los demás se colocan detrás esperando su turno. Sin esa distinción, cuatro
   // equipos empujando igual repartían el turno de relevos entre todos y los tres que más tiraban
@@ -1922,9 +1931,21 @@ export const STAGE = {
   teamDriveShelter: -0.35,
   teamDriveUpTheRoad: -0.9,
   teamDriveIdle: -0.5,
-  // …y adónde llega el que ha gastado su presupuesto entero. No baja de aquí: fundido no significa
-  // que estorbe, significa que otro equipo toma el frente.
-  teamDriveTired: -0.6,
+  /**
+   * …y adónde llega el que ha gastado su presupuesto entero. No baja de aquí: fundido no significa
+   * que estorbe, significa que otro equipo toma el frente.
+   *
+   * Y queda POR ENCIMA del que pasa de todo (`teamDriveIdle`), que es la corrección de la v38.
+   * Estaba en -0,6 contra -0,5, o sea que en cuanto el equipo dueño del frente agotaba su
+   * presupuesto sus hombres caían por debajo de los de un equipo SIN NINGÚN MOTIVO, y la rotación
+   * se la quedaban ésos. Medido en el banco de la voz de la crónica: en 66 de 153 partes con voz de
+   * equipo el que tiraba era un equipo sin motivo, o sea que el parte no podía decir POR QUÉ tiraba
+   * nadie —el 57 % contra un objetivo del 95 %—. Es al revés de la frase del dueño: «el que no
+   * tiene motivo no gasta». El que se ha vaciado por su sprinter sigue siendo el que va delante;
+   * simplemente ya no puede ir más rápido, y por eso lo releva el SIGUIENTE QUE TENGA UNA BAZA
+   * (+0,1 o más), no el que no tiene ninguna.
+   */
+  teamDriveTired: -0.4,
   // …y lo que suma tener DOS motivos a la vez (el equipo del maillot que además lleva al mejor
   // rematador del día). Los motivos se acumulan en el ESFUERZO —se juegan el doble, ponen más gente
   // al frente— y no en la frase, porque una frase con dos motivos no se lee.

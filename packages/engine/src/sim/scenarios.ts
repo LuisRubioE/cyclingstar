@@ -258,34 +258,40 @@ export function mediumMountainScenario(): Scenario {
   for (let i = 0; i < 156; i++) {
     riders.push(rider(`pel-${i}`, { eff0: eff(56, { LLA: 62 + (i % 8), MON: 56 + (i % 6) }) }))
   }
-  const segments = []
-  for (let c = 0; c < 7; c++) {
-    segments.push({ km: 20, tipo: 'llano' as const })
-    const largo = 3 + (c % 3)
-    segments.push({
-      km: largo,
-      tipo: 'puerto' as const,
-      tramos: [{ km: largo, g: 5 + (c % 3) }],
-    })
-  }
   /**
-   * Y LA META ES LLANA, no un repecho (v38). La primera versión acababa con 2 km al 5 % y eso
-   * cambiaba la etapa entera: medido, el pelotón llegaba ENTERO al km 180 —el grupo mayor eran 132
-   * corredores y solo había 2-4 grupos en carretera— y luego el repecho lo partía en DIECIOCHO
-   * grupos de meta, con el ganador entrando solo. El dueño, que es lo que quería medir: «lo normal
-   * sería que llegase 1 grupo grande o pelotón, por detrás algunos sprinters o gente que va mal en
-   * montaña o gente muy cansada, probablemente en grupos, y por delante probablemente pero no
-   * siempre uno o dos grupos tipo fuga… y en una clásica así con algo de montaña pero que no acabe
-   * en alto se podría esperar algo parecido».
+   * OCHO COTAS QUE MUERDEN, CON SU BAJADA, Y LA ÚLTIMA A DIEZ KILÓMETROS (v38).
    *
-   * Con los últimos 17 km llanos, las cotas hacen lo suyo —vaciar al que no puede— y la carrera se
-   * resuelve entre los que llegan, que es de lo que va una media montaña.
+   * La primera versión ponía siete cotas de 3-5 km al 5-7 % separadas por veinte kilómetros de
+   * llano y sin una sola bajada —o sea que después de coronar se aparecía por arte de magia abajo—,
+   * y remataba con 17 km de llano. Medido sobre 60 etapas: el ganador llegaba en un grupo de 31 o
+   * más el **94 %** de las veces, la mediana de ese grupo era **168 corredores de 176** y ganaba un
+   * velocista 43 de 60. Eso no es una media montaña: es una llana con relieve.
+   *
+   * Dos cosas lo explicaban. Una, que 1.680 m de desnivel en 190 km no vacían a nadie. Y otra, que
+   * el motor solo DISPUTA las cotas de los últimos `climbRaceKmToGo` km: de las siete, seis se
+   * subían al paseo y la única que se corría coronaba a 27 km de meta, con diecisiete de llano
+   * detrás para que volviera todo el mundo.
+   *
+   * Ahora son ocho cotas de 4 a 6 km al 6-8 % con su descenso detrás —2.700 m, que es lo que tiene
+   * una media montaña de verdad—, las tres últimas caen dentro de la ventana en que se corre, y la
+   * de arriba corona a diez kilómetros de meta. Sigue sin acabar en alto, que es lo que pidió el
+   * dueño: «una clásica así con algo de montaña pero que no acabe en alto».
    */
-  segments.push({ km: 17, tipo: 'llano' as const })
+  const segments: StageInput['profile']['segments'] = []
+  segments.push({ km: 12, tipo: 'llano' })
+  for (let c = 0; c < 8; c++) {
+    const largo = 4 + (c % 3)
+    const rampa = 6 + (c % 3)
+    segments.push({ km: largo, tipo: 'puerto', tramos: [{ km: largo, g: rampa }] })
+    segments.push({ km: largo, tipo: 'descenso' })
+    // El llano entre cota y cota mengua: la etapa se va apretando hacia el final, como se dibuja.
+    if (c < 7) segments.push({ km: 14 - c, tipo: 'llano' })
+  }
+  segments.push({ km: 10, tipo: 'llano' })
   return {
     name: 'media-190',
     input: { profile: { segments, banners: [] }, riders: inTeams(riders, 8) },
-    bestSprinterId: 'spr-2',
+    bestSprinterId: 'spr-0',
   }
 }
 

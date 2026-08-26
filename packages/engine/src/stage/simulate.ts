@@ -465,6 +465,8 @@ function relayTurn(
   sittingOn: (riderId: string) => boolean = () => false,
   /** ¿Es este grupo EL PELOTÓN? Fuera de él el listón es otro; ver abajo. */
   isBunch = true,
+  /** ¿Es este hombre del equipo que LLEVA EL FRENTE? Decide el suelo; ver abajo. */
+  delDueño: (riderId: string) => boolean = () => false,
 ): Set<string> {
   const scored = members.map((m) => {
     const helpers = domestiquesFor.get(m.input.riderId)
@@ -537,7 +539,25 @@ function relayTurn(
     Math.min(members.length, STAGE.relayMinPullers, Math.ceil(members.length / STAGE.relayMinPer)),
   )
   const cuantos = Math.max(minimo, Math.min(quieren, techo))
-  return new Set(scored.slice(0, cuantos).map((s) => s.id))
+  if (cuantos <= quieren) return new Set(scored.slice(0, cuantos).map((s) => s.id))
+  /**
+   * …Y CUANDO HAY QUE RELLENAR POR DEBAJO DEL LISTÓN, LOS QUE DAN LA CARA SON LOS DEL DUEÑO DEL
+   * FRENTE (v38). Es la regla de siempre —«el frente lo lleva UNO»— dicha para el único caso en que
+   * no salía sola: cuando NADIE quiere tirar, el deber de todo el mundo se aplana y el orden lo
+   * decidía el desempate por id, o sea el azar.
+   *
+   * No es cosmético. Medido en el banco de la voz de la crónica, en el desenlace de una etapa con
+   * el campo vaciado los deberes se apilaban todos en 0,43 y el suelo sacaba al frente a un hombre
+   * cualquiera: en 62 de 153 partes con voz de equipo el que tiraba era un equipo SIN NINGÚN
+   * MOTIVO, y entonces el parte no puede decir por qué tira. En carretera, el equipo que ha llevado
+   * la carrera todo el día mantiene a un hombre delante aunque vaya vacío; no se aparta para que
+   * tire el que no se juega nada.
+   */
+  const relleno = [...scored].sort(
+    (a, b) =>
+      Number(delDueño(b.id)) - Number(delDueño(a.id)) || b.duty - a.duty || (a.id < b.id ? -1 : 1),
+  )
+  return new Set(relleno.slice(0, cuantos).map((s) => s.id))
 }
 
 /**
@@ -1292,9 +1312,29 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
           frontThreatDeficit = Number.isFinite(worst) ? worst : null
         }
         for (const plan of teamPlans.values()) {
-          // Solo cuenta el hombre delante si NO es un rebelde: el equipo no defiende a quien se ha
-          // ido por su cuenta contra sus órdenes (§VI.2), así que sigue persiguiendo.
-          const manUpTheRoad = plan.memberIds.some((id) => inMove.has(id) && !rebels.has(id))
+          /**
+           * «TENGO UN HOMBRE DELANTE» ES TENER DELANTE A TU CARTA, NO A CUALQUIERA (v38).
+           *
+           * La regla —no se persigue lo que lleva a un compañero dentro— es de las más viejas del
+           * ciclismo, pero se estaba aplicando a CUALQUIER hombre del equipo. Y en una llana el
+           * equipo del velocista manda a su cazaetapas a la fuga precisamente porque no le cuesta
+           * nada: si sale, etapa gratis; si no, se corre el sprint igual. Nadie renuncia a su
+           * velocista porque su noveno hombre esté en la escapada.
+           *
+           * Medido en el banco de la voz de la crónica (8 equipos de 5, cuatro con velocista): con
+           * los cuatro cazaetapas de esos cuatro equipos en la fuga, los cuatro se declaraban
+           * exentos a la vez y el frente del pelotón se quedaba **sin dueño el 20 % de los bloques**
+           * —nadie con motivo tirando, y un parte que no puede decir por qué—.
+           *
+           * Así que el equipo se aparta solo cuando el que va delante es SU CARTA para hoy
+           * (`stageCandidateId`, el mejor suyo para este final). Y solo cuenta si no es un rebelde:
+           * el equipo no defiende a quien se ha ido por su cuenta contra sus órdenes (§VI.2).
+           */
+          const suCarta = plan.stageCandidateId
+          const manUpTheRoad =
+            suCarta != null
+              ? inMove.has(suCarta) && !rebels.has(suCarta)
+              : plan.memberIds.some((id) => inMove.has(id) && !rebels.has(id))
           teamNow.set(
             plan.teamId,
             teamStance(plan, {
@@ -1317,16 +1357,41 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
           return stance && menInPeloton(plan) > 0 ? frontClaim(stance) : 0
         }
         const current = frontTeamId ? teamPlans.get(frontTeamId) : undefined
-        if (!current || claimOf(current) === 0 || spentFractionOf(current) >= 1) {
-          const relief = [...teamPlans.values()]
-            .filter((p) => claimOf(p) > 0 && spentFractionOf(p) < 1)
-            .sort(
-              (a, b) =>
-                claimOf(b) - claimOf(a) ||
-                spentFractionOf(a) - spentFractionOf(b) ||
-                b.quality - a.quality ||
-                (a.teamId < b.teamId ? -1 : 1),
-            )[0]
+        const relief = [...teamPlans.values()]
+          .filter((p) => claimOf(p) > 0 && spentFractionOf(p) < 1)
+          .sort(
+            (a, b) =>
+              claimOf(b) - claimOf(a) ||
+              spentFractionOf(a) - spentFractionOf(b) ||
+              b.quality - a.quality ||
+              (a.teamId < b.teamId ? -1 : 1),
+          )[0]
+        /**
+         * EL RELEVO ENTRE EQUIPOS NO ESPERA A QUE EL PRIMERO SE FUNDA DEL TODO (v38).
+         *
+         * La condición era «cede cuando pierde la baza o gasta su presupuesto ENTERO», y con el
+         * turno largo de la v38 el trabajo se reparte entre los tres o cuatro equipos con carta, así
+         * que el dueño terminaba la etapa con el 0,73 gastado y **no cedía nunca**: medido, 1,02
+         * equipos distintos llevaban el frente en una llana, contra un objetivo de 1,8-4.
+         *
+         * Y bajar el presupuesto para forzarlo es la palanca equivocada, también medido: agotarlo
+         * apaga además el EMPUJE del equipo (`teamDriveTired`), así que con presupuesto 3 el frente
+         * cambiaba de manos de sobra pero el pelotón dejaba de cazar y la fuga ganaba el 38 % de las
+         * llanas contra el 12 % de ahora. Son dos cosas distintas: cuánto trabaja el pelotón y quién
+         * de los que trabajan lleva la etiqueta de llevarlo.
+         *
+         * En carretera el cambio no es un colapso: el equipo que lleva media hora delante se aparta
+         * y entra otro que está más entero, y el pelotón no afloja ni un segundo. Así que se cede
+         * cuando el que manda YA HA PUESTO LO SUYO (`teamFrontHandoverSpent`) y hay un relevo con
+         * tanto derecho como él y bastante más depósito (`teamFrontHandoverEdge`).
+         */
+        const cansado =
+          current != null &&
+          relief != null &&
+          spentFractionOf(current) >= STAGE.teamFrontHandoverSpent &&
+          claimOf(relief) >= claimOf(current) &&
+          spentFractionOf(relief) + STAGE.teamFrontHandoverEdge <= spentFractionOf(current)
+        if (!current || claimOf(current) === 0 || spentFractionOf(current) >= 1 || cansado) {
           /**
            * Si no queda nadie fresco con derecho al frente, sigue el que estaba (fundido) hasta que
            * alguien recupere la baza: la carretera no se queda sin nadie delante.
@@ -2134,6 +2199,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
           // …o su jefe se ha quedado atrás (v37): en la fuga ya no tira, pero no se le manda atrás.
           (!isBunch && jefeEnApuros.has(riderId)),
         isBunch,
+        (riderId) => isBunch && frontTeamId !== null && teamOf.get(riderId) === frontTeamId,
       )
       /**
        * CUÁNTOS SE REPARTEN EL VIENTO AL FRENTE: LOS QUE TIRAN, y punto (v38).
