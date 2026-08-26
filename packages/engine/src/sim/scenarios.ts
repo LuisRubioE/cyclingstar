@@ -234,8 +234,20 @@ export function mediumMountainScenario(): Scenario {
       tramos: [{ km: largo, g: 5 + (c % 3) }],
     })
   }
-  segments.push({ km: 15, tipo: 'llano' as const })
-  segments.push({ km: 2, tipo: 'puerto' as const, tramos: [{ km: 2, g: 5 }] })
+  /**
+   * Y LA META ES LLANA, no un repecho (v38). La primera versión acababa con 2 km al 5 % y eso
+   * cambiaba la etapa entera: medido, el pelotón llegaba ENTERO al km 180 —el grupo mayor eran 132
+   * corredores y solo había 2-4 grupos en carretera— y luego el repecho lo partía en DIECIOCHO
+   * grupos de meta, con el ganador entrando solo. El dueño, que es lo que quería medir: «lo normal
+   * sería que llegase 1 grupo grande o pelotón, por detrás algunos sprinters o gente que va mal en
+   * montaña o gente muy cansada, probablemente en grupos, y por delante probablemente pero no
+   * siempre uno o dos grupos tipo fuga… y en una clásica así con algo de montaña pero que no acabe
+   * en alto se podría esperar algo parecido».
+   *
+   * Con los últimos 17 km llanos, las cotas hacen lo suyo —vaciar al que no puede— y la carrera se
+   * resuelve entre los que llegan, que es de lo que va una media montaña.
+   */
+  segments.push({ km: 17, tipo: 'llano' as const })
   return {
     name: 'media-190',
     input: { profile: { segments, banners: [] }, riders: inTeams(riders, 8) },
