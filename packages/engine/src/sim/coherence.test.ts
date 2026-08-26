@@ -86,7 +86,13 @@ const INVARIANTS: readonly DefectKey[] = [
 const TOLERANCE: Partial<Record<DefectKey, number>> = { ataqueSinCerrar: 2 }
 
 /** Una campaña de cuarenta etapas tarda lo que tarda: son cuarenta carreras enteras simuladas. */
-const TIMEOUT_MS = 120_000
+/**
+ * Estos bancos corren decenas de etapas COMPLETAS con los campos de producción, y desde la v38 eso
+ * son 176 corredores en 22 equipos en vez de 40 sueltos: el de la captura, que hace noventa
+ * simulaciones sobre tres carreras reales, se pasaba de los dos minutos y moría por tiempo sin
+ * llegar a comprobar nada.
+ */
+const TIMEOUT_MS = 300_000
 
 /** Corre un escenario con N semillas y devuelve, por invariante, el PEOR resultado de una etapa. */
 function worstPerStage(scenario: Scenario, seeds: readonly string[]): Record<string, number> {

@@ -998,8 +998,21 @@ export const HEALTH = {
   //
   // Calibrado sobre la gran vuelta de 21 etapas del banco (`sim/grandTour.ts`), que es donde se
   // mide el objetivo de §VI.3. Ver docs/balance.md, «v14».
-  illnessRaceFactor: 0.13,
-  illnessRaceMax: 0.0028,
+  //
+  // RECALIBRADO EN LA v38 (0,13/0,0028 → 0,19/0,0042) y por una razón que NO es la que parecía. El
+  // reparto de causas estaba roto —caída 73,6 % contra una banda de 30-67— y lo primero que se miró
+  // fue el montón de la v38 (`crashPile`): si ahora se cae gente en grupo, la puerta «caída» debería
+  // llevarse más. **Y no era eso**: poniendo `crashPileHurtChance` a CERO el número se queda en
+  // 73,3 %. Los abandonos por caída salen del que se cae primero, no de los que arrastra.
+  //
+  // Lo que faltaba era ENFERMEDAD. En las listas de abandonos de grandes vueltas reales la caída y
+  // la enfermedad se reparten más o menos mitad y mitad, y el motor tenía la enfermedad en el
+  // 23,6 %. Este dado se calibró en la v14 y desde entonces han cambiado el tamaño del pelotón y
+  // el desgaste; era el número viejo, no una consecuencia de esta tanda. Medido sobre las mismas 6
+  // grandes vueltas: abandonos 16,9 % → 18,5 % (banda 12-20), caída 73,6 % → 65,1 % (30-67),
+  // enfermedad 23,6 % → 30,3 % (20-67), fuera de control 2,8 % → 4,6 % (1-15).
+  illnessRaceFactor: 0.19,
+  illnessRaceMax: 0.0042,
 } as const
 
 /** Moral (SPEC 4.2, 4.4). M_moral = base + scale * MOR/100; regresión diaria a la media. */
@@ -1501,6 +1514,12 @@ export const STAGE = {
    * tiraba UNO.
    */
   relayDutyThresholdLoose: 0,
+  /**
+   * …y el del pelotón SIN equipos, donde no hay empuje que sumar y manda el ROL. Va entre el
+   * corredor sin órdenes (0,6 de base, que colabora) y el marcador (0,35, que vive a rueda): con la
+   * frescura entera son 0,95 contra 0,70. Ver `relayTurn` para los tres casos y lo que se midió.
+   */
+  relayDutyThresholdNoTeams: 0.8,
   // …y si NADIE llega al umbral, alguien tiene que dar la cara igual: uno en una fuga pequeña,
   // hasta cuatro en un pelotón. Uno por cada `relayMinPer` hombres, con ese techo.
   relayMinPullers: 4,
@@ -2702,7 +2721,18 @@ export const STAGE = {
   // velocidad y sobre cuerpos y bicis. Sin esto cada montón multiplicaba las lesiones por su tamaño:
   // los abandonos de una gran vuelta se iban al 28,4 % (banda 12-20) y el 81,5 % eran por caída.
   crashPileHurtChance: 0.06,
-  crashLambdaPaves: 0.0045,
+  /**
+   * Y EL RIESGO DEL PAVÉS BAJA A LA MITAD PORQUE AHORA SE CAEN VARIOS (v38). No es que el adoquín
+   * sea menos peligroso: es que hasta la v37 cada caída era de UNO —el dado se tiraba corredor a
+   * corredor y nadie miraba a la rueda de al lado— y ahora un incidente arrastra a los que van
+   * detrás (`crashPile`), que es lo que pidió el dueño. Con el mismo dado, los corredores TOCADOS
+   * por una caída en una etapa de adoquines pasaron del 9 % al 18,7 %, con una banda de 5-12.
+   *
+   * Lo que se conserva es lo que se calibró en su día: cuánta gente acaba en el suelo en una
+   * clásica de adoquines. Lo que cambia es que van juntos y no de uno en uno. Medido con el mismo
+   * banco de 80 etapas: 10,5 %.
+   */
+  crashLambdaPaves: 0.0025,
   crashLambdaFinal: 0.0008,
   // severidad: 60% sin daño (30-90 s) | 30% rasguños (eff -3%, 3-6 d) | 9% leve (5-15 d) | 1% grave (20-60 d).
   crashSeverity: {

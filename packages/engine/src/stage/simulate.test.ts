@@ -638,10 +638,25 @@ describe('trabajo de equipo (SPEC 6.18)', () => {
      * Lo que un equipo SÍ te da sigue existiendo y se comprueba en otros sitios: que ellos entren
      * al turno y paguen el viento por ti, y que te saquen del turno cuando hace falta (v36).
      */
-    const seed = stageSeed({ worldSeed: 'dom', raceId: 'dom', stageDay: 1, engineVersion: 1 })
-    const out = simulateStage(domestiqueInput(), seed)
-    const workA = out.workUnits.get('cap-a')!
-    const workB = out.workUnits.get('cap-b')!
+    /**
+     * Y SE MIDE SOBRE VARIAS ETAPAS, NO SOBRE UNA (v38). Con una sola semilla esto no medía el
+     * coste de ir a rueda sino la lotería del día: en un campo de 39 hombres la capa táctica manda
+     * a veces a uno de los dos capitanes a un movimiento y ese gasta el doble, y con las mismas
+     * órdenes y los mismos atributos la diferencia entre semillas iba del 0 % al 94 %. La afirmación
+     * del dueño —«un líder arropado por gregarios gasta lo mismo que uno a rueda sin equipo»— es
+     * sobre el promedio, así que se mide sobre el promedio.
+     */
+    const semillas = ['dom', 'dom-2', 'dom-3', 'dom-4', 'dom-5', 'dom-6', 'dom-7', 'dom-8']
+    let workA = 0
+    let workB = 0
+    for (const w of semillas) {
+      const out = simulateStage(
+        domestiqueInput(),
+        stageSeed({ worldSeed: w, raceId: 'dom', stageDay: 1, engineVersion: 1 }),
+      )
+      workA += out.workUnits.get('cap-a')!
+      workB += out.workUnits.get('cap-b')!
+    }
     // Los dos van a rueda y son idénticos; lo poco que separa a uno de otro es en qué bloques les
     // toca el turno, no un descuento por llevar maillot del mismo equipo.
     expect(Math.abs(workA - workB) / workB).toBeLessThan(0.15)
@@ -883,9 +898,17 @@ describe('modelo de final (docs/motor.md §12)', () => {
       // Lo que este banco mide no es esa semilla, es el CONTRASTE de las dos filas —con el depósito
       // lleno gana «fuerte» casi siempre; con el depósito vacío no gana NUNCA—, y eso sigue entero.
       expect(fresco.filter((w) => w === 'fuerte').length).toBeGreaterThanOrEqual(11)
-      // Con un depósito de 16 el "fuerte" llega al km 80 con la erosión por las nubes y su punta
+      // Con un depósito de 12 el "fuerte" llega al km 80 con la erosión por las nubes y su punta
       // de velocidad (coef 0.45, el más castigado de la tabla) ya no le da para ganar la volante.
-      const reventado = winners(16)
+      //
+      // Era 16 hasta la v38 y el número tuvo que bajar por una razón que es el modelo funcionando:
+      // en un pelotón SIN equipos el turno de relevos pasó de tres o cuatro hombres a veinte (ver
+      // `relayDutyThresholdNoTeams`), y el viento se reparte 1/n, así que ahora cada uno paga MENOS
+      // por kilómetro. Con el mismo depósito de 16 el "fuerte" ya llega al banner con algo dentro y
+      // gana 2 de 12; hace falta salir con menos para llegar reventado. Lo que este banco mide
+      // —el CONTRASTE entre depósito lleno y depósito vacío— sigue igual de nítido: 11 de 12 contra
+      // 0 de 12.
+      const reventado = winners(12)
       expect(reventado.every((w) => w === 'entero')).toBe(true)
     },
   )

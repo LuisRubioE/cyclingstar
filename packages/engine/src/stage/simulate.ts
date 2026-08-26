@@ -465,6 +465,8 @@ function relayTurn(
   sittingOn: (riderId: string) => boolean = () => false,
   /** ¿Es este grupo EL PELOTÓN? Fuera de él el listón es otro; ver abajo. */
   isBunch = true,
+  /** ¿Hay equipos en esta carrera? También cambia el listón; ver abajo. */
+  hayEquipos = true,
   /** ¿Es este hombre del equipo que LLEVA EL FRENTE? Decide el suelo; ver abajo. */
   delDueño: (riderId: string) => boolean = () => false,
 ): Set<string> {
@@ -519,7 +521,36 @@ function relayTurn(
    * Sin esta distinción el umbral del pelotón se aplicaba a todo y en una fuga de seis tiraba UNO
    * solo, medido: turno mediana 1 en fugas y grupetos de cualquier tamaño.
    */
-  const listón = isBunch ? STAGE.relayDutyThreshold : STAGE.relayDutyThresholdLoose
+  /**
+   * …Y HAY TRES LISTONES, UNO POR SITUACIÓN, porque tres situaciones distintas responden distinto a
+   * «¿por qué iba yo a dar la cara al viento?».
+   *
+   * - **El pelotón con equipos** (`relayDutyThreshold`). La norma es NO tirar —ciento setenta de
+   *   ciento setenta y seis van a rueda— y lo que pone a un hombre delante es que SU EQUIPO lo
+   *   mande. El listón va por encima de lo que da el rol solo, así que lo cruza el que lleva
+   *   empuje de equipo y nadie más: por eso el frente tiene dueño.
+   * - **Una FUGA o un GRUPETO** (`...Loose`). No hay equipo que empuje a nadie y la norma es la
+   *   contraria: se relevan todos, porque el que va ahí o colabora o no llega. El listón solo tiene
+   *   que dejar fuera al que tiene un motivo para NO colaborar —el que no persigue lo suyo (v33),
+   *   el jefe arropado (v36), el que tiene al jefe descolgado (v37)—, y ésos ya salen en negativo.
+   * - **Un pelotón SIN equipos** (`...NoTeams`). Es el caso del banco y de los campos de prueba, y
+   *   no es ninguno de los dos anteriores. Con el listón del pelotón NADIE lo cruza nunca —el
+   *   empuje de equipo vale 0 para todos (§V.1, regla 1)— y medido, un pelotón de 99 corredores
+   *   libres rodaba los 200 km enteros con los MISMOS TRES hombres del suelo de rescate y la
+   *   crónica se quedaba sin un solo parte de relevos. Y con el listón de la fuga se van al turno
+   *   hasta los jefes de filas: medido en el banco de los dos capitanes, uno de ellos daba la cara
+   *   en 32 bloques de 119 y el otro en ninguno, decidido por el desempate, con un 31 % de
+   *   diferencia de gasto entre dos hombres idénticos.
+   *
+   *   Sin equipos que empujen, lo que decide es EL ROL: el gregario y el corredor sin órdenes se
+   *   reparten el trabajo, y el jefe, el sprinter y el marcador van a rueda como en cualquier
+   *   pelotón. El listón se pone entre esos dos grupos.
+   */
+  const listón = !isBunch
+    ? STAGE.relayDutyThresholdLoose
+    : hayEquipos
+      ? STAGE.relayDutyThreshold
+      : STAGE.relayDutyThresholdNoTeams
   const quieren = scored.filter((s) => s.duty >= listón).length
   /**
    * …Y ALGUIEN TIENE QUE DAR LA CARA IGUAL: un grupo rueda porque alguien va delante. Son los que
@@ -2199,6 +2230,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
           // …o su jefe se ha quedado atrás (v37): en la fuga ya no tira, pero no se le manda atrás.
           (!isBunch && jefeEnApuros.has(riderId)),
         isBunch,
+        teamPlans.size > 0,
         (riderId) => isBunch && frontTeamId !== null && teamOf.get(riderId) === frontTeamId,
       )
       /**
