@@ -999,7 +999,7 @@ export const HEALTH = {
   // Calibrado sobre la gran vuelta de 21 etapas del banco (`sim/grandTour.ts`), que es donde se
   // mide el objetivo de §VI.3. Ver docs/balance.md, «v14».
   //
-  // RECALIBRADO EN LA v38 (0,13/0,0028 → 0,19/0,0042) y por una razón que NO es la que parecía. El
+  // RECALIBRADO EN LA v38 (0,13/0,0028 → 0,16/0,0035) y por una razón que NO es la que parecía. El
   // reparto de causas estaba roto —caída 73,6 % contra una banda de 30-67— y lo primero que se miró
   // fue el montón de la v38 (`crashPile`): si ahora se cae gente en grupo, la puerta «caída» debería
   // llevarse más. **Y no era eso**: poniendo `crashPileHurtChance` a CERO el número se queda en
@@ -1008,11 +1008,17 @@ export const HEALTH = {
   // Lo que faltaba era ENFERMEDAD. En las listas de abandonos de grandes vueltas reales la caída y
   // la enfermedad se reparten más o menos mitad y mitad, y el motor tenía la enfermedad en el
   // 23,6 %. Este dado se calibró en la v14 y desde entonces han cambiado el tamaño del pelotón y
-  // el desgaste; era el número viejo, no una consecuencia de esta tanda. Medido sobre las mismas 6
-  // grandes vueltas: abandonos 16,9 % → 18,5 % (banda 12-20), caída 73,6 % → 65,1 % (30-67),
-  // enfermedad 23,6 % → 30,3 % (20-67), fuera de control 2,8 % → 4,6 % (1-15).
-  illnessRaceFactor: 0.19,
-  illnessRaceMax: 0.0042,
+  // el desgaste; era el número viejo, no una consecuencia de esta tanda.
+  //
+  // Y NO SE SUBE MÁS, porque tiene un acoplamiento que no se ve venir: los que enferman son los del
+  // TSB más hundido, así que cuanta más enfermedad, más FUERTE es el pelotón que queda y más cerca
+  // llega el último grupo de una reina. A 0,19 el reparto de causas queda perfecto pero
+  // `queenLastGroupPct` se cae a 7,63 % contra un suelo de 8. Se queda en 0,16 y el resto lo pone
+  // `crashSeverity.none`. Medido sobre las mismas 6 grandes vueltas: abandonos 16,9 % → 14,9 %
+  // (banda 12-20), caída 73,6 % → 65,0 % (30-67), enfermedad 23,6 % → ~30 % (20-67), último grupo
+  // de la reina 8,33 % (8-14).
+  illnessRaceFactor: 0.16,
+  illnessRaceMax: 0.0035,
 } as const
 
 /** Moral (SPEC 4.2, 4.4). M_moral = base + scale * MOR/100; regresión diaria a la media. */
@@ -1430,7 +1436,7 @@ export const STAGE = {
    * gente se va fuera de control.
    */
   /**
-   * BAJADO DE 2,2 A 1,9 EN LA v38, Y NO TOCA LA REGLA DEL DUEÑO. Esta constante multiplica IGUAL al
+   * BAJADO DE 2,2 A 2,0 EN LA v38, Y NO TOCA LA REGLA DEL DUEÑO. Esta constante multiplica IGUAL al
    * que da la cara (`cara`) y al que va a rueda (`rueda`), así que la proporción entre los dos —el
    * «ir a rueda cuesta el 10 %» del encargo— queda intacta: lo que baja es el nivel absoluto.
    *
@@ -1442,11 +1448,19 @@ export const STAGE = {
    * produce —más erosión, más lento, más horas en carretera, más coste, pájara— y por eso es un
    * acantilado y no una pendiente.
    *
-   * Medido con el nivel nuevo: Lombardía 0,895 con 5 % de pájaras, Montreal 0,872 con 6 %, Strade
-   * 0,875 con 4 % (el umbral de saturación está en 0,95 y 12 %). Y la campaña de 200 corridas
-   * entera en banda: fuga en llano 9,0 %, mejor sprinter 42,0 %, capturas 91 %, montaña 37,5 %.
+   * Y NO SE BAJA MÁS, aunque a 1,9 las clásicas respiren mejor: el nivel de coste tira de los dos
+   * extremos a la vez y por debajo de 2,0 se rompe el otro. Medido a 1,9, la reina REAL de tercera
+   * semana deja de erosionar —0,560 contra un suelo de 0,60— y el 2,4 % de las reinas de una gran
+   * vuelta llega EN BLOQUE, que es el defecto que costó las tandas v16 y v17. Dos de esas medidas
+   * miran a lados opuestos porque miran a depósitos distintos: la clásica la corre un campo FRESCO
+   * y la reina de tercera semana un campo con el tanque ya mordido.
+   *
+   * Medido a 2,0: Lombardía 0,941 con 11 % de pájaras (umbral 0,95 y 12 %), reina de tercera semana
+   * 0,616 de erosión (suelo 0,60), último grupo de una reina al 8,33 % (banda 8-14), ninguna reina
+   * en bloque. Es un punto estrecho por los dos lados y esa estrechez es el hallazgo: el margen que
+   * hay entre «una clásica dura» y «una clásica que satura» es del orden del 10 % de coste.
    */
-  costExposureLevel: 1.9,
+  costExposureLevel: 2.0,
   /**
    * EL SUELO DEL COSTE: PEDALEAR CUESTA AUNQUE VAYAS A RUEDA (v38). El exponente describe el coste
    * MARGINAL de dar la cara y ahí el 10 % del dueño es bueno; pero no todo el gasto es marginal:
@@ -2752,10 +2766,22 @@ export const STAGE = {
   crashLambdaPaves: 0.0025,
   crashLambdaFinal: 0.0008,
   // severidad: 60% sin daño (30-90 s) | 30% rasguños (eff -3%, 3-6 d) | 9% leve (5-15 d) | 1% grave (20-60 d).
+  /**
+   * LA RULETA DE LA SEVERIDAD. OJO: `major` es EL RESTO, no una entrada independiente —el dado cae
+   * en `major` cuando no ha caído en ninguna de las tres anteriores—, así que bajar `minor` SUBE
+   * `major` y no cambia nada: las dos sacan de la carrera. Medido en la v38 al intentarlo: los
+   * abandonos por caída se quedaron en el 68,2 % contra el 68,0 % de partida.
+   *
+   * La perilla de verdad es `none`: cuántas caídas son de levantarse y seguir. Subida de 0,60 a
+   * 0,62 en la v38 para cerrar el reparto de causas de §VI.3, que estaba en caída 73,6 % contra una
+   * banda de 30-67. Con eso y con el dado de enfermar en carrera (ver `illnessRaceFactor`): caída
+   * 65,0 %, enfermedad ~30 %, fuera de control ~5 %, abandonos totales 14,9 % (banda 12-20). Y sin
+   * mover el otro lado: el último grupo de una reina sigue en el 8,33 % (banda 8-14).
+   */
   crashSeverity: {
-    none: 0.6,
+    none: 0.62,
     scratches: 0.3,
-    minor: 0.09,
+    minor: 0.072,
     major: 0.01,
   },
   // Consecuencias de una caída por severidad: tiempo perdido en carretera (s) y días de baja.

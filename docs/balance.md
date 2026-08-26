@@ -7607,6 +7607,221 @@ La CONTRARRELOJ no se mueve **ni un dígito**, y es a propósito: es el ancla de
 del calendario—, así que paga la ley lineal de siempre (`timeTrialCost`). Cobrarle la convexidad sería
 contar dos veces lo mismo.
 
+---
+
+## v38 (segunda parte) — Quién persigue, quién tira, y por qué
+
+> **El encargo:** «pon también foco en revisar la lógica de quién tira de cada grupo… en el race
+> radio se ven muchas cosas que no hacen sentido; dime primero qué es lo que está programado».
+> Y después de leer la explicación: «pues está bastante mal esa distribución… ¿cómo calculas eso de
+> que el frente tiene dueño? …ok, sí, rehaz ese bloque entero, wey».
+
+Con el turno de relevos ya rehecho, la llana canónica seguía dando **«gana la fuga» al 32 %** contra
+una banda de 5-16. El listón del turno no era la palanca: se probó a 1,5 (35,5 %) y a 1,2 (35,0 %) y
+no se movió. La causa estaba antes, en el plan de equipo, y eran **cinco defectos encadenados**.
+
+### 12. Los cinco defectos del plan de equipo
+
+**a) El boquete iba con el SIGNO CAMBIADO.** En la llamada nueva a `teamStance` se pasaba
+`front.g.tS - peloton.tS`, cuando cuarenta líneas más arriba el propio motor calcula
+`gap = peloton.tS - front.g.tS`. La fuga pasa ANTES por el punto, así que su reloj es menor y el
+boquete llegaba **siempre negativo**: la regla «con el de delante a un puñado de segundos no se
+organiza un tren» leía −124 s como «no hay nada que cazar». Resultado medido: **ningún equipo
+perseguía nunca**, en toda la etapa y en todas las semillas.
+
+**b) «Tengo un hombre delante» contaba CUALQUIER corro de la carretera.** `inMove` metía todos los
+`mov-N`, y un `mov-N` es cualquier grupo que no sea el pelotón: también el corro de dos que se acaba
+de descolgar por DETRÁS. Medido en el km 150 de la llana: **15 de los 22 equipos** se creían exentos
+de tirar. Ahora solo cuentan los movimientos que van efectivamente por delante.
+
+**c) …y ni siquiera cualquier hombre PROPIO exime.** La regla —no se persigue lo que lleva a un
+compañero dentro— se aplicaba a cualquier miembro del equipo. Pero en una llana el equipo del
+velocista manda a su cazaetapas a la fuga precisamente porque no le cuesta nada: si sale, etapa
+gratis; si no, se corre el sprint igual. Nadie renuncia a su velocista porque su noveno hombre esté
+en la escapada. Medido en el banco de la voz de la crónica: con los cuatro cazaetapas de los cuatro
+equipos con carta en la fuga, los cuatro se declaraban exentos a la vez y **el frente se quedaba sin
+dueño el 20 % de los bloques**. Ahora solo aparta al equipo que lleve delante SU CARTA
+(`stageCandidateId`).
+
+**d) Con la fuga cerca, TODOS se apagaban.** La primera versión de la regla del dueño («¿y si no hay
+fuga también? ¿y si la fuga está cerca también?») se escribió como `intent = 'nada'`, y midió fatal:
+el equipo del rematador desaparecía del frente. La respuesta correcta es **«controlar»**, no «nada»:
+la diferencia entre controlar y perseguir es de INTENSIDAD, no de estar o no estar. Con «nada» el
+frente se quedaba sin dueño y el pelotón caía al mínimo de rescate —**cuatro hombres de 172**—, y el
+peor momento era justo el final: en el km 160, con la fuga a 20 s (por debajo del umbral), todos se
+apagaban y el corte se iba. Bloques sin dueño del frente: **21 % → 0 %**.
+
+**e) Se cazaba desde el KILÓMETRO VEINTE.** Lo que hace peligroso a un boquete no es su tamaño sino
+su tamaño CONTRA LO QUE QUEDA: cuatro minutos a falta de 150 km se recortan rodando; a falta de 40,
+no. Sin esa mitad de la cuenta los equipos con velocista se ponían a tope en el km 20 con la fuga a
+un minuto, **se fundían el presupuesto colectivo hacia el km 120** y a partir de ahí no había quien
+rematara: la fuga volvía a irse de 86 s a más de seis minutos. Nuevo `teamChaseSecondsPerKm`.
+
+Y un sexto, en el turno mismo: **el suelo de relevistas no era un suelo sino un caso aparte.** Estaba
+escrito como «si no quiere NADIE, saca el mínimo», así que con UN solo hombre por encima del listón
+salía uno, por debajo del mínimo de cuatro. Medido: **un relevista en un pelotón de 157**.
+
+### 13. Y dos del BANCO, que eran la mitad del problema
+
+**La llana canónica tenía TRES velocistas y diecinueve equipos de clones.** Medido: solo **3 equipos
+de 22 tenían carta de etapa** —o sea, motivo para gastar un vatio— y los otros diecinueve llevaban
+de jefe a un relleno idéntico (58,3 de remate contra 77,8 del mejor). Esos tres se fundían el
+presupuesto hacia el km 100 y a partir de ahí el pelotón rodaba con cuatro hombres de 172: cualquier
+corte de diez se iba, y **un grupo de 11 a 30 hombres llegaba por delante del pelotón en el 23 % de
+las llanas**. Ahora son diez velocistas en degradado con un jefe claro (SPR 88 y luego 82 hacia
+abajo), en la llana y en la media montaña.
+
+**Y en un equipo de velocista TODO el relleno era `lanzador`**, cuyo deber de relevo (0,85) es MENOR
+que el de un gregario (1,0) porque se guarda para el último kilómetro. O sea que los únicos equipos
+con motivo para llevar el pelotón eran los que menos obligación tenían de dar la cara. Un tren son
+dos hombres.
+
+### 14. El frente tiene dueño, y la crónica puede decir por qué
+
+Con lo anterior arreglado quedaban dos cosas del parte de relevos.
+
+**El suelo escogía por desempate de ID.** En el desenlace, con el campo vaciado, los deberes se
+apilan todos en 0,43 y el que daba la cara salía por azar: en **62 de 153 partes con voz de equipo**
+tiraba un equipo SIN NINGÚN MOTIVO, y entonces el parte no puede decir por qué tira nadie. Ahora el
+relleno por debajo del listón son los hombres del DUEÑO del frente.
+
+**El frente no cambiaba de manos** (1,02 equipos por etapa contra una banda de 1,8-4): con el turno
+largo de la v38 el trabajo se reparte entre los equipos con carta, así que el dueño acababa la etapa
+con el 0,73 gastado y no cedía nunca. **Bajar el presupuesto para forzarlo es la palanca equivocada,
+y está medido**: agotarlo apaga además el EMPUJE del equipo (`teamDriveTired`), así que con
+presupuesto 3 el frente rotaba de sobra pero el pelotón dejaba de cazar y **la fuga ganaba el 38 %
+de las llanas**. Son dos cosas distintas —cuánto trabaja el pelotón y quién lleva la etiqueta de
+llevarlo— y ahora se ceden por separado (`teamFrontHandoverSpent` / `...Edge`).
+
+Y dos calibraciones que salen de ahí: `relayDutyThreshold` 1,2 → 1,5 (con 1,2 los equipos que
+ESPERAN su turno entraban igual en la rotación y el frente era una alianza permanente) y
+`teamDriveTired` −0,6 → −0,4, porque **fundido no puede valer MENOS que desinteresado**
+(`teamDriveIdle` −0,5): el que se ha vaciado por su sprinter sigue siendo el que va delante, y lo
+releva el siguiente que tenga una baza, no el que no tiene ninguna.
+
+### 15. Tres listones de relevo, uno por situación
+
+El listón del pelotón mide **el empuje del equipo**, así que en un campo SIN equipos nadie lo cruza
+nunca: medido, un pelotón de 99 corredores libres rodaba los 200 km enteros con los MISMOS TRES
+hombres del suelo y la crónica se quedaba sin un solo parte de relevos. Pero el listón de la fuga
+(se relevan todos) manda al turno hasta a los jefes de filas: en el banco de los dos capitanes, uno
+daba la cara en 32 bloques de 119 y el otro en ninguno. Sin equipos que empujen, quien tira lo dice
+**el rol** (`relayDutyThresholdNoTeams`, entre el corredor sin órdenes y el marcador).
+
+### 16. La media montaña era una llana con relieve
+
+Siete cotas de 3-5 km al 5-7 % separadas por veinte kilómetros de llano, **sin una sola bajada**, y
+17 km de llano final. Medido sobre 60 etapas: el ganador llegaba en un grupo de 31 o más el **94 %**
+de las veces y la mediana de ese grupo eran **168 corredores de 176**; ganaba un velocista 43 de 60.
+
+Dos cosas lo explicaban: 1.680 m de desnivel en 190 km no vacían a nadie, y el motor solo DISPUTA
+las cotas de los últimos `climbRaceKmToGo` km —de las siete, seis se subían al paseo y la única que
+se corría coronaba a 27 km de meta, con diecisiete de llano detrás para que volviera todo el mundo—.
+
+Ahora son ocho cotas de 4-6 km al 6-8 % con su descenso (2.700 m), las tres últimas dentro de la
+ventana en que se corre y la de arriba coronando a 10 km de meta. Sigue sin acabar en alto.
+
+| grupo del ganador | antes | ahora |
+| ----------------- | ----- | ----- |
+| solo              | 1 %   | 2 %   |
+| 2-3               | 4 %   | 8 %   |
+| 4-10              | 0 %   | 22 %  |
+| 11-30             | 1 %   | 20 %  |
+| 31+               | 94 %  | 48 %  |
+
+El grupo mayor en meta tiene mediana 115 de 176 y hay 6 grupos: la foto que pidió el dueño —«un
+grupo grande, algunos por detrás en grupos, y por delante uno o dos»—. **Lo que sigue rojo** es el
+ganador en solitario: 4 % contra el 20-30 % que pidió. Y las dos cifras que fallan tiran en sentidos
+opuestos —el ganador llega en el grupo mayor solo el 22 % contra un ~40 %—, lo que dice que
+endurecer o ablandar la etapa no arregla ninguna. Falta un mecanismo que el motor no tiene: **en un
+grupo decisivo cerca de meta la colaboración se rompe**. Hoy, con el listón suelto fuera del
+pelotón, en un grupo de seis a 8 km de meta relevan los seis, incluido el que sabe que pierde el
+sprint. Queda anotado como deuda, no comprado con una perilla.
+
+### 17. Dos bancos que no medían lo que decían medir
+
+**El del líder arropado era una moneda al aire.** Comparaba a dos capitanes idénticos en UNA sola
+etapa, y en un campo de 39 hombres la capa táctica manda a veces a uno de los dos a un movimiento y
+ése gasta el doble: con nueve semillas la diferencia iba del **0 % al 94 %**. La afirmación del dueño
+—«un líder arropado gasta lo mismo que uno a rueda sin equipo»— es sobre el promedio, así que se
+mide sobre el promedio: **2,9 % en ocho etapas**.
+
+**El del banner necesitaba menos depósito, y es el modelo funcionando.** En un pelotón sin equipos el
+turno pasó de 3-4 hombres a 20 y el viento se reparte 1/n, así que ahora cada uno paga menos por
+kilómetro: con el depósito de 16 el «fuerte» ya llega con algo dentro y gana 2 de 12. Bajado a 12, el
+contraste que el banco mide sigue nítido: **11 de 12 con el depósito lleno, 0 de 12 sin él**.
+
+**El de coherencia moría por TIEMPO**, no por aserción: noventa etapas completas con los campos de
+producción de 176 corredores se pasan de los dos minutos.
+
+### 18. Sucesos: el pavés, la enfermedad y las tres clásicas que saturaban
+
+**`crashLambdaPaves` 0,0045 → 0,0025.** No es que el adoquín sea menos peligroso: es que ahora un
+incidente arrastra a los de detrás (`crashPile`), así que con el mismo dado los corredores TOCADOS
+por una caída en una etapa de adoquines pasaron del 9 % al **18,7 %** con una banda de 5-12. Se
+conserva cuánta gente acaba en el suelo; cambia que van juntos. Medido: **10,5 %**.
+
+**El reparto de causas de abandono estaba en caída 73,6 % contra una banda de 30-67, y NO era por el
+montón**: poniendo `crashPileHurtChance` a CERO se queda en 73,3 %. Los abandonos por caída salen del
+que se cae primero. Lo que faltaba era ENFERMEDAD (23,6 %, cuando en las grandes vueltas reales se
+reparte casi a medias con la caída); el dado venía de la v14. Y tiene un acoplamiento que no se ve
+venir: **los que enferman son los del TSB más hundido**, así que cuanta más enfermedad, más fuerte es
+el pelotón que queda y más cerca llega el último grupo de una reina —a `illnessRaceFactor` 0,19 el
+reparto queda perfecto pero `queenLastGroupPct` se cae a 7,63 % contra un suelo de 8—. Se queda en
+0,16 y el resto lo pone `crashSeverity.none` 0,60 → 0,62.
+
+> Ojo con `crashSeverity`: **`major` es EL RESTO**, no una entrada independiente, así que bajar
+> `minor` SUBE `major` y no cambia nada (medido: 68,2 % contra 68,0 % de partida). La perilla es
+> `none`: cuántas caídas son de levantarse y seguir.
+
+**`costExposureLevel` 2,2 → 2,0, y NO toca la regla del dueño**: esa constante multiplica igual al
+que da la cara y al que va a rueda, así que el «ir a rueda cuesta el 10 %» queda intacto; lo que baja
+es el nivel absoluto. A 2,2, tres clásicas del WorldTour no se ponían duras sino que **SATURABAN**:
+
+| clásica     | a 2,2         | a 2,0        |
+| ----------- | ------------- | ------------ |
+| lombardy    | 1.000 / 100 % | 0.941 / 11 % |
+| white-roads | 1.000 / 77 %  | 0.875 / 4 %  |
+| montreal    | 1.000 / 63 %  | 0.872 / 6 %  |
+
+(vaciado del depósito / % de pájaras; el umbral de saturación es 0,95 y 12 %.)
+
+Vaciar el depósito ENTERO con el 100 % del pelotón con pájara no es una clásica dura: es que la
+erosión pide más de lo que el modelo sabe expresar —topa en 0,920— y a partir de ahí deja de
+discriminar. **Y no se baja más, aunque a 1,9 las clásicas respiren mejor**: el nivel de coste tira
+de los dos extremos a la vez y por debajo de 2,0 se rompe el otro —medido a 1,9, la reina REAL de
+tercera semana deja de erosionar (0,560 contra un suelo de 0,60) y el **2,4 % de las reinas de una
+gran vuelta llega EN BLOQUE**, que es el defecto que costó las tandas v16 y v17—. Miran a lados
+opuestos porque miran a depósitos distintos: la clásica la corre un campo FRESCO y la reina de
+tercera semana un campo con el tanque ya mordido. **El margen entre «una clásica dura» y «una clásica
+que satura» es del orden del 10 % de coste.**
+
+### 19. El montecarlo de la segunda parte
+
+Campaña de **200 corridas, todas las bandas en verde**, y la suite en **1320 de 1321**.
+
+| invariante                             | antes de esta parte | después    | banda  |
+| -------------------------------------- | ------------------- | ---------- | ------ |
+| Gana la fuga (llana)                   | 32,0 %              | **12,0 %** | 5-16   |
+| Gana el mejor sprinter                 | 27,5 %              | **40,5 %** | 30-45  |
+| Capturas                               | 64 %                | **88 %**   | —      |
+| 11-30 por delante del pelotón (llana)  | 23 %                | **~10 %**  | —      |
+| Relevistas del pelotón (de 176)        | 4                   | **20**     | —      |
+| Gana la fuga (montaña)                 | 40,0 %              | 39,0 %     | 25-45  |
+| Voz de EQUIPO en el parte              | 34,9 %              | **71,6 %** | 50-85  |
+| …y el parte dice POR QUÉ               | 56,9 %              | **100 %**  | 95-100 |
+| Equipos que llevan el frente por etapa | 1,02                | **2,70**   | 1,8-4  |
+| Abandonos en una gran vuelta           | 16,9 %              | 14,9 %     | 12-20  |
+| Abandonos por CAÍDA                    | 73,6 %              | **65,0 %** | 30-67  |
+| Último grupo en la reina               | 7,41 %              | **8,33 %** | 8-14   |
+| Bajas por caída en pavés               | 18,7 %              | **10,5 %** | 5-12   |
+| Clásicas del WT que saturan            | 3                   | **0**      | 0      |
+
+La huella sellada se vuelve a sellar entera, y no por una física nueva: **el banco canónico dejó de
+correr 40 corredores sueltos y corre 176 en 22 equipos**, que es lo que pidió el dueño. Lo que se
+sella es la FORMA —las dos llanas meten 173 y 171 de 176 en un solo reloj; las dos reinas reparten el
+campo en nueve y diez relojes con el ganador en un grupo de 3 y de 8—.
+
 ## El motor depende del ORDEN DE ENTRADA (defecto medido — ARREGLADO en la v35)
 
 > **ARREGLADO EN LA v35** (ver «v35 — Volver cuesta», §4): `simulateStage` ordena el campo por
