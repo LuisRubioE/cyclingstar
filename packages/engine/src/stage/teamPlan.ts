@@ -295,6 +295,14 @@ export interface TeamSituation {
    * una fuga con el 40.º de la general; el equipo del maillot sí.
    */
   frontThreatDeficit: number | null
+  /**
+   * EL BOQUETE DE HOY, en segundos; `null` si no hay nada delante (v38). Faltaba, y era el agujero
+   * que el dueño señaló con dos preguntas seguidas: «etapa con rematador, lejos: perseguir… ¿pero y
+   * si no hay fuga también? ¿y si la fuga está cerca también?». La postura se decidía SIN MIRAR LA
+   * CARRETERA: un equipo de sprinters ponía «perseguir» todo el día aunque no hubiera nadie delante
+   * que cazar, o aunque el que fuera delante estuviera a quince segundos y se cazara solo.
+   */
+  gapSeconds: number | null
 }
 
 /** Lo que un equipo está haciendo AHORA y por qué. */
@@ -311,10 +319,20 @@ export interface TeamStance {
 function isThreatened(plan: TeamPlan, sit: TeamSituation): boolean {
   if (plan.gcDeficitSeconds === null || sit.frontThreatDeficit === null) return false
   if (!plan.purposes.includes('maillot') && !plan.purposes.includes('general')) return false
+  /**
+   * …Y LA AMENAZA SE MIDE CON EL BOQUETE DE HOY PUESTO (v38). Hasta la v37 esto miraba SOLO el
+   * puesto en la general con el que el hombre de delante empezó la etapa, y por eso el dueño lo
+   * cazó: «si la fuga está a 2 minutos y no hay nadie peligroso, no tiras; si está a 20 minutos, sí
+   * que tiras, ¡a muerte!». Una fuga de gente a media hora en la general que va VEINTE MINUTOS por
+   * delante no amenazaba a nadie, cuando en la carretera esos veinte minutos convierten a cualquiera
+   * en líder virtual.
+   *
+   * Ahora se compara la general VIRTUAL —lo que iría el de delante si la etapa acabara ahora mismo,
+   * o sea su desventaja MENOS lo que lleva ganado hoy— contra la de nuestro hombre.
+   */
+  const virtual = sit.frontThreatDeficit - (sit.gapSeconds ?? 0)
   // Si al de delante le dan la cuerda entera, ¿se pone por delante de nuestro hombre?
-  return (
-    sit.frontThreatDeficit - plan.gcDeficitSeconds <= STAGE.gcThreatFraction * STAGE.gcControlLeash
-  )
+  return virtual - plan.gcDeficitSeconds <= STAGE.gcThreatFraction * STAGE.gcControlLeash
 }
 
 /**
@@ -331,11 +349,19 @@ function intentFor(
 ): TeamIntent {
   switch (purpose) {
     case 'etapa':
-      return plan.sprintFinish
-        ? sit.kmToGo <= STAGE.finalDriveKm
-          ? 'lanzar'
-          : 'perseguir'
-        : 'proteger'
+      if (!plan.sprintFinish) return 'proteger'
+      // El tren se lanza en los últimos kilómetros pase lo que pase: es su día y su momento.
+      if (sit.kmToGo <= STAGE.finalDriveKm) return 'lanzar'
+      /**
+       * …PERO ANTES DE ESO SE PERSIGUE LO QUE HAY, NO LO QUE PODRÍA HABER (v38). El dueño: «etapa
+       * con rematador, lejos: perseguir… ¿pero y si no hay fuga también? ¿y si la fuga está cerca
+       * también?». Tenía razón: esto decía «perseguir» todo el día sin mirar la carretera. Sin nada
+       * delante no hay nada que cazar —el pelotón rueda y se coloca— y con el de delante a un
+       * puñado de segundos tampoco se organiza un tren: eso se cierra solo.
+       */
+      if (sit.gapSeconds === null) return 'nada'
+      if (sit.gapSeconds < STAGE.teamChaseMinGapSeconds) return 'nada'
+      return 'perseguir'
     case 'maillot':
       return 'controlar'
     case 'general':

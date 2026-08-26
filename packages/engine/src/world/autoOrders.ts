@@ -118,12 +118,25 @@ function assignTeam(
       )
   }
 
-  // 3) Hasta dos gregarios al servicio del líder; el resto, libres.
+  /**
+   * 3) Y EL RESTO DEL EQUIPO SON GREGARIOS DE SU JEFE — TODOS (v38, defecto medido).
+   *
+   * Hasta la v37 esto ponía DOS gregarios «y el resto, libres», y ese resto era enorme: medido sobre
+   * un campo de producción de 176 corredores en 22 equipos de 8, se quedaban **sin órdenes 70 en una
+   * llana y 88 en una media montaña o una reina**, o sea la MITAD EXACTA del pelotón. Y «sin
+   * órdenes» no es neutro: el motor los trata como `libre`, cuyo deber de relevo vale 0,6 —por
+   * ENCIMA de un cazaetapas (0,5), de un marcador (0,35) y de un sprinter (0,2)—. O sea que media
+   * parrilla de anónimos tenía más obligación de dar la cara que los especialistas, y de ahí salía
+   * buena parte de lo que en la radio de carrera no se entendía.
+   *
+   * En una carrera no hay nadie «sin órdenes»: el que no es el jefe, ni el lanzador, ni el hombre
+   * que van a mandar a la fuga, es gregario de su jefe. Eso es un equipo.
+   */
   if (leaderId) {
-    for (let k = 0; k < 2; k++) {
-      const greg = next(breakScore)
-      if (!greg) break
-      out.set(greg.riderId, order({ role: 'gregario', targetRiderId: leaderId }))
+    for (const r of team) {
+      if (!remaining.has(r.riderId)) continue
+      remaining.delete(r.riderId)
+      out.set(r.riderId, order({ role: 'gregario', targetRiderId: leaderId }))
     }
   }
 }

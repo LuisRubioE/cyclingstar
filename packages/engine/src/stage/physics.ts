@@ -418,35 +418,15 @@ export function shelterOf(pulling: boolean, pullers: number): number {
  * (`relayRotationMax`). El turno es el menor de los dos, y nunca menos de uno: si el grupo rueda,
  * alguien está dando la cara.
  *
- * …Y CUÁNTOS SE PONEN DELANTE ES UNA DECISIÓN, NO UNA CONSTANTE (v38). Hasta la v37 daba igual, pero
- * desde que la ley de velocidad sabe entre cuántos se reparte el viento (`relayPaceEdge`), el
- * tamaño del turno ES el ritmo, y un pelotón no lleva ocho hombres dando la cara cuando rueda a
- * tempo: lleva dos o tres. Medido con la sonda sobre cuatro carreras del banco y 11.952 fotos, el
- * turno REAL de un pelotón con equipos es de 3,20 hombres de media.
- *
- * Así que el techo de la carretera se escala con el COMPROMISO del grupo, y con eso el motor gana la
- * mecánica que le faltaba y que es la de verdad: **un pelotón no caza una fuga solo queriendo, la
- * caza poniendo más hombres delante**. A tempo (0,50) rotan cuatro y no le comen un metro a una fuga
- * de cuatro que se releva entera; cazando (0,85) rotan siete y la cierran. Sin esto, la fuga de
- * montaña se hundía del 35,4 % al 9,0 % (banda 25-45), porque el pelotón rotaba ocho a cualquier
- * ritmo y ninguna fuga podía igualar ese reparto.
+ * …Y ESTO YA NO DECIDE QUIÉN TIRA (v38). Lo decide `relayTurn` con un UMBRAL sobre el deber de
+ * relevo, así que esta función se queda con lo único que siempre fue suyo: cuántos hombres CABEN
+ * dando la cara, que es lo que pide el ritmo del terreno con el tope de la carretera
+ * (`relayRotationMax` = 20). Se usa donde hace falta una cuenta de capacidad y no un turno concreto:
+ * la deriva de la subida, que compara lo que puede un hombre contra lo que puede su grupo.
  */
-export function relayRotation(size: number, paceFraction: number, commit = 1): number {
+export function relayRotation(size: number, paceFraction: number): number {
   const asked = Math.ceil(paceFraction * size)
-  /**
-   * …Y EL SUELO NO ES UNO, ES `relayRotationMin`. Un turno de UN hombre significa «uno se come el
-   * 100 % del viento y nadie le releva», y eso solo es verdad del que va solo —que ya lo dice
-   * `min(size, …)`—. Un grupo rodando suave no pone a un tío a tirar toda la etapa: se turnan un
-   * par. Sin este suelo, el pelotón a compromiso bajo se quedaba con turno de uno, y como la red de
-   * seguridad de `relayTurn` dice «si el único candidato está apartado, que tire igual», el que
-   * acababa dando la cara era justo el JEFE ARROPADO al que la v36 sacó del turno: medido, cap-a
-   * (con tres gregarios) tiraba en 17 fotos y cap-b (sin equipo) en 5, o sea al revés.
-   */
-  const road = Math.max(
-    STAGE.relayRotationMin,
-    Math.round(STAGE.relayRotationMax * clamp(commit, 0, 1)),
-  )
-  return Math.max(1, Math.min(size, asked, road))
+  return Math.max(1, Math.min(size, asked, STAGE.relayRotationMax))
 }
 
 /** El esfuerzo de referencia: ir arropado en un grupo que rueda al tempo de carretera. */

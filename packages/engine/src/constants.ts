@@ -1448,7 +1448,7 @@ export const STAGE = {
   relayFreshnessWeight: 0.35,
   // Penalización al deber de relevo de un corredor que lleva gregarios suyos en el grupo: si tiene
   // equipo alrededor, el equipo trabaja por él (SPEC 6.18) y él pasa al final de la cola de relevos.
-  relayProtectedPenalty: 0.5,
+  relayProtectedPenalty: 1.2,
   // EL FUGADO CUYO EQUIPO PERSIGUE POR DETRÁS NO ENTRA A LOS RELEVOS (v33). Es la regla más vieja
   // del ciclismo vista desde el otro lado: si mi equipo está tirando del pelotón para cazar esta
   // fuga, yo no colaboro en ella —sería trabajar contra los míos—, me quedo a rueda y llego más
@@ -1479,10 +1479,32 @@ export const STAGE = {
    * cuántos se reparte, y con ello quién se vacía, a quién se le gasta el presupuesto de equipo y a
    * quién puede nombrar la radio.
    */
-  relayRotationMax: 8,
-  // …y el SUELO del turno (v38): un grupo que rueda se turna al menos entre un par. El uno solo es
-  // el hombre que va solo, y de ése ya se encarga el `min(size, …)` de `relayRotation`.
-  relayRotationMin: 2,
+  relayRotationMax: 20,
+  /**
+   * EL UMBRAL DE DEBER POR ENCIMA DEL CUAL SE TIRA (v38). El dueño: «los que estén por encima de un
+   * umbral X tiran; y si está por encima del máximo, seleccionar al top de esos; y si sale 0,
+   * escoger el mínimo que según el tamaño del grupo podría ser 1-4».
+   *
+   * Con el empuje de equipo pesando 1, la escala queda así para un hombre entero: el gregario del
+   * equipo que lleva el frente suma 2,35; el del equipo que espera turno, 1,65; el del equipo sin
+   * motivo, 0,85; y el del equipo que YA TIENE UN HOMBRE DELANTE, 0,45. Poner el umbral en 1,5
+   * significa exactamente lo que se ve en carretera: **tira el equipo que ha tomado el frente y
+   * poco más**, y el que tiene un hombre en la fuga no mueve un dedo.
+   */
+  relayDutyThreshold: 1.5,
+  /**
+   * …Y EL LISTÓN FUERA DEL PELOTÓN. En una fuga o en un grupeto no hay equipo que empuje a nadie y
+   * la norma es la contraria a la del pelotón: se relevan todos, porque el que va ahí o colabora o
+   * no llega. Este listón solo tiene que dejar fuera al que tiene un motivo para NO colaborar —el
+   * que no persigue lo suyo (v33), el jefe arropado (v36), el que tiene al jefe descolgado (v37)—,
+   * y ésos ya salen en negativo. Con el umbral del pelotón aplicado a todo, en una fuga de seis
+   * tiraba UNO.
+   */
+  relayDutyThresholdLoose: 0,
+  // …y si NADIE llega al umbral, alguien tiene que dar la cara igual: uno en una fuga pequeña,
+  // hasta cuatro en un pelotón. Uno por cada `relayMinPer` hombres, con ese techo.
+  relayMinPullers: 4,
+  relayMinPer: 45,
   /**
    * LA ROTACIÓN QUE `vRef` YA LLEVA DENTRO (v38). La ley de velocidad pasa a saber cuánta gente tira
    * (`relayPaceEdge`), y eso obliga a decir respecto a QUÉ. La respuesta es `relayRotationMax`: un
@@ -1881,6 +1903,9 @@ export const STAGE = {
   //   proteger           0,55             −0,35
   //   fuga                 —              −0,90   (tiene un hombre delante: no tira)
   //   nada                 —              −0,50   (sin baza que jugar: se esconde)
+  // Por debajo de este boquete un equipo de sprinters NO organiza la caza: lo de delante se cierra
+  // solo y montar el tren es gastar por gusto (v38). El dueño: «¿y si la fuga está cerca también?».
+  teamChaseMinGapSeconds: 25,
   teamDriveChase: 1,
   teamDriveControl: 0.75,
   teamDriveTempo: 0.55,
@@ -1905,7 +1930,7 @@ export const STAGE = {
   teamStageCardGap: 8,
   // Peso del plan en el deber de relevo. Con 0,5 el plan pesa más que el rol (que va de 0,1 a 1,0)
   // pero no lo anula: DENTRO del equipo que tira siguen tirando sus gregarios y no su sprinter.
-  teamRelayDriveWeight: 0.5,
+  teamRelayDriveWeight: 1,
   // LA CAZA CON PRESUPUESTO. La fuerza del campo (`chase.ts`) deja de ser un escalar de etapa: se
   // escala por lo que les queda en las piernas a los equipos que persiguen. Con el presupuesto
   // intacto vale 1 y el controlador da exactamente los números de la v14; con los equipos de la

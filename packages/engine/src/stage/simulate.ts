@@ -463,94 +463,74 @@ function relayTurn(
   driveOfRider: (riderId: string) => number,
   /** ¿Va este hombre en una fuga que SU PROPIO equipo está persiguiendo por detrás? (v33). */
   sittingOn: (riderId: string) => boolean = () => false,
-  /** ¿Es este hombre del equipo que LLEVA EL FRENTE de este grupo? (v34, §V.1). */
-  ownsTheFront: (riderId: string) => boolean = () => false,
-  /** El equipo de cada hombre; `null` es agente libre y todos los libres cuentan como uno (v35). */
-  teamOfRider: (riderId: string) => string | null = () => null,
-  /** El compromiso del grupo: cuántos se ponen delante es una decisión suya (v38). */
-  commit = 1,
+  /** ¿Es este grupo EL PELOTÓN? Fuera de él el listón es otro; ver abajo. */
+  isBunch = true,
 ): Set<string> {
-  /**
-   * EL QUE SE RINDIÓ NO TIRA — PERO ESO SE ARREGLA EN LO QUE SE CUENTA, NO EN EL REPARTO DEL VIENTO
-   * (v21). El defecto es de producción, Race Bességes e4: Christophe Morin se deja ir en el km 147 y
-   * en el 157 el parte dice que tira del pelotón; Patrick Henry, del mismo racimo, firma la caza del
-   * km 164. Pasa porque el rendido vuelve al grupo cuando su grupeto reengancha y este turno lo
-   * trataba como a uno más.
-   *
-   * **Se probó sacarlo del turno aquí y NO se ha hecho, porque es calibración disfrazada de
-   * narración.** Medido sobre las ocho grandes vueltas del banco: el último grupo de una etapa reina
-   * se va del 8,4 % al **7,7 %** (objetivo 8-14 %) y vuelve a haber etapas reina que terminan con el
-   * pelotón entero al mismo segundo (1 de 42, invariante que exige 0). La razón es física y tiene
-   * sentido: sacar a alguien del turno le ahorra viento, y el modelo de persecución de la v16 fija
-   * la velocidad del grupo con `1 − 1/n` sobre TODOS sus miembros. Tocar eso es recalibrar §VI.3.
-   *
-   * Lo que sí se hace, y arregla lo que el dueño leyó, es que el rendido no se NOMBRE: ni en el
-   * parte de «quién tira» ni en la firma de la captura (ver `topWorkers` más abajo y `attributeChase`).
-   * Queda anotado como defecto medido en docs/balance.md, «v21».
-   */
-  const count = relayRotation(members.length, paceFraction, commit)
   const scored = members.map((m) => {
     const helpers = domestiquesFor.get(m.input.riderId)
     const protectedByTeam = helpers != null && helpers.some((id) => idSet.has(id))
-    const sitting = sittingOn(m.input.riderId)
     return {
       id: m.input.riderId,
-      /**
-       * QUIÉN NO TIENE NADA QUE HACER EN ESTE TURNO. Dos motivos distintos con el mismo desenlace:
-       * el JEFE ARROPADO por los suyos (v36) y el que NO COLABORA —porque su equipo persigue este
-       * movimiento por detrás (v33) o porque su jefe se ha quedado y esto ya no le sirve (v37)—.
-       */
-      fuera: protectedByTeam || sitting,
-      duty: relayDuty(m, protectedByTeam, driveOfRider(m.input.riderId), sitting),
+      duty: relayDuty(
+        m,
+        protectedByTeam,
+        driveOfRider(m.input.riderId),
+        sittingOn(m.input.riderId),
+      ),
     }
   })
   // Desempate final por id para que el orden sea total y no herede el orden de inserción.
-  scored.sort((a, b) => b.duty - a.duty || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+  scored.sort((a, b) => b.duty - a.duty || (a.id < b.id ? -1 : 1))
   /**
-   * EL QUE NO PINTA NADA EN EL TURNO NO ENTRA AL TURNO (v36 el jefe arropado, v37 el que no
-   * colabora). Las penalizaciones de `relayDuty` le mandan al final de la cola, y en el pelotón con
-   * eso basta —el turno son ocho de ciento setenta—; pero en un GRUPO PEQUEÑO el turno es el grupo
-   * entero (`paceFraction` = 1), así que acababa dando la cara igual. Medido: el jefe arropado
-   * tiraba en el 6,3 % de las fotos con los suyos al lado, y el fugado con su jefe descolgado en el
-   * 93,1 % —o sea, la penalización no hacía nada donde más se nota—.
-   *
-   * Es la mitad que faltaba de dos frases del dueño: «que el líder no pase a tirar, él se reserva»
-   * y «que tampoco tire de la fuga (salvo que vaya solo, claro está)». Ese «salvo que vaya solo»
-   * sale gratis de la línea de abajo: se aparta solo si queda alguien que tire, porque un grupo
-   * rueda porque alguien da la cara. Y no cambia el ritmo del grupo, solo entre quiénes se reparte
-   * el viento —la factura de la v34 sigue valiendo 1—.
+   * CUÁNTOS CABEN DELANTE. El menor de dos cosas: lo que pide el ritmo de este terreno
+   * (`paceFraction`) y el tope de la carretera. **Ese tope son veinte hombres** (v38) y vale igual
+   * para un pelotón que para una fuga, que es lo que pidió el dueño: «yo creo que en general quizás
+   * deberíamos aplicar un máximo de unos 20 ciclistas; más de 20 pasando a los relevos es irreal…
+   * pero eso aplica tanto a una fuga de 25 en la que ya no hay entendimiento entre todos como al
+   * propio pelotón: si hay 4 equipos colaborando, pues 5 de cada uno».
    */
-  const cabeza = scored.slice(0, count)
-  const conTurno = cabeza.filter((s) => !s.fuera)
-  const head = conTurno.length > 0 ? conTurno : cabeza
-  const owners = head.filter((s) => ownsTheFront(s.id))
-  if (owners.length > 0) return new Set(owners.map((s) => s.id))
+  const techo = Math.max(
+    1,
+    Math.min(members.length, STAGE.relayRotationMax, Math.ceil(paceFraction * members.length)),
+  )
   /**
-   * …Y SI EL FRENTE NO TIENE DUEÑO, TIRAN UNO, DOS O TRES EQUIPOS (v35, §V.1). Lo pidió el dueño
-   * con esas palabras: «si el frente no tiene dueño único, debería haber 1, 2 o 3 equipos que
-   * tiren, pero con menor intensidad». Hasta la v34 el turno sin dueño era sencillamente el de más
-   * deber de relevo, y eso produce la foto que él enseñó: **PULLING (8) de 5 equipos distintos**,
-   * media parrilla dando la cara a la vez. En la carretera no pasa: cuando ningún equipo manda, se
-   * ponen de acuerdo dos o tres y el resto va a rueda.
+   * Y QUIÉNES SON: LOS QUE QUIEREN, no «los que caben» (v38). Hasta la v37 se cogían siempre los N
+   * primeros por deber, tuvieran ganas o no, y encima había que apartar después a mano al jefe
+   * arropado y al que no colabora. El dueño: «yo creo que tendríamos que decir que los que estén por
+   * encima de un umbral X tiran; y si está por encima del máximo, seleccionar al top de esos; y si
+   * sale 0, escoger el mínimo que según el tamaño del grupo podría ser 1-4».
    *
-   * El reparto es el mismo de siempre —el deber de relevo—, solo que primero se eligen los EQUIPOS
-   * (los que más deber acumulan en la cabeza) y luego se llena la rotación con sus hombres. El
-   * campo sin equipos no se entera: todos los agentes libres caen en el mismo cubo y el turno sale
-   * exactamente igual que en la v34, que es lo que sella la huella del banco.
-   *
-   * La «menor intensidad» no vive aquí sino en el ritmo del pelotón (`noOwnerCommitFactor`): esto
-   * decide QUIÉN paga el viento, no a qué velocidad se va.
+   * Con eso desaparecen tres parches de golpe —la lista de apartados (v36/v37), el filtro del dueño
+   * del frente (v34) y el de «como mucho tres equipos» (v35)—: si el frente tiene dueño es porque el
+   * empuje de su equipo pone a SUS hombres por encima del umbral y a los demás por debajo, que es la
+   * misma frase dicha donde se decide.
    */
-  const key = (id: string): string => teamOfRider(id) ?? ''
-  const dutyByTeam = new Map<string, number>()
-  for (const s of head) dutyByTeam.set(key(s.id), (dutyByTeam.get(key(s.id)) ?? 0) + s.duty)
-  const teams = [...dutyByTeam.entries()]
-    .sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))
-    .slice(0, STAGE.relayTeamsNoOwner)
-    .map(([t]) => t)
-  if (teams.length >= dutyByTeam.size) return new Set(head.map((s) => s.id))
-  const allowed = new Set(teams)
-  return new Set(head.filter((s) => allowed.has(key(s.id))).map((s) => s.id))
+  /**
+   * …Y EL LISTÓN NO ES EL MISMO EN EL PELOTÓN QUE FUERA DE ÉL. En el pelotón la norma es NO tirar
+   * —ciento setenta de ciento setenta y seis van a rueda— y lo que hace que alguien dé la cara es
+   * que su equipo lo empuje; el listón es alto a propósito. En una FUGA o en un GRUPETO no hay
+   * equipo que empuje a nadie y la norma es la contraria: se relevan todos, porque el que va ahí o
+   * colabora o no llega. Ahí el listón solo tiene que dejar fuera al que tiene un motivo para NO
+   * colaborar —el que no persigue lo suyo (v33), el jefe arropado (v36), el que tiene al jefe
+   * descolgado (v37)—, y ésos ya salen en negativo del deber.
+   *
+   * Sin esta distinción el umbral del pelotón se aplicaba a todo y en una fuga de seis tiraba UNO
+   * solo, medido: turno mediana 1 en fugas y grupetos de cualquier tamaño.
+   */
+  const listón = isBunch ? STAGE.relayDutyThreshold : STAGE.relayDutyThresholdLoose
+  const quieren = scored.filter((s) => s.duty >= listón)
+  if (quieren.length > 0) return new Set(quieren.slice(0, techo).map((s) => s.id))
+  /**
+   * …Y SI NO QUIERE NADIE, ALGUIEN TIENE QUE DAR LA CARA IGUAL: un grupo rueda porque alguien va
+   * delante. Son los que menos se resisten, y cuántos depende del tamaño —uno en una fuga de dos,
+   * cuatro en un pelotón—. Éste es también el caso del hombre que va SOLO, que da la cara el 100 %
+   * del tiempo porque no hay nadie más.
+   */
+  const minimo = Math.max(
+    1,
+    Math.min(members.length, STAGE.relayMinPullers, Math.ceil(members.length / STAGE.relayMinPer)),
+  )
+  return new Set(scored.slice(0, minimo).map((s) => s.id))
 }
 
 /**
@@ -1133,6 +1113,8 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
     manUpTheRoad: false,
     kmToGo: totalKm,
     frontThreatDeficit: null,
+    // Antes de que empiece la carrera no hay nada delante que cazar.
+    gapSeconds: null,
   }
   for (const plan of teamPlans.values()) {
     const stance = teamStance(plan, restStance)
@@ -1295,7 +1277,14 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
           const manUpTheRoad = plan.memberIds.some((id) => inMove.has(id) && !rebels.has(id))
           teamNow.set(
             plan.teamId,
-            teamStance(plan, { manUpTheRoad, kmToGo: kmRestantes, frontThreatDeficit }),
+            teamStance(plan, {
+              manUpTheRoad,
+              kmToGo: kmRestantes,
+              frontThreatDeficit,
+              // EL BOQUETE DE HOY (v38): la postura se decide mirando la carretera, no solo la
+              // general de ayer. Sin nada delante vale `null` y no hay nada que cazar.
+              gapSeconds: front ? front.g.tS - peloton.tS : null,
+            }),
           )
         }
         // 2. QUIÉN LLEVA EL FRENTE. Con la carretera despejada el relevo pasa al siguiente equipo
@@ -2115,40 +2104,28 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         idSet,
         paceFraction,
         domestiquesFor,
-        driveOfRider,
+        // EL EMPUJE DE EQUIPO MANDA EN EL PELOTÓN, NO EN LA FUGA (v38). El plan de equipo decide qué
+        // hace el equipo CON EL PELOTÓN; dentro de una fuga se relevan todos, que es lo que una fuga
+        // es. Sin esto, el fugado cuyo equipo tiene un hombre delante —él mismo— se llevaba el
+        // castigo de «no persigas lo tuyo» y no tiraba de su propia fuga.
+        (riderId) => (isBunch ? driveOfRider(riderId) : 0),
         (riderId) =>
           (!isBunch && frontTeamId !== null && teamOf.get(riderId) === frontTeamId) ||
           // …o su jefe se ha quedado atrás (v37): en la fuga ya no tira, pero no se le manda atrás.
           (!isBunch && jefeEnApuros.has(riderId)),
-        // El dueño del frente solo existe en el PELOTÓN: una fuga no tiene equipo que la lleve, y
-        // el rebelde no trabaja para el suyo aunque lleve su maillot (§VI.2).
-        (riderId) =>
-          isBunch &&
-          frontTeamId !== null &&
-          !rebels.has(riderId) &&
-          teamOf.get(riderId) === frontTeamId,
-        // …y los EQUIPOS solo mandan en el pelotón: en una fuga se relevan todos, que es lo que
-        // una fuga es. Con `null` todos caen en el mismo cubo y `relayTurn` no filtra nada.
-        (riderId) => (isBunch ? (teamOf.get(riderId) ?? null) : null),
-        group.compromiso,
+        isBunch,
       )
       /**
-       * CUÁNTOS SE REPARTEN EL VIENTO AL FRENTE (v38) — y no es lo mismo que quién acaba pagándolo.
+       * CUÁNTOS SE REPARTEN EL VIENTO AL FRENTE: LOS QUE TIRAN, y punto (v38).
        *
-       * La VELOCIDAD la marca la rotación que cabe en la cabeza de este grupo (`relayRotation`): un
-       * pelotón rota los ocho de `relayRotationMax`, una fuga de cinco rota cinco y el que va solo
-       * da la cara el 100 % del tiempo. El COSTE, unas líneas más abajo, lo pagan los que de verdad
-       * están en el turno (`relayers`), que son menos —el dueño del frente se lleva la rotación
-       * (v34), el que persigue por detrás con los suyos se aparta (v33), el jefe arropado no entra
-       * (v36) y el que tiene al jefe descolgado tampoco (v37)—.
-       *
-       * Esa separación no es un apaño: es lo que el repo lleva escrito desde la v34 —«no cambia el
-       * ritmo del grupo, solo entre quiénes se reparte el viento»—. Las reglas de equipo dicen a
-       * quién se le apunta la factura; la carretera dice cuántos caben delante. Medido, atar la
-       * velocidad a la factura hundía la fuga de montaña del 35,4 % al 13,0 % (banda 25-45), porque
-       * un pelotón con dueño «rota 3» y una fuga rota entera.
+       * Hasta hace nada aquí había DOS cuentas distintas —una para la velocidad («cuántos caben en
+       * la carretera») y otra para el coste («quién acaba pagándolo»)— porque los filtros de equipo
+       * podían dejar tirando a tres hombres de un pelotón entero y atar la velocidad a eso hundía la
+       * carrera. Con el turno decidido por UMBRAL ya no hace falta: si el frente tiene dueño es
+       * porque el empuje de su equipo pone a los suyos por encima del umbral, y ésos son a la vez
+       * los que dan la cara y los que la pagan. Una cuenta, no dos.
        */
-      const alFrente = relayRotation(members.length, paceFraction, group.compromiso)
+      const alFrente = relayers.size
       const next = advanceGroup(group, block, p75, alFrente, { isFinal })
       /**
        * LO QUE VALE UN RELEVO EN ESTE BLOQUE, MEDIDO POR EL VIENTO Y NO POR LA VELOCIDAD (v26).
@@ -2568,7 +2545,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       if (block.tipo === 'subida') {
         // Los dos relojes se miden con el MISMO turno (v38): lo que se compara es lo que puede el
         // hombre contra lo que puede el grupo, no un turno contra otro.
-        const turno = relayRotation(alive.length, paceFraction, group.compromiso)
+        const turno = relayRotation(alive.length, paceFraction)
         const vPace = blockSeconds(targetSpeed(block, pace, group.compromiso, turno))
         for (const m of alive) {
           // Los `dropDeficitTolerance` puntos son lo que uno cubre APRETANDO LOS DIENTES, y eso es
