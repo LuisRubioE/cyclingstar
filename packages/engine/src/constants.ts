@@ -1429,7 +1429,24 @@ export const STAGE = {
    * Es la única perilla de las dos que toca al que va solo, así que es también la que decide cuánta
    * gente se va fuera de control.
    */
-  costExposureLevel: 2.2,
+  /**
+   * BAJADO DE 2,2 A 1,9 EN LA v38, Y NO TOCA LA REGLA DEL DUEÑO. Esta constante multiplica IGUAL al
+   * que da la cara (`cara`) y al que va a rueda (`rueda`), así que la proporción entre los dos —el
+   * «ir a rueda cuesta el 10 %» del encargo— queda intacta: lo que baja es el nivel absoluto.
+   *
+   * Y había que bajarlo porque a 2,2 tres clásicas del WorldTour no se ponían duras: SATURABAN. En
+   * Il Lombardia, Montreal y Strade Bianche el depósito se vaciaba ENTERO —1,000 de vaciado— con
+   * entre el 63 % y el 100 % del pelotón con pájara, y con la erosión clavada en su techo
+   * estructural de 0,920. Ahí el modelo ha dejado de discriminar: da igual quién seas, llegas a
+   * cero. Que baste un 14 % menos de coste para pasar de 1,000 a 0,895 delata el bucle que lo
+   * produce —más erosión, más lento, más horas en carretera, más coste, pájara— y por eso es un
+   * acantilado y no una pendiente.
+   *
+   * Medido con el nivel nuevo: Lombardía 0,895 con 5 % de pájaras, Montreal 0,872 con 6 %, Strade
+   * 0,875 con 4 % (el umbral de saturación está en 0,95 y 12 %). Y la campaña de 200 corridas
+   * entera en banda: fuga en llano 9,0 %, mejor sprinter 42,0 %, capturas 91 %, montaña 37,5 %.
+   */
+  costExposureLevel: 1.9,
   /**
    * EL SUELO DEL COSTE: PEDALEAR CUESTA AUNQUE VAYAS A RUEDA (v38). El exponente describe el coste
    * MARGINAL de dar la cara y ahí el 10 % del dueño es bueno; pero no todo el gasto es marginal:
