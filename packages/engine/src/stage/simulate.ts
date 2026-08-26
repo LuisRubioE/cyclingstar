@@ -518,19 +518,26 @@ function relayTurn(
    * solo, medido: turno mediana 1 en fugas y grupetos de cualquier tamaño.
    */
   const listón = isBunch ? STAGE.relayDutyThreshold : STAGE.relayDutyThresholdLoose
-  const quieren = scored.filter((s) => s.duty >= listón)
-  if (quieren.length > 0) return new Set(quieren.slice(0, techo).map((s) => s.id))
+  const quieren = scored.filter((s) => s.duty >= listón).length
   /**
-   * …Y SI NO QUIERE NADIE, ALGUIEN TIENE QUE DAR LA CARA IGUAL: un grupo rueda porque alguien va
-   * delante. Son los que menos se resisten, y cuántos depende del tamaño —uno en una fuga de dos,
-   * cuatro en un pelotón—. Éste es también el caso del hombre que va SOLO, que da la cara el 100 %
-   * del tiempo porque no hay nadie más.
+   * …Y ALGUIEN TIENE QUE DAR LA CARA IGUAL: un grupo rueda porque alguien va delante. Son los que
+   * menos se resisten, y cuántos depende del tamaño —uno en una fuga de dos, cuatro en un pelotón—.
+   * Éste es también el caso del hombre que va SOLO, que da la cara el 100 % del tiempo porque no
+   * hay nadie más.
+   *
+   * Y el suelo es UN SUELO, no un caso aparte (v38, defecto medido). Estaba escrito como «si no
+   * quiere NADIE, saca el mínimo», y entonces con UN solo hombre por encima del listón salía UNO —
+   * por debajo del mínimo de cuatro—. No es un detalle: en la llana canónica, cuando los equipos de
+   * los velocistas se funden a la vez, se medía **un hombre tirando en un pelotón de 157**, y la
+   * fuga se iba de 86 s a más de seis minutos en los sesenta kilómetros siguientes. El número de
+   * relevistas es el de los que quieren, pero acotado entre el suelo y el techo.
    */
   const minimo = Math.max(
     1,
     Math.min(members.length, STAGE.relayMinPullers, Math.ceil(members.length / STAGE.relayMinPer)),
   )
-  return new Set(scored.slice(0, minimo).map((s) => s.id))
+  const cuantos = Math.max(minimo, Math.min(quieren, techo))
+  return new Set(scored.slice(0, cuantos).map((s) => s.id))
 }
 
 /**
@@ -1250,8 +1257,21 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       // —lo que hace que el frente tenga dueño— y la fuerza DISPONIBLE de la caza, que ya no es un
       // escalar de etapa. Con el mapa vacío (campo sin equipos) esto no hace nada.
       if (teamPlans.size > 0) {
+        /**
+         * «UN HOMBRE DELANTE» ES DELANTE, NO EN CUALQUIER CORRO (v38). Esto metía en el saco TODOS
+         * los movimientos de la carretera, y un `mov-N` es cualquier grupo que no sea el pelotón:
+         * también el corro de dos que se acaba de quedar a 40 s por detrás, o el resto de una fuga
+         * ya cazada que rueda descolgado. Medido en la llana canónica de 176 hombres: en el km 150,
+         * **15 de los 22 equipos** creían tener a alguien en la fuga y por tanto ninguno perseguía.
+         *
+         * La regla de la carretera es sobre lo que se PERSIGUE: no se tira detrás de un grupo que
+         * lleva a un compañero dentro. Un compañero que va por detrás no exime de nada.
+         */
         const inMove = new Set<string>()
-        for (const mv of moves) for (const m of membersOf(mv.g.id)) inMove.add(m.input.riderId)
+        for (const mv of moves) {
+          if (mv.g.tS >= peloton.tS) continue
+          for (const m of membersOf(mv.g.id)) inMove.add(m.input.riderId)
+        }
         // …Y «EN EL PELOTÓN» ES EN EL GRUPO QUE LLEVA LA GENTE, no en el que conserva el id (v33).
         // Era `groupId === PELOTON`: cuando el grueso de la carrera nacía de un descuelgue —un
         // `shed-N` que se come al pelotón, o el corte de un abanico—, TODOS los equipos contaban
@@ -1283,7 +1303,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
               frontThreatDeficit,
               // EL BOQUETE DE HOY (v38): la postura se decide mirando la carretera, no solo la
               // general de ayer. Sin nada delante vale `null` y no hay nada que cazar.
-              gapSeconds: front ? front.g.tS - peloton.tS : null,
+              gapSeconds: front ? gap : null,
             }),
           )
         }

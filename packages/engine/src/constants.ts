@@ -1905,6 +1905,14 @@ export const STAGE = {
   //   nada                 —              −0,50   (sin baza que jugar: se esconde)
   // Por debajo de este boquete un equipo de sprinters NO organiza la caza: lo de delante se cierra
   // solo y montar el tren es gastar por gusto (v38). El dueño: «¿y si la fuga está cerca también?».
+  /**
+   * Y CUÁNTO RECORTA UN PELOTÓN QUE RUEDA, en segundos por kilómetro que queda. Es la mitad que
+   * falta de «¿es peligroso este boquete?»: se compara el hueco con `kmToGo · esto`, y solo cuando
+   * lo supera el equipo del rematador organiza la caza. Con 150 km por delante hacen falta más de
+   * tres minutos y medio para preocuparse; con 40, un minuto. Es la mitad de lo que recorta un
+   * pelotón lanzado (`chaseFeasibleSecondsPerKm`), porque esto no es cazar: es rodar.
+   */
+  teamChaseSecondsPerKm: 1.5,
   teamChaseMinGapSeconds: 25,
   teamDriveChase: 1,
   teamDriveControl: 0.75,

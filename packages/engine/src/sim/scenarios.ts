@@ -110,13 +110,21 @@ function inTeams(riders: StageRider[], teamSize: number): StageRider[] {
     const jefe = jefeDe.get(team)
     if (jefe == null) return { ...r, teamId: team }
     const suJefe = riders.find((x) => x.riderId === jefe)
-    const esSprinter = suJefe?.orders.role === 'sprinter'
+    /**
+     * UN TREN SON DOS HOMBRES, NO SIETE (v38). Esto ponía de `lanzador` a TODO el relleno de un
+     * equipo de sprinter, y el deber de relevo de un lanzador (0,85) es menor que el de un gregario
+     * (1,0) porque se guarda para el último kilómetro. O sea que los únicos equipos con motivo para
+     * llevar el pelotón eran justo los que menos obligación tenían de dar la cara al viento.
+     */
+    const enSuEquipo = relleno.filter((x) => teamOf.get(x.riderId) === team)
+    const puesto = enSuEquipo.findIndex((x) => x.riderId === r.riderId)
+    const esTren = suJefe?.orders.role === 'sprinter' && puesto < 2
     return {
       ...r,
       teamId: team,
       orders: orders({
         ...r.orders,
-        role: esSprinter ? 'lanzador' : 'gregario',
+        role: esTren ? 'lanzador' : 'gregario',
         targetRiderId: jefe,
       }),
     }
@@ -124,19 +132,52 @@ function inTeams(riders: StageRider[], teamSize: number): StageRider[] {
 }
 
 /**
- * Etapa llana de 180 km con una meta volante: 3 sprinters de nivel, un puñado de cazaetapas y un
+ * LOS DIEZ VELOCISTAS DE UNA CARRERA DE VERDAD, en degradado y con un jefe claro (v38).
+ *
+ * Antes eran TRES, y los otros diecinueve equipos del pelotón llevaban de jefe a un relleno clonado.
+ * Medido sobre la llana canónica: **3 equipos de 22 tenían carta de etapa** —o sea, motivo para
+ * gastar un vatio— y esos tres se fundían el presupuesto colectivo hacia el km 100. A partir de ahí
+ * el pelotón rodaba con CUATRO hombres de 172 dando la cara y cualquier corte de diez se iba: un
+ * grupo de 11 a 30 hombres llegaba por delante del pelotón en el 23 % de las llanas.
+ *
+ * Una llana la disputan ocho o diez equipos con velocista y por eso hay siempre alguien fresco al
+ * frente: cuando se funde el que lleva, entra el siguiente. Y el primero va un escalón por encima
+ * de los demás, que es lo que hace que el favorito del día sea el favorito y no uno más: con los
+ * diez a dos puntos unos de otros el mejor ganaba el 28 % de los sprints, por debajo de lo que gana
+ * un velocista dominante de verdad.
+ */
+function sprintersEnDegradado(
+  base: number,
+  over: Partial<Record<Attribute, number>>,
+): StageRider[] {
+  const spr = [88, 82, 80.5, 79, 77.5, 76, 74.5, 73, 71.5, 70]
+  return spr.map((s, i) =>
+    rider(`spr-${i}`, {
+      eff0: eff(base, { SPR: s, LLA: i === 0 ? 70 : 68 - 0.7 * (i - 1), ...over }),
+      orders: orders({ role: 'sprinter', contestSprints: true }),
+    }),
+  )
+}
+
+/**
+ * Etapa llana de 180 km con una meta volante: velocistas de todos los niveles, un puñado de cazaetapas y un
  * pelotón de rodadores (SPEC 6.17). El campo es fijo; la semilla mueve el resto.
  */
 export function flatScenario(): Scenario {
   const riders: StageRider[] = []
-  for (let i = 0; i < 3; i++) {
-    riders.push(
-      rider(`spr-${i}`, {
-        eff0: eff(55, { SPR: 84 + i, LLA: 68 }),
-        orders: orders({ role: 'sprinter', contestSprints: true }),
-      }),
-    )
-  }
+  /**
+   * DIEZ SPRINTERS EN DEGRADADO, NO TRES Y UN DESIERTO (v38). Con tres, medido: **3 equipos de 22
+   * tenían carta de etapa** y los otros diecinueve llevaban de jefe a un relleno clonado —58,3 de
+   * remate contra 77,8 del mejor—, o sea ningún motivo para gastar un vatio. Esos tres se fundían
+   * el presupuesto hacia el km 100 y a partir de ahí el pelotón rodaba con CUATRO hombres de 172
+   * dando la cara, con lo que cualquier corte de diez se iba: un grupo de 11 a 30 hombres llegaba
+   * por delante del pelotón en el 23 % de las llanas.
+   *
+   * Una llana de verdad la disputan ocho o diez equipos con velocista, de mundial a discreto, y por
+   * eso hay siempre alguien fresco al frente: cuando se funde el que lleva, entra el siguiente. El
+   * degradado es lo que reparte las 180 km de trabajo, y sin él no hay pelotón que cace nada.
+   */
+  riders.push(...sprintersEnDegradado(55, {}))
   for (let i = 0; i < 6; i++) {
     riders.push(
       rider(`brk-${i}`, {
@@ -157,10 +198,10 @@ export function flatScenario(): Scenario {
    * pasa en una carrera pequeña de verdad—. El juego corre 176 corredores en 22 equipos de 8, y ése
    * es el pelotón contra el que tienen que estar calibradas las bandas de la llana canónica.
    *
-   * Lo que NO cambia es el carácter del escenario: siguen siendo tres sprinters de nivel y seis
-   * cazaetapas; lo que crece es el pelotón que llevan detrás.
+   * Lo que NO cambia es el carácter del escenario: sigue siendo una llana con velocistas de nivel y
+   * un puñado de cazaetapas; lo que crece es el pelotón que llevan detrás.
    */
-  for (let i = 0; i < 167; i++) {
+  for (let i = 0; i < 160; i++) {
     riders.push(rider(`pel-${i}`, { eff0: eff(56, { LLA: 62 + (i % 8) }) }))
   }
   return {
@@ -175,7 +216,7 @@ export function flatScenario(): Scenario {
       // juego. Ver `inTeams`.
       riders: inTeams(riders, 8),
     },
-    bestSprinterId: 'spr-2',
+    bestSprinterId: 'spr-0',
   }
 }
 
@@ -196,14 +237,7 @@ export function flatScenario(): Scenario {
  */
 export function mediumMountainScenario(): Scenario {
   const riders: StageRider[] = []
-  for (let i = 0; i < 3; i++) {
-    riders.push(
-      rider(`spr-${i}`, {
-        eff0: eff(55, { SPR: 84 + i, LLA: 68, MON: 48 }),
-        orders: orders({ role: 'sprinter', contestSprints: true }),
-      }),
-    )
-  }
+  riders.push(...sprintersEnDegradado(55, { MON: 48 }))
   // Los que ganan una media montaña: aguantan las cotas y rematan un grupo pequeño.
   for (let i = 0; i < 5; i++) {
     riders.push(
@@ -221,7 +255,7 @@ export function mediumMountainScenario(): Scenario {
       }),
     )
   }
-  for (let i = 0; i < 163; i++) {
+  for (let i = 0; i < 156; i++) {
     riders.push(rider(`pel-${i}`, { eff0: eff(56, { LLA: 62 + (i % 8), MON: 56 + (i % 6) }) }))
   }
   const segments = []
