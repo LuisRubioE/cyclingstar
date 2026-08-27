@@ -1654,9 +1654,18 @@ describe('el journal de producción de Race Bességes e4 (v21)', () => {
       for (let i = 1; i < splits.length; i++) {
         const before = Number(splits[i]!.datos!.before)
         const remaining = Number(splits[i]!.datos!.remaining)
-        // Ningún aviso puede partir de un grupo mucho más pequeño que el que dejó el anterior sin
-        // que haya habido un aviso por el camino: la cadena sigue sin huecos.
-        expect(before).toBe(Number(splits[i - 1]!.datos!.remaining))
+        /**
+         * Ningún aviso puede partir de un grupo MÁS PEQUEÑO que el que dejó el anterior: eso sería
+         * una pérdida silenciosa, que es el defecto que este banco vigila.
+         *
+         * Lo que sí puede es partir de uno MAYOR (v39): entre dos cribas se reagrupa gente —vuelve
+         * un grupeto, se caza una fuga y se funde con el pelotón— y el grupo crece. Hasta la v38
+         * esto exigía igualdad exacta, y con las fugas grandes de la v39 eso se rompe por una razón
+         * legítima: se va una fuga de quince, la cazan, y el pelotón siguiente es mayor que el que
+         * dejó el aviso anterior. Medido: 19 donde el aviso previo dejaba 10. La cadena sigue sin
+         * huecos; lo que no puede haber es un escalón hacia abajo sin contarlo.
+         */
+        expect(before).toBeGreaterThanOrEqual(Number(splits[i - 1]!.datos!.remaining))
         expect(before).toBeGreaterThan(remaining)
       }
     }
