@@ -356,12 +356,20 @@ export function sustainsJump(r: MoveRider, instigator: MoveRider, rng: Rng): boo
  *
  * Devuelve segundos, nunca negativo.
  */
-export function jumpGapSeconds(
-  attackerKmh: number,
-  groupKmh: number,
-  surgeKm: number = STAGE.tacticSurgeKm,
-): number {
+export function jumpGapSeconds(attackerKmh: number, groupKmh: number): number {
   if (attackerKmh <= 0 || groupKmh <= 0) return 0
+  /**
+   * …Y EL SALTO SE MIDE EN SEGUNDOS, NO EN METROS (v39), que es la misma corrección que el dueño
+   * hizo para el cerillo, un nivel más arriba: «en vez de durar un número de metros debería durar
+   * un número de segundos». Un hachazo dura lo que dura un hachazo —tres cuartos de minuto a tumba
+   * abierta— y eso son seiscientos metros rodando y doscientos cincuenta subiendo.
+   *
+   * Medirlo en metros hacía imposible cuadrar las dos bandas a la vez, y se ve en la medida: con
+   * 0,45 km la reina entraba en banda (42 %) pero la llana se hundía al 3,3 % contra un suelo del
+   * 5 %, y con 0,6 km pasaba lo contrario. No era un problema de calibración: era que el mismo
+   * hachazo duraba el doble de TIEMPO en un puerto que en el llano.
+   */
+  const surgeKm = (groupKmh * STAGE.tacticSurgeSeconds) / 3600
   const ganado = surgeKm * (1 / groupKmh - 1 / attackerKmh) * 3600
   return Math.max(0, ganado)
 }

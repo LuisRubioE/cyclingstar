@@ -2210,7 +2210,9 @@ export const STAGE = {
    * EL ACELERÓN (v39). Un ataque son dos cosas y hasta la v38 el motor solo tenía media:
    *
    * 1. **El salto**: unos centenares de metros a tumba abierta, muy por encima del umbral. Eso es
-   *    `tacticSurgeKm` de recorrido con `tacticSurgeBonus` puntos de perfil encima del cerillo, y de
+   *    `tacticSurgeSeconds` a tumba abierta con `tacticSurgeBonus` puntos de perfil encima del
+   *    cerillo —en SEGUNDOS y no en metros, por lo mismo que el cerillo: un hachazo dura lo que
+   *    dura, y eso son seiscientos metros rodando y doscientos cincuenta subiendo—, y de
    *    ahí sale el boquete instantáneo —CALCULADO con la física, ver `tactics.ts::jumpGapSeconds`,
    *    no sorteado entre 5 y 12 segundos como hasta la v38—.
    * 2. **La rampa**: el rato que se aguanta por encima del umbral después del salto, que es lo que
@@ -2221,7 +2223,7 @@ export const STAGE = {
    * ataque es menor que la del que va tirando del grupo, tampoco se crea ningún boquete»— y ahora
    * sale de la aritmética en vez de estar prohibida a mano.
    */
-  tacticSurgeKm: 0.8,
+  tacticSurgeSeconds: 45,
   tacticSurgeBonus: 12,
   tacticJumpMinGapSeconds: 2,
   // Dentro de los últimos km ya no se simulan movimientos: eso ES el sprint, y lo resuelve el
