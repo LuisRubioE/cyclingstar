@@ -71,6 +71,7 @@ import {
   jumpGapSeconds,
   carriesGcLeader,
   moveCooperation,
+  noChanceToWin,
   pelotonAllows,
   rankOf,
   rollMoveAttempt,
@@ -469,18 +470,36 @@ function relayTurn(
   hayEquipos = true,
   /** ¿Es este hombre del equipo que LLEVA EL FRENTE? Decide el suelo; ver abajo. */
   delDueño: (riderId: string) => boolean = () => false,
+  /**
+   * ¿CUÁNTO NO LE INTERESA A ESTE HOMBRE QUE EL GRUPO LLEGUE JUNTO? (v39, `noChanceToWin`). En
+   * [0,1]: cero para el que manda en el remate de este grupo y uno para el que va con alguien
+   * inalcanzable a las puertas de la decisión.
+   */
+  sinOpciones: (riderId: string) => number = () => 0,
 ): Set<string> {
   const scored = members.map((m) => {
     const helpers = domestiquesFor.get(m.input.riderId)
     const protectedByTeam = helpers != null && helpers.some((id) => idSet.has(id))
+    const drive = driveOfRider(m.input.riderId)
+    /**
+     * …Y SOLO CUENTA PARA EL QUE CORRE PARA SÍ MISMO. Un gregario da la cara aunque no pueda ganar
+     * nada, porque no tira por él: tira por su jefe. Así que lo que uno deja de colaborar por no
+     * tener opciones se mide contra lo que su equipo le esté empujando al frente, y el que lleva un
+     * trabajo encima lo ignora entero.
+     *
+     * Esto es lo que hace que la misma regla valga para los dos sitios sin ponerle un «salvo el
+     * pelotón» delante —que fue el primer intento y estaba mal—: dentro de una fuga el empuje de
+     * equipo vale 0 y manda el interés propio; en el pelotón manda el plan (§V.1) y el tren del
+     * velocista sigue lanzando en el último kilómetro aunque ninguno de sus hombres vaya a ganar.
+     * Y en el grupo de treinta que decide una media montaña —que lleva el id del PELOTÓN aunque ya
+     * no lo sea— sale lo que se ve en carretera: tira el equipo que manda y los demás se miran.
+     */
+    const paraMí = Math.max(0, Math.min(1, 1 - drive))
     return {
       id: m.input.riderId,
-      duty: relayDuty(
-        m,
-        protectedByTeam,
-        driveOfRider(m.input.riderId),
-        sittingOn(m.input.riderId),
-      ),
+      duty:
+        relayDuty(m, protectedByTeam, drive, sittingOn(m.input.riderId)) -
+        STAGE.relayNoChanceWeight * paraMí * sinOpciones(m.input.riderId),
     }
   })
   // Desempate final por id para que el orden sea total y no herede el orden de inserción.
@@ -2206,6 +2225,53 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
        */
       const p75 = pacemakerP75(members, block, paceFraction)
       /**
+       * EL QUE NO TIENE NADA QUE GANAR AQUÍ NO COLABORA (v39, `tactics.ts::noChanceToWin`). El
+       * dueño: «en un grupo de seis a ocho kilómetros de meta relevan los seis, incluido el que sabe
+       * que pierde el sprint… y si en la fuga van con un súper escalador y tú eres mal escalador, lo
+       * normal es que no cooperes».
+       *
+       * Se mide contra el MEJOR DE ESTE GRUPO en el final que viene, con el tipo de final calculado
+       * para el tamaño que tiene el grupo AHORA: los seis de una fuga se juegan un sprint reducido,
+       * no el masivo del pelotón, y contra un puerto se juegan otra cosa distinta. Por eso la misma
+       * cuenta sirve para el velocista que pierde el sprint y para el rodador que va con un
+       * escalador: lo que cambia son los pesos del final, y eso lo sabe `finishScore`.
+       *
+       * Se aplica a TODOS los grupos, incluido el pelotón, y no hace falta ninguna excepción: lo
+       * que cada uno deja de colaborar se pesa dentro de `relayTurn` contra el empuje de su equipo,
+       * así que el gregario que tira por su jefe lo ignora entero. Ponerle un «salvo el pelotón»
+       * delante fue el primer intento y estaba mal, porque el grupo de treinta que decide una media
+       * montaña lleva el id del pelotón aunque hace rato que no lo es.
+       */
+      /**
+       * …Y SOLO EN UN GRUPO QUE YA ES UNA SELECCIÓN, no en la carrera entera. Es la otra mitad del
+       * encaje, y la aprendí midiendo: aplicado al pelotón en bloque apagaba a los TRENES en el
+       * último kilómetro —ahí nadie más que el velocista puede ganar, así que el término valía 1
+       * para casi todos— y una llegada masiva pasaba a rodar con seis hombres dando la cara en vez
+       * de veinte. En carretera es al revés: un sprint es lo más rápido que va un pelotón en todo
+       * el día, precisamente porque los trenes van a tumba abierta.
+       *
+       * La frontera no es «pelotón sí o no» —el grupo de treinta que decide una media montaña lleva
+       * el id del pelotón y hace rato que no lo es—: es qué fracción de la carrera queda ahí dentro.
+       * Un grupo que es TODA la carrera rueda con los planes de equipo (§V.1, que ya modela quién
+       * tira y por qué); un grupo que es una selección rueda con el interés de cada uno. Es la misma
+       * cohesión que la capa táctica usa para el λ del ataque, leída al revés.
+       */
+      const selección = 1 - clamp(members.length / Math.max(1, racingNow), 0, 1)
+      let sinOpciones: (riderId: string) => number = () => 0
+      if (members.length > 1) {
+        const tipo = finishType(finishTerrain, members.length)
+        const remate = new Map<string, number>()
+        let mejor = Number.NEGATIVE_INFINITY
+        for (const m of members) {
+          const v = finishScore(riderEff(m), tipo)
+          remate.set(m.input.riderId, v)
+          if (v > mejor) mejor = v
+        }
+        const kmToGo = totalKm - km
+        sinOpciones = (riderId): number =>
+          selección * noChanceToWin(remate.get(riderId) ?? mejor, mejor, kmToGo)
+      }
+      /**
        * EL QUE NO COLABORA EN LA FUGA PORQUE LOS SUYOS LA PERSIGUEN (v33). La queja, textual: «hay
        * un equipo que tiene a 1 ciclista tirando del pelotón pero tiene a 1 ciclista tirando de la
        * fuga… eso es sabotearse a su trabajo». Y la salida es la que da el dueño: el que sobra no es
@@ -2232,6 +2298,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         isBunch,
         teamPlans.size > 0,
         (riderId) => isBunch && frontTeamId !== null && teamOf.get(riderId) === frontTeamId,
+        sinOpciones,
       )
       /**
        * CUÁNTOS SE REPARTEN EL VIENTO AL FRENTE: LOS QUE TIRAN, y punto (v38).

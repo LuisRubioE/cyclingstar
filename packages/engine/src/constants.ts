@@ -1551,6 +1551,31 @@ export const STAGE = {
    * frescura entera son 0,95 contra 0,70. Ver `relayTurn` para los tres casos y lo que se midió.
    */
   relayDutyThresholdNoTeams: 0.8,
+  /**
+   * ¿ME INTERESA QUE ESTO LLEGUE JUNTO? (v39, ver `tactics.ts::noChanceToWin`). Lo que un hombre
+   * DEJA de colaborar en una fuga porque no tiene nada que ganar donde va. El dueño: «en un grupo
+   * de seis a ocho kilómetros de meta relevan los seis, incluido el que sabe que pierde el
+   * sprint… y si en la fuga van con un súper escalador y tú eres mal escalador, lo normal es que
+   * no cooperes».
+   *
+   * `coopNoChanceGap` son los puntos de remate contra el mejor del grupo a partir de los cuales se
+   * da por perdido: 12 puntos de `finishScore` es la distancia que separa a un velocista de nivel
+   * de un rodador en un sprint, o a un escalador de un rodador en un alto. `coopSelfishKm` y
+   * `...FarKm` son la ventana en la que la carrera deja de ser del grupo y pasa a ser de cada uno:
+   * entera a 15 km de meta, nula a 80. Y `coopSelfishFloor` es lo que queda incluso a 150 km,
+   * porque una fuga lejos es de todos —si no llega no gana nadie— y sin ese suelo alto no saldría
+   * ninguna fuga con un fuera de serie dentro.
+   */
+  coopNoChanceGap: 12,
+  coopSelfishKm: 15,
+  coopSelfishFarKm: 80,
+  coopSelfishFloor: 0.25,
+  /**
+   * …y cuánto pesa eso en el deber de relevo. Va contra `relayDutyThresholdLoose` (el listón de una
+   * fuga, que es 0), así que con el peso a 1 basta con no tener NINGUNA opción para salir del turno
+   * —el deber de un cazaetapas es 0,5 más la frescura— y con tenerlas a medias para quedarse dentro.
+   */
+  relayNoChanceWeight: 1,
   // …y si NADIE llega al umbral, alguien tiene que dar la cara igual: uno en una fuga pequeña,
   // hasta cuatro en un pelotón. Uno por cada `relayMinPer` hombres, con ese techo.
   relayMinPullers: 4,

@@ -340,6 +340,54 @@ export function moveCooperation(
 }
 
 /**
+ * ¿ME INTERESA A MÍ QUE ESTO LLEGUE JUNTO? (v39) — cuánto DEJA de colaborar un hombre porque no
+ * tiene nada que ganar donde va.
+ *
+ * Es el mecanismo que faltaba, y el dueño lo pidió con dos ejemplos que son el mismo:
+ *
+ * > «en un grupo de seis a ocho kilómetros de meta relevan los seis, incluido el que sabe que
+ * > pierde el sprint… y no solo es así: si es una etapa de montaña y en la fuga van con un súper
+ * > escalador y tú eres mal escalador, lo normal es que no cooperes.»
+ *
+ * Los dos casos son la misma pregunta —**¿tengo yo alguna opción de ganar desde aquí?**— y el motor
+ * ya tenía con qué contestarla: `finishScore` sobre el tipo de final que dibuja el recorrido. Contra
+ * un rematador en un sprint y contra un escalador en un puerto la cuenta es la misma; lo que cambia
+ * son los pesos del final, que es justo lo que `finishScore` sabe.
+ *
+ * Hasta la v38 la cooperación de un movimiento se decidía UNA VEZ, al nacer (`moveCooperation`: el
+ * tamaño, el hambre media y la tensión) y **no se volvía a mirar nunca**. Una fuga de seis colaboraba
+ * igual a 150 km de meta que a 5, y colaboraba igual llevara dentro a un fuera de serie o no. De ahí
+ * salía el defecto que el banco de media montaña medía: el ganador llegaba SOLO el 4 % de las veces
+ * contra el 20-30 % que pide el dueño, porque nadie se miraba y nadie se escapaba.
+ *
+ * Dos factores, y el segundo es el que hace que las fugas sigan existiendo:
+ *
+ * - **La desventaja**, en puntos de remate contra el mejor del grupo, saturando en
+ *   `coopNoChanceGap`. Cero para el que manda en el grupo —él sí quiere que esto llegue— y uno para
+ *   el que va con alguien inalcanzable.
+ * - **Lo cerca que está la decisión.** Lejos de meta la fuga es de todos: si no llega, no gana
+ *   nadie, así que hasta el peor rematador se deja la vida (`coopSelfishFloor`). Cerca, la carrera
+ *   ya es de cada uno. Sin esta mitad, una fuga con un fuera de serie dentro no saldría jamás del
+ *   kilómetro cero, que es lo contrario de lo que se ve en carretera.
+ */
+export function noChanceToWin(
+  myFinishScore: number,
+  bestFinishScore: number,
+  kmToGo: number,
+): number {
+  const gap = Math.max(0, bestFinishScore - myFinishScore)
+  const desventaja = clamp(gap / Math.max(1e-9, STAGE.coopNoChanceGap), 0, 1)
+  if (desventaja <= 0) return 0
+  const lejos = clamp(
+    (kmToGo - STAGE.coopSelfishKm) / Math.max(1e-9, STAGE.coopSelfishFarKm - STAGE.coopSelfishKm),
+    0,
+    1,
+  )
+  const cerca = STAGE.coopSelfishFloor + (1 - STAGE.coopSelfishFloor) * (1 - lejos)
+  return desventaja * cerca
+}
+
+/**
  * LOS MOVIMIENTOS DE LOS QUE SALE LA FUGA DEL DÍA: los que se marchan del pelotón camino de meta y
  * se juegan la etapa por delante. Son los que el maillot NO puede coger (v32, ver `pelotonAllows`).
  *

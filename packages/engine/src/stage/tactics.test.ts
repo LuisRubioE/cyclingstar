@@ -15,10 +15,13 @@ import {
   giveUpLambda,
   moveCooperation,
   moveLambda,
+  noChanceToWin,
   pelotonAllows,
   rankOf,
   sustainsJump,
 } from './tactics.js'
+import type { Attribute } from '@cyclingstar/shared'
+import { finishScore } from './finish.js'
 import type { Mentality, StageRole } from './types.js'
 
 /** ¿Da el pelotón cuerda a este movimiento con este dado? Atajo para leer los casos de un vistazo. */
@@ -422,5 +425,75 @@ describe('utilidades', () => {
     expect(rankOf(10, [5, 10])).toBe(1)
     expect(rankOf(7, [7, 7, 7])).toBe(1)
     expect(rankOf(1, [1])).toBe(1)
+  })
+})
+
+describe('el que no tiene nada que ganar aquí no colabora (v39)', () => {
+  const eff = (
+    base: number,
+    over: Partial<Record<Attribute, number>> = {},
+  ): Record<Attribute, number> => ({
+    RES: base,
+    REC: base,
+    LLA: base,
+    MON: base,
+    COL: base,
+    CRI: base,
+    SPR: base,
+    DES: base,
+    PAV: base,
+    TAC: base,
+    ...over,
+  })
+
+  it('el que manda en el remate de su grupo colabora del todo, esté donde esté', () => {
+    // Desventaja cero: él SÍ quiere que esto llegue, y a un kilómetro de meta más que nunca.
+    expect(noChanceToWin(70, 70, 1)).toBe(0)
+    expect(noChanceToWin(70, 70, 150)).toBe(0)
+    // …y el que va POR ENCIMA del mejor que se le ha pasado tampoco resta (no hay gap negativo).
+    expect(noChanceToWin(75, 70, 5)).toBe(0)
+  })
+
+  it('lejos de meta la fuga es de todos: aunque no puedas ganar, tiras', () => {
+    // Si la fuga no llega no gana nadie, así que lejos queda solo el suelo. Sin esta mitad no
+    // saldría ninguna fuga con un fuera de serie dentro.
+    const lejos = noChanceToWin(50, 90, STAGE.coopSelfishFarKm + 50)
+    expect(lejos).toBeCloseTo(STAGE.coopSelfishFloor, 5)
+    expect(lejos).toBeLessThan(0.5)
+  })
+
+  it('y cerca de meta el que no puede ganar se planta', () => {
+    expect(noChanceToWin(50, 90, STAGE.coopSelfishKm - 1)).toBeCloseTo(1, 5)
+    // La rampa es monótona: cuanto más cerca, menos colabora.
+    const serie = [150, 80, 40, 20, 5].map((km) => noChanceToWin(50, 90, km))
+    for (let i = 1; i < serie.length; i++) expect(serie[i]!).toBeGreaterThanOrEqual(serie[i - 1]!)
+  })
+
+  it('la desventaja satura: doce puntos de remate ya son «no tengo nada que hacer»', () => {
+    const cerca = STAGE.coopSelfishKm - 1
+    expect(noChanceToWin(70 - STAGE.coopNoChanceGap, 70, cerca)).toBeCloseTo(1, 5)
+    expect(noChanceToWin(70 - 2 * STAGE.coopNoChanceGap, 70, cerca)).toBeCloseTo(1, 5)
+    // Y a media distancia de remate, colabora a medias.
+    expect(noChanceToWin(70 - STAGE.coopNoChanceGap / 2, 70, cerca)).toBeCloseTo(0.5, 5)
+  })
+
+  /**
+   * LOS DOS CASOS DEL DUEÑO SON EL MISMO, y este test es el que lo demuestra: la misma función, con
+   * el mismo rodador, dice «no colabores» ante un escalador en un alto y «colabora» ante el mismo
+   * escalador en un sprint. Lo que cambia no es la regla, son los pesos del final —y eso lo sabe
+   * `finishScore`—.
+   */
+  it('vale igual para el que pierde el sprint y para el mal escalador', () => {
+    const escalador = eff(58, { MON: 88, COL: 84 })
+    const rodador = eff(58, { MON: 56, LLA: 70 })
+    const enAlto = (e: Record<Attribute, number>): number => finishScore(e, 'alto')
+    const alSprint = (e: Record<Attribute, number>): number => finishScore(e, 'sprint_reducido')
+
+    // Etapa de montaña: el rodador no tiene nada que hacer y a diez kilómetros deja de tirar.
+    expect(noChanceToWin(enAlto(rodador), enAlto(escalador), 10)).toBeCloseTo(1, 5)
+    // La misma pareja en una llegada al sprint: ahí el mejor es el rodador, así que TIRA él…
+    expect(noChanceToWin(alSprint(rodador), alSprint(escalador), 10)).toBe(0)
+    // …y el que se planta es el escalador.
+    expect(noChanceToWin(alSprint(escalador), alSprint(rodador), 10)).toBeGreaterThan(0)
   })
 })
