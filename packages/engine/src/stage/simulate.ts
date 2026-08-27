@@ -487,6 +487,19 @@ function relayTurn(
    * inalcanzable a las puertas de la decisión.
    */
   sinOpciones: (riderId: string) => number = () => 0,
+  /**
+   * ¿ESTÁ ESTE HOMBRE LANZANDO A SU VELOCISTA AHORA MISMO? (v39). El lanzamiento es su único trabajo
+   * del día y dura tres kilómetros; el resto de la etapa va a rueda guardándose, y por eso su deber
+   * de relevo base (0,85) es MENOR que el de un gregario (1,0).
+   *
+   * Pero ese orden valía también en los últimos tres kilómetros, y ahí está al revés: medido, de los
+   * DOS lanzadores del mejor velocista del banco, **0,07 de media habían dado un relevo al llegar al
+   * km 179**. O sea que el tren no lanzaba nunca —la rotación se la quedaban los gregarios— y el
+   * velocista llegaba a meta sin tren: sin el empujón del lanzamiento y sin el alivio de colocación
+   * que da llevar hombres delante. De ahí salía que el mejor velocista ganara el 20 % de las llanas
+   * contra una banda de 30-45.
+   */
+  lanzando: (riderId: string) => boolean = () => false,
 ): Set<string> {
   const scored = members.map((m) => {
     const helpers = domestiquesFor.get(m.input.riderId)
@@ -510,7 +523,8 @@ function relayTurn(
       id: m.input.riderId,
       duty:
         relayDuty(m, protectedByTeam, drive, sittingOn(m.input.riderId)) -
-        STAGE.relayNoChanceWeight * paraMí * sinOpciones(m.input.riderId),
+        STAGE.relayNoChanceWeight * paraMí * sinOpciones(m.input.riderId) +
+        (lanzando(m.input.riderId) ? STAGE.relayLeadOutBoost : 0),
     }
   })
   // Desempate final por id para que el orden sea total y no herede el orden de inserción.
@@ -740,7 +754,20 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
    * a lo que el pelotón DECIDE, nunca a los suelos que son de carretera —el tirón final de los
    * trenes y el pavé—, porque esos no son ganas, son la carretera obligando.
    */
-  const humorDelPeloton = 1 + STAGE.pelotonMoodSpread * (2 * streams('mood')() - 1)
+  /**
+   * …Y EL HUMOR NO ESTÁ CENTRADO EN «A TOPE» (v39). Hasta la v38 el dado iba alrededor de 1: había
+   * días flojos y días nerviosos, pero de MEDIA el pelotón corría al máximo de lo que su plan de
+   * equipo pedía. El dueño: «probablemente dándole más hueva al pelotón, es decir, que en general no
+   * estén tan motivados en gastar fuerzas tirando».
+   *
+   * Y tiene razón de carretera: un pelotón que se emplea a fondo todo el día es la excepción, no la
+   * norma. Lo normal es rodar a lo justo para que la cosa no se vaya de madre, y por eso las fugas
+   * llegan más veces de las que llegarían contra un pelotón siempre enchufado. Medido contra las
+   * ocho grandes vueltas de 2024-2026: la fuga gana ~12 % de las etapas llanas (unas 5 de 41), y el
+   * motor con el humor centrado en 1 daba 4 %.
+   */
+  const humorDelPeloton =
+    STAGE.pelotonMoodCentre + STAGE.pelotonMoodSpread * (2 * streams('mood')() - 1)
   const incidents: Incident[] = []
 
   const blocks = sampleProfile(input.profile)
@@ -807,6 +834,8 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
   // gasta menos si los lleva en el grupo; un sprinter con lanzadores va mejor lanzado en la meta.
   const domestiquesFor = new Map<string, string[]>()
   const leadOutFor = new Map<string, string[]>()
+  /** …y su reverso: para QUIÉN lanza cada lanzador. Lo usa el turno de relevos en el desenlace. */
+  const lanzaPara = new Map<string, string>()
   // Marcaje (SPEC 6.18): quién marca a qué rival. Un marcador se agarra a la rueda de su objetivo y
   // aguanta sus ataques en la subida mientras su nivel no esté muy por debajo (no le deja marcharse solo).
   const markTargetOf = new Map<string, string>()
@@ -838,6 +867,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       const list = leadOutFor.get(target) ?? []
       list.push(r.riderId)
       leadOutFor.set(target, list)
+      lanzaPara.set(r.riderId, target)
     } else if (r.orders.role === 'marcador') {
       markTargetOf.set(r.riderId, target)
     }
@@ -2150,10 +2180,25 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
           ? freeRunTarget
           : Math.min(1, Math.max(0.1, STAGE.chaseHoldCommit + STAGE.chaseGain * err))
       }
-      // …Y EL HUMOR DEL DÍA (v38): hay días en que el pelotón echa la hueva y deja hacer. Se aplica
-      // aquí, sobre lo que el pelotón DECIDE, y no más abajo: los suelos del tirón final y del pavé
-      // no son ganas, son la carretera obligando, y ésos no dependen del humor de nadie.
-      target = Math.max(0.1, Math.min(1, target * humorDelPeloton))
+      /**
+       * …Y EL HUMOR DEL DÍA (v38): hay días en que el pelotón echa la hueva y deja hacer. Se aplica
+       * aquí, sobre lo que el pelotón DECIDE, y no más abajo: los suelos del tirón final y del pavé
+       * no son ganas, son la carretera obligando, y ésos no dependen del humor de nadie.
+       *
+       * …PERO NO CUANDO LA CARRERA SE ESTÁ DECIDIENDO (v39). El dueño, al ver que bajar el humor
+       * medio arreglaba la llana pero hundía la reina: «quizás entonces en una etapa reina falta que
+       * los campeones se esfuercen un poquito más». Exacto, y el defecto era que la hueva se aplicaba
+       * TAMBIÉN al puerto decisivo: medido, la brecha entre el 1.º y el 10.º de una reina se caía a
+       * 58 s contra una banda de 60-300, o sea que los favoritos llegaban juntos porque el motor les
+       * había puesto un día flojo.
+       *
+       * Un pelotón echa la hueva en la transición, no en el puerto que decide la general. Así que el
+       * humor vale mientras se rueda —que es la mayor parte del día y de donde salen las fugas que
+       * llegan— y deja de valer en el puerto que se corre (`climbRaceKmToGo`) y en el desenlace
+       * (`finalDriveKm`), donde ya no se administra nada.
+       */
+      const seDecide = (onClimb && raceThisClimb) || kmRestantes <= STAGE.finalDriveKm
+      if (!seDecide) target = Math.max(0.1, Math.min(1, target * humorDelPeloton))
       // En los últimos km de una etapa de meta llana los trenes toman la carretera y el pelotón
       // vuela: el controlador de boquete NO puede dejarlo rodar por debajo de eso. Sin este suelo,
       // un ataque tardío de 20 s hacía que el lazo cerrado pidiera 0,72 —menos que el 0,85 del
@@ -2383,6 +2428,16 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         teamPlans.size > 0,
         (riderId) => isBunch && frontTeamId !== null && teamOf.get(riderId) === frontTeamId,
         sinOpciones,
+        /**
+         * QUIÉN ESTÁ LANZANDO (v39). Un lanzador con su velocista al lado, dentro de la ventana del
+         * lanzamiento y en el grupo que se juega la llegada. Fuera de eso vale `false` y su deber es
+         * el de siempre: se guarda para los últimos tres kilómetros.
+         */
+        (riderId) => {
+          if (!isBunch || kmToGo > STAGE.sprintTrainKm) return false
+          const suJefe = lanzaPara.get(riderId)
+          return suJefe != null && idSet.has(suJefe)
+        },
       )
       /**
        * CUÁNTOS SE REPARTEN EL VIENTO AL FRENTE: LOS QUE TIRAN, y punto (v38).
@@ -4272,6 +4327,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
     finishTerrain,
     leadOutFor,
     moveGroupIds,
+    humorDelPeloton,
   )
 
   /**
@@ -4543,6 +4599,11 @@ function finishStage(
   leadOutFor: Map<string, string[]>,
   /** Ids de los grupos que llegan ESCAPADOS por delante del pelotón (docs/motor.md §13). */
   moveGroupIds: Set<string>,
+  /**
+   * EL HUMOR DEL DÍA (v38-v39). Llega hasta aquí por una sola razón: el listón que decide si un
+   * lanzador ha LANZADO se mide contra el ritmo del día y no contra una constante. Ver abajo.
+   */
+  humorDelPeloton = 1,
 ): void {
   const withMembers = groups
     .map((group) => ({
@@ -4594,14 +4655,28 @@ function finishStage(
          * (`pullWindow`, la misma ventana con olvido con la que la crónica responde «quién tira
          * ahora»), así que el tren que de verdad ha lanzado vale y el que ha ido de paseo no.
          */
+        /**
+         * …Y EL LISTÓN DEL TRABAJO ES RELATIVO AL RITMO DEL DÍA (v39). Era absoluto
+         * (`leadOutMinWork`), y con el humor del pelotón centrado por debajo de 1 —«que en general
+         * no estén tan motivados en gastar fuerzas tirando»— un día flojo borraba TODOS los trenes
+         * de golpe: nadie llegaba al listón, nadie cobraba el alivio de colocación, y el sprint se
+         * volvía una lotería. Medido: el mejor velocista pasaba de ganar el 30,5 % de las llanas al
+         * 20,5 %, contra una banda de 30-45.
+         *
+         * Y es que el listón pregunta «¿ha lanzado este hombre?», no «¿cuántos vatios ha puesto?».
+         * En un día flojo se lanza igual: el tren va a tope aunque el pelotón haya ido de paseo, y lo
+         * que cambia es el ritmo del que venía detrás, no el del que lanza. Así que se mide contra el
+         * trabajo del día y no contra una constante.
+         */
         const train = leadOutFor.get(m.input.riderId)
+        const listónTren = STAGE.leadOutMinWork * Math.max(0.1, humorDelPeloton)
         const present =
           train === undefined
             ? 0
             : train.reduce((c, id) => {
                 if (!idSet.has(id)) return c
                 const l = sims.get(id)
-                return c + (l != null && l.pullWindow >= STAGE.leadOutMinWork ? 1 : 0)
+                return c + (l != null && l.pullWindow >= listónTren ? 1 : 0)
               }, 0)
         if (sprintFinish && present > 0) {
           score *= 1 + STAGE.leadOutBoostPerHelper * Math.min(present, STAGE.leadOutMaxHelpers)

@@ -1577,6 +1577,19 @@ export const STAGE = {
    */
   relayNoChanceWeight: 1,
   /**
+   * LO QUE SUBE EL DEBER DE UN LANZADOR CUANDO ESTÁ LANZANDO (v39). Su deber base (0,85) es menor
+   * que el de un gregario (1,0) porque se guarda para el final, y eso está bien los 177 primeros
+   * kilómetros. En los tres últimos está al revés: es su único trabajo del día.
+   *
+   * Sin esto la rotación del desenlace se la quedaban los gregarios y el tren no lanzaba NUNCA:
+   * medido, de los dos lanzadores del mejor velocista, 0,07 de media habían dado un relevo al llegar
+   * al km 179. El velocista llegaba sin tren —sin el empujón del lanzamiento y sin el alivio de
+   * colocación de llevar hombres delante— y ganaba el 20 % de las llanas contra una banda de 30-45.
+   * Con 1,5 se pone por encima de un gregario del equipo que lleva el frente, que es lo que se ve en
+   * los últimos tres kilómetros de cualquier llegada masiva.
+   */
+  relayLeadOutBoost: 1.5,
+  /**
    * CADA CUÁNTO SE VUELVE A MIRAR LA COOPERACIÓN DE UNA FUGA, en bloques. El dueño: «habría que
    * irlo midiendo a menudo… quizás no cada 100 metros, pero quizás cada km». Con `dx` = 50 m, veinte
    * bloques son ese kilómetro.
@@ -2532,6 +2545,14 @@ export const STAGE = {
    * flojo rueda al 82 % de lo que rodaría y uno nervioso al 118 %.
    */
   pelotonMoodSpread: 0.14,
+  /**
+   * …Y ALREDEDOR DE QUÉ (v39). El dado del humor iba centrado en 1, o sea que de MEDIA el pelotón
+   * corría al máximo de lo que su plan pedía. El dueño: «que en general no estén tan motivados en
+   * gastar fuerzas tirando del pelotón». Un pelotón empleándose a fondo todo el día es la excepción;
+   * lo normal es rodar a lo justo. Calibrado contra las ocho grandes vueltas de 2024-2026, donde la
+   * fuga gana ~12 % de las llanas (unas 5 de 41).
+   */
+  pelotonMoodCentre: 0.9,
   // Ritmo del pelotón en un puerto que NO es decisivo (lejos de meta): se sube a tempo.
   climbTempoCommit: 0.62,
   // Los últimos km de una etapa de meta llana: los trenes se organizan y el pelotón vuela.
