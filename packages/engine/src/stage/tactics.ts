@@ -85,6 +85,28 @@ export interface MoveContext {
    * diferencias: esta bandera es la que lo distingue.
    */
   hasGcContext: boolean
+  /**
+   * CUÁNTO MERECE LA PENA ESTAR HOY EN LA FUGA, en [0,1] (v39). Es la pieza que faltaba y que
+   * explica el defecto más gordo que ha salido de comparar el motor con las crónicas de las grandes
+   * vueltas de 2024-2026: **el motor hacía fugas de TRES hombres en todos los terrenos**, y en la
+   * carretera una fuga de montaña son quince, veinte o cincuenta.
+   *
+   *   Tour 2025 e12: 52 corredores · e16: 36 · e14/15/18: 17, 15, 14
+   *   Vuelta 2025 e12: 53 · e15: 47 · e16/7/6: 17, 13, 10
+   *   Tour 2026 e4: ~35 · Frontier Economics (114 etapas): media de 19 en alta montaña
+   *   …y en LLANO, cuatro. Ahí el motor acertaba.
+   *
+   * Y el motivo no es que en montaña la gente sea más valiente: es que **en montaña la fuga puede
+   * ganar y en el llano no**. El mismo estudio: 2 % de las llanas contra más del 40 % de las de
+   * montaña, y de 30 etapas con fuga de más de dieciséis hombres la fuga ganó 23. Así que a la de
+   * montaña se apunta media parrilla —todo el que no se juega la general tiene ahí su día— y a la
+   * llana no se apunta nadie: cuatro anónimos a los diez kilómetros y a rodar.
+   *
+   * Vale 0 en una llana pura y 1 en una etapa que la fuga puede ganar. Lo usan las DOS mitades del
+   * problema: cuánta gente salta (`followProbability`) y si el pelotón les da cuerda siendo tantos
+   * (`pelotonAllows`).
+   */
+  breakAppeal: number
 }
 
 // --- 1. ¿Alguien lo intenta? ---------------------------------------------------------------
@@ -301,8 +323,18 @@ export function followProbability(r: MoveRider, instigator: MoveRider, ctx: Move
   // En un grupo GORDO cada uno cuenta con que salte otro y la atención se diluye (SPEC 6.12,
   // `bigGroupThreshold`). Así el número ABSOLUTO de los que saltan apenas depende de si el pelotón
   // es de 40 o de 176, que es lo que se ve en carretera.
-  const crowd =
-    ctx.groupSize > STAGE.bigGroupThreshold ? STAGE.bigGroupThreshold / ctx.groupSize : 1
+  /**
+   * …Y EL TOPE SE ENSANCHA CUANDO LA FUGA MERECE LA PENA (v39, `breakAppeal`). La dilución existe
+   * porque en un pelotón grande cada uno cuenta con que salte otro, y eso es verdad EN UNA LLANA:
+   * ahí la fuga no gana y nadie se pelea por entrar. En una etapa de montaña es al revés —la fuga
+   * es el día de todo el que no se juega la general— y entonces no se diluye nada: salta todo el
+   * que puede, y de ahí salen las fugas de veinte, treinta o cincuenta que se ven en la carretera y
+   * que el motor no sabía hacer.
+   */
+  const apetito =
+    ctx.kind === 'fuga' || ctx.kind === 'contraataque' ? clamp(ctx.breakAppeal, 0, 1) : 0
+  const umbral = STAGE.bigGroupThreshold * (1 + STAGE.breakAppealCrowdGain * apetito)
+  const crowd = ctx.groupSize > umbral ? umbral / ctx.groupSize : 1
   return clamp(
     KIND_FOLLOW[ctx.kind] *
       crowd *
@@ -518,12 +550,30 @@ export function pelotonAllows(move: MoveRider[], ctx: MoveContext, rng: Rng): bo
    * no le regala el día a los dos primeros que saltan: todo el mundo quiere estar ahí, se cierra
    * todo, y la buena sale cuando la gente empieza a cansarse de cerrar. Eso es una rampa, igual que
    * la que ya tiene el INTENTO (`tacticSettleKm`), y por la misma razón.
+   *
+   * …Y CUÁNTO DURA LA PELEA DEPENDE DEL TERRENO (v39). Las crónicas de las grandes vueltas lo dicen
+   * con números: la fuga de una llana se va **antes del kilómetro diez** —no se apunta nadie, van
+   * cuatro anónimos— y la de una etapa de montaña puede tardar **cien kilómetros**, porque ahí se
+   * apunta media parrilla y hasta que no se marcha el grupo bueno no para la pelea. Es la misma
+   * `breakAppeal` que decide cuánta gente salta, leída para el otro lado: donde la fuga merece la
+   * pena, cuesta que se vaya. Un solo número explica las dos mitades.
    */
+  const settle =
+    STAGE.tacticAllowSettleFlatKm +
+    (STAGE.tacticAllowSettleClimbKm - STAGE.tacticAllowSettleFlatKm) * clamp(ctx.breakAppeal, 0, 1)
   const kmRun = Math.max(0, ctx.totalKm - ctx.kmToGo)
-  const asentada =
-    STAGE.tacticAllowSettleKm > 0 ? clamp(kmRun / STAGE.tacticAllowSettleKm, 0, 1) : 1
+  const asentada = settle > 0 ? clamp(kmRun / settle, 0, 1) : 1
   p *= STAGE.tacticAllowSettleFloor + (1 - STAGE.tacticAllowSettleFloor) * asentada
-  p -= STAGE.tacticAllowSizePenalty * Math.max(0, move.length - STAGE.breakawaySizeMin)
+  /**
+   * …Y EL CASTIGO POR SER MUCHOS SE AFLOJA CUANDO LA FUGA MERECE LA PENA (v39). El castigo dice que
+   * un pelotón cierra antes una fuga numerosa que una de cuatro anónimos, y en una llana es cierto.
+   * En una etapa de montaña no: ahí el pelotón CONCEDE precisamente porque son muchos y porque casi
+   * ninguno se juega la general —es la fuga de cincuenta y tres de la Vuelta 2025—. Sin esto, con
+   * `tacticAllowSizePenalty` = 0,05 por hombre, una fuga de veinte se quedaba en probabilidad
+   * negativa: no se le daba cuerda NUNCA, y las fugas grandes seguían sin existir por el otro lado.
+   */
+  const holgura = 1 - clamp(ctx.breakAppeal, 0, 1)
+  p -= STAGE.tacticAllowSizePenalty * holgura * Math.max(0, move.length - STAGE.breakawaySizeMin)
   let vetoed = false
   if (ctx.hasGcContext) {
     // El que manda es el más cercano al maillot: un grupo es tan peligroso como su hombre peligroso.

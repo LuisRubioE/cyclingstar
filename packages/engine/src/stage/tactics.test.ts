@@ -61,6 +61,8 @@ function ctx(over: Partial<MoveContext> = {}): MoveContext {
     onClimb: false,
     tension: 0,
     hasGcContext: false,
+    // Una llana: a la fuga del día no se apunta nadie más que cuatro anónimos (v39).
+    breakAppeal: 0,
     ...over,
   }
 }
@@ -221,7 +223,7 @@ describe('reglas 4 y 5 — muchos intentos fracasan, y hacen falta muchos antes 
    */
   it('el pelotón no concede la fuga del día en el kilómetro uno', () => {
     const salida = ctx({ kmToGo: 179, totalKm: 180 })
-    const asentada = ctx({ kmToGo: 180 - STAGE.tacticAllowSettleKm - 10, totalKm: 180 })
+    const asentada = ctx({ kmToGo: 180 - STAGE.tacticAllowSettleFlatKm - 10, totalKm: 180 })
     expect(cuerda(movida, salida)).toBeLessThan(cuerda(movida, asentada))
     // Y en el metro cero queda muy poca: no es imposible —una fuga puede salir del disparo— pero es
     // la excepción y no la regla.

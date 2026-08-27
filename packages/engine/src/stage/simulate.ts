@@ -1098,6 +1098,24 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
    */
   const stageFinishType = finishType(finishTerrain, input.riders.length)
   /**
+   * CUÁNTO MERECE LA PENA ESTAR HOY EN LA FUGA (v39, ver `MoveContext.breakAppeal`). Sale del
+   * RECORRIDO y se calcula una vez: la fracción de kilómetros que se suben, más un extra si además
+   * se acaba arriba. Una llana pura da 0 y una etapa reina da 1.
+   *
+   * Es el número del que cuelga el defecto más gordo que ha salido de comparar el motor con las
+   * grandes vueltas de 2024-2026: el motor hacía fugas de TRES hombres en todos los terrenos, y en
+   * la carretera una fuga de montaña son quince, veinte o cincuenta —Vuelta 2025 e12: cincuenta y
+   * tres— mientras que en una llana son cuatro, que es justo lo que el motor sí acertaba.
+   */
+  const kmSubida = blocks.reduce((acc, b) => acc + (b.tipo === 'subida' ? STAGE.dx : 0), 0)
+  const totalKmRuta = blocks.length * STAGE.dx
+  const breakAppeal = clamp(
+    (STAGE.breakAppealClimbWeight * kmSubida) / Math.max(1e-9, totalKmRuta) +
+      (isUphillFinish(stageFinishType) ? STAGE.breakAppealUphillBonus : 0),
+    0,
+    1,
+  )
+  /**
    * ¿ADMITE LA META UNA LLEGADA AGRUPADA? De este booleano cuelga todo lo que hace que un pelotón
    * llegue junto: que los equipos de los sprinters se pongan a cazar (`chasingSprinters`), el tirón
    * de los últimos kilómetros (`finalDriveKm`) y el plan de equipo de los que tienen rematador.
@@ -3257,6 +3275,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         onClimb,
         tension: source.tension,
         hasGcContext,
+        breakAppeal,
       }
       if (!rollMoveAttempt(rngTactics, ctx)) return
       lastAttemptKm.set(source.id, km)

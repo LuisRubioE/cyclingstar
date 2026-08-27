@@ -2252,9 +2252,15 @@ export const STAGE = {
    * LA RAMPA DE ARRANQUE DE LA CUERDA (v39, ver `pelotonAllows`). En los primeros kilómetros el
    * pelotón cierra todo: todo el mundo quiere estar en la fuga del día y nadie regala el día a los
    * dos primeros que saltan. `Floor` es lo que queda en el metro cero —una fuga puede salir del
-   * disparo, pasa— y `Km` es cuándo se llega a la probabilidad plena.
+   * disparo, pasa—.
+   *
+   * Y CUÁNTO DURA ESA PELEA DEPENDE DEL TERRENO (v39), que es lo que dicen las crónicas de las
+   * grandes vueltas: en una llana la fuga se va antes del kilómetro DIEZ —no se apunta nadie— y en
+   * una etapa de montaña la pelea puede durar CIEN, porque ahí se apunta media parrilla. Se
+   * interpola con `breakAppeal`, el mismo número que decide cuánta gente salta.
    */
-  tacticAllowSettleKm: 40,
+  tacticAllowSettleFlatKm: 6,
+  tacticAllowSettleClimbKm: 100,
   tacticAllowSettleFloor: 0.15,
   tacticAllowKmGain: 0.5,
   tacticAllowSizePenalty: 0.05,
@@ -2773,6 +2779,20 @@ export const STAGE = {
   // porque hay demasiadas ruedas atentas. Modula la probabilidad de que el pelotón dé cuerda.
   // Ojo: el sprint masivo NO usa este umbral, usa `bunchSprintMinRiders`.
   bigGroupThreshold: 25,
+  /**
+   * CUÁNTO SE ENSANCHA ESE TOPE CUANDO LA FUGA MERECE LA PENA (v39, ver `MoveContext.breakAppeal`).
+   * Con 5, una etapa de montaña pura diluye la atención como si el pelotón fuera de 150 en vez de
+   * 25, o sea que salta seis veces más gente: es la diferencia entre la fuga de tres del motor y las
+   * de quince a cincuenta que se ven en una grande de verdad.
+   */
+  breakAppealCrowdGain: 9,
+  /**
+   * …Y DE QUÉ SALE EL APETITO. La fuga merece la pena donde puede GANAR, y eso lo dice el terreno:
+   * la fracción del recorrido que se sube (`...ClimbWeight`) y si además se acaba arriba
+   * (`...UphillBonus`). Una llana pura da 0 —cuatro anónimos y a rodar— y una reina da 1.
+   */
+  breakAppealClimbWeight: 4,
+  breakAppealUphillBonus: 0.35,
   // Definición de "final en alto" del SPEC 6.12: últimos 3 km con pendiente media >= 5%. Estuvo
   // definida y sin usar mientras el motor resolvía el final con su propia heurística ("algún bloque
   // de los últimos 2 km sube"); ahora es uno de los dos caminos que llevan al tipo `alto`
