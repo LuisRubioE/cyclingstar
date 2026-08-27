@@ -59,6 +59,7 @@ import {
   isSprintFinish,
   isUphillFinish,
   placementSd,
+  sprintRegimeKmh,
 } from './finish.js'
 import { markingMargin, resolveMarking, wheelProbability } from './marcaje.js'
 import {
@@ -2376,7 +2377,25 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
        * los que dan la cara y los que la pagan. Una cuenta, no dos.
        */
       const alFrente = relayers.size
-      const next = advanceGroup(group, block, p75, alFrente, { isFinal })
+      /**
+       * CUÁNTOS TRENES ESTÁN LANZANDO DE VERDAD EN ESTE GRUPO (v39). No los que llegan: los que
+       * están dando la cara ahora mismo (`relayers`) y son lanzadores de un velocista que va con
+       * ellos. De ahí sale el régimen de remate, y de ahí sale lo que pidió el dueño: «puede haber
+       * varios equipos con sus lanzadores al mismo tiempo, aunque no necesariamente con el mismo
+       * éxito». El equipo que quemó su tren cazando la fuga no lanza a nadie, y se nota en la
+       * velocidad del pelotón y en quién gana.
+       */
+      let trenes = 0
+      if (isBunch && kmToGo <= STAGE.sprintTrainKm && admitsBunchFinish(stageFinishType)) {
+        for (const [sprinterId, tren] of leadOutFor) {
+          if (!idSet.has(sprinterId)) continue
+          if (tren.some((id) => relayers.has(id))) trenes += 1
+        }
+      }
+      const next = advanceGroup(group, block, p75, alFrente, {
+        isFinal,
+        sprintKmh: trenes > 0 ? sprintRegimeKmh(kmToGo, trenes, block.g) : 0,
+      })
       /**
        * LO QUE VALE UN RELEVO EN ESTE BLOQUE, MEDIDO POR EL VIENTO Y NO POR LA VELOCIDAD (v26).
        *
@@ -3380,7 +3399,13 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
           s2.energy = Math.max(0, s2.energy - c)
           s2.work += c
         }
-        log.emit(km, source.tS, 'intento', 'attack_go', names, {
+        /**
+         * Se cuenta como `attack_swarm` y no como `attack_go`, y no es un detalle de nombres: los
+         * dos son «intento que NO creó grupo», que es lo que la crónica necesita saber para no
+         * abrir un arco que nadie va a cerrar. `sinHueco` distingue los dos motivos —aquí no abrió
+         * hueco; allí saltó medio grupo— para quien lea la telemetría.
+         */
+        log.emit(km, source.tS, 'intento', 'attack_swarm', names, {
           kind,
           saltan: party.length,
           grupo: members.length,
@@ -3949,8 +3974,26 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
               // fundía en silencio, y ahí se perdían las dos mitades: el ataque que se contó y no se
               // cerró, y los dos nombres nuevos que aparecían delante sin que nadie los viera
               // llegar. Es literalmente el caso de Race Jaén (Jereb y Moretti, km 156).
+              /**
+               * …Y SUMARSE A LA FUGA DEL DÍA ES NOTICIA SIEMPRE (v39). Faltaba el caso más simple:
+               * UN hombre que llega solo a la fuga del día, desde un intento que no se contó. Con
+               * las tres condiciones de arriba se fundía en silencio —no es puente, no trae
+               * compañía, y su ataque no se narró— y entonces el lector se encontraba con que la
+               * captura nombraba a alguien que nunca había visto delante.
+               *
+               * Lo destapó el auditor de coherencia (`cazadaFantasma`) en la llana canónica: km
+               * 146, la fuga del día son ocho; km 153, pel-117 se les suma sin una línea; km 159,
+               * «the break is caught» y ahí está pel-117, de la nada. La fuga del día es EL grupo
+               * que el lector sigue toda la etapa: quien se sube a ella se cuenta, venga de donde
+               * venga.
+               */
               narra:
-                bridged || joined.length >= STAGE.tacticMergeNarrateRiders || back.narrated ? 1 : 0,
+                bridged ||
+                front.dayBreak ||
+                joined.length >= STAGE.tacticMergeNarrateRiders ||
+                back.narrated
+                  ? 1
+                  : 0,
             },
           )
         }

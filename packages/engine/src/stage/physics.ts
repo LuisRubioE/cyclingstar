@@ -174,6 +174,13 @@ export interface AccOptions {
   isFinal?: boolean
   /** Impulso de cerillo activo: la aceleración aplicable se multiplica por 2.5. */
   matchActive?: boolean
+  /**
+   * VELOCIDAD DEL RÉGIMEN DE REMATE (v39, `finish.ts::sprintRegimeKmh`). Los últimos kilómetros de
+   * una llegada masiva no se ruedan, se lanzan, y eso es un esfuerzo anaeróbico que la ley aeróbica
+   * de este motor no sabe expresar. Cuando viene, `advanceGroup` toma el máximo entre ella y la ley
+   * de siempre. 0 o ausente fuera del remate.
+   */
+  sprintKmh?: number
 }
 
 /** Cota de aceleración aplicable en km/h por segundo (SPEC 6.4), asimétrica y contextual. */

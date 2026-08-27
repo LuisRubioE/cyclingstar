@@ -81,7 +81,18 @@ export function advanceGroup(
   opts: AccOptions = {},
   dx: number = STAGE.dx,
 ): Group {
-  const vObjetivo = targetSpeed(block, p75Perfil, group.compromiso, pullers)
+  /**
+   * …Y EN EL REMATE MANDA EL RÉGIMEN DE SPRINT (v39, `finish.ts::sprintRegimeKmh`). La ley de
+   * velocidad de este motor es AERÓBICA —lo que un grupo sostiene durante horas— y un lanzamiento no
+   * lo es, así que los últimos kilómetros de una llegada masiva traen su propia velocidad objetivo.
+   * Se toma el MÁXIMO: el régimen solo puede acelerar el desenlace, nunca frenarlo, y fuera de él
+   * vale 0 y no se nota. Y no se llega de golpe: `stepSpeed` sigue acotando la aceleración, así que
+   * el pelotón SUBE a esa velocidad.
+   */
+  const vObjetivo = Math.max(
+    targetSpeed(block, p75Perfil, group.compromiso, pullers),
+    opts.sprintKmh ?? 0,
+  )
   // `dt de entrada`: la cota de aceleración usa la velocidad de entrada al bloque (SPEC 6.4).
   const dtIn = blockSeconds(group.vActual, dx)
   const vActual = stepSpeed(group.vActual, vObjetivo, block.g, dtIn, opts)

@@ -1684,6 +1684,23 @@ export const STAGE = {
    * hace que dos equipos con tren no tengan el mismo éxito, que es lo que pidió el dueño.
    */
   leadOutMinWork: 0.4,
+  /**
+   * EL RÉGIMEN DE REMATE (v39, ver `finish.ts::sprintRegimeKmh`). Los últimos kilómetros de una
+   * llegada masiva tienen su propia ley de velocidad, porque el lanzamiento es un esfuerzo
+   * ANAERÓBICO y la ley del motor es aeróbica: describe lo que un grupo sostiene durante horas.
+   *
+   * Los números no son perillas de calibración sino lo que se sabe de un sprint de verdad: a tres
+   * kilómetros un pelotón lanzado ronda los cincuenta, y en el último kilómetro se pone en sesenta y
+   * pico. `SoloShare` es lo que consigue un solo tren contra tres o más (`FullTrains`), y
+   * `MaxGradient` deja fuera los finales que trepan: ahí no hay lanzamiento que valga y manda la ley
+   * de siempre, que es la que sabe de rampas.
+   */
+  sprintApproachKmh: 51,
+  sprintFlammeKmh: 63,
+  sprintRegimeMinTrains: 1,
+  sprintRegimeFullTrains: 3,
+  sprintRegimeSoloShare: 0.65,
+  sprintRegimeMaxGradient: 2,
   // PENDIENTE DE IMPLEMENTAR (SPEC 6.6): parámetro definido pero sin efecto en la simulación.
   // Vaciado profundo: quien termina con E < 0.12·E0 debería arrancar la etapa siguiente con un
   // cerillo menos. `matchCount(..., deepDepleted)` sabe aplicarlo, pero nadie calcula el flag.

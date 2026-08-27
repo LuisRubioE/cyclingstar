@@ -1,17 +1,23 @@
 import { describe, expect, it } from 'vitest'
+import { STAGE } from '../constants.js'
 import { markingMargin, resolveMarking, wheelProbability } from './marcaje.js'
 
 describe('marcaje (6.18)', () => {
   it('p_rueda sube con la ventaja táctica del marcador y baja con marcadores de más', () => {
-    // A igual TAC: 0.35 base.
-    expect(wheelProbability(60, 60)).toBeCloseTo(0.35)
+    // A igual TAC, la base (0,60 desde la v39: el que tiene la ORDEN de marcar vive en esa rueda;
+    // con 0,35 la perdía dos de cada tres veces, que no es marcar a nadie).
+    expect(wheelProbability(60, 60)).toBeCloseTo(STAGE.markWheelBase)
     // Marcador más listo: sube.
-    expect(wheelProbability(80, 60)).toBeCloseTo(0.35 + 20 / 80)
+    expect(wheelProbability(80, 60)).toBeCloseTo(
+      Math.min(STAGE.markWheelMax, STAGE.markWheelBase + 20 / STAGE.markWheelTacScale),
+    )
     // Marcadores extra reparten el trabajo del objetivo: baja.
-    expect(wheelProbability(60, 60, 2)).toBeCloseTo(0.35 - 0.2)
+    expect(wheelProbability(60, 60, 2)).toBeCloseTo(
+      STAGE.markWheelBase - 2 * STAGE.markWheelExtraPenalty,
+    )
     // Saturada entre 0.15 y 0.90.
-    expect(wheelProbability(10, 99)).toBe(0.15)
-    expect(wheelProbability(99, 10)).toBe(0.9)
+    expect(wheelProbability(10, 99)).toBe(STAGE.markWheelMin)
+    expect(wheelProbability(99, 10)).toBe(STAGE.markWheelMax)
   })
 
   it('el rebufo del ataque da +4 de tolerancia al marcador', () => {

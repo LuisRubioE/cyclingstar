@@ -14,6 +14,7 @@
  */
 import type { Attribute } from '@cyclingstar/shared'
 import { STAGE } from '../constants.js'
+import { clamp } from '../random.js'
 import type { Eff } from './physics.js'
 import type { Block } from './types.js'
 
@@ -229,6 +230,56 @@ export function placementSd(groupSize: number, leadOutsPresent: number, tac: num
   const fromTac = (tac - 50) / STAGE.placementTacScale
   const relief = Math.max(0, Math.min(STAGE.placementReliefMax, fromTrain + fromTac))
   return STAGE.placementSdMax * crowd * (1 - relief)
+}
+
+/**
+ * EL RÉGIMEN DE REMATE: los últimos kilómetros de una llegada masiva NO se ruedan, se lanzan (v39).
+ *
+ * El dueño, después de que le enseñara por qué reciclando la ley de velocidad no salía: «para ese
+ * último km de sprint final en pelotón diseña una mecánica nueva; que no uses solo lo que ya tienes,
+ * porque ese modelo tal cual nunca va a dar la velocidad real de un sprint real». Tiene razón, y el
+ * motivo es físico y no de calibración:
+ *
+ * La ley de velocidad del motor (`targetSpeed`) es AERÓBICA: describe lo que un grupo sostiene
+ * durante horas a partir de su umbral. Un lanzamiento no es eso. Un hombre de tren pone 550-700 W
+ * durante uno o dos minutos y el velocista 1200-1600 W durante quince segundos, o sea entre el
+ * doble y el cuádruple del umbral, y eso no cabe en una escala de perfil donde diez puntos son un
+ * 6 % de potencia: para pasar de 48 a 58 km/h haría falta subir la potencia un 71 %, unos NOVENTA
+ * puntos de perfil. Medido: encender los cerillos de los trenes y medir el ritmo sobre los
+ * relevistas en vez de sobre el cuarto delantero mueven el último kilómetro medio km/h.
+ *
+ * Así que el remate tiene su propia ley, y es una ley de VELOCIDAD OBJETIVO y no de vatios, porque
+ * es lo que de verdad se sabe de un sprint: a tres kilómetros un pelotón lanzado va a unos
+ * cincuenta, y en el último se pone en sesenta y pico. La aceleración sigue estando acotada
+ * (`stepSpeed`), así que el pelotón SUBE a esa velocidad, no aparece en ella.
+ *
+ * Tres condiciones, y las tres son las que el dueño describió:
+ *
+ * - **Hace falta que alguien lance.** Sin un tren trabajando no hay régimen y el pelotón llega a lo
+ *   que iba: eso también pasa, y es la llegada desangelada en la que se cuela un ataque tardío.
+ * - **Cuantos más trenes, más rápido.** «Puede haber varios equipos con sus lanzadores al mismo
+ *   tiempo, aunque no necesariamente con el mismo éxito.»
+ * - **Y solo si el final es de sprint.** Cuesta arriba no hay lanzamiento que valga: ahí manda la
+ *   ley de siempre, que es la que sabe de rampas.
+ *
+ * Devuelve 0 cuando el régimen no aplica; quien lo llama toma el MÁXIMO con la ley normal, así que
+ * esto solo puede acelerar el desenlace, nunca frenarlo.
+ */
+export function sprintRegimeKmh(
+  kmToGo: number,
+  trenesTrabajando: number,
+  gradient: number,
+): number {
+  if (trenesTrabajando < STAGE.sprintRegimeMinTrains) return 0
+  if (kmToGo > STAGE.sprintTrainKm || kmToGo < 0) return 0
+  if (gradient > STAGE.sprintRegimeMaxGradient) return 0
+  const t = clamp(1 - kmToGo / Math.max(1e-9, STAGE.sprintTrainKm), 0, 1)
+  const fuerza =
+    STAGE.sprintRegimeSoloShare +
+    (1 - STAGE.sprintRegimeSoloShare) * clamp(trenesTrabajando / STAGE.sprintRegimeFullTrains, 0, 1)
+  return (
+    STAGE.sprintApproachKmh + (STAGE.sprintFlammeKmh - STAGE.sprintApproachKmh) * t * t * fuerza
+  )
 }
 
 /**
