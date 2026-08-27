@@ -2588,7 +2588,7 @@ export const STAGE = {
    * selección. Las clásicas que saturaban son justo lo contrario (Strade y Roubaix, el 100 % de la
    * demanda fuera de la cuesta), así que sacar las cuestas no le quita nada a lo que sí hacía falta.
    */
-  climbEaseFarKm: 160,
+  climbEaseDemand: 95,
   // Ritmo del pelotón en un puerto que NO es decisivo (lejos de meta): se sube a tempo.
   climbTempoCommit: 0.62,
   // Los últimos km de una etapa de meta llana: los trenes se organizan y el pelotón vuela.

@@ -2237,7 +2237,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
          * fuera de la cuesta; Lombardía y Montreal, la mitad). Dejando las cuestas fuera, lo que se
          * dosifica es exactamente lo que sobra.
          */
-        const enCuestaQueCuenta = onClimb && kmRestantes <= STAGE.climbEaseFarKm
+        const enCuestaQueCuenta = onClimb && demandaDelDia < STAGE.climbEaseDemand
         const humor = enCuestaQueCuenta ? 1 : humorDelPeloton
         const dosis = enCuestaQueCuenta ? 1 : dosificacion
         target = Math.max(0.1, Math.min(1, target * humor * dosis))
