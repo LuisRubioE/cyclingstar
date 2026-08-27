@@ -1576,6 +1576,20 @@ export const STAGE = {
    * —el deber de un cazaetapas es 0,5 más la frescura— y con tenerlas a medias para quedarse dentro.
    */
   relayNoChanceWeight: 1,
+  /**
+   * CADA CUÁNTO SE VUELVE A MIRAR LA COOPERACIÓN DE UNA FUGA, en bloques. El dueño: «habría que
+   * irlo midiendo a menudo… quizás no cada 100 metros, pero quizás cada km». Con `dx` = 50 m, veinte
+   * bloques son ese kilómetro.
+   */
+  coopReviewBlocks: 20,
+  /**
+   * …y CUÁNTO CONTAGIA que uno se plante. No es que tiren menos porque son menos —eso ya lo cobra el
+   * turno de relevos—: es que los que siguen tirando aflojan a propósito. «Los otros quizás quieran
+   * desgastarse menos y entonces tirar menos fuerte, para no desgastarse para que ese wey que va ahí
+   * sin gastar energía se la lleve.» Con 0,6, una fuga en la que la mitad se ha plantado rueda al
+   * 70 % del compromiso con el que nació.
+   */
+  coopContagionWeight: 0.6,
   // …y si NADIE llega al umbral, alguien tiene que dar la cara igual: uno en una fuga pequeña,
   // hasta cuatro en un pelotón. Uno por cada `relayMinPer` hombres, con ese techo.
   relayMinPullers: 4,
@@ -1638,7 +1652,14 @@ export const STAGE = {
   // `matchBonusBlocks` bloques y no cuesta nada.
   matchCost: 5,
   matchBonus: 10,
-  matchBonusBlocks: 5,
+  /**
+   * CUÁNTO DURA LA RAMPA DEL CERILLO. Eran CINCO bloques —doscientos cincuenta metros— y en ese
+   * trecho no se decide nada: el que ataca a 8 km de meta necesita sostener el esfuerzo, no dar un
+   * hachazo y volver al tempo. Treinta bloques son kilómetro y medio, que es lo que dura de verdad
+   * un ataque antes de que el hombre se estabilice en lo que puede aguantar. Ver `riderPerfil`, que
+   * es donde se aplica, y `tacticSurgeKm` para el salto inicial, que es la otra mitad.
+   */
+  matchBonusBlocks: 30,
   // PENDIENTE DE IMPLEMENTAR (SPEC 6.6): parámetro definido pero sin efecto en la simulación.
   // Vaciado profundo: quien termina con E < 0.12·E0 debería arrancar la etapa siguiente con un
   // cerillo menos. `matchCount(..., deepDepleted)` sabe aplicarlo, pero nadie calcula el flag.
@@ -2144,11 +2165,24 @@ export const STAGE = {
   // estirándose. Es la segunda mitad de la regla 2 («y si son 40, no colaboran lo suficiente»),
   // resuelta antes de crear un grupo que no lo es.
   tacticFollowFractionMax: 0.5,
-  // Boquete instantáneo (s) que abre el acelerón: mín + amplitud uniforme. Un ataque es una
-  // ACELERACIÓN, no un cambio de tempo; a partir de aquí manda la carretera y el boquete se integra
-  // bloque a bloque como cualquier otro. Sin esto un «ataque» tardaba 20 km en abrir 5 s.
-  tacticJumpGapSeconds: 5,
-  tacticJumpGapRange: 7,
+  /**
+   * EL ACELERÓN (v39). Un ataque son dos cosas y hasta la v38 el motor solo tenía media:
+   *
+   * 1. **El salto**: unos centenares de metros a tumba abierta, muy por encima del umbral. Eso es
+   *    `tacticSurgeKm` de recorrido con `tacticSurgeBonus` puntos de perfil encima del cerillo, y de
+   *    ahí sale el boquete instantáneo —CALCULADO con la física, ver `tactics.ts::jumpGapSeconds`,
+   *    no sorteado entre 5 y 12 segundos como hasta la v38—.
+   * 2. **La rampa**: el rato que se aguanta por encima del umbral después del salto, que es lo que
+   *    el cerillo compra de verdad (`matchBonus` durante `matchBonusBlocks`).
+   *
+   * Y si el boquete que sale de la cuenta no llega a `tacticJumpMinGapSeconds`, el ataque NO CREA
+   * GRUPO: se queda en intento. Es la mitad de la frase del dueño que faltaba —«si su velocidad de
+   * ataque es menor que la del que va tirando del grupo, tampoco se crea ningún boquete»— y ahora
+   * sale de la aritmética en vez de estar prohibida a mano.
+   */
+  tacticSurgeKm: 0.6,
+  tacticSurgeBonus: 18,
+  tacticJumpMinGapSeconds: 2,
   // Dentro de los últimos km ya no se simulan movimientos: eso ES el sprint, y lo resuelve el
   // modelo de final (§12), que para eso ordena el grupo por una mezcla de atributos. Sin este
   // corte, un «ataque» a 1 km de meta nacía con su boquete instantáneo y ganaba la etapa por 15 s
@@ -2171,6 +2205,14 @@ export const STAGE = {
   // si ahí va una amenaza para la general. Es LA perilla que decide cuántos intentos hacen falta
   // antes de que cuaje la fuga del día.
   tacticAllowBase: 0.3,
+  /**
+   * LA RAMPA DE ARRANQUE DE LA CUERDA (v39, ver `pelotonAllows`). En los primeros kilómetros el
+   * pelotón cierra todo: todo el mundo quiere estar en la fuga del día y nadie regala el día a los
+   * dos primeros que saltan. `Floor` es lo que queda en el metro cero —una fuga puede salir del
+   * disparo, pasa— y `Km` es cuándo se llega a la probabilidad plena.
+   */
+  tacticAllowSettleKm: 12,
+  tacticAllowSettleFloor: 0.15,
   tacticAllowKmGain: 0.5,
   tacticAllowSizePenalty: 0.05,
   // El castigo de amenaza es el TECHO de una rampa, no un escalón (v32): vale entero pegado al
@@ -2833,7 +2875,16 @@ export const STAGE = {
   // desde la v9 decide si el marcador vive de verdad en la rueda de su objetivo cuando este ATACA
   // (docs/motor.md §13, regla 9). Si la tiene, responde con `resolveMarking`; si no, decide con el
   // dado de la atención como cualquier otro.
-  markWheelBase: 0.35,
+  /**
+   * SUBIDA DE 0,35 A 0,60 EN LA v39. El dueño: «si un ciclista está marcando a otro, debería
+   * intentar salir detrás de él». Y es que 0,35 de base decía lo contrario: un hombre cuyo ÚNICO
+   * trabajo del día es vivir en esa rueda la perdía dos de cada tres veces. Medido en un banco de
+   * cuarenta etapas, el marcador seguía a su objetivo el 22 % de los ataques contra el 4 % de un
+   * corredor idéntico sin órdenes: la orden se notaba, pero mucho menos de lo que una orden debería
+   * notarse. Lo que sigue decidiendo el resto es lo de siempre: la diferencia de TAC, cuántos más le
+   * están marcando, y si aguanta o no el hachazo (`markingMargin`).
+   */
+  markWheelBase: 0.6,
   markWheelTacScale: 80,
   markWheelExtraPenalty: 0.1,
   markWheelMin: 0.15,

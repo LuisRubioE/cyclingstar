@@ -799,8 +799,15 @@ describe('modelo de final (docs/motor.md §12)', () => {
         },
         riders,
       }
+      /**
+       * SESENTA SEMILLAS Y NO VEINTE (v39). Este banco resume veinte etapas en UNA MEDIANA de una
+       * lista de enteros, y con veinte muestras esa mediana salta de dos en dos puntos por nada:
+       * medido sobre 80 corridas, el valor real es estable pero la mediana de 20 baila lo bastante
+       * como para que el test se decida por la semilla y no por el motor. No se toca el umbral —lo
+       * que se pide sigue siendo lo mismo— se le da a la medida el tamaño de muestra que necesita.
+       */
       const pavs: number[] = []
-      for (const seed of seedsFor('pave-final', 20)) {
+      for (const seed of seedsFor('pave-final', 60)) {
         const out = simulateStage(input, seed)
         pavs.push(riders.find((r) => r.riderId === out.results[0]!.riderId)!.eff0.PAV)
       }

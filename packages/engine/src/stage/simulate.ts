@@ -321,7 +321,16 @@ function riderPerfil(sim: RiderSim, block: Block): number {
   const eff = riderEff(sim)
   const useCol = block.tipo === 'subida' && block.g >= STAGE.wallMinGradient
   let perfil = blockPerfil(eff, block, useCol)
-  if (sim.climbBoostBlocks > 0 && block.tipo !== 'llano') perfil += STAGE.matchBonus
+  /**
+   * …Y EL CERILLO VALE TAMBIÉN EN LLANO (v39). Estaba excluido —`block.tipo !== 'llano'`— con la
+   * idea de que el llano «no selecciona», y eso confunde dos cosas: que el llano no DESCUELGUE a
+   * nadie por sí solo no significa que ahí no se pueda apretar. Un ataque en llano existe, cuesta
+   * un cerillo igual, y lo que tiene que pasar es que compre POCO, no que compre nada. Y eso ya lo
+   * dice la física sin ayuda: con `loadExponent` 0,39 en llano contra 1,0 subiendo, los mismos diez
+   * puntos de perfil valen 0,4 s/km en el llano y 28 s/km en una rampa al 9 %. Prohibirlo a mano
+   * era decir dos veces lo mismo, y mal: dejaba al que ataca en el llano sin nada que gastar.
+   */
+  if (sim.climbBoostBlocks > 0) perfil += STAGE.matchBonus
   return perfil
 }
 
@@ -2194,6 +2203,52 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       }
     }
 
+    /**
+     * EL QUE NO TIENE NADA QUE GANAR AQUÍ NO COLABORA (v39, `tactics.ts::noChanceToWin`), y de
+     * cuánta gente esté en ese caso depende también LO FUERTE QUE TIRE EL GRUPO. Devuelve las dos
+     * cosas de una: la función por corredor y la media del grupo.
+     *
+     * Se mide contra el MEJOR DE ESTE GRUPO en el final que viene, con el tipo de final calculado
+     * para el tamaño que tiene el grupo AHORA: los seis de una fuga se juegan un sprint reducido, no
+     * el masivo del pelotón, y contra un puerto se juegan otra cosa distinta. Por eso la misma
+     * cuenta sirve para el velocista que pierde el sprint y para el rodador que va con un escalador:
+     * lo que cambia son los pesos del final, y eso lo sabe `finishScore`.
+     *
+     * Se aplica a TODOS los grupos, incluido el pelotón, y no hace falta ninguna excepción: lo que
+     * cada uno deja de colaborar se pesa dentro de `relayTurn` contra el empuje de su equipo, así
+     * que el gregario que tira por su jefe lo ignora entero. Ponerle un «salvo el pelotón» delante
+     * fue el primer intento y estaba mal, porque el grupo de treinta que decide una media montaña
+     * lleva el id del pelotón aunque hace rato que no lo es.
+     *
+     * …Y SOLO EN UN GRUPO QUE YA ES UNA SELECCIÓN, no en la carrera entera. Aplicado al pelotón en
+     * bloque apagaba a los TRENES en el último kilómetro —ahí nadie más que el velocista puede
+     * ganar, así que el término valía 1 para casi todos— y una llegada masiva pasaba a rodar con
+     * seis hombres dando la cara en vez de veinte. En carretera es al revés: un sprint es lo más
+     * rápido que va un pelotón en todo el día. La frontera no es «pelotón sí o no» sino qué fracción
+     * de la carrera queda ahí dentro: un grupo que es TODA la carrera rueda con los planes de equipo
+     * (§V.1); uno que es una selección rueda con el interés de cada uno.
+     */
+    const interésPropio = (
+      members: RiderSim[],
+    ): { de: (riderId: string) => number; media: number } => {
+      if (members.length <= 1) return { de: () => 0, media: 0 }
+      const selección = 1 - clamp(members.length / Math.max(1, racingNow), 0, 1)
+      const tipo = finishType(finishTerrain, members.length)
+      const remate = new Map<string, number>()
+      let mejor = Number.NEGATIVE_INFINITY
+      for (const m of members) {
+        const v = finishScore(riderEff(m), tipo)
+        remate.set(m.input.riderId, v)
+        if (v > mejor) mejor = v
+      }
+      const kmToGo = totalKm - km
+      const de = (riderId: string): number =>
+        selección * noChanceToWin(remate.get(riderId) ?? mejor, mejor, kmToGo)
+      let suma = 0
+      for (const m of members) suma += de(m.input.riderId)
+      return { de, media: suma / members.length }
+    }
+
     const advance = (
       group: Group,
       members: RiderSim[],
@@ -2256,21 +2311,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
        * tira y por qué); un grupo que es una selección rueda con el interés de cada uno. Es la misma
        * cohesión que la capa táctica usa para el λ del ataque, leída al revés.
        */
-      const selección = 1 - clamp(members.length / Math.max(1, racingNow), 0, 1)
-      let sinOpciones: (riderId: string) => number = () => 0
-      if (members.length > 1) {
-        const tipo = finishType(finishTerrain, members.length)
-        const remate = new Map<string, number>()
-        let mejor = Number.NEGATIVE_INFINITY
-        for (const m of members) {
-          const v = finishScore(riderEff(m), tipo)
-          remate.set(m.input.riderId, v)
-          if (v > mejor) mejor = v
-        }
-        const kmToGo = totalKm - km
-        sinOpciones = (riderId): number =>
-          selección * noChanceToWin(remate.get(riderId) ?? mejor, mejor, kmToGo)
-      }
+      const sinOpciones = interésPropio(members).de
       /**
        * EL QUE NO COLABORA EN LA FUGA PORQUE LOS SUYOS LA PERSIGUEN (v33). La queja, textual: «hay
        * un equipo que tiene a 1 ciclista tirando del pelotón pero tiene a 1 ciclista tirando de la
@@ -3257,9 +3298,74 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         })
         return
       }
-      // El acelerón abre un boquete de golpe (SPEC 6.4: un ataque es una ACELERACIÓN) y cuesta un
-      // cerillo a cada uno (SPEC 6.6). A partir de aquí manda la carretera.
-      const gap = jumpGapSeconds(rngTactics)
+      /**
+       * EL ACELERÓN, MEDIDO CON LA FÍSICA (v39). Dos velocidades y una distancia: la del que ataca
+       * —solo, a tope, con el cerillo y con el extra del salto— contra la del grupo que deja atrás,
+       * rodando a lo que rodaba. De ahí sale el boquete, y de ahí salen las dos frases del dueño:
+       * en una rampa dura un escalador abre diez o quince segundos en trescientos metros, y en el
+       * llano el mismo hombre no abre nada porque la ley de velocidad apenas premia el vatio extra.
+       *
+       * El grupo que deja atrás son LOS QUE SE QUEDAN, no los que había: si medio grupo salta con
+       * él, los que quedan son menos y rotan peor, y el boquete sale mayor —que es exactamente lo
+       * que pasa en carretera—. Y si saltan tantos que no queda grupo, esto no llega aquí: lo ha
+       * parado antes `tacticFollowFractionMax` (el ataque se ha diluido).
+       */
+      const saltan = new Set(party.map((p) => p.riderId))
+      const quedan = members.filter((m) => !saltan.has(m.input.riderId))
+      const fracción = onClimb ? climbFrac : onPaves ? roughFrac : source.coop
+      const vGrupo =
+        quedan.length > 0
+          ? targetSpeed(
+              block,
+              pacemakerP75(quedan, block, fracción),
+              source.compromiso,
+              relayRotation(quedan.length, fracción),
+            )
+          : 0
+      /**
+       * …Y EN EL SALTO NO PAGA TODAVÍA EL PEAJE DE IR SOLO. Es la sutileza que se ve al medirlo: si
+       * al que arranca se le cobra ya la exposición de un hombre solo (`relayPaceEdge(1)`), en el
+       * llano NADIE abre hueco nunca —el peaje del viento se come el acelerón entero— y eso es
+       * falso: un ataque en llano abre cinco o diez segundos, lo que pasa es que después no se
+       * sostienen. Y es que en el momento del hachazo él viene DE DENTRO del grupo: acelera desde
+       * la rueda, y el viento de ir solo empieza a cobrárselo cuando ya está fuera.
+       *
+       * Así que el salto se mide con la MISMA exposición que tenía el grupo, y el peaje de ir solo
+       * lo cobra a partir del bloque siguiente la física de siempre (`advance`). Cada cosa en su
+       * sitio, y sin decir dos veces lo mismo.
+       */
+      const vAtaque = targetSpeed(
+        block,
+        instigator.perfil + STAGE.matchBonus + STAGE.tacticSurgeBonus,
+        1,
+        relayRotation(Math.max(1, quedan.length), fracción),
+      )
+      const gap = jumpGapSeconds(vAtaque, vGrupo)
+      /**
+       * …Y SI NO ABRE HUECO, NO HAY GRUPO. «Si su velocidad de ataque es menor que la del que va
+       * tirando del grupo, tampoco se crea ningún boquete»: el intento se cuenta como telemetría
+       * —es dato, y el banco lo cuenta— pero no nace nada. El cerillo se ha gastado igual, que es
+       * lo que pasa cuando uno se tira y no sale.
+       */
+      if (gap < STAGE.tacticJumpMinGapSeconds) {
+        for (const r of party) {
+          const s2 = sims.get(r.riderId)
+          if (!s2) continue
+          s2.matches = Math.max(0, s2.matches - 1)
+          const c = STAGE.tacticAttackCost
+          s2.energy = Math.max(0, s2.energy - c)
+          s2.work += c
+        }
+        log.emit(km, source.tS, 'intento', 'attack_go', names, {
+          kind,
+          saltan: party.length,
+          grupo: members.length,
+          toGo: Math.round(kmToGo),
+          sinHueco: 1,
+          narra: 0,
+        })
+        return
+      }
       const finishes = pool.map((r) => r.finishScore)
       const meanRank =
         party.reduce((acc, r) => acc + rankOf(r.finishScore, finishes), 0) / party.length
@@ -3318,6 +3424,9 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         peakGapKm: km,
       })
       log.emit(km, g.tS, 'intento', 'attack_go', names, {
+        // El boquete que ha abierto el acelerón, que desde la v39 es una CUENTA y no un dado: es
+        // dato de primera para el banco y para entender una carrera leyendo la telemetría.
+        hueco: Math.round(gap),
         kind,
         saltan: party.length,
         tierra: stranded,
@@ -3381,6 +3490,33 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       const tense = m.g.tension >= STAGE.breakawayTensionThreshold
       if (kmToGo > STAGE.tacticInsideAttackKm && !tense) continue
       attemptFrom(m.g, 'ataque_grupo', null)
+    }
+
+    /**
+     * LA COOPERACIÓN DE UNA FUGA SE VUELVE A MEDIR, Y ES CONTAGIOSA (v39). El dueño, las dos cosas:
+     *
+     * > «lo de quién tira de cada grupo habría que irlo midiendo a menudo… quizás no cada 100
+     * > metros, pero quizás cada km. Y ojo, porque si hay 1 wey que no pasa a cooperar en la
+     * > escapada, los otros quizás quieran desgastarse menos y entonces tirar menos fuerte para no
+     * > desgastarse para que ese wey que va ahí sin gastar energía se la lleve.»
+     *
+     * Hasta la v38 el compromiso de un movimiento se fijaba AL NACER (`moveCooperation`: tamaño,
+     * hambre media y tensión) y no se volvía a mirar nunca: una fuga de seis rodaba igual de fuerte
+     * a 150 km de meta que a 5, y llevara dentro a un fuera de serie o no.
+     *
+     * Ahora, una vez por kilómetro, se recalcula contra la cooperación con la que nació y se le
+     * descuenta la parte del grupo que se ha plantado. Y el contagio es la mitad que importa: **no
+     * es que tiren menos porque son menos**, eso ya lo cobra el turno de relevos; es que los que
+     * SIGUEN tirando aflojan a propósito, porque nadie se vacía para que gane el que va a rueda.
+     */
+    if (i % STAGE.coopReviewBlocks === 0) {
+      for (const m of moves) {
+        const mem = membersOf(m.g.id)
+        if (mem.length === 0) continue
+        const desertan = interésPropio(mem).media
+        const objetivo = m.restCommit * (1 - STAGE.coopContagionWeight * desertan)
+        m.g.compromiso += (objetivo - m.g.compromiso) * STAGE.commitHysteresis
+      }
     }
 
     peloton = advance(peloton, membersOf(PELOTON), pelFrac, 'peloton')

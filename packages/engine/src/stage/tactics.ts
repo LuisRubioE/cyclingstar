@@ -210,11 +210,33 @@ export function attackAppetite(
     a *= 1 + STAGE.tacticWorstFinisherWeight * (1 - ranks.finishRank)
   }
   if (ctx.kind === 'ataque_final') {
-    // En el final en alto el que ataca es el que puede: los de abajo del grupo ya van agarrados.
-    a *= STAGE.tacticStrongFloor + (1 - STAGE.tacticStrongFloor) * ranks.perfilRank
-    // Y el que se juega la general ataca más que el que ya la perdió (SPEC 6.9).
-    if (ctx.hasGcContext && r.gcDeficitSeconds <= STAGE.gcThreatFraction * STAGE.gcControlLeash) {
-      a *= 1 + STAGE.tacticGcStakeWeight
+    /**
+     * …Y EN EL DESENLACE DEPENDE DE DÓNDE SE ACABA (v39). El dueño: «lo de `ataque_final` dependerá:
+     * si es un final en llano no haría sentido que un escalador ataque al final ahí».
+     *
+     * Tenía razón, y el defecto era de bulto: esto trataba igual el último puerto de una reina que
+     * los últimos doce kilómetros llanos de una etapa de velocistas. En los dos casos empujaba a
+     * atacar A LOS FUERTES y encima le sumaba un extra al que se juega la general —o sea que en una
+     * llana el favorito de la general se lanzaba a doce kilómetros de meta para nada—.
+     *
+     * En la carretera son dos situaciones distintas y las decide el terreno:
+     *
+     * - **Cuesta arriba** atacan los fuertes, y el que se juega la general más que nadie: ahí el
+     *   ataque GANA TIEMPO, que es de lo que va.
+     * - **En llano** ataca el que sabe que pierde la llegada, exactamente igual que dentro de una
+     *   fuga (`ataque_grupo`): el que va a ganar el sprint no se tira a doce kilómetros, espera. Y
+     *   el favorito de la general no se juega nada arrancando en un llano donde no va a sacar
+     *   tiempo, así que el extra de la general no se aplica.
+     */
+    if (ctx.onClimb) {
+      // En el final en alto el que ataca es el que puede: los de abajo del grupo ya van agarrados.
+      a *= STAGE.tacticStrongFloor + (1 - STAGE.tacticStrongFloor) * ranks.perfilRank
+      // Y el que se juega la general ataca más que el que ya la perdió (SPEC 6.9).
+      if (ctx.hasGcContext && r.gcDeficitSeconds <= STAGE.gcThreatFraction * STAGE.gcControlLeash) {
+        a *= 1 + STAGE.tacticGcStakeWeight
+      }
+    } else {
+      a *= 1 + STAGE.tacticWorstFinisherWeight * (1 - ranks.finishRank)
     }
   }
   return a
@@ -307,12 +329,41 @@ export function sustainsJump(r: MoveRider, instigator: MoveRider, rng: Rng): boo
 // --- 4. ¿Colaboran? ¿Prospera? -------------------------------------------------------------
 
 /**
- * Boquete instantáneo (s) que abre el acelerón (SPEC 6.4: un ataque es una aceleración, no un
- * cambio de tempo). A partir de aquí manda la carretera: el boquete se integra bloque a bloque y
- * el grupo se caza o no se caza.
+ * EL BOQUETE QUE ABRE EL ACELERÓN, CALCULADO Y NO SORTEADO (v39).
+ *
+ * Hasta la v38 esto era un dado: **5 a 12 segundos, siempre, pasara lo que pasara**. El dueño lo
+ * tumbó con dos casos que no necesitan más discusión:
+ *
+ * > «Si hay un grupo de 5, ataca 1 y todos los otros 4 saltan detrás de él, pues no se abre ningún
+ * > boquete instantáneo, ¿no? O si están subiendo superfuerte un puerto e intenta atacar alguien
+ * > pero su velocidad de ataque es menor que la del que va tirando del grupo, pues tampoco.»
+ *
+ * Y el otro lado de la misma moneda:
+ *
+ * > «El ataque lo que tiene que hacer es incrementar temporalmente la velocidad, y será muy
+ * > diferente en montaña que en llano. Un ataque en montaña de un escalador probablemente puede
+ * > hacer más de 12 segundos en 100 metros, y otro que no sea escalador quizás no consiga ni
+ * > escaparse.»
+ *
+ * O sea: el boquete es una CONSECUENCIA, no un parámetro. Se mide como se mide cualquier boquete en
+ * este motor —dos velocidades y una distancia— y sale gratis todo lo que él pide:
+ *
+ * - En una rampa dura un escalador gana un montón en trescientos metros; en el llano, el mismo
+ *   hombre no gana nada, porque ahí la ley de velocidad apenas premia el vatio extra
+ *   (`loadExponent` 0,39 en llano contra 1,0 subiendo) y encima va solo contra un grupo que rota.
+ * - El que ataca sin ser más rápido que el grupo que deja **no abre hueco**: la cuenta da cero o
+ *   negativo y el intento se queda en intento.
+ *
+ * Devuelve segundos, nunca negativo.
  */
-export function jumpGapSeconds(rng: Rng): number {
-  return STAGE.tacticJumpGapSeconds + rng() * STAGE.tacticJumpGapRange
+export function jumpGapSeconds(
+  attackerKmh: number,
+  groupKmh: number,
+  surgeKm: number = STAGE.tacticSurgeKm,
+): number {
+  if (attackerKmh <= 0 || groupKmh <= 0) return 0
+  const ganado = surgeKm * (1 / groupKmh - 1 / attackerKmh) * 3600
+  return Math.max(0, ganado)
 }
 
 /**
@@ -446,6 +497,24 @@ export function carriesGcLeader(
 export function pelotonAllows(move: MoveRider[], ctx: MoveContext, rng: Rng): boolean {
   const run = ctx.totalKm > 0 ? clamp(1 - ctx.kmToGo / ctx.totalKm, 0, 1) : 0
   let p = STAGE.tacticAllowBase + STAGE.tacticAllowKmGain * run
+  /**
+   * …Y NO SE CONCEDE LA FUGA DEL DÍA EN EL KILÓMETRO UNO (v39). El dueño, leyendo la radio de
+   * carrera: «yo veo que en el 99 % de los casos en el km 1 ataca alguien, lo cual no tiene mucho
+   * sentido». Fui a medirlo y tenía razón en lo que importaba: los INTENTOS del km 1 están bien —una
+   * fuga sale del disparo—, pero el pelotón se la CONCEDÍA ahí mismo. Medido en Race Jaén, tres
+   * semillas seguidas: `attack_go` en el km 1,2 · 1,6 · 1,8 y `breakaway_formed` en el mismo
+   * kilómetro dos de las tres veces. La primera línea de la crónica era siempre la misma.
+   *
+   * La causa era que `tacticAllowBase` vale 0,3 desde el metro cero, o sea que a los dos primeros
+   * que saltaban se les daba cuerda tres de cada diez veces. Y un pelotón fresco en el kilómetro uno
+   * no le regala el día a los dos primeros que saltan: todo el mundo quiere estar ahí, se cierra
+   * todo, y la buena sale cuando la gente empieza a cansarse de cerrar. Eso es una rampa, igual que
+   * la que ya tiene el INTENTO (`tacticSettleKm`), y por la misma razón.
+   */
+  const kmRun = Math.max(0, ctx.totalKm - ctx.kmToGo)
+  const asentada =
+    STAGE.tacticAllowSettleKm > 0 ? clamp(kmRun / STAGE.tacticAllowSettleKm, 0, 1) : 1
+  p *= STAGE.tacticAllowSettleFloor + (1 - STAGE.tacticAllowSettleFloor) * asentada
   p -= STAGE.tacticAllowSizePenalty * Math.max(0, move.length - STAGE.breakawaySizeMin)
   let vetoed = false
   if (ctx.hasGcContext) {
