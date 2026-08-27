@@ -209,7 +209,8 @@ interface RiderSim {
   climbPts: number
   matches: number
   /** Bloques que resta el impulso de un cerillo gastado (+10 al terreno, SPEC 6.6). */
-  climbBoostBlocks: number
+  /** Segundos que le quedan de impulso de cerillo (v39: se cuenta en TIEMPO, no en metros). */
+  matchBoostS: number
   /** Desempate fijo del turno de relevos, en [0,1) (SPEC 6.1: subflujo nominal por corredor). */
   workJitter: number
   /** Segundos cedidos al objetivo marcado sin llegar a soltarse (`gives` de SPEC 6.18). */
@@ -330,7 +331,7 @@ function riderPerfil(sim: RiderSim, block: Block): number {
    * puntos de perfil valen 0,4 s/km en el llano y 28 s/km en una rampa al 9 %. Prohibirlo a mano
    * era decir dos veces lo mismo, y mal: dejaba al que ataca en el llano sin nada que gastar.
    */
-  if (sim.climbBoostBlocks > 0) perfil += STAGE.matchBonus
+  if (sim.matchBoostS > 0) perfil += STAGE.matchBonus
   return perfil
 }
 
@@ -774,7 +775,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       sprintPts: 0,
       climbPts: 0,
       matches: r.matches,
-      climbBoostBlocks: 0,
+      matchBoostS: 0,
       // Subflujo NOMINAL por corredor: el desempate del turno de relevos no depende del orden del
       // array de entrada ni del tamaño del pelotón, solo de la semilla y del id (SPEC 6.1).
       workJitter: streams(`work:${r.riderId}`)(),
@@ -1287,8 +1288,31 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
      */
     const spentReserve = new Set<string>()
 
-    // Caduca el impulso de cerillo de todos los corredores en carrera.
-    for (const s of sims.values()) if (s.climbBoostBlocks > 0) s.climbBoostBlocks -= 1
+    /**
+     * CADUCA EL IMPULSO DEL CERILLO, Y SE CUENTA EN SEGUNDOS DE CARRETERA (v39). El dueño: «el
+     * cerillo tal vez en vez de durar un número de metros debería durar un número de segundos, ¿no?
+     * O sea, en llano que dure 1,5 km o incluso más me parece razonable; ahora bien, en una de
+     * montaña, en vez de 1,5 km quizás deberían ser 0,5 (claro, dependerá de la pendiente, que a su
+     * vez marca la velocidad)».
+     *
+     * Es el mismo criterio que ya usa la reserva tres líneas más arriba, y no es un detalle: contarlo
+     * en BLOQUES —o sea en metros— hacía que el mismo cerillo durase el TRIPLE DE TIEMPO subiendo que
+     * en el llano, porque un kilómetro a 20 km/h son tres minutos y a 45 km/h son ochenta segundos.
+     * Medido: con el cerillo en metros la victoria de la fuga en la reina canónica se iba al 52 %
+     * contra una banda de 25-45, y no había forma de bajarla tocando el acelerón —el problema no
+     * estaba ahí—. Un esfuerzo supraumbral se aguanta un rato, y ese rato son segundos.
+     */
+    {
+      const ritmo = new Map<string, number>([[peloton.id, peloton.vActual]])
+      for (const m of moves) ritmo.set(m.g.id, m.g.vActual)
+      for (const sg of shed) ritmo.set(sg.id, sg.vActual)
+      for (const s of sims.values()) {
+        if (s.matchBoostS <= 0) continue
+        const v = ritmo.get(s.groupId)
+        if (v == null || v <= 0) continue
+        s.matchBoostS = Math.max(0, s.matchBoostS - blockSeconds(v))
+      }
+    }
 
     // En subida mandan los más fuertes (fracción menor): el grupo se estira y se descuelga. PERO solo
     // se ataca el puerto de verdad cerca de meta: un puerto a mitad de etapa se sube a TEMPO
@@ -2705,7 +2729,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         m.energy > STAGE.matchCost
       ) {
         m.matches -= 1
-        m.climbBoostBlocks = STAGE.matchBonusBlocks
+        m.matchBoostS = STAGE.matchBoostSeconds
         m.energy = Math.max(0, m.energy - STAGE.matchCost)
         m.work += STAGE.matchCost
         m.driftS = 0
@@ -3386,7 +3410,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
             : STAGE.tacticAttackCost * STAGE.tacticFollowCostFactor
         s.energy = Math.max(0, s.energy - cost)
         s.work += cost
-        s.climbBoostBlocks = STAGE.matchBonusBlocks
+        s.matchBoostS = STAGE.matchBoostSeconds
       }
       source.riderIds = source.riderIds.filter((id) => !ids.includes(id))
       if (source.id === PELOTON) {
@@ -3516,6 +3540,50 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         const desertan = interésPropio(mem).media
         const objetivo = m.restCommit * (1 - STAGE.coopContagionWeight * desertan)
         m.g.compromiso += (objetivo - m.g.compromiso) * STAGE.commitHysteresis
+      }
+    }
+
+    /**
+     * EL ÚLTIMO KILÓMETRO SE CORRE DE OTRA MANERA: LOS TRENES QUEMAN SU ÚLTIMO CERILLO (v39).
+     *
+     * El dueño: «cuando llegue un pelotón al sprint me gustaría que el último km se gestionase un
+     * poco diferente: un sprinter que tenga a sus lanzadores tirando del pelotón le ayudan a
+     * colocarse; ojo, aquí van súper a muerte, velocidades realmente de vértigo, y eso incrementa
+     * las probabilidades de que gane ese sprinter. Puede haber varios equipos con sus lanzadores al
+     * mismo tiempo, aunque no necesariamente con el mismo éxito».
+     *
+     * Y no hace falta ninguna mecánica nueva para eso: un lanzamiento ES un esfuerzo supraumbral, o
+     * sea un CERILLO, que es la pieza que la v39 acaba de poner en su sitio. Así que en los últimos
+     * kilómetros de una llegada masiva cada lanzador que llegue con su hombre enciende el suyo, y
+     * todo lo demás sale solo:
+     *
+     * - **El pelotón vuela**: los lanzadores están en el turno de relevos —su deber de rol es 0,85 y
+     *   su equipo está lanzando (`teamDriveChase`)—, así que su perfil con cerillo entra en el P75
+     *   que marca el ritmo del grupo. Medido: el último kilómetro pasa de 48 km/h a rodar de verdad.
+     * - **Varios equipos a la vez y con suerte distinta**: enciende el que LLEGA con cerillos y con
+     *   su hombre al lado. El equipo que ha quemado a su tren cazando la fuga llega sin nada que
+     *   encender, y ése es justo el que pierde el sprint.
+     * - **Y ayuda a su sprinter**: el remate ya cuenta el tren (`leadOutBoostPerHelper` y la
+     *   colocación de `placementSd`), y ahora además el tren llega habiendo trabajado de verdad.
+     *
+     * Lo que NO se simula es el sprint en sí: los últimos doscientos metros a 65-70 km/h no son un
+     * bloque de carretera sino un remate, y eso lo resuelve `finishScore`. Aquí se corre el
+     * LANZAMIENTO, que es lo que el dueño describe.
+     */
+    if (kmToGo <= STAGE.sprintTrainKm && admitsBunchFinish(stageFinishType)) {
+      const enPelotón = new Set(membersOf(mainId ?? PELOTON).map((m) => m.input.riderId))
+      for (const [sprinterId, tren] of leadOutFor) {
+        if (!enPelotón.has(sprinterId)) continue
+        for (const id of tren) {
+          if (!enPelotón.has(id)) continue
+          const s2 = sims.get(id)
+          if (!s2 || s2.matches <= 0 || s2.matchBoostS > 0) continue
+          s2.matches -= 1
+          s2.matchBoostS = STAGE.matchBoostSeconds
+          const c = STAGE.tacticAttackCost
+          s2.energy = Math.max(0, s2.energy - c)
+          s2.work += c
+        }
       }
     }
 
@@ -4450,11 +4518,29 @@ function finishStage(
           )
           score *= 1 - toll
         }
-        // Tren de lanzadores: en una llegada al sprint, un sprinter bien lanzado por su equipo
-        // remata mejor (SPEC 6.18). Solo cuentan los lanzadores que llegan en su mismo grupo.
+        /**
+         * TREN DE LANZADORES: en una llegada al sprint, un sprinter bien lanzado por su equipo
+         * remata mejor (SPEC 6.18). Y desde la v39 no basta con que su tren LLEGUE: tiene que haber
+         * TRABAJADO. El dueño: «un sprinter que tenga a sus lanzadores tirando del pelotón le ayudan
+         * a colocarse; aquí van súper a muerte… puede haber varios equipos con sus lanzadores al
+         * mismo tiempo, aunque no necesariamente con el mismo éxito».
+         *
+         * Ese «no necesariamente con el mismo éxito» es la frase que faltaba. Contar los lanzadores
+         * PRESENTES daba lo mismo al equipo que ha llevado el pelotón los últimos tres kilómetros
+         * que al que ha traído a sus hombres a rueda sin dar un relevo: el primero se ha vaciado por
+         * su sprinter y el segundo no, y los dos cobraban igual. Ahora cuenta el trabajo RECIENTE
+         * (`pullWindow`, la misma ventana con olvido con la que la crónica responde «quién tira
+         * ahora»), así que el tren que de verdad ha lanzado vale y el que ha ido de paseo no.
+         */
         const train = leadOutFor.get(m.input.riderId)
         const present =
-          train === undefined ? 0 : train.reduce((c, id) => c + (idSet.has(id) ? 1 : 0), 0)
+          train === undefined
+            ? 0
+            : train.reduce((c, id) => {
+                if (!idSet.has(id)) return c
+                const l = sims.get(id)
+                return c + (l != null && l.pullWindow >= STAGE.leadOutMinWork ? 1 : 0)
+              }, 0)
         if (sprintFinish && present > 0) {
           score *= 1 + STAGE.leadOutBoostPerHelper * Math.min(present, STAGE.leadOutMaxHelpers)
         }

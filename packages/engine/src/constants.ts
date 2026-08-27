@@ -1653,13 +1653,37 @@ export const STAGE = {
   matchCost: 5,
   matchBonus: 10,
   /**
-   * CUÁNTO DURA LA RAMPA DEL CERILLO. Eran CINCO bloques —doscientos cincuenta metros— y en ese
-   * trecho no se decide nada: el que ataca a 8 km de meta necesita sostener el esfuerzo, no dar un
-   * hachazo y volver al tempo. Treinta bloques son kilómetro y medio, que es lo que dura de verdad
-   * un ataque antes de que el hombre se estabilice en lo que puede aguantar. Ver `riderPerfil`, que
-   * es donde se aplica, y `tacticSurgeKm` para el salto inicial, que es la otra mitad.
+   * CUÁNTO DURA LA RAMPA DEL CERILLO, EN SEGUNDOS DE CARRETERA (v39). Eran CINCO BLOQUES —o sea
+   * doscientos cincuenta METROS— y las dos cosas estaban mal.
+   *
+   * Corta: en 250 m no se decide nada, y el que ataca a ocho kilómetros de meta necesita sostener
+   * el esfuerzo, no dar un hachazo y volver al tempo.
+   *
+   * Y medida en METROS, que es el defecto de fondo y lo señaló el dueño: «el cerillo tal vez en vez
+   * de durar un número de metros debería durar un número de segundos, ¿no? En llano que dure 1,5 km
+   * me parece razonable; ahora bien, en una de montaña, en vez de 1,5 km quizás deberían ser 0,5
+   * (dependerá de la pendiente, que a su vez marca la velocidad)». Exacto: un kilómetro a 20 km/h
+   * son tres minutos y a 45 km/h son ochenta segundos, así que contarlo en metros regalaba el TRIPLE
+   * de esfuerzo supraumbral subiendo que rodando. Medido, con el cerillo en metros la victoria de la
+   * fuga en la reina canónica se iba al 52 % contra una banda de 25-45, y no bajaba tocando el
+   * acelerón porque el problema no estaba ahí.
+   *
+   * Ciento veinte segundos son dos minutos: kilómetro y medio en llano, medio kilómetro largo en un
+   * puerto. Que es exactamente lo que pidió, y sale de la velocidad sin ponerlo a mano.
    */
-  matchBonusBlocks: 30,
+  matchBoostSeconds: 120,
+  /**
+   * EL LANZAMIENTO: en cuántos kilómetros finales de una llegada masiva los trenes encienden su
+   * cerillo (v39). Tres kilómetros es lo que dura un lanzamiento de verdad: antes de eso el pelotón
+   * se coloca, y a partir de ahí ya no hay administración que valga. Ver `simulate.ts`.
+   */
+  sprintTrainKm: 3,
+  /**
+   * …y cuánto trabajo reciente (`pullWindow`) hay que traer para contar como lanzador de verdad en
+   * el remate (v39). El que llega a rueda sin haber dado un relevo no ha lanzado a nadie. Es lo que
+   * hace que dos equipos con tren no tengan el mismo éxito, que es lo que pidió el dueño.
+   */
+  leadOutMinWork: 0.4,
   // PENDIENTE DE IMPLEMENTAR (SPEC 6.6): parámetro definido pero sin efecto en la simulación.
   // Vaciado profundo: quien termina con E < 0.12·E0 debería arrancar la etapa siguiente con un
   // cerillo menos. `matchCount(..., deepDepleted)` sabe aplicarlo, pero nadie calcula el flag.
@@ -2180,8 +2204,8 @@ export const STAGE = {
    * ataque es menor que la del que va tirando del grupo, tampoco se crea ningún boquete»— y ahora
    * sale de la aritmética en vez de estar prohibida a mano.
    */
-  tacticSurgeKm: 0.6,
-  tacticSurgeBonus: 18,
+  tacticSurgeKm: 0.8,
+  tacticSurgeBonus: 12,
   tacticJumpMinGapSeconds: 2,
   // Dentro de los últimos km ya no se simulan movimientos: eso ES el sprint, y lo resuelve el
   // modelo de final (§12), que para eso ordena el grupo por una mezcla de atributos. Sin este
@@ -2211,7 +2235,7 @@ export const STAGE = {
    * dos primeros que saltan. `Floor` es lo que queda en el metro cero —una fuga puede salir del
    * disparo, pasa— y `Km` es cuándo se llega a la probabilidad plena.
    */
-  tacticAllowSettleKm: 12,
+  tacticAllowSettleKm: 40,
   tacticAllowSettleFloor: 0.15,
   tacticAllowKmGain: 0.5,
   tacticAllowSizePenalty: 0.05,
