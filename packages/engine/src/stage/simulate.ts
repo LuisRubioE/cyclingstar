@@ -30,6 +30,7 @@ import {
   bonkPenalty,
   blockPerfil,
   blockSeconds,
+  costBase,
   droppedCommit,
   effNow,
   erosion,
@@ -1137,6 +1138,30 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
    * la carretera una fuga de montaña son quince, veinte o cincuenta —Vuelta 2025 e12: cincuenta y
    * tres— mientras que en una llana son cuatro, que es justo lo que el motor sí acertaba.
    */
+  /**
+   * LO QUE EXIGE EL DÍA, Y CÓMO SE DOSIFICA (v39). El dueño, sobre las clásicas que saturaban:
+   * «tal vez en una clásica superlarga tengan que dosificar esfuerzos mejor y entonces no salir tan
+   * a muerte para no saturarse».
+   *
+   * Es la respuesta correcta y ataca la causa en vez del síntoma. Un ciclista no sale al mismo
+   * ritmo en un día que pide 43 unidades de coste que en uno que pide 102: se administra para
+   * LLEGAR. Sin esto el pelotón salía igual de enchufado en los dos y en el segundo llegaba a cero,
+   * con la erosión clavada en su techo de 0,92 —y ahí el modelo deja de discriminar: da igual quién
+   * seas, acabas vacío—.
+   *
+   * La demanda es la integral del coste base del recorrido, y ordena exactamente a los que
+   * saturaban: Lombardía 102,2 · Strade 98,7 · Montreal 90,9, contra la llana canónica en 43,2 y la
+   * media montaña en 73,9. Por eso el banco canónico no se mueve: solo se dosifica lo que de verdad
+   * pide más de un día normal.
+   */
+  const demandaDelDia = blocks.reduce((acc, b) => acc + costBase(b) * STAGE.dx, 0)
+  const dosificacion = clamp(
+    1 -
+      STAGE.pacingSlope *
+        Math.max(0, demandaDelDia / Math.max(1e-9, STAGE.pacingReferenceDemand) - 1),
+    STAGE.pacingMin,
+    1,
+  )
   const kmSubida = blocks.reduce((acc, b) => acc + (b.tipo === 'subida' ? STAGE.dx : 0), 0)
   const totalKmRuta = blocks.length * STAGE.dx
   const breakAppeal = clamp(
@@ -2198,7 +2223,25 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
        * (`finalDriveKm`), donde ya no se administra nada.
        */
       const seDecide = (onClimb && raceThisClimb) || kmRestantes <= STAGE.finalDriveKm
-      if (!seDecide) target = Math.max(0.1, Math.min(1, target * humorDelPeloton))
+      if (!seDecide) {
+        /**
+         * El humor del día y la DOSIFICACIÓN del recorrido: las dos son «con cuántas ganas se rueda
+         * esto», y las dos dejan de valer cuando la carrera se decide.
+         *
+         * Y la dosificación, ADEMÁS, NO SE APLICA EN LAS CUESTAS. Administrarse en un día largo es
+         * rodar más suave ENTRE las dificultades, no subir despacio: nadie dosifica un puerto, el
+         * puerto se sube al ritmo que pide. La primera versión lo aplicaba al día entero y hundía
+         * las reinas reales —la cola de la gran vuelta se caía del 8-14 % al 5,9 %— porque las
+         * reinas son cuesta pura (Tour e20: el 76 % de lo que pide el día está en las subidas)
+         * mientras que las clásicas que saturaban son justo lo contrario (Strade y Roubaix, 100 %
+         * fuera de la cuesta; Lombardía y Montreal, la mitad). Dejando las cuestas fuera, lo que se
+         * dosifica es exactamente lo que sobra.
+         */
+        const enCuestaQueCuenta = onClimb && kmRestantes <= STAGE.climbEaseFarKm
+        const humor = enCuestaQueCuenta ? 1 : humorDelPeloton
+        const dosis = enCuestaQueCuenta ? 1 : dosificacion
+        target = Math.max(0.1, Math.min(1, target * humor * dosis))
+      }
       // En los últimos km de una etapa de meta llana los trenes toman la carretera y el pelotón
       // vuela: el controlador de boquete NO puede dejarlo rodar por debajo de eso. Sin este suelo,
       // un ataque tardío de 20 s hacía que el lazo cerrado pidiera 0,72 —menos que el 0,85 del

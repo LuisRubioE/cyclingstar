@@ -1487,9 +1487,18 @@ export const STAGE = {
     sprinter: 0.2, // se guarda entero para la meta
     lider: 0.1, // el equipo lo lleva; solo tira si no queda nadie más
   },
-  // Peso de la frescura (E/E0) en el deber de relevo: quien va vaciado deja de dar relevos y los
-  // que aún tienen tanque asumen el trabajo, como en carretera.
-  relayFreshnessWeight: 0.35,
+  /**
+   * Peso de la frescura (E/E0) en el deber de relevo: quien va vaciado deja de dar relevos y los
+   * que aún tienen tanque asumen el trabajo, como en carretera.
+   *
+   * A 0,35 NO ALCANZABA (v39). El abanico de oficios va de 0,1 a 1,0, así que con 0,35 un gregario
+   * VACÍO (1,00) seguía teniendo más deber que un libre entero (0,95): el turno lo llevaban los
+   * mismos hombres hasta que se apagaban, y en una carrera de 241 km eso se ve. Medido en Il
+   * Lombardia —la más dura del calendario—, el 16 % del pelotón cruzaba la meta con el tanque a
+   * cero; subiéndolo a 0,7, el 9 %, con el vaciado mediano igual de alto (0,92). No es que el día
+   * sea más fácil: es que el trabajo se REPARTE, que es lo que hace una rotación de verdad.
+   */
+  relayFreshnessWeight: 0.7,
   // Penalización al deber de relevo de un corredor que lleva gregarios suyos en el grupo: si tiene
   // equipo alrededor, el equipo trabaja por él (SPEC 6.18) y él pasa al final de la cola de relevos.
   relayProtectedPenalty: 1.2,
@@ -2553,6 +2562,33 @@ export const STAGE = {
    * fuga gana ~12 % de las llanas (unas 5 de 41).
    */
   pelotonMoodCentre: 0.9,
+  /**
+   * DOSIFICAR SEGÚN LO QUE PIDE EL DÍA (v39, ver `demandaDelDia` en `simulate.ts`). El dueño, sobre
+   * las clásicas que saturaban: «tal vez en una clásica superlarga tengan que dosificar esfuerzos
+   * mejor y entonces no salir tan a muerte para no saturarse».
+   *
+   * `ReferenceDemand` es lo que pide un día normal —la media montaña del banco pide 73,9 y la llana
+   * 43,2—, y por encima de eso se rueda proporcionalmente más suave. Lombardía pide 102,2, Strade
+   * 98,7 y Montreal 90,9: son exactamente las tres que saturaban. `Min` es el suelo, porque
+   * administrarse no es pasear.
+   */
+  pacingReferenceDemand: 75,
+  pacingSlope: 1,
+  pacingMin: 0.75,
+  /**
+   * CUÁNTO DE LA DOSIFICACIÓN —Y CUÁNTO DE LA HUEVA— LLEGA A LAS CUESTAS (v39). Ninguna de las dos
+   * es una fuerza física: son «con cuántas ganas se rueda esto», y las ganas se administran EN EL
+   * LLANO. Un pelotón que se guarda para un día largo rueda más suave entre las dificultades; un
+   * pelotón desganado deja hacer en la transición. Ninguno de los dos sube despacio: el puerto se
+   * sube al ritmo que pide el puerto.
+   *
+   * Medido, con las dos aplicadas también en la cuesta: la cola de la reina de gran vuelta se caía
+   * a 7,45 % (banda 8-14) y la de las reinas reales a 6,67 %, porque las reinas son cuesta pura
+   * —Tour e20, el 76 % de lo que pide el día está en las subidas— y aflojar ahí es no hacer
+   * selección. Las clásicas que saturaban son justo lo contrario (Strade y Roubaix, el 100 % de la
+   * demanda fuera de la cuesta), así que sacar las cuestas no le quita nada a lo que sí hacía falta.
+   */
+  climbEaseFarKm: 160,
   // Ritmo del pelotón en un puerto que NO es decisivo (lejos de meta): se sube a tempo.
   climbTempoCommit: 0.62,
   // Los últimos km de una etapa de meta llana: los trenes se organizan y el pelotón vuela.
