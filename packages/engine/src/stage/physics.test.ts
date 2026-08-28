@@ -291,15 +291,33 @@ describe('el ritmo del descolgado (v16, docs/motor.md §9; v35, el tope de la pe
     )
   })
 
-  it('…y la frescura pesa sobre el que administra, NUNCA sobre el que pelea (v16 intacto)', () => {
-    // Se probó en la v35 cobrarle también la frescura al que pelea y NO se ha hecho: la limitación
-    // de ir vacío ya la cobra la erosión sobre el P75, y cobrarla dos veces manda al grupeto a
-    // cualquiera que pierda una rueda. Medido en el montecarlo de la v35: la brecha 1.º-10.º de la
-    // reina se iba de 254 s a 308 s (§VI.1 pide ≤ 300) y la fuga de montaña ganaba el 53 % de las
-    // etapas (objetivo 25-45 %). Lo que la v35 sí le cobra al que pelea es el VIENTO, aquí abajo.
-    expect(droppedCommit(llano, 20, 0, 0, PEL, LANZADO)).toBeCloseTo(
+  it('…y con MEDIO depósito se pelea igual: la frescura no pesa en la pelea (v16 intacto)', () => {
+    // Se probó en la v35 cobrarle la frescura al que pelea EN TODO EL RANGO y se descartó con
+    // medida: la brecha 1.º-10.º de la reina se iba de 254 s a 308 s (§VI.1 pide ≤ 300) y la fuga
+    // de montaña ganaba el 53 % de las etapas (objetivo 25-45 %). El argumento sigue en pie —la
+    // limitación de ir vacío ya la cobra la erosión sobre el P75, y cobrarla dos veces manda al
+    // grupeto a cualquiera que pierda una rueda—, así que a media frescura la pelea es la misma.
+    expect(droppedCommit(llano, 20, 0.5, 0, PEL, LANZADO)).toBeCloseTo(
       droppedCommit(llano, 20, 1, 0, PEL, LANZADO),
     )
+  })
+
+  it('…pero A CERO no se pelea: no hay con qué (v40)', () => {
+    // El dueño: «lo de que pelean a tope aunque vaya vacío, arréglalo también, aunque no resuelva
+    // el problema final». Y tiene razón: «el que acaba de soltarse va a su umbral aunque vaya
+    // vacío» está bien escrito para el que pierde una rueda con medio depósito y es falso para el
+    // que está a cero. A cero te sientas y sobrevives.
+    //
+    // Por qué esto NO es el experimento que la v35 descartó: aquél cobraba la frescura en todo el
+    // rango, así que tocaba a CUALQUIERA que perdiese una rueda con las piernas a medias. Éste
+    // solo muerde por debajo de `shedFightFreshness`, o sea en el último tercio del depósito, que
+    // es donde la frase deja de ser cierta. Por eso la reina y la montaña no se mueven —medido, y
+    // es la comprobación que este banco existe para exigir—.
+    const vacío = droppedCommit(llano, 20, 0, 0, PEL, LANZADO)
+    const entero = droppedCommit(llano, 20, 1, 0, PEL, LANZADO)
+    expect(vacío).toBeLessThan(entero)
+    // Y no se para: sigue rodando al ritmo que sostiene un grupo, que es el suelo de `able · legs`.
+    expect(vacío).toBeGreaterThan(0.4)
   })
 
   it('se pelea al principio y se resigna al final, sin escalones', () => {
