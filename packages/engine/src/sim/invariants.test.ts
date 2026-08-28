@@ -10,9 +10,10 @@
 import { describe, expect, it } from 'vitest'
 import type { Attribute } from '@cyclingstar/shared'
 import { advanceGroup, createGroup } from '../stage/group.js'
-import { accLimit, blockSeconds } from '../stage/physics.js'
+import { accLimit, blockSeconds, costBase } from '../stage/physics.js'
 import { simulateStage } from '../stage/simulate.js'
 import { stageSeed } from '../stage/rng.js'
+import { sampleProfile } from '../stage/sample.js'
 import type { Block, StageRider } from '../stage/types.js'
 import { analyzeErosion, analyzeFlat, analyzeMountain, analyzeTimeTrial } from './analyze.js'
 import { type GrandTourStats, abandonMix, analyzeGrandTour, runGrandTour } from './grandTour.js'
@@ -347,6 +348,34 @@ describe('la erosión no satura en ninguna clásica (docs/motor.md §VI.1)', () 
     (r) => r.level === 'WT' && r.format === 'un-dia' && r.stages[0] && !r.stages[0].timeTrial,
   ).map((r) => r.id)
 
+  /**
+   * …Y LAS MÁS DURAS DEL CALENDARIO ENTERO, SEAN DE LA CATEGORÍA QUE SEAN (v40). El filtro `level
+   * === 'WT'` es exactamente por donde se coló el defecto que este banco existe para cazar: cuatro
+   * carreras de un día de categoría 1 —Jura, Andorra, Appennino, Ses Salines— reventaban el pelotón
+   * entero (Jura dejaba al 82 % del campo con el tanque a cero) y la batería salía verde, porque
+   * ninguna es WorldTour. Es la misma lección de la v17 con las reinas: **lo que no se mide sobre
+   * el calendario de verdad, no se mide**.
+   *
+   * Correr las 443 de un día es inviable en CI, y no hace falta: la saturación solo puede pasar en
+   * las DURAS, y cuál es dura se sabe sin simular nada —la demanda es la integral del coste base
+   * del recorrido, y sale de leer el perfil—. Así que el banco añade las más exigentes del
+   * calendario entero, que es donde vive el riesgo, a coste acotado.
+   */
+  const demandaDe = (id: string): number =>
+    sampleProfile(realRaceScenario(id).input.profile).reduce(
+      (acc, b) => acc + costBase(b) * STAGE.dx,
+      0,
+    )
+  const oneDayHardest = SEASON_CALENDAR.filter(
+    (r) => r.format === 'un-dia' && r.stages[0] && !r.stages[0].timeTrial,
+  )
+    .map((r) => r.id)
+    .filter((id) => !oneDayWt.includes(id))
+    .map((id): [string, number] => [id, demandaDe(id)])
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 8)
+    .map(([id]) => id)
+
   it(
     'la clásica más dura del calendario erosiona fuerte pero no satura',
     { timeout: 120000 },
@@ -357,15 +386,17 @@ describe('la erosión no satura en ninguna clásica (docs/motor.md §VI.1)', () 
     },
   )
 
-  it('ninguna clásica del WorldTour satura con el pelotón fresco', { timeout: 300000 }, () => {
+  it('ninguna carrera de un día satura con el pelotón fresco', { timeout: 600000 }, () => {
     expect(oneDayWt.length).toBeGreaterThan(10)
+    // Y las ocho más duras del calendario entero, que es por donde se coló el defecto de la v40.
+    expect(oneDayHardest).toHaveLength(8)
     // OJO: desde v6 la erosión lleva un techo estructural (`STAGE.erosionMax`), así que mirar la
     // erosión ya NO detecta la saturación —topa en 0,92 justo cuando hay que dar la alarma—. La
     // señal buena es el VACIADO del depósito, que no está topado: si el tanque llega a cero, la
     // erosión estaba pidiendo más de lo que el modelo puede expresar. Medido hoy: el peor caso es
     // Il Lombardia con 0,908 de vaciado y un 3% de pájaras.
     const saturated: string[] = []
-    for (const id of oneDayWt) {
+    for (const id of [...oneDayWt, ...oneDayHardest]) {
       const stats = analyzeErosion(realRaceScenario(id), campaignSeeds(id, 3))
       if (stats.medianDepletion > SATURATION_DEPLETION || stats.bonkPct > SATURATION_BONK_PCT) {
         saturated.push(

@@ -3955,8 +3955,24 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
          * `adv.tS < peloton.tS ? { ...adv, tS: peloton.tS }`—, es un grupo que ha vuelto, y lo que
          * hace en carretera es entrar en el pelotón. En la SUBIDA no: allí un descolgado sí puede
          * pasar por delante de lo que quede del pelotón y la selección debe mantenerse.
+         *
+         * …Y EN EL ADOQUÍN TAMPOCO (v40). Era `!onClimb` y tenía que ser `!onRough`, que es lo que
+         * el comentario de `mergeGap`, cuatro líneas más arriba, lleva diciendo desde que se
+         * escribió: «en terreno que rompe el umbral de fusión es más estrecho **y no hay reenganche
+         * al pelotón**». La intención estaba escrita y no implementada, y el precio era que el
+         * adoquín no seleccionaba NADA.
+         *
+         * Medido en el banco del pavé —treinta corredores que solo se distinguen en PAV, sector de
+         * 15 km a 4 estrellas—: el sector SÍ rompía el pelotón, de 30 corredores a 5, y se
+         * recomponía dentro del propio sector (km 61,6: 18 corredores; km 63,1: 22 otra vez). El
+         * ciclo «estalla y se rehace» contra el que este mismo motor avisa en el comentario de
+         * `raceThisClimb`. Al final llegaban 28 de 30 juntos y el PAV medio del grupo de cabeza era
+         * 59,4 contra el 59,5 del campo entero: o sea que quince kilómetros de adoquín no
+         * distinguían al adoquinero del que no lo era.
+         *
+         * Del adoquín no se vuelve: el pelotón va en fila india a tope y el hueco se abre solo.
          */
-        const caught = !onClimb && sg.tS <= peloton.tS
+        const caught = !onRough && sg.tS <= peloton.tS
         /**
          * …Y LA PUERTA NO ABSORBE (v35). Hasta la v34 bastaba con ESTAR a menos de 22 s: un grupo
          * que rodaba a la misma velocidad que el pelotón —o incluso perdiendo una décima por
