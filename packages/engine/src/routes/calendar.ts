@@ -142,7 +142,12 @@ const mountain = (km: number, seed: string): StageSpec => ({
  */
 const mountainOneDay = (km: number, seed: string): StageSpec => ({
   kind: 'reina',
-  label: 'Mountain classic',
+  // La etiqueta es «Mountains» y no «Summit finish» porque el recorrido ya NO muere arriba, y quien
+  // manda aquí es el etiquetador de `stageHistory.ts`: para una reina con más de cinco kilómetros
+  // tras la última cima, esto es una etapa de montaña y no un final en alto. Ponerle nombre propio
+  // —«Mountain classic»— hacía que el calendario y el etiquetador dijeran cosas distintas de la
+  // misma etapa, y eso lo caza el banco que vigila que solo cambie la etiqueta y nunca el tipo.
+  label: 'Mountains',
   profile: auto(mountainClassicSegments(km, seed)),
 })
 
