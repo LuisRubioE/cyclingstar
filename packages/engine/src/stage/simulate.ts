@@ -2562,10 +2562,8 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
           if (tren.some((id) => relayers.has(id))) trenes += 1
         }
       }
-      const next = advanceGroup(group, block, p75, alFrente, {
-        isFinal,
-        sprintKmh: trenes > 0 ? sprintRegimeKmh(kmToGo, trenes, block.g) : 0,
-      })
+      const régimen = trenes > 0 ? sprintRegimeKmh(kmToGo, trenes, block.g) : 0
+      const next = advanceGroup(group, block, p75, alFrente, { isFinal, sprintKmh: régimen })
       /**
        * LO QUE VALE UN RELEVO EN ESTE BLOQUE, MEDIDO POR EL VIENTO Y NO POR LA VELOCIDAD (v26).
        *
@@ -2601,10 +2599,18 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
        * más lento de lo que pidió, manda el compromiso— y deja de regalar lo que la carretera sí
        * está costando.
        */
-      const compromisoReal = Math.max(
-        group.compromiso,
-        commitmentForSpeed(block, p75, next.vActual, alFrente),
-      )
+      /**
+       * …y esto SOLO puede pasar con el régimen de remate puesto. Fuera de él la velocidad la fija
+       * la propia ley a partir del compromiso del grupo, y `stepSpeed` únicamente puede quedarse
+       * corto, nunca pasarse: el máximo de abajo elegiría siempre el compromiso. Preguntarlo igual
+       * costaba DOS evaluaciones más de la ley de velocidad por grupo y por bloque en toda la
+       * carrera —y se notaba: la batería se fue de 1.950 s a 2.665 s y el banco de coherencia
+       * empezó a pasarse de su tope de cinco minutos—.
+       */
+      const compromisoReal =
+        régimen > 0
+          ? Math.max(group.compromiso, commitmentForSpeed(block, p75, next.vActual, alFrente))
+          : group.compromiso
       const workOf = (shelter: number): number =>
         Math.max(0, riderEffort(block, compromisoReal, shelter) - idle) * STAGE.dx
       // Para las decisiones que son del GRUPO —a quién se persigue— vale el del que tira.
