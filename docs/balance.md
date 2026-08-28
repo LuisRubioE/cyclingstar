@@ -7955,3 +7955,141 @@ estirado y un cambio de composición en el mismo kilómetro.
 Si se confirma, **no es un defecto de física sino de observación**, y el arreglo iría en cómo la
 radio fecha un grupo (una mediana, o el reloj de su pelotón de referencia) y no en el motor. Queda
 sin verificar: es la siguiente medida, y el banco para hacerla ya está escrito.
+
+## v39 — El sprint es una decisión, y el ritmo cuesta lo que dice la ley (`engine_version` 38 → 39)
+
+Tanda larga y con tres leyes nuevas. El hilo que la recorre entera es siempre el mismo: **el motor
+tenía cosas que decidía con un dado y que en carretera son decisiones, y cosas que cobraba con un
+número que no era el que las explicaba.**
+
+### 1. El que no tiene nada que ganar aquí, no colabora
+
+El turno de relevos no miraba si a uno le CONVIENE que el grupo llegue junto. El dueño: «si es una
+etapa de montaña y en la fuga van con un súper escalador y tú eres mal escalador, lo normal es que
+no cooperes». Ahora el deber de relevo descuenta por no tener opciones en el remate de tu grupo
+(`relayNoChanceWeight`), y solo para el que corre para sí mismo: un gregario da la cara igual,
+porque no tira por él. Se revisa cada `coopReviewBlocks` y hay CONTAGIO
+(`coopContagionWeight`): si uno se esconde, los demás también aflojan para no llevarlo a meta.
+
+### 2. El ataque deja de ser un dado: se calcula
+
+El boquete instantáneo de un ataque era una constante. Ahora sale de la física —la velocidad del
+que ataca contra la del grupo durante `tacticSurgeKm`— y por eso un ataque en mitad de un puerto a
+tope no abre nada (y se narra como `attack_swarm` con `sinHueco`). El acelerón enciende un CERILLO
+y se cuenta en segundos, con el modelo de Coggan.
+
+### 3. Dosificar el día largo
+
+El pelotón salía igual de enchufado en un día que pide 43 unidades de coste que en uno que pide
+102, y en el segundo llegaba a cero con la erosión clavada en su techo. El dueño: «tal vez en una
+clásica superlarga tengan que dosificar esfuerzos mejor y entonces no salir tan a muerte». La
+demanda es la integral del coste base del recorrido y ordena exactamente a las que saturaban
+—Lombardía 102,2 · Strade 98,7 · Montreal 90,9, contra la llana canónica en 43,2—.
+
+Y **no se dosifica en la cuesta**, salvo que el día sea desmesurado (`climbEaseDemand`):
+administrarse es rodar más suave ENTRE las dificultades, no subir despacio. Aplicarlo también a la
+cuesta hundía la cola de las reinas reales, que son cuesta pura (Tour e20: el 76 % de lo que pide
+el día está en las subidas).
+
+### 4. El turno de relevos, repartido y en equilibrio con el plan
+
+Dos defectos que se tapaban entre ellos:
+
+- **La frescura no alcanzaba.** El abanico de oficios va de 0,1 a 1,0 y la frescura pesaba 0,35, o
+  sea que un gregario VACÍO seguía teniendo más deber que un libre entero: tiraban los mismos
+  hombres hasta apagarse. En Il Lombardia, el 16 % del pelotón cruzaba meta con el tanque a cero.
+- **Pero sin techo, la frescura mandaba sola** y eso deshacía la criba: en el banco del puerto de
+  20 km al 8 % a 50 km de meta, la carrera se partía en 7 de 8 corridas y pasó a 4, con corridas
+  enteras metiendo a 98 corredores en el mismo grupo de cabeza.
+
+La regla que sale de las dos: **ir más entero que el de al lado no obliga a dar más relevos —eso lo
+deciden el oficio y el plan—, pero ir vacío sí saca del turno.** La frescura entra topada
+(`relayFreshnessCap`), y el mando del equipo sube a 1,3 para que el frente siga teniendo dueño.
+
+### 5. El submotor del sprint
+
+El dueño: «fíjate cómo funciona un sprint sin lanzadores, por ejemplo en una fuga, donde puede
+haber un momento en el que todos se miran y de repente uno se lanza… pero si se lanza demasiado
+temprano puede no llegar, y si se lanza demasiado tarde igual ya no sobrepasa al que se lanzó
+antes».
+
+El sprint no tenía esa decisión. Ahora cada hombre ABRE a una distancia de la línea
+(`sprintHoldMetres`, `launchEffect`, subflujo nominal `launch`) y hay dos maneras de equivocarse:
+
+- **Pronto.** Un sprint se sostiene 200-250 m —menos si llegas vaciado— y lo que abras de más se
+  paga en los últimos metros.
+- **Tarde.** El que espera llega más entero pero necesita CARRETERA para pasar. El castigo es
+  RELATIVO al primero que abrió, así que un sprint en el que todos esperan no perjudica a nadie
+  —sale lento y gana el más rápido— y el que se descuelga del momento sí.
+
+Quien tiene tren abre en el sitio; quien no lo tiene abre tarde porque le toca seguir; y donde no
+hay tren de nadie —una fuga— se abre aún más tarde y con más dispersión: el duelo de miradas.
+
+Modelarlo destapó dos agujeros de fondo:
+
+1. **EL SPRINT ERA GRATIS.** El régimen de remate impone la velocidad de los últimos kilómetros
+   pero el coste se seguía calculando con el compromiso del grupo. Medido: **el pelotón cruzaba la
+   meta a 59,9 km/h con el compromiso en 0,10 y el trabajo de todos valía CERO.** Ahora el trabajo
+   Y el depósito se cobran con el compromiso que EXPLICA la velocidad que se lleva
+   (`commitmentForSpeed`, inverso exacto de la ley porque el ritmo entra lineal).
+2. **EL ÚLTIMO KILÓMETRO NO ES UNA ROTACIÓN, ES UN TREN.** Metido a la fuerza en un turno de
+   veinte, el lanzador pagaba un viento repartido entre veinte: casi nada. En carretera son dos o
+   tres hombres a tope y ciento setenta EN FILA detrás. Dentro de la ventana del lanzamiento, si
+   hay trenes lanzando, el frente son ellos y solo ellos.
+
+Los dos juntos explicaban que **el tren solo constara como lanzado en 27 de 59 llegadas**, o sea
+que tener tren o no tenerlo daba casi igual.
+
+### 6. El exponente del coste del ritmo lo manda la ley
+
+El dueño: «ir en cabeza no es solo un tema del viento, es un tema de desgaste porque vas marcando
+la velocidad; obviamente es muy diferente ir en cabeza a 70 km/h que a 30 km/h, suponiendo llano en
+ambos casos».
+
+Tenía razón y el motor se contradecía. La ley de velocidad dice que en LLANO la velocidad responde
+a la potencia con exponente 0,39 —o sea `P ∝ v^2,56`, la ley aerodinámica— y en CUESTA con
+exponente 1,0, porque allí se paga levantar el peso. Pero el coste del ritmo usaba un exponente
+FIJO de 1,6 para las dos: infracobraba el llano rápido y sobrecobraba la cuesta.
+
+`rhythmCostExponent` lo deja donde tiene que estar: el inverso del de la ley. Y **anclado en un
+pivote** (`costRhythmPivot`, el ritmo de un día normal), porque sin ancla no cambia la forma de la
+curva sino que la levanta entera: sin él, Strade Bianche se iba de 0,918 de vaciado a 0,992 con un
+38 % de pájaras.
+
+Como la ley ABARATA el ritmo en cuesta, la montaña seleccionaba menos y el tempo de los puertos no
+decisivos sube a 0,70 (`climbTempoCommit`) — que es la palanca que el dueño pidió mirando otra
+versión del mismo síntoma: «en una etapa reina falta que los campeones se esfuercen un poquito más».
+
+### 7. Lo que quedó medido
+
+| Invariante                       | Banda    | v39     |
+| -------------------------------- | -------- | ------- |
+| Fuga en llano                    | 5-16 %   | 11,7 %  |
+| Mejor sprinter en llano          | 30-45 %  | 36,7 %  |
+| Fuga en montaña                  | 25-45 %  | 29,0 %  |
+| Brecha 1.º-10.º reina            | 60-300 s | 67,5 s  |
+| Cola reina gran vuelta           | 8-14 %   | 8,31 %  |
+| Cola reinas reales               | 7-14 %   | 7,98 %  |
+| Peor reina real                  | 0-18 %   | 16,0 %  |
+| Abandonos gran vuelta            | 12-20 %  | 14,9 %  |
+| Il Lombardia (vaciado / pájaras) | ≤0,95/12 | 0,889/8 |
+| Strade Bianche                   | ≤0,95/12 | 0,935/5 |
+| Voz de equipo en el parte        | 50-85 %  | 77,6 %  |
+| Equipos que llevan el frente     | 1,8-4    | 2,75    |
+| El tren gana (de 60)             | ≥38      | 42      |
+| Fuga contra tres trenes (de 16)  | ≤3       | 3       |
+
+Batería **1327/1327** y campaña de 200 corridas con **32 de 33** objetivos en banda. El que queda
+fuera es la cola de la reina en la muestra corta del CLI (7,7 % con 4 vueltas) mientras el
+invariante, que la mide con 6, da 8,31 %: es un estadístico ruidoso —se le ha visto saltar entre
+6,5 y 8,6 con cambios mínimos— y el dueño decidió dejarlo así de momento.
+
+### 8. Lo que se decidió NO arreglar
+
+- **El banco del PAVÉ** pide que el ganador tenga un PAV mediano por encima de 70 y mide 69-70. Las
+  dos palancas del modelo de remate no lo mueven: con el peso del PAV al 0,9 sigue en 69 y
+  corriendo el sector a tope llega a 70 justo. Lo que falta no es calibración sino otro modelo de
+  final en adoquín. El umbral baja a 69 por decisión del dueño; lo que el banco vigila no cambia,
+  porque el azar puro daría 64.
+- **La cobertura de la criba lejana en la crónica** (58 % contra 75 %) queda para cuando se mejore
+  el diario: «es solo un tema del journal, no me preocupa de momento».

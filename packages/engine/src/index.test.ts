@@ -131,6 +131,19 @@ describe('engine: esqueleto', () => {
     // 6:53 en el km 137 y 16 s en meta). La referencia pasa a ser los que SIGUEN EN CARRERA, el
     // parte de ventaja NOMBRA a quien va delante y dice contra quién se mide y cuánto queda.
     // Cambio de OBSERVACIÓN: ni un dado, ni un subflujo, ni una constante de calibración.
+    // v39: EL SPRINT ES UNA DECISIÓN Y EL RITMO CUESTA LO QUE DICE LA LEY (docs/balance.md «v39»).
+    // Tres leyes nuevas y un submotor. (1) EL LANZAMIENTO: cada hombre ABRE el sprint a una
+    // distancia de la línea, y hay dos maneras de equivocarse —pasarse de lo que aguanta, o dejar
+    // que el primero se vaya más de una ventana de cortesía—, con dado y subflujo NOMINAL nuevos
+    // (`launch`). El dueño: «puede haber un momento en el que todos se miran y de repente uno se
+    // lanza». (2) EL REMATE DEJA DE SER GRATIS: el régimen de sprint imponía la velocidad de los
+    // últimos kilómetros y el coste se cobraba con el compromiso del grupo —el pelotón cruzaba a
+    // 59,9 km/h con el compromiso en 0,10 y el trabajo de TODOS valía cero—; ahora se cobra por el
+    // compromiso que EXPLICA la velocidad que se lleva. (3) EL EXPONENTE DEL COSTE DEL RITMO lo
+    // manda la ley (`rhythmCostExponent`): 2,56 en llano y 1,0 en cuesta, el inverso del exponente
+    // con el que la potencia se vuelve velocidad, en vez de un 1,6 fijo para las dos; anclado en el
+    // ritmo de un día normal, así que cambia la CURVATURA y no el nivel. Más la dosificación del
+    // día largo, el reparto del turno de relevos y el tamaño de la fuga por terreno.
     // v38: EL VIENTO LO REPARTEN LOS QUE TIRAN (docs/balance.md «v38»). La ley de velocidad pasa a
     // saber cuántos tiran (`relayPaceEdge`): hasta la v37 un grupo de 1, 4, 8, 30 y 150 hombres con
     // el mismo compromiso y el mismo P75 iba a la MISMA velocidad exacta, y por eso la fuga del día
@@ -212,6 +225,6 @@ describe('engine: esqueleto', () => {
     // v11 (atribución del trabajo), la v10 (composición y caza), la v9 (capa táctica), la
     // v8 (tiempos de grupo), la v7 (modelo de final), la v6 (telemetría), la v5 (clásica larga), la
     // v4 (pavé en el recorrido) y la v3 (Cambio 0).
-    expect(ENGINE_VERSION).toBe(38)
+    expect(ENGINE_VERSION).toBe(39)
   })
 })

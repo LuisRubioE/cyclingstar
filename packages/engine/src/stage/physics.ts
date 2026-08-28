@@ -518,10 +518,7 @@ export function timeTrialCost(block: Block, c: number, dx: number = STAGE.dx): n
  */
 export function rhythmCostExponent(block: Block): number {
   const porLey = 1 / Math.max(1e-9, loadExponent(block))
-  return (
-    STAGE.costRhythmExponent +
-    (porLey - STAGE.costRhythmExponent) * STAGE.costRhythmLawShare
-  )
+  return STAGE.costRhythmExponent + (porLey - STAGE.costRhythmExponent) * STAGE.costRhythmLawShare
 }
 
 export function blockCost(

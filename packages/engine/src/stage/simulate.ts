@@ -4810,7 +4810,10 @@ function finishStage(
       members
         .map((m, i) => ({
           i,
-          v: finishScore(effNow(m.input.eff0, erosion(m.energy, m.energy0, m.input.eff0.RES), m.energy <= 0), type),
+          v: finishScore(
+            effNow(m.input.eff0, erosion(m.energy, m.energy0, m.input.eff0.RES), m.energy <= 0),
+            type,
+          ),
         }))
         .sort((a, b) => b.v - a.v)
         .slice(0, STAGE.sprintContenders)
