@@ -1596,7 +1596,18 @@ export const STAGE = {
    * canónico no se entera —tiene equipos, así que este listón no le aplica—: la fuga en llano se
    * queda clavada en el 9,2 %.
    */
-  relayDutyThresholdNoTeams: 0.45,
+  relayDutyThresholdNoTeams: 0.8,
+  /**
+   * Cuánto BAJA ese listón con el ritmo al que va la carretera; ver `relayTurn`. Un pelotón de
+   * agentes libres rodando a paseo saca cuatro hombres al frente; el mismo pelotón cazando rota
+   * entero, porque sin equipos no hay a quién pasarle el trabajo.
+   *
+   * Medido: en el banco de la caza, el campo de tres trenes deja llegar a la fuga 4 veces de 16
+   * (con el listón fijo eran 6, y el techo del banco es 3), y el tren de lanzadores conserva su
+   * ventaja —39 victorias de 60 sobre el sprinter idéntico sin tren, mínimo 38—, que es justo lo
+   * que se perdía bajando el listón a secas.
+   */
+  relayDutyPaceRelief: 0.6,
   /**
    * ¿ME INTERESA QUE ESTO LLEGUE JUNTO? (v39, ver `tactics.ts::noChanceToWin`). Lo que un hombre
    * DEJA de colaborar en una fuga porque no tiene nada que ganar donde va. El dueño: «en un grupo

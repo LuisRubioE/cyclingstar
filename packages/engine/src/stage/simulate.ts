@@ -591,11 +591,25 @@ function relayTurn(
    *   reparten el trabajo, y el jefe, el sprinter y el marcador van a rueda como en cualquier
    *   pelotón. El listón se pone entre esos dos grupos.
    */
+  /**
+   * …Y EL LISTÓN DEL PELOTÓN SIN EQUIPOS BAJA CUANDO EL PELOTÓN CORRE (v39). Sin equipos no hay
+   * nadie a quien pasarle el trabajo: el que quiere que se cace TIENE que ponerse. Así que lo que
+   * decide cuánta gente entra al turno no puede ser solo el rol —eso es «con qué ganas rodaría yo
+   * hoy»—, sino también a qué ritmo va la carretera ahora mismo. Un pelotón de agentes libres
+   * rodando a paseo saca cuatro hombres; el mismo pelotón cazando una fuga rota entero.
+   *
+   * Medido en el banco de la caza (misma etapa, mismas semillas, solo cambia quién persigue): con
+   * el listón fijo, un campo de TRES trenes de primer nivel dejaba llegar a la fuga 6 veces de 16
+   * contra un techo de 3. Y bajar el listón fijo lo arreglaba, pero se llevaba por delante al tren
+   * de lanzadores —que vive de que la rotación sea CORTA— en una etapa donde no hay nada que cazar.
+   * El alivio por ritmo separa los dos casos porque es justo lo que los distingue.
+   */
   const listón = !isBunch
     ? STAGE.relayDutyThresholdLoose
     : hayEquipos
       ? STAGE.relayDutyThreshold
-      : STAGE.relayDutyThresholdNoTeams
+      : STAGE.relayDutyThresholdNoTeams -
+        STAGE.relayDutyPaceRelief * Math.max(0, Math.min(1, paceFraction))
   const quieren = scored.filter((s) => s.duty >= listón).length
   /**
    * …Y ALGUIEN TIENE QUE DAR LA CARA IGUAL: un grupo rueda porque alguien va delante. Son los que
