@@ -4366,7 +4366,19 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
               // «5:52» de un corredor que llevaba 23 s a sus perseguidores directos.
               gapS: Math.round(gapOverSource),
               toGo: Math.round(totalKm - km),
-              narra: claimAttackNotice(STAGE.tacticStickNarrateKmGap) ? 1 : 0,
+              /**
+               * LO QUE SE ABRE SE CIERRA, TAMBIÉN AQUÍ (v40). El acelerador de avisos existe para
+               * que una etapa nerviosa no sea una lista de intentos, y estaba callando el DESENLACE
+               * de movimientos cuya salida el lector sí había leído. Medido con el auditor de la
+               * crónica sobre 48 etapas: 11 ataques que se abrían y no se cerraban nunca, y el caso
+               * de libro es un contraataque de diez hombres en el km 39 de Flandes al que no se
+               * vuelve a nombrar en toda la etapa —su `attack_sticks` salía tres kilómetros después
+               * con los mismos tres protagonistas y con `narra` a cero—.
+               *
+               * Si la salida se contó, el desenlace se debe. El acelerador se sigue consultando
+               * —para que siga gobernando lo que no se ha abierto— pero no puede tapar un arco.
+               */
+              narra: claimAttackNotice(STAGE.tacticStickNarrateKmGap) || m.narrated ? 1 : 0,
             })
           }
         }
