@@ -1941,7 +1941,23 @@ export const STAGE = {
   // compraba —que una cota lejos de meta no parta el pelotón en dos— lo compra ahora la RESERVA, que
   // es física en vez de un número elegido: en una cota a tempo el déficit contra el P75 es pequeño,
   // la reserva lo absorbe entero y el valle la recarga. Ver `reserveSeconds` y docs/balance.md «v26».)
-  dropPavesFactor: 0.34,
+  /**
+   * SUBE DE 0,34 A 0,6 EN LA v40, porque a 0,34 el adoquín NO seleccionaba. Medido sobre las
+   * clásicas reales con un campo que solo se distingue en PAV (45-83, media 64): Paris-Roubaix
+   * —54,8 km de adoquín en 56 sectores, el último a 1,1 km de meta— metía a **127 de 176 corredores
+   * en el mismo segundo**, y el PAV medio de ese grupo de cabeza era 65,1 contra el 64,0 del campo.
+   * O sea que la carrera más adoquinera del calendario no distinguía al adoquinero del que no lo
+   * era, y por eso ninguna palanca del REMATE movía el banco del pavé: no había a quién rematar.
+   *
+   * Con 0,6, la misma Roubaix termina con **24 hombres delante y un PAV medio de 76,2**, que es una
+   * Roubaix. Y no se paga en desgaste: el vaciado mediano se queda en 0,845 con un 2 % de pájaras
+   * (techo 0,95 y 12 %), porque lo que cambia es QUIÉN aguanta el sector, no cuánto cuesta.
+   *
+   * Sigue por debajo del 1 del puerto decisivo, que es lo correcto: en el adoquín se pierde la
+   * rueda por un error, un corte o un pinchazo —un suceso—, y en el puerto no se puede con el
+   * ritmo. Son dos formas distintas de quedarse, y la del puerto es más implacable.
+   */
+  dropPavesFactor: 0.6,
   dropPavesStarsReference: 3,
   // DESCENSO. Mucho más suave, y a propósito: en una bajada se pierde la rueda, no se revienta.
   dropDescentFactor: 0.08,
