@@ -1580,10 +1580,23 @@ export const STAGE = {
   relayDutyThresholdLoose: 0,
   /**
    * …y el del pelotón SIN equipos, donde no hay empuje que sumar y manda el ROL. Va entre el
-   * corredor sin órdenes (0,6 de base, que colabora) y el marcador (0,35, que vive a rueda): con la
-   * frescura entera son 0,95 contra 0,70. Ver `relayTurn` para los tres casos y lo que se midió.
+   * corredor sin órdenes (0,6 de base, que colabora) y el marcador (0,35, que vive a rueda). Ver
+   * `relayTurn` para los tres casos y lo que se midió.
+   *
+   * BAJA DE 0,8 A 0,45 EN LA v39, por dos motivos que empujan igual. El primero es aritmético: al
+   * topar la frescura (`relayFreshnessCap`) el deber de TODOS bajó unas nueve centésimas, y un
+   * listón calibrado contra la escala vieja dejaba al corredor sin órdenes rozándolo (0,825 contra
+   * 0,8), o sea que quién tiraba lo decidía el ruido. El segundo es de carretera: sin equipos no
+   * hay nadie a quien pasarle el trabajo, así que el que quiere que se cace TIENE que ponerse, y el
+   * listón de un pelotón de agentes libres no puede parecerse al de uno con veintidós equipos.
+   *
+   * Medido en el banco de la caza (misma etapa, mismas semillas, solo cambia quién persigue): con
+   * 0,8 un campo de TRES trenes de primer nivel dejaba llegar a la fuga 6 veces de 16, contra un
+   * techo de 3; con 0,45, 3 de 16, y el campo modesto sigue dejándola llegar 14 de 16. El banco
+   * canónico no se entera —tiene equipos, así que este listón no le aplica—: la fuga en llano se
+   * queda clavada en el 9,2 %.
    */
-  relayDutyThresholdNoTeams: 0.8,
+  relayDutyThresholdNoTeams: 0.45,
   /**
    * ¿ME INTERESA QUE ESTO LLEGUE JUNTO? (v39, ver `tactics.ts::noChanceToWin`). Lo que un hombre
    * DEJA de colaborar en una fuga porque no tiene nada que ganar donde va. El dueño: «en un grupo
