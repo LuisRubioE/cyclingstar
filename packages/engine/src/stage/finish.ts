@@ -293,3 +293,52 @@ export function finishScore(eff: Eff, type: FinishType): number {
   for (const [attr, w] of Object.entries(weights)) score += w * eff[attr as Attribute]
   return score
 }
+
+/**
+ * EL LANZAMIENTO: CUÁNDO SE ABRE EL SPRINT (v39, docs/motor.md §12.7).
+ *
+ * El dueño: «fíjate cómo funciona un sprint sin lanzadores, por ejemplo en una fuga, donde puede
+ * haber un momento en el que todos se miran y de repente uno se lanza… pero si se lanza demasiado
+ * temprano puede no llegar, y si se lanza demasiado tarde igual ya no sobrepasa al que se lanzó
+ * antes».
+ *
+ * Eso es una decisión, y el motor no la tenía: la meta se resolvía comparando puntuaciones de
+ * remate con un dado de desempate, así que el sprint era una tirada y no una carrera. Aquí el
+ * sprint pasa a tener una VARIABLE propia —a cuántos metros de la línea abre cada uno— y dos
+ * maneras de equivocarse, que son las dos que dijo el dueño:
+ *
+ * - **DEMASIADO PRONTO.** Un sprint se sostiene una distancia y no más: 200-250 m para un velocista
+ *   puro, menos si llega vaciado. Lo que se abre por encima de eso se paga en los últimos metros,
+ *   que es el hombre que va en cabeza y se apaga viendo pasar a tres.
+ * - **DEMASIADO TARDE.** El que espera va a rueda y llega más entero, pero necesita CARRETERA para
+ *   pasar. Si el primero se ha ido más allá de una ventana de cortesía, ya no lo alcanza aunque
+ *   fuera más rápido. Por eso el castigo del tarde no es absoluto sino RELATIVO al primero que
+ *   abrió: un sprint en el que todos esperan no perjudica a nadie —sale lento y gana el más
+ *   rápido—, y el que se descuelga del momento sí.
+ *
+ * De ahí sale solo lo que se ve en carretera: el mejor sitio para abrir es exactamente lo que
+ * aguantas, ni un metro más; en un grupo con trenes el sprint se abre pronto y ordenado porque
+ * alguien tira; y en una fuga sin trenes nadie quiere abrir —todos se miran— así que se abre tarde
+ * y con mucha más dispersión, y quien se lanza primero se lleva a veces la etapa aunque no sea el
+ * más rápido.
+ */
+export function sprintHoldMetres(spr: number, freshness: number): number {
+  const base = STAGE.sprintHoldBase + STAGE.sprintHoldPerPoint * (spr - 50)
+  const piernas =
+    STAGE.sprintHoldFreshFloor + (1 - STAGE.sprintHoldFreshFloor) * clamp(freshness, 0, 1)
+  return Math.max(STAGE.sprintHoldMin, base * piernas)
+}
+
+/**
+ * Lo que vale el sprint de un hombre que abre a `launchM` de meta aguantando `holdM`, con el
+ * primero del grupo abriendo a `firstLaunchM`. Factor multiplicativo ≤ 1 con suelo: abrir en el
+ * punto justo no regala nada, equivocarse cuesta.
+ */
+export function launchEffect(launchM: number, holdM: number, firstLaunchM: number): number {
+  const pasado = Math.max(0, launchM - holdM)
+  const tarde = Math.max(0, firstLaunchM - launchM - STAGE.launchWindowM)
+  return Math.max(
+    STAGE.launchEffectFloor,
+    1 - (STAGE.launchEarlyPenalty * pasado + STAGE.launchLatePenalty * tarde) / 100,
+  )
+}

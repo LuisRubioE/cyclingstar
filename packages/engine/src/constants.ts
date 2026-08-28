@@ -2841,6 +2841,49 @@ export const STAGE = {
   // desempate del motor; lo comparten el sprint de meta y los mini-sprints de banner (6.11).
   sprintScoreNoiseSd: 0.045,
 
+  // --- EL LANZAMIENTO: CUÁNDO SE ABRE EL SPRINT (v39, ver `sprintHoldMetres`/`launchEffect`) ---
+  //
+  // Cuánto sprint aguanta un hombre, en metros. 200 m de base y 2 m por punto de SPR: un velocista
+  // de 85 aguanta 270 y un rodador de 55, 210. Son los números de carretera —un sprint largo son
+  // 250-300 m y uno corto 150-200— y el suelo evita que un hombre roto tenga un sprint negativo.
+  sprintHoldBase: 200,
+  sprintHoldPerPoint: 2,
+  sprintHoldMin: 90,
+  // …y el tanque acorta el sprint: con el depósito vacío se aguanta el 55 % de lo que se aguanta
+  // entero. Es lo que hace que una llegada masiva después de 240 km no se dispute como una de 150.
+  sprintHoldFreshFloor: 0.55,
+  // Lo que cuesta cada 100 m abiertos DE MÁS por encima de lo que se aguanta (te apagas), y lo que
+  // cuesta cada 100 m de más que te ha sacado el primero que abrió (no te queda carretera). El
+  // pronto castiga más que el tarde: apagarse es perder metros, llegar tarde es perder puestos.
+  launchEarlyPenalty: 0.14,
+  launchLatePenalty: 0.07,
+  // La ventana de cortesía: los metros que puedes dejar que se vaya el primero y aún así pasarle.
+  // Un sprint se remonta desde una rueda o dos, no desde media recta.
+  launchWindowM: 70,
+  // Suelo del factor: equivocarse de momento cuesta la etapa, no la carrera. Un 0,7 sobre una
+  // puntuación de remate de 80 la deja en 56, que es perder el sprint sin dejar de estar ahí.
+  launchEffectFloor: 0.7,
+  // La DISPERSIÓN de la decisión, en metros. Es la parte que no se sabe: un sprint no se abre con
+  // cronómetro. Un tren la reduce —para eso está, para poner a su hombre en el sitio— y la táctica
+  // también, porque abrir a tiempo es leer el momento.
+  launchSdBase: 55,
+  launchTrainSdShare: 0.45,
+  launchTacScale: 40,
+  launchTacRelief: 0.35,
+  // Y EL DUELO DE MIRADAS: en un grupo donde nadie tiene tren, nadie quiere abrir. Se abre este
+  // tanto más tarde de lo que conviene, que es de donde sale que una fuga se juegue a los nervios.
+  launchStandoffM: 55,
+  /** …y cuánto de ese retraso se come el que no tiene tren cuando OTROS sí lo tienen. */
+  launchNoTrainLateShare: 0.6,
+  /**
+   * Cuántos hombres disputan de verdad el sprint, y por tanto cuántos pueden ABRIRLO. La referencia
+   * del «tarde» sale del primero de éstos y no del primero del grupo: en un pelotón de ciento
+   * setenta, el máximo de ciento setenta tiradas vive en la cola de la distribución y lo pone un
+   * gregario que no se juega nada, dejando tarde a la carrera entera. En carretera el sprint lo
+   * abre alguien de la primera fila.
+   */
+  sprintContenders: 10,
+
   // --- LA COLOCACIÓN EN EL PELOTÓN (v24, docs/motor.md §12.6) ------------------------------
   //
   // En carretera un sprint se pierde por ir mal colocado: te tapan en la última curva, el tren se

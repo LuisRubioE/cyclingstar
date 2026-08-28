@@ -30,6 +30,7 @@ import {
   bonkPenalty,
   blockPerfil,
   blockSeconds,
+  commitmentForSpeed,
   costBase,
   droppedCommit,
   effNow,
@@ -59,6 +60,8 @@ import {
   finishType,
   isSprintFinish,
   isUphillFinish,
+  launchEffect,
+  sprintHoldMetres,
   placementSd,
   sprintRegimeKmh,
 } from './finish.js'
@@ -629,7 +632,8 @@ function relayTurn(
     Math.min(members.length, STAGE.relayMinPullers, Math.ceil(members.length / STAGE.relayMinPer)),
   )
   const cuantos = Math.max(minimo, Math.min(quieren, techo))
-  if (cuantos <= quieren) return new Set(scored.slice(0, cuantos).map((s) => s.id))
+  if (cuantos <= quieren)
+    return elTren(new Set(scored.slice(0, cuantos).map((s) => s.id)), scored, lanzando)
   /**
    * …Y CUANDO HAY QUE RELLENAR POR DEBAJO DEL LISTÓN, LOS QUE DAN LA CARA SON LOS DEL DUEÑO DEL
    * FRENTE (v38). Es la regla de siempre —«el frente lo lleva UNO»— dicha para el único caso en que
@@ -647,7 +651,35 @@ function relayTurn(
     (a, b) =>
       Number(delDueño(b.id)) - Number(delDueño(a.id)) || b.duty - a.duty || (a.id < b.id ? -1 : 1),
   )
-  return new Set(relleno.slice(0, cuantos).map((s) => s.id))
+  return elTren(new Set(relleno.slice(0, cuantos).map((s) => s.id)), scored, lanzando)
+}
+
+/**
+ * EL ÚLTIMO KILÓMETRO NO ES UNA ROTACIÓN, ES UN TREN (v39, docs/motor.md §12.7).
+ *
+ * El empujón al deber de relevo (`relayLeadOutBoost`) ponía al lanzador arriba en la cola, y aun
+ * así el tren no lanzaba. Medido en el banco del tren —dos lanzadores dedicados, cien kilómetros
+ * llanos, sesenta corridas—: **el tren solo constaba como lanzado en 27 de 59 llegadas**. Y cuando
+ * se le metió a la fuerza en el turno, siguió sin constar. El motivo es el reparto del viento:
+ * `shelterOf` divide la factura entre los que rotan, así que tirar en una rotación de veinte cuesta
+ * casi lo mismo que ir a rueda, y el trabajo del lanzador quedaba por debajo del listón que
+ * pregunta «¿ha lanzado este hombre?». O sea que el motor tenía a los lanzadores «al frente» de un
+ * pelotón entero, que es una cosa que no existe.
+ *
+ * En carretera el último kilómetro es exactamente lo contrario de una rotación: dos o tres hombres
+ * a tope en cabeza y ciento setenta EN FILA detrás, cada uno en la rueda del de delante. Nadie
+ * releva a nadie. Así que dentro de la ventana del lanzamiento, si hay trenes lanzando, el frente
+ * son ELLOS y solo ellos: pagan el viento entre pocos —que es por lo que un lanzador se funde— y
+ * el resto del pelotón va a rueda, que es por lo que un velocista con tren llega mejor.
+ */
+function elTren(
+  turno: Set<string>,
+  scored: { id: string }[],
+  lanzando: (riderId: string) => boolean,
+): Set<string> {
+  const lanzadores = scored.filter((s) => lanzando(s.id)).map((s) => s.id)
+  if (lanzadores.length === 0) return turno
+  return new Set(lanzadores)
 }
 
 /**
@@ -732,6 +764,14 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
   // calibrados sin que ninguna ley del sprint haya cambiado. Con subflujo propio, un grupo pequeño
   // —donde la colocación no reparte nada— sale dígito a dígito igual que en la v23.
   const rngPlacement = streams('placement')
+  /**
+   * Subflujo NOMINAL del LANZAMIENTO (v39, SPEC 6.1, docs/motor.md §12.7). Mismo motivo que
+   * `rngPlacement`: el dado de a cuántos metros abre el sprint cada uno no puede salir de
+   * `rngSprint`, que consume el ruido del remate y los mini-sprints de banner con los que se
+   * calibró el modelo de final. Con subflujo propio, un final que NO se juega al sprint —una
+   * llegada en alto, una crono, un escapado en solitario— sale dígito a dígito igual.
+   */
+  const rngLaunch = streams('launch')
   /**
    * EL SUBFLUJO `hazard` YA NO SE PIDE (v26), y hay que decirlo porque es el único dado que este
    * motor ha QUITADO. Era el del descuelgue en subida: `rollHazard(rngHazard, λ(déficit))` bloque a
@@ -2546,8 +2586,27 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
        * 0,85 daba 0,35 y da 0,40), así que la voz de la crónica no se mueve.
        */
       const idle = idleEffort(block)
+      /**
+       * …Y SE COBRA LA VELOCIDAD QUE DE VERDAD SE LLEVA (v39). El compromiso del grupo es lo que el
+       * grupo DECIDE, y desde que existe el régimen de remate ya no es lo único que mueve la
+       * carretera: en los últimos kilómetros de una llegada masiva la velocidad la impone el
+       * régimen (`sprintRegimeKmh`) y el compromiso se queda donde estaba. Cobrar por el compromiso
+       * era, literalmente, un sprint gratis: medido en el banco del tren, el pelotón cruzaba la meta
+       * a **59,9 km/h con el compromiso en 0,10** y el trabajo de todos valía CERO —lanzadores
+       * incluidos, que es por lo que el tren no constaba como lanzado ni en la mitad de las
+       * llegadas—.
+       *
+       * Se cobra por el mayor de los dos: el compromiso decidido y el que EXPLICA la velocidad
+       * (`commitmentForSpeed`). Nunca cobra de menos —si la aceleración está acotada y el grupo va
+       * más lento de lo que pidió, manda el compromiso— y deja de regalar lo que la carretera sí
+       * está costando.
+       */
+      const compromisoReal = Math.max(
+        group.compromiso,
+        commitmentForSpeed(block, p75, next.vActual, alFrente),
+      )
       const workOf = (shelter: number): number =>
-        Math.max(0, riderEffort(block, group.compromiso, shelter) - idle) * STAGE.dx
+        Math.max(0, riderEffort(block, compromisoReal, shelter) - idle) * STAGE.dx
       // Para las decisiones que son del GRUPO —a quién se persigue— vale el del que tira.
       const frontEffort = workOf(shelterOf(true, relayers.size))
       // Los movimientos que van por DELANTE de este grupo: lo que se releva aquí es trabajo de
@@ -4380,6 +4439,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
     log,
     rngSprint,
     rngPlacement,
+    rngLaunch,
     totalKm,
     finishTerrain,
     leadOutFor,
@@ -4651,6 +4711,8 @@ function finishStage(
   rngSprint: Rng,
   /** Dado de la COLOCACIÓN en el grupo de meta (v24, docs/motor.md §12.6). */
   rngPlacement: Rng,
+  /** Dado del LANZAMIENTO: a cuántos metros de meta abre el sprint cada uno (v39, §12.7). */
+  rngLaunch: Rng,
   totalKm: number,
   terrain: FinishTerrain,
   leadOutFor: Map<string, string[]>,
@@ -4683,8 +4745,76 @@ function finishStage(
     // mucho en términos absolutos (eso ya lo cobra la erosión), sino haber trabajado más que
     // aquellos contra los que se disputa la meta.
     const meanWork = members.reduce((acc, m) => acc + m.work, 0) / members.length
+    /**
+     * EL LANZAMIENTO (v39, docs/motor.md §12.7). Antes del ranking hacen falta dos cosas del GRUPO:
+     * quién llega con tren que haya trabajado —lo mismo que ya decidía el empujón, subido aquí para
+     * no calcularlo dos veces— y, con eso, si en este grupo hay alguien tirando o si es un duelo de
+     * miradas. El dueño lo pidió justo por el segundo caso: «un sprint sin lanzadores, por ejemplo
+     * en una fuga, donde puede haber un momento en el que todos se miran y de repente uno se lanza».
+     */
+    const listónTren = STAGE.leadOutMinWork * Math.max(0.1, humorDelPeloton)
+    const trenDe = (m: RiderSim): number => {
+      const train = leadOutFor.get(m.input.riderId)
+      if (train === undefined) return 0
+      return train.reduce((c, id) => {
+        if (!idSet.has(id)) return c
+        const l = sims.get(id)
+        return c + (l != null && l.pullWindow >= listónTren ? 1 : 0)
+      }, 0)
+    }
+    const trenes = members.map(trenDe)
+    const nadieLanza = trenes.every((t) => t === 0)
+    /**
+     * A cuántos metros abre cada uno. El punto que conviene es EXACTAMENTE lo que aguantas, y a
+     * partir de ahí manda lo que no se sabe: quien tiene tren lo pone en el sitio (menos
+     * dispersión), quien lee la carrera se equivoca menos (TAC), y en el duelo de miradas se abre
+     * tarde porque nadie quiere ser el primero.
+     */
+    const lanzamientos = members.map((m, i) => {
+      const e = erosion(m.energy, m.energy0, m.input.eff0.RES)
+      const eff = effNow(m.input.eff0, e, m.energy <= 0)
+      const aguanta = sprintHoldMetres(eff.SPR, m.energy0 > 0 ? m.energy / m.energy0 : 0)
+      const lectura = clamp((eff.TAC - 50) / STAGE.launchTacScale, -1, 1)
+      const sd =
+        STAGE.launchSdBase *
+        (trenes[i]! > 0 ? STAGE.launchTrainSdShare : 1) *
+        Math.max(0.2, 1 - STAGE.launchTacRelief * lectura)
+      /**
+       * …Y EL QUE NO TIENE TREN ABRE TARDE. No es solo que se equivoque más: es que le toca SEGUIR.
+       * Sin hombres delante te pasas el último kilómetro buscando una rueda, y cuando la encuentras
+       * el sprint ya lo ha abierto otro. El duelo de miradas de una fuga —donde no hay tren de
+       * nadie— es el mismo efecto llevado al extremo: nadie quiere ser el primero.
+       */
+      const sesgo =
+        trenes[i]! > 0
+          ? 0
+          : -STAGE.launchStandoffM * (nadieLanza ? 1 : STAGE.launchNoTrainLateShare)
+      return { aguanta, metros: Math.max(20, normal(rngLaunch, aguanta + sesgo, sd)) }
+    })
+    /**
+     * …Y EL QUE ABRE EL SPRINT ES EL PRIMERO DE LOS QUE VAN A POR LA ETAPA, no el primero del grupo.
+     * La primera versión tomaba el máximo sobre TODOS los que llegaban, y en un pelotón de ciento
+     * setenta eso es el máximo de ciento setenta tiradas: se iba a la cola de la distribución por
+     * culpa de un gregario que no disputa nada y dejaba «tarde» a la carrera entera. El sprint lo
+     * abre uno de los de delante, así que la referencia sale de los `sprintContenders` mejores del
+     * grupo por puntuación de remate, que es lo que hay en la primera fila.
+     */
+    const aspirantes = new Set(
+      members
+        .map((m, i) => ({
+          i,
+          v: finishScore(effNow(m.input.eff0, erosion(m.energy, m.energy0, m.input.eff0.RES), m.energy <= 0), type),
+        }))
+        .sort((a, b) => b.v - a.v)
+        .slice(0, STAGE.sprintContenders)
+        .map((x) => x.i),
+    )
+    const primerLanzamiento = lanzamientos.reduce(
+      (a, l, i) => (aspirantes.has(i) ? Math.max(a, l.metros) : a),
+      0,
+    )
     const ranked = members
-      .map((m) => {
+      .map((m, i) => {
         const e = erosion(m.energy, m.energy0, m.input.eff0.RES)
         const eff = effNow(m.input.eff0, e, m.energy <= 0)
         let score = finishScore(eff, type) * normal(rngSprint, 1, STAGE.sprintScoreNoiseSd)
@@ -4725,18 +4855,19 @@ function finishStage(
          * que cambia es el ritmo del que venía detrás, no el del que lanza. Así que se mide contra el
          * trabajo del día y no contra una constante.
          */
-        const train = leadOutFor.get(m.input.riderId)
-        const listónTren = STAGE.leadOutMinWork * Math.max(0.1, humorDelPeloton)
-        const present =
-          train === undefined
-            ? 0
-            : train.reduce((c, id) => {
-                if (!idSet.has(id)) return c
-                const l = sims.get(id)
-                return c + (l != null && l.pullWindow >= listónTren ? 1 : 0)
-              }, 0)
+        const present = trenes[i]!
         if (sprintFinish && present > 0) {
           score *= 1 + STAGE.leadOutBoostPerHelper * Math.min(present, STAGE.leadOutMaxHelpers)
+        }
+        /**
+         * …Y EL MOMENTO EN QUE ABRIÓ (v39, §12.7). Es la pieza que faltaba para que el sprint fuera
+         * una carrera y no una tirada: el que abre más allá de lo que aguanta se apaga en los
+         * últimos metros, y el que deja que el primero se vaya más de una ventana ya no lo pasa.
+         * Solo en finales que se juegan al sprint: cuesta arriba no se «abre» nada.
+         */
+        if (sprintFinish) {
+          const l = lanzamientos[i]!
+          score *= launchEffect(l.metros, l.aguanta, primerLanzamiento)
         }
         // LA COLOCACIÓN (v24, docs/motor.md §12.6). Se tira SIEMPRE, también cuando el sd es 0,
         // para que la secuencia del subflujo no dependa del tamaño del grupo ni de quién lleve

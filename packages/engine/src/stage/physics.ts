@@ -153,6 +153,31 @@ export function relayPaceEdge(block: Block, pullers: number): number {
  * un turno de ocho compra un 4,5 % de velocidad en el llano y un 1,9 % en una rampa dura, que es la
  * carretera.
  */
+/**
+ * EL COMPROMISO QUE EXPLICA UNA VELOCIDAD (v39). El inverso de `targetSpeed` en su único argumento
+ * libre: a qué compromiso habría que rodar para ir a `v` en este bloque, con estas piernas y esta
+ * rotación. Es exacto porque el ritmo entra LINEAL en la ley (`rhythm(c) = 0.9 + 0.3c`), así que
+ * basta con dos evaluaciones.
+ *
+ * Existe por un agujero que abrió el régimen de remate (v39): en los últimos kilómetros la
+ * velocidad la impone el régimen de sprint y NO el compromiso del grupo, y el coste se seguía
+ * calculando con el compromiso. Medido en el banco del tren: el pelotón cruzaba la meta a **59,9
+ * km/h con el compromiso en 0,10**, y el trabajo de todos —lanzadores incluidos— valía CERO. Un
+ * sprint gratis. Con esto, lo que se cobra es la velocidad que de verdad se lleva, venga de donde
+ * venga: el lanzador se funde lanzando, que es lo que hace un lanzador.
+ */
+export function commitmentForSpeed(
+  block: Block,
+  p75Perfil: number,
+  kmh: number,
+  pullers: number = STAGE.relayPaceReference,
+): number {
+  const v0 = targetSpeed(block, p75Perfil, 0, pullers)
+  const v1 = targetSpeed(block, p75Perfil, 1, pullers)
+  if (v1 <= v0) return 0
+  return (kmh - v0) / (v1 - v0)
+}
+
 export function targetSpeed(
   block: Block,
   p75Perfil: number,
