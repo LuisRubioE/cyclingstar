@@ -1495,10 +1495,21 @@ export const STAGE = {
    * VACÍO (1,00) seguía teniendo más deber que un libre entero (0,95): el turno lo llevaban los
    * mismos hombres hasta que se apagaban, y en una carrera de 241 km eso se ve. Medido en Il
    * Lombardia —la más dura del calendario—, el 16 % del pelotón cruzaba la meta con el tanque a
-   * cero; subiéndolo a 0,7, el 9 %, con el vaciado mediano igual de alto (0,92). No es que el día
-   * sea más fácil: es que el trabajo se REPARTE, que es lo que hace una rotación de verdad.
+   * cero; subiéndolo, el 7 %, con el vaciado mediano igual de alto (0,92). No es que el día sea más
+   * fácil: es que el trabajo se REPARTE, que es lo que hace una rotación de verdad.
+   *
+   * Se queda en 0,5 y NO en 0,7 por la VOZ DE LA CRÓNICA (§V.1): con 0,7 el turno lo decidía el
+   * tanque por encima del plan y el parte de relevos dejaba de poder nombrar a un equipo —43 % de
+   * partes con voz de equipo contra una banda de 50-85, y 1,5 equipos distintos llevando el frente
+   * contra 1,8-4—. Con 0,5, y compensando el mando del equipo (`teamRelayDriveWeight`), el reparto
+   * se mantiene y el frente vuelve a tener dueño: 62,7 % de voz y 2,27 equipos.
+   *
+   * Y de paso arregla algo que venía roto de antes: la BRECHA entre el 1.º y el 10.º de una etapa
+   * reina medía 53 s contra una banda de 60-300 —los favoritos llegaban juntos—. Con el turno mejor
+   * repartido, 66,5 s. Los que deciden la reina llegan al último puerto con piernas porque no han
+   * estado tirando toda la etapa.
    */
-  relayFreshnessWeight: 0.7,
+  relayFreshnessWeight: 0.5,
   // Penalización al deber de relevo de un corredor que lleva gregarios suyos en el grupo: si tiene
   // equipo alrededor, el equipo trabaja por él (SPEC 6.18) y él pasa al final de la cola de relevos.
   relayProtectedPenalty: 1.2,
@@ -2116,9 +2127,18 @@ export const STAGE = {
   // continental y no pinta nada en una gran vuelta. 8 puntos en la escala 0-100 de los atributos
   // dejan tres o cuatro equipos con carta en un campo de ocho, que es lo que se ve en carretera.
   teamStageCardGap: 8,
-  // Peso del plan en el deber de relevo. Con 0,5 el plan pesa más que el rol (que va de 0,1 a 1,0)
-  // pero no lo anula: DENTRO del equipo que tira siguen tirando sus gregarios y no su sprinter.
-  teamRelayDriveWeight: 1,
+  /**
+   * Peso del plan en el deber de relevo. El plan pesa más que el rol (que va de 0,1 a 1,0) pero no
+   * lo anula: DENTRO del equipo que tira siguen tirando sus gregarios y no su sprinter.
+   *
+   * Sube de 1 a 1,3 en la v39 para EQUILIBRAR la frescura. Los dos términos compiten por el mismo
+   * turno: si la frescura manda sola, el frente lo forman los que tienen tanque —vengan del equipo
+   * que vengan— y la crónica se queda sin poder nombrar a nadie. Barrido a la vez, el punto donde
+   * las dos cosas caben es 0,5 de frescura con 1,3 de mando: voz de equipo 62,7 % (banda 50-85),
+   * 2,27 equipos distintos llevando el frente (1,8-4), y la cola de la reina de gran vuelta en
+   * 8,18 % (8-14), que con 1,0 se caía a 6,86 % y con 1,6 a 6,48 %.
+   */
+  teamRelayDriveWeight: 1.3,
   // LA CAZA CON PRESUPUESTO. La fuerza del campo (`chase.ts`) deja de ser un escalar de etapa: se
   // escala por lo que les queda en las piernas a los equipos que persiguen. Con el presupuesto
   // intacto vale 1 y el controlador da exactamente los números de la v14; con los equipos de la
