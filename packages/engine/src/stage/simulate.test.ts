@@ -2047,3 +2047,64 @@ describe('abandonos en carretera y fuera de control (docs/motor.md §VI.3)', () 
     expect(out.results.every((r) => r.estado === 'finish')).toBe(true)
   })
 })
+
+/**
+ * EL DUELO DE MIRADAS (v39, docs/motor.md §12.7). El dueño, pidiendo el submotor del sprint:
+ * «fíjate cómo funciona un sprint sin lanzadores, por ejemplo en una fuga, donde puede haber un
+ * momento en el que todos se miran y de repente uno se lanza».
+ *
+ * Es el caso que el modelo de remate NO sabía contar: sin trenes no hay nadie que ponga el sprint
+ * en marcha, así que se abre tarde y con mucha más dispersión, y el momento pesa tanto como las
+ * piernas. Lo que este banco fija es justo eso —que el sprint de una fuga no lo gana siempre el más
+ * rápido— sin dejar que se convierta en una lotería, que sería el defecto contrario.
+ */
+describe('el sprint de una fuga se decide también por el momento (v39)', () => {
+  function breakSprintInput(): StageInput {
+    // Seis fugados que solo se distinguen en punta de velocidad (SPR 68-78), y un pelotón flojo
+    // detrás para que la fuga llegue: lo que se mide es el remate, no la persecución.
+    const fugados = Array.from({ length: 6 }, (_, i) =>
+      rider(`brk-${i}`, {
+        eff0: eff(60, { SPR: 68 + 2 * i, LLA: 70, TAC: 62 }),
+        orders: orders({ role: 'cazaetapas', mentality: 'combativo', contestSprints: true }),
+      }),
+    )
+    const pel = Array.from({ length: 24 }, (_, i) =>
+      rider(`pel-${i}`, { eff0: eff(48, { LLA: 52 }) }),
+    )
+    return {
+      profile: { segments: [{ km: 120, tipo: 'llano' }] },
+      riders: [...fugados, ...pel],
+    }
+  }
+
+  const wins = new Map<string, number>()
+  let arrivals = 0
+  for (const seed of seedsFor('duelo', 40)) {
+    const out = simulateStage(breakSprintInput(), seed)
+    if (out.events.find((e) => e.tipo === 'meta')?.datos?.fuga !== 1) continue
+    const winner = out.results[0]!.riderId
+    if (!winner.startsWith('brk-')) continue
+    arrivals += 1
+    wins.set(winner, (wins.get(winner) ?? 0) + 1)
+  }
+
+  it('la fuga llega lo bastante a menudo como para medir el remate', { timeout: 120000 }, () => {
+    expect(arrivals).toBeGreaterThanOrEqual(20)
+  })
+
+  it('no lo gana SIEMPRE el más rápido: el momento pesa', { timeout: 120000 }, () => {
+    const masRapido = wins.get('brk-5') ?? 0
+    // Con 38 puntos de ventaja en punta un sprint de pelotón sería casi seguro; en una fuga, donde
+    // nadie quiere abrir, no lo es. Medido: 8 de 29.
+    expect(masRapido / arrivals).toBeLessThan(0.6)
+    // Y ganan varios hombres distintos, que es la otra mitad de lo que pidió el dueño.
+    expect(wins.size).toBeGreaterThanOrEqual(3)
+  })
+
+  it('…pero tampoco es una lotería: los rápidos siguen ganando lo suyo', { timeout: 120000 }, () => {
+    // El defecto contrario al de arriba, y el que de verdad hay que vigilar: si el momento lo
+    // decidiera todo, la punta de velocidad dejaría de servir para nada dentro de una fuga.
+    const losTres = ['brk-3', 'brk-4', 'brk-5'].reduce((a, id) => a + (wins.get(id) ?? 0), 0)
+    expect(losTres / arrivals).toBeGreaterThan(0.55)
+  })
+})

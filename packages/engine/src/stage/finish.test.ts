@@ -8,6 +8,8 @@ import {
   finishType,
   isSprintFinish,
   isUphillFinish,
+  launchEffect,
+  sprintHoldMetres,
 } from './finish.js'
 import { sampleProfile } from './sample.js'
 import type { FinishType } from './finish.js'
@@ -292,5 +294,66 @@ describe('puntuación compuesta por tipo de final (docs/motor.md §12)', () => {
     ])
     expect(solaison).toBe('alto')
     expect(admitsBunchFinish(solaison)).toBe(false)
+  })
+})
+
+/**
+ * EL LANZAMIENTO (v39, docs/motor.md §12.7). El dueño lo pidió así: «puede haber un momento en el
+ * que todos se miran y de repente uno se lanza… pero si se lanza demasiado temprano puede no
+ * llegar, y si se lanza demasiado tarde igual ya no sobrepasa al que se lanzó antes». Estas pruebas
+ * fijan las dos mitades de esa frase.
+ */
+describe('a cuántos metros se abre el sprint (v39, §12.7)', () => {
+  it('cuánto sprint aguanta cada uno: más punta, más metros; vaciado, menos', () => {
+    const velocista = sprintHoldMetres(85, 1)
+    const rodador = sprintHoldMetres(55, 1)
+    // Un velocista puro sostiene un sprint más largo que un rodador, y los dos en metros de
+    // carretera: un sprint largo son 250-300 m y uno corto, 150-200.
+    expect(velocista).toBeGreaterThan(rodador)
+    expect(velocista).toBeGreaterThan(230)
+    expect(velocista).toBeLessThan(320)
+    // …y con el depósito vacío el mismo hombre aguanta bastante menos: es lo que hace que una
+    // llegada masiva tras 240 km no se dispute como una de 150.
+    expect(sprintHoldMetres(85, 0)).toBeLessThan(velocista)
+    expect(sprintHoldMetres(85, 0)).toBeGreaterThan(0)
+    // Monótona en las dos entradas, que es lo único que el resto del motor da por hecho.
+    expect(sprintHoldMetres(70, 0.5)).toBeGreaterThan(sprintHoldMetres(70, 0.2))
+  })
+
+  it('abrir en el punto justo no penaliza, y pasarse SÍ', () => {
+    const aguanta = 240
+    // Abrir exactamente lo que aguantas, siendo además el primero: nada que pagar.
+    expect(launchEffect(aguanta, aguanta, aguanta)).toBe(1)
+    // Abrir CIEN METROS antes de lo que aguantas: te apagas viendo pasar a los demás.
+    const pasado = launchEffect(aguanta + 100, aguanta, aguanta + 100)
+    expect(pasado).toBeLessThan(1)
+    // Y cuanto más te pasas, peor: la penalización crece con los metros de más.
+    expect(launchEffect(aguanta + 200, aguanta, aguanta + 200)).toBeLessThan(pasado)
+  })
+
+  it('dejar que el primero se vaya se paga, pero solo pasada la ventana', () => {
+    const aguanta = 240
+    // Salir un poco detrás del que abrió se remonta: un sprint se gana desde una rueda.
+    expect(launchEffect(aguanta - STAGE.launchWindowM, aguanta, aguanta)).toBe(1)
+    // Dejarle media recta, no: ya no le pasas aunque fueras más rápido.
+    const tarde = launchEffect(aguanta - STAGE.launchWindowM - 100, aguanta, aguanta)
+    expect(tarde).toBeLessThan(1)
+    expect(launchEffect(aguanta - STAGE.launchWindowM - 200, aguanta, aguanta)).toBeLessThan(tarde)
+  })
+
+  it('un sprint en el que TODOS esperan no perjudica a nadie', () => {
+    // Es la mitad que hace falta escribir aparte: el castigo del tarde es RELATIVO al primero que
+    // abrió, así que un sprint lento —una fuga en la que nadie quiere tirar— sale lento y lo gana
+    // el más rápido, en vez de castigar a los seis por igual.
+    const aguanta = 240
+    const todosTarde = aguanta - 120
+    expect(launchEffect(todosTarde, aguanta, todosTarde)).toBe(1)
+  })
+
+  it('equivocarse de momento cuesta la etapa, no la carrera', () => {
+    // El suelo existe para que el dado del lanzamiento no pueda convertir a un velocista en un
+    // gregario: se pierde el sprint sin dejar de estar ahí.
+    expect(launchEffect(2000, 100, 2000)).toBe(STAGE.launchEffectFloor)
+    expect(STAGE.launchEffectFloor).toBeGreaterThan(0.5)
   })
 })
