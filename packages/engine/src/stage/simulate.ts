@@ -1953,7 +1953,15 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
           // Con el pelotón entero en cabeza no hay «grupo de cabeza» en la cabeza del lector, así
           // que el próximo parte pequeño es una fuga que NACE y no un grupo que cambia: si no se
           // olvidara, el primer parte de una fuga de ocho saldría con «salen: 118».
-          lastFrontIds = []
+          //
+          // …PERO OLVIDAR NO ES BORRAR (v40). Guardaba `[]` y con eso se perdía también la memoria
+          // del ÚLTIMO GRUPO PEQUEÑO, así que un frente que se deshace y se rehace pasando por un
+          // grupo grande volvía a contarse desde cero. Medido en Flandes (semilla 3): km 112, «uno
+          // delante, uni-118»; km 117, «siete delante» y ninguno es él —el lector nunca se entera de
+          // que el hombre al que seguía se cayó—. Lo que hay que olvidar es la LISTA DEL PELOTÓN,
+          // que es la que daría «salen: 118»; la del grupo pequeño anterior es justo lo que hace
+          // falta para poder decir quién ya no está.
+          if (lastFrontIds.length > STAGE.frontNamesMaxRiders) lastFrontIds = []
         } else if (
           (entran.length > 0 || salen.length > 0) &&
           size < racing &&
@@ -1979,6 +1987,9 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
             // nombre porque los nombres ya están todos en la propia lista de protagonistas: lo que
             // falta no es quiénes van delante, es qué ha cambiado desde la última vez que se dijo.
             ...(lastFrontIds.length > 0 && entran.length > 0 ? { entran: entran.length } : {}),
+            // …y los que YA NO ESTÁN cuentan aunque el frente haya cambiado de manos entero: es el
+            // caso del hombre que iba solo delante y al que se traga la carrera (v40).
+
             ...(salen.length > 0 ? { salen: salen.length } : {}),
           })
           lastFrontReportKm = km
