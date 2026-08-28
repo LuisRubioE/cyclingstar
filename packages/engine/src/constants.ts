@@ -2657,7 +2657,16 @@ export const STAGE = {
    */
   climbEaseDemand: 95,
   // Ritmo del pelotón en un puerto que NO es decisivo (lejos de meta): se sube a tempo.
-  climbTempoCommit: 0.62,
+  /**
+   * …Y SUBE A 0,70 EN LA v39, al pasar el exponente del coste a la ley. La ley ABARATA el ritmo en
+   * cuesta (exponente 1,6 → 1,0, porque allí la velocidad es proporcional a la potencia y no a su
+   * raíz), así que con el mismo tempo la montaña seleccionaba menos y la cola de la reina de gran
+   * vuelta se caía a 7,98 % contra una banda de 8-14. Es la palanca que pidió el dueño mirando otra
+   * versión del mismo síntoma: «quizás entonces en una etapa reina falta que los campeones se
+   * esfuercen un poquito más». Con 0,70: cola 8,31 %, reinas reales 7,98 %, peor etapa 16,0 % (techo
+   * 18) y la fuga de montaña en 29,0 % (banda 25-45).
+   */
+  climbTempoCommit: 0.7,
   // Los últimos km de una etapa de meta llana: los trenes se organizan y el pelotón vuela.
   finalDriveKm: 15,
   finalDriveCommit: 0.85,
