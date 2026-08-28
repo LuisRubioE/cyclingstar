@@ -339,7 +339,16 @@ terreno y por condiciones, igual que hoy entran la moral y la forma.
 movido dentro de G1, que es donde tiene sentido. El dueño: «esto es más bien la forma de medir G1,
 no es un epic en sí mismo». Exacto.
 
-**N6 (que el mundo aguante al crecer) estaba mal razonado y se retira.** Yo di por hecho que más
+**N6 vuelve, pero por otro motivo del que yo daba.** Lo retiré porque razoné mal —ver abajo— y
+resulta que hay un problema de velocidad real, solo que no viene de los jugadores sino del MOTOR:
+medido sobre cinco etapas de Flandes, **14,0 s en la v38, 19,3 s a mitad de la v39 y 20,7 s en la
+v40**, un 48 % más de trabajo en dos versiones. Es el precio de la cooperación revisada, la física
+del ataque, el régimen de remate y el submotor del lanzamiento —todo ganado a pulso—, pero la
+tendencia importa: un juego que avanza un día cada seis horas simula un calendario entero cada vez,
+y el primer síntoma ya apareció (el banco de coherencia se pasó de su tope de cinco minutos). No es
+urgente; sí es algo que hay que vigilar en vez de descubrir tarde.
+
+**El razonamiento con el que lo propuse SÍ estaba mal y se retira.** Yo di por hecho que más
 jugadores significan más simulación, y no: **las carreras son fijas y no van a aumentar**. Un día de
 juego cuesta lo mismo con cien jugadores que con diez mil, porque lo que se simula son las carreras
 del calendario con su campo, no los jugadores. Lo que crece con los jugadores es la COMPETENCIA por
