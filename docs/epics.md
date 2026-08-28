@@ -267,9 +267,9 @@ DENTRO del plan.
 > escenarios hipotéticos quizás».
 
 O sea que la orden deja de ser un ajuste fijo —«eres gregario», «disputa el sprint»— y pasa a ser un
-plan con supuestos: *si a 60 km la fuga pasa de dos minutos, tira; si mi jefe se descuelga en el
+plan con supuestos: _si a 60 km la fuga pasa de dos minutos, tira; si mi jefe se descuelga en el
 primer puerto, espérale; si llegamos más de veinte a meta, no lances, guárdate; si llueve en el
-adoquín, colócate delante desde el km 40*. El jugador no está en la carrera, pero sí está en todas
+adoquín, colócate delante desde el km 40_. El jugador no está en la carrera, pero sí está en todas
 las carreras que podrían pasar.
 
 Y encaja con lo que ya hay: la crónica y la radio (`raceRadio.ts`) dejan de ser solo lectura y pasan

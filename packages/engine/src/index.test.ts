@@ -131,6 +131,19 @@ describe('engine: esqueleto', () => {
     // 6:53 en el km 137 y 16 s en meta). La referencia pasa a ser los que SIGUEN EN CARRERA, el
     // parte de ventaja NOMBRA a quien va delante y dice contra quién se mide y cuánto queda.
     // Cambio de OBSERVACIÓN: ni un dado, ni un subflujo, ni una constante de calibración.
+    // v40: EL ADOQUÍN VUELVE A ROMPER LA CARRERA, Y EL DIARIO DEJA DE CONTRADECIRSE
+    // (docs/balance.md «v40»). Cuatro arreglos y ni una mecánica nueva. (1) EL PAVÉ no
+    // seleccionaba: Paris-Roubaix —54,8 km de adoquín, el último sector a 1,1 km de meta— metía a
+    // 127 de 176 en el mismo segundo, con un PAV medio de cabeza igual al del campo; con
+    // `dropPavesFactor` en 0,6, 24 hombres y PAV 76,2 contra 64,0. (2) EL GENERADOR daba a las
+    // clásicas de un día de montaña el perfil de una etapa REINA —final en alto de catorce
+    // kilómetros, que no existe en el calendario real— y eso dejaba al 82 % del pelotón con el
+    // tanque a cero; ahora coronan antes de meta, y el invariante de saturación mira el calendario
+    // ENTERO y no solo el WorldTour, que es por donde se coló. (3) EL DESCOLGADO A CERO ya no
+    // pelea: no hay con qué. (4) EL DIARIO, medido con su propio auditor sobre 48 etapas: 70
+    // contradicciones en seis tipos, 10 en dos al cerrar —el mismo ataque contado dos veces, dos
+    // números que se leían como un error, partes de relevo que no traían nada y arcos que se abrían
+    // sin cerrarse—, más dos detectores que señalaban defectos que el lector nunca ve.
     // v39: EL SPRINT ES UNA DECISIÓN Y EL RITMO CUESTA LO QUE DICE LA LEY (docs/balance.md «v39»).
     // Tres leyes nuevas y un submotor. (1) EL LANZAMIENTO: cada hombre ABRE el sprint a una
     // distancia de la línea, y hay dos maneras de equivocarse —pasarse de lo que aguanta, o dejar
@@ -225,6 +238,6 @@ describe('engine: esqueleto', () => {
     // v11 (atribución del trabajo), la v10 (composición y caza), la v9 (capa táctica), la
     // v8 (tiempos de grupo), la v7 (modelo de final), la v6 (telemetría), la v5 (clásica larga), la
     // v4 (pavé en el recorrido) y la v3 (Cambio 0).
-    expect(ENGINE_VERSION).toBe(39)
+    expect(ENGINE_VERSION).toBe(40)
   })
 })

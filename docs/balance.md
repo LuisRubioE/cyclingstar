@@ -8093,3 +8093,119 @@ invariante, que la mide con 6, da 8,31 %: es un estadístico ruidoso —se le ha
   porque el azar puro daría 64.
 - **La cobertura de la criba lejana en la crónica** (58 % contra 75 %) queda para cuando se mejore
   el diario: «es solo un tema del journal, no me preocupa de momento».
+
+## v40 — El adoquín vuelve a romper la carrera, y el diario deja de contradecirse (`engine_version` 39 → 40)
+
+Tanda de ARREGLOS: ni una mecánica nueva. Cuatro cosas que estaban mal y el dueño mandó corregir,
+más lo que apareció al levantar cada piedra.
+
+### 1. El generador daba a una clásica el perfil de una etapa reina
+
+Cuatro carreras de un día reventaban el pelotón —Jura, Andorra, Appennino, Ses Salines— y **ningún
+invariante se enteraba**, porque la prueba de saturación solo recorría las de un día del WorldTour y
+ninguna de las cuatro lo es. Es la misma lección de la v17 con las reinas: lo que no se mide sobre
+el calendario de verdad, no se mide.
+
+Medido con campo heterogéneo, Race Jura dejaba al **82 % del campo con el tanque a cero y el vaciado
+mediano en 1,000**: la erosión topa y el resultado pasa a ser azar. Y no era el recorrido por duro:
+Jura es **más fácil** que Il Lombardia —210 km contra 241, 39 km de subida contra 55, 2.942 m contra
+2.995—. Lo que la mataba es que **moría arriba**: el generador le daba a una carrera de un día de
+montaña el perfil de una etapa reina de gran vuelta, con final en alto de nueve a quince kilómetros.
+Eso no existe en el calendario real —Lombardía, Lieja y San Sebastián coronan su último puerto a
+quince o veinte kilómetros de meta—, y los descolgados se soltaban DENTRO del último puerto con
+catorce kilómetros de rampa por delante.
+
+`mountainClassicSegments` construye ahora una clásica de montaña: los mismos puertos, el último
+CORTO y empinado —Civiglio, la Redoute, el Jaizkibel— y detrás una bajada y unos kilómetros de
+carretera hasta la línea. Resultado: **0 de 136 carreras duras saturan**, y la demanda máxima del
+calendario vuelve a ser Il Lombardia (102,2), que es donde tiene que estar.
+
+Y el invariante pasa a mirar, además de las del WorldTour, **las ocho más exigentes del calendario
+entero**. Cuál es dura se sabe sin simular nada, así que el coste sigue acotado.
+
+### 2. El que va a cero no pelea
+
+> El dueño: «lo de que pelean a tope aunque vaya vacío, arréglalo también, aunque no resuelva el
+> problema final».
+
+`droppedCommit` decía «el que acaba de soltarse va a su umbral aunque vaya vacío». Está bien escrito
+para el que pierde una rueda con medio depósito y es falso para el que está a cero.
+
+La v35 ya probó cobrarle la frescura al que pelea y lo **descartó con medida** —la brecha 1.º-10.º de
+la reina se iba de 254 s a 308 s contra un techo de 300, y la fuga de montaña ganaba el 53 % contra
+una banda de 25-45—. Por eso este cambio es distinto: aquél cobraba en TODO el rango y éste solo por
+debajo de `shedFightFreshness`, o sea en el último tercio del depósito. Comprobado, no supuesto:
+**brecha 68,0 s y fuga de montaña 35,0 %**.
+
+### 3. El adoquín no seleccionaba
+
+22 carreras del calendario llevan adoquín y seis son WorldTour: es una campaña de primavera entera.
+
+Medido sobre las clásicas reales con un campo que solo se distingue en PAV (45-83, media 64),
+**Paris-Roubaix metía a 127 de 176 corredores en el mismo segundo**, y el PAV medio de ese grupo de
+cabeza era 65,1 contra el 64,0 del campo: 54,8 km de adoquín en 56 sectores, con el último a 1,1 km
+de meta, y la carrera más adoquinera del calendario no distinguía al adoquinero del que no lo era.
+
+Eso explica por qué ninguna palanca del REMATE movía el banco del pavé, que es donde se empezó a
+buscar: **con 127 hombres llegando juntos no hay a quién rematar**. Subir el peso del PAV en la
+puntuación de meta de 0,5 a 0,8 movía la mediana de 69 a 70 y nada más, porque el problema estaba
+doscientos kilómetros antes.
+
+Con `dropPavesFactor` en 0,6: Roubaix termina con **24 hombres y PAV 76,2**. No se paga en desgaste
+—vaciado 0,845 con 2 % de pájaras— porque lo que cambia es QUIÉN aguanta el sector, no cuánto
+cuesta. Y sigue por debajo del 1 del puerto decisivo: en el adoquín se pierde la rueda por un suceso,
+en el puerto porque no se puede con el ritmo.
+
+Por el camino se arregló una intención escrita y no implementada: el reenganche al pelotón decía
+`!onClimb` cuando el comentario de cuatro líneas más arriba ya decía «en terreno que rompe… **no hay
+reenganche al pelotón**», usando `onRough`, que incluye el pavé.
+
+### 4. El diario
+
+Auditadas 48 etapas de seis recorridos contra los doce detectores de coherencia, para atacar por
+donde falla y no por donde parezca.
+
+| defecto                                   | antes             | después          |
+| ----------------------------------------- | ----------------- | ---------------- |
+| El mismo ataque en dos líneas             | 24                | **0**            |
+| Dos números que se contradicen            | 16                | **0**            |
+| Ataques que se abren y no se cierran      | 11                | **2**            |
+| Parte de relevos repetido                 | 12                | 7                |
+| «1 of their companion sits on»            | 6                 | **0**            |
+| «try to go with them» con un protagonista | 1                 | **0**            |
+| **totales**                               | **70 en 6 tipos** | **9 en 2 tipos** |
+
+Cuatro hallazgos:
+
+- **El parte de cabeza repetía el ataque que lo había creado**, con la misma gente y en el mismo
+  kilómetro: «uni-30 ataca» y debajo «ya solo queda uni-30 delante». Era el defecto más frecuente
+  del diario. Ahora se calla, pero la MEMORIA se actualiza —si no, el siguiente parte compararía
+  contra un frente viejo—.
+- **El diario ya sabía callarse y el motor no le avisaba.** El «189 km up the road» contra «172 km
+  later» lo resuelve la plantilla sola cuando le llega `pegado`, y el motor no se lo mandaba nunca.
+- **El acelerador de avisos tapaba desenlaces.** Existe para que una etapa nerviosa no sea una lista
+  de intentos, y silenciaba el final de movimientos cuya salida el lector SÍ había leído: un
+  contraataque de diez hombres en el km 39 de Flandes al que no se vuelve a nombrar en toda la
+  etapa. Si la salida se contó, el desenlace se debe.
+- **Y dos detectores mentían**, que es peor: un medidor que grita defectos inexistentes esconde los
+  de verdad detrás del ruido. Los dos de concordancia exigían una marca que el diario ya no necesita
+  —deriva el singular de `saltan` y de `passengers` él solo—. Uno se re-encuadra a lo que sí sigue
+  siendo defecto; el otro se RETIRA, con su explicación en el sitio.
+
+### 5. Lo que quedó medido
+
+Batería **1337/1337** y campaña de 200 corridas con **33 de 33** objetivos en banda. La huella
+sellada conserva ganador y forma en las cuatro etapas, con un solo reloj cambiado en un segundo: el
+banco canónico es sintético, no tiene un metro de adoquín, no sale del generador y no lee la
+crónica, así que tenía que quedarse quieto.
+
+### 6. Dos cosas que hay que vigilar
+
+- **El motor se ha frenado un 48 % en dos versiones.** Medido sobre cinco etapas de Flandes: 14,0 s
+  en la v38, 19,3 s a mitad de la v39 y 20,7 s en la v40. Es el precio de la cooperación revisada,
+  la física del ataque, el régimen de remate y el submotor del lanzamiento —todo ganado a pulso—,
+  pero el primer síntoma ya apareció: el banco de coherencia se pasó de su tope de cinco minutos.
+  Un juego que avanza un día cada seis horas simula un calendario entero cada vez.
+- **El ranking NO es de 365 días.** Es `season_points`, un contador que se incrementa por temporada
+  sin puntos fechados por resultado, así que no se puede restar lo del mismo día del año anterior.
+  Es un cambio de esquema, no de fórmula. Anotado en `docs/epics.md` (G3).

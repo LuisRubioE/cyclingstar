@@ -1059,6 +1059,8 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
   // Estado del parte de «quién tira del pelotón»: desde qué km no se cuenta y a quién se nombró.
   let lastPullReportKm = Number.NEGATIVE_INFINITY
   let lastPullLeader = ''
+  /** …y los NOMBRES del último parte: el lector los lee tanto como el motivo (v40). */
+  let lastPullNames = ''
   /** Ya se ha contado una vez cómo se reparte el trabajo dentro de la fuga. */
   let breakShareReported = false
 
@@ -2143,22 +2145,26 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         const c = peloton.compromiso
         const why = pullReason(pull.ids, worksFor)
         const effort =
-          c <= STAGE.pullEffortTempoMax
-            ? 'tempo'
-            : c >= STAGE.pullEffortFullMin
-              ? 'tope'
-              : 'firme'
-        const identidad = [
-          why.targetId ?? pull.ids[0] ?? '',
-          why.kind,
-          effort,
-          ahead ? 1 : 0,
-        ].join('/')
+          c <= STAGE.pullEffortTempoMax ? 'tempo' : c >= STAGE.pullEffortFullMin ? 'tope' : 'firme'
+        const identidad = [why.targetId ?? pull.ids[0] ?? '', why.kind, effort, ahead ? 1 : 0].join(
+          '/',
+        )
+        /**
+         * …Y LAS DOS COSAS TIENEN QUE CAMBIAR, no una u otra. El lector lee nombres Y significado,
+         * así que un parte solo merece la pena si le trae algo nuevo de alguno de los dos lados: o
+         * son otros hombres, o es otro trabajo. Repetir los mismos tres nombres a los quince
+         * kilómetros porque el esfuerzo pasó de firme a tope tampoco vale —el banco de atribución
+         * lo vigila desde que existe— y repetir el mismo encargo con otro primer nombre tampoco.
+         * Por encima de las dos manda la caducidad: pasados `pullReportKmGap` se vuelve a contar
+         * quién lleva la carrera aunque no haya cambiado nada.
+         */
+        const nombres = pull.ids.join()
         if (
           pull.ids.length > 0 &&
           pull.best >= STAGE.pullMinWork &&
           km - lastPullReportKm >= STAGE.pullReportMinKmGap &&
-          (identidad !== lastPullLeader || km - lastPullReportKm >= STAGE.pullReportKmGap)
+          ((identidad !== lastPullLeader && nombres !== lastPullNames) ||
+            km - lastPullReportKm >= STAGE.pullReportKmGap)
         ) {
           // POR QUÉ TIRA ESE EQUIPO (v15, docs/motor.md §V.1). El dueño lo pidió literal: «no es
           // solo saber qué equipo(s) participan de la persecución… también es saber POR QUÉ». Solo
@@ -2190,6 +2196,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
           })
           lastPullReportKm = km
           lastPullLeader = identidad
+          lastPullNames = nombres
         }
       }
 

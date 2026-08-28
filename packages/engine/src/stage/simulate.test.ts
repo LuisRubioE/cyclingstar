@@ -2101,10 +2101,14 @@ describe('el sprint de una fuga se decide también por el momento (v39)', () => 
     expect(wins.size).toBeGreaterThanOrEqual(3)
   })
 
-  it('…pero tampoco es una lotería: los rápidos siguen ganando lo suyo', { timeout: 120000 }, () => {
-    // El defecto contrario al de arriba, y el que de verdad hay que vigilar: si el momento lo
-    // decidiera todo, la punta de velocidad dejaría de servir para nada dentro de una fuga.
-    const losTres = ['brk-3', 'brk-4', 'brk-5'].reduce((a, id) => a + (wins.get(id) ?? 0), 0)
-    expect(losTres / arrivals).toBeGreaterThan(0.55)
-  })
+  it(
+    '…pero tampoco es una lotería: los rápidos siguen ganando lo suyo',
+    { timeout: 120000 },
+    () => {
+      // El defecto contrario al de arriba, y el que de verdad hay que vigilar: si el momento lo
+      // decidiera todo, la punta de velocidad dejaría de servir para nada dentro de una fuga.
+      const losTres = ['brk-3', 'brk-4', 'brk-5'].reduce((a, id) => a + (wins.get(id) ?? 0), 0)
+      expect(losTres / arrivals).toBeGreaterThan(0.55)
+    },
+  )
 })
