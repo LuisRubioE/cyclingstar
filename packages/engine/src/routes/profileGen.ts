@@ -213,6 +213,52 @@ export function mountainSegments(km: number, seed: string): Segment[] {
   return normalize(segs, km)
 }
 
+/**
+ * CLÁSICA DE MONTAÑA DE UN DÍA (v40): los mismos puertos que una reina, pero **la última cima NO es
+ * la meta**.
+ *
+ * Una carrera de un día de terreno `mountain` se generaba con `mountainSegments`, o sea con el
+ * perfil de una etapa reina de gran vuelta: final en alto de nueve a quince kilómetros. Eso no
+ * existe en el calendario real —Il Lombardia, Lieja y San Sebastián coronan su último puerto a
+ * quince o veinte kilómetros de meta y bajan o llanean hasta la línea— y el motor lo pagaba caro:
+ * medido con campo heterogéneo, Race Jura dejaba al **82 % del pelotón con el tanque a cero y el
+ * vaciado mediano en 1,000**, con la erosión topada y el resultado convertido en azar. Y no era
+ * dureza: Jura es MÁS FÁCIL que Il Lombardia (210 km contra 241, 39 km de subida contra 55, 2.942 m
+ * contra 2.995), pero moría arriba, así que los descolgados se soltaban DENTRO del último puerto y
+ * les quedaban catorce kilómetros de rampa por delante.
+ *
+ * Aquí el último puerto corona y detrás quedan una bajada y unos kilómetros de carretera: el mismo
+ * relieve, la misma selección, y un final que se puede terminar.
+ */
+export function mountainClassicSegments(km: number, seed: string): Segment[] {
+  const rand = rng(seed)
+  const midClimbs = km > 165 ? 3 : 2
+  const mids = Array.from({ length: midClimbs }, () => ({
+    len: between(rand, 6, 11),
+    g: between(rand, 5.5, 7.5),
+  }))
+  // El último puerto de una clásica es CORTO y empinado —Civiglio, la Redoute, el Jaizkibel—, no el
+  // puerto de nueve a quince kilómetros de una reina: lo que decide es la rampa, no la resistencia.
+  const finalLen = between(rand, 4, 8)
+  const finalG = between(rand, 7.5, 10)
+  const runIn = between(rand, 13, 22)
+  const used = mids.reduce((a, c) => a + c.len, 0) + midClimbs * 6 + finalLen + runIn
+  const fill = Math.max(km * 0.2, km - used)
+  const gaps = split(rand, fill, midClimbs + 1)
+  const segs: Segment[] = []
+  segs.push(...rolling(rand, gaps[0]!, true))
+  mids.forEach((c, i) => {
+    segs.push(climb(rand, c.len, c.g))
+    segs.push(descent(rand, between(rand, 5, 8), 6))
+    segs.push(...rolling(rand, gaps[i + 1]!, true))
+  })
+  segs.push(climb(rand, finalLen, finalG))
+  // …y detrás del último puerto, la bajada y los kilómetros de carretera hasta la línea.
+  const bajada = Math.min(runIn * 0.6, Math.max(2, (finalLen * finalG * 10) / 55))
+  segs.push(descent(rand, bajada, 6), ...rolling(rand, runIn - bajada))
+  return normalize(segs, km)
+}
+
 /** Clásica dura: ondulada con una sucesión de muros cortos y explosivos, final quebrado. */
 export function classicSegments(km: number, seed: string): Segment[] {
   const rand = rng(seed)

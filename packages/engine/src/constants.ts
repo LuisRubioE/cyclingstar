@@ -1988,6 +1988,14 @@ export const STAGE = {
   // grupeto de la última hora lejos del pelotón —en la v15 volvía siempre— y lo que NO estorba en el
   // primer puerto de la etapa, cuando todo el mundo va lleno y el corte se recompone en el valle.
   shedEmptyCommitFactor: 0.6,
+  /**
+   * CON CUÁNTO DEPÓSITO SE PUEDE PELEAR (v40, ver `droppedCommit`). Por encima de este resto se
+   * pelea entero; por debajo, la pelea se apaga proporcionalmente hasta que a cero no se pelea
+   * nada. No sustituye a `shedEmptyCommitFactor` —ése es el ritmo que QUIERE llevar un grupeto
+   * resignado— sino que responde a la otra mitad de la pregunta: si el que acaba de soltarse, con
+   * el grupo aún a la vista, se lanza a por él estando vacío. No se lanza.
+   */
+  shedFightFreshness: 0.3,
   // EL QUE ACABA DE SOLTARSE PELEA. Su umbral, que es el `shedCommit` = 0,82 de toda la vida: quien
   // pierde una rueda no se sienta, se pone de pie y pelea por volver. Este es el término que
   // distingue una SELECCIÓN de una debacle, y sin él el motor mandaba al grupeto a cualquiera que

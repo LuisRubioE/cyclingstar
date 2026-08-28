@@ -340,7 +340,23 @@ export function droppedCommit(
   // rueda—. El que acaba de soltarse va a su umbral aunque vaya vacío; el que ya se ha resignado,
   // no.
   const seen = 1 - clamp(gapSeconds / STAGE.shedResignGapSeconds, 0, 1)
-  const fight = seen + (1 - seen) * majorityOnTheRoad(size, aheadSize) * wind
+  /**
+   * …Y EL QUE VA VACÍO NO PELEA (v40). Pelear era una decisión que solo miraba el boquete y cuánta
+   * gente hay a cada lado: el que acababa de soltarse iba a por ellos «aunque fuera vacío», y eso
+   * está bien escrito para el que pierde una rueda con medio depósito, pero no para el que está a
+   * cero. A cero no se pelea: te sientas y sobrevives, porque no hay con qué.
+   *
+   * El defecto que lo destapó: las carreras de un día de MONTAÑA —final en alto de doce a quince
+   * kilómetros— reventaban el pelotón entero. Medido en Race Jura con campo heterogéneo, **el 82 %
+   * del campo cruzaba la meta con el tanque a cero y el vaciado mediano valía 1,000**, o sea que la
+   * erosión topaba y el resultado pasaba a ser azar. Y no era el recorrido: Jura es MÁS FÁCIL que Il
+   * Lombardia —210 km contra 241, 39 km de subida contra 55, 2.942 m contra 2.995— y Lombardía se
+   * queda en 0,949. Lo que las separa es que Jura muere arriba, así que los descolgados se sueltan
+   * DENTRO del último puerto, con el boquete todavía pequeño, y se quedaban peleando a tope los
+   * catorce kilómetros que les faltaban para la meta.
+   */
+  const conQuéPelear = clamp(freshness / STAGE.shedFightFreshness, 0, 1)
+  const fight = (seen + (1 - seen) * majorityOnTheRoad(size, aheadSize) * wind) * conQuéPelear
   /**
    * …Y PELEAR ES IR MÁS RÁPIDO QUE EL DE DELANTE (v35). El 0,82 de la v16 es un número absoluto —el
    * ritmo de un pelotón lanzado— y contra un pelotón que rueda a tempo (0,55-0,65) eso significaba
