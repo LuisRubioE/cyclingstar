@@ -1510,6 +1510,19 @@ export const STAGE = {
    * estado tirando toda la etapa.
    */
   relayFreshnessWeight: 0.5,
+  /**
+   * …Y EL TECHO DE LA FRESCURA (v39). Ir más entero que el de al lado NO te obliga a dar más
+   * relevos: mientras los dos vayan bien, el turno lo deciden el oficio y el plan. Lo que sí cuenta
+   * es ir VACÍO, y eso te saca de la rotación. Por eso la frescura entra topada: por encima del
+   * techo todos valen igual y por debajo empieza a pesar.
+   *
+   * Sin el techo, en un pelotón donde todos llevan el mismo encargo el turno lo ordenaba solo el
+   * tanque, y eso deshacía la criba: en el banco del puerto de 20 km al 8 % a 50 km de meta, la
+   * carrera se partía en 7 de 8 corridas y pasó a 5, con corridas enteras metiendo a 98 corredores
+   * en el mismo grupo de cabeza. Con el techo, el reparto sigue —Il Lombardia no vuelve a las
+   * pájaras del 16 %— pero la etapa se vuelve a partir donde tiene que partirse.
+   */
+  relayFreshnessCap: 0.45,
   // Penalización al deber de relevo de un corredor que lleva gregarios suyos en el grupo: si tiene
   // equipo alrededor, el equipo trabaja por él (SPEC 6.18) y él pasa al final de la cola de relevos.
   relayProtectedPenalty: 1.2,
@@ -2590,11 +2603,12 @@ export const STAGE = {
    * `ReferenceDemand` es lo que pide un día normal —la media montaña del banco pide 73,9 y la llana
    * 43,2—, y por encima de eso se rueda proporcionalmente más suave. Lombardía pide 102,2, Strade
    * 98,7 y Montreal 90,9: son exactamente las tres que saturaban. `Min` es el suelo, porque
-   * administrarse no es pasear.
+   * administrarse no es pasear —a 0,7, con el reparto del turno de la v39, Il Lombardia se queda en
+   * 0,888 de vaciado y un 8 % de pájaras contra un techo de 0,95 y 12 %—.
    */
   pacingReferenceDemand: 75,
   pacingSlope: 1,
-  pacingMin: 0.75,
+  pacingMin: 0.7,
   /**
    * CUÁNTO DE LA DOSIFICACIÓN —Y CUÁNTO DE LA HUEVA— LLEGA A LAS CUESTAS (v39). Ninguna de las dos
    * es una fuerza física: son «con cuántas ganas se rueda esto», y las ganas se administran EN EL

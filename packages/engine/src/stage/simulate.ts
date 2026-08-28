@@ -435,7 +435,7 @@ function relayDuty(
   const freshness = m.energy0 > 0 ? Math.max(0, Math.min(1, m.energy / m.energy0)) : 0
   return (
     duty +
-    STAGE.relayFreshnessWeight * freshness -
+    STAGE.relayFreshnessWeight * Math.min(freshness, STAGE.relayFreshnessCap) -
     (protectedByTeam ? STAGE.relayProtectedPenalty : 0) -
     // Su equipo persigue esta fuga por detrás: no colabora en ella (v33).
     (sittingOn ? STAGE.relaySittingOnPenalty : 0) +
