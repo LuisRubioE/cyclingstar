@@ -497,6 +497,33 @@ export function timeTrialCost(block: Block, c: number, dx: number = STAGE.dx): n
   return dx * costBase(block) * Math.pow(rhythm(c), STAGE.costRhythmExponent)
 }
 
+/**
+ * EL EXPONENTE DEL RITMO ES EL INVERSO DE LA LEY (v39). El dueño: «ir en cabeza no es solo un tema
+ * del viento, es un tema de desgaste porque vas marcando la velocidad; obviamente es muy diferente
+ * ir en cabeza a 70 km/h que a 30 km/h, suponiendo llano en ambos casos».
+ *
+ * Tiene razón y el motor se contradecía a sí mismo. La ley de velocidad dice que en LLANO la
+ * velocidad responde a la potencia con exponente `p75Exponent` = 0,39 —o sea que para ir un 10 %
+ * más rápido hay que poner un 27 % más de vatios, `P ∝ v^2,56`, que es la ley aerodinámica— y en
+ * CUESTA responde con exponente 1,0, porque ahí lo que se paga es levantar el peso y la velocidad
+ * es proporcional a la potencia. Pero el COSTE del ritmo usaba un exponente FIJO de 1,6 para las
+ * dos cosas: infracobraba el llano rápido —justo el caso del dueño— y sobrecobraba la cuesta.
+ *
+ * El exponente correcto es exactamente el inverso del de la ley que convierte potencia en
+ * velocidad: `1 / loadExponent(block)`. No es una calibración, es cerrar el círculo — con esto,
+ * subir el ritmo cuesta lo que la propia ley del motor dice que cuesta.
+ *
+ * `costRhythmLawShare` mezcla con el exponente viejo para poder medir el cambio por partes; en 1
+ * manda la ley.
+ */
+export function rhythmCostExponent(block: Block): number {
+  const porLey = 1 / Math.max(1e-9, loadExponent(block))
+  return (
+    STAGE.costRhythmExponent +
+    (porLey - STAGE.costRhythmExponent) * STAGE.costRhythmLawShare
+  )
+}
+
 export function blockCost(
   block: Block,
   c: number,
@@ -549,10 +576,7 @@ export function blockCost(
    */
   const marcha = rhythm(c) * relayPaceEdge(block, n)
   return (
-    dx *
-    costBase(block) *
-    Math.pow(marcha, STAGE.costRhythmExponent) *
-    (share * cara + (1 - share) * rueda)
+    dx * costBase(block) * Math.pow(marcha, rhythmCostExponent(block)) * (share * cara + (1 - share) * rueda)
   )
 }
 

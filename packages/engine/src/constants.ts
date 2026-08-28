@@ -1409,6 +1409,8 @@ export const STAGE = {
   shelterAlone: 0.0,
   // coste = dx·costeBase·ritmo(c)^1.6·(1 - draftMax·shelter).
   costRhythmExponent: 1.6,
+  /** Cuánto manda la LEY en ese exponente (ver `rhythmCostExponent`): 1 = del todo. */
+  costRhythmLawShare: 0,
   /**
    * LA CONVEXIDAD DEL VIENTO (v38). El coste era LINEAL en la exposición (`1 − draftMax·shelter`):
    * 1,00 dando la cara y 0,62 a rueda, o sea que ir a rueda costaba el 62 % de dar la cara. El

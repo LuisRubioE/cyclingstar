@@ -2714,7 +2714,14 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
          * los que entran al turno y pagan el viento) y que te saquen del turno cuando hace falta
          * (v36). El descuento era una tercera vía que cobraba dos veces lo mismo.
          */
-        const cost = blockCost(block, group.compromiso, pulling, relayers.size)
+        /**
+         * …Y EL DEPÓSITO SE PAGA A LA VELOCIDAD QUE DE VERDAD SE LLEVA (v39), por el mismo motivo
+         * que el trabajo de arriba: desde que existe el régimen de remate, el compromiso del grupo
+         * ya no es lo único que mueve la carretera. Con el compromiso a secas, el último kilómetro
+         * de una llegada masiva —el pelotón a 60 km/h— no gastaba NADA de depósito. El dueño:
+         * «obviamente es muy diferente ir en cabeza a 70 km/h que a 30 km/h».
+         */
+        const cost = blockCost(block, compromisoReal, pulling, relayers.size)
         m.energy = Math.max(0, m.energy - cost)
         m.work += cost
       }
