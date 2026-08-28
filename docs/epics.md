@@ -237,12 +237,29 @@ a ser el INFORME con el que se corrige el plan de la próxima —«esto se decid
 dicho esto otro»—. La partida se juega escribiendo planes mejores, que es lo que de verdad hace un
 director deportivo.
 
-### N2 · La cantera y el relevo generacional
+### N2 · El relevo generacional (NO una cantera)
 
-G10 (retiradas) y esto son la misma pieza vista por sus dos extremos: si se jubilan y no entra
-nadie, el mundo se vacía; y si los que entran se generan uniformes, no hay ojeo ni desarrollo que
-decidir. Descubrir a un chaval de diecinueve años y verlo crecer cinco temporadas es media gracia
-de un mánager.
+Lo propuse como academia de juveniles y ojeadores, y estaba mal planteado porque yo tenía mal el
+modelo del juego: **aquí el jugador ES un ciclista**, no un mánager que ficha promesas.
+
+> El dueño: «los nuevos son los nuevos humanos que se registren… y cuando un jugador humano se
+> jubile lo lógico es que empiece uno nuevo (se le podría incluso sugerir). No quiero una academia
+> junior de bots».
+
+Así que el relevo tiene dos caminos y ninguno es una cantera:
+
+- **El humano que se retira vuelve a empezar.** Es el momento más delicado de la vida del jugador
+  —se le acaba el personaje al que le ha dedicado temporadas—, así que la retirada no puede ser una
+  puerta de salida: tiene que ser una puerta a la siguiente carrera deportiva, sugerida por el
+  juego y con lo ganado reconocido en algún sitio que permanezca (palmarés, salón de la fama).
+- **El bot que se retira lo reemplaza un bot júnior, y ya.** Sin ojeo, sin desarrollo, sin
+  ceremonia: es relleno del mundo y solo tiene que mantener el pelotón lleno mientras no haya
+  humanos suficientes. Se conecta directo con G8 (limpiar bots según llegan humanos) y G9 (que los
+  bots sean peores).
+
+Lo que sí queda en pie de la idea original es la CURVA DE UNA CARRERA DEPORTIVA: que un corredor
+joven mejore, madure y decaiga, y que eso se note. Eso vale igual para humanos y para bots, y es
+condición de G1 (entrenamientos) y de G10 (retiradas).
 
 ### N3 · Lesiones con calendario
 
