@@ -23,15 +23,20 @@ Conclusión: **el sector de adoquines desgasta pero no SELECCIONA**. Llegan dema
 jugárselo a la rueda, y ahí ya no hay peso de remate que valga. El arreglo va en la selección
 dentro del sector, no en la puntuación final.
 
-### B2 · La contrarreloj reparte un abanico imposible
+### B2 · La contrarreloj — CERRADO SIN TOCAR EL MOTOR (v40): no existía
 
-Defecto declarado en el propio código (`stage/simulate.ts`, sobre el corte de tiempo): en una crono
-de 20 km el motor reparte un abanico del **15 % de mediana y del 36 % en la cola**. Es tanto que el
-corte de tiempo del reglamento está DESACTIVADO en las cronos, porque aplicarlo se llevaría por
-delante a 150 corredores en la primera etapa.
+Estaba apuntado como bug porque el propio código lo declaraba: «un defecto ABIERTO del modelo de
+crono», con un abanico del 15 % de mediana y del 36 % en la cola, y el corte de tiempo desactivado
+en las cronos porque aplicarlo se habría llevado a 150 corredores en la etapa 1.
 
-Es la única disciplina que el motor no sabe resolver, y las cronos deciden grandes vueltas:
-mientras siga así, cualquier general que salga del juego está sesgada.
+**Las dos cosas dejaron de ser ciertas hace veinte versiones.** La v19 arregló el abanico y la v20
+metió el corte con su constante propia (`timeCutItt` = 0,25), aplicado en `timetrial.ts`. Medido
+hoy sobre el banco de cronos reales: **cola mediana 13,8 %** (banda 8-15) y peor crono 14,9 %
+(techo 17), con un invariante que además exige que en una crono normal el corte no señale a nadie.
+
+Lo que había era un COMENTARIO CADUCADO, y costó una tarde de perseguir un fantasma. Ya está
+corregido en el sitio. La lección va aquí porque se repetirá: un comentario que declara un defecto
+que ya no existe es peor que no tener comentario.
 
 ---
 
@@ -359,7 +364,8 @@ mecánica de juego (y bastante buena), no un problema de escala.
 
 ## Orden acordado
 
-1. **B1** (el adoquín) y **B2** (la crono) — son bugs, van primero.
+1. ~~**B1** (el adoquín) y **B2** (la crono)~~ — HECHOS en la v40. B1 arreglado
+   (`dropPavesFactor`); B2 no existía: era un comentario caducado.
 2. **E1**, **E3**, **E5** — delegadas.
 3. La lista grande, empezando por donde el dueño diga. **G1 (entrenamientos)** y **G3 (rankings)**
    son las dos que hoy pueden estar mintiendo en producción, así que son las candidatas naturales.

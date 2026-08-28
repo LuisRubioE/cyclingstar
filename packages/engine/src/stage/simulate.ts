@@ -4558,14 +4558,22 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
    * por una razón que no es de comodidad: el corte se mide contra el tiempo del GANADOR, y ese dato
    * no existe hasta que alguien cruza la meta.
    *
-   * En CONTRARRELOJ no se aplica, y no por olvido: `simulateStage` desvía la crono a
-   * `simulateTimeTrial` antes de llegar aquí. El reglamento real sí corta en las cronos, pero medido
-   * sobre una
-   * gran vuelta de 176 corredores el motor reparte en una crono de 20 km un abanico del 15 % de
-   * mediana y del 36 % en la cola (docs/balance.md, «v14»): con el corte puesto, la etapa 1 se
-   * llevaría por delante a 150 corredores. Ese abanico es un defecto ABIERTO del modelo de crono
-   * —no de esta tanda— y hasta que se cierre, cortar en crono sería castigar a la carrera por un
-   * error del motor. Queda anotado en docs/balance.md como pendiente.
+   * En CONTRARRELOJ no se aplica AQUÍ, y no por olvido ni por defecto: `simulateStage` desvía la
+   * crono a `simulateTimeTrial`, **que tiene su propio corte** (`timeCutItt` = 0,25, ver
+   * `timetrial.ts`). Con su constante propia porque una crono no tiene pelotón y sus tiempos son un
+   * continuo: el corte de la llana se llevaría media clasificación.
+   *
+   * ESTE COMENTARIO DECÍA OTRA COSA HASTA LA v40, y hay que dejarlo escrito porque costó una tarde.
+   * Declaraba «un defecto ABIERTO del modelo de crono» con las cifras de la v14 —un abanico del
+   * 15 % de mediana y del 36 % en la cola, que con el corte puesto se habría llevado a 150
+   * corredores en la etapa 1— y decía que por eso no se cortaba. Las dos cosas dejaron de ser
+   * ciertas hace veinte versiones: la v19 arregló el abanico y la v20 metió el corte. Medido hoy
+   * sobre el banco de cronos REALES, la cola mediana es del 13,8 % (banda 8-15) y la peor crono se
+   * queda en el 14,9 % (techo 17), y hay invariante que exige que en una crono normal el corte no
+   * señale a NADIE.
+   *
+   * Un comentario que declara un defecto que ya no existe es peor que no tener comentario: manda a
+   * quien lo lee a arreglar algo que está bien.
    */
   // (La contrarreloj no llega aquí: `simulateStage` la desvía a `simulateTimeTrial` en la 1.ª línea.)
   const outOfTime = applyStageTimeCut(sims, blocks, abandonBudget - abandoned.length, totalKm, log)
