@@ -216,13 +216,26 @@ rankings, al mercado y a la cantera.
 
 Salidas de mirar el código, no de imaginar. Cada una dice qué se comprobó.
 
-### N1 · El día de carrera se LEE, no se juega
+### N1 · El plan como PROGRAMA: órdenes condicionales
 
-Comprobado: pones las órdenes antes (`RaceOrders`), se simula, y lo ves después (`StageReplay`). No
-hay un solo momento en el que el jugador decida DURANTE la carrera. En este deporte el drama es la
-radio —«ataca ahora», «cierra ese hueco», «déjalo ir»— y todo lo necesario existe ya como
-telemetría (`raceRadio.ts`); lo que falta es convertirla en decisiones. Es la EPIC que más cambia
-lo que el juego SE SIENTE, no lo que calcula.
+Primero lo planteé como decidir durante la carrera, estilo radio, y el dueño lo tumbó con la razón
+correcta: **es incompatible con avanzar un día cada seis horas**. En un mundo persistente el
+jugador no puede estar delante cuando su corredor ataca, así que la decisión tiene que viajar
+DENTRO del plan.
+
+> El dueño: «lo que hay que hacer si acaso es mejorar la granularidad de las instrucciones, con más
+> escenarios hipotéticos quizás».
+
+O sea que la orden deja de ser un ajuste fijo —«eres gregario», «disputa el sprint»— y pasa a ser un
+plan con supuestos: *si a 60 km la fuga pasa de dos minutos, tira; si mi jefe se descuelga en el
+primer puerto, espérale; si llegamos más de veinte a meta, no lances, guárdate; si llueve en el
+adoquín, colócate delante desde el km 40*. El jugador no está en la carrera, pero sí está en todas
+las carreras que podrían pasar.
+
+Y encaja con lo que ya hay: la crónica y la radio (`raceRadio.ts`) dejan de ser solo lectura y pasan
+a ser el INFORME con el que se corrige el plan de la próxima —«esto se decidió aquí y tú habías
+dicho esto otro»—. La partida se juega escribiendo planes mejores, que es lo que de verdad hace un
+director deportivo.
 
 ### N2 · La cantera y el relevo generacional
 
