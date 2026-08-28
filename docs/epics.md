@@ -98,15 +98,75 @@ enseña más por ser una carrera dura que por ser un entrenamiento.
 
 > «Esto va a ser BRUTAL. Tiene a su vez MUCHÍSIMOS componentes.»
 
-Sin desglosar todavía. Es probablemente la EPIC más grande del proyecto.
+Es la EPIC más grande del proyecto y no es una: son catorce. Desglose por componentes, cada uno
+entregable por separado. Los marcados con **[hay pieza]** tienen ya algo en el motor sobre lo que
+apoyarse.
+
+#### La plantilla
+
+- **G2.1 · Jerarquía y liderazgos.** Quién es jefe de filas de qué carrera, quién va protegido y
+  quién trabaja. El conflicto de dos gallos en un corral es de las mejores historias que da este
+  deporte, y hoy no puede ocurrir. **[hay pieza]**: el motor ya reparte roles y protege líderes
+  (`domestiquesFor`, `relayProtectedPenalty`).
+- **G2.2 · Convocatorias y carga de trabajo.** A quién llevas a cada carrera. Un corredor que corre
+  poco se pudre y uno que corre demasiado llega roto a lo importante; los dos tienen que quejarse.
+- **G2.3 · Promesas y expectativas.** Decirle a alguien que llevará el Giro. Cumplirlo o no. Sin
+  esto la moral es un número que sube y baja solo; con esto es una relación.
+- **G2.4 · Disciplina y conducta.** Ataques por libre, órdenes desobedecidas, sanciones, dejar a
+  alguien fuera. **[hay pieza]**: el motor YA tiene rebeldes —el que sale por su cuenta queda fuera
+  del plan de equipo y la crónica lo cuenta— y no hay nada que reaccione a eso.
+
+#### El dinero
+
+- **G2.5 · Contratos.** Duración, salario, primas por victoria y por puntos, cláusulas, opciones,
+  ventanas de fichajes. **[hay pieza]**: existen `contracts.ts` y la pantalla de mercado.
+- **G2.6 · Premios en metálico.** El premio por ganar carreras, etapas y clasificaciones. Va al
+  EQUIPO, y por costumbre del oficio el bote se reparte con toda la estructura —corredores,
+  mecánicos y masajistas—, con la parte de cada uno dependiendo del contrato. Es dinero y es
+  vestuario a la vez: repartir mal un bote es un conflicto.
+- **G2.7 · Patrocinio y presupuesto.** Patrocinadores con objetivos, ingresos por resultados y por
+  visibilidad, y lo que cuesta la temporada. **[hay pieza]**: `economy.ts`, con viajes, vivienda y
+  material ya modelados.
+- **G2.8 · Publicidad, fama e imagen.** Cómo funciona de verdad: el equipo vende la camiseta y el
+  material con EXCLUSIVIDAD POR CATEGORÍA, y el corredor puede firmar por su cuenta en las
+  categorías que no pise el equipo (reloj, coche, ropa de calle, medios). Los derechos de imagen se
+  reparten. Y un corredor famoso cobra aparte por criteriums y galas.
+
+  La mecánica que sale de ahí es mejor que un modificador: la FAMA genera ofertas, cada oferta
+  puede CHOCAR con lo que el equipo ya tiene vendido, y una estrella es a la vez lo que te trae
+  patrocinio y lo que te complica el vestuario —quiere sus contratos, sus días y su libertad—.
+
+#### La estructura
+
+- **G2.9 · Cuerpo técnico.** Directores, entrenadores, médicos, mecánicos, masajistas. Su nivel
+  tiene que notarse en algo real: en cómo entrena la plantilla, en cómo se recupera, en las
+  decisiones de carrera y en las averías.
+- **G2.10 · Salud.** Lesiones con DURACIÓN, no abandonos de un día; enfermedad, recuperación,
+  vueltas a la competición. Es lo que obliga a rehacer un calendario y a ascender a un suplente.
+
+#### Las personas
+
+- **G2.11 · Moral y satisfacción.** Qué le importa a cada uno: correr, ganar, ir protegido, cobrar,
+  que le cumplan lo prometido. **[hay pieza]**: el corredor ya tiene `morale` y entra en su nivel
+  efectivo, pero nada la mueve por motivos humanos.
+- **G2.12 · Relaciones entre corredores.** Amistades, rivalidades, grupitos, la autoridad del
+  veterano. Es lo que convierte una plantilla en un vestuario.
+- **G2.13 · Comunicación.** Los canales que el dueño pide en G7: reuniones, charlas de uno a uno,
+  prensa. Es el interfaz por el que se juega todo lo anterior.
+- **G2.14 · La silla del mánager.** Que el jugador también responda ante alguien: objetivos del
+  patrocinador, paciencia limitada, consecuencias.
 
 ### G3 · Rankings a 365 días rodantes
 
 > «El ranking debería sumar los puntos en los últimos 365 días: si llegamos al GD 25, hay que sumar
 > los que consigan ese día y restar los que consiguieron el GD 25 del año anterior.»
 
-Es exactamente como funciona el ranking real. Hoy hay que comprobar si el motor lo hace así o
-acumula por temporada; si acumula, el ranking miente en cuanto pasa un año.
+Es exactamente como funciona el ranking real. **Comprobado: hoy NO es así.** El ranking es
+`season_points`, un contador que se incrementa por temporada (`update riders set season_points =
+season_points + pts`, en `packages/db/src/ranking.ts`). No hay puntos fechados por resultado, así
+que no se puede restar lo del mismo día del año anterior. Es un cambio de ESQUEMA, no de fórmula:
+hay que guardar cada puntuación con su fecha. La clasificación de jóvenes (maillot blanco) sí
+existe.
 
 ### G4 · Promociones y descensos de equipos entre categorías
 
@@ -149,6 +209,53 @@ caso, pero el generador entero está sin revisar y produce recorridos que nadie 
 
 Sin esto la población envejece para siempre y no entra sangre nueva: se lleva por delante a los
 rankings, al mercado y a la cantera.
+
+---
+
+## Propuestas para incorporar
+
+Salidas de mirar el código, no de imaginar. Cada una dice qué se comprobó.
+
+### N1 · El día de carrera se LEE, no se juega
+
+Comprobado: pones las órdenes antes (`RaceOrders`), se simula, y lo ves después (`StageReplay`). No
+hay un solo momento en el que el jugador decida DURANTE la carrera. En este deporte el drama es la
+radio —«ataca ahora», «cierra ese hueco», «déjalo ir»— y todo lo necesario existe ya como
+telemetría (`raceRadio.ts`); lo que falta es convertirla en decisiones. Es la EPIC que más cambia
+lo que el juego SE SIENTE, no lo que calcula.
+
+### N2 · La cantera y el relevo generacional
+
+G10 (retiradas) y esto son la misma pieza vista por sus dos extremos: si se jubilan y no entra
+nadie, el mundo se vacía; y si los que entran se generan uniformes, no hay ojeo ni desarrollo que
+decidir. Descubrir a un chaval de diecinueve años y verlo crecer cinco temporadas es media gracia
+de un mánager.
+
+### N3 · Lesiones con calendario
+
+Ver G2.10. Se saca aquí también porque no es solo del vestuario: sin duración no hay consecuencia,
+y sin consecuencia arriesgar al líder en un adoquín con lluvia no es una decisión.
+
+### N4 · El corredor como alguien, no como diez números
+
+Dos corredores con los mismos atributos son hoy el mismo corredor. Faltan preferencias e
+idiosincrasia: éste vuela con frío y se apaga con calor, aquél adora el adoquín, aquel otro solo
+rinde de líder. Alimenta al clima (E5), al adoquín (B1) y al vestuario (G2), y es lo que hace que
+fichar sea una decisión y no comparar barras.
+
+### N5 · El banco de las DIEZ TEMPORADAS
+
+Una herramienta, y probablemente la que hace falta ANTES de tocar los entrenamientos. Nadie ha
+simulado diez temporadas seguidas para ver qué le pasa al mundo: ¿se aplanan los rankings?, ¿gana
+siempre el mismo equipo?, ¿acaban todos con cinco estrellas? La preocupación de G1 —«que no acaben
+todos siendo Pogačar»— hoy solo se puede responder con una opinión; con un banco de mundo, como el
+Montecarlo de etapas pero de temporadas, se responde con números. Y de paso vigila G3, G4, G8, G9 y
+G10 a la vez.
+
+### N6 · Que el mundo aguante cuando crezca
+
+Una etapa de 176 corredores tarda segundos y un día de juego son decenas de carreras. Con pocos
+jugadores no se nota; con muchos es el muro. No es glamuroso, pero decide si el juego escala.
 
 ---
 
