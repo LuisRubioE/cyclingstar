@@ -1091,7 +1091,14 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
    * se cazó SOLO —porque se hundió, no porque nadie tirara— no emite nada: mentir es peor que
    * callar, y por eso hay dos umbrales, el del boquete que llegó a haber y el del trabajo hecho.
    */
-  const attributeChase = (mv: Move, atKm: number, atTs: number): void => {
+  /**
+   * …Y SI VA PEGADA A LA CAPTURA, LA CUENTA DE KILÓMETROS YA ESTÁ DICHA (v40). El diario sabe
+   * callarse —`stageJournal.ts` omite el «N km later» cuando le llega `pegado`— y el motor no se lo
+   * mandaba nunca. Resultado, medido con el auditor sobre 48 etapas: 16 casos de «189 km up the
+   * road» seguido de «172 km later». Las dos cifras son ciertas —una cuenta desde que salió la fuga
+   * y la otra desde la cúspide del boquete— y juntas se leen como un error.
+   */
+  const attributeChase = (mv: Move, atKm: number, atTs: number, pegado = false): void => {
     if (mv.peakGapS < STAGE.chaseWorkMinGapSeconds) return
     // EL QUE SE RINDIÓ NO FIRMA LA CAZA (v21). En producción, Race Bességes e4 atribuía la captura
     // a Patrick Henry, que se había dejado ir diecisiete kilómetros antes. El trabajo que hizo es
@@ -1156,6 +1163,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
        */
       peakKm: Math.round(mv.peakGapKm),
       work: Math.round(10 * best) / 10,
+      ...(pegado ? { pegado: 1 } : {}),
     })
   }
 
@@ -2123,15 +2131,35 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         // rota— y han pasado unos km desde el parte anterior; o cuando el parte anterior ha
         // caducado aunque siga mandando el mismo. Mirar la lista entera daba 17 partes en una
         // clásica de 278 km: en un pelotón que se rompe cada muro, el tercer nombre nunca repite.
-        const leader = pull.ids[0] ?? ''
+        /**
+         * …Y LO QUE TIENE QUE CAMBIAR ES LO QUE SE LEE (v40). Se miraba QUIÉN MANDA en la rotación,
+         * y eso el lector no lo lee: lee para quién se tira, de qué clase es el trabajo, con qué
+         * esfuerzo y si se está cazando algo. Con esas cuatro iguales, la línea no cuenta nada
+         * nuevo aunque el primer nombre haya cambiado —medido con el auditor de la crónica sobre 48
+         * etapas, 12 partes repetidos, y en ocho de ellos era el mismo equipo tirando para el mismo
+         * jefe al mismo ritmo—. La identidad del parte pasa a ser la del auditor, que es la del
+         * lector.
+         */
+        const c = peloton.compromiso
+        const why = pullReason(pull.ids, worksFor)
+        const effort =
+          c <= STAGE.pullEffortTempoMax
+            ? 'tempo'
+            : c >= STAGE.pullEffortFullMin
+              ? 'tope'
+              : 'firme'
+        const identidad = [
+          why.targetId ?? pull.ids[0] ?? '',
+          why.kind,
+          effort,
+          ahead ? 1 : 0,
+        ].join('/')
         if (
           pull.ids.length > 0 &&
           pull.best >= STAGE.pullMinWork &&
           km - lastPullReportKm >= STAGE.pullReportMinKmGap &&
-          (leader !== lastPullLeader || km - lastPullReportKm >= STAGE.pullReportKmGap)
+          (identidad !== lastPullLeader || km - lastPullReportKm >= STAGE.pullReportKmGap)
         ) {
-          const c = peloton.compromiso
-          const why = pullReason(pull.ids, worksFor)
           // POR QUÉ TIRA ESE EQUIPO (v15, docs/motor.md §V.1). El dueño lo pidió literal: «no es
           // solo saber qué equipo(s) participan de la persecución… también es saber POR QUÉ». Solo
           // se dice cuando los que tiran son TODOS del mismo equipo: si es una alianza, el motivo
@@ -2153,12 +2181,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
             // juega igual). Ausente si no tira un equipo, o si tira sin motivo ninguno.
             ...(porQue != null && porQue !== 'ninguno' ? { porQue } : {}),
             // Clasificado, que es lo que la crónica sabe decir: a tempo de carretera, firme, o a tope.
-            effort:
-              c <= STAGE.pullEffortTempoMax
-                ? 'tempo'
-                : c >= STAGE.pullEffortFullMin
-                  ? 'tope'
-                  : 'firme',
+            effort,
             toGo: Math.round(kmRestantes),
             // El tamaño decide la VOZ de la crónica: con un pelotón grande manda el equipo, con un
             // grupo pequeño se nombra a los corredores (`STAGE.frontNamesMaxRiders`).
@@ -2166,7 +2189,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
             chasing: ahead ? 1 : 0,
           })
           lastPullReportKm = km
-          lastPullLeader = leader
+          lastPullLeader = identidad
         }
       }
 
@@ -4417,7 +4440,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
           // que lleva la marca de fuga del día es el que guarda la cuenta de su persecución (las
           // fusiones se la traspasan), así que la respuesta sale de su libro y no de la etapa.
           const dayMove = moves.find((mv) => mv.dayBreak)
-          if (dayMove) attributeChase(dayMove, km, peloton.tS)
+          if (dayMove) attributeChase(dayMove, km, peloton.tS, true)
         }
       }
       for (let a = moves.length - 1; a >= 0; a--) {
