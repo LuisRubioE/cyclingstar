@@ -105,8 +105,35 @@ vigila G3, G4, G8, G9 y G10, que también son cosas que solo se rompen con el ti
 
 > «Esto va a ser BRUTAL. Tiene a su vez MUCHÍSIMOS componentes.»
 
-Es la EPIC más grande del proyecto y no es una: son catorce. Desglose por componentes, cada uno
-entregable por separado. Los marcados con **[hay pieza]** tienen ya algo en el motor sobre lo que
+**El modelo, que condiciona todo lo demás.** Todo jugador es un CICLISTA. Unos pocos —que paguen, o
+que elija el dueño— son ADEMÁS mánager de su equipo, y ahí entran todas las decisiones de equipo.
+No es un juego de mánager con corredores de adorno ni un juego de corredor con el equipo de fondo:
+es un pelotón de personas donde unas pocas mandan.
+
+De ahí salen cuatro consecuencias que hay que resolver ANTES de repartir el trabajo en componentes:
+
+- **El mánager es juez y parte, y eso es lo mejor que tiene.** Decide quién lleva el Giro y él es
+  candidato. Es el mejor conflicto que puede ofrecer este diseño… y también la forma más rápida de
+  vaciar un equipo: si el mánager se nombra jefe de filas siempre, los humanos de su equipo se van.
+  Hace falta que abusar SALGA CARO por dentro del juego (moral, salidas, reputación), no por una
+  regla que lo prohíba.
+- **Hay asimetría de poder entre jugadores.** Un humano decide el calendario, el rol y el contrato
+  de otro humano. Para que eso sea jugable y no tóxico hacen falta tres cosas: TRANSPARENCIA (que se
+  vea lo que se prometió), VOZ (los canales de G7 dejan de ser adorno y pasan a ser la mecánica por
+  la que se negocia) y SALIDA (el mercado como recurso real del que no está a gusto).
+- **Pagar da AUTORIDAD, no vatios.** Si el rol de mánager viniera con ventaja deportiva sería pagar
+  por ganar. Lo que compra es mando y trabajo: decidir, negociar, repartir. El corredor-mánager
+  corre exactamente igual de rápido que cualquiera.
+- **La mayoría de los equipos NO tendrán mánager humano.** O sea que el mánager bot tiene que tomar
+  todas estas decisiones de forma creíble por defecto, y un humano tiene que poder heredar un
+  equipo ya en marcha sin que se note el cambio de manos.
+
+Y una consecuencia práctica: **un mánager no puede tener un segundo trabajo.** Si son pocos y cada
+decisión es manual, se queman. La solución es la misma que N1 propone para la carrera —POLÍTICAS en
+vez de órdenes—, aplicada en dos niveles: el mánager fija el plan del equipo y cada corredor escribe
+el suyo dentro de ese marco.
+
+Desglose por componentes, cada uno entregable por separado. Los marcados con **[hay pieza]** tienen ya algo en el motor sobre lo que
 apoyarse.
 
 #### La plantilla
@@ -160,8 +187,14 @@ apoyarse.
   veterano. Es lo que convierte una plantilla en un vestuario.
 - **G2.13 · Comunicación.** Los canales que el dueño pide en G7: reuniones, charlas de uno a uno,
   prensa. Es el interfaz por el que se juega todo lo anterior.
-- **G2.14 · La silla del mánager.** Que el jugador también responda ante alguien: objetivos del
-  patrocinador, paciencia limitada, consecuencias.
+- **G2.14 · La silla del mánager.** Que el mánager también responda ante alguien: objetivos del
+  patrocinador, paciencia limitada, consecuencias. Y las dos caras del rol: cómo se ACCEDE a él
+  (pago o designación), cómo se hereda un equipo de bots, y qué pasa cuando alguien lo deja.
+- **G2.15 · Ser mandado.** El componente que solo existe porque el jugador es un ciclista: cómo se
+  vive desde ABAJO. Que te pongan de gregario cuando querías tu oportunidad, que te dejen fuera del
+  Tour, que te prometan algo y no se cumpla. Tiene que doler y tiene que poder responderse —hablar,
+  negarse, rendir menos, irse—, porque si no, el jugador que no es mánager es un espectador de su
+  propia carrera deportiva.
 
 ### G3 · Rankings a 365 días rodantes
 
