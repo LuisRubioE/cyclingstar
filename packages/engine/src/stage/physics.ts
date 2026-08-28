@@ -575,8 +575,25 @@ export function blockCost(
    * alto eso lo mandaba fuera de control.
    */
   const marcha = rhythm(c) * relayPaceEdge(block, n)
+  /**
+   * …Y EL EXPONENTE NUEVO CAMBIA LA FORMA, NO EL NIVEL (v39). Pasar el exponente de 1,6 a la ley
+   * (2,56 en llano) encarece TODO el llano de golpe: medido, un +19 % al ritmo de carrera, que
+   * mandaba Strade Bianche de 0,918 de vaciado a 0,992 con un 38 % de pájaras. Y eso no es lo que
+   * dice la física del dueño: lo que dice es que ir a 70 cuesta MUCHO más que ir a 30, no que ir a
+   * 30 cueste más de lo que costaba.
+   *
+   * Así que el ritmo entra ANCLADO en un pivote —el ritmo al que se rueda un día normal— y elevado
+   * allí al exponente viejo. En el pivote el coste es exactamente el de siempre; por encima sube
+   * más deprisa que antes y por debajo baja más deprisa. La calibración de todo el juego se queda
+   * donde estaba y lo que cambia es la CURVATURA, que es justo lo que había que arreglar.
+   */
+  const pivote = STAGE.costRhythmPivot
   return (
-    dx * costBase(block) * Math.pow(marcha, rhythmCostExponent(block)) * (share * cara + (1 - share) * rueda)
+    dx *
+    costBase(block) *
+    Math.pow(pivote, STAGE.costRhythmExponent) *
+    Math.pow(marcha / pivote, rhythmCostExponent(block)) *
+    (share * cara + (1 - share) * rueda)
   )
 }
 

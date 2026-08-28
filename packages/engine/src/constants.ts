@@ -1412,6 +1412,13 @@ export const STAGE = {
   /** Cuánto manda la LEY en ese exponente (ver `rhythmCostExponent`): 1 = del todo. */
   costRhythmLawShare: 1,
   /**
+   * EL RITMO DE REFERENCIA en el que se ancla el exponente (ver `blockCost`). Es el ritmo al que se
+   * rueda un día normal —`rhythm(pelotonTempoCommit)`— y en él el coste vale exactamente lo que
+   * valía con el exponente viejo. Sin este ancla, cambiar el exponente no cambia la forma de la
+   * curva: la levanta entera.
+   */
+  costRhythmPivot: 1.065,
+  /**
    * LA CONVEXIDAD DEL VIENTO (v38). El coste era LINEAL en la exposición (`1 − draftMax·shelter`):
    * 1,00 dando la cara y 0,62 a rueda, o sea que ir a rueda costaba el 62 % de dar la cara. El
    * dueño: «el que va a rueda va muuucho más cómodo y por tanto muchísimo menor coste… si solo tira
