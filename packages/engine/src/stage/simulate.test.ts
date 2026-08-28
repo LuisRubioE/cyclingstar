@@ -813,7 +813,18 @@ describe('modelo de final (docs/motor.md §12)', () => {
       }
       pavs.sort((a, b) => a - b)
       const mediana = pavs[Math.floor(pavs.length / 2)]!
-      expect(mediana).toBeGreaterThan(70) // el centro del rango (azar) sería 64
+      /**
+       * EL UMBRAL BAJA A 69 EN LA v39, y lo baja el DUEÑO. Se le llevó medido: con el peso del PAV
+       * en el remate subido al 0,9 la mediana sigue en 69, y corriendo el sector a tope (compromiso
+       * 1,0) llega a 70 justo; o sea que las dos palancas obvias del modelo de remate no la mueven,
+       * y lo que falta para pasar de 70 no es calibración sino otro modelo de final en adoquín. Su
+       * respuesta, textual: «pave 69 ok».
+       *
+       * Lo que el banco vigila NO se toca: el azar puro daría 64 —el centro exacto del rango
+       * 45-83—, así que 69 sigue diciendo que el PAV interviene en el resultado, que es la
+       * pregunta. Lo que se ajusta es el listón, no la medida.
+       */
+      expect(mediana).toBeGreaterThanOrEqual(69) // el centro del rango (azar) sería 64
     },
   )
 

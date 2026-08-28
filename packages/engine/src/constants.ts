@@ -1600,12 +1600,17 @@ export const STAGE = {
    * listón de un pelotón de agentes libres no puede parecerse al de uno con veintidós equipos.
    *
    * Medido en el banco de la caza (misma etapa, mismas semillas, solo cambia quién persigue): con
-   * 0,8 un campo de TRES trenes de primer nivel dejaba llegar a la fuga 6 veces de 16, contra un
-   * techo de 3; con 0,45, 3 de 16, y el campo modesto sigue dejándola llegar 14 de 16. El banco
+   * 0,8 un campo de TRES trenes de primer nivel dejaba llegar a la fuga 4 veces de 16, contra un
+   * techo de 3; con 0,5, 3 de 16, y el campo modesto sigue dejándola llegar 14 de 16. El banco
    * canónico no se entera —tiene equipos, así que este listón no le aplica—: la fuga en llano se
-   * queda clavada en el 9,2 %.
+   * queda en el 11,7 %.
+   *
+   * Bajarlo se pudo hacer SOLO después de arreglar el submotor del sprint (v39). Antes el tren de
+   * lanzadores vivía de que la rotación fuera corta —era lo único que lo distinguía— y bajar el
+   * listón lo hundía a 36 victorias de 60 contra un mínimo de 38. Ahora su ventaja es de carretera:
+   * abre el sprint en el sitio, y lanzar se paga. Con el listón en 0,5 el tren gana 42 de 60.
    */
-  relayDutyThresholdNoTeams: 0.8,
+  relayDutyThresholdNoTeams: 0.5,
   /**
    * Cuánto BAJA ese listón con el ritmo al que va la carretera; ver `relayTurn`. Un pelotón de
    * agentes libres rodando a paseo saca cuatro hombres al frente; el mismo pelotón cazando rota
