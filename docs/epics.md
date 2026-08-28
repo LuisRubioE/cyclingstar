@@ -94,6 +94,13 @@ Lo que tiene que cumplir a la vez:
 Ese último punto es el que hoy seguro que no está: correr desgasta y da forma (CTL/ATL), pero no
 enseña más por ser una carrera dura que por ser un entrenamiento.
 
+**Cómo se mide (era la propuesta N5).** La preocupación —«que no acaben todos con cinco estrellas»—
+hoy solo se puede responder con una opinión. Hace falta un **banco de mundo**: simular diez
+temporadas seguidas y mirar qué le pasa a la población. ¿Converge todo el pelotón al máximo?
+¿Se queda todo el mundo clavado en cuatro? ¿Se aplanan las diferencias entre el mejor y la media?
+Es el Montecarlo de etapas llevado a las temporadas, y sin él esta EPIC se hace a ciegas. De paso
+vigila G3, G4, G8, G9 y G10, que también son cosas que solo se rompen con el tiempo.
+
 ### G2 · Gestión humana de un equipo
 
 > «Esto va a ser BRUTAL. Tiene a su vez MUCHÍSIMOS componentes.»
@@ -261,31 +268,50 @@ Lo que sí queda en pie de la idea original es la CURVA DE UNA CARRERA DEPORTIVA
 joven mejore, madure y decaiga, y que eso se note. Eso vale igual para humanos y para bots, y es
 condición de G1 (entrenamientos) y de G10 (retiradas).
 
-### N3 · Lesiones con calendario
+### N3 · Lesiones con calendario — ACEPTADA
 
 Ver G2.10. Se saca aquí también porque no es solo del vestuario: sin duración no hay consecuencia,
-y sin consecuencia arriesgar al líder en un adoquín con lluvia no es una decisión.
+y sin consecuencia arriesgar al líder en un adoquín con lluvia no es una decisión. Y con el jugador
+siendo un ciclista pesa todavía más: una lesión larga es tiempo de tu vida en el juego, no una
+casilla de la plantilla.
 
 ### N4 · El corredor como alguien, no como diez números
 
 Dos corredores con los mismos atributos son hoy el mismo corredor. Faltan preferencias e
 idiosincrasia: éste vuela con frío y se apaga con calor, aquél adora el adoquín, aquel otro solo
-rinde de líder. Alimenta al clima (E5), al adoquín (B1) y al vestuario (G2), y es lo que hace que
-fichar sea una decisión y no comparar barras.
+rinde de líder. Alimenta al clima (E5), al adoquín (B1) y al vestuario (G2).
 
-### N5 · El banco de las DIEZ TEMPORADAS
+> El dueño: «¿eso en mi ciclista sería una elección o algo aleatorio? ¿Y dónde vendría?»
 
-Una herramienta, y probablemente la que hace falta ANTES de tocar los entrenamientos. Nadie ha
-simulado diez temporadas seguidas para ver qué le pasa al mundo: ¿se aplanan los rankings?, ¿gana
-siempre el mismo equipo?, ¿acaban todos con cinco estrellas? La preocupación de G1 —«que no acaben
-todos siendo Pogačar»— hoy solo se puede responder con una opinión; con un banco de mundo, como el
-Montecarlo de etapas pero de temporadas, se responde con números. Y de paso vigila G3, G4, G8, G9 y
-G10 a la vez.
+**Las dos cosas, y ahí está la gracia.** La propuesta:
 
-### N6 · Que el mundo aguante cuando crezca
+- **Al crear el corredor, se ELIGE** (en `CreateRider`). Es tu identidad y decidirla es parte de
+  empezar una carrera deportiva: nadie quiere que le sorteen quién es.
+- **Pero con contrapartida, nunca como ventaja pura.** Si «me va bien el frío» solo suma, todo el
+  mundo elige lo mismo y a los dos meses el pelotón entero es idéntico otra vez, que es justo el
+  problema que se quería resolver. Cada rasgo tiene su cruz: vuelas con frío **y** te apagas con
+  calor; adoras el adoquín **y** sufres en la alta montaña; rindes de jefe **y** te hundes de
+  gregario. Así es una identidad y no una casilla que optimizar.
+- **Y una parte SE DESCUBRE corriendo.** Rasgos que emergen de lo que de verdad has hecho: mil
+  kilómetros de adoquín acaban notándose. Eso premia jugar en vez de rellenar un formulario, y hace
+  que dos corredores que eligieron lo mismo terminen distintos.
+- **Los bots, aleatorio.** Es lo que mantiene el pelotón variado sin que nadie lo diseñe.
 
-Una etapa de 176 corredores tarda segundos y un día de juego son decenas de carreras. Con pocos
-jugadores no se nota; con muchos es el muro. No es glamuroso, pero decide si el juego escala.
+El sitio natural es el mismo donde ya vive el nivel efectivo del corredor: entra en `eff0` por
+terreno y por condiciones, igual que hoy entran la moral y la forma.
+
+### N5 y N6 · RETIRADAS
+
+**N5 (el banco de diez temporadas) no era una EPIC**: es la forma de MEDIR G1, y como tal se ha
+movido dentro de G1, que es donde tiene sentido. El dueño: «esto es más bien la forma de medir G1,
+no es un epic en sí mismo». Exacto.
+
+**N6 (que el mundo aguante al crecer) estaba mal razonado y se retira.** Yo di por hecho que más
+jugadores significan más simulación, y no: **las carreras son fijas y no van a aumentar**. Un día de
+juego cuesta lo mismo con cien jugadores que con diez mil, porque lo que se simula son las carreras
+del calendario con su campo, no los jugadores. Lo que crece con los jugadores es la COMPETENCIA por
+entrar —los equipos tendrán que ser más selectivos o rotar mejor a quién llevan—, que es una
+mecánica de juego (y bastante buena), no un problema de escala.
 
 ---
 
