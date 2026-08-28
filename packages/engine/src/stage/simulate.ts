@@ -1972,26 +1972,50 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
             .map((m) => ({ id: m.input.riderId, p: riderPerfil(m, block) }))
             .sort((a, b) => b.p - a.p || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
             .map((x) => x.id)
-          log.emit(km, lead.g.tS, 'cabeza', 'front_group', names, {
-            size,
-            gapS: chase ? Math.max(0, Math.round(chase.g.tS - lead.g.tS)) : 0,
-            toGo: Math.round(kmRestantes),
-            // SOBRE QUIÉN (v27). La ventaja sin la referencia es media respuesta: el lector tiene
-            // que poder decir sobre quién se lleva, y desde una criba «el pelotón» y «la caza» son
-            // grupos distintos.
-            ...(chase ? { chaseSize: chase.members.length, chaseKind } : {}),
-            // EL PARTE CUENTA EL CAMBIO, no solo la foto: cuántos han llegado y cuántos se han
-            // caído desde la última vez. Es lo que hace que «ya solo quedan N delante» deje de
-            // anunciarse con N CRECIENDO —69 veces en 31 etapas del día de juego 46— y que el
-            // lector pueda seguir a un grupo que se recompone por dentro. Van por NÚMERO y no por
-            // nombre porque los nombres ya están todos en la propia lista de protagonistas: lo que
-            // falta no es quiénes van delante, es qué ha cambiado desde la última vez que se dijo.
-            ...(lastFrontIds.length > 0 && entran.length > 0 ? { entran: entran.length } : {}),
-            // …y los que YA NO ESTÁN cuentan aunque el frente haya cambiado de manos entero: es el
-            // caso del hombre que iba solo delante y al que se traga la carrera (v40).
+          /**
+           * …Y NO SE CUENTA DOS VECES LO MISMO (v40). El parte de cabeza salía justo detrás del
+           * ataque que lo había creado, con la misma gente y en el mismo kilómetro: «uni-30 ataca» y
+           * debajo «ya solo queda uni-30 delante». Medido con el auditor de la crónica sobre 48
+           * etapas de seis recorridos, era el defecto MÁS FRECUENTE del diario —24 casos, o sea
+           * media línea repetida por etapa— y el más fácil de leer como torpeza.
+           *
+           * Si el que va delante es exactamente el que acaba de saltar, el parte se calla: el lector
+           * ya lo sabe. Pero la MEMORIA sí se actualiza, porque contado está —y si no, el siguiente
+           * parte compararía contra un frente viejo y diría entrar y salir a gente que no se movió—.
+           */
+          const yaContado = log
+            .sameKm(km)
+            .some(
+              (a) =>
+                (a.plantilla === 'attack_go' || a.plantilla === 'bridge_made') &&
+                a.protagonistas.length === names.length &&
+                names.every((id) => a.protagonistas.includes(id)),
+            )
+          if (yaContado) {
+            lastFrontReportKm = km
+            lastFrontIds = ids
+            frontReported = true
+          } else
+            log.emit(km, lead.g.tS, 'cabeza', 'front_group', names, {
+              size,
+              gapS: chase ? Math.max(0, Math.round(chase.g.tS - lead.g.tS)) : 0,
+              toGo: Math.round(kmRestantes),
+              // SOBRE QUIÉN (v27). La ventaja sin la referencia es media respuesta: el lector tiene
+              // que poder decir sobre quién se lleva, y desde una criba «el pelotón» y «la caza» son
+              // grupos distintos.
+              ...(chase ? { chaseSize: chase.members.length, chaseKind } : {}),
+              // EL PARTE CUENTA EL CAMBIO, no solo la foto: cuántos han llegado y cuántos se han
+              // caído desde la última vez. Es lo que hace que «ya solo quedan N delante» deje de
+              // anunciarse con N CRECIENDO —69 veces en 31 etapas del día de juego 46— y que el
+              // lector pueda seguir a un grupo que se recompone por dentro. Van por NÚMERO y no por
+              // nombre porque los nombres ya están todos en la propia lista de protagonistas: lo que
+              // falta no es quiénes van delante, es qué ha cambiado desde la última vez que se dijo.
+              ...(lastFrontIds.length > 0 && entran.length > 0 ? { entran: entran.length } : {}),
+              // …y los que YA NO ESTÁN cuentan aunque el frente haya cambiado de manos entero: es el
+              // caso del hombre que iba solo delante y al que se traga la carrera (v40).
 
-            ...(salen.length > 0 ? { salen: salen.length } : {}),
-          })
+              ...(salen.length > 0 ? { salen: salen.length } : {}),
+            })
           lastFrontReportKm = km
           lastFrontIds = ids
           frontReported = true

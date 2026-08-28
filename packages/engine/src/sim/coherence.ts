@@ -384,15 +384,37 @@ export function auditStage(entries: readonly AuditEntry[]): AuditResult {
     if (e.plantilla === 'attack_go' || e.plantilla === 'attack_swarm') {
       const saltan = num(e, 'saltan') ?? e.riders.length
       const tierra = num(e, 'tierra') ?? 0
-      // La frase dice «N more try to go WITH THEM» con un solo protagonista, y con `tierra` = 1
-      // además conjuga «1 more tries». Solo es defecto si el motor no manda ya la concordancia.
-      if (saltan === 1 && tierra > 0 && e.datos.solo == null) {
-        hit('ataqueConcordancia', e.km, `${tierra} se quedan a rueda de UN corredor`)
+      /**
+       * La frase dice «N more try to go WITH THEM», y con un solo atacante tiene que decir «with
+       * him». EL LISTÓN CAMBIA EN LA v40: pedía una marca `solo` en los datos, y el diario ya no la
+       * necesita —deriva la concordancia de `saltan`, y si falta, del número de protagonistas
+       * (`stageJournal.ts`: `jumped === 1 || datos.solo === 1`)—. Medido, ese listón viejo señalaba
+       * 1 defecto en 48 etapas que en el texto renderizado NO existe.
+       *
+       * Lo que sí sigue siendo defecto, y es lo que este banco tiene que vigilar, es que los dos
+       * datos se CONTRADIGAN: si salta uno solo pero el parte nombra a varios, el diario escribe
+       * tres nombres y luego «with him».
+       */
+      if (saltan === 1 && tierra > 0 && e.riders.length > 1 && e.datos.solo == null) {
+        hit('ataqueConcordancia', e.km, `salta 1 pero el parte nombra a ${e.riders.length}`)
       }
     }
-    if (e.plantilla === 'break_share' && num(e, 'passengers') === 1 && e.datos.solo == null) {
-      hit('pasajerosConcordancia', e.km, '«1 of their companion sits on»')
-    }
+    /**
+     * `pasajerosConcordancia` SE RETIRA EN LA v40, y se deja escrito para que no vuelva a
+     * inventarse. Nació en la v25 contra una frase real y rota —«1 of their companion sits on»— y
+     * el diario la arregló: hoy `stageJournal.ts` escribe «while one of their companions sits on»
+     * en singular y «while N of their companions sit on» en plural, derivándolo de `passengers`
+     * sin necesitar ninguna marca del motor.
+     *
+     * El detector seguía exigiendo esa marca (`datos.solo`), así que señalaba 6 defectos en 48
+     * etapas que el lector NO VE. Y el segundo intento de re-encuadrarlo —«pasajero en una fuga de
+     * un solo hombre»— también estaba mal: `break_share` nombra a los que MÁS TIRAN, no a toda la
+     * fuga, así que un pasajero con un solo nombrado es perfectamente coherente.
+     *
+     * Un medidor que grita defectos inexistentes es peor que no tenerlo: esconde los de verdad
+     * detrás del ruido. La clave se queda en `DEFECTS` para que la tabla del medidor conserve su
+     * forma y para que esta explicación tenga dónde vivir.
+     */
   }
 
   // --- 10. El mismo equipo tirando para el mismo líder sin contar nada nuevo -------------------------
