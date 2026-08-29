@@ -2674,12 +2674,25 @@ export const STAGE = {
    * v40 —mismo azar, mismos relojes, misma huella—.
    *
    * El número sale de cuántos días queremos con viento de verdad, no de gusto: con
-   * `windDayShape` = 2,2 la probabilidad de pasar el listón es `1 − windMin^(1/2,2)`, así que 0,76
-   * deja **un 12 % de días** con algo de lado. Un abanico es una estampa del ciclismo justamente
+   * `windDayShape` = 2,2 la probabilidad de pasar el listón es `1 − windMin^(1/2,2)`, así que 0,87
+   * deja **un 6 % de días** con algo de lado. Un abanico es una estampa del ciclismo justamente
    * porque no pasa todas las semanas; con el listón en 0,35 salía el 37 % de los días, que no es
    * una etapa de viento sino un juego distinto.
+   *
+   * …Y 0,76 —el 12 % de la primera entrega— TAMBIÉN ERA DEMASIADO, y lo dijo el banco antes que la
+   * intuición. Un día de abanicos le quita la etapa al mejor velocista, así que con uno de cada
+   * ocho llanas el mejor rematador dejaba de mandar en las carreras pequeñas: dos llegadas
+   * agrupadas de la misma carrera las ganaba el mismo el **12,7 %** de las veces contra un suelo de
+   * 15 —el suelo es la línea de la LOTERÍA: con 7 a 17 rematadores nombrados, repartir al azar da un
+   * 6-14 %— y el mejor rematador ganaba el 25,8 % contra un suelo de 25. Apagando el viento, esas
+   * dos vuelven a 18,3 % y 29,3 %: el culpable era la frecuencia, no el mecanismo.
+   *
+   * Y la carretera dice lo mismo: en una temporada real del WorldTour las etapas llanas que decide
+   * un abanico se cuentan con los dedos de una mano sobre siglo y medio de llanas —un 3 % largo—.
+   * Con 0,87 sale un 6 % de días con viento de lado, de los que dos de cada tres llegan a cortar la
+   * carrera: unas cuatro de cada cien llanas. Ahí es donde tiene que estar.
    */
-  windMin: 0.76,
+  windMin: 0.87,
   /**
    * CADA CUÁNTO SE ROMPE LA CARRERA EN ABANICOS, por kilómetro y con el viento a tope. Un abanico no
    * pasa «poco a poco»: pasa en un sitio y en un momento —una curva, un cruce, un equipo que se
