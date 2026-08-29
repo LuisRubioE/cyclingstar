@@ -527,13 +527,7 @@ function relayTurn(
 ): Set<string> {
   const scored = members.map((m) => {
     const helpers = domestiquesFor.get(m.input.riderId)
-    /**
-     * …Y EN UN ABANICO NO HAY A QUIÉN ARROPAR (v41). Llevar gregarios te saca del turno porque tiran
-     * ellos por ti; en una fila con el viento de lado no existe esa plaza —detrás del último que da
-     * la cara está la cuneta—, así que el jefe rota como todo el mundo. Es lo que se ve en un día de
-     * abanicos: en el corte de trece van los trece dando relevos, jefes incluidos.
-     */
-    const protectedByTeam = !enAbanico && helpers != null && helpers.some((id) => idSet.has(id))
+    const protectedByTeam = helpers != null && helpers.some((id) => idSet.has(id))
     const drive = driveOfRider(m.input.riderId)
     /**
      * …Y SOLO CUENTA PARA EL QUE CORRE PARA SÍ MISMO. Un gregario da la cara aunque no pueda ganar
@@ -551,6 +545,9 @@ function relayTurn(
     const paraMí = Math.max(0, Math.min(1, 1 - drive))
     return {
       id: m.input.riderId,
+      // …y si sus hombres trabajan por él. En un abanico es lo ÚNICO que sigue sacando a alguien del
+      // turno (ver `cuantos`, más abajo).
+      protegido: protectedByTeam,
       duty:
         relayDuty(m, protectedByTeam, drive, sittingOn(m.input.riderId)) -
         // …Y TAMPOCO VALE «¿PARA QUÉ VOY A TIRAR SI NO PUEDO GANAR?» (v41). En un abanico dar la cara
@@ -672,8 +669,21 @@ function relayTurn(
    * ponía CINCO a rotar y los 159 de detrás ponían veinte, así que el abanico llegaba a meta con el
    * pelotón pegado a la rueda. Con la fila entera, los dos grupos ponen lo mismo —el tope del
    * abanico iguala el número— y decide la calidad, que es lo que decide un abanico.
+   *
+   * …CON UNA EXCEPCIÓN, Y ES LA ÚNICA: EL JEFE AL QUE LLEVAN LOS SUYOS. Aquí me equivoqué primero y
+   * el banco lo cazó (la regla de la v36, «con los suyos al lado el jefe NO tira», se caía al 17,4 %
+   * los días de viento). Y lo que dice la carretera es lo contrario de lo que yo escribí: en un
+   * abanico el equipo mete a su jefe en la fila y son SUS HOMBRES los que dan los relevos mientras
+   * él va en la rueda. Un abanico no elimina el trabajo de equipo: es donde más se ve.
+   *
+   * Lo que el viento SÍ se lleva por delante es la otra excusa —«¿para qué voy a tirar si no puedo
+   * ganar?»—, porque ahí no hay favor de nadie: el que no entra al turno se cae de la fila. Como los
+   * protegidos salen en negativo del deber, quedan al final del orden y basta con no contarlos.
    */
-  const cuantos = enAbanico ? techo : Math.max(minimo, Math.min(quieren, techo))
+  const protegidos = enAbanico ? scored.filter((s) => s.protegido).length : 0
+  const cuantos = enAbanico
+    ? Math.max(minimo, Math.min(techo, members.length - protegidos))
+    : Math.max(minimo, Math.min(quieren, techo))
   if (cuantos <= quieren)
     return elTren(new Set(scored.slice(0, cuantos).map((s) => s.id)), scored, lanzando)
   /**
