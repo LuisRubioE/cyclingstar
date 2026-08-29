@@ -192,12 +192,28 @@ describe('la cuneta del abanico (v41)', () => {
     expect(gutterShelter(5, 12)).toBe(STAGE.shelterProtected)
   })
 
-  it('y en cuanto no cabe, el asfalto se reparte entre los que son', () => {
-    // Un grupo que dobla la capacidad de la carretera arropa a la mitad de los suyos; uno que la
-    // cuadruplica, a un cuarto. No hay escalón: el que sobra no es «el 13.º», es la proporción.
-    expect(gutterShelter(24, 12)).toBeCloseTo(STAGE.shelterProtected / 2, 12)
-    expect(gutterShelter(48, 12)).toBeCloseTo(STAGE.shelterProtected / 4, 12)
-    expect(gutterShelter(159, 13)).toBeLessThan(STAGE.shelterProtected / 10)
+  it('y en cuanto no cabe se paga la cuneta, y da igual cuánta gente sobre', () => {
+    // La cuenta es la proporción `caben / son`, pero con el suelo puesto lo que dice en la práctica
+    // es lo que dice la carretera: o vas en la fila o vas en la cuneta. Entre 12 y 15 hombres para
+    // una fila de 12 hay una rampa corta; a partir de ahí, sobrar por poco y sobrar por mucho se
+    // pagan igual, porque el segundo de la fila está en la cuneta lo mismo que el centésimo.
+    const dentro = gutterShelter(12, 12)
+    const justo = gutterShelter(14, 12)
+    const lejos = gutterShelter(48, 12)
+    expect(justo).toBeLessThan(dentro)
+    expect(lejos).toBeLessThan(justo)
+    expect(lejos).toBeCloseTo(STAGE.shelterProtected * STAGE.windGutterFloor, 12)
+  })
+
+  it('y por muy grande que sea el grupo, nunca se baja del suelo', () => {
+    // Sin suelo esto no era un abanico sino una matanza: el 85 % del campo del Tour de Flandes con
+    // el depósito a cero. En carretera, el que se queda fuera del corte no pasa cien kilómetros
+    // solo: se junta con los de al lado y hacen su propia fila.
+    for (const n of [20, 60, 159, 500]) {
+      expect(gutterShelter(n, 13)).toBeGreaterThanOrEqual(
+        STAGE.shelterProtected * STAGE.windGutterFloor,
+      )
+    }
   })
 
   it('y el que rota en una fila que no cabe tampoco encuentra dónde meterse', () => {

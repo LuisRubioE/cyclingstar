@@ -479,8 +479,11 @@ export function shelterOf(
  * en ese grupo iban A RUEDA, recargando, mientras los 21 de delante se fundían rotando—. Ser muchos
  * salía gratis justo el día en que ser muchos es el problema.
  *
- * Se degrada en proporción, `caben / son`, y no de golpe: un grupo que dobla la capacidad de la
- * carretera reparte el asfalto entre el doble de hombres. Cuando el grupo cabe, no cambia nada.
+ * Se degrada en proporción, `caben / son`, con un SUELO (`windGutterFloor`). Con el suelo puesto lo
+ * que la cuenta dice en la práctica es lo que dice la carretera —o vas en la fila o vas en la
+ * cuneta—: hay una rampa corta mientras el grupo sobra por poco y, a partir de ahí, sobrar por poco
+ * y sobrar por mucho se pagan igual, porque el segundo de la fila está en la cuneta lo mismo que el
+ * centésimo. Cuando el grupo cabe, no cambia nada.
  *
  * …Y CON SUELO (`windGutterFloor`), porque sin él esto no era un abanico sino una matanza: medido en
  * el Tour de Flandes con viento fuerte, **el 85 % del campo con el depósito a cero**. La proporción

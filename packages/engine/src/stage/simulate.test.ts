@@ -1016,8 +1016,12 @@ describe('el tiempo de meta es el del GRUPO, no un artefacto del redondeo (v8)',
     // repartido en 30 corredores a 11.980 s y 70 a 11.981 s.
     for (const out of runs) {
       const distinct = new Set(out.results.map((r) => r.tiempoS)).size
+      // Cada corte de abanico abre hasta `windEchelonMaxGroups - 1` grupos nuevos: no parte la
+      // carrera en dos, la rompe en filas sucesivas.
       const cortes = out.events.filter((e) => e.plantilla === 'echelon_split').length
-      expect(distinct).toBeLessThanOrEqual(1 + out.incidents.length + cortes)
+      expect(distinct).toBeLessThanOrEqual(
+        1 + out.incidents.length + cortes * (STAGE.windEchelonMaxGroups - 1),
+      )
     }
   })
 
