@@ -8237,12 +8237,12 @@ descolgarse: es que **no cabe**.
 
 Cuatro piezas, ninguna un sorteo por corredor:
 
-| Pieza                       | Qué dice                                                                                                          | Qué pasaba sin ella                                                                                             |
-| --------------------------- | ----------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `cabenEnFila`               | Cuántos caben a rebufo en diagonal: del pelotón entero con una brisa a doce con viento de verdad, geométricamente | Con interpolación lineal, un lateral de 0,10 —una brisa— dejaba fuera a 117 hombres                             |
-| El CORTE (`echelon_split`)  | Pasa en un sitio y un momento, y se parte todo grupo que no quepa, en dos o tres filas de golpe                   | Cortar solo la cabeza dejaba detrás un pelotón de 152 intacto, que es la única cosa que en un abanico no existe |
-| La FILA ENTERA rota         | En un abanico no hay ir a rueda: o das la cara o te caes                                                          | El corte de trece ponía DOS a rotar y los 159 de detrás, veinte                                                 |
-| La CUNETA (`gutterShelter`) | Detrás del corte no se va a rueda: se reparte el asfalto entre los que son                                        | El corte dejaba 21 delante y 152 detrás **y ganaban los 152**, porque sus 140 pasajeros recargaban a rueda      |
+| Pieza                       | Qué dice                                                                                                                                                 | Qué pasaba sin ella                                                                                             |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `cabenEnFila`               | Cuántos caben a rebufo en diagonal: del pelotón entero con una brisa a doce con viento de verdad, geométricamente                                        | Con interpolación lineal, un lateral de 0,10 —una brisa— dejaba fuera a 117 hombres                             |
+| El CORTE (`echelon_split`)  | Pasa en un sitio y un momento, y se parte todo grupo que no quepa, en dos o tres filas de golpe                                                          | Cortar solo la cabeza dejaba detrás un pelotón de 152 intacto, que es la única cosa que en un abanico no existe |
+| La FILA ENTERA rota         | En un abanico no hay ir a rueda: o das la cara o te caes —salvo el jefe al que llevan los suyos, la única excepción, y me costó una corrección del banco | El corte de trece ponía DOS a rotar y los 159 de detrás, veinte                                                 |
+| La CUNETA (`gutterShelter`) | Detrás del corte no se va a rueda: se reparte el asfalto entre los que son                                                                               | El corte dejaba 21 delante y 152 detrás **y ganaban los 152**, porque sus 140 pasajeros recargaban a rueda      |
 
 Y una puerta que vale para las cuatro: nada de esto existe hasta que el corte ha saltado de verdad
 (`abanicoAbierto`). No es implementación, es medida: cobrar la cuneta y poner a veinte hombres a
@@ -8314,11 +8314,12 @@ Y una prueba de puntos deja de exigir un estricto mayor donde el modelo dice leg
 «empate»: su semilla resulta ser un día de abanicos, el segundo se lleva la meta volante del km 100
 y los dos acaban con 40 puntos.
 
-### 6. Lo que el banco corrigió de mí, dos veces
+### 6. Lo que el banco corrigió de mí, tres veces
 
-Esta tanda entró en rojo dos veces y las dos por lo mismo: un número puesto a ojo. Queda escrito
-porque la lección es la de siempre en este motor —lo que no se mide, se equivoca— y porque en los
-dos casos la señal buena no fue la métrica que falló, sino que fallaran DOS relacionadas a la vez.
+Esta tanda entró en rojo tres veces y las tres por lo mismo: una frase o un número escritos con
+convicción y sin medir. Queda escrito porque la lección es la de siempre en este motor —lo que no se
+mide, se equivoca— y porque en dos de los tres casos la señal buena no fue la métrica que falló,
+sino que fallaran DOS relacionadas a la vez.
 
 **Primera: la regla del atacante estaba mal de FORMA, no de intensidad.** «El que va tirando no
 salta» se aplicaba en cualquier grupo, y dentro de una fuga o de un grupo de cabeza rotan todos, así
@@ -8336,7 +8337,15 @@ dos hombres y son justamente los que tienen que atacar. Barrido del apetito cont
 Bajarle el volumen habría dejado la queja a medio arreglar y la banda a medio salvar. Restringirla al
 PELOTÓN la deja en 65,0 s y 31,7 %, y el ataque desde el relevo en **2 de 2.225**.
 
-**Segunda: el viento pasaba demasiado a menudo.** `windMin` en 0,76 daba un 12 % de días con viento
+**Segunda: en un abanico el jefe TAMPOCO tira.** Escribí que «no hay a quién arropar, el jefe rota
+como todo el mundo» y es falso: en un día de abanicos el equipo mete a su jefe en la fila y son SUS
+HOMBRES los que dan los relevos. Lo cazó la regla de la v36 —«con los suyos al lado el jefe NO
+tira»—, que se caía al 17,4 %; y todo el fallo estaba en una sola semilla, la única de las ocho con
+viento (lateral 0,61), donde el jefe tiraba en 12 de 15 fotos. Ahora, 0 de 69. Lo que el viento sí
+se lleva por delante es la otra excusa —«¿para qué voy a tirar si no puedo ganar?»—, porque ahí no
+hay favor de nadie: el que no entra al turno se cae de la fila.
+
+**Tercera: el viento pasaba demasiado a menudo.** `windMin` en 0,76 daba un 12 % de días con viento
 de lado, y ese número también lo puse a ojo. Un día de abanicos le quita la etapa al mejor
 velocista, así que con una de cada ocho llanas el mejor rematador dejaba de mandar en las carreras
 pequeñas:
