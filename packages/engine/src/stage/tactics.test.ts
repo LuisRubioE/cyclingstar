@@ -81,6 +81,8 @@ function moveRider(id: string, over: Partial<MoveRider> = {}): MoveRider {
     // Por defecto va A RUEDA: el que salta viene de la rueda, y el caso del que ataca desde el
     // relevo se prueba aparte (v41).
     pulling: false,
+    // …y entero: el caso del que viene de que le cacen tras un día delante se prueba aparte (v42).
+    gastado: false,
     gcDeficitSeconds: 600,
     // Sin plan de equipo que le condicione: es lo que vale un agente libre (v15, §V.1).
     teamAttack: 1,
@@ -407,6 +409,24 @@ describe('regla 9 — en el final en alto atacan los fuertes, y los que se juega
    * el corredor que se escapó iba, en el bloque anterior, dando relevos en el pelotón. El que ataca
    * viene de la rueda: acaba de NO pagar el viento y por eso puede poner el hueco.
    */
+  /**
+   * AL QUE ACABAN DE CAZAR TRAS UNA FUGA LARGA NO SE LE OCURRE NADA (v42). El dueño, sobre una etapa
+   * de producción: un corredor se escapó en solitario, le cazaron, se volvió a escapar, le cazaron
+   * otra vez, se escapó una tercera **y ganó la etapa**.
+   */
+  it('al que acaban de cazar tras un día delante no le quedan ni ganas ni rueda', () => {
+    const c = ctx()
+    expect(attackAppetite(moveRider('a', { gastado: true }), c, ranks)).toBe(0)
+    const instigador = moveRider('i')
+    expect(followProbability(moveRider('b', { gastado: true }), instigador, c)).toBe(0)
+    // Y no es el depósito: con el mismo 45 % de tanque, el que no viene de ahí sí ataca.
+    const entero = moveRider('c', { energyFraction: 0.45 })
+    expect(attackAppetite(entero, c, ranks)).toBeGreaterThan(0)
+    expect(attackAppetite(moveRider('d', { energyFraction: 0.45, gastado: true }), c, ranks)).toBe(
+      0,
+    )
+  })
+
   it('el que va dando la cara tiene diez veces menos ganas de atacar', () => {
     const c = ctx()
     const rueda = attackAppetite(moveRider('a'), c, ranks)

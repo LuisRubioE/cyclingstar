@@ -283,6 +283,16 @@ interface RiderSim {
    */
   mishapKm: number | null
   /**
+   * DESDE QUÉ KILÓMETRO VA EN UN MOVIMIENTO, y `null` si va en el grupo. Es lo único que hace falta
+   * para saber cuánto llevaba fuera el día que le cazan (v42).
+   */
+  fugaDesdeKm: number | null
+  /**
+   * HASTA QUÉ KILÓMETRO ESTÁ GASTADO tras una fuga larga cazada (v42). Antes de ese punto no ataca
+   * ni salta a la rueda de nadie: acaba de vaciarse delante y le han comido.
+   */
+  gastadoHastaKm: number
+  /**
    * Se BAJÓ DE LA BICI en carretera: no llega a meta (`estado: 'abandon'`). Guarda el km para la
    * crónica; `null` mientras siga en carrera.
    */
@@ -463,6 +473,28 @@ function relayDuty(
 ): number {
   const duty = STAGE.relayDutyByRole[m.input.orders.role]
   const freshness = m.energy0 > 0 ? Math.max(0, Math.min(1, m.energy / m.energy0)) : 0
+  /**
+   * EL EMPUJE DEL EQUIPO ES UNA ORDEN, Y LAS ÓRDENES SE LE DAN A LOS GREGARIOS (v42).
+   *
+   * El dueño lo vio en el km 0 de la primera carrera que abrió: «ok, pelotón unido… ok, equipo del
+   * líder tira del pelotón… PEEEERO el líder con el maillot amarillo está también tirando???». Y
+   * tiene toda la razón: el empuje de equipo (§V.1) existe para poner a los GREGARIOS al frente, no
+   * para mandar a trabajar justamente al hombre por el que se está trabajando.
+   *
+   * El agujero estaba en que el descuento del arropado (`relayProtectedPenalty`) solo se aplica si
+   * hay gregarios suyos EN EL GRUPO apuntándole, y eso depende de las órdenes del día: el maillot
+   * cuyo equipo juega la etapa a otra carta —un velocista en una llana— se quedaba sin arropo y el
+   * empuje le subía el deber él solo. La cuenta: `lider` 0,1 + frescura 0,225 + empuje 1,3 = 1,6
+   * contra un listón de 1,5. Medido en el escenario que lo reproduce, tiraba en 1 de cada 23 fotos.
+   *
+   * La regla, dicha entera: el empuje no levanta al hombre por el que tira el equipo, sea porque le
+   * arropan los suyos o porque su papel ES la carta —el jefe de filas y el velocista—. Y no le veta
+   * dar la cara: le deja su deber de rol, que para un líder es 0,1 y significa «solo tira si no
+   * queda nadie más» (`relayDutyByRole`).
+   */
+  const esLaCartaDelEquipo =
+    protectedByTeam || m.input.orders.role === 'lider' || m.input.orders.role === 'sprinter'
+  const empuje = esLaCartaDelEquipo ? 0 : teamDriveNow
   return (
     duty +
     STAGE.relayFreshnessWeight * Math.min(freshness, STAGE.relayFreshnessCap) -
@@ -473,7 +505,7 @@ function relayDuty(
     // pelotón tenga DUEÑO: el equipo que persigue empuja a los suyos al turno y el que se esconde
     // los saca. Vale 0 para el agente libre y para el que corre por su cuenta (regla 1 de §V.1),
     // así que un campo sin equipos da exactamente el mismo turno que en la v14.
-    STAGE.teamRelayDriveWeight * teamDriveNow +
+    STAGE.teamRelayDriveWeight * empuje +
     STAGE.relayJitterWeight * m.workJitter
   )
 }
@@ -947,8 +979,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
   const pLluvia = input.lugar ? clima.pLluvia : STAGE.rainDayProb
   const umbralLluvia = Math.pow(1 - pLluvia, STAGE.rainDayShape)
   const lluviaBruta = Math.pow(rngClima(), STAGE.rainDayShape)
-  const lluvia =
-    lluviaBruta < umbralLluvia ? 0 : (lluviaBruta - umbralLluvia) / (1 - umbralLluvia)
+  const lluvia = lluviaBruta < umbralLluvia ? 0 : (lluviaBruta - umbralLluvia) / (1 - umbralLluvia)
   /**
    * …Y EL CALOR DEL DÍA. La otra mitad de lo que el dueño pidió —«lluvia sobre adoquín, frío en un
    * puerto, CALOR»— y la que no selecciona: el calor no rompe la carrera, la desgasta. El clima da
@@ -1018,6 +1049,8 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       bonkKm: 0,
       hurt: false,
       mishapKm: null,
+      fugaDesdeKm: null,
+      gastadoHastaKm: 0,
       abandonedKm: null,
       incident: null,
       pulling: false,
@@ -3582,10 +3615,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
          * fila a fila. Está por encima de `grupetoJoinGapSeconds` a propósito: si no, el que acaba
          * de quedarse fuera volvería a engancharse al grupo del que lo acaban de echar.
          */
-        const filas = Math.min(
-          STAGE.windEchelonMaxGroups,
-          Math.ceil(dentro.length / cabenEnFila),
-        )
+        const filas = Math.min(STAGE.windEchelonMaxGroups, Math.ceil(dentro.length / cabenEnFila))
         for (let f = 1; f < filas; f++) {
           const hasta = f === filas - 1 ? dentro.length : (f + 1) * cabenEnFila
           for (const m of orden.slice(f * cabenEnFila, hasta)) {
@@ -3840,6 +3870,8 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       // que ésta es su foto más reciente y es la buena —«iba tirando cuando se le ocurrió»—. Y solo
       // cuenta en el PELOTÓN: ver `MoveRider.pulling`.
       pulling: esPeloton && m.pulling,
+      // …y si viene de que le cacen tras una fuga larga, hoy ya no está para nadie (v42).
+      gastado: km < m.gastadoHastaKm,
     })
 
     /** Un intento de movimiento desde `source`. Puede no salir, salir y fracasar, o salir y cuajar. */
@@ -4029,6 +4061,8 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         const s = sims.get(r.riderId)
         if (!s) continue
         s.groupId = gid
+        // Desde aquí cuenta su fuga: es lo que se le cobrará si le cazan (v42).
+        if (s.fugaDesdeKm === null) s.fugaDesdeKm = km
         s.matches = Math.max(0, s.matches - 1)
         // Lanzar el ataque cuesta un cerillo entero; saltar a la rueda del que ataca cuesta menos
         // —se va al rebufo— y por eso seguir es más barato que irse, como en carretera (SPEC 6.6).
@@ -4761,6 +4795,35 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
           }
         }
         if (gap <= STAGE.captureGapSeconds) {
+          /**
+           * AL QUE LE CAZAN DESPUÉS DE UNA FUGA LARGA, SE LE ACABÓ EL DÍA (v42).
+           *
+           * El dueño, mirando una etapa: «el wey que iba en la primera fuga solo y que debería
+           * haberse desgastado mucho, le pillaron… y más adelante vuelve a escaparse como si nada»,
+           * y rematando con el caso de libro: «Diogo Teixeira iba cabeza de carrera en solitario
+           * como 2 veces después de que el pelotón le atrapó y ya va ahora por una tercera vez».
+           *
+           * Medido antes del arreglo, sobre nueve etapas de montaña: cuatro hombres que habían
+           * hecho entre 79 y 120 km de fuga volvían a atacar entre 1 y 9 km después de que les
+           * cazaran, con el depósito entre el 26 % y el 48 %. El motor solo miraba el depósito y los
+           * cerillos, y con eso un hombre al 29 % todavía tenía un 29 % de ganas.
+           *
+           * Lo que falta no es depósito, es lo que en carretera se ve a simple vista: al que le come
+           * el pelotón después de pasarse el día delante se le va la cabeza y las piernas a la vez.
+           * Se sienta. Y cuanto más tiempo ha estado fuera, más tarda en volver a existir.
+           */
+          for (const x of mem) {
+            if (x.fugaDesdeKm !== null) {
+              const fuera = km - x.fugaDesdeKm
+              if (fuera >= STAGE.tacticSpentMinKm) {
+                x.gastadoHastaKm = Math.max(
+                  x.gastadoHastaKm,
+                  km + Math.min(fuera * STAGE.tacticSpentShare, STAGE.tacticSpentMaxKm),
+                )
+              }
+              x.fugaDesdeKm = null
+            }
+          }
           for (const x of mem) x.groupId = PELOTON
           peloton = {
             ...peloton,

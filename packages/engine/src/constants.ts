@@ -2874,6 +2874,25 @@ export const STAGE = {
    * se levanta el ritmo y se sigue. Pero es una de cada diez, no la mitad.
    */
   tacticPullingAppetite: 0.1,
+
+  /**
+   * CUÁNDO UNA FUGA CUENTA COMO «HABERSE PASADO EL DÍA DELANTE» (v42), en km. Por debajo de esto el
+   * movimiento fue una escaramuza —de las que hay quince en los primeros cincuenta kilómetros— y no
+   * deja secuela: el que se tira y le cogen a los dos kilómetros puede volver a tirarse, y eso
+   * también es ciclismo.
+   */
+  tacticSpentMinKm: 15,
+  /**
+   * …Y CUÁNTO DURA LA SECUELA: la mitad de lo que estuvo fuera. El que ha hecho 100 km escapado y le
+   * cazan no vuelve a existir en cincuenta kilómetros, que en la práctica es «hasta meta». El que ha
+   * hecho veinte, se sienta diez y luego ya veremos.
+   */
+  tacticSpentShare: 0.5,
+  /**
+   * …con un tope, porque «no vuelve a existir» tiene que seguir siendo una frase del día y no de la
+   * semana: ochenta kilómetros es más que el desenlace de cualquier etapa.
+   */
+  tacticSpentMaxKm: 80,
   /**
    * …Y ALREDEDOR DE QUÉ (v39). El dado del humor iba centrado en 1, o sea que de MEDIA el pelotón
    * corría al máximo de lo que su plan pedía. El dueño: «que en general no estén tan motivados en

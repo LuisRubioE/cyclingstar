@@ -76,6 +76,16 @@ export interface MoveRider {
    * montaña en el 25,0 % contra un suelo de 25.
    */
   pulling: boolean
+  /**
+   * ¿VIENE DE QUE LE CACEN TRAS UNA FUGA LARGA? (v42). No es lo mismo que ir vacío: el depósito ya
+   * lo mira `energyFraction`, y con un 29 % este motor le dejaba conservar un 29 % de las ganas. Lo
+   * que esto dice es lo otro, lo que en carretera se ve a simple vista —al que le come el pelotón
+   * después de pasarse el día delante se le va la cabeza y las piernas a la vez, y se sienta—.
+   *
+   * El dueño lo cazó entero en una etapa de producción: un corredor que se escapó en solitario, fue
+   * cazado, se volvió a escapar, fue cazado otra vez, se escapó una tercera… **y ganó la etapa**.
+   */
+  gastado: boolean
 }
 
 /** El contexto que parametriza el intento. */
@@ -227,6 +237,8 @@ export function attackAppetite(
 ): number {
   if (r.matches <= 0) return 0
   if (r.energyFraction < STAGE.tacticMinEnergyFraction) return 0
+  // …Y AL QUE ACABAN DE CAZAR TRAS UNA FUGA LARGA NO SE LE OCURRE NADA (v42). Ver `MoveRider.gastado`.
+  if (r.gastado) return 0
   // Filtro de candidatos a la fuga (SPEC 6.10, dos constantes que llevaban definidas y sin usar
   // desde el Paso 21): a la fuga del día no se va un sprinter puro —espera su llegada— ni quien
   // llega a la etapa con el depósito por debajo del 40%.
@@ -325,6 +337,8 @@ export function chooseInstigator(
 export function followProbability(r: MoveRider, instigator: MoveRider, ctx: MoveContext): number {
   if (r.riderId === instigator.riderId) return 0
   if (r.energyFraction < STAGE.tacticMinEnergyFraction) return 0
+  // …y tampoco salta a la rueda de nadie: le acaban de comer después de un día delante (v42).
+  if (r.gastado) return 0
   // Saltar a una rueda es un esfuerzo supraumbral: sin cerillo no se salta (SPEC 6.6).
   if (r.matches <= 0) return 0
   const attention = STAGE.tacticFollowTacWeight * (r.tac / 100)

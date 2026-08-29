@@ -24,6 +24,23 @@ export interface AutoOrderStage {
 const SPRINTER_MIN = 68 // por debajo de esto el equipo no juega la baza del sprint: va a por la fuga.
 
 const climbScore = (a: Record<Attribute, number>): number => 0.6 * a.MON + 0.4 * a.COL
+/**
+ * QUIÉN ES EL HOMBRE DEL EQUIPO PARA ESTA CARRERA, en un número (v42). Es la misma cuenta con la que
+ * `autoStageOrders` elige al jefe de filas unas líneas más abajo —montaña por piernas de montaña,
+ * llano por remate, y lo demás por rodador completo—, expuesta para que la use quien reparta
+ * DORSALES: el 1 de un equipo es su líder, no su corredor más famoso.
+ *
+ * El dueño lo vio en producción: «le han dado el dorsal 131 a un wey que ha quedado en el puesto 50
+ * a 10 minutos, mientras que el 132 y otro más de ese equipo son primero y segundo de la general…
+ * y mirando sus stats son claramente mejores que el 131».
+ */
+export function raceLeadScore(a: Record<Attribute, number>, kinds: readonly string[]): number {
+  const montaña = kinds.filter((k) => k === 'reina' || k === 'media').length
+  const llana = kinds.filter((k) => k === 'llana').length
+  if (montaña > 0 && montaña >= llana) return climbScore(a)
+  if (llana > montaña) return Math.max(sprintScore(a), allroundScore(a))
+  return allroundScore(a)
+}
 const sprintScore = (a: Record<Attribute, number>): number => a.SPR
 const breakScore = (a: Record<Attribute, number>): number => 0.5 * a.TAC + 0.3 * a.LLA + 0.2 * a.RES
 const allroundScore = (a: Record<Attribute, number>): number =>
