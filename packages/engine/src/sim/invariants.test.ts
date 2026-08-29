@@ -619,7 +619,18 @@ describe('las carreras PEQUEÑAS con forma de producción (v23)', () => {
   // Diez carreras de 1 a 9 etapas con 126-176 corredores son ~2 minutos: se corren UNA vez y las
   // comparten todos los invariantes que salen de ellas, como hacen `grandTour` y `realQueens`.
   let shared: SmallTourStats | null = null
-  const bench = (): SmallTourStats => (shared ??= analyzeSmallTours(4))
+  /**
+   * OCHO CORRIDAS POR CARRERA Y NO CUATRO (v41). Con cuatro, la prueba de la foto de meta mide sobre
+   * unos NOVENTA pares y el suelo de su banda —el 15 % de «dos llegadas agrupadas de la misma
+   * carrera las gana el mismo»— queda a menos de UN par de distancia: medido, 14,89 % con cuatro
+   * corridas y 16,9 % con ocho, sin que el motor cambie. Un listón que se cruza con un par no mide
+   * nada.
+   *
+   * Y la dirección importa: lo que se sube es la MUESTRA, no se baja el suelo. Ese 15 % es la línea
+   * de la lotería —con 7 a 17 rematadores nombrados, repartir al azar da un 6-14 %— y describe una
+   * propiedad del ciclismo, no una preferencia. Cuesta unos minutos más de banco, y se pagan.
+   */
+  const bench = (): SmallTourStats => (shared ??= analyzeSmallTours(8))
 
   it('el banco cubre formas distintas, y las carreras de la queja están dentro', () => {
     // No es decorado: el defecto se coló porque el banco no tenía ningún campo con esta forma.
@@ -642,7 +653,7 @@ describe('las carreras PEQUEÑAS con forma de producción (v23)', () => {
 
   it('el mejor rematador gana bastantes, y no todas', { timeout: 1200000 }, () => {
     const stats = bench()
-    expect(stats.share.races).toBe(SMALL_TOURS.length * 4)
+    expect(stats.share.races).toBe(SMALL_TOURS.length * stats.runsPerRace)
     // …y el campo tiene un mejor sprinter CLARO, que es la premisa del objetivo: si el banco
     // acabara midiendo un empate a tres, mediría lo mismo que `llana-180` y no serviría de nada.
     expect(stats.share.medianEdge).toBeGreaterThan(1)
