@@ -62,11 +62,18 @@ export interface MoveRider {
    */
   teamAttack: number
   /**
-   * ¿IBA DANDO LA CARA AL VIENTO EN EL BLOQUE ANTERIOR? (v41). El que va en la rotación no es el que
-   * salta: viene de pagar el viento del grupo entero y el que ataca lo hace desde la rueda, con el
-   * hueco ya hecho. El dueño lo vio en una carrera de producción —«el mismo que se escapó, antes de
-   * escaparse iba tirando del pelotón»— y tiene toda la razón: no es que sea imposible, es que es la
-   * excepción, y el motor lo estaba tratando como el caso normal.
+   * ¿IBA DANDO LA CARA AL FRENTE DEL PELOTÓN EN EL BLOQUE ANTERIOR? (v41). El que va en la rotación
+   * del pelotón no es el que salta: viene de pagar el viento de ciento setenta hombres, y el que
+   * ataca lo hace desde la rueda, con las piernas de no haber pagado nada. El dueño lo vio en una
+   * carrera de producción —«el mismo que se escapó, antes de escaparse iba tirando del pelotón»— y
+   * tiene toda la razón: no es que sea imposible, es que es la excepción, y el motor lo estaba
+   * tratando como el caso normal.
+   *
+   * DEL PELOTÓN, y no de cualquier grupo, y esto se midió: dentro de una fuga o de un grupo de
+   * cabeza rotan todos, así que ahí la bandera no distingue a nadie —y donde sí distinguía era en el
+   * puerto final, donde el turno son uno o dos hombres y son justo los que tienen que atacar—.
+   * Aplicarlo a todo hundía la brecha 1.º-10.º de la reina de 81 s a 59,5 y dejaba la fuga de
+   * montaña en el 25,0 % contra un suelo de 25.
    */
   pulling: boolean
 }
@@ -234,8 +241,8 @@ export function attackAppetite(
   a *= r.teamAttack
   // Frescura: quien va vaciado no salta aunque quiera.
   a *= clamp(r.energyFraction, 0, 1)
-  // …Y EL QUE VA TIRANDO NO SALTA (v41). No es un veto —de un relevo se puede arrancar, y a veces se
-  // arranca— pero es la excepción: el que ataca viene de la rueda. Ver `MoveRider.pulling`.
+  // …Y EL QUE VA TIRANDO DEL PELOTÓN NO SALTA (v41). No es un veto —de un relevo se puede arrancar, y
+  // a veces se arranca— pero es la excepción: el que ataca viene de la rueda. Ver `MoveRider.pulling`.
   if (r.pulling) a *= STAGE.tacticPullingAppetite
   if (ctx.kind === 'ataque_grupo') {
     // `finishRank` 0 = el peor rematador del grupo, 1 = el mejor. El que sabe que pierde el sprint

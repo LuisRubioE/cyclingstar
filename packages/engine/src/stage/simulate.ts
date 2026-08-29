@@ -3760,7 +3760,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       return true
     }
 
-    const asMoveRider = (m: RiderSim, type: FinishType): MoveRider => ({
+    const asMoveRider = (m: RiderSim, type: FinishType, esPeloton: boolean): MoveRider => ({
       riderId: m.input.riderId,
       role: m.input.orders.role,
       mentality: m.input.orders.mentality,
@@ -3773,8 +3773,9 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       gcDeficitSeconds: m.input.gcDeficitSeconds,
       teamAttack: attackFactorOf(m.input.riderId),
       // Lo que iba haciendo en el bloque anterior: la capa táctica corre ANTES que el avance, así
-      // que ésta es su foto más reciente y es la buena —«iba tirando cuando se le ocurrió»—.
-      pulling: m.pulling,
+      // que ésta es su foto más reciente y es la buena —«iba tirando cuando se le ocurrió»—. Y solo
+      // cuenta en el PELOTÓN: ver `MoveRider.pulling`.
+      pulling: esPeloton && m.pulling,
     })
 
     /** Un intento de movimiento desde `source`. Puede no salir, salir y fracasar, o salir y cuajar. */
@@ -3799,7 +3800,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       if (!rollMoveAttempt(rngTactics, ctx)) return
       lastAttemptKm.set(source.id, km)
       const type = finishType(finishTerrain, members.length)
-      const pool = members.map((m) => asMoveRider(m, type))
+      const pool = members.map((m) => asMoveRider(m, type, source.id === (mainId ?? PELOTON)))
       const instigator = chooseInstigator(pool, ctx, rngTactics)
       if (instigator === null) return
       // Regla 2: **algunos van atentos y saltan detrás**, y regla 3: **muchos de los que lo intentan
