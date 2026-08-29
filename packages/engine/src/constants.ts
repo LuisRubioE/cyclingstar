@@ -2840,6 +2840,32 @@ export const STAGE = {
   rainDescentScale: 1,
 
   /**
+   * CUÁNTO SE APARTA UN DÍA DE LA MEDIA DE SU ESTACIÓN, en grados. El clima da la media de un sitio
+   * y una fecha; el día concreto puede ser siete grados más fresco o más caluroso, que es la
+   * diferencia entre una etapa dura y una etapa de las que se recuerdan.
+   */
+  heatDaySpreadC: 7,
+  /**
+   * DÓNDE EMPIEZA EL CALOR Y DÓNDE APRIETA DEL TODO, en grados. Por debajo de `heatFromC` el calor no
+   * cuesta nada —correr a 24° es correr—, y en `heatFullC` es un día de los que dejan al pelotón
+   * pidiendo agua en cada avituallamiento.
+   */
+  heatFromC: 26,
+  heatFullC: 38,
+  /**
+   * LO QUE CUESTA EL CALOR. No es velocidad ni selección: es DEPÓSITO. A la misma potencia, con 38°
+   * el cuerpo gasta en refrigerarse lo que no gasta a 20, y eso sale del mismo sitio del que sale
+   * todo lo demás.
+   *
+   * Un 8 % en el día más caluroso es un número contenido a propósito, y por una lección que este
+   * motor ya se llevó dos veces: en la v41, cobrar más de la cuenta en el llano reventó el Tour de
+   * Flandes, y la erosión de una clásica dura vive a 0,92 contra un techo de 0,95. Lo que el calor
+   * tiene que hacer es que una etapa de agosto en España pese más que la misma en abril, no volver
+   * imposible ninguna carrera.
+   */
+  heatCostScale: 0.08,
+
+  /**
    * LAS GANAS DE ATACAR DEL QUE VA TIRANDO (v41). El que está en la rotación acaba de pagar el
    * viento del grupo: no es el que salta. El dueño lo cazó en una carrera de producción —«el mismo
    * que se escapó, antes de escaparse iba tirando del pelotón… eso no tiene sentido»—.

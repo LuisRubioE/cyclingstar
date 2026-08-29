@@ -8314,7 +8314,7 @@ Y una prueba de puntos deja de exigir un estricto mayor donde el modelo dice leg
 «empate»: su semilla resulta ser un día de abanicos, el segundo se lleva la meta volante del km 100
 y los dos acaban con 40 puntos.
 
-### 6. LO QUE QUEDÓ EN ROJO: la cola de la reina — y se arregló sola en la v42
+### 6. LO QUE QUEDÓ EN ROJO: la cola de la reina — y resultó no ser lo que yo decía
 
 `grandTour.queenLastGroupPct` sale a **7,88 %** contra un suelo de 8, y no es ruido de muestra: con el
 doble de giras baja a 7,43 %. Lo mueve el viento y solo el viento —el mismo motor con el sorteo
@@ -8330,11 +8330,34 @@ su motivo escrito, o no dejar que el abanico se abra en una etapa de montaña—
 **dejarlo**: «con futuros cambios en el motor esto puede arreglarse solo o empeorar». Así que la
 banda NO se toca y el test se queda en rojo a propósito, con este párrafo como explicación.
 
-**Y se cerró en la versión siguiente, sin tocar la banda.** La lluvia de la v42 la devolvió por
-encima de 8: el descenso mojado y las caídas estiran la cola de una etapa de montaña, que es justo lo
-que el viento le había quitado. El dueño acertó al no dejarme elegir entre las tres salidas, y la
-lección no es sobre el viento ni sobre la lluvia: **una banda que roza su suelo por una décima puede
-estar diciendo que falta física, no que sobre rigor.**
+**Y AQUÍ HAY QUE RETIRAR LO ESCRITO ARRIBA, que era mío y estaba mal hecho.** Todo el párrafo
+anterior —«lo mueve el viento y solo el viento», y después «la lluvia lo arregló»— sale de comparar
+UNA muestra contra UNA muestra. Cuando en la v42 se midió el RUIDO en serio, con cuatro muestras
+independientes de seis giras y la misma física, salió esto:
+
+| Muestra (6 giras cada una) | Cola de la reina     |
+| -------------------------- | -------------------- |
+| Giras 0-5                  | 7,86 %               |
+| Giras 6-11                 | 8,28 %               |
+| Giras 12-17                | 7,64 %               |
+| Giras 18-23                | 8,49 %               |
+| **Media**                  | **8,07 % · sd 0,39** |
+
+El suelo de la banda es 8. **La mitad de las muestras pasan y la mitad fallan sin que nada haya
+cambiado.** Con ese ruido, ninguna de las tres atribuciones de esta sesión sobrevive: ni que el
+viento la acortara (8,42 contra 7,88), ni que la lluvia la arreglara (8,64), ni que el calor la
+volviera a romper —esta última medida en serio, cuatro muestras contra cuatro: diferencia 0,22 con
+error estándar 0,45, **medio sigma**—.
+
+Lo que de verdad pasa es más simple y más incómodo que cualquiera de mis tres explicaciones: **el
+motor produce una cola de reina de 8,1-8,3 y la banda tiene el suelo en 8**. Está sentada encima de
+la raya. Subir la muestra tampoco lo arregla: haría falta cuadruplicar las giras para bajar el ruido
+a 0,20, y aun así pasaría por siete centésimas.
+
+Queda a decisión del dueño, con los números delante: o el suelo está una pizca alto para este motor,
+o el grupeto va una pizca rápido. **La lección de verdad no es la que escribí la primera vez.** No es
+«una banda al borde puede estar pidiendo física»: es que **una diferencia entre dos corridas no es un
+efecto hasta que se mide contra su propio ruido**, y yo di tres por buenas sin hacerlo.
 
 ### 7. Lo que el banco corrigió de mí, tres veces
 

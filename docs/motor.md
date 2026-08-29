@@ -1339,12 +1339,20 @@ corredores** contra 32-50 en seco. Seis de cada diez tocando el suelo no es una 
 una caricatura. Con 0,8 da 85: casi el doble, que es lo que dicen los recuentos de carreras en
 mojado contra las mismas en seco.
 
-**20.3 Y arregló, sola, la deuda que dejó el viento.** La v41 cerró con una banda en rojo a
-propósito: la cola de una etapa reina se había acortado del 8,42 % al 7,88 % contra un suelo de 8, y
-el dueño decidió no tocarla —«con futuros cambios en el motor esto puede arreglarse solo o
-empeorar»—. Con la lluvia dentro sale **8,64 %**. Tenía razón y el mecanismo se entiende: el
-descenso mojado y las caídas estiran la cola de una etapa de montaña, que es justo lo que el viento
-le había quitado.
+**20.3 Y de paso destapó que la deuda del viento no existía.** La v41 cerró con una banda en rojo:
+la cola de una etapa reina, 7,88 % contra un suelo de 8, atribuida al viento. Con la lluvia dentro
+salía 8,64 % y pareció arreglada; con el calor, 7,86 % y pareció rota otra vez. Las tres cifras eran
+comparaciones de UNA muestra contra UNA muestra.
+
+Medido el ruido en serio —cuatro muestras independientes de seis giras, misma física— la métrica da
+**8,07 % con una desviación de 0,39**, y el suelo de la banda es 8: la mitad de las muestras pasan y
+la mitad fallan sin que nada cambie. Ninguno de los tres mecanismos del clima la mueve de forma
+medible (el calor, contrastado cuatro contra cuatro, sale a medio sigma).
+
+Lo que hay es más simple: **el motor produce una cola de reina de 8,1-8,3 contra un suelo de 8**,
+sentada encima de la raya. Queda a decisión del dueño si el suelo está alto o el grupeto rápido. Y
+la lección, que vale para todo este documento: **una diferencia entre dos corridas no es un efecto
+hasta que se mide contra su propio ruido.**
 
 **20.4 Lo que queda.** El CALOR —que es coste, no selección— y la PREVISIÓN, que es la mitad del
 encargo que convierte el clima en una decisión y no solo en un atributo. Y una cosa anotada del

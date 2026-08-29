@@ -950,6 +950,16 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
   const lluvia =
     lluviaBruta < umbralLluvia ? 0 : (lluviaBruta - umbralLluvia) / (1 - umbralLluvia)
   /**
+   * …Y EL CALOR DEL DÍA. La otra mitad de lo que el dueño pidió —«lluvia sobre adoquín, frío en un
+   * puerto, CALOR»— y la que no selecciona: el calor no rompe la carrera, la desgasta. El clima da
+   * la media de la estación y el día se aparta de ella; por encima de `heatFromC` empieza a costar.
+   *
+   * El sorteo va DESPUÉS del de la lluvia a propósito: así el día seco de la v42 anterior sale
+   * dígito a dígito, porque el dado de la lluvia es el mismo.
+   */
+  const grados = clima.temperatura + STAGE.heatDaySpreadC * (2 * rngClima() - 1)
+  const calor = clamp((grados - STAGE.heatFromC) / (STAGE.heatFullC - STAGE.heatFromC), 0, 1)
+  /**
    * SER MUCHOS DEJA DE SERVIR, TAMBIÉN PARA EL QUE PERSIGUE (v41). El tamaño de un grupo entra en la
    * física en tres sitios —cuántos reparten el viento en la ley de velocidad, cuánto rebufo hay y a
    * qué ritmo se resigna un grupo descolgado (`droppedCommit`)— y con viento de lado los tres tienen
@@ -2989,7 +2999,15 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
          * de una llegada masiva —el pelotón a 60 km/h— no gastaba NADA de depósito. El dueño:
          * «obviamente es muy diferente ir en cabeza a 70 km/h que a 30 km/h».
          */
-        const cost = blockCost(block, compromisoReal, pulling, relayers.size, STAGE.dx, arropo)
+        /**
+         * …Y EL CALOR SE PAGA DEL DEPÓSITO (v42). No de la velocidad ni de la selección: a la misma
+         * potencia, con 38° el cuerpo gasta en refrigerarse lo que no gasta a 20, y eso sale del
+         * mismo sitio del que sale todo lo demás. Por eso multiplica el COSTE y no toca el esfuerzo:
+         * lo que el corredor hace es lo mismo, lo que le cuesta hacerlo no.
+         */
+        const cost =
+          blockCost(block, compromisoReal, pulling, relayers.size, STAGE.dx, arropo) *
+          (1 + STAGE.heatCostScale * calor)
         m.energy = Math.max(0, m.energy - cost)
         m.work += cost
       }

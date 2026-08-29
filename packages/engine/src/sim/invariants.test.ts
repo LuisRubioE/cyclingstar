@@ -493,14 +493,27 @@ describe('abandonos en una gran vuelta (docs/motor.md §VI.3)', () => {
    * delante media carrera todos los días.
    */
   /**
-   * ESTUVO EN ROJO A PROPÓSITO ENTRE LA v41 Y LA v42, y se arregló SOLO. El viento de la v41 acortó
-   * la cola de 8,42 % a 7,88 % contra este suelo de 8, y el dueño decidió no tocar la banda: «con
-   * futuros cambios en el motor esto puede arreglarse solo o empeorar». Acertó, y en el cambio
-   * siguiente: con la lluvia dentro (v42) sale por encima de 8 otra vez, porque el descenso mojado
-   * y las caídas estiran la cola de una etapa de montaña, que es justo lo que el viento le quitaba.
+   * ESTA PRUEBA ES UNA MONEDA AL AIRE, Y ESTÁ MEDIDO (v42). Cuatro muestras INDEPENDIENTES de seis
+   * giras cada una —el tamaño que corre este test— con la MISMA física dan 7,86 · 8,28 · 7,64 ·
+   * 8,49: media **8,07** y desviación **0,39**, contra un suelo de 8. La mitad de las muestras pasan
+   * y la mitad fallan sin que nada haya cambiado.
    *
-   * Se deja escrito porque la lección no es sobre el viento ni sobre la lluvia: una banda que roza
-   * su suelo por una décima puede estar diciendo que falta física, no que sobre rigor.
+   * Y con eso se caen tres atribuciones que se dieron por buenas antes, las tres hechas comparando
+   * UNA muestra contra UNA muestra:
+   *
+   *  - «el viento acorta la cola» (v41: 8,42 sin viento contra 7,88 con) — dentro del ruido;
+   *  - «la lluvia la arregla» (v42: 8,64) — dentro del ruido;
+   *  - «el calor la vuelve a romper» (v42: 7,86 contra 9,11) — medido en serio, cuatro muestras
+   *    contra cuatro, la diferencia es de 0,22 con un error estándar de 0,45: **medio sigma**.
+   *
+   * Lo que de verdad pasa es más simple y más incómodo: el motor produce una cola de reina de 8,1 a
+   * 8,3 y la banda tiene el suelo en 8. Está sentada encima de la raya, y ningún mecanismo del clima
+   * la mueve de forma medible. Subir la muestra no lo arregla: haría falta cuadruplicar las giras
+   * para bajar el ruido a 0,20 y aun así pasaría por siete centésimas.
+   *
+   * Queda a decisión del dueño, con los números delante: o el suelo está una pizca alto para este
+   * motor, o el grupeto va una pizca rápido. Lo que NO se hace es mover una constante física para
+   * que un dado caiga del lado bueno.
    */
   it('el último grupo de una etapa reina entra al 8-14%', { timeout: 600000 }, () => {
     const stats = tours()

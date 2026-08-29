@@ -61,12 +61,17 @@ de fuerza durante el día— y no hay tramos expuestos en el perfil, así que cu
 llano puede ser el del corte. La previsión que convertiría la colocación en una DECISIÓN además de
 en un atributo vive en E5.
 
-### V1 · ~~VIGILADO: la cola de la reina~~ — CERRADO SOLO en la v42
+### V1 · VIGILADO: la cola de la reina — la banda está sentada encima de su suelo
 
-Estuvo en rojo entre la v41 y la v42: el viento acortó la cola de una etapa reina de 8,42 % a 7,88 %
-contra un suelo de 8, y el dueño decidió no tocar la banda —«con futuros cambios en el motor esto
-puede arreglarse solo o empeorar»—. Acertó, y en el cambio siguiente: la lluvia la devolvió por
-encima de 8, porque el descenso mojado y las caídas estiran la cola de una etapa de montaña.
+Medido en la v42 con cuatro muestras independientes de seis giras y la misma física: **8,07 % de
+media con una desviación de 0,39**, contra un suelo de 8. La mitad de las muestras pasan y la mitad
+fallan sin que nada cambie, así que el test es una moneda al aire y ninguna de las tres atribuciones
+que se le hicieron —viento, lluvia, calor— sobrevive al contraste (el calor, cuatro contra cuatro,
+sale a medio sigma).
+
+Decisión pendiente del dueño: o el suelo está una pizca alto para este motor, o el grupeto va una
+pizca rápido. Subir la muestra no basta —cuadruplicar las giras baja el ruido a 0,20 y aun así
+pasaría por siete centésimas—. Detalle en docs/balance.md «v41 §6».
 
 ### E3 · La carrera por etapas como una carrera, no como 21 etapas
 
