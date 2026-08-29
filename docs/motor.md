@@ -1211,9 +1211,13 @@ Así que el modelo son tres piezas y ninguna es un sorteo por corredor:
   grupo que no quepa**, no solo al pelotón: un abanico no es un corte, es una cascada, y de ahí
   salen los tres o cuatro grupos con los que acaba un día de viento.
 - **La fila entera rota** (`enAbanico`): en un abanico no hay ir a rueda —o das la cara cuando te
-  toca o te caes de la fila—, así que el listón del pelotón deja de valer, el jefe no tiene dónde
-  esconderse y no vale el «¿para qué voy a tirar si no puedo ganar?». Medido sin esto: el corte de
-  trece hombres ponía DOS a rotar mientras los 159 de detrás ponían veinte.
+  toca o te caes de la fila—, así que el listón del pelotón deja de valer y tampoco vale el «¿para
+  qué voy a tirar si no puedo ganar?»: ahí no hay favor de nadie. Medido sin esto: el corte de trece
+  hombres ponía DOS a rotar mientras los 159 de detrás ponían veinte. **Con una excepción y solo
+  una: el jefe al que llevan los suyos.** Aquí me equivoqué primero —escribí que en un abanico el
+  jefe rota como todo el mundo— y el banco lo cazó: la regla de la v36 se caía al 17,4 % los días de
+  viento. La carretera dice lo contrario: el equipo mete a su jefe en la fila y son SUS HOMBRES los
+  que dan los relevos. Un abanico no elimina el trabajo de equipo, es donde más se ve.
 - **La cuneta** (`gutterShelter`): detrás del corte no se va a rueda. Un grupo que dobla la
   capacidad de la carretera arropa a la mitad de los suyos, y el resto paga viento. Es la pieza sin
   la cual todo lo demás es un adorno: medido sin ella, el corte dejaba 21 hombres delante y 152
