@@ -1279,6 +1279,51 @@ en el EPIC del clima, y es lo que convertiría la colocación en una DECISIÓN a
 atributo). Tampoco hay tramos expuestos en el perfil: cualquier kilómetro de llano puede ser el del
 corte, cuando en carretera el viento pega donde no hay setos.
 
+### 20. Cambio 8 — El clima (EN CURSO, v42)
+
+El segundo EPIC delegado, y el que el dueño enunció así: «lluvia sobre adoquín, frío en un puerto,
+calor. Es lo que da variedad entre dos ediciones de la misma carrera y **lo que justifica de verdad
+las caídas y los abandonos**». Más una segunda mitad que añadió después: «estaría bien también que
+pueda existir para los ciclistas y managers una **previsión** del clima… que además puede cambiar, y
+con eso tomar diferentes decisiones».
+
+**20.1 La lluvia del día.** Una propiedad de la etapa, como el viento y como el humor: subflujo
+NOMINAL propio (`clima`, SPEC 6.1), se sortea una vez y vale para todo el día. Un día seco sale
+dígito a dígito como en la v41. La frecuencia sale de la carretera y no de la intuición —**un 20 %
+de días con lluvia** en el calendario europeo, medido 18,7 %— y esa disciplina es la lección directa
+de la v41, donde el 12 % de días de viento se puso a ojo y lo tumbó el banco.
+
+**20.2 Qué hace la lluvia, y qué NO hace.** Tres cosas, y las tres escalan algo que ya existía:
+
+| Pieza              | Qué dice                                                                                                                                    |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Las CAÍDAS         | Multiplica la intensidad del bloque: se sigue cayendo donde se cae —la curva, el adoquín, el embudo final— y solo cambia cuánta gente       |
+| El ADOQUÍN mojado  | El mismo sector que en seco estira el grupo, en mojado lo parte. Escala `dropPavesFactor`, así que las estrellas del sector siguen mandando |
+| El DESCENSO mojado | Bajar con lluvia es perder la rueda, no reventar: escala la selección del descenso y no el coste                                            |
+
+Lo que **no** hace: un llano mojado sigue sin seleccionar. Lo que rompe una carrera con lluvia no es
+el agua, es lo que el agua le hace al adoquín y a la curva.
+
+El número de las caídas se corrigió antes de que lo cazara el banco, y por el mismo vicio de la
+v41: con la escala en 1,5 —puesta a ojo— un Paris-Roubaix con lluvia daba **104 incidentes de 176
+corredores** contra 32-50 en seco. Seis de cada diez tocando el suelo no es una carrera mojada, es
+una caricatura. Con 0,8 da 85: casi el doble, que es lo que dicen los recuentos de carreras en
+mojado contra las mismas en seco.
+
+**20.3 Y arregló, sola, la deuda que dejó el viento.** La v41 cerró con una banda en rojo a
+propósito: la cola de una etapa reina se había acortado del 8,42 % al 7,88 % contra un suelo de 8, y
+el dueño decidió no tocarla —«con futuros cambios en el motor esto puede arreglarse solo o
+empeorar»—. Con la lluvia dentro sale **8,64 %**. Tenía razón y el mecanismo se entiende: el
+descenso mojado y las caídas estiran la cola de una etapa de montaña, que es justo lo que el viento
+le había quitado.
+
+**20.4 Lo que queda.** El CALOR —que es coste, no selección— y la PREVISIÓN, que es la mitad del
+encargo que convierte el clima en una decisión y no solo en un atributo. Y una cosa anotada del
+mecanismo: la lluvia es un número de ETAPA, así que no va y viene durante el día.
+
+**A vigilar:** los abandonos por caída suben del 62,7 % al 65,6 % contra un techo del 67 %. Le
+quedan punto y medio, y el calor es lo siguiente que entra.
+
 ---
 
 ## Parte IV — El output: cómo ver lo que pasó

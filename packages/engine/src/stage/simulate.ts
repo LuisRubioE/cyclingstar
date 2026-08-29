@@ -44,6 +44,7 @@ import {
   tankState,
   targetSpeed,
 } from './physics.js'
+import { climateOf } from '../world/climate.js'
 import { rollHazard } from './hazard.js'
 import {
   type CrashOutcome,
@@ -936,8 +937,18 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
    * para todo el día; que la lluvia vaya y venga durante la etapa queda anotado en §20.
    */
   const rngClima = streams('clima')
+  /**
+   * …Y CUÁNTO LLUEVE AQUÍ Y HOY lo dice la geografía, no una constante (v42). El dueño: «el clima
+   * debería depender del país y del GD». El umbral del sorteo se DERIVA de la probabilidad local
+   * —`(1 − p)^forma`—, así que una etapa que no dice dónde se corre usa la de referencia y sale
+   * exactamente como antes de este cambio.
+   */
+  const clima = climateOf(input.lugar?.pais, input.lugar?.dia ?? 0)
+  const pLluvia = input.lugar ? clima.pLluvia : STAGE.rainDayProb
+  const umbralLluvia = Math.pow(1 - pLluvia, STAGE.rainDayShape)
   const lluviaBruta = Math.pow(rngClima(), STAGE.rainDayShape)
-  const lluvia = lluviaBruta < STAGE.rainMin ? 0 : (lluviaBruta - STAGE.rainMin) / (1 - STAGE.rainMin)
+  const lluvia =
+    lluviaBruta < umbralLluvia ? 0 : (lluviaBruta - umbralLluvia) / (1 - umbralLluvia)
   /**
    * SER MUCHOS DEJA DE SERVIR, TAMBIÉN PARA EL QUE PERSIGUE (v41). El tamaño de un grupo entra en la
    * física en tres sitios —cuántos reparten el viento en la ley de velocidad, cuánto rebufo hay y a

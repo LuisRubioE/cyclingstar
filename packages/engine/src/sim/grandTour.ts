@@ -215,6 +215,13 @@ export function runGrandTour(worldSeed: string): GrandTourResult {
         profile: stage.profile,
         riders,
         ...(stage.timeTrial === true ? { timeTrial: true } : {}),
+        // …Y SE CORRE DONDE Y CUANDO SE CORRE (v42). Una gran vuelta de tres semanas en julio en
+        // Francia no tiene el clima de un sitio cualquiera: llueve el 17 % de los días y hace 23°.
+        // El banco mide la carrera que el juego corre, así que también su cielo.
+        lugar: {
+          ...(race.country != null ? { pais: race.country } : {}),
+          dia: race.startDay + stage.index - 1,
+        },
       },
       // `engineVersion: 1` FIJO en la semilla, como el resto del banco (`campaignSeeds`): el
       // objetivo mide el comportamiento del motor, y si la semilla se moviera con cada versión no

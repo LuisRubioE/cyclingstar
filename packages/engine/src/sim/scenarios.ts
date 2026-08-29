@@ -400,7 +400,17 @@ export function realRaceScenario(raceId: string, stageIndex = 1): Scenario {
   if (!stage) throw new Error(`Escenario: ${raceId} no tiene etapa ${stageIndex}`)
   return {
     name: stageIndex === 1 ? raceId : `${raceId}-e${stageIndex}`,
-    input: { profile: stage.profile, riders: uniformField() },
+    input: {
+      profile: stage.profile,
+      riders: uniformField(),
+      // …Y DÓNDE Y CUÁNDO SE CORRE (v42). Un banco que mide carreras REALES tiene que correrlas con
+      // su clima real: Flandes en abril y en Bélgica llueve mucho más que la media, y eso es
+      // exactamente lo que hay que medir. El día es el de la etapa, no el de la carrera.
+      lugar: {
+        ...(race.country != null ? { pais: race.country } : {}),
+        dia: race.startDay + stageIndex - 1,
+      },
+    },
     bestSprinterId: 'uni-0',
   }
 }

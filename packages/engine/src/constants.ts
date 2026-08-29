@@ -2800,14 +2800,18 @@ export const STAGE = {
    * depende de nadie. Y como el viento, tirando hacia abajo, porque llover llueve poco y diluviar
    * diluvia menos: el día MOJADO tiene que seguir siendo noticia.
    *
-   * `1 − rainMin^(1/rainDayShape)` es la probabilidad de pasar el listón, así que 0,64 con forma 2
-   * deja **un 20 % de días con lluvia**, y solo una parte de ésos son un diluvio. Es la frecuencia
-   * de la carretera en el calendario europeo, no un número de gusto: la lección de la v41 —donde
-   * puse el 12 % de días de viento a ojo y el banco lo tumbó— es que estos números se eligen contra
-   * algo, no contra la intuición.
+   * El listón NO es una constante sino una CONSECUENCIA: se pide una probabilidad de día lluvioso y
+   * el motor deriva el umbral, `umbral = (1 − p)^forma`. Así el clima de cada sitio y cada fecha
+   * (`world/climate.ts`) entra por donde tiene que entrar —diciendo cuánto llueve AQUÍ y AHORA— y
+   * no hay dos números que calibrar por separado.
+   *
+   * `rainDayProb` es el valor de referencia, el de una etapa que no dice dónde ni cuándo se corre:
+   * **un 20 % de días con lluvia**, la frecuencia de un sitio templado. Es la lección de la v41
+   * —donde puse el 12 % de días de viento a ojo y el banco lo tumbó— aplicada de antemano: estos
+   * números se eligen contra algo, no contra la intuición.
    */
   rainDayShape: 2,
-  rainMin: 0.64,
+  rainDayProb: 0.2,
   /**
    * LO QUE LA LLUVIA LE HACE A LAS CAÍDAS. Es la petición literal del dueño —«es lo que justifica de
    * verdad las caídas y los abandonos»— y el número más fácil de defender de los tres: con el
