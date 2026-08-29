@@ -1293,6 +1293,35 @@ dígito a dígito como en la v41. La frecuencia sale de la carretera y no de la 
 de días con lluvia** en el calendario europeo, medido 18,7 %— y esa disciplina es la lección directa
 de la v41, donde el 12 % de días de viento se puso a ojo y lo tumbó el banco.
 
+**20.1-bis El clima es de un SITIO y de una FECHA.** El dueño, en una línea: «ojo, el clima debería
+depender del país y del GD». Y sin eso llueve igual en Flandes en marzo que en Almería en agosto,
+que es lo contrario de la variedad que este EPIC tiene que dar. El dato ya existía —el calendario
+tiene país por carrera y `startDay` **es** el día del año, o sea el GD del reloj del mundo— y solo
+faltaba que llegara al motor (`StageInput.lugar`).
+
+`world/climate.ts` es deliberadamente pequeño: nueve ZONAS climáticas, cada una con su mitad fría y
+su mitad cálida del año, y el paso de una a otra por un coseno. El hemisferio sur va al revés, y por
+eso Australia en enero es verano. Y el umbral del sorteo deja de ser una constante: se DERIVA de la
+probabilidad local, `umbral = (1 − p)^forma`, así que el clima entra por donde tiene que entrar
+—diciendo cuánto llueve aquí y ahora— y no hay dos números que calibrar por separado. Una etapa que
+no dice dónde se corre usa la de referencia (20 %) y sale dígito a dígito como antes.
+
+| Carrera    | Sitio y fecha        | Llueve | Temp. |
+| ---------- | -------------------- | ------ | ----- |
+| Flandes    | BE, día 95 (abril)   | 33 %   | 11°   |
+| Roubaix    | FR, día 102          | 25 %   | 15°   |
+| Sanremo    | IT, día 80 (marzo)   | 28 %   | 12°   |
+| Tour       | FR, día 185 (julio)  | 17 %   | 23°   |
+| Vuelta     | ES, día 234 (agosto) | 9 %    | 26°   |
+| Emiratos   | AE, día 47           | 3 %    | 21°   |
+| Down Under | AU, día 20 (enero)   | 15 %   | 26°   |
+| Colombia   | CO, trópico          | 34 %   | 22°   |
+
+Lo que se sabe que es GRUESO, y queda escrito para que nadie lo confunda con precisión: **el país es
+la única granularidad que hay**, y hay países que son dos climas —Francia va del Canal al
+Mediterráneo, Italia de los Alpes a Sicilia—. Ésos van a una zona `templado` que es literalmente el
+promedio de dos. Cuando el calendario sepa la REGIÓN de cada carrera, se afina sin tocar nada más.
+
 **20.2 Qué hace la lluvia, y qué NO hace.** Tres cosas, y las tres escalan algo que ya existía:
 
 | Pieza              | Qué dice                                                                                                                                    |
