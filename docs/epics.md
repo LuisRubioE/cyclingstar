@@ -42,21 +42,24 @@ que ya no existe es peor que no tener comentario.
 
 ## EPICs delegadas
 
-### E1 · El viento y los abanicos
+### E1 · El viento y los abanicos — HECHO (v41), ver docs/motor.md §19
 
-**No existe nada.** El rebufo depende solo del terreno; no hay dirección de viento, ni viento
-lateral, ni corte de abanico en ninguna parte del motor.
-
-Encaja sobre lo que ya está construido: el modelo de «quién paga el viento» (v34, v38) es
-exactamente la pieza sobre la que se monta un abanico. Y cambia el juego en vez de decorarlo: hoy
-una etapa llana es «esperar al sprint»; con abanicos pasa a tener un peligro real, un equipo fuerte
-puede ganar una gran vuelta un martes cualquiera, y el gregario tiene trabajo de verdad.
+Se montó sobre lo que ya estaba construido: el modelo de «quién paga el viento» (v34, v38) era
+exactamente la pieza que hacía falta. Cuatro piezas nuevas —cuántos CABEN en la fila, el CORTE en
+cascada, la CUNETA del que se queda fuera y la COLOCACIÓN— y una puerta: todo lo que el abanico
+cambia solo vale desde que el corte ha saltado.
 
 > El dueño: «aunque eso implicará también definir las colocaciones».
 
-Y tiene razón: sin posición dentro del pelotón no hay abanico que valga. Hoy la colocación existe
-solo como DESORDEN en el remate (`placementSd`), no como un sitio en la carretera que se pueda
-ganar o perder durante la etapa. Esta EPIC empieza ahí.
+Tenía razón, y la colocación entró con ello: quién se queda dentro del corte lo deciden el equipo
+que lleva el frente (+25 puntos de perfil), el jefe al que colocan los suyos (+12), las piernas y
+±10 de suerte. Antes de la v41 la colocación solo existía como DESORDEN en el remate
+(`placementSd`).
+
+**Lo que queda anotado**, y no es poco: el viento es un número de ETAPA —no cambia de dirección ni
+de fuerza durante el día— y no hay tramos expuestos en el perfil, así que cualquier kilómetro de
+llano puede ser el del corte. La previsión que convertiría la colocación en una DECISIÓN además de
+en un atributo vive en E5.
 
 ### E3 · La carrera por etapas como una carrera, no como 21 etapas
 
@@ -366,6 +369,6 @@ mecánica de juego (y bastante buena), no un problema de escala.
 
 1. ~~**B1** (el adoquín) y **B2** (la crono)~~ — HECHOS en la v40. B1 arreglado
    (`dropPavesFactor`); B2 no existía: era un comentario caducado.
-2. **E1**, **E3**, **E5** — delegadas.
+2. ~~**E1** (el viento y los abanicos)~~ — HECHA en la v41. **E3** y **E5**, delegadas y pendientes.
 3. La lista grande, empezando por donde el dueño diga. **G1 (entrenamientos)** y **G3 (rankings)**
    son las dos que hoy pueden estar mintiendo en producción, así que son las candidatas naturales.

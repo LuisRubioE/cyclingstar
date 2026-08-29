@@ -1173,6 +1173,93 @@ Lo que **no** hace, y queda anotado: la caza sigue siendo un solo escalar de eta
 equipo con presupuesto de esfuerzo (§V.1); y la fuerza se infiere de las órdenes porque
 `StageRider` todavía no trae `teamId`.
 
+### 19. Cambio 7 — El viento y los abanicos (HECHO, v41)
+
+Hasta la v40 el motor tenía TRES terrenos que seleccionaban —el puerto, el adoquín y, un poco, el
+descenso— y el llano no seleccionaba nunca (`selectionFactor('llano') = 0`). Eso deja fuera una de
+las dos o tres formas en que se rompe una carrera de verdad: **el viento de lado**.
+
+**19.1 Qué se modela y qué no.** Solo la componente LATERAL. El viento de cara frena a todos por
+igual y el de cola acelera a todos por igual: ninguno de los dos rompe nada, y meterlos sería
+recalibrar la velocidad del juego entero para no cambiar ni una posición. El lateral es otra cosa,
+porque obliga a buscar el rebufo **en diagonal** y ahí la carretera se acaba.
+
+Se sortea **un número por etapa**, en un subflujo nominal propio (`viento`, SPEC 6.1), tirando hacia
+abajo (`windDayShape`) y con un listón (`windMin`) por debajo del cual el día es un día normal:
+medido, **13 de cada 100** llanas tienen viento de lado. Una etapa sin viento sale dígito a dígito
+como en la v40, y por eso la huella sellada del banco canónico no se movió.
+
+**19.2 Un abanico NO es un dado por corredor.** Esto se probó primero al revés —abrir en el llano un
+hazard de descuelgue proporcional al viento— y daba carreras incoherentes: con viento MEDIO el
+pelotón se partía (94 de 176 en cabeza) y con viento FUERTE llegaban los 176 juntos. El motivo es
+que un abanico es una cuestión de **capacidad**, no de probabilidad: con el rebufo en diagonal la
+fila se come el ancho del asfalto, y el que hace trece no es que tenga más papeletas de descolgarse,
+es que **no cabe**.
+
+Así que el modelo son tres piezas y ninguna es un sorteo por corredor:
+
+- **Cuántos caben** (`cabenEnFila`): la capacidad de la carretera con este viento, del pelotón
+  entero con una brisa a doce hombres con viento de verdad. Baja geométricamente y no en línea
+  recta, que es lo que hace que un lateral flojo sea un día incómodo y no una carrera partida.
+- **El corte** (`echelon_split`): pasa en un SITIO y en un MOMENTO —una curva, un cruce, un equipo
+  que se pone—, por eso se sortea por kilómetro y no se aplica de continuo. Y se aplica a **todo
+  grupo que no quepa**, no solo al pelotón: un abanico no es un corte, es una cascada, y de ahí
+  salen los tres o cuatro grupos con los que acaba un día de viento.
+- **La fila entera rota** (`enAbanico`): en un abanico no hay ir a rueda —o das la cara cuando te
+  toca o te caes de la fila—, así que el listón del pelotón deja de valer, el jefe no tiene dónde
+  esconderse y no vale el «¿para qué voy a tirar si no puedo ganar?». Medido sin esto: el corte de
+  trece hombres ponía DOS a rotar mientras los 159 de detrás ponían veinte.
+- **La cuneta** (`gutterShelter`): detrás del corte no se va a rueda. Un grupo que dobla la
+  capacidad de la carretera arropa a la mitad de los suyos, y el resto paga viento. Es la pieza sin
+  la cual todo lo demás es un adorno: medido sin ella, el corte dejaba 21 hombres delante y 152
+  detrás **y ganaban los 152**, porque sus 140 pasajeros recargaban a rueda mientras el abanico de
+  cabeza se fundía rotando. Ser muchos salía gratis justo el día en que ser muchos es el problema.
+
+**19.2-bis La colocación.** Quién se queda DENTRO del corte era la otra mitad de este EPIC y hasta
+la v41 no existía en el motor. Se mide en puntos de perfil, para que las cuatro cosas se puedan
+comparar entre sí y ninguna sea un veto:
+
+| Pieza                         | Puntos | Por qué                                                                     |
+| ----------------------------- | ------ | --------------------------------------------------------------------------- |
+| El equipo que lleva el frente | +25    | Poner el abanico es lo que hace un equipo fuerte en un día de viento        |
+| Al jefe lo colocan los suyos  | +12    | Y solo si le queda algún gregario en el grupo: un líder solo va donde puede |
+| Las piernas                   | perfil | Para estar delante hay que poder estarlo                                    |
+| La suerte y el nervio         | ±10    | El hueco se abre donde se abre, y el de la rueda de al lado se queda fuera  |
+
+Con esto un velocista con equipo entra en el corte y un escalador mejor sin nadie que le coloque se
+queda fuera, que es lo que pasa en carretera. Y los abanicos los hacen los EQUIPOS, no los
+corredores sueltos, que es la frase que había que poder decir.
+
+**19.3 Y el que hace el abanico no se sienta.** Un día de viento se corre nervioso de cabo a rabo
+(`windRaceCommit`, el mismo suelo de compromiso que el adoquín y por el mismo motivo: no es una
+decisión, es la carretera obligando), y DESPUÉS del corte el suelo es el entero, sople lo que sople.
+Partir la carrera no vale de nada si el que se ha quedado delante afloja, y eso fue exactamente el
+primer defecto medido: el corte dejaba delante a diecinueve hombres con mejores piernas rodando a
+compromiso 0,40 mientras los 157 de detrás perseguían a 0,82.
+
+Con las cuatro piezas, un día de viento se lee así (llana de 180 km, 176 corredores):
+
+| Lateral | 1.er grupo | Cola  |
+| ------- | ---------- | ----- |
+| 0,10    | 118        | 7:31  |
+| 0,29    | 76         | 15:01 |
+| 0,55    | 37         | 4:47  |
+| 0,65    | 33         | 12:46 |
+| 0,82    | 19         | 15:59 |
+| 0,96    | 13         | 19:46 |
+
+Y todo lo que el abanico cambia —la cuneta, la fila entera rotando, el tope de relevistas— cuelga de
+que el corte haya saltado de verdad (`abanicoAbierto`). No es un detalle de implementación: cobrarlo
+desde el km 0 en cualquier día con viento reventaba el Tour de Flandes (vaciado 0,773 con un 31 % de
+pájaras, contra un banco que no admite saturación). Antes del corte, un día de viento solo es un día
+NERVIOSO: el suelo de compromiso, y nada más.
+
+**19.4 Lo que queda anotado.** El viento es un número de ETAPA: no cambia de dirección ni de fuerza
+durante el día, y no hay previsión que un equipo pueda leer para colocarse antes del cruce (eso vive
+en el EPIC del clima, y es lo que convertiría la colocación en una DECISIÓN además de en un
+atributo). Tampoco hay tramos expuestos en el perfil: cualquier kilómetro de llano puede ser el del
+corte, cuando en carretera el viento pega donde no hay setos.
+
 ---
 
 ## Parte IV — El output: cómo ver lo que pasó

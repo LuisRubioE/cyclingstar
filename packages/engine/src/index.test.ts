@@ -131,6 +131,15 @@ describe('engine: esqueleto', () => {
     // 6:53 en el km 137 y 16 s en meta). La referencia pasa a ser los que SIGUEN EN CARRERA, el
     // parte de ventaja NOMBRA a quien va delante y dice contra quién se mide y cuánto queda.
     // Cambio de OBSERVACIÓN: ni un dado, ni un subflujo, ni una constante de calibración.
+    // v41: EL VIENTO Y LOS ABANICOS, Y DOS COSAS QUE NO TENÍAN SENTIDO (docs/motor.md §19,
+    // docs/balance.md «v41»). El llano no seleccionaba NUNCA —`selectionFactor('llano')` valía 0—,
+    // así que la forma más clásica de romper una carrera no existía en el motor. Ahora un 13 % de
+    // los días trae viento de lado, y con él cuatro piezas: cuántos CABEN en la fila, el CORTE en
+    // cascada, la CUNETA del que se queda fuera —sin la cual el grupo de 152 se comía al abanico de
+    // 21— y la COLOCACIÓN, que era la otra mitad del encargo. Y dos defectos que el dueño encontró
+    // en una carrera de producción: un corredor tirando en un grupo que perseguía a su propio
+    // compañero (la v33 había escrito solo la mitad de esa regla) y el que se escapa después de ir
+    // dando relevos, cuando el que ataca viene de la rueda.
     // v40: EL ADOQUÍN VUELVE A ROMPER LA CARRERA, Y EL DIARIO DEJA DE CONTRADECIRSE
     // (docs/balance.md «v40»). Cuatro arreglos y ni una mecánica nueva. (1) EL PAVÉ no
     // seleccionaba: Paris-Roubaix —54,8 km de adoquín, el último sector a 1,1 km de meta— metía a
@@ -238,6 +247,6 @@ describe('engine: esqueleto', () => {
     // v11 (atribución del trabajo), la v10 (composición y caza), la v9 (capa táctica), la
     // v8 (tiempos de grupo), la v7 (modelo de final), la v6 (telemetría), la v5 (clásica larga), la
     // v4 (pavé en el recorrido) y la v3 (Cambio 0).
-    expect(ENGINE_VERSION).toBe(40)
+    expect(ENGINE_VERSION).toBe(41)
   })
 })

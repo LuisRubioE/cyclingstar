@@ -78,6 +78,9 @@ const EVENT_ORDER: Record<string, number> = {
   sprint_intermediate: 2,
   climb_kom: 3,
   peloton_split: 4,
+  // El abanico ocupa el mismo sitio que la criba (v41): es un corte del grupo, contado por el
+  // viento en vez de por la rampa, y las dos no coinciden nunca en el mismo kilómetro.
+  echelon_split: 4,
   // La criba LEJOS de meta (v21) va en el sitio del corte: es la misma noticia contada en el tramo
   // de carretera donde el desenlace todavía no ha empezado.
   peloton_selection: 4,
@@ -416,7 +419,8 @@ function retellCatch(entries: ChronicleEntry[]): ChronicleEntry[] {
         o.plantilla === 'attack_go' ||
         o.plantilla === 'attack_swarm' ||
         o.plantilla === 'peloton_split' ||
-        o.plantilla === 'peloton_selection'
+        o.plantilla === 'peloton_selection' ||
+        o.plantilla === 'echelon_split'
       ) {
         stale = true
       }
@@ -789,6 +793,10 @@ function frontSizeOf(e: ChronicleEntry): number | null {
     case 'peloton_selection':
     case 'peloton_regroup':
       return n('remaining')
+    // El abanico solo dice quién va en cabeza cuando lo que se ha partido es el PELOTÓN: un corte
+    // en un grupo de detrás no cuenta cuánta gente va delante, cuenta cómo se deshace la caza.
+    case 'echelon_split':
+      return e.datos?.grupo === 'peloton' ? n('remaining') : null
     case 'bunch_sprint':
       return n('field')
     default:

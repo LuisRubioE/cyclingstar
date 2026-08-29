@@ -715,7 +715,7 @@
  * Campaña canónica de 500 corridas: **los 33 invariantes en verde**. La contrarreloj no se mueve ni
  * un dígito —es el ancla del esfuerzo individual y paga la ley lineal de siempre—.
  */
-export const ENGINE_VERSION = 40 as const
+export const ENGINE_VERSION = 41 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -2649,6 +2649,146 @@ export const STAGE = {
    * flojo rueda al 82 % de lo que rodaría y uno nervioso al 118 %.
    */
   pelotonMoodSpread: 0.14,
+
+  // --- EL VIENTO Y LOS ABANICOS (v41, docs/motor.md §17) ---------------------------------------
+  //
+  // Lo que faltaba, y no es un adorno: hasta la v40 el LLANO NO PODÍA DESCOLGAR A NADIE
+  // (`selectionFactor` devolvía 0 para `llano`, por construcción), así que una etapa llana solo
+  // podía terminar de dos maneras —al sprint, o con una fuga que aguanta— y el abanico, que es una
+  // de las estampas del ciclismo, era imposible de representar.
+  //
+  // El viento entra como una propiedad DEL DÍA, como el humor del pelotón: se sortea una vez, vale
+  // para toda la etapa y no depende de nadie. Lo que se sortea es cuánto pega DE LADO, que es la
+  // única componente que rompe una carrera: el viento de cara frena a todos por igual y el de cola
+  // acelera a todos por igual, pero el lateral obliga a buscar el rebufo EN DIAGONAL, y ahí la
+  // carretera se acaba.
+  /**
+   * Cuánto viento de lado hace hoy, sorteado en [0, 1]. La mayoría de los días no pasa nada: la
+   * distribución tira hacia abajo (`^windDayShape`) para que un abanico siga siendo noticia y no la
+   * norma. Con 0 el motor se comporta EXACTAMENTE como hasta la v40, y eso es a propósito: la
+   * calibración entera del juego está hecha con días sin viento.
+   */
+  windDayShape: 2.2,
+  /**
+   * Por debajo de esto no hay abanico que valga: es brisa, y el día sale EXACTAMENTE como en la
+   * v40 —mismo azar, mismos relojes, misma huella—.
+   *
+   * El número sale de cuántos días queremos con viento de verdad, no de gusto: con
+   * `windDayShape` = 2,2 la probabilidad de pasar el listón es `1 − windMin^(1/2,2)`, así que 0,76
+   * deja **un 12 % de días** con algo de lado. Un abanico es una estampa del ciclismo justamente
+   * porque no pasa todas las semanas; con el listón en 0,35 salía el 37 % de los días, que no es
+   * una etapa de viento sino un juego distinto.
+   */
+  windMin: 0.76,
+  /**
+   * CADA CUÁNTO SE ROMPE LA CARRERA EN ABANICOS, por kilómetro y con el viento a tope. Un abanico no
+   * pasa «poco a poco»: pasa en un sitio y en un momento —una curva, un cruce, un equipo que se
+   * pone— y a partir de ahí la carrera es otra. 0,015 por km con viento pleno son unas dos roturas
+   * en una etapa de 180 km, que es lo que se ve en una jornada de viento de verdad.
+   */
+  windBreakPerKm: 0.015,
+  /**
+   * CUÁNTOS CABEN EN EL ABANICO. Es la pieza que hace que un abanico sea un abanico y no una criba
+   * más, y sale de la carretera: con viento de lado el rebufo está EN DIAGONAL, así que la fila se
+   * come el ancho del asfalto y a partir de cierto número ya no hay sitio. El que no cabe va en la
+   * cuneta pagando el viento entero, por muchos que sean detrás.
+   *
+   * En el motor eso se dice en una línea: con viento, el número de relevistas que cuenta para la LEY
+   * DE VELOCIDAD se topa aquí. Y es lo que arregla el defecto que se midió al abrir el llano a la
+   * selección —viento medio partía la carrera y viento fuerte no hacía nada, porque el grupo grande
+   * de detrás rotaba mejor que el pequeño de delante y se lo comía—: en cuanto ser muchos deja de
+   * servir, lo que decide es la CALIDAD, que es exactamente lo que decide un abanico.
+   *
+   * Doce hombres es una fila de abanico de las de foto. Con el viento a medias el tope sube hacia el
+   * de siempre (`relayRotationMax`), porque con menos viento la diagonal es menos diagonal.
+   */
+  windEchelonRiders: 12,
+  /**
+   * …y con el viento justo en el listón la fila es larga y cabe el pelotón entero: la diagonal
+   * apenas es diagonal. Entre los dos números la capacidad baja GEOMÉTRICAMENTE y no en línea recta
+   * (`windEchelonMax · (windEchelonRiders/windEchelonMax)^lateral`), que es lo que hace que un
+   * viento flojo sea un día incómodo y no una carrera partida: con la interpolación lineal, un
+   * lateral de 0,10 —una brisa— ya dejaba fuera a 117 hombres.
+   */
+  windEchelonMax: 150,
+  /**
+   * UN LLANO CON VIENTO SE CORRE, NO SE RUEDA. Suelo de compromiso mientras sopla de lado, igual
+   * que el del adoquín (`pavesRaceCommit`) y por el mismo motivo: no es una decisión del pelotón, es
+   * la carretera obligando. Un día de viento se corre nervioso de cabo a rabo —la posición lo es
+   * todo, nadie quiere estar en la parte de atrás cuando llegue el corte—.
+   *
+   * Sin este suelo el abanico no servía de nada, y la traza lo enseñaba entero: el corte dejaba
+   * delante a diecinueve hombres con MEJORES piernas (P75 73 contra 68) que rodaban a compromiso
+   * 0,40 mientras los 157 de detrás perseguían a 0,82 y les sacaban cuatro km/h. Se partía la
+   * carrera y el grupo de cabeza se sentaba.
+   */
+  windRaceCommit: 0.82,
+
+  /**
+   * EL HUECO QUE ABRE UN CORTE, en segundos. Un abanico no se abre despacio: la fila se rompe en una
+   * curva y el que se queda al otro lado ve pasar el hueco de golpe. Está por encima de
+   * `grupetoJoinGapSeconds` (12 s) a propósito, porque si no el que acaba de quedarse fuera contaría
+   * como «rueda a la misma altura» y volvería al grupo del que lo acaban de echar en el mismo
+   * kilómetro.
+   */
+  windEchelonGapSeconds: 15,
+
+  /**
+   * LA COLOCACIÓN, en puntos de perfil (v41). Es la otra mitad del abanico: quién se queda dentro
+   * del corte no lo decide solo quién pedalea más fuerte, lo decide quién va colocado cuando la
+   * carretera gira. Las tres piezas están en la misma unidad que el perfil del corredor (0-100) a
+   * propósito, para que ninguna sea un veto y todas se puedan comparar entre sí.
+   *
+   * El EQUIPO QUE LLEVA EL FRENTE es la más gorda, y es la que describe un día de viento: el equipo
+   * que se pone a poner el abanico coloca a los suyos, y por eso los abanicos los hacen los equipos
+   * y no los corredores. Veinticinco puntos son mucho —un gregario del equipo que manda entra por
+   * delante de un buen rodador sin equipo— y es lo que se quiere decir.
+   */
+  /**
+   * EL SUELO DE LA CUNETA. Por muy grande que sea el grupo, el que se queda fuera del corte no pasa
+   * cien kilómetros solo en el asfalto: se junta con los que tiene al lado y hacen su propia fila.
+   * Sin este suelo, la proporción pura (`caben / son`) mandaba a un grupo de 150 a ir a rueda al 8 %
+   * y el Tour de Flandes con viento acababa con el 85 % del campo a cero, que no es un abanico sino
+   * una matanza.
+   *
+   * 0,80 es «la fila de segunda»: se paga más viento que en el abanico bueno —lo bastante para no
+   * volver— sin que rodar detrás sea imposible. Con 0,55 el Flandes con viento seguía saliendo a
+   * 0,993 de vaciado y un 44 % de pájaras; con 0,80 sale a 0,896 y un 3 %, contra un día en calma de
+   * 0,66. Un día de viento es más duro, que es lo que tiene que ser, y no es otra carrera.
+   */
+  windGutterFloor: 0.8,
+  /**
+   * CUÁNTAS FILAS SALEN DE UN CORTE. Un abanico no parte la carrera en dos ni en catorce: salen dos
+   * o tres filas y detrás el grupo de los que ya han renunciado a coger un abanico. Cortar solo la
+   * cabeza dejaba detrás un pelotón intacto —la única cosa que en un abanico no existe— y cortar de
+   * `caben` en `caben` hasta el final dejaba quince grupos en la carretera, que tampoco pasa.
+   */
+  windEchelonMaxGroups: 3,
+
+  windPlacementTeam: 25,
+  /**
+   * AL JEFE LO COLOCAN LOS SUYOS, y solo cuenta si le queda algún gregario en el grupo: un líder al
+   * que se le ha caído el equipo va donde puede, como todo el mundo. Vale la mitad que llevar el
+   * frente, porque colocar al jefe es más barato que poner el abanico entero.
+   */
+  windPlacementLeader: 12,
+  /**
+   * Y LA SUERTE. En un abanico el hueco se abre donde se abre: el que iba en la rueda de al lado se
+   * queda fuera sin haber hecho nada mal. Diez puntos de perfil arriba o abajo son un empujón de
+   * verdad sin llegar a mandar sobre las piernas ni sobre el equipo, que es lo que se busca: que un
+   * día de viento no salga dos veces igual y aun así lo ganen los que tienen que ganarlo.
+   */
+  windPlacementLuck: 10,
+
+  /**
+   * LAS GANAS DE ATACAR DEL QUE VA TIRANDO (v41). El que está en la rotación acaba de pagar el
+   * viento del grupo: no es el que salta. El dueño lo cazó en una carrera de producción —«el mismo
+   * que se escapó, antes de escaparse iba tirando del pelotón… eso no tiene sentido»—.
+   *
+   * Es un factor y no un veto a propósito, porque arrancar desde un relevo existe: se coge el turno,
+   * se levanta el ritmo y se sigue. Pero es una de cada diez, no la mitad.
+   */
+  tacticPullingAppetite: 0.1,
   /**
    * …Y ALREDEDOR DE QUÉ (v39). El dado del humor iba centrado en 1, o sea que de MEDIA el pelotón
    * corría al máximo de lo que su plan pedía. El dueño: «que en general no estén tan motivados en

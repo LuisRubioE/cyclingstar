@@ -78,6 +78,9 @@ function moveRider(id: string, over: Partial<MoveRider> = {}): MoveRider {
     matches: 3,
     tac: 60,
     spr: 55,
+    // Por defecto va A RUEDA: el que salta viene de la rueda, y el caso del que ataca desde el
+    // relevo se prueba aparte (v41).
+    pulling: false,
     gcDeficitSeconds: 600,
     // Sin plan de equipo que le condicione: es lo que vale un agente libre (v15, §V.1).
     teamAttack: 1,
@@ -397,6 +400,20 @@ describe('regla 9 — en el final en alto atacan los fuertes, y los que se juega
     const favorito = attackAppetite(moveRider('c', { gcDeficitSeconds: 20 }), c, ranks)
     const perdido = attackAppetite(moveRider('d', { gcDeficitSeconds: 5000 }), c, ranks)
     expect(favorito).toBeCloseTo(perdido, 5)
+  })
+
+  /**
+   * EL QUE VA TIRANDO NO SALTA (v41). Defecto que el dueño encontró en una carrera de producción:
+   * el corredor que se escapó iba, en el bloque anterior, dando relevos en el pelotón. El que ataca
+   * viene de la rueda: acaba de NO pagar el viento y por eso puede poner el hueco.
+   */
+  it('el que va dando la cara tiene diez veces menos ganas de atacar', () => {
+    const c = ctx()
+    const rueda = attackAppetite(moveRider('a'), c, ranks)
+    const tirando = attackAppetite(moveRider('b', { pulling: true }), c, ranks)
+    expect(tirando / rueda).toBeCloseTo(STAGE.tacticPullingAppetite, 5)
+    // Y no es un veto: de un relevo se arranca, solo que es la excepción.
+    expect(tirando).toBeGreaterThan(0)
   })
 
   it('…y no le deja marchar: el rival cercano salta detrás mucho más', () => {

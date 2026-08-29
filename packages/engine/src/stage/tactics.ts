@@ -61,6 +61,14 @@ export interface MoveRider {
    * persiguiendo); por encima, no tiene baza que jugar y manda gente a la fuga.
    */
   teamAttack: number
+  /**
+   * ¿IBA DANDO LA CARA AL VIENTO EN EL BLOQUE ANTERIOR? (v41). El que va en la rotación no es el que
+   * salta: viene de pagar el viento del grupo entero y el que ataca lo hace desde la rueda, con el
+   * hueco ya hecho. El dueño lo vio en una carrera de producción —«el mismo que se escapó, antes de
+   * escaparse iba tirando del pelotón»— y tiene toda la razón: no es que sea imposible, es que es la
+   * excepción, y el motor lo estaba tratando como el caso normal.
+   */
+  pulling: boolean
 }
 
 /** El contexto que parametriza el intento. */
@@ -226,6 +234,9 @@ export function attackAppetite(
   a *= r.teamAttack
   // Frescura: quien va vaciado no salta aunque quiera.
   a *= clamp(r.energyFraction, 0, 1)
+  // …Y EL QUE VA TIRANDO NO SALTA (v41). No es un veto —de un relevo se puede arrancar, y a veces se
+  // arranca— pero es la excepción: el que ataca viene de la rueda. Ver `MoveRider.pulling`.
+  if (r.pulling) a *= STAGE.tacticPullingAppetite
   if (ctx.kind === 'ataque_grupo') {
     // `finishRank` 0 = el peor rematador del grupo, 1 = el mejor. El que sabe que pierde el sprint
     // es el que tiene que irse antes: sin esto, en una fuga de cinco ataca el que iba a ganar igual.

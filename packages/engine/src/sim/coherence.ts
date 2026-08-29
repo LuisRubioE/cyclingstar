@@ -122,6 +122,9 @@ const ENTRY = new Set([
   'move_merge',
   'peloton_split',
   'peloton_selection',
+  // El abanico es la tercera forma de que el grupo de cabeza pase a ser otro (v41): el viento parte
+  // la fila y los que quedan dentro son, desde ese kilómetro, la cabeza de carrera.
+  'echelon_split',
 ])
 
 /**
@@ -585,6 +588,7 @@ export const GROUP_NOUNS: Readonly<Record<string, readonly string[]>> = {
   peloton_concedes: ['the bunch', 'the lead group'],
   peloton_pull: ['the bunch', 'the lead group'],
   peloton_split: ['the chase group', 'the lead group'],
+  echelon_split: ['the chase group', 'the lead group'],
   peloton_selection: ['the chase group', 'the lead group'],
   peloton_regroup: ['the chase group', 'the lead group'],
   time_gap: ['the lead group', 'the chase group', 'the bunch'],

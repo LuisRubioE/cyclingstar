@@ -452,11 +452,48 @@ export function riderEffort(block: Block, commit: number, shelter: number): numb
  *
  * Es el mismo 1 − 1/n que `droppedCommit` (v16) cobraba en VELOCIDAD —«relevarse reparte el viento;
  * el que va solo da la cara el 100 %»— y que hasta hoy solo usaban los grupos descolgados.
+ *
+ * `arropo` es CUÁNTO REBUFO HAY (v41): normalmente `shelterProtected`, y menos cuando la carretera
+ * no da para tanto (`gutterShelter`, el abanico). Entra en los dos estados y no solo en el del que
+ * va a rueda, porque en una fila que no cabe el que sale del relevo tampoco encuentra dónde
+ * meterse.
  */
-export function shelterOf(pulling: boolean, pullers: number): number {
-  if (!pulling) return STAGE.shelterProtected
+export function shelterOf(
+  pulling: boolean,
+  pullers: number,
+  arropo: number = STAGE.shelterProtected,
+): number {
+  if (!pulling) return arropo
   const n = Math.max(1, pullers)
-  return STAGE.shelterAlone + (STAGE.shelterProtected - STAGE.shelterAlone) * (1 - 1 / n)
+  return STAGE.shelterAlone + (arropo - STAGE.shelterAlone) * (1 - 1 / n)
+}
+
+/**
+ * CUÁNTO REBUFO HAY DE VERDAD PARA UN GRUPO DE ESTE TAMAÑO (v41). Es `shelterProtected` —ir a
+ * rueda— salvo con el viento de lado, donde el rebufo va en DIAGONAL y la fila se come el ancho del
+ * asfalto: a partir de cierto número no se cabe, y el que no cabe no va a rueda de nadie, va en la
+ * cuneta pagando el viento entero.
+ *
+ * Es la pieza que le faltaba al abanico, y sin ella el corte era un adorno: medido, el pelotón se
+ * partía dejando 21 hombres delante y 152 detrás, y ganaban los 152 —porque los 140 que no rotaban
+ * en ese grupo iban A RUEDA, recargando, mientras los 21 de delante se fundían rotando—. Ser muchos
+ * salía gratis justo el día en que ser muchos es el problema.
+ *
+ * Se degrada en proporción, `caben / son`, y no de golpe: un grupo que dobla la capacidad de la
+ * carretera reparte el asfalto entre el doble de hombres. Cuando el grupo cabe, no cambia nada.
+ *
+ * …Y CON SUELO (`windGutterFloor`), porque sin él esto no era un abanico sino una matanza: medido en
+ * el Tour de Flandes con viento fuerte, **el 85 % del campo con el depósito a cero**. La proporción
+ * pura dice que en un grupo de 150 con capacidad para 13 se va a rueda al 8 %, y eso es falso: en
+ * carretera, el que se queda fuera del corte no pasa cien kilómetros solo en la cuneta —se junta con
+ * los de al lado, hacen su propia fila y ruedan—. El suelo es esa fila de segunda: peor que ir en el
+ * abanico bueno, no la muerte.
+ */
+export function gutterShelter(size: number, caben: number): number {
+  return (
+    STAGE.shelterProtected *
+    Math.max(STAGE.windGutterFloor, Math.min(1, caben / Math.max(1, size)))
+  )
 }
 
 /**
@@ -543,6 +580,7 @@ export function blockCost(
   pulling: boolean,
   pullers: number,
   dx: number = STAGE.dx,
+  arropo: number = STAGE.shelterProtected,
 ): number {
   const d = draftMax(block)
   const n = Math.max(1, pullers)
@@ -567,7 +605,9 @@ export function blockCost(
    * es lo que pidió el dueño. Con cuarenta corredores todo el mundo tiraba a menudo y el suelo no
    * hacía falta para llegar a las cifras: el banco tapaba el agujero.
    */
-  const abrigo = Math.pow(1 - d * STAGE.shelterProtected, STAGE.costExposureExponent)
+  // `arropo` es el rebufo que la carretera da de verdad (v41): `shelterProtected` salvo en un
+  // abanico, donde el que no cabe en la fila no va a rueda de nadie (`gutterShelter`).
+  const abrigo = Math.pow(1 - d * arropo, STAGE.costExposureExponent)
   const rueda =
     STAGE.costExposureLevel * (STAGE.costExposureFloor + (1 - STAGE.costExposureFloor) * abrigo)
   /**

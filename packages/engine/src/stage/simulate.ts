@@ -35,6 +35,7 @@ import {
   droppedCommit,
   effNow,
   erosion,
+  gutterShelter,
   idleEffort,
   relayRotation,
   rhythm,
@@ -376,6 +377,18 @@ function selectionFactor(block: Block): number {
     case 'descenso':
       return block.g <= STAGE.dropDescentMaxGradient ? STAGE.dropDescentFactor : 0
     case 'llano':
+      /**
+       * EL LLANO SIGUE SIN SELECCIONAR POR DADO, TAMBIÉN CON VIENTO (v41), y esto se probó al revés
+       * primero: abrir aquí un hazard proporcional al viento parecía lo natural y daba carreras
+       * incoherentes —medido, con viento medio el pelotón se partía (94 de 176 en cabeza) y con
+       * viento FUERTE llegaban los 176 juntos—. El motivo es que un abanico NO es un dado por
+       * corredor: es una cuestión de CAPACIDAD. Con el rebufo en diagonal la fila se come el ancho
+       * del asfalto y el que hace trece no es que tenga más probabilidad de descolgarse, es que NO
+       * CABE. Y el pelotón no se deshilacha de uno en uno: se parte en abanicos sucesivos.
+       *
+       * Eso vive en el CORTE del abanico (`echelon_split`, unas mil líneas más abajo), que parte
+       * el grupo por capacidad, y en `gutterShelter`, que cobra la cuneta al que se queda fuera.
+       */
       return 0
   }
 }
@@ -504,10 +517,23 @@ function relayTurn(
    * contra una banda de 30-45.
    */
   lanzando: (riderId: string) => boolean = () => false,
+  /**
+   * ¿SE ESTÁ CORRIENDO EN ABANICO? (v41). En una fila con el viento de lado no hay ir a rueda: o das
+   * la cara cuando te toca o te caes de la fila. Así que el listón del pelotón —el alto, el que
+   * hace que tiren los del equipo que manda y nadie más— deja de valer y se corre con el de la
+   * fuga, donde relevan todos.
+   */
+  enAbanico = false,
 ): Set<string> {
   const scored = members.map((m) => {
     const helpers = domestiquesFor.get(m.input.riderId)
-    const protectedByTeam = helpers != null && helpers.some((id) => idSet.has(id))
+    /**
+     * …Y EN UN ABANICO NO HAY A QUIÉN ARROPAR (v41). Llevar gregarios te saca del turno porque tiran
+     * ellos por ti; en una fila con el viento de lado no existe esa plaza —detrás del último que da
+     * la cara está la cuneta—, así que el jefe rota como todo el mundo. Es lo que se ve en un día de
+     * abanicos: en el corte de trece van los trece dando relevos, jefes incluidos.
+     */
+    const protectedByTeam = !enAbanico && helpers != null && helpers.some((id) => idSet.has(id))
     const drive = driveOfRider(m.input.riderId)
     /**
      * …Y SOLO CUENTA PARA EL QUE CORRE PARA SÍ MISMO. Un gregario da la cara aunque no pueda ganar
@@ -527,7 +553,12 @@ function relayTurn(
       id: m.input.riderId,
       duty:
         relayDuty(m, protectedByTeam, drive, sittingOn(m.input.riderId)) -
-        STAGE.relayNoChanceWeight * paraMí * sinOpciones(m.input.riderId) +
+        // …Y TAMPOCO VALE «¿PARA QUÉ VOY A TIRAR SI NO PUEDO GANAR?» (v41). En un abanico dar la cara
+        // no es colaborar, es seguir en carrera: el que no entra al turno se cae de la fila. Medido
+        // sin esto, el corte de trece hombres a 25 km de meta ponía DOS a rotar —los otros once
+        // salían con el deber en negativo por no tener opciones— y los 159 de detrás, que sí ponían
+        // veinte, se lo comían.
+        (enAbanico ? 0 : STAGE.relayNoChanceWeight * paraMí * sinOpciones(m.input.riderId)) +
         (lanzando(m.input.riderId) ? STAGE.relayLeadOutBoost : 0),
     }
   })
@@ -607,12 +638,13 @@ function relayTurn(
    * de lanzadores —que vive de que la rotación sea CORTA— en una etapa donde no hay nada que cazar.
    * El alivio por ritmo separa los dos casos porque es justo lo que los distingue.
    */
-  const listón = !isBunch
-    ? STAGE.relayDutyThresholdLoose
-    : hayEquipos
-      ? STAGE.relayDutyThreshold
-      : STAGE.relayDutyThresholdNoTeams -
-        STAGE.relayDutyPaceRelief * Math.max(0, Math.min(1, paceFraction))
+  const listón =
+    !isBunch || enAbanico
+      ? STAGE.relayDutyThresholdLoose
+      : hayEquipos
+        ? STAGE.relayDutyThreshold
+        : STAGE.relayDutyThresholdNoTeams -
+          STAGE.relayDutyPaceRelief * Math.max(0, Math.min(1, paceFraction))
   const quieren = scored.filter((s) => s.duty >= listón).length
   /**
    * …Y ALGUIEN TIENE QUE DAR LA CARA IGUAL: un grupo rueda porque alguien va delante. Son los que
@@ -631,7 +663,17 @@ function relayTurn(
     1,
     Math.min(members.length, STAGE.relayMinPullers, Math.ceil(members.length / STAGE.relayMinPer)),
   )
-  const cuantos = Math.max(minimo, Math.min(quieren, techo))
+  /**
+   * …Y EN UN ABANICO NO SE PREGUNTA QUIÉN QUIERE (v41): rota la FILA ENTERA, hasta donde da la
+   * carretera. No es que todos tengan muchas ganas, es que en una fila con el viento de lado detrás
+   * del último que da la cara no hay rueda, hay cuneta: o entras al turno o te caes del grupo.
+   *
+   * Medido sin esto, con el listón de la fuga ya puesto: el corte de trece hombres a 25 km de meta
+   * ponía CINCO a rotar y los 159 de detrás ponían veinte, así que el abanico llegaba a meta con el
+   * pelotón pegado a la rueda. Con la fila entera, los dos grupos ponen lo mismo —el tope del
+   * abanico iguala el número— y decide la calidad, que es lo que decide un abanico.
+   */
+  const cuantos = enAbanico ? techo : Math.max(minimo, Math.min(quieren, techo))
   if (cuantos <= quieren)
     return elTren(new Set(scored.slice(0, cuantos).map((s) => s.id)), scored, lanzando)
   /**
@@ -823,6 +865,56 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
    */
   const humorDelPeloton =
     STAGE.pelotonMoodCentre + STAGE.pelotonMoodSpread * (2 * streams('mood')() - 1)
+  /**
+   * EL VIENTO DEL DÍA (v41, docs/motor.md §19). Una propiedad de la etapa, como el humor: se sortea
+   * una vez, vale para todo el día y no depende de nadie. Lo que se sortea es cuánto pega DE LADO,
+   * que es la única componente que rompe una carrera —el de cara frena a todos por igual y el de
+   * cola acelera a todos por igual; el lateral obliga a buscar el rebufo en diagonal y ahí la
+   * carretera se acaba—.
+   *
+   * Subflujo NOMINAL propio (`viento`, SPEC 6.1) para que añadirlo no desplace la secuencia de
+   * nadie: una etapa sin viento sale dígito a dígito como en la v40.
+   */
+  const rngViento = streams('viento')
+  const vientoBruto = Math.pow(rngViento(), STAGE.windDayShape)
+  const vientoLateral =
+    vientoBruto < STAGE.windMin ? 0 : (vientoBruto - STAGE.windMin) / (1 - STAGE.windMin)
+  /**
+   * CUÁNTOS CABEN EN LA FILA. Es la capacidad de la carretera con este viento, y es lo único que un
+   * abanico necesita saber: cuántos hombres caben a rebufo en diagonal antes de que el que sigue se
+   * quede en la cuneta. Con viento flojo caben casi todos (`windEchelonMax`); con viento de verdad,
+   * doce (`windEchelonRiders`). De aquí salen las dos mitades del abanico —el CORTE que parte la
+   * carrera y la CUNETA que la mantiene partida— y por eso se calcula una sola vez, para el día.
+   */
+  const cabenEnFila = Math.round(
+    STAGE.windEchelonMax * Math.pow(STAGE.windEchelonRiders / STAGE.windEchelonMax, vientoLateral),
+  )
+  /**
+   * Y ESTO ES «LA CARRETERA YA HA GIRADO» (v41). El viento de lado sopla todo el día, pero muerde en
+   * un SITIO —el cruce donde la carretera se pone de cara al viento y un equipo se coloca—, que es
+   * donde salta el corte. Antes de eso el pelotón rueda en bloque como cualquier otro día; a partir
+   * de ahí se corre en abanico hasta meta.
+   *
+   * De esta puerta cuelga TODO lo que el abanico cambia —la cuneta (`gutterShelter`), la fila entera
+   * rotando, el tope de relevistas y el suelo de compromiso entero—, y cuelga por una medida: sin
+   * ella, cobrar la cuneta y poner a veinte hombres a rotar desde el km 0 en cada día de viento
+   * reventaba el Tour de Flandes (vaciado 0,773 y un 31 % de pájaras contra un banco que no admite
+   * saturación). Lo único que existe antes del corte es el nervio del día: el suelo de compromiso,
+   * proporcional al viento.
+   */
+  let abanicoAbierto = false
+  /**
+   * SER MUCHOS DEJA DE SERVIR, TAMBIÉN PARA EL QUE PERSIGUE (v41). El tamaño de un grupo entra en la
+   * física en tres sitios —cuántos reparten el viento en la ley de velocidad, cuánto rebufo hay y a
+   * qué ritmo se resigna un grupo descolgado (`droppedCommit`)— y con viento de lado los tres tienen
+   * que mirar el mismo número: los que CABEN, no los que son.
+   *
+   * Sin esto lo tercero se quedaba fuera y se veía: el corte dejaba trece hombres delante y ciento
+   * cincuenta y nueve detrás, y los 159 volvían, porque su ritmo de persecución se calculaba como el
+   * de un autobús de 159 hombres repartiéndose el viento entre todos. En un abanico no hay tal cosa.
+   */
+  const enFila = (block: Block, size: number): number =>
+    vientoLateral > 0 && block.tipo === 'llano' ? Math.min(size, cabenEnFila) : size
   const incidents: Incident[] = []
 
   const blocks = sampleProfile(input.profile)
@@ -1477,7 +1569,14 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
      * El DESCENSO queda fuera a propósito: ahí se pierde la rueda y se recupera en el valle, y esa
      * es justo la diferencia entre una bajada y un sector de adoquines.
      */
-    const onRough = onClimb || onPaves
+    /**
+     * …Y CON VIENTO DE LADO, UN LLANO TAMBIÉN ROMPE (v41). `onRough` es «terreno del que no se
+     * vuelve»: el puerto y el adoquín. Un abanico es el tercero, y por la misma razón física —detrás
+     * del corte vas en la cuneta pagando el viento entero, no a rueda— así que el que se queda fuera
+     * no reengancha mientras siga soplando. Sin esto el corte se abría y se cerraba solo: medido,
+     * los 176 llegaban juntos con cola 0 s en todos los días de viento.
+     */
+    const onRough = onClimb || onPaves || (vientoLateral > 0 && block.tipo === 'llano')
     const raceThisClimb = totalKm - km <= STAGE.climbRaceKmToGo
 
     // Controlador del pelotón cada 10 bloques, con histéresis (SPEC 6.9). Regula SIEMPRE: haya fuga,
@@ -2373,6 +2472,20 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       // pelotón ya iba más rápido persiguiendo, el pavé no lo frena. Sin esto los 31 sectores de
       // Paris-Roubaix se pasaban al tempo de carretera y la selección que abría cada sector se
       // deshacía en el asfalto siguiente (medido: 58 -> 44 -> 57).
+      /**
+       * …Y UN LLANO CON VIENTO DE LADO TAMBIÉN SE CORRE (v41): mismo suelo y mismo motivo que el
+       * adoquín —no es una decisión, es la carretera obligando—. Un día de viento se corre nervioso
+       * de cabo a rabo, porque nadie quiere estar atrás cuando llegue el corte.
+       *
+       * Y EL QUE ACABA DE HACER EL ABANICO NO SE SIENTA. Antes del corte el suelo sube con el viento;
+       * DESPUÉS del corte es el suelo entero, sople lo que sople: partir la carrera no vale de nada
+       * si el que se ha quedado delante afloja, y ése fue el primer defecto medido —con viento medio,
+       * el corte dejaba 34 hombres delante rodando al ralentí del pelotón mientras los 137 de detrás
+       * perseguían a 0,8, y se los comían—.
+       */
+      if (vientoLateral > 0 && block.tipo === 'llano') {
+        target = Math.max(target, STAGE.windRaceCommit * (abanicoAbierto ? 1 : vientoLateral))
+      }
       if (onPaves || kmToNextPaves[i]! <= STAGE.pavesApproachKm) {
         target = Math.max(target, STAGE.pavesRaceCommit)
       }
@@ -2585,7 +2698,10 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         (riderId) =>
           (!isBunch && frontTeamId !== null && teamOf.get(riderId) === frontTeamId) ||
           // …o su jefe se ha quedado atrás (v37): en la fuga ya no tira, pero no se le manda atrás.
-          (!isBunch && jefeEnApuros.has(riderId)),
+          (!isBunch && jefeEnApuros.has(riderId)) ||
+          // …o tiene a uno de los suyos POR DELANTE y esto es un grupo de caza (v41): no se persigue
+          // lo propio, que es la otra mitad de la regla de la v33.
+          (kind === 'move' && tieneHombreDelante(riderId, group.tS)),
         isBunch,
         teamPlans.size > 0,
         (riderId) => isBunch && frontTeamId !== null && teamOf.get(riderId) === frontTeamId,
@@ -2600,6 +2716,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
           const suJefe = lanzaPara.get(riderId)
           return suJefe != null && idSet.has(suJefe)
         },
+        abanicoAbierto && vientoLateral > 0 && block.tipo === 'llano',
       )
       /**
        * CUÁNTOS SE REPARTEN EL VIENTO AL FRENTE: LOS QUE TIRAN, y punto (v38).
@@ -2628,7 +2745,39 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         }
       }
       const régimen = trenes > 0 ? sprintRegimeKmh(kmToGo, trenes, block.g) : 0
-      const next = advanceGroup(group, block, p75, alFrente, { isFinal, sprintKmh: régimen })
+      /**
+       * …Y CON VIENTO DE LADO, SER MUCHOS DEJA DE SERVIR (v41). El rebufo va en diagonal y la fila se
+       * come el ancho de la carretera: a partir de `windEchelonRiders` ya no hay sitio, y el que no
+       * cabe paga el viento entero por muchos que sean detrás. Solo se topa donde el viento pega
+       * —el llano—: en un puerto no hay abanico que valga.
+       *
+       * Sin esto, abrir el llano a la selección no producía abanicos sino un sinsentido: medido, con
+       * viento medio la carrera se partía (94 de 176 en cabeza) y con viento FUERTE llegaban los 176
+       * juntos, porque el grupo grande de detrás rotaba mejor que el pequeño de delante y se lo
+       * comía. Con el tope, ser muchos deja de compensar y decide la calidad, que es lo que decide
+       * un abanico.
+       */
+      const techoAbanico =
+        abanicoAbierto && vientoLateral > 0 && block.tipo === 'llano'
+          ? STAGE.relayRotationMax -
+            (STAGE.relayRotationMax - STAGE.windEchelonRiders) * vientoLateral
+          : Infinity
+      /**
+       * …Y LO QUE DE VERDAD MANTIENE PARTIDA LA CARRERA: LA CUNETA (v41, `gutterShelter`). El tope de
+       * arriba iguala la VELOCIDAD de los dos grupos; esto iguala el PRECIO. Detrás del corte no se
+       * va a rueda: caben `cabenEnFila` y el resto paga viento, así que un grupo que dobla la
+       * capacidad de la carretera arropa a la mitad de los suyos. Medido sin esto, el corte dejaba
+       * 21 delante y 152 detrás y ganaban los 152, porque sus 140 pasajeros recargaban a rueda
+       * mientras el abanico se fundía rotando.
+       */
+      const arropo =
+        abanicoAbierto && vientoLateral > 0 && block.tipo === 'llano'
+          ? gutterShelter(members.length, cabenEnFila)
+          : STAGE.shelterProtected
+      const next = advanceGroup(group, block, p75, Math.min(alFrente, techoAbanico), {
+        isFinal,
+        sprintKmh: régimen,
+      })
       /**
        * LO QUE VALE UN RELEVO EN ESTE BLOQUE, MEDIDO POR EL VIENTO Y NO POR LA VELOCIDAD (v26).
        *
@@ -2679,7 +2828,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       const workOf = (shelter: number): number =>
         Math.max(0, riderEffort(block, compromisoReal, shelter) - idle) * STAGE.dx
       // Para las decisiones que son del GRUPO —a quién se persigue— vale el del que tira.
-      const frontEffort = workOf(shelterOf(true, relayers.size))
+      const frontEffort = workOf(shelterOf(true, relayers.size, arropo))
       // Los movimientos que van por DELANTE de este grupo: lo que se releva aquí es trabajo de
       // persecución contra ellos, y es lo que se nombra al cazarlos.
       const chased =
@@ -2705,11 +2854,13 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         // cosa de equipos y no de rebufo: decide quién entra a la rotación (`relayDuty`) y quién
         // gasta presupuesto, unas líneas más abajo.
         const pulling = relayers.has(m.input.riderId)
-        // …y aquí se ANOTA, solo si alguien ha pedido una foto (v28). El turno se decide cada bloque
-        // y se consumía en el sitio; la radio de carrera necesita justo esto para poder decir quién
-        // va tirando en el kilómetro que se mira. No lo lee nadie más.
-        if (probe) m.pulling = pulling
-        const shelter = shelterOf(pulling, relayers.size)
+        // …y aquí se ANOTA. El turno se decide cada bloque y se consumía en el sitio; la radio de
+        // carrera necesita justo esto para poder decir quién va tirando en el kilómetro que se mira
+        // (v28). Y desde la v41 lo lee alguien más: la capa táctica, para no dejar que el ataque del
+        // día lo lance el hombre que iba dando la cara. Por eso ya no está detrás de `probe`: es
+        // estado de carrera, no telemetría.
+        m.pulling = pulling
+        const shelter = shelterOf(pulling, relayers.size, arropo)
         const mineEffort = workOf(shelter)
         if (pulling && mineEffort > 0) {
           if (isBunch) {
@@ -2792,7 +2943,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
          * de una llegada masiva —el pelotón a 60 km/h— no gastaba NADA de depósito. El dueño:
          * «obviamente es muy diferente ir en cabeza a 70 km/h que a 30 km/h».
          */
-        const cost = blockCost(block, compromisoReal, pulling, relayers.size)
+        const cost = blockCost(block, compromisoReal, pulling, relayers.size, STAGE.dx, arropo)
         m.energy = Math.max(0, m.energy - cost)
         m.work += cost
       }
@@ -2854,7 +3005,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
             1,
             m.energy0 > 0 ? Math.max(0, Math.min(1, m.energy / m.energy0)) : 0,
             tS - peloton.tS,
-            membersOf(PELOTON).length,
+            enFila(block, membersOf(PELOTON).length),
             peloton.compromiso,
           ),
         }),
@@ -2888,10 +3039,10 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       const fresh = m.energy0 > 0 ? Math.max(0, Math.min(1, m.energy / m.energy0)) : 0
       const able = droppedCommit(
         block,
-        size,
+        enFila(block, size),
         fresh,
         STAGE.shedResignGapSeconds,
-        membersOf(PELOTON).length,
+        enFila(block, membersOf(PELOTON).length),
         peloton.compromiso,
       )
       // …y el que se ha dejado ir arrastra al grupo en la proporción en que sean los suyos, que es
@@ -3275,7 +3426,22 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
     // En un sector de adoquines el ritmo lo marcan los de delante, como en el puerto decisivo: la
     // posición lo es todo y nadie pasa un sector a tempo desde mitad del pelotón (v12). Sin esto el
     // P75 del pavé lo marcaba el cuarto delantero entero y el sector no estiraba el grupo.
-    const roughFrac = onPaves ? STAGE.pavesPaceFraction : STAGE.pelotonPaceFraction
+    /**
+     * …Y EN UN ABANICO ROTA TODO EL MUNDO (v41). En una fila con el viento de lado no hay ir a
+     * rueda: o das la cara cuando te toca o te caes de la fila. Así que la fracción que marca el
+     * ritmo no es el cuarto delantero, es el grupo ENTERO.
+     *
+     * No es un detalle de sabor, es lo que hace que el abanico funcione. Medido sin esto: el corte
+     * dejaba 21 hombres delante y echaba a 152, y ganaban los 152 — porque el grupo de cabeza de 21
+     * solo ponía SEIS hombres a rotar (un cuarto de 21) mientras la masa de detrás ponía veintiuno.
+     * Con la fila entera rotando, los dos grupos ponen lo mismo, el tope del abanico iguala el
+     * número, y entonces decide la CALIDAD, que es lo que decide un abanico.
+     */
+    const roughFrac = onPaves
+      ? STAGE.pavesPaceFraction
+      : abanicoAbierto && vientoLateral > 0 && block.tipo === 'llano'
+        ? 1
+        : STAGE.pelotonPaceFraction
     const pelFrac = onClimb ? climbFrac : roughFrac
     const moveFrac = (m: Move): number => (onClimb ? climbFrac : onPaves ? roughFrac : m.g.coop)
 
@@ -3286,6 +3452,107 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
     for (const m of moves) administerEffort(m.g, membersOf(m.g.id), true)
     for (const sg of shed) administerEffort(sg, membersOf(sg.id), false)
     shatter(peloton, membersOf(PELOTON), pelFrac)
+    /**
+     * EL ABANICO (v41, docs/motor.md §19). No es un dado por corredor —eso se probó y daba carreras
+     * incoherentes— sino un CORTE: con viento de lado el rebufo va en diagonal, la fila se come el
+     * ancho del asfalto y a partir de cierto número no se cabe. El pelotón no se deshilacha de uno
+     * en uno: se parte, y a partir de ahí la carrera es otra.
+     *
+     * Pasa en un SITIO y en un MOMENTO —una curva, un cruce, un equipo que se pone— y por eso se
+     * sortea por kilómetro y no se aplica de continuo. Y quién se queda dentro lo decide la
+     * COLOCACIÓN (v41), que era la otra mitad de este EPIC y hasta aquí no existía en el motor.
+     */
+    if (vientoLateral > 0 && block.tipo === 'llano' && !isFinal) {
+      /**
+       * …Y SE PARTE TODO LO QUE NO CABE, NO SOLO EL PELOTÓN. Un abanico no es UN corte: es una
+       * cascada. La masa que se queda fuera sigue sin caber en la carretera, así que a los pocos
+       * kilómetros se vuelve a partir, y de ahí salen los tres o cuatro grupos con los que acaba un
+       * día de viento. Cortar solo la cabeza dejaba detrás un pelotón de 152 hombres intacto, que es
+       * la única cosa que en un abanico no existe.
+       */
+      const corte = (group: Group, dentro: RiderSim[]): void => {
+        if (dentro.length <= cabenEnFila) return
+        if (!rollHazard(rngViento, STAGE.windBreakPerKm * vientoLateral)) return
+        /**
+         * LA COLOCACIÓN, medida en PUNTOS DE PERFIL para que las cuatro cosas se puedan comparar
+         * entre sí y ninguna sea un veto:
+         *
+         *  - **el equipo que lleva el frente** va delante por definición: poner el abanico es
+         *    exactamente lo que hace un equipo fuerte en un día de viento;
+         *  - **al jefe lo colocan los suyos**, y por eso solo cuenta si le queda algún gregario en
+         *    este grupo: un líder solo va donde puede, como todo el mundo;
+         *  - **las piernas**, porque para estar delante hay que poder estarlo; y
+         *  - **la suerte y el nervio**, que en un abanico son media carrera —el hueco se abre donde
+         *    se abre y el que iba en la rueda de al lado se queda fuera—.
+         *
+         * Con esto un velocista con equipo entra en el corte y un escalador mejor sin nadie que le
+         * coloque se queda fuera, que es lo que pasa en carretera. El desempate final por id es el
+         * de siempre: determinismo, no física.
+         */
+        const idsDentro = new Set(dentro.map((m) => m.input.riderId))
+        const colocacion = new Map<string, number>()
+        for (const m of dentro) {
+          const helpers = domestiquesFor.get(m.input.riderId)
+          const arropado = helpers != null && helpers.some((id) => idsDentro.has(id))
+          colocacion.set(
+            m.input.riderId,
+            riderPerfil(m, block) +
+              (teamOf.get(m.input.riderId) === frontTeamId ? STAGE.windPlacementTeam : 0) +
+              (arropado ? STAGE.windPlacementLeader : 0) +
+              STAGE.windPlacementLuck * (2 * rngViento() - 1),
+          )
+        }
+        const orden = [...dentro].sort(
+          (a, b) =>
+            colocacion.get(b.input.riderId)! - colocacion.get(a.input.riderId)! ||
+            (a.input.riderId < b.input.riderId ? -1 : 1),
+        )
+        /**
+         * Y SALEN VARIAS FILAS DE UN SOLO CORTE, no dos trozos. Cuando la carretera gira, el grupo no
+         * se parte en «los que caben y los demás»: se rompe en abanicos sucesivos, y detrás del
+         * segundo o el tercero va el grupo de los que ya han renunciado. Hacerlo en un solo corte y
+         * no a base de sorteos por kilómetro es lo que evita las dos caricaturas: un pelotón de 152
+         * intacto detrás del abanico, o quince grupos de trece en la carretera.
+         *
+         * El hueco se abre EN EL SITIO —esa es la diferencia entre un abanico y un desgaste— y crece
+         * fila a fila. Está por encima de `grupetoJoinGapSeconds` a propósito: si no, el que acaba
+         * de quedarse fuera volvería a engancharse al grupo del que lo acaban de echar.
+         */
+        const filas = Math.min(
+          STAGE.windEchelonMaxGroups,
+          Math.ceil(dentro.length / cabenEnFila),
+        )
+        for (let f = 1; f < filas; f++) {
+          const hasta = f === filas - 1 ? dentro.length : (f + 1) * cabenEnFila
+          for (const m of orden.slice(f * cabenEnFila, hasta)) {
+            dropOut(m, group, f * STAGE.windEchelonGapSeconds)
+          }
+        }
+        const fuera = orden.slice(cabenEnFila)
+        abanicoAbierto = true
+        // Mismo vocabulario que `peloton_split` —de cuántos a cuántos—, porque es la misma noticia
+        // contada por otro motivo, y así el diario y la crónica saben leerla sin casos especiales.
+        log.emit(
+          km,
+          group.tS,
+          'criba',
+          'echelon_split',
+          orden.slice(0, 3).map((m) => m.input.riderId),
+          {
+            before: dentro.length,
+            remaining: dentro.length - fuera.length,
+            dropped: fuera.length,
+            wind: Math.round(100 * vientoLateral),
+            grupo: group.id,
+            toGo: Math.round(totalKm - km),
+          },
+        )
+      }
+      corte(peloton, membersOf(PELOTON))
+      // Instantánea: los grupos que abre el corte de arriba no se parten otra vez en el mismo
+      // kilómetro.
+      for (const sg of [...shed]) corte(sg, membersOf(sg.id))
+    }
     for (const m of moves) shatter(m.g, membersOf(m.g.id), moveFrac(m))
     // Cómo cambia el pelotón en el desenlace: la CRIBA que lo parte y el REAGRUPAMIENTO que lo
     // recompone (SPEC 6.15). Ambos son la misma cuenta —de cuántos a cuántos ha pasado el grupo
@@ -3505,6 +3772,9 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       spr: m.input.eff0.SPR,
       gcDeficitSeconds: m.input.gcDeficitSeconds,
       teamAttack: attackFactorOf(m.input.riderId),
+      // Lo que iba haciendo en el bloque anterior: la capa táctica corre ANTES que el avance, así
+      // que ésta es su foto más reciente y es la buena —«iba tirando cuando se le ocurrió»—.
+      pulling: m.pulling,
     })
 
     /** Un intento de movimiento desde `source`. Puede no salir, salir y fracasar, o salir y cuajar. */
@@ -3880,6 +4150,42 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       }
     }
 
+    /**
+     * NO SE PERSIGUE LO PROPIO, TAMPOCO DESDE UN GRUPO DE CAZA (v41). La v33 puso la mitad de esta
+     * regla —el fugado cuyo equipo tira del pelotón no colabora en la fuga— y faltaba la otra, que
+     * es la que el dueño encontró en una carrera de producción: un escapado en solitario, y en el
+     * grupo perseguidor de cinco iba TIRANDO un compañero suyo. Eso no es que sea subóptimo: es
+     * trabajar contra el propio equipo, que es la frase que la v33 ya había dado por buena.
+     *
+     * Se mide con el reloj: un equipo «tiene hombre delante» si alguno de los suyos rueda de verdad
+     * POR DELANTE, y «de verdad» es el mismo margen con el que este motor decide en todas partes que
+     * dos hombres ruedan juntos (`grupetoJoinGapSeconds`). Con un margen más fino salían falsos: dos
+     * compañeros separados por dos segundos —un grupo que se acaba de partir y todavía se ve— no son
+     * uno delante y otro persiguiéndole.
+     *
+     * Y solo cuenta en un GRUPO DE CAZA, no en el pelotón ni en un grupeto. En el pelotón ya lo dice
+     * el plan de equipo (§V.1), que es donde vive esa decisión; y en un grupeto lo contrario sería
+     * absurdo —todo el que se descuelga tiene compañeros por delante, así que no rotaría nadie—.
+     */
+    const relojDeGrupo = new Map<string, number>([[PELOTON, peloton.tS]])
+    for (const mv of moves) relojDeGrupo.set(mv.g.id, mv.g.tS)
+    for (const sg of shed) relojDeGrupo.set(sg.id, sg.tS)
+    const mejorRelojDelEquipo = new Map<string, number>()
+    for (const m of sims.values()) {
+      if (m.finishTs !== null || m.abandonedKm !== null) continue
+      const equipo = teamOf.get(m.input.riderId)
+      const t = relojDeGrupo.get(m.groupId)
+      if (equipo == null || t == null) continue
+      const mejor = mejorRelojDelEquipo.get(equipo)
+      if (mejor == null || t < mejor) mejorRelojDelEquipo.set(equipo, t)
+    }
+    const tieneHombreDelante = (riderId: string, tS: number): boolean => {
+      const equipo = teamOf.get(riderId)
+      if (equipo == null) return false
+      const mejor = mejorRelojDelEquipo.get(equipo)
+      return mejor != null && mejor < tS - STAGE.grupetoJoinGapSeconds
+    }
+
     peloton = advance(peloton, membersOf(PELOTON), pelFrac, 'peloton')
     for (const m of moves) {
       m.g = advance(m.g, membersOf(m.g.id), moveFrac(m), 'move')
@@ -3922,10 +4228,10 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       }
       const able = droppedCommit(
         block,
-        mem.length,
+        enFila(block, mem.length),
         fresh / mem.length,
         sg.tS - peloton.tS,
-        membersOf(PELOTON).length,
+        enFila(block, membersOf(PELOTON).length),
         peloton.compromiso,
       )
       // …y el que SE HA DEJADO IR (regla 8) ya no pelea por nada: rueda a lo suyo y arrastra al

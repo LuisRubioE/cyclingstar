@@ -12,6 +12,7 @@ import {
   majorityOnTheRoad,
   matchCount,
   maxMatchCount,
+  gutterShelter,
   relayRotation,
   shelterOf,
   stepSpeed,
@@ -182,6 +183,45 @@ describe('o tiras o no tiras (v34, SPEC 6.5)', () => {
       const factura = n * ((STAGE.shelterProtected - shelterOf(true, n)) / STAGE.shelterProtected)
       expect(factura).toBeCloseTo(1, 12)
     }
+  })
+})
+
+describe('la cuneta del abanico (v41)', () => {
+  it('mientras el grupo CABE en la fila, ir a rueda es ir a rueda', () => {
+    expect(gutterShelter(12, 12)).toBe(STAGE.shelterProtected)
+    expect(gutterShelter(5, 12)).toBe(STAGE.shelterProtected)
+  })
+
+  it('y en cuanto no cabe, el asfalto se reparte entre los que son', () => {
+    // Un grupo que dobla la capacidad de la carretera arropa a la mitad de los suyos; uno que la
+    // cuadruplica, a un cuarto. No hay escalón: el que sobra no es «el 13.º», es la proporción.
+    expect(gutterShelter(24, 12)).toBeCloseTo(STAGE.shelterProtected / 2, 12)
+    expect(gutterShelter(48, 12)).toBeCloseTo(STAGE.shelterProtected / 4, 12)
+    expect(gutterShelter(159, 13)).toBeLessThan(STAGE.shelterProtected / 10)
+  })
+
+  it('y el que rota en una fila que no cabe tampoco encuentra dónde meterse', () => {
+    // El abrigo entra en los DOS estados de `shelterOf`, no solo en el del que va a rueda: cuando
+    // sales del relevo, detrás del último que da la cara está la cuneta.
+    const arropo = gutterShelter(60, 12)
+    expect(shelterOf(false, 8, arropo)).toBe(arropo)
+    expect(shelterOf(true, 8, arropo)).toBeLessThan(shelterOf(true, 8))
+    // Y el que va solo paga el viento entero igual: n = 1 no depende del abrigo de nadie.
+    expect(shelterOf(true, 1, arropo)).toBe(STAGE.shelterAlone)
+  })
+
+  it('cuesta más rodar en la cuneta que a rueda, y el que tira lo nota menos', () => {
+    const llano = block('llano', 0)
+    const arropo = gutterShelter(159, 13)
+    const aRueda = blockCost(llano, 0.8, false, 12)
+    const enCuneta = blockCost(llano, 0.8, false, 12, STAGE.dx, arropo)
+    expect(enCuneta).toBeGreaterThan(aRueda)
+    // El que ya estaba dando la cara paga un sobreprecio MENOR en proporción: parte del viento ya
+    // lo pagaba. Es lo que hace que un abanico se lleve por delante a los pasajeros y no a los que
+    // rotan.
+    const tirando = blockCost(llano, 0.8, true, 12)
+    const tirandoEnCuneta = blockCost(llano, 0.8, true, 12, STAGE.dx, arropo)
+    expect(tirandoEnCuneta / tirando).toBeLessThan(enCuneta / aRueda)
   })
 })
 

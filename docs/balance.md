@@ -8209,3 +8209,107 @@ crónica, así que tenía que quedarse quieto.
 - **El ranking NO es de 365 días.** Es `season_points`, un contador que se incrementa por temporada
   sin puntos fechados por resultado, así que no se puede restar lo del mismo día del año anterior.
   Es un cambio de esquema, no de fórmula. Anotado en `docs/epics.md` (G3).
+
+## v41 — El viento y los abanicos, y dos cosas que no tenían sentido (`engine_version` 40 → 41)
+
+La EPIC que el dueño delegó entera («el viento y los abanicos… aquí te delegaré el 100 % de que
+hagas esto»), más dos defectos que encontró él mirando una carrera de producción mientras se hacía.
+
+### 1. El llano no seleccionaba NUNCA
+
+`selectionFactor('llano')` valía **0**. Escrito así suena a detalle y es enorme: la forma más
+clásica de romper una carrera —el viento de lado— no existía en el motor, y una etapa llana solo
+podía ser «esperar al sprint».
+
+Se sortea **un número por etapa**, en un subflujo nominal propio (`viento`, SPEC 6.1), y solo la
+componente LATERAL: el de cara frena a todos por igual y el de cola acelera a todos por igual, así
+que meterlos sería recalibrar la velocidad del juego entero para no cambiar una sola posición. Un
+**13 %** de las llanas trae viento de lado; una etapa en calma sale dígito a dígito como en la v40.
+
+### 2. Un abanico no es un dado, es una CAPACIDAD
+
+Esto se probó primero al revés y hay que dejarlo escrito, porque el camino equivocado parecía el
+natural: abrir en el llano un hazard de descuelgue proporcional al viento daba carreras
+**incoherentes** —con viento MEDIO el pelotón se partía (94 de 176 en cabeza) y con viento FUERTE
+llegaban los 176 juntos—. El motivo es que el que hace trece no tiene más probabilidad de
+descolgarse: es que **no cabe**.
+
+Cuatro piezas, ninguna un sorteo por corredor:
+
+| Pieza                       | Qué dice                                                                                                          | Qué pasaba sin ella                                                                                             |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `cabenEnFila`               | Cuántos caben a rebufo en diagonal: del pelotón entero con una brisa a doce con viento de verdad, geométricamente | Con interpolación lineal, un lateral de 0,10 —una brisa— dejaba fuera a 117 hombres                             |
+| El CORTE (`echelon_split`)  | Pasa en un sitio y un momento, y se parte todo grupo que no quepa, en dos o tres filas de golpe                   | Cortar solo la cabeza dejaba detrás un pelotón de 152 intacto, que es la única cosa que en un abanico no existe |
+| La FILA ENTERA rota         | En un abanico no hay ir a rueda: o das la cara o te caes                                                          | El corte de trece ponía DOS a rotar y los 159 de detrás, veinte                                                 |
+| La CUNETA (`gutterShelter`) | Detrás del corte no se va a rueda: se reparte el asfalto entre los que son                                        | El corte dejaba 21 delante y 152 detrás **y ganaban los 152**, porque sus 140 pasajeros recargaban a rueda      |
+
+Y una puerta que vale para las cuatro: nada de esto existe hasta que el corte ha saltado de verdad
+(`abanicoAbierto`). No es implementación, es medida: cobrar la cuneta y poner a veinte hombres a
+rotar desde el km 0 en cada día con viento reventaba el Tour de Flandes —**vaciado 0,993 con un 44 %
+de pájaras**— contra un banco que no admite saturación. Antes del corte, un día de viento solo es un
+día NERVIOSO.
+
+La cuneta lleva además un SUELO (`windGutterFloor` = 0,80), y por la misma clase de medida: la
+proporción pura mandaba a un grupo de 150 con capacidad para 13 a ir a rueda al 8 %, y eso es falso
+—el que se queda fuera se junta con los de al lado y hacen su propia fila—. Con la proporción pura,
+el 85 % del campo de Flandes acababa con el depósito a cero.
+
+Un día de viento, medido (llana de 180 km, 176 corredores):
+
+| Lateral | 1.er grupo | Cola  |
+| ------- | ---------- | ----- |
+| 0,10    | 118        | 7:31  |
+| 0,29    | 76         | 15:01 |
+| 0,55    | 37         | 4:47  |
+| 0,65    | 33         | 12:46 |
+| 0,82    | 19         | 15:59 |
+| 0,96    | 13         | 19:46 |
+
+### 3. La colocación, que era la otra mitad del encargo
+
+> El dueño: «aunque eso implicará también definir las colocaciones».
+
+Quién se queda DENTRO del corte se mide en puntos de perfil, para que las cuatro cosas se puedan
+comparar entre sí y ninguna sea un veto: el equipo que lleva el frente **+25**, el jefe al que
+colocan los suyos **+12** (y solo si le queda algún gregario en el grupo), las **piernas**, y **±10**
+de suerte. Un velocista con equipo entra en el corte y un escalador mejor sin nadie que le coloque se
+queda fuera. Los abanicos los hacen los EQUIPOS.
+
+### 4. Dos defectos vistos en una carrera de producción
+
+> El dueño: «hay un escapado… y detrás hay uno de su equipo también tirando».
+
+La v33 había escrito solo la mitad de esa regla —el fugado cuyo equipo tira del pelotón no colabora
+en la fuga— y faltaba la otra: **en un grupo de caza, el que tiene a uno de los suyos por delante no
+da relevos**. Se mide con el reloj y con el mismo margen con el que este motor decide en todas partes
+que dos hombres ruedan juntos (`grupetoJoinGapSeconds`). De **234 a 40** casos en la llana y de
+**191 a 58** en la media montaña, sobre 40 etapas por banco; los que quedan son grupos en los que
+TODOS tienen un compañero delante y alguien tiene que ir en cabeza. No se aplica en el pelotón —ahí
+lo decide el plan de equipo (§V.1)— ni en un grupeto, donde todo el que se descuelga tiene
+compañeros delante y no rotaría nadie.
+
+> El dueño: «el mismo que se escapó, antes de escaparse iba tirando del pelotón… eso no tiene
+> sentido».
+
+Y tiene razón: **el que ataca viene de la rueda**, con las piernas de no haber pagado viento. La
+bandera «va tirando» existía pero vivía apagada salvo que alguien pidiera una foto; ahora es estado
+de carrera y las ganas de atacar de quien está en la rotación se multiplican por 0,1. No es un veto
+—de un relevo se arranca— pero pasa a ser la excepción: **del 2,4 % al 0,2 %** de los ataques del
+pelotón.
+
+### 5. Lo que se movió, y por qué tenía que moverse
+
+La huella sellada del banco se **resella**, y no por el viento: las cuatro semillas salen en calma
+—lateral 0,00, cero cortes—. La mueven los dos arreglos del punto 4, que cambian quién ataca y quién
+trabaja. En las dos llanas gana el mismo hombre y el pelotón sigue llegando junto (173 y 174 de 176);
+la reina, que se decide entre nueve hombres, cambia de ganador en una de las dos semillas. Es lo que
+un cambio de la capa táctica le hace a una etapa que deciden un puñado, y que no se moviera habría
+sido la señal de alarma.
+
+Una prueba se hace MÁS exigente en vez de más floja: la de la criba lejana corría **8 semillas** y
+pedía 6, cuando la tasa real de ese recorrido es del 68 % —27 y 28 de 40 según la versión— y con n=8
+un 3 de 8 entra dentro de lo normal sin que nada se haya roto. Pasa a 24 semillas y a pedir la mitad.
+
+Y una prueba de puntos deja de exigir un estricto mayor donde el modelo dice legítimamente
+«empate»: su semilla resulta ser un día de abanicos, el segundo se lleva la meta volante del km 100
+y los dos acaban con 40 puntos.
