@@ -8314,7 +8314,7 @@ Y una prueba de puntos deja de exigir un estricto mayor donde el modelo dice leg
 «empate»: su semilla resulta ser un día de abanicos, el segundo se lleva la meta volante del km 100
 y los dos acaban con 40 puntos.
 
-### 6. LO QUE QUEDA EN ROJO: la cola de la reina (decisión del dueño: no se toca)
+### 6. LO QUE QUEDÓ EN ROJO: la cola de la reina — y se arregló sola en la v42
 
 `grandTour.queenLastGroupPct` sale a **7,88 %** contra un suelo de 8, y no es ruido de muestra: con el
 doble de giras baja a 7,43 %. Lo mueve el viento y solo el viento —el mismo motor con el sorteo
@@ -8330,10 +8330,11 @@ su motivo escrito, o no dejar que el abanico se abra en una etapa de montaña—
 **dejarlo**: «con futuros cambios en el motor esto puede arreglarse solo o empeorar». Así que la
 banda NO se toca y el test se queda en rojo a propósito, con este párrafo como explicación.
 
-**Qué vigilar.** Si una tanda futura lo devuelve por encima de 8 sin tocar la banda, se cierra solo y
-se borra esta nota. Si lo hunde por debajo de 7, ya no es un suelo calibrado sin viento: es que algo
-está acortando la cola de verdad, y entonces el problema no es la banda sino el corte de tiempo
-(§VI.3, 8-18 %), que dejaría de señalar a nadie.
+**Y se cerró en la versión siguiente, sin tocar la banda.** La lluvia de la v42 la devolvió por
+encima de 8: el descenso mojado y las caídas estiran la cola de una etapa de montaña, que es justo lo
+que el viento le había quitado. El dueño acertó al no dejarme elegir entre las tres salidas, y la
+lección no es sobre el viento ni sobre la lluvia: **una banda que roza su suelo por una décima puede
+estar diciendo que falta física, no que sobre rigor.**
 
 ### 7. Lo que el banco corrigió de mí, tres veces
 

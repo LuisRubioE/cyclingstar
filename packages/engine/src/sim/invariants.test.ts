@@ -493,18 +493,14 @@ describe('abandonos en una gran vuelta (docs/motor.md §VI.3)', () => {
    * delante media carrera todos los días.
    */
   /**
-   * EN ROJO A PROPÓSITO DESDE LA v41 (docs/balance.md «v41 §6»). Sale 7,88 % contra el suelo de 8, y
-   * no es muestra corta: con el doble de giras baja a 7,43 %. Lo mueve el viento y solo el viento
-   * —el mismo motor con el sorteo apagado da 8,42 %—, así que este suelo se calibró en un mundo sin
-   * abanicos. Y hay motivo para sospechar de la MÉTRICA y no solo del número: en un día normal el
-   * último grupo de una reina es el grupeto, y en un día de abanicos es un trozo de abanico con
-   * corredores mejores; son dos cosas distintas con el mismo nombre.
+   * ESTUVO EN ROJO A PROPÓSITO ENTRE LA v41 Y LA v42, y se arregló SOLO. El viento de la v41 acortó
+   * la cola de 8,42 % a 7,88 % contra este suelo de 8, y el dueño decidió no tocar la banda: «con
+   * futuros cambios en el motor esto puede arreglarse solo o empeorar». Acertó, y en el cambio
+   * siguiente: con la lluvia dentro (v42) sale por encima de 8 otra vez, porque el descenso mojado
+   * y las caídas estiran la cola de una etapa de montaña, que es justo lo que el viento le quitaba.
    *
-   * El dueño vio las tres salidas —menos viento, bajar el suelo, o no abrir abanicos en montaña— y
-   * decidió DEJARLO: «con futuros cambios en el motor esto puede arreglarse solo o empeorar». No se
-   * toca la banda para poner esto en verde. Si una tanda futura lo devuelve por encima de 8, se
-   * borra esta nota; si lo hunde por debajo de 7, el problema ya no es la banda sino que el corte de
-   * tiempo (§VI.3) deja de señalar a nadie.
+   * Se deja escrito porque la lección no es sobre el viento ni sobre la lluvia: una banda que roza
+   * su suelo por una décima puede estar diciendo que falta física, no que sobre rigor.
    */
   it('el último grupo de una etapa reina entra al 8-14%', { timeout: 600000 }, () => {
     const stats = tours()
