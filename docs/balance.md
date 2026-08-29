@@ -8224,7 +8224,8 @@ podía ser «esperar al sprint».
 Se sortea **un número por etapa**, en un subflujo nominal propio (`viento`, SPEC 6.1), y solo la
 componente LATERAL: el de cara frena a todos por igual y el de cola acelera a todos por igual, así
 que meterlos sería recalibrar la velocidad del juego entero para no cambiar una sola posición. Un
-**13 %** de las llanas trae viento de lado; una etapa en calma sale dígito a dígito como en la v40.
+**6 %** de las llanas trae viento de lado y un **4 %** acaba partida; una etapa en calma sale dígito a
+dígito como en la v40.
 
 ### 2. Un abanico no es un dado, es una CAPACIDAD
 
@@ -8258,12 +8259,11 @@ Un día de viento, medido (llana de 180 km, 176 corredores):
 
 | Lateral | 1.er grupo | Cola  |
 | ------- | ---------- | ----- |
-| 0,10    | 118        | 7:31  |
-| 0,29    | 76         | 15:01 |
-| 0,55    | 37         | 4:47  |
-| 0,65    | 33         | 12:46 |
-| 0,82    | 19         | 15:59 |
-| 0,96    | 13         | 19:46 |
+| 0,17    | 104        | 0:53  |
+| 0,36    | 61         | 11:31 |
+| 0,67    | 28         | 11:39 |
+| 0,72    | 24         | 31:51 |
+| 0,93    | 14         | 18:44 |
 
 ### 3. La colocación, que era la otra mitad del encargo
 
@@ -8313,3 +8313,49 @@ un 3 de 8 entra dentro de lo normal sin que nada se haya roto. Pasa a 24 semilla
 Y una prueba de puntos deja de exigir un estricto mayor donde el modelo dice legítimamente
 «empate»: su semilla resulta ser un día de abanicos, el segundo se lleva la meta volante del km 100
 y los dos acaban con 40 puntos.
+
+### 6. Lo que el banco corrigió de mí, dos veces
+
+Esta tanda entró en rojo dos veces y las dos por lo mismo: un número puesto a ojo. Queda escrito
+porque la lección es la de siempre en este motor —lo que no se mide, se equivoca— y porque en los
+dos casos la señal buena no fue la métrica que falló, sino que fallaran DOS relacionadas a la vez.
+
+**Primera: la regla del atacante estaba mal de FORMA, no de intensidad.** «El que va tirando no
+salta» se aplicaba en cualquier grupo, y dentro de una fuga o de un grupo de cabeza rotan todos, así
+que ahí no distingue a nadie; donde sí distinguía era en el puerto final, donde el turno son uno o
+dos hombres y son justamente los que tienen que atacar. Barrido del apetito contra la brecha
+1.º-10.º de la reina y la fuga de montaña (bandas ≥ 60 s y 25-45 %):
+
+| Apetito             | Brecha reina | Fuga de montaña      |
+| ------------------- | ------------ | -------------------- |
+| 0,10                | 59,5 s       | 25,0 % ← en el suelo |
+| 0,25                | 65,5 s       | 25,8 %               |
+| 0,50                | 76,0 s       | 30,0 %               |
+| 1,00 (sin la regla) | 81,0 s       | 30,0 %               |
+
+Bajarle el volumen habría dejado la queja a medio arreglar y la banda a medio salvar. Restringirla al
+PELOTÓN la deja en 65,0 s y 31,7 %, y el ataque desde el relevo en **2 de 2.225**.
+
+**Segunda: el viento pasaba demasiado a menudo.** `windMin` en 0,76 daba un 12 % de días con viento
+de lado, y ese número también lo puse a ojo. Un día de abanicos le quita la etapa al mejor
+velocista, así que con una de cada ocho llanas el mejor rematador dejaba de mandar en las carreras
+pequeñas:
+
+| Config                    | Mismo ganador (banda 15-55) | Gana el mejor rematador (25-60) |
+| ------------------------- | --------------------------- | ------------------------------- |
+| Con el 12 % de días       | 12,7 %                      | 25,8 %                          |
+| El mismo motor sin viento | 18,3 %                      | 29,3 %                          |
+| Con el 6 % de días        | **16,7 %**                  | **27,5 %**                      |
+
+El suelo del 15 % es la línea de la LOTERÍA: con 7 a 17 rematadores nombrados, repartir al azar da un
+6-14 %. Y la carretera dice lo mismo que el banco: en una temporada real del WorldTour las llanas que
+decide un abanico se cuentan con los dedos de una mano sobre siglo y medio de llanas. Con 0,87 salen
+un 6 % de días con viento y un 4 % de llanas partidas. **Lo que se movió es la frecuencia del viento,
+no la banda.**
+
+Queda ANOTADO que esa prueba es frágil, y no por esta tanda: corre con cuatro corridas por carrera,
+o sea unos 90 pares, así que la diferencia entre pasar y no pasar son uno o dos pares. Con esa
+muestra el número sale en 15,4 % —pasa, y pasa siempre, porque el banco es determinista— pero con
+ocho corridas sale 16,7 %, que es el valor de verdad. Si vuelve a tocar tenderle la mano, la
+respuesta es subirle la muestra, no bajarle el suelo: el 15 % describe una propiedad del ciclismo y
+no una preferencia.

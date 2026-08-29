@@ -1186,8 +1186,13 @@ porque obliga a buscar el rebufo **en diagonal** y ahí la carretera se acaba.
 
 Se sortea **un número por etapa**, en un subflujo nominal propio (`viento`, SPEC 6.1), tirando hacia
 abajo (`windDayShape`) y con un listón (`windMin`) por debajo del cual el día es un día normal:
-medido, **13 de cada 100** llanas tienen viento de lado. Una etapa sin viento sale dígito a dígito
-como en la v40, y por eso la huella sellada del banco canónico no se movió.
+medido, **6 de cada 100** llanas tienen viento de lado y **4 de cada 100** acaban partidas. Es la
+frecuencia de la carretera —en una temporada real del WorldTour las llanas que decide un abanico se
+cuentan con los dedos de una mano sobre siglo y medio de llanas— y no es un número de gusto: la
+primera entrega puso el 12 % a ojo y el banco lo tumbó, porque un día de abanicos le quita la etapa
+al mejor velocista y con uno de cada ocho llanas el mejor rematador dejaba de mandar en las carreras
+pequeñas (§19.5). Una etapa sin viento sale dígito a dígito como en la v40, y por eso la huella
+sellada del banco canónico no se mueve por esto.
 
 **19.2 Un abanico NO es un dado por corredor.** Esto se probó primero al revés —abrir en el llano un
 hazard de descuelgue proporcional al viento— y daba carreras incoherentes: con viento MEDIO el
@@ -1241,12 +1246,11 @@ Con las cuatro piezas, un día de viento se lee así (llana de 180 km, 176 corre
 
 | Lateral | 1.er grupo | Cola  |
 | ------- | ---------- | ----- |
-| 0,10    | 118        | 7:31  |
-| 0,29    | 76         | 15:01 |
-| 0,55    | 37         | 4:47  |
-| 0,65    | 33         | 12:46 |
-| 0,82    | 19         | 15:59 |
-| 0,96    | 13         | 19:46 |
+| 0,17    | 104        | 0:53  |
+| 0,36    | 61         | 11:31 |
+| 0,67    | 28         | 11:39 |
+| 0,72    | 24         | 31:51 |
+| 0,93    | 14         | 18:44 |
 
 Y todo lo que el abanico cambia —la cuneta, la fila entera rotando, el tope de relevistas— cuelga de
 que el corte haya saltado de verdad (`abanicoAbierto`). No es un detalle de implementación: cobrarlo
@@ -1254,7 +1258,18 @@ desde el km 0 en cualquier día con viento reventaba el Tour de Flandes (vaciado
 pájaras, contra un banco que no admite saturación). Antes del corte, un día de viento solo es un día
 NERVIOSO: el suelo de compromiso, y nada más.
 
-**19.4 Lo que queda anotado.** El viento es un número de ETAPA: no cambia de dirección ni de fuerza
+**19.4 Cuántas veces pasa, y por qué el banco lo decide mejor que la intuición.** El mecanismo del
+abanico se puede validar mirando una etapa; su FRECUENCIA, no. Con el listón en el 12 % de días —el
+número de la primera entrega, puesto a ojo— el banco de carreras pequeñas medía que dos llegadas
+agrupadas de la misma carrera las ganaba el mismo el **12,7 %** de las veces, contra un suelo de 15
+que es la línea de la LOTERÍA (con 7 a 17 rematadores nombrados, repartir al azar da un 6-14 %); y
+el mejor rematador ganaba el 25,8 % contra un suelo de 25. Apagando el viento, las dos volvían a
+18,3 % y 29,3 %: el culpable era la frecuencia y no el mecanismo. Con el 6 %, 16,7 % y 27,5 %.
+
+Es la lección de siempre en este motor, otra vez: **un número que no se mide, se equivoca**. Y la
+señal buena no fue la métrica que falló, sino que fallaran DOS relacionadas a la vez.
+
+**19.5 Lo que queda anotado.** El viento es un número de ETAPA: no cambia de dirección ni de fuerza
 durante el día, y no hay previsión que un equipo pueda leer para colocarse antes del cruce (eso vive
 en el EPIC del clima, y es lo que convertiría la colocación en una DECISIÓN además de en un
 atributo). Tampoco hay tramos expuestos en el perfil: cualquier kilómetro de llano puede ser el del
