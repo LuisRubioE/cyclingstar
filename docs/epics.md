@@ -61,6 +61,13 @@ de fuerza durante el día— y no hay tramos expuestos en el perfil, así que cu
 llano puede ser el del corte. La previsión que convertiría la colocación en una DECISIÓN además de
 en un atributo vive en E5.
 
+### V1 · VIGILADO: la cola de la reina, en rojo a propósito (v41)
+
+`grandTour.queenLastGroupPct` sale a 7,88 % contra un suelo de 8. Lo mueve el viento (sin él, 8,42 %)
+y no es muestra corta (con el doble de giras, 7,43 %). El dueño decidió no tocar la banda: «con
+futuros cambios en el motor esto puede arreglarse solo o empeorar». El detalle y qué vigilar, en
+docs/balance.md «v41 §6».
+
 ### E3 · La carrera por etapas como una carrera, no como 21 etapas
 
 El motor simula etapas; la pregunta es cuánto sabe de la CAMPAÑA. ¿Se corre distinto el día 18 con

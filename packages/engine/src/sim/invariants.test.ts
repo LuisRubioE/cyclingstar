@@ -492,6 +492,20 @@ describe('abandonos en una gran vuelta (docs/motor.md §VI.3)', () => {
    * y la causa «fuera de control» no puede llegar a su 45 %; con más, el corte se llevaría por
    * delante media carrera todos los días.
    */
+  /**
+   * EN ROJO A PROPÓSITO DESDE LA v41 (docs/balance.md «v41 §6»). Sale 7,88 % contra el suelo de 8, y
+   * no es muestra corta: con el doble de giras baja a 7,43 %. Lo mueve el viento y solo el viento
+   * —el mismo motor con el sorteo apagado da 8,42 %—, así que este suelo se calibró en un mundo sin
+   * abanicos. Y hay motivo para sospechar de la MÉTRICA y no solo del número: en un día normal el
+   * último grupo de una reina es el grupeto, y en un día de abanicos es un trozo de abanico con
+   * corredores mejores; son dos cosas distintas con el mismo nombre.
+   *
+   * El dueño vio las tres salidas —menos viento, bajar el suelo, o no abrir abanicos en montaña— y
+   * decidió DEJARLO: «con futuros cambios en el motor esto puede arreglarse solo o empeorar». No se
+   * toca la banda para poner esto en verde. Si una tanda futura lo devuelve por encima de 8, se
+   * borra esta nota; si lo hunde por debajo de 7, el problema ya no es la banda sino que el corte de
+   * tiempo (§VI.3) deja de señalar a nadie.
+   */
   it('el último grupo de una etapa reina entra al 8-14%', { timeout: 600000 }, () => {
     const stats = tours()
     expect(stats.tails.reina.stages).toBeGreaterThanOrEqual(6 * 7)

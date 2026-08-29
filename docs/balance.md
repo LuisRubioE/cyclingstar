@@ -8314,7 +8314,28 @@ Y una prueba de puntos deja de exigir un estricto mayor donde el modelo dice leg
 «empate»: su semilla resulta ser un día de abanicos, el segundo se lleva la meta volante del km 100
 y los dos acaban con 40 puntos.
 
-### 6. Lo que el banco corrigió de mí, tres veces
+### 6. LO QUE QUEDA EN ROJO: la cola de la reina (decisión del dueño: no se toca)
+
+`grandTour.queenLastGroupPct` sale a **7,88 %** contra un suelo de 8, y no es ruido de muestra: con el
+doble de giras baja a 7,43 %. Lo mueve el viento y solo el viento —el mismo motor con el sorteo
+apagado da 8,42 %—, así que el suelo del 8 % se calibró en un mundo donde los abanicos no existían.
+
+El mecanismo probable, y por eso esto no es un simple «bajar el número»: en un día normal el último
+grupo de una reina es el GRUPETO —los más flojos, rodando despacio— y en un día de abanicos es un
+TROZO DE ABANICO, con corredores mejores que ruedan más rápido. La métrica está midiendo dos cosas
+distintas y llamándolas igual.
+
+Se le presentaron tres salidas al dueño —bajar más la frecuencia del viento, bajar el suelo a 7,5 con
+su motivo escrito, o no dejar que el abanico se abra en una etapa de montaña— y su respuesta fue
+**dejarlo**: «con futuros cambios en el motor esto puede arreglarse solo o empeorar». Así que la
+banda NO se toca y el test se queda en rojo a propósito, con este párrafo como explicación.
+
+**Qué vigilar.** Si una tanda futura lo devuelve por encima de 8 sin tocar la banda, se cierra solo y
+se borra esta nota. Si lo hunde por debajo de 7, ya no es un suelo calibrado sin viento: es que algo
+está acortando la cola de verdad, y entonces el problema no es la banda sino el corte de tiempo
+(§VI.3, 8-18 %), que dejaría de señalar a nadie.
+
+### 7. Lo que el banco corrigió de mí, tres veces
 
 Esta tanda entró en rojo tres veces y las tres por lo mismo: una frase o un número escritos con
 convicción y sin medir. Queda escrito porque la lección es la de siempre en este motor —lo que no se
