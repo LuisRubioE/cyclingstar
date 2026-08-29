@@ -8,12 +8,24 @@ import type { Rng } from '../random.js'
 import { rollHazard } from './hazard.js'
 import type { Block, Incident } from './types.js'
 
-/** Intensidad de caída de un bloque (eventos/km), según terreno y tramo (SPEC 6.14). */
-export function crashLambda(block: Block, isFinal: boolean): number {
-  if (block.tipo === 'paves') return STAGE.crashLambdaPaves
-  if (block.tipo === 'descenso') return STAGE.crashLambdaDescent
-  if (isFinal) return STAGE.crashLambdaFinal
-  return STAGE.crashLambdaBase
+/**
+ * Intensidad de caída de un bloque (eventos/km), según terreno y tramo (SPEC 6.14).
+ *
+ * …Y SEGÚN SI LLUEVE (v42). El dueño pidió el clima por esto mismo: «es lo que justifica de verdad
+ * las caídas y los abandonos». La lluvia MULTIPLICA la intensidad y no la reparte de otra manera, y
+ * es a propósito: con el asfalto mojado se cae más gente en los mismos sitios —la curva, el adoquín,
+ * el embudo final—, no en sitios distintos.
+ */
+export function crashLambda(block: Block, isFinal: boolean, lluvia = 0): number {
+  const base =
+    block.tipo === 'paves'
+      ? STAGE.crashLambdaPaves
+      : block.tipo === 'descenso'
+        ? STAGE.crashLambdaDescent
+        : isFinal
+          ? STAGE.crashLambdaFinal
+          : STAGE.crashLambdaBase
+  return base * (1 + STAGE.rainCrashScale * lluvia)
 }
 
 /** La destreza que reduce el riesgo según el terreno: DES en descensos, PAV en pavés (SPEC 6.14). */
@@ -112,10 +124,12 @@ export function rollCrash(
   eff: { DES: number; PAV: number; TAC: number },
   erosion: number,
   fragility: number,
+  /** Cuánto llueve hoy, en [0,1] (v42). 0 en un día seco, y entonces esto no cambia nada. */
+  lluvia = 0,
 ): CrashOutcome | null {
   const skill = terrainSkill(block, eff)
   const lambda =
-    crashLambda(block, isFinal) *
+    crashLambda(block, isFinal, lluvia) *
     (1 + STAGE.crashErosionScale * erosion) *
     (1 - STAGE.crashSkillScale * (skill / 100))
   if (lambda <= 0 || !rollHazard(rng, lambda)) return null

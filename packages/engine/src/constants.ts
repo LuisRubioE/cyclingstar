@@ -2793,6 +2793,48 @@ export const STAGE = {
    */
   windPlacementLuck: 10,
 
+  // --- 6.20 EL CLIMA (v42, docs/motor.md §20) ------------------------------------------------
+
+  /**
+   * LA LLUVIA DEL DÍA. Como el viento y como el humor: se sortea una vez, vale para todo el día y no
+   * depende de nadie. Y como el viento, tirando hacia abajo, porque llover llueve poco y diluviar
+   * diluvia menos: el día MOJADO tiene que seguir siendo noticia.
+   *
+   * `1 − rainMin^(1/rainDayShape)` es la probabilidad de pasar el listón, así que 0,64 con forma 2
+   * deja **un 20 % de días con lluvia**, y solo una parte de ésos son un diluvio. Es la frecuencia
+   * de la carretera en el calendario europeo, no un número de gusto: la lección de la v41 —donde
+   * puse el 12 % de días de viento a ojo y el banco lo tumbó— es que estos números se eligen contra
+   * algo, no contra la intuición.
+   */
+  rainDayShape: 2,
+  rainMin: 0.64,
+  /**
+   * LO QUE LA LLUVIA LE HACE A LAS CAÍDAS. Es la petición literal del dueño —«es lo que justifica de
+   * verdad las caídas y los abandonos»— y el número más fácil de defender de los tres: con el
+   * asfalto mojado se cae mucha más gente, y en una curva o en un adoquín se cae el doble.
+   *
+   * Multiplica la intensidad de caída del bloque, así que respeta dónde ocurren las caídas —el
+   * adoquín, el descenso, el embudo final— y solo cambia cuántas. A diluvio pleno, casi el doble,
+   * que es lo que dicen los recuentos de carreras en mojado contra las mismas en seco.
+   *
+   * Con 1,5 —el primer número, puesto a ojo— un Paris-Roubaix con lluvia daba **104 incidentes de
+   * 176 corredores** contra 32-50 en seco: seis de cada diez tocando el suelo, que no es una carrera
+   * mojada sino una caricatura.
+   */
+  rainCrashScale: 0.8,
+  /**
+   * EL ADOQUÍN MOJADO. La estampa entera del ciclismo de primavera: el mismo sector que en seco
+   * estira el grupo, en mojado lo parte. Escala `dropPavesFactor`, así que las estrellas del sector
+   * siguen mandando y lo que cambia es cuánto rompe cada una.
+   */
+  rainPavesScale: 0.5,
+  /**
+   * EL DESCENSO MOJADO. Bajar con lluvia es perder la rueda del de delante, no reventar: por eso
+   * escala la selección del descenso (`dropDescentFactor` = 0,08, la más pequeña de las tres) y no
+   * el coste. A diluvio pleno, el doble.
+   */
+  rainDescentScale: 1,
+
   /**
    * LAS GANAS DE ATACAR DEL QUE VA TIRANDO (v41). El que está en la rotación acaba de pagar el
    * viento del grupo: no es el que salta. El dueño lo cazó en una carrera de producción —«el mismo

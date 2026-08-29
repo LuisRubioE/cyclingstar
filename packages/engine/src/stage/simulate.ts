@@ -360,7 +360,13 @@ function riderPerfil(sim: RiderSim, block: Block): number {
  * v11 —«así el pelotón no se destroza en cada cota y las diferencias las marca el último puerto,
  * como en la realidad»— aplicada donde faltaba.
  */
-function selectionFactor(block: Block): number {
+/**
+ * …Y LA LLUVIA ESCALA LO QUE YA SELECCIONA (v42, docs/motor.md §20). No abre terreno nuevo —un llano
+ * mojado sigue sin seleccionar, porque lo que rompe una carrera con lluvia no es el agua sino lo que
+ * el agua le hace al adoquín y a la curva—: multiplica el adoquín y el descenso, que son justo los
+ * dos sitios donde en carretera se nota que llueve.
+ */
+function selectionFactor(block: Block, lluvia = 0): number {
   switch (block.tipo) {
     case 'subida':
       // LA SUBIDA YA NO PASA POR AQUÍ (v26): su descuelgue es deriva, no dado, y la deriva se integra
@@ -373,9 +379,16 @@ function selectionFactor(block: Block): number {
     case 'paves':
       // Las estrellas del sector escalan la dureza: viajan en el dato desde la v4 y hasta ahora
       // solo se leían para el coste en energía. Un 5★ rompe casi el doble que un 3★.
-      return (STAGE.dropPavesFactor * block.estrellas) / STAGE.dropPavesStarsReference
+      // El mismo sector que en seco estira el grupo, en mojado lo parte (v42).
+      return (
+        ((STAGE.dropPavesFactor * block.estrellas) / STAGE.dropPavesStarsReference) *
+        (1 + STAGE.rainPavesScale * lluvia)
+      )
     case 'descenso':
-      return block.g <= STAGE.dropDescentMaxGradient ? STAGE.dropDescentFactor : 0
+      // Bajar con lluvia es perder la rueda del de delante, no reventar (v42).
+      return block.g <= STAGE.dropDescentMaxGradient
+        ? STAGE.dropDescentFactor * (1 + STAGE.rainDescentScale * lluvia)
+        : 0
     case 'llano':
       /**
        * EL LLANO SIGUE SIN SELECCIONAR POR DADO, TAMBIÉN CON VIENTO (v41), y esto se probó al revés
@@ -913,6 +926,18 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
    * proporcional al viento.
    */
   let abanicoAbierto = false
+  /**
+   * EL CLIMA DEL DÍA (v42, docs/motor.md §20). Subflujo NOMINAL propio (`clima`, SPEC 6.1), como el
+   * viento: añadirlo no desplaza la secuencia de nadie y un día SECO sale dígito a dígito como en la
+   * v41.
+   *
+   * De momento es una sola cosa —cuánto llueve—, y es la que el dueño puso primero: «lluvia sobre
+   * adoquín… es lo que justifica de verdad las caídas y los abandonos». Se sortea una vez y vale
+   * para todo el día; que la lluvia vaya y venga durante la etapa queda anotado en §20.
+   */
+  const rngClima = streams('clima')
+  const lluviaBruta = Math.pow(rngClima(), STAGE.rainDayShape)
+  const lluvia = lluviaBruta < STAGE.rainMin ? 0 : (lluviaBruta - STAGE.rainMin) / (1 - STAGE.rainMin)
   /**
    * SER MUCHOS DEJA DE SERVIR, TAMBIÉN PARA EL QUE PERSIGUE (v41). El tamaño de un grupo entra en la
    * física en tres sitios —cuántos reparten el viento en la ley de velocidad, cuánto rebufo hay y a
@@ -3214,7 +3239,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
           narra: narrate ? 1 : 0,
         })
       }
-      const factor = selectionFactor(block)
+      const factor = selectionFactor(block, lluvia)
       if (factor <= 0) return dropped
       const alive = members.filter((m) => m.groupId === group.id)
       const pace = pacemakerP75(alive, block, paceFraction)
@@ -4424,7 +4449,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         if (yaEnElSuelo.has(m.input.riderId)) continue
         const e = erosion(m.energy, m.energy0, m.input.eff0.RES)
         const eff = riderEff(m)
-        const out = rollCrash(rngCrash, block, isFinal, eff, e, m.input.fragility ?? 1)
+        const out = rollCrash(rngCrash, block, isFinal, eff, e, m.input.fragility ?? 1, lluvia)
         if (!out) continue
         alSuelo(m, out, out.perdidaS)
         /**
