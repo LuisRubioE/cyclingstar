@@ -148,6 +148,17 @@ const PICO_VERANO = 200
 const DIAS = 365
 
 /**
+ * EL CLIMA DE NINGUNA PARTE, que es el que se usa cuando una etapa no dice dónde ni cuándo se corre
+ * —los escenarios sintéticos del banco, un campo de pruebas—. Es la MEDIA ANUAL del sitio templado,
+ * y está escrito aparte porque la alternativa obvia (`climateOf(undefined, 0)`) no es neutra: el día
+ * 0 es pleno invierno, así que un escenario sin sitio se corría siempre a 8° y en enero.
+ */
+export const CLIMA_REFERENCIA: Clima = {
+  pLluvia: (ZONAS.templado.lluviaFria + ZONAS.templado.lluviaCalida) / 2,
+  temperatura: (ZONAS.templado.tempFria + ZONAS.templado.tempCalida) / 2,
+}
+
+/**
  * El clima de un país en un día del año. `dia` es el día de la temporada, que en este juego ES el
  * día del año (`doy` en el calendario), y por tanto el GD del reloj del mundo.
  */

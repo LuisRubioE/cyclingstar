@@ -19,7 +19,7 @@
  * fecha, con un peso que se cierra según se acerca el día.
  */
 import { STAGE } from '../constants.js'
-import { climateOf } from '../world/climate.js'
+import { CLIMA_REFERENCIA, climateOf } from '../world/climate.js'
 import { clamp } from '../random.js'
 import { stageRng } from './rng.js'
 
@@ -50,12 +50,14 @@ function calorDe(grados: number): number {
  * misma cuenta que hacía `simulateStage` y con el mismo subflujo nominal (`clima`, SPEC 6.1), así
  * que sacarla aquí no mueve un solo dígito de ninguna etapa.
  *
- * Sin `lugar` —los escenarios sintéticos del banco, un campo de pruebas— sale el clima de referencia
- * de un sitio templado, que es el comportamiento anterior a que el clima supiera de geografía.
+ * Sin `lugar` —los escenarios sintéticos del banco, un campo de pruebas— sale el clima de REFERENCIA
+ * (`CLIMA_REFERENCIA`): la media anual de un sitio templado, con la frecuencia de lluvia de la v41.
+ * No vale `climateOf(undefined, 0)`, que parece lo mismo y no lo es: el día 0 es pleno invierno, así
+ * que una etapa sin sitio se corría a 8° y en enero.
  */
 export function stageWeather(seed: string, lugar?: WeatherPlace): StageWeather {
   const rng = stageRng(seed)('clima')
-  const clima = climateOf(lugar?.pais, lugar?.dia ?? 0)
+  const clima = lugar ? climateOf(lugar.pais, lugar.dia) : CLIMA_REFERENCIA
   const pLluvia = lugar ? clima.pLluvia : STAGE.rainDayProb
   // El listón NO es una constante sino una consecuencia: se pide la probabilidad local de día
   // lluvioso y se deriva el umbral. Ver `rainDayProb`.
@@ -98,7 +100,7 @@ export function weatherForecast(
   const real = stageWeather(seed, lugar)
   const dias = Math.max(0, Math.round(diasVista))
   if (dias === 0) return { ...real, fiabilidad: 1 }
-  const clima = climateOf(lugar?.pais, lugar?.dia ?? 0)
+  const clima = lugar ? climateOf(lugar.pais, lugar.dia) : CLIMA_REFERENCIA
   // Cuánto se ve: 1 el mismo día y cayendo con los días, hasta el suelo de «solo sé la climatología».
   const fiabilidad = clamp(1 - dias / STAGE.forecastHorizonDays, STAGE.forecastFloor, 1)
   const pLluvia = lugar ? clima.pLluvia : STAGE.rainDayProb

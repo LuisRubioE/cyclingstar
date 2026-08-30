@@ -8483,3 +8483,50 @@ que el dueño pidió— sin que el tiempo real cambie nunca, y consultarlo dos v
   cuatro. Las cinco dejan 22, 1, 31, 50 y 19 km tras la última cota, y el motor tiene medido que por
   encima de 5 km una etapa deja de comportarse como un final en alto. Pendiente de saber si el
   recorrido real es así o el generador aleja la última cima.
+
+---
+
+## v43 — El clima de la v42 no llegaba a producción (`engine_version` 42 → 43)
+
+### 1. El motor no cambia; lo que cambia es que ahora se le cuenta dónde se corre
+
+Buscando dónde enseñar la previsión apareció esto: `StageInput.lugar` —el país y el día del año, de
+donde sale TODA la geografía del clima de la v42— lo pasaban los bancos de simulación y **no lo
+pasaba `packages/db`**. O sea que la corrección que el dueño metió al delegar el EPIC («ojo, el clima
+debería depender del país y del GD») estaba implementada, medida y documentada, y no llegaba a
+ninguna carrera del juego.
+
+Lo que hacía producción sin el sitio:
+
+|                     | Con sitio (banco)          | Sin sitio (producción)        |
+| ------------------- | -------------------------- | ----------------------------- |
+| Flandes en abril    | llueve el 33 % de los días | el 20 %, como en todas partes |
+| La Vuelta en agosto | el 9 % y 26°               | el 20 % y **8°**              |
+| Emiratos en febrero | el 3 % y 21°               | el 20 % y **8°**              |
+
+Los 8° no son un redondeo: sin `lugar`, el clima salía de `climateOf(undefined, 0)`, y el día 0 es
+pleno invierno. Así que en el juego el calor no apretaba NUNCA en ninguna carrera —`heatFromC` son
+26°— y la lluvia caía con la misma frecuencia en Bélgica en marzo que en el desierto en febrero.
+
+Arreglado en los dos sitios: `calendarRun` pasa el país de la carrera y el día del año de cada etapa
+(la misma cuenta que hacen los bancos), y el «sin sitio» pasa a ser un neutro EXPLÍCITO
+(`CLIMA_REFERENCIA`, la media anual del sitio templado) en vez de un enero accidental.
+
+**El sello del banco de atribución sale idéntico**, que es la comprobación de que el neutro nuevo no
+mueve ningún resultado: 15,5° ± 7 sigue por debajo de los 26° a los que empieza a contar el calor,
+igual que los 8° de antes.
+
+### 2. Por qué sube la versión si el motor no cambia
+
+Porque el RESULTADO de una etapa de calendario sí cambia, y `engine_version` existe justamente para
+que una etapa corrida antes no se confunda con una corrida después: va en la semilla y se sella en
+`stage_runs`. Las etapas ya corridas no se tocan —su `StageInput` está sellado en `stage_snapshots`
+con el clima que tuvieron, así que sus repeticiones salen exactamente igual que el día que se
+corrieron—.
+
+### 3. La lección, que es la de siempre y van tres
+
+La v42 la escribió con el maillot de lanzador, E3 la volvió a encontrar con la general, y aquí sale
+una tercera vez con otra cara: **el banco pasaba el dato y producción no.** No es que el banco no
+midiera lo que el juego corre —es que el banco corría una carrera MEJOR que la del juego, y por eso
+todo estaba en verde—. Lo que un banco y producción no comparten, no lo prueba nadie.

@@ -1391,7 +1391,24 @@ mire el parte; y consultarlo dos veces el mismo día da **lo mismo** —un parte
 recarga sería ruido, no previsión—. La fiabilidad viaja dentro del parte a propósito: un manager que
 decide con una previsión tiene derecho a saber cuánto puede fiarse de ella.
 
-**20.6 Lo que queda.** El motor tiene el clima entero; lo que falta es enseñarlo: `weatherForecast`
+**20.6 Y no llegaba a producción (v43).** Buscando dónde enseñar la previsión apareció que
+`StageInput.lugar` —el país y el día del año, de donde sale TODA la geografía de arriba— lo pasaban
+los bancos y no lo pasaba `packages/db`. O sea que el §20.1-bis entero, medido y documentado, no
+tocaba ninguna carrera del juego: en producción llovía el 20 % de los días en todas partes y hacía la
+temperatura de un enero templado —8°— en agosto en Almería, así que el calor no apretaba nunca.
+Arreglado, y de paso el «sin sitio» pasa a ser un neutro EXPLÍCITO (`CLIMA_REFERENCIA`, la media
+anual) en vez de un enero accidental.
+
+Va con subida de versión aunque el motor no cambie ni un dígito: lo que cambia es el resultado de una
+etapa de calendario, y para eso está `engine_version`. Las ya corridas no se tocan, porque su
+`StageInput` está sellado con el clima que tuvieron.
+
+Y la lección, que ya van tres con la misma cara: la v42 la escribió con el maillot de lanzador, E3 la
+encontró con la general y aquí sale otra vez. **Lo que el banco y producción no comparten, no lo
+prueba nadie** — y esta vez el banco corría una carrera MEJOR que la del juego, que es por lo que
+todo estaba en verde.
+
+**20.7 Lo que queda.** El motor tiene el clima entero; lo que falta es enseñarlo: `weatherForecast`
 todavía no sale por la API ni se pinta en la web, y hasta que lo haga la previsión existe pero nadie
 puede decidir con ella. Y una cosa anotada del mecanismo: la lluvia y el calor son números de ETAPA,
 así que no van y vienen durante el día.

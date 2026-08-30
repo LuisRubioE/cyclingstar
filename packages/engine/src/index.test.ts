@@ -131,6 +131,13 @@ describe('engine: esqueleto', () => {
     // 6:53 en el km 137 y 16 s en meta). La referencia pasa a ser los que SIGUEN EN CARRERA, el
     // parte de ventaja NOMBRA a quien va delante y dice contra quién se mide y cuánto queda.
     // Cambio de OBSERVACIÓN: ni un dado, ni un subflujo, ni una constante de calibración.
+    // v43: EL CLIMA DE LA v42 NO LLEGABA A PRODUCCIÓN (docs/balance.md «v43»). `StageInput.lugar`
+    // —el país y el día del año, de donde sale toda la geografía del clima— lo pasaban los bancos de
+    // simulación y NO lo pasaba `packages/db`, así que en el juego de verdad llovía el 20 % de los
+    // días en todas partes y hacía la temperatura de un enero templado en agosto en Almería. El
+    // motor no cambia ni un dígito; lo que cambia es que ahora se le cuenta dónde se corre. La
+    // versión sube porque el resultado de una etapa de calendario SÍ cambia, y una etapa corrida
+    // antes de esto no es comparable con una corrida después.
     // v42: EL CLIMA, Y TRES COSAS QUE EL DUEÑO VIO ABRIENDO UNA CARRERA (docs/motor.md §20,
     // docs/balance.md «v42»). El clima entra por donde el dueño dijo —«debería depender del país y
     // del GD»—: nueve zonas climáticas y el día del año deciden cuánto llueve y cuánto aprieta el
@@ -255,6 +262,6 @@ describe('engine: esqueleto', () => {
     // v11 (atribución del trabajo), la v10 (composición y caza), la v9 (capa táctica), la
     // v8 (tiempos de grupo), la v7 (modelo de final), la v6 (telemetría), la v5 (clásica larga), la
     // v4 (pavé en el recorrido) y la v3 (Cambio 0).
-    expect(ENGINE_VERSION).toBe(42)
+    expect(ENGINE_VERSION).toBe(43)
   })
 })

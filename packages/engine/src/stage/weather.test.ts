@@ -31,6 +31,20 @@ describe('el tiempo de una etapa (v42)', () => {
     expect(calor(FLANDES)).toBe(0)
   })
 
+  it('una etapa que no dice dónde se corre NO se corre en enero (v43)', () => {
+    /**
+     * El defecto que destapó cablear el sitio en producción: sin `lugar`, el clima salía de
+     * `climateOf(undefined, 0)`, y el día 0 es pleno invierno. O sea que «sin sitio» no era neutro,
+     * era enero. Ahora es la MEDIA ANUAL del sitio templado.
+     */
+    const media = seeds(200).reduce((acc, s) => acc + stageWeather(s).grados, 0) / 200
+    const templadoEnero =
+      seeds(200).reduce((acc, s) => acc + stageWeather(s, { dia: 0 }).grados, 0) / 200
+    expect(media).toBeGreaterThan(templadoEnero + 5)
+    // Y sigue sin apretar el calor, que es por lo que el sello del banco no se movió.
+    expect(seeds(200).every((s) => stageWeather(s).calor === 0)).toBe(true)
+  })
+
   it('es el MISMO sorteo que hace la etapa: mismo subflujo y mismos dados', () => {
     // La prueba de que sacar el clima de `simulateStage` no movió un dígito: se rehace la cuenta a
     // mano sobre el subflujo `clima` y tiene que dar exactamente lo mismo.
