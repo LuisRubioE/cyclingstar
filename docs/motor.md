@@ -1274,12 +1274,12 @@ Es la lección de siempre en este motor, otra vez: **un número que no se mide, 
 señal buena no fue la métrica que falló, sino que fallaran DOS relacionadas a la vez.
 
 **19.5 Lo que queda anotado.** El viento es un número de ETAPA: no cambia de dirección ni de fuerza
-durante el día, y no hay previsión que un equipo pueda leer para colocarse antes del cruce (eso vive
-en el EPIC del clima, y es lo que convertiría la colocación en una DECISIÓN además de en un
-atributo). Tampoco hay tramos expuestos en el perfil: cualquier kilómetro de llano puede ser el del
+durante el día, y no hay previsión de VIENTO que un equipo pueda leer para colocarse antes del cruce
+—el parte del §20.5 anuncia lluvia y temperatura, no viento—, que es lo que convertiría la colocación
+en una DECISIÓN además de en un atributo. Tampoco hay tramos expuestos en el perfil: cualquier kilómetro de llano puede ser el del
 corte, cuando en carretera el viento pega donde no hay setos.
 
-### 20. Cambio 8 — El clima (EN CURSO, v42)
+### 20. Cambio 8 — El clima (v42)
 
 El segundo EPIC delegado, y el que el dueño enunció así: «lluvia sobre adoquín, frío en un puerto,
 calor. Es lo que da variedad entre dos ediciones de la misma carrera y **lo que justifica de verdad
@@ -1354,12 +1354,53 @@ sentada encima de la raya. Queda a decisión del dueño si el suelo está alto o
 la lección, que vale para todo este documento: **una diferencia entre dos corridas no es un efecto
 hasta que se mide contra su propio ruido.**
 
-**20.4 Lo que queda.** El CALOR —que es coste, no selección— y la PREVISIÓN, que es la mitad del
-encargo que convierte el clima en una decisión y no solo en un atributo. Y una cosa anotada del
-mecanismo: la lluvia es un número de ETAPA, así que no va y viene durante el día.
+**20.4 El calor no selecciona: DESGASTA.** La otra mitad de la carretera que el encargo nombraba
+(«frío en un puerto, calor»), y entra por un sitio distinto al de la lluvia: multiplica el COSTE y no
+toca el esfuerzo. A la misma potencia, con 38° el cuerpo gasta en refrigerarse lo que no gasta a 20,
+y eso sale del depósito sin que nadie vaya más rápido. Por eso no rompe la carrera: la vacía.
 
-**A vigilar:** los abandonos por caída suben del 62,7 % al 65,6 % contra un techo del 67 %. Le
-quedan punto y medio, y el calor es lo siguiente que entra.
+La escala va contenida a propósito —un 8 % en el día más extremo, `heatCostScale`— porque en carreras
+reales el recargo es de ese orden (un 5 % en San Sebastián, un 2,6 % en un día caluroso del Tour), y
+porque la lección de la v41 está fresca: cobrar de más por un mecanismo nuevo reventó Flandes. La
+temperatura no es una tirada suelta, sale de la climatología del §20.1-bis con una dispersión de día
+(`heatDaySpreadC`), así que un agosto en Almería es caluroso de media y algún día lo es mucho.
+
+**20.5 La previsión: la verdad DESENFOCADA, no la verdad con ruido.** La segunda mitad del encargo, y
+la que convierte el clima en una DECISIÓN y no solo en un atributo. Para que exista un parte, el
+tiempo de una etapa tiene que poder consultarse ANTES de correrla — y puede, porque nunca dependió de
+la carrera: sale de la semilla, del sitio y de la fecha, que se conocen el día que se publica el
+calendario. Así que el sorteo salió de `simulateStage` a `stage/weather.ts` y la simulación lo llama.
+El sello del banco de atribución salió idéntico, que es la prueba de que el refactor no movió un
+dígito.
+
+Lo que hace HONESTA a una previsión es de dónde sale su error. A siete días un parte no dice «va a
+llover un 92 % ± algo»: dice «en Flandes en abril llueve un tercio de los días», que es lo que se sabe
+sin mirar el cielo. Así que `weatherForecast` no le añade ruido a la verdad —la DESENFOCA hacia la
+climatología del sitio, con un peso que es la fiabilidad:
+
+| Días vista | Lluvia anunciada | Fiabilidad |
+| ---------- | ---------------- | ---------- |
+| 7          | 42 %             | 15 %       |
+| 3          | 67 %             | 57 %       |
+| 1          | 83 %             | 86 %       |
+| 0 (el día) | 92 %             | 100 %      |
+
+De ahí salen las tres propiedades que el encargo pedía sin enunciarlas, y las tres van fijadas en
+pruebas: el parte **cambia** según se acerca el día; el tiempo real **no cambia nunca** porque alguien
+mire el parte; y consultarlo dos veces el mismo día da **lo mismo** —un parte que bailara en cada
+recarga sería ruido, no previsión—. La fiabilidad viaja dentro del parte a propósito: un manager que
+decide con una previsión tiene derecho a saber cuánto puede fiarse de ella.
+
+**20.6 Lo que queda.** El motor tiene el clima entero; lo que falta es enseñarlo: `weatherForecast`
+todavía no sale por la API ni se pinta en la web, y hasta que lo haga la previsión existe pero nadie
+puede decidir con ella. Y una cosa anotada del mecanismo: la lluvia y el calor son números de ETAPA,
+así que no van y vienen durante el día.
+
+**A vigilar:** los abandonos por caída suben del 62,7 % al 65,6 % contra un techo del 67 %. Le queda
+punto y medio. La cifra está medida cuando entró la lluvia y no se ha vuelto a medir con el calor
+dentro; por construcción el calor no debería tocarla —multiplica el coste, no la intensidad del
+bloque, que es lo único de lo que cuelga una caída—, pero eso es una lectura del código y no una
+medida.
 
 ---
 

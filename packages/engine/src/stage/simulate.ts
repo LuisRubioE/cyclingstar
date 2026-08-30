@@ -44,8 +44,8 @@ import {
   tankState,
   targetSpeed,
 } from './physics.js'
-import { climateOf } from '../world/climate.js'
 import { rollHazard } from './hazard.js'
+import { stageWeather } from './weather.js'
 import {
   type CrashOutcome,
   crashPile,
@@ -968,28 +968,16 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
    * adoquín… es lo que justifica de verdad las caídas y los abandonos». Se sortea una vez y vale
    * para todo el día; que la lluvia vaya y venga durante la etapa queda anotado en §20.
    */
-  const rngClima = streams('clima')
   /**
-   * …Y CUÁNTO LLUEVE AQUÍ Y HOY lo dice la geografía, no una constante (v42). El dueño: «el clima
-   * debería depender del país y del GD». El umbral del sorteo se DERIVA de la probabilidad local
-   * —`(1 − p)^forma`—, así que una etapa que no dice dónde se corre usa la de referencia y sale
-   * exactamente como antes de este cambio.
-   */
-  const clima = climateOf(input.lugar?.pais, input.lugar?.dia ?? 0)
-  const pLluvia = input.lugar ? clima.pLluvia : STAGE.rainDayProb
-  const umbralLluvia = Math.pow(1 - pLluvia, STAGE.rainDayShape)
-  const lluviaBruta = Math.pow(rngClima(), STAGE.rainDayShape)
-  const lluvia = lluviaBruta < umbralLluvia ? 0 : (lluviaBruta - umbralLluvia) / (1 - umbralLluvia)
-  /**
-   * …Y EL CALOR DEL DÍA. La otra mitad de lo que el dueño pidió —«lluvia sobre adoquín, frío en un
-   * puerto, CALOR»— y la que no selecciona: el calor no rompe la carrera, la desgasta. El clima da
-   * la media de la estación y el día se aparta de ella; por encima de `heatFromC` empieza a costar.
+   * …Y CUÁNTO LLUEVE Y CUÁNTO APRIETA AQUÍ Y HOY lo dice la geografía, no una constante (v42). El
+   * dueño: «el clima debería depender del país y del GD».
    *
-   * El sorteo va DESPUÉS del de la lluvia a propósito: así el día seco de la v42 anterior sale
-   * dígito a dígito, porque el dado de la lluvia es el mismo.
+   * El sorteo vive en `stage/weather.ts` y no aquí, y no es un refactor de gusto: para que exista una
+   * PREVISIÓN —la otra mitad del encargo— el tiempo de una etapa tiene que poder consultarse ANTES
+   * de correrla. Y puede, porque nunca dependió de la carrera: sale de la semilla, del sitio y de la
+   * fecha, que se conocen el día que se publica el calendario.
    */
-  const grados = clima.temperatura + STAGE.heatDaySpreadC * (2 * rngClima() - 1)
-  const calor = clamp((grados - STAGE.heatFromC) / (STAGE.heatFullC - STAGE.heatFromC), 0, 1)
+  const { lluvia, calor } = stageWeather(seed, input.lugar)
   /**
    * SER MUCHOS DEJA DE SERVIR, TAMBIÉN PARA EL QUE PERSIGUE (v41). El tamaño de un grupo entra en la
    * física en tres sitios —cuántos reparten el viento en la ley de velocidad, cuánto rebufo hay y a
