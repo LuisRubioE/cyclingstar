@@ -101,14 +101,18 @@ docs/balance.md «v43 §4».
 
 **Y salió lo grande: la fuga NO gana en montaña.** En 312 etapas de montaña y media montaña de esas
 giras, la fuga del día ganó 0 (y 4 en el brazo sin cuerda). En llano gana el 6,9 %, dentro de banda,
-así que no es que el motor no deje escapar a nadie: es que en montaña lo que se va nunca llega. En
-una gran vuelta real la fuga se lleva una parte grande de las etapas de montaña, y ésta es la
-primera pregunta de E3 con respuesta clara.
+así que no es que el motor no deje escapar a nadie: es que en montaña lo que se va nunca llega.
 
-**Lo siguiente del EPIC**, y en este orden: (1) por qué la fuga no sobrevive un puerto —¿la cazan,
-se vacían, o los favoritos van demasiado rápido?—, y (2) la banda que eso necesita, que tiene que
-salir de la carretera y no de una intuición. Y luego las otras preguntas que E3 abrió y que este paso
-no toca: la emboscada, el día en que el líder se rompe, y si el día 18 se corre distinto del día 3.
+Y el motor YA tiene la banda de eso, en verde: `TARGETS.mountain.breakawayWinPct` exige 25-45 % y la
+etapa reina canónica mide 27-30 %. Es el mismo estadístico dígito a dígito (el evento `meta` con
+`datos.fuga === 1`), comprobado antes de comparar. O sea que el escenario canónico está en verde y la
+carrera que el juego corre da CERO: `realQueens` frente a `grandTour` una vez más.
+
+**Lo siguiente del EPIC**, y en este orden: (1) cuál de las tres diferencias entre los dos bancos
+manda —el perfil real frente a un final en alto de manual, la fatiga acumulada del día 18, o el campo
+con equipos y general—, y (2) con eso, dónde se arregla. Y luego las otras preguntas que E3 abrió y
+que este paso no toca: la emboscada, el día en que el líder se rompe, y si el día 18 se corre distinto
+del día 3.
 
 ### E5 · El clima — HECHO EN EL MOTOR (v42), ver docs/motor.md §20. Falta enseñarlo
 

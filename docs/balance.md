@@ -8564,11 +8564,28 @@ Con 24 grandes vueltas por brazo, en **312 etapas de montaña y media montaña**
 con la cuerda puesta y 4 con la cuerda quitada**. En llano gana el 6,9 %, que está dentro de la banda
 de la fuga en llano (2-8 %) y por tanto no es un problema de que el motor no deje escapar a nadie.
 
-En una gran vuelta real la fuga del día se lleva una parte grande de las etapas de montaña —es de las
-cosas más reconocibles del ciclismo de tres semanas— y aquí no se lleva ninguna. No es la general
-quien lo causa (el brazo sin cuerda también da ~1 %), y no es nuevo: el banco de seis giras SIN
-general ya daba 1 de 42.
+No es la general quien lo causa (el brazo sin cuerda también da ~1 %), y no es nuevo: el banco de seis
+giras SIN general ya daba 1 de 42.
 
-Queda anotado como **hallazgo, no como banda**: poner un objetivo aquí requiere un número de la
-carretera y no una intuición mía, que es exactamente el vicio que este documento lleva tres versiones
-corrigiendo. Es la primera pregunta de E3 con respuesta clara, y el siguiente trabajo del EPIC.
+**Y no hace falta buscar el número de la carretera, porque ya está en el motor y lleva cinco versiones
+calibrado.** `TARGETS.mountain.breakawayWinPct` exige **25-45 %**, con su historia escrita en
+`gcControlLeash` (265 → 342 → 350 → 520 → 700, la última porque el dueño pidió literalmente
+«recalibremos la capa táctica para que la fuga en una etapa de montaña gane en más casos»). Y **es el
+MISMO estadístico**, dígito a dígito: las dos cuentas preguntan si el evento `meta` trae
+`datos.fuga === 1`. Comprobado antes de comparar, porque comparar dos cifras que miden cosas
+distintas es de donde salieron mis tres rectificaciones anteriores.
+
+Así que la banda no falta: está, y está EN VERDE. Lo que pasa es dónde se mide.
+
+| El mismo estadístico, en dos sitios                    | Medido                   |
+| ------------------------------------------------------ | ------------------------ |
+| Etapa reina canónica (`reina-150`, 120 semillas)       | 27-30 %, dentro de 25-45 |
+| Etapas reina de una gran vuelta (168, calendario real) | **0 %**                  |
+
+Es `realQueens` frente a `grandTour` otra vez (v17), y es el patrón que este documento nombra desde
+entonces: **el escenario canónico está en verde y la carrera que el juego corre no se le parece.** La
+diferencia entre los dos sitios son tres cosas —el perfil real frente a un final en alto de manual, la
+fatiga acumulada del día 18, y el campo con equipos y general—, y CUÁL de las tres manda no lo sé
+todavía: eso es la medida siguiente, no una conjetura que escriba aquí.
+
+Es la primera pregunta de E3 con respuesta clara, y el siguiente trabajo del EPIC.
