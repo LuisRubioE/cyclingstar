@@ -1173,6 +1173,194 @@ Lo que **no** hace, y queda anotado: la caza sigue siendo un solo escalar de eta
 equipo con presupuesto de esfuerzo (§V.1); y la fuerza se infiere de las órdenes porque
 `StageRider` todavía no trae `teamId`.
 
+### 19. Cambio 7 — El viento y los abanicos (HECHO, v41)
+
+Hasta la v40 el motor tenía TRES terrenos que seleccionaban —el puerto, el adoquín y, un poco, el
+descenso— y el llano no seleccionaba nunca (`selectionFactor('llano') = 0`). Eso deja fuera una de
+las dos o tres formas en que se rompe una carrera de verdad: **el viento de lado**.
+
+**19.1 Qué se modela y qué no.** Solo la componente LATERAL. El viento de cara frena a todos por
+igual y el de cola acelera a todos por igual: ninguno de los dos rompe nada, y meterlos sería
+recalibrar la velocidad del juego entero para no cambiar ni una posición. El lateral es otra cosa,
+porque obliga a buscar el rebufo **en diagonal** y ahí la carretera se acaba.
+
+Se sortea **un número por etapa**, en un subflujo nominal propio (`viento`, SPEC 6.1), tirando hacia
+abajo (`windDayShape`) y con un listón (`windMin`) por debajo del cual el día es un día normal:
+medido, **6 de cada 100** llanas tienen viento de lado y **4 de cada 100** acaban partidas. Es la
+frecuencia de la carretera —en una temporada real del WorldTour las llanas que decide un abanico se
+cuentan con los dedos de una mano sobre siglo y medio de llanas— y no es un número de gusto: la
+primera entrega puso el 12 % a ojo y el banco lo tumbó, porque un día de abanicos le quita la etapa
+al mejor velocista y con uno de cada ocho llanas el mejor rematador dejaba de mandar en las carreras
+pequeñas (§19.5). Una etapa sin viento sale dígito a dígito como en la v40, y por eso la huella
+sellada del banco canónico no se mueve por esto.
+
+**19.2 Un abanico NO es un dado por corredor.** Esto se probó primero al revés —abrir en el llano un
+hazard de descuelgue proporcional al viento— y daba carreras incoherentes: con viento MEDIO el
+pelotón se partía (94 de 176 en cabeza) y con viento FUERTE llegaban los 176 juntos. El motivo es
+que un abanico es una cuestión de **capacidad**, no de probabilidad: con el rebufo en diagonal la
+fila se come el ancho del asfalto, y el que hace trece no es que tenga más papeletas de descolgarse,
+es que **no cabe**.
+
+Así que el modelo son tres piezas y ninguna es un sorteo por corredor:
+
+- **Cuántos caben** (`cabenEnFila`): la capacidad de la carretera con este viento, del pelotón
+  entero con una brisa a doce hombres con viento de verdad. Baja geométricamente y no en línea
+  recta, que es lo que hace que un lateral flojo sea un día incómodo y no una carrera partida.
+- **El corte** (`echelon_split`): pasa en un SITIO y en un MOMENTO —una curva, un cruce, un equipo
+  que se pone—, por eso se sortea por kilómetro y no se aplica de continuo. Y se aplica a **todo
+  grupo que no quepa**, no solo al pelotón: un abanico no es un corte, es una cascada, y de ahí
+  salen los tres o cuatro grupos con los que acaba un día de viento.
+- **La fila entera rota** (`enAbanico`): en un abanico no hay ir a rueda —o das la cara cuando te
+  toca o te caes de la fila—, así que el listón del pelotón deja de valer y tampoco vale el «¿para
+  qué voy a tirar si no puedo ganar?»: ahí no hay favor de nadie. Medido sin esto: el corte de trece
+  hombres ponía DOS a rotar mientras los 159 de detrás ponían veinte. **Con una excepción y solo
+  una: el jefe al que llevan los suyos.** Aquí me equivoqué primero —escribí que en un abanico el
+  jefe rota como todo el mundo— y el banco lo cazó: la regla de la v36 se caía al 17,4 % los días de
+  viento. La carretera dice lo contrario: el equipo mete a su jefe en la fila y son SUS HOMBRES los
+  que dan los relevos. Un abanico no elimina el trabajo de equipo, es donde más se ve.
+- **La cuneta** (`gutterShelter`): detrás del corte no se va a rueda. Un grupo que dobla la
+  capacidad de la carretera arropa a la mitad de los suyos, y el resto paga viento. Es la pieza sin
+  la cual todo lo demás es un adorno: medido sin ella, el corte dejaba 21 hombres delante y 152
+  detrás **y ganaban los 152**, porque sus 140 pasajeros recargaban a rueda mientras el abanico de
+  cabeza se fundía rotando. Ser muchos salía gratis justo el día en que ser muchos es el problema.
+
+**19.2-bis La colocación.** Quién se queda DENTRO del corte era la otra mitad de este EPIC y hasta
+la v41 no existía en el motor. Se mide en puntos de perfil, para que las cuatro cosas se puedan
+comparar entre sí y ninguna sea un veto:
+
+| Pieza                         | Puntos | Por qué                                                                     |
+| ----------------------------- | ------ | --------------------------------------------------------------------------- |
+| El equipo que lleva el frente | +25    | Poner el abanico es lo que hace un equipo fuerte en un día de viento        |
+| Al jefe lo colocan los suyos  | +12    | Y solo si le queda algún gregario en el grupo: un líder solo va donde puede |
+| Las piernas                   | perfil | Para estar delante hay que poder estarlo                                    |
+| La suerte y el nervio         | ±10    | El hueco se abre donde se abre, y el de la rueda de al lado se queda fuera  |
+
+Con esto un velocista con equipo entra en el corte y un escalador mejor sin nadie que le coloque se
+queda fuera, que es lo que pasa en carretera. Y los abanicos los hacen los EQUIPOS, no los
+corredores sueltos, que es la frase que había que poder decir.
+
+**19.3 Y el que hace el abanico no se sienta.** Un día de viento se corre nervioso de cabo a rabo
+(`windRaceCommit`, el mismo suelo de compromiso que el adoquín y por el mismo motivo: no es una
+decisión, es la carretera obligando), y DESPUÉS del corte el suelo es el entero, sople lo que sople.
+Partir la carrera no vale de nada si el que se ha quedado delante afloja, y eso fue exactamente el
+primer defecto medido: el corte dejaba delante a diecinueve hombres con mejores piernas rodando a
+compromiso 0,40 mientras los 157 de detrás perseguían a 0,82.
+
+Con las cuatro piezas, un día de viento se lee así (llana de 180 km, 176 corredores):
+
+| Lateral | 1.er grupo | Cola  |
+| ------- | ---------- | ----- |
+| 0,17    | 104        | 0:53  |
+| 0,36    | 61         | 11:31 |
+| 0,67    | 28         | 11:39 |
+| 0,72    | 24         | 31:51 |
+| 0,93    | 14         | 18:44 |
+
+Y todo lo que el abanico cambia —la cuneta, la fila entera rotando, el tope de relevistas— cuelga de
+que el corte haya saltado de verdad (`abanicoAbierto`). No es un detalle de implementación: cobrarlo
+desde el km 0 en cualquier día con viento reventaba el Tour de Flandes (vaciado 0,773 con un 31 % de
+pájaras, contra un banco que no admite saturación). Antes del corte, un día de viento solo es un día
+NERVIOSO: el suelo de compromiso, y nada más.
+
+**19.4 Cuántas veces pasa, y por qué el banco lo decide mejor que la intuición.** El mecanismo del
+abanico se puede validar mirando una etapa; su FRECUENCIA, no. Con el listón en el 12 % de días —el
+número de la primera entrega, puesto a ojo— el banco de carreras pequeñas medía que dos llegadas
+agrupadas de la misma carrera las ganaba el mismo el **12,7 %** de las veces, contra un suelo de 15
+que es la línea de la LOTERÍA (con 7 a 17 rematadores nombrados, repartir al azar da un 6-14 %); y
+el mejor rematador ganaba el 25,8 % contra un suelo de 25. Apagando el viento, las dos volvían a
+18,3 % y 29,3 %: el culpable era la frecuencia y no el mecanismo. Con el 6 %, 16,7 % y 27,5 %.
+
+Es la lección de siempre en este motor, otra vez: **un número que no se mide, se equivoca**. Y la
+señal buena no fue la métrica que falló, sino que fallaran DOS relacionadas a la vez.
+
+**19.5 Lo que queda anotado.** El viento es un número de ETAPA: no cambia de dirección ni de fuerza
+durante el día, y no hay previsión que un equipo pueda leer para colocarse antes del cruce (eso vive
+en el EPIC del clima, y es lo que convertiría la colocación en una DECISIÓN además de en un
+atributo). Tampoco hay tramos expuestos en el perfil: cualquier kilómetro de llano puede ser el del
+corte, cuando en carretera el viento pega donde no hay setos.
+
+### 20. Cambio 8 — El clima (EN CURSO, v42)
+
+El segundo EPIC delegado, y el que el dueño enunció así: «lluvia sobre adoquín, frío en un puerto,
+calor. Es lo que da variedad entre dos ediciones de la misma carrera y **lo que justifica de verdad
+las caídas y los abandonos**». Más una segunda mitad que añadió después: «estaría bien también que
+pueda existir para los ciclistas y managers una **previsión** del clima… que además puede cambiar, y
+con eso tomar diferentes decisiones».
+
+**20.1 La lluvia del día.** Una propiedad de la etapa, como el viento y como el humor: subflujo
+NOMINAL propio (`clima`, SPEC 6.1), se sortea una vez y vale para todo el día. Un día seco sale
+dígito a dígito como en la v41. La frecuencia sale de la carretera y no de la intuición —**un 20 %
+de días con lluvia** en el calendario europeo, medido 18,7 %— y esa disciplina es la lección directa
+de la v41, donde el 12 % de días de viento se puso a ojo y lo tumbó el banco.
+
+**20.1-bis El clima es de un SITIO y de una FECHA.** El dueño, en una línea: «ojo, el clima debería
+depender del país y del GD». Y sin eso llueve igual en Flandes en marzo que en Almería en agosto,
+que es lo contrario de la variedad que este EPIC tiene que dar. El dato ya existía —el calendario
+tiene país por carrera y `startDay` **es** el día del año, o sea el GD del reloj del mundo— y solo
+faltaba que llegara al motor (`StageInput.lugar`).
+
+`world/climate.ts` es deliberadamente pequeño: nueve ZONAS climáticas, cada una con su mitad fría y
+su mitad cálida del año, y el paso de una a otra por un coseno. El hemisferio sur va al revés, y por
+eso Australia en enero es verano. Y el umbral del sorteo deja de ser una constante: se DERIVA de la
+probabilidad local, `umbral = (1 − p)^forma`, así que el clima entra por donde tiene que entrar
+—diciendo cuánto llueve aquí y ahora— y no hay dos números que calibrar por separado. Una etapa que
+no dice dónde se corre usa la de referencia (20 %) y sale dígito a dígito como antes.
+
+| Carrera    | Sitio y fecha        | Llueve | Temp. |
+| ---------- | -------------------- | ------ | ----- |
+| Flandes    | BE, día 95 (abril)   | 33 %   | 11°   |
+| Roubaix    | FR, día 102          | 25 %   | 15°   |
+| Sanremo    | IT, día 80 (marzo)   | 28 %   | 12°   |
+| Tour       | FR, día 185 (julio)  | 17 %   | 23°   |
+| Vuelta     | ES, día 234 (agosto) | 9 %    | 26°   |
+| Emiratos   | AE, día 47           | 3 %    | 21°   |
+| Down Under | AU, día 20 (enero)   | 15 %   | 26°   |
+| Colombia   | CO, trópico          | 34 %   | 22°   |
+
+Lo que se sabe que es GRUESO, y queda escrito para que nadie lo confunda con precisión: **el país es
+la única granularidad que hay**, y hay países que son dos climas —Francia va del Canal al
+Mediterráneo, Italia de los Alpes a Sicilia—. Ésos van a una zona `templado` que es literalmente el
+promedio de dos. Cuando el calendario sepa la REGIÓN de cada carrera, se afina sin tocar nada más.
+
+**20.2 Qué hace la lluvia, y qué NO hace.** Tres cosas, y las tres escalan algo que ya existía:
+
+| Pieza              | Qué dice                                                                                                                                    |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Las CAÍDAS         | Multiplica la intensidad del bloque: se sigue cayendo donde se cae —la curva, el adoquín, el embudo final— y solo cambia cuánta gente       |
+| El ADOQUÍN mojado  | El mismo sector que en seco estira el grupo, en mojado lo parte. Escala `dropPavesFactor`, así que las estrellas del sector siguen mandando |
+| El DESCENSO mojado | Bajar con lluvia es perder la rueda, no reventar: escala la selección del descenso y no el coste                                            |
+
+Lo que **no** hace: un llano mojado sigue sin seleccionar. Lo que rompe una carrera con lluvia no es
+el agua, es lo que el agua le hace al adoquín y a la curva.
+
+El número de las caídas se corrigió antes de que lo cazara el banco, y por el mismo vicio de la
+v41: con la escala en 1,5 —puesta a ojo— un Paris-Roubaix con lluvia daba **104 incidentes de 176
+corredores** contra 32-50 en seco. Seis de cada diez tocando el suelo no es una carrera mojada, es
+una caricatura. Con 0,8 da 85: casi el doble, que es lo que dicen los recuentos de carreras en
+mojado contra las mismas en seco.
+
+**20.3 Y de paso destapó que la deuda del viento no existía.** La v41 cerró con una banda en rojo:
+la cola de una etapa reina, 7,88 % contra un suelo de 8, atribuida al viento. Con la lluvia dentro
+salía 8,64 % y pareció arreglada; con el calor, 7,86 % y pareció rota otra vez. Las tres cifras eran
+comparaciones de UNA muestra contra UNA muestra.
+
+Medido el ruido en serio —cuatro muestras independientes de seis giras, misma física— la métrica da
+**8,07 % con una desviación de 0,39**, y el suelo de la banda es 8: la mitad de las muestras pasan y
+la mitad fallan sin que nada cambie. Ninguno de los tres mecanismos del clima la mueve de forma
+medible (el calor, contrastado cuatro contra cuatro, sale a medio sigma).
+
+Lo que hay es más simple: **el motor produce una cola de reina de 8,1-8,3 contra un suelo de 8**,
+sentada encima de la raya. Queda a decisión del dueño si el suelo está alto o el grupeto rápido. Y
+la lección, que vale para todo este documento: **una diferencia entre dos corridas no es un efecto
+hasta que se mide contra su propio ruido.**
+
+**20.4 Lo que queda.** El CALOR —que es coste, no selección— y la PREVISIÓN, que es la mitad del
+encargo que convierte el clima en una decisión y no solo en un atributo. Y una cosa anotada del
+mecanismo: la lluvia es un número de ETAPA, así que no va y viene durante el día.
+
+**A vigilar:** los abandonos por caída suben del 62,7 % al 65,6 % contra un techo del 67 %. Le
+quedan punto y medio, y el calor es lo siguiente que entra.
+
 ---
 
 ## Parte IV — El output: cómo ver lo que pasó
@@ -1264,6 +1452,25 @@ Resueltas con el dueño. Sustituyen a las cuestiones abiertas de la v1.
 > encendiendo el mecanismo sobre las mismas 240 etapas, el jefe descolgado vuelve el 69 % → **71 %**
 > de las veces, en llano y descenso el 60 % → **74 %**, y el que no vuelve pierde **444 s → 357 s**.
 > Detalle en docs/balance.md, «v36».
+>
+> **v37: pero por la etapa casi nadie se baja, y el que va en cabeza no tira.** Dos correcciones del
+> dueño a la v36. La primera: «por la etapa yo creo que nadie debería bajarse… salvo que sea un
+> pinchazo/caída y la distancia sea pequeña, y sea gran favorito para ganar la etapa, según el tipo
+> de etapa». La v36 mandaba dos hombres atrás cada vez que un jefe se quedaba a 22-45 s —**6,59
+> avisos por etapa**, media parrilla renunciando a su carrera por una etapa ya perdida—; ahora la
+> rama de la etapa pide además **percance reciente** (`mishapKm`, cualquier severidad: la caída
+> seria cuesta 60-300 s y nunca deja «distancia pequeña»), ser la **carta del día** del equipo y que
+> esa carta esté **entre las mejores del pelotón para el final de HOY** —«según el tipo de etapa» no
+> hay que escribirlo: `finishScore` ya mira qué final dibuja el recorrido—. Medido: **0,01 avisos por
+> etapa**. La segunda: «si va en cabeza de carrera lo normal es que no se deje caer, pero que tampoco
+> tire de la fuga (salvo que vaya solo); si va en un grupo de perseguidores y su jefe está en
+> problemas, ahí sí, que se descuelgue». Lo que decide ya no es si el grupo es `mov` o `shed` sino si
+> va **en cabeza o persiguiendo**: de la cabeza no baja nadie pero **sale del turno de relevos**, y de
+> un grupo de perseguidores sí se baja. Con ello se tapa un agujero de la v33: la penalización de
+> `relayDuty` manda al que no colabora al final de la cola y en el pelotón basta, pero en **grupo
+> pequeño el turno es el grupo entero** y daba la cara igual —medido, tiraban todos y ahora tira el
+> **8,2 %**, y tres de cada cuatro de esos son grupos donde no queda nadie más: el «salvo que vaya
+> solo» sale gratis—. Detalle en docs/balance.md, «v37».
 
 Modelo de **intenciones por equipo** (cada equipo con objetivos y presupuesto de esfuerzo), pero con
 dos reglas que mandan sobre él:

@@ -31,7 +31,14 @@ export const TARGETS = {
     // la más ruidosa de las dos: su techo describe el tamaño de la muestra, no la carrera. Quien
     // quiera estrecharla de verdad tiene que subir primero las semillas del invariante; se deja
     // anotado en docs/balance.md «v34» en vez de tocarlo de paso en una tanda de motor.
-    breakawayWinPct: { label: 'Gana la fuga', min: 2, max: 10, unit: '%' },
+    //
+    // Y LA BANDA SE RECENTRA EN LA v38, por decisión del dueño: «incluso 2-10 % no me parece muy
+    // justa… yo creo que una etapa llana debería tener una banda más centrada en el 10 %». El 2-8 %
+    // de la v10 describía una llana de gran vuelta con tres trenes de sprint controlando; el
+    // calendario de este juego tiene sobre todo llanas de carreras pequeñas, donde la fuga aguanta
+    // bastante más a menudo. El techo se deja generoso por el mismo motivo de MUESTREO que ya estaba
+    // anotado: el invariante de CI corre 120 semillas y ahí σ ≈ 2,2 puntos.
+    breakawayWinPct: { label: 'Gana la fuga', min: 5, max: 16, unit: '%' },
     // Con 3 sprinters de nivel, el mejor gana bastantes pero no siempre (piernas del día, tren).
     bestSprinterWinPct: { label: 'Gana el mejor sprinter', min: 30, max: 45, unit: '%' },
     // La caza se cierra dentro de los últimos 25 km, no a 60 ni en el último km.
@@ -433,17 +440,27 @@ export const TARGETS = {
      * race-victoria-1    grupo   +25 s   (3 corredores)
      * ```
      *
-     * Las de 10-25 s son buenas y el juego las necesita. Las de 193 y 240 no son «una fuga que
-     * aguanta»: son **un pelotón que no persiguió en 200 km**, y en la v23 se encontró por qué (ver
-     * docs/balance.md «v23»). Por eso el objetivo es un TECHO y no una banda: 180 s deja fuera los dos
-     * casos de producción y dentro cualquier fuga que aguante de verdad. Es una alarma de peor caso,
-     * como `realQueens.worstStagePct`. Medido: **186 s → 74 s**, con la mediana en 27 s y el 88 % de
-     * las victorias entre 5 y 60 s.
+     * Las de 10-25 s son buenas y el juego las necesita. En la v23 se decidió que las de 193 y 240 no
+     * eran «una fuga que aguanta» sino **un pelotón que no persiguió en 200 km**, y el techo se puso
+     * en 180 s.
+     *
+     * EL DUEÑO LO CORRIGIÓ EN LA v38, y tiene razón: «puede ocurrir y ocurre a veces, que el pelotón
+     * se despista, deja hacer a una escapada (especialmente si los equipos de los sprinters tienen a
+     * alguien metido en la fuga y entonces no van a tirar…), y la escapada se va a 15 o 20 minutos.
+     * Los de la general tiran para que no se vaya a 20 minutos, pero pueden perfectamente llegar con
+     * 8 o incluso 15 minutos; ya ha pasado en grandes vueltas. No es para que pase muy a menudo,
+     * pero de vez en cuando sí».
+     *
+     * Así que el techo pasa a 900 s (quince minutos): sigue siendo una ALARMA DE PEOR CASO —una fuga
+     * que gana por media hora sí sería un pelotón dormido— pero deja dentro la etapa que de verdad
+     * se le escapa al pelotón. Lo que NO se relaja es el suelo del otro lado: se sigue exigiendo que
+     * alguna fuga gane alguna llana (`wins > 0`), porque un motor en el que nunca gana ninguna está
+     * igual de roto que uno en el que ganan por media hora.
      */
     flatMoveWorstMarginS: {
       label: 'La fuga que más gana en llano (s)',
       min: 0,
-      max: 180,
+      max: 900,
       unit: '',
     },
     /**

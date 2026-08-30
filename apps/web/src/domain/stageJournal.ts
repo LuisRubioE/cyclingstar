@@ -1240,6 +1240,35 @@ function chronicleTemplate(e: ChronicleEntry): string {
         `${driver}; the climb thins ${group} by ${dropped}${left}.`,
       ])
     }
+    /**
+     * EL ABANICO (v41). No es una criba de puerto ni una fuga: es el viento partiendo la fila, y se
+     * cuenta como lo que es —una carrera que se rompe en un sitio y ya no se recompone—. El grupo
+     * que se nombra es el que se ha partido, y por eso la frase no dice «in front» cuando el corte
+     * ocurre en un grupo de detrás: ahí lo que se parte es la persecución.
+     */
+    case 'echelon_split': {
+      const before = e.datos?.before == null ? null : Number(e.datos.before)
+      const remaining = e.datos?.remaining == null ? null : Number(e.datos.remaining)
+      const dropped = Number(e.datos?.dropped ?? 0)
+      const enCabeza = e.datos?.grupo == null || e.datos.grupo === 'peloton'
+      const group = enCabeza ? LEAD_GROUP : CHASE_GROUP
+      const driver = team
+        ? `${team} hit the front`
+        : who
+          ? `${who} hits the front`
+          : 'The pace goes up'
+      if (before != null && remaining != null && before > remaining) {
+        return pick([
+          `Crosswind: ${driver} and ${group} splits — ${remaining} make the front echelon, ${dropped} are left in the gutter.`,
+          `The road turns into the wind and ${group} shatters: from ${before} riders to ${remaining}, with ${dropped} caught out.`,
+          `Echelons: ${driver}, the line runs out of road and only ${remaining} of the ${before} stay in it.`,
+        ])
+      }
+      return pick([
+        `Crosswind: ${group} splits and ${dropped} rider${dropped === 1 ? ' is' : 's are'} caught out.`,
+        `The wind gets across the road and ${dropped} rider${dropped === 1 ? '' : 's'} miss${dropped === 1 ? 'es' : ''} the echelon.`,
+      ])
+    }
     case 'final_km': {
       const margin = Number(e.datos?.margin ?? 0)
       const field = Number(e.datos?.field ?? 0)

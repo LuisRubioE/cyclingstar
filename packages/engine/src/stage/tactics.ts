@@ -61,6 +61,31 @@ export interface MoveRider {
    * persiguiendo); por encima, no tiene baza que jugar y manda gente a la fuga.
    */
   teamAttack: number
+  /**
+   * ¿IBA DANDO LA CARA AL FRENTE DEL PELOTÓN EN EL BLOQUE ANTERIOR? (v41). El que va en la rotación
+   * del pelotón no es el que salta: viene de pagar el viento de ciento setenta hombres, y el que
+   * ataca lo hace desde la rueda, con las piernas de no haber pagado nada. El dueño lo vio en una
+   * carrera de producción —«el mismo que se escapó, antes de escaparse iba tirando del pelotón»— y
+   * tiene toda la razón: no es que sea imposible, es que es la excepción, y el motor lo estaba
+   * tratando como el caso normal.
+   *
+   * DEL PELOTÓN, y no de cualquier grupo, y esto se midió: dentro de una fuga o de un grupo de
+   * cabeza rotan todos, así que ahí la bandera no distingue a nadie —y donde sí distinguía era en el
+   * puerto final, donde el turno son uno o dos hombres y son justo los que tienen que atacar—.
+   * Aplicarlo a todo hundía la brecha 1.º-10.º de la reina de 81 s a 59,5 y dejaba la fuga de
+   * montaña en el 25,0 % contra un suelo de 25.
+   */
+  pulling: boolean
+  /**
+   * ¿VIENE DE QUE LE CACEN TRAS UNA FUGA LARGA? (v42). No es lo mismo que ir vacío: el depósito ya
+   * lo mira `energyFraction`, y con un 29 % este motor le dejaba conservar un 29 % de las ganas. Lo
+   * que esto dice es lo otro, lo que en carretera se ve a simple vista —al que le come el pelotón
+   * después de pasarse el día delante se le va la cabeza y las piernas a la vez, y se sienta—.
+   *
+   * El dueño lo cazó entero en una etapa de producción: un corredor que se escapó en solitario, fue
+   * cazado, se volvió a escapar, fue cazado otra vez, se escapó una tercera… **y ganó la etapa**.
+   */
+  gastado: boolean
 }
 
 /** El contexto que parametriza el intento. */
@@ -85,6 +110,28 @@ export interface MoveContext {
    * diferencias: esta bandera es la que lo distingue.
    */
   hasGcContext: boolean
+  /**
+   * CUÁNTO MERECE LA PENA ESTAR HOY EN LA FUGA, en [0,1] (v39). Es la pieza que faltaba y que
+   * explica el defecto más gordo que ha salido de comparar el motor con las crónicas de las grandes
+   * vueltas de 2024-2026: **el motor hacía fugas de TRES hombres en todos los terrenos**, y en la
+   * carretera una fuga de montaña son quince, veinte o cincuenta.
+   *
+   *   Tour 2025 e12: 52 corredores · e16: 36 · e14/15/18: 17, 15, 14
+   *   Vuelta 2025 e12: 53 · e15: 47 · e16/7/6: 17, 13, 10
+   *   Tour 2026 e4: ~35 · Frontier Economics (114 etapas): media de 19 en alta montaña
+   *   …y en LLANO, cuatro. Ahí el motor acertaba.
+   *
+   * Y el motivo no es que en montaña la gente sea más valiente: es que **en montaña la fuga puede
+   * ganar y en el llano no**. El mismo estudio: 2 % de las llanas contra más del 40 % de las de
+   * montaña, y de 30 etapas con fuga de más de dieciséis hombres la fuga ganó 23. Así que a la de
+   * montaña se apunta media parrilla —todo el que no se juega la general tiene ahí su día— y a la
+   * llana no se apunta nadie: cuatro anónimos a los diez kilómetros y a rodar.
+   *
+   * Vale 0 en una llana pura y 1 en una etapa que la fuga puede ganar. Lo usan las DOS mitades del
+   * problema: cuánta gente salta (`followProbability`) y si el pelotón les da cuerda siendo tantos
+   * (`pelotonAllows`).
+   */
+  breakAppeal: number
 }
 
 // --- 1. ¿Alguien lo intenta? ---------------------------------------------------------------
@@ -190,6 +237,8 @@ export function attackAppetite(
 ): number {
   if (r.matches <= 0) return 0
   if (r.energyFraction < STAGE.tacticMinEnergyFraction) return 0
+  // …Y AL QUE ACABAN DE CAZAR TRAS UNA FUGA LARGA NO SE LE OCURRE NADA (v42). Ver `MoveRider.gastado`.
+  if (r.gastado) return 0
   // Filtro de candidatos a la fuga (SPEC 6.10, dos constantes que llevaban definidas y sin usar
   // desde el Paso 21): a la fuga del día no se va un sprinter puro —espera su llegada— ni quien
   // llega a la etapa con el depósito por debajo del 40%.
@@ -204,17 +253,42 @@ export function attackAppetite(
   a *= r.teamAttack
   // Frescura: quien va vaciado no salta aunque quiera.
   a *= clamp(r.energyFraction, 0, 1)
+  // …Y EL QUE VA TIRANDO DEL PELOTÓN NO SALTA (v41). No es un veto —de un relevo se puede arrancar, y
+  // a veces se arranca— pero es la excepción: el que ataca viene de la rueda. Ver `MoveRider.pulling`.
+  if (r.pulling) a *= STAGE.tacticPullingAppetite
   if (ctx.kind === 'ataque_grupo') {
     // `finishRank` 0 = el peor rematador del grupo, 1 = el mejor. El que sabe que pierde el sprint
     // es el que tiene que irse antes: sin esto, en una fuga de cinco ataca el que iba a ganar igual.
     a *= 1 + STAGE.tacticWorstFinisherWeight * (1 - ranks.finishRank)
   }
   if (ctx.kind === 'ataque_final') {
-    // En el final en alto el que ataca es el que puede: los de abajo del grupo ya van agarrados.
-    a *= STAGE.tacticStrongFloor + (1 - STAGE.tacticStrongFloor) * ranks.perfilRank
-    // Y el que se juega la general ataca más que el que ya la perdió (SPEC 6.9).
-    if (ctx.hasGcContext && r.gcDeficitSeconds <= STAGE.gcThreatFraction * STAGE.gcControlLeash) {
-      a *= 1 + STAGE.tacticGcStakeWeight
+    /**
+     * …Y EN EL DESENLACE DEPENDE DE DÓNDE SE ACABA (v39). El dueño: «lo de `ataque_final` dependerá:
+     * si es un final en llano no haría sentido que un escalador ataque al final ahí».
+     *
+     * Tenía razón, y el defecto era de bulto: esto trataba igual el último puerto de una reina que
+     * los últimos doce kilómetros llanos de una etapa de velocistas. En los dos casos empujaba a
+     * atacar A LOS FUERTES y encima le sumaba un extra al que se juega la general —o sea que en una
+     * llana el favorito de la general se lanzaba a doce kilómetros de meta para nada—.
+     *
+     * En la carretera son dos situaciones distintas y las decide el terreno:
+     *
+     * - **Cuesta arriba** atacan los fuertes, y el que se juega la general más que nadie: ahí el
+     *   ataque GANA TIEMPO, que es de lo que va.
+     * - **En llano** ataca el que sabe que pierde la llegada, exactamente igual que dentro de una
+     *   fuga (`ataque_grupo`): el que va a ganar el sprint no se tira a doce kilómetros, espera. Y
+     *   el favorito de la general no se juega nada arrancando en un llano donde no va a sacar
+     *   tiempo, así que el extra de la general no se aplica.
+     */
+    if (ctx.onClimb) {
+      // En el final en alto el que ataca es el que puede: los de abajo del grupo ya van agarrados.
+      a *= STAGE.tacticStrongFloor + (1 - STAGE.tacticStrongFloor) * ranks.perfilRank
+      // Y el que se juega la general ataca más que el que ya la perdió (SPEC 6.9).
+      if (ctx.hasGcContext && r.gcDeficitSeconds <= STAGE.gcThreatFraction * STAGE.gcControlLeash) {
+        a *= 1 + STAGE.tacticGcStakeWeight
+      }
+    } else {
+      a *= 1 + STAGE.tacticWorstFinisherWeight * (1 - ranks.finishRank)
     }
   }
   return a
@@ -263,6 +337,8 @@ export function chooseInstigator(
 export function followProbability(r: MoveRider, instigator: MoveRider, ctx: MoveContext): number {
   if (r.riderId === instigator.riderId) return 0
   if (r.energyFraction < STAGE.tacticMinEnergyFraction) return 0
+  // …y tampoco salta a la rueda de nadie: le acaban de comer después de un día delante (v42).
+  if (r.gastado) return 0
   // Saltar a una rueda es un esfuerzo supraumbral: sin cerillo no se salta (SPEC 6.6).
   if (r.matches <= 0) return 0
   const attention = STAGE.tacticFollowTacWeight * (r.tac / 100)
@@ -279,8 +355,18 @@ export function followProbability(r: MoveRider, instigator: MoveRider, ctx: Move
   // En un grupo GORDO cada uno cuenta con que salte otro y la atención se diluye (SPEC 6.12,
   // `bigGroupThreshold`). Así el número ABSOLUTO de los que saltan apenas depende de si el pelotón
   // es de 40 o de 176, que es lo que se ve en carretera.
-  const crowd =
-    ctx.groupSize > STAGE.bigGroupThreshold ? STAGE.bigGroupThreshold / ctx.groupSize : 1
+  /**
+   * …Y EL TOPE SE ENSANCHA CUANDO LA FUGA MERECE LA PENA (v39, `breakAppeal`). La dilución existe
+   * porque en un pelotón grande cada uno cuenta con que salte otro, y eso es verdad EN UNA LLANA:
+   * ahí la fuga no gana y nadie se pelea por entrar. En una etapa de montaña es al revés —la fuga
+   * es el día de todo el que no se juega la general— y entonces no se diluye nada: salta todo el
+   * que puede, y de ahí salen las fugas de veinte, treinta o cincuenta que se ven en la carretera y
+   * que el motor no sabía hacer.
+   */
+  const apetito =
+    ctx.kind === 'fuga' || ctx.kind === 'contraataque' ? clamp(ctx.breakAppeal, 0, 1) : 0
+  const umbral = STAGE.bigGroupThreshold * (1 + STAGE.breakAppealCrowdGain * apetito)
+  const crowd = ctx.groupSize > umbral ? umbral / ctx.groupSize : 1
   return clamp(
     KIND_FOLLOW[ctx.kind] *
       crowd *
@@ -307,12 +393,49 @@ export function sustainsJump(r: MoveRider, instigator: MoveRider, rng: Rng): boo
 // --- 4. ¿Colaboran? ¿Prospera? -------------------------------------------------------------
 
 /**
- * Boquete instantáneo (s) que abre el acelerón (SPEC 6.4: un ataque es una aceleración, no un
- * cambio de tempo). A partir de aquí manda la carretera: el boquete se integra bloque a bloque y
- * el grupo se caza o no se caza.
+ * EL BOQUETE QUE ABRE EL ACELERÓN, CALCULADO Y NO SORTEADO (v39).
+ *
+ * Hasta la v38 esto era un dado: **5 a 12 segundos, siempre, pasara lo que pasara**. El dueño lo
+ * tumbó con dos casos que no necesitan más discusión:
+ *
+ * > «Si hay un grupo de 5, ataca 1 y todos los otros 4 saltan detrás de él, pues no se abre ningún
+ * > boquete instantáneo, ¿no? O si están subiendo superfuerte un puerto e intenta atacar alguien
+ * > pero su velocidad de ataque es menor que la del que va tirando del grupo, pues tampoco.»
+ *
+ * Y el otro lado de la misma moneda:
+ *
+ * > «El ataque lo que tiene que hacer es incrementar temporalmente la velocidad, y será muy
+ * > diferente en montaña que en llano. Un ataque en montaña de un escalador probablemente puede
+ * > hacer más de 12 segundos en 100 metros, y otro que no sea escalador quizás no consiga ni
+ * > escaparse.»
+ *
+ * O sea: el boquete es una CONSECUENCIA, no un parámetro. Se mide como se mide cualquier boquete en
+ * este motor —dos velocidades y una distancia— y sale gratis todo lo que él pide:
+ *
+ * - En una rampa dura un escalador gana un montón en trescientos metros; en el llano, el mismo
+ *   hombre no gana nada, porque ahí la ley de velocidad apenas premia el vatio extra
+ *   (`loadExponent` 0,39 en llano contra 1,0 subiendo) y encima va solo contra un grupo que rota.
+ * - El que ataca sin ser más rápido que el grupo que deja **no abre hueco**: la cuenta da cero o
+ *   negativo y el intento se queda en intento.
+ *
+ * Devuelve segundos, nunca negativo.
  */
-export function jumpGapSeconds(rng: Rng): number {
-  return STAGE.tacticJumpGapSeconds + rng() * STAGE.tacticJumpGapRange
+export function jumpGapSeconds(attackerKmh: number, groupKmh: number): number {
+  if (attackerKmh <= 0 || groupKmh <= 0) return 0
+  /**
+   * …Y EL SALTO SE MIDE EN SEGUNDOS, NO EN METROS (v39), que es la misma corrección que el dueño
+   * hizo para el cerillo, un nivel más arriba: «en vez de durar un número de metros debería durar
+   * un número de segundos». Un hachazo dura lo que dura un hachazo —tres cuartos de minuto a tumba
+   * abierta— y eso son seiscientos metros rodando y doscientos cincuenta subiendo.
+   *
+   * Medirlo en metros hacía imposible cuadrar las dos bandas a la vez, y se ve en la medida: con
+   * 0,45 km la reina entraba en banda (42 %) pero la llana se hundía al 3,3 % contra un suelo del
+   * 5 %, y con 0,6 km pasaba lo contrario. No era un problema de calibración: era que el mismo
+   * hachazo duraba el doble de TIEMPO en un puerto que en el llano.
+   */
+  const surgeKm = (groupKmh * STAGE.tacticSurgeSeconds) / 3600
+  const ganado = surgeKm * (1 / groupKmh - 1 / attackerKmh) * 3600
+  return Math.max(0, ganado)
 }
 
 /**
@@ -337,6 +460,54 @@ export function moveCooperation(
     STAGE.tacticCoopMin,
     Math.min(1, STAGE.breakawayCommitMax + STAGE.tacticCoopHungerWeight),
   )
+}
+
+/**
+ * ¿ME INTERESA A MÍ QUE ESTO LLEGUE JUNTO? (v39) — cuánto DEJA de colaborar un hombre porque no
+ * tiene nada que ganar donde va.
+ *
+ * Es el mecanismo que faltaba, y el dueño lo pidió con dos ejemplos que son el mismo:
+ *
+ * > «en un grupo de seis a ocho kilómetros de meta relevan los seis, incluido el que sabe que
+ * > pierde el sprint… y no solo es así: si es una etapa de montaña y en la fuga van con un súper
+ * > escalador y tú eres mal escalador, lo normal es que no cooperes.»
+ *
+ * Los dos casos son la misma pregunta —**¿tengo yo alguna opción de ganar desde aquí?**— y el motor
+ * ya tenía con qué contestarla: `finishScore` sobre el tipo de final que dibuja el recorrido. Contra
+ * un rematador en un sprint y contra un escalador en un puerto la cuenta es la misma; lo que cambia
+ * son los pesos del final, que es justo lo que `finishScore` sabe.
+ *
+ * Hasta la v38 la cooperación de un movimiento se decidía UNA VEZ, al nacer (`moveCooperation`: el
+ * tamaño, el hambre media y la tensión) y **no se volvía a mirar nunca**. Una fuga de seis colaboraba
+ * igual a 150 km de meta que a 5, y colaboraba igual llevara dentro a un fuera de serie o no. De ahí
+ * salía el defecto que el banco de media montaña medía: el ganador llegaba SOLO el 4 % de las veces
+ * contra el 20-30 % que pide el dueño, porque nadie se miraba y nadie se escapaba.
+ *
+ * Dos factores, y el segundo es el que hace que las fugas sigan existiendo:
+ *
+ * - **La desventaja**, en puntos de remate contra el mejor del grupo, saturando en
+ *   `coopNoChanceGap`. Cero para el que manda en el grupo —él sí quiere que esto llegue— y uno para
+ *   el que va con alguien inalcanzable.
+ * - **Lo cerca que está la decisión.** Lejos de meta la fuga es de todos: si no llega, no gana
+ *   nadie, así que hasta el peor rematador se deja la vida (`coopSelfishFloor`). Cerca, la carrera
+ *   ya es de cada uno. Sin esta mitad, una fuga con un fuera de serie dentro no saldría jamás del
+ *   kilómetro cero, que es lo contrario de lo que se ve en carretera.
+ */
+export function noChanceToWin(
+  myFinishScore: number,
+  bestFinishScore: number,
+  kmToGo: number,
+): number {
+  const gap = Math.max(0, bestFinishScore - myFinishScore)
+  const desventaja = clamp(gap / Math.max(1e-9, STAGE.coopNoChanceGap), 0, 1)
+  if (desventaja <= 0) return 0
+  const lejos = clamp(
+    (kmToGo - STAGE.coopSelfishKm) / Math.max(1e-9, STAGE.coopSelfishFarKm - STAGE.coopSelfishKm),
+    0,
+    1,
+  )
+  const cerca = STAGE.coopSelfishFloor + (1 - STAGE.coopSelfishFloor) * (1 - lejos)
+  return desventaja * cerca
 }
 
 /**
@@ -398,7 +569,43 @@ export function carriesGcLeader(
 export function pelotonAllows(move: MoveRider[], ctx: MoveContext, rng: Rng): boolean {
   const run = ctx.totalKm > 0 ? clamp(1 - ctx.kmToGo / ctx.totalKm, 0, 1) : 0
   let p = STAGE.tacticAllowBase + STAGE.tacticAllowKmGain * run
-  p -= STAGE.tacticAllowSizePenalty * Math.max(0, move.length - STAGE.breakawaySizeMin)
+  /**
+   * …Y NO SE CONCEDE LA FUGA DEL DÍA EN EL KILÓMETRO UNO (v39). El dueño, leyendo la radio de
+   * carrera: «yo veo que en el 99 % de los casos en el km 1 ataca alguien, lo cual no tiene mucho
+   * sentido». Fui a medirlo y tenía razón en lo que importaba: los INTENTOS del km 1 están bien —una
+   * fuga sale del disparo—, pero el pelotón se la CONCEDÍA ahí mismo. Medido en Race Jaén, tres
+   * semillas seguidas: `attack_go` en el km 1,2 · 1,6 · 1,8 y `breakaway_formed` en el mismo
+   * kilómetro dos de las tres veces. La primera línea de la crónica era siempre la misma.
+   *
+   * La causa era que `tacticAllowBase` vale 0,3 desde el metro cero, o sea que a los dos primeros
+   * que saltaban se les daba cuerda tres de cada diez veces. Y un pelotón fresco en el kilómetro uno
+   * no le regala el día a los dos primeros que saltan: todo el mundo quiere estar ahí, se cierra
+   * todo, y la buena sale cuando la gente empieza a cansarse de cerrar. Eso es una rampa, igual que
+   * la que ya tiene el INTENTO (`tacticSettleKm`), y por la misma razón.
+   *
+   * …Y CUÁNTO DURA LA PELEA DEPENDE DEL TERRENO (v39). Las crónicas de las grandes vueltas lo dicen
+   * con números: la fuga de una llana se va **antes del kilómetro diez** —no se apunta nadie, van
+   * cuatro anónimos— y la de una etapa de montaña puede tardar **cien kilómetros**, porque ahí se
+   * apunta media parrilla y hasta que no se marcha el grupo bueno no para la pelea. Es la misma
+   * `breakAppeal` que decide cuánta gente salta, leída para el otro lado: donde la fuga merece la
+   * pena, cuesta que se vaya. Un solo número explica las dos mitades.
+   */
+  const settle =
+    STAGE.tacticAllowSettleFlatKm +
+    (STAGE.tacticAllowSettleClimbKm - STAGE.tacticAllowSettleFlatKm) * clamp(ctx.breakAppeal, 0, 1)
+  const kmRun = Math.max(0, ctx.totalKm - ctx.kmToGo)
+  const asentada = settle > 0 ? clamp(kmRun / settle, 0, 1) : 1
+  p *= STAGE.tacticAllowSettleFloor + (1 - STAGE.tacticAllowSettleFloor) * asentada
+  /**
+   * …Y EL CASTIGO POR SER MUCHOS SE AFLOJA CUANDO LA FUGA MERECE LA PENA (v39). El castigo dice que
+   * un pelotón cierra antes una fuga numerosa que una de cuatro anónimos, y en una llana es cierto.
+   * En una etapa de montaña no: ahí el pelotón CONCEDE precisamente porque son muchos y porque casi
+   * ninguno se juega la general —es la fuga de cincuenta y tres de la Vuelta 2025—. Sin esto, con
+   * `tacticAllowSizePenalty` = 0,05 por hombre, una fuga de veinte se quedaba en probabilidad
+   * negativa: no se le daba cuerda NUNCA, y las fugas grandes seguían sin existir por el otro lado.
+   */
+  const holgura = 1 - clamp(ctx.breakAppeal, 0, 1)
+  p -= STAGE.tacticAllowSizePenalty * holgura * Math.max(0, move.length - STAGE.breakawaySizeMin)
   let vetoed = false
   if (ctx.hasGcContext) {
     // El que manda es el más cercano al maillot: un grupo es tan peligroso como su hombre peligroso.

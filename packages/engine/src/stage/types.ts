@@ -149,6 +149,21 @@ export interface StageInput {
   riders: StageRider[]
   /** CRI/cronoescalada: grupos de un corredor, sin drafting ni hazards (SPEC 6.13). */
   timeTrial?: boolean
+  /**
+   * DÓNDE Y CUÁNDO SE CORRE (v42). Lo único que el motor necesita para saber qué clima le toca a
+   * esta etapa, y es la petición del dueño en una línea: «el clima debería depender del país y del
+   * GD». Sin esto llovería igual en Flandes en marzo que en Almería en agosto.
+   *
+   * Es OPCIONAL a propósito: una etapa sin sitio ni fecha —los escenarios sintéticos del banco, un
+   * campo de pruebas— corre con el clima templado de referencia, que es exactamente el
+   * comportamiento anterior a esta versión.
+   */
+  lugar?: {
+    /** País donde se disputa, ISO alpha-2. Sin él, el clima es el de un sitio templado. */
+    pais?: string
+    /** Día del año (1-365), que en este juego es el día de la temporada y el GD del reloj. */
+    dia: number
+  }
 }
 
 /** Un evento narrable de la carrera (SPEC 6.15). */

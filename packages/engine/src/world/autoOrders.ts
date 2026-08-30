@@ -13,6 +13,19 @@ export interface AutoOrderRider {
   riderId: string
   attrs: Record<Attribute, number>
   teamId: string | null
+  /**
+   * SU PUESTO EN LA GENERAL de la carrera que se está corriendo (1 = lleva el maillot), o `undefined`
+   * en una carrera de un día y en la primera etapa, donde todavía no hay general (v42).
+   *
+   * El dueño lo vio dos veces, en dos carreras distintas: «el líder con el maillot amarillo está
+   * también tirando???» y «el líder se la pasa todo el tiempo tirando». La causa no era el motor de
+   * relevos —eso se arregló aparte— sino que ESTE planificador no sabía quién lidera la carrera, así
+   * que repartía roles solo por atributos y por el tipo de etapa. Medido con un equipo que lleva al
+   * maillot (escalador) y a un buen velocista: en una etapa llana el maillot salía de **lanzador de
+   * su propio velocista**, con deber de relevo 0,85, empuje de equipo completo y un cerillo quemado
+   * en el último kilómetro. Con el maillot puesto.
+   */
+  gcRank?: number
 }
 
 /** Contexto de la etapa que condiciona los roles (llano → sprint, montaña → escalada, etc.). */
@@ -23,7 +36,31 @@ export interface AutoOrderStage {
 
 const SPRINTER_MIN = 68 // por debajo de esto el equipo no juega la baza del sprint: va a por la fuga.
 
+/**
+ * HASTA QUÉ PUESTO DE LA GENERAL un corredor es la carta de su equipo (v42). El maillot, desde luego,
+ * y los que están a tiro: un equipo con el tercero de la general corre para él, no le pone a lanzar.
+ * Cinco es «los que salen en la foto del podio provisional» sin llegar a ser medio pelotón.
+ */
+const GC_CARD_RANK = 5
+
 const climbScore = (a: Record<Attribute, number>): number => 0.6 * a.MON + 0.4 * a.COL
+/**
+ * QUIÉN ES EL HOMBRE DEL EQUIPO PARA ESTA CARRERA, en un número (v42). Es la misma cuenta con la que
+ * `autoStageOrders` elige al jefe de filas unas líneas más abajo —montaña por piernas de montaña,
+ * llano por remate, y lo demás por rodador completo—, expuesta para que la use quien reparta
+ * DORSALES: el 1 de un equipo es su líder, no su corredor más famoso.
+ *
+ * El dueño lo vio en producción: «le han dado el dorsal 131 a un wey que ha quedado en el puesto 50
+ * a 10 minutos, mientras que el 132 y otro más de ese equipo son primero y segundo de la general…
+ * y mirando sus stats son claramente mejores que el 131».
+ */
+export function raceLeadScore(a: Record<Attribute, number>, kinds: readonly string[]): number {
+  const montaña = kinds.filter((k) => k === 'reina' || k === 'media').length
+  const llana = kinds.filter((k) => k === 'llana').length
+  if (montaña > 0 && montaña >= llana) return climbScore(a)
+  if (llana > montaña) return Math.max(sprintScore(a), allroundScore(a))
+  return allroundScore(a)
+}
 const sprintScore = (a: Record<Attribute, number>): number => a.SPR
 const breakScore = (a: Record<Attribute, number>): number => 0.5 * a.TAC + 0.3 * a.LLA + 0.2 * a.RES
 const allroundScore = (a: Record<Attribute, number>): number =>
@@ -73,14 +110,40 @@ function assignTeam(
       )[0],
     )
 
-  // 1) Jefe de filas según el terreno.
+  /**
+   * 0) EL MAILLOT MANDA SOBRE EL TERRENO (v42). Si el equipo lleva al líder de la carrera —o a
+   * alguien de los primeros de la general—, ÉSE es su carta del día y no se discute: el equipo corre
+   * para él. Va antes que el reparto por terreno porque en la carretera es antes: un equipo con el
+   * maillot no juega la etapa, defiende la camiseta.
+   *
+   * No le quita la etapa al velocista —sigue con su rol y su meta— pero deja de haber tren, que es
+   * exactamente lo que hace un equipo que defiende: los hombres son para el líder. Y lo que importa
+   * de verdad: el maillot ya no puede salir de lanzador ni de gregario de nadie.
+   */
+  const maillot = team.find((r) => r.gcRank != null && r.gcRank <= GC_CARD_RANK)
   let leaderId: string | undefined
+  if (maillot) {
+    const m = take(maillot)!
+    out.set(m.riderId, order({ role: 'lider', mentality: 'reservon', contestClimbs: mountain }))
+    leaderId = m.riderId
+  }
+
+  // 1) Jefe de filas según el terreno.
+  //
+  // …Y ESTO SIGUE CORRIENDO AUNQUE HAYA MAILLOT (v42), porque un equipo que defiende la general no
+  // deja de tener velocista: en una llana su rápido sigue jugándose la etapa, con su tren y todo. Lo
+  // único que cambia es QUIÉN es la carta del equipo —el maillot, ya tomado más arriba—, y por eso
+  // aquí solo se salta la línea que nombra jefe al velocista. El primer intento sí lo saltaba entero
+  // y convertía al velocista en cazaetapas, que es cambiar un absurdo por otro.
   if (flat) {
-    const bestSpr = ranked(team, sprintScore)[0]
+    const bestSpr = ranked(
+      team.filter((r) => remaining.has(r.riderId)),
+      sprintScore,
+    )[0]
     if (bestSpr && sprintScore(bestSpr.attrs) >= SPRINTER_MIN) {
       const s = take(bestSpr)!
       out.set(s.riderId, order({ role: 'sprinter', mentality: 'reservon', contestSprints: true }))
-      leaderId = s.riderId
+      if (!leaderId) leaderId = s.riderId
       // Tren: el mejor lanzando del resto lo lanza en meta.
       const launcher = next(leadOutScore)
       if (launcher)
@@ -88,14 +151,14 @@ function assignTeam(
           launcher.riderId,
           order({ role: 'lanzador', targetRiderId: s.riderId, contestSprints: true }),
         )
-    } else {
+    } else if (!leaderId) {
       const l = next(allroundScore)
       if (l) {
         out.set(l.riderId, order({ role: 'lider', mentality: 'oportunista' }))
         leaderId = l.riderId
       }
     }
-  } else {
+  } else if (!leaderId) {
     const l = next(mountain ? climbScore : allroundScore)
     if (l) {
       out.set(l.riderId, order({ role: 'lider', mentality: 'reservon', contestClimbs: mountain }))
@@ -118,12 +181,25 @@ function assignTeam(
       )
   }
 
-  // 3) Hasta dos gregarios al servicio del líder; el resto, libres.
+  /**
+   * 3) Y EL RESTO DEL EQUIPO SON GREGARIOS DE SU JEFE — TODOS (v38, defecto medido).
+   *
+   * Hasta la v37 esto ponía DOS gregarios «y el resto, libres», y ese resto era enorme: medido sobre
+   * un campo de producción de 176 corredores en 22 equipos de 8, se quedaban **sin órdenes 70 en una
+   * llana y 88 en una media montaña o una reina**, o sea la MITAD EXACTA del pelotón. Y «sin
+   * órdenes» no es neutro: el motor los trata como `libre`, cuyo deber de relevo vale 0,6 —por
+   * ENCIMA de un cazaetapas (0,5), de un marcador (0,35) y de un sprinter (0,2)—. O sea que media
+   * parrilla de anónimos tenía más obligación de dar la cara que los especialistas, y de ahí salía
+   * buena parte de lo que en la radio de carrera no se entendía.
+   *
+   * En una carrera no hay nadie «sin órdenes»: el que no es el jefe, ni el lanzador, ni el hombre
+   * que van a mandar a la fuga, es gregario de su jefe. Eso es un equipo.
+   */
   if (leaderId) {
-    for (let k = 0; k < 2; k++) {
-      const greg = next(breakScore)
-      if (!greg) break
-      out.set(greg.riderId, order({ role: 'gregario', targetRiderId: leaderId }))
+    for (const r of team) {
+      if (!remaining.has(r.riderId)) continue
+      remaining.delete(r.riderId)
+      out.set(r.riderId, order({ role: 'gregario', targetRiderId: leaderId }))
     }
   }
 }

@@ -10,9 +10,10 @@
 import { describe, expect, it } from 'vitest'
 import type { Attribute } from '@cyclingstar/shared'
 import { advanceGroup, createGroup } from '../stage/group.js'
-import { accLimit, blockSeconds } from '../stage/physics.js'
+import { accLimit, blockSeconds, costBase } from '../stage/physics.js'
 import { simulateStage } from '../stage/simulate.js'
 import { stageSeed } from '../stage/rng.js'
+import { sampleProfile } from '../stage/sample.js'
 import type { Block, StageRider } from '../stage/types.js'
 import { analyzeErosion, analyzeFlat, analyzeMountain, analyzeTimeTrial } from './analyze.js'
 import { type GrandTourStats, abandonMix, analyzeGrandTour, runGrandTour } from './grandTour.js'
@@ -347,6 +348,34 @@ describe('la erosión no satura en ninguna clásica (docs/motor.md §VI.1)', () 
     (r) => r.level === 'WT' && r.format === 'un-dia' && r.stages[0] && !r.stages[0].timeTrial,
   ).map((r) => r.id)
 
+  /**
+   * …Y LAS MÁS DURAS DEL CALENDARIO ENTERO, SEAN DE LA CATEGORÍA QUE SEAN (v40). El filtro `level
+   * === 'WT'` es exactamente por donde se coló el defecto que este banco existe para cazar: cuatro
+   * carreras de un día de categoría 1 —Jura, Andorra, Appennino, Ses Salines— reventaban el pelotón
+   * entero (Jura dejaba al 82 % del campo con el tanque a cero) y la batería salía verde, porque
+   * ninguna es WorldTour. Es la misma lección de la v17 con las reinas: **lo que no se mide sobre
+   * el calendario de verdad, no se mide**.
+   *
+   * Correr las 443 de un día es inviable en CI, y no hace falta: la saturación solo puede pasar en
+   * las DURAS, y cuál es dura se sabe sin simular nada —la demanda es la integral del coste base
+   * del recorrido, y sale de leer el perfil—. Así que el banco añade las más exigentes del
+   * calendario entero, que es donde vive el riesgo, a coste acotado.
+   */
+  const demandaDe = (id: string): number =>
+    sampleProfile(realRaceScenario(id).input.profile).reduce(
+      (acc, b) => acc + costBase(b) * STAGE.dx,
+      0,
+    )
+  const oneDayHardest = SEASON_CALENDAR.filter(
+    (r) => r.format === 'un-dia' && r.stages[0] && !r.stages[0].timeTrial,
+  )
+    .map((r) => r.id)
+    .filter((id) => !oneDayWt.includes(id))
+    .map((id): [string, number] => [id, demandaDe(id)])
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 8)
+    .map(([id]) => id)
+
   it(
     'la clásica más dura del calendario erosiona fuerte pero no satura',
     { timeout: 120000 },
@@ -357,15 +386,17 @@ describe('la erosión no satura en ninguna clásica (docs/motor.md §VI.1)', () 
     },
   )
 
-  it('ninguna clásica del WorldTour satura con el pelotón fresco', { timeout: 300000 }, () => {
+  it('ninguna carrera de un día satura con el pelotón fresco', { timeout: 600000 }, () => {
     expect(oneDayWt.length).toBeGreaterThan(10)
+    // Y las ocho más duras del calendario entero, que es por donde se coló el defecto de la v40.
+    expect(oneDayHardest).toHaveLength(8)
     // OJO: desde v6 la erosión lleva un techo estructural (`STAGE.erosionMax`), así que mirar la
     // erosión ya NO detecta la saturación —topa en 0,92 justo cuando hay que dar la alarma—. La
     // señal buena es el VACIADO del depósito, que no está topado: si el tanque llega a cero, la
     // erosión estaba pidiendo más de lo que el modelo puede expresar. Medido hoy: el peor caso es
     // Il Lombardia con 0,908 de vaciado y un 3% de pájaras.
     const saturated: string[] = []
-    for (const id of oneDayWt) {
+    for (const id of [...oneDayWt, ...oneDayHardest]) {
       const stats = analyzeErosion(realRaceScenario(id), campaignSeeds(id, 3))
       if (stats.medianDepletion > SATURATION_DEPLETION || stats.bonkPct > SATURATION_BONK_PCT) {
         saturated.push(
@@ -460,6 +491,29 @@ describe('abandonos en una gran vuelta (docs/motor.md §VI.3)', () => {
    * hace el grupeto en carretera. Con menos, el corte de tiempo de §VI.3 (8-18 %) no señala a nadie
    * y la causa «fuera de control» no puede llegar a su 45 %; con más, el corte se llevaría por
    * delante media carrera todos los días.
+   */
+  /**
+   * ESTA PRUEBA ES UNA MONEDA AL AIRE, Y ESTÁ MEDIDO (v42). Cuatro muestras INDEPENDIENTES de seis
+   * giras cada una —el tamaño que corre este test— con la MISMA física dan 7,86 · 8,28 · 7,64 ·
+   * 8,49: media **8,07** y desviación **0,39**, contra un suelo de 8. La mitad de las muestras pasan
+   * y la mitad fallan sin que nada haya cambiado.
+   *
+   * Y con eso se caen tres atribuciones que se dieron por buenas antes, las tres hechas comparando
+   * UNA muestra contra UNA muestra:
+   *
+   *  - «el viento acorta la cola» (v41: 8,42 sin viento contra 7,88 con) — dentro del ruido;
+   *  - «la lluvia la arregla» (v42: 8,64) — dentro del ruido;
+   *  - «el calor la vuelve a romper» (v42: 7,86 contra 9,11) — medido en serio, cuatro muestras
+   *    contra cuatro, la diferencia es de 0,22 con un error estándar de 0,45: **medio sigma**.
+   *
+   * Lo que de verdad pasa es más simple y más incómodo: el motor produce una cola de reina de 8,1 a
+   * 8,3 y la banda tiene el suelo en 8. Está sentada encima de la raya, y ningún mecanismo del clima
+   * la mueve de forma medible. Subir la muestra no lo arregla: haría falta cuadruplicar las giras
+   * para bajar el ruido a 0,20 y aun así pasaría por siete centésimas.
+   *
+   * Queda a decisión del dueño, con los números delante: o el suelo está una pizca alto para este
+   * motor, o el grupeto va una pizca rápido. Lo que NO se hace es mover una constante física para
+   * que un dado caiga del lado bueno.
    */
   it('el último grupo de una etapa reina entra al 8-14%', { timeout: 600000 }, () => {
     const stats = tours()
@@ -588,7 +642,18 @@ describe('las carreras PEQUEÑAS con forma de producción (v23)', () => {
   // Diez carreras de 1 a 9 etapas con 126-176 corredores son ~2 minutos: se corren UNA vez y las
   // comparten todos los invariantes que salen de ellas, como hacen `grandTour` y `realQueens`.
   let shared: SmallTourStats | null = null
-  const bench = (): SmallTourStats => (shared ??= analyzeSmallTours(4))
+  /**
+   * OCHO CORRIDAS POR CARRERA Y NO CUATRO (v41). Con cuatro, la prueba de la foto de meta mide sobre
+   * unos NOVENTA pares y el suelo de su banda —el 15 % de «dos llegadas agrupadas de la misma
+   * carrera las gana el mismo»— queda a menos de UN par de distancia: medido, 14,89 % con cuatro
+   * corridas y 16,9 % con ocho, sin que el motor cambie. Un listón que se cruza con un par no mide
+   * nada.
+   *
+   * Y la dirección importa: lo que se sube es la MUESTRA, no se baja el suelo. Ese 15 % es la línea
+   * de la lotería —con 7 a 17 rematadores nombrados, repartir al azar da un 6-14 %— y describe una
+   * propiedad del ciclismo, no una preferencia. Cuesta unos minutos más de banco, y se pagan.
+   */
+  const bench = (): SmallTourStats => (shared ??= analyzeSmallTours(8))
 
   it('el banco cubre formas distintas, y las carreras de la queja están dentro', () => {
     // No es decorado: el defecto se coló porque el banco no tenía ningún campo con esta forma.
@@ -611,7 +676,7 @@ describe('las carreras PEQUEÑAS con forma de producción (v23)', () => {
 
   it('el mejor rematador gana bastantes, y no todas', { timeout: 1200000 }, () => {
     const stats = bench()
-    expect(stats.share.races).toBe(SMALL_TOURS.length * 4)
+    expect(stats.share.races).toBe(SMALL_TOURS.length * stats.runsPerRace)
     // …y el campo tiene un mejor sprinter CLARO, que es la premisa del objetivo: si el banco
     // acabara midiendo un empate a tres, mediría lo mismo que `llana-180` y no serviría de nada.
     expect(stats.share.medianEdge).toBeGreaterThan(1)
@@ -731,13 +796,13 @@ describe('cierre del pelotón comprometido (6.17)', () => {
     let brk = createGroup('brk', ['b'], { compromiso: 0.6 })
     let pel = createGroup('pel', ['p'], { compromiso: 0.85 })
     for (let i = 0; i < 50; i++) {
-      brk = advanceGroup(brk, flat, 68, {})
-      pel = advanceGroup(pel, flat, 68, {})
+      brk = advanceGroup(brk, flat, 68, undefined, {})
+      pel = advanceGroup(pel, flat, 68, undefined, {})
     }
     const gap0 = pel.tS - brk.tS
     for (let i = 0; i < 100; i++) {
-      brk = advanceGroup(brk, flat, 68, {})
-      pel = advanceGroup(pel, flat, 68, {})
+      brk = advanceGroup(brk, flat, 68, undefined, {})
+      pel = advanceGroup(pel, flat, 68, undefined, {})
     }
     const cierre = gap0 - (pel.tS - brk.tS)
     expect(cierre).toBeGreaterThanOrEqual(50)

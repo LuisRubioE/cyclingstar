@@ -96,7 +96,12 @@ export {
   type NpcHidden,
 } from './world/npc.js'
 export { renderJerseySvg } from './world/jersey.js'
-export { autoStageOrders, type AutoOrderRider, type AutoOrderStage } from './world/autoOrders.js'
+export {
+  autoStageOrders,
+  raceLeadScore,
+  type AutoOrderRider,
+  type AutoOrderStage,
+} from './world/autoOrders.js'
 export { neoproAge, shouldRetire } from './world/lifecycle.js'
 export { gcPrizes, stagePrize, teamGcPrizes, teamStagePrize } from './world/prizes.js'
 export { AVG_WEEKLY_WAGE, SPONSOR_INCOME_PER_WEEK, npcWageBill } from './world/teamEconomy.js'

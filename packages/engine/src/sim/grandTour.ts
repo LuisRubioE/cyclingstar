@@ -183,12 +183,32 @@ export function runGrandTour(worldSeed: string): GrandTourResult {
   let readmitted = 0
   let readmissionStages = 0
   const tails: StageTail[] = []
+  /**
+   * LA GENERAL, para que el banco corra la misma carrera que producción (v42). Desde la v42 las
+   * órdenes del día miran el puesto en la general —el maillot es la carta de su equipo y no puede
+   * salir de lanzador de nadie—, y un banco que no la llevara mediría un motor distinto del que
+   * corre el juego. Que es, exactamente, cómo ese defecto sobrevivió hasta que el dueño lo vio.
+   *
+   * Es el acumulado de tiempos de meta, sin los desempates finos de `gcSort` (aquí no hacen falta:
+   * lo único que se usa es si estás entre los primeros).
+   */
+  const gcTotal = new Map<string, number>()
+  const gcRank = (): Map<string, number> => {
+    const orden = [...gcTotal.entries()].sort((a, b) => a[1] - b[1] || (a[0] < b[0] ? -1 : 1))
+    return new Map(orden.map(([id], i) => [id, i + 1]))
+  }
 
   for (const stage of race.stages) {
+    const rank = gcRank()
     const racing = [...alive.values()]
     if (racing.length === 0) break
     const orders = autoStageOrders(
-      racing.map((r) => ({ riderId: r.riderId, attrs: r.attrs, teamId: r.teamId })),
+      racing.map((r) => ({
+        riderId: r.riderId,
+        attrs: r.attrs,
+        teamId: r.teamId,
+        ...(rank.has(r.riderId) ? { gcRank: rank.get(r.riderId)! } : {}),
+      })),
       { kind: stage.kind, timeTrial: stage.timeTrial === true },
     )
     const riders: StageRider[] = racing.map((r) => {
@@ -215,12 +235,25 @@ export function runGrandTour(worldSeed: string): GrandTourResult {
         profile: stage.profile,
         riders,
         ...(stage.timeTrial === true ? { timeTrial: true } : {}),
+        // …Y SE CORRE DONDE Y CUANDO SE CORRE (v42). Una gran vuelta de tres semanas en julio en
+        // Francia no tiene el clima de un sitio cualquiera: llueve el 17 % de los días y hace 23°.
+        // El banco mide la carrera que el juego corre, así que también su cielo.
+        lugar: {
+          ...(race.country != null ? { pais: race.country } : {}),
+          dia: race.startDay + stage.index - 1,
+        },
       },
       // `engineVersion: 1` FIJO en la semilla, como el resto del banco (`campaignSeeds`): el
       // objetivo mide el comportamiento del motor, y si la semilla se moviera con cada versión no
       // se podría distinguir un cambio de calibración de un cambio de dados.
       stageSeed({ worldSeed, raceId: GRAND_TOUR_ID, stageDay: stage.index, engineVersion: 1 }),
     )
+
+    // La general del día siguiente: el acumulado de los que han llegado (v42).
+    for (const r of out.results) {
+      if (r.estado !== 'finish') continue
+      gcTotal.set(r.riderId, (gcTotal.get(r.riderId) ?? 0) + r.tiempoS - r.bonificacionS)
+    }
 
     // 0. La COLA de la etapa (v16): a cuánto entra el último grupo y cuántos relojes distintos hay
     //    en meta. Se mide sobre los CLASIFICADOS —el que queda fuera de control ya no está en la

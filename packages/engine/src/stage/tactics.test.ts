@@ -15,15 +15,40 @@ import {
   giveUpLambda,
   moveCooperation,
   moveLambda,
+  noChanceToWin,
   pelotonAllows,
   rankOf,
   sustainsJump,
 } from './tactics.js'
+import type { Attribute } from '@cyclingstar/shared'
+import { finishScore } from './finish.js'
 import type { Mentality, StageRole } from './types.js'
 
 /** ¿Da el pelotón cuerda a este movimiento con este dado? Atajo para leer los casos de un vistazo. */
 function allows(move: MoveRider[], c: MoveContext, dado: number): boolean {
   return pelotonAllows(move, c, fixedRng([dado]))
+}
+
+/**
+ * LA PROBABILIDAD DE CUERDA, MEDIDA (v39). `pelotonAllows` concede si `dado < p`, así que buscando
+ * el dado que separa el sí del no se recupera la `p` exacta sin duplicar la fórmula en el test.
+ *
+ * Estos casos comparaban antes contra `STAGE.tacticAllowBase` a pelo, y eso los ataba a la FORMA de
+ * la fórmula y no a lo que quieren decir: al añadir la rampa de arranque de la v39 —el pelotón no
+ * concede la fuga del día en el kilómetro uno— se cayeron cinco de golpe sin que ninguna de las
+ * reglas que vigilan hubiera cambiado. Medir la probabilidad y comparar RELACIONES («al de cerca en
+ * la general se le da menos cuerda que al de lejos») dice lo mismo y no se rompe con la siguiente
+ * perilla.
+ */
+function cuerda(move: MoveRider[], c: MoveContext): number {
+  let lo = 0
+  let hi = 1
+  for (let i = 0; i < 40; i++) {
+    const medio = (lo + hi) / 2
+    if (pelotonAllows(move, c, fixedRng([medio]))) lo = medio
+    else hi = medio
+  }
+  return lo
 }
 
 function ctx(over: Partial<MoveContext> = {}): MoveContext {
@@ -36,6 +61,8 @@ function ctx(over: Partial<MoveContext> = {}): MoveContext {
     onClimb: false,
     tension: 0,
     hasGcContext: false,
+    // Una llana: a la fuga del día no se apunta nadie más que cuatro anónimos (v39).
+    breakAppeal: 0,
     ...over,
   }
 }
@@ -51,6 +78,11 @@ function moveRider(id: string, over: Partial<MoveRider> = {}): MoveRider {
     matches: 3,
     tac: 60,
     spr: 55,
+    // Por defecto va A RUEDA: el que salta viene de la rueda, y el caso del que ataca desde el
+    // relevo se prueba aparte (v41).
+    pulling: false,
+    // …y entero: el caso del que viene de que le cacen tras un día delante se prueba aparte (v42).
+    gastado: false,
     gcDeficitSeconds: 600,
     // Sin plan de equipo que le condicione: es lo que vale un agente libre (v15, §V.1).
     teamAttack: 1,
@@ -183,10 +215,24 @@ describe('reglas 4 y 5 — muchos intentos fracasan, y hacen falta muchos antes 
   })
 
   it('y cuantos más van en el movimiento, menos', () => {
-    const dado = STAGE.tacticAllowBase - 0.01
     const gordo = Array.from({ length: 12 }, (_, i) => moveRider(`m-${i}`))
-    expect(allows(movida, ctx({ kmToGo: 180 }), dado)).toBe(true)
-    expect(allows(gordo, ctx({ kmToGo: 180 }), dado)).toBe(false)
+    const c = ctx({ kmToGo: 180 })
+    expect(cuerda(gordo, c)).toBeLessThan(cuerda(movida, c))
+  })
+
+  /**
+   * …Y NO SE CONCEDE LA FUGA DEL DÍA EN EL KILÓMETRO UNO (v39). El dueño, leyendo la radio de
+   * carrera: «yo veo que en el 99 % de los casos en el km 1 ataca alguien». Los INTENTOS del km 1
+   * están bien —una fuga sale del disparo—; lo que estaba mal es que el pelotón se la CONCEDÍA ahí
+   * mismo, con `tacticAllowBase` valiendo 0,3 desde el metro cero.
+   */
+  it('el pelotón no concede la fuga del día en el kilómetro uno', () => {
+    const salida = ctx({ kmToGo: 179, totalKm: 180 })
+    const asentada = ctx({ kmToGo: 180 - STAGE.tacticAllowSettleFlatKm - 10, totalKm: 180 })
+    expect(cuerda(movida, salida)).toBeLessThan(cuerda(movida, asentada))
+    // Y en el metro cero queda muy poca: no es imposible —una fuga puede salir del disparo— pero es
+    // la excepción y no la regla.
+    expect(cuerda(movida, salida)).toBeLessThan(0.1)
   })
 
   it('nunca da cuerda de buena gana a una AMENAZA para la general (SPEC 6.9)', () => {
@@ -194,18 +240,28 @@ describe('reglas 4 y 5 — muchos intentos fracasan, y hacen falta muchos antes 
       moveRider('a', { gcDeficitSeconds: 10 }),
       moveRider('b', { gcDeficitSeconds: 900 }),
     ]
-    const dado = STAGE.tacticAllowBase * (1 - STAGE.tacticAllowGcPenalty) + 0.01
+    // El mismo movimiento, mismo tamaño, pero sin nadie cerca de la general: es la referencia.
+    const inocuo = [
+      moveRider('a', { gcDeficitSeconds: 900 }),
+      moveRider('b', { gcDeficitSeconds: 900 }),
+    ]
     const base = ctx({ kmToGo: 180, totalKm: 180, hasGcContext: true })
-    expect(allows(movida, base, dado)).toBe(true)
-    expect(allows(amenaza, base, dado)).toBe(false)
+    // Al que lleva a un hombre a diez segundos del maillot se le da MUCHA menos cuerda: el castigo
+    // es casi entero, y «casi» porque la rampa lo mide en segundos y diez no son cero.
+    const ventana = STAGE.gcThreatFraction * STAGE.gcControlLeash
+    expect(cuerda(amenaza, base)).toBeLessThan(cuerda(inocuo, base))
+    expect(cuerda(amenaza, base) / cuerda(inocuo, base)).toBeCloseTo(
+      1 - STAGE.tacticAllowGcPenalty * (1 - 10 / ventana),
+      3,
+    )
   })
 
   it('sin general en juego, un `gcDeficitSeconds` de 0 no convierte a todos en amenaza', () => {
     // En la etapa 1 de una vuelta y en las carreras de un día TODOS llegan con 0. Leerlo literal
     // diría que el pelotón entero es el líder y que ningún movimiento puede irse jamás.
     const ceros = [moveRider('a', { gcDeficitSeconds: 0 }), moveRider('b', { gcDeficitSeconds: 0 })]
-    const dado = STAGE.tacticAllowBase * (1 - STAGE.tacticAllowGcPenalty) + 0.01
-    expect(allows(ceros, ctx({ kmToGo: 180, totalKm: 180 }), dado)).toBe(true)
+    const c = ctx({ kmToGo: 180, totalKm: 180 })
+    expect(cuerda(ceros, c)).toBeCloseTo(cuerda(movida, c), 5)
   })
 
   // --- v32: el maillot es VETO, y la amenaza se mide en segundos ---------------------------
@@ -241,18 +297,18 @@ describe('reglas 4 y 5 — muchos intentos fracasan, y hacen falta muchos antes 
     const cerca = [moveRider('a', { gcDeficitSeconds: 10 })]
     const lejos = [moveRider('a', { gcDeficitSeconds: ventana - 10 })]
     const c = ctx({ kmToGo: 180, totalKm: 180, hasGcContext: true })
-    // Un dado entre los dos: al de cerca no le llega y al del borde sí. Con el escalón de antes las
-    // dos respuestas eran la misma, fuera cual fuera el dado.
-    const dado = STAGE.tacticAllowBase / 2
-    expect(allows(cerca, c, dado)).toBe(false)
-    expect(allows(lejos, c, dado)).toBe(true)
+    // Con el escalón de antes las dos cuerdas eran EXACTAMENTE la misma. Ahora la del que anda a
+    // diez segundos del maillot es mucho menor que la del que está en el borde de la ventana.
+    expect(cuerda(cerca, c)).toBeLessThan(cuerda(lejos, c))
+    expect(cuerda(lejos, c)).toBeLessThan(cuerda([moveRider('x')], c) * 1.001)
   })
 
   it('y en el borde de la ventana ya no queda castigo', () => {
     const ventana = STAGE.gcThreatFraction * STAGE.gcControlLeash
     const fuera = [moveRider('a', { gcDeficitSeconds: ventana + 1 })]
     const c = ctx({ kmToGo: 180, totalKm: 180, hasGcContext: true })
-    expect(allows(fuera, c, STAGE.tacticAllowBase - 0.01)).toBe(true)
+    const sinGeneral = ctx({ kmToGo: 180, totalKm: 180 })
+    expect(cuerda(fuera, c)).toBeCloseTo(cuerda([moveRider('a')], sinGeneral), 5)
   })
 
   it('«va el maillot aquí» lo contesta UNA sola función, que usan la cuerda y la corona', () => {
@@ -317,11 +373,67 @@ describe('regla 9 — en el final en alto atacan los fuertes, y los que se juega
     expect(fuerte / flojo).toBeCloseTo(1 / STAGE.tacticStrongFloor, 5)
   })
 
-  it('el que anda cerca en la general ataca más que el que ya la perdió', () => {
-    const c = ctx({ kind: 'ataque_final', kmToGo: 5, groupSize: 8, hasGcContext: true })
+  it('el que anda cerca en la general ataca más que el que ya la perdió, CUESTA ARRIBA', () => {
+    // `onClimb` desde la v39: el extra de la general vale donde el ataque GANA TIEMPO. En un final
+    // llano el favorito no se juega nada arrancando a doce kilómetros, y ahí no se le empuja.
+    const c = ctx({
+      kind: 'ataque_final',
+      kmToGo: 5,
+      groupSize: 8,
+      hasGcContext: true,
+      onClimb: true,
+    })
     const cerca = attackAppetite(moveRider('a', { gcDeficitSeconds: 20 }), c, ranks)
     const lejos = attackAppetite(moveRider('b', { gcDeficitSeconds: 5000 }), c, ranks)
     expect(cerca / lejos).toBeCloseTo(1 + STAGE.tacticGcStakeWeight, 5)
+  })
+
+  /**
+   * …Y EN UN FINAL LLANO MANDA OTRA COSA (v39). El dueño: «lo de `ataque_final` dependerá: si es un
+   * final en llano no haría sentido que un escalador ataque al final ahí». Cuesta arriba atacan los
+   * fuertes; en llano ataca el que sabe que pierde la llegada, igual que dentro de una fuga.
+   */
+  it('en un final LLANO ataca el que pierde la llegada, no el más fuerte', () => {
+    const c = ctx({ kind: 'ataque_final', kmToGo: 5, groupSize: 8, hasGcContext: true })
+    const peor = attackAppetite(moveRider('a'), c, { finishRank: 0, perfilRank: 0.2 })
+    const mejor = attackAppetite(moveRider('b'), c, { finishRank: 1, perfilRank: 1 })
+    expect(peor / mejor).toBeCloseTo(1 + STAGE.tacticWorstFinisherWeight, 5)
+    // Y el favorito de la general NO se lanza por lanzarse: ahí no saca tiempo.
+    const favorito = attackAppetite(moveRider('c', { gcDeficitSeconds: 20 }), c, ranks)
+    const perdido = attackAppetite(moveRider('d', { gcDeficitSeconds: 5000 }), c, ranks)
+    expect(favorito).toBeCloseTo(perdido, 5)
+  })
+
+  /**
+   * EL QUE VA TIRANDO NO SALTA (v41). Defecto que el dueño encontró en una carrera de producción:
+   * el corredor que se escapó iba, en el bloque anterior, dando relevos en el pelotón. El que ataca
+   * viene de la rueda: acaba de NO pagar el viento y por eso puede poner el hueco.
+   */
+  /**
+   * AL QUE ACABAN DE CAZAR TRAS UNA FUGA LARGA NO SE LE OCURRE NADA (v42). El dueño, sobre una etapa
+   * de producción: un corredor se escapó en solitario, le cazaron, se volvió a escapar, le cazaron
+   * otra vez, se escapó una tercera **y ganó la etapa**.
+   */
+  it('al que acaban de cazar tras un día delante no le quedan ni ganas ni rueda', () => {
+    const c = ctx()
+    expect(attackAppetite(moveRider('a', { gastado: true }), c, ranks)).toBe(0)
+    const instigador = moveRider('i')
+    expect(followProbability(moveRider('b', { gastado: true }), instigador, c)).toBe(0)
+    // Y no es el depósito: con el mismo 45 % de tanque, el que no viene de ahí sí ataca.
+    const entero = moveRider('c', { energyFraction: 0.45 })
+    expect(attackAppetite(entero, c, ranks)).toBeGreaterThan(0)
+    expect(attackAppetite(moveRider('d', { energyFraction: 0.45, gastado: true }), c, ranks)).toBe(
+      0,
+    )
+  })
+
+  it('el que va dando la cara tiene diez veces menos ganas de atacar', () => {
+    const c = ctx()
+    const rueda = attackAppetite(moveRider('a'), c, ranks)
+    const tirando = attackAppetite(moveRider('b', { pulling: true }), c, ranks)
+    expect(tirando / rueda).toBeCloseTo(STAGE.tacticPullingAppetite, 5)
+    // Y no es un veto: de un relevo se arranca, solo que es la excepción.
+    expect(tirando).toBeGreaterThan(0)
   })
 
   it('…y no le deja marchar: el rival cercano salta detrás mucho más', () => {
@@ -422,5 +534,75 @@ describe('utilidades', () => {
     expect(rankOf(10, [5, 10])).toBe(1)
     expect(rankOf(7, [7, 7, 7])).toBe(1)
     expect(rankOf(1, [1])).toBe(1)
+  })
+})
+
+describe('el que no tiene nada que ganar aquí no colabora (v39)', () => {
+  const eff = (
+    base: number,
+    over: Partial<Record<Attribute, number>> = {},
+  ): Record<Attribute, number> => ({
+    RES: base,
+    REC: base,
+    LLA: base,
+    MON: base,
+    COL: base,
+    CRI: base,
+    SPR: base,
+    DES: base,
+    PAV: base,
+    TAC: base,
+    ...over,
+  })
+
+  it('el que manda en el remate de su grupo colabora del todo, esté donde esté', () => {
+    // Desventaja cero: él SÍ quiere que esto llegue, y a un kilómetro de meta más que nunca.
+    expect(noChanceToWin(70, 70, 1)).toBe(0)
+    expect(noChanceToWin(70, 70, 150)).toBe(0)
+    // …y el que va POR ENCIMA del mejor que se le ha pasado tampoco resta (no hay gap negativo).
+    expect(noChanceToWin(75, 70, 5)).toBe(0)
+  })
+
+  it('lejos de meta la fuga es de todos: aunque no puedas ganar, tiras', () => {
+    // Si la fuga no llega no gana nadie, así que lejos queda solo el suelo. Sin esta mitad no
+    // saldría ninguna fuga con un fuera de serie dentro.
+    const lejos = noChanceToWin(50, 90, STAGE.coopSelfishFarKm + 50)
+    expect(lejos).toBeCloseTo(STAGE.coopSelfishFloor, 5)
+    expect(lejos).toBeLessThan(0.5)
+  })
+
+  it('y cerca de meta el que no puede ganar se planta', () => {
+    expect(noChanceToWin(50, 90, STAGE.coopSelfishKm - 1)).toBeCloseTo(1, 5)
+    // La rampa es monótona: cuanto más cerca, menos colabora.
+    const serie = [150, 80, 40, 20, 5].map((km) => noChanceToWin(50, 90, km))
+    for (let i = 1; i < serie.length; i++) expect(serie[i]!).toBeGreaterThanOrEqual(serie[i - 1]!)
+  })
+
+  it('la desventaja satura: doce puntos de remate ya son «no tengo nada que hacer»', () => {
+    const cerca = STAGE.coopSelfishKm - 1
+    expect(noChanceToWin(70 - STAGE.coopNoChanceGap, 70, cerca)).toBeCloseTo(1, 5)
+    expect(noChanceToWin(70 - 2 * STAGE.coopNoChanceGap, 70, cerca)).toBeCloseTo(1, 5)
+    // Y a media distancia de remate, colabora a medias.
+    expect(noChanceToWin(70 - STAGE.coopNoChanceGap / 2, 70, cerca)).toBeCloseTo(0.5, 5)
+  })
+
+  /**
+   * LOS DOS CASOS DEL DUEÑO SON EL MISMO, y este test es el que lo demuestra: la misma función, con
+   * el mismo rodador, dice «no colabores» ante un escalador en un alto y «colabora» ante el mismo
+   * escalador en un sprint. Lo que cambia no es la regla, son los pesos del final —y eso lo sabe
+   * `finishScore`—.
+   */
+  it('vale igual para el que pierde el sprint y para el mal escalador', () => {
+    const escalador = eff(58, { MON: 88, COL: 84 })
+    const rodador = eff(58, { MON: 56, LLA: 70 })
+    const enAlto = (e: Record<Attribute, number>): number => finishScore(e, 'alto')
+    const alSprint = (e: Record<Attribute, number>): number => finishScore(e, 'sprint_reducido')
+
+    // Etapa de montaña: el rodador no tiene nada que hacer y a diez kilómetros deja de tirar.
+    expect(noChanceToWin(enAlto(rodador), enAlto(escalador), 10)).toBeCloseTo(1, 5)
+    // La misma pareja en una llegada al sprint: ahí el mejor es el rodador, así que TIRA él…
+    expect(noChanceToWin(alSprint(rodador), alSprint(escalador), 10)).toBe(0)
+    // …y el que se planta es el escalador.
+    expect(noChanceToWin(alSprint(escalador), alSprint(rodador), 10)).toBeGreaterThan(0)
   })
 })

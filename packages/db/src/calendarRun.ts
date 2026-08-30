@@ -9,6 +9,7 @@ import {
   freshnessBar,
   gcPointsByClass,
   raceLastDay,
+  raceLeadScore,
   raceOngoingBefore,
   raceVocationFit,
   scheduledStageIndex,
@@ -16,6 +17,7 @@ import {
   stagePointsByClass,
 } from '@cyclingstar/engine'
 import {
+  type Attribute,
   type Continent,
   continentForCountry,
   countriesInContinent,
@@ -33,6 +35,7 @@ import {
   raceEntries,
   raceGc,
   raceRosters,
+  riderAttrs,
   riderRacePrefs,
   riders,
   stageResults,
@@ -899,6 +902,47 @@ async function assignBibs(tx: Tx, race: CalendarRace, season: number): Promise<v
     .innerJoin(riders, eq(riders.id, raceRosters.riderId))
     .where(eq(raceRosters.raceId, raceKey))
   if (rows.length === 0) return
+  /**
+   * EL DORSAL 1 DE UN EQUIPO ES SU LÍDER, NO SU CORREDOR MÁS FAMOSO (v42).
+   *
+   * El dueño, mirando una carrera: «le han dado el dorsal 131 a un wey que ha quedado en el puesto
+   * 50 a 10 minutos, mientras que el 132 y otro más de ese equipo son primero y segundo de la
+   * general… y mirando sus stats son claramente mejores que el 131». Y afinó él mismo el
+   * diagnóstico: «supongo que aquí todos tienen fama 0 o casi y entonces le dan el 1 a uno
+   * cualquiera… quizás en caso de empate en fama desempata por stats».
+   *
+   * Exacto, y con un agravante: ordenar SOLO por fama no es que reparta mal cuando hay empate, es
+   * que no reparte de forma determinista. `Array.sort` es estable, así que con toda la fama a 0 el
+   * orden que quedaba era el que devolviera Postgres, que no está garantizado.
+   *
+   * Así que la fama sigue mandando cuando de verdad distingue —un ex campeón lleva el 1 de su
+   * equipo, y eso es ciclismo— y por debajo desempatan las PIERNAS para esta carrera concreta
+   * (`raceLeadScore`: montaña por montaña, llano por remate), y en último término el id, para que el
+   * reparto sea siempre el mismo.
+   */
+  const attrRows =
+    rows.length > 0
+      ? await tx
+          .select({ riderId: riderAttrs.riderId, attr: riderAttrs.attr, value: riderAttrs.value })
+          .from(riderAttrs)
+          .where(
+            inArray(
+              riderAttrs.riderId,
+              rows.map((r) => r.riderId),
+            ),
+          )
+      : []
+  const attrsOf = new Map<string, Record<string, number>>()
+  for (const a of attrRows) {
+    const cur = attrsOf.get(a.riderId) ?? {}
+    cur[a.attr] = a.value
+    attrsOf.set(a.riderId, cur)
+  }
+  const kinds = race.stages.map((s) => s.kind)
+  const piernas = (riderId: string): number => {
+    const a = attrsOf.get(riderId)
+    return a ? raceLeadScore(a as Record<Attribute, number>, kinds) : 0
+  }
 
   // Los dorsales se acumulan y se escriben de una vez al final (hasta 176 en una gran vuelta: un
   // UPDATE por dorsal eran 176 idas y vueltas dentro de la transacción del día).
@@ -919,7 +963,12 @@ async function assignBibs(tx: Tx, race: CalendarRace, season: number): Promise<v
 
   // Campeonato nacional: sin equipos, se numera por fama (el mejor, o el campeón defensor, el 1).
   if (race.championshipCountry) {
-    const ordered = [...rows].sort((a, b) => b.fame - a.fame)
+    const ordered = [...rows].sort(
+      (a, b) =>
+        b.fame - a.fame ||
+        piernas(b.riderId) - piernas(a.riderId) ||
+        (a.riderId < b.riderId ? -1 : 1),
+    )
     let n = 1
     for (const r of ordered) setBib(r.riderId, n++)
     await flushBibs()
@@ -999,7 +1048,14 @@ async function assignBibs(tx: Tx, race: CalendarRace, season: number): Promise<v
   let decade = championFirst ? 0 : 1
   for (const teamId of teamIds) {
     const members = byTeam.get(teamId)!
-    members.sort((a, b) => b.fame - a.fame) // el líder (más fama) primero → x1
+    // El líder primero (x1): manda la fama cuando distingue, y si no, las piernas para esta carrera.
+    // El id cierra el orden para que no lo decida Postgres. Ver la nota de arriba.
+    members.sort(
+      (a, b) =>
+        b.fame - a.fame ||
+        piernas(b.riderId) - piernas(a.riderId) ||
+        (a.riderId < b.riderId ? -1 : 1),
+    )
     if (teamId === championTeamId && championRiderId) {
       const idx = members.findIndex((m) => m.riderId === championRiderId)
       if (idx > 0) members.unshift(members.splice(idx, 1)[0]!)
@@ -1010,7 +1066,12 @@ async function assignBibs(tx: Tx, race: CalendarRace, season: number): Promise<v
   }
 
   // Agentes libres: decenas siguientes, 9 por decena.
-  freeAgents.sort((a, b) => b.fame - a.fame)
+  freeAgents.sort(
+    (a, b) =>
+      b.fame - a.fame ||
+      piernas(b.riderId) - piernas(a.riderId) ||
+      (a.riderId < b.riderId ? -1 : 1),
+  )
   for (let k = 0; k < freeAgents.length; k++) {
     setBib(freeAgents[k]!.riderId, (decade + Math.floor(k / 9)) * 10 + (k % 9) + 1)
   }

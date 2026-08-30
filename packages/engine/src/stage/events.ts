@@ -28,6 +28,20 @@ export class EventLog {
     )
   }
 
+  /**
+   * Los últimos partes emitidos EN ESTE KILÓMETRO, para no contar dos veces lo mismo (v40). Va por
+   * orden de emisión y no por reloj: lo que interesa es lo que el lector acaba de leer.
+   */
+  sameKm(km: number): RaceEvent[] {
+    const out: RaceEvent[] = []
+    for (let i = this.events.length - 1; i >= 0; i--) {
+      const e = this.events[i]!
+      if (Math.round(e.km) !== Math.round(km)) break
+      out.push(e)
+    }
+    return out
+  }
+
   /** Eventos ordenados por tiempo de carrera (SPEC 6.15). */
   toArray(): RaceEvent[] {
     return [...this.events].sort((a, b) => a.tS - b.tS || a.km - b.km)

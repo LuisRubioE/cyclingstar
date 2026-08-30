@@ -25,7 +25,7 @@ import { applyTimeCut } from './abandon.js'
 import { EventLog } from './events.js'
 import {
   type Eff,
-  blockCost,
+  timeTrialCost,
   blockSeconds,
   climbWeight,
   effNow,
@@ -245,13 +245,21 @@ export function simulateTimeTrial(input: StageInput, seed: string): StageOutput 
       const e = erosion(energy, rider.energy, eff0.RES)
       const eff = effNow(eff0, e)
       const perfil = ttPerfil(eff, block)
-      const vObj = targetSpeed(block, perfil, STAGE.ttCommitment)
+      /**
+       * LA CRONO ES EL ANCLA DEL ESFUERZO INDIVIDUAL (v38). La ley de velocidad pasa a saber entre
+       * cuántos se reparte el viento (`relayPaceEdge`), pero eso es una propiedad de una ROTACIÓN y
+       * aquí no hay ninguna: el cronoman va a su umbral de principio a fin, y lo que dice a qué
+       * ritmo va es `ttCommitment`, calibrado contra cronos reales del calendario. Cobrarle además
+       * una penalización por no tener con quién relevarse sería contar dos veces lo mismo, así que
+       * corre en la referencia y la crono no se mueve ni un dígito.
+       */
+      const vObj = targetSpeed(block, perfil, STAGE.ttCommitment, STAGE.relayPaceReference)
       const dtIn = blockSeconds(vActual)
       vActual = stepSpeed(vActual, vObj, block.g, dtIn)
       tS += blockSeconds(vActual)
       raw[i] = tS
-      // Solo, sin rebufo (shelter 0): el crono se paga entero.
-      const cost = blockCost(block, STAGE.ttCommitment, STAGE.shelterAlone)
+      // Solo, sin rebufo: el crono se paga entero, y con la ley LINEAL — ver `timeTrialCost`.
+      const cost = timeTrialCost(block, STAGE.ttCommitment)
       energy = Math.max(0, energy - cost)
       work += cost
     }

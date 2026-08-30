@@ -63,17 +63,36 @@ export function percentile75(values: number[]): number {
 
 /**
  * Avanza un grupo un bloque (SPEC 6.4, 6.16). `p75Perfil` es el P75 del perfil efectivo de
- * quienes marcan el ritmo. Devuelve un grupo nuevo: la velocidad persigue a la objetivo con
- * aceleraciones acotadas y el reloj suma el tiempo del bloque a la velocidad ya actualizada.
+ * quienes marcan el ritmo y `pullers` cuántos de ellos se reparten el viento (v38). Devuelve un
+ * grupo nuevo: la velocidad persigue a la objetivo con aceleraciones acotadas y el reloj suma el
+ * tiempo del bloque a la velocidad ya actualizada.
  */
 export function advanceGroup(
   group: Group,
   block: Block,
   p75Perfil: number,
+  /**
+   * CUÁNTOS TIRAN (v38). La ley de velocidad ya no mira solo qué piernas marcan el ritmo sino entre
+   * cuántos se reparte el viento: diez rotando pueden ir más rápido que uno solo con las mismas
+   * piernas, y uno solo no puede seguir a diez. Por defecto, la rotación de referencia con la que
+   * `vRef` está calibrado, para que quien no tenga turno que contar no cambie de velocidad.
+   */
+  pullers: number = STAGE.relayPaceReference,
   opts: AccOptions = {},
   dx: number = STAGE.dx,
 ): Group {
-  const vObjetivo = targetSpeed(block, p75Perfil, group.compromiso)
+  /**
+   * …Y EN EL REMATE MANDA EL RÉGIMEN DE SPRINT (v39, `finish.ts::sprintRegimeKmh`). La ley de
+   * velocidad de este motor es AERÓBICA —lo que un grupo sostiene durante horas— y un lanzamiento no
+   * lo es, así que los últimos kilómetros de una llegada masiva traen su propia velocidad objetivo.
+   * Se toma el MÁXIMO: el régimen solo puede acelerar el desenlace, nunca frenarlo, y fuera de él
+   * vale 0 y no se nota. Y no se llega de golpe: `stepSpeed` sigue acotando la aceleración, así que
+   * el pelotón SUBE a esa velocidad.
+   */
+  const vObjetivo = Math.max(
+    targetSpeed(block, p75Perfil, group.compromiso, pullers),
+    opts.sprintKmh ?? 0,
+  )
   // `dt de entrada`: la cota de aceleración usa la velocidad de entrada al bloque (SPEC 6.4).
   const dtIn = blockSeconds(group.vActual, dx)
   const vActual = stepSpeed(group.vActual, vObjetivo, block.g, dtIn, opts)

@@ -93,8 +93,17 @@ export function chaseField(riders: StageRider[]): ChaseField {
     })
   }
 
-  // Cada tren aporta según lo bueno que sea su rematador y con cuánta ayuda cuenta; la suma se
-  // normaliza contra el campo que sabe cazar cualquier cosa (`chaseFullUnits`).
+  return { trains, force: chaseForce(trains) }
+}
+
+/**
+ * La FUERZA que suman unos trenes: cada uno aporta según lo bueno que sea su rematador y con cuánta
+ * ayuda cuente, y la suma se normaliza contra el campo que sabe cazar cualquier cosa
+ * (`chaseFullUnits`). Sale aparte desde la v38 porque hay que volver a calcularla A MITAD DE ETAPA
+ * con los trenes que de verdad van a tirar: el equipo que tiene un hombre en la fuga del día no
+ * persigue.
+ */
+export function chaseForce(trains: ChaseTrain[]): number {
   let units = 0
   for (const t of trains) {
     const quality = Math.max(
@@ -106,7 +115,7 @@ export function chaseField(riders: StageRider[]): ChaseField {
     )
     units += quality * (1 + STAGE.chaseHelperBonus * Math.min(t.helpers, STAGE.chaseHelpersMax))
   }
-  return { trains, force: Math.max(0, Math.min(1, units / STAGE.chaseFullUnits)) }
+  return Math.max(0, Math.min(1, units / STAGE.chaseFullUnits))
 }
 
 /**

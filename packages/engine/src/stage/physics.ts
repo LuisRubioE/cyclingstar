@@ -106,14 +106,86 @@ export function loadExponent(block: Block): number {
 }
 
 /**
- * Velocidad objetivo del grupo en un bloque (SPEC 6.4):
- * v_obj = vRef(g)·carga(P75_perfil)·ritmo(c). El P75 lo aportan quienes marcan el ritmo, y la carga
- * es la potencia relativa elevada al exponente del terreno (v19; hasta la v18, `(P75/75)^0.39` en
- * todas partes).
+ * LO QUE VALE RELEVARSE, EN VELOCIDAD (v38, principio 1 del dueño): «el tamaño a medir no es el
+ * tamaño del grupo, sino el tamaño de la gente que va tirando… si hay 10 personas tirando, ya sea
+ * del pelotón, de una fuga o de lo que sea, tienen potencial para ir más rápido que un grupo donde
+ * solo tire 1 (aunque claro, si ese 1 es un crack y no está desfondado… quizás pueda ir más
+ * rápido)».
+ *
+ * Hasta la v37 la ley de velocidad no sabía cuánta gente tiraba: `v = vRef · relPower(P75)^e ·
+ * ritmo(c)`, y medido, un grupo de 1, 4, 8, 30 y 150 hombres con el mismo compromiso y el mismo P75
+ * iba a la MISMA velocidad exacta (47,31 km/h en llano). El rebufo solo se cobraba en el COSTE, así
+ * que el tamaño del turno daba autonomía y no daba velocidad. De ahí salía el defecto que se veía en
+ * la carretera: la fuga del día sobrevivía MÁS siendo 2-3 (11,9 %) que siendo 4-6 (2,1 %).
+ *
+ * Y no hace falta inventar física para arreglarlo, porque el motor ya la tenía escrita en el otro
+ * lado del libro. En una rotación de `n`, a cada hombre le toca la cabeza 1/n del tiempo, así que su
+ * potencia media es la del que va delante por su exposición, `1 − draftMax·shelterOf(true, n)`. Al
+ * revés: **si lo que puede sostener es su umbral, el que va en cabeza puede ir a `umbral /
+ * exposición`**, y por eso diez rotando van más rápido que uno solo con las mismas piernas. Es
+ * exactamente la misma pieza que `blockCost` cobra en energía, leída en el otro sentido.
+ *
+ * Se normaliza en `relayPaceReference` porque `vRef` está calibrado contra el pelotón **tal y como
+ * el motor lo rueda**: medido sobre cuatro carreras del banco, el turno del pelotón es de 3,20
+ * hombres de media (mediana 3, p90 6) —no de ocho: desde la v34 el frente tiene dueño y rotan SUS
+ * hombres—. Con esa referencia el pelotón no se mueve ni un dígito y lo que cambia es todo lo demás:
+ * el hombre solo pierde, la fuga que se releva entera gana.
+ *
+ * Y se cobra a precio de rebufo por construcción, sin una línea extra: `draftMax` vale 0,42 en el
+ * llano y 0,096 en una rampa al 8 %, así que arriba relevarse casi no compra nada —no hay rueda a la
+ * que ir— y el que sube solo sube casi igual que el grupo. Es el mismo argumento de `droppedCommit`
+ * (v16), que ahora vive donde tenía que vivir: en la ley.
  */
-export function targetSpeed(block: Block, p75Perfil: number, c: number): number {
+export function relayPaceEdge(block: Block, pullers: number): number {
+  const exposure = (n: number): number => 1 - draftMax(block) * shelterOf(true, n)
+  const full = exposure(STAGE.relayPaceReference) / exposure(Math.max(1, pullers))
+  return Math.pow(full, STAGE.relayPaceWeight)
+}
+
+/**
+ * Velocidad objetivo del grupo en un bloque (SPEC 6.4):
+ * v_obj = vRef(g)·carga(P75_perfil · relevo)·ritmo(c). El P75 lo aportan quienes marcan el ritmo, la
+ * carga es la potencia relativa elevada al exponente del terreno (v19; hasta la v18, `(P75/75)^0.39`
+ * en todas partes) y el relevo es lo que valga repartirse el viento entre los que tiran (v38).
+ *
+ * El relevo entra DENTRO del exponente y no fuera, porque es potencia y no velocidad: en el llano la
+ * velocidad va como la raíz cúbica de los vatios (0,39) y subiendo va como los vatios enteros. Así
+ * un turno de ocho compra un 4,5 % de velocidad en el llano y un 1,9 % en una rampa dura, que es la
+ * carretera.
+ */
+/**
+ * EL COMPROMISO QUE EXPLICA UNA VELOCIDAD (v39). El inverso de `targetSpeed` en su único argumento
+ * libre: a qué compromiso habría que rodar para ir a `v` en este bloque, con estas piernas y esta
+ * rotación. Es exacto porque el ritmo entra LINEAL en la ley (`rhythm(c) = 0.9 + 0.3c`), así que
+ * basta con dos evaluaciones.
+ *
+ * Existe por un agujero que abrió el régimen de remate (v39): en los últimos kilómetros la
+ * velocidad la impone el régimen de sprint y NO el compromiso del grupo, y el coste se seguía
+ * calculando con el compromiso. Medido en el banco del tren: el pelotón cruzaba la meta a **59,9
+ * km/h con el compromiso en 0,10**, y el trabajo de todos —lanzadores incluidos— valía CERO. Un
+ * sprint gratis. Con esto, lo que se cobra es la velocidad que de verdad se lleva, venga de donde
+ * venga: el lanzador se funde lanzando, que es lo que hace un lanzador.
+ */
+export function commitmentForSpeed(
+  block: Block,
+  p75Perfil: number,
+  kmh: number,
+  pullers: number = STAGE.relayPaceReference,
+): number {
+  const v0 = targetSpeed(block, p75Perfil, 0, pullers)
+  const v1 = targetSpeed(block, p75Perfil, 1, pullers)
+  if (v1 <= v0) return 0
+  return (kmh - v0) / (v1 - v0)
+}
+
+export function targetSpeed(
+  block: Block,
+  p75Perfil: number,
+  c: number,
+  pullers: number = STAGE.relayPaceReference,
+): number {
   const base = vRef(block.g, block.tipo)
-  const load = Math.pow(relPower(p75Perfil), loadExponent(block))
+  const load = Math.pow(relPower(p75Perfil) * relayPaceEdge(block, pullers), loadExponent(block))
   return base * load * rhythm(c)
 }
 
@@ -127,6 +199,13 @@ export interface AccOptions {
   isFinal?: boolean
   /** Impulso de cerillo activo: la aceleración aplicable se multiplica por 2.5. */
   matchActive?: boolean
+  /**
+   * VELOCIDAD DEL RÉGIMEN DE REMATE (v39, `finish.ts::sprintRegimeKmh`). Los últimos kilómetros de
+   * una llegada masiva no se ruedan, se lanzan, y eso es un esfuerzo anaeróbico que la ley aeróbica
+   * de este motor no sabe expresar. Cuando viene, `advanceGroup` toma el máximo entre ella y la ley
+   * de siempre. 0 o ausente fuera del remate.
+   */
+  sprintKmh?: number
 }
 
 /** Cota de aceleración aplicable en km/h por segundo (SPEC 6.4), asimétrica y contextual. */
@@ -238,10 +317,21 @@ export function droppedCommit(
   aheadSize: number,
   aheadCommit: number,
 ): number {
-  const rotation = 1 - 1 / Math.max(1, size)
   const wind = draftMax(block) / STAGE.draftFlat
-  const able =
-    STAGE.shedCommitAlone + (STAGE.shedCommitBunch - STAGE.shedCommitAlone) * rotation * wind
+  /**
+   * …Y LO QUE VALE RELEVARSE YA NO SE COBRA AQUÍ (v38). Hasta la v37 este término era
+   * `shedCommitAlone + (shedCommitBunch − shedCommitAlone)·rotación·viento`: el hombre solo rodaba a
+   * 0,55 y el autobús a 0,82, y eso era la v16 metiendo A MANO en el COMPROMISO lo que la ley de
+   * velocidad no sabía —que relevarse reparte el viento—. Desde la v38 la ley lo sabe
+   * (`relayPaceEdge`), así que dejarlo aquí sería cobrarlo DOS VECES: medido con las dos, el hombre
+   * solo perdía un 7 % por el compromiso más un 10,7 % por la ley, y los grupetos se iban fuera de
+   * control en el 41,5 % de los abandonos de una gran vuelta (banda 1-15 %).
+   *
+   * Lo que queda aquí es lo que siempre fue una DECISIÓN y no una física: a qué ritmo QUIERE rodar
+   * un grupo que se ha ido por detrás. Y quiere rodar al de un pelotón —lo que pueda darle su turno
+   * ya lo dice la ley—.
+   */
+  const able = STAGE.shedCommitBunch
   const legs =
     STAGE.shedEmptyCommitFactor + (1 - STAGE.shedEmptyCommitFactor) * clamp(freshness, 0, 1)
   // La frescura pesa sobre el ritmo del GRUPETO y no sobre el del que pelea, y no es un detalle: lo
@@ -250,7 +340,23 @@ export function droppedCommit(
   // rueda—. El que acaba de soltarse va a su umbral aunque vaya vacío; el que ya se ha resignado,
   // no.
   const seen = 1 - clamp(gapSeconds / STAGE.shedResignGapSeconds, 0, 1)
-  const fight = seen + (1 - seen) * majorityOnTheRoad(size, aheadSize) * wind
+  /**
+   * …Y EL QUE VA VACÍO NO PELEA (v40). Pelear era una decisión que solo miraba el boquete y cuánta
+   * gente hay a cada lado: el que acababa de soltarse iba a por ellos «aunque fuera vacío», y eso
+   * está bien escrito para el que pierde una rueda con medio depósito, pero no para el que está a
+   * cero. A cero no se pelea: te sientas y sobrevives, porque no hay con qué.
+   *
+   * El defecto que lo destapó: las carreras de un día de MONTAÑA —final en alto de doce a quince
+   * kilómetros— reventaban el pelotón entero. Medido en Race Jura con campo heterogéneo, **el 82 %
+   * del campo cruzaba la meta con el tanque a cero y el vaciado mediano valía 1,000**, o sea que la
+   * erosión topaba y el resultado pasaba a ser azar. Y no era el recorrido: Jura es MÁS FÁCIL que Il
+   * Lombardia —210 km contra 241, 39 km de subida contra 55, 2.942 m contra 2.995— y Lombardía se
+   * queda en 0,949. Lo que las separa es que Jura muere arriba, así que los descolgados se sueltan
+   * DENTRO del último puerto, con el boquete todavía pequeño, y se quedaban peleando a tope los
+   * catorce kilómetros que les faltaban para la meta.
+   */
+  const conQuéPelear = clamp(freshness / STAGE.shedFightFreshness, 0, 1)
+  const fight = (seen + (1 - seen) * majorityOnTheRoad(size, aheadSize) * wind) * conQuéPelear
   /**
    * …Y PELEAR ES IR MÁS RÁPIDO QUE EL DE DELANTE (v35). El 0,82 de la v16 es un número absoluto —el
    * ritmo de un pelotón lanzado— y contra un pelotón que rueda a tempo (0,55-0,65) eso significaba
@@ -259,7 +365,7 @@ export function droppedCommit(
    * delante más lo que valga su rotación, y se mezcla con el 0,82 de siempre a precio de rebufo:
    * en el llano manda el tope, en la rampa no hay rueda a la que ir y queda la v16 intacta.
    */
-  const chase = clamp(aheadCommit, 0, 1) + STAGE.shedChaseEdge * rotation
+  const chase = clamp(aheadCommit, 0, 1)
   const ceiling =
     STAGE.shedFightCommit - wind * (STAGE.shedFightCommit - Math.min(STAGE.shedFightCommit, chase))
   // El tope es una LIMITACIÓN, no una decisión, así que se aplica al final y no se mezcla con las
@@ -346,11 +452,50 @@ export function riderEffort(block: Block, commit: number, shelter: number): numb
  *
  * Es el mismo 1 − 1/n que `droppedCommit` (v16) cobraba en VELOCIDAD —«relevarse reparte el viento;
  * el que va solo da la cara el 100 %»— y que hasta hoy solo usaban los grupos descolgados.
+ *
+ * `arropo` es CUÁNTO REBUFO HAY (v41): normalmente `shelterProtected`, y menos cuando la carretera
+ * no da para tanto (`gutterShelter`, el abanico). Entra en los dos estados y no solo en el del que
+ * va a rueda, porque en una fila que no cabe el que sale del relevo tampoco encuentra dónde
+ * meterse.
  */
-export function shelterOf(pulling: boolean, pullers: number): number {
-  if (!pulling) return STAGE.shelterProtected
+export function shelterOf(
+  pulling: boolean,
+  pullers: number,
+  arropo: number = STAGE.shelterProtected,
+): number {
+  if (!pulling) return arropo
   const n = Math.max(1, pullers)
-  return STAGE.shelterAlone + (STAGE.shelterProtected - STAGE.shelterAlone) * (1 - 1 / n)
+  return STAGE.shelterAlone + (arropo - STAGE.shelterAlone) * (1 - 1 / n)
+}
+
+/**
+ * CUÁNTO REBUFO HAY DE VERDAD PARA UN GRUPO DE ESTE TAMAÑO (v41). Es `shelterProtected` —ir a
+ * rueda— salvo con el viento de lado, donde el rebufo va en DIAGONAL y la fila se come el ancho del
+ * asfalto: a partir de cierto número no se cabe, y el que no cabe no va a rueda de nadie, va en la
+ * cuneta pagando el viento entero.
+ *
+ * Es la pieza que le faltaba al abanico, y sin ella el corte era un adorno: medido, el pelotón se
+ * partía dejando 21 hombres delante y 152 detrás, y ganaban los 152 —porque los 140 que no rotaban
+ * en ese grupo iban A RUEDA, recargando, mientras los 21 de delante se fundían rotando—. Ser muchos
+ * salía gratis justo el día en que ser muchos es el problema.
+ *
+ * Se degrada en proporción, `caben / son`, con un SUELO (`windGutterFloor`). Con el suelo puesto lo
+ * que la cuenta dice en la práctica es lo que dice la carretera —o vas en la fila o vas en la
+ * cuneta—: hay una rampa corta mientras el grupo sobra por poco y, a partir de ahí, sobrar por poco
+ * y sobrar por mucho se pagan igual, porque el segundo de la fila está en la cuneta lo mismo que el
+ * centésimo. Cuando el grupo cabe, no cambia nada.
+ *
+ * …Y CON SUELO (`windGutterFloor`), porque sin él esto no era un abanico sino una matanza: medido en
+ * el Tour de Flandes con viento fuerte, **el 85 % del campo con el depósito a cero**. La proporción
+ * pura dice que en un grupo de 150 con capacidad para 13 se va a rueda al 8 %, y eso es falso: en
+ * carretera, el que se queda fuera del corte no pasa cien kilómetros solo en la cuneta —se junta con
+ * los de al lado, hacen su propia fila y ruedan—. El suelo es esa fila de segunda: peor que ir en el
+ * abanico bueno, no la muerte.
+ */
+export function gutterShelter(size: number, caben: number): number {
+  return (
+    STAGE.shelterProtected * Math.max(STAGE.windGutterFloor, Math.min(1, caben / Math.max(1, size)))
+  )
 }
 
 /**
@@ -359,6 +504,12 @@ export function shelterOf(pulling: boolean, pullers: number): number {
  * techo: en la cabeza de un grupo caben unos pocos hombres rotando, no un cuarto del pelotón
  * (`relayRotationMax`). El turno es el menor de los dos, y nunca menos de uno: si el grupo rueda,
  * alguien está dando la cara.
+ *
+ * …Y ESTO YA NO DECIDE QUIÉN TIRA (v38). Lo decide `relayTurn` con un UMBRAL sobre el deber de
+ * relevo, así que esta función se queda con lo único que siempre fue suyo: cuántos hombres CABEN
+ * dando la cara, que es lo que pide el ritmo del terreno con el tope de la carretera
+ * (`relayRotationMax` = 20). Se usa donde hace falta una cuenta de capacidad y no un turno concreto:
+ * la deriva de la subida, que compara lo que puede un hombre contra lo que puede su grupo.
  */
 export function relayRotation(size: number, paceFraction: number): number {
   const asked = Math.ceil(paceFraction * size)
@@ -371,15 +522,133 @@ export function idleEffort(block: Block): number {
 }
 
 /**
- * Coste de energía de un corredor en un bloque (SPEC 6.5):
- * coste = dx·costeBase·ritmo(c)^1.6·(1 - draftMax·shelter).
+ * LO QUE CUESTA EL VIENTO QUE TE TOCA (v38, principio 2 del dueño): «el que va a rueda va muuucho
+ * más cómodo y por tanto muchísimo menor coste».
+ *
+ * Hasta la v37 el coste era LINEAL en la exposición: `1 − draftMax·shelter`, o sea 1,00 dando la
+ * cara y 0,62 a rueda. Eso dice que ir a rueda cuesta el 62 % de dar la cara, y en la carretera no
+ * es eso. La potencia sí va en esa proporción —el rebufo ahorra un 40 % de vatios, no un 90 %—,
+ * pero lo que este motor gasta no son vatios: es el DEPÓSITO, y el depósito no es lineal en la
+ * potencia. A 45 km/h el que da la cara va por encima de su umbral quemando glucógeno y el que va a
+ * rueda va en fondo, donde casi no se gasta. Por eso la exposición entra por un exponente.
+ *
+ * Y LA REFERENCIA DE CADA HOMBRE ES LO QUE SOSTENDRÍA ÉL SOLO, no un absoluto. Ésta es la
+ * corrección que hace que el modelo no se rompa por los extremos: la convexidad describe lo que
+ * cuesta ir POR ENCIMA de tu propio umbral, que es lo que le pasa al que da la cara en un grupo que
+ * rueda más rápido de lo que él aguantaría solo. Cuánto más rápido va ese grupo ya lo dice la ley de
+ * velocidad (`relayPaceEdge`), leída contra `n = 1`. De ahí sale sola la propiedad que hace falta:
+ *
+ *  - **el que va SOLO no paga convexidad ninguna** —su excursión vale 1— porque va a su umbral por
+ *    definición. Es el mismo argumento que ancla la contrarreloj, y ahora no hace falta escribirlo
+ *    como excepción: sale de la fórmula.
+ *  - **el que rota en un pelotón sí la paga**, porque el pelotón va más rápido de lo que él
+ *    sostendría solo, y por eso da la cara por turnos y no todo el rato.
+ *
+ * Sin esto, el descolgado solo pagaba el coste de «ir en cabeza del pelotón» aunque fuera diez
+ * km/h más despacio, y con el exponente alto eso lo mandaba fuera de control: medido, el 24,7 % de
+ * los abandonos de una gran vuelta contra una banda de 1-15 %.
  */
-export function blockCost(block: Block, c: number, shelter: number, dx: number = STAGE.dx): number {
+export function timeTrialCost(block: Block, c: number, dx: number = STAGE.dx): number {
+  return dx * costBase(block) * Math.pow(rhythm(c), STAGE.costRhythmExponent)
+}
+
+/**
+ * EL EXPONENTE DEL RITMO ES EL INVERSO DE LA LEY (v39). El dueño: «ir en cabeza no es solo un tema
+ * del viento, es un tema de desgaste porque vas marcando la velocidad; obviamente es muy diferente
+ * ir en cabeza a 70 km/h que a 30 km/h, suponiendo llano en ambos casos».
+ *
+ * Tiene razón y el motor se contradecía a sí mismo. La ley de velocidad dice que en LLANO la
+ * velocidad responde a la potencia con exponente `p75Exponent` = 0,39 —o sea que para ir un 10 %
+ * más rápido hay que poner un 27 % más de vatios, `P ∝ v^2,56`, que es la ley aerodinámica— y en
+ * CUESTA responde con exponente 1,0, porque ahí lo que se paga es levantar el peso y la velocidad
+ * es proporcional a la potencia. Pero el COSTE del ritmo usaba un exponente FIJO de 1,6 para las
+ * dos cosas: infracobraba el llano rápido —justo el caso del dueño— y sobrecobraba la cuesta.
+ *
+ * El exponente correcto es exactamente el inverso del de la ley que convierte potencia en
+ * velocidad: `1 / loadExponent(block)`. No es una calibración, es cerrar el círculo — con esto,
+ * subir el ritmo cuesta lo que la propia ley del motor dice que cuesta.
+ *
+ * `costRhythmLawShare` mezcla con el exponente viejo para poder medir el cambio por partes; en 1
+ * manda la ley.
+ */
+export function rhythmCostExponent(block: Block): number {
+  const porLey = 1 / Math.max(1e-9, loadExponent(block))
+  return STAGE.costRhythmExponent + (porLey - STAGE.costRhythmExponent) * STAGE.costRhythmLawShare
+}
+
+export function blockCost(
+  block: Block,
+  c: number,
+  pulling: boolean,
+  pullers: number,
+  dx: number = STAGE.dx,
+  arropo: number = STAGE.shelterProtected,
+): number {
+  const d = draftMax(block)
+  const n = Math.max(1, pullers)
+  /**
+   * LO QUE CUESTA CADA ESTADO, con el NIVEL fuera del exponente. `costExposureLevel` no entra en la
+   * proporción: multiplica a los dos por igual, así que la proporción es solo del exponente y el
+   * nivel es solo suyo. Separarlos es lo que hace esto calibrable.
+   */
+  const cara = STAGE.costExposureLevel
+  /**
+   * …Y HAY UN SUELO: PEDALEAR CUESTA AUNQUE VAYAS A RUEDA (v38, `costExposureFloor`).
+   *
+   * El exponente describe el coste MARGINAL de dar la cara, y ahí el número del dueño —la rueda al
+   * 10 % de la cara en llano— es bueno. Pero no todo el gasto es marginal: cubrir 280 km es cubrir
+   * 280 km, y eso lo paga el que va a rueda igual que el que tira. Sin este suelo, un pelotón de
+   * verdad —donde el corredor mediano solo pasa el 3,5 % de la etapa dando la cara, contra el 19,6 %
+   * de un campo de cuarenta— salía de una llana con el 12 % del depósito gastado en vez del 33 %, y
+   * una clásica de 278 km dejaba de cansar a nadie: la erosión se hundía a 0,282 contra un suelo de
+   * 0,45.
+   *
+   * El defecto solo se vio al meter EQUIPOS y un PELOTÓN DE VERDAD en los escenarios canónicos, que
+   * es lo que pidió el dueño. Con cuarenta corredores todo el mundo tiraba a menudo y el suelo no
+   * hacía falta para llegar a las cifras: el banco tapaba el agujero.
+   */
+  // `arropo` es el rebufo que la carretera da de verdad (v41): `shelterProtected` salvo en un
+  // abanico, donde el que no cabe en la fila no va a rueda de nadie (`gutterShelter`).
+  const abrigo = Math.pow(1 - d * arropo, STAGE.costExposureExponent)
+  const rueda =
+    STAGE.costExposureLevel * (STAGE.costExposureFloor + (1 - STAGE.costExposureFloor) * abrigo)
+  /**
+   * Y LA EXPOSICIÓN SE PROMEDIA SOBRE EL TURNO, NO SOBRE EL REBUFO (v38). Hasta la v37 se calculaba
+   * el rebufo MEDIO del que tira (`shelterOf`: `shelterProtected·(1 − 1/n)`) y se cobraba una vez.
+   * Es la cuenta del dueño, pero hecha en el orden que engaña: lo que un hombre hace de verdad en
+   * una rotación de dos no es ir a medio rebufo todo el rato, es ir **la mitad del tiempo dando la
+   * cara y la mitad a rueda**, y como el coste no es lineal, promediar antes o después NO da lo
+   * mismo. Textual: «si solo tira 1, el coste debería ser prácticamente el doble que si tiran 2…
+   * porque si tiran 2, pues el 50 % está tirando y el 50 % está a rueda».
+   */
+  const share = pulling ? 1 / n : 0
+  /**
+   * …Y SE PAGA A LA VELOCIDAD A LA QUE DE VERDAD VA EL GRUPO (v38). El compromiso dice a qué ritmo
+   * QUIERE ir el grupo, pero desde que la ley de velocidad sabe entre cuántos se reparte el viento,
+   * un grupo pequeño con el mismo compromiso va MÁS DESPACIO. Sin esta línea el descolgado solo
+   * pagaba el coste de ir a la velocidad del pelotón yendo diez km/h más lento, y con el exponente
+   * alto eso lo mandaba fuera de control.
+   */
+  const marcha = rhythm(c) * relayPaceEdge(block, n)
+  /**
+   * …Y EL EXPONENTE NUEVO CAMBIA LA FORMA, NO EL NIVEL (v39). Pasar el exponente de 1,6 a la ley
+   * (2,56 en llano) encarece TODO el llano de golpe: medido, un +19 % al ritmo de carrera, que
+   * mandaba Strade Bianche de 0,918 de vaciado a 0,992 con un 38 % de pájaras. Y eso no es lo que
+   * dice la física del dueño: lo que dice es que ir a 70 cuesta MUCHO más que ir a 30, no que ir a
+   * 30 cueste más de lo que costaba.
+   *
+   * Así que el ritmo entra ANCLADO en un pivote —el ritmo al que se rueda un día normal— y elevado
+   * allí al exponente viejo. En el pivote el coste es exactamente el de siempre; por encima sube
+   * más deprisa que antes y por debajo baja más deprisa. La calibración de todo el juego se queda
+   * donde estaba y lo que cambia es la CURVATURA, que es justo lo que había que arreglar.
+   */
+  const pivote = STAGE.costRhythmPivot
   return (
     dx *
     costBase(block) *
-    Math.pow(rhythm(c), STAGE.costRhythmExponent) *
-    (1 - draftMax(block) * shelter)
+    Math.pow(pivote, STAGE.costRhythmExponent) *
+    Math.pow(marcha / pivote, rhythmCostExponent(block)) *
+    (share * cara + (1 - share) * rueda)
   )
 }
 
@@ -468,14 +737,41 @@ export function effNowAttr(eff0Value: number, attr: Attribute, erosionValue: num
 }
 
 /**
- * Efectividades actuales de todos los atributos (SPEC 6.7). Con `bonk` (tanque a cero) los
- * atributos físicos caen a 0.55 y el corredor se descuelga automáticamente.
+ * LA PÁJARA NO ES UN ACANTILADO (v38). Hasta la v37 la pájara era un booleano sobre `energy <= 0`:
+ * con el depósito en 0,001 no pasaba nada y con el depósito en 0 los atributos físicos caían de
+ * golpe un 45 %. Eso hace que el motor sea EXTREMADAMENTE sensible al nivel del coste justo en el
+ * borde: medido al recalibrar la v38, la clásica más dura pasaba del 8 % del campo con pájara al
+ * 46 % y al 100 % con empujones pequeños del nivel, sin que ninguna banda lo cazara.
+ *
+ * El dueño: «las pájaras igual hay que recalibrar cuándo se produce una pájara». Y en la carretera
+ * tampoco es un interruptor: el glucógeno no se acaba de golpe, se va acabando, y el hombre se va
+ * apagando en los últimos kilómetros antes de reventar del todo. Así que el castigo entra por una
+ * RAMPA sobre el último `bonkOnset` del depósito: al 8 % de reserva no pasa nada, a cero se paga
+ * entero, y entre medias se paga la parte proporcional.
+ *
+ * `bonkFactor` no se mueve —la pájara con el depósito a cero cuesta lo que costaba— y el booleano
+ * de la crónica sigue siendo `energy <= 0`, así que lo que se narra sigue siendo la pájara de
+ * verdad y no el aviso.
  */
-export function effNow(eff0: Eff, erosionValue: number, bonk = false): Eff {
+export function bonkPenalty(energy: number, energy0: number): number {
+  if (energy <= 0) return STAGE.bonkFactor
+  const onset = STAGE.bonkOnset * Math.max(1e-9, energy0)
+  if (energy >= onset) return 1
+  const t = energy / onset
+  return STAGE.bonkFactor + (1 - STAGE.bonkFactor) * t
+}
+
+/**
+ * Efectividades actuales de todos los atributos (SPEC 6.7). `bonk` es cuánto se paga por tener el
+ * depósito en las últimas: 1 mientras quede reserva y `bonkFactor` con el tanque a cero, con la
+ * rampa de `bonkPenalty` entre medias. Se admite un booleano por compatibilidad con los bancos.
+ */
+export function effNow(eff0: Eff, erosionValue: number, bonk: boolean | number = false): Eff {
+  const penalty = typeof bonk === 'number' ? bonk : bonk ? STAGE.bonkFactor : 1
   const out = {} as Eff
   for (const attr of Object.keys(eff0) as Attribute[]) {
     let value = effNowAttr(eff0[attr], attr, erosionValue)
-    if (bonk && PHYSICAL.includes(attr)) value *= STAGE.bonkFactor
+    if (penalty < 1 && PHYSICAL.includes(attr)) value *= penalty
     out[attr] = value
   }
   return out

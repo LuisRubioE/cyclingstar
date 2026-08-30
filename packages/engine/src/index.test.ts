@@ -131,6 +131,70 @@ describe('engine: esqueleto', () => {
     // 6:53 en el km 137 y 16 s en meta). La referencia pasa a ser los que SIGUEN EN CARRERA, el
     // parte de ventaja NOMBRA a quien va delante y dice contra quién se mide y cuánto queda.
     // Cambio de OBSERVACIÓN: ni un dado, ni un subflujo, ni una constante de calibración.
+    // v42: EL CLIMA, Y TRES COSAS QUE EL DUEÑO VIO ABRIENDO UNA CARRERA (docs/motor.md §20,
+    // docs/balance.md «v42»). El clima entra por donde el dueño dijo —«debería depender del país y
+    // del GD»—: nueve zonas climáticas y el día del año deciden cuánto llueve y cuánto aprieta el
+    // calor aquí y hoy, así que la primavera belga se corre mojada (33 %) y la Vuelta seca y a 26°
+    // (9 %). La lluvia multiplica las caídas, parte el adoquín y suelta ruedas en el descenso; el
+    // calor no selecciona, desgasta. Y tres defectos de producción: el maillot amarillo dando
+    // relevos, el fugado al que cazan tras 120 km y vuelve a atacar —y gana la etapa—, y el dorsal 1
+    // repartido por fama con un desempate que dependía de lo que devolviera Postgres.
+    // v41: EL VIENTO Y LOS ABANICOS, Y DOS COSAS QUE NO TENÍAN SENTIDO (docs/motor.md §19,
+    // docs/balance.md «v41»). El llano no seleccionaba NUNCA —`selectionFactor('llano')` valía 0—,
+    // así que la forma más clásica de romper una carrera no existía en el motor. Ahora un 13 % de
+    // los días trae viento de lado, y con él cuatro piezas: cuántos CABEN en la fila, el CORTE en
+    // cascada, la CUNETA del que se queda fuera —sin la cual el grupo de 152 se comía al abanico de
+    // 21— y la COLOCACIÓN, que era la otra mitad del encargo. Y dos defectos que el dueño encontró
+    // en una carrera de producción: un corredor tirando en un grupo que perseguía a su propio
+    // compañero (la v33 había escrito solo la mitad de esa regla) y el que se escapa después de ir
+    // dando relevos, cuando el que ataca viene de la rueda.
+    // v40: EL ADOQUÍN VUELVE A ROMPER LA CARRERA, Y EL DIARIO DEJA DE CONTRADECIRSE
+    // (docs/balance.md «v40»). Cuatro arreglos y ni una mecánica nueva. (1) EL PAVÉ no
+    // seleccionaba: Paris-Roubaix —54,8 km de adoquín, el último sector a 1,1 km de meta— metía a
+    // 127 de 176 en el mismo segundo, con un PAV medio de cabeza igual al del campo; con
+    // `dropPavesFactor` en 0,6, 24 hombres y PAV 76,2 contra 64,0. (2) EL GENERADOR daba a las
+    // clásicas de un día de montaña el perfil de una etapa REINA —final en alto de catorce
+    // kilómetros, que no existe en el calendario real— y eso dejaba al 82 % del pelotón con el
+    // tanque a cero; ahora coronan antes de meta, y el invariante de saturación mira el calendario
+    // ENTERO y no solo el WorldTour, que es por donde se coló. (3) EL DESCOLGADO A CERO ya no
+    // pelea: no hay con qué. (4) EL DIARIO, medido con su propio auditor sobre 48 etapas: 70
+    // contradicciones en seis tipos, 10 en dos al cerrar —el mismo ataque contado dos veces, dos
+    // números que se leían como un error, partes de relevo que no traían nada y arcos que se abrían
+    // sin cerrarse—, más dos detectores que señalaban defectos que el lector nunca ve.
+    // v39: EL SPRINT ES UNA DECISIÓN Y EL RITMO CUESTA LO QUE DICE LA LEY (docs/balance.md «v39»).
+    // Tres leyes nuevas y un submotor. (1) EL LANZAMIENTO: cada hombre ABRE el sprint a una
+    // distancia de la línea, y hay dos maneras de equivocarse —pasarse de lo que aguanta, o dejar
+    // que el primero se vaya más de una ventana de cortesía—, con dado y subflujo NOMINAL nuevos
+    // (`launch`). El dueño: «puede haber un momento en el que todos se miran y de repente uno se
+    // lanza». (2) EL REMATE DEJA DE SER GRATIS: el régimen de sprint imponía la velocidad de los
+    // últimos kilómetros y el coste se cobraba con el compromiso del grupo —el pelotón cruzaba a
+    // 59,9 km/h con el compromiso en 0,10 y el trabajo de TODOS valía cero—; ahora se cobra por el
+    // compromiso que EXPLICA la velocidad que se lleva. (3) EL EXPONENTE DEL COSTE DEL RITMO lo
+    // manda la ley (`rhythmCostExponent`): 2,56 en llano y 1,0 en cuesta, el inverso del exponente
+    // con el que la potencia se vuelve velocidad, en vez de un 1,6 fijo para las dos; anclado en el
+    // ritmo de un día normal, así que cambia la CURVATURA y no el nivel. Más la dosificación del
+    // día largo, el reparto del turno de relevos y el tamaño de la fuga por terreno.
+    // v38: EL VIENTO LO REPARTEN LOS QUE TIRAN (docs/balance.md «v38»). La ley de velocidad pasa a
+    // saber cuántos tiran (`relayPaceEdge`): hasta la v37 un grupo de 1, 4, 8, 30 y 150 hombres con
+    // el mismo compromiso y el mismo P75 iba a la MISMA velocidad exacta, y por eso la fuga del día
+    // sobrevivía más siendo 2-3 (11,9 %) que siendo 4-6 (2,1 %). Cuántos se ponen delante pasa a ser
+    // una DECISIÓN escalada con el compromiso, con lo que el motor gana la mecánica que le faltaba:
+    // un pelotón no caza una fuga solo queriendo, la caza poniendo más hombres delante. El coste
+    // distingue de verdad al que da la cara del que va a rueda —en llano la rueda cuesta el 10 % de
+    // la cara y en una rampa al 8 % el 69 %, que sale solo del rebufo— y se paga a la marcha real
+    // del grupo. Se retiran tres parches que metían esto a mano donde no tocaba (la rotación del
+    // compromiso del descolgado, el término de rotación del tope de la v35 y el descuento de coste
+    // por llevar gregarios). Y tres conductas nuevas: el equipo con un hombre en la fuga no tira, el
+    // descolgado espera al grupeto, y el pelotón tiene días de echar la hueva. La pájara deja de ser
+    // un acantilado y entra por una rampa. Campaña de 500: los 33 invariantes en verde.
+    // v37: POR LA ETAPA NO SE BAJA NADIE, Y EL DE CABEZA NO TIRA (docs/balance.md «v37»). Dos
+    // correcciones del dueño sobre la v36. La rama de la etapa dejaba bajar a dos hombres cada vez
+    // que el jefe se quedaba a 22-45 s —6,6 avisos por etapa, media parrilla renunciando a su
+    // carrera por una etapa ya perdida— y ahora pide además un percance reciente, que el jefe sea la
+    // carta del día y que esté entre las tres mejores del pelotón para el final de hoy: 0,01 avisos
+    // por etapa. Y el que va en CABEZA DE CARRERA con su jefe descolgado no se deja caer pero deja
+    // de tirar (tiraban todos, ahora tira el 8,2 % y tres de cada cuatro de ésos van solos), mientras
+    // que el que va en un grupo de PERSEGUIDORES sí puede bajar.
     // v36: LOS SUYOS SE DEJAN CAER A POR ÉL (docs/balance.md «v36»). El trabajo de equipo se
     // acababa cuando el jefe salía del grupo: los tres mecanismos que existen —descuento de coste,
     // deber de relevo y marcaje— piden ir en el MISMO grupo. Medido: un jefe con gregarios se queda
@@ -191,6 +255,6 @@ describe('engine: esqueleto', () => {
     // v11 (atribución del trabajo), la v10 (composición y caza), la v9 (capa táctica), la
     // v8 (tiempos de grupo), la v7 (modelo de final), la v6 (telemetría), la v5 (clásica larga), la
     // v4 (pavé en el recorrido) y la v3 (Cambio 0).
-    expect(ENGINE_VERSION).toBe(36)
+    expect(ENGINE_VERSION).toBe(42)
   })
 })

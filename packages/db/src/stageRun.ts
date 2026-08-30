@@ -276,6 +276,9 @@ export async function runOneStage(
       riderId: id,
       attrs: attrsByRider.get(id) ?? zeroAttrs(),
       teamId: riderById.get(id)!.teamId ?? null,
+      // …Y SU PUESTO EN LA GENERAL (v42). Sin esto el planificador reparte roles a ciegas y el
+      // maillot puede acabar de lanzador de su propio velocista: ver `AutoOrderRider.gcRank`.
+      ...(gcRank.has(id) ? { gcRank: gcRank.get(id)! } : {}),
     }))
   const autoOrders = autoStageOrders(autoRiders, { kind: spec.kind, timeTrial: spec.timeTrial })
 

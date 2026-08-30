@@ -86,7 +86,25 @@ const INVARIANTS: readonly DefectKey[] = [
 const TOLERANCE: Partial<Record<DefectKey, number>> = { ataqueSinCerrar: 2 }
 
 /** Una campaña de cuarenta etapas tarda lo que tarda: son cuarenta carreras enteras simuladas. */
-const TIMEOUT_MS = 120_000
+/**
+ * Estos bancos corren decenas de etapas COMPLETAS con los campos de producción, y desde la v38 eso
+ * son 176 corredores en 22 equipos en vez de 40 sueltos: el de la captura, que hace noventa
+ * simulaciones sobre tres carreras reales, se pasaba de los dos minutos y moría por tiempo sin
+ * llegar a comprobar nada.
+ */
+/**
+ * PRESUPUESTO DE RELOJ, SUBIDO EN LA v40. No es holgura por si acaso: el motor SE HA VUELTO MÁS
+ * LENTO y hay que decirlo con número. Medido sobre cinco etapas de Flandes: **14,0 s en la v38,
+ * 19,3 s a mitad de la v39 y 20,7 s en la v40**, o sea un 48 % más de trabajo en dos versiones —el
+ * precio de la cooperación revisada, la física del ataque, el régimen de remate y el submotor del
+ * lanzamiento—.
+ *
+ * Este banco corre 140 etapas completas entre sus cuatro casos y otras 90 en el de la captura, así
+ * que fue el primero en pasarse del tope. Subirlo es lo correcto —lo que mide es la COHERENCIA de
+ * la crónica, no la velocidad— pero el dato queda escrito aquí y en docs/epics.md, porque un juego
+ * que avanza un día cada seis horas simula un calendario entero cada vez.
+ */
+const TIMEOUT_MS = 600_000
 
 /** Corre un escenario con N semillas y devuelve, por invariante, el PEOR resultado de una etapa. */
 function worstPerStage(scenario: Scenario, seeds: readonly string[]): Record<string, number> {

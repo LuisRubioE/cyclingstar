@@ -12,6 +12,7 @@ import {
   majorityOnTheRoad,
   matchCount,
   maxMatchCount,
+  gutterShelter,
   relayRotation,
   shelterOf,
   stepSpeed,
@@ -141,8 +142,8 @@ describe('coste y drafting (6.5)', () => {
 
   it('el rebufo abarata el bloque; ir protegido gasta menos que ir solo', () => {
     const b = block('llano', 0)
-    const protegido = blockCost(b, 0.5, 0.9)
-    const solo = blockCost(b, 0.5, 0.0)
+    const protegido = blockCost(b, 0.5, false, 8)
+    const solo = blockCost(b, 0.5, true, 1)
     expect(protegido).toBeLessThan(solo)
   })
 
@@ -185,6 +186,61 @@ describe('o tiras o no tiras (v34, SPEC 6.5)', () => {
   })
 })
 
+describe('la cuneta del abanico (v41)', () => {
+  it('mientras el grupo CABE en la fila, ir a rueda es ir a rueda', () => {
+    expect(gutterShelter(12, 12)).toBe(STAGE.shelterProtected)
+    expect(gutterShelter(5, 12)).toBe(STAGE.shelterProtected)
+  })
+
+  it('y en cuanto no cabe se paga la cuneta, y da igual cuánta gente sobre', () => {
+    // La cuenta es la proporción `caben / son`, pero con el suelo puesto lo que dice en la práctica
+    // es lo que dice la carretera: o vas en la fila o vas en la cuneta. Entre 12 y 15 hombres para
+    // una fila de 12 hay una rampa corta; a partir de ahí, sobrar por poco y sobrar por mucho se
+    // pagan igual, porque el segundo de la fila está en la cuneta lo mismo que el centésimo.
+    const dentro = gutterShelter(12, 12)
+    const justo = gutterShelter(14, 12)
+    const lejos = gutterShelter(48, 12)
+    expect(justo).toBeLessThan(dentro)
+    expect(lejos).toBeLessThan(justo)
+    expect(lejos).toBeCloseTo(STAGE.shelterProtected * STAGE.windGutterFloor, 12)
+  })
+
+  it('y por muy grande que sea el grupo, nunca se baja del suelo', () => {
+    // Sin suelo esto no era un abanico sino una matanza: el 85 % del campo del Tour de Flandes con
+    // el depósito a cero. En carretera, el que se queda fuera del corte no pasa cien kilómetros
+    // solo: se junta con los de al lado y hacen su propia fila.
+    for (const n of [20, 60, 159, 500]) {
+      expect(gutterShelter(n, 13)).toBeGreaterThanOrEqual(
+        STAGE.shelterProtected * STAGE.windGutterFloor,
+      )
+    }
+  })
+
+  it('y el que rota en una fila que no cabe tampoco encuentra dónde meterse', () => {
+    // El abrigo entra en los DOS estados de `shelterOf`, no solo en el del que va a rueda: cuando
+    // sales del relevo, detrás del último que da la cara está la cuneta.
+    const arropo = gutterShelter(60, 12)
+    expect(shelterOf(false, 8, arropo)).toBe(arropo)
+    expect(shelterOf(true, 8, arropo)).toBeLessThan(shelterOf(true, 8))
+    // Y el que va solo paga el viento entero igual: n = 1 no depende del abrigo de nadie.
+    expect(shelterOf(true, 1, arropo)).toBe(STAGE.shelterAlone)
+  })
+
+  it('cuesta más rodar en la cuneta que a rueda, y el que tira lo nota menos', () => {
+    const llano = block('llano', 0)
+    const arropo = gutterShelter(159, 13)
+    const aRueda = blockCost(llano, 0.8, false, 12)
+    const enCuneta = blockCost(llano, 0.8, false, 12, STAGE.dx, arropo)
+    expect(enCuneta).toBeGreaterThan(aRueda)
+    // El que ya estaba dando la cara paga un sobreprecio MENOR en proporción: parte del viento ya
+    // lo pagaba. Es lo que hace que un abanico se lleve por delante a los pasajeros y no a los que
+    // rotan.
+    const tirando = blockCost(llano, 0.8, true, 12)
+    const tirandoEnCuneta = blockCost(llano, 0.8, true, 12, STAGE.dx, arropo)
+    expect(tirandoEnCuneta / tirando).toBeLessThan(enCuneta / aRueda)
+  })
+})
+
 describe('cuántos tiran (v34)', () => {
   it('en un grupo grande manda el tope de la carretera, no la fracción de ritmo', () => {
     // El cuarto delantero de un pelotón de 176 son 44 hombres, y en la cabeza no caben 44.
@@ -222,15 +278,24 @@ describe('el ritmo del descolgado (v16, docs/motor.md §9; v35, el tope de la pe
     expect(droppedCommit(puerto, 40, 1, 0, PEL, LANZADO)).toBeCloseTo(STAGE.shedFightCommit)
   })
 
-  it('…pero contra un pelotón que rueda a TEMPO no se pelea a 0,82: el tope es lo que dé relevarse (v35)', () => {
-    // El defecto de la v34: 0,82 es un número absoluto —el ritmo de un pelotón lanzado—, así que
-    // un descolgado peleando contra un pelotón a tempo iba SIEMPRE más rápido que él.
-    const solo = droppedCommit(llano, 1, 1, 0, PEL, TEMPO)
-    const grupo = droppedCommit(llano, 8, 1, 0, PEL, TEMPO)
-    // Uno solo no le saca NADA a un grupo que va a rueda: no tiene con quién relevarse.
-    expect(solo).toBeCloseTo(STAGE.shedCommitAlone)
-    expect(grupo).toBeGreaterThan(solo)
-    expect(grupo).toBeLessThan(STAGE.shedFightCommit)
+  it('…pero contra un pelotón que rueda a TEMPO no se pelea a 0,82: el tope lo pone el de delante (v35, v38)', () => {
+    // El defecto de la v34: 0,82 es un número absoluto —el ritmo de un pelotón lanzado—, así que un
+    // descolgado peleando contra un pelotón a tempo iba SIEMPRE más rápido que él.
+    //
+    // EN LA v38 ESTE TOPE ADELGAZA: el término de rotación se fue de aquí a la ley de velocidad
+    // (`relayPaceEdge`), porque lo que da relevarse es VELOCIDAD y no ganas de pelear. Lo que queda
+    // en el tope es lo que siempre debió ser: el ritmo del que va delante, mezclado a precio de
+    // rebufo. Que uno solo no le saque nada a un grupo que va a rueda se comprueba abajo, donde ese
+    // hecho vive ahora.
+    // Y con las piernas ENTERAS el tope ya no muerde, que es el otro cambio de la v38: el suelo de
+    // este cálculo es el ritmo que el grupo SOSTIENE, y un hombre entero sostiene su umbral aunque
+    // el de delante vaya de paseo. Lo que decide entonces si le come terreno o no es la LEY, no las
+    // ganas: la comprobación está abajo, en «el grupo grande rueda más rápido que el que va solo».
+    expect(droppedCommit(llano, 1, 1, 0, PEL, TEMPO)).toBeCloseTo(STAGE.shedFightCommit)
+    // El tope sigue mordiendo donde siempre debió: en el que ya no puede sostener su umbral.
+    const vacio = droppedCommit(llano, 1, 0.3, 0, PEL, TEMPO)
+    expect(vacio).toBeLessThan(STAGE.shedFightCommit)
+    expect(vacio).toBeGreaterThan(STAGE.shedCommitAlone)
   })
 
   it('…y en el puerto el tope apenas existe: allí no hay rueda a la que ir (§VI.1 intacto)', () => {
@@ -241,23 +306,39 @@ describe('el ritmo del descolgado (v16, docs/motor.md §9; v35, el tope de la pe
     expect(enPuerto).toBeGreaterThan(0.9 * STAGE.shedFightCommit)
   })
 
-  it('resignado, el grupo grande rueda MÁS RÁPIDO que el que va solo: se relevan', () => {
-    const autobus = droppedCommit(llano, 40, 1, lejos, PEL, LANZADO)
-    const suelto = droppedCommit(llano, 1, 1, lejos, PEL, LANZADO)
+  it('el grupo grande rueda MÁS RÁPIDO que el que va solo: se relevan (v16 → v38, en la LEY)', () => {
+    /**
+     * Este invariante es de la v16 y sigue siendo cierto; lo que cambia en la v38 es DÓNDE vive.
+     * Hasta la v37 se cobraba metiendo la rotación en el COMPROMISO del descolgado —el hombre solo
+     * «quería» ir a 0,55 y el autobús a 0,82—, que es una forma rara de decirlo: nadie decide ir más
+     * despacio por ir solo, es que no puede. Ahora lo dice la ley de velocidad con el mismo
+     * argumento y la misma pieza (`1 − draftMax·shelterOf`), así que se comprueba aquí.
+     *
+     * Y el compromiso ya NO los distingue, que es justo lo que se quería: los dos pelean igual.
+     */
+    const mismasPiernas = 70
+    const mismoRitmo = 0.8
+    const autobus = targetSpeed(llano, mismasPiernas, mismoRitmo, 8)
+    const suelto = targetSpeed(llano, mismasPiernas, mismoRitmo, 1)
     expect(autobus).toBeGreaterThan(suelto)
-    expect(suelto).toBeCloseTo(STAGE.shedCommitAlone)
-    expect(autobus).toBeLessThanOrEqual(STAGE.shedCommitBunch)
+    // El compromiso del descolgado ya no depende del tamaño: lo que depende es lo que da de sí.
+    expect(droppedCommit(llano, 40, 1, lejos, PEL, LANZADO)).toBeCloseTo(
+      droppedCommit(llano, 1, 1, lejos, PEL, LANZADO),
+    )
   })
 
-  it('…pero en el puerto ser cuarenta no sirve de nada: ahí no hay rueda a la que ir', () => {
-    const ventajaLlano =
-      droppedCommit(llano, 40, 1, lejos, PEL, LANZADO) -
-      droppedCommit(llano, 1, 1, lejos, PEL, LANZADO)
-    const ventajaPuerto =
-      droppedCommit(puerto, 40, 1, lejos, PEL, LANZADO) -
-      droppedCommit(puerto, 1, 1, lejos, PEL, LANZADO)
-    expect(ventajaPuerto).toBeGreaterThan(0)
-    expect(ventajaPuerto).toBeLessThan(ventajaLlano / 3)
+  it('…pero en el puerto ser cuarenta no sirve de nada: ahí no hay rueda a la que ir (v38, en la LEY)', () => {
+    // La otra mitad del invariante de la v16, también mudada a la ley de velocidad. Se cobra a
+    // precio de rebufo por construcción —`draftMax` vale 0,42 en el llano y 0,096 en una rampa al
+    // 8 %—, así que el grupeto sube tan lento como el que sube solo y en el valle vuelve a rodar
+    // como un pelotón. Es el hecho de carretera que ningún parche sabía imitar.
+    const ventaja = (b: Block): number =>
+      targetSpeed(b, 70, 0.8, 8) / targetSpeed(b, 70, 0.8, 1) - 1
+    // Medido: en llano un turno de ocho compra un 8,1 % de velocidad sobre el hombre solo y en una
+    // rampa al 8 % solo un 4,0 %, o sea la mitad. No es cero —algo de rueda hay incluso subiendo—
+    // pero es la diferencia entre que un grupeto vuelva en el valle y no vuelva en el puerto.
+    expect(ventaja(puerto)).toBeGreaterThan(0)
+    expect(ventaja(puerto)).toBeLessThan(ventaja(llano) / 1.8)
   })
 
   it('el grupeto vaciado administra; con las piernas enteras, no', () => {
@@ -266,15 +347,33 @@ describe('el ritmo del descolgado (v16, docs/motor.md §9; v35, el tope de la pe
     )
   })
 
-  it('…y la frescura pesa sobre el que administra, NUNCA sobre el que pelea (v16 intacto)', () => {
-    // Se probó en la v35 cobrarle también la frescura al que pelea y NO se ha hecho: la limitación
-    // de ir vacío ya la cobra la erosión sobre el P75, y cobrarla dos veces manda al grupeto a
-    // cualquiera que pierda una rueda. Medido en el montecarlo de la v35: la brecha 1.º-10.º de la
-    // reina se iba de 254 s a 308 s (§VI.1 pide ≤ 300) y la fuga de montaña ganaba el 53 % de las
-    // etapas (objetivo 25-45 %). Lo que la v35 sí le cobra al que pelea es el VIENTO, aquí abajo.
-    expect(droppedCommit(llano, 20, 0, 0, PEL, LANZADO)).toBeCloseTo(
+  it('…y con MEDIO depósito se pelea igual: la frescura no pesa en la pelea (v16 intacto)', () => {
+    // Se probó en la v35 cobrarle la frescura al que pelea EN TODO EL RANGO y se descartó con
+    // medida: la brecha 1.º-10.º de la reina se iba de 254 s a 308 s (§VI.1 pide ≤ 300) y la fuga
+    // de montaña ganaba el 53 % de las etapas (objetivo 25-45 %). El argumento sigue en pie —la
+    // limitación de ir vacío ya la cobra la erosión sobre el P75, y cobrarla dos veces manda al
+    // grupeto a cualquiera que pierda una rueda—, así que a media frescura la pelea es la misma.
+    expect(droppedCommit(llano, 20, 0.5, 0, PEL, LANZADO)).toBeCloseTo(
       droppedCommit(llano, 20, 1, 0, PEL, LANZADO),
     )
+  })
+
+  it('…pero A CERO no se pelea: no hay con qué (v40)', () => {
+    // El dueño: «lo de que pelean a tope aunque vaya vacío, arréglalo también, aunque no resuelva
+    // el problema final». Y tiene razón: «el que acaba de soltarse va a su umbral aunque vaya
+    // vacío» está bien escrito para el que pierde una rueda con medio depósito y es falso para el
+    // que está a cero. A cero te sientas y sobrevives.
+    //
+    // Por qué esto NO es el experimento que la v35 descartó: aquél cobraba la frescura en todo el
+    // rango, así que tocaba a CUALQUIERA que perdiese una rueda con las piernas a medias. Éste
+    // solo muerde por debajo de `shedFightFreshness`, o sea en el último tercio del depósito, que
+    // es donde la frase deja de ser cierta. Por eso la reina y la montaña no se mueven —medido, y
+    // es la comprobación que este banco existe para exigir—.
+    const vacío = droppedCommit(llano, 20, 0, 0, PEL, LANZADO)
+    const entero = droppedCommit(llano, 20, 1, 0, PEL, LANZADO)
+    expect(vacío).toBeLessThan(entero)
+    // Y no se para: sigue rodando al ritmo que sostiene un grupo, que es el suelo de `able · legs`.
+    expect(vacío).toBeGreaterThan(0.4)
   })
 
   it('se pelea al principio y se resigna al final, sin escalones', () => {

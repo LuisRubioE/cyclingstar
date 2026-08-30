@@ -644,8 +644,78 @@
  * en los casos peores —el jefe que ya no volvía solo—, así que ese corte está sesgado y por eso se
  * mide apagando el mecanismo.) Montecarlo entero verde sin tocar una banda, y las cuatro huellas
  * selladas NO se mueven: sus escenarios corren sin equipos, así que esta tanda no las ve.
+ *
+ * ── v37 · por la etapa no se baja nadie, y el de cabeza no tira ────────────────────────────────
+ *
+ * Dos correcciones del dueño sobre la v36, las dos de carretera.
+ *
+ * 1. **POR LA ETAPA CASI NADIE DEBERÍA BAJARSE.** «Yo creo que nadie debería bajarse… salvo que sea
+ *    un pinchazo/caída y la distancia sea pequeña, y sea gran favorito para ganar la etapa, según
+ *    el tipo de etapa. Otra cosa es la general.» La v36 dejaba bajar a dos hombres cada vez que el
+ *    jefe se quedaba a 22-45 s, y eso son **6,6 avisos por etapa**: media parrilla renunciando a su
+ *    carrera por una etapa que su jefe ya había perdido. Ahora la rama de la etapa pide además un
+ *    PERCANCE reciente (`mishapKm`), que el jefe sea la carta del día de su equipo y que esa carta
+ *    esté entre las tres mejores del pelotón para el final de HOY. Medido: **0,01 avisos por etapa**.
+ *
+ *    Y ojo con qué percance, que es donde la primera versión se equivocó: pedir `hurt` —la caída
+ *    SERIA de la v20— hace la regla IMPOSIBLE, porque una caída seria cuesta 60-300 s y «distancia
+ *    pequeña» son 60. La caída que deja al hombre a tiro es la LEVE (30-90 s, el 90 % de ellas).
+ *
+ * 2. **EL QUE VA EN CABEZA DE CARRERA NO SE DEJA CAER, PERO TAMPOCO TIRA.** «Si va en cabeza de
+ *    carrera lo normal es que no se deje caer, pero que tampoco tire de la fuga (salvo que vaya
+ *    solo, claro está). Si va en un grupo de perseguidores y su jefe está en problemas… pues ahí sí,
+ *    que se descuelgue.» Son dos reglas: la fuga que va delante del todo ya no manda a nadie atrás
+ *    —eso ya estaba— pero ahora sus hombres SE APARTAN DEL TURNO si su jefe se ha quedado; y el que
+ *    va en un grupo de PERSEGUIDORES sí puede bajar, sea `mov` o `shed`, porque lo que decide no es
+ *    de dónde nació el grupo sino si va en cabeza o persiguiendo.
+ *
+ *    Y con ello se tapa un agujero que venía de la v33: las penalizaciones del deber de relevo
+ *    mandan al que no colabora al final de la cola, y en el PELOTÓN eso basta —el turno son ocho de
+ *    ciento setenta— pero en un grupo pequeño el turno es el grupo entero, así que daba la cara
+ *    igual. Medido: de los hombres con el jefe descolgado que ruedan fuera del pelotón, tiraban
+ *    todos y ahora tira el **8,2 %**, y de ésos, tres de cada cuatro son grupos donde no queda nadie
+ *    más que pueda tirar —el «salvo que vaya solo» del dueño, que sale gratis—.
+ *
+ * ── v38 · el viento lo reparten los que tiran ─────────────────────────────────────────────────
+ *
+ * La corrección del dueño: «el tamaño a medir no es el tamaño del grupo, sino el tamaño de la gente
+ * que va tirando… si hay 10 personas tirando, ya sea del pelotón, de una fuga o de lo que sea,
+ * tienen potencial para ir más rápido que un grupo donde solo tire 1», y «el que va a rueda va
+ * muuucho más cómodo y por tanto muchísimo menor coste… si solo tira 1, el coste debería ser
+ * prácticamente el doble que si tiran 2».
+ *
+ * 1. **LA LEY DE VELOCIDAD SABE CUÁNTOS TIRAN** (`relayPaceEdge`). En una rotación de `n` a cada uno
+ *    le toca la cabeza 1/n del tiempo, así que su potencia media es la del que va delante por su
+ *    exposición; al revés, el que va en cabeza puede ir a `umbral / exposición`. Es la MISMA pieza
+ *    que el coste cobraba, leída en el otro sentido, y se cobra a precio de rebufo por construcción:
+ *    en el llano un turno de ocho compra un 4,5 % y en una rampa al 8 %, un 1,9 %.
+ *
+ * 2. **CUÁNTOS SE PONEN DELANTE ES UNA DECISIÓN** (`relayRotation` con el compromiso). Un pelotón a
+ *    tempo lleva cuatro hombres dando la cara y uno cazando lleva siete, y con eso el motor gana la
+ *    mecánica que le faltaba: un pelotón no caza una fuga solo queriendo, la caza poniendo más
+ *    hombres delante.
+ *
+ * 3. **LA RUEDA ES MUCHO MÁS BARATA** (`costExposureExponent`, `costExposurePivot`) y la exposición
+ *    se promedia sobre el TURNO y no sobre el rebufo: lo que hace un hombre en una rotación de dos
+ *    no es ir a medio rebufo, es ir la mitad del tiempo descubierto y la mitad a rueda.
+ *
+ * Y con ello se han podido RETIRAR dos parches que metían este mismo hecho a mano donde no tocaba:
+ * el compromiso del descolgado por rotación (v16) y el término de rotación del tope de la v35.
+ *
+ * 4. **LA RUEDA CUESTA EL 10 % DE DAR LA CARA EN LLANO**, que es el número que puso el dueño, y la
+ *    diferencia por terreno sale sola del rebufo: en una rampa al 8 % la rueda cuesta el 69 %,
+ *    porque allí no hay dónde esconderse. El NIVEL se separa de la PROPORCIÓN
+ *    (`costExposureLevel`) y el coste se paga a la MARCHA REAL del grupo, no a la que querría.
+ *
+ * 5. **TRES CONDUCTAS NUEVAS**: el equipo que tiene un hombre en la fuga no tira (y con eso la fuga
+ *    del día llega a ganar por diez minutos, que antes no pasaba nunca), el descolgado espera al que
+ *    viene detrás, y el pelotón tiene días de echar la hueva (`pelotonMoodSpread`). Y la PÁJARA deja
+ *    de ser un acantilado: entra por una rampa sobre el último 8 % del depósito.
+ *
+ * Campaña canónica de 500 corridas: **los 33 invariantes en verde**. La contrarreloj no se mueve ni
+ * un dígito —es el ancla del esfuerzo individual y paga la ley lineal de siempre—.
  */
-export const ENGINE_VERSION = 36 as const
+export const ENGINE_VERSION = 42 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -928,8 +998,27 @@ export const HEALTH = {
   //
   // Calibrado sobre la gran vuelta de 21 etapas del banco (`sim/grandTour.ts`), que es donde se
   // mide el objetivo de §VI.3. Ver docs/balance.md, «v14».
-  illnessRaceFactor: 0.13,
-  illnessRaceMax: 0.0028,
+  //
+  // RECALIBRADO EN LA v38 (0,13/0,0028 → 0,16/0,0035) y por una razón que NO es la que parecía. El
+  // reparto de causas estaba roto —caída 73,6 % contra una banda de 30-67— y lo primero que se miró
+  // fue el montón de la v38 (`crashPile`): si ahora se cae gente en grupo, la puerta «caída» debería
+  // llevarse más. **Y no era eso**: poniendo `crashPileHurtChance` a CERO el número se queda en
+  // 73,3 %. Los abandonos por caída salen del que se cae primero, no de los que arrastra.
+  //
+  // Lo que faltaba era ENFERMEDAD. En las listas de abandonos de grandes vueltas reales la caída y
+  // la enfermedad se reparten más o menos mitad y mitad, y el motor tenía la enfermedad en el
+  // 23,6 %. Este dado se calibró en la v14 y desde entonces han cambiado el tamaño del pelotón y
+  // el desgaste; era el número viejo, no una consecuencia de esta tanda.
+  //
+  // Y NO SE SUBE MÁS, porque tiene un acoplamiento que no se ve venir: los que enferman son los del
+  // TSB más hundido, así que cuanta más enfermedad, más FUERTE es el pelotón que queda y más cerca
+  // llega el último grupo de una reina. A 0,19 el reparto de causas queda perfecto pero
+  // `queenLastGroupPct` se cae a 7,63 % contra un suelo de 8. Se queda en 0,16 y el resto lo pone
+  // `crashSeverity.none`. Medido sobre las mismas 6 grandes vueltas: abandonos 16,9 % → 14,9 %
+  // (banda 12-20), caída 73,6 % → 65,0 % (30-67), enfermedad 23,6 % → ~30 % (20-67), último grupo
+  // de la reina 8,33 % (8-14).
+  illnessRaceFactor: 0.16,
+  illnessRaceMax: 0.0035,
 } as const
 
 /** Moral (SPEC 4.2, 4.4). M_moral = base + scale * MOR/100; regresión diaria a la media. */
@@ -1084,9 +1173,26 @@ export const STAGE = {
   // lo regale. Ver docs/balance.md, «v16».
   regroupGapSeconds: 22,
   // …y ese umbral se estrecha según lo que esté apretando el pelotón: se escala por
-  // `clamp((1 − c) / (1 − pelotonTempoCommit), chaseBackShutFloor, 1)`, así que a tempo de carretera
+  // `clamp((1 − c) / (1 − chaseBackShutTempo), chaseBackShutFloor, 1)`, así que a tempo de carretera
   // (0,55) o por debajo vale 1 —el llano y el valle de la reina no se mueven— y con los trenes
   // lanzados a 0,85 quedan 7 s: a esa velocidad, veinte metros ya no son «ir en el grupo» (v12).
+  /**
+   * EL TEMPO CONTRA EL QUE SE MIDE LA PUERTA (v38, defecto medido). La puerta del pelotón se abre o
+   * se cierra según lo lanzado que vaya el grupo, y esa cuenta necesita saber qué es «ir a tempo».
+   * Hasta la v37 usaba `pelotonTempoCommit`, que es OTRA cosa —el ritmo al que el pelotón rueda
+   * cuando no tiene nada que cazar— y eso ataba dos decisiones que no tienen nada que ver.
+   *
+   * El defecto solo se ve al tocar la perilla, y por eso llevaba ahí desde la v12: al bajar
+   * `pelotonTempoCommit` de 0,55 a 0,46 para probar si el pelotón «va demasiado rápido», el
+   * denominador `1 − tempo` crecía y la puerta se ESTRECHABA, así que los descolgados dejaban de
+   * reengancharse aunque el pelotón fuera más despacio —justo lo contrario de lo que la prueba
+   * quería medir—. Medido: los abandonos fuera de control subían del 10,0 % al 15,0 %.
+   *
+   * Se queda en 0,55, que es el valor con el que la puerta está calibrada desde la v12: así el
+   * arreglo no mueve un dígito de nada, y `pelotonTempoCommit` pasa a ser una perilla que se puede
+   * girar sin romper otra cosa por detrás.
+   */
+  chaseBackShutTempo: 0.55,
   chaseBackShutFloor: 0.15,
   // …con una salvedad que es pura física de rebufo: la puerta NO se cierra para quien viene con
   // MUCHA más gente de la que va delante. Un autobús que TRIPLICA en número al grupo de cabeza se
@@ -1099,6 +1205,22 @@ export const STAGE = {
   // SUBIDA, donde no hay recorte (la selección debe mantenerse) pero los que se sueltan a la vez
   // sí forman un grupo. Sin él la etapa reina terminaba con 30 grupos de un corredor (§3-bis-e).
   // Estrecho a propósito: fusiona a los que van realmente juntos, no a los que están cortados.
+  /**
+   * EL DESCOLGADO ESPERA AL QUE VIENE DETRÁS (v38). La conducta más básica de la cola de una
+   * carrera, y el motor no la tenía: cada descolgado moría por su cuenta. Medido sobre dos giras del
+   * banco de la gran vuelta, de los ocho corredores que se fueron fuera de control **los ocho iban
+   * solos**, ninguno en un grupeto. Con la ley de velocidad de la v38 se agrava solo, porque un
+   * hombre suelto va un 14,5 % más lento que un grupo que se releva: los huecos entre descolgados
+   * sueltos crecen en vez de cerrarse.
+   *
+   * Tres guardarraíles, los tres de carretera: solo espera el que va poco acompañado —un grupeto
+   * hecho no para a recoger a nadie—, solo espera a quien está cerca —a tres minutos no se espera—
+   * y solo lejos de meta —en el desenlace ya no hay grupeto que hacer, hay que llegar—.
+   */
+  grupetoWaitSize: 4,
+  grupetoWaitSeconds: 90,
+  grupetoWaitCommit: 0.3,
+  grupetoWaitMinKmToGo: 10,
   grupetoJoinGapSeconds: 12,
   // Nº mínimo de corredores que el grupo tiene que haber PERDIDO desde el último aviso narrado para
   // volver a narrarlo. Es la pérdida NETA (de cuántos a cuántos ha quedado el grupo), no el recuento
@@ -1287,6 +1409,78 @@ export const STAGE = {
   shelterAlone: 0.0,
   // coste = dx·costeBase·ritmo(c)^1.6·(1 - draftMax·shelter).
   costRhythmExponent: 1.6,
+  /** Cuánto manda la LEY en ese exponente (ver `rhythmCostExponent`): 1 = del todo. */
+  costRhythmLawShare: 1,
+  /**
+   * EL RITMO DE REFERENCIA en el que se ancla el exponente (ver `blockCost`). Es el ritmo al que se
+   * rueda un día normal —`rhythm(pelotonTempoCommit)`— y en él el coste vale exactamente lo que
+   * valía con el exponente viejo. Sin este ancla, cambiar el exponente no cambia la forma de la
+   * curva: la levanta entera.
+   */
+  costRhythmPivot: 1.065,
+  /**
+   * LA CONVEXIDAD DEL VIENTO (v38). El coste era LINEAL en la exposición (`1 − draftMax·shelter`):
+   * 1,00 dando la cara y 0,62 a rueda, o sea que ir a rueda costaba el 62 % de dar la cara. El
+   * dueño: «el que va a rueda va muuucho más cómodo y por tanto muchísimo menor coste… si solo tira
+   * 1, el coste debería ser prácticamente el doble que si tiran 2».
+   *
+   * Y tiene razón de fisiología: la POTENCIA sí va en proporción lineal —el rebufo ahorra un 40 % de
+   * vatios— pero lo que este motor gasta es el DEPÓSITO, y el depósito no es lineal en la potencia.
+   * A 45 km/h el que da la cara va por encima del umbral quemando glucógeno y el que va a rueda va
+   * en fondo, donde apenas se gasta. Con el exponente, ir a rueda pasa a costar el 39 % de dar la
+   * cara en vez del 62 %.
+   *
+   * Se ancla en el que va DESCUBIERTO, así que el que paga el viento entero cuesta lo que costaba
+   * (la contrarreloj no se mueve) y lo que cambia es que la rueda sale barata.
+   */
+  costExposureExponent: 4.85,
+  /**
+   * …Y EL NIVEL, QUE ES OTRA COSA. El exponente es una PROPORCIÓN (cuánto más barata es la rueda que
+   * dar la cara) y no un nivel: con la referencia puesta en el hombre solo, subir el exponente
+   * abarata a TODO EL MUNDO menos a él, porque casi todo el mundo va a rueda casi todo el rato, y la
+   * erosión del pelotón se hunde. Este factor devuelve el nivel: lo que gasta el campo en una etapa
+   * vuelve a ser lo que gastaba, y lo que cambia es CÓMO SE REPARTE.
+   *
+   * Es la única perilla de las dos que toca al que va solo, así que es también la que decide cuánta
+   * gente se va fuera de control.
+   */
+  /**
+   * BAJADO DE 2,2 A 2,0 EN LA v38, Y NO TOCA LA REGLA DEL DUEÑO. Esta constante multiplica IGUAL al
+   * que da la cara (`cara`) y al que va a rueda (`rueda`), así que la proporción entre los dos —el
+   * «ir a rueda cuesta el 10 %» del encargo— queda intacta: lo que baja es el nivel absoluto.
+   *
+   * Y había que bajarlo porque a 2,2 tres clásicas del WorldTour no se ponían duras: SATURABAN. En
+   * Il Lombardia, Montreal y Strade Bianche el depósito se vaciaba ENTERO —1,000 de vaciado— con
+   * entre el 63 % y el 100 % del pelotón con pájara, y con la erosión clavada en su techo
+   * estructural de 0,920. Ahí el modelo ha dejado de discriminar: da igual quién seas, llegas a
+   * cero. Que baste un 14 % menos de coste para pasar de 1,000 a 0,895 delata el bucle que lo
+   * produce —más erosión, más lento, más horas en carretera, más coste, pájara— y por eso es un
+   * acantilado y no una pendiente.
+   *
+   * Y NO SE BAJA MÁS, aunque a 1,9 las clásicas respiren mejor: el nivel de coste tira de los dos
+   * extremos a la vez y por debajo de 2,0 se rompe el otro. Medido a 1,9, la reina REAL de tercera
+   * semana deja de erosionar —0,560 contra un suelo de 0,60— y el 2,4 % de las reinas de una gran
+   * vuelta llega EN BLOQUE, que es el defecto que costó las tandas v16 y v17. Dos de esas medidas
+   * miran a lados opuestos porque miran a depósitos distintos: la clásica la corre un campo FRESCO
+   * y la reina de tercera semana un campo con el tanque ya mordido.
+   *
+   * Medido a 2,0: Lombardía 0,941 con 11 % de pájaras (umbral 0,95 y 12 %), reina de tercera semana
+   * 0,616 de erosión (suelo 0,60), último grupo de una reina al 8,33 % (banda 8-14), ninguna reina
+   * en bloque. Es un punto estrecho por los dos lados y esa estrechez es el hallazgo: el margen que
+   * hay entre «una clásica dura» y «una clásica que satura» es del orden del 10 % de coste.
+   */
+  costExposureLevel: 2.0,
+  /**
+   * EL SUELO DEL COSTE: PEDALEAR CUESTA AUNQUE VAYAS A RUEDA (v38). El exponente describe el coste
+   * MARGINAL de dar la cara y ahí el 10 % del dueño es bueno; pero no todo el gasto es marginal:
+   * cubrir 280 km es cubrir 280 km, y eso lo paga el arropado igual que el que tira.
+   *
+   * Se vio al meter equipos y un PELOTÓN DE VERDAD en los escenarios canónicos: con 176 corredores
+   * el mediano solo pasa el 3,5 % de la etapa dando la cara (contra el 19,6 % de un campo de 40), así
+   * que sin suelo una llana gastaba el 12 % del depósito en vez del 33 % y una clásica de 278 km
+   * dejaba de cansar a nadie (erosión 0,282 contra un suelo de 0,45).
+   */
+  costExposureFloor: 0.16,
 
   // 6.5/6.18 — Reparto del trabajo dentro del grupo: quién TIRA y quién va a rueda. NO puede
   // decidirlo el orden del array de entrada: se ordena por "deber de relevo", con el rol como
@@ -1302,12 +1496,45 @@ export const STAGE = {
     sprinter: 0.2, // se guarda entero para la meta
     lider: 0.1, // el equipo lo lleva; solo tira si no queda nadie más
   },
-  // Peso de la frescura (E/E0) en el deber de relevo: quien va vaciado deja de dar relevos y los
-  // que aún tienen tanque asumen el trabajo, como en carretera.
-  relayFreshnessWeight: 0.35,
+  /**
+   * Peso de la frescura (E/E0) en el deber de relevo: quien va vaciado deja de dar relevos y los
+   * que aún tienen tanque asumen el trabajo, como en carretera.
+   *
+   * A 0,35 NO ALCANZABA (v39). El abanico de oficios va de 0,1 a 1,0, así que con 0,35 un gregario
+   * VACÍO (1,00) seguía teniendo más deber que un libre entero (0,95): el turno lo llevaban los
+   * mismos hombres hasta que se apagaban, y en una carrera de 241 km eso se ve. Medido en Il
+   * Lombardia —la más dura del calendario—, el 16 % del pelotón cruzaba la meta con el tanque a
+   * cero; subiéndolo, el 7 %, con el vaciado mediano igual de alto (0,92). No es que el día sea más
+   * fácil: es que el trabajo se REPARTE, que es lo que hace una rotación de verdad.
+   *
+   * Se queda en 0,5 y NO en 0,7 por la VOZ DE LA CRÓNICA (§V.1): con 0,7 el turno lo decidía el
+   * tanque por encima del plan y el parte de relevos dejaba de poder nombrar a un equipo —43 % de
+   * partes con voz de equipo contra una banda de 50-85, y 1,5 equipos distintos llevando el frente
+   * contra 1,8-4—. Con 0,5, y compensando el mando del equipo (`teamRelayDriveWeight`), el reparto
+   * se mantiene y el frente vuelve a tener dueño: 62,7 % de voz y 2,27 equipos.
+   *
+   * Y de paso arregla algo que venía roto de antes: la BRECHA entre el 1.º y el 10.º de una etapa
+   * reina medía 53 s contra una banda de 60-300 —los favoritos llegaban juntos—. Con el turno mejor
+   * repartido, 66,5 s. Los que deciden la reina llegan al último puerto con piernas porque no han
+   * estado tirando toda la etapa.
+   */
+  relayFreshnessWeight: 0.5,
+  /**
+   * …Y EL TECHO DE LA FRESCURA (v39). Ir más entero que el de al lado NO te obliga a dar más
+   * relevos: mientras los dos vayan bien, el turno lo deciden el oficio y el plan. Lo que sí cuenta
+   * es ir VACÍO, y eso te saca de la rotación. Por eso la frescura entra topada: por encima del
+   * techo todos valen igual y por debajo empieza a pesar.
+   *
+   * Sin el techo, en un pelotón donde todos llevan el mismo encargo el turno lo ordenaba solo el
+   * tanque, y eso deshacía la criba: en el banco del puerto de 20 km al 8 % a 50 km de meta, la
+   * carrera se partía en 7 de 8 corridas y pasó a 5, con corridas enteras metiendo a 98 corredores
+   * en el mismo grupo de cabeza. Con el techo, el reparto sigue —Il Lombardia no vuelve a las
+   * pájaras del 16 %— pero la etapa se vuelve a partir donde tiene que partirse.
+   */
+  relayFreshnessCap: 0.45,
   // Penalización al deber de relevo de un corredor que lleva gregarios suyos en el grupo: si tiene
   // equipo alrededor, el equipo trabaja por él (SPEC 6.18) y él pasa al final de la cola de relevos.
-  relayProtectedPenalty: 0.5,
+  relayProtectedPenalty: 1.2,
   // EL FUGADO CUYO EQUIPO PERSIGUE POR DETRÁS NO ENTRA A LOS RELEVOS (v33). Es la regla más vieja
   // del ciclismo vista desde el otro lado: si mi equipo está tirando del pelotón para cazar esta
   // fuga, yo no colaboro en ella —sería trabajar contra los míos—, me quedo a rueda y llego más
@@ -1338,7 +1565,151 @@ export const STAGE = {
    * cuántos se reparte, y con ello quién se vacía, a quién se le gasta el presupuesto de equipo y a
    * quién puede nombrar la radio.
    */
-  relayRotationMax: 8,
+  relayRotationMax: 20,
+  /**
+   * EL UMBRAL DE DEBER POR ENCIMA DEL CUAL SE TIRA (v38). El dueño: «los que estén por encima de un
+   * umbral X tiran; y si está por encima del máximo, seleccionar al top de esos; y si sale 0,
+   * escoger el mínimo que según el tamaño del grupo podría ser 1-4».
+   *
+   * Con el empuje de equipo pesando 1, la escala queda así para un hombre entero: el gregario del
+   * equipo que lleva el frente suma 2,35; el del equipo que espera turno, 1,65; el del equipo sin
+   * motivo, 0,85; y el del equipo que YA TIENE UN HOMBRE DELANTE, 0,45. Poner el umbral en 1,5
+   * significa exactamente lo que se ve en carretera: **tira el equipo que ha tomado el frente y
+   * poco más**, y el que tiene un hombre en la fuga no mueve un dedo.
+   */
+  relayDutyThreshold: 1.5,
+  /**
+   * …Y EL LISTÓN FUERA DEL PELOTÓN. En una fuga o en un grupeto no hay equipo que empuje a nadie y
+   * la norma es la contraria a la del pelotón: se relevan todos, porque el que va ahí o colabora o
+   * no llega. Este listón solo tiene que dejar fuera al que tiene un motivo para NO colaborar —el
+   * que no persigue lo suyo (v33), el jefe arropado (v36), el que tiene al jefe descolgado (v37)—,
+   * y ésos ya salen en negativo. Con el umbral del pelotón aplicado a todo, en una fuga de seis
+   * tiraba UNO.
+   */
+  relayDutyThresholdLoose: 0,
+  /**
+   * …y el del pelotón SIN equipos, donde no hay empuje que sumar y manda el ROL. Va entre el
+   * corredor sin órdenes (0,6 de base, que colabora) y el marcador (0,35, que vive a rueda). Ver
+   * `relayTurn` para los tres casos y lo que se midió.
+   *
+   * BAJA DE 0,8 A 0,45 EN LA v39, por dos motivos que empujan igual. El primero es aritmético: al
+   * topar la frescura (`relayFreshnessCap`) el deber de TODOS bajó unas nueve centésimas, y un
+   * listón calibrado contra la escala vieja dejaba al corredor sin órdenes rozándolo (0,825 contra
+   * 0,8), o sea que quién tiraba lo decidía el ruido. El segundo es de carretera: sin equipos no
+   * hay nadie a quien pasarle el trabajo, así que el que quiere que se cace TIENE que ponerse, y el
+   * listón de un pelotón de agentes libres no puede parecerse al de uno con veintidós equipos.
+   *
+   * Medido en el banco de la caza (misma etapa, mismas semillas, solo cambia quién persigue): con
+   * 0,8 un campo de TRES trenes de primer nivel dejaba llegar a la fuga 4 veces de 16, contra un
+   * techo de 3; con 0,5, 3 de 16, y el campo modesto sigue dejándola llegar 14 de 16. El banco
+   * canónico no se entera —tiene equipos, así que este listón no le aplica—: la fuga en llano se
+   * queda en el 11,7 %.
+   *
+   * Bajarlo se pudo hacer SOLO después de arreglar el submotor del sprint (v39). Antes el tren de
+   * lanzadores vivía de que la rotación fuera corta —era lo único que lo distinguía— y bajar el
+   * listón lo hundía a 36 victorias de 60 contra un mínimo de 38. Ahora su ventaja es de carretera:
+   * abre el sprint en el sitio, y lanzar se paga. Con el listón en 0,5 el tren gana 42 de 60.
+   */
+  relayDutyThresholdNoTeams: 0.5,
+  /**
+   * Cuánto BAJA ese listón con el ritmo al que va la carretera; ver `relayTurn`. Un pelotón de
+   * agentes libres rodando a paseo saca cuatro hombres al frente; el mismo pelotón cazando rota
+   * entero, porque sin equipos no hay a quién pasarle el trabajo.
+   *
+   * Medido: en el banco de la caza, el campo de tres trenes deja llegar a la fuga 4 veces de 16
+   * (con el listón fijo eran 6, y el techo del banco es 3), y el tren de lanzadores conserva su
+   * ventaja —39 victorias de 60 sobre el sprinter idéntico sin tren, mínimo 38—, que es justo lo
+   * que se perdía bajando el listón a secas.
+   */
+  relayDutyPaceRelief: 0.6,
+  /**
+   * ¿ME INTERESA QUE ESTO LLEGUE JUNTO? (v39, ver `tactics.ts::noChanceToWin`). Lo que un hombre
+   * DEJA de colaborar en una fuga porque no tiene nada que ganar donde va. El dueño: «en un grupo
+   * de seis a ocho kilómetros de meta relevan los seis, incluido el que sabe que pierde el
+   * sprint… y si en la fuga van con un súper escalador y tú eres mal escalador, lo normal es que
+   * no cooperes».
+   *
+   * `coopNoChanceGap` son los puntos de remate contra el mejor del grupo a partir de los cuales se
+   * da por perdido: 12 puntos de `finishScore` es la distancia que separa a un velocista de nivel
+   * de un rodador en un sprint, o a un escalador de un rodador en un alto. `coopSelfishKm` y
+   * `...FarKm` son la ventana en la que la carrera deja de ser del grupo y pasa a ser de cada uno:
+   * entera a 15 km de meta, nula a 80. Y `coopSelfishFloor` es lo que queda incluso a 150 km,
+   * porque una fuga lejos es de todos —si no llega no gana nadie— y sin ese suelo alto no saldría
+   * ninguna fuga con un fuera de serie dentro.
+   */
+  coopNoChanceGap: 12,
+  coopSelfishKm: 15,
+  coopSelfishFarKm: 80,
+  coopSelfishFloor: 0.25,
+  /**
+   * …y cuánto pesa eso en el deber de relevo. Va contra `relayDutyThresholdLoose` (el listón de una
+   * fuga, que es 0), así que con el peso a 1 basta con no tener NINGUNA opción para salir del turno
+   * —el deber de un cazaetapas es 0,5 más la frescura— y con tenerlas a medias para quedarse dentro.
+   */
+  relayNoChanceWeight: 1,
+  /**
+   * LO QUE SUBE EL DEBER DE UN LANZADOR CUANDO ESTÁ LANZANDO (v39). Su deber base (0,85) es menor
+   * que el de un gregario (1,0) porque se guarda para el final, y eso está bien los 177 primeros
+   * kilómetros. En los tres últimos está al revés: es su único trabajo del día.
+   *
+   * Sin esto la rotación del desenlace se la quedaban los gregarios y el tren no lanzaba NUNCA:
+   * medido, de los dos lanzadores del mejor velocista, 0,07 de media habían dado un relevo al llegar
+   * al km 179. El velocista llegaba sin tren —sin el empujón del lanzamiento y sin el alivio de
+   * colocación de llevar hombres delante— y ganaba el 20 % de las llanas contra una banda de 30-45.
+   * Con 1,5 se pone por encima de un gregario del equipo que lleva el frente, que es lo que se ve en
+   * los últimos tres kilómetros de cualquier llegada masiva.
+   */
+  relayLeadOutBoost: 1.5,
+  /**
+   * CADA CUÁNTO SE VUELVE A MIRAR LA COOPERACIÓN DE UNA FUGA, en bloques. El dueño: «habría que
+   * irlo midiendo a menudo… quizás no cada 100 metros, pero quizás cada km». Con `dx` = 50 m, veinte
+   * bloques son ese kilómetro.
+   */
+  coopReviewBlocks: 20,
+  /**
+   * …y CUÁNTO CONTAGIA que uno se plante. No es que tiren menos porque son menos —eso ya lo cobra el
+   * turno de relevos—: es que los que siguen tirando aflojan a propósito. «Los otros quizás quieran
+   * desgastarse menos y entonces tirar menos fuerte, para no desgastarse para que ese wey que va ahí
+   * sin gastar energía se la lleve.» Con 0,6, una fuga en la que la mitad se ha plantado rueda al
+   * 70 % del compromiso con el que nació.
+   */
+  coopContagionWeight: 0.6,
+  // …y si NADIE llega al umbral, alguien tiene que dar la cara igual: uno en una fuga pequeña,
+  // hasta cuatro en un pelotón. Uno por cada `relayMinPer` hombres, con ese techo.
+  relayMinPullers: 4,
+  relayMinPer: 45,
+  /**
+   * LA ROTACIÓN QUE `vRef` YA LLEVA DENTRO (v38). La ley de velocidad pasa a saber cuánta gente tira
+   * (`relayPaceEdge`), y eso obliga a decir respecto a QUÉ. La respuesta es `relayRotationMax`: un
+   * PELOTÓN rota los hombres que caben en la cabeza de un grupo, y `vRefFlat` y compañía están
+   * calibrados contra el pelotón. Con esta referencia el pelotón no se mueve ni un dígito y el
+   * relevo solo puede RESTAR: el hombre solo pierde un 14,5 % de velocidad en llano, una pareja un
+   * 7,2 % y una fuga de cinco un 1,6 %.
+   *
+   * Y se probó con 3 —el turno MEDIDO del pelotón cuando el frente tiene dueño (3,20 de media sobre
+   * 11.952 fotos, v34/v35)— y NO vale: los escenarios canónicos con los que están calibradas las
+   * bandas corren SIN equipos, así que allí rotan ocho, y con la referencia en 3 el pelotón pasaba a
+   * ir un 4,5 % más rápido que la fuga. Medido: la fuga de montaña se hundió del 35,4 % al 13,0 %
+   * (banda 25-45). El turno de 3 es un reparto de FACTURA, no una rotación más corta en la
+   * carretera, y por eso la velocidad se mide con `relayRotation` y no con quién acaba pagando.
+   */
+  relayPaceReference: 8,
+  /**
+   * CUÁNTA DE ESA LEY SE COBRA (v38). El argumento del reparto del viento, cobrado ENTERO, dice que
+   * un hombre solo va un 14,5 % más lento que un pelotón que rota ocho, y eso es carretera: el
+   * problema es que el motor llevaba desde siempre metiendo ese mismo hecho a mano en otros sitios
+   * —el compromiso del descolgado (v16), el tope de la pelea (v35)— y las bandas están calibradas
+   * con esos parches puestos.
+   *
+   * Con el peso en 0,5 el castigo por ir solo vale un 7,2 %, que es justo lo que valía el parche de
+   * la v16 al que sustituye (`shedCommitAlone` = 0,55 contra 0,82 son un 7,1 %). O sea: la v38 no
+   * hace el efecto más GRANDE, lo pone donde tiene que estar —en la ley, ordenado por tamaño y a
+   * precio de rebufo— sin mover el nivel que el corte de control y la fuga del día ya tenían
+   * calibrado. El coste entero (peso 1) queda medido en docs/balance.md: hunde la fuga de montaña al
+   * 9 % (banda 25-45) y manda al 31,5 % de los abandonos fuera de control (banda 1-15), y subirlo
+   * es una decisión de cómo tiene que verse el deporte, no un arreglo.
+   */
+  relayPaceWeight: 0.5,
   // …Y CUÁNTOS EQUIPOS CABEN EN ESA CABEZA CUANDO NADIE MANDA (v35, §V.1). El dueño lo pidió con
   // estas palabras: «si el frente no tiene dueño único, debería haber 1, 2 o 3 equipos que tiren,
   // pero con menor intensidad». Tres es el tope: por debajo de eso lo pone la carretera —si solo
@@ -1365,7 +1736,55 @@ export const STAGE = {
   // `matchBonusBlocks` bloques y no cuesta nada.
   matchCost: 5,
   matchBonus: 10,
-  matchBonusBlocks: 5,
+  /**
+   * CUÁNTO DURA LA RAMPA DEL CERILLO, EN SEGUNDOS DE CARRETERA (v39). Eran CINCO BLOQUES —o sea
+   * doscientos cincuenta METROS— y las dos cosas estaban mal.
+   *
+   * Corta: en 250 m no se decide nada, y el que ataca a ocho kilómetros de meta necesita sostener
+   * el esfuerzo, no dar un hachazo y volver al tempo.
+   *
+   * Y medida en METROS, que es el defecto de fondo y lo señaló el dueño: «el cerillo tal vez en vez
+   * de durar un número de metros debería durar un número de segundos, ¿no? En llano que dure 1,5 km
+   * me parece razonable; ahora bien, en una de montaña, en vez de 1,5 km quizás deberían ser 0,5
+   * (dependerá de la pendiente, que a su vez marca la velocidad)». Exacto: un kilómetro a 20 km/h
+   * son tres minutos y a 45 km/h son ochenta segundos, así que contarlo en metros regalaba el TRIPLE
+   * de esfuerzo supraumbral subiendo que rodando. Medido, con el cerillo en metros la victoria de la
+   * fuga en la reina canónica se iba al 52 % contra una banda de 25-45, y no bajaba tocando el
+   * acelerón porque el problema no estaba ahí.
+   *
+   * Ciento veinte segundos son dos minutos: kilómetro y medio en llano, medio kilómetro largo en un
+   * puerto. Que es exactamente lo que pidió, y sale de la velocidad sin ponerlo a mano.
+   */
+  matchBoostSeconds: 120,
+  /**
+   * EL LANZAMIENTO: en cuántos kilómetros finales de una llegada masiva los trenes encienden su
+   * cerillo (v39). Tres kilómetros es lo que dura un lanzamiento de verdad: antes de eso el pelotón
+   * se coloca, y a partir de ahí ya no hay administración que valga. Ver `simulate.ts`.
+   */
+  sprintTrainKm: 3,
+  /**
+   * …y cuánto trabajo reciente (`pullWindow`) hay que traer para contar como lanzador de verdad en
+   * el remate (v39). El que llega a rueda sin haber dado un relevo no ha lanzado a nadie. Es lo que
+   * hace que dos equipos con tren no tengan el mismo éxito, que es lo que pidió el dueño.
+   */
+  leadOutMinWork: 0.4,
+  /**
+   * EL RÉGIMEN DE REMATE (v39, ver `finish.ts::sprintRegimeKmh`). Los últimos kilómetros de una
+   * llegada masiva tienen su propia ley de velocidad, porque el lanzamiento es un esfuerzo
+   * ANAERÓBICO y la ley del motor es aeróbica: describe lo que un grupo sostiene durante horas.
+   *
+   * Los números no son perillas de calibración sino lo que se sabe de un sprint de verdad: a tres
+   * kilómetros un pelotón lanzado ronda los cincuenta, y en el último kilómetro se pone en sesenta y
+   * pico. `SoloShare` es lo que consigue un solo tren contra tres o más (`FullTrains`), y
+   * `MaxGradient` deja fuera los finales que trepan: ahí no hay lanzamiento que valga y manda la ley
+   * de siempre, que es la que sabe de rampas.
+   */
+  sprintApproachKmh: 51,
+  sprintFlammeKmh: 63,
+  sprintRegimeMinTrains: 1,
+  sprintRegimeFullTrains: 3,
+  sprintRegimeSoloShare: 0.65,
+  sprintRegimeMaxGradient: 2,
   // PENDIENTE DE IMPLEMENTAR (SPEC 6.6): parámetro definido pero sin efecto en la simulación.
   // Vaciado profundo: quien termina con E < 0.12·E0 debería arrancar la etapa siguiente con un
   // cerillo menos. `matchCount(..., deepDepleted)` sabe aplicarlo, pero nadie calcula el flag.
@@ -1402,6 +1821,18 @@ export const STAGE = {
   },
   // Pájara: E <= 0 -> atributos físicos · 0.55 y descuelgue automático.
   bonkFactor: 0.55,
+  /**
+   * …Y LA PÁJARA ENTRA POR UNA RAMPA, NO POR UN INTERRUPTOR (v38, `bonkPenalty`). Con el booleano
+   * sobre `energy <= 0`, el depósito a 0,001 no costaba nada y a 0 costaba el 45 % de golpe, así que
+   * el motor era extremadamente sensible al nivel del coste justo en el borde: al recalibrar la v38,
+   * la clásica más dura pasaba del 8 % del campo con pájara al 46 % y al 100 % con empujones
+   * pequeños, sin que ninguna banda lo cazara. El dueño: «las pájaras igual hay que recalibrar
+   * cuándo se produce una pájara».
+   *
+   * Con el 8 %: al hombre le quedan unos kilómetros de reserva y ya se le empieza a notar, que es lo
+   * que se ve en carretera —nadie revienta de una pedalada—. A cero se paga entero, como siempre.
+   */
+  bonkOnset: 0.08,
 
   // 6.8 — Intensidades de riesgo (eventos/km). Ajustables desde docs/balance.md.
   // Ataques de salida (docs/motor.md §13, regla 5): la intensidad con que alguien lo intenta en la
@@ -1510,7 +1941,23 @@ export const STAGE = {
   // compraba —que una cota lejos de meta no parta el pelotón en dos— lo compra ahora la RESERVA, que
   // es física en vez de un número elegido: en una cota a tempo el déficit contra el P75 es pequeño,
   // la reserva lo absorbe entero y el valle la recarga. Ver `reserveSeconds` y docs/balance.md «v26».)
-  dropPavesFactor: 0.34,
+  /**
+   * SUBE DE 0,34 A 0,6 EN LA v40, porque a 0,34 el adoquín NO seleccionaba. Medido sobre las
+   * clásicas reales con un campo que solo se distingue en PAV (45-83, media 64): Paris-Roubaix
+   * —54,8 km de adoquín en 56 sectores, el último a 1,1 km de meta— metía a **127 de 176 corredores
+   * en el mismo segundo**, y el PAV medio de ese grupo de cabeza era 65,1 contra el 64,0 del campo.
+   * O sea que la carrera más adoquinera del calendario no distinguía al adoquinero del que no lo
+   * era, y por eso ninguna palanca del REMATE movía el banco del pavé: no había a quién rematar.
+   *
+   * Con 0,6, la misma Roubaix termina con **24 hombres delante y un PAV medio de 76,2**, que es una
+   * Roubaix. Y no se paga en desgaste: el vaciado mediano se queda en 0,845 con un 2 % de pájaras
+   * (techo 0,95 y 12 %), porque lo que cambia es QUIÉN aguanta el sector, no cuánto cuesta.
+   *
+   * Sigue por debajo del 1 del puerto decisivo, que es lo correcto: en el adoquín se pierde la
+   * rueda por un error, un corte o un pinchazo —un suceso—, y en el puerto no se puede con el
+   * ritmo. Son dos formas distintas de quedarse, y la del puerto es más implacable.
+   */
+  dropPavesFactor: 0.6,
   dropPavesStarsReference: 3,
   // DESCENSO. Mucho más suave, y a propósito: en una bajada se pierde la rueda, no se revienta.
   dropDescentFactor: 0.08,
@@ -1557,6 +2004,14 @@ export const STAGE = {
   // grupeto de la última hora lejos del pelotón —en la v15 volvía siempre— y lo que NO estorba en el
   // primer puerto de la etapa, cuando todo el mundo va lleno y el corte se recompone en el valle.
   shedEmptyCommitFactor: 0.6,
+  /**
+   * CON CUÁNTO DEPÓSITO SE PUEDE PELEAR (v40, ver `droppedCommit`). Por encima de este resto se
+   * pelea entero; por debajo, la pelea se apaga proporcionalmente hasta que a cero no se pelea
+   * nada. No sustituye a `shedEmptyCommitFactor` —ése es el ritmo que QUIERE llevar un grupeto
+   * resignado— sino que responde a la otra mitad de la pregunta: si el que acaba de soltarse, con
+   * el grupo aún a la vista, se lanza a por él estando vacío. No se lanza.
+   */
+  shedFightFreshness: 0.3,
   // EL QUE ACABA DE SOLTARSE PELEA. Su umbral, que es el `shedCommit` = 0,82 de toda la vida: quien
   // pierde una rueda no se sienta, se pone de pie y pelea por volver. Este es el término que
   // distingue una SELECCIÓN de una debacle, y sin él el motor mandaba al grupeto a cualquiera que
@@ -1612,7 +2067,11 @@ export const STAGE = {
   // tempo de mantenimiento + ganancia proporcional al exceso sobre el boquete deseado.
   // Sube de 150 a 175: con el controlador liberado la caza se cerraba a 29 km de meta (objetivo
   // 8-25); con 175 la captura mediana vuelve a los 23-24 km.
-  chaseMaxLeashSeconds: 195,
+  // …Y SUBE A 300 EN LA v38, al recentrar la banda de la fuga en llano en el 10 % (el dueño: «una
+  // etapa llana debería tener una banda más centrada en el 10 %»). Es la cuerda que los trenes de
+  // sprint le dan a la fuga del día antes de empezar a cerrar, así que es la perilla que dice cuánto
+  // margen tiene la fuga para que le salga bien.
+  chaseMaxLeashSeconds: 300,
   chaseHoldCommit: 0.62,
   chaseGain: 0.016,
 
@@ -1675,6 +2134,15 @@ export const STAGE = {
   // (objetivo 1,8-4). Los dos cambios se compensan: rotan menos hombres, pero cada uno paga más
   // viento porque el reparto es 1 − 1/n.
   teamBudgetPerRider: 9,
+  /**
+   * CUÁNDO SE CEDE EL FRENTE (v38). Dos números para un relevo entre equipos que no es un colapso:
+   * el que manda tiene que haber puesto ya lo suyo (`Spent`, fracción de su presupuesto) y el que
+   * entra tiene que venir con bastante más depósito (`Edge`, diferencia de fracción gastada). Sin
+   * esto solo se cedía al agotar el presupuesto ENTERO, y con el turno largo de la v38 eso no
+   * llegaba a pasar: 1,02 equipos distintos al frente por etapa contra un objetivo de 1,8-4.
+   */
+  teamFrontHandoverSpent: 0.35,
+  teamFrontHandoverEdge: 0.2,
   // EL FRENTE LO LLEVA UNO. Aunque cuatro equipos quieran el mismo sprint, en carretera el frente
   // tiene dueño y los demás se colocan detrás esperando su turno. Sin esa distinción, cuatro
   // equipos empujando igual repartían el turno de relevos entre todos y los tres que más tiraban
@@ -1689,6 +2157,17 @@ export const STAGE = {
   //   proteger           0,55             −0,35
   //   fuga                 —              −0,90   (tiene un hombre delante: no tira)
   //   nada                 —              −0,50   (sin baza que jugar: se esconde)
+  // Por debajo de este boquete un equipo de sprinters NO organiza la caza: lo de delante se cierra
+  // solo y montar el tren es gastar por gusto (v38). El dueño: «¿y si la fuga está cerca también?».
+  /**
+   * Y CUÁNTO RECORTA UN PELOTÓN QUE RUEDA, en segundos por kilómetro que queda. Es la mitad que
+   * falta de «¿es peligroso este boquete?»: se compara el hueco con `kmToGo · esto`, y solo cuando
+   * lo supera el equipo del rematador organiza la caza. Con 150 km por delante hacen falta más de
+   * tres minutos y medio para preocuparse; con 40, un minuto. Es la mitad de lo que recorta un
+   * pelotón lanzado (`chaseFeasibleSecondsPerKm`), porque esto no es cazar: es rodar.
+   */
+  teamChaseSecondsPerKm: 1.5,
+  teamChaseMinGapSeconds: 25,
   teamDriveChase: 1,
   teamDriveControl: 0.75,
   teamDriveTempo: 0.55,
@@ -1697,9 +2176,21 @@ export const STAGE = {
   teamDriveShelter: -0.35,
   teamDriveUpTheRoad: -0.9,
   teamDriveIdle: -0.5,
-  // …y adónde llega el que ha gastado su presupuesto entero. No baja de aquí: fundido no significa
-  // que estorbe, significa que otro equipo toma el frente.
-  teamDriveTired: -0.6,
+  /**
+   * …y adónde llega el que ha gastado su presupuesto entero. No baja de aquí: fundido no significa
+   * que estorbe, significa que otro equipo toma el frente.
+   *
+   * Y queda POR ENCIMA del que pasa de todo (`teamDriveIdle`), que es la corrección de la v38.
+   * Estaba en -0,6 contra -0,5, o sea que en cuanto el equipo dueño del frente agotaba su
+   * presupuesto sus hombres caían por debajo de los de un equipo SIN NINGÚN MOTIVO, y la rotación
+   * se la quedaban ésos. Medido en el banco de la voz de la crónica: en 66 de 153 partes con voz de
+   * equipo el que tiraba era un equipo sin motivo, o sea que el parte no podía decir POR QUÉ tiraba
+   * nadie —el 57 % contra un objetivo del 95 %—. Es al revés de la frase del dueño: «el que no
+   * tiene motivo no gasta». El que se ha vaciado por su sprinter sigue siendo el que va delante;
+   * simplemente ya no puede ir más rápido, y por eso lo releva el SIGUIENTE QUE TENGA UNA BAZA
+   * (+0,1 o más), no el que no tiene ninguna.
+   */
+  teamDriveTired: -0.4,
   // …y lo que suma tener DOS motivos a la vez (el equipo del maillot que además lleva al mejor
   // rematador del día). Los motivos se acumulan en el ESFUERZO —se juegan el doble, ponen más gente
   // al frente— y no en la frase, porque una frase con dos motivos no se lee.
@@ -1711,9 +2202,18 @@ export const STAGE = {
   // continental y no pinta nada en una gran vuelta. 8 puntos en la escala 0-100 de los atributos
   // dejan tres o cuatro equipos con carta en un campo de ocho, que es lo que se ve en carretera.
   teamStageCardGap: 8,
-  // Peso del plan en el deber de relevo. Con 0,5 el plan pesa más que el rol (que va de 0,1 a 1,0)
-  // pero no lo anula: DENTRO del equipo que tira siguen tirando sus gregarios y no su sprinter.
-  teamRelayDriveWeight: 0.5,
+  /**
+   * Peso del plan en el deber de relevo. El plan pesa más que el rol (que va de 0,1 a 1,0) pero no
+   * lo anula: DENTRO del equipo que tira siguen tirando sus gregarios y no su sprinter.
+   *
+   * Sube de 1 a 1,3 en la v39 para EQUILIBRAR la frescura. Los dos términos compiten por el mismo
+   * turno: si la frescura manda sola, el frente lo forman los que tienen tanque —vengan del equipo
+   * que vengan— y la crónica se queda sin poder nombrar a nadie. Barrido a la vez, el punto donde
+   * las dos cosas caben es 0,5 de frescura con 1,3 de mando: voz de equipo 62,7 % (banda 50-85),
+   * 2,27 equipos distintos llevando el frente (1,8-4), y la cola de la reina de gran vuelta en
+   * 8,18 % (8-14), que con 1,0 se caía a 6,86 % y con 1,6 a 6,48 %.
+   */
+  teamRelayDriveWeight: 1.3,
   // LA CAZA CON PRESUPUESTO. La fuerza del campo (`chase.ts`) deja de ser un escalar de etapa: se
   // escala por lo que les queda en las piernas a los equipos que persiguen. Con el presupuesto
   // intacto vale 1 y el controlador da exactamente los números de la v14; con los equipos de la
@@ -1735,7 +2235,14 @@ export const STAGE = {
   // y el estadístico tiene mucha varianza: medido con 120 / 500 semillas, 335 -> 22% / 26%,
   // 342 -> 26% / 31%, 350 -> 29% / 35%, 365 -> 37% / 47%. Con 350 el rango 25-45% se cumple en las
   // DOS campañas (la de CI y la de `pnpm sim`), que es la condición que hay que exigir.
-  gcControlLeash: 430,
+  // …Y SUBE A 520 EN LA v38, que es la recalibración táctica que el dueño autorizó al ver que la
+  // ley de velocidad nueva —el reparto del viento cobrado también en la velocidad— dejaba la fuga de
+  // montaña en el 18,5 %: «recalibremos la capa táctica para que la fuga en una etapa de montaña
+  // gane en más casos». Tiene sentido de carretera y es literalmente lo que esta perilla significa:
+  // con la física puesta, un pelotón que rota siete hombres cierra mejor que antes, así que para que
+  // la fuga siga teniendo la misma opción hay que darle la cuerda que de verdad le dan —«los de la
+  // general tiran para que no se vaya a 20 minutos», no para cazarla—.
+  gcControlLeash: 700,
   // Compromiso de los favoritos en la subida decisiva: tempo duro que descuelga poco a poco
   // (no máximo, o el grupo llegaría junto). Calibra la caza de la fuga y el estiramiento.
   climbRaceCommit: 0.85,
@@ -1816,11 +2323,26 @@ export const STAGE = {
   // estirándose. Es la segunda mitad de la regla 2 («y si son 40, no colaboran lo suficiente»),
   // resuelta antes de crear un grupo que no lo es.
   tacticFollowFractionMax: 0.5,
-  // Boquete instantáneo (s) que abre el acelerón: mín + amplitud uniforme. Un ataque es una
-  // ACELERACIÓN, no un cambio de tempo; a partir de aquí manda la carretera y el boquete se integra
-  // bloque a bloque como cualquier otro. Sin esto un «ataque» tardaba 20 km en abrir 5 s.
-  tacticJumpGapSeconds: 5,
-  tacticJumpGapRange: 7,
+  /**
+   * EL ACELERÓN (v39). Un ataque son dos cosas y hasta la v38 el motor solo tenía media:
+   *
+   * 1. **El salto**: unos centenares de metros a tumba abierta, muy por encima del umbral. Eso es
+   *    `tacticSurgeSeconds` a tumba abierta con `tacticSurgeBonus` puntos de perfil encima del
+   *    cerillo —en SEGUNDOS y no en metros, por lo mismo que el cerillo: un hachazo dura lo que
+   *    dura, y eso son seiscientos metros rodando y doscientos cincuenta subiendo—, y de
+   *    ahí sale el boquete instantáneo —CALCULADO con la física, ver `tactics.ts::jumpGapSeconds`,
+   *    no sorteado entre 5 y 12 segundos como hasta la v38—.
+   * 2. **La rampa**: el rato que se aguanta por encima del umbral después del salto, que es lo que
+   *    el cerillo compra de verdad (`matchBonus` durante `matchBonusBlocks`).
+   *
+   * Y si el boquete que sale de la cuenta no llega a `tacticJumpMinGapSeconds`, el ataque NO CREA
+   * GRUPO: se queda en intento. Es la mitad de la frase del dueño que faltaba —«si su velocidad de
+   * ataque es menor que la del que va tirando del grupo, tampoco se crea ningún boquete»— y ahora
+   * sale de la aritmética en vez de estar prohibida a mano.
+   */
+  tacticSurgeSeconds: 45,
+  tacticSurgeBonus: 12,
+  tacticJumpMinGapSeconds: 2,
   // Dentro de los últimos km ya no se simulan movimientos: eso ES el sprint, y lo resuelve el
   // modelo de final (§12), que para eso ordena el grupo por una mezcla de atributos. Sin este
   // corte, un «ataque» a 1 km de meta nacía con su boquete instantáneo y ganaba la etapa por 15 s
@@ -1843,6 +2365,20 @@ export const STAGE = {
   // si ahí va una amenaza para la general. Es LA perilla que decide cuántos intentos hacen falta
   // antes de que cuaje la fuga del día.
   tacticAllowBase: 0.3,
+  /**
+   * LA RAMPA DE ARRANQUE DE LA CUERDA (v39, ver `pelotonAllows`). En los primeros kilómetros el
+   * pelotón cierra todo: todo el mundo quiere estar en la fuga del día y nadie regala el día a los
+   * dos primeros que saltan. `Floor` es lo que queda en el metro cero —una fuga puede salir del
+   * disparo, pasa—.
+   *
+   * Y CUÁNTO DURA ESA PELEA DEPENDE DEL TERRENO (v39), que es lo que dicen las crónicas de las
+   * grandes vueltas: en una llana la fuga se va antes del kilómetro DIEZ —no se apunta nadie— y en
+   * una etapa de montaña la pelea puede durar CIEN, porque ahí se apunta media parrilla. Se
+   * interpola con `breakAppeal`, el mismo número que decide cuánta gente salta.
+   */
+  tacticAllowSettleFlatKm: 6,
+  tacticAllowSettleClimbKm: 100,
+  tacticAllowSettleFloor: 0.15,
   tacticAllowKmGain: 0.5,
   tacticAllowSizePenalty: 0.05,
   // El castigo de amenaza es el TECHO de una rampa, no un escalón (v32): vale entero pegado al
@@ -2062,7 +2598,10 @@ export const STAGE = {
   // Solo se ataca un puerto (ritmo duro, selección) si quedan estos km o menos para meta (o final en alto).
   climbRaceKmToGo: 30,
   decisionEveryBlocks: 10,
-  chaseFeasibleSecondsPerKm: 8,
+  // …Y BAJA A 5 EN LA v38, al recentrar la banda de la fuga en llano en el 10 %. Es el ritmo de
+  // cierre que los trenes consideran VIABLE: por encima de eso dan la fuga por perdida y dejan de
+  // tirar. Con 8 s/km el pelotón no se rendía casi nunca y la fuga ganaba el 2,5 % de las llanas.
+  chaseFeasibleSecondsPerKm: 3,
   // …pero por debajo de este boquete la caza no se da nunca por perdida. La fórmula de viabilidad
   // divide por los km que faltan hasta el punto de captura, así que cerca de meta declara inviable
   // cualquier cosa: sin este suelo, un ataque de 15 s a 14 km de meta hacía sentarse a los trenes.
@@ -2083,9 +2622,324 @@ export const STAGE = {
   // Ritmo del pelotón cuando NO hay nada que cazar por delante (sin fuga, o ya cazada). Antes esto
   // no existía: el controlador vivía dentro de `if (breakaway && !caught)` y el pelotón se quedaba
   // en `commitIdle` toda la etapa. Un pelotón rueda a tempo de carretera, no a paseo.
+  //
+  // LO QUE SE MIDIÓ AL BAJARLO EN LA v38, Y LO QUE RESULTÓ SER. El dueño, al ver que con el coste de
+  // la rueda subido los descolgados se iban fuera de control: «quizás un problema que tengas es que
+  // el pelotón va demasiado rápido normalmente… muchas veces el pelotón debería tener flojera y
+  // dejar hacer». La primera medida dijo que bajarlo EMPEORABA los abandonos fuera de control
+  // (10,0 % → 15,0 %), que es absurdo, y el dueño lo cazó: «no tiene sentido… o es que hay algo mal
+  // programado». Lo había: esta constante hacía además de normalizador de la PUERTA del pelotón, así
+  // que bajarla estrechaba la puerta y los descolgados dejaban de reengancharse. Arreglado con
+  // `chaseBackShutTempo`; con el arreglo puesto, bajar el tempo deja el fuera de control en 10,8 %,
+  // que es lo que tenía que pasar.
+  //
+  // Lo que queda de aquella medida —la fuga ganando el 1,5 % de las llanas contra el 2,0 %— es RUIDO
+  // y no efecto: son 3 etapas contra 4 sobre 200, y en montaña 48 contra 56, que es 1,3σ. Este
+  // número solo manda cuando NO hay nada que cazar (con fuga delante manda el lazo cerrado), así que
+  // su efecto sobre quién gana es pequeño por construcción.
   pelotonTempoCommit: 0.55,
+  /**
+   * EL HUMOR DEL PELOTÓN (v38). El dueño: «también la probabilidad de que el pelotón eche la hueva y
+   * vaya lento». Hasta la v37 el pelotón corría siempre igual de nervioso y la única variación venía
+   * de quién atacaba; en la carretera hay días de cierre a muerte y días en que la carrera no
+   * arranca, y esa diferencia decide si el que se cae en el km 5 vuelve o no vuelve.
+   *
+   * Es un dado por ETAPA (un pelotón no cambia de humor cada cien metros) y se aplica a lo que el
+   * pelotón DECIDE, nunca a los suelos de carretera —el tirón final y el pavé—. Con 0,18, un día
+   * flojo rueda al 82 % de lo que rodaría y uno nervioso al 118 %.
+   */
+  pelotonMoodSpread: 0.14,
+
+  // --- EL VIENTO Y LOS ABANICOS (v41, docs/motor.md §17) ---------------------------------------
+  //
+  // Lo que faltaba, y no es un adorno: hasta la v40 el LLANO NO PODÍA DESCOLGAR A NADIE
+  // (`selectionFactor` devolvía 0 para `llano`, por construcción), así que una etapa llana solo
+  // podía terminar de dos maneras —al sprint, o con una fuga que aguanta— y el abanico, que es una
+  // de las estampas del ciclismo, era imposible de representar.
+  //
+  // El viento entra como una propiedad DEL DÍA, como el humor del pelotón: se sortea una vez, vale
+  // para toda la etapa y no depende de nadie. Lo que se sortea es cuánto pega DE LADO, que es la
+  // única componente que rompe una carrera: el viento de cara frena a todos por igual y el de cola
+  // acelera a todos por igual, pero el lateral obliga a buscar el rebufo EN DIAGONAL, y ahí la
+  // carretera se acaba.
+  /**
+   * Cuánto viento de lado hace hoy, sorteado en [0, 1]. La mayoría de los días no pasa nada: la
+   * distribución tira hacia abajo (`^windDayShape`) para que un abanico siga siendo noticia y no la
+   * norma. Con 0 el motor se comporta EXACTAMENTE como hasta la v40, y eso es a propósito: la
+   * calibración entera del juego está hecha con días sin viento.
+   */
+  windDayShape: 2.2,
+  /**
+   * Por debajo de esto no hay abanico que valga: es brisa, y el día sale EXACTAMENTE como en la
+   * v40 —mismo azar, mismos relojes, misma huella—.
+   *
+   * El número sale de cuántos días queremos con viento de verdad, no de gusto: con
+   * `windDayShape` = 2,2 la probabilidad de pasar el listón es `1 − windMin^(1/2,2)`, así que 0,87
+   * deja **un 6 % de días** con algo de lado. Un abanico es una estampa del ciclismo justamente
+   * porque no pasa todas las semanas; con el listón en 0,35 salía el 37 % de los días, que no es
+   * una etapa de viento sino un juego distinto.
+   *
+   * …Y 0,76 —el 12 % de la primera entrega— TAMBIÉN ERA DEMASIADO, y lo dijo el banco antes que la
+   * intuición. Un día de abanicos le quita la etapa al mejor velocista, así que con uno de cada
+   * ocho llanas el mejor rematador dejaba de mandar en las carreras pequeñas: dos llegadas
+   * agrupadas de la misma carrera las ganaba el mismo el **12,7 %** de las veces contra un suelo de
+   * 15 —el suelo es la línea de la LOTERÍA: con 7 a 17 rematadores nombrados, repartir al azar da un
+   * 6-14 %— y el mejor rematador ganaba el 25,8 % contra un suelo de 25. Apagando el viento, esas
+   * dos vuelven a 18,3 % y 29,3 %: el culpable era la frecuencia, no el mecanismo.
+   *
+   * Y la carretera dice lo mismo: en una temporada real del WorldTour las etapas llanas que decide
+   * un abanico se cuentan con los dedos de una mano sobre siglo y medio de llanas —un 3 % largo—.
+   * Con 0,87 sale un 6 % de días con viento de lado, de los que dos de cada tres llegan a cortar la
+   * carrera: unas cuatro de cada cien llanas. Ahí es donde tiene que estar.
+   */
+  windMin: 0.87,
+  /**
+   * CADA CUÁNTO SE ROMPE LA CARRERA EN ABANICOS, por kilómetro y con el viento a tope. Un abanico no
+   * pasa «poco a poco»: pasa en un sitio y en un momento —una curva, un cruce, un equipo que se
+   * pone— y a partir de ahí la carrera es otra. 0,015 por km con viento pleno son unas dos roturas
+   * en una etapa de 180 km, que es lo que se ve en una jornada de viento de verdad.
+   */
+  windBreakPerKm: 0.015,
+  /**
+   * CUÁNTOS CABEN EN EL ABANICO. Es la pieza que hace que un abanico sea un abanico y no una criba
+   * más, y sale de la carretera: con viento de lado el rebufo está EN DIAGONAL, así que la fila se
+   * come el ancho del asfalto y a partir de cierto número ya no hay sitio. El que no cabe va en la
+   * cuneta pagando el viento entero, por muchos que sean detrás.
+   *
+   * En el motor eso se dice en una línea: con viento, el número de relevistas que cuenta para la LEY
+   * DE VELOCIDAD se topa aquí. Y es lo que arregla el defecto que se midió al abrir el llano a la
+   * selección —viento medio partía la carrera y viento fuerte no hacía nada, porque el grupo grande
+   * de detrás rotaba mejor que el pequeño de delante y se lo comía—: en cuanto ser muchos deja de
+   * servir, lo que decide es la CALIDAD, que es exactamente lo que decide un abanico.
+   *
+   * Doce hombres es una fila de abanico de las de foto. Con el viento a medias el tope sube hacia el
+   * de siempre (`relayRotationMax`), porque con menos viento la diagonal es menos diagonal.
+   */
+  windEchelonRiders: 12,
+  /**
+   * …y con el viento justo en el listón la fila es larga y cabe el pelotón entero: la diagonal
+   * apenas es diagonal. Entre los dos números la capacidad baja GEOMÉTRICAMENTE y no en línea recta
+   * (`windEchelonMax · (windEchelonRiders/windEchelonMax)^lateral`), que es lo que hace que un
+   * viento flojo sea un día incómodo y no una carrera partida: con la interpolación lineal, un
+   * lateral de 0,10 —una brisa— ya dejaba fuera a 117 hombres.
+   */
+  windEchelonMax: 150,
+  /**
+   * UN LLANO CON VIENTO SE CORRE, NO SE RUEDA. Suelo de compromiso mientras sopla de lado, igual
+   * que el del adoquín (`pavesRaceCommit`) y por el mismo motivo: no es una decisión del pelotón, es
+   * la carretera obligando. Un día de viento se corre nervioso de cabo a rabo —la posición lo es
+   * todo, nadie quiere estar en la parte de atrás cuando llegue el corte—.
+   *
+   * Sin este suelo el abanico no servía de nada, y la traza lo enseñaba entero: el corte dejaba
+   * delante a diecinueve hombres con MEJORES piernas (P75 73 contra 68) que rodaban a compromiso
+   * 0,40 mientras los 157 de detrás perseguían a 0,82 y les sacaban cuatro km/h. Se partía la
+   * carrera y el grupo de cabeza se sentaba.
+   */
+  windRaceCommit: 0.82,
+
+  /**
+   * EL HUECO QUE ABRE UN CORTE, en segundos. Un abanico no se abre despacio: la fila se rompe en una
+   * curva y el que se queda al otro lado ve pasar el hueco de golpe. Está por encima de
+   * `grupetoJoinGapSeconds` (12 s) a propósito, porque si no el que acaba de quedarse fuera contaría
+   * como «rueda a la misma altura» y volvería al grupo del que lo acaban de echar en el mismo
+   * kilómetro.
+   */
+  windEchelonGapSeconds: 15,
+
+  /**
+   * LA COLOCACIÓN, en puntos de perfil (v41). Es la otra mitad del abanico: quién se queda dentro
+   * del corte no lo decide solo quién pedalea más fuerte, lo decide quién va colocado cuando la
+   * carretera gira. Las tres piezas están en la misma unidad que el perfil del corredor (0-100) a
+   * propósito, para que ninguna sea un veto y todas se puedan comparar entre sí.
+   *
+   * El EQUIPO QUE LLEVA EL FRENTE es la más gorda, y es la que describe un día de viento: el equipo
+   * que se pone a poner el abanico coloca a los suyos, y por eso los abanicos los hacen los equipos
+   * y no los corredores. Veinticinco puntos son mucho —un gregario del equipo que manda entra por
+   * delante de un buen rodador sin equipo— y es lo que se quiere decir.
+   */
+  /**
+   * EL SUELO DE LA CUNETA. Por muy grande que sea el grupo, el que se queda fuera del corte no pasa
+   * cien kilómetros solo en el asfalto: se junta con los que tiene al lado y hacen su propia fila.
+   * Sin este suelo, la proporción pura (`caben / son`) mandaba a un grupo de 150 a ir a rueda al 8 %
+   * y el Tour de Flandes con viento acababa con el 85 % del campo a cero, que no es un abanico sino
+   * una matanza.
+   *
+   * 0,80 es «la fila de segunda»: se paga más viento que en el abanico bueno —lo bastante para no
+   * volver— sin que rodar detrás sea imposible. Con 0,55 el Flandes con viento seguía saliendo a
+   * 0,993 de vaciado y un 44 % de pájaras; con 0,80 sale a 0,896 y un 3 %, contra un día en calma de
+   * 0,66. Un día de viento es más duro, que es lo que tiene que ser, y no es otra carrera.
+   */
+  windGutterFloor: 0.8,
+  /**
+   * CUÁNTAS FILAS SALEN DE UN CORTE. Un abanico no parte la carrera en dos ni en catorce: salen dos
+   * o tres filas y detrás el grupo de los que ya han renunciado a coger un abanico. Cortar solo la
+   * cabeza dejaba detrás un pelotón intacto —la única cosa que en un abanico no existe— y cortar de
+   * `caben` en `caben` hasta el final dejaba quince grupos en la carretera, que tampoco pasa.
+   */
+  windEchelonMaxGroups: 3,
+
+  windPlacementTeam: 25,
+  /**
+   * AL JEFE LO COLOCAN LOS SUYOS, y solo cuenta si le queda algún gregario en el grupo: un líder al
+   * que se le ha caído el equipo va donde puede, como todo el mundo. Vale la mitad que llevar el
+   * frente, porque colocar al jefe es más barato que poner el abanico entero.
+   */
+  windPlacementLeader: 12,
+  /**
+   * Y LA SUERTE. En un abanico el hueco se abre donde se abre: el que iba en la rueda de al lado se
+   * queda fuera sin haber hecho nada mal. Diez puntos de perfil arriba o abajo son un empujón de
+   * verdad sin llegar a mandar sobre las piernas ni sobre el equipo, que es lo que se busca: que un
+   * día de viento no salga dos veces igual y aun así lo ganen los que tienen que ganarlo.
+   */
+  windPlacementLuck: 10,
+
+  // --- 6.20 EL CLIMA (v42, docs/motor.md §20) ------------------------------------------------
+
+  /**
+   * LA LLUVIA DEL DÍA. Como el viento y como el humor: se sortea una vez, vale para todo el día y no
+   * depende de nadie. Y como el viento, tirando hacia abajo, porque llover llueve poco y diluviar
+   * diluvia menos: el día MOJADO tiene que seguir siendo noticia.
+   *
+   * El listón NO es una constante sino una CONSECUENCIA: se pide una probabilidad de día lluvioso y
+   * el motor deriva el umbral, `umbral = (1 − p)^forma`. Así el clima de cada sitio y cada fecha
+   * (`world/climate.ts`) entra por donde tiene que entrar —diciendo cuánto llueve AQUÍ y AHORA— y
+   * no hay dos números que calibrar por separado.
+   *
+   * `rainDayProb` es el valor de referencia, el de una etapa que no dice dónde ni cuándo se corre:
+   * **un 20 % de días con lluvia**, la frecuencia de un sitio templado. Es la lección de la v41
+   * —donde puse el 12 % de días de viento a ojo y el banco lo tumbó— aplicada de antemano: estos
+   * números se eligen contra algo, no contra la intuición.
+   */
+  rainDayShape: 2,
+  rainDayProb: 0.2,
+  /**
+   * LO QUE LA LLUVIA LE HACE A LAS CAÍDAS. Es la petición literal del dueño —«es lo que justifica de
+   * verdad las caídas y los abandonos»— y el número más fácil de defender de los tres: con el
+   * asfalto mojado se cae mucha más gente, y en una curva o en un adoquín se cae el doble.
+   *
+   * Multiplica la intensidad de caída del bloque, así que respeta dónde ocurren las caídas —el
+   * adoquín, el descenso, el embudo final— y solo cambia cuántas. A diluvio pleno, casi el doble,
+   * que es lo que dicen los recuentos de carreras en mojado contra las mismas en seco.
+   *
+   * Con 1,5 —el primer número, puesto a ojo— un Paris-Roubaix con lluvia daba **104 incidentes de
+   * 176 corredores** contra 32-50 en seco: seis de cada diez tocando el suelo, que no es una carrera
+   * mojada sino una caricatura.
+   */
+  rainCrashScale: 0.8,
+  /**
+   * EL ADOQUÍN MOJADO. La estampa entera del ciclismo de primavera: el mismo sector que en seco
+   * estira el grupo, en mojado lo parte. Escala `dropPavesFactor`, así que las estrellas del sector
+   * siguen mandando y lo que cambia es cuánto rompe cada una.
+   */
+  rainPavesScale: 0.5,
+  /**
+   * EL DESCENSO MOJADO. Bajar con lluvia es perder la rueda del de delante, no reventar: por eso
+   * escala la selección del descenso (`dropDescentFactor` = 0,08, la más pequeña de las tres) y no
+   * el coste. A diluvio pleno, el doble.
+   */
+  rainDescentScale: 1,
+
+  /**
+   * CUÁNTO SE APARTA UN DÍA DE LA MEDIA DE SU ESTACIÓN, en grados. El clima da la media de un sitio
+   * y una fecha; el día concreto puede ser siete grados más fresco o más caluroso, que es la
+   * diferencia entre una etapa dura y una etapa de las que se recuerdan.
+   */
+  heatDaySpreadC: 7,
+  /**
+   * DÓNDE EMPIEZA EL CALOR Y DÓNDE APRIETA DEL TODO, en grados. Por debajo de `heatFromC` el calor no
+   * cuesta nada —correr a 24° es correr—, y en `heatFullC` es un día de los que dejan al pelotón
+   * pidiendo agua en cada avituallamiento.
+   */
+  heatFromC: 26,
+  heatFullC: 38,
+  /**
+   * LO QUE CUESTA EL CALOR. No es velocidad ni selección: es DEPÓSITO. A la misma potencia, con 38°
+   * el cuerpo gasta en refrigerarse lo que no gasta a 20, y eso sale del mismo sitio del que sale
+   * todo lo demás.
+   *
+   * Un 8 % en el día más caluroso es un número contenido a propósito, y por una lección que este
+   * motor ya se llevó dos veces: en la v41, cobrar más de la cuenta en el llano reventó el Tour de
+   * Flandes, y la erosión de una clásica dura vive a 0,92 contra un techo de 0,95. Lo que el calor
+   * tiene que hacer es que una etapa de agosto en España pese más que la misma en abril, no volver
+   * imposible ninguna carrera.
+   */
+  heatCostScale: 0.08,
+
+  /**
+   * LAS GANAS DE ATACAR DEL QUE VA TIRANDO (v41). El que está en la rotación acaba de pagar el
+   * viento del grupo: no es el que salta. El dueño lo cazó en una carrera de producción —«el mismo
+   * que se escapó, antes de escaparse iba tirando del pelotón… eso no tiene sentido»—.
+   *
+   * Es un factor y no un veto a propósito, porque arrancar desde un relevo existe: se coge el turno,
+   * se levanta el ritmo y se sigue. Pero es una de cada diez, no la mitad.
+   */
+  tacticPullingAppetite: 0.1,
+
+  /**
+   * CUÁNDO UNA FUGA CUENTA COMO «HABERSE PASADO EL DÍA DELANTE» (v42), en km. Por debajo de esto el
+   * movimiento fue una escaramuza —de las que hay quince en los primeros cincuenta kilómetros— y no
+   * deja secuela: el que se tira y le cogen a los dos kilómetros puede volver a tirarse, y eso
+   * también es ciclismo.
+   */
+  tacticSpentMinKm: 15,
+  /**
+   * …Y CUÁNTO DURA LA SECUELA: la mitad de lo que estuvo fuera. El que ha hecho 100 km escapado y le
+   * cazan no vuelve a existir en cincuenta kilómetros, que en la práctica es «hasta meta». El que ha
+   * hecho veinte, se sienta diez y luego ya veremos.
+   */
+  tacticSpentShare: 0.5,
+  /**
+   * …con un tope, porque «no vuelve a existir» tiene que seguir siendo una frase del día y no de la
+   * semana: ochenta kilómetros es más que el desenlace de cualquier etapa.
+   */
+  tacticSpentMaxKm: 80,
+  /**
+   * …Y ALREDEDOR DE QUÉ (v39). El dado del humor iba centrado en 1, o sea que de MEDIA el pelotón
+   * corría al máximo de lo que su plan pedía. El dueño: «que en general no estén tan motivados en
+   * gastar fuerzas tirando del pelotón». Un pelotón empleándose a fondo todo el día es la excepción;
+   * lo normal es rodar a lo justo. Calibrado contra las ocho grandes vueltas de 2024-2026, donde la
+   * fuga gana ~12 % de las llanas (unas 5 de 41).
+   */
+  pelotonMoodCentre: 0.9,
+  /**
+   * DOSIFICAR SEGÚN LO QUE PIDE EL DÍA (v39, ver `demandaDelDia` en `simulate.ts`). El dueño, sobre
+   * las clásicas que saturaban: «tal vez en una clásica superlarga tengan que dosificar esfuerzos
+   * mejor y entonces no salir tan a muerte para no saturarse».
+   *
+   * `ReferenceDemand` es lo que pide un día normal —la media montaña del banco pide 73,9 y la llana
+   * 43,2—, y por encima de eso se rueda proporcionalmente más suave. Lombardía pide 102,2, Strade
+   * 98,7 y Montreal 90,9: son exactamente las tres que saturaban. `Min` es el suelo, porque
+   * administrarse no es pasear —a 0,7, con el reparto del turno de la v39, Il Lombardia se queda en
+   * 0,888 de vaciado y un 8 % de pájaras contra un techo de 0,95 y 12 %—.
+   */
+  pacingReferenceDemand: 75,
+  pacingSlope: 1,
+  pacingMin: 0.7,
+  /**
+   * CUÁNTO DE LA DOSIFICACIÓN —Y CUÁNTO DE LA HUEVA— LLEGA A LAS CUESTAS (v39). Ninguna de las dos
+   * es una fuerza física: son «con cuántas ganas se rueda esto», y las ganas se administran EN EL
+   * LLANO. Un pelotón que se guarda para un día largo rueda más suave entre las dificultades; un
+   * pelotón desganado deja hacer en la transición. Ninguno de los dos sube despacio: el puerto se
+   * sube al ritmo que pide el puerto.
+   *
+   * Medido, con las dos aplicadas también en la cuesta: la cola de la reina de gran vuelta se caía
+   * a 7,45 % (banda 8-14) y la de las reinas reales a 6,67 %, porque las reinas son cuesta pura
+   * —Tour e20, el 76 % de lo que pide el día está en las subidas— y aflojar ahí es no hacer
+   * selección. Las clásicas que saturaban son justo lo contrario (Strade y Roubaix, el 100 % de la
+   * demanda fuera de la cuesta), así que sacar las cuestas no le quita nada a lo que sí hacía falta.
+   */
+  climbEaseDemand: 95,
   // Ritmo del pelotón en un puerto que NO es decisivo (lejos de meta): se sube a tempo.
-  climbTempoCommit: 0.62,
+  /**
+   * …Y SUBE A 0,70 EN LA v39, al pasar el exponente del coste a la ley. La ley ABARATA el ritmo en
+   * cuesta (exponente 1,6 → 1,0, porque allí la velocidad es proporcional a la potencia y no a su
+   * raíz), así que con el mismo tempo la montaña seleccionaba menos y la cola de la reina de gran
+   * vuelta se caía a 7,98 % contra una banda de 8-14. Es la palanca que pidió el dueño mirando otra
+   * versión del mismo síntoma: «quizás entonces en una etapa reina falta que los campeones se
+   * esfuercen un poquito más». Con 0,70: cola 8,31 %, reinas reales 7,98 %, peor etapa 16,0 % (techo
+   * 18) y la fuga de montaña en 29,0 % (banda 25-45).
+   */
+  climbTempoCommit: 0.7,
   // Los últimos km de una etapa de meta llana: los trenes se organizan y el pelotón vuela.
   finalDriveKm: 15,
   finalDriveCommit: 0.85,
@@ -2278,6 +3132,49 @@ export const STAGE = {
   // desempate del motor; lo comparten el sprint de meta y los mini-sprints de banner (6.11).
   sprintScoreNoiseSd: 0.045,
 
+  // --- EL LANZAMIENTO: CUÁNDO SE ABRE EL SPRINT (v39, ver `sprintHoldMetres`/`launchEffect`) ---
+  //
+  // Cuánto sprint aguanta un hombre, en metros. 200 m de base y 2 m por punto de SPR: un velocista
+  // de 85 aguanta 270 y un rodador de 55, 210. Son los números de carretera —un sprint largo son
+  // 250-300 m y uno corto 150-200— y el suelo evita que un hombre roto tenga un sprint negativo.
+  sprintHoldBase: 200,
+  sprintHoldPerPoint: 2,
+  sprintHoldMin: 90,
+  // …y el tanque acorta el sprint: con el depósito vacío se aguanta el 55 % de lo que se aguanta
+  // entero. Es lo que hace que una llegada masiva después de 240 km no se dispute como una de 150.
+  sprintHoldFreshFloor: 0.55,
+  // Lo que cuesta cada 100 m abiertos DE MÁS por encima de lo que se aguanta (te apagas), y lo que
+  // cuesta cada 100 m de más que te ha sacado el primero que abrió (no te queda carretera). El
+  // pronto castiga más que el tarde: apagarse es perder metros, llegar tarde es perder puestos.
+  launchEarlyPenalty: 0.14,
+  launchLatePenalty: 0.07,
+  // La ventana de cortesía: los metros que puedes dejar que se vaya el primero y aún así pasarle.
+  // Un sprint se remonta desde una rueda o dos, no desde media recta.
+  launchWindowM: 70,
+  // Suelo del factor: equivocarse de momento cuesta la etapa, no la carrera. Un 0,7 sobre una
+  // puntuación de remate de 80 la deja en 56, que es perder el sprint sin dejar de estar ahí.
+  launchEffectFloor: 0.7,
+  // La DISPERSIÓN de la decisión, en metros. Es la parte que no se sabe: un sprint no se abre con
+  // cronómetro. Un tren la reduce —para eso está, para poner a su hombre en el sitio— y la táctica
+  // también, porque abrir a tiempo es leer el momento.
+  launchSdBase: 55,
+  launchTrainSdShare: 0.45,
+  launchTacScale: 40,
+  launchTacRelief: 0.35,
+  // Y EL DUELO DE MIRADAS: en un grupo donde nadie tiene tren, nadie quiere abrir. Se abre este
+  // tanto más tarde de lo que conviene, que es de donde sale que una fuga se juegue a los nervios.
+  launchStandoffM: 55,
+  /** …y cuánto de ese retraso se come el que no tiene tren cuando OTROS sí lo tienen. */
+  launchNoTrainLateShare: 0.6,
+  /**
+   * Cuántos hombres disputan de verdad el sprint, y por tanto cuántos pueden ABRIRLO. La referencia
+   * del «tarde» sale del primero de éstos y no del primero del grupo: en un pelotón de ciento
+   * setenta, el máximo de ciento setenta tiradas vive en la cola de la distribución y lo pone un
+   * gregario que no se juega nada, dejando tarde a la carrera entera. En carretera el sprint lo
+   * abre alguien de la primera fila.
+   */
+  sprintContenders: 10,
+
   // --- LA COLOCACIÓN EN EL PELOTÓN (v24, docs/motor.md §12.6) ------------------------------
   //
   // En carretera un sprint se pierde por ir mal colocado: te tapan en la última curva, el tren se
@@ -2331,6 +3228,20 @@ export const STAGE = {
   // porque hay demasiadas ruedas atentas. Modula la probabilidad de que el pelotón dé cuerda.
   // Ojo: el sprint masivo NO usa este umbral, usa `bunchSprintMinRiders`.
   bigGroupThreshold: 25,
+  /**
+   * CUÁNTO SE ENSANCHA ESE TOPE CUANDO LA FUGA MERECE LA PENA (v39, ver `MoveContext.breakAppeal`).
+   * Con 5, una etapa de montaña pura diluye la atención como si el pelotón fuera de 150 en vez de
+   * 25, o sea que salta seis veces más gente: es la diferencia entre la fuga de tres del motor y las
+   * de quince a cincuenta que se ven en una grande de verdad.
+   */
+  breakAppealCrowdGain: 9,
+  /**
+   * …Y DE QUÉ SALE EL APETITO. La fuga merece la pena donde puede GANAR, y eso lo dice el terreno:
+   * la fracción del recorrido que se sube (`...ClimbWeight`) y si además se acaba arriba
+   * (`...UphillBonus`). Una llana pura da 0 —cuatro anónimos y a rodar— y una reina da 1.
+   */
+  breakAppealClimbWeight: 4,
+  breakAppealUphillBonus: 0.35,
   // Definición de "final en alto" del SPEC 6.12: últimos 3 km con pendiente media >= 5%. Estuvo
   // definida y sin usar mientras el motor resolvía el final con su propia heurística ("algún bloque
   // de los últimos 2 km sube"); ahora es uno de los dos caminos que llevan al tipo `alto`
@@ -2405,13 +3316,51 @@ export const STAGE = {
   // Calibrada para que una etapa de pavés deje un 5-12% de bajas por caída.
   crashLambdaBase: 0.00005,
   crashLambdaDescent: 0.0018,
-  crashLambdaPaves: 0.0045,
+  /**
+   * CUÁNTOS SE VAN AL SUELO CON ÉL (v38, `crashPile`). El dueño: «normalmente cuando se cae alguien
+   * en el pelotón casi siempre se caen varios… normalmente VARIOS, con lo cual podrían tirar».
+   * Hasta la v37 cada caída era de uno porque el dado se tiraba corredor a corredor y nadie miraba a
+   * los de al lado, y eso decide algo gordo: si el cortado acaba SOLO —y entonces no vuelve y se va
+   * fuera de control— o en un grupo que se releva y llega. Un susto se lleva a un par; una caída
+   * seria, a un montón.
+   */
+  crashPileLightMax: 1,
+  crashPileSeriousMax: 5,
+  // …y de los arrastrados, solo esta fracción se hace daño de verdad: el resto se levanta con un
+  // rasguño. El que provoca la caída se lleva la peor parte; los que caen encima lo hacen a menos
+  // velocidad y sobre cuerpos y bicis. Sin esto cada montón multiplicaba las lesiones por su tamaño:
+  // los abandonos de una gran vuelta se iban al 28,4 % (banda 12-20) y el 81,5 % eran por caída.
+  crashPileHurtChance: 0.06,
+  /**
+   * Y EL RIESGO DEL PAVÉS BAJA A LA MITAD PORQUE AHORA SE CAEN VARIOS (v38). No es que el adoquín
+   * sea menos peligroso: es que hasta la v37 cada caída era de UNO —el dado se tiraba corredor a
+   * corredor y nadie miraba a la rueda de al lado— y ahora un incidente arrastra a los que van
+   * detrás (`crashPile`), que es lo que pidió el dueño. Con el mismo dado, los corredores TOCADOS
+   * por una caída en una etapa de adoquines pasaron del 9 % al 18,7 %, con una banda de 5-12.
+   *
+   * Lo que se conserva es lo que se calibró en su día: cuánta gente acaba en el suelo en una
+   * clásica de adoquines. Lo que cambia es que van juntos y no de uno en uno. Medido con el mismo
+   * banco de 80 etapas: 10,5 %.
+   */
+  crashLambdaPaves: 0.0025,
   crashLambdaFinal: 0.0008,
   // severidad: 60% sin daño (30-90 s) | 30% rasguños (eff -3%, 3-6 d) | 9% leve (5-15 d) | 1% grave (20-60 d).
+  /**
+   * LA RULETA DE LA SEVERIDAD. OJO: `major` es EL RESTO, no una entrada independiente —el dado cae
+   * en `major` cuando no ha caído en ninguna de las tres anteriores—, así que bajar `minor` SUBE
+   * `major` y no cambia nada: las dos sacan de la carrera. Medido en la v38 al intentarlo: los
+   * abandonos por caída se quedaron en el 68,2 % contra el 68,0 % de partida.
+   *
+   * La perilla de verdad es `none`: cuántas caídas son de levantarse y seguir. Subida de 0,60 a
+   * 0,62 en la v38 para cerrar el reparto de causas de §VI.3, que estaba en caída 73,6 % contra una
+   * banda de 30-67. Con eso y con el dado de enfermar en carrera (ver `illnessRaceFactor`): caída
+   * 65,0 %, enfermedad ~30 %, fuera de control ~5 %, abandonos totales 14,9 % (banda 12-20). Y sin
+   * mover el otro lado: el último grupo de una reina sigue en el 8,33 % (banda 8-14).
+   */
   crashSeverity: {
-    none: 0.6,
+    none: 0.62,
     scratches: 0.3,
-    minor: 0.09,
+    minor: 0.072,
     major: 0.01,
   },
   // Consecuencias de una caída por severidad: tiempo perdido en carretera (s) y días de baja.
@@ -2438,7 +3387,16 @@ export const STAGE = {
   // desde la v9 decide si el marcador vive de verdad en la rueda de su objetivo cuando este ATACA
   // (docs/motor.md §13, regla 9). Si la tiene, responde con `resolveMarking`; si no, decide con el
   // dado de la atención como cualquier otro.
-  markWheelBase: 0.35,
+  /**
+   * SUBIDA DE 0,35 A 0,60 EN LA v39. El dueño: «si un ciclista está marcando a otro, debería
+   * intentar salir detrás de él». Y es que 0,35 de base decía lo contrario: un hombre cuyo ÚNICO
+   * trabajo del día es vivir en esa rueda la perdía dos de cada tres veces. Medido en un banco de
+   * cuarenta etapas, el marcador seguía a su objetivo el 22 % de los ataques contra el 4 % de un
+   * corredor idéntico sin órdenes: la orden se notaba, pero mucho menos de lo que una orden debería
+   * notarse. Lo que sigue decidiendo el resto es lo de siempre: la diferencia de TAC, cuántos más le
+   * están marcando, y si aguanta o no el hachazo (`markingMargin`).
+   */
+  markWheelBase: 0.6,
   markWheelTacScale: 80,
   markWheelExtraPenalty: 0.1,
   markWheelMin: 0.15,
@@ -2468,7 +3426,28 @@ export const STAGE = {
   // con general en juego, que es justo lo que separa una vuelta de una clásica— y `etapa` es el día.
   helpBackGcKeepInBunch: 1, //  por la general: se quedan los que hagan falta, MENOS UNO delante.
   helpBackStageHelpers: 2, //   por la etapa: dos hombres, y solo si el boquete es pequeño.
-  helpBackStageGapSeconds: 45, // «que la diferencia sea pequeña», en segundos.
+  helpBackStageGapSeconds: 60, // «que la diferencia sea pequeña», en segundos.
+  // …Y POR LA ETAPA CASI NUNCA SE BAJA NADIE (v37). La v36 dejó la rama de la etapa demasiado
+  // abierta —dos hombres cada vez que el jefe se quedaba a 22-45 s, medido: 6,6 avisos por etapa—
+  // y el dueño la corrigió: «por la etapa yo creo que nadie debería bajarse… salvo que sea un
+  // pinchazo/caída y la distancia sea pequeña, y sea gran favorito para ganar la etapa». Tiene
+  // sentido de carretera: renunciar a tu propia carrera por una etapa que tu jefe ya ha perdido no
+  // lo hace nadie; hacerlo por el favorito que se acaba de ir al suelo, sí.
+  //
+  // Así que la rama pide ADEMÁS tres cosas: que haya habido un PERCANCE reciente (`mishapKm`), que
+  // el jefe sea la carta del día de su equipo, y que esa carta esté entre las mejores del pelotón
+  // para el final de HOY (`finishScore`, que ya sabe de qué tipo de etapa se trata). Con menos de
+  // eso, el equipo sigue corriendo su carrera. Medido después: 0,01 avisos por etapa.
+  //
+  // Y el percance se cuenta con CUALQUIER severidad de caída, no solo con `hurt` (la caída seria de
+  // la v20): pedir `hurt` hace la regla imposible, porque una caída seria cuesta 60-300 s y «que la
+  // distancia sea pequeña» son 60 —medido: 0 avisos en 120 etapas—. La que deja al hombre a tiro es
+  // la leve, que además son el 90 % de las caídas. El PINCHAZO y la avería mecánica NO existen
+  // todavía en el motor y quedan anotados: cuando existan marcan `mishapKm` y esta regla los ve.
+  helpBackStageFavouriteTeams: 3,
+  // Y el percance tiene que ser de HACE NADA: a diez kilómetros de la caída, o ya ha vuelto o su
+  // etapa se acabó. Cinco kilómetros son los que tarda un equipo en organizarse y bajar a por él.
+  helpBackMishapKm: 5,
   // Y el techo es el mismo con el que un descolgado deja de mirar hacia delante
   // (`shedResignGapSeconds`): mientras el grupo de cabeza siga a la vista se va a por el jefe; a
   // cinco minutos ya no es un rescate, es acompañarle a meta. Solo muerde en la rama de la general,
@@ -2476,8 +3455,13 @@ export const STAGE = {
   helpBackMaxGapSeconds: 300,
   helpBackMinKmToGo: 5, //      y no en el desenlace: dejarse caer a 3 km de meta no ayuda a nadie.
   helpBackMinFreshness: 0.35, // el que va vacío no sirve de gregario; se queda donde está.
-  domestiqueProtectPerHelper: 0.05, // cada gregario presente rebaja un 5% el coste del líder...
-  domestiqueProtectMax: 0.15, //       ...hasta un 15% (≈3 gregarios): un equipo fuerte ahorra mucho.
+  // RETIRADAS EN LA v38: `domestiqueProtectPerHelper` (5 % menos por gregario presente) y
+  // `domestiqueProtectMax` (tope del 15 %). El dueño: «un líder arropado por gregarios dentro del
+  // pelotón gasta LO MISMO que uno que va a rueda en el pelotón cómodamente sin entrar a los
+  // relevos». Lo que ahorra energía es ir a rueda, y eso ya lo cobra `shelterProtected` igual para
+  // todos; llevar equipo no te pone más a rueda de lo que ya vas. Lo que sí te da tu equipo es que
+  // ellos entren al turno y paguen el viento (y eso ya está cobrado donde toca) y que te saquen del
+  // turno cuando hace falta (v36). Detalle en docs/balance.md «v38».
   leadOutBoostPerHelper: 0.05, // cada lanzador presente sube un 5% la puntuación de sprint del líder...
   leadOutMaxHelpers: 2, //             ...con dos ya se satura (un tren de más de dos no suma más).
 

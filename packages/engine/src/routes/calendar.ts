@@ -19,6 +19,7 @@ import {
   hillySegments,
   hillyUphillSegments,
   ittSegments,
+  mountainClassicSegments,
   mountainSegments,
   routeRng,
 } from './profileGen.js'
@@ -131,6 +132,23 @@ const mountain = (km: number, seed: string): StageSpec => ({
   kind: 'reina',
   label: 'Summit finish',
   profile: auto(mountainSegments(km, seed)),
+})
+
+/**
+ * …Y LA DE UN DÍA NO MUERE ARRIBA (v40). Una clásica de montaña corona su último puerto antes de
+ * meta; la que termina en la cima de un puerto de catorce kilómetros es una etapa reina de gran
+ * vuelta, y meterle ese perfil a una carrera de un día reventaba el pelotón entero (ver
+ * `mountainClassicSegments`).
+ */
+const mountainOneDay = (km: number, seed: string): StageSpec => ({
+  kind: 'reina',
+  // La etiqueta es «Mountains» y no «Summit finish» porque el recorrido ya NO muere arriba, y quien
+  // manda aquí es el etiquetador de `stageHistory.ts`: para una reina con más de cinco kilómetros
+  // tras la última cima, esto es una etapa de montaña y no un final en alto. Ponerle nombre propio
+  // —«Mountain classic»— hacía que el calendario y el etiquetador dijeran cosas distintas de la
+  // misma etapa, y eso lo caza el banco que vigila que solo cambie la etiqueta y nunca el tipo.
+  label: 'Mountains',
+  profile: auto(mountainClassicSegments(km, seed)),
 })
 
 const itt = (km: number, seed: string): StageSpec => ({
@@ -382,7 +400,7 @@ interface RaceRow {
 function oneDaySpec(terrain: Terrain, km: number, seed: string): StageSpec {
   if (terrain === 'cobbles') return cobbles(km, seed)
   if (terrain === 'classic') return classic(km, seed)
-  if (terrain === 'mountain') return mountain(km, seed)
+  if (terrain === 'mountain') return mountainOneDay(km, seed)
   if (terrain === 'hilly') return hilly(km, seed)
   if (terrain === 'itt') return itt(km, seed)
   return flat(km, seed)
