@@ -8583,9 +8583,45 @@ Así que la banda no falta: está, y está EN VERDE. Lo que pasa es dónde se mi
 | Etapas reina de una gran vuelta (168, calendario real) | **0 %**                  |
 
 Es `realQueens` frente a `grandTour` otra vez (v17), y es el patrón que este documento nombra desde
-entonces: **el escenario canónico está en verde y la carrera que el juego corre no se le parece.** La
-diferencia entre los dos sitios son tres cosas —el perfil real frente a un final en alto de manual, la
-fatiga acumulada del día 18, y el campo con equipos y general—, y CUÁL de las tres manda no lo sé
-todavía: eso es la medida siguiente, no una conjetura que escriba aquí.
+entonces: **el escenario canónico está en verde y la carrera que el juego corre no se le parece.**
+
+### 6. Y cuál de las tres diferencias manda: EL PERFIL
+
+Las candidatas eran tres —el perfil real frente a un final en alto de manual, la fatiga acumulada del
+día 18, y el campo con equipos y general—, y `realQueens` las separa de un tiro, porque corre etapas
+reina REALES del calendario con campo FRESCO y SIN general. Nueve etapas, 30 semillas cada una:
+
+| Banco                     | Perfil    | Fatiga | General | Gana la fuga              |
+| ------------------------- | --------- | ------ | ------- | ------------------------- |
+| `reina-150` canónica      | de manual | no     | no      | **27-30 %** (banda 25-45) |
+| `realQueens` (270 etapas) | REAL      | no     | no      | **3,3 %**                 |
+| Gran vuelta (168 reinas)  | REAL      | sí     | sí      | **0 %**                   |
+
+El salto está entero en la primera fila: **quitar el perfil de manual y poner uno real se lleva la
+métrica de 27 % a 3 %.** La fatiga y la general le quitan lo poco que queda, pero no son la causa.
+
+Y por etapa hay señal, no ruido plano:
+
+| Etapa                                                                                               | Gana la fuga |
+| --------------------------------------------------------------------------------------------------- | ------------ |
+| `race-colombia` e5 (232 km, última cota a 62 km, 47 rodadores)                                      | 16,7 %       |
+| `race-tachira` e6                                                                                   | 6,7 %        |
+| `race-spain` e7 y `race-guatemala` e9                                                               | 3,3 %        |
+| `race-two-seas` e4, `race-france` e20, `race-italy` e19, `race-catalonia` e4, `race-rhone-alpes` e8 | **0 %**      |
+
+Que la que MÁS deja ganar a la fuga sea la de 47 km rodadores hasta meta descarta la explicación
+fácil («la cazan en el llano final»): es al revés. Las cinco que dan cero son las de final en alto o
+casi, o sea justo la forma que el escenario canónico dice que la fuga gana el 27 % de las veces.
+
+**Lo que esto NO dice todavía, y por qué no lo escribo como causa:** qué tiene un perfil real que no
+tiene el canónico. La sospecha razonable es el RELIEVE REPARTIDO —con cuestas por todas partes el
+pelotón está `onClimb` mucho más rato, y ahí su tempo es 0,70 en vez de 0,55—, y hay un comentario en
+`climbRaceKmToGo` que ya dice «con perfiles reales hay relieve por todas partes». Pero eso es leer el
+código, no medirlo, y la diferencia entre las dos cosas es la mitad de este documento.
+
+**Y engancha con algo que el dueño vio.** «3 etapas seguidas de montaña y las 3 las gana el mismo
+ciclista» (Race Alps): si la fuga no gana NUNCA una etapa de montaña, la gana siempre alguien del
+grupo de favoritos, y el mismo hombre repite. No está demostrado que sea la causa de aquello —no lo
+he medido— pero es la primera explicación mecánica que aparece para ese síntoma.
 
 Es la primera pregunta de E3 con respuesta clara, y el siguiente trabajo del EPIC.

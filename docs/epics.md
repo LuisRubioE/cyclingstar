@@ -108,11 +108,27 @@ etapa reina canónica mide 27-30 %. Es el mismo estadístico dígito a dígito (
 `datos.fuga === 1`), comprobado antes de comparar. O sea que el escenario canónico está en verde y la
 carrera que el juego corre da CERO: `realQueens` frente a `grandTour` una vez más.
 
-**Lo siguiente del EPIC**, y en este orden: (1) cuál de las tres diferencias entre los dos bancos
-manda —el perfil real frente a un final en alto de manual, la fatiga acumulada del día 18, o el campo
-con equipos y general—, y (2) con eso, dónde se arregla. Y luego las otras preguntas que E3 abrió y
-que este paso no toca: la emboscada, el día en que el líder se rompe, y si el día 18 se corre distinto
-del día 3.
+**Paso 3, hecho: manda EL PERFIL.** `realQueens` separa las tres candidatas de un tiro, porque corre
+etapas reina reales con campo fresco y sin general:
+
+| Banco                     | Perfil    | Fatiga | General | Gana la fuga          |
+| ------------------------- | --------- | ------ | ------- | --------------------- |
+| `reina-150` canónica      | de manual | no     | no      | 27-30 % (banda 25-45) |
+| `realQueens` (270 etapas) | REAL      | no     | no      | **3,3 %**             |
+| Gran vuelta (168 reinas)  | REAL      | sí     | sí      | **0 %**               |
+
+El salto está entero en la primera fila. Y la etapa que MÁS deja ganar a la fuga (16,7 %) es la de 47
+km rodadores hasta meta, así que no es «la cazan en el llano final»: las que dan cero son las de final
+en alto, que es justo la forma que el escenario canónico dice que la fuga gana el 27 % de las veces.
+
+Engancha además con algo que el dueño vio en Race Alps —«3 etapas seguidas de montaña y las 3 las gana
+el mismo ciclista»—: si la fuga no gana nunca en montaña, gana siempre alguien del grupo de favoritos.
+No está demostrado que sea la causa, pero es la primera explicación mecánica de aquel síntoma.
+
+**Lo siguiente**: qué tiene un perfil real que no tiene el canónico (la sospecha es el relieve
+repartido, que mantiene al pelotón `onClimb` mucho más rato y a 0,70 en vez de 0,55 — pero eso es leer
+el código, no medirlo). Y luego las otras preguntas que E3 abrió y que estos pasos no tocan: la
+emboscada, el día en que el líder se rompe, y si el día 18 se corre distinto del día 3.
 
 ### E5 · El clima — HECHO EN EL MOTOR (v42), ver docs/motor.md §20. Falta enseñarlo
 
