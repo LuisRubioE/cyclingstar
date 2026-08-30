@@ -125,10 +125,33 @@ Engancha además con algo que el dueño vio en Race Alps —«3 etapas seguidas 
 el mismo ciclista»—: si la fuga no gana nunca en montaña, gana siempre alguien del grupo de favoritos.
 No está demostrado que sea la causa, pero es la primera explicación mecánica de aquel síntoma.
 
-**Lo siguiente**: qué tiene un perfil real que no tiene el canónico (la sospecha es el relieve
-repartido, que mantiene al pelotón `onClimb` mucho más rato y a 0,70 en vez de 0,55 — pero eso es leer
-el código, no medirlo). Y luego las otras preguntas que E3 abrió y que estos pasos no tocan: la
-emboscada, el día en que el líder se rompe, y si el día 18 se corre distinto del día 3.
+**Paso 4: qué tiene un perfil real que no tiene el canónico.** La canónica es 135 km de llano MUERTO
+y un final en alto: **cero** subida fuera de los últimos 30 km. Las nueve reinas reales tienen entre
+el 6 % y el 38 %. La dirección se ve en los extremos (0 % de relieve → 27 % de fugas ganadoras;
+28-38 % → 0 %) pero por el medio no ordena, así que el relieve NO queda demostrado como el mecanismo:
+para eso hace falta el experimento controlado, el mismo final en alto con relieve y sin él.
+
+Lo que sí queda demostrado sin depender del mecanismo: **la banda de 25-45 % está medida sobre una
+forma de etapa que no existe en el calendario.**
+
+### V2 · DECISIÓN DEL DUEÑO: dónde se mide la fuga en montaña
+
+Mover el objetivo a los perfiles reales (`realQueens` en vez de `reina-150`) es lo correcto por todo
+lo que dicen estas docs —se mide lo que el juego corre—, pero **dejaría el motor en ROJO ahí**: 3,3 %
+contra un suelo de 25, y volver a banda es una recalibración táctica del tamaño de la v38.
+
+1. **Mover el objetivo y recalibrar.** La carretera dice que la fuga se lleva una parte grande de las
+   etapas de montaña, así que el 0 % es un defecto y no una banda mal puesta. Es la opción larga.
+2. **Dejarlo donde está y anotar el hueco.** Barato y deshonesto: es el patrón que estas docs llevan
+   desde la v17 diciendo que no se hace.
+3. **Añadir el objetivo sobre `realQueens` con la banda que hoy se cumple**, y subirla por pasos. Ni
+   miente ni bloquea, pero convierte una banda en un termómetro.
+
+Recomiendo la 1. No la he empezado porque mover un suelo de calibración necesita el visto bueno del
+dueño. Detalle en docs/balance.md «v43 §7 y §8».
+
+**Y lo que E3 aún no ha tocado**: la emboscada, el día en que el líder se rompe, y si el día 18 se
+corre distinto del día 3.
 
 ### E5 · El clima — HECHO EN EL MOTOR (v42), ver docs/motor.md §20. Falta enseñarlo
 

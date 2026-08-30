@@ -8613,11 +8613,61 @@ Que la que MÁS deja ganar a la fuga sea la de 47 km rodadores hasta meta descar
 fácil («la cazan en el llano final»): es al revés. Las cinco que dan cero son las de final en alto o
 casi, o sea justo la forma que el escenario canónico dice que la fuga gana el 27 % de las veces.
 
-**Lo que esto NO dice todavía, y por qué no lo escribo como causa:** qué tiene un perfil real que no
-tiene el canónico. La sospecha razonable es el RELIEVE REPARTIDO —con cuestas por todas partes el
-pelotón está `onClimb` mucho más rato, y ahí su tempo es 0,70 en vez de 0,55—, y hay un comentario en
-`climbRaceKmToGo` que ya dice «con perfiles reales hay relieve por todas partes». Pero eso es leer el
-código, no medirlo, y la diferencia entre las dos cosas es la mitad de este documento.
+### 7. Qué tiene un perfil real que no tiene el canónico
+
+Medida la FORMA de los diez perfiles, con la columna que importa: cuánta subida hay **fuera de los
+últimos 30 km** (`climbRaceKmToGo`), o sea en el tramo donde el pelotón rueda a `climbTempoCommit`
+0,70 si hay cuesta y a `pelotonTempoCommit` 0,55 si no la hay.
+
+| Etapa                    | Subida fuera de los últimos 30 km | Gana la fuga |
+| ------------------------ | --------------------------------- | ------------ |
+| **`reina-150` canónica** | **0 %**                           | **27-30 %**  |
+| `race-colombia` e5       | 13 %                              | 16,7 %       |
+| `race-tachira` e6        | 18 %                              | 6,7 %        |
+| `race-spain` e7          | 8 %                               | 3,3 %        |
+| `race-guatemala` e9      | 13 %                              | 3,3 %        |
+| `race-catalonia` e4      | 6 %                               | 0 %          |
+| `race-two-seas` e4       | 16 %                              | 0 %          |
+| `race-rhone-alpes` e8    | 28 %                              | 0 %          |
+| `race-italy` e19         | 33 %                              | 0 %          |
+| `race-france` e20        | 38 %                              | 0 %          |
+
+La canónica es **135 km de llano MUERTO y un final en alto**: cero relieve fuera del remate. Todas
+las reales tienen entre el 6 % y el 38 %.
+
+**Lo que esto SÍ demuestra**, sin depender de ningún mecanismo: la banda de 25-45 % está medida sobre
+una forma de etapa que **no existe en el calendario**. Ninguna de las nueve reinas reales se le
+parece. Un objetivo en verde sobre un escenario que no se corre no certifica nada del juego.
+
+**Lo que NO demuestra**, y por eso no lo escribo como causa: que el relieve repartido sea EL
+mecanismo. La dirección está en los extremos —0 % de relieve da 27 %, y el 28-38 % da 0 %— pero por
+el medio no ordena: `race-catalonia` tiene un 6 % de relieve y da 0 %, y `race-spain` un 8 % y da
+3,3 %. Con nueve etapas eso no separa el relieve de las otras diferencias de forma. Hace falta el
+experimento controlado —el mismo final en alto con relieve añadido y sin él— y ése no lo he corrido.
+
+### 8. LA DECISIÓN QUE NO ES MÍA
+
+De aquí sale un cambio de calibración, y de los grandes, así que se queda escrito y sin tocar hasta
+que el dueño diga:
+
+**Mover el objetivo de la fuga en montaña a los perfiles REALES** (`realQueens` en vez de
+`reina-150`). Es lo correcto por todo lo que dice este documento —se mide lo que el juego corre— pero
+tiene una consecuencia que hay que decir antes y no después: **el motor pasaría a estar ROJO ahí**,
+3,3 % contra un suelo de 25, y volver a meterlo en banda es una recalibración táctica de la escala de
+la v38, no un ajuste.
+
+Las alternativas honestas son tres, y ninguna es gratis:
+
+1. **Mover el objetivo y recalibrar.** La carretera dice que la fuga se lleva una parte grande de las
+   etapas de montaña de una gran vuelta, así que el 0 % es un defecto de verdad y no una banda mal
+   puesta. Es la cara del trabajo, y la más larga.
+2. **Dejar el objetivo donde está y anotar el hueco.** Barato y deshonesto: es exactamente el patrón
+   que este documento lleva desde la v17 diciendo que no se debe hacer.
+3. **Añadir el objetivo sobre `realQueens` con la banda que hoy se cumple** y subirla por pasos. Ni
+   miente ni bloquea, pero convierte una banda en un termómetro.
+
+Mi recomendación es la 1, y la razón por la que no la he empezado es que mover un suelo de
+calibración necesita el visto bueno del dueño.
 
 **Y engancha con algo que el dueño vio.** «3 etapas seguidas de montaña y las 3 las gana el mismo
 ciclista» (Race Alps): si la fuga no gana NUNCA una etapa de montaña, la gana siempre alguien del
