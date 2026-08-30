@@ -8458,17 +8458,11 @@ propósito: en la v41 cobrar de más reventó Flandes.
   la secuela dura la mitad de lo que estuvo fuera. De 4 casos a 0.
 - **El dorsal 1 se daba por fama**, y con toda la fama a 0 el orden lo decidía lo que devolviera
   Postgres. Ahora desempatan las piernas para esa carrera y el id.
-
-### 2-bis. La previsión
-
-Para que exista una previsión, el tiempo tiene que poder consultarse ANTES de correr la etapa — y
-puede, porque nunca dependió de la carrera. El sorteo pasa a `stage/weather.ts` (el sello del banco
-sale idéntico) y aparece `weatherForecast`.
-
-Una previsión es la verdad DESENFOCADA hacia la climatología, no la verdad con ruido: a siete días
-un día de lluvia en Flandes (92 % real) se anuncia como 42 %, que es casi «aquí en abril llueve un
-tercio de los días»; a un día, 83 %; el día, 92 %. Así el parte CAMBIA según se acerca el día —lo
-que el dueño pidió— sin que el tiempo real cambie nunca, y consultarlo dos veces da lo mismo.
+- **El maillot puesto de LANZADOR**, que era el segundo camino —y el de verdad— por el que el líder
+  tiraba del pelotón: `autoStageOrders` repartía roles por atributos y terreno sin saber quién lidera
+  la carrera, así que en una llana el líder de la general salía de lanzador de su propio velocista
+  (deber 0,85, empuje completo, cerillo quemado). Ahora los cinco primeros de la general son la carta
+  de su equipo ANTES que el terreno, y el velocista conserva su etapa.
 
 ### 2-bis. La previsión
 
@@ -8485,10 +8479,6 @@ que el dueño pidió— sin que el tiempo real cambie nunca, y consultarlo dos v
 
 - **La cola de la reina** sigue siendo una moneda al aire: 8,07 ± 0,39 contra un suelo de 8 (ver
   «v41 §6»). Este banco la sacó a 7,51, la mitad mala de la moneda.
-- **El maillot puesto de lanzador.** Medido: `autoStageOrders` no sabe quién lidera la carrera, así
-  que en una etapa llana el líder de la general acaba de lanzador de su propio velocista —deber 0,85
-  y empuje completo—. Es el segundo camino por el que el maillot tira del pelotón, y no está
-  arreglado en esta versión.
 - **Race Alps**: un escalador de 95 gana 1 de 5 etapas de montaña y no es favorito en las otras
   cuatro. Las cinco dejan 22, 1, 31, 50 y 19 km tras la última cota, y el motor tiene medido que por
   encima de 5 km una etapa deja de comportarse como un final en alto. Pendiente de saber si el
