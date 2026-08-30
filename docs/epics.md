@@ -73,24 +73,47 @@ Decisión pendiente del dueño: o el suelo está una pizca alto para este motor,
 pizca rápido. Subir la muestra no basta —cuadruplicar las giras baja el ruido a 0,20 y aun así
 pasaría por siete centésimas—. Detalle en docs/balance.md «v41 §6».
 
-### E3 · La carrera por etapas como una carrera, no como 21 etapas
+### E3 · La carrera por etapas como una carrera, no como 21 etapas — EN CURSO
 
 El motor simula etapas; la pregunta es cuánto sabe de la CAMPAÑA. ¿Se corre distinto el día 18 con
 40 s de ventaja que el día 3? ¿Hay emboscada, defensa del maillot, bonificaciones, el día en que el
 líder se rompe? Hay piezas sueltas (`gcDeficitSeconds`, los motivos de equipo) pero no está medido
 si de verdad cambian la carrera según la clasificación y los días que quedan. Primer paso: medirlo.
 
-### E5 · El clima
+**Paso 1, hecho: el banco no podía medirlo porque no llevaba general.** `grandTour` y `smallTours`
+pasaban `gcDeficitSeconds: 0` a todo el mundo todos los días, y con todos a cero `hasGcContext` sale
+false: la capa táctica de general —la cuerda que se acorta ante una fuga peligrosa, el motivo que
+distingue al equipo del maillot del que va a tres minutos— no se ejecutaba NUNCA en tres semanas de
+banco, mientras en producción se ejecuta cada día. Un banco de gira sin general no mide una gran
+vuelta: mide 21 clásicas seguidas. Ya lo lleva, y los 45 invariantes siguen en verde sin mover una
+sola banda.
 
-No existe. Lluvia sobre adoquín, frío en un puerto, calor. Es lo que da variedad entre dos ediciones
-de la misma carrera y lo que justifica de verdad las caídas y los abandonos.
+Es la segunda vez en dos versiones que aparece la misma lección (la primera fue el maillot puesto de
+lanzador, v42): **lo que el banco no lleva, el banco no puede medir, y el defecto vive ahí para
+siempre.**
+
+### E5 · El clima — HECHO EN EL MOTOR (v42), ver docs/motor.md §20. Falta enseñarlo
+
+Entró entero: la lluvia (que multiplica las caídas, parte el adoquín mojado y suelta ruedas en el
+descenso), el calor (que no selecciona: desgasta, por el coste y no por el esfuerzo) y la previsión.
+
+Y con la corrección que el dueño metió al delegarlo —«ojo, el clima debería depender del país y del
+GD»—, que resultó ser lo que hacía al EPIC valer para algo: sin ella llovía igual en Flandes en marzo
+que en Almería en agosto, o sea justo lo contrario de la variedad que el encargo pedía. El dato ya
+existía en el calendario (país y día del año) y solo faltaba que llegara al motor.
 
 > El dueño: «estaría bien también que pueda existir para los ciclistas y managers una previsión del
 > clima… que además puede cambiar, y con eso tomar diferentes decisiones».
 
-O sea que no es solo física: es **información con incertidumbre**. La previsión se publica antes,
-puede fallar, y las decisiones (material, plan de equipo, cuánta gente al frente) se toman con ella.
-Eso es lo que la convierte en mecánica de juego y no en un modificador.
+`weatherForecast` cumple las tres cosas que esa frase pide: el parte cambia según se acerca el día,
+el tiempo real no cambia porque alguien lo mire, y consultarlo dos veces da lo mismo. Lo hace
+DESENFOCANDO la verdad hacia la climatología del sitio en vez de añadirle ruido, que es de donde sale
+el error de un parte de verdad.
+
+**LO QUE FALTA, y sin ello el EPIC no es todavía mecánica de juego:** la previsión no sale por la API
+ni se pinta en ninguna pantalla. Existe en el motor y no puede decidir nadie con ella. Pendiente de
+que el dueño diga DÓNDE se lee —la ficha de etapa, el calendario, o la pantalla en la que el manager
+hace la convocatoria—, porque de eso depende qué decisión llega a cambiar.
 
 ---
 
@@ -381,6 +404,8 @@ mecánica de juego (y bastante buena), no un problema de escala.
 
 1. ~~**B1** (el adoquín) y **B2** (la crono)~~ — HECHOS en la v40. B1 arreglado
    (`dropPavesFactor`); B2 no existía: era un comentario caducado.
-2. ~~**E1** (el viento y los abanicos)~~ — HECHA en la v41. **E3** y **E5**, delegadas y pendientes.
+2. ~~**E1** (el viento y los abanicos)~~ — HECHA en la v41. ~~**E5** (el clima)~~ — HECHA en el motor
+   en la v42; le falta salir por la API y pintarse en alguna pantalla, que es lo que la convierte en
+   mecánica de juego. **E3** (la campaña), EN CURSO: el paso 1 era poder medirla y ya se puede.
 3. La lista grande, empezando por donde el dueño diga. **G1 (entrenamientos)** y **G3 (rankings)**
    son las dos que hoy pueden estar mintiendo en producción, así que son las candidatas naturales.
