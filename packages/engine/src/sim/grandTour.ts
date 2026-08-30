@@ -190,18 +190,33 @@ export function runGrandTour(worldSeed: string): GrandTourResult {
    * corre el juego. Que es, exactamente, cómo ese defecto sobrevivió hasta que el dueño lo vio.
    *
    * Es el acumulado de tiempos de meta, sin los desempates finos de `gcSort` (aquí no hacen falta:
-   * lo único que se usa es si estás entre los primeros).
+   * el motor solo usa el puesto para saber si estás entre los primeros, y el tiempo para saber a
+   * cuánto vas).
+   *
+   * Y SE ORDENA SOLO ENTRE LOS QUE SIGUEN EN CARRERA, que es la lección que producción ya aprendió
+   * (v31): la fila de un abandonado se queda con el tiempo de las etapas que corrió, o sea MENOS que
+   * el de nadie, y con él dentro el líder pasa a ser un fantasma y todo el mundo se cree a minutos
+   * de alguien que se bajó de la bici.
    */
   const gcTotal = new Map<string, number>()
-  const gcRank = (): Map<string, number> => {
-    const orden = [...gcTotal.entries()].sort((a, b) => a[1] - b[1] || (a[0] < b[0] ? -1 : 1))
-    return new Map(orden.map(([id], i) => [id, i + 1]))
-  }
+  const gcOrder = (ids: readonly string[]): string[] =>
+    [...ids]
+      .filter((id) => gcTotal.has(id))
+      .sort((a, b) => gcTotal.get(a)! - gcTotal.get(b)! || (a < b ? -1 : 1))
 
   for (const stage of race.stages) {
-    const rank = gcRank()
     const racing = [...alive.values()]
     if (racing.length === 0) break
+    const orden = gcOrder(racing.map((r) => r.riderId))
+    const rank = new Map(orden.map((id, i) => [id, i + 1]))
+    /**
+     * EL DÉFICIT, que es la otra mitad de llevar la general (E3). El puesto dice quién es la carta
+     * del equipo; el DÉFICIT es lo que el motor mira para saber quién amenaza (`gcThreatFraction`,
+     * SPEC 6.9) y para decidir si al pelotón le compensa dejar irse una fuga. Con todos a cero
+     * `hasGcContext` sale false y esa capa entera no se ejecutaba NUNCA en tres semanas de banco,
+     * aunque en producción se ejecute cada día.
+     */
+    const gcLeader = orden.length > 0 ? gcTotal.get(orden[0]!)! : 0
     const orders = autoStageOrders(
       racing.map((r) => ({
         riderId: r.riderId,
@@ -222,7 +237,8 @@ export function runGrandTour(worldSeed: string): GrandTourResult {
         matches: matchCount(eff, tsb, false),
         tsb,
         orders: orders.get(r.riderId) ?? NEUTRAL_ORDERS,
-        gcDeficitSeconds: 0,
+        gcDeficitSeconds: (gcTotal.get(r.riderId) ?? gcLeader) - gcLeader,
+        gcRank: rank.get(r.riderId) ?? null,
         fragility: r.fragility,
         // El banco reproduce lo que hace `packages/db`, y desde la v15 eso incluye el EQUIPO: 22
         // equipos de 8 con su plan (docs/motor.md §V.1). Sin esto el banco mediría una gran vuelta
