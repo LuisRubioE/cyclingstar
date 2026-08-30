@@ -951,13 +951,17 @@ describe('el viento de lado parte la carrera (v41)', () => {
   const runs = seedsFor('viento', 60).map((seed) => simulateStage(windInput(), seed))
   const conCorte = runs.filter((o) => o.events.some((e) => e.plantilla === 'echelon_split'))
 
-  it('unos días sí y la mayoría no: el abanico es noticia, no la norma', { timeout: 120000 }, () => {
-    // El viento de lado se sortea una vez por etapa y solo pasa del listón un día de cada ocho.
-    // La cota es holgada a los dos lados a propósito: lo que se vigila es que ni no pase nunca ni
-    // pase todos los días, no el número exacto, que lo fija `windMin`.
-    expect(conCorte.length).toBeGreaterThan(0)
-    expect(conCorte.length).toBeLessThan(runs.length / 2)
-  })
+  it(
+    'unos días sí y la mayoría no: el abanico es noticia, no la norma',
+    { timeout: 120000 },
+    () => {
+      // El viento de lado se sortea una vez por etapa y solo pasa del listón un día de cada ocho.
+      // La cota es holgada a los dos lados a propósito: lo que se vigila es que ni no pase nunca ni
+      // pase todos los días, no el número exacto, que lo fija `windMin`.
+      expect(conCorte.length).toBeGreaterThan(0)
+      expect(conCorte.length).toBeLessThan(runs.length / 2)
+    },
+  )
 
   it('el día que corta, el corte MANDA en la carrera', { timeout: 120000 }, () => {
     for (const out of conCorte) {
@@ -1560,12 +1564,16 @@ describe('la criba lejos de meta se cuenta cuando es de verdad (v21)', () => {
   const selections = (out: StageOutput): RaceEvent[] =>
     out.events.filter((e) => e.plantilla === 'peloton_selection')
 
-  it('la selección que parte la carrera a 50 km de meta tiene evento propio', { timeout: 120000 }, () => {
-    const withEvent = runs.filter((out) => selections(out).length > 0)
-    // La mitad de las etapas, sobre una tasa medida del 68 %: lo que se vigila es que el evento
-    // exista y sea la norma en un recorrido hecho para producirlo, no un número fino.
-    expect(withEvent.length).toBeGreaterThanOrEqual(runs.length / 2)
-  })
+  it(
+    'la selección que parte la carrera a 50 km de meta tiene evento propio',
+    { timeout: 120000 },
+    () => {
+      const withEvent = runs.filter((out) => selections(out).length > 0)
+      // La mitad de las etapas, sobre una tasa medida del 68 %: lo que se vigila es que el evento
+      // exista y sea la norma en un recorrido hecho para producirlo, no un número fino.
+      expect(withEvent.length).toBeGreaterThanOrEqual(runs.length / 2)
+    },
+  )
 
   it('y ocurre FUERA del desenlace: dentro ya lo cuenta el corte de siempre', () => {
     for (const out of runs) {

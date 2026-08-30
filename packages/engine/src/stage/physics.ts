@@ -494,8 +494,7 @@ export function shelterOf(
  */
 export function gutterShelter(size: number, caben: number): number {
   return (
-    STAGE.shelterProtected *
-    Math.max(STAGE.windGutterFloor, Math.min(1, caben / Math.max(1, size)))
+    STAGE.shelterProtected * Math.max(STAGE.windGutterFloor, Math.min(1, caben / Math.max(1, size)))
   )
 }
 
