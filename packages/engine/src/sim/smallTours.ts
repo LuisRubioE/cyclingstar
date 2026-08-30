@@ -259,11 +259,25 @@ export function runSmallTour(tour: SmallTour, run: number): SmallTourRun {
   let bestSprinterId = ''
   let bestSprinterEdge = 0
 
+  /**
+   * LA GENERAL, para que el banco corra la misma carrera que producción (v42). Las órdenes del día
+   * miran el puesto en la general desde la v42 —el maillot es la carta de su equipo—, y un banco sin
+   * general mediría un motor distinto del que corre el juego.
+   */
+  const gcTotal = new Map<string, number>()
+
   for (const stage of race.stages) {
     const racing = [...alive.values()]
     if (racing.length === 0) break
+    const orden = [...gcTotal.entries()].sort((a, b) => a[1] - b[1] || (a[0] < b[0] ? -1 : 1))
+    const rank = new Map(orden.map(([id], i) => [id, i + 1]))
     const orders = autoStageOrders(
-      racing.map((r) => ({ riderId: r.riderId, attrs: r.attrs, teamId: r.teamId })),
+      racing.map((r) => ({
+        riderId: r.riderId,
+        attrs: r.attrs,
+        teamId: r.teamId,
+        ...(rank.has(r.riderId) ? { gcRank: rank.get(r.riderId)! } : {}),
+      })),
       { kind: stage.kind, timeTrial: stage.timeTrial === true },
     )
     const riders: StageRider[] = racing.map((r) => {
@@ -304,6 +318,12 @@ export function runSmallTour(tour: SmallTour, run: number): SmallTourRun {
       // podría distinguir una calibración de un cambio de azar.
       stageSeed({ worldSeed, raceId: tour.raceId, stageDay: stage.index, engineVersion: 1 }),
     )
+
+    // La general del día siguiente: el acumulado de los que han llegado (v42).
+    for (const r of out.results) {
+      if (r.estado !== 'finish') continue
+      gcTotal.set(r.riderId, (gcTotal.get(r.riderId) ?? 0) + r.tiempoS - r.bonificacionS)
+    }
 
     if (stage.timeTrial !== true) {
       const timed = out.results.filter((r) => r.estado === 'finish')

@@ -13,6 +13,19 @@ export interface AutoOrderRider {
   riderId: string
   attrs: Record<Attribute, number>
   teamId: string | null
+  /**
+   * SU PUESTO EN LA GENERAL de la carrera que se está corriendo (1 = lleva el maillot), o `undefined`
+   * en una carrera de un día y en la primera etapa, donde todavía no hay general (v42).
+   *
+   * El dueño lo vio dos veces, en dos carreras distintas: «el líder con el maillot amarillo está
+   * también tirando???» y «el líder se la pasa todo el tiempo tirando». La causa no era el motor de
+   * relevos —eso se arregló aparte— sino que ESTE planificador no sabía quién lidera la carrera, así
+   * que repartía roles solo por atributos y por el tipo de etapa. Medido con un equipo que lleva al
+   * maillot (escalador) y a un buen velocista: en una etapa llana el maillot salía de **lanzador de
+   * su propio velocista**, con deber de relevo 0,85, empuje de equipo completo y un cerillo quemado
+   * en el último kilómetro. Con el maillot puesto.
+   */
+  gcRank?: number
 }
 
 /** Contexto de la etapa que condiciona los roles (llano → sprint, montaña → escalada, etc.). */
@@ -22,6 +35,13 @@ export interface AutoOrderStage {
 }
 
 const SPRINTER_MIN = 68 // por debajo de esto el equipo no juega la baza del sprint: va a por la fuga.
+
+/**
+ * HASTA QUÉ PUESTO DE LA GENERAL un corredor es la carta de su equipo (v42). El maillot, desde luego,
+ * y los que están a tiro: un equipo con el tercero de la general corre para él, no le pone a lanzar.
+ * Cinco es «los que salen en la foto del podio provisional» sin llegar a ser medio pelotón.
+ */
+const GC_CARD_RANK = 5
 
 const climbScore = (a: Record<Attribute, number>): number => 0.6 * a.MON + 0.4 * a.COL
 /**
@@ -90,14 +110,40 @@ function assignTeam(
       )[0],
     )
 
-  // 1) Jefe de filas según el terreno.
+  /**
+   * 0) EL MAILLOT MANDA SOBRE EL TERRENO (v42). Si el equipo lleva al líder de la carrera —o a
+   * alguien de los primeros de la general—, ÉSE es su carta del día y no se discute: el equipo corre
+   * para él. Va antes que el reparto por terreno porque en la carretera es antes: un equipo con el
+   * maillot no juega la etapa, defiende la camiseta.
+   *
+   * No le quita la etapa al velocista —sigue con su rol y su meta— pero deja de haber tren, que es
+   * exactamente lo que hace un equipo que defiende: los hombres son para el líder. Y lo que importa
+   * de verdad: el maillot ya no puede salir de lanzador ni de gregario de nadie.
+   */
+  const maillot = team.find((r) => r.gcRank != null && r.gcRank <= GC_CARD_RANK)
   let leaderId: string | undefined
+  if (maillot) {
+    const m = take(maillot)!
+    out.set(m.riderId, order({ role: 'lider', mentality: 'reservon', contestClimbs: mountain }))
+    leaderId = m.riderId
+  }
+
+  // 1) Jefe de filas según el terreno.
+  //
+  // …Y ESTO SIGUE CORRIENDO AUNQUE HAYA MAILLOT (v42), porque un equipo que defiende la general no
+  // deja de tener velocista: en una llana su rápido sigue jugándose la etapa, con su tren y todo. Lo
+  // único que cambia es QUIÉN es la carta del equipo —el maillot, ya tomado más arriba—, y por eso
+  // aquí solo se salta la línea que nombra jefe al velocista. El primer intento sí lo saltaba entero
+  // y convertía al velocista en cazaetapas, que es cambiar un absurdo por otro.
   if (flat) {
-    const bestSpr = ranked(team, sprintScore)[0]
+    const bestSpr = ranked(
+      team.filter((r) => remaining.has(r.riderId)),
+      sprintScore,
+    )[0]
     if (bestSpr && sprintScore(bestSpr.attrs) >= SPRINTER_MIN) {
       const s = take(bestSpr)!
       out.set(s.riderId, order({ role: 'sprinter', mentality: 'reservon', contestSprints: true }))
-      leaderId = s.riderId
+      if (!leaderId) leaderId = s.riderId
       // Tren: el mejor lanzando del resto lo lanza en meta.
       const launcher = next(leadOutScore)
       if (launcher)
@@ -105,14 +151,14 @@ function assignTeam(
           launcher.riderId,
           order({ role: 'lanzador', targetRiderId: s.riderId, contestSprints: true }),
         )
-    } else {
+    } else if (!leaderId) {
       const l = next(allroundScore)
       if (l) {
         out.set(l.riderId, order({ role: 'lider', mentality: 'oportunista' }))
         leaderId = l.riderId
       }
     }
-  } else {
+  } else if (!leaderId) {
     const l = next(mountain ? climbScore : allroundScore)
     if (l) {
       out.set(l.riderId, order({ role: 'lider', mentality: 'reservon', contestClimbs: mountain }))
