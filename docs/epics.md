@@ -125,14 +125,25 @@ Engancha además con algo que el dueño vio en Race Alps —«3 etapas seguidas 
 el mismo ciclista»—: si la fuga no gana nunca en montaña, gana siempre alguien del grupo de favoritos.
 No está demostrado que sea la causa, pero es la primera explicación mecánica de aquel síntoma.
 
-**Paso 4: qué tiene un perfil real que no tiene el canónico.** La canónica es 135 km de llano MUERTO
-y un final en alto: **cero** subida fuera de los últimos 30 km. Las nueve reinas reales tienen entre
-el 6 % y el 38 %. La dirección se ve en los extremos (0 % de relieve → 27 % de fugas ganadoras;
-28-38 % → 0 %) pero por el medio no ordena, así que el relieve NO queda demostrado como el mecanismo:
-para eso hace falta el experimento controlado, el mismo final en alto con relieve y sin él.
+**Paso 4, hecho: es el DESNIVEL, y no lo que parecía.** Tres experimentos controlados, y los dos
+primeros descartan las sospechas obvias:
 
-Lo que sí queda demostrado sin depender del mecanismo: **la banda de 25-45 % está medida sobre una
-forma de etapa que no existe en el calendario.**
+- **No es el relieve repartido.** Mismo final en alto y mismo campo, metiendo cuestas en los 135 km
+  previos: 0 % de relieve da 30,8 %, y un 40 % —más que ocho de las nueve reinas reales— aún da
+  17,5 %. Ni de lejos el 3,3 %.
+- **No es el campo.** El escenario canónico planta a mano 6 cazaetapas combativos; `realQueens`
+  genera corredores y les reparte roles. Cruzados 2×2: con el perfil canónico, 35,0 % con el campo de
+  a mano y 36,7 % con el generado; con el perfil de `race-france` e20, **0 % con los dos**.
+- **Es cuánto puerto tiene la etapa.** Misma forma, mismo campo, mismo largo, variando solo el puerto:
+
+| Puerto final | 15 km   | 25 km   | 35 km   | 50 km   | 70 km   |
+| ------------ | ------- | ------- | ------- | ------- | ------- |
+| Desnivel     | 1.200 m | 2.000 m | 2.800 m | 4.000 m | 5.600 m |
+| Gana la fuga | 26,7 %  | 10,0 %  | 3,3 %   | **0 %** | **0 %** |
+
+**La banda de 25-45 % se cumple con 1.200 metros de desnivel, y una etapa reina de verdad tiene entre
+3.000 y 5.000.** `reina-150` no es una etapa reina fácil: es media montaña con la etiqueta cambiada, y
+es sobre ella sobre la que el motor lleva cinco versiones certificando que la fuga gana en montaña.
 
 ### V2 · DECISIÓN DEL DUEÑO: dónde se mide la fuga en montaña
 
@@ -148,7 +159,9 @@ contra un suelo de 25, y volver a banda es una recalibración táctica del tama�
    miente ni bloquea, pero convierte una banda en un termómetro.
 
 Recomiendo la 1. No la he empezado porque mover un suelo de calibración necesita el visto bueno del
-dueño. Detalle en docs/balance.md «v43 §7 y §8».
+dueño. Y ahora se sabe además por dónde va esa recalibración: el problema no es la capa táctica ni el
+campo ni el relieve, es que **la fuga no aguanta el desnivel** —a partir de unos 2.500 metros no llega
+ninguna—. Detalle en docs/balance.md «v43 §6 a §10».
 
 **Y lo que E3 aún no ha tocado**: la emboscada, el día en que el líder se rompe, y si el día 18 se
 corre distinto del día 3.

@@ -8639,22 +8639,67 @@ las reales tienen entre el 6 % y el 38 %.
 una forma de etapa que **no existe en el calendario**. Ninguna de las nueve reinas reales se le
 parece. Un objetivo en verde sobre un escenario que no se corre no certifica nada del juego.
 
-**Lo que NO demuestra**, y por eso no lo escribo como causa: que el relieve repartido sea EL
-mecanismo. La dirección está en los extremos —0 % de relieve da 27 %, y el 28-38 % da 0 %— pero por
-el medio no ordena: `race-catalonia` tiene un 6 % de relieve y da 0 %, y `race-spain` un 8 % y da
-3,3 %. Con nueve etapas eso no separa el relieve de las otras diferencias de forma. Hace falta el
-experimento controlado —el mismo final en alto con relieve añadido y sin él— y ése no lo he corrido.
+**Y la sospecha del relieve era FALSA.** Parecía la explicación obvia —con cuestas por todas partes
+el pelotón está `onClimb` mucho más rato, a 0,70 en vez de 0,55— y el experimento controlado la
+tumba. Mismo final en alto y mismo campo, metiendo relieve en los 135 km previos como pares
+cuesta/bajada (la etapa sigue midiendo 150 km y el desnivel NETO previo sigue siendo cero):
 
-### 8. LA DECISIÓN QUE NO ES MÍA
+| Relieve previo | 0 %    | 10 %   | 20 %   | 30 %   | 40 %   |
+| -------------- | ------ | ------ | ------ | ------ | ------ |
+| Gana la fuga   | 30,8 % | 26,7 % | 25,8 % | 29,2 % | 17,5 % |
+
+Con un 40 % de relieve —más que ocho de las nueve reinas reales— la fuga aún gana el 17,5 %. Eso no
+lleva a ningún sitio cerca del 3,3 %.
+
+### 8. Ni el campo: cruce 2×2
+
+La otra sospecha razonable era el CAMPO, porque el escenario canónico planta a mano 6 cazaetapas
+combativos con `contestClimbs` —una tripulación de fuga hecha a medida— mientras `realQueens` genera
+corredores y les reparte roles con `autoStageOrders`. Cruzados los dos perfiles con los dos campos,
+60 semillas cada celda:
+
+|                          | Campo canónico (a mano) | Campo generado |
+| ------------------------ | ----------------------- | -------------- |
+| Perfil canónico          | 35,0 %                  | 36,7 %         |
+| Perfil `race-france` e20 | **0,0 %**               | **0,0 %**      |
+
+El campo no mueve nada (35,0 contra 36,7). El perfil lo mueve TODO (35 → 0).
+
+### 9. Lo que sí es: CUÁNTO PUERTO TIENE LA ETAPA
+
+Misma forma que la canónica —llano y un final en alto al 8 %—, mismo campo, mismo largo (171 km, el
+de `race-france` e20 para que el kilometraje no sea la variable), y variando solo cuánto puerto hay:
+
+| Puerto final | 15 km   | 25 km   | 35 km   | 50 km   | 70 km   |
+| ------------ | ------- | ------- | ------- | ------- | ------- |
+| Desnivel     | 1.200 m | 2.000 m | 2.800 m | 4.000 m | 5.600 m |
+| Gana la fuga | 26,7 %  | 10,0 %  | 3,3 %   | **0 %** | **0 %** |
+
+Monótona y sin ambigüedad. **La banda de 25-45 % se cumple con 1.200 metros de desnivel, y una etapa
+reina de verdad tiene entre 3.000 y 5.000.** O sea que `reina-150` no es una etapa reina fácil: es una
+etapa de media montaña con la etiqueta cambiada, y es sobre ella sobre la que el motor lleva cinco
+versiones certificando que «la fuga gana en montaña».
+
+(El relieve repartido sí cuenta un poco, pero por la misma vía: los 1.350 m que añade el brazo del
+40 % son desnivel. Cuenta MENOS que el mismo desnivel puesto en el final —17,5 % contra el ~10 % que
+predice la tabla de arriba para 2.550 m— y tiene sentido de carretera: el puerto final es donde los
+favoritos corren.)
+
+### 10. LA DECISIÓN QUE NO ES MÍA
 
 De aquí sale un cambio de calibración, y de los grandes, así que se queda escrito y sin tocar hasta
 que el dueño diga:
 
 **Mover el objetivo de la fuga en montaña a los perfiles REALES** (`realQueens` en vez de
-`reina-150`). Es lo correcto por todo lo que dice este documento —se mide lo que el juego corre— pero
-tiene una consecuencia que hay que decir antes y no después: **el motor pasaría a estar ROJO ahí**,
-3,3 % contra un suelo de 25, y volver a meterlo en banda es una recalibración táctica de la escala de
-la v38, no un ajuste.
+`reina-150`), o —lo mismo por otra puerta— darle a `reina-150` el desnivel de una etapa reina. Es lo
+correcto por todo lo que dice este documento —se mide lo que el juego corre— pero tiene una
+consecuencia que hay que decir antes y no después: **el motor pasaría a estar ROJO ahí**, 3,3 % contra
+un suelo de 25, y volver a meterlo en banda es una recalibración táctica de la escala de la v38, no un
+ajuste.
+
+Y ahora se sabe además POR DÓNDE va esa recalibración, que antes no se sabía: el problema no es la
+capa táctica ni el campo ni el relieve, es que **la fuga no aguanta el desnivel**. A partir de unos
+2.500 metros no llega ninguna.
 
 Las alternativas honestas son tres, y ninguna es gratis:
 
