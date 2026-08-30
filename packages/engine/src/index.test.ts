@@ -131,6 +131,14 @@ describe('engine: esqueleto', () => {
     // 6:53 en el km 137 y 16 s en meta). La referencia pasa a ser los que SIGUEN EN CARRERA, el
     // parte de ventaja NOMBRA a quien va delante y dice contra quién se mide y cuánto queda.
     // Cambio de OBSERVACIÓN: ni un dado, ni un subflujo, ni una constante de calibración.
+    // v42: EL CLIMA, Y TRES COSAS QUE EL DUEÑO VIO ABRIENDO UNA CARRERA (docs/motor.md §20,
+    // docs/balance.md «v42»). El clima entra por donde el dueño dijo —«debería depender del país y
+    // del GD»—: nueve zonas climáticas y el día del año deciden cuánto llueve y cuánto aprieta el
+    // calor aquí y hoy, así que la primavera belga se corre mojada (33 %) y la Vuelta seca y a 26°
+    // (9 %). La lluvia multiplica las caídas, parte el adoquín y suelta ruedas en el descenso; el
+    // calor no selecciona, desgasta. Y tres defectos de producción: el maillot amarillo dando
+    // relevos, el fugado al que cazan tras 120 km y vuelve a atacar —y gana la etapa—, y el dorsal 1
+    // repartido por fama con un desempate que dependía de lo que devolviera Postgres.
     // v41: EL VIENTO Y LOS ABANICOS, Y DOS COSAS QUE NO TENÍAN SENTIDO (docs/motor.md §19,
     // docs/balance.md «v41»). El llano no seleccionaba NUNCA —`selectionFactor('llano')` valía 0—,
     // así que la forma más clásica de romper una carrera no existía en el motor. Ahora un 13 % de
@@ -247,6 +255,6 @@ describe('engine: esqueleto', () => {
     // v11 (atribución del trabajo), la v10 (composición y caza), la v9 (capa táctica), la
     // v8 (tiempos de grupo), la v7 (modelo de final), la v6 (telemetría), la v5 (clásica larga), la
     // v4 (pavé en el recorrido) y la v3 (Cambio 0).
-    expect(ENGINE_VERSION).toBe(41)
+    expect(ENGINE_VERSION).toBe(42)
   })
 })

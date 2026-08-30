@@ -8413,3 +8413,61 @@ muestra el número sale en 15,4 % —pasa, y pasa siempre, porque el banco es de
 ocho corridas sale 16,7 %, que es el valor de verdad. Si vuelve a tocar tenderle la mano, la
 respuesta es subirle la muestra, no bajarle el suelo: el 15 % describe una propiedad del ciclismo y
 no una preferencia.
+
+## v42 — El clima, y tres cosas que el dueño vio abriendo una carrera (`engine_version` 41 → 42)
+
+### 1. El clima, y depende del país y del día
+
+> El dueño: «ojo, el clima debería depender del país y del GD».
+
+El dato ya existía —el calendario tiene país por carrera y `startDay` **es** el día del año, o sea el
+GD del reloj— y solo faltaba que llegara al motor (`StageInput.lugar`). `world/climate.ts` son nueve
+zonas climáticas con su mitad fría y su mitad cálida, y el paso de una a otra por un coseno; el
+hemisferio sur va al revés, y por eso Australia en enero es verano.
+
+| Carrera    | Sitio y fecha | Llueve | Temp. |
+| ---------- | ------------- | ------ | ----- |
+| Flandes    | BE, abril     | 33 %   | 11°   |
+| Roubaix    | FR, abril     | 25 %   | 15°   |
+| Tour       | FR, julio     | 17 %   | 23°   |
+| Vuelta     | ES, agosto    | 9 %    | 26°   |
+| Emiratos   | AE, febrero   | 3 %    | 21°   |
+| Down Under | AU, enero     | 15 %   | 26°   |
+
+El umbral del sorteo NO es una constante sino una consecuencia: se pide la probabilidad local y el
+motor deriva el listón, `(1 − p)^forma`. Una etapa que no dice dónde se corre usa la de referencia
+(20 %) y sale dígito a dígito como en la v41.
+
+**La lluvia** multiplica las caídas (la petición literal: «es lo que justifica de verdad las caídas y
+los abandonos»), parte el adoquín mojado y suelta ruedas en el descenso. La primera escala, puesta a
+ojo en 1,5, daba **104 incidentes de 176** en un Roubaix con lluvia contra 32-50 en seco: seis de
+cada diez tocando el suelo. Con 0,8, casi el doble que en seco, que es lo que dicen los recuentos.
+
+**El calor** no selecciona: desgasta. Multiplica el coste y no toca el esfuerzo —a la misma potencia,
+con 38° el cuerpo gasta en refrigerarse lo que no gasta a 20— con un 8 % en el día más extremo, que
+en carreras reales es un 5 % en San Sebastián y un 2,6 % en un día caluroso del Tour. Contenido a
+propósito: en la v41 cobrar de más reventó Flandes.
+
+### 2. Tres defectos de producción
+
+- **El maillot amarillo iba dando relevos.** El empuje de equipo (§V.1) existe para poner a los
+  gregarios al frente y se aplicaba también al hombre por el que se trabaja. Ahora no levanta a la
+  carta del equipo. De 1 de 23 fotos a 0.
+- **El fugado cazado que vuelve a escaparse.** Cuatro hombres con 79-120 km de fuga volvían a atacar
+  entre 1 y 9 km después de que les cazaran, con el depósito al 26-48 % — y uno ganó la etapa. Ahora
+  la secuela dura la mitad de lo que estuvo fuera. De 4 casos a 0.
+- **El dorsal 1 se daba por fama**, y con toda la fama a 0 el orden lo decidía lo que devolviera
+  Postgres. Ahora desempatan las piernas para esa carrera y el id.
+
+### 3. Lo que queda abierto
+
+- **La cola de la reina** sigue siendo una moneda al aire: 8,07 ± 0,39 contra un suelo de 8 (ver
+  «v41 §6»). Este banco la sacó a 7,51, la mitad mala de la moneda.
+- **El maillot puesto de lanzador.** Medido: `autoStageOrders` no sabe quién lidera la carrera, así
+  que en una etapa llana el líder de la general acaba de lanzador de su propio velocista —deber 0,85
+  y empuje completo—. Es el segundo camino por el que el maillot tira del pelotón, y no está
+  arreglado en esta versión.
+- **Race Alps**: un escalador de 95 gana 1 de 5 etapas de montaña y no es favorito en las otras
+  cuatro. Las cinco dejan 22, 1, 31, 50 y 19 km tras la última cota, y el motor tiene medido que por
+  encima de 5 km una etapa deja de comportarse como un final en alto. Pendiente de saber si el
+  recorrido real es así o el generador aleja la última cima.
