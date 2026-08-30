@@ -8530,3 +8530,45 @@ La v42 la escribió con el maillot de lanzador, E3 la volvió a encontrar con la
 una tercera vez con otra cara: **el banco pasaba el dato y producción no.** No es que el banco no
 midiera lo que el juego corre —es que el banco corría una carrera MEJOR que la del juego, y por eso
 todo estaba en verde—. Lo que un banco y producción no comparten, no lo prueba nadie.
+
+### 4. E3, paso 2: lo que la general cambia en una gran vuelta, medido
+
+El paso 1 puso la general dentro de los bancos de gira. El paso 2 es la pregunta de la EPIC: **¿se
+corre distinto sabiendo la clasificación?** Se mide sobre la pieza que la lee, la CUERDA que el
+pelotón acorta cuando en la fuga va alguien peligroso para la general (`gcLeash`,
+`gcThreatFraction`): dos brazos de **24 grandes vueltas cada uno** —456 etapas por brazo—, los dos
+con la general dentro, y en uno la regla de la amenaza neutralizada.
+
+| Etapas ganadas desde la carretera | Cuerda puesta  | Cuerda quitada | Diferencia |
+| --------------------------------- | -------------- | -------------- | ---------- |
+| Reina (168)                       | 0 (0,0 %)      | 2 (1,2 %)      | 1,4 σ      |
+| Media montaña (144)               | 0 (0,0 %)      | 2 (1,4 %)      | 1,4 σ      |
+| Llana (144)                       | 10 (6,9 %)     | 6 (4,2 %)      | −1,0 σ     |
+| **Total (456)**                   | **10 (2,2 %)** | **10 (2,2 %)** | **0,0 σ**  |
+
+Y las otras métricas de la reina no se mueven: la cola en 8,15 contra 7,98, la brecha 1.º-10.º en 2 s
+contra 0, los grupos en meta 7 contra 7, los abandonos en 18,5 % contra 18,4 %.
+
+**La regla de la amenaza no cambia nada medible en una gran vuelta.** Y de paso confirma lo que el
+paso 1 dejó anotado sin afirmar: aquel «7,0 % → 3,5 %» de seis giras era RUIDO. Con muestra de verdad
+son 10 contra 10. Es la cuarta vez que una diferencia entre dos corridas se deshace al medirla contra
+su propio ruido, y la razón por la que aquello se escribió como sospecha y no como hallazgo.
+
+Lo que este experimento NO dice: solo neutraliza la CUERDA. El resto de la maquinaria de general
+—los motivos de equipo, quién es la carta, el maillot que ya no da relevos— está puesta en los dos
+brazos y no está contrastada aquí.
+
+### 5. Lo que sí salió, y es lo grande: la fuga NUNCA gana en montaña
+
+Con 24 grandes vueltas por brazo, en **312 etapas de montaña y media montaña** la fuga ganó **0 veces
+con la cuerda puesta y 4 con la cuerda quitada**. En llano gana el 6,9 %, que está dentro de la banda
+de la fuga en llano (2-8 %) y por tanto no es un problema de que el motor no deje escapar a nadie.
+
+En una gran vuelta real la fuga del día se lleva una parte grande de las etapas de montaña —es de las
+cosas más reconocibles del ciclismo de tres semanas— y aquí no se lleva ninguna. No es la general
+quien lo causa (el brazo sin cuerda también da ~1 %), y no es nuevo: el banco de seis giras SIN
+general ya daba 1 de 42.
+
+Queda anotado como **hallazgo, no como banda**: poner un objetivo aquí requiere un número de la
+carretera y no una intuición mía, que es exactamente el vicio que este documento lleva tres versiones
+corrigiendo. Es la primera pregunta de E3 con respuesta clara, y el siguiente trabajo del EPIC.

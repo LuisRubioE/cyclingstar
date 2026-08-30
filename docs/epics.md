@@ -92,6 +92,24 @@ Es la segunda vez en dos versiones que aparece la misma lección (la primera fue
 lanzador, v42): **lo que el banco no lleva, el banco no puede medir, y el defecto vive ahí para
 siempre.**
 
+**Paso 2, hecho: la general no cambia quién gana.** Medido con dos brazos de 24 grandes vueltas —456
+etapas cada uno, los dos con la general dentro y en uno la regla de la amenaza neutralizada—: la
+cuerda que el pelotón acorta ante una fuga peligrosa deja el reparto EXACTAMENTE igual (10 etapas
+ganadas desde la carretera contra 10, 0,0 σ), y tampoco mueve la cola de la reina, la brecha 1.º-10.º
+ni los abandonos. O sea que la pieza que lee la clasificación está puesta y no se nota. Detalle en
+docs/balance.md «v43 §4».
+
+**Y salió lo grande: la fuga NO gana en montaña.** En 312 etapas de montaña y media montaña de esas
+giras, la fuga del día ganó 0 (y 4 en el brazo sin cuerda). En llano gana el 6,9 %, dentro de banda,
+así que no es que el motor no deje escapar a nadie: es que en montaña lo que se va nunca llega. En
+una gran vuelta real la fuga se lleva una parte grande de las etapas de montaña, y ésta es la
+primera pregunta de E3 con respuesta clara.
+
+**Lo siguiente del EPIC**, y en este orden: (1) por qué la fuga no sobrevive un puerto —¿la cazan,
+se vacían, o los favoritos van demasiado rápido?—, y (2) la banda que eso necesita, que tiene que
+salir de la carretera y no de una intuición. Y luego las otras preguntas que E3 abrió y que este paso
+no toca: la emboscada, el día en que el líder se rompe, y si el día 18 se corre distinto del día 3.
+
 ### E5 · El clima — HECHO EN EL MOTOR (v42), ver docs/motor.md §20. Falta enseñarlo
 
 Entró entero: la lluvia (que multiplica las caídas, parte el adoquín mojado y suelta ruedas en el
