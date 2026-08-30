@@ -2866,6 +2866,17 @@ export const STAGE = {
   heatCostScale: 0.08,
 
   /**
+   * A CUÁNTOS DÍAS DEJA DE VERSE EL TIEMPO. Más allá de esta ventana un parte no dice nada que no
+   * diga el almanaque: siete días es donde una previsión de verdad se vuelve climatología.
+   */
+  forecastHorizonDays: 7,
+  /**
+   * …Y CUÁNTO SE ACIERTA IGUAL EN EL PEOR CASO. Ni el parte más lejano es una moneda: saber que estás
+   * en Bélgica en abril ya es saber bastante, y ese suelo es lo que queda cuando no se ve el cielo.
+   */
+  forecastFloor: 0.15,
+
+  /**
    * LAS GANAS DE ATACAR DEL QUE VA TIRANDO (v41). El que está en la rotación acaba de pagar el
    * viento del grupo: no es el que salta. El dueño lo cazó en una carrera de producción —«el mismo
    * que se escapó, antes de escaparse iba tirando del pelotón… eso no tiene sentido»—.

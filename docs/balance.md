@@ -8459,6 +8459,28 @@ propósito: en la v41 cobrar de más reventó Flandes.
 - **El dorsal 1 se daba por fama**, y con toda la fama a 0 el orden lo decidía lo que devolviera
   Postgres. Ahora desempatan las piernas para esa carrera y el id.
 
+### 2-bis. La previsión
+
+Para que exista una previsión, el tiempo tiene que poder consultarse ANTES de correr la etapa — y
+puede, porque nunca dependió de la carrera. El sorteo pasa a `stage/weather.ts` (el sello del banco
+sale idéntico) y aparece `weatherForecast`.
+
+Una previsión es la verdad DESENFOCADA hacia la climatología, no la verdad con ruido: a siete días
+un día de lluvia en Flandes (92 % real) se anuncia como 42 %, que es casi «aquí en abril llueve un
+tercio de los días»; a un día, 83 %; el día, 92 %. Así el parte CAMBIA según se acerca el día —lo
+que el dueño pidió— sin que el tiempo real cambie nunca, y consultarlo dos veces da lo mismo.
+
+### 2-bis. La previsión
+
+Para que exista una previsión, el tiempo tiene que poder consultarse ANTES de correr la etapa — y
+puede, porque nunca dependió de la carrera. El sorteo pasa a `stage/weather.ts` (el sello del banco
+sale idéntico) y aparece `weatherForecast`.
+
+Una previsión es la verdad DESENFOCADA hacia la climatología, no la verdad con ruido: a siete días
+un día de lluvia en Flandes (92 % real) se anuncia como 42 %, que es casi «aquí en abril llueve un
+tercio de los días»; a un día, 83 %; el día, 92 %. Así el parte CAMBIA según se acerca el día —lo
+que el dueño pidió— sin que el tiempo real cambie nunca, y consultarlo dos veces da lo mismo.
+
 ### 3. Lo que queda abierto
 
 - **La cola de la reina** sigue siendo una moneda al aire: 8,07 ± 0,39 contra un suelo de 8 (ver

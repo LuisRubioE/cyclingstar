@@ -21,6 +21,14 @@ export { deriveClimbCategory, isWall, sampleProfile, stageLengthKm } from './sta
 export { stageRng, stageSeed, type StageSeedParts } from './stage/rng.js'
 export { blockProbability, rollHazard } from './stage/hazard.js'
 export { simulateStage, stageTss } from './stage/simulate.js'
+export {
+  stageWeather,
+  weatherForecast,
+  type StageWeather,
+  type WeatherForecast,
+  type WeatherPlace,
+} from './stage/weather.js'
+export { climateOf, type Clima } from './world/climate.js'
 export { simulateTimeTrial } from './stage/timetrial.js'
 // EL VOCABULARIO DE GRUPOS (v27, SPEC 6.15 y docs/motor.md §16). La tabla de qué nombres puede imprimir
 // cada plantilla vive con el medidor —es quien cuenta cuántos ve un lector por etapa— y la exporta
