@@ -73,24 +73,121 @@ Decisión pendiente del dueño: o el suelo está una pizca alto para este motor,
 pizca rápido. Subir la muestra no basta —cuadruplicar las giras baja el ruido a 0,20 y aun así
 pasaría por siete centésimas—. Detalle en docs/balance.md «v41 §6».
 
-### E3 · La carrera por etapas como una carrera, no como 21 etapas
+### E3 · La carrera por etapas como una carrera, no como 21 etapas — EN CURSO
 
 El motor simula etapas; la pregunta es cuánto sabe de la CAMPAÑA. ¿Se corre distinto el día 18 con
 40 s de ventaja que el día 3? ¿Hay emboscada, defensa del maillot, bonificaciones, el día en que el
 líder se rompe? Hay piezas sueltas (`gcDeficitSeconds`, los motivos de equipo) pero no está medido
 si de verdad cambian la carrera según la clasificación y los días que quedan. Primer paso: medirlo.
 
-### E5 · El clima
+**Paso 1, hecho: el banco no podía medirlo porque no llevaba general.** `grandTour` y `smallTours`
+pasaban `gcDeficitSeconds: 0` a todo el mundo todos los días, y con todos a cero `hasGcContext` sale
+false: la capa táctica de general —la cuerda que se acorta ante una fuga peligrosa, el motivo que
+distingue al equipo del maillot del que va a tres minutos— no se ejecutaba NUNCA en tres semanas de
+banco, mientras en producción se ejecuta cada día. Un banco de gira sin general no mide una gran
+vuelta: mide 21 clásicas seguidas. Ya lo lleva, y los 45 invariantes siguen en verde sin mover una
+sola banda.
 
-No existe. Lluvia sobre adoquín, frío en un puerto, calor. Es lo que da variedad entre dos ediciones
-de la misma carrera y lo que justifica de verdad las caídas y los abandonos.
+Es la segunda vez en dos versiones que aparece la misma lección (la primera fue el maillot puesto de
+lanzador, v42): **lo que el banco no lleva, el banco no puede medir, y el defecto vive ahí para
+siempre.**
+
+**Paso 2, hecho: la general no cambia quién gana.** Medido con dos brazos de 24 grandes vueltas —456
+etapas cada uno, los dos con la general dentro y en uno la regla de la amenaza neutralizada—: la
+cuerda que el pelotón acorta ante una fuga peligrosa deja el reparto EXACTAMENTE igual (10 etapas
+ganadas desde la carretera contra 10, 0,0 σ), y tampoco mueve la cola de la reina, la brecha 1.º-10.º
+ni los abandonos. O sea que la pieza que lee la clasificación está puesta y no se nota. Detalle en
+docs/balance.md «v43 §4».
+
+**Y salió lo grande: la fuga NO gana en montaña.** En 312 etapas de montaña y media montaña de esas
+giras, la fuga del día ganó 0 (y 4 en el brazo sin cuerda). En llano gana el 6,9 %, dentro de banda,
+así que no es que el motor no deje escapar a nadie: es que en montaña lo que se va nunca llega.
+
+Y el motor YA tiene la banda de eso, en verde: `TARGETS.mountain.breakawayWinPct` exige 25-45 % y la
+etapa reina canónica mide 27-30 %. Es el mismo estadístico dígito a dígito (el evento `meta` con
+`datos.fuga === 1`), comprobado antes de comparar. O sea que el escenario canónico está en verde y la
+carrera que el juego corre da CERO: `realQueens` frente a `grandTour` una vez más.
+
+**Paso 3, hecho: manda EL PERFIL.** `realQueens` separa las tres candidatas de un tiro, porque corre
+etapas reina reales con campo fresco y sin general:
+
+| Banco                     | Perfil    | Fatiga | General | Gana la fuga          |
+| ------------------------- | --------- | ------ | ------- | --------------------- |
+| `reina-150` canónica      | de manual | no     | no      | 27-30 % (banda 25-45) |
+| `realQueens` (270 etapas) | REAL      | no     | no      | **3,3 %**             |
+| Gran vuelta (168 reinas)  | REAL      | sí     | sí      | **0 %**               |
+
+El salto está entero en la primera fila. Y la etapa que MÁS deja ganar a la fuga (16,7 %) es la de 47
+km rodadores hasta meta, así que no es «la cazan en el llano final»: las que dan cero son las de final
+en alto, que es justo la forma que el escenario canónico dice que la fuga gana el 27 % de las veces.
+
+Engancha además con algo que el dueño vio en Race Alps —«3 etapas seguidas de montaña y las 3 las gana
+el mismo ciclista»—: si la fuga no gana nunca en montaña, gana siempre alguien del grupo de favoritos.
+No está demostrado que sea la causa, pero es la primera explicación mecánica de aquel síntoma.
+
+**Paso 4, hecho: es el DESNIVEL, y no lo que parecía.** Tres experimentos controlados, y los dos
+primeros descartan las sospechas obvias:
+
+- **No es el relieve repartido.** Mismo final en alto y mismo campo, metiendo cuestas en los 135 km
+  previos: 0 % de relieve da 30,8 %, y un 40 % —más que ocho de las nueve reinas reales— aún da
+  17,5 %. Ni de lejos el 3,3 %.
+- **No es el campo.** El escenario canónico planta a mano 6 cazaetapas combativos; `realQueens`
+  genera corredores y les reparte roles. Cruzados 2×2: con el perfil canónico, 35,0 % con el campo de
+  a mano y 36,7 % con el generado; con el perfil de `race-france` e20, **0 % con los dos**.
+- **Es cuánto puerto tiene la etapa.** Misma forma, mismo campo, mismo largo, variando solo el puerto:
+
+| Puerto final | 15 km   | 25 km   | 35 km   | 50 km   | 70 km   |
+| ------------ | ------- | ------- | ------- | ------- | ------- |
+| Desnivel     | 1.200 m | 2.000 m | 2.800 m | 4.000 m | 5.600 m |
+| Gana la fuga | 26,7 %  | 10,0 %  | 3,3 %   | **0 %** | **0 %** |
+
+**La banda de 25-45 % se cumple con 1.200 metros de desnivel, y una etapa reina de verdad tiene entre
+3.000 y 5.000.** `reina-150` no es una etapa reina fácil: es media montaña con la etiqueta cambiada, y
+es sobre ella sobre la que el motor lleva cinco versiones certificando que la fuga gana en montaña.
+
+### V2 · DECISIÓN DEL DUEÑO: dónde se mide la fuga en montaña
+
+Mover el objetivo a los perfiles reales (`realQueens` en vez de `reina-150`) es lo correcto por todo
+lo que dicen estas docs —se mide lo que el juego corre—, pero **dejaría el motor en ROJO ahí**: 3,3 %
+contra un suelo de 25, y volver a banda es una recalibración táctica del tamaño de la v38.
+
+1. **Mover el objetivo y recalibrar.** La carretera dice que la fuga se lleva una parte grande de las
+   etapas de montaña, así que el 0 % es un defecto y no una banda mal puesta. Es la opción larga.
+2. **Dejarlo donde está y anotar el hueco.** Barato y deshonesto: es el patrón que estas docs llevan
+   desde la v17 diciendo que no se hace.
+3. **Añadir el objetivo sobre `realQueens` con la banda que hoy se cumple**, y subirla por pasos. Ni
+   miente ni bloquea, pero convierte una banda en un termómetro.
+
+Recomiendo la 1. No la he empezado porque mover un suelo de calibración necesita el visto bueno del
+dueño. Y ahora se sabe además por dónde va esa recalibración: el problema no es la capa táctica ni el
+campo ni el relieve, es que **la fuga no aguanta el desnivel** —a partir de unos 2.500 metros no llega
+ninguna—. Detalle en docs/balance.md «v43 §6 a §10».
+
+**Y lo que E3 aún no ha tocado**: la emboscada, el día en que el líder se rompe, y si el día 18 se
+corre distinto del día 3.
+
+### E5 · El clima — HECHO EN EL MOTOR (v42), ver docs/motor.md §20. Falta enseñarlo
+
+Entró entero: la lluvia (que multiplica las caídas, parte el adoquín mojado y suelta ruedas en el
+descenso), el calor (que no selecciona: desgasta, por el coste y no por el esfuerzo) y la previsión.
+
+Y con la corrección que el dueño metió al delegarlo —«ojo, el clima debería depender del país y del
+GD»—, que resultó ser lo que hacía al EPIC valer para algo: sin ella llovía igual en Flandes en marzo
+que en Almería en agosto, o sea justo lo contrario de la variedad que el encargo pedía. El dato ya
+existía en el calendario (país y día del año) y solo faltaba que llegara al motor.
 
 > El dueño: «estaría bien también que pueda existir para los ciclistas y managers una previsión del
 > clima… que además puede cambiar, y con eso tomar diferentes decisiones».
 
-O sea que no es solo física: es **información con incertidumbre**. La previsión se publica antes,
-puede fallar, y las decisiones (material, plan de equipo, cuánta gente al frente) se toman con ella.
-Eso es lo que la convierte en mecánica de juego y no en un modificador.
+`weatherForecast` cumple las tres cosas que esa frase pide: el parte cambia según se acerca el día,
+el tiempo real no cambia porque alguien lo mire, y consultarlo dos veces da lo mismo. Lo hace
+DESENFOCANDO la verdad hacia la climatología del sitio en vez de añadirle ruido, que es de donde sale
+el error de un parte de verdad.
+
+**LO QUE FALTA, y sin ello el EPIC no es todavía mecánica de juego:** la previsión no sale por la API
+ni se pinta en ninguna pantalla. Existe en el motor y no puede decidir nadie con ella. Pendiente de
+que el dueño diga DÓNDE se lee —la ficha de etapa, el calendario, o la pantalla en la que el manager
+hace la convocatoria—, porque de eso depende qué decisión llega a cambiar.
 
 ---
 
@@ -381,6 +478,8 @@ mecánica de juego (y bastante buena), no un problema de escala.
 
 1. ~~**B1** (el adoquín) y **B2** (la crono)~~ — HECHOS en la v40. B1 arreglado
    (`dropPavesFactor`); B2 no existía: era un comentario caducado.
-2. ~~**E1** (el viento y los abanicos)~~ — HECHA en la v41. **E3** y **E5**, delegadas y pendientes.
+2. ~~**E1** (el viento y los abanicos)~~ — HECHA en la v41. ~~**E5** (el clima)~~ — HECHA en el motor
+   en la v42; le falta salir por la API y pintarse en alguna pantalla, que es lo que la convierte en
+   mecánica de juego. **E3** (la campaña), EN CURSO: el paso 1 era poder medirla y ya se puede.
 3. La lista grande, empezando por donde el dueño diga. **G1 (entrenamientos)** y **G3 (rankings)**
    son las dos que hoy pueden estar mintiendo en producción, así que son las candidatas naturales.

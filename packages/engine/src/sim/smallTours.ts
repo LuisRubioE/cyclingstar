@@ -269,8 +269,23 @@ export function runSmallTour(tour: SmallTour, run: number): SmallTourRun {
   for (const stage of race.stages) {
     const racing = [...alive.values()]
     if (racing.length === 0) break
-    const orden = [...gcTotal.entries()].sort((a, b) => a[1] - b[1] || (a[0] < b[0] ? -1 : 1))
-    const rank = new Map(orden.map(([id], i) => [id, i + 1]))
+    /**
+     * Ordenada SOLO entre los que siguen en carrera, como en producción (v31): con la fila de un
+     * abandonado dentro el líder es un fantasma con menos tiempo que nadie, y todo el pelotón se
+     * cree a minutos de él.
+     */
+    const orden = racing
+      .map((r) => r.riderId)
+      .filter((id) => gcTotal.has(id))
+      .sort((a, b) => gcTotal.get(a)! - gcTotal.get(b)! || (a < b ? -1 : 1))
+    const rank = new Map(orden.map((id, i) => [id, i + 1]))
+    /**
+     * EL DÉFICIT (E3): el puesto dice quién es la carta del equipo, y el déficit es lo que el motor
+     * mira para saber quién AMENAZA la general (`gcThreatFraction`). Con todos a cero `hasGcContext`
+     * salía false y esa capa no se ejecutaba nunca en el banco, aunque en producción se ejecute
+     * todos los días.
+     */
+    const gcLeader = orden.length > 0 ? gcTotal.get(orden[0]!)! : 0
     const orders = autoStageOrders(
       racing.map((r) => ({
         riderId: r.riderId,
@@ -291,7 +306,8 @@ export function runSmallTour(tour: SmallTour, run: number): SmallTourRun {
         matches: matchCount(eff, tsb, false),
         tsb,
         orders: orders.get(r.riderId) ?? NEUTRAL_ORDERS,
-        gcDeficitSeconds: 0,
+        gcDeficitSeconds: (gcTotal.get(r.riderId) ?? gcLeader) - gcLeader,
+        gcRank: rank.get(r.riderId) ?? null,
         fragility: r.fragility,
         teamId: r.teamId,
       }

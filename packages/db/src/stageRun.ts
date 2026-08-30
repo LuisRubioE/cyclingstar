@@ -92,6 +92,14 @@ export interface StageRunSpec {
   profile: StageInput['profile']
   timeTrial: boolean
   isFinal: boolean
+  /**
+   * DÓNDE Y CUÁNDO SE CORRE, que es lo único que el clima necesita saber de una etapa (v43). País
+   * ISO del calendario y día del año; sin esto `simulateStage` cae al clima de referencia y toda la
+   * geografía de la v42 —la corrección que el dueño pidió: «el clima debería depender del país y del
+   * GD»— no llegaba a ninguna carrera real. Opcional porque la vuelta de prueba no está en ninguna
+   * parte del mapa.
+   */
+  lugar?: { pais?: string; dia: number }
 }
 
 /**
@@ -367,6 +375,10 @@ export async function runOneStage(
     profile: spec.profile,
     riders: stageRiders,
     ...(spec.timeTrial ? { timeTrial: true } : {}),
+    // …Y SE CORRE DONDE Y CUANDO SE CORRE (v43). El banco ya lo pasaba desde la v42 y producción no,
+    // así que el clima por país y fecha existía solo en la simulación: en el juego llovía el 20 % de
+    // los días en todas partes y hacía la temperatura de un enero templado en agosto en Almería.
+    ...(spec.lugar ? { lugar: spec.lugar } : {}),
   }
   /*
    * LA RADIO DE CARRERA SE RECOGE MIENTRAS LA ETAPA SE CORRE. El motor lo sabe todo bloque a bloque

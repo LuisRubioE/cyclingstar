@@ -8483,3 +8483,240 @@ que el dueño pidió— sin que el tiempo real cambie nunca, y consultarlo dos v
   cuatro. Las cinco dejan 22, 1, 31, 50 y 19 km tras la última cota, y el motor tiene medido que por
   encima de 5 km una etapa deja de comportarse como un final en alto. Pendiente de saber si el
   recorrido real es así o el generador aleja la última cima.
+
+---
+
+## v43 — El clima de la v42 no llegaba a producción (`engine_version` 42 → 43)
+
+### 1. El motor no cambia; lo que cambia es que ahora se le cuenta dónde se corre
+
+Buscando dónde enseñar la previsión apareció esto: `StageInput.lugar` —el país y el día del año, de
+donde sale TODA la geografía del clima de la v42— lo pasaban los bancos de simulación y **no lo
+pasaba `packages/db`**. O sea que la corrección que el dueño metió al delegar el EPIC («ojo, el clima
+debería depender del país y del GD») estaba implementada, medida y documentada, y no llegaba a
+ninguna carrera del juego.
+
+Lo que hacía producción sin el sitio:
+
+|                     | Con sitio (banco)          | Sin sitio (producción)        |
+| ------------------- | -------------------------- | ----------------------------- |
+| Flandes en abril    | llueve el 33 % de los días | el 20 %, como en todas partes |
+| La Vuelta en agosto | el 9 % y 26°               | el 20 % y **8°**              |
+| Emiratos en febrero | el 3 % y 21°               | el 20 % y **8°**              |
+
+Los 8° no son un redondeo: sin `lugar`, el clima salía de `climateOf(undefined, 0)`, y el día 0 es
+pleno invierno. Así que en el juego el calor no apretaba NUNCA en ninguna carrera —`heatFromC` son
+26°— y la lluvia caía con la misma frecuencia en Bélgica en marzo que en el desierto en febrero.
+
+Arreglado en los dos sitios: `calendarRun` pasa el país de la carrera y el día del año de cada etapa
+(la misma cuenta que hacen los bancos), y el «sin sitio» pasa a ser un neutro EXPLÍCITO
+(`CLIMA_REFERENCIA`, la media anual del sitio templado) en vez de un enero accidental.
+
+**El sello del banco de atribución sale idéntico**, que es la comprobación de que el neutro nuevo no
+mueve ningún resultado: 15,5° ± 7 sigue por debajo de los 26° a los que empieza a contar el calor,
+igual que los 8° de antes.
+
+### 2. Por qué sube la versión si el motor no cambia
+
+Porque el RESULTADO de una etapa de calendario sí cambia, y `engine_version` existe justamente para
+que una etapa corrida antes no se confunda con una corrida después: va en la semilla y se sella en
+`stage_runs`. Las etapas ya corridas no se tocan —su `StageInput` está sellado en `stage_snapshots`
+con el clima que tuvieron, así que sus repeticiones salen exactamente igual que el día que se
+corrieron—.
+
+### 3. La lección, que es la de siempre y van tres
+
+La v42 la escribió con el maillot de lanzador, E3 la volvió a encontrar con la general, y aquí sale
+una tercera vez con otra cara: **el banco pasaba el dato y producción no.** No es que el banco no
+midiera lo que el juego corre —es que el banco corría una carrera MEJOR que la del juego, y por eso
+todo estaba en verde—. Lo que un banco y producción no comparten, no lo prueba nadie.
+
+### 4. E3, paso 2: lo que la general cambia en una gran vuelta, medido
+
+El paso 1 puso la general dentro de los bancos de gira. El paso 2 es la pregunta de la EPIC: **¿se
+corre distinto sabiendo la clasificación?** Se mide sobre la pieza que la lee, la CUERDA que el
+pelotón acorta cuando en la fuga va alguien peligroso para la general (`gcLeash`,
+`gcThreatFraction`): dos brazos de **24 grandes vueltas cada uno** —456 etapas por brazo—, los dos
+con la general dentro, y en uno la regla de la amenaza neutralizada.
+
+| Etapas ganadas desde la carretera | Cuerda puesta  | Cuerda quitada | Diferencia |
+| --------------------------------- | -------------- | -------------- | ---------- |
+| Reina (168)                       | 0 (0,0 %)      | 2 (1,2 %)      | 1,4 σ      |
+| Media montaña (144)               | 0 (0,0 %)      | 2 (1,4 %)      | 1,4 σ      |
+| Llana (144)                       | 10 (6,9 %)     | 6 (4,2 %)      | −1,0 σ     |
+| **Total (456)**                   | **10 (2,2 %)** | **10 (2,2 %)** | **0,0 σ**  |
+
+Y las otras métricas de la reina no se mueven: la cola en 8,15 contra 7,98, la brecha 1.º-10.º en 2 s
+contra 0, los grupos en meta 7 contra 7, los abandonos en 18,5 % contra 18,4 %.
+
+**La regla de la amenaza no cambia nada medible en una gran vuelta.** Y de paso confirma lo que el
+paso 1 dejó anotado sin afirmar: aquel «7,0 % → 3,5 %» de seis giras era RUIDO. Con muestra de verdad
+son 10 contra 10. Es la cuarta vez que una diferencia entre dos corridas se deshace al medirla contra
+su propio ruido, y la razón por la que aquello se escribió como sospecha y no como hallazgo.
+
+Lo que este experimento NO dice: solo neutraliza la CUERDA. El resto de la maquinaria de general
+—los motivos de equipo, quién es la carta, el maillot que ya no da relevos— está puesta en los dos
+brazos y no está contrastada aquí.
+
+### 5. Lo que sí salió, y es lo grande: la fuga NUNCA gana en montaña
+
+Con 24 grandes vueltas por brazo, en **312 etapas de montaña y media montaña** la fuga ganó **0 veces
+con la cuerda puesta y 4 con la cuerda quitada**. En llano gana el 6,9 %, que está dentro de la banda
+de la fuga en llano (2-8 %) y por tanto no es un problema de que el motor no deje escapar a nadie.
+
+No es la general quien lo causa (el brazo sin cuerda también da ~1 %), y no es nuevo: el banco de seis
+giras SIN general ya daba 1 de 42.
+
+**Y no hace falta buscar el número de la carretera, porque ya está en el motor y lleva cinco versiones
+calibrado.** `TARGETS.mountain.breakawayWinPct` exige **25-45 %**, con su historia escrita en
+`gcControlLeash` (265 → 342 → 350 → 520 → 700, la última porque el dueño pidió literalmente
+«recalibremos la capa táctica para que la fuga en una etapa de montaña gane en más casos»). Y **es el
+MISMO estadístico**, dígito a dígito: las dos cuentas preguntan si el evento `meta` trae
+`datos.fuga === 1`. Comprobado antes de comparar, porque comparar dos cifras que miden cosas
+distintas es de donde salieron mis tres rectificaciones anteriores.
+
+Así que la banda no falta: está, y está EN VERDE. Lo que pasa es dónde se mide.
+
+| El mismo estadístico, en dos sitios                    | Medido                   |
+| ------------------------------------------------------ | ------------------------ |
+| Etapa reina canónica (`reina-150`, 120 semillas)       | 27-30 %, dentro de 25-45 |
+| Etapas reina de una gran vuelta (168, calendario real) | **0 %**                  |
+
+Es `realQueens` frente a `grandTour` otra vez (v17), y es el patrón que este documento nombra desde
+entonces: **el escenario canónico está en verde y la carrera que el juego corre no se le parece.**
+
+### 6. Y cuál de las tres diferencias manda: EL PERFIL
+
+Las candidatas eran tres —el perfil real frente a un final en alto de manual, la fatiga acumulada del
+día 18, y el campo con equipos y general—, y `realQueens` las separa de un tiro, porque corre etapas
+reina REALES del calendario con campo FRESCO y SIN general. Nueve etapas, 30 semillas cada una:
+
+| Banco                     | Perfil    | Fatiga | General | Gana la fuga              |
+| ------------------------- | --------- | ------ | ------- | ------------------------- |
+| `reina-150` canónica      | de manual | no     | no      | **27-30 %** (banda 25-45) |
+| `realQueens` (270 etapas) | REAL      | no     | no      | **3,3 %**                 |
+| Gran vuelta (168 reinas)  | REAL      | sí     | sí      | **0 %**                   |
+
+El salto está entero en la primera fila: **quitar el perfil de manual y poner uno real se lleva la
+métrica de 27 % a 3 %.** La fatiga y la general le quitan lo poco que queda, pero no son la causa.
+
+Y por etapa hay señal, no ruido plano:
+
+| Etapa                                                                                               | Gana la fuga |
+| --------------------------------------------------------------------------------------------------- | ------------ |
+| `race-colombia` e5 (232 km, última cota a 62 km, 47 rodadores)                                      | 16,7 %       |
+| `race-tachira` e6                                                                                   | 6,7 %        |
+| `race-spain` e7 y `race-guatemala` e9                                                               | 3,3 %        |
+| `race-two-seas` e4, `race-france` e20, `race-italy` e19, `race-catalonia` e4, `race-rhone-alpes` e8 | **0 %**      |
+
+Que la que MÁS deja ganar a la fuga sea la de 47 km rodadores hasta meta descarta la explicación
+fácil («la cazan en el llano final»): es al revés. Las cinco que dan cero son las de final en alto o
+casi, o sea justo la forma que el escenario canónico dice que la fuga gana el 27 % de las veces.
+
+### 7. Qué tiene un perfil real que no tiene el canónico
+
+Medida la FORMA de los diez perfiles, con la columna que importa: cuánta subida hay **fuera de los
+últimos 30 km** (`climbRaceKmToGo`), o sea en el tramo donde el pelotón rueda a `climbTempoCommit`
+0,70 si hay cuesta y a `pelotonTempoCommit` 0,55 si no la hay.
+
+| Etapa                    | Subida fuera de los últimos 30 km | Gana la fuga |
+| ------------------------ | --------------------------------- | ------------ |
+| **`reina-150` canónica** | **0 %**                           | **27-30 %**  |
+| `race-colombia` e5       | 13 %                              | 16,7 %       |
+| `race-tachira` e6        | 18 %                              | 6,7 %        |
+| `race-spain` e7          | 8 %                               | 3,3 %        |
+| `race-guatemala` e9      | 13 %                              | 3,3 %        |
+| `race-catalonia` e4      | 6 %                               | 0 %          |
+| `race-two-seas` e4       | 16 %                              | 0 %          |
+| `race-rhone-alpes` e8    | 28 %                              | 0 %          |
+| `race-italy` e19         | 33 %                              | 0 %          |
+| `race-france` e20        | 38 %                              | 0 %          |
+
+La canónica es **135 km de llano MUERTO y un final en alto**: cero relieve fuera del remate. Todas
+las reales tienen entre el 6 % y el 38 %.
+
+**Lo que esto SÍ demuestra**, sin depender de ningún mecanismo: la banda de 25-45 % está medida sobre
+una forma de etapa que **no existe en el calendario**. Ninguna de las nueve reinas reales se le
+parece. Un objetivo en verde sobre un escenario que no se corre no certifica nada del juego.
+
+**Y la sospecha del relieve era FALSA.** Parecía la explicación obvia —con cuestas por todas partes
+el pelotón está `onClimb` mucho más rato, a 0,70 en vez de 0,55— y el experimento controlado la
+tumba. Mismo final en alto y mismo campo, metiendo relieve en los 135 km previos como pares
+cuesta/bajada (la etapa sigue midiendo 150 km y el desnivel NETO previo sigue siendo cero):
+
+| Relieve previo | 0 %    | 10 %   | 20 %   | 30 %   | 40 %   |
+| -------------- | ------ | ------ | ------ | ------ | ------ |
+| Gana la fuga   | 30,8 % | 26,7 % | 25,8 % | 29,2 % | 17,5 % |
+
+Con un 40 % de relieve —más que ocho de las nueve reinas reales— la fuga aún gana el 17,5 %. Eso no
+lleva a ningún sitio cerca del 3,3 %.
+
+### 8. Ni el campo: cruce 2×2
+
+La otra sospecha razonable era el CAMPO, porque el escenario canónico planta a mano 6 cazaetapas
+combativos con `contestClimbs` —una tripulación de fuga hecha a medida— mientras `realQueens` genera
+corredores y les reparte roles con `autoStageOrders`. Cruzados los dos perfiles con los dos campos,
+60 semillas cada celda:
+
+|                          | Campo canónico (a mano) | Campo generado |
+| ------------------------ | ----------------------- | -------------- |
+| Perfil canónico          | 35,0 %                  | 36,7 %         |
+| Perfil `race-france` e20 | **0,0 %**               | **0,0 %**      |
+
+El campo no mueve nada (35,0 contra 36,7). El perfil lo mueve TODO (35 → 0).
+
+### 9. Lo que sí es: CUÁNTO PUERTO TIENE LA ETAPA
+
+Misma forma que la canónica —llano y un final en alto al 8 %—, mismo campo, mismo largo (171 km, el
+de `race-france` e20 para que el kilometraje no sea la variable), y variando solo cuánto puerto hay:
+
+| Puerto final | 15 km   | 25 km   | 35 km   | 50 km   | 70 km   |
+| ------------ | ------- | ------- | ------- | ------- | ------- |
+| Desnivel     | 1.200 m | 2.000 m | 2.800 m | 4.000 m | 5.600 m |
+| Gana la fuga | 26,7 %  | 10,0 %  | 3,3 %   | **0 %** | **0 %** |
+
+Monótona y sin ambigüedad. **La banda de 25-45 % se cumple con 1.200 metros de desnivel, y una etapa
+reina de verdad tiene entre 3.000 y 5.000.** O sea que `reina-150` no es una etapa reina fácil: es una
+etapa de media montaña con la etiqueta cambiada, y es sobre ella sobre la que el motor lleva cinco
+versiones certificando que «la fuga gana en montaña».
+
+(El relieve repartido sí cuenta un poco, pero por la misma vía: los 1.350 m que añade el brazo del
+40 % son desnivel. Cuenta MENOS que el mismo desnivel puesto en el final —17,5 % contra el ~10 % que
+predice la tabla de arriba para 2.550 m— y tiene sentido de carretera: el puerto final es donde los
+favoritos corren.)
+
+### 10. LA DECISIÓN QUE NO ES MÍA
+
+De aquí sale un cambio de calibración, y de los grandes, así que se queda escrito y sin tocar hasta
+que el dueño diga:
+
+**Mover el objetivo de la fuga en montaña a los perfiles REALES** (`realQueens` en vez de
+`reina-150`), o —lo mismo por otra puerta— darle a `reina-150` el desnivel de una etapa reina. Es lo
+correcto por todo lo que dice este documento —se mide lo que el juego corre— pero tiene una
+consecuencia que hay que decir antes y no después: **el motor pasaría a estar ROJO ahí**, 3,3 % contra
+un suelo de 25, y volver a meterlo en banda es una recalibración táctica de la escala de la v38, no un
+ajuste.
+
+Y ahora se sabe además POR DÓNDE va esa recalibración, que antes no se sabía: el problema no es la
+capa táctica ni el campo ni el relieve, es que **la fuga no aguanta el desnivel**. A partir de unos
+2.500 metros no llega ninguna.
+
+Las alternativas honestas son tres, y ninguna es gratis:
+
+1. **Mover el objetivo y recalibrar.** La carretera dice que la fuga se lleva una parte grande de las
+   etapas de montaña de una gran vuelta, así que el 0 % es un defecto de verdad y no una banda mal
+   puesta. Es la cara del trabajo, y la más larga.
+2. **Dejar el objetivo donde está y anotar el hueco.** Barato y deshonesto: es exactamente el patrón
+   que este documento lleva desde la v17 diciendo que no se debe hacer.
+3. **Añadir el objetivo sobre `realQueens` con la banda que hoy se cumple** y subirla por pasos. Ni
+   miente ni bloquea, pero convierte una banda en un termómetro.
+
+Mi recomendación es la 1, y la razón por la que no la he empezado es que mover un suelo de
+calibración necesita el visto bueno del dueño.
+
+**Y engancha con algo que el dueño vio.** «3 etapas seguidas de montaña y las 3 las gana el mismo
+ciclista» (Race Alps): si la fuga no gana NUNCA una etapa de montaña, la gana siempre alguien del
+grupo de favoritos, y el mismo hombre repite. No está demostrado que sea la causa de aquello —no lo
+he medido— pero es la primera explicación mecánica que aparece para ese síntoma.
+
+Es la primera pregunta de E3 con respuesta clara, y el siguiente trabajo del EPIC.
