@@ -192,6 +192,25 @@ pasa de 0,55 a 0,85 cuando llega el puerto. Subir `breakawayCommitMin/Max` a sec
 cooperación calibra la banda de la fuga en llano (2-8 %) y la rompería. Detalle en docs/balance.md
 «v44».
 
+**Paso 6: la respuesta, y no es del motor.** El ritmo de un puerto lo marca la misma regla en los dos
+grupos, así que la asimetría está en cuánta velocidad compra un punto de perfil. Leído de la ley (en
+subida el exponente es 1,0): una fuga real con P75 65 contra el top 12 % del pelotón con 88 va un
+**14,7 % más lenta, o sea 28,8 s/km**. Y ese 14,7 % es REALISTA. Con eso, 40 km de puerto se comen 19
+minutos y 70 se comen 34, y una fuga llega al pie con 11. No hay táctica que arregle esa resta.
+
+Y de paso queda desmentida una perilla: `gcControlLeash` dice de sí misma que «calibra el % de fugas
+que ganan en montaña» y tiene cinco recalibraciones escritas. Barrida de 700 a 1.800 s: **no mueve
+nada**, ni en la canónica ni en las reales. La ventaja de la fuga no la limita el permiso del pelotón
+sino lo que la fuga puede construir (llega al pie con 657-684 s contra un tope de 700).
+
+**Dónde queda la pregunta:** excluidos por medida la caza en el llano, el depósito, el relieve, el
+campo, la composición, las piernas, el ritmo, la regla de la amenaza y la cuerda, lo que queda es el
+DESNIVEL que traen los recorridos generados. `race-france` e20 tiene 70 km de subida en 171, y una
+reina real de gran vuelta tiene 40-55 repartidos en cuatro o cinco cotas. Si el generador fabrica
+montaña más dura que la de la carretera, la fuga no gana porque la montaña que se corre no es la
+real. **Sin medir, así que es pregunta y no conclusión** — y pertenece a **G6 (el generador de
+recorridos)**, no a E3.
+
 **Y lo que E3 aún no ha tocado**: la emboscada, el día en que el líder se rompe, y si el día 18 se
 corre distinto del día 3.
 

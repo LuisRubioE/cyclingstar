@@ -8892,10 +8892,10 @@ lectura siguiente. No la escribo como causa porque no la he medido.
 
 ### 6. Estado: los mecanismos se RETIRAN del código, la medición se queda
 
-Los dos son correctos por sí mismos, pero con ellos puestos la reina canónica y la llana quedan en
-rojo, y no se sabe todavía cómo cerrarlas —eso es el §5—. Un motor con dos bandas rojas no se queda
-en la rama bloqueando trabajo que sí está listo, así que el código vuelve atrás y **lo medido se
-queda escrito, que es donde vale**: cuando se retome, esta sección dice exactamente qué se probó, qué
+Los dos son correctos por sí mismos, pero con ellos puestos la reina canónica queda en rojo —84-90 %
+contra un techo de 45— y no se sabe todavía cómo cerrarla; eso es el §5. Un motor con una banda roja
+no se queda en la rama bloqueando trabajo que sí está listo, así que el código vuelve atrás y **lo
+medido se queda escrito, que es donde vale**: cuando se retome, esta sección dice exactamente qué se probó, qué
 midió cada cosa y por qué no bastó. El commit revertido (`dc489a6`) conserva la implementación.
 
 Lo que este capítulo deja demostrado, y no hay que volver a medir:
@@ -8904,7 +8904,58 @@ Lo que este capítulo deja demostrado, y no hay que volver a medir:
 - No son las piernas: con MON 92 la fuga sigue sin ganar.
 - El ritmo es una palanca real pero insuficiente, y mueve las dos métricas juntas ocho a uno.
 - Con piernas iguales Y ritmo igual, la fuga se deja coger SUBIENDO, lejos de meta (km 110-154 de
-  171). La pregunta viva es cómo se calcula el ritmo de un grupo en un puerto.
+  171).
+
+### 7. Y la respuesta: la aritmética de la ley, que estaba bien todo el rato
+
+El ritmo de un puerto lo marca la MISMA regla en los dos grupos (`moveFrac` usa `climbFrac` igual que
+el pelotón), así que la asimetría no está en la táctica: está en cuánta velocidad compra un punto de
+perfil. Y eso se lee de la ley sin simular nada —en subida el exponente es 1,0, o sea que la
+velocidad es proporcional a `relPower` = 0,55 + 0,45·P75/75—:
+
+| Comparación                                                         | Ventaja    | A 16 km/h     |
+| ------------------------------------------------------------------- | ---------- | ------------- |
+| P75 85 contra 88 (mi fuga dopada contra el pelotón)                 | 1,7 %      | 3,8 s/km      |
+| P75 72 contra 85                                                    | 7,9 %      | 16,6 s/km     |
+| **P75 65 contra 88** (una fuga REAL contra el top 12 % del pelotón) | **14,7 %** | **28,8 s/km** |
+
+**Y ese 14,7 % es realista**: entre un escalador del montón y uno de los mejores del mundo hay
+exactamente ese orden de diferencia en un puerto. El problema no es la ley.
+
+Con 28,8 s/km, **40 km de puerto se comen 19 minutos** y 70 km se comen 34. Una fuga llega al pie con 11. No hay táctica que arregle esa resta.
+
+### 8. La perilla que dice ser la más sensible del motor, y no lo es
+
+`gcControlLeash` topa la ventaja que el pelotón concede, su comentario dice que «calibra el % de fugas
+que ganan en montaña» y su historia entera —265, 342, 350, 520, 700— se escribió para eso. Barrida:
+
+| `gcControlLeash` | Llana canónica (5-16) | Reina canónica (25-45) | Reinas REALES |
+| ---------------- | --------------------- | ---------------------- | ------------- |
+| 700 s (hoy)      | 8,3 %                 | 30,8 %                 | 4,6 %         |
+| 1.000 s          | 8,3 %                 | 33,3 %                 | 3,7 %         |
+| 1.400 s          | 8,3 %                 | 31,7 %                 | 3,7 %         |
+| 1.800 s          | 8,3 %                 | 31,7 %                 | 3,7 %         |
+
+**Nada.** Ni en la canónica ni en las reales. Y el motivo es claro a la luz del §7: la ventaja de la
+fuga no la limita el permiso del pelotón sino lo que la fuga PUEDE construir —llega al pie con 657-684
+s contra un tope de 700—, así que subir el tope concede un boquete que nadie puede fabricar.
+
+O sea que esa perilla se calibró cinco veces contra el escenario canónico, que es el que no se corre.
+Su comentario queda desmentido por la medida y hay que reescribirlo cuando se toque.
+
+### 9. Dónde queda la pregunta, y a qué EPIC pertenece
+
+Excluidos por medida: la caza en el llano, el depósito, el relieve, el campo, la composición, las
+piernas, el ritmo, la regla de la amenaza y la cuerda. Lo que queda es una resta que no falla: **el
+desnivel que traen los recorridos generados, contra una diferencia de velocidad en cuesta que es
+realista.**
+
+Así que la siguiente pregunta ya no es del motor sino del GENERADOR (G6): `race-france` e20 tiene
+**70 km de subida en 171**, y una etapa reina real de una gran vuelta tiene 40-55 repartidos en cuatro
+o cinco cotas. Si los recorridos que fabrica el juego son más duros que los de la carretera, la fuga
+no gana en montaña porque la montaña que se corre no es la de la carretera. **Eso no lo he medido, y
+por eso queda como pregunta y no como conclusión** — pero es la primera que hay que hacer, y es en
+otro sitio.
 
 ---
 
