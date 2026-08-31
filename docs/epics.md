@@ -170,8 +170,27 @@ ya basta.
 
 Eso **contradice al propio motor**: el comentario de `gcControlLeash` dice que esto se arregla
 «recalibrando la capa táctica», y la medida dice que no. La capa táctica reparte bien la cuerda en el
-llano. Lo que hay que mirar es cuánto más rápido sube el pelotón que la fuga por kilómetro de puerto,
-que es FÍSICA y no táctica.
+llano.
+
+**Paso 6: no son las piernas, es el RITMO.** El dueño autorizó mover el objetivo y recalibrar, así que
+antes de tocar perillas se buscó la causa, y cayeron dos candidatas más:
+
+- **La composición no es el techo.** `breakScore` elegía al hombre de fuga con las piernas del LLANO
+  incluso en una etapa reina, así que la fuga de montaña salía con la escalada de la mediana del campo
+  (en `race-italy` e19, PEOR que la mediana). Es un error real, pero arreglarlo mueve 3,33 % → 4,44 %
+  (0,6 σ) y pone en rojo la foto de meta de las carreras pequeñas. Retirado; entra con la
+  recalibración entera o no entra.
+- **Ni las piernas.** Con una fuga de MON 92 —mejores que el mejor escalador del campo—
+  `race-france` e20 sigue en 0 %.
+
+Lo que sí mueve es el RITMO: el pelotón sube el puerto decisivo a 0,85 y la fuga no pasa nunca de la
+cooperación con la que nació (0,58-0,72), que en el remate ni sube. Subiéndola a mano, `race-spain` e7
+va de 4 % a 40 %.
+
+**El arreglo es un MECANISMO, no un número:** una fuga en el remate se vacía, igual que el pelotón
+pasa de 0,55 a 0,85 cuando llega el puerto. Subir `breakawayCommitMin/Max` a secas no vale: esa
+cooperación calibra la banda de la fuga en llano (2-8 %) y la rompería. Detalle en docs/balance.md
+«v44».
 
 **Y lo que E3 aún no ha tocado**: la emboscada, el día en que el líder se rompe, y si el día 18 se
 corre distinto del día 3.

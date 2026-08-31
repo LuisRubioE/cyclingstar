@@ -8754,3 +8754,88 @@ grupo de favoritos, y el mismo hombre repite. No está demostrado que sea la cau
 he medido— pero es la primera explicación mecánica que aparece para ese síntoma.
 
 Es la primera pregunta de E3 con respuesta clara, y el siguiente trabajo del EPIC.
+
+---
+
+## v44 — La fuga en montaña: cinco hipótesis y la que sobrevivió (EN CURSO)
+
+El dueño autorizó mover el objetivo de la fuga en montaña a los perfiles reales y recalibrar. Antes
+de tocar una perilla, encontrar la causa. **El diagnóstico cambió tres veces, y cada vez lo tumbó una
+medida y no un argumento.**
+
+| Hipótesis                    | Cómo se midió                                                                             | Veredicto                             |
+| ---------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------- |
+| La cazan en el llano         | La fuga llega al pie del puerto con 657 / 684 / 593 s según el puerto mida 15, 35 o 50 km | **No.** Llega igual de fuerte siempre |
+| Se les acaba el depósito     | Pájaras de miembros de la fuga del día: 0 en 120 etapas                                   | **No**                                |
+| El relieve repartido         | Metiendo cuestas en los 135 km previos: 0 % → 30,8 %, 40 % → 17,5 %                       | **No**                                |
+| El campo                     | Cruce 2×2 (campo a mano / generado × perfil canónico / real)                              | **No.** 35,0 vs 36,7                  |
+| Quién va en la fuga          | `breakScore` = 0,5·TAC + 0,3·LLA + 0,2·RES, **sin MON ni COL**                            | **Defecto real, pero no basta**       |
+| **A qué RITMO sube la fuga** | Subiendo su cooperación de 0,58-0,72 a 0,82-0,95                                          | **Sí.** `race-spain` e7: 4 % → 40 %   |
+
+### 1. El hombre de la fuga se elegía con las piernas del llano
+
+`breakScore` no miraba la montaña. El hombre que cada equipo manda a la fuga se elegía **igual en una
+etapa llana que en una reina**: el rodador más táctico. Medido, la fuga de una etapa de montaña salía
+con las piernas de escalada de la MEDIANA del campo, mientras el pelotón sube al ritmo de su top 12 %:
+
+| Etapa              | MON de la fuga | MON del top 12 % | MON mediana del campo |
+| ------------------ | -------------- | ---------------- | --------------------- |
+| `race-colombia` e5 | 54,7           | 75,6             | 49,9                  |
+| `race-two-seas` e4 | 65,2           | 85,4             | 62,2                  |
+| `race-france` e20  | 66,4           | 85,8             | 62,0                  |
+| `race-italy` e19   | **60,4**       | 85,3             | **61,1**              |
+
+En Italia e19 la fuga escalaba PEOR que la mediana del pelotón. Probado el arreglo —en montaña el
+término de llano pasa a ser el de escalada— y la composición mejora (colombia 54,7 → 65,8; italia
+60,4 → 65,3).
+
+**Y aun así el resultado apenas se mueve: 3,33 % → 4,44 %**, o sea 0,6 σ. Y encima **pone en rojo otro
+invariante**: la foto de meta de las carreras pequeñas cae a 12,9 % contra un suelo de 15, o sea a la
+línea de la lotería (cambiar quién se va en montaña cambia con qué piernas se llega a las llanas de
+después).
+
+Así que **se retira, y queda escrito**: la regla es correcta —elegir al hombre de fuga de una etapa
+reina por su LLA es sencillamente un error— pero no arregla lo que pretendía y sí rompe otra cosa.
+Entra cuando entre la recalibración entera, donde se puede reequilibrar el conjunto; sola no vale la
+pena. Lo que deja probado es lo que importa aquí: **la composición no es el techo.**
+
+### 2. Y no son las piernas: es el RITMO
+
+La prueba que lo cierra. Poniéndole a los cazaetapas MON y COL por encima de los mejores escaladores
+del campo:
+
+| Etapa              | Tal cual | Fuga con MON 78 | con MON 85 | con MON 92 |
+| ------------------ | -------- | --------------- | ---------- | ---------- |
+| `race-colombia` e5 | 12 %     | 8 %             | 24 %       | 24 %       |
+| `race-two-seas` e4 | 0 %      | 4 %             | 0 %        | 0 %        |
+| `race-spain` e7    | 4 %      | 0 %             | 8 %        | 8 %        |
+| `race-france` e20  | **0 %**  | **0 %**         | **0 %**    | **0 %**    |
+
+Una fuga de superescaladores —92, mejores que el mejor del campo— no gana ni una vez en `race-france`
+e20. Si las piernas no lo arreglan, no son las piernas.
+
+Lo que sí lo mueve es el RITMO. El pelotón sube el puerto decisivo a compromiso **0,85**
+(`climbRaceCommit`). La fuga no pasa nunca de la cooperación con la que nació —`moveCooperation`,
+0,58-0,72 menos gentío más hambre— y esa cifra **no sube en el remate**: el repaso de cooperación de
+la v39 solo puede bajarla (`objetivo = restCommit · (1 − contagio)`). Subiendo esa cooperación a mano:
+
+| Cooperación de la fuga | `colombia` e5 | `two-seas` e4 | `spain` e7 | `france` e20 |
+| ---------------------- | ------------- | ------------- | ---------- | ------------ |
+| 0,58 - 0,72 (hoy)      | 12 %          | 0 %           | 4 %        | 0 %          |
+| 0,70 - 0,84            | 0 %           | 12 %          | 24 %       | 0 %          |
+| 0,82 - 0,95            | 12 %          | 12 %          | **40 %**   | 0 %          |
+
+(25 semillas por celda, así que cada número lleva ±8-10 puntos: lo que se lee es la tendencia de
+`spain` e7 y `two-seas` e4, no las celdas sueltas. `france` e20 es inmune a todo lo probado hasta
+ahora, y eso queda como pregunta abierta.)
+
+### 3. Lo que se va a hacer, y lo que NO
+
+**No** subir `breakawayCommitMin/Max`. Esa cooperación es la que calibra la banda de la fuga en llano
+(2-8 %), y subirla a lo bruto la rompe: sería comprar la montaña rompiendo el llano, que es mover el
+bulto y no arreglar nada.
+
+Lo que falta es un MECANISMO, no un número: **una fuga en el remate se vacía**, igual que el pelotón
+pasa de 0,55 a 0,85 cuando llega el puerto decisivo. Hoy el motor modela la economía de rotar durante
+150 km y no modela el «ahora o nunca» de los últimos. Deja intacta la cooperación de mitad de etapa
+—y con ella la banda del llano— y añade lo que el ciclismo hace de verdad.
