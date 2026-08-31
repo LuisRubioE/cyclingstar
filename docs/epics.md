@@ -159,9 +159,71 @@ contra un suelo de 25, y volver a banda es una recalibración táctica del tama�
    miente ni bloquea, pero convierte una banda en un termómetro.
 
 Recomiendo la 1. No la he empezado porque mover un suelo de calibración necesita el visto bueno del
-dueño. Y ahora se sabe además por dónde va esa recalibración: el problema no es la capa táctica ni el
-campo ni el relieve, es que **la fuga no aguanta el desnivel** —a partir de unos 2.500 metros no llega
-ninguna—. Detalle en docs/balance.md «v43 §6 a §10».
+dueño. Detalle en docs/balance.md «v43 §6 a §11».
+
+**Y el paso 5 ya dice por dónde iría, con una sorpresa:** la fuga llega al pie del puerto con los
+MISMOS once minutos tanto si el puerto mide 15 km como si mide 50, y ninguno de sus hombres se queda
+sin depósito. No la cazan: la SUBEN. El pelotón sube ~18 s/km más rápido, así que 35 km de puerto se
+comen once minutos enteros. Y bajar la ventana de «esto ya se corre a tope» (`climbRaceKmToGo`) de 30
+a 5 km solo duplica las fugas ganadoras (7,5 % → 15 %): el tempo de 0,70 mantenido treinta kilómetros
+ya basta.
+
+Eso **contradice al propio motor**: el comentario de `gcControlLeash` dice que esto se arregla
+«recalibrando la capa táctica», y la medida dice que no. La capa táctica reparte bien la cuerda en el
+llano.
+
+**Paso 6: no son las piernas, es el RITMO.** El dueño autorizó mover el objetivo y recalibrar, así que
+antes de tocar perillas se buscó la causa, y cayeron dos candidatas más:
+
+- **La composición no es el techo.** `breakScore` elegía al hombre de fuga con las piernas del LLANO
+  incluso en una etapa reina, así que la fuga de montaña salía con la escalada de la mediana del campo
+  (en `race-italy` e19, PEOR que la mediana). Es un error real, pero arreglarlo mueve 3,33 % → 4,44 %
+  (0,6 σ) y pone en rojo la foto de meta de las carreras pequeñas. Retirado; entra con la
+  recalibración entera o no entra.
+- **Ni las piernas.** Con una fuga de MON 92 —mejores que el mejor escalador del campo—
+  `race-france` e20 sigue en 0 %.
+
+Lo que sí mueve es el RITMO: el pelotón sube el puerto decisivo a 0,85 y la fuga no pasa nunca de la
+cooperación con la que nació (0,58-0,72), que en el remate ni sube. Subiéndola a mano, `race-spain` e7
+va de 4 % a 40 %.
+
+**El arreglo es un MECANISMO, no un número:** una fuga en el remate se vacía, igual que el pelotón
+pasa de 0,55 a 0,85 cuando llega el puerto. Subir `breakawayCommitMin/Max` a secas no vale: esa
+cooperación calibra la banda de la fuga en llano (2-8 %) y la rompería. Detalle en docs/balance.md
+«v44».
+
+**Paso 6: la respuesta, y no es del motor.** El ritmo de un puerto lo marca la misma regla en los dos
+grupos, así que la asimetría está en cuánta velocidad compra un punto de perfil. Leído de la ley (en
+subida el exponente es 1,0): una fuga real con P75 65 contra el top 12 % del pelotón con 88 va un
+**14,7 % más lenta, o sea 28,8 s/km**. Y ese 14,7 % es REALISTA. Con eso, 40 km de puerto se comen 19
+minutos y 70 se comen 34, y una fuga llega al pie con 11. No hay táctica que arregle esa resta.
+
+Y de paso queda desmentida una perilla: `gcControlLeash` dice de sí misma que «calibra el % de fugas
+que ganan en montaña» y tiene cinco recalibraciones escritas. Barrida de 700 a 1.800 s: **no mueve
+nada**, ni en la canónica ni en las reales. La ventaja de la fuga no la limita el permiso del pelotón
+sino lo que la fuga puede construir (llega al pie con 657-684 s contra un tope de 700).
+
+**Paso 7, y CORRIGE todo lo anterior: la fuga gana el 18,1 %, no el 0 %.** La sospecha era que el
+generador fabricara montaña más dura que la real. Medido el desnivel de las 157 etapas reina del
+calendario: mediana **2.023 m**, máxima 3.965, ninguna por encima de 4.000 — y una reina de gran vuelta
+de verdad tiene 3.500-5.000. **El generador hace montaña más blanda, no más dura.**
+
+Y con eso saltó el error de método: yo medía sobre `grandTour` (las 7 reinas de UNA carrera, cuya e20
+es la etapa más dura de todo el calendario) y sobre `realQueens` (nueve etapas elegidas a mano por
+FORMA, sesgadas a lo duro). Ninguno de los dos es el calendario. Sobre una muestra sistemática de 27
+etapas reina × 16 semillas:
+
+| Desnivel      | Etapas | Gana la fuga |
+| ------------- | ------ | ------------ |
+| < 1.500 m     | 6      | **43,8 %**   |
+| 1.500-2.500 m | 16     | 13,7 %       |
+| 2.500-3.500 m | 4      | 1,6 %        |
+| > 3.500 m     | 1      | 0,0 %        |
+| **TOTAL**     | 27     | **18,1 %**   |
+
+Contra la banda de 25-45 sigue por debajo, pero eso es «apretar una calibración», no «el mecanismo
+está roto», que es lo que escribí tres veces. La lección: los bancos miden etapas elegidas por FORMA,
+no por FRECUENCIA, y yo leí «no gana en las más duras» como «no gana nunca».
 
 **Y lo que E3 aún no ha tocado**: la emboscada, el día en que el líder se rompe, y si el día 18 se
 corre distinto del día 3.

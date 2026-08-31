@@ -204,27 +204,44 @@ describe('desgaste (docs/motor.md §VI.1)', () => {
    * midieron las 45 de este fichero (`vitest run … --reporter=verbose`, 540 s en total) y se
    * subieron las seis que no llegaban:
    *
+   * …Y SE VOLVIÓ A QUEDAR PEQUEÑO, PORQUE EL ×2,2 ERA UNA ESTIMACIÓN (v43). El nocturno de
+   * `cobertura.yml` cayó con CUATRO timeouts y CERO afirmaciones falladas (1.352 pruebas en verde),
+   * y el motivo es que aquella columna «CI(×2,2)» se calculó multiplicando el coste local por un
+   * factor, no midiéndolo. Medido de verdad en la corrida instrumentada, la llana no cuesta 29 s:
+   * cuesta **207**. Entre la v20 y la v43 el motor se encareció —equipos de 8 sobre 176 corredores,
+   * viento, clima, general— y el factor se quedó corto por SIETE.
+   *
+   * Así que la tabla se rehace con los costes REALES del nocturno, y la regla se aplica sobre ellos:
+   *
    * ```
-   *                                            local     CI(×2,2)   antes → ahora
-   *   el pelotón adelgaza 12-20%               135,9 s     299 s     300 s → 1200 s
-   *   el mejor rematador gana bastantes        135,7 s     299 s     300 s → 1200 s
-   *   el último grupo entra al 8-14%            67,4 s     148 s     300 s →  600 s
-   *   ninguna clásica del WT satura             23,4 s      51 s     120 s →  300 s
-   *   una llana no erosiona al fresco           13,3 s      29 s      30 s →  180 s
-   *   una reina en fresco sí erosiona           11,7 s      26 s      30 s →  180 s
-   *   la clásica larga / la más dura           ~6,5 s       14 s      30 s →  120 s
+   *                                         CI medido   antes → ahora   margen
+   *   el mejor rematador gana bastantes        912 s     1200 → 3900 s    4,3×
+   *   el pelotón adelgaza 12-20%               435 s     1200 → 1800 s    4,1×
+   *   ninguna carrera de un día satura         434 s      600 → 1800 s    4,1×
+   *   la reina SINTÉTICA erosiona menos        259 s      300 → 1200 s    4,6×
+   *   el último grupo entra al 8-14% (x2)      218 s   300/600 →  900 s    4,1×
+   *   una llana no erosiona al fresco       >= 207 s      180 →  900 s    4,3×
+   *   una reina en fresco sí erosiona       >= 191 s      180 →  900 s    4,7×
+   *   la clásica más dura                       88 s      120 →  360 s    4,1×
+   *   la clásica larga en fresco                83 s      120 →  360 s    4,3×
+   *   la reina REAL en la 3.ª semana         >= 65 s       60 →  300 s    4,6×
+   *   una etapa de pavés                        24 s       30 →  120 s    5,0×
    * ```
    *
-   * Las dos primeras se caían de verdad; las demás estaban a un mal día del runner de caerse.
+   * (Los `>=` son las tres que el nocturno mató al llegar a su límite: su coste real es mayor que
+   * lo que llegaron a marcar, así que el margen de verdad es algo menor que el de la columna.)
+   *
    * No es relajar un objetivo —el objetivo es la banda de §VI.1, y no se toca—: es dimensionar un
-   * reloj que se quedó pequeño cuando el motor se encareció.
+   * reloj que se quedó pequeño cuando el motor se encareció. Y la lección, que es la de siempre en
+   * este repositorio: **un número que no se mide, se equivoca**, también cuando el número es un
+   * reloj y no una perilla.
    */
-  it('una llana rodada en pelotón no erosiona al corredor fresco', { timeout: 180000 }, () => {
+  it('una llana rodada en pelotón no erosiona al corredor fresco', { timeout: 900000 }, () => {
     const stats = analyzeErosion(flatScen, campaignSeeds(flatScen.name, 60))
     expectInRange(stats.medianErosion, TARGETS.erosion.flatFresh)
   })
 
-  it('una etapa reina en fresco sí erosiona', { timeout: 180000 }, () => {
+  it('una etapa reina en fresco sí erosiona', { timeout: 900000 }, () => {
     const stats = analyzeErosion(queen, campaignSeeds(queen.name, 60))
     expectInRange(stats.medianErosion, TARGETS.erosion.queenFresh)
   })
@@ -242,7 +259,7 @@ describe('desgaste (docs/motor.md §VI.1)', () => {
    */
   it(
     'la etapa reina REAL en la tercera semana erosiona mucho más, sin saturar',
-    { timeout: 60000 },
+    { timeout: 300000 },
     () => {
       const realQueen = realQueenThirdWeekScenario()
       const stats = analyzeErosion(realQueen, campaignSeeds(realQueen.name, 12))
@@ -252,15 +269,13 @@ describe('desgaste (docs/motor.md §VI.1)', () => {
     },
   )
 
-  // 300 s como el resto de los tests de campaña de este fichero, y no los 30 s que arrastraba: es
-  // el ÚNICO que corre DOS campañas —60 semillas de la sintética más 12 de la real—, y el de arriba,
-  // que corre solo la real, ya necesita 60. Con los escenarios que dejaron la v19 y la v20 se pasaba
-  // de 30 s en el runner de CI (no en una máquina de desarrollo, que es más rápida), y por eso CI
-  // llevaba diez commits en rojo mientras en local todo salía verde: el despliegue de la web espera
-  // a CI y se quedó parado. No se ha tocado nada de lo que el test MIDE.
+  // Es el ÚNICO que corre DOS campañas —60 semillas de la sintética más 12 de la real—, así que es
+  // el más caro de la familia de la erosión: 259 s medidos en el nocturno instrumentado. Con la
+  // regla de las cuatro veces, 1.200 s. (Antes 300, que ya venía de arreglar un 30 heredado que
+  // tuvo a CI diez commits en rojo mientras en local salía verde.) No se toca nada de lo que MIDE.
   it(
     'y la reina SINTÉTICA erosiona menos que ella, que es lo que debe',
-    { timeout: 300000 },
+    { timeout: 1200000 },
     () => {
       // 1.200 m de desnivel no son una etapa reina. Este escenario deja de ser el objetivo y pasa a
       // ser el control de que el ORDEN se respeta: la caricatura tiene que quedar por debajo.
@@ -272,7 +287,7 @@ describe('desgaste (docs/motor.md §VI.1)', () => {
 
   it(
     'una clásica larga en fresco erosiona más que una reina, sin llegar a la 3.ª semana',
-    { timeout: 120000 },
+    { timeout: 360000 },
     () => {
       const stats = analyzeErosion(longClassic, campaignSeeds(longClassic.name, 12))
       expectInRange(stats.medianErosion, TARGETS.erosion.longClassicFresh)
@@ -378,7 +393,7 @@ describe('la erosión no satura en ninguna clásica (docs/motor.md §VI.1)', () 
 
   it(
     'la clásica más dura del calendario erosiona fuerte pero no satura',
-    { timeout: 120000 },
+    { timeout: 360000 },
     () => {
       const hardest = hardestClassicScenario()
       const stats = analyzeErosion(hardest, campaignSeeds(hardest.name, 12))
@@ -386,7 +401,7 @@ describe('la erosión no satura en ninguna clásica (docs/motor.md §VI.1)', () 
     },
   )
 
-  it('ninguna carrera de un día satura con el pelotón fresco', { timeout: 600000 }, () => {
+  it('ninguna carrera de un día satura con el pelotón fresco', { timeout: 1800000 }, () => {
     expect(oneDayWt.length).toBeGreaterThan(10)
     // Y las ocho más duras del calendario entero, que es por donde se coló el defecto de la v40.
     expect(oneDayHardest).toHaveLength(8)
@@ -479,7 +494,7 @@ describe('abandonos en una gran vuelta (docs/motor.md §VI.3)', () => {
 
   // 139,5 s en local ⇒ ~307 s en CI, con 300 s de presupuesto: se caía por doce segundos. Ver la
   // nota del presupuesto de tiempo en la campaña de desgaste, arriba.
-  it('el pelotón adelgaza entre un 12% y un 20% en tres semanas', { timeout: 1200000 }, () => {
+  it('el pelotón adelgaza entre un 12% y un 20% en tres semanas', { timeout: 1800000 }, () => {
     const stats = tours()
     expect(stats.runs).toBe(6)
     expectInRange(stats.abandonPct, TARGETS.grandTour.abandonPct)
@@ -515,7 +530,7 @@ describe('abandonos en una gran vuelta (docs/motor.md §VI.3)', () => {
    * motor, o el grupeto va una pizca rápido. Lo que NO se hace es mover una constante física para
    * que un dado caiga del lado bueno.
    */
-  it('el último grupo de una etapa reina entra al 8-14%', { timeout: 600000 }, () => {
+  it('el último grupo de una etapa reina entra al 8-14%', { timeout: 900000 }, () => {
     const stats = tours()
     expect(stats.tails.reina.stages).toBeGreaterThanOrEqual(6 * 7)
     expectInRange(stats.tails.reina.medianLastGroupPct, TARGETS.grandTour.queenLastGroupPct)
@@ -599,7 +614,7 @@ describe('la cola en las etapas reina REALES (v17)', () => {
     expect(new Set(REAL_QUEENS.map((q) => q.raceId)).size).toBe(REAL_QUEENS.length)
   })
 
-  it('el último grupo entra al 8-14% del tiempo del ganador', { timeout: 300000 }, () => {
+  it('el último grupo entra al 8-14% del tiempo del ganador', { timeout: 900000 }, () => {
     const stats = bench()
     expect(stats.all.stages).toBe(REAL_QUEENS.length * 6)
     expectInRange(stats.all.medianLastGroupPct, TARGETS.realQueens.lastGroupPct)
@@ -674,7 +689,7 @@ describe('las carreras PEQUEÑAS con forma de producción (v23)', () => {
     expect(levels.size).toBeGreaterThanOrEqual(3)
   })
 
-  it('el mejor rematador gana bastantes, y no todas', { timeout: 1200000 }, () => {
+  it('el mejor rematador gana bastantes, y no todas', { timeout: 3900000 }, () => {
     const stats = bench()
     expect(stats.share.races).toBe(SMALL_TOURS.length * stats.runsPerRace)
     // …y el campo tiene un mejor sprinter CLARO, que es la premisa del objetivo: si el banco
@@ -742,7 +757,7 @@ describe('las carreras PEQUEÑAS con forma de producción (v23)', () => {
 
 describe('caídas en pavés (6.17)', () => {
   // Monte Carlo de 80 etapas completas: pesado, con margen de tiempo holgado para runners lentos.
-  it('una etapa de pavés deja entre un 5% y un 12% de bajas por caída', { timeout: 30000 }, () => {
+  it('una etapa de pavés deja entre un 5% y un 12% de bajas por caída', { timeout: 120000 }, () => {
     const eff = (base: number): Record<Attribute, number> => ({
       RES: base,
       REC: base,

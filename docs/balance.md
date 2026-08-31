@@ -8699,7 +8699,41 @@ ajuste.
 
 Y ahora se sabe además POR DÓNDE va esa recalibración, que antes no se sabía: el problema no es la
 capa táctica ni el campo ni el relieve, es que **la fuga no aguanta el desnivel**. A partir de unos
-2.500 metros no llega ninguna.
+2.500 metros no llega ninguna. El §11 dice por qué.
+
+### 11. Por qué no aguanta: no la cazan, la SUBEN
+
+Diagnosticado sobre la misma familia de escenarios —llano y un final en alto al 8 %, 171 km, mismo
+campo—, mirando qué le pasa a la fuga del día:
+
+| Puerto final | Gana la fuga | Boquete al PIE del puerto | Cazada antes del pie | Cazada EN el puerto |
+| ------------ | ------------ | ------------------------- | -------------------- | ------------------- |
+| 15 km        | 35 %         | 657 s                     | 1 de 40              | 11 de 40            |
+| 35 km        | 0 %          | 684 s                     | 0 de 40              | 39 de 40            |
+| 50 km        | 0 %          | 593 s                     | 0 de 40              | 38 de 40            |
+
+**La fuga llega al pie del puerto con los MISMOS once minutos en los tres casos.** No es que el
+pelotón persiga más en el llano: la caza previa se comporta igual. Todo pasa arriba.
+
+Y **no es la pájara**: los miembros de la fuga del día se quedan sin depósito en **0** etapas de las
+40 en los tres brazos. (La primera cuenta que hice decía «mediana de 2 y 5 pájaras», y eran pájaras
+de CUALQUIERA —los flojos del pelotón—, no de la fuga. Corregido al mirarlo bien.)
+
+Lo que hay es más simple y más incómodo: **el pelotón sube más rápido que la fuga, y cuanto más
+puerto hay, más tiempo le saca.** El ritmo de cierre en el puerto mide **~18 s/km** cuando el puerto
+se corre de verdad, así que 35 km de subida se comen los 684 s enteros. (El 8 s/km del brazo de 15 km
+no es comparable: ahí la fuga casi nunca se caza, así que la cuenta mide otra cosa.)
+
+**Y no lo arregla la ventana de «esto ya se corre».** `climbRaceKmToGo` decide cuántos km finales se
+suben a `climbRaceCommit` 0,85 en vez de a `climbTempoCommit` 0,70. Bajándola sobre el puerto de
+35 km: 30 → 7,5 %, 20 → 7,5 %, 10 → 15 %, 5 → 15 %. Reducir a un sexto la parte que se corre a tope
+DUPLICA las fugas ganadoras y las deja igual de lejos del 27-35 % del escenario canónico. O sea que
+el tempo de 0,70 mantenido durante treinta kilómetros de puerto ya basta para comerse once minutos.
+
+**La conclusión, y contradice al propio motor.** El comentario de `gcControlLeash` dice que esto se
+arregla «recalibrando la capa táctica», y la medida dice que no: la capa táctica reparte bien la
+cuerda en el llano y la fuga llega arriba con su ventaja intacta. Lo que hay que mirar es **cuánto
+más rápido sube el pelotón que la fuga por kilómetro de puerto**, que es física y no táctica.
 
 Las alternativas honestas son tres, y ninguna es gratis:
 
@@ -8720,3 +8754,312 @@ grupo de favoritos, y el mismo hombre repite. No está demostrado que sea la cau
 he medido— pero es la primera explicación mecánica que aparece para ese síntoma.
 
 Es la primera pregunta de E3 con respuesta clara, y el siguiente trabajo del EPIC.
+
+---
+
+## v44 — La fuga en montaña: cinco hipótesis y la que sobrevivió (EN CURSO)
+
+El dueño autorizó mover el objetivo de la fuga en montaña a los perfiles reales y recalibrar. Antes
+de tocar una perilla, encontrar la causa. **El diagnóstico cambió tres veces, y cada vez lo tumbó una
+medida y no un argumento.**
+
+| Hipótesis                    | Cómo se midió                                                                             | Veredicto                             |
+| ---------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------- |
+| La cazan en el llano         | La fuga llega al pie del puerto con 657 / 684 / 593 s según el puerto mida 15, 35 o 50 km | **No.** Llega igual de fuerte siempre |
+| Se les acaba el depósito     | Pájaras de miembros de la fuga del día: 0 en 120 etapas                                   | **No**                                |
+| El relieve repartido         | Metiendo cuestas en los 135 km previos: 0 % → 30,8 %, 40 % → 17,5 %                       | **No**                                |
+| El campo                     | Cruce 2×2 (campo a mano / generado × perfil canónico / real)                              | **No.** 35,0 vs 36,7                  |
+| Quién va en la fuga          | `breakScore` = 0,5·TAC + 0,3·LLA + 0,2·RES, **sin MON ni COL**                            | **Defecto real, pero no basta**       |
+| **A qué RITMO sube la fuga** | Subiendo su cooperación de 0,58-0,72 a 0,82-0,95                                          | **Sí.** `race-spain` e7: 4 % → 40 %   |
+
+### 1. El hombre de la fuga se elegía con las piernas del llano
+
+`breakScore` no miraba la montaña. El hombre que cada equipo manda a la fuga se elegía **igual en una
+etapa llana que en una reina**: el rodador más táctico. Medido, la fuga de una etapa de montaña salía
+con las piernas de escalada de la MEDIANA del campo, mientras el pelotón sube al ritmo de su top 12 %:
+
+| Etapa              | MON de la fuga | MON del top 12 % | MON mediana del campo |
+| ------------------ | -------------- | ---------------- | --------------------- |
+| `race-colombia` e5 | 54,7           | 75,6             | 49,9                  |
+| `race-two-seas` e4 | 65,2           | 85,4             | 62,2                  |
+| `race-france` e20  | 66,4           | 85,8             | 62,0                  |
+| `race-italy` e19   | **60,4**       | 85,3             | **61,1**              |
+
+En Italia e19 la fuga escalaba PEOR que la mediana del pelotón. Probado el arreglo —en montaña el
+término de llano pasa a ser el de escalada— y la composición mejora (colombia 54,7 → 65,8; italia
+60,4 → 65,3).
+
+**Y aun así el resultado apenas se mueve: 3,33 % → 4,44 %**, o sea 0,6 σ. Y encima **pone en rojo otro
+invariante**: la foto de meta de las carreras pequeñas cae a 12,9 % contra un suelo de 15, o sea a la
+línea de la lotería (cambiar quién se va en montaña cambia con qué piernas se llega a las llanas de
+después).
+
+Así que **se retira, y queda escrito**: la regla es correcta —elegir al hombre de fuga de una etapa
+reina por su LLA es sencillamente un error— pero no arregla lo que pretendía y sí rompe otra cosa.
+Entra cuando entre la recalibración entera, donde se puede reequilibrar el conjunto; sola no vale la
+pena. Lo que deja probado es lo que importa aquí: **la composición no es el techo.**
+
+### 2. Y no son las piernas: es el RITMO
+
+La prueba que lo cierra. Poniéndole a los cazaetapas MON y COL por encima de los mejores escaladores
+del campo:
+
+| Etapa              | Tal cual | Fuga con MON 78 | con MON 85 | con MON 92 |
+| ------------------ | -------- | --------------- | ---------- | ---------- |
+| `race-colombia` e5 | 12 %     | 8 %             | 24 %       | 24 %       |
+| `race-two-seas` e4 | 0 %      | 4 %             | 0 %        | 0 %        |
+| `race-spain` e7    | 4 %      | 0 %             | 8 %        | 8 %        |
+| `race-france` e20  | **0 %**  | **0 %**         | **0 %**    | **0 %**    |
+
+Una fuga de superescaladores —92, mejores que el mejor del campo— no gana ni una vez en `race-france`
+e20. Si las piernas no lo arreglan, no son las piernas.
+
+Lo que sí lo mueve es el RITMO. El pelotón sube el puerto decisivo a compromiso **0,85**
+(`climbRaceCommit`). La fuga no pasa nunca de la cooperación con la que nació —`moveCooperation`,
+0,58-0,72 menos gentío más hambre— y esa cifra **no sube en el remate**: el repaso de cooperación de
+la v39 solo puede bajarla (`objetivo = restCommit · (1 − contagio)`). Subiendo esa cooperación a mano:
+
+| Cooperación de la fuga | `colombia` e5 | `two-seas` e4 | `spain` e7 | `france` e20 |
+| ---------------------- | ------------- | ------------- | ---------- | ------------ |
+| 0,58 - 0,72 (hoy)      | 12 %          | 0 %           | 4 %        | 0 %          |
+| 0,70 - 0,84            | 0 %           | 12 %          | 24 %       | 0 %          |
+| 0,82 - 0,95            | 12 %          | 12 %          | **40 %**   | 0 %          |
+
+(25 semillas por celda, así que cada número lleva ±8-10 puntos: lo que se lee es la tendencia de
+`spain` e7 y `two-seas` e4, no las celdas sueltas. `france` e20 es inmune a todo lo probado hasta
+ahora, y eso queda como pregunta abierta.)
+
+### 3. Lo que se va a hacer, y lo que NO
+
+**No** subir `breakawayCommitMin/Max`. Esa cooperación es la que calibra la banda de la fuga en llano
+(2-8 %), y subirla a lo bruto la rompe: sería comprar la montaña rompiendo el llano, que es mover el
+bulto y no arreglar nada.
+
+Lo que falta es un MECANISMO, no un número: **una fuga en el remate se vacía**, igual que el pelotón
+pasa de 0,55 a 0,85 cuando llega el puerto decisivo. Hoy el motor modela la economía de rotar durante
+150 km y no modela el «ahora o nunca» de los últimos. Deja intacta la cooperación de mitad de etapa
+—y con ella la banda del llano— y añade lo que el ciclismo hace de verdad.
+
+### 4. Los dos mecanismos, escritos y medidos — Y NO BASTAN
+
+Se implementaron los dos, y el segundo salió de que el primero fallara:
+
+1. **La fuga se vacía en el remate** (`breakFinaleKm`, `breakFinaleCommit`): rampa lineal sobre el
+   compromiso del movimiento, como suelo y no como sustituto.
+2. **En el puerto no hay cooperación que proteger** (`breakClimbCommit`): la cooperación mide la
+   economía de rotar, y en una rampa al 8 % ir a rueda cuesta el 69 % de dar la cara, así que no hay
+   economía que dosificar. El que sube, sube a su ritmo.
+
+El primero solo, medido: la reina canónica se va del 27 % al **79 %** y las reinas REALES pasan del
+3,33 % al **4,81 %**. O sea que el empujón le llega al cadáver: en una etapa con 40-70 km de puerto la
+fuga ya está cazada mucho antes de los últimos 30 km. De ahí salió el segundo.
+
+Con los dos, barriendo el suelo del puerto:
+
+| Suelo del puerto | Llana canónica (2-8) | Reina canónica (25-45) | Reinas REALES |
+| ---------------- | -------------------- | ---------------------- | ------------- |
+| 0,70             | 8,3 %                | 74,2 %                 | 9,3 %         |
+| 0,80             | 8,3 %                | 84,2 %                 | 11,1 %        |
+| 0,90             | 8,3 %                | 90,0 %                 | 13,9 %        |
+
+**Las dos métricas se mueven juntas con una razón de ocho a uno.** No hay ajuste de esta perilla que
+lleve las reinas reales al 25-45 sin poner la canónica en el 100 %. Y la llana se sale por arriba
+(8,3 contra un techo de 8) en los tres brazos.
+
+### 5. Y la prueba que dice que esto no es calibración
+
+Poniéndole a la fuga las DOS cosas a la vez —las piernas de los mejores escaladores del campo y el
+ritmo del pelotón en el puerto—:
+
+| Etapa              | Base    | Solo ritmo 0,85 | Solo piernas 85 | **Las dos** |
+| ------------------ | ------- | --------------- | --------------- | ----------- |
+| `race-colombia` e5 | 16 %    | 12 %            | 20 %            | 28 %        |
+| `race-two-seas` e4 | 0 %     | 0 %             | 0 %             | 4 %         |
+| `race-spain` e7    | 4 %     | 8 %             | 12 %            | 8 %         |
+| `race-france` e20  | **0 %** | **0 %**         | **0 %**         | **0 %**     |
+
+Una fuga tan fuerte y tan comprometida como el pelotón que la persigue sigue sin ganar NUNCA
+`race-france` e20. Comprobado que el estadístico no miente: de 25 carreras, el ganador salió de la
+fuga del día **una** vez, y el flag dice 0 — coinciden. Y los kilómetros de caza lo rematan: **110,
+111, 144, 147, 150, 154** en una etapa de 171 km, o sea que **la cazan SUBIENDO y mucho antes de
+meta**.
+
+Si con piernas iguales y ritmo igual la fuga se deja coger, el pelotón es más rápido subiendo por una
+razón que no es ninguna de las dos, y eso ya no es una perilla: es cómo se calcula el ritmo de un
+grupo en un puerto. La pista está en quién marca ese ritmo —el pelotón, por su top 12 %
+(`climbPaceFraction`), sobre 176 corredores; la fuga, por su propio P75 sobre cinco— y ésa es la
+lectura siguiente. No la escribo como causa porque no la he medido.
+
+### 6. Estado: los mecanismos se RETIRAN del código, la medición se queda
+
+Los dos son correctos por sí mismos, pero con ellos puestos la reina canónica queda en rojo —84-90 %
+contra un techo de 45— y no se sabe todavía cómo cerrarla; eso es el §5. Un motor con una banda roja
+no se queda en la rama bloqueando trabajo que sí está listo, así que el código vuelve atrás y **lo
+medido se queda escrito, que es donde vale**: cuando se retome, esta sección dice exactamente qué se probó, qué
+midió cada cosa y por qué no bastó. El commit revertido (`dc489a6`) conserva la implementación.
+
+Lo que este capítulo deja demostrado, y no hay que volver a medir:
+
+- No es la caza en el llano, ni el depósito, ni el relieve, ni el campo, ni la composición de la fuga.
+- No son las piernas: con MON 92 la fuga sigue sin ganar.
+- El ritmo es una palanca real pero insuficiente, y mueve las dos métricas juntas ocho a uno.
+- Con piernas iguales Y ritmo igual, la fuga se deja coger SUBIENDO, lejos de meta (km 110-154 de
+  171).
+
+### 7. Y la respuesta: la aritmética de la ley, que estaba bien todo el rato
+
+El ritmo de un puerto lo marca la MISMA regla en los dos grupos (`moveFrac` usa `climbFrac` igual que
+el pelotón), así que la asimetría no está en la táctica: está en cuánta velocidad compra un punto de
+perfil. Y eso se lee de la ley sin simular nada —en subida el exponente es 1,0, o sea que la
+velocidad es proporcional a `relPower` = 0,55 + 0,45·P75/75—:
+
+| Comparación                                                         | Ventaja    | A 16 km/h     |
+| ------------------------------------------------------------------- | ---------- | ------------- |
+| P75 85 contra 88 (mi fuga dopada contra el pelotón)                 | 1,7 %      | 3,8 s/km      |
+| P75 72 contra 85                                                    | 7,9 %      | 16,6 s/km     |
+| **P75 65 contra 88** (una fuga REAL contra el top 12 % del pelotón) | **14,7 %** | **28,8 s/km** |
+
+**Y ese 14,7 % es realista**: entre un escalador del montón y uno de los mejores del mundo hay
+exactamente ese orden de diferencia en un puerto. El problema no es la ley.
+
+Con 28,8 s/km, **40 km de puerto se comen 19 minutos** y 70 km se comen 34. Una fuga llega al pie con 11. No hay táctica que arregle esa resta.
+
+### 8. La perilla que dice ser la más sensible del motor, y no lo es
+
+`gcControlLeash` topa la ventaja que el pelotón concede, su comentario dice que «calibra el % de fugas
+que ganan en montaña» y su historia entera —265, 342, 350, 520, 700— se escribió para eso. Barrida:
+
+| `gcControlLeash` | Llana canónica (5-16) | Reina canónica (25-45) | Reinas REALES |
+| ---------------- | --------------------- | ---------------------- | ------------- |
+| 700 s (hoy)      | 8,3 %                 | 30,8 %                 | 4,6 %         |
+| 1.000 s          | 8,3 %                 | 33,3 %                 | 3,7 %         |
+| 1.400 s          | 8,3 %                 | 31,7 %                 | 3,7 %         |
+| 1.800 s          | 8,3 %                 | 31,7 %                 | 3,7 %         |
+
+**Nada.** Ni en la canónica ni en las reales. Y el motivo es claro a la luz del §7: la ventaja de la
+fuga no la limita el permiso del pelotón sino lo que la fuga PUEDE construir —llega al pie con 657-684
+s contra un tope de 700—, así que subir el tope concede un boquete que nadie puede fabricar.
+
+O sea que esa perilla se calibró cinco veces contra el escenario canónico, que es el que no se corre.
+Su comentario queda desmentido por la medida y hay que reescribirlo cuando se toque.
+
+### 9. Dónde queda la pregunta, y a qué EPIC pertenece
+
+Excluidos por medida: la caza en el llano, el depósito, el relieve, el campo, la composición, las
+piernas, el ritmo, la regla de la amenaza y la cuerda. Lo que queda es una resta que no falla: **el
+desnivel que traen los recorridos generados, contra una diferencia de velocidad en cuesta que es
+realista.**
+
+La sospecha era el GENERADOR: si fabricara montaña más dura que la de la carretera, la fuga no ganaría
+porque la montaña que se corre no sería la real. Se midió, y **es falsa, al revés de lo que yo
+apuntaba**.
+
+### 10. LA CORRECCIÓN QUE SE LLEVA POR DELANTE TODO ESTE CAPÍTULO
+
+Medido el desnivel de las **157 etapas reina del calendario entero**:
+
+|                                 | Desnivel     | Recorrido                   |
+| ------------------------------- | ------------ | --------------------------- |
+| La más dura (`race-france` e20) | 3.965 m      | 171 km, 69 de subida        |
+| p90                             | 2.711 m      | 157 km, 34 de subida        |
+| **Mediana**                     | **2.023 m**  | 178 km, 29 de subida        |
+| Media                           | 1.987 m      | 161 km, 30 de subida (19 %) |
+| Por encima de 4.000 m           | **0 de 157** |                             |
+
+Una reina de gran vuelta de verdad tiene 3.500-5.000 m. **El generador hace montaña más BLANDA que la
+carretera, no más dura.** Y entonces la pregunta correcta salta sola: si la mediana del calendario son
+2.023 m, y la curva de dosis dice que a 2.000 m la fuga gana el 10 %… **¿por qué medía yo un 0 %?**
+
+Porque estaba midiendo sobre los dos bancos equivocados. `grandTour` corre las 7 reinas de UNA gran
+vuelta —`race-france`, cuya e20 es la etapa más dura de todo el calendario—, y `realQueens` elige nueve
+etapas a mano por FORMA, sesgadas a lo duro. Ninguno de los dos es el calendario.
+
+Medido sobre una muestra SISTEMÁTICA del calendario —27 etapas reina tomadas una de cada seis sobre la
+distribución de desnivel, 16 semillas cada una, 432 carreras—:
+
+| Desnivel      | Etapas | Gana la fuga |
+| ------------- | ------ | ------------ |
+| < 1.500 m     | 6      | **43,8 %**   |
+| 1.500-2.500 m | 16     | 13,7 %       |
+| 2.500-3.500 m | 4      | 1,6 %        |
+| > 3.500 m     | 1      | 0,0 %        |
+| **TOTAL**     | **27** | **18,1 %**   |
+
+**En el calendario que el juego corre, la fuga gana el 18,1 % de las etapas de montaña, no el 0 %.**
+Contra una banda de 25-45 sigue estando por debajo, pero eso es «hay que apretar una calibración», no
+«el mecanismo está roto», que es lo que yo he escrito tres veces en este capítulo.
+
+**Lo que me llevó al error, y es la lección del día:** los dos bancos que usé miden etapas reina
+elegidas por su FORMA, no por su frecuencia. Y lo escribí como «la fuga no gana NUNCA en montaña»
+cuando lo que había medido era «la fuga no gana en las etapas más duras del calendario». Es la misma
+trampa que este documento lleva señalando desde la v17 con otro nombre —medir donde no se corre— y
+esta vez la cometí en la dirección contraria: no midiendo demasiado fácil, sino demasiado difícil.
+
+Todo lo demás del capítulo sigue en pie y sigue siendo útil: la curva de dosis (§9 de arriba), la
+aritmética de la ley (§7), la perilla desmentida (§8) y las cinco hipótesis descartadas. Lo que cambia
+es el TAMAÑO del problema: de «cero» a «18,1 contra 25-45», y con una dependencia del desnivel tan
+fuerte (43,8 % abajo, 1,6 % arriba) que cualquier calibración futura tiene que decir SOBRE QUÉ
+DESNIVEL habla.
+
+### 11. Y el agujero se tapa con un banco, no con una nota
+
+Una lección que solo vive en un documento se vuelve a olvidar. Entra `sim/calendarQueens.ts`: la
+montaña que de verdad se corre, muestreada por FRECUENCIA y no por forma —las etapas reina del
+calendario ordenadas por desnivel, una de cada seis— y leída por bandas de desnivel, que es la única
+manera de que el número signifique algo.
+
+Va sin banda para «gana la fuga», a propósito: el objetivo tendría que salir de la carretera —cuántas
+etapas de montaña se lleva la fuga en una temporada real— y ese dato no lo tengo, así que ponerlo a
+ojo sería el vicio de siempre. Lo que el banco SÍ fija son las dos cosas que fallaron por no existir:
+que la muestra representa al calendario (cubre de la más blanda a la más dura) y que **la dureza
+decide** —más de cuarenta puntos entre la banda fácil y la dura—. Si eso se aplana algún día, el motor
+habrá dejado de distinguir una etapa de montaña de otra, y será una noticia aunque el total no se
+mueva.
+
+Y a diferencia de `realQueens`, este banco **se recalcula solo**: aquél lleva lista cerrada para poder
+comparar versiones, y éste tiene que seguir al calendario porque su pregunta es «¿qué trae el
+calendario de HOY?». El muestreo es sistemático y determinista, así que la composición sale de un
+criterio escrito y no de una elección.
+
+---
+
+## v43-bis — El nocturno cayó con cuatro relojes, no con una banda
+
+El correo del nocturno (`cobertura.yml`, la corrida diaria con instrumentación) llegó en rojo. **No
+falló ninguna afirmación**: 1.352 pruebas en verde y cuatro TIMEOUTS.
+
+| Prueba                             | Reloj | Tardó     |
+| ---------------------------------- | ----- | --------- |
+| una llana no erosiona al fresco    | 180 s | **207 s** |
+| una reina en fresco sí erosiona    | 180 s | **191 s** |
+| la reina REAL en la 3.ª semana     | 60 s  | **65 s**  |
+| un sprinter con tren de lanzadores | 30 s  | —         |
+
+### 1. Lo que NO era, comprobado antes de tocar nada
+
+- **No era una banda.** Cuatro timeouts y cero afirmaciones falladas.
+- **No lo causó la v43.** Las que caen son las de EROSIÓN sobre los escenarios canónicos llano y
+  reina, que no pasan `lugar` y llevan `gcDeficitSeconds: 0`: ni el clima por sitio ni la general de
+  los bancos de gira las tocan. Medido en local con el motor de `main`, las seis de erosión pasan en
+  409 s de test.
+- **No es nuevo.** Esta misma tarea falló igual en sus corridas 1, 2, 3, 5, 6 y 8, y el repositorio
+  ya llevaba la deuda escrita: «los timeouts del nocturno se calibraron sobre la suite SIN
+  instrumentar».
+- **La corrida entera tardó 71 min contra los ~22 de las anteriores**, con 2.108 s solo en `import`.
+  Eso es una máquina lenta, no trabajo del motor.
+
+### 2. Lo que era: el ×2,2 nunca se midió
+
+La v20 dimensionó estos relojes con una tabla que estimaba el coste en CI multiplicando el local por
+2,2. Medido de verdad ahora, **la llana no cuesta 29 s: cuesta 207**. Entre la v20 y la v43 el motor
+se encareció —equipos de ocho sobre 176 corredores, viento, clima, general— y el factor se quedó
+corto por siete.
+
+Así que la tabla se rehace con los costes REALES del nocturno y se les aplica la regla que este
+repositorio ya tenía escrita —**el presupuesto de una campaña debe ser al menos cuatro veces lo que
+cuesta en CI**—, once relojes en total. El detalle, prueba a prueba, vive donde se usa
+(`sim/invariants.test.ts`).
+
+**No se relaja ningún objetivo**: las bandas de §VI.1 no se tocan, y ninguna prueba se salta ni se
+desactiva. Se dimensiona un reloj. Y la lección es la de siempre aquí, con otra cara: **un número que
+no se mide se equivoca, también cuando el número es un reloj y no una perilla.**

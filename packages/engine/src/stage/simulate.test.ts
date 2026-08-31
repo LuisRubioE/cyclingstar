@@ -586,8 +586,14 @@ describe('trabajo de equipo (SPEC 6.18)', () => {
   }
 
   it(
+    /**
+     * 180 s y no 30 (v43). El nocturno instrumentado de `cobertura.yml` lo mató en los 30, sin que
+     * fallara ninguna afirmación: cuesta 12,2 s en local, y entre la instrumentación (×1,76) y un
+     * runner lento se planta justo encima del límite. Con la regla de este repositorio —presupuesto
+     * de al menos cuatro veces el coste en CI, ver `sim/invariants.test.ts`— salen 180.
+     */
     'un sprinter con tren de lanzadores gana la llegada masiva más que uno idéntico sin tren',
-    { timeout: 30000 },
+    { timeout: 180000 },
     () => {
       let train = 0
       let alone = 0
