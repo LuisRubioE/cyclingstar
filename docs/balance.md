@@ -9001,6 +9001,26 @@ es el TAMAÑO del problema: de «cero» a «18,1 contra 25-45», y con una depen
 fuerte (43,8 % abajo, 1,6 % arriba) que cualquier calibración futura tiene que decir SOBRE QUÉ
 DESNIVEL habla.
 
+### 11. Y el agujero se tapa con un banco, no con una nota
+
+Una lección que solo vive en un documento se vuelve a olvidar. Entra `sim/calendarQueens.ts`: la
+montaña que de verdad se corre, muestreada por FRECUENCIA y no por forma —las etapas reina del
+calendario ordenadas por desnivel, una de cada seis— y leída por bandas de desnivel, que es la única
+manera de que el número signifique algo.
+
+Va sin banda para «gana la fuga», a propósito: el objetivo tendría que salir de la carretera —cuántas
+etapas de montaña se lleva la fuga en una temporada real— y ese dato no lo tengo, así que ponerlo a
+ojo sería el vicio de siempre. Lo que el banco SÍ fija son las dos cosas que fallaron por no existir:
+que la muestra representa al calendario (cubre de la más blanda a la más dura) y que **la dureza
+decide** —más de cuarenta puntos entre la banda fácil y la dura—. Si eso se aplana algún día, el motor
+habrá dejado de distinguir una etapa de montaña de otra, y será una noticia aunque el total no se
+mueva.
+
+Y a diferencia de `realQueens`, este banco **se recalcula solo**: aquél lleva lista cerrada para poder
+comparar versiones, y éste tiene que seguir al calendario porque su pregunta es «¿qué trae el
+calendario de HOY?». El muestreo es sistemático y determinista, así que la composición sale de un
+criterio escrito y no de una elección.
+
 ---
 
 ## v43-bis — El nocturno cayó con cuatro relojes, no con una banda
