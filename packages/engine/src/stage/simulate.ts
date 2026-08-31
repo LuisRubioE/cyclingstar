@@ -4189,47 +4189,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         if (mem.length === 0) continue
         const desertan = interésPropio(mem).media
         const objetivo = m.restCommit * (1 - STAGE.coopContagionWeight * desertan)
-        /**
-         * …Y EN EL REMATE LA FUGA SE VACÍA (v44, docs/balance.md «v44»).
-         *
-         * El mecanismo que faltaba, y el que explica por qué la fuga no ganaba NUNCA una etapa de
-         * montaña de verdad (0 de 312 en el banco de giras). El pelotón sube el puerto decisivo a
-         * `climbRaceCommit` = 0,85; la fuga no pasaba jamás de la cooperación con la que nació
-         * —0,58-0,72 menos gentío más hambre— porque el repaso de arriba solo sabe BAJARLA. O sea
-         * que el motor modelaba la economía de rotar durante 150 km y no modelaba el «ahora o
-         * nunca» de los últimos.
-         *
-         * Y no son las piernas: medido, una fuga con MON 92 —por encima del mejor escalador del
-         * campo— seguía ganando CERO. Es el ritmo, y el ritmo multiplica en la ley de velocidad.
-         *
-         * Por eso NO se sube `breakawayCommitMin/Max`: ésa es la cooperación de mitad de etapa, la
-         * que calibra la banda de la fuga en llano. Lo que se añade es una RAMPA que empieza en
-         * `breakFinaleKm` a meta y termina en `breakFinaleCommit`, con la misma forma con la que el
-         * pelotón pasa de tempo a correr. Y es un SUELO, no un sustituto: una fuga que ya iba más
-         * fuerte que eso no afloja porque se acerque la meta.
-         */
-        const jugandose = m.bridgeUntilKm === null
-        const finale =
-          jugandose && kmToGo < STAGE.breakFinaleKm
-            ? STAGE.breakFinaleCommit * (1 - Math.max(0, kmToGo) / STAGE.breakFinaleKm)
-            : 0
-        /**
-         * …Y EN EL PUERTO NO HAY COOPERACIÓN QUE PROTEGER (v44).
-         *
-         * La rampa del remate sola no servía de nada donde hacía falta: medida, llevaba la reina
-         * canónica del 27 % al 79 % y las reinas REALES del 3,3 % al 4,8 %. Y el motivo es de
-         * carretera: en una etapa con 40-70 km de puerto la fuga ya está cazada mucho antes de los
-         * últimos 30 km, así que el empujón le llega al cadáver.
-         *
-         * Donde muere es SUBIENDO, y ahí el número que usaba estaba mal por construcción. La
-         * cooperación de un movimiento mide la economía de rotar —cuánto se ahorra yendo a rueda—,
-         * y en una rampa al 8 % la rueda cuesta el 69 % de dar la cara (`costExposure`, v38): **no
-         * hay economía que proteger, así que no hay nada que dosificar.** El que sube, sube a su
-         * ritmo, y por eso aquí el suelo no es la cooperación sino el tempo del puerto.
-         */
-        const puerto = jugandose && onClimb ? STAGE.breakClimbCommit : 0
-        m.g.compromiso +=
-          (Math.max(objetivo, finale, puerto) - m.g.compromiso) * STAGE.commitHysteresis
+        m.g.compromiso += (objetivo - m.g.compromiso) * STAGE.commitHysteresis
       }
     }
 

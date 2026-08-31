@@ -8890,9 +8890,61 @@ grupo en un puerto. La pista está en quién marca ese ritmo —el pelotón, por
 (`climbPaceFraction`), sobre 176 corredores; la fuga, por su propio P75 sobre cinco— y ésa es la
 lectura siguiente. No la escribo como causa porque no la he medido.
 
-### 6. Estado de la tanda: ABIERTA, no mergeable
+### 6. Estado: los mecanismos se RETIRAN del código, la medición se queda
 
-Los dos mecanismos quedan en la rama porque son correctos por sí mismos y porque lo medido vale más
-escrito que borrado, pero **la v44 no está cerrada**: la reina canónica y la llana están en rojo, y no
-se cierra hasta entender el §5. Precedente: la v38 dejó un commit «PENDIENTE DE DECISIÓN, no
-mergear» por lo mismo.
+Los dos son correctos por sí mismos, pero con ellos puestos la reina canónica y la llana quedan en
+rojo, y no se sabe todavía cómo cerrarlas —eso es el §5—. Un motor con dos bandas rojas no se queda
+en la rama bloqueando trabajo que sí está listo, así que el código vuelve atrás y **lo medido se
+queda escrito, que es donde vale**: cuando se retome, esta sección dice exactamente qué se probó, qué
+midió cada cosa y por qué no bastó. El commit revertido (`dc489a6`) conserva la implementación.
+
+Lo que este capítulo deja demostrado, y no hay que volver a medir:
+
+- No es la caza en el llano, ni el depósito, ni el relieve, ni el campo, ni la composición de la fuga.
+- No son las piernas: con MON 92 la fuga sigue sin ganar.
+- El ritmo es una palanca real pero insuficiente, y mueve las dos métricas juntas ocho a uno.
+- Con piernas iguales Y ritmo igual, la fuga se deja coger SUBIENDO, lejos de meta (km 110-154 de
+  171). La pregunta viva es cómo se calcula el ritmo de un grupo en un puerto.
+
+---
+
+## v43-bis — El nocturno cayó con cuatro relojes, no con una banda
+
+El correo del nocturno (`cobertura.yml`, la corrida diaria con instrumentación) llegó en rojo. **No
+falló ninguna afirmación**: 1.352 pruebas en verde y cuatro TIMEOUTS.
+
+| Prueba                             | Reloj | Tardó     |
+| ---------------------------------- | ----- | --------- |
+| una llana no erosiona al fresco    | 180 s | **207 s** |
+| una reina en fresco sí erosiona    | 180 s | **191 s** |
+| la reina REAL en la 3.ª semana     | 60 s  | **65 s**  |
+| un sprinter con tren de lanzadores | 30 s  | —         |
+
+### 1. Lo que NO era, comprobado antes de tocar nada
+
+- **No era una banda.** Cuatro timeouts y cero afirmaciones falladas.
+- **No lo causó la v43.** Las que caen son las de EROSIÓN sobre los escenarios canónicos llano y
+  reina, que no pasan `lugar` y llevan `gcDeficitSeconds: 0`: ni el clima por sitio ni la general de
+  los bancos de gira las tocan. Medido en local con el motor de `main`, las seis de erosión pasan en
+  409 s de test.
+- **No es nuevo.** Esta misma tarea falló igual en sus corridas 1, 2, 3, 5, 6 y 8, y el repositorio
+  ya llevaba la deuda escrita: «los timeouts del nocturno se calibraron sobre la suite SIN
+  instrumentar».
+- **La corrida entera tardó 71 min contra los ~22 de las anteriores**, con 2.108 s solo en `import`.
+  Eso es una máquina lenta, no trabajo del motor.
+
+### 2. Lo que era: el ×2,2 nunca se midió
+
+La v20 dimensionó estos relojes con una tabla que estimaba el coste en CI multiplicando el local por
+2,2. Medido de verdad ahora, **la llana no cuesta 29 s: cuesta 207**. Entre la v20 y la v43 el motor
+se encareció —equipos de ocho sobre 176 corredores, viento, clima, general— y el factor se quedó
+corto por siete.
+
+Así que la tabla se rehace con los costes REALES del nocturno y se les aplica la regla que este
+repositorio ya tenía escrita —**el presupuesto de una campaña debe ser al menos cuatro veces lo que
+cuesta en CI**—, once relojes en total. El detalle, prueba a prueba, vive donde se usa
+(`sim/invariants.test.ts`).
+
+**No se relaja ningún objetivo**: las bandas de §VI.1 no se tocan, y ninguna prueba se salta ni se
+desactiva. Se dimensiona un reloj. Y la lección es la de siempre aquí, con otra cara: **un número que
+no se mide se equivoca, también cuando el número es un reloj y no una perilla.**
