@@ -8839,3 +8839,60 @@ Lo que falta es un MECANISMO, no un número: **una fuga en el remate se vacía**
 pasa de 0,55 a 0,85 cuando llega el puerto decisivo. Hoy el motor modela la economía de rotar durante
 150 km y no modela el «ahora o nunca» de los últimos. Deja intacta la cooperación de mitad de etapa
 —y con ella la banda del llano— y añade lo que el ciclismo hace de verdad.
+
+### 4. Los dos mecanismos, escritos y medidos — Y NO BASTAN
+
+Se implementaron los dos, y el segundo salió de que el primero fallara:
+
+1. **La fuga se vacía en el remate** (`breakFinaleKm`, `breakFinaleCommit`): rampa lineal sobre el
+   compromiso del movimiento, como suelo y no como sustituto.
+2. **En el puerto no hay cooperación que proteger** (`breakClimbCommit`): la cooperación mide la
+   economía de rotar, y en una rampa al 8 % ir a rueda cuesta el 69 % de dar la cara, así que no hay
+   economía que dosificar. El que sube, sube a su ritmo.
+
+El primero solo, medido: la reina canónica se va del 27 % al **79 %** y las reinas REALES pasan del
+3,33 % al **4,81 %**. O sea que el empujón le llega al cadáver: en una etapa con 40-70 km de puerto la
+fuga ya está cazada mucho antes de los últimos 30 km. De ahí salió el segundo.
+
+Con los dos, barriendo el suelo del puerto:
+
+| Suelo del puerto | Llana canónica (2-8) | Reina canónica (25-45) | Reinas REALES |
+| ---------------- | -------------------- | ---------------------- | ------------- |
+| 0,70             | 8,3 %                | 74,2 %                 | 9,3 %         |
+| 0,80             | 8,3 %                | 84,2 %                 | 11,1 %        |
+| 0,90             | 8,3 %                | 90,0 %                 | 13,9 %        |
+
+**Las dos métricas se mueven juntas con una razón de ocho a uno.** No hay ajuste de esta perilla que
+lleve las reinas reales al 25-45 sin poner la canónica en el 100 %. Y la llana se sale por arriba
+(8,3 contra un techo de 8) en los tres brazos.
+
+### 5. Y la prueba que dice que esto no es calibración
+
+Poniéndole a la fuga las DOS cosas a la vez —las piernas de los mejores escaladores del campo y el
+ritmo del pelotón en el puerto—:
+
+| Etapa              | Base    | Solo ritmo 0,85 | Solo piernas 85 | **Las dos** |
+| ------------------ | ------- | --------------- | --------------- | ----------- |
+| `race-colombia` e5 | 16 %    | 12 %            | 20 %            | 28 %        |
+| `race-two-seas` e4 | 0 %     | 0 %             | 0 %             | 4 %         |
+| `race-spain` e7    | 4 %     | 8 %             | 12 %            | 8 %         |
+| `race-france` e20  | **0 %** | **0 %**         | **0 %**         | **0 %**     |
+
+Una fuga tan fuerte y tan comprometida como el pelotón que la persigue sigue sin ganar NUNCA
+`race-france` e20. Comprobado que el estadístico no miente: de 25 carreras, el ganador salió de la
+fuga del día **una** vez, y el flag dice 0 — coinciden. Y los kilómetros de caza lo rematan: **110,
+111, 144, 147, 150, 154** en una etapa de 171 km, o sea que **la cazan SUBIENDO y mucho antes de
+meta**.
+
+Si con piernas iguales y ritmo igual la fuga se deja coger, el pelotón es más rápido subiendo por una
+razón que no es ninguna de las dos, y eso ya no es una perilla: es cómo se calcula el ritmo de un
+grupo en un puerto. La pista está en quién marca ese ritmo —el pelotón, por su top 12 %
+(`climbPaceFraction`), sobre 176 corredores; la fuga, por su propio P75 sobre cinco— y ésa es la
+lectura siguiente. No la escribo como causa porque no la he medido.
+
+### 6. Estado de la tanda: ABIERTA, no mergeable
+
+Los dos mecanismos quedan en la rama porque son correctos por sí mismos y porque lo medido vale más
+escrito que borrado, pero **la v44 no está cerrada**: la reina canónica y la llana están en rojo, y no
+se cierra hasta entender el §5. Precedente: la v38 dejó un commit «PENDIENTE DE DECISIÓN, no
+mergear» por lo mismo.

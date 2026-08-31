@@ -2060,6 +2060,27 @@ export const STAGE = {
   // que cazar. El extremo superior BAJA ahora a 0.635: al abaratar el coste por km (clásica larga)
   // la fuga se desgasta menos y aguantaba el 15,0% de las llanas, muy por encima del 2-8%. Sigue
   // siendo la perilla más sensible del llano: 0.62 -> 0,8%, 0.635 -> 5,8%, 0.65 -> 10,0%.
+  /**
+   * EL REMATE DE UNA FUGA (v44). A cuántos km de meta empieza a vaciarse la fuga, y hasta dónde.
+   *
+   * El mecanismo que faltaba: hasta la v43 una fuga rodaba en el km 5 con la misma cooperación con
+   * la que nació en el km 30, mientras el pelotón pasaba de 0,55 a `climbRaceCommit` = 0,85 al
+   * llegar el puerto decisivo. Con eso la fuga no ganaba NUNCA una etapa de montaña de verdad —0 de
+   * 312 en el banco de giras— y no era por piernas: con MON 92 seguía ganando cero.
+   *
+   * Los dos números son de carretera y no de calibración: una fuga se juega la etapa en la última
+   * media hora larga —de ahí los 30 km, que es además la misma ventana con la que el pelotón decide
+   * que el puerto «ya se corre» (`climbRaceKmToGo`)— y en meta va a tope, que es lo que significa
+   * 0,95. Entre medias, rampa lineal, y siempre como SUELO: quien ya iba más fuerte no afloja.
+   */
+  /**
+   * Y A QUÉ RITMO SUBE UNA FUGA (v44). No es su cooperación: la cooperación mide la economía de
+   * rotar, y en una rampa al 8 % ir a rueda cuesta el 69 % de dar la cara, así que no hay economía
+   * que proteger. Se sube al tempo del puerto y punto.
+   */
+  breakClimbCommit: 0.8,
+  breakFinaleKm: 30,
+  breakFinaleCommit: 0.95,
   breakawayCommitMin: 0.58,
   breakawayCommitMax: 0.72,
   // Control del boquete (leash): los sprinters dejan a la fuga una ventaja máxima que se cierra
