@@ -1408,10 +1408,26 @@ encontró con la general y aquí sale otra vez. **Lo que el banco y producción 
 prueba nadie** — y esta vez el banco corría una carrera MEJOR que la del juego, que es por lo que
 todo estaba en verde.
 
-**20.7 Lo que queda.** El motor tiene el clima entero; lo que falta es enseñarlo: `weatherForecast`
-todavía no sale por la API ni se pinta en la web, y hasta que lo haga la previsión existe pero nadie
-puede decidir con ella. Y una cosa anotada del mecanismo: la lluvia y el calor son números de ETAPA,
-así que no van y vienen durante el día.
+**20.7 Y por fin se lee (v44).** La previsión sale por `/api/my-orders` y se pinta en la pantalla de
+ÓRDENES DE CARRERA, que es donde el jugador reparte roles antes de que la carrera se corra. Eso es lo
+que la convierte en mecánica: hasta aquí el clima existía en el motor y no llegaba a ninguna decisión.
+
+Lo que hace que el parte no mienta es que se calcula con **exactamente la misma semilla y el mismo
+sitio** con los que `packages/db` va a correr la etapa. Y para que las dos cuentas no puedan
+separarse con el tiempo, el sitio se extrajo a una función única —`stagePlace(race, etapa)`— que usan
+los dos lados, con su prueba de contrato. Es la clase de duplicado del que este motor ya ha sacado
+tres defectos (el maillot de lanzador, la general del banco, el clima que no llegaba a producción), y
+esta vez se mata antes de que muerda.
+
+En pantalla el parte va **con su fiabilidad y atenuado cuando es baja**: a siete días lo que se
+anuncia es casi «lo normal aquí en esta época», y pintarlo con la misma tinta que el de mañana sería
+enseñar una conjetura como si fuera un dato.
+
+**20.8 Lo que queda.** Una cosa anotada del mecanismo: la lluvia y el calor son números de ETAPA, así
+que no van y vienen durante el día. Y una imprecisión escrita donde vive: el día del clima no
+descuenta las jornadas de descanso de una gran vuelta, así que la etapa 20 usa la fecha de dos días
+antes —sobre el coseno anual eso es menos de una décima de grado, y corregirlo movería resultados de
+producción—.
 
 **A vigilar:** los abandonos por caída suben del 62,7 % al 65,6 % contra un techo del 67 %. Le queda
 punto y medio. La cifra está medida cuando entró la lluvia y no se ha vuelto a medir con el calor

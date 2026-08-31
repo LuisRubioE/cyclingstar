@@ -228,7 +228,7 @@ no por FRECUENCIA, y yo leí «no gana en las más duras» como «no gana nunca�
 **Y lo que E3 aún no ha tocado**: la emboscada, el día en que el líder se rompe, y si el día 18 se
 corre distinto del día 3.
 
-### E5 · El clima — HECHO EN EL MOTOR (v42), ver docs/motor.md §20. Falta enseñarlo
+### E5 · El clima — HECHO (v42 y v44), ver docs/motor.md §20
 
 Entró entero: la lluvia (que multiplica las caídas, parte el adoquín mojado y suelta ruedas en el
 descenso), el calor (que no selecciona: desgasta, por el coste y no por el esfuerzo) y la previsión.
@@ -246,10 +246,15 @@ el tiempo real no cambia porque alguien lo mire, y consultarlo dos veces da lo m
 DESENFOCANDO la verdad hacia la climatología del sitio en vez de añadirle ruido, que es de donde sale
 el error de un parte de verdad.
 
-**LO QUE FALTA, y sin ello el EPIC no es todavía mecánica de juego:** la previsión no sale por la API
-ni se pinta en ninguna pantalla. Existe en el motor y no puede decidir nadie con ella. Pendiente de
-que el dueño diga DÓNDE se lee —la ficha de etapa, el calendario, o la pantalla en la que el manager
-hace la convocatoria—, porque de eso depende qué decisión llega a cambiar.
+**Y YA SE LEE (v44).** El dueño eligió dónde: la previsión sale por `/api/my-orders` y se pinta en la
+pantalla de ÓRDENES DE CARRERA, que es donde se reparten los roles antes de que la etapa se corra. Con
+eso el EPIC está completo: el clima ya no es un modificador que le pasa al jugador, es información con
+la que decide.
+
+El parte se calcula con la misma semilla y el mismo sitio con los que se va a correr la etapa, y el
+sitio vive en una función única (`stagePlace`) que usan los dos lados para que no puedan separarse.
+Va con su fiabilidad y atenuado cuando es baja, porque a siete días lo que se anuncia es casi «lo
+normal aquí en esta época».
 
 ---
 
@@ -421,6 +426,64 @@ caso, pero el generador entero está sin revisar y produce recorridos que nadie 
 ### G9 · Los bots, peores que los humanos
 
 > «Cuando tengamos muchos humanos habría que hacer que sean peores que los humanos.»
+
+### G11 · CORREO: sin él la cuenta de un jugador no es suya
+
+> El dueño: «emails!!! para poder registrarse y eso… estaba pensando usar mi dominio rubio.pt o mi
+> dominio hereistand.app que uso en mi otro proyecto (le puedo crear un email llamado
+> cyclingstar@hereistand.app), y así usarlo en Resend».
+
+**Lo que hay hoy, y es un agujero de verdad.** `better-auth` corre con email + contraseña y **sin
+enviar un solo correo**: `apps/api/src/auth.ts` deja `sendChangeEmailVerification` como no-op con el
+comentario «sin envío de emails». De ahí cuelgan tres cosas:
+
+1. **Nadie verifica que el correo sea suyo.** Cualquiera se registra con el correo de otro.
+2. **Una contraseña perdida es una cuenta perdida.** No hay recuperación posible.
+3. **El cambio de correo desde ajustes se aplica a pelo**, sin confirmar el nuevo ni avisar al viejo,
+   que es el camino clásico para secuestrar una cuenta.
+
+Para un juego con temporadas de meses, perder la cuenta es perder el corredor. Esto es infraestructura
+y no una mejora.
+
+**Lo que hay que decidir primero: EL DOMINIO**, porque es lo único que no se arregla retroactivamente.
+La reputación de envío es del DOMINIO: los correos que un jugador marque como spam cuentan contra
+todo lo que salga de ahí. Recomendación, en orden:
+
+1. **El dominio propio del juego** (`mail.cyclingstar.xxx` para lo transaccional). Diez o quince euros
+   al año, y desata el juego de todo lo demás. **Para la versión final**, dicho por el dueño.
+2. **`rubio.pt` con subdominio dedicado** — verificar `cyclingstar.rubio.pt` en Resend y enviar desde
+   `no-reply@cyclingstar.rubio.pt`. **Ésta es la de AHORA**: el dueño no quiere comprar dominio en
+   fase de pruebas, y aquí el subdominio sí importa porque `rubio.pt` lleva su correo personal
+   detrás. Enseña al jugador un dominio que no es el del juego, y eso se acepta a cambio de no gastar
+   todavía.
+3. **`cyclingstar@hereistand.app` es la peor**: ata la entregabilidad de los dos proyectos —un pico de
+   quejas en el juego daña el correo del otro, y no se desata después— y encima el remitente no se
+   parece al producto, lo que sube por sí solo las marcas de spam.
+
+**LO DEL SUBDOMINIO, con el matiz que le faltaba.** La primera versión de esta nota decía «nunca
+enviar desde el dominio raíz» como regla universal, y el dueño la discutió con razón: «si el dominio
+fuera propio, ¿por qué no habría de enviar desde la raíz? ahí no está el correo que yo leo». Cierto —
+ese argumento vale para `rubio.pt` y no para un dominio dedicado al juego. Lo que sí sigue valiendo:
+
+- **Separar el correo TRANSACCIONAL del de NOTIFICACIÓN**, y ésta es la razón de verdad. «Verifica tu
+  cuenta» y «recupera tu contraseña» los abre todo el mundo y casi nadie los marca como spam; «tu
+  corredor corrió hoy» lo marcará quien se cansó del juego y no encuentre la baja. Con los dos en el
+  mismo dominio, esas quejas degradan la entrega de la RECUPERACIÓN DE CONTRASEÑA, que es el correo
+  que menos se puede permitir caer en spam. Lo estándar es un subdominio para cada flujo.
+- **Dejar la raíz libre para un buzón de verdad** (`hola@`, `soporte@`) el día que haga falta.
+
+Así que: con `rubio.pt` el subdominio es importante porque ahí sí hay correo personal detrás; con un
+dominio dedicado al juego y solo correo transaccional de poco volumen, la raíz vale. La regla no es
+dogma, es que en cuanto entren las notificaciones se querrá haberlo separado antes.
+
+**Y LO QUE ES REVERSIBLE Y LO QUE NO**, que es lo que de verdad decide esto: cambiar de remitente más
+adelante NO cuesta nada —se verifica el dominio nuevo en Resend y se cambia el `from`; no hay lista
+que migrar—. Lo irreversible es la reputación que se le pega a un dominio compartido. Por eso
+`hereistand.app` se descarta y las otras dos opciones son ambas reversibles.
+
+**Y lo que hace falta técnicamente**, para que no aparezca a mitad de camino: DKIM y SPF en el
+dominio de envío, el return-path del subdominio, DMARC empezando en `p=none`, y una baja real en el
+correo de notificación. Nada de eso es opcional si se quiere que el correo llegue.
 
 ### G10 · Retiradas por edad
 

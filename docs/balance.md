@@ -9063,3 +9063,44 @@ cuesta en CI**—, once relojes en total. El detalle, prueba a prueba, vive dond
 **No se relaja ningún objetivo**: las bandas de §VI.1 no se tocan, y ninguna prueba se salta ni se
 desactiva. Se dimensiona un reloj. Y la lección es la de siempre aquí, con otra cara: **un número que
 no se mide se equivoca, también cuando el número es un reloj y no una perilla.**
+
+---
+
+## v44 (cierre) — La banda de la montaña, y la previsión que por fin se lee
+
+### 1. La decisión del dueño sobre la fuga en montaña: se queda en el 18 %
+
+Enseñado el número medido —la fuga gana el **18,1 %** de las etapas de montaña del calendario— la
+respuesta fue **«está bien así»**. Así que no hay recalibración, y lo que entra es una BANDA DE
+VIGILANCIA sobre `calendarQueens`: **6-30 %**.
+
+El ancho no es dejadez y por eso queda escrito: el banco de CI corre 27 etapas por 4 semillas = 108
+carreras, donde σ ≈ 3,7 puntos, así que 6-30 son tres sigmas a cada lado del 18,1. Lo que tiene que
+cazar es que la fuga deje de ganar en montaña o que se desmadre, no afinar un punto porcentual;
+estrechar la banda exige más semillas y más semillas cuestan minutos en cada push que toca el motor.
+
+Y la banda vieja —`mountain.breakawayWinPct`, 25-45— **no se retira, se reetiqueta**: pasa a llamarse
+«gana la fuga (final en alto canónico)» y su comentario dice lo que de verdad es. Sobre `reina-150`,
+con 1.200 m de desnivel, sigue siendo un control de FORMA útil («en un final en alto de manual, ¿la
+fuga tiene opción?»), pero no es el objetivo del juego. La montaña del juego la mide `calendarQueens`.
+
+### 2. La previsión, por fin visible: E5 queda cerrada
+
+`weatherForecast` existía desde la v42 y no salía por ninguna parte, así que el clima seguía siendo un
+modificador y no una mecánica. Ahora el parte sale por `/api/my-orders` y se pinta en la pantalla de
+ÓRDENES DE CARRERA — la que el dueño eligió, y la que tiene sentido: es donde se reparten los roles
+antes de que la etapa se corra.
+
+**Lo que hace que el parte no mienta** es que se calcula con exactamente la misma semilla y el mismo
+sitio con los que `packages/db` va a correr la etapa. Y como eso es un duplicado entre dos paquetes
+—la clase de cosa de la que este motor ya ha sacado TRES defectos este mes—, el sitio se extrajo a una
+función única, `stagePlace(race, etapa)`, que usan los dos lados, con prueba de contrato que dice por
+qué existe.
+
+**Se pinta con la fiabilidad dentro y atenuado cuando es baja.** A siete días lo que se anuncia es
+casi «lo normal aquí en esta época»; presentarlo con la misma tinta que el parte de mañana sería
+enseñar una conjetura como si fuera un dato, y eso lo decide la pantalla tanto como el motor.
+
+Queda anotada una imprecisión, donde vive y no en una lista: el día del clima no descuenta las
+jornadas de descanso de una gran vuelta, así que la etapa 20 usa la fecha de dos días antes. Sobre el
+coseno anual eso es menos de una décima de grado, y corregirlo movería resultados de producción.
