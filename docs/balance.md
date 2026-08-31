@@ -8950,12 +8950,56 @@ piernas, el ritmo, la regla de la amenaza y la cuerda. Lo que queda es una resta
 desnivel que traen los recorridos generados, contra una diferencia de velocidad en cuesta que es
 realista.**
 
-Así que la siguiente pregunta ya no es del motor sino del GENERADOR (G6): `race-france` e20 tiene
-**70 km de subida en 171**, y una etapa reina real de una gran vuelta tiene 40-55 repartidos en cuatro
-o cinco cotas. Si los recorridos que fabrica el juego son más duros que los de la carretera, la fuga
-no gana en montaña porque la montaña que se corre no es la de la carretera. **Eso no lo he medido, y
-por eso queda como pregunta y no como conclusión** — pero es la primera que hay que hacer, y es en
-otro sitio.
+La sospecha era el GENERADOR: si fabricara montaña más dura que la de la carretera, la fuga no ganaría
+porque la montaña que se corre no sería la real. Se midió, y **es falsa, al revés de lo que yo
+apuntaba**.
+
+### 10. LA CORRECCIÓN QUE SE LLEVA POR DELANTE TODO ESTE CAPÍTULO
+
+Medido el desnivel de las **157 etapas reina del calendario entero**:
+
+|                                 | Desnivel     | Recorrido                   |
+| ------------------------------- | ------------ | --------------------------- |
+| La más dura (`race-france` e20) | 3.965 m      | 171 km, 69 de subida        |
+| p90                             | 2.711 m      | 157 km, 34 de subida        |
+| **Mediana**                     | **2.023 m**  | 178 km, 29 de subida        |
+| Media                           | 1.987 m      | 161 km, 30 de subida (19 %) |
+| Por encima de 4.000 m           | **0 de 157** |                             |
+
+Una reina de gran vuelta de verdad tiene 3.500-5.000 m. **El generador hace montaña más BLANDA que la
+carretera, no más dura.** Y entonces la pregunta correcta salta sola: si la mediana del calendario son
+2.023 m, y la curva de dosis dice que a 2.000 m la fuga gana el 10 %… **¿por qué medía yo un 0 %?**
+
+Porque estaba midiendo sobre los dos bancos equivocados. `grandTour` corre las 7 reinas de UNA gran
+vuelta —`race-france`, cuya e20 es la etapa más dura de todo el calendario—, y `realQueens` elige nueve
+etapas a mano por FORMA, sesgadas a lo duro. Ninguno de los dos es el calendario.
+
+Medido sobre una muestra SISTEMÁTICA del calendario —27 etapas reina tomadas una de cada seis sobre la
+distribución de desnivel, 16 semillas cada una, 432 carreras—:
+
+| Desnivel      | Etapas | Gana la fuga |
+| ------------- | ------ | ------------ |
+| < 1.500 m     | 6      | **43,8 %**   |
+| 1.500-2.500 m | 16     | 13,7 %       |
+| 2.500-3.500 m | 4      | 1,6 %        |
+| > 3.500 m     | 1      | 0,0 %        |
+| **TOTAL**     | **27** | **18,1 %**   |
+
+**En el calendario que el juego corre, la fuga gana el 18,1 % de las etapas de montaña, no el 0 %.**
+Contra una banda de 25-45 sigue estando por debajo, pero eso es «hay que apretar una calibración», no
+«el mecanismo está roto», que es lo que yo he escrito tres veces en este capítulo.
+
+**Lo que me llevó al error, y es la lección del día:** los dos bancos que usé miden etapas reina
+elegidas por su FORMA, no por su frecuencia. Y lo escribí como «la fuga no gana NUNCA en montaña»
+cuando lo que había medido era «la fuga no gana en las etapas más duras del calendario». Es la misma
+trampa que este documento lleva señalando desde la v17 con otro nombre —medir donde no se corre— y
+esta vez la cometí en la dirección contraria: no midiendo demasiado fácil, sino demasiado difícil.
+
+Todo lo demás del capítulo sigue en pie y sigue siendo útil: la curva de dosis (§9 de arriba), la
+aritmética de la ley (§7), la perilla desmentida (§8) y las cinco hipótesis descartadas. Lo que cambia
+es el TAMAÑO del problema: de «cero» a «18,1 contra 25-45», y con una dependencia del desnivel tan
+fuerte (43,8 % abajo, 1,6 % arriba) que cualquier calibración futura tiene que decir SOBRE QUÉ
+DESNIVEL habla.
 
 ---
 

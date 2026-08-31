@@ -203,13 +203,27 @@ que ganan en montaña» y tiene cinco recalibraciones escritas. Barrida de 700 a
 nada**, ni en la canónica ni en las reales. La ventaja de la fuga no la limita el permiso del pelotón
 sino lo que la fuga puede construir (llega al pie con 657-684 s contra un tope de 700).
 
-**Dónde queda la pregunta:** excluidos por medida la caza en el llano, el depósito, el relieve, el
-campo, la composición, las piernas, el ritmo, la regla de la amenaza y la cuerda, lo que queda es el
-DESNIVEL que traen los recorridos generados. `race-france` e20 tiene 70 km de subida en 171, y una
-reina real de gran vuelta tiene 40-55 repartidos en cuatro o cinco cotas. Si el generador fabrica
-montaña más dura que la de la carretera, la fuga no gana porque la montaña que se corre no es la
-real. **Sin medir, así que es pregunta y no conclusión** — y pertenece a **G6 (el generador de
-recorridos)**, no a E3.
+**Paso 7, y CORRIGE todo lo anterior: la fuga gana el 18,1 %, no el 0 %.** La sospecha era que el
+generador fabricara montaña más dura que la real. Medido el desnivel de las 157 etapas reina del
+calendario: mediana **2.023 m**, máxima 3.965, ninguna por encima de 4.000 — y una reina de gran vuelta
+de verdad tiene 3.500-5.000. **El generador hace montaña más blanda, no más dura.**
+
+Y con eso saltó el error de método: yo medía sobre `grandTour` (las 7 reinas de UNA carrera, cuya e20
+es la etapa más dura de todo el calendario) y sobre `realQueens` (nueve etapas elegidas a mano por
+FORMA, sesgadas a lo duro). Ninguno de los dos es el calendario. Sobre una muestra sistemática de 27
+etapas reina × 16 semillas:
+
+| Desnivel      | Etapas | Gana la fuga |
+| ------------- | ------ | ------------ |
+| < 1.500 m     | 6      | **43,8 %**   |
+| 1.500-2.500 m | 16     | 13,7 %       |
+| 2.500-3.500 m | 4      | 1,6 %        |
+| > 3.500 m     | 1      | 0,0 %        |
+| **TOTAL**     | 27     | **18,1 %**   |
+
+Contra la banda de 25-45 sigue por debajo, pero eso es «apretar una calibración», no «el mecanismo
+está roto», que es lo que escribí tres veces. La lección: los bancos miden etapas elegidas por FORMA,
+no por FRECUENCIA, y yo leí «no gana en las más duras» como «no gana nunca».
 
 **Y lo que E3 aún no ha tocado**: la emboscada, el día en que el líder se rompe, y si el día 18 se
 corre distinto del día 3.
