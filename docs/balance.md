@@ -8699,7 +8699,41 @@ ajuste.
 
 Y ahora se sabe además POR DÓNDE va esa recalibración, que antes no se sabía: el problema no es la
 capa táctica ni el campo ni el relieve, es que **la fuga no aguanta el desnivel**. A partir de unos
-2.500 metros no llega ninguna.
+2.500 metros no llega ninguna. El §11 dice por qué.
+
+### 11. Por qué no aguanta: no la cazan, la SUBEN
+
+Diagnosticado sobre la misma familia de escenarios —llano y un final en alto al 8 %, 171 km, mismo
+campo—, mirando qué le pasa a la fuga del día:
+
+| Puerto final | Gana la fuga | Boquete al PIE del puerto | Cazada antes del pie | Cazada EN el puerto |
+| ------------ | ------------ | ------------------------- | -------------------- | ------------------- |
+| 15 km        | 35 %         | 657 s                     | 1 de 40              | 11 de 40            |
+| 35 km        | 0 %          | 684 s                     | 0 de 40              | 39 de 40            |
+| 50 km        | 0 %          | 593 s                     | 0 de 40              | 38 de 40            |
+
+**La fuga llega al pie del puerto con los MISMOS once minutos en los tres casos.** No es que el
+pelotón persiga más en el llano: la caza previa se comporta igual. Todo pasa arriba.
+
+Y **no es la pájara**: los miembros de la fuga del día se quedan sin depósito en **0** etapas de las
+40 en los tres brazos. (La primera cuenta que hice decía «mediana de 2 y 5 pájaras», y eran pájaras
+de CUALQUIERA —los flojos del pelotón—, no de la fuga. Corregido al mirarlo bien.)
+
+Lo que hay es más simple y más incómodo: **el pelotón sube más rápido que la fuga, y cuanto más
+puerto hay, más tiempo le saca.** El ritmo de cierre en el puerto mide **~18 s/km** cuando el puerto
+se corre de verdad, así que 35 km de subida se comen los 684 s enteros. (El 8 s/km del brazo de 15 km
+no es comparable: ahí la fuga casi nunca se caza, así que la cuenta mide otra cosa.)
+
+**Y no lo arregla la ventana de «esto ya se corre».** `climbRaceKmToGo` decide cuántos km finales se
+suben a `climbRaceCommit` 0,85 en vez de a `climbTempoCommit` 0,70. Bajándola sobre el puerto de
+35 km: 30 → 7,5 %, 20 → 7,5 %, 10 → 15 %, 5 → 15 %. Reducir a un sexto la parte que se corre a tope
+DUPLICA las fugas ganadoras y las deja igual de lejos del 27-35 % del escenario canónico. O sea que
+el tempo de 0,70 mantenido durante treinta kilómetros de puerto ya basta para comerse once minutos.
+
+**La conclusión, y contradice al propio motor.** El comentario de `gcControlLeash` dice que esto se
+arregla «recalibrando la capa táctica», y la medida dice que no: la capa táctica reparte bien la
+cuerda en el llano y la fuga llega arriba con su ventaja intacta. Lo que hay que mirar es **cuánto
+más rápido sube el pelotón que la fuga por kilómetro de puerto**, que es física y no táctica.
 
 Las alternativas honestas son tres, y ninguna es gratis:
 

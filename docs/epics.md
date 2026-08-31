@@ -159,9 +159,19 @@ contra un suelo de 25, y volver a banda es una recalibración táctica del tama�
    miente ni bloquea, pero convierte una banda en un termómetro.
 
 Recomiendo la 1. No la he empezado porque mover un suelo de calibración necesita el visto bueno del
-dueño. Y ahora se sabe además por dónde va esa recalibración: el problema no es la capa táctica ni el
-campo ni el relieve, es que **la fuga no aguanta el desnivel** —a partir de unos 2.500 metros no llega
-ninguna—. Detalle en docs/balance.md «v43 §6 a §10».
+dueño. Detalle en docs/balance.md «v43 §6 a §11».
+
+**Y el paso 5 ya dice por dónde iría, con una sorpresa:** la fuga llega al pie del puerto con los
+MISMOS once minutos tanto si el puerto mide 15 km como si mide 50, y ninguno de sus hombres se queda
+sin depósito. No la cazan: la SUBEN. El pelotón sube ~18 s/km más rápido, así que 35 km de puerto se
+comen once minutos enteros. Y bajar la ventana de «esto ya se corre a tope» (`climbRaceKmToGo`) de 30
+a 5 km solo duplica las fugas ganadoras (7,5 % → 15 %): el tempo de 0,70 mantenido treinta kilómetros
+ya basta.
+
+Eso **contradice al propio motor**: el comentario de `gcControlLeash` dice que esto se arregla
+«recalibrando la capa táctica», y la medida dice que no. La capa táctica reparte bien la cuerda en el
+llano. Lo que hay que mirar es cuánto más rápido sube el pelotón que la fuga por kilómetro de puerto,
+que es FÍSICA y no táctica.
 
 **Y lo que E3 aún no ha tocado**: la emboscada, el día en que el líder se rompe, y si el día 18 se
 corre distinto del día 3.
