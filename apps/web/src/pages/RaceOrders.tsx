@@ -32,6 +32,28 @@ import {
 
 const NEEDS_TARGET: StageRole[] = ['lanzador', 'gregario', 'marcador']
 
+/**
+ * EL PARTE DEL DÍA, en la pantalla donde se decide (v44). Que el clima exista en el motor no sirve
+ * de nada si el jugador no lo ve antes de repartir los roles: eso es la diferencia entre una
+ * mecánica y un modificador.
+ *
+ * SE PINTA CON SU FIABILIDAD Y NO SIN ELLA, y además se ATENÚA cuando es baja. Un parte a siete días
+ * es casi «lo normal aquí en esta época»; presentarlo con la misma tinta que el de mañana sería
+ * enseñar una conjetura como si fuera un dato.
+ */
+function Forecast({ f }: { f: { lluvia: number; grados: number; fiabilidad: number } }) {
+  const seguro = f.fiabilidad >= 60
+  return (
+    <span
+      className={seguro ? 'text-white/90' : 'text-white/60'}
+      title={`${f.fiabilidad}% confidence — a forecast this far out is closer to the local average than to the sky`}
+    >
+      {f.lluvia >= 50 ? '🌧' : f.lluvia >= 20 ? '🌦' : '☀'} {f.lluvia}% · {f.grados}°C
+      {seguro ? '' : ' (outlook)'}
+    </span>
+  )
+}
+
 /** El objetivo de una orden: un COMPAÑERO (lanzar/trabajar) o un RIVAL (marcar), según el rol. */
 function targetLabel(role: StageRole): string {
   if (role === 'marcador') return 'Rival to mark'
@@ -157,7 +179,19 @@ export function RaceOrders() {
             <Panel
               key={stage.day}
               title={stage.name}
-              action={<span className="text-xs text-white/90">{stage.km} km</span>}
+              action={
+                <span className="flex items-center gap-2 text-xs text-white/90">
+                  <span>{stage.km} km</span>
+                  {stage.forecast != null && (
+                    <>
+                      <span aria-hidden className="text-white/40">
+                        ·
+                      </span>
+                      <Forecast f={stage.forecast} />
+                    </>
+                  )}
+                </span>
+              }
             >
               {/* SVG generado por nuestro motor; se anuncia como imagen con su descripción. */}
               <div

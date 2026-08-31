@@ -867,6 +867,25 @@ export type StageOrder = z.infer<typeof stageOrderSchema>
 export const stageKindSchema = z.enum(['llana', 'media', 'reina', 'cri', 'clasica'])
 export type StageKind = z.infer<typeof stageKindSchema>
 
+/**
+ * EL PARTE METEOROLÓGICO DE UNA ETAPA QUE AÚN NO SE HA CORRIDO (v44). Lo que convierte el clima en
+ * una DECISIÓN y no en un modificador: el jugador reparte roles sabiendo si va a llover.
+ *
+ * `fiabilidad` viaja dentro a propósito y no es un adorno: un parte a siete días es casi la
+ * climatología del sitio —«en Flandes en abril llueve un tercio de los días»— y a un día es casi el
+ * cielo. Quien decide con una previsión tiene derecho a saber cuánto puede fiarse de ella, y sin
+ * este número la pantalla estaría presentando una conjetura como si fuera un dato.
+ */
+export const stageForecastSchema = z.object({
+  /** Probabilidad de lluvia anunciada, en porcentaje entero. */
+  lluvia: z.number().int(),
+  /** Temperatura anunciada, en grados enteros. */
+  grados: z.number().int(),
+  /** Cuánto se puede fiar uno del parte, en porcentaje entero: 100 el mismo día. */
+  fiabilidad: z.number().int(),
+})
+export type StageForecast = z.infer<typeof stageForecastSchema>
+
 export const raceStageSchema = z.object({
   day: z.number().int(),
   name: z.string(),
@@ -874,6 +893,11 @@ export const raceStageSchema = z.object({
   timeTrial: z.boolean(),
   km: z.number(),
   altimetry: z.string(),
+  /**
+   * Opcional porque la VUELTA DE PRUEBA comparte este esquema y no está en ningún sitio del mapa:
+   * sin país ni fecha no hay clima que prever, y eso es un hecho de ese escenario y no un fallo.
+   */
+  forecast: stageForecastSchema.nullable().optional(),
 })
 export type RaceStage = z.infer<typeof raceStageSchema>
 

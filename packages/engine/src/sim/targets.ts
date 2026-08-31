@@ -53,7 +53,18 @@ export const TARGETS = {
     // pegada al suelo. Con el reparto del viento de la v34 —el pelotón deja de pagar diecisiete
     // hombres de viento, pero la fuga, que rota entera, apenas nota el cambio en un puerto— mide
     // **27,50 % con 120 semillas y 30,00 % con 300**. La deuda queda saldada.
-    breakawayWinPct: { label: 'Gana la fuga (montaña)', min: 25, max: 45, unit: '%' },
+    /**
+     * …Y ES UN CONTROL DE FORMA, NO EL OBJETIVO DEL JUEGO (v44). `reina-150` tiene 1.200 m de
+     * desnivel, y una etapa reina del calendario tiene una mediana de 2.023. Medido: la métrica cae
+     * de 26,7 % a 0 % según el puerto pase de 15 a 50 km, así que este 25-45 describe una etapa
+     * concreta y no la montaña del juego. Lo que el calendario da está en `calendarQueens`.
+     */
+    breakawayWinPct: {
+      label: 'Gana la fuga (final en alto canónico)',
+      min: 25,
+      max: 45,
+      unit: '%',
+    },
     // Brecha 1º-10º del día. Rango en SEGUNDOS, así que depende de cuánto dura el puerto: al
     // corregir la VAM (de 1.940 a 1.560 m/h) el puerto final pasó de 33 a 46 minutos y la MISMA
     // selección relativa (~9% del tiempo de subida) pasó de 171 s a 250 s. Por eso el techo sube
@@ -633,6 +644,35 @@ export const TARGETS = {
       label: 'La peor reina real (mediana de su cola)',
       min: 0,
       max: 18,
+      unit: '%',
+    },
+  },
+  /**
+   * LA MONTAÑA QUE DE VERDAD SE CORRE (v44, `sim/calendarQueens.ts`).
+   *
+   * El objetivo que faltaba, y la historia de por qué faltaba está en docs/balance.md «v44 §10». Los
+   * otros dos bancos de montaña miden etapas reina elegidas por su FORMA —`grandTour` corre las siete
+   * de UNA carrera, cuya e20 es la más dura de todo el calendario; `realQueens` elige nueve a mano—.
+   * Ninguno mide por FRECUENCIA, y por eso se llegó a afirmar tres veces que «la fuga no gana NUNCA
+   * en montaña» cuando en el calendario gana el 18,1 %.
+   *
+   * POR QUÉ LA BANDA ES ANCHA, y hay que decirlo en vez de disimularlo. **No es un objetivo de
+   * carretera: es una VIGILANCIA**, por decisión del dueño al ver el número medido —«está bien así»—.
+   * Lo que tiene que cazar es que la fuga deje de ganar en montaña o que se desmadre, no afinar un
+   * punto porcentual. Y el ancho sale de la muestra: el banco de CI corre 27 etapas por 4 semillas
+   * = 108 carreras, donde σ ≈ 3,7 puntos, así que 6-30 son tres sigmas a cada lado del 18,1 medido.
+   * Estrechar esto exige más semillas, y más semillas cuestan minutos en cada push que toca el motor.
+   *
+   * Y NO SUSTITUYE a `mountain.breakawayWinPct` (25-45): aquél se mide sobre `reina-150`, que con
+   * 1.200 m de desnivel no es una etapa reina sino media montaña con la etiqueta cambiada. Sigue
+   * siendo útil como CONTROL DE FORMA —«en un final en alto de manual, ¿la fuga tiene opción?»— pero
+   * no es el objetivo del juego, y así queda dicho para que nadie vuelva a leerlo como tal.
+   */
+  calendarQueens: {
+    breakawayWinPct: {
+      label: 'Gana la fuga (montaña del calendario)',
+      min: 6,
+      max: 30,
       unit: '%',
     },
   },

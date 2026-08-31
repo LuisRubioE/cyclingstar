@@ -21,13 +21,24 @@ import {
   setStageOrders,
 } from '@cyclingstar/db'
 import {
+  ENGINE_VERSION,
   SEASON_CALENDAR,
   type StageInput,
   TEST_TOUR,
   renderAltimetrySvg,
   simulateStage,
+  stageDayOfSeason,
+  stagePlace,
+  stageSeed,
+  weatherForecast,
 } from '@cyclingstar/engine'
-import { NO_LEADERS, type RaceLeaders, currentSeason, raceLeaders } from '@cyclingstar/shared'
+import {
+  DAYS_PER_SEASON,
+  NO_LEADERS,
+  type RaceLeaders,
+  currentSeason,
+  raceLeaders,
+} from '@cyclingstar/shared'
 import { z } from 'zod'
 import {
   type ChronicleEvent,
@@ -230,19 +241,57 @@ export const raceRoutes: RoutePlugin = async (app, ctx) => {
     if (!(await isOnRoster(db, raceKey, rider.id))) {
       return sendError(reply, 403, 'no_convocado')
     }
-    // ESTA es la pantalla en la que el jugador decide a quién manda y qué le pide, así que la
-    // etiqueta que ve aquí tiene que ser la del RECORRIDO: con «Summit finish» sobre una etapa que
-    // acaba en sprint se gasta al escalador para nada (ver stageHistory.ts).
+    // El reloj del mundo, que es lo que convierte un tiempo en una PREVISIÓN: sin saber qué día es
+    // hoy no se puede decir a cuántos días está la etapa.
+    const world = await getCurrentWorld(db)
+    /**
+     * EL PARTE METEOROLÓGICO DE CADA ETAPA (v44). Es la mitad de E5 que faltaba: `weatherForecast`
+     * existía en el motor desde la v42 y no salía por ninguna parte, así que el clima era un
+     * modificador y no una decisión. Sale AQUÍ, que es la pantalla en la que el jugador decide a
+     * quién manda y qué le pide.
+     *
+     * LO QUE HACE QUE ESTO NO MIENTA: el parte se calcula con EXACTAMENTE la misma semilla y el
+     * mismo sitio con los que `packages/db` va a correr la etapa. La semilla es la de `runOneStage`
+     * —mundo, clave de carrera, número de etapa y versión del motor— y el sitio sale de `stagePlace`,
+     * que es la MISMA función que usa `calendarRun`: por eso se extrajo, para que las dos cuentas no
+     * puedan separarse y el parte no acabe anunciando el tiempo de otra carrera.
+     */
+    const hoy = world?.currentDay ?? 0
+    const season = currentSeason(hoy)
     const stages = race.stages.map((stage, i) => {
       const spec = calendarStageSpec(stage, stageKm(stage.profile.segments))
+      const dia = i + 1
+      const parte =
+        world == null
+          ? null
+          : weatherForecast(
+              stageSeed({
+                worldSeed: world.worldSeed,
+                raceId: raceKey,
+                stageDay: dia,
+                engineVersion: ENGINE_VERSION,
+              }),
+              stagePlace(race, dia),
+              // Cuántos días faltan DE VERDAD, descansos incluidos: eso sí es distancia en el
+              // calendario y no la fecha del clima.
+              season * DAYS_PER_SEASON + stageDayOfSeason(race, dia) - hoy,
+            )
       return {
-        day: i + 1,
-        name: `Stage ${i + 1}`,
+        day: dia,
+        name: `Stage ${dia}`,
         label: spec.label,
         kind: spec.kind,
         timeTrial: spec.timeTrial,
         km: spec.km,
         altimetry: renderAltimetrySvg(stage.profile),
+        forecast:
+          parte == null
+            ? null
+            : {
+                lluvia: Math.round(100 * parte.lluvia),
+                grados: Math.round(parte.grados),
+                fiabilidad: Math.round(100 * parte.fiabilidad),
+              },
       }
     })
     const orders = await getStageOrders(db, raceKey, rider.id)

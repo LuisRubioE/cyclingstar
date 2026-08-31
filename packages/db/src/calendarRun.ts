@@ -14,6 +14,7 @@ import {
   raceVocationFit,
   scheduledStageIndex,
   selectSquad,
+  stagePlace,
   stagePointsByClass,
 } from '@cyclingstar/engine'
 import {
@@ -1595,13 +1596,10 @@ export async function runCalendarDay(
       profile: stage.profile,
       timeTrial: stage.timeTrial ?? false,
       isFinal: idx === race.stages.length,
-      // El sitio y la fecha de ESTA etapa: el país de la carrera y el día del año en que se corre
-      // (`startDay` es el día de la temporada, que en este juego ES el día del año). Es la misma
-      // cuenta que hacen los bancos de gira, para que midan la carrera que el juego corre.
-      lugar: {
-        ...(race.country != null ? { pais: race.country } : {}),
-        dia: race.startDay + idx - 1,
-      },
+      // El sitio y la fecha de ESTA etapa. La cuenta vive en `stagePlace` y no aquí a propósito: la
+      // API da el parte meteorológico de antes con la MISMA función, y si las dos se separaran el
+      // parte anunciaría el tiempo de otra carrera (v44).
+      lugar: stagePlace(race, idx),
     })
     for (const id of r) raced.add(id)
   }

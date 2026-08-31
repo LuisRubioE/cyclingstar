@@ -1,16 +1,23 @@
 /**
  * LO QUE ESTE BANCO VIGILA, Y LO QUE NO (v44).
  *
- * NO lleva una banda para «gana la fuga». La tendría que traer de la carretera —cuántas etapas de
- * montaña se lleva la fuga en una temporada real— y ese número no lo tengo, así que ponerlo a ojo
- * sería exactamente el vicio que docs/balance.md lleva cinco versiones corrigiendo. Queda como
- * medida documentada (18,1 % cuando se escribió esto) y la banda entra cuando haya con qué.
+ * LA BANDA ES UNA VIGILANCIA, NO UN OBJETIVO DE CARRETERA, y por decisión explícita del dueño: se le
+ * enseñó el número medido —la fuga gana el 18,1 % de las etapas de montaña del calendario— y dijo
+ * «está bien así». Lo que se vigila, entonces, es que no se hunda ni se desmadre; el ancho sale de la
+ * muestra y está razonado en `targets.ts`.
  *
- * Lo que sí fija son las dos cosas que hacen que el banco SIRVA, y que son las que fallaron cuando
- * no existía: que la muestra representa al calendario, y que el resultado se lee por desnivel.
+ * Y fija además las dos cosas que hacen que el banco SIRVA, y que son las que fallaron cuando no
+ * existía: que la muestra representa al calendario, y que el resultado se lee por desnivel.
  */
 import { describe, expect, it } from 'vitest'
+import { TARGETS } from './targets.js'
 import { allCalendarQueens, analyzeCalendarQueens, calendarQueenSample } from './calendarQueens.js'
+
+/** El mismo ayudante que usa `invariants.test.ts`: un estadístico contra su rango objetivo. */
+function expectInRange(value: number, target: { min: number; max: number }): void {
+  expect(value).toBeGreaterThanOrEqual(target.min)
+  expect(value).toBeLessThanOrEqual(target.max)
+}
 
 describe('la montaña que de verdad se corre (v44)', () => {
   it('la muestra es sistemática y conserva la forma de la distribución', () => {
@@ -56,6 +63,9 @@ describe('la montaña que de verdad se corre (v44)', () => {
       // Y el calendario trae de las dos: un banco de montaña que solo tuviera una no diría nada.
       expect(stats.dPlus.min).toBeLessThan(1500)
       expect(stats.dPlus.max).toBeGreaterThan(2500)
+      // Y el conjunto contra su banda de vigilancia. Se comprueba aquí y no en una prueba aparte
+      // para no pagar dos veces la campaña, que es lo caro de este banco.
+      expectInRange(stats.wonFromMovePct, TARGETS.calendarQueens.breakawayWinPct)
     },
   )
 })
