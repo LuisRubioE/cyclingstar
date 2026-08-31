@@ -9104,3 +9104,57 @@ enseñar una conjetura como si fuera un dato, y eso lo decide la pantalla tanto 
 Queda anotada una imprecisión, donde vive y no en una lista: el día del clima no descuenta las
 jornadas de descanso de una gran vuelta, así que la etapa 20 usa la fecha de dos días antes. Sobre el
 coseno anual eso es menos de una décima de grado, y corregirlo movería resultados de producción.
+
+---
+
+## v44 (E3, paso 8) — Sí se corre distinto el día 18 que el día 3
+
+La pregunta con la que se abrió la EPIC, y la única que quedaba con respuesta pendiente. Se contesta
+con un experimento controlado: **el mismo perfil, el mismo campo y la misma semilla**, cambiando solo
+la FORMA de la general que se le cuenta al motor.
+
+| Forma       | Qué representa                                              |
+| ----------- | ----------------------------------------------------------- |
+| sin general | el día 1: nadie tiene tiempo todavía (`hasGcContext` false) |
+| apretada    | el día 3: el líder y todos los demás dentro de 40 s         |
+| abierta     | el día 18: el líder con minutos sobre casi todo el pelotón  |
+
+### 1. La brecha entre el primero y el décimo, con 100 semillas por brazo
+
+| Etapa                 | Sin general   | Apretada       | Abierta    | sin → apretada      | apretada → abierta |
+| --------------------- | ------------- | -------------- | ---------- | ------------------- | ------------------ |
+| `race-france` e20     | 102,3 ± 8,9 s | **64,3 ± 5,9** | 88,7 ± 8,7 | −38,0 s (**3,6 σ**) | +24,3 s (2,3 σ)    |
+| `race-rhone-alpes` e8 | 54,4 ± 3,4    | **16,0 ± 2,5** | 49,4 ± 3,6 | −38,3 s (**9,0 σ**) | +33,4 s (7,6 σ)    |
+| `race-italy` e19      | 88,0 ± 3,8    | 87,7 ± 4,2     | 81,3 ± 4,0 | −0,3 s (0,1 σ)      | −6,4 s (1,1 σ)     |
+
+**Sí se corre distinto, y en la dirección de la carretera:** con todos dentro del minuto la etapa
+reina se corre VIGILADA y los favoritos llegan juntos —la brecha se hunde 38 s—; con la general ya
+rota, la etapa se vuelve a abrir. En dos de las tres etapas el efecto es grande y sólido; `race-italy`
+e19 no se mueve, y la sospecha razonable —sin medir— es que sus tres puertos encadenados seleccionan
+tanto por terreno que no dejan sitio a la táctica.
+
+### 2. Y esto MATIZA lo que este documento decía, no lo contradice
+
+En «v43 §4» quedó escrito que **la general no cambia quién gana**, medido sobre 456 etapas con 0,0 σ.
+Sigue siendo cierto. Lo que se añade aquí es que **sí cambia cuánto se sacan**. Son dos preguntas
+distintas —quién gana y con qué diferencias— y las dos respuestas conviven.
+
+### 3. Lo que NO cambia: al maillot no le pasa nada distinto
+
+Poniéndole la general al mejor escalador del campo y midiendo qué le ocurre a él:
+
+| Etapa                 | Sin general           | Apretada     | Abierta      |
+| --------------------- | --------------------- | ------------ | ------------ |
+| `race-france` e20     | pierde 151,7 ± 22,7 s | 112,4 ± 16,7 | 143,4 ± 22,8 |
+| `race-rhone-alpes` e8 | 134,7 ± 22,7          | 142,8 ± 25,2 | 106,2 ± 18,2 |
+
+Todas las diferencias por debajo de 1,4 σ: **ruido**. Y llega con el ganador el 24-40 % de las veces
+en todos los brazos.
+
+O sea que la general cambia el comportamiento COLECTIVO —el pelotón controla y por eso los diez
+primeros llegan más juntos— y **no cambia nada del INDIVIDUO que la lleva**. Con dos minutos de
+ventaja el día 18 no rueda más conservador, y con la general apretada su equipo no lo arropa más.
+
+**Y ésa es la deuda que E3 deja nombrada:** la defensa del maillot no existe como conducta propia.
+Existe el control del pelotón, que sale gratis del lazo de la caza; no existe «el líder gestiona su
+ventaja».

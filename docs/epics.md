@@ -225,8 +225,27 @@ Contra la banda de 25-45 sigue por debajo, pero eso es «apretar una calibració
 está roto», que es lo que escribí tres veces. La lección: los bancos miden etapas elegidas por FORMA,
 no por FRECUENCIA, y yo leí «no gana en las más duras» como «no gana nunca».
 
-**Y lo que E3 aún no ha tocado**: la emboscada, el día en que el líder se rompe, y si el día 18 se
-corre distinto del día 3.
+**Paso 8, y contesta la pregunta con la que se abrió la EPIC: SÍ se corre distinto el día 18 que el
+día 3.** Mismo perfil, mismo campo, misma semilla, cambiando solo la forma de la general (100 semillas
+por brazo):
+
+| Etapa                 | Sin general   | Apretada (día 3)        | Abierta (día 18) |
+| --------------------- | ------------- | ----------------------- | ---------------- |
+| `race-france` e20     | 102,3 ± 8,9 s | **64,3 ± 5,9** (−3,6 σ) | 88,7 ± 8,7       |
+| `race-rhone-alpes` e8 | 54,4 ± 3,4    | **16,0 ± 2,5** (−9,0 σ) | 49,4 ± 3,6       |
+| `race-italy` e19      | 88,0 ± 3,8    | 87,7 ± 4,2 (0,1 σ)      | 81,3 ± 4,0       |
+
+Con todos dentro del minuto la etapa reina se corre vigilada y los favoritos llegan juntos; con la
+general rota, se abre. Y esto MATIZA el paso 2 sin contradecirlo: la general no cambia **quién gana**
+(456 etapas, 0,0 σ) pero sí **cuánto se sacan**.
+
+**Lo que NO cambia, y es la deuda que E3 deja nombrada:** al maillot no le pasa nada distinto. Puesta
+la general al mejor escalador y medido qué le ocurre a él, todas las diferencias quedan por debajo de
+1,4 σ. La general cambia el comportamiento COLECTIVO —el pelotón controla— y no el del individuo que
+la lleva: con dos minutos de ventaja el día 18 no rueda más conservador, y con la general apretada su
+equipo no lo arropa más. **La defensa del maillot no existe como conducta propia.**
+
+**Y lo que E3 aún no ha tocado**: la emboscada y el día en que el líder se rompe.
 
 ### E5 · El clima — HECHO (v42 y v44), ver docs/motor.md §20
 
