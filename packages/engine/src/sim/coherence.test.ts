@@ -85,26 +85,31 @@ const INVARIANTS: readonly DefectKey[] = [
  */
 const TOLERANCE: Partial<Record<DefectKey, number>> = { ataqueSinCerrar: 2 }
 
-/** Una campaña de cuarenta etapas tarda lo que tarda: son cuarenta carreras enteras simuladas. */
 /**
- * Estos bancos corren decenas de etapas COMPLETAS con los campos de producción, y desde la v38 eso
- * son 176 corredores en 22 equipos en vez de 40 sueltos: el de la captura, que hace noventa
- * simulaciones sobre tres carreras reales, se pasaba de los dos minutos y moría por tiempo sin
- * llegar a comprobar nada.
- */
-/**
- * PRESUPUESTO DE RELOJ, SUBIDO EN LA v40. No es holgura por si acaso: el motor SE HA VUELTO MÁS
- * LENTO y hay que decirlo con número. Medido sobre cinco etapas de Flandes: **14,0 s en la v38,
- * 19,3 s a mitad de la v39 y 20,7 s en la v40**, o sea un 48 % más de trabajo en dos versiones —el
- * precio de la cooperación revisada, la física del ataque, el régimen de remate y el submotor del
- * lanzamiento—.
+ * PRESUPUESTO DE RELOJ, UNO POR TEST Y MEDIDO (v45). Antes era un solo número para los diez tests
+ * del fichero, 600 s, y el nocturno lo tiró: «la fuga del día» tardó **633,6 s**. Subirlo a ojo ya
+ * falló una vez —los relojes de la v20 estimaban el coste de CI como el local × 2,2 sin medirlo—,
+ * así que aquí no se estima nada: cada caso lleva ANOTADO lo que costó en el nocturno instrumentado
+ * y la regla del repositorio lo multiplica.
  *
- * Este banco corre 140 etapas completas entre sus cuatro casos y otras 90 en el de la captura, así
- * que fue el primero en pasarse del tope. Subirlo es lo correcto —lo que mide es la COHERENCIA de
- * la crónica, no la velocidad— pero el dato queda escrito aquí y en docs/epics.md, porque un juego
- * que avanza un día cada seis horas simula un calendario entero cada vez.
+ * La regla es la de la campaña: **el presupuesto es al menos CUATRO VECES lo que cuesta en CI**. No
+ * es holgura por si acaso, es lo que hace falta para absorber los dos multiplicadores documentados
+ * en `.github/workflows/cobertura.yml` —la instrumentación de la cobertura (×1,75-2,02) y el humor
+ * del runner (×1,3)— sin dejar de matar pronto a un test colgado de verdad. Un número por test y no
+ * uno para todos precisamente por eso: los partes de ventaja cuestan 70 s y no tienen por qué
+ * heredar los 43 minutos que necesita el más caro.
+ *
+ * Y el dato que hay detrás de los números, que es lo que importa vigilar: el motor SE HA VUELTO MÁS
+ * LENTO. Cinco etapas de Flandes costaban 14,0 s en la v38, 19,3 a mitad de la v39 y 20,7 en la
+ * v40 —un 48 % más de trabajo en dos versiones—. Este banco corre 140 etapas completas entre sus
+ * cuatro casos de coherencia y otras 90 en el de la captura, con los campos de producción —176
+ * corredores en 22 equipos desde la v38, no 40 sueltos—, así que es siempre el primero en pasarse
+ * del tope. Queda escrito aquí y en docs/epics.md, porque un juego que avanza un día cada
+ * seis horas simula un calendario entero cada vez.
  */
-const TIMEOUT_MS = 600_000
+function reloj(costeCiS: number): number {
+  return Math.ceil((costeCiS * 4) / 60) * 60_000
+}
 
 /** Corre un escenario con N semillas y devuelve, por invariante, el PEOR resultado de una etapa. */
 function worstPerStage(scenario: Scenario, seeds: readonly string[]): Record<string, number> {
@@ -122,11 +127,11 @@ describe('coherencia de la crónica (docs/motor.md §16, v25)', () => {
   // Las cuatro formas de etapa que producen relato: la llana donde la fuga es lo único que pasa, la
   // reina donde la carrera se parte, y dos carreras REALES del calendario, que es donde salieron los
   // doce defectos. La crono no entra: no tiene grupos ni movimientos que contradecir.
-  const banco: readonly { name: string; scenario: Scenario; seeds: number }[] = [
-    { name: 'llana-180', scenario: flatScenario(), seeds: 40 },
-    { name: 'reina-150', scenario: queenScenario(), seeds: 40 },
-    { name: 'clásica larga (Flandes)', scenario: longClassicScenario(), seeds: 20 },
-    { name: 'Race Jaén', scenario: realRaceScenario('race-jaen'), seeds: 40 },
+  const banco: readonly { name: string; scenario: Scenario; seeds: number; costeCiS: number }[] = [
+    { name: 'llana-180', scenario: flatScenario(), seeds: 40, costeCiS: 243 },
+    { name: 'reina-150', scenario: queenScenario(), seeds: 40, costeCiS: 172 },
+    { name: 'clásica larga (Flandes)', scenario: longClassicScenario(), seeds: 20, costeCiS: 205 },
+    { name: 'Race Jaén', scenario: realRaceScenario('race-jaen'), seeds: 40, costeCiS: 300 },
   ]
 
   for (const caso of banco) {
@@ -138,7 +143,7 @@ describe('coherencia de la crónica (docs/motor.md §16, v25)', () => {
           expect(`${d}=${worst[d]}`).toBe(`${d}=${Math.min(worst[d] ?? 0, TOLERANCE[d] ?? 0)}`)
         }
       },
-      TIMEOUT_MS,
+      reloj(caso.costeCiS),
     )
   }
 
@@ -178,7 +183,8 @@ describe('coherencia de la crónica (docs/motor.md §16, v25)', () => {
       // comprobando nada. Es el caso del encargo —la fuga cambia de gente por el camino— y sale.
       expect(comprobadas).toBeGreaterThan(0)
     },
-    TIMEOUT_MS,
+    // 633,6 s en el nocturno: el test que se pasó de los 600 y por el que existe esta función.
+    reloj(634),
   )
 
   it(
@@ -200,7 +206,8 @@ describe('coherencia de la crónica (docs/motor.md §16, v25)', () => {
       }
       expect(partes).toBeGreaterThan(0)
     },
-    TIMEOUT_MS,
+    // 319,2 s en el nocturno (90 simulaciones de Race Jaén).
+    reloj(320),
   )
 })
 
@@ -213,10 +220,15 @@ describe('coherencia de la crónica (docs/motor.md §16, v25)', () => {
  * el contrato del motor, y los eventos se congelan y viven para siempre.
  */
 describe('la espina dorsal del relato (docs/motor.md §16, v27)', () => {
-  const casos: readonly { name: string; scenario: Scenario; seeds: number }[] = [
-    { name: 'llana-180', scenario: flatScenario(), seeds: 20 },
-    { name: 'reina-150', scenario: queenScenario(), seeds: 20 },
-    { name: 'Race Andalucía', scenario: realRaceScenario('race-andalusia'), seeds: 20 },
+  const casos: readonly { name: string; scenario: Scenario; seeds: number; costeCiS: number }[] = [
+    { name: 'llana-180', scenario: flatScenario(), seeds: 20, costeCiS: 71 },
+    { name: 'reina-150', scenario: queenScenario(), seeds: 20, costeCiS: 64 },
+    {
+      name: 'Race Andalucía',
+      scenario: realRaceScenario('race-andalusia'),
+      seeds: 20,
+      costeCiS: 87,
+    },
   ]
 
   for (const caso of casos) {
@@ -245,7 +257,7 @@ describe('la espina dorsal del relato (docs/motor.md §16, v27)', () => {
         }
         expect(partes).toBeGreaterThan(0)
       },
-      TIMEOUT_MS,
+      reloj(caso.costeCiS),
     )
   }
 
@@ -326,6 +338,7 @@ describe('la espina dorsal del relato (docs/motor.md §16, v27)', () => {
           )
         }
     },
-    TIMEOUT_MS,
+    // 219,2 s en el nocturno (60 etapas entre los tres casos de arriba).
+    reloj(220),
   )
 })
