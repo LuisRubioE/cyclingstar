@@ -586,6 +586,19 @@ tipos, y la niega uno solo: el final en `alto`. El repecho de meta —Québec, e
 Cauberg— es `puncheur` y admite llegada agrupada, porque se aborda con el pelotón lanzado y se decide
 en el último minuto. Números en docs/balance.md, «v22».
 
+**5-bis. …y quedaba un tercer sitio con la pregunta vieja: la CRÓNICA (HECHO, v45).** La v22 arregló
+la física y dejó intacto el sitio donde lo lee el jugador. El evento de meta preguntaba
+`!isUphillFinish(type)` para decidir si la llegada se narra como sprint, y `isUphillFinish` es `true`
+también para `puncheur`: un repecho en la línea **vetaba el sprint entero**, sin evento de último
+kilómetro y con `won: 'group'`, aunque llegaran cien hombres juntos. Medido sobre una muestra
+sistemática del calendario (54 etapas × 3 semillas), el veto silenciaba el **5,6 %** de las etapas
+—el campeonato nacional argentino llega con **115 hombres** a un final de puncheur— y baja al 1,2 %
+usando `admitsBunchFinish`, que es la pregunta que este mismo párrafo dice que hay que hacer. Lo que
+queda fuera son finales en `alto` de verdad, donde los que coronan juntos no disputan un embalaje.
+Como el evento cubre ahora dos carreteras, lleva `cuesta` (0/1) y el diario tiene frases separadas:
+«mass gallop» sería mentira en el Mur de Huy. La regla es del dueño: «llegó un grupo de 50
+personas… eso es un sprint». Números en docs/balance.md, «v45 §3».
+
 **6. …y en el pelotón se llega mal colocado (HECHO, v24).** El modelo de arriba decide quién remata
 mejor, y hasta la v23 eso bastaba para decidir el sprint: la única pieza de COLOCACIÓN era
 `leadOutBoostPerHelper`, un +5 % por lanzador presente que se cobraba siempre y no fallaba jamás. Es

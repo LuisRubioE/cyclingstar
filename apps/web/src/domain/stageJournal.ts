@@ -1295,6 +1295,16 @@ function chronicleTemplate(e: ChronicleEntry): string {
       const led = e.datos?.ledOut === 1
       const trio = listRiders(riders.slice(0, 3))
       const first = riders[0]
+      // CUESTA ARRIBA ES OTRO SPRINT (v45). Desde que el repecho dejó de vetar el sprint masivo,
+      // este evento cubre también el muro en la línea, y ahí «mass gallop» sería mentira: no hay
+      // embalaje, hay cien hombres subiendo a tope y el que más aguanta. El tren, además, no
+      // significa lo mismo: en la rampa se deshace, así que la frase de lanzamiento no se ofrece.
+      if (e.datos?.cuesta === 1)
+        return pick([
+          `Into the final kilometre it's an uphill dash — ${trio} fight it out.`,
+          `${capitalize(BUNCH)} hits the ramp together; ${trio} go for it.`,
+          `No let-up on the rise: ${trio} sprint for the line.`,
+        ])
       return pick([
         `Into the final kilometre it's a bunch sprint — ${trio} fight it out.`,
         `${capitalize(BUNCH)} winds up for a mass gallop; ${trio} are in the mix.`,
@@ -1313,12 +1323,22 @@ function chronicleTemplate(e: ChronicleEntry): string {
           `${who} solos to victory, ${fmtGap(margin)} clear of ${CHASE_GROUP}.`,
           `${who} holds on alone to win by ${fmtGap(margin)}.`,
         ])
-      if (won === 'sprint')
+      if (won === 'sprint') {
+        // El mismo desenlace en dos carreteras (v45): desde que el repecho dejó de vetar el sprint
+        // masivo, «wins the bunch sprint» tendría que valer también para un muro con cien hombres
+        // detrás, y no vale. `finish` ya venía en el evento como telemetría; aquí se lee.
+        if (e.datos?.finish === 'puncheur')
+          return pick([
+            `${who} wins the uphill dash.`,
+            `${who} is strongest on the ramp and takes it from ${BUNCH}.`,
+            `${who} throws up the arms at the top of the rise.`,
+          ])
         return pick([
           `${who} wins the bunch sprint.`,
           `${who} takes the sprint from ${BUNCH}.`,
           `${who} throws up the arms — fastest in the sprint.`,
         ])
+      }
       if (won === 'group')
         return pick([
           `${who} wins from ${LEAD_GROUP}.`,
