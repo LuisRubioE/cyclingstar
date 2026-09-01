@@ -2335,9 +2335,27 @@ export const STAGE = {
    *
    * El número es MUY inferior al 0,80 de `tacticGcStakeWeight` y tiene que serlo: aquel se le quita
    * a UN hombre y éste se le da a TODOS los que van dentro de la ventana de amenaza, que en una
-   * reina son varios. Se calibra contra un objetivo honesto —que este cambio sea NEUTRO en
-   * selectividad, o sea que la cola de la reina vuelva a donde estaba— y no contra el aprobado de un
-   * test, que es la trampa contra la que avisa `invariants.test.ts`.
+   * reina son varios.
+   *
+   * SE CALIBRA CONTRA UN OBJETIVO HONESTO —que este cambio sea NEUTRO en selectividad, o sea que la
+   * montaña se rompa igual que antes aunque la rompa otra gente— y no contra el aprobado de un test,
+   * que es la trampa contra la que avisa `invariants.test.ts`. Medido sobre las seis giras del banco:
+   *
+   *     peso    mediana    max    brecha 1.º-10.º
+   *     ANTES     8,55    17,65        19 s
+   *     0,00      7,82    13,75        14 s
+   *     0,35      9,44    17,79        19 s
+   *     0,70      9,39    17,79        25 s
+   *
+   * Con 0,35 las dos medidas ESTRUCTURALES vuelven a su sitio: el peor día de montaña (17,79 contra
+   * 17,65) y la brecha entre el primero y el décimo, clavada en 19 s. Con 0,70 esa brecha se va a 25
+   * y la carrera queda MÁS selectiva de lo que era, o sea que se pasa.
+   *
+   * Lo que no vuelve exactamente es la MEDIANA, que sube a 9,44 en vez de a 8,55, y conviene
+   * escribirlo en vez de llamarlo neutralidad: la reina típica estira algo más el campo, porque los
+   * rivales atacan más a menudo y no solo en los días duros. Queda dentro de la banda 8-14 y más
+   * lejos del suelo que antes. Y con seis giras la mediana tiene un sd de 0,39 (medido en la v42),
+   * así que ese +0,89 son ~2,3 sigma: probable, no seguro.
    */
   tacticGcChallengeWeight: 0.35,
   // Regla 2, quién SALTA detrás: base + atención (TAC) + rol + mentalidad + piernas, acotado.
