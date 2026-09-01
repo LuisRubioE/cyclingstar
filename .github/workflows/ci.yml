@@ -20,7 +20,7 @@ jobs:
     name: Typecheck
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
       - run: pnpm typecheck
 
@@ -47,7 +47,7 @@ jobs:
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/cyclingstar_test
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
 
       # packages/db compilado: lo necesita el aplicador de migraciones (dist/migrate.js).
@@ -99,7 +99,7 @@ jobs:
     # comparar (un primer push a una rama, un `github.event.before` vacío) los bancos SE CORREN: ante
     # la duda, se paga el minuto y no se mira para otro lado.
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: ¿Ha cambiado el motor?
@@ -136,7 +136,7 @@ jobs:
     name: Lint · Format
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
       - name: Lint
         run: pnpm lint
@@ -151,7 +151,7 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
       - run: pnpm -r build
 
@@ -178,7 +178,7 @@ jobs:
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/cyclingstar_migrations
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
       - name: Build de packages/db
         run: pnpm exec tsc -b packages/db
