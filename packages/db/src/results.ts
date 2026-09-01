@@ -182,10 +182,26 @@ export async function getGcThroughStage(
     .from(stageResults)
     .where(and(eq(stageResults.raceId, raceId), lte(stageResults.stageDay, stageDay)))
   const mine = sql<number>`count(distinct ${stageResults.stageDay})::int`
-  const abandoned = sql<boolean>`bool_or(${raceRosters.abandonedDay} is not null)`
-  // No clasificado = abandonó, o le falta alguna etapa. Los dos casos se muestran igual (DNF) y
-  // caen al final, porque su tiempo acumulado no significa nada.
-  const unranked = sql<boolean>`(${abandoned} or ${mine} < (${stagesRun}))`
+  /**
+   * NO CLASIFICADO = LE FALTA ALGUNA DE LAS ETAPAS CORRIDAS HASTA AQUÍ. Nada más, y ahí está el
+   * arreglo (v45).
+   *
+   * Antes esto era «abandonó **o** le falta una etapa», con el abandono leído del roster
+   * (`abandonedDay is not null`). Y esa pregunta **no mira la etapa que se está viendo**: el roster
+   * guarda el estado FINAL del corredor en la carrera, así que en cuanto alguien se bajaba en la
+   * etapa 8 aparecía como DNF también en la clasificación de la 1, la 2 y la 3 —donde iba
+   * perfectamente clasificado y a veces de líder—.
+   *
+   * El dueño lo vio en Race Guatemala: «pone DNF... si ha pasado eso en la última etapa, solo
+   * debería salir eso en la última, no en el resto».
+   *
+   * Y la condición que queda basta SOLA, que es lo que hace que esto sea una resta y no un parche:
+   * el que abandona **no deja fila** en `stage_results` (ver `stageRun.ts`, «ABANDONOS DEL MOTOR»),
+   * así que para cualquier etapa a partir de la suya le faltan etapas y sale DNF, y para las
+   * anteriores las tiene todas y sale clasificado. La comprobación del roster era redundante ADEMÁS
+   * de estar mal.
+   */
+  const unranked = sql<boolean>`(${mine} < (${stagesRun}))`
   const rows = await db
     .select({
       riderId: stageResults.riderId,
@@ -200,13 +216,6 @@ export async function getGcThroughStage(
     .from(stageResults)
     .innerJoin(riders, eq(riders.id, stageResults.riderId))
     .leftJoin(teams, eq(teams.id, riders.teamId))
-    .leftJoin(
-      raceRosters,
-      and(
-        eq(raceRosters.raceId, stageResults.raceId),
-        eq(raceRosters.riderId, stageResults.riderId),
-      ),
-    )
     .where(and(eq(stageResults.raceId, raceId), lte(stageResults.stageDay, stageDay)))
     .groupBy(stageResults.riderId, riders.name, riders.country, teams.id, teams.name)
     .orderBy(

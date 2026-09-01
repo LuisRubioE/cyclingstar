@@ -152,17 +152,43 @@ describe('db: faltar a una etapa no puede hacerte líder de la general', () => {
     expect(ausente.dnf).toBe(true)
   })
 
-  it('a mitad de carrera, cuando aún no faltaba nadie, están todos clasificados', async () => {
-    // La regla es «todas las etapas corridas HASTA HOY», no «todas las de la carrera»: en la etapa
-    // 2 los cinco tienen sus dos días y los cinco cuentan, salvo el que ya figura como abandonado.
+  /**
+   * A MITAD DE CARRERA ESTÁN TODOS, INCLUIDO EL QUE ABANDONARÁ DESPUÉS (corregido en la v45).
+   *
+   * Esta prueba EXIGÍA LO CONTRARIO: daba por bueno que el corredor con `abandonedDay: 3` saliera ya
+   * marcado en la etapa 2, con el argumento de que «ya figura como abandonado». Y eso era el defecto,
+   * no la regla: en la etapa 2 ese hombre había corrido sus dos etapas y estaba clasificado. Que se
+   * baje mañana no cambia lo que fue ayer.
+   *
+   * El dueño lo vio en Race Guatemala —un corredor que ganó tres etapas y enfermó en la octava
+   * aparecía como DNF también en la clasificación de la primera— y por eso la expectativa se
+   * INVIERTE en vez de ajustarse: lo que estaba mal era lo que se afirmaba.
+   */
+  it('a mitad de carrera está clasificado hasta el que abandonará después', async () => {
     const gc = await getGcThroughStage(t.db, KEY, 2)
     expect(
       gc
         .filter((r) => !r.dnf)
         .map((r) => r.riderId)
         .sort(),
-    ).toEqual([...s.completos, s.ausente].sort())
-    expect(gc.at(-1)!.riderId).toBe(s.abandonado)
+    ).toEqual([...s.completos, s.ausente, s.abandonado].sort())
+    // Y en la etapa 3, la suya, sí sale marcado: es la MISMA consulta la que lo distingue.
+    const enLaTres = await getGcThroughStage(t.db, KEY, STAGES)
+    expect(enLaTres.find((r) => r.riderId === s.abandonado)!.dnf).toBe(true)
+  })
+
+  /**
+   * Y LA OTRA MITAD, que es lo que hacía visible el defecto: el que abandona sigue puntuando en la
+   * general de las etapas que SÍ corrió, con su tiempo y su puesto de verdad. Antes se le sacaba de
+   * la clasificación entera y se le mandaba al final con el tiempo tachado.
+   */
+  it('el que abandonará conserva su puesto en las etapas que corrió', async () => {
+    const gc = await getGcThroughStage(t.db, KEY, 2)
+    const puesto = gc.findIndex((r) => r.riderId === s.abandonado)
+    // Es el más lento de los cinco mientras corre, así que va último — pero CLASIFICADO y con su
+    // tiempo, no descolgado al final por una marca que aún no le corresponde.
+    expect(puesto).toBe(4)
+    expect(gc[puesto]!.tiempoTotalS).toBe(2 * (HOUR + 700))
   })
 
   /**
