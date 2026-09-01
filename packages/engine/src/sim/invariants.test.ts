@@ -484,19 +484,50 @@ describe('abandonos en una gran vuelta (docs/motor.md §VI.3)', () => {
    *
    * Se mide sobre la MEDIA de varias vueltas y no sobre una. Una vuelta suelta oscila entre el 12 %
    * y el 21 % según le caigan las caídas (medido, 8 semillas), así que un invariante sobre una sola
-   * sería intermitente; con seis, la media se queda en 15-17 %. Seis vueltas de 21 etapas con 176
-   * corredores son ~2 minutos, de ahí el timeout.
+   * sería intermitente.
    */
-  // Las seis vueltas se corren UNA vez y las comparten los dos invariantes que salen de ellas: son
-  // ~2 minutos de simulación y medir dos veces lo mismo solo dobla el reloj de CI.
+  /**
+   * DOCE VUELTAS Y NO SEIS (v46), y el motivo es que con seis esto era una MONEDA AL AIRE.
+   *
+   * Está medido abajo con detalle en el invariante de la cola, que es el que lo sufría: con seis
+   * vueltas el 11 % de las muestras caían por debajo del suelo **sin que nada del motor cambiara**.
+   * Un test que falla una de cada nueve noches no vigila nada; entrena a que se ignore el nocturno,
+   * que es peor que no tenerlo.
+   *
+   * Medido remuestreando 24 vueltas del motor de hoy:
+   *
+   *     vueltas   media    sd     mínimo   % que fallan
+   *        6      8,603   0,530    7,54       11 %
+   *        8      8,584   0,327    8,14        0 %
+   *       12      8,636   0,212    8,39        0 %
+   *
+   * Se eligen DOCE y no ocho porque esas muestras son ventanas SOLAPADAS: el sd real es mayor que el
+   * de la tabla y las tasas de fallo son optimistas. Con ocho el mínimo queda a catorce centésimas
+   * del suelo, demasiado justo para un estimador que se sabe optimista; con doce, a 0,39.
+   *
+   * La banda NO se toca: lo que cambia es cuánta carrera se mira antes de opinar.
+   */
+  // Las doce vueltas se corren UNA vez y las comparten los CINCO invariantes que salen de ellas:
+  // medir dos veces lo mismo solo multiplica el reloj de CI. El coste se paga en el primer test que
+  // las pide, y por eso su reloj es el que sube.
   let shared: GrandTourStats | null = null
-  const tours = (): GrandTourStats => (shared ??= analyzeGrandTour(6))
+  const tours = (): GrandTourStats => (shared ??= analyzeGrandTour(12))
 
-  // 139,5 s en local ⇒ ~307 s en CI, con 300 s de presupuesto: se caía por doce segundos. Ver la
-  // nota del presupuesto de tiempo en la campaña de desgaste, arriba.
-  it('el pelotón adelgaza entre un 12% y un 20% en tres semanas', { timeout: 1800000 }, () => {
+  /**
+   * EL RELOJ DE LAS DOCE VUELTAS, y lo paga ESTE test porque es el primero que las pide: los otros
+   * cuatro se encuentran el resultado ya calculado y no cuestan nada.
+   *
+   * Doce vueltas de 21 etapas con 176 corredores son **~682 s en local**, y el factor local→CI
+   * medido en este repositorio es ~1,8, o sea **~1.230 s**. La regla de la casa —el presupuesto es
+   * al menos CUATRO VECES el coste de CI— pide 4.920 s, y se redondea a 5.400.000 ms.
+   *
+   * Parece desmesurado al lado del tiempo real y lo es a propósito: absorbe la instrumentación del
+   * nocturno (x1,75-2,02) y el humor del runner (x1,3) compuestos, que es exactamente lo que ya tiró
+   * dos nocturnos seguidos por estimar a ojo en vez de medir.
+   */
+  it('el pelotón adelgaza entre un 12% y un 20% en tres semanas', { timeout: 5400000 }, () => {
     const stats = tours()
-    expect(stats.runs).toBe(6)
+    expect(stats.runs).toBe(12)
     expectInRange(stats.abandonPct, TARGETS.grandTour.abandonPct)
   })
 
@@ -521,14 +552,18 @@ describe('abandonos en una gran vuelta (docs/motor.md §VI.3)', () => {
    *  - «el calor la vuelve a romper» (v42: 7,86 contra 9,11) — medido en serio, cuatro muestras
    *    contra cuatro, la diferencia es de 0,22 con un error estándar de 0,45: **medio sigma**.
    *
-   * Lo que de verdad pasa es más simple y más incómodo: el motor produce una cola de reina de 8,1 a
-   * 8,3 y la banda tiene el suelo en 8. Está sentada encima de la raya, y ningún mecanismo del clima
-   * la mueve de forma medible. Subir la muestra no lo arregla: haría falta cuadruplicar las giras
-   * para bajar el ruido a 0,20 y aun así pasaría por siete centésimas.
+   * Lo que de verdad pasaba era más simple y más incómodo: la muestra era demasiado pequeña para el
+   * ancho de la distribución. La cola de una reina va de 3,7 % a 17,7 % según el día, y la MEDIANA
+   * de 42 etapas es un solo valor de orden —el de la etapa 21— así que salta a trompicones.
    *
-   * Queda a decisión del dueño, con los números delante: o el suelo está una pizca alto para este
-   * motor, o el grupeto va una pizca rápido. Lo que NO se hace es mover una constante física para
-   * que un dado caiga del lado bueno.
+   * RESUELTO EN LA v46 SUBIENDO LA MUESTRA, no la banda. Con doce vueltas el ruido baja de 0,530 a
+   * 0,212 y ninguna muestra cae por debajo del suelo (tabla arriba, en la nota de las doce vueltas).
+   * La v46 además subió el centro —el maillot deja de atacar y sus rivales le atacan más, y la reina
+   * típica estira algo más el campo—, así que el margen es doble: más centro y menos ruido.
+   *
+   * SE MANTIENE LA FRASE QUE IMPORTA, porque sigue siendo la regla de la casa: lo que NO se hace es
+   * mover una constante física —ni una banda— para que un dado caiga del lado bueno. Lo que se
+   * arregló aquí fue el dado, mirando más carrera antes de opinar.
    */
   it('el último grupo de una etapa reina entra al 8-14%', { timeout: 900000 }, () => {
     const stats = tours()
