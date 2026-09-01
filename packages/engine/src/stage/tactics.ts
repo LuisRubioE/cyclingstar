@@ -299,6 +299,26 @@ export function gcDefendShare(r: MoveRider, ctx: MoveContext): number {
 }
 
 /**
+ * …Y CUÁNTO TIENE QUE ATACARLE EL QUE VA DETRÁS, en [0,1]: el ESPEJO de la defensa (v46).
+ *
+ * Esta mitad no es un adorno de simetría, es lo que hace que la otra sea correcta, y salió de
+ * medirlo: quitarle al líder las ganas de atacar dejó la montaña MENOS SELECTIVA —el peor día de una
+ * reina pasó de 17,65 % de cola a 13,75 %— porque parte de la carrera la hacía él. Y esa es
+ * justamente la conclusión equivocada que se sacaría de ahí: que el maillot tiene que atacar. No.
+ * Lo que pasa en carretera es que **si el líder se sienta, son sus rivales los que tienen que
+ * moverle**, porque es a ellos a quienes se les acaba la carrera.
+ *
+ * Así que la selectividad vuelve, pero por la razón correcta y de la mano de quien de verdad la
+ * produce. Escala con el MISMO colchón que la defensa —cuanto más cómodo va el líder, más
+ * desesperados van los otros— y vale cero cuando no hay nadie defendiendo o cuando el líder va con
+ * el agua al cuello, que es cuando ya se ataca solo.
+ */
+export function gcChallengeShare(r: MoveRider, ctx: MoveContext): number {
+  if (!ctx.hasGcContext || ctx.gcDefenderId === null || ctx.gcDefenderId === r.riderId) return 0
+  return clamp(ctx.gcCushionSeconds / STAGE.gcDefendCushionS, 0, 1)
+}
+
+/**
  * Ganas de atacar de un corredor AHORA. Manda el rol y la mentalidad, la energía restante corrige
  * (con el depósito vacío no se ataca) y el contexto añade lo suyo:
  *
@@ -370,7 +390,10 @@ export function attackAppetite(
        * sea 0,3 de apetito— y meter aquí otro sería cobrarle dos veces la misma prudencia.
        */
       if (ctx.hasGcContext && r.gcDeficitSeconds <= STAGE.gcThreatFraction * STAGE.gcControlLeash) {
-        a *= 1 + STAGE.tacticGcStakeWeight * (1 - gcDefendShare(r, ctx))
+        a *=
+          1 +
+          STAGE.tacticGcStakeWeight * (1 - gcDefendShare(r, ctx)) +
+          STAGE.tacticGcChallengeWeight * gcChallengeShare(r, ctx)
       }
     } else {
       a *= 1 + STAGE.tacticWorstFinisherWeight * (1 - ranks.finishRank)

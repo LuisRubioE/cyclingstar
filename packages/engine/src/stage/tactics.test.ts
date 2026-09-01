@@ -12,6 +12,7 @@ import {
   carriesGcLeader,
   chooseInstigator,
   followProbability,
+  gcChallengeShare,
   gcDefence,
   giveUpLambda,
   moveCooperation,
@@ -574,21 +575,39 @@ describe('regla 9-bis — el que defiende la general no corre como el que la per
     expect(holgado).toBeGreaterThan(0.9 * STAGE.tacticFollowMax)
   })
 
-  it('a sus RIVALES no les cambia nada: el escalón de la ventana sigue donde estaba', () => {
-    // El líder con cuatro minutos de colchón, y medido lo que le pasa a los demás: nada. Lo que se
-    // añade es el lado del que defiende, no una recalibración de la amenaza.
+  /**
+   * …Y ELLOS ATACAN MÁS, que es lo que hace que la defensa sea correcta (v46).
+   *
+   * Este test decía lo contrario —«a sus rivales no les cambia nada»— y se INVIERTE a propósito,
+   * porque medirlo enseñó que aquella versión estaba incompleta: quitarle al líder las ganas de
+   * atacar dejó la montaña MENOS SELECTIVA (el peor día de una reina pasó de 17,65 % de cola a
+   * 13,75 %). Parte de la carrera la hacía él.
+   *
+   * La lectura equivocada de ese dato sería devolverle el ataque al maillot. La correcta es la de la
+   * carretera: si el líder se sienta, son SUS RIVALES los que tienen que moverle, porque a ellos se
+   * les acaba la carrera y a él no.
+   */
+  it('a sus RIVALES sí les cambia: si el líder se sienta, tienen que moverle ellos', () => {
     const c = finalEnAlto({ gcDefenderId: 'L', gcCushionSeconds: 240 })
-    const instigador = moveRider('i', { gcDeficitSeconds: 30 })
     const ventana = STAGE.gcThreatFraction * STAGE.gcControlLeash
     const dentro = moveRider('a', { gcDeficitSeconds: ventana - 1 })
     const fuera = moveRider('b', { gcDeficitSeconds: ventana + 1 })
+    // Con el líder cómodo, el rival dentro de la ventana ataca con el bonus de siempre MÁS el del
+    // reto. El de fuera no recibe ninguno de los dos: el escalón de la ventana sigue donde estaba.
     expect(attackAppetite(dentro, c, ranks) / attackAppetite(fuera, c, ranks)).toBeCloseTo(
-      1 + STAGE.tacticGcStakeWeight,
+      1 + STAGE.tacticGcStakeWeight + STAGE.tacticGcChallengeWeight,
       5,
     )
+    // Y con el líder PEGADO —sin colchón— no hay reto que valga: ahí ya se ataca solo, y el motor
+    // vuelve a comportarse exactamente como antes de todo esto.
+    const pegado = finalEnAlto({ gcDefenderId: 'L', gcCushionSeconds: 0 })
     expect(
-      followProbability(dentro, instigador, c) - followProbability(fuera, instigador, c),
-    ).toBeCloseTo(STAGE.tacticFollowGcWeight, 5)
+      attackAppetite(dentro, pegado, ranks) / attackAppetite(fuera, pegado, ranks),
+    ).toBeCloseTo(1 + STAGE.tacticGcStakeWeight, 5)
+    // El reto es del RIVAL, no del que defiende: el líder nunca se lo cobra a sí mismo.
+    expect(gcChallengeShare(moveRider('L', { gcDeficitSeconds: 0 }), c)).toBe(0)
+    // …ni nadie, cuando no hay quien defienda.
+    expect(gcChallengeShare(dentro, finalEnAlto({ gcDefenderId: null }))).toBe(0)
   })
 
   it('y en un final LLANO no se defiende nada: ahí el ataque no quita tiempo', () => {

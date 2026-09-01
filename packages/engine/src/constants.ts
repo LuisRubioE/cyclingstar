@@ -2320,6 +2320,26 @@ export const STAGE = {
    * contarla. Con el colchón a cero vale cero y el motor se comporta exactamente como antes.
    */
   gcDefendCushionS: 60,
+  /**
+   * …Y CUÁNTO MÁS ATACA EL QUE VA DETRÁS CUANDO EL LÍDER SE SIENTA (v46, `gcChallengeShare`).
+   *
+   * Esta constante existe porque quitarle al maillot las ganas de atacar dejó la montaña MENOS
+   * SELECTIVA: medido sobre las seis giras del banco, el peor día de una reina pasó de **17,65 % de
+   * cola a 13,75 %** y la mediana de 8,55 a 7,82. Parte de la carrera la hacía el líder atacando, y
+   * al corregir el signo se perdió.
+   *
+   * La conclusión equivocada sería devolverle el ataque al maillot. La correcta es la que pasa en
+   * carretera: **si el líder se sienta, son sus rivales los que tienen que moverle**, porque a ellos
+   * se les acaba la carrera y a él no. La selectividad vuelve de la mano de quien de verdad la
+   * produce.
+   *
+   * El número es MUY inferior al 0,80 de `tacticGcStakeWeight` y tiene que serlo: aquel se le quita
+   * a UN hombre y éste se le da a TODOS los que van dentro de la ventana de amenaza, que en una
+   * reina son varios. Se calibra contra un objetivo honesto —que este cambio sea NEUTRO en
+   * selectividad, o sea que la cola de la reina vuelva a donde estaba— y no contra el aprobado de un
+   * test, que es la trampa contra la que avisa `invariants.test.ts`.
+   */
+  tacticGcChallengeWeight: 0.35,
   // Regla 2, quién SALTA detrás: base + atención (TAC) + rol + mentalidad + piernas, acotado.
   // Con un pelotón de 40 y p ≈ 0,15 saltan 5-6; con TAC alto y combativos, muchos más. Puede salir
   // 0 y puede salir el grupo entero, que es justo lo que pide la regla.
