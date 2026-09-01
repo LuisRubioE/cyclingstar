@@ -9282,3 +9282,107 @@ forma entre ellos por ganar es un sprint»— ya se cumple donde importa, que es
 2 a 14 en llano resuelve por `sprint_reducido`, con SPR al 0,50. Lo que no se hace es llamarlo
 «embalaje masivo», y eso es a propósito: el diario ya dice «outkicks the rest of the lead group», que
 es la frase de carretera para eso mismo.
+
+---
+
+## v46 — El maillot defiende, y son sus rivales los que tienen que moverle
+
+La deuda que E3 dejó escrita con nombre y apellidos: «existe el control del pelotón, que sale gratis
+del lazo de la caza; **no existe _el líder gestiona su ventaja_**». Esto la cierra, y por el camino
+enseñó que la mitad obvia del arreglo, sola, empeoraba la carrera.
+
+### 1. El defecto: el motor sabía que te juegas algo, pero no de qué lado
+
+Toda la conciencia de general del motor colgaba de **una sola pregunta**, repetida en tres sitios:
+
+```
+gcDeficitSeconds <= gcThreatFraction · gcControlLeash      (420 s)
+```
+
+Y de ella salían tres cosas: que atacaras más en un final en alto, que no dejaras marchar al que
+ataca, y que el pelotón acortara la cuerda. **El líder tiene déficit 0**, así que está siempre dentro
+de la ventana y se llevaba entero el bonus de «tengo que ganar tiempo». Medido sobre la propia
+función, mismo hombre en el puerto final:
+
+| mismo hombre, puerto final | ganas de atacar | probabilidad de saltar |
+| -------------------------- | --------------: | ---------------------: |
+| **LÍDER (déficit 0)**      |      **0,0816** |             **0,4870** |
+| a 30 s                     |          0,0816 |                 0,4870 |
+| a 419 s (borde)            |          0,0816 |                 0,4870 |
+| a 421 s (fuera)            |          0,0454 |                 0,0370 |
+
+El maillot recibía **el mismo +80 % de ganas de atacar** que el rival a 419 s. El signo estaba
+invertido para el único hombre del grupo que no necesita atacar. Y su `mentality: 'reservon'` —el
+único freno que tenía— es el mismo lleve dos segundos de ventaja o cinco minutos: ahí está,
+literalmente, el «no gestiona su ventaja».
+
+### 2. La corrección de signo, y la trampa que tenía dentro
+
+`gcDefendShare` le da signo a la apuesta: sube con el colchón del líder sobre la amenaza más cercana
+**que va con él** —las únicas cuyos ataques puede responder— y satura en `gcDefendCushionS` = 60 s.
+El que defiende pierde el bonus de ataque de forma gradual y gana uno de seguimiento: deja de moverse
+y pasa a **marcar**.
+
+Tres propiedades que hacen de esto una corrección y no una recalibración: con el colchón a cero el
+motor se comporta **exactamente** como antes; el escalón de los 421 s no se toca; y al líder se le
+quita un bonus que estaba mal, no se le pone un freno nuevo.
+
+**Y entonces el banco se puso rojo.** La cola de la reina cayó a 7,82 % contra un suelo de 8:
+
+|              |  mediana |       máx | brecha 1.º-10.º |
+| ------------ | -------: | --------: | --------------: |
+| ANTES        |     8,55 |     17,65 |            19 s |
+| solo defensa | **7,82** | **13,75** |        **14 s** |
+
+La montaña se había vuelto **menos selectiva**. Parte de la carrera la hacía el líder atacando, y al
+corregir el signo se perdió.
+
+### 3. Lo que se aprende de ahí, y lo que NO
+
+La lectura equivocada sería devolverle el ataque al maillot: el banco volvería a verde y el motor
+seguiría diciendo que el líder corre como el que le persigue. Lo que pasa en carretera es otra cosa:
+**si el líder se sienta, son sus rivales los que tienen que moverle**, porque a ellos se les acaba la
+carrera y a él no.
+
+`gcChallengeShare` es el espejo exacto de la defensa —mismo colchón, cuanto más cómodo va el líder
+más desesperados van los otros— y vale cero cuando no hay quien defienda o cuando el líder va con el
+agua al cuello, que es cuando ya se ataca solo. Calibrado contra un objetivo declarado —que el cambio
+sea **neutro en selectividad**— y no contra el aprobado de un test:
+
+|     peso | mediana |       máx | brecha 1.º-10.º |
+| -------: | ------: | --------: | --------------: |
+|    ANTES |    8,55 |     17,65 |            19 s |
+|     0,00 |    7,82 |     13,75 |            14 s |
+| **0,35** |    9,44 | **17,79** |        **19 s** |
+|     0,70 |    9,39 |     17,79 |            25 s |
+
+Con **0,35** las dos medidas estructurales vuelven a su sitio: el peor día de montaña y la brecha
+1.º-10.º, clavada en 19 s. Con 0,70 esa brecha se va a 25 y la carrera queda MÁS selectiva de lo que
+era. La mediana no vuelve exactamente (9,44 en vez de 8,55) y se escribe en vez de llamarlo
+neutralidad: la reina típica estira algo más el campo porque los rivales atacan más a menudo, no solo
+en los días duros. **Banco completo: 82 de 82.**
+
+### 4. Tres veces me equivoqué midiendo esto, y lo que lo arregló
+
+Vale la pena escribirlo porque es método, no anécdota.
+
+1. **«A 120 s el mecanismo está inerte»** — deducido de que dos brazos salieran idénticos. Falso: una
+   sonda dentro de `gcDefence` contó 14.373 llamadas, el 82,8 % con líder único y colchones de
+   mediana **27 s**. A 120 s el `defendShare` típico es 0,22, lejos de cero.
+2. **Un script de distribución sobre 84 etapas** dio los tres brazos idénticos en los siete
+   estadísticos. Imposible. Nunca supe por qué, así que **se descartó entero** en vez de razonar
+   sobre él.
+3. **Dar por buena una tabla** sin comprobar si el efecto era del parámetro o del orden de las
+   llamadas.
+
+Lo que resolvió las tres fue lo mismo, y no fue medir más: fue **una prueba que distingue entre las
+dos explicaciones**. Correr los brazos en el orden `60 · apagado · 60` y ver que los dos «60» daban
+7,816 idéntico y el apagado 8,549 valió más que las 84 etapas del script roto.
+
+### 5. La deuda que queda nombrada
+
+El invariante de la cola de la reina **es una moneda al aire, y está medido en el propio test**:
+cuatro muestras con física idéntica dan 7,86 · 8,28 · 7,64 · 8,49 contra un suelo de 8. Falla la
+mitad de las veces sin que nada cambie, y su comentario todavía dice «el motor produce una cola de
+8,1 a 8,3» cuando hoy da 8,55. Un test así no vigila: genera ruido en el nocturno. Se arregla aparte
+y con muestra, no ensanchando la banda.

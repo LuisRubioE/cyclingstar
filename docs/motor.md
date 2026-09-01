@@ -699,7 +699,16 @@ gcThreatFraction · gcControlLeash`— que dice si te juegas algo pero **no de q
    y pasa a marcar**. Con el colchón a cero el motor se comporta exactamente como antes —al maillot
    al que le respiran en la nuca no le sobra nada— y a sus rivales no les cambia ni un dígito. Es la
    deuda que E3 dejó nombrada: «existe el control del pelotón, que sale gratis del lazo de la caza;
-   no existe _el líder gestiona su ventaja_». Números en docs/balance.md, «v46».
+   no existe _el líder gestiona su ventaja_».
+
+   **Y la otra mitad, que es la que hace correcta a la primera: si el líder se sienta, son SUS
+   RIVALES los que tienen que moverle.** Quitarle al maillot las ganas de atacar dejó la montaña
+   menos selectiva —el peor día de una reina pasó de 17,65 % de cola a 13,75 %— porque parte de la
+   carrera la hacía él. La lectura equivocada de ese dato sería devolverle el ataque; la de la
+   carretera es que a los rivales se les acaba la carrera y a él no. `gcChallengeShare` es el espejo
+   de la defensa y escala con el mismo colchón, así que la selectividad vuelve de la mano de quien de
+   verdad la produce: con el peso en 0,35 el peor día de montaña y la brecha 1.º-10.º (19 s) quedan
+   clavados donde estaban, y el banco pasa 82 de 82. Números en docs/balance.md, «v46».
 
 #### 13.2 Una sola mecánica, no nueve
 

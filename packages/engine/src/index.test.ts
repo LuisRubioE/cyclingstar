@@ -140,9 +140,15 @@ describe('engine: esqueleto', () => {
     // daba entero el bonus de ganarlo. Ahora `gcDefence` dice quién defiende en cada grupo y con
     // cuánto colchón contra las amenazas que van CON él, y `gcDefendShare` lo convierte en una rampa
     // que satura en 60 s: el líder pierde el bonus de ataque y gana uno de seguimiento, o sea que
-    // deja de moverse y pasa a marcar. Con el colchón a cero se comporta EXACTAMENTE como antes y a
-    // los rivales no les cambia un dígito, así que la versión sube por lo que hace el maillot y por
-    // nada más. Es la deuda que E3 dejó nombrada.
+    // deja de moverse y pasa a marcar. Con el colchón a cero se comporta EXACTAMENTE como antes.
+    // Y LA OTRA MITAD, que es la que hace correcta a la primera: quitarle al maillot las ganas de
+    // atacar dejó la montaña MENOS SELECTIVA —el peor día de una reina pasó de 17,65 % de cola a
+    // 13,75 % y la mediana cayó por debajo del suelo del invariante—, porque parte de la carrera la
+    // hacía él. La lectura equivocada sería devolverle el ataque; la de la carretera es que si el
+    // líder se sienta son SUS RIVALES los que tienen que moverle, porque a ellos se les acaba la
+    // carrera y a él no. `gcChallengeShare` es el espejo de la defensa, escala con el mismo colchón
+    // y con el peso en 0,35 devuelve el peor día de montaña (17,79) y la brecha 1.º-10.º clavada en
+    // 19 s. Banco completo 82 de 82. Es la deuda que E3 dejó nombrada, cerrada por las dos mitades.
     // v44: UN GRUPO DE CIEN HOMBRES SUBIENDO A TOPE TAMBIÉN DISPUTA UN SPRINT (docs/balance.md
     // «v45 §3», docs/motor.md §12.5-bis). La crónica de meta preguntaba `!isUphillFinish(type)`, y
     // eso es true también para `puncheur`: un repecho en la línea VETABA el sprint entero —sin
