@@ -131,6 +131,15 @@ describe('engine: esqueleto', () => {
     // 6:53 en el km 137 y 16 s en meta). La referencia pasa a ser los que SIGUEN EN CARRERA, el
     // parte de ventaja NOMBRA a quien va delante y dice contra quién se mide y cuánto queda.
     // Cambio de OBSERVACIÓN: ni un dado, ni un subflujo, ni una constante de calibración.
+    // v44: UN GRUPO DE CIEN HOMBRES SUBIENDO A TOPE TAMBIÉN DISPUTA UN SPRINT (docs/balance.md
+    // «v45 §3», docs/motor.md §12.5-bis). La crónica de meta preguntaba `!isUphillFinish(type)`, y
+    // eso es true también para `puncheur`: un repecho en la línea VETABA el sprint entero —sin
+    // evento de último kilómetro y con `won: 'group'`— aunque llegaran cien hombres juntos. Pasa a
+    // preguntar `admitsBunchFinish`, que es la pregunta que la v22 escribió para esto mismo y que
+    // este fichero ya cita en su entrada de la v22. Medido sobre 54 etapas del calendario x 3
+    // semillas: los grupos de 8+ que no se narran como sprint bajan del 5,6 % al 1,2 %, y lo que
+    // queda son finales en alto de verdad. La física no cambia: el motor decide igual quién gana y
+    // con qué tiempo. Lo que cambia es lo que EMITE, y los eventos se congelan en `stage_runs`.
     // v43: EL CLIMA DE LA v42 NO LLEGABA A PRODUCCIÓN (docs/balance.md «v43»). `StageInput.lugar`
     // —el país y el día del año, de donde sale toda la geografía del clima— lo pasaban los bancos de
     // simulación y NO lo pasaba `packages/db`, así que en el juego de verdad llovía el 20 % de los
@@ -262,6 +271,6 @@ describe('engine: esqueleto', () => {
     // v11 (atribución del trabajo), la v10 (composición y caza), la v9 (capa táctica), la
     // v8 (tiempos de grupo), la v7 (modelo de final), la v6 (telemetría), la v5 (clásica larga), la
     // v4 (pavé en el recorrido) y la v3 (Cambio 0).
-    expect(ENGINE_VERSION).toBe(43)
+    expect(ENGINE_VERSION).toBe(44)
   })
 })
