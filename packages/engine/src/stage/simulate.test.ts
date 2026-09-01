@@ -785,6 +785,78 @@ describe('modelo de final (docs/motor.md §12)', () => {
     expect(altos.filter((d) => d.finish === 'alto').length).toBeGreaterThanOrEqual(5)
   })
 
+  /**
+   * UN GRUPO NUMEROSO QUE LLEGA POR UN REPECHO TAMBIÉN DISPUTA UN SPRINT (v45).
+   *
+   * La regla es del dueño y no admite matices: «llegó un grupo de 50 personas… eso es un sprint».
+   * El motor decía que no. La crónica de meta preguntaba `!isUphillFinish(type)`, que es true
+   * también para `puncheur`, así que un muro en la línea VETABA el sprint entero: ni evento de
+   * último kilómetro, ni `won: 'sprint'`, y el diario despachaba con «wins from the lead group» a
+   * un pelotón de cien hombres subiendo a tope.
+   *
+   * Y lo llamativo es que el motor ya tenía escrita la pregunta correcta. `admitsBunchFinish` nació
+   * en la v22 con este comentario: «es una pregunta DISTINTA de `isSprintFinish` y de
+   * `isUphillFinish`, y confundirlas costó el defecto del GP de Québec». Aquella versión arregló el
+   * sitio donde el veto apagaba los trenes y la caza —la física— y dejó sin tocar el sitio donde lo
+   * lee el jugador.
+   *
+   * Medido sobre una muestra sistemática del calendario (54 etapas x 3 semillas): el veto silenciaba
+   * el 5,6 % de las etapas, con el campeonato nacional argentino llegando con 115 hombres juntos, y
+   * baja al 1,2 % —solo finales en alto de verdad— con esta corrección.
+   *
+   * Los dos perfiles son el par que separa las dos cosas, y por eso van en el mismo test: el muro de
+   * 1,5 km al 7 % es un sprint cuesta arriba, y el puerto de 8 km al 7 % no lo es —ahí los que
+   * llegan juntos se acaban de arrastrar arriba, no disputan un embalaje— y tiene que seguir sin
+   * narrarse como sprint.
+   */
+  // 2,1 s en local con seis simulaciones: le sobra el límite por defecto del repositorio (30 s).
+  it('un grupo que llega junto por un MURO disputa un sprint; por un PUERTO, no', () => {
+    // Piernas casi iguales y sin cerillos: lo que se mide es la CRÓNICA del final, no quién ataca.
+    const field = Array.from({ length: 60 }, (_, i) =>
+      rider(`m-${i}`, { eff0: eff(60, { SPR: 50 + (i % 11), COL: 58 + (i % 5) }), matches: 0 }),
+    )
+    const correr = (name: string, segments: StageInput['profile']['segments'], s: number) =>
+      simulateStage(
+        { profile: { segments }, riders: field },
+        stageSeed({ worldSeed: `${name}-${s}`, raceId: name, stageDay: 1, engineVersion: 1 }),
+      )
+
+    for (let s = 0; s < 3; s++) {
+      const muro = correr(
+        'muro',
+        [
+          { km: 100, tipo: 'llano' },
+          { km: 1.5, tipo: 'puerto', tramos: [{ km: 1.5, g: 7 }] },
+        ],
+        s,
+      )
+      const win = muro.events.find((e) => e.plantilla === 'stage_win')!.datos!
+      expect(win.finish).toBe('puncheur')
+      // Llegan juntos —es la premisa del caso— y por tanto se disputa al sprint.
+      expect(Number(win.field)).toBeGreaterThanOrEqual(STAGE.bunchSprintMinRiders)
+      expect(win.won).toBe('sprint')
+      const bunch = muro.events.find((e) => e.plantilla === 'bunch_sprint')
+      expect(`semilla ${s} ${bunch ? 'con' : 'sin'} evento de sprint`).toBe(
+        `semilla ${s} con evento de sprint`,
+      )
+      // …y el diario tiene que poder decir que se remata TREPANDO, no en un embalaje en llano.
+      expect(bunch!.datos!.cuesta).toBe(1)
+
+      const puerto = correr(
+        'puerto',
+        [
+          { km: 90, tipo: 'llano' },
+          { km: 8, tipo: 'puerto', tramos: [{ km: 8, g: 7 }] },
+        ],
+        s,
+      )
+      const winP = puerto.events.find((e) => e.plantilla === 'stage_win')!.datos!
+      expect(winP.finish).toBe(Number(winP.field) === 1 ? 'solitario' : 'alto')
+      expect(winP.won).not.toBe('sprint')
+      expect(puerto.events.some((e) => e.plantilla === 'bunch_sprint')).toBe(false)
+    }
+  })
+
   it(
     'un final de PAVÉ lo gana el adoquinero: el PAV interviene en el resultado',
     { timeout: 30000 },

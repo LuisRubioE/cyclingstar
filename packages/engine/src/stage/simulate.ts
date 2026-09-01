@@ -5441,11 +5441,29 @@ function finishStage(
     order += strungOut.length
     if (gi === 0 && strungOut[0]) {
       const field = strungOut.length
-      // Sprint masivo A EFECTOS DE CRÓNICA: un grupo numeroso que no llega trepando disputa la
-      // meta al sprint, ruede por asfalto, por adoquín o cuesta abajo. Es el mismo criterio de
-      // antes (`!finishUphill && field >= 8`) con una definición de "cuesta arriba" que ya no la
-      // dispara un solo bloque de los últimos 2 km.
-      const isBunch = !isUphillFinish(type) && field >= STAGE.bunchSprintMinRiders
+      /**
+       * SPRINT MASIVO A EFECTOS DE CRÓNICA: un grupo numeroso que se planta junto en el kilómetro
+       * final disputa la meta al sprint, ruede por asfalto, por adoquín, cuesta abajo O POR UN
+       * REPECHO (v45).
+       *
+       * Esto preguntaba `!isUphillFinish(type)`, y ahí estaba el defecto: `isUphillFinish` es true
+       * también para `puncheur`, así que un muro en la línea VETABA el sprint por completo. El
+       * comentario de `admitsBunchFinish` avisaba por escrito de esta confusión —«es una pregunta
+       * DISTINTA de `isSprintFinish` y de `isUphillFinish`, y confundirlas costó el defecto del GP
+       * de Québec»— y la v22 arregló el sitio donde apagaba los trenes y la caza… pero no éste, que
+       * es el que lee el jugador.
+       *
+       * El dueño puso la regla: «llegó un grupo de 50 personas… eso es un sprint». Medido sobre una
+       * muestra sistemática del calendario (54 etapas x 3 semillas), el veto se comía el **5,6 %**
+       * de las etapas, y no de refilón: el campeonato nacional argentino llega con **115 hombres
+       * juntos** a un final de puncheur y el diario decía «wins from the lead group», sin una sola
+       * línea de último kilómetro. La mediana de esos grupos silenciados es 55.
+       *
+       * `admitsBunchFinish` es la pregunta correcta y ya existe: deja fuera `alto` —un puerto de
+       * 3 km que muere en la meta, donde los veinte que llegan juntos no disputan un sprint sino que
+       * se acaban de arrastrar arriba— y `solitario`, y deja dentro el repecho.
+       */
+      const isBunch = admitsBunchFinish(type) && field >= STAGE.bunchSprintMinRiders
       // Sprint masivo: si el grupo de cabeza es numeroso y la meta es llana, se narra el último km —
       // los rematadores que lo disputan y si el ganador remató bien lanzado por su tren (SPEC 6.15).
       if (isBunch) {
@@ -5455,6 +5473,12 @@ function finishStage(
         log.emit(Math.max(0, totalKm - 1), group.tS, 'sprint', 'bunch_sprint', top3, {
           field,
           ledOut,
+          // …Y EN QUÉ CARRETERA SE DISPUTA (v45). Desde que el repecho deja de vetar el sprint, un
+          // `bunch_sprint` puede ser un embalaje en llano o una subida al muro con cien hombres
+          // detrás, y son dos imágenes distintas. Sin este dato el diario tendría que llamar «mass
+          // gallop» a la rampa del Mur de Huy, que es justo la clase de frase que este motor no
+          // debe emitir. `1` = se remata cuesta arriba.
+          cuesta: isUphillFinish(type) ? 1 : 0,
         })
       }
       // La victoria dice CÓMO se ganó, coherente con el resultado: en solitario (con su margen al

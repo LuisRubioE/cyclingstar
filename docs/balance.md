@@ -9158,3 +9158,127 @@ ventaja el día 18 no rueda más conservador, y con la general apretada su equip
 **Y ésa es la deuda que E3 deja nombrada:** la defensa del maillot no existe como conducta propia.
 Existe el control del pelotón, que sale gratis del lazo de la caza; no existe «el líder gestiona su
 ventaja».
+
+---
+
+## v45 — Tres cosas vistas desde fuera: un DNF, un reloj y un sprint que no se llamaba sprint
+
+Ninguna de las tres salió de una banda del banco. Las tres las vio alguien mirando el juego: dos el
+dueño en producción y una el nocturno de cobertura. Van juntas porque comparten la misma forma —lo
+que estaba mal era **la pregunta**, no el número— y porque las tres se cierran con una prueba que
+antes exigía el defecto o no existía.
+
+### 1. Un DNF de la etapa 8 no puede salir en la clasificación de la etapa 1
+
+El dueño, sobre la Race Guatemala: «un corredor ganó 3 etapas… luego resulta que dice en noticias que
+se enfermó… y en las clasificaciones, **incluso tras la etapa 1**, pone DNF. Si ha pasado eso en la
+última etapa, solo debería salir eso en la última, no en el resto».
+
+`getGcThroughStage` decidía «no clasificado» así:
+
+```
+abandonó  O  le falta alguna etapa
+```
+
+y el primer término se leía del roster (`abandonedDay is not null`), que guarda el **estado final**
+del corredor en la carrera. Da igual qué etapa se pida: si se bajó alguna vez, sale marcado siempre.
+Nada en esa pregunta mira la etapa que se está viendo.
+
+Lo que hace que la corrección sea una RESTA y no un parche es que la segunda condición basta sola: el
+que abandona **no deja fila** en `stage_results`, así que para cualquier etapa a partir de la suya le
+faltan etapas y sale DNF, y para las anteriores las tiene todas y sale clasificado con su tiempo y su
+puesto de verdad. La comprobación del roster era **redundante además de estar mal**.
+
+Y la parte que hay que escribir porque es incómoda: **la prueba exigía el defecto**. Había un test
+llamado «a mitad de carrera, cuando aún no faltaba nadie, están todos clasificados» que daba por
+bueno que el corredor con `abandonedDay: 3` apareciera ya marcado en la etapa 2, con el argumento de
+que «ya figura como abandonado». Eso no era la regla: en la etapa 2 ese hombre había corrido sus dos
+etapas. **Que se baje mañana no cambia lo que fue ayer.** La expectativa se invierte, no se ajusta.
+
+El resto de la historia de Guatemala —ganar la etapa 8 y enfermar— es coherente: la enfermedad se
+tira **después** de terminar una etapa y está vedada en la última (`!isOneDay && !spec.isFinal`), así
+que ganar y caer enfermo el mismo día es exactamente lo que el motor dice que pasa.
+
+### 2. El reloj de la coherencia, y por qué el nocturno cayó DOS veces
+
+El primer nocturno tiró cuatro relojes de `invariants.test.ts`; se redimensionaron con costes
+medidos. El error fue quedarse en el fichero donde estaban los fallos. El segundo cayó en
+`coherence.test.ts`: «la fuga del día no es el grupo que va delante», **633,6 s contra un tope de
+600**. Un fallo, cero aserciones rotas; los once relojes ya corregidos pasaron con margen de sobra
+(llana 299,8 de 900; mejor rematador 909,5 de 3.900).
+
+Lo que había era **un solo número, 600 s, para diez tests que cuestan entre 64 y 634 s**. Ahora cada
+caso lleva anotado lo que costó en el nocturno instrumentado y una función aplica la regla del
+repositorio —el presupuesto es al menos **cuatro veces** el coste de CI— en vez de aplicarla a ojo,
+que es como se estropeó en la v20:
+
+| coherencia   |    CI |   reloj | espina      |   CI | reloj |
+| ------------ | ----: | ------: | ----------- | ---: | ----: |
+| llana-180    | 243 s | 1.020 s | llana-180   | 71 s | 300 s |
+| reina-150    | 172 s |   720 s | reina-150   | 64 s | 300 s |
+| Flandes      | 205 s |   840 s | Andalucía   | 87 s | 360 s |
+| Race Jaén    | 300 s | 1.200 s | vocabulario | 220s | 900 s |
+| fuga del día | 634 s | 2.580 s |             |      |       |
+| boquete      | 320 s | 1.320 s |             |      |       |
+
+Uno por test y no uno para todos: los partes de ventaja cuestan 70 s y no tienen por qué heredar los
+43 minutos que necesita el más caro, porque entonces un test colgado de verdad tarda tres cuartos de
+hora en morir.
+
+### 3. El sprint de la Race Fagnes: lo que se buscaba NO era el defecto
+
+El dueño: «ha ganado al sprint… **¿un contrarrelojista?**». Antes de tocar nada, tres medidas.
+
+**El generador está limpio.** Sobre 4.000 corredores y 400 campos de 126, el SPR más alto del campo
+es de vocación `velocidad` el **99 %** de las veces, y 95 de cada 100 hombres del top-5 por SPR
+también. Un `crono` con SPR 83 existe, pero es la cola.
+
+| vocación  | SPR media | p90 | p99 | máx |
+| --------- | --------: | --: | --: | --: |
+| velocidad |      65,6 |  80 |  92 |  95 |
+| clásicas  |      43,9 |  58 |  66 |  75 |
+| fondo     |      43,4 |  57 |  69 |  76 |
+| escalada  |      43,3 |  58 |  70 |  75 |
+| crono     |      42,7 |  56 |  69 |  74 |
+
+**Y la carrera tampoco está mal calibrada.** Race Fagnes con campo realista, 60 semillas: de las 42
+que acaban en grupo de 15 o más, **34 las gana un `velocidad` (81 %)**, 5 un escalador y 3 un
+crono (7 %). El resto acaban en solitario (6) o en grupo pequeño (4), donde el SPR ya no manda —y no
+debe—. El mejor SPR del grupo gana el 35 % de los embalajes, con el ganador en el puesto 4,0 de 53
+por SPR: eso es un sprint de carretera, no un dado.
+
+**Lo que sí estaba mal era otra cosa, y es la regla del dueño.** «Llegó un grupo de 50 personas… eso
+es un sprint». La crónica de meta preguntaba `!isUphillFinish(type)`, que es `true` también para
+`puncheur`, así que **un repecho en la línea vetaba el sprint entero**: ni evento de último
+kilómetro, ni `won: 'sprint'`, y el diario despachaba con «wins from the lead group» a un pelotón
+entero subiendo a tope.
+
+Lo llamativo es que el motor ya tenía escrita la pregunta correcta. `admitsBunchFinish` nació en la
+v22 con este comentario: «es una pregunta DISTINTA de `isSprintFinish` y de `isUphillFinish`, y
+confundirlas costó el defecto del GP de Québec». Aquella versión arregló el sitio donde el veto
+apagaba los trenes y la caza —la física— y **dejó sin tocar el sitio donde lo lee el jugador**.
+
+Medido sobre una muestra sistemática del calendario (54 etapas × 3 semillas):
+
+| desenlace                   | antes | después |
+| --------------------------- | ----: | ------: |
+| `sprint` / `sprint_masivo`  |  63,6 |    63,6 |
+| `solo` / `solitario`        |  16,7 |    16,7 |
+| `group` / `sprint_reducido` |   7,4 |     7,4 |
+| `group` / `puncheur`        |   6,8 |     2,5 |
+| `group` / `alto`            |   4,9 |     4,9 |
+| **`sprint` / `puncheur`**   | **0** | **4,3** |
+
+**Grupos de 8 o más que NO se narran como sprint: del 5,6 % al 1,2 %**, y lo que queda son finales en
+alto de verdad (grupos de 11 y 20 coronando), que es correcto: ahí los que llegan juntos se acaban de
+arrastrar arriba, no disputan un embalaje. El caso extremo que el veto silenciaba era el campeonato
+nacional argentino, **115 hombres juntos** en un final de puncheur.
+
+Como el mismo evento cubre ahora dos carreteras, lleva un dato nuevo (`cuesta`) y el diario tiene
+frases separadas: «mass gallop» seguiría siendo mentira en el Mur de Huy.
+
+**La otra mitad de la regla del dueño** —«o incluso si llegase un grupo de 2 en llano… lo que se
+forma entre ellos por ganar es un sprint»— ya se cumple donde importa, que es el MODELO: un grupo de
+2 a 14 en llano resuelve por `sprint_reducido`, con SPR al 0,50. Lo que no se hace es llamarlo
+«embalaje masivo», y eso es a propósito: el diario ya dice «outkicks the rest of the lead group», que
+es la frase de carretera para eso mismo.
