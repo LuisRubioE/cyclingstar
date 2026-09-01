@@ -715,7 +715,7 @@
  * Campaña canónica de 500 corridas: **los 33 invariantes en verde**. La contrarreloj no se mueve ni
  * un dígito —es el ancla del esfuerzo individual y paga la ley lineal de siempre—.
  */
-export const ENGINE_VERSION = 45 as const
+export const ENGINE_VERSION = 44 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -2306,20 +2306,6 @@ export const STAGE = {
   tacticStrongFloor: 0.2,
   // …y el que se juega la general ataca más que el que ya la ha perdido (SPEC 6.9).
   tacticGcStakeWeight: 0.8,
-  /**
-   * EL COLCHÓN A PARTIR DEL CUAL EL LÍDER YA NO CORRE POR GANAR TIEMPO (v46, `gcDefendShare`).
-   *
-   * Un minuto, y no es una perilla de calibración sino lo que se sabe de una general: con quince
-   * segundos el maillot tiene que seguir peleando —cualquier bonificación, cualquier abanico, y la
-   * pierde— y con un minuto largo su carrera pasa a ser otra: no perderlo. Ahí un ataque suyo ya no
-   * es una jugada sino un riesgo sin premio, porque el tiempo que le puede sacar al segundo vale
-   * mucho menos que el que se juega si revienta.
-   *
-   * Es una RAMPA y no un escalón, y por la misma razón que `tacticAllowGcPenalty` lo es desde la
-   * v32: entre los quince segundos y el minuto hay una general de verdad y el motor tiene que poder
-   * contarla. Con el colchón a cero vale cero y el motor se comporta exactamente como antes.
-   */
-  gcDefendCushionS: 60,
   // Regla 2, quién SALTA detrás: base + atención (TAC) + rol + mentalidad + piernas, acotado.
   // Con un pelotón de 40 y p ≈ 0,15 saltan 5-6; con TAC alto y combativos, muchos más. Puede salir
   // 0 y puede salir el grupo entero, que es justo lo que pide la regla.
@@ -2331,28 +2317,6 @@ export const STAGE = {
   tacticFollowEnergyWeight: 0.3,
   // En el final, el rival cercano en la general no deja marchar al que ataca (regla 9).
   tacticFollowGcWeight: 0.45,
-  /**
-   * …Y CUÁNTO MÁS SALTA EL QUE DEFIENDE QUE EL QUE PERSIGUE (v46).
-   *
-   * El que persigue puede permitirse dejar marchar un ataque que no le sirve —de un rival que no le
-   * amenaza, o en un sitio donde no va a sacar nada—. El que lleva el maillot no puede dejar marchar
-   * ninguno: cualquiera de ellos le quita la camiseta. Con 0,60 el líder con colchón salta con
-   * 0,72 de peso de general contra los 0,45 del perseguidor, que sobre la probabilidad final es la
-   * diferencia entre responder casi siempre y responder a menudo.
-   *
-   * Es la mitad ACTIVA de la conducta que faltaba —la otra, quitarle el bonus de ataque, solo le
-   * retira algo que estaba mal—: el líder deja de moverse y pasa a MARCAR, que es lo que hace un
-   * hombre de amarillo en un puerto.
-   *
-   * Y EL TECHO ESTÁ A UN PELO, que es lo que hay que saber antes de tocar este número. Con el perfil
-   * que `autoOrders` le pone al maillot —`lider` + `reservon`— el que defiende salta con **0,847
-   * contra un tope (`tacticFollowMax`) de 0,85**: cabe justo. Subirlo no hace nada, porque a partir
-   * de ahí lo absorbe el clamp; medido con un corredor más combativo (`libre` + `oportunista`, que
-   * ya venía saltando en 0,697) la ganancia se pierde ENTERA. Eso no es un defecto —un hombre así
-   * ya seguía casi todo lo que se movía— pero explica por qué este número vale para el maillot y no
-   * para cualquiera.
-   */
-  tacticFollowDefendGain: 0.6,
   tacticFollowMin: 0,
   tacticFollowMax: 0.85,
   // Si salta MÁS de esta fracción del grupo, el ataque no separa nada: es el grupo entero

@@ -131,18 +131,6 @@ describe('engine: esqueleto', () => {
     // 6:53 en el km 137 y 16 s en meta). La referencia pasa a ser los que SIGUEN EN CARRERA, el
     // parte de ventaja NOMBRA a quien va delante y dice contra quién se mide y cuánto queda.
     // Cambio de OBSERVACIÓN: ni un dado, ni un subflujo, ni una constante de calibración.
-    // v45: LA APUESTA DE LA GENERAL TIENE DOS LADOS (docs/balance.md «v46», docs/motor.md §13.1
-    // regla 9-bis). Toda la conciencia de general del motor colgaba de UNA pregunta —«¿estás dentro
-    // de la ventana de amenaza?»— que dice si te juegas algo pero no de qué lado, y el líder tiene
-    // déficit 0, así que estaba siempre dentro. Medido sobre las propias funciones: el maillot y el
-    // rival a 419 s salían con el MISMO apetito de ataque en el puerto final (0,0816 contra 0,0454
-    // del que está fuera), o sea que al único hombre del grupo que no necesita ganar tiempo se le
-    // daba entero el bonus de ganarlo. Ahora `gcDefence` dice quién defiende en cada grupo y con
-    // cuánto colchón contra las amenazas que van CON él, y `gcDefendShare` lo convierte en una rampa
-    // que satura en 60 s: el líder pierde el bonus de ataque y gana uno de seguimiento, o sea que
-    // deja de moverse y pasa a marcar. Con el colchón a cero se comporta EXACTAMENTE como antes y a
-    // los rivales no les cambia un dígito, así que la versión sube por lo que hace el maillot y por
-    // nada más. Es la deuda que E3 dejó nombrada.
     // v44: UN GRUPO DE CIEN HOMBRES SUBIENDO A TOPE TAMBIÉN DISPUTA UN SPRINT (docs/balance.md
     // «v45 §3», docs/motor.md §12.5-bis). La crónica de meta preguntaba `!isUphillFinish(type)`, y
     // eso es true también para `puncheur`: un repecho en la línea VETABA el sprint entero —sin
@@ -283,6 +271,6 @@ describe('engine: esqueleto', () => {
     // v11 (atribución del trabajo), la v10 (composición y caza), la v9 (capa táctica), la
     // v8 (tiempos de grupo), la v7 (modelo de final), la v6 (telemetría), la v5 (clásica larga), la
     // v4 (pavé en el recorrido) y la v3 (Cambio 0).
-    expect(ENGINE_VERSION).toBe(45)
+    expect(ENGINE_VERSION).toBe(44)
   })
 })

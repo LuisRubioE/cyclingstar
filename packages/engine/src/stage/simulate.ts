@@ -74,7 +74,6 @@ import {
   type MoveRider,
   chooseInstigator,
   followProbability,
-  gcDefence,
   giveUpLambda,
   jumpGapSeconds,
   carriesGcLeader,
@@ -3881,16 +3880,6 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         tension: source.tension,
         hasGcContext,
         breakAppeal,
-        // Quién defiende la general AQUÍ y con cuánto colchón (v46). Se calcula sobre los que van en
-        // este grupo y no sobre el pelotón entero, porque un líder solo puede responder a los
-        // ataques de los que lleva al lado; el rival que se le ha ido por delante es un problema de
-        // persecución y de eso ya se encarga la cuerda.
-        ...gcDefence(
-          members.map((m) => ({
-            riderId: m.input.riderId,
-            gcDeficitSeconds: m.input.gcDeficitSeconds,
-          })),
-        ),
       }
       if (!rollMoveAttempt(rngTactics, ctx)) return
       lastAttemptKm.set(source.id, km)
