@@ -3,7 +3,13 @@
  * de generación de neoprofesionales, para que el rollover sea determinista y testeable en CI.
  */
 
-const HARD_RETIRE_AGE = 39
+/**
+ * LA EDAD DEL RETIRO OBLIGATORIO. A los 39 se baja todo el mundo, haya declinado o no, y desde la
+ * v47 eso incluye al corredor de un JUGADOR HUMANO: hasta entonces el rollover filtraba por
+ * `isNull(riders.userId)` y un humano corría eternamente. Se exporta porque `packages/db` la
+ * necesita para aplicarla al jugador, que no pasa por la curva de declive de los NPC.
+ */
+export const HARD_RETIRE_AGE = 39
 const NEOPRO_AGE_MIN = 19
 const NEOPRO_AGE_MAX = 23
 

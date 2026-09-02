@@ -12,9 +12,33 @@ export function currentSeason(gameDay: number): number {
   return Math.floor(Math.max(0, gameDay) / DAYS_PER_SEASON)
 }
 
-/** Edad del corredor: debuta a los 20 y envejece una temporada por año (SPEC 3). */
+/**
+ * LA ÉPOCA DE LAS EDADES. `birthSeason` no es un año: es un DESPLAZAMIENTO contra esta constante, de
+ * forma que un corredor con `birthSeason` igual a la temporada en curso tiene 20 años. Estaba como
+ * un 20 suelto dentro de `riderAge` —y repetido a mano en `packages/db/src/rollover.ts` y en
+ * `browse.ts`— así que se le pone nombre y se deja dicho lo que significa: cambiarla RECALCULA la
+ * edad de todos los corredores que ya existen, porque sus `birthSeason` se guardaron contra ella.
+ */
+export const RIDER_AGE_EPOCH = 20
+
+/**
+ * A QUÉ EDAD ENTRA UN JUGADOR NUEVO (v47). Diecinueve, y el motivo es de reglamento: un equipo UCI
+ * Continental se compone de corredores ÉLITE y/o SUB-23, y la categoría sub-23 empieza a los 19. Con
+ * 18 todavía son júniors. Es también el suelo que ya usaba el juego para el debut de un NPC
+ * (`NEOPRO_AGE_MIN`), así que el jugador entra exactamente como el bot más precoz en vez de un año
+ * por detrás, y gana una temporada de crecimiento —que importa, porque el techo solo sube hasta los
+ * 23—.
+ */
+export const PLAYER_START_AGE = 19
+
+/** Edad del corredor: envejece una temporada por año (SPEC 3). */
 export function riderAge(birthSeason: number, season: number): number {
-  return 20 - birthSeason + season
+  return RIDER_AGE_EPOCH - birthSeason + season
+}
+
+/** La `birthSeason` que hay que guardar para que un corredor tenga `age` años en `season`. */
+export function birthSeasonForAge(age: number, season: number): number {
+  return RIDER_AGE_EPOCH - age + season
 }
 
 /**
