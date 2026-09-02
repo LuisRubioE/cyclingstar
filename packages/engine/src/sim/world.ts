@@ -100,11 +100,22 @@ export interface WorldSeasonRow {
   retired: number
   neopros: number
   /**
-   * ¿ACABAN TODOS SIENDO POGAČAR? El % de corredores con CINCO estrellas en todos sus atributos
-   * físicos. Tiene que quedarse muy cerca de cero: si sube temporada a temporada, la progresión
-   * satura y el juego se queda sin jerarquía.
+   * ¿ACABAN TODOS SIENDO POGAČAR? Y ESO NO ES «CINCO ESTRELLAS EN TODO».
+   *
+   * La primera versión de este banco medía el % de corredores con 5★ en TODOS los atributos físicos
+   * y daba 0,00 % en las 25 temporadas. Tranquilizador y casi vacío: el dueño lo corrigió —«cuando
+   * digo cinco estrellas en todo no estoy siendo literal; Pogačar tiene muchas cinco estrellas, pero
+   * posiblemente no en todo»— y tenía razón. Un listón que no cumple ni el mejor corredor del mundo
+   * real no puede dispararse nunca, y un indicador que no puede dispararse no vigila nada.
+   *
+   * Lo que se mide ahora es la FORMA de la élite: cuántos atributos de cinco estrellas acumula un
+   * corredor. `estrellas5Medias` es la media del pelotón, `estrellas5Mejor` el máximo del mundo y
+   * `cracksPct` el % con TRES o más, que es el perfil «crack» del que habla el dueño. Si esos tres
+   * suben temporada a temporada, la progresión satura y el juego se queda sin jerarquía.
    */
-  pogacarPct: number
+  estrellas5Medias: number
+  estrellas5Mejor: number
+  cracksPct: number
   /**
    * …Y LA OTRA MITAD DEL MIEDO: el % de corredores que no llegan a cuatro estrellas en NADA. Un
    * pelotón entero de medianías es tan malo como uno de superhombres.
@@ -143,7 +154,8 @@ function foto(
   neopros: number,
 ): WorldSeasonRow {
   const medias = field.map((r) => media(FISICOS.map((a) => r.attributes[a])))
-  const pogacar = field.filter((r) => FISICOS.every((a) => attrStars(r.attributes[a]) >= 5)).length
+  const cincos = field.map((r) => FISICOS.filter((a) => attrStars(r.attributes[a]) >= 5).length)
+  const cracks = cincos.filter((n) => n >= 3).length
   const medianias = field.filter((r) => FISICOS.every((a) => attrStars(r.attributes[a]) < 4)).length
   const margen = field.flatMap((r) =>
     FISICOS.map((a) => Math.max(0, r.ceilings[a] - r.attributes[a])),
@@ -154,7 +166,9 @@ function foto(
     riders: field.length,
     retired,
     neopros,
-    pogacarPct: (100 * pogacar) / Math.max(1, field.length),
+    estrellas5Medias: media(cincos),
+    estrellas5Mejor: Math.max(...cincos),
+    cracksPct: (100 * cracks) / Math.max(1, field.length),
     sinNadaSobre4Pct: (100 * medianias) / Math.max(1, field.length),
     mediaGlobal: media(medias),
     mejor: Math.max(...medias),
@@ -271,7 +285,9 @@ export function analyzeWorld(runs: number, seasons: number): WorldSeasonRow[] {
       riders: media(fila.map((f) => f.riders)),
       retired: media(fila.map((f) => f.retired)),
       neopros: media(fila.map((f) => f.neopros)),
-      pogacarPct: media(fila.map((f) => f.pogacarPct)),
+      estrellas5Medias: media(fila.map((f) => f.estrellas5Medias)),
+      estrellas5Mejor: media(fila.map((f) => f.estrellas5Mejor)),
+      cracksPct: media(fila.map((f) => f.cracksPct)),
       sinNadaSobre4Pct: media(fila.map((f) => f.sinNadaSobre4Pct)),
       mediaGlobal: media(fila.map((f) => f.mediaGlobal)),
       mejor: media(fila.map((f) => f.mejor)),
