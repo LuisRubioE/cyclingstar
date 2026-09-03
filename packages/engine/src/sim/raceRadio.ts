@@ -518,6 +518,15 @@ function groupSpeedKmh(
 export function radioForStorage(
   radio: RaceRadio,
   watch: ReadonlySet<string> = new Set(),
+  /**
+   * LOS QUE NO SE PUEDEN CAER DEL CORTE, en orden de importancia (v47). Son los tres maillots, y
+   * existen porque la vista nombra como mucho a 24 por grupo (`MAX_NAMED_PER_GROUP`) poniendo
+   * primero a los que tiran: con doce tirando y la lista de seguimiento detrás EN ORDEN DE
+   * CARRETERA, el corte caía justo encima de los maillots y qué maillot sobrevivía era azar. El
+   * dueño lo reportó dos veces —«te dije que SIEMPRE se vean los 3 maillots y solo sale uno»— y no
+   * era que faltara el dato: es que iba en el sitio equivocado de la cola.
+   */
+  priority: readonly string[] = [],
 ): StoredRaceRadio {
   const index = new Map<string, number>()
   const riders: string[] = []
@@ -559,8 +568,16 @@ export function radioForStorage(
       const pullingAll = new Set(g.pulling.map((p) => p.riderId))
       // En un grupo pequeño se nombra a todos; en el pelotón, a los que hay que poder seguir.
       const nameAll = g.size <= NAME_WHOLE_GROUP_UP_TO
+      // …Y LOS MAILLOTS PRIMEROS (v47). El orden de esta lista es el que sobrevive al corte de la
+      // vista, así que los que no se pueden caer van delante; el resto conserva el orden de
+      // carretera, que es el que hace legible una tabla de radio.
+      const rank = new Map(priority.map((id, i) => [id, i]))
       const watching = g.riderIds
         .filter((id) => (nameAll || watch.has(id)) && !pullingAll.has(id))
+        .sort(
+          (a, b) =>
+            (rank.get(a) ?? Number.MAX_SAFE_INTEGER) - (rank.get(b) ?? Number.MAX_SAFE_INTEGER),
+        )
         .map(idx)
       // La velocidad del grupo en este km, medida por los suyos (ver `groupSpeedKmh`).
       const speedKmh = groupSpeedKmh(g, clockAhead, next ? next.km - k.km : 0)

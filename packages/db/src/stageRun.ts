@@ -437,7 +437,13 @@ export async function runOneStage(
       // …y la radio, adelgazada a lo que la vista lee. La LISTA DE SEGUIMIENTO son los que hay que
       // poder nombrar aunque vayan a rueda: los diez primeros de la general que se corre hoy y los
       // diez primeros de la etapa. Sin ella, «el equipo tira para X» se lee sin ver nunca a X.
-      radio: radioForStorage(radio.radio(), radioWatchList) as unknown,
+      // …y los TRES MAILLOTS con prioridad sobre el corte de la vista: sin esto el tope de 24
+      // nombres por grupo caía encima de ellos y solo salía uno, al azar (v47).
+      radio: radioForStorage(
+        radio.radio(),
+        radioWatchList,
+        [jerseys.gc, jerseys.points, jerseys.kom].filter((id): id is string => id !== null),
+      ) as unknown,
     })
     .onConflictDoNothing()
 
