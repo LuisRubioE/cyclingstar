@@ -131,6 +131,15 @@ describe('engine: esqueleto', () => {
     // 6:53 en el km 137 y 16 s en meta). La referencia pasa a ser los que SIGUEN EN CARRERA, el
     // parte de ventaja NOMBRA a quien va delante y dice contra quién se mide y cuánto queda.
     // Cambio de OBSERVACIÓN: ni un dado, ni un subflujo, ni una constante de calibración.
+    // v46: EL ROL PESA EN EL REMATE, NO SOLO EN EL ATAQUE (docs/balance.md «v48»). `ROLE_APPETITE`
+    // hacía que el rol decidiera quién ATACA, pero en la META `finishScore` no lo miraba: un
+    // gregario con buen SPR esprintaba igual que el velocista designado de su equipo. El dueño lo
+    // vio dos veces —«no tiene sentido que luchen el sprint 2 del mismo equipo»— y la primera
+    // sospecha era falsa: no había ningún lanzador implicado, eran AGUADORES. A/B pareado sobre 72
+    // sprints masivos: los gregarios se llevaban el 45,8 % de los puestos del podio y bajan al
+    // 27,3 %, mientras el CAZAETAPAS —el designado para cazar la etapa— sube del 5,1 % al 18,1 % y
+    // el jefe de filas del 2,8 % al 7,4 %. Antes los dos estaban por DEBAJO de lo que les tocaba por
+    // número, o sea menos probables que un gregario. El sprinter designado apenas se entera.
     // v45: LA APUESTA DE LA GENERAL TIENE DOS LADOS (docs/balance.md «v46», docs/motor.md §13.1
     // regla 9-bis). Toda la conciencia de general del motor colgaba de UNA pregunta —«¿estás dentro
     // de la ventana de amenaza?»— que dice si te juegas algo pero no de qué lado, y el líder tiene
@@ -289,6 +298,6 @@ describe('engine: esqueleto', () => {
     // v11 (atribución del trabajo), la v10 (composición y caza), la v9 (capa táctica), la
     // v8 (tiempos de grupo), la v7 (modelo de final), la v6 (telemetría), la v5 (clásica larga), la
     // v4 (pavé en el recorrido) y la v3 (Cambio 0).
-    expect(ENGINE_VERSION).toBe(45)
+    expect(ENGINE_VERSION).toBe(46)
   })
 })

@@ -715,7 +715,7 @@
  * Campaña canónica de 500 corridas: **los 33 invariantes en verde**. La contrarreloj no se mueve ni
  * un dígito —es el ancla del esfuerzo individual y paga la ley lineal de siempre—.
  */
-export const ENGINE_VERSION = 45 as const
+export const ENGINE_VERSION = 46 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -3205,6 +3205,60 @@ export const STAGE = {
     descenso: { DES: 0.42, TAC: 0.25, SPR: 0.18, LLA: 0.15 },
     solitario: { RES: 0.35, LLA: 0.3, TAC: 0.2, MON: 0.15 },
   },
+  /**
+   * EL ROL PESA EN EL REMATE, NO SOLO EN EL ATAQUE (v48).
+   *
+   * `ROLE_APPETITE` (stage/tactics.ts) hace que el rol decida quién ATACA —un gregario tiene 0,2 de
+   * ganas contra el 1,0 de un cazaetapas—, pero en la META el rol no contaba NADA: `finishScore` es
+   * una mezcla de atributos y punto. Un gregario con buen SPR esprintaba exactamente igual que el
+   * velocista designado de su equipo.
+   *
+   * Y salía a la luz, que es como lo vio el dueño: «no tiene sentido que luchen el sprint 2 del
+   * mismo equipo (y encima les gana el otro!!!); si hubieran colaborado quizás hubieran ganado uno
+   * de ellos».
+   *
+   * LO PRIMERO QUE SE MIDIÓ FUE FALSO, y conviene dejarlo escrito: la sospecha era que el LANZADOR
+   * adelantaba a su propio sprinter. De los seis casos de dos compañeros en el top-3, **ninguno**
+   * llevaba un lanzador dentro. Eran gregarios. Y el segundo estadístico —«cuántas veces hay dos del
+   * mismo equipo en el podio»— tampoco servía: con 6 eventos sobre 99 sprints, su sigma es 2,6 y no
+   * distingue nada. Lo que lo distingue es QUÉ ROL se lleva cada puesto del podio, que son 216 datos
+   * en vez de 6. A/B pareado, 72 sprints masivos del Giro por brazo:
+   *
+   *     rol           sin el peso        con el peso
+   *     sprinter      45,8 %  9,18x      47,2 %  9,45x
+   *     gregario      45,8 %  0,65x      27,3 %  0,39x
+   *     cazaetapas     5,1 %  0,41x      18,1 %  1,44x
+   *     lider          2,8 %  0,37x       7,4 %  0,99x
+   *
+   * Los AGUADORES se llevaban casi la mitad del podio de un embalaje. Y lo que lo confirma como
+   * defecto y no como aritmética de un pelotón lleno de gregarios: el **cazaetapas** —el hombre al
+   * que su equipo designa justamente para cazar la etapa— estaba a 0,41x, o sea MENOS probable que
+   * un gregario, y el jefe de filas a 0,37x. Con el peso puesto, cada uno vuelve a su sitio y el
+   * sprinter designado apenas se entera (9,18x -> 9,45x).
+   *
+   * Los números dicen para quién corre cada uno, no cuánto vale:
+   *
+   *  - `cazaetapas`, `sprinter` y `lider` corren para SÍ: 1,00, sin tocar nada de lo de antes.
+   *  - `libre` casi igual: no tiene órdenes, pero tampoco un equipo empujándole.
+   *  - `gregario` y `lanzador` corren para OTRO. Llegan vaciados de haberse partido por su jefe y no
+   *    disputan la victoria; que uno se cuele en el top-10 es normal, que gane el sprint no.
+   *  - `marcador` va pegado a un rival, no a la meta.
+   *
+   * Es un factor sobre la puntuación, no un veto: un gregario con un día enorme todavía puede
+   * colarse, que es lo que pasa en carretera. Lo que deja de pasar es que sea lo normal.
+   */
+  finishRoleWeight: {
+    cazaetapas: 1.0,
+    sprinter: 1.0,
+    lider: 1.0,
+    libre: 0.97,
+    marcador: 0.92,
+    lanzador: 0.88,
+    gregario: 0.88,
+  } as Record<
+    'lider' | 'sprinter' | 'lanzador' | 'gregario' | 'cazaetapas' | 'marcador' | 'libre',
+    number
+  >,
   // Penalización del TRABAJO del día en el remate (docs/motor.md §12). `workUnits` ya se calculaba
   // y no se usaba para NADA en el resultado: quien había relevado 100 km llegaba igual que quien
   // fue a rueda, y por eso ir a rueda era la única estrategia sin coste de oportunidad. Se compara

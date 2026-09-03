@@ -5368,6 +5368,14 @@ function finishStage(
         const e = erosion(m.energy, m.energy0, m.input.eff0.RES)
         const eff = effNow(m.input.eff0, e, m.energy <= 0)
         let score = finishScore(eff, type) * normal(rngSprint, 1, STAGE.sprintScoreNoiseSd)
+        /**
+         * …Y PARA QUIÉN CORRE (v48). El rol decidía quién ataca y no contaba nada en la meta, así
+         * que el gregario de un equipo esprintaba igual que su velocista. Medido con un A/B pareado
+         * sobre 72 sprints masivos del Giro: los gregarios se llevaban el 45,8 % de los puestos del
+         * podio y el CAZAETAPAS —el designado para cazar la etapa— solo el 5,1 %, menos de lo que le
+         * tocaba por número. Ver `finishRoleWeight`.
+         */
+        score *= STAGE.finishRoleWeight[m.input.orders.role] ?? 1
         // Peaje del trabajo del día (docs/motor.md §12): `workUnits` ya se calculaba y no se usaba
         // para nada en el resultado.
         if (meanWork > 0) {

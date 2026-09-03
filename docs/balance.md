@@ -9386,3 +9386,57 @@ cuatro muestras con física idéntica dan 7,86 · 8,28 · 7,64 · 8,49 contra un
 mitad de las veces sin que nada cambie, y su comentario todavía dice «el motor produce una cola de
 8,1 a 8,3» cuando hoy da 8,55. Un test así no vigila: genera ruido en el nocturno. Se arregla aparte
 y con muestra, no ensanchando la banda.
+
+---
+
+## v48 — Los aguadores se llevaban medio podio de los embalajes
+
+El dueño, dos veces, con el diario delante: «no tiene sentido que luchen el sprint 2 del mismo equipo
+(y encima les gana el otro!!!). Si hubieran colaborado quizás hubieran ganado uno de ellos».
+
+### 1. Las DOS primeras mediciones fueron malas, y eso es la mitad de la historia
+
+**La sospecha era falsa.** Lo primero que pensé fue que el LANZADOR estaba adelantando a su propio
+sprinter: sería el defecto más natural, el tren que se come a su jefe. Medido sobre 99 sprints
+masivos del Giro, de los seis casos con dos compañeros en el top-3, **ninguno** llevaba un lanzador.
+Eran gregarios.
+
+**Y el estadístico también.** «Cuántas veces hay dos del mismo equipo en el podio» da 6 eventos sobre
+99 sprints: su sigma es 2,6. Apliqué una corrección, volví a medir, salió 8, y **no significaba
+nada** — ni mejor ni peor, solo ruido. Estuve a punto de subir un cambio del motor sin poder decir si
+hacía algo, que es exactamente el error que la «v46 §4» de este documento dejó escrito.
+
+Lo que sí distingue es **qué ROL se lleva cada puesto del podio**: 216 datos en vez de 6.
+
+### 2. Con el estadístico bueno, el defecto salta
+
+A/B pareado, 72 sprints masivos del Giro por brazo, mismas semillas:
+
+| rol            | sin el peso        | con el peso        |
+| -------------- | ------------------ | ------------------ |
+| sprinter       | 45,8 % (9,18×)     | 47,2 % (9,45×)     |
+| **gregario**   | **45,8 %** (0,65×) | **27,3 %** (0,39×) |
+| **cazaetapas** | **5,1 %** (0,41×)  | **18,1 %** (1,44×) |
+| **lider**      | **2,8 %** (0,37×)  | **7,4 %** (0,99×)  |
+
+**Los aguadores se llevaban casi la mitad del podio de un embalaje.** Y lo que lo confirma como
+defecto y no como aritmética de un pelotón donde 7 de cada 10 son gregarios: el **cazaetapas** —el
+hombre al que su equipo designa justamente para cazar la etapa— estaba a **0,41×**, o sea MENOS
+probable que un aguador, y el jefe de filas a 0,37×.
+
+### 3. La causa, en una línea
+
+`ROLE_APPETITE` (stage/tactics.ts) hace que el rol decida quién ATACA: un gregario tiene 0,2 de ganas
+contra el 1,0 de un cazaetapas. Pero en la META, `finishScore` es una mezcla de atributos y **el rol
+no contaba nada**. El motor sabía para quién corre cada uno mientras la carrera estaba en marcha, y
+se le olvidaba en los últimos doscientos metros.
+
+`finishRoleWeight` lo arregla con un factor, no con un veto: el que corre para otro —gregario,
+lanzador— remata peor porque llega vaciado de haberse partido por su jefe, pero un día enorme todavía
+puede colarle a cualquiera. Lo que deja de pasar es que sea lo normal.
+
+### 4. Lo que este cambio NO dice
+
+No dice que el reparto de roles del pelotón esté bien. Que el 70 % del campo sean gregarios es otra
+pregunta —un equipo de ocho en una llana lleva un velocista, su tren de dos o tres, y el resto—, y
+este banco la deja a la vista sin contestarla.
