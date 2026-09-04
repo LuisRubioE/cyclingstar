@@ -483,16 +483,51 @@ const NAME_WHOLE_GROUP_UP_TO = 12
  * Si no queda ni uno de los suyos en la foto siguiente —todos han llegado a meta o se han
  * retirado—, no hay velocidad que dar y se devuelve `null`, que es lo honesto.
  */
+/**
+ * LA VELOCIDAD DE UN GRUPO ES LA DE LOS HOMBRES QUE SIGUEN EN ÉL (v49).
+ *
+ * Se medía con el reloj de TODOS los que estaban en el grupo en esta foto, mirados en la foto
+ * siguiente, sin comprobar si seguían juntos. Y el que se cae de un grupo trae un Δt enorme —ha
+ * perdido tiempo, para eso se ha caído—, así que se colaba en la mediana del grupo que acababa de
+ * abandonar y lo pintaba frenando en seco.
+ *
+ * El dueño lo fotografió en la etapa 9 del Giro: cabeza de carrera **a 14,3 km/h** con la caza a
+ * 35,9 y el pelotón a 41,8, en el mismo trozo de carretera —1:17 son unos 750 m, la misma
+ * pendiente—. Y descartó él mismo la pájara: «mira el siguiente km», donde el mismo grupo va a 42,4.
+ * Un pico de un solo punto de radio, no una carrera lenta.
+ *
+ * La corrección es quedarse con los que SIGUEN JUNTOS: de este grupo, los que en la foto siguiente
+ * comparten el grupo más poblado. Se hace por mayoría y no por id de grupo porque los grupos se
+ * funden y se renombran —un grupo cazado deja de existir con su id— y lo que define «el mismo
+ * grupo» es la gente, no la etiqueta.
+ */
 function groupSpeedKmh(
   g: RadioGroup,
   clockAhead: ReadonlyMap<string, number>,
   dKm: number,
+  groupAhead: ReadonlyMap<string, string> = new Map(),
 ): number | null {
   if (dKm <= 0) return null
+  // Dónde acaba la MAYORÍA de este grupo: ése es «el mismo grupo» en la foto siguiente.
+  const cuenta = new Map<string, number>()
+  for (const id of g.riderIds) {
+    const dónde = groupAhead.get(id)
+    if (dónde !== undefined) cuenta.set(dónde, (cuenta.get(dónde) ?? 0) + 1)
+  }
+  let mayoria: string | null = null
+  let mejor = 0
+  for (const [id, n] of cuenta) {
+    if (n <= mejor) continue
+    mejor = n
+    mayoria = id
+  }
   const dts: number[] = []
   for (let i = 0; i < g.riderIds.length; i++) {
-    const then = clockAhead.get(g.riderIds[i]!)
+    const rider = g.riderIds[i]!
+    const then = clockAhead.get(rider)
     if (then === undefined) continue
+    // …y si sabemos dónde acaba cada uno, solo cuentan los que se quedan con la mayoría.
+    if (mayoria !== null && groupAhead.get(rider) !== mayoria) continue
     const dt = then - g.riderTs[i]!
     if (dt > 0) dts.push(dt)
   }
@@ -543,9 +578,14 @@ export function radioForStorage(
     // El reloj de cada corredor en la foto SIGUIENTE, una vez por kilómetro: es lo que necesita
     // `groupSpeedKmh` para medir la velocidad por los hombres en vez de por dos relojes de grupo.
     const clockAhead = new Map<string, number>()
+    // …y EN QUÉ GRUPO acaba cada uno, que es lo que permite descartar al que se cayó del nuestro.
+    const groupAhead = new Map<string, string>()
     if (next) {
       for (const g of next.groups)
-        for (let j = 0; j < g.riderIds.length; j++) clockAhead.set(g.riderIds[j]!, g.riderTs[j]!)
+        for (let j = 0; j < g.riderIds.length; j++) {
+          clockAhead.set(g.riderIds[j]!, g.riderTs[j]!)
+          groupAhead.set(g.riderIds[j]!, g.id)
+        }
     }
     const groups = k.groups.map((g) => {
       /**
@@ -580,7 +620,7 @@ export function radioForStorage(
         )
         .map(idx)
       // La velocidad del grupo en este km, medida por los suyos (ver `groupSpeedKmh`).
-      const speedKmh = groupSpeedKmh(g, clockAhead, next ? next.km - k.km : 0)
+      const speedKmh = groupSpeedKmh(g, clockAhead, next ? next.km - k.km : 0, groupAhead)
       return {
         kind: g.kind,
         size: g.size,

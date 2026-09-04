@@ -1728,10 +1728,25 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
            * (`stageCandidateId`, el mejor suyo para este final). Y solo cuenta si no es un rebelde:
            * el equipo no defiende a quien se ha ido por su cuenta contra sus órdenes (§VI.2).
            */
-          const suCarta = plan.stageCandidateId
+          /**
+           * …Y «SU CARTA» NO ES SOLO LA DEL FINAL DE HOY: TAMBIÉN EL HOMBRE DE LA GENERAL (v49).
+           *
+           * `stageCandidateId` es el mejor del equipo PARA ESTE FINAL, y con eso solo se escapaba el
+           * caso que el dueño fotografió: su líder iba en el grupo de caza, y cinco compañeros suyos
+           * TIRABAN del pelotón 1:40 más atrás. Como la carta del día era otro —un rematador que
+           * seguía en el pelotón—, `manUpTheRoad` salía false, el equipo se declaraba «a perseguir» y
+           * arrastraba a 138 corredores hacia su propio jefe. Sus palabras: «¿para qué carajos tiran
+           * si en ese grupo donde están no está su líder? ¿Para llevarle 138 ciclistas más?».
+           *
+           * Un equipo no persigue NUNCA un grupo en el que va su hombre, y tiene dos: el que juega la
+           * etapa y el que lleva la general. Con cualquiera de los dos delante, el equipo se aparta.
+           */
+          const cartas = [plan.stageCandidateId, plan.leaderId].filter(
+            (id): id is string => id != null,
+          )
           const manUpTheRoad =
-            suCarta != null
-              ? inMove.has(suCarta) && !rebels.has(suCarta)
+            cartas.length > 0
+              ? cartas.some((id) => inMove.has(id) && !rebels.has(id))
               : plan.memberIds.some((id) => inMove.has(id) && !rebels.has(id))
           teamNow.set(
             plan.teamId,
