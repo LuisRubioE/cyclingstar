@@ -117,7 +117,13 @@ describe('contratos: forma y salud', () => {
       form: { stars: 3, freshness: 0.6 },
       health: { state: 'molestias', untilDay: 20 },
     }
-    expect(formResponseSchema.parse(conSalud)).toEqual(conSalud)
+    // …y el PARTE del día llega a `null` cuando no viene (v47): un día de entrenamiento no tiene
+    // carrera que contar, y una API que va por detrás de la web tampoco lo manda. Es lo que hace
+    // que la ficha pueda pintar el desglose sin comprobar si el campo existe.
+    expect(formResponseSchema.parse(conSalud)).toEqual({
+      ...conSalud,
+      log: [{ ...conSalud.log[0]!, parte: null }],
+    })
     expect(formResponseSchema.parse({ log: [], form: null })).toEqual({ log: [], form: null })
   })
 

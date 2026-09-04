@@ -216,6 +216,12 @@ export function radioKmFrom(
    * `null` en la primera foto: manda el tamaño.
    */
   previousMainId: string | null = null,
+  /**
+   * EL PELOTÓN SEGÚN EL MOTOR (v47). Si viene, manda: `mainGroupId` lleva histéresis y recalcularla
+   * aquí abre una segunda verdad que puede divergir de la que la carrera está usando para decidir
+   * quién tira. Solo se recalcula cuando no viene —las fotos a mano de un test—.
+   */
+  engineMainId?: string,
 ): RadioKm {
   const byGroup = new Map<string, SnapshotRider[]>()
   for (const r of riders) {
@@ -254,7 +260,10 @@ export function radioKmFrom(
    * dos corredores con cien detrás llamados grupeto. La regla vive en `stage/group.ts` y es la
    * MISMA que usa el motor para medir los boquetes, para que la radio y la carrera no discrepen.
    */
-  const mainId = mainGroupId(raw, previousMainId, STAGE.mainGroupTakeoverRatio)
+  const mainId =
+    engineMainId != null && raw.some((g) => g.id === engineMainId)
+      ? engineMainId
+      : mainGroupId(raw, previousMainId, STAGE.mainGroupTakeoverRatio)
   const mainTs = raw.find((g) => g.id === mainId)?.tS ?? null
   let movesAhead = 0
   const groups: RadioGroup[] = raw.map((g, i) => {
@@ -323,12 +332,12 @@ export function raceRadioCollector(
   atKm: readonly number[],
   options: RaceRadioOptions = {},
 ): { probe: StageProbe; radio: () => RaceRadio } {
-  const shots: { km: number; riders: SnapshotRider[] }[] = []
+  const shots: { km: number; riders: SnapshotRider[]; mainId: string | null }[] = []
   return {
     probe: {
       atKm,
-      onSnapshot: (km, riders) => {
-        shots.push({ km, riders: [...riders] })
+      onSnapshot: (km, riders, mainId) => {
+        shots.push({ km, riders: [...riders], mainId })
       },
     },
     radio: () => raceRadioFrom(shots, options),
@@ -337,7 +346,17 @@ export function raceRadioCollector(
 
 /** La carrera km a km a partir de las fotos ya tomadas. Función pura: se puede llamar dos veces. */
 export function raceRadioFrom(
-  shots: readonly { km: number; riders: readonly SnapshotRider[] }[],
+  shots: readonly {
+    km: number
+    riders: readonly SnapshotRider[]
+    /**
+     * CUÁL ES EL PELOTÓN según el MOTOR en esa foto (v47). Sin él la radio lo recalcula, y eso
+     * arranca una segunda cadena de histéresis que acaba discrepando de la del motor —medido: 12
+     * fotos sobre seis carreras del banco, y en ellas los relevos del pelotón se anotaban como de
+     * un grupeto—. `undefined` solo en las fotos armadas a mano de un test.
+     */
+    mainId?: string | null
+  }[],
   options: RaceRadioOptions = {},
 ): RaceRadio {
   const maxPullers = options.maxPullers ?? DEFAULT_MAX_PULLERS
@@ -352,7 +371,8 @@ export function raceRadioFrom(
   const kms = [...shots]
     .sort((a, b) => a.km - b.km)
     .map((s) => {
-      const row = radioKmFrom(s.km, s.riders, starters, maxPullers, mainId)
+      // El del motor manda; solo si no viene se hereda el de la foto anterior y se recalcula.
+      const row = radioKmFrom(s.km, s.riders, starters, maxPullers, mainId, s.mainId ?? undefined)
       mainId = row.mainId
       return row
     })

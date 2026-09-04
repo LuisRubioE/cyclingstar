@@ -2092,6 +2092,18 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
                 // viaja resuelto a la web sin darlo de alta en ninguna tabla (apps/api/chronicle).
                 jefeId: leaderId,
                 cuantos: van.length,
+                /**
+                 * CUÁNTOS SE QUEDAN DELANTE (v47). La regla del dueño para la general es «descolgar
+                 * a todo el equipo menos 1», y ese «menos 1» solo existe si queda alguno de los
+                 * suyos EN EL PELOTÓN: si el equipo entero ya va repartido por la carretera, no hay
+                 * nada que guardar y bajan todos los que puedan.
+                 *
+                 * Sale al parte porque sin él la regla no se puede vigilar desde fuera y el banco
+                 * tenía que adivinarla: el invariante sellaba el techo (cuatro) como si fuera fijo,
+                 * y en cuanto la criba de la v47 empezó a repartir al equipo por los grupos de
+                 * detrás, ese techo dejó de ser cierto sin que nada estuviera mal.
+                 */
+                guarda,
                 gapS: Math.round(gap),
                 porQue: porLaGeneral ? 'general' : 'etapa',
                 toGo: Math.round(kmRestantes),
@@ -5170,7 +5182,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
           pullWindow: s.pullWindow,
         })
       }
-      probe.onSnapshot(probeAt.get(i)!, snapshot)
+      probe.onSnapshot(probeAt.get(i)!, snapshot, mainId)
     }
   }
 

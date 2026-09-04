@@ -285,8 +285,20 @@ export interface SnapshotRider {
 export interface StageProbe {
   /** Kilómetros del recorrido en los que se quiere la foto. */
   atKm: readonly number[]
-  /** Recibe cada foto con el km REAL del bloque en que se tomó (múltiplo de `dx`). */
-  onSnapshot: (km: number, riders: readonly SnapshotRider[]) => void
+  /**
+   * Recibe cada foto con el km REAL del bloque en que se tomó (múltiplo de `dx`) y **cuál es el
+   * pelotón** en ese punto.
+   *
+   * `mainGroupId` viaja desde la v47 y no es un adorno: `mainGroupId()` (stage/group.ts) lleva
+   * HISTÉRESIS —el título de pelotón se hereda y solo cambia de manos por un margen—, así que quien
+   * lo recalcule por su cuenta arranca otra cadena y acaba llamando pelotón a otro grupo. Es
+   * exactamente lo que pasaba: medido sobre seis carreras del banco, la radio y el motor discrepaban
+   * en 12 fotos, y en ellas los relevos del pelotón salían anotados como de un grupeto y al revés.
+   * Aquí viaja **el que el motor está usando de verdad**, que es el que decide quién tira y por qué.
+   *
+   * `null` = todavía no hay ninguno (no queda nadie en carretera).
+   */
+  onSnapshot: (km: number, riders: readonly SnapshotRider[], mainGroupId: string | null) => void
 }
 
 /**
