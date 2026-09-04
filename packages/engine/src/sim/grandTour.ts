@@ -95,6 +95,20 @@ export function abandonMix(c: AbandonCauses): AbandonMix {
 export interface StageTail {
   /** `llana` · `media` · `reina`. Las contrarrelojes quedan fuera: no tienen grupos. */
   kind: string
+  /** Qué etapa de la vuelta fue: sin esto, un caso raro del banco no se puede ir a mirar. */
+  stageIndex: number
+  /**
+   * CUÁNTOS TERMINARON, y esto no es decorado: sin ello el resto de la fila se lee mal.
+   *
+   * `oneGroup` y `top10GapSeconds` se calculan sobre los CLASIFICADOS, así que una etapa diezmada
+   * —doce supervivientes que entran juntos— sale con «un solo grupo» y «0 s del 1.º al 10.º»
+   * exactamente igual que un pelotón que llega compacto, cuando son lo contrario. Peor: la brecha
+   * 1.º-10.º usa `timed[9] ?? winner`, o sea que si no hay diez clasificados informa CERO.
+   *
+   * Se descubrió persiguiendo justamente eso: una reina con `oneGroup` que podía ser cualquiera de
+   * las dos cosas y el banco no sabía decir cuál.
+   */
+  finishers: number
   /** Retraso del último CLASIFICADO respecto al ganador, en % de su tiempo. */
   lastGroupPct: number
   /** Grupos de tiempo en meta (relojes distintos entre los clasificados). */
@@ -282,6 +296,8 @@ export function runGrandTour(worldSeed: string): GrandTourResult {
         const clocks = new Set(timed.map((r) => r.tiempoS))
         tails.push({
           kind: stage.kind,
+          stageIndex: stage.index,
+          finishers: timed.length,
           lastGroupPct: (100 * (last - winner)) / winner,
           groups: clocks.size,
           oneGroup: clocks.size === 1,

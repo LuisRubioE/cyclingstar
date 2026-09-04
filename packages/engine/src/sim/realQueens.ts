@@ -183,6 +183,10 @@ function runStage(
   const clocks = new Set(timed.map((r) => r.tiempoS))
   return {
     kind: label,
+    // Este banco corre etapas SUELTAS elegidas a mano, no una vuelta: no hay número de etapa que
+    // dar, así que va 0 y el consumidor lo lee por su `label`.
+    stageIndex: 0,
+    finishers: timed.length,
     lastGroupPct: (100 * (last - winner)) / winner,
     groups: clocks.size,
     oneGroup: clocks.size === 1,
