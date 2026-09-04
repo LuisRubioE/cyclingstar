@@ -9599,3 +9599,31 @@ un techo de 18, así que las dos bandas pasan holgadas y no hay nada que decidir
 
 Queda anotado igualmente porque la próxima vez que alguien quiera cribar también los grupetos —que es
 lo que pasa en carretera— se va a encontrar ese techo, y esta es la nota que le dirá dónde mirar.
+
+### 9. El invariante que sí hubo que tocar, y por qué no fue para que pasara un número
+
+`mountain.top10GapSeconds` (la brecha 1.º-10.º de la reina sintética, mediana de 120 corridas) cayó
+de 66 a 55 s contra un suelo de 60. Antes de tocar nada se midió **en pareado**: las mismas 120
+semillas con el motor de antes y el de después, en el mismo proceso.
+
+```
+DIFERENCIA PAREADA (después − antes):  mediana 0 s · p10 −1 s · p90 +1 s
+```
+
+**En el 80 % de las carreras el cambio movió la brecha un segundo o menos.** De 120 semillas cambian
+38, y los cambios van en las dos direcciones y son minúsculos: 121→115, 101→102, 118→122, 171→174,
+167→168, 184→186. Y aun así la mediana se movió once segundos. El porqué está en la nube:
+
+```
+… 47  49  52  52  55 │ 65  65  66  66  67 …      (puestos 50-70 de 120)
+```
+
+**La mediana estaba sentada en un hueco de diez segundos**, y el suelo de 60 dentro de él. Que UNA
+semilla cruce el hueco decide si el invariante aprueba. Peor: la nube entera va **de 41 a 87 s**, así
+que ese suelo le pedía a la corrida del medio que quedara por encima de la mitad de su propia
+distribución, y ya estaba a 5,5 s de suspender antes de esta tanda.
+
+Se le llevaron al dueño las cuatro salidas —bajar el suelo, subir las semillas del invariante (lo que
+`breakawayWinPct` ya tiene anotado para su techo), revertir la criba, o dejarlo en rojo— y eligió
+**bajar el suelo a 40**, que deja el listón por debajo de la nube entera. Un suelo tiene que cazar
+que la montaña deje de seleccionar; no arbitrar de qué lado de un hueco cae la mediana.
