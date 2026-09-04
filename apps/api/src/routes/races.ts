@@ -13,6 +13,7 @@ import {
   getRosterTeammates,
   getRunStageDays,
   getStageOrders,
+  getStageNonFinishers,
   getStageResults,
   getStageSnapshot,
   getRiderForUser,
@@ -188,7 +189,7 @@ export const raceRoutes: RoutePlugin = async (app, ctx) => {
       if (day === null || !stage) return notFound(reply)
 
       const snapshot = await getStageSnapshot(db, TEST_TOUR_ID, day)
-      const results = await getStageResults(db, TEST_TOUR_ID, day)
+      const clasificados = await getStageResults(db, TEST_TOUR_ID, day)
       const km = stageKm(stage.profile.segments)
       if (!snapshot) {
         return {
@@ -199,9 +200,20 @@ export const raceRoutes: RoutePlugin = async (app, ctx) => {
           altimetry: renderAltimetrySvg(stage.profile),
         }
       }
+      // …y los que tomaron la salida y no acabaron, igual que en una carrera del calendario (v50).
+      const input = snapshot.input as StageInput
+      const results = [
+        ...clasificados,
+        ...(await getStageNonFinishers(
+          db,
+          TEST_TOUR_ID,
+          day,
+          input.riders.map((r) => r.riderId),
+        )),
+      ]
 
       // Regenera los eventos ejecutando el motor con la misma entrada y semilla.
-      const output = simulateStage(snapshot.input as StageInput, snapshot.seed)
+      const output = simulateStage(input, snapshot.seed)
       // La vuelta de prueba no tiene roster de carrera: las identidades salen de los resultados, así
       // que van sin dorsal (y la crónica lo omite, en vez de inventarlo).
       const chronicle = buildChronicle(output.events, chronicleNames(results), {
@@ -372,7 +384,18 @@ export const raceRoutes: RoutePlugin = async (app, ctx) => {
         km: stageKm(racedProfile.segments),
       })
 
-      const results = await getStageResults(db, raceKey, day)
+      /**
+       * LA HOJA DE LA ETAPA LLEVA TAMBIÉN A LOS QUE NO ACABARON (v50). El dueño: «los DNF no salen
+       * en la clasificación de la etapa», y antes: «no sé si se retiró antes de salir o en medio».
+       * La lista de salida es la del SNAPSHOT —el campo que el motor corrió ese día—, así que quien
+       * está en ella y no está clasificado se retiró en carretera, y quien no está ni en ella es que
+       * no tomó la salida. Ver `getStageNonFinishers`.
+       */
+      const started = racedInput.riders.map((r) => r.riderId)
+      const results = [
+        ...(await getStageResults(db, raceKey, day)),
+        ...(await getStageNonFinishers(db, raceKey, day, started)),
+      ]
       const gc = await getGcThroughStage(db, raceKey, day)
       // Montaña y puntos tal como quedaron TRAS esta etapa (acumulado hasta el día `day`).
       const kom = await getKomClassification(db, raceKey, day)

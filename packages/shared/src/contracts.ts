@@ -1054,6 +1054,17 @@ export const stageResultEntrySchema = z.object({
   bonificacionS: z.number(),
   puntosVolante: z.number(),
   puntosMontana: z.number(),
+  /**
+   * TOMÓ LA SALIDA Y NO ACABÓ (v50). `puesto` y `tiempoS` valen 0 y no significan nada: la fila
+   * existe para que el corredor no desaparezca de la hoja de la etapa. Con `default` a propósito,
+   * para que una API que vaya por detrás de la web no rompa la tabla entera.
+   */
+  dnf: z.boolean().default(false),
+  /**
+   * POR QUÉ no acabó: `colapso`, `lesion`, `fuera_control`, `enfermedad` o `voluntario`. `null`
+   * cuando no hay motivo guardado, y entonces la tabla dice «DNF» a secas.
+   */
+  reason: z.string().nullish().default(null),
 })
 export type StageResultEntry = z.infer<typeof stageResultEntrySchema>
 

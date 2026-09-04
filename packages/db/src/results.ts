@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, lte, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray, lte, sql } from 'drizzle-orm'
 import type { Database } from './client.js'
 import { gcOrderBy } from './gcSort.js'
 import { raceGc, raceRosters, riders, stageResults, stageSnapshots, teams } from './schema.js'
@@ -67,6 +67,18 @@ export interface StageResultRow {
   bonificacionS: number
   puntosVolante: number
   puntosMontana: number
+  /**
+   * NO ACABÓ LA ETAPA (v50): tomó la salida y no está en la clasificación. `puesto` y `tiempoS`
+   * valen 0 y no significan nada; la fila existe para que el corredor no desaparezca de la hoja.
+   */
+  dnf: boolean
+  /**
+   * POR QUÉ no acabó, tal como lo guardó `race_rosters.abandonedReason`: `colapso` (se bajó de la
+   * bici), `lesion` (caída), `fuera_control` (llegó fuera del corte), `enfermedad` o `voluntario`.
+   * `null` cuando no hay motivo guardado —una carrera de UN DÍA no marca abandonos, porque no hay
+   * resto de carrera que abandonar— y entonces la interfaz dice «DNF» a secas.
+   */
+  reason: string | null
 }
 
 export async function getStageResults(
@@ -87,12 +99,77 @@ export async function getStageResults(
       bonificacionS: stageResults.bonificacionS,
       puntosVolante: stageResults.puntosVolante,
       puntosMontana: stageResults.puntosMontana,
+      dnf: sql<boolean>`false`,
+      reason: sql<string | null>`null`,
     })
     .from(stageResults)
     .innerJoin(riders, eq(riders.id, stageResults.riderId))
     .leftJoin(teams, eq(teams.id, riders.teamId))
     .where(and(eq(stageResults.raceId, raceId), eq(stageResults.stageDay, stageDay)))
     .orderBy(asc(stageResults.puesto))
+}
+
+/**
+ * LOS QUE TOMARON LA SALIDA Y NO ESTÁN EN LA CLASIFICACIÓN (v50).
+ *
+ * El dueño, sobre la etapa 2 de una vuelta: «el maillot amarillo lo lleva Jean Vandenbroucke… no
+ * sale en el resultado de la etapa, ni hay mención en el journal… parece que se retiró en algún
+ * punto, pero **no sé si fue antes de salir o en medio de la etapa**». Y luego, más corto: «los DNF
+ * no salen en la clasificación de la etapa».
+ *
+ * Tenía razón las dos veces, y el motor no era el culpable: `simulateStage` devuelve a TODOS con su
+ * `estado` (`finish`, `abandon`, `dnf`), y es `stageRun.ts` quien, al guardar, se queda solo con los
+ * clasificados —a los demás solo les apunta la carga del día—. Así que en la hoja de la etapa no
+ * desaparecían por un defecto de pintado: es que no había fila que pintar.
+ *
+ * SE DERIVA AL LEER, y no se guardan filas nuevas en `stage_results`, a propósito. Esa tabla la
+ * agregan seis consultas distintas —la general, la montaña, los puntos, la clasificación por
+ * equipos, el palmarés y el desempate por suma de puestos— y varias cuentan `count(distinct
+ * stage_day)` para saber a quién le falta una etapa. Meter ahí filas de gente que no acabó obligaría
+ * a acordarse de excluirlas en las seis, y olvidarse en UNA da una clasificación mal en silencio,
+ * que es justo la familia de defectos que esta tanda viene arreglando.
+ *
+ * La lista de salida sale del SNAPSHOT de la etapa (`input.riders`), que es exactamente el campo que
+ * el motor corrió ese día y que las dos rutas ya cargan. Con eso las dos preguntas del dueño se
+ * contestan solas: **si no está en la lista de salida, no tomó la salida; si está y no está
+ * clasificado, se retiró en carretera**.
+ */
+export async function getStageNonFinishers(
+  db: Database,
+  raceId: string,
+  stageDay: number,
+  startedRiderIds: readonly string[],
+): Promise<StageResultRow[]> {
+  if (startedRiderIds.length === 0) return []
+  const clasificados = await db
+    .select({ riderId: stageResults.riderId })
+    .from(stageResults)
+    .where(and(eq(stageResults.raceId, raceId), eq(stageResults.stageDay, stageDay)))
+  const enLaHoja = new Set(clasificados.map((r) => r.riderId))
+  const faltan = startedRiderIds.filter((id) => !enLaHoja.has(id))
+  if (faltan.length === 0) return []
+  return db
+    .select({
+      riderId: riders.id,
+      name: riders.name,
+      country: riders.country,
+      teamId: teams.id,
+      teamName: teams.name,
+      isBot: sql<boolean>`${riders.userId} is null`,
+      // No hay puesto ni tiempo, y no se inventan: el que no acaba no está clasificado.
+      puesto: sql<number>`0`,
+      tiempoS: sql<number>`0`,
+      bonificacionS: sql<number>`0`,
+      puntosVolante: sql<number>`0`,
+      puntosMontana: sql<number>`0`,
+      dnf: sql<boolean>`true`,
+      reason: raceRosters.abandonedReason,
+    })
+    .from(riders)
+    .leftJoin(teams, eq(teams.id, riders.teamId))
+    .leftJoin(raceRosters, and(eq(raceRosters.raceId, raceId), eq(raceRosters.riderId, riders.id)))
+    .where(inArray(riders.id, faltan))
+    .orderBy(asc(riders.name))
 }
 
 /** Identidad completa de un inscrito, para nombrar a los protagonistas de la crónica. */

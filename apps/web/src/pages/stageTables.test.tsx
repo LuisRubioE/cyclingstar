@@ -3,6 +3,7 @@ import type { ReactElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it } from 'vitest'
+import { TOP_ROWS } from '../components/ShowAll'
 import { GcTable, PointsTable, ResultTable } from './StageReplay'
 
 /**
@@ -46,10 +47,16 @@ const gcRow = (riderId: string, name: string, over: Partial<StageGcEntry> = {}):
   ...over,
 })
 
-const resultRow = (riderId: string, puesto: number): StageResultEntry => ({
+const resultRow = (
+  riderId: string,
+  puesto: number,
+  over: Partial<StageResultEntry> = {},
+): StageResultEntry => ({
   riderId,
   name: `Corredor ${riderId}`,
   country: 'ES',
+  dnf: false,
+  reason: null,
   teamId: `team-${riderId}`,
   teamName: `Equipo ${riderId}`,
   isBot: true,
@@ -58,6 +65,7 @@ const resultRow = (riderId: string, puesto: number): StageResultEntry => ({
   bonificacionS: 0,
   puntosVolante: 0,
   puntosMontana: 0,
+  ...over,
 })
 
 const pointsRow = (riderId: string, puntos: number) => ({
@@ -139,5 +147,50 @@ describe('el resultado de la etapa', () => {
     const markup = html(<ResultTable rows={[resultRow('a', 1)]} leaders={undefined} />)
     expect(markup).toContain('Corredor a')
     expect(count(markup, 'Race leader')).toBe(0)
+  })
+
+  /**
+   * LOS QUE NO ACABARON (v50). El dueño: «los DNF no salen en la clasificación de la etapa». Ahora
+   * sí, y con dos condiciones que son las que hacen que sirva de algo: se ven **aunque la tabla esté
+   * plegada** —son las filas que uno busca justamente cuando falta alguien— y `fuera de control` se
+   * dice distinto de un abandono, porque en una hoja de verdad son cosas distintas.
+   */
+  it('el que no acabó sale al final, tachado y sin puesto', () => {
+    const markup = html(
+      <ResultTable
+        rows={[resultRow('a', 1), resultRow('z', 0, { dnf: true, reason: 'colapso' })]}
+        leaders={undefined}
+      />,
+    )
+    const filaDnf = markup.split('<tr').find((row) => row.includes('Corredor z')) ?? ''
+    expect(filaDnf).toContain('DNF')
+    expect(filaDnf).toContain('line-through')
+    // Ni puesto ni tiempo: los ceros de la fila no significan nada y no se enseñan.
+    expect(filaDnf).not.toContain('0:00')
+  })
+
+  it('«fuera de control» no se llama DNF, que es otra cosa', () => {
+    const markup = html(
+      <ResultTable
+        rows={[resultRow('a', 1), resultRow('z', 0, { dnf: true, reason: 'fuera_control' })]}
+        leaders={undefined}
+      />,
+    )
+    const filaDnf = markup.split('<tr').find((row) => row.includes('Corredor z')) ?? ''
+    expect(filaDnf).toContain('OTL')
+  })
+
+  it('…y se ven aunque la tabla esté plegada, que es de lo que iba la queja', () => {
+    // Con más clasificados que el corte de «Show all», el abandonado sigue en la primera pantalla.
+    const muchos = Array.from({ length: TOP_ROWS + 15 }, (_, i) => resultRow(`c${i}`, i + 1))
+    const markup = html(
+      <ResultTable
+        rows={[...muchos, resultRow('z', 0, { dnf: true, reason: 'colapso' })]}
+        leaders={undefined}
+      />,
+    )
+    expect(markup).toContain('Corredor z')
+    // …y el que se queda fuera del corte por ser el 30.º clasificado, no.
+    expect(markup).not.toContain(`Corredor c${TOP_ROWS + 14}`)
   })
 })
