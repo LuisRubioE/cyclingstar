@@ -231,6 +231,8 @@ export type {
   StageResult,
   StageRider,
   StageRole,
+  StageEffort,
+  StageSpend,
   TankState,
 } from './stage/types.js'
 export {

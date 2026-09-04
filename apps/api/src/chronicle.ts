@@ -5,6 +5,7 @@ import {
   type RaceRadio,
   type RadioRider,
   jerseyOf,
+  pullMotiveSchema,
   radioGroupKindSchema,
 } from '@cyclingstar/shared'
 import { z } from 'zod'
@@ -1249,6 +1250,11 @@ const storedRaceRadioSchema = z.object({
           gapS: z.number(),
           speedKmh: z.number().nullable(),
           pulling: z.array(z.number()),
+          /**
+           * PARA QUÉ tira cada uno de `pulling`, en el mismo orden (v47). Con `default` a propósito:
+           * las etapas corridas antes de la v47 no lo traen y su radio tiene que seguir leyéndose.
+           */
+          motivos: z.array(pullMotiveSchema.nullable()).default([]),
           watching: z.array(z.number()),
         }),
       ),
@@ -1294,15 +1300,15 @@ export function buildRaceRadio(stored: unknown, names: ChronicleNames): RaceRadi
         groups: k.groups.map((g, gi) => {
           const named: RadioRider[] = []
           // 1) Los que TIRAN del grupo, en su orden (de más a menos trabajo reciente).
-          for (const i2 of g.pulling) {
+          g.pulling.forEach((i2, pi) => {
             const r = names.riderOf.get(ids[i2] ?? '')
-            if (r) named.push({ ...r, role: 'pulling' })
-          }
+            if (r) named.push({ ...r, role: 'pulling', motivo: g.motivos[pi] ?? null })
+          })
           // 2) Los que hay que ver aunque vayan a rueda: el motor los colocó, aquí se les pone cara.
           //    `protect` deja además que quien llama añada a alguien sin tocar lo guardado.
           for (const i2 of g.watching) {
             const r = names.riderOf.get(ids[i2] ?? '')
-            if (r) named.push({ ...r, role: 'sheltered' })
+            if (r) named.push({ ...r, role: 'sheltered', motivo: null })
           }
           const shown = named.slice(0, MAX_NAMED_PER_GROUP)
           const gapToPrevS = gi === 0 ? 0 : Math.max(0, g.gapS - prevGap)

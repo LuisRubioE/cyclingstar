@@ -39,6 +39,7 @@ function rider(
     energy: 500,
     energy0: 1000,
     pulling: false,
+    pullMotive: null,
     pullWindow: 0,
     ...extra,
   }

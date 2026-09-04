@@ -211,6 +211,13 @@
       "when": 1786442179187,
       "tag": "0029_radio_de_carrera",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1786528579187,
+      "tag": "0030_parte_del_corredor",
+      "breakpoints": true
     }
   ]
 }

@@ -5,6 +5,7 @@ import {
   type PublicRider,
   type Vocation,
 } from '@cyclingstar/shared'
+import type { StageEffort } from '@cyclingstar/engine'
 import { and, desc, eq, gt, isNull, sql } from 'drizzle-orm'
 import type { Database } from './client.js'
 import {
@@ -267,6 +268,11 @@ export interface DailyLogRow {
   tsb: number
   tss: number
   activity: string
+  /**
+   * EL PARTE DEL DÍA DE CARRERA (v47): en qué se le fue la energía. `null` en los días de
+   * entrenamiento —no hay carrera que contar— y en las etapas anteriores a la v47.
+   */
+  parte: StageEffort | null
 }
 
 /** Serie diaria de carga/forma (SPEC 4, 11) para la gráfica del perfil, orden ascendente. */
@@ -283,6 +289,7 @@ export async function getDailyLog(
       tsb: riderDailyLog.tsb,
       tss: riderDailyLog.tss,
       activity: riderDailyLog.activity,
+      parte: riderDailyLog.parte,
     })
     .from(riderDailyLog)
     .where(eq(riderDailyLog.riderId, riderId))

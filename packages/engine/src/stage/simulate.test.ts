@@ -2263,3 +2263,229 @@ describe('el sprint de una fuga se decide también por el momento (v39)', () => 
     },
   )
 })
+
+/**
+ * EL PARTE DEL CORREDOR (v47, `StageOutput.efforts`).
+ *
+ * Nace de una pregunta del dueño que el motor no sabía contestar: «esta vez le dije que corriera
+ * súper agresivo… y no hay ni una sola mención en el journal ni en la race radio, pero consumió un
+ * montón de energía; algo habrá hecho, digo yo». Lo había hecho, y el motor se lo había cobrado: lo
+ * que no existía era la forma de MIRARLO, porque hacia fuera solo salía el total (`workUnits`), un
+ * número sin historia, y la crónica solo narra lo que es noticia.
+ *
+ * Lo que se prueba aquí NO es que los números sean bonitos: es que el desglose **no puede discrepar
+ * del total**, que es la única forma de que un parte sirva para algo. Cada término se apunta en el
+ * mismo sitio en que el motor descuenta esa energía, así que la suma tiene que ser el depósito que
+ * falta —salvo por el suelo del tanque, que se para en cero y por tanto solo puede hacer que la
+ * suma sea MAYOR que la pérdida—.
+ */
+describe.each(terrainCases())('el parte del corredor — $name', ({ name, input }) => {
+  const seed = stageSeed({ worldSeed: 'parte', raceId: name, stageDay: 1, engineVersion: 1 })
+  const out = simulateStage(input, seed)
+
+  it('hay un parte por corredor, y ninguno inventa kilómetros', () => {
+    expect(out.efforts.size).toBe(input.riders.length)
+    const totalKm = input.profile.segments.reduce((a, s) => a + s.km, 0)
+    for (const [id, p] of out.efforts) {
+      expect(`${id}: ${p.kmAlFrente}`).toBe(`${id}: ${p.kmAlFrente}`)
+      for (const v of [p.kmAlFrente, p.kmEnFuga, p.kmDescolgado]) {
+        expect(v).toBeGreaterThanOrEqual(0)
+        expect(v).toBeLessThanOrEqual(totalKm + 1)
+      }
+      // Nadie puede ir a la vez por delante y por detrás del grueso en el mismo kilómetro.
+      expect(p.kmEnFuga + p.kmDescolgado).toBeLessThanOrEqual(totalKm + 1)
+    }
+  })
+
+  it('el desglose CUADRA con lo que falta del depósito', () => {
+    for (const [id, p] of out.efforts) {
+      const t = out.tank.get(id)
+      if (!t) throw new Error(`sin tanque: ${id}`)
+      const suma =
+        p.gasto.rodar + p.gasto.relevo + p.gasto.reserva + p.gasto.cerillos + p.gasto.banderas
+      const perdido = t.energy0 - t.energy
+      // Con margen de un 1 % del depósito por el redondeo de las sumas en coma flotante.
+      const holgura = 0.01 * Math.max(1, t.energy0)
+      expect(`${id}: suma ${suma >= perdido - holgura}`).toBe(`${id}: suma true`)
+      // …y el suelo del tanque es lo ÚNICO que puede separarlas: el que llega con depósito no ha
+      // perdido energía por ninguna vía que el parte no cuente.
+      if (t.energy > 0) {
+        expect(`${id}: ${Math.abs(suma - perdido) <= holgura}`).toBe(`${id}: true`)
+      }
+    }
+  })
+})
+
+/**
+ * …Y EL PARTE DISTINGUE UN DÍA DE OTRO, que es de lo que iba la pregunta. Un corredor al que se le
+ * manda atacar tiene que salir del día con un parte DISTINTO del mismo corredor al que se le manda
+ * ir a rueda —y no solo con más TSS—, porque si no el parte sería un adorno con la misma cara todos
+ * los días.
+ */
+describe('el parte distingue al que ataca del que se esconde (v47)', () => {
+  const campo = (mentality: StageOrders['mentality']): StageInput => ({
+    profile: {
+      segments: [
+        { km: 60, tipo: 'llano' },
+        { km: 10, tipo: 'puerto', tramos: [{ km: 10, g: 6 }] },
+        { km: 30, tipo: 'llano' },
+      ],
+    },
+    riders: [
+      rider('mio', {
+        eff0: eff(62, { MON: 70, LLA: 66, TAC: 62 }),
+        teamId: 'equipo-mio',
+        orders: orders({ role: 'cazaetapas', mentality, contestClimbs: mentality !== 'reservon' }),
+      }),
+      ...Array.from({ length: 39 }, (_, i) =>
+        rider(`p-${i}`, {
+          eff0: eff(58, { MON: 58 + (i % 8), LLA: 60 + (i % 6) }),
+          teamId: `equipo-${i % 6}`,
+          orders: orders({
+            role: i % 6 === 0 ? 'lider' : 'gregario',
+            targetRiderId: `p-${i - (i % 6)}`,
+          }),
+        }),
+      ),
+    ],
+  })
+
+  const suParte = (mentality: StageOrders['mentality']) => {
+    let ataques = 0
+    let cerillos = 0
+    let gastoCerillos = 0
+    let kmFuga = 0
+    for (let s = 0; s < 10; s++) {
+      const out = simulateStage(
+        campo(mentality),
+        stageSeed({ worldSeed: `parte-${s}`, raceId: 'agresivo', stageDay: 1, engineVersion: 1 }),
+      )
+      const p = out.efforts.get('mio')!
+      ataques += p.ataques + p.saltos
+      cerillos += p.cerillos
+      gastoCerillos += p.gasto.cerillos
+      kmFuga += p.kmEnFuga
+    }
+    return { ataques, cerillos, gastoCerillos, kmFuga }
+  }
+
+  it('el supercombativo deja huella en el parte y el reservón no', { timeout: 300000 }, () => {
+    const agresivo = suParte('supercombativo')
+    const escondido = suParte('reservon')
+    // Lo que el dueño no encontraba en ninguna parte: la prueba de que su hombre hizo algo.
+    expect(`agresivo: ${agresivo.ataques > 0}`).toBe('agresivo: true')
+    expect(`agresivo: ${agresivo.gastoCerillos > 0}`).toBe('agresivo: true')
+    // Y la otra mitad, que es la que hace que el parte SIGNIFIQUE algo: el que se esconde gasta
+    // menos en cerillos que el que se tira. Un `reservon` no quema cerillos ni siquiera para no
+    // soltarse (lo dice `allowMatch` en el motor), así que aquí el listón es el cero.
+    expect(`escondido: ${escondido.gastoCerillos < agresivo.gastoCerillos}`).toBe('escondido: true')
+  })
+})
+
+/**
+ * PARA QUÉ TIRA CADA UNO (v47, `SnapshotRider.pullMotive`).
+ *
+ * La petición, literal, después de que el dueño viera a un equipo dando relevos en el TERCER grupo
+ * mientras su líder iba en el segundo: «¿para qué carajos tiran si en ese grupo donde están no está
+ * su líder? ¿Para llevarle 138 ciclistas más a su líder? MAL. No deberían tirar… o no entiendo para
+ * qué tiran; o sea, **busca de algún modo dejar una evidencia que explique por qué o para qué tira
+ * cada ciclista de un grupo**».
+ *
+ * Lo que se prueba no es que la etiqueta exista —eso lo diría un `toBeDefined()` inútil— sino que
+ * SEPARA los dos casos que el dueño no podía distinguir mirando la pantalla:
+ *
+ *  - un hombre que tira en un grupo POR DETRÁS del grueso no está persiguiendo nada, y su motivo
+ *    tiene que decirlo (`grupeto`), nunca un motivo de equipo: el plan de equipo del motor solo
+ *    manda dentro del pelotón (`driveOfRider` se anula fuera de él);
+ *  - y dentro del pelotón, cuando el frente tiene dueño, sus hombres tienen que salir con el motivo
+ *    de SU equipo, o la evidencia no serviría para comprobar nada.
+ */
+describe('cada relevo dice para qué es (v47)', () => {
+  const conMaillotYPuerto = (): StageInput => ({
+    profile: {
+      segments: [
+        { km: 40, tipo: 'llano' },
+        { km: 12, tipo: 'puerto', tramos: [{ km: 12, g: 7 }] },
+        { km: 30, tipo: 'llano' },
+      ],
+    },
+    riders: [
+      // El equipo del maillot: su jefe lleva la general (déficit 0) y cinco hombres para él.
+      rider('maillot', {
+        eff0: eff(66, { MON: 74, LLA: 68 }),
+        teamId: 'equipo-maillot',
+        orders: orders({ role: 'lider' }),
+        gcDeficitSeconds: 0,
+      }),
+      ...Array.from({ length: 5 }, (_, i) =>
+        rider(`mai-${i}`, {
+          eff0: eff(62, { MON: 62 + (i % 3) }),
+          teamId: 'equipo-maillot',
+          orders: orders({ role: 'gregario', targetRiderId: 'maillot' }),
+          gcDeficitSeconds: 400 + i,
+        }),
+      ),
+      // …y cinco equipos más, con jefes a distintas distancias de la general.
+      ...Array.from({ length: 5 }, (_, t) =>
+        Array.from({ length: 6 }, (_, k) =>
+          rider(`t${t}-${k}`, {
+            eff0: eff(58 + ((t + k) % 5), { MON: 55 + ((t * 3 + k) % 14) }),
+            teamId: `equipo-${t}`,
+            orders: orders({
+              role: k === 0 ? 'lider' : 'gregario',
+              targetRiderId: `t${t}-0`,
+            }),
+            gcDeficitSeconds: k === 0 ? 30 + t * 45 : 500 + t * 20 + k,
+          }),
+        ),
+      ).flat(),
+    ],
+  })
+
+  const DE_EQUIPO = new Set(['equipo_etapa', 'equipo_maillot', 'equipo_general'])
+
+  it('el que tira en un grupo de detrás no dice que persigue nada', { timeout: 300000 }, () => {
+    let fotosDetras = 0
+    let conMotivoDeEquipo = 0
+    let deEquipoEnElPeloton = 0
+    for (const seed of seedsFor('motivo', 6)) {
+      simulateStage(conMaillotYPuerto(), seed, {
+        atKm: Array.from({ length: 30 }, (_, i) => 46 + i),
+        onSnapshot: (_km, snap) => {
+          // El grueso de la carrera es el grupo que lleva la gente, que es la misma regla del motor.
+          const porGrupo = new Map<string, typeof snap>()
+          for (const r of snap) {
+            const l = porGrupo.get(r.groupId)
+            if (l) (l as (typeof snap)[number][]).push(r)
+            else porGrupo.set(r.groupId, [r] as unknown as typeof snap)
+          }
+          const principal = [...porGrupo.entries()].reduce((mx, g) =>
+            g[1].length > mx[1].length ? g : mx,
+          )
+          const relojPrincipal = Math.min(...principal[1].map((r) => r.tS))
+          for (const r of snap) {
+            if (!r.pulling) continue
+            if (r.groupId === principal[0]) {
+              if (r.pullMotive != null && DE_EQUIPO.has(r.pullMotive)) deEquipoEnElPeloton += 1
+              continue
+            }
+            if (r.tS <= relojPrincipal) continue
+            fotosDetras += 1
+            if (r.pullMotive != null && DE_EQUIPO.has(r.pullMotive)) conMotivoDeEquipo += 1
+          }
+        },
+      })
+    }
+    // Que el caso EXISTA en el banco: si no, el test pasaría en verde sin mirar nada.
+    expect(`hay relevos por detrás: ${fotosDetras > 20}`).toBe('hay relevos por detrás: true')
+    // Y la evidencia: ninguno de ellos persigue nada por su equipo. Es lo que el dueño no podía ver.
+    expect(`motivos de equipo por detrás: ${conMotivoDeEquipo}`).toBe(
+      'motivos de equipo por detrás: 0',
+    )
+    // …y la otra mitad, sin la cual esto se pasaría poniendo `grupeto` a todo el mundo: dentro del
+    // pelotón el frente SÍ tiene dueño y sus hombres lo dicen.
+    expect(`motivos de equipo en el pelotón: ${deEquipoEnElPeloton > 0}`).toBe(
+      'motivos de equipo en el pelotón: true',
+    )
+  })
+})

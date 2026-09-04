@@ -503,6 +503,10 @@ export async function runOneStage(
           atl: load.atl,
           tsb: load.tsb,
           activity: `carrera:${spec.raceId}:e${spec.stageDay}`,
+          // …y el PARTE también para el que NO terminó (v47), que es justo el día en que más
+          // falta hace saber en qué se le fue: el que abandona o llega fuera de control no tiene
+          // fila en `stage_results` y sin esto su día quedaría contado solo como un número de TSS.
+          parte: output.efforts.get(result.riderId) ?? null,
         })
       }
       continue
@@ -546,6 +550,9 @@ export async function runOneStage(
       atl: load.atl,
       tsb: load.tsb,
       activity: `carrera:${spec.raceId}:e${spec.stageDay}`,
+      // EN QUÉ SE LE FUE EL DÍA (v47). Se guarda al correr la etapa, como la crónica y la radio:
+      // una etapa corrida con el motor de ayer no se puede reconstruir con el de hoy.
+      parte: output.efforts.get(result.riderId) ?? null,
     })
 
     const gainAttrs = new Set<Attribute>([...(STAGE_XP_ATTRS[spec.kind] ?? []), 'TAC'])

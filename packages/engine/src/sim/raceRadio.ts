@@ -20,7 +20,7 @@
  */
 import { ENGINE_VERSION, STAGE } from '../constants.js'
 import { mainGroupId } from '../stage/group.js'
-import type { SnapshotRider, StageProbe } from '../stage/types.js'
+import type { PullMotive, SnapshotRider, StageProbe } from '../stage/types.js'
 
 /** ¿Se puede volver a correr una etapa YA CORRIDA y obtener la misma carrera? */
 export interface ReplayCheck {
@@ -98,11 +98,17 @@ export function isTheBunch(kind: RadioGroupKind, size: number, racing: number): 
   return kind === 'peloton' && size >= racing * PELOTON_MIN_SHARE
 }
 
-/** Un corredor de los que TIRAN, con lo que está poniendo. */
+/** Un corredor de los que TIRAN, con lo que está poniendo y PARA QUÉ. */
 export interface RadioPuller {
   riderId: string
   /** Trabajo al frente reciente (ventana con olvido). 0 fuera del pelotón. */
   pullWindow: number
+  /**
+   * PARA QUÉ está dando la cara (v47). Lo pidió el dueño al ver a un equipo relevando en el tercer
+   * grupo mientras su líder iba en el segundo: «busca de algún modo dejar una evidencia que explique
+   * por qué o para qué tira cada ciclista de un grupo». Ver `PullMotive` en el motor.
+   */
+  motivo: PullMotive | null
 }
 
 /** Un grupo de la carretera en un punto del recorrido. */
@@ -228,7 +234,7 @@ export function radioKmFrom(
       .filter((m) => m.pulling)
       .sort((a, b) => b.pullWindow - a.pullWindow || (a.riderId < b.riderId ? -1 : 1))
       .slice(0, maxPullers)
-      .map((m) => ({ riderId: m.riderId, pullWindow: m.pullWindow }))
+      .map((m) => ({ riderId: m.riderId, pullWindow: m.pullWindow, motivo: m.pullMotive }))
     return {
       id,
       tS: sorted[0]!.tS,
@@ -394,6 +400,12 @@ export interface StoredRadioGroup {
    * El número entero del grupo está en `size`.
    */
   pulling: readonly number[]
+  /**
+   * PARA QUÉ tira cada uno de `pulling`, en el MISMO orden y con la misma longitud (v47). Va como
+   * lista paralela y no dentro de cada entrada porque `pulling` son índices y esto tiene que poder
+   * guardarse igual de barato. `null` en una posición = la etapa se corrió antes de la v47.
+   */
+  motivos: readonly (PullMotive | null)[]
   /**
    * Los de la LISTA DE SEGUIMIENTO que van en este grupo y NO están en `pulling`: maillots, jefes de
    * filas y favoritos. Es lo que permite decir «el equipo tira para X» y que X aparezca, en vez de
@@ -627,6 +639,7 @@ export function radioForStorage(
         gapS: Math.round(g.gapS),
         speedKmh,
         pulling,
+        motivos: pull.map((p) => p.motivo),
         watching,
       }
     })

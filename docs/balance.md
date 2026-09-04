@@ -9440,3 +9440,136 @@ puede colarle a cualquiera. Lo que deja de pasar es que sea lo normal.
 No dice que el reparto de roles del pelotón esté bien. Que el 70 % del campo sean gregarios es otra
 pregunta —un equipo de ocho en una llana lleva un velocista, su tren de dos o tres, y el resto—, y
 este banco la deja a la vista sin contestarla.
+
+## v49 — El puerto que no seleccionaba, y por qué ningún invariante se enteró
+
+El dueño, sobre la etapa 9 del Giro (184 km, final en alto de 12,8 km al 5,9 % con los últimos 2,8 al
+9,7 %): «esa etapa deberías revisarla a detalle porque es un despropósito… o sea, es una llegada en
+alto con un puerto brutal al final, donde debería haber muchas diferencias… **y el que llega en el
+puesto 150 solo perdió 26 segundos**».
+
+### 1. Lo primero fue descartar el recorrido
+
+Porque si el perfil o su clasificación estuvieran mal, todo lo demás sobraba:
+
+```
+race-italy e9 · tipo reina · 184 km
+final derivado: alto
+  última cota 12,8 km al 5,9 %, corona a 0,0 km
+  pendiente media últimos 5 km 7,41 %  ·  últimos 3 km 9,35 %
+```
+
+El recorrido es lo que el dueño decía y `finishType` lo llamaba por su nombre. El defecto estaba en
+que la física no seleccionaba sobre él.
+
+### 2. La foto que lo enseña: los grupos km a km del puerto final
+
+Con `StageProbe`, una semilla, campo realista de 176 corredores, el último kilómetro y medio de cada
+km del puerto (id del grupo : cuántos van dentro @ hueco al primero):
+
+| km   | grupos                                                                                |
+| ---- | ------------------------------------------------------------------------------------- |
+| 171  | `mov-13:1@0s` `mov-9:9@17s` **`peloton:99@388s`** `shed-17:67@474s`                   |
+| 174  | `mov-13:1@0s` `mov-9:8@42s` **`peloton:26@351s`** `shed-21:72@383s` `shed-17:67@443s` |
+| 178  | … **`peloton:10@274s`** `shed-27:88@296s` `shed-17:67@426s`                           |
+| 181  | … **`peloton:7@222s`** `shed-27:91@255s` `shed-17:67@399s`                            |
+| meta | … **`peloton:8@80s`** `shed-27:94@80s` `shed-17:67@226s`                              |
+
+El pelotón hacía SU trabajo: de 99 hombres a 8 en trece kilómetros de puerto. Y a su lado, dos
+bloques congelados: **`shed-17` cruzó la meta con los MISMOS 67 corredores que tenía veinte
+kilómetros antes**, y `shed-27` no solo no perdió a nadie sino que ENGORDÓ de 37 a 94 absorbiendo
+todo lo que el pelotón soltaba.
+
+### 3. La causa, en dos líneas de `simulate.ts`
+
+```ts
+shatter(peloton, membersOf(PELOTON), pelFrac)
+for (const m of moves) shatter(m.g, membersOf(m.g.id), moveFrac(m))
+```
+
+`shatter` —la criba— se llamaba sobre el pelotón y sobre los movimientos, y **nunca sobre un
+`shed-N`**. O sea que un grupo, en cuanto nacía de un descuelgue, quedaba SELLADO: podía subir un
+puerto entero al 10 % sin perder un solo hombre. Todo lo demás sí miraba a los descolgados
+(`administerEffort`, `collapseCheck`, `droppedCommit`); solo faltaba la criba, que es la asimetría que
+delata el olvido.
+
+No es una esquina rara. Se ve en cuanto el pelotón se parte pronto, y eso pasa en toda etapa de
+montaña de verdad: el motor ya tenía escrito, desde la v33, que «el grueso de la carrera puede nacer
+de un descuelgue».
+
+### 4. Por qué ningún invariante lo cazaba
+
+El banco medía la cola (`lastGroupPct`: cuánto pierde el último) y cuántos relojes hay
+(`groups`), y con esas dos no se puede distinguir «la carrera se ha partido en veinte trozos» de
+«hay veinte sueltos y un bloque con todo lo demás». `winnerGroupPct` tampoco: el bloque de 94 no
+entraba con el ganador sino a 80 s, así que valía un inocente 1,1 %.
+
+Lo que faltaba es **el grupo de tiempo MÁS GRANDE de la meta** (`biggestGroupPct`). Medido sobre las
+nueve reinas reales del banco, 4 semillas cada una:
+
+| etapa                 | mayor grupo (antes) | mayor grupo (después) | cola % antes | cola % después |
+| --------------------- | ------------------: | --------------------: | -----------: | -------------: |
+| `race-catalonia` e4   |          **81,8 %** |                13,6 % |          6,8 |            8,6 |
+| `race-france` e20     |          **52,9 %** |                12,2 % |         14,7 |           16,8 |
+| `race-rhone-alpes` e8 |          **47,2 %** |                 3,5 % |         16,5 |           17,3 |
+| `race-guatemala` e9   |          **45,2 %** |                13,8 % |          9,7 |           14,6 |
+| `race-colombia` e5    |          **43,7 %** |                25,4 % |          7,8 |            9,7 |
+| `race-tachira` e6     |          **40,5 %** |                14,3 % |         14,6 |           14,3 |
+| `race-italy` e19      |          **36,4 %** |                 5,1 % |         12,4 |           17,7 |
+| `race-two-seas` e4    |              69,9 % |                63,4 % |         10,4 |           10,0 |
+| `race-spain` e7       |              54,5 % |                65,3 % |          3,9 |            8,8 |
+
+Las dos últimas filas son la guarda: `race-two-seas` e4 y `race-spain` e7 son las reinas de **meta en
+llano**, y ahí un grupo grande al mismo segundo es lo correcto. No se mueven.
+
+`race-rhone-alpes` e8 es la etapa más dura del calendario —Col du Pré, Bisanne, Aravis y final en el
+Plateau de Solaison, 11,3 km al 9,1 %— y **casi la mitad del campo la terminaba en un solo reloj**.
+
+### 5. Y en la etapa de la queja
+
+Brechas al ganador por puesto, 6 semillas, campo de 176:
+
+| semilla | 10.º antes → después |      50.º |     100.º |     150.º |
+| ------- | -------------------: | --------: | --------: | --------: |
+| e9-0    |           80 → 107 s |  80 → 185 |  80 → 301 | 226 → 442 |
+| e9-1    |             4 → 40 s |   4 → 165 |   4 → 265 |   4 → 450 |
+| e9-2    |          254 → 258 s | 254 → 356 | 254 → 476 | 254 → 619 |
+| e9-3    |            81 → 92 s |  81 → 229 |  81 → 339 | 270 → 512 |
+| e9-4    |          200 → 222 s | 200 → 302 | 200 → 375 | 327 → 606 |
+| e9-5    |            36 → 69 s | 104 → 145 | 104 → 262 | 104 → 484 |
+
+Antes, los tres primeros números de cada fila eran **el mismo**: un bloque de cien hombres con un
+reloj. Ahora las brechas crecen con el puesto, que es lo que hace un puerto.
+
+### 6. Un grupeto no ataca el puerto, lo sobrevive
+
+Primer intento: cribar todos los grupos con la fracción del puerto decisivo (`climbPaceFraction`,
+0,12 = «el 12 % más fuerte impone y el resto que aguante»). Resultado en la e9: **37 grupos en meta y
+el último a 19 minutos**. Eso no es carretera, es la criba con la perilla de otro sitio.
+
+La fracción es la que separa los dos casos y el motor ya la tenía: `climbTempoFraction` (0,5) dice
+«suben juntos», que es lo que hace un grupo que ya ha perdido el día. Y quién es quién tampoco hay
+que inventarlo: `mainId` (v29) es EL GRUPO QUE LLEVA LA GENTE. El grueso de la carrera corre el
+puerto decisivo aunque su id empiece por `shed-`; los de detrás suben a tempo.
+
+### 7. Lo que se volvió a medir porque su premisa se cayó
+
+La v36 documentaba, dentro de `advance()`, que no hacía falta topar el ritmo del grupeto al de su
+jefe rescatado «porque `shatter` no se ejecuta sobre los grupos de descolgados, así que un grupeto
+NUNCA suelta a nadie». Esa frase describía el defecto de arriba, así que con la criba puesta el jefe
+SÍ puede perder la rueda de sus propios rescatadores. Vuelto a medir sobre el escenario del banco, 24
+semillas:
+
+|                   | vuelve al grupo | pérdida media |
+| ----------------- | --------------: | ------------: |
+| **con su equipo** |            8/24 |         181 s |
+| **sin equipo**    |            0/24 |         382 s |
+
+La ayuda sigue ayudando, y ahora además puede fallar, que es lo que hace en carretera.
+
+### 8. El coste, dicho antes de que lo diga CI
+
+La cola de las reinas SUBE, porque ahora el grupeto pierde de verdad al que ya no puede seguirle.
+Tres etapas quedan cerca del corte de tiempo de §VI.3 (`timeCutQueen`, 18 %): `race-italy` e19 en
+17,7 %, `race-rhone-alpes` e8 en 17,3 % y `race-france` e20 en 16,8 %. **Ninguna banda se ha
+movido**; si el invariante de la cola no pasa, la decisión de qué hacer es del dueño y no mía.

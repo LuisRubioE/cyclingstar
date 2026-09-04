@@ -101,6 +101,8 @@ import { simulateTimeTrial } from './timetrial.js'
 import type {
   Block,
   Incident,
+  PullMotive,
+  StageEffort,
   SnapshotRider,
   StageInput,
   StageOutput,
@@ -309,6 +311,34 @@ interface RiderSim {
    * lee ninguna ley física y su valor no entra en ninguna decisión de carrera.
    */
   pulling: boolean
+  /**
+   * PARA QUÉ TIRA (v47), lo que el dueño pidió con todas sus letras: «busca de algún modo dejar una
+   * evidencia que explique por qué o para qué tira cada ciclista de un grupo». `null` cuando no
+   * tira. Es observación como `pulling`: se escribe donde el turno ya se decidió y nadie la lee de
+   * vuelta. Ver `PullMotive` para en qué se diferencia de la función `pullReason` (v13).
+   */
+  pullMotive: PullMotive | null
+  /**
+   * EL PARTE DEL DÍA (v47). Contadores de observación: se escriben donde el motor ya hacía la cosa
+   * que cuentan y NADIE los lee de vuelta, así que no pueden cambiar una carrera. Ver `StageEffort`.
+   */
+  parte: StageEffort
+}
+
+/** El parte en blanco con el que arranca cada corredor. */
+function parteEnBlanco(): StageEffort {
+  return {
+    kmAlFrente: 0,
+    kmEnFuga: 0,
+    kmDescolgado: 0,
+    ataques: 0,
+    saltos: 0,
+    cerillos: 0,
+    reservaGastadaS: 0,
+    gasto: { rodar: 0, relevo: 0, reserva: 0, cerillos: 0, banderas: 0 },
+    pajaraKm: null,
+    descuelgueKm: null,
+  }
 }
 
 /** ¿Está el corredor con la pájara (tanque a cero)? (SPEC 6.7). */
@@ -1043,6 +1073,8 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       abandonedKm: null,
       incident: null,
       pulling: false,
+      pullMotive: null,
+      parte: parteEnBlanco(),
     })
   }
   /**
@@ -2709,7 +2741,14 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       group: Group,
       members: RiderSim[],
       paceFraction: number,
-      kind: 'peloton' | 'move' | 'shed' = 'shed',
+      kind: 'peloton' | 'move' | 'shed',
+      /**
+       * El reloj del GRUPO PRINCIPAL en este bloque (v47): con él se sabe si este grupo va por
+       * delante del grueso de la carrera o por detrás, que es lo que necesitan el parte del corredor
+       * y el motivo del relevo. Viaja como argumento y no se busca aquí dentro a propósito —se
+       * calcula UNA vez por bloque para todos los grupos, y en un puerto puede haber cien—.
+       */
+      relojPrincipal: number,
     ): Group => {
       if (members.length === 0) return group
       /**
@@ -2726,13 +2765,20 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
        * jefe reventado no puede seguir. Suena a carretera —un gregario rueda a lo que puede su
        * jefe— y el motor ya tiene el número para eso (`markDraftTolerance`, el +4 del marcaje).
        *
-       * NO se hace por dos motivos, los dos medidos. **No hace falta**: `shatter` no se ejecuta
-       * sobre los grupos de descolgados, así que un grupeto NUNCA suelta a nadie —el jefe no puede
-       * quedarse atrás de su propio rescate—; y **rompe justo lo que viene a arreglar**: con el tope
-       * puesto, el jefe al que bajan a buscar volvía el 66 % de las veces contra el 70 % del que se
-       * quedaba solo (en llano, 68 % contra 82 %), o sea que la ayuda le PERJUDICABA. Sin el tope,
-       * 81 % contra 63 %. Un grupeto rueda al ritmo de sus hombres fuertes y los demás van a rueda:
-       * es el modelo que el motor ya tenía para todos los grupetos, y el rescate no es una excepción.
+       * NO se hace porque **rompe justo lo que viene a arreglar**: con el tope puesto, el jefe al
+       * que bajan a buscar volvía el 66 % de las veces contra el 70 % del que se quedaba solo (en
+       * llano, 68 % contra 82 %), o sea que la ayuda le PERJUDICABA. Sin el tope, 81 % contra 63 %.
+       * Un grupeto rueda al ritmo de sus hombres fuertes y los demás van a rueda: es el modelo que
+       * el motor ya tenía para todos los grupetos, y el rescate no es una excepción.
+       *
+       * …Y EL SEGUNDO MOTIVO SE HA CAÍDO EN LA v47, así que se retira en vez de dejarlo mintiendo.
+       * Decía «no hace falta: `shatter` no se ejecuta sobre los grupos de descolgados, así que un
+       * grupeto NUNCA suelta a nadie —el jefe no puede quedarse atrás de su propio rescate—», y esa
+       * frase era la descripción de un DEFECTO (ver la criba de los grupos de descolgados, abajo)
+       * que ya no está: hoy un grupeto sí se parte y el jefe sí puede perder la rueda de los suyos.
+       * Vuelto a medir con la criba puesta, sobre el mismo escenario del banco y 24 semillas: **con
+       * su equipo vuelve al grupo 8 de 24 veces y pierde 181 s de media; sin equipo, 0 de 24 y 382
+       * s**. La ayuda sigue ayudando, y ahora además puede fallar, que es lo que hace en carretera.
        */
       const p75 = pacemakerP75(members, block, paceFraction)
       /**
@@ -2929,6 +2975,33 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
           ? []
           : moves.filter((mv) => mv.g.id !== group.id && mv.g.tS < group.tS)
       const blockS = blockSeconds(next.vActual)
+      /** Ver `m.pullMotive`: las mismas ramas de `relayTurn`, en el mismo orden. */
+      const motivoDelRelevo = (m: RiderSim): PullMotive => {
+        if (members.length === 1) return 'solo'
+        if (abanicoAbierto && vientoLateral > 0 && block.tipo === 'llano') return 'abanico'
+        if (isBunch && kmToGo <= STAGE.sprintTrainKm) {
+          const suJefe = lanzaPara.get(m.input.riderId)
+          if (suJefe != null && idSet.has(suJefe)) return 'tren'
+        }
+        // Fuera del grueso de la carrera no hay plan de equipo que valga (`driveOfRider` se anula
+        // arriba para todo grupo que no sea el pelotón): o vas delante y colaboras en lo tuyo, o
+        // vas detrás y ruedas por rodar. Y esa segunda es LA RESPUESTA a la pregunta del dueño.
+        if (!isBunch) return group.tS < relojPrincipal ? 'fuga' : 'grupeto'
+        if (driveOfRider(m.input.riderId) > 0) {
+          const suEquipo = rebels.has(m.input.riderId)
+            ? null
+            : (teamOf.get(m.input.riderId) ?? null)
+          switch (purposeOfTeam(suEquipo)) {
+            case 'maillot':
+              return 'equipo_maillot'
+            case 'general':
+              return 'equipo_general'
+            case 'etapa':
+              return 'equipo_etapa'
+          }
+        }
+        return 'rol'
+      }
       for (const m of members) {
         // EL ACORDEÓN SE CIERRA EN EL LLANO (v26). La deriva es la goma de un grupo estirado por una
         // rampa; en cuanto el terreno deja de seleccionar, el que iba diez segundos por detrás
@@ -2953,6 +3026,18 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         // día lo lance el hombre que iba dando la cara. Por eso ya no está detrás de `probe`: es
         // estado de carrera, no telemetría.
         m.pulling = pulling
+        /**
+         * …Y PARA QUÉ TIRA (v47). El dueño lo pidió al ver a un equipo dando relevos en el TERCER
+         * grupo mientras su líder iba en el segundo: «¿para qué carajos tiran si en ese grupo donde
+         * están no está su líder? … busca de algún modo dejar una evidencia que explique por qué o
+         * para qué tira cada ciclista de un grupo».
+         *
+         * Se lee de las MISMAS ramas con las que `relayTurn` acaba de decidir el turno, en el mismo
+         * bloque y en el mismo orden en que allí mandan. No es una etiqueta puesta a posteriori: si
+         * el motivo que sale no cuadra con lo que se ve en la carretera, lo que está mal es la
+         * decisión —que es exactamente lo que una evidencia tiene que poder enseñar—.
+         */
+        m.pullMotive = !pulling ? null : motivoDelRelevo(m)
         const shelter = shelterOf(pulling, relayers.size, arropo)
         const mineEffort = workOf(shelter)
         if (pulling && mineEffort > 0) {
@@ -3047,6 +3132,35 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
           (1 + STAGE.heatCostScale * calor)
         m.energy = Math.max(0, m.energy - cost)
         m.work += cost
+        /**
+         * …Y SE APUNTA EN EL PARTE (v47), separando el peaje de rodar de lo que cuesta DAR LA CARA.
+         * El reparto no es una estimación: `blockCost` con la misma llamada y `pulling` a false es
+         * literalmente lo que este hombre habría gastado a rueda en este mismo bloque, así que lo
+         * que sobra ES el viento que dio.
+         *
+         * La segunda evaluación SOLO se hace para el que tira, y no es tacañería: son veinte hombres
+         * de ciento setenta y seis, y este bucle corre para cada corredor en cada uno de los mil
+         * ochocientos bloques de una etapa. Preguntarlo también para el que va a rueda costaría
+         * trescientas mil llamadas por etapa para obtener una resta que vale cero por definición
+         * —el precedente está tres pantallas más arriba, en el régimen de remate de la v39, que se
+         * fue de 1.950 s a 2.665 s de batería por dos evaluaciones de más—.
+         */
+        if (!pulling) m.parte.gasto.rodar += cost
+        else {
+          const aRueda =
+            blockCost(block, compromisoReal, false, relayers.size, STAGE.dx, arropo) *
+            (1 + STAGE.heatCostScale * calor)
+          m.parte.gasto.rodar += Math.min(cost, aRueda)
+          m.parte.gasto.relevo += Math.max(0, cost - aRueda)
+          m.parte.kmAlFrente += STAGE.dx
+        }
+        // Dónde iba: por delante del grueso de la carrera, o por detrás. El grupo principal no es
+        // el que se llama `peloton` sino el que lleva la gente (v29), que es la misma pregunta que
+        // se hace la radio y el mismo `mainId` con el que el motor mide los boquetes.
+        if (group.id !== (mainId ?? PELOTON)) {
+          if (group.tS < relojPrincipal) m.parte.kmEnFuga += STAGE.dx
+          else m.parte.kmDescolgado += STAGE.dx
+        }
       }
       return next
     }
@@ -3079,6 +3193,10 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       // con una pérdida neta de 26, que es una contradicción de la crónica contra sí misma. Contarlo
       // AQUÍ cubre las tres vías por construcción, porque las tres pasan por esta puerta.
       if (group.id === PELOTON) droppedSinceNotice += 1
+      // …y para el parte del corredor (v47), el km en que perdió EL GRUESO DE LA CARRERA. Se
+      // sobrescribe: lo que interesa es la última vez que lo perdió, no la primera, porque entre
+      // medias puede haber vuelto. Perder un grupeto no es perder la carrera y no se apunta.
+      if (group.id === (mainId ?? PELOTON)) m.parte.descuelgueKm = km
       // El que acaba de soltarse no está relevando: solo importa para la foto (v28), donde si no un
       // caído —el único descuelgue que ocurre DESPUÉS de `advance()`— saldría tirando de su grupeto.
       m.pulling = false
@@ -3087,7 +3205,16 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         ? undefined
         : shed.find(
             (sg) =>
-              Math.abs(sg.tS - tS) <= STAGE.grupetoJoinGapSeconds && membersOf(sg.id).length > 0,
+              // …Y NUNCA AL GRUPO DEL QUE ACABA DE SALIR (v47). Desde que la criba mira también a
+              // los grupos de descolgados, el grupo de origen puede ser uno de estos, y sin este
+              // filtro el hombre que se suelta volvería a entrar en él en el mismo bloque —un
+              // descuelgue que no descuelga—. Hoy no llegaría a pasar por los números
+              // (`driftDropGapSeconds` 20 s contra `grupetoJoinGapSeconds` 12 s), y justo por eso
+              // se dice aquí: que la criba funcione no puede depender de que dos constantes que
+              // nadie ató sigan ordenadas como están.
+              sg.id !== group.id &&
+              Math.abs(sg.tS - tS) <= STAGE.grupetoJoinGapSeconds &&
+              membersOf(sg.id).length > 0,
           )
       if (near) {
         m.groupId = near.id
@@ -3270,6 +3397,8 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         m.matchBoostS = STAGE.matchBoostSeconds
         m.energy = Math.max(0, m.energy - STAGE.matchCost)
         m.work += STAGE.matchCost
+        m.parte.cerillos += 1
+        m.parte.gasto.cerillos += STAGE.matchCost
         m.driftS = 0
         return false
       }
@@ -3290,6 +3419,9 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       // CONTARLA: el motor la ejecutaba en silencio y el journal no podía narrarla.
       for (const m of members) {
         if (!isBonked(m)) continue
+        // El km en que se le vació el depósito, para el parte del corredor (v47). Es el primero:
+        // el que se arrastra veinte kilómetros a cero reventó al principio de esos veinte.
+        m.parte.pajaraKm ??= km
         dropOut(m, group)
         dropped.push(m.input.riderId)
         if (m.bonkNoticed) continue
@@ -3371,6 +3503,8 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
             m.reserveS -= drift
             m.energy = Math.max(0, m.energy - cost)
             m.work += cost
+            m.parte.reservaGastadaS += spend
+            m.parte.gasto.reserva += cost
             continue
           }
           m.driftS += drift
@@ -3652,6 +3786,48 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       for (const sg of [...shed]) corte(sg, membersOf(sg.id))
     }
     for (const m of moves) shatter(m.g, membersOf(m.g.id), moveFrac(m))
+    /**
+     * …Y UN GRUPO DE DESCOLGADOS TAMBIÉN SE PARTE (v47). Esto no existía: `shatter` se llamaba sobre
+     * el pelotón y sobre los movimientos, y NUNCA sobre un `shed-N`. O sea que un grupo, en cuanto
+     * nacía de un descuelgue, quedaba SELLADO: podía subir un puerto entero al 10 % sin perder un
+     * solo hombre, porque el motor no le pasaba la criba por encima.
+     *
+     * No es una esquina rara: es lo que se ve en cuanto el pelotón se parte pronto. Medido en la
+     * etapa 9 del Giro —184 km, final en alto de 12,8 km al 5,9 % con los últimos 2,8 al 9,7 %—, el
+     * pelotón hacía SU trabajo y se deshacía de 99 a 8 hombres… mientras los dos grupos de detrás
+     * subían el puerto congelados: `shed-17` cruzaba la meta con los MISMOS 67 corredores que tenía
+     * veinte kilómetros antes, y `shed-27` no solo no perdía a nadie sino que ENGORDABA de 37 a 94
+     * absorbiendo todo lo que el pelotón soltaba. De ahí salía la queja del dueño con todas sus
+     * letras: «es una llegada en alto con un puerto brutal al final… y el que llega en el puesto 150
+     * solo perdió 26 segundos».
+     *
+     * Y por eso el arreglo no trae física nueva: la criba de la subida (la deriva de la v26) ya
+     * estaba escrita y calibrada, y lo único que hacía falta era dejarla mirar donde no miraba. Un
+     * grupo se rompe en un puerto por lo que llevan sus hombres en las piernas, no por la etiqueta
+     * con la que el motor lo bautizó al nacer —es la misma corrección que la v33 hizo en el plan de
+     * equipo («en el pelotón» es el grupo que lleva la gente, no el que conserva el id)—.
+     *
+     * La lista se copia porque `dropOut` empuja grupos nuevos a `shed`: los que nacen de esta criba
+     * no se vuelven a cribar en el mismo bloque, igual que hace el corte del abanico justo arriba.
+     */
+    for (const sg of [...shed]) {
+      /**
+       * …PERO UN GRUPETO NO ATACA EL PUERTO, LO SOBREVIVE. La fracción que marca el ritmo no es de
+       * sabor: `climbPaceFraction` (0,12) dice «el 12 % más fuerte impone y el resto que aguante»,
+       * que es lo que pasa DONDE SE DECIDE LA CARRERA, y `climbTempoFraction` (0,5) dice «suben
+       * juntos», que es lo que hace un grupo que ya ha perdido el día. Aplicarles a todos la del
+       * puerto decisivo parte el grupeto en pedazos de dos y tres —medido en esta misma etapa 9: 37
+       * grupos en meta y el último a 19 minutos— y eso no es carretera, es la criba con la perilla
+       * de otro sitio.
+       *
+       * Y quién es quién no hay que inventarlo: `mainId` es EL GRUPO QUE LLEVA LA GENTE (v29), la
+       * misma pieza con la que la crónica decide a quién llamar «el pelotón». Si el grueso de la
+       * carrera va en un `shed-N` —que es justo el caso que este arreglo destapa—, ese grupo corre
+       * el puerto decisivo como lo correría el pelotón; los de detrás suben a tempo.
+       */
+      const suFrac = sg.id === mainId ? pelFrac : onClimb ? STAGE.climbTempoFraction : roughFrac
+      shatter(sg, membersOf(sg.id), suFrac)
+    }
     // Cómo cambia el pelotón en el desenlace: la CRIBA que lo parte y el REAGRUPAMIENTO que lo
     // recompone (SPEC 6.15). Ambos son la misma cuenta —de cuántos a cuántos ha pasado el grupo
     // desde el aviso anterior— y por eso comparten estado: así la cadena de avisos no tiene huecos
@@ -4047,6 +4223,12 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
           const c = STAGE.tacticAttackCost
           s2.energy = Math.max(0, s2.energy - c)
           s2.work += c
+          // Cuenta como intento en el parte: el cerillo se gastó igual, que es lo que pasa cuando
+          // uno se tira y no sale. Si no, el día del que ataca ocho veces sin éxito saldría vacío.
+          s2.parte.cerillos += 1
+          s2.parte.gasto.cerillos += c
+          if (r.riderId === instigator.riderId) s2.parte.ataques += 1
+          else s2.parte.saltos += 1
         }
         /**
          * Se cuenta como `attack_swarm` y no como `attack_go`, y no es un detalle de nombres: los
@@ -4086,6 +4268,10 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
             : STAGE.tacticAttackCost * STAGE.tacticFollowCostFactor
         s.energy = Math.max(0, s.energy - cost)
         s.work += cost
+        s.parte.cerillos += 1
+        s.parte.gasto.cerillos += cost
+        if (r.riderId === instigator.riderId) s.parte.ataques += 1
+        else s.parte.saltos += 1
         s.matchBoostS = STAGE.matchBoostSeconds
       }
       source.riderIds = source.riderIds.filter((id) => !ids.includes(id))
@@ -4299,9 +4485,12 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       return mejor != null && mejor < tS - STAGE.grupetoJoinGapSeconds
     }
 
-    peloton = advance(peloton, membersOf(PELOTON), pelFrac, 'peloton')
+    // El reloj del grueso de la carrera, UNA vez por bloque: lo usa el parte de cada corredor para
+    // saber si el día lo pasó por delante o por detrás (v47).
+    const relojPrincipal = relojDeGrupo.get(mainId ?? PELOTON) ?? peloton.tS
+    peloton = advance(peloton, membersOf(PELOTON), pelFrac, 'peloton', relojPrincipal)
     for (const m of moves) {
-      m.g = advance(m.g, membersOf(m.g.id), moveFrac(m), 'move')
+      m.g = advance(m.g, membersOf(m.g.id), moveFrac(m), 'move', relojPrincipal)
       // La TENSIÓN del grupo escapado (SPEC 6.10): se acumula km a km y, pasado el umbral, dispara
       // los ataques internos y recorta la cooperación. Existía en `Group` y nadie la tocaba nunca.
       m.g.tension += STAGE.breakawayTensionPerKm * STAGE.dx
@@ -4382,7 +4571,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       }
     }
     for (let g = 0; g < shed.length; g++) {
-      shed[g] = advance(shed[g]!, membersOf(shed[g]!.id), 1, 'shed')
+      shed[g] = advance(shed[g]!, membersOf(shed[g]!.id), 1, 'shed', relojPrincipal)
     }
 
     // Reagrupamiento de los descolgados. Hasta la v15 aquí había un RECORTE FIJO —el descolgado
@@ -4977,6 +5166,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
           // QUIÉN VA TIRANDO (v28): el turno de este bloque, ya resuelto por `advance()` unas líneas
           // más arriba en el mismo bloque, y la ventana de trabajo con la que se ordena.
           pulling: s.pulling,
+          pullMotive: s.pullMotive,
           pullWindow: s.pullWindow,
         })
       }
@@ -5029,9 +5219,11 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
   const results = buildResults(sims, abandoned, outOfTime)
   const workUnits = new Map<string, number>()
   const tank = new Map<string, TankState>()
+  const efforts = new Map<string, StageEffort>()
   for (const [id, s] of sims) {
     workUnits.set(id, s.work)
     tank.set(id, tankState(s.energy, s.energy0, s.input.eff0.RES))
+    efforts.set(id, s.parte)
   }
 
   return {
@@ -5041,6 +5233,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
     workUnits,
     incidents,
     tank,
+    efforts,
     engineVersion: ENGINE_VERSION,
   }
 }
@@ -5162,7 +5355,10 @@ function disputeBanner(
   // vivía dentro del reparto de puntos, así que se cobraba una vez POR PUESTO puntuable: con la
   // tabla de la meta volante (8 puestos) cada aspirante pagaba 16 de tanque por cada volante, y en
   // una carrera con tres sprints intermedios eso vaciaba medio depósito antes de correr.
-  for (const c of contenders) c.energy = Math.max(0, c.energy - STAGE.bannerCost)
+  for (const c of contenders) {
+    c.energy = Math.max(0, c.energy - STAGE.bannerCost)
+    c.parte.gasto.banderas += STAGE.bannerCost
+  }
   ranked.forEach(({ m }, idx) => {
     const pts = table[idx] ?? 0
     if (pts <= 0) return
@@ -5214,6 +5410,7 @@ function disputeClimb(
     const pts = table[idx] ?? 0
     if (pts <= 0) return
     m.energy = Math.max(0, m.energy - STAGE.bannerCost)
+    m.parte.gasto.banderas += STAGE.bannerCost
     m.climbPts += pts
   })
   const winner = ordered[0]

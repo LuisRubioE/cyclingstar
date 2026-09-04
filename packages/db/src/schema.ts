@@ -1,3 +1,4 @@
+import type { StageEffort } from '@cyclingstar/engine'
 import { desc, sql } from 'drizzle-orm'
 import {
   boolean,
@@ -768,6 +769,15 @@ export const riderDailyLog = pgTable(
     atl: real('atl').notNull(),
     tsb: real('tsb').notNull(),
     activity: text('activity').notNull(),
+    /**
+     * EL PARTE DEL DÍA DE CARRERA (v47): en qué se le fue la energía y qué hizo para gastarla.
+     *
+     * Lo emite el motor para todos (`StageOutput.riderDays`) y aquí se guarda porque una etapa
+     * corrida con el motor de ayer no se puede reconstruir con el de hoy, igual que la crónica y la
+     * radio. Nulo en un día de entrenamiento —no hay carrera que contar— y en los días anteriores a
+     * esta columna.
+     */
+    parte: jsonb('parte').$type<StageEffort>(),
   },
   (t) => [primaryKey({ columns: [t.riderId, t.gameDay] })],
 )

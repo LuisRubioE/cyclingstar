@@ -22,6 +22,7 @@ import {
   type RealQueenStats,
   analyzeRealQueens,
   colombiaRegressionTails,
+  italy9SummitFinishes,
 } from './realQueens.js'
 import { REAL_TIME_TRIALS, type RealTimeTrialStats, analyzeRealTimeTrials } from './timeTrials.js'
 import { SMALL_TOURS, type SmallTourStats, analyzeSmallTours } from './smallTours.js'
@@ -668,6 +669,41 @@ describe('la cola en las etapas reina REALES (v17)', () => {
    * corredores treinta puntos por encima de una masa homogénea—, así que este caso va aparte y con
    * el campo del dueño: 8 a 82, 16 a 62 y el resto a 52.
    */
+  /**
+   * EL CASO DE LA v47: LA ETAPA 9 DEL GIRO. El dueño: «es un despropósito… es una llegada en alto
+   * con un puerto brutal al final, donde debería haber muchas diferencias, y el que llega en el
+   * puesto 150 solo perdió 26 segundos». Y tenía razón: la criba (`shatter`) no se llamaba nunca
+   * sobre un grupo de descolgados, así que medio pelotón subía los últimos 12,8 km al 5,9 % —con
+   * los últimos 2,8 al 9,7 %— dentro de un bloque que no podía perder a un solo hombre.
+   *
+   * Los dos listones dicen la misma frase por sus dos mitades, y ninguno es un número medido con el
+   * que se haya ido a buscar el verde:
+   *
+   *  - **el campo no cabe en un reloj**: 94 de 176 con el mismo segundo era el defecto; el listón
+   *    es un tercio del pelotón, que sigue siendo un grupo enorme para una llegada en alto;
+   *  - **y el puerto abre diferencias hacia atrás**: tres minutos en el puesto 150 es poco para un
+   *    puerto así —lo medido son de siete a diez— y es siete veces lo que el dueño vio.
+   *
+   * Y la guarda por el otro lado, que es la que impide «arreglarlo» reventando la carrera: la cola
+   * sigue dentro del corte de tiempo de §VI.3.
+   */
+  it('la etapa 9 del Giro reparte de verdad en el puerto final', { timeout: 600000 }, () => {
+    const metas = italy9SummitFinishes(4)
+    for (const m of metas) {
+      expect(m.biggestGroupPct).toBeLessThanOrEqual(33)
+      const p150 = m.gaps.find((g) => g.puesto === 150)?.gapS
+      // Si no llegan 150 clasificados la etapa ha seleccionado de sobra y la pregunta no aplica.
+      if (p150 !== null && p150 !== undefined) expect(p150).toBeGreaterThan(180)
+      // …y las brechas CRECEN con el puesto, que es lo que hace un puerto: lo que se vio era
+      // 80 s en el 10.º, 80 en el 50.º y 80 en el 100.º, o sea el mismo bloque tres veces.
+      const conGente = m.gaps.filter((g) => g.gapS !== null).map((g) => g.gapS!)
+      for (let i = 1; i < conGente.length; i++)
+        expect(conGente[i]!).toBeGreaterThan(conGente[i - 1]!)
+      expect(m.lastGroupPct).toBeLessThanOrEqual(100 * STAGE.timeCutQueen)
+    }
+    expect(metas.length).toBe(4)
+  })
+
   it('Race Colombia e5 no vuelve a entregar la etapa a 74 minutos', { timeout: 120000 }, () => {
     const tails = colombiaRegressionTails(5)
     const worst = Math.max(...tails.map((t) => t.lastGroupPct))
