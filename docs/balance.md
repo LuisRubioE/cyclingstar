@@ -9541,16 +9541,39 @@ Brechas al ganador por puesto, 6 semillas, campo de 176:
 Antes, los tres primeros números de cada fila eran **el mismo**: un bloque de cien hombres con un
 reloj. Ahora las brechas crecen con el puesto, que es lo que hace un puerto.
 
-### 6. Un grupeto no ataca el puerto, lo sobrevive
+### 6. Se criba el grupo DONDE ESTÁ LA CARRERA, y no todos: tres intentos y lo que enseñó cada uno
 
-Primer intento: cribar todos los grupos con la fracción del puerto decisivo (`climbPaceFraction`,
-0,12 = «el 12 % más fuerte impone y el resto que aguante»). Resultado en la e9: **37 grupos en meta y
-el último a 19 minutos**. Eso no es carretera, es la criba con la perilla de otro sitio.
+**Intento 1: cribarlos todos con la fracción del puerto decisivo** (`climbPaceFraction`, 0,12 = «el
+12 % más fuerte impone y el resto que aguante»). Resultado en la e9: **37 grupos en meta y el último
+a 19 minutos**. Eso no es carretera, es la criba con la perilla de otro sitio.
 
-La fracción es la que separa los dos casos y el motor ya la tenía: `climbTempoFraction` (0,5) dice
-«suben juntos», que es lo que hace un grupo que ya ha perdido el día. Y quién es quién tampoco hay
-que inventarlo: `mainId` (v29) es EL GRUPO QUE LLEVA LA GENTE. El grueso de la carrera corre el
-puerto decisivo aunque su id empiece por `shed-`; los de detrás suben a tempo.
+**Intento 2: cribarlos todos, pero el grupeto a tempo** (`climbTempoFraction`, 0,5 = «suben juntos»).
+La e9 queda bien, pero la cola agrupada de las nueve reinas reales se va a **14,33 % contra un techo
+de 14**. La banda no se toca sin decisión del dueño, así que hay que buscar otra cosa.
+
+**Intento 3 (descartado por la medición): que el grupeto suba TODO junto** (fracción 1). La idea era
+que descolgara a menos gente y bajara la cola. Hace lo contrario: **14,72 %**. Y el porqué es obvio
+en cuanto se ve —rebajar la fracción que marca el ritmo no solo descuelga a menos gente, también
+hace que el grupo ENTERO ruede más despacio, porque el P75 que alimenta la ley de velocidad baja—.
+Así que el último llega más tarde, no menos tarde. Queda anotado porque es un error de razonamiento
+fácil de repetir: la fracción es a la vez «quién impone» y «a qué velocidad va el grupo».
+
+**Lo que se hace: cribar SOLO el grupo principal** (`mainId`, v29: el grupo que lleva la gente). No
+hace falta elegir fracción para el grupeto porque el grupeto no se criba, y el título va pasando
+carretera abajo conforme la carrera se deshace: cuando el `peloton` se queda en ocho hombres, lo toma
+el bloque que lleva a noventa, y ése es el que corre el puerto.
+
+|                                          | cribarlos todos (intento 2) | **solo el grupo principal** |
+| ---------------------------------------- | --------------------------: | --------------------------: |
+| cola agrupada de las reinas (banda 7-14) |                     14,33 ✗ |                  **9,81 ✓** |
+| peor etapa (techo 18)                    |                      17,7 ✓ |                  **15,0 ✓** |
+| e9: grupo mayor en meta                  |                       ~13 % |             **20,7-23,9 %** |
+| e9: pierde el 150.º                      |                   442-619 s |               **227-689 s** |
+
+**LO QUE ESTO NO ARREGLA**, y se dice en vez de disimularlo: un grupeto que ya NO es la carrera —el
+que va tercero a diez minutos— sigue sin perder a nadie en el puerto, y en carretera sí los pierde.
+Arreglarlo pide que la cola de las reinas pueda pasar del 14 %, que es una banda con ancla en §VI.3
+(«el grupeto entra 25-40 minutos detrás») y no se mueve sin decisión del dueño.
 
 ### 7. Lo que se volvió a medir porque su premisa se cayó
 
@@ -9567,9 +9590,12 @@ semillas:
 
 La ayuda sigue ayudando, y ahora además puede fallar, que es lo que hace en carretera.
 
-### 8. El coste, dicho antes de que lo diga CI
+### 8. El coste, y por qué al final no lo hay
 
-La cola de las reinas SUBE, porque ahora el grupeto pierde de verdad al que ya no puede seguirle.
-Tres etapas quedan cerca del corte de tiempo de §VI.3 (`timeCutQueen`, 18 %): `race-italy` e19 en
-17,7 %, `race-rhone-alpes` e8 en 17,3 % y `race-france` e20 en 16,8 %. **Ninguna banda se ha
-movido**; si el invariante de la cola no pasa, la decisión de qué hacer es del dueño y no mía.
+La primera versión de esta tanda cribaba TODOS los grupos y la cola de las reinas se iba a 14,33 %
+contra un techo de 14: se avisó antes de subirlo y no se movió ninguna banda. Con la criba puesta
+solo en el grupo principal (§6) la cola se queda en **9,81 %** y la peor etapa en **15,0 %** contra
+un techo de 18, así que las dos bandas pasan holgadas y no hay nada que decidir.
+
+Queda anotado igualmente porque la próxima vez que alguien quiera cribar también los grupetos —que es
+lo que pasa en carretera— se va a encontrar ese techo, y esta es la nota que le dirá dónde mirar.

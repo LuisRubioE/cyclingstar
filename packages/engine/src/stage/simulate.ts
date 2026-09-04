@@ -3822,23 +3822,33 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
      * La lista se copia porque `dropOut` empuja grupos nuevos a `shed`: los que nacen de esta criba
      * no se vuelven a cribar en el mismo bloque, igual que hace el corte del abanico justo arriba.
      */
+    /**
+     * …Y SE CRIBA EL GRUPO DONDE ESTÁ LA CARRERA, sea cual sea su id. `mainId` es EL GRUPO QUE LLEVA
+     * LA GENTE (v29), la misma pieza con la que la crónica decide a quién llamar «el pelotón», y va
+     * pasando carretera abajo conforme la carrera se deshace: cuando el `peloton` se queda en ocho
+     * hombres, el título lo toma el bloque que lleva a noventa, y ése es el que corre el puerto.
+     *
+     * SE PROBÓ CRIBARLOS TODOS y el banco dijo que no. Dos veces:
+     *
+     * - con la fracción del puerto decisivo (`climbPaceFraction`, 0,12), la etapa 9 acababa con **37
+     *   grupos en meta y el último a 19 minutos**;
+     * - con la de tempo (0,5), la cola agrupada de las nueve reinas reales se iba a **14,33 %**
+     *   contra un techo de 14, y bajarla haciendo que el grupeto subiera TODO junto (fracción 1) la
+     *   empeoraba a 14,72 % —lo que no había visto: rebajar la fracción no solo descuelga a menos
+     *   gente, también hace que el grupo entero ruede más despacio, así que el último pierde más—.
+     *
+     * Con la criba solo en el grupo principal, la cola se queda en **9,81 %** y la etapa 9 sigue
+     * arreglada: el bloque más grande de la meta baja del 53 % del campo al 21-24 % y el 150.º pasa
+     * de perder 26 s a perder de 227 a 689 s. Números en docs/balance.md «v49».
+     *
+     * LO QUE ESTO NO ARREGLA, dicho en vez de disimulado: un grupeto que ya NO es la carrera —el que
+     * va tercero a diez minutos— sigue sin perder a nadie en el puerto. En carretera sí los pierde.
+     * Arreglarlo pide que la cola de las reinas pueda pasar del 14 %, que es una banda con ancla en
+     * §VI.3 y no se mueve sin decisión del dueño.
+     */
     for (const sg of [...shed]) {
-      /**
-       * …PERO UN GRUPETO NO ATACA EL PUERTO, LO SOBREVIVE. La fracción que marca el ritmo no es de
-       * sabor: `climbPaceFraction` (0,12) dice «el 12 % más fuerte impone y el resto que aguante»,
-       * que es lo que pasa DONDE SE DECIDE LA CARRERA, y `climbTempoFraction` (0,5) dice «suben
-       * juntos», que es lo que hace un grupo que ya ha perdido el día. Aplicarles a todos la del
-       * puerto decisivo parte el grupeto en pedazos de dos y tres —medido en esta misma etapa 9: 37
-       * grupos en meta y el último a 19 minutos— y eso no es carretera, es la criba con la perilla
-       * de otro sitio.
-       *
-       * Y quién es quién no hay que inventarlo: `mainId` es EL GRUPO QUE LLEVA LA GENTE (v29), la
-       * misma pieza con la que la crónica decide a quién llamar «el pelotón». Si el grueso de la
-       * carrera va en un `shed-N` —que es justo el caso que este arreglo destapa—, ese grupo corre
-       * el puerto decisivo como lo correría el pelotón; los de detrás suben a tempo.
-       */
-      const suFrac = sg.id === mainId ? pelFrac : onClimb ? STAGE.climbTempoFraction : roughFrac
-      shatter(sg, membersOf(sg.id), suFrac)
+      if (sg.id !== mainId) continue
+      shatter(sg, membersOf(sg.id), pelFrac)
     }
     // Cómo cambia el pelotón en el desenlace: la CRIBA que lo parte y el REAGRUPAMIENTO que lo
     // recompone (SPEC 6.15). Ambos son la misma cuenta —de cuántos a cuántos ha pasado el grupo
