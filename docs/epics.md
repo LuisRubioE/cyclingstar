@@ -297,12 +297,75 @@ Lo que tiene que cumplir a la vez:
 Ese último punto es el que hoy seguro que no está: correr desgasta y da forma (CTL/ATL), pero no
 enseña más por ser una carrera dura que por ser un entrenamiento.
 
-**Cómo se mide (era la propuesta N5).** La preocupación —«que no acaben todos con cinco estrellas»—
-hoy solo se puede responder con una opinión. Hace falta un **banco de mundo**: simular diez
-temporadas seguidas y mirar qué le pasa a la población. ¿Converge todo el pelotón al máximo?
-¿Se queda todo el mundo clavado en cuatro? ¿Se aplanan las diferencias entre el mejor y la media?
-Es el Montecarlo de etapas llevado a las temporadas, y sin él esta EPIC se hace a ciegas. De paso
-vigila G3, G4, G8, G9 y G10, que también son cosas que solo se rompen con el tiempo.
+**Cómo se mide: ya se puede.** El **banco de mundo** existe y se corre con `pnpm sim:mundo
+[temporadas] [corridas]`; en CI vigila con límites anchos (`sim/world.test.ts`, ~12 s). Es el
+Montecarlo de etapas llevado a las temporadas: 442 corredores, 364 días al año, con su relevo
+generacional —se retiran los viejos, entran neoprofesionales— y una foto de la población al final
+de cada temporada. Sin él esta EPIC se hacía a ciegas.
+
+**Las tres primeras preguntas salen bien** (2 mundos × 25 temporadas):
+
+| temporada | cracks (3+ atr. de 5★) | sin nada sobre 4★ | media | ancho p90−p10 | congelados |
+| --------: | ---------------------: | ----------------: | ----: | ------------: | ---------: |
+|         1 |                  0,1 % |            24,5 % |  54,8 |          21,3 |     79,6 % |
+|         5 |                  1,8 % |            19,9 % |  55,7 |          22,7 |     52,0 % |
+|        10 |                  4,2 % |            10,0 % |  58,7 |          22,1 |     11,3 % |
+|        15 |                  7,0 % |             3,7 % |  60,9 |          20,5 |      0,0 % |
+|        25 |                  5,2 % |             4,1 % |  60,2 |          20,2 |      0,0 % |
+
+O sea: **no** acaban todos siendo Pogačar (los cracks hacen techo en el 7 % y luego bajan), **no** se
+queda el pelotón en medianía (del 24 % al 4 %), y las diferencias **no se aplanan** (el ancho se
+queda en 20-23 puntos las veinticinco temporadas). El miedo del dueño, medido, no se cumple.
+
+**Pero hay un hallazgo, y no está en la fórmula de entrenamiento sino en quién nace pudiendo
+mejorar.** `generateNpcRider` da techo por encima del atributo SOLO a los de 23 años o menos
+(`NPC.youngAge`); a partir de los 24 el techo **es** el atributo. Y como `kDim` vale 0 en cuanto el
+atributo alcanza el techo, para ésos entrenar rinde exactamente **cero**: el mismo corredor a los 26
+que a los 30, salvo el declive de la edad. Medido sobre 4.000 NPCs sueltos:
+
+| edad  | margen medio de mejora | sin ningún margen |
+| ----- | ---------------------: | ----------------: |
+| 19-23 |            17,0 puntos |               0 % |
+| 24-37 |             0,0 puntos |             100 % |
+
+Un escalón seco en el 23/24, y **el 90 % de los NPCs generados cae del lado malo**. En un mundo
+recién creado eso son cuatro de cada cinco corredores del pelotón que no pueden mejorar nunca; el
+mundo se descongela solo hacia la temporada 15, cuando ya se han retirado todos ellos, pero la
+partida de verdad se juega antes de eso.
+
+**Arreglado en la v50, y el dueño puso el criterio:** «yo creo que quizás hay que ser menos
+cartesianos… en la realidad un ciclista sí mejora después de los 24 años, pero mejora en cosas
+diferentes. Por ejemplo Tactics… eso debería mejorar siempre después de los 24. Otras como
+contrarreloj suben muy rápido cuando eres joven, menos rápido según creces; quizás entre 24 y 27
+crecen ya muy poquito, y a partir de los 27 se estancan».
+
+O sea que los atributos se parten en dos (`ATTRIBUTE_GROWTH`, en `shared`) y la edad les afecta
+distinto (`NPC.ceilingBoost`):
+
+|                                       | ≤ 23 (joven) | 24-27 (plenitud) | ≥ 28 (veterano) |
+| ------------------------------------- | ------------ | ---------------- | --------------- |
+| **motor** RES REC LLA MON COL CRI SPR | 5-30         | 1-9              | 0-2             |
+| **oficio** TAC DES PAV                | 8-30         | 6-22             | 4-16            |
+
+DES y PAV van en «oficio» y no es una clasificación inventada para la ocasión: el motor YA los
+trataba aparte al decaer (`TRAINING.desPavDecayFactor` les baja el declive por edad al 25 %). Esto
+le pone nombre a esa decisión y la extiende al otro lado, el de crecer. TAC además no decae nunca.
+
+El margen del motor no cae a cero de golpe a los 28 sino que se queda en un hilo (0-2), a propósito:
+«se estancan» no es «se mueren», y ese hilo es lo que permite que entrenar sirva para MITIGAR la
+caída y no solo para verla.
+
+**Medido, y no desboca nada.** Congelados en la temporada 1: **79,6 % → 0,0 %**. Y las tres
+preguntas del dueño se quedan donde estaban —los cracks siguen haciendo techo en el 5-7 %, el ancho
+de la población sigue en 20-22 puntos—, porque el margen se cierra solo con la edad. La migración
+`0032` se lo reabre también a los corredores que YA existen, que si no seguirían congelados el resto
+de su carrera.
+
+**Y sigue faltando la cuarta pata:** que las carreras enseñen. Correr desgasta y da forma (CTL/ATL),
+pero no enseña más por ser una carrera dura que por ser un entrenamiento. Nótese que las dos cosas
+se cruzan: una carrera solo puede enseñar a quien tenga margen, o sea que hoy, a nueve de cada diez.
+
+De paso el banco vigila G3, G4, G8, G9 y G10, que también son cosas que solo se rompen con el tiempo.
 
 ### G2 · Gestión humana de un equipo
 
@@ -399,17 +462,28 @@ apoyarse.
   negarse, rendir menos, irse—, porque si no, el jugador que no es mánager es un espectador de su
   propia carrera deportiva.
 
-### G3 · Rankings a 365 días rodantes
+### G3 · Rankings a 365 días rodantes — **HECHO (v48)**
 
 > «El ranking debería sumar los puntos en los últimos 365 días: si llegamos al GD 25, hay que sumar
 > los que consigan ese día y restar los que consiguieron el GD 25 del año anterior.»
 
-Es exactamente como funciona el ranking real. **Comprobado: hoy NO es así.** El ranking es
-`season_points`, un contador que se incrementa por temporada (`update riders set season_points =
-season_points + pts`, en `packages/db/src/ranking.ts`). No hay puntos fechados por resultado, así
-que no se puede restar lo del mismo día del año anterior. Es un cambio de ESQUEMA, no de fórmula:
-hay que guardar cada puntuación con su fecha. La clasificación de jóvenes (maillot blanco) sí
-existe.
+Es exactamente como funciona el ranking real, y hasta la v48 **no era así**: el ranking sumaba
+`season_points`, un contador que se incrementa por temporada y que el rollover pone a cero. O sea
+que el 1 de enero del juego el ranking entero valía cero y el que acababa de ganar el Tour aparecía
+por detrás de cualquiera que puntuase en una .2 en enero. No había puntos fechados, así que no había
+nada que restar: era un cambio de ESQUEMA, no de fórmula.
+
+**Cerrado.** Cada puntuación se guarda ahora con su día, su edición de carrera y de qué fue
+(`rider_points`, migración `0031`), y `getRanking` suma la ventana `(hoy − 364, hoy]`. El ejemplo del
+dueño fija el borde exacto y así está sellado en `ranking365.test.ts`: lo del **mismo** GD del año
+pasado ya está FUERA, y el día siguiente es el primero que entra.
+
+Los dos contadores conviven a propósito y no son redundantes: `season_points` sigue siendo el de la
+TEMPORADA —es lo que quieren los premios del año y el maillot blanco, que se reinician de verdad— y
+`rider_points` no se borra nunca, porque la ventana rodante necesita ver el año anterior. La
+migración siembra lo que cada uno lleva acumulado como una puntuación fechada hoy, de modo que
+**nadie pierde su puesto el día del despliegue** y esa fila cae sola de la ventana dentro de un año,
+que es justo lo que le pasaría a los puntos que representa.
 
 ### G4 · Promociones y descensos de equipos entre categorías
 
@@ -504,12 +578,38 @@ que migrar—. Lo irreversible es la reputación que se le pega a un dominio com
 dominio de envío, el return-path del subdominio, DMARC empezando en `p=none`, y una baja real en el
 correo de notificación. Nada de eso es opcional si se quiere que el correo llegue.
 
-### G10 · Retiradas por edad
+### G10 · Retiradas por edad — **HECHO (v47-v48)**
 
 > «Un sistema para que los ciclistas (humanos o bots) se jubilen al llegar a cierta edad.»
 
 Sin esto la población envejece para siempre y no entra sangre nueva: se lleva por delante a los
 rankings, al mercado y a la cantera.
+
+**Cerrado.** El NPC ya se jubilaba; lo que faltaba era el HUMANO, y el bloque de retiros del rollover
+filtraba por `isNull(riders.userId)`, así que un corredor de jugador no se retiraba nunca (v47,
+`rolloverRetire.test.ts`). Ahora se jubila a la edad dura, se le quita el equipo y deja de ser «tu
+ciclista» para que el jugador pueda crearse otro.
+
+Y con él entra el otro extremo de la vida deportiva, que el dueño pidió aparte: **se empieza a los 18
+siendo un don nadie** (v48). Antes un jugador recién creado entraba con 46/38/30 y era 28.º de 127 en
+un nacional sub-23; ahora entra por debajo del suelo del pelotón profesional y el contrato se gana:
+
+| edad | `rating` | qué pasa                                                                 |
+| ---- | -------: | ------------------------------------------------------------------------ |
+| 18   |     0,21 | nadie le ficha (`MIN_RATING_FOR_OFFERS` = 0,42), corre como agente libre |
+| 19   |     0,43 | cruza el listón: primeras ofertas continentales                          |
+| 20   |     0,50 | continental de verdad                                                    |
+| 21   |     0,53 | continental mediano (0,54)                                               |
+
+El «casi a cero» no se toma literal, y lo dice el motor: al nivel 5, **siete de cada diez carreras se
+terminan fuera de control**. Con el genoma nuevo acaba 10 de 10, último y a ocho minutos y medio —un
+don nadie, pero un ciclista—. Los techos NO bajan: lo que se recorta es lo que tienes, no lo que
+puedes llegar a ser.
+
+**Queda anotado lo que esto destapó y NO se ha tocado: los NPC no tienen juventud.** `generateNpcRider`
+usa la edad solo para el TECHO, no para los atributos, así que un continental de 18 años es idéntico
+a uno de 30 (MON 60,0 medido en los dos). El mundo no tiene júniors: todos nacen ya hechos. Es la otra
+mitad de este épico y se conecta con N2 (el bot que se retira lo reemplaza un bot júnior).
 
 ---
 
@@ -625,5 +725,6 @@ mecánica de juego (y bastante buena), no un problema de escala.
 2. ~~**E1** (el viento y los abanicos)~~ — HECHA en la v41. ~~**E5** (el clima)~~ — HECHA en el motor
    en la v42; le falta salir por la API y pintarse en alguna pantalla, que es lo que la convierte en
    mecánica de juego. **E3** (la campaña), EN CURSO: el paso 1 era poder medirla y ya se puede.
-3. La lista grande, empezando por donde el dueño diga. **G1 (entrenamientos)** y **G3 (rankings)**
-   son las dos que hoy pueden estar mintiendo en producción, así que son las candidatas naturales.
+3. La lista grande, empezando por donde el dueño diga. **G1 (entrenamientos)** y ~~**G3
+   (rankings)**~~ eran las dos que podían estar mintiendo en producción; G3 está HECHA en la v48, así
+   que la candidata natural que queda de ese par es G1.

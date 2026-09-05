@@ -297,6 +297,41 @@ describe('los suyos se dejan caer a por él (v36, §V.1)', () => {
     }
   })
 
+  it('EL QUE LLEVA EL MAILLOT no baja a por nadie (v51)', () => {
+    /**
+     * El dueño, leyendo la crónica de la etapa 14 del Race Italy: «km 55, 107 Isaac Clark (Beacon
+     * Pro Cycling) drops back out of the bunch to pace 105 Frank Fischer (Beacon Pro Cycling) 103s
+     * back. ¡O sea! No es que se quedara por falta de energía, sino que se quedó a posta para ayudar
+     * a un compañero **que estaba a 8 minutos en la general**».
+     *
+     * El disparador de aquel día fue otro —el maillot salía con un rol que no era el suyo, ver
+     * `world/autoOrders.test.ts`— pero el agujero de aquí es INDEPENDIENTE y le sobrevive:
+     * `pickLeader` elige jefe de filas por ROL y por el final que dibuja el recorrido, sin mirar la
+     * general jamás. Así que el hombre del maillot puede acabar de gregario del plan y entrar en la
+     * lista de los que se dejan caer.
+     *
+     * El caso se monta igual que los de arriba, cambiando UNA cosa: uno de los gregarios lleva el
+     * maillot (déficit 0) mientras el jefe del plan es otro. Es exactamente la foto de producción.
+     */
+    const input = conJefeQueSeCae(true)
+    const conMaillot: StageInput = {
+      ...input,
+      riders: input.riders.map((r) => (r.riderId === 'greg-0' ? { ...r, gcDeficitSeconds: 0 } : r)),
+    }
+    let avisos = 0
+    for (const seed of seedsFor('maillot-no-baja', 8)) {
+      for (const e of simulateStage(conMaillot, seed).events) {
+        if (e.plantilla !== 'domestiques_drop_back') continue
+        avisos++
+        expect(`${seed}: baja el maillot ${e.protagonistas.includes('greg-0')}`).toBe(
+          `${seed}: baja el maillot false`,
+        )
+      }
+    }
+    // Y la regla no se cumple por no haber avisos: el rescate sigue ocurriendo, con los otros.
+    expect(`hubo rescates: ${avisos > 0}`).toBe('hubo rescates: true')
+  })
+
   it('POR LA ETAPA no se baja nadie si no ha habido percance (v37)', () => {
     /**
      * La corrección del dueño a la v36: «por la etapa yo creo que nadie debería bajarse… salvo que

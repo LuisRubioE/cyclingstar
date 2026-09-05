@@ -9441,6 +9441,108 @@ No dice que el reparto de roles del pelotón esté bien. Que el 70 % del campo s
 pregunta —un equipo de ocho en una llana lleva un velocista, su tren de dos o tres, y el resto—, y
 este banco la deja a la vista sin contestarla.
 
+## v51 — El maillot corría de cazaetapas, y era una sola línea
+
+`ENGINE_VERSION` 48 —la misma que la v50: las dos tandas viajan juntas y no ha salido nada en medio—. Cuatro síntomas que el dueño vio en la misma carrera (Race Italy, etapas 13 y 14) y que salen todos de **una línea** de `world/autoOrders.ts`:
+
+```ts
+const maillot = team.find((r) => r.gcRank != null && r.gcRank <= GC_CARD_RANK)
+```
+
+`find` devuelve el primero del ARRAY, no el mejor colocado. En producción el array va ordenado por
+dorsal, así que en cuanto un equipo tiene DOS hombres entre los cinco primeros de la general —que es
+justo cuando esto importa— la carta del equipo era el del dorsal más bajo, y **el líder de la carrera
+se caía al reparto por terreno**. Reproducido aislado, con el mismo equipo y cambiando solo el orden
+del array:
+
+| corredor              | rol que le toca      | rol que salía    |
+| --------------------- | -------------------- | ---------------- |
+| maillot (1.º general) | `lider` / `reservon` | **`cazaetapas`** |
+| compañero (5.º)       | gregario             | `lider`          |
+
+`cazaetapas` es el rol con MÁS ganas de atacar de los siete (`ROLE_APPETITE` 1,0 contra el 0,3 de un
+líder) y con cinco veces su deber de relevo (`relayDutyByRole` 0,5 contra 0,1). De ahí salen los
+cuatro síntomas sin necesidad de nada más:
+
+1. **«El líder, demasiado combativo»** (etapa 13): se escapa, le cazan, lo vuelve a intentar. Es
+   literalmente lo que hace un cazaetapas.
+2. **«Nada más iniciar, el líder tirando del pelotón»** (etapa 14): `relayDuty` solo saca del turno
+   al que es la carta del equipo (`esLaCartaDelEquipo`). Como no era `lider`, el empuje de su propio
+   equipo le subía a la rotación.
+3. **«Y el segundo, tercero y cuarto no atacan»**: ésos SÍ salían de `lider` con mentalidad
+   `reservon`. La carrera exactamente al revés.
+4. **«Se quedó a posta para ayudar a un compañero a 8 minutos en la general»**: `pickLeader`
+   (teamPlan.ts) elige jefe de filas por ROL, así que con el maillot degradado el jefe del plan pasó
+   a ser el compañero, y el maillot entró en la lista de los que se dejan caer a esperarle.
+
+Y sobre la sospecha del dueño de que fuera la energía —«no sé si es que no está bien calibrado lo que
+supone perder energía, porque haciendo esa payasada debería pagarlo mucho luego»—: **la energía no se
+toca**. Perdió seis minutos y el maillot porque se pasó el día atacando y tirando; estaba pagando lo
+que hizo. Lo que no tenía sentido es que lo hiciera.
+
+**Y un segundo agujero, independiente, que sobrevivía al primer arreglo:** el líder de la carrera
+podía ser mandado atrás a esperar a un compañero. `pickLeader` elige jefe de filas por rol y por el
+final que dibuja el recorrido, y no mira la general NUNCA: en una etapa llana de una gran vuelta el
+velocista puntúa por encima del `lider` (4 contra 3), así que el jefe del plan es él y el hombre del
+maillot vuelve a entrar en la lista de los que pueden dejarse caer. Ahora se dice donde se decide y
+de una vez: **el que lleva el maillot no baja a por nadie**, en ninguna carrera y por ningún
+compañero.
+
+**Cuánto pasaba**, medido sobre 6 grandes vueltas (114 etapas en línea con general): el equipo del maillot lleva DOS hombres en el top 5 en el **11,4 %** de las etapas, y en el 23 % de ésas el maillot no era el primero del array — o sea, 2,6 % de las etapas en el banco, y **0 % con el arreglo**.
+
+Ese 2,6 % es un SUELO, no la tasa de producción, y conviene decir por qué: aquí el orden del array es arbitrario (por `riderId`), mientras que en el juego va por DORSAL, y el dorsal 1 se lo lleva el favorito PREVIO a la carrera (`raceLeadScore`). El hombre que coge el maillot a mitad de carrera es justamente el que ha rendido por encima de lo que decía su dorsal, o sea el que tiene más números de llevar un dorsal alto. El sesgo va en contra. Y una vez que ocurre se repite etapa tras etapa mientras la general no cambie, que es exactamente por qué el dueño lo vio en la 13 y en la 14.
+
+**Lo que NO arregla esta tanda, y queda anotado.** La otra mitad de la queja —«los que van segundo,
+tercero o cuarto quieren luchar por la carrera y no lo hacen»— solo se arregla a medias. El bonus de
+la general (`gcChallengeShare`, ×2,15 para el que persigue con el líder cómodo) vive dentro de
+`ataque_final`, y ese modo solo existe **en un puerto dentro de los últimos 30 km**
+(`climbRaceKmToGo`) o en los últimos 12 (`lateAttackKm`). En una media montaña cuyo último puerto
+corona a 36 km de meta, los rivales de la general no reciben ese empujón en todo el día. La
+limitación ya estaba anotada en `constants.ts` por otra vía («la etapa se decide a veces mucho antes
+—Race Great Ocean—») y ahora tiene un caso del dueño detrás.
+
+## v50 — El 90 % del pelotón no podía mejorar, y no era culpa del entrenamiento
+
+`ENGINE_VERSION` 47 → 48. Sale del banco de mundo (`pnpm sim:mundo`), que hasta la v49 no lo corría
+nadie.
+
+**El defecto.** `generateNpcRider` ponía el techo por encima del atributo solo hasta los 23 años
+(`NPC.youngAge`); de los 24 en adelante **el techo ERA el atributo**. Y `kDim` (progression.ts)
+devuelve 0 en cuanto el atributo alcanza el techo, así que para ésos entrenar rendía exactamente
+cero: el mismo corredor a los 26 que a los 30, salvo el declive de la edad. Medido sobre 4.000 NPCs,
+con un escalón seco en el 23/24:
+
+| edad  | margen medio | sin ningún margen |
+| ----- | -----------: | ----------------: |
+| 19-23 |  17,0 puntos |               0 % |
+| 24-37 |   0,0 puntos |             100 % |
+
+El 90 % de la población caía del lado de cero, y en el banco de mundo la temporada 1 salía con el
+**79,6 %** del pelotón congelado. El mundo se descongelaba solo hacia la temporada 15, según se
+retiraban, pero la partida se juega antes de eso.
+
+**El criterio lo puso el dueño**, y es lo que hace que el arreglo no sea una barra libre: «hay que
+ser menos cartesianos… un ciclista sí mejora después de los 24, pero mejora en COSAS DIFERENTES».
+Los atributos se parten en motor y oficio (`ATTRIBUTE_GROWTH`) y el margen depende de la edad y de
+la clase (`NPC.ceilingBoost`), con los rangos y el porqué anotados ahí mismo.
+
+**Medido después, 2 mundos × 25 temporadas:**
+
+| temporada | congelados antes | congelados ahora | cracks antes | cracks ahora | ancho antes | ancho ahora |
+| --------: | ---------------: | ---------------: | -----------: | -----------: | ----------: | ----------: |
+|         1 |           79,6 % |            0,0 % |        0,2 % |        0,2 % |        21,3 |        21,1 |
+|         5 |           52,0 % |            0,0 % |        1,4 % |        1,4 % |        22,7 |        22,4 |
+|        15 |            0,0 % |            0,0 % |        6,4 % |        6,4 % |        20,3 |        20,3 |
+|        25 |            0,0 % |            0,0 % |        5,1 % |        5,1 % |        20,3 |        20,3 |
+
+O sea: **el mundo deja de nacer congelado y no se desboca por ello**. Los cracks y el ancho de la
+población no se mueven, porque el margen que se abre se cierra solo con la edad y porque de la
+temporada 15 en adelante el mundo ya era todo de cosecha propia —ahí los dos brazos son idénticos
+dígito a dígito, que es la comprobación de que el cambio toca lo que tenía que tocar y nada más—.
+
+Los que ya existen llevan sus techos guardados en `rider_hidden`, así que la migración `0032` se los
+reabre una vez, sin dado (el centro de cada rango) y sin bajar nunca lo que ya tuvieran.
+
 ## v49 — El puerto que no seleccionaba, y por qué ningún invariante se enteró
 
 El dueño, sobre la etapa 9 del Giro (184 km, final en alto de 12,8 km al 5,9 % con los últimos 2,8 al

@@ -715,21 +715,52 @@
  * Campaña canónica de 500 corridas: **los 33 invariantes en verde**. La contrarreloj no se mueve ni
  * un dígito —es el ancla del esfuerzo individual y paga la ley lineal de siempre—.
  */
-export const ENGINE_VERSION = 47 as const
+export const ENGINE_VERSION = 48 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
  * partir de la semilla del corredor.
  */
 export const CREATION = {
-  // Valores iniciales por categoría de la vocación (SPEC 3.5).
-  primaryMean: 46,
-  adjacentMean: 38,
-  restMean: 30,
+  /**
+   * VALORES INICIALES por categoría de la vocación (SPEC 3.5).
+   *
+   * BAJAN A LA MITAD EN LA v48, por decisión del dueño: «yo diría que empiecen con 18 años… con
+   * stats casi a cero, sin equipo… y así para cuando cumplan 19 y 20 ya pueden tener mejores stats,
+   * quizás un equipo». Con 46/38/30 un jugador recién creado NO era un novato: medido sobre el
+   * nacional sub-23 en línea (180 km, 127 corredores continentales), **entraba 28.º y con el tiempo
+   * del ganador**.
+   *
+   * El «casi a cero» NO se toma al pie de la letra, y el propio motor dice por qué. Medido en esa
+   * misma carrera, con el novato al mismo nivel en todos los atributos:
+   *
+   * | nivel | termina  | puesto | pierde |
+   * | ----: | :------- | -----: | -----: |
+   * |     5 | **3/10** |  127.º | 28 min |
+   * |    12 | 6/10     |  127.º | 11 min |
+   * |    20 | **10/10**|  127.º |  9 min |
+   * |    28 | 10/10    |  119.º |  7 min |
+   * |    46 | 10/10    | **28.º** | con el ganador |
+   *
+   * A 5 no puede ni acabar —siete de cada diez carreras se van fuera de control— y un juego en el
+   * que tu primer año son DNF no es el que se pidió. **20 es el suelo que sí funciona**: acaba
+   * siempre, último y a nueve minutos. Un don nadie, pero un ciclista. De ahí salen estos números,
+   * que dejan al primario en 24 y a la media alrededor de 17: un tercio del continental mediano
+   * (MON 60), que es el suelo real del pelotón profesional.
+   *
+   * Los TECHOS no se tocan: lo que baja es lo que TIENES, no lo que puedes llegar a ser. Y la curva
+   * de progresión ya premia estar lejos del techo (`kDim`), así que la primera temporada recupera
+   * casi todo: medido, de 5 a ~55 en un año de entrenamiento, y a los 21 la diferencia contra el
+   * arranque viejo es de un punto.
+   */
+  primaryMean: 24,
+  adjacentMean: 19,
+  restMean: 15,
   valueSd: 3,
-  // TAC inicia siempre bajo: el oficio se aprende corriendo (SPEC 3.5, 3.6).
-  tacInitialMin: 25,
-  tacInitialMax: 32,
+  // TAC inicia siempre bajo: el oficio se aprende corriendo (SPEC 3.5, 3.6). Baja con el resto: a
+  // los 18 no se tiene oficio ninguno.
+  tacInitialMin: 12,
+  tacInitialMax: 16,
 
   // Techos: mu_a = ceilingBase + ceilingBiasWeight * bias. El peso 12 es LA perilla
   // entre fantasía y lotería (SPEC 3.5); su ajuste va a docs/balance.md.
@@ -759,8 +790,8 @@ export const CREATION = {
 
 /**
  * Generación del mundo NPC (SPEC 10). Atributos ~ clamp(N(mu_rol_div, 8), 20, 95); el mu base por
- * división y los descensos por categoría de atributo modelan el nivel de cada corredor. Los techos
- * de los jóvenes dejan margen de mejora; los veteranos ya están hechos.
+ * división y los descensos por categoría de atributo modelan el nivel de cada corredor. El margen
+ * al techo lo reparten la edad y la clase de atributo (ver `ceilingBoost`).
  */
 export const NPC = {
   // mu del atributo primario de la vocación por división (World Tour, Pro Series, Continental).
@@ -770,10 +801,42 @@ export const NPC = {
   attrSd: 8,
   attrMin: 20,
   attrMax: 95,
-  // Techos por edad (SPEC 10): joven (<= 23) crece; veterano no.
+  /**
+   * CUÁNTO MARGEN DE MEJORA TE QUEDA, por edad y por clase de atributo (docs/epics.md «G1»).
+   *
+   * Hasta la v49 esto era un interruptor: hasta los 23 el techo se ponía por encima del atributo, y
+   * de los 24 en adelante el techo ERA el atributo. Como `kDim` vale 0 en cuanto se alcanza el
+   * techo, eso significaba que **el 90 % del pelotón no podía mejorar jamás**, por mucho que
+   * entrenara: el mismo corredor a los 26 que a los 30, salvo declive. Medido: 17 puntos de margen
+   * a los 23 y cero a los 24, un escalón seco.
+   *
+   * El dueño: «yo creo que quizás hay que ser menos cartesianos… un ciclista sí mejora después de
+   * los 24, pero mejora en cosas diferentes. Tactics debería mejorar siempre. Otras como
+   * contrarreloj suben muy rápido cuando eres joven, menos rápido según creces; quizás entre 24 y
+   * 27 crecen ya muy poquito, y a partir de los 27 se estancan».
+   *
+   * Eso es exactamente esta tabla. Tres tramos de edad por dos clases (`ATTRIBUTE_GROWTH`):
+   *
+   * |            | ≤ 23 (joven) | 24-27 (plenitud) | ≥ 28 (veterano) |
+   * | ---------- | ------------ | ---------------- | --------------- |
+   * | **motor**  | 5-30         | 1-9              | 0-2             |
+   * | **oficio** | 8-30         | 6-22             | 4-16            |
+   *
+   * El margen del motor no llega a cero de golpe a los 28 sino que se queda en un hilo (0-2), y es
+   * a propósito: «se estancan» no es «se mueren», y ese hilo es justo lo que permite que entrenar y
+   * correr sirvan para MITIGAR la caída en vez de solo para verla. El declive por edad sigue
+   * viviendo aparte, en `TRAINING.ageDecay*`, y arranca en la `declineAge` de cada uno (29-37).
+   *
+   * Los números son el punto de partida que pidió el dueño, no una calibración medida: el banco de
+   * mundo (`pnpm sim:mundo`) es quien dice si el pelotón se desboca, y sus límites están en
+   * `sim/world.test.ts`.
+   */
   youngAge: 23,
-  ceilingBoostMin: 5,
-  ceilingBoostMax: 30,
+  primeAge: 27,
+  ceilingBoost: {
+    motor: { joven: [5, 30], plenitud: [1, 9], veterano: [0, 2] },
+    oficio: { joven: [8, 30], plenitud: [6, 22], veterano: [4, 16] },
+  },
   ceilingMax: 96,
   // Distribución de edades 18..38 sesgada a 24..30 (media de una Beta reescalada).
   ageMin: 18,

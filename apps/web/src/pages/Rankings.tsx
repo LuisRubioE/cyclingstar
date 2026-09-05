@@ -149,7 +149,7 @@ export function Rankings() {
   const rankingTabs = (
     <div className="flex items-center gap-1.5">
       <button type="button" className={tabClass('overall')} onClick={() => setTab('overall')}>
-        Season points
+        World ranking
       </button>
       <button type="button" className={tabClass('young')} onClick={() => setTab('young')}>
         Young riders (U23)
@@ -161,7 +161,10 @@ export function Rankings() {
     <section className="space-y-4">
       <SectionBar>Rankings</SectionBar>
       <p className="text-sm text-slate-500">
-        Individual points for the current season, and the roll of honour of past winners.
+        {tab === 'young'
+          ? 'Points scored by riders aged 23 and under in the current season.'
+          : 'Points scored over the last 12 months of racing — results drop out a year to the day after they were won.'}{' '}
+        Below, the roll of honour of past winners.
       </p>
 
       {awards.data && <AwardsPanel awards={awards.data} />}
