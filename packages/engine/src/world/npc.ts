@@ -54,7 +54,11 @@ function attributeMu(base: number, attr: Attribute, vocation: Vocation): number 
 function ceilingBoostRange(age: number, attr: Attribute): readonly [number, number] {
   const porClase = NPC.ceilingBoost[ATTRIBUTE_GROWTH[attr]]
   const tramo =
-    age <= NPC.youngAge ? porClase.joven : age <= NPC.primeAge ? porClase.plenitud : porClase.veterano
+    age <= NPC.youngAge
+      ? porClase.joven
+      : age <= NPC.primeAge
+        ? porClase.plenitud
+        : porClase.veterano
   return [tramo[0], tramo[1]] as const
 }
 

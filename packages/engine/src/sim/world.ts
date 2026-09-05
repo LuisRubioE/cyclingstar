@@ -172,7 +172,9 @@ function foto(
     FISICOS.map((a) => Math.max(0, r.ceilings[a] - r.attributes[a])),
   )
   const techos = field.flatMap((r) => FISICOS.map((a) => r.ceilings[a]))
-  const congelados = field.filter((r) => FISICOS.every((a) => r.attributes[a] >= r.ceilings[a])).length
+  const congelados = field.filter((r) =>
+    FISICOS.every((a) => r.attributes[a] >= r.ceilings[a]),
+  ).length
   return {
     season,
     riders: field.length,

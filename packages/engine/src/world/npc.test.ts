@@ -86,7 +86,9 @@ describe('engine: génesis del genoma NPC (SPEC 10)', () => {
     // 1) De joven se crece en todo, y es cuando más.
     expect(`joven crece de motor: ${joven.motor > 40}`).toBe('joven crece de motor: true')
     // 2) El motor se va cerrando con la edad y al veterano ya no le queda casi nada.
-    expect(`el motor se cierra: ${plenitud.motor < joven.motor / 3}`).toBe('el motor se cierra: true')
+    expect(`el motor se cierra: ${plenitud.motor < joven.motor / 3}`).toBe(
+      'el motor se cierra: true',
+    )
     expect(`al veterano no le queda motor: ${veterano.motor < 8}`).toBe(
       'al veterano no le queda motor: true',
     )

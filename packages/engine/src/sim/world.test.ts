@@ -57,7 +57,7 @@ describe('banco de mundo: la población después de 25 temporadas (G1)', () => {
      * cierra y da igual quién corra. Medido: el p90−p10 se queda entre 20 y 23 puntos las 25
      * temporadas, o sea que NO se aplana. El listón se pone en la mitad de eso.
      */
-     const minimo = Math.min(...filas.map((f) => f.anchoP90P10))
+    const minimo = Math.min(...filas.map((f) => f.anchoP90P10))
     expect(`ancho mínimo ≥ 10: ${minimo >= 10}`).toBe('ancho mínimo ≥ 10: true')
     // Y el mundo no se degrada: la media global no acaba por debajo de donde empezó.
     expect(`la media no baja: ${ultima.mediaGlobal >= primera.mediaGlobal}`).toBe(
@@ -93,7 +93,9 @@ describe('banco de mundo: la población después de 25 temporadas (G1)', () => {
      * alguien toque los techos: un mundo congelado no falla ninguna otra prueba del repositorio.
      */
     for (const f of filas) {
-      expect(`t${f.season} congelados ${f.congeladosPct === 0}`).toBe(`t${f.season} congelados true`)
+      expect(`t${f.season} congelados ${f.congeladosPct === 0}`).toBe(
+        `t${f.season} congelados true`,
+      )
     }
   })
 })
