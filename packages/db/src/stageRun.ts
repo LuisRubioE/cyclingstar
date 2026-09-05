@@ -977,6 +977,9 @@ async function awardOutcome(
           riderId: r.riderId,
           points: stagePointsByClass(spec.raceClass, r.puesto - 1),
         })),
+      // FECHADO, para el ranking a 365 días (docs/epics.md «G3»): se guarda la EDICIÓN
+      // (`raceKey` lleva la temporada), que es lo que sale de la ventana dentro de un año.
+      { gameDay, raceId: spec.raceKey, kind: 'stage' },
     )
   }
   // En una carrera de UN DÍA (etapa única = final) la victoria de etapa y la general son la MISMA:
@@ -997,6 +1000,7 @@ async function awardOutcome(
     await addSeasonPointsBatch(
       tx,
       gcOrder.map((riderId, i) => ({ riderId, points: gcPointsByClass(spec.raceClass, i) })),
+      { gameDay, raceId: spec.raceKey, kind: 'gc' },
     )
     if (gcWinnerId) {
       await recordPalmares(tx, {

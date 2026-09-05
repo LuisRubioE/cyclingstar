@@ -51,6 +51,30 @@ async function riderRating(tx: Tx, riderId: string): Promise<number> {
   return Math.max(0, Math.min(1, mean / 100))
 }
 
+/**
+ * NIVEL POR DEBAJO DEL CUAL NADIE TE FICHA (v48).
+ *
+ * No existía, y sin él la frase del dueño —«empiecen… sin equipo… y así para cuando cumplan 19 y 20
+ * ya pueden tener mejores stats, quizás un equipo»— no significaba nada: el mercado le mantiene a
+ * TODO agente libre humano una cartera de 3-5 ofertas frescas, así que «sin equipo» duraba hasta el
+ * primer tick. Un chaval de 18 años con las piernas de un chaval recibía tres ofertas continentales
+ * el primer día.
+ *
+ * El listón no es un número inventado: es el SUELO REAL de una plantilla continental. Medido sobre
+ * la generación de NPC, un corredor de un equipo CON tiene un `rating` mediano de 0,542 y su
+ * percentil 10 está en 0,496. Con 0,42 un equipo todavía se arriesga por alguien peor que su peor
+ * hombre —que es lo que hace un continental con un juvenil prometedor— y por debajo, sencillamente,
+ * no hay ficha: no es que el equipo no quiera, es que ese corredor no acaba las carreras (medido:
+ * al nivel de entrada, siete de cada diez terminan fuera de control).
+ *
+ * Y NO deja al jugador tirado un año, que era el riesgo: un agente libre humano se auto-inscribe en
+ * carreras y se paga el viaje (`calendarRun.ts`), así que la primera temporada se corre igual. Lo
+ * que cambia es que el contrato se GANA. Medido con la curva de progresión: un año de entrenamiento
+ * lleva los atributos entrenados de ~20 a ~55, o sea un `rating` de 0,21 a ~0,50, que cruza este
+ * listón de sobra al cumplir los 19.
+ */
+const MIN_RATING_FOR_OFFERS = 0.42
+
 /** Divisiones que encajan con el nivel del corredor (ofertas coherentes, SPEC 7.2). */
 function divisionsForRating(rating: number): Division[] {
   if (rating > 0.7) return ['WT', 'PRS']
@@ -120,6 +144,9 @@ export async function runMarket(
     if (need <= 0) continue
 
     const rating = await riderRating(tx, human.id)
+    // …y por debajo del suelo de una plantilla continental, no hay ofertas (v48). Ver
+    // `MIN_RATING_FOR_OFFERS`: el contrato se gana, no viene de serie.
+    if (rating < MIN_RATING_FOR_OFFERS) continue
     const age = 20 - human.birthSeason + season
     const divisions = divisionsForRating(rating)
 

@@ -73,6 +73,42 @@ describe('autoStageOrders (SPEC 6.18)', () => {
     expect(out.get('lone')?.mentality).toBe('combativo')
   })
 
+  /**
+   * EL MAILLOT ES EL MEJOR COLOCADO, NO EL PRIMERO DEL ARRAY (v50).
+   *
+   * Esto era un `find`, así que con dos hombres del equipo en el podio provisional la carta salía
+   * por ORDEN DE ARRAY —en producción, por dorsal— y el líder de la carrera se caía al reparto por
+   * terreno. El dueño lo vio en la etapa 13 del Race Italy: «el líder… lo veo demasiado combativo;
+   * se escapa, le pillan, lo vuelve a intentar… y curiosamente los que van segundo, tercero o
+   * cuarto no lo hacen». Las dos mitades eran esta línea: el maillot salía de **cazaetapas** —el rol
+   * que más ataca de todos— y sus rivales de `lider` con mentalidad `reservon`.
+   *
+   * Se prueba con el array en los DOS órdenes, porque el defecto era precisamente que el orden
+   * decidiera: la respuesta tiene que ser la misma.
+   */
+  it('con dos hombres en el podio provisional, la carta es el líder de la carrera', () => {
+    const conGc = (orden: 'maillot-primero' | 'maillot-segundo'): AutoOrderRider[] => {
+      const t = team('a')
+      const quinto = { ...t[1]!, gcRank: 5 }
+      const maillot = { ...t[2]!, gcRank: 1 }
+      const resto = [t[0]!, t[3]!, t[4]!, t[5]!, t[6]!]
+      return orden === 'maillot-primero' ? [maillot, quinto, ...resto] : [quinto, maillot, ...resto]
+    }
+    for (const orden of ['maillot-primero', 'maillot-segundo'] as const) {
+      for (const kind of ['llana', 'media', 'reina'] as const) {
+        const out = autoStageOrders(conGc(orden), { kind, timeTrial: false })
+        const maillot = out.get('a-rou')
+        expect(`${orden}/${kind}: ${maillot?.role}`).toBe(`${orden}/${kind}: lider`)
+        // Y no se le manda a la fuga del día, que es de donde salía el síntoma.
+        expect(`${orden}/${kind}: ${maillot?.mentality}`).toBe(`${orden}/${kind}: reservon`)
+        // El compañero peor colocado deja de ser la carta: es un gregario más.
+        expect(`${orden}/${kind}: ${out.get('a-clm')?.role ?? 'libre'}`).not.toBe(
+          `${orden}/${kind}: lider`,
+        )
+      }
+    }
+  })
+
   it('es determinista: misma entrada, misma salida', () => {
     const a = autoStageOrders(team('d'), { kind: 'llana', timeTrial: false })
     const b = autoStageOrders(team('d'), { kind: 'llana', timeTrial: false })

@@ -783,6 +783,36 @@ export const riderDailyLog = pgTable(
 )
 
 /**
+ * CADA PUNTUACIÓN CON SU FECHA (docs/epics.md «G3»), para el ranking a 365 días rodantes.
+ *
+ * El dueño: «el ranking debería sumar los puntos en los últimos 365 días: si llegamos al GD 25, hay
+ * que sumar los que consigan ese día y restar los que consiguieron el GD 25 del año anterior».
+ * `riders.season_points` no puede hacer eso: es un contador que se incrementa y que el rollover pone
+ * a cero, así que no hay nada que restar. Aquí vive el dato que faltaba.
+ *
+ * NO se borra en el rollover —esa es la gracia— y `season_points` sigue existiendo para lo que de
+ * verdad es de temporada: los premios del año y el maillot blanco.
+ */
+export const riderPoints = pgTable(
+  'rider_points',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    riderId: uuid('rider_id')
+      .notNull()
+      .references(() => riders.id, { onDelete: 'cascade' }),
+    gameDay: integer('game_day').notNull(),
+    points: integer('points').notNull(),
+    /** De dónde salieron: para el desglose del perfil y para poder depurar un ranking raro. */
+    raceId: text('race_id').notNull(),
+    kind: text('kind').notNull(),
+  },
+  (t) => [
+    index('rider_points_rider_day_idx').on(t.riderId, t.gameDay),
+    index('rider_points_day_idx').on(t.gameDay),
+  ],
+)
+
+/**
  * Lista de bloqueo curada por admins (equipos reales, ciclistas reales, personas famosas). Evita
  * su uso en la generación y renombra los ya existentes. `value_norm` es el valor normalizado
  * (minúsculas, sin espacios extra) sobre el que se compara y se garantiza unicidad por tipo.

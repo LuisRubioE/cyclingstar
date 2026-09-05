@@ -23,11 +23,11 @@ import type { RoutePlugin } from './context.js'
 export const rankingRoutes: RoutePlugin = async (app, ctx) => {
   const { db, currentUserId } = ctx
 
-  // Ranking individual de puntos de la temporada (Paso 40).
+  // Ranking individual: puntos de los últimos 365 días de juego (docs/epics.md «G3»).
   app.get('/api/rankings', async () => {
     const world = await getCurrentWorld(db)
     if (!world) return { ranking: [] }
-    return { ranking: await getRanking(db, world.worldId) }
+    return { ranking: await getRanking(db, world.worldId, world.currentDay) }
   })
 
   // Clasificación de jóvenes de la temporada (#59, maillot blanco).

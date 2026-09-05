@@ -168,9 +168,9 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
       country: country.toUpperCase(),
       gender,
       archetype: vocation,
-      // A los 19, la edad de entrada de un sub-23 a un equipo Continental (v47). Antes era un
-      // `currentSeason(...)` a pelo, que por la época de las edades salía 20 sin decirlo en ninguna
-      // parte; ahora la edad se nombra y la `birthSeason` se deriva de ella.
+      // A los 18, sin equipo y con las piernas de un chaval (v48). Ver `PLAYER_START_AGE`: la edad
+      // se nombra y la `birthSeason` se deriva de ella, en vez del `currentSeason(...)` a pelo que
+      // había antes —que por la época de las edades salía 20 sin decirlo en ninguna parte—.
       birthSeason: birthSeasonForAge(PLAYER_START_AGE, currentSeason(world.currentDay)),
       faceSeed: randomUUID(),
       attributes: genome.attributes,

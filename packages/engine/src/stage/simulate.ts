@@ -2034,6 +2034,32 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
               const suyo = relojDe(m.groupId)
               return suyo !== null && suyo < suGrupo.tS
             }
+            /**
+             * …Y EL LÍDER DE LA CARRERA NO BAJA A POR NADIE (v50).
+             *
+             * El dueño, leyendo la crónica de la etapa 14 del Race Italy: «km 55, 107 Isaac Clark
+             * (Beacon Pro Cycling) drops back out of the bunch to pace 105 Frank Fischer (Beacon Pro
+             * Cycling) 103s back. ¡O sea! No es que se quedara por falta de energía, sino que se
+             * quedó a posta para ayudar a un compañero **que estaba a 8 minutos en la general**».
+             *
+             * El disparador de aquel día era otro y ya está arreglado en `world/autoOrders.ts` —el
+             * maillot salía con un rol que no era el suyo, y por eso el jefe del plan acabó siendo
+             * el compañero—, pero el agujero de aquí es INDEPENDIENTE y sobrevive a aquel arreglo:
+             * `pickLeader` elige al jefe de filas por ROL y por el final que dibuja el recorrido, y
+             * nunca mira la general. En una etapa llana de una gran vuelta el velocista puntúa por
+             * encima del `lider` (4 contra 3), así que el jefe del plan es él… y el hombre que lleva
+             * el maillot puesto entra en la lista de los que pueden dejarse caer a esperarle.
+             *
+             * En la carretera eso no ocurre jamás, en ninguna carrera y por ningún compañero: el que
+             * lleva el maillot ES lo que el equipo tiene. Así que se dice aquí y de una vez, sin
+             * depender de qué rol le tocara hoy ni de quién sea el jefe nominal del plan.
+             *
+             * `hasGcContext` es imprescindible en la condición y no es cinturón y tirantes: en la
+             * etapa 1 y en toda carrera de un día TODOS llegan con déficit 0, y sin esa puerta esto
+             * dejaría sin bajar a nadie, nunca.
+             */
+            const esElMaillot = (m: RiderSim): boolean =>
+              hasGcContext && m.input.gcDeficitSeconds <= 0
             // Quién PUEDE ir: los suyos, enteros y no rebeldes (§VI.2: el que corre por su cuenta no
             // trabaja para el equipo aunque lleve su maillot).
             const disponibles = plan.memberIds
@@ -2045,6 +2071,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
               .filter(
                 (m): m is RiderSim =>
                   m != null &&
+                  !esElMaillot(m) &&
                   puedeBajar(m) &&
                   !m.hurt &&
                   !m.gaveUp &&

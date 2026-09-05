@@ -197,7 +197,9 @@ export async function runRollover(
   // 1) Ascensos y descensos por la fuerza de la temporada que acaba.
   await promoteRelegate(tx, worldId)
 
-  // 2) Reinicio de puntos de temporada de equipos y corredores (el palmarés es permanente).
+  // 2) Reinicio de puntos de TEMPORADA de equipos y corredores. El palmarés es permanente, y
+  //    `rider_points` TAMPOCO se toca: es la puntuación fechada de la que vive el ranking a 365
+  //    días (docs/epics.md «G3»), que necesita justamente poder ver el año anterior.
   await tx.update(teams).set({ pointsSeason: 0 }).where(eq(teams.worldId, worldId))
   await tx.update(riders).set({ seasonPoints: 0 }).where(eq(riders.worldId, worldId))
 

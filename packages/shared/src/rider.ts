@@ -18,6 +18,45 @@ export const ATTRIBUTES = [
 ] as const
 export type Attribute = (typeof ATTRIBUTES)[number]
 
+/**
+ * OFICIO CONTRA MOTOR: qué se puede seguir aprendiendo toda la vida y qué no (docs/epics.md «G1»).
+ *
+ * El dueño, cuando se le enseñó que un NPC de 24 años no podía mejorar jamás: «yo creo que quizás
+ * hay que ser menos cartesianos… en la realidad un ciclista sí mejora después de los 24 años, pero
+ * mejora en cosas diferentes. Por ejemplo Tactics… eso debería mejorar siempre después de los 24.
+ * Otras como contrarreloj suben muy rápido cuando eres joven, menos rápido según creces».
+ *
+ * Así que los atributos se parten en dos y la edad les afecta distinto:
+ *
+ * - **motor** — lo que da el cuerpo: RES, REC, LLA, MON, COL, CRI, SPR. Sube rápido de joven, muy
+ *   poco entre los 24 y la plenitud, y después ya no sube: se defiende.
+ * - **oficio** — lo que da la cabeza y las manos: TAC, DES, PAV. Se aprende corriendo y se sigue
+ *   aprendiendo a los 34. Un veterano baja de puerto y pasa el adoquín mejor que un neoprofesional,
+ *   y eso no es una concesión: es lo que se ve en la carretera.
+ *
+ * DES y PAV van en «oficio» y no es una clasificación nueva sacada de la nada: el motor YA los
+ * trataba aparte al decaer (`TRAINING.desPavDecayFactor` les baja el declive por edad al 25 %,
+ * mientras el resto se lleva el 100 %). Esta constante solo le pone nombre a una decisión que ya
+ * estaba tomada y la extiende al otro lado, el de crecer. TAC además no decae nunca: está fuera de
+ * los atributos físicos desde siempre.
+ *
+ * El caso discutible es RES: el fondo se sigue construyendo hasta bien entrados los veinte. Va en
+ * «motor» porque al final es cuerpo, y porque su ventana de crecimiento ya es la más larga por la
+ * vía normal. Si algún día se quiere mover, se mueve aquí y en un solo sitio.
+ */
+export const ATTRIBUTE_GROWTH: Record<Attribute, 'motor' | 'oficio'> = {
+  RES: 'motor',
+  REC: 'motor',
+  LLA: 'motor',
+  MON: 'motor',
+  COL: 'motor',
+  CRI: 'motor',
+  SPR: 'motor',
+  DES: 'oficio',
+  PAV: 'oficio',
+  TAC: 'oficio',
+}
+
 /** Nombres legibles (en inglés, UI del MVP) de cada atributo. */
 export const ATTRIBUTE_LABELS: Record<Attribute, string> = {
   RES: 'Endurance',

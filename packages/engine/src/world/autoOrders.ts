@@ -120,7 +120,30 @@ function assignTeam(
    * exactamente lo que hace un equipo que defiende: los hombres son para el líder. Y lo que importa
    * de verdad: el maillot ya no puede salir de lanzador ni de gregario de nadie.
    */
-  const maillot = team.find((r) => r.gcRank != null && r.gcRank <= GC_CARD_RANK)
+  /**
+   * …Y ES EL MEJOR COLOCADO, NO EL PRIMERO QUE APAREZCA (v50). Esto era un `find`, o sea que cogía
+   * al primero del ARRAY que estuviese entre los cinco primeros de la general. Con dos hombres del
+   * equipo en el podio provisional —que es justo cuando esto importa— el que salía de carta era el
+   * que llevara el dorsal más bajo, y el líder de la carrera se caía al reparto por terreno.
+   *
+   * El dueño lo vio en la etapa 13 del Race Italy y describió el síntoma sin saber la causa: «el
+   * líder… lo veo demasiado combativo; se escapa, lo consiguen, le pillan, luego lo vuelve a
+   * intentar… no tiene sentido que un líder haga eso; otra cosa es que los que van segundo, tercero
+   * o cuarto lo hagan… ¡y curiosamente no veo que lo hagan!». Las dos mitades son la misma línea:
+   * el maillot salía de **cazaetapas** (apetito de ataque 1,0, el más alto que hay, y deber de
+   * relevo 0,5, cinco veces el de un líder) mientras sus rivales, ésos sí, salían de `lider` con
+   * mentalidad `reservon`. La carrera al revés, exactamente.
+   *
+   * Y de ahí salen los otros dos síntomas que contó, sin tocar nada más: como no era `lider`,
+   * `relayDuty` no le reconocía como la carta del equipo, así que el empuje de su propio equipo le
+   * subía al turno de relevos —«nada más iniciar está el líder tirando del pelotón»— y acababa la
+   * etapa reina perdiendo seis minutos y el maillot. No era la energía mal calibrada: era que
+   * llevaba todo el día haciendo el trabajo de otro.
+   */
+  const maillot = team.reduce<AutoOrderRider | undefined>((mejor, r) => {
+    if (r.gcRank == null || r.gcRank > GC_CARD_RANK) return mejor
+    return mejor === undefined || r.gcRank < mejor.gcRank! ? r : mejor
+  }, undefined)
   let leaderId: string | undefined
   if (maillot) {
     const m = take(maillot)!

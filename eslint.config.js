@@ -137,9 +137,14 @@ export default tseslint.config(
     },
   },
   {
-    // Excepción acotada: los harness de línea de comandos de packages/engine/src/sim (`pnpm sim`
-    // y `pnpm sim:tactics`) no se exportan desde index.ts y no forman parte de la API del motor.
-    files: ['packages/engine/src/sim/cli.ts', 'packages/engine/src/sim/tacticsCli.ts'],
+    // Excepción acotada: los harness de línea de comandos de packages/engine/src/sim (`pnpm sim`,
+    // `pnpm sim:tactics` y `pnpm sim:mundo`) no se exportan desde index.ts y no forman parte de la
+    // API del motor.
+    files: [
+      'packages/engine/src/sim/cli.ts',
+      'packages/engine/src/sim/tacticsCli.ts',
+      'packages/engine/src/sim/worldCli.ts',
+    ],
     rules: {
       'no-restricted-globals': 'off',
     },
