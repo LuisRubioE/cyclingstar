@@ -61,6 +61,23 @@ export function generateNpcRider(
   const peakAge = uniformInt(rng, CREATION.peakAgeMin, CREATION.peakAgeMax)
   const declineAge = peakAge + uniformInt(rng, CREATION.declineOffsetMin, CREATION.declineOffsetMax)
 
+  /**
+   * EL TECHO, Y POR QUÉ NUEVE DE CADA DIEZ NPCs NACEN SIN NADA QUE GANAR.
+   *
+   * A los 23 años o menos el techo se pone por encima del atributo; a partir de ahí **el techo ES el
+   * atributo**. Es deliberado —un NPC hecho ya viene formado— pero tiene una consecuencia que no lo
+   * parece: `kDim` (progression.ts) vale 0 en cuanto el atributo alcanza el techo, así que para ese
+   * corredor entrenar rinde exactamente CERO y será el mismo a los 26 que a los 30, salvo declive.
+   *
+   * Medido sobre 4.000 NPCs (banco de mundo, docs/epics.md «G1»): margen medio de 17 puntos hasta
+   * los 23 y de CERO desde los 24, con el 90 % de la población del lado de cero. En un mundo recién
+   * creado son cuatro de cada cinco corredores del pelotón que no pueden mejorar nunca; el mundo se
+   * descongela solo hacia la temporada 15, cuando esos ya se han retirado.
+   *
+   * No se toca aquí: es una decisión de diseño del dueño (¿hay carreras deportivas en el mundo, o
+   * el NPC es un número fijo?) y está anotada como tal. Queda dicho en el sitio para que nadie
+   * vuelva a buscar el problema dentro de la fórmula de entrenamiento, que es donde no está.
+   */
   const ceilings = {} as Record<Attribute, number>
   for (const attr of ATTRIBUTES) {
     ceilings[attr] =

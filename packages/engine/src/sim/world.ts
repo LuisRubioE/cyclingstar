@@ -135,6 +135,17 @@ export interface WorldSeasonRow {
    * congelado aunque los otros números parezcan sanos.
    */
   margenAlTechoPct: number
+  /**
+   * …Y CUÁNTOS ESTÁN CONGELADOS DEL TODO: el % de corredores cuyo techo YA es su atributo en todo lo
+   * físico. Para ésos el entrenamiento no es que rinda poco, es que rinde CERO —`kDim` devuelve 0 en
+   * cuanto el atributo alcanza el techo—, y ninguna perilla de `TRAINING` les puede mover.
+   *
+   * Va aparte de `margenAlTechoPct` porque una media esconde justo esto: un mundo con la mitad del
+   * pelotón congelado y la otra mitad con 20 puntos de margen da la misma media que uno con todo el
+   * pelotón a 10, y son mundos completamente distintos. Ésta es la pregunta de G1 que ninguna media
+   * contesta: ¿a cuánta gente le sirve de algo entrenar?
+   */
+  congeladosPct: number
   /** Edad media del pelotón: vigila que el relevo generacional no se descontrole. */
   edadMedia: number
 }
@@ -161,6 +172,7 @@ function foto(
     FISICOS.map((a) => Math.max(0, r.ceilings[a] - r.attributes[a])),
   )
   const techos = field.flatMap((r) => FISICOS.map((a) => r.ceilings[a]))
+  const congelados = field.filter((r) => FISICOS.every((a) => r.attributes[a] >= r.ceilings[a])).length
   return {
     season,
     riders: field.length,
@@ -175,6 +187,7 @@ function foto(
     mediana: cuantil(medias, 0.5),
     anchoP90P10: cuantil(medias, 0.9) - cuantil(medias, 0.1),
     margenAlTechoPct: (100 * media(margen)) / Math.max(1, media(techos)),
+    congeladosPct: (100 * congelados) / Math.max(1, field.length),
     edadMedia: media(field.map((r) => r.age)),
   }
 }
@@ -294,6 +307,7 @@ export function analyzeWorld(runs: number, seasons: number): WorldSeasonRow[] {
       mediana: media(fila.map((f) => f.mediana)),
       anchoP90P10: media(fila.map((f) => f.anchoP90P10)),
       margenAlTechoPct: media(fila.map((f) => f.margenAlTechoPct)),
+      congeladosPct: media(fila.map((f) => f.congeladosPct)),
       edadMedia: media(fila.map((f) => f.edadMedia)),
     })
   }

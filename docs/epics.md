@@ -297,12 +297,52 @@ Lo que tiene que cumplir a la vez:
 Ese último punto es el que hoy seguro que no está: correr desgasta y da forma (CTL/ATL), pero no
 enseña más por ser una carrera dura que por ser un entrenamiento.
 
-**Cómo se mide (era la propuesta N5).** La preocupación —«que no acaben todos con cinco estrellas»—
-hoy solo se puede responder con una opinión. Hace falta un **banco de mundo**: simular diez
-temporadas seguidas y mirar qué le pasa a la población. ¿Converge todo el pelotón al máximo?
-¿Se queda todo el mundo clavado en cuatro? ¿Se aplanan las diferencias entre el mejor y la media?
-Es el Montecarlo de etapas llevado a las temporadas, y sin él esta EPIC se hace a ciegas. De paso
-vigila G3, G4, G8, G9 y G10, que también son cosas que solo se rompen con el tiempo.
+**Cómo se mide: ya se puede.** El **banco de mundo** existe y se corre con `pnpm sim:mundo
+[temporadas] [corridas]`; en CI vigila con límites anchos (`sim/world.test.ts`, ~12 s). Es el
+Montecarlo de etapas llevado a las temporadas: 442 corredores, 364 días al año, con su relevo
+generacional —se retiran los viejos, entran neoprofesionales— y una foto de la población al final
+de cada temporada. Sin él esta EPIC se hacía a ciegas.
+
+**Las tres primeras preguntas salen bien** (2 mundos × 25 temporadas):
+
+| temporada | cracks (3+ atr. de 5★) | sin nada sobre 4★ | media | ancho p90−p10 | congelados |
+| --------: | ---------------------: | ----------------: | ----: | ------------: | ---------: |
+|         1 |                  0,1 % |            24,5 % |  54,8 |          21,3 |     79,6 % |
+|         5 |                  1,8 % |            19,9 % |  55,7 |          22,7 |     52,0 % |
+|        10 |                  4,2 % |            10,0 % |  58,7 |          22,1 |     11,3 % |
+|        15 |                  7,0 % |             3,7 % |  60,9 |          20,5 |      0,0 % |
+|        25 |                  5,2 % |             4,1 % |  60,2 |          20,2 |      0,0 % |
+
+O sea: **no** acaban todos siendo Pogačar (los cracks hacen techo en el 7 % y luego bajan), **no** se
+queda el pelotón en medianía (del 24 % al 4 %), y las diferencias **no se aplanan** (el ancho se
+queda en 20-23 puntos las veinticinco temporadas). El miedo del dueño, medido, no se cumple.
+
+**Pero hay un hallazgo, y no está en la fórmula de entrenamiento sino en quién nace pudiendo
+mejorar.** `generateNpcRider` da techo por encima del atributo SOLO a los de 23 años o menos
+(`NPC.youngAge`); a partir de los 24 el techo **es** el atributo. Y como `kDim` vale 0 en cuanto el
+atributo alcanza el techo, para ésos entrenar rinde exactamente **cero**: el mismo corredor a los 26
+que a los 30, salvo el declive de la edad. Medido sobre 4.000 NPCs sueltos:
+
+| edad  | margen medio de mejora | sin ningún margen |
+| ----- | ---------------------: | ----------------: |
+| 19-23 |            17,0 puntos |               0 % |
+| 24-37 |             0,0 puntos |             100 % |
+
+Un escalón seco en el 23/24, y **el 90 % de los NPCs generados cae del lado malo**. En un mundo
+recién creado eso son cuatro de cada cinco corredores del pelotón que no pueden mejorar nunca; el
+mundo se descongela solo hacia la temporada 15, cuando ya se han retirado todos ellos, pero la
+partida de verdad se juega antes de eso.
+
+Es deliberado —el comentario de `npc.ts` dice que «el NPC ya está formado según su división»— y
+tiene una consecuencia que hay que decidir a la vista de esto: hoy **no hay carreras deportivas** en
+el mundo. Ningún NPC de 25 años da un salto, ninguno se estanca, ninguno se descubre tarde. Está
+pendiente de decisión del dueño.
+
+**Y sigue faltando la cuarta pata:** que las carreras enseñen. Correr desgasta y da forma (CTL/ATL),
+pero no enseña más por ser una carrera dura que por ser un entrenamiento. Nótese que las dos cosas
+se cruzan: una carrera solo puede enseñar a quien tenga margen, o sea que hoy, a nueve de cada diez.
+
+De paso el banco vigila G3, G4, G8, G9 y G10, que también son cosas que solo se rompen con el tiempo.
 
 ### G2 · Gestión humana de un equipo
 
