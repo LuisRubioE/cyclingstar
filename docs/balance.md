@@ -9441,6 +9441,48 @@ No dice que el reparto de roles del pelotón esté bien. Que el 70 % del campo s
 pregunta —un equipo de ocho en una llana lleva un velocista, su tren de dos o tres, y el resto—, y
 este banco la deja a la vista sin contestarla.
 
+## v50 — El 90 % del pelotón no podía mejorar, y no era culpa del entrenamiento
+
+`ENGINE_VERSION` 47 → 48. Sale del banco de mundo (`pnpm sim:mundo`), que hasta la v49 no lo corría
+nadie.
+
+**El defecto.** `generateNpcRider` ponía el techo por encima del atributo solo hasta los 23 años
+(`NPC.youngAge`); de los 24 en adelante **el techo ERA el atributo**. Y `kDim` (progression.ts)
+devuelve 0 en cuanto el atributo alcanza el techo, así que para ésos entrenar rendía exactamente
+cero: el mismo corredor a los 26 que a los 30, salvo el declive de la edad. Medido sobre 4.000 NPCs,
+con un escalón seco en el 23/24:
+
+| edad  | margen medio | sin ningún margen |
+| ----- | -----------: | ----------------: |
+| 19-23 |  17,0 puntos |               0 % |
+| 24-37 |   0,0 puntos |             100 % |
+
+El 90 % de la población caía del lado de cero, y en el banco de mundo la temporada 1 salía con el
+**79,6 %** del pelotón congelado. El mundo se descongelaba solo hacia la temporada 15, según se
+retiraban, pero la partida se juega antes de eso.
+
+**El criterio lo puso el dueño**, y es lo que hace que el arreglo no sea una barra libre: «hay que
+ser menos cartesianos… un ciclista sí mejora después de los 24, pero mejora en COSAS DIFERENTES».
+Los atributos se parten en motor y oficio (`ATTRIBUTE_GROWTH`) y el margen depende de la edad y de
+la clase (`NPC.ceilingBoost`), con los rangos y el porqué anotados ahí mismo.
+
+**Medido después, 2 mundos × 25 temporadas:**
+
+| temporada | congelados antes | congelados ahora | cracks antes | cracks ahora | ancho antes | ancho ahora |
+| --------: | ---------------: | ---------------: | -----------: | -----------: | ----------: | ----------: |
+|         1 |           79,6 % |            0,0 % |        0,2 % |        0,2 % |        21,3 |        21,1 |
+|         5 |           52,0 % |            0,0 % |        1,4 % |        1,4 % |        22,7 |        22,4 |
+|        15 |            0,0 % |            0,0 % |        6,4 % |        6,4 % |        20,3 |        20,3 |
+|        25 |            0,0 % |            0,0 % |        5,1 % |        5,1 % |        20,3 |        20,3 |
+
+O sea: **el mundo deja de nacer congelado y no se desboca por ello**. Los cracks y el ancho de la
+población no se mueven, porque el margen que se abre se cierra solo con la edad y porque de la
+temporada 15 en adelante el mundo ya era todo de cosecha propia —ahí los dos brazos son idénticos
+dígito a dígito, que es la comprobación de que el cambio toca lo que tenía que tocar y nada más—.
+
+Los que ya existen llevan sus techos guardados en `rider_hidden`, así que la migración `0032` se los
+reabre una vez, sin dado (el centro de cada rango) y sin bajar nunca lo que ya tuvieran.
+
 ## v49 — El puerto que no seleccionaba, y por qué ningún invariante se enteró
 
 El dueño, sobre la etapa 9 del Giro (184 km, final en alto de 12,8 km al 5,9 % con los últimos 2,8 al

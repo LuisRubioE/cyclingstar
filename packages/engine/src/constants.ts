@@ -715,7 +715,7 @@
  * Campaña canónica de 500 corridas: **los 33 invariantes en verde**. La contrarreloj no se mueve ni
  * un dígito —es el ancla del esfuerzo individual y paga la ley lineal de siempre—.
  */
-export const ENGINE_VERSION = 47 as const
+export const ENGINE_VERSION = 48 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -790,8 +790,8 @@ export const CREATION = {
 
 /**
  * Generación del mundo NPC (SPEC 10). Atributos ~ clamp(N(mu_rol_div, 8), 20, 95); el mu base por
- * división y los descensos por categoría de atributo modelan el nivel de cada corredor. Los techos
- * de los jóvenes dejan margen de mejora; los veteranos ya están hechos.
+ * división y los descensos por categoría de atributo modelan el nivel de cada corredor. El margen
+ * al techo lo reparten la edad y la clase de atributo (ver `ceilingBoost`).
  */
 export const NPC = {
   // mu del atributo primario de la vocación por división (World Tour, Pro Series, Continental).
@@ -801,10 +801,42 @@ export const NPC = {
   attrSd: 8,
   attrMin: 20,
   attrMax: 95,
-  // Techos por edad (SPEC 10): joven (<= 23) crece; veterano no.
+  /**
+   * CUÁNTO MARGEN DE MEJORA TE QUEDA, por edad y por clase de atributo (docs/epics.md «G1»).
+   *
+   * Hasta la v49 esto era un interruptor: hasta los 23 el techo se ponía por encima del atributo, y
+   * de los 24 en adelante el techo ERA el atributo. Como `kDim` vale 0 en cuanto se alcanza el
+   * techo, eso significaba que **el 90 % del pelotón no podía mejorar jamás**, por mucho que
+   * entrenara: el mismo corredor a los 26 que a los 30, salvo declive. Medido: 17 puntos de margen
+   * a los 23 y cero a los 24, un escalón seco.
+   *
+   * El dueño: «yo creo que quizás hay que ser menos cartesianos… un ciclista sí mejora después de
+   * los 24, pero mejora en cosas diferentes. Tactics debería mejorar siempre. Otras como
+   * contrarreloj suben muy rápido cuando eres joven, menos rápido según creces; quizás entre 24 y
+   * 27 crecen ya muy poquito, y a partir de los 27 se estancan».
+   *
+   * Eso es exactamente esta tabla. Tres tramos de edad por dos clases (`ATTRIBUTE_GROWTH`):
+   *
+   * |            | ≤ 23 (joven) | 24-27 (plenitud) | ≥ 28 (veterano) |
+   * | ---------- | ------------ | ---------------- | --------------- |
+   * | **motor**  | 5-30         | 1-9              | 0-2             |
+   * | **oficio** | 8-30         | 6-22             | 4-16            |
+   *
+   * El margen del motor no llega a cero de golpe a los 28 sino que se queda en un hilo (0-2), y es
+   * a propósito: «se estancan» no es «se mueren», y ese hilo es justo lo que permite que entrenar y
+   * correr sirvan para MITIGAR la caída en vez de solo para verla. El declive por edad sigue
+   * viviendo aparte, en `TRAINING.ageDecay*`, y arranca en la `declineAge` de cada uno (29-37).
+   *
+   * Los números son el punto de partida que pidió el dueño, no una calibración medida: el banco de
+   * mundo (`pnpm sim:mundo`) es quien dice si el pelotón se desboca, y sus límites están en
+   * `sim/world.test.ts`.
+   */
   youngAge: 23,
-  ceilingBoostMin: 5,
-  ceilingBoostMax: 30,
+  primeAge: 27,
+  ceilingBoost: {
+    motor: { joven: [5, 30], plenitud: [1, 9], veterano: [0, 2] },
+    oficio: { joven: [8, 30], plenitud: [6, 22], veterano: [4, 16] },
+  },
   ceilingMax: 96,
   // Distribución de edades 18..38 sesgada a 24..30 (media de una Beta reescalada).
   ageMin: 18,

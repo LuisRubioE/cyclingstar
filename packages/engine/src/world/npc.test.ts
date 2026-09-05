@@ -1,4 +1,4 @@
-import { ATTRIBUTES, VOCATIONS } from '@cyclingstar/shared'
+import { ATTRIBUTE_GROWTH, ATTRIBUTES, type Attribute, VOCATIONS } from '@cyclingstar/shared'
 import { describe, expect, it } from 'vitest'
 import { type Division, generateNpcRider, sampleNpcAge } from './npc.js'
 
@@ -45,19 +45,59 @@ describe('engine: génesis del genoma NPC (SPEC 10)', () => {
     expect(wtSum / n).toBeGreaterThan(conSum / n + 10)
   })
 
-  it('un NPC joven tiene margen de techo; un veterano ya está formado', () => {
-    const young = generateNpcRider('y', { division: 'WT', vocation: 'escalada', age: 21 })
-    const veteran = generateNpcRider('v', { division: 'WT', vocation: 'escalada', age: 33 })
-    const youngRoom = ATTRIBUTES.reduce(
-      (sum, attr) => sum + (young.hidden.ceilings[attr] - young.attributes[attr]),
-      0,
+  /**
+   * SE SIGUE MEJORANDO DESPUÉS DE LOS 24, PERO EN COSAS DISTINTAS (docs/epics.md «G1»).
+   *
+   * Hasta la v49 el veterano tenía el techo clavado en su atributo y esta prueba lo sellaba
+   * (`veteranRoom` igual a 0). Eso significaba que **el 90 % del pelotón no podía mejorar jamás**:
+   * `kDim` devuelve 0 en cuanto el atributo alcanza el techo, así que entrenar les rendía CERO.
+   *
+   * El dueño: «hay que ser menos cartesianos… un ciclista sí mejora después de los 24, pero mejora
+   * en cosas diferentes. Tactics debería mejorar siempre; otras como contrarreloj suben muy rápido
+   * cuando eres joven, menos rápido según creces». Así que lo que se sella ahora son las tres
+   * cosas que hacen que eso sea verdad y no una barra libre.
+   */
+  it('el joven crece en todo, y el veterano sigue creciendo en el OFICIO', () => {
+    const margen = (g: ReturnType<typeof generateNpcRider>, attrs: readonly Attribute[]): number =>
+      attrs.reduce((sum, attr) => sum + (g.hidden.ceilings[attr] - g.attributes[attr]), 0)
+    const motor = ATTRIBUTES.filter((a) => ATTRIBUTE_GROWTH[a] === 'motor')
+    const oficio = ATTRIBUTES.filter((a) => ATTRIBUTE_GROWTH[a] === 'oficio')
+
+    // Media sobre muchos corredores: el techo lleva un dado y uno solo no dice nada.
+    const medias = (edad: number): { motor: number; oficio: number } => {
+      let m = 0
+      let o = 0
+      const n = 300
+      for (let i = 0; i < n; i++) {
+        const g = generateNpcRider(`e${edad}-${i}`, {
+          division: 'WT',
+          vocation: 'escalada',
+          age: edad,
+        })
+        m += margen(g, motor)
+        o += margen(g, oficio)
+      }
+      return { motor: m / n, oficio: o / n }
+    }
+    const joven = medias(21)
+    const plenitud = medias(26)
+    const veterano = medias(33)
+
+    // 1) De joven se crece en todo, y es cuando más.
+    expect(`joven crece de motor: ${joven.motor > 40}`).toBe('joven crece de motor: true')
+    // 2) El motor se va cerrando con la edad y al veterano ya no le queda casi nada.
+    expect(`el motor se cierra: ${plenitud.motor < joven.motor / 3}`).toBe('el motor se cierra: true')
+    expect(`al veterano no le queda motor: ${veterano.motor < 8}`).toBe(
+      'al veterano no le queda motor: true',
     )
-    const veteranRoom = ATTRIBUTES.reduce(
-      (sum, attr) => sum + (veteran.hidden.ceilings[attr] - veteran.attributes[attr]),
-      0,
+    // 3) …pero el OFICIO sigue abierto a los 33, que es la mitad que faltaba.
+    expect(`el veterano aprende oficio: ${veterano.oficio > 15}`).toBe(
+      'el veterano aprende oficio: true',
     )
-    expect(youngRoom).toBeGreaterThan(0)
-    expect(veteranRoom).toBe(0)
+    // Y a esa edad ya se aprende más oficio que motor: es en lo único que puede mejorar.
+    expect(`y más oficio que motor: ${veterano.oficio > veterano.motor}`).toBe(
+      'y más oficio que motor: true',
+    )
   })
 
   it('la táctica arranca por debajo del atributo primario (se aprende corriendo)', () => {

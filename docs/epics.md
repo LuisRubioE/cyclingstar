@@ -333,10 +333,33 @@ recién creado eso son cuatro de cada cinco corredores del pelotón que no puede
 mundo se descongela solo hacia la temporada 15, cuando ya se han retirado todos ellos, pero la
 partida de verdad se juega antes de eso.
 
-Es deliberado —el comentario de `npc.ts` dice que «el NPC ya está formado según su división»— y
-tiene una consecuencia que hay que decidir a la vista de esto: hoy **no hay carreras deportivas** en
-el mundo. Ningún NPC de 25 años da un salto, ninguno se estanca, ninguno se descubre tarde. Está
-pendiente de decisión del dueño.
+**Arreglado en la v50, y el dueño puso el criterio:** «yo creo que quizás hay que ser menos
+cartesianos… en la realidad un ciclista sí mejora después de los 24 años, pero mejora en cosas
+diferentes. Por ejemplo Tactics… eso debería mejorar siempre después de los 24. Otras como
+contrarreloj suben muy rápido cuando eres joven, menos rápido según creces; quizás entre 24 y 27
+crecen ya muy poquito, y a partir de los 27 se estancan».
+
+O sea que los atributos se parten en dos (`ATTRIBUTE_GROWTH`, en `shared`) y la edad les afecta
+distinto (`NPC.ceilingBoost`):
+
+|                                       | ≤ 23 (joven) | 24-27 (plenitud) | ≥ 28 (veterano) |
+| ------------------------------------- | ------------ | ---------------- | --------------- |
+| **motor** RES REC LLA MON COL CRI SPR | 5-30         | 1-9              | 0-2             |
+| **oficio** TAC DES PAV                | 8-30         | 6-22             | 4-16            |
+
+DES y PAV van en «oficio» y no es una clasificación inventada para la ocasión: el motor YA los
+trataba aparte al decaer (`TRAINING.desPavDecayFactor` les baja el declive por edad al 25 %). Esto
+le pone nombre a esa decisión y la extiende al otro lado, el de crecer. TAC además no decae nunca.
+
+El margen del motor no cae a cero de golpe a los 28 sino que se queda en un hilo (0-2), a propósito:
+«se estancan» no es «se mueren», y ese hilo es lo que permite que entrenar sirva para MITIGAR la
+caída y no solo para verla.
+
+**Medido, y no desboca nada.** Congelados en la temporada 1: **79,6 % → 0,0 %**. Y las tres
+preguntas del dueño se quedan donde estaban —los cracks siguen haciendo techo en el 5-7 %, el ancho
+de la población sigue en 20-22 puntos—, porque el margen se cierra solo con la edad. La migración
+`0032` se lo reabre también a los corredores que YA existen, que si no seguirían congelados el resto
+de su carrera.
 
 **Y sigue faltando la cuarta pata:** que las carreras enseñen. Correr desgasta y da forma (CTL/ATL),
 pero no enseña más por ser una carrera dura que por ser un entrenamiento. Nótese que las dos cosas

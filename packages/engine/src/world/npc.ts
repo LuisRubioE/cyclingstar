@@ -4,6 +4,7 @@
  * A diferencia del corredor de usuario (creation.ts), el NPC ya está formado según su división.
  */
 import {
+  ATTRIBUTE_GROWTH,
   ATTRIBUTES,
   type Attribute,
   VOCATION_PROFILES,
@@ -38,6 +39,25 @@ function attributeMu(base: number, attr: Attribute, vocation: Vocation): number 
   return base - NPC.restDrop
 }
 
+/**
+ * CUÁNTO MARGEN AL TECHO LE TOCA A ESTE ATRIBUTO A ESTA EDAD (docs/epics.md «G1»).
+ *
+ * Antes esto era un interruptor —margen hasta los 23, cero a partir de los 24— y dejaba al 90 % del
+ * pelotón sin poder mejorar nunca, porque `kDim` (progression.ts) devuelve 0 en cuanto el atributo
+ * alcanza el techo. El dueño lo mandó abrir «siendo menos cartesianos»: no es que a los 24 se acabe
+ * todo, es que a partir de ahí se mejora en COSAS DISTINTAS.
+ *
+ * De ahí las dos entradas: la edad, en tres tramos, y la clase del atributo (`ATTRIBUTE_GROWTH`).
+ * Lo que da el cuerpo se cierra pronto; lo que da la cabeza y las manos —táctica, descenso,
+ * adoquín— sigue abierto a los 34. Los rangos y el porqué, en `NPC.ceilingBoost`.
+ */
+function ceilingBoostRange(age: number, attr: Attribute): readonly [number, number] {
+  const porClase = NPC.ceilingBoost[ATTRIBUTE_GROWTH[attr]]
+  const tramo =
+    age <= NPC.youngAge ? porClase.joven : age <= NPC.primeAge ? porClase.plenitud : porClase.veterano
+  return [tramo[0], tramo[1]] as const
+}
+
 /** Genera el genoma de un NPC de una división, vocación y edad dadas (SPEC 10). */
 export function generateNpcRider(
   seed: string,
@@ -61,35 +81,12 @@ export function generateNpcRider(
   const peakAge = uniformInt(rng, CREATION.peakAgeMin, CREATION.peakAgeMax)
   const declineAge = peakAge + uniformInt(rng, CREATION.declineOffsetMin, CREATION.declineOffsetMax)
 
-  /**
-   * EL TECHO, Y POR QUÉ NUEVE DE CADA DIEZ NPCs NACEN SIN NADA QUE GANAR.
-   *
-   * A los 23 años o menos el techo se pone por encima del atributo; a partir de ahí **el techo ES el
-   * atributo**. Es deliberado —un NPC hecho ya viene formado— pero tiene una consecuencia que no lo
-   * parece: `kDim` (progression.ts) vale 0 en cuanto el atributo alcanza el techo, así que para ese
-   * corredor entrenar rinde exactamente CERO y será el mismo a los 26 que a los 30, salvo declive.
-   *
-   * Medido sobre 4.000 NPCs (banco de mundo, docs/epics.md «G1»): margen medio de 17 puntos hasta
-   * los 23 y de CERO desde los 24, con el 90 % de la población del lado de cero. En un mundo recién
-   * creado son cuatro de cada cinco corredores del pelotón que no pueden mejorar nunca; el mundo se
-   * descongela solo hacia la temporada 15, cuando esos ya se han retirado.
-   *
-   * No se toca aquí: es una decisión de diseño del dueño (¿hay carreras deportivas en el mundo, o
-   * el NPC es un número fijo?) y está anotada como tal. Queda dicho en el sitio para que nadie
-   * vuelva a buscar el problema dentro de la fórmula de entrenamiento, que es donde no está.
-   */
   const ceilings = {} as Record<Attribute, number>
   for (const attr of ATTRIBUTES) {
-    ceilings[attr] =
-      opts.age <= NPC.youngAge
-        ? Math.round(
-            clamp(
-              attributes[attr] + uniform(rng, NPC.ceilingBoostMin, NPC.ceilingBoostMax),
-              attributes[attr],
-              NPC.ceilingMax,
-            ),
-          )
-        : attributes[attr]
+    const [min, max] = ceilingBoostRange(opts.age, attr)
+    ceilings[attr] = Math.round(
+      clamp(attributes[attr] + uniform(rng, min, max), attributes[attr], NPC.ceilingMax),
+    )
   }
 
   return { attributes, hidden: { talent, fragility, peakAge, declineAge, ceilings } }

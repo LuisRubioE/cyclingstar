@@ -225,6 +225,13 @@
       "when": 1786614979187,
       "tag": "0031_ranking_365_dias",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1786701379187,
+      "tag": "0032_techos_por_edad",
+      "breakpoints": true
     }
   ]
 }

@@ -77,30 +77,23 @@ describe('banco de mundo: la población después de 25 temporadas (G1)', () => {
     }
   })
 
-  it('EL MUNDO NUEVO NACE CONGELADO, y tarda quince temporadas en descongelarse', () => {
+  it('nadie nace sin poder mejorar, y el mundo no se congela nunca', () => {
     /**
-     * EL HALLAZGO DE G1, y no está en la fórmula de entrenamiento sino en quién nace pudiendo
-     * mejorar. `generateNpcRider` le da techo por encima del atributo SOLO a los de 23 años o
-     * menos (`NPC.youngAge`); del resto, el techo ES el atributo. Y como `kDim` devuelve 0 en
-     * cuanto el atributo alcanza el techo, para ellos entrenar rinde exactamente CERO: el mismo
-     * corredor a los 26 y a los 30, salvo el declive de la edad.
+     * EL HALLAZGO DE G1, Y SU ARREGLO. Hasta la v49 `generateNpcRider` daba techo por encima del
+     * atributo SOLO a los de 23 años o menos: del resto, el techo ERA el atributo. Y como `kDim`
+     * devuelve 0 en cuanto el atributo alcanza el techo, para ellos entrenar rendía exactamente
+     * CERO. Medido entonces: el 90 % de los NPCs nacía sin un solo punto de margen, con un escalón
+     * seco en el 23/24, y la temporada 1 de un mundo nuevo salía con el 80 % del pelotón congelado.
      *
-     * Medido sobre 4.000 NPCs sueltos: el 90 % nace sin un solo punto de margen, con un escalón
-     * seco en el 23/24 (17 puntos de margen a los 23; cero a los 24). En el banco, donde la
-     * plantilla es la del mundo, la temporada 1 sale con ~80 % del pelotón congelado.
+     * El dueño lo mandó abrir «siendo menos cartesianos»: se sigue mejorando después de los 24,
+     * pero en COSAS DISTINTAS. Ahora el margen depende de la edad y de la clase del atributo
+     * (`ATTRIBUTE_GROWTH` y `NPC.ceilingBoost`), y esto es lo que vigila que no se vuelva atrás.
      *
-     * Se sella la FORMA de la curva, no el número: el mundo tiene que descongelarse solo —los
-     * congelados se van retirando y entran neoprofesionales que sí pueden crecer— y lo hace hacia
-     * la temporada 15. Lo que esta prueba prohíbe es que un mundo se quede congelado para siempre,
-     * que es lo que pasaría si alguien tocase `youngAge` o el relevo generacional sin darse cuenta.
-     *
-     * Lo que NO se sella es el 80 % de la temporada 1, porque no es un objetivo: es el defecto.
-     * Está pendiente de decisión del dueño (docs/epics.md «G1»), y el día que se arregle este
-     * número bajará y ninguna de estas aserciones se opondrá.
+     * Es la aserción más barata de todo el banco y la que más valdría la pena tener el día que
+     * alguien toque los techos: un mundo congelado no falla ninguna otra prueba del repositorio.
      */
-    const t15 = filas.find((f) => f.season === 15)!
-    expect(`t1 arranca congelado: ${primera.congeladosPct > 50}`).toBe('t1 arranca congelado: true')
-    expect(`t15 ya descongelado: ${t15.congeladosPct < 10}`).toBe('t15 ya descongelado: true')
-    expect(`t25 descongelado: ${ultima.congeladosPct < 10}`).toBe('t25 descongelado: true')
+    for (const f of filas) {
+      expect(`t${f.season} congelados ${f.congeladosPct === 0}`).toBe(`t${f.season} congelados true`)
+    }
   })
 })
