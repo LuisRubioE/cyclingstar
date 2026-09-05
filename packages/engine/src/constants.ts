@@ -3442,6 +3442,55 @@ export const STAGE = {
    * la fracción del recorrido que se sube (`...ClimbWeight`) y si además se acaba arriba
    * (`...UphillBonus`). Una llana pura da 0 —cuatro anónimos y a rodar— y una reina da 1.
    */
+  /**
+   * DÓNDE SE JUEGA LA GENERAL, en fracción de kilómetros de subida del recorrido (v52).
+   *
+   * El dueño, después de ver que el maillot y su perseguidor atacaban exactamente lo mismo: la
+   * distinción entre el que defiende y el que persigue va «solo en montaña y media montaña». Éste es
+   * ese «solo», y sale medido del calendario entero (1.075 etapas en línea, fracción de kilómetros
+   * de subida):
+   *
+   * | tipo    |  p05 | mediana |  p95 |
+   * | ------- | ---: | ------: | ---: |
+   * | llana   |  0,0 |     0,0 |  1,9 |
+   * | clásica |  0,0 |     3,9 |  4,8 |
+   * | media   |  3,3 |     7,2 | 11,8 |
+   * | reina   |  8,7 |    18,3 | 32,7 |
+   *
+   * El 5 % deja fuera TODAS las llanas y prácticamente todas las clásicas, y deja dentro las reinas
+   * enteras y unas tres cuartas partes de las medias. El error, cuando lo hay, cae del lado seguro:
+   * la media montaña más plana se queda fuera, que es justo donde el dueño no quería tocar nada.
+   *
+   * Se mide sobre el RECORRIDO y no sobre `stage.kind` a propósito: el motor no recibe la etiqueta
+   * del calendario, y un recorrido dice lo que es mejor que su nombre.
+   */
+  gcTerrainClimbShare: 0.05,
+  /**
+   * CUÁNTO SE GUARDA EL QUE DEFIENDE Y CUÁNTO APRIETA EL QUE PERSIGUE, fuera del desenlace (v52).
+   *
+   * El motor ya distinguía las dos figuras —`gcDefendShare` y `gcChallengeShare`, v46— pero solo las
+   * consultaba dentro de `ataque_final`, o sea en un puerto de los últimos 30 km o en los últimos
+   * 12. Fuera de esa ventana, que es casi toda la etapa, el maillot y el que va segundo salían con
+   * el MISMO apetito exacto (0,09 los dos: los dos son `lider` con mentalidad `reservon`).
+   *
+   * Medido sobre 78 etapas de montaña de seis grandes vueltas, ataques por corredor y etapa:
+   *
+   *   maillot   0,44      2.º-5.º  0,44      6.º-20.º  0,31      el resto  0,21
+   *
+   * Los hombres de la general atacan el doble que el pelotón, que está bien; lo que no está bien es
+   * que el que lleva el maillot ataque exactamente igual que el que se lo quiere quitar.
+   *
+   * La forma es un PRODUCTO de dos factores con signo contrario y no el bonus de `ataque_final`,
+   * que ahí suma un +0,8 de «tengo que ganar tiempo» a todo el que se juegue la general: en el km 20
+   * eso mandaría a los favoritos a la fuga del día, que es lo contrario de lo que se busca. Aquí el
+   * que defiende se FRENA y el que persigue se SUELTA, y nada más.
+   *
+   * Y los dos escalan con el colchón (`gcDefendCushionS`), así que **con el líder con el agua al
+   * cuello los dos valen 1 y el motor se comporta exactamente como antes**. Un cambio que en el
+   * límite no cambia nada es un cambio que se puede medir.
+   */
+  gcEarlyDefendDamp: 0.7,
+  gcEarlyChallengeGain: 0.6,
   breakAppealClimbWeight: 4,
   breakAppealUphillBonus: 0.35,
   // Definición de "final en alto" del SPEC 6.12: últimos 3 km con pendiente media >= 5%. Estuvo

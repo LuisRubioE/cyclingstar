@@ -1437,6 +1437,13 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
     1,
   )
   /**
+   * ¿SE JUEGA LA GENERAL EN ESTE TERRENO? (v52, ver `MoveContext.gcTerrain`). La puerta que pidió el
+   * dueño para que la distinción entre el que defiende el maillot y el que se lo quiere quitar valga
+   * «solo en montaña y media montaña». Sale de la MISMA cuenta que `breakAppeal` —la fracción de
+   * kilómetros que se suben— y no de `stage.kind`, que el motor ni siquiera recibe.
+   */
+  const gcTerrain = kmSubida / Math.max(1e-9, totalKmRuta) >= STAGE.gcTerrainClimbShare
+  /**
    * ¿ADMITE LA META UNA LLEGADA AGRUPADA? De este booleano cuelga todo lo que hace que un pelotón
    * llegue junto: que los equipos de los sprinters se pongan a cazar (`chasingSprinters`), el tirón
    * de los últimos kilómetros (`finalDriveKm`) y el plan de equipo de los que tienen rematador.
@@ -4117,6 +4124,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         totalKm,
         groupSize: members.length,
         fieldSize: racingNow,
+        gcTerrain,
         onClimb,
         tension: source.tension,
         hasGcContext,
