@@ -1,9 +1,10 @@
 import { type RaceClass, gcPointsByClass, stagePointsByClass } from '@cyclingstar/engine'
-import { type SQL, and, asc, desc, eq, gte, isNull, sql } from 'drizzle-orm'
+import { DAYS_PER_SEASON } from '@cyclingstar/shared'
+import { type SQL, and, asc, desc, eq, gt, gte, isNull, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import { BATCH_ROWS, type BatchValue, inChunks, valuesList } from './batch.js'
 import type { Database } from './client.js'
-import { palmares, riders, teams } from './schema.js'
+import { palmares, riderPoints, riders, teams } from './schema.js'
 
 /**
  * Ranking individual de puntos y palmarés permanente (SPEC, Paso 40). Los puntos de temporada se
@@ -19,8 +20,13 @@ export async function addStagePoints(
   riderId: string,
   raceClass: RaceClass,
   placing: number,
+  source?: { gameDay: number; raceId: string },
 ): Promise<void> {
-  await addSeasonPointsBatch(tx, [{ riderId, points: stagePointsByClass(raceClass, placing) }])
+  await addSeasonPointsBatch(
+    tx,
+    [{ riderId, points: stagePointsByClass(raceClass, placing) }],
+    source ? { ...source, kind: 'stage' } : undefined,
+  )
 }
 
 /** Suma puntos de ranking al corredor por su puesto en la general (0 = ganador), según la clase. */
@@ -29,21 +35,48 @@ export async function addGcPoints(
   riderId: string,
   raceClass: RaceClass,
   placing: number,
+  source?: { gameDay: number; raceId: string },
 ): Promise<void> {
-  await addSeasonPointsBatch(tx, [{ riderId, points: gcPointsByClass(raceClass, placing) }])
+  await addSeasonPointsBatch(
+    tx,
+    [{ riderId, points: gcPointsByClass(raceClass, placing) }],
+    source ? { ...source, kind: 'gc' } : undefined,
+  )
 }
 
 /**
- * Suma puntos de temporada a VARIOS corredores en una sola sentencia. Es un incremento atómico
- * (`season_points + v.pts`), igual que la versión fila a fila: no lee ni pisa el valor almacenado,
- * así que convive sin problemas con cualquier otra escritura concurrente. Los corredores repetidos
- * se agregan antes (una fila por corredor) para que el `UPDATE ... FROM (VALUES …)` no descarte
- * ninguna suma: con varias filas del VALUES casando la misma fila destino, Postgres aplicaría solo
- * una. Ignora las entradas de 0 puntos, como hacía el `if (pts > 0)` de antes.
+ * DÓNDE Y CUÁNDO SE PUNTUÓ (docs/epics.md «G3»). Sin esto el ranking no puede ser rodante: hace falta
+ * el día para poder sacar de la ventana lo de hace un año.
+ */
+export interface PointsEvent {
+  riderId: string
+  points: number
+}
+
+/**
+ * Suma puntos a VARIOS corredores en una sola sentencia, y los DEJA FECHADOS.
+ *
+ * El incremento de `season_points` es atómico (`season_points + v.pts`), igual que la versión fila a
+ * fila: no lee ni pisa el valor almacenado, así que convive sin problemas con cualquier otra
+ * escritura concurrente. Los corredores repetidos se agregan antes (una fila por corredor) para que
+ * el `UPDATE ... FROM (VALUES …)` no descarte ninguna suma: con varias filas del VALUES casando la
+ * misma fila destino, Postgres aplicaría solo una. Ignora las entradas de 0 puntos.
+ *
+ * …Y ADEMÁS SE GUARDA CADA PUNTUACIÓN CON SU DÍA (`rider_points`), que es lo que la v48 añade y lo
+ * que hace posible el ranking a 365 días. Los dos sitios conviven a propósito y no son redundantes:
+ * `season_points` es de TEMPORADA —se pone a cero en el rollover y alimenta los premios del año y el
+ * maillot blanco— y `rider_points` no se borra nunca, porque la ventana rodante necesita ver el año
+ * anterior.
  */
 export async function addSeasonPointsBatch(
   tx: Tx,
-  entries: readonly { riderId: string; points: number }[],
+  entries: readonly PointsEvent[],
+  /**
+   * Cuándo y en qué se puntuó. Opcional solo para no romper a quien sume puntos fuera de una
+   * carrera; sin ello la puntuación no entra en el ranking rodante, y eso tiene que ser una decisión
+   * explícita de quien llama y no un olvido.
+   */
+  source?: { gameDay: number; raceId: string; kind: 'stage' | 'gc' },
 ): Promise<void> {
   const totals = new Map<string, number>()
   for (const e of entries) {
@@ -58,6 +91,20 @@ export async function addSeasonPointsBatch(
     await tx.execute(
       sql`update ${riders} set season_points = ${riders.seasonPoints} + v.pts
           from ${v} as v(id, pts) where ${riders.id} = v.id`,
+    )
+  })
+  if (source === undefined || rows.length === 0) return
+  await inChunks([...totals], BATCH_ROWS, async (chunk) => {
+    await tx.insert(riderPoints).values(
+      chunk
+        .filter(([, pts]) => pts !== 0)
+        .map(([riderId, pts]) => ({
+          riderId,
+          gameDay: source.gameDay,
+          points: pts,
+          raceId: source.raceId,
+          kind: source.kind,
+        })),
     )
   })
 }
@@ -98,12 +145,48 @@ export interface RankingRow {
   points: number
 }
 
-/** Ranking individual de la temporada por puntos (SPEC, Paso 40). */
+/**
+ * LA VENTANA DEL RANKING, en días de juego (docs/epics.md «G3»).
+ *
+ * El dueño lo definió con un ejemplo, y el ejemplo fija el número exacto: «si llegamos al GD 25, hay
+ * que sumar los que consigan ese día y **restar los que consiguieron el GD 25 del año anterior**».
+ * O sea que el mismo día del año pasado ya está FUERA, y la ventana son los `DAYS_PER_SEASON` días
+ * que acaban hoy —364 en este juego—, no 365 naturales. Se escribe contra `DAYS_PER_SEASON` y no como
+ * un 364 suelto para que siga significando «un año» si la temporada cambia de largo.
+ */
+export const RANKING_WINDOW_DAYS = DAYS_PER_SEASON
+
+/**
+ * RANKING INDIVIDUAL A 365 DÍAS RODANTES (docs/epics.md «G3»).
+ *
+ * Hasta la v48 esto sumaba `riders.season_points`, un contador que el rollover pone a cero: el 1 de
+ * enero del juego el ranking entero valía cero y un corredor que acababa de ganar el Tour aparecía
+ * detrás de cualquiera que puntuase en una .2 en enero. El ranking real no funciona así y el dueño
+ * lo dijo con todas las letras.
+ *
+ * Ahora suma las puntuaciones FECHADAS de la ventana (`rider_points`). `season_points` no se retira:
+ * sigue siendo el de la temporada, que es lo que de verdad quieren los premios del año y el maillot
+ * blanco.
+ *
+ * El `leftJoin` con la suma —y no un `innerJoin`— es deliberado: un corredor sin puntuaciones en el
+ * último año sale con 0, no desaparece del mundo.
+ */
 export async function getRanking(
   db: Database,
   worldId: string,
+  currentDay: number,
   limit = 100,
 ): Promise<RankingRow[]> {
+  const desde = currentDay - RANKING_WINDOW_DAYS
+  const puntos = db
+    .select({
+      riderId: riderPoints.riderId,
+      total: sql<number>`sum(${riderPoints.points})::int`.as('total'),
+    })
+    .from(riderPoints)
+    .where(gt(riderPoints.gameDay, desde))
+    .groupBy(riderPoints.riderId)
+    .as('puntos')
   const rows = await db
     .select({
       riderId: riders.id,
@@ -112,12 +195,13 @@ export async function getRanking(
       teamId: riders.teamId,
       teamName: teams.name,
       userId: riders.userId,
-      points: riders.seasonPoints,
+      points: sql<number>`coalesce(${puntos.total}, 0)::int`,
     })
     .from(riders)
     .leftJoin(teams, eq(teams.id, riders.teamId))
+    .leftJoin(puntos, eq(puntos.riderId, riders.id))
     .where(eq(riders.worldId, worldId))
-    .orderBy(desc(riders.seasonPoints))
+    .orderBy(desc(sql`coalesce(${puntos.total}, 0)`))
     .limit(limit)
   return rows.map((r) => ({
     riderId: r.riderId,

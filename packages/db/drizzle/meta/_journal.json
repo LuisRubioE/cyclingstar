@@ -218,6 +218,13 @@
       "when": 1786528579187,
       "tag": "0030_parte_del_corredor",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1786614979187,
+      "tag": "0031_ranking_365_dias",
+      "breakpoints": true
     }
   ]
 }

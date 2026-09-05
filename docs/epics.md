@@ -399,17 +399,28 @@ apoyarse.
   negarse, rendir menos, irse—, porque si no, el jugador que no es mánager es un espectador de su
   propia carrera deportiva.
 
-### G3 · Rankings a 365 días rodantes
+### G3 · Rankings a 365 días rodantes — **HECHO (v48)**
 
 > «El ranking debería sumar los puntos en los últimos 365 días: si llegamos al GD 25, hay que sumar
 > los que consigan ese día y restar los que consiguieron el GD 25 del año anterior.»
 
-Es exactamente como funciona el ranking real. **Comprobado: hoy NO es así.** El ranking es
-`season_points`, un contador que se incrementa por temporada (`update riders set season_points =
-season_points + pts`, en `packages/db/src/ranking.ts`). No hay puntos fechados por resultado, así
-que no se puede restar lo del mismo día del año anterior. Es un cambio de ESQUEMA, no de fórmula:
-hay que guardar cada puntuación con su fecha. La clasificación de jóvenes (maillot blanco) sí
-existe.
+Es exactamente como funciona el ranking real, y hasta la v48 **no era así**: el ranking sumaba
+`season_points`, un contador que se incrementa por temporada y que el rollover pone a cero. O sea
+que el 1 de enero del juego el ranking entero valía cero y el que acababa de ganar el Tour aparecía
+por detrás de cualquiera que puntuase en una .2 en enero. No había puntos fechados, así que no había
+nada que restar: era un cambio de ESQUEMA, no de fórmula.
+
+**Cerrado.** Cada puntuación se guarda ahora con su día, su edición de carrera y de qué fue
+(`rider_points`, migración `0031`), y `getRanking` suma la ventana `(hoy − 364, hoy]`. El ejemplo del
+dueño fija el borde exacto y así está sellado en `ranking365.test.ts`: lo del **mismo** GD del año
+pasado ya está FUERA, y el día siguiente es el primero que entra.
+
+Los dos contadores conviven a propósito y no son redundantes: `season_points` sigue siendo el de la
+TEMPORADA —es lo que quieren los premios del año y el maillot blanco, que se reinician de verdad— y
+`rider_points` no se borra nunca, porque la ventana rodante necesita ver el año anterior. La
+migración siembra lo que cada uno lleva acumulado como una puntuación fechada hoy, de modo que
+**nadie pierde su puesto el día del despliegue** y esa fila cae sola de la ventana dentro de un año,
+que es justo lo que le pasaría a los puntos que representa.
 
 ### G4 · Promociones y descensos de equipos entre categorías
 
@@ -651,5 +662,6 @@ mecánica de juego (y bastante buena), no un problema de escala.
 2. ~~**E1** (el viento y los abanicos)~~ — HECHA en la v41. ~~**E5** (el clima)~~ — HECHA en el motor
    en la v42; le falta salir por la API y pintarse en alguna pantalla, que es lo que la convierte en
    mecánica de juego. **E3** (la campaña), EN CURSO: el paso 1 era poder medirla y ya se puede.
-3. La lista grande, empezando por donde el dueño diga. **G1 (entrenamientos)** y **G3 (rankings)**
-   son las dos que hoy pueden estar mintiendo en producción, así que son las candidatas naturales.
+3. La lista grande, empezando por donde el dueño diga. **G1 (entrenamientos)** y ~~**G3
+   (rankings)**~~ eran las dos que podían estar mintiendo en producción; G3 está HECHA en la v48, así
+   que la candidata natural que queda de ese par es G1.
