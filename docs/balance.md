@@ -9441,6 +9441,52 @@ No dice que el reparto de roles del pelotón esté bien. Que el 70 % del campo s
 pregunta —un equipo de ocho en una llana lleva un velocista, su tren de dos o tres, y el resto—, y
 este banco la deja a la vista sin contestarla.
 
+## v52 — El que defiende el maillot no se distinguía del que se lo quiere quitar
+
+`ENGINE_VERSION` 48. Sale de la otra mitad de la queja del dueño en la etapa 13 del Race Italy: «otra cosa es que los que van segundo, tercero o cuarto lo hagan, porque ellos quieren luchar por la carrera… **y curiosamente no veo que lo hagan**».
+
+**Medido, y tenía razón.** Sobre 78 etapas de montaña de seis grandes vueltas, ataques por corredor y etapa:
+
+| quién    | ataques/etapa |
+| -------- | ------------: |
+| maillot  |          0,44 |
+| 2.º-5.º  |          0,44 |
+| 6.º-20.º |          0,31 |
+| el resto |          0,21 |
+
+Los hombres de la general atacan el doble que el pelotón, que está bien. Lo que no está bien es que el que **lleva** el maillot ataque exactamente lo mismo que el que se lo quiere quitar.
+
+**Y no faltaba el concepto, faltaba dónde se consultaba.** `gcDefendShare` y `gcChallengeShare` existen desde la v46 y están bien pensados, pero solo se leían dentro de `ataque_final`, o sea en un puerto de los últimos 30 km (`climbRaceKmToGo`) o en los últimos 12 (`lateAttackKm`). En el resto de la etapa —que es casi toda— los dos hombres salían con el mismo 0,09 exacto, porque los dos son `lider` con mentalidad `reservon`.
+
+**La puerta la puso el dueño**, cuando se le dieron las opciones: **solo en montaña y media montaña**. Se mide sobre el RECORRIDO y no sobre `stage.kind` —que el motor ni recibe—: fracción de kilómetros de subida por encima de `gcTerrainClimbShare` = 5 %. Sale del calendario entero (1.075 etapas en línea):
+
+| tipo    | p05 | mediana |  p95 |
+| ------- | --: | ------: | ---: |
+| llana   | 0,0 |     0,0 |  1,9 |
+| clásica | 0,0 |     3,9 |  4,8 |
+| media   | 3,3 |     7,2 | 11,8 |
+| reina   | 8,7 |    18,3 | 32,7 |
+
+El 5 % deja fuera todas las llanas y casi todas las clásicas, y dentro las reinas enteras y tres cuartas partes de las medias.
+
+**Lo que se aplica NO es el bonus de `ataque_final`**, y es deliberado: aquél SUMA un +0,8 de «tengo que ganar tiempo» a todo el que se juegue la general, y en el km 20 eso mandaría a los favoritos a la fuga del día. Aquí solo hace falta la asimetría —el que defiende se frena, el que persigue se suelta— que además es la doctrina que `tactics.ts` ya tenía escrita desde la v46: _si el líder se sienta, son sus rivales los que tienen que moverle_. Y los dos factores escalan con el MISMO colchón, así que con el líder con el agua al cuello los dos valen 1 y el motor se comporta exactamente como antes.
+
+**El efecto, medido después:**
+
+| ataques/etapa              | antes | después |
+| -------------------------- | ----: | ------: |
+| maillot                    |  0,44 |    0,37 |
+| 2.º-5.º (por corredor)     |  0,44 |    0,49 |
+| **relación rival/maillot** |  1,01 |    1,32 |
+
+Va en la dirección correcta y **menos de lo que se esperaba**, y conviene decir por qué en vez de dejarlo bonito. De los 29 ataques que le quedan al maillot, **13 son en el desenlace**, donde esto no entra a propósito: ahí un líder atacando para sentenciar es carrera de verdad. Los otros 16 sí caen en la ventana nueva, y el freno resulta más suave de lo que parece por una razón que es DISEÑO y no defecto: escala con el colchón del líder sobre el rival más cercano **de su grupo**, y en un pelotón entero ése suele ser el 2.º a pocos segundos. Con 20 s de ventaja el freno es del 23 %, no del 70 %. Es literalmente lo que dice `gcDefendShare`: «con cinco segundos no se puede sentar; con cuatro minutos, sí».
+
+Dos avisos de rigor sobre esa tabla: **no es un A/B limpio** —al cambiar la táctica cambian las carreras y la general evoluciona distinta— y se cuentan eventos cuya lista de protagonistas está capada a tres nombres. La dirección es sólida; los decimales, menos.
+
+**Y no mueve ninguna banda:** los 46 invariantes de calibración, en verde.
+
+**Lo que la prueba nueva cazó**, y merece quedar escrito porque es el error fácil de repetir: la primera versión aplicaba el factor **también al que va a ochenta minutos**. `gcChallengeShare` solo pregunta «¿eres tú el que defiende?» y para todo el que no lo es responde que no, así que sin la ventana de amenaza (`gcThreatFraction`, la misma que usa `ataque_final`) media parrilla salía «desafiando» una general que perdió hace una semana.
+
 ## v51 — El maillot corría de cazaetapas, y era una sola línea
 
 `ENGINE_VERSION` 48 —la misma que la v50: las dos tandas viajan juntas y no ha salido nada en medio—. Cuatro síntomas que el dueño vio en la misma carrera (Race Italy, etapas 13 y 14) y que salen todos de **una línea** de `world/autoOrders.ts`:
