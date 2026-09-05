@@ -722,14 +722,45 @@ export const ENGINE_VERSION = 47 as const
  * partir de la semilla del corredor.
  */
 export const CREATION = {
-  // Valores iniciales por categoría de la vocación (SPEC 3.5).
-  primaryMean: 46,
-  adjacentMean: 38,
-  restMean: 30,
+  /**
+   * VALORES INICIALES por categoría de la vocación (SPEC 3.5).
+   *
+   * BAJAN A LA MITAD EN LA v48, por decisión del dueño: «yo diría que empiecen con 18 años… con
+   * stats casi a cero, sin equipo… y así para cuando cumplan 19 y 20 ya pueden tener mejores stats,
+   * quizás un equipo». Con 46/38/30 un jugador recién creado NO era un novato: medido sobre el
+   * nacional sub-23 en línea (180 km, 127 corredores continentales), **entraba 28.º y con el tiempo
+   * del ganador**.
+   *
+   * El «casi a cero» NO se toma al pie de la letra, y el propio motor dice por qué. Medido en esa
+   * misma carrera, con el novato al mismo nivel en todos los atributos:
+   *
+   * | nivel | termina  | puesto | pierde |
+   * | ----: | :------- | -----: | -----: |
+   * |     5 | **3/10** |  127.º | 28 min |
+   * |    12 | 6/10     |  127.º | 11 min |
+   * |    20 | **10/10**|  127.º |  9 min |
+   * |    28 | 10/10    |  119.º |  7 min |
+   * |    46 | 10/10    | **28.º** | con el ganador |
+   *
+   * A 5 no puede ni acabar —siete de cada diez carreras se van fuera de control— y un juego en el
+   * que tu primer año son DNF no es el que se pidió. **20 es el suelo que sí funciona**: acaba
+   * siempre, último y a nueve minutos. Un don nadie, pero un ciclista. De ahí salen estos números,
+   * que dejan al primario en 24 y a la media alrededor de 17: un tercio del continental mediano
+   * (MON 60), que es el suelo real del pelotón profesional.
+   *
+   * Los TECHOS no se tocan: lo que baja es lo que TIENES, no lo que puedes llegar a ser. Y la curva
+   * de progresión ya premia estar lejos del techo (`kDim`), así que la primera temporada recupera
+   * casi todo: medido, de 5 a ~55 en un año de entrenamiento, y a los 21 la diferencia contra el
+   * arranque viejo es de un punto.
+   */
+  primaryMean: 24,
+  adjacentMean: 19,
+  restMean: 15,
   valueSd: 3,
-  // TAC inicia siempre bajo: el oficio se aprende corriendo (SPEC 3.5, 3.6).
-  tacInitialMin: 25,
-  tacInitialMax: 32,
+  // TAC inicia siempre bajo: el oficio se aprende corriendo (SPEC 3.5, 3.6). Baja con el resto: a
+  // los 18 no se tiene oficio ninguno.
+  tacInitialMin: 12,
+  tacInitialMax: 16,
 
   // Techos: mu_a = ceilingBase + ceilingBiasWeight * bias. El peso 12 es LA perilla
   // entre fantasía y lotería (SPEC 3.5); su ajuste va a docs/balance.md.

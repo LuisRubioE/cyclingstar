@@ -504,12 +504,38 @@ que migrar—. Lo irreversible es la reputación que se le pega a un dominio com
 dominio de envío, el return-path del subdominio, DMARC empezando en `p=none`, y una baja real en el
 correo de notificación. Nada de eso es opcional si se quiere que el correo llegue.
 
-### G10 · Retiradas por edad
+### G10 · Retiradas por edad — **HECHO (v47-v48)**
 
 > «Un sistema para que los ciclistas (humanos o bots) se jubilen al llegar a cierta edad.»
 
 Sin esto la población envejece para siempre y no entra sangre nueva: se lleva por delante a los
 rankings, al mercado y a la cantera.
+
+**Cerrado.** El NPC ya se jubilaba; lo que faltaba era el HUMANO, y el bloque de retiros del rollover
+filtraba por `isNull(riders.userId)`, así que un corredor de jugador no se retiraba nunca (v47,
+`rolloverRetire.test.ts`). Ahora se jubila a la edad dura, se le quita el equipo y deja de ser «tu
+ciclista» para que el jugador pueda crearse otro.
+
+Y con él entra el otro extremo de la vida deportiva, que el dueño pidió aparte: **se empieza a los 18
+siendo un don nadie** (v48). Antes un jugador recién creado entraba con 46/38/30 y era 28.º de 127 en
+un nacional sub-23; ahora entra por debajo del suelo del pelotón profesional y el contrato se gana:
+
+| edad | `rating` | qué pasa                                                                 |
+| ---- | -------: | ------------------------------------------------------------------------ |
+| 18   |     0,21 | nadie le ficha (`MIN_RATING_FOR_OFFERS` = 0,42), corre como agente libre |
+| 19   |     0,43 | cruza el listón: primeras ofertas continentales                          |
+| 20   |     0,50 | continental de verdad                                                    |
+| 21   |     0,53 | continental mediano (0,54)                                               |
+
+El «casi a cero» no se toma literal, y lo dice el motor: al nivel 5, **siete de cada diez carreras se
+terminan fuera de control**. Con el genoma nuevo acaba 10 de 10, último y a ocho minutos y medio —un
+don nadie, pero un ciclista—. Los techos NO bajan: lo que se recorta es lo que tienes, no lo que
+puedes llegar a ser.
+
+**Queda anotado lo que esto destapó y NO se ha tocado: los NPC no tienen juventud.** `generateNpcRider`
+usa la edad solo para el TECHO, no para los atributos, así que un continental de 18 años es idéntico
+a uno de 30 (MON 60,0 medido en los dos). El mundo no tiene júniors: todos nacen ya hechos. Es la otra
+mitad de este épico y se conecta con N2 (el bot que se retira lo reemplaza un bot júnior).
 
 ---
 
