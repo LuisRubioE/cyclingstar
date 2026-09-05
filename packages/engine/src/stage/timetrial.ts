@@ -37,7 +37,14 @@ import {
 import { sampleProfile } from './sample.js'
 import { stageRng } from './rng.js'
 import { timeTrialStartOrder } from './startOrder.js'
-import type { Block, StageInput, StageOutput, StageResult, TankState } from './types.js'
+import type {
+  Block,
+  StageEffort,
+  StageInput,
+  StageOutput,
+  StageResult,
+  TankState,
+} from './types.js'
 
 /** Perfil de crono: compuesto de especialista en llano que desliza hacia MON en subida (6.13). */
 function ttPerfil(eff: Eff, block: Block): number {
@@ -216,6 +223,14 @@ export function simulateTimeTrial(input: StageInput, seed: string): StageOutput 
   const log = new EventLog()
   const workUnits = new Map<string, number>()
   const tank = new Map<string, TankState>()
+  /**
+   * EL PARTE DEL CORREDOR EN UNA CRONO (v47). Aquí el desglose de `StageEffort` es TRIVIAL y así tiene
+   * que ser: una contrarreloj es un hombre solo a su umbral de principio a fin —sin rebufo, sin
+   * relevos, sin ataques y sin cerillos (SPEC 6.13)—, así que todo el depósito se va por `rodar` y
+   * el resto vale cero. No es un hueco por rellenar: es la respuesta correcta a «¿en qué se te fue
+   * el día?» cuando el día fue una crono.
+   */
+  const efforts = new Map<string, StageEffort>()
 
   // LA RAMPA DE SALIDA (v18). La regla vive aparte y es pura: aquí solo se consulta a qué hora sale
   // cada uno. Ningún dado: el orden sale del dorsal y de la general, que son datos de entrada.
@@ -265,6 +280,19 @@ export function simulateTimeTrial(input: StageInput, seed: string): StageOutput 
     }
     workUnits.set(rider.riderId, work)
     tank.set(rider.riderId, tankState(energy, rider.energy, eff0.RES))
+    efforts.set(rider.riderId, {
+      // El que va solo contra el crono da la cara los kilómetros ENTEROS del recorrido.
+      kmAlFrente: blocks.length * STAGE.dx,
+      kmEnFuga: 0,
+      kmDescolgado: 0,
+      ataques: 0,
+      saltos: 0,
+      cerillos: 0,
+      reservaGastadaS: 0,
+      gasto: { rodar: work, relevo: 0, reserva: 0, cerillos: 0, banderas: 0 },
+      pajaraKm: null,
+      descuelgueKm: null,
+    })
     const noise = normal(rngNoise, 1, STAGE.ttNoiseSd)
     const startS = startOf.get(rider.riderId) ?? 0
     const total = tS * noise
@@ -308,6 +336,7 @@ export function simulateTimeTrial(input: StageInput, seed: string): StageOutput 
     workUnits,
     incidents: [],
     tank,
+    efforts,
     engineVersion: ENGINE_VERSION,
   }
 }

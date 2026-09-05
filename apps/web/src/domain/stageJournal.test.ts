@@ -31,6 +31,8 @@ function result(name: string, puesto: number, tiempoS: number): StageResultEntry
     riderId: `r${puesto}`,
     name,
     country: 'ES',
+    dnf: false,
+    reason: null,
     teamName: null,
     isBot: true,
     puesto,

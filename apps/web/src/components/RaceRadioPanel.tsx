@@ -79,8 +79,34 @@ const ROLE_MARK: Record<RadioRider['role'], { icon: string; title: string; cls: 
   sheltered: { icon: '⌂', title: 'Sitting in, sheltered', cls: 'text-slate-400' },
 }
 
+/**
+ * PARA QUÉ TIRA, en una palabra.
+ *
+ * Lo pidió el dueño después de ver a un equipo dando relevos en el TERCER grupo mientras su líder
+ * iba en el segundo: «¿para qué carajos tiran si en ese grupo donde están no está su líder? ¿Para
+ * llevarle 138 ciclistas más a su líder? MAL. No deberían tirar… o no entiendo para qué tiran; o
+ * sea, busca de algún modo dejar una evidencia que explique por qué o para qué tira cada ciclista de
+ * un grupo».
+ *
+ * Ésa es la evidencia. La etiqueta sale de la misma rama con la que el motor decidió el turno, así
+ * que la tabla ya no obliga a adivinar: o dice algo que se sostiene («his team owns the front —
+ * defending the jersey») o dice `just riding`, y entonces lo que hay que mirar es el motor.
+ */
+const MOTIVE_LABEL: Record<string, string> = {
+  solo: 'alone — no one else to do it',
+  abanico: 'in the echelon — pull or lose the wheel',
+  tren: 'lead-out for his sprinter',
+  fuga: 'working the break',
+  grupeto: 'just riding — this group is chasing nothing',
+  equipo_etapa: "his team's card for this finish",
+  equipo_maillot: 'his team defends the jersey',
+  equipo_general: 'his team rides for the GC',
+  rol: 'his job in the team',
+}
+
 function RiderLine({ r }: { r: RadioRider }) {
   const mark = ROLE_MARK[r.role]
+  const motivo = r.role === 'pulling' && r.motivo ? MOTIVE_LABEL[r.motivo] : null
   return (
     <li className="flex items-center gap-1.5 text-xs">
       <span className={`w-3 shrink-0 text-center ${mark.cls}`} title={mark.title}>
@@ -101,6 +127,11 @@ function RiderLine({ r }: { r: RadioRider }) {
       </span>
       <span className="truncate text-slate-700">{r.name}</span>
       {r.team && <span className="truncate text-[11px] text-slate-400">{r.team}</span>}
+      {motivo && (
+        <span className="ml-auto shrink-0 truncate text-[11px] text-slate-400 italic">
+          {motivo}
+        </span>
+      )}
     </li>
   )
 }

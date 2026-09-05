@@ -210,6 +210,46 @@ export interface Incident {
  * compromiso, no mueve un reloj y no existe si nadie la pide. Sin `StageProbe` el motor corre
  * exactamente igual —lo comprueban las huellas selladas, que no se movieron al entrar esto—.
  */
+/**
+ * PARA QUÉ ESTÁ DANDO LA CARA AL VIENTO ESTE HOMBRE (v47).
+ *
+ * Petición literal del dueño, después de ver a un equipo tirando en el TERCER grupo mientras su
+ * líder iba en el segundo: «¿para qué carajos tiran si en ese grupo donde están no está su líder?
+ * ¿Para llevarle 138 ciclistas más a su líder? MAL. No deberían tirar… o no entiendo para qué
+ * tiran; o sea, busca de algún modo dejar una evidencia que explique por qué o para qué tira cada
+ * ciclista de un grupo».
+ *
+ * No es una etiqueta inventada a posteriori: son las MISMAS ramas con las que `relayTurn` decide el
+ * turno, leídas en el mismo bloque en que se decide. Si el motivo no cuadra con lo que se ve, el
+ * defecto está en la decisión y no en la etiqueta —que es exactamente para lo que sirve una
+ * evidencia—.
+ *
+ * Es una pregunta DISTINTA de la que responde `simulate.ts::pullReason` (la v13), y por eso conviven
+ * las dos: aquélla mira a un grupo de relevistas y dice **para quién trabajan** («son los gregarios
+ * de Fulano», «es una alianza de tres equipos»); ésta mira a UN hombre y dice **qué le ha puesto ahí
+ * a él**. La queja del dueño no se podía contestar con la primera: los que tiraban en el tercer
+ * grupo eran, efectivamente, los gregarios de su líder.
+ */
+export type PullMotive =
+  /** Va SOLO: da la cara el 100 % del tiempo porque no hay nadie más. */
+  | 'solo'
+  /** Con viento de lado no hay rueda: o entras al turno o te caes de la fila. */
+  | 'abanico'
+  /** Lanza a su velocista en el desenlace (`sprintTrainKm`). */
+  | 'tren'
+  /** Colabora en un grupo que va POR DELANTE del grueso de la carrera. */
+  | 'fuga'
+  /** Rueda en un grupo que va POR DETRÁS: no persigue nada, sobrevive el día. */
+  | 'grupeto'
+  /** Su equipo lleva el frente del pelotón porque tiene al favorito para ESTE final. */
+  | 'equipo_etapa'
+  /** …porque el maillot es suyo y lo de delante lo amenaza. */
+  | 'equipo_maillot'
+  /** …porque su hombre de la general se juega lo mismo un escalón más abajo. */
+  | 'equipo_general'
+  /** Nadie manda al frente: le toca por su papel (gregario, o corredor sin órdenes). */
+  | 'rol'
+
 export interface SnapshotRider {
   riderId: string
   /** En qué grupo va: el pelotón, un movimiento o un grupeto. */
@@ -231,6 +271,10 @@ export interface SnapshotRider {
    */
   pulling: boolean
   /**
+   * PARA QUÉ tira (v47). `null` si no está tirando en este bloque. Ver `PullMotive`.
+   */
+  pullMotive: PullMotive | null
+  /**
    * Trabajo al frente del pelotón CON OLVIDO (`pullWindowDecayPerKm`): la misma ventana con la que
    * la crónica responde «quién tira ahora» en `peloton_pull`. Ordena a los relevistas por lo que
    * están poniendo, en vez de por el orden en que aparecen en la lista. 0 fuera del pelotón.
@@ -241,8 +285,81 @@ export interface SnapshotRider {
 export interface StageProbe {
   /** Kilómetros del recorrido en los que se quiere la foto. */
   atKm: readonly number[]
-  /** Recibe cada foto con el km REAL del bloque en que se tomó (múltiplo de `dx`). */
-  onSnapshot: (km: number, riders: readonly SnapshotRider[]) => void
+  /**
+   * Recibe cada foto con el km REAL del bloque en que se tomó (múltiplo de `dx`) y **cuál es el
+   * pelotón** en ese punto.
+   *
+   * `mainGroupId` viaja desde la v47 y no es un adorno: `mainGroupId()` (stage/group.ts) lleva
+   * HISTÉRESIS —el título de pelotón se hereda y solo cambia de manos por un margen—, así que quien
+   * lo recalcule por su cuenta arranca otra cadena y acaba llamando pelotón a otro grupo. Es
+   * exactamente lo que pasaba: medido sobre seis carreras del banco, la radio y el motor discrepaban
+   * en 12 fotos, y en ellas los relevos del pelotón salían anotados como de un grupeto y al revés.
+   * Aquí viaja **el que el motor está usando de verdad**, que es el que decide quién tira y por qué.
+   *
+   * `null` = todavía no hay ninguno (no queda nadie en carretera).
+   */
+  onSnapshot: (km: number, riders: readonly SnapshotRider[], mainGroupId: string | null) => void
+}
+
+/**
+ * EN QUÉ SE FUE EL DEPÓSITO, por concepto (v47). Unidades de depósito, la misma escala del tanque:
+ * la suma de los cinco es lo que le falta al corredor en meta (`TankState.energy0 − energy`).
+ *
+ * Nace de una pregunta del dueño que el motor no sabía contestar: «esta vez le dije que corriera
+ * súper agresivo… y no hay ni una sola mención en el journal ni en la race radio, pero consumió un
+ * montón de energía; algo habrá hecho, digo yo». Y era verdad las dos veces: el corredor hizo cosas
+ * y el motor las cobró —el gasto es real y va al TSS del día—, pero hacia fuera solo salía el TOTAL
+ * (`workUnits`), un número sin historia. La crónica solo cuenta lo que es NOTICIA (un ataque que
+ * abre hueco, una fuga, una pájara) y un día entero de dar la cara en el pelotón no lo es: se ve en
+ * las piernas de mañana y en ningún otro sitio.
+ *
+ * No es una estimación ni un reparto a posteriori: cada término se apunta EN EL SITIO en que el
+ * motor ya descontaba esa energía, así que el desglose y el total no pueden discrepar.
+ */
+export interface StageSpend {
+  /** Rodar: el peaje de estar en carrera, ya con el rebufo que le tocara. */
+  rodar: number
+  /** Dar la cara al viento: lo que le cuesta ir al frente por encima de ir a rueda. */
+  relevo: number
+  /** Apretar los dientes por encima de su umbral (la reserva, W′ de SPEC 6.6). */
+  reserva: number
+  /** Cerillos: atacar, saltar a una rueda y quemar uno para no soltarse (SPEC 6.6). */
+  cerillos: number
+  /** Disputar una meta volante o una cima (SPEC 6.11). */
+  banderas: number
+}
+
+/**
+ * EL PARTE DEL CORREDOR: qué hizo en el día, además de en qué puesto entró (v47).
+ *
+ * Es OBSERVACIÓN PURA, como `StageProbe` y como la atribución del trabajo: son contadores que el
+ * bucle ya tenía dentro y que morían al terminar la etapa. No tira un dado, no mueve un reloj y no
+ * cambia una sola carrera —lo comprueban las huellas selladas—.
+ *
+ * Se emite para TODOS los corredores porque contarlo cuesta lo mismo y porque un parte que solo
+ * existiera para el humano sería una segunda verdad que puede divergir; quién lo guarda y a quién
+ * se lo enseña es cosa de `packages/db`.
+ */
+export interface StageEffort {
+  /** Kilómetros dando la cara al viento al frente de su grupo. */
+  kmAlFrente: number
+  /** Kilómetros rodando por DELANTE del grupo principal: la fuga, un contraataque, un puente. */
+  kmEnFuga: number
+  /** Kilómetros rodando por DETRÁS del grupo principal. */
+  kmDescolgado: number
+  /** Ataques que lanzó él, y ataques ajenos a los que saltó. */
+  ataques: number
+  saltos: number
+  /** Cerillos que quemó, de los que salió con ellos (SPEC 6.6). */
+  cerillos: number
+  /** Segundos de reserva que gastó yendo por encima de su umbral (SPEC 6.6, `reserveSeconds`). */
+  reservaGastadaS: number
+  /** En qué se fue el depósito. */
+  gasto: StageSpend
+  /** Km en el que se le vació el depósito (la pájara), o `null` si no reventó. */
+  pajaraKm: number | null
+  /** Km en el que perdió el grupo principal por última vez, o `null` si no lo perdió. */
+  descuelgueKm: number | null
 }
 
 /** Salida del motor (SPEC 6.1, 6.15). `workUnits` alimenta el TSS de 5.1. */
@@ -257,6 +374,10 @@ export interface StageOutput {
    * cerillo al día siguiente no se podía propagar (docs/motor.md §12-bis).
    */
   tank: Map<string, TankState>
+  /**
+   * EL PARTE DE CADA CORREDOR (v47): qué hizo hoy, no solo dónde entró. Ver `StageEffort`.
+   */
+  efforts: Map<string, StageEffort>
   /** Versión del motor con que se generó (sellada para replays reproducibles, SPEC 6.1). */
   engineVersion: number
 }

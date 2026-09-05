@@ -715,7 +715,7 @@
  * Campaña canónica de 500 corridas: **los 33 invariantes en verde**. La contrarreloj no se mueve ni
  * un dígito —es el ancla del esfuerzo individual y paga la ley lineal de siempre—.
  */
-export const ENGINE_VERSION = 44 as const
+export const ENGINE_VERSION = 47 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -2306,6 +2306,58 @@ export const STAGE = {
   tacticStrongFloor: 0.2,
   // …y el que se juega la general ataca más que el que ya la ha perdido (SPEC 6.9).
   tacticGcStakeWeight: 0.8,
+  /**
+   * EL COLCHÓN A PARTIR DEL CUAL EL LÍDER YA NO CORRE POR GANAR TIEMPO (v46, `gcDefendShare`).
+   *
+   * Un minuto, y no es una perilla de calibración sino lo que se sabe de una general: con quince
+   * segundos el maillot tiene que seguir peleando —cualquier bonificación, cualquier abanico, y la
+   * pierde— y con un minuto largo su carrera pasa a ser otra: no perderlo. Ahí un ataque suyo ya no
+   * es una jugada sino un riesgo sin premio, porque el tiempo que le puede sacar al segundo vale
+   * mucho menos que el que se juega si revienta.
+   *
+   * Es una RAMPA y no un escalón, y por la misma razón que `tacticAllowGcPenalty` lo es desde la
+   * v32: entre los quince segundos y el minuto hay una general de verdad y el motor tiene que poder
+   * contarla. Con el colchón a cero vale cero y el motor se comporta exactamente como antes.
+   */
+  gcDefendCushionS: 60,
+  /**
+   * …Y CUÁNTO MÁS ATACA EL QUE VA DETRÁS CUANDO EL LÍDER SE SIENTA (v46, `gcChallengeShare`).
+   *
+   * Esta constante existe porque quitarle al maillot las ganas de atacar dejó la montaña MENOS
+   * SELECTIVA: medido sobre las seis giras del banco, el peor día de una reina pasó de **17,65 % de
+   * cola a 13,75 %** y la mediana de 8,55 a 7,82. Parte de la carrera la hacía el líder atacando, y
+   * al corregir el signo se perdió.
+   *
+   * La conclusión equivocada sería devolverle el ataque al maillot. La correcta es la que pasa en
+   * carretera: **si el líder se sienta, son sus rivales los que tienen que moverle**, porque a ellos
+   * se les acaba la carrera y a él no. La selectividad vuelve de la mano de quien de verdad la
+   * produce.
+   *
+   * El número es MUY inferior al 0,80 de `tacticGcStakeWeight` y tiene que serlo: aquel se le quita
+   * a UN hombre y éste se le da a TODOS los que van dentro de la ventana de amenaza, que en una
+   * reina son varios.
+   *
+   * SE CALIBRA CONTRA UN OBJETIVO HONESTO —que este cambio sea NEUTRO en selectividad, o sea que la
+   * montaña se rompa igual que antes aunque la rompa otra gente— y no contra el aprobado de un test,
+   * que es la trampa contra la que avisa `invariants.test.ts`. Medido sobre las seis giras del banco:
+   *
+   *     peso    mediana    max    brecha 1.º-10.º
+   *     ANTES     8,55    17,65        19 s
+   *     0,00      7,82    13,75        14 s
+   *     0,35      9,44    17,79        19 s
+   *     0,70      9,39    17,79        25 s
+   *
+   * Con 0,35 las dos medidas ESTRUCTURALES vuelven a su sitio: el peor día de montaña (17,79 contra
+   * 17,65) y la brecha entre el primero y el décimo, clavada en 19 s. Con 0,70 esa brecha se va a 25
+   * y la carrera queda MÁS selectiva de lo que era, o sea que se pasa.
+   *
+   * Lo que no vuelve exactamente es la MEDIANA, que sube a 9,44 en vez de a 8,55, y conviene
+   * escribirlo en vez de llamarlo neutralidad: la reina típica estira algo más el campo, porque los
+   * rivales atacan más a menudo y no solo en los días duros. Queda dentro de la banda 8-14 y más
+   * lejos del suelo que antes. Y con seis giras la mediana tiene un sd de 0,39 (medido en la v42),
+   * así que ese +0,89 son ~2,3 sigma: probable, no seguro.
+   */
+  tacticGcChallengeWeight: 0.35,
   // Regla 2, quién SALTA detrás: base + atención (TAC) + rol + mentalidad + piernas, acotado.
   // Con un pelotón de 40 y p ≈ 0,15 saltan 5-6; con TAC alto y combativos, muchos más. Puede salir
   // 0 y puede salir el grupo entero, que es justo lo que pide la regla.
@@ -2317,6 +2369,28 @@ export const STAGE = {
   tacticFollowEnergyWeight: 0.3,
   // En el final, el rival cercano en la general no deja marchar al que ataca (regla 9).
   tacticFollowGcWeight: 0.45,
+  /**
+   * …Y CUÁNTO MÁS SALTA EL QUE DEFIENDE QUE EL QUE PERSIGUE (v46).
+   *
+   * El que persigue puede permitirse dejar marchar un ataque que no le sirve —de un rival que no le
+   * amenaza, o en un sitio donde no va a sacar nada—. El que lleva el maillot no puede dejar marchar
+   * ninguno: cualquiera de ellos le quita la camiseta. Con 0,60 el líder con colchón salta con
+   * 0,72 de peso de general contra los 0,45 del perseguidor, que sobre la probabilidad final es la
+   * diferencia entre responder casi siempre y responder a menudo.
+   *
+   * Es la mitad ACTIVA de la conducta que faltaba —la otra, quitarle el bonus de ataque, solo le
+   * retira algo que estaba mal—: el líder deja de moverse y pasa a MARCAR, que es lo que hace un
+   * hombre de amarillo en un puerto.
+   *
+   * Y EL TECHO ESTÁ A UN PELO, que es lo que hay que saber antes de tocar este número. Con el perfil
+   * que `autoOrders` le pone al maillot —`lider` + `reservon`— el que defiende salta con **0,847
+   * contra un tope (`tacticFollowMax`) de 0,85**: cabe justo. Subirlo no hace nada, porque a partir
+   * de ahí lo absorbe el clamp; medido con un corredor más combativo (`libre` + `oportunista`, que
+   * ya venía saltando en 0,697) la ganancia se pierde ENTERA. Eso no es un defecto —un hombre así
+   * ya seguía casi todo lo que se movía— pero explica por qué este número vale para el maillot y no
+   * para cualquiera.
+   */
+  tacticFollowDefendGain: 0.6,
   tacticFollowMin: 0,
   tacticFollowMax: 0.85,
   // Si salta MÁS de esta fracción del grupo, el ataque no separa nada: es el grupo entero
@@ -3131,6 +3205,60 @@ export const STAGE = {
     descenso: { DES: 0.42, TAC: 0.25, SPR: 0.18, LLA: 0.15 },
     solitario: { RES: 0.35, LLA: 0.3, TAC: 0.2, MON: 0.15 },
   },
+  /**
+   * EL ROL PESA EN EL REMATE, NO SOLO EN EL ATAQUE (v48).
+   *
+   * `ROLE_APPETITE` (stage/tactics.ts) hace que el rol decida quién ATACA —un gregario tiene 0,2 de
+   * ganas contra el 1,0 de un cazaetapas—, pero en la META el rol no contaba NADA: `finishScore` es
+   * una mezcla de atributos y punto. Un gregario con buen SPR esprintaba exactamente igual que el
+   * velocista designado de su equipo.
+   *
+   * Y salía a la luz, que es como lo vio el dueño: «no tiene sentido que luchen el sprint 2 del
+   * mismo equipo (y encima les gana el otro!!!); si hubieran colaborado quizás hubieran ganado uno
+   * de ellos».
+   *
+   * LO PRIMERO QUE SE MIDIÓ FUE FALSO, y conviene dejarlo escrito: la sospecha era que el LANZADOR
+   * adelantaba a su propio sprinter. De los seis casos de dos compañeros en el top-3, **ninguno**
+   * llevaba un lanzador dentro. Eran gregarios. Y el segundo estadístico —«cuántas veces hay dos del
+   * mismo equipo en el podio»— tampoco servía: con 6 eventos sobre 99 sprints, su sigma es 2,6 y no
+   * distingue nada. Lo que lo distingue es QUÉ ROL se lleva cada puesto del podio, que son 216 datos
+   * en vez de 6. A/B pareado, 72 sprints masivos del Giro por brazo:
+   *
+   *     rol           sin el peso        con el peso
+   *     sprinter      45,8 %  9,18x      47,2 %  9,45x
+   *     gregario      45,8 %  0,65x      27,3 %  0,39x
+   *     cazaetapas     5,1 %  0,41x      18,1 %  1,44x
+   *     lider          2,8 %  0,37x       7,4 %  0,99x
+   *
+   * Los AGUADORES se llevaban casi la mitad del podio de un embalaje. Y lo que lo confirma como
+   * defecto y no como aritmética de un pelotón lleno de gregarios: el **cazaetapas** —el hombre al
+   * que su equipo designa justamente para cazar la etapa— estaba a 0,41x, o sea MENOS probable que
+   * un gregario, y el jefe de filas a 0,37x. Con el peso puesto, cada uno vuelve a su sitio y el
+   * sprinter designado apenas se entera (9,18x -> 9,45x).
+   *
+   * Los números dicen para quién corre cada uno, no cuánto vale:
+   *
+   *  - `cazaetapas`, `sprinter` y `lider` corren para SÍ: 1,00, sin tocar nada de lo de antes.
+   *  - `libre` casi igual: no tiene órdenes, pero tampoco un equipo empujándole.
+   *  - `gregario` y `lanzador` corren para OTRO. Llegan vaciados de haberse partido por su jefe y no
+   *    disputan la victoria; que uno se cuele en el top-10 es normal, que gane el sprint no.
+   *  - `marcador` va pegado a un rival, no a la meta.
+   *
+   * Es un factor sobre la puntuación, no un veto: un gregario con un día enorme todavía puede
+   * colarse, que es lo que pasa en carretera. Lo que deja de pasar es que sea lo normal.
+   */
+  finishRoleWeight: {
+    cazaetapas: 1.0,
+    sprinter: 1.0,
+    lider: 1.0,
+    libre: 0.97,
+    marcador: 0.92,
+    lanzador: 0.88,
+    gregario: 0.88,
+  } as Record<
+    'lider' | 'sprinter' | 'lanzador' | 'gregario' | 'cazaetapas' | 'marcador' | 'libre',
+    number
+  >,
   // Penalización del TRABAJO del día en el remate (docs/motor.md §12). `workUnits` ya se calculaba
   // y no se usaba para NADA en el resultado: quien había relevado 100 km llegaba igual que quien
   // fue a rueda, y por eso ir a rueda era la única estrategia sin coste de oportunidad. Se compara

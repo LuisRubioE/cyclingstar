@@ -133,6 +133,41 @@ export const riderSummaryResponseSchema = z.object({ summary: riderSummarySchema
 
 // --- /api/riders/me/form (forma y salud) ---------------------------------------------------
 
+/**
+ * EN QUÉ SE LE FUE EL DEPÓSITO, por concepto. La suma de los cinco es el depósito que gastó.
+ * Es el `StageSpend` del motor: se repite aquí porque el contrato con la web no puede depender
+ * de `@cyclingstar/engine` —la web no lo carga— y porque un contrato se valida, no se importa.
+ */
+export const stageSpendSchema = z.object({
+  rodar: z.number(),
+  relevo: z.number(),
+  reserva: z.number(),
+  cerillos: z.number(),
+  banderas: z.number(),
+})
+
+/**
+ * EL PARTE DE UN DÍA DE CARRERA: qué hizo el corredor, no solo dónde entró.
+ *
+ * Nace de la pregunta del dueño que ni la crónica ni la radio sabían contestar: «le dije que
+ * corriera súper agresivo… y no hay ni una sola mención en el journal ni en la race radio, pero
+ * consumió un montón de energía; algo habrá hecho, digo yo». Lo hizo: la crónica solo cuenta lo que
+ * es NOTICIA y un día entero dando la cara en el pelotón no lo es.
+ */
+export const stageEffortSchema = z.object({
+  kmAlFrente: z.number(),
+  kmEnFuga: z.number(),
+  kmDescolgado: z.number(),
+  ataques: z.number().int(),
+  saltos: z.number().int(),
+  cerillos: z.number().int(),
+  reservaGastadaS: z.number(),
+  gasto: stageSpendSchema,
+  pajaraKm: z.number().nullable(),
+  descuelgueKm: z.number().nullable(),
+})
+export type StageEffortView = z.infer<typeof stageEffortSchema>
+
 export const formPointSchema = z.object({
   gameDay: z.number().int(),
   ctl: z.number(),
@@ -140,6 +175,11 @@ export const formPointSchema = z.object({
   tsb: z.number(),
   tss: z.number(),
   activity: z.string(),
+  /**
+   * El parte de ese día si fue de CARRERA. `nullish` con default a propósito: un día de
+   * entrenamiento no tiene parte, y las etapas corridas antes de que esto existiera tampoco.
+   */
+  parte: stageEffortSchema.nullish().default(null),
 })
 export type FormPoint = z.infer<typeof formPointSchema>
 
@@ -1014,6 +1054,17 @@ export const stageResultEntrySchema = z.object({
   bonificacionS: z.number(),
   puntosVolante: z.number(),
   puntosMontana: z.number(),
+  /**
+   * TOMÓ LA SALIDA Y NO ACABÓ (v50). `puesto` y `tiempoS` valen 0 y no significan nada: la fila
+   * existe para que el corredor no desaparezca de la hoja de la etapa. Con `default` a propósito,
+   * para que una API que vaya por detrás de la web no rompa la tabla entera.
+   */
+  dnf: z.boolean().default(false),
+  /**
+   * POR QUÉ no acabó: `colapso`, `lesion`, `fuera_control`, `enfermedad` o `voluntario`. `null`
+   * cuando no hay motivo guardado, y entonces la tabla dice «DNF» a secas.
+   */
+  reason: z.string().nullish().default(null),
 })
 export type StageResultEntry = z.infer<typeof stageResultEntrySchema>
 
@@ -1074,7 +1125,35 @@ export const radioRoleSchema = z.enum([
 ])
 export type RadioRole = z.infer<typeof radioRoleSchema>
 
-export const radioRiderSchema = chronicleRiderSchema.extend({ role: radioRoleSchema })
+/**
+ * PARA QUÉ está dando la cara este hombre (v47). Es el `PullMotive` del motor, repetido aquí porque
+ * un contrato con la web se valida, no se importa.
+ *
+ * Lo pidió el dueño después de ver a un equipo relevando en el TERCER grupo mientras su líder iba en
+ * el segundo: «¿para qué carajos tiran si en ese grupo donde están no está su líder? ¿Para llevarle
+ * 138 ciclistas más a su líder? MAL… busca de algún modo dejar una evidencia que explique por qué o
+ * para qué tira cada ciclista de un grupo». Con esto la tabla lo dice sola: los del tercer grupo
+ * salen como `grupeto` —ruedan por rodar, no persiguen nada— y se ve de un vistazo si eso es lo que
+ * tiene que pasar o no.
+ */
+export const pullMotiveSchema = z.enum([
+  'solo',
+  'abanico',
+  'tren',
+  'fuga',
+  'grupeto',
+  'equipo_etapa',
+  'equipo_maillot',
+  'equipo_general',
+  'rol',
+])
+export type PullMotive = z.infer<typeof pullMotiveSchema>
+
+export const radioRiderSchema = chronicleRiderSchema.extend({
+  role: radioRoleSchema,
+  /** Para qué tira. Solo en los que tiran, y ausente en etapas corridas antes de la v47. */
+  motivo: pullMotiveSchema.nullish().default(null),
+})
 export type RadioRider = z.infer<typeof radioRiderSchema>
 
 export const radioGroupSchema = z.object({

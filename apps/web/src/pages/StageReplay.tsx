@@ -74,6 +74,15 @@ const STAGE_CLASS_PANEL = 'stage-classification'
  * lo que hay que verificar de ellas es qué fila lleva qué maillot, y montar la página entera con su
  * `react-query` y su router para eso no prueba nada más y sí puede fallar por otra cosa.
  */
+/**
+ * CÓMO SE DICE QUE ALGUIEN NO ACABÓ. `fuera_control` es su propia cosa —cruzó la meta, pero tarde— y
+ * la hoja de una carrera de verdad no lo llama DNF; el resto se agrupa, porque para el lector «se
+ * bajó de la bici» y «se cayó y no siguió» son la misma noticia y el porqué lo cuenta el journal.
+ */
+function dnfLabel(reason: string | null | undefined): string {
+  return reason === 'fuera_control' ? 'OTL' : 'DNF'
+}
+
 export function ResultTable({
   rows,
   leaders,
@@ -83,7 +92,16 @@ export function ResultTable({
 }) {
   const [showAll, setShowAll] = useState(false)
   const winnerTime = rows[0]?.tiempoS ?? 0
-  const visible = showAll ? rows : rows.slice(0, TOP_ROWS)
+  /**
+   * LOS QUE NO ACABARON SE VEN SIEMPRE, tampoco cuando la tabla está plegada (v50).
+   *
+   * Van al final, como en una hoja de verdad, pero esconderlos detrás de «Show all» sería repetir la
+   * queja que esto viene a arreglar —«los DNF no salen en la clasificación de la etapa»—: son cuatro
+   * o cinco filas y son justo las que se buscan cuando falta alguien.
+   */
+  const acabaron = rows.filter((r) => !r.dnf)
+  const noAcabaron = rows.filter((r) => r.dnf)
+  const visible = showAll ? rows : [...acabaron.slice(0, TOP_ROWS), ...noAcabaron]
   return (
     <>
       <table className="mt-2 w-full text-sm">
@@ -91,23 +109,33 @@ export function ResultTable({
         <tbody>
           {visible.map((r) => (
             <tr key={r.riderId} className="border-b border-slate-100 last:border-0">
-              <td className="w-7 py-1 text-slate-400 tabular-nums">{r.puesto}</td>
+              <td className="w-7 py-1 text-slate-400 tabular-nums">{r.dnf ? '' : r.puesto}</td>
               <td className="w-6 py-1">
                 <Flag code={r.country} size={16} />
               </td>
-              <td className="py-1 text-slate-700">
+              <td className={`py-1 ${r.dnf ? 'text-slate-400 line-through' : 'text-slate-700'}`}>
                 <RiderJersey leaders={leaders} riderId={r.riderId} />
                 <RiderName riderId={r.riderId} name={r.name} isBot={r.isBot} />
                 <span className="ml-2 text-xs text-slate-400">{raceTeamLabel(r.teamName)}</span>
               </td>
               <td className="py-1 text-right tabular-nums text-slate-500">
-                {r.puesto === 1 ? formatTime(r.tiempoS) : `+${formatTime(r.tiempoS - winnerTime)}`}
+                {r.dnf ? (
+                  <span className="text-amber-500">{dnfLabel(r.reason)}</span>
+                ) : r.puesto === 1 ? (
+                  formatTime(r.tiempoS)
+                ) : (
+                  `+${formatTime(r.tiempoS - winnerTime)}`
+                )}
               </td>
             </tr>
           ))}
         </tbody>
       </table>
-      <ShowAllButton total={rows.length} expanded={showAll} onToggle={() => setShowAll(!showAll)} />
+      <ShowAllButton
+        total={acabaron.length}
+        expanded={showAll}
+        onToggle={() => setShowAll(!showAll)}
+      />
     </>
   )
 }

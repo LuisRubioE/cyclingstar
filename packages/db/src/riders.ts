@@ -5,6 +5,7 @@ import {
   type PublicRider,
   type Vocation,
 } from '@cyclingstar/shared'
+import type { StageEffort } from '@cyclingstar/engine'
 import { and, desc, eq, gt, isNull, sql } from 'drizzle-orm'
 import type { Database } from './client.js'
 import {
@@ -131,8 +132,18 @@ export async function setRiderArchetype(
 }
 
 /** El ciclista del usuario (con atributos visibles), o null si aún no ha creado uno. */
+/**
+ * El corredor ACTIVO de un usuario. El filtro por `retiredAt` es de la v47 y es lo que hace posible
+ * el relevo: cuando el rollover jubila a los 39, este hombre deja de ser «tu ciclista» —pasa a ser
+ * historia, con su palmarés intacto— y el jugador puede crearse uno nuevo. Sin el filtro, el retirado
+ * seguiría bloqueando la creación y la jubilación sería el final de la partida en vez de un capítulo.
+ */
 export async function getRiderForUser(db: Database, userId: string): Promise<PublicRider | null> {
-  const riderRows = await db.select().from(riders).where(eq(riders.userId, userId)).limit(1)
+  const riderRows = await db
+    .select()
+    .from(riders)
+    .where(and(eq(riders.userId, userId), isNull(riders.retiredAt)))
+    .limit(1)
   const rider = riderRows[0]
   if (!rider) return null
 
@@ -257,6 +268,11 @@ export interface DailyLogRow {
   tsb: number
   tss: number
   activity: string
+  /**
+   * EL PARTE DEL DÍA DE CARRERA (v47): en qué se le fue la energía. `null` en los días de
+   * entrenamiento —no hay carrera que contar— y en las etapas anteriores a la v47.
+   */
+  parte: StageEffort | null
 }
 
 /** Serie diaria de carga/forma (SPEC 4, 11) para la gráfica del perfil, orden ascendente. */
@@ -273,6 +289,7 @@ export async function getDailyLog(
       tsb: riderDailyLog.tsb,
       tss: riderDailyLog.tss,
       activity: riderDailyLog.activity,
+      parte: riderDailyLog.parte,
     })
     .from(riderDailyLog)
     .where(eq(riderDailyLog.riderId, riderId))

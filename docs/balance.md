@@ -9282,3 +9282,348 @@ forma entre ellos por ganar es un sprint»— ya se cumple donde importa, que es
 2 a 14 en llano resuelve por `sprint_reducido`, con SPR al 0,50. Lo que no se hace es llamarlo
 «embalaje masivo», y eso es a propósito: el diario ya dice «outkicks the rest of the lead group», que
 es la frase de carretera para eso mismo.
+
+---
+
+## v46 — El maillot defiende, y son sus rivales los que tienen que moverle
+
+La deuda que E3 dejó escrita con nombre y apellidos: «existe el control del pelotón, que sale gratis
+del lazo de la caza; **no existe _el líder gestiona su ventaja_**». Esto la cierra, y por el camino
+enseñó que la mitad obvia del arreglo, sola, empeoraba la carrera.
+
+### 1. El defecto: el motor sabía que te juegas algo, pero no de qué lado
+
+Toda la conciencia de general del motor colgaba de **una sola pregunta**, repetida en tres sitios:
+
+```
+gcDeficitSeconds <= gcThreatFraction · gcControlLeash      (420 s)
+```
+
+Y de ella salían tres cosas: que atacaras más en un final en alto, que no dejaras marchar al que
+ataca, y que el pelotón acortara la cuerda. **El líder tiene déficit 0**, así que está siempre dentro
+de la ventana y se llevaba entero el bonus de «tengo que ganar tiempo». Medido sobre la propia
+función, mismo hombre en el puerto final:
+
+| mismo hombre, puerto final | ganas de atacar | probabilidad de saltar |
+| -------------------------- | --------------: | ---------------------: |
+| **LÍDER (déficit 0)**      |      **0,0816** |             **0,4870** |
+| a 30 s                     |          0,0816 |                 0,4870 |
+| a 419 s (borde)            |          0,0816 |                 0,4870 |
+| a 421 s (fuera)            |          0,0454 |                 0,0370 |
+
+El maillot recibía **el mismo +80 % de ganas de atacar** que el rival a 419 s. El signo estaba
+invertido para el único hombre del grupo que no necesita atacar. Y su `mentality: 'reservon'` —el
+único freno que tenía— es el mismo lleve dos segundos de ventaja o cinco minutos: ahí está,
+literalmente, el «no gestiona su ventaja».
+
+### 2. La corrección de signo, y la trampa que tenía dentro
+
+`gcDefendShare` le da signo a la apuesta: sube con el colchón del líder sobre la amenaza más cercana
+**que va con él** —las únicas cuyos ataques puede responder— y satura en `gcDefendCushionS` = 60 s.
+El que defiende pierde el bonus de ataque de forma gradual y gana uno de seguimiento: deja de moverse
+y pasa a **marcar**.
+
+Tres propiedades que hacen de esto una corrección y no una recalibración: con el colchón a cero el
+motor se comporta **exactamente** como antes; el escalón de los 421 s no se toca; y al líder se le
+quita un bonus que estaba mal, no se le pone un freno nuevo.
+
+**Y entonces el banco se puso rojo.** La cola de la reina cayó a 7,82 % contra un suelo de 8:
+
+|              |  mediana |       máx | brecha 1.º-10.º |
+| ------------ | -------: | --------: | --------------: |
+| ANTES        |     8,55 |     17,65 |            19 s |
+| solo defensa | **7,82** | **13,75** |        **14 s** |
+
+La montaña se había vuelto **menos selectiva**. Parte de la carrera la hacía el líder atacando, y al
+corregir el signo se perdió.
+
+### 3. Lo que se aprende de ahí, y lo que NO
+
+La lectura equivocada sería devolverle el ataque al maillot: el banco volvería a verde y el motor
+seguiría diciendo que el líder corre como el que le persigue. Lo que pasa en carretera es otra cosa:
+**si el líder se sienta, son sus rivales los que tienen que moverle**, porque a ellos se les acaba la
+carrera y a él no.
+
+`gcChallengeShare` es el espejo exacto de la defensa —mismo colchón, cuanto más cómodo va el líder
+más desesperados van los otros— y vale cero cuando no hay quien defienda o cuando el líder va con el
+agua al cuello, que es cuando ya se ataca solo. Calibrado contra un objetivo declarado —que el cambio
+sea **neutro en selectividad**— y no contra el aprobado de un test:
+
+|     peso | mediana |       máx | brecha 1.º-10.º |
+| -------: | ------: | --------: | --------------: |
+|    ANTES |    8,55 |     17,65 |            19 s |
+|     0,00 |    7,82 |     13,75 |            14 s |
+| **0,35** |    9,44 | **17,79** |        **19 s** |
+|     0,70 |    9,39 |     17,79 |            25 s |
+
+Con **0,35** las dos medidas estructurales vuelven a su sitio: el peor día de montaña y la brecha
+1.º-10.º, clavada en 19 s. Con 0,70 esa brecha se va a 25 y la carrera queda MÁS selectiva de lo que
+era. La mediana no vuelve exactamente (9,44 en vez de 8,55) y se escribe en vez de llamarlo
+neutralidad: la reina típica estira algo más el campo porque los rivales atacan más a menudo, no solo
+en los días duros. **Banco completo: 82 de 82.**
+
+### 4. Tres veces me equivoqué midiendo esto, y lo que lo arregló
+
+Vale la pena escribirlo porque es método, no anécdota.
+
+1. **«A 120 s el mecanismo está inerte»** — deducido de que dos brazos salieran idénticos. Falso: una
+   sonda dentro de `gcDefence` contó 14.373 llamadas, el 82,8 % con líder único y colchones de
+   mediana **27 s**. A 120 s el `defendShare` típico es 0,22, lejos de cero.
+2. **Un script de distribución sobre 84 etapas** dio los tres brazos idénticos en los siete
+   estadísticos. Imposible. Nunca supe por qué, así que **se descartó entero** en vez de razonar
+   sobre él.
+3. **Dar por buena una tabla** sin comprobar si el efecto era del parámetro o del orden de las
+   llamadas.
+
+Lo que resolvió las tres fue lo mismo, y no fue medir más: fue **una prueba que distingue entre las
+dos explicaciones**. Correr los brazos en el orden `60 · apagado · 60` y ver que los dos «60» daban
+7,816 idéntico y el apagado 8,549 valió más que las 84 etapas del script roto.
+
+### 5. La deuda que queda nombrada
+
+El invariante de la cola de la reina **es una moneda al aire, y está medido en el propio test**:
+cuatro muestras con física idéntica dan 7,86 · 8,28 · 7,64 · 8,49 contra un suelo de 8. Falla la
+mitad de las veces sin que nada cambie, y su comentario todavía dice «el motor produce una cola de
+8,1 a 8,3» cuando hoy da 8,55. Un test así no vigila: genera ruido en el nocturno. Se arregla aparte
+y con muestra, no ensanchando la banda.
+
+---
+
+## v48 — Los aguadores se llevaban medio podio de los embalajes
+
+El dueño, dos veces, con el diario delante: «no tiene sentido que luchen el sprint 2 del mismo equipo
+(y encima les gana el otro!!!). Si hubieran colaborado quizás hubieran ganado uno de ellos».
+
+### 1. Las DOS primeras mediciones fueron malas, y eso es la mitad de la historia
+
+**La sospecha era falsa.** Lo primero que pensé fue que el LANZADOR estaba adelantando a su propio
+sprinter: sería el defecto más natural, el tren que se come a su jefe. Medido sobre 99 sprints
+masivos del Giro, de los seis casos con dos compañeros en el top-3, **ninguno** llevaba un lanzador.
+Eran gregarios.
+
+**Y el estadístico también.** «Cuántas veces hay dos del mismo equipo en el podio» da 6 eventos sobre
+99 sprints: su sigma es 2,6. Apliqué una corrección, volví a medir, salió 8, y **no significaba
+nada** — ni mejor ni peor, solo ruido. Estuve a punto de subir un cambio del motor sin poder decir si
+hacía algo, que es exactamente el error que la «v46 §4» de este documento dejó escrito.
+
+Lo que sí distingue es **qué ROL se lleva cada puesto del podio**: 216 datos en vez de 6.
+
+### 2. Con el estadístico bueno, el defecto salta
+
+A/B pareado, 72 sprints masivos del Giro por brazo, mismas semillas:
+
+| rol            | sin el peso        | con el peso        |
+| -------------- | ------------------ | ------------------ |
+| sprinter       | 45,8 % (9,18×)     | 47,2 % (9,45×)     |
+| **gregario**   | **45,8 %** (0,65×) | **27,3 %** (0,39×) |
+| **cazaetapas** | **5,1 %** (0,41×)  | **18,1 %** (1,44×) |
+| **lider**      | **2,8 %** (0,37×)  | **7,4 %** (0,99×)  |
+
+**Los aguadores se llevaban casi la mitad del podio de un embalaje.** Y lo que lo confirma como
+defecto y no como aritmética de un pelotón donde 7 de cada 10 son gregarios: el **cazaetapas** —el
+hombre al que su equipo designa justamente para cazar la etapa— estaba a **0,41×**, o sea MENOS
+probable que un aguador, y el jefe de filas a 0,37×.
+
+### 3. La causa, en una línea
+
+`ROLE_APPETITE` (stage/tactics.ts) hace que el rol decida quién ATACA: un gregario tiene 0,2 de ganas
+contra el 1,0 de un cazaetapas. Pero en la META, `finishScore` es una mezcla de atributos y **el rol
+no contaba nada**. El motor sabía para quién corre cada uno mientras la carrera estaba en marcha, y
+se le olvidaba en los últimos doscientos metros.
+
+`finishRoleWeight` lo arregla con un factor, no con un veto: el que corre para otro —gregario,
+lanzador— remata peor porque llega vaciado de haberse partido por su jefe, pero un día enorme todavía
+puede colarle a cualquiera. Lo que deja de pasar es que sea lo normal.
+
+### 4. Lo que este cambio NO dice
+
+No dice que el reparto de roles del pelotón esté bien. Que el 70 % del campo sean gregarios es otra
+pregunta —un equipo de ocho en una llana lleva un velocista, su tren de dos o tres, y el resto—, y
+este banco la deja a la vista sin contestarla.
+
+## v49 — El puerto que no seleccionaba, y por qué ningún invariante se enteró
+
+El dueño, sobre la etapa 9 del Giro (184 km, final en alto de 12,8 km al 5,9 % con los últimos 2,8 al
+9,7 %): «esa etapa deberías revisarla a detalle porque es un despropósito… o sea, es una llegada en
+alto con un puerto brutal al final, donde debería haber muchas diferencias… **y el que llega en el
+puesto 150 solo perdió 26 segundos**».
+
+### 1. Lo primero fue descartar el recorrido
+
+Porque si el perfil o su clasificación estuvieran mal, todo lo demás sobraba:
+
+```
+race-italy e9 · tipo reina · 184 km
+final derivado: alto
+  última cota 12,8 km al 5,9 %, corona a 0,0 km
+  pendiente media últimos 5 km 7,41 %  ·  últimos 3 km 9,35 %
+```
+
+El recorrido es lo que el dueño decía y `finishType` lo llamaba por su nombre. El defecto estaba en
+que la física no seleccionaba sobre él.
+
+### 2. La foto que lo enseña: los grupos km a km del puerto final
+
+Con `StageProbe`, una semilla, campo realista de 176 corredores, el último kilómetro y medio de cada
+km del puerto (id del grupo : cuántos van dentro @ hueco al primero):
+
+| km   | grupos                                                                                |
+| ---- | ------------------------------------------------------------------------------------- |
+| 171  | `mov-13:1@0s` `mov-9:9@17s` **`peloton:99@388s`** `shed-17:67@474s`                   |
+| 174  | `mov-13:1@0s` `mov-9:8@42s` **`peloton:26@351s`** `shed-21:72@383s` `shed-17:67@443s` |
+| 178  | … **`peloton:10@274s`** `shed-27:88@296s` `shed-17:67@426s`                           |
+| 181  | … **`peloton:7@222s`** `shed-27:91@255s` `shed-17:67@399s`                            |
+| meta | … **`peloton:8@80s`** `shed-27:94@80s` `shed-17:67@226s`                              |
+
+El pelotón hacía SU trabajo: de 99 hombres a 8 en trece kilómetros de puerto. Y a su lado, dos
+bloques congelados: **`shed-17` cruzó la meta con los MISMOS 67 corredores que tenía veinte
+kilómetros antes**, y `shed-27` no solo no perdió a nadie sino que ENGORDÓ de 37 a 94 absorbiendo
+todo lo que el pelotón soltaba.
+
+### 3. La causa, en dos líneas de `simulate.ts`
+
+```ts
+shatter(peloton, membersOf(PELOTON), pelFrac)
+for (const m of moves) shatter(m.g, membersOf(m.g.id), moveFrac(m))
+```
+
+`shatter` —la criba— se llamaba sobre el pelotón y sobre los movimientos, y **nunca sobre un
+`shed-N`**. O sea que un grupo, en cuanto nacía de un descuelgue, quedaba SELLADO: podía subir un
+puerto entero al 10 % sin perder un solo hombre. Todo lo demás sí miraba a los descolgados
+(`administerEffort`, `collapseCheck`, `droppedCommit`); solo faltaba la criba, que es la asimetría que
+delata el olvido.
+
+No es una esquina rara. Se ve en cuanto el pelotón se parte pronto, y eso pasa en toda etapa de
+montaña de verdad: el motor ya tenía escrito, desde la v33, que «el grueso de la carrera puede nacer
+de un descuelgue».
+
+### 4. Por qué ningún invariante lo cazaba
+
+El banco medía la cola (`lastGroupPct`: cuánto pierde el último) y cuántos relojes hay
+(`groups`), y con esas dos no se puede distinguir «la carrera se ha partido en veinte trozos» de
+«hay veinte sueltos y un bloque con todo lo demás». `winnerGroupPct` tampoco: el bloque de 94 no
+entraba con el ganador sino a 80 s, así que valía un inocente 1,1 %.
+
+Lo que faltaba es **el grupo de tiempo MÁS GRANDE de la meta** (`biggestGroupPct`). Medido sobre las
+nueve reinas reales del banco, 4 semillas cada una:
+
+| etapa                 | mayor grupo (antes) | mayor grupo (después) | cola % antes | cola % después |
+| --------------------- | ------------------: | --------------------: | -----------: | -------------: |
+| `race-catalonia` e4   |          **81,8 %** |                13,6 % |          6,8 |            8,6 |
+| `race-france` e20     |          **52,9 %** |                12,2 % |         14,7 |           16,8 |
+| `race-rhone-alpes` e8 |          **47,2 %** |                 3,5 % |         16,5 |           17,3 |
+| `race-guatemala` e9   |          **45,2 %** |                13,8 % |          9,7 |           14,6 |
+| `race-colombia` e5    |          **43,7 %** |                25,4 % |          7,8 |            9,7 |
+| `race-tachira` e6     |          **40,5 %** |                14,3 % |         14,6 |           14,3 |
+| `race-italy` e19      |          **36,4 %** |                 5,1 % |         12,4 |           17,7 |
+| `race-two-seas` e4    |              69,9 % |                63,4 % |         10,4 |           10,0 |
+| `race-spain` e7       |              54,5 % |                65,3 % |          3,9 |            8,8 |
+
+Las dos últimas filas son la guarda: `race-two-seas` e4 y `race-spain` e7 son las reinas de **meta en
+llano**, y ahí un grupo grande al mismo segundo es lo correcto. No se mueven.
+
+`race-rhone-alpes` e8 es la etapa más dura del calendario —Col du Pré, Bisanne, Aravis y final en el
+Plateau de Solaison, 11,3 km al 9,1 %— y **casi la mitad del campo la terminaba en un solo reloj**.
+
+### 5. Y en la etapa de la queja
+
+Brechas al ganador por puesto, 6 semillas, campo de 176:
+
+| semilla | 10.º antes → después |      50.º |     100.º |     150.º |
+| ------- | -------------------: | --------: | --------: | --------: |
+| e9-0    |           80 → 107 s |  80 → 185 |  80 → 301 | 226 → 442 |
+| e9-1    |             4 → 40 s |   4 → 165 |   4 → 265 |   4 → 450 |
+| e9-2    |          254 → 258 s | 254 → 356 | 254 → 476 | 254 → 619 |
+| e9-3    |            81 → 92 s |  81 → 229 |  81 → 339 | 270 → 512 |
+| e9-4    |          200 → 222 s | 200 → 302 | 200 → 375 | 327 → 606 |
+| e9-5    |            36 → 69 s | 104 → 145 | 104 → 262 | 104 → 484 |
+
+Antes, los tres primeros números de cada fila eran **el mismo**: un bloque de cien hombres con un
+reloj. Ahora las brechas crecen con el puesto, que es lo que hace un puerto.
+
+### 6. Se criba el grupo DONDE ESTÁ LA CARRERA, y no todos: tres intentos y lo que enseñó cada uno
+
+**Intento 1: cribarlos todos con la fracción del puerto decisivo** (`climbPaceFraction`, 0,12 = «el
+12 % más fuerte impone y el resto que aguante»). Resultado en la e9: **37 grupos en meta y el último
+a 19 minutos**. Eso no es carretera, es la criba con la perilla de otro sitio.
+
+**Intento 2: cribarlos todos, pero el grupeto a tempo** (`climbTempoFraction`, 0,5 = «suben juntos»).
+La e9 queda bien, pero la cola agrupada de las nueve reinas reales se va a **14,33 % contra un techo
+de 14**. La banda no se toca sin decisión del dueño, así que hay que buscar otra cosa.
+
+**Intento 3 (descartado por la medición): que el grupeto suba TODO junto** (fracción 1). La idea era
+que descolgara a menos gente y bajara la cola. Hace lo contrario: **14,72 %**. Y el porqué es obvio
+en cuanto se ve —rebajar la fracción que marca el ritmo no solo descuelga a menos gente, también
+hace que el grupo ENTERO ruede más despacio, porque el P75 que alimenta la ley de velocidad baja—.
+Así que el último llega más tarde, no menos tarde. Queda anotado porque es un error de razonamiento
+fácil de repetir: la fracción es a la vez «quién impone» y «a qué velocidad va el grupo».
+
+**Lo que se hace: cribar SOLO el grupo principal** (`mainId`, v29: el grupo que lleva la gente). No
+hace falta elegir fracción para el grupeto porque el grupeto no se criba, y el título va pasando
+carretera abajo conforme la carrera se deshace: cuando el `peloton` se queda en ocho hombres, lo toma
+el bloque que lleva a noventa, y ése es el que corre el puerto.
+
+|                                          | cribarlos todos (intento 2) | **solo el grupo principal** |
+| ---------------------------------------- | --------------------------: | --------------------------: |
+| cola agrupada de las reinas (banda 7-14) |                     14,33 ✗ |                  **9,81 ✓** |
+| peor etapa (techo 18)                    |                      17,7 ✓ |                  **15,0 ✓** |
+| e9: grupo mayor en meta                  |                       ~13 % |             **20,7-23,9 %** |
+| e9: pierde el 150.º                      |                   442-619 s |               **227-689 s** |
+
+**LO QUE ESTO NO ARREGLA**, y se dice en vez de disimularlo: un grupeto que ya NO es la carrera —el
+que va tercero a diez minutos— sigue sin perder a nadie en el puerto, y en carretera sí los pierde.
+Arreglarlo pide que la cola de las reinas pueda pasar del 14 %, que es una banda con ancla en §VI.3
+(«el grupeto entra 25-40 minutos detrás») y no se mueve sin decisión del dueño.
+
+### 7. Lo que se volvió a medir porque su premisa se cayó
+
+La v36 documentaba, dentro de `advance()`, que no hacía falta topar el ritmo del grupeto al de su
+jefe rescatado «porque `shatter` no se ejecuta sobre los grupos de descolgados, así que un grupeto
+NUNCA suelta a nadie». Esa frase describía el defecto de arriba, así que con la criba puesta el jefe
+SÍ puede perder la rueda de sus propios rescatadores. Vuelto a medir sobre el escenario del banco, 24
+semillas:
+
+|                   | vuelve al grupo | pérdida media |
+| ----------------- | --------------: | ------------: |
+| **con su equipo** |            8/24 |         181 s |
+| **sin equipo**    |            0/24 |         382 s |
+
+La ayuda sigue ayudando, y ahora además puede fallar, que es lo que hace en carretera.
+
+### 8. El coste, y por qué al final no lo hay
+
+La primera versión de esta tanda cribaba TODOS los grupos y la cola de las reinas se iba a 14,33 %
+contra un techo de 14: se avisó antes de subirlo y no se movió ninguna banda. Con la criba puesta
+solo en el grupo principal (§6) la cola se queda en **9,81 %** y la peor etapa en **15,0 %** contra
+un techo de 18, así que las dos bandas pasan holgadas y no hay nada que decidir.
+
+Queda anotado igualmente porque la próxima vez que alguien quiera cribar también los grupetos —que es
+lo que pasa en carretera— se va a encontrar ese techo, y esta es la nota que le dirá dónde mirar.
+
+### 9. El invariante que sí hubo que tocar, y por qué no fue para que pasara un número
+
+`mountain.top10GapSeconds` (la brecha 1.º-10.º de la reina sintética, mediana de 120 corridas) cayó
+de 66 a 55 s contra un suelo de 60. Antes de tocar nada se midió **en pareado**: las mismas 120
+semillas con el motor de antes y el de después, en el mismo proceso.
+
+```
+DIFERENCIA PAREADA (después − antes):  mediana 0 s · p10 −1 s · p90 +1 s
+```
+
+**En el 80 % de las carreras el cambio movió la brecha un segundo o menos.** De 120 semillas cambian
+38, y los cambios van en las dos direcciones y son minúsculos: 121→115, 101→102, 118→122, 171→174,
+167→168, 184→186. Y aun así la mediana se movió once segundos. El porqué está en la nube:
+
+```
+… 47  49  52  52  55 │ 65  65  66  66  67 …      (puestos 50-70 de 120)
+```
+
+**La mediana estaba sentada en un hueco de diez segundos**, y el suelo de 60 dentro de él. Que UNA
+semilla cruce el hueco decide si el invariante aprueba. Peor: la nube entera va **de 41 a 87 s**, así
+que ese suelo le pedía a la corrida del medio que quedara por encima de la mitad de su propia
+distribución, y ya estaba a 5,5 s de suspender antes de esta tanda.
+
+Se le llevaron al dueño las cuatro salidas —bajar el suelo, subir las semillas del invariante (lo que
+`breakawayWinPct` ya tiene anotado para su techo), revertir la criba, o dejarlo en rojo— y eligió
+**bajar el suelo a 40**, que deja el listón por debajo de la nube entera. Un suelo tiene que cazar
+que la montaña deje de seleccionar; no arbitrar de qué lado de un hueco cae la mediana.

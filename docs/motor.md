@@ -685,6 +685,31 @@ Nueve reglas de cómo se corre de verdad. Son el contrato de esta capa:
    **atacan**: por la etapa y por la general, **en el momento oportuno**, y **vigilándose entre
    ellos**.
 
+   **9-bis. …y el que lleva el maillot no corre igual que el que se lo quiere quitar (v46).** Toda
+   la conciencia de general del motor colgaba de una sola pregunta —`gcDeficitSeconds <=
+gcThreatFraction · gcControlLeash`— que dice si te juegas algo pero **no de qué lado**. El líder
+   tiene déficit 0, así que estaba siempre dentro y se llevaba entero el bonus de «tengo que ganar
+   tiempo». Medido sobre la propia función, mismo hombre en el puerto final: el líder y el rival a
+   419 s salían los dos con **0,0816** de apetito de ataque, contra 0,0454 del que ya está fuera de
+   la ventana. El signo estaba invertido para el único hombre del grupo que no necesita atacar.
+
+   Ahora la apuesta tiene signo, y su intensidad la da la **ventaja real** del líder sobre la
+   amenaza más cercana que va con él (`gcDefence`, `gcDefendShare`, `gcDefendCushionS` = 60 s):
+   pierde el bonus de ataque de forma gradual y gana uno de seguimiento, o sea que **deja de moverse
+   y pasa a marcar**. Con el colchón a cero el motor se comporta exactamente como antes —al maillot
+   al que le respiran en la nuca no le sobra nada— y a sus rivales no les cambia ni un dígito. Es la
+   deuda que E3 dejó nombrada: «existe el control del pelotón, que sale gratis del lazo de la caza;
+   no existe _el líder gestiona su ventaja_».
+
+   **Y la otra mitad, que es la que hace correcta a la primera: si el líder se sienta, son SUS
+   RIVALES los que tienen que moverle.** Quitarle al maillot las ganas de atacar dejó la montaña
+   menos selectiva —el peor día de una reina pasó de 17,65 % de cola a 13,75 %— porque parte de la
+   carrera la hacía él. La lectura equivocada de ese dato sería devolverle el ataque; la de la
+   carretera es que a los rivales se les acaba la carrera y a él no. `gcChallengeShare` es el espejo
+   de la defensa y escala con el mismo colchón, así que la selectividad vuelve de la mano de quien de
+   verdad la produce: con el peso en 0,35 el peor día de montaña y la brecha 1.º-10.º (19 s) quedan
+   clavados donde estaban, y el banco pasa 82 de 82. Números en docs/balance.md, «v46».
+
 #### 13.2 Una sola mecánica, no nueve
 
 Los puntos 1 al 7 son **la misma pieza** parametrizada por contexto — el **intento de movimiento**:

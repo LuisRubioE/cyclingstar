@@ -20,6 +20,7 @@ import { AttributeList } from '../components/AttributeList'
 import { Badges } from '../components/Badges'
 import { Flag } from '../components/Flag'
 import { FormChart } from '../components/FormChart'
+import { RaceEffortLog } from '../components/RaceEffortLog'
 import { LastRaceReport } from '../components/LastRaceReport'
 import { InfoRow, Panel, SectionBar } from '../components/Panel'
 import { RaceResultList } from '../components/RaceResults'
@@ -246,6 +247,18 @@ function OwnerCondition({ attributes }: { attributes: Record<Attribute, number> 
 
       <div className="mt-4">
         <FormChart points={log} />
+      </div>
+
+      {/*
+        …Y EN QUÉ SE FUE ESA FORMA. La gráfica dice CUÁNTO se gastó y esto dice EN QUÉ: es la
+        pregunta del dueño («me gustaría entender un poco mejor en qué se gastó la energía»), que la
+        crónica no puede contestar porque solo narra lo que es noticia.
+      */}
+      <div className="mt-6">
+        <h3 className="mb-1 text-xs font-medium tracking-wide text-slate-400 uppercase">
+          Where the energy went
+        </h3>
+        <RaceEffortLog points={log} />
       </div>
     </Panel>
   )

@@ -111,7 +111,7 @@ export {
   type AutoOrderRider,
   type AutoOrderStage,
 } from './world/autoOrders.js'
-export { neoproAge, shouldRetire } from './world/lifecycle.js'
+export { HARD_RETIRE_AGE, neoproAge, shouldRetire } from './world/lifecycle.js'
 export { gcPrizes, stagePrize, teamGcPrizes, teamStagePrize } from './world/prizes.js'
 export { AVG_WEEKLY_WAGE, SPONSOR_INCOME_PER_WEEK, npcWageBill } from './world/teamEconomy.js'
 export {
@@ -231,6 +231,8 @@ export type {
   StageResult,
   StageRider,
   StageRole,
+  StageEffort,
+  StageSpend,
   TankState,
 } from './stage/types.js'
 export {

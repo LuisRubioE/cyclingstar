@@ -65,11 +65,37 @@ export const TARGETS = {
       max: 45,
       unit: '%',
     },
-    // Brecha 1º-10º del día. Rango en SEGUNDOS, así que depende de cuánto dura el puerto: al
-    // corregir la VAM (de 1.940 a 1.560 m/h) el puerto final pasó de 33 a 46 minutos y la MISMA
-    // selección relativa (~9% del tiempo de subida) pasó de 171 s a 250 s. Por eso el techo sube
-    // de 240 a 300 s: no es que la montaña seleccione más, es que ahora se sube al ritmo real.
-    top10GapSeconds: { label: 'Brecha 1º-10º (s)', min: 60, max: 300, unit: '' },
+    /**
+     * Brecha 1º-10º del día. Rango en SEGUNDOS, así que depende de cuánto dura el puerto: al
+     * corregir la VAM (de 1.940 a 1.560 m/h) el puerto final pasó de 33 a 46 minutos y la MISMA
+     * selección relativa (~9% del tiempo de subida) pasó de 171 s a 250 s. Por eso el techo sube
+     * de 240 a 300 s: no es que la montaña seleccione más, es que ahora se sube al ritmo real.
+     *
+     * EL SUELO BAJA DE 60 A 40 EN LA v49, por decisión del dueño, y **no porque un número no
+     * pasara**: porque el suelo estaba DENTRO de la nube que pretendía vigilar.
+     *
+     * Este estadístico es la MEDIANA de 120 corridas, y las 120 corridas de `reina-150` no dan un
+     * valor con una cola estrecha alrededor: dan una nube que va **de 41 a 87 s**. Pedirle a la
+     * corrida del medio que esté por encima de 60 es pedirle que quede por encima de la mitad de su
+     * propia nube, así que el invariante suspendía o aprobaba según de qué lado cayera UNA carrera.
+     * Y el racimo alrededor de la mediana tiene un hueco justo ahí:
+     *
+     *     … 47  49  52  52  55 │ 65  65  66  66  67 …      (puestos 50-70 de 120)
+     *
+     * Cruzar ese hueco mueve la mediana diez segundos de golpe. Medido en la v49 con una
+     * comparación PAREADA —las mismas 120 semillas con el motor de antes y el de después, en el
+     * mismo proceso—: **la diferencia por semilla tiene mediana 0 s, y del p10 al p90 va de −1 s a
+     * +1 s**. O sea, en el 80 % de las carreras el cambio movió la brecha un segundo o menos… y aun
+     * así la mediana pasó de 66 a 55 s, porque una semilla cruzó el hueco. El motor no se movió; se
+     * movió el estadístico.
+     *
+     * 40 deja el suelo por DEBAJO de la nube entera (el mínimo medido es 41), que es lo que un suelo
+     * tiene que hacer: cazar que la montaña deje de seleccionar, no arbitrar dónde cae la mediana.
+     * La alternativa honesta era subir las semillas del invariante hasta que la mediana dejara de
+     * bailar —lo mismo que `breakawayWinPct` ya tiene anotado unas líneas más arriba—, y se descartó
+     * por lo que cuesta en CI cada vez que alguien toca el motor.
+     */
+    top10GapSeconds: { label: 'Brecha 1º-10º (s)', min: 40, max: 300, unit: '' },
   },
   /** Contrarreloj canónica (`cri-40`). */
   timeTrial: {

@@ -36,7 +36,13 @@ import {
   withdrawRace,
 } from '@cyclingstar/db'
 import { formStars, freshnessBar, generateRiderGenome } from '@cyclingstar/engine'
-import { currentSeason, isKnownCountry, resolveCountry } from '@cyclingstar/shared'
+import {
+  PLAYER_START_AGE,
+  birthSeasonForAge,
+  currentSeason,
+  isKnownCountry,
+  resolveCountry,
+} from '@cyclingstar/shared'
 import { z } from 'zod'
 import { badRequest, notFound, sendError, unauthorized } from '../http.js'
 import type { RoutePlugin } from './context.js'
@@ -162,7 +168,10 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
       country: country.toUpperCase(),
       gender,
       archetype: vocation,
-      birthSeason: currentSeason(world.currentDay),
+      // A los 19, la edad de entrada de un sub-23 a un equipo Continental (v47). Antes era un
+      // `currentSeason(...)` a pelo, que por la época de las edades salía 20 sin decirlo en ninguna
+      // parte; ahora la edad se nombra y la `birthSeason` se deriva de ella.
+      birthSeason: birthSeasonForAge(PLAYER_START_AGE, currentSeason(world.currentDay)),
       faceSeed: randomUUID(),
       attributes: genome.attributes,
       hidden: genome.hidden,

@@ -127,6 +127,7 @@ export {
   getRaceRiderIdentities,
   getRacedStageProfiles,
   getRunStageDays,
+  getStageNonFinishers,
   getStageResults,
   getStageSnapshot,
   getStageWinners,

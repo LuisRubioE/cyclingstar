@@ -131,6 +131,44 @@ describe('engine: esqueleto', () => {
     // 6:53 en el km 137 y 16 s en meta). La referencia pasa a ser los que SIGUEN EN CARRERA, el
     // parte de ventaja NOMBRA a quien va delante y dice contra quién se mide y cuánto queda.
     // Cambio de OBSERVACIÓN: ni un dado, ni un subflujo, ni una constante de calibración.
+    // v47: UN GRUPO DE DESCOLGADOS TAMBIÉN SE PARTE (docs/balance.md «v49»). `shatter` —la criba—
+    // se llamaba sobre el pelotón y sobre los movimientos y NUNCA sobre un `shed-N`, así que un
+    // grupo, en cuanto nacía de un descuelgue, quedaba SELLADO: subía un puerto entero al 10 % sin
+    // perder un hombre. El dueño lo vio en la etapa 9 del Giro —final en alto de 12,8 km al 5,9 %
+    // con los últimos 2,8 al 9,7 %—: «es un despropósito… el que llega en el puesto 150 solo perdió
+    // 26 segundos». Medido en esa etapa: el pelotón hacía su trabajo (99 → 8 hombres) mientras
+    // `shed-17` cruzaba la meta con los MISMOS 67 corredores de veinte kilómetros antes y `shed-27`
+    // ENGORDABA de 37 a 94 absorbiendo lo que el pelotón soltaba. Con la criba puesta, las brechas
+    // vuelven a crecer con el puesto (10.º/50.º/100.º/150.º pasan de 80/80/80/226 s a
+    // 107/185/301/442 s). Y trae el PARTE DEL CORREDOR (`StageOutput.efforts`), que es
+    // observación pura y no cambia una carrera.
+    // v46: EL ROL PESA EN EL REMATE, NO SOLO EN EL ATAQUE (docs/balance.md «v48»). `ROLE_APPETITE`
+    // hacía que el rol decidiera quién ATACA, pero en la META `finishScore` no lo miraba: un
+    // gregario con buen SPR esprintaba igual que el velocista designado de su equipo. El dueño lo
+    // vio dos veces —«no tiene sentido que luchen el sprint 2 del mismo equipo»— y la primera
+    // sospecha era falsa: no había ningún lanzador implicado, eran AGUADORES. A/B pareado sobre 72
+    // sprints masivos: los gregarios se llevaban el 45,8 % de los puestos del podio y bajan al
+    // 27,3 %, mientras el CAZAETAPAS —el designado para cazar la etapa— sube del 5,1 % al 18,1 % y
+    // el jefe de filas del 2,8 % al 7,4 %. Antes los dos estaban por DEBAJO de lo que les tocaba por
+    // número, o sea menos probables que un gregario. El sprinter designado apenas se entera.
+    // v45: LA APUESTA DE LA GENERAL TIENE DOS LADOS (docs/balance.md «v46», docs/motor.md §13.1
+    // regla 9-bis). Toda la conciencia de general del motor colgaba de UNA pregunta —«¿estás dentro
+    // de la ventana de amenaza?»— que dice si te juegas algo pero no de qué lado, y el líder tiene
+    // déficit 0, así que estaba siempre dentro. Medido sobre las propias funciones: el maillot y el
+    // rival a 419 s salían con el MISMO apetito de ataque en el puerto final (0,0816 contra 0,0454
+    // del que está fuera), o sea que al único hombre del grupo que no necesita ganar tiempo se le
+    // daba entero el bonus de ganarlo. Ahora `gcDefence` dice quién defiende en cada grupo y con
+    // cuánto colchón contra las amenazas que van CON él, y `gcDefendShare` lo convierte en una rampa
+    // que satura en 60 s: el líder pierde el bonus de ataque y gana uno de seguimiento, o sea que
+    // deja de moverse y pasa a marcar. Con el colchón a cero se comporta EXACTAMENTE como antes.
+    // Y LA OTRA MITAD, que es la que hace correcta a la primera: quitarle al maillot las ganas de
+    // atacar dejó la montaña MENOS SELECTIVA —el peor día de una reina pasó de 17,65 % de cola a
+    // 13,75 % y la mediana cayó por debajo del suelo del invariante—, porque parte de la carrera la
+    // hacía él. La lectura equivocada sería devolverle el ataque; la de la carretera es que si el
+    // líder se sienta son SUS RIVALES los que tienen que moverle, porque a ellos se les acaba la
+    // carrera y a él no. `gcChallengeShare` es el espejo de la defensa, escala con el mismo colchón
+    // y con el peso en 0,35 devuelve el peor día de montaña (17,79) y la brecha 1.º-10.º clavada en
+    // 19 s. Banco completo 82 de 82. Es la deuda que E3 dejó nombrada, cerrada por las dos mitades.
     // v44: UN GRUPO DE CIEN HOMBRES SUBIENDO A TOPE TAMBIÉN DISPUTA UN SPRINT (docs/balance.md
     // «v45 §3», docs/motor.md §12.5-bis). La crónica de meta preguntaba `!isUphillFinish(type)`, y
     // eso es true también para `puncheur`: un repecho en la línea VETABA el sprint entero —sin
@@ -271,6 +309,6 @@ describe('engine: esqueleto', () => {
     // v11 (atribución del trabajo), la v10 (composición y caza), la v9 (capa táctica), la
     // v8 (tiempos de grupo), la v7 (modelo de final), la v6 (telemetría), la v5 (clásica larga), la
     // v4 (pavé en el recorrido) y la v3 (Cambio 0).
-    expect(ENGINE_VERSION).toBe(44)
+    expect(ENGINE_VERSION).toBe(47)
   })
 })

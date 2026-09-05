@@ -20,7 +20,7 @@
  */
 import { ENGINE_VERSION, STAGE } from '../constants.js'
 import { mainGroupId } from '../stage/group.js'
-import type { SnapshotRider, StageProbe } from '../stage/types.js'
+import type { PullMotive, SnapshotRider, StageProbe } from '../stage/types.js'
 
 /** ¿Se puede volver a correr una etapa YA CORRIDA y obtener la misma carrera? */
 export interface ReplayCheck {
@@ -98,11 +98,17 @@ export function isTheBunch(kind: RadioGroupKind, size: number, racing: number): 
   return kind === 'peloton' && size >= racing * PELOTON_MIN_SHARE
 }
 
-/** Un corredor de los que TIRAN, con lo que está poniendo. */
+/** Un corredor de los que TIRAN, con lo que está poniendo y PARA QUÉ. */
 export interface RadioPuller {
   riderId: string
   /** Trabajo al frente reciente (ventana con olvido). 0 fuera del pelotón. */
   pullWindow: number
+  /**
+   * PARA QUÉ está dando la cara (v47). Lo pidió el dueño al ver a un equipo relevando en el tercer
+   * grupo mientras su líder iba en el segundo: «busca de algún modo dejar una evidencia que explique
+   * por qué o para qué tira cada ciclista de un grupo». Ver `PullMotive` en el motor.
+   */
+  motivo: PullMotive | null
 }
 
 /** Un grupo de la carretera en un punto del recorrido. */
@@ -210,6 +216,12 @@ export function radioKmFrom(
    * `null` en la primera foto: manda el tamaño.
    */
   previousMainId: string | null = null,
+  /**
+   * EL PELOTÓN SEGÚN EL MOTOR (v47). Si viene, manda: `mainGroupId` lleva histéresis y recalcularla
+   * aquí abre una segunda verdad que puede divergir de la que la carrera está usando para decidir
+   * quién tira. Solo se recalcula cuando no viene —las fotos a mano de un test—.
+   */
+  engineMainId?: string,
 ): RadioKm {
   const byGroup = new Map<string, SnapshotRider[]>()
   for (const r of riders) {
@@ -228,7 +240,7 @@ export function radioKmFrom(
       .filter((m) => m.pulling)
       .sort((a, b) => b.pullWindow - a.pullWindow || (a.riderId < b.riderId ? -1 : 1))
       .slice(0, maxPullers)
-      .map((m) => ({ riderId: m.riderId, pullWindow: m.pullWindow }))
+      .map((m) => ({ riderId: m.riderId, pullWindow: m.pullWindow, motivo: m.pullMotive }))
     return {
       id,
       tS: sorted[0]!.tS,
@@ -248,7 +260,10 @@ export function radioKmFrom(
    * dos corredores con cien detrás llamados grupeto. La regla vive en `stage/group.ts` y es la
    * MISMA que usa el motor para medir los boquetes, para que la radio y la carrera no discrepen.
    */
-  const mainId = mainGroupId(raw, previousMainId, STAGE.mainGroupTakeoverRatio)
+  const mainId =
+    engineMainId != null && raw.some((g) => g.id === engineMainId)
+      ? engineMainId
+      : mainGroupId(raw, previousMainId, STAGE.mainGroupTakeoverRatio)
   const mainTs = raw.find((g) => g.id === mainId)?.tS ?? null
   let movesAhead = 0
   const groups: RadioGroup[] = raw.map((g, i) => {
@@ -317,12 +332,12 @@ export function raceRadioCollector(
   atKm: readonly number[],
   options: RaceRadioOptions = {},
 ): { probe: StageProbe; radio: () => RaceRadio } {
-  const shots: { km: number; riders: SnapshotRider[] }[] = []
+  const shots: { km: number; riders: SnapshotRider[]; mainId: string | null }[] = []
   return {
     probe: {
       atKm,
-      onSnapshot: (km, riders) => {
-        shots.push({ km, riders: [...riders] })
+      onSnapshot: (km, riders, mainId) => {
+        shots.push({ km, riders: [...riders], mainId })
       },
     },
     radio: () => raceRadioFrom(shots, options),
@@ -331,7 +346,17 @@ export function raceRadioCollector(
 
 /** La carrera km a km a partir de las fotos ya tomadas. Función pura: se puede llamar dos veces. */
 export function raceRadioFrom(
-  shots: readonly { km: number; riders: readonly SnapshotRider[] }[],
+  shots: readonly {
+    km: number
+    riders: readonly SnapshotRider[]
+    /**
+     * CUÁL ES EL PELOTÓN según el MOTOR en esa foto (v47). Sin él la radio lo recalcula, y eso
+     * arranca una segunda cadena de histéresis que acaba discrepando de la del motor —medido: 12
+     * fotos sobre seis carreras del banco, y en ellas los relevos del pelotón se anotaban como de
+     * un grupeto—. `undefined` solo en las fotos armadas a mano de un test.
+     */
+    mainId?: string | null
+  }[],
   options: RaceRadioOptions = {},
 ): RaceRadio {
   const maxPullers = options.maxPullers ?? DEFAULT_MAX_PULLERS
@@ -346,7 +371,8 @@ export function raceRadioFrom(
   const kms = [...shots]
     .sort((a, b) => a.km - b.km)
     .map((s) => {
-      const row = radioKmFrom(s.km, s.riders, starters, maxPullers, mainId)
+      // El del motor manda; solo si no viene se hereda el de la foto anterior y se recalcula.
+      const row = radioKmFrom(s.km, s.riders, starters, maxPullers, mainId, s.mainId ?? undefined)
       mainId = row.mainId
       return row
     })
@@ -394,6 +420,12 @@ export interface StoredRadioGroup {
    * El número entero del grupo está en `size`.
    */
   pulling: readonly number[]
+  /**
+   * PARA QUÉ tira cada uno de `pulling`, en el MISMO orden y con la misma longitud (v47). Va como
+   * lista paralela y no dentro de cada entrada porque `pulling` son índices y esto tiene que poder
+   * guardarse igual de barato. `null` en una posición = la etapa se corrió antes de la v47.
+   */
+  motivos: readonly (PullMotive | null)[]
   /**
    * Los de la LISTA DE SEGUIMIENTO que van en este grupo y NO están en `pulling`: maillots, jefes de
    * filas y favoritos. Es lo que permite decir «el equipo tira para X» y que X aparezca, en vez de
@@ -483,16 +515,51 @@ const NAME_WHOLE_GROUP_UP_TO = 12
  * Si no queda ni uno de los suyos en la foto siguiente —todos han llegado a meta o se han
  * retirado—, no hay velocidad que dar y se devuelve `null`, que es lo honesto.
  */
+/**
+ * LA VELOCIDAD DE UN GRUPO ES LA DE LOS HOMBRES QUE SIGUEN EN ÉL (v49).
+ *
+ * Se medía con el reloj de TODOS los que estaban en el grupo en esta foto, mirados en la foto
+ * siguiente, sin comprobar si seguían juntos. Y el que se cae de un grupo trae un Δt enorme —ha
+ * perdido tiempo, para eso se ha caído—, así que se colaba en la mediana del grupo que acababa de
+ * abandonar y lo pintaba frenando en seco.
+ *
+ * El dueño lo fotografió en la etapa 9 del Giro: cabeza de carrera **a 14,3 km/h** con la caza a
+ * 35,9 y el pelotón a 41,8, en el mismo trozo de carretera —1:17 son unos 750 m, la misma
+ * pendiente—. Y descartó él mismo la pájara: «mira el siguiente km», donde el mismo grupo va a 42,4.
+ * Un pico de un solo punto de radio, no una carrera lenta.
+ *
+ * La corrección es quedarse con los que SIGUEN JUNTOS: de este grupo, los que en la foto siguiente
+ * comparten el grupo más poblado. Se hace por mayoría y no por id de grupo porque los grupos se
+ * funden y se renombran —un grupo cazado deja de existir con su id— y lo que define «el mismo
+ * grupo» es la gente, no la etiqueta.
+ */
 function groupSpeedKmh(
   g: RadioGroup,
   clockAhead: ReadonlyMap<string, number>,
   dKm: number,
+  groupAhead: ReadonlyMap<string, string> = new Map(),
 ): number | null {
   if (dKm <= 0) return null
+  // Dónde acaba la MAYORÍA de este grupo: ése es «el mismo grupo» en la foto siguiente.
+  const cuenta = new Map<string, number>()
+  for (const id of g.riderIds) {
+    const dónde = groupAhead.get(id)
+    if (dónde !== undefined) cuenta.set(dónde, (cuenta.get(dónde) ?? 0) + 1)
+  }
+  let mayoria: string | null = null
+  let mejor = 0
+  for (const [id, n] of cuenta) {
+    if (n <= mejor) continue
+    mejor = n
+    mayoria = id
+  }
   const dts: number[] = []
   for (let i = 0; i < g.riderIds.length; i++) {
-    const then = clockAhead.get(g.riderIds[i]!)
+    const rider = g.riderIds[i]!
+    const then = clockAhead.get(rider)
     if (then === undefined) continue
+    // …y si sabemos dónde acaba cada uno, solo cuentan los que se quedan con la mayoría.
+    if (mayoria !== null && groupAhead.get(rider) !== mayoria) continue
     const dt = then - g.riderTs[i]!
     if (dt > 0) dts.push(dt)
   }
@@ -518,6 +585,15 @@ function groupSpeedKmh(
 export function radioForStorage(
   radio: RaceRadio,
   watch: ReadonlySet<string> = new Set(),
+  /**
+   * LOS QUE NO SE PUEDEN CAER DEL CORTE, en orden de importancia (v47). Son los tres maillots, y
+   * existen porque la vista nombra como mucho a 24 por grupo (`MAX_NAMED_PER_GROUP`) poniendo
+   * primero a los que tiran: con doce tirando y la lista de seguimiento detrás EN ORDEN DE
+   * CARRETERA, el corte caía justo encima de los maillots y qué maillot sobrevivía era azar. El
+   * dueño lo reportó dos veces —«te dije que SIEMPRE se vean los 3 maillots y solo sale uno»— y no
+   * era que faltara el dato: es que iba en el sitio equivocado de la cola.
+   */
+  priority: readonly string[] = [],
 ): StoredRaceRadio {
   const index = new Map<string, number>()
   const riders: string[] = []
@@ -534,9 +610,14 @@ export function radioForStorage(
     // El reloj de cada corredor en la foto SIGUIENTE, una vez por kilómetro: es lo que necesita
     // `groupSpeedKmh` para medir la velocidad por los hombres en vez de por dos relojes de grupo.
     const clockAhead = new Map<string, number>()
+    // …y EN QUÉ GRUPO acaba cada uno, que es lo que permite descartar al que se cayó del nuestro.
+    const groupAhead = new Map<string, string>()
     if (next) {
       for (const g of next.groups)
-        for (let j = 0; j < g.riderIds.length; j++) clockAhead.set(g.riderIds[j]!, g.riderTs[j]!)
+        for (let j = 0; j < g.riderIds.length; j++) {
+          clockAhead.set(g.riderIds[j]!, g.riderTs[j]!)
+          groupAhead.set(g.riderIds[j]!, g.id)
+        }
     }
     const groups = k.groups.map((g) => {
       /**
@@ -559,17 +640,26 @@ export function radioForStorage(
       const pullingAll = new Set(g.pulling.map((p) => p.riderId))
       // En un grupo pequeño se nombra a todos; en el pelotón, a los que hay que poder seguir.
       const nameAll = g.size <= NAME_WHOLE_GROUP_UP_TO
+      // …Y LOS MAILLOTS PRIMEROS (v47). El orden de esta lista es el que sobrevive al corte de la
+      // vista, así que los que no se pueden caer van delante; el resto conserva el orden de
+      // carretera, que es el que hace legible una tabla de radio.
+      const rank = new Map(priority.map((id, i) => [id, i]))
       const watching = g.riderIds
         .filter((id) => (nameAll || watch.has(id)) && !pullingAll.has(id))
+        .sort(
+          (a, b) =>
+            (rank.get(a) ?? Number.MAX_SAFE_INTEGER) - (rank.get(b) ?? Number.MAX_SAFE_INTEGER),
+        )
         .map(idx)
       // La velocidad del grupo en este km, medida por los suyos (ver `groupSpeedKmh`).
-      const speedKmh = groupSpeedKmh(g, clockAhead, next ? next.km - k.km : 0)
+      const speedKmh = groupSpeedKmh(g, clockAhead, next ? next.km - k.km : 0, groupAhead)
       return {
         kind: g.kind,
         size: g.size,
         gapS: Math.round(g.gapS),
         speedKmh,
         pulling,
+        motivos: pull.map((p) => p.motivo),
         watching,
       }
     })

@@ -22,6 +22,8 @@ const row = (riderId: string, puesto: number): StageResultEntry => ({
   riderId,
   name: `Corredor ${riderId}`,
   country: 'ES',
+  dnf: false,
+  reason: null,
   teamId: `team-${riderId}`,
   teamName: `Equipo ${riderId}`,
   isBot: true,

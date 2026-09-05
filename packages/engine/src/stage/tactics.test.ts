@@ -12,6 +12,8 @@ import {
   carriesGcLeader,
   chooseInstigator,
   followProbability,
+  gcChallengeShare,
+  gcDefence,
   giveUpLambda,
   moveCooperation,
   moveLambda,
@@ -61,6 +63,10 @@ function ctx(over: Partial<MoveContext> = {}): MoveContext {
     onClimb: false,
     tension: 0,
     hasGcContext: false,
+    // Nadie defiende, salvo que el caso lo ponga (v46): es el estado neutro y el que deja el motor
+    // comportándose como antes de que la apuesta de la general tuviera signo.
+    gcDefenderId: null,
+    gcCushionSeconds: 0,
     // Una llana: a la fuga del día no se apunta nadie más que cuatro anónimos (v39).
     breakAppeal: 0,
     ...over,
@@ -442,6 +448,179 @@ describe('regla 9 — en el final en alto atacan los fuertes, y los que se juega
     const rival = followProbability(moveRider('r', { gcDeficitSeconds: 30 }), instigator, c)
     const turista = followProbability(moveRider('t', { gcDeficitSeconds: 4000 }), instigator, c)
     expect(rival).toBeGreaterThan(turista)
+  })
+})
+
+/**
+ * REGLA 9-BIS — LA APUESTA DE LA GENERAL TIENE DOS LADOS (v46).
+ *
+ * Toda la conciencia de general del motor colgaba de UNA pregunta —«¿estás dentro de la ventana de
+ * amenaza?»— que dice si te juegas algo pero **no de qué lado**. Medido sobre estas mismas
+ * funciones antes de tocarlas: el líder (déficit 0) y el rival a 419 s salían con el MISMO apetito
+ * de ataque en el puerto final (0,0816 los dos, contra 0,0454 del que está fuera de la ventana), y
+ * con la MISMA probabilidad de saltar (0,4870). O sea que al maillot se le daba entero el bonus de
+ * «tengo que ganar tiempo», que es justo el signo contrario del suyo.
+ *
+ * En carretera son dos carreras distintas. El que va a 30 s tiene que atacar. El de amarillo no: le
+ * basta con no perderlo. Y cuánto no lo necesita depende de su ventaja, que es la deuda que E3 dejó
+ * escrita —«no existe *el líder gestiona su ventaja*»— y que estos tests cierran.
+ */
+describe('regla 9-bis — el que defiende la general no corre como el que la persigue (v46)', () => {
+  const finalEnAlto = (over: Partial<MoveContext> = {}): MoveContext =>
+    ctx({
+      kind: 'ataque_final',
+      kmToGo: 5,
+      groupSize: 8,
+      hasGcContext: true,
+      onClimb: true,
+      ...over,
+    })
+
+  it('quién defiende y con cuánto colchón: es el LÍDER, y se mide contra los que van con él', () => {
+    const conRivales = gcDefence([
+      { riderId: 'L', gcDeficitSeconds: 0 },
+      { riderId: 'a', gcDeficitSeconds: 45 },
+      { riderId: 'b', gcDeficitSeconds: 300 },
+    ])
+    expect(conRivales).toEqual({ gcDefenderId: 'L', gcCushionSeconds: 45 })
+
+    // El mejor de un grupo SIN el líder no defiende nada: está GANANDO tiempo, como los demás. Es la
+    // fuga con el 8.º, el 9.º y el 10.º dentro, y los tres tienen que atacar igual.
+    expect(
+      gcDefence([
+        { riderId: 'a', gcDeficitSeconds: 45 },
+        { riderId: 'b', gcDeficitSeconds: 300 },
+      ]),
+    ).toEqual({ gcDefenderId: null, gcCushionSeconds: 0 })
+
+    // Empate en cabeza: no hay líder con ventaja. Es el caso de la etapa 1 y el de una carrera de un
+    // día, donde TODO el campo entra con déficit 0, y por eso devuelve null y no un colchón de cero.
+    expect(
+      gcDefence([
+        { riderId: 'L', gcDeficitSeconds: 0 },
+        { riderId: 'M', gcDeficitSeconds: 0 },
+      ]),
+    ).toEqual({ gcDefenderId: null, gcCushionSeconds: 0 })
+
+    // Y el líder metido en un grupo sin ninguna amenaza cerca defiende con el colchón que tenga: ya
+    // está ganando tiempo, no necesita atacar a nadie.
+    expect(
+      gcDefence([
+        { riderId: 'L', gcDeficitSeconds: 0 },
+        { riderId: 'a', gcDeficitSeconds: 900 },
+      ]),
+    ).toEqual({ gcDefenderId: 'L', gcCushionSeconds: 900 })
+  })
+
+  it('con COLCHÓN el líder deja de atacar, y con la ventaja pegada corre como antes', () => {
+    const lider = moveRider('L', { gcDeficitSeconds: 0 })
+    const pegado = attackAppetite(
+      lider,
+      finalEnAlto({ gcDefenderId: 'L', gcCushionSeconds: 0 }),
+      ranks,
+    )
+    const holgado = attackAppetite(
+      lider,
+      finalEnAlto({ gcDefenderId: 'L', gcCushionSeconds: 10 * STAGE.gcDefendCushionS }),
+      ranks,
+    )
+    // Con el colchón a cero vale el bonus entero: el motor se comporta EXACTAMENTE como antes, que
+    // es lo que hace que esto sea una corrección de signo y no una calibración nueva.
+    const sinDefensa = attackAppetite(lider, finalEnAlto({ gcDefenderId: null }), ranks)
+    expect(pegado).toBeCloseTo(sinDefensa, 10)
+    // Y con colchón de sobra pierde el bonus ENTERO, ni más ni menos.
+    expect(pegado / holgado).toBeCloseTo(1 + STAGE.tacticGcStakeWeight, 5)
+    // A mitad de rampa, a mitad de camino: es una rampa y no un escalón.
+    const medio = attackAppetite(
+      lider,
+      finalEnAlto({ gcDefenderId: 'L', gcCushionSeconds: STAGE.gcDefendCushionS / 2 }),
+      ranks,
+    )
+    expect(medio).toBeGreaterThan(holgado)
+    expect(medio).toBeLessThan(pegado)
+  })
+
+  it('…y a cambio SALTA más: el que defiende no puede dejar marchar ni un ataque', () => {
+    // EL PERFIL DEL MAILLOT DE VERDAD, y esto importa: `autoOrders` le pone `lider` + `reservon` al
+    // que lleva la camiseta (v42), y no es lo mismo que un corredor genérico. Medido, con el
+    // corredor por defecto de este fichero —`libre` + `oportunista`— la ganancia se la come entera
+    // el tope de `tacticFollowMax`, porque ése ya venía saltando en 0,697 y no le caben 0,27 más.
+    const lider = moveRider('L', { gcDeficitSeconds: 0, role: 'lider', mentality: 'reservon' })
+    const instigador = moveRider('i', { gcDeficitSeconds: 30 })
+    const pegado = followProbability(
+      lider,
+      instigador,
+      finalEnAlto({ gcDefenderId: 'L', gcCushionSeconds: 0 }),
+    )
+    const holgado = followProbability(
+      lider,
+      instigador,
+      finalEnAlto({ gcDefenderId: 'L', gcCushionSeconds: 10 * STAGE.gcDefendCushionS }),
+    )
+    // Contra el que ya está FUERA de la ventana, que es la referencia sin nada de general. Se mide
+    // así y no contra la constante a pelo porque `followProbability` multiplica la suma entera por
+    // la dilución del grupo: la diferencia cruda sale escalada y ataría el test a la FORMA de la
+    // fórmula, que es justo lo que este fichero lleva escrito que no hay que hacer.
+    const sinGeneral = followProbability(
+      moveRider('t', { gcDeficitSeconds: 4000, role: 'lider', mentality: 'reservon' }),
+      instigador,
+      finalEnAlto({ gcDefenderId: 'L', gcCushionSeconds: 10 * STAGE.gcDefendCushionS }),
+    )
+    expect(holgado).toBeGreaterThan(pegado)
+    expect((holgado - pegado) / (pegado - sinGeneral)).toBeCloseTo(STAGE.tacticFollowDefendGain, 5)
+    // Y EL TECHO ES REAL, no un detalle: el maillot defendiendo se queda en 0,847 contra un tope de
+    // 0,85. Cabe justo, y quien suba `tacticFollowDefendGain` tiene que saber que a partir de aquí
+    // el número deja de significar nada porque lo absorbe el clamp.
+    expect(holgado).toBeLessThanOrEqual(STAGE.tacticFollowMax)
+    expect(holgado).toBeGreaterThan(0.9 * STAGE.tacticFollowMax)
+  })
+
+  /**
+   * …Y ELLOS ATACAN MÁS, que es lo que hace que la defensa sea correcta (v46).
+   *
+   * Este test decía lo contrario —«a sus rivales no les cambia nada»— y se INVIERTE a propósito,
+   * porque medirlo enseñó que aquella versión estaba incompleta: quitarle al líder las ganas de
+   * atacar dejó la montaña MENOS SELECTIVA (el peor día de una reina pasó de 17,65 % de cola a
+   * 13,75 %). Parte de la carrera la hacía él.
+   *
+   * La lectura equivocada de ese dato sería devolverle el ataque al maillot. La correcta es la de la
+   * carretera: si el líder se sienta, son SUS RIVALES los que tienen que moverle, porque a ellos se
+   * les acaba la carrera y a él no.
+   */
+  it('a sus RIVALES sí les cambia: si el líder se sienta, tienen que moverle ellos', () => {
+    const c = finalEnAlto({ gcDefenderId: 'L', gcCushionSeconds: 240 })
+    const ventana = STAGE.gcThreatFraction * STAGE.gcControlLeash
+    const dentro = moveRider('a', { gcDeficitSeconds: ventana - 1 })
+    const fuera = moveRider('b', { gcDeficitSeconds: ventana + 1 })
+    // Con el líder cómodo, el rival dentro de la ventana ataca con el bonus de siempre MÁS el del
+    // reto. El de fuera no recibe ninguno de los dos: el escalón de la ventana sigue donde estaba.
+    expect(attackAppetite(dentro, c, ranks) / attackAppetite(fuera, c, ranks)).toBeCloseTo(
+      1 + STAGE.tacticGcStakeWeight + STAGE.tacticGcChallengeWeight,
+      5,
+    )
+    // Y con el líder PEGADO —sin colchón— no hay reto que valga: ahí ya se ataca solo, y el motor
+    // vuelve a comportarse exactamente como antes de todo esto.
+    const pegado = finalEnAlto({ gcDefenderId: 'L', gcCushionSeconds: 0 })
+    expect(
+      attackAppetite(dentro, pegado, ranks) / attackAppetite(fuera, pegado, ranks),
+    ).toBeCloseTo(1 + STAGE.tacticGcStakeWeight, 5)
+    // El reto es del RIVAL, no del que defiende: el líder nunca se lo cobra a sí mismo.
+    expect(gcChallengeShare(moveRider('L', { gcDeficitSeconds: 0 }), c)).toBe(0)
+    // …ni nadie, cuando no hay quien defienda.
+    expect(gcChallengeShare(dentro, finalEnAlto({ gcDefenderId: null }))).toBe(0)
+  })
+
+  it('y en un final LLANO no se defiende nada: ahí el ataque no quita tiempo', () => {
+    // La regla de la v39 se mantiene entera. Si en llano el favorito no gana nada arrancando, el
+    // líder tampoco pierde nada dejándole marchar, y no hay defensa que aplicar al ataque.
+    const c = ctx({ kind: 'ataque_final', kmToGo: 5, groupSize: 8, hasGcContext: true })
+    const lider = moveRider('L', { gcDeficitSeconds: 0 })
+    expect(
+      attackAppetite(lider, { ...c, gcDefenderId: 'L', gcCushionSeconds: 0 }, ranks),
+    ).toBeCloseTo(
+      attackAppetite(lider, { ...c, gcDefenderId: 'L', gcCushionSeconds: 600 }, ranks),
+      10,
+    )
   })
 })
 

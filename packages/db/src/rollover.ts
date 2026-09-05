@@ -1,7 +1,13 @@
 import { randomUUID } from 'node:crypto'
-import { type Division, generateNpcRider, neoproAge, shouldRetire } from '@cyclingstar/engine'
-import { ATTRIBUTES, VOCATIONS, type Vocation, seededRng } from '@cyclingstar/shared'
-import { and, eq, isNull, lt, sql } from 'drizzle-orm'
+import {
+  type Division,
+  HARD_RETIRE_AGE,
+  generateNpcRider,
+  neoproAge,
+  shouldRetire,
+} from '@cyclingstar/engine'
+import { ATTRIBUTES, VOCATIONS, type Vocation, riderAge, seededRng } from '@cyclingstar/shared'
+import { and, eq, isNotNull, isNull, lt, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import { generateName } from './names.js'
 import { emitNews } from './news.js'
@@ -225,6 +231,34 @@ export async function runRollover(
       retired++
       retirees.push({ id: npc.id, name: npc.name, fame: npc.fame, age })
     }
+  }
+
+  /**
+   * 4-bis) EL JUGADOR HUMANO TAMBIÉN SE RETIRA (v47). Hasta aquí el bloque de arriba filtraba por
+   * `isNull(riders.userId)`, así que un corredor de jugador **no se retiraba nunca**: ni a los 39 ni
+   * a los sesenta. El dueño lo pidió explícito —«tiene que obligar al jugador humano a retirarse, y
+   * ahí puede crear otro nuevo»— y es además lo que hace que las edades signifiquen algo.
+   *
+   * Y se le aplica SOLO LA EDAD DURA, no la curva de declive de los NPC, que es aleatoria desde
+   * `declineAge`. Un humano al que el juego jubila por sorpresa a los 33 pierde su partida sin poder
+   * preverlo; con la edad dura sabe exactamente cuántas temporadas le quedan y puede planear su
+   * última. Es la misma diferencia que hay entre un bot y alguien que ha invertido meses.
+   */
+  const humanos = await tx
+    .select({
+      id: riders.id,
+      name: riders.name,
+      fame: riders.fame,
+      birthSeason: riders.birthSeason,
+    })
+    .from(riders)
+    .where(and(eq(riders.worldId, worldId), isNotNull(riders.userId), isNull(riders.retiredAt)))
+  for (const h of humanos) {
+    const age = riderAge(h.birthSeason, newSeason)
+    if (age < HARD_RETIRE_AGE) continue
+    await tx.update(riders).set({ retiredAt: newSeason, teamId: null }).where(eq(riders.id, h.id))
+    retired++
+    retirees.push({ id: h.id, name: h.name, fame: h.fame, age })
   }
 
   // Anuncios de retirada (#24): solo los más renombrados, para no inundar el feed. Titular global.

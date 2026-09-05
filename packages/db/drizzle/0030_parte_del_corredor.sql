@@ -1,0 +1,17 @@
+-- EL PARTE DEL CORREDOR: en qué se le fue el día.
+--
+-- El dueño: «esta vez le dije que corriera súper agresivo… y no hay ni una sola mención en el
+-- journal ni en la race radio, pero consumió un montón de energía; algo habrá hecho, digo yo».
+-- Y las dos mitades eran ciertas: el corredor HIZO cosas —el motor se las cobró, y por eso el TSS
+-- del día salía alto— pero hacia fuera solo salía el total, un número sin historia. La crónica
+-- cuenta lo que es NOTICIA (un ataque que abre hueco, una fuga, una pájara), y un día entero dando
+-- la cara en el pelotón no lo es.
+--
+-- Va en `rider_daily_log` y no en `stage_results` a propósito: aquí hay fila para TODO el que corrió
+-- —también para el que abandonó y para el que llegó fuera de control, que no tienen clasificación—,
+-- y es la tabla que ya responde «qué le hizo el día» (TSS, CTL, ATL, TSB). El parte es el desglose
+-- de ese mismo día, así que vive al lado de su total.
+--
+-- Null en los días anteriores a esta columna y en los días que no son de carrera: un día de
+-- entrenamiento no tiene parte de carrera que dar.
+ALTER TABLE "rider_daily_log" ADD COLUMN "parte" jsonb;

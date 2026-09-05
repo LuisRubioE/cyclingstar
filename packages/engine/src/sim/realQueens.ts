@@ -26,7 +26,7 @@ import { simulateStage } from '../stage/simulate.js'
 import type { StageInput, StageOrders, StageRider } from '../stage/types.js'
 import { autoStageOrders } from '../world/autoOrders.js'
 import { type Division, generateNpcRider, sampleNpcAge } from '../world/npc.js'
-import { type StageTail, type TailStats, tailStats } from './grandTour.js'
+import { type StageTail, type TailStats, biggestClockPct, tailStats } from './grandTour.js'
 
 /** Una etapa del banco: la carrera, la etapa y por qué está aquí. */
 export interface RealQueen {
@@ -183,9 +183,14 @@ function runStage(
   const clocks = new Set(timed.map((r) => r.tiempoS))
   return {
     kind: label,
+    // Este banco corre etapas SUELTAS elegidas a mano, no una vuelta: no hay número de etapa que
+    // dar, así que va 0 y el consumidor lo lee por su `label`.
+    stageIndex: 0,
+    finishers: timed.length,
     lastGroupPct: (100 * (last - winner)) / winner,
     groups: clocks.size,
     oneGroup: clocks.size === 1,
+    biggestGroupPct: biggestClockPct(timed.map((r) => r.tiempoS)),
     winnerGroupPct: (100 * timed.filter((r) => r.tiempoS === winner).length) / timed.length,
     top10GapSeconds: (timed[9]?.tiempoS ?? winner) - winner,
     wonFromMove: out.events.find((e) => e.tipo === 'meta')?.datos?.fuga === 1,
@@ -294,6 +299,62 @@ export function colombiaRegressionTails(runs: number): StageTail[] {
   return Array.from({ length: runs }, (_, i) =>
     runStage('race-colombia-e5-regresion', 'race-colombia', 5, riders, `colombia-${i}`),
   )
+}
+
+/**
+ * LA FOTO DE UNA LLEGADA EN ALTO: no cuánto pierde el último, sino CÓMO se reparte el campo.
+ */
+export interface SummitFinish {
+  finishers: number
+  /** El grupo de tiempo más grande de la meta, en % de los clasificados. */
+  biggestGroupPct: number
+  /** Retraso del último clasificado, en % del tiempo del ganador (la cola de siempre). */
+  lastGroupPct: number
+  /** Brechas al ganador en los puestos 10, 50, 100 y 150. `null` si no hay tantos clasificados. */
+  gaps: { puesto: number; gapS: number | null }[]
+}
+
+/**
+ * EL CASO DE LA v47: LA ETAPA 9 DEL GIRO, la que el dueño mandó mirar con todas sus letras —«es un
+ * despropósito… es una llegada en alto con un puerto brutal al final, donde debería haber muchas
+ * diferencias, y el que llega en el puesto 150 solo perdió 26 segundos»—.
+ *
+ * Va APARTE del banco de arriba y no dentro de `REAL_QUEENS` por dos motivos. El primero es de
+ * forma: la lista es CERRADA y con una etapa por carrera (hay un invariante que lo exige), y
+ * `race-italy` ya está en ella con la e19. El segundo es de MEDIDA: lo que aquí falla no es la cola
+ * —la e9 pasaba el 8-14 % sin despeinarse— sino el REPARTO, y eso no lo dice ninguno de los dos
+ * números que el banco miraba. De ahí sale `biggestGroupPct` y de ahí sale esto.
+ *
+ * El defecto, medido: `shatter` no se llamaba nunca sobre un grupo de descolgados, así que la mitad
+ * del pelotón subía los últimos 12,8 km al 5,9 % —con los últimos 2,8 al 9,7 %— dentro de un bloque
+ * que no podía perder a nadie. En meta, 94 corredores de 176 con el mismo segundo.
+ */
+export function italy9SummitFinishes(runs: number): SummitFinish[] {
+  const queen: RealQueen = {
+    raceId: 'race-italy',
+    stageIndex: 9,
+    why: 'El caso de la v47: 184 km con final en alto de 12,8 km al 5,9 % y los últimos 2,8 al 9,7 %.',
+  }
+  const out: SummitFinish[] = []
+  for (let i = 0; i < runs; i++) {
+    const { input, seed } = realQueenSetup(queen, i)
+    const times = simulateStage(input, seed)
+      .results.filter((r) => r.estado === 'finish')
+      .map((r) => r.tiempoS)
+      .sort((a, b) => a - b)
+    const winner = times[0] ?? 0
+    const last = times[times.length - 1] ?? winner
+    out.push({
+      finishers: times.length,
+      biggestGroupPct: biggestClockPct(times),
+      lastGroupPct: winner > 0 ? (100 * (last - winner)) / winner : 0,
+      gaps: [10, 50, 100, 150].map((puesto) => ({
+        puesto,
+        gapS: times[puesto - 1] === undefined ? null : times[puesto - 1]! - winner,
+      })),
+    })
+  }
+  return out
 }
 
 export interface RealQueenStats {

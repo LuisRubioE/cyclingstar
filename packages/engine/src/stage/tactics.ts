@@ -111,6 +111,25 @@ export interface MoveContext {
    */
   hasGcContext: boolean
   /**
+   * QUIÉN DEFIENDE EN ESTE GRUPO, y con cuánto colchón (v46). Es la mitad que faltaba de la
+   * conciencia de general del motor, y faltaba entera: hasta aquí toda ella colgaba de UNA pregunta
+   * —`gcDeficitSeconds <= gcThreatFraction · gcControlLeash`— que dice si te juegas algo pero **no
+   * de qué lado**. Medido sobre la misma función: el líder (déficit 0) y el rival a 419 s salían con
+   * el MISMO apetito de ataque en el puerto final, 0,0816 contra 0,0454 del que está fuera de la
+   * ventana. O sea que al maillot se le daba entero el bonus de «tengo que ganar tiempo», que es el
+   * signo contrario del suyo.
+   *
+   * En carretera son dos carreras distintas: el que va a 30 s TIENE que atacar, y el que va de
+   * amarillo no —le basta con no perderlo, y atacar es un riesgo que no necesita—. Y cuánto no lo
+   * necesita depende de su ventaja: con cinco segundos no se puede sentar; con cuatro minutos, sí.
+   *
+   * `gcDefenderId` es null cuando no hay nadie defendiendo aquí —el líder no va en este grupo, o hay
+   * un empate en cabeza—, y entonces todo se comporta como antes. Los calcula `gcDefence()`.
+   */
+  gcDefenderId: string | null
+  /** Ventaja del que defiende sobre la amenaza más cercana PRESENTE en su grupo, en segundos. */
+  gcCushionSeconds: number
+  /**
    * CUÁNTO MERECE LA PENA ESTAR HOY EN LA FUGA, en [0,1] (v39). Es la pieza que faltaba y que
    * explica el defecto más gordo que ha salido de comparar el motor con las crónicas de las grandes
    * vueltas de 2024-2026: **el motor hacía fugas de TRES hombres en todos los terrenos**, y en la
@@ -224,6 +243,82 @@ const MENTALITY_APPETITE: Record<Mentality, number> = {
 }
 
 /**
+ * QUIÉN DEFIENDE LA GENERAL EN ESTE GRUPO, Y CON CUÁNTO COLCHÓN (v46).
+ *
+ * El que defiende es el LÍDER DE LA CARRERA —déficit 0, no «el mejor de este grupo»—, y la
+ * diferencia importa: cinco hombres escapados con el 8.º, el 9.º y el 10.º no llevan a nadie
+ * defendiendo, llevan a tres que están GANANDO tiempo, y el mejor de ellos tiene que atacar igual
+ * que los otros dos.
+ *
+ * Y su colchón se mide contra las amenazas QUE VAN CON ÉL, porque son las únicas cuyos ataques
+ * puede responder. Que el segundo de la general se le haya ido por delante no es un problema de
+ * marcaje sino de persecución, y de eso ya se encargan `pelotonAllows` y la cuerda.
+ *
+ * Devuelve `null` en los dos casos degenerados, y los dos son a propósito:
+ *
+ * - **el líder no va en este grupo** — aquí nadie defiende nada;
+ * - **hay empate en cabeza** — dos hombres al mismo tiempo no son un líder con ventaja. Ocurre de
+ *   verdad y mucho más de lo que parece: en la etapa 1, en una carrera de un día y en cualquier
+ *   campo donde `packages/db` no tenga general que contar, TODOS entran con déficit 0. Por eso el
+ *   empate devuelve null en vez de un colchón de cero: es la diferencia entre «defiende con 0 s de
+ *   ventaja» y «aquí no hay nada que defender».
+ *
+ * Sin rival presente el colchón es infinito, y está bien: un líder metido en una fuga sin ningún
+ * hombre de la general al lado ya está ganando tiempo y no tiene ninguna necesidad de atacar.
+ */
+export function gcDefence(riders: readonly { riderId: string; gcDeficitSeconds: number }[]): {
+  gcDefenderId: string | null
+  gcCushionSeconds: number
+} {
+  let leader: string | null = null
+  let empatados = 0
+  let cushion = Number.POSITIVE_INFINITY
+  for (const r of riders) {
+    if (r.gcDeficitSeconds <= 0) {
+      empatados += 1
+      leader = r.riderId
+    } else if (r.gcDeficitSeconds < cushion) {
+      cushion = r.gcDeficitSeconds
+    }
+  }
+  if (leader === null || empatados !== 1) return { gcDefenderId: null, gcCushionSeconds: 0 }
+  return { gcDefenderId: leader, gcCushionSeconds: cushion }
+}
+
+/**
+ * CUÁNTO ESTÁ DEFENDIENDO ESTE HOMBRE, en [0,1]: 0 = corre por ganar tiempo, 1 = corre por no
+ * perderlo. Es lo que le da SIGNO a la apuesta de la general (v46).
+ *
+ * Sube con el colchón y satura en `gcDefendCushionS`. Y con colchón cero vale cero, o sea que el
+ * motor se comporta EXACTAMENTE como antes en el límite: el líder al que le respiran en la nuca
+ * corre como el que le persigue, que es lo que pasa en carretera.
+ */
+export function gcDefendShare(r: MoveRider, ctx: MoveContext): number {
+  if (!ctx.hasGcContext || ctx.gcDefenderId !== r.riderId) return 0
+  return clamp(ctx.gcCushionSeconds / STAGE.gcDefendCushionS, 0, 1)
+}
+
+/**
+ * …Y CUÁNTO TIENE QUE ATACARLE EL QUE VA DETRÁS, en [0,1]: el ESPEJO de la defensa (v46).
+ *
+ * Esta mitad no es un adorno de simetría, es lo que hace que la otra sea correcta, y salió de
+ * medirlo: quitarle al líder las ganas de atacar dejó la montaña MENOS SELECTIVA —el peor día de una
+ * reina pasó de 17,65 % de cola a 13,75 %— porque parte de la carrera la hacía él. Y esa es
+ * justamente la conclusión equivocada que se sacaría de ahí: que el maillot tiene que atacar. No.
+ * Lo que pasa en carretera es que **si el líder se sienta, son sus rivales los que tienen que
+ * moverle**, porque es a ellos a quienes se les acaba la carrera.
+ *
+ * Así que la selectividad vuelve, pero por la razón correcta y de la mano de quien de verdad la
+ * produce. Escala con el MISMO colchón que la defensa —cuanto más cómodo va el líder, más
+ * desesperados van los otros— y vale cero cuando no hay nadie defendiendo o cuando el líder va con
+ * el agua al cuello, que es cuando ya se ataca solo.
+ */
+export function gcChallengeShare(r: MoveRider, ctx: MoveContext): number {
+  if (!ctx.hasGcContext || ctx.gcDefenderId === null || ctx.gcDefenderId === r.riderId) return 0
+  return clamp(ctx.gcCushionSeconds / STAGE.gcDefendCushionS, 0, 1)
+}
+
+/**
  * Ganas de atacar de un corredor AHORA. Manda el rol y la mentalidad, la energía restante corrige
  * (con el depósito vacío no se ataca) y el contexto añade lo suyo:
  *
@@ -283,9 +378,22 @@ export function attackAppetite(
     if (ctx.onClimb) {
       // En el final en alto el que ataca es el que puede: los de abajo del grupo ya van agarrados.
       a *= STAGE.tacticStrongFloor + (1 - STAGE.tacticStrongFloor) * ranks.perfilRank
-      // Y el que se juega la general ataca más que el que ya la perdió (SPEC 6.9).
+      /**
+       * Y el que se juega la general ataca más que el que ya la perdió (SPEC 6.9)… PERO SOLO SI LO
+       * QUE SE JUEGA ES GANAR TIEMPO (v46). Este bonus se le daba entero al maillot, que es el
+       * único del grupo que no lo necesita: medido, el líder y el rival a 419 s salían con el mismo
+       * 0,0816 de apetito. Ahora la apuesta tiene signo y el que defiende lo pierde de forma
+       * gradual, no de golpe: con el colchón a cero sigue valiendo entero.
+       *
+       * Y NO SE CONVIERTE EN CASTIGO: al líder que defiende se le quita un bonus que estaba mal, no
+       * se le pone un freno. El freno ya lo tiene y es el suyo —`autoOrders` le pone `reservon`, o
+       * sea 0,3 de apetito— y meter aquí otro sería cobrarle dos veces la misma prudencia.
+       */
       if (ctx.hasGcContext && r.gcDeficitSeconds <= STAGE.gcThreatFraction * STAGE.gcControlLeash) {
-        a *= 1 + STAGE.tacticGcStakeWeight
+        a *=
+          1 +
+          STAGE.tacticGcStakeWeight * (1 - gcDefendShare(r, ctx)) +
+          STAGE.tacticGcChallengeWeight * gcChallengeShare(r, ctx)
       }
     } else {
       a *= 1 + STAGE.tacticWorstFinisherWeight * (1 - ranks.finishRank)
@@ -346,11 +454,19 @@ export function followProbability(r: MoveRider, instigator: MoveRider, ctx: Move
   const spirit = STAGE.tacticFollowMentalityWeight * (MENTALITY_APPETITE[r.mentality] - 1)
   const legs = STAGE.tacticFollowEnergyWeight * (r.energyFraction - 1)
   // En el final el que va cerca en la general NO deja marchar al que ataca (regla 9, SPEC 6.9).
+  /**
+   * …Y EL QUE DEFIENDE SALTA MÁS QUE EL QUE PERSIGUE (v46). Aquí el signo ya era el correcto —al
+   * líder le interesa seguir— pero la magnitud no distinguía: el maillot y el rival a 300 s tenían
+   * la misma probabilidad, 0,4870. En carretera no es lo mismo. El que persigue puede dejar marchar
+   * un ataque que no le sirve; el que defiende no puede dejar marchar ninguno, porque cualquiera de
+   * ellos le quita la camiseta. Esa es toda la diferencia entre atacar y defender, y es la mitad de
+   * la conducta que faltaba: el líder deja de moverse y pasa a MARCAR.
+   */
   const stake =
     ctx.kind === 'ataque_final' &&
     ctx.hasGcContext &&
     r.gcDeficitSeconds <= STAGE.gcThreatFraction * STAGE.gcControlLeash
-      ? STAGE.tacticFollowGcWeight
+      ? STAGE.tacticFollowGcWeight * (1 + STAGE.tacticFollowDefendGain * gcDefendShare(r, ctx))
       : 0
   // En un grupo GORDO cada uno cuenta con que salte otro y la atención se diluye (SPEC 6.12,
   // `bigGroupThreshold`). Así el número ABSOLUTO de los que saltan apenas depende de si el pelotón

@@ -87,6 +87,19 @@ export function abandonMix(c: AbandonCauses): AbandonMix {
 }
 
 /**
+ * El grupo de tiempo MÁS GRANDE de una meta, en % de los que llegaron. Ver `StageTail.biggestGroupPct`
+ * para el porqué: es la mitad de la medida que faltaba cuando el bloque no entra con el ganador.
+ */
+export function biggestClockPct(times: readonly number[]): number {
+  if (times.length === 0) return 0
+  const counts = new Map<number, number>()
+  for (const t of times) counts.set(t, (counts.get(t) ?? 0) + 1)
+  let biggest = 0
+  for (const n of counts.values()) biggest = Math.max(biggest, n)
+  return (100 * biggest) / times.length
+}
+
+/**
  * LA COLA DE LA CARRERA en una etapa en línea (v16, docs/motor.md §9). Es la medida que le faltaba
  * al banco: el corte de tiempo, la causa «fuera de control» y la sensación de «llegan todos juntos»
  * dependen de CUÁNTO pierde el último, y eso no se puede medir sobre una etapa suelta de 40
@@ -95,6 +108,20 @@ export function abandonMix(c: AbandonCauses): AbandonMix {
 export interface StageTail {
   /** `llana` · `media` · `reina`. Las contrarrelojes quedan fuera: no tienen grupos. */
   kind: string
+  /** Qué etapa de la vuelta fue: sin esto, un caso raro del banco no se puede ir a mirar. */
+  stageIndex: number
+  /**
+   * CUÁNTOS TERMINARON, y esto no es decorado: sin ello el resto de la fila se lee mal.
+   *
+   * `oneGroup` y `top10GapSeconds` se calculan sobre los CLASIFICADOS, así que una etapa diezmada
+   * —doce supervivientes que entran juntos— sale con «un solo grupo» y «0 s del 1.º al 10.º»
+   * exactamente igual que un pelotón que llega compacto, cuando son lo contrario. Peor: la brecha
+   * 1.º-10.º usa `timed[9] ?? winner`, o sea que si no hay diez clasificados informa CERO.
+   *
+   * Se descubrió persiguiendo justamente eso: una reina con `oneGroup` que podía ser cualquiera de
+   * las dos cosas y el banco no sabía decir cuál.
+   */
+  finishers: number
   /** Retraso del último CLASIFICADO respecto al ganador, en % de su tiempo. */
   lastGroupPct: number
   /** Grupos de tiempo en meta (relojes distintos entre los clasificados). */
@@ -107,6 +134,18 @@ export interface StageTail {
    * acaba al sprint el grupo principal tiene que seguir llegando junto.
    */
   winnerGroupPct: number
+  /**
+   * EL GRUPO DE TIEMPO MÁS GRANDE DE LA META, en % de los clasificados (v47). No es lo mismo que
+   * `winnerGroupPct` y la diferencia es justo la que dejó pasar el defecto de la etapa 9 del Giro:
+   * allí el bloque de 94 corredores sobre 176 no entraba con el ganador sino a 80 s de él, así que
+   * `winnerGroupPct` valía un inocente 1 % mientras **la mitad del campo cruzaba la línea en un solo
+   * segundo tras un puerto de 12,8 km al 5,9 %**. El banco tenía cuántos relojes hay (`groups`) y
+   * cuántos van con el primero, y con esas dos no se puede distinguir «la carrera se ha partido en
+   * veinte trozos» de «hay veinte corredores sueltos y un bloque con todo lo demás».
+   *
+   * En una llana esto vale un 80-95 % y así tiene que ser; lo que vigila es la MONTAÑA.
+   */
+  biggestGroupPct: number
   /** Brecha entre el 1.º y el 10.º del día, en segundos (SPEC 6.17). */
   top10GapSeconds: number
   /** ¿Ganó alguien llegado DESDE LA CARRETERA (fuga o ataque), y no con el grupo perseguidor? */
@@ -282,9 +321,12 @@ export function runGrandTour(worldSeed: string): GrandTourResult {
         const clocks = new Set(timed.map((r) => r.tiempoS))
         tails.push({
           kind: stage.kind,
+          stageIndex: stage.index,
+          finishers: timed.length,
           lastGroupPct: (100 * (last - winner)) / winner,
           groups: clocks.size,
           oneGroup: clocks.size === 1,
+          biggestGroupPct: biggestClockPct(timed.map((r) => r.tiempoS)),
           winnerGroupPct: (100 * timed.filter((r) => r.tiempoS === winner).length) / timed.length,
           top10GapSeconds: (timed[9]?.tiempoS ?? winner) - winner,
           wonFromMove: out.events.find((e) => e.tipo === 'meta')?.datos?.fuga === 1,
@@ -373,6 +415,9 @@ export interface TailStats {
   oneGroupPct: number
   /** % del pelotón que comparte el tiempo del ganador (mediana de las etapas de ese tipo). */
   medianWinnerGroupPct: number
+  /** El grupo de tiempo MÁS GRANDE de la meta (mediana), y el peor caso de la tanda. */
+  medianBiggestGroupPct: number
+  maxBiggestGroupPct: number
   /** Brecha mediana 1.º-10.º, en segundos (SPEC 6.17). */
   medianTop10GapSeconds: number
   /** % de etapas ganadas DESDE LA CARRETERA (fuga o ataque que aguanta). */
@@ -383,6 +428,7 @@ export function tailStats(tails: StageTail[]): TailStats {
   const pcts = [...tails.map((t) => t.lastGroupPct)].sort((a, b) => a - b)
   const groups = [...tails.map((t) => t.groups)].sort((a, b) => a - b)
   const shares = [...tails.map((t) => t.winnerGroupPct)].sort((a, b) => a - b)
+  const biggest = [...tails.map((t) => t.biggestGroupPct)].sort((a, b) => a - b)
   const mid = <T>(v: T[]): T | undefined => v[Math.floor(v.length / 2)]
   return {
     stages: tails.length,
@@ -390,6 +436,8 @@ export function tailStats(tails: StageTail[]): TailStats {
     maxLastGroupPct: pcts[pcts.length - 1] ?? 0,
     medianGroups: mid(groups) ?? 0,
     medianWinnerGroupPct: mid(shares) ?? 0,
+    medianBiggestGroupPct: mid(biggest) ?? 0,
+    maxBiggestGroupPct: biggest[biggest.length - 1] ?? 0,
     medianTop10GapSeconds: mid([...tails.map((t) => t.top10GapSeconds)].sort((a, b) => a - b)) ?? 0,
     wonFromMovePct:
       tails.length === 0 ? 0 : (100 * tails.filter((t) => t.wonFromMove).length) / tails.length,

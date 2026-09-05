@@ -39,6 +39,7 @@ function rider(
     energy: 500,
     energy0: 1000,
     pulling: false,
+    pullMotive: null,
     pullWindow: 0,
     ...extra,
   }
@@ -188,6 +189,39 @@ describe('radioForStorage: a quién se puede nombrar', () => {
     const stored = radioForStorage({ starters: 11, kms: [km] }, new Set())
     const g = stored.kms[0]!.groups[0]!
     expect(g.pulling.length + g.watching.length).toBe(11)
+  })
+
+  /**
+   * LOS TRES MAILLOTS NO SE CAEN DEL CORTE (v47), y esta prueba existe porque el dueño lo reportó
+   * DOS VECES: «te dije que SIEMPRE se vean los 3 maillots y solo sale uno».
+   *
+   * No faltaba el dato: iba en el sitio equivocado de la cola. La vista nombra 24 por grupo
+   * (`MAX_NAMED_PER_GROUP` en apps/api) poniendo PRIMERO a los que tiran —hasta doce—, y la lista de
+   * seguimiento venía detrás EN ORDEN DE CARRETERA. Con doce tirando, el corte caía justo encima de
+   * los maillots y cuál sobrevivía era puro azar.
+   */
+  it('los maillots van los PRIMEROS de la lista de seguimiento, para que el corte no se los coma', () => {
+    // Un pelotón de 120 con doce relevando y tres maillots muy atrás en la carretera: exactamente la
+    // forma en la que el defecto se veía.
+    const foto = Array.from({ length: 120 }, (_, i) =>
+      rider(`r-${i}`, 'mov-1', 100, { pulling: i < 12, pullWindow: 12 - i }),
+    )
+    const maillots = ['r-90', 'r-105', 'r-119']
+    const watch = new Set([...maillots, 'r-40', 'r-41', 'r-42', 'r-43'])
+    const km = radioKmFrom(10, foto, 120)
+    const stored = radioForStorage({ starters: 120, kms: [km] }, watch, maillots)
+    const g = stored.kms[0]!.groups[0]!
+    const nombre = (i: number): string => stored.riders[i] ?? ''
+    // Los tres, y en el orden en que se pidieron: amarillo, puntos, montaña.
+    expect(g.watching.slice(0, 3).map(nombre)).toEqual(maillots)
+    // Y lo que de verdad importa: sobreviven al corte de la vista, sean cuantos sean los que tiran.
+    const MAX_NAMED_PER_GROUP = 24
+    const mostrados = [...g.pulling, ...g.watching].slice(0, MAX_NAMED_PER_GROUP).map(nombre)
+    for (const m of maillots)
+      expect(`${m} visible=${mostrados.includes(m)}`).toBe(`${m} visible=true`)
+    // …y el resto de la lista de seguimiento conserva el orden de carretera, que es lo que hace
+    // legible la tabla: no se reordena todo, solo se adelanta a los que no pueden faltar.
+    expect(g.watching.slice(3).map(nombre)).toEqual(['r-40', 'r-41', 'r-42', 'r-43'])
   })
 
   it('pero en el PELOTÓN no: ahí se nombra a quien hay que seguir y el resto se cuenta', () => {
