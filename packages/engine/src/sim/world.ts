@@ -40,6 +40,8 @@ import { type Division, generateNpcRider, sampleNpcAge } from '../world/npc.js'
 interface WorldRider {
   riderId: string
   division: Division
+  /** Para qué es este corredor: desde la v53 decide qué le entrena su entrenador. */
+  vocation: Vocation
   age: number
   attributes: Record<Attribute, number>
   ceilings: Record<Attribute, number>
@@ -75,6 +77,7 @@ function nace(seed: string, division: Division, age: number, debutSeason: number
   return {
     riderId: seed,
     division,
+    vocation,
     age,
     attributes: { ...g.attributes },
     ceilings: { ...g.hidden.ceilings },
@@ -219,8 +222,10 @@ export function runWorld(worldSeed: string, seasons: number): WorldSeasonRow[] {
   for (let season = 1; season <= seasons; season++) {
     for (let dia = 0; dia < DAYS_PER_SEASON; dia++) {
       const gameDay = (season - 1) * DAYS_PER_SEASON + dia
-      const choice = defaultCoachPlan(gameDay)
       for (const r of field) {
+        // El plan del entrenador mira la VOCACIÓN desde la v53, así que el banco también: si le
+        // diera a todos la semana del completo mediría un mundo que el juego ya no corre.
+        const choice = defaultCoachPlan(gameDay, r.vocation)
         const out = simulateRiderDay(
           {
             attributes: r.attributes,

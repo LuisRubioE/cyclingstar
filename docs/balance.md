@@ -9441,6 +9441,44 @@ No dice que el reparto de roles del pelotón esté bien. Que el 70 % del campo s
 pregunta —un equipo de ocho en una llana lleva un velocista, su tren de dos o tres, y el resto—, y
 este banco la deja a la vista sin contestarla.
 
+## v53 — El entrenador entrenaba cuatro atributos de diez, y la recuperación no se podía entrenar
+
+Sale de la cuarta pata de G1 («que las carreras entrenen»), al ir a mirar qué entrena hoy un corredor. No hizo falta llegar a las carreras: **el entrenamiento ya estaba roto**.
+
+**Defecto 1: la microsemana del entrenador bot tocaba 5 de las 11 sesiones.** `DEFAULT_WEEK` eran siete días de fondo, umbral, puertos y los dos descansos. No aparecían nunca `sprint`, `crono`, `bajada_paves`, `gimnasio` ni `video_tactica`. Medido sobre un neoprofesional de 20 años, un año entero con ese plan:
+
+| atributo                     |    ganó |
+| ---------------------------- | ------: |
+| RES                          |    +8,2 |
+| LLA                          |   +11,1 |
+| MON                          |    +3,6 |
+| COL                          |    +2,2 |
+| REC, CRI, SPR, DES, PAV, TAC | **0,0** |
+
+O sea que **un velocista no entrenaba el sprint en toda su carrera**, un contrarrelojista no entrenaba la crono, y nadie aprendía táctica nunca — con el agravante de que la ayuda del propio atributo dice «learned by racing, not just training» y correr tampoco enseñaba.
+
+«Razonable, nunca óptimo» significa que un jugador que planifique bien debe ganarle al bot. No significa que haya atributos que no se puedan mover: eso no es un entrenador mediocre, es un agujero.
+
+**Defecto 2, y peor: ninguna sesión del catálogo entrenaba REC.** No es que el entrenador no la programara — REC no aparecía en el `gains` de ninguna de las once sesiones, así que era imposible moverla **para nadie**, tampoco para un jugador planificando a mano. Y REC no es decorado: acorta la constante de tiempo de la fatiga en Banister y cuenta cerillas (`matchCount`). Un atributo real, congelado de por vida en su valor de nacimiento.
+
+**El arreglo.** El ciclo pasa a catorce días, con hueco para tres cosas que antes no cabían: la CARTA de cada vocación (`sprint` al velocista, `crono` al contrarrelojista, `puertos` al escalador, `bajada_paves` al clasicómano, `umbral` al completo), el OFICIO de todos (`bajada_paves` y `video_tactica`) y el descanso activo, que ahora entrena REC —va en el activo y no en el total porque la capacidad de recuperar se construye rodando suave, no tumbado—. Y sigue lejos de lo óptimo: reparte por igual sin mirar el calendario, la forma ni el objetivo del mes.
+
+Un año del mismo chaval, ahora (vocación escalada): RES +7,1 · REC +1,5 · LLA +10,0 · MON +5,1 · COL +2,2 · DES +3,0 · PAV +1,2 · TAC +1,8. Solo CRI y SPR se quedan a cero, que es lo correcto para un escalador (y son sus dos techos más bajos, 80 y 59).
+
+**Y LO QUE ESTO LE HACE AL MUNDO, que es lo que hay que mirar con lupa** (banco de mundo, 2 mundos × 25 temporadas):
+
+| temporada | cracks antes | cracks ahora | media antes | media ahora | ancho antes | ancho ahora |
+| --------: | -----------: | -----------: | ----------: | ----------: | ----------: | ----------: |
+|         1 |        0,1 % |        0,1 % |        54,8 |        55,7 |        21,3 |        20,6 |
+|         5 |        1,8 % |        2,4 % |        55,7 |        58,3 |        22,7 |        22,2 |
+|        10 |        4,2 % |        8,7 % |        58,7 |        62,0 |        22,1 |        21,7 |
+|        15 |        7,0 % |       15,6 % |        60,9 |        64,7 |        20,5 |        19,7 |
+|        25 |        5,2 % |       12,2 % |        60,2 |        63,7 |        20,2 |        19,6 |
+
+**Los cracks se duplican y la media global sube 3,5 puntos.** Es la consecuencia directa y esperable de que seis atributos dejen de estar congelados, y hay que decirla en voz alta porque roza el miedo que el dueño puso por escrito: «que no acaben todos siendo Pogačar».
+
+Lo que dice la medida es que NO se cumple: el porcentaje se ESTABILIZA entre el 12 y el 17 % en vez de subir sin techo (t15 15,6 → t20 17,0 → t25 12,2), el ancho de la población **no se aplana** (19,6-22,2, igual que antes) y siguen existiendo medianías (2-5 % sin nada por encima de cuatro estrellas). O sea que el pelotón es mejor, no más igual. Queda por debajo del listón de alarma del banco (25 %), pero **es el número a vigilar** si el dueño quiere el mundo más duro: la perilla natural es el ciclo del entrenador, no los techos.
+
 ## v52 — El que defiende el maillot no se distinguía del que se lo quiere quitar
 
 `ENGINE_VERSION` 48. Sale de la otra mitad de la queja del dueño en la etapa 13 del Race Italy: «otra cosa es que los que van segundo, tercero o cuarto lo hagan, porque ellos quieren luchar por la carrera… **y curiosamente no veo que lo hagan**».

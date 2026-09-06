@@ -1,4 +1,4 @@
-import type { Attribute } from './rider.js'
+import type { Attribute, Vocation } from './rider.js'
 
 /**
  * Catálogo de sesiones de entrenamiento (SPEC 5.1) y plan por defecto del entrenador.
@@ -51,7 +51,23 @@ function fixed(value: number): Record<Intensity, number> {
 
 export const SESSION_CATALOG: Record<Session, SessionInfo> = {
   descanso_total: { label: 'Full rest', tss: fixed(0), gains: {}, variableIntensity: false },
-  descanso_activo: { label: 'Active rest', tss: fixed(25), gains: {}, variableIntensity: false },
+  /**
+   * …Y AQUÍ SE ENTRENA LA RECUPERACIÓN (v53). Hasta aquí **ninguna sesión del catálogo tocaba REC**,
+   * ni una: no es que el entrenador bot no la programara, es que no existía forma de entrenarla
+   * para nadie, tampoco para un jugador planificando a mano. Y REC no es decorado — le acorta la
+   * constante de tiempo de la fatiga en Banister (`applyDailyLoad`) y cuenta cerillas
+   * (`matchCount`)—, así que era un atributo real congelado de por vida en su valor de nacimiento.
+   *
+   * Va en el descanso ACTIVO y no en el total porque es donde va en la carretera: la capacidad de
+   * recuperar se construye rodando suave, no tumbado. Y por eso el descanso total sigue dando cero:
+   * descansar del todo repara, pero no enseña al cuerpo a reparar más rápido.
+   */
+  descanso_activo: {
+    label: 'Active rest',
+    tss: fixed(25),
+    gains: { REC: 0.25 },
+    variableIntensity: false,
+  },
   fondo: {
     label: 'Endurance ride',
     tss: { suave: 70, normal: 90, fuerte: 110 },
@@ -109,22 +125,73 @@ export interface TrainingChoice {
 }
 
 /**
- * Plan del entrenador por defecto cuando no hay orden del jugador (SPEC 5.2): razonable,
- * nunca óptimo. Rota una microsemana según el día de juego.
+ * LA SESIÓN QUE LE TOCA A CADA CUAL (v53). El entrenador bot no puede darle la misma semana a un
+ * velocista que a un escalador: es lo que hacía, y el resultado era que un velocista no entrenaba
+ * el sprint en toda su carrera.
  */
-const DEFAULT_WEEK: TrainingChoice[] = [
+const VOCATION_SESSION: Record<Vocation, Session> = {
+  velocidad: 'sprint',
+  crono: 'crono',
+  escalada: 'puertos',
+  clasicas: 'bajada_paves',
+  // El completo no tiene una carta que afilar, así que insiste en lo que sostiene todo lo demás.
+  fondo: 'umbral',
+}
+
+/**
+ * PLAN DEL ENTRENADOR POR DEFECTO cuando no hay orden del jugador (SPEC 5.2): razonable, nunca
+ * óptimo. Rota un ciclo de catorce días según el día de juego.
+ *
+ * HASTA LA v53 ESTO ENTRENABA CUATRO ATRIBUTOS DE DIEZ, y no es una forma de hablar. La microsemana
+ * eran siete días con cinco sesiones —fondo, umbral, puertos y los dos descansos— y de las once del
+ * catálogo no aparecían nunca `sprint`, `crono`, `bajada_paves`, `gimnasio` ni `video_tactica`.
+ * Medido sobre un neoprofesional de 20 años, un año entero con este plan:
+ *
+ *   RES +8,2   LLA +11,1   MON +3,6   COL +2,2
+ *   REC  0,0   CRI   0,0   SPR  0,0   DES  0,0   PAV 0,0   TAC 0,0
+ *
+ * O sea que un velocista jamás mejoraba su sprint, un contrarrelojista jamás su crono, y **nadie
+ * aprendía táctica nunca** —con el agravante de que la ayuda del propio atributo dice «learned by
+ * racing, not just training» y correr tampoco enseñaba (docs/epics.md «G1», cuarta pata)—.
+ *
+ * «Razonable, nunca óptimo» significa que un jugador que planifique bien debe ganarle al bot. No
+ * significa que haya atributos que no se puedan mover: eso no es un entrenador mediocre, es un
+ * agujero. El ciclo de ahora toca lo que TODO ciclista trabaja, más la carta de su vocación, más el
+ * oficio —descenso y adoquín, y vídeo de táctica—, y sigue estando lejos de lo óptimo: reparte por
+ * igual sin mirar el calendario, la forma ni el objetivo del mes.
+ */
+const DEFAULT_CYCLE: readonly (TrainingChoice | 'vocacion')[] = [
   { session: 'fondo', intensity: 'normal' },
   { session: 'umbral', intensity: 'normal' },
   { session: 'descanso_activo', intensity: 'normal' },
   { session: 'puertos', intensity: 'normal' },
-  { session: 'descanso_activo', intensity: 'normal' },
+  'vocacion',
   { session: 'fondo', intensity: 'fuerte' },
+  { session: 'descanso_total', intensity: 'normal' },
+  { session: 'fondo', intensity: 'normal' },
+  'vocacion',
+  { session: 'descanso_activo', intensity: 'normal' },
+  { session: 'umbral', intensity: 'normal' },
+  { session: 'bajada_paves', intensity: 'normal' },
+  { session: 'video_tactica', intensity: 'normal' },
   { session: 'descanso_total', intensity: 'normal' },
 ]
 
-export function defaultCoachPlan(gameDay: number): TrainingChoice {
-  const index = ((gameDay % 7) + 7) % 7
-  return DEFAULT_WEEK[index] ?? { session: 'descanso_activo', intensity: 'normal' }
+/**
+ * `vocation` es opcional para no romper a quien no la tenga a mano —la web lo usa como respaldo del
+ * planificador del jugador—, y sin ella se entrena como un corredor completo.
+ */
+export function defaultCoachPlan(gameDay: number, vocation?: Vocation): TrainingChoice {
+  const n = DEFAULT_CYCLE.length
+  const index = ((gameDay % n) + n) % n
+  const slot = DEFAULT_CYCLE[index] ?? {
+    session: 'descanso_activo' as const,
+    intensity: 'normal' as const,
+  }
+  if (slot === 'vocacion') {
+    return { session: VOCATION_SESSION[vocation ?? 'fondo'], intensity: 'normal' }
+  }
+  return slot
 }
 
 /** Carga TSS de una elección de entrenamiento. */

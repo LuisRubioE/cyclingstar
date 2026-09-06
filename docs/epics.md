@@ -361,6 +361,14 @@ de la población sigue en 20-22 puntos—, porque el margen se cierra solo con l
 `0032` se lo reabre también a los corredores que YA existen, que si no seguirían congelados el resto
 de su carrera.
 
+**Y por el camino se cayó lo que faltaba antes de llegar a las carreras (v53).** Al ir a mirar qué
+entrena hoy un corredor apareció que el entrenamiento ya estaba roto: la microsemana del entrenador
+bot tocaba **cuatro atributos de diez** —un velocista no entrenaba el sprint en toda su carrera, y
+nadie aprendía táctica nunca— y, peor, **ninguna sesión del catálogo entrenaba REC**, así que era
+imposible moverla para nadie. El ciclo es ahora de catorce días con la carta de cada vocación y el
+oficio de todos, y el descanso activo entrena la recuperación. Detalle y medidas en
+`docs/balance.md` «v53».
+
 **Y sigue faltando la cuarta pata:** que las carreras enseñen. Correr desgasta y da forma (CTL/ATL),
 pero no enseña más por ser una carrera dura que por ser un entrenamiento. Nótese que las dos cosas
 se cruzan: una carrera solo puede enseñar a quien tenga margen, o sea que hoy, a nueve de cada diez.
