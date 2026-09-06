@@ -60,6 +60,7 @@ function ctx(over: Partial<MoveContext> = {}): MoveContext {
     totalKm: 180,
     groupSize: 40,
     fieldSize: 40,
+    gcTerrain: false,
     onClimb: false,
     tension: 0,
     hasGcContext: false,
@@ -368,6 +369,75 @@ describe('regla 6 — dentro de una fuga atacan los que peor rematarían', () =>
     }
     // Su cuota justa sería 20 de 100; con la regla 6 baja claramente de ahí.
     expect(rematador).toBeLessThan(15)
+  })
+})
+
+describe('en montaña, el que defiende el maillot se guarda y el que persigue aprieta (v52)', () => {
+  /**
+   * El dueño, viendo la etapa 13 del Race Italy: «no tiene sentido que un líder haga eso [atacar
+   * una y otra vez]; otra cosa es que los que van segundo, tercero o cuarto lo hagan, porque ellos
+   * quieren luchar por la carrera… **y curiosamente no veo que lo hagan**».
+   *
+   * Medido sobre 78 etapas de montaña de seis grandes vueltas, ataques por corredor y etapa:
+   * maillot 0,44 · 2.º-5.º 0,44 · 6.º-20.º 0,31 · el resto 0,21. O sea que el que lleva el maillot
+   * atacaba EXACTAMENTE igual que el que se lo quiere quitar, porque `gcDefendShare` y
+   * `gcChallengeShare` solo se consultaban dentro de `ataque_final`.
+   */
+  const enMontaña = (over: Partial<MoveContext> = {}): MoveContext =>
+    ctx({
+      kind: 'fuga',
+      kmToGo: 120,
+      totalKm: 180,
+      hasGcContext: true,
+      gcTerrain: true,
+      gcDefenderId: 'maillot',
+      // Colchón de sobra: es cuando la asimetría tiene que notarse entera.
+      gcCushionSeconds: STAGE.gcDefendCushionS * 2,
+      ...over,
+    })
+  const ranksNeutros = { finishRank: 0.5, perfilRank: 0.5 }
+
+  it('el maillot ataca MENOS y su rival MÁS, con el mismo colchón', () => {
+    const c = enMontaña()
+    const maillot = attackAppetite(moveRider('maillot', { gcDeficitSeconds: 0 }), c, ranksNeutros)
+    const rival = attackAppetite(moveRider('rival', { gcDeficitSeconds: 40 }), c, ranksNeutros)
+    const ajeno = attackAppetite(moveRider('ajeno', { gcDeficitSeconds: 5000 }), c, ranksNeutros)
+    expect(`maillot < ajeno: ${maillot < ajeno}`).toBe('maillot < ajeno: true')
+    expect(`rival > ajeno: ${rival > ajeno}`).toBe('rival > ajeno: true')
+    // Y la magnitud es la de las dos perillas, sin nada escondido.
+    expect(maillot / ajeno).toBeCloseTo(1 - STAGE.gcEarlyDefendDamp, 5)
+    expect(rival / ajeno).toBeCloseTo(1 + STAGE.gcEarlyChallengeGain, 5)
+  })
+
+  it('…y con el líder con el agua al cuello, el motor se comporta como antes', () => {
+    // Colchón 0: las dos mitades escalan con él, así que las dos se anulan. Un cambio que en el
+    // límite no cambia nada es un cambio que se puede medir.
+    const c = enMontaña({ gcCushionSeconds: 0 })
+    const maillot = attackAppetite(moveRider('maillot', { gcDeficitSeconds: 0 }), c, ranksNeutros)
+    const rival = attackAppetite(moveRider('rival', { gcDeficitSeconds: 40 }), c, ranksNeutros)
+    const ajeno = attackAppetite(moveRider('ajeno', { gcDeficitSeconds: 5000 }), c, ranksNeutros)
+    expect(maillot).toBeCloseTo(ajeno, 10)
+    expect(rival).toBeCloseTo(ajeno, 10)
+  })
+
+  it('EN UNA LLANA NO PASA NADA, que es lo que pidió el dueño', () => {
+    // `gcTerrain` false: «solo en montaña y media montaña». Una llana y una clásica se quedan
+    // exactamente como estaban.
+    const c = enMontaña({ gcTerrain: false })
+    const maillot = attackAppetite(moveRider('maillot', { gcDeficitSeconds: 0 }), c, ranksNeutros)
+    const rival = attackAppetite(moveRider('rival', { gcDeficitSeconds: 40 }), c, ranksNeutros)
+    const ajeno = attackAppetite(moveRider('ajeno', { gcDeficitSeconds: 5000 }), c, ranksNeutros)
+    expect(maillot).toBeCloseTo(ajeno, 10)
+    expect(rival).toBeCloseTo(ajeno, 10)
+  })
+
+  it('y sin nadie defendiendo tampoco, porque no hay maillot que mirar', () => {
+    // `gcDefenderId` null es el estado degenerado de siempre: el líder no va en este grupo, o hay
+    // empate en cabeza (etapa 1, carrera de un día). Ahí no hay ni defensa ni desafío.
+    const c = enMontaña({ gcDefenderId: null })
+    const uno = attackAppetite(moveRider('uno', { gcDeficitSeconds: 0 }), c, ranksNeutros)
+    const otro = attackAppetite(moveRider('otro', { gcDeficitSeconds: 5000 }), c, ranksNeutros)
+    expect(uno).toBeCloseTo(otro, 10)
   })
 })
 

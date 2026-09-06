@@ -151,6 +151,15 @@ export interface MoveContext {
    * (`pelotonAllows`).
    */
   breakAppeal: number
+  /**
+   * ¿SE JUEGA LA GENERAL EN ESTE TERRENO? (v52). Fracción de kilómetros de subida del recorrido por
+   * encima de `gcTerrainClimbShare`: montaña y media montaña sí, llanas y clásicas no.
+   *
+   * Es la puerta que pidió el dueño para la distinción defensor/perseguidor fuera del desenlace —
+   * «solo en montaña y media montaña»—, y va aquí y no en `attackAppetite` porque es una propiedad
+   * del DÍA, se calcula una vez y no cambia bloque a bloque.
+   */
+  gcTerrain: boolean
 }
 
 // --- 1. ¿Alguien lo intenta? ---------------------------------------------------------------
@@ -398,6 +407,45 @@ export function attackAppetite(
     } else {
       a *= 1 + STAGE.tacticWorstFinisherWeight * (1 - ranks.finishRank)
     }
+  } else if (
+    ctx.gcTerrain &&
+    ctx.hasGcContext &&
+    // …Y SOLO A LOS QUE SE JUEGAN ALGO, con la MISMA ventana que usa `ataque_final` (SPEC 6.9). Sin
+    // esta puerta el factor se le aplicaba también al que va a ochenta minutos: `gcChallengeShare`
+    // solo pregunta «¿eres tú el que defiende?», y para todo el que no lo es responde que no. Lo
+    // cazó la prueba de abajo, y el defecto era de bulto: media parrilla salía «desafiando» la
+    // general de una carrera que perdió hace una semana.
+    r.gcDeficitSeconds <= STAGE.gcThreatFraction * STAGE.gcControlLeash
+  ) {
+    /**
+     * …Y FUERA DEL DESENLACE TAMBIÉN HAY GENERAL, en montaña (v52).
+     *
+     * El dueño lo vio y lo describió entero: «no tiene sentido que un líder haga eso [atacar una y
+     * otra vez]; otra cosa es que los que van segundo, tercero o cuarto lo hagan, porque ellos
+     * quieren luchar por la carrera… **y curiosamente no veo que lo hagan**». Medido sobre 78
+     * etapas de montaña de seis grandes vueltas, ataques por corredor y etapa:
+     *
+     *   maillot 0,44 · 2.º-5.º 0,44 · 6.º-20.º 0,31 · el resto 0,21
+     *
+     * O sea que el que lleva el maillot ataca EXACTAMENTE lo mismo que el que se lo quiere quitar.
+     * Y la causa no era que faltara el concepto —`gcDefendShare` y `gcChallengeShare` existen desde
+     * la v46 y están bien— sino DÓNDE se consultaba: solo dentro de `ataque_final`, o sea un puerto
+     * de los últimos 30 km o los últimos 12. En el resto de la etapa los dos hombres salían con el
+     * mismo 0,09, porque los dos son `lider` con mentalidad `reservon`.
+     *
+     * Aquí no se copia el bonus de `ataque_final`, y es deliberado: aquél SUMA un +0,8 de «tengo que
+     * ganar tiempo» a todo el que se juegue la general, y aplicado en el km 20 mandaría a los
+     * favoritos a la fuga del día. Lo que hace falta es solo la asimetría, que además es la doctrina
+     * que este fichero ya tiene escrita: **si el líder se sienta, son sus rivales los que tienen que
+     * moverle**. Así que el que defiende se frena y el que persigue se suelta, y nada más.
+     *
+     * Los dos factores escalan con el mismo colchón, así que con el líder con el agua al cuello los
+     * dos valen 1 y el motor se comporta EXACTAMENTE como antes. Y la puerta del terreno
+     * (`gcTerrain`) es la que pidió el dueño: esto no toca una llana ni una clásica.
+     */
+    a *=
+      (1 - STAGE.gcEarlyDefendDamp * gcDefendShare(r, ctx)) *
+      (1 + STAGE.gcEarlyChallengeGain * gcChallengeShare(r, ctx))
   }
   return a
 }
