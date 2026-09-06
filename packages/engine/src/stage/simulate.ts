@@ -4808,17 +4808,26 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
           if (!relojAntes.has(detras.g.id) || !relojAntes.has(delante.g.id)) continue
           if (antesDe(detras.g) <= antesDe(delante.g)) continue
           /**
-           * «Le ha alcanzado»: su reloj ya no va por detrás.
+           * «Le ha alcanzado»: iba por detrás y ya no.
            *
-           * Y ESTO VALE TAMBIÉN EN EL PUERTO, al revés que el reenganche al pelotón de aquí arriba,
-           * que se apaga en terreno que rompe (`onRough`). No es una excepción olvidada: son dos
-           * cosas distintas. Aquello es una PUERTA por proximidad —el que va cerca vuelve— y en una
-           * subida no puede existir, porque entonces la montaña no seleccionaría. Esto es CONTACTO:
-           * los dos grupos han estado en el mismo punto de la carretera, y por un puerto tampoco se
-           * atraviesa a nadie. Lo que pasa después —que el más fuerte se vuelva a ir y los otros se
-           * queden— lo resuelve solo la criba del grupo, que es como ocurre en la carretera.
+           * Y NO EN TERRENO QUE ROMPE, igual que el reenganche al pelotón de aquí arriba. La primera
+           * versión de esta regla sí lo hacía, con un argumento que suena bien —«por un puerto
+           * tampoco se atraviesa a nadie»— y que **la medida refutó**: los invariantes cayeron por
+           * dos sitios a la vez. La fuga pasaba a ganar el 54,2 % de las etapas de montaña contra
+           * una banda de 25-45 (si nadie la alcanza de verdad, llega), y la etapa 9 del Giro dejaba
+           * de seleccionar: el grupo mayor en meta se iba al 47,2 % del pelotón contra un techo de
+           * 33, deshaciendo el arreglo de la v49.
+           *
+           * O sea que en la subida fusionar por contacto REHACE el pelotón, que es el ciclo «estalla
+           * y se rehace» contra el que este mismo motor avisa en `raceThisClimb`. Lo que en el llano
+           * es «te han cogido y vas con ellos», en una rampa es «te cogen y te vuelven a soltar en
+           * el mismo bloque», y el motor no representa ese ida y vuelta: lo representa como un grupo.
+           *
+           * Queda ANOTADO como límite, no resuelto: en un puerto dos grupos todavía pueden cruzarse
+           * sin juntarse. Arreglarlo pide que la criba actúe dentro del mismo bloque en que se
+           * fusiona, y eso es otra tanda con su propia medición.
            */
-          if (detras.g.tS > delante.g.tS) continue
+          if (onRough || detras.g.tS > delante.g.tS) continue
           const mem = membersOf(detras.g.id)
           if (mem.length === 0) continue
           for (const m of mem) m.groupId = delante.g.id

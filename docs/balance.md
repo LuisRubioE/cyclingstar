@@ -9441,6 +9441,37 @@ No dice que el reparto de roles del pelotón esté bien. Que el 70 % del campo s
 pregunta —un equipo de ocho en una llana lleva un velocista, su tren de dos o tres, y el resto—, y
 este banco la deja a la vista sin contestarla.
 
+## v56 — No se puede atravesar un grupo
+
+`ENGINE_VERSION` 49 → 50. Sale de una observación del dueño en la etapa 16: «entre el km 108 y el 109 iban 3 en cabeza y un grupo de 16 detrás… y de repente es al revés, justo esos 16 van por delante y los otros 3 por detrás. Eso es MUY inverosímil».
+
+**El motor sabía fusionar solo en dos direcciones**: una fuga se caza contra el PELOTÓN (`gap = peloton.tS - m.g.tS`) y un descolgado se reengancha al pelotón o se funde con otro descolgado. Faltaban las dos que él vio —un grupo perseguidor que alcanza a una fuga, y una fuga que alcanza a otra—, así que en esas dos los relojes se cruzaban y los grupos seguían existiendo por separado. Se atravesaban.
+
+**Medido** con un detector mecánico sobre un Giro entero (dos grupos que se intercambian el orden de un kilómetro al siguiente sin fusionarse ni cambiar de tamaño): **25 veces en 21 etapas**. Con la regla nueva, **16**.
+
+### Y la variante que la medida REFUTÓ, que es la mitad del valor de esta entrada
+
+La primera versión aplicaba la fusión **también en el puerto**, con un argumento que suena impecable: el reenganche al pelotón se apaga en terreno que rompe (`onRough`) porque es una PUERTA por proximidad y en una subida no puede existir; pero esto es CONTACTO, y por un puerto tampoco se atraviesa a nadie.
+
+Los invariantes lo tiraron por dos sitios a la vez:
+
+| invariante                            |   banda | medido con la fusión en el puerto |
+| ------------------------------------- | ------: | --------------------------------: |
+| la fuga gana en montaña               | 25-45 % |                        **54,2 %** |
+| etapa 9 del Giro, grupo mayor en meta |  ≤ 33 % |                        **47,2 %** |
+
+O sea: si a la fuga no la alcanza nadie de verdad, llega; y fusionar por contacto en una rampa REHACE el pelotón, que es el ciclo «estalla y se rehace» contra el que este mismo motor avisa en `raceThisClimb` — deshaciendo de paso el arreglo de la v49 en esa etapa.
+
+Lo que el modelo no representa es el ida y vuelta: en el llano «te han cogido y vas con ellos» dura kilómetros, y en una rampa «te cogen y te vuelven a soltar» ocurre dentro del mismo bloque. El motor solo sabe decir «sois un grupo».
+
+**Queda anotado como límite, no resuelto**: en un puerto dos grupos todavía pueden cruzarse sin juntarse. Arreglarlo pide que la criba actúe dentro del mismo bloque en que se fusiona, y eso es otra tanda con su propia medición.
+
+### Lo demás
+
+Con la puerta del terreno puesta, **las huellas selladas no se mueven ni un segundo** en las cuatro semillas: el llano nunca tuvo el problema y las reinas vuelven exactamente a lo sellado. Los otros 16 cruces que quedan son casi todos en montaña, más un resto de PELOTÓN de uno o dos corredores al que alcanza un grupo —esa situación tiene sus propias reglas y su propia narración (`move_caught`) y no se toca desde aquí—.
+
+**Un apunte de método**, porque costó dos intentos: la primera implementación **no fusionaba nada** y la medida salía idéntica, 25. Ordenaba los grupos por reloj y después preguntaba si el de detrás había adelantado al de delante, cosa imposible DESPUÉS de ordenar. Alcanzar es una INVERSIÓN, y una inversión solo se puede leer contra la foto del bloque anterior; por eso ahora se guarda el reloj de cada grupo antes de que avance nadie.
+
 ## v55 — Una columna que no se escribe nunca decidía los ascensos, las retiradas y la escuadra
 
 No toca el motor de etapa: es la capa de mundo. Y no sale de una medición sino de tirar del hilo de G4.
