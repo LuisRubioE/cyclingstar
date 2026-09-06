@@ -207,9 +207,17 @@ describe('db: consecuencias de un abandono', () => {
       .from(raceRosters)
       .where(and(eq(raceRosters.raceId, RACE_KEY), eq(raceRosters.riderId, me)))
     expect(same!.abandonedDay).toBe(day)
-    expect(
-      (await t.db.select({ kind: news.kind }).from(news)).filter((h) => h.kind === 'abandon'),
-    ).toHaveLength(1)
+    // …Y AQUÍ TAMBIÉN SE FILTRA POR EL CORREDOR, por la misma razón que arriba y que ya estaba
+    // escrita: en el feed puede haber abandonos de OTROS —el motor retira gente dentro de la etapa—
+    // así que contarlos todos no comprueba «no se duplica mi titular» sino «no abandona nadie más»,
+    // que es otra cosa y además no es verdad. La de arriba se arregló en su día y ésta se quedó
+    // atrás; aguantaba solo porque en estas semillas no abandonaba nadie más, y ha bastado con que
+    // el pelotón cambiara un poco (v53-v54) para que se cayera. Lo que se prueba es la
+    // IDEMPOTENCIA: después de repetir la retirada, mi titular sigue siendo uno.
+    const trasRepetir = (
+      await t.db.select({ kind: news.kind, riderId: news.riderId }).from(news)
+    ).filter((h) => h.kind === 'abandon' && h.riderId === me)
+    expect(trasRepetir).toHaveLength(1)
 
     // Y desaparece de «mis carreras»: ya no está en ella.
     const upcoming = await getRiderUpcomingRaces(t.db, me, day + 1)
