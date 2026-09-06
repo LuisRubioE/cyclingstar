@@ -294,8 +294,13 @@ Lo que tiene que cumplir a la vez:
 - Que **las carreras entrenen**, y a su modo: «de una carrera puedes aprender más que de un
   entrenamiento, e incluso variará según el nivel de la carrera».
 
-Ese último punto es el que hoy seguro que no está: correr desgasta y da forma (CTL/ATL), pero no
-enseña más por ser una carrera dura que por ser un entrenamiento.
+Ese último punto está a MEDIAS, y la mitad que falta es exactamente la que el dueño subrayó.
+Correr SÍ enseña —`STAGE_XP_ATTRS` en `packages/db/src/stageRun.ts` reparte, a quien termina, los
+atributos que pide el terreno del día (llana → LLA y SPR, reina → MON y COL, clásica → COL y PAV…)
+más TAC SIEMPRE, escalado por el margen que le quede al techo—. Lo que **no** existe es el «variará
+según el nivel de la carrera»: `RACE_XP_BASE` es un 0,5 plano, así que **una .2 continental enseña
+exactamente lo mismo que el Tour**. Y la otra mitad de la frase tampoco se cumple: con ese 0,5 una
+carrera enseña más o menos lo que un buen día de entrenamiento, no más.
 
 **Cómo se mide: ya se puede.** El **banco de mundo** existe y se corre con `pnpm sim:mundo
 [temporadas] [corridas]`; en CI vigila con límites anchos (`sim/world.test.ts`, ~12 s). Es el
@@ -369,9 +374,15 @@ imposible moverla para nadie. El ciclo es ahora de catorce días con la carta de
 oficio de todos, y el descanso activo entrena la recuperación. Detalle y medidas en
 `docs/balance.md` «v53».
 
-**Y sigue faltando la cuarta pata:** que las carreras enseñen. Correr desgasta y da forma (CTL/ATL),
-pero no enseña más por ser una carrera dura que por ser un entrenamiento. Nótese que las dos cosas
-se cruzan: una carrera solo puede enseñar a quien tenga margen, o sea que hoy, a nueve de cada diez.
+**Y la cuarta pata sigue a medias**, con la parte que falta ya identificada: correr enseña, pero
+todas las carreras enseñan lo mismo (`RACE_XP_BASE` = 0,5 plano) y enseñan aproximadamente lo que un
+entrenamiento, no más. Falta escalarlo por `raceClass`, que ya viaja hasta ahí y no se usa para esto.
+
+**Y no se toca todavía a propósito**, que es la parte incómoda: el banco de mundo solo ENTRENA, no
+corre, así que hoy no hay forma de medir qué le hace al pelotón subir el aprendizaje por carrera. Y
+viniendo de que la v53 ya duplicó los cracks, apilar un segundo empujón a ciegas sería justo lo que
+este repositorio tiene escrito que no se hace: «lo que el banco no lleva, el banco no puede medir, y
+el defecto vive ahí para siempre». Primero el banco corre carreras; después se toca.
 
 De paso el banco vigila G3, G4, G8, G9 y G10, que también son cosas que solo se rompen con el tiempo.
 

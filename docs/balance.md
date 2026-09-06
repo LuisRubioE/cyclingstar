@@ -9455,7 +9455,7 @@ Sale de la cuarta pata de G1 («que las carreras entrenen»), al ir a mirar qué
 | COL                          |    +2,2 |
 | REC, CRI, SPR, DES, PAV, TAC | **0,0** |
 
-O sea que **un velocista no entrenaba el sprint en toda su carrera**, un contrarrelojista no entrenaba la crono, y nadie aprendía táctica nunca — con el agravante de que la ayuda del propio atributo dice «learned by racing, not just training» y correr tampoco enseñaba.
+O sea que **un velocista no entrenaba el sprint en toda su carrera** y un contrarrelojista no entrenaba la crono. La táctica es el único caso con matiz, y conviene decirlo bien porque la primera versión de esta nota lo dijo mal: **correr SÍ enseña TAC** (`STAGE_XP_ATTRS` se la da a todo el que termina, sea cual sea el terreno), así que quien compite la sube. Lo que no había era forma de trabajarla ENTRENANDO, que es de lo que va esta entrada.
 
 «Razonable, nunca óptimo» significa que un jugador que planifique bien debe ganarle al bot. No significa que haya atributos que no se puedan mover: eso no es un entrenador mediocre, es un agujero.
 

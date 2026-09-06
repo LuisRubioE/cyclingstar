@@ -150,9 +150,10 @@ const VOCATION_SESSION: Record<Vocation, Session> = {
  *   RES +8,2   LLA +11,1   MON +3,6   COL +2,2
  *   REC  0,0   CRI   0,0   SPR  0,0   DES  0,0   PAV 0,0   TAC 0,0
  *
- * O sea que un velocista jamás mejoraba su sprint, un contrarrelojista jamás su crono, y **nadie
- * aprendía táctica nunca** —con el agravante de que la ayuda del propio atributo dice «learned by
- * racing, not just training» y correr tampoco enseñaba (docs/epics.md «G1», cuarta pata)—.
+ * O sea que un velocista jamás mejoraba su sprint entrenando, y un contrarrelojista jamás su crono.
+ * Con la táctica hay un matiz que hay que decir bien: **correr sí la enseña** —`STAGE_XP_ATTRS`, en
+ * packages/db, se la da a todo el que termina una etapa— así que el que compite la sube. Lo que no
+ * había era forma de trabajarla ENTRENANDO, y eso deja al que no compite sin ella.
  *
  * «Razonable, nunca óptimo» significa que un jugador que planifique bien debe ganarle al bot. No
  * significa que haya atributos que no se puedan mover: eso no es un entrenador mediocre, es un
