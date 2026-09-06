@@ -243,6 +243,20 @@ export const riders = pgTable(
     archetype: archetypeEnum('archetype').notNull(),
     retiredAt: integer('retired_at'),
     money: integer('money').notNull().default(0),
+    /**
+     * FAMA: LA COLUMNA NO SE ESCRIBE NUNCA, y hay que decirlo aquí para que nadie vuelva a construir
+     * encima (v55). Existe desde la migración 0002 con `DEFAULT 0` y **no hay una sola sentencia en
+     * todo el repositorio que la actualice**, así que vale 0 para los miles de corredores del mundo.
+     *
+     * Eso rompía en silencio cuatro cosas que la usaban de criterio: los ascensos y descensos entre
+     * divisiones (todos los equipos empataban a cero, o sea arbitrarios), los anuncios de retirada
+     * (`fame >= 40`, que no se cumplió jamás), la selección de escuadra y el orden de los agentes
+     * libres. Todas usan ya `seasonPoints` o el palmarés.
+     *
+     * No se borra la columna porque «fama» es un concepto que el juego puede querer —prestigio de
+     * carrera, distinto de los puntos de la temporada— y eso es una decisión de diseño del dueño,
+     * no una limpieza. Lo que no puede seguir pasando es que decida cosas valiendo cero.
+     */
     fame: real('fame').notNull().default(0),
     seasonPoints: integer('season_points').notNull().default(0),
     morale: real('morale').notNull().default(50),

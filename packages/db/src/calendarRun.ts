@@ -240,7 +240,7 @@ async function convokeNationalField(
         homeByStart(season * SEASON_DAYS + race.startDay),
       ),
     )
-    .orderBy(desc(riders.fame))
+    .orderBy(desc(riders.seasonPoints))
     .limit(NATIONAL_FIELD_CAP * 3)
   // El sub-23 solo admite corredores de 23 años o menos (edad = 20 - birthSeason + temporada).
   const ageOk = (r: { birthSeason: number }) =>
@@ -477,7 +477,7 @@ async function convokeField(
       id: riders.id,
       teamId: riders.teamId,
       archetype: riders.archetype,
-      fame: riders.fame,
+      seasonPoints: riders.seasonPoints,
       ctl: riders.ctl,
       atl: riders.atl,
       teamTrust: riders.teamTrust,
@@ -530,8 +530,10 @@ async function convokeField(
       for (const row of rows) gtCount.set(row.riderId, (gtCount.get(row.riderId) ?? 0) + 1)
     }
   }
-  const gtSuit = (m: { fame: number; archetype: string }) =>
-    m.fame + (GT_VOCATION_BONUS[m.archetype] ?? 0)
+  // Quién encaja en una gran vuelta: lo que ha puntuado esta temporada más el plus de su vocación.
+  // Era `fame`, que vale 0 para todo el mundo, así que aquí decidía SOLO el bonus de vocación.
+  const gtSuit = (m: { seasonPoints: number; archetype: string }) =>
+    m.seasonPoints + (GT_VOCATION_BONUS[m.archetype] ?? 0)
 
   // El equipo paga el VIAJE (transporte + hotel) de cada corredor que manda, según su residencia y el
   // país de la carrera. Días de carrera = etapas (proxy del hotel). Se acumula por equipo y se cobra
@@ -569,7 +571,9 @@ async function convokeField(
     const cands: CallupCandidate[] = members.map((m) => ({
       riderId: m.id,
       archetype: m.archetype,
-      pointsSeason: Math.round(m.fame * 4),
+      // Los puntos de temporada de verdad (v55): esto era `fame * 4`, y `fame` no se escribe en
+      // ninguna parte, así que valía 0 para todos. Ver `callups.ts`.
+      pointsSeason: m.seasonPoints,
       formStars: formStars(m.ctl, m.ctl - m.atl),
       freshness: freshnessBar(m.ctl - m.atl),
       desire: wanted.has(m.id),
@@ -624,7 +628,7 @@ async function convokeField(
       // (ambos por fama). Así una carrera española la completan antes ciclistas españoles que de fuera.
       .orderBy(
         sql`case when ${riders.country} = ${race.country ?? null} then 0 else 1 end`,
-        desc(riders.fame),
+        desc(riders.seasonPoints),
       )
       .limit(Math.min(fieldCap - rosterValues.length, maxFill))
     for (const f of fillers) rosterValues.push({ raceId: raceKey, riderId: f.id })
@@ -898,7 +902,7 @@ export async function predictStartlist(
 async function assignBibs(tx: Tx, race: CalendarRace, season: number): Promise<void> {
   const raceKey = `${race.id}:s${season}`
   const rows = await tx
-    .select({ riderId: raceRosters.riderId, fame: riders.fame, teamId: riders.teamId })
+    .select({ riderId: raceRosters.riderId, puntos: riders.seasonPoints, teamId: riders.teamId })
     .from(raceRosters)
     .innerJoin(riders, eq(riders.id, raceRosters.riderId))
     .where(eq(raceRosters.raceId, raceKey))
@@ -962,11 +966,12 @@ async function assignBibs(tx: Tx, race: CalendarRace, season: number): Promise<v
     })
   }
 
-  // Campeonato nacional: sin equipos, se numera por fama (el mejor, o el campeón defensor, el 1).
+  // Campeonato nacional: sin equipos, se numera por PUNTOS de la temporada (el mejor, o el
+  // campeón defensor, el 1). Era por `fame`, que vale 0 para todos, así que decidían las piernas.
   if (race.championshipCountry) {
     const ordered = [...rows].sort(
       (a, b) =>
-        b.fame - a.fame ||
+        b.puntos - a.puntos ||
         piernas(b.riderId) - piernas(a.riderId) ||
         (a.riderId < b.riderId ? -1 : 1),
     )
@@ -1004,15 +1009,15 @@ async function assignBibs(tx: Tx, race: CalendarRace, season: number): Promise<v
   }
 
   // Agrupar por equipo; los agentes libres (sin equipo) se numeran al final.
-  const byTeam = new Map<string, { riderId: string; fame: number }[]>()
-  const freeAgents: { riderId: string; fame: number }[] = []
+  const byTeam = new Map<string, { riderId: string; puntos: number }[]>()
+  const freeAgents: { riderId: string; puntos: number }[] = []
   for (const r of rows) {
     if (r.teamId) {
       const list = byTeam.get(r.teamId) ?? []
-      list.push({ riderId: r.riderId, fame: r.fame })
+      list.push({ riderId: r.riderId, puntos: r.puntos })
       byTeam.set(r.teamId, list)
     } else {
-      freeAgents.push({ riderId: r.riderId, fame: r.fame })
+      freeAgents.push({ riderId: r.riderId, puntos: r.puntos })
     }
   }
 
@@ -1049,11 +1054,12 @@ async function assignBibs(tx: Tx, race: CalendarRace, season: number): Promise<v
   let decade = championFirst ? 0 : 1
   for (const teamId of teamIds) {
     const members = byTeam.get(teamId)!
-    // El líder primero (x1): manda la fama cuando distingue, y si no, las piernas para esta carrera.
+    // El líder primero (x1): mandan los PUNTOS de la temporada cuando distinguen, y si no, las
+    // piernas para esta carrera. Era `fame`, que no se escribe nunca y valía 0 para todo el mundo.
     // El id cierra el orden para que no lo decida Postgres. Ver la nota de arriba.
     members.sort(
       (a, b) =>
-        b.fame - a.fame ||
+        b.puntos - a.puntos ||
         piernas(b.riderId) - piernas(a.riderId) ||
         (a.riderId < b.riderId ? -1 : 1),
     )
@@ -1069,7 +1075,7 @@ async function assignBibs(tx: Tx, race: CalendarRace, season: number): Promise<v
   // Agentes libres: decenas siguientes, 9 por decena.
   freeAgents.sort(
     (a, b) =>
-      b.fame - a.fame ||
+      b.puntos - a.puntos ||
       piernas(b.riderId) - piernas(a.riderId) ||
       (a.riderId < b.riderId ? -1 : 1),
   )

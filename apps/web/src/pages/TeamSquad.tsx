@@ -61,8 +61,7 @@ function TeammateDetail({ riderId }: { riderId: string }) {
       <div>
         <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-400">Attributes</h3>
         <p className="mt-0.5 text-xs text-slate-400">
-          Age {rider.data.age} · {rider.data.seasonPoints.toLocaleString('en-US')} season points ·
-          fame {Math.round(rider.data.fame)}
+          Age {rider.data.age} · {rider.data.seasonPoints.toLocaleString('en-US')} season points
         </p>
         <AttributeList attributes={rider.data.attributes} />
       </div>

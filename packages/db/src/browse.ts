@@ -229,7 +229,9 @@ export async function getFreeAgents(
     })
     .from(riders)
     .where(and(...conds))
-    .orderBy(desc(riders.fame), desc(riders.seasonPoints))
+    // Los agentes libres se ordenan por lo que han PUNTUADO. Era `fame` primero, que vale 0 para
+    // todos, así que este orden lo decidía de hecho el desempate y no el mérito (v55).
+    .orderBy(desc(riders.seasonPoints))
     .limit(opts.limit ?? 120)
   return rows.map((r) => ({
     id: r.id,

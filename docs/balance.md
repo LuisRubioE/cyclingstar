@@ -9441,6 +9441,27 @@ No dice que el reparto de roles del pelotón esté bien. Que el 70 % del campo s
 pregunta —un equipo de ocho en una llana lleva un velocista, su tren de dos o tres, y el resto—, y
 este banco la deja a la vista sin contestarla.
 
+## v55 — Una columna que no se escribe nunca decidía los ascensos, las retiradas y la escuadra
+
+No toca el motor de etapa: es la capa de mundo. Y no sale de una medición sino de tirar del hilo de G4.
+
+**`riders.fame` no se escribe en NINGUNA parte del repositorio.** Es un `real DEFAULT 0` creado en la migración 0002, y no hay una sola sentencia que la actualice. Vale 0 para los miles de corredores de un mundo. Lo que decidía:
+
+| dónde                                     | qué hacía de verdad                                                       |
+| ----------------------------------------- | ------------------------------------------------------------------------- |
+| `promoteRelegate` (rollover)              | fuerza de equipo = `sum(fame)` = 0 → **ascensos y descensos arbitrarios** |
+| anuncios de retirada (#24)                | `fame >= 40` → **no ha saltado uno solo en la historia del juego**        |
+| `selectSquad` vía `callups`/`calendarRun` | `pointsSeason: fame * 4` = 0 → elegía la escuadra sin mirar quién puntúa  |
+| orden de agentes libres y dorsales        | primera clave muerta; caía al desempate                                   |
+
+Lo de los ascensos está **medido**, y el resultado es mejor que cualquier explicación: con el código viejo, en el test nuevo, el equipo de 900 puntos DESCENDÍA de WorldTour y el de 5 puntos se quedaba.
+
+**El arreglo** usa lo que sí se escribe: `riders.seasonPoints` para la fuerza del equipo, la escuadra y los órdenes; y el **palmarés** para las retiradas —quien se jubila a los 39 lleva media temporada sin puntuar, y es justo ese corredor cuya retirada es noticia—.
+
+La columna no se borra: «fama» puede ser un concepto que el juego quiera (prestigio de carrera, distinto de los puntos de una temporada) y eso es diseño, no limpieza. Queda marcada en `schema.ts` con lo que rompió, y se retira de las tres pantallas donde el jugador veía un «Fame 0» permanente.
+
+**La lección, que es la tercera vez en dos días.** La v51 fue un `find` que cogía al primero del array; la v54, una cabecera que declaraba un defecto inexistente; ésta, una columna que parece un criterio y es un cero. Las tres se ven leyendo el código y ninguna hace fallar una prueba: **un valor por defecto que nadie escribe no rompe nada, solo hace que todo empate**. Cuando un criterio no discrimina, el desempate se convierte en la regla y nadie se entera.
+
 ## v54 — El banco de mundo estaba ciego a la mitad de la progresión, y el Tour enseñaba lo mismo que una .2
 
 Dos cosas, y la primera es la que importa.

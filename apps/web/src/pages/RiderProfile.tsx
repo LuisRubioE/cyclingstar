@@ -383,20 +383,19 @@ export function RiderProfile() {
 
         <Panel title="Season" bodyClassName="p-0">
           <dl>
-            {[
-              { label: 'Season points', value: rider.seasonPoints.toLocaleString('en-US') },
-              { label: 'Fame', value: String(Math.round(rider.fame)) },
-            ].map((s, i) => (
-              <div
-                key={s.label}
-                className={`flex items-baseline justify-between px-4 py-2 ${
-                  i % 2 === 0 ? 'bg-slate-50' : ''
-                }`}
-              >
-                <dt className="text-sm font-semibold text-slate-600">{s.label}</dt>
-                <dd className="text-sm font-bold tabular-nums text-slate-800">{s.value}</dd>
-              </div>
-            ))}
+            {[{ label: 'Season points', value: rider.seasonPoints.toLocaleString('en-US') }].map(
+              (s, i) => (
+                <div
+                  key={s.label}
+                  className={`flex items-baseline justify-between px-4 py-2 ${
+                    i % 2 === 0 ? 'bg-slate-50' : ''
+                  }`}
+                >
+                  <dt className="text-sm font-semibold text-slate-600">{s.label}</dt>
+                  <dd className="text-sm font-bold tabular-nums text-slate-800">{s.value}</dd>
+                </div>
+              ),
+            )}
           </dl>
         </Panel>
       </div>

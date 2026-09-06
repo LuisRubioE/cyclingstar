@@ -510,10 +510,34 @@ migración siembra lo que cada uno lleva acumulado como una puntuación fechada 
 **nadie pierde su puesto el día del despliegue** y esa fila cae sola de la ventana dentro de un año,
 que es justo lo que le pasaría a los puntos que representa.
 
-### G4 · Promociones y descensos de equipos entre categorías
+### G4 · Promociones y descensos de equipos entre categorías — **HECHO (v55)**
 
 Sin esto las categorías son una etiqueta fija y no hay consecuencia deportiva para un equipo que va
 mal o bien durante una temporada.
+
+**Y la queja era cierta, pero por otra razón: el mecanismo ESTABA, conectado a un cable suelto.**
+`promoteRelegate` corre en cada rollover desde hace mucho —dos suben y dos bajan por división— pero
+medía la fuerza de cada equipo como `sum(riders.fame)`, y **`fame` no se escribe en ninguna parte del
+repositorio**: es un `real DEFAULT 0` creado en la migración 0002 que nadie actualiza jamás. Todos
+los equipos empataban a cero, el orden lo decidía el desempate del `sort`, y quién subía y quién
+bajaba era **arbitrario**. Medido con el test nuevo sobre el código viejo: el equipo con 900 puntos
+DESCENDÍA y el de 5 se quedaba.
+
+Ahora la fuerza son los puntos de la temporada de sus corredores —el mismo número que el jugador ve
+en la ficha del equipo— y está sellado en `promoteRelegate.test.ts`.
+
+**Y la misma columna vacía rompía en silencio otras tres cosas**, todas arregladas en la v55:
+
+- **los anuncios de retirada (#24) no habían saltado NUNCA**: el filtro era `fame >= 40`, o sea
+  `0 >= 40`. Ahora el criterio es el PALMARÉS, que es lo único que mide una carrera entera;
+- **la selección de escuadra** (`selectSquad`) recibía `pointsSeason: fame * 4` = 0 para todos, con
+  un comentario que decía «proxy hasta que existan puntos de temporada» y los puntos ya existían;
+- **el orden de los agentes libres** y la primera clave de los dorsales.
+
+La columna no se borra —«fama» puede ser un concepto que el juego quiera, distinto de los puntos de
+la temporada, y eso lo decide el dueño— pero deja de decidir nada valiendo cero, y queda marcada en
+`schema.ts` para que nadie vuelva a construir encima. También se retira de las tres pantallas donde
+se enseñaba al jugador un «Fame 0» permanente.
 
 ### G5 · Perfiles: quedan demasiadas carreras falsas
 
