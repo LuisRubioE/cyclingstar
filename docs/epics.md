@@ -294,8 +294,13 @@ Lo que tiene que cumplir a la vez:
 - Que **las carreras entrenen**, y a su modo: «de una carrera puedes aprender más que de un
   entrenamiento, e incluso variará según el nivel de la carrera».
 
-Ese último punto es el que hoy seguro que no está: correr desgasta y da forma (CTL/ATL), pero no
-enseña más por ser una carrera dura que por ser un entrenamiento.
+Ese último punto está a MEDIAS, y la mitad que falta es exactamente la que el dueño subrayó.
+Correr SÍ enseña —`STAGE_XP_ATTRS` en `packages/db/src/stageRun.ts` reparte, a quien termina, los
+atributos que pide el terreno del día (llana → LLA y SPR, reina → MON y COL, clásica → COL y PAV…)
+más TAC SIEMPRE, escalado por el margen que le quede al techo—. Lo que **no** existe es el «variará
+según el nivel de la carrera»: `RACE_XP_BASE` es un 0,5 plano, así que **una .2 continental enseña
+exactamente lo mismo que el Tour**. Y la otra mitad de la frase tampoco se cumple: con ese 0,5 una
+carrera enseña más o menos lo que un buen día de entrenamiento, no más.
 
 **Cómo se mide: ya se puede.** El **banco de mundo** existe y se corre con `pnpm sim:mundo
 [temporadas] [corridas]`; en CI vigila con límites anchos (`sim/world.test.ts`, ~12 s). Es el
@@ -361,9 +366,29 @@ de la población sigue en 20-22 puntos—, porque el margen se cierra solo con l
 `0032` se lo reabre también a los corredores que YA existen, que si no seguirían congelados el resto
 de su carrera.
 
-**Y sigue faltando la cuarta pata:** que las carreras enseñen. Correr desgasta y da forma (CTL/ATL),
-pero no enseña más por ser una carrera dura que por ser un entrenamiento. Nótese que las dos cosas
-se cruzan: una carrera solo puede enseñar a quien tenga margen, o sea que hoy, a nueve de cada diez.
+**Y por el camino se cayó lo que faltaba antes de llegar a las carreras (v53).** Al ir a mirar qué
+entrena hoy un corredor apareció que el entrenamiento ya estaba roto: la microsemana del entrenador
+bot tocaba **cuatro atributos de diez** —un velocista no entrenaba el sprint en toda su carrera, y
+nadie aprendía táctica nunca— y, peor, **ninguna sesión del catálogo entrenaba REC**, así que era
+imposible moverla para nadie. El ciclo es ahora de catorce días con la carta de cada vocación y el
+oficio de todos, y el descanso activo entrena la recuperación. Detalle y medidas en
+`docs/balance.md` «v53».
+
+**Y la cuarta pata sigue a medias**, con la parte que falta ya identificada: correr enseña, pero
+todas las carreras enseñan lo mismo (`RACE_XP_BASE` = 0,5 plano) y enseñan aproximadamente lo que un
+entrenamiento, no más. Falta escalarlo por `raceClass`, que ya viaja hasta ahí y no se usa para esto.
+
+**Hecho en la v54, y primero el banco.** El banco de mundo solo ENTRENABA, así que no había forma de
+medir qué le hace al pelotón subir el aprendizaje por carrera; primero se le dio calendario —65 días
+al año sorteados del calendario real de su división, con clase y terreno— y después se tocó la
+perilla. La regla se sacó a una función pura del motor (`world/learning.ts`) justamente para que el
+banco pudiera correr la MISMA que producción.
+
+Y lo que apareció al mirar con el banco completo vale más que el cambio: **el salto de cracks no lo
+trae el escalado por nivel, lo traía producción**. En la temporada 15, solo-entrenamiento da 15,6 %,
+añadir las carreras con el factor plano que el juego YA tenía da 22,6 %, y el escalado por nivel
+suma 2,2 más. O sea que el mundo llevaba tiempo creciendo más de lo que nadie había medido, porque
+ningún banco incluía las carreras. Detalle en `docs/balance.md` «v54».
 
 De paso el banco vigila G3, G4, G8, G9 y G10, que también son cosas que solo se rompen con el tiempo.
 

@@ -35,13 +35,46 @@ describe('banco de mundo: la población después de 25 temporadas (G1)', () => {
   }, 300_000)
 
   it('no acaban todos siendo Pogačar', () => {
-    // Medido: los «cracks» (3+ atributos de 5★) hacen techo en ~7 % hacia la temporada 15 y luego
-    // bajan. El día que esto se dispare, el juego se queda sin jerarquía.
+    /**
+     * EL LISTÓN SUBE DE 25 A 35 EN LA v54, Y NO PORQUE EL MUNDO HAYA EMPEORADO: porque el banco por
+     * fin ve lo que ya pasaba. Hasta aquí solo entrenaba, y la mitad de la progresión de un
+     * profesional ocurre COMPITIENDO. Los tres brazos, en la temporada 15:
+     *
+     * | qué mide el banco                                   | cracks |
+     * | --------------------------------------------------- | -----: |
+     * | solo entrenamiento (ciego a las carreras)            | 15,6 % |
+     * | + carreras, con el factor plano que YA tenía el juego | 22,6 % |
+     * | + carreras + el escalado por nivel de la v54          | 24,8 % |
+     *
+     * O sea que el salto grande —siete puntos— es producción tal como estaba, y el escalado por
+     * nivel añade dos. Dejar el listón en 25 lo pondría a 0,2 puntos del valor medido: una moneda
+     * al aire, que es exactamente el defecto que este repositorio ya tiene con nombre propio (V1,
+     * «la banda sentada encima de su suelo»). Un guardarraíl que salta solo con el ruido no vigila,
+     * estorba.
+     *
+     * ESTO NO ES UNA BANDA DE CALIBRACIÓN —ésas son del dueño y viven en `sim/targets.ts`—: es una
+     * alarma de incendios contra el desboque. Y el número REAL, el 22-25 %, queda escrito aquí y en
+     * docs/balance.md «v54» para que se pueda discutir si es demasiado, que es una decisión de
+     * diseño y no de prueba.
+     */
     const pico = Math.max(...filas.map((f) => f.cracksPct))
-    expect(`pico de cracks ≤ 25%: ${pico <= 25}`).toBe('pico de cracks ≤ 25%: true')
-    // Y la otra cara: la media de atributos de cinco estrellas por corredor (medido: 0,9).
+    expect(`pico de cracks ≤ 35%: ${pico <= 35}`).toBe('pico de cracks ≤ 35%: true')
+    // Y la otra cara: la media de atributos de cinco estrellas por corredor (medido: 1,5).
     const picoMedia = Math.max(...filas.map((f) => f.estrellas5Medias))
     expect(`5★ medias ≤ 3: ${picoMedia <= 3}`).toBe('5★ medias ≤ 3: true')
+  })
+
+  it('y el mundo CORRE, no solo entrena', () => {
+    /**
+     * La comprobación de que el banco no ha vuelto a quedarse ciego. Si alguien desconecta los días
+     * de carrera, la población crece bastante menos y todo lo de arriba pasaría igualmente: sería
+     * un banco en verde midiendo un juego que no existe. Se ancla contra el brazo de solo
+     * entrenamiento, que daba 64,7 de media en la temporada 15.
+     */
+    const t15 = filas.find((f) => f.season === 15)!
+    expect(`la media t15 supera el brazo sin carreras: ${t15.mediaGlobal > 66}`).toBe(
+      'la media t15 supera el brazo sin carreras: true',
+    )
   })
 
   it('…y tampoco se queda el pelotón entero en medianía', () => {

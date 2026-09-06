@@ -23,6 +23,7 @@ import {
   stageLengthKm,
   stagePointsByClass,
   stageSeed,
+  raceLearning,
   stageTss,
 } from '@cyclingstar/engine'
 import { ATTRIBUTES, type Attribute, assignLeaderJerseys, seededRng } from '@cyclingstar/shared'
@@ -65,16 +66,8 @@ type Tx = Parameters<Parameters<Db['transaction']>[0]>[0]
  * sellaba los replays (un cambio de comportamiento reproducía las etapas viejas con la física nueva).
  */
 const ENGINE_VERSION_NUM: number = ENGINE_VERSION
-const RACE_XP_BASE = 0.5
 /** El maillot de líder da alas: el líder de la general rinde ~4% por encima de su nivel efectivo. */
 const LEADER_JERSEY_BOOST = 1.04
-const STAGE_XP_ATTRS: Record<string, Attribute[]> = {
-  llana: ['LLA', 'SPR'],
-  media: ['MON', 'LLA'],
-  reina: ['MON', 'COL'],
-  cri: ['CRI'],
-  clasica: ['COL', 'PAV'],
-}
 
 export interface StageRunSpec {
   /** Clave de almacenamiento (results/gc/snapshots/rosters). Puede incluir la temporada. */
@@ -555,16 +548,32 @@ export async function runOneStage(
       parte: output.efforts.get(result.riderId) ?? null,
     })
 
-    const gainAttrs = new Set<Attribute>([...(STAGE_XP_ATTRS[spec.kind] ?? []), 'TAC'])
-    for (const attr of gainAttrs) {
-      const before = state.attributes[attr]
-      const ceiling = state.ceilings[attr] ?? 100
-      const gain = Math.max(0, RACE_XP_BASE * Math.max(0, (ceiling - before) / 30))
-      if (gain <= 0) continue
-      const after = Math.min(ceiling, before + gain)
+    /**
+     * LO QUE SE APRENDE CORRIENDO (v54, docs/epics.md «G1»). La regla vivía aquí, en dos constantes
+     * sueltas y un bucle, y con un factor PLANO: una .2 continental enseñaba exactamente lo mismo
+     * que el Tour. El dueño había pedido lo contrario con todas las letras —«de una carrera puedes
+     * aprender más que de un entrenamiento, e **incluso variará según el nivel de la carrera**»— y
+     * `spec.raceClass` ya viajaba hasta aquí sin usarse para esto.
+     *
+     * Ahora la regla es una función PURA del motor (`raceLearning`), y no por ordenar: el banco de
+     * mundo —la única pieza que sabe medir lo que le pasa a una población con los años— no podía
+     * alcanzarla desde `packages/db`, así que era ciego a la mitad de la progresión de un
+     * profesional. Con la regla en el motor, el banco la corre igual que producción.
+     */
+    for (const [attr, delta] of Object.entries(
+      raceLearning({
+        raceClass: spec.raceClass,
+        kind: spec.kind,
+        attributes: state.attributes,
+        ceilings: state.ceilings,
+      }),
+    )) {
+      const a = attr as Attribute
+      const before = state.attributes[a]
+      const after = before + (delta ?? 0)
       if (after === before) continue
-      attrValues.push([result.riderId, attr, after])
-      attrLogValues.push({ riderId: result.riderId, gameDay, attr, delta: after - before })
+      attrValues.push([result.riderId, a, after])
+      attrLogValues.push({ riderId: result.riderId, gameDay, attr: a, delta: after - before })
     }
   }
 

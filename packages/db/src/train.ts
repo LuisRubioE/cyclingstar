@@ -130,7 +130,9 @@ export async function trainWorldDay(
         ? { session: order.session, intensity: order.intensity }
         : teamPlan
           ? { session: teamPlan.session, intensity: teamPlan.intensity }
-          : defaultCoachPlan(gameDay),
+          : // …Y EL ENTRENADOR MIRA PARA QUÉ ES ESTE CORREDOR (v53). Sin la vocación le daba a todo el
+            // mundo la semana del completo, y un velocista no entrenaba el sprint en su vida.
+            defaultCoachPlan(gameDay, rider.archetype),
     )
   }
   // Pre-paso de entrenamiento en grupo: por equipo y sesión, cuántos compañeros la entrenan hoy.
@@ -159,7 +161,7 @@ export async function trainWorldDay(
       attrsByRider.get(rider.id) ??
       (Object.fromEntries(ATTRIBUTES.map((a) => [a, 0])) as Record<Attribute, number>)
 
-    const choice = choiceByRider.get(rider.id) ?? defaultCoachPlan(gameDay)
+    const choice = choiceByRider.get(rider.id) ?? defaultCoachPlan(gameDay, rider.archetype)
     // Compañeros (sin contarse) haciendo la misma sesión hoy → bonus de grupo.
     const mates = rider.teamId
       ? (teamSessionCount.get(`${rider.teamId}:${choice.session}`) ?? 1) - 1
