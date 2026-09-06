@@ -715,7 +715,7 @@
  * Campaña canónica de 500 corridas: **los 33 invariantes en verde**. La contrarreloj no se mueve ni
  * un dígito —es el ancla del esfuerzo individual y paga la ley lineal de siempre—.
  */
-export const ENGINE_VERSION = 48 as const
+export const ENGINE_VERSION = 49 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -1090,6 +1090,32 @@ export const MORALE = {
   mMoralScale: 0.04,
   mean: 60,
   regression: 0.03,
+} as const
+
+/**
+ * LO QUE SE APRENDE CORRIENDO (docs/epics.md «G1», cuarta pata). Ver `world/learning.ts`.
+ *
+ * El dueño: «de una carrera puedes aprender más que de un entrenamiento, e **incluso variará según
+ * el nivel de la carrera**». La regla existía —`STAGE_XP_ATTRS` en packages/db— pero con un factor
+ * PLANO de 0,5: una .2 continental enseñaba exactamente lo mismo que el Tour, y ninguna de las dos
+ * mitades de la frase se cumplía.
+ */
+export const LEARNING = {
+  /** El 0,5 de siempre: se conserva para que una carrera del montón enseñe lo que ya enseñaba. */
+  raceBase: 0.5,
+  /**
+   * Contra qué se normaliza el margen al techo. Treinta puntos es «margen de sobra»: por encima de
+   * eso la ganancia se satura sola, y a diez puntos del techo se aprende un tercio.
+   */
+  raceMarginRef: 30,
+  /**
+   * Y CUÁNTO MÁS ENSEÑA UNA CARRERA GRANDE. La escala es el nivel de la carrera, que es lo que el
+   * dueño pidió, y no el prestigio ni el premio: se aprende del NIVEL DEL RIVAL con el que te toca
+   * medirte. Una .2 se queda en lo que enseñaba antes (1,0) y nada baja de ahí —correr siempre
+   * enseña algo— y el WorldTour dobla, que es lo que hace que la frase «de una carrera puedes
+   * aprender más que de un entrenamiento» sea verdad al menos donde tiene que serlo.
+   */
+  raceClassFactor: { WT: 2, Pro: 1.5, '1': 1.2, '2': 1, NC: 1.2 } as Record<string, number>,
 } as const
 
 /** Progresión por entrenamiento y decaimientos (SPEC 5.2, 5.5). */

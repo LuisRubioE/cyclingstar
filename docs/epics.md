@@ -378,11 +378,17 @@ oficio de todos, y el descanso activo entrena la recuperación. Detalle y medida
 todas las carreras enseñan lo mismo (`RACE_XP_BASE` = 0,5 plano) y enseñan aproximadamente lo que un
 entrenamiento, no más. Falta escalarlo por `raceClass`, que ya viaja hasta ahí y no se usa para esto.
 
-**Y no se toca todavía a propósito**, que es la parte incómoda: el banco de mundo solo ENTRENA, no
-corre, así que hoy no hay forma de medir qué le hace al pelotón subir el aprendizaje por carrera. Y
-viniendo de que la v53 ya duplicó los cracks, apilar un segundo empujón a ciegas sería justo lo que
-este repositorio tiene escrito que no se hace: «lo que el banco no lleva, el banco no puede medir, y
-el defecto vive ahí para siempre». Primero el banco corre carreras; después se toca.
+**Hecho en la v54, y primero el banco.** El banco de mundo solo ENTRENABA, así que no había forma de
+medir qué le hace al pelotón subir el aprendizaje por carrera; primero se le dio calendario —65 días
+al año sorteados del calendario real de su división, con clase y terreno— y después se tocó la
+perilla. La regla se sacó a una función pura del motor (`world/learning.ts`) justamente para que el
+banco pudiera correr la MISMA que producción.
+
+Y lo que apareció al mirar con el banco completo vale más que el cambio: **el salto de cracks no lo
+trae el escalado por nivel, lo traía producción**. En la temporada 15, solo-entrenamiento da 15,6 %,
+añadir las carreras con el factor plano que el juego YA tenía da 22,6 %, y el escalado por nivel
+suma 2,2 más. O sea que el mundo llevaba tiempo creciendo más de lo que nadie había medido, porque
+ningún banco incluía las carreras. Detalle en `docs/balance.md` «v54».
 
 De paso el banco vigila G3, G4, G8, G9 y G10, que también son cosas que solo se rompen con el tiempo.
 

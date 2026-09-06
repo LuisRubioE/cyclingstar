@@ -9441,6 +9441,48 @@ No dice que el reparto de roles del pelotón esté bien. Que el 70 % del campo s
 pregunta —un equipo de ocho en una llana lleva un velocista, su tren de dos o tres, y el resto—, y
 este banco la deja a la vista sin contestarla.
 
+## v54 — El banco de mundo estaba ciego a la mitad de la progresión, y el Tour enseñaba lo mismo que una .2
+
+Dos cosas, y la primera es la que importa.
+
+### 1. El banco de mundo ahora CORRE, no solo entrena
+
+Hasta aquí el banco de mundo simulaba 442 corredores entrenando 364 días al año durante 25 temporadas… y **ninguno competía**. Su propia cabecera decía que correr no enseñaba, y era falso: `STAGE_XP_ATTRS` (en `packages/db`) lleva mucho dando atributos a todo el que termina una etapa. O sea que la única pieza del juego que sabe medir qué le pasa a una población con los años era ciega a **la mitad de la progresión de un profesional**.
+
+Ahora cada corredor sortea sus 65 días de carrera del calendario **real** de su división (`openTo`), con la clase de la carrera y el terreno de cada etapa, y se le aplica lo que aprende y lo que le cuesta. No se simulan las etapas —442 × 364 × 25 no terminaría nunca— así que la carga es representativa por terreno; queda dicho en el banco. Lo que contesta bien es cuánto CRECE una población que entrena y compite; quién gana lo miden los otros bancos.
+
+### 2. `RACE_XP_BASE` era un 0,5 plano
+
+El dueño lo pidió con todas las letras: «de una carrera puedes aprender más que de un entrenamiento, e **incluso variará según el nivel de la carrera**». Ninguna de las dos mitades se cumplía: **una .2 continental enseñaba exactamente lo mismo que el Tour**, y `spec.raceClass` ya viajaba hasta el sitio sin usarse para esto.
+
+La regla pasa a ser una función PURA del motor (`world/learning.ts`) y no por ordenar: viviendo en `packages/db` el banco no podía alcanzarla. Ahora el banco corre la MISMA regla que producción. La escala es el nivel de la carrera, que es de quien se aprende:
+
+| clase | factor |
+| ----- | -----: |
+| .WT   |    2,0 |
+| .Pro  |    1,5 |
+| .1    |    1,2 |
+| .NC   |    1,2 |
+| .2    |    1,0 |
+
+La .2 se queda **exactamente** donde estaba: nada empeora, y nada baja de 1 porque correr siempre enseña algo.
+
+### Lo que sale de los tres brazos, y es lo importante
+
+Temporada 15, 2 mundos × 25 temporadas:
+
+| qué mide el banco                                         |     cracks |    media |
+| --------------------------------------------------------- | ---------: | -------: |
+| solo entrenamiento (ciego a las carreras)                 |     15,6 % |     64,7 |
+| **+ carreras, con el factor plano que ya tenía el juego** | **22,6 %** | **67,5** |
+| + carreras + el escalado por nivel de la v54              |     24,8 % |     68,1 |
+
+**El salto grande —siete puntos— es producción tal como estaba.** El escalado por nivel añade dos. O sea que el mundo lleva tiempo creciendo más de lo que nadie había medido, y el motivo es que ningún banco incluía las carreras.
+
+Por eso el guardarraíl del banco sube de 25 a 35: dejarlo en 25 lo pondría a 0,2 puntos del valor medido, que es una moneda al aire y el defecto que este repositorio ya tiene con nombre propio (V1, «la banda sentada encima de su suelo»). **No es una banda de calibración** —ésas son del dueño y viven en `sim/targets.ts`—, es una alarma de incendios contra el desboque, y sube porque el banco tiene ojos nuevos, no porque el mundo haya empeorado.
+
+**El número a discutir es el 22-25 %**, y es decisión de diseño: uno de cada cuatro corredores con tres o más atributos de cinco estrellas hacia la temporada 15. La población no se aplana (ancho 21-24, igual que siempre) ni se vacía de medianías, así que sigue habiendo jerarquía; pero si el dueño quiere el mundo más duro, las perillas naturales son el ciclo del entrenador (v53) y `LEARNING.raceBase`, no los techos.
+
 ## v53 — El entrenador entrenaba cuatro atributos de diez, y la recuperación no se podía entrenar
 
 Sale de la cuarta pata de G1 («que las carreras entrenen»), al ir a mirar qué entrena hoy un corredor. No hizo falta llegar a las carreras: **el entrenamiento ya estaba roto**.
