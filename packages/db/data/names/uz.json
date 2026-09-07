@@ -32,7 +32,14 @@
     "Ilhom",
     "Nurbek",
     "Shavkat",
-    "Temur"
+    "Temur",
+    "Eldor",
+    "Muzaffar",
+    "Shokhrukh",
+    "Anvar",
+    "Bahodir",
+    "Davron",
+    "Ruslan"
   ],
   "female": [
     "Nilufar",
@@ -58,7 +65,9 @@
     "Guli",
     "Laylo",
     "Munisa",
-    "Rayhona"
+    "Rayhona",
+    "Gulbahor",
+    "Oysha"
   ],
   "surnames": [
     "Karimov",
@@ -100,6 +109,17 @@
     "Otajonov",
     "Pulatov",
     "Sobirov",
-    "Toshmatov"
+    "Toshmatov",
+    "Rakhmonov",
+    "Bekmuratov",
+    "Ganiev",
+    "Olimov",
+    "Xolmatov",
+    "Alimov",
+    "Boboev",
+    "Davletov",
+    "Islomov",
+    "Norboev",
+    "Sultonov"
   ]
 }
