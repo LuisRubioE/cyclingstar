@@ -1758,6 +1758,16 @@ export const STAGE = {
    * Con 1,5 se pone por encima de un gregario del equipo que lleva el frente, que es lo que se ve en
    * los últimos tres kilómetros de cualquier llegada masiva.
    */
+  /**
+   * CUÁNTO PESA EN EL TURNO LO QUE EL JUGADOR MANDÓ GASTAR HOY (v58, `StageOrders.effort`). Se suma
+   * al deber: +0,5 al que sale a vaciarse, −0,5 al que sale a guardarse, 0 al que no elige.
+   *
+   * Medio punto es la mitad del salto que hay entre un gregario (1,0) y un corredor libre (0,6),
+   * así que mueve de verdad quién entra al turno sin poder por sí solo poner a un sprinter a tirar
+   * ni sacar del turno a un gregario cuyo equipo lleva el frente. Manda el oficio; el esfuerzo
+   * inclina.
+   */
+  relayEffortWeight: 0.5,
   relayLeadOutBoost: 1.5,
   /**
    * LO QUE BAJA EL DEBER DE RELEVO DEL LÍDER DE LA CARRERA (v57). Ver la nota entera en `relayTurn`:

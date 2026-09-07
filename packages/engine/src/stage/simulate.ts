@@ -100,6 +100,7 @@ import { stageRng } from './rng.js'
 import { simulateTimeTrial } from './timetrial.js'
 import type {
   Block,
+  Effort,
   Incident,
   PullMotive,
   StageEffort,
@@ -539,9 +540,20 @@ function relayDuty(
     // los saca. Vale 0 para el agente libre y para el que corre por su cuenta (regla 1 de §V.1),
     // así que un campo sin equipos da exactamente el mismo turno que en la v14.
     STAGE.teamRelayDriveWeight * empuje +
+    /**
+     * …Y LO QUE EL JUGADOR HA MANDADO GASTAR HOY (v58). «All-in: empty the tank today» tiene que
+     * significar algo en la carretera, y lo primero que significa es dar la cara al viento: el que
+     * sale a vaciarse entra al turno donde otro se guardaría, y el que sale a guardarse se queda a
+     * rueda salvo que no quede nadie. Es un empujón, no un veto —el suelo de relevistas sigue
+     * mandando— y para el que no elige (`normal`, o una carrera sin órdenes) vale cero.
+     */
+    STAGE.relayEffortWeight * EFFORT_PUSH[m.input.orders.effort ?? 'normal'] +
     STAGE.relayJitterWeight * m.workJitter
   )
 }
+
+/** Cuánto empuja al turno cada elección de esfuerzo, en [-1, 1]. Ver `relayEffortWeight`. */
+const EFFORT_PUSH: Record<Effort, number> = { ahorrar: -1, normal: 0, a_tope: 1 }
 
 /**
  * Quién TIRA en este bloque: los `relayRotation(N, paceFraction)` corredores con más deber de
@@ -2158,6 +2170,32 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
              */
             const esElMaillot = (m: RiderSim): boolean =>
               hasGcContext && m.input.gcDeficitSeconds <= 0
+            /**
+             * …Y BAJA EL QUE TIENE ESE ENCARGO, NO CUALQUIERA DEL EQUIPO (v58).
+             *
+             * El dueño: «si un ciclista tiene a su líder atrás, es normal que se deje caer para
+             * ayudarle… pero eso aplica a los bots y a los humanos que en sus instrucciones hayan
+             * indicado que ayudan a su líder X. **Si yo como humano digo que voy por libre, entonces
+             * no debería ocurrir eso**».
+             *
+             * Y es exactamente la línea que faltaba: la regla miraba `plan.memberIds` —o sea, la
+             * plantilla entera— y no las ÓRDENES de cada uno. Sacrificar el día de un corredor es
+             * una orden, y las órdenes ya están escritas en su rol: el gregario va a eso, y el que
+             * sale de casa como `libre`, `cazaetapas`, `marcador` o `sprinter` no.
+             *
+             * Para los equipos bot no cambia nada, y eso también es la prueba de que la regla está
+             * bien puesta: `autoStageOrders` reparte a TODO el que no es jefe, lanzador ni el hombre
+             * de la fuga como gregario de su jefe, así que el que baja sigue siendo el mismo. Lo que
+             * cambia es que ahora hace falta que alguien se lo haya mandado.
+             *
+             * Y si el gregario lleva un objetivo concreto (`targetRiderId`), tiene que ser ÉSTE: el
+             * que va de gregario del velocista no abandona su trabajo para ir a por el escalador.
+             */
+            const tieneElEncargo = (m: RiderSim): boolean => {
+              if (m.input.orders.role !== 'gregario') return false
+              const suJefe = m.input.orders.targetRiderId
+              return suJefe == null || suJefe === leaderId
+            }
             // Quién PUEDE ir: los suyos, enteros y no rebeldes (§VI.2: el que corre por su cuenta no
             // trabaja para el equipo aunque lleve su maillot).
             const disponibles = plan.memberIds
@@ -2169,6 +2207,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
               .filter(
                 (m): m is RiderSim =>
                   m != null &&
+                  tieneElEncargo(m) &&
                   !esElMaillot(m) &&
                   puedeBajar(m) &&
                   !m.hurt &&

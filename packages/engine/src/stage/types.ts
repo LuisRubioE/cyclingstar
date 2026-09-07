@@ -69,11 +69,31 @@ export type StageRole =
 
 export type Mentality = 'reservon' | 'oportunista' | 'combativo' | 'supercombativo'
 
+/** Cuánto quiere gastar hoy este hombre (SPEC 6.18). Lo elige el jugador en las órdenes de etapa. */
+export type Effort = 'ahorrar' | 'normal' | 'a_tope'
+
 export interface StageOrders {
   role: StageRole
   /** Objetivo para roles que lo requieren (lanzador, gregario, marcador). */
   targetRiderId?: string
   mentality: Mentality
+  /**
+   * CUÁNTO SE GASTA HOY (v58). La pantalla de órdenes lo ofrece desde hace mucho —«All-in: empty
+   * the tank today»— y la base lo guarda (`stage_orders.effort`), pero **no llegaba al motor**: el
+   * contrato de aquí no tenía el campo, así que `stageRun` lo tiraba al construir las órdenes. Era
+   * literalmente un botón desconectado, y es la mitad de la respuesta a la queja del dueño: «el
+   * resultado es casi lo mismo ponga lo que ponga ahí».
+   *
+   * Ausente = `normal`, que es como corría todo el mundo hasta ahora.
+   */
+  effort?: Effort
+  /**
+   * …Y DÓNDE LANZA SU MOVIMIENTO, en kilómetro de recorrido (v58). La otra palanca desconectada, y
+   * ésta con una promesa escrita en la pantalla: «Launch a move at this distance. Leave blank to
+   * let your mentality decide when». Con un kilómetro puesto, este hombre guarda su intento para
+   * ahí; en blanco, decide su mentalidad como hasta ahora.
+   */
+  triggerKm?: number | null
   contestSprints: boolean
   contestClimbs: boolean
 }

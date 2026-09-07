@@ -302,6 +302,11 @@ export async function runOneStage(
       ? {
           role: o.role,
           mentality: o.mentality,
+          // …Y EL ESFUERZO Y EL KILÓMETRO DEL ATAQUE (v58). El jugador los rellenaba, la base los
+          // guardaba y AQUÍ se tiraban: el contrato del motor no los tenía, así que dos de las cinco
+          // palancas de la pantalla de órdenes no llegaban a la carretera.
+          effort: o.effort,
+          triggerKm: o.triggerKm,
           contestSprints: o.contestSprints,
           contestClimbs: o.contestClimbs,
           ...(o.targetRiderId ? { targetRiderId: o.targetRiderId } : {}),
