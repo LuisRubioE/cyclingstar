@@ -10095,3 +10095,27 @@ Comprobado después sobre el camino de verdad, `generateNpcRider`, con los mismo
 | 15        |         61,8 |         58,7 |   +3,1 |
 
 El listón pide un punto, que es la diferencia entre «enseña poco» y «no enseña». Un guardarraíl que se cae solo porque cambia el punto de partida no vigila lo que dice vigilar.
+
+### El único rojo que quedó, y por qué era del listón y no del motor
+
+El banco completo de la v58 salió con **un fallo de 717**: `race-white-roads` —Strade Bianche, la de grava— pasaba el techo de saturación del depósito, 0,952 contra 0,950.
+
+Antes de tocar nada se midió lo mismo en `main`, sin una sola línea de esta tanda:
+
+|                   | 3 semillas | 8 semillas |
+| ----------------- | ---------: | ---------: |
+| main (sin la v58) |      0,947 |      0,945 |
+| v58               |  **0,952** |      0,948 |
+
+**Main ya pasaba por tres milésimas.** La v58 aporta otras tres, y eso es menos de lo que el número se mueve solo: semilla a semilla el vaciado de esa carrera va de **0,932 a 0,962**, y la mediana de tres semillas —que es lo que el bucle mide— salta entre 0,938 y 0,952 según qué tres le toquen.
+
+```
+semillas:  0.944 0.948 0.962 0.948 0.952 0.933 0.938 0.946 0.935 0.940 0.942 0.932 0.946 0.938 0.947
+medianas de tres:  0.948 · 0.948 · 0.938 · 0.940 · 0.946
+```
+
+La nube es **seis veces más ancha que el margen** que dejaba el listón. Es V1 otra vez —«la banda sentada encima de su suelo»— y el mismo caso que `mountain.top10GapSeconds` en esta misma tanda.
+
+También se descartó lo primero que uno piensa, que fuera el campo más flojo de la nueva generación de bots: el vaciado de white-roads da **0,952 exactamente igual con media 78, 75, 74, 73, 72 y 71**, porque este escenario corre con el campo sintético uniforme y no pasa por `generateNpcRider`. Y Lombardia, el peor caso histórico, **baja** de 0,908 a 0,894.
+
+El dueño eligió **subir el techo de 0,95 a 0,96**, que deja el listón por encima de la nube de la mediana (peor medida 0,952) con ocho milésimas. No cubre la peor semilla suelta —0,962— y no tiene por qué: lo que se comprueba es la mediana. La otra mitad de la alarma no se movió: las pájaras siguen pidiéndose marginales y white-roads está al 9-11 % contra un techo de 12, o sea que el tanque a cero sigue siendo la excepción.

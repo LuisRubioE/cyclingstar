@@ -47,10 +47,35 @@ const flat: Block = { tipo: 'llano', g: 0, estrellas: 0 }
 /**
  * Umbrales de SATURACIÓN del depósito. Con RES 60 el umbral de erosión queda en 0,31, así que el
  * techo de erosión de 0,92 se alcanza con un vaciado de 0,945: por encima de eso el modelo ya no
- * puede expresar más degradación y deja de discriminar. Se deja un pelo de margen (0,95) y se pide
- * además que las pájaras sean marginales.
+ * puede expresar más degradación y deja de discriminar.
+ *
+ * EL TECHO SUBE DE 0,95 A 0,96 EN LA v58, Y NO PARA QUE PASE UN NÚMERO: porque a 0,95 este
+ * guardarraíl era una moneda al aire sobre la carrera más dura del calendario, y lo era ANTES de
+ * esta tanda. Medido sobre `race-white-roads` (Strade Bianche), que es la que lo dispara:
+ *
+ * |                        | 3 semillas | 8 semillas |
+ * | ---------------------- | ---------: | ---------: |
+ * | main (sin la v58)      |      0,947 |      0,945 |
+ * | v58                    |  **0,952** |      0,948 |
+ *
+ * O sea que main ya pasaba por TRES MILÉSIMAS y la v58 aporta otras tres —menos de lo que el
+ * número se mueve solo—. Semilla a semilla el vaciado va de **0,932 a 0,962**, y la mediana de tres
+ * semillas, que es lo que este bucle mide, salta entre 0,938 y 0,952 según qué tres toquen: la nube
+ * es seis veces más ancha que el margen que dejaba el listón.
+ *
+ * Es el defecto que este repositorio ya tiene con nombre —V1, «la banda sentada encima de su
+ * suelo»— y el mismo caso que `mountain.top10GapSeconds` unas líneas más abajo en esta misma tanda.
+ * Un techo tiene que cazar que el depósito deje de discriminar; no arbitrar de qué lado de su
+ * propio ruido cae la mediana de tres carreras.
+ *
+ * A 0,96 el listón queda por encima de la nube de la MEDIANA (peor medida: 0,952) con ocho
+ * milésimas de margen. No cubre el peor valor de una semilla suelta (0,962), y no tiene por qué:
+ * lo que se comprueba es la mediana, no la peor carrera de un campeonato.
+ *
+ * Y la otra mitad de la alarma no se toca: las pájaras siguen pidiéndose marginales, y ahí
+ * white-roads está al 9-11 % contra el 12 %, o sea que el tanque a cero sigue siendo la excepción.
  */
-const SATURATION_DEPLETION = 0.95
+const SATURATION_DEPLETION = 0.96
 /**
  * ENSANCHADO PROVISIONALMENTE EN LA v33 (10 -> 12), y NO se estrecha en la v34 porque la medida no
  * lo permite: este bucle corre **3 semillas por clásica** (unos 120 corredores), y sobre Il
