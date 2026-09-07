@@ -111,6 +111,11 @@ function motiveLabel(motivo: string, para: string | null): string | undefined {
       return para ? `lead-out for ${para}` : 'lead-out for his sprinter'
     case 'fuga':
       return 'working the break'
+    case 'persecucion':
+      // v58: ir por delante del grueso no es ir escapado. El dueño, viendo el grupo del maillot ir
+      // a por un escapado: «esto no es una escapada, es el grupo del maillot intentando alcanzar
+      // al segundo». Aquí se dice lo que es: van a por alguien.
+      return para ? `chasing ${para} up the road` : 'chasing the man up the road'
     case 'grupeto':
       return 'just riding — this group is chasing nothing'
     case 'equipo_etapa':

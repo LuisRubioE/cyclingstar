@@ -1169,6 +1169,26 @@ function chronicleTemplate(e: ChronicleEntry): string {
             : `${quien} is left to fend for himself${hueco}.`
       }
     }
+    case 'group_overtake': {
+      /**
+       * UN GRUPO PASA A OTRO EN EL PUERTO (v58). En el llano, alcanzar es juntarse, y por eso el
+       * motor los funde (v56). En una rampa no: el que sube más fuerte pasa y deja. Eso pasaba
+       * —medido, diecinueve veces en un Giro— y no se contaba, así que el lector veía a tres
+       * delante y al kilómetro siguiente detrás, sin una línea que se lo explicara.
+       */
+      const size = Number(e.datos?.size ?? e.protagonists.length)
+      const pasados = Number(e.datos?.pasados ?? 0)
+      const gap = Number(e.datos?.gapS ?? 0)
+      const enLaSubida = e.datos?.terreno === 'puerto'
+      const donde = enLaSubida ? 'on the climb' : 'on the descent'
+      const suyos = size === 1 ? who || 'A rider' : `${size} riders`
+      const otros = pasados === 1 ? 'a lone rider' : `a group of ${pasados}`
+      return pick([
+        `${suyos} come past ${otros} ${donde} and ride away, ${gap}s clear.`,
+        `${suyos} catch and pass ${otros} ${donde} — no waiting, ${gap}s in hand already.`,
+        `${otros} ${pasados === 1 ? 'is' : 'are'} swallowed and spat out ${donde}: ${suyos} go straight through, ${gap}s up the road.`,
+      ])
+    }
     case 'peloton_regroup': {
       // El reagrupamiento (v8). Existía en el modelo desde siempre y no se narraba nunca: la crónica
       // dejaba «about 51 left in front» y en meta llegaban más de cien juntos, sin nada que lo

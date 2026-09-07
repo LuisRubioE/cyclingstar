@@ -715,7 +715,7 @@
  * Campaña canónica de 500 corridas: **los 33 invariantes en verde**. La contrarreloj no se mueve ni
  * un dígito —es el ancla del esfuerzo individual y paga la ley lineal de siempre—.
  */
-export const ENGINE_VERSION = 51 as const
+export const ENGINE_VERSION = 52 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -1260,6 +1260,16 @@ export const STAGE = {
   // aquí al lado —`chaseBackSecondsPerKm` = 8 s/km, el boquete se cerraba solo— ya no existe: un
   // descolgado vuelve si su FÍSICA le da para volver (`droppedCommit`) y no porque una constante se
   // lo regale. Ver docs/balance.md, «v16».
+  /**
+   * LA PUERTA DEL REENGANCHE AL PELOTÓN (v58), aparte de `regroupGapSeconds`. Son dos preguntas
+   * distintas y estaban atadas al mismo número: cuánto hueco separa a dos grupos para el rescate y
+   * la narración (22 s), y con cuánto hueco se puede uno METER en el pelotón.
+   *
+   * La segunda tiene que ser pequeña porque el que entra adopta el reloj del grupo: entrar con
+   * veintidós segundos era comérselos de golpe. Cinco segundos es el mismo listón con el que dos
+   * grupos se consideran capturados (`captureGapSeconds`): estar en la fila.
+   */
+  rejoinGapSeconds: 5,
   regroupGapSeconds: 22,
   // …y ese umbral se estrecha según lo que esté apretando el pelotón: se escala por
   // `clamp((1 − c) / (1 − chaseBackShutTempo), chaseBackShutFloor, 1)`, así que a tempo de carretera
@@ -1761,6 +1771,24 @@ export const STAGE = {
    * abanico, donde no hay rueda detrás de la que esconderse.
    */
   relayRaceLeaderPenalty: 3,
+  /**
+   * CUÁNTA GENTE TIENE QUE HABER PARA CONTAR QUE UN GRUPO PASA A OTRO (v58), sumando los dos. Dos
+   * corredores sueltos que se intercambian el orden en una rampa no son una noticia de carrera; un
+   * grupo que alcanza a los restos de una fuga y les deja, sí. Tres es «al menos uno de los dos es
+   * un grupo».
+   */
+  overtakeNoticeMinRiders: 3,
+  /**
+   * …Y CADA CUÁNTOS KILÓMETROS puede repetirse el aviso para la MISMA pareja. Dos grupos que suben a
+   * ritmos parecidos se intercambian el orden varias veces —medido, tres cruces del mismo par entre
+   * el km 163 y el 167 de una etapa—, y eso es un pulso, no tres adelantamientos.
+   */
+  overtakeNoticeKmGap: 10,
+  /**
+   * …Y CUÁNTOS KILÓMETROS TIENE UN REBASE PARA CUAJAR (v58). Pasado ese margen sin abrir hueco, los
+   * dos grupos van a la par y no ha pasado nada que contar.
+   */
+  overtakeConfirmKm: 3,
   /**
    * CADA CUÁNTO SE VUELVE A MIRAR LA COOPERACIÓN DE UNA FUGA, en bloques. El dueño: «habría que
    * irlo midiendo a menudo… quizás no cada 100 metros, pero quizás cada km». Con `dx` = 50 m, veinte

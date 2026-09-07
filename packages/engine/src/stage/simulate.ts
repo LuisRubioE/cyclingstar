@@ -1267,6 +1267,22 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
   /** Todo el que ha pasado por la fuga del día: mientras uno siga escapado, la fuga no está cazada. */
   /** Jefes por los que ya se ha avisado de que nadie bajó: una vez por etapa y por hombre (v57). */
   const sinAyudaAvisado = new Set<string>()
+  /**
+   * EL ÚLTIMO KILÓMETRO EN QUE SE CONTÓ QUE UN GRUPO PASÓ A OTRO, por pareja (v58). Dos grupos que
+   * suben a ritmos parecidos pueden intercambiarse el orden varias veces en pocos kilómetros —el
+   * banco enseña tres cruces del mismo par entre el km 163 y el 167—, y eso es un pulso, no tres
+   * noticias. Se cuenta una vez y no se vuelve a contar hasta `overtakeNoticeKmGap` más adelante.
+   */
+  const adelantamientoAvisado = new Map<string, number>()
+  /**
+   * REBASES A MEDIAS (v58). Un cruce se ve en el bloque en que los dos relojes se igualan, y en ese
+   * instante el hueco es CERO por definición: pedirle ahí los cinco segundos que separan a un
+   * adelantamiento de un pulso no funciona —la primera versión de esta regla midió 0 avisos en un
+   * Giro entero por eso—. Así que el cruce se APUNTA y se confirma unos kilómetros después: si el
+   * que pasó sigue delante y ha abierto de verdad, es un adelantamiento y se cuenta; si vuelven a
+   * cruzarse, era el pulso de dos grupos que suben a la par y no se cuenta nada.
+   */
+  const rebasesPendientes = new Map<string, { pasa: string; pasado: string; km: number }>()
   const dayBreakEver = new Set<string>()
   /** ¿Se la comió el pelotón, o se deshizo sola por el camino? No es el mismo desenlace. */
   let dayBreakSwallowed = false
@@ -1583,6 +1599,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
   let frontTeamId: string | null = null
   const restStance: TeamSituation = {
     manUpTheRoad: false,
+    leaderUpTheRoad: false,
     kmToGo: totalKm,
     frontThreatDeficit: null,
     // Antes de que empiece la carrera no hay nada delante que cazar.
@@ -1673,6 +1690,24 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
     relojAntes.set(peloton.id, peloton.tS)
     for (const mv of moves) relojAntes.set(mv.g.id, mv.g.tS)
     for (const sg of shed) relojAntes.set(sg.id, sg.tS)
+    /**
+     * …Y EN QUÉ GRUPO EMPEZÓ EL BLOQUE CADA UNO (v58). El turno de relevos se decide al principio
+     * del bloque, con cada corredor en su grupo; las fusiones ocurren DESPUÉS, en el mismo bloque.
+     * Así que el que se reengancha llegaba al grupo nuevo con la etiqueta del viejo puesta.
+     *
+     * El dueño lo cazó en la foto más absurda posible: «en el grupo de cabeza hay unos *just
+     * riding — this group is chasing nothing*… ¡pero si es el grupo de cabeza donde está el
+     * líder!». No era el grupo: eran cinco hombres recién absorbidos que seguían enseñando el
+     * motivo del grupeto del que venían.
+     *
+     * Es la simétrica de lo que `dropOut` ya hacía por el otro lado —«el que acaba de soltarse no
+     * está relevando»—: el que acaba de LLEGAR tampoco. En la foto entra a rueda, que es como se
+     * entra en un grupo.
+     */
+    const grupoAntes = new Map<string, string>()
+    for (const m of sims.values()) {
+      if (m.abandonedKm === null && m.finishTs === null) grupoAntes.set(m.input.riderId, m.groupId)
+    }
     const km = kmAt(i)
     // El principio de esta bajada: se marca al ENTRAR, no en cada bloque de ella (v57).
     if (block.tipo === 'descenso' && tipoBloquePrevio !== 'descenso') descentStartKm = km
@@ -1838,10 +1873,15 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
             cartas.length > 0
               ? cartas.some((id) => inMove.has(id) && !rebels.has(id))
               : plan.memberIds.some((id) => inMove.has(id) && !rebels.has(id))
+          // …y si el que va delante es EL HOMBRE DE LA GENERAL (v58): el equipo del maillot es la
+          // única excepción a apartarse, y esa excepción no vale cuando el de delante es su jefe.
+          const leaderUpTheRoad =
+            plan.leaderId != null && inMove.has(plan.leaderId) && !rebels.has(plan.leaderId)
           teamNow.set(
             plan.teamId,
             teamStance(plan, {
               manUpTheRoad,
+              leaderUpTheRoad,
               kmToGo: kmRestantes,
               frontThreatDeficit,
               // EL BOQUETE DE HOY (v38): la postura se decide mirando la carretera, no solo la
@@ -2812,21 +2852,60 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
      * «Salvo que vaya solo» sale gratis: `relayTurn` garantiza que siempre tire alguien, así que un
      * escapado en solitario da la cara igual por mucho que su jefe se haya quedado.
      */
+    /**
+     * …Y ESO NO ES UN CASO DE ESQUINA NI SOLO DE LA FUGA (v58).
+     *
+     * El dueño, en el km 149 de la etapa 20: «mucho más grave ahora… el líder se ha quedado atrás y
+     * entonces delante están tirando sus 2 compañeros. ¿No se han enterado de que su líder se ha
+     * quedado atrás?». Y no, no se enteraban, por dos motivos que estaban escritos aquí:
+     *
+     * - **el jefe tenía que ir en un `shed`** y a más de `regroupGapSeconds` (22 s). En la foto del
+     *   dueño iba a TRES segundos, en un grupeto recién abierto: para esta cuenta no se había
+     *   quedado atrás. Pero tres segundos por detrás es por detrás, y sus hombres estaban tirando
+     *   del grupo que se los sacaba.
+     * - **y solo contaba fuera del pelotón** (`!isBunch` en la llamada a `relayTurn`). O sea que en
+     *   el grupo principal —justo donde estaban los dos gregarios de la foto— la regla no existía.
+     *
+     * La regla queda así: si el hombre de la general de tu equipo sigue en carrera y va POR DETRÁS
+     * de tu grupo **a más de un grupo de distancia** (`regroupGapSeconds`), tú no das relevos aquí,
+     * vayas en el pelotón o donde vayas. Lo que estarías haciendo es abrirle el hueco a tu jefe.
+     *
+     * El umbral SÍ se queda, y esta es la parte que hubo que medir dos veces: sin él —«si no está en
+     * mi grupo, no tiro»— la huella sellada de la llana canónica se iba **387 segundos**, porque en
+     * un pelotón de ciento setenta y seis siempre hay alguien tres segundos por detrás y el turno se
+     * vaciaba entero. Tres segundos no son un jefe descolgado: son la misma fila estirada, y el que
+     * está ahí vuelve solo. Veintidós segundos es la distancia con la que el motor considera que dos
+     * grupos son dos grupos, y es la que vale también aquí.
+     *
+     * Que baje alguien a por él lo decide la regla de rescate (v36) unas líneas más arriba; ésta
+     * solo dice que los que se quedan delante no trabajan.
+     */
     const jefeEnApuros = new Set<string>()
-    for (const plan of teamPlans.values()) {
-      const leaderId = plan.leaderId
-      if (leaderId == null) continue
-      const jefe = sims.get(leaderId)
-      if (!jefe || jefe.finishTs !== null || jefe.abandonedKm !== null) continue
-      const suGrupo = shed.find((g) => g.id === jefe.groupId)
-      if (!suGrupo) continue
-      const gap = suGrupo.tS - peloton.tS
-      if (gap < STAGE.regroupGapSeconds || gap > STAGE.helpBackMaxGapSeconds) continue
-      // …y el que ya está CON él no cuenta: ése ha bajado a ayudarle y tira, que es a lo que fue.
-      for (const id of plan.memberIds) {
-        if (id === leaderId) continue
-        const m = sims.get(id)
-        if (m && m.groupId !== jefe.groupId) jefeEnApuros.add(id)
+    {
+      const relojDe = new Map<string, number>([[PELOTON, peloton.tS]])
+      for (const mv of moves) relojDe.set(mv.g.id, mv.g.tS)
+      for (const sg of shed) relojDe.set(sg.id, sg.tS)
+      for (const plan of teamPlans.values()) {
+        // …Y ES EL HOMBRE DE LA GENERAL, no cualquier jefe de filas. En una llana sin general
+        // `leaderId` es simplemente el mejor del equipo para ese final, y «mi hombre se ha quedado»
+        // no es motivo para dejar de trabajar: la etapa sigue ahí para el resto. Medido, sin este
+        // filtro la huella sellada de la llana canónica se movía sola.
+        if (!plan.purposes.includes('maillot') && !plan.purposes.includes('general')) continue
+        const leaderId = plan.leaderId
+        if (leaderId == null) continue
+        const jefe = sims.get(leaderId)
+        if (!jefe || jefe.finishTs !== null || jefe.abandonedKm !== null) continue
+        const relojJefe = relojDe.get(jefe.groupId)
+        if (relojJefe === undefined) continue
+        // …y el que ya está CON él no cuenta: ése ha bajado a ayudarle y tira, que es a lo que fue.
+        for (const id of plan.memberIds) {
+          if (id === leaderId) continue
+          const m = sims.get(id)
+          if (!m || m.groupId === jefe.groupId) continue
+          const relojSuyo = relojDe.get(m.groupId)
+          if (relojSuyo === undefined) continue
+          if (relojJefe - relojSuyo >= STAGE.regroupGapSeconds) jefeEnApuros.add(id)
+        }
       }
     }
 
@@ -2975,8 +3054,10 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         (riderId) => (isBunch ? driveOfRider(riderId) : 0),
         (riderId) =>
           (!isBunch && frontTeamId !== null && teamOf.get(riderId) === frontTeamId) ||
-          // …o su jefe se ha quedado atrás (v37): en la fuga ya no tira, pero no se le manda atrás.
-          (!isBunch && jefeEnApuros.has(riderId)) ||
+          // …o su jefe se ha quedado atrás (v37): ya no tira, pero no se le manda atrás. Y desde la
+          // v58 también EN EL PELOTÓN, que es donde el dueño lo vio: dos gregarios tirando del grupo
+          // principal mientras su maillot rodaba tres segundos por detrás.
+          jefeEnApuros.has(riderId) ||
           // …o tiene a uno de los suyos POR DELANTE y esto es un grupo de caza (v41): no se persigue
           // lo propio, que es la otra mitad de la regla de la v33.
           (kind === 'move' && tieneHombreDelante(riderId, group.tS)),
@@ -3134,16 +3215,64 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
           const suJefe = lanzaPara.get(m.input.riderId)
           if (suJefe != null && idSet.has(suJefe)) return { motivo: 'tren', para: suJefe }
         }
-        // Fuera del grueso de la carrera no hay plan de equipo que valga (`driveOfRider` se anula
-        // arriba para todo grupo que no sea el pelotón): o vas delante y colaboras en lo tuyo, o
-        // vas detrás y ruedas por rodar. Y esa segunda es LA RESPUESTA a la pregunta del dueño.
-        if (!isBunch) return { motivo: group.tS < relojPrincipal ? 'fuga' : 'grupeto', para: null }
-        if (driveOfRider(m.input.riderId) > 0) {
-          const suEquipo = rebels.has(m.input.riderId)
+        // Por DETRÁS del grueso no hay plan de equipo que valga: se rueda por rodar, y ésa es LA
+        // RESPUESTA a la pregunta del dueño de la v47 («¿para qué carajos tiran si en ese grupo no
+        // está su líder?»). Va antes que todo lo demás para que siga siendo verdad.
+        if (!isBunch && group.tS >= relojPrincipal) return { motivo: 'grupeto', para: null }
+        const suEquipo = rebels.has(m.input.riderId) ? null : (teamOf.get(m.input.riderId) ?? null)
+        const plan = suEquipo != null ? teamPlans.get(suEquipo) : undefined
+        const proposito = purposeOfTeam(suEquipo)
+        /**
+         * SI SU HOMBRE VA EN ESTE GRUPO, TIRA POR ÉL — LO DIGA EL PRESUPUESTO O NO (v58).
+         *
+         * El dueño, cuando el pelotón alcanzó al grupo del maillot: «ahora siguen tirando los
+         * compañeros del líder, bien hecho… pero ahora dice *his job in the team*, **lo cual es como
+         * no decir nada**».
+         *
+         * Y era literal: `rol` es el cajón de sastre al que cae el que tira sin que su equipo le
+         * esté empujando, y el empuje se apaga en cuanto el equipo gasta su presupuesto del día
+         * (`teamSpent`). O sea que justo cuando un equipo lleva media etapa al frente por su jefe
+         * —el caso en que la evidencia más se necesita— el motivo se quedaba mudo.
+         *
+         * El presupuesto explica CUÁNTA gente pone un equipo delante, no POR QUIÉN. Si el hombre
+         * del plan va en este mismo grupo y el que tira no es él, lo que se ve en carretera es un
+         * gregario dando la cara delante de su jefe, y eso es lo que dice la radio. Vale también en
+         * el grupo de caza —donde `driveOfRider` es 0 por definición—, que es donde el dueño vio a
+         * once hombres «working the break» en un grupo que no era ninguna fuga.
+         */
+        const cartaAquí =
+          plan == null
             ? null
-            : (teamOf.get(m.input.riderId) ?? null)
-          const plan = suEquipo != null ? teamPlans.get(suEquipo) : undefined
-          switch (purposeOfTeam(suEquipo)) {
+            : proposito === 'etapa'
+              ? plan.stageCandidateId
+              : (plan.leaderId ?? plan.stageCandidateId)
+        if (cartaAquí != null && cartaAquí !== m.input.riderId && idSet.has(cartaAquí)) {
+          switch (proposito) {
+            case 'maillot':
+              return { motivo: 'equipo_maillot', para: cartaAquí }
+            case 'general':
+              return { motivo: 'equipo_general', para: cartaAquí }
+            case 'etapa':
+              return { motivo: 'equipo_etapa', para: cartaAquí }
+          }
+        }
+        /**
+         * …Y UN GRUPO QUE PERSIGUE NO ES UNA FUGA (v58). Fuera del pelotón solo había dos etiquetas
+         * —vas delante, «fuga»; vas detrás, «grupeto»— y con eso el grupo del maillot persiguiendo a
+         * un escapado salía con once hombres «working the break». El dueño: «esto no es una escapada,
+         * es el grupo del maillot amarillo intentando alcanzar al segundo».
+         *
+         * Son dos cosas distintas y la carretera las distingue sola: eres cabeza de carrera, o
+         * tienes a alguien delante al que ir a buscar.
+         */
+        if (!isBunch) {
+          const hayAlguienDelante =
+            moves.some((mv) => mv.g.id !== group.id && mv.g.tS < group.tS) ||
+            shed.some((sg) => sg.id !== group.id && sg.tS < group.tS)
+          return { motivo: hayAlguienDelante ? 'persecucion' : 'fuga', para: null }
+        }
+        if (driveOfRider(m.input.riderId) > 0) {
+          switch (proposito) {
             case 'maillot':
               return { motivo: 'equipo_maillot', para: plan?.leaderId ?? null }
             case 'general':
@@ -4866,7 +4995,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
          * se queda donde está, que es en la carrera.
          */
         const caught =
-          !onRough && sg.tS <= peloton.tS && peloton.tS - sg.tS <= STAGE.regroupGapSeconds
+          !onRough && sg.tS <= peloton.tS && peloton.tS - sg.tS <= STAGE.rejoinGapSeconds
         /**
          * …Y LA PUERTA NO ABSORBE (v35). Hasta la v34 bastaba con ESTAR a menos de 22 s: un grupo
          * que rodaba a la misma velocidad que el pelotón —o incluso perdiendo una décima por
@@ -4882,11 +5011,30 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
          * número sigue teniendo su puerta de par en par —lo que no tiene es un remolque gratis—.
          */
         const cerrando = sg.vActual > peloton.vActual
+        /**
+         * …Y ENTRAR ES ESTAR EN LA FILA, NO A VEINTE SEGUNDOS (v58).
+         *
+         * El corredor que entra en un grupo adopta el reloj de ese grupo —así está construido el
+         * modelo— así que la puerta del pelotón era también un REGALO: el que entraba con veintidós
+         * segundos de hueco se los comía de golpe. Dos cosas que el dueño vio el mismo día salían de
+         * aquí: «¿qué me dices de este tercer grupo que va a 94 km/h?» —la radio mide la velocidad
+         * por la diferencia de relojes, y un reloj que salta hacia atrás da un número absurdo— y
+         * «los que pierden en montaña cinco minutos luego se reintegran demasiado fácil».
+         *
+         * Medido sobre un Giro entero buscando kilómetros hechos a más de 120 km/h: **todos** eran
+         * `shed-N -> peloton`, ninguno de otro sitio, con el peor caso justo en los 22 s de la
+         * puerta. Así que la puerta se estrecha a `rejoinGapSeconds`: volver es ponerse EN la fila.
+         * Los veintidós segundos siguen siendo lo que separa a un grupo de otro para todo lo demás
+         * (el rescate del jefe, el aviso de reagrupamiento); lo que ya no son es un atajo.
+         *
+         * El AUTOBÚS que triplica en número sigue teniendo su puerta más ancha (`shutFor`): no es un
+         * regalo de reloj, es que setenta hombres organizados vuelven donde diez no.
+         */
         if (
           caught ||
           (!onRough &&
             cerrando &&
-            gapSeconds(peloton, sg) <= STAGE.regroupGapSeconds * shutFor(mem.length))
+            gapSeconds(peloton, sg) <= STAGE.rejoinGapSeconds * shutFor(mem.length))
         ) {
           for (const m of mem) m.groupId = PELOTON
           peloton = { ...peloton, riderIds: [...peloton.riderIds, ...sg.riderIds] }
@@ -4942,6 +5090,61 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
           .map((m) => ({ g: m.g, esMove: true })),
         ...shed.filter((sg) => membersOf(sg.id).length > 0).map((sg) => ({ g: sg, esMove: false })),
       ]
+      /**
+       * PRIMERO, LOS REBASES QUE ESTABAN A MEDIAS (v58). Un grupo que pasa a otro en una rampa no se
+       * fusiona con él —ahí la carretera no perdona: el que sube más fuerte pasa y deja—, pero eso
+       * es una noticia de carrera y se contaba en silencio. El cruce se apuntó cuando los relojes se
+       * igualaron; aquí se mira si cuajó.
+       */
+      {
+        const relojVivo = new Map<string, number>()
+        for (const mv of moves) {
+          if (!mv.closed && membersOf(mv.g.id).length > 0) relojVivo.set(mv.g.id, mv.g.tS)
+        }
+        for (const sg of shed) {
+          if (membersOf(sg.id).length > 0) relojVivo.set(sg.id, sg.tS)
+        }
+        for (const [clave, p] of [...rebasesPendientes]) {
+          const relojPasa = relojVivo.get(p.pasa)
+          const relojPasado = relojVivo.get(p.pasado)
+          // Uno de los dos ya no existe —se fundió, se lo comió el pelotón, se quedó vacío—: la
+          // historia la cuenta otra regla y ésta se calla.
+          if (relojPasa === undefined || relojPasado === undefined) {
+            rebasesPendientes.delete(clave)
+            continue
+          }
+          // Le han vuelto a pasar: era el pulso de dos grupos que suben a la par, no un rebase.
+          if (relojPasa >= relojPasado) {
+            rebasesPendientes.delete(clave)
+            continue
+          }
+          const hueco = relojPasado - relojPasa
+          if (hueco < STAGE.captureGapSeconds) {
+            // Sigue a la par. Se le da un margen de carretera y, si no abre, no era nada.
+            if (km - p.km > STAGE.overtakeConfirmKm) rebasesPendientes.delete(clave)
+            continue
+          }
+          const quePasa = membersOf(p.pasa)
+          const quePasan = membersOf(p.pasado)
+          rebasesPendientes.delete(clave)
+          if (quePasa.length + quePasan.length < STAGE.overtakeNoticeMinRiders) continue
+          adelantamientoAvisado.set(clave, km)
+          log.emit(
+            km,
+            relojPasa,
+            'adelantamiento',
+            'group_overtake',
+            quePasa.slice(0, 3).map((m) => m.input.riderId),
+            {
+              size: quePasa.length,
+              pasados: quePasan.length,
+              gapS: Math.round(hueco),
+              terreno: block.tipo,
+              toGo: Math.round(totalKm - km),
+            },
+          )
+        }
+      }
       // De delante hacia atrás POR EL ORDEN DE ANTES: el que absorbe es el que iba delante.
       const antesDe = (g: Group): number => relojAntes.get(g.id) ?? g.tS
       vivos.sort((a, b) => antesDe(a.g) - antesDe(b.g))
@@ -4975,7 +5178,43 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
            * sin juntarse. Arreglarlo pide que la criba actúe dentro del mismo bloque en que se
            * fusiona, y eso es otra tanda con su propia medición.
            */
-          if (onRough || detras.g.tS > delante.g.tS) continue
+          /**
+           * …Y CUANDO SÍ SE ATRAVIESAN, SE CUENTA (v58).
+           *
+           * El límite que la v56 dejó anotado —«en un puerto dos grupos todavía pueden cruzarse sin
+           * juntarse»— se midió entero antes de tocarlo: 22 cruces en un Giro, **19 en puerto, 2 en
+           * descenso y 1 en llano con viento**. Y leídos uno a uno, casi todos son la carretera
+           * haciendo lo suyo: un grupo que sube más fuerte alcanza a un descolgado, le pasa y le
+           * deja —el banco tiene el caso de libro, un hombre solo al que un grupo de catorce pasa y
+           * le saca 35 s en un kilómetro—. Eso no es un adelantamiento fantasma: es un
+           * adelantamiento. Lo que en el llano es «te han cogido y vas con ellos», en una rampa es
+           * «te han pasado», y el motor tenía razón en no fusionarlos.
+           *
+           * Lo que faltaba no era física, era la línea: el lector veía tres delante y al kilómetro
+           * siguiente tres detrás, sin que nadie se lo contara. Por eso aquí no se fusiona nada y se
+           * emite el paso, con los dos tamaños y el hueco que abre.
+           *
+           * Y NO SE CUENTA TODO: dos grupos separados por un segundo que se intercambian el orden
+           * son el mismo pulso de la carretera, no una noticia. Se pide que el que pasa saque de
+           * verdad al pasado (`captureGapSeconds`, el mismo listón con el que dos grupos se
+           * consideran juntos) y que entre los dos haya gente suficiente para que la radio lo
+           * enseñe.
+           */
+          if (onRough || detras.g.tS > delante.g.tS) {
+            // El cruce EN EL PUERTO se apunta para confirmarlo más adelante (ver `rebasesPendientes`
+            // y el bloque que los resuelve, unas líneas más arriba).
+            if (onRough && detras.g.tS < delante.g.tS) {
+              const clave = `${detras.g.id}>${delante.g.id}`
+              const ultimo = adelantamientoAvisado.get(clave)
+              if (
+                !rebasesPendientes.has(clave) &&
+                (ultimo === undefined || km - ultimo >= STAGE.overtakeNoticeKmGap)
+              ) {
+                rebasesPendientes.set(clave, { pasa: detras.g.id, pasado: delante.g.id, km })
+              }
+            }
+            continue
+          }
           const mem = membersOf(detras.g.id)
           if (mem.length === 0) continue
           for (const m of mem) m.groupId = delante.g.id
@@ -5468,6 +5707,16 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
      * descolgado, quién ha vuelto y qué reloj lleva cada grupo. Es lo que le faltaba al banco para
      * poder mirar DENTRO de un puerto —el orden al pie y el orden en la cima— sin suponer nada.
      */
+    // EL QUE HA CAMBIADO DE GRUPO EN ESTE BLOQUE NO ESTÁ RELEVANDO EN EL NUEVO (v58): ver
+    // `grupoAntes`. Va antes de la foto porque es justo la foto la que lo enseñaba mal.
+    for (const m of sims.values()) {
+      if (m.abandonedKm !== null) continue
+      const antes = grupoAntes.get(m.input.riderId)
+      if (antes === undefined || antes === m.groupId) continue
+      m.pulling = false
+      m.pullMotive = null
+      m.pullFor = null
+    }
     if (probe && probeAt.has(i)) {
       const clocks = new Map<string, number>([[PELOTON, peloton.tS]])
       for (const m of moves) clocks.set(m.g.id, m.g.tS)

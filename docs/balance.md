@@ -9441,6 +9441,68 @@ No dice que el reparto de roles del pelotón esté bien. Que el 70 % del campo s
 pregunta —un equipo de ocho en una llana lleva un velocista, su tren de dos o tres, y el resto—, y
 este banco la deja a la vista sin contestarla.
 
+## v58 — Siete cosas que el dueño vio en una tarde, y la aritmética de los reenganches
+
+`ENGINE_VERSION` 51 → 52. Toda la tanda sale de una sesión del dueño leyendo la etapa 20 del Race Italy en la radio de carrera, foto a foto. No hay ninguna regla nueva inventada aquí: son reglas que ya existían y no llegaban donde tenían que llegar.
+
+### 1. El equipo del maillot perseguía a su propio maillot
+
+> «hay un pelotón en el que va tirando el equipo del líder… pero el líder va delante, en el grupo de caza, y el equipo dice que tira para defender el jersey. ¡Pero el que tiene el jersey no está en ese grupo!»
+
+«No se persigue lo que lleva a un compañero dentro» tiene una excepción escrita: el equipo del maillot, que tiene que controlar el boquete aunque el que se haya ido sea suyo. Correcta cuando el maillot va en el pelotón y el que se escapa es un gregario suyo; absurda cuando **el que va delante es el maillot en persona**. El equipo se quedaba «defendiendo el jersey» desde tres minutos por detrás del hombre que lo lleva.
+
+### 2. «Working the break» en un grupo que no era ninguna fuga
+
+> «de estos 42 van tirando 11 que dice _working the break_, pero esto no es una escapada, es el grupo del maillot amarillo intentando alcanzar al segundo»
+
+Fuera del pelotón solo había dos etiquetas: vas delante, `fuga`; vas detrás, `grupeto`. Faltaba la tercera, que es la que describe la mitad de las fotos de una etapa rota: vas por delante del grueso **con alguien delante al que ir a buscar**. Eso es `persecucion`, y la radio dice a quién se persigue.
+
+### 3. «His job in the team», que es como no decir nada
+
+El motivo `rol` es el cajón de sastre del que tira sin que su equipo le empuje, y el empuje se apaga cuando el equipo gasta su presupuesto del día. O sea que justo cuando un equipo lleva media etapa al frente por su jefe —cuando la evidencia más se necesita— el motivo se quedaba mudo. El presupuesto explica CUÁNTA gente pone un equipo delante, no POR QUIÉN: si el hombre del plan va en el mismo grupo, el motivo lo nombra.
+
+### 4. Los gregarios tirando delante con su jefe descolgado
+
+> «el líder se ha quedado atrás… y entonces delante están tirando sus 2 compañeros. ¿No se han enterado?»
+
+La regla existía desde la v37 y tenía dos condiciones que dejaban fuera justo esa foto: solo contaba **fuera del pelotón**, y solo si el jefe iba en un grupo de descolgados. Ahora vale en cualquier grupo.
+
+**El umbral de 22 s se queda, y eso lo decidió la medida**: probado sin umbral —«si mi jefe no está en mi grupo, no tiro»—, la huella sellada de la llana canónica se iba **387 segundos**, porque en un pelotón de ciento setenta y seis siempre hay alguien tres segundos por detrás y el turno se vaciaba entero. Y se acota al hombre de la GENERAL: en una llana sin general, `leaderId` es solo el mejor del equipo para ese final, y que se descuelgue no es motivo para dejar de correr la etapa.
+
+### 5. «Just riding» en el grupo de cabeza
+
+> «en el grupo de cabeza hay unos _just riding — this group is chasing nothing_… ¡pero si es el grupo de cabeza donde está el líder!»
+
+No era el grupo: eran cinco hombres recién absorbidos que llegaban con la etiqueta del grupeto del que venían. El turno de relevos se decide al principio del bloque y las fusiones ocurren después, en el mismo bloque. Es la simétrica de lo que `dropOut` ya hacía —«el que acaba de soltarse no está relevando»—: el que acaba de llegar, tampoco. Comprobado que **no mueve la huella**: es una etiqueta de la foto, no física.
+
+### 6. Los 94,9 km/h de un grupeto, y por qué se reintegraban tan fácil
+
+> «¿qué me dices de este tercer grupo que va a 94 km/h cuando están _just riding_?» · «los que pierden en montaña 5 minutos luego se reintegran demasiado fácil»
+
+Son la misma cosa. El corredor que entra en un grupo adopta el reloj de ese grupo, así que la puerta del pelotón (22 s) era también un REGALO: el que entraba con veintidós segundos se los comía de golpe, y la radio —que mide la velocidad por la diferencia de relojes— lo enseñaba como un número absurdo.
+
+**Medido** sobre un Giro entero buscando kilómetros hechos a más de 120 km/h, con el grupo de origen y el de destino de cada caso:
+
+| kilómetros imposibles en un Giro |                          antes |    después |
+| -------------------------------- | -----------------------------: | ---------: |
+| casos                            |                            192 |     **11** |
+| peor caso                        |                           23 s |          — |
+| de dónde salían                  | `shed-N -> peloton`, **todos** | ya ninguno |
+
+La puerta del reenganche pasa a tener su propia constante (`rejoinGapSeconds` = 5 s, el mismo listón con el que dos grupos se consideran capturados). Los 22 s siguen siendo lo que separa a un grupo de otro para todo lo demás —el rescate del jefe, el aviso de reagrupamiento—; lo que ya no son es un atajo.
+
+### 7. Y el límite de la v56, medido antes de tocarlo
+
+La v56 dejó anotado que «en un puerto dos grupos todavía pueden cruzarse sin juntarse». Medido: **22 cruces en un Giro, 19 en puerto, 2 en descenso y 1 en llano con viento**. Y leídos uno a uno, casi todos son la carretera haciendo lo suyo: un grupo que sube más fuerte alcanza a un descolgado, le pasa y le deja —el caso de libro del banco es un hombre solo al que un grupo de catorce pasa y le saca 35 s en un kilómetro—. Eso no es un adelantamiento fantasma: es un adelantamiento.
+
+Lo que faltaba no era física, era la línea. Ahora el paso se cuenta (`group_overtake`), con los dos tamaños y el hueco que abre: **24 avisos en un Giro**.
+
+Y un apunte de método, porque costó dos intentos: la primera versión pedía cinco segundos de hueco **en el instante del cruce** y midió CERO avisos en un Giro entero. Claro: en el instante del cruce el hueco es cero por definición. Un rebase se apunta cuando los relojes se igualan y se confirma unos kilómetros después; si vuelven a cruzarse, era el pulso de dos grupos que suben a la par y no se cuenta nada.
+
+### Lo que NO cambia, dicho para que nadie le pida a esta tanda lo que no da
+
+El hueco que el dueño vio abrirse de 3:02 a 0:29 en tres kilómetros **no es un defecto**: la propia radio enseña al escapado subiendo a 13,7 km/h y al grupo que le caza a 17,1, y esa diferencia son unos cincuenta segundos por kilómetro. Se comprobó antes de tocar nada.
+
 ## v57 — Ir por delante no es haber vuelto, y el maillot no da la cara al viento
 
 `ENGINE_VERSION` 50 → 51. Cuatro cosas que el dueño vio en la etapa 17 del Race Italy y en la 19, dichas por él y corregidas donde estaba la causa, no donde se veía el síntoma.

@@ -237,8 +237,14 @@ export type PullMotive =
   | 'abanico'
   /** Lanza a su velocista en el desenlace (`sprintTrainKm`). */
   | 'tren'
-  /** Colabora en un grupo que va POR DELANTE del grueso de la carrera. */
+  /** Colabora en un grupo que va POR DELANTE del grueso y es CABEZA DE CARRERA: no hay nadie más. */
   | 'fuga'
+  /**
+   * …y va por delante del grueso pero CON ALGUIEN DELANTE al que ir a buscar (v58). El dueño lo vio
+   * en el grupo del maillot: «de estos 42 van tirando 11 que dice *working the break*, pero esto no
+   * es una escapada, es el grupo del maillot intentando alcanzar al segundo».
+   */
+  | 'persecucion'
   /** Rueda en un grupo que va POR DETRÁS: no persigue nada, sobrevive el día. */
   | 'grupeto'
   /** Su equipo lleva el frente del pelotón porque tiene al favorito para ESTE final. */

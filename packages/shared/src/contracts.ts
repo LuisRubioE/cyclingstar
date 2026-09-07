@@ -1141,6 +1141,13 @@ export const pullMotiveSchema = z.enum([
   'abanico',
   'tren',
   'fuga',
+  /**
+   * …Y PERSEGUIR NO ES ESCAPARSE (v58). El dueño, viendo el grupo del maillot ir a por un escapado:
+   * «de estos 42 van tirando 11 que dice *working the break*, pero esto no es una escapada, es el
+   * grupo del maillot amarillo intentando alcanzar al segundo». Vas por delante del grueso, sí,
+   * pero con alguien delante al que ir a buscar.
+   */
+  'persecucion',
   'grupeto',
   'equipo_etapa',
   'equipo_maillot',

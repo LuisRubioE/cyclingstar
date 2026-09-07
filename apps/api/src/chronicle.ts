@@ -95,6 +95,9 @@ const EVENT_ORDER: Record<string, number> = {
   // noticia contada por su ausencia, y las dos nunca ocurren en el mismo kilómetro para el mismo
   // jefe. Sin esto, «no vino nadie» y «el motor no se enteró» se leían igual: en silencio.
   no_help_for_leader: 4,
+  // Un grupo que pasa a otro en el puerto (v58) va en el sitio del corte: es lo mismo —el orden de
+  // la carretera cambia— contado por la vía que en una rampa no es una fusión sino un rebase.
+  group_overtake: 4,
   // El parte de quién va en cabeza va DESPUÉS de lo que lo ha producido —el corte del grupo o la
   // captura de la fuga—: primero se cuenta qué ha pasado y luego quiénes han quedado delante.
   breakaway_caught: 5,
