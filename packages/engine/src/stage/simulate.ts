@@ -1625,6 +1625,16 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
   // --- Bucle principal (SPEC 6.16) --------------------------------------------------------
   for (let i = 0; i < n; i++) {
     const block = blocks[i]!
+    /**
+     * EL RELOJ DE CADA GRUPO ANTES DE QUE AVANCE NADIE (v56). Lo usa la fusión por alcance del final
+     * del bloque: «alcanzar» es una INVERSIÓN —ibas detrás y ahora vas delante—, y eso no se puede
+     * leer del estado de después, porque después el orden ya es el nuevo. Sin esta foto, la
+     * comprobación se hace sobre una lista ya ordenada y no detecta nada jamás.
+     */
+    const relojAntes = new Map<string, number>()
+    relojAntes.set(peloton.id, peloton.tS)
+    for (const mv of moves) relojAntes.set(mv.g.id, mv.g.tS)
+    for (const sg of shed) relojAntes.set(sg.id, sg.tS)
     const km = kmAt(i)
     const isFinal = n - i <= STAGE.finalBlocks
     /**
@@ -4747,6 +4757,94 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       }
       shed.length = 0
       shed.push(...stillDropped)
+    }
+
+    /**
+     * NO SE PUEDE ATRAVESAR UN GRUPO (v56).
+     *
+     * El dueño, mirando la etapa 16: «entre el km 108 y el 109 iban 3 en cabeza y un grupo de 16
+     * detrás… y de repente es al revés, justo esos 16 van por delante y los otros 3 por detrás. Eso
+     * es MUY inverosímil». Y tiene toda la razón: en la carretera, cuando alcanzas a un grupo te
+     * pones CON él. No lo cruzas.
+     *
+     * El motor sí sabía fusionar, pero solo en dos direcciones: un movimiento se caza **contra el
+     * pelotón** (`gap = peloton.tS - m.g.tS`, más abajo) y un descolgado se reengancha al pelotón o
+     * se funde con otro descolgado (justo aquí arriba). Faltaban las dos que el dueño vio:
+     *
+     * - un grupo PERSEGUIDOR que alcanza a una fuga —lo suyo—, y
+     * - una fuga que alcanza a otra fuga.
+     *
+     * En esas dos, los relojes se cruzaban y los dos grupos seguían existiendo por separado, así que
+     * en la radio se leía como un adelantamiento fantasma. Detectado mecánicamente sobre un Giro
+     * entero —dos grupos que se intercambian el orden de un kilómetro al siguiente sin fusionarse ni
+     * cambiar de tamaño—: **25 veces en 21 etapas**.
+     *
+     * QUIÉN ABSORBE A QUIÉN: manda el de delante. El que va en cabeza de carrera conserva su
+     * identidad —es la fuga, y la crónica lleva contando su historia— y el que llega se suma. Por
+     * eso el pelotón no entra aquí: cuando ES el pelotón el que alcanza, ya hay una regla suya que
+     * además narra el desenlace (`move_caught`), y pisarla dejaría la crónica sin ese arco.
+     *
+     * Y solo se fusiona por ALCANCE de verdad (el reloj llega o pasa), no por proximidad: los
+     * umbrales de reenganche están calibrados y esto no los toca. Lo único que prohíbe es cruzar.
+     */
+    {
+      const vivos: { g: Group; esMove: boolean }[] = [
+        ...moves
+          .filter((m) => !m.closed && membersOf(m.g.id).length > 0)
+          .map((m) => ({ g: m.g, esMove: true })),
+        ...shed.filter((sg) => membersOf(sg.id).length > 0).map((sg) => ({ g: sg, esMove: false })),
+      ]
+      // De delante hacia atrás POR EL ORDEN DE ANTES: el que absorbe es el que iba delante.
+      const antesDe = (g: Group): number => relojAntes.get(g.id) ?? g.tS
+      vivos.sort((a, b) => antesDe(a.g) - antesDe(b.g))
+      const absorbidos = new Set<string>()
+      for (let i = 0; i < vivos.length; i++) {
+        const delante = vivos[i]!
+        if (absorbidos.has(delante.g.id)) continue
+        for (let j = i + 1; j < vivos.length; j++) {
+          const detras = vivos[j]!
+          if (absorbidos.has(detras.g.id)) continue
+          // Iba por detrás de verdad (no es un grupo que acaba de nacer en este bloque).
+          if (!relojAntes.has(detras.g.id) || !relojAntes.has(delante.g.id)) continue
+          if (antesDe(detras.g) <= antesDe(delante.g)) continue
+          /**
+           * «Le ha alcanzado»: iba por detrás y ya no.
+           *
+           * Y NO EN TERRENO QUE ROMPE, igual que el reenganche al pelotón de aquí arriba. La primera
+           * versión de esta regla sí lo hacía, con un argumento que suena bien —«por un puerto
+           * tampoco se atraviesa a nadie»— y que **la medida refutó**: los invariantes cayeron por
+           * dos sitios a la vez. La fuga pasaba a ganar el 54,2 % de las etapas de montaña contra
+           * una banda de 25-45 (si nadie la alcanza de verdad, llega), y la etapa 9 del Giro dejaba
+           * de seleccionar: el grupo mayor en meta se iba al 47,2 % del pelotón contra un techo de
+           * 33, deshaciendo el arreglo de la v49.
+           *
+           * O sea que en la subida fusionar por contacto REHACE el pelotón, que es el ciclo «estalla
+           * y se rehace» contra el que este mismo motor avisa en `raceThisClimb`. Lo que en el llano
+           * es «te han cogido y vas con ellos», en una rampa es «te cogen y te vuelven a soltar en
+           * el mismo bloque», y el motor no representa ese ida y vuelta: lo representa como un grupo.
+           *
+           * Queda ANOTADO como límite, no resuelto: en un puerto dos grupos todavía pueden cruzarse
+           * sin juntarse. Arreglarlo pide que la criba actúe dentro del mismo bloque en que se
+           * fusiona, y eso es otra tanda con su propia medición.
+           */
+          if (onRough || detras.g.tS > delante.g.tS) continue
+          const mem = membersOf(detras.g.id)
+          if (mem.length === 0) continue
+          for (const m of mem) m.groupId = delante.g.id
+          delante.g.riderIds = [...delante.g.riderIds, ...detras.g.riderIds]
+          // El grupo resultante va al reloj del que iba delante: alcanzarle no adelanta a nadie.
+          delante.g.tS = Math.min(delante.g.tS, detras.g.tS)
+          detras.g.riderIds = []
+          absorbidos.add(detras.g.id)
+          const mv = moves.find((m) => m.g.id === detras.g.id)
+          if (mv) mv.closed = true
+        }
+      }
+      if (absorbidos.size > 0) {
+        for (let k = shed.length - 1; k >= 0; k--) {
+          if (absorbidos.has(shed[k]!.id)) shed.splice(k, 1)
+        }
+      }
     }
 
     // Caídas e incidentes (SPEC 6.14): en pavés, descensos y el embudo final. El caído pierde

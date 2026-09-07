@@ -241,7 +241,6 @@ function PlayerHome({ name }: { name: string }) {
         { label: 'Season points', value: summary.data.seasonPoints.toLocaleString('en-US') },
         { label: 'Money', value: summary.data.money.toLocaleString('en-US') },
         { label: 'Morale', value: `${Math.round(summary.data.morale)}%` },
-        { label: 'Fame', value: String(Math.round(summary.data.fame)) },
       ]
     : []
 

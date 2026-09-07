@@ -7,11 +7,11 @@ import {
   shouldRetire,
 } from '@cyclingstar/engine'
 import { ATTRIBUTES, VOCATIONS, type Vocation, riderAge, seededRng } from '@cyclingstar/shared'
-import { and, eq, isNotNull, isNull, lt, sql } from 'drizzle-orm'
+import { and, eq, inArray, isNotNull, isNull, lt, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import { generateName } from './names.js'
 import { emitNews } from './news.js'
-import { contracts, riderAttrs, riderHidden, riders, teams } from './schema.js'
+import { contracts, palmares, riderAttrs, riderHidden, riders, teams } from './schema.js'
 import { ROSTER_SIZE } from './world.js'
 
 /**
@@ -50,13 +50,29 @@ function pick<T>(arr: readonly T[], rng: () => number): T {
   return arr[Math.floor(rng() * arr.length)]!
 }
 
-/** Ascensos y descensos entre divisiones por fuerza de plantilla (suma de fama), contando estable. */
+/**
+ * ASCENSOS Y DESCENSOS POR LO QUE HA HECHO EL EQUIPO ESTA TEMPORADA (docs/epics.md «G4», v55).
+ *
+ * La maquinaria existía —dos suben y dos bajan por división, cada rollover— pero **se alimentaba de
+ * una columna vacía**: la fuerza era `sum(riders.fame)`, y `fame` no se escribe en NINGUNA parte del
+ * código. Es un `real DEFAULT 0` que nadie actualiza nunca desde que se creó (migración 0002). O sea
+ * que todos los equipos empataban a cero, el orden lo decidía el desempate del `sort` sobre valores
+ * iguales, y **quién ascendía y quién bajaba era arbitrario cada temporada**.
+ *
+ * Eso hacía verdad la queja del epic —«no hay consecuencia deportiva para un equipo que va mal o
+ * bien durante una temporada»— pero no por la razón que decía: no es que faltara el mecanismo, es
+ * que el mecanismo estaba conectado a un cable suelto.
+ *
+ * Ahora la fuerza son los PUNTOS DE LA TEMPORADA de sus corredores, que es el número que el jugador
+ * ya ve en la ficha del equipo (`browse.ts` lo calcula igual, sumando `seasonPoints` del roster) y
+ * el que de verdad se escribe al terminar cada etapa y cada general.
+ */
 async function promoteRelegate(tx: Tx, worldId: string): Promise<void> {
   const rows = await tx
     .select({
       id: teams.id,
       division: teams.division,
-      strength: sql<number>`coalesce(sum(${riders.fame}), 0)::float`,
+      strength: sql<number>`coalesce(sum(${riders.seasonPoints}), 0)::float`,
     })
     .from(teams)
     .leftJoin(riders, and(eq(riders.teamId, teams.id), isNull(riders.retiredAt)))
@@ -211,7 +227,6 @@ export async function runRollover(
     .select({
       id: riders.id,
       name: riders.name,
-      fame: riders.fame,
       birthSeason: riders.birthSeason,
       teamId: riders.teamId,
       declineAge: riderHidden.declineAge,
@@ -222,7 +237,7 @@ export async function runRollover(
 
   const rng = seededRng(`${worldSeed}:rollover:s${newSeason}`)
   let retired = 0
-  const retirees: { id: string; name: string; fame: number; age: number }[] = []
+  const retirees: { id: string; name: string; age: number }[] = []
   for (const npc of npcs) {
     const age = 20 - npc.birthSeason + newSeason
     if (shouldRetire(age, npc.declineAge, rng)) {
@@ -231,7 +246,7 @@ export async function runRollover(
         .set({ retiredAt: newSeason, teamId: null })
         .where(eq(riders.id, npc.id))
       retired++
-      retirees.push({ id: npc.id, name: npc.name, fame: npc.fame, age })
+      retirees.push({ id: npc.id, name: npc.name, age })
     }
   }
 
@@ -250,7 +265,6 @@ export async function runRollover(
     .select({
       id: riders.id,
       name: riders.name,
-      fame: riders.fame,
       birthSeason: riders.birthSeason,
     })
     .from(riders)
@@ -260,13 +274,43 @@ export async function runRollover(
     if (age < HARD_RETIRE_AGE) continue
     await tx.update(riders).set({ retiredAt: newSeason, teamId: null }).where(eq(riders.id, h.id))
     retired++
-    retirees.push({ id: h.id, name: h.name, fame: h.fame, age })
+    retirees.push({ id: h.id, name: h.name, age })
   }
 
-  // Anuncios de retirada (#24): solo los más renombrados, para no inundar el feed. Titular global.
+  /**
+   * ANUNCIOS DE RETIRADA (#24): solo los más renombrados, para no inundar el feed. Titular global.
+   *
+   * ESTO NO HABÍA SALTADO NUNCA (v55). El filtro era `fame >= 40`, y `fame` no se escribe en ninguna
+   * parte del código: es un `real DEFAULT 0` desde la migración 0002 que nadie actualiza jamás. O
+   * sea que la condición era `0 >= 40` para todo el mundo y **no se ha anunciado una sola retirada
+   * en la historia del juego**, ni de un NPC ni de un jugador.
+   *
+   * «Renombrado» pasa a ser lo único que de verdad mide una carrera entera: el PALMARÉS, que no se
+   * reinicia nunca. Los puntos de temporada no sirven aquí —quien se retira a los 39 lleva media
+   * temporada sin puntuar— y ése es justo el corredor cuya retirada es noticia.
+   */
+  const palmaresPorCorredor = new Map<string, number>()
+  if (retirees.length > 0) {
+    const filas = await tx
+      .select({ riderId: palmares.riderId, n: sql<number>`count(*)::int` })
+      .from(palmares)
+      .where(
+        and(
+          eq(palmares.worldId, worldId),
+          inArray(
+            palmares.riderId,
+            retirees.map((r) => r.id),
+          ),
+        ),
+      )
+      .groupBy(palmares.riderId)
+    for (const f of filas) palmaresPorCorredor.set(f.riderId, f.n)
+  }
   const notable = retirees
-    .filter((r) => r.fame >= 40)
-    .sort((a, b) => b.fame - a.fame)
+    .map((r) => ({ ...r, honores: palmaresPorCorredor.get(r.id) ?? 0 }))
+    // Con al menos una victoria en el palmarés: si nunca ganó nada, su retirada no es un titular.
+    .filter((r) => r.honores > 0)
+    .sort((a, b) => b.honores - a.honores || (a.id < b.id ? -1 : 1))
     .slice(0, 6)
   for (const r of notable) {
     await emitNews(tx, {

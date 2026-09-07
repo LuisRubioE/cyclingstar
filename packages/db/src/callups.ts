@@ -119,7 +119,7 @@ export async function runCallups(
           id: riders.id,
           userId: riders.userId,
           archetype: riders.archetype,
-          fame: riders.fame,
+          seasonPoints: riders.seasonPoints,
           ctl: riders.ctl,
           atl: riders.atl,
           teamTrust: riders.teamTrust,
@@ -142,7 +142,12 @@ export async function runCallups(
       const candidates: CallupCandidate[] = roster.map((r) => ({
         riderId: r.id,
         archetype: r.archetype,
-        pointsSeason: Math.round(r.fame * 4), // proxy hasta que existan puntos de temporada (Paso 40)
+        // LOS PUNTOS DE VERDAD (v55). Esto era `fame * 4`, con el comentario «proxy hasta que existan
+        // puntos de temporada (Paso 40)». Los puntos existen desde hace tiempo… y `fame` NO SE
+        // ESCRIBE EN NINGUNA PARTE: es una columna con DEFAULT 0 que nadie actualiza, así que el
+        // proxy valía CERO para todo el mundo y `selectSquad` elegía la escuadra sin mirar nunca
+        // quién estaba puntuando.
+        pointsSeason: r.seasonPoints,
         formStars: formStars(r.ctl, r.ctl - r.atl),
         freshness: freshnessBar(r.ctl - r.atl),
         desire: wanted.has(r.id),
