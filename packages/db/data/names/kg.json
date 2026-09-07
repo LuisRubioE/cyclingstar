@@ -32,7 +32,16 @@
     "Marat",
     "Syimyk",
     "Tilek",
-    "Askar"
+    "Askar",
+    "Zhyrgal",
+    "Emil",
+    "Ilim",
+    "Kubanychbek",
+    "Temirlan",
+    "Uluk",
+    "Bolot",
+    "Elmurza",
+    "Mirbek"
   ],
   "female": [
     "Aizada",
@@ -58,7 +67,14 @@
     "Umut",
     "Zarina",
     "Aiperi",
-    "Burul"
+    "Burul",
+    "Aigul",
+    "Ainura",
+    "Chynara",
+    "Kanykei",
+    "Saltanat",
+    "Zhanyl",
+    "Aizhan"
   ],
   "surnames": [
     "Isakov",
@@ -100,6 +116,23 @@
     "Bakirov",
     "Djumabaev",
     "Kaparov",
-    "Satybaldiev"
+    "Satybaldiev",
+    "Bekbolotov",
+    "Cholponbaev",
+    "Dzhumagulov",
+    "Erkinbekov",
+    "Mamytov",
+    "Nurbekov",
+    "Sadykov",
+    "Bakiev",
+    "Dzhusupov",
+    "Imanaliev",
+    "Karimov",
+    "Momunov",
+    "Orozbekov",
+    "Rysbekov",
+    "Turgunbaev",
+    "Ulukbekov",
+    "Kalybekov"
   ]
 }

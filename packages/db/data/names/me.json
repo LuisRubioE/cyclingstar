@@ -20,7 +20,22 @@
     "Ivan",
     "Bojan",
     "Rade",
-    "Vojin"
+    "Vojin",
+    "Aleksandar",
+    "Andrija",
+    "Dušan",
+    "Igor",
+    "Janko",
+    "Krsto",
+    "Mihailo",
+    "Radovan",
+    "Savo",
+    "Veljko",
+    "Žarko",
+    "Blažo",
+    "Miodrag",
+    "Predrag",
+    "Ranko"
   ],
   "female": [
     "Anja",
@@ -37,7 +52,18 @@
     "Kristina",
     "Andrea",
     "Nina",
-    "Sofija"
+    "Sofija",
+    "Anđela",
+    "Danica",
+    "Dragana",
+    "Gordana",
+    "Jelena",
+    "Ljiljana",
+    "Nevena",
+    "Radmila",
+    "Snežana",
+    "Vesna",
+    "Zorica"
   ],
   "surnames": [
     "Popović",
@@ -59,6 +85,19 @@
     "Vučinić",
     "Knežević",
     "Raičević",
-    "Lazarević"
+    "Lazarević",
+    "Radulović",
+    "Ivanović",
+    "Lazović",
+    "Mijatović",
+    "Pejović",
+    "Vukčević",
+    "Zeković",
+    "Bećirović",
+    "Hadžić",
+    "Muratović",
+    "Nikčević",
+    "Tomašević",
+    "Vlahović"
   ]
 }

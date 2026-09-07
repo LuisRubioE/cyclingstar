@@ -22,7 +22,13 @@
     "Majid",
     "Omar",
     "Saif",
-    "Yahya"
+    "Yahya",
+    "Badr",
+    "Faisal",
+    "Ghalib",
+    "Issa",
+    "Juma",
+    "Khamis"
   ],
   "female": [
     "Maryam",
@@ -39,7 +45,11 @@
     "Huda",
     "Asma",
     "Lujaina",
-    "Shatha"
+    "Shatha",
+    "Fatima",
+    "Layla",
+    "Nadia",
+    "Rahma"
   ],
   "surnames": [
     "Al-Balushi",
@@ -61,6 +71,18 @@
     "Al-Ghafri",
     "Al-Siyabi",
     "Al-Riyami",
-    "Al-Shukaili"
+    "Al-Shukaili",
+    "Al-Harthy",
+    "Al-Ismaili",
+    "Al-Jabri",
+    "Al-Kharusi",
+    "Al-Lawati",
+    "Al-Mahrouqi",
+    "Al-Omari",
+    "Al-Qasmi",
+    "Al-Toubi",
+    "Al-Yahyai",
+    "Al-Rahbi",
+    "Al-Mamari"
   ]
 }

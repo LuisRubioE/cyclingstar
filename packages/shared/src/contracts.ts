@@ -1153,6 +1153,11 @@ export const radioRiderSchema = chronicleRiderSchema.extend({
   role: radioRoleSchema,
   /** Para qué tira. Solo en los que tiran, y ausente en etapas corridas antes de la v47. */
   motivo: pullMotiveSchema.nullish().default(null),
+  /**
+   * …Y PARA QUIÉN, con nombre (v57). El dueño: «dice algo así como *his team's card for this
+   * finish*… pero no dice quién es, wey». Ausente cuando no tira por nadie o en etapas anteriores.
+   */
+  para: chronicleRiderSchema.nullish().default(null),
 })
 export type RadioRider = z.infer<typeof radioRiderSchema>
 

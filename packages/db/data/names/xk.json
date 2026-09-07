@@ -32,7 +32,20 @@
     "Lorik",
     "Shpend",
     "Taulant",
-    "Ylber"
+    "Ylber",
+    "Besart",
+    "Jetmir",
+    "Mergim",
+    "Naser",
+    "Petrit",
+    "Qendrim",
+    "Agron",
+    "Fatos",
+    "Muhamet",
+    "Nderim",
+    "Rinor",
+    "Shkelzen",
+    "Visar"
   ],
   "female": [
     "Arta",
@@ -58,7 +71,14 @@
     "Lira",
     "Qendresa",
     "Shqipe",
-    "Vjosa"
+    "Vjosa",
+    "Blerina",
+    "Donika",
+    "Hana",
+    "Ilirjana",
+    "Learta",
+    "Miranda",
+    "Nita"
   ],
   "surnames": [
     "Krasniqi",
@@ -100,6 +120,20 @@
     "Behrami",
     "Demaj",
     "Ferizi",
-    "Gjocaj"
+    "Gjocaj",
+    "Emini",
+    "Gjoka",
+    "Halimi",
+    "Ibrahimi",
+    "Llapashtica",
+    "Nikqi",
+    "Qerimi",
+    "Rrahmani",
+    "Veseli",
+    "Zhitia",
+    "Dedaj",
+    "Marku",
+    "Nikolla",
+    "Prekpalaj"
   ]
 }

@@ -32,7 +32,10 @@
     "Meshaal",
     "Rayan",
     "Sultan",
-    "Waleed"
+    "Waleed",
+    "Yousef",
+    "Khalifa",
+    "Mansour"
   ],
   "female": [
     "Aisha",
@@ -58,7 +61,8 @@
     "Sheikha",
     "Wadha",
     "Yasmin",
-    "Alanoud"
+    "Alanoud",
+    "Noora"
   ],
   "surnames": [
     "Al Thani",
@@ -100,6 +104,32 @@
     "Al Qassabi",
     "Al Sayed",
     "Al Suwaidi",
-    "Al Baker"
+    "Al Baker",
+    "Al-Kuwari",
+    "Al-Marri",
+    "Al-Mohannadi",
+    "Al-Naimi",
+    "Al-Sulaiti",
+    "Al-Hajri",
+    "Al-Emadi",
+    "Al-Ansari",
+    "Al-Mannai",
+    "Al-Dosari",
+    "Al-Ali",
+    "Al-Attiyah",
+    "Al-Boainain",
+    "Al-Ghanim",
+    "Al-Hammadi",
+    "Al-Ibrahim",
+    "Al-Jaber",
+    "Al-Khater",
+    "Al-Malki",
+    "Al-Nuaimi",
+    "Al-Obaidli",
+    "Al-Qahtani",
+    "Al-Rumaihi",
+    "Al-Sada",
+    "Al-Yafei",
+    "Al-Zaman"
   ]
 }

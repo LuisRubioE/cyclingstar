@@ -32,7 +32,14 @@
     "Gheorghe",
     "Maxim",
     "Pavel",
-    "Roman"
+    "Roman",
+    "Dorin",
+    "Eugen",
+    "Ludmil",
+    "Veaceslav",
+    "Dmitrii",
+    "Nicolai",
+    "Serghei"
   ],
   "female": [
     "Maria",
@@ -58,7 +65,11 @@
     "Oxana",
     "Rodica",
     "Svetlana",
-    "Veronica"
+    "Veronica",
+    "Valentina",
+    "Doina",
+    "Silvia",
+    "Viorica"
   ],
   "surnames": [
     "Rusu",
@@ -100,6 +111,26 @@
     "Mocanu",
     "Nistor",
     "Pintilie",
-    "Verega"
+    "Verega",
+    "Popa",
+    "Ceban",
+    "Dumitru",
+    "Frunza",
+    "Macovei",
+    "Onofrei",
+    "Sandu",
+    "Tabac",
+    "Ursu",
+    "Bivol",
+    "Corcodel",
+    "Guzun",
+    "Sturza",
+    "Vrabie",
+    "Petrov",
+    "Kozlov",
+    "Cebanenco",
+    "Karaman",
+    "Topal",
+    "Cioban"
   ]
 }

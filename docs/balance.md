@@ -9441,6 +9441,79 @@ No dice que el reparto de roles del pelotón esté bien. Que el 70 % del campo s
 pregunta —un equipo de ocho en una llana lleva un velocista, su tren de dos o tres, y el resto—, y
 este banco la deja a la vista sin contestarla.
 
+## v57 — Ir por delante no es haber vuelto, y el maillot no da la cara al viento
+
+`ENGINE_VERSION` 50 → 51. Cuatro cosas que el dueño vio en la etapa 17 del Race Italy y en la 19, dichas por él y corregidas donde estaba la causa, no donde se veía el síntoma.
+
+### 1. Tres grupos separados por dos minutos se juntaban en un kilómetro
+
+> «hay 10 escapados que sacan 59 segundos a un grupo de 45… y 56 segundos más tarde hay un grupo de 90, que yo lo llamaría pelotón. Y en el km 192 los tres grupos se han juntado. WTF!!!»
+
+El reenganche al pelotón preguntaba solo por el **signo** del hueco:
+
+```ts
+const caught = !onRough && sg.tS <= peloton.tS
+```
+
+`tS` es el reloj en el mismo punto de carretera, así que «menos reloj que el pelotón» significa **ir por delante de él** — y por delante del pelotón no van solo los que vuelven. Van todos los que se han caído de una fuga (`dropOut` los mete en `shed` con el reloj de la fuga) y todo grupo que la criba deja camino arriba. A cualquiera de ellos se lo tragaba el pelotón entero, estuviera a un segundo o a dos minutos.
+
+**Medido** con un detector mecánico sobre un Giro y un Tour enteros —cada kilómetro, cada grupo que desaparece dentro de otro—:
+
+| fusiones con más de 30 s de hueco | antes |  después |
+| --------------------------------- | ----: | -------: |
+| Giro — al pelotón                 |    12 |    **6** |
+| Giro — peor caso                  | 104 s | **36 s** |
+| Tour — al pelotón                 |    11 |    **2** |
+| Tour — peor caso                  | 102 s | **31 s** |
+
+Alcanzar es **llegar**, no ir por delante: ahora el pelotón absorbe cuando su reloj se pone a la altura del otro, y eso pasa dentro de la puerta de siempre (`regroupGapSeconds`, 22 s). Los bloques son de 100 m, así que ningún reloj salta esa puerta de un bloque al siguiente: el que de verdad vuelve entra igual que antes.
+
+Lo que queda por encima de 30 s son grupos cuyos MIEMBROS van estirados —cada corredor arrastra su propia deriva (`driftS`) dentro del grupo—, no relojes de grupo que se teletransportan.
+
+### 2. El descenso soltaba a media carrera y la volvía a coger
+
+El pelotón pasaba de 172 a 78 corredores **sin un solo hombre vaciado** y rebotaba a 108 dos kilómetros después. La causa: el dado de la criba se tira en cada bloque de 100 m, así que un descenso largo son doscientas tiradas de selección sobre la misma gente. En carretera un descenso selecciona **al principio** —quien se descuelga, se descuelga en las primeras curvas— y después es una fila.
+
+`STAGE.descentSelectKm` = 1: pasado el primer kilómetro de bajada, el descenso deja de cribar. Medido en la misma etapa: 172 → 166 → 153 → 147 → **143 y estable hasta el final de la bajada**, sin rebote. Las huellas selladas no se mueven.
+
+### 3. «El líder se queda atrás… ¿y nadie de su equipo tira para ayudarle?»
+
+La regla de rescate existe desde la v36 y funciona; lo que no existía era el caso contrario. Cuando **no** bajaba nadie, el motor se callaba, y el silencio es indistinguible del abandono: el lector no puede saber si el equipo le dejó tirado o si no quedaba nadie que pudiera bajar.
+
+Ahora ese caso tiene su propio aviso (`no_help_for_leader`) con el motivo concreto —`sin_equipo`, `nadie_puede`, `todos_guardan`—, cuántos de los suyos siguen en carrera y cuántos podían bajar. Es la misma doctrina que el motivo del relevo: si el motor decide algo, la crónica tiene que poder enseñar en qué se basó.
+
+### 4. El maillot tirando en un grupo de 20
+
+> «otra vez el maillot amarillo tirando del pelotón… bueno, no es el pelotón, es un grupo de 20, del que solo tiran 10».
+
+El arreglo de la v51 le quitó el trabajo **en el pelotón**, y ahí sigue bien. Pero fuera del pelotón el motor cambia de listón a propósito: en una fuga o en un grupeto relevan todos (`relayDutyThresholdLoose` = 0) porque no hay equipo que empuje a nadie. Con el listón en cero el rol deja de pesar, y el líder de la carrera —0,1 de rol más la frescura— salía positivo y entraba al turno como uno más.
+
+El listón suelto dice una verdad a medias: «en una fuga colabora todo el mundo» vale para quien gana algo yendo deprisa. **El que lleva el maillot ya va ganando**, y lo que hace en carretera es esconderse y obligar a los demás a mover la carrera. Por eso `relayRaceLeaderPenalty` es solo para el **primero** de la general: el segundo, el tercero y el cuarto sí tienen que dar la cara, que es justo lo que el dueño echaba en falta en la etapa 13 («ellos quieren luchar por la carrera… ¡y curiosamente no veo que lo hagan!»).
+
+No es un veto sino un orden: queda el último de la fila del deber, así que el suelo de relevistas lo saca al frente cuando de verdad no queda nadie —va solo, o los que le acompañan están peor que él—, que es la doctrina de su propio rol. Y en un **abanico** no se aplica: en una fila con el viento de lado detrás del último no hay rueda, hay cuneta.
+
+**Medido** sobre un Giro entero, mirando al maillot cada 5 km: tiraba en **9 de 637 fotos**, todas con tres o más compañeros de grupo enteros al lado. Ahora, **3 de 637**, y las que quedan son casos de suelo.
+
+### 4-bis. Y lo que el arreglo destapó: «seguir escapado» no era ir por delante
+
+El banco de coherencia lo cazó en cuanto los grupos dejaron de teletransportarse (`cazadaFantasma`, clásica larga, semilla 17): km 169, el parte de cabeza dice **un** hombre delante; km 171, «the break is caught» **nombrando a diez**.
+
+La cuenta de «¿queda alguien de la fuga por delante?» preguntaba si el hombre iba en algún `move` vivo, y esa pregunta valía mientras el que se caía de una fuga volviera al pelotón en el mismo bloque —que es justo lo que hacía el defecto de arriba—. Con el reenganche arreglado, al que se descuelga de la fuga le pasa lo que le pasa en carretera: se queda camino arriba, solo, por delante del pelotón y fuera de todo grupo. Para esta cuenta desaparecía, y el motor daba la fuga por cazada con nueve de ellos todavía delante.
+
+Ahora la pregunta es la de la carretera: **¿queda alguien de los que pasaron por la fuga con el reloj por delante del pelotón?** Da igual en qué grupo vaya. Con eso, las 20 semillas de la clásica larga quedan a cero.
+
+Es la mitad interesante de esta tanda: un arreglo correcto deja al descubierto una pregunta que estaba mal hecha desde antes y que solo se sostenía porque el defecto la tapaba.
+
+### 5. La radio dice para QUIÉN se tira
+
+> «en race radio ahora dice por qué tiran… pero dice algo así como _his team's card for this finish_… pero no dice quién es, wey».
+
+El motivo nombraba un papel y no un hombre. `pullFor` viaja ahora desde la decisión del relevo hasta la vista, y la radio dice «his team's card for this finish: Fulano», «defending the jersey of Fulano», «lead-out for Fulano».
+
+### Y una comprobación que sale de la misma tanda
+
+El dueño pidió además que un corredor que empieza de cazaetapas y se pone líder **cambie de rol entre etapas** en los equipos bot. Eso ya lo hace el motor desde la v42 (`autoStageOrders` reparte por `gcRank` en cada etapa), y ahora está **medido**: en un Giro entero el maillot salió de `lider` en **las 20 etapas en línea**; la única en la que no tiene rol es la contrarreloj individual, donde no hay táctica de equipo para nadie.
+
 ## v56 — No se puede atravesar un grupo
 
 `ENGINE_VERSION` 49 → 50. Sale de una observación del dueño en la etapa 16: «entre el km 108 y el 109 iban 3 en cabeza y un grupo de 16 detrás… y de repente es al revés, justo esos 16 van por delante y los otros 3 por detrás. Eso es MUY inverosímil».

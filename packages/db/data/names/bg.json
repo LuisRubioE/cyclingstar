@@ -32,7 +32,16 @@
     "Radoslav",
     "Ognyan",
     "Tsvetan",
-    "Zdravko"
+    "Zdravko",
+    "Lyubomir",
+    "Marin",
+    "Nedelcho",
+    "Svetoslav",
+    "Valentin",
+    "Zhivko",
+    "Ventsislav",
+    "Mustafa",
+    "Ahmed"
   ],
   "female": [
     "Maria",
@@ -58,7 +67,21 @@
     "Vyara",
     "Silvia",
     "Denitsa",
-    "Galina"
+    "Galina",
+    "Ivanka",
+    "Yordanka",
+    "Daniela",
+    "Diana",
+    "Kremena",
+    "Milena",
+    "Nadezhda",
+    "Radka",
+    "Tsvetana",
+    "Vanya",
+    "Zornitsa",
+    "Bilyana",
+    "Gergana",
+    "Fatme"
   ],
   "surnames": [
     "Ivanov",
@@ -100,6 +123,22 @@
     "Manolov",
     "Andreev",
     "Simeonov",
-    "Velichkov"
+    "Velichkov",
+    "Filipov",
+    "Lazarov",
+    "Naydenov",
+    "Vladimirov",
+    "Zlatanov",
+    "Apostolov",
+    "Bogdanov",
+    "Kostadinov",
+    "Mladenov",
+    "Peshev",
+    "Terziev",
+    "Velikov",
+    "Yankov",
+    "Mehmedov",
+    "Ahmedov",
+    "Osmanov"
   ]
 }

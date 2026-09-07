@@ -32,7 +32,22 @@
     "Daði",
     "Hörður",
     "Snorri",
-    "Þór"
+    "Þór",
+    "Stefán",
+    "Árni",
+    "Bjarni",
+    "Davíð",
+    "Friðrik",
+    "Leifur",
+    "Marteinn",
+    "Óttar",
+    "Páll",
+    "Ragnar",
+    "Sveinn",
+    "Úlfar",
+    "Viktor",
+    "Ýmir",
+    "Elías"
   ],
   "female": [
     "Guðrún",
@@ -58,7 +73,15 @@
     "Sara",
     "Telma",
     "Unnur",
-    "Þóra"
+    "Þóra",
+    "Hanna",
+    "Ingibjörg",
+    "María",
+    "Ólöf",
+    "Ragnheiður",
+    "Thelma",
+    "Valgerður",
+    "Birna"
   ],
   "surnames": [
     "Jónsson",
@@ -100,6 +123,20 @@
     "Þórsdóttir",
     "Halldórsson",
     "Halldórsdóttir",
-    "Bjarnason"
+    "Bjarnason",
+    "Árnason",
+    "Davíðsson",
+    "Friðriksson",
+    "Jóhannsson",
+    "Leifsson",
+    "Sveinsson",
+    "Arnarson",
+    "Dagsson",
+    "Elíasson",
+    "Helgason",
+    "Karlsson",
+    "Sigurjónsson",
+    "Þorsteinsson",
+    "Hafsteinsson"
   ]
 }

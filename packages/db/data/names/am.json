@@ -32,7 +32,15 @@
     "Vigen",
     "Zaven",
     "Aramais",
-    "Garik"
+    "Garik",
+    "Hakob",
+    "Karapet",
+    "Martiros",
+    "Ruben",
+    "Vazgen",
+    "Yervand",
+    "Garegin",
+    "Poghos"
   ],
   "female": [
     "Ani",
@@ -58,7 +66,11 @@
     "Tamara",
     "Varduhi",
     "Zaruhi",
-    "Meline"
+    "Meline",
+    "Narine",
+    "Tatevik",
+    "Shushan",
+    "Vardui"
   ],
   "surnames": [
     "Sargsyan",
@@ -100,6 +112,10 @@
     "Minasyan",
     "Simonyan",
     "Tovmasyan",
-    "Voskanyan"
+    "Voskanyan",
+    "Babayan",
+    "Movsisyan",
+    "Nersisyan",
+    "Tonoyan"
   ]
 }

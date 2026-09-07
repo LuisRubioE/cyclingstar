@@ -32,7 +32,17 @@
     "Malkhaz",
     "Bidzina",
     "Dato",
-    "Gela"
+    "Gela",
+    "Nikoloz",
+    "Shalva",
+    "Vazha",
+    "Zviad",
+    "Kakha",
+    "Mikheil",
+    "Paata",
+    "Ramaz",
+    "Soso",
+    "Tamaz"
   ],
   "female": [
     "Nino",
@@ -58,7 +68,11 @@
     "Maia",
     "Gvantsa",
     "Lali",
-    "Nutsa"
+    "Nutsa",
+    "Sopiko",
+    "Khatuna",
+    "Maka",
+    "Tea"
   ],
   "surnames": [
     "Beridze",
@@ -100,6 +114,23 @@
     "Devnozashvili",
     "Eristavi",
     "Gigauri",
-    "Khurtsidze"
+    "Khurtsidze",
+    "Giorgadze",
+    "Nadiradze",
+    "Chikovani",
+    "Abashidze",
+    "Bakhtadze",
+    "Chkheidze",
+    "Dolidze",
+    "Eliava",
+    "Iashvili",
+    "Lortkipanidze",
+    "Oniani",
+    "Pirtskhalava",
+    "Rurua",
+    "Shengelia",
+    "Zhvania",
+    "Mgeladze",
+    "Sikharulidze"
   ]
 }

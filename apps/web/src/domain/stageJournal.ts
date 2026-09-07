@@ -1147,6 +1147,28 @@ function chronicleTemplate(e: ChronicleEntry): string {
             `${who} slide out of the bunch to help ${quien}${hueco}.`,
           ])
     }
+    case 'no_help_for_leader': {
+      /**
+       * NADIE BAJA A POR ÉL (v57), y por qué. El dueño lo pidió viendo caerse a su líder: «el líder
+       * se queda atrás… ¿y nadie de su equipo tira para ayudarle?». La regla de rescate existe y
+       * funciona, pero cuando NO salta se callaba, y el silencio es indistinguible del abandono.
+       */
+      const jefe = e.mentions?.jefeId
+      const quien = jefe ? riderFull(jefe) : 'their leader'
+      const gap = Number(e.datos?.gapS ?? 0)
+      const hueco = gap > 0 ? ` ${gap}s back` : ''
+      const suyos = Number(e.datos?.suyos ?? 0)
+      switch (e.datos?.porque) {
+        case 'sin_equipo':
+          return `${quien} is adrift${hueco} with no teammate left in the race to wait for him.`
+        case 'todos_guardan':
+          return `Nobody drops back for ${quien}${hueco}: the team keeps its men up front.`
+        default:
+          return suyos > 0
+            ? `${quien} is left to fend for himself${hueco} — none of his ${suyos} teammates is in a position to drop back.`
+            : `${quien} is left to fend for himself${hueco}.`
+      }
+    }
     case 'peloton_regroup': {
       // El reagrupamiento (v8). Existía en el modelo desde siempre y no se narraba nunca: la crónica
       // dejaba «about 51 left in front» y en meta llegaban más de cien juntos, sin nada que lo

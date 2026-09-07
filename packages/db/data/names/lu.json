@@ -32,7 +32,17 @@
     "Théo",
     "Léon",
     "Raoul",
-    "Jos"
+    "Jos",
+    "Pierre",
+    "Laurent",
+    "Nicolas",
+    "Patrick",
+    "Raymond",
+    "Théid",
+    "Alex",
+    "Dan",
+    "Edouard",
+    "Jacques"
   ],
   "female": [
     "Anne",
@@ -58,7 +68,16 @@
     "Nora",
     "Chiara",
     "Amélie",
-    "Charlotte"
+    "Charlotte",
+    "Elisabeth",
+    "Fabienne",
+    "Gaby",
+    "Hélène",
+    "Isabelle",
+    "Karin",
+    "Lynn",
+    "Pia",
+    "Maryse"
   ],
   "surnames": [
     "Schleck",
@@ -100,6 +119,30 @@
     "Jacoby",
     "Linster",
     "Meyer",
-    "Zimmer"
+    "Zimmer",
+    "Wagener",
+    "Lucas",
+    "Nilles",
+    "Pauly",
+    "Reding",
+    "Schaack",
+    "Thommes",
+    "Urbany",
+    "Wilmes",
+    "Bintner",
+    "Feltes",
+    "Gaspar",
+    "Heintz",
+    "Krier",
+    "Loos",
+    "Meyers",
+    "Rodesch",
+    "Steichen",
+    "Da Silva",
+    "Ferreira",
+    "Rodrigues",
+    "Santos",
+    "Fernandes",
+    "Pereira"
   ]
 }

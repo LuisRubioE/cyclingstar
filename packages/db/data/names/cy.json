@@ -22,7 +22,20 @@
     "Grigoris",
     "Neophytos",
     "Christoforos",
-    "Achilleas"
+    "Achilleas",
+    "Georgios",
+    "Panayiotis",
+    "Stelios",
+    "Demetris",
+    "Elias",
+    "Sotiris",
+    "Vasilis",
+    "Zenon",
+    "Mehmet",
+    "Ahmet",
+    "Hasan",
+    "Mustafa",
+    "Osman"
   ],
   "female": [
     "Maria",
@@ -39,7 +52,13 @@
     "Anna",
     "Nikoletta",
     "Ioanna",
-    "Sofia"
+    "Sofia",
+    "Androulla",
+    "Katerina",
+    "Nicoletta",
+    "Chrystalla",
+    "Ayse",
+    "Fatma"
   ],
   "surnames": [
     "Christodoulou",
@@ -62,6 +81,20 @@
     "Petrou",
     "Christou",
     "Andreou",
-    "Hadjigeorgiou"
+    "Hadjigeorgiou",
+    "Efthymiou",
+    "Hadjiioannou",
+    "Neophytou",
+    "Solomou",
+    "Yiannakou",
+    "Zavos",
+    "Hadjipavlou",
+    "Papacosta",
+    "Serafeim",
+    "Yildiz",
+    "Ozturk",
+    "Kaya",
+    "Sener",
+    "Mustafa"
   ]
 }

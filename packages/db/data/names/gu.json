@@ -32,7 +32,14 @@
     "William",
     "Chris",
     "Danny",
-    "Marco"
+    "Marco",
+    "Jesse",
+    "Robert",
+    "Ignacio",
+    "Benigno",
+    "Jonathan",
+    "Mark",
+    "Rudy"
   ],
   "female": [
     "Maria",
@@ -58,7 +65,12 @@
     "Teresita",
     "Vanessa",
     "Christine",
-    "Elena"
+    "Elena",
+    "Jennifer",
+    "Michelle",
+    "Tina",
+    "Doris",
+    "Geri"
   ],
   "surnames": [
     "Cruz",
@@ -100,6 +112,10 @@
     "Gogue",
     "Lujan",
     "Meno",
-    "Palomo"
+    "Palomo",
+    "Iglesias",
+    "Quitugua",
+    "Taijeron",
+    "Villagomez"
   ]
 }

@@ -2550,3 +2550,103 @@ describe('cada relevo dice para qué es (v47)', () => {
     )
   })
 })
+
+/**
+ * EL MAILLOT NO DA LA CARA AL VIENTO MIENTRAS HAYA QUIEN LO HAGA (v57).
+ *
+ * El dueño, en la etapa 19: «otra vez el maillot amarillo tirando… bueno, no es el pelotón, es un
+ * grupo de 20, del que solo tiran 10». El arreglo de la v51 le quitó el trabajo en el PELOTÓN y ahí
+ * seguía bien; lo que no llegaba era fuera de él, donde el motor cambia de listón a propósito
+ * —`relayDutyThresholdLoose` = 0, «en una fuga colabora todo el mundo»— y con el listón en cero el
+ * rol deja de pesar: 0,1 de líder más la frescura sale positivo y entra al turno como uno más.
+ *
+ * Lo que se prueba es la frase entera, con sus dos mitades, porque una sola se cumpliría haciendo
+ * trampa: que el maillot NO releve en un grupo donde hay quien releve por él, y que ese grupo EXISTA
+ * en el banco con otros dándole a los pedales. Un test que solo mirase la primera mitad pasaría
+ * también si el maillot no se cayera nunca del pelotón.
+ */
+describe('el maillot no releva fuera del pelotón si hay quien lo haga (v57)', () => {
+  /** El mismo campo del motivo del relevo, con la general puesta: el maillot es el 1.º. */
+  const conGeneral = (): StageInput => ({
+    profile: {
+      segments: [
+        { km: 30, tipo: 'llano' },
+        { km: 14, tipo: 'puerto', tramos: [{ km: 14, g: 8 }] },
+        { km: 10, tipo: 'descenso', tramos: [{ km: 10, g: -7 }] },
+        { km: 26, tipo: 'llano' },
+      ],
+    },
+    riders: [
+      rider('maillot', {
+        eff0: eff(66, { MON: 74, LLA: 68 }),
+        teamId: 'equipo-maillot',
+        orders: orders({ role: 'lider' }),
+        gcDeficitSeconds: 0,
+        gcRank: 1,
+      }),
+      ...Array.from({ length: 5 }, (_, i) =>
+        rider(`mai-${i}`, {
+          eff0: eff(62, { MON: 62 + (i % 3) }),
+          teamId: 'equipo-maillot',
+          orders: orders({ role: 'gregario', targetRiderId: 'maillot' }),
+          gcDeficitSeconds: 400 + i,
+          gcRank: 40 + i,
+        }),
+      ),
+      ...Array.from({ length: 6 }, (_, t) =>
+        Array.from({ length: 6 }, (_, k) =>
+          rider(`t${t}-${k}`, {
+            eff0: eff(58 + ((t + k) % 5), { MON: 56 + ((t * 3 + k) % 14) }),
+            teamId: `equipo-${t}`,
+            orders: orders({ role: k === 0 ? 'lider' : 'gregario', targetRiderId: `t${t}-0` }),
+            gcDeficitSeconds: k === 0 ? 30 + t * 45 : 500 + t * 20 + k,
+            gcRank: k === 0 ? 2 + t : 10 + t * 6 + k,
+          }),
+        ),
+      ).flat(),
+    ],
+  })
+
+  it(
+    'en un grupo que no es el grueso, el primero de la general va a rueda',
+    { timeout: 300000 },
+    () => {
+      const input = conGeneral()
+      const total = input.profile.segments.reduce((a, seg) => a + seg.km, 0)
+      let fueraDelGrueso = 0
+      let tirandoConCompañía = 0
+      let otrosTirando = 0
+      for (const seed of seedsFor('maillot-turno', 8)) {
+        const puntos = radioKmPoints(total)
+        simulateStage(input, seed, {
+          atKm: puntos,
+          onSnapshot: (_km, riders, mainId) => {
+            const yo = riders.find((r) => r.riderId === 'maillot')
+            if (!yo || yo.groupId === mainId) return
+            const suGrupo = riders.filter((r) => r.groupId === yo.groupId)
+            // «Hay quien lo haga»: al menos tres acompañantes que no van vaciados. Con menos, el suelo
+            // de relevistas manda —y eso es la doctrina de su rol, no una excepción a ella—.
+            const pueden = suGrupo.filter(
+              (r) => r.riderId !== 'maillot' && r.energy > 0.05 * r.energy0,
+            )
+            if (pueden.length < 3) return
+            fueraDelGrueso += 1
+            if (yo.pulling) tirandoConCompañía += 1
+            if (suGrupo.some((r) => r.riderId !== 'maillot' && r.pulling)) otrosTirando += 1
+          },
+        })
+      }
+      // Que el caso EXISTA: si el maillot no se cayera nunca del grueso, esto pasaría sin mirar nada.
+      expect(`el maillot rueda fuera del grueso: ${fueraDelGrueso > 50}`).toBe(
+        'el maillot rueda fuera del grueso: true',
+      )
+      // …y que en esos grupos SÍ tira alguien: lo que se prueba es que no es él, no que nadie releve.
+      expect(`alguien releva en esos grupos: ${otrosTirando > 0}`).toBe(
+        'alguien releva en esos grupos: true',
+      )
+      expect(`fotos con el maillot tirando: ${tirandoConCompañía}`).toBe(
+        'fotos con el maillot tirando: 0',
+      )
+    },
+  )
+})
