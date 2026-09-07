@@ -18,12 +18,14 @@
  * Puro y determinista: todo sale de `seededRng` y de `stageSeed`.
  */
 import { ATTRIBUTES, type Attribute, type Vocation, seededRng } from '@cyclingstar/shared'
+import { STAGE } from '../constants.js'
 import { eff0, initialEnergy } from '../banister.js'
 import { SEASON_CALENDAR } from '../routes/calendar.js'
 import { matchCount } from '../stage/physics.js'
+import { sampleProfile, stageLengthKm } from '../stage/sample.js'
 import { stageSeed } from '../stage/rng.js'
 import { simulateStage } from '../stage/simulate.js'
-import type { StageInput, StageOrders, StageRider } from '../stage/types.js'
+import type { SnapshotRider, StageInput, StageOrders, StageRider } from '../stage/types.js'
 import { autoStageOrders } from '../world/autoOrders.js'
 import { type Division, generateNpcRider, sampleNpcAge } from '../world/npc.js'
 import { type StageTail, type TailStats, biggestClockPct, tailStats } from './grandTour.js'
@@ -386,4 +388,89 @@ export function analyzeRealQueens(runsPerStage: number): RealQueenStats {
     all: tailStats(all),
     worst: { queen: worst.queen, medianLastGroupPct: worst.stats.medianLastGroupPct },
   }
+}
+
+/** Un hueco grande que se abrió en carrera y cómo acabó. */
+export interface HuecoDeMontana {
+  /** El peor hueco contra el pelotón, en segundos, antes del último cuarto de etapa. */
+  peorS: number
+  /** Dónde se abrió: lo que decide si volver es carretera o es un defecto. */
+  terreno: 'puerto' | 'bajada' | 'llano'
+  /** Con cuánto acabó respecto del pelotón: ≤ 30 s es haber vuelto. */
+  finalS: number
+}
+
+/**
+ * ¿VUELVE EL QUE SE DESCUELGA EN UN PUERTO? (v59)
+ *
+ * El dueño, leyendo la etapa 20 del Race Italy: «en general una cosa que se ve es que los que
+ * pierden en montaña 5 minutos en medio de una etapa luego se reintegran demasiado fácil».
+ *
+ * La puerta del reenganche NO puede ser la causa —vale 22 s, y desde cinco minutos no se entra por
+ * ella—, así que lo que hay que mirar es a qué ritmo se cierran los huecos GRANDES. Se sigue el
+ * hueco de cada corredor kilómetro a kilómetro, se anota el peor que llegó a tener antes del 75 %
+ * de la etapa —lo de «en medio de una etapa» de la frase— y con cuánto acabó.
+ *
+ * LA REFERENCIA SON HOMBRES, NO «EL PELOTÓN», y esto no es un detalle: el título de pelotón se
+ * mueve (`mainGroupId` lleva histéresis, y en una reina que estalla el grupo principal puede acabar
+ * siendo otro). Midiendo contra «el pelotón de cada foto», un corredor al que el pelotón se le
+ * viene atrás sale contado como si él hubiera vuelto. Así que la referencia se congela: se guarda
+ * QUIÉNES iban en el grupo principal en el kilómetro del peor hueco, y al final se compara su
+ * tiempo con la mediana de ESOS mismos hombres. Si estaba dos minutos detrás de ellos y llega con
+ * ellos, ha vuelto; si son ellos los que se han hundido, no.
+ *
+ * El terreno importa y por eso viaja: un hueco que se abre en el llano se cierra a menudo en
+ * carretera (el pelotón afloja en cuanto la fuga tiene su margen) y uno que se abre en un puerto no
+ * se cierra casi nunca. Sin separarlos, los dos casos se promedian y no se puede opinar de ninguno.
+ */
+export function mountainRejoins(runsPerStage: number): HuecoDeMontana[] {
+  const out: HuecoDeMontana[] = []
+  for (const queen of REAL_QUEENS) {
+    for (let i = 0; i < runsPerStage; i++) {
+      const { input, seed } = realQueenSetup(queen, i)
+      const totalKm = stageLengthKm(input.profile)
+      const bloques = sampleProfile(input.profile)
+      const shots: { km: number; riders: readonly SnapshotRider[]; mainId: string | null }[] = []
+      const stage = simulateStage(input, seed, {
+        atKm: Array.from({ length: Math.floor(totalKm) }, (_, k) => k + 1),
+        onSnapshot: (km, riders, mainId) => shots.push({ km, riders: [...riders], mainId }),
+      })
+      if (shots.length < 10) continue
+      const corte = totalKm * 0.75
+      /** Por corredor: el peor hueco, dónde fue, y CONTRA QUIÉNES se midió. */
+      const peorDe = new Map<string, { gap: number; km: number; cohorte: string[] }>()
+      for (const shot of shots) {
+        if (shot.mainId === null || shot.km > corte) continue
+        const pel = shot.riders.filter((r) => r.groupId === shot.mainId)
+        if (pel.length === 0) continue
+        const relojPel = pel.reduce((a, b) => a + b.tS, 0) / pel.length
+        for (const r of shot.riders) {
+          const gap = r.tS - relojPel
+          const prev = peorDe.get(r.riderId)
+          if (gap > 0 && (prev === undefined || gap > prev.gap))
+            peorDe.set(r.riderId, { gap, km: shot.km, cohorte: pel.map((p) => p.riderId) })
+        }
+      }
+      const tiempoDe = new Map(
+        stage.results.filter((r) => r.estado === 'finish').map((r) => [r.riderId, r.tiempoS]),
+      )
+      for (const [riderId, tiempo] of tiempoDe) {
+        const peor = peorDe.get(riderId)
+        if (peor === undefined) continue
+        // La cohorte, solo con los que llegaron: si se retiraron todos, la pregunta no aplica.
+        const suyos = peor.cohorte
+          .map((id) => tiempoDe.get(id))
+          .filter((t): t is number => t !== undefined)
+          .sort((a, b) => a - b)
+        if (suyos.length < 5) continue
+        const b = bloques[Math.min(bloques.length - 1, Math.floor(peor.km / STAGE.dx))]
+        out.push({
+          peorS: peor.gap,
+          terreno: b?.tipo === 'subida' ? 'puerto' : b?.tipo === 'descenso' ? 'bajada' : 'llano',
+          finalS: tiempo - suyos[Math.floor(suyos.length / 2)]!,
+        })
+      }
+    }
+  }
+  return out
 }
