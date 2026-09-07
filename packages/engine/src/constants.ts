@@ -1768,6 +1768,19 @@ export const STAGE = {
    * inclina.
    */
   relayEffortWeight: 0.5,
+  /**
+   * LA CITA DEL JUGADOR CON SU ATAQUE (v58, `StageOrders.triggerKm`). Tres números para la misma
+   * regla: cuántos kilómetros dura la ventana alrededor del punto marcado, cuánto se multiplica el
+   * apetito dentro de ella y cuánto se hunde fuera.
+   *
+   * Dos kilómetros de ventana son los que tarda un hombre en colocarse y saltar; ×3 dentro pone a un
+   * corredor libre (0,45) por encima de un cazaetapas suelto, que es lo que significa «he venido a
+   * esto»; y 0,15 fuera es no vetarle —si la carrera explota antes, sigue pudiendo reaccionar— pero
+   * dejar claro que se está guardando.
+   */
+  triggerWindowKm: 2,
+  triggerAppetiteBoost: 3,
+  triggerAppetiteOutside: 0.15,
   relayLeadOutBoost: 1.5,
   /**
    * LO QUE BAJA EL DEBER DE RELEVO DEL LÍDER DE LA CARRERA (v57). Ver la nota entera en `relayTurn`:

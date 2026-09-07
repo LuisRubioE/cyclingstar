@@ -1,6 +1,12 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import type { RaceRadio, RadioGroup, RadioGroupKind, RadioRider } from '@cyclingstar/shared'
+import type {
+  JerseyKind,
+  RaceRadio,
+  RadioGroup,
+  RadioGroupKind,
+  RadioRider,
+} from '@cyclingstar/shared'
 // El listón de «esto es el pelotón» vive en el motor (v34), que es quien lo usa también para la
 // radio de terminal: web y terminal no pueden decir cosas distintas del mismo grupo.
 import { isTheBunch } from '@cyclingstar/engine'
@@ -37,12 +43,23 @@ function ordinal(n: number): string {
   return `${n}${last === 1 ? 'st' : last === 2 ? 'nd' : last === 3 ? 'rd' : 'th'}`
 }
 
-/** El nombre de carretera de cada grupo, que es como se anuncia por la radio. */
+/**
+ * El nombre de carretera de cada grupo, que es como se anuncia por la radio.
+ *
+ * …Y EL GRUPO DONDE VA EL MAILLOT SE LLAMA POR ÉL (v58). El dueño: «el grupo del líder, en caso de
+ * que no sea el pelotón ni la cabeza de carrera, podría llamarse *grupo del maillot amarillo* en vez
+ * de *grupo 3*». Y tiene razón: «tercer grupo» es lo único cierto que se puede decir de un grupo
+ * cualquiera, pero cuando dentro va el hombre que lleva la carrera, eso es lo que ES.
+ *
+ * Solo cuando no es ya otra cosa más importante: el pelotón se sigue llamando pelotón —el maillot
+ * va ahí casi siempre— y la cabeza de carrera, cabeza de carrera.
+ */
 export function groupName(
   kind: RadioGroupKind,
   position: number,
   size: number,
   racing: number,
+  jerseyDentro?: JerseyKind | null,
 ): string {
   // El pelotón se llama por lo que ES —cuánta carrera lleva dentro— y no por dónde va: si va en
   // cabeza porque no se ha escapado nadie, sigue siendo el pelotón y no «una fuga».
@@ -50,6 +67,7 @@ export function groupName(
     return size >= racing ? 'Bunch together' : 'Peloton'
   }
   if (position === 0) return 'Lead group'
+  if (jerseyDentro) return JERSEY_GROUP_NAME[jerseyDentro]
   if (kind === 'contra') return 'Chase group'
   if (kind === 'tierra') return 'No man’s land'
   if (kind === 'grupeto') return 'Grupetto'
@@ -58,6 +76,29 @@ export function groupName(
   if (kind === 'peloton') return `${ordinal(position + 1)} group`
   return 'Group'
 }
+
+/**
+ * Cómo se llama el grupo de cada maillot. El de la general manda sobre los otros dos: si en un grupo
+ * van el líder y el de la montaña, ése es el grupo del líder.
+ */
+const JERSEY_GROUP_NAME: Record<JerseyKind, string> = {
+  gc: 'Race leader’s group',
+  kom: 'KOM leader’s group',
+  points: 'Points leader’s group',
+}
+
+/**
+ * El maillot MÁS IMPORTANTE que va en este grupo, si va alguno. Solo mira a los que la radio nombra,
+ * que es justamente a quien hay que poder seguir siempre (`priority` en `radioForStorage`): si un
+ * maillot está en un grupo, la radio lo nombra ahí.
+ */
+function jerseyDelGrupo(g: RadioGroup): JerseyKind | null {
+  for (const kind of JERSEY_ORDEN) {
+    if (g.riders.some((r) => r.jersey === kind)) return kind
+  }
+  return null
+}
+const JERSEY_ORDEN: JerseyKind[] = ['gc', 'kom', 'points']
 
 const KIND_DOT: Record<RadioGroupKind, string> = {
   fuga: 'bg-emerald-500',
@@ -194,7 +235,7 @@ function GroupCard({ g, position, racing }: { g: RadioGroup; position: number; r
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <span className={`h-2.5 w-2.5 rounded-full ${KIND_DOT[g.kind]}`} aria-hidden="true" />
         <h3 className="font-semibold text-slate-800">
-          {groupName(g.kind, position, g.size, racing)}
+          {groupName(g.kind, position, g.size, racing, jerseyDelGrupo(g))}
         </h3>
         <span className="text-sm text-slate-500">
           {g.size} rider{g.size === 1 ? '' : 's'}

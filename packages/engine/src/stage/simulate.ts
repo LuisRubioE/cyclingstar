@@ -4397,6 +4397,8 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       riderId: m.input.riderId,
       role: m.input.orders.role,
       mentality: m.input.orders.mentality,
+      // El kilómetro que el jugador marcó para lanzarse (v58); `null` = decide su mentalidad.
+      triggerKm: m.input.orders.triggerKm ?? null,
       perfil: riderPerfil(m, block),
       finishScore: finishScore(riderEff(m), type),
       energyFraction: m.energy0 > 0 ? Math.max(0, m.energy / m.energy0) : 0,
@@ -4423,6 +4425,8 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       if (members.length < 2) return
       const ctx: MoveContext = {
         kind,
+        // …y el km de recorrido, que es contra lo que se compara la cita del jugador (v58).
+        km,
         kmToGo,
         totalKm,
         groupSize: members.length,
