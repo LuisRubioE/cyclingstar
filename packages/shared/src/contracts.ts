@@ -78,7 +78,14 @@ export const publicRiderSchema = z.object({
 
 export const myRiderResponseSchema = z.object({ rider: publicRiderSchema.nullable() })
 
-export const geoCountryResponseSchema = z.object({ country: z.string().nullable() })
+export const geoCountryResponseSchema = z.object({
+  country: z.string().nullable(),
+  // Diagnóstico del país por IP (v58): qué código llegó, en qué cabecera, y todas las de
+  // geolocalización que traía la petición. Son códigos de país de dos letras, no identifican a nadie.
+  detectado: z.string().nullish().default(null),
+  fuente: z.string().nullish().default(null),
+  cabeceras: z.record(z.string(), z.string()).nullish().default(null),
+})
 
 export const generatedNameSchema = z.object({
   firstName: z.string(),

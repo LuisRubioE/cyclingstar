@@ -26,6 +26,8 @@ export function CreateRider() {
   const [seedN, setSeedN] = useState(0)
   const [name, setName] = useState('')
   const [error, setError] = useState<string | null>(null)
+  // Diagnóstico de la detección por IP, en pantalla mientras se depura (v58, a petición del dueño).
+  const [geo, setGeo] = useState<string>('')
   const [creating, setCreating] = useState(false)
 
   const seed = country ? `${country}-M-${seedN}` : ''
@@ -34,7 +36,9 @@ export function CreateRider() {
   useEffect(() => {
     let active = true
     void fetchGeoCountry().then((detected) => {
-      if (active) setCountry(detected ?? '')
+      if (!active) return
+      setCountry(detected.country ?? '')
+      setGeo(detected.detalle)
     })
     return () => {
       active = false
@@ -85,6 +89,19 @@ export function CreateRider() {
       </div>
 
       {detecting && <p className="text-sm text-slate-500">Detecting your country…</p>}
+
+      {/*
+        EL PAÍS QUE SE HA DETECTADO, A LA VISTA. Es una ayuda de depuración pedida por el dueño
+        mientras se persigue por qué la detección falla en algunos despliegues, y se quita cuando
+        deje de hacer falta. No decide nada: solo cuenta lo que la detección vio.
+      */}
+      {!detecting && (
+        <p className="text-xs text-slate-400">
+          Your country:{' '}
+          <span className="font-mono">{country === '' ? 'not detected' : country}</span>
+          {geo !== '' && <> — {geo}</>}
+        </p>
+      )}
 
       {sinDetectar && (
         <div className="space-y-2 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-800">

@@ -16,7 +16,7 @@ import {
  * probando la mitad de las veces es justo que la frase aguante sin ellos (etapas congeladas).
  */
 function rider(name: string, over: Partial<ChronicleRider> = {}): ChronicleRider {
-  return { name, bib: null, team: null, country: null, ...over }
+  return { name, id: null, bib: null, team: null, country: null, ...over }
 }
 
 /** Atajo: una lista de corredores solo con nombre, para las frases donde la identidad no se prueba. */

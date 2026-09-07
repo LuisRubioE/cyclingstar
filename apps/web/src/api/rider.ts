@@ -40,26 +40,70 @@ const ipWhoIsSchema = z.object({
  * el comportamiento correcto. Alternativa futura: resolver el país solo en el servidor (cabecera
  * CF-IPCountry o una base GeoIP propia) y eliminar la llamada del navegador.
  */
-export async function fetchGeoCountry(): Promise<string | null> {
+/**
+ * Lo que la detección ha visto, para poder decirlo en pantalla. El dueño, después del arreglo:
+ * «sigue saliéndome esto… ahora con IP de Portugal… puedes poner que diga: Your country: … y que
+ * diga cuál es tu country según la IP». Sin esto, «no te he detectado» es un callejón sin salida:
+ * no se sabe si el despliegue no pone cabecera, si la pone en blanco, o si el que falla es el
+ * tercero del navegador.
+ */
+export interface GeoDiagnosis {
+  /** País jugable resuelto, o null si no se ha podido. */
+  country: string | null
+  /** De dónde salió: la cabecera del servidor o la API pública del navegador. */
+  via: 'cabecera' | 'navegador' | null
+  /** Texto corto para la pantalla, ya legible. */
+  detalle: string
+}
+
+export async function fetchGeoCountry(): Promise<GeoDiagnosis> {
+  const notas: string[] = []
+
   // 1) Cabecera del servidor (CF-IPCountry) si existe.
   try {
     const data = await request('/api/geo/country', geoCountryResponseSchema)
-    if (data.country) return resolveCountry(data.country)
-  } catch {
-    // sigue con la API pública
+    const cabeceras = data.cabeceras ?? {}
+    const listadas = Object.entries(cabeceras)
+      .map(([k, v]) => `${k}=${v}`)
+      .join(', ')
+    notas.push(`server: ${listadas === '' ? 'no geo headers' : listadas}`)
+    if (data.country) {
+      return {
+        country: resolveCountry(data.country),
+        via: 'cabecera',
+        detalle: `${data.fuente ?? 'header'}=${data.detectado ?? '?'} → ${data.country}`,
+      }
+    }
+  } catch (err) {
+    notas.push(`server: ${err instanceof Error ? err.message : 'failed'}`)
   }
 
   // 2) API pública de geolocalización por IP, desde el navegador (ver aviso de arriba).
   try {
     const res = await fetch('https://ipwho.is/?fields=success,country_code')
-    if (!res.ok) return null
+    if (!res.ok) {
+      notas.push(`ipwho.is: HTTP ${res.status}`)
+      return { country: null, via: null, detalle: notas.join(' · ') }
+    }
     const parsed = ipWhoIsSchema.safeParse(await res.json())
-    if (!parsed.success) return null
+    if (!parsed.success) {
+      notas.push('ipwho.is: unexpected response')
+      return { country: null, via: null, detalle: notas.join(' · ') }
+    }
     const data = parsed.data
-    if (data.success === false || !data.country_code) return null
-    return resolveCountry(data.country_code.toUpperCase())
-  } catch {
-    return null
+    if (data.success === false || !data.country_code) {
+      notas.push('ipwho.is: no country')
+      return { country: null, via: null, detalle: notas.join(' · ') }
+    }
+    const code = data.country_code.toUpperCase()
+    return {
+      country: resolveCountry(code),
+      via: 'navegador',
+      detalle: `ipwho.is=${code} → ${resolveCountry(code) ?? '?'} · ${notas.join(' · ')}`,
+    }
+  } catch (err) {
+    notas.push(`ipwho.is: ${err instanceof Error ? err.message : 'blocked'}`)
+    return { country: null, via: null, detalle: notas.join(' · ') }
   }
 }
 
