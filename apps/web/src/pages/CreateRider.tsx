@@ -3,8 +3,21 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { createRider, fetchGeneratedName, fetchGeoCountry } from '../api/rider'
 
-/** Creación del ciclista (Paso 15). Solo ciclismo masculino por ahora; la nacionalidad se fija por
- * IP (no editable): si tu país aún no está disponible, se avisa. */
+/**
+ * Creación del ciclista (Paso 15). Solo ciclismo masculino por ahora, y la nacionalidad se fija por
+ * IP: es un dato del mundo, no una preferencia.
+ *
+ * PERO «NO TE HE DETECTADO» NO ES «TU PAÍS NO ESTÁ DISPONIBLE» (v58). El dueño entró sin cuenta
+ * desde una IP española y la pantalla le dijo que Cycling Star no estaba disponible en su país.
+ * España está soportada —y lo están los 136 países de la lista, con un fallback para el resto—, así
+ * que ese mensaje era imposible de merecer: lo que había fallado era la DETECCIÓN, y la pantalla
+ * trataba los dos casos como uno.
+ *
+ * La detección tiene dos intentos: la cabecera del servidor (que solo existe detrás de ciertas
+ * capas de red) y una API pública llamada DESDE EL NAVEGADOR, que se cae, se bloquea con cualquier
+ * extensión de privacidad o se queda sin cuota. O sea que el registro entero —la puerta de entrada
+ * del juego— dependía de que un tercero contestara. Ahora, si no se detecta, se elige a mano.
+ */
 export function CreateRider() {
   const navigate = useNavigate()
   const [vocation, setVocation] = useState<Vocation>('escalada')
@@ -58,7 +71,8 @@ export function CreateRider() {
   }
 
   const detecting = country === null
-  const unavailable = country === ''
+  // '' ya no es «tu país no está disponible» sino «no hemos podido averiguarlo»: se elige a mano.
+  const sinDetectar = country === ''
   const countryInfo = country ? COUNTRIES.find((c) => c.code === country) : undefined
 
   return (
@@ -72,10 +86,26 @@ export function CreateRider() {
 
       {detecting && <p className="text-sm text-slate-500">Detecting your country…</p>}
 
-      {unavailable && (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-800">
-          Cycling Star isn't available in your country yet. We're rolling out gradually — check back
-          soon.
+      {sinDetectar && (
+        <div className="space-y-2 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-800">
+          <p>We couldn't work out where you're riding from. Pick your country to carry on.</p>
+          <select
+            aria-label="Country"
+            value=""
+            onChange={(event) => setCountry(event.target.value)}
+            className="w-full rounded-lg border border-amber-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+          >
+            <option value="" disabled>
+              Choose your country…
+            </option>
+            {[...COUNTRIES]
+              .sort((a, b) => a.name.localeCompare(b.name))
+              .map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.flag} {c.name}
+                </option>
+              ))}
+          </select>
         </div>
       )}
 

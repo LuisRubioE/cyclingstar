@@ -97,10 +97,31 @@ const putRacePrefSchema = z.object({ raceId: z.string().min(1).max(80), wanted: 
 export const riderRoutes: RoutePlugin = async (app, ctx) => {
   const { db, currentUserId } = ctx
 
-  // País por IP (Paso 14): tras Cloudflare, cabecera CF-IPCountry. Sin ella, null (selector).
+  /**
+   * PAÍS POR IP (Paso 14). Tras Cloudflare llega en `CF-IPCountry`, pero ése no es el único sitio:
+   * cada capa de red delante pone la suya, y con una sola cabecera cualquier despliegue que no esté
+   * exactamente detrás de Cloudflare devuelve `null` y deja al jugador sin país.
+   *
+   * `XX` es lo que Cloudflare manda cuando NO sabe de dónde viene (y `T1` para la red Tor): no es un
+   * país, así que no se resuelve —si se dejara pasar, el fallback lo convertiría en Francia—.
+   */
   app.get('/api/geo/country', (request) => {
-    const raw = request.headers['cf-ipcountry']
-    const code = typeof raw === 'string' ? raw.toUpperCase() : null
+    const CABECERAS = [
+      'cf-ipcountry',
+      'x-vercel-ip-country',
+      'x-geo-country',
+      'x-country-code',
+      'fastly-client-country',
+    ] as const
+    let code: string | null = null
+    for (const nombre of CABECERAS) {
+      const raw = request.headers[nombre]
+      const valor = typeof raw === 'string' ? raw.toUpperCase().trim() : null
+      if (valor && valor.length === 2 && valor !== 'XX' && valor !== 'T1') {
+        code = valor
+        break
+      }
+    }
     // Resuelve al país jugable: el propio si existe, si no su fallback más cercano (Vaticano→Italia…).
     return { country: resolveCountry(code) }
   })
