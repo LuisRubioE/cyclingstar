@@ -1005,6 +1005,17 @@ export type RaceResults = z.infer<typeof raceResultsSchema>
  */
 export const chronicleRiderSchema = z.object({
   name: z.string(),
+  /**
+   * EL ID, PARA PODER LLEGAR A SU FICHA (v58). El dueño: «cuando salga el nombre de un ciclista que
+   * tenga enlace a su ficha». Hasta ahora la identidad de la crónica era deliberadamente «texto
+   * puro» —nombre, dorsal, equipo, bandera— porque el diario compone frases y no nodos; el id no
+   * cambia eso, solo permite que la capa de presentación envuelva el nombre en un enlace.
+   *
+   * Nullable porque los eventos están CONGELADOS: quien ya no esté en el roster ni en los resultados
+   * llega como un id suelto que ni siquiera sabemos si sigue siendo un corredor, y ahí no hay ficha
+   * a la que llevar a nadie.
+   */
+  id: z.string().nullish().default(null),
   /** Dorsal de la carrera (`race_rosters.bib`); null si el roster no lo tiene. */
   bib: z.number().int().nullable(),
   /** Nombre del equipo; null en un agente libre o si ya no se puede resolver. */

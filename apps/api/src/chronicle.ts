@@ -206,6 +206,9 @@ export function chronicleNames(
     const prev = riderOf.get(s.riderId)
     const jersey = jerseyOf(leaders, s.riderId)
     riderOf.set(s.riderId, {
+      // El id viaja con la identidad desde la v58: es lo que deja que el diario y la radio enlacen
+      // a la ficha sin que el journal deje de ser texto.
+      id: s.riderId,
       name: prev?.name ?? s.name,
       bib: prev?.bib ?? s.bib ?? null,
       team: prev?.team ?? s.teamName ?? null,
@@ -223,6 +226,9 @@ export function chronicleNames(
  * estable— y los tres campos de identidad se quedan vacíos: sin dorsal y sin bandera.
  */
 const unknownRider = (id: string): ChronicleRider => ({
+  // …y aquí NO se pone el id: no sabemos si sigue existiendo esa ficha, y un enlace roto es peor
+  // que un nombre sin enlace.
+  id: null,
   name: id,
   bib: null,
   team: null,

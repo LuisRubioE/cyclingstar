@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import type { RaceRadio, RadioGroup, RadioGroupKind, RadioRider } from '@cyclingstar/shared'
 // El listón de «esto es el pelotón» vive en el motor (v34), que es quien lo usa también para la
 // radio de terminal: web y terminal no pueden decir cosas distintas del mismo grupo.
@@ -153,7 +154,18 @@ function RiderLine({ r }: { r: RadioRider }) {
       <span className="w-7 shrink-0 text-right font-mono text-[11px] text-slate-400">
         {r.bib ?? ''}
       </span>
-      <span className="truncate text-slate-700">{r.name}</span>
+      {/* El nombre lleva a su ficha (v58): «cuando salga el nombre de un ciclista que tenga enlace
+          a su ficha». Sin id —una etapa congelada de alguien que ya no está— se lee igual, sin
+          enlace, que es mejor que un enlace roto. */}
+      <span className="truncate text-slate-700">
+        {r.id ? (
+          <Link to={`/world/riders/${r.id}`} className="hover:text-indigo-600 hover:underline">
+            {r.name}
+          </Link>
+        ) : (
+          r.name
+        )}
+      </span>
       {r.team && <span className="truncate text-[11px] text-slate-400">{r.team}</span>}
       {motivo && (
         <span className="ml-auto shrink-0 truncate text-[11px] text-slate-400 italic">

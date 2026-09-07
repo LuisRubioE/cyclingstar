@@ -166,8 +166,19 @@ const JERSEY_MARK = '\u0002'
  * usa para quitarlos TODOS; `split` y `replace` no arrastran `lastIndex` entre llamadas, así que
  * una sola instancia compartida es segura y evita compilar la expresión en cada frase.
  */
+/**
+ * …Y LA TERCERA MARCA: EL NOMBRE, CON SU FICHA DETRÁS (v58). El dueño: «cuando salga el nombre de
+ * un ciclista, que tenga enlace a su ficha». Va por el mismo camino que la bandera y el maillot —una
+ * marca dentro de la frase que `chronicleParts()` reparte— y no por un post-proceso que busque
+ * nombres en el texto ya montado: buscar «Juan López» dentro de una frase es adivinar, y un nombre
+ * que sea subcadena de otro (o de una palabra cualquiera) enlazaría a quien no es.
+ *
+ * Dentro de la marca viaja `id|nombre`, porque el id no se puede deducir del nombre. Sin id —eventos
+ * congelados de quien ya no está en el roster— no hay marca: el nombre se lee igual, sin enlace.
+ */
+const RIDER_MARK = '\u0003'
 const MARKED = new RegExp(
-  `(${FLAG_MARK}[^${FLAG_MARK}]*${FLAG_MARK}|${JERSEY_MARK}[^${JERSEY_MARK}]*${JERSEY_MARK})`,
+  `(${FLAG_MARK}[^${FLAG_MARK}]*${FLAG_MARK}|${JERSEY_MARK}[^${JERSEY_MARK}]*${JERSEY_MARK}|${RIDER_MARK}[^${RIDER_MARK}]*${RIDER_MARK})`,
   'g',
 )
 
@@ -196,7 +207,8 @@ const CAUGHT_AT_THE_LINE_KM = 2
  * Un trozo de frase: texto corrido, una bandera que la web pinta con `<Flag/>` o un maillot de
  * líder que pinta con `<LeaderJersey/>`. La web decide cómo se ven; aquí solo se dice qué son.
  */
-export type ChroniclePart = { text: string } | { flag: string } | { jersey: JerseyKind }
+export type ChroniclePart =
+  { text: string } | { flag: string } | { jersey: JerseyKind } | { riderId: string; text: string }
 
 const flagMark = (country: string | null): string =>
   country ? `${FLAG_MARK}${country}${FLAG_MARK}` : ''
@@ -233,7 +245,7 @@ export function riderFull(r: ChronicleRider): string {
    * nada y la frase se lee sin equipo, como hasta ahora.
    */
   const team = r.bib != null ? ` (${raceTeamLabel(r.team)})` : r.team ? ` (${r.team})` : ''
-  return `${jerseyMark(r.jersey)}${flagMark(r.country)}${bib}${r.name}${team}`
+  return `${jerseyMark(r.jersey)}${flagMark(r.country)}${bib}${nombreMarcado(r)}${team}`
 }
 
 /**
@@ -242,8 +254,12 @@ export function riderFull(r: ChronicleRider): string {
  * (Al Assad Cycling)». Fuera de ese caso la identidad va siempre completa.
  */
 export function riderShort(r: ChronicleRider): string {
-  return `${jerseyMark(r.jersey)}${flagMark(r.country)}${r.bib != null ? `${r.bib} ` : ''}${r.name}`
+  return `${jerseyMark(r.jersey)}${flagMark(r.country)}${r.bib != null ? `${r.bib} ` : ''}${nombreMarcado(r)}`
 }
+
+/** El nombre, marcado con su id cuando lo hay, para que la vista pueda enlazarlo a su ficha (v58). */
+const nombreMarcado = (r: ChronicleRider): string =>
+  r.id ? `${RIDER_MARK}${r.id}|${r.name}${RIDER_MARK}` : r.name
 
 /**
  * La lista de protagonistas de una frase, SIEMPRE con la identidad completa: bandera, dorsal,
@@ -273,6 +289,11 @@ export function chronicleParts(e: ChronicleEntry): ChroniclePart[] {
     .map((chunk): ChroniclePart => {
       if (chunk.startsWith(FLAG_MARK)) return { flag: chunk.slice(1, -1) }
       if (chunk.startsWith(JERSEY_MARK)) return { jersey: chunk.slice(1, -1) as JerseyKind }
+      if (chunk.startsWith(RIDER_MARK)) {
+        const dentro = chunk.slice(1, -1)
+        const corte = dentro.indexOf('|')
+        return { riderId: dentro.slice(0, corte), text: dentro.slice(corte + 1) }
+      }
       return { text: chunk }
     })
     .filter((p) => !('text' in p) || p.text.length > 0)
