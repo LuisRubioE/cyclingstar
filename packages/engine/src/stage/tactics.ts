@@ -40,6 +40,12 @@ export interface MoveRider {
   riderId: string
   role: StageRole
   mentality: Mentality
+  /**
+   * EL KILÓMETRO EN QUE ESTE HOMBRE HA QUEDADO EN LANZARSE (v58, `StageOrders.triggerKm`), o `null`
+   * si no lo ha marcado. La pantalla se lo promete al jugador con estas palabras: «Launch a move at
+   * this distance. Leave blank to let your mentality decide when».
+   */
+  triggerKm?: number | null
   /** Perfil efectivo en este bloque: lo que de verdad puede sostener ahora (SPEC 6.4). */
   perfil: number
   /** Puntuación de remate en el final que viene. Quien peor remata es quien más ataca (regla 6). */
@@ -91,6 +97,8 @@ export interface MoveRider {
 /** El contexto que parametriza el intento. */
 export interface MoveContext {
   kind: MoveKind
+  /** Km de recorrido ya cubiertos: es con lo que se compara el `triggerKm` que marcó el jugador. */
+  km?: number
   /** Km que faltan para meta. */
   kmToGo: number
   /** Longitud total de la etapa (km). */
@@ -351,6 +359,23 @@ export function attackAppetite(
     if (r.energyFraction < STAGE.breakawaySkipEnergyFraction) return 0
   }
   let a = ROLE_APPETITE[r.role] * MENTALITY_APPETITE[r.mentality]
+  /**
+   * …Y SI EL JUGADOR HA MARCADO SU KILÓMETRO, ES ÉSE (v58). La pantalla se lo promete —«Launch a
+   * move at this distance»— y hasta ahora ni siquiera llegaba al motor.
+   *
+   * No es un permiso, es una CITA: el que marca un kilómetro se guarda para ahí, así que fuera de
+   * su ventana el apetito se hunde y dentro se dispara. Eso es lo que hace que la orden se note en
+   * la carretera y no sea una preferencia más entre otras.
+   *
+   * Y no es un veto absoluto por dos motivos que son el mismo: el motor nunca obliga a nadie a
+   * atacar —el apetito compite con el de los demás y con las piernas que le queden— y un plan de
+   * carrera no sobrevive intacto a la carrera. Si le cazan antes, o si llega a su kilómetro sin
+   * fuerzas, no pasa nada; simplemente no sale.
+   */
+  if (r.triggerKm != null && ctx.km != null) {
+    const lejos = Math.abs(ctx.km - r.triggerKm)
+    a *= lejos <= STAGE.triggerWindowKm ? STAGE.triggerAppetiteBoost : STAGE.triggerAppetiteOutside
+  }
   // EL PLAN DE EQUIPO (v15, §V.1): un equipo con un hombre ya en la carretera no manda a otro, y el
   // que no tiene baza que jugar hoy es el que la manda. Multiplica, no decide: el rol y la
   // mentalidad siguen mandando, y el que corre por su cuenta entra aquí con un 1 limpio.

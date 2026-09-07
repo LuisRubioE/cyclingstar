@@ -64,16 +64,30 @@ describe('banco de mundo: la población después de 25 temporadas (G1)', () => {
     expect(`5★ medias ≤ 3: ${picoMedia <= 3}`).toBe('5★ medias ≤ 3: true')
   })
 
-  it('y el mundo CORRE, no solo entrena', () => {
+  it('y el mundo CORRE, no solo entrena', { timeout: 300000 }, () => {
     /**
      * La comprobación de que el banco no ha vuelto a quedarse ciego. Si alguien desconecta los días
      * de carrera, la población crece bastante menos y todo lo de arriba pasaría igualmente: sería
-     * un banco en verde midiendo un juego que no existe. Se ancla contra el brazo de solo
-     * entrenamiento, que daba 64,7 de media en la temporada 15.
+     * un banco en verde midiendo un juego que no existe.
+     *
+     * EL BRAZO DE CONTROL SE CORRE, NO SE RECUERDA (v58). Hasta aquí el listón era un 66 escrito a
+     * mano, sacado de que el brazo de solo entrenamiento daba 64,7 en la temporada 15. Pero ese
+     * 64,7 no dice nada de las carreras: dice con qué media NACEN los bots. Al bajar la media de
+     * generación —los cinco estrellas eran demasiados— la prueba se puso roja sin que la carrera
+     * hubiera dejado de enseñar ni un punto. Un guardarraíl que se cae solo porque cambia el punto
+     * de partida no vigila lo que dice vigilar.
+     *
+     * Ahora se corre el mundo dos veces, con carreras y sin ellas, y se comparan entre sí. El
+     * margen medido con la generación de la v58: 1,5 puntos de media global en la temporada 5, 2,6
+     * en la 10.ª y 3,1 en la 15.ª —la carrera enseña más cuanto más tiempo se lleva corriendo—. El
+     * listón pide UN punto, que es la diferencia entre «enseña poco» y «no enseña».
      */
     const t15 = filas.find((f) => f.season === 15)!
-    expect(`la media t15 supera el brazo sin carreras: ${t15.mediaGlobal > 66}`).toBe(
-      'la media t15 supera el brazo sin carreras: true',
+    const control = analyzeWorld(MUNDOS, 15, { sinCarreras: true })
+    const t15Control = control.find((f) => f.season === 15)!
+    const aporte = t15.mediaGlobal - t15Control.mediaGlobal
+    expect(`correr aporta más de un punto de media: ${aporte > 1} (${aporte.toFixed(1)})`).toBe(
+      `correr aporta más de un punto de media: true (${aporte.toFixed(1)})`,
     )
   })
 

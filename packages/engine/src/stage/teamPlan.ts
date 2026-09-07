@@ -296,6 +296,13 @@ export interface TeamSituation {
    */
   frontThreatDeficit: number | null
   /**
+   * …Y SI EL QUE VA DELANTE ES EL PROPIO HOMBRE DE LA GENERAL (v58). Se mira aparte de
+   * `manUpTheRoad` porque el equipo del maillot es la ÚNICA excepción a «no se persigue lo que
+   * lleva a un compañero dentro», y esa excepción no puede valer cuando el compañero de delante es
+   * justo el hombre del maillot: entonces el equipo estaría persiguiendo a su propio jefe.
+   */
+  leaderUpTheRoad: boolean
+  /**
    * EL BOQUETE DE HOY, en segundos; `null` si no hay nada delante (v38). Faltaba, y era el agujero
    * que el dueño señaló con dos preguntas seguidas: «etapa con rematador, lejos: perseguir… ¿pero y
    * si no hay fuga también? ¿y si la fuga está cerca también?». La postura se decidía SIN MIRAR LA
@@ -436,8 +443,26 @@ export function teamStance(plan: TeamPlan, sit: TeamSituation): TeamStance {
   // Tener un hombre delante lo cambia todo: no se persigue lo que lleva a un compañero dentro. Es
   // la regla más vieja del ciclismo… salvo para el equipo del maillot, que tiene que controlar el
   // boquete aunque el que se haya ido sea suyo.
+  /**
+   * …SALVO EL EQUIPO DEL MAILLOT, QUE CONTROLA EL BOQUETE AUNQUE EL DE DELANTE SEA SUYO. Y ESA
+   * EXCEPCIÓN SE ACABA CUANDO EL DE DELANTE ES EL MAILLOT (v58).
+   *
+   * El dueño, mirando la etapa 20: «hay un pelotón en el que va tirando el equipo del líder… pero
+   * el líder va delante, en el grupo de caza, y el equipo dice que tira para defender el jersey.
+   * ¡Pero el que tiene el jersey no está en ese grupo! Eso no tiene sentido».
+   *
+   * Y no lo tiene. La excepción del jersey se escribió para el caso contrario —el maillot va en el
+   * pelotón y un compañero suyo se cuela en la fuga: el equipo no puede desentenderse del boquete
+   * porque el liderato se le escapa por la carretera—, pero se aplicaba igual cuando el hombre de
+   * delante era EL MAILLOT EN PERSONA. Resultado: el equipo se quedaba «defendiendo el jersey»
+   * desde tres minutos por detrás del hombre que lo lleva, o sea persiguiendo a su propio jefe y
+   * arrastrando a noventa rivales hacia él.
+   *
+   * Es la misma frase de la v49 —«un equipo no persigue NUNCA un grupo en el que va su hombre»—
+   * completada: tampoco cuando ese hombre es el que lleva el maillot.
+   */
   const jersey = plan.purposes.includes('maillot')
-  if (sit.manUpTheRoad && !jersey) {
+  if (sit.manUpTheRoad && (!jersey || sit.leaderUpTheRoad)) {
     return { purpose: plan.purposes[0] ?? 'ninguno', intent: 'fuga', threatened, purposeCount }
   }
   let best: TeamStance = { purpose: 'ninguno', intent: 'nada', threatened, purposeCount }

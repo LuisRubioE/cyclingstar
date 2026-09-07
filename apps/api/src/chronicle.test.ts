@@ -34,6 +34,8 @@ describe('identidad de los protagonistas', () => {
       source('r1', { name: 'Andrej Pucnik', teamName: 'Al Assad Cycling', country: 'SI' }),
     ])
     expect(names.riderOf.get('r1')).toEqual({
+      // El id viaja con la identidad desde la v58: es lo que deja enlazar el nombre a su ficha.
+      id: 'r1',
       name: 'Andrej Pucnik',
       bib: 42,
       team: 'Al Assad Cycling',
@@ -46,8 +48,9 @@ describe('identidad de los protagonistas', () => {
       [ev({ plantilla: 'stage_win', protagonistas: ['fantasma'] })],
       chronicleNames([]),
     )
+    // …y sin id: al que no se puede resolver no se le pone enlace, porque no sabemos a dónde.
     expect(entry?.protagonists).toEqual([
-      { name: 'fantasma', bib: null, team: null, country: null },
+      { id: null, name: 'fantasma', bib: null, team: null, country: null },
     ])
   })
 
@@ -362,6 +365,7 @@ describe('el maillot en la identidad', () => {
     // tablas de la clasificación por equipos, que es donde se consulta.
     const names = chronicleNames([source('r9', { teamName: 'Equipo Uno' })], leaders)
     expect(names.riderOf.get('r9')).toEqual({
+      id: 'r9',
       name: 'r9',
       bib: null,
       team: 'Equipo Uno',

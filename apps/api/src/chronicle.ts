@@ -95,6 +95,9 @@ const EVENT_ORDER: Record<string, number> = {
   // noticia contada por su ausencia, y las dos nunca ocurren en el mismo kilómetro para el mismo
   // jefe. Sin esto, «no vino nadie» y «el motor no se enteró» se leían igual: en silencio.
   no_help_for_leader: 4,
+  // Un grupo que pasa a otro en el puerto (v58) va en el sitio del corte: es lo mismo —el orden de
+  // la carretera cambia— contado por la vía que en una rampa no es una fusión sino un rebase.
+  group_overtake: 4,
   // El parte de quién va en cabeza va DESPUÉS de lo que lo ha producido —el corte del grupo o la
   // captura de la fuga—: primero se cuenta qué ha pasado y luego quiénes han quedado delante.
   breakaway_caught: 5,
@@ -203,6 +206,9 @@ export function chronicleNames(
     const prev = riderOf.get(s.riderId)
     const jersey = jerseyOf(leaders, s.riderId)
     riderOf.set(s.riderId, {
+      // El id viaja con la identidad desde la v58: es lo que deja que el diario y la radio enlacen
+      // a la ficha sin que el journal deje de ser texto.
+      id: s.riderId,
       name: prev?.name ?? s.name,
       bib: prev?.bib ?? s.bib ?? null,
       team: prev?.team ?? s.teamName ?? null,
@@ -220,6 +226,9 @@ export function chronicleNames(
  * estable— y los tres campos de identidad se quedan vacíos: sin dorsal y sin bandera.
  */
 const unknownRider = (id: string): ChronicleRider => ({
+  // …y aquí NO se pone el id: no sabemos si sigue existiendo esa ficha, y un enlace roto es peor
+  // que un nombre sin enlace.
+  id: null,
   name: id,
   bib: null,
   team: null,

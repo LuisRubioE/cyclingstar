@@ -79,7 +79,12 @@ async function seedWorld(t: TestDb): Promise<{ worldId: string; riderIds: string
       declineAge: 33,
     })),
   )
-  await t.db.insert(raceRosters).values(riderIds.map((id) => ({ raceId: RACE_KEY, riderId: id })))
+  // Con dorsal, por lo mismo que en `stageRun.test.ts`: sin él el campo entra al motor en el orden
+  // que Postgres decida ordenando UUID, y el motor depende del orden. La misma semilla contaba una
+  // carrera distinta en cada corrida.
+  await t.db
+    .insert(raceRosters)
+    .values(riderIds.map((id, i) => ({ raceId: RACE_KEY, riderId: id, bib: i + 1 })))
   return { worldId, riderIds }
 }
 

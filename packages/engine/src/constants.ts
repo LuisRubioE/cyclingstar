@@ -715,7 +715,7 @@
  * Campaña canónica de 500 corridas: **los 33 invariantes en verde**. La contrarreloj no se mueve ni
  * un dígito —es el ancla del esfuerzo individual y paga la ley lineal de siempre—.
  */
-export const ENGINE_VERSION = 51 as const
+export const ENGINE_VERSION = 52 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -794,8 +794,58 @@ export const CREATION = {
  * al techo lo reparten la edad y la clase de atributo (ver `ceilingBoost`).
  */
 export const NPC = {
-  // mu del atributo primario de la vocación por división (World Tour, Pro Series, Continental).
-  divisionPrimaryMu: { WT: 78, PRS: 68, CON: 60 },
+  /**
+   * mu del atributo primario de la vocación por división (World Tour, Pro Series, Continental).
+   *
+   * …Y CINCO ESTRELLAS TIENEN QUE SER RARAS (v58). El dueño, mirando el mundo: «creo que entre los
+   * bots hay algunos demasiado pro». Medido sobre 4.000 bots con los números de antes (78 y una
+   * desviación de 8): **el 46,8 % de los corredores del WorldTour tenía al menos un atributo de
+   * cinco estrellas** (84+ en la escala de `attrStars`) y el 1 % superior estaba clavado en el techo
+   * de 95. Casi uno de cada dos, cuando cinco estrellas debería querer decir «de los mejores del
+   * mundo en esto».
+   *
+   * El dueño fijó la banda: «claramente menos del 15 % de momento (y cuando haya humanos buenos
+   * bajaremos eso a 0)» —lo segundo es G9, y no se hace aquí—.
+   *
+   * SE BAJA LA MEDIA, NO LA DESVIACIÓN, Y ESO NO ES UN DETALLE. El primer intento fue 75 · 5,5, que
+   * cumplía la banda (11,2 %) estrechando el campo. El banco lo tumbó, y con razón: la etapa 9 del
+   * Giro pasó de repartir a llegar en bloque —el grupo mayor subió del 33 % al **55,7 %** del
+   * pelotón—, la cola de las reinas se salió de su banda por abajo y el adoquín dejó de decidirlo el
+   * adoquinero (mediana del PAV del ganador 69 → 67). Todos son la misma frase: **una carrera
+   * selecciona por las DIFERENCIAS entre corredores, y bajar la desviación es exactamente borrarlas**.
+   * Bajar la media, en cambio, mueve a todo el mundo el mismo escalón y deja las diferencias
+   * intactas.
+   *
+   * Barrido sobre 6.000 bots manteniendo la desviación en 8:
+   *
+   * | mu · sd | con 5 estrellas | media general | mejor atributo p99 |
+   * | ------- | --------------: | ------------: | -----------------: |
+   * | 78 · 8  |      **44,9 %** |          62,8 |                 95 |
+   * | 76 · 8  |          34,1 % |          60,8 |                 95 |
+   * | 74 · 8  |          23,4 % |          58,8 |                 95 |
+   * | 72 · 8  |          14,6 % |          56,8 |                 92 |
+   * | **71 · 8** |     **11,3 %** |      **55,8** |             **92** |
+   * | 70 · 8  |           9,2 % |          54,8 |                 90 |
+   *
+   * Se elige 71 · 8. Cumple la banda con el mismo margen que daba el 75 · 5,5 (11,3 % contra 11,2 %)
+   * y sin tocar la dispersión, así que el mundo sigue teniendo cracks y la montaña sigue
+   * seleccionando. El 72 se descarta por lo contrario: 14,6 % no es «claramente menos del 15 %», es
+   * rozarlo.
+   *
+   * Comprobado después sobre `generateNpcRider`, que es el camino de verdad y no la aproximación
+   * del barrido, con los mismos 4.000 bots con los que se vio el defecto: **11,8 % del WorldTour
+   * con un atributo de cinco estrellas**, contra el 46,8 % de partida. Y el mundo conserva su punta:
+   * el mejor atributo va de 76 en la mediana a 93 en el p99, con algún 95.
+   *
+   * Lo que sí cambia es el NIVEL ABSOLUTO: siete puntos menos de media. Es un cambio de escala del
+   * mundo entero, no de la carrera, y por eso el único banco que se cayó por ese lado fue el que
+   * comparaba la media de la población contra un número escrito a mano (`sim/world.test.ts`, «y el
+   * mundo CORRE»); ese banco ahora corre su propio brazo de control en vez de recordarlo.
+   *
+   * Las tres divisiones bajan lo mismo para no estrechar la distancia entre ellas, que es lo que
+   * hace que subir de categoría signifique algo.
+   */
+  divisionPrimaryMu: { WT: 71, PRS: 61, CON: 53 },
   adjacentDrop: 10,
   restDrop: 22,
   attrSd: 8,
@@ -1260,6 +1310,45 @@ export const STAGE = {
   // aquí al lado —`chaseBackSecondsPerKm` = 8 s/km, el boquete se cerraba solo— ya no existe: un
   // descolgado vuelve si su FÍSICA le da para volver (`droppedCommit`) y no porque una constante se
   // lo regale. Ver docs/balance.md, «v16».
+  /**
+   * LA PUERTA DEL REENGANCHE AL PELOTÓN, aparte de `regroupGapSeconds` desde la v58 —aunque hoy
+   * valgan lo mismo, y esa historia es la que hay que contar aquí—.
+   *
+   * SE PROBÓ ESTRECHARLA Y LA MEDIDA LO REFUTÓ. La idea: el corredor que entra en un grupo adopta el
+   * reloj de ese grupo, así que entrar con veintidós segundos de hueco era comérselos de golpe, y de
+   * ahí salían las velocidades imposibles de la radio y la sensación del dueño de que «los que
+   * pierden en montaña cinco minutos se reintegran demasiado fácil». Con la puerta en 5 s los saltos
+   * de reloj bajaban de 192 a 11 por Giro.
+   *
+   * Pero el banco del adoquín enseñó lo que esa puerta ADEMÁS era: el mecanismo por el que **el
+   * fuerte vuelve**. En el banco del pavé —treinta hombres que solo se distinguen en PAV— el PAV
+   * mediano del ganador se movía así:
+   *
+   * | puerta | PAV mediano del ganador |
+   * | -----: | ----------------------: |
+   * | 22 s   |            **69** (listón del dueño: «pave 69 ok») |
+   * | 12 s   |                      68 |
+   * |  8 s   |                      68 |
+   * |  5 s   |                      67 |
+   *
+   * O sea que estrechar la puerta no solo quitaba el regalo: quitaba la capacidad de recuperación
+   * del que tiene piernas para volver, que en el adoquín es justo el adoquinero. Y el propio regalo
+   * está peor diagnosticado de lo que parecía: en ciclismo, el que vuelve al pelotón CRUZA LA META
+   * CON ÉL, así que heredar el reloj del grupo al reengancharse es lo correcto; veintidós segundos
+   * son, además, más o menos lo que se estira un pelotón de ciento setenta y seis de punta a cola.
+   *
+   * Lo que sí era un defecto —los 94 km/h que el dueño vio en un grupeto— vive en la RADIO y se
+   * arregla ahí (`groupSpeedKmh`): medir la velocidad de un grupo con corredores que acaban de
+   * cambiar de grupo es medir un salto de reloj, no una velocidad.
+   */
+  /**
+   * EL TECHO DE VELOCIDAD DE LA RADIO (v58). Por encima de esto no hay ciclista: hay un reloj que ha
+   * cambiado de grupo y una resta que no significa nada (ver `groupSpeedKmh`). El récord de descenso
+   * en carrera anda por los 90 km/h y una llegada masiva no pasa de 70, así que 85 deja fuera lo
+   * imposible sin recortar nada de lo que ocurre de verdad.
+   */
+  radioMaxKmh: 85,
+  rejoinGapSeconds: 22,
   regroupGapSeconds: 22,
   // …y ese umbral se estrecha según lo que esté apretando el pelotón: se escala por
   // `clamp((1 − c) / (1 − chaseBackShutTempo), chaseBackShutFloor, 1)`, así que a tempo de carretera
@@ -1748,6 +1837,29 @@ export const STAGE = {
    * Con 1,5 se pone por encima de un gregario del equipo que lleva el frente, que es lo que se ve en
    * los últimos tres kilómetros de cualquier llegada masiva.
    */
+  /**
+   * CUÁNTO PESA EN EL TURNO LO QUE EL JUGADOR MANDÓ GASTAR HOY (v58, `StageOrders.effort`). Se suma
+   * al deber: +0,5 al que sale a vaciarse, −0,5 al que sale a guardarse, 0 al que no elige.
+   *
+   * Medio punto es la mitad del salto que hay entre un gregario (1,0) y un corredor libre (0,6),
+   * así que mueve de verdad quién entra al turno sin poder por sí solo poner a un sprinter a tirar
+   * ni sacar del turno a un gregario cuyo equipo lleva el frente. Manda el oficio; el esfuerzo
+   * inclina.
+   */
+  relayEffortWeight: 0.5,
+  /**
+   * LA CITA DEL JUGADOR CON SU ATAQUE (v58, `StageOrders.triggerKm`). Tres números para la misma
+   * regla: cuántos kilómetros dura la ventana alrededor del punto marcado, cuánto se multiplica el
+   * apetito dentro de ella y cuánto se hunde fuera.
+   *
+   * Dos kilómetros de ventana son los que tarda un hombre en colocarse y saltar; ×3 dentro pone a un
+   * corredor libre (0,45) por encima de un cazaetapas suelto, que es lo que significa «he venido a
+   * esto»; y 0,15 fuera es no vetarle —si la carrera explota antes, sigue pudiendo reaccionar— pero
+   * dejar claro que se está guardando.
+   */
+  triggerWindowKm: 2,
+  triggerAppetiteBoost: 3,
+  triggerAppetiteOutside: 0.15,
   relayLeadOutBoost: 1.5,
   /**
    * LO QUE BAJA EL DEBER DE RELEVO DEL LÍDER DE LA CARRERA (v57). Ver la nota entera en `relayTurn`:
@@ -1761,6 +1873,24 @@ export const STAGE = {
    * abanico, donde no hay rueda detrás de la que esconderse.
    */
   relayRaceLeaderPenalty: 3,
+  /**
+   * CUÁNTA GENTE TIENE QUE HABER PARA CONTAR QUE UN GRUPO PASA A OTRO (v58), sumando los dos. Dos
+   * corredores sueltos que se intercambian el orden en una rampa no son una noticia de carrera; un
+   * grupo que alcanza a los restos de una fuga y les deja, sí. Tres es «al menos uno de los dos es
+   * un grupo».
+   */
+  overtakeNoticeMinRiders: 3,
+  /**
+   * …Y CADA CUÁNTOS KILÓMETROS puede repetirse el aviso para la MISMA pareja. Dos grupos que suben a
+   * ritmos parecidos se intercambian el orden varias veces —medido, tres cruces del mismo par entre
+   * el km 163 y el 167 de una etapa—, y eso es un pulso, no tres adelantamientos.
+   */
+  overtakeNoticeKmGap: 10,
+  /**
+   * …Y CUÁNTOS KILÓMETROS TIENE UN REBASE PARA CUAJAR (v58). Pasado ese margen sin abrir hueco, los
+   * dos grupos van a la par y no ha pasado nada que contar.
+   */
+  overtakeConfirmKm: 3,
   /**
    * CADA CUÁNTO SE VUELVE A MIRAR LA COOPERACIÓN DE UNA FUGA, en bloques. El dueño: «habría que
    * irlo midiendo a menudo… quizás no cada 100 metros, pero quizás cada km». Con `dx` = 50 m, veinte

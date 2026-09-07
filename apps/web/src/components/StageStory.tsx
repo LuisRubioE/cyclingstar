@@ -2,6 +2,7 @@ import { JERSEY_PRIORITY, type StageReplay } from '@cyclingstar/shared'
 import { Flag } from './Flag'
 import { LeaderJersey, RiderJersey } from './Jersey'
 import { RiderName } from './RiderName'
+import { Link } from 'react-router-dom'
 import { chronicleParts, timeTrialStory } from '../domain/stageJournal'
 import { formatTime } from '../domain/format'
 import { raceTeamLabel } from '../domain/labels'
@@ -117,6 +118,16 @@ export function StageStory({
                       // Y el maillot de líder, con el mismo trato que la bandera: dibujo propio,
                       // nunca un emoji, y con su texto alternativo («Race leader»…).
                       <LeaderJersey key={j} kind={part.jersey} size={13} className="mx-0.5" />
+                    ) : 'riderId' in part ? (
+                      // …y el nombre lleva a su ficha (v58). El enlace se pinta aquí y no se busca
+                      // en el texto: la marca viene puesta desde `riderFull`/`riderShort`.
+                      <Link
+                        key={j}
+                        to={`/world/riders/${part.riderId}`}
+                        className="hover:text-indigo-600 hover:underline"
+                      >
+                        {part.text}
+                      </Link>
                     ) : (
                       <span key={j}>{part.text}</span>
                     ),

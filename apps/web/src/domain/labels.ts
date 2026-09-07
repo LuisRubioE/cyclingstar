@@ -97,6 +97,19 @@ export const STAGE_ROLE_DESC: Record<StageRole, string> = {
   marcador: "Marker: shadows a RIVAL and follows their attacks so they can't get away.",
 }
 
+/**
+ * DE QUÉ VA CADA ETAPA, en una palabra (v58). El motor las llama por su tipo (`llana`, `media`,
+ * `reina`, `cri`, `clasica`) y la pantalla de órdenes lo enseñaba solo dibujado en el perfil: la
+ * decisión que se toma ahí —qué rol le doy hoy— depende justamente de esto.
+ */
+export const STAGE_KIND_LABEL: Record<string, string> = {
+  llana: 'Flat',
+  media: 'Hilly',
+  reina: 'Mountain',
+  cri: 'Time trial',
+  clasica: 'Classic',
+}
+
 export const EFFORT_OPTIONS: Effort[] = ['ahorrar', 'normal', 'a_tope']
 
 export const EFFORT_LABEL: Record<Effort, string> = {

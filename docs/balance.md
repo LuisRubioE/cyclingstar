@@ -9441,6 +9441,68 @@ No dice que el reparto de roles del pelotón esté bien. Que el 70 % del campo s
 pregunta —un equipo de ocho en una llana lleva un velocista, su tren de dos o tres, y el resto—, y
 este banco la deja a la vista sin contestarla.
 
+## v58 — Siete cosas que el dueño vio en una tarde, y la aritmética de los reenganches
+
+`ENGINE_VERSION` 51 → 52. Toda la tanda sale de una sesión del dueño leyendo la etapa 20 del Race Italy en la radio de carrera, foto a foto. No hay ninguna regla nueva inventada aquí: son reglas que ya existían y no llegaban donde tenían que llegar.
+
+### 1. El equipo del maillot perseguía a su propio maillot
+
+> «hay un pelotón en el que va tirando el equipo del líder… pero el líder va delante, en el grupo de caza, y el equipo dice que tira para defender el jersey. ¡Pero el que tiene el jersey no está en ese grupo!»
+
+«No se persigue lo que lleva a un compañero dentro» tiene una excepción escrita: el equipo del maillot, que tiene que controlar el boquete aunque el que se haya ido sea suyo. Correcta cuando el maillot va en el pelotón y el que se escapa es un gregario suyo; absurda cuando **el que va delante es el maillot en persona**. El equipo se quedaba «defendiendo el jersey» desde tres minutos por detrás del hombre que lo lleva.
+
+### 2. «Working the break» en un grupo que no era ninguna fuga
+
+> «de estos 42 van tirando 11 que dice _working the break_, pero esto no es una escapada, es el grupo del maillot amarillo intentando alcanzar al segundo»
+
+Fuera del pelotón solo había dos etiquetas: vas delante, `fuga`; vas detrás, `grupeto`. Faltaba la tercera, que es la que describe la mitad de las fotos de una etapa rota: vas por delante del grueso **con alguien delante al que ir a buscar**. Eso es `persecucion`, y la radio dice a quién se persigue.
+
+### 3. «His job in the team», que es como no decir nada
+
+El motivo `rol` es el cajón de sastre del que tira sin que su equipo le empuje, y el empuje se apaga cuando el equipo gasta su presupuesto del día. O sea que justo cuando un equipo lleva media etapa al frente por su jefe —cuando la evidencia más se necesita— el motivo se quedaba mudo. El presupuesto explica CUÁNTA gente pone un equipo delante, no POR QUIÉN: si el hombre del plan va en el mismo grupo, el motivo lo nombra.
+
+### 4. Los gregarios tirando delante con su jefe descolgado
+
+> «el líder se ha quedado atrás… y entonces delante están tirando sus 2 compañeros. ¿No se han enterado?»
+
+La regla existía desde la v37 y tenía dos condiciones que dejaban fuera justo esa foto: solo contaba **fuera del pelotón**, y solo si el jefe iba en un grupo de descolgados. Ahora vale en cualquier grupo.
+
+**El umbral de 22 s se queda, y eso lo decidió la medida**: probado sin umbral —«si mi jefe no está en mi grupo, no tiro»—, la huella sellada de la llana canónica se iba **387 segundos**, porque en un pelotón de ciento setenta y seis siempre hay alguien tres segundos por detrás y el turno se vaciaba entero. Y se acota al hombre de la GENERAL: en una llana sin general, `leaderId` es solo el mejor del equipo para ese final, y que se descuelgue no es motivo para dejar de correr la etapa.
+
+### 5. «Just riding» en el grupo de cabeza
+
+> «en el grupo de cabeza hay unos _just riding — this group is chasing nothing_… ¡pero si es el grupo de cabeza donde está el líder!»
+
+No era el grupo: eran cinco hombres recién absorbidos que llegaban con la etiqueta del grupeto del que venían. El turno de relevos se decide al principio del bloque y las fusiones ocurren después, en el mismo bloque. Es la simétrica de lo que `dropOut` ya hacía —«el que acaba de soltarse no está relevando»—: el que acaba de llegar, tampoco. Comprobado que **no mueve la huella**: es una etiqueta de la foto, no física.
+
+### 6. Los 94,9 km/h de un grupeto, y por qué se reintegraban tan fácil
+
+> «¿qué me dices de este tercer grupo que va a 94 km/h cuando están _just riding_?» · «los que pierden en montaña 5 minutos luego se reintegran demasiado fácil»
+
+Son la misma cosa. El corredor que entra en un grupo adopta el reloj de ese grupo, así que la puerta del pelotón (22 s) era también un REGALO: el que entraba con veintidós segundos se los comía de golpe, y la radio —que mide la velocidad por la diferencia de relojes— lo enseñaba como un número absurdo.
+
+**Medido** sobre un Giro entero buscando kilómetros hechos a más de 120 km/h, con el grupo de origen y el de destino de cada caso:
+
+| kilómetros imposibles en un Giro |                          antes |    después |
+| -------------------------------- | -----------------------------: | ---------: |
+| casos                            |                            192 |     **11** |
+| peor caso                        |                           23 s |          — |
+| de dónde salían                  | `shed-N -> peloton`, **todos** | ya ninguno |
+
+La puerta del reenganche pasa a tener su propia constante (`rejoinGapSeconds` = 5 s, el mismo listón con el que dos grupos se consideran capturados). Los 22 s siguen siendo lo que separa a un grupo de otro para todo lo demás —el rescate del jefe, el aviso de reagrupamiento—; lo que ya no son es un atajo.
+
+### 7. Y el límite de la v56, medido antes de tocarlo
+
+La v56 dejó anotado que «en un puerto dos grupos todavía pueden cruzarse sin juntarse». Medido: **22 cruces en un Giro, 19 en puerto, 2 en descenso y 1 en llano con viento**. Y leídos uno a uno, casi todos son la carretera haciendo lo suyo: un grupo que sube más fuerte alcanza a un descolgado, le pasa y le deja —el caso de libro del banco es un hombre solo al que un grupo de catorce pasa y le saca 35 s en un kilómetro—. Eso no es un adelantamiento fantasma: es un adelantamiento.
+
+Lo que faltaba no era física, era la línea. Ahora el paso se cuenta (`group_overtake`), con los dos tamaños y el hueco que abre: **24 avisos en un Giro**.
+
+Y un apunte de método, porque costó dos intentos: la primera versión pedía cinco segundos de hueco **en el instante del cruce** y midió CERO avisos en un Giro entero. Claro: en el instante del cruce el hueco es cero por definición. Un rebase se apunta cuando los relojes se igualan y se confirma unos kilómetros después; si vuelven a cruzarse, era el pulso de dos grupos que suben a la par y no se cuenta nada.
+
+### Lo que NO cambia, dicho para que nadie le pida a esta tanda lo que no da
+
+El hueco que el dueño vio abrirse de 3:02 a 0:29 en tres kilómetros **no es un defecto**: la propia radio enseña al escapado subiendo a 13,7 km/h y al grupo que le caza a 17,1, y esa diferencia son unos cincuenta segundos por kilómetro. Se comprobó antes de tocar nada.
+
 ## v57 — Ir por delante no es haber vuelto, y el maillot no da la cara al viento
 
 `ENGINE_VERSION` 50 → 51. Cuatro cosas que el dueño vio en la etapa 17 del Race Italy y en la 19, dichas por él y corregidas donde estaba la causa, no donde se veía el síntoma.
@@ -9980,3 +10042,80 @@ Se le llevaron al dueño las cuatro salidas —bajar el suelo, subir las semilla
 `breakawayWinPct` ya tiene anotado para su techo), revertir la criba, o dejarlo en rojo— y eligió
 **bajar el suelo a 40**, que deja el listón por debajo de la nube entera. Un suelo tiene que cazar
 que la montaña deje de seleccionar; no arbitrar de qué lado de un hueco cae la mediana.
+
+## v58 — Cinco estrellas tenían que ser raras, y la primera forma de conseguirlo rompía la carrera
+
+> «creo que entre los bots hay algunos demasiado pro» — «claramente menos del 15 % de momento (y cuando haya humanos buenos bajaremos eso a 0)»
+
+### El defecto: casi la mitad del WorldTour era un cinco estrellas
+
+Medido con `generateNpcRider` sobre 4.000 bots y los números de entonces —media del atributo primario 78 en el WorldTour, desviación 8—: **el 46,8 % tenía al menos un atributo de cinco estrellas** (84+ en la escala de `attrStars`) y el 1 % superior estaba clavado en el techo de 95. Uno de cada dos, cuando la última estrella debería querer decir «de los mejores del mundo en esto».
+
+### El primer intento, y por qué el banco lo tumbó
+
+Se bajó a **75 · 5,5**, que cumple la banda con margen (11,2 %) apretando las dos cosas a la vez: la media y la dispersión. El banco completo salió con cuatro rojos, y los cuatro dicen la misma frase:
+
+| banco                                                | esperado | con 75 · 5,5 |
+| ---------------------------------------------------- | -------- | ------------ |
+| Giro e9: el grupo mayor en la llegada en alto        | ≤ 33 %   | **55,7 %**   |
+| cola de las reinas de la gran vuelta                 | 8-14 %   | por debajo   |
+| un final de pavé lo gana el adoquinero (PAV mediana) | ≥ 69     | **67**       |
+| «el mundo CORRE, no solo entrena» (media t15)        | > 66     | por debajo   |
+
+Los tres primeros son **selección**: una carrera reparte por las DIFERENCIAS entre corredores, y bajar la desviación es exactamente borrarlas. Con el campo apretado, el puerto final de la etapa 9 dejó de partir el pelotón y más de la mitad llegó junta —que es, palabra por palabra, el defecto que esa prueba se escribió para cazar en la v47—.
+
+Se comprobó en pareado antes de decidir nada: revirtiendo SOLO la generación (78 · 8) y sin tocar una línea del motor de esta tanda, el Giro e9 vuelve a verde. La causa era la generación, no las siete correcciones de carrera.
+
+### La forma que sí vale: bajar la media, no la dispersión
+
+Un desplazamiento de la media mueve a todo el mundo el mismo escalón y deja las diferencias intactas. Barrido sobre 6.000 bots con la desviación fija en 8:
+
+| mu · sd    | con 5 estrellas | media general | mejor atributo p99 |
+| ---------- | --------------: | ------------: | -----------------: |
+| 78 · 8     |      **44,9 %** |          62,8 |                 95 |
+| 74 · 8     |          23,4 % |          58,8 |                 95 |
+| 72 · 8     |          14,6 % |          56,8 |                 92 |
+| **71 · 8** |      **11,3 %** |      **55,8** |             **92** |
+| 70 · 8     |           9,2 % |          54,8 |                 90 |
+
+Se elige **71 · 8** (WT 71, PRS 61, CON 53; las tres divisiones bajan lo mismo para no estrechar la distancia entre ellas). El 72 se descarta por rozar el listón: 14,6 % no es «claramente menos del 15 %».
+
+Comprobado después sobre el camino de verdad, `generateNpcRider`, con los mismos 4.000 bots con los que se vio el defecto: **11,8 % del WorldTour con un atributo de cinco estrellas**, contra el 46,8 % de partida, y el mundo conserva su punta —el mejor atributo va de 76 en la mediana a 93 en el p99, con algún 95—. Los tres bancos de selección vuelven a verde sin tocar ninguna banda.
+
+### El cuarto rojo era un guardarraíl mal atado, y se ha arreglado por dentro
+
+«Y el mundo CORRE, no solo entrena» comparaba la media de la población en la temporada 15 contra un **66 escrito a mano**, sacado de que el brazo de solo entrenamiento daba 64,7. Pero ese 64,7 no dice nada de las carreras: dice con qué media NACEN los bots. Al bajar la generación siete puntos, la prueba se puso roja sin que la carrera hubiera dejado de enseñar ni un punto.
+
+`runWorld` acepta ahora `sinCarreras`, y el banco **corre su propio brazo de control** en vez de recordarlo: dos mundos con carreras contra dos mundos sin ellas, y se comparan entre sí.
+
+| temporada | con carreras | sin carreras | aporte |
+| --------- | -----------: | -----------: | -----: |
+| 5         |         53,5 |         52,0 |   +1,5 |
+| 10        |         58,5 |         55,9 |   +2,6 |
+| 15        |         61,8 |         58,7 |   +3,1 |
+
+El listón pide un punto, que es la diferencia entre «enseña poco» y «no enseña». Un guardarraíl que se cae solo porque cambia el punto de partida no vigila lo que dice vigilar.
+
+### El único rojo que quedó, y por qué era del listón y no del motor
+
+El banco completo de la v58 salió con **un fallo de 717**: `race-white-roads` —Strade Bianche, la de grava— pasaba el techo de saturación del depósito, 0,952 contra 0,950.
+
+Antes de tocar nada se midió lo mismo en `main`, sin una sola línea de esta tanda:
+
+|                   | 3 semillas | 8 semillas |
+| ----------------- | ---------: | ---------: |
+| main (sin la v58) |      0,947 |      0,945 |
+| v58               |  **0,952** |      0,948 |
+
+**Main ya pasaba por tres milésimas.** La v58 aporta otras tres, y eso es menos de lo que el número se mueve solo: semilla a semilla el vaciado de esa carrera va de **0,932 a 0,962**, y la mediana de tres semillas —que es lo que el bucle mide— salta entre 0,938 y 0,952 según qué tres le toquen.
+
+```
+semillas:  0.944 0.948 0.962 0.948 0.952 0.933 0.938 0.946 0.935 0.940 0.942 0.932 0.946 0.938 0.947
+medianas de tres:  0.948 · 0.948 · 0.938 · 0.940 · 0.946
+```
+
+La nube es **seis veces más ancha que el margen** que dejaba el listón. Es V1 otra vez —«la banda sentada encima de su suelo»— y el mismo caso que `mountain.top10GapSeconds` en esta misma tanda.
+
+También se descartó lo primero que uno piensa, que fuera el campo más flojo de la nueva generación de bots: el vaciado de white-roads da **0,952 exactamente igual con media 78, 75, 74, 73, 72 y 71**, porque este escenario corre con el campo sintético uniforme y no pasa por `generateNpcRider`. Y Lombardia, el peor caso histórico, **baja** de 0,908 a 0,894.
+
+El dueño eligió **subir el techo de 0,95 a 0,96**, que deja el listón por encima de la nube de la mediana (peor medida 0,952) con ocho milésimas. No cubre la peor semilla suelta —0,962— y no tiene por qué: lo que se comprueba es la mediana. La otra mitad de la alarma no se movió: las pájaras siguen pidiéndose marginales y white-roads está al 9-11 % contra un techo de 12, o sea que el tanque a cero sigue siendo la excepción.

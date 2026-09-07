@@ -272,8 +272,18 @@ function foto(
  * el plan del entrenador bot (`defaultCoachPlan`, el mismo que usa `packages/db`), `simulateRiderDay`
  * y nada más. `kInst` y `kStaff` van a 1 —sin instalaciones ni staff que multipliquen— porque este
  * banco mide el MOTOR de progresión, no la economía de un equipo.
+ *
+ * `sinCarreras` apaga los días de competición y deja el mundo SOLO ENTRENANDO. Es el brazo de
+ * control contra el que se compara el mundo completo: hasta la v58 ese brazo era un número escrito
+ * a mano en el banco (64,7 de media en la temporada 15), y por eso cualquier cambio en la
+ * generación de bots lo tiraba abajo aunque la carrera siguiera enseñando exactamente lo mismo.
+ * Medido, no recordado: el brazo se corre.
  */
-export function runWorld(worldSeed: string, seasons: number): WorldSeasonRow[] {
+export function runWorld(
+  worldSeed: string,
+  seasons: number,
+  opciones: { sinCarreras?: boolean } = {},
+): WorldSeasonRow[] {
   const rng = seededRng(`${worldSeed}:mundo`)
   const field: WorldRider[] = []
   for (const { division, equipos, por } of PLANTILLA) {
@@ -302,7 +312,7 @@ export function runWorld(worldSeed: string, seasons: number): WorldSeasonRow[] {
      */
     const corre = new Map<string, Map<number, DiaDeCarrera>>()
     for (const r of field) {
-      const cal = CALENDARIO[r.division]
+      const cal = opciones.sinCarreras === true ? [] : CALENDARIO[r.division]
       const dias = new Map<number, DiaDeCarrera>()
       if (cal.length > 0) {
         const rr = seededRng(`${worldSeed}:${r.riderId}:cal:${season}`)
@@ -410,9 +420,13 @@ export function runWorld(worldSeed: string, seasons: number): WorldSeasonRow[] {
 }
 
 /** Varias corridas del mundo, promediadas temporada a temporada: una sola oscila demasiado. */
-export function analyzeWorld(runs: number, seasons: number): WorldSeasonRow[] {
+export function analyzeWorld(
+  runs: number,
+  seasons: number,
+  opciones: { sinCarreras?: boolean } = {},
+): WorldSeasonRow[] {
   const todas: WorldSeasonRow[][] = []
-  for (let i = 0; i < runs; i++) todas.push(runWorld(`mundo-${i}`, seasons))
+  for (let i = 0; i < runs; i++) todas.push(runWorld(`mundo-${i}`, seasons, opciones))
   const out: WorldSeasonRow[] = []
   for (let s = 0; s < seasons; s++) {
     const fila = todas.map((t) => t[s]!)

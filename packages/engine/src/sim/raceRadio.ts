@@ -569,6 +569,27 @@ function groupSpeedKmh(
     mejor = n
     mayoria = id
   }
+  /**
+   * …Y UN RELOJ QUE SALTA NO ES UNA VELOCIDAD (v58).
+   *
+   * El dueño, en producción: «¿qué me dices de este tercer grupo que va a 94 km/h cuando están *just
+   * riding*? Menos mal que están just riding, si llegan a competir de verdad…».
+   *
+   * No iban a 94. El corredor que cambia de grupo ADOPTA el reloj del grupo nuevo —así está
+   * construido el modelo— y ese cambio de referencia se cuela aquí como un kilómetro cubierto en
+   * muy poco tiempo. Se intentó defender mirando «dónde acaba la mayoría», pero cuando la mayoría es
+   * la que se ha movido —un grupeto al que absorben, que es exactamente la foto del dueño— la
+   * mediana se calcula sobre relojes saltados y sale un número de moto.
+   *
+   * Se probó excluir a todo el que cambia de grupo y el banco lo refutó en el acto: un grupo que se
+   * FUNDE con otro sí ha cubierto ese kilómetro, y sus hombres son los únicos que pueden decir a qué
+   * velocidad lo hizo (las dos pruebas de «la velocidad se le sigue midiendo al grupo que se funde»).
+   * Lo que hay que tirar no es al que cambia de grupo: es al reloj que no puede ser una velocidad.
+   *
+   * `radioMaxKmh` es ese listón, y está por encima de cualquier descenso real: lo que lo supera no
+   * es un ciclista rápido, es aritmética de otro grupo.
+   */
+  const dtMinimo = (3600 * dKm) / STAGE.radioMaxKmh
   const dts: number[] = []
   for (let i = 0; i < g.riderIds.length; i++) {
     const rider = g.riderIds[i]!
@@ -577,7 +598,7 @@ function groupSpeedKmh(
     // …y si sabemos dónde acaba cada uno, solo cuentan los que se quedan con la mayoría.
     if (mayoria !== null && groupAhead.get(rider) !== mayoria) continue
     const dt = then - g.riderTs[i]!
-    if (dt > 0) dts.push(dt)
+    if (dt >= dtMinimo) dts.push(dt)
   }
   if (dts.length === 0) return null
   dts.sort((a, b) => a - b)

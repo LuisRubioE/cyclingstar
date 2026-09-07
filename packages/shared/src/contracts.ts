@@ -78,7 +78,14 @@ export const publicRiderSchema = z.object({
 
 export const myRiderResponseSchema = z.object({ rider: publicRiderSchema.nullable() })
 
-export const geoCountryResponseSchema = z.object({ country: z.string().nullable() })
+export const geoCountryResponseSchema = z.object({
+  country: z.string().nullable(),
+  // Diagnóstico del país por IP (v58): qué código llegó, en qué cabecera, y todas las de
+  // geolocalización que traía la petición. Son códigos de país de dos letras, no identifican a nadie.
+  detectado: z.string().nullish().default(null),
+  fuente: z.string().nullish().default(null),
+  cabeceras: z.record(z.string(), z.string()).nullish().default(null),
+})
 
 export const generatedNameSchema = z.object({
   firstName: z.string(),
@@ -1005,6 +1012,17 @@ export type RaceResults = z.infer<typeof raceResultsSchema>
  */
 export const chronicleRiderSchema = z.object({
   name: z.string(),
+  /**
+   * EL ID, PARA PODER LLEGAR A SU FICHA (v58). El dueño: «cuando salga el nombre de un ciclista que
+   * tenga enlace a su ficha». Hasta ahora la identidad de la crónica era deliberadamente «texto
+   * puro» —nombre, dorsal, equipo, bandera— porque el diario compone frases y no nodos; el id no
+   * cambia eso, solo permite que la capa de presentación envuelva el nombre en un enlace.
+   *
+   * Nullable porque los eventos están CONGELADOS: quien ya no esté en el roster ni en los resultados
+   * llega como un id suelto que ni siquiera sabemos si sigue siendo un corredor, y ahí no hay ficha
+   * a la que llevar a nadie.
+   */
+  id: z.string().nullish().default(null),
   /** Dorsal de la carrera (`race_rosters.bib`); null si el roster no lo tiene. */
   bib: z.number().int().nullable(),
   /** Nombre del equipo; null en un agente libre o si ya no se puede resolver. */
@@ -1141,6 +1159,13 @@ export const pullMotiveSchema = z.enum([
   'abanico',
   'tren',
   'fuga',
+  /**
+   * …Y PERSEGUIR NO ES ESCAPARSE (v58). El dueño, viendo el grupo del maillot ir a por un escapado:
+   * «de estos 42 van tirando 11 que dice *working the break*, pero esto no es una escapada, es el
+   * grupo del maillot amarillo intentando alcanzar al segundo». Vas por delante del grueso, sí,
+   * pero con alguien delante al que ir a buscar.
+   */
+  'persecucion',
   'grupeto',
   'equipo_etapa',
   'equipo_maillot',

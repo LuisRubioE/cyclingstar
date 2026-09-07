@@ -22,7 +22,17 @@ import {
   withEdit,
 } from '../domain/trainingPlan'
 
-const HORIZON = 7
+/**
+ * CUÁNTOS DÍAS SE PLANIFICAN. La API acepta y devuelve 28 (`TRAINING_HORIZON_DAYS`) desde hace
+ * tiempo; esta pantalla enseñaba SIETE y el resto se quedaba sin tocar. El dueño: «en el
+ * entrenamiento, que permita ver y editar los próximos 28 días, no solo 1 semana».
+ *
+ * El número lo manda el servidor (`horizonDays`), que es quien también valida lo que se guarda; el
+ * 28 de aquí es solo el respaldo para el primer render.
+ */
+const HORIZON_POR_DEFECTO = 28
+/** Los días se agrupan de siete en siete: veintiocho filas seguidas no son un plan, son un muro. */
+const DIAS_POR_SEMANA = 7
 
 // "Travel" no se elige a mano: lo marca el sistema de viajes automáticamente los días de
 // desplazamiento a una carrera lejana (y el día de competición tampoco se entrena).
@@ -59,7 +69,7 @@ export function Training() {
 
   // El plan del servidor es un valor DERIVADO, no estado copiado con un efecto.
   const serverPlan = useMemo(
-    () => (query.data ? buildServerPlan(query.data, HORIZON) : []),
+    () => (query.data ? buildServerPlan(query.data, query.data.horizonDays) : []),
     [query.data],
   )
   const plan: DayPlan[] = applyEdits(serverPlan, edits)
@@ -104,15 +114,20 @@ export function Training() {
   if (query.isError) return <p className="text-red-600">Could not load your training plan.</p>
 
   const currentDay = query.data.currentDay
-  const days = Array.from({ length: HORIZON }, (_, i) => currentDay + i + 1)
+  const horizonte = query.data.horizonDays || HORIZON_POR_DEFECTO
+  const days = Array.from({ length: horizonte }, (_, i) => currentDay + i + 1)
+  const semanas: number[][] = []
+  for (let i = 0; i < days.length; i += DIAS_POR_SEMANA) {
+    semanas.push(days.slice(i, i + DIAS_POR_SEMANA))
+  }
   const planByDay = new Map(plan.map((day) => [day.gameDay, day]))
 
   return (
     <section className="space-y-4">
       <SectionBar>Training plan</SectionBar>
       <p className="text-sm text-slate-500">
-        Leave your orders for the week. Without orders, your coach picks a reasonable plan. On race
-        days you rest and race — no training.
+        Leave your orders for the next {horizonte} days. Without orders, your coach picks a
+        reasonable plan. On race days you rest and race — no training.
       </p>
 
       {team.data && (team.data.plan.length > 0 || team.data.canEdit) && (
@@ -138,7 +153,7 @@ export function Training() {
                 onClick={publishTeamPlan}
                 className="rounded-lg bg-slate-800 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-slate-700"
               >
-                Publish my week as the team plan
+                Publish my plan as the team plan
               </button>
             )}
             {teamMsg && <span className="text-sm text-emerald-600">{teamMsg}</span>}
@@ -146,117 +161,127 @@ export function Training() {
         </Panel>
       )}
 
-      <Panel title="Weekly plan">
+      <Panel title="Training plan">
         <div className="space-y-2">
-          {days.map((gameDay) => {
-            const position = seasonPosition(gameDay)
-            if (raceDays.has(gameDay)) {
-              return (
-                <div
-                  key={gameDay}
-                  className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3"
-                >
-                  <span className="w-24 shrink-0 text-sm font-medium text-slate-500">
-                    Day {position.dayOfSeason}
-                  </span>
-                  <span className="text-sm font-semibold text-amber-700">🚴 Race day</span>
-                  <span className="text-xs text-amber-600">No training — you're racing.</span>
-                </div>
-              )
-            }
-            // Día de VIAJE DE IDA: el plan lo enseña por adelantado, con destino. No se entrena.
-            const trip = travelByDay.get(gameDay)
-            if (trip) {
-              return (
-                <div
-                  key={gameDay}
-                  className="flex items-center gap-2 rounded-xl border border-sky-200 bg-sky-50 p-3"
-                >
-                  <span className="w-24 shrink-0 text-sm font-medium text-slate-500">
-                    Day {position.dayOfSeason}
-                  </span>
-                  <span className="text-sm font-semibold text-sky-700">✈️ Travel day</span>
-                  <span className="text-xs text-sky-600">
-                    On your way to {trip.raceName}
-                    {trip.country ? ` (${trip.country.toUpperCase()})` : ''} — no training.
-                  </span>
-                </div>
-              )
-            }
-            const day = planByDay.get(gameDay)
-            if (!day) return null
-            const info = SESSION_CATALOG[day.session]
-            return (
-              <div
-                key={gameDay}
-                className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white p-3"
-              >
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                  <span className="w-24 shrink-0 text-sm font-medium text-slate-500">
-                    Day {position.dayOfSeason}
-                  </span>
-                  <select
-                    id={`session-${gameDay}`}
-                    aria-label={`Session for day ${position.dayOfSeason}`}
-                    value={day.session}
-                    onChange={(event) =>
-                      update(day.gameDay, { session: event.target.value as Session })
-                    }
-                    className="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
-                  >
-                    {SELECTABLE_SESSIONS.map((session) => (
-                      <option key={session} value={session}>
-                        {SESSION_CATALOG[session].label}
-                      </option>
-                    ))}
-                  </select>
-                  <select
-                    id={`intensity-${gameDay}`}
-                    aria-label={`Intensity for day ${position.dayOfSeason}`}
-                    value={day.intensity}
-                    disabled={!info.variableIntensity}
-                    onChange={(event) =>
-                      update(day.gameDay, { intensity: event.target.value as Intensity })
-                    }
-                    className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 disabled:bg-slate-100 disabled:text-slate-400"
-                  >
-                    {INTENSITIES.map((intensity) => (
-                      <option key={intensity} value={intensity}>
-                        {INTENSITY_LABELS[intensity]}
-                      </option>
-                    ))}
-                  </select>
-                  <span className="w-16 shrink-0 text-right text-xs text-slate-400">
-                    {info.tss[day.intensity]} TSS
-                  </span>
-                </div>
-                <p className="pl-24 text-xs text-slate-500">
-                  {sessionEffect(day.session, day.intensity)}
-                </p>
-                {(() => {
-                  const suggestion = teamByDay.get(gameDay)
-                  if (!suggestion || suggestion.session === day.session) return null
+          {semanas.map((semana, iSemana) => (
+            <div key={iSemana} className="space-y-2">
+              {/* Cada semana con su cabecera: con veintiocho días seguidos el jugador no sabe dónde
+                  está mirando, y el bloque de siete es la unidad con la que se piensa un plan. */}
+              <p className="pt-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                Week {iSemana + 1} · days {seasonPosition(semana[0] ?? currentDay).dayOfSeason}–
+                {seasonPosition(semana[semana.length - 1] ?? currentDay).dayOfSeason}
+              </p>
+              {semana.map((gameDay) => {
+                const position = seasonPosition(gameDay)
+                if (raceDays.has(gameDay)) {
                   return (
-                    <p className="pl-24 text-xs text-brand-navy">
-                      Team session: {SESSION_CATALOG[suggestion.session].label}{' '}
-                      <button
-                        type="button"
-                        onClick={() =>
-                          update(gameDay, {
-                            session: suggestion.session,
-                            intensity: suggestion.intensity,
-                          })
-                        }
-                        className="font-medium underline hover:text-brand-cyan"
-                      >
-                        train together
-                      </button>
-                    </p>
+                    <div
+                      key={gameDay}
+                      className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3"
+                    >
+                      <span className="w-24 shrink-0 text-sm font-medium text-slate-500">
+                        Day {position.dayOfSeason}
+                      </span>
+                      <span className="text-sm font-semibold text-amber-700">🚴 Race day</span>
+                      <span className="text-xs text-amber-600">No training — you're racing.</span>
+                    </div>
                   )
-                })()}
-              </div>
-            )
-          })}
+                }
+                // Día de VIAJE DE IDA: el plan lo enseña por adelantado, con destino. No se entrena.
+                const trip = travelByDay.get(gameDay)
+                if (trip) {
+                  return (
+                    <div
+                      key={gameDay}
+                      className="flex items-center gap-2 rounded-xl border border-sky-200 bg-sky-50 p-3"
+                    >
+                      <span className="w-24 shrink-0 text-sm font-medium text-slate-500">
+                        Day {position.dayOfSeason}
+                      </span>
+                      <span className="text-sm font-semibold text-sky-700">✈️ Travel day</span>
+                      <span className="text-xs text-sky-600">
+                        On your way to {trip.raceName}
+                        {trip.country ? ` (${trip.country.toUpperCase()})` : ''} — no training.
+                      </span>
+                    </div>
+                  )
+                }
+                const day = planByDay.get(gameDay)
+                if (!day) return null
+                const info = SESSION_CATALOG[day.session]
+                return (
+                  <div
+                    key={gameDay}
+                    className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white p-3"
+                  >
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                      <span className="w-24 shrink-0 text-sm font-medium text-slate-500">
+                        Day {position.dayOfSeason}
+                      </span>
+                      <select
+                        id={`session-${gameDay}`}
+                        aria-label={`Session for day ${position.dayOfSeason}`}
+                        value={day.session}
+                        onChange={(event) =>
+                          update(day.gameDay, { session: event.target.value as Session })
+                        }
+                        className="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                      >
+                        {SELECTABLE_SESSIONS.map((session) => (
+                          <option key={session} value={session}>
+                            {SESSION_CATALOG[session].label}
+                          </option>
+                        ))}
+                      </select>
+                      <select
+                        id={`intensity-${gameDay}`}
+                        aria-label={`Intensity for day ${position.dayOfSeason}`}
+                        value={day.intensity}
+                        disabled={!info.variableIntensity}
+                        onChange={(event) =>
+                          update(day.gameDay, { intensity: event.target.value as Intensity })
+                        }
+                        className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 disabled:bg-slate-100 disabled:text-slate-400"
+                      >
+                        {INTENSITIES.map((intensity) => (
+                          <option key={intensity} value={intensity}>
+                            {INTENSITY_LABELS[intensity]}
+                          </option>
+                        ))}
+                      </select>
+                      <span className="w-16 shrink-0 text-right text-xs text-slate-400">
+                        {info.tss[day.intensity]} TSS
+                      </span>
+                    </div>
+                    <p className="pl-24 text-xs text-slate-500">
+                      {sessionEffect(day.session, day.intensity)}
+                    </p>
+                    {(() => {
+                      const suggestion = teamByDay.get(gameDay)
+                      if (!suggestion || suggestion.session === day.session) return null
+                      return (
+                        <p className="pl-24 text-xs text-brand-navy">
+                          Team session: {SESSION_CATALOG[suggestion.session].label}{' '}
+                          <button
+                            type="button"
+                            onClick={() =>
+                              update(gameDay, {
+                                session: suggestion.session,
+                                intensity: suggestion.intensity,
+                              })
+                            }
+                            className="font-medium underline hover:text-brand-cyan"
+                          >
+                            train together
+                          </button>
+                        </p>
+                      )
+                    })()}
+                  </div>
+                )
+              })}
+            </div>
+          ))}
         </div>
       </Panel>
 
