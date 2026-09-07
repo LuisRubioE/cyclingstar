@@ -85,7 +85,19 @@ async function seedMiniWorld(t: TestDb): Promise<{ worldId: string; riderIds: st
       declineAge: 33,
     })),
   )
-  await t.db.insert(raceRosters).values(riderIds.map((id) => ({ raceId: RACE_KEY, riderId: id })))
+  /**
+   * CON DORSAL, PORQUE SI NO LA CARRERA NO ES LA MISMA DOS VECES. `runOneStage` ordena el campo por
+   * `bib` y desempata por el id del corredor, que aquí es un UUID que Postgres sortea en cada alta.
+   * Sin dorsales el orden de entrada al motor cambia de una corrida a otra, y el motor DEPENDE del
+   * orden —sus flujos compartidos se consumen recorriendo el array, como está anotado en
+   * `stageRun.ts`—, así que la misma semilla contaba una carrera distinta cada vez. Se vio en verde
+   * y en rojo con el mismo commit: una corrida dejó a un corredor sin clasificar y la fila de
+   * `stage_results` que esta prueba cuenta no estaba. En producción los dorsales los reparte
+   * `calendarRun`; aquí hay que ponerlos a mano.
+   */
+  await t.db
+    .insert(raceRosters)
+    .values(riderIds.map((id, i) => ({ raceId: RACE_KEY, riderId: id, bib: i + 1 })))
   return { worldId, riderIds }
 }
 
