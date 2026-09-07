@@ -109,6 +109,11 @@ export interface RadioPuller {
    * por qué o para qué tira cada ciclista de un grupo». Ver `PullMotive` en el motor.
    */
   motivo: PullMotive | null
+  /**
+   * …Y PARA QUIÉN (v57). El dueño: «dice algo así como *his team's card for this finish*… pero no
+   * dice quién es, wey». El motivo sin el hombre es un acertijo. `null` cuando no es por nadie.
+   */
+  para: string | null
 }
 
 /** Un grupo de la carretera en un punto del recorrido. */
@@ -240,7 +245,12 @@ export function radioKmFrom(
       .filter((m) => m.pulling)
       .sort((a, b) => b.pullWindow - a.pullWindow || (a.riderId < b.riderId ? -1 : 1))
       .slice(0, maxPullers)
-      .map((m) => ({ riderId: m.riderId, pullWindow: m.pullWindow, motivo: m.pullMotive }))
+      .map((m) => ({
+        riderId: m.riderId,
+        pullWindow: m.pullWindow,
+        motivo: m.pullMotive,
+        para: m.pullFor,
+      }))
     return {
       id,
       tS: sorted[0]!.tS,
@@ -426,6 +436,12 @@ export interface StoredRadioGroup {
    * guardarse igual de barato. `null` en una posición = la etapa se corrió antes de la v47.
    */
   motivos: readonly (PullMotive | null)[]
+  /**
+   * …Y PARA QUIÉN, en el MISMO orden y con la misma longitud que `pulling` (v57). Lista paralela por
+   * la misma razón que `motivos`. `null` en una posición = no tira por nadie, o la etapa se corrió
+   * antes de la v57.
+   */
+  paraQuien: readonly (number | null)[]
   /**
    * Los de la LISTA DE SEGUIMIENTO que van en este grupo y NO están en `pulling`: maillots, jefes de
    * filas y favoritos. Es lo que permite decir «el equipo tira para X» y que X aparezca, en vez de
@@ -660,6 +676,9 @@ export function radioForStorage(
         speedKmh,
         pulling,
         motivos: pull.map((p) => p.motivo),
+        // Índice, como `pulling`: el destinatario entra en `riders` aunque no vaya en este grupo
+        // —el que tira por el líder puede estar en otro grupo que él— y así la vista lo nombra.
+        paraQuien: pull.map((p) => (p.para != null ? idx(p.para) : null)),
         watching,
       }
     })

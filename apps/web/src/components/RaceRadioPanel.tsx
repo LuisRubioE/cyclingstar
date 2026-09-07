@@ -92,21 +92,44 @@ const ROLE_MARK: Record<RadioRider['role'], { icon: string; title: string; cls: 
  * que la tabla ya no obliga a adivinar: o dice algo que se sostiene («his team owns the front —
  * defending the jersey») o dice `just riding`, y entonces lo que hay que mirar es el motor.
  */
-const MOTIVE_LABEL: Record<string, string> = {
-  solo: 'alone — no one else to do it',
-  abanico: 'in the echelon — pull or lose the wheel',
-  tren: 'lead-out for his sprinter',
-  fuga: 'working the break',
-  grupeto: 'just riding — this group is chasing nothing',
-  equipo_etapa: "his team's card for this finish",
-  equipo_maillot: 'his team defends the jersey',
-  equipo_general: 'his team rides for the GC',
-  rol: 'his job in the team',
+/**
+ * POR QUÉ TIRA, Y PARA QUIÉN (v57). El dueño, viendo la etiqueta a secas: «dice algo así como *his
+ * team's card for this finish*… pero no dice quién es, wey». El nombre del destinatario viaja desde
+ * el motor (`pullFor`), así que aquí solo hay que decirlo: sin nombre la frase no responde a la
+ * pregunta que se hace quien mira la radio, que es siempre «¿por quién?».
+ *
+ * `para` puede faltar —etapas anteriores a la v57, o motivos que no tienen destinatario (va solo, va
+ * en el abanico, rueda en el grupeto)—, y entonces se cae a la frase genérica de siempre.
+ */
+function motiveLabel(motivo: string, para: string | null): string | undefined {
+  switch (motivo) {
+    case 'solo':
+      return 'alone — no one else to do it'
+    case 'abanico':
+      return 'in the echelon — pull or lose the wheel'
+    case 'tren':
+      return para ? `lead-out for ${para}` : 'lead-out for his sprinter'
+    case 'fuga':
+      return 'working the break'
+    case 'grupeto':
+      return 'just riding — this group is chasing nothing'
+    case 'equipo_etapa':
+      return para ? `his team's card for this finish: ${para}` : "his team's card for this finish"
+    case 'equipo_maillot':
+      return para ? `defending the jersey of ${para}` : 'his team defends the jersey'
+    case 'equipo_general':
+      return para ? `riding the GC for ${para}` : 'his team rides for the GC'
+    case 'rol':
+      return 'his job in the team'
+    default:
+      return undefined
+  }
 }
 
 function RiderLine({ r }: { r: RadioRider }) {
   const mark = ROLE_MARK[r.role]
-  const motivo = r.role === 'pulling' && r.motivo ? MOTIVE_LABEL[r.motivo] : null
+  const motivo =
+    r.role === 'pulling' && r.motivo ? motiveLabel(r.motivo, r.para?.name ?? null) : null
   return (
     <li className="flex items-center gap-1.5 text-xs">
       <span className={`w-3 shrink-0 text-center ${mark.cls}`} title={mark.title}>

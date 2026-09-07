@@ -318,6 +318,8 @@ interface RiderSim {
    * vuelta. Ver `PullMotive` para en qué se diferencia de la función `pullReason` (v13).
    */
   pullMotive: PullMotive | null
+  /** …y PARA QUIÉN tira (v57): el id del hombre por el que da la cara, o null si no es por nadie. */
+  pullFor: string | null
   /**
    * EL PARTE DEL DÍA (v47). Contadores de observación: se escriben donde el motor ya hacía la cosa
    * que cuentan y NADIE los lee de vuelta, así que no pueden cambiar una carrera. Ver `StageEffort`.
@@ -632,7 +634,32 @@ function relayTurn(
         // sin esto, el corte de trece hombres a 25 km de meta ponía DOS a rotar —los otros once
         // salían con el deber en negativo por no tener opciones— y los 159 de detrás, que sí ponían
         // veinte, se lo comían.
-        (enAbanico ? 0 : STAGE.relayNoChanceWeight * paraMí * sinOpciones(m.input.riderId)) +
+        (enAbanico ? 0 : STAGE.relayNoChanceWeight * paraMí * sinOpciones(m.input.riderId)) -
+        /**
+         * EL MAILLOT NO DA LA CARA AL VIENTO MIENTRAS HAYA OTRO QUE PUEDA (v57).
+         *
+         * El dueño, en la etapa 19: «otra vez el maillot amarillo tirando… bueno, no es el pelotón,
+         * es un grupo de 20 del que solo tiran 10». Y el arreglo de la v50 —que le quitó el trabajo
+         * en el PELOTÓN— no llegaba aquí, porque fuera del pelotón el motor cambia de listón: en una
+         * fuga o en un grupeto relevan todos (`relayDutyThresholdLoose` = 0) y el rol deja de pesar,
+         * así que el líder de la carrera, con su 0,1 de rol y la frescura por encima, salía positivo
+         * y entraba al turno como uno más. Medido en el Giro del banco: en un grupo de 14 tiraban 6,
+         * y entre ellos un `lider`.
+         *
+         * Y es que el listón suelto dice una verdad a medias. «En una fuga colabora todo el mundo»
+         * vale para los que van a ganar algo yendo deprisa; el que lleva el maillot ya va ganando, y
+         * lo que hace en carretera es esconderse y obligar a los demás a mover la carrera. Por eso
+         * esto es SOLO para el que va primero: el segundo, el tercero y el cuarto sí tienen que dar
+         * la cara, que es justo lo que el dueño echaba en falta en la etapa 13 («ellos quieren luchar
+         * por la carrera… ¡y curiosamente no veo que lo hagan!»).
+         *
+         * No es un veto: es el orden. Queda el último de la fila del deber, así que el SUELO de
+         * relevistas (`relayMinPullers`) lo saca al frente cuando de verdad no queda nadie —va solo,
+         * o los que le acompañan están peor que él—, que es la doctrina de su propio rol: «solo tira
+         * si no queda nadie más». Y en un ABANICO no se aplica, por lo mismo que el «no puedo ganar»
+         * tampoco: en una fila con el viento de lado detrás del último no hay rueda, hay cuneta.
+         */
+        (enAbanico || m.input.gcRank !== 1 ? 0 : STAGE.relayRaceLeaderPenalty) +
         (lanzando(m.input.riderId) ? STAGE.relayLeadOutBoost : 0),
     }
   })
@@ -1074,6 +1101,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       incident: null,
       pulling: false,
       pullMotive: null,
+      pullFor: null,
       parte: parteEnBlanco(),
     })
   }
@@ -1237,6 +1265,8 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
    */
   let dayBreakNow: string[] = []
   /** Todo el que ha pasado por la fuga del día: mientras uno siga escapado, la fuga no está cazada. */
+  /** Jefes por los que ya se ha avisado de que nadie bajó: una vez por etapa y por hombre (v57). */
+  const sinAyudaAvisado = new Set<string>()
   const dayBreakEver = new Set<string>()
   /** ¿Se la comió el pelotón, o se deshizo sola por el camino? No es el mismo desenlace. */
   let dayBreakSwallowed = false
@@ -1249,6 +1279,14 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
    * corresponde, para que el bucle no tenga que hacer aritmética por bloque: sin `probe` este mapa
    * está vacío y lo único que se ejecuta en carretera es una comparación contra cero.
    */
+  /**
+   * DÓNDE EMPIEZA LA BAJADA EN LA QUE VAMOS (v57). La selección del descenso se tira por BLOQUE, y
+   * un bloque son cien metros: una bajada de cinco kilómetros son cincuenta tiradas por corredor y
+   * eso no descuelga, aniquila. Ver `STAGE.descentSelectKm`.
+   */
+  let descentStartKm = 0
+  let tipoBloquePrevio: string | null = null
+
   const probeAt = new Map<number, number>()
   if (probe) {
     for (const target of probe.atKm) {
@@ -1636,6 +1674,9 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
     for (const mv of moves) relojAntes.set(mv.g.id, mv.g.tS)
     for (const sg of shed) relojAntes.set(sg.id, sg.tS)
     const km = kmAt(i)
+    // El principio de esta bajada: se marca al ENTRAR, no en cada bloque de ella (v57).
+    if (block.tipo === 'descenso' && tipoBloquePrevio !== 'descenso') descentStartKm = km
+    tipoBloquePrevio = block.tipo
     const isFinal = n - i <= STAGE.finalBlocks
     /**
      * QUIÉN HA TIRADO DE LA RESERVA EN ESTE BLOQUE (v26). El resto la RECUPERA, y la recuperación
@@ -2107,7 +2148,49 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
                 ? STAGE.helpBackStageHelpers - conEl
                 : 0
             const cuantos = Math.min(disponibles.length, Math.max(0, quiere))
-            if (cuantos === 0) continue
+            /**
+             * …Y CUANDO NO BAJA NADIE, SE DICE POR QUÉ (v57).
+             *
+             * El dueño, viendo caerse a su líder en el km 196: «el líder se queda atrás… ¿y nadie de
+             * su equipo tira para ayudarle?». La regla existe y funciona, pero cuando NO salta se
+             * callaba, y el silencio es indistinguible del abandono: el lector no puede saber si el
+             * equipo le dejó tirado o si sencillamente no quedaba nadie que pudiera bajar.
+             *
+             * Así que el caso de «nadie baja» tiene ahora su propio aviso, con el motivo concreto:
+             * o no queda un solo compañero en condiciones de bajar, o los que quedan son los únicos
+             * que sostienen la carrera del equipo por delante, o la etapa ya no da para rescates.
+             * Es la misma doctrina que el motivo del relevo: si el motor decide algo, la crónica
+             * tiene que poder enseñar en qué se basó.
+             */
+            if (cuantos === 0) {
+              if (!sinAyudaAvisado.has(leaderId)) {
+                sinAyudaAvisado.add(leaderId)
+                const enCarrera = plan.memberIds
+                  .filter((id) => id !== leaderId && !rebels.has(id))
+                  .map((id) => sims.get(id))
+                  .filter(
+                    (m): m is RiderSim =>
+                      m != null && m.finishTs === null && m.abandonedKm === null,
+                  )
+                const porque =
+                  enCarrera.length === 0
+                    ? 'sin_equipo'
+                    : disponibles.length === 0
+                      ? 'nadie_puede'
+                      : 'todos_guardan'
+                log.emit(km, suGrupo.tS, 'ayuda_al_jefe', 'no_help_for_leader', [leaderId], {
+                  jefeId: leaderId,
+                  porque,
+                  // Cuántos de los suyos siguen en carrera y cuántos de ésos podrían bajar: con los
+                  // dos números el lector ve la diferencia entre «le abandonaron» y «no había nadie».
+                  suyos: enCarrera.length,
+                  podian: disponibles.length,
+                  gapS: Math.round(gap),
+                  toGo: Math.round(kmRestantes),
+                })
+              }
+              continue
+            }
             // …y van los que MÁS ENTEROS estén, que es a quien manda un director. Desempate por id
             // para que el orden de entrada no decida quién se sacrifica.
             const van = disponibles
@@ -3032,31 +3115,44 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
           : moves.filter((mv) => mv.g.id !== group.id && mv.g.tS < group.tS)
       const blockS = blockSeconds(next.vActual)
       /** Ver `m.pullMotive`: las mismas ramas de `relayTurn`, en el mismo orden. */
-      const motivoDelRelevo = (m: RiderSim): PullMotive => {
-        if (members.length === 1) return 'solo'
-        if (abanicoAbierto && vientoLateral > 0 && block.tipo === 'llano') return 'abanico'
+      /**
+       * …Y PARA QUIÉN (v57). El dueño, leyendo la radio: «ahora dice por qué tiran, pero dice algo
+       * así como *his team's card for this finish*… **pero no dice quién es, wey**». Y tiene razón:
+       * un motivo que nombra a un hombre sin nombrarlo no es una evidencia, es un acertijo.
+       *
+       * El id sale de la MISMA fuente que decidió el motivo, no de una búsqueda aparte: del tren, el
+       * jefe al que se lanza; de los tres motivos de equipo, el hombre del plan por el que ese
+       * equipo gasta —el jefe de filas para el maillot y la general, la carta del día para la etapa—.
+       * Los motivos que no son por nadie (solo, abanico, fuga, grupeto, rol) devuelven null, y la
+       * pantalla no inventa un nombre donde no lo hay.
+       */
+      const motivoDelRelevo = (m: RiderSim): { motivo: PullMotive; para: string | null } => {
+        if (members.length === 1) return { motivo: 'solo', para: null }
+        if (abanicoAbierto && vientoLateral > 0 && block.tipo === 'llano')
+          return { motivo: 'abanico', para: null }
         if (isBunch && kmToGo <= STAGE.sprintTrainKm) {
           const suJefe = lanzaPara.get(m.input.riderId)
-          if (suJefe != null && idSet.has(suJefe)) return 'tren'
+          if (suJefe != null && idSet.has(suJefe)) return { motivo: 'tren', para: suJefe }
         }
         // Fuera del grueso de la carrera no hay plan de equipo que valga (`driveOfRider` se anula
         // arriba para todo grupo que no sea el pelotón): o vas delante y colaboras en lo tuyo, o
         // vas detrás y ruedas por rodar. Y esa segunda es LA RESPUESTA a la pregunta del dueño.
-        if (!isBunch) return group.tS < relojPrincipal ? 'fuga' : 'grupeto'
+        if (!isBunch) return { motivo: group.tS < relojPrincipal ? 'fuga' : 'grupeto', para: null }
         if (driveOfRider(m.input.riderId) > 0) {
           const suEquipo = rebels.has(m.input.riderId)
             ? null
             : (teamOf.get(m.input.riderId) ?? null)
+          const plan = suEquipo != null ? teamPlans.get(suEquipo) : undefined
           switch (purposeOfTeam(suEquipo)) {
             case 'maillot':
-              return 'equipo_maillot'
+              return { motivo: 'equipo_maillot', para: plan?.leaderId ?? null }
             case 'general':
-              return 'equipo_general'
+              return { motivo: 'equipo_general', para: plan?.leaderId ?? null }
             case 'etapa':
-              return 'equipo_etapa'
+              return { motivo: 'equipo_etapa', para: plan?.stageCandidateId ?? null }
           }
         }
-        return 'rol'
+        return { motivo: 'rol', para: null }
       }
       for (const m of members) {
         // EL ACORDEÓN SE CIERRA EN EL LLANO (v26). La deriva es la goma de un grupo estirado por una
@@ -3093,7 +3189,14 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
          * el motivo que sale no cuadra con lo que se ve en la carretera, lo que está mal es la
          * decisión —que es exactamente lo que una evidencia tiene que poder enseñar—.
          */
-        m.pullMotive = !pulling ? null : motivoDelRelevo(m)
+        if (!pulling) {
+          m.pullMotive = null
+          m.pullFor = null
+        } else {
+          const porQue = motivoDelRelevo(m)
+          m.pullMotive = porQue.motivo
+          m.pullFor = porQue.para
+        }
         const shelter = shelterOf(pulling, relayers.size, arropo)
         const mineEffort = workOf(shelter)
         if (pulling && mineEffort > 0) {
@@ -3495,6 +3598,28 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       }
       const factor = selectionFactor(block, lluvia)
       if (factor <= 0) return dropped
+      /**
+       * LA BAJADA SELECCIONA AL PRINCIPIO, NO KILÓMETRO TRAS KILÓMETRO (v57).
+       *
+       * El dueño, sobre la etapa 17 del Giro: «¿qué chingados pasó entre el km 191 y el 192?».
+       * Medido: entre el km 191,1 y el 196,1 el pelotón pasó de **164 a 78 corredores** en cinco
+       * kilómetros de bajada al −6,1 %, con la energía media al 38 % y **cero corredores vacíos**.
+       * Nadie se quedó por no poder: se quedaron por un dado.
+       *
+       * Y el dado es correcto —en una bajada se pierde la rueda por un error, no por reventar— pero
+       * se tiraba EN CADA BLOQUE DE CIEN METROS. Cinco kilómetros son cincuenta tiradas por
+       * corredor, y cincuenta tiradas de una probabilidad pequeña son una probabilidad enorme:
+       * `dropDescentFactor` = 0,08 está puesto como «el más suave de los tres» y en una tirada
+       * suelta lo es, pero nadie había mirado qué hace ACUMULADO a lo largo de una bajada entera.
+       * Con esto, además, la bajada se comía media parrilla y el motor se la devolvía kilómetros
+       * después (78 → 108): el ciclo «estalla y se rehace» contra el que este mismo motor avisa.
+       *
+       * Se pierde la rueda AL PRINCIPIO, que es cuando el ritmo sube de golpe y se abren los huecos;
+       * pasado eso el grupo se ha ordenado y baja junto. Así la selección de una bajada deja de
+       * depender de su longitud, que es lo que la hacía absurda: una bajada de quince kilómetros no
+       * descuelga quince veces más que una de uno.
+       */
+      if (block.tipo === 'descenso' && km - descentStartKm > STAGE.descentSelectKm) return dropped
       const alive = members.filter((m) => m.groupId === group.id)
       const pace = pacemakerP75(alive, block, paceFraction)
       const inGroup = new Set(alive.map((m) => m.input.riderId))
@@ -4718,7 +4843,30 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
          *
          * Del adoquín no se vuelve: el pelotón va en fila india a tope y el hueco se abre solo.
          */
-        const caught = !onRough && sg.tS <= peloton.tS
+        /**
+         * …PERO «MENOS RELOJ» NO ES «HA VUELTO» (v57). Esta línea preguntaba solo por el SIGNO del
+         * hueco: cualquier grupo cuyo reloj fuera por delante del pelotón se lo tragaba el pelotón,
+         * estuviera a un segundo o a dos minutos. Y por delante del pelotón no solo van los que
+         * vuelven: van TODOS los que se han caído de una fuga —`dropOut` los mete en `shed` con el
+         * reloj de la fuga, que es el de un grupo que va camino arriba—, y también los grupos que la
+         * criba deja delante en la carretera.
+         *
+         * El dueño lo vio en la etapa 17 del Race Italy: «hay 10 escapados que sacan 59 segundos a un
+         * grupo de 45, y 56 segundos más tarde un grupo de 90… y en el km 192 los tres grupos se han
+         * juntado. WTF». Los tres estaban por delante del reloj del pelotón, así que el pelotón se
+         * los tragó a todos de golpe: dos minutos de carrera borrados en un kilómetro.
+         *
+         * Medido mecánicamente sobre un Giro entero —cada kilómetro, cada grupo que desaparece dentro
+         * de otro— salían **42 fusiones con más de 30 s de hueco**, con casos de 97 s y de 113 s.
+         *
+         * Alcanzar es LLEGAR, no ir por delante: el pelotón absorbe cuando su reloj se pone a la
+         * altura del otro, y eso pasa dentro de la puerta de siempre (`regroupGapSeconds`). Los
+         * bloques son de 100 m, así que un reloj no salta esa puerta de un bloque al siguiente: el
+         * grupo que de verdad vuelve pasa por ella y entra igual que antes; el que va camino arriba
+         * se queda donde está, que es en la carrera.
+         */
+        const caught =
+          !onRough && sg.tS <= peloton.tS && peloton.tS - sg.tS <= STAGE.regroupGapSeconds
         /**
          * …Y LA PUERTA NO ABSORBE (v35). Hasta la v34 bastaba con ESTAR a menos de 22 s: un grupo
          * que rodaba a la misma velocidad que el pelotón —o incluso perdiendo una décima por
@@ -5322,6 +5470,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
           // más arriba en el mismo bloque, y la ventana de trabajo con la que se ordena.
           pulling: s.pulling,
           pullMotive: s.pullMotive,
+          pullFor: s.pullFor,
           pullWindow: s.pullWindow,
         })
       }

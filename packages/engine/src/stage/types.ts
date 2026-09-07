@@ -275,6 +275,12 @@ export interface SnapshotRider {
    */
   pullMotive: PullMotive | null
   /**
+   * …Y PARA QUIÉN (v57). El dueño, leyendo la radio: «ahora dice por qué tiran… pero no dice quién
+   * es, wey». El motivo nombra un papel —«la carta de su equipo para este final»— y sin el hombre
+   * concreto no es una evidencia sino un acertijo. `null` en los motivos que no son por nadie.
+   */
+  pullFor: string | null
+  /**
    * Trabajo al frente del pelotón CON OLVIDO (`pullWindowDecayPerKm`): la misma ventana con la que
    * la crónica responde «quién tira ahora» en `peloton_pull`. Ordena a los relevistas por lo que
    * están poniendo, en vez de por el orden en que aparecen en la lista. 0 fuera del pelotón.

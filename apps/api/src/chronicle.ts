@@ -91,6 +91,10 @@ const EVENT_ORDER: Record<string, number> = {
   // Los que se dejan caer a por su jefe (v36) van en el sitio del corte: es la misma noticia —gente
   // que sale del grupo de cabeza— contada por su motivo, y nunca coincide en el mismo kilómetro.
   domestiques_drop_back: 4,
+  // …y el caso contrario (v57): NADIE baja a por él. Va en el mismo sitio porque es la misma
+  // noticia contada por su ausencia, y las dos nunca ocurren en el mismo kilómetro para el mismo
+  // jefe. Sin esto, «no vino nadie» y «el motor no se enteró» se leían igual: en silencio.
+  no_help_for_leader: 4,
   // El parte de quién va en cabeza va DESPUÉS de lo que lo ha producido —el corte del grupo o la
   // captura de la fuga—: primero se cuenta qué ha pasado y luego quiénes han quedado delante.
   breakaway_caught: 5,
@@ -1255,6 +1259,11 @@ const storedRaceRadioSchema = z.object({
            * las etapas corridas antes de la v47 no lo traen y su radio tiene que seguir leyéndose.
            */
           motivos: z.array(pullMotiveSchema.nullable()).default([]),
+          /**
+           * …y PARA QUIÉN, en el mismo orden (v57). Con `default` por lo mismo: las etapas
+           * anteriores no lo traen y su radio tiene que seguir leyéndose igual.
+           */
+          paraQuien: z.array(z.number().nullable()).default([]),
           watching: z.array(z.number()),
         }),
       ),
@@ -1302,13 +1311,20 @@ export function buildRaceRadio(stored: unknown, names: ChronicleNames): RaceRadi
           // 1) Los que TIRAN del grupo, en su orden (de más a menos trabajo reciente).
           g.pulling.forEach((i2, pi) => {
             const r = names.riderOf.get(ids[i2] ?? '')
-            if (r) named.push({ ...r, role: 'pulling', motivo: g.motivos[pi] ?? null })
+            if (r) {
+              // El hombre por el que tira, con nombre y cara: es el índice guardado resuelto con el
+              // MISMO catálogo de identidades, así que la radio no puede llamarle de otra manera.
+              const iPara = g.paraQuien[pi]
+              const para =
+                iPara != null && iPara >= 0 ? (names.riderOf.get(ids[iPara] ?? '') ?? null) : null
+              named.push({ ...r, role: 'pulling', motivo: g.motivos[pi] ?? null, para })
+            }
           })
           // 2) Los que hay que ver aunque vayan a rueda: el motor los colocó, aquí se les pone cara.
           //    `protect` deja además que quien llama añada a alguien sin tocar lo guardado.
           for (const i2 of g.watching) {
             const r = names.riderOf.get(ids[i2] ?? '')
-            if (r) named.push({ ...r, role: 'sheltered', motivo: null })
+            if (r) named.push({ ...r, role: 'sheltered', motivo: null, para: null })
           }
           const shown = named.slice(0, MAX_NAMED_PER_GROUP)
           const gapToPrevS = gi === 0 ? 0 : Math.max(0, g.gapS - prevGap)

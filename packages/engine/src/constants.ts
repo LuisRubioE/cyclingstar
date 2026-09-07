@@ -715,7 +715,7 @@
  * Campaña canónica de 500 corridas: **los 33 invariantes en verde**. La contrarreloj no se mueve ni
  * un dígito —es el ancla del esfuerzo individual y paga la ley lineal de siempre—.
  */
-export const ENGINE_VERSION = 50 as const
+export const ENGINE_VERSION = 51 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -1750,6 +1750,18 @@ export const STAGE = {
    */
   relayLeadOutBoost: 1.5,
   /**
+   * LO QUE BAJA EL DEBER DE RELEVO DEL LÍDER DE LA CARRERA (v57). Ver la nota entera en `relayTurn`:
+   * fuera del pelotón el listón es 0 y el rol deja de pesar, así que el maillot entraba al turno
+   * como uno más de la fuga o del grupeto —el dueño lo vio en un grupo de 20 en la etapa 19—.
+   *
+   * 3 es «el último de la fila, pase lo que pase»: el abanico de deberes va de 0,1 (líder) a 1,0
+   * (gregario) más medio punto de frescura y un punto de «no puedo ganar», así que con esto el
+   * maillot queda por debajo de cualquiera que pueda relevar. No es un veto —el suelo de relevistas
+   * lo saca al frente cuando no queda nadie más, que es la doctrina de su rol— y no se aplica en
+   * abanico, donde no hay rueda detrás de la que esconderse.
+   */
+  relayRaceLeaderPenalty: 3,
+  /**
    * CADA CUÁNTO SE VUELVE A MIRAR LA COOPERACIÓN DE UNA FUGA, en bloques. El dueño: «habría que
    * irlo midiendo a menudo… quizás no cada 100 metros, pero quizás cada km». Con `dx` = 50 m, veinte
    * bloques son ese kilómetro.
@@ -2056,6 +2068,15 @@ export const STAGE = {
   // estallaba y se recomponía en ciclos de 170 -> 15 -> 173 corredores (ver el comentario de
   // `raceThisClimb` en simulate.ts). Por debajo del -4% ya no es relieve: es una bajada.
   dropDescentMaxGradient: -4,
+  /**
+   * CUÁNTOS KILÓMETROS DE UNA BAJADA SELECCIONAN (v57). Ver la nota larga en `shatter`.
+   *
+   * El dado del descenso se tira por bloque de cien metros, así que su efecto crecía con la LONGITUD
+   * de la bajada: medido en la etapa 17 del Giro, cinco kilómetros al −6,1 % dejaban el pelotón en
+   * 78 corredores de 164, con la energía media al 38 % y ninguno vacío. Un kilómetro es donde se
+   * abren los huecos —el ritmo sube de golpe al coronar— y pasado eso el grupo baja ordenado.
+   */
+  descentSelectKm: 1,
   // El ritmo de un sector de pavé lo marcan los de delante, como en el puerto decisivo: en el
   // adoquín la posición lo es todo y nadie pasa un sector "a tempo" desde mitad del pelotón. Entre
   // el 0,12 del puerto que se corre y el 0,25 del llano, porque un sector dura 1-3 km, no 15.
