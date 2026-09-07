@@ -32,7 +32,17 @@
     "Arkadz",
     "Leanid",
     "Fiodar",
-    "Bahdan"
+    "Bahdan",
+    "Yauhen",
+    "Vitali",
+    "Kanstantsin",
+    "Yury",
+    "Alexei",
+    "Bogdan",
+    "Denis",
+    "Mikhail",
+    "Nikita",
+    "Piotr"
   ],
   "female": [
     "Alena",
@@ -58,7 +68,10 @@
     "Alina",
     "Marharyta",
     "Valiantsina",
-    "Lizaveta"
+    "Lizaveta",
+    "Aksana",
+    "Lyudmila",
+    "Zhanna"
   ],
   "surnames": [
     "Ivanou",
@@ -96,6 +109,28 @@
     "Trafimau",
     "Astapenka",
     "Bahdanovich",
-    "Lisouski"
+    "Lisouski",
+    "Kavaleuski",
+    "Sauchanka",
+    "Baranau",
+    "Vasilieu",
+    "Sidarau",
+    "Mikhailau",
+    "Tkachou",
+    "Shautsou",
+    "Bialiaeu",
+    "Drazdou",
+    "Fiodarau",
+    "Halubovich",
+    "Ihnatovich",
+    "Kaspiarovich",
+    "Malinouski",
+    "Nikitsin",
+    "Prakapovich",
+    "Radzko",
+    "Salauyou",
+    "Turchyn",
+    "Volkau",
+    "Yakauleu"
   ]
 }
