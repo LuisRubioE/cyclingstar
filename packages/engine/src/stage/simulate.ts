@@ -5366,14 +5366,35 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       //    desde la v25 la cuenta se lleva sobre todos los que estuvieron dentro, no solo sobre los
       //    que la formaron: al que puenteó y luego atacó también hay que esperarle.
       if (dayBreakFormed && !caught) {
+        /**
+         * «SEGUIR ESCAPADO» ES IR POR DELANTE DEL PELOTÓN, no ir en un `move` (v57).
+         *
+         * Esto preguntaba si el hombre iba en alguno de los movimientos vivos, y esa pregunta valía
+         * mientras el que se caía de la fuga volviera al pelotón en el mismo bloque. Desde que el
+         * reenganche exige LLEGAR y no solo ir por delante (ver `caught`, más arriba), al que se
+         * descuelga de una fuga le pasa lo que le pasa en carretera: se queda camino arriba, solo,
+         * por delante del pelotón y ya fuera del grupo. Para esta cuenta desaparecía, y entonces el
+         * motor daba la fuga por cazada con nueve de ellos todavía delante.
+         *
+         * Lo cazó el auditor de coherencia en la clásica larga (`cazadaFantasma`, semilla 17): km
+         * 169, el parte de cabeza dice UN hombre delante; km 171, «the break is caught» nombrando a
+         * diez, que era la última foto viva de un grupo que ya no existía. Los diez no estaban
+         * cazados: estaban desperdigados por la carretera.
+         *
+         * Así que la pregunta es la de la carretera: ¿queda alguien de los que pasaron por la fuga
+         * con el reloj por delante del pelotón? Da igual en qué grupo vaya.
+         */
+        const relojDeGrupo = (gid: string): number | null => {
+          if (gid === PELOTON) return peloton.tS
+          const mv = moves.find((o) => o.g.id === gid)
+          if (mv) return mv.g.tS
+          return shed.find((sg) => sg.id === gid)?.tS ?? null
+        }
         const stillAway = [...dayBreakEver].some((id) => {
           const s = sims.get(id)
-          return (
-            s != null &&
-            s.finishTs === null &&
-            s.abandonedKm === null &&
-            moves.some((mv) => mv.g.id === s.groupId)
-          )
+          if (s == null || s.finishTs !== null || s.abandonedKm !== null) return false
+          const reloj = relojDeGrupo(s.groupId)
+          return reloj !== null && reloj < peloton.tS
         })
         if (!stillAway) {
           caught = true

@@ -9494,6 +9494,16 @@ No es un veto sino un orden: queda el último de la fila del deber, así que el 
 
 **Medido** sobre un Giro entero, mirando al maillot cada 5 km: tiraba en **9 de 637 fotos**, todas con tres o más compañeros de grupo enteros al lado. Ahora, **3 de 637**, y las que quedan son casos de suelo.
 
+### 4-bis. Y lo que el arreglo destapó: «seguir escapado» no era ir por delante
+
+El banco de coherencia lo cazó en cuanto los grupos dejaron de teletransportarse (`cazadaFantasma`, clásica larga, semilla 17): km 169, el parte de cabeza dice **un** hombre delante; km 171, «the break is caught» **nombrando a diez**.
+
+La cuenta de «¿queda alguien de la fuga por delante?» preguntaba si el hombre iba en algún `move` vivo, y esa pregunta valía mientras el que se caía de una fuga volviera al pelotón en el mismo bloque —que es justo lo que hacía el defecto de arriba—. Con el reenganche arreglado, al que se descuelga de la fuga le pasa lo que le pasa en carretera: se queda camino arriba, solo, por delante del pelotón y fuera de todo grupo. Para esta cuenta desaparecía, y el motor daba la fuga por cazada con nueve de ellos todavía delante.
+
+Ahora la pregunta es la de la carretera: **¿queda alguien de los que pasaron por la fuga con el reloj por delante del pelotón?** Da igual en qué grupo vaya. Con eso, las 20 semillas de la clásica larga quedan a cero.
+
+Es la mitad interesante de esta tanda: un arreglo correcto deja al descubierto una pregunta que estaba mal hecha desde antes y que solo se sostenía porque el defecto la tapaba.
+
 ### 5. La radio dice para QUIÉN se tira
 
 > «en race radio ahora dice por qué tiran… pero dice algo así como _his team's card for this finish_… pero no dice quién es, wey».
