@@ -11,6 +11,7 @@ import {
   saveRaceOrders,
 } from '../api/raceOrders'
 import { fetchMyUpcomingRaces } from '../api/rider'
+import { orderAdvice } from '../domain/raceOrdersAdvice'
 import {
   EFFORT_DESC,
   EFFORT_LABEL,
@@ -21,6 +22,7 @@ import {
   STAGE_ROLE_DESC,
   STAGE_ROLE_LABEL,
   STAGE_ROLE_OPTIONS,
+  STAGE_KIND_LABEL,
 } from '../domain/labels'
 import {
   type OrdersDraft,
@@ -108,6 +110,38 @@ export function RaceOrders() {
     setDraft((prev) => withOrderPatch(prev, selectedKey, serverOrders, day, patch))
   }
 
+  /**
+   * COPIAR UNA ORDEN A LAS DEMÁS ETAPAS (v58). Rellenar veintiuna etapas a mano era el motivo real
+   * por el que casi nadie las tocaba, y una orden que no se toca es una orden que no se nota.
+   *
+   * Dos alcances, que son los dos que se usan de verdad: a las etapas del MISMO TIPO —el plan del
+   * velocista para las llanas, el del escalador para las reinas— y a todo lo que queda de carrera.
+   * La crono nunca recibe copia: allí no hay táctica de grupo que copiar.
+   *
+   * El objetivo (`targetRiderId`) viaja con la orden: si trabajas para tu jefe, trabajas para él
+   * todos los días, y si marcabas a un rival, lo sigues marcando.
+   */
+  const copiarA = (desdeDia: number, alcance: 'iguales' | 'siguientes'): void => {
+    if (!selectedKey || !data) return
+    const origen = orders[desdeDia]
+    const etapaOrigen = data.stages.find((st) => st.day === desdeDia)
+    if (!origen || !etapaOrigen) return
+    for (const st of data.stages) {
+      if (st.day === desdeDia || st.timeTrial) continue
+      if (alcance === 'iguales' && st.kind !== etapaOrigen.kind) continue
+      if (alcance === 'siguientes' && st.day < desdeDia) continue
+      update(st.day, {
+        role: origen.role,
+        mentality: origen.mentality,
+        effort: origen.effort,
+        triggerKm: origen.triggerKm,
+        targetRiderId: origen.targetRiderId,
+        contestSprints: origen.contestSprints,
+        contestClimbs: origen.contestClimbs,
+      })
+    }
+  }
+
   // Solo se guarda lo que se está viendo: la carrera seleccionada Y ya cargada.
   const canSave = !!selectedKey && !!data && !mutation.isPending
   const saveAll = (): void => {
@@ -167,6 +201,24 @@ export function RaceOrders() {
         </select>
       </label>
       <p className="text-sm text-slate-500">Set your autopilot for each stage, then save once.</p>
+      {/* EL RESUMEN, ARRIBA. Con veintiuna etapas, lo que el jugador necesita saber al entrar es si
+          se ha dejado algo sin decidir y si hay algo que chirría, no ir panel por panel. */}
+      {data && data.stages.length > 1 && (
+        <p className="text-sm text-slate-500">
+          {(() => {
+            const enLinea = data.stages.filter((st) => !st.timeTrial)
+            const conChoque = enLinea.filter((st) =>
+              orderAdvice(orders[st.day] ?? defaultOrder(st.day), st).some(
+                (a) => a.level === 'warn',
+              ),
+            ).length
+            return conChoque === 0
+              ? `${enLinea.length} road stages, no clashing orders.`
+              : `${enLinea.length} road stages · ${conChoque} with orders that clash — look for the ⚠ below.`
+          })()}
+        </p>
+      )}
+
       {isPending && <p className="text-sm text-slate-500">Loading the race…</p>}
       {isError && <p className="text-sm text-red-600">Could not load the race.</p>}
       {mutation.isSuccess && <p className="text-sm text-emerald-600">Orders saved.</p>}
@@ -181,6 +233,12 @@ export function RaceOrders() {
               title={stage.name}
               action={
                 <span className="flex items-center gap-2 text-xs text-white/90">
+                  {/* DE QUÉ VA EL DÍA, antes que ningún otro dato: la orden que tiene sentido en una
+                      llana es un disparate en una reina, y el perfil dibujado no siempre se lee de
+                      un vistazo en el móvil. */}
+                  <span className="rounded bg-white/15 px-1.5 py-0.5 font-medium">
+                    {STAGE_KIND_LABEL[stage.kind] ?? stage.kind}
+                  </span>
                   <span>{stage.km} km</span>
                   {stage.forecast != null && (
                     <>
@@ -344,6 +402,47 @@ export function RaceOrders() {
                       banners along the route (green / polka-dot jerseys). Costs energy.
                     </span>
                   </div>
+                </div>
+              )}
+
+              {/* LO QUE UN DIRECTOR TE DIRÍA AL LEER LA HOJA (v58). No prohíbe nada —puedes correr
+                  una reina de sprinter si te empeñas— pero deja de ser un formulario mudo. */}
+              {(() => {
+                const avisos = orderAdvice(order, stage)
+                if (avisos.length === 0) return null
+                return (
+                  <ul className="mt-3 space-y-1">
+                    {avisos.map((a, i) => (
+                      <li
+                        key={i}
+                        className={`flex gap-2 text-xs ${a.level === 'warn' ? 'text-amber-700' : 'text-slate-500'}`}
+                      >
+                        <span aria-hidden>{a.level === 'warn' ? '⚠' : 'ℹ'}</span>
+                        <span>{a.text}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )
+              })()}
+
+              {/* COPIAR A LAS DEMÁS, que es lo que ahorra la tarde: en una gran vuelta son
+                  veintiuna etapas y hasta ahora había que rellenarlas una a una. */}
+              {!stage.timeTrial && (
+                <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => copiarA(stage.day, 'iguales')}
+                    className="rounded-lg border border-slate-300 px-2 py-1 text-slate-600 transition hover:bg-slate-50"
+                  >
+                    Copy to every {(STAGE_KIND_LABEL[stage.kind] ?? stage.kind).toLowerCase()} stage
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => copiarA(stage.day, 'siguientes')}
+                    className="rounded-lg border border-slate-300 px-2 py-1 text-slate-600 transition hover:bg-slate-50"
+                  >
+                    Copy to the rest of the race
+                  </button>
                 </div>
               )}
             </Panel>
