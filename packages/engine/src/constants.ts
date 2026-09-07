@@ -794,11 +794,41 @@ export const CREATION = {
  * al techo lo reparten la edad y la clase de atributo (ver `ceilingBoost`).
  */
 export const NPC = {
-  // mu del atributo primario de la vocación por división (World Tour, Pro Series, Continental).
-  divisionPrimaryMu: { WT: 78, PRS: 68, CON: 60 },
+  /**
+   * mu del atributo primario de la vocación por división (World Tour, Pro Series, Continental).
+   *
+   * …Y CINCO ESTRELLAS TIENEN QUE SER RARAS (v58). El dueño, mirando el mundo: «creo que entre los
+   * bots hay algunos demasiado pro». Medido sobre 4.000 bots con los números de antes (78 y una
+   * desviación de 8): **el 46,8 % de los corredores del WorldTour tenía al menos un atributo de
+   * cinco estrellas** (84+ en la escala de `attrStars`) y el 1 % superior estaba clavado en el techo
+   * de 95. Casi uno de cada dos, cuando cinco estrellas debería querer decir «de los mejores del
+   * mundo en esto».
+   *
+   * El dueño fijó la banda: «claramente menos del 15 % de momento (y cuando haya humanos buenos
+   * bajaremos eso a 0)» —lo segundo es G9, y no se hace aquí—.
+   *
+   * Barrido de media y desviación sobre 6.000 bots, buscando el punto que baje los PICOS sin hundir
+   * el nivel del pelotón:
+   *
+   * | mu · sd | con 5 estrellas | media general | mejor atributo p99 |
+   * | ------- | --------------: | ------------: | -----------------: |
+   * | 78 · 8  |      **44,9 %** |          62,8 |                 95 |
+   * | 76 · 6  |          19,8 % |          60,8 |                 91 |
+   * | 75 · 6  |          14,7 % |          59,8 |                 91 |
+   * | **75 · 5,5** |    **11,2 %** |      **59,8** |             **89** |
+   * | 74 · 5  |           5,8 % |          58,8 |                 87 |
+   *
+   * Se elige 75 · 5,5: cumple con margen, la media del pelotón baja tres puntos (no se hunde) y el
+   * mundo conserva cracks —el mejor bot sigue teniendo un 89—, que es lo que se perdería bajando
+   * más la desviación: con 4,5 todos los del WorldTour se parecen entre sí.
+   *
+   * Las tres divisiones bajan lo mismo para no estrechar la distancia entre ellas, que es lo que
+   * hace que subir de categoría signifique algo.
+   */
+  divisionPrimaryMu: { WT: 75, PRS: 65, CON: 57 },
   adjacentDrop: 10,
   restDrop: 22,
-  attrSd: 8,
+  attrSd: 5.5,
   attrMin: 20,
   attrMax: 95,
   /**
