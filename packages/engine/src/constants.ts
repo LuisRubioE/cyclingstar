@@ -1291,15 +1291,44 @@ export const STAGE = {
   // descolgado vuelve si su FÍSICA le da para volver (`droppedCommit`) y no porque una constante se
   // lo regale. Ver docs/balance.md, «v16».
   /**
-   * LA PUERTA DEL REENGANCHE AL PELOTÓN (v58), aparte de `regroupGapSeconds`. Son dos preguntas
-   * distintas y estaban atadas al mismo número: cuánto hueco separa a dos grupos para el rescate y
-   * la narración (22 s), y con cuánto hueco se puede uno METER en el pelotón.
+   * LA PUERTA DEL REENGANCHE AL PELOTÓN, aparte de `regroupGapSeconds` desde la v58 —aunque hoy
+   * valgan lo mismo, y esa historia es la que hay que contar aquí—.
    *
-   * La segunda tiene que ser pequeña porque el que entra adopta el reloj del grupo: entrar con
-   * veintidós segundos era comérselos de golpe. Cinco segundos es el mismo listón con el que dos
-   * grupos se consideran capturados (`captureGapSeconds`): estar en la fila.
+   * SE PROBÓ ESTRECHARLA Y LA MEDIDA LO REFUTÓ. La idea: el corredor que entra en un grupo adopta el
+   * reloj de ese grupo, así que entrar con veintidós segundos de hueco era comérselos de golpe, y de
+   * ahí salían las velocidades imposibles de la radio y la sensación del dueño de que «los que
+   * pierden en montaña cinco minutos se reintegran demasiado fácil». Con la puerta en 5 s los saltos
+   * de reloj bajaban de 192 a 11 por Giro.
+   *
+   * Pero el banco del adoquín enseñó lo que esa puerta ADEMÁS era: el mecanismo por el que **el
+   * fuerte vuelve**. En el banco del pavé —treinta hombres que solo se distinguen en PAV— el PAV
+   * mediano del ganador se movía así:
+   *
+   * | puerta | PAV mediano del ganador |
+   * | -----: | ----------------------: |
+   * | 22 s   |            **69** (listón del dueño: «pave 69 ok») |
+   * | 12 s   |                      68 |
+   * |  8 s   |                      68 |
+   * |  5 s   |                      67 |
+   *
+   * O sea que estrechar la puerta no solo quitaba el regalo: quitaba la capacidad de recuperación
+   * del que tiene piernas para volver, que en el adoquín es justo el adoquinero. Y el propio regalo
+   * está peor diagnosticado de lo que parecía: en ciclismo, el que vuelve al pelotón CRUZA LA META
+   * CON ÉL, así que heredar el reloj del grupo al reengancharse es lo correcto; veintidós segundos
+   * son, además, más o menos lo que se estira un pelotón de ciento setenta y seis de punta a cola.
+   *
+   * Lo que sí era un defecto —los 94 km/h que el dueño vio en un grupeto— vive en la RADIO y se
+   * arregla ahí (`groupSpeedKmh`): medir la velocidad de un grupo con corredores que acaban de
+   * cambiar de grupo es medir un salto de reloj, no una velocidad.
    */
-  rejoinGapSeconds: 5,
+  /**
+   * EL TECHO DE VELOCIDAD DE LA RADIO (v58). Por encima de esto no hay ciclista: hay un reloj que ha
+   * cambiado de grupo y una resta que no significa nada (ver `groupSpeedKmh`). El récord de descenso
+   * en carrera anda por los 90 km/h y una llegada masiva no pasa de 70, así que 85 deja fuera lo
+   * imposible sin recortar nada de lo que ocurre de verdad.
+   */
+  radioMaxKmh: 85,
+  rejoinGapSeconds: 22,
   regroupGapSeconds: 22,
   // …y ese umbral se estrecha según lo que esté apretando el pelotón: se escala por
   // `clamp((1 − c) / (1 − chaseBackShutTempo), chaseBackShutFloor, 1)`, así que a tempo de carretera
