@@ -32,7 +32,30 @@
     "Shun",
     "Tsz",
     "Yin",
-    "Yuen"
+    "Yuen",
+    "Chi Ming",
+    "Wing Kei",
+    "Kwok Wai",
+    "Man Ho",
+    "Tsz Kin",
+    "Wai Lun",
+    "Yiu Fai",
+    "Chun Kit",
+    "Hoi Lam",
+    "Lok Yin",
+    "Pak Ho",
+    "Sze Chun",
+    "Tin Lok",
+    "Wing Hang",
+    "Yat Long",
+    "Andy",
+    "Bobby",
+    "Eric",
+    "Jacky",
+    "Kenny",
+    "Ronnie",
+    "Simon",
+    "Tommy"
   ],
   "female": [
     "Ka Yee",
@@ -58,7 +81,18 @@
     "Ho Yee",
     "Kwan",
     "Suet",
-    "Wai Yee"
+    "Wai Yee",
+    "Ka Yan",
+    "Hoi Ching",
+    "Sze Wing",
+    "Yee Man",
+    "Carmen",
+    "Fiona",
+    "Jasmine",
+    "Karen",
+    "Mandy",
+    "Vivian",
+    "Winnie"
   ],
   "surnames": [
     "Chan",
@@ -100,6 +134,8 @@
     "Shum",
     "Chiu",
     "Fong",
-    "Au"
+    "Au",
+    "Kam",
+    "Pang"
   ]
 }

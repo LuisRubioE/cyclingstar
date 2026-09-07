@@ -32,7 +32,8 @@
     "Mubarak",
     "Rami",
     "Sami",
-    "Zayed"
+    "Zayed",
+    "Nabeel"
   ],
   "female": [
     "Fatima",
@@ -58,7 +59,8 @@
     "Sabah",
     "Wafa",
     "Zahra",
-    "Ghada"
+    "Ghada",
+    "Noora"
   ],
   "surnames": [
     "Al Khalifa",
@@ -100,6 +102,25 @@
     "Nass",
     "Qassim",
     "Sharif",
-    "Wahab"
+    "Wahab",
+    "Al-Doseri",
+    "Kanoo",
+    "Zayani",
+    "Al-Alawi",
+    "Al-Arab",
+    "Al-Binali",
+    "Al-Dhaen",
+    "Al-Hashimi",
+    "Al-Jalahma",
+    "Al-Kooheji",
+    "Al-Mahmeed",
+    "Al-Musallam",
+    "Al-Noaimi",
+    "Al-Qaseer",
+    "Al-Rumaihi",
+    "Al-Sayed",
+    "Al-Shaikh",
+    "Al-Wasmi",
+    "Taqi"
   ]
 }

@@ -24,7 +24,20 @@
     "Sergi",
     "Adrià",
     "Èric",
-    "Ismael"
+    "Ismael",
+    "Josep",
+    "Antoni",
+    "Carles",
+    "David",
+    "Enric",
+    "Jaume",
+    "Lluís",
+    "Pere",
+    "Ramon",
+    "Toni",
+    "Xavier",
+    "Eduard",
+    "Miquel"
   ],
   "female": [
     "Laia",
@@ -41,7 +54,17 @@
     "Gemma",
     "Sara",
     "Elna",
-    "Mireia"
+    "Mireia",
+    "Maria",
+    "Laura",
+    "Sílvia",
+    "Cristina",
+    "Elena",
+    "Judit",
+    "Montserrat",
+    "Rosa",
+    "Teresa",
+    "Clara"
   ],
   "surnames": [
     "Areny",
@@ -67,6 +90,24 @@
     "Armengol",
     "Cornella",
     "Majoral",
-    "Rebés"
+    "Rebés",
+    "Duró",
+    "Escalé",
+    "Farré",
+    "Mas",
+    "Pintat",
+    "Ribes",
+    "Vila",
+    "Aleix",
+    "Baró",
+    "Casal",
+    "Espot",
+    "Fernández",
+    "Gomes",
+    "Marín",
+    "Pujal",
+    "Saravia",
+    "Tor",
+    "Ubach"
   ]
 }
