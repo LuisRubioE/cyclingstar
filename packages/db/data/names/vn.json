@@ -32,7 +32,17 @@
     "Tho",
     "Vu",
     "Binh",
-    "Dai"
+    "Dai",
+    "Anh",
+    "Chien",
+    "Hieu",
+    "Khoa",
+    "Lam",
+    "Nghia",
+    "Thang",
+    "Trieu",
+    "K'Sor",
+    "Rahlan"
   ],
   "female": [
     "Linh",
@@ -58,7 +68,15 @@
     "Ly",
     "Nga",
     "Oanh",
-    "Xuan"
+    "Xuan",
+    "Quyen",
+    "Thuy",
+    "Bich",
+    "Chau",
+    "Diem",
+    "Giang",
+    "Hanh",
+    "My"
   ],
   "surnames": [
     "Nguyen",
@@ -100,6 +118,14 @@
     "Nghiem",
     "Phung",
     "Ung",
-    "Diep"
+    "Diep",
+    "Khuc",
+    "Luu",
+    "Ong",
+    "Xa",
+    "Kpa",
+    "Siu",
+    "Rahlan",
+    "Y"
   ]
 }
