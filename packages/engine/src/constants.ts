@@ -807,28 +807,48 @@ export const NPC = {
    * El dueño fijó la banda: «claramente menos del 15 % de momento (y cuando haya humanos buenos
    * bajaremos eso a 0)» —lo segundo es G9, y no se hace aquí—.
    *
-   * Barrido de media y desviación sobre 6.000 bots, buscando el punto que baje los PICOS sin hundir
-   * el nivel del pelotón:
+   * SE BAJA LA MEDIA, NO LA DESVIACIÓN, Y ESO NO ES UN DETALLE. El primer intento fue 75 · 5,5, que
+   * cumplía la banda (11,2 %) estrechando el campo. El banco lo tumbó, y con razón: la etapa 9 del
+   * Giro pasó de repartir a llegar en bloque —el grupo mayor subió del 33 % al **55,7 %** del
+   * pelotón—, la cola de las reinas se salió de su banda por abajo y el adoquín dejó de decidirlo el
+   * adoquinero (mediana del PAV del ganador 69 → 67). Todos son la misma frase: **una carrera
+   * selecciona por las DIFERENCIAS entre corredores, y bajar la desviación es exactamente borrarlas**.
+   * Bajar la media, en cambio, mueve a todo el mundo el mismo escalón y deja las diferencias
+   * intactas.
+   *
+   * Barrido sobre 6.000 bots manteniendo la desviación en 8:
    *
    * | mu · sd | con 5 estrellas | media general | mejor atributo p99 |
    * | ------- | --------------: | ------------: | -----------------: |
    * | 78 · 8  |      **44,9 %** |          62,8 |                 95 |
-   * | 76 · 6  |          19,8 % |          60,8 |                 91 |
-   * | 75 · 6  |          14,7 % |          59,8 |                 91 |
-   * | **75 · 5,5** |    **11,2 %** |      **59,8** |             **89** |
-   * | 74 · 5  |           5,8 % |          58,8 |                 87 |
+   * | 76 · 8  |          34,1 % |          60,8 |                 95 |
+   * | 74 · 8  |          23,4 % |          58,8 |                 95 |
+   * | 72 · 8  |          14,6 % |          56,8 |                 92 |
+   * | **71 · 8** |     **11,3 %** |      **55,8** |             **92** |
+   * | 70 · 8  |           9,2 % |          54,8 |                 90 |
    *
-   * Se elige 75 · 5,5: cumple con margen, la media del pelotón baja tres puntos (no se hunde) y el
-   * mundo conserva cracks —el mejor bot sigue teniendo un 89—, que es lo que se perdería bajando
-   * más la desviación: con 4,5 todos los del WorldTour se parecen entre sí.
+   * Se elige 71 · 8. Cumple la banda con el mismo margen que daba el 75 · 5,5 (11,3 % contra 11,2 %)
+   * y sin tocar la dispersión, así que el mundo sigue teniendo cracks y la montaña sigue
+   * seleccionando. El 72 se descarta por lo contrario: 14,6 % no es «claramente menos del 15 %», es
+   * rozarlo.
+   *
+   * Comprobado después sobre `generateNpcRider`, que es el camino de verdad y no la aproximación
+   * del barrido, con los mismos 4.000 bots con los que se vio el defecto: **11,8 % del WorldTour
+   * con un atributo de cinco estrellas**, contra el 46,8 % de partida. Y el mundo conserva su punta:
+   * el mejor atributo va de 76 en la mediana a 93 en el p99, con algún 95.
+   *
+   * Lo que sí cambia es el NIVEL ABSOLUTO: siete puntos menos de media. Es un cambio de escala del
+   * mundo entero, no de la carrera, y por eso el único banco que se cayó por ese lado fue el que
+   * comparaba la media de la población contra un número escrito a mano (`sim/world.test.ts`, «y el
+   * mundo CORRE»); ese banco ahora corre su propio brazo de control en vez de recordarlo.
    *
    * Las tres divisiones bajan lo mismo para no estrechar la distancia entre ellas, que es lo que
    * hace que subir de categoría signifique algo.
    */
-  divisionPrimaryMu: { WT: 75, PRS: 65, CON: 57 },
+  divisionPrimaryMu: { WT: 71, PRS: 61, CON: 53 },
   adjacentDrop: 10,
   restDrop: 22,
-  attrSd: 5.5,
+  attrSd: 8,
   attrMin: 20,
   attrMax: 95,
   /**

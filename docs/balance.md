@@ -10042,3 +10042,56 @@ Se le llevaron al dueño las cuatro salidas —bajar el suelo, subir las semilla
 `breakawayWinPct` ya tiene anotado para su techo), revertir la criba, o dejarlo en rojo— y eligió
 **bajar el suelo a 40**, que deja el listón por debajo de la nube entera. Un suelo tiene que cazar
 que la montaña deje de seleccionar; no arbitrar de qué lado de un hueco cae la mediana.
+
+## v58 — Cinco estrellas tenían que ser raras, y la primera forma de conseguirlo rompía la carrera
+
+> «creo que entre los bots hay algunos demasiado pro» — «claramente menos del 15 % de momento (y cuando haya humanos buenos bajaremos eso a 0)»
+
+### El defecto: casi la mitad del WorldTour era un cinco estrellas
+
+Medido con `generateNpcRider` sobre 4.000 bots y los números de entonces —media del atributo primario 78 en el WorldTour, desviación 8—: **el 46,8 % tenía al menos un atributo de cinco estrellas** (84+ en la escala de `attrStars`) y el 1 % superior estaba clavado en el techo de 95. Uno de cada dos, cuando la última estrella debería querer decir «de los mejores del mundo en esto».
+
+### El primer intento, y por qué el banco lo tumbó
+
+Se bajó a **75 · 5,5**, que cumple la banda con margen (11,2 %) apretando las dos cosas a la vez: la media y la dispersión. El banco completo salió con cuatro rojos, y los cuatro dicen la misma frase:
+
+| banco                                                | esperado | con 75 · 5,5 |
+| ---------------------------------------------------- | -------- | ------------ |
+| Giro e9: el grupo mayor en la llegada en alto        | ≤ 33 %   | **55,7 %**   |
+| cola de las reinas de la gran vuelta                 | 8-14 %   | por debajo   |
+| un final de pavé lo gana el adoquinero (PAV mediana) | ≥ 69     | **67**       |
+| «el mundo CORRE, no solo entrena» (media t15)        | > 66     | por debajo   |
+
+Los tres primeros son **selección**: una carrera reparte por las DIFERENCIAS entre corredores, y bajar la desviación es exactamente borrarlas. Con el campo apretado, el puerto final de la etapa 9 dejó de partir el pelotón y más de la mitad llegó junta —que es, palabra por palabra, el defecto que esa prueba se escribió para cazar en la v47—.
+
+Se comprobó en pareado antes de decidir nada: revirtiendo SOLO la generación (78 · 8) y sin tocar una línea del motor de esta tanda, el Giro e9 vuelve a verde. La causa era la generación, no las siete correcciones de carrera.
+
+### La forma que sí vale: bajar la media, no la dispersión
+
+Un desplazamiento de la media mueve a todo el mundo el mismo escalón y deja las diferencias intactas. Barrido sobre 6.000 bots con la desviación fija en 8:
+
+| mu · sd    | con 5 estrellas | media general | mejor atributo p99 |
+| ---------- | --------------: | ------------: | -----------------: |
+| 78 · 8     |      **44,9 %** |          62,8 |                 95 |
+| 74 · 8     |          23,4 % |          58,8 |                 95 |
+| 72 · 8     |          14,6 % |          56,8 |                 92 |
+| **71 · 8** |      **11,3 %** |      **55,8** |             **92** |
+| 70 · 8     |           9,2 % |          54,8 |                 90 |
+
+Se elige **71 · 8** (WT 71, PRS 61, CON 53; las tres divisiones bajan lo mismo para no estrechar la distancia entre ellas). El 72 se descarta por rozar el listón: 14,6 % no es «claramente menos del 15 %».
+
+Comprobado después sobre el camino de verdad, `generateNpcRider`, con los mismos 4.000 bots con los que se vio el defecto: **11,8 % del WorldTour con un atributo de cinco estrellas**, contra el 46,8 % de partida, y el mundo conserva su punta —el mejor atributo va de 76 en la mediana a 93 en el p99, con algún 95—. Los tres bancos de selección vuelven a verde sin tocar ninguna banda.
+
+### El cuarto rojo era un guardarraíl mal atado, y se ha arreglado por dentro
+
+«Y el mundo CORRE, no solo entrena» comparaba la media de la población en la temporada 15 contra un **66 escrito a mano**, sacado de que el brazo de solo entrenamiento daba 64,7. Pero ese 64,7 no dice nada de las carreras: dice con qué media NACEN los bots. Al bajar la generación siete puntos, la prueba se puso roja sin que la carrera hubiera dejado de enseñar ni un punto.
+
+`runWorld` acepta ahora `sinCarreras`, y el banco **corre su propio brazo de control** en vez de recordarlo: dos mundos con carreras contra dos mundos sin ellas, y se comparan entre sí.
+
+| temporada | con carreras | sin carreras | aporte |
+| --------- | -----------: | -----------: | -----: |
+| 5         |         53,5 |         52,0 |   +1,5 |
+| 10        |         58,5 |         55,9 |   +2,6 |
+| 15        |         61,8 |         58,7 |   +3,1 |
+
+El listón pide un punto, que es la diferencia entre «enseña poco» y «no enseña». Un guardarraíl que se cae solo porque cambia el punto de partida no vigila lo que dice vigilar.
