@@ -4909,9 +4909,23 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         : (moves.find((mv) => mv.g.id === mainId)?.g.compromiso ??
           shed.find((sg) => sg.id === mainId)?.compromiso ??
           peloton.compromiso)
-    peloton = advance(peloton, membersOf(PELOTON), pelFrac, 'peloton', relojPrincipal, compromisoPrincipal)
+    peloton = advance(
+      peloton,
+      membersOf(PELOTON),
+      pelFrac,
+      'peloton',
+      relojPrincipal,
+      compromisoPrincipal,
+    )
     for (const m of moves) {
-      m.g = advance(m.g, membersOf(m.g.id), moveFrac(m), 'move', relojPrincipal, compromisoPrincipal)
+      m.g = advance(
+        m.g,
+        membersOf(m.g.id),
+        moveFrac(m),
+        'move',
+        relojPrincipal,
+        compromisoPrincipal,
+      )
       // La TENSIÓN del grupo escapado (SPEC 6.10): se acumula km a km y, pasado el umbral, dispara
       // los ataques internos y recorta la cooperación. Existía en `Group` y nadie la tocaba nunca.
       m.g.tension += STAGE.breakawayTensionPerKm * STAGE.dx
@@ -4992,7 +5006,14 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       }
     }
     for (let g = 0; g < shed.length; g++) {
-      shed[g] = advance(shed[g]!, membersOf(shed[g]!.id), 1, 'shed', relojPrincipal, compromisoPrincipal)
+      shed[g] = advance(
+        shed[g]!,
+        membersOf(shed[g]!.id),
+        1,
+        'shed',
+        relojPrincipal,
+        compromisoPrincipal,
+      )
     }
 
     // Reagrupamiento de los descolgados. Hasta la v15 aquí había un RECORTE FIJO —el descolgado
