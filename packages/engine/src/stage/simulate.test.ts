@@ -2549,6 +2549,68 @@ describe('cada relevo dice para qué es (v47)', () => {
       'motivos de equipo en el pelotón: true',
     )
   })
+
+  /**
+   * …PERO IR DETRÁS NO ES NO PERSEGUIR NADA (v59). El dueño, leyendo la Race Wallonia e1: «hay un
+   * grupo atrás que dice que está *just riding*, **pero va más rápido que el grupo de cabeza**. Eso
+   * no tiene sentido». Veinte hombres, doce dando relevos, a 46,9 km/h contra los 44,3 de cabeza.
+   *
+   * El test no comprueba que la etiqueta exista, sino que SEPARA los dos estados que el motor ya
+   * distingue para mover la carretera (`droppedCommit`: «primero se persigue y luego uno se
+   * resigna»): el grupo que ha decidido rodar tan fuerte como el grueso persigue, y el que ha
+   * decidido rodar más flojo se ha sentado. Se piden LOS DOS en el banco, porque cualquiera de las
+   * dos mitades sola se cumpliría con una etiqueta constante.
+   */
+  it('un grupo de detrás que rueda tan fuerte como el grueso SÍ persigue', { timeout: 300000 }, () => {
+    let persiguiendo = 0
+    let sentados = 0
+    for (const seed of seedsFor('motivo', 6)) {
+      for (const km of radioDe(seed).kms) {
+        const pel = km.groups.findIndex((g) => g.id === km.mainId)
+        km.groups.forEach((g, i) => {
+          if (pel < 0 || i <= pel) return
+          for (const p of g.pulling) {
+            if (p.motivo === 'persecucion') persiguiendo += 1
+            if (p.motivo === 'grupeto') sentados += 1
+          }
+        })
+      }
+    }
+    expect(`hay grupos de detrás persiguiendo: ${persiguiendo > 0}`).toBe(
+      'hay grupos de detrás persiguiendo: true',
+    )
+    expect(`…y hay grupetos resignados: ${sentados > 0}`).toBe('…y hay grupetos resignados: true')
+  })
+
+  /**
+   * Y NO SE NOMBRA A QUIEN NO ESTÁ (v59). El dueño: «vi un grupo que tira para las opciones de su
+   * líder Alejandro, **pero Alejandro no estaba en ese grupo**». Un motivo que nombra a un hombre
+   * que va en otro sitio no es evidencia: es lo contrario de lo que se está viendo.
+   *
+   * La regla es la más simple que se puede pedir y por eso se comprueba sobre TODOS los relevos de
+   * todas las fotos: si un motivo nombra a alguien, ese alguien va en el mismo grupo.
+   */
+  it('el destinatario de un relevo va siempre en el grupo del que tira', { timeout: 300000 }, () => {
+    let conNombre = 0
+    const fuera: string[] = []
+    for (const seed of seedsFor('motivo', 6)) {
+      for (const km of radioDe(seed).kms) {
+        for (const g of km.groups) {
+          const dentro = new Set(g.riderIds)
+          for (const p of g.pulling) {
+            if (p.para == null) continue
+            conNombre += 1
+            if (!dentro.has(p.para)) fuera.push(`km ${km.km} ${g.id}: ${p.riderId} -> ${p.para}`)
+          }
+        }
+      }
+    }
+    // Que el caso exista: sin relevos con nombre esto pasaría sin mirar nada.
+    expect(`hay relevos con destinatario: ${conNombre > 100}`).toBe(
+      'hay relevos con destinatario: true',
+    )
+    expect(fuera.slice(0, 5)).toEqual([])
+  })
 })
 
 /**

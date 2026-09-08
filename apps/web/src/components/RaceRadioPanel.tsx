@@ -157,7 +157,12 @@ function motiveLabel(motivo: string, para: string | null): string | undefined {
       // v58: ir por delante del grueso no es ir escapado. El dueño, viendo el grupo del maillot ir
       // a por un escapado: «esto no es una escapada, es el grupo del maillot intentando alcanzar
       // al segundo». Aquí se dice lo que es: van a por alguien.
-      return para ? `chasing ${para} up the road` : 'chasing the man up the road'
+      //
+      // v59: y desde que un grupo de DETRÁS que rueda más fuerte que el grueso también es una
+      // persecución, la frase sin nombre no puede hablar de «the man up the road» —a quien persigue
+      // un grupeto que se ha puesto a tirar es al grupo entero—. «The group ahead» es verdad en los
+      // dos casos.
+      return para ? `chasing ${para} up the road` : 'chasing the group ahead'
     case 'grupeto':
       return 'just riding — this group is chasing nothing'
     case 'equipo_etapa':

@@ -3006,6 +3006,8 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
        * calcula UNA vez por bloque para todos los grupos, y en un puerto puede haber cien—.
        */
       relojPrincipal: number,
+      /** El compromiso de ese mismo grupo principal: ver `compromisoPrincipal` (v59). */
+      compromisoPrincipal: number,
     ): Group => {
       if (members.length === 0) return group
       /**
@@ -3254,10 +3256,30 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
           const suJefe = lanzaPara.get(m.input.riderId)
           if (suJefe != null && idSet.has(suJefe)) return { motivo: 'tren', para: suJefe }
         }
-        // Por DETRÁS del grueso no hay plan de equipo que valga: se rueda por rodar, y ésa es LA
-        // RESPUESTA a la pregunta del dueño de la v47 («¿para qué carajos tiran si en ese grupo no
-        // está su líder?»). Va antes que todo lo demás para que siga siendo verdad.
-        if (!isBunch && group.tS >= relojPrincipal) return { motivo: 'grupeto', para: null }
+        /**
+         * POR DETRÁS DEL GRUESO NO HAY PLAN DE EQUIPO QUE VALGA: se rueda por rodar, y ésa es LA
+         * RESPUESTA a la pregunta del dueño de la v47 («¿para qué carajos tiran si en ese grupo no
+         * está su líder?»). Va antes que todo lo demás para que siga siendo verdad.
+         *
+         * …PERO «POR DETRÁS» NO ES «SIN PERSEGUIR NADA» (v59). El dueño, leyendo la Race Wallonia
+         * e1: «hay un grupo atrás que dice que está *just riding*, **pero va más rápido que el grupo
+         * de cabeza**. Eso no tiene sentido». Y no lo tenía: veinte hombres, doce dando relevos, a
+         * 46,9 km/h contra los 44,3 del grupo de cabeza, y la radio decía «this group is chasing
+         * nothing». Iban a por ellos, evidentemente.
+         *
+         * La causa era que el motivo se decidía por la POSICIÓN y nada más, cuando el motor ya sabe
+         * la respuesta: `droppedCommit` decide el ritmo de cada grupo de descolgados con el modelo
+         * escrito de «primero se PERSIGUE y luego uno se resigna». Si ese grupo ha decidido rodar
+         * tan fuerte como el grueso o más, persigue; si ha decidido rodar más flojo, se ha sentado y
+         * entonces sí rueda por rodar. No hace falta ninguna constante nueva: es la misma cifra con
+         * la que el motor mueve la carretera, así que la etiqueta ya no puede contradecir a la
+         * carrera que se está viendo.
+         */
+        if (!isBunch && group.tS >= relojPrincipal)
+          return {
+            motivo: group.compromiso >= compromisoPrincipal ? 'persecucion' : 'grupeto',
+            para: null,
+          }
         const suEquipo = rebels.has(m.input.riderId) ? null : (teamOf.get(m.input.riderId) ?? null)
         const plan = suEquipo != null ? teamPlans.get(suEquipo) : undefined
         const proposito = purposeOfTeam(suEquipo)
@@ -3310,14 +3332,31 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
             shed.some((sg) => sg.id !== group.id && sg.tS < group.tS)
           return { motivo: hayAlguienDelante ? 'persecucion' : 'fuga', para: null }
         }
+        /**
+         * …Y NO SE NOMBRA A QUIEN NO ESTÁ (v59). El dueño: «vi un grupo que tira para las opciones
+         * de su líder Alejandro, **pero Alejandro no estaba en ese grupo**».
+         *
+         * La rama de arriba —la del hombre del plan que va en este mismo grupo— sí lo comprobaba
+         * (`idSet.has`); ésta, la del empuje del equipo, nombraba al hombre del plan sin preguntar
+         * dónde iba. En el pelotón eso pone en la radio a un jefe que puede ir escapado por delante
+         * o descolgado por detrás, y entonces la frase no explica nada: explica lo contrario de lo
+         * que se ve.
+         *
+         * Que el equipo TIRE con su jefe fuera del grupo es otra pregunta y tiene sus propias
+         * reglas —`leaderUpTheRoad` para el que va delante, `jefeEnApuros` para el que va detrás—.
+         * Lo que se arregla aquí es la EVIDENCIA: si el hombre no está, el motivo no es él.
+         */
         if (driveOfRider(m.input.riderId) > 0) {
+          const suHombre =
+            proposito === 'etapa' ? (plan?.stageCandidateId ?? null) : (plan?.leaderId ?? null)
+          const aquí = suHombre != null && idSet.has(suHombre) ? suHombre : null
           switch (proposito) {
             case 'maillot':
-              return { motivo: 'equipo_maillot', para: plan?.leaderId ?? null }
+              return { motivo: 'equipo_maillot', para: aquí }
             case 'general':
-              return { motivo: 'equipo_general', para: plan?.leaderId ?? null }
+              return { motivo: 'equipo_general', para: aquí }
             case 'etapa':
-              return { motivo: 'equipo_etapa', para: plan?.stageCandidateId ?? null }
+              return { motivo: 'equipo_etapa', para: aquí }
           }
         }
         return { motivo: 'rol', para: null }
@@ -4852,9 +4891,27 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
     // El reloj del grueso de la carrera, UNA vez por bloque: lo usa el parte de cada corredor para
     // saber si el día lo pasó por delante o por detrás (v47).
     const relojPrincipal = relojDeGrupo.get(mainId ?? PELOTON) ?? peloton.tS
-    peloton = advance(peloton, membersOf(PELOTON), pelFrac, 'peloton', relojPrincipal)
+    /**
+     * …Y A QUÉ RITMO HA DECIDIDO RODAR ESE GRUESO (v59). Va junto al reloj y por el mismo motivo:
+     * se calcula una vez por bloque y viaja a `advance`, que en un puerto se llama cien veces.
+     *
+     * Sirve para una sola pregunta, la que el dueño cazó en la radio: un grupo que va por detrás
+     * ¿persigue o se ha resignado? La respuesta no puede ser su posición —por detrás va todo el que
+     * no es el grueso— y tampoco hace falta inventar un número: el motor YA decide el ritmo de cada
+     * grupo de descolgados (`droppedCommit`, «primero se PERSIGUE y luego uno se resigna»). Si ese
+     * grupo ha decidido rodar tan fuerte como el grueso o más, está persiguiendo; si ha decidido
+     * rodar más flojo, se ha sentado. Es la misma cifra con la que el motor mueve la carretera, así
+     * que la etiqueta no puede contradecir a la carrera.
+     */
+    const compromisoPrincipal =
+      mainId === null || mainId === PELOTON
+        ? peloton.compromiso
+        : (moves.find((mv) => mv.g.id === mainId)?.g.compromiso ??
+          shed.find((sg) => sg.id === mainId)?.compromiso ??
+          peloton.compromiso)
+    peloton = advance(peloton, membersOf(PELOTON), pelFrac, 'peloton', relojPrincipal, compromisoPrincipal)
     for (const m of moves) {
-      m.g = advance(m.g, membersOf(m.g.id), moveFrac(m), 'move', relojPrincipal)
+      m.g = advance(m.g, membersOf(m.g.id), moveFrac(m), 'move', relojPrincipal, compromisoPrincipal)
       // La TENSIÓN del grupo escapado (SPEC 6.10): se acumula km a km y, pasado el umbral, dispara
       // los ataques internos y recorta la cooperación. Existía en `Group` y nadie la tocaba nunca.
       m.g.tension += STAGE.breakawayTensionPerKm * STAGE.dx
@@ -4935,7 +4992,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       }
     }
     for (let g = 0; g < shed.length; g++) {
-      shed[g] = advance(shed[g]!, membersOf(shed[g]!.id), 1, 'shed', relojPrincipal)
+      shed[g] = advance(shed[g]!, membersOf(shed[g]!.id), 1, 'shed', relojPrincipal, compromisoPrincipal)
     }
 
     // Reagrupamiento de los descolgados. Hasta la v15 aquí había un RECORTE FIJO —el descolgado
@@ -5759,6 +5816,28 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       m.pulling = false
       m.pullMotive = null
       m.pullFor = null
+    }
+    /**
+     * …Y TAMPOCO SIGUE TIRANDO POR UN HOMBRE QUE SE HA IDO (v59). El dueño: «vi un grupo que tira
+     * para las opciones de su líder Alejandro, **pero Alejandro no estaba en ese grupo**».
+     *
+     * La regla de arriba limpia al que CAMBIA de grupo, y con eso no basta: aquí el que se movió fue
+     * el DESTINATARIO. El motivo se decide al principio del bloque, cuando el jefe todavía iba con
+     * los suyos; si ataca dentro de ese mismo bloque, la foto sale con cinco gregarios tirando en el
+     * pelotón «por» un hombre que ya va escapado. Medido sobre el banco del motivo: pasa en el
+     * kilómetro 0,1 de la primera semilla, con el maillot saltando en el bloque de salida.
+     *
+     * Se le quita el NOMBRE y no el motivo: que el equipo siga gastando por su hombre es verdad
+     * —eso lo deciden `leaderUpTheRoad` y `jefeEnApuros`, cada uno por su lado—, pero la frase «por
+     * Alejandro, que va aquí» ya no lo es. Sin nombre la radio dice lo genérico, que es lo que de
+     * verdad sabe.
+     */
+    const grupoAhora = new Map<string, string>()
+    for (const m of sims.values())
+      if (m.abandonedKm === null) grupoAhora.set(m.input.riderId, m.groupId)
+    for (const m of sims.values()) {
+      if (m.abandonedKm !== null || m.pullFor === null) continue
+      if (grupoAhora.get(m.pullFor) !== m.groupId) m.pullFor = null
     }
     if (probe && probeAt.has(i)) {
       const clocks = new Map<string, number>([[PELOTON, peloton.tS]])
