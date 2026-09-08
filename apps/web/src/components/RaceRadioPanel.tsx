@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { RIDER_LINK_CLASS } from './RiderName'
 import type {
   JerseyKind,
   RaceRadio,
@@ -203,20 +204,26 @@ function RiderLine({ r }: { r: RadioRider }) {
       {/* El nombre lleva a su ficha (v58): «cuando salga el nombre de un ciclista que tenga enlace
           a su ficha». Sin id —una etapa congelada de alguien que ya no está— se lee igual, sin
           enlace, que es mejor que un enlace roto. */}
-      <span className="truncate text-slate-700">
+      {/*
+        EL NOMBRE NO SE ENCOGE, EL MOTIVO SÍ (v59). El dueño: «en el grupo 3 los que tiran no se ve
+        su nombre». Y era cierto: el motivo llevaba `shrink-0`, así que en el pelotón —donde la
+        frase es larga, «his team's card for this finish: Bojan Kovacic»— toda la presión caía sobre
+        el nombre y salía «R… B…». En el grupo de cabeza no pasaba porque «working the break» es
+        corto, que es lo que hacía que pareciera cosa del grupo.
+        La prioridad es la de una tabla de carrera: primero quién, después para qué.
+      */}
+      <span className="max-w-[11rem] shrink-0 truncate text-slate-700">
         {r.id ? (
-          <Link to={`/world/riders/${r.id}`} className="hover:text-indigo-600 hover:underline">
+          <Link to={`/world/riders/${r.id}`} className={RIDER_LINK_CLASS}>
             {r.name}
           </Link>
         ) : (
           r.name
         )}
       </span>
-      {r.team && <span className="truncate text-[11px] text-slate-400">{r.team}</span>}
+      {r.team && <span className="min-w-0 truncate text-[11px] text-slate-400">{r.team}</span>}
       {motivo && (
-        <span className="ml-auto shrink-0 truncate text-[11px] text-slate-400 italic">
-          {motivo}
-        </span>
+        <span className="ml-auto min-w-0 truncate text-[11px] text-slate-400 italic">{motivo}</span>
       )}
     </li>
   )
