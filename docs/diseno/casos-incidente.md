@@ -1,567 +1,1199 @@
 # Catálogo de situaciones — LENTE «INCIDENTES Y CLIMA COMO DECISIÓN TÁCTICA»
 
-Fuentes leídas enteras: los seis mapas de `scratchpad/diseno/` (requisitos del dueño, spec, decisiones de `simulate.ts`, táctica, equipo/órdenes/final, entrenamiento/atributos). Comprobaciones directas en `packages/engine/src`: `stage/crash.ts` (entero), `stage/abandon.ts` (entero), el bloque `crashCheck` de `simulate.ts` (l. 5356-5432), `dropOut` (l. 3555-3607), las constantes `crash*` / `rain*` / `heat*` / `timeCut*` / `helpBack*` de `constants.ts`, `stage/timetrial.ts` (l. 328-342, `incidents: []`), `world/climate.ts`, y las citas del dueño en `docs/balance.md` (L.3958-4008, 4150-4160, 4244-4250, 7140-7185, 7305-7404, 8213-8520).
+Parcela: todo lo que le pasa a la carrera **desde fuera del reloj de la ley de velocidad** —el suelo, la
+rueda, el viento, el agua, el calor, el hambre, el corte, la enfermedad— y que en carretera dispara una
+DECISIÓN: esperar o no esperar, bajar o no bajar, romper o no romper, aguantar o bajarse de la bici.
 
-Hechos del motor que condicionan TODA esta lente (verificados, no interpretados):
+Fuentes leídas enteras antes de escribir: `mapa-requisitos-duenio.md` (corpus del dueño), `mapa-spec.md`,
+`mapa-simulate-decisiones.md` (las 51 decisiones D-NN y su tabla de visibilidad), `mapa-tactics.md`,
+`mapa-equipo-ordenes-final.md`, `mapa-entrenamiento-atributos.md`, `mapa-bancos.md` (§2 bandas, §7 «qué no
+se mide»). Comprobaciones directas por Grep/lectura en `/home/user/cyclingstar/packages/engine/src`:
+`stage/crash.ts`, `stage/abandon.ts`, `stage/weather.ts`, `world/climate.ts`, `stage/simulate.ts`
+(`crashCheck` l. 5360-5429, `administerEffort` l. 3927-4000, `collapseCheck` l. 4011-4043, el corte del
+abanico l. 4088-4175, el drop-back l. 2052-2319), `constants.ts`.
 
-1. **El único incidente que existe es la caída** (`Incident.tipo: 'caida'`). No hay pinchazo, avería, cambio de bici ni coche de equipo. `mishapKm` está «escrito para las dos» (constants l. 3873-3874) pero solo lo escribe `crashCheck`.
-2. **Al caído no le pasa nada táctico**: `alSuelo()` lo saca del grupo con `dropOut(m, group, perdidaS)` (30-90 s si `none`/`scratches`, 60-180 s `minor`, más si `major`), marca `hurt` si es seria y apunta `mishapKm`. **Nadie del grupo del que sale se entera** salvo por dos vías indirectas: el drop-back de gregarios (D-13, solo si el caído es `plan.leaderId`) y `jefeEnApuros` (D-05). El compromiso del pelotón (D-14..D-20) no lee caídas. El caído **no rueda más lento** después: `hurt` solo decide autobús (`dropOut`), fusiones (`allHurt`), colapso (`isInTrouble`) y drop-back; no toca `riderPerfil`.
-3. **La lluvia y el calor son un número por etapa** (`stageWeather`), leídos solo por la física: `crashLambda ×(1+0,8·lluvia)`, `selectionFactor` en pavés (`×(1+0,5·lluvia)`) y descenso (`×(1+1·lluvia)`), y `heatCostScale` 0,08 en el coste. Ninguna decisión táctica (D-01..D-51) los lee. El frío no existe (`climate.ts` da lluvia y temperatura, y la temperatura solo alimenta «calor»).
-4. **El viento lateral es un dado por bloque** (`windBreakPerKm` 0,015·viento) con colocación por puntos; no lo provoca ningún equipo (D-48), y el abanico «no se cierra nunca».
-5. **La crono no tiene incidentes** (`incidents: []`) y su corte del 25 % es «una salvaguarda dormida» (balance L.4157).
-6. **Enfermar en carrera = abandonar antes de tomar la salida** (`stageRun.ts` l. 693-720); `molestias` no lo escribe nadie. No existe «correr enfermo».
-7. **Nada se arrastra entre etapas en lo táctico** (tactica.md D1); el motor «simula UNA etapa y no sabe que hay un mañana» (`abandon.ts` cabecera).
+**Hechos verificados que condicionan toda la lente** (no son opiniones, son lo que hay hoy):
 
-Convención: CUBIERTO / PARCIAL / AUSENTE / CONTRARIO se refiere a la **decisión táctica**, no a la física del incidente. Las bandas propuestas van marcadas «propuesta» salvo cuando son literalmente del dueño («banda del dueño»).
+1. **El pinchazo y la avería mecánica NO EXISTEN.** Grep de `pinchazo|puncture|avería|mecánic` en el
+   motor devuelve solo COMENTARIOS que dicen que no existen (`simulate.ts:285`, `simulate.ts:2081`,
+   `constants.ts:3873`: «El PINCHAZO y la avería mecánica NO existen»). La única marca de percance es
+   `RiderSim.mishapKm`, que solo escribe `crashCheck`.
+2. **La NEUTRALIZACIÓN no existe** en ningún sentido de carrera. La única aparición de «neutralizado» es
+   la velocidad inicial del grupo (`group.ts:16`, `constants.ts:1303`, `initialSpeed` 35 km/h).
+3. **El CLIMA es un número por etapa** (`stageWeather`), y solo entra por tres sitios: `crashLambda ×
+(1 + rainCrashScale 0,8 · lluvia)`, `selectionFactor` en pavés (`rainPavesScale` 0,5) y descenso
+   (`rainDescentScale` 1), y el coste por bloque `× (1 + heatCostScale 0,08 · calor)`. **Ninguna decisión
+   táctica lee `lluvia` ni `calor`**: ni el controlador del pelotón (D-14…D-20), ni la táctica (D-22), ni
+   el plan de equipo (D-10/D-11), ni el turno de relevos (D-01/D-02). El FRÍO no existe (solo `calorDe`
+   por encima de 26°; por debajo el tiempo no cuesta nada).
+4. **El viento es una CAPACIDAD, no una decisión**: `vientoLateral` es un dado por etapa, el abanico es un
+   `rollHazard(rngViento, windBreakPerKm 0,015 · viento)` (D-48) y la única huella de equipo es la
+   colocación (`windPlacementTeam` +25 al equipo que ya lleva el frente). Ningún equipo DECIDE romper, y
+   `abanicoAbierto` **no se cierra nunca**.
+5. **La única conducta de «esperar / volver a por alguien» del motor es D-13** (`helpBack*`), y solo hacia
+   un `shed` (no hacia un `mov` retrasado), solo por el jefe del plan, con guardarraíles.
+6. **Nadie sabe dónde está el corte de tiempo mientras corre**: `applyTimeCut` (D-51) se resuelve en meta;
+   el único guardarraíl en carretera es el de la regla 8 (D-49), que mide contra `group.tS` (tiempo YA
+   corrido), límite anotado desde v17 («casi nunca ata»).
+7. **Los bancos casi no llevan clima**: `smallTours`, `realQueens`, `timeTrials`, `calendarQueens`,
+   `climbs` y los canónicos corren **sin `lugar`** (mapa-bancos §7.14), o sea con `CLIMA_REFERENCIA`.
+   Cualquier banda de esta lente exige antes un banco con sitio y fecha.
 
----
-
-## A. CAÍDAS
-
-### [INCIDENTE-01] Caída del maillot en el pelotón: la tregua no escrita
-
-- **Cuándo**: etapa en línea de una vuelta con general (`hasGcContext`), el líder de la carrera (`gcDeficitSeconds ≤ 0`) se va al suelo dentro del `mainId` a más de ~20 km de meta, sin que en ese momento haya un ataque de la general en marcha ni un abanico abierto. Terreno: llano, media montaña antes del puerto decisivo, transición.
-- **Quién decide**: el PELOTÓN como colectivo (de facto, los equipos que llevan el frente: `frontTeamId` y los que tienen `claim`), y por separado cada equipo rival de la general.
-- **Lo que pasa en carretera**: el frente afloja (de 45 a 35 km/h en llano) hasta que el maillot vuelve; nadie ataca; los equipos de los sprinters siguen «controlando» pero sin cerrar la fuga. Variantes: (a) **general apretada y rival ambicioso** → un equipo rompe la tregua y tira (raro, castigado socialmente, pero ocurre: Schleck-Contador 2010 con la cadena); (b) **caída a menos de 10-15 km de meta o en el puerto final** → no hay tregua, se corre («la carrera está lanzada»); (c) **caída en el momento en que la fuga ya va lejos** → la tregua es gratuita y casi segura; (d) **el maillot es un líder «de prestado» (etapa 2 tras una crono corta)** → tregua corta o ninguna; (e) **caída sin daño, vuelve en 2 km** → tregua tácita de 1-3 km; con daño serio, el pelotón espera 5-10 km y luego sigue.
-- **Lo que hace hoy el motor**: AUSENTE. El compromiso del pelotón (D-14..D-20) no lee `mishapKm` ni `hurt` de nadie. Lo único que cambia es que los gregarios del maillot bajan a por él (D-13, propósito `maillot`, todos menos `helpBackGcKeepInBunch` = 1) y que sus compañeros que quedan delante dejan de relevar (D-05 `jefeEnApuros`). El resto del pelotón sigue a `freeRunTarget`·humor; si los sprinters cazan, siguen cazando. La vuelta del maillot la decide la física de `droppedCommit` y la puerta de 22 s (D-42).
-- **Lo que dijo el dueño**: «oye, pero ¿está implementado que si el líder del equipo se cae, se descuelgue parte de su equipo para ayudarle? porque igual no es solo un tema de etiquetas sino de construir algo que no existe en el motor» (v36, L.7159). «si fue un líder del equipo que se cayó y los otros 4 son compañeros suyos que se descuelgan para ayudarle, ahí lo normal es que si el pelotón va sin prisa, casi siempre lo consigan» (v35 §9, L.7145). Sobre la tregua del pelotón entero: —.
-- **Información necesaria para decidirlo**: quién es el maillot y en qué grupo va (lo tiene: `gcRank`, `groupId`); que ha habido un percance y de qué gravedad (lo tiene: `mishapKm`, `hurt`, pero nadie fuera de su equipo lo lee); km a meta y si el pelotón «se decide» ya (`raceThisClimb`, `finalDriveKm`); si hay ataque de la general en marcha (`moves` con `ataque_final`); la postura de cada equipo rival (`teamStance`). Nueva: una noción de «carrera neutralizada de facto» que baje el `target` del controlador durante N km y congele `attemptFrom` desde el pelotón.
-- **Cómo se mediría**: banco nuevo `sim/incidentes.ts` con sonda: forzar (vía `probe`/semilla) una caída `none`/`scratches` del maillot en el km 60 de `llana-180` con equipos. Estadística: % de veces que el maillot vuelve al `mainId` antes del km 80 y velocidad media del pelotón en los 5 km posteriores respecto a los 5 anteriores. Banda propuesta: vuelve 85-97 % (con caída leve y > 40 km a meta, en carretera casi siempre vuelve); pelotón −8 a −20 % de velocidad en esos 5 km; 0 movimientos nacidos del pelotón en la ventana. Justificación: la tregua es la norma cuando no hay carrera lanzada; el 3-15 % restante es la variante (a)/(d).
-
-### [INCIDENTE-02] Caída del líder: quién baja a por él y cuántos
-
-- **Cuándo**: el jefe de filas (de la general o de la etapa) se queda cortado por caída, en cualquier terreno, con más de 5 km a meta.
-- **Quién decide**: el equipo (director), ejecutan los gregarios. Con jugador humano, cada corredor decide si obedece.
-- **Lo que pasa en carretera**: por la general bajan todos menos uno o dos (que se quedan delante para «tener un hombre» si se rompe la carrera); por la etapa casi nadie, salvo pinchazo/caída cerca de meta con el favorito. Los que bajan **esperan al jefe** (no ruedan a su ritmo, ruedan al ritmo que él puede seguir), y **el jefe no tira**. Variantes: (a) **carrera de un día** → como mucho uno o dos, solo si la distancia es pequeña; (b) **el jefe va herido de verdad** (`major`) → bajan uno o dos a acompañarle hasta que abandone o entre en el corte, no todo el equipo; (c) **el equipo tiene otro hombre bien colocado en la general** → el plan cambia: se protege al segundo (INCIDENTE-40).
-- **Lo que hace hoy el motor**: CUBIERTO en su núcleo (D-13, `helpBack*`): por `maillot`/`general` bajan los disponibles menos `helpBackGcKeepInBunch` (1); por `etapa` dos hombres solo si `favoritoDeHoy` (carta del día + `mishapKm` ≤ 5 km + top-3 `quality`) y gap ≤ 60 s; guardarraíles 22 s / 300 s / 5 km / frescura 0,35 / no el maillot / no la carta de etapa / no el rebelde / solo `gregario` con `targetRiderId` nulo o = jefe. PARCIAL en tres cosas: (1) el «jefe» es `plan.leaderId` de `pickLeader`, que «nunca mira la general» (deuda anotada, simulate l. 2160): en una llana de gran vuelta el jefe del plan es el velocista, y el hombre de la general caído solo se rescata si además es `leaderId`; (2) solo se baja hacia un `shed`, nunca hacia un `mov` retrasado; (3) «se probó que el grupo rodara al ritmo del jefe y NO se ha hecho» (simulate l. 3022-3040): el grupo de rescate rueda a sus fuertes, no al ritmo del jefe. Y no distingue (b): con `hurt` el jefe no coge autobús pero sus gregarios sí bajan igual (solo se filtra `!hurt` en los que bajan).
-- **Lo que dijo el dueño**: «depende del caso… si es el favorito para una gran vuelta o carrera por etapas, puede justificar descolgar a todo el equipo menos 1; si es una carrera de 1 día no, salvo que la diferencia sea pequeña (y en ese caso que el líder no pase a tirar, él se reserva)» (v36, L.7164). «A ver, por la etapa yo creo que nadie debería bajarse… no? A ver, salvo que sea un pinchazo/caída y la distancia sea pequeña, y sea gran favorito para ganar la etapa, según el tipo de etapa. Otra cosa es la general.» (v37, L.7305). «El líder se queda atrás… ¿y nadie de su equipo tira para ayudarle?» (v57 §3, L.9564). «si un ciclista tiene a su líder atrás, es normal que se deje caer para ayudarle… pero eso aplica a los bots y a los humanos que en sus instrucciones hayan indicado que ayudan a su líder X. Si yo como humano digo que voy por libre, entonces no debería ocurrir eso» (v58, simulate l. 2176).
-- **Información necesaria para decidirlo**: quién es MI hombre de la general (no el de la etapa) — hoy `pickLeader` no lo sabe, `esElMaillot` es un parche; dónde va (lo tiene); gravedad del percance (`hurt`, `mishapKm`: lo tiene); si el pelotón está cazando o de paseo (`peloton.compromiso`, humor: lo tiene, no lo lee D-13); cuántos de los míos quedan delante y cuál es el mejor colocado tras el jefe (general virtual por equipo: NO lo tiene); si el jefe puede seguir (herido) — hay `hurt` pero no un «va a abandonar».
-- **Cómo se mediría**: en el banco con general (`smallTours`/`grandTour`) contar por caída del hombre de la general: nº de compañeros que bajan, % de veces que vuelve, tiempo perdido en meta. Bandas: por la general, bajan `n−1` o `n−2` el 80-95 % de las veces (regla del dueño); vuelve al pelotón el 70-90 % si `none/scratches` y el pelotón no caza (banda del dueño para el caso 4+jefe: «casi siempre»); por la etapa, avisos ≤ 0,05/etapa (hoy 0,01, medido v37). Nuevo: 0 % de rescates donde el jefe nominal sea el velocista y el hombre de la general caído se quede sin nadie.
-
-### [INCIDENTE-03] Caída del líder en el desenlace: ya no se espera
-
-- **Cuándo**: caída del maillot o del favorito a menos de ~15 km de meta en llano, o dentro del último puerto (`raceThisClimb`), o en el descenso final.
-- **Quién decide**: el pelotón (no hay tregua), los rivales de la general (atacan o siguen), el equipo del caído (¿bajan igual?).
-- **Lo que pasa en carretera**: la carrera no se para. Los rivales con opciones aprovechan si van en el grupo de cabeza, sobre todo en el puerto («la carrera está lanzada», no se considera antideportivo a menos de ~10 km). El equipo del caído deja UNO o DOS para llevarle hasta meta y minimizar la pérdida; el resto ya no importa. En los últimos 3 km en llano rige la regla del mismo tiempo (INCIDENTE-11).
-- **Lo que hace hoy el motor**: PARCIAL. `helpBackMinKmToGo` = 5 impide el drop-back en los últimos 5 km, pero entre 5 y 15 km se sigue aplicando la rama de la general (bajan todos menos uno) sin que eso tenga ya sentido de carrera. El pelotón, coherentemente, no espera (no sabe). Los rivales no «huelen» nada: `attackAppetite` no lee ningún percance del defensor; `gcDefence` sigue diciendo que el líder defiende aunque vaya en un `shed` a 40 s (calculado sobre `members` del grupo: si el líder ya no está en el grupo, `gcDefence` devuelve null y los rivales pierden incluso el `gcChallengeShare`: CONTRARIO en ese detalle, el ataque se vuelve MENOS probable cuando el líder ha desaparecido del grupo).
-- **Lo que dijo el dueño**: —. Relacionado: E3 «la emboscada y el día en que el líder se rompe» no tocados (mapa spec §6).
-- **Información necesaria para decidirlo**: km a meta y tipo de final; si el maillot ha desaparecido del grupo de cabeza por percance (hoy `gcDefence(members)` solo ve quién ESTÁ, no quién FALTA ni por qué); colchón del rival sobre el maillot en general virtual (`frontThreatDeficit − gap` existe para la fuga, no para «el maillot detrás»).
-- **Cómo se mediría**: `reina-150` con general, caída forzada del maillot a −12 km del final en alto. Estadística: nº de ataques de rivales top-5 en los 5 km siguientes vs línea base sin caída; nº de gregarios del maillot que bajan. Bandas propuestas: ataques ×1,5-3 respecto a base (la emboscada); gregarios que bajan ≤ 2 (no `n−1`).
-
-### [INCIDENTE-04] Caída del maillot mientras hay fuga por delante
-
-- **Cuándo**: fuga del día consolidada a 3-8 min, el maillot se cae en el pelotón lejos de meta.
-- **Quién decide**: el pelotón (tregua) y **la fuga** (no espera nunca), y el equipo del maillot (que tiene que recuperar minutos después).
-- **Lo que pasa en carretera**: la tregua del pelotón regala tiempo a la fuga; cuando el maillot vuelve, el equipo del maillot y los de los sprinters tienen que cerrar más boquete con menos km: es la etapa en la que «la fuga se va a 8-15 minutos» sin que nadie quisiera. Si la fuga lleva un peligro para la general, la tregua es más corta y el equipo del maillot pide (y suele obtener) que los demás no aprieten hasta que él vuelva, y luego tira él.
-- **Lo que hace hoy el motor**: AUSENTE la parte de tregua (ver 01); el «sin querer se fue» no puede ocurrir por esta vía porque el pelotón nunca afloja. La fuga sí es coherente: no lee nada del pelotón salvo el hueco.
-- **Lo que dijo el dueño**: «Puede ocurrir y ocurre a veces, que el pelotón se despista, deja hacer a una escapada y la escapada se va a 15 o 20 minutos… pueden perfectamente llegar con 8 o incluso 15 minutos» (v38, L.7581) — ahí lo atribuye al despiste/a tener hombre en la fuga; la caída del maillot es la otra causa real de ese fenómeno y no aparece.
-- **Información necesaria para decidirlo**: las de 01 más el hueco a la fuga, el peligro de la fuga (`frontThreatDeficit`, lo tiene) y el presupuesto del equipo del maillot tras la tregua (`teamSpent`, lo tiene).
-- **Cómo se mediría**: mismo banco que 01 con fuga del día ya consolidada. Estadística: ganancia de la fuga en la ventana de tregua y % de esas etapas que gana la fuga. Banda propuesta: la fuga gana +30 a +120 s durante la tregua; % de victoria de fuga en esas etapas 1,5-2,5× la base de la llana (5-16 % → 10-30 %).
-
-### [INCIDENTE-05] Caída del rival de la general: ¿tregua o ataque?
-
-- **Cuándo**: el 2.º/3.º de la general (déficit ≤ 420 s, `general`) se cae; el maillot va delante intacto.
-- **Quién decide**: el equipo del maillot (marcar el ritmo alto o aflojar), los otros rivales, y el propio maillot.
-- **Lo que pasa en carretera**: la tregua se concede casi siempre lejos de meta (es la moneda de cambio del pelotón); pero el equipo del maillot mantiene el ritmo «normal» y no espera activamente. En el puerto final no hay tregua. Un equipo con dos cartas puede aprovechar «legalmente» que el rival se ha caído para que su segundo ataque (la culpa la carga el que ataca; en carretera se hace y se justifica luego).
-- **Lo que hace hoy el motor**: AUSENTE; ni tregua ni aprovechamiento. `gcChallengeShare` de los rivales no lee quién se ha caído. El equipo del caído baja a por él (D-13 propósito `general`).
-- **Lo que dijo el dueño**: —.
-- **Información necesaria**: quién falta en el grupo y por qué (una lista de «percances vivos» por grupo), colchón, km a meta, carácter/ética del equipo (rasgo N4 «el corredor como alguien»: una contrapartida natural del rediseño).
-- **Cómo se mediría**: como 03, con el caído siendo el 2.º. Banda propuesta: lejos de meta, velocidad del pelotón −5 a −15 % durante 3-6 km; ataques del maillot/otros rivales en la ventana ≈ 0; en el puerto final, ningún cambio respecto a la base.
-
-### [INCIDENTE-06] Caída de un gregario: nadie le espera, el jefe pierde el arropo
-
-- **Cuándo**: un gregario del jefe (con `targetRiderId` = jefe) se cae en cualquier terreno lejos de meta.
-- **Quién decide**: el equipo (no manda a nadie), el propio gregario (¿vuelve a fondo, se deja ir al grupeto o rueda tranquilo hasta el coche?), el jefe (se recoloca detrás de otro compañero).
-- **Lo que pasa en carretera**: no baja nadie. El gregario vuelve solo por la caravana de coches si la caída es leve y quedan km; si es un día de montaña y es un rodador, se deja ir al grupeto y ahorra para mañana. El jefe pierde un hombre para el viento/último puerto y su director recalcula quién le lleva; si era el lanzador del sprinter, el tren queda cojo (INCIDENTE-08).
-- **Lo que hace hoy el motor**: PARCIAL. Física correcta: `dropOut` con `perdidaS`, va al `shed` cercano, vuelve por `droppedCommit`/puerta (D-41/D-42). El jefe pierde `protectedByTeam` solo si ya no le queda NINGÚN gregario en el grupo (`domestiquesFor` ∩ `idSet`), es decir, el arropo se decide por «tengo al menos uno», correcto. Lo que falta: la decisión del gregario (volver a fondo vs dejarse ir según terreno/día siguiente) no existe; `giveUpLambda` solo actúa en los últimos 25 km; `shedFightFreshness` cobra pelear con el último tercio del depósito. Y nadie «recoloca» nada: no hay posición en el grupo.
-- **Lo que dijo el dueño**: —. Relacionado: «un líder arropado por gregarios dentro del pelotón gasta LO MISMO que uno que va a rueda» (v38): el arropo ya no es energía sino turno, así que perder un gregario solo pesa si era el último.
-- **Información necesaria**: qué le queda de etapa y de vuelta (memoria de mañana: no existe), terreno que viene, si es el único gregario del jefe en el grupo (lo puede saber), si el pelotón está cazando (lo tiene).
-- **Cómo se mediría**: banco de gran vuelta: de los gregarios caídos con caída leve a > 40 km, % que vuelve al `mainId` en llano vs en etapa de montaña. Banda propuesta: llano 75-95 % (casi siempre se vuelve con el coche); montaña 30-60 % (muchos se dejan ir al grupeto a propósito). Hoy la única diferencia la marca la física.
-
-### [INCIDENTE-07] Caída de la carta del día (sprinter/favorito) lejos de meta: el tren baja
-
-- **Cuándo**: la carta de etapa del equipo (`stageCandidateId`) se cae a > 10 km con caída leve, en etapa donde es favorito.
-- **Quién decide**: el equipo (lanzadores/gregarios bajan) y la carta (¿merece la pena?).
-- **Lo que pasa en carretera**: bajan uno o dos (los lanzadores, que son quienes le sirven), le llevan a rueda hasta el pelotón, y luego el tren se rehace si queda energía. Si el pelotón va a 50 km/h con los otros trenes ya lanzando (< 15 km), casi nunca se vuelve: la carta pierde la etapa y el equipo recoloca al lanzador como sprinter de emergencia (plan B).
-- **Lo que hace hoy el motor**: CUBIERTO en su primera mitad (D-13 rama `etapa`: `favoritoDeHoy`, ≤ 60 s, ≤ 5 km desde `mishapKm`, top-3 `quality`, `helpBackStageHelpers` = 2). AUSENTE el plan B: si el sprinter no vuelve, `lanzaPara` sigue apuntando a un sprinter que no está y `elTren` no lanza (`lanzando` exige el sprinter en `idSet`, correcto), pero nadie pasa a ser la carta; `finishRoleWeight` castiga al lanzador (0,88) aunque sea el mejor que le queda al equipo.
-- **Lo que dijo el dueño**: «salvo que sea un pinchazo/caída y la distancia sea pequeña, y sea gran favorito para ganar la etapa, según el tipo de etapa» (v37, L.7305).
-- **Información necesaria**: la carta y su percance (lo tiene), el hueco (lo tiene), km a meta (lo tiene), régimen del pelotón (`sprintRegimeKmh` en los últimos 3 km, lo tiene). Para el plan B: el mejor rematador que queda al equipo en el grupo de cabeza (el equipo lo sabe por `finishScore`; el plan no se recalcula dentro de la etapa).
-- **Cómo se mediría**: en `llana-180` con equipos, forzar caída leve del mejor sprinter a −25 km y a −8 km. Banda propuesta: a −25 km vuelve el 60-85 % y su equipo lanza igual; a −8 km vuelve < 15 % y en ≥ 70 % de esas etapas su equipo tiene otro hombre disputando el sprint (hoy 0 %, porque la carta no cambia).
-
-### [INCIDENTE-08] Caída del lanzador en el último km: el sprinter huérfano
-
-- **Cuándo**: los últimos 3 km (`sprintTrainKm`), `crashLambdaFinal` activo; se cae un lanzador que llevaba a su sprinter.
-- **Quién decide**: el sprinter (busca la rueda de otro tren: «hacer el sprint a rueda del rival») y los demás trenes (aprovechar el hueco).
-- **Lo que pasa en carretera**: el sprinter sin tren se pega al tren rival y pierde colocación (sale de más atrás), o se lanza pronto para no quedarse encerrado. El montón en el embudo suele llevarse a varios y parte el pelotón: los de detrás del montón ya no disputan.
-- **Lo que hace hoy el motor**: PARCIAL. La física del montón existe (`crashPile`, `crashPileSeriousMax` 5) y en meta `trenDe` cuenta solo lanzadores presentes con `pullWindow` suficiente, así que el sprinter huérfano pierde el +5 %/+10 %, el `sd` del lanzamiento ×0,45 y el `relief` de colocación: coherente. Lo que no existe: «ir a rueda del tren rival» como decisión (la colocación es una normal `placementSd` sin memoria de quién te lleva), ni que los que caen en el montón dentro de los 3 km sumen el mismo tiempo (INCIDENTE-11).
-- **Lo que dijo el dueño**: «un sprinter que tenga a sus lanzadores tirando del pelotón le ayudan a colocarse… Puede haber varios equipos con sus lanzadores al mismo tiempo, aunque no necesariamente con el mismo éxito» (simulate l. 4814).
-- **Información necesaria**: qué trenes siguen enteros en el grupo (lo tiene: `trenes`), TAC del sprinter para pegarse a otro (lo tiene).
-- **Cómo se mediría**: `llana-180`, comparar puesto del sprinter cuyo lanzador se cae en los últimos 3 km contra su puesto esperado con tren. Banda propuesta: pierde 2-6 puestos de mediana; sigue en el top-10 el 40-60 %.
-
-### [INCIDENTE-09] Caída masiva (montón) en el pelotón
-
-- **Cuándo**: pelotón compacto, embudo, rotonda, descenso o pavé, sobre todo con lluvia; un montón de 5-30 corredores.
-- **Quién decide**: los de delante del montón (¿esperan?), los caídos como grupo (se relevan para volver), los directores (a quién se espera), el jurado (neutralización si el montón bloquea la carretera, INCIDENTE-44).
-- **Lo que pasa en carretera**: si el montón se lleva a hombres de la general o a muchos equipos, el pelotón de delante afloja unos km (tregua colectiva: «hay medio pelotón detrás»); si se lleva a nadie importante y quedan < 30 km, se corre. Los caídos forman un grupo grande que se organiza y vuelve casi siempre (salvo heridos). Los equipos con el jefe delante y gregarios detrás se quedan sin gregarios: recolocación.
-- **Lo que hace hoy el motor**: CUBIERTO en física (`crashPile`: susto se lleva 0-1, seria 0-5, todos con el mismo `perdidaS` → salen juntos y forman grupo; `crashPileHurtChance` 0,06). AUSENTE la tregua colectiva y la decisión «hay mucha gente detrás» (el controlador no lee cuántos han caído ni quiénes). Nota: el techo de 5 arrastrados por caída hace que un montón de 20-30 —los que parten una etapa— no pueda ocurrir; son varias caídas independientes en el mismo bloque si el dado lo da.
-- **Lo que dijo el dueño**: «normalmente cuando se cae alguien en el pelotón casi siempre se caen varios… y depende de la gravedad puede haber uno o varios que se vayan de la carrera, otros que se queden muy cortados, pero normalmente VARIOS, con lo cual podrían tirar» (v38, `crash.ts` l. 95-97).
-- **Información necesaria**: cuántos y quiénes (rango de general, cartas) han quedado detrás por el montón, en los últimos N km; km a meta; hueco. El motor tiene `mishapKm` por corredor y puede agregarlo.
-- **Cómo se mediría**: banco de pavés/lluvia (Roubaix mojado ya medido: 32-50 incidentes en seco) y `llana-180`: distribución del tamaño del montón (hoy 1-6), % de montones ≥ 8 (hoy 0). Banda propuesta: 1-2 montones ≥ 8 por gran vuelta; con montón que arrastra ≥ 2 hombres del top-10 a > 40 km, el pelotón afloja (velocidad −10 % durante 3-5 km) en ≥ 70 % de los casos; con < 20 km, 0 %.
-
-### [INCIDENTE-10] Caída dentro de la fuga
-
-- **Cuándo**: fuga de 3-15 en descenso/curva/pavé; uno se cae.
-- **Quién decide**: el resto de la fuga (no esperan casi nunca), y el compañero de equipo del caído si lo hay (¿le espera?).
-- **Lo que pasa en carretera**: la fuga no espera a nadie: es la ley. La excepción es un compañero de equipo que se deja caer para llevarle de vuelta si la fuga va lenta y el caído es la carta (raro: normalmente uno se queda delante y punto). El caído intenta volver solo o se rinde y espera al pelotón.
-- **Lo que hace hoy el motor**: CUBIERTO en la no-espera (la fuga es un `Group` con su `compromiso`; el caído sale por `dropOut` a un `shed` con el reloj de la fuga y luego el pelotón lo traga; `break_dropped`). AUSENTE la decisión del compañero (D-13 excluye explícitamente la cabeza de carrera: «alguien de la fuga no lo mandes para atrás», v36) — que es la regla correcta salvo la excepción de la carta; no hay noción de «dos del mismo equipo en la fuga» en absoluto (tactics.ts sin `teamId`).
-- **Lo que dijo el dueño**: «alguien de la fuga no lo mandes para atrás… alguien del pelotón sí. Salvo que sea con carrera rota…» (v36, L.7217).
-- **Información necesaria**: composición por equipos de la fuga (no la tiene la táctica), quién es la carta de cada equipo en la fuga (no), hueco al pelotón (sí).
-- **Cómo se mediría**: `sim/incidentes`: caída forzada en la fuga a −60 km. Banda propuesta: 0-5 % de veces que un compañero se deja caer (casi nunca); el caído vuelve a la fuga < 25 % si la fuga rueda a > 0,6 de compromiso.
-
-### [INCIDENTE-11] Caída en los últimos 3 km: la regla del mismo tiempo
-
-- **Cuándo**: llegada llana o «no en alto» (reglamento UCI: se aplica en etapas cuya llegada no es en subida), caída o percance dentro de los últimos 3 km (en 2023-2025 el organizador puede ampliar a 4-5 km).
-- **Quién decide**: el jurado (regla), y por tanto los equipos de la general **antes**: saben que a partir de la pancarta pueden dejar de pelear la posición y el riesgo baja.
-- **Lo que pasa en carretera**: el caído recibe el tiempo del grupo con el que iba; los equipos de la general dejan de arropar al líder al pasar la pancarta y él se deja ir al final del pelotón; la disputa del último km la hacen solo los trenes. Los abanicos y cortes dentro de los 3 km NO cuentan como percance (solo caída/pinchazo/avería).
-- **Lo que hace hoy el motor**: CONTRARIO. En `crashCheck` (l. 5356-5432, con `isFinal` y `crashLambdaFinal` 0,0008) el caído sale del grupo con `dropOut(m, group, perdidaS)` y llega a meta con `group.tS + perdidaS`: pierde 30-180 s en la general por una caída en el embudo. No consta en los mapas ninguna regla de los 3 km; `applyStageTimeCut` y `finishStage` no la mencionan.
-- **Lo que dijo el dueño**: —.
-- **Información necesaria**: tipo de final (`isUphillFinish`, lo tiene), km a meta (lo tiene), grupo con el que iba antes del percance (`grupoAntes`, lo tiene por bloque), causa del descuelgue (caída vs corte: lo tiene por `mishapKm === km`).
-- **Cómo se mediría**: `llana-180` con general: tiempo de general de los caídos dentro de los 3 km respecto a su grupo. Banda: **100 %** con el tiempo del grupo (es reglamento, no calibración); su tiempo de ETAPA sí lleva la pérdida y no puntúa el sprint.
-
-### [INCIDENTE-12] Caída en descenso (seco y mojado): el líder frena, el especialista ataca
-
-- **Cuándo**: descenso largo, sobre todo tras el penúltimo puerto o hacia una meta en el valle; con lluvia el riesgo sube (`rainCrashScale` 0,8, `rainDescentScale` 1).
-- **Quién decide**: el maillot con colchón (bajar «a lo seguro» y ceder 10-30 s a propósito), el rival descendedor (atacar en la bajada), los gregarios (bajar delante del jefe para marcarle la trazada).
-- **Lo que pasa en carretera**: el líder con 2 min y descenso mojado no arriesga: cede tiempo y lo recupera en el llano con el equipo. Un rival con DES alto y poco que perder ataca en la bajada (Nibali, Pidcock). Con la carretera seca y la general apretada, se baja a tope y las caídas deciden. Un equipo entero «bajando con el líder» reduce su riesgo (trazada, ritmo).
-- **Lo que hace hoy el motor**: AUSENTE la decisión. El descenso solo criba en su primer km por dado (`descentSelectKm` = 1, D-35) y tira caídas con `crashLambdaDescent` 0,0018 reducido por DES (`crashSkillScale` 0,35). «Nada táctico se decide en el descenso (no hay "bajar a tope para abrir hueco" ni marcaje específico)» (mapa simulate §4.11). `attemptFrom` no distingue `descenso` como terreno de ataque (solo `onClimb` y llano); `finishType` `descenso` existe solo para la meta. El caído no baja más lento después.
-- **Lo que dijo el dueño**: «en una bajada es normal que algunos de los que perdieron contacto al subir se reenganchen, pero no todos, wey… no tiene que reducirse siempre» (v35, L.7016). «¿qué chingados pasó entre el km 191 y el 192?» (descenso, simulate l. 3811). Sobre bajar conservador/atacar: —.
-- **Información necesaria**: lluvia (lo tiene, la física; no la táctica), DES propio y del rival, colchón de general, si el jefe va con gregarios, km de descenso que quedan (lo tiene por bloques). Nuevo: un `MoveKind` o modulador de `ataque_final` para el descenso y un «modo conservador» del defensor que suba su coste de mantener la rueda o le haga ceder segundos sin dado de caída.
-- **Cómo se mediría**: banco de media montaña con descenso final (`mountainClassicSegments`) seco vs mojado. Bandas propuestas: con lluvia, el maillot con colchón ≥ 60 s cede 5-30 s en el descenso en el 40-70 % de los casos y su tasa de caída baja 30-50 % respecto a bajar «normal»; ataques en descenso de corredores con DES ≥ 80: 0,05-0,2 por etapa (hoy 0).
-
-### [INCIDENTE-13] Ataque en el avituallamiento o en el «pipí stop»: la tregua tácita y quien la rompe
-
-- **Cuándo**: zona de avituallamiento (km fijos del reglamento), o parada colectiva del pelotón (típica cuando la fuga ya se ha ido y el maillot «da permiso»).
-- **Quién decide**: el pelotón (pacta), el maillot (autoriza la parada), y el que rompe la tregua (un cazaetapas oportunista o un equipo que quiere hacer daño en un día de viento).
-- **Lo que pasa en carretera**: durante el avituallamiento no se ataca (código); atacar ahí es «feo» y se recuerda. La parada natural crea un hueco de 1-2 min a la fuga y a veces corta al que se ha quedado atrás. Un equipo puede aprovechar el momento en que el maillot ha parado para acelerar «sin querer» (viento).
-- **Lo que hace hoy el motor**: AUSENTE. No hay avituallamiento ni parada; el `humorDelPeloton` (dado por etapa) es lo más parecido a «va sin prisa». No existe el momento discreto en que el maillot está fuera del grupo por decisión propia.
-- **Lo que dijo el dueño**: «También la probabilidad de que el pelotón eche la hueva y vaya lento» (v38, L.7542) — es el humor, no la parada.
-- **Información necesaria**: fase de la etapa (fuga consolidada, `peloton_concedes`), km del avituallamiento (dato del recorrido: no existe), si el maillot está en el grupo.
-- **Cómo se mediría**: eventos `peloton_stop` por etapa en llanas con fuga consolidada: 0,5-1 por etapa; ataques nacidos en la ventana de parada/avituallamiento: ≤ 2 % de los ataques (propuesta, la norma social).
-
-### [INCIDENTE-14] El corredor humano se cae: la orden condicional
-
-- **Cuándo**: en cualquier etapa; el jugador no está (juego asíncrono, un día cada seis horas).
-- **Quién decide**: el jugador ANTES (plan), el bot que le sustituye DURANTE.
-- **Lo que pasa en carretera**: el director le dice por radio «vuelve tranquilo, hay tiempo» o «déjate ir, mañana es la reina»; el corredor decide. En el juego eso solo puede ser una cláusula: «si me caigo a > 60 km, vuelvo tranquilo; si me caigo a < 20 km en montaña, me dejo ir; si se cae mi jefe, le espero».
-- **Lo que hace hoy el motor**: AUSENTE. Las órdenes son cinco escalares (`role`, `mentality`, `effort`, `triggerKm`, `contest*`), sin condición. N1 «el plan como PROGRAMA: órdenes condicionales» está propuesto y no hecho.
-- **Lo que dijo el dueño**: «lo que hay que hacer si acaso es mejorar la granularidad de las instrucciones, con más escenarios hipotéticos quizás»; ejemplo suyo: «si mi jefe se descuelga en el primer puerto, espérale» (N1, epics). «creo que hay que rediseñar y mejorar el tema de las instrucciones por etapa… el resultado es casi lo mismo ponga lo que ponga ahí» (v58).
-- **Información necesaria**: el disparador (`mishapKm` propio o del jefe), el contexto (km, terreno, hueco, si el pelotón caza), y la acción (volver a fondo / tranquilo / dejarse ir / esperar a X). Todo lo tiene el motor; falta el vocabulario de orden.
-- **Cómo se mediría**: test de contrato: con la cláusula «si se cae mi jefe, le espero» activa, el humano baja el 100 % de las veces que el jefe se cae en las condiciones de la cláusula; sin cláusula, se comporta como bot (D-13). Y la crónica lo cuenta («following his orders»).
+Convención de estado: **CUBIERTO** (existe y hace lo que dice) · **PARCIAL** (existe a medias o solo por un
+lado) · **AUSENTE** (no existe) · **CONTRARIO** (el motor hace lo opuesto a lo que pasa en carretera).
 
 ---
 
-## B. PINCHAZO Y AVERÍA MECÁNICA (no existen hoy)
+## A. LA CAÍDA
 
-### [INCIDENTE-15] Pinchazo del favorito en el último puerto o en el final
+### [INCIDENTE-01] Se cae el líder de la general lejos de meta: la tregua no escrita
 
-- **Cuándo**: últimos 15-20 km de una etapa de montaña o de una clásica; el favorito (de la etapa o de la general) pincha. En pavé es muy frecuente; en asfalto raro (~0,3-0,6 % de corredores por etapa).
-- **Quién decide**: el gregario más cercano (da la rueda o la bici en el acto: el favorito pierde 15-30 s en vez de 40-70 s esperando al coche), el favorito (cambia bici o rueda), los rivales (atacan si la carrera está lanzada, esperan si no), el pelotón (tregua o no según INCIDENTE-01/03).
-- **Lo que pasa en carretera**: el gregario que va con él se baja y le da la bici; el favorito vuelve con dos o tres compañeros tirando; si es dentro del último puerto y quedan < 5 km, la etapa está perdida y se salva la general con ayuda. Variantes: **general**: bajan los gregarios que queden (como 02); **etapa/clásica**: el equipo tira solo si es la carta y el hueco es < 60 s (regla v37); **sin equipo cerca**: espera al coche (coche del equipo en la caravana: 30-90 s según la posición del coche, INCIDENTE-20).
-- **Lo que hace hoy el motor**: AUSENTE. No hay pinchazo. La regla del rescate (D-13) está preparada: «cuando exista el pinchazo, marca ahí [`mishapKm`] y esta regla los ve sola, sin tocar nada» (constants l. 3873-3874). La ventaja de que el pinchazo cueste 20-45 s (dentro de `helpBackStageGapSeconds` 60) frente a la caída seria (60-300 s, que hacía «la regla imposible», v37) es exactamente el caso que la rama de la etapa espera.
-- **Lo que dijo el dueño**: «salvo que sea un pinchazo/caída y la distancia sea pequeña, y sea gran favorito para ganar la etapa» (v37, L.7305). Bitácora: «El PINCHAZO y la avería mecánica no existen todavía en el motor. Queda anotado abajo: el día que existan, marcan `mishapKm` y esta regla los ve sola» (v37, L.7347); «El motor tiene caídas (v20) y no tiene averías» (v37 §4, L.7401).
-- **Información necesaria**: un nuevo `Incident.tipo: 'pinchazo' | 'averia'` con `perdidaS` corta; quién del equipo va en el grupo (lo tiene); si el gregario da la bici (decisión nueva: coste = el gregario pierde 60-120 s y su etapa; a cambio el jefe pierde 15-25 s en vez de 40-70). Rival: la información de 03.
-- **Cómo se mediría**: tasa de pinchazos por corredor-etapa en asfalto 0,3-0,8 % (propuesta a partir de partes de carrera: ~0,5-1,5 pinchazos por equipo y etapa llana), en pavé 15-35 % del campo (Roubaix); pérdida mediana 25-45 s con coche, 15-25 s con bici de compañero; y los tres desenlaces (vuelve / pierde la etapa / pierde la general) sobre `reina-150` con pinchazo forzado del favorito a −12 km: vuelve al grupo 20-40 %, pierde 20-90 s el resto.
+- **Cuándo**: vuelta por etapas, terreno de transición o llano, a más de ~25-30 km de meta, carrera
+  agrupada (un solo pelotón), sin viento y sin sector técnico inmediato. El maillot (o un top-3) se va al
+  suelo o queda cortado tras un montón.
+- **Quién decide**: los equipos de los rivales directos, **como colectivo**; en la práctica lo lidera el
+  equipo que en ese momento lleva el frente, y lo secundan (o no) los demás con hombre arriba. También
+  decide el jurado/organización en la realidad, pero la decisión que importa es la del pelotón.
+- **Lo que pasa en carretera**: el frente afloja o pasa a tempo neutro («no se ataca sobre una caída»);
+  la caravana devuelve al grupo; el pelotón rueda a 35-40 km/h hasta que el maillot vuelve. Variantes:
+  (a) **general apretada + terreno neutro** ⇒ tregua casi segura; (b) **caída dentro del final o de un
+  tramo decisivo** ⇒ no hay tregua (ver INCIDENTE-02); (c) **equipo del líder impopular o carrera con
+  cuentas pendientes** ⇒ tregua a medias, se rueda «rápido pero sin atacar»; (d) **hay una fuga del día
+  arriba** ⇒ la tregua es solo entre favoritos: la fuga sigue ganando tiempo, y eso puede regalar la
+  etapa (no la general); (e) **el que se cae es el 2.º o el 3.º, no el maillot** ⇒ tregua mucho más
+  floja: se espera si el líder virtual quiere «ganar limpio», no si le conviene.
+- **Lo que hace hoy el motor**: **AUSENTE**. `crashCheck` (simulate l. 5360-5429) marca `hurt`,
+  `mishapKm` y llama a `dropOut(m, group, perdidaS)`; nadie más se entera. El controlador del pelotón
+  (D-14…D-20) no recibe ninguna señal de caída: `freeRunTarget` sigue en `pelotonTempoCommit` 0,55 o en el
+  suelo que toque, y si había caza de sprinters (D-16) el lazo sigue cerrando igual. La tabla de
+  visibilidad confirma que ninguna decisión del pelotón lee `hurt`/`mishapKm` salvo D-13 (drop-back) y el
+  colapso. En una etapa con `finalDrive` la caída del maillot a 16 km de meta no cambia un dígito.
+- **Lo que dijo el dueño**: sobre el rescate, v36 (L.7159-7162): «oye, pero ¿está implementado que si el
+  **líder del equipo se cae**, se descuelgue parte de su equipo para ayudarle? porque igual no es solo un
+  tema de etiquetas sino de **construir algo que no existe en el motor**». Sobre la tregua del PELOTÓN, no
+  hay cita: «—». (E3 deja anotado como no tocado «la emboscada y **el día en que el líder se rompe**».)
+- **Información necesaria para decidirlo**: quién se ha caído y su `gcRank`/`gcDeficitSeconds` (el motor lo
+  tiene), cuánto queda (lo tiene), si el terreno es decisivo (`raceThisClimb`, `isFinal`, `onRough`: lo
+  tiene), si hay fuga del día por delante y a cuánto (lo tiene), y —lo que NO tiene— una noción de
+  «etiqueta»: cuántos favoritos están implicados en el montón, si la caída es reciente (hoy `mishapKm`
+  existe pero solo lo lee D-13) y una decisión de equipo por equipo («¿espero yo?»). Falta también la
+  memoria de un bloque a otro: la tregua dura kilómetros, no un bloque.
+- **Cómo se mediría**: sobre `sim/grandTour.ts` (21 etapas × 8 semillas), «**tiempo que pierde el maillot
+  cuando se cae en llano a > 30 km de meta**»: hoy sale la pérdida bruta de `perdidaS` + la física del
+  regreso. Banda propuesta: **el 70-90 % de esas caídas terminan con el líder de vuelta en el grupo
+  principal antes de meta y con ≤ 15 s de pérdida en la general**, y el 10-30 % restante no (para que la
+  tregua no sea automática). Justificación: en la carretera real la tregua es la norma en terreno neutro y
+  la excepción cuando la caída pilla el final o hay carrera rota; un 100 % convertiría la caída en un
+  suceso sin consecuencias, que es peor que no tenerla.
 
-### [INCIDENTE-16] Pinchazo del gregario: vuelve solo
+### [INCIDENTE-02] Se cae el líder DENTRO del desenlace: no hay tregua
 
-- **Cuándo**: cualquier etapa, lejos de meta.
-- **Quién decide**: el gregario (esperar al coche neutral o al del equipo; volver a fondo o al grupeto).
-- **Lo que pasa en carretera**: espera 20-60 s, vuelve por la caravana (rebufo de coches, «a medio gas») en 3-8 km si el pelotón va tranquilo; si el pelotón va a 50 km/h, no vuelve. Nadie del equipo baja; el jefe se queda con uno menos (INCIDENTE-06).
-- **Lo que hace hoy el motor**: AUSENTE (no hay pinchazo). Si existiera, `dropOut` + `droppedCommit` + puerta lo devolverían con la física actual, que mide contra el ritmo del pelotón (v35: «con el pelotón tranquilo, un grupo de 5 vuelve la mitad de las veces»); un hombre solo con 40 s vuelve poco. **La caravana de coches (rebufo) no existe**: el que vuelve solo paga el viento entero (`shelterOf` con n = 1 → 0), mientras en carretera vuelve «entre coches».
-- **Lo que dijo el dueño**: «es muy fácil reengancharse después de haberse descolgado… lo normal es que el que está atrás está agotado, y es una lucha de varios que tiran del pelotón vs uno solo» (v35, L.6944) — vale para el descolgado por piernas; el pinchado fresco con caravana es el caso contrario y no está.
-- **Información necesaria**: causa del corte (percance vs piernas: lo tendría con `mishapKm`), frescura (lo tiene), ritmo del pelotón (lo tiene), posición en la caravana (no existe).
-- **Cómo se mediría**: % de pinchados frescos (energía > 60 %) a > 50 km de meta que vuelven al `mainId` con pelotón a compromiso ≤ 0,6: banda propuesta 75-95 %; con compromiso ≥ 0,85: 10-30 %.
+- **Cuándo**: la caída ocurre en el último puerto, en el sector de adoquín, con abanico abierto o en los
+  últimos 15-20 km de una etapa que se está decidiendo.
+- **Quién decide**: cada equipo por su cuenta; en particular los equipos de los rivales de la general y el
+  equipo que lleva el tren.
+- **Lo que pasa en carretera**: nadie espera. El grupo sigue a su ritmo y el caído pierde lo que pierde;
+  como mucho su propio equipo se detiene con él. Es la contrapartida de INCIDENTE-01 y hace que la tregua
+  signifique algo: existe **porque** hay sitios donde no existe.
+- **Lo que hace hoy el motor**: **CUBIERTO POR ACCIDENTE**. Como nadie espera nunca (INCIDENTE-01), este
+  caso «sale bien» por la razón equivocada. Lo que sí existe es la puerta de D-13:
+  `kmRestantes ≥ helpBackMinKmToGo (5)`, o sea que dentro de los últimos 5 km ya no baja nadie.
+- **Lo que dijo el dueño**: «—» (implícito en v37: la ayuda por la etapa exige percance **y** que «la
+  distancia sea pequeña»).
+- **Información necesaria**: la misma señal de «estamos en el desenlace» que ya usa el motor
+  (`raceThisClimb`, `isFinal`, `finalDriveKm`, `onRough`), más la caída como evento visible para el
+  controlador. El motor tiene todo salvo el evento.
+- **Cómo se mediría**: mismo banco que INCIDENTE-01, partiendo la muestra por km a meta: **caídas del
+  maillot a < 15 km ⇒ 0 % de tregua** (invariante duro, no banda), contra el 70-90 % de INCIDENTE-01. Es
+  la medida que impide que el mecanismo nuevo se coma el final de las etapas.
 
-### [INCIDENTE-17] Pinchazo del maillot con el pelotón tranquilo: los suyos esperan, el pelotón levanta el pie
+### [INCIDENTE-03] Quién baja a por el líder caído y quién se queda delante
 
-- **Cuándo**: etapa de transición, fuga consolidada, pinchazo del maillot.
-- **Quién decide**: el equipo del maillot (2-3 esperan, el resto sigue delante), el pelotón (tregua casi segura), el maillot (cambio de rueda).
-- **Lo que pasa en carretera**: el caso más benigno: se pierde 30 s, vuelven en 3 km, nadie ataca. Si el equipo del maillot llevaba el frente, el frente se queda sin dueño esos km y la fuga gana un poco.
-- **Lo que hace hoy el motor**: AUSENTE (sin pinchazo; sin tregua). Con pinchazo modelado, D-13 bajaría `n−1` gregarios (por `maillot`), que es demasiado para 30 s: la regla del dueño de «todos menos uno» es para la caída seria; para el pinchazo bastan 2-3. Y `frontTeamId` caería a otro equipo (`menInPeloton` baja).
-- **Lo que dijo el dueño**: ver 02 y 15.
-- **Información necesaria**: gravedad/tipo del percance (pinchazo 20-45 s vs caída seria), para escalar cuántos bajan: 2-3 vs `n−1`.
-- **Cómo se mediría**: con pinchazo del maillot a > 60 km y pelotón tranquilo: bajan 2-3 (no `n−1`) el 80-95 %; vuelve el 95-100 %; ganancia de la fuga ≤ 30 s.
+- **Cuándo**: el líder ha quedado cortado (22 s ≤ hueco ≤ 5 min) y quedan ≥ 5 km. Vuelta por etapas.
+- **Quién decide**: el director deportivo (aquí: el plan de equipo). En un equipo humano, el mánager.
+- **Lo que pasa en carretera**: el director elige a dedo y por radio. Variantes reales: (a) **gran vuelta,
+  general viva** ⇒ bajan casi todos, se deja 1 arriba «por si acaso»; (b) **el equipo tiene además la carta
+  del día** ⇒ el rematador se queda arriba y bajan los demás; (c) **quedan pocos km o el hueco es enorme**
+  ⇒ baja uno solo, «para que no vuelva solo»; (d) los que bajan son los **frescos y los que ruedan**
+  (LLA/RES), no el escalador que hará falta luego; (e) el gregario que ya iba cortado en tierra de nadie es
+  el primero en esperar, porque le cuesta cero.
+- **Lo que hace hoy el motor**: **CUBIERTO (con forma propia)**. D-13 (`domestiques_drop_back`,
+  l. 2052-2319): por la general bajan `disponibles − helpBackGcKeepInBunch (1)`; se filtran heridos,
+  rendidos, el maillot (`esElMaillot`, nunca baja), la carta de etapa, los rebeldes, y se exige
+  `role === 'gregario'` con target nulo o el jefe (`tieneElEncargo`) y frescura ≥ 0,35; van «los más
+  enteros, primero los que ya van a medio camino». Lo que NO hace: no elige por perfil de rodador
+  (LLA/RES), no baja hacia un `mov` retrasado (solo `shed`), y no lo decide un humano.
+- **Lo que dijo el dueño**: v36 (L.7164-7167): «depende del caso… si es el favorito para una gran vuelta o
+  carrera por etapas, puede justificar **descolgar a todo el equipo menos 1**; si es una carrera de 1 día
+  no, salvo que la diferencia sea pequeña (y en ese caso que **el líder no pase a tirar, él se reserva**)».
+  Y v58: «si un ciclista tiene a su líder atrás, es normal que se deje caer para ayudarle… pero eso aplica
+  a los bots y a los humanos que en sus instrucciones hayan indicado que ayudan a su líder X. **Si yo como
+  humano digo que voy por libre, entonces no debería ocurrir eso**».
+- **Información necesaria**: quién es el jefe y su hueco (tiene), quién de los míos va dónde (tiene),
+  frescura (tiene), **perfil de rodador para el arrastre** (tiene `eff0.LLA/RES`, no lo usa), y la causa
+  del corte —caída, pinchazo o piernas— porque cambia si vale la pena (hoy solo `mishapKm` de caída).
+- **Cómo se mediría**: `sim/grandTour.ts`, avisos `domestiques_drop_back` por etapa y **cuántos bajan por
+  aviso**. Banda: **1-4 hombres por rescate cuando el motivo es `general`** (hoy la regla dice «todos menos
+  uno», que con escuadras de 8 puede dar 6) y **≤ 0,3 rescates por etapa** (la v37 dejó 0,01 avisos/etapa
+  por la rama de la etapa; la de la general no tiene banda). Justificación: en una gran vuelta real un
+  rescate completo se ve una o dos veces en tres semanas.
 
-### [INCIDENTE-18] Pinchazo en el pavé: el sector decide y el gregario «con rueda»
+### [INCIDENTE-04] El líder vuelve: el tren de rescate y la factura del día siguiente
 
-- **Cuándo**: sectores de pavé (Roubaix, Flandes, etapa de adoquines de gran vuelta); tasa de pinchazo 10-30× la del asfalto; también en sterrato (white roads).
-- **Quién decide**: el equipo (colocar un gregario detrás del jefe en cada sector para darle la rueda), el jefe (esperar al coche o coger la rueda), el pelotón (nadie espera dentro del sector; en el asfalto entre sectores puede haber tregua si es el maillot en una gran vuelta).
-- **Lo que pasa en carretera**: el favorito que pincha en un sector a −40 km pierde la carrera el 60-80 % de las veces (Roubaix); en una etapa de adoquines de gran vuelta, su equipo se sacrifica entero y el pelotón de delante NO espera (es «la carrera»). El gregario asignado es el «hombre de la rueda»: rueda pegado al jefe y no relevará nunca.
-- **Lo que hace hoy el motor**: AUSENTE el pinchazo; PARCIAL el sector como selección (`dropPavesFactor·estrellas`, `pavesRaceCommit` 0,8, `rainPavesScale`; B1 hecho v40) — la selección del adoquín hoy es solo por piernas y dado, sin percances, con lo que el PAV mediano del ganador (banda «pave 69 ok») está calibrado sobre un adoquín sin pinchazos. Sin «hombre de la rueda».
-- **Lo que dijo el dueño**: «pave 69 ok» (v39 §8/v58 §6, decisión de banda). «lluvia sobre adoquín… es lo que justifica de verdad las caídas y los abandonos» (v42, simulate l. 1038).
-- **Información necesaria**: tipo de bloque (lo tiene), km al siguiente sector (`kmToNextPaves`, lo tiene), quién es mi jefe y si va conmigo (lo tiene el plan; no la táctica), estrellas del sector.
-- **Cómo se mediría**: banco del pavé (`race-roubaix`): pinchazos 15-35 % del campo, 60-75 % de ellos dentro de sectores; el favorito (top-3 PAV) que pincha a −40 km gana ≤ 10 % (contra ~30 % sin pinchar); PAV mediano del ganador se mantiene ≥ 69 (banda del dueño) — si el pinchazo lo baja, hay que recalibrar el dado, no la banda.
+- **Cuándo**: después de INCIDENTE-03, con 20-120 km por delante.
+- **Quién decide**: el grupo de rescate como unidad (ritmo), y el jefe (si entra al relevo o no).
+- **Lo que pasa en carretera**: cuatro hombres se turnan a tope, el jefe va a rueda y no toca el viento;
+  el regreso cuesta 20-40 minutos de umbral a los gregarios, que al día siguiente están fundidos. Si el
+  pelotón va tranquilo vuelven casi siempre; si el pelotón aprieta, no vuelven y se acabó la general.
+- **Lo que hace hoy el motor**: **PARCIAL**. Los que bajan se meten en el `shed` del jefe y el ritmo lo fija
+  `droppedCommit` (D-41) con la frescura media del grupo; el reenganche lo decide la puerta D-42
+  (`rejoinGapSeconds` 22 s, `shutFor`, `chaseBackShutFloor` 0,15). El jefe **sí** sale del turno vía
+  `jefeEnApuros` (D-05) y `sittingOn` (D-04). Anotado como probado y **NO hecho**: «se probó que el grupeto
+  de rescate rodara **al ritmo del jefe**» (simulate l. 3022-3040): con tope volvía el 66 % contra el 70 %
+  del que se queda solo; sin tope 81 % contra 63 %. La factura del día siguiente sí existe (el trabajo va a
+  `work` → TSS → Banister), pero **nada distingue** «me gasté rescatando» de «me gasté tirando».
+- **Lo que dijo el dueño**: v36: «que **el líder no pase a tirar, él se reserva**» (implementado);
+  v35 (L.7143-7151): «si fue **un líder del equipo que se cayó** y los otros 4 son compañeros suyos que se
+  descuelgan para ayudarle, ahí lo normal es que **si el pelotón va sin prisa, casi siempre lo consigan**».
+- **Información necesaria**: el compromiso real del pelotón (el grupeto solo mide contra `peloton.tS`, id
+  fijo, no contra `mainId` — límite anotado en D-41), la frescura de los que arrastran, y cuánto queda.
+- **Cómo se mediría**: banco propio de rescate (variante de `sim/grandTour.ts`): **% de rescates que
+  terminan con el jefe de vuelta en el grupo principal, partido por el compromiso del pelotón**. Banda del
+  dueño derivada de v35: **≥ 80 % con el pelotón sin prisa (compromiso ≤ 0,6)** y **≤ 25 % con el pelotón
+  cazando (≥ 0,8)**. Justificación: es literalmente lo que dijo, y hoy no se mide en ningún sitio
+  (mapa-bancos §7.20).
 
-### [INCIDENTE-19] Pinchazo o caída en la contrarreloj: el corte que duerme
+### [INCIDENTE-05] Se cae un gregario clave: el plan se queda sin manos
 
-- **Cuándo**: CRI individual; pinchazo (cambio de bici desde el coche, 20-40 s), caída en curva (mojado), avería del cambio.
-- **Quién decide**: el corredor (seguir con la bici de repuesto: menos aerodinámica) y el director (cuándo darle la bici). En la general, el maillot que pincha en la crono puede perder la vuelta.
-- **Lo que pasa en carretera**: 1-3 % de los corredores tienen percance en una crono normal; con lluvia 3-8 % y varias caídas. El corte del 25 % solo alcanza a quien se para.
-- **Lo que hace hoy el motor**: AUSENTE: `simulateTimeTrial` devuelve `incidents: []` (l. 337). El corte `timeCutItt` 0,25 está activado y no señala a nadie: «en producción este corte no va a saltar hasta que el motor modele el pinchazo y la caída dentro de una contrarreloj» (balance v20 §6, L.4155-4158). `crashBaseTt` 0,008 está definido y es «PENDIENTE DE IMPLEMENTAR» (constants l. 3731).
-- **Lo que dijo el dueño**: (bitácora) «Es una decisión que conviene revisar: o se modela el incidente en la crono, o el 0,25 es una salvaguarda dormida» (v20, L.4158); «No modela el pinchazo ni la caída dentro de una contrarreloj» (v20, L.4247).
-- **Información necesaria**: lluvia (lo tiene `stageWeather`), DES/TAC (lo tiene), bloques de descenso/curva de la crono (lo tiene el perfil), general (la cita del dueño v18 sobre «con lo que eso implica» del orden inverso).
-- **Cómo se mediría**: banco `timeTrials`: incidentes 1-3 % seco / 3-8 % lluvia (propuesta); pérdida mediana 25-50 s; eliminados por el corte 0-1 por crono (solo quien se para: caída `major`); `timeTrials.tailPct` sigue en 8-15 % (banda del dueño).
+- **Cuándo**: cualquier momento. Cae (o pierde 3 minutos) el primer o segundo gregario del jefe: el que
+  arropa, el que iba a tirar en el valle, el lanzador del sprinter.
+- **Quién decide**: el equipo (redistribución de tareas) y el jefe (¿me expongo yo ahora?).
+- **Lo que pasa en carretera**: el equipo recalcula: alguien asciende a arropo, el que iba a guardarse
+  gasta antes, y si era el lanzador, el sprinter se busca una rueda ajena. Si perdió a dos, el equipo deja
+  de reclamar el frente y pasa a esconderse.
+- **Lo que hace hoy el motor**: **PARCIAL / por accidente**. `teamPlans` se construye **una vez por etapa**
+  (`buildTeamPlans`, l. 1577-1599): `leaderId`, `stageCandidateId`, `budget = 9 × leales` y `memberIds` no
+  se recalculan cuando alguien se cae o abandona. Lo que sí se actualiza cada 10 bloques es
+  `menInPeloton(plan)` (D-10) y el `spentFraction`, así que un equipo diezmado pierde derecho al frente por
+  la vía del gasto, no por la de la baja. El arropo (`protectedByTeam`, `domestiquesFor`) sí es dinámico:
+  se mira si el gregario va **en este grupo**. El tren de meta (`trenDe`, `lanzaPara`) también. O sea: la
+  consecuencia física existe, **la decisión de reorganizarse no**.
+- **Lo que dijo el dueño**: «—» directamente; el marco es v15 §V.1 («no es solo saber qué equipo participa…
+  también POR QUÉ») y v38-2 («rehaz ese bloque entero, wey» sobre quién tira de cada grupo).
+- **Información necesaria**: quién queda vivo y dónde de cada equipo (lo tiene: `membersOf`, `teamOf`),
+  quién era el arropo/lanzador (lo tiene por órdenes), y una regla de ascenso de rol en carrera (no
+  existe: el rol es fijo desde la salida).
+- **Cómo se mediría**: `sim/tactics.ts::analyzeTeamVoice` ampliado: **% de etapas en las que un equipo que
+  pierde ≥ 2 hombres antes del km 100 sigue reclamando el frente** (`frontTeamId`). Banda propuesta:
+  **≤ 20 %**. Justificación: con seis hombres se puede tirar; con cinco y dos de ellos fundidos, un equipo
+  real cede el frente al siguiente.
 
-### [INCIDENTE-20] Avería mecánica del fugado en solitario y el coche de equipo
+### [INCIDENTE-06] Se cae el favorito DE LA ETAPA (y la general no está en juego)
 
-- **Cuándo**: fugado solo o fuga de 2-3 a menos de 30 km de meta; salta la cadena, se rompe el cambio, pincha.
-- **Quién decide**: el coche de equipo (el fugado tiene su coche justo detrás: cambio de bici en 15-20 s), el fugado (seguir con la bici mala o esperar), el pelotón (aprovecha: ni se plantea esperar).
-- **Lo que pasa en carretera**: la fuga pierde 20-40 s netos; si la ventaja era de 45 s, la etapa se pierde. Nadie espera. Es una de las formas clásicas en que «la fuga que iba a ganar por 5-60 s» no gana.
-- **Lo que hace hoy el motor**: AUSENTE. El «término medio realista» de fugas que ganan por 5-60 s (v23, 88 % entre 5 y 60 s) está calibrado sin averías, que en carretera son una fracción no despreciable de las fugas cazadas en los últimos 10 km.
-- **Lo que dijo el dueño**: (encargo v23) «lo que FALTA es el término medio realista» (L.4979).
-- **Información necesaria**: posición del coche (el fugado siempre tiene coche cerca; el hombre del pelotón espera más), tipo de avería (bici vs rueda).
-- **Cómo se mediría**: en `llana-180`, de las fugas que van con < 60 s a −10 km, 3-8 % sufren avería (propuesta); su tasa de victoria cae a ≤ 20 % frente al 60-70 % de las sanas. La banda global `flat.breakawayWinPct` 5-16 % (del dueño) no debe salirse.
+- **Cuándo**: clásica o etapa suelta; el rematador del día se va al suelo a 40-80 km de meta.
+- **Quién decide**: su equipo (¿bajamos a por él o jugamos con el segundo?) y el propio corredor.
+- **Lo que pasa en carretera**: en una clásica **no baja nadie** salvo que el hueco sea pequeño y el
+  favorito sea muy favorito; lo normal es que el equipo pase a jugar con el que sigue arriba. Si el
+  favorito era el 90 % del equipo, sí bajan dos y se intenta el regreso; si vuelve fundido, el equipo ya
+  ha gastado y pierde dos veces.
+- **Lo que hace hoy el motor**: **CUBIERTO**, y es la regla más fina que hay en esta lente. Rama de la
+  etapa de D-13: exige `stageCandidateId === leaderId`, `mishapKm` dentro de los últimos
+  `helpBackMishapKm` 5 km, estar entre los `helpBackStageFavouriteTeams` 3 equipos de mayor `quality`,
+  `gap ≤ helpBackStageGapSeconds` 60 s, y manda `helpBackStageHelpers` 2. Medido: 6,59 → 0,01
+  avisos/etapa. Lo que **no** hace: el equipo no cambia de carta cuando el favorito se cae
+  (`stageCandidateId` está congelado desde la salida).
+- **Lo que dijo el dueño**: v37 (L.7305-7307), textual: «A ver, **por la etapa yo creo que nadie debería
+  bajarse… no? A ver, salvo que sea un pinchazo/caída y la distancia sea pequeña, y sea gran favorito para
+  ganar la etapa, según el tipo de etapa. Otra cosa es la general.**»
+- **Información necesaria**: percance reciente (tiene, pero solo de caída), el hueco (tiene), si soy gran
+  favorito (tiene vía `quality`), **y quién es mi segunda carta** (lo puede calcular: `finishScore` de los
+  leales; hoy no lo recalcula).
+- **Cómo se mediría**: `sim/smallTours.ts` (10 carreras reales enteras): **avisos de rescate por la etapa
+  por etapa** — banda ya fijada de facto en v37: **≤ 0,05 por etapa**. Y una segunda: **% de etapas en que
+  el equipo cuya carta se cae termina con otro hombre suyo en el top-10** — banda propuesta **10-35 %**,
+  para que «cambiar de plan» exista sin regalar resultados.
 
-### [INCIDENTE-21] El coche de equipo y la posición en la caravana
+### [INCIDENTE-07] Caída masiva: el montón que parte el pelotón
 
-- **Cuándo**: cualquier percance en el pelotón. El orden de los coches es el de la general por equipos (el del maillot va primero); un equipo cuyo coche va el 20.º tarda 60-90 s en llegar.
-- **Quién decide**: el director (adelantar la caravana con permiso del jurado; mandar al gregario con la rueda), el corredor (esperar al coche neutral —rueda cualquiera— o al suyo —bici propia—).
-- **Lo que pasa en carretera**: el pinchazo del líder de la general le cuesta 20-30 s; el mismo pinchazo al líder de un equipo pequeño, 60-90 s. Por eso los equipos pequeños ponen «hombre de la rueda».
-- **Lo que hace hoy el motor**: AUSENTE. No hay caravana ni orden de coches. La clasificación por equipos existe como «informativa» (SPEC 6.15).
-- **Lo que dijo el dueño**: —.
-- **Información necesaria**: puesto del equipo en la clasificación por equipos (existe en `packages/db`, no llega al motor), quién del equipo va con el afectado.
-- **Cómo se mediría**: `perdidaS` del pinchazo como función del puesto del coche: 20-35 s para los 3 primeros equipos, 45-90 s del 15.º en adelante (propuesta a partir del reglamento de caravana).
+- **Cuándo**: llano nervioso, últimos 30 km, entrada a sector, día de lluvia. Se van al suelo 8-30
+  corredores y el pelotón queda partido en dos por el tapón, no por el ritmo.
+- **Quién decide**: los equipos que quedaron DELANTE (¿aprovechamos o levantamos el pie?) y los de detrás
+  (¿organizamos la persecución?).
+- **Lo que pasa en carretera**: los de delante, si tienen a su hombre y el rival no, aprietan a muerte:
+  es una de las jugadas más rentables del ciclismo (y a la vez la más criticada). Los que quedan detrás
+  forman un grupo grande que se organiza en 2-3 minutos; el retorno depende de cuánto queda y de si el
+  frente colabora. Variante: si el montón pilla a media parrilla, el frente afloja porque no le sale la
+  cuenta (nadie tiene mayoría).
+- **Lo que hace hoy el motor**: **PARCIAL**. El montón EXISTE desde v38: `crashPile` se lleva de 0 a
+  `crashPileSeriousMax` corredores de una **tirada contigua** de la lista, todos con la MISMA pérdida de
+  tiempo, y con `crashPileHurtChance` 0,06 de lesionarse los arrastrados. Pero (a) el grupo que se forma
+  detrás es un `shed` como cualquier otro (D-40/D-41), sin noción de «esto ha sido una caída»; (b) el
+  pelotón de delante **no lee** el suceso: ni acelera ni afloja; (c) el motor **no tiene posiciones dentro
+  del grupo**, anotado como límite (l. 5390-5391): «una TIRADA CONTIGUA de la lista, que es lo más parecido
+  a “los que iban a su alrededor”».
+- **Lo que dijo el dueño**: v38 (comentario de `crashPile`, simulate l. 5385-5386): «**normalmente cuando
+  se cae alguien en el pelotón casi siempre se caen varios… y depende de la gravedad puede haber uno o
+  varios que se vayan de la carrera, otros que se queden muy cortados, pero normalmente VARIOS, con lo cual
+  podrían tirar**».
+- **Información necesaria**: cuántos y quiénes han caído (lo tiene), qué equipos quedaron enteros delante
+  (lo puede saber: `teamOf` sobre los dos grupos), cuánto queda (lo tiene) y una decisión de equipo
+  «aprovechar» que hoy no está en el vocabulario de intents (`perseguir|lanzar|controlar|proteger|fuga|nada`).
+- **Cómo se mediría**: banco de llano con lluvia (hoy no existe: `llana-180` corre sin `lugar`): **% de
+  etapas llanas con ≥ 1 corte por caída de ≥ 8 corredores** y **% de esos cortes que se cierran antes de
+  meta**. Bandas propuestas: cortes por caída **3-10 % de las llanas** (en la carretera es un puñado de
+  días al año, más en primavera y con lluvia) y cierre **60-85 %** (la mayoría vuelve, pero no todos, que
+  es justo lo que hoy no pasa: hoy vuelven por física neutra).
+
+### [INCIDENTE-08] La emboscada sobre la caída: el rival ataca cuando el otro está en el suelo
+
+- **Cuándo**: inmediatamente después de INCIDENTE-01/07, en terreno donde se puede hacer daño (viento,
+  cuesta, últimos 40 km).
+- **Quién decide**: el equipo del rival de la general con hombre delante. Es una decisión moral además de
+  táctica: en el juego debería tener un coste de reputación, no solo deportivo.
+- **Lo que pasa en carretera**: el equipo pone a tres hombres al frente y estira la carrera antes de que la
+  caravana devuelva a nadie. Se ganan minutos que no se ganan de otra forma. Variantes: (a) si el caído es
+  el maillot y quedan tres semanas, el resto del pelotón se niega a colaborar y el ataque muere solo;
+  (b) si es un rival menor, colaboran todos.
+- **Lo que hace hoy el motor**: **AUSENTE**. Es literalmente la deuda de E3 («**la emboscada y el día en
+  que el líder se rompe**» no tocado). La táctica (D-22) no ve `frontTeamId`, ni `jefeEnApuros`, ni si su
+  jefe va en el grupo, ni ningún suceso; el plan de equipo (D-10) solo ve `manUpTheRoad`,
+  `frontThreatDeficit`, `kmToGo` y `gapSeconds`. No existe la intención «aprovechar».
+- **Lo que dijo el dueño**: «—» (E3 lo anota como no tocado; la cita general que lo cubre es v52: «los que
+  van segundo, tercero o cuarto… ellos quieren luchar por la carrera… y **curiosamente no veo que lo
+  hagan**»).
+- **Información necesaria**: que ha habido un suceso y a quién (no existe como señal), la general de mi
+  hombre contra la del caído (tiene `gcDeficitSeconds` de ambos), cuántos míos hay delante (`teamOf` sobre
+  el grupo: lo puede saber; hoy la táctica NO lo mira) y el terreno.
+- **Cómo se mediría**: `sim/grandTour.ts`: **segundos que gana el 2.º de la general sobre el maillot en las
+  etapas en que el maillot sufre un percance**, contra el mismo número en etapas sin percance. Banda
+  propuesta: **diferencia de +20 a +90 s de media**, con **≤ 25 % de esas etapas** derivando en emboscada
+  efectiva (para que sea una jugada, no una regla).
+
+### [INCIDENTE-09] Caída dentro de la fuga
+
+- **Cuándo**: fuga del día de 4-10 hombres, descenso o pavé; cae uno de los fugados.
+- **Quién decide**: los otros fugados, en bloque.
+- **Lo que pasa en carretera**: en una fuga **sí se espera casi siempre**, porque a todos les conviene: sin
+  ese hombre la fuga tiene menos relevos y muere. Se afloja un kilómetro, vuelve, y se sigue. Excepción: en
+  los últimos 20-30 km, o si el caído era precisamente el que iba a ganar, **no se espera**.
+- **Lo que hace hoy el motor**: **CONTRARIO**. `crashCheck` corre sobre los `moves` igual que sobre el
+  pelotón, y `dropOut` saca al caído del grupo con `tS = group.tS + delayS`. La fuga sigue a su compromiso;
+  nadie afloja. Y como `relayRotation` escala con los que quedan, la fuga se vuelve más lenta pero no
+  espera. Además el caído, con `hurt`, **no coge autobús** (D-40, v20) y se queda solo → candidato directo
+  al colapso.
+- **Lo que dijo el dueño**: «—». Lo más cercano es v39 §1 sobre cooperación en la fuga («si en la fuga van
+  con un súper escalador y tú eres mal escalador, lo normal es que no cooperes»), que es el mismo tipo de
+  cálculo egoísta.
+- **Información necesaria**: cuántos quedan en la fuga (tiene), cuánto queda a meta (tiene), el hueco al
+  pelotón (tiene: `gapSeconds`), y quién era el caído para el remate (`finishScore` relativo, ya calculado
+  en `interésPropio`, D-07).
+- **Cómo se mediría**: banco de clásicas/`realQueens` con lluvia: **% de caídas dentro de una fuga en las
+  que el caído vuelve a ella**. Banda propuesta: **50-80 % si quedan > 30 km, ≤ 10 % si quedan < 20 km**.
+  Justificación: es la asimetría que da sentido al gesto.
+
+### [INCIDENTE-10] Caída en la cola de la carrera (el que ya no pinta nada)
+
+- **Cuándo**: grupeto, tercera semana, descenso; se cae uno del autobús.
+- **Quién decide**: el grupeto (¿esperamos?) y el caído (¿sigo?).
+- **Lo que pasa en carretera**: el grupeto **espera a un compañero de fatigas** si el corte lo permite,
+  porque solo no llega; si el margen está justo, no espera y el caído se juega el fuera de control él solo.
+- **Lo que hace hoy el motor**: **PARCIAL**. Existe `grupetoWait` (D-41): si el grupeto es de menos de
+  `grupetoWaitSize` 4, quedan ≥ 10 km y hay un `shed` detrás a ≤ 90 s, baja el compromiso a
+  `grupetoWaitCommit` 0,3. Pero espera **por tamaño y proximidad**, no porque alguien se haya caído, y el
+  herido `hurt` **no puede unirse a ningún autobús** por la regla de v20 (D-40), o sea que justo el caso que
+  más lo pide es el que está vetado.
+- **Lo que dijo el dueño**: v20 (L.4003-4005): «Sospecho que el defecto de fondo no está en el porcentaje
+  del corte, sino en que **no existe el corredor en apuros**… todo el mundo acaba en un autobús, y un
+  autobús organizado entra siempre dentro del corte.»
+- **Información necesaria**: quién viene detrás y a cuánto (lo tiene), si es de los míos (no lo mira: D-41
+  no ve equipo), si va tocado (lo tiene) y **cuánto margen queda al corte** (no lo tiene: ver INCIDENTE-43).
+- **Cómo se mediría**: `sim/grandTour.ts`, causas de abandono (banda del dueño ya existente:
+  `outOfTimePct` **1-15 %**, `crashPct` **30-67 %**). Métrica nueva: **% de caídos en el grupeto que
+  terminan fuera de control** — banda propuesta **≤ 30 %**, porque hoy la regla del herido sin autobús los
+  empuja a todos hacia el colapso.
+
+### [INCIDENTE-11] El tocado decide si sigue: la cuneta
+
+- **Cuándo**: tras una caída `minor`/`major`, con el corredor solo y a más de 30 km de meta.
+- **Quién decide**: el corredor y su director (en el juego: el motor, y para el humano una orden previa).
+- **Lo que pasa en carretera**: se sube al coche si va roto y la carrera es larga; sigue si es la última
+  etapa, si defiende algo, o si es un tipo duro. La decisión tarda kilómetros.
+- **Lo que hace hoy el motor**: **CUBIERTO**. `shouldCollapse` + `isInTrouble` (abandon.ts):
+  `hurt ∧ groupSize ≤ collapseHurtMaxGroup`, con `kmToGo ≥ collapseMinKmToGo`, `lostFraction ≥
+collapseMinLostFraction`, `!inFrontGroup`; la intensidad es `lambdaCollapseHurt` (0,010), «no es un
+  interruptor: abandonar es una decisión que se toma en algún momento del calvario». Tope
+  `abandonStageCapFraction` 4 %/etapa. Lo que no ve: si defiende algo (general, maillot de la montaña), si
+  es la última etapa, ni el rol.
+- **Lo que dijo el dueño**: v14 (L.2039-2040): «**Claro!! Quiero que si un ciclista no puede más pues que
+  abandone automáticamente…** e incluso dejarle a un humano entre una etapa y otra decidir abandonar.»
+- **Información necesaria**: severidad (tiene), soledad (tiene), km (tiene), **qué se juega** (no lo mira:
+  ni `gcRank`, ni maillots secundarios, ni «es mi objetivo del año»).
+- **Cómo se mediría**: bandas ya existentes de `abandonCauses` sobre `sim/grandTour.ts` (`crashPct` 30-67,
+  medido 62 % — «es el techo que se va a rozar primero»). Métrica nueva: **% de abandonos por caída que
+  ocurren en el top-20 de la general** — banda propuesta **≤ 15 %**: un líder tocado se levanta y sigue
+  mucho más que un gregario en la misma situación.
+
+### [INCIDENTE-12] Caída en el último kilómetro: la regla de los 3 km
+
+- **Cuándo**: sprint masivo, últimos 3 km, montón en el embudo.
+- **Quién decide**: el jurado (regla), no el pelotón.
+- **Lo que pasa en carretera**: el implicado en una caída dentro de los últimos 3 km recibe **el tiempo de
+  su grupo**, no el suyo; pierde el sprint pero no la general. Es la regla que hace que la general no se
+  decida por un montón a 800 m.
+- **Lo que hace hoy el motor**: **PARCIAL / por accidente**. `crashLambda` ya sube en el embudo
+  (`crashLambdaFinal`) y `finishStage` da a cada grupo de llegada un tiempo, con `lossOf = markLossS +
+driftS` como desempate; pero el caído sale del grupo por `dropOut` con `perdidaS`, y su tiempo será el de
+  su nuevo grupo (más tarde). O sea que hoy **una caída a 800 m sí cuesta la general**, que es lo contrario
+  de la regla real. `applyStageTimeCut` tampoco tiene excepción.
+- **Lo que dijo el dueño**: «—».
+- **Información necesaria**: km a meta en el momento de la caída (tiene), y una excepción de tiempo en
+  `buildResults`. Es una regla de reglamento, barata de implementar y con efecto grande sobre la general.
+- **Cómo se mediría**: `sim/grandTour.ts`: **cuántas generales cambian de líder por una caída en los
+  últimos 3 km**. Banda propuesta: **0** (invariante duro). Justificación: en la carretera real esto no
+  puede pasar por reglamento; hoy no está medido en ningún sitio.
+
+### [INCIDENTE-13] Caída en la contrarreloj
+
+- **Cuándo**: CRI, curva mojada, rotonda, rampa técnica.
+- **Quién decide**: nadie; es puro suceso. Pero cambia la crono del jugador y activa el corte.
+- **Lo que pasa en carretera**: el crono se cae, pierde 40-90 s, a veces cambia de bici, a veces abandona.
+  Y es lo que hace que el corte de la crono exista.
+- **Lo que hace hoy el motor**: **AUSENTE, con la consecuencia anotada**. `simulateTimeTrial` devuelve
+  `incidents: []`. La bitácora lo dice con todas las letras (v20 §6, corpus §14.10): «en producción este
+  corte **no va a saltar** hasta que el motor modele el pinchazo y la caída dentro de una contrarreloj» y
+  «o se modela el incidente en la crono, o el **0,25 es una salvaguarda dormida**».
+- **Lo que dijo el dueño**: v18 (L.3337-3341) pidió modelar bien la crono («la contrarreloj hay que
+  modelarla bien… con lo que eso implica»); sobre el incidente en crono, «—» (es deuda del encargo).
+- **Información necesaria**: bloques con curva/descenso en el perfil de la crono (el motor los tiene:
+  `block.tipo`), DES del corredor (tiene), lluvia (tiene).
+- **Cómo se mediría**: `sim/timeTrials.ts` (5 cronos reales): **% de participantes con incidente** — banda
+  propuesta **0,5-3 %** (en cronos reales de 40 km se caen uno o dos de 150, más si llueve), y comprobar
+  que `timeCutItt` 0,25 deja de ser letra muerta: **0-1 fuera de control por crono**.
+
+### [INCIDENTE-14] Los nervios de la aproximación: por qué se cae la gente donde se cae
+
+- **Cuándo**: 5-15 km antes de un sector de adoquín, del tramo expuesto al viento o del pie del puerto
+  decisivo. Toda la carrera pelea por la misma posición.
+- **Quién decide**: cada equipo (llevar al jefe delante) y cada corredor (arriesgar por la rueda).
+- **Lo que pasa en carretera**: la velocidad sube sin que nadie ataque, el pelotón se estira en fila india,
+  y **ahí** es donde se cae la gente y donde se pierden las carreras antes de que empiecen.
+- **Lo que hace hoy el motor**: **PARCIAL**. El SUELO de compromiso existe: `pavesRaceCommit` 0,8 se aplica
+  también en la aproximación (`pavesApproachKm` 2 km) y `windRaceCommit` 0,82 con viento (D-19). Pero
+  (a) la aproximación son solo 2 km, no 10-15; (b) `crashLambda` **no sube en la aproximación** (solo en
+  pavés, descenso y embudo final); (c) no hay pelea de posición: la colocación solo existe dentro del corte
+  del abanico (D-48) y en el sprint (`placementSd`).
+- **Lo que dijo el dueño**: v41 (L.8270), al delegar el viento: «aunque eso implicará también **definir las
+  colocaciones**».
+- **Información necesaria**: distancia al próximo sector/tramo expuesto (la tiene: `kmToNextPaves` ya
+  existe), quién tiene jefe que colocar (tiene: `domestiquesFor`), TAC y frescura (tiene).
+- **Cómo se mediría**: `sim/smallTours.ts` sobre las carreras con adoquín: **reparto de las caídas por
+  terreno**. Banda propuesta: **20-35 % de las caídas de una clásica de adoquín ocurren en los 10 km
+  previos a un sector**, contra el ~0 % de hoy. Justificación: es donde se cae la gente en carretera, y hoy
+  el motor las concentra dentro del sector.
+
+### [INCIDENTE-15] El compañero que se para con el caído
+
+- **Cuándo**: cae el jefe; un gregario que iba a su lado se para, le espera parado, le da su rueda o su
+  bici y lo lanza de vuelta.
+- **Quién decide**: el gregario (o el director por radio).
+- **Lo que pasa en carretera**: uno se para y pierde el mismo tiempo aunque no se haya caído; a veces le da
+  la bici y se queda esperando a su coche. Es la conducta que hace creíble el «equipo».
+- **Lo que hace hoy el motor**: **AUSENTE**. `crashCheck` no mira a los compañeros del caído; los
+  arrastrados del montón son una **tirada contigua aleatoria**, no los suyos. El único acercamiento es D-13,
+  que actúa **una vez por decisión del pelotón** (cada 10 bloques = 1 km) y solo si el hueco ya es ≥ 22 s;
+  un gregario nunca «se para en el sitio».
+- **Lo que dijo el dueño**: v36 §7, anotado como límite: «**El jefe no pide la ayuda: se la mandan**… No hay
+  “espera a mi compañero” ni un director que decida distinto según el día.» Y N1, órdenes condicionales:
+  «**si mi jefe se descuelga en el primer puerto, espérale**».
+- **Información necesaria**: quiénes de los míos iban en el mismo grupo en ese bloque (lo tiene), quién es
+  mi jefe (lo tiene), y una orden del jugador «espera a X» (no existe en `StageOrders`).
+- **Cómo se mediría**: banco de gran vuelta: **% de caídas de un jefe de filas en las que al menos un
+  compañero pierde el mismo tiempo en el mismo kilómetro**. Banda propuesta: **50-80 %** cuando el jefe es
+  la carta de la general del equipo; **≤ 10 %** cuando el caído no es carta de nadie.
+
+---
+
+## B. PINCHAZO Y AVERÍA (hoy no existen: qué cambiarían)
+
+### [INCIDENTE-16] Pinchazo del favorito en el último puerto
+
+- **Cuándo**: etapa reina, dentro del puerto decisivo, con el grupo de favoritos a tope.
+- **Quién decide**: sus compañeros presentes (¿quién le da la rueda?), sus rivales (¿se espera o no?), y él
+  (¿me vacío para volver?).
+- **Lo que pasa en carretera**: es el escenario más caro del ciclismo. Si le queda un gregario, le da la
+  rueda y le lanza; si va solo, espera al coche 20-30 s y pierde 1-2 minutos que no recupera. Los rivales
+  **no esperan** casi nunca en un puerto (la tregua de la caída no se aplica igual al pinchazo, y menos en
+  el terreno decisivo). El coste real es doble: el tiempo y el vaciado del regreso.
+- **Lo que hace hoy el motor**: **AUSENTE**. No hay pinchazo (verificado por Grep). Además, la regla que lo
+  espera ya está escrita: `constants.ts:3873` y `simulate.ts:2081` dicen que «cuando exista el pinchazo,
+  marca ahí [`mishapKm`] y la regla del favorito lo cuenta». Es decir, **el enchufe está puesto y falta el
+  suceso**.
+- **Lo que dijo el dueño**: v37 (L.7305-7307): «salvo que sea **un pinchazo/caída** y la distancia sea
+  pequeña, y sea gran favorito para ganar la etapa». Y la deuda anotada (corpus §14.10, v37 §4): «**El
+  PINCHAZO y la avería mecánica no existen todavía en el motor**».
+- **Información necesaria**: terreno del bloque (tiene), gregarios presentes en el grupo (tiene:
+  `domestiquesFor` + `idSet`), si el coche puede llegar (no existe: ver INCIDENTE-21), y el tiempo de
+  parada según haya o no ayuda.
+- **Cómo se mediría**: `sim/realQueens.ts` (9 reinas): **% de reinas en que un top-5 de la general pierde
+  > 60 s por un percance mecánico**. Banda propuesta: **2-8 %** de las etapas de montaña. Justificación:
+  > en una gran vuelta real se ve una o dos veces en tres semanas; por encima del 10 % el juego se vuelve una
+  > lotería y el dueño ya rechazó eso en otra forma («no persigas el 45 % a ciegas»).
+
+### [INCIDENTE-17] Pinchazo en llano con el pelotón agrupado: el regreso rutinario
+
+- **Cuándo**: primeros 150 km de una llana, pelotón a tempo.
+- **Quién decide**: el corredor y los dos compañeros que le esperan.
+- **Lo que pasa en carretera**: no es noticia. Cambio de rueda en 15 s, dos compañeros le arrastran
+  detrás de la caravana y vuelve en 3-5 km. **Sí es noticia** si pasa con el pelotón a 55 km/h en el
+  tirón final o en el viento (INCIDENTE-22).
+- **Lo que hace hoy el motor**: **AUSENTE**. Y hay un efecto colateral: como no existe el suceso, tampoco
+  existe la conducta de «dos hombres se dejan caer un minuto y vuelven», que es el uso más frecuente de un
+  gregario en una etapa aburrida y una de las cosas que el dueño echa de menos en la Race Radio.
+- **Lo que dijo el dueño**: «—» (más allá de la cita de v37 ya recogida).
+- **Información necesaria**: compromiso del pelotón en ese momento (tiene), compañeros disponibles (tiene),
+  km restantes (tiene).
+- **Cómo se mediría**: `sim/smallTours.ts`: **percances mecánicos por etapa** y **% que se resuelven sin
+  pérdida en meta**. Banda propuesta: **1,5-4 pinchazos/averías por etapa y 85-97 % sin consecuencia**.
+  Justificación: en una etapa real hay unos cuantos y casi ninguno decide nada; el valor está en el 3-15 %
+  que sí decide.
+
+### [INCIDENTE-18] Pinchazo dentro de la fuga
+
+- **Cuándo**: fuga del día consolidada, cualquier terreno.
+- **Quién decide**: los otros fugados (esperar o no) y el equipo del fugado detrás.
+- **Lo que pasa en carretera**: la fuga **espera** en la primera mitad (necesita relevos) y **no espera**
+  en la segunda. El fugado que se queda casi nunca vuelve: entre el pelotón y la fuga hay tierra de nadie.
+- **Lo que hace hoy el motor**: **AUSENTE** el suceso; el mecanismo de «volver a la fuga» tampoco existe
+  como decisión (la fusión por alcance D-44 lo resolvería físicamente si cerrara, cosa improbable solo).
+- **Lo que dijo el dueño**: «—».
+- **Información necesaria**: los mismos datos de INCIDENTE-09.
+- **Cómo se mediría**: junto con INCIDENTE-09, sobre `smallTours`: **% de fugas del día que pierden un
+  hombre por percance**, banda **3-8 %**; y **% de esos que vuelven**: **30-60 % antes del 50 % del
+  recorrido, ≤ 10 % después**.
+
+### [INCIDENTE-19] Avería mecánica y cambio de bici
+
+- **Cuándo**: cualquier momento; cadena, cambio, rotura de radio, salto de cadena en un ataque.
+- **Quién decide**: el corredor (¿cambio o sigo?) y el coche.
+- **Lo que pasa en carretera**: una avería es más cara que un pinchazo (30-60 s parado, bici que no es la
+  suya, ajuste de sillín) y **puede ocurrir en el peor momento posible: durante un ataque**. Es la forma de
+  incidente que castiga al que estaba haciendo algo, no al que iba escondido.
+- **Lo que hace hoy el motor**: **AUSENTE**. Además, `Incident.tipo` solo contempla `'caida'` en la
+  práctica (`crashCheck` es su único emisor).
+- **Lo que dijo el dueño**: v37: «El PINCHAZO **y la avería mecánica** no existen todavía en el motor»
+  (recogido como límite en el corpus §14.10).
+- **Información necesaria**: si estaba atacando/tirando en ese bloque (tiene: `pulling`, `matchBoostS`),
+  la severidad como distribución propia (más larga que el pinchazo), y si hay coche cerca.
+- **Cómo se mediría**: reparto de tipos de incidente sobre `sim/grandTour.ts`. Banda propuesta:
+  **pinchazo 70-85 %, avería 15-30 %** del total de percances mecánicos, y **el tiempo mediano de una
+  avería ≥ 2× el de un pinchazo**. Justificación: es el reparto de la carretera y hace que el suceso tenga
+  dos sabores en la crónica.
+
+### [INCIDENTE-20] La rueda del gregario: el sacrificio material
+
+- **Cuándo**: el jefe pincha y su gregario está a su lado; el coche está a 40 s.
+- **Quién decide**: el gregario (y sobre todo el director).
+- **Lo que pasa en carretera**: el gregario se para, le da su rueda y **se queda él**. Pierde 60-90 s y
+  media etapa persiguiendo; a cambio el jefe pierde 15. Es el gesto que define al gregario, y hoy el motor
+  no puede contarlo.
+- **Lo que hace hoy el motor**: **AUSENTE** por partida doble (no hay pinchazo y no hay conducta de
+  «parar con»).
+- **Lo que dijo el dueño**: «—» directamente; encaja bajo v36 §7 («El jefe no pide la ayuda: se la
+  mandan») y bajo G2.15 «Ser mandado».
+- **Información necesaria**: quién de los míos va en el mismo grupo y en el mismo bloque (tiene), su rol
+  (`gregario` con target = jefe: tiene), y el coste de tiempo de ceder rueda vs esperar al coche.
+- **Cómo se mediría**: métrica de crónica sobre `sim/coherence.ts`/Race Radio: **% de pinchazos de una
+  carta de equipo en los que un compañero paga tiempo por él**. Banda propuesta: **40-70 %** cuando hay un
+  gregario del jefe en el grupo, **0 %** cuando no lo hay (invariante).
+
+### [INCIDENTE-21] El coche de equipo: dónde está cuando pasa
+
+- **Cuándo**: siempre; determina el coste de todos los casos anteriores.
+- **Quién decide**: el director (orden de coches por general/reglamento) y la carrera (si está partida, el
+  coche puede no estar donde está tu hombre).
+- **Lo que pasa en carretera**: si vas en el pelotón, tu coche llega en 20-40 s. Si vas en la fuga, hay
+  un coche por equipo representado. **Si vas en un grupo cortado, en un puerto estrecho, o la carrera está
+  rota en cuatro, puedes esperar minutos** — y ahí está la diferencia entre perder 20 s y perder la
+  carrera. Es también la razón por la que el orden de coches (por general) importa.
+- **Lo que hace hoy el motor**: **AUSENTE**. No hay caravana en ningún concepto. Nota: tampoco hay rebufo
+  de vehículos, que es la otra mitad («volver detrás de los coches») y que en carretera vale 10-15 s/km.
+- **Lo que dijo el dueño**: «—».
+- **Información necesaria**: dónde está cada grupo y qué equipos lleva (tiene todo), el terreno (tiene) y
+  una regla de «el coche llega en T segundos» dependiente de esas dos cosas. Es barato: no hace falta
+  simular vehículos, basta un tiempo de asistencia por situación.
+- **Cómo se mediría**: distribución del **tiempo de asistencia** por situación en `sim/grandTour.ts`.
+  Banda propuesta: **pelotón 15-40 s · fuga 10-30 s · grupo cortado en puerto 60-180 s · descolgado solo
+  en un puerto 90-300 s**. Justificación: son los órdenes de magnitud reales y hacen que el mismo pinchazo
+  cueste cosas distintas según dónde te pille, que es lo que lo convierte en táctica.
+
+### [INCIDENTE-22] Pinchazo en el peor sitio: adoquín, abanico, tirón final
+
+- **Cuándo**: dentro de un sector de pavé, con el abanico abierto, o en los últimos 10 km a 55 km/h.
+- **Quién decide**: el corredor (rueda de repuesto en moto/coche, cambio de bici) y su equipo.
+- **Lo que pasa en carretera**: es donde el pinchazo mata: no hay regreso posible porque el pelotón va más
+  rápido de lo que tú puedes ir solo. En Flandes o Roubaix, un pinchazo en el sector equivocado es el
+  final; con abanico abierto, igual. Por eso los equipos ponen ruedas en motos y llevan al jefe delante.
+- **Lo que hace hoy el motor**: **AUSENTE** el suceso; pero el motor **ya tiene** las dos condiciones que
+  lo hacen letal: `onRough` (pavé o llano con viento) **impide el reenganche** (D-42: `caught` exige
+  `!onRough`) y el abanico abierto mantiene `roughFrac = 1`. Es decir: si mañana existe el pinchazo, este
+  caso sale casi solo.
+- **Lo que dijo el dueño**: v42 §1 sobre el marco: «**lluvia sobre adoquín… es lo que justifica de verdad
+  las caídas y los abandonos**».
+- **Información necesaria**: terreno del bloque (tiene), `abanicoAbierto` (tiene), compromiso del pelotón
+  (tiene).
+- **Cómo se mediría**: banco del pavé (`race-flanders`/`race-roubaix` en `smallTours`): **% de percances
+  dentro de sector que terminan en pérdida > 2 min**. Banda propuesta: **60-90 %** (dentro del sector no
+  se vuelve), contra **≤ 20 %** en el mismo día fuera de sector.
+
+### [INCIDENTE-23] Pinchazo en la contrarreloj: la bici de repuesto
+
+- **Cuándo**: CRI individual, con tu coche detrás.
+- **Quién decide**: nadie: el reglamento y la mecánica del equipo.
+- **Lo que pasa en carretera**: pierdes 30-60 s en cambiar de bici, y con la bici de repuesto vas peor.
+  Es el suceso que hace que una crono tenga cola y que el corte de la crono exista.
+- **Lo que hace hoy el motor**: **AUSENTE** (`incidents: []`), con la consecuencia ya citada: `timeCutItt`
+  0,25 es «una salvaguarda dormida» (v20 §6).
+- **Lo que dijo el dueño**: v18 pidió la crono «bien modelada… **con lo que eso implica**»; sobre el
+  incidente, «—».
+- **Información necesaria**: bloques técnicos del perfil (tiene), lluvia (tiene), DES (tiene).
+- **Cómo se mediría**: `sim/timeTrials.ts`: **`tailPct`** (banda del dueño **8-15 %**) debe quedarse dentro
+  de banda al añadir incidentes, y **% de participantes con cambio de bici**: banda propuesta **0,5-2 %**.
 
 ---
 
 ## C. VIENTO
 
-### [INCIDENTE-22] El equipo fuerte rompe el pelotón a propósito en el tramo expuesto
+### [INCIDENTE-24] El equipo fuerte decide romper: el abanico como DECISIÓN
 
-- **Cuándo**: llano con viento lateral fuerte (`vientoLateral` alto), tramo abierto (llanura, costa, cambio de dirección en una rotonda), > 30 km a meta normalmente 40-100.
-- **Quién decide**: el equipo fuerte de rodadores (los «especialistas en abanicos») con motivo: su líder de general está bien colocado y quiere hacer daño, o su sprinter quiere quitar rivales, o simplemente tiene los hombres para hacerlo. Los demás equipos deciden si van «con todo el equipo delante» antes del tramo.
-- **Lo que pasa en carretera**: el equipo se pone en cabeza en fila de a uno con el líder en la cuneta, acelera a 55-60 km/h y el pelotón se rompe por detrás en abanicos de 15-25. Los cortados se organizan por equipos; los que tienen al jefe delante NO trabajan detrás; los que tienen al jefe detrás tiran a muerte; si el hueco pasa de 40-60 s en 5 km, los de detrás se rinden y el maillot cortado pierde 1-3 min. Variantes: (a) equipo del maillot rompe → todos los rivales cortados tiran; (b) un rival rompe con el maillot detrás → el equipo del maillot tira y los demás equipos cortados «se dejan llevar» o no colaboran si su jefe también está delante.
-- **Lo que hace hoy el motor**: PARCIAL/AUSENTE. El corte es un dado (`corte()`, D-48: `rollHazard(rngViento, windBreakPerKm·viento)`) que no lo provoca nadie ni depende de que un equipo acelere; la colocación es por puntos (+25 equipo del frente, +12 jefe con gregario, ±10 suerte). Comentario de la bitácora: «Los abanicos los hacen los EQUIPOS» (v41, L.8276), pero en el código lo hace el viento. Detrás del corte, `onRough` impide el reenganche, la fila entera rota (D-02), `windRaceCommit` 0,82 en el pelotón; `sittingOn` (equipo del dueño del frente) y `jefeEnApuros` sí sacan del turno a quien tiene al jefe delante/atrás. Límite anotado: «sin previsión de viento ni tramos expuestos» (§19.5); «el abanico no se cierra nunca».
-- **Lo que dijo el dueño**: «el viento y los abanicos… aquí te delegaré el 100 % de que hagas esto» / «aunque eso implicará también definir las colocaciones» (v41, L.8215, 8270). (Corrección medida) «en un abanico el jefe TAMPOCO tira»: el equipo lo mete en la fila y sus hombres dan los relevos (v41 §7).
-- **Información necesaria**: viento por TRAMO (hoy un número por etapa), qué equipos tienen ≥ 4 rodadores frescos delante (lo tiene: `teamPlans`, energía), quién de la general está mal colocado (posición en el grupo: NO existe; la colocación se sortea en el momento del corte), motivo (postura del equipo: lo tiene).
-- **Cómo se mediría**: banco de llanas con viento (`windMin` 0,87; 6 % de llanas con viento, 4 % partidas): % de cortes con «autor» (equipo que aceleró) 70-90 %; el autor tiene ≥ 70 % de sus hombres en la primera fila; un hombre del top-10 pierde ≥ 60 s en ≥ 50 % de las llanas partidas (hoy no medido). La banda del dueño que no debe romperse: el mejor rematador sigue mandando (v41: se bajó `windMin` de 0,76 a 0,87 por eso).
+- **Cuándo**: llano expuesto, viento de costado, carretera que gira, con un equipo que tiene ocho hombres
+  y un rival que tiene a su jefe mal colocado.
+- **Quién decide**: **un equipo**, deliberadamente. Es la decisión táctica más pura del ciclismo llano.
+- **Lo que pasa en carretera**: el equipo se pone en fila en la cuneta, sube el ritmo justo antes del giro
+  y el pelotón se parte porque la carretera ya no da para más. Variantes: (a) **equipo fuerte con jefe
+  colocado** ⇒ rompe; (b) **equipo fuerte con el jefe mal colocado** ⇒ no rompe, primero le sube; (c) **dos
+  equipos fuertes de acuerdo tácito** ⇒ rompen a la vez y la carrera vuela; (d) **nadie interesado** ⇒ hay
+  viento y no pasa nada, que es la mayoría de los días.
+- **Lo que hace hoy el motor**: **CONTRARIO en la causa, correcto en la forma**. D-48: el corte es un
+  `rollHazard(rngViento, windBreakPerKm 0,015 · vientoLateral)`, o sea **el azar decide si se rompe**, y el
+  equipo solo entra en **quién queda dentro** (`windPlacementTeam` +25 al equipo que ya lleva el frente,
+  `windPlacementLeader` +12 al jefe con gregarios presentes). El motor no pregunta a nadie si le conviene
+  romper. Y `windRaceCommit` 0,82 es un **suelo** que se aplica a todos igual.
+- **Lo que dijo el dueño**: v41 (L.8215, 8270): «**el viento y los abanicos… aquí te delegaré el 100 % de
+  que hagas esto**» / «aunque eso implicará también definir **las colocaciones**».
+- **Información necesaria para decidirlo**: viento y anchura efectiva (tiene: `vientoLateral`,
+  `cabenEnFila`), **cuántos míos van bien colocados y cuántos de mi rival van mal** (no lo mira nadie: la
+  colocación se calcula solo DENTRO del corte y se tira), la general/carta del rival (tiene), y presupuesto
+  propio (tiene: `spentFraction`).
+- **Cómo se mediría**: banco de viento (extensión de `llana-180` con `vientoLateral` forzado): **% de
+  llanas con viento en las que el pelotón se parte** — hoy 4 % del total de llanas (6 % con viento). Banda
+  propuesta condicionada: **con un equipo fuerte y su rival mal colocado, 40-70 %; sin interesados,
+  ≤ 10 %**. Justificación: hoy los dos casos dan el mismo número porque el dado no distingue.
 
-### [INCIDENTE-23] Colocación antes del viento: el equipo lleva al líder delante
+### [INCIDENTE-25] Colocarse antes del tramo expuesto: la pelea que decide el abanico
 
-- **Cuándo**: 5-10 km antes del tramo expuesto conocido (los directores lo saben por el libro de ruta y la previsión).
-- **Quién decide**: cada equipo con jefe (gregarios que le suben al frente), el jefe (pelea de posición: TAC), los sprinters (lo mismo).
-- **Lo que pasa en carretera**: la «pelea por la colocación» sube la velocidad del pelotón 5-10 km antes del tramo aunque no haya ataque; los equipos sin jefe se quedan atrás sin oponer resistencia; el que llega mal colocado paga.
-- **Lo que hace hoy el motor**: PARCIAL. `windPlacementTeam` (+25 si eres del `frontTeamId`) y `windPlacementLeader` (+12 si tienes gregario en el grupo) aproximan el resultado, pero no hay decisión previa, ni coste de colocarse, ni previsión de dónde sopla (viento «todo el día»). El TAC no entra en la colocación del abanico (sí en `placementSd` del sprint).
-- **Lo que dijo el dueño**: ver 22 («definir las colocaciones»).
-- **Información necesaria**: tramo expuesto por delante (no existe), gregarios disponibles y frescos, TAC del jefe.
-- **Cómo se mediría**: en llanas partidas, % de jefes de la general (top-10) en la primera fila: 60-80 % con ≥ 2 gregarios en el grupo, 30-50 % sin ellos (propuesta); coste: el pelotón acelera +3-6 km/h en los 5 km previos al corte.
+- **Cuándo**: 3-10 km antes del giro al viento.
+- **Quién decide**: cada equipo, y dentro de cada equipo, los gregarios que suben al jefe.
+- **Lo que pasa en carretera**: 15 equipos quieren las primeras 20 plazas. Los que ganan la pelea son los
+  que tienen hombres y los que la vieron venir (el que estudió el recorrido). El que la pierde ya ha
+  perdido la etapa aunque no lo sepa.
+- **Lo que hace hoy el motor**: **PARCIAL**. La colocación existe **solo en el instante del corte** (D-48)
+  y como puntos de perfil, no como estado del corredor: nadie «va colocado» un kilómetro antes ni ha
+  pagado por estarlo. `windPlacementTeam` premia al equipo que ya llevaba el frente, que es una
+  aproximación razonable, pero **gratis**: colocarse no cuesta energía.
+- **Lo que dijo el dueño**: v41: «aunque eso implicará también **definir las colocaciones**» (hecha la
+  mitad: se define en el corte, no en la aproximación).
+- **Información necesaria**: distancia al tramo expuesto (**no existe**: el viento es un número de etapa
+  sin tramos, límite anotado en motor.md §19.5 «sin previsión de viento ni tramos expuestos»), hombres
+  disponibles (tiene), energía (tiene).
+- **Cómo se mediría**: mismo banco de viento: **coste medio (unidades de trabajo) de los 10 km previos a
+  un corte** contra los 10 km anteriores. Banda propuesta: **+15 a +40 %**. Justificación: colocarse cuesta,
+  y ese coste es el que hace que un equipo no pueda pelear todos los tramos.
 
-### [INCIDENTE-24] Detrás del abanico: perseguir, no perseguir o rendirse
+### [INCIDENTE-26] El jefe se queda en el segundo abanico: ¿perseguir o resignarse?
 
-- **Cuándo**: abanico ya abierto; grupo cortado de 20-60 con varios equipos.
-- **Quién decide**: cada equipo del grupo cortado según dónde va su jefe; el colectivo (¿se organiza una segunda fila o se rinden?).
-- **Lo que pasa en carretera**: los que tienen al jefe detrás tiran a muerte; los que tienen al jefe delante se sientan al final; si en 5-8 km el hueco no baja, el grupo se rinde y pierde 2-5 min; a veces la cabeza afloja porque el equipo que rompió ya ha cumplido (su rival ha perdido) o porque el maillot pide tregua.
-- **Lo que hace hoy el motor**: PARCIAL. En el grupo cortado (`shed` con `onRough`): fila entera rota salvo protegidos (D-02), `sittingOn` saca al del equipo del frente y al que tiene al jefe delante (D-05/D-06, solo si `kind === 'move'` para D-06: en un `shed` no se aplica «tiene hombre delante»), `droppedCommit` con `enFila` da el ritmo. No hay «rendición táctica» (la del grupeto es física, `shedResignGapSeconds` 300); no hay «la cabeza afloja porque ya cumplió»; el abanico no se cierra nunca aunque el viento cese o la carretera gire.
-- **Lo que dijo el dueño**: —.
-- **Información necesaria**: composición por equipos del grupo cortado y dónde va cada jefe (lo tiene el motor; en un `shed` no se lee el plan), hueco y km de viento que quedan (no existe).
-- **Cómo se mediría**: en llanas partidas, % de grupos cortados que vuelven antes de meta: 20-40 % (propuesta: la mayoría de los abanicos «buenos» no se cierran); tiempo perdido mediano del cortado 60-180 s; 0 % de relevos en el grupo cortado de corredores con su jefe delante.
+- **Cuándo**: abierto el corte, el jefe queda en la segunda fila con 2-3 de los suyos, a 15-40 s.
+- **Quién decide**: su equipo (poner a todos a tirar) y él (gastar hoy o guardar).
+- **Lo que pasa en carretera**: 10 minutos de persecución a muerte. O vuelve (si el frente afloja o si hay
+  otros interesados detrás) o el día está perdido y entonces se levanta el pie y se administra. La decisión
+  se toma en 2-3 km y depende de **quién más ha quedado atrás**: si son cuatro equipos, se organiza; si es
+  solo él, se rinde.
+- **Lo que hace hoy el motor**: **PARCIAL**. La física está: el segundo abanico es un `shed` con
+  `droppedCommit`, `onRough` impide el reenganche por puerta y `shedFightCommit`/`shedFightFreshness`
+  regulan la pelea. Lo que falta es la DECISIÓN colectiva: D-41 no ve equipos ni generales, así que «cuatro
+  equipos con intereses ahí atrás» rueda igual que «un tipo solo con tres compañeros». Y `jefeEnApuros`
+  (D-05) saca del turno a los de delante, pero no organiza a los de atrás.
+- **Lo que dijo el dueño**: v41 §7 (medido): «**en un abanico el jefe TAMPOCO tira**: el equipo lo mete en
+  la fila y sus hombres dan los relevos» (hecho). Sobre organizar la persecución del grupo cortado, «—».
+- **Información necesaria**: composición por equipos del grupo cortado (`teamOf` sobre `membersOf`: lo
+  puede saber, no lo mira), quién de ellos tiene una carta delante y quién no, y el hueco (tiene).
+- **Cómo se mediría**: banco de viento: **% de segundos abanicos que se cierran**, partido por «nº de
+  equipos con carta en el grupo cortado». Banda propuesta: **≥ 3 equipos interesados ⇒ 40-70 % de cierre;
+  ≤ 1 ⇒ ≤ 15 %**.
 
-### [INCIDENTE-25] Viento en contra y viento a favor
+### [INCIDENTE-27] El abanico que se cierra: el viento gira, la carretera cambia
 
-- **Cuándo**: días de viento de cara (nadie quiere tirar, la fuga no prospera o muere; el pelotón va a 35 km/h) o de cola (la fuga vuela, el pelotón no la caza).
-- **Quién decide**: los equipos del frente (el precio de tirar se dispara con viento de cara), la fuga (con viento de cola, gana el que arriesga).
-- **Lo que pasa en carretera**: viento de cara = etapa lenta, fuga corta, ataques tardíos; viento de cola = fuga que gana por minutos o sprint a 70 km/h.
-- **Lo que hace hoy el motor**: AUSENTE. Solo hay viento LATERAL (`vientoLateral`) que rompe; no hay componente longitudinal que cambie coste ni velocidad (`costFlatBase`, `rhythmCostExponent` no leen viento). El «pelotón que echa la hueva» (humor) es un dado sin causa.
-- **Lo que dijo el dueño**: —.
-- **Información necesaria**: viento como vector por tramo (dirección relativa a la carretera).
-- **Cómo se mediría**: velocidad media de la llana canónica 38-42 km/h con viento en contra / 46-50 con viento a favor (propuesta a partir de etapas reales); fuga gana ≤ 5 % con viento de cara, 15-25 % con viento de cola.
+- **Cuándo**: 20-40 km después del corte; la carretera gira y el viento pasa a ser de cara o de cola.
+- **Quién decide**: nadie; es el recorrido. Pero cambia toda la carrera: los cortados vuelven.
+- **Lo que pasa en carretera**: los abanicos duran lo que dura el tramo expuesto. En cuanto la carretera
+  cambia de orientación, un grupo de 40 organizado vuelve a un grupo de 25 que ya no se puede escapar.
+- **Lo que hace hoy el motor**: **CONTRARIO**. `abanicoAbierto` se pone a `true` y **no se pone nunca a
+  false**: el mapa lo dice literalmente («El límite: el abanico no se cierra nunca (el viento sopla todo el
+  día)»). Consecuencia: `onRough` permanente ⇒ **no hay reenganche en el resto de la etapa** (D-42), la
+  rotación pasa a ser la fila entera (D-02) y el suelo de compromiso se queda puesto (D-19).
+- **Lo que dijo el dueño**: «—» (es límite anotado por el ingeniero, no queja del dueño).
+- **Información necesaria**: orientación del tramo respecto al viento a lo largo del recorrido (**no
+  existe**: el viento es un escalar de etapa), o al menos una duración del episodio.
+- **Cómo se mediría**: banco de viento: **km medios que dura un abanico abierto**. Banda propuesta:
+  **15-60 km**, contra el «hasta la meta» de hoy. Justificación: los abanicos de la carretera real duran un
+  tramo, y de esa duración depende que la etapa se decida o se deshaga.
 
-### [INCIDENTE-26] Viento y fuga: quién se va en un día de abanicos
+### [INCIDENTE-28] Viento de cara y viento de cola: el que no se ve
 
-- **Cuándo**: día de viento anunciado; los equipos fuertes guardan a todo el mundo para el abanico y la fuga sale con hombres «sobrantes».
-- **Quién decide**: los equipos (no mandar a la fuga a los rodadores que harán falta), la fuga (menos cooperación: van 3-4 y no 8).
-- **Lo que pasa en carretera**: fugas pequeñas, capturadas por el propio abanico; los que están en la fuga cuando se rompe el pelotón a veces acaban en el primer abanico («la fuga se convierte en el grupo de cabeza»).
-- **Lo que hace hoy el motor**: AUSENTE la decisión de composición; el corte `corte()` no se aplica a los `mov` (solo pelotón y shed), y el reenganche del abanico con la fuga sigue la fusión normal.
-- **Lo que dijo el dueño**: —.
-- **Información necesaria**: viento del día (lo tiene desde el km 0: `vientoLateral`), pero la táctica (`MoveContext`) no lo lleva.
-- **Cómo se mediría**: tamaño mediano de la fuga del día en días de viento 2-4 frente a 4-8 en días normales de llano (propuesta).
+- **Cuándo**: todo el día.
+- **Quién decide**: los equipos, al calcular si una fuga es viable y a qué velocidad se va.
+- **Lo que pasa en carretera**: con viento de cola la fuga no se va y las medias suben a 48 km/h; con
+  viento de cara el pelotón se agrupa, la fuga sufre y la caza es más fácil (el rebufo vale más). Cambia el
+  cálculo de la persecución («¿en cuántos km lo cierro?»), no solo la foto.
+- **Lo que hace hoy el motor**: **AUSENTE**. Solo existe `vientoLateral`. La ley de velocidad no tiene
+  término de viento; el rebufo (`draftFlat`) es fijo.
+- **Lo que dijo el dueño**: «—» (delegó el EPIC del viento al 100 % y se implementó el lateral).
+- **Información necesaria**: un segundo escalar por etapa (o por tramo) y su entrada en `costFlatBase` y
+  en `chaseFeasibleSecondsPerKm`.
+- **Cómo se mediría**: `sim/smallTours.ts`: **correlación entre el viento del día y (a) la velocidad media
+  del ganador, (b) el margen máximo de la fuga**. Banda propuesta: **±2,5 km/h de media entre día de cola
+  y día de cara**, y **la caza necesita 20-40 % más de km con viento de cola**. Justificación: es el orden
+  de magnitud real y da variedad de etapa sin tocar la ley.
 
----
+### [INCIDENTE-29] La previsión de viento como orden del día
 
-## D. LLUVIA, CALOR, FRÍO
-
-### [INCIDENTE-27] Lluvia en el descenso decisivo: conservar o atacar
-
-Ver INCIDENTE-12 (variante mojada). Se enumera aparte porque el disparador es el CLIMA, no el terreno: con lluvia el maillot con colchón asume ceder tiempo; el pelotón «neutraliza» de facto los descensos peligrosos (nadie ataca por acuerdo tácito o por pancarta del CPA); el especialista con general perdida ataca igual.
-
-- **Lo que hace hoy el motor**: PARCIAL: la lluvia sube la caída (`×1,8` con lluvia 1) y la criba del descenso (`×2`), pero nadie CAMBIA su conducta por la lluvia: ningún sitio de decisión lee `lluvia`.
-- **Lo que dijo el dueño**: «lluvia sobre adoquín… es lo que justifica de verdad las caídas y los abandonos» (v42).
-- **Cómo se mediría**: como 12, mojado. Además: en descensos con lluvia, ataques desde el grupo de cabeza −50 % respecto a seco (nadie quiere), salvo DES ≥ 80.
-
-### [INCIDENTE-28] Adoquín mojado: la pelea por entrar primero al sector
-
-- **Cuándo**: clásica de pavés con lluvia; 2-3 km antes de cada sector clave.
-- **Quién decide**: los equipos de los favoritos (tirar antes del sector para entrar delante), los favoritos (posición), el pelotón (velocidad 55-60 km/h en la aproximación).
-- **Lo que pasa en carretera**: la carrera se decide por la posición de entrada; con lluvia el que entra 40.º no vuelve a ver la cabeza. El equipo que entra primero controla; el que entra mal ataca después o se rinde.
-- **Lo que hace hoy el motor**: PARCIAL. `pavesRaceCommit` 0,8 en la aproximación (`pavesApproachKm` 2) sube el compromiso del pelotón; el sector criba por dado con PAV y estrellas escalado por lluvia; no hay posición de entrada ni «lucha por la colocación» (sin posición dentro del grupo); no hay ataque «antes del sector».
-- **Lo que dijo el dueño**: «pave 69 ok»; «lluvia sobre adoquín…» (v42).
-- **Información necesaria**: km al sector (`kmToNextPaves`, lo tiene), estrellas del sector (lo tiene), quién tiene gregarios frescos (lo tiene), lluvia (lo tiene, la táctica no).
-- **Cómo se mediría**: banco del pavé mojado vs seco: nº de hombres a 30 s del ganador a la salida del último sector de 5★: seco 8-15, mojado 3-8 (propuesta); PAV del ganador ≥ 69 (dueño).
-
-### [INCIDENTE-29] Calor extremo: el gregario de agua y el líder que ahorra
-
-- **Cuándo**: temperatura > 30-35° (`heatFromC` 26, `calor` ∈ [0,1]); etapas de julio/agosto en el sur, desierto.
-- **Quién decide**: el equipo (un gregario baja al coche cada 15-20 km a por bidones y pierde posición), el líder (ahorra, no responde a ataques lejanos), los atacantes (el calor castiga al que va solo: menos fugas largas, más ataques tardíos), el organizador (protocolo: acortar, neutralizar).
-- **Lo que pasa en carretera**: más pájaras y abandonos por deshidratación; la fuga sufre más que el pelotón; los gregarios se gastan en «bajar a por agua»; el pelotón va más lento a propósito (tregua de calor).
-- **Lo que hace hoy el motor**: PARCIAL: el calor «desgasta, no selecciona» (`heatCostScale` 0,08 máximo, sobre el coste de todos por igual); ninguna decisión lo lee; no hay bidones ni gregario de agua; el fugado no sufre más que el del pelotón (mismo factor).
-- **Lo que dijo el dueño**: «ojo, el clima debería depender del país y del GD» (v42, L.8421). Sobre el calor como decisión: —.
-- **Información necesaria**: `calor` del día (lo tiene), rol del gregario (lo tiene), km a meta.
-- **Cómo se mediría**: en `reina-150` con calor 1: pájaras +30-60 % respecto a calor 0 (hoy solo +8 % de coste); la fuga gana −20 a −40 % relativo (propuesta: el calor castiga al que va expuesto); 1-2 «bajadas al coche» por gregario y etapa (evento nuevo) que le cuestan 10-20 s de colocación.
-
-### [INCIDENTE-30] Frío, nieve y el protocolo de climas extremos
-
-- **Cuándo**: alta montaña en primavera/otoño (Giro, Vuelta a Suiza, Tirreno): puertos con nieve; descensos a 2-5°.
-- **Quién decide**: el organizador con el CPA (acortar la etapa, neutralizar el descenso, mover la meta), los equipos (ropa, gregario con chaqueta en la cima), el pelotón (pacto: bajar despacio, «neutralización de facto» del descenso helado), los especialistas que se saltan el pacto (raro, mal visto).
-- **Lo que pasa en carretera**: en un descenso neutralizado no se mueven las diferencias; con frío sin neutralizar, el que baja mal vestido pierde minutos por hipotermia; aumentan los abandonos.
-- **Lo que hace hoy el motor**: AUSENTE. `climate.ts` produce temperatura pero el motor solo la convierte en `calor`; el frío no existe como efecto ni como decisión; la neutralización no existe (INCIDENTE-44).
-- **Lo que dijo el dueño**: —.
-- **Información necesaria**: temperatura del día por altitud (el perfil tiene altitud), decisión del organizador (dato de la etapa: `neutralizedSegments`).
-- **Cómo se mediría**: nº de etapas de montaña por temporada con protocolo (acortada/neutralizada) 1-3 en el calendario WT (propuesta); en descenso neutralizado, 0 s de diferencia generada en el tramo.
-
-### [INCIDENTE-31] La lluvia que empieza a mitad de etapa
-
-- **Cuándo**: tormenta en la última hora; la carrera se corre seca hasta el puerto y mojada en el descenso.
-- **Quién decide**: los equipos (colocarse delante antes de la bajada), el maillot (conservador), la fuga (se beneficia: el pelotón afloja).
-- **Lo que hace hoy el motor**: AUSENTE: «que la lluvia vaya y venga durante la etapa queda anotado en §20» (simulate l. 1039); lluvia es un valor por etapa.
-- **Lo que dijo el dueño**: —.
-- **Información necesaria**: lluvia por tramo/hora; previsión con fiabilidad (existe `weatherForecast` para la pantalla de órdenes).
-- **Cómo se mediría**: como 27; además, % de etapas con cambio de clima intra-etapa 10-20 % de los días de lluvia (propuesta).
-
-### [INCIDENTE-32] La previsión meteorológica como palanca del jugador
-
-- **Cuándo**: antes de la etapa, en la pantalla de ÓRDENES DE CARRERA (`/api/my-orders`), el jugador ve la previsión «desenfocada» con fiabilidad.
-- **Quién decide**: el jugador (mentalidad, esfuerzo, rol) y el mánager (G2: protegido, plan).
-- **Lo que pasa en carretera (en el juego)**: hoy la previsión es información sin palanca: ninguna orden puede decir «si llueve, reservón» o «si hay viento, todos con el jefe».
-- **Lo que hace hoy el motor**: CUBIERTO como información (E5 cerrada: `weatherForecast`, fiabilidad, pintada en órdenes); AUSENTE como condición de orden (N1).
-- **Lo que dijo el dueño**: la pantalla de órdenes fue «la que el dueño eligió» para la previsión (v42 §2-bis/v44 cierre). «mejorar la granularidad de las instrucciones, con más escenarios hipotéticos» (N1).
-- **Información necesaria**: previsión (lo tiene) y un vocabulario de orden condicional.
-- **Cómo se mediría**: test de contrato de órdenes: `si lluvia ≥ 0,5 → mentality reservon` se aplica en el 100 % de las etapas que cumplen la condición real (no la prevista) y la crónica lo dice.
-
----
-
-## E. PÁJARA
-
-### [INCIDENTE-33] Pájara del líder de la general en el último puerto: la emboscada
-
-- **Cuándo**: final en alto o puerto decisivo (`raceThisClimb`), 3.ª semana o día de calor; el maillot se hunde (deriva > 20 s, reserva agotada, depósito < 10 %).
-- **Quién decide**: los rivales (atacan al verlo «con la cara descompuesta»: esperan a que el gregario del maillot deje de tirar), el equipo del maillot (todos los que quedan se descuelgan a marcarle un ritmo y a limitar daños; el mejor colocado del equipo NO espera si tiene general propia), el maillot (marcar ritmo propio, no responder).
-- **Lo que pasa en carretera**: es «el día en que el líder se rompe»: pierde 1-5 min; sus rivales se relevan a tope hasta meta (colaboración temporal entre rivales para enterrarlo); su equipo le lleva. Variante: el maillot con colchón enorme (> 5 min) se deja llevar sin drama.
-- **Lo que hace hoy el motor**: PARCIAL. Física: deriva + reserva (D-36), `bonkOnset` en rampa (v38), `giveUp` no aplica al `lider`. Equipo: D-13 solo actúa si el maillot cae a un `shed` ≥ 22 s y < 300 s con ≥ 5 km a meta, «no en el desenlace» (`helpBackMinKmToGo` 5) — en un final en alto a 8 km, sí baja gente, pero el grupo de rescate «no rueda al ritmo del jefe» (probado y descartado). Rivales: `gcDefence(members)` → cuando el líder ya no está en el grupo, `gcChallengeShare` desaparece (los rivales pierden el empujón justo cuando deberían rematar) — CONTRARIO en ese punto; y no hay colaboración entre rivales para enterrar al líder (`interésPropio` mira solo el remate de la etapa, `relayTurn` en el grupo de cabeza no lee la general salvo `gcRank===1`).
-- **Lo que dijo el dueño**: «una cosa que debería poder pasar y nunca pasa es que haya remontadas en una subida… o uno que empieza muy bien, muy fuerte, y luego se hunde» (v26, L.5611). «las pájaras igual hay que recalibrar cuándo se produce una pájara» (v38 §8, L.7552). E3: «la emboscada y el día en que el líder se rompe» no tocados.
-- **Información necesaria**: que el maillot ha quedado atrás y a cuánto (lo tiene: relojes), su estado (depósito/reserva: lo tiene el motor, no sus rivales «con la vista», y eso es correcto: un rival solo ve el hueco), general virtual de cada rival respecto a él (calculable), quién del equipo del maillot queda con opciones de general (no: `pickLeader` no mira la general).
-- **Cómo se mediría**: banco `realQueens` 3.ª semana con sonda «maillot hundido ≥ 30 s a −8 km»: % de etapas en que los rivales top-5 relevan juntos hasta meta ≥ 60 %; el maillot pierde 60-300 s de mediana (propuesta); el mejor colocado de su equipo en la general se queda delante ≥ 80 % de las veces (hoy baja con todos si es `gregario`).
-
-### [INCIDENTE-34] Pájara del gregario que tira: el relevo forzado
-
-- **Cuándo**: el gregario que llevaba el frente (o el tren) se vacía y se descuelga.
-- **Quién decide**: el equipo (siguiente gregario al frente o ceder el frente a otro equipo), el jefe (queda expuesto).
-- **Lo que pasa en carretera**: el equipo sigue con el siguiente; si no queda nadie, cede el frente o se lo dan a los rivales; el jefe ya no va arropado en la fila.
-- **Lo que hace hoy el motor**: CUBIERTO en su esencia: `relayDuty` pondera frescura (`relayFreshnessWeight`), `frontTeamId` cede si `spentFraction ≥ 1` o `cansado`, `protectedByTeam` cae al perder el último gregario, el vaciado sale por `dropOut`. Lo que no existe: «ahorrar un gregario para el final» (el plan no reparte el presupuesto entre hombres: `teamBudget` es del equipo), ni «el gregario del último puerto» distinto del «gregario del llano».
-- **Lo que dijo el dueño**: «un equipo que lleva 80 km tirando no puede seguir a tope» (v15 encargo, L.2221). «El líder se queda atrás… ¿y nadie de su equipo tira para ayudarle?» (v57).
-- **Información necesaria**: energía de cada gregario (lo tiene), qué viene después (perfil: lo tiene), a quién reservar (rol de «gregario de montaña» no existe: todos son `gregario`).
-- **Cómo se mediría**: en `reina-150` con equipos: % de líderes top-5 que llegan al último puerto con ≥ 1 gregario: 50-80 % (propuesta: en carretera los grandes equipos casi siempre, los pequeños casi nunca).
-
-### [INCIDENTE-35] Pájara del fugado: la fuga no espera; el compañero de equipo, a veces sí
-
-- **Cuándo**: fuga larga, últimos 30 km, uno se hunde.
-- **Quién decide**: el resto de la fuga (sigue), el compañero de equipo si lo hay (rarísimo que espere; sí si el hundido es la carta y el otro no tiene opciones).
-- **Lo que hace hoy el motor**: CUBIERTO: la deriva lo saca (`break_dropped`), la fuga sigue; la revisión de cooperación (D-27) no lo cuenta. AUSENTE la excepción del compañero (sin `teamId` en la fuga).
-- **Lo que dijo el dueño**: «si va en cabeza de carrera lo normal es que no se deje caer» (v37, L.7309).
-- **Cómo se mediría**: 0-3 % de espera de compañero (propuesta).
-
-### [INCIDENTE-36] Gestión preventiva: el que «se ve venir» la pájara
-
-- **Cuándo**: depósito < 30-40 %, quedan > 40 km y hay puerto por delante.
-- **Quién decide**: el corredor (deja de relevar, se esconde, come/bebe, se deja ir al grupeto antes de reventar), el equipo (le libera de tareas).
-- **Lo que pasa en carretera**: el profesional casi nunca revienta por sorpresa; la pájara real es «me quedé sin gasolina en el peor sitio» tras un día de trabajo. El que se ve venir se deja ir a tiempo y entra en el grupeto (INCIDENTE-38).
-- **Lo que hace hoy el motor**: PARCIAL. `attackAppetite ×energyFraction` y vetos (`tacticMinEnergyFraction` 0,25, `breakawaySkipEnergyFraction` 0,40); `relayDuty` con frescura; `giveUpLambda` solo en los últimos 25 km y con `giveUpEnergyFraction` 0,22; `shedFightFreshness` en el último tercio. El «dejarse ir preventivo» a 60 km no existe (el corredor pelea hasta que la deriva lo suelta). No hay alimentación.
-- **Lo que dijo el dueño**: «tal vez en una clásica superlarga tengan que dosificar esfuerzos mejor y entonces no salir tan a muerte» (v39 §3, L.7984) → `climbEaseDemand`. «lo de que pelean a tope aunque vaya vacío, arréglalo» (v40 §2, L.8128).
-- **Información necesaria**: energía propia (lo tiene), perfil restante (lo tiene), su rol/motivo hoy (lo tiene).
-- **Cómo se mediría**: % de pájaras «sorpresa» (energía ≤ 0 mientras seguía en el grupo de cabeza sin haberse dejado ir) sobre total de pájaras: ≤ 40 % en la reina, ≥ 60 % en clásicas de un día donde no hay mañana (propuesta).
-
-### [INCIDENTE-37] Pájara en la clásica larga: nadie ahorra para mañana
-
-- **Cuándo**: Sanremo, Roubaix, Lombardía (250-300 km): el vaciado es la norma; la pájara es el desenlace.
-- **Quién decide**: nadie ahorra; el equipo mantiene al jefe escondido hasta los últimos 50 km.
-- **Lo que hace hoy el motor**: CUBIERTO por bandas: «Ninguna clásica WT satura» (≤ 0,95 erosión y pájaras Lombardía ≤ 12, banda v33 provisional). Lo que falta es la asimetría: en la clásica se vacía TODO; en una gran vuelta el gregario se guarda.
-- **Lo que dijo el dueño**: bandas provisionales v33 («luego ya recalibraremos si hace falta»).
-- **Cómo se mediría**: banda existente + nueva: % de finishers con energía < 15 % en clásica ≥ 60 % vs ≤ 30 % en llana de gran vuelta (propuesta).
+- **Cuándo**: antes de la etapa, en la pantalla de órdenes.
+- **Quién decide**: el jugador humano (y el mánager, G2).
+- **Lo que pasa en carretera**: el director avisa en el autobús: «km 78, giro a la izquierda, todos
+  delante». La orden del día es de POSICIÓN, no de ataque.
+- **Lo que hace hoy el motor**: **PARCIAL**. La previsión existe y se pinta en la pantalla de ÓRDENES
+  (`weatherForecast`, con `fiabilidad`, «desenfocada hacia la climatología»), pero **de viento no hay
+  previsión** (motor.md §19.5: «sin previsión de viento ni tramos expuestos») y **ninguna orden del jugador
+  puede decir «colócame»**: `StageOrders` solo tiene `role`, `targetRiderId`, `mentality`, `effort`,
+  `triggerKm`, `contestSprints/Climbs`.
+- **Lo que dijo el dueño**: v42 §2-bis: «estaría bien también que pueda existir para los ciclistas y
+  managers una **PREVISIÓN del clima… que además puede cambiar, y con eso tomar diferentes decisiones**». Y
+  N1: «lo que hay que hacer si acaso es **mejorar la granularidad de las instrucciones, con más escenarios
+  hipotéticos** quizás».
+- **Información necesaria**: previsión de viento por etapa con su fiabilidad (falta), y una orden nueva
+  del tipo «posición» o una condicional N1 («si hay viento, no te separes de X»).
+- **Cómo se mediría**: no es banda de carretera sino de producto: **% de etapas con viento en las que un
+  jugador que pidió colocación acaba en el primer abanico** contra el que no lo pidió. Banda propuesta:
+  **+20 a +40 puntos porcentuales**. Justificación: la orden tiene que valer algo medible, que es la queja
+  del dueño en v58 («el resultado es casi lo mismo ponga lo que ponga ahí»).
 
 ---
 
-## F. CORTE DE TIEMPO, GRUPETO Y LA VUELTA COMO CARRERA
+## D. LLUVIA
 
-### [INCIDENTE-38] El grupeto como pacto colectivo: rodar «al corte»
+### [INCIDENTE-30] Descenso mojado: quién arriesga y quién no
 
-- **Cuándo**: etapa de montaña; tras la primera criba seria, los sprinters, lanzadores y gregarios ya usados forman un autobús de 20-60.
-- **Quién decide**: el «capo» del grupeto (un veterano con TAC alto calcula el corte y marca el ritmo: ni un vatio más), el colectivo (nadie ataca al grupeto, todos relevan flojo), los que aún quieren algo (se van del grupeto hacia delante).
-- **Lo que pasa en carretera**: el grupeto entra a 1-3 min del corte; si va justo, acelera en el último puerto o en el llano final; si no llega, entra numeroso y el jurado readmite. Nadie del grupeto esprinta la etapa.
-- **Lo que hace hoy el motor**: PARCIAL. `droppedCommit` (física del descolgado), `share` de rendidos (`giveUpCommit` 0,5), `grupetoWait` (espera a los de detrás a ≤ 90 s si son < 4 y quedan ≥ 10 km) y el guardarraíl del «me dejo ir» (`giveUpMaxLossFraction` 0,05) que «mide contra el tiempo YA CORRIDO en vez de contra el corte de la etapa, y eso lo vuelve casi inerte en etapas largas» (v17 §4/§11, LÍMITE). No existe «el corte estimado» como magnitud que el grupeto lea: rueda por física, no por cálculo. `applyStageTimeCut` readmite al grupo numeroso (D-51) y quita `sprintPts`.
-- **Lo que dijo el dueño**: «Sospecho que el defecto de fondo no está en el porcentaje del corte, sino en que no existe el corredor en apuros… todo el mundo acaba en un autobús, y un autobús organizado entra siempre dentro del corte» (v20, L.4003). «No persigas el 45 % a ciegas… Prefiero una especificación corregida a un motor calibrado hacia un objetivo equivocado» (v20, L.3961). Banco: «el último grupo de una etapa reina entra entre el 8 % y el 14 %» (v16 encargo, L.2651).
-- **Información necesaria**: estimación del tiempo del ganador (el grupeto la hace con el hueco a la cabeza y los km: calculable con `frontMove().tS`, `kmRestantes`, ritmo), `timeCutFraction` (lo tiene, solo en meta), tamaño del grupeto (lo tiene).
-- **Cómo se mediría**: `grandTour.queenLastGroupPct` 8-14 % (banda del dueño, hoy «moneda al aire» sobre el suelo 8); nueva: distribución del margen del grupeto al corte: mediana 1-4 % del tiempo del ganador por debajo del corte, ≤ 5 % de grupetos fuera (readmitidos); 0 grupetos que entren a más del 5 % por debajo del corte «sin querer» (rodando más de lo necesario) — esta última es la que distingue pacto de física.
+- **Cuándo**: bajada larga con lluvia, con la carrera hecha o por hacer.
+- **Quién decide**: cada corredor (DES + carácter) y el jefe (¿me juego la general aquí?).
+- **Lo que pasa en carretera**: el buen bajador ataca precisamente ahí porque es donde saca más por vatio;
+  el líder de la general baja detrás de un gregario que le abre camino y no toca los límites; el que se
+  descolgó arriba **vuelve en la bajada** si baja bien. Con lluvia todo eso se amplifica: se abren huecos de
+  20-30 s sin que nadie ataque.
+- **Lo que hace hoy el motor**: **PARCIAL**. `selectionFactor` en descenso escala con la lluvia
+  (`dropDescentFactor × (1 + rainDescentScale 1 · lluvia)`, solo si `g ≤ dropDescentMaxGradient`) y solo
+  actúa el primer km (`descentSelectKm` 1, v57). Las caídas suben (`rainCrashScale` 0,8). Pero, textual del
+  mapa: «**Nada táctico se decide en el descenso** (no hay “bajar a tope para abrir hueco” ni marcaje
+  específico)». No hay ataque de descenso: `ataque_final` no distingue bajada, y `DES` solo entra en
+  `blockPerfil`, en el riesgo de caída y en el remate tipo `descenso`.
+- **Lo que dijo el dueño**: v35 (L.7016-7017): «**en una bajada es normal que algunos de los que perdieron
+  contacto al subir se reenganchen, pero no todos, wey**… no tiene que reducirse siempre» (hecho: la puerta
+  no absorbe si el hueco crece). Sobre atacar en el descenso: «—».
+- **Información necesaria**: pendiente y longitud de la bajada (tiene), DES propio y de los rivales del
+  grupo (tiene), lluvia (tiene, no la lee la táctica), y si me interesa (finishScore relativo: tiene).
+- **Cómo se mediría**: `sim/realQueens.ts` sobre las reinas con descenso final: **% de etapas decididas por
+  un movimiento nacido en descenso**. Banda propuesta: **5-15 %** (con lluvia, el doble que en seco).
+  Justificación: es una vía de victoria reconocible del ciclismo real que hoy vale 0 %.
 
-### [INCIDENTE-39] El sprinter en la etapa de montaña: dejarse ir pronto a propósito
+### [INCIDENTE-31] Adoquín mojado: el sector que decide la clásica
 
-- **Cuándo**: primer puerto duro de una etapa de montaña; el sprinter (y sus lanzadores) no tienen nada que hacer hoy.
-- **Quién decide**: el sprinter (se sienta en el primer puerto, no pelea), su equipo (los lanzadores se van con él para llevarle dentro del corte; un gregario puede quedarse con el jefe de la general si lo hay), el equipo con maillot verde (a veces disputa el volante de antes del puerto y luego se sienta).
-- **Lo que pasa en carretera**: el sprinter se descuelga en cuanto aprieta el ritmo, sin gastar; sus lanzadores lo escoltan; forman el núcleo del grupeto. Excepción: el sprinter que va a por el maillot de puntos con volantes tras el puerto pelea hasta el volante.
-- **Lo que hace hoy el motor**: CONTRARIO en un punto: `giveUpLambda` «devuelve 0 si… rol lider/sprinter/cazaetapas» (tactics.ts l. 841-855): el sprinter NUNCA se deja ir voluntariamente; se suelta por deriva (peleando con reserva y cerillos hasta `driftDropGapSeconds`), es decir, gasta lo que en carretera ahorra. Los lanzadores no lo escoltan (D-13 solo rescata al `leaderId`; en una reina `pickLeader` no pone al sprinter de jefe si hay `lider`).
-- **Lo que dijo el dueño**: «Es normal que un corredor agotado se descuelgue en los últimos km… Salvo motivación especial, se deja ir, con el único cuidado del fuera de control» (regla 8, §13.1) — la regla 8 es del agotado en el final; el sprinter que se sienta en el km 40 es otra conducta y no está dictada.
-- **Información necesaria**: tipo de etapa y `finishType` (lo tiene), rol y opciones hoy (`interésPropio`, lo tiene), maillot de puntos/volantes por delante (no existe como motivo), quién le escolta (`lanzaPara`, lo tiene).
-- **Cómo se mediría**: `reina-150` con equipos: km medio en que el mejor sprinter (SPR ≥ 80) pierde el `mainId`: en el primer puerto duro (≤ 40 % del recorrido) el 70-90 % de las etapas; energía restante del sprinter en meta ≥ 40 % (hoy se vacía peleando); ≥ 1 lanzador en su grupo en meta el 60-80 % (propuesta).
+- **Cuándo**: clásica de pavé con lluvia.
+- **Quién decide**: los equipos, antes del sector (posición) y dentro (quién puede).
+- **Lo que pasa en carretera**: con el adoquín mojado la selección es brutal y arbitraria: la rueda se va,
+  el grupo se parte en cinco, se pincha el doble. El valor de ir delante se multiplica y por eso la
+  aproximación es una guerra.
+- **Lo que hace hoy el motor**: **PARCIAL**. La lluvia sube la selección del pavé (`rainPavesScale` 0,5) y
+  las caídas (0,8); `pavesRaceCommit` 0,8 es suelo también en la aproximación de 2 km; `onRough` prohíbe el
+  reenganche dentro del sector. Falta: la decisión (nadie decide ir delante por la lluvia), y falta el
+  pinchazo, que es la mitad del carácter del pavé mojado (INCIDENTE-22).
+- **Lo que dijo el dueño**: v42 §1: «**lluvia sobre adoquín… es lo que justifica de verdad las caídas y los
+  abandonos**».
+- **Información necesaria**: lluvia (tiene), estrellas del sector (tiene), PAV propio (tiene), km al sector
+  (tiene: `kmToNextPaves`).
+- **Cómo se mediría**: banco del pavé con `lugar` real (hoy `smallTours` corre sin clima): **PAV mediano
+  del ganador ≥ 69** (listón del dueño, «pave 69 ok») debe mantenerse, y **nº de grupos en meta con lluvia
+  vs sin lluvia**: banda propuesta **+1 a +3 grupos con lluvia**.
 
-### [INCIDENTE-40] El grupeto que va a quedar fuera de control: apretar o rendirse
+### [INCIDENTE-32] El día de lluvia cambia el plan del equipo del líder
 
-- **Cuándo**: últimos 20-30 km, el grupeto calcula que va justo o fuera.
-- **Quién decide**: el colectivo (apretar todos: «hay que llegar»), los que no pueden (se quedan y quedan fuera solos), el jurado (readmite si son muchos: regla del 20 %).
-- **Lo que pasa en carretera**: el grupeto grande aprieta y entra; el pequeño (2-5) a veces no; el jurado readmite al grupo numeroso (con penalización de puntos) y elimina al suelto.
-- **Lo que hace hoy el motor**: CUBIERTO en el jurado (D-51: elimina por grupos, readmite si no cabe en el presupuesto del 4 %, quita `sprintPts`) y en la resignación física; PARCIAL en «apretar»: el guardarraíl del `administerEffort` solo evita que el que se sienta se vaya fuera (5 % del tiempo corrido, casi inerte); no hay «el grupeto acelera porque va justo».
-- **Lo que dijo el dueño**: «Del orden del 0-4 % de los abandonos de una gran vuelta son eliminaciones por el corte de tiempo» (v20, L.3982, cita de encargo/datos); «El grupeto existe precisamente para entrar dentro del corte, y casi siempre lo consigue» (v20, regla en §15 del corpus).
-- **Información necesaria**: la estimación del corte (ver 38).
-- **Cómo se mediría**: `abandonCauses.fueraControl` ~5 % (banda re-anclada v20, del dueño); grupetos ≥ 10 eliminados: 0 %; sueltos eliminados: 1-3 por gran vuelta.
+- **Cuándo**: etapa de transición con lluvia y general viva.
+- **Quién decide**: el equipo del maillot.
+- **Lo que pasa en carretera**: el equipo del líder pone a **todos** sus hombres delante todo el día, no
+  para cazar, sino para que su jefe no esté nunca a rueda de un desconocido. Gastan una barbaridad en una
+  etapa que no decide nada, y esa es exactamente la decisión (y la factura del día siguiente).
+- **Lo que hace hoy el motor**: **AUSENTE**. El intent del `maillot` es siempre `controlar` (teamPlan
+  `intentFor`), sin mirar el clima; `teamDrive` no lee lluvia; el presupuesto (`teamBudgetPerRider` 9) es
+  el mismo llueva o no.
+- **Lo que dijo el dueño**: «—» directamente; el marco es v42 («el clima… con eso tomar diferentes
+  decisiones») y E3 («**la defensa del maillot no existe como conducta propia**»).
+- **Información necesaria**: lluvia (tiene), general (tiene), terreno (tiene) — solo hay que dejar que el
+  plan de equipo lea el clima, que hoy no lo hace en ningún punto.
+- **Cómo se mediría**: `sim/grandTour.ts`: **trabajo (unidades) del equipo del maillot en etapas llanas,
+  con lluvia vs sin lluvia**. Banda propuesta: **+20 a +50 % con lluvia**, y que eso se note al día
+  siguiente (**−5 a −15 % de trabajo disponible**), que es lo que convierte el clima en decisión y no en
+  decorado.
 
-### [INCIDENTE-41] El suelto en apuros: el gregario que se queda a llevarle dentro del corte
+### [INCIDENTE-33] La tormenta que llega a mitad de etapa
 
-- **Cuándo**: un corredor herido o hundido va solo a > 5 min, camino del fuera de control; su equipo tiene a alguien que ya no pinta nada hoy.
-- **Quién decide**: el equipo (mandar a un compañero del grupeto a esperarle: «llévale a casa»), el herido (¿abandona?).
-- **Lo que pasa en carretera**: si es un hombre valioso para la vuelta (lanzador del sprinter, gregario del jefe), un compañero le espera y le lleva; si no, se le deja y abandona o entra fuera de control.
-- **Lo que hace hoy el motor**: PARCIAL. El herido «no coge autobús» (v20, `dropOut` con `hurt`), `isInTrouble` → colapso con `lambdaCollapseHurt` 0,01 si va solo (`collapseHurtMaxGroup`). El «esperar hacia atrás» no existe: «el que ya va por detrás en un grupeto NO cuenta: esperar hacia atrás no existe» (simulate l. 2121), y D-13 solo rescata al jefe. Dueño: «uno que va en grupo 2 podría esperar a uno del grupo 3 y ayudarlo» (v36) — implementado solo para el JEFE.
-- **Lo que dijo el dueño**: «uno que va en grupo 2 podría esperar a uno del grupo 3 y ayudarlo» (v36, L.7217). «Claro!! Quiero que si un ciclista no puede más pues que abandone automáticamente» (v14, L.2039).
-- **Información necesaria**: quién va solo y herido (lo tiene), su valor para el equipo mañana (no existe: no hay «mañana»), quién del equipo va en el grupeto sin nada que hacer (lo tiene).
-- **Cómo se mediría**: de los heridos sueltos a > 40 km, % que reciben un compañero: 30-60 % (propuesta); su tasa de abandono baja de ~100 % (hoy, por `isInTrouble`) a 50-70 %.
-
-### [INCIDENTE-42] El gregario que se deja ir para mañana: gestionar la vuelta
-
-- **Cuándo**: gran vuelta, etapa de media montaña sin interés para el equipo; el gregario del jefe ha trabajado 100 km y mañana es la reina.
-- **Quién decide**: el director (le libera: «hasta aquí, entra tranquilo»), el gregario.
-- **Lo que pasa en carretera**: se sienta con energía y entra en el grupeto; mañana está fresco. Un equipo que no gestiona esto llega a la 3.ª semana sin gregarios.
-- **Lo que hace hoy el motor**: AUSENTE. El motor «no sabe que hay un mañana»; `orders.effort = 'ahorrar'` solo resta 0,5 al deber de relevo; `StageRider.tsb` «PENDIENTE DE IMPLEMENTAR»; no hay memoria de fatiga táctica más allá del depósito inicial vía Banister (que sí arrastra CTL/ATL entre días: el coste es real, la DECISIÓN de ahorrar no).
-- **Lo que dijo el dueño**: «el resultado es casi lo mismo ponga lo que ponga ahí» (v58, sobre `effort`). «All-in: empty the tank today» (texto de la orden de esfuerzo).
-- **Información necesaria**: el perfil de mañana y el plan de la vuelta (existe en `packages/db`, no en `StageInput`), energía hoy, si el jefe le necesita hoy (`jefeEnApuros`, terreno restante).
-- **Cómo se mediría**: banco de gran vuelta: energía media en meta de los gregarios del top-5 en etapas «de transición» (sin motivo): ≥ 50 % (propuesta: hoy se vacían como todos); % de gregarios con el jefe en el último puerto de la reina (ver 34).
-
-### [INCIDENTE-43] El humano decide abandonar entre etapas (y el bot enfermo/lesionado no toma la salida)
-
-- **Cuándo**: entre etapas de una vuelta.
-- **Quién decide**: el jugador (botón), `packages/db` para bots (lesión `injuryEndsRace`, enfermedad `raceIllnessProbability`).
-- **Lo que hace hoy el motor**: CUBIERTO (V.5: `retireFromRace()` con confirmación; `abandoned_day`; lesión por severidad `minor`/`major`; enfermedad = abandono). Nota: la enfermedad «pesa la mitad de lo que pesa en la carretera» (`illnessRaceFactor` 0,16; subirla rompe la cola de la reina): PARCIAL en la calibración, deuda anotada.
-- **Lo que dijo el dueño**: «Claro!! Quiero que si un ciclista no puede más pues que abandone automáticamente… e incluso dejarle a un humano entre una etapa y otra decidir abandonar» (v14, L.2039). «un corredor ganó 3 etapas… luego resulta que dice en noticias que se enfermó… y en las clasificaciones, incluso tras la etapa 1, pone DNF» (v45 §1, L.9173: arreglado).
-- **Cómo se mediría**: `grandTour.abandonPct` 12-20 % y reparto caída ~45 / enfermedad ~50 / fuera de control ~5 (bandas re-ancladas por el dueño en v20); hoy caída 65 %, enfermedad ~30 % (deuda «INVERTIDO»).
-
----
-
-## G. ABANDONO DEL LÍDER, ENFERMEDAD Y CAMBIO DE PLAN
-
-### [INCIDENTE-44] El líder abandona a mitad de vuelta: el equipo cambia de plan al día siguiente
-
-- **Cuándo**: gran vuelta; el jefe de la general se cae (`major`) o enferma y no toma la salida.
-- **Quién decide**: el mánager/director (nuevo protegido: el mejor colocado que queda; o «liberar» a todos como cazaetapas; o volcarse en el sprinter), cada corredor (el gregario liberado corre para sí).
-- **Lo que pasa en carretera**: el equipo pasa de «controlar» a «mandar gente a la fuga» y a jugar etapas; un equipo así gana a menudo una etapa en la semana siguiente («los liberados»). Si tenía un segundo hombre top-10, se le protege pero con menos convicción.
-- **Lo que hace hoy el motor**: PARCIAL. `autoStageOrders` se recalcula cada día por `gcRank ≤ 5` y atributos, así que el «nuevo líder» aparece solo si alguien del equipo sigue en el top-5; si no, el equipo pasa a la rama por terreno (sprinter/lider/cazaetapas) y `TeamPurpose` se re-deriva (`ninguno` → `nada` → `teamAttackFactor` 1,4: manda gente a la fuga). Es decir, el cambio de plan EMERGE del re-cálculo diario sin que nadie lo decida ni se narre; no hay «plan de carrera» que se rompa ni noticia «el equipo X corre liberado». Para un equipo con mánager humano (G2): no hay herramienta para cambiar el protegido (`team_tactics` no existe en el motor).
-- **Lo que dijo el dueño**: (G2) «el mánager fija el plan del equipo y cada corredor escribe el suyo dentro de ese marco». Petición de cambio de rol entre etapas en bots «ya lo hacía desde v42» (v57, L.9600).
-- **Información necesaria**: roster efectivo del día (lo tiene `db`), general del equipo (lo tiene), objetivo de la carrera (no existe como dato: «venimos a por la general» vs «a por etapas»).
-- **Cómo se mediría**: banco de gran vuelta con abandono forzado del líder de un equipo top-3 el día 9: en los días 10-21 ese equipo mete hombre en la fuga del día ≥ 2× su tasa previa; gana ≥ 1 etapa el 30-50 % de las vueltas (propuesta a partir de «el equipo liberado»); ≥ 1 noticia/crónica «X corre sin líder».
-
-### [INCIDENTE-45] El líder abandona DURANTE la etapa: los que bajaron a por él quedan en tierra de nadie
-
-- **Cuándo**: el jefe se cae `major` o colapsa (`isInTrouble`) después de que 4-5 gregarios se hayan dejado caer a ayudarle.
-- **Quién decide**: los gregarios (¿volver al pelotón? ¿dejarse ir al grupeto? ¿alguno con opciones vuelve solo?), el director.
-- **Lo que pasa en carretera**: se les avisa y se reparten: los frescos vuelven o intentan el grupo de delante, los demás al grupeto. A veces uno de ellos pasa a ser la baza del equipo desde ese momento.
-- **Lo que hace hoy el motor**: AUSENTE. D-13 comprueba «jefe vivo» solo al decidir bajar; una vez en el `shed` del jefe, si el jefe abandona (`abandonedKm`), el grupo sigue con `droppedCommit` y la puerta de 22 s; nadie «decide» nada. `jefeEnApuros` deja de contar (el jefe ya no está), así que los de delante vuelven a relevar, correcto.
-- **Lo que dijo el dueño**: —.
-- **Información necesaria**: que el jefe ha abandonado (lo tiene: `abandonedKm`), a quién le queda algo hoy (`interésPropio`, energía).
-- **Cómo se mediría**: de los gregarios que bajaron y cuyo jefe abandona con > 60 km: % que recuperan el `mainId` 40-70 % con pelotón tranquilo (propuesta).
-
-### [INCIDENTE-46] Correr enfermo: el que toma la salida tocado
-
-- **Cuándo**: gastroenteritis, resfriado, alergia: el corredor sale y se descuelga en el primer puerto, o aguanta en el grupeto y abandona al día siguiente.
-- **Quién decide**: el corredor/equipo (salir o no), en carrera (dejarse ir pronto, ahorrar).
-- **Lo que pasa en carretera**: es la forma más común de abandono en gran vuelta (≈ 50 %): dos días malos y se baja. El equipo lo sabe y no cuenta con él ese día.
-- **Lo que hace hoy el motor**: AUSENTE como estado de carrera: en `stageRun.ts` enfermar en una vuelta «significa abandonar» antes de la etapa (l. 693-720); `molestias` (mHealth 0,96) «no lo escribe nadie»; `StageRider.fragility` no llega al motor (LÍMITE v14). No existe «salir tocado y descolgarse pronto», ni el equipo que lo descuenta del plan.
-- **Lo que dijo el dueño**: (§VI.3, re-anclado por su doctrina de v20) enfermedad ≈ 50 % de los abandonos reales.
-- **Información necesaria**: estado de salud del día (lo tiene `db`; el motor recibe `eff0` ya escalado), plan del equipo que lo excluya (`memberIds` sin él).
-- **Cómo se mediría**: `abandonCauses.enfermedad` ~50 % (banda del dueño); nueva: % de enfermos que toman la salida y terminan en el grupeto antes de abandonar al día siguiente: 40-70 % (propuesta: el «día malo» previo).
-
-### [INCIDENTE-47] Enfermedad o lesión del protegido en la víspera: el mánager cambia el protegido
-
-- **Cuándo**: días antes de la carrera o entre etapas.
-- **Quién decide**: el mánager humano (G2) o el bot (`autoStageOrders`).
-- **Lo que hace hoy el motor**: PARCIAL: el bot re-deriva el jefe por atributos/`gcRank` cada día; para el humano no hay «protegido de equipo» ni `team_tactics` en el contrato del motor (SPEC 6.18/11 prometidos, no en `types.ts`).
-- **Lo que dijo el dueño**: «Esto va a ser BRUTAL. Tiene a su vez MUCHÍSIMOS componentes» (G2).
-- **Cómo se mediría**: test de contrato G2: el cambio de protegido se refleja en `TeamPlan.leaderId` el 100 % de las etapas siguientes.
+- **Cuándo**: la lluvia empieza en el km 90 de 190, justo antes del tramo decisivo.
+- **Quién decide**: los equipos (adelantar la jugada antes de que llegue el agua) y el jurado.
+- **Lo que pasa en carretera**: en cuanto se ve el frente de tormenta, alguien mueve la carrera antes de
+  que el pelotón se vuelva prudente. Y una tormenta que llega es lo que produce las decisiones de
+  neutralización (INCIDENTE-50) y de recorte (INCIDENTE-51).
+- **Lo que hace hoy el motor**: **AUSENTE, con límite anotado**: `simulate.ts:1037-1039` dice que la lluvia
+  es «para todo el día; que **la lluvia vaya y venga durante la etapa queda anotado en §20**».
+- **Lo que dijo el dueño**: «—» (v42 pidió la previsión que cambia, que es otra cosa).
+- **Información necesaria**: un perfil de lluvia por km (hoy es un escalar), y que la táctica lo lea.
+- **Cómo se mediría**: sobre el mismo banco de clima: **% de etapas lluviosas en que la lluvia empieza
+  después del km 0**. Banda propuesta: **40-70 %** de los días de lluvia (en la carretera lo raro es que
+  llueva exactamente las cinco horas). Es una banda de plausibilidad, no de conducta.
 
 ---
 
-## H. NEUTRALIZACIÓN Y ORGANIZACIÓN
+## E. CALOR Y FRÍO
 
-### [INCIDENTE-48] Etapa neutralizada (accidente, obras, protesta, montón que bloquea)
+### [INCIDENTE-34] Calor extremo: el día en que nadie quiere tirar
 
-- **Cuándo**: rara (0-2 por temporada WT): el jurado para la carrera N minutos y la relanza con los huecos congelados; o «neutraliza» un tramo (descenso, túnel) manteniendo diferencias.
-- **Quién decide**: el organizador/jurado. Los equipos: relanzar con la misma composición; a veces el pelotón pacta que no cuente el tramo.
-- **Lo que pasa en carretera**: los relojes se congelan; el que iba cortado por percance suele ser reintegrado al grupo en que iba; se pierden los efectos de la caza en curso (la fuga «conserva» su ventaja).
-- **Lo que hace hoy el motor**: AUSENTE. Solo existe la salida neutralizada implícita (`initialSpeed` 35, `tacticSettleKm` 5). Ninguna estructura de «tramo sin tiempo».
-- **Lo que dijo el dueño**: —.
-- **Información necesaria**: un evento de etapa (`neutralizedFromKm/ToKm`) en el recorrido; regla de reintegración.
-- **Cómo se mediría**: 0,5-2 neutralizaciones por temporada WT (propuesta); en el tramo neutralizado, 0 s de diferencia generados y 0 movimientos nacidos.
+- **Cuándo**: 35-40°, llano, mitad de temporada, sur.
+- **Quién decide**: el pelotón como colectivo (dejar ir la fuga) y cada equipo (no gastar).
+- **Lo que pasa en carretera**: con calor de verdad se sale despacio, la fuga se va sin oposición y el
+  pelotón la deja a 12 minutos; nadie quiere pagar viento. El cálculo de la caza cambia: cerrar cuesta más
+  y todo el mundo lo sabe.
+- **Lo que hace hoy el motor**: **PARCIAL / solo física**. El calor multiplica el coste por bloque
+  (`heatCostScale` 0,08 máx, es decir hasta un 8 %), pero **ninguna decisión lo lee**: el humor del pelotón
+  (`pelotonMoodSpread` 0,14) es un dado independiente del clima; `chaseGear`, `freeRunTarget` y
+  `teamDrive` no ven `calor`. Es decir: hace más calor, se gasta más, pero **nadie se comporta distinto**,
+  que es justo lo contrario de lo que pasa en carretera.
+- **Lo que dijo el dueño**: v38 (L.7542-7545): «**También la probabilidad de que el pelotón eche la hueva y
+  vaya lento**» (implementado como dado ciego, `pelotonMoodSpread`); v42: «ojo, **el clima debería depender
+  del país y del GD**» (implementado).
+- **Información necesaria**: `calor` (existe), y su entrada en el humor y en `chaseFeasibleSecondsPerKm`.
+- **Cómo se mediría**: banco de clima (`smallTours` con `lugar`): **margen máximo de la fuga en llano** con
+  calor > 0,6 contra calor 0. Banda propuesta: **+60 a +240 s**, dentro del techo del dueño
+  `flatMoveWorstMarginS` **0-900 s**. Justificación: el techo ya lo puso el dueño para el caso del pelotón
+  despistado; el calor es una de las razones creíbles de que ocurra.
 
-### [INCIDENTE-49] La regla del jurado en la crono por lluvia: tiempos «neutralizados» a mitad de la lista
+### [INCIDENTE-35] Calor: la pájara adelantada del que no bebe
 
-- **Cuándo**: crono en que empieza a llover a mitad de la lista de salida; los últimos (los favoritos, con general) corren en peores condiciones.
-- **Quién decide**: el jurado (excepcionalmente anula la general del día o neutraliza tramos), los favoritos (asumen riesgo o no en las curvas: DES), el equipo (bici de repuesto con ruedas de lluvia).
-- **Lo que pasa en carretera**: el que sale tarde con lluvia pierde 20-60 s frente a los que salieron en seco; a veces se decide la vuelta así.
-- **Lo que hace hoy el motor**: AUSENTE: la crono es puramente `ttPerfil` por bloques; lluvia constante todo el día; sin incidentes; orden de salida inverso a la general (`startOrder.ts`, CUBIERTO) que es justo lo que hace relevante el cambio de clima.
-- **Lo que dijo el dueño**: «la contrarreloj hay que modelarla bien… salen en orden inverso de la general… separados por 2 minutos, con lo que eso implica» (v18, L.3337).
-- **Información necesaria**: lluvia por hora del día (no existe), DES en curvas de la crono.
-- **Cómo se mediría**: en cronos con cambio de clima (10-20 % de las cronos con lluvia, propuesta), diferencia mediana favorecida al grupo seco 15-45 s; `timeTrials.tailPct` 8-15 % (dueño) intacto.
+- **Cuándo**: última hora de una etapa calurosa.
+- **Quién decide**: el corredor (dosificar, comer) y su equipo (mandar a un gregario a por bidones, que es
+  trabajo real).
+- **Lo que pasa en carretera**: el desfallecimiento por calor llega antes y más brusco; los equipos gastan
+  un hombre entero yendo al coche a por bidones. El grupeto se organiza alrededor de eso.
+- **Lo que hace hoy el motor**: **PARCIAL**. La pájara existe con rampa (`bonkOnset` sobre el último 8 %
+  del depósito, `bonkPenalty`) y el calor vacía antes por el coste, pero (a) no hay avituallamiento ni
+  trabajo de bidones, (b) `erosion` no distingue calor, y (c) `RES` no interactúa con el clima.
+- **Lo que dijo el dueño**: v38 §8: «**las pájaras igual hay que recalibrar cuándo se produce una
+  pájara**».
+- **Información necesaria**: `calor` (tiene) y un término de erosión/pájara sensible al calor; y para los
+  bidones, un rol de trabajo que hoy no existe.
+- **Cómo se mediría**: `sim/analyze.ts::analyzeErosion` con clima: **% de pájaras en etapa calurosa vs
+  templada**. Banda propuesta: **×1,3 a ×2,0**, respetando el listón existente `SATURATION_BONK_PCT` 12 en
+  Lombardía. Justificación: el calor es multiplicador, no categoría nueva.
+
+### [INCIDENTE-36] Frío, lluvia y descenso largo: el que se congela
+
+- **Cuándo**: etapa de montaña de primavera/otoño; se corona a 2.000 m con 4° y se bajan 20 km mojados.
+- **Quién decide**: el corredor (parar a ponerse el chubasquero, que cuesta 20 s), el equipo (dárselo en la
+  cima) y el jefe (bajar a tope o llegar entero).
+- **Lo que pasa en carretera**: se pierden carreras enteras en una bajada fría; hay corredores que llegan
+  hipotérmicos y se retiran al día siguiente; el que no se abriga en la cima llega temblando al valle.
+- **Lo que hace hoy el motor**: **AUSENTE**. `calorDe(grados)` vale 0 por debajo de `heatFromC` 26: **el
+  frío no cuesta nada**. No hay altitud, ni chubasquero, ni consecuencia al día siguiente. `world/climate.ts`
+  sí sabe la temperatura del día y de la zona (nueve zonas, coseno anual, hemisferio sur invertido), o sea
+  que **el dato está y no se usa**.
+- **Lo que dijo el dueño**: v42 (L.8421): «ojo, **el clima debería depender del país y del GD**»
+  (implementado para lluvia y calor; el frío se quedó fuera sin que nadie lo anote).
+- **Información necesaria**: temperatura (tiene: `grados`), desnivel de la bajada y su duración (tiene),
+  minutos por encima de cierta altitud (derivable del perfil).
+- **Cómo se mediría**: banco de clima sobre `realQueens` con `lugar`: **% de abandonos y enfermedades el
+  día siguiente a una etapa con < 8° y lluvia**. Banda propuesta: **×1,5 a ×2,5** respecto a un día
+  templado, sin sacar `abandonPct` de su banda del dueño **12-20 %**.
 
 ---
 
-## I. MEMORIA DE INCIDENTES ENTRE ETAPAS
+## F. LA PÁJARA
 
-### [INCIDENTE-50] El caído de ayer corre tocado hoy: sus rivales lo saben
+### [INCIDENTE-37] Pájara del líder de la general: el día en que se rompe
 
-- **Cuándo**: el día siguiente a una caída con rasguños (`scratches`, 3-6 días de baja según el comentario de constants, «eff −3 %») o leve que no saca de la carrera.
-- **Quién decide**: el propio corredor (conservador), su equipo (le protege más o lo da por perdido), los rivales (lo atacan: «hoy está para caerse»).
-- **Lo que pasa en carretera**: el líder que se cayó ayer es el objetivo del día siguiente; sus rivales atacan pronto y su equipo tiene que trabajar. Es una de las formas más habituales de «la emboscada».
-- **Lo que hace hoy el motor**: PARCIAL/no consta. El estado de salud lo aplica `packages/db` (`applyIncidents` marca `lesionado` con `healthUntilDay`; con `injuryEndsRace` sale de la vuelta; para `scratches` que no la sacan, no consta en los mapas si el `mHealth` 0,90 se aplica al día siguiente y la bitácora dice «eff −3 %»). Lo que es seguro: **ningún rival ni compañero lo sabe**: `StageRider` no lleva «se cayó ayer»; `attackAppetite`/`gcChallengeShare` no lo leen. «Hoy el motor no arrastra NADA de un día para otro en lo táctico» (tactica.md D1).
-- **Lo que dijo el dueño**: «3 etapas seguidas de montaña y las 3 las gana el mismo ciclista» (E3/v43 §11) — la queja de la falta de memoria entre etapas, aunque por otro síntoma.
-- **Información necesaria**: `StageRider.mishapYesterday`/`healthToday` (lo sabe `db`); que llegue a `MoveContext` como «defensor tocado».
-- **Cómo se mediría**: banco de gran vuelta con general: ataques de rivales top-5 el día después de una caída del maillot vs día normal: ×1,3-2,0 (propuesta); pérdida de tiempo del maillot tocado ese día: +10-40 s de mediana.
+- **Cuándo**: tercera semana, puerto decisivo, con el depósito ya al límite.
+- **Quién decide**: sus rivales (¿cuándo se aprieta?), su equipo (¿lo arrastramos o lo escoltamos?) y él
+  (dosificar para limitar pérdidas).
+- **Lo que pasa en carretera**: el líder se descuelga a ritmo, sin ataque. Sus gregarios que iban delante
+  se dejan caer, se ponen a rodar y el objetivo cambia de «ganar la etapa» a «perder lo menos posible».
+  Los rivales, en cuanto lo huelen, aprietan y se relevan entre equipos que nunca colaboran.
+- **Lo que hace hoy el motor**: **PARCIAL**. Lo que hay: `jefeEnApuros` (D-05, umbral 22 s) saca del turno
+  a sus compañeros de delante; D-13 los manda para atrás si el jefe cayó a un `shed`; el maillot nunca baja
+  a por nadie; y desde v46 el líder marca en vez de atacar (`gcDefendShare`) y sus rivales atacan más
+  (`gcChallengeShare`). Lo que **no** hay: nadie percibe «el líder se ha roto» como suceso; la deuda está
+  nombrada en E3 (**«la emboscada y el día en que el líder se rompe»** no tocado) y en el mapa-spec §5.3
+  («la defensa del maillot no existe como conducta propia»).
+- **Lo que dijo el dueño**: v57 §3 (L.9564-9568): «**El líder se queda atrás… ¿y nadie de su equipo tira
+  para ayudarle?**»; v58 §4 (L.9466-9470): «**el líder se ha quedado atrás… y entonces delante están tirando
+  sus 2 compañeros. ¿No se han enterado?**».
+- **Información necesaria**: quién es el líder y cuánto pierde (tiene), quién de los míos va dónde (tiene),
+  **y para los rivales**: que el líder ha empezado a ceder (derivable de `driftS`, hoy nadie lo lee salvo la
+  criba).
+- **Cómo se mediría**: `sim/grandTour.ts`: **distribución de la pérdida del maillot el día que se descuelga
+  del grupo de favoritos**. Banda propuesta: **mediana 60-180 s, cola hasta 8 min**, y **≥ 60 % de esos
+  días con al menos un compañero suyo pagando tiempo por él**. Justificación: hoy el arrastre existe
+  (D-13), pero solo desde `shed` y sin que los rivales cambien nada.
 
-### [INCIDENTE-51] La fragilidad del corredor: el que «siempre se cae»
+### [INCIDENTE-38] Pájara del gregario a mitad de faena
 
-- **Cuándo**: todo el año.
-- **Quién decide**: el equipo (no lo pone de líder en Roubaix; lo protege en los finales), el corredor (asume menos riesgo en el sprint).
-- **Lo que hace hoy el motor**: PARCIAL: `fragility` (LogNormal del genoma) SÍ llega a `rollCrashSeverity` (escala `minor`), pero «`StageRider.fragility` existe y nunca se pasa al motor (todas las carreras corren con fragilidad 1)» según el corpus (v14 §«no hace»); en el código actual `m.input.fragility ?? 1` se lee en `crashCheck` — si `db` lo pasa o no, no consta en los mapas (el corpus dice que no). Ninguna decisión lo lee.
-- **Lo que dijo el dueño**: —. (Relacionado: N4 «el corredor como alguien», rasgos con contrapartida.)
-- **Cómo se mediría**: correlación fragilidad ↔ caídas serias por temporada > 0,3 (propuesta); si se pasa al motor, «es una recalibración de caídas» (deuda anotada).
+- **Cuándo**: km 120, el hombre que iba a tirar hasta el pie del puerto se apaga 30 km antes.
+- **Quién decide**: el equipo (quién asume el relevo) y él (se deja ir o se guarda para el corte).
+- **Lo que pasa en carretera**: se aparta, y el trabajo cae sobre el siguiente, que llega peor al puerto.
+  Es la mecánica por la que un equipo «se queda sin equipo» a 40 km de meta.
+- **Lo que hace hoy el motor**: **CUBIERTO en la física, AUSENTE en la decisión**. `relayDuty` (D-01) lleva
+  frescura (`relayFreshnessWeight` 0,5 sobre `min(frescura, 0,45)`) y `teamSpent`/`spentFraction` retiran al
+  equipo del frente por presupuesto (D-11); pero es continuo y anónimo: no hay «este hombre está fundido,
+  que pase el siguiente» como suceso, ni el equipo recalcula su plan.
+- **Lo que dijo el dueño**: v15 (L.2221-2223): «**un equipo que lleva 80 km tirando no puede seguir a
+  tope**» (implementado como presupuesto).
+- **Información necesaria**: frescura por hombre (tiene), plan (tiene), km al punto donde hace falta
+  (tiene).
+- **Cómo se mediría**: `sim/tactics.ts::analyzeTeamVoice`: **cambios de dueño del frente por etapa**
+  (`frontTeamsPerStage`, banda existente **1,8-4**) y una nueva: **% de bloques en que el equipo que lleva
+  el frente lo lleva con < 2 hombres**. Banda propuesta: **≤ 15 %**.
+
+### [INCIDENTE-39] Pájara del fugado: el que revienta delante
+
+- **Cuándo**: fuga del día, km 150, después de cuatro horas relevando.
+- **Quién decide**: los otros fugados (dejarlo o llevarlo) y él (aguantar a rueda o rendirse).
+- **Lo que pasa en carretera**: se queda sin pasar y los demás lo dejan; a veces se queda a rueda 10 km y
+  luego revienta del todo; el que se rinde en una fuga rara vez vuelve al pelotón: se queda en tierra de
+  nadie y lo devuelve el propio pelotón al pasar.
+- **Lo que hace hoy el motor**: **CUBIERTO**. La deriva/criba (`shatter`, D-36) corre también sobre cada
+  `move`; el que se queda sale por `dropOut`; `interésPropio`/`noChanceToWin` (D-07/D-27) ya modelan al que
+  deja de relevar; `giveUpLambda` (D-49) devuelve 0 si `inFrontGroup`, o sea que el fugado no se «deja ir»
+  en el sentido de la regla 8 mientras siga delante — que es correcto. Añadido de v42: el cazado tras fuga
+  larga arrastra `gastadoHastaKm` (D-29).
+- **Lo que dijo el dueño**: v42 §2 (el defecto que lo motivó): «el wey que iba en la primera fuga solo y
+  que **debería haberse desgastado mucho**, le pillaron… y más adelante **vuelve a escaparse como si
+  nada**» (resuelto).
+- **Información necesaria**: energía (tiene), ritmo de los que quedan (tiene), km (tiene).
+- **Cómo se mediría**: ya vigilado indirectamente por `flat.breakawayWinPct` (**5-16 %**, banda del dueño) y
+  por la secuela de v42 (**0 casos** de re-fuga inmediata). Métrica fina: **% de fugas del día que pierden
+  hombres antes de ser cazadas** — banda propuesta **50-85 %**.
+
+### [INCIDENTE-40] Huele la sangre: se aprieta cuando el otro flaquea
+
+- **Cuándo**: cualquier grupo selecto; alguien empieza a hacer el acordeón.
+- **Quién decide**: los rivales, individual y colectivamente.
+- **Lo que pasa en carretera**: en cuanto uno pierde tres metros dos veces, el grupo sube medio punto de
+  ritmo sin que nadie ataque. Es la conducta más universal del ciclismo y no requiere ningún dato exótico:
+  se ve.
+- **Lo que hace hoy el motor**: **AUSENTE**. El compromiso del grupo (`Group.compromiso`) no se ajusta por
+  la debilidad de un rival concreto: en el pelotón lo fija el controlador (D-14…D-20) y en un `move` la
+  cooperación (D-27, que solo mira `noChanceToWin` — «yo no puedo ganar», no «tú estás muerto»). La deriva
+  (`driftS`) existe por corredor y **nadie la lee** salvo la propia criba.
+- **Lo que dijo el dueño**: v26 (L.5611-5613): «una cosa que debería poder pasar y nunca pasa es que haya
+  remontadas en una subida… uno que empieza mal y luego va remontando, **o uno que empieza muy bien, muy
+  fuerte, y luego se hunde**» (la deriva se implementó; la REACCIÓN de los demás, no).
+- **Información necesaria**: `driftS` de los rivales del grupo en los últimos bloques (existe, no se lee),
+  quién es rival mío (finishScore/general: existe).
+- **Cómo se mediría**: `sim/climbs.ts` (fotos pie/mitad/cima de las reinas reales, hoy informativo):
+  **incremento de ritmo del grupo de cabeza en los 2 km posteriores a que un top-5 empiece a derivar**.
+  Banda propuesta: **+2 a +6 % de compromiso**. Justificación: es un empujón, no un ataque; por encima del
+  10 % se convierte en otra cosa y rompería la brecha 1.º-10.º.
 
 ---
 
-## Resumen de cobertura (51 situaciones)
+## G. CORTE DE TIEMPO Y GRUPETO
 
-| Estado    | Nº  | Situaciones                                                                                                                                                                         |
-| --------- | --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| CUBIERTO  | 5   | 07 (primera mitad), 09 (física), 10 (no-espera), 35, 43                                                                                                                             |
-| PARCIAL   | 22  | 02, 03, 06, 08, 12*, 18, 22, 23, 24, 27, 28, 29, 33, 34, 36, 37, 38, 40, 41, 44, 47, 50, 51                                                                                         |
-| AUSENTE   | 21  | 01, 04, 05, 13, 14, 15, 16, 17, 19, 20, 21, 25, 26, 30, 31, 32 (como orden), 42, 45, 46, 48, 49                                                                                     |
-| CONTRARIO | 3   | 11 (regla de los 3 km), 39 (`giveUpLambda` = 0 para el sprinter), 03/33 en el detalle de `gcDefence(members)` (los rivales pierden el empujón cuando el líder desaparece del grupo) |
+### [INCIDENTE-41] El grupeto como pacto colectivo: quién lo organiza
 
-Las tres piezas transversales que desbloquean casi toda la lente, en orden:
+- **Cuándo**: etapa reina, pie del primer puerto grande; 30-60 corredores deciden que hoy no compiten.
+- **Quién decide**: **un colectivo entre equipos rivales**, normalmente liderado por un veterano; es el
+  único momento del ciclismo en que la carrera se organiza en contra del reglamento.
+- **Lo que pasa en carretera**: se juntan, calculan el corte a ojo, reparten relevos, esperan a los que
+  llegan, y llegan todos juntos «al minuto que toca». Variantes: (a) **grupeto grande** (≥ 25) ⇒ entra
+  seguro y hasta se permite ir despacio; (b) **grupeto pequeño y etapa dura** ⇒ tensión, alguien no pasa
+  relevos y se le echa; (c) **día 19 con el corte al 18 %** ⇒ el grupeto se relaja; (d) **día 3 con corte
+  al 8 %** ⇒ el grupeto va a tope y aun así alguno se queda.
+- **Lo que hace hoy el motor**: **PARCIAL**. Existe el grupeto como grupo `shed` con ritmo
+  `droppedCommit` (que ya es una física de «lo que puede dar un grupo de n con esta frescura»), con
+  resignación (`shedResignGapSeconds` 300), con espera al de detrás (`grupetoWait`, solo si mem < 4 y ≥ 10
+  km a meta) y con freno colectivo a la rendición (`giveUpGroupMaxFraction` 0,33). Lo que **no** existe: el
+  cálculo del corte durante la etapa, la organización por equipos, y la conducta de «te echamos si no
+  pasas». D-41 no ve equipo, ni general, ni corte.
+- **Lo que dijo el dueño**: la regla la enuncia la bitácora (v20) como doctrina del dueño: «**El grupeto
+  existe precisamente para entrar dentro del corte, y casi siempre lo consigue**» (el fuera de control es
+  0-4 % en la realidad). Y v16 (L.2651-2656): «**Los rezagados pierden demasiado poco tiempo**» → «el último
+  grupo de una etapa reina entra entre el 8 % y el 14 %».
+- **Información necesaria**: el corte del día (¡calculable!: `timeCutFraction(elevationGainPerKm)` ya
+  existe en `abandon.ts` y se usa solo en meta), el tiempo del líder de carrera estimado, el propio, y quién
+  va en el grupo (tiene todo).
+- **Cómo se mediría**: bandas del dueño ya vigentes sobre `sim/grandTour.ts`: **`queenLastGroupPct` 8-14 %**
+  y **`outOfTimePct` 1-15 %**. Métrica nueva: **desviación entre el tiempo del último grupo y el corte del
+  día**. Banda propuesta: **el grupeto principal termina entre el 60 % y el 95 % del corte** (o sea, dentro
+  pero justo), que es exactamente lo que hace un autobús organizado.
 
-1. **Un incidente que no sea solo la caída** (`Incident.tipo: 'pinchazo' | 'averia'`, `perdidaS` corta, tasa por terreno y lluvia, en línea Y en crono), que ya tiene su gancho (`mishapKm`) y su regla esperando (D-13 rama `etapa`).
-2. **Que el pelotón y los rivales «vean» el percance**: una lista de percances vivos por grupo (quién falta, de qué rango, desde cuándo, por qué) leída por el controlador (tregua) y por `attackAppetite`/`gcDefence` (emboscada, no perder el empujón cuando el líder ha desaparecido).
-3. **Clima y viento como entrada de la decisión, no solo de la física**: `lluvia`, `calor`, `vientoLateral` (por tramo) en `MoveContext`/`teamStance`/`relayDuty`, y el abanico como acción de un equipo con motivo en lugar de un dado.
+### [INCIDENTE-42] El sprinter que se descuelga a propósito en el primer puerto
 
-Y la cuarta, que es de producto: **la orden condicional** (N1) para que el humano pueda decir qué hace su corredor cuando se cae, cuando se cae su jefe, cuando llueve o cuando hay viento.
+- **Cuándo**: etapa reina, km 40, primer puerto largo. El velocista sabe que su etapa es pasado mañana.
+- **Quién decide**: el corredor, con la bendición de su director; y sus gregarios, que se descuelgan CON él.
+- **Lo que pasa en carretera**: se deja ir antes de sufrir, para gastar lo mínimo. No es una derrota: es
+  administración. Sus dos gregarios de llano se dejan caer con él y lo llevan hasta meta. Es la conducta que
+  hace que un tren llegue vivo a la etapa siguiente.
+- **Lo que hace hoy el motor**: **CONTRARIO en el momento**. `administerEffort` (regla 8, D-49) **solo actúa
+  en los últimos `giveUpKm` 25 km**: nadie puede administrar en el km 40 de 190. Además `giveUpLambda`
+  devuelve **0** para los roles `lider`, `sprinter` y `cazaetapas` y para la mentalidad `supercombativo`:
+  precisamente el sprinter, que es quien más lo hace en la carretera, es el que el motor prohíbe. La
+  compañía de gregarios tampoco existe: D-49 no ve equipo («un gregario puede sentarse aunque su jefe le
+  necesite», dice el mapa; y al revés, no puede sentarse **porque** su jefe se sienta).
+- **Lo que dijo el dueño**: regla 8 (v9): «Es normal que un corredor agotado se descuelgue en los últimos
+  km… **Salvo motivación especial, se deja ir**, con el único cuidado del fuera de control». La regla está
+  escrita para el final; el caso del sprinter en montaña **no está cubierto por ninguna cita**: «—».
+- **Información necesaria**: mi remate en ESTA etapa (`finishScore`, lo tiene vía `interésPropio`), lo que
+  viene mañana (**no lo tiene**: el motor no sabe que hay un mañana), mi rol (tiene), quién es mi jefe
+  (tiene), el corte del día (calculable).
+- **Cómo se mediría**: `sim/grandTour.ts`: **km en que se descuelga el mejor sprinter en las 7 etapas de
+  montaña**. Banda propuesta: **el 50-80 % de las veces, antes del 40 % del recorrido**; y **≥ 1 compañero
+  suyo en el mismo grupo en el 60-90 % de esos casos**. Justificación: hoy el sprinter aguanta hasta que la
+  física lo escupe, siempre tarde y siempre solo.
+
+### [INCIDENTE-43] El grupeto calcula el corte y aprieta al final
+
+- **Cuándo**: últimos 30 km de una reina, con el grupeto a 25 minutos.
+- **Quién decide**: el grupeto (colectivo).
+- **Lo que pasa en carretera**: alguien hace la cuenta —«el ganador ha entrado, tenemos 12 minutos»— y el
+  grupeto **acelera** en el último valle para entrar. O al revés: si el margen sobra, se levanta el pie.
+  Es la única situación en que un grupo va más rápido cuanto peor le van las cosas.
+- **Lo que hace hoy el motor**: **AUSENTE**, y es un límite anotado desde v17: el guardarraíl del «me dejo
+  ir» «**mide contra el tiempo YA CORRIDO en vez de contra el corte de la etapa, y eso lo vuelve casi
+  inerte en etapas largas**» (v17 §4/§11; se probó atarlo al corte y «no mueve nada donde importa»). El
+  ritmo del grupeto (D-41) solo mira su propio tamaño, su frescura y lo que hace el `peloton`.
+- **Lo que dijo el dueño**: v20 (L.3961-3964): «**No persigas el 45 % a ciegas**… Prefiero una
+  especificación corregida a un motor calibrado hacia un objetivo equivocado» (doctrina de calibración del
+  corte); y v16: «el último grupo de una etapa reina entra **entre el 8 % y el 14 %**».
+- **Información necesaria**: `timeCutFraction` del recorrido (existe en el motor, solo se usa en meta), el
+  tiempo estimado del ganador (estimable: el reloj del grupo de cabeza + lo que queda), el propio.
+- **Cómo se mediría**: `sim/grandTour.ts`: **perfil de velocidad del último grupo en los últimos 30 km**.
+  Banda propuesta: **el grupeto que va por encima del 85 % del corte acelera un 5-15 %; el que va por
+  debajo del 60 % no acelera nada**. Hoy los dos hacen lo mismo, y por eso `outOfTimePct` (4 %) es un
+  número que sale de la física y no de una decisión.
+
+### [INCIDENTE-44] El grupeto se rompe y alguien queda fuera de control
+
+- **Cuándo**: última hora de una reina; el autobús pierde a uno o a tres.
+- **Quién decide**: el grupeto (¿esperamos?) y el que se queda.
+- **Lo que pasa en carretera**: el autobús espera a los suyos mientras el margen lo permita, y a partir de
+  cierto punto no. El que se queda fuera casi siempre es uno solo, y casi siempre es el que llevaba dos
+  días tocado.
+- **Lo que hace hoy el motor**: **PARCIAL**. `applyTimeCut` (D-51) es la parte buena y muy fiel: se aplica
+  **contra el grupo** («o cae el grupo entero o no cae nadie»), con tope del 4 % y readmisión con
+  penalización cuando no cabe. Lo que falla es lo de antes: el grupeto no se criba en el puerto (límite
+  anotado de v49: «un grupeto que ya NO es la carrera sigue sin perder a nadie en el puerto, y en carretera
+  sí los pierde»), así que el reparto de quién se queda fuera lo decide el azar previo, no el puerto.
+- **Lo que dijo el dueño**: v49 (L.9884-9887): «esa etapa deberías revisarla a detalle porque es un
+  despropósito… **y el que llega en el puesto 150 solo perdió 26 segundos**».
+- **Información necesaria**: quién viene detrás (tiene), margen al corte (no tiene), y si es de los míos
+  (no lo mira).
+- **Cómo se mediría**: bandas ya existentes: `realQueens.worstStagePct` **0-18 %** (techo =
+  `timeCutQueen`), `grandTour.queenLastGroupPct` **8-14 %**, `abandonCauses.outOfTimePct` **1-15 %**.
+  Métrica nueva: **tamaño mediano del grupo eliminado por corte** — banda propuesta **1-4**: los cortes
+  reales se llevan a puñados pequeños, no a autobuses enteros (y cuando se llevan un autobús, el jurado
+  readmite, que es justo lo que `applyTimeCut` ya sabe hacer).
+
+### [INCIDENTE-45] El corte de tiempo en la contrarreloj
+
+- **Cuándo**: CRI larga dentro de una vuelta.
+- **Quién decide**: nadie; es la consecuencia de INCIDENTE-13/23.
+- **Lo que pasa en carretera**: en una crono se va fuera de control el que pincha dos veces o el que va
+  enfermo; el resto entra siempre.
+- **Lo que hace hoy el motor**: **PARCIAL / dormido**. `timeCutItt` 0,25 está activado desde v20, pero
+  «**en producción este corte no va a saltar hasta que el motor modele el pinchazo y la caída dentro de una
+  contrarreloj**» (`incidents: []`).
+- **Lo que dijo el dueño**: v20, doctrina del corte («No persigas el 45 % a ciegas»); sobre la crono, «—».
+- **Información necesaria**: incidentes en crono (no existen).
+- **Cómo se mediría**: `sim/timeTrials.ts`: **fuera de control por crono** — banda propuesta **0-2
+  corredores**, con `tailPct` **8-15 %** (banda del dueño) intacta.
+
+---
+
+## H. ABANDONO, ENFERMEDAD Y NEUTRALIZACIÓN
+
+### [INCIDENTE-46] Abandona el líder a mitad de vuelta: el equipo cambia de plan
+
+- **Cuándo**: día 9 de 21. El jefe de filas no toma la salida (lesión de la caída de ayer, enfermedad) o se
+  baja en carrera.
+- **Quién decide**: el mánager/director esa misma noche; y a partir de mañana, ocho corredores con otro
+  contrato tácito.
+- **Lo que pasa en carretera**: el equipo pasa de «controlar» a «cazar etapas» en un día. Los gregarios se
+  liberan: el que llevaba nueve días trabajando se mete en la fuga; el joven recibe carta blanca; la
+  clasificación de la montaña se convierte en objetivo. Es uno de los giros narrativos más reconocibles de
+  una gran vuelta.
+- **Lo que hace hoy el motor**: **PARCIAL, por una vía indirecta y muda**. `autoStageOrders` se recalcula
+  **cada día** por atributos y `gcRank`, así que el equipo repartirá roles nuevos automáticamente (v42: los
+  cinco primeros de la general son la carta antes que el terreno; v57: el cazaetapas que se pone líder
+  cambia de rol, «ya lo hacía»). Pero: (a) no hay noción de cambio de objetivo (`TeamPurpose` solo tiene
+  `etapa|maillot|general|ninguno`: **no existe «vamos a por la montaña» ni «vamos a por etapas»**);
+  (b) `buildTeamPlans` no sabe nada de ayer; (c) no hay efecto de moral («la moral **no cambia por
+  correr**», mapa-entrenamiento §8 y §Deuda 15); (d) nada se narra.
+- **Lo que dijo el dueño**: v45 §1 (L.9173-9175) sobre la consecuencia visible: «un corredor ganó 3
+  etapas… luego resulta que dice en noticias que **se enfermó**… y en las clasificaciones, incluso tras la
+  etapa 1, pone DNF» (arreglado como bug de lectura). Sobre el cambio de plan del equipo: «—»; lo más
+  cercano es tactica.md §7 y G2 («el mánager fija el plan del equipo»).
+- **Información necesaria**: quién queda vivo del equipo (lo tiene `packages/db` vía `abandonedDay`), qué
+  objetivos quedan alcanzables (clasificaciones secundarias: **no existen como motivo**), y la memoria de
+  «llevamos nueve días sin nada» (no existe: «Nada se arrastra de un día a otro en lo táctico»).
+- **Cómo se mediría**: `sim/grandTour.ts`: **ataques y presencia en fuga de los compañeros de un líder que
+  abandona, antes y después**. Banda propuesta: **×1,5 a ×3 de presencia en la fuga del día en las etapas
+  siguientes**. Justificación: es la señal observable del cambio de plan, y hoy vale ×1 exactamente.
+
+### [INCIDENTE-47] Enfermedad entre etapas: el que no toma la salida
+
+- **Cuándo**: por la mañana, día 12.
+- **Quién decide**: el médico del equipo (en el juego: el dado), y el equipo (reorganizarse).
+- **Lo que pasa en carretera**: el equipo sale con siete; el trabajo se reparte peor; a veces el enfermo era
+  el arropo del jefe y la etapa cambia por completo.
+- **Lo que hace hoy el motor**: **CUBIERTO como suceso, AUSENTE como decisión**. `raceIllnessProbability =
+min(0,0035, 0,16 · illnessProbability)` con `ILLNESS_DAYS` 4, **solo en vueltas por etapas y no en la
+  última etapa**, solo para sanos, y **enfermar = abandonar** (`stageRun.ts` l. 693-720). Recalibrado en
+  v38 (`illnessRaceFactor` 0,16) y «NO SE SUBE MÁS» porque acopla con la cola de la reina. El equipo no
+  reacciona (mismo problema que INCIDENTE-05/46).
+- **Lo que dijo el dueño**: la doctrina del reparto es suya (v20, L.3961-3964): «No persigas el 45 % a
+  ciegas. Ese número lo escribimos nosotros en §VI.3 y quiero que lo contrastes con el ciclismo real».
+  Deuda anotada (v20 §5): «la enfermedad en carrera pesa la mitad de lo que pesa en la carretera».
+- **Información necesaria**: fragilidad y TSB (tiene, aunque `StageRider.fragility` **no llega al motor**,
+  límite anotado), y para la reacción: composición del equipo del día (tiene).
+- **Cómo se mediría**: bandas existentes de `abandonCauses`: **`illnessPct` 20-67 %** (medido 34 %) contra
+  **`crashPct` 30-67 %** (medido 62 %) — la deuda del dueño está en que §VI.3 pedía ~45 caída / ~50
+  enfermedad y sale **invertido** (62/34). Objetivo: **acercarse a 45/50/5 sin sacar `queenLastGroupPct` de
+  8-14 %**, que es justo lo que hizo fracasar el intento de v38-2.
+
+### [INCIDENTE-48] El que corre enfermo: molestias que van a más
+
+- **Cuándo**: días 14-18; el corredor sale «tocado» y se apaga a mitad de etapa.
+- **Quién decide**: él y el director (seguir o parar), día a día.
+- **Lo que pasa en carretera**: un corredor con anginas rinde un 10 % menos, se descuelga antes, y
+  normalmente abandona dos días después, no el mismo día. Es una historia de tres días, no un dado.
+- **Lo que hace hoy el motor**: **AUSENTE en la práctica**. El estado `molestias` existe (enum, `mHealth`
+  0,96, se pinta en la UI) y —textual del mapa de entrenamiento— «**no lo produce ningún camino**». La
+  enfermedad en carrera es binaria e inmediata (enfermar = abandonar). Dentro de la etapa no hay ninguna
+  degradación progresiva por salud.
+- **Lo que dijo el dueño**: v14 (L.2039-2040): «Quiero que si un ciclista no puede más pues que **abandone
+  automáticamente**»; sobre la gradación, «—» (N3/G2.10 «lesiones con calendario» aceptada, pendiente).
+- **Información necesaria**: un estado de salud que evolucione entre etapas (existe la columna, falta el
+  camino), y su entrada en `eff0` (ya está: `mHealth`) y en el depósito (ya está).
+- **Cómo se mediría**: `sim/world.ts` (25 temporadas) + `grandTour`: **% de abandonos por enfermedad
+  precedidos por ≥ 1 día de `molestias`**. Banda propuesta: **50-80 %**. Justificación: da a la enfermedad
+  una curva narrativa observable en vez de un dado, sin tocar la tasa total (que tiene banda del dueño).
+
+### [INCIDENTE-49] El humano decide retirarse entre etapas
+
+- **Cuándo**: entre dos etapas, con el corredor del jugador roto o sin objetivo.
+- **Quién decide**: el jugador humano.
+- **Lo que pasa en carretera**: se baja, y su equipo pierde un hombre; en un juego, además, tiene coste
+  reputacional y de moral.
+- **Lo que hace hoy el motor**: **CUBIERTO en producto, sin consecuencias**. `retireFromRace`
+  (`db/riderSchedule.ts` l. 258) con botón en `My Rider → My races` y confirmación;
+  `abandonedReason: 'voluntario'` en `race_rosters`. No hay coste: ni moral, ni `team_trust`, ni efecto en
+  convocatorias.
+- **Lo que dijo el dueño**: v14 §V.5 (L.2039-2040): «e incluso **dejarle a un humano entre una etapa y otra
+  decidir abandonar**».
+- **Información necesaria**: nada nuevo en el motor; es capa de mundo (G2.4 disciplina, G2.11 moral).
+- **Cómo se mediría**: no es banda de carretera. Métrica de mundo sobre `sim/world.ts`: **% de retiradas
+  voluntarias de bots** (hoy 0 por construcción) y, cuando existan consecuencias, **caída media de
+  `teamTrust`**. Banda propuesta: retirada voluntaria **≤ 2 % de las participaciones**, para que no se
+  convierta en la estrategia dominante de gestión de forma.
+
+### [INCIDENTE-50] Neutralización: la carrera se para
+
+- **Cuándo**: paso a nivel, manifestación, accidente en la carretera, tormenta de granizo, niebla en el
+  puerto. Ocurre pocas veces por temporada, pero cuando ocurre define la carrera.
+- **Quién decide**: la organización/jurado. Los equipos solo deciden **qué hacen con la ventaja**
+  (protestar, aceptar, aprovechar el descanso).
+- **Lo que pasa en carretera**: se congelan las diferencias en un punto y se vuelve a lanzar la carrera, o
+  se anula la etapa, o se toman los tiempos en un punto intermedio. Efecto táctico: la fuga que iba a 3
+  minutos se queda con 3 minutos garantizados; el que iba cortado, salvado.
+- **Lo que hace hoy el motor**: **AUSENTE**. Grep de `neutraliz` solo devuelve la velocidad inicial tras la
+  «salida neutralizada» (`initialSpeed` 35). No hay forma de congelar relojes ni de tomar tiempos en un
+  punto intermedio.
+- **Lo que dijo el dueño**: «—».
+- **Información necesaria**: relojes de todos los grupos en un km dado (los tiene), y una regla de
+  reasignación de tiempos. Es barato de implementar y muy rentable narrativamente; el riesgo es que
+  invalide huellas selladas, así que tendría que ser un suceso raro y sembrado por su propio subflujo
+  (`hazard`/`day`).
+- **Cómo se mediría**: `sim/grandTour.ts`: **frecuencia de etapas neutralizadas**. Banda propuesta:
+  **0,5-2 % de las etapas** (una cada dos o tres grandes vueltas). Justificación: por encima de eso deja de
+  ser un suceso y empieza a ser una excusa para que la carrera no se decida.
+
+### [INCIDENTE-51] Etapa acortada o recorrido cambiado (nieve, peligro)
+
+- **Cuándo**: la víspera o la misma mañana; se quita el puerto de 2.700 m por nieve, se recorta a 100 km.
+- **Quién decide**: la organización; los equipos rehacen el plan del día entero.
+- **Lo que pasa en carretera**: una reina de 4.500 m se convierte en una media montaña y todos los planes
+  cambian: el escalador pierde su día, el grupeto respira, el corte se mueve (el corte depende del
+  desnivel: `timeCutFraction(elevationGainPerKm)`).
+- **Lo que hace hoy el motor**: **AUSENTE**. El perfil de la etapa es fijo, y ni la previsión ni el clima
+  del día lo tocan. Nótese que la maquinaria del corte ya es sensible al desnivel, o sea que un recorte
+  entraría bien.
+- **Lo que dijo el dueño**: «—»; el marco es v42 («el clima… con eso tomar diferentes decisiones») y G6
+  («el generador es una basura»).
+- **Información necesaria**: temperatura y altitud del perfil (tiene la primera; la altitud absoluta no,
+  solo pendientes), y una regla de recorte anunciada con antelación para que el jugador reordene.
+- **Cómo se mediría**: **≤ 1 % de las etapas de alta montaña** modificadas, y comprobación de que el corte
+  recalculado sigue dando `queenLastGroupPct` dentro de **8-14 %**.
+
+### [INCIDENTE-52] Salida neutralizada y kilómetro 0
+
+- **Cuándo**: los primeros minutos, antes de la bandera.
+- **Quién decide**: la organización (largo de neutralizado) y los equipos (colocarse para el km 0).
+- **Lo que pasa en carretera**: la carrera empieza de verdad en el km 0 y los primeros 20 minutos son los
+  más violentos del día: ahí se decide la fuga. Un neutralizado largo y un pelotón nervioso producen
+  ataques desde el metro uno; una salida cuesta arriba produce fugas distintas.
+- **Lo que hace hoy el motor**: **PARCIAL**. `initialSpeed` 35 km/h representa el arranque, y
+  `tacticSettleKm` 5 (v33) hace que λ suba desde cero: «corridas que atacan antes del km 1: 69,5 % → 12 %».
+  Pero (a) el neutralizado no existe como tramo, (b) no hay caídas ni percances antes del km 0 (que es
+  cuando se producen los peores sustos reales), y (c) el prólogo de nervios no cambia con el terreno de
+  salida.
+- **Lo que dijo el dueño**: v33 (L.6631): «**siempre se intenta una fuga en el primer km, lo cual está
+  mal**» (resuelto), con el matiz que él mismo puso: «Que las fugas salgan del disparo es verdad y no se
+  toca».
+- **Información necesaria**: terreno de los primeros km (tiene), nº de aspirantes a la fuga (tiene vía
+  `breakAppeal` y apetitos).
+- **Cómo se mediría**: ya vigilado por `analyzeVariety` (`sim/tactics.ts`): **% de etapas con ataque antes
+  del km 1** — banda de facto **≤ 15 %** (v33 dejó 12 %). Métrica añadida: **% de percances en los
+  primeros 10 km** — banda propuesta **10-20 % del total de la etapa**, que es donde se concentran de
+  verdad.
+
+---
+
+## Cierre: los cinco enganches que faltan (resumen para el fundidor)
+
+Las 52 situaciones de esta lente se apoyan en cinco piezas que hoy **no existen** y que, si se construyen,
+resuelven bloques enteros de una vez:
+
+1. **El SUCESO como entrada de decisión.** Hoy una caída solo mueve `tS`, `hurt` y `mishapKm`, y solo D-13
+   lo lee. Hace falta que el pelotón, los equipos y la táctica **vean** que ha pasado algo y a quién
+   (INCIDENTE-01, 02, 07, 08, 15, 37).
+2. **El pinchazo y la avería**, con su **coche de equipo** (tiempo de asistencia por situación). El enchufe
+   ya está escrito en el código (`mishapKm`, «cuando exista el pinchazo, marca ahí»), y desbloquea de golpe
+   la crono, la regla del favorito de v37 y el carácter del pavé (INCIDENTE-16 a 23, 13, 45).
+3. **El clima como entrada TÁCTICA**, no solo como coste. `lluvia` y `calor` existen y ninguna decisión los
+   lee; el `frío` ni siquiera existe (INCIDENTE-30 a 36). Y `abanicoAbierto` que se cierre (INCIDENTE-27).
+4. **El corte de tiempo conocido en carretera.** `timeCutFraction` ya está en `abandon.ts` y solo se usa en
+   meta; ponerlo en manos del grupeto convierte una física en un pacto (INCIDENTE-41, 42, 43, 44).
+5. **La memoria de un día para otro** (quién se cayó ayer, quién abandonó, qué objetivos quedan): sin ella
+   no hay «el equipo cambia de plan» ni consecuencia de la enfermedad (INCIDENTE-46, 47, 48).
