@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { RIDER_LINK_CLASS } from './RiderName'
 import type {
   JerseyKind,
   RaceRadio,
@@ -157,7 +158,12 @@ function motiveLabel(motivo: string, para: string | null): string | undefined {
       // v58: ir por delante del grueso no es ir escapado. El dueño, viendo el grupo del maillot ir
       // a por un escapado: «esto no es una escapada, es el grupo del maillot intentando alcanzar
       // al segundo». Aquí se dice lo que es: van a por alguien.
-      return para ? `chasing ${para} up the road` : 'chasing the man up the road'
+      //
+      // v59: y desde que un grupo de DETRÁS que rueda más fuerte que el grueso también es una
+      // persecución, la frase sin nombre no puede hablar de «the man up the road» —a quien persigue
+      // un grupeto que se ha puesto a tirar es al grupo entero—. «The group ahead» es verdad en los
+      // dos casos.
+      return para ? `chasing ${para} up the road` : 'chasing the group ahead'
     case 'grupeto':
       return 'just riding — this group is chasing nothing'
     case 'equipo_etapa':
@@ -198,20 +204,26 @@ function RiderLine({ r }: { r: RadioRider }) {
       {/* El nombre lleva a su ficha (v58): «cuando salga el nombre de un ciclista que tenga enlace
           a su ficha». Sin id —una etapa congelada de alguien que ya no está— se lee igual, sin
           enlace, que es mejor que un enlace roto. */}
-      <span className="truncate text-slate-700">
+      {/*
+        EL NOMBRE NO SE ENCOGE, EL MOTIVO SÍ (v59). El dueño: «en el grupo 3 los que tiran no se ve
+        su nombre». Y era cierto: el motivo llevaba `shrink-0`, así que en el pelotón —donde la
+        frase es larga, «his team's card for this finish: Bojan Kovacic»— toda la presión caía sobre
+        el nombre y salía «R… B…». En el grupo de cabeza no pasaba porque «working the break» es
+        corto, que es lo que hacía que pareciera cosa del grupo.
+        La prioridad es la de una tabla de carrera: primero quién, después para qué.
+      */}
+      <span className="max-w-[11rem] shrink-0 truncate text-slate-700">
         {r.id ? (
-          <Link to={`/world/riders/${r.id}`} className="hover:text-indigo-600 hover:underline">
+          <Link to={`/world/riders/${r.id}`} className={RIDER_LINK_CLASS}>
             {r.name}
           </Link>
         ) : (
           r.name
         )}
       </span>
-      {r.team && <span className="truncate text-[11px] text-slate-400">{r.team}</span>}
+      {r.team && <span className="min-w-0 truncate text-[11px] text-slate-400">{r.team}</span>}
       {motivo && (
-        <span className="ml-auto shrink-0 truncate text-[11px] text-slate-400 italic">
-          {motivo}
-        </span>
+        <span className="ml-auto min-w-0 truncate text-[11px] text-slate-400 italic">{motivo}</span>
       )}
     </li>
   )

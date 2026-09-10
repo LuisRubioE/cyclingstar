@@ -33,6 +33,19 @@ const ONE_DAY_KEY = 'clasica-test:s0'
 const TIE_KEY = 'vuelta-test:s0'
 const FIELD = 30
 
+/**
+ * IDENTIFICADORES FIJOS, Y NO SOLO DORSALES. El dorsal arregla el ORDEN de entrada al motor, pero no
+ * los DESEMPATES: `stage/simulate.ts` rompe los empates comparando el id del corredor
+ * (`a.input.riderId < b.input.riderId`, líneas 2282 y 4131), que aquí es un UUID que Postgres
+ * sortea nuevo en cada corrida. Con la misma semilla y el mismo campo, dos corridas resolvían los
+ * empates al revés y contaban carreras distintas: casi siempre igual, y de vez en cuando con un
+ * abandono de más. Eso es lo que ponía roja esta prueba en la CI mientras pasaba en local. En
+ * producción los ids son estables dentro de un mundo, así que la reproducibilidad de verdad no
+ * dependía de esto; la de la prueba sí. Se fijan en orden ascendente para que el desempate coincida
+ * con el del dorsal.
+ */
+const idDe = (i: number) => `00000000-0000-4000-8000-${String(i).padStart(12, '0')}`
+
 async function seedWorld(t: TestDb): Promise<{ worldId: string; riderIds: string[] }> {
   const [world] = await t.db
     .insert(worlds)
@@ -55,6 +68,7 @@ async function seedWorld(t: TestDb): Promise<{ worldId: string; riderIds: string
     .insert(riders)
     .values(
       Array.from({ length: FIELD }, (_, i) => ({
+        id: idDe(i),
         worldId,
         teamId: team!.id,
         name: `Corredor ${i}`,

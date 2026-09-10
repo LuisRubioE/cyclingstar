@@ -1,7 +1,7 @@
 import { JERSEY_PRIORITY, type StageReplay } from '@cyclingstar/shared'
 import { Flag } from './Flag'
 import { LeaderJersey, RiderJersey } from './Jersey'
-import { RiderName } from './RiderName'
+import { RIDER_LINK_CLASS, RiderName } from './RiderName'
 import { Link } from 'react-router-dom'
 import { chronicleParts, timeTrialStory } from '../domain/stageJournal'
 import { formatTime } from '../domain/format'
@@ -124,7 +124,7 @@ export function StageStory({
                       <Link
                         key={j}
                         to={`/world/riders/${part.riderId}`}
-                        className="hover:text-indigo-600 hover:underline"
+                        className={RIDER_LINK_CLASS}
                       >
                         {part.text}
                       </Link>

@@ -9479,17 +9479,40 @@ No era el grupo: eran cinco hombres recién absorbidos que llegaban con la etiqu
 
 > «¿qué me dices de este tercer grupo que va a 94 km/h cuando están _just riding_?» · «los que pierden en montaña 5 minutos luego se reintegran demasiado fácil»
 
-Son la misma cosa. El corredor que entra en un grupo adopta el reloj de ese grupo, así que la puerta del pelotón (22 s) era también un REGALO: el que entraba con veintidós segundos se los comía de golpe, y la radio —que mide la velocidad por la diferencia de relojes— lo enseñaba como un número absurdo.
+La hipótesis de partida fue que eran la misma cosa. El corredor que entra en un grupo adopta el reloj de ese grupo, así que la puerta del pelotón (22 s) parecía también un REGALO: el que entraba con veintidós segundos se los comía de golpe, y la radio —que mide la velocidad por la diferencia de relojes— lo enseñaba como un número absurdo.
 
-**Medido** sobre un Giro entero buscando kilómetros hechos a más de 120 km/h, con el grupo de origen y el de destino de cada caso:
+**Medido** sobre un Giro entero buscando kilómetros hechos a más de 120 km/h, con el grupo de origen y el de destino de cada caso, y estrechando la puerta a 5 s:
 
-| kilómetros imposibles en un Giro |                          antes |    después |
-| -------------------------------- | -----------------------------: | ---------: |
-| casos                            |                            192 |     **11** |
-| peor caso                        |                           23 s |          — |
-| de dónde salían                  | `shed-N -> peloton`, **todos** | ya ninguno |
+| kilómetros imposibles en un Giro |                          antes | con la puerta en 5 s |
+| -------------------------------- | -----------------------------: | -------------------: |
+| casos                            |                            192 |               **11** |
+| peor caso                        |                           23 s |                    — |
+| de dónde salían                  | `shed-N -> peloton`, **todos** |           ya ninguno |
 
-La puerta del reenganche pasa a tener su propia constante (`rejoinGapSeconds` = 5 s, el mismo listón con el que dos grupos se consideran capturados). Los 22 s siguen siendo lo que separa a un grupo de otro para todo lo demás —el rescate del jefe, el aviso de reagrupamiento—; lo que ya no son es un atajo.
+Los números acompañaban. **Y aun así la hipótesis era falsa**, y eso es lo que hay que leer de esta entrada.
+
+La puerta del reenganche pasa a tener su propia constante (`rejoinGapSeconds`), separada de `regroupGapSeconds` —que sigue siendo lo que distingue a un grupo de otro para todo lo demás: el rescate del jefe, el aviso de reagrupamiento—.
+
+#### Y la medida REFUTÓ la mitad de este diagnóstico, que es lo que hay que contar
+
+La puerta se estrechó a **5 s** y el banco del adoquín lo tiró. En ese campo —treinta hombres que solo se distinguen en PAV— el PAV mediano del ganador se movía así:
+
+| puerta del reenganche | PAV mediano del ganador                            |
+| --------------------: | -------------------------------------------------- |
+|              **22 s** | **69** (el listón que fijó el dueño: «pave 69 ok») |
+|                  12 s | 68                                                 |
+|                   8 s | 68                                                 |
+|                   5 s | 67                                                 |
+
+Esa puerta no era solo un regalo de reloj: **era el mecanismo por el que el fuerte vuelve**, y en el adoquín el que vuelve es justamente el adoquinero. Estrecharla le quitaba al modelo la recuperación del que tiene piernas.
+
+Y revisado el argumento, estaba peor planteado de lo que parecía: en ciclismo, el que vuelve al pelotón **cruza la meta con él**, así que heredar el reloj del grupo al reengancharse es lo correcto; y veintidós segundos son más o menos lo que se estira un pelotón de ciento setenta y seis de punta a cola.
+
+Así que `rejoinGapSeconds` **se queda en 22** —hoy el mismo valor que `regroupGapSeconds`, pero ya con vida propia y con las dos medidas escritas dentro, para que el próximo que quiera estrecharla sepa lo que cuesta—.
+
+Lo que sí era un defecto de verdad, los 94,9 km/h, **vive en la radio y se arregla ahí**: un corredor que acaba de cambiar de grupo trae un reloj que no es una velocidad. También aquí costó dos intentos: excluir a todo el que cambia de grupo rompió tres pruebas selladas —un grupo que se FUNDE con otro sí ha cubierto ese kilómetro—, así que lo que se descarta es el DATO imposible y no la persona: por encima de `radioMaxKmh` (85) no hay un ciclista rápido, hay aritmética de otro grupo.
+
+**Y queda abierto lo que el dueño dijo en la otra mitad de la frase**: «los que pierden en montaña cinco minutos se reintegran demasiado fácil». La puerta no era la causa, así que sigue sin resolverse; lo que se sabe ahora es dónde NO está.
 
 ### 7. Y el límite de la v56, medido antes de tocarlo
 
