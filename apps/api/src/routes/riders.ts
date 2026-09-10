@@ -41,7 +41,6 @@ import {
   birthSeasonForAge,
   currentSeason,
   isKnownCountry,
-  resolveCountry,
 } from '@cyclingstar/shared'
 import { z } from 'zod'
 import { badRequest, notFound, sendError, unauthorized } from '../http.js'
@@ -96,47 +95,6 @@ const putRacePrefSchema = z.object({ raceId: z.string().min(1).max(80), wanted: 
  */
 export const riderRoutes: RoutePlugin = async (app, ctx) => {
   const { db, currentUserId } = ctx
-
-  /**
-   * PAÍS POR IP (Paso 14). Tras Cloudflare llega en `CF-IPCountry`, pero ése no es el único sitio:
-   * cada capa de red delante pone la suya, y con una sola cabecera cualquier despliegue que no esté
-   * exactamente detrás de Cloudflare devuelve `null` y deja al jugador sin país.
-   *
-   * `XX` es lo que Cloudflare manda cuando NO sabe de dónde viene (y `T1` para la red Tor): no es un
-   * país, así que no se resuelve —si se dejara pasar, el fallback lo convertiría en Francia—.
-   */
-  app.get('/api/geo/country', (request) => {
-    const CABECERAS = [
-      'cf-ipcountry',
-      'x-vercel-ip-country',
-      'x-geo-country',
-      'x-country-code',
-      'fastly-client-country',
-    ] as const
-    let code: string | null = null
-    let fuente: string | null = null
-    /**
-     * …Y SE CUENTA QUÉ SE HA VISTO (v58). El dueño siguió viendo el mensaje del país después del
-     * arreglo, ahora desde Portugal, y pidió que la pantalla diga qué país cree que es. Sin esto la
-     * respuesta es un `null` mudo y no hay forma de saber si el despliegue no pone la cabecera, si
-     * la pone con `XX`, o si la pone bien y quien falla es lo de después.
-     *
-     * Se devuelven SOLO las cabeceras de geolocalización, con su nombre y su valor. Ninguna de ellas
-     * identifica a nadie —son un código de país de dos letras—, así que esto no expone al que mira.
-     */
-    const vistas: Record<string, string> = {}
-    for (const nombre of CABECERAS) {
-      const raw = request.headers[nombre]
-      const valor = typeof raw === 'string' ? raw.toUpperCase().trim() : null
-      if (valor) vistas[nombre] = valor
-      if (valor && valor.length === 2 && valor !== 'XX' && valor !== 'T1' && code === null) {
-        code = valor
-        fuente = nombre
-      }
-    }
-    // Resuelve al país jugable: el propio si existe, si no su fallback más cercano (Vaticano→Italia…).
-    return { country: resolveCountry(code), detectado: code, fuente, cabeceras: vistas }
-  })
 
   // Generación de nombre (Paso 13/15): server-side, respeta la lista de bloqueo y evita
   // colisiones con corredores en activo del mundo (ni bots ni humanos repetidos).
