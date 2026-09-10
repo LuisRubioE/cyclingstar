@@ -16,94 +16,63 @@ import {
   riderSummaryResponseSchema,
   upcomingRacesResponseSchema,
 } from '@cyclingstar/shared'
-import { z } from 'zod'
 import { request, requestOptionalAuth } from './request'
 
 export type { GeneratedName, RetireFromRaceResponse, RiderSummary, UpcomingRace }
 
-/** Lo que ipwho.is devuelve y nos interesa (validado igual que cualquier otro borde de entrada). */
-const ipWhoIsSchema = z.object({
-  success: z.boolean().optional(),
-  country_code: z.string().optional(),
-})
-
 /**
  * País preseleccionado por geolocalización de IP (Paso 14, SPEC 3.6).
  *
- * ⚠️ RIESGO CONOCIDO (funcionalidad de producto, se mantiene a propósito): el segundo intento
- * llama desde el NAVEGADOR a un tercero (https://ipwho.is), lo que implica:
- *  - Privacidad: la IP del jugador llega a un servicio externo sobre el que no tenemos control ni
- *    acuerdo de tratamiento. No persistimos nada, pero el tercero sí puede.
- *  - Disponibilidad: si el servicio cae, cambia de formato o mete rate-limit, esto falla.
- *  - CSP: cualquier `connect-src` restrictivo (o un bloqueador de anuncios) corta la petición.
- * Por eso TODO fallo es silencioso: se devuelve null y el selector de país queda editable, que es
- * el comportamiento correcto. Alternativa futura: resolver el país solo en el servidor (cabecera
- * CF-IPCountry o una base GeoIP propia) y eliminar la llamada del navegador.
+ * TODO lo hace el SERVIDOR (`/api/geo/country`). Antes había aquí una segunda vía que llamaba desde
+ * el NAVEGADOR a `https://ipwho.is`, y en producción no funcionaba nunca: nuestra propia CSP
+ * declara `connect-src 'self'`, así que el navegador cortaba la llamada antes de que saliera y el
+ * jugador leía «ipwho.is: Failed to fetch». Un bloqueador de anuncios habría hecho lo mismo. Desde
+ * el servidor no hay CSP que valga y la web no necesita hablar con nadie más que con nosotros
+ * (misma solución que usa el repositorio HIS, donde esto no falla).
+ *
+ * Si el servidor tampoco lo sabe se devuelve `country: null` y el selector de país queda editable,
+ * que es el comportamiento correcto: no es un error, es «no lo sé».
  */
 /**
  * Lo que la detección ha visto, para poder decirlo en pantalla. El dueño, después del arreglo:
  * «sigue saliéndome esto… ahora con IP de Portugal… puedes poner que diga: Your country: … y que
  * diga cuál es tu country según la IP». Sin esto, «no te he detectado» es un callejón sin salida:
  * no se sabe si el despliegue no pone cabecera, si la pone en blanco, o si el que falla es el
- * tercero del navegador.
+ * servicio de geolocalización.
  */
 export interface GeoDiagnosis {
   /** País jugable resuelto, o null si no se ha podido. */
   country: string | null
-  /** De dónde salió: la cabecera del servidor o la API pública del navegador. */
-  via: 'cabecera' | 'navegador' | null
+  /** De dónde salió: la cabecera de la red de delante o el servicio de geolocalización por IP. */
+  via: 'cabecera' | 'servidor' | null
   /** Texto corto para la pantalla, ya legible. */
   detalle: string
 }
 
 export async function fetchGeoCountry(): Promise<GeoDiagnosis> {
-  const notas: string[] = []
-
-  // 1) Cabecera del servidor (CF-IPCountry) si existe.
   try {
     const data = await request('/api/geo/country', geoCountryResponseSchema)
     const cabeceras = data.cabeceras ?? {}
     const listadas = Object.entries(cabeceras)
       .map(([k, v]) => `${k}=${v}`)
       .join(', ')
-    notas.push(`server: ${listadas === '' ? 'no geo headers' : listadas}`)
     if (data.country) {
+      // `fuente` es el nombre de la cabecera que acertó, o el del servicio que respondió.
+      const porCabecera = listadas !== '' && data.fuente != null && data.fuente in cabeceras
       return {
         country: resolveCountry(data.country),
-        via: 'cabecera',
-        detalle: `${data.fuente ?? 'header'}=${data.detectado ?? '?'} → ${data.country}`,
+        via: porCabecera ? 'cabecera' : 'servidor',
+        detalle: `${data.fuente ?? 'ip'}=${data.detectado ?? '?'} → ${data.country}`,
       }
     }
+    const notas = listadas === '' ? 'no geo headers' : listadas
+    return { country: null, via: null, detalle: `server: ${notas} · ip lookup: no country` }
   } catch (err) {
-    notas.push(`server: ${err instanceof Error ? err.message : 'failed'}`)
-  }
-
-  // 2) API pública de geolocalización por IP, desde el navegador (ver aviso de arriba).
-  try {
-    const res = await fetch('https://ipwho.is/?fields=success,country_code')
-    if (!res.ok) {
-      notas.push(`ipwho.is: HTTP ${res.status}`)
-      return { country: null, via: null, detalle: notas.join(' · ') }
-    }
-    const parsed = ipWhoIsSchema.safeParse(await res.json())
-    if (!parsed.success) {
-      notas.push('ipwho.is: unexpected response')
-      return { country: null, via: null, detalle: notas.join(' · ') }
-    }
-    const data = parsed.data
-    if (data.success === false || !data.country_code) {
-      notas.push('ipwho.is: no country')
-      return { country: null, via: null, detalle: notas.join(' · ') }
-    }
-    const code = data.country_code.toUpperCase()
     return {
-      country: resolveCountry(code),
-      via: 'navegador',
-      detalle: `ipwho.is=${code} → ${resolveCountry(code) ?? '?'} · ${notas.join(' · ')}`,
+      country: null,
+      via: null,
+      detalle: `server: ${err instanceof Error ? err.message : 'failed'}`,
     }
-  } catch (err) {
-    notas.push(`ipwho.is: ${err instanceof Error ? err.message : 'blocked'}`)
-    return { country: null, via: null, detalle: notas.join(' · ') }
   }
 }
 
