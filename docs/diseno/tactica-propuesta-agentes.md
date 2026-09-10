@@ -52,14 +52,14 @@ metros se queda; todo lo que decide la intención se rehace.
 
 ### 1.1 Las seis capas, y en cuál se trabaja
 
-| Capa                     | Qué es                                                                                                  | Ficheros de hoy                                                          | Qué pasa con ella                                                    |
-| ------------------------ | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ | -------------------------------------------------------------------- |
-| **L0 · Física**          | vatios→velocidad, rebufo, depósito, erosión, cerillos, reserva, deriva, caídas, ley de la crono          | `physics.ts` (778 l.), `abandon.ts`, `crash`, `timetrial.ts` (569 l.)     | **INTACTA.** Ni una línea.                                           |
-| **L1 · Grupos**          | el grupo como reloj, `advanceGroup`, fusión, captura, `mainGroupId`, histéresis 1,25                     | `group.ts` (227 l.)                                                       | **Casi intacta**: gana `posición por bandas` y `mainId` de referencia |
-| **L2 · Percepción**      | qué ve cada agente, con qué retardo y con qué error                                                      | **no existe**                                                             | **NUEVA** (`stage/perception.ts`)                                    |
-| **L3 · Agente**          | intenciones, utilidad, compromiso, histéresis                                                            | `tactics.ts` (855 l.), `marcaje.ts` (45 l.), trozos de `simulate.ts`      | **REHECHA** (`stage/agent.ts` + `stage/intents/*.ts`)                |
-| **L4 · Equipo**          | estructura, papeles, cupos, arbitraje, frente                                                            | `teamPlan.ts` (566 l.), `chase.ts` (129 l.), `autoOrders.ts`, `callups.ts` | **REHECHA** (`stage/team.ts`, `world/structure.ts`)                  |
-| **L5 · Carretera+relato**| aplicar las acciones resueltas a los grupos, emitir eventos                                              | `simulate.ts` (6.539 l.), `journal`                                       | **ADELGAZA**: pasa de decidir a ejecutar                              |
+| Capa                      | Qué es                                                                                          | Ficheros de hoy                                                            | Qué pasa con ella                                                     |
+| ------------------------- | ----------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| **L0 · Física**           | vatios→velocidad, rebufo, depósito, erosión, cerillos, reserva, deriva, caídas, ley de la crono | `physics.ts` (778 l.), `abandon.ts`, `crash`, `timetrial.ts` (569 l.)      | **INTACTA.** Ni una línea.                                            |
+| **L1 · Grupos**           | el grupo como reloj, `advanceGroup`, fusión, captura, `mainGroupId`, histéresis 1,25            | `group.ts` (227 l.)                                                        | **Casi intacta**: gana `posición por bandas` y `mainId` de referencia |
+| **L2 · Percepción**       | qué ve cada agente, con qué retardo y con qué error                                             | **no existe**                                                              | **NUEVA** (`stage/perception.ts`)                                     |
+| **L3 · Agente**           | intenciones, utilidad, compromiso, histéresis                                                   | `tactics.ts` (855 l.), `marcaje.ts` (45 l.), trozos de `simulate.ts`       | **REHECHA** (`stage/agent.ts` + `stage/intents/*.ts`)                 |
+| **L4 · Equipo**           | estructura, papeles, cupos, arbitraje, frente                                                   | `teamPlan.ts` (566 l.), `chase.ts` (129 l.), `autoOrders.ts`, `callups.ts` | **REHECHA** (`stage/team.ts`, `world/structure.ts`)                   |
+| **L5 · Carretera+relato** | aplicar las acciones resueltas a los grupos, emitir eventos                                     | `simulate.ts` (6.539 l.), `journal`                                        | **ADELGAZA**: pasa de decidir a ejecutar                              |
 
 ### 1.2 Qué NO se toca, y por qué
 
@@ -162,22 +162,22 @@ Este es el vocabulario completo de lo que un corredor puede querer hacer. **No h
 si una situación del catálogo no cabe en estas catorce, o es física (L0/L1) o es del árbitro de equipo
 (§2.6). Cada una lleva su duración mínima de partida y sus invalidadores.
 
-| #   | Intención     | Qué es                                                       | Mín. km | Coste                          | Invalidadores                             | Racimos                |
-| --- | ------------- | ------------------------------------------------------------ | ------- | ------------------------------ | ----------------------------------------- | ---------------------- |
-| 1   | `relevar`     | dar la cara en el turno de su grupo                          | 1,5     | trabajo al frente              | cambio de grupo · turno cumplido          | R18, R20, R02          |
-| 2   | `esconderse`  | ir a rueda y no entrar al turno                              | 2       | 0                              | cambio de grupo · orden del árbitro       | R18, R20, R09          |
-| 3   | `atacar`      | abrir un movimiento                                          | 3       | 1 cerillo + `tacticAttackCost` | boquete < 2 s · cazado                    | R19, R02, R03          |
-| 4   | `saltar`      | seguir el ataque de otro                                     | 2       | 1 cerillo + 0,9                | no sostiene                               | R19, R24               |
-| 5   | `puentear`    | cruzar al grupo de delante                                   | 8       | 1 cerillo + 0,9                | caducado · alcanzado · absorbido          | R19, R03               |
-| 6   | `arropar`     | llevar y proteger a mi carta                                 | ∞       | acordeón evitado al jefe       | la carta se va o cae                      | R15, R21, R01          |
-| 7   | `colocar`     | subir de banda dentro del grupo (yo o mi carta)              | 4       | acordeón + cerillo si banda 4→1| llegó · punto pasado                      | R15, R16, R12          |
-| 8   | `marcar`      | vivir en la rueda de un rival concreto                       | 20      | pagar sus arreones             | el marcado sale del grupo · orden nueva   | R04, R05, R24          |
-| 9   | `esperar`     | dejarse caer a por un compañero / al caído                   | 5       | tiempo cedido                  | recogido · hueco > techo · 3 km           | R12, R11, R01          |
-| 10  | `rematar`     | disputar la meta: abrir, aguantar rueda o lanzar             | 3       | régimen de sprint              | fuera del grupo de cabeza                 | R16, R17               |
-| 11  | `disputar`    | ir a por una pancarta (volante o cima)                       | 2       | `bannerCost`                   | pancarta pasada                           | R06, R07, R05          |
-| 12  | `dosificar`   | administrar: grupeto, corte, mañana                          | ∞       | 0 (ahorra)                     | corte en riesgo · orden nueva             | R26, R08, R10          |
-| 13  | `cortar`      | romper la carrera: abrir el abanico o no cerrar el hueco     | 2       | trabajo al frente + colocación | carretera gira · cerrado                  | R15, R20               |
-| 14  | `pactar`      | negociar: tregua, alianza, trato en la fuga, parada          | 5       | reputación                     | rechazado · roto por el otro              | R09, R12, R18, R24     |
+| #   | Intención    | Qué es                                                   | Mín. km | Coste                           | Invalidadores                           | Racimos            |
+| --- | ------------ | -------------------------------------------------------- | ------- | ------------------------------- | --------------------------------------- | ------------------ |
+| 1   | `relevar`    | dar la cara en el turno de su grupo                      | 1,5     | trabajo al frente               | cambio de grupo · turno cumplido        | R18, R20, R02      |
+| 2   | `esconderse` | ir a rueda y no entrar al turno                          | 2       | 0                               | cambio de grupo · orden del árbitro     | R18, R20, R09      |
+| 3   | `atacar`     | abrir un movimiento                                      | 3       | 1 cerillo + `tacticAttackCost`  | boquete < 2 s · cazado                  | R19, R02, R03      |
+| 4   | `saltar`     | seguir el ataque de otro                                 | 2       | 1 cerillo + 0,9                 | no sostiene                             | R19, R24           |
+| 5   | `puentear`   | cruzar al grupo de delante                               | 8       | 1 cerillo + 0,9                 | caducado · alcanzado · absorbido        | R19, R03           |
+| 6   | `arropar`    | llevar y proteger a mi carta                             | ∞       | acordeón evitado al jefe        | la carta se va o cae                    | R15, R21, R01      |
+| 7   | `colocar`    | subir de banda dentro del grupo (yo o mi carta)          | 4       | acordeón + cerillo si banda 4→1 | llegó · punto pasado                    | R15, R16, R12      |
+| 8   | `marcar`     | vivir en la rueda de un rival concreto                   | 20      | pagar sus arreones              | el marcado sale del grupo · orden nueva | R04, R05, R24      |
+| 9   | `esperar`    | dejarse caer a por un compañero / al caído               | 5       | tiempo cedido                   | recogido · hueco > techo · 3 km         | R12, R11, R01      |
+| 10  | `rematar`    | disputar la meta: abrir, aguantar rueda o lanzar         | 3       | régimen de sprint               | fuera del grupo de cabeza               | R16, R17           |
+| 11  | `disputar`   | ir a por una pancarta (volante o cima)                   | 2       | `bannerCost`                    | pancarta pasada                         | R06, R07, R05      |
+| 12  | `dosificar`  | administrar: grupeto, corte, mañana                      | ∞       | 0 (ahorra)                      | corte en riesgo · orden nueva           | R26, R08, R10      |
+| 13  | `cortar`     | romper la carrera: abrir el abanico o no cerrar el hueco | 2       | trabajo al frente + colocación  | carretera gira · cerrado                | R15, R20           |
+| 14  | `pactar`     | negociar: tregua, alianza, trato en la fuga, parada      | 5       | reputación                      | rechazado · roto por el otro            | R09, R12, R18, R24 |
 
 Las cinco «caras» de hoy (`fuga`, `contraataque`, `puente`, `ataque_grupo`, `ataque_final`) **dejan de
 ser tipos de movimiento y pasan a ser el contexto en el que se evalúa `atacar`**: el mismo cálculo de
@@ -191,13 +191,13 @@ decisión del pelotón, y la etapa (`buildTeamPlans` una vez, línea ~1577, y po
 `purposes` quedan congelados el día entero: es lo que rompe S-200, S-190, S-197 y S-291). Se
 nombran y se reparten así:
 
-| Reloj                | Cada             | Quién                       | Qué se decide                                                                     | Coste |
-| -------------------- | ---------------- | --------------------------- | --------------------------------------------------------------------------------- | ----- |
-| **R1 · bloque**      | 100 m            | todos                       | ejecutar el compromiso; **reflejos** (§2.5)                                       | nulo  |
-| **R2 · agente**      | 1 km, escalonado | un décimo del campo por bloque | reevaluar la intención (§2.4)                                                 | alto  |
-| **R3 · equipo**      | 1 km             | los 22 árbitros             | cupos, frente, carta del día, rescate (§2.6)                                      | medio |
-| **R4 · fase/suceso** | al ocurrir       | los afectados               | invalidar compromisos y forzar R2 fuera de turno, **con retardo** (§3.4)          | medio |
-| **R5 · etapa**       | 1 vez            | equipo                      | estructura → papeles del día (§5)                                                 | nulo  |
+| Reloj                | Cada             | Quién                          | Qué se decide                                                            | Coste |
+| -------------------- | ---------------- | ------------------------------ | ------------------------------------------------------------------------ | ----- |
+| **R1 · bloque**      | 100 m            | todos                          | ejecutar el compromiso; **reflejos** (§2.5)                              | nulo  |
+| **R2 · agente**      | 1 km, escalonado | un décimo del campo por bloque | reevaluar la intención (§2.4)                                            | alto  |
+| **R3 · equipo**      | 1 km             | los 22 árbitros                | cupos, frente, carta del día, rescate (§2.6)                             | medio |
+| **R4 · fase/suceso** | al ocurrir       | los afectados                  | invalidar compromisos y forzar R2 fuera de turno, **con retardo** (§3.4) | medio |
+| **R5 · etapa**       | 1 vez            | equipo                         | estructura → papeles del día (§5)                                        | nulo  |
 
 **El escalonado determinista es la pieza clave y hay que explicarla.** Si los 176 agentes deciden en
 el mismo bloque pasan dos cosas malas: el coste se concentra (y el motor ya se frenó un 48 % en dos
@@ -282,11 +282,11 @@ memoria de quién acaba de tirar, sin relevo hacia atrás y sin duración»).
 Tres cosas no pueden esperar al tick del kilómetro, y las tres son respuestas, no iniciativas. Son
 **baratas** porque no evalúan las catorce intenciones: son una comparación y un dado.
 
-| Reflejo                | Disparador                                          | Resuelve con                                              | Situaciones      |
-| ---------------------- | --------------------------------------------------- | --------------------------------------------------------- | ---------------- |
-| **responder al ataque**| alguien de mi grupo abre                            | `followProbability` de hoy + `wheelProbability` si le marco| S-276, S-321     |
-| **cerrar el hueco**    | la rueda de delante abre > `wheelGapReflexS` (1,5 s)| `sustainsJump` con mi perfil                              | S-490, S-460     |
-| **agarrarse**          | la deriva pasa `driftDropGapSeconds`                | `comesOff` de hoy (cerillo o reserva)                     | S-276, S-277     |
+| Reflejo                 | Disparador                                           | Resuelve con                                                | Situaciones  |
+| ----------------------- | ---------------------------------------------------- | ----------------------------------------------------------- | ------------ |
+| **responder al ataque** | alguien de mi grupo abre                             | `followProbability` de hoy + `wheelProbability` si le marco | S-276, S-321 |
+| **cerrar el hueco**     | la rueda de delante abre > `wheelGapReflexS` (1,5 s) | `sustainsJump` con mi perfil                                | S-490, S-460 |
+| **agarrarse**           | la deriva pasa `driftDropGapSeconds`                 | `comesOff` de hoy (cerillo o reserva)                       | S-276, S-277 |
 
 Los tres existen ya. Lo único que cambia: **el reflejo no crea compromiso**. Un corredor que salta a
 una rueda no ha decidido irse a la fuga; en su siguiente tick decidirá si se queda o se deja caer. Eso
@@ -302,16 +302,21 @@ regla de desempate: es un **mercado de cupos con un solo vendedor**.
 ```ts
 // packages/engine/src/stage/team.ts
 type ClaimKind =
-  | 'frente'        // llevar el frente del grupo (cupo 1 por equipo y grupo)
-  | 'fuga'          // estar en un movimiento por delante (cupo por estructura, §5)
-  | 'ataque'        // abrir un movimiento en este km (cupo 1 por equipo y grupo)
-  | 'marcaje'       // vivir en la rueda de un rival (cupo 2 por equipo)
-  | 'rescate'       // bajar a por un compañero (cupo n−1 por equipo)
-  | 'carta'         // ser el que remata (cupo 1 por grupo; 2 con doble baza declarada)
-  | 'lanzamiento'   // llevar a la carta (cupo 2 por carta)
-  | 'pancarta'      // disputar la volante o la cima (cupo 1 por equipo y pancarta)
+  | 'frente' // llevar el frente del grupo (cupo 1 por equipo y grupo)
+  | 'fuga' // estar en un movimiento por delante (cupo por estructura, §5)
+  | 'ataque' // abrir un movimiento en este km (cupo 1 por equipo y grupo)
+  | 'marcaje' // vivir en la rueda de un rival (cupo 2 por equipo)
+  | 'rescate' // bajar a por un compañero (cupo n−1 por equipo)
+  | 'carta' // ser el que remata (cupo 1 por grupo; 2 con doble baza declarada)
+  | 'lanzamiento' // llevar a la carta (cupo 2 por carta)
+  | 'pancarta' // disputar la volante o la cima (cupo 1 por equipo y pancarta)
 
-interface TeamClaim { kind: ClaimKind; riderId: string; sinceKm: number; untilKm: number }
+interface TeamClaim {
+  kind: ClaimKind
+  riderId: string
+  sinceKm: number
+  untilKm: number
+}
 ```
 
 El arbitraje corre en **R3, antes que los ticks de agente del mismo kilómetro**, y es puro:
@@ -386,11 +391,11 @@ implementa con un booleano (`rebelIds`) que tiene dos defectos medidos:
 
 El modelo nuevo tiene **tres grados**, no dos, y se declara por intención y no por corredor:
 
-| Grado         | Qué significa                                                              | Efecto en el arbitraje                                                 | Situaciones          |
-| ------------- | -------------------------------------------------------------------------- | ---------------------------------------------------------------------- | -------------------- |
-| `plan`        | el corredor acepta el reparto del equipo                                    | pide y recibe cupos; su utilidad lleva el empuje del plan               | por defecto          |
-| `exceptuado`  | va por libre **con permiso**: no trabaja, no recibe ayuda, no estorba       | **no pide cupos y no bloquea ninguno**; no puede pedir `frente`         | S-053, S-188, S-314  |
-| `rebelde`     | va por libre **sin permiso**                                                | igual que exceptuado + **coste de confianza** (R25)                     | S-057, S-113, S-058  |
+| Grado        | Qué significa                                                         | Efecto en el arbitraje                                          | Situaciones         |
+| ------------ | --------------------------------------------------------------------- | --------------------------------------------------------------- | ------------------- |
+| `plan`       | el corredor acepta el reparto del equipo                              | pide y recibe cupos; su utilidad lleva el empuje del plan       | por defecto         |
+| `exceptuado` | va por libre **con permiso**: no trabaja, no recibe ayuda, no estorba | **no pide cupos y no bloquea ninguno**; no puede pedir `frente` | S-053, S-188, S-314 |
+| `rebelde`    | va por libre **sin permiso**                                          | igual que exceptuado + **coste de confianza** (R25)             | S-057, S-113, S-058 |
 
 Y la precedencia se resuelve con una sola regla, que se puede escribir en una línea:
 
@@ -448,46 +453,53 @@ Exacto y sin retardo: es su cuerpo. Lo único que se le añade a lo de hoy es me
 interface SelfView {
   riderId: string
   teamId: string | null
-  standing: 'plan' | 'exceptuado' | 'rebelde'        // §2.8
+  standing: 'plan' | 'exceptuado' | 'rebelde' // §2.8
 
   // órdenes (§6)
-  role: StageRole; mentality: Mentality; effort: Effort
+  role: StageRole
+  mentality: Mentality
+  effort: Effort
   triggerKm: number | null
-  conditionals: Conditional[]                         // N1, §6.3
-  motives: Motive[]                                   // R05: montaña, puntos, joven, equipos…
+  conditionals: Conditional[] // N1, §6.3
+  motives: Motive[] // R05: montaña, puntos, joven, equipos…
 
   // cuerpo — todo esto existe ya en RiderSim
-  perfil: number                                      // efectivo en ESTE bloque
-  perfilFresco: number                                // el de eff0, para saber cuánto ha perdido
-  energyFraction: number                              // energy/energy0
+  perfil: number // efectivo en ESTE bloque
+  perfilFresco: number // el de eff0, para saber cuánto ha perdido
+  energyFraction: number // energy/energy0
   matches: number
   matchBoostS: number
-  reserveFraction: number                             // reserveS / reserveSeconds
+  reserveFraction: number // reserveS / reserveSeconds
   driftS: number
 
   // lo hecho hoy — hoy vive en `parte` y NADIE lo lee (mapa-simulate §1)
   kmAlFrente: number
   kmEnFuga: number
-  kmDesdeMiUltimoRelevo: number                       // ← S-492: el turno tiene orden
+  kmDesdeMiUltimoRelevo: number // ← S-492: el turno tiene orden
   cerillosGastados: number
   gastadoHastaKm: number
 
   // lo que se juega — R04, R05, R07
   gcDeficitSeconds: number
   gcRank: number | null
-  standings: Record<ClassificationId, Standing>       // ← S-035: general, puntos, montaña, joven, equipos
-  bonusAlcance: number                                // ← S-334: segundos de meta que puedo quitar hoy
+  standings: Record<ClassificationId, Standing> // ← S-035: general, puntos, montaña, joven, equipos
+  bonusAlcance: number // ← S-334: segundos de meta que puedo quitar hoy
 
   // memoria dentro de la etapa
   memory: RiderMemory
 }
 
 type ClassificationId = 'general' | 'puntos' | 'montaña' | 'joven' | 'equipos'
-interface Standing { rank: number; gap: number; leaderId: string | null; /** puntos o segundos */ unit: 'pts'|'s' }
+interface Standing {
+  rank: number
+  gap: number
+  leaderId: string | null
+  /** puntos o segundos */ unit: 'pts' | 's'
+}
 
 interface RiderMemory {
   /** A quién le debo un relevo hoy y a quién se lo negué (R09, R18). */
-  deudas: Map<string, number>            // riderId → puntos de deuda, [-3, +3]
+  deudas: Map<string, number> // riderId → puntos de deuda, [-3, +3]
   /** Intenciones adoptadas hoy, para no repetir la misma tres veces (anti-temblor y R23). */
   historial: { km: number; kind: IntentKind; targetId: string | null }[]
   /** Tregua/alianza/trato vigente y con quién (R09, R12, R18). */
@@ -505,33 +517,35 @@ interface GroupView {
   groupId: string
   kind: 'peloton' | 'cabeza' | 'movimiento' | 'grupeto'
   size: number
-  esElPeloton: boolean                       // group.id === mainId (ya existe)
+  esElPeloton: boolean // group.id === mainId (ya existe)
 
   // ───── EQUIPO: lo que hoy NO EXISTE en tactics.ts ─────
-  mates: MateView[]                          // compañeros presentes, sin mí
-  matesUpTheRoad: MateView[]                 // compañeros en grupos POR DELANTE ← R01
-  matesBehind: MateView[]                    // compañeros en grupos POR DETRÁS  ← R01
-  miCarta: string | null                     // quién es la carta de mi equipo EN ESTE GRUPO
+  mates: MateView[] // compañeros presentes, sin mí
+  matesUpTheRoad: MateView[] // compañeros en grupos POR DELANTE ← R01
+  matesBehind: MateView[] // compañeros en grupos POR DETRÁS  ← R01
+  miCarta: string | null // quién es la carta de mi equipo EN ESTE GRUPO
   miClaim: TeamClaim | null
 
   // ───── EL TURNO: hoy se rehace desde cero cada 100 m ─────
-  turno: { orden: string[]; alFrente: string; kmDeSuTurno: number }   // ← S-492
+  turno: { orden: string[]; alFrente: string; kmDeSuTurno: number } // ← S-492
   frontTeamId: string | null
-  equiposQueTiran: string[]                  // ← S-167: 2-3 equipos, no cinco
+  equiposQueTiran: string[] // ← S-167: 2-3 equipos, no cinco
 
   // ───── RIVALES ─────
-  rivals: RivalView[]                        // los `groupScanMax` más relevantes
-  mejorRematador: string                     // el peligro (ya existe como `mejorDelGrupo`)
-  miRankDeRemate: number                     // [0,1]
-  peligrosos: string[]                       // los que me quitan algo si llegan (R04, R05)
+  rivals: RivalView[] // los `groupScanMax` más relevantes
+  mejorRematador: string // el peligro (ya existe como `mejorDelGrupo`)
+  miRankDeRemate: number // [0,1]
+  peligrosos: string[] // los que me quitan algo si llegan (R04, R05)
 
   // ───── ESTADO SOCIAL: existe ─────
-  compromiso: number; coop: number; tension: number
+  compromiso: number
+  coop: number
+  tension: number
 
   // ───── POSICIÓN: no existe. R15 entero cuelga de esto ─────
-  miBanda: 1 | 2 | 3 | 4                     // cuartil de colocación
-  cabenDelante: number                       // `cabenEnFila` cuando hay viento; ancho si no
-  ruedaDeQuien: string | null                // ← S-490: de quién dependo en la fila
+  miBanda: 1 | 2 | 3 | 4 // cuartil de colocación
+  cabenDelante: number // `cabenEnFila` cuando hay viento; ancho si no
+  ruedaDeQuien: string | null // ← S-490: de quién dependo en la fila
 }
 
 interface MateView {
@@ -542,7 +556,7 @@ interface MateView {
   /** Frescura en TRES escalones, no un número: es lo que se ve de un compañero. */
   frescura: 'entero' | 'justo' | 'vacio'
   banda: 1 | 2 | 3 | 4
-  relojS: number                             // su tS, para saber cuánto por delante/detrás va
+  relojS: number // su tS, para saber cuánto por delante/detrás va
 }
 
 interface RivalView {
@@ -550,8 +564,8 @@ interface RivalView {
   teamId: string | null
   esCarta: boolean
   /** Cuánto me quita si llega: mezcla de remate, general y motivo (§4/R04). */
-  amenaza: number                            // [0,1]
-  señales: RivalSignals                      // ← S-488: lo que se VE, no lo que ES
+  amenaza: number // [0,1]
+  señales: RivalSignals // ← S-488: lo que se VE, no lo que ES
 }
 ```
 
@@ -594,11 +608,13 @@ no toca la física, solo lo que se lee.
 
 ```ts
 interface RaceView {
-  km: number; kmToGo: number; totalKm: number
-  phase: Phase                                  // ← R19, §4/R19
-  road: RoadView                                // el terreno que VIENE (el mapa se conoce)
-  format: RaceFormat                            // ← R28
-  board: Blackboard                             // ← lo demás: por radio, tarde y con error
+  km: number
+  kmToGo: number
+  totalKm: number
+  phase: Phase // ← R19, §4/R19
+  road: RoadView // el terreno que VIENE (el mapa se conoce)
+  format: RaceFormat // ← R28
+  board: Blackboard // ← lo demás: por radio, tarde y con error
 }
 
 interface Blackboard {
@@ -606,21 +622,21 @@ interface Blackboard {
   asOfKm: number
   groups: BoardGroup[]
   news: BoardNews[]
-  virtual: VirtualGc                            // ← R04, calculada sobre ESTA foto (o sea, mal)
+  virtual: VirtualGc // ← R04, calculada sobre ESTA foto (o sea, mal)
 }
 
 interface BoardGroup {
   id: string
-  size: number                                  // «unos veinte», redondeado
-  gapS: number                                  // redondeado y sesgado
+  size: number // «unos veinte», redondeado
+  gapS: number // redondeado y sesgado
   /** Composición CONOCIDA: los nombrados por radio, no la lista real. */
   conocidos: { riderId: string; teamId: string | null }[]
 }
 
 interface BoardNews {
   kind: 'caida' | 'pinchazo' | 'corte' | 'abanico' | 'ataque' | 'captura' | 'pancarta'
-  km: number                                    // cuándo pasó de verdad
-  riderIds: string[]                            // puede estar MAL (S-478)
+  km: number // cuándo pasó de verdad
+  riderIds: string[] // puede estar MAL (S-478)
   gravedad: 'leve' | 'grave' | 'desconocida'
   fiable: boolean
 }
@@ -673,13 +689,29 @@ Lo que hoy no existe es que alguien lo LEA para decidir (S-140, S-240, S-243, S-
 ```ts
 interface RoadView {
   /** El bloque de ahora. */
-  aqui: { tipo: 'llano'|'subida'|'bajada'; gradiente: number; pavesEstrellas: number; altitudM: number }
+  aqui: {
+    tipo: 'llano' | 'subida' | 'bajada'
+    gradiente: number
+    pavesEstrellas: number
+    altitudM: number
+  }
   /** Lo que viene, ordenado y con su distancia. Recalculado una vez por etapa. */
-  proximaCima: { km: number; categoria: 1|2|3|4|'HC'; puntos: number; bonif: number; altitudM: number } | null
+  proximaCima: {
+    km: number
+    categoria: 1 | 2 | 3 | 4 | 'HC'
+    puntos: number
+    bonif: number
+    altitudM: number
+  } | null
   proximaVolante: { km: number; puntos: number; bonif: number } | null
-  proximoSector: { km: number; tipo: 'pave'|'tierra'; estrellas: number; longitudKm: number } | null
-  proximoTramoExpuesto: { km: number; longitudKm: number } | null      // ← S-243, viento
-  ultimaCima: { km: number; kmAMeta: number } | null                   // ← S-486, S-289
+  proximoSector: {
+    km: number
+    tipo: 'pave' | 'tierra'
+    estrellas: number
+    longitudKm: number
+  } | null
+  proximoTramoExpuesto: { km: number; longitudKm: number } | null // ← S-243, viento
+  ultimaCima: { km: number; kmAMeta: number } | null // ← S-486, S-289
   /** Sinuosidad del trazado [0,1]: cuánto cuesta cazar aquí. ← S-493 */
   sinuosidad: number
   /** Tipo de final PREVISTO (el real se calcula por grupo, R17). */
@@ -699,15 +731,15 @@ multiplica el coste de cerrar y reduce la ventaja de número.
 
 Es la tabla de `mapa-simulate-decisiones.md` §5 con la columna de después. Solo las filas que cambian.
 
-| Decisión                          | Equipo (hoy → después)                  | General (hoy → después)          | Compañeros (hoy → después)    | Rivales (hoy → después)              | Delante/detrás (hoy → después)     |
-| --------------------------------- | --------------------------------------- | -------------------------------- | ----------------------------- | ------------------------------------ | ---------------------------------- |
-| `atacar` (D-22 `attemptFrom`)     | escalar → **estructura, cupo, mates**   | `gcDefence` → **general virtual**| solo si marca → **lista**     | `finishScore` rel. → **amenaza+señales** | no → **pizarra**              |
-| `relevar` (D-01/02 `relayTurn`)   | empuje → **cupo + turno con orden**     | `gcRank===1` → **standings**     | arropo → **lista + deudas**   | mejor remate → **amenaza**           | vía banderas → **pizarra**         |
-| `rematar` (`finishStage`)         | `leadOutFor` → **cupo `carta`**         | no → **bonificaciones (S-334)**  | no → **lista + cupo**         | mismo grupo → **mismo grupo**        | — → —                              |
-| cuerda (`pelotonAllows`)          | no → **voto por equipos (R03)**         | déficit → **general virtual**    | no → **representación**       | no → **composición conocida**        | no → **pizarra**                   |
-| criba (`shatter`)                 | no → no                                 | no → no                          | no → **el bajador (S-465)**   | no → no                              | no → no                            |
-| grupeto (D-41)                    | no → **capo y cupo**                    | no → no                          | rendidos → **lista**          | no → **pacto entre rivales**         | `peloton` fijo → **`mainId`**      |
-| meta volante / cima               | no → **cupo `pancarta`**                | no → **standings del motivo**    | no → **lista**                | no → **rival de la clasificación**   | grupo de cabeza → **todos**        |
+| Decisión                        | Equipo (hoy → después)                | General (hoy → después)           | Compañeros (hoy → después)  | Rivales (hoy → después)                  | Delante/detrás (hoy → después) |
+| ------------------------------- | ------------------------------------- | --------------------------------- | --------------------------- | ---------------------------------------- | ------------------------------ |
+| `atacar` (D-22 `attemptFrom`)   | escalar → **estructura, cupo, mates** | `gcDefence` → **general virtual** | solo si marca → **lista**   | `finishScore` rel. → **amenaza+señales** | no → **pizarra**               |
+| `relevar` (D-01/02 `relayTurn`) | empuje → **cupo + turno con orden**   | `gcRank===1` → **standings**      | arropo → **lista + deudas** | mejor remate → **amenaza**               | vía banderas → **pizarra**     |
+| `rematar` (`finishStage`)       | `leadOutFor` → **cupo `carta`**       | no → **bonificaciones (S-334)**   | no → **lista + cupo**       | mismo grupo → **mismo grupo**            | — → —                          |
+| cuerda (`pelotonAllows`)        | no → **voto por equipos (R03)**       | déficit → **general virtual**     | no → **representación**     | no → **composición conocida**            | no → **pizarra**               |
+| criba (`shatter`)               | no → no                               | no → no                           | no → **el bajador (S-465)** | no → no                                  | no → no                        |
+| grupeto (D-41)                  | no → **capo y cupo**                  | no → no                           | rendidos → **lista**        | no → **pacto entre rivales**             | `peloton` fijo → **`mainId`**  |
+| meta volante / cima             | no → **cupo `pancarta`**              | no → **standings del motivo**     | no → **lista**              | no → **rival de la clasificación**       | grupo de cabeza → **todos**    |
 
 ---
 
@@ -793,7 +825,7 @@ aplicados **dentro de un grupo pequeño**, más la asignación de papel por pare
 3. **R02.3 — el lanzamiento improvisado** (S-362): en grupo ≤ `smallGroupMax`, cualquier compañero con
    cupo `lanzamiento` puede lanzar sin rol `lanzador`: entra en `rematar` con `modo = 'lanzar'`, lleva
    a la carta hasta `sprintHoldMetres(carta)` y cede. Hoy `lanzando()` exige `isBunch ∧ kmToGo ≤ 3 ∧
-   lanzaPara`, así que en una fuga de cinco no existe.
+lanzaPara`, así que en una fuga de cinco no existe.
 4. **R02.4 — el rival en minoría** (S-265, S-305, S-306): un corredor solo contra una pareja lee
    `mates.length` de los rivales y decide:
    ```
@@ -889,12 +921,13 @@ recalculada cada kilómetro. Y del otro lado, `breakCandidate`: quién es elegib
 **0,08** · `infiltratorCoopDamp` **0,65** · `slowFrontCommit` **0,55**.
 
 **Medida.** Tres estadísticas, todas nuevas, sobre `smallTours` y los canónicos:
+
 - `fugaMismoEquipoPct` (fugas con ≥2 de la misma casa cuando el movimiento tiene <10): **banda 0-15 %**
   (hoy: invisible para todos los bancos, `mapa-bancos.md` §7 punto 2).
 - `equiposRepresentadosPct` (fracción de equipos con hombre en la fuga del día, llana): **banda 25-60 %**.
 - `perfilDelFugadoEnReina` — mediana de `0,6·MON+0,4·COL` del mejor de la fuga del día en una reina
   contra la mediana del campo: **banda +6 a +18 puntos** (hoy ≈ 0 por construcción).
-Y la banda existente `flat.breakawayWinPct` 5-16 y `mountain.breakawayWinPct` 25-45 se re-miden: §9.
+  Y la banda existente `flat.breakawayWinPct` 5-16 y `mountain.breakawayWinPct` 25-45 se re-miden: §9.
 
 ---
 
@@ -968,10 +1001,15 @@ a tener nueve, con su derecho al frente, su cupo de fuga y su efecto en la utili
 
 ```ts
 type Motive =
-  | 'etapa' | 'maillot' | 'general'                      // los tres de hoy
-  | 'puntos' | 'montaña' | 'joven' | 'equipos'           // clasificaciones (S-016..S-019)
-  | 'combatividad'                                        // la tele y el dorsal rojo (S-044)
-  | 'patrocinador'                                        // el invitado que se juega volver (S-066)
+  | 'etapa'
+  | 'maillot'
+  | 'general' // los tres de hoy
+  | 'puntos'
+  | 'montaña'
+  | 'joven'
+  | 'equipos' // clasificaciones (S-016..S-019)
+  | 'combatividad' // la tele y el dorsal rojo (S-044)
+  | 'patrocinador' // el invitado que se juega volver (S-066)
 
 interface MotiveClaim {
   motive: Motive
@@ -992,17 +1030,17 @@ interface MotiveClaim {
    estructura (§5) y los ordena; **manda el de más derecho y el secundario se apaña** (S-020, literal:
    «con varios motivos el equipo los ordena, no los suma»).
 
-   | Motivo         | `front` | `breakQuota` | Banners             | Efecto propio                                                  |
-   | -------------- | ------: | -----------: | ------------------- | -------------------------------------------------------------- |
-   | `maillot`      |       4 |            0 | —                   | veto de fuga a la carta; `relevar` = 0 para ella               |
-   | `etapa`        |       3 |            1 | —                   | `lanzar` en los últimos 15 km                                  |
-   | `general`      |       3 |            1 | —                   | solo si `peligroVirtual > 0` (R04.6)                            |
-   | `puntos`       |       2 |            1 | volante             | tira 40 km antes de la volante y **afloja 500 m después**       |
-   | `montaña`      |       1 |            2 | cima                | mete hombres en los intentos hasta que uno cuaja; no persigue   |
-   | `joven`        |       2 |            0 | —                   | como `general` pero contra el otro joven, no contra el maillot  |
-   | `equipos`      |       1 |            0 | —                   | no deja caer al tercer hombre; tres arriba en montaña           |
-   | `combatividad` |       0 |            1 | —                   | `atacar` ×1,6; se sienta cuando ya lleva `combativeKm` fuera    |
-   | `patrocinador` |       0 |            1 | —                   | uno cada día pase lo que pase; afloja el día después            |
+   | Motivo         | `front` | `breakQuota` | Banners | Efecto propio                                                  |
+   | -------------- | ------: | -----------: | ------- | -------------------------------------------------------------- |
+   | `maillot`      |       4 |            0 | —       | veto de fuga a la carta; `relevar` = 0 para ella               |
+   | `etapa`        |       3 |            1 | —       | `lanzar` en los últimos 15 km                                  |
+   | `general`      |       3 |            1 | —       | solo si `peligroVirtual > 0` (R04.6)                           |
+   | `puntos`       |       2 |            1 | volante | tira 40 km antes de la volante y **afloja 500 m después**      |
+   | `montaña`      |       1 |            2 | cima    | mete hombres en los intentos hasta que uno cuaja; no persigue  |
+   | `joven`        |       2 |            0 | —       | como `general` pero contra el otro joven, no contra el maillot |
+   | `equipos`      |       1 |            0 | —       | no deja caer al tercer hombre; tres arriba en montaña          |
+   | `combatividad` |       0 |            1 | —       | `atacar` ×1,6; se sienta cuando ya lleva `combativeKm` fuera   |
+   | `patrocinador` |       0 |            1 | —       | uno cada día pase lo que pase; afloja el día después           |
 
 2. **R05.2 — el motivo entra en la utilidad por el valor, no por un factor suelto** (§2.7): el valor de
    `disputar` una volante para el equipo del verde es `pointsAtStake / pointsToLead`, no una constante.
@@ -1029,6 +1067,7 @@ interface MotiveClaim {
 **40** · `pointsAfterBannerKm` **0,5**.
 
 **Medida.** Banco `smallTours` (10 carreras enteras, ya corre 8 corridas). Estadísticas nuevas:
+
 - `maillotsSecundariosDisputadosPct` — fracción de carreras en las que el maillot de montaña y el de
   puntos cambian de manos al menos una vez: **banda 60-100 %** (hoy: 0 por construcción, no existen).
 - `motivoDelFrentePct` por motivo — el reparto de `pullFor` entre los nueve. **Banda: ninguna aún**;
@@ -1173,12 +1212,13 @@ día el equipo del maillot ya no llega). Y `abandonPct` 12-20 se re-mide (§9).
 causa** en vez de dado.
 
 ```ts
-interface RaceMemory {                          // se persiste por carrera, no por etapa
+interface RaceMemory {
+  // se persiste por carrera, no por etapa
   ganadoresPorEquipo: Map<string, number>
   fugadosAyer: string[]
-  frenteAyer: Map<string, number>               // km al frente por equipo
-  deudas: Map<string, Map<string, number>>      // riderId → riderId → [-3,+3]
-  rivalidades: [string, string][]               // pares de equipos que no colaboran (S-404)
+  frenteAyer: Map<string, number> // km al frente por equipo
+  deudas: Map<string, Map<string, number>> // riderId → riderId → [-3,+3]
+  rivalidades: [string, string][] // pares de equipos que no colaboran (S-404)
   ultimaEtapa: { dureza: number; descanso: boolean; trasladoH: number }
 }
 ```
@@ -1234,9 +1274,9 @@ fuera de `moodBase ± 0,02` sin al menos una causa registrada). Y `varianzaDelHu
 
 ```ts
 interface RaceObjective {
-  target: Motive                                  // a qué va este equipo a esta carrera
-  markedDays: number[]                            // las etapas marcadas ← S-405
-  budget: number[]                                // presupuesto por etapa, suma = teamBudgetPerRider·n·dias
+  target: Motive // a qué va este equipo a esta carrera
+  markedDays: number[] // las etapas marcadas ← S-405
+  budget: number[] // presupuesto por etapa, suma = teamBudgetPerRider·n·dias
 }
 ```
 
@@ -1282,7 +1322,8 @@ es 1,0 por construcción, y esa es la fila `CONTRARIO` S-376).
 **Pieza.** Dos cosas: el pinchazo/avería como suceso de primera clase, y **la caravana ordenada**.
 
 ```ts
-interface Mishap {                        // suceso, no bandera
+interface Mishap {
+  // suceso, no bandera
   kind: 'pinchazo' | 'averia' | 'caida'
   riderId: string
   km: number
@@ -1294,7 +1335,7 @@ interface Mishap {                        // suceso, no bandera
 
 interface Caravan {
   /** Orden de los coches. Cambia cada día: el del líder delante, el modesto el vigésimo. */
-  order: string[]                          // teamId[]
+  order: string[] // teamId[]
   /** Dónde está la caravana ahora: detrás de qué grupo. */
   behindGroupId: string
   /** Si la carrera se parte, los comisarios REORDENAN: suben los que tienen hombre delante. */
@@ -1312,9 +1353,9 @@ interface Caravan {
    ```
    Avería: `λ_averia = mechFailurePerKm`, y **cuesta el doble** (S-146).
 2. **R11.2 — el coche tarda lo que tarda** (S-222): `stopS = carBaseS + carPerPositionS · posEnCaravana(equipo)
-   + carGroupPenaltyS · (¿está el coche detrás de mi grupo?)`. Con la caravana partida y sin hombre
-   delante: `carNeutralS` (asistencia neutra, más lenta y con rueda que encaja peor).
-   **Esto le da precio a colar un hombre en la fuga** (S-084, S-093): compra coche, ruedas y bidones.
+   - carGroupPenaltyS · (¿está el coche detrás de mi grupo?)`. Con la caravana partida y sin hombre
+delante: `carNeutralS` (asistencia neutra, más lenta y con rueda que encaja peor).
+     **Esto le da precio a colar un hombre en la fuga** (S-084, S-093): compra coche, ruedas y bidones.
 3. **R11.3 — el ascensor de los coches** (S-435): tras el percance, el corredor vuelve a rebufo de la
    caravana ganando `caravanClosePerKm` s/km **mientras haya caravana**. En cabeza de carrera, en un
    puerto estrecho o con la carrera partida, no hay coches: el mismo percance cuesta minutos.
@@ -1494,8 +1535,11 @@ más de la ley de velocidad por grupo y bloque costó **1.950 → 2.665 s de bat
 bandas: cuatro cuartiles.**
 
 ```ts
-type Banda = 1 | 2 | 3 | 4          // 1 = las veinte primeras plazas; 4 = la cola
-interface Placement { banda: Banda; desde: number /* km */ }
+type Banda = 1 | 2 | 3 | 4 // 1 = las veinte primeras plazas; 4 = la cola
+interface Placement {
+  banda: Banda
+  desde: number /* km */
+}
 ```
 
 **Reglas.**
@@ -1563,6 +1607,7 @@ interface Placement { banda: Banda; desde: number /* km */ }
 por banda por debajo de la 1.
 
 **Medida.** Banco `colocacion` nuevo (§7.3) y `smallTours`. Estadísticas:
+
 - `costeDeLaBanda4Pct` — depósito extra al pie del último puerto de los que hicieron el día en banda 4:
   **banda 5-12 %** (S-189: «un cerillo más»).
 - `abanicosConAutorPct` — cortes con un equipo que pidió `cortar`: **banda 40-90 %** (hoy 0: es la fila
@@ -1647,15 +1692,15 @@ graves junto a S-047), y las conductas del último kilómetro por tipo.
    El que peor remata abre desde 400-500 m; el rápido aguanta hasta 150-200.
 3. **R17.3 — conductas por tipo** (S-327, S-328, S-330, S-340, S-367, S-274, S-278):
 
-   | Tipo              | Quién gana                     | Regla propia                                                           |
-   | ----------------- | ------------------------------ | ---------------------------------------------------------------------- |
-   | `sprint_masivo`   | SPR erosionado + tren + banda  | R16 entero                                                             |
-   | `sprint_reducido` | SPR + TAC + cómo llegó         | R17.2; sin trenes el grupo se frena (`reducedSlowdown`)                |
-   | `puncheur`        | COL + SPR                      | el que no remata ataca en la cota **anterior**, a 15-25 km (S-330)     |
-   | `alto`            | MON + RES                      | el último gregario se aparta a 2-3 km; 1-3 ataques en los últimos 2 km |
-   | `pave`            | PAV + banda                    | R15.8, R15.9                                                           |
-   | `descenso`        | DES + TAC                      | `descentSelectKm` deja de ser 1 km (S-280)                             |
-   | `solitario`       | RES + LLA                      | S-333: se vacía con el mismo compromiso que el pelotón en tirón final  |
+   | Tipo              | Quién gana                    | Regla propia                                                           |
+   | ----------------- | ----------------------------- | ---------------------------------------------------------------------- |
+   | `sprint_masivo`   | SPR erosionado + tren + banda | R16 entero                                                             |
+   | `sprint_reducido` | SPR + TAC + cómo llegó        | R17.2; sin trenes el grupo se frena (`reducedSlowdown`)                |
+   | `puncheur`        | COL + SPR                     | el que no remata ataca en la cota **anterior**, a 15-25 km (S-330)     |
+   | `alto`            | MON + RES                     | el último gregario se aparta a 2-3 km; 1-3 ataques en los últimos 2 km |
+   | `pave`            | PAV + banda                   | R15.8, R15.9                                                           |
+   | `descenso`        | DES + TAC                     | `descentSelectKm` deja de ser 1 km (S-280)                             |
+   | `solitario`       | RES + LLA                     | S-333: se vacía con el mismo compromiso que el pelotón en tirón final  |
 
 4. **R17.4 — el grupo de cabeza de una reina llega con 5-15** (S-367, y es la DEUDA sin banda del
    banco): **no se compra con una perilla.** Sale de R13 (la reserva mantiene al corredor clavado) más
@@ -1747,8 +1792,17 @@ solitario en media montaña, la deuda del §14 punto 4 («4 % contra el 20-30 % 
 dos topes contables**.
 
 ```ts
-type Phase = 'neutralizado' | 'salida' | 'aduana' | 'control' | 'caza'
-           | 'aproximacion' | 'decisivo' | 'desenlace' | 'tregua' | 'ventana'
+type Phase =
+  | 'neutralizado'
+  | 'salida'
+  | 'aduana'
+  | 'control'
+  | 'caza'
+  | 'aproximacion'
+  | 'decisivo'
+  | 'desenlace'
+  | 'tregua'
+  | 'ventana'
 ```
 
 **Reglas.**
@@ -1946,7 +2000,8 @@ respuesta medible a «el resultado es casi lo mismo ponga lo que ponga ahí».
 `S-439`, `S-440`, `S-441`, `S-449`.
 
 **Constantes.** `frontNamesMaxRiders` 8 y el tope de 3 protagonistas: **se sustituyen por «tres nombres
-+ recuento»**, no por un número mayor.
+
+- recuento»**, no por un número mayor.
 
 **Medida.** Banco `coherence` (ya existe, 10 pruebas). `teamPullWithReasonPct` 95-100 se conserva;
 se añade `pullReasonSinNombrePct` **banda 0-5 %** (hoy: «his job in the team» es la rama por defecto) y
@@ -2139,12 +2194,14 @@ tiempo entre gregarios y cartas del mismo nivel: **banda 1,5-5 %**.
 ```ts
 interface RaceFormat {
   dias: number
-  hayGeneral: boolean; hayCrono: boolean; kmCrono: number
+  hayGeneral: boolean
+  hayCrono: boolean
+  kmCrono: number
   perfilAgregado: { kmLlano: number; kmSubida: number; desnivel: number }
   clasificaciones: ClassificationId[]
-  cupoEquipos: number                        // 8 gran vuelta, 7 el resto, 4-6 pequeñas
-  invitados: string[]                        // equipos con motivo `patrocinador` (S-066)
-  tipo: 'granVuelta'|'vueltaCorta'|'clasica'|'clasicaLarga'|'nacional'|'circuito'
+  cupoEquipos: number // 8 gran vuelta, 7 el resto, 4-6 pequeñas
+  invitados: string[] // equipos con motivo `patrocinador` (S-066)
+  tipo: 'granVuelta' | 'vueltaCorta' | 'clasica' | 'clasicaLarga' | 'nacional' | 'circuito'
   /** Etapas marcadas del calendario que condicionan a esta (S-470). */
   simultaneas: string[]
 }
@@ -2215,18 +2272,22 @@ terreno del día. Es S-002 literal.
 
 ```ts
 type TeamShape =
-  | 'sprinter'        // «Un sprinter fuerte y el resto trabajando solo para él»
-  | 'montana'         // «Un hombre fuerte de montaña y el resto para él»
-  | 'general'         // «Un hombre para la general y el resto para él»
-  | 'doble'           // «Un sprinter Y un escalador, y el resto para ambos»
-  | 'cazaetapas'      // «Solo cazaetapas, buscando la fuga y la oportunidad sorpresiva»
-  | 'mixta'           // «Gregarios de un líder, con alguien exceptuado que va por libre»
+  | 'sprinter' // «Un sprinter fuerte y el resto trabajando solo para él»
+  | 'montana' // «Un hombre fuerte de montaña y el resto para él»
+  | 'general' // «Un hombre para la general y el resto para él»
+  | 'doble' // «Un sprinter Y un escalador, y el resto para ambos»
+  | 'cazaetapas' // «Solo cazaetapas, buscando la fuga y la oportunidad sorpresiva»
+  | 'mixta' // «Gregarios de un líder, con alguien exceptuado que va por libre»
 
 interface RaceStructure {
   teamId: string
   shape: TeamShape
   /** Las cartas de la carrera, en orden. 1 en cinco de las seis formas; 2 en `doble`. */
-  cards: { riderId: string; kind: 'sprint'|'montana'|'general'|'libre'; gcComplete?: boolean }[]
+  cards: {
+    riderId: string
+    kind: 'sprint' | 'montana' | 'general' | 'libre'
+    gcComplete?: boolean
+  }[]
   /** Papel de carrera de cada uno. NO es el rol del día: es a quién sirve toda la carrera. */
   roles: Map<string, SeasonRole>
   /** Los que van por libre CON permiso (§2.8). */
@@ -2240,13 +2301,13 @@ interface RaceStructure {
 }
 
 type SeasonRole =
-  | 'carta'            // una de las cartas
-  | 'gregario_llano'   // hace el llano, se deja ir en el primer puerto
+  | 'carta' // una de las cartas
+  | 'gregario_llano' // hace el llano, se deja ir en el primer puerto
   | 'gregario_montana' // se reserva para los puertos
-  | 'lanzador'         // tren de sprint
-  | 'bajador'          // ← S-465
-  | 'cazaetapas'       // gasta el cupo de fuga del equipo
-  | 'marcador'         // apunta a un rival concreto de la carrera
+  | 'lanzador' // tren de sprint
+  | 'bajador' // ← S-465
+  | 'cazaetapas' // gasta el cupo de fuga del equipo
+  | 'marcador' // apunta a un rival concreto de la carrera
   | 'exceptuado'
 ```
 
@@ -2353,15 +2414,15 @@ recalculado por km: es lo que cierra S-291 y S-200.
 
 Solo por hechos, y cada hecho tiene su regla:
 
-| Causa                              | Efecto                                                                                 | Cuándo                  | Situaciones          |
-| ---------------------------------- | -------------------------------------------------------------------------------------- | ----------------------- | -------------------- |
-| La carta abandona o queda a > X min| otra hereda; los papeles que le apuntaban degradan a `libre`                            | esa misma noche         | S-190, S-390, S-409  |
-| La carta se descuelga en carretera | la carta del día pasa a la segunda opción **en el mismo km** (§2.6 paso 2)              | en carretera            | S-179, S-197, S-291  |
-| Un gregario se pone líder de hecho | pasa a `carta` y el anterior a `gregario_lujo`                                          | esa noche               | S-392, S-395         |
-| El equipo baja de 3 hombres        | pierde el motivo `equipos`; sus hombres quedan libres                                   | inmediato               | S-396                |
-| Un rival de referencia desaparece  | el que era segunda opción **hereda la factura de controlar**                            | esa noche               | S-483                |
-| Tercera semana                     | los equipos que perdieron la general se reconvierten a `cazaetapas`                     | día `thirdWeekDay`      | S-389                |
-| El equipo pierde el patrocinador   | pierde la jerarquía: todos se meten en todos los intentos y en el sprint van a lo suyo  | al conocerse            | S-469                |
+| Causa                               | Efecto                                                                                 | Cuándo             | Situaciones         |
+| ----------------------------------- | -------------------------------------------------------------------------------------- | ------------------ | ------------------- |
+| La carta abandona o queda a > X min | otra hereda; los papeles que le apuntaban degradan a `libre`                           | esa misma noche    | S-190, S-390, S-409 |
+| La carta se descuelga en carretera  | la carta del día pasa a la segunda opción **en el mismo km** (§2.6 paso 2)             | en carretera       | S-179, S-197, S-291 |
+| Un gregario se pone líder de hecho  | pasa a `carta` y el anterior a `gregario_lujo`                                         | esa noche          | S-392, S-395        |
+| El equipo baja de 3 hombres         | pierde el motivo `equipos`; sus hombres quedan libres                                  | inmediato          | S-396               |
+| Un rival de referencia desaparece   | el que era segunda opción **hereda la factura de controlar**                           | esa noche          | S-483               |
+| Tercera semana                      | los equipos que perdieron la general se reconvierten a `cazaetapas`                    | día `thirdWeekDay` | S-389               |
+| El equipo pierde el patrocinador    | pierde la jerarquía: todos se meten en todos los intentos y en el sprint van a lo suyo | al conocerse       | S-469               |
 
 **Tope**: `maxRevisionsPerRace` **3**. Un equipo que cambia de plan cada día no tiene plan.
 
@@ -2384,19 +2445,19 @@ Hoy son siete palancas, de las cuales `effort` toca **un único término** (±0,
 lee nadie (S-031, `CONTRARIO`). La consecuencia medida está escrita por el dueño: «el resultado es casi
 lo mismo ponga lo que ponga ahí».
 
-| Palanca                       | Hoy                             | Después                                                                       | Cierra                    |
-| ----------------------------- | ------------------------------- | ----------------------------------------------------------------------------- | ------------------------- |
-| `role`                        | 7 roles                          | los mismos + `bajador`; y **el rol se pide, no se impone** (§2.8)             | S-057, S-058, S-060       |
-| `targetRiderId`               | compañero o rival                | igual, + validación (no ciclos, no objetivo ausente)                          | S-059, S-060              |
-| `mentality`                   | 4 valores                        | igual; entra en `inclinación` de las 14 intenciones                           | S-069                     |
-| `effort`                      | ±0,5 en el turno                 | entra en **turno, apetito, cerillos y pacing de crono**                       | S-068, S-143              |
-| `triggerKm`                   | km absoluto                      | + `triggerAt`: pie de puerto N, tramo más duro, pancarta N, km a meta         | S-214, S-322              |
-| `contestSprints/Climbs`       | banners, y uno no se lee         | **motivo declarado** (R05): cambia apetito, ruta y cupo, y solo paga quien va | S-031, S-041, S-042       |
-| **`objective`** (nuevo)       | —                                | objetivo de la carrera: `general`\|`etapas`\|`montaña`\|`puntos`\|`joven`     | S-022, S-383              |
-| **`chasePolicy`** (nuevo)     | —                                | `nunca` \| `si_amenaza` \| `siempre`                                          | S-071, S-215              |
-| **`noRelayTo`** (nuevo)       | —                                | lista de equipos/corredores a los que no doy relevos                          | S-256, S-401              |
-| **`conditionals`** (nuevo)    | —                                | hasta `maxConditionals` reglas «si X entonces Y» (§6.3)                       | S-321, S-215, S-032       |
-| **`role: dosificar`** (nuevo) | —                                | «hoy me voy al grupeto» / «hoy sobrevivo»                                     | S-216                     |
+| Palanca                       | Hoy                      | Después                                                                       | Cierra              |
+| ----------------------------- | ------------------------ | ----------------------------------------------------------------------------- | ------------------- |
+| `role`                        | 7 roles                  | los mismos + `bajador`; y **el rol se pide, no se impone** (§2.8)             | S-057, S-058, S-060 |
+| `targetRiderId`               | compañero o rival        | igual, + validación (no ciclos, no objetivo ausente)                          | S-059, S-060        |
+| `mentality`                   | 4 valores                | igual; entra en `inclinación` de las 14 intenciones                           | S-069               |
+| `effort`                      | ±0,5 en el turno         | entra en **turno, apetito, cerillos y pacing de crono**                       | S-068, S-143        |
+| `triggerKm`                   | km absoluto              | + `triggerAt`: pie de puerto N, tramo más duro, pancarta N, km a meta         | S-214, S-322        |
+| `contestSprints/Climbs`       | banners, y uno no se lee | **motivo declarado** (R05): cambia apetito, ruta y cupo, y solo paga quien va | S-031, S-041, S-042 |
+| **`objective`** (nuevo)       | —                        | objetivo de la carrera: `general`\|`etapas`\|`montaña`\|`puntos`\|`joven`     | S-022, S-383        |
+| **`chasePolicy`** (nuevo)     | —                        | `nunca` \| `si_amenaza` \| `siempre`                                          | S-071, S-215        |
+| **`noRelayTo`** (nuevo)       | —                        | lista de equipos/corredores a los que no doy relevos                          | S-256, S-401        |
+| **`conditionals`** (nuevo)    | —                        | hasta `maxConditionals` reglas «si X entonces Y» (§6.3)                       | S-321, S-215, S-032 |
+| **`role: dosificar`** (nuevo) | —                        | «hoy me voy al grupeto» / «hoy sobrevivo»                                     | S-216               |
 
 ### 6.2 Qué NO puede ordenar, a propósito
 
@@ -2427,6 +2488,7 @@ Una vez disparada, no se repite. Si el motor no puede honrarla —sin cerillos, 
 fase de tregua, el objetivo ya no está—, **se registra la causa y sale en el informe** (R23.5).
 
 Ejemplos que el catálogo pide textualmente:
+
 - S-215: `CUANDO huecoMayorQue(120) ENTONCES relevar`
 - S-321: `CUANDO salta(rival-7) ENTONCES saltar rival-7`
 - S-322: `CUANDO tramoMasDuro(ultimoPuerto) ENTONCES atacar`
@@ -2464,14 +2526,14 @@ mánager fija el plan del equipo y cada corredor escribe el suyo dentro de ese m
 
 Lo que este diseño le da al mánager, y **ni un vatio más**:
 
-| Palanca del mánager   | Qué fija                                      | Situaciones     |
-| --------------------- | --------------------------------------------- | --------------- |
-| `shape` + `cards`     | la estructura de la carrera (§5.1)            | S-002, S-026    |
-| `motives` ordenados   | a qué va el equipo                            | S-020, S-162    |
-| `chasePolicy`         | la política de caza del día                   | S-071, S-215    |
-| `budget[]`            | en qué días se gasta                          | S-055, S-405    |
-| `exceptuados`         | a quién se le da carta blanca                 | S-024, S-053    |
-| convocatoria          | quién va, con las reglas duras de §5.2        | S-011, S-028    |
+| Palanca del mánager | Qué fija                               | Situaciones  |
+| ------------------- | -------------------------------------- | ------------ |
+| `shape` + `cards`   | la estructura de la carrera (§5.1)     | S-002, S-026 |
+| `motives` ordenados | a qué va el equipo                     | S-020, S-162 |
+| `chasePolicy`       | la política de caza del día            | S-071, S-215 |
+| `budget[]`          | en qué días se gasta                   | S-055, S-405 |
+| `exceptuados`       | a quién se le da carta blanca          | S-024, S-053 |
+| convocatoria        | quién va, con las reglas duras de §5.2 | S-011, S-028 |
 
 Y las tres consecuencias que G2 exige y que este diseño hace posibles porque ya tiene los contadores:
 **transparencia** (el corredor ve el plan del equipo antes de escribir su hoja, S-023), **voz** (puede
@@ -2498,14 +2560,14 @@ solo para la voz de la crónica)».** Los seis bancos nuevos atacan las 22 cegue
 (grupos de 4-8 con una pareja del mismo equipo y el resto sueltos, 200 semillas, sin simular etapa
 entera: solo el último tercio).
 
-| Estadística                             | Racimo | Banda propuesta | Por qué                                               |
-| --------------------------------------- | ------ | --------------- | ----------------------------------------------------- |
-| `fugaMismoEquipoPct` (fuga < 10)        | R03    | 0-15 %          | S-083: el pelotón no da cuerda a tres de la misma casa|
-| `equiposRepresentadosPct` (llana)       | R03    | 25-60 %         | 5-13 equipos de 22 en la fuga del día                 |
-| `parejaWinPct`                          | R02    | 45-65 %         | al azar 33 %: dos contra uno gana más                 |
-| `compañerosQueSeDisputanElSprintPct`    | R02    | 0-2 %           | S-357, `CONTRARIO`                                    |
-| `relevosConHombreDelantePct`            | R01    | 0-8 %           | S-128                                                 |
-| `rolesPct.gregario`                     | R21    | 35-55 %         | hoy 70 % (deuda §14 punto 14)                         |
+| Estadística                          | Racimo | Banda propuesta | Por qué                                                |
+| ------------------------------------ | ------ | --------------- | ------------------------------------------------------ |
+| `fugaMismoEquipoPct` (fuga < 10)     | R03    | 0-15 %          | S-083: el pelotón no da cuerda a tres de la misma casa |
+| `equiposRepresentadosPct` (llana)    | R03    | 25-60 %         | 5-13 equipos de 22 en la fuga del día                  |
+| `parejaWinPct`                       | R02    | 45-65 %         | al azar 33 %: dos contra uno gana más                  |
+| `compañerosQueSeDisputanElSprintPct` | R02    | 0-2 %           | S-357, `CONTRARIO`                                     |
+| `relevosConHombreDelantePct`         | R01    | 0-8 %           | S-128                                                  |
+| `rolesPct.gregario`                  | R21    | 35-55 %         | hoy 70 % (deuda §14 punto 14)                          |
 
 **Coste**: llana 22×8 × 60 semillas ≈ 105 s local ≈ 190 s CI; reina ídem ≈ 175 s; `pareja` 200
 semillas de un tercio de etapa ≈ 25 s. **Total ≈ 390 s CI → presupuesto 1.600 s.**
@@ -2520,13 +2582,13 @@ Es la primera ceguera de la lista y la que el encargo nombra: «Nada mide una ca
 dos nacionales), campo de **7 equipos × 5** = 35 más 5 agentes libres, **con general** y **con órdenes
 automáticas**, 8 corridas cada una.
 
-| Estadística                        | Banda propuesta | Por qué                                                            |
-| ---------------------------------- | --------------- | ------------------------------------------------------------------ |
-| `frenteSinDueñoPct`                | 25-70 %         | S-008: con cinco hombres no se controla solo; pacto tácito         |
-| `breakawayWinPct`                  | 20-50 %         | campo modesto: la fuga gana mucho más (S-229)                      |
-| `trenesReconocibles`               | 0-2             | sin tren, por cupo (`ROSTER_SMALL`)                                |
-| `alianzasPorEtapa`                 | 0,3-2,0         | R20.4                                                              |
-| `winnerGroupPct` en llana          | 70-100 %        | más ancha que el 85-100 de campo grande: 35 hombres se parten antes|
+| Estadística               | Banda propuesta | Por qué                                                             |
+| ------------------------- | --------------- | ------------------------------------------------------------------- |
+| `frenteSinDueñoPct`       | 25-70 %         | S-008: con cinco hombres no se controla solo; pacto tácito          |
+| `breakawayWinPct`         | 20-50 %         | campo modesto: la fuga gana mucho más (S-229)                       |
+| `trenesReconocibles`      | 0-2             | sin tren, por cupo (`ROSTER_SMALL`)                                 |
+| `alianzasPorEtapa`        | 0,3-2,0         | R20.4                                                               |
+| `winnerGroupPct` en llana | 70-100 %        | más ancha que el 85-100 de campo grande: 35 hombres se parten antes |
 
 **Coste**: 6 carreras × ~5 etapas × 8 corridas × 40 corredores. Un campo de 40 cuesta ≈ 1/4 de uno de
 176: ≈ 95 s local ≈ 170 s CI. **Presupuesto 700 s.**
@@ -2536,13 +2598,13 @@ automáticas**, 8 corridas cada una.
 Los cinco comparten escenario con bancos existentes y **solo añaden contadores**, así que su coste
 marginal es ~0 salvo el de `ordenes`.
 
-| Banco        | Escenario                                       | Estadísticas y bandas                                                                                 | Coste marginal |
-| ------------ | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------- | -------------- |
-| `pancartas`  | `smallTours` (ya corre)                          | `contendientesPorPancarta` 3-15 · `costePagadoPorNoContendientes` **= 0** (duro) · `aceleronAntesDeCima` +1,5..+5 km/h | 0 |
-| `sprint`     | `llana-180` con 5 trenes (ya corre)              | `trenesReconocibles` 2-5 · `lanzadoresPorTren` 1,4-3,0 · `encajonadosPorSprint` 1-6                    | 0              |
-| `colocacion` | `llana-180` + una clásica de pavé (ya corren)    | `costeDeLaBanda4Pct` 5-12 % · `abanicosConAutorPct` 40-90 % · `bandaDeLosCortadosMediana` 2,8-4,0      | 0              |
-| `incidentes` | `grandTour` (ya corre 12 vueltas)                | `pinchazosPorEtapa` 2-6 · `segundosPorPinchazo` 25-70 s · `ventajaDelCocheDelLider` 20-40 s · `treguasConcedidasPct` 40-80 % | 0 |
-| `ordenes`    | **nuevo**: `llana-180` y `reina-150`, un humano | barrido de una palanca a la vez, 16 semillas por valor                                                 | **+220 s CI**  |
+| Banco        | Escenario                                       | Estadísticas y bandas                                                                                                        | Coste marginal |
+| ------------ | ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | -------------- |
+| `pancartas`  | `smallTours` (ya corre)                         | `contendientesPorPancarta` 3-15 · `costePagadoPorNoContendientes` **= 0** (duro) · `aceleronAntesDeCima` +1,5..+5 km/h       | 0              |
+| `sprint`     | `llana-180` con 5 trenes (ya corre)             | `trenesReconocibles` 2-5 · `lanzadoresPorTren` 1,4-3,0 · `encajonadosPorSprint` 1-6                                          | 0              |
+| `colocacion` | `llana-180` + una clásica de pavé (ya corren)   | `costeDeLaBanda4Pct` 5-12 % · `abanicosConAutorPct` 40-90 % · `bandaDeLosCortadosMediana` 2,8-4,0                            | 0              |
+| `incidentes` | `grandTour` (ya corre 12 vueltas)               | `pinchazosPorEtapa` 2-6 · `segundosPorPinchazo` 25-70 s · `ventajaDelCocheDelLider` 20-40 s · `treguasConcedidasPct` 40-80 % | 0              |
+| `ordenes`    | **nuevo**: `llana-180` y `reina-150`, un humano | barrido de una palanca a la vez, 16 semillas por valor                                                                       | **+220 s CI**  |
 
 El banco `ordenes` es el que responde a «el resultado es casi lo mismo ponga lo que ponga ahí». Mide
 `Δpuesto` del corredor al variar **una sola** palanca, con todo lo demás igual:
@@ -2565,13 +2627,13 @@ control:  boardLagKm = 0, boardErrorSlope = 0, boardSpin = 0, newsLagKm = 0, se�
 real:     los valores de §3.3/§3.4
 ```
 
-| Estadística                                | Banda (real)  | Banda (control) | Por qué                                             |
-| ------------------------------------------ | ------------- | --------------- | --------------------------------------------------- |
-| `cazasQueLleganTardePct`                   | 8-25 %        | 0-3 %           | S-458: hoy las cazas salen siempre clavadas         |
-| `diffEquiposBuenosVsMalos` (puestos)       | 3-15          | 0-2             | S-014: los malos ven peor, no pedalean peor         |
-| `falsosPositivosDeSangrePct`               | 15-40 %       | 0 %             | S-488: oler la sangre puede fallar                  |
-| `rescatesSobreInformacionErronea`          | 5-25 %        | 0 %             | S-478: «a veces el que se para no era el que hacía falta» |
-| **Reproducción bloque a bloque**           | —             | **exacta**      | invariante duro: el control = el motor de hoy       |
+| Estadística                          | Banda (real) | Banda (control) | Por qué                                                   |
+| ------------------------------------ | ------------ | --------------- | --------------------------------------------------------- |
+| `cazasQueLleganTardePct`             | 8-25 %       | 0-3 %           | S-458: hoy las cazas salen siempre clavadas               |
+| `diffEquiposBuenosVsMalos` (puestos) | 3-15         | 0-2             | S-014: los malos ven peor, no pedalean peor               |
+| `falsosPositivosDeSangrePct`         | 15-40 %      | 0 %             | S-488: oler la sangre puede fallar                        |
+| `rescatesSobreInformacionErronea`    | 5-25 %       | 0 %             | S-478: «a veces el que se para no era el que hacía falta» |
+| **Reproducción bloque a bloque**     | —            | **exacta**      | invariante duro: el control = el motor de hoy             |
 
 **Coste**: `llana-180` y `reina-150` × 30 semillas × 2 brazos ≈ 175 s CI. **Presupuesto 700 s.**
 
@@ -2581,12 +2643,12 @@ Es la contribución propia del modelo de agentes: si las decisiones oscilan bloq
 puede salir con números correctos y ser **ilegible**. No hay ningún banco hoy que lo vea. Coste
 marginal 0 (son contadores sobre escenarios que ya corren).
 
-| Estadística                          | Banda propuesta | Por qué                                                          |
-| ------------------------------------ | --------------- | ---------------------------------------------------------------- |
-| `cambiosDeIntencionPorCorredorEtapa` | 2-9             | menos de 2 es un motor rígido; más de 9 es temblor                |
-| `frontHandoversPorEtapa`             | 1,8-4           | ya existe (`frontTeamsPerStage`), se conserva y se reinterpreta   |
-| `compromisosMasCortosQueSuMinimoPct` | **= 0**         | invariante duro: `commitMinKm` se respeta                         |
-| `oscilacionesAB` (A→B→A en < 3 km)   | 0-5 %           | el patrón exacto del temblor                                      |
+| Estadística                          | Banda propuesta | Por qué                                                         |
+| ------------------------------------ | --------------- | --------------------------------------------------------------- |
+| `cambiosDeIntencionPorCorredorEtapa` | 2-9             | menos de 2 es un motor rígido; más de 9 es temblor              |
+| `frontHandoversPorEtapa`             | 1,8-4           | ya existe (`frontTeamsPerStage`), se conserva y se reinterpreta |
+| `compromisosMasCortosQueSuMinimoPct` | **= 0**         | invariante duro: `commitMinKm` se respeta                       |
+| `oscilacionesAB` (A→B→A en < 3 km)   | 0-5 %           | el patrón exacto del temblor                                    |
 
 ### 7.7 Invariantes nuevos (ocho)
 
@@ -2607,15 +2669,15 @@ Al lado de los 46 de hoy, que se conservan:
 
 ### 7.8 Coste total en minutos de CI
 
-| Concepto                                                    | Coste CI medido/estimado | Presupuesto (×4) |
-| ----------------------------------------------------------- | -----------------------: | ---------------: |
-| Job `benches` de hoy                                        |             ~540 s (9 min) |                — |
-| Banco `equipos` (§7.2)                                      |                    390 s |          1.600 s |
-| Banco `carrera-pequeña` (§7.3)                              |                    170 s |            700 s |
-| Banco `ordenes` (§7.4)                                      |                    220 s |            900 s |
-| Banco `informacion`, dos brazos (§7.5)                      |                    175 s |            700 s |
-| `pancartas`, `sprint`, `colocacion`, `incidentes`, `temblor`|                      ~0 s |                — |
-| **Sobrecoste de los bancos nuevos**                         |         **≈ 955 s (16 min)** |                  |
+| Concepto                                                     | Coste CI medido/estimado | Presupuesto (×4) |
+| ------------------------------------------------------------ | -----------------------: | ---------------: |
+| Job `benches` de hoy                                         |           ~540 s (9 min) |                — |
+| Banco `equipos` (§7.2)                                       |                    390 s |          1.600 s |
+| Banco `carrera-pequeña` (§7.3)                               |                    170 s |            700 s |
+| Banco `ordenes` (§7.4)                                       |                    220 s |            900 s |
+| Banco `informacion`, dos brazos (§7.5)                       |                    175 s |            700 s |
+| `pancartas`, `sprint`, `colocacion`, `incidentes`, `temblor` |                     ~0 s |                — |
+| **Sobrecoste de los bancos nuevos**                          |     **≈ 955 s (16 min)** |                  |
 
 Y el **sobrecoste del motor**, que es el que de verdad preocupa (§14 punto 40: «el motor se ha frenado
 un 48 % en dos versiones»):
@@ -2649,28 +2711,28 @@ puede decir «sin tocar bandas» si toca la decisión**; la columna «Huellas / 
 El orden es **por dependencia, no por importancia**. S-176 es la nº 1 de las veinte más graves y se
 arregla en el paso 6, porque antes hace falta que exista la general virtual.
 
-| #   | Paso                                                                                                                                                                                                       | Racimos que cierra                | Ficheros                                                                                              | Huellas / bandas                                                       | Hecho cuando                                                                                                                | Modelo |
-| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- | ----------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ------ |
-| 0   | **Foto antes.** Contadores de §7.2-§7.6 **sin banda**, sobre los escenarios que ya corren. Publicar en `balance.md` v60 §0 el valor de hoy de las 22 estadísticas nuevas.                                   | ninguno                           | `sim/*.ts`, `sim/targets.ts`                                                                          | **ninguna**: solo mide                                                 | las 22 salen en `pnpm sim`; ninguna aserción nueva                                                                            | Haiku  |
-| 1   | **Percepción, identidad.** `stage/perception.ts` con `SelfView`, `GroupView`, `RaceView` **sin retardo, sin error, sin señales**. `MoveRider` y `finishStage` pasan a recibirlos. `teamIndex`.              | R01 (identidad)                   | `stage/perception.ts`, `tactics.ts`, `finish.ts`, `simulate.ts`, `types.ts`                           | **NINGUNA. Es la prueba del refactor**: las tres huellas idénticas     | `attribution/timetrial/raceRadio` bit a bit iguales; `grep teamId stage/tactics.ts` > 0; los 46 invariantes verdes            | Sonnet |
-| 2   | **Agente y compromiso.** `stage/agent.ts`, las 14 intenciones **con la utilidad de hoy dentro** (cada una envuelve el cálculo actual), `Commitment`, histéresis, duración, escalonado, `rngAgent`.          | R18 (turno), R19 (parcial)        | `stage/agent.ts`, `stage/intents/*.ts`, `simulate.ts`, `constants.ts`                                 | **mueve las tres**: el turno deja de rehacerse cada 100 m → re-sellar  | `ENGINE_VERSION++`; banco `temblor` dentro de banda; `kmPorTurnoMediana` 0,6-2,5; invariantes 48-49-54                        | Sonnet |
-| 3   | **Cupos y arbitraje.** `stage/team.ts` con `ClaimKind`, `arbitrar()`, orden de cupos, `frontTeamId` como cupo. `chase.ts` **se borra**.                                                                     | R02, R20 (parcial)                | `stage/team.ts`, `teamPlan.ts`, `chase.ts` (borrar), `simulate.ts`                                    | `chronicle.frontTeamsPerStage`, `teamPullFlatPct`                      | `ENGINE_VERSION++`; invariante 50; `parejaWinPct` 45-65; `compañerosQueSeDisputanElSprint` ≤ 2 %                              | Sonnet |
-| 4   | **Estructura y papeles.** `world/structure.ts`, las seis formas, `ROSTER_BY_SHAPE`, convocatoria por baza. **Muere `pickLeader`**; `autoOrders` deja de decidir por `kind`.                                 | R21, R05 (motivos)                | `world/structure.ts`, `world/callups.ts`, `world/autoOrders.ts`, `teamPlan.ts`, `db/stageRun.ts`      | `rolesPct`, `bestSprinterWinPct`, `sweepPct`, `photoRepeatTopFive`      | `ENGINE_VERSION++`; `rolesPct.gregario` 35-55 %; `estructuraCoherentePct` ≥ 95 %; ningún lanzador sin sprinter                | Sonnet + dueño |
-| 5   | **Clasificaciones y motivos.** Los nueve motivos, `standings` por corredor, pancartas como puntos del trazado, bonificaciones de pancarta.                                                                  | R05, R06, R07                     | `stage/banners.ts`, `db/classifications.ts`, `stage/perception.ts`, `constants.ts`                     | invariante 51; `flat.breakawayWinPct`                                  | `ENGINE_VERSION++`; nadie paga una pancarta que no disputó; los maillots secundarios cambian de manos                        | Sonnet |
-| 6   | **General virtual y aduana como voto.** R04 entero, R03 entero. `pelotonAllows` **se borra**. `gcControlLeash` 700 **se retira**.                                                                           | R03, R04                          | `stage/gc.ts`, `stage/team.ts`, `tactics.ts`, `constants.ts`                                          | **grande**: `flat/mountain.breakawayWinPct`, `catchKmToFinish`, `flatMoveWorstMarginS` | `ENGINE_VERSION++`; `cuerdaMediaPorDia` decrece ≥30 % del día 3 al 19; `fugaMismoEquipoPct` ≤ 15 %; `objetivoDeLaCazaCorrectoPct` ≥ 80 % | Sonnet + dueño |
-| 7   | **Fases y la retirada de los dos topes.** R19 entero: fuera `tacticMaxMoves` y `closingNow`; ventana tras captura; flyer; puente desde atrás.                                                               | R19                               | `stage/phase.ts`, `simulate.ts`, `tactics.ts`, `constants.ts`                                         | `intentosPorEtapa`, `flat.breakawayWinPct`, `catchKmToFinish`           | `ENGINE_VERSION++`; `intentosDespuesDelKm100` ≥ 3; `flyerWinPct` 1-6 %                                                        | Sonnet |
-| 8a  | **Posición por bandas.** R15 salvo el exponente del pavé: acordeón, `colocar`, rueda, `cortar`, aforo con ancho, bajador.                                                                                   | R15 (casi entero), R12.7          | `group.ts`, `stage/placement.ts`, `simulate.ts`, `constants.ts`                                        | `mediaGroups`, `mediaOneGroupPct`, `flatWinnerGroupPct`, huellas        | `ENGINE_VERSION++`; `abanicosConAutorPct` 40-90 %; `costeDeLaBanda4Pct` 5-12 %                                                | Sonnet |
-| 8b  | **(Física) Exponente del pavé** (S-480, deuda §14 punto 17). **Tanda propia**, como el paso 14 del diseño de entrenamiento.                                                                                | R15 (S-480)                       | `stage/physics.ts`, `constants.ts`                                                                     | huellas + pavé 5-12 % + `realQueens`                                    | `ENGINE_VERSION++` solo; medición antes/después publicada                                                                     | Sonnet + dueño |
-| 9   | **Tren, final por grupo, remate.** R16 y R17: tren desde los 15 km, ascenso, choque de trenes, quién abre y a cuántos metros, encajonado con causa, último giro.                                            | R16, R17                          | `stage/finish.ts`, `stage/train.ts`, `simulate.ts`                                                     | `bestSprinterWinPct` (dos bandas), `sameWinnerPairPct`, `medianLeadGroupRiders` | `ENGINE_VERSION++`; `abreElPeorRematador` 55-85 %; `medianLeadGroupRiders` 3-12                                      | Sonnet |
-| 10  | **Información imperfecta.** R24 entero: pizarra con retardo/redondeo/error/sesgo, señales del rival, capitán de ruta, órdenes malas. **Con brazo de control desde el primer commit.**                       | R24, R13.1                        | `stage/perception.ts`, `stage/board.ts`, `world/structure.ts`, `constants.ts`                          | **todas las de caza y montaña**; invariante 47                          | `ENGINE_VERSION++`; el brazo de control reproduce el paso 9 bit a bit; `cazasQueLleganTardePct` 8-25 %                        | Sonnet + dueño |
-| 11  | **Incidentes y caravana.** R11 y R12: pinchazo, avería, coche, ascensor, tregua con autor, rescate escalonado, taponamiento.                                                                                | R11, R12                          | `stage/mishap.ts`, `stage/caravan.ts`, `simulate.ts`, `abandon.ts`                                     | `abandonCauses.*`, `grandTour.abandonPct`                              | `ENGINE_VERSION++`; `pinchazosPorEtapa` 2-6; `treguasConcedidasPct` 40-80 %; el corte de la crono deja de estar dormido       | Sonnet |
-| 12  | **Memoria entre etapas.** R08, R09, R10, R25: `race_memory`, humor con causa (fuera el dado), deudas, presupuesto por día, moral, confianza.                                                                | R08, R09, R10, R25                | `db/raceMemory.ts`, `db/schema.ts`, `db/stageRun.ts`, `stage/perception.ts`                            | invariante 52; `grandTour` entero                                       | `ENGINE_VERSION++` + migración; `humorSinCausa == 0`; `varianzaDelHumorEntreSemillas == 0`                                    | Sonnet |
-| 13  | **Grupeto y corte.** R26: readmisión que mira el número, capo, corte estimado, criba en todos los grupos, `mainId` de referencia.                                                                           | R26                               | `simulate.ts`, `stage/grupeto.ts`, `constants.ts`                                                      | **`queenLastGroupPct` 8-14 y `realQueens.lastGroupPct` 7-14**          | `ENGINE_VERSION++`; `eliminadosPorCortePorVuelta` 0-6; la cola pasa del 14 % (decisión del dueño)                              | Sonnet + dueño |
-| 14  | **Clima y crono.** R14 (viento longitudinal, lluvia que va y viene, abanico que se cierra) y R27 (pacing por corredor, referencias, incidentes, orden de salida).                                           | R14, R27                          | `stage/weather.ts`, `stage/timetrial.ts`, `stage/startOrder.ts`                                        | `timeTrials.tailPct`, `worstStagePct`; huella `timetrial.test.ts`      | `ENGINE_VERSION++`; `incidentesEnCronoPct` 1-4 %; `abanicosQueSeCierran` 40-90 %                                              | Sonnet |
-| 15  | **Formato.** R28: `RaceFormat` leído por estructura, fases y voto; etapa 1 con general; clásica sin mañana; etapa corta; circuito; neutralizado.                                                            | R28                               | `world/format.ts`, `world/structure.ts`, `stage/phase.ts`                                              | `smallTours` entero                                                     | `ENGINE_VERSION++`; `velocidadPrimeraHora` 35-52 correlacionada con la aduana                                                 | Sonnet |
-| 16  | **Órdenes del jugador v2 y mánager.** R22 y §6: motivo, política, `noRelayTo`, condicionales, `triggerAt`, aviso de orden imposible, reparto que lee las humanas primero, palancas del mánager.             | R22, R06(§6)                      | `contracts.ts`, `db/schema.ts`, `db/stageRun.ts`, `api/routes/races.ts`, `web/pages/RaceOrders.tsx`   | banco `ordenes`                                                         | migración; `leverEffect` de las 12 palancas dentro de banda; ninguna orden imposible se guarda sin aviso                       | Sonnet |
-| 17  | **Relato.** R23: `reason` del compromiso a la crónica, a quién se persigue, tres nombres + recuento, informe que no re-simula, orden cruzada con lo que pasó.                                               | R23                               | `stage/journal.ts`, `db/raceReport.ts`, `apps/api`                                                     | `coherence` entero; huella `raceRadio.test.ts`                          | `pullReasonSinNombrePct` ≤ 5 %; `ataqueSinCerrar == 0`; el informe lee eventos congelados                                     | Haiku  |
-| 18  | **Calibrar y sellar.** Barrido de las constantes marcadas «calibrar con banco»; todas las bandas de §9 a ≥ 2× la desviación entre semillas; nota v60 con tablas antes/después; SPEC y `docs/motor.md` §13 reescritos. | —                          | `sim/targets.ts`, `sim/*.test.ts`, `constants.ts`, `SPEC.md`, `docs/motor.md`, `docs/balance.md`      | **todas: es el paso donde se sella el bloque de §9**                    | CI verde; las 30 bandas viejas y las 22 nuevas dentro; ninguna sentada sobre su suelo                                          | Sonnet + dueño |
+| #   | Paso                                                                                                                                                                                                                  | Racimos que cierra         | Ficheros                                                                                            | Huellas / bandas                                                                       | Hecho cuando                                                                                                                             | Modelo         |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- | --------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
+| 0   | **Foto antes.** Contadores de §7.2-§7.6 **sin banda**, sobre los escenarios que ya corren. Publicar en `balance.md` v60 §0 el valor de hoy de las 22 estadísticas nuevas.                                             | ninguno                    | `sim/*.ts`, `sim/targets.ts`                                                                        | **ninguna**: solo mide                                                                 | las 22 salen en `pnpm sim`; ninguna aserción nueva                                                                                       | Haiku          |
+| 1   | **Percepción, identidad.** `stage/perception.ts` con `SelfView`, `GroupView`, `RaceView` **sin retardo, sin error, sin señales**. `MoveRider` y `finishStage` pasan a recibirlos. `teamIndex`.                        | R01 (identidad)            | `stage/perception.ts`, `tactics.ts`, `finish.ts`, `simulate.ts`, `types.ts`                         | **NINGUNA. Es la prueba del refactor**: las tres huellas idénticas                     | `attribution/timetrial/raceRadio` bit a bit iguales; `grep teamId stage/tactics.ts` > 0; los 46 invariantes verdes                       | Sonnet         |
+| 2   | **Agente y compromiso.** `stage/agent.ts`, las 14 intenciones **con la utilidad de hoy dentro** (cada una envuelve el cálculo actual), `Commitment`, histéresis, duración, escalonado, `rngAgent`.                    | R18 (turno), R19 (parcial) | `stage/agent.ts`, `stage/intents/*.ts`, `simulate.ts`, `constants.ts`                               | **mueve las tres**: el turno deja de rehacerse cada 100 m → re-sellar                  | `ENGINE_VERSION++`; banco `temblor` dentro de banda; `kmPorTurnoMediana` 0,6-2,5; invariantes 48-49-54                                   | Sonnet         |
+| 3   | **Cupos y arbitraje.** `stage/team.ts` con `ClaimKind`, `arbitrar()`, orden de cupos, `frontTeamId` como cupo. `chase.ts` **se borra**.                                                                               | R02, R20 (parcial)         | `stage/team.ts`, `teamPlan.ts`, `chase.ts` (borrar), `simulate.ts`                                  | `chronicle.frontTeamsPerStage`, `teamPullFlatPct`                                      | `ENGINE_VERSION++`; invariante 50; `parejaWinPct` 45-65; `compañerosQueSeDisputanElSprint` ≤ 2 %                                         | Sonnet         |
+| 4   | **Estructura y papeles.** `world/structure.ts`, las seis formas, `ROSTER_BY_SHAPE`, convocatoria por baza. **Muere `pickLeader`**; `autoOrders` deja de decidir por `kind`.                                           | R21, R05 (motivos)         | `world/structure.ts`, `world/callups.ts`, `world/autoOrders.ts`, `teamPlan.ts`, `db/stageRun.ts`    | `rolesPct`, `bestSprinterWinPct`, `sweepPct`, `photoRepeatTopFive`                     | `ENGINE_VERSION++`; `rolesPct.gregario` 35-55 %; `estructuraCoherentePct` ≥ 95 %; ningún lanzador sin sprinter                           | Sonnet + dueño |
+| 5   | **Clasificaciones y motivos.** Los nueve motivos, `standings` por corredor, pancartas como puntos del trazado, bonificaciones de pancarta.                                                                            | R05, R06, R07              | `stage/banners.ts`, `db/classifications.ts`, `stage/perception.ts`, `constants.ts`                  | invariante 51; `flat.breakawayWinPct`                                                  | `ENGINE_VERSION++`; nadie paga una pancarta que no disputó; los maillots secundarios cambian de manos                                    | Sonnet         |
+| 6   | **General virtual y aduana como voto.** R04 entero, R03 entero. `pelotonAllows` **se borra**. `gcControlLeash` 700 **se retira**.                                                                                     | R03, R04                   | `stage/gc.ts`, `stage/team.ts`, `tactics.ts`, `constants.ts`                                        | **grande**: `flat/mountain.breakawayWinPct`, `catchKmToFinish`, `flatMoveWorstMarginS` | `ENGINE_VERSION++`; `cuerdaMediaPorDia` decrece ≥30 % del día 3 al 19; `fugaMismoEquipoPct` ≤ 15 %; `objetivoDeLaCazaCorrectoPct` ≥ 80 % | Sonnet + dueño |
+| 7   | **Fases y la retirada de los dos topes.** R19 entero: fuera `tacticMaxMoves` y `closingNow`; ventana tras captura; flyer; puente desde atrás.                                                                         | R19                        | `stage/phase.ts`, `simulate.ts`, `tactics.ts`, `constants.ts`                                       | `intentosPorEtapa`, `flat.breakawayWinPct`, `catchKmToFinish`                          | `ENGINE_VERSION++`; `intentosDespuesDelKm100` ≥ 3; `flyerWinPct` 1-6 %                                                                   | Sonnet         |
+| 8a  | **Posición por bandas.** R15 salvo el exponente del pavé: acordeón, `colocar`, rueda, `cortar`, aforo con ancho, bajador.                                                                                             | R15 (casi entero), R12.7   | `group.ts`, `stage/placement.ts`, `simulate.ts`, `constants.ts`                                     | `mediaGroups`, `mediaOneGroupPct`, `flatWinnerGroupPct`, huellas                       | `ENGINE_VERSION++`; `abanicosConAutorPct` 40-90 %; `costeDeLaBanda4Pct` 5-12 %                                                           | Sonnet         |
+| 8b  | **(Física) Exponente del pavé** (S-480, deuda §14 punto 17). **Tanda propia**, como el paso 14 del diseño de entrenamiento.                                                                                           | R15 (S-480)                | `stage/physics.ts`, `constants.ts`                                                                  | huellas + pavé 5-12 % + `realQueens`                                                   | `ENGINE_VERSION++` solo; medición antes/después publicada                                                                                | Sonnet + dueño |
+| 9   | **Tren, final por grupo, remate.** R16 y R17: tren desde los 15 km, ascenso, choque de trenes, quién abre y a cuántos metros, encajonado con causa, último giro.                                                      | R16, R17                   | `stage/finish.ts`, `stage/train.ts`, `simulate.ts`                                                  | `bestSprinterWinPct` (dos bandas), `sameWinnerPairPct`, `medianLeadGroupRiders`        | `ENGINE_VERSION++`; `abreElPeorRematador` 55-85 %; `medianLeadGroupRiders` 3-12                                                          | Sonnet         |
+| 10  | **Información imperfecta.** R24 entero: pizarra con retardo/redondeo/error/sesgo, señales del rival, capitán de ruta, órdenes malas. **Con brazo de control desde el primer commit.**                                 | R24, R13.1                 | `stage/perception.ts`, `stage/board.ts`, `world/structure.ts`, `constants.ts`                       | **todas las de caza y montaña**; invariante 47                                         | `ENGINE_VERSION++`; el brazo de control reproduce el paso 9 bit a bit; `cazasQueLleganTardePct` 8-25 %                                   | Sonnet + dueño |
+| 11  | **Incidentes y caravana.** R11 y R12: pinchazo, avería, coche, ascensor, tregua con autor, rescate escalonado, taponamiento.                                                                                          | R11, R12                   | `stage/mishap.ts`, `stage/caravan.ts`, `simulate.ts`, `abandon.ts`                                  | `abandonCauses.*`, `grandTour.abandonPct`                                              | `ENGINE_VERSION++`; `pinchazosPorEtapa` 2-6; `treguasConcedidasPct` 40-80 %; el corte de la crono deja de estar dormido                  | Sonnet         |
+| 12  | **Memoria entre etapas.** R08, R09, R10, R25: `race_memory`, humor con causa (fuera el dado), deudas, presupuesto por día, moral, confianza.                                                                          | R08, R09, R10, R25         | `db/raceMemory.ts`, `db/schema.ts`, `db/stageRun.ts`, `stage/perception.ts`                         | invariante 52; `grandTour` entero                                                      | `ENGINE_VERSION++` + migración; `humorSinCausa == 0`; `varianzaDelHumorEntreSemillas == 0`                                               | Sonnet         |
+| 13  | **Grupeto y corte.** R26: readmisión que mira el número, capo, corte estimado, criba en todos los grupos, `mainId` de referencia.                                                                                     | R26                        | `simulate.ts`, `stage/grupeto.ts`, `constants.ts`                                                   | **`queenLastGroupPct` 8-14 y `realQueens.lastGroupPct` 7-14**                          | `ENGINE_VERSION++`; `eliminadosPorCortePorVuelta` 0-6; la cola pasa del 14 % (decisión del dueño)                                        | Sonnet + dueño |
+| 14  | **Clima y crono.** R14 (viento longitudinal, lluvia que va y viene, abanico que se cierra) y R27 (pacing por corredor, referencias, incidentes, orden de salida).                                                     | R14, R27                   | `stage/weather.ts`, `stage/timetrial.ts`, `stage/startOrder.ts`                                     | `timeTrials.tailPct`, `worstStagePct`; huella `timetrial.test.ts`                      | `ENGINE_VERSION++`; `incidentesEnCronoPct` 1-4 %; `abanicosQueSeCierran` 40-90 %                                                         | Sonnet         |
+| 15  | **Formato.** R28: `RaceFormat` leído por estructura, fases y voto; etapa 1 con general; clásica sin mañana; etapa corta; circuito; neutralizado.                                                                      | R28                        | `world/format.ts`, `world/structure.ts`, `stage/phase.ts`                                           | `smallTours` entero                                                                    | `ENGINE_VERSION++`; `velocidadPrimeraHora` 35-52 correlacionada con la aduana                                                            | Sonnet         |
+| 16  | **Órdenes del jugador v2 y mánager.** R22 y §6: motivo, política, `noRelayTo`, condicionales, `triggerAt`, aviso de orden imposible, reparto que lee las humanas primero, palancas del mánager.                       | R22, R06(§6)               | `contracts.ts`, `db/schema.ts`, `db/stageRun.ts`, `api/routes/races.ts`, `web/pages/RaceOrders.tsx` | banco `ordenes`                                                                        | migración; `leverEffect` de las 12 palancas dentro de banda; ninguna orden imposible se guarda sin aviso                                 | Sonnet         |
+| 17  | **Relato.** R23: `reason` del compromiso a la crónica, a quién se persigue, tres nombres + recuento, informe que no re-simula, orden cruzada con lo que pasó.                                                         | R23                        | `stage/journal.ts`, `db/raceReport.ts`, `apps/api`                                                  | `coherence` entero; huella `raceRadio.test.ts`                                         | `pullReasonSinNombrePct` ≤ 5 %; `ataqueSinCerrar == 0`; el informe lee eventos congelados                                                | Haiku          |
+| 18  | **Calibrar y sellar.** Barrido de las constantes marcadas «calibrar con banco»; todas las bandas de §9 a ≥ 2× la desviación entre semillas; nota v60 con tablas antes/después; SPEC y `docs/motor.md` §13 reescritos. | —                          | `sim/targets.ts`, `sim/*.test.ts`, `constants.ts`, `SPEC.md`, `docs/motor.md`, `docs/balance.md`    | **todas: es el paso donde se sella el bloque de §9**                                   | CI verde; las 30 bandas viejas y las 22 nuevas dentro; ninguna sentada sobre su suelo                                                    | Sonnet + dueño |
 
 **Orden y paralelismo.** 0 → 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8a → 9 → 10 → 11 → 12 → 13 → 14 → 15 → 16 →
 17 → 18. El 8b va cuando lo decida el dueño y **nunca en el mismo PR que el 8a**. Los pasos 16 y 17
@@ -2704,56 +2766,56 @@ paso y se sella en el 18.
 
 ### 9.1 Bandas existentes
 
-| Banda / dónde                                       | Hoy       | Propuesto  | Paso | Por qué                                                                                                     |
-| --------------------------------------------------- | --------- | ---------- | ---- | ----------------------------------------------------------------------------------------------------------- |
-| `flat.breakawayWinPct`                              | 5-16 %    | **5-16 %** | 6,7  | **no se mueve**: es la banda del dueño («centrada en el 10 %»). Si la aduana por voto la saca, el que está mal es el cambio |
-| `mountain.breakawayWinPct`                          | 25-45 %   | **12-40 %**| 6    | hoy mide 18,1 % y el dueño lo dio por bueno («está bien así», v44). La banda de 25-45 **no la cumple nadie**: o se baja o se declara objetivo. **Decisión 5** |
-| `flat.catchKmToFinish`                              | 8-25 km   | **6-25 km**| 6,7  | la ventana tras captura (R19.3) y el flyer meten capturas más tardías                                       |
-| `mountain.top10GapSeconds`                          | 40-300 s  | **40-300 s**| 9   | no se mueve; se re-mide tras R17.4 (el grupo de cabeza de 5-15 la comprime por arriba)                       |
-| `chronicle.teamPullFlatPct`                         | 50-85 %   | **65-95 %**| 3    | con cupos, el frente **siempre** tiene dueño salvo pulso declarado: el suelo de hoy describe la ausencia de plan |
-| `chronicle.frontTeamsPerStage`                      | 1,8-4     | **1,8-4**  | 3    | no se mueve: es exactamente la banda de temblor que este diseño necesita                                     |
-| `chronicle.teamPullWithReasonPct`                   | 95-100 %  | **100 %**  | 17   | con `Commitment.reason` la razón no puede faltar: pasa de banda a invariante duro                            |
-| `grandTour.abandonPct`                              | 12-20 %   | **12-22 %**| 11   | pinchazos, averías y taponamientos añaden bajas; el techo sube 2 puntos                                      |
-| `grandTour.queenLastGroupPct`                       | 8-14 %    | **7-18 %** | 13   | **la clave de R26**: cribar los grupetos que ya no son la carrera exige pasar del 14 %. Es la deuda §14 punto 2, «no se mueve sin decisión del dueño». **Decisión 7** |
-| `realQueens.lastGroupPct`                           | 7-14 %    | **7-18 %** | 13   | misma causa                                                                                                  |
-| `realQueens.worstStagePct`                          | 0-18 %    | **0-18 %** | 13   | no se mueve: el techo es `timeCutQueen`, no calibración                                                      |
-| `abandonCauses.crashPct`                            | 30-67 %   | **28-60 %**| 11   | al existir el pinchazo, la caída deja de ser la única causa mecánica; el reparto se acerca al 45/50/5 de §VI.3 |
-| `abandonCauses.illnessPct`                          | 20-67 %   | **25-67 %**| 12   | la condición que dura días (R08.3) sube la enfermedad, que es la deuda §14 punto 13                          |
-| `abandonCauses.outOfTimePct`                        | 1-15 %    | **2-18 %** | 13   | **cambia de significado**: hoy la readmisión es incondicional y no se va nadie                               |
-| `smallTours.bestSprinterWinPct`                     | 25-60 %   | **25-60 %**| 9    | no se mueve; se re-mide tras el tren de 15 km y el encajonado                                                |
-| `smallTours.sweepPct`                               | 0-30 %    | **0-25 %** | 9,12 | la memoria del pelotón (R09.3) acorta la cuerda al ganador de ayer                                           |
-| `smallTours.sameWinnerPairPct`                      | 15-55 %   | **12-50 %**| 9,12 | misma causa                                                                                                  |
-| `smallTours.mediaGroups`                            | 3-8       | **3-9**    | 8a   | el acordeón y el corte con autor parten más la media montaña                                                 |
-| `smallTours.mediaOneGroupPct`                       | 0-20 %    | **0-12 %** | 8a   | el techo de hoy es «el margen que se puede sostener», no la diana                                            |
-| `smallTours.flatWinnerGroupPct`                     | 85-100 %  | **80-100 %**| 8a  | R15.1 rompe algo más el llano                                                                                |
-| `smallTours.flatMoveWorstMarginS`                   | 0-900 s   | **0-900 s**| 6    | no se mueve: es la banda del dueño («8, 15 o 20 minutos, de vez en cuando»)                                  |
-| `timeTrials.tailPct`                                | 8-15 %    | **8-16 %** | 14   | el pacing por corredor (R27.1) ensancha la cola por abajo                                                     |
-| `timeTrials.worstStagePct`                          | 0-17 %    | **0-18 %** | 14   | misma causa                                                                                                  |
-| `calendarQueens.breakawayWinPct`                    | 6-30 %    | **6-35 %** | 6    | `perfilDelDia` (R03.3) manda escaladores a la fuga de una reina: sube el techo                                |
-| **DEUDA** `medianLeadGroupRiders`                   | 1, sin banda | **3-12**| 9    | deja de ser DEUDA impresa y pasa a banda. **Decisión 6**                                                     |
-| Ganador en solitario en media montaña               | 4 %, sin banda | **12-32 %** | 7,9 | deuda §14 punto 4: «20-30 % que pidió el dueño»                                                        |
+| Banda / dónde                         | Hoy            | Propuesto    | Paso | Por qué                                                                                                                                                               |
+| ------------------------------------- | -------------- | ------------ | ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `flat.breakawayWinPct`                | 5-16 %         | **5-16 %**   | 6,7  | **no se mueve**: es la banda del dueño («centrada en el 10 %»). Si la aduana por voto la saca, el que está mal es el cambio                                           |
+| `mountain.breakawayWinPct`            | 25-45 %        | **12-40 %**  | 6    | hoy mide 18,1 % y el dueño lo dio por bueno («está bien así», v44). La banda de 25-45 **no la cumple nadie**: o se baja o se declara objetivo. **Decisión 5**         |
+| `flat.catchKmToFinish`                | 8-25 km        | **6-25 km**  | 6,7  | la ventana tras captura (R19.3) y el flyer meten capturas más tardías                                                                                                 |
+| `mountain.top10GapSeconds`            | 40-300 s       | **40-300 s** | 9    | no se mueve; se re-mide tras R17.4 (el grupo de cabeza de 5-15 la comprime por arriba)                                                                                |
+| `chronicle.teamPullFlatPct`           | 50-85 %        | **65-95 %**  | 3    | con cupos, el frente **siempre** tiene dueño salvo pulso declarado: el suelo de hoy describe la ausencia de plan                                                      |
+| `chronicle.frontTeamsPerStage`        | 1,8-4          | **1,8-4**    | 3    | no se mueve: es exactamente la banda de temblor que este diseño necesita                                                                                              |
+| `chronicle.teamPullWithReasonPct`     | 95-100 %       | **100 %**    | 17   | con `Commitment.reason` la razón no puede faltar: pasa de banda a invariante duro                                                                                     |
+| `grandTour.abandonPct`                | 12-20 %        | **12-22 %**  | 11   | pinchazos, averías y taponamientos añaden bajas; el techo sube 2 puntos                                                                                               |
+| `grandTour.queenLastGroupPct`         | 8-14 %         | **7-18 %**   | 13   | **la clave de R26**: cribar los grupetos que ya no son la carrera exige pasar del 14 %. Es la deuda §14 punto 2, «no se mueve sin decisión del dueño». **Decisión 7** |
+| `realQueens.lastGroupPct`             | 7-14 %         | **7-18 %**   | 13   | misma causa                                                                                                                                                           |
+| `realQueens.worstStagePct`            | 0-18 %         | **0-18 %**   | 13   | no se mueve: el techo es `timeCutQueen`, no calibración                                                                                                               |
+| `abandonCauses.crashPct`              | 30-67 %        | **28-60 %**  | 11   | al existir el pinchazo, la caída deja de ser la única causa mecánica; el reparto se acerca al 45/50/5 de §VI.3                                                        |
+| `abandonCauses.illnessPct`            | 20-67 %        | **25-67 %**  | 12   | la condición que dura días (R08.3) sube la enfermedad, que es la deuda §14 punto 13                                                                                   |
+| `abandonCauses.outOfTimePct`          | 1-15 %         | **2-18 %**   | 13   | **cambia de significado**: hoy la readmisión es incondicional y no se va nadie                                                                                        |
+| `smallTours.bestSprinterWinPct`       | 25-60 %        | **25-60 %**  | 9    | no se mueve; se re-mide tras el tren de 15 km y el encajonado                                                                                                         |
+| `smallTours.sweepPct`                 | 0-30 %         | **0-25 %**   | 9,12 | la memoria del pelotón (R09.3) acorta la cuerda al ganador de ayer                                                                                                    |
+| `smallTours.sameWinnerPairPct`        | 15-55 %        | **12-50 %**  | 9,12 | misma causa                                                                                                                                                           |
+| `smallTours.mediaGroups`              | 3-8            | **3-9**      | 8a   | el acordeón y el corte con autor parten más la media montaña                                                                                                          |
+| `smallTours.mediaOneGroupPct`         | 0-20 %         | **0-12 %**   | 8a   | el techo de hoy es «el margen que se puede sostener», no la diana                                                                                                     |
+| `smallTours.flatWinnerGroupPct`       | 85-100 %       | **80-100 %** | 8a   | R15.1 rompe algo más el llano                                                                                                                                         |
+| `smallTours.flatMoveWorstMarginS`     | 0-900 s        | **0-900 s**  | 6    | no se mueve: es la banda del dueño («8, 15 o 20 minutos, de vez en cuando»)                                                                                           |
+| `timeTrials.tailPct`                  | 8-15 %         | **8-16 %**   | 14   | el pacing por corredor (R27.1) ensancha la cola por abajo                                                                                                             |
+| `timeTrials.worstStagePct`            | 0-17 %         | **0-18 %**   | 14   | misma causa                                                                                                                                                           |
+| `calendarQueens.breakawayWinPct`      | 6-30 %         | **6-35 %**   | 6    | `perfilDelDia` (R03.3) manda escaladores a la fuga de una reina: sube el techo                                                                                        |
+| **DEUDA** `medianLeadGroupRiders`     | 1, sin banda   | **3-12**     | 9    | deja de ser DEUDA impresa y pasa a banda. **Decisión 6**                                                                                                              |
+| Ganador en solitario en media montaña | 4 %, sin banda | **12-32 %**  | 7,9  | deuda §14 punto 4: «20-30 % que pidió el dueño»                                                                                                                       |
 
 ### 9.2 Invariantes
 
-| Invariante                          | Hoy                        | Propuesto                                            | Paso |
-| ----------------------------------- | -------------------------- | ---------------------------------------------------- | ---- |
-| 3 · captura                         | `capturePct > 85`          | **> 80**: la ventana y el flyer dejan más sin cazar  | 7    |
-| 18 · el que releva se desgasta más  | `> 1,10`                   | **> 1,10**, y se añade banda 4 vs banda 1 **> 1,05** | 8a   |
-| 21-24 · voz de la crónica           | `teamedField` 8×5          | **también 7×5 con general** (banco pequeño)          | 3    |
-| 24 · campo sin equipos              | ningún `rider_defies_team` | **+ ningún `TeamClaim`** (invariante 53)             | 3    |
-| 28 · las tres puertas               | suma 100                   | **suma 100 con cuatro puertas** (+ mecánica)         | 11   |
-| 34 · Giro e9                        | `biggestGroupPct ≤ 33`     | **≤ 33** (no se mueve)                               | —    |
-| 44 · pavé                           | 5-12 %                     | **5-14 %** con pinchazos                             | 11   |
-| **47-54** (ocho nuevos)             | —                          | §7.7                                                  | 1-12 |
+| Invariante                         | Hoy                        | Propuesto                                            | Paso |
+| ---------------------------------- | -------------------------- | ---------------------------------------------------- | ---- |
+| 3 · captura                        | `capturePct > 85`          | **> 80**: la ventana y el flyer dejan más sin cazar  | 7    |
+| 18 · el que releva se desgasta más | `> 1,10`                   | **> 1,10**, y se añade banda 4 vs banda 1 **> 1,05** | 8a   |
+| 21-24 · voz de la crónica          | `teamedField` 8×5          | **también 7×5 con general** (banco pequeño)          | 3    |
+| 24 · campo sin equipos             | ningún `rider_defies_team` | **+ ningún `TeamClaim`** (invariante 53)             | 3    |
+| 28 · las tres puertas              | suma 100                   | **suma 100 con cuatro puertas** (+ mecánica)         | 11   |
+| 34 · Giro e9                       | `biggestGroupPct ≤ 33`     | **≤ 33** (no se mueve)                               | —    |
+| 44 · pavé                          | 5-12 %                     | **5-14 %** con pinchazos                             | 11   |
+| **47-54** (ocho nuevos)            | —                          | §7.7                                                 | 1-12 |
 
 ### 9.3 Huellas selladas
 
-| Huella                       | Paso que la mueve                    | Causa que se escribe en `balance.md`                                            |
-| ---------------------------- | ------------------------------------ | -------------------------------------------------------------------------------- |
-| `attribution.test.ts`        | 2, 3, 6, 7, 8a, 8b, 9, 10, 13        | una re-selladura por paso, con la medición antes/después de la etapa afectada    |
-| `raceRadio.test.ts`          | 2 (motivos del relevo), 17 (formato) | los motivos pasan a salir del compromiso; el tope de tres nombres cambia          |
-| `timetrial.test.ts`          | **14 y solo 14**                     | pacing por corredor e incidentes; hasta entonces **no se toca**                  |
-| `simulate.test.ts` (2.722 l.)| todos                                 | es de unidad, se actualiza con cada paso                                          |
+| Huella                        | Paso que la mueve                    | Causa que se escribe en `balance.md`                                          |
+| ----------------------------- | ------------------------------------ | ----------------------------------------------------------------------------- |
+| `attribution.test.ts`         | 2, 3, 6, 7, 8a, 8b, 9, 10, 13        | una re-selladura por paso, con la medición antes/después de la etapa afectada |
+| `raceRadio.test.ts`           | 2 (motivos del relevo), 17 (formato) | los motivos pasan a salir del compromiso; el tope de tres nombres cambia      |
+| `timetrial.test.ts`           | **14 y solo 14**                     | pacing por corredor e incidentes; hasta entonces **no se toca**               |
+| `simulate.test.ts` (2.722 l.) | todos                                | es de unidad, se actualiza con cada paso                                      |
 
 **La regla de re-sellado**: se re-sella cuando el cambio está declarado, atribuido a una causa
 nombrada y anotado con la medición antes/después. Precedente: `attribution.test.ts:320-355`, «RESELLADA
@@ -2761,18 +2823,18 @@ EN LA v49», `reina-150-0` de 9 relojes a 44.
 
 ### 9.4 Constantes que se RETIRAN
 
-| Constante                        | Valor hoy | Por qué se retira                                                              |
-| -------------------------------- | --------- | ------------------------------------------------------------------------------ |
-| `tacticMaxMoves`                 | 3         | S-444: un contador de grupos no puede decidir si se puede intentar algo         |
-| `closingNow` (como veto)         | —         | S-487: apaga la capa táctica justo cuando salta el bueno                        |
-| `gcControlLeash`                 | 700 s     | S-391: sustituida por `recuperable(r, road)` (R04.2)                            |
-| `breakScore` (`0,5·TAC+0,3·LLA+0,2·RES`) | — | S-433: sustituida por `perfilDelDia(r, road)`                                   |
-| `pickLeader` / `leaderScore`     | —         | S-062, S-047: la carta sale de la estructura                                    |
-| `chaseField` / `chaseForce`      | —         | S-229: una foto de salida sobre `eff0` que no ve descuelgues ni abandonos       |
-| `pelotonAllows`                  | —         | S-114: la cuerda sale de un voto, no de un dado                                 |
-| `pelotonMoodCentre/Spread`       | 0,9/0,14  | S-224: el humor tiene causa                                                     |
-| `windPlacementLuck`              | 10        | S-460: baja a 4; el resto lo explica la banda                                   |
-| `giveUpLambda` (vetos por rol)   | —         | S-135, S-139: lo que decide es lo que se juega, no el rol                       |
+| Constante                                | Valor hoy | Por qué se retira                                                         |
+| ---------------------------------------- | --------- | ------------------------------------------------------------------------- |
+| `tacticMaxMoves`                         | 3         | S-444: un contador de grupos no puede decidir si se puede intentar algo   |
+| `closingNow` (como veto)                 | —         | S-487: apaga la capa táctica justo cuando salta el bueno                  |
+| `gcControlLeash`                         | 700 s     | S-391: sustituida por `recuperable(r, road)` (R04.2)                      |
+| `breakScore` (`0,5·TAC+0,3·LLA+0,2·RES`) | —         | S-433: sustituida por `perfilDelDia(r, road)`                             |
+| `pickLeader` / `leaderScore`             | —         | S-062, S-047: la carta sale de la estructura                              |
+| `chaseField` / `chaseForce`              | —         | S-229: una foto de salida sobre `eff0` que no ve descuelgues ni abandonos |
+| `pelotonAllows`                          | —         | S-114: la cuerda sale de un voto, no de un dado                           |
+| `pelotonMoodCentre/Spread`               | 0,9/0,14  | S-224: el humor tiene causa                                               |
+| `windPlacementLuck`                      | 10        | S-460: baja a 4; el resto lo explica la banda                             |
+| `giveUpLambda` (vetos por rol)           | —         | S-135, S-139: lo que decide es lo que se juega, no el rol                 |
 
 ---
 
@@ -2780,23 +2842,23 @@ EN LA v49», `reina-150-0` de 9 relojes a 44.
 
 Cada una con recomendación. El valor recomendado es el que se implementa si no hay respuesta.
 
-| #   | Decisión                                                                                                                                                                                  | Recomendación                                                                                                                                                                                                                                                                                                                              |
-| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | **¿Se rehace la capa de decisión entera o se sigue parcheando?**                                                                                                                            | **Rehacer L2-L4, conservar L0-L1.** Es el encargo, y el diagnóstico lo sostiene: 237 de 494 situaciones no existen o salen al revés, y la causa común es que el fichero donde se decide no sabe qué es un equipo. Parchear sale más caro: cada parche mueve las huellas de los otros 27 racimos.                                             |
-| 2   | **Cadencia de decisión: 1 km por agente (escalonado) o 2 km.**                                                                                                                              | **1 km.** Es la cadencia que el dueño ya nombró («quizás no cada 100 metros, pero quizás cada km») y la que el motor ya usa para el pelotón. El coste se controla con el escalonado (§2.3): el 10 % del campo por bloque. Si el paso 18 mide que no cabe, se sube a 2 km **el tick, no la banda**.                                          |
-| 3   | **¿Entra la información imperfecta (R24) o el motor sigue decidiendo con la verdad?**                                                                                                        | **Entra, con brazo de control obligatorio.** Es el cambio de mayor efecto por línea escrita del catálogo: tres de las veinte más graves (S-458, S-478, S-488) y la mitad de las quejas de verosimilitud. Y es reversible por constantes: con `boardLagKm = 0` el motor vuelve a ser el de hoy, lo que la hace la más segura de las grandes. |
-| 4   | **Las seis estructuras del dueño: ¿son seis, o siete con «invitado/patrocinador»?**                                                                                                          | **Seis formas + `patrocinador` como MOTIVO, no como forma.** Un equipo invitado tiene forma (normalmente `cazaetapas` o `mixta`) y además la obligación de estar delante todos los días (S-066). Meterlo como séptima forma duplicaría filas de `ROSTER_BY_SHAPE` sin cambiar ningún papel.                                                |
-| 5   | **`mountain.breakawayWinPct` 25-45 % contra el 18,1 % que el dueño dio por bueno.**                                                                                                          | **Bajar la banda a 12-40 % y declarar que no es objetivo, sino control de forma.** Es lo que el propio comentario ya dice desde la v44 y lo que el dueño cerró con «está bien así». Una banda que nadie cumple no vigila: da ruido en el nocturno. Si el dueño quiere el 25-45 de verdad, entonces R13.5 deja de ser calibración y pasa a ser un cambio de ley, y eso es la decisión 12. |
-| 6   | **El grupo de cabeza de una reina: ¿se convierte la DEUDA en banda?**                                                                                                                        | **Sí: `medianLeadGroupRiders` 3-12.** El encargo pedía 5-15 y hoy mide 1. Poner 3-12 en vez de 5-15 es honesto: 5 es el suelo de carretera pero el motor tiene que llegar primero a que lleguen tres. Se re-ancla en el paso 18 con el dato delante.                                                                                       |
-| 7   | **El corte de tiempo, ¿elimina? (S-494) Y con él, ¿puede la cola de la reina pasar del 14 %?**                                                                                              | **Sí a las dos.** Sin eliminación el tamaño del grupeto no vale nada y R26 entero se organiza por inercia en vez de por miedo: seis situaciones dependen de eso. Y cribar los grupetos que ya no son la carrera (deuda §14 punto 2, medida y refutada tres veces) es imposible con el techo del 14 %. Propuesta: **7-18 %**, con el techo de vigilancia de S-464 intacto (nadie se lleva por delante medio pelotón). |
-| 8   | **¿Los nueve motivos completos, o solo `montaña` y `puntos` en la v1?**                                                                                                                     | **Los nueve.** `joven`, `equipos`, `combatividad` y `patrocinador` son cuatro líneas de tabla cada uno (R05.1) y cierran 11 situaciones más. El coste está en las clasificaciones que hay que llevar, y esas hay que llevarlas igual para `montaña` y `puntos`.                                                                            |
-| 9   | **Órdenes condicionales: ¿cuántas y con qué disparadores?**                                                                                                                                  | **Tres, con los doce disparadores de §6.3.** Menos de tres no permite «ataco en el puerto y si me cazan me guardo»; más de tres es un programa que el jugador no puede depurar y que el informe no puede explicar.                                                                                                                        |
-| 10  | **Rebeldía con coste (R25): ¿cuesta desobedecer en un equipo bot?**                                                                                                                          | **Sí, y poco: `trustLossRebel` 6/etapa.** Hoy §VI.2 dice «en un equipo bot no cuesta nada», y el propio comentario avisa: «la estrategia óptima pasa a ser ir siempre de líder pase lo que pase». Seis puntos por etapa se notan a veinte carreras (S-057) y no a una, que es lo que la fila pide.                                        |
-| 11  | **S-451 y S-486 (el perfil escrito mal y dispuesto mal): ¿entran en este encargo?**                                                                                                          | **No, y son prerrequisito.** Son los puestos 2 y 3 de las veinte más graves y **no son táctica**: son el generador. Mientras 0 de 157 reinas pasen de 4.000 m y las cinco reinas de una carrera dejen 19-50 km tras la última cota, R06, R13, R17, R26 y R28 **no se pueden medir en montaña**. Recomendación: **una tanda propia antes del paso 9**. |
-| 12  | **`tsb` sigue sin llegar al motor. ¿Se conecta?**                                                                                                                                            | **Sí, en el paso 12.** Sin él, R08 (`frescuraDeCarrera`) se apoya solo en `kmAlFrente` y `depletion`, y el «de 34 y el de 22 en la tercera semana» (S-482) no tiene sujeto. Es deuda declarada del diseño de entrenamiento y de `types.ts:111`, no de este.                                                                               |
-| 13  | **El coste de CI: +16 min de bancos nuevos y +40 % de motor estimado. ¿Se acepta?**                                                                                                          | **Se acepta con vigilancia y con una regla: si no cabe, se recorta la MUESTRA, nunca la banda.** El invariante 37 (912 s) y el 25 (1.230 s) son los que hay que medir en el paso 2 y volver a medir en el 10. La alternativa —bajar el tick a 2 km— está en la decisión 2 y cuesta verosimilitud, no números.                              |
-| 14  | **Qué queda fuera de la v1**: CRE (S-163), semietapa (S-431), campeonato nacional (S-485), dos carreras a la vez (S-470), material del día (S-430), lotería del horario (S-462), comisario (S-448), ritmo de competición (S-468). | **Fuera, y anotado en el catálogo como tal.** Son ocho situaciones de 494 (1,6 %) y **cada una es un formato o un actor nuevo**, no una regla: meterlas alarga el plan sin cerrar ningún racimo. Excepción a considerar: S-485, porque son 532 de las 1.418 etapas del calendario y hoy corren sin escuadras. |
-| 15  | **`commitHysteresisMargin` 0,15 y los `commitMinKm` de la tabla de §2.2.**                                                                                                                    | **Salir con esos valores y calibrarlos en el paso 2 contra el banco de temblor.** Es la única familia de constantes de este documento que no tiene ningún precedente medido en el motor —`commitHysteresis` 0,4 y `mainGroupTakeoverRatio` 1,25 son el patrón, no el valor—, así que va marcada «calibrar con banco» y se ancla con dato. |
+| #   | Decisión                                                                                                                                                                                                                          | Recomendación                                                                                                                                                                                                                                                                                                                                                                                                        |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | **¿Se rehace la capa de decisión entera o se sigue parcheando?**                                                                                                                                                                  | **Rehacer L2-L4, conservar L0-L1.** Es el encargo, y el diagnóstico lo sostiene: 237 de 494 situaciones no existen o salen al revés, y la causa común es que el fichero donde se decide no sabe qué es un equipo. Parchear sale más caro: cada parche mueve las huellas de los otros 27 racimos.                                                                                                                     |
+| 2   | **Cadencia de decisión: 1 km por agente (escalonado) o 2 km.**                                                                                                                                                                    | **1 km.** Es la cadencia que el dueño ya nombró («quizás no cada 100 metros, pero quizás cada km») y la que el motor ya usa para el pelotón. El coste se controla con el escalonado (§2.3): el 10 % del campo por bloque. Si el paso 18 mide que no cabe, se sube a 2 km **el tick, no la banda**.                                                                                                                   |
+| 3   | **¿Entra la información imperfecta (R24) o el motor sigue decidiendo con la verdad?**                                                                                                                                             | **Entra, con brazo de control obligatorio.** Es el cambio de mayor efecto por línea escrita del catálogo: tres de las veinte más graves (S-458, S-478, S-488) y la mitad de las quejas de verosimilitud. Y es reversible por constantes: con `boardLagKm = 0` el motor vuelve a ser el de hoy, lo que la hace la más segura de las grandes.                                                                          |
+| 4   | **Las seis estructuras del dueño: ¿son seis, o siete con «invitado/patrocinador»?**                                                                                                                                               | **Seis formas + `patrocinador` como MOTIVO, no como forma.** Un equipo invitado tiene forma (normalmente `cazaetapas` o `mixta`) y además la obligación de estar delante todos los días (S-066). Meterlo como séptima forma duplicaría filas de `ROSTER_BY_SHAPE` sin cambiar ningún papel.                                                                                                                          |
+| 5   | **`mountain.breakawayWinPct` 25-45 % contra el 18,1 % que el dueño dio por bueno.**                                                                                                                                               | **Bajar la banda a 12-40 % y declarar que no es objetivo, sino control de forma.** Es lo que el propio comentario ya dice desde la v44 y lo que el dueño cerró con «está bien así». Una banda que nadie cumple no vigila: da ruido en el nocturno. Si el dueño quiere el 25-45 de verdad, entonces R13.5 deja de ser calibración y pasa a ser un cambio de ley, y eso es la decisión 12.                             |
+| 6   | **El grupo de cabeza de una reina: ¿se convierte la DEUDA en banda?**                                                                                                                                                             | **Sí: `medianLeadGroupRiders` 3-12.** El encargo pedía 5-15 y hoy mide 1. Poner 3-12 en vez de 5-15 es honesto: 5 es el suelo de carretera pero el motor tiene que llegar primero a que lleguen tres. Se re-ancla en el paso 18 con el dato delante.                                                                                                                                                                 |
+| 7   | **El corte de tiempo, ¿elimina? (S-494) Y con él, ¿puede la cola de la reina pasar del 14 %?**                                                                                                                                    | **Sí a las dos.** Sin eliminación el tamaño del grupeto no vale nada y R26 entero se organiza por inercia en vez de por miedo: seis situaciones dependen de eso. Y cribar los grupetos que ya no son la carrera (deuda §14 punto 2, medida y refutada tres veces) es imposible con el techo del 14 %. Propuesta: **7-18 %**, con el techo de vigilancia de S-464 intacto (nadie se lleva por delante medio pelotón). |
+| 8   | **¿Los nueve motivos completos, o solo `montaña` y `puntos` en la v1?**                                                                                                                                                           | **Los nueve.** `joven`, `equipos`, `combatividad` y `patrocinador` son cuatro líneas de tabla cada uno (R05.1) y cierran 11 situaciones más. El coste está en las clasificaciones que hay que llevar, y esas hay que llevarlas igual para `montaña` y `puntos`.                                                                                                                                                      |
+| 9   | **Órdenes condicionales: ¿cuántas y con qué disparadores?**                                                                                                                                                                       | **Tres, con los doce disparadores de §6.3.** Menos de tres no permite «ataco en el puerto y si me cazan me guardo»; más de tres es un programa que el jugador no puede depurar y que el informe no puede explicar.                                                                                                                                                                                                   |
+| 10  | **Rebeldía con coste (R25): ¿cuesta desobedecer en un equipo bot?**                                                                                                                                                               | **Sí, y poco: `trustLossRebel` 6/etapa.** Hoy §VI.2 dice «en un equipo bot no cuesta nada», y el propio comentario avisa: «la estrategia óptima pasa a ser ir siempre de líder pase lo que pase». Seis puntos por etapa se notan a veinte carreras (S-057) y no a una, que es lo que la fila pide.                                                                                                                   |
+| 11  | **S-451 y S-486 (el perfil escrito mal y dispuesto mal): ¿entran en este encargo?**                                                                                                                                               | **No, y son prerrequisito.** Son los puestos 2 y 3 de las veinte más graves y **no son táctica**: son el generador. Mientras 0 de 157 reinas pasen de 4.000 m y las cinco reinas de una carrera dejen 19-50 km tras la última cota, R06, R13, R17, R26 y R28 **no se pueden medir en montaña**. Recomendación: **una tanda propia antes del paso 9**.                                                                |
+| 12  | **`tsb` sigue sin llegar al motor. ¿Se conecta?**                                                                                                                                                                                 | **Sí, en el paso 12.** Sin él, R08 (`frescuraDeCarrera`) se apoya solo en `kmAlFrente` y `depletion`, y el «de 34 y el de 22 en la tercera semana» (S-482) no tiene sujeto. Es deuda declarada del diseño de entrenamiento y de `types.ts:111`, no de este.                                                                                                                                                          |
+| 13  | **El coste de CI: +16 min de bancos nuevos y +40 % de motor estimado. ¿Se acepta?**                                                                                                                                               | **Se acepta con vigilancia y con una regla: si no cabe, se recorta la MUESTRA, nunca la banda.** El invariante 37 (912 s) y el 25 (1.230 s) son los que hay que medir en el paso 2 y volver a medir en el 10. La alternativa —bajar el tick a 2 km— está en la decisión 2 y cuesta verosimilitud, no números.                                                                                                        |
+| 14  | **Qué queda fuera de la v1**: CRE (S-163), semietapa (S-431), campeonato nacional (S-485), dos carreras a la vez (S-470), material del día (S-430), lotería del horario (S-462), comisario (S-448), ritmo de competición (S-468). | **Fuera, y anotado en el catálogo como tal.** Son ocho situaciones de 494 (1,6 %) y **cada una es un formato o un actor nuevo**, no una regla: meterlas alarga el plan sin cerrar ningún racimo. Excepción a considerar: S-485, porque son 532 de las 1.418 etapas del calendario y hoy corren sin escuadras.                                                                                                        |
+| 15  | **`commitHysteresisMargin` 0,15 y los `commitMinKm` de la tabla de §2.2.**                                                                                                                                                        | **Salir con esos valores y calibrarlos en el paso 2 contra el banco de temblor.** Es la única familia de constantes de este documento que no tiene ningún precedente medido en el motor —`commitHysteresis` 0,4 y `mainGroupTakeoverRatio` 1,25 son el patrón, no el valor—, así que va marcada «calibrar con banco» y se ancla con dato.                                                                            |
 
 ---
 
