@@ -10317,3 +10317,118 @@ para que ese día se compare contra una predicción escrita antes y no contra un
 ya existe. La partición por CLASE que pide el diseño (`ATTRIBUTE_CLASS`) llega en el paso 3, y hasta
 entonces medir «por clase» sería medir una clase que no existe. `aprendidoPorCohorte` sale con una
 sola columna, la del banco: la de producción la trae el paso que la mide.
+
+---
+
+## v59 §1 — Los tres brazos del banco, y dos predicciones del diseño que no se cumplen
+
+Segundo paso del plan de `docs/entrenamiento.md`. Como el paso 0, **no cambia una sola conducta**:
+`ENGINE_VERSION` sigue en 52, la fórmula de `raceLearning` no cambia una coma y el brazo por defecto
+del banco es el mundo de siempre. Lo único que se añade son tres **brazos** —formas de correr el
+mismo mundo con una cosa cambiada— y una exportación: `kDim` sale de `progression.ts` para que el
+banco pueda probarlo en la rama de carrera sin que nadie lo enchufe todavía.
+
+Un banco con un solo brazo mide, pero no prueba: dice qué pasa, no si lo que pasa se debe a lo que
+uno cree.
+
+### Brazo 1 — la política de entrenamiento: `--politica=bot|buena|mala`
+
+Sirve para probar la frase «el entrenador bot es razonable, nunca óptimo», que hasta ahora era una
+opinión. `buena` no machaca en rojo (el `fuerte` del ciclo solo se paga con TSB > −10), afina los
+días previos a competir (5 a 9 según REC) y respeta los descansos; `mala` es construcción fuerte
+todos los días y nunca afina.
+
+Mismo corredor sembrado, mismo calendario, 15 temporadas:
+
+| Arm     | media t5 | media t15 | días enfermo/año | jóvenes con margen t15 |
+| ------- | -------: | --------: | ---------------: | ---------------------: |
+| `bot`   |    53,78 | **61,99** |             3,26 |                   59,7 |
+| `buena` |    53,51 |     61,66 |             3,25 |                   63,9 |
+| `mala`  |    51,93 |     58,66 |             3,29 |                   83,3 |
+
+**Las dos bandas que el diseño escribió para el paso 12 fallan hoy, y en direcciones distintas:**
+
+1. **`buena` no es mejor que `bot`: es 0,33 puntos PEOR.** El diseño pedía «`buena` gana ≥ +8 % de
+   puntos de atributo al año». Da −0,5 %. O el entrenador bueno está mal escrito, o —lo más probable
+   a la vista del punto 2— el motor no premia entrenar bien.
+2. **`mala` no enferma más: enferma exactamente igual.** 3,29 contra 3,26 días al año, que es un 1 %.
+   El diseño pedía «≥ 2× días enfermo/molestias». Machacarse en rojo todos los días del año durante
+   quince temporadas sale **prácticamente gratis en salud**, y lo único que cuesta son 3,3 puntos de
+   media en quince años.
+
+O sea que hoy **no se puede probar que el bot sea razonable**, porque no hay contra qué: la
+diferencia entre entrenar bien y entrenar como un animal casi no existe. Eso no es un defecto del
+brazo, es el hallazgo del brazo, y es exactamente lo que el paso 1 existía para descubrir. Las
+palancas que lo arreglan son las de §5.5 del diseño (coste de la intensidad, `kRiesgo`, `kReady`,
+salud por sobrecarga), que son los pasos 4 y 7.
+
+Un detalle que apunta a la causa y que hay que mirar en el paso 7: `mala` deja a los jóvenes con
+MÁS margen (83,3 % contra 59,7 %) y aprendiendo MÁS por día de carrera. No es que entrenar mal sea
+bueno: es que entrenar mal hace crecer menos, y quien menos crece conserva más margen. La fila de
+margen no distingue «tiene recorrido» de «no ha avanzado», y conviene saberlo antes de ponerle banda.
+
+### Brazo 2 — la carrera con freno: `--aprendizaje=conKDim`
+
+El rediseño propone meter `kDim` en `raceLearning` y declara un precio grande. Este brazo lo mide
+**antes de tocar el motor**:
+
+| Fila                             |      hoy | con `kDim` |
+| -------------------------------- | -------: | ---------: |
+| aprendido/día, cohorte ≤23 (t15) |    0,370 |  **0,180** |
+| `crecimientoNeoproWT` (t15)      |    10,25 |   **4,95** |
+| jóvenes con margen ≥8 (t15)      |     59,7 |   **79,2** |
+| margen ≤23 (t15)                 |     15,4 |       17,5 |
+| **WT con algún 5★ (t15)**        | **83,9** |   **74,4** |
+
+**El precio declarado se confirma al decimal: correr enseña la mitad.** 0,370 → 0,180. El diseño
+decía «alrededor de la mitad de puntos brutos» y lo había estimado por Monte Carlo; el banco lo
+confirma por otra vía. Y el beneficio también aparece donde el diseño decía: los jóvenes con margen
+suben del 59,7 % al 79,2 %.
+
+**Pero la conclusión importante es la que el diseño NO predijo: `kDim` no arregla la banda del
+dueño.** Lleva el 5★ del WorldTour de 83,9 % a 74,4 %. El objetivo es **≤ 15**. Queda a sesenta
+puntos.
+
+Esto contesta —y adelanta— la predicción que el paso 0 dejó anotada para el paso 6. El diseño
+estimaba que con `kDim` la fila caía a 8,8 %, y sale 74,4 %. La diferencia no es que el modelo
+estuviera mal en el efecto de `kDim` —ese lo clavó— sino en el mundo sobre el que lo aplicaba: su
+Monte Carlo corría sobre la **génesis v2** (techos por madurez, tope 83, presupuesto de dispersión) y
+esto corre sobre la de hoy. Con techos altos, frenar el aprendizaje solo retrasa la llegada al techo;
+no baja el techo.
+
+**Consecuencia para el plan, y es una reordenación de causas, no de pasos**: quien sostiene la banda
+del dueño es el **paso 5** (la génesis v2 y su tope de techo), no el paso 6. `kDim` sigue
+mereciendo la pena por lo que sí hace —devolverle margen a los jóvenes— pero no es la pieza que
+cumple el «menos del 15 %», y el diseño lo presenta como «el cambio que sostiene la banda del
+dueño». Queda corregido en `docs/entrenamiento.md` §4.4 con estos números.
+
+### Brazo 3 — el arco del humano: `--arco`
+
+Un humano nacido a los 18 con `generateRiderGenome`, plan del bot y 45 días de continental al año.
+Los dos extremos son defectos: demasiado lento y nadie le ficha nunca; demasiado rápido y las
+decisiones del jugador no valen nada.
+
+| Vocación  | a 20 | a 22 | a 25 | carta a 25 |
+| --------- | ---: | ---: | ---: | ---------: |
+| escalada  | 41,2 | 48,9 | 53,9 |       82,3 |
+| velocidad | 44,2 | 51,5 | 56,3 |       70,2 |
+| clasicas  | 42,8 | 50,6 | 55,8 |       75,0 |
+| crono     | 43,5 | 51,6 | 56,3 |       79,2 |
+| fondo     | 41,2 | 48,8 | 53,8 |       63,2 |
+
+Referencias (bots recién generados a esa edad): **p25 del CON a los 22 = 37,0** · **p90 del WT a los
+25 = 59,7**.
+
+**El arco cabe dentro de la banda propuesta por los dos lados**, y es la única de las tres
+predicciones del diseño que se cumple: a los 22 todas las vocaciones están entre 48,8 y 51,6, muy por
+encima del suelo de 37,0; y a los 25 están entre 53,8 y 56,3, por debajo del techo de 59,7. Margen
+arriba: **3,4 puntos**, que es poco, así que cualquier paso que acelere la progresión hay que
+mirarlo contra esta fila.
+
+Va **por vocación y no por arquetipo**, y hay que decirlo: el diseño pide los ocho arquetipos, pero
+la génesis que los reparte es del paso 5 y hoy `generateRiderGenome` solo entiende las cinco
+vocaciones. Medir «por arquetipo» antes de que el arquetipo exista sería inventarse tres columnas.
+
+Un detalle que el paso 5 tendrá que mirar: `fondo` termina con una carta de **63,2** contra los 82,3
+de `escalada`. El diseño ya lo había visto por otro camino —«sin carta no puede querer decir sin
+nada»— y le puso dos correcciones; esta fila es la medida de antes contra la que se comprobarán.

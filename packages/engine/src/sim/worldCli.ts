@@ -11,7 +11,13 @@
  * Solo lectura: no toca base de datos ni red, y todo el azar sale de la semilla.
  */
 import { RIDER_ARCHETYPES } from '@cyclingstar/shared'
-import { type WorldSeasonRow, analyzeWorld } from './world.js'
+import {
+  type Aprendizaje,
+  type Politica,
+  type WorldSeasonRow,
+  analyzeWorld,
+  arcoHumano,
+} from './world.js'
 
 const CABECERA = [
   'temp',
@@ -44,7 +50,9 @@ interface Args {
   runs: number
   json: boolean
   sinCarreras: boolean
-  politica: string | null
+  politica: Politica | null
+  aprendizaje: Aprendizaje | null
+  arco: boolean
 }
 
 export function parseArgs(argv: readonly string[]): Args {
@@ -69,8 +77,22 @@ export function parseArgs(argv: readonly string[]): Args {
     runs: numero(posicionales[1], 3),
     json: valorDe('json') !== null,
     sinCarreras: valorDe('sin-carreras') !== null,
-    politica: valorDe('politica'),
+    politica: unaDe(valorDe('politica'), ['bot', 'buena', 'mala'], 'politica'),
+    aprendizaje: unaDe(valorDe('aprendizaje'), ['hoy', 'conKDim'], 'aprendizaje'),
+    arco: valorDe('arco') !== null,
   }
+}
+
+/**
+ * Una bandera con valor cerrado. Falla en voz alta: `--politica=buean` sin esto se colaría como
+ * «no es ninguna de las tres» y el banco correría el brazo del bot creyendo que corre otro.
+ */
+function unaDe<T extends string>(v: string | null, validos: T[], nombre: string): T | null {
+  if (v === null) return null
+  if (!validos.includes(v as T)) {
+    throw new Error(`--${nombre}=${v} no vale. Opciones: ${validos.join(' | ')}`)
+  }
+  return v as T
 }
 
 /** La tabla de siempre, que es la que se lee de un vistazo. */
@@ -169,22 +191,50 @@ function foto(filas: WorldSeasonRow[]): void {
   }
 }
 
+/** El arco del humano que empieza de cero, contra el suelo del continental y el techo del WT. */
+function imprimirArco(): void {
+  const { arcos, p25ConA22, p90WtA25 } = arcoHumano('mundo-0')
+  console.log('\nEl arco del humano — nace a los 18, plan del bot, 45 días de continental al año\n')
+  console.log(
+    `  ${'vocación'.padEnd(12)}${'a 20'.padStart(9)}${'a 22'.padStart(9)}${'a 25'.padStart(9)}${'carta 25'.padStart(10)}`,
+  )
+  for (const a of arcos) {
+    console.log(
+      `  ${a.vocation.padEnd(12)}${a.a20.toFixed(1).padStart(9)}${a.a22.toFixed(1).padStart(9)}${a.a25.toFixed(1).padStart(9)}${a.cartaA25.toFixed(1).padStart(10)}`,
+    )
+  }
+  console.log(
+    `\n  Referencias (bots recién generados a esa edad): p25 del CON a los 22 = ${p25ConA22.toFixed(1)} · p90 del WT a los 25 = ${p90WtA25.toFixed(1)}`,
+  )
+  console.log(
+    '  Los dos extremos son defectos: por debajo del p25 a los 22 nadie le ficha; por encima del p90 a los 25 las decisiones del jugador no valen nada.\n',
+  )
+}
+
 function main(): void {
   const args = parseArgs(process.argv.slice(2))
-  const filas = analyzeWorld(args.runs, args.seasons, { sinCarreras: args.sinCarreras })
+  if (args.arco) {
+    imprimirArco()
+    return
+  }
+  const filas = analyzeWorld(args.runs, args.seasons, {
+    sinCarreras: args.sinCarreras,
+    ...(args.politica !== null ? { politica: args.politica } : {}),
+    ...(args.aprendizaje !== null ? { aprendizaje: args.aprendizaje } : {}),
+  })
 
   if (args.json) {
     console.log(JSON.stringify(filas, null, 2))
     return
   }
 
-  const brazo = args.sinCarreras ? ' — brazo SIN CARRERAS (solo entrenando)' : ''
+  const brazos = [
+    args.sinCarreras ? 'SIN CARRERAS (solo entrenando)' : null,
+    args.politica !== null && args.politica !== 'bot' ? `política ${args.politica}` : null,
+    args.aprendizaje === 'conKDim' ? 'carrera CON kDim' : null,
+  ].filter((x) => x !== null)
+  const brazo = brazos.length > 0 ? ` — brazo ${brazos.join(' + ')}` : ''
   console.log(`\nBanco de mundo — ${args.runs} mundos × ${args.seasons} temporadas${brazo}\n`)
-  if (args.politica !== null) {
-    // Se parsea ya para que la bandera exista desde el principio, pero el brazo que la usa es el
-    // paso siguiente. Decirlo es mejor que aceptarla y no hacer nada con ella.
-    console.log(`  (--politica=${args.politica} aún no tiene brazo: llega en el paso 1)\n`)
-  }
   tabla(filas, args.seasons)
 
   const primera = filas[0]

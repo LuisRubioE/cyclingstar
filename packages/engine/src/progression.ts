@@ -75,7 +75,19 @@ function kAge(age: number, peakAge: number, declineAge: number): number {
   return 0.4
 }
 
-function kDim(attr: number, ceiling: number): number {
+/**
+ * EL FRENO AL ACERCARSE AL TECHO, y por qué está exportado.
+ *
+ * Es el mismo `kDim` que usa el entrenamiento, sin segunda forma. Se saca del fichero porque el
+ * banco de mundo necesita PROBARLO en la rama de carrera antes de que nadie lo enchufe ahí: el
+ * rediseño de entrenamiento propone meterlo en `raceLearning`, y eso tiene un precio grande —correr
+ * enseñaría alrededor de la mitad de puntos brutos—, así que se mide con el brazo del banco antes de
+ * comprometer una línea del motor. Reimplementarlo en el banco habría sido más fácil y habría medido
+ * otra cosa.
+ *
+ * No cambia nada: es la misma función en el mismo sitio, con `export` delante.
+ */
+export function kDim(attr: number, ceiling: number): number {
   if (attr >= ceiling) return 0
   const denom = Math.max(TRAINING.kDimDenomFloor, ceiling - TRAINING.kDimCeilingRef)
   return Math.min(TRAINING.kDimCap, Math.pow((ceiling - attr) / denom, TRAINING.kDimExponent))

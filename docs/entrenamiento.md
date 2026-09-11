@@ -792,7 +792,7 @@ gain[a] ≤ LEARNING.raceDailyCap (0,8)
 
 - `raceBase 0,5`, `nivel` WT 2 / Pro 1,5 / .1 y NC 1,2 / .2 1, `raceMarginRef 30`: **sin cambios**
   (banda calibrada v54).
-- **`kDim` entra en la cadena, y es el cambio que sostiene la banda del dueño.** Es el mismo `kDim`
+- **`kDim` entra en la cadena. NO es el cambio que sostiene la banda del dueño —eso lo midió el paso 1 y lo desmintió—, pero sí es el que le devuelve margen a los jóvenes.** Es el mismo `kDim`
   de §4.2 y del entrenamiento (§4.3), sin excepción ni segunda forma. El comentario de hoy
   (`world/learning.ts:44-48`) afirma que `margen/30` «es el mismo `kDim` dicho de otra forma»; **no
   lo es, y la diferencia es de orden**: `margen/30` es lineal y `kDim = (margen/max(10, techo−30))^1,3`
@@ -817,6 +817,29 @@ gain[a] ≤ LEARNING.raceDailyCap (0,8)
   el paso 1 mide antes de comprometer nada (`carrerasEnseñanJovenes`). Se paga porque la alternativa
   —un mundo en el que a los 23 nadie tiene margen— vacía de sentido a la vez `kAge`, la tabla de
   madurez, `margenAlTechoPct` y la frase del dueño sobre mejorar «en cosas diferentes».
+
+- **MEDIDO EN EL BANCO (paso 1, `--aprendizaje=conKDim`), y una de las dos mitades no se cumple.**
+  El brazo corre el mundo de HOY con `kDim` aplicado en la rama de carrera, sin tocar la fórmula de
+  producción. Resultado, 15 temporadas:
+
+  | Fila                       |      hoy | con `kDim` | lo que decía esta sección   |
+  | -------------------------- | -------: | ---------: | --------------------------- |
+  | aprendido/día, cohorte ≤23 |    0,370 |  **0,180** | «la mitad» → **se cumple**  |
+  | jóvenes con margen ≥8      |     59,7 |   **79,2** | sube → **se cumple**        |
+  | `crecimientoNeoproWT`      |    10,25 |   **4,95** | +8,2 → baja más de lo dicho |
+  | **`cincoEstrellasWTPct`**  | **83,9** |   **74,4** | 8,8 % → **NO se cumple**    |
+
+  Las dos primeras filas confirman el Monte Carlo de esta sección por otra vía, y eso da confianza en
+  el mecanismo. La última lo desmiente por sesenta puntos, y la explicación no es que el efecto de
+  `kDim` esté mal estimado —está clavado— sino que **el Monte Carlo lo aplicaba sobre la génesis v2 y
+  el banco lo aplica sobre la de hoy**. Con techos altos, frenar el aprendizaje solo RETRASA la
+  llegada al techo; no baja el techo.
+
+  **Consecuencia, y es de causas y no de orden**: quien sostiene el «menos del 15 %» es el **paso 5**
+  —la génesis v2, los techos por madurez y el tope 83—, no el paso 6. `kDim` se hace igual, por lo
+  que sí hace: devolverle margen a los jóvenes. Pero el paso 6 **no puede llevar la banda del dueño
+  como criterio de «hecho»**, porque no depende de él; la lleva el 5, y el 6 la vuelve a medir para
+  comprobar que no la rompe. Ver `docs/balance.md` «v59 §1».
 
 - **Un tope al factor de margen NO es la corrección, y ésta es la razón con números.** La versión
   anterior colaba un `min(1,2, margen/30)` dentro de una fórmula cuya cabecera decía «sin cambios».

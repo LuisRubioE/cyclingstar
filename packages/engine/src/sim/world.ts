@@ -35,6 +35,7 @@ import {
   RIDER_ARCHETYPES,
   type RiderArchetype,
   VOCATIONS,
+  type TrainingChoice,
   type Vocation,
   archetypeFromAttributes,
   attrStarsWhole,
@@ -44,7 +45,8 @@ import {
 import { applyDailyLoad } from '../banister.js'
 import { RACE_DAY_TSS, RACE_DAY_TSS_DEFAULT } from '../constants.js'
 import { SEASON_CALENDAR } from '../routes/calendar.js'
-import { simulateRiderDay } from '../progression.js'
+import { generateRiderGenome } from '../creation.js'
+import { kDim, simulateRiderDay } from '../progression.js'
 import { raceLearning } from '../world/learning.js'
 import { neoproAge, shouldRetire } from '../world/lifecycle.js'
 import { type Division, generateNpcRider, sampleNpcAge } from '../world/npc.js'
@@ -170,6 +172,67 @@ const CALENDARIO: Record<Division, DiaDeCarrera[]> = {
  * del NIVEL de la carrera, no el de correr más o menos.
  */
 const DIAS_DE_CARRERA = 65
+
+/**
+ * LOS TRES BRAZOS DEL BANCO (paso 1 del rediseño de entrenamiento).
+ *
+ * Un banco con un solo brazo mide, pero no PRUEBA: dice qué pasa, no si lo que pasa se debe a lo que
+ * uno cree. Los tres de aquí existen para contestar tres preguntas que el dueño hizo con palabras
+ * distintas y que hasta ahora se contestaban con una opinión.
+ */
+
+/**
+ * 1) LA POLÍTICA DE ENTRENAMIENTO. «Que el entrenador bot sea razonable, nunca óptimo» solo se puede
+ * probar comparándolo contra un entrenador MEJOR y contra uno PEOR sobre el mismo corredor sembrado
+ * y el mismo calendario. Si el bot no queda en medio, la frase es un deseo.
+ *
+ * - `bot`: el de producción (`defaultCoachPlan`), tal cual.
+ * - `buena`: el mismo ciclo, pero con las tres cosas que hace un entrenador que mira al corredor —no
+ *   machacar en rojo, afinar antes de competir, y descansar de verdad después—.
+ * - `mala`: construcción fuerte todos los días y sin afinar nunca. No es un espantapájaros: es
+ *   exactamente lo que hace un jugador que confunde entrenar con sufrir.
+ */
+export type Politica = 'bot' | 'buena' | 'mala'
+
+/** Cuántos días antes de competir afina un entrenador bueno: más recuperación, menos afinado. */
+const afinadoPorREC = (rec: number): number => Math.round(9 - (4 * Math.min(100, rec)) / 100)
+
+function planDelDia(
+  politica: Politica,
+  gameDay: number,
+  vocation: Vocation,
+  tsb: number,
+  rec: number,
+  diasHastaCorrer: number,
+): TrainingChoice {
+  if (politica === 'mala') return { session: 'fondo', intensity: 'fuerte' }
+  const base = defaultCoachPlan(gameDay, vocation)
+  if (politica === 'bot') return base
+  // Afinar: los días previos a competir se baja el pistón, salvo que ya toque descansar.
+  if (diasHastaCorrer >= 0 && diasHastaCorrer <= afinadoPorREC(rec)) {
+    if (base.session === 'descanso_total' || base.session === 'descanso_activo') return base
+    return { session: base.session, intensity: 'suave' }
+  }
+  // No machacar en rojo: el `fuerte` del ciclo solo se paga con el depósito por encima de −10.
+  if (base.intensity === 'fuerte' && tsb <= -10)
+    return { session: base.session, intensity: 'normal' }
+  return base
+}
+
+/**
+ * 2) EL APRENDIZAJE DE LA CARRERA, CON Y SIN FRENO. El rediseño propone meter `kDim` en
+ * `raceLearning`, y el precio declarado es grande: correr enseñaría alrededor de la mitad de puntos
+ * brutos. Este brazo lo mide ANTES de tocar el motor —la fórmula de producción no cambia una coma—,
+ * que es la diferencia entre decidir con un número y decidir con un argumento.
+ */
+export type Aprendizaje = 'hoy' | 'conKDim'
+
+/** Opciones de una corrida del mundo. Por defecto, el mundo tal y como se juega hoy. */
+export interface WorldOptions {
+  sinCarreras?: boolean
+  politica?: Politica
+  aprendizaje?: Aprendizaje
+}
 
 function nace(seed: string, division: Division, age: number, debutSeason: number): WorldRider {
   const rng = seededRng(`${seed}:voc`)
@@ -560,8 +623,10 @@ function foto(
 export function runWorld(
   worldSeed: string,
   seasons: number,
-  opciones: { sinCarreras?: boolean } = {},
+  opciones: WorldOptions = {},
 ): WorldSeasonRow[] {
+  const politica: Politica = opciones.politica ?? 'bot'
+  const aprendizaje: Aprendizaje = opciones.aprendizaje ?? 'hoy'
   const rng = seededRng(`${worldSeed}:mundo`)
   const field: WorldRider[] = []
   for (const { division, equipos, por } of PLANTILLA) {
@@ -626,7 +691,10 @@ export function runWorld(
           for (const [attr, delta] of Object.entries(sube)) {
             const a = attr as Attribute
             const antes = r.attributes[a]
-            r.attributes[a] = Math.min(r.ceilings[a], antes + (delta ?? 0))
+            // El brazo `conKDim` multiplica por el mismo freno del entrenamiento, sin tocar la
+            // fórmula de producción: `raceLearning` devuelve lo de hoy y el freno se aplica aquí.
+            const freno = aprendizaje === 'conKDim' ? kDim(antes, r.ceilings[a]) : 1
+            r.attributes[a] = Math.min(r.ceilings[a], antes + (delta ?? 0) * freno)
             // Lo que de VERDAD entró, no lo que la fórmula ofrecía: al que ya está en su techo la
             // carrera no le enseña nada, y contar la oferta en vez del cobro taparía justo eso.
             r.temporada.aprendidoEnCarrera += r.attributes[a] - antes
@@ -639,7 +707,31 @@ export function runWorld(
         }
         // El plan del entrenador mira la VOCACIÓN desde la v53, así que el banco también: si le
         // diera a todos la semana del completo mediría un mundo que el juego ya no corre.
-        const choice = defaultCoachPlan(gameDay, r.vocation)
+        /**
+         * CUÁNTO FALTA PARA COMPETIR. Solo lo usa la política `buena` para afinar; el bot de
+         * producción no mira el calendario y por eso no se lo pasa nadie más. Los días de carrera
+         * ya están sorteados para toda la temporada, así que esto es una lectura y no un dado.
+         */
+        let diasHastaCorrer = -1
+        if (politica === 'buena') {
+          const suyos = corre.get(r.riderId)
+          if (suyos !== undefined) {
+            for (let d = dia; d < Math.min(DAYS_PER_SEASON, dia + 10); d++) {
+              if (suyos.has(d)) {
+                diasHastaCorrer = d - dia
+                break
+              }
+            }
+          }
+        }
+        const choice = planDelDia(
+          politica,
+          gameDay,
+          r.vocation,
+          r.ctl - r.atl,
+          r.attributes.REC,
+          diasHastaCorrer,
+        )
         const out = simulateRiderDay(
           {
             attributes: r.attributes,
@@ -707,11 +799,169 @@ export function runWorld(
   return filas
 }
 
+/**
+ * 3) EL ARCO DEL HUMANO: ¿en cuánto tiempo llega a algún sitio un jugador que empieza de cero?
+ *
+ * Es la tercera pregunta del dueño y la que menos se puede contestar mirando al pelotón, porque el
+ * humano NO nace como un bot: `generateRiderGenome` le da techos con sesgo por vocación y valores
+ * iniciales bajos, y desde ahí sube entrenando y corriendo. Los dos extremos son defectos y los dos
+ * se ven aquí: el arco demasiado LENTO —nadie le ficha nunca, el juego no engancha— y el demasiado
+ * RÁPIDO —a los 25 es el mejor del mundo con el plan por defecto, y entonces las decisiones del
+ * jugador no valían nada—.
+ *
+ * Nace a los 18, entrena con el plan del bot y corre 45 días de continental al año, que es lo que
+ * hace un neoprofesional de verdad. Se le mira a los 20, 22 y 25.
+ *
+ * VA POR VOCACIÓN Y NO POR ARQUETIPO, y hay que decirlo: el diseño pide los ocho arquetipos, pero la
+ * génesis que los reparte es del paso 5 y hoy `generateRiderGenome` solo entiende las cinco
+ * vocaciones. Medir «por arquetipo» antes de que el arquetipo exista sería inventarse tres columnas.
+ * Cuando llegue el paso 5 esta función pasa a ocho sin cambiar de forma.
+ */
+export interface ArcoHumano {
+  vocation: Vocation
+  /** Media de atributos físicos a cada edad, y su mejor especialidad al final. */
+  a20: number
+  a22: number
+  a25: number
+  cartaA25: number
+}
+
+export interface ArcoHumanoStats {
+  arcos: ArcoHumano[]
+  /** Las dos referencias contra las que se leen: el suelo del continental y el techo del WT. */
+  p25ConA22: number
+  p90WtA25: number
+}
+
+/** Días de carrera al año de un humano que empieza: menos que un profesional hecho. */
+const DIAS_DE_CARRERA_HUMANO = 45
+
+export function arcoHumano(worldSeed: string): ArcoHumanoStats {
+  const cal = CALENDARIO.CON
+  const arcos: ArcoHumano[] = []
+  for (const vocation of VOCATIONS) {
+    const g = generateRiderGenome(`${worldSeed}:humano:${vocation}`, vocation)
+    const r = seededRng(`${worldSeed}:humano:${vocation}:forma`)
+    const h: WorldRider = {
+      riderId: `humano-${vocation}`,
+      division: 'CON',
+      vocation,
+      age: 18,
+      attributes: { ...g.attributes },
+      ceilings: { ...g.hidden.ceilings },
+      talent: g.hidden.talent,
+      fragility: g.hidden.fragility,
+      peakAge: g.hidden.peakAge,
+      declineAge: g.hidden.declineAge,
+      ctl: 35 + 15 * r(),
+      atl: 30 + 10 * r(),
+      morale: 55 + 20 * r(),
+      health: 'sano',
+      healthUntilDay: null,
+      debutSeason: 0,
+      temporada: nuevaTemporada(g.attributes),
+    }
+    const hito = new Map<number, number>()
+    for (let temporada = 0; temporada < 8; temporada++) {
+      const dias = new Map<number, DiaDeCarrera>()
+      const rr = seededRng(`${worldSeed}:humano:${vocation}:cal:${temporada}`)
+      for (let i = 0; i < DIAS_DE_CARRERA_HUMANO; i++) {
+        dias.set(Math.floor(rr() * DAYS_PER_SEASON), cal[Math.floor(rr() * cal.length)]!)
+      }
+      for (let dia = 0; dia < DAYS_PER_SEASON; dia++) {
+        const gameDay = temporada * DAYS_PER_SEASON + dia
+        const hoy = dias.get(dia)
+        if (hoy !== undefined) {
+          const sube = raceLearning({
+            raceClass: hoy.raceClass as never,
+            kind: hoy.kind,
+            attributes: h.attributes,
+            ceilings: h.ceilings,
+          })
+          for (const [attr, delta] of Object.entries(sube)) {
+            const a = attr as Attribute
+            h.attributes[a] = Math.min(h.ceilings[a], h.attributes[a] + (delta ?? 0))
+          }
+          const carga = applyDailyLoad({ ctl: h.ctl, atl: h.atl }, hoy.tss, h.attributes.REC)
+          h.ctl = carga.ctl
+          h.atl = carga.atl
+          continue
+        }
+        const out = simulateRiderDay(
+          {
+            attributes: h.attributes,
+            ctl: h.ctl,
+            atl: h.atl,
+            morale: h.morale,
+            health: h.health,
+            healthUntilDay: h.healthUntilDay,
+          },
+          {
+            gameDay,
+            age: h.age,
+            ceilings: h.ceilings,
+            talent: h.talent,
+            fragility: h.fragility,
+            peakAge: h.peakAge,
+            declineAge: h.declineAge,
+            choice: defaultCoachPlan(gameDay, h.vocation),
+            kInst: 1,
+            kStaff: 1,
+            rng: seededRng(`${worldSeed}:humano:${vocation}:${gameDay}`),
+          },
+        )
+        h.attributes = out.state.attributes
+        h.ctl = out.state.ctl
+        h.atl = out.state.atl
+        h.morale = out.state.morale
+        h.health = out.state.health
+        h.healthUntilDay = out.state.healthUntilDay
+      }
+      h.age += 1
+      if (h.age === 20 || h.age === 22 || h.age === 25) {
+        hito.set(h.age, media(FISICOS.map((a) => h.attributes[a])))
+      }
+    }
+    arcos.push({
+      vocation,
+      a20: hito.get(20) ?? 0,
+      a22: hito.get(22) ?? 0,
+      a25: hito.get(25) ?? 0,
+      cartaA25: cartaDe(h),
+    })
+  }
+
+  /**
+   * LAS REFERENCIAS, y de dónde salen exactamente. Son una muestra de bots RECIÉN GENERADOS a esa
+   * edad, no del pelotón del banco después de correr veinte temporadas. Es la comparación honesta
+   * para esta pregunta —«¿está este humano a la altura de un continental de 22?»— y además la única
+   * estable: la del banco depende de cuántas temporadas lleve corriendo.
+   */
+  const muestra = (division: Division, age: number, n: number): number[] => {
+    const out: number[] = []
+    for (let i = 0; i < n; i++) {
+      const voc = VOCATIONS[i % VOCATIONS.length]!
+      const g = generateNpcRider(`${worldSeed}:ref:${division}:${age}:${i}`, {
+        division,
+        vocation: voc,
+        age,
+      })
+      out.push(media(FISICOS.map((a) => g.attributes[a])))
+    }
+    return out
+  }
+  return {
+    arcos,
+    p25ConA22: cuantil(muestra('CON', 22, 400), 0.25),
+    p90WtA25: cuantil(muestra('WT', 25, 400), 0.9),
+  }
+}
+
 /** Varias corridas del mundo, promediadas temporada a temporada: una sola oscila demasiado. */
 export function analyzeWorld(
   runs: number,
   seasons: number,
-  opciones: { sinCarreras?: boolean } = {},
+  opciones: WorldOptions = {},
 ): WorldSeasonRow[] {
   const todas: WorldSeasonRow[][] = []
   for (let i = 0; i < runs; i++) todas.push(runWorld(`mundo-${i}`, seasons, opciones))
