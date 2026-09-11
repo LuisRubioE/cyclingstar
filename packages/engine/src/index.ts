@@ -251,6 +251,19 @@ export {
 } from './progression.js'
 export { generateRiderGenome, type RiderGenome, type RiderHidden } from './creation.js'
 export {
+  ceilingOpinion,
+  coachNotes,
+  facilitiesTier,
+  isDeclining,
+  COACH_NOTE,
+  OPINION_AGE_EXPERTO,
+  OPINION_SD_JOVEN,
+  OPINION_SD_VETERANO,
+  type CeilingOpinion,
+  type CoachNote,
+  type CoachNotesInput,
+} from './coachView.js'
+export {
   applyDailyLoad,
   eff0,
   fitnessFactor,

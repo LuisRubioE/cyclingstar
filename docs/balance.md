@@ -11048,3 +11048,75 @@ tiene que dar el mismo mundo.
   lee 2 mundos—, pero la media de 3 mundos es **20,91**. O sea que el listón aguanta hoy y no aguanta
   el próximo empujón hacia arriba de la cola. No se mueve ahora, porque mover una banda que pasa es
   mover una banda sin dato; queda apuntado para el paso 12.
+
+## v59 §10 — La ficha del corredor: qué ve el jugador de sí mismo, y qué no
+
+`ENGINE_VERSION` **60 → 60**: este paso **no la sube, y hay que decir por qué**. No toca una sola
+decisión del motor —ni una ganancia, ni un techo, ni una probabilidad—: añade un módulo puro que
+nadie de la simulación llama, tres consultas de lectura y tres trozos de pantalla. Subir versión
+aquí habría sido decir «esto cambia el mundo» de algo que no lo cambia, y entonces el número deja de
+significar nada.
+
+Hasta hoy la ficha enseñaba diez filas de estrellas y punto. Un corredor que entrenaba montaña
+cuatro semanas veía exactamente las mismas cuatro estrellas al final que al principio, y la única
+respuesta que el juego tenía a «hice X y no mejoró» era el silencio.
+
+### Tres cosas nuevas, y ninguna dice un número
+
+- **La marca de progreso**: cuatro segmentos bajo las estrellas que dicen en qué cuarto de su banda
+  está el atributo. La versión continua se descartó porque sobre una banda de 16 puntos habría
+  resuelto el atributo a menos de medio punto, o sea **más** resolución que las medias estrellas que
+  el paso 5 acababa de introducir: enseñar el número interno por la puerta de atrás.
+- **La flecha de tendencia**, con **dos parámetros del SPEC sobrescritos y declarados**: la ventana
+  pasa de 7 a 28 días y los niveles de tres a cinco. A siete días manda el ruido de un solo bloque
+  —una semana de descanso activo pinta `↓` en un corredor que está subiendo— y con tres niveles no
+  se distingue «no se mueve» de «sube despacio», que es lo que hace un atributo secundario: +0,3 en
+  cuatro semanas, y merece verse. El paso 12 reescribe esa línea del SPEC.
+- **La opinión del entrenador**: el techo + N(0, 6) cuantizado a tres frases, con σ = 3 a partir de
+  los 24 porque el entrenador ya te ha visto correr. Enseñar el techo mata la exploración; no
+  enseñar nada deja «no sé si mejoro».
+
+Y el **informe del bloque**: «Mountain +2,0 · 1,1 racing · 0,9 training». Es la respuesta a la otra
+pregunta que el juego tampoco sabía contestar, que es «¿por qué mejoré?».
+
+### La opinión es estable sin guardar nada, y eso era el diseño
+
+«Una vez por temporada» se consigue metiendo la temporada en la semilla
+(`${worldSeed}:${riderId}:ojeador:${season}:${attr}`): la misma pregunta hecha cien veces el mismo
+año da la misma respuesta y al pasar de año cambia sola. Una tabla para esto habría sido una tabla
+que purgar, que migrar y que mantener a cambio de nada.
+
+Se mide que hace las dos cosas que tiene que hacer: **correlaciona** —el 5★ crece con el techo, y un
+techo de 55 casi nunca recibe «madera de cinco»— y **no delata**: en la frontera exacta (techo 84)
+duda entre cuatro y cinco casi mitad y mitad. Si acertara siempre sería el techo con otro nombre.
+
+### La promesa está PROBADA, no prometida
+
+Los ocultos no cruzan la frontera, y eso no se deja a la buena voluntad de quien escriba la próxima
+ruta: la prueba serializa la respuesta entera y **busca los números dentro**. Un techo de 90, un
+talento de 80 y una fragilidad de 1,5 no pueden aparecer en el JSON. El día que alguien añada un
+`ceiling: z.number()` al contrato, esa prueba se pone roja.
+
+Lo mismo con el perfil de OTRO: las dos consultas van con `enabled: owner`, así que no es que la UI
+esconda el dato, es que **el servidor no lo manda**. Ojear el potencial ajeno es una función que no
+existe todavía, y hasta que exista no se filtra por un descuido de pintado.
+
+### Dos nombres que se arreglan de paso
+
+- **`stars()` pasa a llamarse `formStarsScale()`.** Convivían dos funciones de medias estrellas que
+  daban números DISTINTOS para el mismo valor —`stars(84) = 4`, `attrStars(84) = 5`— y una de las
+  dos se llamaba «estrellas» a secas. Era cuestión de tiempo que alguien pintara un atributo con la
+  escala de la forma sin enterarse. No es un descuido que sean distintas: la forma es continua y sin
+  umbrales de dominio; un atributo lleva los umbrales con los que el dueño midió su 15 %.
+- **La edad se pide a `riderAge`.** `train.ts` tenía su propio `DEBUT_AGE = 20`, que es la tercera
+  copia de una constante que `shared/time.ts` ya define como `RIDER_AGE_EPOCH` y documenta como «si
+  la cambias, recalculas la edad de todo el mundo». Y hay una trampa al lado: `currentSeason()` va
+  **0-indexada** y `seasonPosition().season` **1-indexada**, así que elegir mal le quita un año a
+  todo el pelotón. Ahora las dos llamadas piden la edad a la misma función.
+
+### El desglose es tan fino como lo que se escribe, y no más
+
+El informe separa `entrenamiento` y `carrera` —y `sobrecompensacion` cuando la hay—, pero **no**
+pinta una línea «age −0,2»: el motor devuelve hoy el estado final de un día, no su descomposición,
+así que el declive y el detraining viajan dentro del neto de su escritor. Se dice aquí en vez de
+dibujar una línea inventada que cuadrara la suma.

@@ -6,28 +6,30 @@ import {
   VOCATION_PROFILES,
   VOCATIONS,
   archetypeFromAttributes,
+  attrProgress,
   attrStars,
   attrStarsWhole,
-  stars,
+  formStarsScale,
+  trendArrow,
 } from './rider.js'
 import { SESSION_CATALOG, SESSIONS } from './training.js'
 
-describe('shared: stars (SPEC 3.2)', () => {
+describe('shared: formStarsScale, la escala de la FORMA (SPEC 3.2)', () => {
   it('mapea 85.64 a 4.5 estrellas', () => {
-    expect(stars(85.64)).toBe(4.5)
+    expect(formStarsScale(85.64)).toBe(4.5)
   })
 
   it('respeta el suelo de 0.5 y el techo de 5', () => {
-    expect(stars(0)).toBe(0.5)
-    expect(stars(3)).toBe(0.5)
-    expect(stars(100)).toBe(5)
-    expect(stars(99)).toBe(5)
+    expect(formStarsScale(0)).toBe(0.5)
+    expect(formStarsScale(3)).toBe(0.5)
+    expect(formStarsScale(100)).toBe(5)
+    expect(formStarsScale(99)).toBe(5)
   })
 
   it('redondea de media en media', () => {
-    expect(stars(50)).toBe(2.5)
-    expect(stars(44)).toBe(2) // round(4.4)=4 -> 2
-    expect(stars(46)).toBe(2.5) // round(4.6)=5 -> 2.5
+    expect(formStarsScale(50)).toBe(2.5)
+    expect(formStarsScale(44)).toBe(2) // round(4.4)=4 -> 2
+    expect(formStarsScale(46)).toBe(2.5) // round(4.6)=5 -> 2.5
   })
 
   it('attrStarsWhole: estrellas enteras por bandas (0-16→0 … 84-100→5)', () => {
@@ -143,6 +145,70 @@ describe('shared: el catálogo de sesiones cubre todos los atributos (v55)', () 
       expect(`${s}: ${total.toFixed(2)}`).toBe(`${s}: ${total.toFixed(2)}`)
       expect(total).toBeGreaterThanOrEqual(0.55)
       expect(total).toBeLessThanOrEqual(0.65)
+    }
+  })
+})
+
+/**
+ * LA FICHA DEL CORREDOR: marca de progreso y flecha de tendencia (docs/entrenamiento.md §2.3).
+ *
+ * Las dos existen para contestar a la misma queja del dueño —«hice descanso activo y no mejoró»—
+ * sin enseñar el número interno, así que lo que hay que probar de ellas es justamente eso: que se
+ * MUEVEN cuando el atributo se mueve, y que no dicen más de lo que deben.
+ */
+describe('shared: la marca de progreso dentro de la banda', () => {
+  it('parte de cero al entrar en la banda y llega a tres antes de salir', () => {
+    expect(attrProgress(17)).toBe(0) // recién llegado a 1★
+    expect(attrProgress(33)).toBe(3) // a punto de ser 2★
+    expect(attrProgress(34)).toBe(0) // y vuelta a empezar
+  })
+
+  it('reparte la banda en cuatro cuartos y nunca se sale de 0..3', () => {
+    for (let x = 0; x <= 100; x += 0.5) {
+      const p = attrProgress(x)
+      expect(`${x}: ${Number.isInteger(p) && p >= 0 && p <= 3}`).toBe(`${x}: true`)
+    }
+    // Los cuatro cuartos de la banda de 3★ (51..66): 51-54 · 55-58 · 59-62 · 63-66.
+    expect([51, 55, 59, 63].map(attrProgress)).toEqual([0, 1, 2, 3])
+  })
+
+  it('las cinco estrellas se pintan llenas: no hay banda por encima', () => {
+    expect(attrProgress(84)).toBe(3)
+    expect(attrProgress(100)).toBe(3)
+  })
+
+  it('LA MARCA NO PUEDE RESOLVER EL NÚMERO, que es su razón de ser', () => {
+    // Con estrella + marca hay 4 valores por banda de 16-17 puntos: el jugador nunca puede deducir
+    // el atributo a menos de cuatro puntos. Una barra continua lo habría resuelto a menos de uno.
+    const porCelda = new Map<string, number>()
+    for (let x = 0; x < 84; x += 1) {
+      const clave = `${attrStars(x)}|${attrProgress(x)}`
+      porCelda.set(clave, (porCelda.get(clave) ?? 0) + 1)
+    }
+    const minimo = Math.min(...porCelda.values())
+    expect(`nunca resuelve a menos de 3 puntos: ${minimo >= 3}`).toBe(
+      'nunca resuelve a menos de 3 puntos: true',
+    )
+  })
+})
+
+describe('shared: la flecha de tendencia sobre 28 días', () => {
+  it('los cinco niveles, en sus cortes', () => {
+    expect(trendArrow(1)).toBe('↑')
+    expect(trendArrow(0.99)).toBe('↗')
+    expect(trendArrow(0.3)).toBe('↗')
+    expect(trendArrow(0.29)).toBe('→')
+    expect(trendArrow(0)).toBe('→')
+    expect(trendArrow(-0.29)).toBe('→')
+    expect(trendArrow(-0.3)).toBe('↘')
+    expect(trendArrow(-0.99)).toBe('↘')
+    expect(trendArrow(-1)).toBe('↓')
+  })
+
+  it('es simétrica: lo que sube con `x` baja con `−x`', () => {
+    const opuesta: Record<string, string> = { '↑': '↓', '↗': '↘', '→': '→', '↘': '↗', '↓': '↑' }
+    for (const d of [0, 0.1, 0.3, 0.7, 1, 2.5]) {
+      expect(`${d}: ${trendArrow(-d)}`).toBe(`${d}: ${opuesta[trendArrow(d)]}`)
     }
   })
 })

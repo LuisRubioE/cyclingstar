@@ -182,6 +182,9 @@ export {
 } from './blocklist.js'
 export {
   createRider,
+  getAttrTrend,
+  getBlockReport,
+  getCoachView,
   getCurrentWorld,
   getDailyLog,
   countRidersForUser,
@@ -191,6 +194,13 @@ export {
   getSeasonRank,
   getWorldClock,
   setRiderArchetype,
+  TREND_WINDOW_DAYS,
+  type AttrLogSource,
+  type AttrTrendRow,
+  type BlockReport,
+  type BlockReportRow,
+  type CoachView,
+  type CoachViewRow,
   type CreateRiderInput,
   type DailyLogRow,
   type HealthState,

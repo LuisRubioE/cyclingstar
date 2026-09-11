@@ -78,6 +78,69 @@ export const publicRiderSchema = z.object({
 
 export const myRiderResponseSchema = z.object({ rider: publicRiderSchema.nullable() })
 
+// --- La ficha del corredor: tendencia, opinión e informe (docs/entrenamiento.md §2.3 y §4.6) ---
+
+/**
+ * NINGÚN OCULTO CRUZA ESTOS TRES CONTRATOS, y por eso están juntos. El techo viaja como una de tres
+ * frases, el talento y la fragilidad como códigos de frase, y el gimnasio como «bajo/normal/alto».
+ * Si algún día alguien añade aquí un `ceiling: z.number()`, habrá roto la promesa de `MVP.md:114`
+ * —«nunca números internos»— en el único sitio del repositorio donde se puede romper de una vez.
+ */
+
+export const attrTrendRowSchema = z.object({
+  attr: z.enum(ATTRIBUTES),
+  delta28: z.number(),
+})
+export type AttrTrendRow = z.infer<typeof attrTrendRowSchema>
+export const trendResponseSchema = z.object({ trend: z.array(attrTrendRowSchema) })
+
+export const ceilingOpinionSchema = z.enum(['tres', 'cuatro', 'cinco'])
+export type CeilingOpinion = z.infer<typeof ceilingOpinionSchema>
+export const coachNoteSchema = z.enum([
+  'progresa_rapido',
+  'recupera_rapido',
+  'fragil',
+  'declive',
+  'techo_cerca',
+])
+export type CoachNote = z.infer<typeof coachNoteSchema>
+
+export const coachViewSchema = z.object({
+  ceilings: z.array(z.object({ attr: z.enum(ATTRIBUTES), opinion: ceilingOpinionSchema })),
+  notes: z.array(coachNoteSchema),
+  declining: z.boolean(),
+  facilities: z.enum(['bajo', 'normal', 'alto']).nullable(),
+  season: z.number().int(),
+})
+export type CoachView = z.infer<typeof coachViewSchema>
+export const coachViewResponseSchema = z.object({ coachView: coachViewSchema.nullable() })
+
+export const attrLogSourceSchema = z.enum([
+  'entrenamiento',
+  'carrera',
+  'sobrecompensacion',
+  'declive',
+  'detraining',
+])
+export type AttrLogSource = z.infer<typeof attrLogSourceSchema>
+
+export const blockReportSchema = z.object({
+  fromDay: z.number().int(),
+  toDay: z.number().int(),
+  rows: z.array(
+    z.object({
+      attr: z.enum(ATTRIBUTES),
+      total: z.number(),
+      bySource: z.array(z.object({ source: attrLogSourceSchema, delta: z.number() })),
+    }),
+  ),
+  trainingDays: z.number().int(),
+  raceDays: z.number().int(),
+  sessions: z.array(z.object({ activity: z.string(), days: z.number().int() })),
+})
+export type BlockReport = z.infer<typeof blockReportSchema>
+export const blockReportResponseSchema = z.object({ report: blockReportSchema.nullable() })
+
 export const geoCountryResponseSchema = z.object({
   country: z.string().nullable(),
   // Diagnóstico del país por IP (v58): qué código llegó, en qué cabecera, y todas las de

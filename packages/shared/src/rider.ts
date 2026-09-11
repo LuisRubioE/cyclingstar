@@ -176,10 +176,19 @@ export interface PublicRider {
 }
 
 /**
- * Mapeo a estrellas de media en media (SPEC 3.2): stars(x) = clamp(round(x/10)/2, 0.5, 5).
- * El jugador ve estrellas, jamás el número interno. Suelo 0.5 (forma, siempre hay algo).
+ * ESCALA DE ESTRELLAS DE **FORMA Y FRESCURA** (SPEC 3.2): clamp(round(x/10)/2, 0.5, 5).
+ *
+ * SE LLAMABA `stars` Y HABÍA QUE RENOMBRARLA (docs/entrenamiento.md §2.3). Con `attrStars` en
+ * la casa conviven dos funciones de medias estrellas que dan números DISTINTOS para el mismo valor
+ * —`stars(84) = 4`, `attrStars(84) = 5`— y con el nombre genérico era cuestión de tiempo que
+ * alguien pintara un atributo con la escala de la forma sin enterarse.
+ *
+ * No es un descuido que sean distintas: la forma es una magnitud continua de 0 a 100 sin umbrales
+ * de dominio, y su suelo de media estrella dice «siempre hay algo». Un atributo, en cambio, lleva
+ * los umbrales con los que el dueño midió su «menos del 15 % con cinco estrellas» (17/34/51/67/84),
+ * y ahí el 0 existe: se puede no saber esprintar.
  */
-export function stars(x: number): number {
+export function formStarsScale(x: number): number {
   return Math.min(5, Math.max(0.5, Math.round(x / 10) / 2))
 }
 
@@ -217,6 +226,54 @@ export function attrStars(x: number): number {
   const siguiente = [17, 34, 51, 67, 84]
   const mitad = (inicios[entero]! + siguiente[entero]!) / 2
   return x >= mitad ? entero + 0.5 : entero
+}
+
+/**
+ * LA MARCA DE PROGRESO DENTRO DE LA BANDA, EN CUATRO PASOS (docs/entrenamiento.md §2.3).
+ *
+ * Responde a la queja del dueño —«hice descanso activo y no mejoró»— sin dibujar el número. Devuelve
+ * 0..3: en qué cuarto de su banda ENTERA está el atributo, para pintar cuatro segmentos bajo las
+ * estrellas.
+ *
+ * Cuatro pasos y no una barra continua, a propósito: con bandas de 16-17 puntos una barra continua
+ * resolvería el atributo a menos de medio punto, o sea MÁS resolución que las medias estrellas que
+ * se acaban de introducir, y eso es enseñar el número interno por la puerta de atrás
+ * (`MVP.md:114`, `SPEC.md:40`).
+ *
+ * Las cinco estrellas no tienen banda superior —84 es el suelo y no hay techo—, así que se pinta
+ * siempre lleno: un 5★ está en lo más alto de la escala que el jugador conoce.
+ */
+export function attrProgress(x: number): number {
+  const entero = attrStarsWhole(x)
+  if (entero === 5) return 3
+  const inicios = [0, 17, 34, 51, 67]
+  const siguiente = [17, 34, 51, 67, 84]
+  const desde = inicios[entero]!
+  const ancho = siguiente[entero]! - desde
+  return Math.min(3, Math.max(0, Math.floor((4 * (x - desde)) / ancho)))
+}
+
+/** Los cinco niveles de la flecha de tendencia (docs/entrenamiento.md §2.3). */
+export const TREND_ARROWS = ['↓', '↘', '→', '↗', '↑'] as const
+export type TrendArrow = (typeof TREND_ARROWS)[number]
+
+/**
+ * FLECHA DE TENDENCIA SOBRE VENTANA DE 28 DÍAS (SPEC 3.2, con dos parámetros sobrescritos).
+ *
+ * El SPEC pedía 7 días y tres niveles. Las dos cosas se cambian y hay que decirlo: a siete días el
+ * ruido de un solo bloque domina —una semana de descanso activo pinta `↓` en un corredor que está
+ * subiendo— y con tres niveles no se distingue «no se mueve» de «sube despacio», que es justo lo que
+ * hace un atributo secundario del bot: +0,3 en cuatro semanas, y merece verse.
+ *
+ * Δ28 es la suma de los `delta` de `rider_attr_log` de los últimos 28 días, con TODOS sus orígenes:
+ * si el declive se come lo que se entrenó, la flecha tiene que decirlo.
+ */
+export function trendArrow(delta28: number): TrendArrow {
+  if (delta28 >= 1) return '↑'
+  if (delta28 >= 0.3) return '↗'
+  if (delta28 <= -1) return '↓'
+  if (delta28 <= -0.3) return '↘'
+  return '→'
 }
 
 /**
@@ -375,6 +432,25 @@ export const RIDER_ARCHETYPES = [
   'gregario',
 ] as const
 export type RiderArchetype = (typeof RIDER_ARCHETYPES)[number]
+
+/**
+ * EL ATRIBUTO DE LA CARTA: en qué es bueno cada arquetipo, en una palabra.
+ *
+ * Se DERIVA de los offsets de techo en vez de escribirse a mano —es el que sale a 0, o sea el que no
+ * paga peaje— para que no puedan contradecirse. Una tabla paralela escrita a mano se desincroniza el
+ * día que alguien afine un offset, y entonces el juego le diría a un escalador que su carta es el
+ * esprint sin que nadie lo hubiera decidido.
+ *
+ * No es lo mismo que `ARCHETYPE_CARD` de `training.ts`, que es la SESIÓN que afila esa carta.
+ */
+export const ARCHETYPE_KEY_ATTR: Record<RiderArchetype, Attribute> = Object.fromEntries(
+  RIDER_ARCHETYPES.map((arq) => {
+    const offsets = ARCHETYPE_CEILING_OFFSETS[arq]
+    let mejor: Attribute = ATTRIBUTES[0]!
+    for (const a of ATTRIBUTES) if (offsets[a] > offsets[mejor]) mejor = a
+    return [arq, mejor]
+  }),
+) as Record<RiderArchetype, Attribute>
 
 /** Qué atributo manda en cada especialidad. El que no destaca en ninguno no es un especialista. */
 const CARTA_DE_ARQUETIPO: readonly (readonly [Attribute, RiderArchetype])[] = [

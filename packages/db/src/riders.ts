@@ -1,16 +1,31 @@
 import {
+  ARCHETYPE_KEY_ATTR,
   type Attribute,
   ATTRIBUTES,
+  riderAge,
+  seasonPosition,
   type Gender,
   type PublicRider,
+  seededRng,
   type Vocation,
 } from '@cyclingstar/shared'
-import { BANISTER, MORALE, type StageEffort } from '@cyclingstar/engine'
+import {
+  BANISTER,
+  type CeilingOpinion,
+  ceilingOpinion,
+  type CoachNote,
+  coachNotes,
+  facilitiesTier,
+  isDeclining,
+  MORALE,
+  type StageEffort,
+} from '@cyclingstar/engine'
 import { and, desc, eq, gt, isNull, sql } from 'drizzle-orm'
 import type { Database } from './client.js'
 import {
   contracts,
   gameState,
+  riderAttrLog,
   riderAttrs,
   riderDailyLog,
   riderHidden,
@@ -324,4 +339,229 @@ export async function getDailyLog(
     .orderBy(desc(riderDailyLog.gameDay))
     .limit(limitDays)
   return rows.reverse()
+}
+
+/**
+ * LA FICHA DEL CORREDOR: tendencia, opinión del entrenador e informe del bloque
+ * (docs/entrenamiento.md §2.3 y §4.6).
+ *
+ * Las tres consultas comparten una regla: **los ocultos no salen de aquí**. El techo se convierte en
+ * una de tres frases antes de cruzar la frontera, el talento y la fragilidad en códigos de frase, y
+ * `kInst` en «bajo / normal / alto». Lo que la API devuelve no permite reconstruir ni un número.
+ */
+
+/** Ventana de la flecha y del informe. 28 días, no 7 (docs/entrenamiento.md §2.3). */
+export const TREND_WINDOW_DAYS = 28
+
+export interface AttrTrendRow {
+  attr: Attribute
+  /** Suma de los `delta` de los últimos 28 días, con todos sus orígenes. */
+  delta28: number
+}
+
+/**
+ * Δ28 por atributo. Lo que NO aparece es que no se movió: la flecha de `→` se pinta con el cero, no
+ * con un hueco.
+ */
+export async function getAttrTrend(
+  db: Database,
+  riderId: string,
+  currentDay: number,
+): Promise<AttrTrendRow[]> {
+  const rows = await db
+    .select({
+      attr: riderAttrLog.attr,
+      delta28: sql<number>`sum(${riderAttrLog.delta})`.as('delta28'),
+    })
+    .from(riderAttrLog)
+    .where(
+      and(
+        eq(riderAttrLog.riderId, riderId),
+        gt(riderAttrLog.gameDay, currentDay - TREND_WINDOW_DAYS),
+      ),
+    )
+    .groupBy(riderAttrLog.attr)
+  const porAttr = new Map(rows.map((r) => [r.attr as Attribute, Number(r.delta28)]))
+  return ATTRIBUTES.map((attr) => ({ attr, delta28: porAttr.get(attr) ?? 0 }))
+}
+
+export interface CoachViewRow {
+  attr: Attribute
+  opinion: CeilingOpinion
+}
+
+export interface CoachView {
+  /** Una opinión por atributo, estable durante toda la temporada. */
+  ceilings: CoachViewRow[]
+  /** Las frases por regla, en código: la UI las traduce. */
+  notes: CoachNote[]
+  declining: boolean
+  /** El gimnasio del equipo en tres palabras, o `null` si el corredor no tiene equipo. */
+  facilities: 'bajo' | 'normal' | 'alto' | null
+  season: number
+}
+
+/**
+ * LA OPINIÓN DEL ENTRENADOR, UNA VEZ POR TEMPORADA.
+ *
+ * «Una vez por temporada» se consigue **sin guardar nada**: la semilla lleva la temporada dentro
+ * (`${worldSeed}:${riderId}:ojeador:${season}:${attr}`), así que la misma pregunta hecha cien veces
+ * el mismo año da la misma respuesta y al pasar de año cambia sola. Una tabla para esto habría sido
+ * una tabla que purgar, que migrar y que mantener a cambio de nada.
+ */
+export async function getCoachView(
+  db: Database,
+  riderId: string,
+  worldSeed: string,
+  currentDay: number,
+): Promise<CoachView | null> {
+  const rows = await db
+    .select({
+      birthSeason: riders.birthSeason,
+      archetype: riders.archetype,
+      teamId: riders.teamId,
+      talent: riderHidden.talent,
+      fragility: riderHidden.fragility,
+      declineAge: riderHidden.declineAge,
+      ceilings: riderHidden.ceilings,
+    })
+    .from(riders)
+    .innerJoin(riderHidden, eq(riderHidden.riderId, riders.id))
+    .where(eq(riders.id, riderId))
+    .limit(1)
+  const r = rows[0]
+  if (!r) return null
+
+  // La temporada del proyecto es la de `seasonPosition` (1-indexada), que es con la que se guardaron
+  // todos los `birthSeason`. `currentSeason()` va 0-indexada y usarla aquí le quitaría un año a todo
+  // el mundo: es el mismo nombre para dos convenciones, y por eso la edad se pide a `riderAge`.
+  const season = seasonPosition(currentDay).season
+  const age = riderAge(r.birthSeason, season)
+
+  const attrRows = await db.select().from(riderAttrs).where(eq(riderAttrs.riderId, riderId))
+  const attributes = {} as Record<Attribute, number>
+  for (const attr of ATTRIBUTES) attributes[attr] = 0
+  for (const row of attrRows) attributes[row.attr] = row.value
+
+  const ceilings = {} as Record<Attribute, number>
+  for (const attr of ATTRIBUTES) ceilings[attr] = r.ceilings[attr] ?? 100
+
+  let facilities: 'bajo' | 'normal' | 'alto' | null = null
+  if (r.teamId) {
+    const t = await db
+      .select({ facilities: teams.facilities })
+      .from(teams)
+      .where(eq(teams.id, r.teamId))
+      .limit(1)
+    if (t[0]) facilities = facilitiesTier(t[0].facilities)
+  }
+
+  return {
+    ceilings: ATTRIBUTES.map((attr) => ({
+      attr,
+      opinion: ceilingOpinion(
+        ceilings[attr],
+        age,
+        seededRng(`${worldSeed}:${riderId}:ojeador:${season}:${attr}`),
+      ),
+    })),
+    notes: coachNotes({
+      age,
+      declineAge: r.declineAge,
+      talent: r.talent,
+      fragility: r.fragility,
+      rec: attributes.REC,
+      carta: ARCHETYPE_KEY_ATTR[r.archetype],
+      attributes,
+      ceilings,
+    }),
+    declining: isDeclining(age, r.declineAge),
+    facilities,
+    season,
+  }
+}
+
+/** Un renglón del informe: cuánto se movió un atributo y de dónde vino cada trozo. */
+export interface BlockReportRow {
+  attr: Attribute
+  total: number
+  /** Desglose por origen. Solo aparecen los que de verdad se escriben (ver `attrLogSourceEnum`). */
+  bySource: { source: AttrLogSource; delta: number }[]
+}
+
+export type AttrLogSource =
+  'entrenamiento' | 'carrera' | 'sobrecompensacion' | 'declive' | 'detraining'
+
+export interface BlockReport {
+  fromDay: number
+  toDay: number
+  rows: BlockReportRow[]
+  /** Cuántos días entrenó y cuántos corrió en la ventana, para poder decir «9 sesiones». */
+  trainingDays: number
+  raceDays: number
+  /** Las sesiones que hizo, contadas por tipo: es lo que el informe cita entre paréntesis. */
+  sessions: { activity: string; days: number }[]
+}
+
+/**
+ * EL INFORME DEL BLOQUE (docs/entrenamiento.md §4.6): «Mountain +1,8 · 1,1 racing · 0,9 training».
+ *
+ * Responde a las dos preguntas que el jugador hace y hoy no tienen respuesta: «hice X y no mejoró» y
+ * «¿por qué mejoré?». Solo deltas y sesiones; el VALOR del atributo no aparece nunca.
+ *
+ * El desglose es tan fino como lo que se escribe, y no más: hoy el motor devuelve el estado final de
+ * un día y no su descomposición, así que `declive` y `detraining` viajan DENTRO del neto de
+ * `entrenamiento` en vez de aparecer como líneas propias. Se dice aquí en vez de pintar una línea
+ * «age −0,2» que sería inventada.
+ */
+export async function getBlockReport(
+  db: Database,
+  riderId: string,
+  currentDay: number,
+): Promise<BlockReport> {
+  const desde = currentDay - TREND_WINDOW_DAYS
+  const log = await db
+    .select({
+      attr: riderAttrLog.attr,
+      source: riderAttrLog.source,
+      delta: sql<number>`sum(${riderAttrLog.delta})`.as('delta'),
+    })
+    .from(riderAttrLog)
+    .where(and(eq(riderAttrLog.riderId, riderId), gt(riderAttrLog.gameDay, desde)))
+    .groupBy(riderAttrLog.attr, riderAttrLog.source)
+
+  const porAttr = new Map<Attribute, { source: AttrLogSource; delta: number }[]>()
+  for (const row of log) {
+    const lista = porAttr.get(row.attr as Attribute) ?? []
+    lista.push({ source: row.source as AttrLogSource, delta: Number(row.delta) })
+    porAttr.set(row.attr as Attribute, lista)
+  }
+
+  const dias = await db
+    .select({ activity: riderDailyLog.activity, days: sql<number>`count(*)`.as('days') })
+    .from(riderDailyLog)
+    .where(and(eq(riderDailyLog.riderId, riderId), gt(riderDailyLog.gameDay, desde)))
+    .groupBy(riderDailyLog.activity)
+
+  const sessions = dias
+    .map((d) => ({ activity: d.activity, days: Number(d.days) }))
+    .sort((a, b) => b.days - a.days || a.activity.localeCompare(b.activity))
+  const raceDays = sessions.filter((s) => s.activity === 'carrera').reduce((a, s) => a + s.days, 0)
+
+  const rows: BlockReportRow[] = []
+  for (const attr of ATTRIBUTES) {
+    const bySource = (porAttr.get(attr) ?? []).sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))
+    if (bySource.length === 0) continue
+    rows.push({ attr, total: bySource.reduce((a, s) => a + s.delta, 0), bySource })
+  }
+  rows.sort((a, b) => Math.abs(b.total) - Math.abs(a.total))
+
+  return {
+    fromDay: desde + 1,
+    toDay: currentDay,
+    rows,
+    trainingDays: sessions.reduce((a, s) => a + s.days, 0) - raceDays,
+    raceDays,
+    sessions,
+  }
 }

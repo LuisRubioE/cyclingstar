@@ -17,6 +17,9 @@ import {
   getRacePrefs,
   getRiderBadges,
   getRiderForUser,
+  getAttrTrend,
+  getBlockReport,
+  getCoachView,
   getRiderHealth,
   getRiderLastRaceReport,
   getRiderRaceDays,
@@ -351,6 +354,45 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
       : null
     const health = await getRiderHealth(db, rider.id)
     return { log, form, health }
+  })
+
+  /**
+   * LA FICHA DEL CORREDOR (docs/entrenamiento.md §2.3 y §4.6). Tres rutas, una regla: **ningún
+   * oculto cruza esta frontera**. El techo sale como una de tres frases, el talento y la fragilidad
+   * como códigos, y `facilities` como «bajo / normal / alto». Nada de lo que devuelven permite
+   * reconstruir un número interno, que es la condición que `MVP.md:114` pone a toda esta pantalla.
+   */
+
+  // Flecha de tendencia: Δ28 por atributo (SPEC 3.2, con la ventana y los niveles de §2.3).
+  app.get('/api/riders/me/trend', async (request, reply) => {
+    const userId = await currentUserId(request)
+    if (!userId) return unauthorized(reply)
+    const rider = await getRiderForUser(db, userId)
+    const world = await getCurrentWorld(db)
+    if (!rider || !world) return { trend: [] }
+    return { trend: await getAttrTrend(db, rider.id, world.currentDay) }
+  })
+
+  // Opinión del entrenador: una vez por temporada, difusa a propósito (SPEC 5.6).
+  app.get('/api/riders/me/coach-view', async (request, reply) => {
+    const userId = await currentUserId(request)
+    if (!userId) return unauthorized(reply)
+    const rider = await getRiderForUser(db, userId)
+    const world = await getCurrentWorld(db)
+    if (!rider || !world) return { coachView: null }
+    return {
+      coachView: await getCoachView(db, rider.id, world.worldSeed, world.currentDay),
+    }
+  })
+
+  // Informe del bloque: de dónde salió cada punto de los últimos 28 días (§4.6).
+  app.get('/api/riders/me/report', async (request, reply) => {
+    const userId = await currentUserId(request)
+    if (!userId) return unauthorized(reply)
+    const rider = await getRiderForUser(db, userId)
+    const world = await getCurrentWorld(db)
+    if (!rider || !world) return { report: null }
+    return { report: await getBlockReport(db, rider.id, world.currentDay) }
   })
 
   // Objetivos de calendario del corredor y su convocatoria (Paso 35).

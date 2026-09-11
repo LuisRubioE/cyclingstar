@@ -7,6 +7,7 @@ import {
   type Session,
   coachPlan,
   groupTrainingMultiplier,
+  riderAge,
   seasonPosition,
   seededRng,
 } from '@cyclingstar/shared'
@@ -29,10 +30,6 @@ import {
  * orden (o el plan del entrenador), el modelo de progresión puro del motor, y persiste
  * atributos, estado de forma/salud/moral, el log diario y las variaciones de atributos.
  */
-
-// Edad de debut de un neoprofesional (SPEC 10 no fija la del creado por usuario). Envejece
-// un año por temporada.
-const DEBUT_AGE = 20
 
 /** La ventana de «esa semana» del SPEC: los siete días anteriores a hoy. */
 const TRAINED_WINDOW_DAYS = 7
@@ -311,7 +308,7 @@ export async function trainWorldDay(
 
     const result = simulateRiderDay(state, {
       gameDay,
-      age: DEBUT_AGE + (currentSeason - rider.birthSeason),
+      age: riderAge(rider.birthSeason, currentSeason),
       ceilings: hidden.ceilings as Record<Attribute, number>,
       talent: hidden.talent,
       fragility: hidden.fragility,

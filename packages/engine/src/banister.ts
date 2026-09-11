@@ -1,4 +1,4 @@
-import { type HealthState, stars } from '@cyclingstar/shared'
+import { type HealthState, formStarsScale } from '@cyclingstar/shared'
 import { BANISTER, HEALTH, MORALE, TANK } from './constants.js'
 import { clamp } from './random.js'
 
@@ -62,7 +62,7 @@ export function mForm(ctl: number, tsb: number): number {
 
 /** Forma en estrellas (SPEC 4.1). */
 export function formStars(ctl: number, tsb: number): number {
-  return stars(100 * formIndex(ctl, tsb))
+  return formStarsScale(100 * formIndex(ctl, tsb))
 }
 
 /**
