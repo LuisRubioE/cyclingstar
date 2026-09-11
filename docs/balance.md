@@ -10720,7 +10720,24 @@ pase de 4★. Las dos palancas baratas están escritas —subir el mejor offset 
 que lo lleva al 60 %) o bajar su cuota— y la recomendación del diseño es **RES −2**. No se aplica sin
 su respuesta.
 
-### Lo que cuesta
+### Lo que cuesta: nada, y eso el diseño no lo esperaba
 
-Los cuatro bancos de carrera generan su campo con este mismo generador, así que **todos cambian de
-campo**. Las bandas que eso mueve van en el apartado siguiente, medidas y no supuestas.
+Los cuatro bancos de carrera generan su campo con este mismo generador, así que **todos corren ahora
+con otro pelotón**. El diseño lo daba por hecho —«mueve, y se declara: el banco de mundo entero **y**
+los cuatro bancos de carrera»— y reservaba un apartado entero de §10 para las bandas que eso
+rompería.
+
+Medido: **`pnpm test:bancos` pasa entero. 90 pruebas, 5 ficheros, cero fallos.** Ninguna banda de
+carrera se mueve fuera de rango.
+
+No es suerte, y conviene entender por qué, porque es el argumento que la v58 ya había aprendido por
+las malas: **una carrera selecciona por las DIFERENCIAS entre corredores, no por su nivel absoluto**.
+La v58 bajó la media de los bots y no rompió nada; su primer intento, que estrechaba la desviación,
+rompió media batería. La génesis v2 hace lo mismo a lo grande: cambia de dónde sale el número y baja
+el techo, pero conserva la dispersión —8,1 de desviación del atributo maduro contra los 8 de antes— y
+las distancias entre divisiones. La carrera no nota la diferencia porque la carrera nunca miraba el
+nivel: miraba la separación.
+
+Queda dicho para el paso 12: **no hay que recalibrar los bancos de carrera por esto**. Lo que sí hay
+que resellar son las bandas del banco de MUNDO, que son las que miden nivel y no separación, y van
+listadas arriba.
