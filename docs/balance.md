@@ -10883,3 +10883,78 @@ Así que la banda que hay que arreglar es **la del brazo, no la del motor**: par
 sobreentrenamiento hace falta un `mala` que alterne bloques fuertes sin descanso, no uno que aplique
 la misma carga siempre. Queda anotado para el paso 12, junto con la otra que sigue abierta: `buena`
 sigue 0,25 por debajo del bot, y el entrenador de verdad —con bloques y objetivo— es el **paso 8**.
+
+---
+
+## v59 §8 — El entrenador bot deja de ser un calendario
+
+`ENGINE_VERSION` **58 → 59**.
+
+El entrenador era un **ciclo fijo de catorce días** que no miraba nada: ni la frescura, ni la salud,
+ni si había carrera el domingo. Daba igual que el corredor llegara fundido o que el Tour empezara en
+tres días. «Razonable, nunca óptimo» era una frase, no una conducta: **no era óptimo, pero tampoco
+era razonable**.
+
+Ahora decide por bloques —`recuperacion`, `afinado`, `especifico`, `construccion`, `base`— mirando el
+estado del corredor y el calendario, y **dice por qué**. La razón no es decoración: la pantalla del
+plan tiene que poder decirle al jugador «hoy descansas porque llevas tres días pasado de rosca», y sin
+ella esa frase habría que reconstruirla fuera, con otra copia de las mismas reglas.
+
+Las reglas, en orden: la salud manda · no se le mandan series a un corredor fundido (−40 descanso
+total, −30 activo) · volver de una tanda de carreras se hace poco a poco · se afina ante el objetivo
+del corredor **y ante el del equipo** · guardarraíles (nunca fuerte dos veces en siete días, nunca
+`muros` dos días seguidos, y con tres días de tensión se descansa).
+
+**El objetivo de EQUIPO entra, y no estaba.** El rediseño táctico afirma que la carrera objetivo
+«cambia el pico de forma que el entrenamiento ya sabe programar», y era falso: el contexto solo
+conocía la marca del jugador, y un NPC no tiene ninguna. Un equipo bot que declaraba objetivo no
+conseguía que los suyos llegaran afinados.
+
+Y **sigue sin ser óptimo a propósito**: afina igual para una .2 que para el Tour, pone siempre el
+énfasis en la carta, y nunca improvisa. Un jugador que planifique a mano tiene que poder ganarle.
+
+### Un guardarraíl que habría nacido muerto
+
+`hardLast7` —cuántas veces apretó en la semana— no lo rellenaba nadie: la bitácora diaria guarda la
+sesión y la carga, **pero no la intensidad**. Habría existido en el código y no habría disparado
+jamás, que es exactamente la clase de defecto que este rediseño lleva encontrando desde el paso 0.
+
+Se deduce del **TSS**, que sí se guarda: la carga es función pura de (sesión, intensidad), así que la
+deducción es exacta y no una estimación.
+
+### Lo que mueve
+
+| Arm     | media t15 | enfermo/año | molestias/año |
+| ------- | --------: | ----------: | ------------: |
+| `bot`   |     53,56 |        3,30 |      **0,00** |
+| `buena` |     53,44 |        3,20 |          0,00 |
+| `mala`  |     52,45 |        4,17 |      **0,83** |
+
+**`molestias` aparece por fin en el mundo, y solo donde debe.** Cero con el entrenador —que es su
+trabajo: el guardarraíl de los tres días de tensión existe justo para que no lleguen— y 0,83 días al
+año con el que aprieta siempre. En el paso 0 esa fila valía 0,00 en las veinticinco temporadas porque
+el estado no lo producía nadie; ahora vale 0,00 porque el entrenador lo evita, que no es lo mismo.
+
+### Lo que sigue sin cumplirse, y ahora sé por qué
+
+`buena` sigue **0,12 por debajo** del bot. El hueco se ha reducido a la mitad (era 0,27 en el paso 4)
+pero no se ha cerrado, y la causa no es del motor: **es del banco**.
+
+Las dos palancas de `buena` son afinar más días y no apretar con el depósito bajo. Las dos **reducen
+volumen de entrenamiento**, y su beneficio —llegar fresco a la carrera— se cobra **ganando**. Este
+banco no simula etapas: aquí no gana nadie. Así que la ventaja de llegar fresco vale exactamente cero
+y solo se ve el coste.
+
+**El brazo de política no puede demostrar que entrenar bien compensa, y eso no es arreglable
+calibrando**: haría falta que el banco supiera quién gana, o medir la frescura en el día de carrera
+como métrica propia. Queda anotado para el paso 12 como lo que es —una ceguera del instrumento, no un
+defecto del motor— y con las dos salidas escritas.
+
+### Lo que este paso NO trae, dicho en vez de fingido
+
+El contexto del entrenador **no lleva todavía el calendario del corredor**: `daysToNextRace`, si esa
+carrera es su objetivo y el objetivo del equipo salen del roster y del plan de carrera, y eso llega
+con la pantalla del plan. Sin ellos el entrenador cae en su mesociclo de tres semanas —que es lo que
+hacía antes—, así que no empeora nada y mejora en lo que sí sabe. El banco de mundo **sí** los
+construye, porque tiene el calendario sorteado por delante, y por eso el afinado y la recuperación
+post-vuelta se miden aquí aunque producción todavía no los use.

@@ -31,14 +31,17 @@ import {
   ATTRIBUTES,
   ATTRIBUTE_GROWTH,
   type Attribute,
+  type CoachContext,
   DAYS_PER_SEASON,
   RIDER_ARCHETYPES,
   type RiderArchetype,
-  VOCATIONS,
+  type Session,
   type TrainingChoice,
+  VOCATIONS,
   type Vocation,
   archetypeFromAttributes,
   attrStarsWhole,
+  coachPlan,
   defaultCoachPlan,
   seededRng,
 } from '@cyclingstar/shared'
@@ -72,6 +75,9 @@ interface WorldRider {
   /** Días pasado de rosca. El banco lo lleva igual que producción, también los días de carrera. */
   strainDays: number
   illDays: number
+  /** Lo que el guardarraíl del entrenador necesita saber de los últimos días. */
+  fuertesUltimos7: number
+  ayer: Session | null
   /** En qué temporada entró: separa a los que crecieron aquí de los del reparto inicial. */
   debutSeason: number
   /**
@@ -218,23 +224,64 @@ const afinadoPorREC = (rec: number): number => Math.round(9 - (4 * Math.min(100,
 function planDelDia(
   politica: Politica,
   gameDay: number,
-  vocation: Vocation,
-  tsb: number,
-  rec: number,
-  diasHastaCorrer: number,
+  r: WorldRider,
+  suCalendario: Map<number, DiaDeCarrera> | undefined,
+  dia: number,
 ): TrainingChoice {
   if (politica === 'mala') return { session: 'fondo', intensity: 'fuerte' }
-  const base = defaultCoachPlan(gameDay, vocation)
-  if (politica === 'bot') return base
-  // Afinar: los días previos a competir se baja el pistón, salvo que ya toque descansar.
-  if (diasHastaCorrer >= 0 && diasHastaCorrer <= afinadoPorREC(rec)) {
-    if (base.session === 'descanso_total' || base.session === 'descanso_activo') return base
-    return { session: base.session, intensity: 'suave' }
+
+  // Cuánto falta para la próxima carrera y cuánto duró la última tanda: los días están sorteados
+  // para toda la temporada, así que esto es una lectura y no un dado.
+  let diasHastaCorrer: number | null = null
+  for (let d = dia; d < Math.min(DAYS_PER_SEASON, dia + 45); d++) {
+    if (suCalendario?.has(d) === true) {
+      diasHastaCorrer = d - dia
+      break
+    }
   }
-  // No machacar en rojo: el `fuerte` del ciclo solo se paga con el depósito por encima de −10.
-  if (base.intensity === 'fuerte' && tsb <= -10)
-    return { session: base.session, intensity: 'normal' }
-  return base
+  let diasDesdeTanda: number | null = null
+  let tandaAnterior = 0
+  for (let d = dia - 1; d >= Math.max(0, dia - 14); d--) {
+    if (suCalendario?.has(d) === true) {
+      if (diasDesdeTanda === null) diasDesdeTanda = dia - d - 1
+      tandaAnterior += 1
+    } else if (diasDesdeTanda !== null) break
+  }
+
+  const ctx: CoachContext = {
+    gameDay,
+    seasonDay: dia,
+    archetype: r.vocation as RiderArchetype,
+    tsb: r.ctl - r.atl,
+    health: r.health,
+    strainDays: r.strainDays,
+    daysToNextRace: diasHastaCorrer,
+    nextRaceIsGoal: false,
+    nextRaceStages:
+      diasHastaCorrer === null ? 1 : (suCalendario?.get(dia + diasHastaCorrer)?.stageIndex ?? 1),
+    teamGoalInDays: null,
+    daysSinceBlockEnd: diasDesdeTanda,
+    lastBlockDays: tandaAnterior,
+    hardLast7: r.fuertesUltimos7,
+    yesterday: r.ayer,
+  }
+  const plan = coachPlan(ctx)
+  if (politica === 'bot') return { session: plan.session, intensity: plan.intensity }
+
+  /**
+   * La política BUENA es el entrenador v2 con dos cosas más que un humano atento haría: afinar más
+   * días según su recuperación, y no apretar nunca con el depósito por debajo de −10.
+   */
+  if (diasHastaCorrer !== null && diasHastaCorrer <= afinadoPorREC(r.attributes.REC)) {
+    if (plan.session === 'descanso_total' || plan.session === 'descanso_activo') {
+      return { session: plan.session, intensity: plan.intensity }
+    }
+    return { session: plan.session, intensity: 'suave' }
+  }
+  if (plan.intensity === 'fuerte' && ctx.tsb <= -10) {
+    return { session: plan.session, intensity: 'normal' }
+  }
+  return { session: plan.session, intensity: plan.intensity }
 }
 
 /**
@@ -276,6 +323,8 @@ function nace(seed: string, division: Division, age: number, debutSeason: number
     healthUntilDay: null,
     strainDays: 0,
     illDays: 0,
+    fuertesUltimos7: 0,
+    ayer: null,
     debutSeason,
     movidoElDia: new Map(),
     temporada: nuevaTemporada(g.attributes),
@@ -800,33 +849,12 @@ export function runWorld(
           r.atl = carga.atl
           continue
         }
-        // El plan del entrenador mira la VOCACIÓN desde la v53, así que el banco también: si le
-        // diera a todos la semana del completo mediría un mundo que el juego ya no corre.
         /**
-         * CUÁNTO FALTA PARA COMPETIR. Solo lo usa la política `buena` para afinar; el bot de
-         * producción no mira el calendario y por eso no se lo pasa nadie más. Los días de carrera
-         * ya están sorteados para toda la temporada, así que esto es una lectura y no un dado.
+         * EL ENTRENADOR v2, con el contexto que el banco sí puede construir. Los días de carrera
+         * están sorteados para toda la temporada, así que «cuántos faltan para la próxima» y
+         * «cuántos llevo desde la última tanda» son lecturas y no dados.
          */
-        let diasHastaCorrer = -1
-        if (politica === 'buena') {
-          const suyos = corre.get(r.riderId)
-          if (suyos !== undefined) {
-            for (let d = dia; d < Math.min(DAYS_PER_SEASON, dia + 10); d++) {
-              if (suyos.has(d)) {
-                diasHastaCorrer = d - dia
-                break
-              }
-            }
-          }
-        }
-        const choice = planDelDia(
-          politica,
-          gameDay,
-          r.vocation,
-          r.ctl - r.atl,
-          r.attributes.REC,
-          diasHastaCorrer,
-        )
+        const choice = planDelDia(politica, gameDay, r, corre.get(r.riderId), dia)
         const out = simulateRiderDay(
           {
             attributes: r.attributes,
@@ -864,6 +892,8 @@ export function runWorld(
         r.healthUntilDay = out.state.healthUntilDay
         r.strainDays = out.state.strainDays ?? 0
         r.illDays = out.state.illDays ?? 0
+        r.fuertesUltimos7 = choice.intensity === 'fuerte' ? r.fuertesUltimos7 + 1 : 0
+        r.ayer = choice.session
       }
     }
 
@@ -963,6 +993,8 @@ export function arcoHumano(worldSeed: string): ArcoHumanoStats {
       healthUntilDay: null,
       strainDays: 0,
       illDays: 0,
+      fuertesUltimos7: 0,
+      ayer: null,
       debutSeason: 0,
       movidoElDia: new Map(),
       temporada: nuevaTemporada(g.attributes),

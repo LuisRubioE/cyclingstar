@@ -265,3 +265,184 @@ export function groupTrainingMultiplier(session: Session, mates: number): number
   if (!SESSION_CATALOG[session].group || mates <= 0) return 1
   return 1 + Math.min(GROUP_TRAINING_BONUS_CAP, GROUP_TRAINING_BONUS_PER_MATE * mates)
 }
+
+/**
+ * EL ENTRENADOR BOT v2: razonable, nunca óptimo, y AHORA CON RAZONES (docs/entrenamiento.md §5.5).
+ *
+ * El de antes era un ciclo fijo de catorce días que no miraba nada: ni la frescura, ni la salud, ni
+ * si había carrera el domingo. Daba igual que el corredor llegara fundido o que el Tour empezara en
+ * tres días. «Razonable, nunca óptimo» era una frase, no una conducta: no era óptimo, pero tampoco
+ * era razonable.
+ *
+ * Éste mira el estado del corredor y el calendario, y **dice por qué** hace lo que hace. Lo segundo
+ * no es decoración: la pantalla del plan tiene que poder explicarle al jugador que hoy descansa
+ * porque lleva tres días pasado de rosca, y sin la razón esa frase habría que reconstruirla fuera,
+ * con otra copia de las mismas reglas.
+ *
+ * Y sigue sin ser óptimo a propósito: afina igual para una .2 que para el Tour, pone siempre el
+ * énfasis en la carta, y nunca improvisa. Un jugador que planifique a mano tiene que poder ganarle.
+ */
+export type CoachBlock = 'recuperacion' | 'afinado' | 'especifico' | 'base' | 'construccion'
+
+export type CoachReason =
+  | 'enfermo'
+  | 'molestias'
+  | 'hundido'
+  | 'cargado'
+  | 'post_vuelta'
+  | 'afinado'
+  | 'aperturas'
+  | 'especifico'
+  | 'construccion'
+  | 'base'
+  | 'descarga'
+  | 'pretemporada'
+  | 'guardarrail'
+
+export interface CoachContext {
+  gameDay: number
+  seasonDay: number
+  archetype: RiderArchetype
+  tsb: number
+  health: 'sano' | 'molestias' | 'enfermo' | 'lesionado'
+  strainDays: number
+  /** Días hasta la próxima carrera, o `null` si no hay ninguna a la vista. */
+  daysToNextRace: number | null
+  /** Si esa carrera es objetivo del corredor (la marca el jugador) o del equipo. */
+  nextRaceIsGoal: boolean
+  nextRaceStages: number
+  /** Días hasta el objetivo del EQUIPO. Un equipo bot que declara objetivo afina para él. */
+  teamGoalInDays: number | null
+  /** Días desde que acabó la última tanda de carreras, y cuánto duró. */
+  daysSinceBlockEnd: number | null
+  lastBlockDays: number
+  /** Cuántas veces ha ido fuerte en los últimos siete días: el guardarraíl de la intensidad. */
+  hardLast7: number
+  /** Qué hizo ayer: para no repetir `muros` dos días seguidos. */
+  yesterday: Session | null
+}
+
+/** La carta de cada arquetipo: lo que su entrenador afila cuando toca trabajo específico. */
+export const ARCHETYPE_CARD: Record<RiderArchetype, Session> = {
+  escalada: 'puertos',
+  velocidad: 'sprint',
+  puncheur: 'muros',
+  clasicas: 'bajada_paves',
+  crono: 'crono',
+  rodador: 'umbral',
+  fondo: 'umbral',
+  // El gregario no tiene carta que afilar: lo suyo es aguantar y recuperar.
+  gregario: 'fondo',
+}
+
+/** Qué bloque toca esta semana. La primera regla que aplica manda. */
+export function coachBlock(ctx: CoachContext): { block: CoachBlock; reason: CoachReason } {
+  // Volver de una tanda de carreras se hace poco a poco, y esto es lo que el ciclo fijo no sabía.
+  if (
+    ctx.daysSinceBlockEnd !== null &&
+    ((ctx.lastBlockDays >= 5 && ctx.daysSinceBlockEnd <= 7) ||
+      (ctx.lastBlockDays >= 3 && ctx.daysSinceBlockEnd <= 3))
+  ) {
+    return { block: 'recuperacion', reason: 'post_vuelta' }
+  }
+  // Afinar: para el objetivo del corredor, para el del equipo, o para cualquier carrera por etapas.
+  const objetivoCerca =
+    (ctx.daysToNextRace !== null &&
+      ctx.daysToNextRace <= 7 &&
+      (ctx.nextRaceIsGoal || ctx.nextRaceStages >= 3)) ||
+    (ctx.teamGoalInDays !== null && ctx.teamGoalInDays <= 7)
+  if (objetivoCerca) return { block: 'afinado', reason: 'afinado' }
+  if (ctx.daysToNextRace !== null && ctx.daysToNextRace <= 14) {
+    return { block: 'especifico', reason: 'especifico' }
+  }
+  // Sin nada a la vista en seis semanas: eso es pretemporada, y se construye base.
+  if (ctx.daysToNextRace === null || ctx.daysToNextRace > 42) {
+    return { block: 'base', reason: 'pretemporada' }
+  }
+  // Y si no, el mesociclo de siempre: dos semanas cargando y una descargando.
+  const semana = Math.floor(ctx.seasonDay / 7) % 3
+  return semana === 2
+    ? { block: 'base', reason: 'descarga' }
+    : { block: 'construccion', reason: 'construccion' }
+}
+
+/** La semana de cada bloque: qué sesión toca cada día. */
+export function blockWeek(block: CoachBlock, card: Session, dayOfWeek: number): TrainingChoice {
+  const d = ((dayOfWeek % 7) + 7) % 7
+  const semanas: Record<CoachBlock, Session[]> = {
+    recuperacion: [
+      'descanso_total',
+      'descanso_activo',
+      'fondo',
+      'descanso_activo',
+      'fondo',
+      'descanso_activo',
+      'descanso_total',
+    ],
+    afinado: ['descanso_activo', card, 'fondo', 'descanso_activo', card, 'fondo', 'descanso_total'],
+    especifico: ['fondo', card, 'umbral', 'descanso_activo', card, 'fondo', 'descanso_total'],
+    construccion: [
+      'fondo',
+      'umbral',
+      'puertos',
+      'descanso_activo',
+      card,
+      'fondo',
+      'descanso_total',
+    ],
+    base: ['fondo', 'descanso_activo', 'fondo', 'umbral', 'gimnasio', 'fondo', 'descanso_total'],
+  }
+  const session = semanas[block][d] ?? 'fondo'
+  // La construcción es la única que aprieta, y solo un día: el guardarraíl lo confirma fuera.
+  const intensity: Intensity = block === 'construccion' && d === 2 ? 'fuerte' : 'normal'
+  return { session, intensity }
+}
+
+export function coachPlan(ctx: CoachContext): {
+  session: Session
+  intensity: Intensity
+  reason: CoachReason
+  detail?: string
+} {
+  // 1. La salud manda sobre todo lo demás.
+  if (ctx.health === 'enfermo' || ctx.health === 'lesionado') {
+    return { session: 'descanso_total', intensity: 'normal', reason: 'enfermo' }
+  }
+  if (ctx.health === 'molestias') {
+    return { session: 'descanso_activo', intensity: 'normal', reason: 'molestias' }
+  }
+  // 2. Un entrenador no le manda series a un corredor fundido. Esto es lo que el ciclo fijo hacía.
+  if (ctx.tsb < -40) {
+    return { session: 'descanso_total', intensity: 'normal', reason: 'hundido' }
+  }
+  if (ctx.tsb < -30) {
+    return { session: 'descanso_activo', intensity: 'normal', reason: 'cargado' }
+  }
+
+  const { block, reason } = coachBlock(ctx)
+  const card = ARCHETYPE_CARD[ctx.archetype]
+
+  // 3. Los dos días antes de competir: abrir las piernas y poco más.
+  if (block === 'afinado' && ctx.daysToNextRace !== null) {
+    if (ctx.daysToNextRace <= 1) {
+      return { session: 'descanso_activo', intensity: 'normal', reason: 'aperturas' }
+    }
+    if (ctx.daysToNextRace === 2) {
+      return { session: card, intensity: 'suave', reason: 'afinado' }
+    }
+  }
+
+  const plan = blockWeek(block, card, ctx.gameDay)
+
+  // 4. Los guardarraíles, que son lo que impide que el plan se vuelva una máquina de romper gente.
+  if (ctx.strainDays >= 3 && plan.session !== 'descanso_total') {
+    return { session: 'descanso_activo', intensity: 'normal', reason: 'guardarrail' }
+  }
+  if (plan.intensity === 'fuerte' && ctx.hardLast7 >= 1) {
+    return { session: plan.session, intensity: 'normal', reason: 'guardarrail' }
+  }
+  if (plan.session === 'muros' && ctx.yesterday === 'muros') {
+    return { session: 'fondo', intensity: 'normal', reason: 'guardarrail' }
+  }
+  return { ...plan, reason }
+}

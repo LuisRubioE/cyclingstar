@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { ATTRIBUTES, VOCATIONS, type Vocation } from './rider.js'
+import { ATTRIBUTES, RIDER_ARCHETYPES, VOCATIONS, type Vocation } from './rider.js'
 import {
+  ARCHETYPE_CARD,
+  type CoachContext,
   GROUP_TRAINING_BONUS_CAP,
+  coachBlock,
+  coachPlan,
   SESSIONS,
   SESSION_CATALOG,
   type Session,
@@ -102,5 +106,75 @@ describe('shared: catálogo de entrenamiento (SPEC 5.1)', () => {
     expect(groupTrainingMultiplier('gimnasio', 5)).toBe(1)
     // El descanso tampoco.
     expect(groupTrainingMultiplier('descanso_total', 5)).toBe(1)
+  })
+})
+
+describe('shared: el entrenador bot v2 (v59)', () => {
+  const base: CoachContext = {
+    gameDay: 0,
+    seasonDay: 0,
+    archetype: 'escalada',
+    tsb: 0,
+    health: 'sano',
+    strainDays: 0,
+    daysToNextRace: null,
+    nextRaceIsGoal: false,
+    nextRaceStages: 1,
+    teamGoalInDays: null,
+    daysSinceBlockEnd: null,
+    lastBlockDays: 0,
+    hardLast7: 0,
+    yesterday: null,
+  }
+
+  it('no le manda series a un corredor fundido, que es lo que el ciclo fijo hacía', () => {
+    expect(coachPlan({ ...base, tsb: -45 }).reason).toBe('hundido')
+    expect(coachPlan({ ...base, tsb: -45 }).session).toBe('descanso_total')
+    expect(coachPlan({ ...base, tsb: -35 }).reason).toBe('cargado')
+    expect(coachPlan({ ...base, tsb: -35 }).session).toBe('descanso_activo')
+  })
+
+  it('la salud manda sobre todo, y las molestias ya no son invisibles', () => {
+    expect(coachPlan({ ...base, health: 'enfermo' }).session).toBe('descanso_total')
+    expect(coachPlan({ ...base, health: 'molestias' }).session).toBe('descanso_activo')
+    expect(coachPlan({ ...base, health: 'molestias' }).reason).toBe('molestias')
+  })
+
+  it('afina antes de una carrera por etapas, y abre las piernas la víspera', () => {
+    const antes = { ...base, daysToNextRace: 5, nextRaceStages: 5 }
+    expect(coachPlan(antes).reason).toBe('afinado')
+    expect(coachPlan({ ...antes, daysToNextRace: 1 }).reason).toBe('aperturas')
+    expect(coachPlan({ ...antes, daysToNextRace: 2 }).intensity).toBe('suave')
+  })
+
+  it('afina también para el objetivo del EQUIPO, que es lo que faltaba', () => {
+    // Un equipo bot que declara una carrera objetivo no conseguía que los suyos llegaran afinados:
+    // el contexto solo sabía de la marca del jugador, y un NPC no tiene ninguna.
+    expect(coachPlan({ ...base, teamGoalInDays: 4 }).reason).toBe('afinado')
+  })
+
+  it('los guardarraíles: no apretar dos veces por semana, y parar si hay tensión', () => {
+    // Una semana de construcción: hay carrera dentro de tres semanas —ni tan cerca que toque
+    // afinar ni tan lejos que sea pretemporada— y la semana del mesociclo es de carga.
+    const cargando = { ...base, seasonDay: 0, gameDay: 2, daysToNextRace: 20 }
+    expect(coachPlan(cargando).intensity).toBe('fuerte')
+    // Ya apretó esta semana: el bot no lo repite.
+    expect(coachPlan({ ...cargando, hardLast7: 1 }).intensity).toBe('normal')
+    expect(coachPlan({ ...cargando, hardLast7: 1 }).reason).toBe('guardarrail')
+    // Y con tres días de tensión acumulada manda descansar aunque toque cargar.
+    expect(coachPlan({ ...cargando, strainDays: 3 }).session).toBe('descanso_activo')
+  })
+
+  it('cada arquetipo afila LO SUYO, y el gregario no tiene carta que afilar', () => {
+    for (const a of RIDER_ARCHETYPES) expect(ARCHETYPE_CARD[a]).toBeTruthy()
+    expect(ARCHETYPE_CARD.puncheur).toBe('muros')
+    expect(ARCHETYPE_CARD.velocidad).toBe('sprint')
+    expect(ARCHETYPE_CARD.gregario).toBe('fondo')
+  })
+
+  it('volver de una tanda de carreras se hace poco a poco', () => {
+    const vuelta = { ...base, lastBlockDays: 7, daysSinceBlockEnd: 2 }
+    expect(coachBlock(vuelta).block).toBe('recuperacion')
+    expect(coachBlock(vuelta).reason).toBe('post_vuelta')
   })
 })

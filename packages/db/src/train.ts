@@ -3,7 +3,9 @@ import {
   ATTRIBUTES,
   type Attribute,
   type TrainingChoice,
-  defaultCoachPlan,
+  SESSION_CATALOG,
+  type Session,
+  coachPlan,
   groupTrainingMultiplier,
   seasonPosition,
   seededRng,
@@ -117,6 +119,32 @@ export async function trainWorldDay(
 
   // La elección de sesión de cada corredor que entrena hoy: su ORDEN propia, si no el PLAN DE EQUIPO
   // (los del equipo se alinean y ganan el bonus de grupo) y, si no hay ninguno, el plan del entrenador.
+  /** Qué hizo ayer cada uno y cuántas veces apretó en la semana: los dos guardarraíles del bot. */
+  const ayerPorCorredor = new Map<string, Session>()
+  const fuertesRecientes = new Map<string, number>()
+  for (const fila of await tx
+    .select({
+      riderId: riderDailyLog.riderId,
+      gameDay: riderDailyLog.gameDay,
+      activity: riderDailyLog.activity,
+      tss: riderDailyLog.tss,
+    })
+    .from(riderDailyLog)
+    .where(and(gte(riderDailyLog.gameDay, gameDay - 7), lt(riderDailyLog.gameDay, gameDay)))) {
+    const sesion = fila.activity as Session
+    if (fila.gameDay === gameDay - 1) ayerPorCorredor.set(fila.riderId, sesion)
+    /**
+     * SI APRETÓ ESE DÍA, DEDUCIDO DEL TSS. La bitácora no guarda la intensidad —solo la sesión y la
+     * carga—, y sin esto el guardarraíl «nunca fuerte más de un día de cada siete» tendría siempre
+     * un cero de entrada: existiría en el código y no dispararía jamás. El TSS es función pura de
+     * (sesión, intensidad), así que la deducción es exacta y no una estimación.
+     */
+    const cat = SESSION_CATALOG[sesion]
+    if (cat !== undefined && cat.variableIntensity && fila.tss >= cat.tss.fuerte) {
+      fuertesRecientes.set(fila.riderId, (fuertesRecientes.get(fila.riderId) ?? 0) + 1)
+    }
+  }
+
   const choiceByRider = new Map<string, TrainingChoice>()
   for (const rider of riderRows) {
     if (skip.has(rider.id)) continue
@@ -134,9 +162,33 @@ export async function trainWorldDay(
         ? { session: order.session, intensity: order.intensity }
         : teamPlan
           ? { session: teamPlan.session, intensity: teamPlan.intensity }
-          : // …Y EL ENTRENADOR MIRA PARA QUÉ ES ESTE CORREDOR (v53). Sin la vocación le daba a todo el
-            // mundo la semana del completo, y un velocista no entrenaba el sprint en su vida.
-            defaultCoachPlan(gameDay, rider.archetype),
+          : /**
+             * EL ENTRENADOR v2 (docs/entrenamiento.md §5.5): decide MIRANDO al corredor —salud,
+             * frescura, tensión acumulada, qué hizo ayer, cuántas veces ha apretado esta semana— en
+             * vez de recorrer un ciclo fijo de catorce días que no miraba nada.
+             *
+             * Lo que el contexto todavía NO trae va dicho en vez de fingido: el calendario del
+             * corredor. `daysToNextRace`, si esa carrera es su objetivo y el objetivo del equipo
+             * salen del roster y del plan de carrera, y eso llega con la pantalla del plan. Sin
+             * ellos el entrenador cae en su mesociclo de tres semanas, que es lo que hacía antes:
+             * no empeora nada y mejora en lo que sí sabe.
+             */
+            coachPlan({
+              gameDay,
+              seasonDay: seasonPosition(gameDay).dayOfSeason,
+              archetype: rider.archetype,
+              tsb: rider.ctl - rider.atl,
+              health: rider.health,
+              strainDays: rider.strainDays,
+              daysToNextRace: null,
+              nextRaceIsGoal: false,
+              nextRaceStages: 1,
+              teamGoalInDays: null,
+              daysSinceBlockEnd: null,
+              lastBlockDays: 0,
+              hardLast7: fuertesRecientes.get(rider.id) ?? 0,
+              yesterday: ayerPorCorredor.get(rider.id) ?? null,
+            }),
     )
   }
   // Pre-paso de entrenamiento en grupo: por equipo y sesión, cuántos compañeros la entrenan hoy.
@@ -209,7 +261,11 @@ export async function trainWorldDay(
       attrsByRider.get(rider.id) ??
       (Object.fromEntries(ATTRIBUTES.map((a) => [a, 0])) as Record<Attribute, number>)
 
-    const choice = choiceByRider.get(rider.id) ?? defaultCoachPlan(gameDay, rider.archetype)
+    // Ya decidido arriba, en el pre-paso que cuenta cuántos entrenan lo mismo hoy.
+    const choice = choiceByRider.get(rider.id) ?? {
+      session: 'fondo' as const,
+      intensity: 'normal' as const,
+    }
     // Compañeros (sin contarse) haciendo la misma sesión hoy → bonus de grupo.
     const mates = rider.teamId
       ? (teamSessionCount.get(`${rider.teamId}:${choice.session}`) ?? 1) - 1
