@@ -148,3 +148,73 @@ export function attrStars(x: number): number {
   if (x < 84) return 4
   return 5
 }
+
+/**
+ * ESTRELLAS ENTERAS, CON SU NOMBRE DEFINITIVO. Alias exacto de `attrStars`: mismos cortes, mismo
+ * resultado, cero conducta nueva.
+ *
+ * Existe porque el rediseño de entrenamiento introduce MEDIAS estrellas en la ficha del jugador
+ * (`formStarsScale`), y a partir de ahí «estrellas de un atributo» pasa a ser ambiguo: el banco de
+ * mundo cuenta atributos de cinco estrellas ENTERAS —el listón de 84 del dueño— y la pantalla
+ * enseñará mitades. Dos cosas distintas con el mismo nombre acaban mezcladas, y cuando se mezclan
+ * el `cincoEstrellasWTPct` que vigila la banda del dueño deja de significar lo que dice.
+ *
+ * Se añade AHORA, en el paso que solo mide, para que las medias estrellas lleguen a un sitio donde
+ * el nombre ya está ocupado por quien debe. `attrStars` se conserva mientras haya llamadas vivas.
+ */
+export function attrStarsWhole(x: number): number {
+  return attrStars(x)
+}
+
+/**
+ * LOS OCHO ARQUETIPOS, derivados de lo que un corredor ES y no de lo que su ficha DICE.
+ *
+ * `riders.archetype` es una etiqueta: la elige el jugador y el generador de bots la sortea antes de
+ * repartir los atributos. Sirve para decidir qué entrena, pero no para medir el mundo, porque un
+ * corredor etiquetado `escalada` que ha crecido en llano y esprint sigue diciendo `escalada` toda su
+ * vida. Si el banco contase por la etiqueta mediría el sorteo del nacimiento, no la población.
+ *
+ * Por eso el reparto que vigila G1 se deriva de los atributos. Es además la misma función que usará
+ * el relleno hacia atrás cuando el enum crezca a ocho valores, y por eso vive aquí y no en el banco:
+ * una regla que se reimplementa en SQL es una regla que se separa de su motor.
+ */
+export const RIDER_ARCHETYPES = [
+  'escalada',
+  'velocidad',
+  'clasicas',
+  'crono',
+  'fondo',
+  'puncheur',
+  'rodador',
+  'gregario',
+] as const
+export type RiderArchetype = (typeof RIDER_ARCHETYPES)[number]
+
+/** Qué atributo manda en cada especialidad. El que no destaca en ninguno no es un especialista. */
+const CARTA_DE_ARQUETIPO: readonly (readonly [Attribute, RiderArchetype])[] = [
+  ['SPR', 'velocidad'],
+  ['MON', 'escalada'],
+  ['COL', 'puncheur'],
+  ['PAV', 'clasicas'],
+  ['CRI', 'crono'],
+  ['LLA', 'rodador'],
+]
+
+/** Cuánto tiene que despuntar la carta sobre la media del corredor para que sea una especialidad. */
+const ARCHETYPE_EDGE = 8
+/** Por debajo de cuatro estrellas en todo no hay oficio de especialista: hay gregario. */
+const ARCHETYPE_DOMESTIQUE_MAX = 67
+
+export function archetypeFromAttributes(attrs: Record<Attribute, number>): RiderArchetype {
+  const cartas = CARTA_DE_ARQUETIPO.map(([attr, arquetipo]) => ({
+    arquetipo,
+    valor: attrs[attr],
+  }))
+  const mejor = cartas.reduce((a, b) => (b.valor > a.valor ? b : a))
+  const fisicos = ATTRIBUTES.filter((a) => a !== 'TAC')
+  const mediaPropia = fisicos.reduce((acc, a) => acc + attrs[a], 0) / fisicos.length
+  // Destaca de verdad: la carta se separa de su propia media. Un corredor plano no es especialista
+  // de lo que le salga más alto por un punto.
+  if (mejor.valor - mediaPropia >= ARCHETYPE_EDGE) return mejor.arquetipo
+  return mejor.valor < ARCHETYPE_DOMESTIQUE_MAX ? 'gregario' : 'fondo'
+}

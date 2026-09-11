@@ -24,7 +24,13 @@
  *
  * Puro y determinista: todo el azar sale de `seededRng` y de `stageSeed`.
  */
-import { ATTRIBUTES, type Attribute, type Vocation, seededRng } from '@cyclingstar/shared'
+import {
+  ATTRIBUTES,
+  type Attribute,
+  type StageRole,
+  type Vocation,
+  seededRng,
+} from '@cyclingstar/shared'
 import { applyDailyLoad, eff0, initialEnergy, raceIllnessProbability } from '../banister.js'
 import { STAGE } from '../constants.js'
 import { SEASON_CALENDAR } from '../routes/calendar.js'
@@ -103,6 +109,17 @@ const VOCATIONS: Vocation[] = ['escalada', 'velocidad', 'clasicas', 'crono', 'fo
  * minutos— y no una perilla de calibración.
  */
 const LEAD_GROUP_SECONDS = 30
+
+/** Los siete papeles que puede repartir el planificador del día. Orden de la pantalla. */
+const STAGE_ROLES: readonly StageRole[] = [
+  'lider',
+  'sprinter',
+  'lanzador',
+  'gregario',
+  'cazaetapas',
+  'marcador',
+  'libre',
+]
 
 const NEUTRAL_ORDERS: StageOrders = {
   role: 'libre',
@@ -225,6 +242,21 @@ export interface TourStageRow {
    * es la lectura honesta de si (c) se ha movido —no lleva objetivo, se mide y se anota—.
    */
   farSelections: number
+  /**
+   * QUÉ PAPEL LE TOCA A CADA UNO, contado tal y como lo reparte `autoStageOrders` (paso 0 del
+   * rediseño de entrenamiento).
+   *
+   * Es informativa a propósito y no lleva banda todavía. Hace falta antes que las reglas de equipo
+   * porque el dueño pidió VARIEDAD de estructuras —«un sprinter fuerte y el resto para él», «solo
+   * cazaetapas», «mixtos con alguien exceptuado»— y ninguna medida del banco dice hoy qué reparte
+   * el motor cuando nadie le da órdenes. Un reparto con un 90 % de gregarios y un 2 % de
+   * cazaetapas no produce esas estructuras por mucho que las reglas nuevas las contemplen, y sin
+   * este número el defecto se atribuiría a las reglas en vez de al planificador.
+   *
+   * Se cuenta en carreras PEQUEÑAS porque es donde el dueño mira: seis u ocho equipos, no
+   * veintidós.
+   */
+  roles: Record<StageRole, number>
 }
 
 export interface SmallTourRun {
@@ -295,6 +327,13 @@ export function runSmallTour(tour: SmallTour, run: number): SmallTourRun {
       })),
       { kind: stage.kind, timeTrial: stage.timeTrial === true },
     )
+    // El reparto de papeles del día, contado antes de correr: es lo que el planificador decide
+    // cuando nadie le da órdenes, y en una crono no reparte nada (`autoStageOrders` sale vacío).
+    const roles = Object.fromEntries(STAGE_ROLES.map((x) => [x, 0])) as Record<StageRole, number>
+    for (const r of racing) {
+      roles[(orders.get(r.riderId) ?? NEUTRAL_ORDERS).role] += 1
+    }
+
     const riders: StageRider[] = racing.map((r) => {
       const tsb = r.ctl - r.atl
       const eff = {} as Record<Attribute, number>
@@ -381,6 +420,7 @@ export function runSmallTour(tour: SmallTour, run: number): SmallTourRun {
           marginToNextGroupS: Number.isFinite(nextClock) ? nextClock - winnerTime : 0,
           winnerKmh: km / (winnerTime / 3600),
           farSelections: out.events.filter((e) => e.plantilla === 'peloton_selection').length,
+          roles,
         })
       }
     }
@@ -455,6 +495,11 @@ export interface ShapeStats {
   medianWinnerKmh: number
   /** Cribas lejos de meta narradas por etapa (mediana) y en total. */
   farSelections: number
+  /**
+   * EL REPARTO DE PAPELES DEL PLANIFICADOR, en % sobre todas las salidas contadas. Informativa: es
+   * la foto de antes de las estructuras de equipo, y todavía no vigila nada.
+   */
+  rolesPct: Record<StageRole, number>
 }
 
 export function shapeStats(rows: TourStageRow[]): ShapeStats {
@@ -471,6 +516,18 @@ export function shapeStats(rows: TourStageRow[]): ShapeStats {
       rows.length === 0 ? 0 : (100 * rows.filter((r) => r.wonFromMove).length) / rows.length,
     medianWinnerKmh: median(rows.map((r) => r.winnerKmh)),
     farSelections: rows.reduce((acc, r) => acc + r.farSelections, 0),
+    rolesPct: (() => {
+      const total = rows.reduce(
+        (acc, r) => acc + STAGE_ROLES.reduce((a, x) => a + r.roles[x], 0),
+        0,
+      )
+      return Object.fromEntries(
+        STAGE_ROLES.map((x) => [
+          x,
+          (100 * rows.reduce((acc, r) => acc + r.roles[x], 0)) / Math.max(1, total),
+        ]),
+      ) as Record<StageRole, number>
+    })(),
   }
 }
 

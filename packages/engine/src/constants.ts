@@ -1168,6 +1168,34 @@ export const LEARNING = {
   raceClassFactor: { WT: 2, Pro: 1.5, '1': 1.2, '2': 1, NC: 1.2 } as Record<string, number>,
 } as const
 
+/**
+ * CUÁNTO CUESTA UN DÍA DE CARRERA, POR TERRENO, cuando no se simula la etapa.
+ *
+ * Vivía dentro de `sim/world.ts` porque solo la usaba ese banco, y ahí es donde estaba el problema:
+ * el banco de mundo aproxima la carga de un día de competición por su terreno —442 corredores por
+ * 364 días por 25 temporadas no se simulan etapa a etapa— y el rediseño de entrenamiento va a
+ * apoyar en esa misma aproximación dos cosas más, el esfuerzo del día y el índice de etapa. Una
+ * aproximación que alimenta tres medidas y vive escondida en el fichero de una de ellas es la
+ * definición de asimetría entre banco y producción: se toca en un sitio, se olvida en los otros dos,
+ * y el banco empieza a medir un mundo que el juego no corre.
+ *
+ * Aquí no cambia ni un número. Lo que cambia es que ahora tiene un solo dueño y se ve.
+ *
+ * La escala es la del gasto real: una reina cuesta el doble que una crono y algo más que una
+ * clásica. El 130 de reserva es para un terreno que el calendario añada y esta tabla aún no nombre:
+ * cuesta como una etapa del montón en vez de como nada.
+ */
+export const RACE_DAY_TSS: Record<string, number> = {
+  llana: 110,
+  media: 145,
+  reina: 185,
+  cri: 95,
+  clasica: 160,
+}
+
+/** Lo que cuesta un día de carrera en un terreno que la tabla todavía no nombra. */
+export const RACE_DAY_TSS_DEFAULT = 130
+
 /** Progresión por entrenamiento y decaimientos (SPEC 5.2, 5.5). */
 export const TRAINING = {
   // K_talento = base + talento/100, en [0.6, 1.6].

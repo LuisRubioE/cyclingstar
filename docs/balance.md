@@ -10142,3 +10142,178 @@ La nube es **seis veces más ancha que el margen** que dejaba el listón. Es V1 
 También se descartó lo primero que uno piensa, que fuera el campo más flojo de la nueva generación de bots: el vaciado de white-roads da **0,952 exactamente igual con media 78, 75, 74, 73, 72 y 71**, porque este escenario corre con el campo sintético uniforme y no pasa por `generateNpcRider`. Y Lombardia, el peor caso histórico, **baja** de 0,908 a 0,894.
 
 El dueño eligió **subir el techo de 0,95 a 0,96**, que deja el listón por encima de la nube de la mediana (peor medida 0,952) con ocho milésimas. No cubre la peor semilla suelta —0,962— y no tiene por qué: lo que se comprueba es la mediana. La otra mitad de la alarma no se movió: las pájaras siguen pidiéndose marginales y white-roads está al 9-11 % contra un techo de 12, o sea que el tanque a cero sigue siendo la excepción.
+
+---
+
+## v59 §0 — La foto de antes del rediseño de entrenamiento
+
+Primer paso del plan de `docs/entrenamiento.md`. **No cambia una sola conducta**: `ENGINE_VERSION`
+sigue en 52 y `sim/world.test.ts` pasa sin tocar un valor. Lo único que hace es MEDIR, y por eso va
+antes que todo lo demás: los veinte pasos siguientes se van a comparar contra esto, y una línea base
+que se toma después de empezar a mover cosas ya no es una línea base.
+
+Ninguna de las filas nuevas lleva banda, a propósito. Poner la banda antes que la medida es escribir
+el resultado que uno espera.
+
+### Qué se añadió
+
+- **31 métricas nuevas** en `WorldSeasonRow`, todas informativas.
+- **`archetypeFromAttributes`** y **`attrStarsWhole`** en `packages/shared`, con sus pruebas. El
+  arquetipo se deriva de los ATRIBUTOS y no de la etiqueta de la ficha: contar por la etiqueta sería
+  medir el sorteo del nacimiento, no la población. `attrStarsWhole` es alias exacto de `attrStars`, y
+  existe porque el rediseño trae medias estrellas a la pantalla y «estrellas de un atributo» está a
+  punto de volverse ambiguo justo en la fila que vigila la banda del dueño.
+- **`RACE_DAY_TSS`** sale de `sim/world.ts` y pasa a `constants.ts` sin cambiar un número: esa
+  aproximación va a alimentar tres medidas y no puede seguir viviendo dentro del fichero de una.
+- **Banderas en la CLI** del banco de mundo (`--json`, `--sin-carreras`, `--politica`), separadas de
+  los posicionales. Antes `pnpm sim:mundo --json` metía `'--json'` por temporadas, daba `NaN` y el
+  banco corría cero temporadas sin decir por qué.
+- **`rolesPct`** en el banco de carreras pequeñas: qué reparte `autoStageOrders` cuando nadie le da
+  órdenes.
+
+### La foto, `pnpm sim:mundo 25 2`
+
+| Métrica                             |    t1 |        t5 |      t15 |   t25 |
+| ----------------------------------- | ----: | --------: | -------: | ----: |
+| **WT con algún atributo 5★ (%)**    |  21,6 |      40,6 | **82,4** |  76,1 |
+| …solo los maduros 26-31 (%)         |  20,4 |      46,9 | **89,3** |  88,4 |
+| cracks: 3+ de 5★ (%)                |   0,0 |       0,7 |      5,3 |   4,8 |
+| WT sin nada sobre 4★ (%)            |   2,8 |       2,3 |      0,0 |   0,3 |
+| …sin contar gregarios (%)           |   2,1 |       1,8 |      0,0 |   0,3 |
+| margen al techo · motor (%)         |   6,1 |       6,8 |      5,9 |   7,5 |
+| margen al techo · oficio (%)        |  14,1 |       9,5 |      7,7 |   9,2 |
+| margen ≤23 / 24-27 / 28+ (%)        |  21,1 |      18,1 |     15,6 |  17,3 |
+| — 24-27                             |   9,6 |       8,5 |      6,8 |   7,3 |
+| — 28+                               |   5,8 |       4,5 |      4,2 |   4,4 |
+| jóvenes 19-23 con margen ≥8 (%)     |  99,0 |      71,1 |     57,2 |  69,5 |
+| congelados jóvenes (%)              |  0,00 |      0,00 |     0,00 |  0,00 |
+| **crecimiento neopro WT (Δ carta)** |  2,24 | **10,55** |    10,74 | 11,05 |
+| puros: velocistas (%)               |  80,1 |      19,3 |     28,6 |  14,5 |
+| puros: escaladores (%)              |  59,7 |      30,3 |     17,8 |  32,6 |
+| el mejor es de su casa (% mundos)   |  50,0 |      50,0 |     50,0 | 100,0 |
+| curva edad aeróbica 20-21           | 1,072 |     1,006 |    0,872 | 0,873 |
+| curva edad aeróbica 33-35           | 0,945 |     0,818 |    1,024 | 0,972 |
+| curva edad neuro 20-21              | 1,019 |     0,952 |    0,844 | 0,808 |
+| curva edad neuro 33-35              | 0,927 |     0,797 |    1,008 | 0,981 |
+| TAC(33-35) − TAC(20-21)             |  4,88 |     −0,76 |    11,49 | 11,56 |
+| vets 34+ menos 28-30                | −5,38 |     −8,19 |    −0,98 | −0,33 |
+| aprendido/día ≤23                   | 0,744 |     0,495 |    0,340 | 0,403 |
+| — 24-27                             | 0,395 |     0,172 |    0,095 | 0,121 |
+| — 28+                               | 0,196 |     0,041 |    0,041 | 0,046 |
+| días enfermo / año                  |  3,02 |      3,10 |     3,03 |  2,89 |
+| **días con molestias / año**        |  0,00 |      0,00 |     0,00 |  0,00 |
+| gana RES / año                      |  1,66 |      0,75 |     0,74 |  1,05 |
+| gana TAC / año                      |  9,52 |      1,43 |     0,93 |  1,49 |
+
+Reparto por arquetipo (%), derivado de los atributos:
+
+| Arquetipo |   t1 |   t5 |  t15 |  t25 |
+| --------- | ---: | ---: | ---: | ---: |
+| escalada  | 19,9 | 21,8 | 23,8 | 23,8 |
+| velocidad | 11,3 |  9,0 |  9,4 |  9,5 |
+| clasicas  |  8,6 | 11,0 |  7,7 |  7,7 |
+| crono     | 11,0 | 10,6 |  8,0 |  8,9 |
+| fondo     |  0,7 |  1,1 |  2,7 |  1,6 |
+| puncheur  | 10,9 | 10,9 | 12,1 | 13,6 |
+| rodador   | 29,0 | 27,8 | 33,1 | 30,7 |
+| gregario  |  8,7 |  7,7 |  3,2 |  4,3 |
+
+Techo de carta de los neopros menos el de la generación inicial (`—` = ya no queda nadie de la
+generación inicial con quien comparar; hacia la t20 se han retirado todos, y escribir un 0 ahí sería
+inventarse un dato tranquilizador):
+
+| División |    t1 |    t5 |   t15 | t25 |
+| -------- | ----: | ----: | ----: | --: |
+| WT       |  9,88 |  9,55 | −3,82 |   — |
+| PRS      | 14,66 | 13,27 |  1,45 |   — |
+| CON      | 15,84 | 13,44 | −1,37 |   — |
+
+Estacionariedad `|media(t) − media(t−5)|` para t ≥ 10: **máx 4,98**.
+
+### Lo que la foto dice, y no es agradable
+
+**1. La banda del dueño no se cumple, y no por poco.** «Claramente menos del 15 % de momento» es lo
+que él pidió sobre los bots con cinco estrellas. Al NACER se cumple —la v58 lo dejó en 11,3 % del
+WorldTour, medido sobre `generateNpcRider`—, pero **en régimen sale 82,4 % en la temporada 15**, y
+entre los maduros de 26 a 31 años, **89,3 %**. O sea: la generación reparte bien y los años deshacen
+el reparto. La v58 midió el único sitio donde el número era bueno.
+
+Esto confirma por el banco lo que el rediseño había calculado por Monte Carlo, y es la razón por la
+que `cincoEstrellasWTPct` pasa a medirse **en t ≥ 5** y no al nacer.
+
+**2. El neopro crece +10,5 en su primera temporada, no «+4..+9».** `docs/entrenamiento.md` §3.5 daba
++4..+9 y la medida lo desmiente: 10,55 en la t5 y 11,05 en la t25. Es exactamente el número que el
+Monte Carlo del diseño había estimado (+10,5 sin `kDim`), así que dos métodos independientes dan lo
+mismo y la banda del documento estaba mal. Ya está corregida a **+4..+12** allí.
+
+**3. La pureza se hunde.** Los velocistas WT maduros que de verdad son velocistas —SPR de cuatro
+estrellas y montaña floja— pasan del 80,1 % en la t1 al **14,5 %** en la t25; los escaladores, del
+59,7 % al 32,6 %. Dicho de otra forma: el mundo empieza con especialistas y acaba con polivalentes,
+que es la misma enfermedad del punto 1 vista desde otro sitio.
+
+**4. `molestias` existe en el modelo y no la produce nadie.** El contador da 0,00 en las veinticinco
+temporadas, y no es un fallo del contador: `packages/engine/src/banister.ts` sabe consumir el estado
+—tiene su multiplicador, 0,96— y **ningún sitio del motor lo escribe jamás**. Es un estado muerto.
+
+**5. Los congelados jóvenes son 0,00 %**, y ésa es la buena noticia de la foto: la v50 arregló que el
+90 % del pelotón no pudiera mejorar, y sigue arreglado.
+
+**6. El reparto por arquetipo está escorado.** Un tercio del mundo es `rodador` y el `fondo` no llega
+al 3 %. Con el corte actual —la carta tiene que separarse 8 puntos de la media del propio corredor—
+casi todo el mundo acaba clasificado por LLA. No es necesariamente un defecto del mundo: puede ser
+del clasificador, y por eso la fila es informativa y no lleva banda.
+
+### El reparto de papeles, y por qué esta fila vale la pena
+
+`pnpm sim` imprime ahora lo que reparte `autoStageOrders` cuando nadie le da órdenes. En las 41
+etapas del banco de carreras pequeñas:
+
+| Papel      |        % |
+| ---------- | -------: |
+| gregario   | **70,7** |
+| cazaetapas |     14,1 |
+| lider      |     13,4 |
+| sprinter   |      0,9 |
+| lanzador   |      0,9 |
+| marcador   |      0,0 |
+| libre      |      0,0 |
+
+Siete de cada diez corredores salen de gregario, y **el `sprinter` y el `lanzador` juntos no llegan
+al 2 %**. `marcador` y `libre` no se reparten nunca: existen en el vocabulario y no los usa nadie.
+
+Esto importa ahora y no dentro de diez pasos. El dueño pidió VARIEDAD de estructuras de equipo —«un
+sprinter fuerte y el resto trabajando solo para él», «solo cazaetapas», «un sprinter Y un escalador»—
+y con un 0,9 % de sprinters y un 0,9 % de lanzadores **la estructura del sprinter con su tren
+prácticamente no existe en una carrera pequeña**, por bien escritas que estén las reglas que la
+contemplen. Sin esta medida, el día que las estructuras nuevas no produzcan la variedad pedida el
+defecto se le atribuiría a ellas, cuando la causa está una capa más arriba: en quién reparte los
+papeles del día.
+
+Es informativa y sin banda, como todo lo del paso 0. Su banda llega con el paso que toca el
+planificador.
+
+### Una diferencia que hay que vigilar en el paso 6, y que no es una contradicción
+
+El diseño estimó por Monte Carlo que `cincoEstrellasWTPct` **en régimen** daría **12,8 %**, con un
+techo del mecanismo —todo el mundo en su techo— del **18,0 %**. El banco, aquí, mide **82,4 %**.
+
+Los dos números no se contradicen porque no miden lo mismo: el Monte Carlo modela la **génesis v2
+propuesta** (`levelMu` 75/65/57, techos por madurez, presupuesto de dispersión, pureza) con
+`raceLearning` v2, y el banco mide **el motor de hoy** (la generación de la v58, `raceLearning` v1).
+Son mundos distintos y es esperable que den cosas distintas.
+
+Lo que sí hay que decir es que **la diferencia es de un factor cuatro contra el techo del propio
+modelo**: el Monte Carlo dice que ni poniendo a todo el mundo en su techo se pasa del 18 %, y el
+mundo de hoy va por el 82 %. O el mundo de hoy tiene techos mucho más altos que los que propone la
+v2 —que es lo probable, y entonces todo cuadra—, o el modelo del diseño es optimista en algún sitio.
+
+No se resuelve aquí y no hace falta: **el paso 6 vuelve a correr esta misma métrica con la cadena v2
+enchufada**, y si sale por encima de 18 % el que está mal es el modelo, no el banco. Queda anotado
+para que ese día se compare contra una predicción escrita antes y no contra una sorpresa.
+
+### Lo que NO se midió, y por qué
+
+`margenAlTechoPct` se parte por **motor / oficio** usando `ATTRIBUTE_GROWTH`, que es la partición que
+ya existe. La partición por CLASE que pide el diseño (`ATTRIBUTE_CLASS`) llega en el paso 3, y hasta
+entonces medir «por clase» sería medir una clase que no existe. `aprendidoPorCohorte` sale con una
+sola columna, la del banco: la de producción la trae el paso que la mide.

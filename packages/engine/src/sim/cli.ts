@@ -266,6 +266,15 @@ function main(): void {
       `Cribas lejos de meta narradas (peloton_selection, v21): ${st.shapes.todas.farSelections} en ${st.shapes.todas.stages} etapas`,
       `Foto de meta (${st.photo.pairs} pares de llegadas agrupadas de una misma carrera): mismo 1.º y 2.º ${st.photo.sameTopTwoPct.toFixed(0)}% · peor carrera ${st.photo.worstRaceId} ${st.photo.worstRepeatTopFive.toFixed(2)}/5 · favoritos del remate que siguen siéndolo el último día ${st.photo.favouritesKept.toFixed(2)}/5`,
       `Velocidad del ganador (guardarraíl, NO objetivo): llana ${st.shapes.llana.medianWinnerKmh.toFixed(1)} · media ${st.shapes.media.medianWinnerKmh.toFixed(1)} · reina ${st.shapes.reina.medianWinnerKmh.toFixed(1)} km/h`,
+      // FOTO DE ANTES del reparto de papeles (paso 0 del rediseño de entrenamiento). Informativa y
+      // sin banda: es lo que el planificador decide cuando nadie le da órdenes, y hace falta antes
+      // de escribir las reglas de estructura de equipo para no atribuirle a ellas lo que en
+      // realidad reparte `autoStageOrders`.
+      `Papeles que reparte el planificador (sin banda, mide): ${(
+        ['lider', 'sprinter', 'lanzador', 'gregario', 'cazaetapas', 'marcador', 'libre'] as const
+      )
+        .map((r) => `${r} ${st.shapes.todas.rolesPct[r].toFixed(1)}%`)
+        .join(' · ')}`,
       ...st.perRace.map(
         (row) =>
           `${row.tour.raceId.padEnd(18)} ${String(row.runs[0]?.riders ?? 0).padStart(3)} corredores · agrupadas ${String(row.share.bunchStages).padStart(3)} · gana el mejor ${row.share.bestSprinterWinPct.toFixed(0).padStart(3)}% · ${row.shape.medianGroups} grupos · con el ganador ${row.shape.medianWinnerGroupPct.toFixed(0)}% · mismo segundo ${row.shape.oneGroupPct.toFixed(0)}% · cola ${row.shape.medianLastGroupPct.toFixed(1)}%`,
