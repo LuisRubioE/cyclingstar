@@ -236,6 +236,24 @@ export const teams = pgTable(
  * de NPC sobrantes, ver world.ts) deja a sus corredores como AGENTES LIBRES, que es exactamente lo
  * que hacía el código a mano. Ahora la base lo garantiza y no puede quedar un team_id colgando.
  */
+/**
+ * EL MODO DEL PLAN (D0, docs/entrenamiento.md §5.3). Quién decide qué entrena el corredor.
+ *
+ * `entrenador` **no persiste nada**: el servidor aplica `coachPlan` cada día con el TSB REAL, que es
+ * mejor que la foto que el jugador vio hace veintiocho días. `manual` es solo lo que el jugador haya
+ * escrito, y el hueco es descanso activo. `mixto` —el defecto— es el jugador encima del entrenador.
+ */
+/** Los cinco bloques del entrenador (docs/entrenamiento.md §5.4). */
+export const coachBlockEnum = pgEnum('coach_block', [
+  'base',
+  'construccion',
+  'especifico',
+  'afinado',
+  'recuperacion',
+])
+
+export const trainingModeEnum = pgEnum('training_mode', ['entrenador', 'mixto', 'manual'])
+
 export const riders = pgTable(
   'riders',
   {
@@ -256,6 +274,8 @@ export const riders = pgTable(
     archetype: archetypeEnum('archetype').notNull(),
     retiredAt: integer('retired_at'),
     money: integer('money').notNull().default(0),
+    /** Quién decide su entrenamiento (D0, docs/entrenamiento.md §5.3). */
+    trainingMode: trainingModeEnum('training_mode').notNull().default('mixto'),
     /**
      * FAMA: LA COLUMNA NO SE ESCRIBE NUNCA, y hay que decirlo aquí para que nadie vuelva a construir
      * encima (v55). Existe desde la migración 0002 con `DEFAULT 0` y **no hay una sola sentencia en
@@ -392,6 +412,38 @@ export const sessionEnum = pgEnum('training_session', [
 export const intensityEnum = pgEnum('training_intensity', ['suave', 'normal', 'fuerte'])
 
 /** Órdenes de entrenamiento encoladas por el jugador (SPEC 5.1, 5.2). */
+
+/**
+ * EL PLAN POR BLOQUES, Y SOLO LO QUE EL JUGADOR TOCÓ (D1-D4, docs/entrenamiento.md §5.3).
+ *
+ * Las cuatro columnas de bloque son NULLABLE a propósito: null significa «de esta semana decide el
+ * entrenador». Hoy el cliente congela los veintiocho días y los manda enteros, así que un plan
+ * guardado hace un mes sigue mandando sobre el entrenador aunque el corredor se haya puesto enfermo
+ * en medio. Guardando solo lo tocado, lo que el jugador no decidió vuelve a decidirlo quien mira el
+ * estado de hoy.
+ */
+export const trainingPlans = pgTable(
+  'training_plans',
+  {
+    riderId: uuid('rider_id')
+      .notNull()
+      .references(() => riders.id, { onDelete: 'cascade' }),
+    /** Primer día del plan de cuatro semanas. */
+    startDay: integer('start_day').notNull(),
+    block1: coachBlockEnum('block_1'),
+    block2: coachBlockEnum('block_2'),
+    block3: coachBlockEnum('block_3'),
+    block4: coachBlockEnum('block_4'),
+    /** El agujero que el jugador quiere tapar (D3); null = la carta de su arquetipo. */
+    focusAttr: attributeEnum('focus_attr'),
+    /** La intensidad del bloque (D4); null = normal. */
+    intensity: intensityEnum('intensity'),
+    /** La carrera objetivo (D1), para que el afinado sepa hacia dónde apuntar. */
+    goalRaceId: text('goal_race_id'),
+  },
+  (t) => [primaryKey({ columns: [t.riderId, t.startDay] })],
+)
+
 export const trainingOrders = pgTable(
   'training_orders',
   {

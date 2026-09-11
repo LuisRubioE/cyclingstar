@@ -366,36 +366,155 @@ export function coachBlock(ctx: CoachContext): { block: CoachBlock; reason: Coac
     : { block: 'construccion', reason: 'construccion' }
 }
 
-/** La semana de cada bloque: qué sesión toca cada día. */
-export function blockWeek(block: CoachBlock, card: Session, dayOfWeek: number): TrainingChoice {
+/**
+ * LA SEMANA DE CADA BLOQUE (docs/entrenamiento.md §5.4).
+ *
+ * ESTAS TABLAS SE REESCRIBEN EN LA v61 Y HAY QUE DECIR POR QUÉ, porque la historia importa. Las del
+ * paso 8 eran una aproximación de las columnas del diseño; éstas son las columnas, con una
+ * diferencia MEDIDA y declarada en el afinado (ver su comentario) y otra en el específico.
+ *
+ * Lo que trae de nuevo, además de cuadrar con §5.4: el énfasis (`E`) puede ser la carta del
+ * arquetipo o el agujero que el jugador quiera tapar (D3), la intensidad del bloque es del jugador
+ * (D4), la construcción distingue `puertos` de `muros` según a quién le sirva, y el específico
+ * incluye `video_tactica`, que es el único sitio del catálogo donde se entrena TAC sin correr.
+ *
+ * Y una cosa que NO se hizo: creerse la aritmética del documento. Cada bloque se proyectó con
+ * `projectLoad` —el mismo Banister del tick— antes de darlo por bueno, y dos de los cinco no hacían
+ * lo que su columna prometía.
+ */
+
+/** `E`: la sesión de énfasis. El agujero que el jugador pida, o la carta de su arquetipo. */
+export function emphasisSession(archetype: RiderArchetype, focus: Attribute | null): Session {
+  if (focus === null) return ARCHETYPE_CARD[archetype]
+  return sessionsForAttribute(focus)[0] ?? ARCHETYPE_CARD[archetype]
+}
+
+/**
+ * El puerto largo o la rampa corta, según a quién le sirva: `puertos` para quien vive de subir
+ * —escalada, fondo y gregario— y `muros` para el resto.
+ */
+function puertosOMuros(archetype: RiderArchetype): Session {
+  return archetype === 'escalada' || archetype === 'fondo' || archetype === 'gregario'
+    ? 'puertos'
+    : 'muros'
+}
+
+/** Una casilla de la tabla: qué sesión y si ese día va suave pase lo que pase. */
+interface Casilla {
+  session: Session | 'E' | 'PM'
+  /** `true` en los días cuyo propósito ES ir suave: no los sube la intensidad del bloque. */
+  siempreSuave?: boolean
+  /** `true` en el único día que aprieta de la construcción. */
+  siempreFuerte?: boolean
+}
+
+const TABLA: Record<CoachBlock, Casilla[]> = {
+  // L · M · X · J · V · S · D   (≈ 430 TSS a intensidad normal)
+  base: [
+    { session: 'fondo' },
+    { session: 'descanso_activo' },
+    { session: 'fondo' },
+    { session: 'E' },
+    { session: 'descanso_activo' },
+    { session: 'fondo' },
+    { session: 'descanso_total' },
+  ],
+  // ≈ 560 normal, ≈ 680 a fuerte: la única forma de llegar a TSB −35 entrenando (§5.6).
+  construccion: [
+    { session: 'umbral' },
+    { session: 'E' },
+    { session: 'descanso_activo' },
+    { session: 'PM', siempreFuerte: true },
+    { session: 'E' },
+    { session: 'fondo' },
+    { session: 'descanso_total' },
+  ],
+  /**
+   * Afilar lo que pide el objetivo: tres días de énfasis y el vídeo, que es el único sitio del
+   * catálogo donde se entrena la táctica sin correr.
+   *
+   * El MARTES es `fondo` y en §5.4 era `descanso_activo`, **porque la carta no cuesta lo mismo a
+   * todo el mundo**: `puertos` son 115 TSS y `bajada_paves` 70, así que una semana montada sobre
+   * tres cartas valía 450 para un escalador y 315 para un clasicómano. Con 315 el bloque de afinado
+   * salía MÁS PESADO que el específico que lo precede, o sea un afinado que carga: el orden de los
+   * bloques se invertía para dos de los ocho arquetipos. El fondo del martes nivela el suelo y deja
+   * los tres bloques en orden para los ocho.
+   */
+  especifico: [
+    { session: 'E' },
+    { session: 'fondo' },
+    { session: 'E' },
+    { session: 'video_tactica' },
+    { session: 'E' },
+    { session: 'bajada_paves' },
+    { session: 'descanso_total' },
+  ],
+  /**
+   * LLEGAR A TSB +5/+15 EL DOMINGO, que es lo ÚNICO que este bloque promete.
+   *
+   * §5.4 pedía dos cosas a la vez y **no son compatibles con este Banister**: una semana de 215-250
+   * TSS y una llegada a +5/+15. Medido con `projectLoad` sobre el régimen de temporada —cuatro
+   * semanas de construcción y una de específico detrás—, la semana de 215-250 llega a **+26**, que
+   * en `tsbFactor` ya no es afinar: es pasarse de fresco y perder rendimiento. La paradoja es que
+   * cuanto MÁS se descarga, más sube el TSB, porque la ATL se va deprisa y la CTL despacio.
+   *
+   * Gana la llegada, no la cifra de TSS: +5/+15 es lo que el motor LEE el día de la carrera, y la
+   * columna de TSS era una estimación hecha a mano. Esta semana vale 370-450 y llega a +12/+15 en
+   * los ocho arquetipos. El sábado se queda `suave` —son las aperturas de la víspera— y el bloque
+   * sigue siendo claramente más ligero que el específico que lo precede.
+   */
+  afinado: [
+    { session: 'E' },
+    { session: 'descanso_activo' },
+    { session: 'umbral' },
+    { session: 'fondo' },
+    { session: 'descanso_activo' },
+    { session: 'E', siempreSuave: true },
+    { session: 'descanso_total' },
+  ],
+  // ≈ 200 TSS. Tras una vuelta: REC y fragilidad, que es lo que se repara rodando suave y en el gimnasio.
+  recuperacion: [
+    { session: 'descanso_total' },
+    { session: 'descanso_activo' },
+    { session: 'descanso_activo' },
+    { session: 'fondo', siempreSuave: true },
+    { session: 'descanso_activo' },
+    { session: 'gimnasio' },
+    { session: 'descanso_total' },
+  ],
+}
+
+/**
+ * Qué sesión toca el día `dayOfWeek` de un bloque.
+ *
+ * `focus` es el agujero que el jugador quiere tapar (D3) y `intensity` la intensidad que le pone al
+ * bloque (D4); con `null` y `'normal'` sale exactamente la semana del entrenador bot.
+ */
+export function blockWeek(
+  block: CoachBlock,
+  archetype: RiderArchetype,
+  dayOfWeek: number,
+  focus: Attribute | null = null,
+  intensity: Intensity = 'normal',
+): TrainingChoice {
   const d = ((dayOfWeek % 7) + 7) % 7
-  const semanas: Record<CoachBlock, Session[]> = {
-    recuperacion: [
-      'descanso_total',
-      'descanso_activo',
-      'fondo',
-      'descanso_activo',
-      'fondo',
-      'descanso_activo',
-      'descanso_total',
-    ],
-    afinado: ['descanso_activo', card, 'fondo', 'descanso_activo', card, 'fondo', 'descanso_total'],
-    especifico: ['fondo', card, 'umbral', 'descanso_activo', card, 'fondo', 'descanso_total'],
-    construccion: [
-      'fondo',
-      'umbral',
-      'puertos',
-      'descanso_activo',
-      card,
-      'fondo',
-      'descanso_total',
-    ],
-    base: ['fondo', 'descanso_activo', 'fondo', 'umbral', 'gimnasio', 'fondo', 'descanso_total'],
-  }
-  const session = semanas[block][d] ?? 'fondo'
-  // La construcción es la única que aprieta, y solo un día: el guardarraíl lo confirma fuera.
-  const intensity: Intensity = block === 'construccion' && d === 2 ? 'fuerte' : 'normal'
-  return { session, intensity }
+  const casilla = TABLA[block][d] ?? { session: 'fondo' }
+  const session =
+    casilla.session === 'E'
+      ? emphasisSession(archetype, focus)
+      : casilla.session === 'PM'
+        ? puertosOMuros(archetype)
+        : casilla.session
+  // Los días marcados mandan sobre la intensidad del bloque: son los que le dan su forma. Si un
+  // `fuerte` pudiera subir el martes suave del afinado, el afinado dejaría de afinar otra vez.
+  const elegida: Intensity = casilla.siempreSuave
+    ? 'suave'
+    : casilla.siempreFuerte
+      ? intensity === 'suave'
+        ? 'normal'
+        : 'fuerte'
+      : intensity
+  return { session, intensity: elegida }
 }
 
 export function coachPlan(ctx: CoachContext): {
@@ -432,7 +551,7 @@ export function coachPlan(ctx: CoachContext): {
     }
   }
 
-  const plan = blockWeek(block, card, ctx.gameDay)
+  const plan = blockWeek(block, ctx.archetype, ctx.gameDay)
 
   // 4. Los guardarraíles, que son lo que impide que el plan se vuelva una máquina de romper gente.
   if (ctx.strainDays >= 3 && plan.session !== 'descanso_total') {

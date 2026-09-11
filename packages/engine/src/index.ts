@@ -251,6 +251,13 @@ export {
 } from './progression.js'
 export { generateRiderGenome, type RiderGenome, type RiderHidden } from './creation.js'
 export {
+  arrivalLabel,
+  planTss,
+  projectLoad,
+  type ArrivalLabel,
+  type ProjectedDay,
+} from './training/projection.js'
+export {
   ceilingOpinion,
   coachNotes,
   facilitiesTier,

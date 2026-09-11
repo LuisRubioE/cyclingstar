@@ -141,6 +141,71 @@ export const blockReportSchema = z.object({
 export type BlockReport = z.infer<typeof blockReportSchema>
 export const blockReportResponseSchema = z.object({ report: blockReportSchema.nullable() })
 
+// --- El plan de entrenamiento por bloques (docs/entrenamiento.md §5.3, paso 11) ----------------
+
+export const coachBlockSchema = z.enum([
+  'base',
+  'construccion',
+  'especifico',
+  'afinado',
+  'recuperacion',
+])
+export const trainingModeSchema = z.enum(['entrenador', 'mixto', 'manual'])
+export type TrainingMode = z.infer<typeof trainingModeSchema>
+
+/**
+ * Los cuatro bloques van NULLABLE, y no es un descuido del contrato: `null` significa «de esta
+ * semana decide el entrenador», que es una decisión del jugador y no la ausencia de una.
+ */
+export const trainingPlanSchema = z.object({
+  startDay: z.number().int(),
+  blocks: z.array(coachBlockSchema.nullable()).length(4),
+  focusAttr: z.enum(ATTRIBUTES).nullable(),
+  intensity: intensitySchema.nullable(),
+  goalRaceId: z.string().nullable(),
+})
+export type TrainingPlanInput = z.infer<typeof trainingPlanSchema>
+
+export const putTrainingPlanSchema = z.object({
+  mode: trainingModeSchema,
+  plan: trainingPlanSchema,
+})
+
+export const trainingPlanResponseSchema = z.object({
+  mode: trainingModeSchema,
+  plan: trainingPlanSchema.nullable(),
+  currentDay: z.number().int(),
+})
+
+/** Lo que la pantalla enseña ANTES de guardar: cómo vas a llegar si haces esto. */
+export const projectedDaySchema = z.object({
+  day: z.number().int(),
+  gameDay: z.number().int(),
+  ctl: z.number(),
+  atl: z.number(),
+  tsb: z.number(),
+  tss: z.number(),
+  session: z.enum(SESSIONS),
+  intensity: intensitySchema,
+})
+export const arrivalLabelSchema = z.enum(['oxidado', 'perfecto', 'bien', 'cargado', 'fundido'])
+export type ArrivalLabel = z.infer<typeof arrivalLabelSchema>
+
+export const planPreviewResponseSchema = z.object({
+  days: z.array(projectedDaySchema),
+  totalTss: z.number(),
+  /** Una entrada por carrera del horizonte: cómo llegaría a ella con este plan. */
+  arrivals: z.array(
+    z.object({
+      gameDay: z.number().int(),
+      raceId: z.string().nullable(),
+      tsb: z.number(),
+      label: arrivalLabelSchema,
+    }),
+  ),
+})
+export type PlanPreview = z.infer<typeof planPreviewResponseSchema>
+
 export const geoCountryResponseSchema = z.object({
   country: z.string().nullable(),
   // Diagnóstico del país por IP (v58): qué código llegó, en qué cabecera, y todas las de

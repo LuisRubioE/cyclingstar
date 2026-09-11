@@ -297,6 +297,13 @@ describe('engine: esqueleto', () => {
     // líder ataque en el desenlace es la carrera— y el castigo escala con la distancia real en la
     // general. El veto TIRA EL DADO igualmente, así que el flujo `rngTactics` no se corre y las
     // huellas de `attribution.test.ts` y `timetrial.test.ts` salen idénticas dígito a dígito: sus
+    // v61: los bloques del entrenador pasan a ser los de §5.4 de verdad, y dos de los cinco no
+    // hacían lo que su columna prometía. El `afinado` llegaba a TSB +26 —pasarse de fresco, que en
+    // `tsbFactor` ya cuesta rendimiento— cuando su único propósito es llegar a +5/+15; y como la
+    // carta no cuesta lo mismo a todo el mundo (`puertos` 115 TSS, `bajada_paves` 70), el afinado de
+    // un clasicómano salía MÁS pesado que su específico: el orden de los bloques se invertía para
+    // dos de los ocho arquetipos. Lo cazó `projectLoad`, que es la proyección del plan y corre el
+    // mismo Banister que el tick. Entran también el énfasis por agujero y la intensidad de bloque.
     // v60: las instalaciones y el staff dejan de ser dos columnas de adorno. `teams.facilities` se
     // sorteaba entre 0,90 y 1,20, se guardaba, y `train.ts` pasaba `kInst: 1` a pelo: la columna
     // decidía cero cosas y el staff ni columna tenía. El banco de mundo también monta el gimnasio
@@ -348,6 +355,6 @@ describe('engine: esqueleto', () => {
     // v11 (atribución del trabajo), la v10 (composición y caza), la v9 (capa táctica), la
     // v8 (tiempos de grupo), la v7 (modelo de final), la v6 (telemetría), la v5 (clásica larga), la
     // v4 (pavé en el recorrido) y la v3 (Cambio 0).
-    expect(ENGINE_VERSION).toBe(60)
+    expect(ENGINE_VERSION).toBe(61)
   })
 })

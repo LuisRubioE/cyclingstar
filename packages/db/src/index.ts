@@ -209,11 +209,18 @@ export {
   type RiderSummary,
 } from './riders.js'
 export {
+  getPlanForDay,
   getTeamTrainingPlan,
+  getTrainingMode,
   getTrainingOrders,
+  getTrainingPlan,
   setTeamTrainingPlan,
+  setTrainingMode,
   setTrainingOrders,
+  setTrainingPlan,
+  type TrainingMode,
   type TrainingOrderRow,
+  type TrainingPlanRow,
 } from './training.js'
 export {
   getRiderRaceDays,

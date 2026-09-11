@@ -2,16 +2,19 @@ import { HEALTH, type RiderDayState, TRAINING, simulateRiderDay } from '@cycling
 import {
   ATTRIBUTES,
   type Attribute,
+  type CoachBlock,
+  type Intensity,
   type TrainingChoice,
   SESSION_CATALOG,
   type Session,
+  blockWeek,
   coachPlan,
   groupTrainingMultiplier,
   riderAge,
   seasonPosition,
   seededRng,
 } from '@cyclingstar/shared'
-import { and, eq, gte, inArray, lt } from 'drizzle-orm'
+import { and, eq, gte, inArray, lt, lte } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import { ridersTravellingOutbound } from './riderSchedule.js'
 import {
@@ -23,7 +26,9 @@ import {
   teamTrainingOrders,
   teams,
   trainingOrders,
+  trainingPlans,
 } from './schema.js'
+import type { TrainingMode } from './training.js'
 
 /**
  * El tick entrena (Paso 19, SPEC 5). Por cada día de juego y corredor del mundo aplica la
@@ -116,6 +121,20 @@ export async function trainWorldDay(
   const teamPlanByTeam = new Map(teamOrderRows.map((o) => [o.teamId, o]))
 
   /**
+   * EL MODO DEL PLAN Y EL PLAN POR BLOQUES (D0-D4, docs/entrenamiento.md §5.3, paso 11).
+   *
+   * `entrenador` gana a todo lo demás **a propósito**: quien lo elige está diciendo «decide tú cada
+   * día», y el entrenador decide con el TSB de HOY, que es mejor información que la foto que el
+   * jugador vio hace veintiocho días. Por eso ni siquiera se miran sus órdenes viejas.
+   */
+  const modeByRider = new Map(riderRows.map((r) => [r.id, r.trainingMode as TrainingMode]))
+  const planRows = await tx
+    .select()
+    .from(trainingPlans)
+    .where(and(lte(trainingPlans.startDay, gameDay), gte(trainingPlans.startDay, gameDay - 27)))
+  const planByRider = new Map(planRows.map((p) => [p.riderId, p]))
+
+  /**
    * LAS INSTALACIONES Y EL STAFF DE CADA EQUIPO, que hasta aquí no leía nadie.
    *
    * `teams.facilities` se sorteaba al crear el mundo entre 0,90 y 1,20 y `train.ts` pasaba
@@ -177,42 +196,74 @@ export async function trainWorldDay(
       choiceByRider.set(rider.id, { session: 'viaje', intensity: 'normal' })
       continue
     }
-    const order = ordersByRider.get(rider.id)
-    const teamPlan = rider.teamId ? teamPlanByTeam.get(rider.teamId) : undefined
+    const modo = modeByRider.get(rider.id) ?? 'mixto'
+    const order = modo === 'entrenador' ? undefined : ordersByRider.get(rider.id)
+    const teamPlan = modo === 'mixto' && rider.teamId ? teamPlanByTeam.get(rider.teamId) : undefined
+
+    /**
+     * EL BLOQUE QUE EL JUGADOR ELIGIÓ PARA ESTA SEMANA, si eligió alguno. Un bloque a `null` no es
+     * «sin decidir»: es «de esta semana decide el entrenador», y por eso se cae al `coachPlan` de
+     * abajo en vez de rellenarse con un valor por defecto.
+     */
+    let bloqueDelJugador: TrainingChoice | undefined
+    const fila = modo === 'entrenador' ? undefined : planByRider.get(rider.id)
+    if (fila) {
+      const semana = Math.floor((gameDay - fila.startDay) / 7)
+      const bloque = [fila.block1, fila.block2, fila.block3, fila.block4][semana] as
+        CoachBlock | null | undefined
+      if (bloque) {
+        bloqueDelJugador = blockWeek(
+          bloque,
+          rider.archetype,
+          gameDay,
+          (fila.focusAttr as Attribute | null) ?? null,
+          (fila.intensity as Intensity | null) ?? 'normal',
+        )
+      }
+    }
+
     choiceByRider.set(
       rider.id,
       order
         ? { session: order.session, intensity: order.intensity }
-        : teamPlan
-          ? { session: teamPlan.session, intensity: teamPlan.intensity }
-          : /**
-             * EL ENTRENADOR v2 (docs/entrenamiento.md §5.5): decide MIRANDO al corredor —salud,
-             * frescura, tensión acumulada, qué hizo ayer, cuántas veces ha apretado esta semana— en
-             * vez de recorrer un ciclo fijo de catorce días que no miraba nada.
-             *
-             * Lo que el contexto todavía NO trae va dicho en vez de fingido: el calendario del
-             * corredor. `daysToNextRace`, si esa carrera es su objetivo y el objetivo del equipo
-             * salen del roster y del plan de carrera, y eso llega con la pantalla del plan. Sin
-             * ellos el entrenador cae en su mesociclo de tres semanas, que es lo que hacía antes:
-             * no empeora nada y mejora en lo que sí sabe.
-             */
-            coachPlan({
-              gameDay,
-              seasonDay: seasonPosition(gameDay).dayOfSeason,
-              archetype: rider.archetype,
-              tsb: rider.ctl - rider.atl,
-              health: rider.health,
-              strainDays: rider.strainDays,
-              daysToNextRace: null,
-              nextRaceIsGoal: false,
-              nextRaceStages: 1,
-              teamGoalInDays: null,
-              daysSinceBlockEnd: null,
-              lastBlockDays: 0,
-              hardLast7: fuertesRecientes.get(rider.id) ?? 0,
-              yesterday: ayerPorCorredor.get(rider.id) ?? null,
-            }),
+        : bloqueDelJugador
+          ? bloqueDelJugador
+          : teamPlan
+            ? { session: teamPlan.session, intensity: teamPlan.intensity }
+            : /**
+               * EL ENTRENADOR v2 (docs/entrenamiento.md §5.5): decide MIRANDO al corredor —salud,
+               * frescura, tensión acumulada, qué hizo ayer, cuántas veces ha apretado esta semana— en
+               * vez de recorrer un ciclo fijo de catorce días que no miraba nada.
+               *
+               * Lo que el contexto todavía NO trae va dicho en vez de fingido: el calendario del
+               * corredor. `daysToNextRace`, si esa carrera es su objetivo y el objetivo del equipo
+               * salen del roster y del plan de carrera, y eso llega con la pantalla del plan. Sin
+               * ellos el entrenador cae en su mesociclo de tres semanas, que es lo que hacía antes:
+               * no empeora nada y mejora en lo que sí sabe.
+               */
+              coachPlan({
+                gameDay,
+                seasonDay: seasonPosition(gameDay).dayOfSeason,
+                archetype: rider.archetype,
+                tsb: rider.ctl - rider.atl,
+                health: rider.health,
+                strainDays: rider.strainDays,
+                daysToNextRace: null,
+                nextRaceIsGoal: false,
+                nextRaceStages: 1,
+                teamGoalInDays: null,
+                daysSinceBlockEnd: null,
+                lastBlockDays: 0,
+                hardLast7: fuertesRecientes.get(rider.id) ?? 0,
+                yesterday: ayerPorCorredor.get(rider.id) ?? null,
+              }),
     )
+    // En modo `manual` el hueco es descanso activo y no el entrenador: quien elige planificar a mano
+    // está diciendo «lo que yo no escriba, no se entrena». Se aplica al final para no duplicar la
+    // cadena de precedencia de arriba.
+    if (modo === 'manual' && !order && !bloqueDelJugador) {
+      choiceByRider.set(rider.id, { session: 'descanso_activo', intensity: 'normal' })
+    }
   }
   // Pre-paso de entrenamiento en grupo: por equipo y sesión, cuántos compañeros la entrenan hoy.
   // Un corredor gana bonus si varios del MISMO equipo hacen la MISMA sesión de grupo ese día.

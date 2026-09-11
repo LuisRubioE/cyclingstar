@@ -122,13 +122,33 @@ describe('banco de mundo: la población después de 25 temporadas (G1)', () => {
    * un objetivo.
    *
    * El movimiento está declarado en `docs/balance.md` «v59 §5».
+   *
+   * …Y LOS DOS LISTONES SE VUELVEN A MOVER EN LA v61, POR UNA RAZÓN DISTINTA Y PEOR: **estaban
+   * sellados DENTRO de su propio ruido**. Se fijaron en 30 y 20 sobre la medida de DOS mundos, y
+   * medidos sobre seis las dos filas salen así:
+   *
+   * |                   | m0    | m1    | m2    | m3    | m4    | m5    | media | sd   |
+   * | ----------------- | ----- | ----- | ----- | ----- | ----- | ----- | ----- | ---- |
+   * | WT                | 33,15 | 28,18 | 35,50 | 36,84 | 30,17 | 35,12 | 33,16 | 3,07 |
+   * | …sin gregarios    | 20,44 | 15,08 | 24,80 | 27,94 | 11,90 | 23,44 | 20,60 | 5,56 |
+   *
+   * O sea que el listón de 30 lo pasaba **un mundo de cada seis**, y el de 20 apenas la mitad: no
+   * eran guardarraíles, eran caras de una moneda. Que aguantaran hasta aquí es suerte de las dos
+   * semillas que el banco lee, no una propiedad del mundo.
+   *
+   * Se ponen donde el paso 12 manda ponerlos —**media + 2·sd**, 40 y 32— y se dice qué vigilan de
+   * verdad a esa altura: que el WorldTour no se llene de corredores sin nada destacable, no la
+   * décima. Lo que el número dice de verdad va en `docs/balance.md` «v59 §11»: **es un número de la
+   * GÉNESIS y no del entrenamiento** —apenas se movió entre los pasos 6 y 11 mientras el
+   * entrenamiento cambiaba entero, y `margenAlTechoPct` dice que esa gente ya está en su techo—, así
+   * que cerrarlo es subirle los techos al WorldTour y eso es una decisión del dueño.
    */
   it('…y tampoco se queda sin pasar de 4★ quien aspira a algo', () => {
-    expect(`WT sin nada sobre 4★ ≤ 30%: ${ultima.sinNadaSobre4WTPct <= 30}`).toBe(
-      'WT sin nada sobre 4★ ≤ 30%: true',
+    expect(`WT sin nada sobre 4★ ≤ 40%: ${ultima.sinNadaSobre4WTPct <= 40}`).toBe(
+      'WT sin nada sobre 4★ ≤ 40%: true',
     )
-    expect(`…y sin contar gregarios ≤ 20%: ${ultima.sinNadaSobre4NoGregariosWTPct <= 20}`).toBe(
-      '…y sin contar gregarios ≤ 20%: true',
+    expect(`…y sin contar gregarios ≤ 32%: ${ultima.sinNadaSobre4NoGregariosWTPct <= 32}`).toBe(
+      '…y sin contar gregarios ≤ 32%: true',
     )
   })
 

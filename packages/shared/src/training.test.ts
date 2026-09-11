@@ -156,7 +156,11 @@ describe('shared: el entrenador bot v2 (v59)', () => {
   it('los guardarraíles: no apretar dos veces por semana, y parar si hay tensión', () => {
     // Una semana de construcción: hay carrera dentro de tres semanas —ni tan cerca que toque
     // afinar ni tan lejos que sea pretemporada— y la semana del mesociclo es de carga.
-    const cargando = { ...base, seasonDay: 0, gameDay: 2, daysToNextRace: 20 }
+    //
+    // El día es el 3 y no el 2 desde la v61: con las tablas de §5.4, el único día que aprieta de la
+    // construcción es el JUEVES (`puertos|muros`), no el miércoles. El guardarraíl no cambia; lo que
+    // cambió es dónde está el día que tiene que frenar.
+    const cargando = { ...base, seasonDay: 0, gameDay: 3, daysToNextRace: 20 }
     expect(coachPlan(cargando).intensity).toBe('fuerte')
     // Ya apretó esta semana: el bot no lo repite.
     expect(coachPlan({ ...cargando, hardLast7: 1 }).intensity).toBe('normal')

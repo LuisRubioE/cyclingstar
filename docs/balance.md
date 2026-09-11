@@ -11120,3 +11120,107 @@ El informe separa `entrenamiento` y `carrera` —y `sobrecompensacion` cuando la
 pinta una línea «age −0,2»: el motor devuelve hoy el estado final de un día, no su descomposición,
 así que el declive y el detraining viajan dentro del neto de su escritor. Se dice aquí en vez de
 dibujar una línea inventada que cuadrara la suma.
+
+## v59 §11 — La pantalla del plan, y dos bloques que no hacían lo que prometían
+
+`ENGINE_VERSION` **60 → 61**. El plan decía que este paso no subía versión, y **sube**: al proyectar
+los bloques por primera vez resultó que dos de los cinco no cumplían su propia columna, y arreglarlos
+cambia lo que entrena el pelotón entero.
+
+Hasta hoy el jugador elegía 28 × (sesión, intensidad) —**56 desplegables**— y no veía absolutamente
+nada hasta que los días pasaban de uno en uno: la consecuencia de apretar tres semanas seguidas
+llegaba cuando ya no se podía deshacer. Ahora elige un objetivo, cuatro bloques con su razón, un
+énfasis y una intensidad, y **ve cómo va a llegar a cada carrera antes de guardar**. Los 28 días
+siguen ahí y siguen siendo editables —dictado del dueño—, pero plegados.
+
+### `projectLoad` vive en el MOTOR, y ésa es la decisión de este paso
+
+La tentación era escribirla en `apps/web` —es una pantalla— o en `packages/db`. Cualquiera de las dos
+habría sido una **segunda implementación del Banister**: la proyección diría una cosa y el tick al
+día siguiente otra, y el jugador tendría razón al no fiarse de ninguna. En el motor llama a
+`applyDailyLoad`, la misma función que corre el tick, y la prueba lo comprueba **dígito a dígito**.
+
+Vivir ahí es también lo que permite que la prueba EXISTA: desde el cliente habría que comparar contra
+una copia del modelo, y una copia que se compara consigo misma no demuestra nada.
+
+### Lo primero que hizo la proyección fue desmentir al diseño, dos veces
+
+**1. El afinado no afinaba… y el que sí afinaba era el que iba a sustituirlo.** §5.4 pide dos cosas a
+la vez que **no son compatibles con este Banister**: una semana de 215-250 TSS y llegar a TSB +5/+15.
+Medido sobre el régimen de temporada —cuatro semanas de construcción y una de específico detrás—, la
+semana de 215-250 llega a **+26**, que en `tsbFactor` ya no es afinar: es pasarse de fresco y perder
+rendimiento. La paradoja es del modelo: cuanto MÁS se descarga, más sube el TSB, porque la ATL se va
+deprisa y la CTL despacio.
+
+Gana la llegada y no la cifra de TSS: +5/+15 es lo que el motor LEE el día de la carrera, y la
+columna de TSS era una estimación hecha a mano. La semana pasa a valer 370-450 y llega a **+12/+15**
+en los ocho arquetipos.
+
+Y hay que decir la parte incómoda: **el bloque del paso 8, al que este análisis iba a acusar de no
+afinar, llegaba a +9,7/+12,7 —dentro del objetivo—**. La acusación estaba escrita antes de medirla, y
+la medición la desmintió.
+
+**2. El afinado de un clasicómano pesaba MÁS que su específico.** La carta no cuesta lo mismo a todo
+el mundo (`puertos` 115 TSS, `bajada_paves` 70), así que una semana montada sobre tres cartas valía
+450 para un escalador y **315** para un clasicómano. Con la tabla literal, el orden de los bloques se
+invertía para dos de los ocho arquetipos: elegir «afinar» habría cargado más. Se nivela con un
+`fondo` el martes del específico, y los tres bloques quedan en orden para los ocho.
+
+### Lo que mueve en el mundo
+
+| Métrica               |   v60 |   v61 |         Δ |
+| --------------------- | ----: | ----: | --------: |
+| `mediaGlobal`         | 52,26 | 52,54 |     +0,29 |
+| `mediana`             | 52,30 | 52,80 |     +0,50 |
+| `margenOficioPct`     | 13,06 |  8,46 | **−4,61** |
+| `ganaTACporAno`       |  1,11 |  1,20 |     +0,09 |
+| `curvaEdadTAC`        |  8,70 |  9,08 |     +0,38 |
+| `ganaRESporAno`       |  0,80 |  0,65 |     −0,15 |
+| `cincoEstrellasWTPct` |  3,74 |  2,65 |     −1,10 |
+
+**El oficio deja de estar abandonado**, que es lo que el diseño pedía y el paso 8 no daba: con
+`video_tactica` en el específico, TAC, DES y PAV se entrenan de verdad y su margen al techo cae casi
+cinco puntos. A cambio hay menos `fondo` en la semana y RES sube más despacio.
+
+### Y una cosa peor que un bloque mal calibrado: dos listones sellados dentro de su propio ruido
+
+`sinNadaSobre4WTPct ≤ 30` se puso roja, y antes de moverla se midió **por qué**. Seis mundos:
+
+| Métrica        |    m0 |    m1 |    m2 |    m3 |    m4 |    m5 | media |   sd |
+| -------------- | ----: | ----: | ----: | ----: | ----: | ----: | ----: | ---: |
+| WT             | 33,15 | 28,18 | 35,50 | 36,84 | 30,17 | 35,12 | 33,16 | 3,07 |
+| …sin gregarios | 20,44 | 15,08 | 24,80 | 27,94 | 11,90 | 23,44 | 20,60 | 5,56 |
+
+El listón de 30 lo pasaba **un mundo de cada seis**, y el de 20 apenas la mitad. No eran
+guardarraíles: eran caras de una moneda, sellados en la v59 §5 sobre la medida de dos semillas de una
+magnitud cuya desviación entre semillas es de tres y de cinco puntos y medio. Que aguantaran cinco
+pasos es suerte de esas dos semillas, no una propiedad del mundo.
+
+Se ponen donde el paso 12 manda —**media + 2·sd**, o sea 40 y 32— y se dice qué vigilan a esa altura:
+que el WorldTour no se llene de corredores sin nada destacable, no la décima.
+
+### Lo que el número dice de verdad, y que es del dueño
+
+**Un tercio del WorldTour no tiene nada por encima de 4★, y eso NO es un número del entrenamiento.**
+Apenas se movió entre los pasos 6 y 11 —30,2 · 30,4 · 32,3— mientras el entrenamiento cambiaba
+entero, y `margenAlTechoPct` dice que esa gente **ya está a un 9 % de su techo**: no es que no
+entrenen bien, es que su techo no llega a 67 en nada.
+
+O sea que cerrar el requisito del dueño —«que tampoco se quede nadie sin pasar de 4 en nada»— es
+subirle los techos al WorldTour en la génesis, y eso mueve la otra mitad del requisito (el «menos del
+15 % con cinco estrellas», hoy en 2,6 %). Las dos son la misma perilla tirando en sentidos opuestos,
+y cuál gana es **decisión del dueño**, no de la calibración. Queda anotado para el paso 12 con el
+dato, no con una opinión.
+
+### La escalera, y «guardar solo lo tocado»
+
+D0 (modo: `entrenador` · `mixto` · `manual`), D1 (objetivo), D2 (bloque por semana ×4), D3 (énfasis:
+la carta o el agujero), D4 (intensidad del bloque) y D5 (el día suelto, como siempre). Precedencia en
+el tick: modo `entrenador` → el entrenador cada día con el TSB de HOY; si no, orden del día > bloque
+del jugador > plan del equipo > entrenador.
+
+Y lo que **antes no se podía hacer: deshacer.** La pantalla congelaba los 28 días y los mandaba
+enteros, así que tocar un jueves dejaba el mes entero fuera del alcance del entrenador para siempre.
+Ahora solo viaja lo editado y el servidor borra del horizonte lo que no llega, así que un día sin
+tocar vuelve a ser del bloque —o del entrenador—. Está probado en `planPorBloques.test.ts`, quitando
+un día y quitándolos todos.

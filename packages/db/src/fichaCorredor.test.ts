@@ -1,5 +1,4 @@
 import { ATTRIBUTES, type Attribute, birthSeasonForAge } from '@cyclingstar/shared'
-import { eq } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { getAttrTrend, getBlockReport, getCoachView } from './riders.js'
 import {

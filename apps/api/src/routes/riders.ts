@@ -18,6 +18,10 @@ import {
   getRiderBadges,
   getRiderForUser,
   getAttrTrend,
+  getPlanForDay,
+  getTrainingMode,
+  setTrainingMode,
+  setTrainingPlan,
   getBlockReport,
   getCoachView,
   getRiderHealth,
@@ -38,13 +42,24 @@ import {
   setTrainingOrders,
   withdrawRace,
 } from '@cyclingstar/db'
-import { formStars, freshnessBar, generateRiderGenome } from '@cyclingstar/engine'
+import {
+  BANISTER,
+  arrivalLabel,
+  formStars,
+  freshnessBar,
+  generateRiderGenome,
+  planTss,
+  projectLoad,
+} from '@cyclingstar/engine'
 import {
   PLAYER_START_AGE,
   SESSIONS,
+  type TrainingChoice,
   birthSeasonForAge,
+  blockWeek,
   currentSeason,
   isKnownCountry,
+  putTrainingPlanSchema,
   resolveCountry,
 } from '@cyclingstar/shared'
 import { z } from 'zod'
@@ -301,8 +316,115 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
         order.gameDay > world.currentDay &&
         order.gameDay <= world.currentDay + TRAINING_HORIZON_DAYS,
     )
-    await setTrainingOrders(db, rider.id, valid)
+    /**
+     * Se guarda con VENTANA, y eso es lo que hace posible deshacer. Los días del horizonte que no
+     * vengan en `orders` se BORRAN, o sea vuelven a ser del entrenador (o del bloque). Sin la
+     * ventana, quitar una orden era imposible: el borrado solo alcanzaba a los días que se enviaban.
+     */
+    await setTrainingOrders(db, rider.id, valid, {
+      fromDay: world.currentDay + 1,
+      toDay: world.currentDay + TRAINING_HORIZON_DAYS,
+    })
     return { ok: true, saved: valid.length }
+  })
+
+  /**
+   * EL PLAN POR BLOQUES (D0-D4, docs/entrenamiento.md §5.3, paso 11).
+   *
+   * Sube el NIVEL de la decisión: hasta aquí el jugador elegía 28 × (sesión, intensidad) —56
+   * desplegables— y no veía absolutamente nada hasta que los días pasaban de uno en uno. Ahora elige
+   * un objetivo, cuatro bloques y un énfasis, y **ve cómo va a llegar antes de guardar**. Los 28 días
+   * siguen ahí y siguen siendo editables, que es dictado del dueño; lo que cambia es que ya no hace
+   * falta pasar por ellos.
+   */
+  app.get('/api/riders/me/plan', async (request, reply) => {
+    const userId = await currentUserId(request)
+    if (!userId) return unauthorized(reply)
+    const rider = await getRiderForUser(db, userId)
+    const world = await getCurrentWorld(db)
+    if (!rider || !world) return { mode: 'mixto', plan: null, currentDay: world?.currentDay ?? 0 }
+    const inicio = world.currentDay + 1
+    return {
+      mode: await getTrainingMode(db, rider.id),
+      plan: (await getPlanForDay(db, rider.id, inicio))?.plan ?? null,
+      currentDay: world.currentDay,
+    }
+  })
+
+  app.put('/api/riders/me/plan', async (request, reply) => {
+    const userId = await currentUserId(request)
+    if (!userId) return unauthorized(reply)
+    const parsed = putTrainingPlanSchema.safeParse(request.body)
+    if (!parsed.success) return badRequest(reply)
+    const rider = await getRiderForUser(db, userId)
+    const world = await getCurrentWorld(db)
+    if (!rider || !world) return sendError(reply, 409, 'sin_ciclista')
+    await setTrainingMode(db, rider.id, parsed.data.mode)
+    // El plan siempre arranca MAÑANA: hoy ya se entrenó (o se está entrenando) y reescribirlo sería
+    // prometer un cambio que el tick no va a aplicar.
+    await setTrainingPlan(db, rider.id, { ...parsed.data.plan, startDay: world.currentDay + 1 })
+    return { ok: true }
+  })
+
+  /**
+   * «¿CÓMO VOY A LLEGAR?» — la proyección, ANTES de guardar (docs/entrenamiento.md §5.3).
+   *
+   * Corre `projectLoad`, que es el MISMO Banister del tick: la promesa de la pantalla es la única
+   * que el motor puede cumplir. Si esto viviera en el cliente habría dos implementaciones del
+   * modelo, dirían cosas distintas, y el jugador tendría razón al no fiarse de ninguna.
+   */
+  app.post('/api/riders/me/plan/preview', async (request, reply) => {
+    const userId = await currentUserId(request)
+    if (!userId) return unauthorized(reply)
+    const parsed = putTrainingPlanSchema.safeParse(request.body)
+    if (!parsed.success) return badRequest(reply)
+    const rider = await getRiderForUser(db, userId)
+    const world = await getCurrentWorld(db)
+    if (!rider || !world) return sendError(reply, 409, 'sin_ciclista')
+
+    const log = await getDailyLog(db, rider.id, 1)
+    const ultimo = log[log.length - 1]
+    const desde = world.currentDay + 1
+    const hasta = world.currentDay + TRAINING_HORIZON_DAYS
+    const raceDays = new Set(await getRiderRaceDays(db, rider.id, desde, hasta))
+
+    const { blocks, focusAttr, intensity } = parsed.data.plan
+    const plan: TrainingChoice[] = []
+    for (let i = 0; i < TRAINING_HORIZON_DAYS; i++) {
+      const gameDay = desde + i
+      // Un día de carrera no se entrena: la carrera es su carga, y fingir una sesión encima daría
+      // una proyección que el tick no va a reproducir.
+      if (raceDays.has(gameDay)) {
+        plan.push({ session: 'descanso_activo', intensity: 'normal' })
+        continue
+      }
+      const bloque = blocks[Math.floor(i / 7)] ?? 'base'
+      plan.push(blockWeek(bloque, rider.archetype, gameDay, focusAttr, intensity ?? 'normal'))
+    }
+
+    const curva = projectLoad(
+      { ctl: ultimo?.ctl ?? BANISTER.initialCtl, atl: ultimo?.atl ?? BANISTER.initialAtl },
+      plan,
+      rider.attributes.REC,
+    )
+    return {
+      days: curva.map((d) => ({
+        ...d,
+        gameDay: desde + d.day,
+        session: plan[d.day]!.session,
+        intensity: plan[d.day]!.intensity,
+      })),
+      totalTss: planTss(plan),
+      arrivals: [...raceDays]
+        .filter((d) => d >= desde && d <= hasta)
+        .sort((a, b) => a - b)
+        .map((d) => {
+          // El TSB con el que AMANECE el día de carrera: el de la víspera ya aplicada.
+          const anterior = curva[d - desde - 1]
+          const tsb = anterior?.tsb ?? 0
+          return { gameDay: d, raceId: null, tsb, label: arrivalLabel(tsb) }
+        }),
+    }
   })
 
   // Plan de entrenamiento SUGERIDO por el equipo (para que la plantilla entrene junta y gane el
