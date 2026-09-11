@@ -1,4 +1,4 @@
-import type { StageEffort } from '@cyclingstar/engine'
+import type { StageEffort, StageProfile } from '@cyclingstar/engine'
 import { desc, sql } from 'drizzle-orm'
 import {
   boolean,
@@ -493,6 +493,38 @@ export const mentalityEnum = pgEnum('stage_mentality', [
 export const effortEnum = pgEnum('stage_effort', ['ahorrar', 'normal', 'a_tope'])
 
 /** Convocatorias: qué corredores corren una carrera (SPEC 6.11, Paso 29). */
+/**
+ * EL RECORRIDO DE UNA CARRERA, CONGELADO EL DÍA QUE SE CREA (docs/tactica.md paso 1a).
+ *
+ * Hoy el perfil de cada etapa sale de `SEASON_CALENDAR` **en el momento de correrla**, así que es un
+ * dato del CÓDIGO y no del mundo. Eso tiene una consecuencia que nadie había escrito: el día que
+ * alguien toque el generador de recorridos —y el paso 1b lo toca entero—, **las carreras que ya se
+ * corrieron cambian de recorrido retroactivamente**. La crónica de una etapa de hace tres temporadas
+ * pasaría a hablar de un puerto que ya no está donde estaba, y el `checkReplay` que compara
+ * snapshots dejaría de reproducir sin que nadie hubiera tocado un snapshot.
+ *
+ * Con esta tabla el recorrido es del MUNDO: se escribe una vez, al crear la carrera, y el tick lo
+ * lee de aquí. Cambiar el generador cambia las carreras FUTURAS, que es lo que tiene que pasar.
+ *
+ * `profile` va en JSONB porque es exactamente el `StageProfile` que el motor recibe: partirlo en
+ * tablas relacionales sería inventarse un esquema para un dato que solo se lee entero.
+ */
+export const raceRoutes = pgTable(
+  'race_routes',
+  {
+    worldId: uuid('world_id')
+      .notNull()
+      .references(() => worlds.id, { onDelete: 'cascade' }),
+    /** La clave de carrera del mundo (`raceKey`), no el id del calendario: una carrera por temporada. */
+    raceKey: text('race_key').notNull(),
+    stageDay: integer('stage_day').notNull(),
+    profile: jsonb('profile').notNull().$type<StageProfile>(),
+    /** `real` si el recorrido viene de datos verificados; `generado` si lo hizo el generador. */
+    routeSource: text('route_source').notNull().default('generado'),
+  },
+  (t) => [primaryKey({ columns: [t.worldId, t.raceKey, t.stageDay] })],
+)
+
 export const raceRosters = pgTable(
   'race_rosters',
   {

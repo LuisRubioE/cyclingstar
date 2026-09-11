@@ -181,6 +181,12 @@ export {
   type BlockedNameRow,
 } from './blocklist.js'
 export {
+  backfillRaceRoutes,
+  freezeRaceRoute,
+  getRaceRoute,
+  type RouteSource,
+} from './raceRoutes.js'
+export {
   createRider,
   getAttrTrend,
   getBlockReport,

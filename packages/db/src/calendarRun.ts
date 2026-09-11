@@ -43,6 +43,7 @@ import {
   teamRacePlan,
   teams,
 } from './schema.js'
+import { freezeRaceRoute, getRaceRoute } from './raceRoutes.js'
 import { runOneStage } from './stageRun.js'
 import { ownedTeamAttendance } from './teamPlan.js'
 import { worldNeedsRepair } from './worldRepair.js'
@@ -1590,6 +1591,18 @@ export async function runCalendarDay(
 
     const stage = race.stages[idx - 1]
     if (!stage) continue
+
+    /**
+     * EL RECORRIDO SE CONGELA EL DÍA DE LA SALIDA (docs/tactica.md paso 1a), y se LEE de ahí.
+     *
+     * Hasta aquí el perfil salía del calendario en el momento de correr la etapa, o sea que era un
+     * dato del código: tocar el generador reescribía el recorrido de las carreras ya corridas. Se
+     * escribe una vez, es idempotente, y el `?? stage.profile` de abajo cubre las carreras que
+     * empezaron antes de que esta tabla existiera.
+     */
+    if (idx === 1) await freezeRaceRoute(tx, worldId, raceKey, race.id)
+    const congelado = await getRaceRoute(tx, worldId, raceKey, idx)
+
     const r = await runOneStage(tx, worldId, gameDay, worldSeed, {
       raceKey,
       raceId: race.id,
@@ -1599,7 +1612,7 @@ export async function runCalendarDay(
       season,
       stageDay: idx,
       kind: stage.kind,
-      profile: stage.profile,
+      profile: congelado ?? stage.profile,
       timeTrial: stage.timeTrial ?? false,
       isFinal: idx === race.stages.length,
       // El sitio y la fecha de ESTA etapa. La cuenta vive en `stagePlace` y no aquí a propósito: la

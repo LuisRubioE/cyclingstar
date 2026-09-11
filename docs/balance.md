@@ -11637,3 +11637,40 @@ El número del que colgaba la decisión de partir `ci.yml` estaba desfasado casi
 partición **no se decide aquí**: se decide con estos números y con los que falten, que es exactamente
 lo que la casilla (i) del paso 0 manda —«partición de `ci.yml` decidida con los números medidos, no
 antes»—.
+
+## v60 §1a — El recorrido es del mundo, no del código
+
+`ENGINE_VERSION` **63 → 63**: no toca el motor. Es la mitad de fontanería del paso 1, y va sola a
+propósito.
+
+El perfil de cada etapa salía de `SEASON_CALENDAR` **en el momento de correrla**, o sea que era un
+dato del CÓDIGO. Eso funciona mientras el generador de recorridos no cambie nunca, y el paso 1b lo
+cambia entero. La consecuencia que nadie había escrito: **las carreras ya corridas cambiarían de
+recorrido retroactivamente**. La crónica de una etapa de hace tres temporadas hablaría de un puerto
+que ya no está donde estaba, y `checkReplay` dejaría de reproducir sus snapshots sin que nadie
+hubiera tocado un snapshot.
+
+Ahora el recorrido se congela el día de la salida en `race_routes` y el tick lo lee de ahí. Cambiar
+el generador cambia las carreras **futuras**, que es lo que tiene que pasar. La clave lleva la
+temporada dentro, así que el Tour del año que viene puede tener otro recorrido: es justo lo que este
+rediseño quiere poder hacer.
+
+Tres propiedades, y las tres probadas:
+
+- **El perfil leído es el mismo que el del calendario.** Es la condición del paso: si difiriera en un
+  decimal, esto habría cambiado la conducta sin subir versión.
+- **Congelado quiere decir congelado**: un segundo `freeze` no pisa el primero.
+- **Degrada, no revienta**: una carrera creada antes de que la tabla existiera devuelve `null` y el
+  tick cae al calendario, que es exactamente lo que hacía antes. Y el backfill congela lo que falta
+  sin tocar lo que ya está.
+
+### «Idéntico byte a byte» no se puede pedir, y se dice en vez de aflojar la prueba
+
+El criterio escrito pide que el perfil leído sea idéntico **byte a byte**. **JSONB de Postgres
+normaliza el orden de las claves** —`{g, km}` vuelve como `{km, g}`—, así que la igualdad de bytes es
+imposible por construcción del almacén, no por un fallo del código. Y es irrelevante: el motor lee
+`s.km` y `s.tipo`, no un buffer.
+
+Lo que la prueba comprueba es lo que sí importa: que ningún VALOR cambie y que **el orden de los
+arrays se conserve** —el tercer segmento sigue siendo el tercer segmento—, que eso JSONB sí lo
+respeta y el motor sí lo lee.
