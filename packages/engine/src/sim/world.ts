@@ -46,7 +46,7 @@ import {
   seededRng,
 } from '@cyclingstar/shared'
 import { applyDailyLoad, effectiveFragility, raceIllnessProbability } from '../banister.js'
-import { HEALTH, RACE_DAY_TSS, RACE_DAY_TSS_DEFAULT } from '../constants.js'
+import { HEALTH, RACE_DAY_TSS, RACE_DAY_TSS_DEFAULT, TRAINING } from '../constants.js'
 import { SEASON_CALENDAR } from '../routes/calendar.js'
 import { generateRiderGenome } from '../creation.js'
 import { kDim, simulateRiderDay } from '../progression.js'
@@ -75,6 +75,8 @@ interface WorldRider {
   /** Días pasado de rosca. El banco lo lleva igual que producción, también los días de carrera. */
   strainDays: number
   illDays: number
+  /** Las instalaciones de su equipo. Se sortean una vez por equipo, como en producción. */
+  kInst: number
   /** Lo que el guardarraíl del entrenador necesita saber de los últimos días. */
   fuertesUltimos7: number
   ayer: Session | null
@@ -323,6 +325,7 @@ function nace(seed: string, division: Division, age: number, debutSeason: number
     healthUntilDay: null,
     strainDays: 0,
     illDays: 0,
+    kInst: 1,
     fuertesUltimos7: 0,
     ayer: null,
     debutSeason,
@@ -694,8 +697,13 @@ function foto(
  *
  * El día a día es el del tick de producción reducido a lo que cambia a un corredor cuando NO corre:
  * el plan del entrenador bot (`defaultCoachPlan`, el mismo que usa `packages/db`), `simulateRiderDay`
- * y nada más. `kInst` y `kStaff` van a 1 —sin instalaciones ni staff que multipliquen— porque este
- * banco mide el MOTOR de progresión, no la economía de un equipo.
+ * y nada más.
+ *
+ * `kInst` SÍ se sortea por equipo desde la v60 —`TRAINING.kInstMin..kInstMax`, una tirada por
+ * plantilla— porque las instalaciones existen en producción y un banco que las fija a 1 mide un
+ * mundo que no es el que se juega: el ancho del pelotón sale más estrecho de lo que será. `kStaff`
+ * se queda en 1: el nivel de staff de un equipo es una decisión ECONÓMICA del jugador, y el mundo
+ * de bots no tiene economía que la tome.
  *
  * `sinCarreras` apaga los días de competición y deja el mundo SOLO ENTRENANDO. Es el brazo de
  * control contra el que se compara el mundo completo: hasta la v58 ese brazo era un número escrito
@@ -714,16 +722,26 @@ export function runWorld(
   const field: WorldRider[] = []
   for (const { division, equipos, por } of PLANTILLA) {
     for (let t = 0; t < equipos; t++) {
+      // Las instalaciones son del EQUIPO, no del corredor: se sortean una vez y las comparten los
+      // ocho de la plantilla. Si se sortearan por corredor el efecto se promediaría dentro de cada
+      // equipo y el banco no vería nunca la diferencia entre entrenar en un sitio o en otro.
+      //
+      // Van en su PROPIO hilo de azar, no en el `rng` del mundo. Si tiraran de ese, añadir las
+      // instalaciones correría el resto del stream —qué división ficha a cada neopro— y entonces el
+      // «antes» y el «después» no serían el mismo mundo con instalaciones: serían dos mundos.
+      const instalaciones =
+        TRAINING.kInstMin +
+        seededRng(`${worldSeed}:inst:${division}:${t}`)() * (TRAINING.kInstMax - TRAINING.kInstMin)
       for (let k = 0; k < por; k++) {
         const id = `${division}-${t}-${k}`
-        field.push(
-          nace(
-            `${worldSeed}:${id}`,
-            division,
-            sampleNpcAge(`${worldSeed}:${id}:edad`, { v2: true }),
-            0,
-          ),
+        const corredor = nace(
+          `${worldSeed}:${id}`,
+          division,
+          sampleNpcAge(`${worldSeed}:${id}:edad`, { v2: true }),
+          0,
         )
+        corredor.kInst = instalaciones
+        field.push(corredor)
       }
     }
   }
@@ -875,7 +893,14 @@ export function runWorld(
             peakAge: r.peakAge,
             declineAge: r.declineAge,
             choice,
-            kInst: 1,
+            /**
+             * LAS INSTALACIONES TAMBIÉN EN EL BANCO (paso 9). Estaban a 1 con el argumento de que
+             * este banco mide el MOTOR de progresión y no la economía de un equipo, y era razonable
+             * mientras la columna no la leyera nadie. Ahora producción sí la lee, así que dejarla a
+             * 1 aquí sería medir un mundo que el juego no corre: un equipo de instalaciones 1,20
+             * entrena un 20 % mejor y eso ensancha la población.
+             */
+            kInst: r.kInst,
             kStaff: 1,
             trainedLast7: movidosEnLaSemana(r, gameDay),
             rng: seededRng(`${worldSeed}:${r.riderId}:${gameDay}`),
@@ -918,14 +943,19 @@ export function runWorld(
       // Reparto por división proporcional al tamaño de cada categoría.
       const d = rng()
       const division: Division = d < 0.4 ? 'WT' : d < 0.75 ? 'PRS' : 'CON'
-      field.push(
-        nace(
-          `${worldSeed}:${id}`,
-          division,
-          neoproAge(seededRng(`${worldSeed}:${id}:edad`)),
-          season,
-        ),
+      const neo = nace(
+        `${worldSeed}:${id}`,
+        division,
+        neoproAge(seededRng(`${worldSeed}:${id}:edad`)),
+        season,
       )
+      // El neopro ficha por ALGÚN equipo, y no se sabe cuál: el banco no guarda plantillas, solo un
+      // pelotón plano. Se le sortean instalaciones de la misma distribución, que es exactamente lo
+      // que le pasaría de media al entrar en un equipo cualquiera.
+      neo.kInst =
+        TRAINING.kInstMin +
+        seededRng(`${worldSeed}:${id}:inst`)() * (TRAINING.kInstMax - TRAINING.kInstMin)
+      field.push(neo)
     }
     filas.push(foto(season, field, retired, neopros))
   }
@@ -993,6 +1023,7 @@ export function arcoHumano(worldSeed: string): ArcoHumanoStats {
       healthUntilDay: null,
       strainDays: 0,
       illDays: 0,
+      kInst: 1,
       fuertesUltimos7: 0,
       ayer: null,
       debutSeason: 0,

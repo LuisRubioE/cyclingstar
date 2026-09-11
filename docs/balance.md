@@ -10958,3 +10958,93 @@ con la pantalla del plan. Sin ellos el entrenador cae en su mesociclo de tres se
 hacía antes—, así que no empeora nada y mejora en lo que sí sabe. El banco de mundo **sí** los
 construye, porque tiene el calendario sorteado por delante, y por eso el afinado y la recuperación
 post-vuelta se miden aquí aunque producción todavía no los use.
+
+## v59 §9 — Las instalaciones y el staff dejan de ser dos columnas de adorno
+
+`ENGINE_VERSION` **59 → 60**.
+
+`teams.facilities` se sorteaba al crear el mundo entre 0,90 y 1,20, se guardaba en la base, se
+mostraba en ningún sitio y **no lo leía nadie**: `train.ts` pasaba `kInst: 1` a pelo al motor. La
+columna existía, se rellenaba y decidía cero cosas. El staff ni siquiera tenía columna.
+
+Ahora `train.ts` lee la fila del equipo y pasa multiplicadores de verdad:
+
+| Constante        | Valor | Qué es                                     |
+| ---------------- | ----: | ------------------------------------------ |
+| `kInstMin`       |  0,90 | El peor gimnasio del mundo                 |
+| `kInstMax`       |  1,20 | El mejor                                   |
+| `kStaffPerLevel` |  0,02 | Lo que suma cada nivel de staff contratado |
+| `kStaffMax`      |  1,10 | El tope: cinco niveles y se acabó          |
+
+`staffLevel` es un **entero que se compra** —una decisión económica del jugador—, no un
+multiplicador; `kStaff` lo traduce. Los dos valores se recortan a su rango al leerlos, así que una
+fila corrupta en la base no puede darle a nadie un ×3.
+
+### El banco también monta el gimnasio, y por qué importa
+
+Hasta aquí el banco de mundo fijaba `kInst = 1` para todos. Se defendía diciendo que mide el MOTOR y
+no la economía, y para el staff sigue valiendo —el mundo de bots no tiene quien tome esa decisión—,
+pero **para las instalaciones no**: existen en producción, las tiene todo el mundo, y un banco que
+las apaga mide un pelotón más estrecho del que se va a jugar.
+
+Se sortean **una vez por equipo** y las comparten los ocho de la plantilla. Sortearlas por corredor
+habría promediado el efecto dentro de cada equipo y el banco no habría visto nunca la diferencia
+entre entrenar en un sitio o en otro, que es justo lo que se quería medir.
+
+### Un falso positivo que estuvo a punto de colarse, y hay que contarlo
+
+La primera versión tiraba las instalaciones del `rng` del mundo. La medición salió espectacular:
+`cracksPct` ×3, `cincoEstrellasWTMadurosPct` de 3,3 a 6,8, `purosEscaladoresPct` de 70 a 44. Nada de
+eso era de las instalaciones: **añadir tiradas corrió el resto del stream** —qué división ficha a
+cada neopro, entre otras cosas—, así que el «antes» y el «después» no eran el mismo mundo con
+gimnasio, eran dos mundos distintos.
+
+Las instalaciones van ahora en **su propio hilo de azar** (`${worldSeed}:inst:${division}:${t}`). Con
+eso el resto del mundo es bit a bit el de antes y el diff mide una cosa sola. Queda escrito porque la
+diferencia entre las dos tablas —la de abajo y la que no se publica— es la diferencia entre un
+resultado y un espejismo.
+
+### Lo que mueve de verdad (25 temporadas, 3 mundos)
+
+| Métrica                         | antes | después |         Δ |
+| ------------------------------- | ----: | ------: | --------: |
+| `mediaGlobal`                   | 52,20 |   52,26 |     +0,06 |
+| `mediana`                       | 52,23 |   52,30 |     +0,07 |
+| `anchoP90P10`                   | 24,69 |   24,76 |     +0,07 |
+| `cincoEstrellasWTPct`           |  3,58 |    3,74 |     +0,17 |
+| `cincoEstrellasWTMadurosPct`    |  3,28 |    3,83 |     +0,55 |
+| `crecimientoNeoproWT`           |  4,22 |    4,34 |     +0,12 |
+| `jovenesConMargenPct`           | 46,82 |   44,52 | **−2,31** |
+| `sinNadaSobre4NoGregariosWTPct` | 20,52 |   20,91 |     +0,39 |
+
+Es un efecto **pequeño y en la dirección que el diseño predice**: el mundo sube un pelo, se ensancha
+un pelo, y la cola de arriba —los cinco estrellas maduros del WorldTour— es donde más se nota, que es
+lo que tiene que pasar cuando el mejor equipo entrena un 20 % mejor que el peor durante quince años.
+
+No es el efecto gigante de la tabla falsa, y está bien que no lo sea: `kDim` frena según se acerca uno
+al techo, y los techos son absolutos desde la v56. Un gimnasio mejor te lleva antes a tu techo; no te
+lo sube.
+
+### Y la alarma de columnas muertas cazó el paso a media hora de nacer
+
+`staffLevel` se leía en `train.ts` y **no lo escribía nadie**: nacía a 0 por defecto y ahí se quedaba,
+así que `kStaff` valía 1 para los 219 equipos del mundo. Es literalmente el defecto de `fame` y de
+`teamTrust` —una columna que existe, se consulta y no discrimina nada— cometido otra vez, y en el
+mismo commit que presume de matar dos columnas de adorno.
+
+Lo cazó `columnasVivas.test.ts`, la prueba escrita en la v55 justo para esto, antes de que llegara a
+producción. Los equipos bot nacen ahora con el staff que su presupuesto explica —WorldTour 2-4,
+ProSeries 1-3, continental 0-2— y el jugador sube desde ahí comprando niveles. Va en su propio hilo
+de azar por la misma razón que las instalaciones del banco: sembrar un mundo con la misma semilla
+tiene que dar el mismo mundo.
+
+### Dos bandas que hay que mirar, dichas ahora y no en el paso 12
+
+- **`jovenesConMargenPct` baja 2,3 puntos** (46,8 → 44,5) y ya venía por debajo de su ≥50. Es
+  aritmética, no un defecto nuevo: llegar antes al techo es exactamente lo que hacen unas
+  instalaciones buenas, y «joven con margen» cuenta a quien todavía no ha llegado. La banda se
+  decide en el paso 12 con todo lo demás encima de la mesa.
+- **`sinNadaSobre4NoGregariosWTPct` se come su margen.** El guardarraíl pide ≤ 20 y pasa —el banco
+  lee 2 mundos—, pero la media de 3 mundos es **20,91**. O sea que el listón aguanta hoy y no aguanta
+  el próximo empujón hacia arriba de la cola. No se mueve ahora, porque mover una banda que pasa es
+  mover una banda sin dato; queda apuntado para el paso 12.

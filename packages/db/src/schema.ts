@@ -220,6 +220,12 @@ export const teams = pgTable(
     philosophy: philosophyEnum('philosophy').notNull(),
     jerseySeed: text('jersey_seed').notNull(),
     facilities: real('facilities').notNull().default(1),
+    /**
+     * EL STAFF: médicos, fisios, nutricionistas. Multiplica la ganancia de entrenamiento igual que
+     * las instalaciones, y por eso nace en 0 —«sin staff de más»— y no en 1: es un NIVEL que se
+     * compra, no un multiplicador. `kStaff` lo traduce.
+     */
+    staffLevel: integer('staff_level').notNull().default(0),
     pointsSeason: integer('points_season').notNull().default(0),
   },
   (t) => [index('teams_world_division_idx').on(t.worldId, t.division)],

@@ -320,6 +320,7 @@ export interface TeamPlan {
   philosophy: Philosophy
   jerseySeed: string
   facilities: number
+  staffLevel: number
 }
 
 export interface RiderPlan {
@@ -399,6 +400,22 @@ export function planWorld(worldSeed: string): WorldPlan {
       const id = randomUUID()
       const budget = Math.round(div.budgetBase * (0.6 + 0.8 * rng()))
       const facilities = 0.9 + rng() * 0.3 // K_inst [0.90, 1.20]
+      /**
+       * NIVEL DE STAFF (v60). Es un ENTERO que se compra, no un multiplicador: `TRAINING.kStaffPerLevel`
+       * lo traduce a ×1,02 por nivel con tope en ×1,10, o sea cinco niveles y se acabó.
+       *
+       * Los equipos bot nacen con el staff que su presupuesto explica —un WorldTour tiene médicos,
+       * fisios y entrenadores que un continental no paga— y el jugador sube desde ahí comprando.
+       * Nacer todos a cero dejaba la columna muerta: se leía en `train.ts` y valía 1 para todos,
+       * que es exactamente el defecto de `fame` y `teamTrust` otra vez.
+       *
+       * Va en SU PROPIO hilo de azar y no en `rng`: tirar de ese habría corrido el stream —filosofía
+       * del equipo, y de ahí para abajo— y un mundo sembrado con la misma semilla habría salido
+       * distinto sin que el cambio tuviera nada que ver con eso.
+       */
+      const staffRng = seededRng(`${seed}:staff`)
+      const staffBase = div.division === 'WT' ? 2 : div.division === 'PRS' ? 1 : 0
+      const staffLevel = Math.min(5, staffBase + Math.floor(staffRng() * 3))
       const jerseySeed = `${seed}:jersey`
       const country = teamCountryByIndex(div.division, t)
       // Nombre ficticio en el idioma del país (romanizado). Mismo generador y orden que la
@@ -413,6 +430,7 @@ export function planWorld(worldSeed: string): WorldPlan {
         philosophy: pick(PHILOSOPHIES, rng),
         jerseySeed,
         facilities,
+        staffLevel,
       })
       for (let r = 0; r < div.roster; r++) {
         riderPlans.push(
@@ -468,6 +486,7 @@ export async function seedWorld(tx: Tx, worldId: string, worldSeed: string): Pro
       philosophy: t.philosophy,
       jerseySeed: t.jerseySeed,
       facilities: t.facilities,
+      staffLevel: t.staffLevel,
     })),
     200,
     (chunk) => tx.insert(teams).values(chunk),

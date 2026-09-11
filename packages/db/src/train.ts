@@ -1,4 +1,4 @@
-import { HEALTH, type RiderDayState, simulateRiderDay } from '@cyclingstar/engine'
+import { HEALTH, type RiderDayState, TRAINING, simulateRiderDay } from '@cyclingstar/engine'
 import {
   ATTRIBUTES,
   type Attribute,
@@ -20,6 +20,7 @@ import {
   riderHidden,
   riders,
   teamTrainingOrders,
+  teams,
   trainingOrders,
 } from './schema.js'
 
@@ -116,6 +117,31 @@ export async function trainWorldDay(
     .from(teamTrainingOrders)
     .where(eq(teamTrainingOrders.gameDay, gameDay))
   const teamPlanByTeam = new Map(teamOrderRows.map((o) => [o.teamId, o]))
+
+  /**
+   * LAS INSTALACIONES Y EL STAFF DE CADA EQUIPO, que hasta aquí no leía nadie.
+   *
+   * `teams.facilities` se sorteaba al crear el mundo entre 0,90 y 1,20 y `train.ts` pasaba
+   * `kInst: 1` a pelo: la columna se rellenaba, decidía cero cosas, y un equipo con instalaciones de
+   * 1,20 entrenaba exactamente igual que uno con 0,90. Es el mismo defecto que la v55 encontró en
+   * `fame`, y por eso existe la prueba que vigila las columnas con defecto numérico que nadie usa.
+   */
+  const teamRows = await tx
+    .select({ id: teams.id, facilities: teams.facilities, staffLevel: teams.staffLevel })
+    .from(teams)
+    .where(eq(teams.worldId, worldId))
+  const kInstByTeam = new Map(
+    teamRows.map((t) => [
+      t.id,
+      Math.min(TRAINING.kInstMax, Math.max(TRAINING.kInstMin, t.facilities)),
+    ]),
+  )
+  const kStaffByTeam = new Map(
+    teamRows.map((t) => [
+      t.id,
+      Math.min(TRAINING.kStaffMax, 1 + TRAINING.kStaffPerLevel * t.staffLevel),
+    ]),
+  )
 
   // La elección de sesión de cada corredor que entrena hoy: su ORDEN propia, si no el PLAN DE EQUIPO
   // (los del equipo se alinean y ganan el bonus de grupo) y, si no hay ninguno, el plan del entrenador.
@@ -292,8 +318,8 @@ export async function trainWorldDay(
       peakAge: hidden.peakAge,
       declineAge: hidden.declineAge,
       choice,
-      kInst: 1,
-      kStaff: 1,
+      kInst: rider.teamId ? (kInstByTeam.get(rider.teamId) ?? 1) : 1,
+      kStaff: rider.teamId ? (kStaffByTeam.get(rider.teamId) ?? 1) : 1,
       kGroup,
       trainedLast7: movidoReciente.get(rider.id) ?? VACIO,
       gymSessionsLast14: gimnasioReciente.get(rider.id) ?? 0,

@@ -297,6 +297,11 @@ describe('engine: esqueleto', () => {
     // líder ataque en el desenlace es la carrera— y el castigo escala con la distancia real en la
     // general. El veto TIRA EL DADO igualmente, así que el flujo `rngTactics` no se corre y las
     // huellas de `attribution.test.ts` y `timetrial.test.ts` salen idénticas dígito a dígito: sus
+    // v60: las instalaciones y el staff dejan de ser dos columnas de adorno. `teams.facilities` se
+    // sorteaba entre 0,90 y 1,20, se guardaba, y `train.ts` pasaba `kInst: 1` a pelo: la columna
+    // decidía cero cosas y el staff ni columna tenía. El banco de mundo también monta el gimnasio
+    // —una tirada por EQUIPO, en su propio hilo de azar para que el resto del mundo no se corra—,
+    // porque fijarlo a 1 medía un pelotón más estrecho del que se juega.
     // v59: el entrenador bot deja de ser un ciclo fijo de catorce días que no miraba nada —ni la
     // frescura, ni la salud, ni la tensión acumulada— y pasa a decidir por bloques y CON RAZONES.
     // «Razonable, nunca óptimo» era una frase: no era óptimo, pero tampoco razonable, porque le
@@ -343,6 +348,6 @@ describe('engine: esqueleto', () => {
     // v11 (atribución del trabajo), la v10 (composición y caza), la v9 (capa táctica), la
     // v8 (tiempos de grupo), la v7 (modelo de final), la v6 (telemetría), la v5 (clásica larga), la
     // v4 (pavé en el recorrido) y la v3 (Cambio 0).
-    expect(ENGINE_VERSION).toBe(59)
+    expect(ENGINE_VERSION).toBe(60)
   })
 })

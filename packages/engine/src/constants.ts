@@ -715,7 +715,7 @@
  * Campaña canónica de 500 corridas: **los 33 invariantes en verde**. La contrarreloj no se mueve ni
  * un dígito —es el ancla del esfuerzo individual y paga la ley lineal de siempre—.
  */
-export const ENGINE_VERSION = 59 as const
+export const ENGINE_VERSION = 60 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -1431,6 +1431,21 @@ export const TRAINING = {
    * bloque `fuerte` sobre un corredor sin fondo, que es exactamente lo que hace el humano recién
    * creado cuando descubre que puede apretar todos los días.
    */
+  /**
+   * LAS INSTALACIONES Y EL STAFF, ENCHUFADOS DE VERDAD (docs/entrenamiento.md §5.7).
+   *
+   * `teams.facilities` se sorteaba al crear el mundo entre 0,90 y 1,20 y **no lo leía nadie**:
+   * `train.ts` pasaba `kInst: 1` a pelo. O sea que la columna existía, se rellenaba, decidía cero
+   * cosas y todo el mundo entrenaba igual. Es el mismo defecto que la v55 encontró en `fame`, y por
+   * eso hay una prueba que vigila las columnas con defecto numérico que nadie escribe.
+   *
+   * El staff es un NIVEL entero que se compra —de ahí que nazca en 0— y se traduce a multiplicador
+   * con un tope: un equipo no puede comprar progresión sin límite.
+   */
+  kInstMin: 0.9,
+  kInstMax: 1.2,
+  kStaffPerLevel: 0.02,
+  kStaffMax: 1.1,
   kAbsorbFactor: 0.8,
   kAbsorbCtlWeight: 1.5,
   kAbsorbCtlOffset: 40,
