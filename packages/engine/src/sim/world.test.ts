@@ -77,17 +77,31 @@ describe('banco de mundo: la población después de 25 temporadas (G1)', () => {
      * hubiera dejado de enseñar ni un punto. Un guardarraíl que se cae solo porque cambia el punto
      * de partida no vigila lo que dice vigilar.
      *
-     * Ahora se corre el mundo dos veces, con carreras y sin ellas, y se comparan entre sí. El
-     * margen medido con la generación de la v58: 1,5 puntos de media global en la temporada 5, 2,6
-     * en la 10.ª y 3,1 en la 15.ª —la carrera enseña más cuanto más tiempo se lleva corriendo—. El
-     * listón pide UN punto, que es la diferencia entre «enseña poco» y «no enseña».
+     * Ahora se corre el mundo dos veces, con carreras y sin ellas, y se comparan entre sí.
+     *
+     * EL LISTÓN BAJA DE 1 A 0,3 EN LA v57, Y HAY DOS CAUSAS, LAS DOS QUERIDAS. Con la generación de
+     * la v58 el margen era 1,5 / 2,6 / 3,1 puntos en las temporadas 5, 10 y 15. Ahora es 0,36 / 0,56
+     * / 0,56.
+     *
+     * 1. **El freno al techo entra en la carrera** (v57): correr enseña la MITAD de puntos brutos, y
+     *    eso está medido y declarado en `docs/balance.md` «v59 §1» antes de tocar nada —0,370 →
+     *    0,180 puntos por día en la cohorte joven—. Es el precio de que el margen de los jóvenes no
+     *    se cierre.
+     * 2. **Los techos son absolutos** (v56): antes el margen lo repartía la propia generación y
+     *    había sitio de sobra donde crecer. Ahora el techo es el techo, y cuando todo el mundo anda
+     *    a seis puntos de él, ninguna de las dos vías —entrenar o correr— puede mover mucho.
+     *
+     * Lo que esta prueba tiene que seguir vigilando es lo que su título dice: que el banco no vuelva
+     * a quedarse CIEGO a la carrera. Para eso el listón es que el aporte sea claramente positivo y
+     * no que valga un número concreto, que es justo el error que la v58 arregló aquí mismo. 0,3
+     * separa «enseña poco» de «no enseña» con la mitad de margen sobre lo medido.
      */
     const t15 = filas.find((f) => f.season === 15)!
     const control = analyzeWorld(MUNDOS, 15, { sinCarreras: true })
     const t15Control = control.find((f) => f.season === 15)!
     const aporte = t15.mediaGlobal - t15Control.mediaGlobal
-    expect(`correr aporta más de un punto de media: ${aporte > 1} (${aporte.toFixed(1)})`).toBe(
-      `correr aporta más de un punto de media: true (${aporte.toFixed(1)})`,
+    expect(`correr aporta de verdad: ${aporte > 0.3} (${aporte.toFixed(2)})`).toBe(
+      `correr aporta de verdad: true (${aporte.toFixed(2)})`,
     )
   })
 
@@ -126,9 +140,22 @@ describe('banco de mundo: la población después de 25 temporadas (G1)', () => {
      */
     const minimo = Math.min(...filas.map((f) => f.anchoP90P10))
     expect(`ancho mínimo ≥ 10: ${minimo >= 10}`).toBe('ancho mínimo ≥ 10: true')
-    // Y el mundo no se degrada: la media global no acaba por debajo de donde empezó.
-    expect(`la media no baja: ${ultima.mediaGlobal >= primera.mediaGlobal}`).toBe(
-      'la media no baja: true',
+    /**
+     * …Y EL MUNDO ES ESTACIONARIO, que en la v56 dejó de ser lo mismo que «no se degrada».
+     *
+     * Esto pedía `media(t25) ≥ media(t1)`, y tenía sentido cuando el mundo CRECÍA temporada a
+     * temporada: el miedo era que se fuera hacia abajo. Con techos absolutos ya no crece ni
+     * decrece: la distribución de techos no depende de lo que nadie haya entrenado, así que la media
+     * oscila alrededor de su sitio. Medido en 25 temporadas: 53,4 · 52,9 · 52,7 · 54,1 · 53,2 ·
+     * 53,2, o sea una banda de siete décimas sin tendencia.
+     *
+     * Con la desigualdad vieja, esta prueba pasaba o fallaba según de qué lado de la oscilación
+     * cayera la última temporada —fallaba por 0,24—, que es medir ruido. Lo que hay que vigilar
+     * ahora es que la oscilación no se convierta en deriva.
+     */
+    const deriva = Math.abs(ultima.mediaGlobal - primera.mediaGlobal)
+    expect(`el mundo no deriva: ${deriva <= 2} (${deriva.toFixed(2)})`).toBe(
+      `el mundo no deriva: true (${deriva.toFixed(2)})`,
     )
   })
 

@@ -25,8 +25,16 @@ import {
   stageSeed,
   raceLearning,
   stageTss,
+  tourSupercompensation,
 } from '@cyclingstar/engine'
-import { ATTRIBUTES, type Attribute, assignLeaderJerseys, seededRng } from '@cyclingstar/shared'
+import {
+  ATTRIBUTES,
+  type Attribute,
+  assignLeaderJerseys,
+  riderAge,
+  seasonPosition,
+  seededRng,
+} from '@cyclingstar/shared'
 import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import { BATCH_ROWS, type BatchValue, inChunks, valuesList } from './batch.js'
@@ -212,6 +220,11 @@ export async function runOneStage(
       riderId: riderHidden.riderId,
       ceilings: riderHidden.ceilings,
       fragility: riderHidden.fragility,
+      // Las tres que `raceLearning` v2 necesita para saber QUIÉN está aprendiendo. Ya se leía esta
+      // tabla: son tres columnas más en la misma consulta, no una consulta nueva.
+      talent: riderHidden.talent,
+      peakAge: riderHidden.peakAge,
+      declineAge: riderHidden.declineAge,
     })
     .from(riderHidden)
     .where(inArray(riderHidden.riderId, riderIds))
@@ -221,6 +234,7 @@ export async function runOneStage(
   // Fragilidad oculta (SPEC 3.4): escala la probabilidad de enfermar en carrera (docs/motor.md
   // §VI.3). Por defecto 1 para los corredores antiguos sin fila en `rider_hidden`.
   const fragilityByRider = new Map(hiddenRows.map((h) => [h.riderId, h.fragility]))
+  const hiddenByRider = new Map(hiddenRows.map((h) => [h.riderId, h]))
 
   const orderRows = await tx
     .select()
@@ -387,7 +401,27 @@ export async function runOneStage(
    * que el jugador quiere mirar.
    */
   const radio = raceRadioCollector(radioKmPoints(stageLengthKm(spec.profile)))
-  const output = simulateStage(input, seed, radio.probe)
+  /**
+   * QUIÉN TRABAJÓ PARA OTRO, leído al vuelo de las fotos que la radio YA toma cada kilómetro.
+   *
+   * La sonda se envuelve en vez de tocar el motor, y es deliberado: el motor no gana ni un campo de
+   * salida por esto. El dato ya viaja en cada foto —hasta ahora solo lo miraba la pantalla— y aquí
+   * se anota de paso antes de pasársela a la radio, que sigue recibiendo exactamente lo mismo.
+   *
+   * Es un MUESTREO y no un continuo, y conviene decirlo: un relevo de menos de un kilómetro puede no
+   * caer en ninguna foto. Se acepta porque esto alimenta un escalón de ×1,3 sobre un solo atributo,
+   * no una integral.
+   */
+  const trabajaronParaOtro = new Set<string>()
+  const output = simulateStage(input, seed, {
+    atKm: radio.probe.atKm,
+    onSnapshot: (km, riders, mainId) => {
+      for (const r of riders) {
+        if (r.pullFor != null) trabajaronParaOtro.add(r.riderId)
+      }
+      radio.probe.onSnapshot?.(km, riders, mainId)
+    },
+  })
   /**
    * LOS TRES MAILLOTS DE LA CARRETERA, que es lo que se veía mal: la radio enseñaba el amarillo y
    * ningún otro. No era un fallo de la vista —el amarillo entraba de rebote, por ser el primero de
@@ -565,12 +599,46 @@ export async function runOneStage(
      * alcanzarla desde `packages/db`, así que era ciego a la mitad de la progresión de un
      * profesional. Con la regla en el motor, el banco la corre igual que producción.
      */
+    /**
+     * QUIÉN APRENDE, QUÉ HIZO Y CÓMO ACABÓ (v2). Nada de esto necesita un campo de salida nuevo ni
+     * una consulta nueva: los cuatro datos están ya en memoria, en esta misma transacción.
+     *
+     * - el vaciado sale de `output.tank`, que el motor calcula y esta capa no persistía;
+     * - el puesto y el estado, de `result`, que es lo que ya se está recorriendo;
+     * - haber trabajado para otro, de las FOTOS DE LA RADIO que `raceRadioCollector` ya toma cada
+     *   kilómetro. Es un muestreo y no un continuo, y se dice: un relevo de menos de un kilómetro
+     *   puede no caer en ninguna foto. Es aceptable porque esto es un escalón de ×1,3 y no una
+     *   integral, y porque la alternativa —un campo nuevo en la salida del motor— rompería la
+     *   frontera que el diseño hermano fija para la capa táctica.
+     */
+    /**
+     * LO QUE DEJA LA VUELTA ENTERA, al cerrar la última etapa. Tres semanas construyen fondo de una
+     * forma que la suma de veintiún días sueltos no explica —el clásico «llegó del Tour volando»— y
+     * hasta aquí eso no existía: una gran vuelta enseñaba exactamente lo mismo que veintiún
+     * criteriums. Lleva su propio origen en la bitácora para que el informe pueda decir de dónde
+     * salió ese punto y medio.
+     */
+    const suHidden = hiddenByRider.get(result.riderId)
+    const suFila = riderById.get(result.riderId)
+    const edad =
+      suFila === undefined
+        ? undefined
+        : riderAge(suFila.birthSeason, seasonPosition(gameDay).season)
     for (const [attr, delta] of Object.entries(
       raceLearning({
         raceClass: spec.raceClass,
         kind: spec.kind,
         attributes: state.attributes,
         ceilings: state.ceilings,
+        ...(suHidden !== undefined
+          ? { talent: suHidden.talent, declineAge: suHidden.declineAge }
+          : {}),
+        ...(edad !== undefined ? { age: edad } : {}),
+        depletion: output.tank.get(result.riderId)?.depletion ?? 0.5,
+        puesto: result.puesto,
+        trabajoParaOtro: trabajaronParaOtro.has(result.riderId),
+        estado: result.estado,
+        stageIndex: spec.stageDay,
       }),
     )) {
       const a = attr as Attribute
@@ -591,6 +659,34 @@ export async function runOneStage(
         delta: after - before,
         source: 'carrera',
       })
+    }
+
+    /**
+     * …Y LA SOBRECOMPENSACIÓN DE LA VUELTA, una sola vez, al cerrar la última etapa. Solo para quien
+     * la TERMINA: el que abandonó en la doce no llegó del Tour volando.
+     */
+    if (spec.isFinal && !isOneDay && result.estado === 'finish') {
+      const gana = tourSupercompensation({
+        stages: spec.stageDay,
+        attributes: state.attributes,
+        ceilings: state.ceilings,
+        ...(suHidden !== undefined
+          ? { talent: suHidden.talent, declineAge: suHidden.declineAge }
+          : {}),
+        ...(edad !== undefined ? { age: edad } : {}),
+      })
+      if (gana > 0) {
+        const antes = state.attributes.RES
+        state.attributes.RES = antes + gana
+        attrValues.push([result.riderId, 'RES', state.attributes.RES])
+        attrLogValues.push({
+          riderId: result.riderId,
+          gameDay,
+          attr: 'RES',
+          delta: gana,
+          source: 'sobrecompensacion',
+        })
+      }
     }
   }
 

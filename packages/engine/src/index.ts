@@ -113,7 +113,12 @@ export {
   type AutoOrderStage,
 } from './world/autoOrders.js'
 export { HARD_RETIRE_AGE, neoproAge, shouldRetire } from './world/lifecycle.js'
-export { STAGE_LEARNING_ATTRS, raceLearning, type RaceLearningInput } from './world/learning.js'
+export {
+  STAGE_LEARNING_ATTRS,
+  raceLearning,
+  type RaceLearningInput,
+  tourSupercompensation,
+} from './world/learning.js'
 export { gcPrizes, stagePrize, teamGcPrizes, teamStagePrize } from './world/prizes.js'
 export { AVG_WEEKLY_WAGE, SPONSOR_INCOME_PER_WEEK, npcWageBill } from './world/teamEconomy.js'
 export {

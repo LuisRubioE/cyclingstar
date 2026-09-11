@@ -715,7 +715,7 @@
  * Campaña canónica de 500 corridas: **los 33 invariantes en verde**. La contrarreloj no se mueve ni
  * un dígito —es el ancla del esfuerzo individual y paga la ley lineal de siempre—.
  */
-export const ENGINE_VERSION = 56 as const
+export const ENGINE_VERSION = 57 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -1292,6 +1292,34 @@ export const LEARNING = {
    * aprender más que de un entrenamiento» sea verdad al menos donde tiene que serlo.
    */
   raceClassFactor: { WT: 2, Pro: 1.5, '1': 1.2, '2': 1, NC: 1.2 } as Record<string, number>,
+
+  // ── v2 (docs/entrenamiento.md §4.4) ──────────────────────────────────────────────────────────
+
+  /**
+   * EL TECHO DIARIO. Un día de carrera no puede enseñar más que esto por atributo, por mucho que se
+   * multipliquen los factores. Sin él, un neopro con talento alto en una etapa del Tour se comía
+   * varios puntos de golpe y el arco de una carrera dejaba de tener forma.
+   */
+  raceDailyCap: 0.8,
+  /**
+   * QUÉ HICISTE HOY: 0,7 el que se escondió todo el día, 1,3 el que llegó vacío. Sale del depósito
+   * que el motor ya calcula, así que no hay ningún estado nuevo: la carrera enseña por lo que te
+   * exigió, no por haber estado inscrito.
+   */
+  effortBase: 0.7,
+  effortScale: 0.6,
+  /** El que se bajó corrió media carrera y aprendió media. Enfermedad o lesión, nada. */
+  dnfFactor: 0.5,
+  /** Solo sobre TAC, y se toma el mayor: ganar, entrar arriba, o haber trabajado para otro. */
+  resultTacWin: 1.8,
+  resultTacTop10: 1.4,
+  resultTacWork: 1.3,
+  /** REC se aprende encadenando días, desde la quinta etapa, y a media ración. */
+  recStageIndexMin: 5,
+  recShare: 0.5,
+  /** La vuelta entera deja fondo: 0,10 por etapa, de cinco etapas en adelante. */
+  supercompMinStages: 5,
+  supercompResPerStage: 0.1,
 } as const
 
 /**

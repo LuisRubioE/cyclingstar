@@ -297,6 +297,11 @@ describe('engine: esqueleto', () => {
     // líder ataque en el desenlace es la carrera— y el castigo escala con la distancia real en la
     // general. El veto TIRA EL DADO igualmente, así que el flujo `rngTactics` no se corre y las
     // huellas de `attribution.test.ts` y `timetrial.test.ts` salen idénticas dígito a dígito: sus
+    // v57: lo que enseña la carrera, v2. Era `base · nivel · margen/30` y nada más: daba igual la
+    // edad, el talento, lo que hiciste ese día y cómo acabaste. Y su comentario afirmaba que
+    // `margen/30` «es el mismo kDim dicho de otra forma», que es falso y de orden distinto: uno es
+    // lineal y el otro superlineal, así que con solo el lineal todo el que corría acababa clavado en
+    // su techo a los 22-24. Ahora los dos frenos se multiplican.
     // v56: la génesis v2. Antes se sorteaba el ATRIBUTO y se le añadía margen, así que la
     // distribución de techos del mundo dependía de lo que cada uno hubiera entrenado ya y en la
     // temporada 25 no se parecía a la de la 1. Ahora se sortea el TECHO —genético, absoluto— y la
@@ -328,6 +333,6 @@ describe('engine: esqueleto', () => {
     // v11 (atribución del trabajo), la v10 (composición y caza), la v9 (capa táctica), la
     // v8 (tiempos de grupo), la v7 (modelo de final), la v6 (telemetría), la v5 (clásica larga), la
     // v4 (pavé en el recorrido) y la v3 (Cambio 0).
-    expect(ENGINE_VERSION).toBe(56)
+    expect(ENGINE_VERSION).toBe(57)
   })
 })

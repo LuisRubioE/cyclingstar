@@ -130,7 +130,12 @@ interface DiaDeCarrera {
   kind: string
   /** Carga del día, en TSS. Sale del terreno: una reina cuesta el doble que una llana. */
   tss: number
+  /** Qué número de etapa es dentro de su carrera. Es REAL: sale del calendario de verdad. */
+  stageIndex: number
 }
+
+/** Acota a [0,1]. El vaciado sintético se deriva del terreno y no puede salirse. */
+const clamp01 = (x: number): number => Math.min(1, Math.max(0, x))
 
 /**
  * La carga de un día de carrera por terreno vive en `constants.ts` (`RACE_DAY_TSS`) desde el paso 0
@@ -156,11 +161,14 @@ function calendarioDe(division: Division): DiaDeCarrera[] {
     // Los campeonatos nacionales son campo individual por país: no son calendario de equipo.
     if (race.championshipCountry != null) continue
     if (!race.openTo.includes(division)) continue
+    let n = 0
     for (const st of race.stages) {
+      n += 1
       dias.push({
         raceClass: race.raceClass,
         kind: st.kind,
         tss: RACE_DAY_TSS[st.kind] ?? RACE_DAY_TSS_DEFAULT,
+        stageIndex: n,
       })
     }
   }
@@ -710,11 +718,36 @@ export function runWorld(
 
         const hoy = corre.get(r.riderId)?.get(dia)
         if (hoy !== undefined) {
+          /**
+           * LA SUSTITUCIÓN SINTÉTICA DEL BANCO, ESCRITA EN VEZ DE SUPUESTA.
+           *
+           * `raceLearning` v2 pide cuatro cosas que solo existen si se simula la etapa, y este banco
+           * no la simula —442 corredores × 364 días × 25 temporadas no terminaría nunca—. Así que se
+           * sustituyen, y aquí queda dicho con qué:
+           *
+           * - **el vaciado** se deriva del TERRENO, con la misma tabla de carga que ya usa el banco
+           *   (`RACE_DAY_TSS`), normalizada contra una etapa del montón. Una reina vacía más que una
+           *   crono, que es la parte que sí se puede saber sin correrla.
+           * - **el índice de etapa** es REAL: el calendario del banco sale de las carreras de verdad
+           *   y se sabe qué número de etapa es cada día.
+           * - **el resultado y el abandono** valen 1, o sea «terminó, ni ganó ni fue gregario». Aquí
+           *   no gana nadie, y fingir un ganador sería inventarse la mitad de la medida.
+           *
+           * Consecuencia declarada: lo que este banco mide de `aprendidoPorCohorte` es el término
+           * medio, sin la cola de los que ganan. Por eso esa fila se publica en DOS columnas —banco
+           * y producción— en cuanto la de producción exista: si se separan más de un 15 %, esta
+           * sustitución se ha quedado corta y hay que decirlo.
+           */
           const sube = raceLearning({
             raceClass: hoy.raceClass as never,
             kind: hoy.kind,
             attributes: r.attributes,
             ceilings: r.ceilings,
+            talent: r.talent,
+            age: r.age,
+            declineAge: r.declineAge,
+            depletion: clamp01((hoy.tss - 95) / 90),
+            stageIndex: hoy.stageIndex,
           })
           for (const [attr, delta] of Object.entries(sube)) {
             const a = attr as Attribute

@@ -10741,3 +10741,79 @@ nivel: miraba la separación.
 Queda dicho para el paso 12: **no hay que recalibrar los bancos de carrera por esto**. Lo que sí hay
 que resellar son las bandas del banco de MUNDO, que son las que miden nivel y no separación, y van
 listadas arriba.
+
+---
+
+## v59 §6 — Lo que enseña la carrera, v2
+
+`ENGINE_VERSION` **56 → 57**. Sin migración. **Y el diff no toca `packages/engine/src/stage/`**, que
+era criterio del paso: las huellas selladas quedan intactas por construcción, no por medida.
+
+La v1 era `raceBase · nivel · margen/30` y nada más. Daba igual la edad, el talento, lo que hiciste
+ese día y cómo acabaste: un veterano de 34 escondido en el pelotón aprendía lo mismo que un neopro
+que se vació en la fuga, y el que ganó lo mismo que el 150.º.
+
+Y su comentario afirmaba algo falso: que `margen/30` «es el mismo `kDim` dicho de otra forma». No lo
+es, y la diferencia es **de orden** —uno es lineal y el otro superlineal con denominador 45—, así que
+cerca del techo uno frena y el otro no. Ahora los dos frenos se multiplican.
+
+Entran: el talento y el reloj de edad (los mismos del entrenamiento: aprender es aprender), **el
+esfuerzo del día** —0,7 el que se escondió, 1,3 el que llegó vacío—, **el resultado solo sobre TAC**
+(ganar ×1,8, top-10 ×1,4, haber trabajado para otro ×1,3), **el abandono** a media ración, los
+terrenos ampliados (DES en las de montaña, LLA en la crono y la clásica), **REC desde la quinta
+etapa** de una carrera, un techo de 0,8 puntos por día y atributo, y la **sobrecompensación de la
+vuelta**: al cerrar una de cinco etapas o más, hasta +2 de fondo con su propio origen en la bitácora.
+
+**Sin tocar el motor de etapa, y eso costó pensarlo.** El vaciado sale de `output.tank`, que ya está
+en memoria en la misma transacción. Y «trabajó para otro» sale de **envolver la sonda de la radio**,
+que ya toma una foto cada kilómetro con ese dato dentro: se anota al paso y la radio sigue recibiendo
+exactamente lo mismo. Es un muestreo y no un continuo —un relevo de menos de un kilómetro puede no
+caer en ninguna foto— y se acepta porque alimenta un escalón de ×1,3 sobre un solo atributo.
+
+### El mundo, con la cadena completa
+
+| Fila                            |   v56 |       v57 | Banda                   |
+| ------------------------------- | ----: | --------: | ----------------------- |
+| WT con algún 5★ (t15)           |   8,7 |       4,6 | ≤ 15 [dueño]            |
+| cracks (t15)                    |   0,3 |       0,0 | ≤ 6                     |
+| margen ≤23 (t15)                |  12,7 |      13,9 |                         |
+| `crecimientoNeoproWT` (t15)     |  11,6 |      6,65 | +4..+12                 |
+| aprendido/día ≤23 (t15)         | 0,273 |     0,166 |                         |
+| **jóvenes con margen ≥8** (t15) |  34,4 |  **40,8** | ≥ 50 — **no se cumple** |
+| **vets 34+ menos 28-30** (t15)  | −0,75 | **−1,59** | ≤ −3 — **no se cumple** |
+
+Las dos que no se cumplen van dichas y no redondeadas. La de los jóvenes va en la buena dirección
+(34,4 → 40,8) pero se queda a nueve puntos. La de los veteranos es la misma que arrastra desde el
+paso 3: un corredor de 34 sigue estando casi igual que uno de 28, y el declive por edad solo muerde
+después de `declineAge`. Las dos son bandas de calibrar-con-banco y se sellan en el paso 12; las dos
+tienen su palanca en el paso 7 (salud y sobrecarga) y en el propio sellado.
+
+### Dos guardarraíles del banco de mundo que se mueven, y por qué
+
+Los cuatro bancos de CARRERA pasan enteros otra vez. Los dos rojos son del banco de mundo, y los dos
+son consecuencia declarada del diseño:
+
+**1. «El mundo corre, no solo entrena»** pedía que correr aportase más de UN punto de media. Ahora
+aporta **0,56**. Dos causas, las dos queridas: el freno al techo hace que correr enseñe la mitad —ya
+medido y declarado en §1 antes de tocar nada— y los techos absolutos dejan a todo el mundo a seis
+puntos del suyo, donde ninguna vía puede mover mucho. Lo que esta prueba tiene que vigilar es que el
+banco no vuelva a quedarse **ciego** a la carrera, no que el número valga algo concreto —que es justo
+el error que la v58 arregló aquí mismo—. **El listón pasa a 0,3**, con la mitad de margen sobre lo
+medido.
+
+**2. «La media no baja»** comparaba `media(t25) ≥ media(t1)`. Con techos absolutos **el mundo dejó de
+crecer y de decrecer**: la media oscila alrededor de su sitio —53,4 · 52,9 · 52,7 · 54,1 · 53,2 ·
+53,2 en veinticinco temporadas, siete décimas sin tendencia— y la prueba pasaba o fallaba según de
+qué lado de la oscilación cayera la última temporada. Fallaba por **0,24**, que es medir ruido. Pasa
+a vigilar lo que ahora importa: **que la oscilación no se convierta en deriva**, `|media(t25) −
+media(t1)| ≤ 2`.
+
+### Un error mío, y cómo salió
+
+Al escribir las pruebas del paso **sobrescribí `learning.test.ts` entero**, que ya existía con seis
+pruebas. No lo vi al hacerlo: lo cazó que el recuento total de la batería no subiera después de
+añadir seis pruebas nuevas. Recuperadas del historial y fundidas con las nuevas —doce en total—, con
+las dos aserciones que la v2 cambia a propósito reescritas y anotadas: los terrenos ganan atributos, y
+el valor absoluto de lo que enseña una .2 ya no es `raceBase · margen/30` porque ahora multiplica por
+talento, edad y freno. Lo que esa prueba vigila —que el Tour siga valiendo el doble que una .2— se
+conserva y se amplía.
