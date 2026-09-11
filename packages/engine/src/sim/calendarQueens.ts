@@ -29,17 +29,22 @@
  * Puro y determinista: todo sale de `seededRng` y de `stageSeed`, como el resto de la batería.
  */
 import { SEASON_CALENDAR } from '../routes/calendar.js'
+import { type FinalKind, finalKindOf, kmAfterLastClimb } from '../routes/finalKind.js'
 import { STAGE } from '../constants.js'
 import { sampleProfile } from '../stage/sample.js'
 import { simulateStage } from '../stage/simulate.js'
 import { realQueenSetup } from './realQueens.js'
 
-/** Una etapa del calendario con lo único que aquí importa de ella: cuánto sube. */
+/** Una etapa del calendario con lo único que aquí importa de ella: cuánto sube y cómo acaba. */
 export interface CalendarQueen {
   raceId: string
   stageIndex: number
   /** Desnivel positivo acumulado, en metros. */
   dPlus: number
+  /** Km de valle entre la última cota y la meta (`null` si no hay cota: entonces no es reina). */
+  kmTrasUltimaCota: number | null
+  /** La cubeta de §7.5: `alto` · `cima_cerca` · `valle_corto` · `valle_largo`. */
+  finalKind: FinalKind | null
 }
 
 /** Una de cada seis sobre la distribución ordenada: ~27 etapas de las ~157 que hay. */
@@ -58,7 +63,15 @@ export function allCalendarQueens(): CalendarQueen[] {
   for (const race of SEASON_CALENDAR) {
     race.stages.forEach((stage, i) => {
       if (stage.kind !== 'reina' || stage.timeTrial === true) return
-      filas.push({ raceId: race.id, stageIndex: i + 1, dPlus: desnivelDe(stage.profile) })
+      filas.push({
+        raceId: race.id,
+        stageIndex: i + 1,
+        dPlus: desnivelDe(stage.profile),
+        // La GEOMETRÍA cuesta ≈ 0 —recorrer segmentos, no simular—, así que se calcula sobre las
+        // ~157 enteras y no sobre la muestra de 27. Lo caro es el win-rate, no esto.
+        kmTrasUltimaCota: kmAfterLastClimb(stage.profile),
+        finalKind: finalKindOf(stage.profile),
+      })
     })
   }
   return filas.sort((a, b) => a.dPlus - b.dPlus || (a.raceId < b.raceId ? -1 : 1))
@@ -137,6 +150,51 @@ export function analyzeCalendarQueens(runsPerStage: number): CalendarQueenStats 
       min: orden[0] ?? 0,
       mediana: orden[Math.floor(orden.length / 2)] ?? 0,
       max: orden[orden.length - 1] ?? 0,
+    },
+  }
+}
+
+/**
+ * EL REPARTO DE TIPOS DE FINAL DEL CALENDARIO (docs/tactica.md §7.5, paso 0).
+ *
+ * **Sobre las ~157 a propósito, no sobre la muestra de 27.** Es geometría del perfil y no
+ * simulación: recorrer segmentos cuesta lo que cuesta leerlos. Sobre la muestra sistemática, el
+ * error típico de una proporción de 0,45 con n = 27 es ≈ 0,096 —**mayor que la tolerancia entera de
+ * ±0,08** con la que `queenFinalKindMix` quiere compararse—, así que medirlo ahí no vigilaría: sortearía.
+ */
+export interface QueenGeometry {
+  stages: number
+  /** Cuántas de las reinas caen en cada cubeta, y su porcentaje. */
+  mix: { kind: FinalKind; stages: number; pct: number }[]
+  /** Las que NO tienen cota ninguna: una «reina» sin puerto es un dato del generador, no una etapa. */
+  sinCota: number
+  /** Km tras la última cota: mediana y p90, que son las dos cifras con banda en §7.5. */
+  kmTras: { mediana: number; p90: number; max: number }
+}
+
+const FINAL_KINDS: FinalKind[] = ['alto', 'cima_cerca', 'valle_corto', 'valle_largo']
+
+function cuantil(xs: number[], q: number): number {
+  if (xs.length === 0) return 0
+  const s = [...xs].sort((a, b) => a - b)
+  const i = Math.min(s.length - 1, Math.max(0, Math.round(q * (s.length - 1))))
+  return s[i]!
+}
+
+export function queenGeometry(queens: CalendarQueen[] = allCalendarQueens()): QueenGeometry {
+  const conCota = queens.filter((q) => q.finalKind !== null)
+  const kms = conCota.map((q) => q.kmTrasUltimaCota!)
+  return {
+    stages: queens.length,
+    mix: FINAL_KINDS.map((kind) => {
+      const n = queens.filter((q) => q.finalKind === kind).length
+      return { kind, stages: n, pct: queens.length === 0 ? 0 : (100 * n) / queens.length }
+    }),
+    sinCota: queens.length - conCota.length,
+    kmTras: {
+      mediana: cuantil(kms, 0.5),
+      p90: cuantil(kms, 0.9),
+      max: kms.length === 0 ? 0 : Math.max(...kms),
     },
   }
 }
