@@ -270,6 +270,19 @@ export const riders = pgTable(
     teamTrust: real('team_trust').notNull().default(50),
     ctl: real('ctl').notNull().default(0),
     atl: real('atl').notNull().default(0),
+    /**
+     * DÍAS PASADO DE ROSCA y DÍAS SEGUIDOS TOCADO (docs/entrenamiento.md §5.6).
+     *
+     * `strain_days` es el contador que produce las molestias y, a los seis, la lesión por
+     * sobrecarga: sube uno por día con el depósito por debajo de −35 y baja dos por día por encima.
+     * Es un contador y no un dado porque el jugador tiene que poder VER venir la avería.
+     *
+     * `ill_days` son los días SEGUIDOS con molestias o enfermo. Lo define esta sección y lo LEE el
+     * rediseño táctico para decidir en la cuneta: así la secuencia «varios días tocado y luego el
+     * abandono» emerge de un solo modelo de salud en vez de programarse dos veces.
+     */
+    strainDays: integer('strain_days').notNull().default(0),
+    illDays: integer('ill_days').notNull().default(0),
     health: healthEnum('health').notNull().default('sano'),
     healthUntilDay: integer('health_until_day'),
     /** Día de juego hasta el que el corredor está de VIAJE (vuelta de una carrera lejana): no entrena

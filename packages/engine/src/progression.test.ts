@@ -1,5 +1,6 @@
 import { ATTRIBUTES, type Attribute, seededRng } from '@cyclingstar/shared'
 import { describe, expect, it } from 'vitest'
+import { effectiveFragility } from './banister.js'
 import {
   kAge,
   kReady,
@@ -205,5 +206,58 @@ describe('progression: la intensidad es un intercambio, no un botón (v55)', () 
     const subeFlaco = simulateRiderDay(flaco, ctx).state.attributes.MON - flaco.attributes.MON
     const subeHecho = simulateRiderDay(hecho, ctx).state.attributes.MON - hecho.attributes.MON
     expect(subeFlaco).toBeCloseTo(subeHecho * 0.8, 6)
+  })
+})
+
+describe('progression: el sobreentrenamiento se ve venir (v58)', () => {
+  /** Un corredor hundido: el depósito por debajo de −35 es lo que acumula tensión. */
+  function hundido(strainDays: number): RiderDayState {
+    return { ...baseState(), ctl: 40, atl: 85, strainDays }
+  }
+
+  it('seis días pasado de rosca producen molestias, y se sale al recuperar', () => {
+    const ctx = { ...context(0, 'tension'), age: 26 }
+    let state = hundido(0)
+    // Día a día, como lo vería el jugador: la cuenta sube y a los cuatro aparecen las molestias.
+    for (let d = 0; d < 4; d++) {
+      state = simulateRiderDay(state, { ...ctx, gameDay: d }).state
+      if (state.health === 'lesionado' || state.health === 'enfermo') break
+      state = { ...state, ctl: 40, atl: 85 }
+    }
+    expect(state.strainDays).toBe(4)
+    expect(state.health).toBe('molestias')
+
+    // Y con el depósito de vuelta por encima de −15, se sale.
+    const recuperado = simulateRiderDay(
+      { ...state, ctl: 70, atl: 75 },
+      { ...ctx, gameDay: 9, choice: { session: 'descanso_activo', intensity: 'normal' } },
+    ).state
+    expect(recuperado.health).toBe('sano')
+    // Y la tensión baja el DOBLE de rápido de lo que subió: entrar cuesta, salir menos.
+    expect(recuperado.strainDays).toBe(2)
+  })
+
+  it('`illDays` cuenta días SEGUIDOS tocado y se reinicia al sanar', () => {
+    const ctx = { ...context(0, 'tension2'), age: 26 }
+    const tocado = simulateRiderDay(
+      { ...hundido(5), health: 'molestias', illDays: 3 },
+      { ...ctx, gameDay: 1 },
+    ).state
+    expect(tocado.illDays).toBe(4)
+    const sano = simulateRiderDay(
+      { ...baseState(), ctl: 70, atl: 70, illDays: 4 },
+      { ...ctx, gameDay: 2 },
+    ).state
+    expect(sano.illDays).toBe(0)
+  })
+
+  it('la recuperación y el gimnasio bajan la fragilidad efectiva', () => {
+    // REC alto protege de verdad, y eso es lo que convierte a REC en un atributo con consecuencias.
+    expect(effectiveFragility(1, 100)).toBeCloseTo(0.7, 6)
+    expect(effectiveFragility(1, 50)).toBeCloseTo(1.0, 6)
+    expect(effectiveFragility(1, 20)).toBeCloseTo(1.18, 6)
+    // Y el gimnasio un 5 % más, con dos sesiones en dos semanas, como promete el SPEC.
+    expect(effectiveFragility(1, 50, 2)).toBeCloseTo(0.95, 6)
+    expect(effectiveFragility(1, 50, 1)).toBeCloseTo(1.0, 6)
   })
 })

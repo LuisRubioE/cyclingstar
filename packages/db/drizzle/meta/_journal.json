@@ -253,6 +253,13 @@
       "when": 1789116236916,
       "tag": "0035_arquetipos",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1789121960041,
+      "tag": "0036_tension",
+      "breakpoints": true
     }
   ]
 }

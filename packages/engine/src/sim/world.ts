@@ -42,8 +42,8 @@ import {
   defaultCoachPlan,
   seededRng,
 } from '@cyclingstar/shared'
-import { applyDailyLoad } from '../banister.js'
-import { RACE_DAY_TSS, RACE_DAY_TSS_DEFAULT } from '../constants.js'
+import { applyDailyLoad, effectiveFragility, raceIllnessProbability } from '../banister.js'
+import { HEALTH, RACE_DAY_TSS, RACE_DAY_TSS_DEFAULT } from '../constants.js'
 import { SEASON_CALENDAR } from '../routes/calendar.js'
 import { generateRiderGenome } from '../creation.js'
 import { kDim, simulateRiderDay } from '../progression.js'
@@ -69,6 +69,9 @@ interface WorldRider {
   morale: number
   health: 'sano' | 'molestias' | 'enfermo' | 'lesionado'
   healthUntilDay: number | null
+  /** Días pasado de rosca. El banco lo lleva igual que producción, también los días de carrera. */
+  strainDays: number
+  illDays: number
   /** En qué temporada entró: separa a los que crecieron aquí de los del reparto inicial. */
   debutSeason: number
   /**
@@ -271,6 +274,8 @@ function nace(seed: string, division: Division, age: number, debutSeason: number
     morale: 55 + 20 * r(),
     health: 'sano',
     healthUntilDay: null,
+    strainDays: 0,
+    illDays: 0,
     debutSeason,
     movidoElDia: new Map(),
     temporada: nuevaTemporada(g.attributes),
@@ -763,6 +768,33 @@ export function runWorld(
               r.movidoElDia.set(a, dia + (season - 1) * DAYS_PER_SEASON)
           }
           r.temporada.diasDeCarrera += 1
+          /**
+           * LA SALUD TAMBIÉN CORRE (paso 7). Hasta aquí el banco solo tiraba los dados de salud en
+           * los días de ENTRENAMIENTO, igual que le pasaba a producción antes de la v14: en una
+           * temporada con 65 días de carrera, esos 65 días eran inmunidad garantizada. Y como las
+           * grandes vueltas son justo donde se llega a −35 de depósito, el banco no podía ver el
+           * caso que el sobreentrenamiento existe para castigar.
+           */
+          const tsbSalida = r.ctl - r.atl
+          r.strainDays =
+            tsbSalida < HEALTH.strainTsb
+              ? r.strainDays + 1
+              : Math.max(0, r.strainDays - HEALTH.strainRecovery)
+          if (r.health === 'sano' && r.strainDays >= HEALTH.strainToMolestias) {
+            r.health = 'molestias'
+          } else if (r.health === 'molestias' && tsbSalida > HEALTH.molestiasRecoveryTsb) {
+            r.health = 'sano'
+          }
+          if (r.health === 'sano' || r.health === 'molestias') {
+            const frag = effectiveFragility(r.fragility, r.attributes.REC)
+            const dado = seededRng(`${worldSeed}:${r.riderId}:salud:${gameDay}`)
+            if (dado() < raceIllnessProbability(frag, tsbSalida)) {
+              r.health = 'enfermo'
+              r.healthUntilDay = gameDay + 3
+            }
+          }
+          r.illDays = r.health === 'molestias' || r.health === 'enfermo' ? r.illDays + 1 : 0
+
           const carga = applyDailyLoad({ ctl: r.ctl, atl: r.atl }, hoy.tss, r.attributes.REC)
           r.ctl = carga.ctl
           r.atl = carga.atl
@@ -803,6 +835,8 @@ export function runWorld(
             morale: r.morale,
             health: r.health,
             healthUntilDay: r.healthUntilDay,
+            strainDays: r.strainDays,
+            illDays: r.illDays,
           },
           {
             gameDay,
@@ -828,6 +862,8 @@ export function runWorld(
         r.morale = out.state.morale
         r.health = out.state.health
         r.healthUntilDay = out.state.healthUntilDay
+        r.strainDays = out.state.strainDays ?? 0
+        r.illDays = out.state.illDays ?? 0
       }
     }
 
@@ -925,6 +961,8 @@ export function arcoHumano(worldSeed: string): ArcoHumanoStats {
       morale: 55 + 20 * r(),
       health: 'sano',
       healthUntilDay: null,
+      strainDays: 0,
+      illDays: 0,
       debutSeason: 0,
       movidoElDia: new Map(),
       temporada: nuevaTemporada(g.attributes),

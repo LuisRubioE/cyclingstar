@@ -10817,3 +10817,69 @@ las dos aserciones que la v2 cambia a propósito reescritas y anotadas: los terr
 el valor absoluto de lo que enseña una .2 ya no es `raceBase · margen/30` porque ahora multiplica por
 talento, edad y freno. Lo que esa prueba vigila —que el Tour siga valiendo el doble que una .2— se
 conserva y se amplía.
+
+---
+
+## v59 §7 — El estado `molestias` deja de estar muerto
+
+`ENGINE_VERSION` **57 → 58**. Migración `0036`: `riders.strain_days` y `riders.ill_days`.
+
+El paso 0 encontró que `molestias` **existía en el modelo y no lo producía nadie**: el Banister tenía
+su multiplicador de 0,96 escrito y ningún sitio del motor escribía jamás ese estado. Con eso, la
+única forma de que entrenar mal costara algo era **enfermar**, que es un dado de un día. Y el paso 1
+midió la consecuencia: machacarse en rojo todos los días durante quince temporadas enfermaba un 1 %
+más que entrenar bien.
+
+Ahora el sobreentrenamiento tiene su propia vía, y es **un contador y no un dado**:
+
+```
+strainDays = TSB < −35 ? +1 : max(0, −2)      ← también los días de CARRERA
+  ≥ 4 → molestias (se sale con TSB > −15)
+  ≥ 6 → riesgo de lesión por sobrecarga, 7-21 días fuera
+```
+
+Un contador porque «llevas cinco días pasado de rosca» se puede **ver venir y evitar**; un 6 % por
+día no se le explica a nadie. Entra un día de tensión y salen dos: entrar en sobrecarga cuesta
+tiempo, salir es más rápido.
+
+Y **el día de carrera cuenta**, que es el caso que importa: las grandes vueltas son donde se llega a
+−35. El banco de mundo tampoco tiraba los dados de salud los días de competición —65 días de
+inmunidad garantizada al año— y ahora los tira igual que producción.
+
+**La fragilidad efectiva** recoge lo que el corredor sí controla: REC 100 la baja un 30 % y REC 20 la
+sube un 18 %, que es lo que convierte a REC en un atributo con consecuencias. Y el gimnasio protege
+**dentro de ella** y no sobre un dado suelto, que es donde el SPEC dice que protege: metido en el
+dado de la lesión no protegería contra enfermar, que es donde la fragilidad pesa de verdad porque ese
+dado se tira todos los días.
+
+`ill_days` —días seguidos tocado— se define aquí y lo **lee** el rediseño táctico para decidir en la
+cuneta. Así la secuencia que describe («varios días tocado y luego el abandono») **emerge** de un solo
+modelo de salud en vez de programarse dos veces.
+
+### Lo que mueve, y la banda que sigue sin cumplirse
+
+| Arm     | media t15 | días enfermo/año t15 |
+| ------- | --------: | -------------------: |
+| `bot`   |     54,37 |                 3,43 |
+| `buena` |     54,12 |                 3,25 |
+| `mala`  | **52,45** |             **4,17** |
+
+`mala` pierde ya **1,92 puntos** de media y enferma un **22 %** más. Comparado con el paso 1, donde
+los tres enfermaban igual (3,26 / 3,25 / 3,29), el mecanismo discrimina.
+
+**Pero la banda del diseño («`mala` ≥ 2× días enfermo») sigue sin cumplirse, y ahora sé por qué: no
+la puede cumplir este brazo, por construcción.** `mala` es «construcción fuerte todos los días», y una
+carga CONSTANTE no produce fatiga cada vez más profunda: produce adaptación. El Banister sube el CTL
+hasta emparejarlo con el ATL y el depósito se estabiliza cerca de cero, así que **nunca baja de −35 de
+forma sostenida** y el contador de tensión apenas arranca.
+
+Eso es fisiológicamente correcto y es un hallazgo, no un fallo: **entrenar duro y monótono no es lo
+mismo que sobreentrenar**. A −35 se llega por picos —un bloque fuerte encima de un corredor sin
+fondo, una vuelta de tres semanas— y no por repetir el mismo día. El mecanismo funciona: está probado
+directamente en `progression.test.ts`, con la cuenta subiendo día a día hasta las molestias y bajando
+al doble de velocidad al recuperar.
+
+Así que la banda que hay que arreglar es **la del brazo, no la del motor**: para medir el castigo al
+sobreentrenamiento hace falta un `mala` que alterne bloques fuertes sin descanso, no uno que aplique
+la misma carga siempre. Queda anotado para el paso 12, junto con la otra que sigue abierta: `buena`
+sigue 0,25 por debajo del bot, y el entrenador de verdad —con bloques y objetivo— es el **paso 8**.

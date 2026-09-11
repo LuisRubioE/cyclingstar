@@ -1,4 +1,4 @@
-import { type RiderDayState, simulateRiderDay } from '@cyclingstar/engine'
+import { HEALTH, type RiderDayState, simulateRiderDay } from '@cyclingstar/engine'
 import {
   ATTRIBUTES,
   type Attribute,
@@ -176,6 +176,25 @@ export async function trainWorldDay(
     movidoReciente.set(fila.riderId, set)
   }
 
+  /**
+   * CUÁNTAS SESIONES DE GIMNASIO LLEVA CADA UNO EN DOS SEMANAS. Dos o más bajan su fragilidad
+   * efectiva un 5 %, que es lo que el SPEC promete del gimnasio y hasta ahora no hacía nadie.
+   * Sale de la bitácora diaria, que ya guarda qué hizo cada uno cada día.
+   */
+  const gimnasioReciente = new Map<string, number>()
+  for (const fila of await tx
+    .select({ riderId: riderDailyLog.riderId })
+    .from(riderDailyLog)
+    .where(
+      and(
+        gte(riderDailyLog.gameDay, gameDay - HEALTH.gymWindowDays),
+        lt(riderDailyLog.gameDay, gameDay),
+        eq(riderDailyLog.activity, 'gimnasio'),
+      ),
+    )) {
+    gimnasioReciente.set(fila.riderId, (gimnasioReciente.get(fila.riderId) ?? 0) + 1)
+  }
+
   // Los logs se acumulan y se insertan en lote al final.
   const dailyLogValues: (typeof riderDailyLog.$inferInsert)[] = []
   const attrLogValues: (typeof riderAttrLog.$inferInsert)[] = []
@@ -204,6 +223,8 @@ export async function trainWorldDay(
       morale: rider.morale,
       health: rider.health,
       healthUntilDay: rider.healthUntilDay,
+      strainDays: rider.strainDays,
+      illDays: rider.illDays,
     }
 
     const result = simulateRiderDay(state, {
@@ -219,6 +240,7 @@ export async function trainWorldDay(
       kStaff: 1,
       kGroup,
       trainedLast7: movidoReciente.get(rider.id) ?? VACIO,
+      gymSessionsLast14: gimnasioReciente.get(rider.id) ?? 0,
       rng: seededRng(`${worldSeed}:${rider.id}:${gameDay}`),
     })
 
@@ -230,6 +252,8 @@ export async function trainWorldDay(
         morale: result.state.morale,
         health: result.state.health,
         healthUntilDay: result.state.healthUntilDay,
+        strainDays: result.state.strainDays ?? 0,
+        illDays: result.state.illDays ?? 0,
       })
       .where(eq(riders.id, rider.id))
 

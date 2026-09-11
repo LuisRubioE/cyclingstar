@@ -149,6 +149,23 @@ export function initialEnergy(ctl: number, tsb: number, health: HealthState): nu
  * etapas de montaña: enfermar dejaba de ser un riesgo para ser un peaje seguro. El techo no toca la
  * banda del entrenamiento, donde la curva sigue siendo la de siempre.
  */
+/**
+ * LA FRAGILIDAD EFECTIVA (docs/entrenamiento.md §5.6): la del genoma, corregida por lo que el
+ * corredor sí controla.
+ *
+ * Dos correcciones y las dos con consecuencia real. La **recuperación** baja la fragilidad un 30 %
+ * a REC 100 y la sube un 18 % a REC 20: es lo que convierte a REC en un atributo con efectos —le
+ * acorta la fatiga, cuenta cerillas, y ahora también decide cuánto se rompe— en vez de un número de
+ * la ficha. Y el **gimnasio** protege aquí dentro, que es donde el SPEC dice que protege («reduce
+ * fragilidad efectiva 5 % ese mes»), y no sobre un dado suelto de lesión: metido ahí no protegería
+ * contra enfermar, que es donde la fragilidad pesa de verdad porque ese dado se tira todos los días.
+ */
+export function effectiveFragility(fragility: number, rec: number, gymSessionsLast14 = 0): number {
+  const porRec = HEALTH.recFragilityBase - HEALTH.recFragilitySlope * (rec / 100)
+  const porGimnasio = gymSessionsLast14 >= HEALTH.gymSessionsFor ? HEALTH.gymProtection : 1
+  return fragility * porRec * porGimnasio
+}
+
 export function illnessProbability(fragility: number, tsb: number): number {
   return Math.min(
     HEALTH.illnessMax,

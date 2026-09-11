@@ -23,6 +23,7 @@ import {
   stageLengthKm,
   stagePointsByClass,
   stageSeed,
+  HEALTH,
   raceLearning,
   stageTss,
   tourSupercompensation,
@@ -277,6 +278,9 @@ export async function runOneStage(
       ctl: number
       atl: number
       ceilings: Record<Attribute, number>
+      strainDays: number
+      illDays: number
+      health: string
     }
   >()
 
@@ -360,7 +364,15 @@ export async function runOneStage(
       // datos es la única que lo sabe. `null` = agente libre: corre de forma individual.
       teamId: rider.teamId ?? null,
     })
-    riderState.set(riderId, { attributes, ctl: rider.ctl, atl: rider.atl, ceilings })
+    riderState.set(riderId, {
+      attributes,
+      ctl: rider.ctl,
+      atl: rider.atl,
+      ceilings,
+      strainDays: rider.strainDays,
+      illDays: rider.illDays,
+      health: rider.health,
+    })
   }
   if (stageRiders.length === 0) return new Set()
 
@@ -487,6 +499,7 @@ export async function runOneStage(
   const resultValues: (typeof stageResults.$inferInsert)[] = []
   const gcValues: (typeof raceGc.$inferInsert)[] = []
   const loadValues: BatchValue[][] = []
+  const strainValues: BatchValue[][] = []
   const attrValues: BatchValue[][] = []
   const raced = new Set<string>()
   const gcByRider = new Map(gcRows.map((r) => [r.riderId, r]))
@@ -573,6 +586,22 @@ export async function runOneStage(
     if (!state) continue
     const tss = stageTss(output.workUnits.get(result.riderId) ?? 0)
     const load = applyDailyLoad({ ctl: state.ctl, atl: state.atl }, tss, state.attributes.REC)
+    /**
+     * LA TENSIÓN TAMBIÉN CUENTA EL DÍA QUE SE CORRE (docs/entrenamiento.md §5.6), y es justo el caso
+     * que importa: las grandes vueltas son DONDE se llega a −35 de depósito. Contarlo solo en el día
+     * de entrenamiento dejaba fuera las tres semanas en las que un corredor se hunde de verdad.
+     *
+     * Se mira el depósito de SALIDA —el de antes de la etapa— porque es con el que se tomó la
+     * salida; el de después ya lleva el castigo del día y lo contaría dos veces.
+     */
+    const tsbSalida = state.ctl - state.atl
+    const tension =
+      tsbSalida < HEALTH.strainTsb
+        ? state.strainDays + 1
+        : Math.max(0, state.strainDays - HEALTH.strainRecovery)
+    const tocado = state.health === 'molestias' || state.health === 'enfermo'
+    strainValues.push([result.riderId, tension, tocado ? state.illDays + 1 : 0])
+
     loadValues.push([result.riderId, load.ctl, load.atl])
     dailyLogValues.push({
       riderId: result.riderId,
@@ -716,6 +745,13 @@ export async function runOneStage(
     await tx.execute(
       sql`update ${riders} set ctl = v.ctl, atl = v.atl
           from ${v} as v(id, ctl, atl) where ${riders.id} = v.id`,
+    )
+  })
+  await inChunks(strainValues, BATCH_ROWS, async (chunk) => {
+    const v = valuesList(chunk, ['uuid', 'int', 'int'])
+    await tx.execute(
+      sql`update ${riders} set strain_days = v.strain, ill_days = v.ill
+          from ${v} as v(id, strain, ill) where ${riders.id} = v.id`,
     )
   })
   await inChunks(attrValues, BATCH_ROWS, async (chunk) => {

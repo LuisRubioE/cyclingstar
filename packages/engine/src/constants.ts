@@ -715,7 +715,7 @@
  * Campaña canónica de 500 corridas: **los 33 invariantes en verde**. La contrarreloj no se mueve ni
  * un dígito —es el ancla del esfuerzo individual y paga la ley lineal de siempre—.
  */
-export const ENGINE_VERSION = 57 as const
+export const ENGINE_VERSION = 58 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -1258,6 +1258,46 @@ export const HEALTH = {
   // de la reina 8,33 % (8-14).
   illnessRaceFactor: 0.16,
   illnessRaceMax: 0.0035,
+
+  // ── Sobreentrenamiento, molestias y lesión (docs/entrenamiento.md §5.6) ──────────────────────
+  //
+  // POR QUÉ UN CONTADOR Y NO UN DADO DIARIO. «Llevas cinco días pasado de rosca» es legible y es
+  // determinista salvo el dado final; un `p = 0,06 · fragilidad` por día no se le puede explicar a
+  // nadie. El jugador tiene que poder VER venir la avería y tener tiempo de evitarla.
+
+  /** Por debajo de este TSB el día suma tensión; por encima, resta el doble: recuperarse es rápido. */
+  strainTsb: -35,
+  strainRecovery: 2,
+  /** A partir de aquí aparecen las molestias, y se van cuando el depósito vuelve por encima de −15. */
+  strainToMolestias: 4,
+  molestiasRecoveryTsb: -15,
+  /** Y a partir de aquí hay riesgo de romperse de verdad. */
+  strainToInjury: 6,
+  overuseBase: 0.006,
+  overuseHardFactor: 1.5,
+  overuseDaysMin: 7,
+  overuseDaysMax: 21,
+  /** Dos sesiones que se hacen con el cuerpo y no con el motor: se puede uno romper haciéndolas. */
+  sessionInjuryPaves: 0.0015,
+  sessionInjuryGym: 0.001,
+  sessionInjuryDaysMin: 4,
+  sessionInjuryDaysMax: 12,
+
+  /**
+   * LA FRAGILIDAD EFECTIVA: la del genoma, corregida por lo que el corredor SÍ controla.
+   *
+   * La recuperación pesa —REC 100 la baja un 30 %, REC 20 la sube un 18 %—, que es lo que hace de
+   * REC un atributo con consecuencias y no un número de la ficha. Y el gimnasio protege **aquí**,
+   * dentro de la fragilidad, que es donde el SPEC dice que protege: la versión anterior del diseño
+   * lo metía como un ×0,7 sobre el dado de la lesión y dejaba la fragilidad intacta, así que no
+   * protegía contra ENFERMAR, que es donde la fragilidad pesa de verdad y donde el dado se tira
+   * todos los días.
+   */
+  recFragilityBase: 1.3,
+  recFragilitySlope: 0.6,
+  gymProtection: 0.95,
+  gymSessionsFor: 2,
+  gymWindowDays: 14,
 } as const
 
 /** Moral (SPEC 4.2, 4.4). M_moral = base + scale * MOR/100; regresión diaria a la media. */

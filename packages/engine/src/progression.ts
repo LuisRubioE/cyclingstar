@@ -7,8 +7,13 @@ import {
   type TrainingChoice,
   sessionTss,
 } from '@cyclingstar/shared'
-import { applyDailyLoad, illnessProbability, regressMorale } from './banister.js'
-import { TRAINING } from './constants.js'
+import {
+  applyDailyLoad,
+  effectiveFragility,
+  illnessProbability,
+  regressMorale,
+} from './banister.js'
+import { HEALTH, TRAINING } from './constants.js'
 import { uniformInt } from './random.js'
 
 /**
@@ -25,6 +30,17 @@ export interface RiderDayState {
   morale: number
   health: HealthState
   healthUntilDay: number | null
+  /**
+   * DÍAS PASADO DE ROSCA, acumulados (docs/entrenamiento.md §5.6). Sube uno por cada día con el
+   * depósito por debajo de −35 y baja DOS por cada día por encima: entrar en sobrecarga cuesta
+   * tiempo y salir es más rápido, que es como funciona el cuerpo.
+   *
+   * Es un contador y no un dado diario a propósito: «llevas cinco días pasado de rosca» se puede
+   * ver venir y se puede evitar; un 6 % por día no se le explica a nadie.
+   */
+  strainDays?: number
+  /** Días seguidos tocado —molestias o enfermo—. Lo lee el rediseño táctico para la cuneta. */
+  illDays?: number
 }
 
 export interface RiderDayContext {
@@ -45,6 +61,8 @@ export interface RiderDayContext {
    * declive por edad. Opcional: sin él se comporta como antes, mirando solo lo de hoy.
    */
   trainedLast7?: ReadonlySet<Attribute>
+  /** Sesiones de gimnasio en los últimos catorce días: dos o más bajan la fragilidad un 5 %. */
+  gymSessionsLast14?: number
   rng: () => number
 }
 
@@ -163,12 +181,66 @@ export function simulateRiderDay(state: RiderDayState, ctx: RiderDayContext): Ri
   }
   let ill = health === 'enfermo' || health === 'lesionado'
 
+  /**
+   * LA TENSIÓN ACUMULADA, y las molestias que salen de ella (docs/entrenamiento.md §5.6).
+   *
+   * Hasta aquí `molestias` existía en el modelo —el Banister tenía su multiplicador de 0,96
+   * escrito— y **no lo producía nadie**: era un estado muerto. Con eso, la única forma de que
+   * entrenar mal costara algo era enfermar, y enfermar es un dado. Medido en el banco de política:
+   * machacarse en rojo todos los días durante quince temporadas enfermaba un 1 % más que entrenar
+   * bien. Ahora el sobreentrenamiento tiene su propia vía, visible y acumulativa.
+   */
+  const fragilidad = effectiveFragility(
+    ctx.fragility,
+    state.attributes.REC,
+    ctx.gymSessionsLast14 ?? 0,
+  )
+  let strainDays = state.strainDays ?? 0
+  strainDays =
+    tsb < HEALTH.strainTsb ? strainDays + 1 : Math.max(0, strainDays - HEALTH.strainRecovery)
+
+  if (health === 'sano' && strainDays >= HEALTH.strainToMolestias) health = 'molestias'
+  else if (health === 'molestias' && tsb > HEALTH.molestiasRecoveryTsb) health = 'sano'
+
   // Riesgo de enfermar si está sano (SPEC 4.3): el sobreentrenamiento duele por aquí.
   if (!ill) {
     // El riesgo lleva ya el precio de la intensidad: apretar el día que estás hundido cuesta más.
-    if (ctx.rng() < illnessProbability(ctx.fragility, tsb) * kRiesgo(ctx.choice.intensity)) {
+    if (ctx.rng() < illnessProbability(fragilidad, tsb) * kRiesgo(ctx.choice.intensity)) {
       health = 'enfermo'
       healthUntilDay = ctx.gameDay + uniformInt(ctx.rng, TRAINING.illDaysMin, TRAINING.illDaysMax)
+      ill = true
+    }
+  }
+
+  /**
+   * LESIÓN POR SOBRECARGA. A los seis días pasado de rosca el cuerpo se rompe, y esto no es un dado
+   * más: es el final de una cuenta que el jugador ha podido ver subir durante casi una semana.
+   */
+  if (!ill && strainDays >= HEALTH.strainToInjury) {
+    const p =
+      HEALTH.overuseBase *
+      fragilidad *
+      (ctx.choice.intensity === 'fuerte' ? HEALTH.overuseHardFactor : 1)
+    if (ctx.rng() < p) {
+      health = 'lesionado'
+      healthUntilDay =
+        ctx.gameDay + uniformInt(ctx.rng, HEALTH.overuseDaysMin, HEALTH.overuseDaysMax)
+      ill = true
+    }
+  }
+
+  /** Y LESIÓN POR SESIÓN: hay dos que se hacen con el cuerpo y no con el motor. */
+  if (!ill) {
+    const pSesion =
+      ctx.choice.session === 'bajada_paves'
+        ? HEALTH.sessionInjuryPaves * fragilidad * kRiesgo(ctx.choice.intensity)
+        : ctx.choice.session === 'gimnasio'
+          ? HEALTH.sessionInjuryGym * fragilidad
+          : 0
+    if (pSesion > 0 && ctx.rng() < pSesion) {
+      health = 'lesionado'
+      healthUntilDay =
+        ctx.gameDay + uniformInt(ctx.rng, HEALTH.sessionInjuryDaysMin, HEALTH.sessionInjuryDaysMax)
       ill = true
     }
   }
@@ -243,8 +315,19 @@ export function simulateRiderDay(state: RiderDayState, ctx: RiderDayContext): Ri
   const load = applyDailyLoad({ ctl: state.ctl, atl: state.atl }, tss, attributes.REC)
   const morale = regressMorale(state.morale)
 
+  const tocado = health === 'molestias' || health === 'enfermo'
   return {
-    state: { attributes, ctl: load.ctl, atl: load.atl, morale, health, healthUntilDay },
+    state: {
+      attributes,
+      ctl: load.ctl,
+      atl: load.atl,
+      morale,
+      health,
+      healthUntilDay,
+      strainDays,
+      // Días SEGUIDOS tocado: se reinicia en cuanto vuelve a estar sano.
+      illDays: tocado ? (state.illDays ?? 0) + 1 : 0,
+    },
     log: { tss, ctl: load.ctl, atl: load.atl, tsb: load.tsb, activity },
   }
 }

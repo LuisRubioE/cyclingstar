@@ -297,6 +297,12 @@ describe('engine: esqueleto', () => {
     // líder ataque en el desenlace es la carrera— y el castigo escala con la distancia real en la
     // general. El veto TIRA EL DADO igualmente, así que el flujo `rngTactics` no se corre y las
     // huellas de `attribution.test.ts` y `timetrial.test.ts` salen idénticas dígito a dígito: sus
+    // v58: el estado `molestias` deja de estar muerto. Existía en el modelo —el Banister tenía su
+    // multiplicador de 0,96 escrito— y NO LO PRODUCÍA NADIE, así que la única forma de que entrenar
+    // mal costara algo era enfermar, que es un dado. Medido: machacarse en rojo quince temporadas
+    // enfermaba un 1 % más que entrenar bien. Ahora hay un contador de días pasado de rosca que el
+    // jugador puede ver subir, molestias a los cuatro, lesión por sobrecarga a los seis, y la salud
+    // también se juega los días de CARRERA, que es donde se llega a −35 de depósito.
     // v57: lo que enseña la carrera, v2. Era `base · nivel · margen/30` y nada más: daba igual la
     // edad, el talento, lo que hiciste ese día y cómo acabaste. Y su comentario afirmaba que
     // `margen/30` «es el mismo kDim dicho de otra forma», que es falso y de orden distinto: uno es
@@ -333,6 +339,6 @@ describe('engine: esqueleto', () => {
     // v11 (atribución del trabajo), la v10 (composición y caza), la v9 (capa táctica), la
     // v8 (tiempos de grupo), la v7 (modelo de final), la v6 (telemetría), la v5 (clásica larga), la
     // v4 (pavé en el recorrido) y la v3 (Cambio 0).
-    expect(ENGINE_VERSION).toBe(57)
+    expect(ENGINE_VERSION).toBe(58)
   })
 })
