@@ -715,7 +715,7 @@
  * Campaña canónica de 500 corridas: **los 33 invariantes en verde**. La contrarreloj no se mueve ni
  * un dígito —es el ancla del esfuerzo individual y paga la ley lineal de siempre—.
  */
-export const ENGINE_VERSION = 53 as const
+export const ENGINE_VERSION = 54 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -1219,6 +1219,72 @@ export const TRAINING = {
   ageDecaySlope: 0.004,
   trainedDecayFactor: 0.4,
   desPavDecayFactor: 0.25,
+
+  /**
+   * EL RELOJ DE EDAD, POR CLASE DE ATRIBUTO (docs/entrenamiento.md §4.1).
+   *
+   * Sustituye a los cinco tramos únicos que tenía `kAge`, que daban el mismo reloj a un esprínter y
+   * a un rodador de la misma edad. Es la frase del dueño puesta en tabla: la contrarreloj «sube muy
+   * rápido cuando eres joven, menos rápido según creces; entre 24 y 27 muy poquito; a partir de los
+   * 27 se estancan», y la táctica «debería mejorar siempre».
+   *
+   * Los tramos son por EDAD EFECTIVA. Hoy la edad efectiva es la edad a secas; el desplazamiento por
+   * madurez —el que madura tarde corre su reloj más tarde— llega con la génesis v2 y se enchufa
+   * aquí sin tocar la tabla.
+   *
+   * El 0,10 del final NO es un cero, y es deliberado: «se estancan» no es «se mueren». Sirve para
+   * MITIGAR el declive de un veterano que sigue entrenando, no para que crezca.
+   *
+   * [calibrar con banco]: `curvaEdadNeuro`, `curvaEdadAerobica`, `curvaEdadTAC`, `vets34vs28`.
+   */
+  kAgeByClass: {
+    motor_rapido: {
+      hasta21: 1.25,
+      hasta24: 1.0,
+      hasta27: 0.45,
+      hasta30: 0.15,
+      hastaDeclive: 0.1,
+      despues: 0.1,
+    },
+    motor_lento: {
+      hasta21: 1.15,
+      hasta24: 1.05,
+      hasta27: 0.8,
+      hasta30: 0.4,
+      hastaDeclive: 0.15,
+      despues: 0.1,
+    },
+    oficio: {
+      hasta21: 1.0,
+      hasta24: 1.0,
+      hasta27: 1.0,
+      hasta30: 0.9,
+      hastaDeclive: 0.8,
+      despues: 0.6,
+    },
+  } as Record<
+    string,
+    {
+      hasta21: number
+      hasta24: number
+      hasta27: number
+      hasta30: number
+      hastaDeclive: number
+      despues: number
+    }
+  >,
+
+  /**
+   * CUÁNTO SE PIERDE AL DECAER, POR CLASE. La punta se va primero: un esprínter de 35 conserva el
+   * fondo y pierde el remate, y hasta ahora los dos se iban al mismo ritmo.
+   *
+   * `oficio` a 0,25 es lo que ya hacía `desPavDecayFactor` para DES y PAV; TAC no decae porque TAC
+   * no está entre los atributos que decaen, y eso no cambia.
+   */
+  decayClassFactor: { motor_rapido: 1.25, motor_lento: 1.0, oficio: 0.25 } as Record<
+    string,
+    number
+  >,
   // Enfermedad: días fuera (SPEC 4.3).
   illDaysMin: 2,
   illDaysMax: 6,

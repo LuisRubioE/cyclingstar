@@ -19,6 +19,36 @@ export const ATTRIBUTES = [
 export type Attribute = (typeof ATTRIBUTES)[number]
 
 /**
+ * LAS TRES CLASES DE ATRIBUTO: qué se aprende deprisa, qué se construye despacio y qué se aprende
+ * toda la vida (docs/epics.md «G1», docs/entrenamiento.md §2.1 y §4.1).
+ *
+ * Hasta aquí eran DOS —motor y oficio— y esa partición no podía representar lo que el dueño
+ * describió: «la contrarreloj sube muy rápido cuando eres joven, menos rápido según creces», que no
+ * es lo mismo que el fondo, que se construye hasta bien entrados los veinte. Con una sola clase de
+ * «motor» un esprínter de 29 y un rodador de 29 tenían el mismo reloj, y en la carretera no lo
+ * tienen.
+ *
+ * - **`motor_rapido`** — SPR, CRI, COL. Potencia y punta: sube muy deprisa de joven, muy poco entre
+ *   los 24 y los 27, y después se estanca. Es también lo primero que se va.
+ * - **`motor_lento`** — RES, REC, LLA, MON. Fondo y capacidad aeróbica: se construyen tarde y duran.
+ * - **`oficio`** — DES, PAV, TAC. Cabeza y manos: «Tactics debería mejorar siempre». Un veterano baja
+ *   de puerto y pasa el adoquín mejor que un neoprofesional, y eso no es una concesión: es lo que se
+ *   ve en la carretera.
+ *
+ * Son tres y no cuatro —REC podría ser clase propia— porque en todo lo que el banco mide REC dentro
+ * de `motor_lento` da lo mismo, y ahorra una fila en cada tabla. Si el banco enseña que REC debe
+ * declinar antes, es una fila más y no un rediseño.
+ *
+ * La tabla la consumen tres sitios que hasta ahora no se hablaban: el reloj de edad del
+ * entrenamiento, los techos de la generación de bots y lo que enseña la carrera. Un solo reloj de
+ * edad para la misma persona.
+ */
+export type AttributeClass = 'motor_rapido' | 'motor_lento' | 'oficio'
+
+/**
+ * (Documentación histórica de la partición en dos, que sigue explicando por qué DES y PAV van con
+ * la cabeza y no con el cuerpo.)
+ *
  * OFICIO CONTRA MOTOR: qué se puede seguir aprendiendo toda la vida y qué no (docs/epics.md «G1»).
  *
  * El dueño, cuando se le enseñó que un NPC de 24 años no podía mejorar jamás: «yo creo que quizás
@@ -44,18 +74,34 @@ export type Attribute = (typeof ATTRIBUTES)[number]
  * «motor» porque al final es cuerpo, y porque su ventana de crecimiento ya es la más larga por la
  * vía normal. Si algún día se quiere mover, se mueve aquí y en un solo sitio.
  */
-export const ATTRIBUTE_GROWTH: Record<Attribute, 'motor' | 'oficio'> = {
-  RES: 'motor',
-  REC: 'motor',
-  LLA: 'motor',
-  MON: 'motor',
-  COL: 'motor',
-  CRI: 'motor',
-  SPR: 'motor',
+export const ATTRIBUTE_CLASS: Record<Attribute, AttributeClass> = {
+  RES: 'motor_lento',
+  REC: 'motor_lento',
+  LLA: 'motor_lento',
+  MON: 'motor_lento',
+  COL: 'motor_rapido',
+  CRI: 'motor_rapido',
+  SPR: 'motor_rapido',
   DES: 'oficio',
   PAV: 'oficio',
   TAC: 'oficio',
 }
+
+/**
+ * LA CLASE VIEJA, DERIVADA DE LA NUEVA Y NO ESCRITA A MANO.
+ *
+ * `ATTRIBUTE_GROWTH` sigue viva porque la consume el camino legacy de la generación de bots
+ * (`NPC.ceilingBoost` se indexa por sus dos claves) y su prueba filtra por ellas. Lo que no puede
+ * pasar es que existan dos tablas independientes con la misma información: el día que alguien mueva
+ * un atributo de clase en una y no en la otra, el bot nacería con un techo de una clase y crecería
+ * con el reloj de otra, y no lo notaría nadie.
+ *
+ * Así que se DERIVA. Las dos velocidades del motor colapsan a «motor», que es exactamente lo que la
+ * tabla vieja sabía distinguir, y el día que el camino legacy se borre esto se va con él.
+ */
+export const ATTRIBUTE_GROWTH: Record<Attribute, 'motor' | 'oficio'> = Object.fromEntries(
+  ATTRIBUTES.map((a) => [a, ATTRIBUTE_CLASS[a] === 'oficio' ? 'oficio' : 'motor']),
+) as Record<Attribute, 'motor' | 'oficio'>
 
 /** Nombres legibles (en inglés, UI del MVP) de cada atributo. */
 export const ATTRIBUTE_LABELS: Record<Attribute, string> = {

@@ -297,6 +297,11 @@ describe('engine: esqueleto', () => {
     // líder ataque en el desenlace es la carrera— y el castigo escala con la distancia real en la
     // general. El veto TIRA EL DADO igualmente, así que el flujo `rngTactics` no se corre y las
     // huellas de `attribution.test.ts` y `timetrial.test.ts` salen idénticas dígito a dígito: sus
+    // v54: un solo reloj de edad, pero por CLASE de atributo. `kAge` daba el mismo número al esprint
+    // y al fondo del mismo corredor, y eso no podía representar «mejora en cosas diferentes». Tres
+    // clases: motor rápido (SPR, CRI, COL), motor lento (RES, REC, LLA, MON) y oficio (DES, PAV,
+    // TAC). El declive también va por clase —la punta se va primero— y la amortiguación por haber
+    // entrenado pasa de mirar HOY a mirar la SEMANA, que es lo que el SPEC decía.
     // v53: el humano nacía sin piernas. `createRider` no escribía `ctl`/`atl`, así que se quedaban
     // en el defecto de la columna (0) mientras todo NPC nace con 45 y `BANISTER.initialCtl` dice 45:
     // el jugador arrastraba un multiplicador de depósito de 0,90 en vez de 0,99 desde su primer día.
@@ -313,6 +318,6 @@ describe('engine: esqueleto', () => {
     // v11 (atribución del trabajo), la v10 (composición y caza), la v9 (capa táctica), la
     // v8 (tiempos de grupo), la v7 (modelo de final), la v6 (telemetría), la v5 (clásica larga), la
     // v4 (pavé en el recorrido) y la v3 (Cambio 0).
-    expect(ENGINE_VERSION).toBe(53)
+    expect(ENGINE_VERSION).toBe(54)
   })
 })

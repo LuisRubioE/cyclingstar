@@ -10523,3 +10523,55 @@ columna que esa clave nombra, que no se puede ejecutar en ese orden.
 La `0033` se deja con **solo su delta** y en el orden correcto, con el porqué escrito en la cabecera
 del propio fichero. El snapshot `0033` sí se guarda y está construido desde el esquema actual, así
 que **la próxima generación vuelve a ser correcta** y este arreglo no hay que repetirlo.
+
+---
+
+## v59 §3 — Un reloj de edad por clase, y la tercera vez que el mundo dice lo mismo
+
+`ENGINE_VERSION` **53 → 54**.
+
+`kAge` daba **un solo número para todo el corredor**, anclado a `peakAge`: el mismo reloj para su
+esprint y para su fondo. Eso no podía representar lo que el dueño describió —«un ciclista sí mejora
+después de los 24, pero mejora en cosas diferentes»— porque el reloj no sabía de qué atributo estaba
+hablando. Ahora hay tres clases:
+
+| Clase          | Atributos          |  ≤21 | 22-24 | 25-27 | 28-30 | 31…declive | después |
+| -------------- | ------------------ | ---: | ----: | ----: | ----: | ---------: | ------: |
+| `motor_rapido` | SPR, CRI, COL      | 1,25 |  1,00 |  0,45 |  0,15 |       0,10 |    0,10 |
+| `motor_lento`  | RES, REC, LLA, MON | 1,15 |  1,05 |  0,80 |  0,40 |       0,15 |    0,10 |
+| `oficio`       | DES, PAV, TAC      | 1,00 |  1,00 |  1,00 |  0,90 |       0,80 |    0,60 |
+
+El **declive** también pasa a ser por clase (la punta se va primero: 1,25 · 1,0 · 0,25), y la
+amortiguación por haber entrenado pasa de mirar **hoy** a mirar **la semana**, que es lo que el SPEC
+decía desde siempre: un veterano que trabaja un atributo tres veces por semana lo veía decaer entero
+los otros cuatro días. El dato ya estaba en `rider_attr_log` y no lo leía nadie.
+
+`ATTRIBUTE_GROWTH` sigue viva para el camino legacy, pero **derivada** de la nueva y no escrita a
+mano: dos tablas con la misma información acaban divergiendo, y el día que pasara, un bot nacería con
+el techo de una clase y crecería con el reloj de otra sin que lo notara nadie.
+
+### Lo que movió, que es poco, y por qué eso importa
+
+| Fila                   | antes (v53) | ahora (v54) |
+| ---------------------- | ----------: | ----------: |
+| WT con algún 5★ (t15)  |        82,4 |        81,4 |
+| cracks (t15)           |         5,3 |         4,2 |
+| gana RES / año (t15)   |        0,74 |        0,67 |
+| curva edad neuro 33-35 |       1,008 |       1,006 |
+
+Un cambio que en el tramo de 28 a 30 años lleva el motor rápido **de 0,95 a 0,15** —seis veces
+menos— mueve la población **un punto**. Y la curva de edad neuromuscular de los veteranos sigue
+valiendo **1,0**: un corredor de 34 años tiene el mismo esprint que uno de 28.
+
+La causa es la misma que ya salió dos veces: **el mundo está limitado por los techos, no por la
+velocidad de aprendizaje**. Con un margen medio del 6-8 %, `kDim` manda y `kAge` casi no tiene sobre
+qué actuar; y si todo el mundo está pegado a su techo, la edad no puede diferenciar a nadie.
+
+Es la **tercera confirmación independiente** —el brazo de `kDim`, la estimación del diseño y ahora
+el reloj— de que el paso que sostiene la banda del dueño es el **5**, la génesis. Los pasos de
+velocidad son correctos y hacen falta para que un veterano no sea un joven con más años; lo que no
+son es la palanca.
+
+Esto tiene una consecuencia práctica para el paso 12: **las bandas de `curvaEdad*` no se pueden
+sellar hasta después del paso 5**, porque hoy miden un mundo sin margen y darían el número
+equivocado.

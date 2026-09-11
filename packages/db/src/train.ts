@@ -8,7 +8,7 @@ import {
   seasonPosition,
   seededRng,
 } from '@cyclingstar/shared'
-import { and, eq } from 'drizzle-orm'
+import { and, eq, gte, inArray, lt } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import { ridersTravellingOutbound } from './riderSchedule.js'
 import {
@@ -30,6 +30,10 @@ import {
 // Edad de debut de un neoprofesional (SPEC 10 no fija la del creado por usuario). Envejece
 // un año por temporada.
 const DEBUT_AGE = 20
+
+/** La ventana de «esa semana» del SPEC: los siete días anteriores a hoy. */
+const TRAINED_WINDOW_DAYS = 7
+const VACIO: ReadonlySet<Attribute> = new Set()
 
 type Db = ReturnType<typeof drizzle>
 type Tx = Parameters<Parameters<Db['transaction']>[0]>[0]
@@ -147,6 +151,31 @@ export async function trainWorldDay(
     teamSessionCount.set(key, (teamSessionCount.get(key) ?? 0) + 1)
   }
 
+  /**
+   * QUÉ MOVIÓ CADA UNO EN LOS ÚLTIMOS SIETE DÍAS, entrenando o corriendo.
+   *
+   * Amortigua el declive por edad: el SPEC dice «lo que se entrenó esa semana» y el motor miraba
+   * solo el día de hoy, así que un veterano que trabaja un atributo tres veces por semana lo veía
+   * decaer entero los otros cuatro días. `rider_attr_log` ya tenía el dato y nadie lo leía.
+   *
+   * Una sola consulta para todo el mundo y no una por corredor: son 442 corredores por día.
+   */
+  const movidoReciente = new Map<string, Set<Attribute>>()
+  for (const fila of await tx
+    .select({ riderId: riderAttrLog.riderId, attr: riderAttrLog.attr })
+    .from(riderAttrLog)
+    .where(
+      and(
+        gte(riderAttrLog.gameDay, gameDay - TRAINED_WINDOW_DAYS),
+        lt(riderAttrLog.gameDay, gameDay),
+        inArray(riderAttrLog.source, ['entrenamiento', 'carrera']),
+      ),
+    )) {
+    const set = movidoReciente.get(fila.riderId) ?? new Set<Attribute>()
+    set.add(fila.attr)
+    movidoReciente.set(fila.riderId, set)
+  }
+
   // Los logs se acumulan y se insertan en lote al final.
   const dailyLogValues: (typeof riderDailyLog.$inferInsert)[] = []
   const attrLogValues: (typeof riderAttrLog.$inferInsert)[] = []
@@ -189,6 +218,7 @@ export async function trainWorldDay(
       kInst: 1,
       kStaff: 1,
       kGroup,
+      trainedLast7: movidoReciente.get(rider.id) ?? VACIO,
       rng: seededRng(`${worldSeed}:${rider.id}:${gameDay}`),
     })
 

@@ -72,6 +72,13 @@ interface WorldRider {
   /** En qué temporada entró: separa a los que crecieron aquí de los del reparto inicial. */
   debutSeason: number
   /**
+   * QUÉ MOVIÓ Y EN QUÉ DÍA, para amortiguar el declive de la semana (`trainedLast7`). En producción
+   * esto sale de `rider_attr_log`; aquí el banco lleva su propio registro en memoria, porque si lo
+   * aproximara con «lo de hoy» estaría midiendo un declive distinto del que corre el juego, y esa
+   * asimetría entre banco y producción es justo lo que este rediseño se prohíbe.
+   */
+  movidoElDia: Map<Attribute, number>
+  /**
    * LO QUE PASA DENTRO DE LA TEMPORADA, que una foto de diciembre no puede contar.
    *
    * `margenAlTechoPct` y compañía se leen del estado final y con eso basta. Pero «cuánto se aprende
@@ -257,9 +264,23 @@ function nace(seed: string, division: Division, age: number, debutSeason: number
     health: 'sano',
     healthUntilDay: null,
     debutSeason,
+    movidoElDia: new Map(),
     temporada: nuevaTemporada(g.attributes),
   }
 }
+
+/** Los atributos que se movieron en los últimos siete días, y limpieza de lo viejo de paso. */
+function movidosEnLaSemana(r: WorldRider, gameDay: number): ReadonlySet<Attribute> {
+  const out = new Set<Attribute>()
+  for (const [attr, dia] of r.movidoElDia) {
+    if (gameDay - dia <= TRAINED_WINDOW_DAYS && dia < gameDay) out.add(attr)
+    else if (gameDay - dia > TRAINED_WINDOW_DAYS) r.movidoElDia.delete(attr)
+  }
+  return out
+}
+
+/** La ventana de «esa semana» del SPEC, igual que en producción. */
+const TRAINED_WINDOW_DAYS = 7
 
 /** Los acumuladores del año, a cero. La carta, RES y TAC se guardan como estaban al empezar. */
 function nuevaTemporada(attrs: Record<Attribute, number>): WorldRider['temporada'] {
@@ -698,6 +719,8 @@ export function runWorld(
             // Lo que de VERDAD entró, no lo que la fórmula ofrecía: al que ya está en su techo la
             // carrera no le enseña nada, y contar la oferta en vez del cobro taparía justo eso.
             r.temporada.aprendidoEnCarrera += r.attributes[a] - antes
+            if (r.attributes[a] !== antes)
+              r.movidoElDia.set(a, dia + (season - 1) * DAYS_PER_SEASON)
           }
           r.temporada.diasDeCarrera += 1
           const carga = applyDailyLoad({ ctl: r.ctl, atl: r.atl }, hoy.tss, r.attributes.REC)
@@ -752,9 +775,13 @@ export function runWorld(
             choice,
             kInst: 1,
             kStaff: 1,
+            trainedLast7: movidosEnLaSemana(r, gameDay),
             rng: seededRng(`${worldSeed}:${r.riderId}:${gameDay}`),
           },
         )
+        for (const a of ATTRIBUTES) {
+          if (out.state.attributes[a] > r.attributes[a]) r.movidoElDia.set(a, gameDay)
+        }
         r.attributes = out.state.attributes
         r.ctl = out.state.ctl
         r.atl = out.state.atl
@@ -859,6 +886,7 @@ export function arcoHumano(worldSeed: string): ArcoHumanoStats {
       health: 'sano',
       healthUntilDay: null,
       debutSeason: 0,
+      movidoElDia: new Map(),
       temporada: nuevaTemporada(g.attributes),
     }
     const hito = new Map<number, number>()

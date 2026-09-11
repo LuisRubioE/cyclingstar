@@ -1,4 +1,5 @@
 import {
+  ATTRIBUTE_CLASS,
   ATTRIBUTES,
   type Attribute,
   type HealthState,
@@ -39,6 +40,11 @@ export interface RiderDayContext {
   kStaff: number
   /** Multiplicador por entrenar en grupo con compañeros (1 = solo/sin bonus). */
   kGroup?: number
+  /**
+   * Atributos que este corredor movió —entrenando o corriendo— en los últimos 7 días. Amortiguan su
+   * declive por edad. Opcional: sin él se comporta como antes, mirando solo lo de hoy.
+   */
+  trainedLast7?: ReadonlySet<Attribute>
   rng: () => number
 }
 
@@ -67,12 +73,26 @@ function kIntensity(intensity: TrainingChoice['intensity']): number {
   return TRAINING.kIntNormal
 }
 
-function kAge(age: number, peakAge: number, declineAge: number): number {
-  if (age <= peakAge - 6) return 1.15
-  if (age <= peakAge - 2) return 1.05
-  if (age <= peakAge + 1) return 0.95
-  if (age <= declineAge) return 0.75
-  return 0.4
+/**
+ * EL RELOJ DE EDAD, AHORA POR CLASE DE ATRIBUTO (docs/entrenamiento.md §4.1).
+ *
+ * Antes era un solo tramo para todo el corredor, anclado a `peakAge`: el mismo número para el
+ * esprint y para el fondo. Eso no podía representar lo que el dueño describió —«un ciclista sí
+ * mejora después de los 24, pero mejora en cosas diferentes»— porque el reloj no sabía de qué
+ * atributo estaba hablando.
+ *
+ * `peakAge` deja de entrar en la cuenta y no es un descuido: los tramos son absolutos y el que
+ * marca el final es `declineAge`, que es el que de verdad varía de un corredor a otro. `peakAge`
+ * sigue usándose en el resto del motor.
+ */
+export function kAge(attr: Attribute, age: number, declineAge: number): number {
+  const t = TRAINING.kAgeByClass[ATTRIBUTE_CLASS[attr]]!
+  if (age <= 21) return t.hasta21
+  if (age <= 24) return t.hasta24
+  if (age <= 27) return t.hasta27
+  if (age <= 30) return t.hasta30
+  if (age <= declineAge) return t.hastaDeclive
+  return t.despues
 }
 
 /**
@@ -130,7 +150,6 @@ export function simulateRiderDay(state: RiderDayState, ctx: RiderDayContext): Ri
     const kReady = tsb < TRAINING.kReadyTsbThreshold ? TRAINING.kReadyLow : 1
     const kInt = kIntensity(ctx.choice.intensity)
     const kTal = kTalent(ctx.talent)
-    const kAg = kAge(ctx.age, ctx.peakAge, ctx.declineAge)
     for (const attr of ATTRIBUTES) {
       const gain = info.gains[attr]
       if (gain === undefined) continue
@@ -139,7 +158,7 @@ export function simulateRiderDay(state: RiderDayState, ctx: RiderDayContext): Ri
       const delta =
         gain *
         kTal *
-        kAg *
+        kAge(attr, ctx.age, ctx.declineAge) *
         kDim(attributes[attr], ceiling) *
         ctx.kInst *
         ctx.kStaff *
@@ -163,9 +182,21 @@ export function simulateRiderDay(state: RiderDayState, ctx: RiderDayContext): Ri
     let loss = 0
     if (detraining) loss += TRAINING.detrainingLoss
     if (ageDecay > 0) {
-      let ageLoss = ageDecay
-      if (attr === 'DES' || attr === 'PAV') ageLoss *= TRAINING.desPavDecayFactor
-      if (trainedToday.has(attr)) ageLoss *= TRAINING.trainedDecayFactor
+      /**
+       * EL DECLIVE TAMBIÉN ES POR CLASE: la punta se va antes que el fondo. Hasta aquí solo DES y
+       * PAV tenían trato aparte; ahora un esprínter de 35 pierde su remate más deprisa de lo que
+       * pierde su fondo, que es lo que hace que un veterano siga siendo útil en algo.
+       */
+      let ageLoss = ageDecay * (TRAINING.decayClassFactor[ATTRIBUTE_CLASS[attr]] ?? 1)
+      /**
+       * …Y LA SEMANA, NO EL DÍA. El SPEC dice «lo que se entrenó esa semana» y esto miraba solo hoy:
+       * un veterano que trabaja un atributo tres veces por semana lo veía decaer entero los otros
+       * cuatro días. `trainedLast7` lo trae ya calculado —de la bitácora en producción, del registro
+       * en memoria en el banco— y cubre tanto lo entrenado como lo aprendido corriendo.
+       */
+      if (trainedToday.has(attr) || ctx.trainedLast7?.has(attr) === true) {
+        ageLoss *= TRAINING.trainedDecayFactor
+      }
       loss += ageLoss
     }
     if (loss > 0) attributes[attr] = Math.max(1, attributes[attr] - loss)
