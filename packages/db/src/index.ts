@@ -240,3 +240,4 @@ export {
   type StageOrderRow,
   type StageRole,
 } from './raceOrders.js'
+export { backfillArchetypes, type BackfillResult } from './scripts/backfillArchetypes.js'

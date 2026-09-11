@@ -10638,3 +10638,89 @@ dicen en vez de redondearse:
 - Que `buena` no gane es esperable y no es el veredicto final: la `buena` de este brazo es una
   aproximación escrita a mano para tener contra qué medir, no el entrenador v2. El entrenador de
   verdad —con bloques, razón y objetivo— es el **paso 8**, y la comparación que cuenta es ésa.
+
+---
+
+## v59 §5 — La génesis v2: la banda del dueño se cumple, y por primera vez en régimen
+
+`ENGINE_VERSION` **55 → 56**. Migración `0035` (tres valores nuevos en el enum de arquetipo).
+
+Es el paso que sostiene la banda, y los tres pasos anteriores lo habían señalado cada uno por su
+cuenta: frenar el aprendizaje solo retrasa la llegada al techo, **no baja el techo**.
+
+### El cambio de fondo, en una frase
+
+Antes se sorteaba el **atributo** y se le añadía un margen hacia arriba. Ahora se sortea **hasta
+dónde puede llegar** un corredor —su techo, genético y absoluto— y la edad decide qué parte de eso ha
+realizado. La consecuencia es la que hacía falta: **la distribución de techos del mundo es la misma
+en la temporada 1 que en la 25**, porque ya no depende de lo que nadie haya entrenado.
+
+Con eso entran los ocho arquetipos (las cinco vocaciones más puncheur, rodador y gregario) con
+cuotas de pelotón real —un cuarto de gregarios, 5 % de cronistas en vez del 20 % que salía de
+repartir cinco vocaciones a partes iguales—, los offsets de techo por arquetipo (el velocista con
+montaña a −34 y el escalador con esprint a −30, que es lo que hace que en una reina el velocista se
+descuelgue de verdad), el presupuesto de dispersión y el `C − 2` que garantiza que nadie nazca en su
+techo.
+
+### La banda
+
+| Fila                     |          v55 (hoy) |    v56 (génesis v2) | Banda        |
+| ------------------------ | -----------------: | ------------------: | ------------ |
+| **WT con algún 5★, t15** |           **82,4** |             **8,7** | ≤ 15 [dueño] |
+| …t1 / t5 / t25           | 21,6 / 40,6 / 76,1 | **7,2 / 9,2 / 7,7** |              |
+| cracks (3+ de 5★), t15   |                5,3 |                 0,3 | ≤ 6          |
+| congelados jóvenes       |               0,00 |                0,00 | = 0          |
+
+**Se cumple, y lo que más importa es que se cumple IGUAL en las cuatro temporadas.** Eso es lo que no
+podía pasar antes: el número nacía bien (11,3 % al nacer en la v58) y los años lo deshacían. Ahora no
+hay nada que deshacer.
+
+Medido aparte sobre 4.000 bots recién generados: **4,78 %** con algún cinco estrellas, **5,80 %**
+entre los maduros de 26 a 31 (el criterio del paso pedía entre 4 y 12), 0,33 % de cracks, y **cero**
+corredores nacidos con un físico en su techo. Las distancias entre divisiones se conservan: media de
+atributos a los 28 de **61,6 / 52,1 / 44,5**, o sea 9,5 y 7,6 puntos, contra los 10 y 8 que el dueño
+pidió no estrechar.
+
+### Un fallo del diseño que la medida cazó
+
+El paso trae un criterio propio: «la carta a los 19 es ≤ 0,80 de la carta a los 27 en `motor_lento` y
+≤ 0,85 en `motor_rapido`». El diseño lo dedujo de su tabla de madurez (0,78/0,94 = 0,830), pero **la
+misma sección introduce el `C − 2`** que garantiza margen, y ese tope muerde mucho más a los 27 —donde
+el atributo ya está cerca del techo— que a los 19. Eso baja el denominador y sube la razón: medido,
+**0,856**, por encima de su propio listón. El mismo efecto aparece en `motor_lento` (0,753 teórico →
+0,787 medido), o sea +0,03 en las dos clases: no es ruido, es la interacción de dos reglas que el
+diseño escribió en dos sitios y no compuso.
+
+Corregido donde estaba la causa: la columna de los 19 de `motor_rapido` pasa de 0,78 a **0,76**, y la
+razón medida cae a **0,837**.
+
+### Una banda que se mueve, y va declarada
+
+`sinNadaSobre4Pct` —los que no pasan de cuatro estrellas en nada, mundo entero— pasa de 7,2 % a
+**53,5 %**, y el guardarraíl del banco estaba en ≤ 40. No se ablanda el número: **se cambia de sitio**,
+y ésta es la razón.
+
+Cuatro estrellas son 67 puntos en una escala mundial. Un continental de tercera fila de un equipo
+continental —cuyo nivel medio es 57— no tiene por qué ser «muy bueno a escala mundial» en nada;
+exigirlo era exigir que no existieran corredores modestos, y el 7,2 % de antes era la medida de un
+mundo inflado, no una virtud.
+
+Así que el listón se lee sobre **quien aspira a algo**, que es como el diseño ya lo había planteado:
+
+| Fila                              | v56 t15 | Banda nueva                             |
+| --------------------------------- | ------: | --------------------------------------- |
+| `sinNadaSobre4WTPct`              |    21,7 | ≤ 30                                    |
+| `sinNadaSobre4NoGregariosWTPct`   |    11,8 | ≤ 20 — **la alarma de G1**              |
+| `sinNadaSobre4Pct` (mundo entero) |    53,5 | **sin banda**: se publica, no se vigila |
+
+**Y queda una decisión abierta para el dueño**, que el diseño marca como suya y no se toma aquí: con
+la tabla de offsets tal cual, el gregario del WorldTour llega a cuatro estrellas en algo alrededor
+del 53 % de las veces, y como son el 26 % del pelotón eso hace estructural que un cuarto del mundo no
+pase de 4★. Las dos palancas baratas están escritas —subir el mejor offset del gregario (RES −4 → −2,
+que lo lleva al 60 %) o bajar su cuota— y la recomendación del diseño es **RES −2**. No se aplica sin
+su respuesta.
+
+### Lo que cuesta
+
+Los cuatro bancos de carrera generan su campo con este mismo generador, así que **todos cambian de
+campo**. Las bandas que eso mueve van en el apartado siguiente, medidas y no supuestas.

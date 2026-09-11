@@ -162,12 +162,19 @@ export const tickLog = pgTable(
 
 // ---- El ciclista (SPEC 3 y 11), Paso 15 ----
 
+/**
+ * Los OCHO arquetipos. Se AMPLÍA, nunca se recrea: Postgres no borra valores de un enum sin
+ * recrear el tipo, y hay código que compara estos literales en duro.
+ */
 export const archetypeEnum = pgEnum('rider_archetype', [
   'escalada',
   'velocidad',
   'clasicas',
   'crono',
   'fondo',
+  'puncheur',
+  'rodador',
+  'gregario',
 ])
 export const genderEnum = pgEnum('gender', ['M', 'F'])
 export const healthEnum = pgEnum('rider_health', ['sano', 'molestias', 'enfermo', 'lesionado'])

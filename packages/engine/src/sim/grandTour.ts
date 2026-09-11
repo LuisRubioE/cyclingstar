@@ -176,11 +176,12 @@ function buildField(worldSeed: string): TourRider[] {
     for (let k = 0; k < RIDERS_PER_TEAM; k++) {
       const riderId = `gt-${t}-${k}`
       const vocation = VOCATIONS[Math.floor(rng() * VOCATIONS.length)]!
-      const age = sampleNpcAge(`${worldSeed}:${riderId}:age`)
+      const age = sampleNpcAge(`${worldSeed}:${riderId}:age`, { v2: true })
       const genome = generateNpcRider(`${worldSeed}:${riderId}`, {
         division: t < WORLD_TOUR_TEAMS ? 'WT' : 'PRS',
         vocation,
         age,
+        v2: true,
       })
       field.push({
         riderId,

@@ -1,4 +1,4 @@
-import type { Attribute, Vocation } from './rider.js'
+import type { Attribute, RiderArchetype } from './rider.js'
 
 /**
  * Catálogo de sesiones de entrenamiento (SPEC 5.1) y plan por defecto del entrenador.
@@ -163,13 +163,18 @@ export interface TrainingChoice {
  * velocista que a un escalador: es lo que hacía, y el resultado era que un velocista no entrenaba
  * el sprint en toda su carrera.
  */
-const VOCATION_SESSION: Record<Vocation, Session> = {
+const VOCATION_SESSION: Record<RiderArchetype, Session> = {
   velocidad: 'sprint',
   crono: 'crono',
   escalada: 'puertos',
   clasicas: 'bajada_paves',
   // El completo no tiene una carta que afilar, así que insiste en lo que sostiene todo lo demás.
   fondo: 'umbral',
+  // Los tres nuevos, cada uno con lo suyo: el puncheur afila los muros, el rodador el llano, y el
+  // gregario lo que de verdad le da de comer, que es aguantar y recuperar.
+  puncheur: 'muros',
+  rodador: 'umbral',
+  gregario: 'fondo',
 }
 
 /**
@@ -216,7 +221,7 @@ const DEFAULT_CYCLE: readonly (TrainingChoice | 'vocacion')[] = [
  * `vocation` es opcional para no romper a quien no la tenga a mano —la web lo usa como respaldo del
  * planificador del jugador—, y sin ella se entrena como un corredor completo.
  */
-export function defaultCoachPlan(gameDay: number, vocation?: Vocation): TrainingChoice {
+export function defaultCoachPlan(gameDay: number, vocation?: RiderArchetype): TrainingChoice {
   const n = DEFAULT_CYCLE.length
   const index = ((gameDay % n) + n) % n
   const slot = DEFAULT_CYCLE[index] ?? {

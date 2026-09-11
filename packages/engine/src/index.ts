@@ -99,6 +99,7 @@ export {
 } from './routes/uci.js'
 export {
   generateNpcRider,
+  sampleArchetype,
   sampleNpcAge,
   type Division,
   type NpcGenome,

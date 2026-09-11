@@ -30,19 +30,21 @@ describe('shared: stars (SPEC 3.2)', () => {
     expect(stars(46)).toBe(2.5) // round(4.6)=5 -> 2.5
   })
 
-  it('attrStars: estrellas enteras por bandas (0-16→0 … 84-100→5)', () => {
-    expect(attrStars(16)).toBe(0)
-    expect(attrStars(17)).toBe(1)
-    expect(attrStars(33)).toBe(1)
-    expect(attrStars(34)).toBe(2)
-    expect(attrStars(50)).toBe(2)
-    expect(attrStars(51)).toBe(3)
-    expect(attrStars(66)).toBe(3)
-    expect(attrStars(67)).toBe(4)
-    expect(attrStars(83)).toBe(4)
-    expect(attrStars(84)).toBe(5)
-    expect(attrStars(94)).toBe(5) // ahora 94 = 5 estrellas, como querías
-    expect(attrStars(100)).toBe(5)
+  it('attrStarsWhole: estrellas enteras por bandas (0-16→0 … 84-100→5)', () => {
+    // Las doce aserciones heredadas viven ahora en `attrStarsWhole`, que es la escala con la que se
+    // cuenta el mundo. `attrStars` pasó a tener medias porque es la que ve el jugador.
+    expect(attrStarsWhole(16)).toBe(0)
+    expect(attrStarsWhole(17)).toBe(1)
+    expect(attrStarsWhole(33)).toBe(1)
+    expect(attrStarsWhole(34)).toBe(2)
+    expect(attrStarsWhole(50)).toBe(2)
+    expect(attrStarsWhole(51)).toBe(3)
+    expect(attrStarsWhole(66)).toBe(3)
+    expect(attrStarsWhole(67)).toBe(4)
+    expect(attrStarsWhole(83)).toBe(4)
+    expect(attrStarsWhole(84)).toBe(5)
+    expect(attrStarsWhole(94)).toBe(5) // ahora 94 = 5 estrellas, como querías
+    expect(attrStarsWhole(100)).toBe(5)
   })
 })
 
@@ -66,8 +68,14 @@ const plano = (v: number, sobre: Partial<Record<Attribute, number>> = {}) =>
   Object.fromEntries(ATTRIBUTES.map((a) => [a, sobre[a] ?? v])) as Record<Attribute, number>
 
 describe('shared: arquetipo derivado de los atributos', () => {
-  it('`attrStarsWhole` es exactamente `attrStars`, valor a valor', () => {
-    for (let x = 0; x <= 100; x++) expect(attrStarsWhole(x)).toBe(attrStars(x))
+  it('la escala fina nunca contradice a la gruesa', () => {
+    // `attrStars` tiene medias y `attrStarsWhole` no, pero la media cae SIEMPRE dentro de su banda
+    // entera. Si esto se rompiera, la ficha del jugador y el recuento del mundo dirían cosas
+    // distintas del mismo corredor, que es exactamente lo que separar las dos funciones evita.
+    for (let x = 0; x <= 100; x++) expect(Math.floor(attrStars(x))).toBe(attrStarsWhole(x))
+    // Y la media estrella existe de verdad: a mitad de banda sube medio punto.
+    expect(attrStars(76)).toBe(4.5)
+    expect(attrStarsWhole(76)).toBe(4)
   })
 
   it('son ocho y ninguno se repite', () => {

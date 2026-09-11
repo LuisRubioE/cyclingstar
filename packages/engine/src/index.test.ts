@@ -297,6 +297,11 @@ describe('engine: esqueleto', () => {
     // líder ataque en el desenlace es la carrera— y el castigo escala con la distancia real en la
     // general. El veto TIRA EL DADO igualmente, así que el flujo `rngTactics` no se corre y las
     // huellas de `attribution.test.ts` y `timetrial.test.ts` salen idénticas dígito a dígito: sus
+    // v56: la génesis v2. Antes se sorteaba el ATRIBUTO y se le añadía margen, así que la
+    // distribución de techos del mundo dependía de lo que cada uno hubiera entrenado ya y en la
+    // temporada 25 no se parecía a la de la 1. Ahora se sortea el TECHO —genético, absoluto— y la
+    // edad decide qué parte está realizada. Ocho arquetipos con cuotas de pelotón real, offsets de
+    // techo por arquetipo, presupuesto de dispersión, y nadie nace en su techo.
     // v55: la intensidad deja de ser gratis. `fuerte` daba ×1,25 de ganancia con el TSS como único
     // coste, así que mientras el depósito aguantase dominaba siempre y no había decisión que tomar.
     // Ahora 1,12 de ganancia contra 1,3 de riesgo. La frescura pasa de escalón a rampa (a −29 se
@@ -323,6 +328,6 @@ describe('engine: esqueleto', () => {
     // v11 (atribución del trabajo), la v10 (composición y caza), la v9 (capa táctica), la
     // v8 (tiempos de grupo), la v7 (modelo de final), la v6 (telemetría), la v5 (clásica larga), la
     // v4 (pavé en el recorrido) y la v3 (Cambio 0).
-    expect(ENGINE_VERSION).toBe(55)
+    expect(ENGINE_VERSION).toBe(56)
   })
 })

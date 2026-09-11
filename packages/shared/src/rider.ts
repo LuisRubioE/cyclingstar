@@ -169,7 +169,8 @@ export interface PublicRider {
   name: string
   country: string
   gender: Gender
-  archetype: Vocation
+  /** Ocho desde la génesis v2: las cinco vocaciones más puncheur, rodador y gregario. */
+  archetype: RiderArchetype
   birthSeason: number
   attributes: Record<Attribute, number>
 }
@@ -183,10 +184,11 @@ export function stars(x: number): number {
 }
 
 /**
- * Estrellas ENTERAS de un atributo (0..5). Como en la realidad no ves el número: un flojo sale
- * vacío, un especialista llena las 5. Bandas: 0-16→0, 17-33→1, 34-50→2, 51-66→3, 67-83→4, 84-100→5.
+ * Estrellas ENTERAS de un atributo (0..5). Bandas: 0-16→0, 17-33→1, 34-50→2, 51-66→3, 67-83→4,
+ * 84-100→5. Es la escala con la que se cuenta el mundo: «cinco estrellas» son 84 o más, y ése es el
+ * listón del que habla el dueño.
  */
-export function attrStars(x: number): number {
+export function attrStarsWhole(x: number): number {
   if (x < 17) return 0
   if (x < 34) return 1
   if (x < 51) return 2
@@ -196,20 +198,158 @@ export function attrStars(x: number): number {
 }
 
 /**
- * ESTRELLAS ENTERAS, CON SU NOMBRE DEFINITIVO. Alias exacto de `attrStars`: mismos cortes, mismo
- * resultado, cero conducta nueva.
+ * …Y LAS MEDIAS, QUE SON LAS QUE VE EL JUGADOR (docs/entrenamiento.md §2.3).
  *
- * Existe porque el rediseño de entrenamiento introduce MEDIAS estrellas en la ficha del jugador
- * (`formStarsScale`), y a partir de ahí «estrellas de un atributo» pasa a ser ambiguo: el banco de
- * mundo cuenta atributos de cinco estrellas ENTERAS —el listón de 84 del dueño— y la pantalla
- * enseñará mitades. Dos cosas distintas con el mismo nombre acaban mezcladas, y cuando se mezclan
- * el `cincoEstrellasWTPct` que vigila la banda del dueño deja de significar lo que dice.
+ * Seis escalones enteros para diez atributos y un rango de 99 puntos es demasiado grueso: dos
+ * corredores separados por dieciséis puntos —la diferencia entre un gregario y un líder— pueden
+ * enseñar exactamente las mismas cuatro estrellas, y la ficha deja de informar. Con medias hay once
+ * escalones y la silueta de dos arquetipos vecinos se distingue.
  *
- * Se añade AHORA, en el paso que solo mide, para que las medias estrellas lleguen a un sitio donde
- * el nombre ya está ocupado por quien debe. `attrStars` se conserva mientras haya llamadas vivas.
+ * La media estrella cae en la mitad de cada banda entera, así que `attrStarsWhole(x) ==
+ * Math.floor(attrStars(x))` para todo x: la escala fina NUNCA contradice a la gruesa, solo la parte.
  */
-export function attrStarsWhole(x: number): number {
-  return attrStars(x)
+export function attrStars(x: number): number {
+  const entero = attrStarsWhole(x)
+  if (entero === 0) return x < 9 ? 0 : 0.5
+  if (entero === 5) return 5
+  // Los cortes enteros son 17, 34, 51, 67, 84: el medio de cada banda es su punto de partida + 8.
+  const inicios = [0, 17, 34, 51, 67]
+  const siguiente = [17, 34, 51, 67, 84]
+  const mitad = (inicios[entero]! + siguiente[entero]!) / 2
+  return x >= mitad ? entero + 0.5 : entero
+}
+
+/**
+ * LOS OCHO ARQUETIPOS, CON SU ETIQUETA Y SU CARTA (docs/entrenamiento.md §3.1).
+ *
+ * Las cinco vocaciones de siempre más tres que el pelotón tenía y el juego no sabía nombrar: el
+ * puncheur de los muros, el rodador de las fugas y los abanicos, y el gregario. `fondo` se queda
+ * como todoterreno.
+ */
+export const ARCHETYPE_LABELS: Record<RiderArchetype, string> = {
+  escalada: 'Climber',
+  velocidad: 'Sprinter',
+  puncheur: 'Puncheur',
+  clasicas: 'Classics rider',
+  crono: 'Time trialist',
+  rodador: 'Rouleur',
+  fondo: 'All-rounder',
+  gregario: 'Domestique',
+}
+
+/**
+ * LOS OFFSETS DE TECHO POR ARQUETIPO (docs/entrenamiento.md §3.1).
+ *
+ * En la génesis v2 el offset se aplica al **techo** y no al atributo: `C[a] = L + offset[a]·pureza +
+ * ruido`, donde `L` es el nivel del corredor. Un 0 quiere decir «ésta es su carta y puede llegar a
+ * su nivel entero»; un −34 quiere decir «esto no lo va a tener nunca».
+ *
+ * Por qué así y no el −22 uniforme de hoy: el velocista con MON a −34 y el escalador con SPR a −30
+ * son lo que hace que en una reina el velocista se descuelgue de verdad y en un esprint el escalador
+ * no exista. Con el −22 plano, un velocista del WorldTour tiene montaña 49 y sube como un
+ * continental medio, que es la razón de que hoy no haya especialistas puros a partir de la quinta
+ * temporada.
+ *
+ * TAC deja de ser «siempre −22»: el gregario y el rodador nacen con oficio, porque el oficio es
+ * justamente lo suyo.
+ */
+export const ARCHETYPE_CEILING_OFFSETS: Record<RiderArchetype, Record<Attribute, number>> = {
+  escalada: {
+    RES: -6,
+    REC: -10,
+    LLA: -18,
+    MON: 0,
+    COL: -8,
+    CRI: -16,
+    SPR: -30,
+    DES: -12,
+    PAV: -26,
+    TAC: -22,
+  },
+  velocidad: {
+    RES: -18,
+    REC: -12,
+    LLA: -4,
+    MON: -34,
+    COL: -20,
+    CRI: -20,
+    SPR: 0,
+    DES: -16,
+    PAV: -16,
+    TAC: -18,
+  },
+  puncheur: {
+    RES: -10,
+    REC: -12,
+    LLA: -10,
+    MON: -14,
+    COL: 0,
+    CRI: -16,
+    SPR: -10,
+    DES: -12,
+    PAV: -16,
+    TAC: -18,
+  },
+  clasicas: {
+    RES: -8,
+    REC: -10,
+    LLA: -4,
+    MON: -22,
+    COL: -8,
+    CRI: -14,
+    SPR: -12,
+    DES: -10,
+    PAV: 0,
+    TAC: -16,
+  },
+  crono: {
+    RES: -8,
+    REC: -12,
+    LLA: -4,
+    MON: -16,
+    COL: -18,
+    CRI: 0,
+    SPR: -22,
+    DES: -14,
+    PAV: -16,
+    TAC: -20,
+  },
+  rodador: {
+    RES: -8,
+    REC: -8,
+    LLA: 0,
+    MON: -22,
+    COL: -16,
+    CRI: -10,
+    SPR: -16,
+    DES: -12,
+    PAV: -10,
+    TAC: -14,
+  },
+  fondo: {
+    RES: -4,
+    REC: -8,
+    LLA: -6,
+    MON: -6,
+    COL: -6,
+    CRI: -8,
+    SPR: -16,
+    DES: -10,
+    PAV: -14,
+    TAC: -16,
+  },
+  gregario: {
+    RES: -4,
+    REC: -6,
+    LLA: -10,
+    MON: -14,
+    COL: -16,
+    CRI: -18,
+    SPR: -18,
+    DES: -12,
+    PAV: -14,
+    TAC: -8,
+  },
 }
 
 /**

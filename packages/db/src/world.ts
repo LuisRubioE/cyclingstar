@@ -5,15 +5,10 @@ import {
   MORALE,
   type NpcGenome,
   generateNpcRider,
+  sampleArchetype,
   sampleNpcAge,
 } from '@cyclingstar/engine'
-import {
-  ATTRIBUTES,
-  type Attribute,
-  VOCATIONS,
-  type Vocation,
-  seededRng,
-} from '@cyclingstar/shared'
+import { ATTRIBUTES, type Attribute, type RiderArchetype, seededRng } from '@cyclingstar/shared'
 import { eq, inArray, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import { BATCH_ROWS, type BatchValue, inChunks, valuesList } from './batch.js'
@@ -333,7 +328,7 @@ export interface RiderPlan {
   name: string
   country: string
   gender: 'M'
-  archetype: Vocation
+  archetype: RiderArchetype
   birthSeason: number
   attributes: Record<Attribute, number>
   hidden: NpcGenome['hidden']
@@ -354,13 +349,25 @@ function buildRider(
 ): RiderPlan {
   const seed = `${worldSeed}:rider:${index}`
   const rng = seededRng(`${seed}:meta`)
-  const archetype = pick(VOCATIONS, rng)
+  /**
+   * EL ARQUETIPO, CON LAS CUOTAS DE SU DIVISIÓN Y NO A PARTES IGUALES. Antes se elegía entre las
+   * cinco vocaciones con un `pick` uniforme, así que el 20 % del mundo eran contrarrelojistas y no
+   * existían ni gregarios ni rodadores. Un pelotón de verdad es un cuarto de gregarios.
+   */
+  const archetype = sampleArchetype(rng, division)
   // Núcleo nacional (SPEC 7.1): un corredor de equipo es, con probabilidad = cuota de su división,
   // del país del equipo; si no, del reparto mundial. Los agentes libres (sin equipo) son mundiales.
   const country =
     teamCountry && rng() < NATIONAL_CORE_SHARE[division] ? teamCountry : pick(COUNTRIES, rng)
-  const age = sampleNpcAge(`${seed}:age`)
-  const genome = generateNpcRider(`${seed}:genome`, { division, vocation: archetype, age })
+  const age = sampleNpcAge(`${seed}:age`, { v2: true })
+  const genome = generateNpcRider(`${seed}:genome`, {
+    division,
+    // `vocation` es del camino legacy y en v2 no se mira: manda el arquetipo.
+    vocation: 'fondo',
+    age,
+    v2: true,
+    archetype,
+  })
   // Nombre único en todo el mundo (ni bots ni humanos repetidos).
   const name = generateUniqueName(`${seed}:name`, { country, gender: 'M' }, usedNames).fullName
   return {

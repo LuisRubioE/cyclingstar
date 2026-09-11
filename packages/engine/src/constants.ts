@@ -715,13 +715,27 @@
  * Campaña canónica de 500 corridas: **los 33 invariantes en verde**. La contrarreloj no se mueve ni
  * un dígito —es el ancla del esfuerzo individual y paga la ley lineal de siempre—.
  */
-export const ENGINE_VERSION = 55 as const
+export const ENGINE_VERSION = 56 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
  * partir de la semilla del corredor.
  */
 export const CREATION = {
+  /**
+   * EL PRESUPUESTO DE DISPERSIÓN (docs/entrenamiento.md §3.3): cuánto puede sobresalir un corredor
+   * por encima de SU PROPIO NIVEL, sumando todos sus atributos físicos.
+   *
+   * Sin esto, el ruido del techo permite que a un mismo corredor le salgan tres o cuatro atributos
+   * muy por encima de su nivel a la vez, y eso es un crack por acumulación de suerte y no por
+   * talento. El presupuesto reparte: se puede ser excepcional en una cosa, o bueno en dos, pero no
+   * excepcional en todo. Y crece con el talento, que es lo que hace que el talento signifique algo
+   * en el techo y no solo en la velocidad de aprendizaje.
+   */
+  talentBudgetBase: 6,
+  talentBudgetSlope: 0.12,
+  /** El suelo de arranque de un humano: 15 estaba cinco puntos por debajo del que la v48 midió. */
+  startFloorMu: 18,
   /**
    * VALORES INICIALES por categoría de la vocación (SPEC 3.5).
    *
@@ -893,6 +907,118 @@ export const NPC = {
   ageMax: 38,
   ageBetaAlpha: 4,
   ageBetaBeta: 4,
+
+  // ───────────────────────────────────────────────────────────────────────────────────────────
+  // GÉNESIS v2 (docs/entrenamiento.md §3.3). Convive con la legacy detrás de una puerta hasta que
+  // el fixture la sella y se borra.
+  //
+  // EL CAMBIO DE FONDO, en una frase: antes se sorteaba el ATRIBUTO y se le añadía un margen; ahora
+  // se sortea HASTA DÓNDE puede llegar un corredor —su techo, genético y absoluto— y después cuánto
+  // de eso ha realizado a su edad. La consecuencia es la que hacía falta: la distribución de techos
+  // del mundo es la misma en la temporada 1 que en la 25, porque no depende de lo que nadie haya
+  // entrenado. Ésa es la razón por la que la banda del dueño se sostiene AQUÍ y no en la velocidad
+  // de aprendizaje: medido tres veces, frenar el aprendizaje solo retrasa la llegada al techo.
+  // ───────────────────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * EL NIVEL: la media del TECHO de la carta, por división. No es lo mismo que el 71/61/53 de la
+   * legacy, que era la media del ATRIBUTO: con el tope de madurez en 0,94 el atributo maduro de un
+   * WT sale 0,94·75 = 70,5, o sea donde está hoy, y PRS y CON conservan las distancias de 10 y 8
+   * que el dueño pidió no estrechar.
+   *
+   * `levelMu.WT` y el tope de madurez SE MUEVEN JUNTOS: bajar uno sin subir el otro encoge el mundo
+   * entero. Y `levelMu.WT` es la perilla de «cuando haya humanos buenos bajaremos eso a 0».
+   */
+  levelMu: { WT: 75, PRS: 65, CON: 57 } as Record<string, number>,
+  levelSd: 7,
+  ceilingNoiseSd: 5,
+  /**
+   * LA RED DEL ARQUETIPO: un atributo que el arquetipo penaliza de verdad (offset ≤ −14) no puede
+   * pasar de aquí por mucho nivel que tenga el corredor. Es lo que impide que el mejor velocista del
+   * mundo sea además un escalador decente por pura estatura de su nivel.
+   */
+  ceilingCapOffTrade: 83,
+  /** La edad mínima de un profesional en v2. Los 18 son del humano, que empieza antes. */
+  ageMinV2: 19,
+
+  /**
+   * CUÁNTO SE DESVÍA UN CORREDOR DE SU PROPIO NIVEL, por clase y edad: qué fracción de su techo ha
+   * realizado ya. Interpolada linealmente entre columnas, con la edad efectiva `edad − madurez`.
+   *
+   * EL TOPE DEL MOTOR ES 0,94 Y NO 0,98, y es una de las decisiones más importantes del rediseño.
+   * Con 0,98 sobre un techo de 72 la base es 70,56 y el redondeo la sube AL TECHO EXACTO en cuanto
+   * el ruido pasa de 0,013 —una de cada tres veces—. En el techo el freno vale 0, así que un tercio
+   * de los atributos de cada corredor maduro nacería congelado de por vida: es el defecto de la v50
+   * que el dueño mandó abrir, reintroducido al 98 % en vez de al 100 %.
+   *
+   * LA COLUMNA DE LOS 19 DE `motor_rapido` NO ES LA DEL DISEÑO (0,78) SINO 0,76, y la razón es una
+   * interacción que el diseño escribió en dos sitios y no compuso. Su criterio dice que la carta a
+   * los 19 tiene que ser ≤ 0,85 de la carta a los 27, y lo dedujo de esta tabla: 0,78/0,94 = 0,830.
+   * Pero la MISMA sección introduce el `C − 2` que garantiza margen, y ese tope muerde mucho más a
+   * los 27 —donde el atributo ya está cerca del techo— que a los 19. Eso baja el denominador y sube
+   * la razón: medido sobre 3.000 genomas, **0,856**, por encima de su propio listón. El mismo efecto
+   * aparece en `motor_lento` (tabla 0,753 → medido 0,787), así que no es ruido: son +0,03 en las dos
+   * clases. Con 0,76 la razón medida cae a 0,835 y el criterio se cumple de verdad.
+   */
+  maturity: {
+    motor_rapido: [0.76, 0.8, 0.85, 0.88, 0.9, 0.92, 0.93, 0.94, 0.94, 0.94, 0.94],
+    motor_lento: [0.7, 0.75, 0.8, 0.84, 0.87, 0.89, 0.91, 0.92, 0.93, 0.94, 0.94],
+    oficio: [0.62, 0.68, 0.74, 0.8, 0.85, 0.89, 0.92, 0.94, 0.96, 0.98, 1.0],
+  } as Record<string, number[]>,
+  /** La primera columna de la tabla de madurez es esta edad; la última cubre 30 en adelante. */
+  maturityAgeFrom: 19,
+
+  /** Un NPC viejo nace con lo que tendría a su edad, no con lo de uno de 28. */
+  veteranDropPerYear: { motor_rapido: 0.04, motor_lento: 0.03, oficio: 0.01 } as Record<
+    string,
+    number
+  >,
+  /** DES y PAV empiezan a caer tres años más tarde que el motor; TAC no cae nunca. */
+  veteranOficioDelay: 3,
+
+  /**
+   * CUÁNTOS DE CADA CLASE NACEN. Un cuarto de gregarios y un sexto de rodadores es la forma de un
+   * pelotón de verdad; el 5 % de cronistas sustituye al 20 % de hoy, que salía de repartir cinco
+   * vocaciones a partes iguales y llenaba el mundo de contrarrelojistas.
+   */
+  archetypeShare: {
+    WT: {
+      escalada: 14,
+      velocidad: 9,
+      puncheur: 9,
+      clasicas: 9,
+      crono: 5,
+      rodador: 16,
+      fondo: 12,
+      gregario: 26,
+    },
+    PRS: {
+      escalada: 13,
+      velocidad: 9,
+      puncheur: 9,
+      clasicas: 10,
+      crono: 5,
+      rodador: 16,
+      fondo: 10,
+      gregario: 28,
+    },
+    CON: {
+      escalada: 12,
+      velocidad: 10,
+      puncheur: 8,
+      clasicas: 10,
+      crono: 4,
+      rodador: 16,
+      fondo: 8,
+      gregario: 32,
+    },
+  } as Record<string, Record<string, number>>,
+
+  /** Cuánto marca el arquetipo a este corredor concreto: no todos son igual de puros. */
+  purityMin: 0.6,
+  purityMax: 0.95,
+  /** Nadie nace con un físico en su techo: siempre le quedan dos puntos por recorrer. */
+  ceilingHeadroom: 2,
 } as const
 
 /** Modelo de Banister: forma como consecuencia contable de la carga (SPEC 4). */

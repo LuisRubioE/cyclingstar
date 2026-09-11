@@ -55,16 +55,24 @@ export function generateRiderGenome(seed: string, vocation: Vocation): RiderGeno
     )
     ceilings[attr] = ceiling
 
-    // Valor inicial (SPEC 3.5). TAC siempre bajo. Nunca por encima de su techo.
+    /**
+     * VALOR INICIAL CON SUELO (SPEC 3.5, docs/entrenamiento.md §3.4).
+     *
+     * La media sigue saliendo del mismo escalón de `bias` que el techo —carta 1 · segunda 0,5 ·
+     * resto 0—, pero ahora con un SUELO: `max(startFloorMu, 15 + 9·bias)`, o sea 24 / 19,5 / 18.
+     *
+     * El suelo hace falta y no es cosmético: sin él, el «resto» arrancaba en 15, cinco puntos por
+     * debajo del «20 es el suelo que sí funciona» con el que la propia v48 justificó su número. Y
+     * lo sufría justamente el arquetipo con menos sesgo, o sea el que elige ser todoterreno: no
+     * elegía «sin punta», elegía empezar peor que nadie en las diez casillas.
+     */
     let value: number
     if (attr === 'TAC') {
       value = uniform(rng, CREATION.tacInitialMin, CREATION.tacInitialMax)
-    } else if (category === 'primary') {
-      value = normal(rng, CREATION.primaryMean, CREATION.valueSd)
-    } else if (category === 'adjacent') {
-      value = normal(rng, CREATION.adjacentMean, CREATION.valueSd)
     } else {
-      value = normal(rng, CREATION.restMean, CREATION.valueSd)
+      const bias = category === 'primary' ? 1 : category === 'adjacent' ? 0.5 : 0
+      const mu = Math.max(CREATION.startFloorMu, CREATION.restMean + 9 * bias)
+      value = normal(rng, mu, CREATION.valueSd)
     }
     attributes[attr] = clamp(value, 1, ceiling)
   }

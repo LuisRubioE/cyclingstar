@@ -244,7 +244,7 @@ export interface WorldOptions {
 function nace(seed: string, division: Division, age: number, debutSeason: number): WorldRider {
   const rng = seededRng(`${seed}:voc`)
   const vocation: Vocation = VOCATIONS[Math.floor(rng() * VOCATIONS.length)]!
-  const g = generateNpcRider(seed, { division, vocation, age })
+  const g = generateNpcRider(seed, { division, vocation, age, v2: true })
   const r = seededRng(`${seed}:forma`)
   return {
     riderId: seed,
@@ -654,7 +654,14 @@ export function runWorld(
     for (let t = 0; t < equipos; t++) {
       for (let k = 0; k < por; k++) {
         const id = `${division}-${t}-${k}`
-        field.push(nace(`${worldSeed}:${id}`, division, sampleNpcAge(`${worldSeed}:${id}:edad`), 0))
+        field.push(
+          nace(
+            `${worldSeed}:${id}`,
+            division,
+            sampleNpcAge(`${worldSeed}:${id}:edad`, { v2: true }),
+            0,
+          ),
+        )
       }
     }
   }
@@ -973,6 +980,7 @@ export function arcoHumano(worldSeed: string): ArcoHumanoStats {
         division,
         vocation: voc,
         age,
+        v2: true,
       })
       out.push(media(FISICOS.map((a) => g.attributes[a])))
     }
