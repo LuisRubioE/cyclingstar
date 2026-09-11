@@ -11404,3 +11404,81 @@ de REC 90 lo paga igual.
 ### Estado del banco
 
 **101 pruebas de los cinco bancos en verde**, 42 minutos. Ninguna banda de `sim/targets.ts` tocada.
+
+## v63 — Las dos recomendaciones aceptadas que se habían quedado sin aplicar
+
+`ENGINE_VERSION` **62 → 63**. El dueño aceptó las veintitrés recomendaciones de §9.1 y dos se
+quedaron por el camino: la **25** (`SPRINTER_MIN`) y la **22** (el offset del gregario). No es una
+ampliación de alcance: es el alcance que ya estaba aprobado y no se ejecutó.
+
+### 25 · El velocista se decide por PERCENTIL, no por un 68 escrito a mano
+
+`SPRINTER_MIN = 68` era un umbral **absoluto** sobre el SPR crudo, calibrado contra una génesis donde
+la media de división era la del ATRIBUTO y el 20 % del campo eran velocistas. Con la génesis v2 el
+campo tiene un 9-10 % de velocistas y los atributos nacen por debajo de su techo, así que el 68 dejó
+de significar lo que quería decir: en WorldTour lo pasaba ≈ el 9 % —media parrilla sin tren de
+sprint— y **en ProSeries y Continental el rol desaparecía casi del todo**.
+
+Lo que el 68 quería decir es «este equipo tiene una baza de sprint **comparada con el pelotón que
+corre HOY**», y eso es un percentil. El mejor SPR del equipo entra como velocista si supera el **p75
+del campo del día**, calculado una vez sobre el campo entero —si cada equipo lo sacara de su propia
+plantilla, «superar el p75» sería «ser el mejor de los tuyos» y lo cumplirían los veintidós—.
+
+Con menos de cuatro corredores devuelve 0: en una carrera de tres gatos no hay campo del que sacar
+percentiles y exigir uno sería decidir con ruido.
+
+**`tactica.md` §5.2 ya lo implementaba por percentil** diciendo textualmente que heredaba esta
+corrección de `entrenamiento.md` §6, y su §9.5 escribe «pasa a percentil. Se hereda, no se reabre».
+Tener dos umbrales para la misma decisión en dos documentos que se citan era el defecto de verdad.
+
+#### Lo que mueve (banco `smallTours`, 8 semillas por carrera)
+
+| Métrica                |   v62 |   v63 |         Δ |
+| ---------------------- | ----: | ----: | --------: |
+| `bestSprinterWinPct`   | 33,33 | 30,18 |     −3,15 |
+| `sweepPct`             |  6,67 |  2,70 | **−3,97** |
+| `photo.sameWinnerPct`  | 24,85 | 18,46 | **−6,39** |
+| `photo.repeatTopFive`  |  2,02 |  1,89 |     −0,13 |
+| peor carrera del banco | 75,00 | 80,00 |     +5,00 |
+
+**El sprint deja de ser cosa de uno.** Con más equipos poniendo tren, los pleno-al-quince caen a
+menos de la mitad y el mismo corredor repite victoria seis puntos menos. Es exactamente lo que se
+quería: el 68 absoluto no solo quitaba velocistas, quitaba RIVALES al que sí lo era.
+
+La contrapartida está escrita y no escondida: **la peor carrera del banco empeora cinco puntos**
+(75 → 80). Donde el campo es tan homogéneo que el p75 deja a un solo rematador claro por encima, ese
+rematador domina más que antes. Es una carrera de un banco de ocho, dentro de banda, y queda
+apuntada.
+
+### 22 · El gregario sube su mejor offset de RES −4 a −2
+
+Es la palanca barata contra «que tampoco se quede nadie sin pasar de 4 en nada»: sube el único
+atributo en el que un gregario puede destacar sin tocar su cuota ni convertirlo en otra cosa —sigue
+pagando 16 y 18 puntos de peaje en todo lo demás—.
+
+#### Lo que mueve (mismo mundo, mismas semillas: comparación PAREADA)
+
+| Métrica                         |   v62 |   v63 |     Δ |
+| ------------------------------- | ----: | ----: | ----: |
+| `sinNadaSobre4WTPct`            | 32,28 | 31,32 | −0,96 |
+| `sinNadaSobre4Pct`              | 64,78 | 63,95 | −0,83 |
+| `sinNadaSobre4NoGregariosWTPct` | 20,11 | 19,84 | −0,27 |
+| `cincoEstrellasWTPct`           |  2,65 |  3,03 | +0,38 |
+
+**Y hay que decir que es MUCHO menos de lo que la recomendación sugería.** §9.1 estimaba que «el WT
+llega a 4★ el 60 % de las veces en vez del 53 %», y la lectura fácil de eso era esperar un movimiento
+de varios puntos. Lo medido es **un punto**. Las dos cifras no se contradicen: la estimación hablaba
+de _cuántas veces un gregario llega a 4★ en RES_, y la métrica cuenta _qué parte del WorldTour no
+tiene nada sobre 4★_ — y buena parte de esa gente no es gregario, así que su offset no les toca.
+
+La comparación es **pareada** —el mismo mundo con las mismas semillas antes y después—, así que ese
+punto es efecto real y no la desviación de 3,07 que tiene esa métrica entre semillas. Lo que dice es
+que **la conclusión del paso 12 se sostiene**: el tercio del WorldTour sin nada sobre 4★ es un número
+de la génesis, y moverle el offset a un arquetipo lo roza, no lo cierra. Cerrarlo sigue siendo la
+decisión del dueño escrita en «v59 §12».
+
+### Estado del banco
+
+**101 pruebas de los cinco bancos en verde**, 42 minutos, y **ninguna banda de `sim/targets.ts`
+tocada** pese a que el reparto de roles cambia en todas las carreras del banco de vueltas pequeñas.
+Las 17 aserciones del banco de mundo selladas en el paso 12 también aguantan sin moverse.

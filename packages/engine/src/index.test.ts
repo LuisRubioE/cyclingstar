@@ -297,6 +297,14 @@ describe('engine: esqueleto', () => {
     // líder ataque en el desenlace es la carrera— y el castigo escala con la distancia real en la
     // general. El veto TIRA EL DADO igualmente, así que el flujo `rngTactics` no se corre y las
     // huellas de `attribution.test.ts` y `timetrial.test.ts` salen idénticas dígito a dígito: sus
+    // v63: las dos recomendaciones aceptadas que se habían quedado sin aplicar. (25) `SPRINTER_MIN`
+    // deja de ser el 68 absoluto y pasa al **p75 del campo del día**: el 68 estaba calibrado contra
+    // una génesis donde el 20 % del campo eran velocistas, y con la v2 dejaba sin tren de sprint a
+    // media parrilla del WorldTour y al rol entero en ProSeries y Continental. Lo que el 68 quería
+    // decir —«tiene una baza COMPARADA con el pelotón que corre hoy»— es un percentil, y `tactica.md`
+    // §5.2 ya lo implementaba así creyendo heredarlo de aquí. (22) El mejor offset del gregario sube
+    // de RES −4 a −2: es la palanca barata contra «que nadie se quede sin pasar de 4 en nada» sin
+    // tocar su cuota ni convertirlo en otra cosa.
     // v62: la tanda de etapa de las decisiones 4 y 5 del dueño, los tres cambios juntos. REC entra
     // en el VACIADO PROFUNDO —umbral 0,06 + 0,12·(1 − REC/100), que en REC 50 da exactamente el 0,12
     // plano de antes— y en el UMBRAL DE TSB de los cerillos (−25 − 0,2·(REC − 50)); y CRI entra en el
@@ -362,6 +370,6 @@ describe('engine: esqueleto', () => {
     // v11 (atribución del trabajo), la v10 (composición y caza), la v9 (capa táctica), la
     // v8 (tiempos de grupo), la v7 (modelo de final), la v6 (telemetría), la v5 (clásica larga), la
     // v4 (pavé en el recorrido) y la v3 (Cambio 0).
-    expect(ENGINE_VERSION).toBe(62)
+    expect(ENGINE_VERSION).toBe(63)
   })
 })

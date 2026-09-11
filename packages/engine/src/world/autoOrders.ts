@@ -34,7 +34,40 @@ export interface AutoOrderStage {
   timeTrial: boolean
 }
 
-const SPRINTER_MIN = 68 // por debajo de esto el equipo no juega la baza del sprint: va a por la fuga.
+/**
+ * ¿TIENE ESTE EQUIPO UNA BAZA DE SPRINT? **UN PERCENTIL, NO UN NÚMERO** (v63, decisión 25 del dueño).
+ *
+ * Era `SPRINTER_MIN = 68`, un umbral ABSOLUTO sobre el SPR crudo, calibrado contra una génesis donde
+ * la media de división era la del ATRIBUTO y el 20 % del campo eran velocistas. Con la génesis v2 el
+ * campo tiene un 9-10 % de velocistas y los atributos nacen por debajo de su techo, así que el 68
+ * dejaba de significar lo que quería decir: en WorldTour lo pasaban ≈ el 9 % (la mitad de los equipos
+ * se quedaban sin tren de sprint) y en ProSeries y Continental **el rol desaparecía casi del todo**.
+ *
+ * Lo que el 68 quería decir es «este equipo tiene una baza de sprint COMPARADA con el pelotón que
+ * corre HOY», y eso es un percentil. El mejor SPR del equipo entra como velocista si supera el
+ * **p75 del campo del día**, así que en toda carrera hay aproximadamente un cuarto de equipos con
+ * tren, sea la ronda que sea. Un continental modesto vuelve a tener su rápido en su carrera.
+ *
+ * `tactica.md` §5.2 **ya lo implementa por percentil** diciendo textualmente que hereda esta
+ * corrección de `entrenamiento.md` §6, y su §9.5 escribe «pasa a percentil, se hereda, no se
+ * reabre». Tener dos umbrales para la misma decisión en dos documentos que se citan era el defecto.
+ */
+const SPRINTER_PCT = 0.75
+
+/**
+ * El SPR que hay que superar hoy para ser velocista: el p75 del campo, por interpolación lineal
+ * entre los dos vecinos. Con menos de cuatro corredores no hay campo del que sacar percentiles, y
+ * entonces no manda nadie: devuelve 0 y el mejor del equipo es su velocista, que es lo razonable en
+ * una carrera de tres gatos.
+ */
+export function sprinterThreshold(field: readonly AutoOrderRider[]): number {
+  const sprs = field.map((r) => sprintScore(r.attrs)).sort((a, b) => a - b)
+  if (sprs.length < 4) return 0
+  const pos = SPRINTER_PCT * (sprs.length - 1)
+  const bajo = Math.floor(pos)
+  const alto = Math.min(sprs.length - 1, bajo + 1)
+  return sprs[bajo]! + (sprs[alto]! - sprs[bajo]!) * (pos - bajo)
+}
 
 /**
  * HASTA QUÉ PUESTO DE LA GENERAL un corredor es la carta de su equipo (v42). El maillot, desde luego,
@@ -90,6 +123,7 @@ function assignTeam(
   team: AutoOrderRider[],
   stage: AutoOrderStage,
   out: Map<string, StageOrders>,
+  sprinterMin: number,
 ): void {
   if (team.length === 0) return
   const mountain = stage.kind === 'reina' || stage.kind === 'media'
@@ -163,7 +197,7 @@ function assignTeam(
       team.filter((r) => remaining.has(r.riderId)),
       sprintScore,
     )[0]
-    if (bestSpr && sprintScore(bestSpr.attrs) >= SPRINTER_MIN) {
+    if (bestSpr && sprintScore(bestSpr.attrs) >= sprinterMin) {
       const s = take(bestSpr)!
       out.set(s.riderId, order({ role: 'sprinter', mentality: 'reservon', contestSprints: true }))
       if (!leaderId) leaderId = s.riderId
@@ -250,7 +284,11 @@ export function autoStageOrders(
       freeAgents.push(r)
     }
   }
-  for (const team of byTeam.values()) assignTeam(team, stage, out)
+  // El listón del día se calcula UNA vez sobre el campo entero y se le pasa a todos: si cada equipo
+  // lo sacara de su propia plantilla, «superar el p75» significaría «ser el mejor de tu equipo», que
+  // es otra cosa y la cumplen los veintidós.
+  const sprinterMin = sprinterThreshold(riders)
+  for (const team of byTeam.values()) assignTeam(team, stage, out, sprinterMin)
 
   // Agentes libres: cada uno decide en solitario. El que vale para la fuga la busca; un buen sprinter
   // espera la meta; el resto rueda neutro. Así los sueltos también dan vida a la carrera.
@@ -259,7 +297,7 @@ export function autoStageOrders(
   for (const r of freeAgents) {
     const brk = breakScore(r.attrs)
     const spr = sprintScore(r.attrs)
-    if (flat && spr >= SPRINTER_MIN) {
+    if (flat && spr >= sprinterMin) {
       out.set(r.riderId, order({ role: 'sprinter', mentality: 'reservon', contestSprints: true }))
     } else if (brk >= 58) {
       out.set(

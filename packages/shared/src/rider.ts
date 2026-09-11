@@ -395,8 +395,20 @@ export const ARCHETYPE_CEILING_OFFSETS: Record<RiderArchetype, Record<Attribute,
     PAV: -14,
     TAC: -16,
   },
+  /**
+   * EL GREGARIO, Y SU RES −2 EN VEZ DE −4 (v63, decisión 22 del dueño).
+   *
+   * El requisito de `epics.md` —«que tampoco se quede nadie sin pasar de 4 en nada»— choca de frente
+   * con un arquetipo que por definición no destaca en nada, y los gregarios son el 26-32 % del
+   * pelotón. Subir su mejor offset es la palanca más barata: con −4 un gregario del WorldTour llega
+   * a 4★ en RES el 53 % de las veces y con −2 el 60 %, sin tocar su cuota ni convertirlo en otra
+   * cosa —sigue a 16 y 18 puntos de peaje en todo lo demás—.
+   *
+   * Lo que NO hace, y por eso queda escrito: cerrar el requisito literal. Para eso la palanca es RES
+   * a 0 y bajar la cuota de gregarios, y ésa es otra decisión.
+   */
   gregario: {
-    RES: -4,
+    RES: -2,
     REC: -6,
     LLA: -10,
     MON: -14,

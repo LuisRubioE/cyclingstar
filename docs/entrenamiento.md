@@ -1687,6 +1687,23 @@ de `db`; `Date.now()` y `Math.random()` siguen prohibidos.
 | 25  | **`SPRINTER_MIN`**: absoluto 68 o relativo                                                                                        | Relativo, y **una sola forma: percentil p75 de SPR del campo del día**. Con v2, el 68 absoluto deja sin tren de sprint a la mitad de los equipos WT y a casi todo PRS/CON. El umbral por división queda retirado porque `tactica.md` §5.2 ya implementa el percentil creyendo heredarlo de aquí (§12c).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | 26  | **Dispersión de instalaciones ±20 % desde el paso 9**                                                                             | Sí (con la decisión 10). Alternativa honesta si prefiere neutralidad hasta que exista la economía: `kInst = 1` y decirlo, en vez de una fórmula que reescribe en silencio lo que la columna significaba.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 
+#### Estado de implementación (actualizado tras la v63)
+
+Las veintitrés recomendaciones están aceptadas por el dueño y **todas implementadas**, cada una con
+su medición en `docs/balance.md` «v59 §0-§12», «v62» y «v63». Dos quedaron rezagadas y se cerraron en
+la v63 con su propia tanda y su propia medición, para no mezclar causas: la **25** (`SPRINTER_MIN`
+pasa al p75 del campo del día) y la **22** (offset RES del gregario −4 → −2).
+
+Las dos únicas cosas que siguen **abiertas** son decisiones nuevas del dueño, no trabajo pendiente:
+
+- **La decisión 23** —que el jugador pueda renunciar a una carrera o pedir una B como bloque de
+  entrenamiento—, sin la cual G1 no puede declararse cerrado. No se ha implementado porque su propia
+  ficha dice «en su propio paso corto tras el 11» y toca `rider_race_prefs` y `callups`, que son
+  contrato con la capa de convocatorias.
+- **El tercio del WorldTour sin nada sobre 4★**, que la v63 confirmó que es de la GÉNESIS: subirle el
+  offset a un arquetipo lo mueve un punto. Cerrarlo es subir techos del WorldTour, y eso tira en
+  contra del «menos del 15 % con cinco estrellas». Misma perilla, sentidos opuestos.
+
 ### 9.2 Lo que se ha rechazado a propósito, y por qué
 
 - **Meter media tanda de etapa por la puerta de atrás** (REC en `isDeepDepleted` solo en producción):
