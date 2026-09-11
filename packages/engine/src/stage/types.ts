@@ -6,6 +6,7 @@
  * Paso 21: andamiaje. La física (6.4-6.14) llega a partir del Paso 22.
  */
 import type { Attribute } from '@cyclingstar/shared'
+import type { RaceContext, TacticFlags } from './views.js'
 
 /** Terreno tal como lo escribe el autor del recorrido (SPEC 6.2). */
 export type SegmentTerrain = 'llano' | 'rompepiernas' | 'puerto' | 'descenso' | 'paves'
@@ -167,6 +168,23 @@ export interface StageRider {
 export interface StageInput {
   profile: StageProfile
   riders: StageRider[]
+  /**
+   * EL CONTEXTO DE CARRERA (docs/tactica.md §3.3, paso 2). **Opcional, y nadie lo lee todavía.**
+   *
+   * Es lo que convierte una etapa suelta en el día N de una carrera: la forma del recorrido que
+   * queda, las clasificaciones secundarias y lo que la carrera recuerda de los días anteriores. Cada
+   * racimo de reglas irá leyendo el suyo en su paso.
+   *
+   * **Va en `StageInput` y SOLO en `StageInput`**: `StageOutput` no gana ni un campo. El motor recibe
+   * contexto y devuelve lo que pasó; si devolviera contexto, la frontera entre el motor y quien lo
+   * llama dejaría de existir y cada paso podría empujar su estado al otro lado.
+   */
+  race?: RaceContext
+  /**
+   * Las banderas con las que un banco enciende o apaga una capa para poder medir su brazo de
+   * control. Ausentes = todo encendido, que es el comportamiento de producción.
+   */
+  flags?: TacticFlags
   /** CRI/cronoescalada: grupos de un corredor, sin drafting ni hazards (SPEC 6.13). */
   timeTrial?: boolean
   /**

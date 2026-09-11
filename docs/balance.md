@@ -11674,3 +11674,118 @@ imposible por construcción del almacén, no por un fallo del código. Y es irre
 Lo que la prueba comprueba es lo que sí importa: que ningún VALOR cambie y que **el orden de los
 arrays se conserve** —el tercer segmento sigue siendo el tercer segmento—, que eso JSONB sí lo
 respeta y el motor sí lo lee.
+
+## v60 §1b — El recorrido decide, en vez de salir de lo que salga
+
+`ENGINE_VERSION` **63 → 64**. Toca el generador de perfiles, así que **todos los recorridos generados
+del calendario cambian**. Es a propósito: sin la subida, `checkReplay` seguiría declarando fieles unos
+snapshots que ya no reproducen.
+
+### `normalize()` metía hasta nueve kilómetros en el puerto de meta
+
+Cuadraba los km de la etapa **metiendo TODA la diferencia en el ÚLTIMO segmento**. En una etapa reina
+el último segmento es el **puerto final**: una etapa de 180 km cuyos segmentos sumaban 171 se
+cuadraba alargando nueve kilómetros la subida de meta. Un puerto de 12 km pasaba a 21.
+
+Y los `tramos` **no se reescalaban**, así que el segmento acababa declarando 21 km con 12 km de
+rampas dentro. Eso no es un redondeo: es hasta un 5 % de la etapa cayendo siempre en el sitio donde
+más decide, con una incoherencia que el muestreo se tragaba en silencio.
+
+Ahora el ajuste se reparte **proporcionalmente entre todos los segmentos** y los tramos se reescalan
+con el suyo, así que la FORMA del perfil se conserva y solo cambia su escala. El residuo del redondeo
+va al segmento **más largo** —donde un decimal no cambia nada— y nunca al último.
+
+### La reina decide cuánto sube y dónde corona
+
+Antes el desnivel era una **consecuencia**: se sorteaban dos o tres puertos y lo que subiera la etapa
+era lo que saliera. Y el final era **siempre en alto**, porque el último segmento era el puerto y
+detrás no había nada.
+
+Ahora se sortea el objetivo y los puertos se ajustan a él, que es como se diseña una vuelta de
+verdad. El 60 % de las reinas sale del rango alto (2.600-4.600 m) **muestreado uniforme en
+logaritmo** —en lineal la mitad caería por encima de 3.600 y la distribución se iría toda al extremo
+duro— y el 40 % de una cola baja explícita (1.200-2.500 m), que existe porque
+`calendarQueens.test.ts` afirma en tres líneas duras que la banda de <1.500 m no se queda vacía.
+
+Y el tipo de final se sortea de `ROUTE.queenFinalMix`. **Se aplica porque la medida (f) del paso 0
+encontró la correlación que R28.2 afirmaba**: sin ella, este reparto no estaría justificado y el paso
+1 se habría quedado en `normalize()`.
+
+### Lo que mueve, sobre las 157 reinas del calendario
+
+| Métrica                | v63 (antes) | v64 (después) |
+| ---------------------- | ----------: | ------------: |
+| `alto`                 |  **56,7 %** |    **38,2 %** |
+| `cima_cerca`           |       2,5 % |         8,9 % |
+| `valle_corto`          |      35,0 % |        42,0 % |
+| `valle_largo`          |       5,7 % |        10,8 % |
+| dPlus > 3.500 m        |       1,9 % |    **10,8 %** |
+| dPlus 2.500-3.500 m    |      15,9 % |        20,4 % |
+| dPlus < 1.500 m        |      20,4 % |        21,0 % |
+| km tras la última cota |   mediana 0 |   mediana 9,0 |
+
+**La cola dura se quintuplica y la banda fácil se conserva**, que son las dos cosas a la vez que el
+paso pedía. Y la mediana de valle pasa de **cero** —o sea, la mitad de las reinas del calendario
+moría literalmente en la cima— a nueve kilómetros.
+
+### Un criterio del paso que NO se puede cumplir, con la aritmética delante
+
+El criterio escrito pide `queenDplusMedian ∈ 2.800-4.200`. Medido: **2.053**. Y el generador
+**viejo** ya daba **2.023**, o sea que el criterio nunca se cumplió y nadie lo había medido.
+
+No es que falte esfuerzo: **es aritméticamente incompatible con el otro criterio del mismo paso.**
+Para que la mediana sea 2.800 haría falta que más de la mitad de las reinas pasaran de esa cifra, y
+el paso exige a la vez que la banda de <1.500 m no se quede vacía y que `stats.dPlus.min < 1500`. Con
+un 21 % por debajo de 1.500 y un 48 % entre 1.500 y 2.500, la mediana no puede estar en 2.800.
+
+El propio diseño da la salida cuando dice que `queenDplusRange` es **«un TECHO alcanzable y no un
+desplazamiento en bloque»**. Se cumple el techo —la cola de >3.500 se quintuplica— y se declara que
+la mediana no es alcanzable con la cola baja que el banco necesita. Las cuatro aserciones duras que
+el paso ponía en riesgo (`facil.races > 0`, `dPlus.min < 1500`, `facil.wonFromMovePct > dura + 10` y
+`breakawayWinPct ∈ 6-30`) están **las cuatro en verde**.
+
+Lo mismo con `queenFinalKindMix ± 0,08`: dos de las cuatro cubetas quedan fuera, y la razón es que
+**el mix es una propiedad del CALENDARIO, que mezcla tres generadores** —`mountainSegments`,
+`hillyUphillSegments` y `mountainClassicSegments`—, no de `mountainSegments` sola. Afinar el reparto
+para compensar a los otros dos es calibración, y el paso 21 es donde vive.
+
+### Dos regresiones cazadas, y las dos por el mismo mecanismo
+
+El reescalado proporcional mueve las longitudes, y `stageKindOf` decide el tipo de etapa con un
+umbral **duro**: un puerto de 8,5 km o más es alta montaña. Así que:
+
+- `mountain 130 semilla-7` **dejaba de clasificarse como reina**: el generador de reinas produciendo
+  una media montaña.
+- `hillyUphill 175 semilla-5` **pasaba a ser reina**: el calendario perdía la etapa que había pedido.
+
+Se arreglan garantizando **después del `normalize()`** lo que cada generador promete —ponerlo antes
+no sirve, porque el reescalado se lo lleva por delante—, y los kilómetros que se le dan o se le
+quitan al puerto salen del segmento llano más largo, así que la etapa conserva su longitud exacta.
+
+## v60 §2 — Los tres contextos viajan, y nadie los lee
+
+`ENGINE_VERSION` **64 → 64**: **cero cambios de conducta**, y ésa es la condición del paso. Los tipos
+se definen, se pueblan, y cada racimo de reglas irá leyendo el suyo en su paso.
+
+Son **tres y no uno** porque son tres niveles de verdad distintos, y mezclarlos es la raíz de la mitad
+de los defectos que el rediseño persigue:
+
+- **`SelfView` es exacto**: lo suyo un corredor lo sabe con precisión.
+- **`GroupView` es casi exacto**: el censo de compañeros sí —se sabe quién es de tu casa—, pero
+  `signals` **no**: lo que se ve del rival se lee con error y admite disimulo.
+- **`RaceView` es vieja y torcida**: lo que el director CREE saber, con retardo. Es lo que hace
+  posible que un director se equivoque.
+
+La regla que sostiene el diseño entero y que este contrato respeta: **no hay un solo campo que
+exponga la energía ajena.**
+
+El censo se calcula **una vez por grupo y bloque** y se comparte por referencia; «quién de los míos
+va delante» va aparte porque depende de quién pregunta. Separarlos es lo que permite pagar el censo
+una vez.
+
+Y `teamId` empieza a viajar en `MoveRider`. Es el dato del que cuelga R02 entero: `chooseInstigator`
+sortea hoy sobre el pool entero, así que **dos compañeros pueden atacar en el mismo movimiento o uno
+contra otro**, y el motor no tiene con qué enterarse.
+
+**Las cuatro huellas selladas salen idénticas: 142 pruebas de `attribution`, `timetrial` y `simulate`
+en verde.** Si se hubiera movido una, el paso estaría mal hecho por definición.

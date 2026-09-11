@@ -190,8 +190,19 @@ describe('api: la etiqueta del final la pone el recorrido, no el terreno declara
         if (spec.label !== stage.label) cambian++
       }
     }
-    // Medido: 30 de 1.418 etapas (14 dejan de anunciar final en alto, 16 pasan a anunciarlo). Es un
-    // arreglo acotado, no un cambio de producto; si esta cifra se dispara, algo se ha movido debajo.
-    expect(cambian).toBe(30)
+    /**
+     * Medido: **49 de 1.418** etapas. Eran 30 hasta la v64 (14 dejaban de anunciar final en alto y
+     * 16 pasaban a anunciarlo), y suben porque el generador de recorridos cambió: una reina ya no
+     * acaba SIEMPRE arriba —corona a tres, a doce o a treinta kilómetros de meta según
+     * `ROUTE.queenFinalMix`—, así que más etapas contradicen la etiqueta que el calendario declaró
+     * a mano.
+     *
+     * **Lo que este centinela vigila de verdad sigue en pie y es la línea de arriba**: `spec.kind`
+     * coincide con `stage.kind` en las 1.418. El TIPO no se mueve —es lo que alimenta las órdenes
+     * automáticas y el banco—, solo la etiqueta con la que se anuncia.
+     *
+     * Si esta cifra se dispara sin que nadie haya tocado el generador, algo se ha movido debajo.
+     */
+    expect(cambian).toBe(49)
   })
 })

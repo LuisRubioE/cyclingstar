@@ -4433,6 +4433,10 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
     }
 
     const asMoveRider = (m: RiderSim, type: FinishType, esPeloton: boolean): MoveRider => ({
+      // La casa viaja desde la v65 y no la lee nadie todavía (docs/tactica.md paso 2): es el dato
+      // del que cuelga R02, y sin él `chooseInstigator` no puede ni enterarse de que dos de los que
+      // sortea son compañeros.
+      teamId: m.input.teamId ?? null,
       riderId: m.input.riderId,
       role: m.input.orders.role,
       mentality: m.input.orders.mentality,

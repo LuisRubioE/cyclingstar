@@ -715,7 +715,7 @@
  * Campaña canónica de 500 corridas: **los 33 invariantes en verde**. La contrarreloj no se mueve ni
  * un dígito —es el ancla del esfuerzo individual y paga la ley lineal de siempre—.
  */
-export const ENGINE_VERSION = 63 as const
+export const ENGINE_VERSION = 64 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -1149,6 +1149,41 @@ export const RELIEF = {
  * proporciones con que se reparte eso; se miden en docs/balance.md, «v10 — Composición y caza».
  */
 export const ROUTE = {
+  /**
+   * EL DESNIVEL DE UNA ETAPA REINA, DIRIGIDO (v64, docs/tactica.md R28.1 y paso 1b).
+   *
+   * Antes el desnivel de una reina era lo que saliera de sortear puertos: el generador elegía dos o
+   * tres cotas con su longitud y su pendiente, y el desnivel acumulado era la CONSECUENCIA. Con eso,
+   * la distribución del calendario es la que es y nadie la decide.
+   *
+   * Ahora se sortea el OBJETIVO y los puertos se ajustan a él, que es como se diseña una vuelta de
+   * verdad: el director decide cuánto va a subir la etapa y después dibuja por dónde.
+   *
+   * **El 60 / 40 no es un adorno**: `calendarQueens.test.ts` afirma en tres líneas duras que la
+   * banda de <1.500 m NO se queda vacía y que en la montaña blanda la fuga llega más que en la dura.
+   * Si todas las reinas se volvieran duras, esas tres afirmaciones perderían su lado fácil y el
+   * banco dejaría de decir nada. Por eso el 40 % de las reinas sale de una cola BAJA explícita.
+   */
+  queenDplusRange: { min: 2600, max: 4600 },
+  /** Qué parte de las reinas va al rango de arriba; el resto, a la cola baja. */
+  queenHighDplusShare: 0.6,
+  queenLowDplusRange: { min: 1200, max: 2500 },
+
+  /**
+   * DÓNDE CAE LA ÚLTIMA CIMA (R28.2). El generador DECIDE el tipo de final en vez de dejarlo al azar.
+   *
+   * El reparto que el diseño propone es `0,45 · 0,20 · 0,25 · 0,10`, y va contra lo que el calendario
+   * de hoy produce —medido en el paso 0 sobre las 157 reinas: **56,7 % alto · 2,5 % cima_cerca ·
+   * 35,0 % valle_corto · 5,7 % valle_largo**—. O sea que el generador de hoy hace demasiados finales
+   * en alto y casi ninguna cima cerca, que es exactamente la forma de etapa que el aficionado
+   * recuerda: se corona a tres kilómetros y se baja a la meta.
+   *
+   * Se aplica **porque la medida (f) del paso 0 encontró la correlación que R28.2 afirmaba**: el
+   * escalador gana el 72,3 % en final en alto y el 50,0 % en valle largo. Sin esa medida este
+   * reparto no estaría justificado y el paso 1 se habría quedado en `normalize()`.
+   */
+  queenFinalMix: { alto: 0.45, cima_cerca: 0.2, valle_corto: 0.25, valle_largo: 0.1 },
+
   // --- La crono ---------------------------------------------------------------------------
   // Por debajo de estas etapas no cabe: una vuelta de dos días es un fin de semana de carreras.
   ittMinStages: 3,

@@ -297,6 +297,14 @@ describe('engine: esqueleto', () => {
     // líder ataque en el desenlace es la carrera— y el castigo escala con la distancia real en la
     // general. El veto TIRA EL DADO igualmente, así que el flujo `rngTactics` no se corre y las
     // huellas de `attribution.test.ts` y `timetrial.test.ts` salen idénticas dígito a dígito: sus
+    // v64: el generador de recorridos decide el desnivel y el final de una reina, en vez de dejarlos
+    // como consecuencia de sortear puertos. Y `normalize()` deja de meter TODA la diferencia de km en
+    // el ÚLTIMO segmento, que en una reina es el puerto de meta: una etapa de 180 km cuyos segmentos
+    // sumaban 171 se cuadraba alargando NUEVE kilómetros la subida final, con las mismas rampas
+    // dentro. Ahora se reparte proporcional y los tramos se reescalan con su segmento. Una tirada más
+    // de `routeRng` por reina, así que todos los perfiles de montaña del calendario cambian: es a
+    // propósito, y sin la subida `checkReplay` seguiría declarando fieles unos snapshots que ya no
+    // reproducen.
     // v63: las dos recomendaciones aceptadas que se habían quedado sin aplicar. (25) `SPRINTER_MIN`
     // deja de ser el 68 absoluto y pasa al **p75 del campo del día**: el 68 estaba calibrado contra
     // una génesis donde el 20 % del campo eran velocistas, y con la v2 dejaba sin tren de sprint a
@@ -370,6 +378,6 @@ describe('engine: esqueleto', () => {
     // v11 (atribución del trabajo), la v10 (composición y caza), la v9 (capa táctica), la
     // v8 (tiempos de grupo), la v7 (modelo de final), la v6 (telemetría), la v5 (clásica larga), la
     // v4 (pavé en el recorrido) y la v3 (Cambio 0).
-    expect(ENGINE_VERSION).toBe(63)
+    expect(ENGINE_VERSION).toBe(64)
   })
 })

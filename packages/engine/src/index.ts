@@ -292,4 +292,25 @@ export {
   tsbFactor,
   type Load,
 } from './banister.js'
+export type {
+  CensusGroup,
+  CensusRider,
+  DutyTag,
+  GroupView,
+  MateHere,
+  MateThere,
+  PlanBinding,
+  RaceContext,
+  RaceMemory,
+  RaceShape,
+  RaceView,
+  RoadSignal,
+  SelfView,
+  StandingRow,
+  TacticFlags,
+  TeamContingent,
+  ThreatRow,
+  Turn,
+} from './stage/views.js'
+export { census, myMates } from './stage/views.js'
 export * from './random.js'

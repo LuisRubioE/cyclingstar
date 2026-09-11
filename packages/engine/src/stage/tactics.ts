@@ -38,6 +38,15 @@ export type MoveKind =
 /** Un corredor visto por la capa táctica: lo justo para decidir si ataca y si sigue un ataque. */
 export interface MoveRider {
   riderId: string
+  /**
+   * LA CASA DEL CORREDOR (docs/tactica.md paso 2). **Nadie la lee todavía**, y sin ella no se puede
+   * leer: `chooseInstigator` sortea hoy sobre el pool entero, así que dos compañeros pueden atacar
+   * en el mismo movimiento o uno contra otro, y el motor no tiene con qué enterarse. Es el dato del
+   * que cuelga R02 entero.
+   *
+   * Nulo = agente libre.
+   */
+  teamId?: string | null
   role: StageRole
   mentality: Mentality
   /**
