@@ -526,6 +526,43 @@ export function chooseInstigator(
  */
 export function followProbability(r: MoveRider, instigator: MoveRider, ctx: MoveContext): number {
   if (r.riderId === instigator.riderId) return 0
+  /**
+   * A UN COMPAÑERO NO SE LE SALTA A LA RUEDA (R01, `followProbability = 0` entre compañeros).
+   *
+   * Hoy el motor sortea quién salta detrás del que ataca **sobre el pool entero**, así que un
+   * gregario puede saltarle a la rueda a su propio jefe y llevarle medio pelotón detrás. No es que
+   * esté mal calibrado: el motor **no tenía con qué enterarse** de que los dos son de la misma casa,
+   * porque `MoveRider` no llevaba `teamId` hasta el paso 2.
+   *
+   * ————— ESTÁ ESCRITA Y APAGADA HASTA EL PASO 9. MEDIDO, NO SUPUESTO. —————
+   *
+   * Encenderla cambia la COMPOSICIÓN de las fugas: sin compañeros saltando entre sí, una fuga de
+   * seis sale de seis casas distintas en vez de tres o cuatro. Y eso, con la maquinaria de hoy,
+   * **quita perseguidores**: cuantas más casas tienen un hombre delante, menos equipos quedan
+   * dispuestos a tirar. Medido con la regla encendida y todo lo demás intacto:
+   *
+   *   · `mountain.breakawayWinPct` cae de su mínimo de 25 a **22,5**
+   *   · el invariante «ninguna fuga gana una llana por cuatro minutos» se pone **rojo**
+   *   · en Bességes e4 los eventos `breakaway_caught` caen a **CERO**: la fuga no es que gane más,
+   *     es que no la caza nadie
+   *
+   * Es la MISMA causa que tumba las otras dos reglas de R01 (ver `simulate.ts`): **sentar a los que
+   * no deben tirar deja el frente vacío mientras no exista quien lo tome**, y quien lo toma es la
+   * subasta de R20, que es del paso 9.
+   *
+   * O sea que el orden del plan está mal: pone R01 en el paso 3 y R01 necesita R20. Se aplica la
+   * regla de la casa —«si el cambio saca un objetivo de banda, el que está mal es el cambio»— y las
+   * tres viajan juntas al 9. Escrito en `docs/balance.md` «v60 §3».
+   */
+  const COMPANEROS_NO_SE_SIGUEN = false
+  if (
+    COMPANEROS_NO_SE_SIGUEN &&
+    r.teamId !== null &&
+    r.teamId !== undefined &&
+    r.teamId === (instigator.teamId ?? null)
+  ) {
+    return 0
+  }
   if (r.energyFraction < STAGE.tacticMinEnergyFraction) return 0
   // …y tampoco salta a la rueda de nadie: le acaban de comer después de un día delante (v42).
   if (r.gastado) return 0

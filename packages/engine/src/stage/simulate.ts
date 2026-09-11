@@ -2925,10 +2925,29 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       for (const mv of moves) relojDe.set(mv.g.id, mv.g.tS)
       for (const sg of shed) relojDe.set(sg.id, sg.tS)
       for (const plan of teamPlans.values()) {
-        // …Y ES EL HOMBRE DE LA GENERAL, no cualquier jefe de filas. En una llana sin general
-        // `leaderId` es simplemente el mejor del equipo para ese final, y «mi hombre se ha quedado»
-        // no es motivo para dejar de trabajar: la etapa sigue ahí para el resto. Medido, sin este
-        // filtro la huella sellada de la llana canónica se movía sola.
+        /**
+         * …Y ES EL HOMBRE DE LA GENERAL, no cualquier jefe de filas (v58 §4, corregido en la v65 ·
+         * R01.2).
+         *
+         * El filtro por `purposes` de la v58 funcionaba y decía otra cosa: dejaba fuera al hombre de
+         * la general de un equipo que **no aspira al podio** (S-048). Un equipo modesto cuyo mejor
+         * clasificado se descuelga sigue teniendo un hombre en la general, y sus gregarios seguían
+         * tirando del grupo que se alejaba de él.
+         *
+         * ————— Y EL FILTRO POR MOTIVO SE QUEDA HASTA EL PASO 9. MEDIDO, NO SUPUESTO. —————
+         *
+         * Quitarlo **rompe la persecución**, igual que R01.1: en una vuelta por etapas casi todos los
+         * equipos tienen un hombre en la general, así que en cuanto uno se descuelga sus ocho
+         * gregarios salen del turno, y salen a la vez en veintidós casas. Medido en Bességes e4: los
+         * eventos `breakaway_caught` caen a **CERO** —la fuga deja de cazarse, no es que gane más—.
+         *
+         * Es la misma causa única que R01.1: **sentar a los que no deben tirar deja el frente vacío
+         * mientras no exista quien lo tome**, y eso es la subasta de R20 (paso 9).
+         *
+         * El campo `gcLeaderId` se queda poblado y sin leer —ya es correcto y el paso 9 lo usará tal
+         * cual— y la puerta sigue siendo la de la v58 §4 hasta entonces. Escrito en
+         * `docs/balance.md` «v60 §3» con el número delante.
+         */
         if (!plan.purposes.includes('maillot') && !plan.purposes.includes('general')) continue
         const leaderId = plan.leaderId
         if (leaderId == null) continue
@@ -3099,8 +3118,37 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
           // v58 también EN EL PELOTÓN, que es donde el dueño lo vio: dos gregarios tirando del grupo
           // principal mientras su maillot rodaba tres segundos por detrás.
           jefeEnApuros.has(riderId) ||
-          // …o tiene a uno de los suyos POR DELANTE y esto es un grupo de caza (v41): no se persigue
-          // lo propio, que es la otra mitad de la regla de la v33.
+          /**
+           * …o tiene a uno de los suyos POR DELANTE (v41, generalizado en la v65 · R01.1).
+           *
+           * **La guarda `kind === 'move'` se cae, y es el cambio de una línea que apaga cuatro
+           * situaciones del catálogo.** Decía que uno no persigue lo suyo SOLO dentro de un grupo de
+           * caza, y en el pelotón sí lo perseguía: el gregario cuyo compañero va en la fuga del día
+           * entraba al turno del pelotón y tiraba contra su propio hombre. Es la queja del dueño
+           * —«tira para las opciones de su líder, pero su líder va escapado»— en su forma más
+           * simple, y la regla para no hacerlo ya estaba escrita: solo estaba encerrada en un `if`.
+           *
+           * No se persigue lo propio en ningún grupo, que es la otra mitad de la regla de la v33.
+           *
+           * ————— Y SE QUEDA EN EL GRUPO DE CAZA HASTA EL PASO 9. MEDIDO, NO SUPUESTO. —————
+           *
+           * Quitar la guarda **rompe la persecución entera**. En un pelotón de 176 con 22 equipos,
+           * una fuga de seis deja a seis casas con un hombre delante: cuarenta y ocho corredores, un
+           * cuarto del pelotón, salen del turno de relevos **a la vez y sin que nadie los sustituya**.
+           *
+           * Medido con la guarda quitada: el invariante «ninguna fuga gana una llana por cuatro
+           * minutos» se pone rojo, y `mountain.breakawayWinPct` cae de su 25 mínimo a 21,7. La fuga
+           * no es que gane más: es que **no la caza nadie**.
+           *
+           * La regla de R01.1 es correcta —no se persigue lo propio— y le falta su contrapeso: el
+           * que hace que las casas SIN hombre delante tomen el frente es la subasta de R20, y ésa es
+           * del paso 9. Hasta entonces, sentar a los que no deben tirar deja el frente vacío.
+           *
+           * Así que se aplica la regla de la casa: «si el cambio saca un objetivo de banda, el que
+           * está mal es el cambio». La guarda se queda, y la generalización al pelotón **viaja al
+           * paso 9**, donde tiene de dónde salir la caza. Queda escrito aquí y en
+           * `docs/balance.md` «v60 §3» con el número delante.
+           */
           (kind === 'move' && tieneHombreDelante(riderId, group.tS)),
         isBunch,
         teamPlans.size > 0,

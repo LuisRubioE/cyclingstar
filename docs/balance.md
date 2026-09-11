@@ -11789,3 +11789,61 @@ contra otro**, y el motor no tiene con qué enterarse.
 
 **Las cuatro huellas selladas salen idénticas: 142 pruebas de `attribution`, `timetrial` y `simulate`
 en verde.** Si se hubiera movido una, el paso estaría mal hecho por definición.
+
+## v60 §3 — R01, y el hallazgo que vale más que el cambio: **el orden del plan está mal**
+
+`ENGINE_VERSION` **64 → 64**: este paso **no cambia una sola conducta**, y no porque no lo intentara.
+Las tres reglas de R01 se escribieron, se midieron, y **las tres rompen la persecución por la misma
+causa**. Así que se aplican la regla de la casa —«si el cambio saca un objetivo de banda, el que está
+mal es el cambio»— y viajan al paso 9.
+
+### Las tres reglas, y lo que mide cada una
+
+| Regla                                                                      | Qué hace                                                                      | Medido al encenderla                                                                                                                                  |
+| -------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **R01.1** · `tieneHombreDelante` pierde la guarda `kind === 'move'`        | no se persigue lo propio **en el pelotón**, no solo en un grupo de caza       | la fuga deja de cazarse                                                                                                                               |
+| **R01.2** · `jefeEnApuros` sobre `gcLeaderId` en vez de filtrar por motivo | el hombre de la general de **cualquier** equipo, aspire al podio o no (S-048) | ídem                                                                                                                                                  |
+| **R01** · `followProbability = 0` entre compañeros                         | un gregario no le salta a la rueda a su propio jefe                           | `mountain.breakawayWinPct` **25 → 22,5**; «ninguna fuga gana una llana por cuatro minutos» **rojo**; `breakaway_caught` en Bességes e4 cae a **CERO** |
+
+Las tres son **correctas como reglas**. Ninguna es un error de cálculo ni de calibración.
+
+### La causa es una sola, y es del PLAN, no del código
+
+**Sentar a los que no deben tirar deja el frente vacío mientras no exista quien lo tome.**
+
+En un pelotón de 176 con 22 equipos, una fuga de seis deja a seis casas con un hombre delante:
+cuarenta y ocho corredores —**un cuarto del pelotón**— salen del turno de relevos a la vez y sin que
+nadie los sustituya. Y la tercera regla lo agrava por una vía indirecta que no era obvia: sin
+compañeros saltándose entre sí, una fuga de seis sale de **seis casas distintas** en vez de tres o
+cuatro, así que quita todavía más equipos de la caza.
+
+Quien hace que las casas SIN hombre delante tomen el frente es **la subasta de R20**, y R20 es el
+**paso 9**. O sea que el plan pone R01 en el paso 3 y **R01 necesita R20**.
+
+Eso es un defecto del grafo de dependencias de §8.1, no del trabajo. Y es exactamente la clase de
+cosa que solo aparece midiendo: sobre el papel R01 es «la pieza más barata del catálogo y la que más
+filas apaga», y lo es —hasta que se enciende.
+
+### Lo que sí queda hecho, y sirve
+
+- **`TeamPlan.gcLeaderId`**, poblado y correcto: el leal con mejor puesto en la general, `null` si no
+  hay general en juego, con el mismo desempate por id que el resto del fichero. **Nadie lo lee
+  todavía** y el paso 9 lo usará tal cual. Es la precisión que R01.2 pedía contra el código: el
+  filtro por `purposes` de la v58 §4 funcionaba y decía otra cosa —dejaba fuera al hombre de la
+  general de un equipo modesto—, y sin este campo quitarlo devuelve la regresión de 387 s que aquella
+  versión midió.
+- **Las tres reglas escritas, apagadas con su interruptor y con su medición al lado**, no borradas.
+  El paso 9 las enciende con la subasta detrás y compara contra estos números.
+
+### Por qué esto no se «arregla calibrando»
+
+La tentación era ensanchar la banda de `mountain.breakawayWinPct` de 25 a 22, y habría sido mentir
+dos veces: el otro invariante que se cae es un **«nunca»** —ninguna fuga gana una llana por cuatro
+minutos— y eso no es una banda que se pueda mover, es un síntoma de que el pelotón ha dejado de
+perseguir. Un mundo donde la fuga llega siempre no es un mundo mejor calibrado: es otro deporte.
+
+### Y el paso 1b pasó los bancos enteros
+
+**101 pruebas de los cinco bancos en verde** con el generador de recorridos nuevo, antes de empezar
+este paso. La cola dura quintuplicada y los finales en alto del 56,7 % al 38,2 % no rompen ninguna
+banda.
