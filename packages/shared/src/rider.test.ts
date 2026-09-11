@@ -10,6 +10,7 @@ import {
   attrStarsWhole,
   stars,
 } from './rider.js'
+import { SESSION_CATALOG, SESSIONS } from './training.js'
 
 describe('shared: stars (SPEC 3.2)', () => {
   it('mapea 85.64 a 4.5 estrellas', () => {
@@ -107,5 +108,33 @@ describe('shared: arquetipo derivado de los atributos', () => {
   it('TAC no decide arquetipo: un veterano listo no es un especialista', () => {
     const conOficio = plano(70, { TAC: 95 })
     expect(archetypeFromAttributes(conOficio)).toBe('fondo')
+  })
+})
+
+describe('shared: el catálogo de sesiones cubre todos los atributos (v55)', () => {
+  it('cada atributo físico tiene al menos DOS sesiones que lo entrenan', () => {
+    // Con un solo camino, una mala racha del entrenador deja un atributo sin tocar todo el año. COL
+    // era ese caso hasta que entró `muros`, y MON lo seguía siendo hasta que `umbral` lo tocó.
+    //
+    // TAC queda FUERA a propósito y no por comodidad: su segundo camino no es una sesión, es
+    // CORRER. `raceLearning` reparte TAC en toda carrera, corras donde corras, y el vídeo es el
+    // complemento. Meterlo aquí obligaría a inventar una sesión que el diseño no quiere.
+    for (const attr of ATTRIBUTES.filter((a) => a !== 'TAC')) {
+      const caminos = SESSIONS.filter((s) => (SESSION_CATALOG[s].gains[attr] ?? 0) > 0)
+      expect(`${attr}: ${caminos.length} caminos`).toBe(`${attr}: ${caminos.length} caminos`)
+      expect(caminos.length).toBeGreaterThanOrEqual(2)
+    }
+  })
+
+  it('las sesiones de carga variable reparten entre 0,55 y 0,65 puntos', () => {
+    // El rango se afirma SOLO de éstas: gimnasio, vídeo y descanso activo quedan fuera por
+    // definición, y la versión anterior del diseño los metía en el mismo saco.
+    const variables = SESSIONS.filter((s) => SESSION_CATALOG[s].variableIntensity)
+    for (const s of variables) {
+      const total = Object.values(SESSION_CATALOG[s].gains).reduce((a, b) => a + (b ?? 0), 0)
+      expect(`${s}: ${total.toFixed(2)}`).toBe(`${s}: ${total.toFixed(2)}`)
+      expect(total).toBeGreaterThanOrEqual(0.55)
+      expect(total).toBeLessThanOrEqual(0.65)
+    }
   })
 })

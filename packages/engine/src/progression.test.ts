@@ -1,6 +1,12 @@
 import { ATTRIBUTES, type Attribute, seededRng } from '@cyclingstar/shared'
 import { describe, expect, it } from 'vitest'
-import { kAge, type RiderDayContext, type RiderDayState, simulateRiderDay } from './progression.js'
+import {
+  kAge,
+  kReady,
+  type RiderDayContext,
+  type RiderDayState,
+  simulateRiderDay,
+} from './progression.js'
 
 function baseState(): RiderDayState {
   const attributes = {} as Record<Attribute, number>
@@ -135,5 +141,69 @@ describe('progression: el declive mira la semana, no el día (v54)', () => {
       choice: { session: 'descanso_total', intensity: 'normal' },
     })
     expect(out.state.attributes.TAC).toBe(state.attributes.TAC)
+  })
+})
+
+describe('progression: la intensidad es un intercambio, no un botón (v55)', () => {
+  it('la frescura es una rampa y no un escalón', () => {
+    // Antes: a −29 se rendía como fresco y a −31 se perdía el 75 %. Ahora hay señal entre medias,
+    // que es lo que permite dosificar en vez de aprenderse un número de memoria.
+    expect(kReady(0)).toBe(1)
+    expect(kReady(-15)).toBe(1)
+    expect(kReady(-25)).toBeCloseTo(0.7, 6)
+    expect(kReady(-35)).toBe(0.25)
+    expect(kReady(-60)).toBe(0.25)
+    // Monótona: nunca se gana ganancia por estar más hundido.
+    for (let tsb = 0; tsb > -50; tsb--) expect(kReady(tsb)).toBeGreaterThanOrEqual(kReady(tsb - 1))
+  })
+
+  it('con fondo hecho, apretar rinde más, pero menos de lo que rendía', () => {
+    // CTL 80: el listón de absorción es 1,5·80 + 40 = 160 y `fondo fuerte` son 110, así que cabe y
+    // lo único que se mide aquí es la intensidad.
+    const state: RiderDayState = { ...baseState(), ctl: 80, atl: 80 }
+    const ctx = (intensity: 'suave' | 'normal' | 'fuerte'): RiderDayContext => ({
+      ...context(0, 'intensidad'),
+      age: 22,
+      choice: { session: 'fondo', intensity },
+    })
+    const de = (i: 'suave' | 'normal' | 'fuerte'): number =>
+      simulateRiderDay(state, ctx(i)).state.attributes.RES - state.attributes.RES
+    expect(de('fuerte')).toBeGreaterThan(de('normal'))
+    expect(de('normal')).toBeGreaterThan(de('suave'))
+    // La ventaja de apretar se ha estrechado: 1,12/1,00 en vez de 1,25/1,00, y afinar cuesta menos
+    // que antes: 0,80 en vez de 0,70.
+    expect(de('fuerte') / de('normal')).toBeCloseTo(1.12, 4)
+    expect(de('suave') / de('normal')).toBeCloseTo(0.8, 4)
+  })
+
+  it('SIN fondo hecho, apretar sale PEOR que no apretar', () => {
+    // Ésta es la propiedad que de verdad cambia el juego, y no es un efecto colateral: es el punto.
+    // Con CTL 45 —el de un chaval recién creado— `fondo fuerte` (110 TSS) pasa del listón de
+    // absorción (1,5·45 + 40 = 107,5), así que la ganancia se multiplica por 0,8: 1,12 × 0,8 = 0,896.
+    // Apretar todos los días deja de ser la estrategia obvia y pasa a ser un error que se paga.
+    const chaval: RiderDayState = { ...baseState(), ctl: 45, atl: 45 }
+    const ctx = (intensity: 'normal' | 'fuerte'): RiderDayContext => ({
+      ...context(0, 'intensidad'),
+      age: 22,
+      choice: { session: 'fondo', intensity },
+    })
+    const de = (i: 'normal' | 'fuerte'): number =>
+      simulateRiderDay(chaval, ctx(i)).state.attributes.RES - chaval.attributes.RES
+    expect(de('fuerte')).toBeLessThan(de('normal'))
+    expect(de('fuerte') / de('normal')).toBeCloseTo(1.12 * 0.8, 4)
+  })
+
+  it('una sesión que no cabe en la base que uno tiene se absorbe peor', () => {
+    // `puertos fuerte` son 140 TSS. Con CTL 45 el listón es 1,5·45 + 40 = 107,5: no cabe.
+    const flaco: RiderDayState = { ...baseState(), ctl: 45, atl: 45 }
+    const hecho: RiderDayState = { ...baseState(), ctl: 80, atl: 80 }
+    const ctx: RiderDayContext = {
+      ...context(0, 'absorber'),
+      age: 22,
+      choice: { session: 'puertos', intensity: 'fuerte' },
+    }
+    const subeFlaco = simulateRiderDay(flaco, ctx).state.attributes.MON - flaco.attributes.MON
+    const subeHecho = simulateRiderDay(hecho, ctx).state.attributes.MON - hecho.attributes.MON
+    expect(subeFlaco).toBeCloseTo(subeHecho * 0.8, 6)
   })
 })

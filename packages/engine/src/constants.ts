@@ -715,7 +715,7 @@
  * Campaña canónica de 500 corridas: **los 33 invariantes en verde**. La contrarreloj no se mueve ni
  * un dígito —es el ancla del esfuerzo individual y paga la ley lineal de siempre—.
  */
-export const ENGINE_VERSION = 54 as const
+export const ENGINE_VERSION = 55 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -1201,12 +1201,47 @@ export const TRAINING = {
   // K_talento = base + talento/100, en [0.6, 1.6].
   kTalentBase: 0.6,
   // K_intensidad.
-  kIntSuave: 0.7,
+  /**
+   * LA INTENSIDAD DEJA DE SER GRATIS (docs/entrenamiento.md §5.1).
+   *
+   * `fuerte` daba ×1,25 de ganancia y su único coste era el TSS, así que mientras el depósito
+   * aguantase dominaba SIEMPRE: no había ninguna decisión que tomar, solo apretar. Ahora la ganancia
+   * extra se estrecha (1,12) y el riesgo se ensancha (`kRiesgo` 1,3), que es lo que convierte la
+   * intensidad en un intercambio en vez de en un botón.
+   *
+   * `suave` sube de 0,70 a 0,80 por el otro lado del mismo argumento: afinar antes de una carrera
+   * tiene que costar poco, o nadie afina nunca.
+   */
+  kIntSuave: 0.8,
   kIntNormal: 1.0,
-  kIntFuerte: 1.25,
+  kIntFuerte: 1.12,
+  /** Cuánto multiplica cada intensidad el riesgo de romperse ese día. */
+  kRiesgoSuave: 0.9,
+  kRiesgoNormal: 1.0,
+  kRiesgoFuerte: 1.3,
   // K_ready: entrenar reventado apenas rinde.
+  /**
+   * LA FRESCURA DEJA DE SER UN ESCALÓN. Era un umbral seco en −30: a −29 se rendía igual que a 0 y a
+   * −31 se perdía el 75 % de golpe. Con eso la intensidad no se podía dosificar —no había ninguna
+   * señal entre «bien» y «desastre»— y el jugador solo podía aprender el número de memoria.
+   *
+   * Ahora es una rampa: 1 por encima de −15, bajando lineal hasta 0,4 en −35, y 0,25 por debajo.
+   */
+  kReadyTsbFull: -15,
+  kReadyTsbRamp: -35,
+  kReadyRampEnd: 0.4,
   kReadyTsbThreshold: -30,
   kReadyLow: 0.25,
+  /**
+   * UNA SESIÓN DEMASIADO GRANDE PARA LA BASE QUE UNO TIENE no se absorbe: se sufre. Castiga el
+   * bloque `fuerte` sobre un corredor sin fondo, que es exactamente lo que hace el humano recién
+   * creado cuando descubre que puede apretar todos los días.
+   */
+  kAbsorbFactor: 0.8,
+  kAbsorbCtlWeight: 1.5,
+  kAbsorbCtlOffset: 40,
+  /** Con molestias se entrena a medias; enfermo o lesionado, no se entrena. */
+  kSaludMolestias: 0.5,
   // K_dim: ganancias decrecientes hacia el techo personal.
   kDimCap: 1.2,
   kDimExponent: 1.3,

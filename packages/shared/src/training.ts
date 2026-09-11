@@ -20,6 +20,7 @@ export const SESSIONS = [
   'fondo',
   'umbral',
   'puertos',
+  'muros',
   'sprint',
   'crono',
   'bajada_paves',
@@ -71,34 +72,62 @@ export const SESSION_CATALOG: Record<Session, SessionInfo> = {
   fondo: {
     label: 'Endurance ride',
     tss: { suave: 70, normal: 90, fuerte: 110 },
-    gains: { RES: 0.45, LLA: 0.15 },
+    gains: { RES: 0.4, LLA: 0.15, REC: 0.1 },
     variableIntensity: true,
     group: true,
   },
   umbral: {
     label: 'Threshold',
     tss: { suave: 85, normal: 105, fuerte: 125 },
-    gains: { LLA: 0.4, COL: 0.2 },
+    /**
+     * MON 0,05 NO ESTABA EN LA TABLA DEL DISEÑO, y hacía falta: su propia regla dice que cada
+     * atributo físico tiene que tener al menos DOS sesiones que lo toquen, y con el catálogo tal
+     * como venía escrito **MON quedaba con una sola** (`puertos`). Un atributo con un solo camino
+     * es un atributo que una mala racha del entrenador deja sin tocar en todo el año, que es
+     * justamente lo que la regla existe para impedir.
+     *
+     * Va en `umbral` y no en otra parte porque el trabajo de umbral construye capacidad de subir, y
+     * porque es la única sesión donde cabía sin romper el presupuesto: sale de LLA (0,35 → 0,30),
+     * que tiene cuatro caminos, y el total de la sesión se queda en 0,60.
+     */
+    gains: { LLA: 0.3, CRI: 0.15, COL: 0.1, MON: 0.05 },
     variableIntensity: true,
     group: true,
   },
   puertos: {
     label: 'Climbing',
     tss: { suave: 90, normal: 115, fuerte: 140 },
-    gains: { MON: 0.45, RES: 0.15 },
+    gains: { MON: 0.4, RES: 0.15, DES: 0.05 },
+    variableIntensity: true,
+    group: true,
+  },
+  /**
+   * LOS MUROS, que es la sesión que faltaba (v55). El catálogo tenía `puertos` para el puerto largo
+   * y `sprint` para el embalaje, y entre los dos hay un tipo de esfuerzo entero —la rampa corta y
+   * brutal de una clásica— que no se podía entrenar: COL solo tenía UN camino (`umbral`, y de
+   * refilón) y un puncheur no tenía dónde trabajar lo suyo.
+   *
+   * Es también la pieza que hace verdad la regla nueva del catálogo: **cada atributo físico tiene
+   * al menos dos sesiones que lo tocan**. Con un solo camino, una mala tirada del entrenador dejaba
+   * un atributo sin entrenar en todo el año.
+   */
+  muros: {
+    label: 'Punchy climbs',
+    tss: { suave: 75, normal: 95, fuerte: 115 },
+    gains: { COL: 0.4, SPR: 0.1, PAV: 0.05 },
     variableIntensity: true,
     group: true,
   },
   sprint: {
     label: 'Sprint intervals',
     tss: { suave: 60, normal: 75, fuerte: 90 },
-    gains: { SPR: 0.45, COL: 0.1 },
+    gains: { SPR: 0.45, COL: 0.1, LLA: 0.05 },
     variableIntensity: true,
   },
   crono: {
     label: 'Time-trial work',
     tss: { suave: 60, normal: 80, fuerte: 100 },
-    gains: { CRI: 0.45 },
+    gains: { CRI: 0.45, LLA: 0.1 },
     variableIntensity: true,
   },
   bajada_paves: {
@@ -108,11 +137,16 @@ export const SESSION_CATALOG: Record<Session, SessionInfo> = {
     variableIntensity: true,
     group: true,
   },
-  gimnasio: { label: 'Gym', tss: fixed(50), gains: { SPR: 0.2 }, variableIntensity: false },
+  gimnasio: {
+    label: 'Gym',
+    tss: fixed(50),
+    gains: { SPR: 0.15, COL: 0.1 },
+    variableIntensity: false,
+  },
   video_tactica: {
     label: 'Video & tactics',
     tss: fixed(10),
-    gains: { TAC: 0.3 },
+    gains: { TAC: 0.2 },
     variableIntensity: false,
     group: true,
   },

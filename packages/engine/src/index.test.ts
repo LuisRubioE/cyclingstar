@@ -297,6 +297,11 @@ describe('engine: esqueleto', () => {
     // líder ataque en el desenlace es la carrera— y el castigo escala con la distancia real en la
     // general. El veto TIRA EL DADO igualmente, así que el flujo `rngTactics` no se corre y las
     // huellas de `attribution.test.ts` y `timetrial.test.ts` salen idénticas dígito a dígito: sus
+    // v55: la intensidad deja de ser gratis. `fuerte` daba ×1,25 de ganancia con el TSS como único
+    // coste, así que mientras el depósito aguantase dominaba siempre y no había decisión que tomar.
+    // Ahora 1,12 de ganancia contra 1,3 de riesgo. La frescura pasa de escalón a rampa (a −29 se
+    // rendía como fresco y a −31 se perdía el 75 % de golpe), entra `muros` —COL solo tenía un
+    // camino— y ninguna sesión que no quepa en la base que uno tiene se absorbe entera.
     // v54: un solo reloj de edad, pero por CLASE de atributo. `kAge` daba el mismo número al esprint
     // y al fondo del mismo corredor, y eso no podía representar «mejora en cosas diferentes». Tres
     // clases: motor rápido (SPR, CRI, COL), motor lento (RES, REC, LLA, MON) y oficio (DES, PAV,
@@ -318,6 +323,6 @@ describe('engine: esqueleto', () => {
     // v11 (atribución del trabajo), la v10 (composición y caza), la v9 (capa táctica), la
     // v8 (tiempos de grupo), la v7 (modelo de final), la v6 (telemetría), la v5 (clásica larga), la
     // v4 (pavé en el recorrido) y la v3 (Cambio 0).
-    expect(ENGINE_VERSION).toBe(54)
+    expect(ENGINE_VERSION).toBe(55)
   })
 })

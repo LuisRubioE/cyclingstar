@@ -10575,3 +10575,66 @@ son es la palanca.
 Esto tiene una consecuencia práctica para el paso 12: **las bandas de `curvaEdad*` no se pueden
 sellar hasta después del paso 5**, porque hoy miden un mundo sin margen y darían el número
 equivocado.
+
+---
+
+## v59 §4 — La intensidad deja de ser gratis, y el brazo de política empieza a separar
+
+`ENGINE_VERSION` **54 → 55**. Migración `0034`: `ALTER TYPE training_session ADD VALUE 'muros'`.
+
+### Qué cambia
+
+**`fuerte` era un botón, no una decisión.** Daba ×1,25 de ganancia y su único coste era el TSS, así
+que mientras el depósito aguantase dominaba siempre. Ahora es un intercambio: **1,12 de ganancia
+contra 1,3 de riesgo** de romperse ese día. Y `suave` sube de 0,70 a 0,80 por el otro lado del mismo
+argumento: si afinar antes de una carrera cuesta un 30 %, nadie afina nunca.
+
+**La frescura pasa de escalón a rampa.** Era un umbral seco en −30: a −29 se rendía como fresco y a
+−31 se perdía el 75 % de golpe, así que no había ninguna señal entre «bien» y «desastre» y el jugador
+solo podía aprenderse el número de memoria. Ahora: 1 por encima de −15, lineal hasta 0,4 en −35, 0,25
+por debajo.
+
+**`kAbsorb`, y es la propiedad que de verdad cambia el juego.** Una sesión que no cabe en la base que
+uno tiene se absorbe al 80 %. Consecuencia, fijada en una prueba: con CTL 45 —el de un chaval recién
+creado— `fondo fuerte` son 110 TSS contra un listón de 107,5, así que **apretar rinde 1,12 × 0,8 =
+0,896: menos que no apretar**. Machacarse deja de ser la estrategia obvia y pasa a ser un error que
+se paga.
+
+**Entra `muros`** (rampas cortas), que era el tipo de esfuerzo que faltaba entre el puerto largo y el
+embalaje, y con él cada atributo físico tiene al menos dos sesiones que lo tocan.
+
+### Un fallo en la tabla del propio diseño
+
+El diseño escribe la regla —«ganancias secundarias para que cada atributo físico tenga ≥ 2 caminos»—
+y **su propia tabla no la cumple**: con el catálogo tal como venía, `MON` quedaba con **una sola**
+sesión (`puertos`). Lo cazó la prueba que comprueba la regla, que es para lo que estaba.
+
+Arreglado donde cabía sin romper el presupuesto: `umbral` gana `MON 0,05` a costa de `LLA` (0,35 →
+0,30, que tiene cuatro caminos), y el total de la sesión se queda en 0,60. `TAC` queda fuera de la
+regla a propósito y con razón escrita: su segundo camino no es una sesión, es **correr**.
+
+De paso, la lista de sesiones de la API dejó de estar copiada a mano —era la tercera con los mismos
+once nombres— y se deriva del catálogo. Añadir una sesión ya no la deja fuera de la pantalla en
+silencio.
+
+### El brazo de política empieza a separar (15 temporadas)
+
+| Arm     | media t15 | días enfermo/año t15 |
+| ------- | --------: | -------------------: |
+| `bot`   |     62,38 |                 3,33 |
+| `buena` |     62,11 |             **3,11** |
+| `mala`  |     60,19 |             **4,25** |
+
+En el paso 1 los tres enfermaban **igual** (3,26 / 3,25 / 3,29): entrenar como un animal salía gratis
+en salud. Ahora `mala` enferma un **28 % más** que el bot y `buena` un 7 % menos. El mecanismo existe
+y discrimina, que es lo que no pasaba.
+
+**Sigue sin cumplirse la banda del diseño** («`mala` ≥ 2× días enfermo»): vamos por 1,28×. Y `buena`
+sigue **0,27 por debajo** del bot en media, cuando el diseño pedía que lo superase. Las dos cosas se
+dicen en vez de redondearse:
+
+- El 2× necesita el **paso 7** (lesión por sobrecarga, molestias, `strainDays`), que es donde vive el
+  resto del castigo. Hoy la única vía de romperse es enfermar.
+- Que `buena` no gane es esperable y no es el veredicto final: la `buena` de este brazo es una
+  aproximación escrita a mano para tener contra qué medir, no el entrenador v2. El entrenador de
+  verdad —con bloques, razón y objetivo— es el **paso 8**, y la comparación que cuenta es ésa.

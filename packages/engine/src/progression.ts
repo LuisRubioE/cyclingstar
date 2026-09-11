@@ -73,6 +73,38 @@ function kIntensity(intensity: TrainingChoice['intensity']): number {
   return TRAINING.kIntNormal
 }
 
+/** Lo que la intensidad le hace al riesgo de romperse. La otra mitad del intercambio. */
+function kRiesgo(intensity: TrainingChoice['intensity']): number {
+  if (intensity === 'suave') return TRAINING.kRiesgoSuave
+  if (intensity === 'fuerte') return TRAINING.kRiesgoFuerte
+  return TRAINING.kRiesgoNormal
+}
+
+/**
+ * LA FRESCURA, EN RAMPA Y NO EN ESCALÓN (docs/entrenamiento.md §4.3). Entre −15 y −35 se pierde
+ * ganancia de forma continua, que es lo que permite dosificar: antes, a −29 se rendía como fresco y
+ * a −31 se perdía el 75 % de golpe.
+ */
+export function kReady(tsb: number): number {
+  if (tsb >= TRAINING.kReadyTsbFull) return 1
+  if (tsb <= TRAINING.kReadyTsbRamp) return TRAINING.kReadyLow
+  const t = (tsb - TRAINING.kReadyTsbFull) / (TRAINING.kReadyTsbRamp - TRAINING.kReadyTsbFull)
+  return 1 + t * (TRAINING.kReadyRampEnd - 1)
+}
+
+/** La sesión que no cabe en la base que uno tiene. */
+function kAbsorb(tssHoy: number, ctl: number): number {
+  return tssHoy > TRAINING.kAbsorbCtlWeight * ctl + TRAINING.kAbsorbCtlOffset
+    ? TRAINING.kAbsorbFactor
+    : 1
+}
+
+/** Entrenar con el cuerpo a medias rinde a medias. */
+function kSalud(health: RiderDayState['health']): number {
+  if (health === 'molestias') return TRAINING.kSaludMolestias
+  return health === 'sano' ? 1 : 0
+}
+
 /**
  * EL RELOJ DE EDAD, AHORA POR CLASE DE ATRIBUTO (docs/entrenamiento.md §4.1).
  *
@@ -133,7 +165,8 @@ export function simulateRiderDay(state: RiderDayState, ctx: RiderDayContext): Ri
 
   // Riesgo de enfermar si está sano (SPEC 4.3): el sobreentrenamiento duele por aquí.
   if (!ill) {
-    if (ctx.rng() < illnessProbability(ctx.fragility, tsb)) {
+    // El riesgo lleva ya el precio de la intensidad: apretar el día que estás hundido cuesta más.
+    if (ctx.rng() < illnessProbability(ctx.fragility, tsb) * kRiesgo(ctx.choice.intensity)) {
       health = 'enfermo'
       healthUntilDay = ctx.gameDay + uniformInt(ctx.rng, TRAINING.illDaysMin, TRAINING.illDaysMax)
       ill = true
@@ -147,7 +180,9 @@ export function simulateRiderDay(state: RiderDayState, ctx: RiderDayContext): Ri
     const info = SESSION_CATALOG[ctx.choice.session]
     tss = sessionTss(ctx.choice)
     activity = ctx.choice.session
-    const kReady = tsb < TRAINING.kReadyTsbThreshold ? TRAINING.kReadyLow : 1
+    const listo = kReady(tsb)
+    const absorbe = kAbsorb(tss, state.ctl)
+    const salud = kSalud(health)
     const kInt = kIntensity(ctx.choice.intensity)
     const kTal = kTalent(ctx.talent)
     for (const attr of ATTRIBUTES) {
@@ -163,7 +198,9 @@ export function simulateRiderDay(state: RiderDayState, ctx: RiderDayContext): Ri
         ctx.kInst *
         ctx.kStaff *
         kGroup *
-        kReady *
+        listo *
+        absorbe *
+        salud *
         kInt
       if (delta > 0) {
         attributes[attr] = Math.min(ceiling, attributes[attr] + delta)

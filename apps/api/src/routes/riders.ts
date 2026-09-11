@@ -38,6 +38,7 @@ import {
 import { formStars, freshnessBar, generateRiderGenome } from '@cyclingstar/engine'
 import {
   PLAYER_START_AGE,
+  SESSIONS,
   birthSeasonForAge,
   currentSeason,
   isKnownCountry,
@@ -69,19 +70,12 @@ const archetypeSchema = z.object({ archetype: vocationSchema })
 
 const orderSchema = z.object({
   gameDay: z.number().int().positive(),
-  session: z.enum([
-    'descanso_total',
-    'descanso_activo',
-    'fondo',
-    'umbral',
-    'puertos',
-    'sprint',
-    'crono',
-    'bajada_paves',
-    'gimnasio',
-    'video_tactica',
-    'viaje',
-  ]),
+  /**
+   * DERIVADO DEL CATÁLOGO, no copiado a mano. Era la tercera lista con los mismos once nombres —el
+   * catálogo, el enum de la base y ésta— y la que se quedaba atrás: añadir una sesión la dejaba
+   * fuera y la pantalla no podía pedirla, sin que nada fallara al compilar.
+   */
+  session: z.enum(SESSIONS),
   intensity: z.enum(['suave', 'normal', 'fuerte']),
 })
 /** Cola de entrenamiento: la comparten el planificador propio y el plan sugerido del equipo. */

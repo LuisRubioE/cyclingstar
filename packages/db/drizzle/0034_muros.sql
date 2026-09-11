@@ -1,0 +1,1 @@
+ALTER TYPE "public"."training_session" ADD VALUE 'muros' BEFORE 'sprint';

@@ -355,6 +355,7 @@ export const sessionEnum = pgEnum('training_session', [
   'fondo',
   'umbral',
   'puertos',
+  'muros',
   'sprint',
   'crono',
   'bajada_paves',
