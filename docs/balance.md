@@ -11482,3 +11482,158 @@ decisión del dueño escrita en «v59 §12».
 **101 pruebas de los cinco bancos en verde**, 42 minutos, y **ninguna banda de `sim/targets.ts`
 tocada** pese a que el reparto de roles cambia en todas las carreras del banco de vueltas pequeñas.
 Las 17 aserciones del banco de mundo selladas en el paso 12 también aguantan sin moverse.
+
+## v60 §0 — Paso 0 de la táctica: la red de medida, y cinco respuestas que no teníamos
+
+`ENGINE_VERSION` **63 → 63**: este paso **no toca el motor**. Monta la red con la que se van a medir
+los veintiún pasos siguientes y toma la foto de antes. Sin ella, cada paso posterior se atribuiría
+sus movimientos de memoria.
+
+**Y la versión no arranca donde el plan decía.** §8 escribe que este documento «arranca en 61»,
+porque contaba nueve subidas para `entrenamiento.md`. Fueron **once**: el paso 11 tuvo que subir para
+arreglar los bloques del entrenador —que no hacían lo que su columna prometía— y las decisiones 25 y
+22 se cerraron en una tanda propia. Así que la táctica arranca en **63**. Se dice aquí para que las
+dos numeraciones se puedan cruzar, que es justo lo que §8 pedía.
+
+### `finalKindOf`: la función que tres sitios citaban y no existía en ninguno
+
+La hipótesis de R28.2, el `queenFinalKindMix` del paso 1 y la partición de `medianLeadGroupRiders` en
+`realQueens` la nombraban las tres. **Una hipótesis que no se puede llamar no es una hipótesis: es
+una opinión con nombre técnico.**
+
+Con ella, la geometría de **las 157 reinas del calendario entero** —que cuesta ≈ 0 porque es recorrer
+segmentos, no simular, y por eso se hace sobre las 157 y no sobre la muestra de 27—:
+
+| Tipo de final | Etapas |        % |
+| ------------- | -----: | -------: |
+| `alto`        | **89** | **56,7** |
+| `cima_cerca`  |      4 |      2,5 |
+| `valle_corto` |     55 |     35,0 |
+| `valle_largo` |      9 |      5,7 |
+
+Km tras la última cota: **mediana 0,0 · p90 19,0 · máx 94,0**. Las dos bandas que §7.5 pide sobre las
+generadas —mediana ≤ 8 y p90 ≤ 25— se cumplen.
+
+Y un aviso que el diseño no anticipó: **§7.5 daba por hecho que solo `valle_largo` quedaría flojo de
+muestra**, y la cubeta escuálida es la otra: `cima_cerca` son **4 etapas de 157**, o sea **una sola**
+en la muestra que se simula.
+
+### R28.2 SE CONFIRMA — y la magnitud no es la que afirmaba
+
+Win-rate del escalador (MON ≥ p85) por tipo de final, muestra de 27 × 8 semillas (≈ 216 etapas, una
+vez, fuera de CI):
+
+| Tipo de final | Etapas | Corridas | Gana el escalador |
+| ------------- | -----: | -------: | ----------------: |
+| `alto`        |     14 |      112 |        **72,3 %** |
+| `cima_cerca`  |      1 |        8 |            62,5 % |
+| `valle_corto` |     10 |       80 |            63,8 % |
+| `valle_largo` |      2 |       16 |        **50,0 %** |
+| global        |     27 |      216 |            67,1 % |
+
+**Monótona decreciente y con el signo que R28.2 predice**, así que `queenFinalMix` está justificado y
+el paso 1 va entero.
+
+**Pero el recorrido de 22 puntos se apoya en una cubeta de 16 corridas, y eso hay que decirlo.** Con
+n = 8 (`cima_cerca`), una victoria arriba o abajo son 12,5 puntos: ese 62,5 % no informa de nada.
+Entre las dos cubetas bien pobladas —`alto` con 112 corridas y `valle_corto` con 80— la diferencia es
+de **8,5 puntos**. Ésa es la parte sólida. La dirección se confirma; los «20 puntos de win-rate» que
+el diseño afirmaba, no.
+
+### `smallRaces.ts`: el banco de lo que el dueño mira de verdad
+
+`smallTours` arma el campo por NIVEL: una continental son 18 equipos de 7, o sea 126 corredores. Lo
+que el dueño mira —y de donde sale la queja que abre el rediseño— es **una .2 con seis equipos de
+cinco**. En un pelotón de 126 una fuga de nueve es el 7 % del campo y casi nunca lleva dos de la
+misma casa; en uno de 30 es el 30 %, y la superioridad numérica dentro de ella es el hecho central.
+
+**Dos de las cuatro carreras que §7.2 nombraba no valen**: `almeria` y `aulne` son carreras de **un
+solo día** en el calendario de hoy, y el propio §7.2 pide «8 carreras reales de 3-5 etapas». Se
+conservan `wallonia` (la de la queja) y `sharjah` (el campo máximo) y las otras seis se eligen con el
+criterio escrito: 3, 4 y 5 etapas, de 24 a 60 corredores, WT / PRS / CON.
+
+Primera foto (8 carreras × 4 semillas, 128 etapas):
+
+| Métrica                      | Medido |
+| ---------------------------- | -----: |
+| Gana la carretera            | 48,4 % |
+| Fuga: corredores (mediana)   |  **3** |
+| Fuga: **casas** (mediana)    |  **3** |
+| Un equipo mete 2+ en la fuga | 28,1 % |
+| Alguien gana 2+ etapas       | 78,1 % |
+
+**La fuga mediana es de tres corredores y tres casas, no de nueve y seis.** La queja describía una
+carrera que este motor no produce: el campo pequeño no genera fugas grandes.
+
+Y el `78,1 %` es la vieja queja viva: en casi cuatro de cada cinco carreras pequeñas alguien gana dos
+etapas o más.
+
+### `duelBench.ts`, y la medida que resume el rediseño entero
+
+| Escenario            |   n | Gana la mayoría | Azar puro |  Ventaja |
+| -------------------- | --: | --------------: | --------: | -------: |
+| pareja contra suelto | 400 |      **67,5 %** |    66,7 % | **+0,8** |
+
+**Ser dos de tres en una fuga vale ocho décimas de punto.** No es que la superioridad numérica esté
+mal calibrada: **no existe**. Ése es el suelo contra el que habrá que leer el 72-88 % que R02 promete,
+y tenerlo escrito antes de tocar nada es la diferencia entre atribuir una mejora y suponerla.
+
+### `ordersBench.ts`: las siete palancas, pareadas
+
+El método es el pareado —mismo hombre, mismo campo, misma semilla, **una palanca cambiada**— porque
+`diseno/mapa-bancos.md` §7.21 avisa de que con doce semillas «todo lo más fino que 2-4 puntos está
+dentro del ruido». Una mediana pareada es casi determinista; una media cruda no.
+
+| Palanca           | Movió en | Δpuesto | Δtrabajo | Δpuntos (si movió) |
+| ----------------- | -------: | ------: | -------: | -----------------: |
+| `mentality`       |    12/12 |    −0,5 |     +2,8 |               −1,5 |
+| `effort`          |    12/12 | **0,0** | **+5,4** |               +6,0 |
+| `role` cazaetapas |    12/12 |   −10,5 |     +1,5 |               +5,0 |
+| `role` líder      |    12/12 |    −9,5 |     −0,8 |               +3,0 |
+| `contestSprints`  | **1/12** |     0,0 |      0,0 |          **+15,0** |
+| `contestClimbs`   | **0/12** |     0,0 |      0,0 |                0,0 |
+| `triggerKm`       |    12/12 |    −9,0 |     −0,6 |               +2,0 |
+
+Tres lecturas, y las tres son distintas:
+
+1. **El rol y el `triggerKm` funcionan**: diez puestos de mejora, que es una palanca de verdad.
+2. **`effort` cuesta y no paga**: `a_tope` contra `ahorrar` gasta **+5,4 de trabajo** y termina en el
+   **mismo puesto**. Es la queja del dueño —«el resultado es casi lo mismo ponga lo que ponga ahí»—
+   medida, y con el agravante de que sí tiene precio.
+3. **`contestSprints` no está desconectada: está CONDICIONADA.** Cuando el grupo del corredor disputa
+   la pancarta, la palanca es decisiva: **+15 puntos**, porque al ser el único interesado se lleva el
+   banner entero. Lo que pasa es que en un pelotón de 88 con una fuga por delante, la volante se la
+   disputa la fuga. Las dos cosas se arreglan de formas distintas, y una mediana sobre doce semillas
+   las confunde.
+
+**Y `contestClimbs` sí está muerta, verificada en el código y no inferida del número**: `disputeBanner`
+la lee, pero solo se llama para las metas volantes. Las cimas van por `disputeClimb`, que ordena
+`g.members` **directamente** y no consulta la orden en ninguna línea. El jugador marca la casilla y el
+motor no se entera. El diseño ya lo sabía —«`contestClimbs` respetado» es trabajo del paso 10—; aquí
+queda medido.
+
+### Dos errores de banco cazados antes de publicar, que también van escritos
+
+Los dos habrían producido un hallazgo falso con pinta de hallazgo bueno:
+
+1. **La primera versión de `ordersBench` corría sobre una llana SIN PANCARTAS.** `contestSprints` y
+   `contestClimbs` salían moviendo 0 de 12, y no era el motor: era que no había nada que disputar.
+   Una palanca solo se puede medir donde significa algo.
+2. **Y luego las medía contra el PUESTO.** Lo que hacen es cambiar quién disputa un banner, o sea
+   puntos, y el puesto en meta no se entera. Un banco que mide la magnitud equivocada publica un cero
+   tan falso como el de un botón roto, y encima con la apariencia de un resultado.
+
+### El reloj de CI, que §7.7 no tenía… y que estaba mal por cinco veces
+
+`ci.yml` lleva escrito en un comentario que `packages/engine/src/sim/` son «3 ficheros, 69 pruebas,
+**536 s**» y el resto «95 ficheros, 1.201 pruebas, **102 s**». Medido hoy:
+
+| Job           | Comentario de `ci.yml` |                                 Medido |   Factor |
+| ------------- | ---------------------: | -------------------------------------: | -------: |
+| `test:bancos` |        536 s (3 fich.) |     **2.546 s** (5 fich., 101 pruebas) | **×4,7** |
+| `test:rapido` |       102 s (95 fich.) | **≈ 440 s** (115 fich., 1.468 pruebas) | **×4,3** |
+
+El número del que colgaba la decisión de partir `ci.yml` estaba desfasado casi cinco veces. La
+partición **no se decide aquí**: se decide con estos números y con los que falten, que es exactamente
+lo que la casilla (i) del paso 0 manda —«partición de `ci.yml` decidida con los números medidos, no
+antes»—.
