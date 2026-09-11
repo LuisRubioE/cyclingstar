@@ -279,7 +279,7 @@ export function simulateTimeTrial(input: StageInput, seed: string): StageOutput 
       work += cost
     }
     workUnits.set(rider.riderId, work)
-    tank.set(rider.riderId, tankState(energy, rider.energy, eff0.RES))
+    tank.set(rider.riderId, tankState(energy, rider.energy, eff0.RES, eff0.REC))
     efforts.set(rider.riderId, {
       // El que va solo contra el crono da la cara los kilómetros ENTEROS del recorrido.
       kmAlFrente: blocks.length * STAGE.dx,

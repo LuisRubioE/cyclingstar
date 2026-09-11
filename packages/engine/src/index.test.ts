@@ -297,6 +297,13 @@ describe('engine: esqueleto', () => {
     // líder ataque en el desenlace es la carrera— y el castigo escala con la distancia real en la
     // general. El veto TIRA EL DADO igualmente, así que el flujo `rngTactics` no se corre y las
     // huellas de `attribution.test.ts` y `timetrial.test.ts` salen idénticas dígito a dígito: sus
+    // v62: la tanda de etapa de las decisiones 4 y 5 del dueño, los tres cambios juntos. REC entra
+    // en el VACIADO PROFUNDO —umbral 0,06 + 0,12·(1 − REC/100), que en REC 50 da exactamente el 0,12
+    // plano de antes— y en el UMBRAL DE TSB de los cerillos (−25 − 0,2·(REC − 50)); y CRI entra en el
+    // remate `solitario`, que es el único donde se corre contra el crono y contra nadie más. Los tres
+    // van juntos a propósito: la versión anterior del diseño metía el primero SOLO en la
+    // reconstrucción de producción y pasaba `false` en los bancos, o sea un cambio de cerillos en la
+    // carretera real que ninguna banda podía ver.
     // v61: los bloques del entrenador pasan a ser los de §5.4 de verdad, y dos de los cinco no
     // hacían lo que su columna prometía. El `afinado` llegaba a TSB +26 —pasarse de fresco, que en
     // `tsbFactor` ya cuesta rendimiento— cuando su único propósito es llegar a +5/+15; y como la
@@ -355,6 +362,6 @@ describe('engine: esqueleto', () => {
     // v11 (atribución del trabajo), la v10 (composición y caza), la v9 (capa táctica), la
     // v8 (tiempos de grupo), la v7 (modelo de final), la v6 (telemetría), la v5 (clásica larga), la
     // v4 (pavé en el recorrido) y la v3 (Cambio 0).
-    expect(ENGINE_VERSION).toBe(61)
+    expect(ENGINE_VERSION).toBe(62)
   })
 })

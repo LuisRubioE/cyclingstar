@@ -11333,3 +11333,74 @@ ya no queda nadie con quien comparar. Se lee en la **temporada 5**, que es donde
   siendo Pogačar, y las carreras enseñan según su nivel— y **dos abiertos**, los dos por decisión del
   dueño y no por falta de trabajo: el tercio sin 4★ (arriba) y «balancear entrenamiento y carreras»,
   que necesita la palanca de la decisión 23.
+
+## v62 — La tanda de etapa: REC en la carretera y CRI en el que llega solo
+
+`ENGINE_VERSION` **61 → 62**. Son las **decisiones 4 y 5 del dueño**, y los tres cambios van juntos
+porque separarlos era el defecto: la versión anterior del diseño metía uno de los tres —REC en el
+vaciado profundo— **solo en la reconstrucción de producción**, pasando `false` en los bancos. O sea un
+cambio de cerillos en la carretera real **que ninguna banda podía ver**. Esa asimetría es lo único que
+no se podía quedar: «si el cambio saca un objetivo de banda, el que está mal es el cambio» no se le
+puede aplicar a un cambio que no tiene banda.
+
+### Los tres
+
+| Qué                        | Antes                                 | Ahora                                               | En REC 50 |
+| -------------------------- | ------------------------------------- | --------------------------------------------------- | --------- |
+| Umbral de vaciado profundo | 0,12 plano                            | `0,06 + 0,12·(1 − REC/100)`                         | **0,12**  |
+| Umbral de TSB de cerillos  | −25 plano                             | `−25 − 0,2·(REC − 50)`                              | **−25**   |
+| Remate `solitario`         | RES ,35 · LLA ,30 · TAC ,20 · MON ,15 | RES ,30 · LLA ,20 · **CRI ,15** · TAC ,20 · MON ,15 | —         |
+
+Los dos de REC están **centrados en 50**, que es el REC medio del campo, y eso no es un detalle: en
+REC 50 dan exactamente el número plano de antes, así que **redistribuyen cerillos entre corredores en
+vez de dárselos o quitárselos al pelotón entero**. Si no estuvieran centrados, el cambio sería una
+subida encubierta del nivel de todo el mundo disfrazada de matiz. Está probado como tal, no supuesto.
+
+REC 90 pide bajar al 7,2 % del depósito para pagarlo mañana y aguanta hasta −33 de TSB sin perder
+cerillo; REC 20 lo paga ya al 15,6 % y pierde el cerillo en −21. Es el mismo atributo diciendo lo
+mismo en la carretera que en el Banister.
+
+**CRI en el `solitario`** sale de RES (0,35 → 0,30) y de LLA (0,30 → 0,20), que eran las dos que
+hacían de contrarreloj sin llamarse contrarreloj. El que llega solo no disputa un remate: sostiene un
+esfuerzo contrarreloj hasta la pancarta, y el atributo que mide eso ya existía.
+
+### Lo que mueve, medido (6 grandes vueltas)
+
+| Cola de la carrera (% del ganador) |   v61 |  v62 |     Δ |
+| ---------------------------------- | ----: | ---: | ----: |
+| **reina** (`queenLastGroupPct`)    | 10,87 | 9,96 | −0,91 |
+| media montaña                      |  5,73 | 4,56 | −1,17 |
+| llana                              |  0,76 | 1,40 | +0,64 |
+
+**La predicción de §6 decía «±0,5 alrededor del 8,07» y la medición da −0,91: se queda corta por
+algo más del doble, y hay que decirlo.** Lo que sí acierta es lo que importaba —la dirección y que la
+banda aguanta—: 9,96 está en mitad del **8-14** de `sim/targets.ts`, lejos del suelo de 8 que el dueño
+confirmó el 10-09-2026. El suelo no se toca, que es exactamente lo que §6 se comprometió a no hacer.
+
+La llana casi dobla su cola (0,76 → 1,40) y es coherente con el mecanismo: en una llana el pelotón
+llega junto y la cola la marcan los pocos que se descuelgan, así que redistribuir cerillos se nota
+más ahí en términos relativos que en una reina, donde la cola ya es grande.
+
+### Las huellas selladas NO se movieron, y merece explicación
+
+Se esperaba que CRI en el `solitario` moviera las cuatro huellas de `attribution.test.ts`, y el
+diseño dejó dicho que re-sellarlas con la causa escrita sería legítimo. **No hizo falta**: los
+escenarios sintéticos de `sim/scenarios.ts` no terminan con un corredor solo en un grupo de uno, que
+es la única condición con la que `finishType` devuelve `solitario`. Un peso que no se evalúa no mueve
+un dígito.
+
+Es una no-noticia que vale la pena escribir: el plan predijo un movimiento, no ocurrió, y la razón no
+es que el cambio sea inocuo —la cola de la reina se mueve casi un punto— sino que **esas huellas no
+miran ahí**. Saber qué NO vigila una prueba sellada es la mitad de saber qué vigila.
+
+### Una prueba que se puso roja, y que tenía que ponerse
+
+`physics.test.ts` pedía que un corredor de 90 en TODO perdiera un cerillo a TSB −30, y ya no lo
+pierde: con REC 90 su umbral está en −33. **No es que la prueba se rompiera, es lo que el cambio
+hace.** Se reescribe con el umbral de cada uno —y sobre el corredor MEDIO, donde el −25 de siempre
+tiene que sobrevivir intacto—, más la aserción que impide que REC se convierta en inmunidad: a −35 el
+de REC 90 lo paga igual.
+
+### Estado del banco
+
+**101 pruebas de los cinco bancos en verde**, 42 minutos. Ninguna banda de `sim/targets.ts` tocada.

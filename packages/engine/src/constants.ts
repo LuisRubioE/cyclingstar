@@ -715,7 +715,7 @@
  * Campaña canónica de 500 corridas: **los 33 invariantes en verde**. La contrarreloj no se mueve ni
  * un dígito —es el ancla del esfuerzo individual y paga la ley lineal de siempre—.
  */
-export const ENGINE_VERSION = 61 as const
+export const ENGINE_VERSION = 62 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -2303,7 +2303,19 @@ export const STAGE = {
   matchBase: 2,
   matchThresholds: [55, 72, 88],
   matchMin: 1,
-  matchTsbPenaltyThreshold: -25,
+  /**
+   * EL UMBRAL DE TSB QUE QUITA UN CERILLO, Y AHORA DEPENDE DE **REC** (v62, decisión 4 del dueño).
+   *
+   * Era un −25 plano, así que la recuperación —el atributo cuyo trabajo es exactamente ése— no
+   * decía nada sobre cuánto aguanta uno yendo cargado. `matchTsbPenaltyThreshold(REC) = −25 −
+   * 0,2·(REC − 50)`: con REC 90 el castigo llega a −33 y con REC 30 a −21.
+   *
+   * Está CENTRADO en 50, que es el REC medio del campo: redistribuye cerillos entre corredores, no
+   * se los quita ni se los da al pelotón entero. Por eso la predicción de §6 es que la cola de la
+   * reina se mueva ±0,5 y no que se desplace.
+   */
+  matchTsbPenaltyBase: -25,
+  matchTsbPenaltyRecScale: 0.2,
   // PENDIENTE DE IMPLEMENTAR (SPEC 6.6): parámetro definido pero sin efecto en la simulación.
   // Gastar un cerillo debería restar energía del tanque; hoy solo activa `matchBonus` durante
   // `matchBonusBlocks` bloques y no cuesta nada.
@@ -2358,10 +2370,22 @@ export const STAGE = {
   sprintRegimeFullTrains: 3,
   sprintRegimeSoloShare: 0.65,
   sprintRegimeMaxGradient: 2,
-  // PENDIENTE DE IMPLEMENTAR (SPEC 6.6): parámetro definido pero sin efecto en la simulación.
-  // Vaciado profundo: quien termina con E < 0.12·E0 debería arrancar la etapa siguiente con un
-  // cerillo menos. `matchCount(..., deepDepleted)` sabe aplicarlo, pero nadie calcula el flag.
-  matchDepletionThreshold: 0.12,
+  /**
+   * VACIADO PROFUNDO, Y TAMBIÉN POR **REC** (v62, decisión 4 del dueño).
+   *
+   * Quien termina por debajo de este umbral de su depósito arranca la etapa siguiente con un
+   * cerillo menos. Era un 0,12 plano —el flag ni siquiera lo calculaba nadie hasta la v47— y ahora
+   * es `0,06 + 0,12·(1 − REC/100)`: REC 50 da 0,12, que es exactamente el valor de antes, REC 90 da
+   * 0,072 y REC 20 da 0,156.
+   *
+   * O sea: al que recupera bien hay que vaciarlo MUCHO más para que lo pague al día siguiente. Es
+   * el mismo atributo diciendo lo mismo en la carretera que en el Banister, y por eso **el umbral
+   * es uno solo para el parte del motor y para producción**: la versión anterior de este diseño lo
+   * metía solo en la reconstrucción de `db/stageRun.ts`, o sea un cambio de cerillos en la carrera
+   * real que ninguna banda podía ver.
+   */
+  matchDepletionBase: 0.06,
+  matchDepletionRecScale: 0.12,
 
   // 6.7 — Erosión por vaciado (durabilidad).
   // depl = clamp(1 - E/E0, 0, 1); umbral = 0.07 + 0.40·RES/100.
@@ -3777,7 +3801,10 @@ export const STAGE = {
   // - pave: PAV y LLA, que es exactamente el perfil de un clasicómano del Norte, con TAC de
   //   colocación (en el adoquín se pierde la carrera por ir mal situado).
   // - descenso: DES y TAC mandan; el que baja y elige la trazada gana, aunque remate peor.
-  // - solitario: un grupo de uno no disputa nada, pero la fila existe para que el modelo sea total.
+  // - solitario: el que llega solo va contra el crono y contra nadie más, así que CRI entra (v62,
+  //   decisión 5 del dueño). Sale de RES (0,35 → 0,30) y de LLA (0,30 → 0,20), que eran las dos
+  //   que hacían de CRI sin llamarse CRI. Un grupo de uno no disputa un remate: lo que hace es
+  //   sostener un esfuerzo contrarreloj hasta la pancarta, y el atributo que mide eso existe.
   finishWeights: {
     sprint_masivo: { SPR: 0.66, LLA: 0.18, TAC: 0.16 },
     sprint_reducido: { SPR: 0.5, LLA: 0.15, TAC: 0.25, RES: 0.1 },
@@ -3785,7 +3812,7 @@ export const STAGE = {
     alto: { MON: 0.6, COL: 0.2, RES: 0.15, TAC: 0.05 },
     pave: { PAV: 0.5, LLA: 0.27, TAC: 0.15, SPR: 0.08 },
     descenso: { DES: 0.42, TAC: 0.25, SPR: 0.18, LLA: 0.15 },
-    solitario: { RES: 0.35, LLA: 0.3, TAC: 0.2, MON: 0.15 },
+    solitario: { RES: 0.3, LLA: 0.2, CRI: 0.15, TAC: 0.2, MON: 0.15 },
   },
   /**
    * EL ROL PESA EN EL REMATE, NO SOLO EN EL ATAQUE (v48).

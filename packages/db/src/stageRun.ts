@@ -265,7 +265,11 @@ export async function runOneStage(
     if (!rider) continue
     const prevEnergy0 = initialEnergy(row.ctl, row.tsb, rider.health)
     const spent = row.tss / STAGE.tssPerWorkUnit
-    if (isDeepDepleted(Math.max(0, prevEnergy0 - spent), prevEnergy0)) {
+    // El umbral de vaciado profundo va por REC desde la v62: al que recupera bien hay que vaciarlo
+    // mucho más para que lo pague hoy. Sin fila de atributos cae al 50 por defecto, que reproduce
+    // exactamente el umbral plano de antes.
+    const rec = attrsByRider.get(row.riderId)?.REC ?? 50
+    if (isDeepDepleted(Math.max(0, prevEnergy0 - spent), prevEnergy0, rec)) {
       deepDepletedYesterday.add(row.riderId)
     }
   }

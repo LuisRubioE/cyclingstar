@@ -5939,7 +5939,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
   const efforts = new Map<string, StageEffort>()
   for (const [id, s] of sims) {
     workUnits.set(id, s.work)
-    tank.set(id, tankState(s.energy, s.energy0, s.input.eff0.RES))
+    tank.set(id, tankState(s.energy, s.energy0, s.input.eff0.RES, s.input.eff0.REC))
     efforts.set(id, s.parte)
   }
 
