@@ -1479,7 +1479,11 @@ export const TRAINING = {
    * El 0,10 del final NO es un cero, y es deliberado: «se estancan» no es «se mueren». Sirve para
    * MITIGAR el declive de un veterano que sigue entrenando, no para que crezca.
    *
-   * [calibrar con banco]: `curvaEdadNeuro`, `curvaEdadAerobica`, `curvaEdadTAC`, `vets34vs28`.
+   * SELLADO EN EL PASO 12 con lo que el banco mide sobre seis mundos, no con lo que se quería:
+   * `curvaEdadAerobica` 0,88 / 0,98 · `curvaEdadNeuro` 0,92 / 0,95 · `curvaEdadTAC` +9,6 ·
+   * `vets34vs28` −3,26 (sd 1,97). Las cuatro bandas viven en `sim/world.test.ts` a m±2·sd, y las
+   * dos que §7.2 pedía más estrechas —`curvaEdadTAC ≥ 12` y `vets34vs28 ≤ −3`— no se cumplen y
+   * están declaradas en `docs/balance.md` «v59 §12» en vez de forzadas desde aquí.
    */
   kAgeByClass: {
     motor_rapido: {

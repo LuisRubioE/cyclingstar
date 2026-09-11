@@ -65,16 +65,22 @@ Diez atributos, valor interno `float` en `[1, 99]`:
 
 ### 3.2 Visibilidad: estrellas, nunca números
 
-El jugador jamás ve el valor interno. Toda magnitud expuesta (atributos, Forma, Frescura) se muestra en estrellas de media en media:
+El jugador jamás ve el valor interno. Toda magnitud expuesta se muestra en estrellas, pero **hay DOS escalas y no son la misma**, porque no miden lo mismo:
 
 ```
-stars(x) = clamp( round(x / 10) / 2 , 0.5 , 5 )      // x en [0,100]
+formStarsScale(x) = clamp( round(x / 10) / 2 , 0.5 , 5 )   // FORMA y FRESCURA
 // 85.64 -> round(8.564)=9 -> 4.5 estrellas
+
+attrStars(x)      // ATRIBUTOS: medias estrellas sobre las bandas del dominio
+// cortes enteros 17 / 34 / 51 / 67 / 84 ; medias en 9 / 25 / 42 / 59 / 75
 ```
 
-- Ciclista propio: estrellas exactas (redondeo fiel) más una flecha de tendencia si el atributo varió más de 0.5 puntos internos en los últimos 7 días de juego (subida, bajada o estable).
-- Ciclistas ajenos: informe de ojeador con ruido, `stars(x + N(0, 4))`, recalculado como máximo una vez por semana de juego. La imprecisión es deliberada: crea mercado de scouting.
-- Consecuencia de diseño: dentro de una misma media estrella caben hasta 5 puntos internos; dos corredores "iguales" a la vista no lo son. El jugador infiere su nivel real por resultados, no por hoja de cálculo.
+La forma es una magnitud continua de 0 a 100 sin umbrales de dominio, y su suelo de media estrella dice «siempre hay algo». Un atributo lleva los umbrales con los que se mide el mundo —«cinco estrellas» son 84 o más— y ahí el 0 existe: se puede no saber esprintar. Con el nombre genérico `stars()` las dos se confundían (`stars(84) = 4`, `attrStars(84) = 5`), y por eso la de la forma lleva ahora su apellido.
+
+- **Ciclista propio**: estrellas exactas, más una **marca de progreso de cuatro pasos** dentro de la banda (`attrProgress`) y una **flecha de tendencia**. La flecha usa una ventana de **28 días** y **cinco niveles** —`↑` ≥ +1,0 · `↗` ≥ +0,3 · `→` · `↘` ≤ −0,3 · `↓` ≤ −1,0—, no los 7 días y tres niveles que este SPEC pedía: a siete días manda el ruido de un solo bloque y con tres niveles no se distingue «no se mueve» de «sube despacio», que es justo lo que hace un atributo secundario (+0,3 en cuatro semanas). La fuente es `rider_attr_log`, que se purga a 60 días.
+- **Opinión del entrenador**, una por temporada y por atributo: `techo + N(0, σ)` cuantizado a tres frases (no pasa de 3★ / puede llegar a 4★ / tiene madera de 5★), con σ = 6 y σ = 3 a partir de los 24. Enseñar el techo mata la exploración; no enseñar nada deja «no sé si mejoro».
+- **Ciclistas ajenos**: estrellas exactas, como el propio pero **sin** marca, flecha ni opinión. El informe de ojeador con ruido `stars(x + N(0, 4))` **no está implementado y es una decisión abierta del dueño**: llegará el día que exista scouting como función, no antes.
+- Consecuencia de diseño: con estrella y marca, dos corredores «iguales» a la vista pueden separarse tres o cuatro puntos internos. El jugador infiere su nivel real por resultados, no por hoja de cálculo.
 
 ### 3.3 Estados dinámicos (internos, vista en estrellas o iconos)
 
@@ -93,6 +99,8 @@ stars(x) = clamp( round(x / 10) / 2 , 0.5 , 5 )      // x en [0,100]
 ### 3.5 Creación: vocación, no arquetipo
 
 El usuario declara una vocación, que sesga tanto los valores iniciales como los techos, sin garantizar élite vocacional. La estructura fina del genoma se descubre jugando (5.6).
+
+> **Los BOTS ya no nacen así (v56, `docs/entrenamiento.md` §3.3).** La génesis de los NPC sortea el **techo** —absoluto, genético— y deja que la edad decida qué parte está realizada, en vez de sortear el atributo y añadirle margen; y usa **ocho arquetipos** (las cinco vocaciones más puncheur, rodador y gregario) con cuotas de pelotón real. El humano sigue naciendo por vocación con la fórmula de abajo, que es lo que esta sección describe. Unificar las dos génesis es trabajo pendiente y **decisión del dueño**: hacerlo cambia la silueta de creación que el jugador ve.
 
 | Vocación | Primarios | Adyacentes |
 |---|---|---|
@@ -188,19 +196,30 @@ Eventos: victoria +12, podio +7, top10 +3, fuga del día +2, no convocado a carr
 
 ### 5.1 Catálogo de sesiones (carga TSS y ganancia base por día, intensidad normal)
 
+El catálogo implementado, que es el que manda (`packages/shared/src/training.ts`):
+
 | Sesión | TSS (suave/normal/fuerte) | Ganancia base `G` (puntos internos/día) |
 |---|---|---|
 | Descanso total | 0 | nada |
-| Descanso activo | 25 | nada |
-| Fondo | 70 / 90 / 110 | RES .45, LLA .15 |
-| Umbral | 85 / 105 / 125 | LLA .40, COL .20 |
-| Puertos | 90 / 115 / 140 | MON .45, RES .15 |
-| Series de sprint | 60 / 75 / 90 | SPR .45, COL .10 |
-| Técnica de crono | 60 / 80 / 100 | CRI .45 |
+| Descanso activo | 25 | REC .25 |
+| Fondo | 70 / 90 / 110 | RES .40, LLA .15, REC .10 |
+| Umbral | 85 / 105 / 125 | LLA .30, CRI .15, COL .10, MON .05 |
+| Puertos | 90 / 115 / 140 | MON .40, RES .15, DES .05 |
+| Muros | 75 / 95 / 115 | COL .40, SPR .10, PAV .05 |
+| Series de sprint | 60 / 75 / 90 | SPR .45, COL .10, LLA .05 |
+| Técnica de crono | 60 / 80 / 100 | CRI .45, LLA .10 |
 | Bajada y pavés | 55 / 70 / 85 | DES .30, PAV .30 |
-| Gimnasio | 50 | SPR .20 y reduce fragilidad efectiva 5% ese mes |
-| Vídeo y táctica | 10 | TAC .30 |
+| Gimnasio | 50 | SPR .15, COL .10, y reduce la fragilidad efectiva |
+| Vídeo y táctica | 10 | TAC .20 |
 | Viaje | 15 | nada |
+
+Tres diferencias con la tabla original de este SPEC, todas con su porqué en `docs/entrenamiento.md` §5.1:
+
+- **`descanso_activo` entrena REC**, que antes no lo entrenaba NADIE: REC acorta la constante de tiempo de la fatiga y cuenta cerillas, o sea que era un atributo real congelado de por vida en su valor de nacimiento. Va en el descanso activo y no en el total porque la capacidad de recuperar se construye rodando suave, no tumbado.
+- **Existen los `muros`**, que es el esfuerzo entre el puerto largo y el embalaje. Sin ellos COL tenía un solo camino y un puncheur no tenía dónde trabajar lo suyo.
+- **Regla nueva del catálogo: cada atributo físico tiene al menos DOS sesiones que lo tocan.** Con un solo camino, una mala racha del entrenador deja un atributo sin entrenar en todo el año. Es la razón del MON .05 del umbral, que no estaba.
+
+**Los bloques semanales** (`blockWeek`) son la unidad con la que el jugador y el entrenador planifican: `base` · `construccion` · `especifico` · `afinado` · `recuperacion`, con la tabla día a día en `docs/entrenamiento.md` §5.4. Lo que cada uno promete no es su TSS sino su LLEGADA: el `afinado` existe para dejar el TSB en +5/+15 el día del objetivo, y se comprueba proyectándolo con `projectLoad`, no sumando cargas.
 
 Carga de competición: derivada del gasto real que reporta el motor: `TSS_carrera = 40 + 2.5 * unidades de tanque gastadas`. Una llana tranquila ronda 150; una alta montaña disputada, 220; una CRI corta, 90. La fuga y el orden a fondo ya no suman aparte: se reflejan en el gasto.
 
@@ -216,15 +235,22 @@ K_edad(edad):
   edad > decline            -> 0.40
 K_dim  = attr >= techo_a ? 0
        : min( 1.2, ((techo_a - attr) / max(10, techo_a - 30))^1.3 )   // decrecientes hacia el techo personal
-K_inst = instalaciones del equipo, [0.90, 1.20]
-K_staff= staff personal contratado, [1.00, 1.15]
-K_ready= TSB < -30 ? 0.25 : 1.0                      // entrenar reventado apenas rinde
-K_int  = suave 0.70 | normal 1.00 | fuerte 1.25
+K_inst = instalaciones del equipo, [0.90, 1.20]      // `teams.facilities`, sorteado en la génesis
+K_staff= nivel de staff comprado, 1 + 0.02/nivel, tope 1.10   // `teams.staff_level`, entero
+K_ready= RAMPA, no escalón: 1 por encima de TSB -20, cae a 0.25 en -40
+K_int  = suave 0.70 | normal 1.00 | fuerte 1.12      // 1.25 hacía que apretar dominara siempre
 
 delta_attr = G(sesion, attr) * K_talento * K_edad * K_dim * K_inst * K_staff * K_ready * K_int
 ```
 
-Órdenes por planificador de 7 a 28 días; sin orden, se aplica el plan del entrenador del equipo (razonable, nunca óptimo).
+Cuatro cosas que este bloque decía y no eran ciertas, corregidas arriba y documentadas en `docs/entrenamiento.md` §5.1-5.2:
+
+- **`K_inst` y `K_staff` no los leía nadie.** `teams.facilities` se sorteaba entre 0,90 y 1,20, se guardaba y el tick pasaba `K_inst = 1` a pelo; el staff ni siquiera tenía columna. Ahora los dos se leen y se recortan a su rango.
+- **`K_ready` era un escalón**: a TSB −29 se rendía como fresco y a −31 se perdía el 75 % de golpe. Es una rampa.
+- **`K_int` a 1,25 hacía que apretar dominase siempre**, porque el único coste era el TSS. A 1,12 de ganancia contra 1,3 de riesgo hay una decisión que tomar.
+- **`K_edad` va por CLASE de atributo** (motor rápido / motor lento / oficio): el mismo corredor no mejora igual el esprint que el fondo, y el oficio ni siquiera decae con la misma curva.
+
+**Qué decide el jugador**: un modo (`entrenador` · `mixto` · `manual`), un objetivo, **cuatro bloques de una semana**, un énfasis (su carta o el agujero que quiera tapar) y una intensidad de bloque. Los 28 días siguen visibles y editables debajo, y se guarda **solo lo que toca**: lo que deja sin tocar vuelve a decidirlo el entrenador con el estado de ese día. Sin nada, el entrenador del equipo: razonable, nunca óptimo.
 
 ### 5.3 La carrera también entrena (XP de carrera)
 
@@ -257,8 +283,9 @@ Encadenar carreras sin descansar jamás cristaliza el bono: solo fatiga.
 
 Los techos (3.5) son ocultos; se revelan por tres canales, siempre en lenguaje difuso:
 
-- Respuesta al entrenamiento: si la ganancia semanal de un atributo cae en el decil superior de su cohorte de edad, el entrenador lo comenta en el buzón ("responde de manera excepcional a las series"). Sin números.
-- Test de esfuerzo: uno por temporada, coste 400, sobre un racimo de dos atributos a elección. Reporte: `stars( techo_a + N(0, 6) )`. Estimación, no certeza.
+- **Opinión del entrenador** (implementado): una por temporada y por atributo, `techo + N(0, σ)` cuantizado a tres frases, con σ = 6 y σ = 3 a partir de los 24. Es el «test de esfuerzo» de la versión anterior de este SPEC, sin coste y sin racimo: cobrar por ello convertía el descubrimiento en un peaje, y limitarlo a dos atributos dejaba ocho a oscuras.
+- **Frases por regla** (implementado), una por bloque de 28 días en el informe: talento alto y joven → «progresas más deprisa de lo que esperaba a tu edad»; REC alta → «recuperas rápido, puedes afinar más corto»; fragilidad alta → «eres propenso a caer enfermo cuando te cargas»; pasado el declive → «toca defender lo que tienes», con la etiqueta *Declining* junto a la edad; `kDim` agotado en la carta → «en esto estás cerca de lo que puedes dar, el margen está en otro sitio». Ningún número.
+- **El informe del bloque** (implementado): por atributo, cuánto se movió en 28 días y **de dónde vino cada trozo** —entrenando, corriendo, sobrecompensando—. Responde a «hice X y no mejoró» y a «por qué mejoré», que son las dos preguntas que el juego no sabía contestar.
 - La carretera: la relación entre `workUnits` invertidos y resultados obtenidos es el oráculo definitivo.
 
 ## 6. Motor de etapa por bloques de 100 metros (`packages/engine`)

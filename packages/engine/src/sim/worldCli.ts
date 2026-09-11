@@ -1,5 +1,6 @@
 /**
  * Banco de MUNDO: `pnpm sim:mundo [temporadas] [corridas] [--json] [--sin-carreras] [--politica=X]`
+ * `[--arco] [--dispersion]`
  * (docs/epics.md «G1»).
  *
  * `pnpm sim` mide lo que pasa en una etapa y `pnpm sim:tactics` lo que promete la capa táctica.
@@ -17,6 +18,7 @@ import {
   type WorldSeasonRow,
   analyzeWorld,
   arcoHumano,
+  runWorld,
 } from './world.js'
 
 const CABECERA = [
@@ -53,6 +55,7 @@ interface Args {
   politica: Politica | null
   aprendizaje: Aprendizaje | null
   arco: boolean
+  dispersion: boolean
 }
 
 export function parseArgs(argv: readonly string[]): Args {
@@ -80,6 +83,7 @@ export function parseArgs(argv: readonly string[]): Args {
     politica: unaDe(valorDe('politica'), ['bot', 'buena', 'mala'], 'politica'),
     aprendizaje: unaDe(valorDe('aprendizaje'), ['hoy', 'conKDim'], 'aprendizaje'),
     arco: valorDe('arco') !== null,
+    dispersion: valorDe('dispersion') !== null,
   }
 }
 
@@ -211,10 +215,52 @@ function imprimirArco(): void {
   )
 }
 
+/**
+ * LA DESVIACIÓN ENTRE SEMILLAS, que es lo que hace falta para poner un listón (§7.2 y paso 12).
+ *
+ * Existe porque el banco lo necesitó de verdad: en la v61 se puso roja `sinNadaSobre4WTPct ≤ 30` y,
+ * al medirla sobre SEIS mundos en vez de dos, resultó que su desviación entre semillas era de **3,07
+ * puntos**. O sea que el listón estaba sellado DENTRO de su propio ruido y lo pasaba un mundo de cada
+ * seis: no era un guardarraíl, era una cara de una moneda.
+ *
+ * `analyzeWorld` PROMEDIA las corridas, así que no sirve para esto: lo que hace falta es cada mundo
+ * por separado. La regla del paso 12 es «banda ≥ 2× la desviación medida», y ésta es la herramienta
+ * que da ese número, en el repositorio y no en un fichero de usar y tirar.
+ */
+function dispersion(runs: number, seasons: number): void {
+  const ultimas = Array.from({ length: runs }, (_, i) => {
+    const filas = runWorld(`mundo-${i}`, seasons)
+    return filas[filas.length - 1]!
+  })
+  console.log(`\nDispersión entre semillas — ${runs} mundos × ${seasons} temporadas\n`)
+  console.log(
+    `  ${'métrica'.padEnd(32)}${'media'.padStart(9)}${'sd'.padStart(9)}${'mín'.padStart(9)}${'máx'.padStart(9)}${'m+2sd'.padStart(9)}${'m−2sd'.padStart(9)}`,
+  )
+  const claves = Object.keys(ultimas[0]!).filter(
+    (k) => typeof (ultimas[0] as unknown as Record<string, unknown>)[k] === 'number',
+  )
+  for (const k of claves) {
+    const vs = ultimas.map((u) => (u as unknown as Record<string, number>)[k]!)
+    const m = vs.reduce((a, b) => a + b, 0) / vs.length
+    const sd = Math.sqrt(vs.reduce((a, b) => a + (b - m) ** 2, 0) / vs.length)
+    const c = (x: number): string => x.toFixed(2).padStart(9)
+    console.log(
+      `  ${k.padEnd(32)}${c(m)}${c(sd)}${c(Math.min(...vs))}${c(Math.max(...vs))}${c(m + 2 * sd)}${c(m - 2 * sd)}`,
+    )
+  }
+  console.log(
+    '\n  Un listón más estrecho que m±2sd no vigila el mundo: vigila qué semillas lee el banco.\n',
+  )
+}
+
 function main(): void {
   const args = parseArgs(process.argv.slice(2))
   if (args.arco) {
     imprimirArco()
+    return
+  }
+  if (args.dispersion) {
+    dispersion(args.runs, args.seasons)
     return
   }
   const filas = analyzeWorld(args.runs, args.seasons, {

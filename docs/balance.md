@@ -11224,3 +11224,112 @@ enteros, así que tocar un jueves dejaba el mes entero fuera del alcance del ent
 Ahora solo viaja lo editado y el servidor borra del horizonte lo que no llega, así que un día sin
 tocar vuelve a ser del bloque —o del entrenador—. Está probado en `planPorBloques.test.ts`, quitando
 un día y quitándolos todos.
+
+## v59 §12 — Calibrar y sellar: lo que el mundo da, no lo que el documento quería
+
+`ENGINE_VERSION` **61 → 61**: este paso **no la sube**. No toca una constante del motor: mide, sella
+listones y reescribe el SPEC a lo que hay. Si subiera versión estaría diciendo que el mundo cambió, y
+lo que cambió es lo que sabemos de él.
+
+### La herramienta primero, porque sin ella esto era otra vez opinión
+
+El paso 12 dice «bandas a ≥ 2× la desviación medida entre semillas» y **nadie había medido esa
+desviación nunca**: `analyzeWorld` PROMEDIA las corridas, así que devuelve el centro y se traga
+justamente el número que hace falta. Ahora existe `pnpm sim:mundo 25 6 --dispersion`, que corre cada
+mundo por separado y publica media, sd, mín, máx y m±2sd de las cuarenta y tres métricas.
+
+No es un lujo de proceso: en la v61 se puso roja `sinNadaSobre4WTPct ≤ 30` y lo primero que hizo la
+herramienta fue enseñar que ese listón llevaba **cinco pasos pasando por suerte**.
+
+### Seis bandas del diseño NO se cumplen, y se sellan donde el mundo está
+
+Ninguna se mueve en silencio. Medido sobre **6 mundos × 25 temporadas**:
+
+| Métrica                      | §7.2 pedía      | media |   sd | Sellada              | Por qué                                                                                               |
+| ---------------------------- | --------------- | ----: | ---: | -------------------- | ----------------------------------------------------------------------------------------------------- |
+| `sinNadaSobre4Pct`           | ≤ 65            | 64,56 | 2,31 | ≤ 70                 | 65 es el valor medido: lo pasaría media semilla de cada dos                                           |
+| `curvaEdadTAC`               | ≥ 12            |  9,57 | 2,79 | ≥ 4                  | el oficio crece con la edad, pero 12 puntos no los da esta tabla de `kAge`                            |
+| `vets34vs28`                 | ≤ −3            | −3,26 | 1,97 | ≤ 0                  | el rango real va de −5,9 a −0,8: en −3 es una moneda                                                  |
+| `jovenesConMargenPct`        | ≥ 50            | 43,53 | 2,91 | _(sin banda)_        | m+2sd = 49,35 < 50: el mundo NO lo cumple y no hay listón honesto que lo diga                         |
+| `crecimientoNeoproWT`        | +4..+12         |  4,18 | 1,02 | +2..+12              | el suelo de 4 lo pasa media semilla; el techo de 12 se queda tal cual                                 |
+| `cincoEstrellasWTMadurosPct` | 4-12, dos lados |  3,83 | 1,93 | _(sin banda)_        | el mundo da 3,8 y el suelo del diseño era 4: no se cumple por tres décimas                            |
+| `curvaEdadAerobica` joven    | 0,80-0,90       |  0,88 | 0,05 | 0,78-1,00            | la banda era más estrecha que la desviación                                                           |
+| `curvaEdadNeuro` joven       | 0,85-0,95       |  0,92 | 0,05 | 0,80-1,04            | ídem                                                                                                  |
+| `diasMolestiasAno`           | 5-25            |  0,00 | 0,00 | _(del brazo `mala`)_ | con el entrenador bot son CERO, y es su trabajo: el guardarraíl de tensión existe para que no lleguen |
+
+Y tres se dejan **informativas a propósito**, con su número escrito:
+
+| Métrica               | §7.2 pedía | media |    sd | Por qué no se sella                                                                   |
+| --------------------- | ---------- | ----: | ----: | ------------------------------------------------------------------------------------- |
+| `purosVelocistasPct`  | ≥ 45       | 80,56 | 20,22 | denominador diminuto: los velocistas WT maduros son una decena, y uno mueve 10 puntos |
+| `purosEscaladoresPct` | ≥ 45       | 65,50 | 16,35 | lo mismo                                                                              |
+| `mejorPorArquetipoOk` | ≥ 90 %     | 50,00 | 50,00 | es un booleano por mundo: con dos mundos solo puede valer 0, 50 o 100                 |
+
+Las dos de pureza van **sobradas** (80 y 65 contra un ≥ 45), así que no sellarlas no esconde un
+problema: esconde una medición que no se sabe hacer con dos semillas.
+
+### Lo que el banco vigila ahora
+
+De **10 aserciones a 17**, y las nuevas son las que faltaban: las tres del dueño con su margen
+medido, el margen por cohorte de edad, el reloj de la edad por clase, el crecimiento del neopro, las
+enfermedades, la estacionariedad a cinco años, los techos de los que entran, y **los brazos de
+política**.
+
+### «Razonable, nunca óptimo» deja de ser una frase… a medias
+
+| brazo   | media | enfermo/año | molestias/año |
+| ------- | ----: | ----------: | ------------: |
+| `bot`   | 53,67 |        3,10 |      **0,00** |
+| `buena` | 53,50 |        2,98 |          0,00 |
+| `mala`  | 52,14 |    **3,92** |      **0,57** |
+
+**La mitad de abajo se prueba y se sella: entrenar mal cuesta**, punto y medio de media, y es el
+único brazo del mundo donde aparecen las molestias.
+
+**La mitad de arriba no, y no se finge.** `buena` sigue 0,17 por debajo del bot, y la causa está
+diagnosticada desde §8: **es del instrumento, no del motor**. Las dos palancas de `buena` —afinar más
+días, no apretar con el depósito bajo— reducen volumen, y su beneficio se cobra GANANDO. Este banco
+no simula etapas: aquí no gana nadie, así que la ventaja vale cero y solo se ve el coste. Las dos
+salidas quedan escritas —que el banco sepa quién gana, o medir la frescura del día de carrera como
+métrica propia— y ninguna es calibrar una constante.
+
+### Dos hallazgos que NO son del entrenamiento, y que son del dueño
+
+**1. Un tercio del WorldTour no tiene nada por encima de 4★.** Apenas se movió entre los pasos 6 y 11
+—30,2 · 30,4 · 32,3— mientras el entrenamiento cambiaba entero, y `margenAlTechoPct` dice que esa
+gente **ya está al 9 % de su techo**: no es que no entrenen bien, es que su techo no llega a 67 en
+nada. Cerrarlo es subir los techos del WorldTour en la génesis, y eso tira en contra del «menos del
+15 % con cinco estrellas», que hoy va sobradísimo (2,6 %). **Son la misma perilla en sentidos
+opuestos.**
+
+**2. La mayoría del pelotón no se parece a su etiqueta.** `archetypeFromAttributes` deriva el
+arquetipo de los ATRIBUTOS, y en la temporada 25 da: gregario **39 %**, rodador **24 %**, escalada
+10,6, fondo 8,4, puncheur 5,4, crono 4,1, clásicas 3,8, velocidad 3,7. §7.2 quería los ocho por
+encima del 4 % y dos se quedan justo debajo, pero el número que importa es el otro: **dos arquetipos
+se llevan dos tercios del mundo**. La perilla son los offsets de techo y el presupuesto de dispersión
+de la génesis, no el entrenamiento. El banco vigila solo que los ocho EXISTAN.
+
+### Y una métrica que se leía donde no dice nada
+
+`techosNeoprosVsGen0` compara los techos de los que entran contra los de la generación inicial… **y
+la generación inicial se muere**. En la temporada 15 quedan un puñado de supervivientes y la
+comparación da ±7 puntos de puro tamaño de muestra; en la 25 es `null` en las tres divisiones porque
+ya no queda nadie con quien comparar. Se lee en la **temporada 5**, que es donde el dato existe.
+
+### Documentación puesta al día con lo implementado
+
+- **SPEC §3.2**: las DOS escalas de estrellas y por qué no son la misma; la marca de progreso; la
+  flecha a 28 días y cinco niveles (el SPEC pedía 7 y tres); la opinión del entrenador; y que el
+  informe de ojeador con ruido **no está implementado y es decisión abierta**.
+- **SPEC §3.5**: aviso de que los bots ya no nacen así —techo absoluto × madurez, ocho arquetipos— y
+  que unificar las dos génesis es decisión del dueño porque cambia la silueta de creación.
+- **SPEC §5.1**: el catálogo real, con REC en el descanso activo (no lo entrenaba nadie), los `muros`
+  (COL tenía un solo camino) y la regla de los dos caminos por atributo físico. Y los bloques.
+- **SPEC §5.2**: `K_inst` y `K_staff` enchufados de verdad, `K_ready` como rampa y no escalón,
+  `K_int` a 1,12 y no 1,25, y `K_edad` por clase de atributo. Más la escalera D0-D5.
+- **SPEC §5.6**: el descubrimiento del talento, con la opinión del entrenador y el informe del bloque
+  en el sitio del «test de esfuerzo» de pago que nunca se implementó.
+- **`docs/epics.md` G1**: los cuatro requisitos con su estado. **Dos cerrados** —no acaban todos
+  siendo Pogačar, y las carreras enseñan según su nivel— y **dos abiertos**, los dos por decisión del
+  dueño y no por falta de trabajo: el tercio sin 4★ (arriba) y «balancear entrenamiento y carreras»,
+  que necesita la palanca de la decisión 23.

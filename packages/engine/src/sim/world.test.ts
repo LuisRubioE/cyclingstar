@@ -212,4 +212,306 @@ describe('banco de mundo: la población después de 25 temporadas (G1)', () => {
       )
     }
   })
+
+  /**
+   * ================== EL SELLADO DEL PASO 12 (docs/entrenamiento.md §7.2) ==================
+   *
+   * Hasta aquí el banco vigilaba DIEZ cosas de las treinta que §7.2 lista, y las diez estaban
+   * puestas a ojo. La v61 enseñó por qué eso no basta: `sinNadaSobre4WTPct ≤ 30` llevaba cinco
+   * pasos pasando **por suerte de las dos semillas que el banco lee**, porque la desviación de esa
+   * magnitud entre semillas es de 3,07 puntos y el listón estaba dentro de su propio ruido.
+   *
+   * Así que la regla del paso 12 —**listón ≥ 2× la desviación medida entre semillas**— se aplica a
+   * todas, y el número sale de `pnpm sim:mundo 25 6 --dispersion`, que es una herramienta del
+   * repositorio y no una cuenta de servilleta. Medido sobre SEIS mundos × 25 temporadas:
+   *
+   * | métrica                         |  media |    sd |   m−2sd |  m+2sd |
+   * | ------------------------------- | -----: | ----: | ------: | -----: |
+   * | `cincoEstrellasWTPct`           |   3,00 |  0,59 |    1,82 |   4,18 |
+   * | `cincoEstrellasWTMadurosPct`    |   3,83 |  1,93 |   −0,03 |   7,69 |
+   * | `cracksPct`                     |   0,08 |  0,11 |   −0,14 |   0,29 |
+   * | `estrellas5Medias`              |   0,02 |  0,00 |    0,01 |   0,02 |
+   * | `sinNadaSobre4Pct`              |  64,56 |  2,31 |   59,94 |  69,17 |
+   * | `margenJovenesPct`              |  14,31 |  0,41 |   13,50 |  15,12 |
+   * | `margenMediosPct`               |   7,09 |  0,16 |    6,77 |   7,41 |
+   * | `jovenesConMargenPct`           |  43,53 |  2,91 |   37,71 |  49,35 |
+   * | `crecimientoNeoproWT`           |   4,18 |  1,02 |    2,13 |   6,22 |
+   * | `curvaEdadAerobicaJoven`        |   0,88 |  0,05 |    0,79 |   0,98 |
+   * | `curvaEdadAerobicaVeterana`     |   0,98 |  0,02 |    0,94 |   1,03 |
+   * | `curvaEdadNeuroJoven`           |   0,92 |  0,05 |    0,82 |   1,02 |
+   * | `curvaEdadNeuroVeterana`        |   0,95 |  0,02 |    0,91 |   0,98 |
+   * | `curvaEdadTAC`                  |   9,57 |  2,79 |    3,99 |  15,15 |
+   * | `vets34vs28`                    |  −3,26 |  1,97 |   −7,19 |  +0,67 |
+   * | `enfermedadesAno`               |   3,00 |  0,14 |    2,73 |   3,27 |
+   * | `purosVelocistasPct`            |  80,56 | 20,22 |   40,11 | 121,00 |
+   * | `purosEscaladoresPct`           |  65,50 | 16,35 |   32,80 |  98,20 |
+   *
+   * **Seis de las bandas que §7.2 proponía NO se cumplen, y se sellan donde el mundo está y no donde
+   * el documento quería.** Cada una con su porqué en `docs/balance.md` «v59 §12»; ninguna se mueve
+   * en silencio.
+   */
+
+  it('las tres del DUEÑO se cumplen con margen de sobra', () => {
+    // Éstas no se calibran: son suyas. Y las tres pasan lejos del listón, que es la buena noticia
+    // del rediseño entero: `cincoEstrellasWTPct` pico 5,1 contra un ≤ 15, y `cracksPct` 0,08
+    // contra un ≤ 6 (decisión 3). No hay nadie a punto de ser Pogačar.
+    const picoCinco = Math.max(...filas.map((f) => f.cincoEstrellasWTPct))
+    expect(`WT con 5★ ≤ 15% en TODAS: ${picoCinco <= 15} (${picoCinco.toFixed(1)})`).toBe(
+      `WT con 5★ ≤ 15% en TODAS: true (${picoCinco.toFixed(1)})`,
+    )
+    const picoCracks = Math.max(...filas.map((f) => f.cracksPct))
+    expect(`cracks ≤ 6%: ${picoCracks <= 6} (${picoCracks.toFixed(2)})`).toBe(
+      `cracks ≤ 6%: true (${picoCracks.toFixed(2)})`,
+    )
+    const picoMedias = Math.max(...filas.map((f) => f.estrellas5Medias))
+    expect(`5★ por corredor ≤ 1: ${picoMedias <= 1} (${picoMedias.toFixed(2)})`).toBe(
+      `5★ por corredor ≤ 1: true (${picoMedias.toFixed(2)})`,
+    )
+  })
+
+  /**
+   * EL MUNDO ENTERO SIN NADA SOBRE 4★: se publica CON banda por primera vez, y ancha a propósito.
+   *
+   * §7.2 proponía ≤ 65 y el mundo mide 64,56 con sd 2,31: un listón en 65 lo pasaría poco más de la
+   * mitad de las semillas. Se sella en 70 (m+2sd = 69,2 redondeado hacia arriba). Lo que vigila a
+   * esa altura sigue siendo real: que el mundo no se llene de medianías absolutas.
+   */
+  it('el mundo no se llena de medianías, pero tampoco se finge lo contrario', () => {
+    expect(`mundo sin nada sobre 4★ ≤ 70%: ${ultima.sinNadaSobre4Pct <= 70}`).toBe(
+      'mundo sin nada sobre 4★ ≤ 70%: true',
+    )
+  })
+
+  /**
+   * A QUIÉN LE SIRVE ENTRENAR, por cohorte de edad (§7.2, `margenAlTechoPct` por cohorte).
+   *
+   * Es la pregunta de G1 dicha en números: si un joven no tiene margen, entrenar no le da nada y el
+   * juego no tiene nada que ofrecerle. Las dos bandas de §7.2 (≥ 7 % para ≤ 23 y ≥ 4 % para 24-27)
+   * se cumplen con holgura y se sellan tal cual: 14,31 y 7,09 medidos, sd 0,41 y 0,16.
+   */
+  it('a los jóvenes les queda margen, y a los de 24-27 también', () => {
+    expect(`margen ≤23 ≥ 7%: ${ultima.margenJovenesPct >= 7}`).toBe('margen ≤23 ≥ 7%: true')
+    expect(`margen 24-27 ≥ 4%: ${ultima.margenMediosPct >= 4}`).toBe('margen 24-27 ≥ 4%: true')
+    // …Y NINGÚN JOVEN CONGELADO, que es la alarma de verdad: un chaval sin un punto de margen es un
+    // corredor al que el juego ya no le puede dar nada.
+    for (const f of filas) {
+      expect(`t${f.season} jóvenes congelados ${f.congeladosJovenesPct === 0}`).toBe(
+        `t${f.season} jóvenes congelados true`,
+      )
+    }
+  })
+
+  /**
+   * EL RELOJ DE LA EDAD: las curvas por clase de atributo (§7.2).
+   *
+   * Lo que vigilan es que el reloj siga EXISTIENDO y siga yendo en la dirección correcta: un joven
+   * por debajo de su plenitud y un veterano cerca de ella pero no por encima. Las cuatro bandas de
+   * §7.2 eran más estrechas que la desviación entre semillas (0,05 de sd contra bandas de 0,10 de
+   * ancho), así que se ensanchan a m±2sd y se dice.
+   */
+  it('el reloj de la edad va en su sitio, por clase de atributo', () => {
+    const dentro = (x: number, lo: number, hi: number): boolean => x >= lo && x <= hi
+    const c = ultima
+    expect(`aeróbica joven en [0,78, 1,00]: ${dentro(c.curvaEdadAerobicaJoven, 0.78, 1.0)}`).toBe(
+      'aeróbica joven en [0,78, 1,00]: true',
+    )
+    expect(
+      `aeróbica veterana en [0,92, 1,06]: ${dentro(c.curvaEdadAerobicaVeterana, 0.92, 1.06)}`,
+    ).toBe('aeróbica veterana en [0,92, 1,06]: true')
+    expect(`neuro joven en [0,80, 1,04]: ${dentro(c.curvaEdadNeuroJoven, 0.8, 1.04)}`).toBe(
+      'neuro joven en [0,80, 1,04]: true',
+    )
+    expect(`neuro veterana en [0,88, 1,00]: ${dentro(c.curvaEdadNeuroVeterana, 0.88, 1.0)}`).toBe(
+      'neuro veterana en [0,88, 1,00]: true',
+    )
+    // El OFICIO va al revés que el motor, y ésa es la mitad del diseño que da sentido a envejecer:
+    // a los 33-35 se sabe más táctica que a los 20-21, y por eso un veterano sigue valiendo.
+    expect(`TAC crece con la edad: ${c.curvaEdadTAC > 0} (${c.curvaEdadTAC.toFixed(1)})`).toBe(
+      `TAC crece con la edad: true (${c.curvaEdadTAC.toFixed(1)})`,
+    )
+    expect(`…y no por poco: ${c.curvaEdadTAC >= 4}`).toBe('…y no por poco: true')
+  })
+
+  /**
+   * EL NEOPROFESIONAL CRECE, que es lo que engancha (§3.5, §7.2).
+   *
+   * §7.2 pedía +4..+12 en la primera temporada de un WT de 20 años. Medido: 4,18 con sd 1,02, o sea
+   * que el suelo de 4 lo pasa **media semilla de cada dos**. Se baja a +2 —m−2sd es 2,13— y el valor
+   * medido queda escrito: lo que vigila el suelo es que un neopro no nazca ya estancado, y eso a +2
+   * sigue vigilándose. El techo de +12 se queda: es el que impide el Pogačar a los 21.
+   */
+  it('un neopro del WorldTour crece en su primera temporada, y no de golpe', () => {
+    const g = ultima.crecimientoNeoproWT
+    expect(`neopro WT crece +2..+12: ${g >= 2 && g <= 12} (${g.toFixed(2)})`).toBe(
+      `neopro WT crece +2..+12: true (${g.toFixed(2)})`,
+    )
+  })
+
+  /**
+   * ENFERMAR CUESTA, Y NO DEMASIADO (§5.6, §7.2). 1-4 días al año por corredor: medido 3,00 con sd
+   * 0,14, que es la magnitud más estable de todo el banco, así que la banda de §7.2 se sella sin
+   * tocarla.
+   */
+  it('se enferma lo justo: ni un mundo de cristal ni uno de hierro', () => {
+    const e = ultima.enfermedadesAno
+    expect(`enfermedades/año en [1, 4]: ${e >= 1 && e <= 4} (${e.toFixed(2)})`).toBe(
+      `enfermedades/año en [1, 4]: true (${e.toFixed(2)})`,
+    )
+  })
+
+  /**
+   * LA POBLACIÓN ES ESTACIONARIA A CINCO AÑOS VISTA (§7.2 `estacionariedad`).
+   *
+   * La deriva contra la temporada 1 ya se vigila arriba; ésta mira ventanas de cinco, que es lo que
+   * caza una deriva LENTA: un mundo que se va medio punto por lustro pasa la otra prueba y al cabo
+   * de cien temporadas no se parece a sí mismo. Medido: máximo 1,61 sobre un listón de 2.
+   */
+  it('y no deriva despacio, que es como derivan los mundos de verdad', () => {
+    const derivas = filas
+      .filter((f) => f.season >= 10)
+      .map((f) => Math.abs(f.mediaGlobal - filas[f.season - 6]!.mediaGlobal))
+    const peor = Math.max(...derivas)
+    expect(`deriva a 5 años ≤ 2: ${peor <= 2} (${peor.toFixed(2)})`).toBe(
+      `deriva a 5 años ≤ 2: true (${peor.toFixed(2)})`,
+    )
+  })
+
+  /**
+   * LOS NEOPROS NO SON DE OTRA RAZA (§7.2 `techosNeoprosVsGen0`).
+   *
+   * Si la génesis diera a los que entran techos sistemáticamente distintos de los de la generación
+   * inicial, el mundo cambiaría de composición sin que nadie lo hubiera decidido, y el banco lo
+   * vería veinte temporadas tarde.
+   *
+   * **SE LEE EN LA TEMPORADA 5, y hay que decir por qué**: la métrica compara contra la generación
+   * inicial, y ésa se muere. En la 15 quedan un puñado de supervivientes y la comparación da ±7
+   * puntos de puro tamaño de muestra; en la 25 es `null` en las tres divisiones porque ya no queda
+   * nadie con quien comparar. Un listón leído en la 25 no vigilaría nada: no habría dato.
+   */
+  /**
+   * EL DECLIVE EXISTE… Y SU LISTÓN NO PUEDE SER EL QUE §7.2 PEDÍA.
+   *
+   * §7.2 quería `vets34vs28 ≤ −3`: los de 34+ al menos tres puntos por debajo de los de 28-30.
+   * Medido sobre seis mundos: **−3,26 con sd 1,97**, o sea que un listón en −3 lo pasa algo más de
+   * la mitad de las semillas y el rango real va de −5,91 a −0,75. Con dos mundos eso es una moneda.
+   *
+   * Se sella en **≤ 0**, que es lo que se puede afirmar con este banco y sigue vigilando algo real:
+   * que el declive EXISTA, o sea que un pelotón de veteranos no acabe siendo mejor que el de los
+   * corredores en plenitud. Si alguien quiere el −3, la vía es subir `MUNDOS` —no estrechar el
+   * listón—, y eso cuesta tiempo de CI: el precio está escrito aquí para que se pueda decidir.
+   */
+  it('el declive existe: los de 34+ no son mejores que los de 28-30', () => {
+    const v = ultima.vets34vs28
+    expect(`vets 34+ ≤ 28-30: ${v <= 0} (${v.toFixed(2)})`).toBe(
+      `vets 34+ ≤ 28-30: true (${v.toFixed(2)})`,
+    )
+  })
+
+  /**
+   * TRES MÉTRICAS DE §7.2 SE QUEDAN **INFORMATIVAS**, y se dice cuál es su número y por qué.
+   *
+   * No es que se hayan olvidado: es que su desviación entre semillas es tan grande que cualquier
+   * listón mediría el banco y no el mundo. Un listón así no es un guardarraíl flojo, es ruido con
+   * aspecto de prueba, y este repositorio ya tiene ese defecto con nombre propio.
+   *
+   * | métrica                 | banda que pedía §7.2 |  media |    sd | por qué no se sella |
+   * | ----------------------- | -------------------- | -----: | ----: | ------------------- |
+   * | `purosVelocistasPct`    | ≥ 45                 |  80,56 | 20,22 | denominador diminuto: los velocistas WT maduros de un mundo son una decena, y un corredor mueve diez puntos |
+   * | `purosEscaladoresPct`   | ≥ 45                 |  65,50 | 16,35 | lo mismo |
+   * | `mejorPorArquetipoOk`   | ≥ 90 % de temporadas |  50,00 | 50,00 | es un booleano por mundo: con dos mundos solo puede valer 0, 50 o 100 |
+   *
+   * Las dos de pureza van SOBRADAS de su banda (80 y 65 contra un ≥ 45), así que no sellarlas no
+   * esconde un problema: esconde una medición que no se sabe hacer con dos semillas.
+   *
+   * `mejorPorArquetipoOk` sí señala algo real y se deja escrito: **el mejor del mundo en cada carta
+   * no siempre es de su arquetipo**, y pasa la mitad de las veces. Es de la génesis —los offsets de
+   * techo por arquetipo— y no del entrenamiento, y vive en la lista del dueño.
+   */
+  it('las métricas que este banco no sabe medir con dos semillas, dichas y no escondidas', () => {
+    // Lo único que se afirma de ellas es que EXISTEN y están en su rango posible: si alguna saliera
+    // fuera de [0, 100] el cálculo estaría roto, y eso sí lo caza dos mundos.
+    for (const [nombre, v] of [
+      ['purosVelocistasPct', ultima.purosVelocistasPct],
+      ['purosEscaladoresPct', ultima.purosEscaladoresPct],
+      ['mejorPorArquetipoOk', ultima.mejorPorArquetipoOk],
+    ] as const) {
+      expect(`${nombre} en [0,100]: ${v >= 0 && v <= 100} (${v.toFixed(1)})`).toBe(
+        `${nombre} en [0,100]: true (${v.toFixed(1)})`,
+      )
+    }
+    /**
+     * Y EL REPARTO POR ARQUETIPO, que §7.2 quería con los ocho por encima del 4 %: medido, dos se
+     * quedan justo por debajo (velocidad 3,7 · clásicas 3,8) y **dos se llevan casi dos tercios del
+     * mundo** (gregario 39 · rodador 24).
+     *
+     * Eso no lo arregla el entrenamiento: `archetypeFromAttributes` deriva el arquetipo de los
+     * ATRIBUTOS, y dice que la mayoría del pelotón no se parece a la etiqueta con la que nació. Es
+     * una perilla de la génesis —los offsets de techo y el presupuesto de dispersión— y una
+     * decisión del dueño, así que aquí se vigila solo que los ocho EXISTAN: un mundo donde un
+     * arquetipo desaparece del todo sí es un defecto, y de ésos este listón avisa.
+     */
+    for (const [arq, pct] of Object.entries(ultima.arquetiposPct)) {
+      expect(`${arq} existe: ${pct > 0} (${pct.toFixed(1)}%)`).toBe(
+        `${arq} existe: true (${pct.toFixed(1)}%)`,
+      )
+    }
+  })
+
+  /**
+   * ================== §7.3: LOS BRAZOS DE POLÍTICA, MEDIDOS Y NO AFIRMADOS ==================
+   *
+   * «Razonable, nunca óptimo» es la frase que define al entrenador bot, y hasta aquí era **solo una
+   * frase**. Probarla exige tres mundos idénticos entrenados de tres maneras: el bot, uno que
+   * entrena BIEN y uno que entrena MAL. Medido, 15 temporadas × 2 mundos:
+   *
+   * | brazo   | media | enfermo/año | molestias/año |
+   * | ------- | ----: | ----------: | ------------: |
+   * | `bot`   | 53,67 |        3,10 |      **0,00** |
+   * | `buena` | 53,50 |        2,98 |          0,00 |
+   * | `mala`  | 52,14 |    **3,92** |      **0,57** |
+   *
+   * **La mitad de abajo se PRUEBA: entrenar mal cuesta**, y cuesta por los dos lados —punto y medio
+   * de media, y el único brazo del mundo donde aparecen las molestias—. Eso es lo que hace que las
+   * decisiones del jugador valgan algo.
+   *
+   * **La mitad de arriba NO se puede probar con este banco, y no se va a fingir.** `buena` sigue
+   * 0,17 por debajo del bot. La causa está diagnosticada desde la v59 §8 y **no es del motor: es del
+   * instrumento**. Las dos palancas de `buena` —afinar más días y no apretar con el depósito bajo—
+   * reducen volumen, y su beneficio (llegar fresco a la carrera) se cobra GANANDO. Este banco no
+   * simula etapas: aquí no gana nadie, así que la ventaja vale cero y solo se ve el coste.
+   *
+   * Las dos salidas quedan escritas para quien las quiera: que el banco sepa quién gana, o medir la
+   * frescura del día de carrera como métrica propia. Ninguna de las dos es calibrar una constante.
+   */
+  it('entrenar MAL cuesta, y eso sí se puede probar', () => {
+    const arm = (politica: 'bot' | 'mala'): WorldSeasonRow => {
+      const f = analyzeWorld(MUNDOS, 15, { politica })
+      return f[f.length - 1]!
+    }
+    const bot = arm('bot')
+    const mala = arm('mala')
+    expect(`mala pierde nivel: ${mala.mediaGlobal < bot.mediaGlobal - 0.5}`).toBe(
+      'mala pierde nivel: true',
+    )
+    expect(`mala enferma más: ${mala.enfermedadesAno > bot.enfermedadesAno}`).toBe(
+      'mala enferma más: true',
+    )
+    // Y es el ÚNICO brazo con molestias, que es el estado que la v58 sacó de la tumba: el bot las
+    // evita con su guardarraíl de tres días de tensión, y el que aprieta siempre no.
+    expect(
+      `solo mala tiene molestias: ${mala.diasMolestiasAno > 0 && bot.diasMolestiasAno === 0}`,
+    ).toBe('solo mala tiene molestias: true')
+  }, 300_000)
+
+  it('los que entran tienen los techos de los que ya estaban', () => {
+    const t5 = filas.find((f) => f.season === 5)
+    if (t5 === undefined) return
+    for (const d of ['WT', 'PRS', 'CON'] as const) {
+      const x = t5.techosNeoprosVsGen0[d]
+      if (x === null) continue
+      expect(`${d}: |Δ techo| ≤ 3: ${Math.abs(x) <= 3} (${x.toFixed(2)})`).toBe(
+        `${d}: |Δ techo| ≤ 3: true (${x.toFixed(2)})`,
+      )
+    }
+  })
 })
