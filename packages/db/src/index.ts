@@ -181,6 +181,14 @@ export {
   type BlockedNameRow,
 } from './blocklist.js'
 export {
+  YOUNG_MAX_AGE,
+  getRaceClassifications,
+  standingsByRider,
+  type ClassificationRow,
+  type RaceClassifications,
+} from './classifications.js'
+export { buildRaceContext, raceMemoryOf, raceShapeOf } from './raceContext.js'
+export {
   backfillRaceRoutes,
   freezeRaceRoute,
   getRaceRoute,

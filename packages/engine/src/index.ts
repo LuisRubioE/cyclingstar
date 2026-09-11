@@ -313,4 +313,13 @@ export type {
   Turn,
 } from './stage/views.js'
 export { census, myMates } from './stage/views.js'
+export {
+  CLIMB_MIN_KM,
+  FINAL_KIND_CUTS,
+  finalKindOf,
+  kmAfterLastClimb,
+  lastClimbKm,
+  profileKm,
+  type FinalKind,
+} from './routes/finalKind.js'
 export * from './random.js'

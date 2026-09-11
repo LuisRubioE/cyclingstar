@@ -6,7 +6,7 @@
  * Paso 21: andamiaje. La física (6.4-6.14) llega a partir del Paso 22.
  */
 import type { Attribute } from '@cyclingstar/shared'
-import type { RaceContext, TacticFlags } from './views.js'
+import type { RaceContext, StandingRow, TacticFlags } from './views.js'
 
 /** Terreno tal como lo escribe el autor del recorrido (SPEC 6.2). */
 export type SegmentTerrain = 'llano' | 'rompepiernas' | 'puerto' | 'descenso' | 'paves'
@@ -162,6 +162,17 @@ export interface StageRider {
    * Un campo ENTERO sin equipos se comporta exactamente como antes de la v15.
    */
   teamId?: string | null
+  /**
+   * LO QUE ESTE HOMBRE SE JUEGA EN LAS SECUNDARIAS (docs/tactica.md §3.1, paso 4).
+   *
+   * Puntos, montaña, joven y equipos, con su puesto y el hueco al de delante. **Nadie lo lee
+   * todavía**: es lo que R05, R06 y R07 necesitan para contestar «¿me sirve de algo pelear esto
+   * hoy?», que es una pregunta que hoy no tiene a quién hacerse.
+   *
+   * Opcional a propósito: una etapa suelta de un banco no tiene clasificaciones, y correr sin ellas
+   * tiene que seguir dando exactamente lo mismo que hoy.
+   */
+  standings?: StandingRow[]
 }
 
 /** Entrada completa del motor (SPEC 6.1). */

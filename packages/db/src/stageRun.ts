@@ -40,6 +40,7 @@ import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import { BATCH_ROWS, type BatchValue, inChunks, valuesList } from './batch.js'
 import { awardRacePrizes } from './economy.js'
+import { buildRaceContext } from './raceContext.js'
 import { gcFinishersWhere, gcOrderBy, gcRosterOn } from './gcSort.js'
 import { emitNews } from './news.js'
 import { addSeasonPointsBatch, recordPalmares } from './ranking.js'
@@ -399,6 +400,19 @@ export async function runOneStage(
     stageDay: spec.stageDay,
     engineVersion: ENGINE_VERSION_NUM,
   })
+
+  /**
+   * Las secundarias y la memoria de la carrera, construidas una vez por etapa (no por corredor ni
+   * por bloque). Si algo falla al armarlas, la etapa se corre SIN contexto en vez de no correrse:
+   * hoy no lo lee nadie, así que una carrera sin contexto es exactamente la carrera de siempre.
+   */
+  const raceCtx = await buildRaceContext(
+    tx,
+    spec.raceKey,
+    spec.raceId,
+    spec.stageDay,
+    gameDay,
+  ).catch(() => null)
   const input: StageInput = {
     profile: spec.profile,
     riders: stageRiders,
@@ -407,6 +421,13 @@ export async function runOneStage(
     // así que el clima por país y fecha existía solo en la simulación: en el juego llovía el 20 % de
     // los días en todas partes y hacía la temperatura de un enero templado en agosto en Almería.
     ...(spec.lugar ? { lugar: spec.lugar } : {}),
+    /**
+     * EL CONTEXTO DE CARRERA (docs/tactica.md paso 4). **Nadie lo lee todavía**, y por eso se puede
+     * enchufar ya: `contextoNoLeido.test.ts` comprueba que con él puesto y quitado la etapa sale
+     * idéntica. Enchufarlo ahora es lo que hace que el paso que empiece a leerlo sea un cambio de
+     * UNA cosa y no de dos.
+     */
+    ...(raceCtx ? { race: raceCtx } : {}),
   }
   /*
    * LA RADIO DE CARRERA SE RECOGE MIENTRAS LA ETAPA SE CORRE. El motor lo sabe todo bloque a bloque

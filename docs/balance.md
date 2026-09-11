@@ -11847,3 +11847,58 @@ perseguir. Un mundo donde la fuga llega siempre no es un mundo mejor calibrado: 
 **101 pruebas de los cinco bancos en verde** con el generador de recorridos nuevo, antes de empezar
 este paso. La cola dura quintuplicada y los finales en alto del 56,7 % al 38,2 % no rompen ninguna
 banda.
+
+## v60 §4 — Las clasificaciones y la memoria existen, y nadie las lee
+
+`ENGINE_VERSION` **64 → 64**: cero cambios de conducta, comprobados y no supuestos.
+
+Puntos, montaña y joven, más lo que la carrera recuerda de los días anteriores. Existen para que un
+corredor pueda decidir **mirando algo**: R05, R06 y R07 preguntan las tres lo mismo —«¿me sirve de
+algo pelear esto hoy?»— y hoy no hay a quién preguntárselo.
+
+### La tabla `race_classifications` NO se crea, y hay que decir por qué
+
+El plan la pedía. Sería una **segunda fuente de verdad para un dato que `race_gc` ya tiene**:
+`puntos_volante` y `puntos_montana` se acumulan ahí etapa a etapa desde hace versiones, y la
+clasificación de jóvenes es ese mismo `race_gc` filtrado por edad. Escribirla en otra tabla no añade
+información: añade **la posibilidad de que las dos discrepen**.
+
+Y este repositorio tiene el defecto con nombre propio. `fame`, `teamTrust` y `facilities` fueron tres
+columnas que existían, se rellenaban y no decidían nada, y hay una prueba —`columnasVivas.test.ts`—
+escrita justamente para que no vuelva a pasar. Duplicar `race_gc` es la versión de al lado del mismo
+error.
+
+Se calcula al leer: dos consultas y un `sort`, una vez por etapa. Y la de **equipos no se toca**: la
+calcula `teamClassification.ts` con las reglas UCI y sus desempates, y se lee de ahí. Reescribirla
+habría sido tener dos reglamentos.
+
+### El hueco al de delante, que es el dato que faltaba
+
+Cada fila lleva `toNextRank`. **Ir segundo a un punto y ir segundo a cuarenta son dos carreras
+distintas, y «rank 2» no las distingue.** Es exactamente lo que R05 necesita para decidir si un
+equipo reclama hoy la clasificación de la montaña o la deja correr.
+
+### La memoria nace a medias, y se dice cuál mitad
+
+`winners` sale de los resultados de las etapas anteriores —quién ha ganado ya algo cambia cómo le
+miran—. Las **deudas de relevos nacen VACÍAS**: no hay dónde leerlas todavía, las escribe R09 en el
+paso 16, y una lista vacía es más honesta que una inventada.
+
+### El invariante 74, que es el contrario del habitual
+
+Con el contexto **puesto y quitado**, la etapa sale idéntica. Y hace falta comprobarlo, no suponerlo:
+un campo nuevo puede cambiar la conducta sin que nadie lo lea —basta con que entre en un orden de
+iteración, en una clave de mapa o en un `JSON.stringify` que siembre un dado—, y ése es justo el
+defecto que no se ve en una revisión.
+
+Se prueba con un contexto **poblado de verdad** (si fuera vacío no probaría nada), con las
+clasificaciones metidas en cada corredor, y con dos contextos **distintos entre sí** —el control del
+control: si la primera prueba pasara porque el contexto es inerte por ser siempre el mismo, esto lo
+cazaría—.
+
+Cuando el paso 6 empiece a leer el contexto, **esta prueba tiene que ponerse roja**. Y eso también
+es información: significará que el contexto por fin decide algo.
+
+El tick de producción ya lo pasa. Enchufarlo ahora, mientras no lo lee nadie, es lo que hace que el
+paso que empiece a leerlo sea un cambio de **una** cosa y no de dos. Y si armarlo fallara, la etapa se
+corre sin contexto en vez de no correrse: hoy eso es exactamente la carrera de siempre.
