@@ -5,7 +5,7 @@ import {
   type PublicRider,
   type Vocation,
 } from '@cyclingstar/shared'
-import type { StageEffort } from '@cyclingstar/engine'
+import { BANISTER, MORALE, type StageEffort } from '@cyclingstar/engine'
 import { and, desc, eq, gt, isNull, sql } from 'drizzle-orm'
 import type { Database } from './client.js'
 import {
@@ -91,6 +91,18 @@ export async function createRider(db: Database, input: CreateRiderInput): Promis
         birthSeason: input.birthSeason,
         archetype: input.archetype,
         faceSeed: input.faceSeed,
+        /**
+         * CON LAS PIERNAS DE UN JÚNIOR, NO CON LAS DE UN CONVALECIENTE. Esto no se escribía, así que
+         * el humano se quedaba con el defecto de la columna —`ctl = atl = 0`, `morale = 50`—
+         * mientras todo NPC nace con 45/45/60 y `BANISTER.initialCtl` dice justamente 45.
+         *
+         * No era cosmético: con CTL 0 el multiplicador de depósito sale 0,90 y con 45 sale 0,99, o
+         * sea que el jugador empezaba su carrera un 9 % por debajo de su propio nivel y sin que
+         * nada se lo dijera. Un chaval de 18 tiene fondo hecho; lo que no tiene es nivel.
+         */
+        ctl: BANISTER.initialCtl,
+        atl: BANISTER.initialAtl,
+        morale: MORALE.mean,
       })
       .returning({ id: riders.id })
 
@@ -138,6 +150,22 @@ export async function setRiderArchetype(
  * historia, con su palmarés intacto— y el jugador puede crearse uno nuevo. Sin el filtro, el retirado
  * seguiría bloqueando la creación y la jubilación sería el final de la partida en vez de un capítulo.
  */
+/**
+ * CUÁNTOS CICLISTAS HA TENIDO YA ESTE USUARIO, retirados incluidos.
+ *
+ * Es el `intento` de la semilla de creación. `getRiderForUser` filtra por «no retirado» —solo puedes
+ * tener uno VIVO— pero para sembrar hace falta contarlos todos: si no, el que se retira y empieza de
+ * nuevo recibiría exactamente el mismo genoma que la primera vez, y la segunda carrera sería la
+ * misma partida otra vez.
+ */
+export async function countRidersForUser(db: Database, userId: string): Promise<number> {
+  const filas = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(riders)
+    .where(eq(riders.userId, userId))
+  return filas[0]?.n ?? 0
+}
+
 export async function getRiderForUser(db: Database, userId: string): Promise<PublicRider | null> {
   const riderRows = await db
     .select()

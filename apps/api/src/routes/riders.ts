@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto'
 import {
   type TrainingOrderRow,
   acceptOffer,
@@ -29,6 +28,7 @@ import {
   getTrainingOrders,
   rejectOffer,
   retireFromRace,
+  countRidersForUser,
   setRacePref,
   setRiderArchetype,
   setTeamTrainingPlan,
@@ -193,7 +193,19 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
       country: country.toLowerCase(),
       gender,
     })
-    const genome = generateRiderGenome(randomUUID(), vocation)
+    /**
+     * SEMILLA REPRODUCIBLE. Esto era `generateRiderGenome(randomUUID(), vocation)`: el genoma del
+     * jugador —sus techos, su talento, su fragilidad, lo que va a poder llegar a ser— salía de un
+     * dado que no deja rastro. Dos consecuencias, y la segunda es la grave: no se podía reproducir
+     * un caso que el dueño reportara («mira qué corredor me ha salido»), y el mundo tenía una
+     * fuente de azar fuera de la semilla, que es justo lo que el resto del motor se prohíbe.
+     *
+     * `intento` cuenta los ciclistas que este usuario ya ha tenido, retirados incluidos, para que
+     * empezar de nuevo tras una retirada no reparta otra vez el mismo genoma.
+     */
+    const intento = await countRidersForUser(db, userId)
+    const semilla = `${world.worldSeed}:${userId}:${intento}`
+    const genome = generateRiderGenome(semilla, vocation)
     const created = await createRider(db, {
       worldId: world.worldId,
       userId,
@@ -205,7 +217,7 @@ export const riderRoutes: RoutePlugin = async (app, ctx) => {
       // se nombra y la `birthSeason` se deriva de ella, en vez del `currentSeason(...)` a pelo que
       // había antes —que por la época de las edades salía 20 sin decirlo en ninguna parte—.
       birthSeason: birthSeasonForAge(PLAYER_START_AGE, currentSeason(world.currentDay)),
-      faceSeed: randomUUID(),
+      faceSeed: `${semilla}:cara`,
       attributes: genome.attributes,
       hidden: genome.hidden,
     })

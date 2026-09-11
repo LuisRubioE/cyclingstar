@@ -1,4 +1,4 @@
-import { desc, eq } from 'drizzle-orm'
+import { desc, eq, lt } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 import { lockCalendarDay, runCalendarDay } from './calendarRun.js'
@@ -9,7 +9,7 @@ import { runPayroll, runTeamFinances } from './economy.js'
 import { LOCK_CLASS } from './locks.js'
 import { raceWorldDay } from './race.js'
 import { backfillRosters, runRollover } from './rollover.js'
-import { gameState, tickLog, worlds } from './schema.js'
+import { gameState, riderAttrLog, tickLog, worlds } from './schema.js'
 import { trainWorldDay } from './train.js'
 import {
   clusterTeamNationalities,
@@ -149,6 +149,30 @@ async function ensureGenesis(
  * Ejecuta el tick sobre una conexión dedicada (max 1) para sostener el advisory lock a
  * nivel de sesión. Avanza los días pendientes, uno por transacción, y registra en tick_log.
  */
+/**
+ * LA PURGA DEL REGISTRO DE ATRIBUTOS, QUE NO EXISTÍA.
+ *
+ * El comentario del esquema y el SPEC dicen los dos «se purga a 60 días», y en todo el repositorio
+ * no había un solo `DELETE` sobre `rider_attr_log`: la tabla crecía sin techo desde el primer día
+ * del primer mundo. Con 442 corredores por diez atributos por día, eso son del orden de cuatro
+ * millones de filas al año de juego que nadie lee y nadie borra.
+ *
+ * Se escribe AHORA y no más tarde porque el paso 2 multiplica sus filas —el mismo día puede sumar
+ * por entrenamiento y por carrera, y en cuanto el motor reporte el desglose serán hasta cuatro—, y
+ * multiplicar una tabla que ya crece sin límite es la forma de convertir un descuido en una avería.
+ *
+ * `< gameDay - 60` deja vivos exactamente los últimos 60 días: el día 61 hacia atrás se borra, que
+ * es lo que promete el SPEC y lo que necesita el informe del bloque, que mira 28.
+ */
+const ATTR_LOG_DIAS = 60
+
+/** La transacción del tick, con la misma forma que usa `train.ts`. */
+type TxTick = Parameters<Parameters<ReturnType<typeof drizzle>['transaction']>[0]>[0]
+
+export async function purgeAttrLog(tx: TxTick, gameDay: number): Promise<void> {
+  await tx.delete(riderAttrLog).where(lt(riderAttrLog.gameDay, gameDay - ATTR_LOG_DIAS))
+}
+
 export async function runTick(databaseUrl: string, opts: RunTickOptions): Promise<TickSummary> {
   const startedAtMs = Date.now()
   const client = postgres(databaseUrl, { max: 1 })
@@ -220,6 +244,7 @@ export async function runTick(databaseUrl: string, opts: RunTickOptions): Promis
           await runMarket(tx, genesis.worldId, next, opts.worldSeed)
           await runPayroll(tx, genesis.worldId, next)
           await runTeamFinances(tx, genesis.worldId, next)
+          await purgeAttrLog(tx, next)
           await tx
             .update(gameState)
             .set({ currentDay: next, lastProcessedDay: next })

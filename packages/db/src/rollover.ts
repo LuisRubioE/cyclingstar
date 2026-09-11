@@ -1,7 +1,9 @@
 import { randomUUID } from 'node:crypto'
 import {
+  BANISTER,
   type Division,
   HARD_RETIRE_AGE,
+  MORALE,
   generateNpcRider,
   neoproAge,
   shouldRetire,
@@ -140,9 +142,9 @@ async function insertNeopro(
     birthSeason: newSeason - (age - 20),
     archetype: vocation,
     faceSeed: `${id}:face`,
-    ctl: 45,
-    atl: 45,
-    morale: 60,
+    ctl: BANISTER.initialCtl,
+    atl: BANISTER.initialAtl,
+    morale: MORALE.mean,
   })
   await tx
     .insert(riderAttrs)

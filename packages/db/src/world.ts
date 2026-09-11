@@ -1,5 +1,12 @@
 import { randomUUID } from 'node:crypto'
-import { type Division, type NpcGenome, generateNpcRider, sampleNpcAge } from '@cyclingstar/engine'
+import {
+  BANISTER,
+  type Division,
+  MORALE,
+  type NpcGenome,
+  generateNpcRider,
+  sampleNpcAge,
+} from '@cyclingstar/engine'
 import {
   ATTRIBUTES,
   type Attribute,
@@ -476,9 +483,9 @@ export async function seedWorld(tx: Tx, worldId: string, worldSeed: string): Pro
       birthSeason: r.birthSeason,
       archetype: r.archetype,
       faceSeed: `${r.id}:face`,
-      ctl: 45,
-      atl: 45,
-      morale: 60,
+      ctl: BANISTER.initialCtl,
+      atl: BANISTER.initialAtl,
+      morale: MORALE.mean,
     })),
     400,
     (chunk) => tx.insert(riders).values(chunk),

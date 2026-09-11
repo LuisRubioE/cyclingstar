@@ -578,7 +578,19 @@ export async function runOneStage(
       const after = before + (delta ?? 0)
       if (after === before) continue
       attrValues.push([result.riderId, a, after])
-      attrLogValues.push({ riderId: result.riderId, gameDay, attr: a, delta: after - before })
+      /**
+       * ORIGEN `carrera`. Y con la clave primaria nueva esta fila DEJA DE PERDERSE: hasta ahora
+       * chocaba con la del entrenamiento del mismo día y `onConflictDoNothing` la tiraba en
+       * silencio. Los puntos se aplicaban igual —van por otro camino— pero la explicación de por
+       * qué subió ese atributo se borraba, que es justo lo que el informe del bloque necesita.
+       */
+      attrLogValues.push({
+        riderId: result.riderId,
+        gameDay,
+        attr: a,
+        delta: after - before,
+        source: 'carrera',
+      })
     }
   }
 

@@ -10432,3 +10432,94 @@ vocaciones. Medir «por arquetipo» antes de que el arquetipo exista sería inve
 Un detalle que el paso 5 tendrá que mirar: `fondo` termina con una carta de **63,2** contra los 82,3
 de `escalada`. El diseño ya lo había visto por otro camino —«sin carta no puede querer decir sin
 nada»— y le puso dos correcciones; esta fila es la medida de antes contra la que se comprobarán.
+
+---
+
+## v59 §2 — El humano nacía sin piernas, y el registro de atributos no se purgaba nunca
+
+Tercer paso del plan de `docs/entrenamiento.md`, y el primero que **cambia conducta en producción**:
+`ENGINE_VERSION` sube **52 → 53**. No cambia una línea del motor —la física es la misma— pero un
+corredor humano sale a correr con otro depósito, y eso es conducta.
+
+### 1. El defecto: `createRider` no escribía el estado inicial
+
+`packages/db/src/riders.ts` insertaba el corredor sin `ctl`, `atl` ni `morale`, así que se quedaban
+con el **defecto de la columna**: `ctl = 0`, `atl = 0`, `morale = 50`. Mientras tanto
+`BANISTER.initialCtl` vale **45**, todo NPC nace con 45/45/60, y `db/world.ts` y `rollover.ts`
+escribían ese 45 **a mano, como literal**.
+
+Lo que costaba, medido:
+
+| CTL | `mTankFitness` | Depósito de salida (TSB 0, sano) |
+| --: | -------------: | -------------------------------: |
+|   0 |         0,9000 |                            90,00 |
+|  45 |         0,9900 |                            99,00 |
+
+**Un 10 % de depósito, desde el primer día y para siempre.** El jugador empezaba su carrera diez
+puntos por debajo de su propio nivel sin que nada se lo dijera, y no había forma de notarlo: un
+corredor con CTL 0 corre, termina y puntúa; solo rinde menos. El diseño lo estimaba en un 9 % y la
+medida da 10,0 % —9 sobre 90—.
+
+Los tres literales de `world.ts` y `rollover.ts` pasan a ser las constantes. Comprobado: cero
+ocurrencias de `ctl: 45` fuera de las pruebas.
+
+### 2. La semilla de creación era un dado sin rastro
+
+`generateRiderGenome(randomUUID(), vocation)`. El genoma del jugador —techos, talento, fragilidad, o
+sea **lo que va a poder llegar a ser**— salía de un dado que no se guarda en ninguna parte. Dos
+consecuencias, y la segunda es la que importa: no se podía reproducir un caso que el dueño
+reportara, y el mundo tenía una fuente de azar **fuera de la semilla**, que es exactamente lo que el
+resto del motor se prohíbe.
+
+Pasa a `${worldSeed}:${userId}:${intento}`, con `intento` = ciclistas que ese usuario ya ha tenido,
+**retirados incluidos** (si no se contaran, empezar de nuevo tras una retirada repartiría el mismo
+genoma y la segunda carrera sería la misma partida otra vez).
+
+De propina: al quitar ese `randomUUID()` y el del `faceSeed`, el `import` de `node:crypto` se quedó
+sin usar en la ruta. O sea que **la creación del ciclista ya no tiene ni un dado sin semilla**, y lo
+dice el compilador y no yo.
+
+### 3. El origen de cada punto, y una fila que se perdía en silencio
+
+`rider_attr_log` gana `source` (enum `attr_log_source` con sus cinco valores) y la clave primaria
+pasa a `(rider_id, game_day, attr, source)`.
+
+Además del desglose, **arregla un defecto silencioso**: con la clave vieja, el día que un corredor
+corría _y_ entrenaba, la segunda fila chocaba y el `onConflictDoNothing` de los escritores la tiraba
+sin avisar. Los puntos se aplicaban igual —van por otro camino— pero la explicación de por qué subió
+ese atributo se borraba, que es justo lo que el informe del bloque necesita leer. Hay una prueba que
+lo fija: dos filas el mismo día, mismo atributo, orígenes distintos, y antes quedaba una.
+
+**Solo se escriben dos de los cinco valores**, y conviene decirlo en vez de fingir el desglose
+completo: `entrenamiento` y `carrera`. Los otros tres —`declive`, `detraining`,
+`sobrecompensacion`— no dependen de esta capa sino de que el motor reporte el desglose, y
+`simulateRiderDay` devuelve hoy el estado final y nada más. El enum nace con los cinco porque
+ampliarlo después es otra migración; los valores se escriben cuando haya qué escribir.
+
+### 4. La purga de 60 días no existía
+
+El comentario del esquema y el SPEC dicen los dos «se purga a 60 días». En todo el repositorio **no
+había un solo `DELETE` sobre `rider_attr_log`**: la tabla crecía sin techo desde el primer día del
+primer mundo, del orden de cuatro millones de filas por año de juego que nadie lee y nadie borra.
+
+Se escribe ahora y no más tarde por una razón concreta: este mismo paso **multiplica sus filas**, y
+multiplicar una tabla que ya crece sin límite es convertir un descuido en una avería. Va al cierre
+del día del tick, dentro de la transacción, y deja vivos exactamente los últimos 60 días.
+
+### 5. Un defecto latente de las migraciones que este paso destapó
+
+Al generar la migración con `drizzle-kit generate`, el fichero salió con **tres cosas que no eran de
+este paso**: el `rider_points` entero de la `0031` y la columna `parte` de la `0030`. Sobre una base
+que ya hubiera corrido esas migraciones habría fallado con tabla y columna duplicadas, y el job
+«Migraciones (base vacía)» de la CI habría salido rojo.
+
+La causa: **los snapshots de 0030, 0031 y 0032 nunca se comprometieron**. El último que hay en el
+repositorio es el `0029`, así que `drizzle-kit` diffea contra un esquema de hace tres migraciones y
+re-emite todo lo que pasó desde entonces. No lo causó este paso; le tocó encontrarlo.
+
+Además el generador emitía el `ADD CONSTRAINT` de la clave primaria **antes** del `ADD COLUMN` de la
+columna que esa clave nombra, que no se puede ejecutar en ese orden.
+
+La `0033` se deja con **solo su delta** y en el orden correcto, con el porqué escrito en la cabecera
+del propio fichero. El snapshot `0033` sí se guarda y está construido desde el esquema actual, así
+que **la próxima generación vuelve a ser correcta** y este arreglo no hay que repetirlo.

@@ -211,7 +211,19 @@ export async function trainWorldDay(
           .update(riderAttrs)
           .set({ value: after })
           .where(and(eq(riderAttrs.riderId, rider.id), eq(riderAttrs.attr, attr)))
-        attrLogValues.push({ riderId: rider.id, gameDay, attr, delta: after - before })
+        /**
+         * ORIGEN `entrenamiento`, y lo que eso quiere decir HOY con exactitud: este delta es el
+         * NETO del día —ganancia menos declive menos detraining— porque `simulateRiderDay` devuelve
+         * el estado final y no el desglose. El enum tiene `declive` y `detraining` porque los va a
+         * necesitar, pero escribirlos ahora sería repartir un número que nadie ha separado.
+         */
+        attrLogValues.push({
+          riderId: rider.id,
+          gameDay,
+          attr,
+          delta: after - before,
+          source: 'entrenamiento',
+        })
       }
     }
 

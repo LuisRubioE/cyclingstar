@@ -184,6 +184,7 @@ export {
   createRider,
   getCurrentWorld,
   getDailyLog,
+  countRidersForUser,
   getRiderForUser,
   getRiderHealth,
   getRiderSummary,

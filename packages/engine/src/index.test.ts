@@ -297,6 +297,10 @@ describe('engine: esqueleto', () => {
     // líder ataque en el desenlace es la carrera— y el castigo escala con la distancia real en la
     // general. El veto TIRA EL DADO igualmente, así que el flujo `rngTactics` no se corre y las
     // huellas de `attribution.test.ts` y `timetrial.test.ts` salen idénticas dígito a dígito: sus
+    // v53: el humano nacía sin piernas. `createRider` no escribía `ctl`/`atl`, así que se quedaban
+    // en el defecto de la columna (0) mientras todo NPC nace con 45 y `BANISTER.initialCtl` dice 45:
+    // el jugador arrastraba un multiplicador de depósito de 0,90 en vez de 0,99 desde su primer día.
+    // Es conducta en producción y por eso sube versión, aunque no cambie una línea del motor.
     // escenarios corren SIN general en juego, y este cambio solo mira ahí.
     // v31: la línea del que corre por su cuenta sale donde APARECE, no en el km 0, y dice qué hace.
     // v30: un final en alto tiene que SUBIR, no solo medir. 6 etapas de 1.418 dejan de repartir el
@@ -309,6 +313,6 @@ describe('engine: esqueleto', () => {
     // v11 (atribución del trabajo), la v10 (composición y caza), la v9 (capa táctica), la
     // v8 (tiempos de grupo), la v7 (modelo de final), la v6 (telemetría), la v5 (clásica larga), la
     // v4 (pavé en el recorrido) y la v3 (Cambio 0).
-    expect(ENGINE_VERSION).toBe(52)
+    expect(ENGINE_VERSION).toBe(53)
   })
 })

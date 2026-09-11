@@ -307,6 +307,26 @@ export const riderHidden = pgTable('rider_hidden', {
 })
 
 /** Registro de variaciones de atributos: flechas de tendencia; se purga a 60 días (SPEC 11). */
+/**
+ * DE DÓNDE VIENE CADA PUNTO. Hoy se escribía una sola fila por atributo y día con el delta NETO, y
+ * con eso no se puede contestar «¿por qué mejoré?», que es la pregunta que el informe del bloque
+ * existe para responder.
+ *
+ * El enum nace con sus cinco valores aunque hoy solo se escriban dos —`entrenamiento` y `carrera`—
+ * porque ampliar un enum de Postgres es una migración más y los otros tres no dependen de esta capa
+ * sino de que el motor reporte el desglose: `simulateRiderDay` devuelve hoy el estado final y nada
+ * más, así que `declive`, `detraining` y `sobrecompensacion` no se pueden separar sin tocarlo. Se
+ * escriben cuando exista ese desglose; mientras tanto van dentro del neto de su escritor, que es lo
+ * que ya pasaba, y no se finge lo contrario.
+ */
+export const attrLogSourceEnum = pgEnum('attr_log_source', [
+  'entrenamiento',
+  'carrera',
+  'sobrecompensacion',
+  'declive',
+  'detraining',
+])
+
 export const riderAttrLog = pgTable(
   'rider_attr_log',
   {
@@ -316,8 +336,15 @@ export const riderAttrLog = pgTable(
     gameDay: integer('game_day').notNull(),
     attr: attributeEnum('attr').notNull(),
     delta: real('delta').notNull(),
+    source: attrLogSourceEnum('source').notNull().default('entrenamiento'),
   },
-  (t) => [primaryKey({ columns: [t.riderId, t.gameDay, t.attr] })],
+  /**
+   * LA CLAVE LLEVA EL ORIGEN, y eso arregla un defecto silencioso además de permitir el desglose:
+   * con la clave vieja `(rider_id, game_day, attr)`, el día que un corredor corría Y entrenaba —o
+   * corría dos veces— la segunda fila chocaba y `onConflictDoNothing` la tiraba a la basura sin
+   * avisar. Los puntos seguían aplicándose al atributo; lo que se perdía era la explicación.
+   */
+  (t) => [primaryKey({ columns: [t.riderId, t.gameDay, t.attr, t.source] })],
 )
 
 // ---- Entrenamiento (SPEC 5 y 11), Pasos 18-20 ----

@@ -232,6 +232,13 @@
       "when": 1786701379187,
       "tag": "0032_techos_por_edad",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1789111308516,
+      "tag": "0033_origen_del_punto",
+      "breakpoints": true
     }
   ]
 }
