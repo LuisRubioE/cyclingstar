@@ -2479,6 +2479,40 @@ export const STAGE = {
     trainMaxLaunchers: 3,
   },
 
+  /**
+   * EL JUEGO DE EQUIPO (R02 y R18, docs/tactica.md paso 7): el turno como cola, la tabla de ganas de
+   * atacar por intención, y lo que hacen dos compañeros en el mismo grupo.
+   */
+  teamPlay: {
+    enabled: false,
+    /**
+     * CUÁNTO DURA UN TURNO, por terreno (R18.1). En cuesta se releva antes —el esfuerzo es continuo
+     * y no hay rueda que valga tanto— y con viento de lado, antes todavía.
+     */
+    turnPullKm: { llano: 0.6, subida: 0.3, abanico: 0.25 },
+    /**
+     * CUÁNTO SIGUE UN PEÓN A SU PROPIO COMPAÑERO cuando ataca (R02.4). **No es cero**: si el
+     * compañero se va y a mí me conviene ir, voy. El paso 3 lo dejó en cero provisional con su
+     * medida al lado; éste le pone el valor que la regla pide.
+     *
+     * Para la CARTA del equipo y para el co-líder sigue siendo 0: un gregario no le salta a la rueda
+     * a su propio jefe, y eso no es un descuento, es que no pasa.
+     */
+    mateFollowDamp: 0.15,
+    /**
+     * LO QUE ATACA UN EQUIPO QUE DEFIENDE (R02.12). Hoy vale 0,85, **por encima del 0,70 del que
+     * persigue**: el equipo del maillot ataca más que el del segundo, que es la inversión que la
+     * queja 3 del dueño señala. Defender es lo contrario de atacar.
+     */
+    attackDefending: 0.3,
+    /**
+     * EL COLCHÓN A PARTIR DEL CUAL EL MAILLOT DEJA DE ATACAR. Con cero se lo juega y salta como
+     * cualquiera; con dos minutos no tiene nada que ganar. DERIVADA del orden de magnitud de las
+     * bonificaciones acumulables (10/6/4 por etapa: tres etapas de ventaja).
+     */
+    jerseyCushionS: 180,
+  },
+
   // 6.6 — Cerillos (esfuerzos supraumbral discretos).
   // comp = 0.50·max(MON,COL) + 0.30·RES + 0.20·LLA; cerillos = 2 + (comp>=55)+(>=72)+(>=88).
   matchCompMonWeight: 0.5,

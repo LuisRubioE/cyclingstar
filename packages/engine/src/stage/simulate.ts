@@ -45,6 +45,7 @@ import {
   targetSpeed,
 } from './physics.js'
 import { blockProbability, rollHazard } from './hazard.js'
+import { type RelayQueue, advanceQueue, emptyQueue } from './relayQueue.js'
 import { type ChaseCandidate, chaseTargetOf, desiredGapOf, frontClaimOf } from './frontAuction.js'
 import {
   type CustomsMove,
@@ -103,6 +104,7 @@ import {
   type TeamStance,
   buildTeamPlans,
   frontClaim,
+  jerseyAttackFactor,
   teamAttackFactor,
   teamDrive,
   teamStance,
@@ -640,6 +642,14 @@ function relayTurn(
    * fuga, donde relevan todos.
    */
   enAbanico = false,
+  /**
+   * LA COLA DEL TURNO (R18.1, paso 7). Si se pasa, esta función deja de decidir el ORDEN y pasa a
+   * decidir solo **quiénes quieren tirar y cuántos caben**; el orden y la duración los lleva la
+   * cola, que persiste entre bloques. Sin ella, todo sigue igual que hasta ahora: el turno se rehace
+   * desde cero cada cien metros y los mismos hombres van delante todo el día.
+   */
+  cola: RelayQueue | null = null,
+  terrenoCola: 'llano' | 'subida' | 'abanico' = 'llano',
 ): Set<string> {
   const scored = members.map((m) => {
     const helpers = domestiquesFor.get(m.input.riderId)
@@ -825,8 +835,16 @@ function relayTurn(
   const cuantos = enAbanico
     ? Math.max(minimo, Math.min(techo, members.length - protegidos))
     : Math.max(minimo, Math.min(quieren, techo))
-  if (cuantos <= quieren)
-    return elTren(new Set(scored.slice(0, cuantos).map((s) => s.id)), scored, lanzando)
+  if (cuantos <= quieren) {
+    const candidatos = scored.slice(0, quieren).map((s) => s.id)
+    return elTren(
+      cola
+        ? advanceQueue(cola, candidatos, cuantos, STAGE.dx, terrenoCola)
+        : new Set(scored.slice(0, cuantos).map((s) => s.id)),
+      scored,
+      lanzando,
+    )
+  }
   /**
    * …Y CUANDO HAY QUE RELLENAR POR DEBAJO DEL LISTÓN, LOS QUE DAN LA CARA SON LOS DEL DUEÑO DEL
    * FRENTE (v38). Es la regla de siempre —«el frente lo lleva UNO»— dicha para el único caso en que
@@ -844,7 +862,19 @@ function relayTurn(
     (a, b) =>
       Number(delDueño(b.id)) - Number(delDueño(a.id)) || b.duty - a.duty || (a.id < b.id ? -1 : 1),
   )
-  return elTren(new Set(relleno.slice(0, cuantos).map((s) => s.id)), scored, lanzando)
+  return elTren(
+    cola
+      ? advanceQueue(
+          cola,
+          relleno.map((s) => s.id),
+          cuantos,
+          STAGE.dx,
+          terrenoCola,
+        )
+      : new Set(relleno.slice(0, cuantos).map((s) => s.id)),
+    scored,
+    lanzando,
+  )
 }
 
 /**
@@ -1706,10 +1736,37 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
   }
   const attackFactorOf = (riderId: string): number => {
     if (rebels.has(riderId)) return 1
+    /**
+     * …Y EL MAILLOT CON COLCHÓN NO SALTA (R02.12, paso 7). Va aquí y no en la tabla del equipo
+     * porque es del CORREDOR: dentro del equipo del líder, sus gregarios atacan con el factor de su
+     * intención; el que lleva el maillot, no. Es la queja 3 del dueño —«el maillot salta seis
+     * veces»— y su colchón es lo que la contesta.
+     */
+    const sim = sims.get(riderId)
+    const deJersey =
+      colaOn && sim
+        ? jerseyAttackFactor(hasGcContext && sim.input.gcRank === 1, gcCushionOf(riderId))
+        : 1
     const t = teamOf.get(riderId)
-    if (t == null) return 1
+    if (t == null) return deJersey
     const stance = teamNow.get(t)
-    return stance == null ? 1 : teamAttackFactor(stance)
+    return (stance == null ? 1 : teamAttackFactor(stance, colaOn)) * deJersey
+  }
+  /**
+   * EL COLCHÓN DEL LÍDER: lo que le saca al siguiente de la general. Sin general en juego no hay
+   * colchón que contar.
+   */
+  const gcCushionOf = (riderId: string): number => {
+    if (!hasGcContext) return 0
+    const suyo = sims.get(riderId)?.input.gcDeficitSeconds
+    if (suyo == null) return 0
+    let siguiente = Number.POSITIVE_INFINITY
+    for (const s2 of sims.values()) {
+      if (s2.input.riderId === riderId || s2.abandonedKm !== null) continue
+      const d = s2.input.gcDeficitSeconds
+      if (d > suyo) siguiente = Math.min(siguiente, d)
+    }
+    return Number.isFinite(siguiente) ? siguiente - suyo : 0
   }
   /** El MOTIVO por el que tira un equipo, para la crónica; `null` si no es un equipo el que tira. */
   const purposeOfTeam = (teamId: string | null): string | null =>
@@ -1761,6 +1818,22 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
   const customsOn = input.flags?.customs === true || STAGE.customs.enabled
   /** ¿Está encendida la subasta del frente del paso 9? Ver `STAGE.front.enabled`. */
   const frontOn = input.flags?.front === true || STAGE.front.enabled
+  /** ¿Está encendido el juego de equipo del paso 7? Ver `STAGE.teamPlay.enabled`. */
+  const colaOn = input.flags?.teamPlay === true || STAGE.teamPlay.enabled
+  /**
+   * LAS COLAS DE RELEVOS, una por grupo y viva toda la etapa (R18.1). Se crean a demanda y se
+   * quedan: un grupo que se deshace deja su cola huérfana y no cuesta nada, y uno que se rehace con
+   * el mismo id —el pelotón— conserva el orden, que es justo lo que se quiere.
+   */
+  const colas = new Map<string, RelayQueue>()
+  const colaDe = (groupId: string): RelayQueue => {
+    let q = colas.get(groupId)
+    if (!q) {
+      q = emptyQueue()
+      colas.set(groupId, q)
+    }
+    return q
+  }
 
   /** El movimiento tal como lo ve la aduana: su gente, su hueco y su clase. */
   const customsMoveOf = (party: MoveRider[], gapSeconds: number, kind: MoveKind): CustomsMove => ({
@@ -3598,6 +3671,18 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
           return suJefe != null && idSet.has(suJefe)
         },
         abanicoAbierto && vientoLateral > 0 && block.tipo === 'llano',
+        /**
+         * LA COLA DE ESTE GRUPO (R18.1, paso 7). **Una por grupo y persistente entre bloques**: es
+         * lo que convierte el turno en un relevo de verdad —das tu turno, te apartas y te vas al
+         * final— en vez de una foto que se rehace desde cero cada cien metros y deja a los mismos
+         * hombres delante toda la tarde.
+         */
+        colaOn ? colaDe(group.id) : null,
+        abanicoAbierto && vientoLateral > 0 && block.tipo === 'llano'
+          ? 'abanico'
+          : block.tipo === 'subida'
+            ? 'subida'
+            : 'llano',
       )
       /**
        * CUÁNTOS SE REPARTEN EL VIENTO AL FRENTE: LOS QUE TIRAN, y punto (v38).
@@ -5111,7 +5196,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
             continue
           }
         }
-        if (dado() >= followProbability(r, instigator, ctx)) continue
+        if (dado() >= followProbability(r, instigator, ctx, colaOn)) continue
         if (sustainsJump(r, instigator, dado)) jumpers.push(r)
         else stranded += 1
       }

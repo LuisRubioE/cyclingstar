@@ -539,7 +539,13 @@ export function chooseInstigator(
  * Manda ir atento (TAC), tener piernas y tener interés; el rol de sprinter o gregario no salta.
  * En un grupo grande cada uno cuenta con que salte otro, así que la atención se diluye.
  */
-export function followProbability(r: MoveRider, instigator: MoveRider, ctx: MoveContext): number {
+export function followProbability(
+  r: MoveRider,
+  instigator: MoveRider,
+  ctx: MoveContext,
+  /** ¿Está encendido el juego de equipo del paso 7? (R02.4). */
+  teamPlayOn = false,
+): number {
   if (r.riderId === instigator.riderId) return 0
   /**
    * A UN COMPAÑERO NO SE LE SALTA A LA RUEDA (R01, `followProbability = 0` entre compañeros).
@@ -569,15 +575,18 @@ export function followProbability(r: MoveRider, instigator: MoveRider, ctx: Move
    * regla de la casa —«si el cambio saca un objetivo de banda, el que está mal es el cambio»— y las
    * tres viajan juntas al 9. Escrito en `docs/balance.md` «v60 §3».
    */
-  const COMPANEROS_NO_SE_SIGUEN = false
-  if (
-    COMPANEROS_NO_SE_SIGUEN &&
-    r.teamId !== null &&
-    r.teamId !== undefined &&
-    r.teamId === (instigator.teamId ?? null)
-  ) {
-    return 0
-  }
+  /**
+   * …Y EL PASO 7 LE PONE EL VALOR QUE LA REGLA PIDE (R02.4). **No es cero: es un descuento.** Un
+   * gregario no le salta a la rueda a su propio jefe —eso no es un descuento, es que no pasa— pero
+   * si el que se va es otro peón y a mí me conviene ir, voy. El cero de arriba era provisional y
+   * está medido; `mateFollowDamp` es lo que la fila describe.
+   *
+   * Apagado, se conserva el 1 de siempre —ningún descuento— y el motor corre dígito a dígito como
+   * el paso 6.
+   */
+  const esCompanero =
+    r.teamId !== null && r.teamId !== undefined && r.teamId === (instigator.teamId ?? null)
+  const descuentoCompanero = teamPlayOn && esCompanero ? STAGE.teamPlay.mateFollowDamp : 1
   if (r.energyFraction < STAGE.tacticMinEnergyFraction) return 0
   // …y tampoco salta a la rueda de nadie: le acaban de comer después de un día delante (v42).
   if (r.gastado) return 0
@@ -617,12 +626,14 @@ export function followProbability(r: MoveRider, instigator: MoveRider, ctx: Move
     ctx.kind === 'fuga' || ctx.kind === 'contraataque' ? clamp(ctx.breakAppeal, 0, 1) : 0
   const umbral = STAGE.bigGroupThreshold * (1 + STAGE.breakAppealCrowdGain * apetito)
   const crowd = ctx.groupSize > umbral ? umbral / ctx.groupSize : 1
-  return clamp(
-    KIND_FOLLOW[ctx.kind] *
-      crowd *
-      (STAGE.tacticFollowBase + attention + appetite + spirit + legs + stake),
-    STAGE.tacticFollowMin,
-    STAGE.tacticFollowMax,
+  return (
+    clamp(
+      KIND_FOLLOW[ctx.kind] *
+        crowd *
+        (STAGE.tacticFollowBase + attention + appetite + spirit + legs + stake),
+      STAGE.tacticFollowMin,
+      STAGE.tacticFollowMax,
+    ) * descuentoCompanero
   )
 }
 

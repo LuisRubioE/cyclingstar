@@ -582,7 +582,7 @@ export function teamDrive(stance: TeamStance, spentFraction: number, onTheFront:
  * fuga**, que es de donde salen las fugas de verdad. Un rebelde no pasa por aquí: su decisión manda
  * sobre el plan (§V.1, regla 1).
  */
-export function teamAttackFactor(stance: TeamStance): number {
+export function teamAttackFactor(stance: TeamStance, teamPlayOn = false): number {
   switch (stance.intent) {
     case 'fuga':
       return STAGE.teamAttackUpTheRoad
@@ -591,8 +591,38 @@ export function teamAttackFactor(stance: TeamStance): number {
       return STAGE.teamAttackChasing
     case 'controlar':
     case 'proteger':
-      return STAGE.teamAttackDefending
+      /**
+       * …Y AQUÍ HABÍA UNA INVERSIÓN (R02.12, paso 7), que es la queja 3 del dueño escrita como
+       * número: con el escalar de hoy **el equipo del maillot ataca MÁS que el del segundo**
+       * —`controlar` 0,85 contra `perseguir` 0,70—. Defender la general es lo contrario de atacar, y
+       * el motor lo tenía al revés.
+       *
+       * Con el juego de equipo encendido, defender pesa 0,30: por debajo de perseguir, que es donde
+       * tiene que estar. Apagado se conserva el 0,85 de siempre, dígito a dígito.
+       */
+      return teamPlayOn ? STAGE.teamPlay.attackDefending : STAGE.teamAttackDefending
     default:
       return STAGE.teamAttackFree
   }
+}
+
+/**
+ * LO QUE ATACA EL QUE LLEVA EL MAILLOT (R02.12, la regla aparte).
+ *
+ * Un líder con dos minutos de colchón **no salta seis veces en una etapa**: no tiene nada que ganar
+ * y todo que perder. Con colchón cero ataca como cualquiera —se está jugando el liderato— y a partir
+ * de `jerseyCushionS` no ataca nada.
+ *
+ * La excepción es que se lo estén quitando en la carretera: si el líder VIRTUAL ya es otro, el
+ * colchón no existe y vuelve a valer 1. Esa mitad llega con R04.6 (el traspaso en carretera) y se
+ * deja escrita como parámetro para que quien la encienda no tenga que buscar dónde va.
+ */
+export function jerseyAttackFactor(
+  esPortador: boolean,
+  cushionSeconds: number,
+  leLoEstanQuitando = false,
+): number {
+  if (!esPortador || leLoEstanQuitando) return 1
+  const colchon = Math.max(0, cushionSeconds)
+  return 1 - Math.min(1, colchon / STAGE.teamPlay.jerseyCushionS)
 }

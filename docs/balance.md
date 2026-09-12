@@ -12308,3 +12308,88 @@ abrir **un paso de encendido conjunto** donde se enciendan a la vez y se calibre
 los 104 invariantes, no cada pieza contra los suyos. Las tres perillas ya identificadas
 —`customsPotWeight`, la tabla de fases y `closeRateSPerKm`— se barren ahí, juntas, que es donde de
 verdad interactúan.
+
+## v60 §8 — El juego de equipo, y **la prueba de que el encendido conjunto funciona**
+
+`ENGINE_VERSION` **64 → 64**. R02 y R18 —el turno como cola, la inversión de la tabla de ataque y el
+descuento entre compañeros— construidos, medidos, y apagados. Quinta vez. Pero esta entrada no
+existe por el racimo: existe por lo que se midió **encendiéndolo todo junto**.
+
+### El turno era una foto, no un relevo (R18.1)
+
+`relayTurn` **se rehace entera desde cero cada bloque de cien metros y en cada grupo**, por
+puntuación de deber con desempate por id. Sin memoria de quién acaba de tirar, sin relevo hacia atrás
+y sin duración: la constante que contaba el apartarse (`pullOffFrontShare`) se retiró y no se
+sustituyó por nada. La consecuencia es que **los mismos hombres van al frente kilómetro tras
+kilómetro** hasta que la frescura les cambia el orden por sí sola.
+
+Ahora es una cola: das tu turno, te apartas, te vas al final y no vuelves a cabeza hasta que gire
+entera. La pieza **no decide quién quiere tirar** —eso lo siguen decidiendo los tres listones del
+deber, que están medidos y no se tocan—: decide **en qué orden y durante cuánto**, que es lo que
+faltaba. Y el turno dura menos en cuesta y todavía menos en abanico.
+
+### La inversión de la tabla de ataque (R02.12), que es la queja 3 del dueño
+
+Con el escalar de hoy **el equipo del maillot ataca MÁS que el del segundo**: `controlar` 0,85 contra
+`perseguir` 0,70. Defender la general es lo contrario de atacar y el motor lo tenía al revés. Con el
+juego de equipo, defender pesa 0,30. Y aparte, la regla del portador: un líder con dos minutos de
+colchón **no salta seis veces en una etapa**, porque no tiene nada que ganar y todo que perder.
+
+### Y el descuento entre compañeros, que el paso 3 dejó a cero
+
+`mateFollowDamp` = 0,15, que es lo que la fila pide: **no es cero, es un descuento**. Un gregario no
+le salta a la rueda a su propio jefe; pero si el que se va es otro peón y a mí me conviene ir, voy.
+
+### Lo que hace solo: lo de siempre
+
+| llana + reina, 120 semillas | apagado |     paso 7 | banda |
+| --------------------------- | ------: | ---------: | ----- |
+| gana la fuga (llano)        |   9,2 % |      6,7 % | 5-16  |
+| gana el mejor sprinter      |  36,7 % |     39,2 % | 30-45 |
+| captura                     |    89 % |       93 % | > 85  |
+| contraataque tras captura   |    16 % |       23 % | 25-60 |
+| **gana la fuga (reina)**    |  26,7 % | **18,3 %** | 25-45 |
+| Il Lombardia, pájaras       |  11,2 % | **12,4 %** | ≤ 12  |
+
+Dos fuera. Apagado.
+
+### **Y AHORA LO QUE IMPORTA: los cuatro racimos a la vez**
+
+| llana canónica + reina, 120 semillas |  apagado |      R19 |  R03 |  R20 |  R02+R18 | **los cuatro** | banda |
+| ------------------------------------ | -------: | -------: | ---: | ---: | -------: | -------------: | ----- |
+| gana la fuga (llano)                 |    9,2 % |      5,0 | 10,0 | 14,2 |      6,7 |     **10,8 %** | 5-16  |
+| gana el mejor sprinter               |   36,7 % |     39,2 | 35,8 | 35,8 |     39,2 |     **35,0 %** | 30-45 |
+| captura                              |     89 % |       94 |   89 |   85 |       93 |       **89 %** | > 85  |
+| km de la caza                        |     18,1 |     19,8 | 18,6 | 18,0 |     17,9 |       **19,8** | 8-25  |
+| intentos por etapa                   |     15,0 |     16,9 | 15,0 | 14,5 |     14,8 |       **16,8** | 10-25 |
+| intentos tras el km 100              |      8,3 |      9,1 |  8,1 |  8,0 |      8,3 |        **9,3** | ≥ 2   |
+| contraataque tras captura            | **16 %** |       34 |   20 |   15 |       23 |       **29 %** | 25-60 |
+| gana la fuga (reina)                 |   26,7 % |     28,3 | 20,0 | 30,0 | **18,3** |     **38,3 %** | 25-45 |
+| **Il Lombardia, pájaras**            |   11,2 % | **17,7** | 14,3 | 11,9 | **12,4** |     **11,9 %** | ≤ 12  |
+
+**Las nueve pasan, Lombardia incluida.** Y esa última fila es la prueba dura: la saturación de las
+clásicas que R19 solo rompía —y que ni R03 ni R20 ni R02+R18 arreglaban por su cuenta— **desaparece
+cuando están los cuatro**. No es que una pieza la arregle: es que el desequilibrio lo causaba correr
+con media capa táctica.
+
+### Contra los 104 invariantes completos: 100 pasan, y hay que mirar los cuatro que no
+
+| invariante                                             | medido | listón | qué es                                                                                                                                                         |
+| ------------------------------------------------------ | -----: | -----: | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| «el contraataque tras la captura NO llega a su banda»  | 28,6 % |   < 25 | **el defecto ARREGLADO**: esta prueba la escribí en el paso 6 para afirmar que el motor de hoy no llega, y con los cuatro llega                                |
+| la captura nombra a los de delante (`comprobadas > 0`) |      0 |    > 0 | el CASO que comprueba deja de darse en el banco; hay que diagnosticar por qué                                                                                  |
+| el que releva todo el día se desgasta más              |  1,097 |  > 1,1 | **la cola funcionando**: el test se escribió contra «la lógica vieja, donde el primer cuarto del array relevaba SIEMPRE», y una cola es justo lo que quita eso |
+| Il Lombardia satura (3 semillas)                       |   13 % |   ≤ 12 | con 12 semillas da 11,9 %; es el guardarraíl más ruidoso que hay                                                                                               |
+
+**Tres de los cuatro son pruebas que describen el motor viejo, no bandas que el motor nuevo viole.**
+Y aun así **no se enciende nada en esta tanda**, por dos motivos, los dos explícitos:
+
+1. **Los tres ajustes hay que tomarlos uno a uno y con su medida**, y dos de ellos tocan listones que
+   puso el dueño. Cambiar tres guardarraíles en la misma tanda en que se encienden cuatro racimos es
+   exactamente la forma de no poder atribuir nada después.
+2. **El segundo hay que diagnosticarlo, no ajustarlo.** Que un caso deje de darse puede ser que la
+   conducta mejore o que el banco haya dejado de mirar donde debía, y las dos cosas se parecen
+   demasiado como para decidirlo deprisa.
+
+Así que el trabajo queda: los cinco racimos construidos, medidos y apagados; la evidencia de que
+juntos funcionan; y el encendido, que es una decisión con tres guardarraíles encima de la mesa.
