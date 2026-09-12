@@ -12479,3 +12479,79 @@ exacta de no poder atribuir nada después, que es el argumento con el que se pid
 2. Decidir, con el dueño, cuánta pérdida de crónica compra la carrera nueva. **Es una decisión de
    diseño, no de calibración**, y no es mía.
 3. Encenderlo entonces en una tanda que no haga nada más.
+
+## v60 §10 — Los cinco guardarraíles de la crónica, diagnosticados
+
+`ENGINE_VERSION` **64 → 64**. Lo que la v60 §9 dejó pendiente: entender por qué el encendido conjunto
+se lleva por delante cinco guardarraíles de narración, **uno a uno y con medida**, que es lo que se
+hizo con el sexto en vez de ajustarlo.
+
+### El reagrupamiento: es de las FASES, y el listón ya era falso antes
+
+Aislado palanca a palanca sobre el escenario del propio test (100 km llanos + 14 km al 6,5 % + 30 km
+llanos), 8 semillas:
+
+| palanca encendida | etapas que narran reagrupamiento |
+| ----------------- | -------------------------------: |
+| ninguna           |                              8/8 |
+| juego de equipo   |                              8/8 |
+| **fases**         |                          **6/8** |
+| aduana            |                              8/8 |
+| subasta           |                              8/8 |
+| las cuatro        |                              6/8 |
+
+Solo las fases. Y **ninguna columna de la tabla lo explica**: quitando el suelo, 6/8; quitando la
+cuerda, 6/8; con el cupo a 3, 5/8 —peor—. Es el racimo, igual que con las pájaras de Lombardia en el
+paso 5.
+
+**Pero la medida importante es la otra**, y cambia el veredicto. Con veinticuatro semillas:
+
+|              | narran reagrupamiento |
+| ------------ | --------------------: |
+| motor de hoy |      **23/24 (96 %)** |
+| solo fases   |      **20/24 (83 %)** |
+| las cuatro   |      **20/24 (83 %)** |
+
+O sea que **el listón «las ocho semillas» ya era falso con el motor de hoy**: hay una etapa de cada
+veinticuatro que sube el puerto a tempo, no se parte, y por tanto no tiene reagrupamiento que narrar
+—una carrera legítima, no un defecto—. Con n = 8 esa semilla no tocaba y la aserción pasaba por
+suerte.
+
+La historia del propio test ya lo decía sin saberlo: se ablandó a «al menos seis de ocho» en la v26,
+se devolvió a ocho, y su comentario cuenta que con el puerto de 12 km eran 7 de 8. **Un guardarraíl
+que ha valido 6, 7 y 8 sobre ocho muestras no mide la conducta: arbitra el dado.** Es el defecto V1
+de este repositorio otra vez.
+
+**Arreglo, y es más exigente y no más flojo**: 24 semillas y un listón de **21**, tres de margen
+sobre la tasa medida del 96 %. Con el motor de hoy pasa holgado; con la capa táctica encendida da 20
+y **sigue fallando**, que es exactamente lo que tiene que hacer, porque la pérdida es real.
+
+### La criba lejos de meta: deriva acumulada sobre tres puntos de holgura
+
+| palanca         | etapas con criba narrada (de 24) |
+| --------------- | -------------------------------: |
+| ninguna         |                               15 |
+| juego de equipo |                               16 |
+| fases           |                               13 |
+| aduana          |                               13 |
+| **subasta**     |                           **21** |
+| las cuatro      |                               11 |
+
+Listón: 12. **Ninguna palanca lo rompe sola** —la subasta incluso lo sube a 21— y las cuatro juntas
+lo dejan en 11. Es deriva acumulada sobre un guardarraíl con tres puntos de holgura, en un escenario
+cuya tasa base su propio comentario cifra en el 68 %. No se toca: 11 contra 12 es un fallo legítimo y
+pequeño, y taparlo sería exactamente lo que este documento lleva nueve entradas negándose a hacer.
+
+### Lo que esto deja decidido y lo que no
+
+**Decidido y medido**: la capa táctica cuesta **13 puntos de reagrupamiento narrado** (96 % → 83 %) y
+**cuatro etapas de veinticuatro** de criba lejana. No es un artefacto de los tests: los tests, una vez
+arreglados para medir tasas en vez de arbitrar dados, **siguen cazándolo**.
+
+**Sin decidir, y no es mío**: si trece puntos de reagrupamiento y cuatro cribas son un precio
+razonable por una carrera donde se ataca más, la fuga sobrevive y el kilómetro siguiente a una
+captura deja de ser un kilómetro cualquiera. Eso es diseño.
+
+Y queda una pieza sin diagnosticar de las cinco: el corte grande de Bességes e4 y el parte de relevos
+sin fuga. El escenario del corte no se reproduce con el banco del reagrupamiento —no emite un solo
+`peloton_split`—, así que hace falta el suyo propio y va al siguiente paso.

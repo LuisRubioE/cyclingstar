@@ -1555,7 +1555,19 @@ describe('el reagrupamiento se narra (v8)', () => {
     }
   }
 
-  const runs = Array.from({ length: 8 }, (_, i) =>
+  /**
+   * VEINTICUATRO SEMILLAS Y NO OCHO (v64), por el mismo motivo por el que la criba lejos de meta las
+   * subió en la v41: **con ocho, esto era una moneda**. Medido sobre 24, la tasa real de este
+   * recorrido es **23 de 24 (96 %)**, o sea que hay una semilla que no narra reagrupamiento porque
+   * el grupo sube el puerto a tempo y no llega a partirse. Con n = 8 esa semilla simplemente no
+   * tocaba, y la aserción «las ocho» pasaba por suerte.
+   *
+   * No es una sospecha: la historia del propio test ya lo decía sin saberlo. Se ablandó a «al menos
+   * seis de ocho» en la v26, se devolvió a ocho, y el comentario de abajo cuenta que con el puerto
+   * de 12 km eran 7 de 8. Un guardarraíl que ha valido 6, 7 y 8 sobre ocho muestras no está midiendo
+   * la conducta: está arbitrando el dado.
+   */
+  const runs = Array.from({ length: 24 }, (_, i) =>
     simulateStage(
       regroupInput(),
       stageSeed({ worldSeed: `rg-${i}`, raceId: 'rg', stageDay: 1, engineVersion: 1 }),
@@ -1583,11 +1595,13 @@ describe('el reagrupamiento se narra (v8)', () => {
    * puerto moría en el kilómetro exacto en que empieza el desenlace— está arreglado en el motor en
    * esta misma tanda (ver `frontAtLastNotice` fuera del desenlace, en `simulate.ts`).
    */
-  it('cuando el pelotón se recompone hay un evento que lo cuenta', { timeout: 60000 }, () => {
-    for (const out of runs) {
-      const regroups = out.events.filter((e) => e.plantilla === 'peloton_regroup')
-      expect(regroups.length).toBeGreaterThan(0)
-    }
+  it('cuando el pelotón se recompone hay un evento que lo cuenta', { timeout: 180000 }, () => {
+    // 21 de 24 sobre una tasa medida del 96 %: tres semillas de margen para la etapa que sube el
+    // puerto a tempo y no se parte, que es una carrera legítima y no un defecto de narración.
+    const conEvento = runs.filter((out) =>
+      out.events.some((e) => e.plantilla === 'peloton_regroup'),
+    ).length
+    expect(conEvento).toBeGreaterThanOrEqual(21)
   })
 
   it(
