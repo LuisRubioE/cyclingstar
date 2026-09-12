@@ -202,7 +202,17 @@ function baseLambda(kind: MoveKind): number {
  * la meta**. Un pelotón entero y a 20 km de meta es el caldo de cultivo del ataque; un grupo ya
  * roto y a 150 km de meta, no.
  */
-export function moveLambda(ctx: MoveContext): number {
+/**
+ * …Y LA FILA DE LA FASE, cuando R19 está encendido (paso 5). `lambdaScale` es estado COMPARTIDO por
+ * fase; los cuatro factores de `moveLambda` son modulación POR GRUPO E INTENTO. No es doble cuenta
+ * porque no miden lo mismo, y por eso los cuatro se conservan enteros.
+ *
+ * Lo único que se retira con la fila puesta es el `max(base, lambdaLateAttack)` de la ventana
+ * tardía: la fila `decisivo` (×1,30, con `kmToGo ≤ lateAttackKm` en su propia guarda) **es** esa
+ * ventana escrita como fase, y conservar las dos multiplicaba 1,30 por un `max()` que ya había
+ * subido la base. `lateAttackKm` sigue vivo como umbral de la guarda.
+ */
+export function moveLambda(ctx: MoveContext, fase?: PhaseRow | null): number {
   // Vale 1 cuando el grupo es TODA la carrera (el pelotón entero) y baja hasta el suelo según se
   // rompe: la cohesión solo puede restar, así que el λ nominal es el del grupo junto.
   const cohesion =
@@ -223,15 +233,20 @@ export function moveLambda(ctx: MoveContext): number {
   // se juega la etapa a una carta.
   const inside = ctx.kind === 'ataque_grupo' || ctx.kind === 'ataque_final'
   const base =
-    inside && ctx.kmToGo <= STAGE.lateAttackKm
+    inside && fase == null && ctx.kmToGo <= STAGE.lateAttackKm
       ? Math.max(baseLambda(ctx.kind), STAGE.lambdaLateAttack)
       : baseLambda(ctx.kind)
-  return base * cohesion * proximity * tense * settle
+  return base * cohesion * proximity * tense * settle * (fase?.lambdaScale ?? 1)
 }
 
 /** ¿Salta el intento en este bloque? (marco de hazard de SPEC 6.8: p = 1 − e^{−λ·dx}). */
-export function rollMoveAttempt(rng: Rng, ctx: MoveContext, dx: number = STAGE.dx): boolean {
-  return rng() < blockProbability(moveLambda(ctx), dx)
+export function rollMoveAttempt(
+  rng: Rng,
+  ctx: MoveContext,
+  dx: number = STAGE.dx,
+  fase?: PhaseRow | null,
+): boolean {
+  return rng() < blockProbability(moveLambda(ctx, fase), dx)
 }
 
 // --- 2. ¿Quién lo intenta? -----------------------------------------------------------------
@@ -898,4 +913,270 @@ export function giveUpLambda(r: GiveUpRider, kmToGo: number): number {
     1,
   )
   return STAGE.lambdaGiveUp * emptiness
+}
+
+// --- R19: las fases de la carrera -----------------------------------------------------------
+
+/**
+ * LAS DIEZ FASES DE UNA ETAPA (docs/tactica.md R19).
+ *
+ * Este racimo mata **los dos defectos que apagan la capa táctica entera**:
+ *
+ * - `tacticMaxMoves = 3`, un contador de grupos vivos puesto por encima de toda la táctica.
+ * - `closingNow`, que salta `attemptFrom` desde el pelotón ENTERO mientras exista un movimiento sin
+ *   cuerda.
+ *
+ * Entre los dos apagan la carrera por delante y por detrás de la fuga del día, y uno está medido con
+ * su propio comentario en el código: **«cuatro intentos hasta el km 19 y ni uno más en los 190
+ * restantes»** (Race Almeria e1).
+ *
+ * La fase es **el estado compartido del que cuelga toda la conducta**: cuánta cuerda se da, cuánto
+ * se compromete el grupo, si la aduana está abierta y cuántos movimientos caben.
+ */
+export type Phase =
+  | 'neutralizado'
+  | 'salida'
+  | 'fuga'
+  | 'control'
+  | 'caza'
+  | 'aproximacion'
+  | 'decisivo'
+  | 'desenlace'
+  | 'captura'
+  | 'tregua'
+
+/**
+ * LO QUE `phaseOf` NECESITA SABER. **Seis de las diez guardas leen datos de otros pasos**, y por eso
+ * cada campo opcional lleva escrito su valor por defecto: una guarda cuyo dato aún no existe vale
+ * `false`, **nunca `undefined`**. Sin eso, la función no compila hoy o —peor— decide con un hueco.
+ */
+export interface PhaseInput {
+  km: number
+  kmToGo: number
+  /** Km neutralizados de salida. Del perfil, paso 1. Sin dato: 0. */
+  neutralKm?: number | undefined
+  /** Tregua concedida y viva (R12.2, paso 12). Sin dato: `false`. */
+  truceAlive?: boolean | undefined
+  /** Km de la última captura, o `null`. Se escribe desde este mismo paso. */
+  lastCaptureKm?: number | null | undefined
+  /** ¿El final de hoy admite llegada agrupada? (`admitsBunchFinish`, ya existe). */
+  bunchFinish: boolean
+  /** Se está subiendo y este puerto se corre (ya existe en `simulate.ts`). */
+  onDecisiveClimb?: boolean | undefined
+  /** Sector de tierra o pavé decisivo cerca (paso 1). Sin dato: `false`. */
+  decisiveSector?: boolean | undefined
+  /** Km hasta la siguiente cima con pancarta, o `null` si no queda ninguna. */
+  kmToNextSummit?: number | null | undefined
+  /** Hay un equipo pagando la caza y el hueco baja, sostenido (R20.1 en el paso 9). */
+  chasing?: boolean | undefined
+  /** ¿Ha cuajado la fuga del día? */
+  dayBreakFormed: boolean
+  /**
+   * ETAPA CORTA DE MONTAÑA (R19.8): menos de `shortMountainKm` con más de
+   * `shortMountainClimbShare` de subida. Sin dato: `false`. Es propiedad del RECORRIDO, se calcula
+   * una vez por etapa y no cambia kilómetro a kilómetro.
+   */
+  shortMountain?: boolean | undefined
+}
+
+/**
+ * EN QUÉ FASE ESTÁ LA CARRERA. **Las guardas se evalúan de arriba abajo y la primera que se cumple
+ * gana**, y el orden ES la regla.
+ *
+ * Varias condiciones se cumplen a la vez y a menudo: en el km 20 de una etapa con la fuga aún sin
+ * cuajar y un puerto a seis kilómetros se cumplen `fuga`, `aproximacion` y a veces `caza`, y cada
+ * una da una cuerda y una aduana distintas. Escribirlas sin orden dejaba **indeterminado el estado
+ * del que cuelga toda la conducta**.
+ *
+ * Dos elecciones de orden que no son obvias y van razonadas:
+ *
+ * - **`desenlace` por encima de `decisivo`**: en un final en alto se cumplen los dos, y manda el que
+ *   fija el suelo del tirón final, que es el que la carrera obedece.
+ * - **`caza` por encima de `fuga`**: mientras el pelotón cierra de verdad, la etapa ya no está en
+ *   fase de fuga aunque no haya fuga cuajada. Es lo que evita que el km 20 de una etapa nerviosa se
+ *   lea como `fuga` con la aduana abierta de par en par.
+ */
+export function phaseOf(inp: PhaseInput): Phase {
+  if (inp.km < (inp.neutralKm ?? 0)) return 'neutralizado'
+  if (inp.truceAlive === true) return 'tregua'
+  if (
+    inp.lastCaptureKm !== null &&
+    inp.lastCaptureKm !== undefined &&
+    inp.km - inp.lastCaptureKm <= STAGE.phases.capturaKm
+  ) {
+    return 'captura'
+  }
+  if (inp.kmToGo <= STAGE.finalDriveKm && inp.bunchFinish) return 'desenlace'
+  if (
+    inp.onDecisiveClimb === true ||
+    inp.decisiveSector === true ||
+    inp.kmToGo <= STAGE.lateAttackKm
+  ) {
+    return 'decisivo'
+  }
+  if (
+    inp.kmToNextSummit !== null &&
+    inp.kmToNextSummit !== undefined &&
+    inp.kmToNextSummit <= STAGE.phases.approachKm
+  ) {
+    return 'aproximacion'
+  }
+  if (inp.chasing === true) return 'caza'
+  const normal: Phase = !inp.dayBreakFormed
+    ? inp.km < STAGE.phases.settleKm
+      ? 'salida'
+      : 'fuga'
+    : 'control'
+  /**
+   * LA ETAPA CORTA DE MONTAÑA (R19.8) **no añade una guarda nueva: tacha dos**. Por debajo de
+   * `shortMountainKm` con más de la mitad del recorrido en cuesta no hay etapa para cazar nada, así
+   * que la carrera pasa de `salida` a `decisivo` sin pasar por `fuga` ni por `control`: ninguna fuga
+   * consigue cuerda porque no queda día para dársela, y los equipos de la general atacan desde el
+   * primer puerto.
+   *
+   * Va aquí abajo y no arriba a propósito: la captura, el desenlace, el puerto decisivo y la
+   * aproximación siguen mandando sobre ella. Lo que se salta son las dos fases de espera, no las
+   * que describen lo que la carretera está haciendo.
+   */
+  if (inp.shortMountain === true && (normal === 'fuga' || normal === 'control')) return 'decisivo'
+  return normal
+}
+
+/** Lo que cada fase decide. Es la tabla de R19.2, y sustituye a los umbrales sueltos de hoy. */
+export interface PhaseRow {
+  /** Multiplica la cuerda que se da a un movimiento. */
+  lambdaScale: number
+  /** Suelo de compromiso del grupo principal. */
+  commitFloor: number
+  /**
+   * ¿Está abierta la cara `fuga` de `attemptFrom`?
+   *
+   * **`no` significa que esa cara NO NACE**, no que «todo pase». Lo que nace en esas fases son las
+   * otras caras —ataque, ataque final, puente, abanico—, que nunca pasaron por la aduana ni hoy, y
+   * que nacen sin cuerda concedida: su suerte la deciden la física y quien paga, no un dado.
+   */
+  aduana: boolean
+  /** ¿Se puede atacar desde dentro del grupo principal? */
+  ataqueDentro: boolean
+  /** ¿Cabe bajar a rescatar? */
+  rescate: boolean
+  /** Cuántos movimientos caben desde aquí. Sustituye al `tacticMaxMoves = 3` global. */
+  maxMoves: number
+}
+
+/**
+ * LA TABLA, Y LAS DOS CORRECCIONES QUE LLEVA MEDIDAS (paso 5).
+ *
+ * El diseño da la columna `lambdaScale` por DERIVADA «de los umbrales sueltos de hoy». No lo era:
+ * traía un 0,60 en `salida` y un 0,45 en `control` que no salen de ningún umbral del motor, y entre
+ * las dos cubren casi la etapa entera. El resultado medido es el contrario del que R19 promete —la
+ * carrera se apaga en vez de encenderse—:
+ *
+ * | llana canónica, 120 semillas | intentos/etapa | tras km 100 | gana la fuga | gana el mejor sprinter |
+ * | ---------------------------- | -------------: | ----------: | -----------: | ---------------------: |
+ * | R19 apagado                  |           15,0 |         8,3 |        9,2 % |                 36,7 % |
+ * | R19 con 0,60 y 0,45          |       **12,4** |     **6,8** |    **4,2 %** |             **50,0 %** |
+ * | R19 con los dos a 1          |       **16,9** |     **9,1** |        5,0 % |                 39,2 % |
+ *
+ * Con el 0,60 y el 0,45 puestos, R19 **sacaba de banda** `flat.breakawayWinPct` (4,2 contra un suelo
+ * de 5) y `flat.bestSprinterWinPct` (50,0 contra un techo de 45), y lo hacía bajando los intentos:
+ * exactamente el defecto que este racimo existe para matar.
+ *
+ * El motivo del `salida` 0,60 es que **duplica una modulación que `moveLambda` ya tiene**: el factor
+ * `settle`, que sube el intento desde cero durante los primeros kilómetros y que se escribió en la
+ * v33 para este mismo problema. El diseño justifica conservar los cuatro factores de `moveLambda`
+ * diciendo que «no miden lo mismo» que la fase; `settle` y `salida` sí miden lo mismo.
+ *
+ * Y el motivo del `control` 0,45 es más simple: `control` es el día normal —lo que la carrera hace la
+ * mayor parte del tiempo—, y el motor de hoy no escala nada ahí. Una columna que multiplica por 0,45
+ * el caso por defecto no está describiendo una fase: está bajando el nivel de toda la carrera por la
+ * puerta de atrás.
+ *
+ * Lo que la columna sí expresa, y se conserva entero, son las DESVIACIONES: el cero de
+ * `neutralizado`, el 0,10 de la tregua, el ×2,50 de la captura y el ×1,30 del puerto decisivo.
+ */
+export const PHASE_TABLE: Record<Phase, PhaseRow> = {
+  neutralizado: {
+    lambdaScale: 0,
+    commitFloor: 0.35,
+    aduana: false,
+    ataqueDentro: false,
+    rescate: false,
+    maxMoves: 0,
+  },
+  salida: {
+    // 1 y no 0,60: el arranque lo modula ya el factor `settle` de `moveLambda` (ver la tabla de
+    // arriba), y ponerlo dos veces apagaba la salida de la carrera en vez de dosificarla.
+    lambdaScale: 1,
+    commitFloor: 0.45,
+    aduana: true,
+    ataqueDentro: false,
+    rescate: true,
+    maxMoves: 2,
+  },
+  fuga: {
+    lambdaScale: 1,
+    commitFloor: 0.5,
+    aduana: true,
+    ataqueDentro: false,
+    rescate: true,
+    maxMoves: 4,
+  },
+  control: {
+    // 1 y no 0,45: `control` es el día normal, y el motor de hoy no escala nada ahí. Ver la tabla.
+    lambdaScale: 1,
+    commitFloor: 0.55,
+    aduana: true,
+    ataqueDentro: true,
+    rescate: true,
+    maxMoves: 4,
+  },
+  caza: {
+    lambdaScale: 0.55,
+    commitFloor: 0.75,
+    aduana: true,
+    ataqueDentro: true,
+    rescate: true,
+    maxMoves: 4,
+  },
+  aproximacion: {
+    lambdaScale: 0.7,
+    commitFloor: 0.88,
+    aduana: false,
+    ataqueDentro: true,
+    rescate: false,
+    maxMoves: 5,
+  },
+  decisivo: {
+    lambdaScale: 1.3,
+    commitFloor: 0.75,
+    aduana: false,
+    ataqueDentro: true,
+    rescate: false,
+    maxMoves: 6,
+  },
+  desenlace: {
+    lambdaScale: 1,
+    commitFloor: 0.9,
+    aduana: false,
+    ataqueDentro: true,
+    rescate: false,
+    maxMoves: 6,
+  },
+  captura: {
+    lambdaScale: 2.5,
+    commitFloor: 0.45,
+    aduana: true,
+    ataqueDentro: true,
+    rescate: true,
+    maxMoves: 6,
+  },
+  tregua: {
+    lambdaScale: 0.1,
+    commitFloor: 0.45,
+    aduana: false,
+    ataqueDentro: false,
+    rescate: true,
+    maxMoves: 1,
+  },
 }

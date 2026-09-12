@@ -16,6 +16,7 @@ import { stageSeed } from '../stage/rng.js'
 import { sampleProfile } from '../stage/sample.js'
 import type { Block, StageRider } from '../stage/types.js'
 import { analyzeErosion, analyzeFlat, analyzeMountain, analyzeTimeTrial } from './analyze.js'
+import { analyzePhases } from './phases.js'
 import { type GrandTourStats, abandonMix, analyzeGrandTour, runGrandTour } from './grandTour.js'
 import {
   REAL_QUEENS,
@@ -113,6 +114,49 @@ describe('invariantes de llano (6.17)', () => {
   it('cuando los sprinters cazan, la captura mediana cae en el rango objetivo', () => {
     expect(stats.capturePct).toBeGreaterThan(85)
     expectInRange(stats.medianCatchKmToFinish, TARGETS.flat.catchKmToFinish)
+  })
+})
+
+/**
+ * INVARIANTE 54 (R19, docs/tactica.md paso 5): **después del km 100 se sigue intentando algo**.
+ *
+ * Es el guardarraíl del defecto que las fases vienen a matar, y el defecto tenía nombre y medida en
+ * producción antes de tener regla: Race Almeria e1, cuatro intentos hasta el km 19 y **ni uno más en
+ * los 190 restantes**. La causa era un contador de tres grupos vivos GLOBALES puesto por encima de
+ * toda la capa táctica: en cuanto la carretera se poblaba, la etapa se apagaba hasta meta.
+ *
+ * Un invariante sobre la media de la campaña y no sobre la peor etapa, por lo de siempre: con 120
+ * semillas lo que se puede afirmar es dónde está la nube, no dónde cae la peor carrera.
+ */
+describe('invariantes de las fases (R19)', () => {
+  const scenario = flatScenario()
+  const stats = analyzePhases(scenario, campaignSeeds(scenario.name, 120))
+
+  it('la carrera sigue viva después del km 100', () => {
+    expectInRange(stats.attemptsAfterKm100, TARGETS.phases.attemptsAfterKm100)
+  })
+
+  it('se intenta un número razonable de veces por etapa', () => {
+    expectInRange(stats.attemptsPerStage, TARGETS.phases.attemptsPerStage)
+  })
+
+  /**
+   * …Y EL TERCERO NO SE COMPRUEBA TODAVÍA, que es el dato importante de esta tanda.
+   *
+   * `counterAfterCatchPct` vale **16 %** con R19 apagado —es decir, **por debajo de su propia banda
+   * de 25-60**— y **34 %** con R19 encendido. O sea que el motor de hoy caza una fuga y no pasa
+   * nada, y la regla que lo arregla está escrita, medida y **apagada** (ver docs/balance.md «v60
+   * §5»): R19 se lleva por delante el guardarraíl de saturación de las clásicas porque retira
+   * cuatro vetos en el paso 5 y su PRECIO —`payable` y `closingBusyDamp`, R19.4— no existe hasta el
+   * paso 6.
+   *
+   * Sellar aquí la banda en verde exigiría bajarla hasta el 16 % que el motor da hoy, que es sellar
+   * el defecto. Sellarla en 25-60 la deja roja. Las dos cosas serían mentir de distinta manera, así
+   * que el número se deja MEDIDO y sin invariante, y el invariante entra en el paso 6 con R19
+   * encendido.
+   */
+  it('el contraataque tras la captura está medido, y hoy NO llega a su banda', () => {
+    expect(stats.counterAfterCatchPct).toBeLessThan(TARGETS.phases.counterAfterCatchPct.min)
   })
 })
 

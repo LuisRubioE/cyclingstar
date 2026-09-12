@@ -11902,3 +11902,162 @@ es información: significará que el contexto por fin decide algo.
 El tick de producción ya lo pasa. Enchufarlo ahora, mientras no lo lee nadie, es lo que hace que el
 paso que empiece a leerlo sea un cambio de **una** cosa y no de dos. Y si armarlo fallara, la etapa se
 corre sin contexto en vez de no correrse: hoy eso es exactamente la carrera de siempre.
+
+## v60 §5 — R19 entero, medido, y apagado: **media regla cuesta las clásicas**
+
+`ENGINE_VERSION` **64 → 64**. R19 está escrito completo —diez fases, la tabla de seis columnas, el
+cupo por fase y por grupo de origen, la retirada de `closingNow` como veto, la ventana de la captura,
+el flyer, el puente desde atrás, la etapa corta de montaña y el subflujo `rngTactics2`—, está medido
+brazo a brazo, y **el interruptor se queda apagado**. Es la segunda vez en esta tanda que se aplica
+la regla de la casa: «si el cambio saca un objetivo de banda, el que está mal es el cambio».
+
+Apagado, el motor sale **idéntico al paso 4 dígito a dígito**: 199 pruebas de `attribution`,
+`simulate`, `tactics` y `fases` en verde con las cuatro huellas selladas intactas.
+
+### Lo que R19 hace cuando se enciende, y hace lo que promete
+
+| llana canónica, 120 semillas |  apagado | encendido | banda |
+| ---------------------------- | -------: | --------: | ----- |
+| intentos por etapa           |     15,0 |  **16,9** | 10-25 |
+| intentos tras el km 100      |      8,3 |   **9,1** | ≥ 2   |
+| contraataque tras captura    | **16 %** |  **34 %** | 25-60 |
+| gana la fuga                 |    9,2 % |     5,0 % | 5-16  |
+| gana el mejor sprinter       |   36,7 % |    39,2 % | 30-45 |
+| captura                      |   89,4 % |      94 % | > 85  |
+| km de la caza                |     18,1 |      19,8 | 8-25  |
+| reina: gana la fuga          |   26,7 % |    28,3 % | 25-45 |
+
+**El contraataque tras la captura es el dato que justifica el racimo**: con las fases apagadas vale
+16 %, es decir **por debajo de su propia banda**, y R19 lo pone en 34 %. El motor de hoy caza una
+fuga y no pasa nada; con R19 el kilómetro siguiente a una captura es el más vivo de la carrera, que
+es exactamente lo que R19.5 promete con esas palabras. **48 de los 49 invariantes pasan.**
+
+### El que no pasa: las clásicas queman el depósito
+
+| Il Lombardia, mismas semillas | R19 apagado | R19 encendido |
+| ----------------------------- | ----------: | ------------: |
+| 3 semillas                    |      11,4 % |        13,3 % |
+| 6 semillas                    |      10,9 % |        11,6 % |
+| 12 semillas                   |      11,2 % |    **17,7 %** |
+
+Pájaras contra un techo de 12 %. Y el techo **no se ensancha**: un 18 % es una de cada seis llegando
+con el tanque a cero, que es el depósito dejando de discriminar —justo lo que el guardarraíl existe
+para cazar—. El vaciado mediano se queda en 0,917 contra 0,96, así que la alarma la da la mitad
+correcta.
+
+### No es una columna mal calibrada, y se sabe porque se midió palanca a palanca
+
+Quitando de R19 una columna cada vez, sobre las mismas doce semillas:
+
+| Il Lombardia              | pájaras |
+| ------------------------- | ------: |
+| R19 apagado               |  11,2 % |
+| R19 entero                |  17,7 % |
+| sin el suelo de fase      |  17,0 % |
+| sin la cuerda por fase    |  17,5 % |
+| sin el puente desde atrás |  18,3 % |
+| con todo el cupo a 3      |  19,6 % |
+
+**Ninguna palanca es la causa, porque la causa es el racimo.** El cupo bajado a 3 empeora, y ahí está
+la pista: el 3 de antes era **global** —tres movimientos vivos en toda la carretera— y el de R19 es
+**por grupo de origen**, que es el cambio que R19.3 pide y el que hace que la carrera se fragmente en
+esfuerzos simultáneos. En una clásica de 250 km con cuestas todo el día, eso son tanques a cero.
+
+### La causa de verdad: el paso 5 retira cuatro vetos y **el precio llega en el paso 6**
+
+Lo dice el propio diseño, en R19.4: «`closingBusyDamp` entra en el PASO 6 con `payable`, y su efecto
+se mide allí». El paso 5 quita `closingNow`, el cupo global, el corte de los últimos kilómetros y la
+prohibición del puente desde atrás; lo que hacía que atacar y cerrar **costaran algo** es `payable`,
+y `payable` no existe hasta R03.3.
+
+Media regla puesta cuesta esto. No es un defecto del trabajo: es el mismo hallazgo que el paso 3
+—donde R01 resultó necesitar la subasta de R20— y confirma que **el grafo de dependencias de §8.1
+está optimista en los dos sitios**. La diferencia es que aquí la dependencia está escrita en la
+propia regla y nadie la leyó como bloqueante.
+
+Así que R19 queda entero, con su interruptor, y **el paso 6 lo enciende y vuelve a medir estas dos
+tablas**. Se re-mide `counterAfterCatchPct` con la predicción que el diseño ya deja escrita: sube,
+porque cerrar sale más caro.
+
+### Dos correcciones al diseño que sí se quedan, con su medida
+
+Se encontraron midiendo, antes de llegar al hallazgo de arriba, y las dos valen igual cuando el paso
+6 encienda el interruptor.
+
+**1. El suelo de compromiso, tal como lo dicta R19.2bis, mata la carrera.**
+
+| 60 semillas               | gana la fuga (llano) | captura | km de la caza | gana la fuga (reina) |
+| ------------------------- | -------------------: | ------: | ------------: | -------------------: |
+| R19 apagado               |                5,0 % |    95 % |          18,9 |               25,0 % |
+| R19 entero, suelo a secas |            **0,0 %** |   100 % |      **54,8** |            **5,0 %** |
+| R19 entero SIN el suelo   |                6,7 % |    93 % |          18,1 |               40,0 % |
+
+El 0,72 del que la columna dice derivarse **no era un suelo de la fase `control`**: era el compromiso
+del pelotón _mientras cierra un movimiento sin cuerda_, una ventana estrecha. Como suelo permanente,
+el pelotón **ya no puede conceder** —dar cuerda es rodar por debajo de eso— y el controlador de la
+caza deja de existir: se caza todo, siempre, a 55 km de meta.
+
+El arreglo sale de la propia frase de la regla, «las amortiguaciones bajan el compromiso **hasta ese
+suelo** y ahí se paran»: el suelo se acota por lo que el pelotón había decidido ANTES de amortiguar.
+Y se acota **además por la dosificación**, porque el humor del día es GANAS y la dosificación es
+COMBUSTIBLE: un suelo contra las ganas es lo que R19.2bis quiere; un suelo contra el combustible hace
+que el pelotón queme un depósito que no tiene. Medido: sin esa segunda acotación, Strade Bianche
+saturaba también (0,964 de vaciado, 17 % de pájaras).
+
+**2. La columna `lambdaScale` no estaba derivada de nada.**
+
+| llana canónica, 120 semillas | intentos/etapa | tras km 100 | gana la fuga | gana el mejor sprinter |
+| ---------------------------- | -------------: | ----------: | -----------: | ---------------------: |
+| R19 apagado                  |           15,0 |         8,3 |        9,2 % |                 36,7 % |
+| R19 con 0,60 y 0,45          |       **12,4** |     **6,8** |    **4,2 %** |             **50,0 %** |
+| R19 con los dos a 1          |           16,9 |         9,1 |        5,0 % |                 39,2 % |
+
+El diseño da la columna por «DERIVADA de los umbrales sueltos de hoy» y traía un **0,60 en `salida`**
+y un **0,45 en `control`** que no salen de ningún umbral del motor. Con ellos, R19 **bajaba** los
+intentos y sacaba de banda dos objetivos: el defecto que el racimo existe para matar, cometido por el
+racimo.
+
+- El **0,60 de `salida` duplica el factor `settle`** de `moveLambda`, escrito en la v33 para este
+  mismo problema. El diseño justifica conservar los cuatro factores diciendo que «no miden lo mismo»
+  que la fase; `settle` y `salida` sí miden lo mismo.
+- El **0,45 de `control`** es el día normal, donde el motor no escala nada. Una columna que
+  multiplica por 0,45 el caso por defecto no describe una fase: baja el nivel de toda la carrera por
+  la puerta de atrás.
+
+Las **desviaciones** se conservan enteras: el cero de `neutralizado`, el 0,10 de la tregua, el ×2,50
+de la captura y el ×1,30 del puerto decisivo.
+
+### El invariante 54, y para qué sirve de verdad
+
+«Después del km 100 se sigue intentando algo» (≥ 2). **La llana canónica ya lo cumplía con R19
+apagado** —8,3 intentos—, así que este invariante **no demuestra** que R19 arregle el apagón: es un
+guardarraíl, no una prueba. El defecto que R19 mata se midió en producción (Race Almeria e1: cuatro
+intentos hasta el km 19 y ni uno más en los 190 restantes), no en el banco. Decirlo así es más útil
+que presentar en verde un número que ya lo estaba.
+
+Y `counterAfterCatchPct` **se mide y no se sella**: en 25-60 quedaría rojo, y bajarlo al 16 % que el
+motor da hoy sería sellar el defecto. La prueba que hay comprueba lo que es verdad —que hoy NO llega
+a su banda— y el invariante de verdad entra en el paso 6.
+
+### `flyerWinPct` se queda sin banda, y hay que decir por qué
+
+R19.6 le pone objetivo —«gana el 2-5 % de las llanas»— y a la vez condiciona el flyer a que el
+terreno ayude: repecho, curva, viento de cola. **La llana canónica es llana pura con llegada
+agrupada**, así que el terreno no ayuda nunca y el flyer no se dispara ni una vez: 0,0 % por
+construcción, no por conducta. Las dos mitades de la regla se contradicen.
+
+Y del flyer falta una tercera condición que **no se inventa**: el viento de cola. El modelo de viento
+de este motor es de viento LATERAL —abanicos—, sin dirección respecto a la marcha, así que no hay
+dato con el que preguntarlo. Queda declarado en el código en vez de aproximado con un proxy que
+pareciera medirlo.
+
+### Lo que NO se hace de R19, y por qué
+
+- **`closingBusyDamp`** (el precio de cerrar) llega en el paso 6 con `payable`. Aquí solo se retira
+  el veto — y esta tanda mide lo que cuesta retirarlo sin el precio.
+- **Los renombres** `tacticMaxMoves` → `legacyMaxMoves` y `tacticNoAttackKm` → `legacyNoAttackKm`. La
+  conducta es la que el diseño pide —los dos son ya selectores de flujo y no vetan con las fases
+  encendidas—, pero los nombres aparecen en catorce documentos de `docs/diseno/` y moverlos
+  desincroniza el rastro de diseño a cambio de nada que el motor haga distinto. Queda escrito en la
+  propia constante.
+- **La columna `rescate`** está puesta y nadie la lee: el rescate es R12, paso 12.

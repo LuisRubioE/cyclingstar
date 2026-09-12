@@ -2330,6 +2330,45 @@ export const STAGE = {
   // en el boquete (la caza sigue existiendo) sin regalarle la etapa a la fuga.
   noOwnerCommitFactor: 0.94,
 
+  /**
+   * LAS FASES DE LA CARRERA (R19, docs/tactica.md paso 5). Los umbrales que `phaseOf` consulta.
+   *
+   * `enabled` es el INTERRUPTOR del brazo A/B: apagado, el motor corre exactamente como antes y las
+   * fases se calculan sin decidir nada. Es lo que permite atribuir la diferencia ENTERA a R19 en vez
+   * de a «algo que cambió en el mismo PR».
+   */
+  phases: {
+    enabled: false,
+    /** Km durante los que una captura mantiene la fase `captura`, con su cuerda de ×2,5. */
+    capturaKm: 1,
+    /** Cuánto antes de una cima empieza la aproximación. */
+    approachKm: 6,
+    /** Antes de esto la etapa está «saliendo»: la fuga todavía no ha tenido tiempo de cuajar. */
+    settleKm: 25,
+    /**
+     * LOS KM DE CONTRAATAQUE que siguen a la fase `captura` (R19.5). Durante ellos la fase es la que
+     * toque, pero su `lambdaScale` se SUSTITUYE por el de la fila `captura` y la aduana queda
+     * abierta. **Sustituye, nunca multiplica**: 2,5 × 2,5 en el segundo kilómetro era el error que
+     * la regla se escribió para prohibir.
+     */
+    contraataqueKm: 2,
+    /**
+     * EL FLYER (R19.6). Dentro de los últimos `tacticNoAttackKm` no se atacaba nada; ahora el veto
+     * se recorta hasta `flyerKm` y lo que cabe en medio es un solo movimiento, el del peor rematador
+     * del grupo, con una intensidad de `lambdaFlyer`: el que sabe que a rueda pierde.
+     */
+    flyerKm: 0.8,
+    lambdaFlyer: 0.08,
+    /**
+     * LA ETAPA CORTA DE MONTAÑA (R19.8): por debajo de `shortMountainKm` y con más de
+     * `shortMountainClimbShare` de subida, la carrera se salta las fases `fuga` y `control` y pasa
+     * de `salida` a `decisivo`. No hay etapa para cazar nada, así que nadie da cuerda y los equipos
+     * de la general atacan desde el primer puerto.
+     */
+    shortMountainKm: 145,
+    shortMountainClimbShare: 0.5,
+  },
+
   // 6.6 — Cerillos (esfuerzos supraumbral discretos).
   // comp = 0.50·max(MON,COL) + 0.30·RES + 0.20·LLA; cerillos = 2 + (comp>=55)+(>=72)+(>=88).
   matchCompMonWeight: 0.5,
@@ -3062,6 +3101,17 @@ export const STAGE = {
   // modelo de final (§12), que para eso ordena el grupo por una mezcla de atributos. Sin este
   // corte, un «ataque» a 1 km de meta nacía con su boquete instantáneo y ganaba la etapa por 15 s
   // sin que a nadie le diera tiempo a responder: el sprint se decidía por un dado, no por piernas.
+  /**
+   * …Y CON LAS FASES ENCENDIDAS YA NO VETA: pasa a ser el SELECTOR DE FLUJO de §2.6 (el
+   * `legacyNoAttackKm` del diseño). Lo que este corte tapaba de más era el flyer —R19.6, el peor
+   * rematador del grupo que sabe que a rueda pierde—, y por eso el veto se recorta hasta
+   * `STAGE.phases.flyerKm`; entre `flyerKm` y este umbral solo cabe el flyer, con su `lambdaFlyer`.
+   *
+   * El nombre NO se cambia a `legacyNoAttackKm` aunque el diseño lo pida: la constante aparece en
+   * catorce documentos de `docs/diseno/` con este nombre, y renombrarla desincroniza el rastro de
+   * diseño a cambio de nada que el motor haga distinto. Lo que importa es la conducta, y está aquí
+   * escrita.
+   */
   tacticNoAttackKm: 3,
   // …y antes del primer kilómetro un intento no tiene FRASE (v21). La crónica de producción de Race
   // Bességes e4 abría con «Attack: … force the pace and open a gap» en el KM 0, y ahí el lector
@@ -3143,8 +3193,21 @@ export const STAGE = {
   // salida y sin desenlace en 31 etapas del día de juego 46. Lo que se abre se cierra.
   // Dos grupos que se juntan solo son noticia si de verdad se junta gente.
   tacticMergeNarrateRiders: 3,
-  // Cuántos movimientos vivos por delante del pelotón como mucho. Más de tres grupos en carretera
-  // no es una carrera, es contabilidad.
+  /**
+   * Cuántos movimientos vivos por delante del pelotón como mucho. Más de tres grupos en carretera
+   * no es una carrera, es contabilidad.
+   *
+   * …SALVO QUE ERA UN CONTADOR DE GRUPOS VIVOS PUESTO POR ENCIMA DE TODA LA CAPA TÁCTICA (R19.3), y
+   * contaba GLOBAL: con la fuga del día, un puente y un contraataque en carretera —una reina
+   * normal— nadie podía saltar en el puerto decisivo, ni desde el pelotón ni desde dentro de la
+   * fuga. Su propio comentario lo tenía medido: cuatro intentos hasta el km 19 de Race Almeria e1 y
+   * ni uno más en los 190 restantes.
+   *
+   * Con las fases el techo es POR FASE y POR GRUPO DE ORIGEN, sobre movimientos VIVOS
+   * (`PHASE_TABLE[fase].maxMoves`), y esta constante queda como el otro selector de flujo de §2.6:
+   * el intento que el motor del paso 4 habría vetado por ella tira de `rngTactics2`. Sobre el
+   * nombre, lo mismo que en `tacticNoAttackKm`.
+   */
   tacticMaxMoves: 3,
   // Boquete (s) a partir del cual un movimiento deja de ser un intento y es LA FUGA DEL DÍA: se
   // narra como tal y el pelotón pasa a controlarla con su leash.

@@ -44,7 +44,7 @@ import {
   tankState,
   targetSpeed,
 } from './physics.js'
-import { rollHazard } from './hazard.js'
+import { blockProbability, rollHazard } from './hazard.js'
 import { stageWeather } from './weather.js'
 import {
   type CrashOutcome,
@@ -84,6 +84,9 @@ import {
   rankOf,
   rollMoveAttempt,
   sustainsJump,
+  PHASE_TABLE,
+  type PhaseRow,
+  phaseOf,
 } from './tactics.js'
 import {
   type TeamPlan,
@@ -924,6 +927,20 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
   // Subflujo NOMINAL de la capa táctica (SPEC 6.1): los intentos de movimiento tiran de aquí, así
   // que añadirlos no altera la secuencia de la fuga, del sprint ni de las caídas.
   const rngTactics = streams('tactics')
+  /**
+   * EL SEGUNDO FLUJO DE LA CAPA TÁCTICA (§2.6, paso 5). Los intentos que el motor del paso 4 habría
+   * VETADO —los cuatro selectores de R19.3: el cupo global de `tacticMaxMoves`, `closingNow`, el
+   * corte de `tacticNoAttackKm` y el puente desde un descolgado— tiran de aquí y no de
+   * `rngTactics`.
+   *
+   * No es manía de purista: es lo único que hace legible el A/B de este paso. Si los intentos nuevos
+   * consumieran del flujo compartido, cada uno correría la secuencia de TODOS los demás y la
+   * diferencia A→B mezclaría la conducta de R19 con un desplazamiento de dados. Este repositorio ya
+   * pagó ese precio una vez —el confundido de las instalaciones en el paso 9 del entrenamiento, un
+   * falso positivo de factor tres— y la lección está escrita: cuando se añaden tiradas, subflujo
+   * nuevo.
+   */
+  const rngTactics2 = streams('tactics2')
   const rngSprint = streams('sprint')
   // Subflujo NOMINAL de la COLOCACIÓN en meta (v24, SPEC 6.1, docs/motor.md §12.6). Mismo motivo
   // que `rngRough` y `rngAbandon`: el dado de la colocación no puede salir de `rngSprint`, que
@@ -1299,6 +1316,13 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
   /** ¿Se la comió el pelotón, o se deshizo sola por el camino? No es el mismo desenlace. */
   let dayBreakSwallowed = false
   let dayBreakFormed = false
+  /**
+   * EL KM DE LA ÚLTIMA CAPTURA (R19, paso 5). Lo escribe `resolverMovimientos` al cerrar un
+   * movimiento con captura, y es lo que enciende la fase `captura`: el kilómetro de después de cazar
+   * una fuga es el más vivo de la carrera —el contraataque— y el motor no lo distinguía de ningún
+   * otro.
+   */
+  let lastCaptureKm: number | null = null
 
   const kmAt = (i: number): number => (i + 0.5) * STAGE.dx
 
@@ -1450,6 +1474,22 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       kmToNextPaves[i] = next
     }
   }
+  /**
+   * Km desde cada bloque hasta la siguiente CIMA (R19.1, guarda de `aproximacion`). Misma pasada
+   * hacia atrás que `kmToNextPaves` y misma finalidad: que el pelotón no llegue a un puerto rodando
+   * a tempo. Una cima es el último bloque de subida de una racha —el bloque de subida al que NO
+   * sigue otro—, que es el sitio por el que se pelea la posición.
+   */
+  const kmToNextSummit = new Float64Array(n)
+  {
+    let next = Number.POSITIVE_INFINITY
+    for (let i = n - 1; i >= 0; i--) {
+      const esCima =
+        blocks[i]!.tipo === 'subida' && (i + 1 >= n || blocks[i + 1]!.tipo !== 'subida')
+      next = esCima ? 0 : next + STAGE.dx
+      kmToNextSummit[i] = next
+    }
+  }
   // Qué clase de final dibuja el RECORRIDO (docs/motor.md §12). Se mide una vez por etapa sobre los
   // últimos ~5 km y la última cota de los últimos 15; el TIPO de final concreto se resuelve luego
   // para cada grupo de meta, porque depende también de cuántos lleguen.
@@ -1509,6 +1549,14 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
    * kilómetros que se suben— y no de `stage.kind`, que el motor ni siquiera recibe.
    */
   const gcTerrain = kmSubida / Math.max(1e-9, totalKmRuta) >= STAGE.gcTerrainClimbShare
+  /**
+   * ¿ES UNA ETAPA CORTA DE MONTAÑA? (R19.8). Misma cuenta de kilómetros de cuesta, otro umbral: por
+   * debajo de `shortMountainKm` con más de la mitad del recorrido subiendo no hay día para cazar
+   * nada, y las fases `fuga` y `control` sobran (`phaseOf`).
+   */
+  const shortMountain =
+    totalKmRuta < STAGE.phases.shortMountainKm &&
+    kmSubida / Math.max(1e-9, totalKmRuta) > STAGE.phases.shortMountainClimbShare
   /**
    * ¿ADMITE LA META UNA LLEGADA AGRUPADA? De este booleano cuelga todo lo que hace que un pelotón
    * llegue junto: que los equipos de los sprinters se pongan a cazar (`chasingSprinters`), el tirón
@@ -1793,6 +1841,50 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
      */
     const onRough = onClimb || onPaves || (vientoLateral > 0 && block.tipo === 'llano')
     const raceThisClimb = totalKm - km <= STAGE.climbRaceKmToGo
+
+    /**
+     * EN QUÉ FASE ESTÁ LA CARRERA (R19, paso 5). Se calcula UNA vez por bloque, arriba del todo,
+     * porque es **estado compartido**: de ella cuelgan el suelo de compromiso del pelotón (unas
+     * líneas más abajo), el cupo de movimientos, la cuerda que se da a un intento y si la aduana
+     * está abierta. Las cuatro cosas se decidían en cuatro sitios distintos y con cuatro umbrales
+     * sueltos; ahora leen la misma fila.
+     *
+     * **Se calcula SIEMPRE y solo DECIDE si el interruptor está encendido** (R19.10). Ése es el
+     * brazo A/B que el paso exige: apagado, el motor corre exactamente como el paso 4 —dígito a
+     * dígito—, y la diferencia que se mida encendiéndolo es atribuible entera a R19 y a nada más.
+     */
+    const fasesOn = input.flags?.phases === true || STAGE.phases.enabled
+    const faseAhora = phaseOf({
+      km,
+      kmToGo: totalKm - km,
+      lastCaptureKm,
+      bunchFinish,
+      onDecisiveClimb: onClimb && raceThisClimb,
+      kmToNextSummit: kmToNextSummit[i]!,
+      dayBreakFormed,
+      shortMountain,
+    })
+    /**
+     * LA FILA DE LA FASE, con la VENTANA DE LA CAPTURA ya resuelta (R19.5). Durante los
+     * `capturaKm` la fase ES `captura` y la fila sale sola; durante los `contraataqueKm`
+     * siguientes la fase vuelve a ser la que toque —puede ser `desenlace`, puede ser `control`—
+     * pero su cuerda y su aduana se SUSTITUYEN por las de `captura`.
+     *
+     * Sustituir y no multiplicar es la regla entera: 2,5 × 2,5 en el segundo kilómetro era el
+     * error, y con la «segunda fuga» de R03.7 habría sido 2,5³. Al escribirlo como una
+     * sustitución idempotente —el primer kilómetro ya vale `captura`— el número no puede componerse
+     * consigo mismo por mucho que se encadenen las reglas que remiten aquí.
+     */
+    const enVentanaCaptura =
+      lastCaptureKm !== null &&
+      km - lastCaptureKm <= STAGE.phases.capturaKm + STAGE.phases.contraataqueKm
+    const faseFila: PhaseRow = enVentanaCaptura
+      ? {
+          ...PHASE_TABLE[faseAhora],
+          lambdaScale: PHASE_TABLE.captura.lambdaScale,
+          aduana: true,
+        }
+      : PHASE_TABLE[faseAhora]
 
     // Controlador del pelotón cada 10 bloques, con histéresis (SPEC 6.9). Regula SIEMPRE: haya fuga,
     // la hayan cazado o no se haya formado nunca. Antes vivía dentro de `if (breakaway && !caught)`,
@@ -2707,8 +2799,14 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       // no es «cierro este hueco» sino «cazo o concedo», y ésa la contesta el controlador de la caza
       // con su lazo cerrado, su narración y su claudicación.
       const closing = moves.length > 0 && !moves.some((m) => m.allowed || m.dayBreak)
-      if (closing) {
+      if (closing && !fasesOn) {
         target = Math.max(freeRunTarget, STAGE.tacticControlCommit)
+      } else if (closing) {
+        // Con las fases encendidas, cerrar un movimiento sin cuerda ya no CLAVA el compromiso en un
+        // 0,72 ciego al boquete: el pelotón que cierra está en `control` o en `caza` —la fase lo
+        // sabe— y su suelo lo pone la tabla, unas líneas más abajo. El precio de cerrar
+        // (`closingBusyDamp`) llega en el paso 6 con `payable`; aquí solo se retira el valor fijo.
+        target = freeRunTarget
       } else if (ahead && chasingSprinters && !chaseAbandoned) {
         // Los equipos de los sprinters se ponen a tirar para cazar: se narra una vez, pasada cierta
         // parte del recorrido (antes la fuga tiene su cuerda), si aún no han claudicado.
@@ -2783,6 +2881,18 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
        * llegan— y deja de valer en el puerto que se corre (`climbRaceKmToGo`) y en el desenlace
        * (`finalDriveKm`), donde ya no se administra nada.
        */
+      /**
+       * LO QUE EL PELOTÓN HA DECIDIDO, antes de que nada se lo amortigüe. Es el techo del suelo de
+       * fase de más abajo (R19.2bis), y el motivo está medido unas líneas más allá.
+       */
+      const targetDecidido = target
+      /**
+       * …Y LA DOSIFICACIÓN APLICADA, que el suelo de fase de más abajo tiene que respetar. El humor
+       * del día es GANAS —y un suelo contra las ganas es justo lo que R19.2bis quiere—, pero la
+       * dosificación es COMBUSTIBLE: administrarse un día largo no es echar la hueva, es no llegar
+       * vacío. Ver el suelo, unas líneas más allá, donde esto se cobra con su medida.
+       */
+      let dosisAplicada = 1
       const seDecide = (onClimb && raceThisClimb) || kmRestantes <= STAGE.finalDriveKm
       if (!seDecide) {
         /**
@@ -2801,6 +2911,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         const enCuestaQueCuenta = onClimb && demandaDelDia < STAGE.climbEaseDemand
         const humor = enCuestaQueCuenta ? 1 : humorDelPeloton
         const dosis = enCuestaQueCuenta ? 1 : dosificacion
+        dosisAplicada = dosis
         target = Math.max(0.1, Math.min(1, target * humor * dosis))
       }
       // En los últimos km de una etapa de meta llana los trenes toman la carretera y el pelotón
@@ -2841,6 +2952,58 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
        * banco canónico y sus huellas selladas no lo ven.
        */
       if (teamPlans.size > 0 && frontTeamId === null) target *= STAGE.noOwnerCommitFactor
+      /**
+       * …Y EL SUELO DE LA FASE, QUE ES LA ÚLTIMA OPERACIÓN (R19.2bis). Va aquí abajo del todo y no
+       * en medio porque es un SUELO DURO: las nueve amortiguaciones de racimo que bajan el
+       * compromiso —el humor del día, la dosificación, el frente sin dueño— bajan hasta él y ahí se
+       * paran. Con el suelo aplicado antes, cualquiera de ellas lo cruzaba y el suelo dejaba de
+       * serlo; el banco `temblor` vigila exactamente eso con `bloquesConDosCompromisosPct` = 0.
+       *
+       * Rige SOLO para el pelotón. Los grupos escapados tienen régimen propio (R18.3/R18.4, con su
+       * suelo de 0,45, el más bajo de la tabla), el solitario tiene `soloCommit` con su clamp, y el
+       * grupeto el suyo: con el suelo aplicado a todo grupo, un escapado en solitario a 40 km en
+       * `decisivo` valía 0,75 en vez de sus 0,68 y «dosificar» era justo lo que el suelo le quitaba.
+       *
+       * Y LAS DOS EXCEPCIONES, que son las dos únicas y están escritas: la ventana de la captura
+       * —donde el suelo del tirón final NO se aplica a propósito, que es lo que hace posible el
+       * contraataque inmediato y la tregua que lo sigue— y la fase `tregua`, cuyo propio suelo ya
+       * es el más bajo de la tabla y no necesita excepción ninguna.
+       *
+       * Sustituye a la rama `closing ? max(freeRunTarget, tacticControlCommit)` de más arriba: ese
+       * 0,72 era el suelo de la fase `control` escrito como caso especial, y ahora es un valor de la
+       * tabla (`control` 0,55 y `caza` 0,75 lo enmarcan). Con el interruptor apagado la rama vieja
+       * sigue en vigor, dígito a dígito.
+       *
+       * **Y EL SUELO NO PUEDE SUBIR POR ENCIMA DE LO QUE EL PELOTÓN HABÍA DECIDIDO** (`targetDecidido`),
+       * que es la corrección que esta tanda paga con una medida delante. Escrito como suelo a secas
+       * —`max(target, commitFloor)`, que es como el diseño lo dicta— R19 se lleva por delante la
+       * carrera entera:
+       *
+       * | 60 semillas                  | gana la fuga (llano) | captura | km de la caza | gana la fuga (reina) |
+       * | ---------------------------- | -------------------: | ------: | ------------: | -------------------: |
+       * | R19 apagado                  |                5,0 % |    95 % |          18,9 |               25,0 % |
+       * | R19 entero, suelo a secas    |            **0,0 %** |   100 % |      **54,8** |            **5,0 %** |
+       * | R19 entero SIN el suelo      |                6,7 % |    93 % |          18,1 |               40,0 % |
+       *
+       * …y las otras tres columnas de la tabla, quitadas una a una, dejan el destrozo intacto
+       * (0,0 % sin cuerda por fase, 0,0 % sin cupo, 0,0 % sin aduana): **el suelo es la única causa**.
+       *
+       * El motivo es que el 0,72 del que la columna se derivó NO era un suelo de la fase `control`:
+       * era el compromiso del pelotón **mientras cierra un movimiento sin cuerda**, una ventana
+       * estrecha. Convertido en suelo permanente, el pelotón ya no puede **conceder** —dar cuerda es
+       * rodar por debajo de eso— y el controlador de la caza, que es quien decide cuánta cuerda se
+       * da, deja de existir: se caza todo, siempre, a 55 km de meta.
+       *
+       * Lo que R19.2bis pide de verdad está en su propia frase: «las amortiguaciones bajan el
+       * compromiso **hasta ese suelo** y ahí se paran». Un suelo contra las nueve amortiguaciones de
+       * racimo —el humor del día, la dosificación, el frente sin dueño— no es un suelo contra la
+       * DECISIÓN del pelotón. Acotarlo por `targetDecidido` es esa frase escrita en código: las
+       * amortiguaciones se paran en el suelo, y el suelo no le enmienda la plana a quien decidió
+       * conceder.
+       */
+      if (fasesOn && !enVentanaCaptura) {
+        target = Math.max(target, Math.min(targetDecidido * dosisAplicada, faseFila.commitFloor))
+      }
       peloton = {
         ...peloton,
         compromiso: peloton.compromiso + (target - peloton.compromiso) * STAGE.commitHysteresis,
@@ -4465,6 +4628,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
     // llegan, colaboran o no, y la carretera decide. Un ataque logrado ES un grupo nuevo, así que
     // aquí no hay física nueva: se crea el grupo con su reloj y el boquete se integra como siempre.
     const kmToGo = totalKm - km
+
     const racingNow = [...sims.values()].filter(
       (s) => s.finishTs === null && s.abandonedKm === null,
     ).length
@@ -4506,14 +4670,92 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       gastado: km < m.gastadoHastaKm,
     })
 
-    /** Un intento de movimiento desde `source`. Puede no salir, salir y fracasar, o salir y cuajar. */
-    const attemptFrom = (source: Group, kind: MoveKind, target: Group | null): void => {
-      if (kmToGo <= STAGE.tacticNoAttackKm) return
-      if (moves.length >= STAGE.tacticMaxMoves) return
+    /**
+     * Un intento de movimiento desde `source`. Puede no salir, salir y fracasar, o salir y cuajar.
+     *
+     * `cerrando` es el cuarto selector de flujo de §2.6: el pelotón que está cerrando un movimiento
+     * sin cuerda. En el paso 4 vetaba el intento entero; ahora solo dice de qué dado se tira.
+     */
+    const attemptFrom = (
+      source: Group,
+      kind: MoveKind,
+      target: Group | null,
+      cerrando = false,
+    ): void => {
+      /**
+       * EL CORTE DE LOS ÚLTIMOS KILÓMETROS, Y EL FLYER QUE CABE DENTRO (R19.6).
+       *
+       * `tacticNoAttackKm` = 3 apagaba la carrera tres kilómetros antes de meta porque «eso ES el
+       * sprint», y para el pelotón entero es verdad. Para uno no: el peor rematador del grupo sabe
+       * que a rueda pierde, y por eso existe el hombre que se tira a 2 km cuando la carretera se
+       * empina o el final no es un esprint de manual. Entre `flyerKm` y `tacticNoAttackKm` cabe ese
+       * movimiento y solo ése, con su propia intensidad (`lambdaFlyer`) y su propio protagonista.
+       *
+       * **El viento de cola, que la regla también pide, no entra en la condición**: el modelo de
+       * viento de este motor es de viento LATERAL —abanicos— y no tiene dirección respecto a la
+       * marcha, así que no hay dato con el que preguntarlo. Se declara aquí en vez de inventarse un
+       * proxy que pareciera medirlo.
+       */
+      const ventanaFlyer =
+        fasesOn && kmToGo > STAGE.phases.flyerKm && kmToGo <= STAGE.tacticNoAttackKm
+      if (kmToGo <= (fasesOn ? STAGE.phases.flyerKm : STAGE.tacticNoAttackKm)) return
+      if (ventanaFlyer && !(onClimb || !bunchFinish)) return
+      /**
+       * LA ADUANA Y EL ATAQUE DE DENTRO, por fase (R19.2). «No» significa que esa cara NO NACE, no
+       * que todo pase: en `aproximacion` y en el puerto decisivo nadie se va de fuga del día, y en
+       * `salida` y `fuga` nadie contraataca todavía porque no hay a qué.
+       *
+       * `ataqueDentro` rige SOLO para el grupo principal, que es lo que la columna pregunta: dentro
+       * de una fuga se ataca en cualquier fase —es media regla 6— y un descolgado que salta hacia
+       * adelante tampoco pide permiso a la fase del pelotón. Sin este ámbito, encender R19 apagaba
+       * justo los dos movimientos que R19 viene a crear.
+       */
+      const esPrincipal = source.id === (mainId ?? PELOTON)
+      if (fasesOn && kind === 'fuga' && !faseFila.aduana) return
+      if (fasesOn && esPrincipal && kind !== 'fuga' && !faseFila.ataqueDentro) return
+      /**
+       * EL CUPO DE MOVIMIENTOS, POR FASE Y POR GRUPO DE ORIGEN (R19.3, paso 5).
+       *
+       * `tacticMaxMoves = 3` era **un contador de grupos vivos puesto por encima de toda la capa
+       * táctica**, y contaba GLOBAL: llegabas a tres movimientos en carretera y la carrera se
+       * apagaba entera, pasara lo que pasara y viniera de donde viniera el siguiente. Su propio
+       * comentario lo tenía medido: «cuatro intentos hasta el km 19 y ni uno más en los 190
+       * restantes» (Race Almeria e1).
+       *
+       * Ahora el cupo crece con la carrera —dos en la salida, cuatro en la fuga, seis en el
+       * desenlace— y se cuenta **por grupo de origen y sobre movimientos VIVOS**: un puente que sale
+       * de un descolgado no gasta el cupo del pelotón, y un movimiento ya cerrado no ocupa sitio.
+       * Los intentos fallidos tampoco cuentan: para eso está el cooldown de `tacticAttemptCooldownKm`,
+       * que sigue igual en los dos brazos.
+       *
+       * Con el interruptor apagado se conserva el 3 global de siempre, dígito a dígito.
+       */
+      const vivosDesdeAqui = moves.filter((m) => m.sourceId === source.id && !m.closed).length
+      if (fasesOn) {
+        if (vivosDesdeAqui >= faseFila.maxMoves) return
+      } else if (moves.length >= STAGE.tacticMaxMoves) {
+        return
+      }
       const last = lastAttemptKm.get(source.id)
       if (last != null && km - last < STAGE.tacticAttemptCooldownKm) return
       const members = membersOf(source.id)
       if (members.length < 2) return
+      /**
+       * DE QUÉ DADO TIRA ESTE INTENTO (§2.6). La lista es CERRADA y son los cuatro vetos del paso 4:
+       * el cupo global de `tacticMaxMoves`, el pelotón que cierra, el corte de `tacticNoAttackKm`
+       * —la ventana del flyer— y el puente que sale de un descolgado. Un intento que el motor del
+       * paso 4 habría vetado por cualquiera de ellos tira de `rngTactics2`; los demás, de
+       * `rngTactics`.
+       *
+       * Es lo que hace legible el A/B: los intentos que R19 AÑADE no corren la secuencia de los que
+       * ya existían.
+       */
+      const legacyVetado =
+        cerrando ||
+        ventanaFlyer ||
+        moves.length >= STAGE.tacticMaxMoves ||
+        (source.id !== PELOTON && moves.find((m) => m.g.id === source.id) === undefined)
+      const dado = fasesOn && legacyVetado ? rngTactics2 : rngTactics
       const ctx: MoveContext = {
         kind,
         // …y el km de recorrido, que es contra lo que se compara la cita del jugador (v58).
@@ -4538,11 +4780,33 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
           })),
         ),
       }
-      if (!rollMoveAttempt(rngTactics, ctx)) return
+      /**
+       * ¿SALTA? Con la fila de la fase puesta, λ = λ(contexto) × λscale[fase]. El flyer no escala
+       * nada: SUSTITUYE la intensidad por `lambdaFlyer`, porque no es un ataque más dado con otra
+       * cuerda sino otra clase de movimiento —uno solo, a un kilómetro y pico de meta, del que sabe
+       * que a rueda no gana—.
+       */
+      const salta = ventanaFlyer
+        ? dado() < blockProbability(STAGE.phases.lambdaFlyer, STAGE.dx)
+        : rollMoveAttempt(dado, ctx, STAGE.dx, fasesOn ? faseFila : null)
+      if (!salta) return
       lastAttemptKm.set(source.id, km)
       const type = finishType(finishTerrain, members.length)
       const pool = members.map((m) => asMoveRider(m, type, source.id === (mainId ?? PELOTON)))
-      const instigator = chooseInstigator(pool, ctx, rngTactics)
+      /**
+       * QUIÉN SE VA. En general lo elige `chooseInstigator` con su dado; el flyer NO se sortea: es
+       * **el peor rematador del grupo**, que es justo la definición de quién se tira a 2 km de meta.
+       * `finishScore` ya existía con ese comentario escrito —«quien peor remata es quien más
+       * ataca»— y aquí se lee al pie de la letra. Sin cerillos no hay flyer, como no hay ataque.
+       */
+      const instigator = ventanaFlyer
+        ? (pool
+            .filter((r) => r.matches >= 1)
+            .reduce<MoveRider | null>(
+              (peor, r) => (peor === null || r.finishScore < peor.finishScore ? r : peor),
+              null,
+            ) ?? null)
+        : chooseInstigator(pool, ctx, dado)
       if (instigator === null) return
       // Regla 2: **algunos van atentos y saltan detrás**, y regla 3: **muchos de los que lo intentan
       // no lo consiguen**. Los que no sostienen se quedan donde estaban; no es un fallo del modelo,
@@ -4560,7 +4824,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         const marks = sim != null && markTargetOf.get(r.riderId) === instigator.riderId
         if (marks && instigatorSim) {
           const onWheel =
-            rngTactics() <
+            dado() <
             wheelProbability(r.tac, instigator.tac, marksAlso(instigator.riderId, r.riderId))
           if (onWheel) {
             const outcome = resolveMarking(markingMargin(r.perfil, instigator.perfil))
@@ -4577,8 +4841,8 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
             continue
           }
         }
-        if (rngTactics() >= followProbability(r, instigator, ctx)) continue
-        if (sustainsJump(r, instigator, rngTactics)) jumpers.push(r)
+        if (dado() >= followProbability(r, instigator, ctx)) continue
+        if (sustainsJump(r, instigator, dado)) jumpers.push(r)
         else stranded += 1
       }
       const party = [instigator, ...jumpers]
@@ -4744,7 +5008,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       })
       // Reglas 4 y 5: el pelotón decide si da cuerda. Los ataques que salen de un grupo YA escapado
       // no pasan por esa aduana: allí no hay pelotón que cierre.
-      const allowed = source.id !== PELOTON || pelotonAllows(party, ctx, rngTactics)
+      const allowed = source.id !== PELOTON || pelotonAllows(party, ctx, dado)
       moves.push({
         g,
         kind,
@@ -4804,7 +5068,37 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
           : bridgeable
             ? 'puente'
             : 'contraataque'
-      if (!closingNow) attemptFrom(peloton, kind, bridgeable && head ? head.g : null)
+      /**
+       * SE RETIRA `closingNow` COMO VETO (R19.4). Mientras el pelotón cierra un intento sin cuerda
+       * **se sigue atacando**: es justo cuando salta el bueno, por el otro lado y con el que cerraba
+       * ya gastado. El cierre deja de ser un veto y pasa a ser precio —los intentos se SOLAPAN, y
+       * cerrar cuesta la caza siguiente—; ese precio (`closingBusyDamp` sobre `payable`) llega en el
+       * paso 6, cuando `payable` exista. Aquí solo se retira el veto, y `closingNow` viaja como
+       * selector de flujo.
+       */
+      if (fasesOn || !closingNow) {
+        attemptFrom(peloton, kind, bridgeable && head ? head.g : null, closingNow)
+      }
+    }
+    /**
+     * EL PUENTE DESDE ATRÁS (R19.7): un descolgado puede SALTAR hacia el grupo de delante por acción
+     * propia, no solo esperar a que le absorban. Es la mitad de la regla 7 que no existía —el motor
+     * solo sabía puentear hacia adelante desde el pelotón o desde otra fuga—, y es lo que convierte
+     * a un grupo de descolgados en corredores en vez de en una cola.
+     *
+     * Al grupo de delante que tenga a tiro: el pelotón si el boquete cabe en la ventana del puente,
+     * y si no, nada. No pasa por aduana ninguna —`pelotonAllows` solo mira los que salen DEL
+     * pelotón— y por eso su precio es el que la carretera cobre: va a `tacticBridgeCommit` y a
+     * menudo se queda a medias, que es exactamente la regla 7.
+     */
+    if (fasesOn) {
+      for (const sg of shed) {
+        const gapAlPeloton = sg.tS - peloton.tS
+        if (gapAlPeloton < STAGE.bridgeGapMinSeconds || gapAlPeloton > STAGE.bridgeGapMaxSeconds) {
+          continue
+        }
+        attemptFrom(sg, 'puente', peloton)
+      }
     }
     // Y desde cada grupo escapado: se sigue atacando dentro de la fuga (regla 6) y se puentea al
     // grupo de delante si lo hay a tiro (regla 7).
@@ -5814,6 +6108,10 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
           // kilómetro en que la fuga salió. `deLos` conserva de cuántos salió, que es la otra mitad
           // de la historia cuando el grupo ha cambiado por el camino.
           const quienes = dayBreakNow.length > 0 ? dayBreakNow : dayBreakRiders
+          // La fase `captura` nace de este evento (R19, paso 5): el kilómetro de después de cazar
+          // una fuga es el más vivo de la carrera —el contraataque— y el motor no lo distinguía de
+          // ningún otro. Se escribe siempre; solo decide con el interruptor encendido.
+          lastCaptureKm = km
           log.emit(km, peloton.tS, 'fuga_cazada', 'breakaway_caught', quienes, {
             // QUIÉN ERA Y CUÁNTO LLEVABA (v21). En producción, Race Bességes e4: Nicolás Ferrari se
             // pasa 130 km escapado en solitario, le cazan a la vista de la meta y acaba CUARTO a
