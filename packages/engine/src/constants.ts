@@ -2450,6 +2450,35 @@ export const STAGE = {
     gcLeashMaxS: 900,
   },
 
+  /**
+   * EL PULSO POR EL FRENTE (R20, docs/tactica.md paso 9). Quién persigue a quién, y quién paga.
+   *
+   * Es la pieza de la que han quedado colgando TRES racimos de esta tanda: R01 (el paso 3, donde
+   * sentar a los que no deben tirar dejaba el frente vacío porque no existía quien lo tomara), R19
+   * (el paso 5, cuyas clásicas se vacían) y R03 (el paso 6, cuyo bote es una intención sin nadie que
+   * la ejecute). Por eso se adelanta a los pasos 7 y 8: un racimo que desbloquea a tres vale más que
+   * dos racimos nuevos apagados.
+   */
+  front: {
+    enabled: false,
+    /**
+     * Banda de empate de la amenaza (R20.1). Dentro de ella dos movimientos se consideran igual de
+     * peligrosos y desempata la carretera: el más cerca de meta, y luego el id menor.
+     */
+    threatTieBand: 0.05,
+    /**
+     * EL HUECO QUE TOLERA UN EQUIPO SIN HOMBRE DE GENERAL (R20.1, la rama que faltaba). Un pelotón
+     * lanzado recorta un minuto cada diez kilómetros. [calibrar] contra `flat.catchKmToFinish`.
+     */
+    closeRateSPerKm: 6,
+    /** Los kilómetros de caza dura que se descuentan de esa cuenta, y a partir de los que no se cede. */
+    chaseHardKm: 20,
+    /** Cuánto vale llegar al sprint con los lanzadores enteros (R20.5). */
+    sitOutGain: 0.35,
+    /** Más de tres lanzadores no montan un tren mejor. */
+    trainMaxLaunchers: 3,
+  },
+
   // 6.6 — Cerillos (esfuerzos supraumbral discretos).
   // comp = 0.50·max(MON,COL) + 0.30·RES + 0.20·LLA; cerillos = 2 + (comp>=55)+(>=72)+(>=88).
   matchCompMonWeight: 0.5,

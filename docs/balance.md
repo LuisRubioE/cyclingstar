@@ -12203,3 +12203,108 @@ heredado.
 - **El renombre de `gcControlLeash`**: la constante **no se retira** aunque el diseño lo pida, porque
   el defecto 1 de arriba demuestra que hace dos trabajos y R04.2 solo releva uno. Retirarla ahora
   dejaría sin boquete por defecto a todas las carreras sin general.
+
+## v60 §7 — El pulso por el frente, y **el hallazgo que cambia el plan**: los racimos no entran de uno en uno
+
+`ENGINE_VERSION` **64 → 64**. R20 —el objetivo de la caza, el derecho al frente y el que se sienta—
+está construido y medido, y **el interruptor se queda apagado**. Es la cuarta vez seguida, y a la
+cuarta el patrón ya no es de un racimo: es del plan.
+
+**Se adelanta a los pasos 7 y 8 a propósito**, y la decisión se toma con la evidencia de las tres
+entradas anteriores: R01 (paso 3) necesita quien tome el frente, R19 (paso 5) necesita quien pague, y
+el bote de R03 (paso 6) es una intención sin nadie que la ejecute. Los tres apuntan a R20. Un racimo
+que desbloquea a tres vale más que dos racimos nuevos apagados.
+
+### S-176, el contrario nº 1, queda escrito
+
+«Se persigue al grupo más adelantado en vez de al que hace daño, así que toda la lógica de caza
+apunta al sitio equivocado.» Era literal: el objetivo de la caza era `frontMove()`. Si delante van
+tres irrelevantes y un poco más atrás el segundo de la general, el pelotón perseguía a los tres
+irrelevantes.
+
+Ahora lo elige `chaseTargetOf` sobre `threatOf` —lo que un movimiento le cuesta a un equipo entero—
+con su desempate escrito. Y la corrección que lo hace **ejecutable**: `threatOf` y no `costToMyMan`,
+porque aquél cuenta solo general y para el perseguidor normal de una llana —el equipo del sprinter,
+sin hombre de general— vale 0 en todos los movimientos: un `argmax` sobre un empate a cero.
+
+### Lo que R20 hace solo, y **pasa todas las bandas canónicas**
+
+| llana canónica + reina, 120 semillas | apagado |        R20 | banda |
+| ------------------------------------ | ------: | ---------: | ----- |
+| gana la fuga (llano)                 |   9,2 % | **14,2 %** | 5-16  |
+| gana el mejor sprinter               |  36,7 % |     35,8 % | 30-45 |
+| captura                              |    89 % |       85 % | > 85  |
+| km de la caza                        |    18,1 |       18,0 | 8-25  |
+| gana la fuga (reina)                 |  26,7 % | **30,0 %** | 25-45 |
+| Il Lombardia, pájaras                |  11,2 % |     11,9 % | ≤ 12  |
+
+Es **el primer racimo de toda esta tanda que pasa el banco canónico por su cuenta**. Pero el banco
+canónico no es el banco: con los 104 invariantes completos fallan **tres, y los tres por un pelo**:
+
+| invariante                                 | medido | listón |
+| ------------------------------------------ | -----: | -----: |
+| captura de la llana canónica               |  84,68 |   > 85 |
+| erosión de la reina real de tercera semana |  0,597 | ≥ 0,60 |
+| pájaras de Il Lombardia (3 semillas)       |   13 % | ≤ 12 % |
+
+Tres décimas, tres milésimas y un punto. **No se ensancha ninguna**: que un listón esté cerca no
+autoriza a moverlo, y menos tres a la vez en la misma tanda. Interruptor apagado.
+
+### El hallazgo, que ya no es de este racimo
+
+**Los racimos no entran de uno en uno, y hay medida.** Con los tres encendidos a la vez —fases,
+aduana y subasta—:
+
+| llana canónica, 120 semillas  | todo apagado | solo R19 | solo R03 | solo R20 | **los tres** | banda |
+| ----------------------------- | -----------: | -------: | -------: | -------: | -----------: | ----- |
+| gana la fuga                  |        9,2 % |    5,0 % |   10,0 % |   14,2 % |   **11,7 %** | 5-16  |
+| gana el mejor sprinter        |       36,7 % |   39,2 % |   35,8 % |   35,8 % |   **31,7 %** | 30-45 |
+| captura                       |         89 % |     94 % |     89 % |     85 % |     **88 %** | > 85  |
+| km de la caza                 |         18,1 |     19,8 |     18,6 |     18,0 |     **19,6** | 8-25  |
+| intentos por etapa            |         15,0 |     16,9 |     15,0 |     14,5 |     **17,2** | 10-25 |
+| intentos tras el km 100       |          8,3 |      9,1 |      8,1 |      8,0 |      **9,5** | ≥ 2   |
+| **contraataque tras captura** |     **16 %** |     34 % |     20 % |     15 % |     **41 %** | 25-60 |
+| gana la fuga (reina)          |       26,7 % |   28,3 % |   20,0 % |   30,0 % |   **34,2 %** | 25-45 |
+
+**Los tres juntos pasan las ocho.** Y `counterAfterCatchPct` —que con el motor de hoy vale 16 %, es
+decir **por debajo de su propia banda**— se pone en 41 %: el kilómetro siguiente a una captura deja
+de ser un kilómetro cualquiera, que es lo que tres reglas distintas prometen por separado y ninguna
+consigue sola.
+
+El motivo es de forma, no de calibración. Cada racimo quita una pieza y pone otra: R19 retira cuatro
+vetos, R03 sustituye un dado por un voto, R20 cambia a quién se persigue. Encendido **uno solo**, el
+motor corre con la mitad de un acuerdo —vetos quitados sin precio, voto sin nadie que lo ejecute,
+puntería nueva sin quien la pague— y el desequilibrio sale por el guardarraíl que menos holgura
+tenga. Es exactamente lo que el paso 3 encontró con R01 y lo que el paso 5 encontró con R19, y son
+cuatro medidas coincidentes.
+
+Lo único que los tres juntos **no** arreglan es la saturación de las clásicas: Il Lombardia se queda
+en 16,5 %. Eso sigue siendo de R19 y sigue sin explicación medida (el paso 5 propuso una y el paso 6
+la desmintió).
+
+### Dos defectos propios, y los dos son el MISMO defecto que el paso 6
+
+**Una capacidad usada como si fuera una intención**, dos veces:
+
+1. **El objetivo de la caza no puede incluir movimientos sin cuerda.** Un movimiento sin cuerda no se
+   persigue: se CIERRA. Mezclados, la claudicación de la caza —que pregunta por la fuga DEL DÍA— no
+   se dispara nunca y el pelotón caza el 100 % de las etapas: la fuga gana el 0,0 % de las llanas y
+   de las reinas.
+2. **El hueco deseado de un equipo sin hombre de general es «lo que todavía puedo cerrar», y eso es
+   una capacidad.** Puesto como hueco deseado, el pelotón persigue todo lo que le quepa incluso
+   después de haber claudicado —y claudicar es justo el mecanismo por el que una fuga gana una
+   llana—. Mismo resultado: 0,0 %.
+
+Es la tercera vez en esta tanda que `gcControlLeash` = 700 se revela haciendo **dos trabajos** —la
+tolerancia del control de la general y el boquete por defecto cuando no hay general— y que una regla
+que solo releva el primero rompe el segundo. Queda anotado para el paso 21: la constante no se retira
+hasta que la segunda mitad tenga dueño.
+
+### La propuesta, con la medida delante
+
+El plan de §8.1 va racimo a racimo, y **cuatro pasos seguidos dicen que así no entra**. Lo que la
+tabla de arriba propone es cerrar los racimos que faltan **apagados y medidos**, como hasta ahora, y
+abrir **un paso de encendido conjunto** donde se enciendan a la vez y se calibre el sistema contra
+los 104 invariantes, no cada pieza contra los suyos. Las tres perillas ya identificadas
+—`customsPotWeight`, la tabla de fases y `closeRateSPerKm`— se barren ahí, juntas, que es donde de
+verdad interactúan.

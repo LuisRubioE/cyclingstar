@@ -45,6 +45,7 @@ import {
   targetSpeed,
 } from './physics.js'
 import { blockProbability, rollHazard } from './hazard.js'
+import { type ChaseCandidate, chaseTargetOf, desiredGapOf, frontClaimOf } from './frontAuction.js'
 import {
   type CustomsMove,
   type CustomsTeam,
@@ -1758,6 +1759,8 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
    */
   /** ¿Está encendida la aduana del paso 6? Ver `STAGE.customs.enabled` y la hipótesis nula. */
   const customsOn = input.flags?.customs === true || STAGE.customs.enabled
+  /** ¿Está encendida la subasta del frente del paso 9? Ver `STAGE.front.enabled`. */
+  const frontOn = input.flags?.front === true || STAGE.front.enabled
 
   /** El movimiento tal como lo ve la aduana: su gente, su hueco y su clase. */
   const customsMoveOf = (party: MoveRider[], gapSeconds: number, kind: MoveKind): CustomsMove => ({
@@ -1795,6 +1798,26 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       if (s2.input.teamId === casa) return true
     }
     return false
+  }
+
+  /**
+   * El movimiento visto por la aduana, **construido directamente de los corredores**. Existe además
+   * de `customsMoveOf` porque el objetivo de la caza (R20.1) se decide arriba del bloque de
+   * decisión, antes de que `asMoveRider` esté inicializado: es la misma foto con menos
+   * intermediarios.
+   */
+  const customsMoveDe = (dentro: RiderSim[], gapSeconds: number, kind: MoveKind): CustomsMove => {
+    const tipo = finishType(finishTerrain, dentro.length)
+    return {
+      riders: dentro.map((m) => ({
+        riderId: m.input.riderId,
+        teamId: m.input.teamId ?? null,
+        gcDeficitSeconds: m.input.gcDeficitSeconds,
+        finishScore: finishScore(riderEff(m), tipo),
+      })),
+      gapSeconds,
+      kind,
+    }
   }
 
   /**
@@ -2044,10 +2067,62 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
     if (i % STAGE.decisionEveryBlocks === 0) {
       // El grupo de cabeza ya no es «la fuga»: es el movimiento más adelantado de los que haya en
       // carretera, que puede ser la fuga del día, un contraataque o un puente que se quedó a medias.
-      const front = frontMove()
+      const frontPorDelante = frontMove()
+      const kmRestantes = totalKm - km
+      /**
+       * A QUIÉN SE PERSIGUE (R20.1, S-176 — el contrario **nº 1** de las veinte más graves).
+       *
+       * Su ficha no se anda con rodeos: «es el error de puntería del motor entero: se persigue al
+       * grupo más adelantado en vez de al que hace daño, así que toda la lógica de caza apunta al
+       * sitio equivocado». Y es literal: hasta aquí el objetivo de la caza era `frontMove()`, o sea
+       * **lo que va más lejos**, sin preguntar a quién le cuesta qué. Si delante van tres
+       * irrelevantes y un poco más atrás el segundo de la general, el pelotón perseguía a los tres
+       * irrelevantes.
+       *
+       * Ahora lo elige `chaseTargetOf` sobre `threatOf` —lo que un movimiento le cuesta a un equipo
+       * ENTERO: general, etapa y secundarias— para **el equipo que lleva el frente**, que es quien
+       * paga. Sin dueño del frente, el objetivo sigue siendo el de delante: no hay nadie a quien
+       * preguntarle qué le duele.
+       */
+      let front = frontPorDelante
+      if (frontOn && moves.length > 0) {
+        const duenio = frontTeamId ? teamPlans.get(frontTeamId) : undefined
+        if (duenio) {
+          const equipos = customsTeams(gcLeash(), cerrandoAhora())
+          const suyo = equipos.find((e) => e.teamId === duenio.teamId)
+          if (suyo) {
+            const candidatos: ChaseCandidate[] = []
+            for (const m of moves) {
+              /**
+               * SOLO SE RE-APUNTA ENTRE LOS QUE TIENEN CUERDA. Un movimiento sin cuerda no se
+               * persigue: se CIERRA, y de eso se encarga la rama de arriba. Mezclarlos tiene un
+               * efecto medido y desastroso —la claudicación de la caza pregunta por la fuga DEL
+               * DÍA, así que apuntando a un intento sin cuerda el pelotón no claudica nunca y caza
+               * el 100 % de las etapas: la fuga gana el 0,0 % de las llanas Y de las reinas—.
+               *
+               * R20.1 corrige a quién se persigue, no qué es perseguir.
+               */
+              if (m.closed || !(m.allowed || m.dayBreak)) continue
+              const dentro = membersOf(m.g.id)
+              if (dentro.length === 0) continue
+              candidatos.push({
+                groupId: m.g.id,
+                move: customsMoveDe(dentro, Math.max(0, peloton.tS - m.g.tS), m.kind),
+                kmToGo: kmRestantes,
+              })
+            }
+            const elegido = chaseTargetOf(suyo, candidatos)
+            if (elegido) front = moves.find((m) => m.g.id === elegido.groupId) ?? front
+          }
+        }
+      }
       const ahead = front !== null
       const gap = front ? peloton.tS - front.g.tS : 0
-      const kmRestantes = totalKm - km
+      const bunchId = mainId ?? PELOTON
+      const menInPeloton = (plan: TeamPlan): number =>
+        plan.memberIds.filter((id) => !rebels.has(id) && sims.get(id)?.groupId === bunchId).length
+      /** La foto de la subasta para esta decisión: se construye una vez y la leen los dos usos. */
+      const equiposAhora = frontOn ? customsTeams(gcLeash(), cerrandoAhora()) : []
 
       // --- EL PLAN DE EQUIPO, al día (v15, docs/motor.md §V.1) -----------------------------
       // Cada decisión del pelotón se revisa qué está jugando cada equipo y cuánto le queda en las
@@ -2076,9 +2151,6 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         // cero hombres «en el pelotón», nadie reclamaba el frente y `frontTeamId` se quedaba en
         // null. Medido en el km 167 de una etapa de 168: cero hombres dando la cara en la MITAD de
         // las corridas, o sea ningún equipo de sprinters lanzando en el último kilómetro.
-        const bunchId = mainId ?? PELOTON
-        const menInPeloton = (plan: TeamPlan): number =>
-          plan.memberIds.filter((id) => !rebels.has(id) && sims.get(id)?.groupId === bunchId).length
         // 1. Qué juega cada equipo AHORA, y POR QUÉ. La amenaza se mide con el MEJOR CLASIFICADO
         //    que va delante: es la cuenta de `gcLeash()` mirada equipo a equipo, que es lo que
         //    distingue al equipo del maillot —al que esa fuga sí le quita el liderato— del equipo
@@ -2150,9 +2222,25 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         //    histéresis a propósito —solo se cede cuando el que manda ha gastado su presupuesto o
         //    ha perdido su baza—, porque un frente que cambia de dueño cada kilómetro no es un
         //    frente: es lo que producía la alianza permanente de la v14.
+        /**
+         * EL DERECHO AL FRENTE (R20.2). Con la subasta encendida, el `claim` de hoy deja de ser el
+         * derecho entero y pasa a ser **la base** sobre la que se puja, con los cuatro factores que
+         * faltaban: cuántos hombres le quedan AQUÍ (normalizado por convocados, no por un 8 fijo),
+         * cuánto ha gastado, **cuánta falta le hace** y lo que cuesta la carretera.
+         *
+         * La necesidad es la que ata la subasta a R20.1 y la que de verdad cambia la carrera: sin
+         * ella el equipo del sprinter puja por el frente a 120 km de meta con la fuga a noventa
+         * segundos —aunque el hueco que tolera sea de diez minutos— y se pone a tirar en cuanto
+         * gana. Con ella se guarda para los últimos cuarenta, que es lo que hace en carretera.
+         */
         const claimOf = (plan: TeamPlan): number => {
           const stance = teamNow.get(plan.teamId)
-          return stance && menInPeloton(plan) > 0 ? frontClaim(stance) : 0
+          if (!stance || menInPeloton(plan) === 0) return 0
+          const base = frontClaim(stance)
+          if (!frontOn || base === 0) return base
+          const suyo = equiposAhora.find((e) => e.teamId === plan.teamId)
+          if (!suyo) return base
+          return frontClaimOf(suyo, base, gap, kmRestantes)
         }
         const current = frontTeamId ? teamPlans.get(frontTeamId) : undefined
         const relief = [...teamPlans.values()]
@@ -3010,7 +3098,38 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         // capturar); pero en cuanto empieza a subir, los favoritos atacan a tope y la subida
         // decide (SPEC 6.9). Boquete deseado constante fuera de la subida. Y si delante va una
         // AMENAZA para la general (`gcDeficitSeconds`, que el motor ignoraba), la cuerda se acorta.
-        const err = gap - gcLeash()
+        /**
+         * …Y EL BOQUETE DESEADO SALE DEL **MÍNIMO DE LOS QUE PAGAN** (R20.2), no de una correa de
+         * general que todo el pelotón comparte. El equipo que menos hueco tolera es el que marca el
+         * ritmo, porque es el que se pone a tirar; y un equipo sin hombre de general no tiene correa
+         * ninguna: lo que tolera es **lo que todavía puede cerrar** (`desiredGapOf`), que a 120 km de
+         * meta son diez minutos y a 40 km, dos.
+         *
+         * Sin esta rama, en una llana —donde el perseguidor normal no tiene hombre de general— el
+         * hueco deseado lo ponía una constante pensada para el control del maillot.
+         */
+        const deseado = (): number => {
+          /**
+           * **SOLO CON GENERAL EN JUEGO**, y es el mismo defecto que el paso 6 cazó en `leashOf`:
+           * `gcControlLeash` = 700 hace dos trabajos —tolerancia del control de general y boquete por
+           * defecto cuando no hay general— y R20.1 solo releva el primero.
+           *
+           * Aquí muerde de otra manera y peor: esta rama es a la que cae el pelotón **cuando los
+           * sprinters ya han claudicado**, que es exactamente el mecanismo por el que una fuga gana
+           * una llana. Con el hueco deseado puesto en «lo que todavía puedo cerrar», claudicar deja
+           * de significar nada —el pelotón sigue persiguiendo lo que le quepa— y la fuga gana el
+           * **0,0 %** de las llanas con la captura al 100 %. Medido, y con la misma forma que el
+           * defecto del paso 6: una capacidad usada como si fuera una intención.
+           */
+          if (!frontOn || !hasGcContext || equiposAhora.length === 0) return gcLeash()
+          let min = Number.POSITIVE_INFINITY
+          for (const e of equiposAhora) {
+            if (menInPeloton(teamPlans.get(e.teamId)!) === 0) continue
+            min = Math.min(min, desiredGapOf(e, kmRestantes))
+          }
+          return Number.isFinite(min) ? min : gcLeash()
+        }
+        const err = gap - deseado()
         target = onClimb
           ? freeRunTarget
           : Math.min(1, Math.max(0.1, STAGE.chaseHoldCommit + STAGE.chaseGain * err))
