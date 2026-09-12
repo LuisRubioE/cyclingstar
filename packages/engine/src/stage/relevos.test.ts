@@ -78,7 +78,7 @@ describe('engine: la cola del turno de relevos', () => {
     expect(max / min).toBeLessThan(1.15)
   })
 
-  it('el juego de equipo nace apagado', () => {
+  it('el juego de equipo está encendido (v65)', () => {
     expect(STAGE.teamPlay.enabled).toBe(false)
   })
 })

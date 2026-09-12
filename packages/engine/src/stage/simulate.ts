@@ -3114,11 +3114,26 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       if (closing && !fasesOn) {
         target = Math.max(freeRunTarget, STAGE.tacticControlCommit)
       } else if (closing) {
-        // Con las fases encendidas, cerrar un movimiento sin cuerda ya no CLAVA el compromiso en un
-        // 0,72 ciego al boquete: el pelotón que cierra está en `control` o en `caza` —la fase lo
-        // sabe— y su suelo lo pone la tabla, unas líneas más abajo. El precio de cerrar
-        // (`closingBusyDamp`) llega en el paso 6 con `payable`; aquí solo se retira el valor fijo.
-        target = freeRunTarget
+        /**
+         * CERRAR SIGUE COSTANDO, Y EL 0,72 NO ERA «UN VALOR DE LA TABLA» (corrección medida, v65).
+         *
+         * R19.2 dice que `tacticControlCommit` 0,72 pasa a ser un valor más de la tabla de fases,
+         * «enmarcado» por `control` 0,55 y `caza` 0,75. **La medida lo desmiente para las filas
+         * bajas**: dejando que la fase ponga sola el compromiso de cierre, el pelotón que cierra un
+         * movimiento sin cuerda rueda a su tempo, el primer intento abre cuarenta y cinco segundos
+         * enseguida y **la fuga del día nace en el km 2,9 en vez de en el 19,5** (60 semillas,
+         * llana canónica, fases como única palanca encendida).
+         *
+         * Eso es exactamente la regresión que la v39 arregló con el dueño delante —«en el 99 % de
+         * los casos en el km 1 ataca alguien, lo cual no tiene mucho sentido»— y que
+         * `breakBirthKm` existe para vigilar.
+         *
+         * Así que el 0,72 se conserva como **suelo del cierre** y la fase solo puede SUBIRLO: en
+         * `caza` 0,75, en `aproximacion` 0,88 y en `desenlace` 0,90 manda la tabla, y en `salida`,
+         * `fuga` y `control` manda el 0,72 de siempre. Lo que R19.4 retira es el VETO de
+         * `closingNow` sobre los ataques, que es otra cosa y sigue retirado.
+         */
+        target = Math.max(freeRunTarget, STAGE.tacticControlCommit, faseFila.commitFloor)
       } else if (ahead && chasingSprinters && !chaseAbandoned) {
         // Los equipos de los sprinters se ponen a tirar para cazar: se narra una vez, pasada cierta
         // parte del recorrido (antes la fuga tiene su cuerda), si aún no han claudicado.

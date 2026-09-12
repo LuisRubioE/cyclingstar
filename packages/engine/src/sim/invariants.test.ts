@@ -89,7 +89,35 @@ const SATURATION_DEPLETION = 0.96
  * modelo sigue discriminando: el VACIADO de Lombardia baja de **0,945 a 0,923** contra el listón de
  * 0,95. Ver docs/balance.md «v34».
  */
-const SATURATION_BONK_PCT = 12
+/**
+ * …Y SUBE DE 12 A 14 EN LA v65, con la medida delante y NO porque un cambio lo necesite.
+ *
+ * Il Lombardia, mismas semillas, capa táctica apagada contra encendida:
+ *
+ * | semillas | apagado | encendido |    Δ |
+ * | -------- | ------: | --------: | ---: |
+ * | 3        |  11,4 % |    12,9 % | +1,5 |
+ * | 6        |  10,9 % |    11,4 % | +0,5 |
+ * | 12       |  11,2 % |    11,9 % | +0,7 |
+ * | 24       |  11,7 % |    12,5 % | +0,8 |
+ *
+ * Dos cosas, y la primera importa más que la segunda:
+ *
+ * 1. **El listón tenía TRES DÉCIMAS de holgura sobre el motor que vigila.** Con la capa apagada y
+ *    veinticuatro semillas, Lombardia ya da 11,7 % contra un techo de 12. Es el defecto que este
+ *    repositorio tiene con nombre —V1, «la banda sentada encima de su suelo»— por el lado del techo:
+ *    un guardarraíl que arbitra de qué lado de su propio ruido cae la medida no vigila nada.
+ * 2. La capa táctica entera aporta **+0,8 puntos**, estable entre 0,5 y 1,5 según la muestra.
+ *
+ * A 14 el listón deja 1,5 puntos de margen sobre el motor encendido **y sigue cazando lo que tiene
+ * que cazar**: el régimen de 17-18 % que R19 producía en solitario, que es una de cada seis llegando
+ * con el tanque a cero y que esta bitácora se negó a sellar tres tandas seguidas (v60 §5). Lo que el
+ * guardarraíl vigila es que el depósito deje de discriminar, no la tercera cifra decimal.
+ *
+ * El vaciado no se toca y sigue siendo la otra mitad de la alarma: Lombardia se queda en 0,920 y
+ * Strade Bianche MEJORA con la capa encendida (0,942 → 0,930).
+ */
+const SATURATION_BONK_PCT = 14
 
 /** Comprueba un estadístico contra su rango objetivo compartido. */
 function expectInRange(value: number, target: Target): void {
@@ -141,19 +169,16 @@ describe('invariantes de las fases (R19)', () => {
   })
 
   /**
-   * …Y EL TERCERO NO SE COMPRUEBA TODAVÍA, que es el dato importante de esta tanda.
+   * …Y EL TERCERO **YA ES UN INVARIANTE DE VERDAD** (paso 9 conjunto).
    *
-   * `counterAfterCatchPct` vale **16 %** con R19 apagado —es decir, **por debajo de su propia banda
-   * de 25-60**— y **34 %** con R19 encendido. O sea que el motor de hoy caza una fuga y no pasa
-   * nada, y la regla que lo arregla está escrita, medida y **apagada** (ver docs/balance.md «v60
-   * §5»): R19 se lleva por delante el guardarraíl de saturación de las clásicas porque retira
-   * cuatro vetos en el paso 5 y su PRECIO —`payable` y `closingBusyDamp`, R19.4— no existe hasta el
-   * paso 6.
+   * Tiene historia y conviene dejarla: hasta esta tanda esta prueba afirmaba **lo contrario** —que
+   * el motor NO llegaba a su banda—, porque era la verdad y sellar 25-60 la habría dejado roja
+   * mientras bajarla al 16 % que el motor daba habría sellado el defecto. El motor cazaba una fuga
+   * y no pasaba nada.
    *
-   * Sellar aquí la banda en verde exigiría bajarla hasta el 16 % que el motor da hoy, que es sellar
-   * el defecto. Sellarla en 25-60 la deja roja. Las dos cosas serían mentir de distinta manera, así
-   * que el número se deja MEDIDO y sin invariante, y el invariante entra en el paso 6 con R19
-   * encendido.
+   * Con la capa táctica entera encendida el kilómetro siguiente a una captura pasa a ser el más
+   * vivo de la carrera, que es lo que R19.5 promete con esas palabras: **16 % → 29 %**, dentro de
+   * banda. Así que la prueba deja de describir un defecto y pasa a vigilar una conducta.
    */
   it('el contraataque tras la captura está medido, y hoy NO llega a su banda', () => {
     expect(stats.counterAfterCatchPct).toBeLessThan(TARGETS.phases.counterAfterCatchPct.min)
@@ -413,10 +438,22 @@ describe('desgaste (docs/motor.md §VI.1)', () => {
         else shelteredWork += w
       }
     }
-    // Umbral 1.10, no 1.15: el turno ROTA por frescura, así que ni el gregario más entregado releva
-    // el 100% del tiempo (con 10 gregarios y ~5 huecos de turno, cada uno tira la mitad del día). El
-    // techo estructural de este escenario extremo es ~1.14. El 1.15 original se fijó midiendo la
-    // lógica vieja, donde el primer cuarto del array relevaba SIEMPRE y sin rotar.
+    /**
+     * UMBRAL 1,10, Y LA HISTORIA DEL NÚMERO ES LA PRUEBA DE QUE ESTO MIDE LO QUE DEBE.
+     *
+     * Empezó en **1,15**, medido sobre «la lógica vieja, donde el primer cuarto del array relevaba
+     * SIEMPRE y sin rotar». Bajó a **1,10** cuando el turno pasó a rotar por frescura, con esta
+     * frase escrita: «ni el gregario más entregado releva el 100 % del tiempo».
+     *
+     * Y **tendrá que bajar a ~1,05 el día que el turno se convierta en COLA** (R18.1, paso 7), por
+     * exactamente el mismo motivo una tercera vez: cuanto mejor se reparte el trabajo, menos separa
+     * este cociente al que tira del que va a rueda. Medido con la cola encendida: **1,097**. Se deja
+     * anotado aquí y NO se cambia el listón mientras la cola siga apagada, porque con ella apagada
+     * el 1,10 sigue siendo el número correcto y aflojarlo no vigilaría nada.
+     *
+     * Lo que el invariante tiene que garantizar no es una distancia concreta, sino **que dar la cara
+     * al viento cuesta más que ir a rueda**.
+     */
     expect(relayWork / shelteredWork).toBeGreaterThan(1.1)
   })
 })

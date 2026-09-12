@@ -154,9 +154,28 @@ describe('coherencia de la crónica (docs/motor.md §16, v25)', () => {
       // entre que la fuga se forma y la cazan, y se comprueba que la captura no arrastra la lista
       // congelada del kilómetro en que salió.
       let comprobadas = 0
-      const casos = [realRaceScenario('race-jaen'), longClassicScenario(), queenScenario()]
+      /**
+       * EL BANCO CAMBIA, Y NO PARA QUE PASE: **porque el anterior casi no tenía el caso**.
+       *
+       * Estaba puesto sobre Race Jaén, la clásica larga y la reina, y ahí la fuga del día **casi
+       * nunca se caza**: medido sobre las mismas 90 corridas, `breakaway_caught` aparece **6 veces
+       * con la capa táctica apagada y 0 con ella encendida**. O sea que esta prueba llevaba tiempo
+       * apoyándose en cinco muestras de noventa, y al encender la capa se quedó en cero y se puso
+       * roja sin que ninguna conducta se hubiera roto.
+       *
+       * Sobre la llana canónica —donde cazar la fuga ES la norma— el caso se da a espuertas, y **se
+       * da MÁS con la capa encendida**: de 30 corridas, la fuga cambia de gente entre que se forma y
+       * la cazan **24 veces apagada y 26 encendida**. El mismo test, con veintiséis muestras en vez
+       * de cinco, comprueba mucho más de lo que comprobaba.
+       *
+       * Y queda anotado lo que la medida SÍ dice y no es de este test: en carreras de cuesta la
+       * captura narrada pasa de 6/90 a 0/90. No es una banda —`mountain.breakawayWinPct` se queda en
+       * 38,3 % dentro de 25-45, y lo que pasa es que la fuga sobrevive más—, pero sí es una frase que
+       * la crónica deja de poder contar en esas carreras. Va a docs/balance.md «v60 §9».
+       */
+      const casos = [flatScenario()]
       for (const [i, caso] of casos.entries())
-        for (const seed of campaignSeeds(`cazada-${i}`, 30)) {
+        for (const seed of campaignSeeds(`cazada-llano-${i}`, 30)) {
           const out = simulateStage(caso.input, seed)
           const formed = out.events.find((e) => e.plantilla === 'breakaway_formed')
           const caught = out.events.find((e) => e.plantilla === 'breakaway_caught')

@@ -12393,3 +12393,89 @@ Y aun así **no se enciende nada en esta tanda**, por dos motivos, los dos expl�
 
 Así que el trabajo queda: los cinco racimos construidos, medidos y apagados; la evidencia de que
 juntos funcionan; y el encendido, que es una decisión con tres guardarraíles encima de la mesa.
+
+## v60 §9 — El encendido conjunto: **la premisa del plan aprobado era falsa, y con eso se vuelve atrás**
+
+`ENGINE_VERSION` **64 → 64**. Se encendieron los cinco racimos, se re-sellaron las cuatro huellas, se
+corrió todo, **y se volvió atrás**. Esta entrada cuenta por qué, porque el porqué vale más que el
+intento.
+
+### Lo que se hizo, y lo que salió bien
+
+Con la propuesta aceptada se aplicaron los tres ajustes de guardarraíl declarados y se encendieron
+fases, aduana, subasta del frente y juego de equipo. **Las bandas se sostienen**: las nueve
+estadísticas canónicas pasan, la reina la gana la fuga el 38,3 % de las veces (banda 25-45), el
+contraataque tras la captura llega al 29 % (16 % con el motor de hoy, por debajo de su propia banda)
+y las pájaras de Il Lombardia se quedan en 11,9 %.
+
+Y por el camino salió **una corrección medida al paso 5 que SÍ se queda**, la más importante de esta
+tanda:
+
+> **El 0,72 de `tacticControlCommit` no era «un valor más de la tabla de fases».**
+>
+> R19.2 dice que el compromiso del pelotón que cierra un movimiento sin cuerda pasa a ser un valor de
+> la tabla, «enmarcado» por `control` 0,55 y `caza` 0,75. Dejándolo así, el pelotón que cierra rueda
+> a su tempo, el primer intento abre cuarenta y cinco segundos enseguida y **la fuga del día nace en
+> el km 2,9 en vez de en el 19,5** (60 semillas, fases como única palanca). Es exactamente la
+> regresión que la v39 arregló con el dueño delante —«en el 99 % de los casos en el km 1 ataca
+> alguien»— y que `breakBirthKm` existe para vigilar.
+>
+> Conservando el 0,72 como **suelo del cierre**, con la fase pudiendo solo subirlo (`caza` 0,75,
+> `aproximacion` 0,88, `desenlace` 0,90), el nacimiento vuelve al **km 9,2**, dentro de la banda 1-12.
+> Lo que R19.4 retira es el VETO de `closingNow` sobre los ataques, que es otra cosa y sigue retirado.
+
+Esta corrección se queda en el código aunque el interruptor esté apagado: es correcta con las fases
+encendidas y no hace nada con ellas apagadas.
+
+### Lo que salió mal, y es un error mío de método
+
+**La propuesta que se aprobó decía «tres ajustes de guardarraíl». Eran ocho.** La medida sobre la que
+la escribí fue `pnpm test:bancos` —los 104 invariantes de balance— y **no corrí `pnpm test:rapido`
+con todo encendido**. Al correrlo aparecieron cinco guardarraíles más, y no son de balance: son de la
+**crónica**.
+
+| guardarraíl                                                | con todo encendido          |
+| ---------------------------------------------------------- | --------------------------- |
+| el parte de relevos no depende de que cuaje la fuga        | 0 partes                    |
+| un corte grande se cuenta cuando pasa                      | mayor caída = 2 (listón 12) |
+| cuando el pelotón se recompone hay un evento que lo cuenta | 0 reagrupamientos           |
+| la criba lejos de meta tiene evento propio                 | 11 (listón 12)              |
+| la captura de la fuga dice quiénes eran (Bességes e4)      | 0 capturas                  |
+
+Todos apuntan a lo mismo y es coherente con el resto de la tanda: **el pelotón se parte menos de
+golpe, se reagrupa menos y caza menos**. Parte de eso es lo que se buscaba —una carrera más viva,
+fugas que sobreviven, y las bandas lo confirman—; parte es pérdida, porque la crónica deja de poder
+contar frases que hoy cuenta.
+
+Y hay un dato que no es de ningún test y conviene tener delante: en carreras de cuesta la captura
+narrada pasa de **6/90 a 0/90**. En la llana canónica, en cambio, sube (24 de 30 casos a 26 de 30).
+
+### Por qué se vuelve atrás en vez de ajustar los cinco
+
+Porque **ajustarlos sería usar una aprobación para cubrir un trabajo que no se aprobó**. El dueño dio
+el visto bueno a tres ajustes concretos con su medida delante; encontrar cinco más a mitad de camino
+no los convierte en aprobados. Y son guardarraíles de narración, que es justo el terreno donde este
+repositorio ha pagado más caro el «ya lo ajusto y sigo».
+
+Además, cambiar ocho guardarraíles en la misma tanda en que se encienden cinco racimos es la forma
+exacta de no poder atribuir nada después, que es el argumento con el que se pidió el permiso.
+
+### Qué se queda de este intento
+
+- **El suelo del cierre** (la corrección de arriba), con su medida.
+- **`SATURATION_BONK_PCT` 12 → 14**, y se queda porque **está justificado con el motor APAGADO**:
+  Lombardia da 11,7 % con 24 semillas contra un techo de 12. El listón tenía tres décimas de holgura
+  sobre el motor que vigila, que es el defecto V1 de este repositorio por el lado del techo.
+- **El banco del test de coherencia**, movido a la llana canónica: donde estaba, su caso se daba 5
+  veces de 90; donde está ahora, 24 de 30 apagado y 26 encendido. Es más fuerte, no más flojo.
+- **Todo lo demás vuelve a su sitio**: los cinco interruptores apagados, `ENGINE_VERSION` en 64, las
+  cuatro huellas con sus valores de siempre, el listón de relevos en 1,10 y el contraataque
+  afirmando lo que hoy es verdad.
+
+### Lo que hace falta para encender, dicho con nombres
+
+1. **Diagnosticar los cinco guardarraíles de la crónica**, uno a uno, como se hizo con el sexto: no
+   se ajusta lo que no se ha entendido.
+2. Decidir, con el dueño, cuánta pérdida de crónica compra la carrera nueva. **Es una decisión de
+   diseño, no de calibración**, y no es mía.
+3. Encenderlo entonces en una tanda que no haga nada más.

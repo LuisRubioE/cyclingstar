@@ -271,6 +271,25 @@ import type { Attribute } from '@cyclingstar/shared'
  * puerta del reenganche, que en un momento de esta misma tanda se estrechó a 5 s, **está de vuelta
  * en 22**: el banco del adoquín enseñó que esa puerta es también el mecanismo por el que el fuerte
  * vuelve, y la historia entera está contada en `rejoinGapSeconds`.
+ *
+ * ————— LO QUE ESTAS HUELLAS VAN A HACER CUANDO LA CAPA TÁCTICA SE ENCIENDA —————
+ *
+ * Está medido, no previsto: se encendieron los cinco racimos —fases (R19), aduana (R03/R04),
+ * subasta del frente (R20) y juego de equipo (R02/R18)—, se re-sellaron, y se volvió atrás. Los
+ * números que salieron quedan aquí porque son el mejor aviso de qué esperar:
+ *
+ * - **Las dos llanas siguen siendo del sprint** y las ganan velocistas, que es lo que tienen que
+ *   ser. El pelotón entra ~3 minutos más despacio (14.711 → 14.891 s en `llana-180-0`): con la capa
+ *   encendida se ataca más y se rueda con más acordeón, y eso cuesta tiempo.
+ * - **Las dos reinas las gana la FUGA** (`bar-5` y `bar-0`, contra `pel-105` y `gc-0`). No es una
+ *   sorpresa ni un defecto: es `mountain.breakawayWinPct` subiendo de 26,7 % a 38,3 %, dentro de su
+ *   banda de 25-45, y es la conducta que cinco racimos de ese documento existen para producir.
+ *   Una etapa reina que gana el grupo del día es lo normal en carretera; que la ganara siempre el
+ *   pelotón era lo que no lo era.
+ *
+ * Y la razón de haber vuelto atrás está en docs/balance.md «v60 §9»: el encendido conjunto pasa las
+ * bandas y **se lleva por delante cinco guardarraíles de la CRÓNICA** —el pelotón se parte menos de
+ * golpe, se reagrupa menos y caza menos—, que es una decisión distinta y no se toma de paso.
  */
 const SEALED_RESULTS: Record<string, string> = {
   /**

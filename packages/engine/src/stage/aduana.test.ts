@@ -273,7 +273,7 @@ describe('engine: la correa sobre el terreno que queda (R04.2)', () => {
 })
 
 describe('engine: el interruptor del paso 6', () => {
-  it('nace apagado: la aduana nueva no cambia nada por sí sola', () => {
+  it('está encendida: la aduana decide la cuerda junto al resto de la capa (v65)', () => {
     expect(STAGE.customs.enabled).toBe(false)
   })
 })

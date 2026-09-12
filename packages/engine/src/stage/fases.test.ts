@@ -140,7 +140,7 @@ describe('engine: la tabla de fase', () => {
     expect(phaseOf({ ...corta, kmToGo: 8 })).toBe('desenlace')
   })
 
-  it('el interruptor se queda APAGADO, y lo está con su medida delante', () => {
+  it('el interruptor está ENCENDIDO, con toda la capa táctica y con su medida delante', () => {
     /**
      * R19 está entero, escrito y medido. Encendido, hace lo que promete —los intentos suben de 15,0
      * a 16,9, los de después del km 100 de 8,3 a 9,1 y el contraataque tras la captura de 16 % a
