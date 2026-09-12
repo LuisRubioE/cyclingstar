@@ -148,8 +148,13 @@ describe('engine: la tabla de fase', () => {
      * Il Lombardia pasan de 11,2 % a 17,7 % con doce semillas, contra un techo de 12 %.
      *
      * No es una columna mal calibrada: quitando una a una las cuatro de la tabla el destrozo sigue
-     * ahí. Es que el paso 5 retira cuatro vetos y **su precio llega en el paso 6** (`payable` y
-     * `closingBusyDamp`, R19.4, escrito así en el propio diseño). Media regla puesta cuesta esto.
+     * ahí. El paso 5 retira cuatro vetos, y la primera explicación fue que **su precio llega en el
+     * paso 6** (`payable` y `closingBusyDamp`, R19.4, escrito así en el propio diseño).
+     *
+     * **El paso 6 la desmintió**: con ese precio puesto, las pájaras de Lombardia se quedan en
+     * 17,0 % contra el 17,7 % sin él. Siete décimas. Así que el interruptor sigue apagado y lo que
+     * falta por probar es la subasta del frente de R20 (paso 9), que decide **quién hace el
+     * trabajo** en vez de cuánto estaría dispuesto a pagar. Ver docs/balance.md «v60 §6».
      *
      * Se aplica la regla de la casa —«si el cambio saca un objetivo de banda, el que está mal es el
      * cambio»— y el interruptor se queda apagado hasta el paso 6. La medida entera está en

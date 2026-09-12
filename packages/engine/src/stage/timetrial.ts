@@ -338,6 +338,8 @@ export function simulateTimeTrial(input: StageInput, seed: string): StageOutput 
     tank,
     efforts,
     engineVersion: ENGINE_VERSION,
+    // Una crono no tiene aduana: no hay pelotón que dé cuerda a nadie.
+    customsRevisions: 0,
   }
 }
 

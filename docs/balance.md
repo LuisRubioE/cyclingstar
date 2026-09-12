@@ -11970,6 +11970,13 @@ se mide allí». El paso 5 quita `closingNow`, el cupo global, el corte de los �
 prohibición del puente desde atrás; lo que hacía que atacar y cerrar **costaran algo** es `payable`,
 y `payable` no existe hasta R03.3.
 
+**CORREGIDO EN LA v60 §6, Y SE DEJA A LA VISTA**: esta explicación es una lectura razonable del
+diseño y **la medida no la sostiene**. Con el precio del paso 6 puesto —`payable` y
+`closingBusyDamp`, exactamente lo que R19.4 nombra—, las pájaras de Il Lombardia se quedan en
+**17,0 %** contra el 17,7 % sin él. Siete décimas: el precio no paga lo que el paso 5 quitó. Lo que
+sigue en este párrafo describe lo que se creyó al cerrar el paso 5; lo que de verdad se sabe está en
+la v60 §6.
+
 Media regla puesta cuesta esto. No es un defecto del trabajo: es el mismo hallazgo que el paso 3
 —donde R01 resultó necesitar la subasta de R20— y confirma que **el grafo de dependencias de §8.1
 está optimista en los dos sitios**. La diferencia es que aquí la dependencia está escrita en la
@@ -12061,3 +12068,138 @@ pareciera medirlo.
   desincroniza el rastro de diseño a cambio de nada que el motor haga distinto. Queda escrito en la
   propia constante.
 - **La columna `rescate`** está puesta y nadie la lee: el rescate es R12, paso 12.
+
+## v60 §6 — La aduana es una subasta, y **la corrección a lo que el paso 5 dijo**
+
+`ENGINE_VERSION` **64 → 64**. R03 y R04 están construidos enteros —la subasta de trabajo, la general
+virtual, la correa sobre el terreno que queda, la amenaza que comparten aduana y persecución, la
+revisión por kilómetro— y **el interruptor se queda apagado**, por tercera vez en esta tanda y por el
+mismo motivo: una banda no se sostiene y la perilla que el diseño nombra no llega a ella.
+
+Lo primero, porque corrige algo que esta bitácora dijo hace dos entradas.
+
+### La corrección: el precio del paso 6 NO paga lo que el paso 5 quitó
+
+La v60 §5 cerró así: R19 rompe el guardarraíl de saturación de las clásicas porque «el paso 5 retira
+cuatro vetos y su PRECIO —`payable` y `closingBusyDamp`— no existe hasta el paso 6». Era una lectura
+razonable del propio diseño (R19.4 lo dice con esas palabras). **La medida no la sostiene.**
+
+| Il Lombardia, 12 semillas          |    pájaras |
+| ---------------------------------- | ---------: |
+| todo apagado                       |     11,2 % |
+| solo fases (paso 5)                |     17,7 % |
+| **fases + aduana (con el precio)** | **17,0 %** |
+
+Siete décimas. El precio que el diseño nombra para pagar la retirada de `closingNow` **no paga
+prácticamente nada**, y la explicación de la v60 §5 queda corregida: el coste de R19 en las clásicas
+no es la falta de `closingBusyDamp`. Lo que queda por probar —y ya no se afirma, se anota— es si lo
+paga la subasta del frente de R20 (paso 9), que es quien decide **quién hace el trabajo** en vez de
+cuánto estaría dispuesto a pagar.
+
+Se deja escrito porque el error es del tipo que este repositorio persigue: una causa plausible,
+tomada de la documentación, publicada sin medir. La medida tardó un paso en llegar y la desmiente.
+
+### La hipótesis nula, que es lo primero que se construye
+
+Con cero objeciones la aduana devuelve **la fórmula de hoy término a término**: `pHoy` es
+`pelotonAllows` con su rampa de arranque, su castigo por tamaño y su techo. Y no se comprueba contra
+una copia de sus números sino **contra la función de verdad**: para 180 combinaciones de kilómetro,
+recorrido, apetito y tamaño se busca el umbral de decisión de `pelotonAllows` con un dado de barrido
+fino y se compara. Si alguien toca la rampa de un lado, la prueba se pone roja.
+
+Difiere en dos sitios, los dos declarados: el castigo de general pasa de multiplicar la probabilidad
+a entrar en el bote como objeción, y el veto del maillot pasa de ser un sumando a ser un `return`
+—un veto que se puede pagar no es un veto, y escrito como un 99 dentro de una suma que recorta cada
+objeción a `min(objeción, payable)` valía lo mismo que cualquier otra—.
+
+**Y el dado no se muda de flujo.** §2.6 pide un subflujo `rngAduana`; no se abre, y el motivo es el
+contrario del habitual: mover esta tirada a un flujo propio la SACA de `rngTactics`, y quitar una
+tirada de un flujo compartido corre la secuencia de todas las etapas del juego. El subflujo nuevo
+sirve cuando se AÑADEN tiradas, no cuando se mueve una que ya estaba. Con el interruptor apagado, las
+cuatro huellas selladas no se mueven un dígito.
+
+### Lo que la aduana hace cuando se enciende
+
+| llana canónica, 120 semillas | apagado | solo aduana | aduana + fases | banda |
+| ---------------------------- | ------: | ----------: | -------------: | ----- |
+| gana la fuga                 |   9,2 % |      10,0 % |          5,8 % | 5-16  |
+| gana el mejor sprinter       |  36,7 % |      35,8 % |         37,5 % | 30-45 |
+| captura                      |    89 % |        89 % |           94 % | > 85  |
+| km de la caza                |    18,1 |        18,6 |           20,0 | 8-25  |
+| intentos por etapa           |    15,0 |        15,0 |           16,9 | 10-25 |
+| contraataque tras captura    |    16 % |        20 % |       **33 %** | 25-60 |
+| revisiones de la aduana      |       0 |     **2,2** |        **3,7** | 0,5-4 |
+| **reina: gana la fuga**      |  26,7 % |  **20,0 %** |         27,5 % | 25-45 |
+
+La revisión por kilómetro **sirve y no tiembla**: 2,2 cambios de opinión por etapa, dentro de su
+banda. Es la mitad de S-120 que no existía —`allowed` se decidía una vez, en el kilómetro en que el
+movimiento nacía, y no se revisaba jamás— y está escrita con el dado GUARDADO: si se retirara cada
+kilómetro, un movimiento acabaría teniendo cuerda por insistencia del azar (con un 10 % por km, cien
+kilómetros la conceden casi seguro).
+
+### La banda que no se sostiene, y la perilla que no llega
+
+`mountain.breakawayWinPct` cae de 26,7 % a **20,0 %** contra un suelo de 25. El diseño nombra la
+perilla para esto —«si el paso 6 necesita que alguna fuga salga más que hoy, la perilla es
+`customsPotWeight`»— y **no llega**:
+
+| `potWeight` | reina: gana la fuga |
+| ----------- | ------------------: |
+| 1,0         |              20,0 % |
+| 0,5         |              22,5 % |
+| 0,25        |              22,5 % |
+
+Satura en 22,5 y ahí se queda: con el peso a un cuarto el voto ya casi no pesa, así que **lo que
+mueve la reina no es el voto**. Barrer más abajo sería barrer una perilla que ya no está conectada a
+nada, y subir el suelo de la banda de 25 a 20 sería mover una banda del dueño para tapar una medida
+que no se ha entendido. Ni una cosa ni la otra: el interruptor se queda apagado y la calibración
+espera a tener delante la subasta del frente (R20, paso 9), que es quien convierte «estoy dispuesto a
+pagar» en «lo estoy pagando». El bote de hoy es una intención sin nadie que la ejecute.
+
+### Tres defectos propios, cazados midiendo, y los tres valen para cuando se encienda
+
+**1. `gcControlLeash` = 700 hacía DOS trabajos, y R04.2 solo releva uno.** Es la tolerancia del
+control de la general **y** el boquete por defecto cuando no hay general ninguna. Aplicando la correa
+nueva a una clásica o a un banco sin contexto, `leashOf` cae en su suelo —45 s con un día por
+delante— y el pelotón se pone a cazar cualquier cosa que pase de tres cuartos de minuto. Medido: la
+fuga ganaba el **0,0 %** de las llanas canónicas y el 1,7 % de las reinas, con la captura al 99 %.
+Parecía el voto de la aduana y no lo era: con la revisión por kilómetro apagada salía igual.
+
+**2. La segunda rama de la objeción de etapa NO es de la aduana.** «Una fuga consolidada le gana a mi
+carta remate quien remate, porque si llega no hay sprint» es verdad, y es de `threatOf` —quién
+persigue a quién—, no de la subasta. Metida en la objeción, la revisión por kilómetro la dispara en
+cuanto el hueco pasa de los 45 s: todos los equipos con carta objetan de golpe y **el movimiento
+pierde la cuerda justo en el kilómetro en que la había ganado**. El diseño lo advierte en una frase
+—«en la ADUANA la segunda rama no dispara»— y la primera versión de este código no la respetó.
+
+**3. `TeamPlan.quality` es un `finishScore`, escala 0-100, no una fracción.** Recortado a [0,1],
+cualquier carta real valía exactamente 1 y la calidad dejaba de distinguir al equipo del mejor
+rematador del día del que lleva un gregario: los veintidós pujaban lo mismo.
+
+### Lo que se descubre del banco, y es información
+
+En la llana canónica **solo 5 de los 22 equipos tienen carta de etapa**; los otros 17 no tienen
+candidato y por tanto no objetan nada. La subasta, en ese banco, está casi muda por construcción: lo
+que le falta para tener voz son los **motivos secundarios** (R05, paso 9) —la montaña, los puntos, el
+equipo que corre por la clasificación y no por la etapa—. Se anota aquí para que no se lea el
+«apenas mueve nada en llano» como una propiedad de la regla.
+
+### `breakBirthKm`, el guardarraíl que sí caza algo
+
+El km en que nace la fuga del día, mediana sobre 120 semillas: **19,4 apagado · 16,7 con la aduana ·
+2,5 con aduana y fases**. La banda que el diseño propone es 1-12 km, así que el 2,5 «pasa» — y aun
+así es exactamente la conducta que la v39 arregló con el dueño delante («en el 99 % de los casos en el
+km 1 ataca alguien, lo cual no tiene mucho sentido»). Dos cosas quedan dichas: la banda 1-12 admite lo
+que aquella tanda fue a corregir, y el motor de hoy da 19,4, no «1-12». Cuando se calibre de verdad
+(paso 21) hay que decidir cuál de las dos es la buena, con la medida delante y no con el número
+heredado.
+
+### Lo que NO se hace de R03/R04, y por qué
+
+- **El cupo por equipo (R03.4c), el `breakScore` de escalador (R03.4d), el infiltrado (R03.5), el
+  hombre al puente (R03.8), el maillot prestado (R04.4) y el traspaso en carretera (R04.6)**: todos
+  cuelgan de los motivos secundarios de R05 o de la subasta del frente de R20, que son el paso 9. Se
+  hacen allí, con la medida de este paso como línea de salida.
+- **El renombre de `gcControlLeash`**: la constante **no se retira** aunque el diseño lo pida, porque
+  el defecto 1 de arriba demuestra que hace dos trabajos y R04.2 solo releva uno. Retirarla ahora
+  dejaría sin boquete por defecto a todas las carreras sin general.

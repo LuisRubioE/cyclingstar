@@ -45,6 +45,13 @@ import {
   targetSpeed,
 } from './physics.js'
 import { blockProbability, rollHazard } from './hazard.js'
+import {
+  type CustomsMove,
+  type CustomsTeam,
+  customsProbability,
+  jerseyVetoes,
+  leashOf,
+} from './customs.js'
 import { stageWeather } from './weather.js'
 import {
   type CrashOutcome,
@@ -80,7 +87,8 @@ import {
   carriesGcLeader,
   moveCooperation,
   noChanceToWin,
-  pelotonAllows,
+  DAY_BREAK_KINDS,
+  pelotonAllowsWithDie,
   rankOf,
   rollMoveAttempt,
   sustainsJump,
@@ -150,6 +158,19 @@ interface Move {
   bornTs: number
   /** Reglas 4-5: el pelotón le ha dado cuerda. Si no, lo cierra a `tacticControlCommit`. */
   allowed: boolean
+  /**
+   * EL DADO DE LA ADUANA, GUARDADO AL NACER (R03.3, paso 6). La cuerda **se revisa cada kilómetro**
+   * mientras el movimiento no sea la fuga del día —los equipos cambian de opinión: alguien mete a
+   * un hombre, otro se queda sin gente, el hueco crece—, pero el **dado no se vuelve a tirar**. Si
+   * se retirase cada km, un movimiento acabaría teniendo cuerda por insistencia del azar: con un
+   * 10 % por km, cien kilómetros lo conceden casi seguro.
+   *
+   * `customsPRef` es la probabilidad con la que se decidió la última vez. La revisión solo vuelve a
+   * comparar cuando la probabilidad se ha movido más que `revisionMargin`, para que `allowed` no
+   * tiemble con el tercer decimal.
+   */
+  customsDie: number
+  customsPRef: number
   /** Ha superado `tacticBreakGapSeconds`: el intento ha PROSPERADO. */
   prospered: boolean
   /** Es la fuga del día (la primera que cuaja dentro de la ventana). */
@@ -1323,6 +1344,8 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
    * otro.
    */
   let lastCaptureKm: number | null = null
+  /** Cuántas veces la aduana ha CAMBIADO de opinión sobre un movimiento ya nacido (R03.3). */
+  let customsRevisions = 0
 
   const kmAt = (i: number): number => (i + 0.5) * STAGE.dx
 
@@ -1727,14 +1750,142 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
    * deja recuperar como mucho `gcThreatFraction` de su desventaja, porque más sería regalarle el
    * liderato. `gcDeficitSeconds` lo rellenaba packages/db en cada corredor y el motor lo ignoraba.
    */
+  /**
+   * LA FOTO QUE LA ADUANA NECESITA DE CADA EQUIPO (R03, paso 6). Se construye en el momento de
+   * juzgar un movimiento —no se cachea— porque **la fuerza se mide con los vivos y no con la foto de
+   * salida**: un equipo que ha perdido a cuatro hombres en el puerto no puede pagar lo que pagaba en
+   * el kilómetro cero.
+   */
+  /** ¿Está encendida la aduana del paso 6? Ver `STAGE.customs.enabled` y la hipótesis nula. */
+  const customsOn = input.flags?.customs === true || STAGE.customs.enabled
+
+  /** El movimiento tal como lo ve la aduana: su gente, su hueco y su clase. */
+  const customsMoveOf = (party: MoveRider[], gapSeconds: number, kind: MoveKind): CustomsMove => ({
+    riders: party.map((r) => ({
+      riderId: r.riderId,
+      teamId: r.teamId ?? null,
+      gcDeficitSeconds: r.gcDeficitSeconds,
+      finishScore: r.finishScore,
+    })),
+    gapSeconds,
+    kind,
+  })
+
+  /**
+   * ¿LE QUEDA AL MAILLOT UN HOMBRE VIVO PARA EJERCER EL VETO? (R03.0, excepción de R04.5). Si no le
+   * queda ninguno no hay quien lo ejerza, y el movimiento pasa a la cuenta normal: ése es el precio
+   * de no tener equipo, y es lo que la ficha pide por el otro lado.
+   */
+  const jerseyTeamAlive = (): boolean => {
+    if (!hasGcContext) return false
+    let jersey: RiderSim | null = null
+    for (const s2 of sims.values()) {
+      if (s2.abandonedKm !== null) continue
+      if (s2.input.gcDeficitSeconds <= 0) {
+        jersey = s2
+        break
+      }
+    }
+    if (jersey === null) return false
+    const casa = jersey.input.teamId
+    if (casa == null) return false
+    for (const s2 of sims.values()) {
+      if (s2.input.riderId === jersey.input.riderId) continue
+      if (s2.abandonedKm !== null || s2.finishTs !== null) continue
+      if (s2.input.teamId === casa) return true
+    }
+    return false
+  }
+
+  /**
+   * QUÉ EQUIPOS ESTÁN OCUPADOS CERRANDO (R19.4, el precio que el paso 5 dejó pendiente). Mientras se
+   * cierra un movimiento sin cuerda, quien paga ese cierre tiene menos que ofrecer por lo siguiente.
+   * Hoy el cierre lo paga quien lleva el frente; cuando exista la subasta de R20, lo pagará quien la
+   * gane, y esta función es el sitio donde eso se sustituye.
+   */
+  const cerrandoAhora = (): ReadonlySet<string> => {
+    const hay = moves.some((m) => !m.closed) && !moves.some((m) => m.allowed || m.dayBreak)
+    return hay && frontTeamId !== null ? new Set([frontTeamId]) : new Set<string>()
+  }
+
+  const customsTeams = (leashAhora: number, cerrandoAhora: ReadonlySet<string>): CustomsTeam[] => {
+    const out: CustomsTeam[] = []
+    for (const plan of teamPlans.values()) {
+      let presentes = 0
+      for (const id of plan.memberIds) {
+        const sim = sims.get(id)
+        if (sim && sim.finishTs === null && sim.abandonedKm === null && sim.groupId === PELOTON) {
+          presentes += 1
+        }
+      }
+      const cardStage = plan.stageCandidateId
+      out.push({
+        teamId: plan.teamId,
+        memberIds: plan.memberIds,
+        cardStageId: cardStage,
+        cardStageFinishScore: (() => {
+          if (cardStage === null) return 0
+          const sim = sims.get(cardStage)
+          return sim ? finishScore(riderEff(sim), stageFinishType) : 0
+        })(),
+        cardGcId: plan.gcLeaderId,
+        cardGcDeficitSeconds:
+          plan.gcLeaderId === null
+            ? null
+            : (sims.get(plan.gcLeaderId)?.input.gcDeficitSeconds ?? null),
+        presentInPeloton: presentes,
+        convocados: plan.memberIds.length,
+        spentFraction: spentFractionOf(plan),
+        quality: plan.quality,
+        leashSeconds: leashAhora,
+        closing: cerrandoAhora.has(plan.teamId),
+      })
+    }
+    return out
+  }
+
+  /**
+   * LO QUE QUEDA DE CARRERA, visto por la correa (R04.2). Sale del contexto que el paso 4 ya hace
+   * viajar; sin contexto —una clásica, un banco sintético— los tres valen 0 y la correa cae en su
+   * suelo, que es la conducta conservadora correcta y la que el motor tenía antes.
+   */
+  const raceShapeParaCorrea = {
+    kmSubidaRestante: input.race?.shape?.raceClimbKmLeft ?? 0,
+    kmCronoRestante: input.race?.shape?.raceTtKmLeft ?? 0,
+    etapasEnLineaRestantes: input.race?.shape?.raceLineStagesLeft ?? 0,
+    diasRestantes: input.race?.shape?.daysLeft ?? 1,
+  }
+
+  /**
+   * LA CORREA: cuánto se le concede al que va delante antes de ponerse a cazar.
+   *
+   * Con el paso 6 encendido **deja de ser `gcControlLeash` = 700**, una constante que decidía sola a
+   * quién se persigue durante toda una gran vuelta. Ahora depende del colchón que la carta YA tiene
+   * y del terreno con el que se puede recuperar lo que se conceda (R04.2): día 3 de 21 con montaña
+   * por delante la correa se va arriba y se deja ir; día 19 con una crono corta baja y se caza.
+   */
   const gcLeash = (): number => {
-    if (!hasGcContext) return STAGE.gcControlLeash
     const front = frontMove()
-    if (!front) return STAGE.gcControlLeash
     let worst = Number.POSITIVE_INFINITY
-    for (const m of membersOf(front.g.id)) worst = Math.min(worst, m.input.gcDeficitSeconds)
-    if (!Number.isFinite(worst)) return STAGE.gcControlLeash
-    return Math.min(STAGE.gcControlLeash, STAGE.gcThreatFraction * worst)
+    if (hasGcContext && front) {
+      for (const m of membersOf(front.g.id)) worst = Math.min(worst, m.input.gcDeficitSeconds)
+    }
+    if (!hasGcContext || !front || !Number.isFinite(worst)) return STAGE.gcControlLeash
+    if (!customsOn) return Math.min(STAGE.gcControlLeash, STAGE.gcThreatFraction * worst)
+    /**
+     * **SIN GENERAL EN JUEGO NO HAY CORREA QUE CALCULAR**, y el `return` de arriba no es un detalle:
+     * `gcControlLeash` = 700 hace dos trabajos en este motor —es la tolerancia del control de la
+     * general Y el boquete por defecto cuando no hay general ninguna—, y R04.2 solo sustituye el
+     * primero. Aplicando la correa a una clásica o a un banco sin contexto, `leashOf` cae en su suelo
+     * (45 s con un día por delante) y el pelotón se pone a cazar CUALQUIER cosa que pase de tres
+     * cuartos de minuto.
+     *
+     * Medido antes de verlo: la fuga ganaba el **0,0 %** de las llanas canónicas y el 1,7 % de las
+     * reinas, con la captura al 99 %. Parecía el voto de la aduana y no lo era —con la revisión por
+     * kilómetro apagada salía igual—: era una constante haciendo dos cosas y una regla que solo venía
+     * a relevarla en una.
+     */
+    return leashOf(Math.max(0, worst), raceShapeParaCorrea)
   }
 
   // --- Bucle principal (SPEC 6.16) --------------------------------------------------------
@@ -5006,9 +5157,55 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         // Un puente va a tope: por eso a veces no llega y se queda en tierra de nadie (regla 7).
         compromiso: kind === 'puente' ? STAGE.tacticBridgeCommit : coop,
       })
-      // Reglas 4 y 5: el pelotón decide si da cuerda. Los ataques que salen de un grupo YA escapado
-      // no pasan por esa aduana: allí no hay pelotón que cierre.
-      const allowed = source.id !== PELOTON || pelotonAllows(party, ctx, dado)
+      /**
+       * REGLAS 4 Y 5: EL PELOTÓN DECIDE SI DA CUERDA. Los ataques que salen de un grupo YA escapado
+       * no pasan por esa aduana: allí no hay pelotón que cierre.
+       *
+       * Con el interruptor del paso 6 encendido, la decisión deja de ser un dado con una rampa y
+       * pasa a ser **una subasta de trabajo** (R03): la fuga sale si nadie con hombres frescos está
+       * dispuesto a pagar el cierre. El dado sigue existiendo —la aduana ES un dado, y lo que el
+       * voto cambia es su probabilidad— y **se tira del mismo flujo y en el mismo sitio que hoy**,
+       * que es lo que hace que la hipótesis nula sea exacta hasta el dígito: con cero objeciones,
+       * `customsProbability` devuelve `pHoy`, que es `pelotonAllows` término a término.
+       *
+       * §2.6 del diseño pide un subflujo `rngAduana` para esto. **No se abre, y el motivo es el
+       * contrario del habitual**: mover esta tirada a un flujo propio la SACA de `rngTactics`, y
+       * quitar una tirada de un flujo compartido corre la secuencia de todas las etapas del juego
+       * —exactamente lo que el comentario de `pelotonAllows` lleva avisando desde la v21—. El
+       * subflujo nuevo sirve cuando se AÑADEN tiradas, no cuando se mueve una que ya estaba.
+       */
+      /**
+       * El dado SOLO se tira cuando hay aduana que pasar, que es cuando el movimiento sale del
+       * pelotón. Los ataques nacidos de un grupo ya escapado no la pasaban ni la pasan, y tirar un
+       * dado por ellos correría `rngTactics` en todas las etapas del juego: es el mismo cortocircuito
+       * que tenía `source.id !== PELOTON || pelotonAllows(...)`, escrito a la vista.
+       */
+      let allowed: boolean
+      let pRef = 1
+      let die = 1
+      const esDelPeloton = source.id === PELOTON
+      if (esDelPeloton) die = dado()
+      if (!esDelPeloton) {
+        allowed = true
+      } else if (!customsOn) {
+        allowed = pelotonAllowsWithDie(party, ctx, die)
+      } else if (
+        DAY_BREAK_KINDS.includes(kind) &&
+        jerseyVetoes(customsMoveOf(party, gap, kind), hasGcContext, jerseyTeamAlive())
+      ) {
+        // R03.0: el veto va ANTES que la cuenta y no dentro de ella. El dado ya está tirado, que es
+        // lo que impide que vetar corra el flujo.
+        allowed = false
+        pRef = 0
+      } else {
+        pRef = customsProbability(
+          ctx,
+          customsMoveOf(party, gap, kind),
+          customsTeams(gcLeash(), cerrandoAhora()),
+          vientoLateral,
+        )
+        allowed = die < pRef
+      }
       moves.push({
         g,
         kind,
@@ -5016,6 +5213,8 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         bornKm: km,
         bornTs: g.tS,
         allowed,
+        customsDie: die,
+        customsPRef: pRef,
         prospered: false,
         dayBreak: false,
         narrated: narrate,
@@ -5040,6 +5239,64 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         toGo: Math.round(kmToGo),
         narra: narrate ? 1 : 0,
       })
+    }
+
+    /**
+     * LA ADUANA SE REVISA CADA KILÓMETRO (R03.3, S-120), mientras el movimiento no sea ya la fuga del
+     * día. Los equipos cambian de opinión durante la tarde: uno mete a un hombre en el grupo y deja
+     * de objetar, otro se queda sin gente y no puede pagar, el hueco crece y lo que era un intento
+     * pasa a costar la etapa. Con `allowed` decidido de una vez en el kilómetro en que el movimiento
+     * nace, nada de eso existía.
+     *
+     * **El dado NO se vuelve a tirar**, y ésa es la mitad importante: guardado `customsDie` al
+     * nacer, lo que cambia es el listón. Retirando el dado cada kilómetro un movimiento acabaría
+     * teniendo cuerda por insistencia del azar —con un 10 % por km, cien kilómetros la conceden casi
+     * seguro— y la revisión sería lo contrario de una decisión.
+     *
+     * Y solo se re-compara cuando la probabilidad se ha movido de verdad (`revisionMargin`), para
+     * que `allowed` no tiemble con el tercer decimal.
+     */
+    if (customsOn && moves.length > 0) {
+      const equipos = customsTeams(gcLeash(), cerrandoAhora())
+      for (const m of moves) {
+        if (m.closed || m.dayBreak) continue
+        const dentro = membersOf(m.g.id)
+        if (dentro.length === 0) continue
+        const tipo = finishType(finishTerrain, dentro.length)
+        const party = dentro.map((r) => asMoveRider(r, tipo, false))
+        const ctxRev: MoveContext = {
+          kind: m.kind,
+          km,
+          kmToGo,
+          totalKm,
+          groupSize: party.length,
+          fieldSize: racingNow,
+          gcTerrain,
+          onClimb,
+          tension: m.g.tension,
+          hasGcContext,
+          breakAppeal,
+          ...gcDefence(
+            party.map((r) => ({
+              riderId: r.riderId,
+              gcDeficitSeconds: r.gcDeficitSeconds,
+            })),
+          ),
+        }
+        const pk = customsProbability(
+          ctxRev,
+          customsMoveOf(party, Math.max(0, peloton.tS - m.g.tS), m.kind),
+          equipos,
+          vientoLateral,
+        )
+        if (Math.abs(pk - m.customsPRef) <= STAGE.customs.revisionMargin) continue
+        m.customsPRef = pk
+        const ahora = m.customsDie < pk
+        if (ahora !== m.allowed) {
+          m.allowed = ahora
+          customsRevisions += 1
+        }
+      }
     }
 
     // ¿Qué se intenta desde el pelotón en este bloque? Uno solo, el que toca por contexto.
@@ -6302,6 +6559,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
     tank,
     efforts,
     engineVersion: ENGINE_VERSION,
+    customsRevisions,
   }
 }
 

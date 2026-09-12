@@ -24,6 +24,22 @@ export interface PhaseStats {
   flyerWinPct: number
   /** Capturas contadas, para saber sobre cuántas se calcula el contraataque. */
   captures: number
+  /**
+   * EL KM EN QUE NACE LA FUGA DEL DÍA, mediana (R03, paso 6). Es **el guardarraíl de que la rampa de
+   * arranque sigue viva**: la aduana nueva podría tirarla por el camino sin que ninguna banda de hoy
+   * se enterase, y entonces la fuga del día volvería a concederse en el kilómetro 1 —la regresión que
+   * la v39 arregló con el dueño delante («en el 99 % de los casos en el km 1 ataca alguien»)—.
+   */
+  breakBirthKm: number
+  /** Veces que la aduana cambia de opinión sobre un movimiento ya nacido, por etapa (R03.3). */
+  customsRevisionsPerStage: number
+}
+
+function mediana(valores: number[]): number {
+  if (valores.length === 0) return 0
+  const orden = [...valores].sort((a, b) => a - b)
+  const mid = Math.floor(orden.length / 2)
+  return orden.length % 2 === 0 ? (orden[mid - 1]! + orden[mid]!) / 2 : orden[mid]!
 }
 
 /** Corre la campaña y agrega los estadísticos de R19. */
@@ -34,6 +50,8 @@ export function analyzePhases(scenario: Scenario, seeds: string[]): PhaseStats {
   let captures = 0
   let counters = 0
   let flyerWins = 0
+  let revisiones = 0
+  const nacimientos: number[] = []
 
   for (const seed of seeds) {
     const out = simulateStage(scenario.input, seed)
@@ -55,6 +73,9 @@ export function analyzePhases(scenario: Scenario, seeds: string[]): PhaseStats {
      */
     const ganaFuga = out.events.find((e) => e.tipo === 'meta')?.datos?.fuga === 1
     if (ganaFuga && intentos.some((e) => totalKm - e.km <= STAGE.tacticNoAttackKm)) flyerWins += 1
+    const nace = out.events.find((e) => e.tipo === 'fuga_formada')
+    if (nace) nacimientos.push(nace.km)
+    revisiones += out.customsRevisions
   }
 
   const runs = seeds.length
@@ -65,5 +86,7 @@ export function analyzePhases(scenario: Scenario, seeds: string[]): PhaseStats {
     counterAfterCatchPct: captures === 0 ? 0 : (100 * counters) / captures,
     flyerWinPct: (100 * flyerWins) / runs,
     captures,
+    breakBirthKm: mediana(nacimientos),
+    customsRevisionsPerStage: revisiones / runs,
   }
 }

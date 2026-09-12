@@ -441,6 +441,14 @@ export interface StageOutput {
   efforts: Map<string, StageEffort>
   /** Versión del motor con que se generó (sellada para replays reproducibles, SPEC 6.1). */
   engineVersion: number
+  /**
+   * CUÁNTAS VECES LA ADUANA CAMBIÓ DE OPINIÓN sobre un movimiento ya nacido (R03.3, paso 6).
+   *
+   * Es la medida de que la revisión por kilómetro **sirve de algo Y no tiembla**: si vale 0 siempre,
+   * la revisión está muerta y `allowed` sigue decidiéndose de una vez en el kilómetro en que el
+   * movimiento nace; si vale veinte, la cuerda es una bombilla parpadeando. Banda: 0,5-4 por etapa.
+   */
+  customsRevisions: number
 }
 
 /** Cómo terminó el tanque de un corredor (SPEC 6.6, 6.7). */

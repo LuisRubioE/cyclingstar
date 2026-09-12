@@ -21,7 +21,12 @@ type Db = ReturnType<typeof drizzle>
 type Conn = Database | Parameters<Parameters<Db['transaction']>[0]>[0]
 
 /** La forma de lo que queda: se lee del perfil, que es geometría y cuesta lo que cuesta leerlo. */
-export function raceShapeOf(profile: StageProfile, kmDone: number, daysLeft: number): RaceShape {
+export function raceShapeOf(
+  profile: StageProfile,
+  kmDone: number,
+  daysLeft: number,
+  resto?: { climbKm: number; ttKm: number; lineStages: number },
+): RaceShape {
   const totalKm = profile.segments.reduce((a, s) => a + s.km, 0)
   const ultima = lastClimbKm(profile)
   return {
@@ -32,7 +37,41 @@ export function raceShapeOf(profile: StageProfile, kmDone: number, daysLeft: num
     lastClimbKm: ultima,
     valleyAfterLastClimbKm: kmAfterLastClimb(profile),
     daysLeft,
+    ...(resto
+      ? {
+          raceClimbKmLeft: resto.climbKm,
+          raceTtKmLeft: resto.ttKm,
+          raceLineStagesLeft: resto.lineStages,
+        }
+      : {}),
   }
+}
+
+/**
+ * LO QUE QUEDA DE CARRERA, contado sobre las etapas que todavía no se han corrido, HOY INCLUIDO
+ * (R04.2, paso 6). De aquí sale la correa de cada equipo: el colchón que un director concede
+ * depende de con qué terreno se puede recuperar lo concedido, y eso es una propiedad de la carrera
+ * entera, no de la etapa de hoy.
+ */
+export function terrenoRestante(
+  stages: readonly { profile: StageProfile; timeTrial?: boolean }[],
+  stageDay: number,
+): { climbKm: number; ttKm: number; lineStages: number } {
+  let climbKm = 0
+  let ttKm = 0
+  let lineStages = 0
+  for (let i = stageDay - 1; i < stages.length; i++) {
+    const s = stages[i]
+    if (!s) continue
+    const km = s.profile.segments.reduce((a, seg) => a + seg.km, 0)
+    if (s.timeTrial === true) {
+      ttKm += km
+      continue
+    }
+    lineStages += 1
+    for (const seg of s.profile.segments) if (seg.tipo === 'puerto') climbKm += seg.km
+  }
+  return { climbKm, ttKm, lineStages }
 }
 
 function siguientePuerto(profile: StageProfile, kmDone: number): number | null {
@@ -80,7 +119,14 @@ export async function buildRaceContext(
     stageDay,
     totalStages,
     ...(stage
-      ? { shape: raceShapeOf(stage.profile, 0, Math.max(0, totalStages - stageDay + 1)) }
+      ? {
+          shape: raceShapeOf(
+            stage.profile,
+            0,
+            Math.max(0, totalStages - stageDay + 1),
+            terrenoRestante(race?.stages ?? [], stageDay),
+          ),
+        }
       : {}),
     standings: standingsByRider(clasif),
     memory: await raceMemoryOf(db, raceKey, stageDay),

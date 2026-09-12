@@ -770,7 +770,7 @@ export function noChanceToWin(
  * cosas que tiene el ciclismo— y ahí no hay veto que valga. `ataque_grupo` tampoco está porque
  * jamás llega hasta aquí: los ataques que salen de un grupo YA escapado no pasan por esta aduana.
  */
-const DAY_BREAK_KINDS: readonly MoveKind[] = ['fuga', 'contraataque', 'puente']
+export const DAY_BREAK_KINDS: readonly MoveKind[] = ['fuga', 'contraataque', 'puente']
 
 /**
  * ¿VA EL MAILLOT EN ESTE MOVIMIENTO? Deficit 0 es, por definición, quien lleva el maillot
@@ -817,6 +817,15 @@ export function carriesGcLeader(
  * lleva al líder de la general: el pelotón entero vive de que eso no ocurra.
  */
 export function pelotonAllows(move: MoveRider[], ctx: MoveContext, rng: Rng): boolean {
+  // EL DADO SE TIRA SIEMPRE, decida lo que decida el veto, y no es manía: `rngTactics` es un flujo
+  // compartido por toda la etapa, así que ahorrarse una tirada aquí correría el flujo de TODAS las
+  // etapas del juego. Por eso la tirada vive AQUÍ, fuera de la cuenta, y la cuenta recibe el número
+  // ya tirado: es lo que permite que la aduana del paso 6 la sustituya sin mover un dígito.
+  return pelotonAllowsWithDie(move, ctx, rng())
+}
+
+/** `pelotonAllows` con el dado ya tirado fuera. Ver el porqué en el comentario de arriba. */
+export function pelotonAllowsWithDie(move: MoveRider[], ctx: MoveContext, die: number): boolean {
   const run = ctx.totalKm > 0 ? clamp(1 - ctx.kmToGo / ctx.totalKm, 0, 1) : 0
   let p = STAGE.tacticAllowBase + STAGE.tacticAllowKmGain * run
   /**
@@ -872,11 +881,7 @@ export function pelotonAllows(move: MoveRider[], ctx: MoveContext, rng: Rng): bo
         ctx.hasGcContext,
       )
   }
-  // EL DADO SE TIRA SIEMPRE, decida lo que decida el veto, y no es manía: `rngTactics` es un flujo
-  // compartido por toda la etapa, así que ahorrarse una tirada aquí correría el flujo de TODAS las
-  // etapas del juego —el mismo motivo por el que la v21 quitó la FRASE del ataque del km 0 y no el
-  // movimiento—. Vetar sin tirar movería huellas selladas que no tienen nada que ver con esto.
-  const allowed = rng() < clamp(p, 0, STAGE.tacticAllowMax)
+  const allowed = die < clamp(p, 0, STAGE.tacticAllowMax)
   return allowed && !vetoed
 }
 

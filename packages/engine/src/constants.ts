@@ -2369,6 +2369,87 @@ export const STAGE = {
     shortMountainClimbShare: 0.5,
   },
 
+  /**
+   * LA ADUANA COMO SUBASTA DE TRABAJO (R03) Y LA GENERAL VIRTUAL (R04), docs/tactica.md paso 6.
+   *
+   * `enabled` es el interruptor del A/B, igual que `phases`: apagado, la cuerda la sigue dando
+   * `pelotonAllows` y el motor corre como el paso 5. Encendido, la cuerda la dan los equipos.
+   *
+   * La hipótesis nula está escrita en `stage/customs.ts::pHoy`: **con cero objeciones la aduana
+   * devuelve la fórmula de hoy entera**, rampa y castigo por tamaño incluidos. Sin ese ancla no hay
+   * forma de saber si un movimiento en `flat.breakawayWinPct` viene del voto o de haber tirado la
+   * rampa de arranque por el camino.
+   */
+  customs: {
+    enabled: false,
+    /**
+     * LA PERILLA DEL PASO 6: cuánto pesa el dinero dispuesto a pagar el cierre frente a lo que
+     * cuesta cerrar. Es contra este número contra el que se barre `flat.breakawayWinPct`.
+     */
+    potWeight: 1,
+    /**
+     * Una fuga de nueve cuesta un 72 % más de cerrar que una de tres. DERIVADA de
+     * `tacticAllowSizePenalty` 0,05, reescalada al dominio nuevo: allí era probabilidad, aquí es
+     * precio.
+     */
+    sizeGain: 0.12,
+    /** Con viento de lado cerrar cuesta más. */
+    windGain: 0.4,
+    /**
+     * Un leal cualquiera dentro DESCUENTA la objeción; una CARTA dentro la anula —y eso es un cero,
+     * no un descuento, por eso no se escribe aquí—.
+     */
+    loyalInside: 0.25,
+    /**
+     * «Me puede ganar», que es menos exigente que «es contendiente»: la mitad de
+     * `chaseContenderMaxGap` 12.
+     */
+    rivalGap: 6,
+    /** Tres puestos perdidos en la general virtual = objeción máxima por ese término. */
+    gcPlaces: 3,
+    /** Un equipo paga más por cerrar al que ganó ayer: la memoria va en la PUJA, no en la objeción. */
+    yesterdayWinner: 1.6,
+    /**
+     * EL PRECIO DE CERRAR (R19.4), que es lo que el paso 5 dejó pendiente. Allí se retiró
+     * `closingNow` como veto —mientras el pelotón cierra un intento sin cuerda se sigue atacando— y
+     * se midió lo que cuesta retirarlo sin su precio: las pájaras de Il Lombardia se iban del 11,2 %
+     * al 17,7 % (docs/balance.md «v60 §5»). El precio es éste: el equipo ocupado en cerrar tiene
+     * menos que ofrecer por lo siguiente.
+     */
+    closingBusyDamp: 0.7,
+    /** «Que hagan ellos el trabajo»: un puente que refuerza una fuga que ya me conviene cazar. */
+    bridgePassGain: 0.4,
+    /** Diferencia ABSOLUTA de probabilidad a partir de la cual se re-evalúa `allowed` (R03.3). */
+    revisionMargin: 0.08,
+
+    // --- R04.2: la correa sobre el terreno que QUEDA ---------------------------------------
+    /**
+     * Segundos que se mueve la general por km de puerto ENTRE HOMBRES VECINOS, no entre el mejor y
+     * el peor. [calibrar] sobre `realQueens` en el paso 21.
+     */
+    gcClimbRecoverPerKm: 1.6,
+    /**
+     * Ídem por km de crono, y **no hay derivación honesta**: el ancla más cercana que tiene este
+     * repositorio es `timeTrials.p90MinusP10Seconds` 80-170 s sobre 40 km, o sea 2,0-4,25 s/km, y
+     * eso separa al p10 del p90 —el 80 % del campo—, no a dos hombres consecutivos del top-10. 1,1
+     * es un punto de partida plausible dentro de esa fracción y nada más. Se mide en el paso 21.
+     */
+    gcTtRecoverPerKm: 1.1,
+    /** Lo que se recupera en llano sin abanico es bonificación (10/6/4 acumulables) y poco más. */
+    gcFlatRecoverBase: 25,
+    /** DERIVADA de `gcThreatFraction` 0,6: mismo número y mismo significado. */
+    gcLeashShare: 0.6,
+    /** Por debajo de minuto y medio no se controla, se caza. Se escala con los días que quedan. */
+    gcLeashMinS: 90,
+    /**
+     * Techo de la correa. **Se parece al 900 de `smallTours.flatMoveWorstMarginS` y no se deriva de
+     * él**: aquél es una ALARMA DE PEOR CASO —«la escapada se va a 15 o 20 minutos»— y usar un techo
+     * de alarma como techo de decisión es cambiarle el significado por el camino. Se conserva por
+     * orden de magnitud y se calibra contra el recorrido del colchón en una gran vuelta.
+     */
+    gcLeashMaxS: 900,
+  },
+
   // 6.6 — Cerillos (esfuerzos supraumbral discretos).
   // comp = 0.50·max(MON,COL) + 0.30·RES + 0.20·LLA; cerillos = 2 + (comp>=55)+(>=72)+(>=88).
   matchCompMonWeight: 0.5,

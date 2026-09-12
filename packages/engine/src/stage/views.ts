@@ -208,6 +208,21 @@ export interface RaceShape {
   valleyAfterLastClimbKm: number | null
   /** Días que le quedan a la carrera, incluido hoy. */
   daysLeft: number
+  /**
+   * LO QUE QUEDA DE CARRERA, NO DE ETAPA (R04.2, paso 6). Los tres números de los que sale
+   * `recoverableSeconds`: con qué terreno se puede todavía recuperar tiempo.
+   *
+   * Van aquí y no en la etapa porque la correa de un equipo **no depende de lo que queda hoy sino de
+   * lo que queda de carrera**: día 3 de 21 con montaña por delante se deja ir; día 19 con una crono
+   * corta se caza. Es exactamente lo que `gcControlLeash` = 700 no podía expresar, siendo una
+   * constante.
+   *
+   * Opcionales: una carrera de un día no tiene «lo que queda», y sin ellos `leashOf` cae en su suelo,
+   * que es la conducta conservadora correcta.
+   */
+  raceClimbKmLeft?: number | undefined
+  raceTtKmLeft?: number | undefined
+  raceLineStagesLeft?: number | undefined
 }
 
 /** Lo que la carrera recuerda de los días anteriores. */
