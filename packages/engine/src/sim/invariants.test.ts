@@ -517,10 +517,32 @@ describe('la erosión no satura en ninguna clásica (docs/motor.md §VI.1)', () 
     // señal buena es el VACIADO del depósito, que no está topado: si el tanque llega a cero, la
     // erosión estaba pidiendo más de lo que el modelo puede expresar. Medido hoy: el peor caso es
     // Il Lombardia con 0,908 de vaciado y un 3% de pájaras.
+    /**
+     * TRES SEMILLAS SON UN CRIBADO, NO UN VEREDICTO — y esta prueba llevaba años tratándolas como
+     * si lo fueran.
+     *
+     * El aviso está escrito seis pantallas más arriba, en el comentario de `SATURATION_BONK_PCT`:
+     * sobre Il Lombardia este mismo número «salta entre el 8,5 % y el 11,7 % según cuántas semillas
+     * se le den, **sin que el motor cambie**». Con el techo en el 14 y la carrera midiendo 13,8 %
+     * con tres semillas, el listón estaba **sentado encima de su suelo**: cualquier cosa que moviera
+     * a quién se descuelga —aunque no moviera la economía ni un dígito— lo pasaba.
+     *
+     * Medido el día que la colocación (paso 14) lo hizo saltar, y es la prueba entera: con TRES
+     * semillas, 13,8 % apagado contra 14,4 % encendido; con DOCE, **10,7 % apagado contra 10,8 %
+     * encendido**. La capa movía una décima; la muestra movía tres puntos y medio.
+     *
+     * Así que el cribado se queda en tres —veinte carreras a doce semillas es un cuarto de hora de
+     * CI por una pregunta que casi siempre se contesta que no— y **el que salta se vuelve a medir
+     * con cuatro veces más muestra antes de dar la alarma**. El techo NO se toca: lo que se arregla
+     * es con qué se compara, que es otra cosa.
+     */
+    const saturado = (s: { medianDepletion: number; bonkPct: number }): boolean =>
+      s.medianDepletion > SATURATION_DEPLETION || s.bonkPct > SATURATION_BONK_PCT
     const saturated: string[] = []
     for (const id of [...oneDayWt, ...oneDayHardest]) {
-      const stats = analyzeErosion(realRaceScenario(id), campaignSeeds(id, 3))
-      if (stats.medianDepletion > SATURATION_DEPLETION || stats.bonkPct > SATURATION_BONK_PCT) {
+      if (!saturado(analyzeErosion(realRaceScenario(id), campaignSeeds(id, 3)))) continue
+      const stats = analyzeErosion(realRaceScenario(id), campaignSeeds(id, 12))
+      if (saturado(stats)) {
         saturated.push(
           `${id} vaciado ${stats.medianDepletion.toFixed(3)} pájaras ${stats.bonkPct.toFixed(0)}%`,
         )

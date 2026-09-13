@@ -1859,17 +1859,33 @@ describe('el journal de producción de Race Bességes e4 (v21)', () => {
     }
   })
 
-  it('la captura de la fuga dice quiénes eran, cuánto llevaban fuera y dónde acabó', () => {
-    const caught = runs.flatMap((out) =>
-      out.events.filter((e) => e.plantilla === 'breakaway_caught'),
-    )
-    expect(caught.length).toBeGreaterThan(0)
-    for (const e of caught) {
-      expect(Number(e.datos!.size)).toBe(e.protagonistas.length)
-      expect(Number(e.datos!.awayKm)).toBeGreaterThanOrEqual(0)
-      expect(Number(e.datos!.toGo)).toBeGreaterThanOrEqual(0)
-    }
-  })
+  it(
+    'la captura de la fuga dice quiénes eran, cuánto llevaban fuera y dónde acabó',
+    { timeout: 300000 },
+    () => {
+      /**
+       * ESTE TEST CORRE SU PROPIA TANDA, Y MÁS LARGA, porque lo que comprueba es **el contenido de una
+       * frase** y para eso la frase tiene que existir.
+       *
+       * Con las ocho semillas del bloque, la captura salía en **UNA**. Un listón que exige que un
+       * suceso de 1 entre 8 haya caído no está midiendo el motor: está midiendo el dado, y lo vuelca
+       * cualquier cambio que mueva a quién se descuelga aunque no toque la caza —lo tumbó el paso 14
+       * (la colocación) pasando de 1/8 a 0/8, con la captura de la llana canónica intacta en el
+       * 91 %—. Con veinticuatro semillas el suceso es rutina y lo que se vigila vuelve a ser lo que
+       * el nombre del test dice.
+       */
+      const tanda = seedsFor('besseges-captura', 24).map((s) => simulateStage(besseges(), s))
+      const caught = tanda.flatMap((out) =>
+        out.events.filter((e) => e.plantilla === 'breakaway_caught'),
+      )
+      expect(caught.length).toBeGreaterThan(0)
+      for (const e of caught) {
+        expect(Number(e.datos!.size)).toBe(e.protagonistas.length)
+        expect(Number(e.datos!.awayKm)).toBeGreaterThanOrEqual(0)
+        expect(Number(e.datos!.toGo)).toBeGreaterThanOrEqual(0)
+      }
+    },
+  )
 
   it('la criba que decide el final se cuenta aunque el throttle diga que no', () => {
     // El defecto medido: «de 128 a 101» en el km 160 y, dos kilómetros después, 16 corredores en

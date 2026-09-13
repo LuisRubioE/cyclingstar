@@ -715,7 +715,7 @@
  * Campaña canónica de 500 corridas: **los 33 invariantes en verde**. La contrarreloj no se mueve ni
  * un dígito —es el ancla del esfuerzo individual y paga la ley lineal de siempre—.
  */
-export const ENGINE_VERSION = 65 as const
+export const ENGINE_VERSION = 66 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -4168,6 +4168,120 @@ export const STAGE = {
     bloodThreshold: 0.45,
     bloodGain: 0.7,
   },
+
+  /**
+   * LA COLOCACIÓN (R15a, docs/tactica.md paso 14). Un escalar por corredor dentro de su grupo, 0 =
+   * cabeza. Es el estado del que cuelgan el abanico, el sector, el sprint, el tapón y el acordeón, y
+   * que hasta aquí cada uno de esos cinco sitios se inventaba con un dado propio.
+   *
+   * Su interruptor tampoco es un adorno: **apagado, los cinco siguen con su dado** y la etapa sale
+   * dígito a dígito como antes.
+   */
+  placement: {
+    enabled: true,
+    /** Dónde arranca cada uno: 0,5 + N(0, 0,15). El grueso en mitad de la fila. */
+    initialSd: 0.15,
+    /**
+     * SIN HACER NADA BAJAS MEDIO PUNTO POR KM: en 100 km pasas de la primera fila a la cola. Es el
+     * acordeón visto desde dentro. **Era 0,04 en la propuesta y la glosa decía 100 km**: con 0,04 se
+     * llegaba a la cola en 12,5 km, todo el pelotón estaba atrás a la media hora y la media del
+     * grupo —contra la que cobra el acordeón— se saturaba en 1. Manda la glosa, que es la intención.
+     */
+    driftPerKm: 0.005,
+    /** Colocarse una décima cuesta menos de medio kilómetro de esfuerzo. */
+    gainPerKm: 0.25,
+    /** El azar del pelotón, atenuado por TAC. */
+    noise: 0.015,
+    /**
+     * DÓNDE QUIERE ESTAR CADA UNO. No sale del diseño —que deja el `pushing` en manos de R15b, del
+     * paso 15— sino de lo mínimo que hace falta para que el estado no se sature: sin un objetivo,
+     * nadie empuja, todo el mundo deriva a la cola en cien kilómetros y la media del grupo —contra
+     * la que cobra el acordeón— se va a 1. Son cuatro números y son **provisionales con dueño**.
+     */
+    targetMove: 0.15,
+    /**
+     * EL SITIO DE UNA CARTA LO DECIDEN LOS HOMBRES QUE LE QUEDEN: solo, el 0,55 —va donde puede—; con
+     * cuatro, el 0,15 —va donde quiere—. Ver `sitioDeLaCarta`, que explica por qué un sitio FIJO
+     * sacaba al mejor sprinter de banda por arriba.
+     */
+    targetCardAlone: 0.55,
+    targetCardPerHelper: 0.1,
+    targetCardFloor: 0.12,
+    /** Y el que le coloca va justo detrás de él, no delante. */
+    helperBehind: 0.05,
+    targetPack: 0.65,
+    /** Subir cien puestos ≈ un cerillo largo. [calibrar] contra el invariante 18. */
+    pushCost: 0.45,
+    /** Sobre `placement − media del grupo`, NUNCA sobre `placement`. Ver `accordionTerm`. */
+    accordionGain: 0.35,
+    /** DERIVADA de `placementSdMax` 0,07 × 2,6: mismo orden que el dado al que sustituye. */
+    finishMax: 0.18,
+    /**
+     * LO QUE QUEDA DE AZAR EN EL REMATE cuando la colocación ya no es un misterio. Ver el comentario
+     * de `residualLuck` en `finishStage`: el dado viejo hacía DOS trabajos —la colocación y la
+     * suerte— y quitarlo entero dejaba el sprint sin suerte ninguna.
+     *
+     * **Y LO MIDIÓ EN 1**, que es un resultado y no una comodidad: barrido sobre la llana canónica
+     * con 120 semillas, el mejor sprinter gana el 38,3 % con el dado entero y el 40 % con el dado al
+     * 80 %, contra un 40 % de partida y una banda de 30-45. O sea que el dado viejo **no era** un
+     * sustituto de la colocación —si lo fuera, conservarlo entero habría dejado el remate con el
+     * doble de azar—: era la suerte de un remate masivo, y la colocación es un término NUEVO que se
+     * le suma. El paso 21 puede recalibrarlo con las otras [calibrar]; hoy la medida dice 1.
+     */
+    residualLuck: 1,
+    boxedThreshold: 0.55,
+    /**
+     * CUÁNTOS CABEN A LA PAR EN EL ÚLTIMO KILÓMETRO. El diseño lo saca del ancho de la carretera
+     * —`clamp(floor(roadWidth/1,5), 1, 4)`, R15b.4— y **`roadWidth` no existe todavía**: entra con
+     * la carretera del paso 15. Hasta entonces manda el tres, que es el centro de ese rango y el
+     * número de trenes que de verdad caben en una avenida de meta.
+     */
+    lanes: 3,
+    /** DERIVADA del suelo de `launchEffect` 0,7. */
+    boxedEffect: 0.72,
+    /** El último giro: 1,5 km, y los tres primeros salen con 2,5 cuerpos (S-446 da «dos o tres»). */
+    lastTurnKm: 1.5,
+    turnGainM: 2.5,
+    turnWinners: 3,
+    /** DERIVADA de «las 15 primeras posiciones» de S-241 sobre 60. */
+    sectorSafePlace: 0.25,
+    sectorLossS: 8,
+    /** λ_selección = base · (0,4 + 1,2 · placement): el que va delante pasa; el que va 80.º, no. */
+    sectorLambdaBase: 0.4,
+    sectorLambdaSlope: 1.2,
+    /** LA DECISIÓN DE ABRIR EL ABANICO (R15a.3b). Sin ella el invariante 60 no medía nada. */
+    echelonWindMin: 0.45,
+    echelonReadyPlace: 0.25,
+    echelonVictimPlace: 0.45,
+    /** Y a quién se le hace: un rival de la general, no el 140.º de la clasificación. */
+    echelonVictimRank: 20,
+    echelonBudgetMax: 0.6,
+    echelonCommit: 0.92,
+    echelonKm: 6,
+    echelonSpend: 1.4,
+    /** El bajador (R15a.7): DES ≥ 72 y duty de peón, y la carta baja a su rueda. */
+    descenderMin: 72,
+    descentNoHelperS: 20,
+    /** A partir de aquí la bajada selecciona ENTERA y no solo su primer km (S-280). */
+    descentFinalKmToGo: 25,
+    /**
+     * EL AÑO DE CONTRATO (R15a.8): +0,15 de apetito al que se juega el suyo, y una décima menos de
+     * umbral para colocarse. El que YA firmó fuera se guarda la mitad de todo lo que esté por encima
+     * de su deber de rol.
+     */
+    showcaseAppetite: 0.15,
+    showcasePlace: 0.1,
+    quietRetreatDamp: 0.55,
+  },
+
+  /**
+   * EL TOPE DE LOS CINCO MULTIPLICADORES TÁCTICOS DEL COSTE (§9.1bis). La suma no puede mover el
+   * coste de un bloque más de un ±60 %. Sale de que los dos grandes —`pushCost` 0,45 y
+   * `accordionGain` 0,35— coincidan en el peor caso sin volver el bloque incoherente con la erosión
+   * medida. Sin tope, cinco términos [calibrar] sumándose es la forma exacta de mover `erosion.*`
+   * sin que nadie lo vea.
+   */
+  tacticalCostCap: 0.6,
 
   launchWorstFinisherM: 90,
 

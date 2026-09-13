@@ -12809,3 +12809,134 @@ pájaras — el listón que esta misma tanda ya subió de 12 a 14 con su medida 
 tenía holgura; subirlo cada vez que un racimo lo roza es quitarlo. El paso 11 se queda apagado, con
 todo escrito y con la corrección de la claudicación puesta —que es inerte con el interruptor apagado
 y correcta cuando se encienda—.
+
+## v60 §15 — paso 14, la colocación existe
+
+`ENGINE_VERSION` **65 → 66**. R15a entero: `stage/placement.ts` y `stage/cost.ts` nuevos, con el
+estado que el motor nunca tuvo —dónde va cada hombre DENTRO de su grupo— y el punto único donde el
+coste de un bloque se modula por táctica.
+
+### El dato que faltaba, y los cinco sitios que se lo inventaban
+
+El abanico, el sector, el sprint, el tapón y el acordeón dependen todos de la misma pregunta —¿por
+dónde vas?— y hasta aquí cada uno se la contestaba con un dado propio. Por eso ninguno podía
+contradecir a otro ni ser consecuencia de nada: se podía ir el primero en el corte del abanico y el
+último en el sprint sin que pasara nada en medio.
+
+Ahora hay **un escalar por corredor**, `placement ∈ [0,1]` con 0 = cabeza, que se avanza una vez por
+kilómetro: si no haces nada retrocedes —en cien kilómetros pasas de la primera fila a la cola—, si
+empujas subes y lo pagas, y el azar del pelotón lo atenúa TAC.
+
+### El acordeón, y por qué el «− media del grupo» no es un detalle
+
+La regla escrita como venía —`× (1 + accordionGain·placement)`— **subía el gasto medio del pelotón
+entero un 17,5 %**, y eso es la economía del depósito, que ancla las cinco bandas de `erosion`.
+Escrita contra la media del grupo redistribuye: el de delante paga menos, el de atrás más, y la suma
+por grupo es cero por construcción.
+
+Medido, que es lo único que lo demuestra:
+
+| llana canónica, 120 semillas | apagado    | colocación |
+| ---------------------------- | ---------- | ---------- |
+| `medianDepletion`            | **0,2408** | **0,2407** |
+| `medianErosion`              | 0,0000     | 0,0000     |
+
+La mediana del grupo **no se mueve**; cambia la dispersión dentro de él, que es exactamente lo que la
+regla dice. En la reina y en la clásica larga, igual: `queenFresh` 0,26 → 0,26 y `longClassicFresh`
+0,49 → 0,49. Era el criterio de parada del paso —«si se mueve la mediana de `queenFresh`, la suma
+cero está mal implementada y se para la tanda»— y no hizo falta usarlo.
+
+### Los dos defectos que la medida encontró, los dos del mismo tipo
+
+**Uno. Veintidós velocistas no caben todos en el puesto veinte.** Con un sitio FIJO para toda carta,
+los aspirantes llegaban a meta clavados en la misma décima, la colocación dejaba de repartir nada en
+el remate y el mejor sprinter del campo se iba **del 40 % al 55 %** de las llanas, fuera de banda por
+arriba. El sitio de una carta lo deciden **los hombres que le queden**: solo va donde puede (0,55),
+con cuatro va donde quiere (0,15). Que es la promesa del racimo y la razón por la que un tren vale
+dinero.
+
+**Dos, y es el de siempre: un número haciendo dos trabajos.** `placementSd` cobraba a la vez la
+colocación —que ahora existe— y el azar irreducible de un remate masivo: la rueda que se abre, el
+toque, el hueco que se cierra medio segundo antes. Sustituirlo entero le quitaba al sprint **toda**
+su aleatoriedad, y un sprint no es un ranking. Barrido:
+
+| llana canónica, 120 semillas | gana el mejor sprinter |
+| ---------------------------- | ---------------------- |
+| apagado                      | 40,0 %                 |
+| dado sustituido              | **52,5 %** ❌          |
+| dado al 80 % + colocación    | 40,0 %                 |
+| **dado entero + colocación** | **38,3 %** ✅          |
+
+Y el resultado dice algo, no es una comodidad: **el dado viejo no era un sustituto de la
+colocación**. Si lo fuera, conservarlo entero habría dejado el remate con el doble de azar. Era la
+suerte, y la colocación es un término nuevo que se le suma. `residualLuck` queda en **1** con esa
+medida delante.
+
+**Tres, y es el que costó la tanda: el que se descuelga no paga por pelear un sitio que ya perdió.**
+Con las suites completas, dos clásicas se pasaban del techo de pájaras del 14 %. Aislado término a
+término sobre las dos, el culpable era **uno solo**:
+
+| Il Lombardia / Strade Bianche, 3 semillas  | pájaras white-roads | pájaras lombardy |
+| ------------------------------------------ | ------------------- | ---------------- |
+| apagado                                    | 11,4 %              | 13,8 %           |
+| colocación entera                          | **14,0 %**          | **14,8 %**       |
+| sin el empujón                             | 11,6 %              | 14,0 %           |
+| sin el acordeón / sin sector / sin bajador | 13,8-14,0 %         | 14,6-15,0 %      |
+
+A un hombre al que el grupo se le escapa la fila se le corre todo el rato, así que su `pushing` se
+clavaba en 1 y **pagaba el 45 % de recargo justo mientras se descolgaba**: una espiral que la
+carretera no tiene. El que va fundido y perdiendo la rueda no remonta puestos; suelta. Se pelea el
+sitio **con lo que a uno le queda** —y el que ya cede segundos no pelea—, y con eso Strade Bianche
+vuelve a 11,9 %.
+
+### Y el listón que quedaba: **la muestra, no el motor**
+
+Il Lombardia seguía marcando 14,4 % contra el techo de 14, y barrer `placePushCost` de 0,45 a 0,15
+no lo movía **ni una décima**. Así que se midió la otra hipótesis:
+
+| Il Lombardia | 3 semillas | 12 semillas |
+| ------------ | ---------- | ----------- |
+| apagado      | 13,8 %     | **10,7 %**  |
+| colocación   | 14,4 %     | **10,8 %**  |
+
+La capa mueve **una décima**. La muestra movía tres puntos y medio. Es el defecto de siempre —**la
+banda sentada encima de su suelo**: un techo del 14 vigilando un motor que mide 13,8 con tres
+semillas— y lo tenía escrito el propio test seis pantallas más arriba: «este número salta entre el
+8,5 % y el 11,7 % según cuántas semillas se le den, **sin que el motor cambie**».
+
+**El techo NO se toca** —esta misma tanda ya se negó a subirlo por segunda vez en el paso 11—. Lo que
+se arregla es con qué se compara: el cribado se queda en tres semillas, y **el que salta se vuelve a
+medir con cuatro veces más muestra antes de dar la alarma**. Veinte carreras a doce semillas serían
+un cuarto de hora de CI por una pregunta que casi siempre se contesta que no.
+
+Y el mismo defecto, una vez más, en la crónica: «la captura de la fuga dice quiénes eran» exigía que
+un suceso de **1 entre 8 semillas** hubiera caído. Pasa a correr su propia tanda de 24, y vuelve a
+vigilar lo que su nombre dice en vez de vigilar el dado.
+
+### Lo que la colocación compra
+
+| llana canónica, 120 semillas | apagado | colocación | banda |
+| ---------------------------- | ------- | ---------- | ----- |
+| gana la fuga                 | 6,7 %   | 7,5 %      | 5-16  |
+| gana el mejor sprinter       | 40,0 %  | 38,3 %     | 30-45 |
+| captura                      | 92 %    | 91,2 %     | > 85  |
+| km de la caza                | 18,8    | 18,9       | 8-25  |
+| gana la fuga (reina)         | 25 %    | 25 %       | 25-45 |
+
+Y con ellas, cinco cosas que el motor no sabía producir: el **encajonado** —perder el sprint llegando
+entero, bien lanzado y sin que te gane nadie—, el **abanico con autor** —un equipo que lo abre porque
+le conviene, no un dado por kilómetro—, el **sector que se paga al entrar**, el **bajador** —ceder
+veinte segundos en un descenso decisivo sin que nadie te ataque— y el **año de contrato**, con sus
+dos mitades: el que se juega el suyo ataca más, y el que ya firmó fuera deja de vaciarse por esta
+casa sin desobedecer nunca de forma visible.
+
+### Y se queda ENCENDIDA
+
+`pnpm test:rapido` **1.573 en verde** y `pnpm test:bancos` **104 de 104**, con el interruptor puesto.
+Es el segundo racimo táctico que entra en producción encendido —el primero fueron las pancartas— y el
+primero que toca el coste del bloque, con la Frontera 2 comprobable en vez de prometida: los
+multiplicadores viven en `stage/cost.ts`, `physics.ts` no se entera y la mediana de la erosión está
+medida antes y después.
+
+Las cuatro huellas se re-sellan con su causa escrita y **los cuatro ganadores se conservan** —`spr-6`,
+`spr-0`, `pel-105` y `gc-0`—: la colocación no reparte piernas, reparte sitio.

@@ -152,6 +152,18 @@ export interface StageRider {
   /** Fragilidad oculta (SPEC 3.4): escala la probabilidad de lesión al caer. Por defecto 1. */
   fragility?: number
   /**
+   * EL AÑO DE CONTRATO (R15a.8, S-428). El que se juega el suyo corre de escaparate: ataca más y se
+   * conforma menos con ir escondido. **Ausente = no lo sabemos**, y entonces no cambia nada.
+   */
+  contractYear?: boolean
+  /**
+   * …Y LA OTRA MITAD, QUE ES LA QUE DE VERDAD SE VE EN CARRETERA: el que YA FIRMÓ con otro equipo
+   * deja de vaciarse por la carta de esta casa —no baja a por bidones, no cierra huecos, no se quema
+   * en el tempo— **sin desobedecer nunca de forma visible**. Su director lo sabe al repartir
+   * papeles, y por eso el equipo cree tener ocho y tiene siete.
+   */
+  signedElsewhere?: boolean
+  /**
    * EL EQUIPO del corredor (docs/motor.md §V.1, v15). Es lo que faltaba para que el motor pudiera
    * tener un plan colectivo: hasta la v14 lo único que conocía era `orders.targetRiderId`, que dice
    * «X trabaja para Y» pero no «este equipo persigue y este otro se esconde».

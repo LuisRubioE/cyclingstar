@@ -48,6 +48,19 @@ import { blockProbability, rollHazard } from './hazard.js'
 import { type RelayQueue, advanceQueue, emptyQueue } from './relayQueue.js'
 import { believedGap, bloodFactor, dirQualityOf, infoLagKm, readState } from './director.js'
 import { type ChaseCandidate, chaseTargetOf, desiredGapOf, frontClaimOf } from './frontAuction.js'
+import { tacticalCostFactor } from './cost.js'
+import {
+  accordionActive,
+  accordionTerm,
+  descentLossS,
+  echelonAttempt,
+  initialPlacement,
+  isBoxed,
+  placeFinishWeight,
+  placementStep,
+  pushTerm,
+  sectorEntryLossS,
+} from './placement.js'
 import {
   type CustomsMove,
   type CustomsTeam,
@@ -252,6 +265,15 @@ interface RiderSim {
   matchBoostS: number
   /** Desempate fijo del turno de relevos, en [0,1) (SPEC 6.1: subflujo nominal por corredor). */
   workJitter: number
+  /**
+   * DÓNDE VA DENTRO DE SU GRUPO (R15a.1, paso 14), en [0,1] con 0 = cabeza. Es el estado que el
+   * motor nunca tuvo y del que cuelgan el abanico, el sector, el sprint y el acordeón: hasta aquí
+   * cada uno de esos cuatro sitios se lo inventaba con un dado propio y ninguno podía contradecir
+   * al otro. Se avanza UNA VEZ POR KM, no por bloque (ver `placementStep`).
+   */
+  placement: number
+  /** Cuánto está empujando hacia delante AHORA, [0,1]. Lo decide `objetivoDeColocacion` (R15b). */
+  pushing: number
   /** Segundos cedidos al objetivo marcado sin llegar a soltarse (`gives` de SPEC 6.18). */
   markLossS: number
   /**
@@ -557,7 +579,7 @@ function relayDuty(
   const esLaCartaDelEquipo =
     protectedByTeam || m.input.orders.role === 'lider' || m.input.orders.role === 'sprinter'
   const empuje = esLaCartaDelEquipo ? 0 : teamDriveNow
-  return (
+  const total =
     duty +
     STAGE.relayFreshnessWeight * Math.min(freshness, STAGE.relayFreshnessCap) -
     (protectedByTeam ? STAGE.relayProtectedPenalty : 0) -
@@ -577,7 +599,21 @@ function relayDuty(
      */
     STAGE.relayEffortWeight * EFFORT_PUSH[m.input.orders.effort ?? 'normal'] +
     STAGE.relayJitterWeight * m.workJitter
-  )
+  /**
+   * …Y EL QUE YA FIRMÓ CON OTRO EQUIPO DEJA DE VACIARSE POR ESTA CASA (R15a.8, S-428), sin
+   * desobedecer nunca de forma visible: sigue en el turno cuando le toca por su rol, pero todo lo
+   * que está POR ENCIMA de su deber de rol —el empuje del equipo, la frescura que le sobra, la orden
+   * de vaciarse— se le queda en la mitad.
+   *
+   * **SOLO LA PARTE POSITIVA**, y ése es el detalle que la propuesta base tenía al revés: el deber
+   * lleva signo, y amortiguar el escalar entero dejaba al arropado que ya firmó con MÁS deber del
+   * que tenía —de −1,2 a −0,66—, o sea lo contrario de «deja de vaciarse».
+   */
+  if (STAGE.placement.enabled && m.input.signedElsewhere === true) {
+    const base = STAGE.relayDutyByRole[m.input.orders.role]
+    return base + Math.max(0, total - base) * STAGE.placement.quietRetreatDamp
+  }
+  return total
 }
 
 /** Cuánto empuja al turno cada elección de esfuerzo, en [-1, 1]. Ver `relayEffortWeight`. */
@@ -1000,6 +1036,11 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
    * directores apagados sale dígito a dígito como antes.
    */
   const rngPizarra = streams('pizarra')
+  /**
+   * Subflujo NOMINAL de la COLOCACIÓN (R15a, SPEC 6.1). Mismo motivo que `rngPizarra`: el ruido de
+   * la fila se tira 176 veces por kilómetro y no puede desplazar ni un dígito de los demás dados.
+   */
+  const rngColocacion = streams('colocacion')
   const rngSprint = streams('sprint')
   // Subflujo NOMINAL de la COLOCACIÓN en meta (v24, SPEC 6.1, docs/motor.md §12.6). Mismo motivo
   // que `rngRough` y `rngAbandon`: el dado de la colocación no puede salir de `rngSprint`, que
@@ -1175,6 +1216,12 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       // Subflujo NOMINAL por corredor: el desempate del turno de relevos no depende del orden del
       // array de entrada ni del tamaño del pelotón, solo de la semilla y del id (SPEC 6.1).
       workJitter: streams(`work:${r.riderId}`)(),
+      /**
+       * Subflujo NOMINAL por corredor, igual que `workJitter` y por el mismo motivo: dónde arranca
+       * uno en la fila no puede depender del orden del array de entrada ni del tamaño del pelotón.
+       */
+      placement: initialPlacement(normal(streams(`place:${r.riderId}`), 0, 1)),
+      pushing: 0,
       markLossS: 0,
       driftS: 0,
       reserveS: STAGE.reserveSeconds,
@@ -1781,10 +1828,16 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
      * la carrera que se juega mirando caras.
      */
     const olfato = dirOn && sim ? sangreDelLider(sim) : 1
+    /**
+     * …Y EL QUE SE JUEGA EL CONTRATO ATACA MÁS (R15a.8, S-428). Es la mitad visible de la regla: el
+     * escaparate no es una frase de prensa, es un hombre que se tira donde otro se guarda.
+     */
+    const escaparate =
+      colocacionOn && sim?.input.contractYear === true ? 1 + STAGE.placement.showcaseAppetite : 1
     const t = teamOf.get(riderId)
-    if (t == null) return deJersey * olfato
+    if (t == null) return deJersey * olfato * escaparate
     const stance = teamNow.get(t)
-    return (stance == null ? 1 : teamAttackFactor(stance, colaOn)) * deJersey * olfato
+    return (stance == null ? 1 : teamAttackFactor(stance, colaOn)) * deJersey * olfato * escaparate
   }
 
   /**
@@ -1881,6 +1934,119 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
   const bannersOn = input.flags?.banners === true || STAGE.banners.enabled
   /** ¿Y los directores falibles del paso 11? Ver `STAGE.director.enabled`. */
   const dirOn = input.flags?.director === true || STAGE.director.enabled
+  /** ¿Y la colocación del paso 14? Ver `STAGE.placement.enabled`. */
+  const colocacionOn = input.flags?.placement === true || STAGE.placement.enabled
+  /**
+   * HASTA QUÉ KILÓMETRO SIGUE ABIERTO EL INTENTO DE ABANICO DE CADA EQUIPO (R15a.3b). Mientras dura,
+   * sus leales empujan a tope —y lo pagan—, y R15b.3 (el peón que no cierra el hueco) vale también
+   * en fase `control`, que es donde ocurre el abanico canónico de media etapa.
+   */
+  const abanicoHasta = new Map<string, number>()
+  /**
+   * QUIÉN ABRE EL ABANICO EN ESTE GRUPO, si es que lo abre alguien. Devuelve el equipo autor o
+   * `null`. Las cuatro condiciones son las de `echelonAttempt` y se leen aquí porque aquí están los
+   * datos: el viento del bloque, la fila de los leales, la de la víctima y lo gastado del día.
+   *
+   * La víctima se lee **con creencia** cuando los directores están encendidos (R24): abrir un
+   * abanico contra un rival que uno CREE mal colocado y resulta que iba tercero es media historia
+   * del ciclismo de viento.
+   */
+  const autorDelAbanico = (dentro: RiderSim[], kmAhora: number, viento: number): string | null => {
+    const porEquipo = new Map<string, RiderSim[]>()
+    for (const m of dentro) {
+      const t = rebels.has(m.input.riderId) ? null : teamOf.get(m.input.riderId)
+      if (t == null) continue
+      const lista = porEquipo.get(t) ?? []
+      lista.push(m)
+      porEquipo.set(t, lista)
+    }
+    for (const [teamId, leales] of [...porEquipo].sort((a, b) => (a[0] < b[0] ? -1 : 1))) {
+      const plan = teamPlans.get(teamId)
+      if (plan == null || plan.gcLeaderId === null) continue
+      const media = leales.reduce((acc, m) => acc + m.placement, 0) / leales.length
+      /** La víctima: el rival de general mejor situado al que este equipo tiene algo que sacarle. */
+      let victima: number | null = null
+      for (const m of dentro) {
+        if (teamOf.get(m.input.riderId) === teamId) continue
+        if ((m.input.gcRank ?? 99) > STAGE.placement.echelonVictimRank) continue
+        if (victima === null || m.placement > victima) victima = m.placement
+      }
+      if (
+        echelonAttempt({
+          vientoLateral: viento,
+          placeLeales: media,
+          placeVictima: victima,
+          spent: spentFractionOf(plan),
+        })
+      ) {
+        abanicoHasta.set(teamId, kmAhora + STAGE.placement.echelonKm)
+        teamSpent.set(
+          teamId,
+          (teamSpent.get(teamId) ?? 0) + plan.budget * (STAGE.placement.echelonSpend - 1),
+        )
+        return teamId
+      }
+    }
+    return null
+  }
+  /**
+   * DÓNDE QUIERE ESTAR ESTE HOMBRE EN SU GRUPO (R15a.1). No es un atributo: es un trabajo.
+   *
+   *  - **en un grupo pequeño no hay fila**: en una fuga de seis todos van delante, y por eso un
+   *    fugado no paga acordeón ni entra encajonado en ninguna parte;
+   *  - **la carta y el jefe de filas van colocados**, porque para eso está el equipo;
+   *  - **el que trabaja para alguien va donde está su hombre** —si su hombre va en este grupo—, que
+   *    es lo que hace que un jefe con cuatro gregarios tenga cuatro hombres delante y no cero;
+   *  - **y el resto del pelotón no pelea el sitio**. Ahí está el puesto ciento veinte de la cita del
+   *    dueño, y ahí es donde se pagan los arreones de cada rotonda.
+   */
+  /**
+   * HASTA DÓNDE DELANTE PUEDE ESTAR UNA CARTA, Y **LO DECIDEN LOS HOMBRES QUE LE QUEDEN** (R15a.3:
+   * «el equipo que quiere estar delante lo consigue GASTANDO»).
+   *
+   * Es la corrección que pidió la medida y no un adorno. Con un sitio FIJO para toda carta —0,25
+   * para todas—, los veintidós velocistas de un pelotón llegaban a la meta clavados en la misma
+   * décima, la colocación dejaba de repartir nada en el remate y el mejor sprinter del campo pasaba
+   * de ganar el 42,5 % de las llanas a ganar el **55 %**, fuera de banda por arriba: al quitar el
+   * dado no quedaba ninguna otra cosa que pudiera separarlos. Y además era falso de carretera:
+   * **veintidós hombres no caben todos en el puesto veinte**.
+   *
+   * Con esto, el que llega a la meta con cuatro hombres va donde quiere y el que llega solo va donde
+   * puede, que es exactamente la promesa del racimo y la razón por la que un tren vale dinero.
+   */
+  const sitioDeLaCarta = (cartaId: string, groupId: string): number => {
+    let manos = 0
+    for (const id of [...(domestiquesFor.get(cartaId) ?? []), ...(leadOutFor.get(cartaId) ?? [])]) {
+      const p = sims.get(id)
+      if (p != null && p.groupId === groupId && p.abandonedKm === null && p.finishTs === null) {
+        manos += 1
+      }
+    }
+    return Math.max(
+      STAGE.placement.targetCardFloor,
+      STAGE.placement.targetCardAlone - STAGE.placement.targetCardPerHelper * manos,
+    )
+  }
+  const objetivoDeColocacion = (m: RiderSim, bunchId: string): number => {
+    if (m.groupId !== bunchId) return STAGE.placement.targetMove
+    /**
+     * …Y EL QUE SE JUEGA EL CONTRATO QUIERE QUE SE LE VEA (R15a.8): baja su umbral de colocarse una
+     * décima, o sea que pelea un sitio que su papel no le pedía.
+     */
+    const escaparate = m.input.contractYear === true ? STAGE.placement.showcasePlace : 0
+    const rol = m.input.orders.role
+    if (rol === 'lider' || rol === 'sprinter') {
+      return Math.max(0, sitioDeLaCarta(m.input.riderId, m.groupId) - escaparate)
+    }
+    const jefe = worksFor.get(m.input.riderId)
+    if (jefe != null && sims.get(jefe.targetId)?.groupId === m.groupId) {
+      return Math.max(
+        0,
+        sitioDeLaCarta(jefe.targetId, m.groupId) + STAGE.placement.helperBehind - escaparate,
+      )
+    }
+    return Math.max(0, STAGE.placement.targetPack - escaparate)
+  }
   /**
    * EL HISTORIAL DEL HUECO, kilómetro a kilómetro (R24.2). Hace falta para una sola cosa y no es un
    * capricho: el número que el director maneja **es el de hace un rato**, no el de ahora. Sin
@@ -2228,6 +2394,131 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
           aduana: true,
         }
       : PHASE_TABLE[faseAhora]
+
+    /**
+     * LA COLOCACIÓN AVANZA, UNA VEZ POR KILÓMETRO (R15a.1, paso 14). `decisionEveryBlocks` son diez
+     * bloques de 0,1 km, o sea exactamente el kilómetro que la regla pide, y por eso se cuelga de
+     * ahí en vez de inventarse un contador propio.
+     *
+     * Son 176 × 200 evaluaciones por etapa, del orden de lo que ya cuesta `relayDuty`. El listón del
+     * paso es `placementCost ≤ 5 %` y hay plan B escrito (cada 2 km) si se pasa.
+     */
+    if (colocacionOn && i % STAGE.decisionEveryBlocks === 0) {
+      const bunchId = mainId ?? PELOTON
+      for (const m of sims.values()) {
+        if (m.finishTs !== null || m.abandonedKm !== null) continue
+        const objetivo = objetivoDeColocacion(m, bunchId)
+        /**
+         * EMPUJA LO JUSTO PARA LLEGAR A DONDE QUIERE ESTAR, y ni un vatio más. Es lo mínimo que hace
+         * falta para que el estado tenga sentido, y **es un provisional con dueño**: quien decide de
+         * verdad el `pushing` es R15b —la pelea por el sitio antes de un puerto, la orden que tarda
+         * en llegar a la carretera, el tren—, que es el paso 15. Hasta entonces, cada uno se sostiene
+         * en su sitio contra la deriva y nadie remonta cien puestos, que es justo lo que hace que
+         * este paso mida SOLO el estado y no la conducta que viene después.
+         */
+        const equipo = rebels.has(m.input.riderId) ? null : teamOf.get(m.input.riderId)
+        const abriendo = equipo != null && (abanicoHasta.get(equipo) ?? -1) >= km
+        /** Mientras su equipo abre el abanico, un leal empuja A TOPE, y lo paga. */
+        /**
+         * …Y **EL QUE SE ESTÁ YENDO DEJA DE PELEAR EL SITIO**, que es la corrección que pidió la
+         * medida y el defecto más caro de este paso.
+         *
+         * Tal como estaba, a un hombre al que el grupo se le escapa la fila se le corre todo el
+         * rato, así que su `pushing` se clavaba en 1 y **pagaba el 45 % de recargo justo mientras se
+         * descolgaba**: una espiral que la carretera no tiene. El que va fundido y perdiendo la
+         * rueda no remonta puestos; suelta. Aislado término a término sobre las dos clásicas que lo
+         * enseñaban, el empujón era el ÚNICO que movía la cola —Strade Bianche 11,4 % → 14,0 % de
+         * pájaras, Lombardía 13,8 % → 14,8 %, con el acordeón, el sector, el bajador y la bajada
+         * final aportando cero—.
+         *
+         * Se pelea el sitio **con lo que a uno le queda**: con el depósito lleno, entero; vacío,
+         * nada. Y el que ya está cediendo segundos no pelea en absoluto.
+         */
+        const frescura = m.energy0 > 0 ? clamp(m.energy / m.energy0, 0, 1) : 0
+        const puedePelear = m.driftS <= 0 ? frescura : 0
+        m.pushing =
+          (abriendo ? 1 : clamp((m.placement - objetivo) / STAGE.placement.gainPerKm, 0, 1)) *
+          puedePelear
+        // …y el que ya firmó fuera tampoco se pelea el sitio por la carta de esta casa (R15a.8).
+        if (m.input.signedElsewhere === true) m.pushing *= STAGE.placement.quietRetreatDamp
+        m.placement = placementStep(
+          m.placement,
+          1,
+          m.pushing,
+          riderEff(m).TAC,
+          normal(rngColocacion, 0, 1),
+        )
+      }
+    }
+
+    /**
+     * EL SECTOR SE PAGA AL ENTRAR, Y SE PAGA POR DONDE ENTRAS (R15a.6, S-241). Entrar a un tramo de
+     * adoquín por detrás del puesto quince cuesta ocho segundos, y no es una penalización moral: es
+     * que delante del embudo se frena y detrás se acelera, y el que va 80.º hace ese acordeón
+     * entero. Se cobra UNA VEZ, en el bloque en que el sector empieza, y va a la deriva —no al
+     * reloj— porque son segundos cedidos EN CARRETERA que todavía se pueden recuperar.
+     */
+    if (colocacionOn && onPaves && i > 0 && blocks[i - 1]!.tipo !== 'paves') {
+      /**
+       * …Y SE COBRA CONTRA EL FRENTE DEL PROPIO GRUPO, NO CONTRA EL RELOJ (corrección medida).
+       *
+       * Escrito como un peaje plano —ocho segundos a todo el que entre por detrás del puesto
+       * quince— **esto no reparte nada: grava**. Un día de tierra tiene once sectores y el grueso
+       * del pelotón entra por detrás en todos, así que el grupo ENTERO acumulaba minuto y medio de
+       * deriva contra nadie, se descolgaba más gente y el que se descuelga gasta más: medido, las
+       * pájaras de Strade Bianche pasaban del 11,4 % al 14,0 % con el techo en el 14.
+       *
+       * Entrar el primero a un sector no es «no perder»: es GANAR sobre los tuyos, porque detrás se
+       * frena. Así que la pérdida va contra la media del grupo, igual que el acordeón y por el mismo
+       * motivo —es el segundo sitio de este mismo paso donde un término que debía redistribuir
+       * estaba cobrando a todo el mundo—.
+       */
+      const porGrupo = new Map<string, RiderSim[]>()
+      for (const m of sims.values()) {
+        if (m.finishTs !== null || m.abandonedKm !== null) continue
+        const lista = porGrupo.get(m.groupId) ?? []
+        lista.push(m)
+        porGrupo.set(m.groupId, lista)
+      }
+      for (const dentro of porGrupo.values()) {
+        const media =
+          dentro.reduce((acc, m) => acc + sectorEntryLossS(m.placement), 0) / dentro.length
+        for (const m of dentro) m.driftS += sectorEntryLossS(m.placement) - media
+      }
+    }
+
+    /**
+     * EL BAJADOR (R15a.7, S-465). Con un peón que baje bien delante, la carta baja A SU RUEDA y no
+     * pierde; **sin él cede veinte segundos en un descenso decisivo sin que nadie le ataque**, que
+     * es exactamente la forma en que se pierde una clásica de montaña y que el motor no sabía
+     * producir —hasta aquí, en una bajada solo se perdía si alguien atacaba—.
+     *
+     * Se cobra UNA VEZ, al entrar en el descenso que importa, y en deriva: son segundos cedidos en
+     * carretera, recuperables si el grupo se para abajo.
+     */
+    if (
+      colocacionOn &&
+      block.tipo === 'descenso' &&
+      tipoBloquePrevio !== 'descenso' &&
+      totalKm - km <= STAGE.placement.descentFinalKmToGo
+    ) {
+      for (const plan of teamPlans.values()) {
+        const carta = plan.stageCandidateId ?? plan.gcLeaderId
+        if (carta === null) continue
+        const jefe = sims.get(carta)
+        if (jefe == null || jefe.finishTs !== null || jefe.abandonedKm !== null) continue
+        const bajador = (domestiquesFor.get(carta) ?? []).some((id) => {
+          const p = sims.get(id)
+          return (
+            p != null &&
+            p.groupId === jefe.groupId &&
+            p.abandonedKm === null &&
+            riderEff(p).DES >= STAGE.placement.descenderMin
+          )
+        })
+        jefe.driftS += descentLossS(bajador, false)
+      }
+    }
 
     // Controlador del pelotón cada 10 bloques, con histéresis (SPEC 6.9). Regula SIEMPRE: haya fuga,
     // la hayan cazado o no se haya formado nunca. Antes vivía dentro de `if (breakaway && !caught)`,
@@ -3698,6 +3989,26 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       const isBunch = group.id === (mainId ?? PELOTON)
       const idSet = new Set(members.map((m) => m.input.riderId))
       /**
+       * LA MEDIA DE LA FILA EN ESTE GRUPO (R15a.2 y §9.1bis), y las dos medias son **lo que hace
+       * legales a los dos multiplicadores**: el acordeón se cobra sobre `placement − media` y el
+       * empujón sobre `pushCost·pushing − media`, así que la suma por grupo es cero por
+       * construcción y la mediana de la erosión no se mueve. Cambia la dispersión DENTRO del grupo,
+       * que es exactamente lo que la regla dice y lo que la redacción vieja —`× (1 + gain·place)`—
+       * no hacía: aquélla encarecía el pelotón entero un 17,5 %.
+       */
+      let mediaPlace = 0
+      let mediaPush = 0
+      if (colocacionOn) {
+        for (const m of members) {
+          mediaPlace += m.placement
+          mediaPush += pushTerm(m.pushing)
+        }
+        mediaPlace /= members.length
+        mediaPush /= members.length
+      }
+      /** ¿Se pagan arreones ahora mismo? Solo en el llano nervioso (`accordionActive`). */
+      const hayAcordeon = colocacionOn && block.tipo === 'llano' && accordionActive(faseAhora)
+      /**
        * SE PROBÓ QUE EL GRUPO RODARA AL RITMO DEL JEFE Y NO SE HA HECHO (v36). La idea: los
        * gregarios que bajan a por su jefe llegan enteros, así que su P75 marcaría un ritmo que el
        * jefe reventado no puede seguir. Suena a carretera —un gregario rueda a lo que puede su
@@ -4213,9 +4524,25 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
          * mismo sitio del que sale todo lo demás. Por eso multiplica el COSTE y no toca el esfuerzo:
          * lo que el corredor hace es lo mismo, lo que le cuesta hacerlo no.
          */
+        /**
+         * …Y LOS MULTIPLICADORES TÁCTICOS DEL COSTE (§9.1bis, paso 14), que viven en `cost.ts` y no
+         * en `physics.ts`: a la física no se le edita la función, se le multiplica el resultado. Ése
+         * es el único punto donde el coste de un bloque se modula por táctica, y por eso la
+         * Frontera 2 se puede COMPROBAR en vez de prometer.
+         */
+        const tactico = colocacionOn
+          ? tacticalCostFactor(
+              {
+                push: pushTerm(m.pushing),
+                accordion: hayAcordeon ? accordionTerm(m.placement, mediaPlace) : 0,
+              },
+              mediaPush,
+            )
+          : 1
         const cost =
           blockCost(block, compromisoReal, pulling, relayers.size, STAGE.dx, arropo) *
-          (1 + STAGE.heatCostScale * calor)
+          (1 + STAGE.heatCostScale * calor) *
+          tactico
         m.energy = Math.max(0, m.energy - cost)
         m.work += cost
         /**
@@ -4546,7 +4873,17 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
        * depender de su longitud, que es lo que la hacía absurda: una bajada de quince kilómetros no
        * descuelga quince veces más que una de uno.
        */
-      if (block.tipo === 'descenso' && km - descentStartKm > STAGE.descentSelectKm) return dropped
+      /**
+       * …Y EL DESCENSO FINAL SELECCIONA MÁS QUE UNO DE MITAD DE ETAPA (R15a.7, S-280, paso 14): con
+       * la meta a menos de 25 km la bajada entera selecciona, no su primer kilómetro. No es una
+       * excepción caprichosa: en mitad de etapa nadie se juega la carrera bajando y el grupo se
+       * ordena; con la línea cerca, el que baja mal la pierde ahí y lo sabe.
+       */
+      const seleccionaKm =
+        colocacionOn && totalKm - km <= STAGE.placement.descentFinalKmToGo
+          ? Infinity
+          : STAGE.descentSelectKm
+      if (block.tipo === 'descenso' && km - descentStartKm > seleccionaKm) return dropped
       const alive = members.filter((m) => m.groupId === group.id)
       const pace = pacemakerP75(alive, block, paceFraction)
       const inGroup = new Set(alive.map((m) => m.input.riderId))
@@ -4815,7 +5152,22 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
        */
       const corte = (group: Group, dentro: RiderSim[]): void => {
         if (dentro.length <= cabenEnFila) return
-        if (!rollHazard(rngViento, STAGE.windBreakPerKm * vientoLateral)) return
+        /**
+         * …Y EL ABANICO GANA AUTOR (R15a.3b, S-165: «en gran vuelta el abanico lo provocan los
+         * equipos de la general con sus rodadores y sus jefes colocados, para sacar minutos a un
+         * favorito mal colocado»).
+         *
+         * Hasta aquí un abanico PASABA: era un dado por kilómetro y no lo decidía nadie, de modo que
+         * el invariante 60 —«el abanico tiene autor» ≥ 50 %— medía algo que ninguna regla producía.
+         * Con la colocación encendida, un equipo que tenga con qué —viento, los suyos delante, un
+         * rival de general mal colocado y presupuesto— lo ABRE, y entonces el corte no necesita
+         * dado: se ha decidido.
+         *
+         * El dado se conserva para el abanico que no decide nadie, que también existe: el viento
+         * parte grupos sin que ningún director lo pida.
+         */
+        const autor = colocacionOn ? autorDelAbanico(dentro, km, vientoLateral) : null
+        if (autor === null && !rollHazard(rngViento, STAGE.windBreakPerKm * vientoLateral)) return
         /**
          * LA COLOCACIÓN, medida en PUNTOS DE PERFIL para que las cuatro cosas se puedan comparar
          * entre sí y ninguna sea un veto:
@@ -4837,6 +5189,20 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         for (const m of dentro) {
           const helpers = domestiquesFor.get(m.input.riderId)
           const arropado = helpers != null && helpers.some((id) => idsDentro.has(id))
+          /**
+           * …Y DESDE EL PASO 14, EL ABANICO DEJA DE SER UN DADO DE COLOCACIÓN (R15a.3). Los que
+           * entran en el corte son los `cabenEnFila` que van más adelante, y punto. Se retiran los
+           * tres sumandos de arriba —el bonus por ser el dueño del frente, el bonus por ir arropado
+           * y la suerte—: **el equipo que quiere estar delante lo consigue GASTANDO** kilómetro a
+           * kilómetro, no con un premio en el instante del corte.
+           *
+           * El signo se invierte porque `placement` va al revés que los puntos de perfil: 0 es la
+           * cabeza de la fila y el orden de abajo es descendente.
+           */
+          if (colocacionOn) {
+            colocacion.set(m.input.riderId, -m.placement)
+            continue
+          }
           colocacion.set(
             m.input.riderId,
             riderPerfil(m, block) +
@@ -4885,6 +5251,8 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
             wind: Math.round(100 * vientoLateral),
             grupo: group.id,
             toGo: Math.round(totalKm - km),
+            // QUIÉN LO ABRIÓ, cuando lo abrió alguien (R15a.3b + R23.3). Sin dueño no se inventa uno.
+            ...(autor !== null ? { byTeam: autor } : {}),
           },
         )
       }
@@ -7386,7 +7754,58 @@ function finishStage(
         // tren: un grupo pequeño consume su tirada y la multiplica por 1 exacto.
         const sd = placementSd(members.length, present, eff.TAC)
         const draw = normal(rngPlacement, 1, sd)
-        score *= sd === 0 ? 1 : Math.max(1 - 3 * sd, Math.min(1 + 3 * sd, draw))
+        /**
+         * …Y DESDE EL PASO 14 EL DADO SE SUSTITUYE POR LA FILA DE VERDAD (R15a.4). El que llega el
+         * sesenta de un pelotón no pierde el sprint por mala suerte: lo pierde **porque está el
+         * sesenta**, y eso lleva doscientos kilómetros decidiéndose. La tirada se consume igual —el
+         * subflujo no se desplaza— y se descarta.
+         *
+         * Y CON ELLA LLEGA LA CAUSA QUE FALTABA (S-445): el ENCAJONADO. Un velocista puede perder
+         * llegando entero, bien lanzado y sin que le gane nadie, simplemente porque no llegó a
+         * abrir. Hoy eso no existía: si llegabas con piernas, rematabas.
+         */
+        // Mismo motivo que el `STAGE.teamPlay.enabled` de arriba: `finishStage` no recibe la
+        // entrada, así que el brazo A/B de la colocación se lee del interruptor.
+        if (STAGE.placement.enabled && sd > 0) {
+          /**
+           * …Y EL DADO NO DESAPARECE, SE PARTE EN DOS. **El mismo defecto de siempre: un número
+           * haciendo dos trabajos.**
+           *
+           * `placementSd` cobraba a la vez la COLOCACIÓN —que ahora existe de verdad— y el azar
+           * irreducible de un remate masivo: la rueda que se abre, el toque, el hueco que se cierra
+           * medio segundo antes. Sustituirlo entero por `placeFinishWeight` le quitaba al sprint
+           * **toda** su aleatoriedad —el peso varía un 18 % de punta a punta y menos de un 4 % entre
+           * aspirantes— y con eso el mejor velocista del campo pasaba de ganar el 40 % de las llanas
+           * a ganar el **52,5 %**, fuera de banda por arriba. Un sprint no es un ranking.
+           *
+           * Así que la colocación se queda con su mitad y el dado con la suya, amortiguado: lo que
+           * queda de azar cuando la posición ya no es un misterio.
+           */
+          const residual = sd * STAGE.placement.residualLuck
+          // Se REESCALA la tirada ya hecha en vez de tirar otra: `draw` es N(1, sd), así que
+          // `1 + (draw − 1)·k` es N(1, sd·k) sin consumir un dígito más del subflujo.
+          const amortiguada = 1 + (draw - 1) * STAGE.placement.residualLuck
+          score *=
+            residual === 0 ? 1 : Math.max(1 - 3 * residual, Math.min(1 + 3 * residual, amortiguada))
+          score *= placeFinishWeight(m.placement)
+          /**
+           * «Los carriles están llenos» se cuenta con los ASPIRANTES que van delante, no con el
+           * pelotón entero: lo que te tapa la salida es otro velocista abriendo, no el gregario que
+           * llega a rueda. Contando a todos, cualquiera por detrás de la mitad quedaba encajonado
+           * siempre y el encajonamiento dejaba de ser una noticia para ser un peaje.
+           */
+          const delante = members.filter(
+            (o) =>
+              o.input.riderId !== m.input.riderId &&
+              o.placement < m.placement &&
+              (STAGE.finishRoleWeight[o.input.orders.role] ?? 1) >= 1,
+          ).length
+          if (sprintFinish && isBoxed(m.placement, delante, STAGE.placement.lanes)) {
+            score *= STAGE.placement.boxedEffect
+          }
+        } else {
+          score *= sd === 0 ? 1 : Math.max(1 - 3 * sd, Math.min(1 + 3 * sd, draw))
+        }
         return { m, score }
       })
       .sort((a, b) => b.score - a.score)

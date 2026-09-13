@@ -1,12 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { StageProfile } from '../stage/types.js'
-import {
-  CLIMB_MIN_KM,
-  finalKindOf,
-  kmAfterLastClimb,
-  lastClimbKm,
-  profileKm,
-} from './finalKind.js'
+import { CLIMB_MIN_KM, finalKindOf, kmAfterLastClimb, lastClimbKm, profileKm } from './finalKind.js'
 
 /**
  * LA GEOMETRÍA DEL FINAL DE UNA REINA (docs/tactica.md §7.5, paso 0).
