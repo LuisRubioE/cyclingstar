@@ -12748,3 +12748,64 @@ fases se enciendan, que es lo que R19.2bis manda.
 Las seis dentro, y la reina **no se mueve un dígito**: es el perfil más limpio de toda la tanda, y por
 eso es éste el que se enciende y no otro. Las huellas se re-sellan con su causa declarada —`llana-180-0`
 conserva ganador y entra 46 segundos más despacio— y los 104 invariantes siguen en verde.
+
+## v60 §14 — Los directores falibles, y **una lectura mala acababa la etapa**
+
+`ENGINE_VERSION` **65 → 65**. R24 (la pizarra) y R13.1 (oler la sangre) construidos y medidos, con el
+hallazgo más afilado de la tanda y un guardarraíl que no se mueve.
+
+### Mismos vatios, distinto número
+
+El pelotón perseguía sobre el hueco **real**, medido al centímetro y al instante. En carretera eso no
+existe: el coche recibe el tiempo con retraso, la pizarra va redondeada a 5, 10 o 15 segundos según
+lo bueno que sea el director, y encima se equivoca. De ahí sale la frase que el catálogo pide y que
+el motor no sabía producir: «de vez en cuando la caza no llega por treinta segundos que nadie tenía
+apuntados».
+
+La física **no se toca**: `gapReal` sigue decidiendo si un grupo alcanza a otro. Lo que cambia es
+sobre qué cifra DECIDE el director.
+
+Y con la misma pieza entra R13.1, el **contrario nº 9**: el rival le lee el depósito al maillot **con
+error** (TAC 90 se equivoca la mitad que TAC 40) y si le huele sangre, ataca. Hoy el motor hace lo
+contrario —su mecanismo es «ciego a la identidad del que flaquea», lo dice su propia regla— así que
+el día que el líder cede sus rivales atacan MENOS.
+
+### El hallazgo: **claudicar no puede leerse de la pizarra**
+
+Primera medida, con el número creído alimentando toda la caza:
+
+| llana canónica, 120 semillas | apagado | directores falibles |
+| ---------------------------- | ------: | ------------------: |
+| gana la fuga                 |   6,7 % |          **52,5 %** |
+| captura                      |    92 % |            **44 %** |
+| gana el mejor sprinter       |  40,0 % |              21,7 % |
+
+La fuga ganaba **la mitad de las llanas**. Y la causa no es el ruido en sí: es **dónde se aplicaba**.
+`chaseAbandoned` es una decisión **permanente** —una vez que el pelotón claudica no vuelve hasta que
+la carretera se despeja—, y alimentándola con un número ruidoso **una sola lectura mala en 180 km
+acaba la etapa**.
+
+Un director no se rinde por la cifra de un instante: se rinde después de verla un rato. La cifra
+equivocada le hace apretar de más o de menos —eso sí, y es la conducta que se busca— pero no le hace
+tirar la etapa a la basura. Así que **el ritmo se decide sobre la pizarra y la claudicación sobre el
+hueco real**, y con eso:
+
+| llana canónica, 120 semillas | apagado | directores falibles | banda |
+| ---------------------------- | ------: | ------------------: | ----- |
+| gana la fuga                 |   6,7 % |               5,8 % | 5-16  |
+| gana el mejor sprinter       |  40,0 % |              38,3 % | 30-45 |
+| captura                      |    92 % |                94 % | > 85  |
+| km de la caza                |    18,8 |                20,8 | 8-25  |
+| gana la fuga (reina)         |  26,7 % |              26,7 % | 25-45 |
+
+De 52,5 % a 5,8 % moviendo una decisión de sitio. Las cinco bandas dentro.
+
+### Y aun así se queda apagado, por el mismo listón de siempre
+
+Con los 104 invariantes: **103 pasan**. El que no, otra vez Il Lombardia, por encima del 14 % de
+pájaras — el listón que esta misma tanda ya subió de 12 a 14 con su medida delante (v60 §11).
+
+**No se mueve dos veces.** Subir un guardarraíl una vez con la medida es corregir un listón que no
+tenía holgura; subirlo cada vez que un racimo lo roza es quitarlo. El paso 11 se queda apagado, con
+todo escrito y con la corrección de la claudicación puesta —que es inerte con el interruptor apagado
+y correcta cuando se encienda—.

@@ -4134,6 +4134,41 @@ export const STAGE = {
     reliefLambda: 1.8,
   },
 
+  /**
+   * LOS DIRECTORES BOT (R24, docs/tactica.md paso 11). Mismos vatios, distinto número en la pizarra.
+   *
+   * Es el racimo más peligroso del plan —desafina TODAS las cazas— y por eso su interruptor no es un
+   * adorno: apagado, el director ve el hueco exacto al instante, que es el motor de siempre.
+   */
+  director: {
+    enabled: false,
+    /**
+     * La calidad media de dirección del campo, y cuánto varía de un equipo a otro. El diseño pide
+     * una base por división (WT 0,85 · PRS 0,65 · CON 0,50); la división no viaja en `StageInput`,
+     * así que de momento manda la media con su dado. Ver `dirQualityOf`.
+     */
+    qualityBase: 0.67,
+    qualitySd: 0.1,
+    /** Km de retraso del número: el coche recibe el tiempo con retraso, y el malo con más. */
+    lagBase: 0.8,
+    lagQuality: 1.2,
+    /** Y cuánto se equivoca además del redondeo de la pizarra. */
+    sdBase: 6,
+    errorSlope: 18,
+    /**
+     * CUÁNTO SE EQUIVOCA UNO LEYENDO EL ESTADO DE OTRO (R24.5), y cuánto le ayuda su TAC. Con TAC 90
+     * el error es de 0,08 y con TAC 40 de 0,19: el que lee la carrera se equivoca la mitad.
+     */
+    signalSdBase: 0.28,
+    signalSdPerTac: 0.0022,
+    /**
+     * A PARTIR DE QUÉ LECTURA SE HUELE LA SANGRE, y cuánto sube el apetito de atacar (R13.1). Es el
+     * contrario nº 9: hoy, el día que el maillot cede, sus rivales atacan MENOS.
+     */
+    bloodThreshold: 0.45,
+    bloodGain: 0.7,
+  },
+
   launchWorstFinisherM: 90,
 
   muroMaxKm: 1,

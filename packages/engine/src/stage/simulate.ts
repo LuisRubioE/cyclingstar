@@ -46,6 +46,7 @@ import {
 } from './physics.js'
 import { blockProbability, rollHazard } from './hazard.js'
 import { type RelayQueue, advanceQueue, emptyQueue } from './relayQueue.js'
+import { believedGap, bloodFactor, dirQualityOf, infoLagKm, readState } from './director.js'
 import { type ChaseCandidate, chaseTargetOf, desiredGapOf, frontClaimOf } from './frontAuction.js'
 import {
   type CustomsMove,
@@ -993,6 +994,12 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
    * nuevo.
    */
   const rngTactics2 = streams('tactics2')
+  /**
+   * Subflujo NOMINAL de la pizarra (R24.2, SPEC 6.1): el error del director no puede salir de
+   * `rngTactics`, que ya consume los intentos y la aduana. Con flujo propio, una etapa con los
+   * directores apagados sale dígito a dígito como antes.
+   */
+  const rngPizarra = streams('pizarra')
   const rngSprint = streams('sprint')
   // Subflujo NOMINAL de la COLOCACIÓN en meta (v24, SPEC 6.1, docs/motor.md §12.6). Mismo motivo
   // que `rngRough` y `rngAbandon`: el dado de la colocación no puede salir de `rngSprint`, que
@@ -1762,10 +1769,45 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       colaOn && sim
         ? jerseyAttackFactor(hasGcContext && sim.input.gcRank === 1, gcCushionOf(riderId))
         : 1
+    /**
+     * …Y **EL DÍA QUE EL MAILLOT CEDE, SUS RIVALES ATACAN MÁS** (R13.1, el contrario nº 9).
+     *
+     * Hoy atacan MENOS: el mecanismo que existe es ciego a la identidad del que flaquea —lo dice su
+     * propia regla— y vive solo dentro del ataque final. Aquí el rival mira al líder, LE LEE EL
+     * DEPÓSITO CON ERROR (R24.5) y si le huele sangre se tira.
+     *
+     * Que el que mira se equivoque es la gracia: hay falsos positivos —se ataca a un líder que
+     * estaba entero— y falsos negativos —el que disimula se salva—, y las dos cosas son la mitad de
+     * la carrera que se juega mirando caras.
+     */
+    const olfato = dirOn && sim ? sangreDelLider(sim) : 1
     const t = teamOf.get(riderId)
-    if (t == null) return deJersey
+    if (t == null) return deJersey * olfato
     const stance = teamNow.get(t)
-    return (stance == null ? 1 : teamAttackFactor(stance, colaOn)) * deJersey
+    return (stance == null ? 1 : teamAttackFactor(stance, colaOn)) * deJersey * olfato
+  }
+
+  /**
+   * CUÁNTO LE HUELE LA SANGRE AL LÍDER ESTE CORREDOR. Vale 1 —sin efecto— si no hay general en
+   * juego, si el que mira ES el líder, si es de su casa, o si no está lo bastante cerca en la
+   * general como para que atacar le sirva de algo.
+   */
+  const sangreDelLider = (r: RiderSim): number => {
+    if (!hasGcContext) return 1
+    if (r.input.gcRank === 1) return 1
+    let lider: RiderSim | null = null
+    for (const s2 of sims.values()) {
+      if (s2.abandonedKm === null && s2.input.gcRank === 1) {
+        lider = s2
+        break
+      }
+    }
+    if (lider === null) return 1
+    if (lider.input.teamId != null && lider.input.teamId === r.input.teamId) return 1
+    // Solo los que se juegan algo: un fugado a cuarenta minutos no ataca al maillot por olerle nada.
+    if (r.input.gcDeficitSeconds > STAGE.gcControlLeash) return 1
+    const fraccion = lider.energy0 > 0 ? lider.energy / lider.energy0 : 0
+    return bloodFactor(readState(fraccion, riderEff(r).TAC, normal(rngPizarra, 0, 1)))
   }
   /**
    * EL COLCHÓN DEL LÍDER: lo que le saca al siguiente de la general. Sin general en juego no hay
@@ -1837,6 +1879,43 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
   const colaOn = input.flags?.teamPlay === true || STAGE.teamPlay.enabled
   /** ¿Y las pancartas del paso 10? Ver `STAGE.banners.enabled`. */
   const bannersOn = input.flags?.banners === true || STAGE.banners.enabled
+  /** ¿Y los directores falibles del paso 11? Ver `STAGE.director.enabled`. */
+  const dirOn = input.flags?.director === true || STAGE.director.enabled
+  /**
+   * EL HISTORIAL DEL HUECO, kilómetro a kilómetro (R24.2). Hace falta para una sola cosa y no es un
+   * capricho: el número que el director maneja **es el de hace un rato**, no el de ahora. Sin
+   * historial no hay retraso que simular, solo ruido.
+   */
+  const huecoPorKm: { km: number; gap: number }[] = []
+  const dirQ = new Map<string, number>()
+  const calidadDe = (teamId: string): number => {
+    const cacheada = dirQ.get(teamId)
+    if (cacheada !== undefined) return cacheada
+    const q = dirQualityOf(teamId, seed)
+    dirQ.set(teamId, q)
+    return q
+  }
+  /**
+   * EL HUECO QUE EL DIRECTOR DEL EQUIPO QUE LLEVA EL FRENTE **CREE** QUE HAY.
+   *
+   * Es lo que la caza persigue con el interruptor encendido, y de aquí sale la frase que el catálogo
+   * pide y que el motor no sabía producir: «de vez en cuando la caza no llega por treinta segundos
+   * que nadie tenía apuntados». Sin dueño del frente no hay a quién preguntar y manda el hueco real.
+   */
+  const huecoDeLaPizarra = (real: number, kmAhora: number): number => {
+    if (!dirOn || frontTeamId === null) return real
+    const q = calidadDe(frontTeamId)
+    const kmDelDato = kmAhora - infoLagKm(q)
+    let atrasado = real
+    for (let i = huecoPorKm.length - 1; i >= 0; i--) {
+      const fila = huecoPorKm[i]!
+      if (fila.km <= kmDelDato) {
+        atrasado = fila.gap
+        break
+      }
+    }
+    return believedGap(atrasado, q, normal(rngPizarra, 0, 1))
+  }
   /**
    * LAS COLAS DE RELEVOS, una por grupo y viva toda la etapa (R18.1). Se crean a demanda y se
    * quedan: un grupo que se deshace deja su cola huérfana y no cuesta nada, y uno que se rehace con
@@ -2207,7 +2286,14 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         }
       }
       const ahead = front !== null
-      const gap = front ? peloton.tS - front.g.tS : 0
+      const gapReal = front ? peloton.tS - front.g.tS : 0
+      huecoPorKm.push({ km: kmRestantes, gap: gapReal })
+      /**
+       * …Y LO QUE LA CAZA PERSIGUE ES EL NÚMERO DE LA PIZARRA (R24.2), no el hueco real. La física
+       * no se toca: `gapReal` sigue siendo el que separa a los dos grupos y el que decide si se
+       * alcanzan. Lo que cambia es sobre qué cifra DECIDE el director.
+       */
+      const gap = huecoDeLaPizarra(gapReal, kmRestantes)
       const bunchId = mainId ?? PELOTON
       const menInPeloton = (plan: TeamPlan): number =>
         plan.memberIds.filter((id) => !rebels.has(id) && sims.get(id)?.groupId === bunchId).length
@@ -3198,15 +3284,28 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         )
         const desiredGap = gear.leash * frac
         const err = gap - desiredGap
-        const cierreNecesario = gap / Math.max(1, kmRestantes - STAGE.chaseCatchTargetKm)
         // Los sprinters solo claudican ante LA FUGA DEL DÍA y con un boquete de verdad. La fórmula
         // divide por los km que faltan hasta el punto de captura, así que cerca de meta declara
         // inviable cualquier cosa: sin estas dos condiciones, cada ataque tardío de 15 s sentaba a
         // los trenes y le regalaba la etapa. Antes no se notaba porque no había ataques tardíos.
+        /**
+         * CLAUDICAR SE DECIDE SOBRE EL HUECO REAL, NO SOBRE LA PIZARRA (R24.2, corrección medida).
+         *
+         * El número de la pizarra manda en el RITMO —cuánto se aprieta ahora mismo—, y ahí un error
+         * de quince segundos es exactamente la conducta que se busca. Pero `chaseAbandoned` es una
+         * decisión **permanente**: una vez que el pelotón claudica no vuelve hasta que la carretera
+         * se despeja. Alimentándola con un número ruidoso, **una sola lectura mala en 180 km acaba
+         * la etapa**: medido, la fuga pasaba a ganar el 52,5 % de las llanas con la captura al 44 %.
+         *
+         * Y es que un director no se rinde por la cifra de un instante: se rinde después de verla un
+         * rato. La cifra equivocada le hace apretar de más o de menos —eso sí—, pero no le hace tirar
+         * la etapa a la basura.
+         */
+        const cierreReal = gapReal / Math.max(1, kmRestantes - STAGE.chaseCatchTargetKm)
         const conceded =
           front?.dayBreak === true &&
-          gap >= STAGE.chaseNeverConcedeSeconds &&
-          cierreNecesario > gear.feasible
+          gapReal >= STAGE.chaseNeverConcedeSeconds &&
+          cierreReal > gear.feasible
         if (conceded) {
           chaseAbandoned = true
           log.emit(km, peloton.tS, 'caza_abandonada', 'sprinters_give_up', [])
