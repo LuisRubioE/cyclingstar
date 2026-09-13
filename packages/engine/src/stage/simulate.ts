@@ -3005,6 +3005,26 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
          * quién lleva la carrera aunque no haya cambiado nada.
          */
         const nombres = pull.ids.join()
+        /**
+         * ————— `pullMinWork` MIDE UN SÍNTOMA DEL DEFECTO QUE LA COLA ARREGLA (v64) —————
+         *
+         * `pull.best` es el trabajo acumulado por **UN HOMBRE** en la ventana que se olvida cada
+         * kilómetro, y el listón de 0,35 está calibrado contra un motor en el que **los mismos
+         * hombres iban al frente todo el día**: por eso uno solo llegaba a acumular tanto.
+         *
+         * Con el turno convertido en cola (R18.1, docs/tactica.md paso 7) un hombre da la cara 600
+         * metros y se va al final de la fila, así que **nadie acumula**. Medido en el km 100 de una
+         * etapa sin fuga con la cola encendida: el mejor lleva **0,066** contra el listón de 0,35, y
+         * el parte de relevos pasa de **24 etapas de 24 a 0 de 24**. No es que nadie tire —tiran
+         * todos, y por turnos, que es lo que se quería—: es que el indicador pregunta quién lleva
+         * mucho rato delante, y una rotación de verdad hace que la respuesta sea «nadie».
+         *
+         * El arreglo NO es bajar el 0,35, y tampoco medirlo por equipos: se probó, y en el campo de
+         * este banco —que no tiene `teamId`— la suma por casa da exactamente lo mismo que el mejor
+         * hombre. Lo que hay que medir es **el trabajo total al frente**, que es invariante a cómo
+         * se reparta, y eso lleva su propia calibración en los dos brazos. Queda escrito aquí y en
+         * docs/balance.md «v60 §11»; se hace cuando la cola se encienda, no antes.
+         */
         if (
           pull.ids.length > 0 &&
           pull.best >= STAGE.pullMinWork &&

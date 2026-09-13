@@ -12555,3 +12555,75 @@ captura deja de ser un kilómetro cualquiera. Eso es diseño.
 Y queda una pieza sin diagnosticar de las cinco: el corte grande de Bességes e4 y el parte de relevos
 sin fuga. El escenario del corte no se reproduce con el banco del reagrupamiento —no emite un solo
 `peloton_split`—, así que hace falta el suyo propio y va al siguiente paso.
+
+## v60 §11 — Los cinco, diagnosticados enteros: **cuatro son dados, uno es un indicador roto**
+
+`ENGINE_VERSION` **64 → 64**. Completa la v60 §10 con los dos que faltaban, y el segundo es el
+hallazgo de esta entrada.
+
+### El corte grande: deriva, y una corrida de veinticuatro
+
+Sobre el escenario de la telemetría (130 km llanos + 20 km al 8 %), 24 semillas:
+
+| palanca         | corridas con corte | cumplen el listón | mayor caída, mediana |
+| --------------- | -----------------: | ----------------: | -------------------: |
+| ninguna         |              24/24 |             24/24 |                   32 |
+| juego de equipo |              24/24 |             24/24 |                   32 |
+| fases           |              22/24 |             22/22 |                   31 |
+| aduana          |              24/24 |             24/24 |                   32 |
+| subasta         |              24/24 |             24/24 |                   32 |
+| **las cuatro**  |              24/24 |         **23/24** |               **29** |
+
+**Ninguna palanca lo rompe sola**, y con las cuatro falla **una corrida de veinticuatro** mientras la
+mayor caída mediana sigue en 29 contra un listón de 12. O sea que la selección sigue siendo violenta
+en veintitrés de veinticuatro etapas y hay una que se deshilacha poco a poco, que es una carrera
+legítima. Es la misma forma que el reagrupamiento: **una aserción de «todas las corridas» sobre una
+muestra pequeña**, con la conducta intacta por debajo.
+
+### El parte de relevos: **esto no es un dado, es un indicador que mide lo que no debe**
+
+| palanca             | etapas con parte de relevos (de 24) |
+| ------------------- | ----------------------------------: |
+| ninguna             |                               24/24 |
+| **juego de equipo** |                            **0/24** |
+| fases               |                               24/24 |
+| aduana              |                               24/24 |
+| subasta             |                               24/24 |
+| las cuatro          |                                0/24 |
+
+No es deriva: es un interruptor, y es **mío**. La cola del turno (R18.1) apaga el parte de relevos
+por completo.
+
+La causa, instrumentada en el km 100 de una etapa sin fuga: el parte solo se emite si el hombre que
+más ha tirado supera `pullMinWork` = **0,35** de trabajo acumulado en una ventana que se olvida cada
+kilómetro. Con la cola encendida, el mejor lleva **0,066**.
+
+Y **no es que nadie tire**: tiran todos, y por turnos, que es exactamente lo que la cola existe para
+conseguir. Lo que pasa es que **el indicador pregunta quién lleva mucho rato delante**, y una
+rotación de verdad hace que la respuesta sea «nadie». `pullMinWork` = 0,35 está calibrado contra un
+motor donde los mismos hombres iban al frente todo el día — o sea, **contra el defecto**.
+
+Se probó el arreglo obvio —medirlo por casa en vez de por hombre, que además es lo que el parte ya
+dice— y **no sirve**: en el campo de este banco los corredores no llevan `teamId`, así que la suma
+por equipo da exactamente el mismo 0,066. Se revirtió.
+
+Lo que hay que medir es **el trabajo total al frente**, que es invariante a cómo se reparta. Eso
+lleva su propia calibración en los dos brazos y se hace cuando la cola se encienda, no antes. Queda
+escrito en el código, junto al listón.
+
+### El balance de los cinco, ya completo
+
+| guardarraíl          | qué es                                                                                        |
+| -------------------- | --------------------------------------------------------------------------------------------- |
+| reagrupamiento       | **el listón ya era falso**: 8/8 exigido, 23/24 real hoy. Arreglado con 24 semillas y suelo 21 |
+| corte grande         | 1 corrida de 24, mediana intacta en 29. Dado sobre muestra pequeña                            |
+| criba lejos de meta  | 11 de 24 contra 12, deriva acumulada, ninguna palanca sola                                    |
+| captura de la fuga   | en cuesta pasa de 6/90 a 0/90; en llano SUBE (24 → 26 de 30)                                  |
+| **parte de relevos** | **indicador roto**: mide un síntoma del defecto que la cola arregla                           |
+
+Cuatro de los cinco son guardarraíles apoyados en muestras demasiado pequeñas para lo que afirman —
+el defecto V1 de este repositorio, cinco veces seguidas en el mismo sitio. El quinto es un fallo de
+verdad, y está localizado con su número.
+
+**Lo que sigue sin ser mío**: si la capa táctica merece sus trece puntos de reagrupamiento narrado y
+sus cuatro cribas. Eso es diseño.
