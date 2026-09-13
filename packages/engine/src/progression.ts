@@ -1,4 +1,5 @@
 import {
+  ATTRIBUTE_CLASS,
   ATTRIBUTES,
   type Attribute,
   type HealthState,
@@ -6,8 +7,13 @@ import {
   type TrainingChoice,
   sessionTss,
 } from '@cyclingstar/shared'
-import { applyDailyLoad, illnessProbability, regressMorale } from './banister.js'
-import { TRAINING } from './constants.js'
+import {
+  applyDailyLoad,
+  effectiveFragility,
+  illnessProbability,
+  regressMorale,
+} from './banister.js'
+import { HEALTH, TRAINING } from './constants.js'
 import { uniformInt } from './random.js'
 
 /**
@@ -24,6 +30,17 @@ export interface RiderDayState {
   morale: number
   health: HealthState
   healthUntilDay: number | null
+  /**
+   * DÍAS PASADO DE ROSCA, acumulados (docs/entrenamiento.md §5.6). Sube uno por cada día con el
+   * depósito por debajo de −35 y baja DOS por cada día por encima: entrar en sobrecarga cuesta
+   * tiempo y salir es más rápido, que es como funciona el cuerpo.
+   *
+   * Es un contador y no un dado diario a propósito: «llevas cinco días pasado de rosca» se puede
+   * ver venir y se puede evitar; un 6 % por día no se le explica a nadie.
+   */
+  strainDays?: number
+  /** Días seguidos tocado —molestias o enfermo—. Lo lee el rediseño táctico para la cuneta. */
+  illDays?: number
 }
 
 export interface RiderDayContext {
@@ -39,6 +56,13 @@ export interface RiderDayContext {
   kStaff: number
   /** Multiplicador por entrenar en grupo con compañeros (1 = solo/sin bonus). */
   kGroup?: number
+  /**
+   * Atributos que este corredor movió —entrenando o corriendo— en los últimos 7 días. Amortiguan su
+   * declive por edad. Opcional: sin él se comporta como antes, mirando solo lo de hoy.
+   */
+  trainedLast7?: ReadonlySet<Attribute>
+  /** Sesiones de gimnasio en los últimos catorce días: dos o más bajan la fragilidad un 5 %. */
+  gymSessionsLast14?: number
   rng: () => number
 }
 
@@ -67,15 +91,73 @@ function kIntensity(intensity: TrainingChoice['intensity']): number {
   return TRAINING.kIntNormal
 }
 
-function kAge(age: number, peakAge: number, declineAge: number): number {
-  if (age <= peakAge - 6) return 1.15
-  if (age <= peakAge - 2) return 1.05
-  if (age <= peakAge + 1) return 0.95
-  if (age <= declineAge) return 0.75
-  return 0.4
+/** Lo que la intensidad le hace al riesgo de romperse. La otra mitad del intercambio. */
+function kRiesgo(intensity: TrainingChoice['intensity']): number {
+  if (intensity === 'suave') return TRAINING.kRiesgoSuave
+  if (intensity === 'fuerte') return TRAINING.kRiesgoFuerte
+  return TRAINING.kRiesgoNormal
 }
 
-function kDim(attr: number, ceiling: number): number {
+/**
+ * LA FRESCURA, EN RAMPA Y NO EN ESCALÓN (docs/entrenamiento.md §4.3). Entre −15 y −35 se pierde
+ * ganancia de forma continua, que es lo que permite dosificar: antes, a −29 se rendía como fresco y
+ * a −31 se perdía el 75 % de golpe.
+ */
+export function kReady(tsb: number): number {
+  if (tsb >= TRAINING.kReadyTsbFull) return 1
+  if (tsb <= TRAINING.kReadyTsbRamp) return TRAINING.kReadyLow
+  const t = (tsb - TRAINING.kReadyTsbFull) / (TRAINING.kReadyTsbRamp - TRAINING.kReadyTsbFull)
+  return 1 + t * (TRAINING.kReadyRampEnd - 1)
+}
+
+/** La sesión que no cabe en la base que uno tiene. */
+function kAbsorb(tssHoy: number, ctl: number): number {
+  return tssHoy > TRAINING.kAbsorbCtlWeight * ctl + TRAINING.kAbsorbCtlOffset
+    ? TRAINING.kAbsorbFactor
+    : 1
+}
+
+/** Entrenar con el cuerpo a medias rinde a medias. */
+function kSalud(health: RiderDayState['health']): number {
+  if (health === 'molestias') return TRAINING.kSaludMolestias
+  return health === 'sano' ? 1 : 0
+}
+
+/**
+ * EL RELOJ DE EDAD, AHORA POR CLASE DE ATRIBUTO (docs/entrenamiento.md §4.1).
+ *
+ * Antes era un solo tramo para todo el corredor, anclado a `peakAge`: el mismo número para el
+ * esprint y para el fondo. Eso no podía representar lo que el dueño describió —«un ciclista sí
+ * mejora después de los 24, pero mejora en cosas diferentes»— porque el reloj no sabía de qué
+ * atributo estaba hablando.
+ *
+ * `peakAge` deja de entrar en la cuenta y no es un descuido: los tramos son absolutos y el que
+ * marca el final es `declineAge`, que es el que de verdad varía de un corredor a otro. `peakAge`
+ * sigue usándose en el resto del motor.
+ */
+export function kAge(attr: Attribute, age: number, declineAge: number): number {
+  const t = TRAINING.kAgeByClass[ATTRIBUTE_CLASS[attr]]!
+  if (age <= 21) return t.hasta21
+  if (age <= 24) return t.hasta24
+  if (age <= 27) return t.hasta27
+  if (age <= 30) return t.hasta30
+  if (age <= declineAge) return t.hastaDeclive
+  return t.despues
+}
+
+/**
+ * EL FRENO AL ACERCARSE AL TECHO, y por qué está exportado.
+ *
+ * Es el mismo `kDim` que usa el entrenamiento, sin segunda forma. Se saca del fichero porque el
+ * banco de mundo necesita PROBARLO en la rama de carrera antes de que nadie lo enchufe ahí: el
+ * rediseño de entrenamiento propone meterlo en `raceLearning`, y eso tiene un precio grande —correr
+ * enseñaría alrededor de la mitad de puntos brutos—, así que se mide con el brazo del banco antes de
+ * comprometer una línea del motor. Reimplementarlo en el banco habría sido más fácil y habría medido
+ * otra cosa.
+ *
+ * No cambia nada: es la misma función en el mismo sitio, con `export` delante.
+ */
+export function kDim(attr: number, ceiling: number): number {
   if (attr >= ceiling) return 0
   const denom = Math.max(TRAINING.kDimDenomFloor, ceiling - TRAINING.kDimCeilingRef)
   return Math.min(TRAINING.kDimCap, Math.pow((ceiling - attr) / denom, TRAINING.kDimExponent))
@@ -99,11 +181,66 @@ export function simulateRiderDay(state: RiderDayState, ctx: RiderDayContext): Ri
   }
   let ill = health === 'enfermo' || health === 'lesionado'
 
+  /**
+   * LA TENSIÓN ACUMULADA, y las molestias que salen de ella (docs/entrenamiento.md §5.6).
+   *
+   * Hasta aquí `molestias` existía en el modelo —el Banister tenía su multiplicador de 0,96
+   * escrito— y **no lo producía nadie**: era un estado muerto. Con eso, la única forma de que
+   * entrenar mal costara algo era enfermar, y enfermar es un dado. Medido en el banco de política:
+   * machacarse en rojo todos los días durante quince temporadas enfermaba un 1 % más que entrenar
+   * bien. Ahora el sobreentrenamiento tiene su propia vía, visible y acumulativa.
+   */
+  const fragilidad = effectiveFragility(
+    ctx.fragility,
+    state.attributes.REC,
+    ctx.gymSessionsLast14 ?? 0,
+  )
+  let strainDays = state.strainDays ?? 0
+  strainDays =
+    tsb < HEALTH.strainTsb ? strainDays + 1 : Math.max(0, strainDays - HEALTH.strainRecovery)
+
+  if (health === 'sano' && strainDays >= HEALTH.strainToMolestias) health = 'molestias'
+  else if (health === 'molestias' && tsb > HEALTH.molestiasRecoveryTsb) health = 'sano'
+
   // Riesgo de enfermar si está sano (SPEC 4.3): el sobreentrenamiento duele por aquí.
   if (!ill) {
-    if (ctx.rng() < illnessProbability(ctx.fragility, tsb)) {
+    // El riesgo lleva ya el precio de la intensidad: apretar el día que estás hundido cuesta más.
+    if (ctx.rng() < illnessProbability(fragilidad, tsb) * kRiesgo(ctx.choice.intensity)) {
       health = 'enfermo'
       healthUntilDay = ctx.gameDay + uniformInt(ctx.rng, TRAINING.illDaysMin, TRAINING.illDaysMax)
+      ill = true
+    }
+  }
+
+  /**
+   * LESIÓN POR SOBRECARGA. A los seis días pasado de rosca el cuerpo se rompe, y esto no es un dado
+   * más: es el final de una cuenta que el jugador ha podido ver subir durante casi una semana.
+   */
+  if (!ill && strainDays >= HEALTH.strainToInjury) {
+    const p =
+      HEALTH.overuseBase *
+      fragilidad *
+      (ctx.choice.intensity === 'fuerte' ? HEALTH.overuseHardFactor : 1)
+    if (ctx.rng() < p) {
+      health = 'lesionado'
+      healthUntilDay =
+        ctx.gameDay + uniformInt(ctx.rng, HEALTH.overuseDaysMin, HEALTH.overuseDaysMax)
+      ill = true
+    }
+  }
+
+  /** Y LESIÓN POR SESIÓN: hay dos que se hacen con el cuerpo y no con el motor. */
+  if (!ill) {
+    const pSesion =
+      ctx.choice.session === 'bajada_paves'
+        ? HEALTH.sessionInjuryPaves * fragilidad * kRiesgo(ctx.choice.intensity)
+        : ctx.choice.session === 'gimnasio'
+          ? HEALTH.sessionInjuryGym * fragilidad
+          : 0
+    if (pSesion > 0 && ctx.rng() < pSesion) {
+      health = 'lesionado'
+      healthUntilDay =
+        ctx.gameDay + uniformInt(ctx.rng, HEALTH.sessionInjuryDaysMin, HEALTH.sessionInjuryDaysMax)
       ill = true
     }
   }
@@ -115,10 +252,11 @@ export function simulateRiderDay(state: RiderDayState, ctx: RiderDayContext): Ri
     const info = SESSION_CATALOG[ctx.choice.session]
     tss = sessionTss(ctx.choice)
     activity = ctx.choice.session
-    const kReady = tsb < TRAINING.kReadyTsbThreshold ? TRAINING.kReadyLow : 1
+    const listo = kReady(tsb)
+    const absorbe = kAbsorb(tss, state.ctl)
+    const salud = kSalud(health)
     const kInt = kIntensity(ctx.choice.intensity)
     const kTal = kTalent(ctx.talent)
-    const kAg = kAge(ctx.age, ctx.peakAge, ctx.declineAge)
     for (const attr of ATTRIBUTES) {
       const gain = info.gains[attr]
       if (gain === undefined) continue
@@ -127,12 +265,14 @@ export function simulateRiderDay(state: RiderDayState, ctx: RiderDayContext): Ri
       const delta =
         gain *
         kTal *
-        kAg *
+        kAge(attr, ctx.age, ctx.declineAge) *
         kDim(attributes[attr], ceiling) *
         ctx.kInst *
         ctx.kStaff *
         kGroup *
-        kReady *
+        listo *
+        absorbe *
+        salud *
         kInt
       if (delta > 0) {
         attributes[attr] = Math.min(ceiling, attributes[attr] + delta)
@@ -151,9 +291,21 @@ export function simulateRiderDay(state: RiderDayState, ctx: RiderDayContext): Ri
     let loss = 0
     if (detraining) loss += TRAINING.detrainingLoss
     if (ageDecay > 0) {
-      let ageLoss = ageDecay
-      if (attr === 'DES' || attr === 'PAV') ageLoss *= TRAINING.desPavDecayFactor
-      if (trainedToday.has(attr)) ageLoss *= TRAINING.trainedDecayFactor
+      /**
+       * EL DECLIVE TAMBIÉN ES POR CLASE: la punta se va antes que el fondo. Hasta aquí solo DES y
+       * PAV tenían trato aparte; ahora un esprínter de 35 pierde su remate más deprisa de lo que
+       * pierde su fondo, que es lo que hace que un veterano siga siendo útil en algo.
+       */
+      let ageLoss = ageDecay * (TRAINING.decayClassFactor[ATTRIBUTE_CLASS[attr]] ?? 1)
+      /**
+       * …Y LA SEMANA, NO EL DÍA. El SPEC dice «lo que se entrenó esa semana» y esto miraba solo hoy:
+       * un veterano que trabaja un atributo tres veces por semana lo veía decaer entero los otros
+       * cuatro días. `trainedLast7` lo trae ya calculado —de la bitácora en producción, del registro
+       * en memoria en el banco— y cubre tanto lo entrenado como lo aprendido corriendo.
+       */
+      if (trainedToday.has(attr) || ctx.trainedLast7?.has(attr) === true) {
+        ageLoss *= TRAINING.trainedDecayFactor
+      }
       loss += ageLoss
     }
     if (loss > 0) attributes[attr] = Math.max(1, attributes[attr] - loss)
@@ -163,8 +315,19 @@ export function simulateRiderDay(state: RiderDayState, ctx: RiderDayContext): Ri
   const load = applyDailyLoad({ ctl: state.ctl, atl: state.atl }, tss, attributes.REC)
   const morale = regressMorale(state.morale)
 
+  const tocado = health === 'molestias' || health === 'enfermo'
   return {
-    state: { attributes, ctl: load.ctl, atl: load.atl, morale, health, healthUntilDay },
+    state: {
+      attributes,
+      ctl: load.ctl,
+      atl: load.atl,
+      morale,
+      health,
+      healthUntilDay,
+      strainDays,
+      // Días SEGUIDOS tocado: se reinicia en cuanto vuelve a estar sano.
+      illDays: tocado ? (state.illDays ?? 0) + 1 : 0,
+    },
     log: { tss, ctl: load.ctl, atl: load.atl, tsb: load.tsb, activity },
   }
 }

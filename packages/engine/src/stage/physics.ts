@@ -669,6 +669,21 @@ export function maxMatchCount(): number {
   return STAGE.matchBase + STAGE.matchThresholds.length
 }
 
+/**
+ * A PARTIR DE QUÉ TSB SE PIERDE UN CERILLO, según la RECUPERACIÓN del corredor (v62, decisión 4).
+ *
+ * Era un −25 para todo el mundo, o sea que REC —el atributo cuyo trabajo es exactamente aguantar
+ * yendo cargado— no decía nada aquí. Centrado en 50, que es el REC medio del campo.
+ *
+ * `matchCount` le pasa el REC **EFECTIVO** (`eff0.REC`, o sea con forma, salud y moral dentro) y no
+ * el crudo, igual que hace con MON, RES y LLA tres líneas más arriba. Tiene la consecuencia de que
+ * un corredor en mala forma pierde por los dos lados —peor TSB y peor recuperación efectiva—, y es
+ * la que se quiere: llegar hundido a una etapa es exactamente eso.
+ */
+export function matchTsbPenaltyThreshold(rec: number): number {
+  return STAGE.matchTsbPenaltyBase - STAGE.matchTsbPenaltyRecScale * (rec - 50)
+}
+
 export function matchCount(eff0: Eff, tsb: number, deepDepleted = false): number {
   const comp =
     STAGE.matchCompMonWeight * Math.max(eff0.MON, eff0.COL) +
@@ -676,7 +691,7 @@ export function matchCount(eff0: Eff, tsb: number, deepDepleted = false): number
     STAGE.matchCompLlaWeight * eff0.LLA
   let matches = STAGE.matchBase
   for (const threshold of STAGE.matchThresholds) if (comp >= threshold) matches += 1
-  if (tsb < STAGE.matchTsbPenaltyThreshold) matches -= 1
+  if (tsb < matchTsbPenaltyThreshold(eff0.REC)) matches -= 1
   if (deepDepleted) matches -= 1
   return Math.max(STAGE.matchMin, matches)
 }
@@ -689,23 +704,36 @@ export function depletion(energy: number, energy0: number): number {
 }
 
 /**
- * ¿Terminó la etapa con VACIADO PROFUNDO (SPEC 6.6)? Quien acaba por debajo del
- * `matchDepletionThreshold` de su depósito arranca la etapa siguiente con un cerillo menos
- * (`matchCount(eff0, tsb, deepDepleted)`), que hasta ahora nunca se activaba.
+ * A QUÉ PROFUNDIDAD DE VACIADO SE PAGA AL DÍA SIGUIENTE, según REC (v62, decisión 4).
+ *
+ * `0,06 + 0,12·(1 − REC/100)`: REC 50 → 0,12, que es el valor plano de antes; REC 90 → 0,072; REC 20
+ * → 0,156. Al que recupera bien hay que vaciarlo mucho más para que lo pague mañana.
  */
-export function isDeepDepleted(energy: number, energy0: number): boolean {
+export function deepDepletionThreshold(rec: number): number {
+  return STAGE.matchDepletionBase + STAGE.matchDepletionRecScale * (1 - rec / 100)
+}
+
+/**
+ * ¿Terminó la etapa con VACIADO PROFUNDO (SPEC 6.6)? Quien acaba por debajo de su umbral arranca la
+ * etapa siguiente con un cerillo menos (`matchCount(eff0, tsb, deepDepleted)`).
+ *
+ * El `rec = 50` por defecto NO es un atajo: es el valor que reproduce EXACTAMENTE el umbral plano de
+ * 0,12 de antes, así que un llamante que todavía no sepa el REC del corredor se comporta como
+ * siempre en vez de cambiar de conducta en silencio.
+ */
+export function isDeepDepleted(energy: number, energy0: number, rec = 50): boolean {
   if (energy0 <= 0) return false
-  return energy / energy0 < STAGE.matchDepletionThreshold
+  return energy / energy0 < deepDepletionThreshold(rec)
 }
 
 /** Foto del tanque de un corredor en meta (SPEC 6.6, 6.7), para telemetría e invariantes. */
-export function tankState(energy: number, energy0: number, res: number): TankState {
+export function tankState(energy: number, energy0: number, res: number, rec = 50): TankState {
   return {
     energy0,
     energy,
     depletion: depletion(energy, energy0),
     erosion: erosion(energy, energy0, res),
-    deepDepleted: isDeepDepleted(energy, energy0),
+    deepDepleted: isDeepDepleted(energy, energy0, rec),
   }
 }
 

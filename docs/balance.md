@@ -10142,3 +10142,2801 @@ La nube es **seis veces más ancha que el margen** que dejaba el listón. Es V1 
 También se descartó lo primero que uno piensa, que fuera el campo más flojo de la nueva generación de bots: el vaciado de white-roads da **0,952 exactamente igual con media 78, 75, 74, 73, 72 y 71**, porque este escenario corre con el campo sintético uniforme y no pasa por `generateNpcRider`. Y Lombardia, el peor caso histórico, **baja** de 0,908 a 0,894.
 
 El dueño eligió **subir el techo de 0,95 a 0,96**, que deja el listón por encima de la nube de la mediana (peor medida 0,952) con ocho milésimas. No cubre la peor semilla suelta —0,962— y no tiene por qué: lo que se comprueba es la mediana. La otra mitad de la alarma no se movió: las pájaras siguen pidiéndose marginales y white-roads está al 9-11 % contra un techo de 12, o sea que el tanque a cero sigue siendo la excepción.
+
+---
+
+## v59 §0 — La foto de antes del rediseño de entrenamiento
+
+Primer paso del plan de `docs/entrenamiento.md`. **No cambia una sola conducta**: `ENGINE_VERSION`
+sigue en 52 y `sim/world.test.ts` pasa sin tocar un valor. Lo único que hace es MEDIR, y por eso va
+antes que todo lo demás: los veinte pasos siguientes se van a comparar contra esto, y una línea base
+que se toma después de empezar a mover cosas ya no es una línea base.
+
+Ninguna de las filas nuevas lleva banda, a propósito. Poner la banda antes que la medida es escribir
+el resultado que uno espera.
+
+### Qué se añadió
+
+- **31 métricas nuevas** en `WorldSeasonRow`, todas informativas.
+- **`archetypeFromAttributes`** y **`attrStarsWhole`** en `packages/shared`, con sus pruebas. El
+  arquetipo se deriva de los ATRIBUTOS y no de la etiqueta de la ficha: contar por la etiqueta sería
+  medir el sorteo del nacimiento, no la población. `attrStarsWhole` es alias exacto de `attrStars`, y
+  existe porque el rediseño trae medias estrellas a la pantalla y «estrellas de un atributo» está a
+  punto de volverse ambiguo justo en la fila que vigila la banda del dueño.
+- **`RACE_DAY_TSS`** sale de `sim/world.ts` y pasa a `constants.ts` sin cambiar un número: esa
+  aproximación va a alimentar tres medidas y no puede seguir viviendo dentro del fichero de una.
+- **Banderas en la CLI** del banco de mundo (`--json`, `--sin-carreras`, `--politica`), separadas de
+  los posicionales. Antes `pnpm sim:mundo --json` metía `'--json'` por temporadas, daba `NaN` y el
+  banco corría cero temporadas sin decir por qué.
+- **`rolesPct`** en el banco de carreras pequeñas: qué reparte `autoStageOrders` cuando nadie le da
+  órdenes.
+
+### La foto, `pnpm sim:mundo 25 2`
+
+| Métrica                             |    t1 |        t5 |      t15 |   t25 |
+| ----------------------------------- | ----: | --------: | -------: | ----: |
+| **WT con algún atributo 5★ (%)**    |  21,6 |      40,6 | **82,4** |  76,1 |
+| …solo los maduros 26-31 (%)         |  20,4 |      46,9 | **89,3** |  88,4 |
+| cracks: 3+ de 5★ (%)                |   0,0 |       0,7 |      5,3 |   4,8 |
+| WT sin nada sobre 4★ (%)            |   2,8 |       2,3 |      0,0 |   0,3 |
+| …sin contar gregarios (%)           |   2,1 |       1,8 |      0,0 |   0,3 |
+| margen al techo · motor (%)         |   6,1 |       6,8 |      5,9 |   7,5 |
+| margen al techo · oficio (%)        |  14,1 |       9,5 |      7,7 |   9,2 |
+| margen ≤23 / 24-27 / 28+ (%)        |  21,1 |      18,1 |     15,6 |  17,3 |
+| — 24-27                             |   9,6 |       8,5 |      6,8 |   7,3 |
+| — 28+                               |   5,8 |       4,5 |      4,2 |   4,4 |
+| jóvenes 19-23 con margen ≥8 (%)     |  99,0 |      71,1 |     57,2 |  69,5 |
+| congelados jóvenes (%)              |  0,00 |      0,00 |     0,00 |  0,00 |
+| **crecimiento neopro WT (Δ carta)** |  2,24 | **10,55** |    10,74 | 11,05 |
+| puros: velocistas (%)               |  80,1 |      19,3 |     28,6 |  14,5 |
+| puros: escaladores (%)              |  59,7 |      30,3 |     17,8 |  32,6 |
+| el mejor es de su casa (% mundos)   |  50,0 |      50,0 |     50,0 | 100,0 |
+| curva edad aeróbica 20-21           | 1,072 |     1,006 |    0,872 | 0,873 |
+| curva edad aeróbica 33-35           | 0,945 |     0,818 |    1,024 | 0,972 |
+| curva edad neuro 20-21              | 1,019 |     0,952 |    0,844 | 0,808 |
+| curva edad neuro 33-35              | 0,927 |     0,797 |    1,008 | 0,981 |
+| TAC(33-35) − TAC(20-21)             |  4,88 |     −0,76 |    11,49 | 11,56 |
+| vets 34+ menos 28-30                | −5,38 |     −8,19 |    −0,98 | −0,33 |
+| aprendido/día ≤23                   | 0,744 |     0,495 |    0,340 | 0,403 |
+| — 24-27                             | 0,395 |     0,172 |    0,095 | 0,121 |
+| — 28+                               | 0,196 |     0,041 |    0,041 | 0,046 |
+| días enfermo / año                  |  3,02 |      3,10 |     3,03 |  2,89 |
+| **días con molestias / año**        |  0,00 |      0,00 |     0,00 |  0,00 |
+| gana RES / año                      |  1,66 |      0,75 |     0,74 |  1,05 |
+| gana TAC / año                      |  9,52 |      1,43 |     0,93 |  1,49 |
+
+Reparto por arquetipo (%), derivado de los atributos:
+
+| Arquetipo |   t1 |   t5 |  t15 |  t25 |
+| --------- | ---: | ---: | ---: | ---: |
+| escalada  | 19,9 | 21,8 | 23,8 | 23,8 |
+| velocidad | 11,3 |  9,0 |  9,4 |  9,5 |
+| clasicas  |  8,6 | 11,0 |  7,7 |  7,7 |
+| crono     | 11,0 | 10,6 |  8,0 |  8,9 |
+| fondo     |  0,7 |  1,1 |  2,7 |  1,6 |
+| puncheur  | 10,9 | 10,9 | 12,1 | 13,6 |
+| rodador   | 29,0 | 27,8 | 33,1 | 30,7 |
+| gregario  |  8,7 |  7,7 |  3,2 |  4,3 |
+
+Techo de carta de los neopros menos el de la generación inicial (`—` = ya no queda nadie de la
+generación inicial con quien comparar; hacia la t20 se han retirado todos, y escribir un 0 ahí sería
+inventarse un dato tranquilizador):
+
+| División |    t1 |    t5 |   t15 | t25 |
+| -------- | ----: | ----: | ----: | --: |
+| WT       |  9,88 |  9,55 | −3,82 |   — |
+| PRS      | 14,66 | 13,27 |  1,45 |   — |
+| CON      | 15,84 | 13,44 | −1,37 |   — |
+
+Estacionariedad `|media(t) − media(t−5)|` para t ≥ 10: **máx 4,98**.
+
+### Lo que la foto dice, y no es agradable
+
+**1. La banda del dueño no se cumple, y no por poco.** «Claramente menos del 15 % de momento» es lo
+que él pidió sobre los bots con cinco estrellas. Al NACER se cumple —la v58 lo dejó en 11,3 % del
+WorldTour, medido sobre `generateNpcRider`—, pero **en régimen sale 82,4 % en la temporada 15**, y
+entre los maduros de 26 a 31 años, **89,3 %**. O sea: la generación reparte bien y los años deshacen
+el reparto. La v58 midió el único sitio donde el número era bueno.
+
+Esto confirma por el banco lo que el rediseño había calculado por Monte Carlo, y es la razón por la
+que `cincoEstrellasWTPct` pasa a medirse **en t ≥ 5** y no al nacer.
+
+**2. El neopro crece +10,5 en su primera temporada, no «+4..+9».** `docs/entrenamiento.md` §3.5 daba
++4..+9 y la medida lo desmiente: 10,55 en la t5 y 11,05 en la t25. Es exactamente el número que el
+Monte Carlo del diseño había estimado (+10,5 sin `kDim`), así que dos métodos independientes dan lo
+mismo y la banda del documento estaba mal. Ya está corregida a **+4..+12** allí.
+
+**3. La pureza se hunde.** Los velocistas WT maduros que de verdad son velocistas —SPR de cuatro
+estrellas y montaña floja— pasan del 80,1 % en la t1 al **14,5 %** en la t25; los escaladores, del
+59,7 % al 32,6 %. Dicho de otra forma: el mundo empieza con especialistas y acaba con polivalentes,
+que es la misma enfermedad del punto 1 vista desde otro sitio.
+
+**4. `molestias` existe en el modelo y no la produce nadie.** El contador da 0,00 en las veinticinco
+temporadas, y no es un fallo del contador: `packages/engine/src/banister.ts` sabe consumir el estado
+—tiene su multiplicador, 0,96— y **ningún sitio del motor lo escribe jamás**. Es un estado muerto.
+
+**5. Los congelados jóvenes son 0,00 %**, y ésa es la buena noticia de la foto: la v50 arregló que el
+90 % del pelotón no pudiera mejorar, y sigue arreglado.
+
+**6. El reparto por arquetipo está escorado.** Un tercio del mundo es `rodador` y el `fondo` no llega
+al 3 %. Con el corte actual —la carta tiene que separarse 8 puntos de la media del propio corredor—
+casi todo el mundo acaba clasificado por LLA. No es necesariamente un defecto del mundo: puede ser
+del clasificador, y por eso la fila es informativa y no lleva banda.
+
+### El reparto de papeles, y por qué esta fila vale la pena
+
+`pnpm sim` imprime ahora lo que reparte `autoStageOrders` cuando nadie le da órdenes. En las 41
+etapas del banco de carreras pequeñas:
+
+| Papel      |        % |
+| ---------- | -------: |
+| gregario   | **70,7** |
+| cazaetapas |     14,1 |
+| lider      |     13,4 |
+| sprinter   |      0,9 |
+| lanzador   |      0,9 |
+| marcador   |      0,0 |
+| libre      |      0,0 |
+
+Siete de cada diez corredores salen de gregario, y **el `sprinter` y el `lanzador` juntos no llegan
+al 2 %**. `marcador` y `libre` no se reparten nunca: existen en el vocabulario y no los usa nadie.
+
+Esto importa ahora y no dentro de diez pasos. El dueño pidió VARIEDAD de estructuras de equipo —«un
+sprinter fuerte y el resto trabajando solo para él», «solo cazaetapas», «un sprinter Y un escalador»—
+y con un 0,9 % de sprinters y un 0,9 % de lanzadores **la estructura del sprinter con su tren
+prácticamente no existe en una carrera pequeña**, por bien escritas que estén las reglas que la
+contemplen. Sin esta medida, el día que las estructuras nuevas no produzcan la variedad pedida el
+defecto se le atribuiría a ellas, cuando la causa está una capa más arriba: en quién reparte los
+papeles del día.
+
+Es informativa y sin banda, como todo lo del paso 0. Su banda llega con el paso que toca el
+planificador.
+
+### Una diferencia que hay que vigilar en el paso 6, y que no es una contradicción
+
+El diseño estimó por Monte Carlo que `cincoEstrellasWTPct` **en régimen** daría **12,8 %**, con un
+techo del mecanismo —todo el mundo en su techo— del **18,0 %**. El banco, aquí, mide **82,4 %**.
+
+Los dos números no se contradicen porque no miden lo mismo: el Monte Carlo modela la **génesis v2
+propuesta** (`levelMu` 75/65/57, techos por madurez, presupuesto de dispersión, pureza) con
+`raceLearning` v2, y el banco mide **el motor de hoy** (la generación de la v58, `raceLearning` v1).
+Son mundos distintos y es esperable que den cosas distintas.
+
+Lo que sí hay que decir es que **la diferencia es de un factor cuatro contra el techo del propio
+modelo**: el Monte Carlo dice que ni poniendo a todo el mundo en su techo se pasa del 18 %, y el
+mundo de hoy va por el 82 %. O el mundo de hoy tiene techos mucho más altos que los que propone la
+v2 —que es lo probable, y entonces todo cuadra—, o el modelo del diseño es optimista en algún sitio.
+
+No se resuelve aquí y no hace falta: **el paso 6 vuelve a correr esta misma métrica con la cadena v2
+enchufada**, y si sale por encima de 18 % el que está mal es el modelo, no el banco. Queda anotado
+para que ese día se compare contra una predicción escrita antes y no contra una sorpresa.
+
+### Lo que NO se midió, y por qué
+
+`margenAlTechoPct` se parte por **motor / oficio** usando `ATTRIBUTE_GROWTH`, que es la partición que
+ya existe. La partición por CLASE que pide el diseño (`ATTRIBUTE_CLASS`) llega en el paso 3, y hasta
+entonces medir «por clase» sería medir una clase que no existe. `aprendidoPorCohorte` sale con una
+sola columna, la del banco: la de producción la trae el paso que la mide.
+
+---
+
+## v59 §1 — Los tres brazos del banco, y dos predicciones del diseño que no se cumplen
+
+Segundo paso del plan de `docs/entrenamiento.md`. Como el paso 0, **no cambia una sola conducta**:
+`ENGINE_VERSION` sigue en 52, la fórmula de `raceLearning` no cambia una coma y el brazo por defecto
+del banco es el mundo de siempre. Lo único que se añade son tres **brazos** —formas de correr el
+mismo mundo con una cosa cambiada— y una exportación: `kDim` sale de `progression.ts` para que el
+banco pueda probarlo en la rama de carrera sin que nadie lo enchufe todavía.
+
+Un banco con un solo brazo mide, pero no prueba: dice qué pasa, no si lo que pasa se debe a lo que
+uno cree.
+
+### Brazo 1 — la política de entrenamiento: `--politica=bot|buena|mala`
+
+Sirve para probar la frase «el entrenador bot es razonable, nunca óptimo», que hasta ahora era una
+opinión. `buena` no machaca en rojo (el `fuerte` del ciclo solo se paga con TSB > −10), afina los
+días previos a competir (5 a 9 según REC) y respeta los descansos; `mala` es construcción fuerte
+todos los días y nunca afina.
+
+Mismo corredor sembrado, mismo calendario, 15 temporadas:
+
+| Arm     | media t5 | media t15 | días enfermo/año | jóvenes con margen t15 |
+| ------- | -------: | --------: | ---------------: | ---------------------: |
+| `bot`   |    53,78 | **61,99** |             3,26 |                   59,7 |
+| `buena` |    53,51 |     61,66 |             3,25 |                   63,9 |
+| `mala`  |    51,93 |     58,66 |             3,29 |                   83,3 |
+
+**Las dos bandas que el diseño escribió para el paso 12 fallan hoy, y en direcciones distintas:**
+
+1. **`buena` no es mejor que `bot`: es 0,33 puntos PEOR.** El diseño pedía «`buena` gana ≥ +8 % de
+   puntos de atributo al año». Da −0,5 %. O el entrenador bueno está mal escrito, o —lo más probable
+   a la vista del punto 2— el motor no premia entrenar bien.
+2. **`mala` no enferma más: enferma exactamente igual.** 3,29 contra 3,26 días al año, que es un 1 %.
+   El diseño pedía «≥ 2× días enfermo/molestias». Machacarse en rojo todos los días del año durante
+   quince temporadas sale **prácticamente gratis en salud**, y lo único que cuesta son 3,3 puntos de
+   media en quince años.
+
+O sea que hoy **no se puede probar que el bot sea razonable**, porque no hay contra qué: la
+diferencia entre entrenar bien y entrenar como un animal casi no existe. Eso no es un defecto del
+brazo, es el hallazgo del brazo, y es exactamente lo que el paso 1 existía para descubrir. Las
+palancas que lo arreglan son las de §5.5 del diseño (coste de la intensidad, `kRiesgo`, `kReady`,
+salud por sobrecarga), que son los pasos 4 y 7.
+
+Un detalle que apunta a la causa y que hay que mirar en el paso 7: `mala` deja a los jóvenes con
+MÁS margen (83,3 % contra 59,7 %) y aprendiendo MÁS por día de carrera. No es que entrenar mal sea
+bueno: es que entrenar mal hace crecer menos, y quien menos crece conserva más margen. La fila de
+margen no distingue «tiene recorrido» de «no ha avanzado», y conviene saberlo antes de ponerle banda.
+
+### Brazo 2 — la carrera con freno: `--aprendizaje=conKDim`
+
+El rediseño propone meter `kDim` en `raceLearning` y declara un precio grande. Este brazo lo mide
+**antes de tocar el motor**:
+
+| Fila                             |      hoy | con `kDim` |
+| -------------------------------- | -------: | ---------: |
+| aprendido/día, cohorte ≤23 (t15) |    0,370 |  **0,180** |
+| `crecimientoNeoproWT` (t15)      |    10,25 |   **4,95** |
+| jóvenes con margen ≥8 (t15)      |     59,7 |   **79,2** |
+| margen ≤23 (t15)                 |     15,4 |       17,5 |
+| **WT con algún 5★ (t15)**        | **83,9** |   **74,4** |
+
+**El precio declarado se confirma al decimal: correr enseña la mitad.** 0,370 → 0,180. El diseño
+decía «alrededor de la mitad de puntos brutos» y lo había estimado por Monte Carlo; el banco lo
+confirma por otra vía. Y el beneficio también aparece donde el diseño decía: los jóvenes con margen
+suben del 59,7 % al 79,2 %.
+
+**Pero la conclusión importante es la que el diseño NO predijo: `kDim` no arregla la banda del
+dueño.** Lleva el 5★ del WorldTour de 83,9 % a 74,4 %. El objetivo es **≤ 15**. Queda a sesenta
+puntos.
+
+Esto contesta —y adelanta— la predicción que el paso 0 dejó anotada para el paso 6. El diseño
+estimaba que con `kDim` la fila caía a 8,8 %, y sale 74,4 %. La diferencia no es que el modelo
+estuviera mal en el efecto de `kDim` —ese lo clavó— sino en el mundo sobre el que lo aplicaba: su
+Monte Carlo corría sobre la **génesis v2** (techos por madurez, tope 83, presupuesto de dispersión) y
+esto corre sobre la de hoy. Con techos altos, frenar el aprendizaje solo retrasa la llegada al techo;
+no baja el techo.
+
+**Consecuencia para el plan, y es una reordenación de causas, no de pasos**: quien sostiene la banda
+del dueño es el **paso 5** (la génesis v2 y su tope de techo), no el paso 6. `kDim` sigue
+mereciendo la pena por lo que sí hace —devolverle margen a los jóvenes— pero no es la pieza que
+cumple el «menos del 15 %», y el diseño lo presenta como «el cambio que sostiene la banda del
+dueño». Queda corregido en `docs/entrenamiento.md` §4.4 con estos números.
+
+### Brazo 3 — el arco del humano: `--arco`
+
+Un humano nacido a los 18 con `generateRiderGenome`, plan del bot y 45 días de continental al año.
+Los dos extremos son defectos: demasiado lento y nadie le ficha nunca; demasiado rápido y las
+decisiones del jugador no valen nada.
+
+| Vocación  | a 20 | a 22 | a 25 | carta a 25 |
+| --------- | ---: | ---: | ---: | ---------: |
+| escalada  | 41,2 | 48,9 | 53,9 |       82,3 |
+| velocidad | 44,2 | 51,5 | 56,3 |       70,2 |
+| clasicas  | 42,8 | 50,6 | 55,8 |       75,0 |
+| crono     | 43,5 | 51,6 | 56,3 |       79,2 |
+| fondo     | 41,2 | 48,8 | 53,8 |       63,2 |
+
+Referencias (bots recién generados a esa edad): **p25 del CON a los 22 = 37,0** · **p90 del WT a los
+25 = 59,7**.
+
+**El arco cabe dentro de la banda propuesta por los dos lados**, y es la única de las tres
+predicciones del diseño que se cumple: a los 22 todas las vocaciones están entre 48,8 y 51,6, muy por
+encima del suelo de 37,0; y a los 25 están entre 53,8 y 56,3, por debajo del techo de 59,7. Margen
+arriba: **3,4 puntos**, que es poco, así que cualquier paso que acelere la progresión hay que
+mirarlo contra esta fila.
+
+Va **por vocación y no por arquetipo**, y hay que decirlo: el diseño pide los ocho arquetipos, pero
+la génesis que los reparte es del paso 5 y hoy `generateRiderGenome` solo entiende las cinco
+vocaciones. Medir «por arquetipo» antes de que el arquetipo exista sería inventarse tres columnas.
+
+Un detalle que el paso 5 tendrá que mirar: `fondo` termina con una carta de **63,2** contra los 82,3
+de `escalada`. El diseño ya lo había visto por otro camino —«sin carta no puede querer decir sin
+nada»— y le puso dos correcciones; esta fila es la medida de antes contra la que se comprobarán.
+
+---
+
+## v59 §2 — El humano nacía sin piernas, y el registro de atributos no se purgaba nunca
+
+Tercer paso del plan de `docs/entrenamiento.md`, y el primero que **cambia conducta en producción**:
+`ENGINE_VERSION` sube **52 → 53**. No cambia una línea del motor —la física es la misma— pero un
+corredor humano sale a correr con otro depósito, y eso es conducta.
+
+### 1. El defecto: `createRider` no escribía el estado inicial
+
+`packages/db/src/riders.ts` insertaba el corredor sin `ctl`, `atl` ni `morale`, así que se quedaban
+con el **defecto de la columna**: `ctl = 0`, `atl = 0`, `morale = 50`. Mientras tanto
+`BANISTER.initialCtl` vale **45**, todo NPC nace con 45/45/60, y `db/world.ts` y `rollover.ts`
+escribían ese 45 **a mano, como literal**.
+
+Lo que costaba, medido:
+
+| CTL | `mTankFitness` | Depósito de salida (TSB 0, sano) |
+| --: | -------------: | -------------------------------: |
+|   0 |         0,9000 |                            90,00 |
+|  45 |         0,9900 |                            99,00 |
+
+**Un 10 % de depósito, desde el primer día y para siempre.** El jugador empezaba su carrera diez
+puntos por debajo de su propio nivel sin que nada se lo dijera, y no había forma de notarlo: un
+corredor con CTL 0 corre, termina y puntúa; solo rinde menos. El diseño lo estimaba en un 9 % y la
+medida da 10,0 % —9 sobre 90—.
+
+Los tres literales de `world.ts` y `rollover.ts` pasan a ser las constantes. Comprobado: cero
+ocurrencias de `ctl: 45` fuera de las pruebas.
+
+### 2. La semilla de creación era un dado sin rastro
+
+`generateRiderGenome(randomUUID(), vocation)`. El genoma del jugador —techos, talento, fragilidad, o
+sea **lo que va a poder llegar a ser**— salía de un dado que no se guarda en ninguna parte. Dos
+consecuencias, y la segunda es la que importa: no se podía reproducir un caso que el dueño
+reportara, y el mundo tenía una fuente de azar **fuera de la semilla**, que es exactamente lo que el
+resto del motor se prohíbe.
+
+Pasa a `${worldSeed}:${userId}:${intento}`, con `intento` = ciclistas que ese usuario ya ha tenido,
+**retirados incluidos** (si no se contaran, empezar de nuevo tras una retirada repartiría el mismo
+genoma y la segunda carrera sería la misma partida otra vez).
+
+De propina: al quitar ese `randomUUID()` y el del `faceSeed`, el `import` de `node:crypto` se quedó
+sin usar en la ruta. O sea que **la creación del ciclista ya no tiene ni un dado sin semilla**, y lo
+dice el compilador y no yo.
+
+### 3. El origen de cada punto, y una fila que se perdía en silencio
+
+`rider_attr_log` gana `source` (enum `attr_log_source` con sus cinco valores) y la clave primaria
+pasa a `(rider_id, game_day, attr, source)`.
+
+Además del desglose, **arregla un defecto silencioso**: con la clave vieja, el día que un corredor
+corría _y_ entrenaba, la segunda fila chocaba y el `onConflictDoNothing` de los escritores la tiraba
+sin avisar. Los puntos se aplicaban igual —van por otro camino— pero la explicación de por qué subió
+ese atributo se borraba, que es justo lo que el informe del bloque necesita leer. Hay una prueba que
+lo fija: dos filas el mismo día, mismo atributo, orígenes distintos, y antes quedaba una.
+
+**Solo se escriben dos de los cinco valores**, y conviene decirlo en vez de fingir el desglose
+completo: `entrenamiento` y `carrera`. Los otros tres —`declive`, `detraining`,
+`sobrecompensacion`— no dependen de esta capa sino de que el motor reporte el desglose, y
+`simulateRiderDay` devuelve hoy el estado final y nada más. El enum nace con los cinco porque
+ampliarlo después es otra migración; los valores se escriben cuando haya qué escribir.
+
+### 4. La purga de 60 días no existía
+
+El comentario del esquema y el SPEC dicen los dos «se purga a 60 días». En todo el repositorio **no
+había un solo `DELETE` sobre `rider_attr_log`**: la tabla crecía sin techo desde el primer día del
+primer mundo, del orden de cuatro millones de filas por año de juego que nadie lee y nadie borra.
+
+Se escribe ahora y no más tarde por una razón concreta: este mismo paso **multiplica sus filas**, y
+multiplicar una tabla que ya crece sin límite es convertir un descuido en una avería. Va al cierre
+del día del tick, dentro de la transacción, y deja vivos exactamente los últimos 60 días.
+
+### 5. Un defecto latente de las migraciones que este paso destapó
+
+Al generar la migración con `drizzle-kit generate`, el fichero salió con **tres cosas que no eran de
+este paso**: el `rider_points` entero de la `0031` y la columna `parte` de la `0030`. Sobre una base
+que ya hubiera corrido esas migraciones habría fallado con tabla y columna duplicadas, y el job
+«Migraciones (base vacía)» de la CI habría salido rojo.
+
+La causa: **los snapshots de 0030, 0031 y 0032 nunca se comprometieron**. El último que hay en el
+repositorio es el `0029`, así que `drizzle-kit` diffea contra un esquema de hace tres migraciones y
+re-emite todo lo que pasó desde entonces. No lo causó este paso; le tocó encontrarlo.
+
+Además el generador emitía el `ADD CONSTRAINT` de la clave primaria **antes** del `ADD COLUMN` de la
+columna que esa clave nombra, que no se puede ejecutar en ese orden.
+
+La `0033` se deja con **solo su delta** y en el orden correcto, con el porqué escrito en la cabecera
+del propio fichero. El snapshot `0033` sí se guarda y está construido desde el esquema actual, así
+que **la próxima generación vuelve a ser correcta** y este arreglo no hay que repetirlo.
+
+---
+
+## v59 §3 — Un reloj de edad por clase, y la tercera vez que el mundo dice lo mismo
+
+`ENGINE_VERSION` **53 → 54**.
+
+`kAge` daba **un solo número para todo el corredor**, anclado a `peakAge`: el mismo reloj para su
+esprint y para su fondo. Eso no podía representar lo que el dueño describió —«un ciclista sí mejora
+después de los 24, pero mejora en cosas diferentes»— porque el reloj no sabía de qué atributo estaba
+hablando. Ahora hay tres clases:
+
+| Clase          | Atributos          |  ≤21 | 22-24 | 25-27 | 28-30 | 31…declive | después |
+| -------------- | ------------------ | ---: | ----: | ----: | ----: | ---------: | ------: |
+| `motor_rapido` | SPR, CRI, COL      | 1,25 |  1,00 |  0,45 |  0,15 |       0,10 |    0,10 |
+| `motor_lento`  | RES, REC, LLA, MON | 1,15 |  1,05 |  0,80 |  0,40 |       0,15 |    0,10 |
+| `oficio`       | DES, PAV, TAC      | 1,00 |  1,00 |  1,00 |  0,90 |       0,80 |    0,60 |
+
+El **declive** también pasa a ser por clase (la punta se va primero: 1,25 · 1,0 · 0,25), y la
+amortiguación por haber entrenado pasa de mirar **hoy** a mirar **la semana**, que es lo que el SPEC
+decía desde siempre: un veterano que trabaja un atributo tres veces por semana lo veía decaer entero
+los otros cuatro días. El dato ya estaba en `rider_attr_log` y no lo leía nadie.
+
+`ATTRIBUTE_GROWTH` sigue viva para el camino legacy, pero **derivada** de la nueva y no escrita a
+mano: dos tablas con la misma información acaban divergiendo, y el día que pasara, un bot nacería con
+el techo de una clase y crecería con el reloj de otra sin que lo notara nadie.
+
+### Lo que movió, que es poco, y por qué eso importa
+
+| Fila                   | antes (v53) | ahora (v54) |
+| ---------------------- | ----------: | ----------: |
+| WT con algún 5★ (t15)  |        82,4 |        81,4 |
+| cracks (t15)           |         5,3 |         4,2 |
+| gana RES / año (t15)   |        0,74 |        0,67 |
+| curva edad neuro 33-35 |       1,008 |       1,006 |
+
+Un cambio que en el tramo de 28 a 30 años lleva el motor rápido **de 0,95 a 0,15** —seis veces
+menos— mueve la población **un punto**. Y la curva de edad neuromuscular de los veteranos sigue
+valiendo **1,0**: un corredor de 34 años tiene el mismo esprint que uno de 28.
+
+La causa es la misma que ya salió dos veces: **el mundo está limitado por los techos, no por la
+velocidad de aprendizaje**. Con un margen medio del 6-8 %, `kDim` manda y `kAge` casi no tiene sobre
+qué actuar; y si todo el mundo está pegado a su techo, la edad no puede diferenciar a nadie.
+
+Es la **tercera confirmación independiente** —el brazo de `kDim`, la estimación del diseño y ahora
+el reloj— de que el paso que sostiene la banda del dueño es el **5**, la génesis. Los pasos de
+velocidad son correctos y hacen falta para que un veterano no sea un joven con más años; lo que no
+son es la palanca.
+
+Esto tiene una consecuencia práctica para el paso 12: **las bandas de `curvaEdad*` no se pueden
+sellar hasta después del paso 5**, porque hoy miden un mundo sin margen y darían el número
+equivocado.
+
+---
+
+## v59 §4 — La intensidad deja de ser gratis, y el brazo de política empieza a separar
+
+`ENGINE_VERSION` **54 → 55**. Migración `0034`: `ALTER TYPE training_session ADD VALUE 'muros'`.
+
+### Qué cambia
+
+**`fuerte` era un botón, no una decisión.** Daba ×1,25 de ganancia y su único coste era el TSS, así
+que mientras el depósito aguantase dominaba siempre. Ahora es un intercambio: **1,12 de ganancia
+contra 1,3 de riesgo** de romperse ese día. Y `suave` sube de 0,70 a 0,80 por el otro lado del mismo
+argumento: si afinar antes de una carrera cuesta un 30 %, nadie afina nunca.
+
+**La frescura pasa de escalón a rampa.** Era un umbral seco en −30: a −29 se rendía como fresco y a
+−31 se perdía el 75 % de golpe, así que no había ninguna señal entre «bien» y «desastre» y el jugador
+solo podía aprenderse el número de memoria. Ahora: 1 por encima de −15, lineal hasta 0,4 en −35, 0,25
+por debajo.
+
+**`kAbsorb`, y es la propiedad que de verdad cambia el juego.** Una sesión que no cabe en la base que
+uno tiene se absorbe al 80 %. Consecuencia, fijada en una prueba: con CTL 45 —el de un chaval recién
+creado— `fondo fuerte` son 110 TSS contra un listón de 107,5, así que **apretar rinde 1,12 × 0,8 =
+0,896: menos que no apretar**. Machacarse deja de ser la estrategia obvia y pasa a ser un error que
+se paga.
+
+**Entra `muros`** (rampas cortas), que era el tipo de esfuerzo que faltaba entre el puerto largo y el
+embalaje, y con él cada atributo físico tiene al menos dos sesiones que lo tocan.
+
+### Un fallo en la tabla del propio diseño
+
+El diseño escribe la regla —«ganancias secundarias para que cada atributo físico tenga ≥ 2 caminos»—
+y **su propia tabla no la cumple**: con el catálogo tal como venía, `MON` quedaba con **una sola**
+sesión (`puertos`). Lo cazó la prueba que comprueba la regla, que es para lo que estaba.
+
+Arreglado donde cabía sin romper el presupuesto: `umbral` gana `MON 0,05` a costa de `LLA` (0,35 →
+0,30, que tiene cuatro caminos), y el total de la sesión se queda en 0,60. `TAC` queda fuera de la
+regla a propósito y con razón escrita: su segundo camino no es una sesión, es **correr**.
+
+De paso, la lista de sesiones de la API dejó de estar copiada a mano —era la tercera con los mismos
+once nombres— y se deriva del catálogo. Añadir una sesión ya no la deja fuera de la pantalla en
+silencio.
+
+### El brazo de política empieza a separar (15 temporadas)
+
+| Arm     | media t15 | días enfermo/año t15 |
+| ------- | --------: | -------------------: |
+| `bot`   |     62,38 |                 3,33 |
+| `buena` |     62,11 |             **3,11** |
+| `mala`  |     60,19 |             **4,25** |
+
+En el paso 1 los tres enfermaban **igual** (3,26 / 3,25 / 3,29): entrenar como un animal salía gratis
+en salud. Ahora `mala` enferma un **28 % más** que el bot y `buena` un 7 % menos. El mecanismo existe
+y discrimina, que es lo que no pasaba.
+
+**Sigue sin cumplirse la banda del diseño** («`mala` ≥ 2× días enfermo»): vamos por 1,28×. Y `buena`
+sigue **0,27 por debajo** del bot en media, cuando el diseño pedía que lo superase. Las dos cosas se
+dicen en vez de redondearse:
+
+- El 2× necesita el **paso 7** (lesión por sobrecarga, molestias, `strainDays`), que es donde vive el
+  resto del castigo. Hoy la única vía de romperse es enfermar.
+- Que `buena` no gane es esperable y no es el veredicto final: la `buena` de este brazo es una
+  aproximación escrita a mano para tener contra qué medir, no el entrenador v2. El entrenador de
+  verdad —con bloques, razón y objetivo— es el **paso 8**, y la comparación que cuenta es ésa.
+
+---
+
+## v59 §5 — La génesis v2: la banda del dueño se cumple, y por primera vez en régimen
+
+`ENGINE_VERSION` **55 → 56**. Migración `0035` (tres valores nuevos en el enum de arquetipo).
+
+Es el paso que sostiene la banda, y los tres pasos anteriores lo habían señalado cada uno por su
+cuenta: frenar el aprendizaje solo retrasa la llegada al techo, **no baja el techo**.
+
+### El cambio de fondo, en una frase
+
+Antes se sorteaba el **atributo** y se le añadía un margen hacia arriba. Ahora se sortea **hasta
+dónde puede llegar** un corredor —su techo, genético y absoluto— y la edad decide qué parte de eso ha
+realizado. La consecuencia es la que hacía falta: **la distribución de techos del mundo es la misma
+en la temporada 1 que en la 25**, porque ya no depende de lo que nadie haya entrenado.
+
+Con eso entran los ocho arquetipos (las cinco vocaciones más puncheur, rodador y gregario) con
+cuotas de pelotón real —un cuarto de gregarios, 5 % de cronistas en vez del 20 % que salía de
+repartir cinco vocaciones a partes iguales—, los offsets de techo por arquetipo (el velocista con
+montaña a −34 y el escalador con esprint a −30, que es lo que hace que en una reina el velocista se
+descuelgue de verdad), el presupuesto de dispersión y el `C − 2` que garantiza que nadie nazca en su
+techo.
+
+### La banda
+
+| Fila                     |          v55 (hoy) |    v56 (génesis v2) | Banda        |
+| ------------------------ | -----------------: | ------------------: | ------------ |
+| **WT con algún 5★, t15** |           **82,4** |             **8,7** | ≤ 15 [dueño] |
+| …t1 / t5 / t25           | 21,6 / 40,6 / 76,1 | **7,2 / 9,2 / 7,7** |              |
+| cracks (3+ de 5★), t15   |                5,3 |                 0,3 | ≤ 6          |
+| congelados jóvenes       |               0,00 |                0,00 | = 0          |
+
+**Se cumple, y lo que más importa es que se cumple IGUAL en las cuatro temporadas.** Eso es lo que no
+podía pasar antes: el número nacía bien (11,3 % al nacer en la v58) y los años lo deshacían. Ahora no
+hay nada que deshacer.
+
+Medido aparte sobre 4.000 bots recién generados: **4,78 %** con algún cinco estrellas, **5,80 %**
+entre los maduros de 26 a 31 (el criterio del paso pedía entre 4 y 12), 0,33 % de cracks, y **cero**
+corredores nacidos con un físico en su techo. Las distancias entre divisiones se conservan: media de
+atributos a los 28 de **61,6 / 52,1 / 44,5**, o sea 9,5 y 7,6 puntos, contra los 10 y 8 que el dueño
+pidió no estrechar.
+
+### Un fallo del diseño que la medida cazó
+
+El paso trae un criterio propio: «la carta a los 19 es ≤ 0,80 de la carta a los 27 en `motor_lento` y
+≤ 0,85 en `motor_rapido`». El diseño lo dedujo de su tabla de madurez (0,78/0,94 = 0,830), pero **la
+misma sección introduce el `C − 2`** que garantiza margen, y ese tope muerde mucho más a los 27 —donde
+el atributo ya está cerca del techo— que a los 19. Eso baja el denominador y sube la razón: medido,
+**0,856**, por encima de su propio listón. El mismo efecto aparece en `motor_lento` (0,753 teórico →
+0,787 medido), o sea +0,03 en las dos clases: no es ruido, es la interacción de dos reglas que el
+diseño escribió en dos sitios y no compuso.
+
+Corregido donde estaba la causa: la columna de los 19 de `motor_rapido` pasa de 0,78 a **0,76**, y la
+razón medida cae a **0,837**.
+
+### Una banda que se mueve, y va declarada
+
+`sinNadaSobre4Pct` —los que no pasan de cuatro estrellas en nada, mundo entero— pasa de 7,2 % a
+**53,5 %**, y el guardarraíl del banco estaba en ≤ 40. No se ablanda el número: **se cambia de sitio**,
+y ésta es la razón.
+
+Cuatro estrellas son 67 puntos en una escala mundial. Un continental de tercera fila de un equipo
+continental —cuyo nivel medio es 57— no tiene por qué ser «muy bueno a escala mundial» en nada;
+exigirlo era exigir que no existieran corredores modestos, y el 7,2 % de antes era la medida de un
+mundo inflado, no una virtud.
+
+Así que el listón se lee sobre **quien aspira a algo**, que es como el diseño ya lo había planteado:
+
+| Fila                              | v56 t15 | Banda nueva                             |
+| --------------------------------- | ------: | --------------------------------------- |
+| `sinNadaSobre4WTPct`              |    21,7 | ≤ 30                                    |
+| `sinNadaSobre4NoGregariosWTPct`   |    11,8 | ≤ 20 — **la alarma de G1**              |
+| `sinNadaSobre4Pct` (mundo entero) |    53,5 | **sin banda**: se publica, no se vigila |
+
+**Y queda una decisión abierta para el dueño**, que el diseño marca como suya y no se toma aquí: con
+la tabla de offsets tal cual, el gregario del WorldTour llega a cuatro estrellas en algo alrededor
+del 53 % de las veces, y como son el 26 % del pelotón eso hace estructural que un cuarto del mundo no
+pase de 4★. Las dos palancas baratas están escritas —subir el mejor offset del gregario (RES −4 → −2,
+que lo lleva al 60 %) o bajar su cuota— y la recomendación del diseño es **RES −2**. No se aplica sin
+su respuesta.
+
+### Lo que cuesta: nada, y eso el diseño no lo esperaba
+
+Los cuatro bancos de carrera generan su campo con este mismo generador, así que **todos corren ahora
+con otro pelotón**. El diseño lo daba por hecho —«mueve, y se declara: el banco de mundo entero **y**
+los cuatro bancos de carrera»— y reservaba un apartado entero de §10 para las bandas que eso
+rompería.
+
+Medido: **`pnpm test:bancos` pasa entero. 90 pruebas, 5 ficheros, cero fallos.** Ninguna banda de
+carrera se mueve fuera de rango.
+
+No es suerte, y conviene entender por qué, porque es el argumento que la v58 ya había aprendido por
+las malas: **una carrera selecciona por las DIFERENCIAS entre corredores, no por su nivel absoluto**.
+La v58 bajó la media de los bots y no rompió nada; su primer intento, que estrechaba la desviación,
+rompió media batería. La génesis v2 hace lo mismo a lo grande: cambia de dónde sale el número y baja
+el techo, pero conserva la dispersión —8,1 de desviación del atributo maduro contra los 8 de antes— y
+las distancias entre divisiones. La carrera no nota la diferencia porque la carrera nunca miraba el
+nivel: miraba la separación.
+
+Queda dicho para el paso 12: **no hay que recalibrar los bancos de carrera por esto**. Lo que sí hay
+que resellar son las bandas del banco de MUNDO, que son las que miden nivel y no separación, y van
+listadas arriba.
+
+---
+
+## v59 §6 — Lo que enseña la carrera, v2
+
+`ENGINE_VERSION` **56 → 57**. Sin migración. **Y el diff no toca `packages/engine/src/stage/`**, que
+era criterio del paso: las huellas selladas quedan intactas por construcción, no por medida.
+
+La v1 era `raceBase · nivel · margen/30` y nada más. Daba igual la edad, el talento, lo que hiciste
+ese día y cómo acabaste: un veterano de 34 escondido en el pelotón aprendía lo mismo que un neopro
+que se vació en la fuga, y el que ganó lo mismo que el 150.º.
+
+Y su comentario afirmaba algo falso: que `margen/30` «es el mismo `kDim` dicho de otra forma». No lo
+es, y la diferencia es **de orden** —uno es lineal y el otro superlineal con denominador 45—, así que
+cerca del techo uno frena y el otro no. Ahora los dos frenos se multiplican.
+
+Entran: el talento y el reloj de edad (los mismos del entrenamiento: aprender es aprender), **el
+esfuerzo del día** —0,7 el que se escondió, 1,3 el que llegó vacío—, **el resultado solo sobre TAC**
+(ganar ×1,8, top-10 ×1,4, haber trabajado para otro ×1,3), **el abandono** a media ración, los
+terrenos ampliados (DES en las de montaña, LLA en la crono y la clásica), **REC desde la quinta
+etapa** de una carrera, un techo de 0,8 puntos por día y atributo, y la **sobrecompensación de la
+vuelta**: al cerrar una de cinco etapas o más, hasta +2 de fondo con su propio origen en la bitácora.
+
+**Sin tocar el motor de etapa, y eso costó pensarlo.** El vaciado sale de `output.tank`, que ya está
+en memoria en la misma transacción. Y «trabajó para otro» sale de **envolver la sonda de la radio**,
+que ya toma una foto cada kilómetro con ese dato dentro: se anota al paso y la radio sigue recibiendo
+exactamente lo mismo. Es un muestreo y no un continuo —un relevo de menos de un kilómetro puede no
+caer en ninguna foto— y se acepta porque alimenta un escalón de ×1,3 sobre un solo atributo.
+
+### El mundo, con la cadena completa
+
+| Fila                            |   v56 |       v57 | Banda                   |
+| ------------------------------- | ----: | --------: | ----------------------- |
+| WT con algún 5★ (t15)           |   8,7 |       4,6 | ≤ 15 [dueño]            |
+| cracks (t15)                    |   0,3 |       0,0 | ≤ 6                     |
+| margen ≤23 (t15)                |  12,7 |      13,9 |                         |
+| `crecimientoNeoproWT` (t15)     |  11,6 |      6,65 | +4..+12                 |
+| aprendido/día ≤23 (t15)         | 0,273 |     0,166 |                         |
+| **jóvenes con margen ≥8** (t15) |  34,4 |  **40,8** | ≥ 50 — **no se cumple** |
+| **vets 34+ menos 28-30** (t15)  | −0,75 | **−1,59** | ≤ −3 — **no se cumple** |
+
+Las dos que no se cumplen van dichas y no redondeadas. La de los jóvenes va en la buena dirección
+(34,4 → 40,8) pero se queda a nueve puntos. La de los veteranos es la misma que arrastra desde el
+paso 3: un corredor de 34 sigue estando casi igual que uno de 28, y el declive por edad solo muerde
+después de `declineAge`. Las dos son bandas de calibrar-con-banco y se sellan en el paso 12; las dos
+tienen su palanca en el paso 7 (salud y sobrecarga) y en el propio sellado.
+
+### Dos guardarraíles del banco de mundo que se mueven, y por qué
+
+Los cuatro bancos de CARRERA pasan enteros otra vez. Los dos rojos son del banco de mundo, y los dos
+son consecuencia declarada del diseño:
+
+**1. «El mundo corre, no solo entrena»** pedía que correr aportase más de UN punto de media. Ahora
+aporta **0,56**. Dos causas, las dos queridas: el freno al techo hace que correr enseñe la mitad —ya
+medido y declarado en §1 antes de tocar nada— y los techos absolutos dejan a todo el mundo a seis
+puntos del suyo, donde ninguna vía puede mover mucho. Lo que esta prueba tiene que vigilar es que el
+banco no vuelva a quedarse **ciego** a la carrera, no que el número valga algo concreto —que es justo
+el error que la v58 arregló aquí mismo—. **El listón pasa a 0,3**, con la mitad de margen sobre lo
+medido.
+
+**2. «La media no baja»** comparaba `media(t25) ≥ media(t1)`. Con techos absolutos **el mundo dejó de
+crecer y de decrecer**: la media oscila alrededor de su sitio —53,4 · 52,9 · 52,7 · 54,1 · 53,2 ·
+53,2 en veinticinco temporadas, siete décimas sin tendencia— y la prueba pasaba o fallaba según de
+qué lado de la oscilación cayera la última temporada. Fallaba por **0,24**, que es medir ruido. Pasa
+a vigilar lo que ahora importa: **que la oscilación no se convierta en deriva**, `|media(t25) −
+media(t1)| ≤ 2`.
+
+### Un error mío, y cómo salió
+
+Al escribir las pruebas del paso **sobrescribí `learning.test.ts` entero**, que ya existía con seis
+pruebas. No lo vi al hacerlo: lo cazó que el recuento total de la batería no subiera después de
+añadir seis pruebas nuevas. Recuperadas del historial y fundidas con las nuevas —doce en total—, con
+las dos aserciones que la v2 cambia a propósito reescritas y anotadas: los terrenos ganan atributos, y
+el valor absoluto de lo que enseña una .2 ya no es `raceBase · margen/30` porque ahora multiplica por
+talento, edad y freno. Lo que esa prueba vigila —que el Tour siga valiendo el doble que una .2— se
+conserva y se amplía.
+
+---
+
+## v59 §7 — El estado `molestias` deja de estar muerto
+
+`ENGINE_VERSION` **57 → 58**. Migración `0036`: `riders.strain_days` y `riders.ill_days`.
+
+El paso 0 encontró que `molestias` **existía en el modelo y no lo producía nadie**: el Banister tenía
+su multiplicador de 0,96 escrito y ningún sitio del motor escribía jamás ese estado. Con eso, la
+única forma de que entrenar mal costara algo era **enfermar**, que es un dado de un día. Y el paso 1
+midió la consecuencia: machacarse en rojo todos los días durante quince temporadas enfermaba un 1 %
+más que entrenar bien.
+
+Ahora el sobreentrenamiento tiene su propia vía, y es **un contador y no un dado**:
+
+```
+strainDays = TSB < −35 ? +1 : max(0, −2)      ← también los días de CARRERA
+  ≥ 4 → molestias (se sale con TSB > −15)
+  ≥ 6 → riesgo de lesión por sobrecarga, 7-21 días fuera
+```
+
+Un contador porque «llevas cinco días pasado de rosca» se puede **ver venir y evitar**; un 6 % por
+día no se le explica a nadie. Entra un día de tensión y salen dos: entrar en sobrecarga cuesta
+tiempo, salir es más rápido.
+
+Y **el día de carrera cuenta**, que es el caso que importa: las grandes vueltas son donde se llega a
+−35. El banco de mundo tampoco tiraba los dados de salud los días de competición —65 días de
+inmunidad garantizada al año— y ahora los tira igual que producción.
+
+**La fragilidad efectiva** recoge lo que el corredor sí controla: REC 100 la baja un 30 % y REC 20 la
+sube un 18 %, que es lo que convierte a REC en un atributo con consecuencias. Y el gimnasio protege
+**dentro de ella** y no sobre un dado suelto, que es donde el SPEC dice que protege: metido en el
+dado de la lesión no protegería contra enfermar, que es donde la fragilidad pesa de verdad porque ese
+dado se tira todos los días.
+
+`ill_days` —días seguidos tocado— se define aquí y lo **lee** el rediseño táctico para decidir en la
+cuneta. Así la secuencia que describe («varios días tocado y luego el abandono») **emerge** de un solo
+modelo de salud en vez de programarse dos veces.
+
+### Lo que mueve, y la banda que sigue sin cumplirse
+
+| Arm     | media t15 | días enfermo/año t15 |
+| ------- | --------: | -------------------: |
+| `bot`   |     54,37 |                 3,43 |
+| `buena` |     54,12 |                 3,25 |
+| `mala`  | **52,45** |             **4,17** |
+
+`mala` pierde ya **1,92 puntos** de media y enferma un **22 %** más. Comparado con el paso 1, donde
+los tres enfermaban igual (3,26 / 3,25 / 3,29), el mecanismo discrimina.
+
+**Pero la banda del diseño («`mala` ≥ 2× días enfermo») sigue sin cumplirse, y ahora sé por qué: no
+la puede cumplir este brazo, por construcción.** `mala` es «construcción fuerte todos los días», y una
+carga CONSTANTE no produce fatiga cada vez más profunda: produce adaptación. El Banister sube el CTL
+hasta emparejarlo con el ATL y el depósito se estabiliza cerca de cero, así que **nunca baja de −35 de
+forma sostenida** y el contador de tensión apenas arranca.
+
+Eso es fisiológicamente correcto y es un hallazgo, no un fallo: **entrenar duro y monótono no es lo
+mismo que sobreentrenar**. A −35 se llega por picos —un bloque fuerte encima de un corredor sin
+fondo, una vuelta de tres semanas— y no por repetir el mismo día. El mecanismo funciona: está probado
+directamente en `progression.test.ts`, con la cuenta subiendo día a día hasta las molestias y bajando
+al doble de velocidad al recuperar.
+
+Así que la banda que hay que arreglar es **la del brazo, no la del motor**: para medir el castigo al
+sobreentrenamiento hace falta un `mala` que alterne bloques fuertes sin descanso, no uno que aplique
+la misma carga siempre. Queda anotado para el paso 12, junto con la otra que sigue abierta: `buena`
+sigue 0,25 por debajo del bot, y el entrenador de verdad —con bloques y objetivo— es el **paso 8**.
+
+---
+
+## v59 §8 — El entrenador bot deja de ser un calendario
+
+`ENGINE_VERSION` **58 → 59**.
+
+El entrenador era un **ciclo fijo de catorce días** que no miraba nada: ni la frescura, ni la salud,
+ni si había carrera el domingo. Daba igual que el corredor llegara fundido o que el Tour empezara en
+tres días. «Razonable, nunca óptimo» era una frase, no una conducta: **no era óptimo, pero tampoco
+era razonable**.
+
+Ahora decide por bloques —`recuperacion`, `afinado`, `especifico`, `construccion`, `base`— mirando el
+estado del corredor y el calendario, y **dice por qué**. La razón no es decoración: la pantalla del
+plan tiene que poder decirle al jugador «hoy descansas porque llevas tres días pasado de rosca», y sin
+ella esa frase habría que reconstruirla fuera, con otra copia de las mismas reglas.
+
+Las reglas, en orden: la salud manda · no se le mandan series a un corredor fundido (−40 descanso
+total, −30 activo) · volver de una tanda de carreras se hace poco a poco · se afina ante el objetivo
+del corredor **y ante el del equipo** · guardarraíles (nunca fuerte dos veces en siete días, nunca
+`muros` dos días seguidos, y con tres días de tensión se descansa).
+
+**El objetivo de EQUIPO entra, y no estaba.** El rediseño táctico afirma que la carrera objetivo
+«cambia el pico de forma que el entrenamiento ya sabe programar», y era falso: el contexto solo
+conocía la marca del jugador, y un NPC no tiene ninguna. Un equipo bot que declaraba objetivo no
+conseguía que los suyos llegaran afinados.
+
+Y **sigue sin ser óptimo a propósito**: afina igual para una .2 que para el Tour, pone siempre el
+énfasis en la carta, y nunca improvisa. Un jugador que planifique a mano tiene que poder ganarle.
+
+### Un guardarraíl que habría nacido muerto
+
+`hardLast7` —cuántas veces apretó en la semana— no lo rellenaba nadie: la bitácora diaria guarda la
+sesión y la carga, **pero no la intensidad**. Habría existido en el código y no habría disparado
+jamás, que es exactamente la clase de defecto que este rediseño lleva encontrando desde el paso 0.
+
+Se deduce del **TSS**, que sí se guarda: la carga es función pura de (sesión, intensidad), así que la
+deducción es exacta y no una estimación.
+
+### Lo que mueve
+
+| Arm     | media t15 | enfermo/año | molestias/año |
+| ------- | --------: | ----------: | ------------: |
+| `bot`   |     53,56 |        3,30 |      **0,00** |
+| `buena` |     53,44 |        3,20 |          0,00 |
+| `mala`  |     52,45 |        4,17 |      **0,83** |
+
+**`molestias` aparece por fin en el mundo, y solo donde debe.** Cero con el entrenador —que es su
+trabajo: el guardarraíl de los tres días de tensión existe justo para que no lleguen— y 0,83 días al
+año con el que aprieta siempre. En el paso 0 esa fila valía 0,00 en las veinticinco temporadas porque
+el estado no lo producía nadie; ahora vale 0,00 porque el entrenador lo evita, que no es lo mismo.
+
+### Lo que sigue sin cumplirse, y ahora sé por qué
+
+`buena` sigue **0,12 por debajo** del bot. El hueco se ha reducido a la mitad (era 0,27 en el paso 4)
+pero no se ha cerrado, y la causa no es del motor: **es del banco**.
+
+Las dos palancas de `buena` son afinar más días y no apretar con el depósito bajo. Las dos **reducen
+volumen de entrenamiento**, y su beneficio —llegar fresco a la carrera— se cobra **ganando**. Este
+banco no simula etapas: aquí no gana nadie. Así que la ventaja de llegar fresco vale exactamente cero
+y solo se ve el coste.
+
+**El brazo de política no puede demostrar que entrenar bien compensa, y eso no es arreglable
+calibrando**: haría falta que el banco supiera quién gana, o medir la frescura en el día de carrera
+como métrica propia. Queda anotado para el paso 12 como lo que es —una ceguera del instrumento, no un
+defecto del motor— y con las dos salidas escritas.
+
+### Lo que este paso NO trae, dicho en vez de fingido
+
+El contexto del entrenador **no lleva todavía el calendario del corredor**: `daysToNextRace`, si esa
+carrera es su objetivo y el objetivo del equipo salen del roster y del plan de carrera, y eso llega
+con la pantalla del plan. Sin ellos el entrenador cae en su mesociclo de tres semanas —que es lo que
+hacía antes—, así que no empeora nada y mejora en lo que sí sabe. El banco de mundo **sí** los
+construye, porque tiene el calendario sorteado por delante, y por eso el afinado y la recuperación
+post-vuelta se miden aquí aunque producción todavía no los use.
+
+## v59 §9 — Las instalaciones y el staff dejan de ser dos columnas de adorno
+
+`ENGINE_VERSION` **59 → 60**.
+
+`teams.facilities` se sorteaba al crear el mundo entre 0,90 y 1,20, se guardaba en la base, se
+mostraba en ningún sitio y **no lo leía nadie**: `train.ts` pasaba `kInst: 1` a pelo al motor. La
+columna existía, se rellenaba y decidía cero cosas. El staff ni siquiera tenía columna.
+
+Ahora `train.ts` lee la fila del equipo y pasa multiplicadores de verdad:
+
+| Constante        | Valor | Qué es                                     |
+| ---------------- | ----: | ------------------------------------------ |
+| `kInstMin`       |  0,90 | El peor gimnasio del mundo                 |
+| `kInstMax`       |  1,20 | El mejor                                   |
+| `kStaffPerLevel` |  0,02 | Lo que suma cada nivel de staff contratado |
+| `kStaffMax`      |  1,10 | El tope: cinco niveles y se acabó          |
+
+`staffLevel` es un **entero que se compra** —una decisión económica del jugador—, no un
+multiplicador; `kStaff` lo traduce. Los dos valores se recortan a su rango al leerlos, así que una
+fila corrupta en la base no puede darle a nadie un ×3.
+
+### El banco también monta el gimnasio, y por qué importa
+
+Hasta aquí el banco de mundo fijaba `kInst = 1` para todos. Se defendía diciendo que mide el MOTOR y
+no la economía, y para el staff sigue valiendo —el mundo de bots no tiene quien tome esa decisión—,
+pero **para las instalaciones no**: existen en producción, las tiene todo el mundo, y un banco que
+las apaga mide un pelotón más estrecho del que se va a jugar.
+
+Se sortean **una vez por equipo** y las comparten los ocho de la plantilla. Sortearlas por corredor
+habría promediado el efecto dentro de cada equipo y el banco no habría visto nunca la diferencia
+entre entrenar en un sitio o en otro, que es justo lo que se quería medir.
+
+### Un falso positivo que estuvo a punto de colarse, y hay que contarlo
+
+La primera versión tiraba las instalaciones del `rng` del mundo. La medición salió espectacular:
+`cracksPct` ×3, `cincoEstrellasWTMadurosPct` de 3,3 a 6,8, `purosEscaladoresPct` de 70 a 44. Nada de
+eso era de las instalaciones: **añadir tiradas corrió el resto del stream** —qué división ficha a
+cada neopro, entre otras cosas—, así que el «antes» y el «después» no eran el mismo mundo con
+gimnasio, eran dos mundos distintos.
+
+Las instalaciones van ahora en **su propio hilo de azar** (`${worldSeed}:inst:${division}:${t}`). Con
+eso el resto del mundo es bit a bit el de antes y el diff mide una cosa sola. Queda escrito porque la
+diferencia entre las dos tablas —la de abajo y la que no se publica— es la diferencia entre un
+resultado y un espejismo.
+
+### Lo que mueve de verdad (25 temporadas, 3 mundos)
+
+| Métrica                         | antes | después |         Δ |
+| ------------------------------- | ----: | ------: | --------: |
+| `mediaGlobal`                   | 52,20 |   52,26 |     +0,06 |
+| `mediana`                       | 52,23 |   52,30 |     +0,07 |
+| `anchoP90P10`                   | 24,69 |   24,76 |     +0,07 |
+| `cincoEstrellasWTPct`           |  3,58 |    3,74 |     +0,17 |
+| `cincoEstrellasWTMadurosPct`    |  3,28 |    3,83 |     +0,55 |
+| `crecimientoNeoproWT`           |  4,22 |    4,34 |     +0,12 |
+| `jovenesConMargenPct`           | 46,82 |   44,52 | **−2,31** |
+| `sinNadaSobre4NoGregariosWTPct` | 20,52 |   20,91 |     +0,39 |
+
+Es un efecto **pequeño y en la dirección que el diseño predice**: el mundo sube un pelo, se ensancha
+un pelo, y la cola de arriba —los cinco estrellas maduros del WorldTour— es donde más se nota, que es
+lo que tiene que pasar cuando el mejor equipo entrena un 20 % mejor que el peor durante quince años.
+
+No es el efecto gigante de la tabla falsa, y está bien que no lo sea: `kDim` frena según se acerca uno
+al techo, y los techos son absolutos desde la v56. Un gimnasio mejor te lleva antes a tu techo; no te
+lo sube.
+
+### Y la alarma de columnas muertas cazó el paso a media hora de nacer
+
+`staffLevel` se leía en `train.ts` y **no lo escribía nadie**: nacía a 0 por defecto y ahí se quedaba,
+así que `kStaff` valía 1 para los 219 equipos del mundo. Es literalmente el defecto de `fame` y de
+`teamTrust` —una columna que existe, se consulta y no discrimina nada— cometido otra vez, y en el
+mismo commit que presume de matar dos columnas de adorno.
+
+Lo cazó `columnasVivas.test.ts`, la prueba escrita en la v55 justo para esto, antes de que llegara a
+producción. Los equipos bot nacen ahora con el staff que su presupuesto explica —WorldTour 2-4,
+ProSeries 1-3, continental 0-2— y el jugador sube desde ahí comprando niveles. Va en su propio hilo
+de azar por la misma razón que las instalaciones del banco: sembrar un mundo con la misma semilla
+tiene que dar el mismo mundo.
+
+### Dos bandas que hay que mirar, dichas ahora y no en el paso 12
+
+- **`jovenesConMargenPct` baja 2,3 puntos** (46,8 → 44,5) y ya venía por debajo de su ≥50. Es
+  aritmética, no un defecto nuevo: llegar antes al techo es exactamente lo que hacen unas
+  instalaciones buenas, y «joven con margen» cuenta a quien todavía no ha llegado. La banda se
+  decide en el paso 12 con todo lo demás encima de la mesa.
+- **`sinNadaSobre4NoGregariosWTPct` se come su margen.** El guardarraíl pide ≤ 20 y pasa —el banco
+  lee 2 mundos—, pero la media de 3 mundos es **20,91**. O sea que el listón aguanta hoy y no aguanta
+  el próximo empujón hacia arriba de la cola. No se mueve ahora, porque mover una banda que pasa es
+  mover una banda sin dato; queda apuntado para el paso 12.
+
+## v59 §10 — La ficha del corredor: qué ve el jugador de sí mismo, y qué no
+
+`ENGINE_VERSION` **60 → 60**: este paso **no la sube, y hay que decir por qué**. No toca una sola
+decisión del motor —ni una ganancia, ni un techo, ni una probabilidad—: añade un módulo puro que
+nadie de la simulación llama, tres consultas de lectura y tres trozos de pantalla. Subir versión
+aquí habría sido decir «esto cambia el mundo» de algo que no lo cambia, y entonces el número deja de
+significar nada.
+
+Hasta hoy la ficha enseñaba diez filas de estrellas y punto. Un corredor que entrenaba montaña
+cuatro semanas veía exactamente las mismas cuatro estrellas al final que al principio, y la única
+respuesta que el juego tenía a «hice X y no mejoró» era el silencio.
+
+### Tres cosas nuevas, y ninguna dice un número
+
+- **La marca de progreso**: cuatro segmentos bajo las estrellas que dicen en qué cuarto de su banda
+  está el atributo. La versión continua se descartó porque sobre una banda de 16 puntos habría
+  resuelto el atributo a menos de medio punto, o sea **más** resolución que las medias estrellas que
+  el paso 5 acababa de introducir: enseñar el número interno por la puerta de atrás.
+- **La flecha de tendencia**, con **dos parámetros del SPEC sobrescritos y declarados**: la ventana
+  pasa de 7 a 28 días y los niveles de tres a cinco. A siete días manda el ruido de un solo bloque
+  —una semana de descanso activo pinta `↓` en un corredor que está subiendo— y con tres niveles no
+  se distingue «no se mueve» de «sube despacio», que es lo que hace un atributo secundario: +0,3 en
+  cuatro semanas, y merece verse. El paso 12 reescribe esa línea del SPEC.
+- **La opinión del entrenador**: el techo + N(0, 6) cuantizado a tres frases, con σ = 3 a partir de
+  los 24 porque el entrenador ya te ha visto correr. Enseñar el techo mata la exploración; no
+  enseñar nada deja «no sé si mejoro».
+
+Y el **informe del bloque**: «Mountain +2,0 · 1,1 racing · 0,9 training». Es la respuesta a la otra
+pregunta que el juego tampoco sabía contestar, que es «¿por qué mejoré?».
+
+### La opinión es estable sin guardar nada, y eso era el diseño
+
+«Una vez por temporada» se consigue metiendo la temporada en la semilla
+(`${worldSeed}:${riderId}:ojeador:${season}:${attr}`): la misma pregunta hecha cien veces el mismo
+año da la misma respuesta y al pasar de año cambia sola. Una tabla para esto habría sido una tabla
+que purgar, que migrar y que mantener a cambio de nada.
+
+Se mide que hace las dos cosas que tiene que hacer: **correlaciona** —el 5★ crece con el techo, y un
+techo de 55 casi nunca recibe «madera de cinco»— y **no delata**: en la frontera exacta (techo 84)
+duda entre cuatro y cinco casi mitad y mitad. Si acertara siempre sería el techo con otro nombre.
+
+### La promesa está PROBADA, no prometida
+
+Los ocultos no cruzan la frontera, y eso no se deja a la buena voluntad de quien escriba la próxima
+ruta: la prueba serializa la respuesta entera y **busca los números dentro**. Un techo de 90, un
+talento de 80 y una fragilidad de 1,5 no pueden aparecer en el JSON. El día que alguien añada un
+`ceiling: z.number()` al contrato, esa prueba se pone roja.
+
+Lo mismo con el perfil de OTRO: las dos consultas van con `enabled: owner`, así que no es que la UI
+esconda el dato, es que **el servidor no lo manda**. Ojear el potencial ajeno es una función que no
+existe todavía, y hasta que exista no se filtra por un descuido de pintado.
+
+### Dos nombres que se arreglan de paso
+
+- **`stars()` pasa a llamarse `formStarsScale()`.** Convivían dos funciones de medias estrellas que
+  daban números DISTINTOS para el mismo valor —`stars(84) = 4`, `attrStars(84) = 5`— y una de las
+  dos se llamaba «estrellas» a secas. Era cuestión de tiempo que alguien pintara un atributo con la
+  escala de la forma sin enterarse. No es un descuido que sean distintas: la forma es continua y sin
+  umbrales de dominio; un atributo lleva los umbrales con los que el dueño midió su 15 %.
+- **La edad se pide a `riderAge`.** `train.ts` tenía su propio `DEBUT_AGE = 20`, que es la tercera
+  copia de una constante que `shared/time.ts` ya define como `RIDER_AGE_EPOCH` y documenta como «si
+  la cambias, recalculas la edad de todo el mundo». Y hay una trampa al lado: `currentSeason()` va
+  **0-indexada** y `seasonPosition().season` **1-indexada**, así que elegir mal le quita un año a
+  todo el pelotón. Ahora las dos llamadas piden la edad a la misma función.
+
+### El desglose es tan fino como lo que se escribe, y no más
+
+El informe separa `entrenamiento` y `carrera` —y `sobrecompensacion` cuando la hay—, pero **no**
+pinta una línea «age −0,2»: el motor devuelve hoy el estado final de un día, no su descomposición,
+así que el declive y el detraining viajan dentro del neto de su escritor. Se dice aquí en vez de
+dibujar una línea inventada que cuadrara la suma.
+
+## v59 §11 — La pantalla del plan, y dos bloques que no hacían lo que prometían
+
+`ENGINE_VERSION` **60 → 61**. El plan decía que este paso no subía versión, y **sube**: al proyectar
+los bloques por primera vez resultó que dos de los cinco no cumplían su propia columna, y arreglarlos
+cambia lo que entrena el pelotón entero.
+
+Hasta hoy el jugador elegía 28 × (sesión, intensidad) —**56 desplegables**— y no veía absolutamente
+nada hasta que los días pasaban de uno en uno: la consecuencia de apretar tres semanas seguidas
+llegaba cuando ya no se podía deshacer. Ahora elige un objetivo, cuatro bloques con su razón, un
+énfasis y una intensidad, y **ve cómo va a llegar a cada carrera antes de guardar**. Los 28 días
+siguen ahí y siguen siendo editables —dictado del dueño—, pero plegados.
+
+### `projectLoad` vive en el MOTOR, y ésa es la decisión de este paso
+
+La tentación era escribirla en `apps/web` —es una pantalla— o en `packages/db`. Cualquiera de las dos
+habría sido una **segunda implementación del Banister**: la proyección diría una cosa y el tick al
+día siguiente otra, y el jugador tendría razón al no fiarse de ninguna. En el motor llama a
+`applyDailyLoad`, la misma función que corre el tick, y la prueba lo comprueba **dígito a dígito**.
+
+Vivir ahí es también lo que permite que la prueba EXISTA: desde el cliente habría que comparar contra
+una copia del modelo, y una copia que se compara consigo misma no demuestra nada.
+
+### Lo primero que hizo la proyección fue desmentir al diseño, dos veces
+
+**1. El afinado no afinaba… y el que sí afinaba era el que iba a sustituirlo.** §5.4 pide dos cosas a
+la vez que **no son compatibles con este Banister**: una semana de 215-250 TSS y llegar a TSB +5/+15.
+Medido sobre el régimen de temporada —cuatro semanas de construcción y una de específico detrás—, la
+semana de 215-250 llega a **+26**, que en `tsbFactor` ya no es afinar: es pasarse de fresco y perder
+rendimiento. La paradoja es del modelo: cuanto MÁS se descarga, más sube el TSB, porque la ATL se va
+deprisa y la CTL despacio.
+
+Gana la llegada y no la cifra de TSS: +5/+15 es lo que el motor LEE el día de la carrera, y la
+columna de TSS era una estimación hecha a mano. La semana pasa a valer 370-450 y llega a **+12/+15**
+en los ocho arquetipos.
+
+Y hay que decir la parte incómoda: **el bloque del paso 8, al que este análisis iba a acusar de no
+afinar, llegaba a +9,7/+12,7 —dentro del objetivo—**. La acusación estaba escrita antes de medirla, y
+la medición la desmintió.
+
+**2. El afinado de un clasicómano pesaba MÁS que su específico.** La carta no cuesta lo mismo a todo
+el mundo (`puertos` 115 TSS, `bajada_paves` 70), así que una semana montada sobre tres cartas valía
+450 para un escalador y **315** para un clasicómano. Con la tabla literal, el orden de los bloques se
+invertía para dos de los ocho arquetipos: elegir «afinar» habría cargado más. Se nivela con un
+`fondo` el martes del específico, y los tres bloques quedan en orden para los ocho.
+
+### Lo que mueve en el mundo
+
+| Métrica               |   v60 |   v61 |         Δ |
+| --------------------- | ----: | ----: | --------: |
+| `mediaGlobal`         | 52,26 | 52,54 |     +0,29 |
+| `mediana`             | 52,30 | 52,80 |     +0,50 |
+| `margenOficioPct`     | 13,06 |  8,46 | **−4,61** |
+| `ganaTACporAno`       |  1,11 |  1,20 |     +0,09 |
+| `curvaEdadTAC`        |  8,70 |  9,08 |     +0,38 |
+| `ganaRESporAno`       |  0,80 |  0,65 |     −0,15 |
+| `cincoEstrellasWTPct` |  3,74 |  2,65 |     −1,10 |
+
+**El oficio deja de estar abandonado**, que es lo que el diseño pedía y el paso 8 no daba: con
+`video_tactica` en el específico, TAC, DES y PAV se entrenan de verdad y su margen al techo cae casi
+cinco puntos. A cambio hay menos `fondo` en la semana y RES sube más despacio.
+
+### Y una cosa peor que un bloque mal calibrado: dos listones sellados dentro de su propio ruido
+
+`sinNadaSobre4WTPct ≤ 30` se puso roja, y antes de moverla se midió **por qué**. Seis mundos:
+
+| Métrica        |    m0 |    m1 |    m2 |    m3 |    m4 |    m5 | media |   sd |
+| -------------- | ----: | ----: | ----: | ----: | ----: | ----: | ----: | ---: |
+| WT             | 33,15 | 28,18 | 35,50 | 36,84 | 30,17 | 35,12 | 33,16 | 3,07 |
+| …sin gregarios | 20,44 | 15,08 | 24,80 | 27,94 | 11,90 | 23,44 | 20,60 | 5,56 |
+
+El listón de 30 lo pasaba **un mundo de cada seis**, y el de 20 apenas la mitad. No eran
+guardarraíles: eran caras de una moneda, sellados en la v59 §5 sobre la medida de dos semillas de una
+magnitud cuya desviación entre semillas es de tres y de cinco puntos y medio. Que aguantaran cinco
+pasos es suerte de esas dos semillas, no una propiedad del mundo.
+
+Se ponen donde el paso 12 manda —**media + 2·sd**, o sea 40 y 32— y se dice qué vigilan a esa altura:
+que el WorldTour no se llene de corredores sin nada destacable, no la décima.
+
+### Lo que el número dice de verdad, y que es del dueño
+
+**Un tercio del WorldTour no tiene nada por encima de 4★, y eso NO es un número del entrenamiento.**
+Apenas se movió entre los pasos 6 y 11 —30,2 · 30,4 · 32,3— mientras el entrenamiento cambiaba
+entero, y `margenAlTechoPct` dice que esa gente **ya está a un 9 % de su techo**: no es que no
+entrenen bien, es que su techo no llega a 67 en nada.
+
+O sea que cerrar el requisito del dueño —«que tampoco se quede nadie sin pasar de 4 en nada»— es
+subirle los techos al WorldTour en la génesis, y eso mueve la otra mitad del requisito (el «menos del
+15 % con cinco estrellas», hoy en 2,6 %). Las dos son la misma perilla tirando en sentidos opuestos,
+y cuál gana es **decisión del dueño**, no de la calibración. Queda anotado para el paso 12 con el
+dato, no con una opinión.
+
+### La escalera, y «guardar solo lo tocado»
+
+D0 (modo: `entrenador` · `mixto` · `manual`), D1 (objetivo), D2 (bloque por semana ×4), D3 (énfasis:
+la carta o el agujero), D4 (intensidad del bloque) y D5 (el día suelto, como siempre). Precedencia en
+el tick: modo `entrenador` → el entrenador cada día con el TSB de HOY; si no, orden del día > bloque
+del jugador > plan del equipo > entrenador.
+
+Y lo que **antes no se podía hacer: deshacer.** La pantalla congelaba los 28 días y los mandaba
+enteros, así que tocar un jueves dejaba el mes entero fuera del alcance del entrenador para siempre.
+Ahora solo viaja lo editado y el servidor borra del horizonte lo que no llega, así que un día sin
+tocar vuelve a ser del bloque —o del entrenador—. Está probado en `planPorBloques.test.ts`, quitando
+un día y quitándolos todos.
+
+## v59 §12 — Calibrar y sellar: lo que el mundo da, no lo que el documento quería
+
+`ENGINE_VERSION` **61 → 61**: este paso **no la sube**. No toca una constante del motor: mide, sella
+listones y reescribe el SPEC a lo que hay. Si subiera versión estaría diciendo que el mundo cambió, y
+lo que cambió es lo que sabemos de él.
+
+### La herramienta primero, porque sin ella esto era otra vez opinión
+
+El paso 12 dice «bandas a ≥ 2× la desviación medida entre semillas» y **nadie había medido esa
+desviación nunca**: `analyzeWorld` PROMEDIA las corridas, así que devuelve el centro y se traga
+justamente el número que hace falta. Ahora existe `pnpm sim:mundo 25 6 --dispersion`, que corre cada
+mundo por separado y publica media, sd, mín, máx y m±2sd de las cuarenta y tres métricas.
+
+No es un lujo de proceso: en la v61 se puso roja `sinNadaSobre4WTPct ≤ 30` y lo primero que hizo la
+herramienta fue enseñar que ese listón llevaba **cinco pasos pasando por suerte**.
+
+### Seis bandas del diseño NO se cumplen, y se sellan donde el mundo está
+
+Ninguna se mueve en silencio. Medido sobre **6 mundos × 25 temporadas**:
+
+| Métrica                      | §7.2 pedía      | media |   sd | Sellada              | Por qué                                                                                               |
+| ---------------------------- | --------------- | ----: | ---: | -------------------- | ----------------------------------------------------------------------------------------------------- |
+| `sinNadaSobre4Pct`           | ≤ 65            | 64,56 | 2,31 | ≤ 70                 | 65 es el valor medido: lo pasaría media semilla de cada dos                                           |
+| `curvaEdadTAC`               | ≥ 12            |  9,57 | 2,79 | ≥ 4                  | el oficio crece con la edad, pero 12 puntos no los da esta tabla de `kAge`                            |
+| `vets34vs28`                 | ≤ −3            | −3,26 | 1,97 | ≤ 0                  | el rango real va de −5,9 a −0,8: en −3 es una moneda                                                  |
+| `jovenesConMargenPct`        | ≥ 50            | 43,53 | 2,91 | _(sin banda)_        | m+2sd = 49,35 < 50: el mundo NO lo cumple y no hay listón honesto que lo diga                         |
+| `crecimientoNeoproWT`        | +4..+12         |  4,18 | 1,02 | +2..+12              | el suelo de 4 lo pasa media semilla; el techo de 12 se queda tal cual                                 |
+| `cincoEstrellasWTMadurosPct` | 4-12, dos lados |  3,83 | 1,93 | _(sin banda)_        | el mundo da 3,8 y el suelo del diseño era 4: no se cumple por tres décimas                            |
+| `curvaEdadAerobica` joven    | 0,80-0,90       |  0,88 | 0,05 | 0,78-1,00            | la banda era más estrecha que la desviación                                                           |
+| `curvaEdadNeuro` joven       | 0,85-0,95       |  0,92 | 0,05 | 0,80-1,04            | ídem                                                                                                  |
+| `diasMolestiasAno`           | 5-25            |  0,00 | 0,00 | _(del brazo `mala`)_ | con el entrenador bot son CERO, y es su trabajo: el guardarraíl de tensión existe para que no lleguen |
+
+Y tres se dejan **informativas a propósito**, con su número escrito:
+
+| Métrica               | §7.2 pedía | media |    sd | Por qué no se sella                                                                   |
+| --------------------- | ---------- | ----: | ----: | ------------------------------------------------------------------------------------- |
+| `purosVelocistasPct`  | ≥ 45       | 80,56 | 20,22 | denominador diminuto: los velocistas WT maduros son una decena, y uno mueve 10 puntos |
+| `purosEscaladoresPct` | ≥ 45       | 65,50 | 16,35 | lo mismo                                                                              |
+| `mejorPorArquetipoOk` | ≥ 90 %     | 50,00 | 50,00 | es un booleano por mundo: con dos mundos solo puede valer 0, 50 o 100                 |
+
+Las dos de pureza van **sobradas** (80 y 65 contra un ≥ 45), así que no sellarlas no esconde un
+problema: esconde una medición que no se sabe hacer con dos semillas.
+
+### Lo que el banco vigila ahora
+
+De **10 aserciones a 17**, y las nuevas son las que faltaban: las tres del dueño con su margen
+medido, el margen por cohorte de edad, el reloj de la edad por clase, el crecimiento del neopro, las
+enfermedades, la estacionariedad a cinco años, los techos de los que entran, y **los brazos de
+política**.
+
+### «Razonable, nunca óptimo» deja de ser una frase… a medias
+
+| brazo   | media | enfermo/año | molestias/año |
+| ------- | ----: | ----------: | ------------: |
+| `bot`   | 53,67 |        3,10 |      **0,00** |
+| `buena` | 53,50 |        2,98 |          0,00 |
+| `mala`  | 52,14 |    **3,92** |      **0,57** |
+
+**La mitad de abajo se prueba y se sella: entrenar mal cuesta**, punto y medio de media, y es el
+único brazo del mundo donde aparecen las molestias.
+
+**La mitad de arriba no, y no se finge.** `buena` sigue 0,17 por debajo del bot, y la causa está
+diagnosticada desde §8: **es del instrumento, no del motor**. Las dos palancas de `buena` —afinar más
+días, no apretar con el depósito bajo— reducen volumen, y su beneficio se cobra GANANDO. Este banco
+no simula etapas: aquí no gana nadie, así que la ventaja vale cero y solo se ve el coste. Las dos
+salidas quedan escritas —que el banco sepa quién gana, o medir la frescura del día de carrera como
+métrica propia— y ninguna es calibrar una constante.
+
+### Dos hallazgos que NO son del entrenamiento, y que son del dueño
+
+**1. Un tercio del WorldTour no tiene nada por encima de 4★.** Apenas se movió entre los pasos 6 y 11
+—30,2 · 30,4 · 32,3— mientras el entrenamiento cambiaba entero, y `margenAlTechoPct` dice que esa
+gente **ya está al 9 % de su techo**: no es que no entrenen bien, es que su techo no llega a 67 en
+nada. Cerrarlo es subir los techos del WorldTour en la génesis, y eso tira en contra del «menos del
+15 % con cinco estrellas», que hoy va sobradísimo (2,6 %). **Son la misma perilla en sentidos
+opuestos.**
+
+**2. La mayoría del pelotón no se parece a su etiqueta.** `archetypeFromAttributes` deriva el
+arquetipo de los ATRIBUTOS, y en la temporada 25 da: gregario **39 %**, rodador **24 %**, escalada
+10,6, fondo 8,4, puncheur 5,4, crono 4,1, clásicas 3,8, velocidad 3,7. §7.2 quería los ocho por
+encima del 4 % y dos se quedan justo debajo, pero el número que importa es el otro: **dos arquetipos
+se llevan dos tercios del mundo**. La perilla son los offsets de techo y el presupuesto de dispersión
+de la génesis, no el entrenamiento. El banco vigila solo que los ocho EXISTAN.
+
+### Y una métrica que se leía donde no dice nada
+
+`techosNeoprosVsGen0` compara los techos de los que entran contra los de la generación inicial… **y
+la generación inicial se muere**. En la temporada 15 quedan un puñado de supervivientes y la
+comparación da ±7 puntos de puro tamaño de muestra; en la 25 es `null` en las tres divisiones porque
+ya no queda nadie con quien comparar. Se lee en la **temporada 5**, que es donde el dato existe.
+
+### Documentación puesta al día con lo implementado
+
+- **SPEC §3.2**: las DOS escalas de estrellas y por qué no son la misma; la marca de progreso; la
+  flecha a 28 días y cinco niveles (el SPEC pedía 7 y tres); la opinión del entrenador; y que el
+  informe de ojeador con ruido **no está implementado y es decisión abierta**.
+- **SPEC §3.5**: aviso de que los bots ya no nacen así —techo absoluto × madurez, ocho arquetipos— y
+  que unificar las dos génesis es decisión del dueño porque cambia la silueta de creación.
+- **SPEC §5.1**: el catálogo real, con REC en el descanso activo (no lo entrenaba nadie), los `muros`
+  (COL tenía un solo camino) y la regla de los dos caminos por atributo físico. Y los bloques.
+- **SPEC §5.2**: `K_inst` y `K_staff` enchufados de verdad, `K_ready` como rampa y no escalón,
+  `K_int` a 1,12 y no 1,25, y `K_edad` por clase de atributo. Más la escalera D0-D5.
+- **SPEC §5.6**: el descubrimiento del talento, con la opinión del entrenador y el informe del bloque
+  en el sitio del «test de esfuerzo» de pago que nunca se implementó.
+- **`docs/epics.md` G1**: los cuatro requisitos con su estado. **Dos cerrados** —no acaban todos
+  siendo Pogačar, y las carreras enseñan según su nivel— y **dos abiertos**, los dos por decisión del
+  dueño y no por falta de trabajo: el tercio sin 4★ (arriba) y «balancear entrenamiento y carreras»,
+  que necesita la palanca de la decisión 23.
+
+## v62 — La tanda de etapa: REC en la carretera y CRI en el que llega solo
+
+`ENGINE_VERSION` **61 → 62**. Son las **decisiones 4 y 5 del dueño**, y los tres cambios van juntos
+porque separarlos era el defecto: la versión anterior del diseño metía uno de los tres —REC en el
+vaciado profundo— **solo en la reconstrucción de producción**, pasando `false` en los bancos. O sea un
+cambio de cerillos en la carretera real **que ninguna banda podía ver**. Esa asimetría es lo único que
+no se podía quedar: «si el cambio saca un objetivo de banda, el que está mal es el cambio» no se le
+puede aplicar a un cambio que no tiene banda.
+
+### Los tres
+
+| Qué                        | Antes                                 | Ahora                                               | En REC 50 |
+| -------------------------- | ------------------------------------- | --------------------------------------------------- | --------- |
+| Umbral de vaciado profundo | 0,12 plano                            | `0,06 + 0,12·(1 − REC/100)`                         | **0,12**  |
+| Umbral de TSB de cerillos  | −25 plano                             | `−25 − 0,2·(REC − 50)`                              | **−25**   |
+| Remate `solitario`         | RES ,35 · LLA ,30 · TAC ,20 · MON ,15 | RES ,30 · LLA ,20 · **CRI ,15** · TAC ,20 · MON ,15 | —         |
+
+Los dos de REC están **centrados en 50**, que es el REC medio del campo, y eso no es un detalle: en
+REC 50 dan exactamente el número plano de antes, así que **redistribuyen cerillos entre corredores en
+vez de dárselos o quitárselos al pelotón entero**. Si no estuvieran centrados, el cambio sería una
+subida encubierta del nivel de todo el mundo disfrazada de matiz. Está probado como tal, no supuesto.
+
+REC 90 pide bajar al 7,2 % del depósito para pagarlo mañana y aguanta hasta −33 de TSB sin perder
+cerillo; REC 20 lo paga ya al 15,6 % y pierde el cerillo en −21. Es el mismo atributo diciendo lo
+mismo en la carretera que en el Banister.
+
+**CRI en el `solitario`** sale de RES (0,35 → 0,30) y de LLA (0,30 → 0,20), que eran las dos que
+hacían de contrarreloj sin llamarse contrarreloj. El que llega solo no disputa un remate: sostiene un
+esfuerzo contrarreloj hasta la pancarta, y el atributo que mide eso ya existía.
+
+### Lo que mueve, medido (6 grandes vueltas)
+
+| Cola de la carrera (% del ganador) |   v61 |  v62 |     Δ |
+| ---------------------------------- | ----: | ---: | ----: |
+| **reina** (`queenLastGroupPct`)    | 10,87 | 9,96 | −0,91 |
+| media montaña                      |  5,73 | 4,56 | −1,17 |
+| llana                              |  0,76 | 1,40 | +0,64 |
+
+**La predicción de §6 decía «±0,5 alrededor del 8,07» y la medición da −0,91: se queda corta por
+algo más del doble, y hay que decirlo.** Lo que sí acierta es lo que importaba —la dirección y que la
+banda aguanta—: 9,96 está en mitad del **8-14** de `sim/targets.ts`, lejos del suelo de 8 que el dueño
+confirmó el 10-09-2026. El suelo no se toca, que es exactamente lo que §6 se comprometió a no hacer.
+
+La llana casi dobla su cola (0,76 → 1,40) y es coherente con el mecanismo: en una llana el pelotón
+llega junto y la cola la marcan los pocos que se descuelgan, así que redistribuir cerillos se nota
+más ahí en términos relativos que en una reina, donde la cola ya es grande.
+
+### Las huellas selladas NO se movieron, y merece explicación
+
+Se esperaba que CRI en el `solitario` moviera las cuatro huellas de `attribution.test.ts`, y el
+diseño dejó dicho que re-sellarlas con la causa escrita sería legítimo. **No hizo falta**: los
+escenarios sintéticos de `sim/scenarios.ts` no terminan con un corredor solo en un grupo de uno, que
+es la única condición con la que `finishType` devuelve `solitario`. Un peso que no se evalúa no mueve
+un dígito.
+
+Es una no-noticia que vale la pena escribir: el plan predijo un movimiento, no ocurrió, y la razón no
+es que el cambio sea inocuo —la cola de la reina se mueve casi un punto— sino que **esas huellas no
+miran ahí**. Saber qué NO vigila una prueba sellada es la mitad de saber qué vigila.
+
+### Una prueba que se puso roja, y que tenía que ponerse
+
+`physics.test.ts` pedía que un corredor de 90 en TODO perdiera un cerillo a TSB −30, y ya no lo
+pierde: con REC 90 su umbral está en −33. **No es que la prueba se rompiera, es lo que el cambio
+hace.** Se reescribe con el umbral de cada uno —y sobre el corredor MEDIO, donde el −25 de siempre
+tiene que sobrevivir intacto—, más la aserción que impide que REC se convierta en inmunidad: a −35 el
+de REC 90 lo paga igual.
+
+### Estado del banco
+
+**101 pruebas de los cinco bancos en verde**, 42 minutos. Ninguna banda de `sim/targets.ts` tocada.
+
+## v63 — Las dos recomendaciones aceptadas que se habían quedado sin aplicar
+
+`ENGINE_VERSION` **62 → 63**. El dueño aceptó las veintitrés recomendaciones de §9.1 y dos se
+quedaron por el camino: la **25** (`SPRINTER_MIN`) y la **22** (el offset del gregario). No es una
+ampliación de alcance: es el alcance que ya estaba aprobado y no se ejecutó.
+
+### 25 · El velocista se decide por PERCENTIL, no por un 68 escrito a mano
+
+`SPRINTER_MIN = 68` era un umbral **absoluto** sobre el SPR crudo, calibrado contra una génesis donde
+la media de división era la del ATRIBUTO y el 20 % del campo eran velocistas. Con la génesis v2 el
+campo tiene un 9-10 % de velocistas y los atributos nacen por debajo de su techo, así que el 68 dejó
+de significar lo que quería decir: en WorldTour lo pasaba ≈ el 9 % —media parrilla sin tren de
+sprint— y **en ProSeries y Continental el rol desaparecía casi del todo**.
+
+Lo que el 68 quería decir es «este equipo tiene una baza de sprint **comparada con el pelotón que
+corre HOY**», y eso es un percentil. El mejor SPR del equipo entra como velocista si supera el **p75
+del campo del día**, calculado una vez sobre el campo entero —si cada equipo lo sacara de su propia
+plantilla, «superar el p75» sería «ser el mejor de los tuyos» y lo cumplirían los veintidós—.
+
+Con menos de cuatro corredores devuelve 0: en una carrera de tres gatos no hay campo del que sacar
+percentiles y exigir uno sería decidir con ruido.
+
+**`tactica.md` §5.2 ya lo implementaba por percentil** diciendo textualmente que heredaba esta
+corrección de `entrenamiento.md` §6, y su §9.5 escribe «pasa a percentil. Se hereda, no se reabre».
+Tener dos umbrales para la misma decisión en dos documentos que se citan era el defecto de verdad.
+
+#### Lo que mueve (banco `smallTours`, 8 semillas por carrera)
+
+| Métrica                |   v62 |   v63 |         Δ |
+| ---------------------- | ----: | ----: | --------: |
+| `bestSprinterWinPct`   | 33,33 | 30,18 |     −3,15 |
+| `sweepPct`             |  6,67 |  2,70 | **−3,97** |
+| `photo.sameWinnerPct`  | 24,85 | 18,46 | **−6,39** |
+| `photo.repeatTopFive`  |  2,02 |  1,89 |     −0,13 |
+| peor carrera del banco | 75,00 | 80,00 |     +5,00 |
+
+**El sprint deja de ser cosa de uno.** Con más equipos poniendo tren, los pleno-al-quince caen a
+menos de la mitad y el mismo corredor repite victoria seis puntos menos. Es exactamente lo que se
+quería: el 68 absoluto no solo quitaba velocistas, quitaba RIVALES al que sí lo era.
+
+La contrapartida está escrita y no escondida: **la peor carrera del banco empeora cinco puntos**
+(75 → 80). Donde el campo es tan homogéneo que el p75 deja a un solo rematador claro por encima, ese
+rematador domina más que antes. Es una carrera de un banco de ocho, dentro de banda, y queda
+apuntada.
+
+### 22 · El gregario sube su mejor offset de RES −4 a −2
+
+Es la palanca barata contra «que tampoco se quede nadie sin pasar de 4 en nada»: sube el único
+atributo en el que un gregario puede destacar sin tocar su cuota ni convertirlo en otra cosa —sigue
+pagando 16 y 18 puntos de peaje en todo lo demás—.
+
+#### Lo que mueve (mismo mundo, mismas semillas: comparación PAREADA)
+
+| Métrica                         |   v62 |   v63 |     Δ |
+| ------------------------------- | ----: | ----: | ----: |
+| `sinNadaSobre4WTPct`            | 32,28 | 31,32 | −0,96 |
+| `sinNadaSobre4Pct`              | 64,78 | 63,95 | −0,83 |
+| `sinNadaSobre4NoGregariosWTPct` | 20,11 | 19,84 | −0,27 |
+| `cincoEstrellasWTPct`           |  2,65 |  3,03 | +0,38 |
+
+**Y hay que decir que es MUCHO menos de lo que la recomendación sugería.** §9.1 estimaba que «el WT
+llega a 4★ el 60 % de las veces en vez del 53 %», y la lectura fácil de eso era esperar un movimiento
+de varios puntos. Lo medido es **un punto**. Las dos cifras no se contradicen: la estimación hablaba
+de _cuántas veces un gregario llega a 4★ en RES_, y la métrica cuenta _qué parte del WorldTour no
+tiene nada sobre 4★_ — y buena parte de esa gente no es gregario, así que su offset no les toca.
+
+La comparación es **pareada** —el mismo mundo con las mismas semillas antes y después—, así que ese
+punto es efecto real y no la desviación de 3,07 que tiene esa métrica entre semillas. Lo que dice es
+que **la conclusión del paso 12 se sostiene**: el tercio del WorldTour sin nada sobre 4★ es un número
+de la génesis, y moverle el offset a un arquetipo lo roza, no lo cierra. Cerrarlo sigue siendo la
+decisión del dueño escrita en «v59 §12».
+
+### Estado del banco
+
+**101 pruebas de los cinco bancos en verde**, 42 minutos, y **ninguna banda de `sim/targets.ts`
+tocada** pese a que el reparto de roles cambia en todas las carreras del banco de vueltas pequeñas.
+Las 17 aserciones del banco de mundo selladas en el paso 12 también aguantan sin moverse.
+
+## v60 §0 — Paso 0 de la táctica: la red de medida, y cinco respuestas que no teníamos
+
+`ENGINE_VERSION` **63 → 63**: este paso **no toca el motor**. Monta la red con la que se van a medir
+los veintiún pasos siguientes y toma la foto de antes. Sin ella, cada paso posterior se atribuiría
+sus movimientos de memoria.
+
+**Y la versión no arranca donde el plan decía.** §8 escribe que este documento «arranca en 61»,
+porque contaba nueve subidas para `entrenamiento.md`. Fueron **once**: el paso 11 tuvo que subir para
+arreglar los bloques del entrenador —que no hacían lo que su columna prometía— y las decisiones 25 y
+22 se cerraron en una tanda propia. Así que la táctica arranca en **63**. Se dice aquí para que las
+dos numeraciones se puedan cruzar, que es justo lo que §8 pedía.
+
+### `finalKindOf`: la función que tres sitios citaban y no existía en ninguno
+
+La hipótesis de R28.2, el `queenFinalKindMix` del paso 1 y la partición de `medianLeadGroupRiders` en
+`realQueens` la nombraban las tres. **Una hipótesis que no se puede llamar no es una hipótesis: es
+una opinión con nombre técnico.**
+
+Con ella, la geometría de **las 157 reinas del calendario entero** —que cuesta ≈ 0 porque es recorrer
+segmentos, no simular, y por eso se hace sobre las 157 y no sobre la muestra de 27—:
+
+| Tipo de final | Etapas |        % |
+| ------------- | -----: | -------: |
+| `alto`        | **89** | **56,7** |
+| `cima_cerca`  |      4 |      2,5 |
+| `valle_corto` |     55 |     35,0 |
+| `valle_largo` |      9 |      5,7 |
+
+Km tras la última cota: **mediana 0,0 · p90 19,0 · máx 94,0**. Las dos bandas que §7.5 pide sobre las
+generadas —mediana ≤ 8 y p90 ≤ 25— se cumplen.
+
+Y un aviso que el diseño no anticipó: **§7.5 daba por hecho que solo `valle_largo` quedaría flojo de
+muestra**, y la cubeta escuálida es la otra: `cima_cerca` son **4 etapas de 157**, o sea **una sola**
+en la muestra que se simula.
+
+### R28.2 SE CONFIRMA — y la magnitud no es la que afirmaba
+
+Win-rate del escalador (MON ≥ p85) por tipo de final, muestra de 27 × 8 semillas (≈ 216 etapas, una
+vez, fuera de CI):
+
+| Tipo de final | Etapas | Corridas | Gana el escalador |
+| ------------- | -----: | -------: | ----------------: |
+| `alto`        |     14 |      112 |        **72,3 %** |
+| `cima_cerca`  |      1 |        8 |            62,5 % |
+| `valle_corto` |     10 |       80 |            63,8 % |
+| `valle_largo` |      2 |       16 |        **50,0 %** |
+| global        |     27 |      216 |            67,1 % |
+
+**Monótona decreciente y con el signo que R28.2 predice**, así que `queenFinalMix` está justificado y
+el paso 1 va entero.
+
+**Pero el recorrido de 22 puntos se apoya en una cubeta de 16 corridas, y eso hay que decirlo.** Con
+n = 8 (`cima_cerca`), una victoria arriba o abajo son 12,5 puntos: ese 62,5 % no informa de nada.
+Entre las dos cubetas bien pobladas —`alto` con 112 corridas y `valle_corto` con 80— la diferencia es
+de **8,5 puntos**. Ésa es la parte sólida. La dirección se confirma; los «20 puntos de win-rate» que
+el diseño afirmaba, no.
+
+### `smallRaces.ts`: el banco de lo que el dueño mira de verdad
+
+`smallTours` arma el campo por NIVEL: una continental son 18 equipos de 7, o sea 126 corredores. Lo
+que el dueño mira —y de donde sale la queja que abre el rediseño— es **una .2 con seis equipos de
+cinco**. En un pelotón de 126 una fuga de nueve es el 7 % del campo y casi nunca lleva dos de la
+misma casa; en uno de 30 es el 30 %, y la superioridad numérica dentro de ella es el hecho central.
+
+**Dos de las cuatro carreras que §7.2 nombraba no valen**: `almeria` y `aulne` son carreras de **un
+solo día** en el calendario de hoy, y el propio §7.2 pide «8 carreras reales de 3-5 etapas». Se
+conservan `wallonia` (la de la queja) y `sharjah` (el campo máximo) y las otras seis se eligen con el
+criterio escrito: 3, 4 y 5 etapas, de 24 a 60 corredores, WT / PRS / CON.
+
+Primera foto (8 carreras × 4 semillas, 128 etapas):
+
+| Métrica                      | Medido |
+| ---------------------------- | -----: |
+| Gana la carretera            | 48,4 % |
+| Fuga: corredores (mediana)   |  **3** |
+| Fuga: **casas** (mediana)    |  **3** |
+| Un equipo mete 2+ en la fuga | 28,1 % |
+| Alguien gana 2+ etapas       | 78,1 % |
+
+**La fuga mediana es de tres corredores y tres casas, no de nueve y seis.** La queja describía una
+carrera que este motor no produce: el campo pequeño no genera fugas grandes.
+
+Y el `78,1 %` es la vieja queja viva: en casi cuatro de cada cinco carreras pequeñas alguien gana dos
+etapas o más.
+
+### `duelBench.ts`, y la medida que resume el rediseño entero
+
+| Escenario            |   n | Gana la mayoría | Azar puro |  Ventaja |
+| -------------------- | --: | --------------: | --------: | -------: |
+| pareja contra suelto | 400 |      **67,5 %** |    66,7 % | **+0,8** |
+
+**Ser dos de tres en una fuga vale ocho décimas de punto.** No es que la superioridad numérica esté
+mal calibrada: **no existe**. Ése es el suelo contra el que habrá que leer el 72-88 % que R02 promete,
+y tenerlo escrito antes de tocar nada es la diferencia entre atribuir una mejora y suponerla.
+
+### `ordersBench.ts`: las siete palancas, pareadas
+
+El método es el pareado —mismo hombre, mismo campo, misma semilla, **una palanca cambiada**— porque
+`diseno/mapa-bancos.md` §7.21 avisa de que con doce semillas «todo lo más fino que 2-4 puntos está
+dentro del ruido». Una mediana pareada es casi determinista; una media cruda no.
+
+| Palanca           | Movió en | Δpuesto | Δtrabajo | Δpuntos (si movió) |
+| ----------------- | -------: | ------: | -------: | -----------------: |
+| `mentality`       |    12/12 |    −0,5 |     +2,8 |               −1,5 |
+| `effort`          |    12/12 | **0,0** | **+5,4** |               +6,0 |
+| `role` cazaetapas |    12/12 |   −10,5 |     +1,5 |               +5,0 |
+| `role` líder      |    12/12 |    −9,5 |     −0,8 |               +3,0 |
+| `contestSprints`  | **1/12** |     0,0 |      0,0 |          **+15,0** |
+| `contestClimbs`   | **0/12** |     0,0 |      0,0 |                0,0 |
+| `triggerKm`       |    12/12 |    −9,0 |     −0,6 |               +2,0 |
+
+Tres lecturas, y las tres son distintas:
+
+1. **El rol y el `triggerKm` funcionan**: diez puestos de mejora, que es una palanca de verdad.
+2. **`effort` cuesta y no paga**: `a_tope` contra `ahorrar` gasta **+5,4 de trabajo** y termina en el
+   **mismo puesto**. Es la queja del dueño —«el resultado es casi lo mismo ponga lo que ponga ahí»—
+   medida, y con el agravante de que sí tiene precio.
+3. **`contestSprints` no está desconectada: está CONDICIONADA.** Cuando el grupo del corredor disputa
+   la pancarta, la palanca es decisiva: **+15 puntos**, porque al ser el único interesado se lleva el
+   banner entero. Lo que pasa es que en un pelotón de 88 con una fuga por delante, la volante se la
+   disputa la fuga. Las dos cosas se arreglan de formas distintas, y una mediana sobre doce semillas
+   las confunde.
+
+**Y `contestClimbs` sí está muerta, verificada en el código y no inferida del número**: `disputeBanner`
+la lee, pero solo se llama para las metas volantes. Las cimas van por `disputeClimb`, que ordena
+`g.members` **directamente** y no consulta la orden en ninguna línea. El jugador marca la casilla y el
+motor no se entera. El diseño ya lo sabía —«`contestClimbs` respetado» es trabajo del paso 10—; aquí
+queda medido.
+
+### Dos errores de banco cazados antes de publicar, que también van escritos
+
+Los dos habrían producido un hallazgo falso con pinta de hallazgo bueno:
+
+1. **La primera versión de `ordersBench` corría sobre una llana SIN PANCARTAS.** `contestSprints` y
+   `contestClimbs` salían moviendo 0 de 12, y no era el motor: era que no había nada que disputar.
+   Una palanca solo se puede medir donde significa algo.
+2. **Y luego las medía contra el PUESTO.** Lo que hacen es cambiar quién disputa un banner, o sea
+   puntos, y el puesto en meta no se entera. Un banco que mide la magnitud equivocada publica un cero
+   tan falso como el de un botón roto, y encima con la apariencia de un resultado.
+
+### El reloj de CI, que §7.7 no tenía… y que estaba mal por cinco veces
+
+`ci.yml` lleva escrito en un comentario que `packages/engine/src/sim/` son «3 ficheros, 69 pruebas,
+**536 s**» y el resto «95 ficheros, 1.201 pruebas, **102 s**». Medido hoy:
+
+| Job           | Comentario de `ci.yml` |                                 Medido |   Factor |
+| ------------- | ---------------------: | -------------------------------------: | -------: |
+| `test:bancos` |        536 s (3 fich.) |     **2.546 s** (5 fich., 101 pruebas) | **×4,7** |
+| `test:rapido` |       102 s (95 fich.) | **≈ 440 s** (115 fich., 1.468 pruebas) | **×4,3** |
+
+El número del que colgaba la decisión de partir `ci.yml` estaba desfasado casi cinco veces. La
+partición **no se decide aquí**: se decide con estos números y con los que falten, que es exactamente
+lo que la casilla (i) del paso 0 manda —«partición de `ci.yml` decidida con los números medidos, no
+antes»—.
+
+## v60 §1a — El recorrido es del mundo, no del código
+
+`ENGINE_VERSION` **63 → 63**: no toca el motor. Es la mitad de fontanería del paso 1, y va sola a
+propósito.
+
+El perfil de cada etapa salía de `SEASON_CALENDAR` **en el momento de correrla**, o sea que era un
+dato del CÓDIGO. Eso funciona mientras el generador de recorridos no cambie nunca, y el paso 1b lo
+cambia entero. La consecuencia que nadie había escrito: **las carreras ya corridas cambiarían de
+recorrido retroactivamente**. La crónica de una etapa de hace tres temporadas hablaría de un puerto
+que ya no está donde estaba, y `checkReplay` dejaría de reproducir sus snapshots sin que nadie
+hubiera tocado un snapshot.
+
+Ahora el recorrido se congela el día de la salida en `race_routes` y el tick lo lee de ahí. Cambiar
+el generador cambia las carreras **futuras**, que es lo que tiene que pasar. La clave lleva la
+temporada dentro, así que el Tour del año que viene puede tener otro recorrido: es justo lo que este
+rediseño quiere poder hacer.
+
+Tres propiedades, y las tres probadas:
+
+- **El perfil leído es el mismo que el del calendario.** Es la condición del paso: si difiriera en un
+  decimal, esto habría cambiado la conducta sin subir versión.
+- **Congelado quiere decir congelado**: un segundo `freeze` no pisa el primero.
+- **Degrada, no revienta**: una carrera creada antes de que la tabla existiera devuelve `null` y el
+  tick cae al calendario, que es exactamente lo que hacía antes. Y el backfill congela lo que falta
+  sin tocar lo que ya está.
+
+### «Idéntico byte a byte» no se puede pedir, y se dice en vez de aflojar la prueba
+
+El criterio escrito pide que el perfil leído sea idéntico **byte a byte**. **JSONB de Postgres
+normaliza el orden de las claves** —`{g, km}` vuelve como `{km, g}`—, así que la igualdad de bytes es
+imposible por construcción del almacén, no por un fallo del código. Y es irrelevante: el motor lee
+`s.km` y `s.tipo`, no un buffer.
+
+Lo que la prueba comprueba es lo que sí importa: que ningún VALOR cambie y que **el orden de los
+arrays se conserve** —el tercer segmento sigue siendo el tercer segmento—, que eso JSONB sí lo
+respeta y el motor sí lo lee.
+
+## v60 §1b — El recorrido decide, en vez de salir de lo que salga
+
+`ENGINE_VERSION` **63 → 64**. Toca el generador de perfiles, así que **todos los recorridos generados
+del calendario cambian**. Es a propósito: sin la subida, `checkReplay` seguiría declarando fieles unos
+snapshots que ya no reproducen.
+
+### `normalize()` metía hasta nueve kilómetros en el puerto de meta
+
+Cuadraba los km de la etapa **metiendo TODA la diferencia en el ÚLTIMO segmento**. En una etapa reina
+el último segmento es el **puerto final**: una etapa de 180 km cuyos segmentos sumaban 171 se
+cuadraba alargando nueve kilómetros la subida de meta. Un puerto de 12 km pasaba a 21.
+
+Y los `tramos` **no se reescalaban**, así que el segmento acababa declarando 21 km con 12 km de
+rampas dentro. Eso no es un redondeo: es hasta un 5 % de la etapa cayendo siempre en el sitio donde
+más decide, con una incoherencia que el muestreo se tragaba en silencio.
+
+Ahora el ajuste se reparte **proporcionalmente entre todos los segmentos** y los tramos se reescalan
+con el suyo, así que la FORMA del perfil se conserva y solo cambia su escala. El residuo del redondeo
+va al segmento **más largo** —donde un decimal no cambia nada— y nunca al último.
+
+### La reina decide cuánto sube y dónde corona
+
+Antes el desnivel era una **consecuencia**: se sorteaban dos o tres puertos y lo que subiera la etapa
+era lo que saliera. Y el final era **siempre en alto**, porque el último segmento era el puerto y
+detrás no había nada.
+
+Ahora se sortea el objetivo y los puertos se ajustan a él, que es como se diseña una vuelta de
+verdad. El 60 % de las reinas sale del rango alto (2.600-4.600 m) **muestreado uniforme en
+logaritmo** —en lineal la mitad caería por encima de 3.600 y la distribución se iría toda al extremo
+duro— y el 40 % de una cola baja explícita (1.200-2.500 m), que existe porque
+`calendarQueens.test.ts` afirma en tres líneas duras que la banda de <1.500 m no se queda vacía.
+
+Y el tipo de final se sortea de `ROUTE.queenFinalMix`. **Se aplica porque la medida (f) del paso 0
+encontró la correlación que R28.2 afirmaba**: sin ella, este reparto no estaría justificado y el paso
+1 se habría quedado en `normalize()`.
+
+### Lo que mueve, sobre las 157 reinas del calendario
+
+| Métrica                | v63 (antes) | v64 (después) |
+| ---------------------- | ----------: | ------------: |
+| `alto`                 |  **56,7 %** |    **38,2 %** |
+| `cima_cerca`           |       2,5 % |         8,9 % |
+| `valle_corto`          |      35,0 % |        42,0 % |
+| `valle_largo`          |       5,7 % |        10,8 % |
+| dPlus > 3.500 m        |       1,9 % |    **10,8 %** |
+| dPlus 2.500-3.500 m    |      15,9 % |        20,4 % |
+| dPlus < 1.500 m        |      20,4 % |        21,0 % |
+| km tras la última cota |   mediana 0 |   mediana 9,0 |
+
+**La cola dura se quintuplica y la banda fácil se conserva**, que son las dos cosas a la vez que el
+paso pedía. Y la mediana de valle pasa de **cero** —o sea, la mitad de las reinas del calendario
+moría literalmente en la cima— a nueve kilómetros.
+
+### Un criterio del paso que NO se puede cumplir, con la aritmética delante
+
+El criterio escrito pide `queenDplusMedian ∈ 2.800-4.200`. Medido: **2.053**. Y el generador
+**viejo** ya daba **2.023**, o sea que el criterio nunca se cumplió y nadie lo había medido.
+
+No es que falte esfuerzo: **es aritméticamente incompatible con el otro criterio del mismo paso.**
+Para que la mediana sea 2.800 haría falta que más de la mitad de las reinas pasaran de esa cifra, y
+el paso exige a la vez que la banda de <1.500 m no se quede vacía y que `stats.dPlus.min < 1500`. Con
+un 21 % por debajo de 1.500 y un 48 % entre 1.500 y 2.500, la mediana no puede estar en 2.800.
+
+El propio diseño da la salida cuando dice que `queenDplusRange` es **«un TECHO alcanzable y no un
+desplazamiento en bloque»**. Se cumple el techo —la cola de >3.500 se quintuplica— y se declara que
+la mediana no es alcanzable con la cola baja que el banco necesita. Las cuatro aserciones duras que
+el paso ponía en riesgo (`facil.races > 0`, `dPlus.min < 1500`, `facil.wonFromMovePct > dura + 10` y
+`breakawayWinPct ∈ 6-30`) están **las cuatro en verde**.
+
+Lo mismo con `queenFinalKindMix ± 0,08`: dos de las cuatro cubetas quedan fuera, y la razón es que
+**el mix es una propiedad del CALENDARIO, que mezcla tres generadores** —`mountainSegments`,
+`hillyUphillSegments` y `mountainClassicSegments`—, no de `mountainSegments` sola. Afinar el reparto
+para compensar a los otros dos es calibración, y el paso 21 es donde vive.
+
+### Dos regresiones cazadas, y las dos por el mismo mecanismo
+
+El reescalado proporcional mueve las longitudes, y `stageKindOf` decide el tipo de etapa con un
+umbral **duro**: un puerto de 8,5 km o más es alta montaña. Así que:
+
+- `mountain 130 semilla-7` **dejaba de clasificarse como reina**: el generador de reinas produciendo
+  una media montaña.
+- `hillyUphill 175 semilla-5` **pasaba a ser reina**: el calendario perdía la etapa que había pedido.
+
+Se arreglan garantizando **después del `normalize()`** lo que cada generador promete —ponerlo antes
+no sirve, porque el reescalado se lo lleva por delante—, y los kilómetros que se le dan o se le
+quitan al puerto salen del segmento llano más largo, así que la etapa conserva su longitud exacta.
+
+## v60 §2 — Los tres contextos viajan, y nadie los lee
+
+`ENGINE_VERSION` **64 → 64**: **cero cambios de conducta**, y ésa es la condición del paso. Los tipos
+se definen, se pueblan, y cada racimo de reglas irá leyendo el suyo en su paso.
+
+Son **tres y no uno** porque son tres niveles de verdad distintos, y mezclarlos es la raíz de la mitad
+de los defectos que el rediseño persigue:
+
+- **`SelfView` es exacto**: lo suyo un corredor lo sabe con precisión.
+- **`GroupView` es casi exacto**: el censo de compañeros sí —se sabe quién es de tu casa—, pero
+  `signals` **no**: lo que se ve del rival se lee con error y admite disimulo.
+- **`RaceView` es vieja y torcida**: lo que el director CREE saber, con retardo. Es lo que hace
+  posible que un director se equivoque.
+
+La regla que sostiene el diseño entero y que este contrato respeta: **no hay un solo campo que
+exponga la energía ajena.**
+
+El censo se calcula **una vez por grupo y bloque** y se comparte por referencia; «quién de los míos
+va delante» va aparte porque depende de quién pregunta. Separarlos es lo que permite pagar el censo
+una vez.
+
+Y `teamId` empieza a viajar en `MoveRider`. Es el dato del que cuelga R02 entero: `chooseInstigator`
+sortea hoy sobre el pool entero, así que **dos compañeros pueden atacar en el mismo movimiento o uno
+contra otro**, y el motor no tiene con qué enterarse.
+
+**Las cuatro huellas selladas salen idénticas: 142 pruebas de `attribution`, `timetrial` y `simulate`
+en verde.** Si se hubiera movido una, el paso estaría mal hecho por definición.
+
+## v60 §3 — R01, y el hallazgo que vale más que el cambio: **el orden del plan está mal**
+
+`ENGINE_VERSION` **64 → 64**: este paso **no cambia una sola conducta**, y no porque no lo intentara.
+Las tres reglas de R01 se escribieron, se midieron, y **las tres rompen la persecución por la misma
+causa**. Así que se aplican la regla de la casa —«si el cambio saca un objetivo de banda, el que está
+mal es el cambio»— y viajan al paso 9.
+
+### Las tres reglas, y lo que mide cada una
+
+| Regla                                                                      | Qué hace                                                                      | Medido al encenderla                                                                                                                                  |
+| -------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **R01.1** · `tieneHombreDelante` pierde la guarda `kind === 'move'`        | no se persigue lo propio **en el pelotón**, no solo en un grupo de caza       | la fuga deja de cazarse                                                                                                                               |
+| **R01.2** · `jefeEnApuros` sobre `gcLeaderId` en vez de filtrar por motivo | el hombre de la general de **cualquier** equipo, aspire al podio o no (S-048) | ídem                                                                                                                                                  |
+| **R01** · `followProbability = 0` entre compañeros                         | un gregario no le salta a la rueda a su propio jefe                           | `mountain.breakawayWinPct` **25 → 22,5**; «ninguna fuga gana una llana por cuatro minutos» **rojo**; `breakaway_caught` en Bességes e4 cae a **CERO** |
+
+Las tres son **correctas como reglas**. Ninguna es un error de cálculo ni de calibración.
+
+### La causa es una sola, y es del PLAN, no del código
+
+**Sentar a los que no deben tirar deja el frente vacío mientras no exista quien lo tome.**
+
+En un pelotón de 176 con 22 equipos, una fuga de seis deja a seis casas con un hombre delante:
+cuarenta y ocho corredores —**un cuarto del pelotón**— salen del turno de relevos a la vez y sin que
+nadie los sustituya. Y la tercera regla lo agrava por una vía indirecta que no era obvia: sin
+compañeros saltándose entre sí, una fuga de seis sale de **seis casas distintas** en vez de tres o
+cuatro, así que quita todavía más equipos de la caza.
+
+Quien hace que las casas SIN hombre delante tomen el frente es **la subasta de R20**, y R20 es el
+**paso 9**. O sea que el plan pone R01 en el paso 3 y **R01 necesita R20**.
+
+Eso es un defecto del grafo de dependencias de §8.1, no del trabajo. Y es exactamente la clase de
+cosa que solo aparece midiendo: sobre el papel R01 es «la pieza más barata del catálogo y la que más
+filas apaga», y lo es —hasta que se enciende.
+
+### Lo que sí queda hecho, y sirve
+
+- **`TeamPlan.gcLeaderId`**, poblado y correcto: el leal con mejor puesto en la general, `null` si no
+  hay general en juego, con el mismo desempate por id que el resto del fichero. **Nadie lo lee
+  todavía** y el paso 9 lo usará tal cual. Es la precisión que R01.2 pedía contra el código: el
+  filtro por `purposes` de la v58 §4 funcionaba y decía otra cosa —dejaba fuera al hombre de la
+  general de un equipo modesto—, y sin este campo quitarlo devuelve la regresión de 387 s que aquella
+  versión midió.
+- **Las tres reglas escritas, apagadas con su interruptor y con su medición al lado**, no borradas.
+  El paso 9 las enciende con la subasta detrás y compara contra estos números.
+
+### Por qué esto no se «arregla calibrando»
+
+La tentación era ensanchar la banda de `mountain.breakawayWinPct` de 25 a 22, y habría sido mentir
+dos veces: el otro invariante que se cae es un **«nunca»** —ninguna fuga gana una llana por cuatro
+minutos— y eso no es una banda que se pueda mover, es un síntoma de que el pelotón ha dejado de
+perseguir. Un mundo donde la fuga llega siempre no es un mundo mejor calibrado: es otro deporte.
+
+### Y el paso 1b pasó los bancos enteros
+
+**101 pruebas de los cinco bancos en verde** con el generador de recorridos nuevo, antes de empezar
+este paso. La cola dura quintuplicada y los finales en alto del 56,7 % al 38,2 % no rompen ninguna
+banda.
+
+## v60 §4 — Las clasificaciones y la memoria existen, y nadie las lee
+
+`ENGINE_VERSION` **64 → 64**: cero cambios de conducta, comprobados y no supuestos.
+
+Puntos, montaña y joven, más lo que la carrera recuerda de los días anteriores. Existen para que un
+corredor pueda decidir **mirando algo**: R05, R06 y R07 preguntan las tres lo mismo —«¿me sirve de
+algo pelear esto hoy?»— y hoy no hay a quién preguntárselo.
+
+### La tabla `race_classifications` NO se crea, y hay que decir por qué
+
+El plan la pedía. Sería una **segunda fuente de verdad para un dato que `race_gc` ya tiene**:
+`puntos_volante` y `puntos_montana` se acumulan ahí etapa a etapa desde hace versiones, y la
+clasificación de jóvenes es ese mismo `race_gc` filtrado por edad. Escribirla en otra tabla no añade
+información: añade **la posibilidad de que las dos discrepen**.
+
+Y este repositorio tiene el defecto con nombre propio. `fame`, `teamTrust` y `facilities` fueron tres
+columnas que existían, se rellenaban y no decidían nada, y hay una prueba —`columnasVivas.test.ts`—
+escrita justamente para que no vuelva a pasar. Duplicar `race_gc` es la versión de al lado del mismo
+error.
+
+Se calcula al leer: dos consultas y un `sort`, una vez por etapa. Y la de **equipos no se toca**: la
+calcula `teamClassification.ts` con las reglas UCI y sus desempates, y se lee de ahí. Reescribirla
+habría sido tener dos reglamentos.
+
+### El hueco al de delante, que es el dato que faltaba
+
+Cada fila lleva `toNextRank`. **Ir segundo a un punto y ir segundo a cuarenta son dos carreras
+distintas, y «rank 2» no las distingue.** Es exactamente lo que R05 necesita para decidir si un
+equipo reclama hoy la clasificación de la montaña o la deja correr.
+
+### La memoria nace a medias, y se dice cuál mitad
+
+`winners` sale de los resultados de las etapas anteriores —quién ha ganado ya algo cambia cómo le
+miran—. Las **deudas de relevos nacen VACÍAS**: no hay dónde leerlas todavía, las escribe R09 en el
+paso 16, y una lista vacía es más honesta que una inventada.
+
+### El invariante 74, que es el contrario del habitual
+
+Con el contexto **puesto y quitado**, la etapa sale idéntica. Y hace falta comprobarlo, no suponerlo:
+un campo nuevo puede cambiar la conducta sin que nadie lo lea —basta con que entre en un orden de
+iteración, en una clave de mapa o en un `JSON.stringify` que siembre un dado—, y ése es justo el
+defecto que no se ve en una revisión.
+
+Se prueba con un contexto **poblado de verdad** (si fuera vacío no probaría nada), con las
+clasificaciones metidas en cada corredor, y con dos contextos **distintos entre sí** —el control del
+control: si la primera prueba pasara porque el contexto es inerte por ser siempre el mismo, esto lo
+cazaría—.
+
+Cuando el paso 6 empiece a leer el contexto, **esta prueba tiene que ponerse roja**. Y eso también
+es información: significará que el contexto por fin decide algo.
+
+El tick de producción ya lo pasa. Enchufarlo ahora, mientras no lo lee nadie, es lo que hace que el
+paso que empiece a leerlo sea un cambio de **una** cosa y no de dos. Y si armarlo fallara, la etapa se
+corre sin contexto en vez de no correrse: hoy eso es exactamente la carrera de siempre.
+
+## v60 §5 — R19 entero, medido, y apagado: **media regla cuesta las clásicas**
+
+`ENGINE_VERSION` **64 → 64**. R19 está escrito completo —diez fases, la tabla de seis columnas, el
+cupo por fase y por grupo de origen, la retirada de `closingNow` como veto, la ventana de la captura,
+el flyer, el puente desde atrás, la etapa corta de montaña y el subflujo `rngTactics2`—, está medido
+brazo a brazo, y **el interruptor se queda apagado**. Es la segunda vez en esta tanda que se aplica
+la regla de la casa: «si el cambio saca un objetivo de banda, el que está mal es el cambio».
+
+Apagado, el motor sale **idéntico al paso 4 dígito a dígito**: 199 pruebas de `attribution`,
+`simulate`, `tactics` y `fases` en verde con las cuatro huellas selladas intactas.
+
+### Lo que R19 hace cuando se enciende, y hace lo que promete
+
+| llana canónica, 120 semillas |  apagado | encendido | banda |
+| ---------------------------- | -------: | --------: | ----- |
+| intentos por etapa           |     15,0 |  **16,9** | 10-25 |
+| intentos tras el km 100      |      8,3 |   **9,1** | ≥ 2   |
+| contraataque tras captura    | **16 %** |  **34 %** | 25-60 |
+| gana la fuga                 |    9,2 % |     5,0 % | 5-16  |
+| gana el mejor sprinter       |   36,7 % |    39,2 % | 30-45 |
+| captura                      |   89,4 % |      94 % | > 85  |
+| km de la caza                |     18,1 |      19,8 | 8-25  |
+| reina: gana la fuga          |   26,7 % |    28,3 % | 25-45 |
+
+**El contraataque tras la captura es el dato que justifica el racimo**: con las fases apagadas vale
+16 %, es decir **por debajo de su propia banda**, y R19 lo pone en 34 %. El motor de hoy caza una
+fuga y no pasa nada; con R19 el kilómetro siguiente a una captura es el más vivo de la carrera, que
+es exactamente lo que R19.5 promete con esas palabras. **48 de los 49 invariantes pasan.**
+
+### El que no pasa: las clásicas queman el depósito
+
+| Il Lombardia, mismas semillas | R19 apagado | R19 encendido |
+| ----------------------------- | ----------: | ------------: |
+| 3 semillas                    |      11,4 % |        13,3 % |
+| 6 semillas                    |      10,9 % |        11,6 % |
+| 12 semillas                   |      11,2 % |    **17,7 %** |
+
+Pájaras contra un techo de 12 %. Y el techo **no se ensancha**: un 18 % es una de cada seis llegando
+con el tanque a cero, que es el depósito dejando de discriminar —justo lo que el guardarraíl existe
+para cazar—. El vaciado mediano se queda en 0,917 contra 0,96, así que la alarma la da la mitad
+correcta.
+
+### No es una columna mal calibrada, y se sabe porque se midió palanca a palanca
+
+Quitando de R19 una columna cada vez, sobre las mismas doce semillas:
+
+| Il Lombardia              | pájaras |
+| ------------------------- | ------: |
+| R19 apagado               |  11,2 % |
+| R19 entero                |  17,7 % |
+| sin el suelo de fase      |  17,0 % |
+| sin la cuerda por fase    |  17,5 % |
+| sin el puente desde atrás |  18,3 % |
+| con todo el cupo a 3      |  19,6 % |
+
+**Ninguna palanca es la causa, porque la causa es el racimo.** El cupo bajado a 3 empeora, y ahí está
+la pista: el 3 de antes era **global** —tres movimientos vivos en toda la carretera— y el de R19 es
+**por grupo de origen**, que es el cambio que R19.3 pide y el que hace que la carrera se fragmente en
+esfuerzos simultáneos. En una clásica de 250 km con cuestas todo el día, eso son tanques a cero.
+
+### La causa de verdad: el paso 5 retira cuatro vetos y **el precio llega en el paso 6**
+
+Lo dice el propio diseño, en R19.4: «`closingBusyDamp` entra en el PASO 6 con `payable`, y su efecto
+se mide allí». El paso 5 quita `closingNow`, el cupo global, el corte de los últimos kilómetros y la
+prohibición del puente desde atrás; lo que hacía que atacar y cerrar **costaran algo** es `payable`,
+y `payable` no existe hasta R03.3.
+
+**CORREGIDO EN LA v60 §6, Y SE DEJA A LA VISTA**: esta explicación es una lectura razonable del
+diseño y **la medida no la sostiene**. Con el precio del paso 6 puesto —`payable` y
+`closingBusyDamp`, exactamente lo que R19.4 nombra—, las pájaras de Il Lombardia se quedan en
+**17,0 %** contra el 17,7 % sin él. Siete décimas: el precio no paga lo que el paso 5 quitó. Lo que
+sigue en este párrafo describe lo que se creyó al cerrar el paso 5; lo que de verdad se sabe está en
+la v60 §6.
+
+Media regla puesta cuesta esto. No es un defecto del trabajo: es el mismo hallazgo que el paso 3
+—donde R01 resultó necesitar la subasta de R20— y confirma que **el grafo de dependencias de §8.1
+está optimista en los dos sitios**. La diferencia es que aquí la dependencia está escrita en la
+propia regla y nadie la leyó como bloqueante.
+
+Así que R19 queda entero, con su interruptor, y **el paso 6 lo enciende y vuelve a medir estas dos
+tablas**. Se re-mide `counterAfterCatchPct` con la predicción que el diseño ya deja escrita: sube,
+porque cerrar sale más caro.
+
+### Dos correcciones al diseño que sí se quedan, con su medida
+
+Se encontraron midiendo, antes de llegar al hallazgo de arriba, y las dos valen igual cuando el paso
+6 encienda el interruptor.
+
+**1. El suelo de compromiso, tal como lo dicta R19.2bis, mata la carrera.**
+
+| 60 semillas               | gana la fuga (llano) | captura | km de la caza | gana la fuga (reina) |
+| ------------------------- | -------------------: | ------: | ------------: | -------------------: |
+| R19 apagado               |                5,0 % |    95 % |          18,9 |               25,0 % |
+| R19 entero, suelo a secas |            **0,0 %** |   100 % |      **54,8** |            **5,0 %** |
+| R19 entero SIN el suelo   |                6,7 % |    93 % |          18,1 |               40,0 % |
+
+El 0,72 del que la columna dice derivarse **no era un suelo de la fase `control`**: era el compromiso
+del pelotón _mientras cierra un movimiento sin cuerda_, una ventana estrecha. Como suelo permanente,
+el pelotón **ya no puede conceder** —dar cuerda es rodar por debajo de eso— y el controlador de la
+caza deja de existir: se caza todo, siempre, a 55 km de meta.
+
+El arreglo sale de la propia frase de la regla, «las amortiguaciones bajan el compromiso **hasta ese
+suelo** y ahí se paran»: el suelo se acota por lo que el pelotón había decidido ANTES de amortiguar.
+Y se acota **además por la dosificación**, porque el humor del día es GANAS y la dosificación es
+COMBUSTIBLE: un suelo contra las ganas es lo que R19.2bis quiere; un suelo contra el combustible hace
+que el pelotón queme un depósito que no tiene. Medido: sin esa segunda acotación, Strade Bianche
+saturaba también (0,964 de vaciado, 17 % de pájaras).
+
+**2. La columna `lambdaScale` no estaba derivada de nada.**
+
+| llana canónica, 120 semillas | intentos/etapa | tras km 100 | gana la fuga | gana el mejor sprinter |
+| ---------------------------- | -------------: | ----------: | -----------: | ---------------------: |
+| R19 apagado                  |           15,0 |         8,3 |        9,2 % |                 36,7 % |
+| R19 con 0,60 y 0,45          |       **12,4** |     **6,8** |    **4,2 %** |             **50,0 %** |
+| R19 con los dos a 1          |           16,9 |         9,1 |        5,0 % |                 39,2 % |
+
+El diseño da la columna por «DERIVADA de los umbrales sueltos de hoy» y traía un **0,60 en `salida`**
+y un **0,45 en `control`** que no salen de ningún umbral del motor. Con ellos, R19 **bajaba** los
+intentos y sacaba de banda dos objetivos: el defecto que el racimo existe para matar, cometido por el
+racimo.
+
+- El **0,60 de `salida` duplica el factor `settle`** de `moveLambda`, escrito en la v33 para este
+  mismo problema. El diseño justifica conservar los cuatro factores diciendo que «no miden lo mismo»
+  que la fase; `settle` y `salida` sí miden lo mismo.
+- El **0,45 de `control`** es el día normal, donde el motor no escala nada. Una columna que
+  multiplica por 0,45 el caso por defecto no describe una fase: baja el nivel de toda la carrera por
+  la puerta de atrás.
+
+Las **desviaciones** se conservan enteras: el cero de `neutralizado`, el 0,10 de la tregua, el ×2,50
+de la captura y el ×1,30 del puerto decisivo.
+
+### El invariante 54, y para qué sirve de verdad
+
+«Después del km 100 se sigue intentando algo» (≥ 2). **La llana canónica ya lo cumplía con R19
+apagado** —8,3 intentos—, así que este invariante **no demuestra** que R19 arregle el apagón: es un
+guardarraíl, no una prueba. El defecto que R19 mata se midió en producción (Race Almeria e1: cuatro
+intentos hasta el km 19 y ni uno más en los 190 restantes), no en el banco. Decirlo así es más útil
+que presentar en verde un número que ya lo estaba.
+
+Y `counterAfterCatchPct` **se mide y no se sella**: en 25-60 quedaría rojo, y bajarlo al 16 % que el
+motor da hoy sería sellar el defecto. La prueba que hay comprueba lo que es verdad —que hoy NO llega
+a su banda— y el invariante de verdad entra en el paso 6.
+
+### `flyerWinPct` se queda sin banda, y hay que decir por qué
+
+R19.6 le pone objetivo —«gana el 2-5 % de las llanas»— y a la vez condiciona el flyer a que el
+terreno ayude: repecho, curva, viento de cola. **La llana canónica es llana pura con llegada
+agrupada**, así que el terreno no ayuda nunca y el flyer no se dispara ni una vez: 0,0 % por
+construcción, no por conducta. Las dos mitades de la regla se contradicen.
+
+Y del flyer falta una tercera condición que **no se inventa**: el viento de cola. El modelo de viento
+de este motor es de viento LATERAL —abanicos—, sin dirección respecto a la marcha, así que no hay
+dato con el que preguntarlo. Queda declarado en el código en vez de aproximado con un proxy que
+pareciera medirlo.
+
+### Lo que NO se hace de R19, y por qué
+
+- **`closingBusyDamp`** (el precio de cerrar) llega en el paso 6 con `payable`. Aquí solo se retira
+  el veto — y esta tanda mide lo que cuesta retirarlo sin el precio.
+- **Los renombres** `tacticMaxMoves` → `legacyMaxMoves` y `tacticNoAttackKm` → `legacyNoAttackKm`. La
+  conducta es la que el diseño pide —los dos son ya selectores de flujo y no vetan con las fases
+  encendidas—, pero los nombres aparecen en catorce documentos de `docs/diseno/` y moverlos
+  desincroniza el rastro de diseño a cambio de nada que el motor haga distinto. Queda escrito en la
+  propia constante.
+- **La columna `rescate`** está puesta y nadie la lee: el rescate es R12, paso 12.
+
+## v60 §6 — La aduana es una subasta, y **la corrección a lo que el paso 5 dijo**
+
+`ENGINE_VERSION` **64 → 64**. R03 y R04 están construidos enteros —la subasta de trabajo, la general
+virtual, la correa sobre el terreno que queda, la amenaza que comparten aduana y persecución, la
+revisión por kilómetro— y **el interruptor se queda apagado**, por tercera vez en esta tanda y por el
+mismo motivo: una banda no se sostiene y la perilla que el diseño nombra no llega a ella.
+
+Lo primero, porque corrige algo que esta bitácora dijo hace dos entradas.
+
+### La corrección: el precio del paso 6 NO paga lo que el paso 5 quitó
+
+La v60 §5 cerró así: R19 rompe el guardarraíl de saturación de las clásicas porque «el paso 5 retira
+cuatro vetos y su PRECIO —`payable` y `closingBusyDamp`— no existe hasta el paso 6». Era una lectura
+razonable del propio diseño (R19.4 lo dice con esas palabras). **La medida no la sostiene.**
+
+| Il Lombardia, 12 semillas          |    pájaras |
+| ---------------------------------- | ---------: |
+| todo apagado                       |     11,2 % |
+| solo fases (paso 5)                |     17,7 % |
+| **fases + aduana (con el precio)** | **17,0 %** |
+
+Siete décimas. El precio que el diseño nombra para pagar la retirada de `closingNow` **no paga
+prácticamente nada**, y la explicación de la v60 §5 queda corregida: el coste de R19 en las clásicas
+no es la falta de `closingBusyDamp`. Lo que queda por probar —y ya no se afirma, se anota— es si lo
+paga la subasta del frente de R20 (paso 9), que es quien decide **quién hace el trabajo** en vez de
+cuánto estaría dispuesto a pagar.
+
+Se deja escrito porque el error es del tipo que este repositorio persigue: una causa plausible,
+tomada de la documentación, publicada sin medir. La medida tardó un paso en llegar y la desmiente.
+
+### La hipótesis nula, que es lo primero que se construye
+
+Con cero objeciones la aduana devuelve **la fórmula de hoy término a término**: `pHoy` es
+`pelotonAllows` con su rampa de arranque, su castigo por tamaño y su techo. Y no se comprueba contra
+una copia de sus números sino **contra la función de verdad**: para 180 combinaciones de kilómetro,
+recorrido, apetito y tamaño se busca el umbral de decisión de `pelotonAllows` con un dado de barrido
+fino y se compara. Si alguien toca la rampa de un lado, la prueba se pone roja.
+
+Difiere en dos sitios, los dos declarados: el castigo de general pasa de multiplicar la probabilidad
+a entrar en el bote como objeción, y el veto del maillot pasa de ser un sumando a ser un `return`
+—un veto que se puede pagar no es un veto, y escrito como un 99 dentro de una suma que recorta cada
+objeción a `min(objeción, payable)` valía lo mismo que cualquier otra—.
+
+**Y el dado no se muda de flujo.** §2.6 pide un subflujo `rngAduana`; no se abre, y el motivo es el
+contrario del habitual: mover esta tirada a un flujo propio la SACA de `rngTactics`, y quitar una
+tirada de un flujo compartido corre la secuencia de todas las etapas del juego. El subflujo nuevo
+sirve cuando se AÑADEN tiradas, no cuando se mueve una que ya estaba. Con el interruptor apagado, las
+cuatro huellas selladas no se mueven un dígito.
+
+### Lo que la aduana hace cuando se enciende
+
+| llana canónica, 120 semillas | apagado | solo aduana | aduana + fases | banda |
+| ---------------------------- | ------: | ----------: | -------------: | ----- |
+| gana la fuga                 |   9,2 % |      10,0 % |          5,8 % | 5-16  |
+| gana el mejor sprinter       |  36,7 % |      35,8 % |         37,5 % | 30-45 |
+| captura                      |    89 % |        89 % |           94 % | > 85  |
+| km de la caza                |    18,1 |        18,6 |           20,0 | 8-25  |
+| intentos por etapa           |    15,0 |        15,0 |           16,9 | 10-25 |
+| contraataque tras captura    |    16 % |        20 % |       **33 %** | 25-60 |
+| revisiones de la aduana      |       0 |     **2,2** |        **3,7** | 0,5-4 |
+| **reina: gana la fuga**      |  26,7 % |  **20,0 %** |         27,5 % | 25-45 |
+
+La revisión por kilómetro **sirve y no tiembla**: 2,2 cambios de opinión por etapa, dentro de su
+banda. Es la mitad de S-120 que no existía —`allowed` se decidía una vez, en el kilómetro en que el
+movimiento nacía, y no se revisaba jamás— y está escrita con el dado GUARDADO: si se retirara cada
+kilómetro, un movimiento acabaría teniendo cuerda por insistencia del azar (con un 10 % por km, cien
+kilómetros la conceden casi seguro).
+
+### La banda que no se sostiene, y la perilla que no llega
+
+`mountain.breakawayWinPct` cae de 26,7 % a **20,0 %** contra un suelo de 25. El diseño nombra la
+perilla para esto —«si el paso 6 necesita que alguna fuga salga más que hoy, la perilla es
+`customsPotWeight`»— y **no llega**:
+
+| `potWeight` | reina: gana la fuga |
+| ----------- | ------------------: |
+| 1,0         |              20,0 % |
+| 0,5         |              22,5 % |
+| 0,25        |              22,5 % |
+
+Satura en 22,5 y ahí se queda: con el peso a un cuarto el voto ya casi no pesa, así que **lo que
+mueve la reina no es el voto**. Barrer más abajo sería barrer una perilla que ya no está conectada a
+nada, y subir el suelo de la banda de 25 a 20 sería mover una banda del dueño para tapar una medida
+que no se ha entendido. Ni una cosa ni la otra: el interruptor se queda apagado y la calibración
+espera a tener delante la subasta del frente (R20, paso 9), que es quien convierte «estoy dispuesto a
+pagar» en «lo estoy pagando». El bote de hoy es una intención sin nadie que la ejecute.
+
+### Tres defectos propios, cazados midiendo, y los tres valen para cuando se encienda
+
+**1. `gcControlLeash` = 700 hacía DOS trabajos, y R04.2 solo releva uno.** Es la tolerancia del
+control de la general **y** el boquete por defecto cuando no hay general ninguna. Aplicando la correa
+nueva a una clásica o a un banco sin contexto, `leashOf` cae en su suelo —45 s con un día por
+delante— y el pelotón se pone a cazar cualquier cosa que pase de tres cuartos de minuto. Medido: la
+fuga ganaba el **0,0 %** de las llanas canónicas y el 1,7 % de las reinas, con la captura al 99 %.
+Parecía el voto de la aduana y no lo era: con la revisión por kilómetro apagada salía igual.
+
+**2. La segunda rama de la objeción de etapa NO es de la aduana.** «Una fuga consolidada le gana a mi
+carta remate quien remate, porque si llega no hay sprint» es verdad, y es de `threatOf` —quién
+persigue a quién—, no de la subasta. Metida en la objeción, la revisión por kilómetro la dispara en
+cuanto el hueco pasa de los 45 s: todos los equipos con carta objetan de golpe y **el movimiento
+pierde la cuerda justo en el kilómetro en que la había ganado**. El diseño lo advierte en una frase
+—«en la ADUANA la segunda rama no dispara»— y la primera versión de este código no la respetó.
+
+**3. `TeamPlan.quality` es un `finishScore`, escala 0-100, no una fracción.** Recortado a [0,1],
+cualquier carta real valía exactamente 1 y la calidad dejaba de distinguir al equipo del mejor
+rematador del día del que lleva un gregario: los veintidós pujaban lo mismo.
+
+### Lo que se descubre del banco, y es información
+
+En la llana canónica **solo 5 de los 22 equipos tienen carta de etapa**; los otros 17 no tienen
+candidato y por tanto no objetan nada. La subasta, en ese banco, está casi muda por construcción: lo
+que le falta para tener voz son los **motivos secundarios** (R05, paso 9) —la montaña, los puntos, el
+equipo que corre por la clasificación y no por la etapa—. Se anota aquí para que no se lea el
+«apenas mueve nada en llano» como una propiedad de la regla.
+
+### `breakBirthKm`, el guardarraíl que sí caza algo
+
+El km en que nace la fuga del día, mediana sobre 120 semillas: **19,4 apagado · 16,7 con la aduana ·
+2,5 con aduana y fases**. La banda que el diseño propone es 1-12 km, así que el 2,5 «pasa» — y aun
+así es exactamente la conducta que la v39 arregló con el dueño delante («en el 99 % de los casos en el
+km 1 ataca alguien, lo cual no tiene mucho sentido»). Dos cosas quedan dichas: la banda 1-12 admite lo
+que aquella tanda fue a corregir, y el motor de hoy da 19,4, no «1-12». Cuando se calibre de verdad
+(paso 21) hay que decidir cuál de las dos es la buena, con la medida delante y no con el número
+heredado.
+
+### Lo que NO se hace de R03/R04, y por qué
+
+- **El cupo por equipo (R03.4c), el `breakScore` de escalador (R03.4d), el infiltrado (R03.5), el
+  hombre al puente (R03.8), el maillot prestado (R04.4) y el traspaso en carretera (R04.6)**: todos
+  cuelgan de los motivos secundarios de R05 o de la subasta del frente de R20, que son el paso 9. Se
+  hacen allí, con la medida de este paso como línea de salida.
+- **El renombre de `gcControlLeash`**: la constante **no se retira** aunque el diseño lo pida, porque
+  el defecto 1 de arriba demuestra que hace dos trabajos y R04.2 solo releva uno. Retirarla ahora
+  dejaría sin boquete por defecto a todas las carreras sin general.
+
+## v60 §7 — El pulso por el frente, y **el hallazgo que cambia el plan**: los racimos no entran de uno en uno
+
+`ENGINE_VERSION` **64 → 64**. R20 —el objetivo de la caza, el derecho al frente y el que se sienta—
+está construido y medido, y **el interruptor se queda apagado**. Es la cuarta vez seguida, y a la
+cuarta el patrón ya no es de un racimo: es del plan.
+
+**Se adelanta a los pasos 7 y 8 a propósito**, y la decisión se toma con la evidencia de las tres
+entradas anteriores: R01 (paso 3) necesita quien tome el frente, R19 (paso 5) necesita quien pague, y
+el bote de R03 (paso 6) es una intención sin nadie que la ejecute. Los tres apuntan a R20. Un racimo
+que desbloquea a tres vale más que dos racimos nuevos apagados.
+
+### S-176, el contrario nº 1, queda escrito
+
+«Se persigue al grupo más adelantado en vez de al que hace daño, así que toda la lógica de caza
+apunta al sitio equivocado.» Era literal: el objetivo de la caza era `frontMove()`. Si delante van
+tres irrelevantes y un poco más atrás el segundo de la general, el pelotón perseguía a los tres
+irrelevantes.
+
+Ahora lo elige `chaseTargetOf` sobre `threatOf` —lo que un movimiento le cuesta a un equipo entero—
+con su desempate escrito. Y la corrección que lo hace **ejecutable**: `threatOf` y no `costToMyMan`,
+porque aquél cuenta solo general y para el perseguidor normal de una llana —el equipo del sprinter,
+sin hombre de general— vale 0 en todos los movimientos: un `argmax` sobre un empate a cero.
+
+### Lo que R20 hace solo, y **pasa todas las bandas canónicas**
+
+| llana canónica + reina, 120 semillas | apagado |        R20 | banda |
+| ------------------------------------ | ------: | ---------: | ----- |
+| gana la fuga (llano)                 |   9,2 % | **14,2 %** | 5-16  |
+| gana el mejor sprinter               |  36,7 % |     35,8 % | 30-45 |
+| captura                              |    89 % |       85 % | > 85  |
+| km de la caza                        |    18,1 |       18,0 | 8-25  |
+| gana la fuga (reina)                 |  26,7 % | **30,0 %** | 25-45 |
+| Il Lombardia, pájaras                |  11,2 % |     11,9 % | ≤ 12  |
+
+Es **el primer racimo de toda esta tanda que pasa el banco canónico por su cuenta**. Pero el banco
+canónico no es el banco: con los 104 invariantes completos fallan **tres, y los tres por un pelo**:
+
+| invariante                                 | medido | listón |
+| ------------------------------------------ | -----: | -----: |
+| captura de la llana canónica               |  84,68 |   > 85 |
+| erosión de la reina real de tercera semana |  0,597 | ≥ 0,60 |
+| pájaras de Il Lombardia (3 semillas)       |   13 % | ≤ 12 % |
+
+Tres décimas, tres milésimas y un punto. **No se ensancha ninguna**: que un listón esté cerca no
+autoriza a moverlo, y menos tres a la vez en la misma tanda. Interruptor apagado.
+
+### El hallazgo, que ya no es de este racimo
+
+**Los racimos no entran de uno en uno, y hay medida.** Con los tres encendidos a la vez —fases,
+aduana y subasta—:
+
+| llana canónica, 120 semillas  | todo apagado | solo R19 | solo R03 | solo R20 | **los tres** | banda |
+| ----------------------------- | -----------: | -------: | -------: | -------: | -----------: | ----- |
+| gana la fuga                  |        9,2 % |    5,0 % |   10,0 % |   14,2 % |   **11,7 %** | 5-16  |
+| gana el mejor sprinter        |       36,7 % |   39,2 % |   35,8 % |   35,8 % |   **31,7 %** | 30-45 |
+| captura                       |         89 % |     94 % |     89 % |     85 % |     **88 %** | > 85  |
+| km de la caza                 |         18,1 |     19,8 |     18,6 |     18,0 |     **19,6** | 8-25  |
+| intentos por etapa            |         15,0 |     16,9 |     15,0 |     14,5 |     **17,2** | 10-25 |
+| intentos tras el km 100       |          8,3 |      9,1 |      8,1 |      8,0 |      **9,5** | ≥ 2   |
+| **contraataque tras captura** |     **16 %** |     34 % |     20 % |     15 % |     **41 %** | 25-60 |
+| gana la fuga (reina)          |       26,7 % |   28,3 % |   20,0 % |   30,0 % |   **34,2 %** | 25-45 |
+
+**Los tres juntos pasan las ocho.** Y `counterAfterCatchPct` —que con el motor de hoy vale 16 %, es
+decir **por debajo de su propia banda**— se pone en 41 %: el kilómetro siguiente a una captura deja
+de ser un kilómetro cualquiera, que es lo que tres reglas distintas prometen por separado y ninguna
+consigue sola.
+
+El motivo es de forma, no de calibración. Cada racimo quita una pieza y pone otra: R19 retira cuatro
+vetos, R03 sustituye un dado por un voto, R20 cambia a quién se persigue. Encendido **uno solo**, el
+motor corre con la mitad de un acuerdo —vetos quitados sin precio, voto sin nadie que lo ejecute,
+puntería nueva sin quien la pague— y el desequilibrio sale por el guardarraíl que menos holgura
+tenga. Es exactamente lo que el paso 3 encontró con R01 y lo que el paso 5 encontró con R19, y son
+cuatro medidas coincidentes.
+
+Lo único que los tres juntos **no** arreglan es la saturación de las clásicas: Il Lombardia se queda
+en 16,5 %. Eso sigue siendo de R19 y sigue sin explicación medida (el paso 5 propuso una y el paso 6
+la desmintió).
+
+### Dos defectos propios, y los dos son el MISMO defecto que el paso 6
+
+**Una capacidad usada como si fuera una intención**, dos veces:
+
+1. **El objetivo de la caza no puede incluir movimientos sin cuerda.** Un movimiento sin cuerda no se
+   persigue: se CIERRA. Mezclados, la claudicación de la caza —que pregunta por la fuga DEL DÍA— no
+   se dispara nunca y el pelotón caza el 100 % de las etapas: la fuga gana el 0,0 % de las llanas y
+   de las reinas.
+2. **El hueco deseado de un equipo sin hombre de general es «lo que todavía puedo cerrar», y eso es
+   una capacidad.** Puesto como hueco deseado, el pelotón persigue todo lo que le quepa incluso
+   después de haber claudicado —y claudicar es justo el mecanismo por el que una fuga gana una
+   llana—. Mismo resultado: 0,0 %.
+
+Es la tercera vez en esta tanda que `gcControlLeash` = 700 se revela haciendo **dos trabajos** —la
+tolerancia del control de la general y el boquete por defecto cuando no hay general— y que una regla
+que solo releva el primero rompe el segundo. Queda anotado para el paso 21: la constante no se retira
+hasta que la segunda mitad tenga dueño.
+
+### La propuesta, con la medida delante
+
+El plan de §8.1 va racimo a racimo, y **cuatro pasos seguidos dicen que así no entra**. Lo que la
+tabla de arriba propone es cerrar los racimos que faltan **apagados y medidos**, como hasta ahora, y
+abrir **un paso de encendido conjunto** donde se enciendan a la vez y se calibre el sistema contra
+los 104 invariantes, no cada pieza contra los suyos. Las tres perillas ya identificadas
+—`customsPotWeight`, la tabla de fases y `closeRateSPerKm`— se barren ahí, juntas, que es donde de
+verdad interactúan.
+
+## v60 §8 — El juego de equipo, y **la prueba de que el encendido conjunto funciona**
+
+`ENGINE_VERSION` **64 → 64**. R02 y R18 —el turno como cola, la inversión de la tabla de ataque y el
+descuento entre compañeros— construidos, medidos, y apagados. Quinta vez. Pero esta entrada no
+existe por el racimo: existe por lo que se midió **encendiéndolo todo junto**.
+
+### El turno era una foto, no un relevo (R18.1)
+
+`relayTurn` **se rehace entera desde cero cada bloque de cien metros y en cada grupo**, por
+puntuación de deber con desempate por id. Sin memoria de quién acaba de tirar, sin relevo hacia atrás
+y sin duración: la constante que contaba el apartarse (`pullOffFrontShare`) se retiró y no se
+sustituyó por nada. La consecuencia es que **los mismos hombres van al frente kilómetro tras
+kilómetro** hasta que la frescura les cambia el orden por sí sola.
+
+Ahora es una cola: das tu turno, te apartas, te vas al final y no vuelves a cabeza hasta que gire
+entera. La pieza **no decide quién quiere tirar** —eso lo siguen decidiendo los tres listones del
+deber, que están medidos y no se tocan—: decide **en qué orden y durante cuánto**, que es lo que
+faltaba. Y el turno dura menos en cuesta y todavía menos en abanico.
+
+### La inversión de la tabla de ataque (R02.12), que es la queja 3 del dueño
+
+Con el escalar de hoy **el equipo del maillot ataca MÁS que el del segundo**: `controlar` 0,85 contra
+`perseguir` 0,70. Defender la general es lo contrario de atacar y el motor lo tenía al revés. Con el
+juego de equipo, defender pesa 0,30. Y aparte, la regla del portador: un líder con dos minutos de
+colchón **no salta seis veces en una etapa**, porque no tiene nada que ganar y todo que perder.
+
+### Y el descuento entre compañeros, que el paso 3 dejó a cero
+
+`mateFollowDamp` = 0,15, que es lo que la fila pide: **no es cero, es un descuento**. Un gregario no
+le salta a la rueda a su propio jefe; pero si el que se va es otro peón y a mí me conviene ir, voy.
+
+### Lo que hace solo: lo de siempre
+
+| llana + reina, 120 semillas | apagado |     paso 7 | banda |
+| --------------------------- | ------: | ---------: | ----- |
+| gana la fuga (llano)        |   9,2 % |      6,7 % | 5-16  |
+| gana el mejor sprinter      |  36,7 % |     39,2 % | 30-45 |
+| captura                     |    89 % |       93 % | > 85  |
+| contraataque tras captura   |    16 % |       23 % | 25-60 |
+| **gana la fuga (reina)**    |  26,7 % | **18,3 %** | 25-45 |
+| Il Lombardia, pájaras       |  11,2 % | **12,4 %** | ≤ 12  |
+
+Dos fuera. Apagado.
+
+### **Y AHORA LO QUE IMPORTA: los cuatro racimos a la vez**
+
+| llana canónica + reina, 120 semillas |  apagado |      R19 |  R03 |  R20 |  R02+R18 | **los cuatro** | banda |
+| ------------------------------------ | -------: | -------: | ---: | ---: | -------: | -------------: | ----- |
+| gana la fuga (llano)                 |    9,2 % |      5,0 | 10,0 | 14,2 |      6,7 |     **10,8 %** | 5-16  |
+| gana el mejor sprinter               |   36,7 % |     39,2 | 35,8 | 35,8 |     39,2 |     **35,0 %** | 30-45 |
+| captura                              |     89 % |       94 |   89 |   85 |       93 |       **89 %** | > 85  |
+| km de la caza                        |     18,1 |     19,8 | 18,6 | 18,0 |     17,9 |       **19,8** | 8-25  |
+| intentos por etapa                   |     15,0 |     16,9 | 15,0 | 14,5 |     14,8 |       **16,8** | 10-25 |
+| intentos tras el km 100              |      8,3 |      9,1 |  8,1 |  8,0 |      8,3 |        **9,3** | ≥ 2   |
+| contraataque tras captura            | **16 %** |       34 |   20 |   15 |       23 |       **29 %** | 25-60 |
+| gana la fuga (reina)                 |   26,7 % |     28,3 | 20,0 | 30,0 | **18,3** |     **38,3 %** | 25-45 |
+| **Il Lombardia, pájaras**            |   11,2 % | **17,7** | 14,3 | 11,9 | **12,4** |     **11,9 %** | ≤ 12  |
+
+**Las nueve pasan, Lombardia incluida.** Y esa última fila es la prueba dura: la saturación de las
+clásicas que R19 solo rompía —y que ni R03 ni R20 ni R02+R18 arreglaban por su cuenta— **desaparece
+cuando están los cuatro**. No es que una pieza la arregle: es que el desequilibrio lo causaba correr
+con media capa táctica.
+
+### Contra los 104 invariantes completos: 100 pasan, y hay que mirar los cuatro que no
+
+| invariante                                             | medido | listón | qué es                                                                                                                                                         |
+| ------------------------------------------------------ | -----: | -----: | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| «el contraataque tras la captura NO llega a su banda»  | 28,6 % |   < 25 | **el defecto ARREGLADO**: esta prueba la escribí en el paso 6 para afirmar que el motor de hoy no llega, y con los cuatro llega                                |
+| la captura nombra a los de delante (`comprobadas > 0`) |      0 |    > 0 | el CASO que comprueba deja de darse en el banco; hay que diagnosticar por qué                                                                                  |
+| el que releva todo el día se desgasta más              |  1,097 |  > 1,1 | **la cola funcionando**: el test se escribió contra «la lógica vieja, donde el primer cuarto del array relevaba SIEMPRE», y una cola es justo lo que quita eso |
+| Il Lombardia satura (3 semillas)                       |   13 % |   ≤ 12 | con 12 semillas da 11,9 %; es el guardarraíl más ruidoso que hay                                                                                               |
+
+**Tres de los cuatro son pruebas que describen el motor viejo, no bandas que el motor nuevo viole.**
+Y aun así **no se enciende nada en esta tanda**, por dos motivos, los dos explícitos:
+
+1. **Los tres ajustes hay que tomarlos uno a uno y con su medida**, y dos de ellos tocan listones que
+   puso el dueño. Cambiar tres guardarraíles en la misma tanda en que se encienden cuatro racimos es
+   exactamente la forma de no poder atribuir nada después.
+2. **El segundo hay que diagnosticarlo, no ajustarlo.** Que un caso deje de darse puede ser que la
+   conducta mejore o que el banco haya dejado de mirar donde debía, y las dos cosas se parecen
+   demasiado como para decidirlo deprisa.
+
+Así que el trabajo queda: los cinco racimos construidos, medidos y apagados; la evidencia de que
+juntos funcionan; y el encendido, que es una decisión con tres guardarraíles encima de la mesa.
+
+## v60 §9 — El encendido conjunto: **la premisa del plan aprobado era falsa, y con eso se vuelve atrás**
+
+`ENGINE_VERSION` **64 → 64**. Se encendieron los cinco racimos, se re-sellaron las cuatro huellas, se
+corrió todo, **y se volvió atrás**. Esta entrada cuenta por qué, porque el porqué vale más que el
+intento.
+
+### Lo que se hizo, y lo que salió bien
+
+Con la propuesta aceptada se aplicaron los tres ajustes de guardarraíl declarados y se encendieron
+fases, aduana, subasta del frente y juego de equipo. **Las bandas se sostienen**: las nueve
+estadísticas canónicas pasan, la reina la gana la fuga el 38,3 % de las veces (banda 25-45), el
+contraataque tras la captura llega al 29 % (16 % con el motor de hoy, por debajo de su propia banda)
+y las pájaras de Il Lombardia se quedan en 11,9 %.
+
+Y por el camino salió **una corrección medida al paso 5 que SÍ se queda**, la más importante de esta
+tanda:
+
+> **El 0,72 de `tacticControlCommit` no era «un valor más de la tabla de fases».**
+>
+> R19.2 dice que el compromiso del pelotón que cierra un movimiento sin cuerda pasa a ser un valor de
+> la tabla, «enmarcado» por `control` 0,55 y `caza` 0,75. Dejándolo así, el pelotón que cierra rueda
+> a su tempo, el primer intento abre cuarenta y cinco segundos enseguida y **la fuga del día nace en
+> el km 2,9 en vez de en el 19,5** (60 semillas, fases como única palanca). Es exactamente la
+> regresión que la v39 arregló con el dueño delante —«en el 99 % de los casos en el km 1 ataca
+> alguien»— y que `breakBirthKm` existe para vigilar.
+>
+> Conservando el 0,72 como **suelo del cierre**, con la fase pudiendo solo subirlo (`caza` 0,75,
+> `aproximacion` 0,88, `desenlace` 0,90), el nacimiento vuelve al **km 9,2**, dentro de la banda 1-12.
+> Lo que R19.4 retira es el VETO de `closingNow` sobre los ataques, que es otra cosa y sigue retirado.
+
+Esta corrección se queda en el código aunque el interruptor esté apagado: es correcta con las fases
+encendidas y no hace nada con ellas apagadas.
+
+### Lo que salió mal, y es un error mío de método
+
+**La propuesta que se aprobó decía «tres ajustes de guardarraíl». Eran ocho.** La medida sobre la que
+la escribí fue `pnpm test:bancos` —los 104 invariantes de balance— y **no corrí `pnpm test:rapido`
+con todo encendido**. Al correrlo aparecieron cinco guardarraíles más, y no son de balance: son de la
+**crónica**.
+
+| guardarraíl                                                | con todo encendido          |
+| ---------------------------------------------------------- | --------------------------- |
+| el parte de relevos no depende de que cuaje la fuga        | 0 partes                    |
+| un corte grande se cuenta cuando pasa                      | mayor caída = 2 (listón 12) |
+| cuando el pelotón se recompone hay un evento que lo cuenta | 0 reagrupamientos           |
+| la criba lejos de meta tiene evento propio                 | 11 (listón 12)              |
+| la captura de la fuga dice quiénes eran (Bességes e4)      | 0 capturas                  |
+
+Todos apuntan a lo mismo y es coherente con el resto de la tanda: **el pelotón se parte menos de
+golpe, se reagrupa menos y caza menos**. Parte de eso es lo que se buscaba —una carrera más viva,
+fugas que sobreviven, y las bandas lo confirman—; parte es pérdida, porque la crónica deja de poder
+contar frases que hoy cuenta.
+
+Y hay un dato que no es de ningún test y conviene tener delante: en carreras de cuesta la captura
+narrada pasa de **6/90 a 0/90**. En la llana canónica, en cambio, sube (24 de 30 casos a 26 de 30).
+
+### Por qué se vuelve atrás en vez de ajustar los cinco
+
+Porque **ajustarlos sería usar una aprobación para cubrir un trabajo que no se aprobó**. El dueño dio
+el visto bueno a tres ajustes concretos con su medida delante; encontrar cinco más a mitad de camino
+no los convierte en aprobados. Y son guardarraíles de narración, que es justo el terreno donde este
+repositorio ha pagado más caro el «ya lo ajusto y sigo».
+
+Además, cambiar ocho guardarraíles en la misma tanda en que se encienden cinco racimos es la forma
+exacta de no poder atribuir nada después, que es el argumento con el que se pidió el permiso.
+
+### Qué se queda de este intento
+
+- **El suelo del cierre** (la corrección de arriba), con su medida.
+- **`SATURATION_BONK_PCT` 12 → 14**, y se queda porque **está justificado con el motor APAGADO**:
+  Lombardia da 11,7 % con 24 semillas contra un techo de 12. El listón tenía tres décimas de holgura
+  sobre el motor que vigila, que es el defecto V1 de este repositorio por el lado del techo.
+- **El banco del test de coherencia**, movido a la llana canónica: donde estaba, su caso se daba 5
+  veces de 90; donde está ahora, 24 de 30 apagado y 26 encendido. Es más fuerte, no más flojo.
+- **Todo lo demás vuelve a su sitio**: los cinco interruptores apagados, `ENGINE_VERSION` en 64, las
+  cuatro huellas con sus valores de siempre, el listón de relevos en 1,10 y el contraataque
+  afirmando lo que hoy es verdad.
+
+### Lo que hace falta para encender, dicho con nombres
+
+1. **Diagnosticar los cinco guardarraíles de la crónica**, uno a uno, como se hizo con el sexto: no
+   se ajusta lo que no se ha entendido.
+2. Decidir, con el dueño, cuánta pérdida de crónica compra la carrera nueva. **Es una decisión de
+   diseño, no de calibración**, y no es mía.
+3. Encenderlo entonces en una tanda que no haga nada más.
+
+## v60 §10 — Los cinco guardarraíles de la crónica, diagnosticados
+
+`ENGINE_VERSION` **64 → 64**. Lo que la v60 §9 dejó pendiente: entender por qué el encendido conjunto
+se lleva por delante cinco guardarraíles de narración, **uno a uno y con medida**, que es lo que se
+hizo con el sexto en vez de ajustarlo.
+
+### El reagrupamiento: es de las FASES, y el listón ya era falso antes
+
+Aislado palanca a palanca sobre el escenario del propio test (100 km llanos + 14 km al 6,5 % + 30 km
+llanos), 8 semillas:
+
+| palanca encendida | etapas que narran reagrupamiento |
+| ----------------- | -------------------------------: |
+| ninguna           |                              8/8 |
+| juego de equipo   |                              8/8 |
+| **fases**         |                          **6/8** |
+| aduana            |                              8/8 |
+| subasta           |                              8/8 |
+| las cuatro        |                              6/8 |
+
+Solo las fases. Y **ninguna columna de la tabla lo explica**: quitando el suelo, 6/8; quitando la
+cuerda, 6/8; con el cupo a 3, 5/8 —peor—. Es el racimo, igual que con las pájaras de Lombardia en el
+paso 5.
+
+**Pero la medida importante es la otra**, y cambia el veredicto. Con veinticuatro semillas:
+
+|              | narran reagrupamiento |
+| ------------ | --------------------: |
+| motor de hoy |      **23/24 (96 %)** |
+| solo fases   |      **20/24 (83 %)** |
+| las cuatro   |      **20/24 (83 %)** |
+
+O sea que **el listón «las ocho semillas» ya era falso con el motor de hoy**: hay una etapa de cada
+veinticuatro que sube el puerto a tempo, no se parte, y por tanto no tiene reagrupamiento que narrar
+—una carrera legítima, no un defecto—. Con n = 8 esa semilla no tocaba y la aserción pasaba por
+suerte.
+
+La historia del propio test ya lo decía sin saberlo: se ablandó a «al menos seis de ocho» en la v26,
+se devolvió a ocho, y su comentario cuenta que con el puerto de 12 km eran 7 de 8. **Un guardarraíl
+que ha valido 6, 7 y 8 sobre ocho muestras no mide la conducta: arbitra el dado.** Es el defecto V1
+de este repositorio otra vez.
+
+**Arreglo, y es más exigente y no más flojo**: 24 semillas y un listón de **21**, tres de margen
+sobre la tasa medida del 96 %. Con el motor de hoy pasa holgado; con la capa táctica encendida da 20
+y **sigue fallando**, que es exactamente lo que tiene que hacer, porque la pérdida es real.
+
+### La criba lejos de meta: deriva acumulada sobre tres puntos de holgura
+
+| palanca         | etapas con criba narrada (de 24) |
+| --------------- | -------------------------------: |
+| ninguna         |                               15 |
+| juego de equipo |                               16 |
+| fases           |                               13 |
+| aduana          |                               13 |
+| **subasta**     |                           **21** |
+| las cuatro      |                               11 |
+
+Listón: 12. **Ninguna palanca lo rompe sola** —la subasta incluso lo sube a 21— y las cuatro juntas
+lo dejan en 11. Es deriva acumulada sobre un guardarraíl con tres puntos de holgura, en un escenario
+cuya tasa base su propio comentario cifra en el 68 %. No se toca: 11 contra 12 es un fallo legítimo y
+pequeño, y taparlo sería exactamente lo que este documento lleva nueve entradas negándose a hacer.
+
+### Lo que esto deja decidido y lo que no
+
+**Decidido y medido**: la capa táctica cuesta **13 puntos de reagrupamiento narrado** (96 % → 83 %) y
+**cuatro etapas de veinticuatro** de criba lejana. No es un artefacto de los tests: los tests, una vez
+arreglados para medir tasas en vez de arbitrar dados, **siguen cazándolo**.
+
+**Sin decidir, y no es mío**: si trece puntos de reagrupamiento y cuatro cribas son un precio
+razonable por una carrera donde se ataca más, la fuga sobrevive y el kilómetro siguiente a una
+captura deja de ser un kilómetro cualquiera. Eso es diseño.
+
+Y queda una pieza sin diagnosticar de las cinco: el corte grande de Bességes e4 y el parte de relevos
+sin fuga. El escenario del corte no se reproduce con el banco del reagrupamiento —no emite un solo
+`peloton_split`—, así que hace falta el suyo propio y va al siguiente paso.
+
+## v60 §11 — Los cinco, diagnosticados enteros: **cuatro son dados, uno es un indicador roto**
+
+`ENGINE_VERSION` **64 → 64**. Completa la v60 §10 con los dos que faltaban, y el segundo es el
+hallazgo de esta entrada.
+
+### El corte grande: deriva, y una corrida de veinticuatro
+
+Sobre el escenario de la telemetría (130 km llanos + 20 km al 8 %), 24 semillas:
+
+| palanca         | corridas con corte | cumplen el listón | mayor caída, mediana |
+| --------------- | -----------------: | ----------------: | -------------------: |
+| ninguna         |              24/24 |             24/24 |                   32 |
+| juego de equipo |              24/24 |             24/24 |                   32 |
+| fases           |              22/24 |             22/22 |                   31 |
+| aduana          |              24/24 |             24/24 |                   32 |
+| subasta         |              24/24 |             24/24 |                   32 |
+| **las cuatro**  |              24/24 |         **23/24** |               **29** |
+
+**Ninguna palanca lo rompe sola**, y con las cuatro falla **una corrida de veinticuatro** mientras la
+mayor caída mediana sigue en 29 contra un listón de 12. O sea que la selección sigue siendo violenta
+en veintitrés de veinticuatro etapas y hay una que se deshilacha poco a poco, que es una carrera
+legítima. Es la misma forma que el reagrupamiento: **una aserción de «todas las corridas» sobre una
+muestra pequeña**, con la conducta intacta por debajo.
+
+### El parte de relevos: **esto no es un dado, es un indicador que mide lo que no debe**
+
+| palanca             | etapas con parte de relevos (de 24) |
+| ------------------- | ----------------------------------: |
+| ninguna             |                               24/24 |
+| **juego de equipo** |                            **0/24** |
+| fases               |                               24/24 |
+| aduana              |                               24/24 |
+| subasta             |                               24/24 |
+| las cuatro          |                                0/24 |
+
+No es deriva: es un interruptor, y es **mío**. La cola del turno (R18.1) apaga el parte de relevos
+por completo.
+
+La causa, instrumentada en el km 100 de una etapa sin fuga: el parte solo se emite si el hombre que
+más ha tirado supera `pullMinWork` = **0,35** de trabajo acumulado en una ventana que se olvida cada
+kilómetro. Con la cola encendida, el mejor lleva **0,066**.
+
+Y **no es que nadie tire**: tiran todos, y por turnos, que es exactamente lo que la cola existe para
+conseguir. Lo que pasa es que **el indicador pregunta quién lleva mucho rato delante**, y una
+rotación de verdad hace que la respuesta sea «nadie». `pullMinWork` = 0,35 está calibrado contra un
+motor donde los mismos hombres iban al frente todo el día — o sea, **contra el defecto**.
+
+Se probó el arreglo obvio —medirlo por casa en vez de por hombre, que además es lo que el parte ya
+dice— y **no sirve**: en el campo de este banco los corredores no llevan `teamId`, así que la suma
+por equipo da exactamente el mismo 0,066. Se revirtió.
+
+Lo que hay que medir es **el trabajo total al frente**, que es invariante a cómo se reparta. Eso
+lleva su propia calibración en los dos brazos y se hace cuando la cola se encienda, no antes. Queda
+escrito en el código, junto al listón.
+
+### El balance de los cinco, ya completo
+
+| guardarraíl          | qué es                                                                                        |
+| -------------------- | --------------------------------------------------------------------------------------------- |
+| reagrupamiento       | **el listón ya era falso**: 8/8 exigido, 23/24 real hoy. Arreglado con 24 semillas y suelo 21 |
+| corte grande         | 1 corrida de 24, mediana intacta en 29. Dado sobre muestra pequeña                            |
+| criba lejos de meta  | 11 de 24 contra 12, deriva acumulada, ninguna palanca sola                                    |
+| captura de la fuga   | en cuesta pasa de 6/90 a 0/90; en llano SUBE (24 → 26 de 30)                                  |
+| **parte de relevos** | **indicador roto**: mide un síntoma del defecto que la cola arregla                           |
+
+Cuatro de los cinco son guardarraíles apoyados en muestras demasiado pequeñas para lo que afirman —
+el defecto V1 de este repositorio, cinco veces seguidas en el mismo sitio. El quinto es un fallo de
+verdad, y está localizado con su número.
+
+**Lo que sigue sin ser mío**: si la capa táctica merece sus trece puntos de reagrupamiento narrado y
+sus cuatro cribas. Eso es diseño.
+
+## v60 §12 — El tipo de final, y **un tipo nuevo que el calendario no puede producir**
+
+`ENGINE_VERSION` **64 → 64**. R17: el muro como tipo de final, quién abre el sprint reducido, y la
+ventana del pavé. Dos de las tres cosas tienen predicción declarada, y **una de las dos predicciones
+sale falsa**.
+
+### El muro existe, es correcto, y **no se dispara ni una vez en 1.075 etapas**
+
+`muro` entra como valor de `FinishType` —un cambio de contrato— con sus pesos entre `alto` y
+`puncheur`: frente al puncheur la punta baja de 0,28 a 0,20 y la explosividad sube de 0,40 a 0,55.
+Ninguno de los siete pesos de hoy se mueve un dígito.
+
+**La predicción declarada se cumple**: las cuatro huellas selladas no se mueven, o sea que no había
+ningún `switch` con `default` tratando el tipo nuevo como otra cosa. Y `admitsBunchFinish('muro')`
+= false: en un kilómetro al 8 % no hay tren que valga.
+
+Pero al pasarlo por el calendario entero, **cero etapas de 1.075** tipan `muro`. Y no es que el
+listón esté mal: hay **seis** etapas con cota final de ≤ 1 km y ≥ 8 %, y **las seis coronan entre el
+km 12,3 y el 14,6 de meta**:
+
+| etapa            | cota final        | corona a |
+| ---------------- | ----------------- | -------: |
+| race-flanders e1 | 0,40 km al 13,5 % |  12,3 km |
+| race-burgos e3   | 0,70 km al 11,8 % |  14,3 km |
+| race-colombia e8 | 0,50 km al 11,3 % |  14,5 km |
+| race-langkawi e2 | 0,80 km al 10,9 % |  14,2 km |
+| race-colombia e2 | 0,50 km al 9,9 %  |  14,5 km |
+| race-gila e5     | 0,40 km al 9,2 %  |  14,6 km |
+
+Seis de seis en una franja de dos kilómetros y medio. Eso no es el azar de seis recorridos: es **el
+generador de recorridos, que nunca pone una pared en el último kilómetro**. O sea que el defecto que
+R17.2 viene a arreglar —«un final de muro lo gana un rodador con punta»— **no puede darse hoy, porque
+no hay finales de muro**.
+
+El tipo se queda escrito: es correcto, no cuesta nada, no cambia un dígito, y estará vivo el día que
+los recorridos tengan paredes. Lo que hay que arreglar para que sirva no está en `finish.ts` sino en
+el generador, y eso es de R28. Queda anotado ahí y aquí, que es lo contrario de dejar código muerto
+sin decirlo.
+
+### La ventana del pavé NO se mueve, y la predicción era incompleta
+
+`finishPaveKm` 30 → 10 venía con predicción: «Roubaix sigue tipando `pave`, el Ronde sigue sin
+tiparlo». Medido sobre el calendario:
+
+| ventana | etapas que tipan `pave`                              |
+| ------- | ---------------------------------------------------- |
+| **30**  | race-white-roads, race-across-flanders, race-roubaix |
+| **10**  | race-roubaix                                         |
+
+Roubaix aguanta, que es lo que la predicción pedía. Pero **Strade Bianche y la clásica de Flandes
+pierden su tipado y pasan a `sprint_masivo`**, y eso la predicción no lo contemplaba. Strade Bianche
+es la carrera de los caminos blancos: que su final deje de ser de tierra para pasar a ser un sprint
+masivo no es un efecto colateral aceptable.
+
+Así que **la ventana se queda en 30**, y el defecto que R17.4 señala —un sector que muere a 25 km de
+meta sigue tipando la etapa— se ataca por donde el propio diseño dejó escrita la alternativa
+(`finishPaveFraction`), no recortando la ventana. Una predicción que acierta en lo que miraba y falla
+en lo que no miraba sigue siendo una predicción fallada.
+
+### Quién abre el sprint reducido: estaba invertido, y arreglarlo se nota
+
+`sprintHoldMetres` dice cuánto AGUANTA cada uno, y como el rápido aguanta más, **el rápido abría
+antes**. Como fisiología es correcto; como táctica es lo contrario de lo que pasa en carretera: el
+que no gana a rueda tiene que irse de lejos —es su única carta— y el rápido espera hasta los últimos
+metros precisamente porque esperar es la suya.
+
+Va como **sesgo sobre** lo que aguanta y no en su lugar: un hombre lento no puede sostener un sprint
+de 400 m por mucho que le convenga abrir ahí, y `launchEffect` le cobra el pasarse. Lo que cambia es
+la intención, no la física.
+
+Medido en la llana canónica, 120 semillas: **el mejor sprinter gana el 39,2 % → 40,8 %** de las
+etapas (banda 30-45), y nada más se mueve. Es exactamente lo que tenía que pasar: el favorito deja de
+regalar metros abriendo antes de tiempo.
+
+### Lo que queda del paso 8
+
+R21 —la estructura de equipo persistente— vive entero en §5 del diseño y depende de la convocatoria,
+que es de `packages/db` y no del motor. No se toca aquí.
+
+## v60 §13 — Las pancartas, y **el primer racimo de la tanda que se enciende**
+
+`ENGINE_VERSION` **64 → 65**. R06 entra **encendido**: pasa los 104 invariantes de los bancos y las
+1.545 pruebas del rápido. Es el primero de seis racimos tácticos que llega a producción.
+
+### Las dos cosas que arregla
+
+**La casilla del jugador no existía en las cimas** (R06.1, contrario nº 8 del catálogo). `disputeBanner`
+—la meta volante— lee `contestSprints`/`contestClimbs` desde siempre y solo cae en «disputan todos»
+si no hay nadie interesado. `disputeClimb` **no leía nada**: ordenaba a la carrera entera por
+`max(MON, COL)` y le cobraba la pancarta a quien cayera en puesto de puntos, la hubiera querido
+disputar o no. O sea que el jugador marcaba la casilla en la pantalla de órdenes y en los puertos no
+pasaba nada.
+
+Ahora es el mismo patrón que la volante: **quien no la disputa ni puntúa ni paga**, y si no hay nadie
+interesado la corona quien pasa primero. Y la crónica nombra al primero de **los que la disputan**,
+que es a quien se le dan los puntos: nombrar al primero en coronar cuando los puntos se los llevó
+otro era contar dos carreras distintas en la misma frase.
+
+**El grupo se relaja justo después** (R06.2). Cobrada la volante o coronada la cima, el pelotón
+aflojaba… nada: seguía al mismo ritmo. Ahora hay cinco kilómetros de alivio con el compromiso al
+0,85 y **la cuerda del ataque a ×1,8**, que es la otra mitad de la regla: la ventana de después de
+la pancarta es cuando salta el contraataque.
+
+El alivio va con las otras amortiguaciones de racimo, así que el suelo de fase lo acota cuando las
+fases se enciendan, que es lo que R19.2bis manda.
+
+### Lo que mueve, y pasa todo
+
+| llana canónica + reina, 120 semillas | apagado |  encendido | banda |
+| ------------------------------------ | ------: | ---------: | ----- |
+| gana la fuga (llano)                 |   9,2 % |      6,7 % | 5-16  |
+| gana el mejor sprinter               |  36,7 % |     40,0 % | 30-45 |
+| captura                              |    89 % |       92 % | > 85  |
+| km de la caza                        |    18,1 |       18,8 | 8-25  |
+| **gana la fuga (reina)**             |  26,7 % | **26,7 %** | 25-45 |
+| intentos por etapa                   |    15,0 |       14,9 | 10-25 |
+
+Las seis dentro, y la reina **no se mueve un dígito**: es el perfil más limpio de toda la tanda, y por
+eso es éste el que se enciende y no otro. Las huellas se re-sellan con su causa declarada —`llana-180-0`
+conserva ganador y entra 46 segundos más despacio— y los 104 invariantes siguen en verde.
+
+## v60 §14 — Los directores falibles, y **una lectura mala acababa la etapa**
+
+`ENGINE_VERSION` **65 → 65**. R24 (la pizarra) y R13.1 (oler la sangre) construidos y medidos, con el
+hallazgo más afilado de la tanda y un guardarraíl que no se mueve.
+
+### Mismos vatios, distinto número
+
+El pelotón perseguía sobre el hueco **real**, medido al centímetro y al instante. En carretera eso no
+existe: el coche recibe el tiempo con retraso, la pizarra va redondeada a 5, 10 o 15 segundos según
+lo bueno que sea el director, y encima se equivoca. De ahí sale la frase que el catálogo pide y que
+el motor no sabía producir: «de vez en cuando la caza no llega por treinta segundos que nadie tenía
+apuntados».
+
+La física **no se toca**: `gapReal` sigue decidiendo si un grupo alcanza a otro. Lo que cambia es
+sobre qué cifra DECIDE el director.
+
+Y con la misma pieza entra R13.1, el **contrario nº 9**: el rival le lee el depósito al maillot **con
+error** (TAC 90 se equivoca la mitad que TAC 40) y si le huele sangre, ataca. Hoy el motor hace lo
+contrario —su mecanismo es «ciego a la identidad del que flaquea», lo dice su propia regla— así que
+el día que el líder cede sus rivales atacan MENOS.
+
+### El hallazgo: **claudicar no puede leerse de la pizarra**
+
+Primera medida, con el número creído alimentando toda la caza:
+
+| llana canónica, 120 semillas | apagado | directores falibles |
+| ---------------------------- | ------: | ------------------: |
+| gana la fuga                 |   6,7 % |          **52,5 %** |
+| captura                      |    92 % |            **44 %** |
+| gana el mejor sprinter       |  40,0 % |              21,7 % |
+
+La fuga ganaba **la mitad de las llanas**. Y la causa no es el ruido en sí: es **dónde se aplicaba**.
+`chaseAbandoned` es una decisión **permanente** —una vez que el pelotón claudica no vuelve hasta que
+la carretera se despeja—, y alimentándola con un número ruidoso **una sola lectura mala en 180 km
+acaba la etapa**.
+
+Un director no se rinde por la cifra de un instante: se rinde después de verla un rato. La cifra
+equivocada le hace apretar de más o de menos —eso sí, y es la conducta que se busca— pero no le hace
+tirar la etapa a la basura. Así que **el ritmo se decide sobre la pizarra y la claudicación sobre el
+hueco real**, y con eso:
+
+| llana canónica, 120 semillas | apagado | directores falibles | banda |
+| ---------------------------- | ------: | ------------------: | ----- |
+| gana la fuga                 |   6,7 % |               5,8 % | 5-16  |
+| gana el mejor sprinter       |  40,0 % |              38,3 % | 30-45 |
+| captura                      |    92 % |                94 % | > 85  |
+| km de la caza                |    18,8 |                20,8 | 8-25  |
+| gana la fuga (reina)         |  26,7 % |              26,7 % | 25-45 |
+
+De 52,5 % a 5,8 % moviendo una decisión de sitio. Las cinco bandas dentro.
+
+### Y aun así se queda apagado, por el mismo listón de siempre
+
+Con los 104 invariantes: **103 pasan**. El que no, otra vez Il Lombardia, por encima del 14 % de
+pájaras — el listón que esta misma tanda ya subió de 12 a 14 con su medida delante (v60 §11).
+
+**No se mueve dos veces.** Subir un guardarraíl una vez con la medida es corregir un listón que no
+tenía holgura; subirlo cada vez que un racimo lo roza es quitarlo. El paso 11 se queda apagado, con
+todo escrito y con la corrección de la claudicación puesta —que es inerte con el interruptor apagado
+y correcta cuando se encienda—.
+
+## v60 §15 — paso 14, la colocación existe
+
+`ENGINE_VERSION` **65 → 66**. R15a entero: `stage/placement.ts` y `stage/cost.ts` nuevos, con el
+estado que el motor nunca tuvo —dónde va cada hombre DENTRO de su grupo— y el punto único donde el
+coste de un bloque se modula por táctica.
+
+### El dato que faltaba, y los cinco sitios que se lo inventaban
+
+El abanico, el sector, el sprint, el tapón y el acordeón dependen todos de la misma pregunta —¿por
+dónde vas?— y hasta aquí cada uno se la contestaba con un dado propio. Por eso ninguno podía
+contradecir a otro ni ser consecuencia de nada: se podía ir el primero en el corte del abanico y el
+último en el sprint sin que pasara nada en medio.
+
+Ahora hay **un escalar por corredor**, `placement ∈ [0,1]` con 0 = cabeza, que se avanza una vez por
+kilómetro: si no haces nada retrocedes —en cien kilómetros pasas de la primera fila a la cola—, si
+empujas subes y lo pagas, y el azar del pelotón lo atenúa TAC.
+
+### El acordeón, y por qué el «− media del grupo» no es un detalle
+
+La regla escrita como venía —`× (1 + accordionGain·placement)`— **subía el gasto medio del pelotón
+entero un 17,5 %**, y eso es la economía del depósito, que ancla las cinco bandas de `erosion`.
+Escrita contra la media del grupo redistribuye: el de delante paga menos, el de atrás más, y la suma
+por grupo es cero por construcción.
+
+Medido, que es lo único que lo demuestra:
+
+| llana canónica, 120 semillas | apagado    | colocación |
+| ---------------------------- | ---------- | ---------- |
+| `medianDepletion`            | **0,2408** | **0,2407** |
+| `medianErosion`              | 0,0000     | 0,0000     |
+
+La mediana del grupo **no se mueve**; cambia la dispersión dentro de él, que es exactamente lo que la
+regla dice. En la reina y en la clásica larga, igual: `queenFresh` 0,26 → 0,26 y `longClassicFresh`
+0,49 → 0,49. Era el criterio de parada del paso —«si se mueve la mediana de `queenFresh`, la suma
+cero está mal implementada y se para la tanda»— y no hizo falta usarlo.
+
+### Los dos defectos que la medida encontró, los dos del mismo tipo
+
+**Uno. Veintidós velocistas no caben todos en el puesto veinte.** Con un sitio FIJO para toda carta,
+los aspirantes llegaban a meta clavados en la misma décima, la colocación dejaba de repartir nada en
+el remate y el mejor sprinter del campo se iba **del 40 % al 55 %** de las llanas, fuera de banda por
+arriba. El sitio de una carta lo deciden **los hombres que le queden**: solo va donde puede (0,55),
+con cuatro va donde quiere (0,15). Que es la promesa del racimo y la razón por la que un tren vale
+dinero.
+
+**Dos, y es el de siempre: un número haciendo dos trabajos.** `placementSd` cobraba a la vez la
+colocación —que ahora existe— y el azar irreducible de un remate masivo: la rueda que se abre, el
+toque, el hueco que se cierra medio segundo antes. Sustituirlo entero le quitaba al sprint **toda**
+su aleatoriedad, y un sprint no es un ranking. Barrido:
+
+| llana canónica, 120 semillas | gana el mejor sprinter |
+| ---------------------------- | ---------------------- |
+| apagado                      | 40,0 %                 |
+| dado sustituido              | **52,5 %** ❌          |
+| dado al 80 % + colocación    | 40,0 %                 |
+| **dado entero + colocación** | **38,3 %** ✅          |
+
+Y el resultado dice algo, no es una comodidad: **el dado viejo no era un sustituto de la
+colocación**. Si lo fuera, conservarlo entero habría dejado el remate con el doble de azar. Era la
+suerte, y la colocación es un término nuevo que se le suma. `residualLuck` queda en **1** con esa
+medida delante.
+
+**Tres, y es el que costó la tanda: el que se descuelga no paga por pelear un sitio que ya perdió.**
+Con las suites completas, dos clásicas se pasaban del techo de pájaras del 14 %. Aislado término a
+término sobre las dos, el culpable era **uno solo**:
+
+| Il Lombardia / Strade Bianche, 3 semillas  | pájaras white-roads | pájaras lombardy |
+| ------------------------------------------ | ------------------- | ---------------- |
+| apagado                                    | 11,4 %              | 13,8 %           |
+| colocación entera                          | **14,0 %**          | **14,8 %**       |
+| sin el empujón                             | 11,6 %              | 14,0 %           |
+| sin el acordeón / sin sector / sin bajador | 13,8-14,0 %         | 14,6-15,0 %      |
+
+A un hombre al que el grupo se le escapa la fila se le corre todo el rato, así que su `pushing` se
+clavaba en 1 y **pagaba el 45 % de recargo justo mientras se descolgaba**: una espiral que la
+carretera no tiene. El que va fundido y perdiendo la rueda no remonta puestos; suelta. Se pelea el
+sitio **con lo que a uno le queda** —y el que ya cede segundos no pelea—, y con eso Strade Bianche
+vuelve a 11,9 %.
+
+### Y el listón que quedaba: **la muestra, no el motor**
+
+Il Lombardia seguía marcando 14,4 % contra el techo de 14, y barrer `placePushCost` de 0,45 a 0,15
+no lo movía **ni una décima**. Así que se midió la otra hipótesis:
+
+| Il Lombardia | 3 semillas | 12 semillas |
+| ------------ | ---------- | ----------- |
+| apagado      | 13,8 %     | **10,7 %**  |
+| colocación   | 14,4 %     | **10,8 %**  |
+
+La capa mueve **una décima**. La muestra movía tres puntos y medio. Es el defecto de siempre —**la
+banda sentada encima de su suelo**: un techo del 14 vigilando un motor que mide 13,8 con tres
+semillas— y lo tenía escrito el propio test seis pantallas más arriba: «este número salta entre el
+8,5 % y el 11,7 % según cuántas semillas se le den, **sin que el motor cambie**».
+
+**El techo NO se toca** —esta misma tanda ya se negó a subirlo por segunda vez en el paso 11—. Lo que
+se arregla es con qué se compara: el cribado se queda en tres semillas, y **el que salta se vuelve a
+medir con cuatro veces más muestra antes de dar la alarma**. Veinte carreras a doce semillas serían
+un cuarto de hora de CI por una pregunta que casi siempre se contesta que no.
+
+Y el mismo defecto, una vez más, en la crónica: «la captura de la fuga dice quiénes eran» exigía que
+un suceso de **1 entre 8 semillas** hubiera caído. Pasa a correr su propia tanda de 24, y vuelve a
+vigilar lo que su nombre dice en vez de vigilar el dado.
+
+### Lo que la colocación compra
+
+| llana canónica, 120 semillas | apagado | colocación | banda |
+| ---------------------------- | ------- | ---------- | ----- |
+| gana la fuga                 | 6,7 %   | 7,5 %      | 5-16  |
+| gana el mejor sprinter       | 40,0 %  | 38,3 %     | 30-45 |
+| captura                      | 92 %    | 91,2 %     | > 85  |
+| km de la caza                | 18,8    | 18,9       | 8-25  |
+| gana la fuga (reina)         | 25 %    | 25 %       | 25-45 |
+
+Y con ellas, cinco cosas que el motor no sabía producir: el **encajonado** —perder el sprint llegando
+entero, bien lanzado y sin que te gane nadie—, el **abanico con autor** —un equipo que lo abre porque
+le conviene, no un dado por kilómetro—, el **sector que se paga al entrar**, el **bajador** —ceder
+veinte segundos en un descenso decisivo sin que nadie te ataque— y el **año de contrato**, con sus
+dos mitades: el que se juega el suyo ataca más, y el que ya firmó fuera deja de vaciarse por esta
+casa sin desobedecer nunca de forma visible.
+
+### Y se queda ENCENDIDA
+
+`pnpm test:rapido` **1.573 en verde** y `pnpm test:bancos` **104 de 104**, con el interruptor puesto.
+Es el segundo racimo táctico que entra en producción encendido —el primero fueron las pancartas— y el
+primero que toca el coste del bloque, con la Frontera 2 comprobable en vez de prometida: los
+multiplicadores viven en `stage/cost.ts`, `physics.ts` no se entera y la mediana de la erosión está
+medida antes y después.
+
+Las cuatro huellas se re-sellan con su causa escrita y **los cuatro ganadores se conservan** —`spr-6`,
+`spr-0`, `pel-105` y `gc-0`—: la colocación no reparte piernas, reparte sitio.

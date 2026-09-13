@@ -461,9 +461,25 @@ describe('cerillos (6.6)', () => {
     expect(matchCount(fuerte, 0)).toBeGreaterThan(matchCount(flojo, 0))
   })
 
-  it('llegar reventado (TSB < -25) resta un cerillo, con mínimo de 1', () => {
-    const r = eff(90)
-    expect(matchCount(r, -30)).toBe(matchCount(r, 0) - 1)
+  /**
+   * EL UMBRAL DEJA DE SER −25 PARA TODOS (v62, decisión 4 del dueño), y esta prueba lo dice.
+   *
+   * Pedía que un corredor de 90 en TODO perdiera un cerillo a TSB −30, y ya no lo pierde: con REC 90
+   * su umbral es −33. **Eso no es que la prueba se haya roto, es lo que el cambio hace** —el
+   * atributo cuyo trabajo es aguantar yendo cargado por fin dice algo—, así que se reescribe con el
+   * umbral de cada uno en vez de con el número plano.
+   *
+   * Se comprueba sobre el corredor MEDIO (REC 50), que es donde el umbral sigue valiendo −25 y donde
+   * la conducta de antes tiene que sobrevivir intacta.
+   */
+  it('llegar reventado resta un cerillo, según lo que recupere cada uno, con mínimo de 1', () => {
+    const medio = { ...eff(90), REC: 50 }
+    expect(matchCount(medio, -30)).toBe(matchCount(medio, 0) - 1)
+    // El mismo corredor con REC 90 aguanta ese −30 sin pagarlo: su umbral está en −33.
+    const recupera = eff(90)
+    expect(matchCount(recupera, -30)).toBe(matchCount(recupera, 0))
+    // …pero a −35 lo paga igual, que es lo que impide que REC sea inmunidad.
+    expect(matchCount(recupera, -35)).toBe(matchCount(recupera, 0) - 1)
     expect(matchCount(eff(20), -30, true)).toBeGreaterThanOrEqual(1)
   })
 })

@@ -20,7 +20,24 @@ import type { Block } from './types.js'
 
 /** Los siete arquetipos de final que el motor sabe resolver (docs/motor.md §12). */
 export type FinishType =
-  'sprint_masivo' | 'sprint_reducido' | 'puncheur' | 'alto' | 'pave' | 'descenso' | 'solitario'
+  | 'sprint_masivo'
+  | 'sprint_reducido'
+  | 'puncheur'
+  /**
+   * EL MURO (R17.2, docs/tactica.md paso 8): una cota CORTA y MUY dura que muere en la línea. Un
+   * muro y un puncheur de cuatro kilómetros compartían tipo, y por eso un final de muro lo ganaba
+   * un rodador con punta: con los pesos de `puncheur` la velocidad pesa 0,28.
+   *
+   * **El ancla es el Muro de Huy, y esta regla la respeta**: Huy mide 1,4 km al 8,5 % y hoy sale
+   * `puncheur` «y eso es correcto» —está escrito en esta misma función—. Con `muroMaxKm` = 1,0
+   * sigue saliendo `puncheur`, porque lo que define un muro no es que empine sino que sea CORTO:
+   * un kilómetro de pared, no una cota de kilómetro y medio.
+   */
+  | 'muro'
+  | 'alto'
+  | 'pave'
+  | 'descenso'
+  | 'solitario'
 
 /**
  * Lo que el RECORRIDO dice del final, ya medido en magnitudes con sentido ciclista. No depende de
@@ -152,6 +169,24 @@ export function finishType(t: FinishTerrain, groupSize: number): FinishType {
     if (t.climbKmToFinish <= STAGE.finishSummitKm) return 'alto'
     if (t.hilltopGradient >= STAGE.hilltopFinishGradient) return 'alto'
   }
+  /**
+   * EL MURO, ANTES QUE EL PUNCHEUR (R17.2): corto, muy empinado y muriendo en la línea. Va delante
+   * porque un muro cumple TAMBIÉN la condición de puncheur —una cota dura que corona cerca de
+   * meta—, y el primero que se cumple manda.
+   *
+   * Las tres condiciones son una Y, y cada una quita un caso: **corto** deja fuera al Muro de Huy
+   * (1,4 km) y a cualquier cota de kilómetro y medio, que son puncheur y así se quedan;
+   * **empinado** deja fuera el repecho de arrastre; y **que muera en la línea** deja fuera la pared
+   * que corona a cinco kilómetros y se baja, que es otra carrera.
+   */
+  if (
+    t.climbKm > 0 &&
+    t.climbKm <= STAGE.muroMaxKm &&
+    t.climbGradient >= STAGE.muroMinGradient &&
+    t.climbKmToFinish <= STAGE.finishSummitKm
+  ) {
+    return 'muro'
+  }
   // Puncheur: una cota dura que corona cerca de meta, o una llegada que arrastra hacia arriba.
   if (t.climbKmToFinish <= STAGE.finishPuncheurKmToGo && t.climbScore >= STAGE.finishPuncheurScore)
     return 'puncheur'
@@ -191,7 +226,9 @@ export function isSprintFinish(type: FinishType): boolean {
  * un clasificador que sabe distinguir un repecho de un puerto; no lo usaba donde más importa.
  */
 export function admitsBunchFinish(type: FinishType): boolean {
-  return type !== 'alto' && type !== 'solitario'
+  // Y el MURO tampoco (R17.2): se remata en cuesta y a pared, no en llano. No hay tren que valga en
+  // un kilómetro al 8 %, igual que no lo hay en un final en alto.
+  return type !== 'alto' && type !== 'solitario' && type !== 'muro'
 }
 
 /**
@@ -200,7 +237,7 @@ export function admitsBunchFinish(type: FinishType): boolean {
  * descenso o por el adoquín disputa un sprint; uno que llega trepando, no.
  */
 export function isUphillFinish(type: FinishType): boolean {
-  return type === 'alto' || type === 'puncheur'
+  return type === 'alto' || type === 'puncheur' || type === 'muro'
 }
 
 /**

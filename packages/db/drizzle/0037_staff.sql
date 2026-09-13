@@ -1,0 +1,1 @@
+ALTER TABLE "teams" ADD COLUMN "staff_level" integer DEFAULT 0 NOT NULL;

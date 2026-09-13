@@ -16,7 +16,9 @@ import { fetchHealth } from '../api/health'
 import { fetchRacePrefs } from '../api/objectives'
 import { fetchRiderPalmares, fetchRiderResults } from '../api/rankings'
 import { fetchMyRider, fetchRiderSummary } from '../api/rider'
-import { AttributeList } from '../components/AttributeList'
+import { type CoachNote, fetchCoachView, fetchTrend } from '../api/sheet'
+import { AttributeList, type AttributeDetail } from '../components/AttributeList'
+import { BlockReport } from '../components/BlockReport'
 import { Badges } from '../components/Badges'
 import { Flag } from '../components/Flag'
 import { FormChart } from '../components/FormChart'
@@ -30,6 +32,19 @@ import { TeamLink } from '../components/TeamLink'
 import { conditionBars, conditionLabel } from '../domain/condition'
 import { HEALTH_LOOK, healthNote, healthUntilLabel } from '../domain/health'
 import { palmaresLabel } from '../domain/labels'
+
+/**
+ * LAS FRASES POR REGLA (docs/entrenamiento.md §2.3). El servidor manda códigos y el texto vive aquí,
+ * que es donde vive el inglés de la UI. Ninguna dice un número: todas dicen algo que el jugador
+ * puede USAR, que es la diferencia entre informar y decorar.
+ */
+const COACH_NOTE_TEXT: Record<CoachNote, string> = {
+  progresa_rapido: "You're coming on faster than I expected at your age.",
+  recupera_rapido: 'You recover quickly — you can taper shorter than most.',
+  fragil: 'You tend to fall ill when you load up. Careful with the hard weeks.',
+  declive: "Now it's about defending what you have, and keeping on learning the trade.",
+  techo_cerca: "You're close to what you can give here. The room is somewhere else.",
+}
 
 /**
  * Cabecera de identidad: lo mismo para todo el mundo, con o sin sesión. La salud va aquí, junto al
@@ -327,6 +342,19 @@ export function RiderProfile() {
   // ya hace la cabecera (misma clave ⇒ misma caché), así que no añade tráfico.
   const clock = useQuery({ queryKey: ['health'], queryFn: fetchHealth })
 
+  /**
+   * LA CAPA QUE SOLO TIENE LA FICHA PROPIA (docs/entrenamiento.md §2.3): la marca de progreso, la
+   * flecha de 28 días y la opinión del entrenador. Las dos consultas van con `enabled: owner`, así
+   * que **el perfil de otro ni siquiera las pide**: no es que la UI las esconda, es que el dato no
+   * sale del servidor. Fisgonear el potencial de otro es una función de ojeo que todavía no existe.
+   */
+  const trendQuery = useQuery({ queryKey: ['rider-trend'], queryFn: fetchTrend, enabled: owner })
+  const coachQuery = useQuery({
+    queryKey: ['coach-view'],
+    queryFn: fetchCoachView,
+    enabled: owner,
+  })
+
   // Sin `:id` y sin corredor propio: el jugador aún no ha creado el suyo.
   if (!routeId && mine.isPending) return <p className="text-slate-500">Loading…</p>
   if (!routeId && !mine.data) {
@@ -353,6 +381,14 @@ export function RiderProfile() {
     ATTRIBUTES.map((a) => [a, rider.attributes[a] ?? 0]),
   ) as Record<Attribute, number>
 
+  const coach = coachQuery.data ?? null
+  const detail: AttributeDetail = {
+    trend: Object.fromEntries((trendQuery.data ?? []).map((t) => [t.attr, t.delta28])),
+    opinion: Object.fromEntries((coach?.ceilings ?? []).map((c) => [c.attr, c.opinion])),
+  }
+  const notes = coach?.notes ?? []
+  const declining = owner && (coach?.declining ?? false)
+
   return (
     <section className="space-y-4">
       <SectionBar>{rider.name}</SectionBar>
@@ -362,6 +398,14 @@ export function RiderProfile() {
           <Identity rider={rider} gameDay={clock.data?.gameDay ?? null} />
           <InfoRow label="Age">
             {rider.age} · born day {birthdayDayOfSeason(rider.id)} of the season
+            {declining && (
+              <span
+                className="ml-2 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-amber-200"
+                title="Past your peak: defend what you have and keep learning the trade."
+              >
+                Declining
+              </span>
+            )}
           </InfoRow>
           <InfoRow label="Team">
             <TeamLink teamId={rider.teamId} name={rider.teamName} fallback="Free agent" />
@@ -405,9 +449,26 @@ export function RiderProfile() {
       {owner && <OwnerCondition attributes={attributes} />}
 
       <Panel title="Attributes">
-        <p className="mb-1 text-xs text-slate-400">Tap an attribute to see what it does.</p>
-        <AttributeList attributes={attributes} />
+        <p className="mb-1 text-xs text-slate-400">
+          Tap an attribute to see what it does{owner && ', and what your coach makes of you'}.
+        </p>
+        {owner ? (
+          <AttributeList attributes={attributes} detail={detail} />
+        ) : (
+          <AttributeList attributes={attributes} />
+        )}
+        {owner && notes.length > 0 && (
+          <ul className="mt-3 space-y-1 border-t border-slate-100 pt-3">
+            {notes.map((note) => (
+              <li key={note} className="text-xs italic text-slate-500">
+                “{COACH_NOTE_TEXT[note]}”
+              </li>
+            ))}
+          </ul>
+        )}
       </Panel>
+
+      {owner && <BlockReport />}
 
       {palmaresQuery.data && palmaresQuery.data.length > 0 && (
         <Panel title="Palmarès">

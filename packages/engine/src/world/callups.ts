@@ -4,14 +4,14 @@
  * y confianza con el equipo (team_trust), con el sesgo de la filosofía del equipo. Todo puro y
  * determinista: la parte estocástica sale de una semilla, para que el mundo sea reproducible.
  */
-import { type Vocation, seededRng } from '@cyclingstar/shared'
+import { RIDER_ARCHETYPES, type RiderArchetype, seededRng } from '@cyclingstar/shared'
 import type { StageKind } from '../routes/testTour.js'
 
 export type TeamPhilosophy = 'general' | 'sprints' | 'clasicas' | 'cantera' | 'equilibrado'
 
 export interface CallupCandidate {
   riderId: string
-  archetype: Vocation
+  archetype: RiderArchetype
   /** Puntos de la temporada (regularidad, victorias). */
   pointsSeason: number
   /** Forma reciente en estrellas [0,5] (SPEC 3.2). */
@@ -34,32 +34,81 @@ export interface CallupCandidate {
   young: boolean
 }
 
-/** Afinidad de cada tipo de etapa con cada vocación (cuánto luce ese perfil a ese corredor). */
-const KIND_AFFINITY: Record<StageKind, Partial<Record<Vocation, number>>> = {
-  llana: { velocidad: 1, fondo: 0.4, crono: 0.3, clasicas: 0.2, escalada: 0.1 },
-  media: { clasicas: 0.8, fondo: 0.7, escalada: 0.6, velocidad: 0.3, crono: 0.3 },
-  reina: { escalada: 1, fondo: 0.7, clasicas: 0.3, crono: 0.2, velocidad: 0.1 },
-  cri: { crono: 1, fondo: 0.5, escalada: 0.4, clasicas: 0.4, velocidad: 0.3 },
-  clasica: { clasicas: 1, fondo: 0.5, velocidad: 0.4, escalada: 0.3, crono: 0.3 },
+/**
+ * Afinidad de cada tipo de etapa con cada arquetipo (cuánto luce ese perfil a ese corredor).
+ *
+ * Los tres arquetipos nuevos entran con lo suyo: el puncheur brilla en media montaña y en la
+ * clásica, el rodador en el llano y la crono, y el gregario en ninguna —su trabajo no es lucir—,
+ * aunque se le convoca igual por lo que aporta al equipo, que es lo que decide el resto de la
+ * puntuación.
+ */
+const KIND_AFFINITY: Record<StageKind, Partial<Record<RiderArchetype, number>>> = {
+  llana: {
+    velocidad: 1,
+    rodador: 0.8,
+    fondo: 0.4,
+    crono: 0.3,
+    clasicas: 0.2,
+    puncheur: 0.2,
+    escalada: 0.1,
+    gregario: 0.2,
+  },
+  media: {
+    puncheur: 0.9,
+    clasicas: 0.8,
+    fondo: 0.7,
+    escalada: 0.6,
+    rodador: 0.4,
+    velocidad: 0.3,
+    crono: 0.3,
+    gregario: 0.2,
+  },
+  reina: {
+    escalada: 1,
+    fondo: 0.7,
+    puncheur: 0.4,
+    clasicas: 0.3,
+    crono: 0.2,
+    rodador: 0.2,
+    velocidad: 0.1,
+    gregario: 0.2,
+  },
+  cri: {
+    crono: 1,
+    rodador: 0.7,
+    fondo: 0.5,
+    escalada: 0.4,
+    clasicas: 0.4,
+    velocidad: 0.3,
+    puncheur: 0.3,
+    gregario: 0.2,
+  },
+  clasica: {
+    clasicas: 1,
+    puncheur: 0.8,
+    rodador: 0.6,
+    fondo: 0.5,
+    velocidad: 0.4,
+    escalada: 0.3,
+    crono: 0.3,
+    gregario: 0.2,
+  },
 }
 
-/** Encaje medio de cada vocación con el recorrido de la carrera (promedio sobre sus etapas). */
-export function raceVocationFit(stageKinds: StageKind[]): Record<Vocation, number> {
-  const totals: Record<Vocation, number> = {
-    escalada: 0,
-    velocidad: 0,
-    clasicas: 0,
-    crono: 0,
-    fondo: 0,
-  }
+/** Encaje medio de cada arquetipo con el recorrido de la carrera (promedio sobre sus etapas). */
+export function raceVocationFit(stageKinds: StageKind[]): Record<RiderArchetype, number> {
+  const totals = Object.fromEntries(RIDER_ARCHETYPES.map((a) => [a, 0])) as Record<
+    RiderArchetype,
+    number
+  >
   if (stageKinds.length === 0) return totals
   for (const kind of stageKinds) {
     const aff = KIND_AFFINITY[kind]
-    for (const voc of Object.keys(totals) as Vocation[]) {
+    for (const voc of RIDER_ARCHETYPES) {
       totals[voc] += aff[voc] ?? 0
     }
   }
-  for (const voc of Object.keys(totals) as Vocation[]) totals[voc] /= stageKinds.length
+  for (const voc of RIDER_ARCHETYPES) totals[voc] /= stageKinds.length
   return totals
 }
 
@@ -103,7 +152,7 @@ function philosophyBonus(philosophy: TeamPhilosophy, c: CallupCandidate, fit: nu
 /** Score de convocatoria de un corredor para una carrera (mayor = más probable). */
 export function callupScore(
   c: CallupCandidate,
-  raceFit: Record<Vocation, number>,
+  raceFit: Record<RiderArchetype, number>,
   philosophy: TeamPhilosophy,
 ): number {
   const fit = raceFit[c.archetype]
@@ -133,7 +182,7 @@ export interface SquadSelection {
 export function selectSquad(
   candidates: CallupCandidate[],
   opts: {
-    raceFit: Record<Vocation, number>
+    raceFit: Record<RiderArchetype, number>
     philosophy: TeamPhilosophy
     size: number
     seed: string

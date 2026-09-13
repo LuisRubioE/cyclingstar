@@ -6,6 +6,7 @@
  * Paso 21: andamiaje. La física (6.4-6.14) llega a partir del Paso 22.
  */
 import type { Attribute } from '@cyclingstar/shared'
+import type { RaceContext, StandingRow, TacticFlags } from './views.js'
 
 /** Terreno tal como lo escribe el autor del recorrido (SPEC 6.2). */
 export type SegmentTerrain = 'llano' | 'rompepiernas' | 'puerto' | 'descenso' | 'paves'
@@ -151,6 +152,18 @@ export interface StageRider {
   /** Fragilidad oculta (SPEC 3.4): escala la probabilidad de lesión al caer. Por defecto 1. */
   fragility?: number
   /**
+   * EL AÑO DE CONTRATO (R15a.8, S-428). El que se juega el suyo corre de escaparate: ataca más y se
+   * conforma menos con ir escondido. **Ausente = no lo sabemos**, y entonces no cambia nada.
+   */
+  contractYear?: boolean
+  /**
+   * …Y LA OTRA MITAD, QUE ES LA QUE DE VERDAD SE VE EN CARRETERA: el que YA FIRMÓ con otro equipo
+   * deja de vaciarse por la carta de esta casa —no baja a por bidones, no cierra huecos, no se quema
+   * en el tempo— **sin desobedecer nunca de forma visible**. Su director lo sabe al repartir
+   * papeles, y por eso el equipo cree tener ocho y tiene siete.
+   */
+  signedElsewhere?: boolean
+  /**
    * EL EQUIPO del corredor (docs/motor.md §V.1, v15). Es lo que faltaba para que el motor pudiera
    * tener un plan colectivo: hasta la v14 lo único que conocía era `orders.targetRiderId`, que dice
    * «X trabaja para Y» pero no «este equipo persigue y este otro se esconde».
@@ -161,12 +174,40 @@ export interface StageRider {
    * Un campo ENTERO sin equipos se comporta exactamente como antes de la v15.
    */
   teamId?: string | null
+  /**
+   * LO QUE ESTE HOMBRE SE JUEGA EN LAS SECUNDARIAS (docs/tactica.md §3.1, paso 4).
+   *
+   * Puntos, montaña, joven y equipos, con su puesto y el hueco al de delante. **Nadie lo lee
+   * todavía**: es lo que R05, R06 y R07 necesitan para contestar «¿me sirve de algo pelear esto
+   * hoy?», que es una pregunta que hoy no tiene a quién hacerse.
+   *
+   * Opcional a propósito: una etapa suelta de un banco no tiene clasificaciones, y correr sin ellas
+   * tiene que seguir dando exactamente lo mismo que hoy.
+   */
+  standings?: StandingRow[]
 }
 
 /** Entrada completa del motor (SPEC 6.1). */
 export interface StageInput {
   profile: StageProfile
   riders: StageRider[]
+  /**
+   * EL CONTEXTO DE CARRERA (docs/tactica.md §3.3, paso 2). **Opcional, y nadie lo lee todavía.**
+   *
+   * Es lo que convierte una etapa suelta en el día N de una carrera: la forma del recorrido que
+   * queda, las clasificaciones secundarias y lo que la carrera recuerda de los días anteriores. Cada
+   * racimo de reglas irá leyendo el suyo en su paso.
+   *
+   * **Va en `StageInput` y SOLO en `StageInput`**: `StageOutput` no gana ni un campo. El motor recibe
+   * contexto y devuelve lo que pasó; si devolviera contexto, la frontera entre el motor y quien lo
+   * llama dejaría de existir y cada paso podría empujar su estado al otro lado.
+   */
+  race?: RaceContext
+  /**
+   * Las banderas con las que un banco enciende o apaga una capa para poder medir su brazo de
+   * control. Ausentes = todo encendido, que es el comportamiento de producción.
+   */
+  flags?: TacticFlags
   /** CRI/cronoescalada: grupos de un corredor, sin drafting ni hazards (SPEC 6.13). */
   timeTrial?: boolean
   /**
@@ -412,6 +453,14 @@ export interface StageOutput {
   efforts: Map<string, StageEffort>
   /** Versión del motor con que se generó (sellada para replays reproducibles, SPEC 6.1). */
   engineVersion: number
+  /**
+   * CUÁNTAS VECES LA ADUANA CAMBIÓ DE OPINIÓN sobre un movimiento ya nacido (R03.3, paso 6).
+   *
+   * Es la medida de que la revisión por kilómetro **sirve de algo Y no tiembla**: si vale 0 siempre,
+   * la revisión está muerta y `allowed` sigue decidiéndose de una vez en el kilómetro en que el
+   * movimiento nace; si vale veinte, la cuerda es una bombilla parpadeando. Banda: 0,5-4 por etapa.
+   */
+  customsRevisions: number
 }
 
 /** Cómo terminó el tanque de un corredor (SPEC 6.6, 6.7). */

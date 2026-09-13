@@ -1,12 +1,14 @@
 import { randomUUID } from 'node:crypto'
-import { type Division, type NpcGenome, generateNpcRider, sampleNpcAge } from '@cyclingstar/engine'
 import {
-  ATTRIBUTES,
-  type Attribute,
-  VOCATIONS,
-  type Vocation,
-  seededRng,
-} from '@cyclingstar/shared'
+  BANISTER,
+  type Division,
+  MORALE,
+  type NpcGenome,
+  generateNpcRider,
+  sampleArchetype,
+  sampleNpcAge,
+} from '@cyclingstar/engine'
+import { ATTRIBUTES, type Attribute, type RiderArchetype, seededRng } from '@cyclingstar/shared'
 import { eq, inArray, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import { BATCH_ROWS, type BatchValue, inChunks, valuesList } from './batch.js'
@@ -318,6 +320,7 @@ export interface TeamPlan {
   philosophy: Philosophy
   jerseySeed: string
   facilities: number
+  staffLevel: number
 }
 
 export interface RiderPlan {
@@ -326,7 +329,7 @@ export interface RiderPlan {
   name: string
   country: string
   gender: 'M'
-  archetype: Vocation
+  archetype: RiderArchetype
   birthSeason: number
   attributes: Record<Attribute, number>
   hidden: NpcGenome['hidden']
@@ -347,13 +350,25 @@ function buildRider(
 ): RiderPlan {
   const seed = `${worldSeed}:rider:${index}`
   const rng = seededRng(`${seed}:meta`)
-  const archetype = pick(VOCATIONS, rng)
+  /**
+   * EL ARQUETIPO, CON LAS CUOTAS DE SU DIVISIÓN Y NO A PARTES IGUALES. Antes se elegía entre las
+   * cinco vocaciones con un `pick` uniforme, así que el 20 % del mundo eran contrarrelojistas y no
+   * existían ni gregarios ni rodadores. Un pelotón de verdad es un cuarto de gregarios.
+   */
+  const archetype = sampleArchetype(rng, division)
   // Núcleo nacional (SPEC 7.1): un corredor de equipo es, con probabilidad = cuota de su división,
   // del país del equipo; si no, del reparto mundial. Los agentes libres (sin equipo) son mundiales.
   const country =
     teamCountry && rng() < NATIONAL_CORE_SHARE[division] ? teamCountry : pick(COUNTRIES, rng)
-  const age = sampleNpcAge(`${seed}:age`)
-  const genome = generateNpcRider(`${seed}:genome`, { division, vocation: archetype, age })
+  const age = sampleNpcAge(`${seed}:age`, { v2: true })
+  const genome = generateNpcRider(`${seed}:genome`, {
+    division,
+    // `vocation` es del camino legacy y en v2 no se mira: manda el arquetipo.
+    vocation: 'fondo',
+    age,
+    v2: true,
+    archetype,
+  })
   // Nombre único en todo el mundo (ni bots ni humanos repetidos).
   const name = generateUniqueName(`${seed}:name`, { country, gender: 'M' }, usedNames).fullName
   return {
@@ -385,6 +400,22 @@ export function planWorld(worldSeed: string): WorldPlan {
       const id = randomUUID()
       const budget = Math.round(div.budgetBase * (0.6 + 0.8 * rng()))
       const facilities = 0.9 + rng() * 0.3 // K_inst [0.90, 1.20]
+      /**
+       * NIVEL DE STAFF (v60). Es un ENTERO que se compra, no un multiplicador: `TRAINING.kStaffPerLevel`
+       * lo traduce a ×1,02 por nivel con tope en ×1,10, o sea cinco niveles y se acabó.
+       *
+       * Los equipos bot nacen con el staff que su presupuesto explica —un WorldTour tiene médicos,
+       * fisios y entrenadores que un continental no paga— y el jugador sube desde ahí comprando.
+       * Nacer todos a cero dejaba la columna muerta: se leía en `train.ts` y valía 1 para todos,
+       * que es exactamente el defecto de `fame` y `teamTrust` otra vez.
+       *
+       * Va en SU PROPIO hilo de azar y no en `rng`: tirar de ese habría corrido el stream —filosofía
+       * del equipo, y de ahí para abajo— y un mundo sembrado con la misma semilla habría salido
+       * distinto sin que el cambio tuviera nada que ver con eso.
+       */
+      const staffRng = seededRng(`${seed}:staff`)
+      const staffBase = div.division === 'WT' ? 2 : div.division === 'PRS' ? 1 : 0
+      const staffLevel = Math.min(5, staffBase + Math.floor(staffRng() * 3))
       const jerseySeed = `${seed}:jersey`
       const country = teamCountryByIndex(div.division, t)
       // Nombre ficticio en el idioma del país (romanizado). Mismo generador y orden que la
@@ -399,6 +430,7 @@ export function planWorld(worldSeed: string): WorldPlan {
         philosophy: pick(PHILOSOPHIES, rng),
         jerseySeed,
         facilities,
+        staffLevel,
       })
       for (let r = 0; r < div.roster; r++) {
         riderPlans.push(
@@ -454,6 +486,7 @@ export async function seedWorld(tx: Tx, worldId: string, worldSeed: string): Pro
       philosophy: t.philosophy,
       jerseySeed: t.jerseySeed,
       facilities: t.facilities,
+      staffLevel: t.staffLevel,
     })),
     200,
     (chunk) => tx.insert(teams).values(chunk),
@@ -476,9 +509,9 @@ export async function seedWorld(tx: Tx, worldId: string, worldSeed: string): Pro
       birthSeason: r.birthSeason,
       archetype: r.archetype,
       faceSeed: `${r.id}:face`,
-      ctl: 45,
-      atl: 45,
-      morale: 60,
+      ctl: BANISTER.initialCtl,
+      atl: BANISTER.initialAtl,
+      morale: MORALE.mean,
     })),
     400,
     (chunk) => tx.insert(riders).values(chunk),

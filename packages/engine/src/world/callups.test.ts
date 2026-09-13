@@ -1,4 +1,4 @@
-import type { Vocation } from '@cyclingstar/shared'
+import type { RiderArchetype } from '@cyclingstar/shared'
 import { describe, expect, it } from 'vitest'
 import type { StageKind } from '../routes/testTour.js'
 import {
@@ -26,7 +26,7 @@ function candidate(over: Partial<CallupCandidate> & { riderId: string }): Callup
 function selectionRate(
   target: string,
   candidates: CallupCandidate[],
-  fit: Record<Vocation, number>,
+  fit: Record<RiderArchetype, number>,
   philosophy: TeamPhilosophy,
   size: number,
 ): number {

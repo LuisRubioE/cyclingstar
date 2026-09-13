@@ -232,6 +232,55 @@
       "when": 1786701379187,
       "tag": "0032_techos_por_edad",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1789111308516,
+      "tag": "0033_origen_del_punto",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1789115279412,
+      "tag": "0034_muros",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1789116236916,
+      "tag": "0035_arquetipos",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1789121960041,
+      "tag": "0036_tension",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1789123516600,
+      "tag": "0037_staff",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1789126401043,
+      "tag": "0038_plan_por_bloques",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1789148629940,
+      "tag": "0039_el_recorrido_es_del_mundo",
+      "breakpoints": true
     }
   ]
 }

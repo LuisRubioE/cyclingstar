@@ -78,3 +78,18 @@ export function adoptTeamSuggestions(
   }
   return next
 }
+
+/**
+ * SOLO LO QUE EL JUGADOR TOCÓ (docs/entrenamiento.md §5.3, paso 11).
+ *
+ * Hasta aquí la pantalla mandaba los VEINTIOCHO días enteros, así que guardar «cambia el jueves»
+ * congelaba el mes entero: los otros veintisiete dejaban de ser del entrenador para siempre, aunque
+ * el jugador no los hubiera mirado. Con la escalera de bloques encima eso sería peor todavía —cada
+ * guardado aplastaría los bloques con días sueltos—, y por eso ahora solo viaja lo editado.
+ *
+ * El servidor borra los días del horizonte que no lleguen, que es lo que hace posible DESHACER: un
+ * día que vuelve a estar sin tocar vuelve a decidirlo el entrenador.
+ */
+export function onlyEdited(plan: DayPlan[], edits: Record<number, DayEdit>): DayPlan[] {
+  return plan.filter((day) => edits[day.gameDay] !== undefined)
+}

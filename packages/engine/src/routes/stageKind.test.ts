@@ -63,14 +63,33 @@ describe('routes: qué clase de etapa dibuja un recorrido', () => {
     }
   })
 
-  it('la reina se reconoce como reina y con meta en alto', () => {
+  /**
+   * LA REINA SE RECONOCE COMO REINA… Y YA NO SIEMPRE ACABA ARRIBA (v64).
+   *
+   * Esta prueba exigía `label === 'Summit finish'` para TODA reina generada, y era verdad porque el
+   * generador ponía el puerto final en la meta sin excepción. **Eso es exactamente lo que el paso 1b
+   * quita**: una reina puede coronar a tres, a doce o a treinta kilómetros de meta, que es lo que
+   * hacen las vueltas de verdad y lo que R28.2 necesita para que el tipo de final decida algo.
+   *
+   * Lo que se sigue exigiendo —y es lo que esta prueba existe para vigilar— es que **una reina se
+   * reconozca como reina** pase lo que pase detrás del último puerto. Si el valle convirtiera la
+   * etapa en `media`, el calendario se quedaría sin montaña sin que nadie lo hubiera decidido.
+   */
+  it('la reina se reconoce como reina, corone donde corone', () => {
+    const etiquetas = new Set<string>()
     for (const km of KM_ROAD) {
       for (const seed of seeds(SEEDS)) {
         const r = stageKindOf({ segments: mountainSegments(km, seed) }, false)
         expect(r.kind, `mountain ${km} ${seed}`).toBe('reina')
-        expect(r.label).toBe('Summit finish')
+        expect(['Summit finish', 'Mountains']).toContain(r.label)
+        etiquetas.add(r.label)
       }
     }
+    // Y LAS DOS TIENEN QUE APARECER: si solo saliera una, el sorteo de `queenFinalMix` no estaría
+    // haciendo nada y este paso sería una constante nueva sin efecto.
+    expect(`las dos formas de reina existen: ${etiquetas.size === 2}`).toBe(
+      'las dos formas de reina existen: true',
+    )
   })
 
   it('la clásica de muros y la de adoquines se reconocen como clásicas', () => {

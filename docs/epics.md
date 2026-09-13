@@ -392,6 +392,26 @@ ningún banco incluía las carreras. Detalle en `docs/balance.md` «v54».
 
 De paso el banco vigila G3, G4, G8, G9 y G10, que también son cosas que solo se rompen con el tiempo.
 
+#### Dónde está G1 tras el rediseño del entrenamiento (v52-v61)
+
+El rediseño entero está en `docs/entrenamiento.md` y medido paso a paso en `docs/balance.md` «v59 §0»
+a «§12». Contra los cuatro requisitos de arriba, en la temporada 25:
+
+| Requisito                                           | Estado      | Medido                                                                                                                                                                                                           |
+| --------------------------------------------------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Que **no** acaben todos siendo Pogačar              | **CERRADO** | `cincoEstrellasWTPct` pico **5,1 %** contra el ≤ 15 del dueño; cracks **0,08 %** contra el ≤ 6 de la decisión 3                                                                                                  |
+| Que **las carreras entrenen**, y a su modo          | **CERRADO** | `raceLearning` v2: escala por clase de carrera, por edad, por talento, por lo que hiciste ese día y por cómo acabaste (§4.4)                                                                                     |
+| Que **tampoco** se quede nadie sin pasar de 4       | **ABIERTO** | un **tercio del WorldTour** no tiene nada sobre 4★, y **no es un número del entrenamiento**: apenas se movió mientras el entrenamiento cambiaba entero, y esa gente ya está al 9 % de su techo. Es de la GÉNESIS |
+| Que se pueda **balancear** entrenamiento y carreras | **ABIERTO** | la escalera D0-D5 decide sesión, bloque e intensidad, pero **no** deja renunciar a una carrera ni pedir una B como bloque de entrenamiento. Es la **decisión 23** del dueño                                      |
+
+Las dos abiertas no están abiertas por falta de trabajo, sino porque **las dos son decisiones suyas**:
+
+- **El tercio sin 4★** se cierra subiendo los techos del WorldTour en la génesis, y eso tira en contra
+  del «menos del 15 % con cinco estrellas», que hoy va sobradísimo (2,6 %). Son la misma perilla en
+  sentidos opuestos: el dueño decide dónde la quiere.
+- **Balancear** necesita una palanca que hoy no existe (`rider_race_prefs` es una señal de objetivo
+  que consume `callups`, no una renuncia). Decisión 23 en `docs/entrenamiento.md` §9.
+
 ### G2 · Gestión humana de un equipo
 
 > «Esto va a ser BRUTAL. Tiene a su vez MUCHÍSIMOS componentes.»

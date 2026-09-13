@@ -44,6 +44,36 @@ export const TARGETS = {
     // La caza se cierra dentro de los últimos 25 km, no a 60 ni en el último km.
     catchKmToFinish: { label: 'Captura mediana (km a meta)', min: 8, max: 25, unit: '' },
   },
+  /**
+   * LAS FASES DE LA CARRERA (R19, docs/tactica.md paso 5). Se miden sobre la llana canónica, que es
+   * donde el defecto se veía: `tacticMaxMoves` = 3 contaba grupos vivos GLOBALES, así que en cuanto
+   * la carretera se poblaba la etapa se apagaba hasta meta. El comentario que esta tanda sustituye
+   * lo tenía medido en producción: «cuatro intentos hasta el km 19 y ni uno más en los 190
+   * restantes» (Race Almeria e1).
+   */
+  phases: {
+    attemptsPerStage: { label: 'Intentos por etapa', min: 10, max: 25, unit: '' },
+    /**
+     * EL INVARIANTE 54, y la banda es un SUELO porque el defecto es un cero: lo que se comprueba es
+     * que después del km 100 se siga intentando algo, no cuántas veces. El techo queda holgado a
+     * propósito —una llana de 180 km con la carrera viva da lo que dé— y estrecharlo sería arbitrar
+     * el dado en vez de cazar el apagón.
+     */
+    attemptsAfterKm100: { label: 'Intentos tras el km 100', min: 2, max: 25, unit: '' },
+    counterAfterCatchPct: { label: 'Contraataque tras captura', min: 25, max: 60, unit: '%' },
+    /**
+     * `flyerWinPct` NO TIENE BANDA, y el motivo es que en este banco **no puede medirse**. El diseño
+     * le pone objetivo —«gana el 2-5 % de las llanas»— y al mismo tiempo condiciona el flyer a que
+     * el terreno ayude: un repecho, una curva, viento de cola. La llana canónica es llana pura con
+     * llegada agrupada, así que el terreno no ayuda NUNCA y el flyer no se dispara ni una vez: su
+     * estadístico vale 0,0 % por construcción, no por conducta.
+     *
+     * Las dos mitades de R19.6 se contradicen: pide que el flyer gane llanas y lo prohíbe justo en
+     * las llanas. Poner aquí una banda de 1-6 sería sellar un cero disfrazado de medida. El
+     * estadístico se calcula igual (`analyzePhases`) y queda esperando un banco con el final que la
+     * regla describe.
+     */
+  },
   /** Etapa reina canónica (`reina-150`). */
   mountain: {
     // En montaña la fuga vive mucho más: el pelotón controla la general, no persigue la etapa.

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Attribute } from '@cyclingstar/shared'
-import { autoStageOrders, type AutoOrderRider } from './autoOrders.js'
+import { autoStageOrders, sprinterThreshold, type AutoOrderRider } from './autoOrders.js'
 
 function attrs(over: Partial<Record<Attribute, number>> = {}): Record<Attribute, number> {
   return {
@@ -113,5 +113,73 @@ describe('autoStageOrders (SPEC 6.18)', () => {
     const a = autoStageOrders(team('d'), { kind: 'llana', timeTrial: false })
     const b = autoStageOrders(team('d'), { kind: 'llana', timeTrial: false })
     expect([...a.entries()]).toEqual([...b.entries()])
+  })
+})
+
+/**
+ * ¿QUIÉN TIENE BAZA DE SPRINT? UN PERCENTIL, NO UN NÚMERO (v63, decisión 25 del dueño).
+ *
+ * Lo que hay que probar del cambio es la propiedad que el 68 absoluto perdió con la génesis v2:
+ * **que el reparto no dependa del NIVEL del campo**. Un continental modesto tiene que tener sus
+ * velocistas en su carrera, igual que el WorldTour tiene los suyos en la suya.
+ */
+describe('el listón de velocista es del campo del día, no un 68 escrito a mano', () => {
+  const campo = (sprs: number[]): AutoOrderRider[] =>
+    sprs.map((spr, i) => ({
+      riderId: `r${i}`,
+      teamId: `e${Math.floor(i / 8)}`,
+      attrs: attrs({ SPR: spr }),
+    }))
+
+  it('es el p75: un cuarto del campo lo supera, valga lo que valga el campo', () => {
+    const flojo = campo([30, 32, 34, 36, 38, 40, 42, 44])
+    const bueno = campo([70, 72, 74, 76, 78, 80, 82, 84])
+    const uFlojo = sprinterThreshold(flojo)
+    const uBueno = sprinterThreshold(bueno)
+    // El listón SUBE con el campo, que es justo lo que el 68 fijo no sabía hacer.
+    expect(`el listón sigue al campo: ${uBueno > uFlojo}`).toBe('el listón sigue al campo: true')
+    const pasan = (f: AutoOrderRider[], u: number): number =>
+      f.filter((r) => r.attrs.SPR >= u).length
+    // Y LOS DOS CAMPOS DAN EL MISMO REPARTO, que es toda la propiedad: el cuarto de arriba de cada
+    // carrera, sea la carrera que sea. Con el 68 absoluto, el campo flojo daba CERO.
+    expect(`flojo: ${pasan(flojo, uFlojo)}`).toBe('flojo: 2')
+    expect(`bueno: ${pasan(bueno, uBueno)}`).toBe('bueno: 2')
+    expect(`mismo reparto: ${pasan(flojo, uFlojo) === pasan(bueno, uBueno)}`).toBe(
+      'mismo reparto: true',
+    )
+  })
+
+  it('EN UN CAMPO MODESTO SIGUE HABIENDO VELOCISTAS, que es lo que el 68 se cargaba', () => {
+    // Un continental entero por debajo de 68: con el umbral absoluto, CERO sprinters en toda la
+    // carrera y ningún equipo con tren. Con el percentil, los hay.
+    const continental = campo([40, 44, 48, 52, 55, 58, 60, 62, 42, 46, 50, 54, 56, 59, 61, 63])
+    expect(`ninguno pasa de 68: ${continental.every((r) => r.attrs.SPR < 68)}`).toBe(
+      'ninguno pasa de 68: true',
+    )
+    const out = autoStageOrders(continental, { kind: 'llana', timeTrial: false })
+    const sprinters = [...out.values()].filter((o) => o.role === 'sprinter').length
+    expect(`hay velocistas: ${sprinters > 0}`).toBe('hay velocistas: true')
+  })
+
+  it('con un campo de tres gatos no manda nadie: el mejor del equipo es su velocista', () => {
+    // Con menos de cuatro corredores no hay campo del que sacar percentiles, y exigir uno sería
+    // decidir con ruido. El umbral es 0 y el mejor manda.
+    expect(sprinterThreshold(campo([50, 60, 70]))).toBe(0)
+  })
+
+  it('el listón es del CAMPO y no de cada plantilla', () => {
+    // Si cada equipo lo sacara de los suyos, «superar el p75» sería «ser el mejor de tu equipo» y lo
+    // cumplirían los veintidós. Dos equipos de nivel muy distinto en la misma carrera:
+    const fuerte = campo([80, 82, 84, 86, 78, 76, 74, 72]).map((r) => ({ ...r, teamId: 'fuerte' }))
+    const debil = campo([40, 42, 44, 46, 38, 36, 34, 32]).map((r, i) => ({
+      ...r,
+      riderId: `d${i}`,
+      teamId: 'debil',
+    }))
+    const out = autoStageOrders([...fuerte, ...debil], { kind: 'llana', timeTrial: false })
+    const conRol = (equipo: AutoOrderRider[]): boolean =>
+      equipo.some((r) => out.get(r.riderId)?.role === 'sprinter')
+    expect(`el fuerte pone velocista: ${conRol(fuerte)}`).toBe('el fuerte pone velocista: true')
+    expect(`el débil no: ${conRol(debil)}`).toBe('el débil no: false')
   })
 })

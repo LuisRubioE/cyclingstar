@@ -29,17 +29,27 @@
  */
 import {
   ATTRIBUTES,
+  ATTRIBUTE_GROWTH,
   type Attribute,
+  type CoachContext,
   DAYS_PER_SEASON,
+  RIDER_ARCHETYPES,
+  type RiderArchetype,
+  type Session,
+  type TrainingChoice,
   VOCATIONS,
   type Vocation,
-  attrStars,
+  archetypeFromAttributes,
+  attrStarsWhole,
+  coachPlan,
   defaultCoachPlan,
   seededRng,
 } from '@cyclingstar/shared'
-import { applyDailyLoad } from '../banister.js'
+import { applyDailyLoad, effectiveFragility, raceIllnessProbability } from '../banister.js'
+import { HEALTH, RACE_DAY_TSS, RACE_DAY_TSS_DEFAULT, TRAINING } from '../constants.js'
 import { SEASON_CALENDAR } from '../routes/calendar.js'
-import { simulateRiderDay } from '../progression.js'
+import { generateRiderGenome } from '../creation.js'
+import { kDim, simulateRiderDay } from '../progression.js'
 import { raceLearning } from '../world/learning.js'
 import { neoproAge, shouldRetire } from '../world/lifecycle.js'
 import { type Division, generateNpcRider, sampleNpcAge } from '../world/npc.js'
@@ -62,9 +72,57 @@ interface WorldRider {
   morale: number
   health: 'sano' | 'molestias' | 'enfermo' | 'lesionado'
   healthUntilDay: number | null
+  /** Días pasado de rosca. El banco lo lleva igual que producción, también los días de carrera. */
+  strainDays: number
+  illDays: number
+  /** Las instalaciones de su equipo. Se sortean una vez por equipo, como en producción. */
+  kInst: number
+  /** Lo que el guardarraíl del entrenador necesita saber de los últimos días. */
+  fuertesUltimos7: number
+  ayer: Session | null
   /** En qué temporada entró: separa a los que crecieron aquí de los del reparto inicial. */
   debutSeason: number
+  /**
+   * QUÉ MOVIÓ Y EN QUÉ DÍA, para amortiguar el declive de la semana (`trainedLast7`). En producción
+   * esto sale de `rider_attr_log`; aquí el banco lleva su propio registro en memoria, porque si lo
+   * aproximara con «lo de hoy» estaría midiendo un declive distinto del que corre el juego, y esa
+   * asimetría entre banco y producción es justo lo que este rediseño se prohíbe.
+   */
+  movidoElDia: Map<Attribute, number>
+  /**
+   * LO QUE PASA DENTRO DE LA TEMPORADA, que una foto de diciembre no puede contar.
+   *
+   * `margenAlTechoPct` y compañía se leen del estado final y con eso basta. Pero «cuánto se aprende
+   * corriendo, por cohorte de edad» y «cuántos días al año se pasa uno malo» son acumulados: si no
+   * se cuentan mientras ocurren, en la foto ya no están. Se ponen a cero al empezar cada temporada.
+   */
+  temporada: {
+    /** Puntos de atributo ganados EN CARRERA, y en cuántos días de carrera se ganaron. */
+    aprendidoEnCarrera: number
+    diasDeCarrera: number
+    /** Días con la salud rota, separados porque no cuestan lo mismo ni se arreglan igual. */
+    diasEnfermo: number
+    diasConMolestias: number
+    /** La carta —su mejor especialidad— el 1 de enero, para medir cuánto creció en el año. */
+    cartaAlEmpezar: number
+    /** RES y TAC al empezar: las dos que el diseño quiere ver crecer por separado. */
+    resAlEmpezar: number
+    tacAlEmpezar: number
+  }
 }
+
+/** Las seis especialidades. La «carta» de un corredor es la mejor de ellas. */
+const CARTAS: Attribute[] = ['SPR', 'MON', 'COL', 'PAV', 'CRI', 'LLA']
+const cartaDe = (r: { attributes: Record<Attribute, number> }): number =>
+  Math.max(...CARTAS.map((a) => r.attributes[a]))
+
+/** Sin cuatro estrellas en NADA físico: la otra mitad del miedo del dueño. */
+const sinCuatroEstrellas = (r: { attributes: Record<Attribute, number> }): boolean =>
+  FISICOS.every((a) => attrStarsWhole(r.attributes[a]) < 4)
+
+/** Las tres cohortes de edad con las que se leen el margen y lo aprendido. */
+const cohorteDe = (age: number): 'joven' | 'medio' | 'veterano' =>
+  age <= 23 ? 'joven' : age <= 27 ? 'medio' : 'veterano'
 
 /**
  * El reparto del mundo por divisiones. No es decorado: la división fija la media de atributos con la
@@ -83,21 +141,22 @@ interface DiaDeCarrera {
   kind: string
   /** Carga del día, en TSS. Sale del terreno: una reina cuesta el doble que una llana. */
   tss: number
+  /** Qué número de etapa es dentro de su carrera. Es REAL: sale del calendario de verdad. */
+  stageIndex: number
 }
 
+/** Acota a [0,1]. El vaciado sintético se deriva del terreno y no puede salirse. */
+const clamp01 = (x: number): number => Math.min(1, Math.max(0, x))
+
 /**
- * CUÁNTO CUESTA UN DÍA DE CARRERA, por terreno. El banco no simula la etapa —eso son 442 corredores
- * por 364 días por 25 temporadas y no terminaría nunca—, así que la carga es representativa y no
- * medida corredor a corredor. Es la aproximación que este banco ASUME, y hay que decirlo: lo que
- * mide bien es CUÁNTO SE APRENDE compitiendo, que es lo que pide G1; lo que no mide es quién gana.
+ * La carga de un día de carrera por terreno vive en `constants.ts` (`RACE_DAY_TSS`) desde el paso 0
+ * del rediseño de entrenamiento: la aproximación que este banco ASUME va a alimentar también el
+ * esfuerzo del día y el índice de etapa, y una aproximación con tres consumidores no puede seguir
+ * escondida dentro del fichero de uno de ellos. Los números no cambiaron al mudarse.
+ *
+ * Lo que este banco mide bien es CUÁNTO SE APRENDE compitiendo, que es lo que pide G1; lo que no
+ * mide es quién gana.
  */
-const TSS_POR_TERRENO: Record<string, number> = {
-  llana: 110,
-  media: 145,
-  reina: 185,
-  cri: 95,
-  clasica: 160,
-}
 
 /**
  * EL CALENDARIO QUE PUEDE CORRER CADA DIVISIÓN, sacado del calendario REAL del juego y no inventado.
@@ -113,11 +172,14 @@ function calendarioDe(division: Division): DiaDeCarrera[] {
     // Los campeonatos nacionales son campo individual por país: no son calendario de equipo.
     if (race.championshipCountry != null) continue
     if (!race.openTo.includes(division)) continue
+    let n = 0
     for (const st of race.stages) {
+      n += 1
       dias.push({
         raceClass: race.raceClass,
         kind: st.kind,
-        tss: TSS_POR_TERRENO[st.kind] ?? 130,
+        tss: RACE_DAY_TSS[st.kind] ?? RACE_DAY_TSS_DEFAULT,
+        stageIndex: n,
       })
     }
   }
@@ -137,10 +199,112 @@ const CALENDARIO: Record<Division, DiaDeCarrera[]> = {
  */
 const DIAS_DE_CARRERA = 65
 
+/**
+ * LOS TRES BRAZOS DEL BANCO (paso 1 del rediseño de entrenamiento).
+ *
+ * Un banco con un solo brazo mide, pero no PRUEBA: dice qué pasa, no si lo que pasa se debe a lo que
+ * uno cree. Los tres de aquí existen para contestar tres preguntas que el dueño hizo con palabras
+ * distintas y que hasta ahora se contestaban con una opinión.
+ */
+
+/**
+ * 1) LA POLÍTICA DE ENTRENAMIENTO. «Que el entrenador bot sea razonable, nunca óptimo» solo se puede
+ * probar comparándolo contra un entrenador MEJOR y contra uno PEOR sobre el mismo corredor sembrado
+ * y el mismo calendario. Si el bot no queda en medio, la frase es un deseo.
+ *
+ * - `bot`: el de producción (`defaultCoachPlan`), tal cual.
+ * - `buena`: el mismo ciclo, pero con las tres cosas que hace un entrenador que mira al corredor —no
+ *   machacar en rojo, afinar antes de competir, y descansar de verdad después—.
+ * - `mala`: construcción fuerte todos los días y sin afinar nunca. No es un espantapájaros: es
+ *   exactamente lo que hace un jugador que confunde entrenar con sufrir.
+ */
+export type Politica = 'bot' | 'buena' | 'mala'
+
+/** Cuántos días antes de competir afina un entrenador bueno: más recuperación, menos afinado. */
+const afinadoPorREC = (rec: number): number => Math.round(9 - (4 * Math.min(100, rec)) / 100)
+
+function planDelDia(
+  politica: Politica,
+  gameDay: number,
+  r: WorldRider,
+  suCalendario: Map<number, DiaDeCarrera> | undefined,
+  dia: number,
+): TrainingChoice {
+  if (politica === 'mala') return { session: 'fondo', intensity: 'fuerte' }
+
+  // Cuánto falta para la próxima carrera y cuánto duró la última tanda: los días están sorteados
+  // para toda la temporada, así que esto es una lectura y no un dado.
+  let diasHastaCorrer: number | null = null
+  for (let d = dia; d < Math.min(DAYS_PER_SEASON, dia + 45); d++) {
+    if (suCalendario?.has(d) === true) {
+      diasHastaCorrer = d - dia
+      break
+    }
+  }
+  let diasDesdeTanda: number | null = null
+  let tandaAnterior = 0
+  for (let d = dia - 1; d >= Math.max(0, dia - 14); d--) {
+    if (suCalendario?.has(d) === true) {
+      if (diasDesdeTanda === null) diasDesdeTanda = dia - d - 1
+      tandaAnterior += 1
+    } else if (diasDesdeTanda !== null) break
+  }
+
+  const ctx: CoachContext = {
+    gameDay,
+    seasonDay: dia,
+    archetype: r.vocation as RiderArchetype,
+    tsb: r.ctl - r.atl,
+    health: r.health,
+    strainDays: r.strainDays,
+    daysToNextRace: diasHastaCorrer,
+    nextRaceIsGoal: false,
+    nextRaceStages:
+      diasHastaCorrer === null ? 1 : (suCalendario?.get(dia + diasHastaCorrer)?.stageIndex ?? 1),
+    teamGoalInDays: null,
+    daysSinceBlockEnd: diasDesdeTanda,
+    lastBlockDays: tandaAnterior,
+    hardLast7: r.fuertesUltimos7,
+    yesterday: r.ayer,
+  }
+  const plan = coachPlan(ctx)
+  if (politica === 'bot') return { session: plan.session, intensity: plan.intensity }
+
+  /**
+   * La política BUENA es el entrenador v2 con dos cosas más que un humano atento haría: afinar más
+   * días según su recuperación, y no apretar nunca con el depósito por debajo de −10.
+   */
+  if (diasHastaCorrer !== null && diasHastaCorrer <= afinadoPorREC(r.attributes.REC)) {
+    if (plan.session === 'descanso_total' || plan.session === 'descanso_activo') {
+      return { session: plan.session, intensity: plan.intensity }
+    }
+    return { session: plan.session, intensity: 'suave' }
+  }
+  if (plan.intensity === 'fuerte' && ctx.tsb <= -10) {
+    return { session: plan.session, intensity: 'normal' }
+  }
+  return { session: plan.session, intensity: plan.intensity }
+}
+
+/**
+ * 2) EL APRENDIZAJE DE LA CARRERA, CON Y SIN FRENO. El rediseño propone meter `kDim` en
+ * `raceLearning`, y el precio declarado es grande: correr enseñaría alrededor de la mitad de puntos
+ * brutos. Este brazo lo mide ANTES de tocar el motor —la fórmula de producción no cambia una coma—,
+ * que es la diferencia entre decidir con un número y decidir con un argumento.
+ */
+export type Aprendizaje = 'hoy' | 'conKDim'
+
+/** Opciones de una corrida del mundo. Por defecto, el mundo tal y como se juega hoy. */
+export interface WorldOptions {
+  sinCarreras?: boolean
+  politica?: Politica
+  aprendizaje?: Aprendizaje
+}
+
 function nace(seed: string, division: Division, age: number, debutSeason: number): WorldRider {
   const rng = seededRng(`${seed}:voc`)
   const vocation: Vocation = VOCATIONS[Math.floor(rng() * VOCATIONS.length)]!
-  const g = generateNpcRider(seed, { division, vocation, age })
+  const g = generateNpcRider(seed, { division, vocation, age, v2: true })
   const r = seededRng(`${seed}:forma`)
   return {
     riderId: seed,
@@ -159,7 +323,40 @@ function nace(seed: string, division: Division, age: number, debutSeason: number
     morale: 55 + 20 * r(),
     health: 'sano',
     healthUntilDay: null,
+    strainDays: 0,
+    illDays: 0,
+    kInst: 1,
+    fuertesUltimos7: 0,
+    ayer: null,
     debutSeason,
+    movidoElDia: new Map(),
+    temporada: nuevaTemporada(g.attributes),
+  }
+}
+
+/** Los atributos que se movieron en los últimos siete días, y limpieza de lo viejo de paso. */
+function movidosEnLaSemana(r: WorldRider, gameDay: number): ReadonlySet<Attribute> {
+  const out = new Set<Attribute>()
+  for (const [attr, dia] of r.movidoElDia) {
+    if (gameDay - dia <= TRAINED_WINDOW_DAYS && dia < gameDay) out.add(attr)
+    else if (gameDay - dia > TRAINED_WINDOW_DAYS) r.movidoElDia.delete(attr)
+  }
+  return out
+}
+
+/** La ventana de «esa semana» del SPEC, igual que en producción. */
+const TRAINED_WINDOW_DAYS = 7
+
+/** Los acumuladores del año, a cero. La carta, RES y TAC se guardan como estaban al empezar. */
+function nuevaTemporada(attrs: Record<Attribute, number>): WorldRider['temporada'] {
+  return {
+    aprendidoEnCarrera: 0,
+    diasDeCarrera: 0,
+    diasEnfermo: 0,
+    diasConMolestias: 0,
+    cartaAlEmpezar: Math.max(...CARTAS.map((a) => attrs[a])),
+    resAlEmpezar: attrs.RES,
+    tacAlEmpezar: attrs.TAC,
   }
 }
 
@@ -219,6 +416,98 @@ export interface WorldSeasonRow {
   congeladosPct: number
   /** Edad media del pelotón: vigila que el relevo generacional no se descontrole. */
   edadMedia: number
+
+  // ─────────────────────────────────────────────────────────────────────────────────────────────
+  // LA FOTO DE ANTES (paso 0 del rediseño de entrenamiento). Todo lo que sigue MIDE y NO VIGILA:
+  // ninguna de estas filas tiene banda todavía, a propósito. Primero se sabe qué hace el mundo de
+  // hoy y se escribe en la bitácora; las bandas se ponen al final, cuando haya contra qué
+  // compararlas. Poner la banda antes que la medida es escribir el resultado que uno espera.
+  // ─────────────────────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * LA BANDA DEL DUEÑO, PERO MEDIDA DONDE VIVE. «Claramente menos del 15 % de momento, y cuando haya
+   * humanos buenos bajaremos eso a 0»: el % de WorldTour con AL MENOS un atributo de cinco
+   * estrellas. Se mide sobre el WT y no sobre el mundo porque un continental con un 84 no es el
+   * problema del que hablaba, y se mira en régimen y no al nacer: la generación reparte una cosa y
+   * los años reparten otra.
+   */
+  cincoEstrellasWTPct: number
+  /** Lo mismo, solo entre los 26 y los 31: la élite ya hecha, sin promesas ni veteranos. */
+  cincoEstrellasWTMadurosPct: number
+  /** Medianías, pero dentro del WorldTour: un WT entero de gregarios también es un defecto. */
+  sinNadaSobre4WTPct: number
+  /** …y quitando a los que SON gregarios, que es el número que de verdad alarma. */
+  sinNadaSobre4NoGregariosWTPct: number
+
+  /**
+   * EL REPARTO DEL MUNDO POR ARQUETIPO, derivado de los atributos y no de la etiqueta de la ficha.
+   * Si un arquetipo se vacía, el juego ha perdido una forma de correr aunque las medias estén bien.
+   */
+  arquetiposPct: Record<RiderArchetype, number>
+  /** ¿Hay especialistas PUROS? Velocistas WT maduros con SPR de 4★ y MON flojo, y al revés. */
+  purosVelocistasPct: number
+  purosEscaladoresPct: number
+  /** ¿El mejor esprínter del mundo es un esprínter? Los tres a la vez, o no cuenta. */
+  mejorPorArquetipoOk: number
+
+  /**
+   * MARGEN AL TECHO PARTIDO EN DOS, que es la pregunta de G1 que la media global esconde. El motor
+   * y el oficio no se aprenden igual ni a la misma edad, así que un solo número los promedia y deja
+   * de decir nada. `ATTRIBUTE_GROWTH` ya hacía esta partición para el declive; aquí se usa para ver
+   * crecer.
+   */
+  margenMotorPct: number
+  margenOficioPct: number
+  /** Y por cohorte de edad: a los 21 tiene que sobrar margen; a los 30 es normal que no. */
+  margenJovenesPct: number
+  margenMediosPct: number
+  margenVeteranosPct: number
+  /** % de la cohorte de 19 a 23 con OCHO puntos de margen medio o más. */
+  jovenesConMargenPct: number
+
+  /** Cuánto crece la carta de un neoprofesional del WorldTour en su primera temporada. */
+  crecimientoNeoproWT: number
+  /**
+   * Media de techos de carta de los neopros menos la de la generación inicial, por división.
+   *
+   * `null` cuando ya no queda NADIE de la generación inicial con quien comparar —hacia la
+   * temporada 20 se han retirado todos—, porque entonces no es que la diferencia sea cero: es que
+   * no hay diferencia que medir, y escribir un 0 ahí sería inventarse un dato tranquilizador.
+   */
+  techosNeoprosVsGen0: Record<Division, number | null>
+
+  /**
+   * LAS CURVAS DE EDAD, que son la forma de comprobar que un veterano no es un joven con más años.
+   * Aeróbico (MON+RES+LLA) y neuromuscular (SPR+COL) contra la cohorte de plenitud, y el oficio
+   * (TAC) como diferencia absoluta porque es el que tiene que subir siempre.
+   */
+  curvaEdadAerobicaJoven: number
+  curvaEdadAerobicaVeterana: number
+  curvaEdadNeuroJoven: number
+  curvaEdadNeuroVeterana: number
+  curvaEdadTAC: number
+  /** Los de 34 o más contra los de 28 a 30: el declive tiene que verse. */
+  vets34vs28: number
+
+  /** Congelados, pero solo entre los que aún no han llegado al declive: ésos sí son un defecto. */
+  congeladosJovenesPct: number
+
+  /**
+   * LO QUE ENSEÑA CORRER, EN PUNTOS POR DÍA DE CARRERA Y POR COHORTE. Es la fila que vigila que la
+   * sustitución del banco por la producción no cambie lo que se aprende: aquí sale la columna del
+   * banco, y la de producción llega cuando el paso que la mide exista.
+   */
+  aprendidoJovenes: number
+  aprendidoMedios: number
+  aprendidoVeteranos: number
+
+  /** Días de salud rota por corredor y año, contando también los de carrera. */
+  enfermedadesAno: number
+  diasMolestiasAno: number
+
+  /** Cuánto gana al año un bot con el plan del entrenador en las dos que el diseño quiere ver. */
+  ganaRESporAno: number
+  ganaTACporAno: number
 }
 
 const FISICOS: Attribute[] = ATTRIBUTES.filter((a) => a !== 'TAC')
@@ -236,9 +525,11 @@ function foto(
   neopros: number,
 ): WorldSeasonRow {
   const medias = field.map((r) => media(FISICOS.map((a) => r.attributes[a])))
-  const cincos = field.map((r) => FISICOS.filter((a) => attrStars(r.attributes[a]) >= 5).length)
+  const cincos = field.map(
+    (r) => FISICOS.filter((a) => attrStarsWhole(r.attributes[a]) >= 5).length,
+  )
   const cracks = cincos.filter((n) => n >= 3).length
-  const medianias = field.filter((r) => FISICOS.every((a) => attrStars(r.attributes[a]) < 4)).length
+  const medianias = field.filter((r) => sinCuatroEstrellas(r)).length
   const margen = field.flatMap((r) =>
     FISICOS.map((a) => Math.max(0, r.ceilings[a] - r.attributes[a])),
   )
@@ -246,6 +537,94 @@ function foto(
   const congelados = field.filter((r) =>
     FISICOS.every((a) => r.attributes[a] >= r.ceilings[a]),
   ).length
+
+  // ── La foto de antes: todo lo que sigue mide y no vigila ────────────────────────────────────
+  const pct = (n: number, de: number): number => (100 * n) / Math.max(1, de)
+  const arquetipos = new Map<string, RiderArchetype>(
+    field.map((r) => [r.riderId, archetypeFromAttributes(r.attributes)]),
+  )
+  const wt = field.filter((r) => r.division === 'WT')
+  const wtMaduros = wt.filter((r) => r.age >= 26 && r.age <= 31)
+  const tieneCinco = (r: WorldRider): boolean =>
+    FISICOS.some((a) => attrStarsWhole(r.attributes[a]) >= 5)
+
+  const repartoArq = Object.fromEntries(
+    RIDER_ARCHETYPES.map((a) => [
+      a,
+      pct(field.filter((r) => arquetipos.get(r.riderId) === a).length, field.length),
+    ]),
+  ) as Record<RiderArchetype, number>
+
+  // Puro = destaca en lo suyo Y NO en lo contrario. Un escalador que también esprinta no es puro,
+  // y un mundo sin puros es un mundo donde da igual con quién corras.
+  const puros = (arq: RiderArchetype, carta: Attribute, contraria: Attribute): number => {
+    const suyos = wtMaduros.filter((r) => arquetipos.get(r.riderId) === arq)
+    const p = suyos.filter((r) => r.attributes[carta] >= 68 && r.attributes[contraria] <= 55)
+    return pct(p.length, suyos.length)
+  }
+
+  // El mejor del mundo en una carta tiene que SER de esa casa. Los tres a la vez: un acierto suelto
+  // puede ser suerte, los tres seguidos no.
+  const mejorEs = (carta: Attribute, arq: RiderArchetype): boolean => {
+    const top = field.reduce((a, b) => (b.attributes[carta] > a.attributes[carta] ? b : a))
+    return arquetipos.get(top.riderId) === arq
+  }
+  const mejorOk =
+    mejorEs('SPR', 'velocidad') && mejorEs('MON', 'escalada') && mejorEs('PAV', 'clasicas')
+
+  const margenDe = (rs: WorldRider[], attrs: Attribute[]): number => {
+    if (rs.length === 0) return 0
+    const m = rs.flatMap((r) => attrs.map((a) => Math.max(0, r.ceilings[a] - r.attributes[a])))
+    const t = rs.flatMap((r) => attrs.map((a) => r.ceilings[a]))
+    return pct(media(m), media(t))
+  }
+  const motor = FISICOS.filter((a) => ATTRIBUTE_GROWTH[a] === 'motor')
+  const oficio = ATTRIBUTES.filter((a) => ATTRIBUTE_GROWTH[a] === 'oficio')
+  const porCohorte = (c: 'joven' | 'medio' | 'veterano'): WorldRider[] =>
+    field.filter((r) => cohorteDe(r.age) === c)
+
+  const jovenes = field.filter((r) => r.age >= 19 && r.age <= 23)
+  const conMargen = jovenes.filter(
+    (r) => media(FISICOS.map((a) => Math.max(0, r.ceilings[a] - r.attributes[a]))) >= 8,
+  )
+
+  /**
+   * Neopros del WorldTour que acaban de correr SU PRIMERA temporada entera, o sea los que entraron
+   * al final de la anterior: `debutSeason === season` son los que se acaban de dar de alta hace un
+   * instante —el relevo generacional ocurre justo antes de esta foto— y llevan cero días corridos,
+   * así que su crecimiento sería 0 por construcción y la fila no diría nada.
+   */
+  const crecimiento = field.filter((r) => r.division === 'WT' && r.debutSeason === season - 1)
+  const techoCartaDe = (r: WorldRider): number => Math.max(...CARTAS.map((a) => r.ceilings[a]))
+  const techosNeo = Object.fromEntries(
+    (['WT', 'PRS', 'CON'] as Division[]).map((d) => {
+      const nuevos = field.filter((r) => r.division === d && r.debutSeason > 0)
+      const gen0 = field.filter((r) => r.division === d && r.debutSeason === 0)
+      if (nuevos.length === 0 || gen0.length === 0) return [d, null]
+      return [d, media(nuevos.map(techoCartaDe)) - media(gen0.map(techoCartaDe))]
+    }),
+  ) as Record<Division, number | null>
+
+  const mediaDe = (rs: WorldRider[], attrs: Attribute[]): number =>
+    rs.length === 0 ? 0 : media(rs.flatMap((r) => attrs.map((a) => r.attributes[a])))
+  const coh = (min: number, max: number): WorldRider[] =>
+    field.filter((r) => r.age >= min && r.age <= max)
+  const plenitud = coh(27, 29)
+  const razon = (rs: WorldRider[], attrs: Attribute[]): number => {
+    const base = mediaDe(plenitud, attrs)
+    return base === 0 ? 0 : mediaDe(rs, attrs) / base
+  }
+  const aerobico: Attribute[] = ['MON', 'RES', 'LLA']
+  const neuro: Attribute[] = ['SPR', 'COL']
+
+  const aprendido = (c: 'joven' | 'medio' | 'veterano'): number => {
+    const rs = porCohorte(c)
+    const dias = rs.reduce((a, r) => a + r.temporada.diasDeCarrera, 0)
+    return dias === 0 ? 0 : rs.reduce((a, r) => a + r.temporada.aprendidoEnCarrera, 0) / dias
+  }
+
+  const noDeclinan = field.filter((r) => r.age < r.declineAge)
+
   return {
     season,
     riders: field.length,
@@ -253,15 +632,63 @@ function foto(
     neopros,
     estrellas5Medias: media(cincos),
     estrellas5Mejor: Math.max(...cincos),
-    cracksPct: (100 * cracks) / Math.max(1, field.length),
-    sinNadaSobre4Pct: (100 * medianias) / Math.max(1, field.length),
+    cracksPct: pct(cracks, field.length),
+    sinNadaSobre4Pct: pct(medianias, field.length),
     mediaGlobal: media(medias),
     mejor: Math.max(...medias),
     mediana: cuantil(medias, 0.5),
     anchoP90P10: cuantil(medias, 0.9) - cuantil(medias, 0.1),
-    margenAlTechoPct: (100 * media(margen)) / Math.max(1, media(techos)),
-    congeladosPct: (100 * congelados) / Math.max(1, field.length),
+    margenAlTechoPct: pct(media(margen), media(techos)),
+    congeladosPct: pct(congelados, field.length),
     edadMedia: media(field.map((r) => r.age)),
+
+    cincoEstrellasWTPct: pct(wt.filter(tieneCinco).length, wt.length),
+    cincoEstrellasWTMadurosPct: pct(wtMaduros.filter(tieneCinco).length, wtMaduros.length),
+    sinNadaSobre4WTPct: pct(wt.filter(sinCuatroEstrellas).length, wt.length),
+    sinNadaSobre4NoGregariosWTPct: (() => {
+      const noGreg = wt.filter((r) => arquetipos.get(r.riderId) !== 'gregario')
+      return pct(noGreg.filter(sinCuatroEstrellas).length, noGreg.length)
+    })(),
+
+    arquetiposPct: repartoArq,
+    purosVelocistasPct: puros('velocidad', 'SPR', 'MON'),
+    purosEscaladoresPct: puros('escalada', 'MON', 'SPR'),
+    mejorPorArquetipoOk: mejorOk ? 100 : 0,
+
+    margenMotorPct: margenDe(field, motor),
+    margenOficioPct: margenDe(field, oficio),
+    margenJovenesPct: margenDe(porCohorte('joven'), FISICOS),
+    margenMediosPct: margenDe(porCohorte('medio'), FISICOS),
+    margenVeteranosPct: margenDe(porCohorte('veterano'), FISICOS),
+    jovenesConMargenPct: pct(conMargen.length, jovenes.length),
+
+    crecimientoNeoproWT:
+      crecimiento.length === 0
+        ? 0
+        : media(crecimiento.map((r) => cartaDe(r) - r.temporada.cartaAlEmpezar)),
+    techosNeoprosVsGen0: techosNeo,
+
+    curvaEdadAerobicaJoven: razon(coh(20, 21), aerobico),
+    curvaEdadAerobicaVeterana: razon(coh(33, 35), aerobico),
+    curvaEdadNeuroJoven: razon(coh(20, 21), neuro),
+    curvaEdadNeuroVeterana: razon(coh(33, 35), neuro),
+    curvaEdadTAC: mediaDe(coh(33, 35), ['TAC']) - mediaDe(coh(20, 21), ['TAC']),
+    vets34vs28: mediaDe(coh(34, 99), FISICOS) - mediaDe(coh(28, 30), FISICOS),
+
+    congeladosJovenesPct: pct(
+      noDeclinan.filter((r) => FISICOS.every((a) => r.attributes[a] >= r.ceilings[a])).length,
+      noDeclinan.length,
+    ),
+
+    aprendidoJovenes: aprendido('joven'),
+    aprendidoMedios: aprendido('medio'),
+    aprendidoVeteranos: aprendido('veterano'),
+
+    enfermedadesAno: media(field.map((r) => r.temporada.diasEnfermo)),
+    diasMolestiasAno: media(field.map((r) => r.temporada.diasConMolestias)),
+
+    ganaRESporAno: media(field.map((r) => r.attributes.RES - r.temporada.resAlEmpezar)),
+    ganaTACporAno: media(field.map((r) => r.attributes.TAC - r.temporada.tacAlEmpezar)),
   }
 }
 
@@ -270,8 +697,13 @@ function foto(
  *
  * El día a día es el del tick de producción reducido a lo que cambia a un corredor cuando NO corre:
  * el plan del entrenador bot (`defaultCoachPlan`, el mismo que usa `packages/db`), `simulateRiderDay`
- * y nada más. `kInst` y `kStaff` van a 1 —sin instalaciones ni staff que multipliquen— porque este
- * banco mide el MOTOR de progresión, no la economía de un equipo.
+ * y nada más.
+ *
+ * `kInst` SÍ se sortea por equipo desde la v60 —`TRAINING.kInstMin..kInstMax`, una tirada por
+ * plantilla— porque las instalaciones existen en producción y un banco que las fija a 1 mide un
+ * mundo que no es el que se juega: el ancho del pelotón sale más estrecho de lo que será. `kStaff`
+ * se queda en 1: el nivel de staff de un equipo es una decisión ECONÓMICA del jugador, y el mundo
+ * de bots no tiene economía que la tome.
  *
  * `sinCarreras` apaga los días de competición y deja el mundo SOLO ENTRENANDO. Es el brazo de
  * control contra el que se compara el mundo completo: hasta la v58 ese brazo era un número escrito
@@ -282,15 +714,34 @@ function foto(
 export function runWorld(
   worldSeed: string,
   seasons: number,
-  opciones: { sinCarreras?: boolean } = {},
+  opciones: WorldOptions = {},
 ): WorldSeasonRow[] {
+  const politica: Politica = opciones.politica ?? 'bot'
+  const aprendizaje: Aprendizaje = opciones.aprendizaje ?? 'hoy'
   const rng = seededRng(`${worldSeed}:mundo`)
   const field: WorldRider[] = []
   for (const { division, equipos, por } of PLANTILLA) {
     for (let t = 0; t < equipos; t++) {
+      // Las instalaciones son del EQUIPO, no del corredor: se sortean una vez y las comparten los
+      // ocho de la plantilla. Si se sortearan por corredor el efecto se promediaría dentro de cada
+      // equipo y el banco no vería nunca la diferencia entre entrenar en un sitio o en otro.
+      //
+      // Van en su PROPIO hilo de azar, no en el `rng` del mundo. Si tiraran de ese, añadir las
+      // instalaciones correría el resto del stream —qué división ficha a cada neopro— y entonces el
+      // «antes» y el «después» no serían el mismo mundo con instalaciones: serían dos mundos.
+      const instalaciones =
+        TRAINING.kInstMin +
+        seededRng(`${worldSeed}:inst:${division}:${t}`)() * (TRAINING.kInstMax - TRAINING.kInstMin)
       for (let k = 0; k < por; k++) {
         const id = `${division}-${t}-${k}`
-        field.push(nace(`${worldSeed}:${id}`, division, sampleNpcAge(`${worldSeed}:${id}:edad`), 0))
+        const corredor = nace(
+          `${worldSeed}:${id}`,
+          division,
+          sampleNpcAge(`${worldSeed}:${id}:edad`, { v2: true }),
+          0,
+        )
+        corredor.kInst = instalaciones
+        field.push(corredor)
       }
     }
   }
@@ -310,6 +761,8 @@ export function runWorld(
      * aplica lo que se aprende y lo que cuestan. Lo que este banco mide bien es CUÁNTO SE APRENDE
      * compitiendo; lo que no mide es quién gana, y para eso están los otros bancos.
      */
+    for (const r of field) r.temporada = nuevaTemporada(r.attributes)
+
     const corre = new Map<string, Map<number, DiaDeCarrera>>()
     for (const r of field) {
       const cal = opciones.sinCarreras === true ? [] : CALENDARIO[r.division]
@@ -332,26 +785,94 @@ export function runWorld(
          * EL QUE CORRE HOY NO ENTRENA, igual que en producción (`packages/db/src/train.ts` omite el
          * entrenamiento de quien corrió). Se le aplica la carga de la carrera y lo que le enseña.
          */
+        if (r.health === 'enfermo') r.temporada.diasEnfermo += 1
+        if (r.health === 'molestias') r.temporada.diasConMolestias += 1
+
         const hoy = corre.get(r.riderId)?.get(dia)
         if (hoy !== undefined) {
+          /**
+           * LA SUSTITUCIÓN SINTÉTICA DEL BANCO, ESCRITA EN VEZ DE SUPUESTA.
+           *
+           * `raceLearning` v2 pide cuatro cosas que solo existen si se simula la etapa, y este banco
+           * no la simula —442 corredores × 364 días × 25 temporadas no terminaría nunca—. Así que se
+           * sustituyen, y aquí queda dicho con qué:
+           *
+           * - **el vaciado** se deriva del TERRENO, con la misma tabla de carga que ya usa el banco
+           *   (`RACE_DAY_TSS`), normalizada contra una etapa del montón. Una reina vacía más que una
+           *   crono, que es la parte que sí se puede saber sin correrla.
+           * - **el índice de etapa** es REAL: el calendario del banco sale de las carreras de verdad
+           *   y se sabe qué número de etapa es cada día.
+           * - **el resultado y el abandono** valen 1, o sea «terminó, ni ganó ni fue gregario». Aquí
+           *   no gana nadie, y fingir un ganador sería inventarse la mitad de la medida.
+           *
+           * Consecuencia declarada: lo que este banco mide de `aprendidoPorCohorte` es el término
+           * medio, sin la cola de los que ganan. Por eso esa fila se publica en DOS columnas —banco
+           * y producción— en cuanto la de producción exista: si se separan más de un 15 %, esta
+           * sustitución se ha quedado corta y hay que decirlo.
+           */
           const sube = raceLearning({
             raceClass: hoy.raceClass as never,
             kind: hoy.kind,
             attributes: r.attributes,
             ceilings: r.ceilings,
+            talent: r.talent,
+            age: r.age,
+            declineAge: r.declineAge,
+            depletion: clamp01((hoy.tss - 95) / 90),
+            stageIndex: hoy.stageIndex,
           })
           for (const [attr, delta] of Object.entries(sube)) {
             const a = attr as Attribute
-            r.attributes[a] = Math.min(r.ceilings[a], r.attributes[a] + (delta ?? 0))
+            const antes = r.attributes[a]
+            // El brazo `conKDim` multiplica por el mismo freno del entrenamiento, sin tocar la
+            // fórmula de producción: `raceLearning` devuelve lo de hoy y el freno se aplica aquí.
+            const freno = aprendizaje === 'conKDim' ? kDim(antes, r.ceilings[a]) : 1
+            r.attributes[a] = Math.min(r.ceilings[a], antes + (delta ?? 0) * freno)
+            // Lo que de VERDAD entró, no lo que la fórmula ofrecía: al que ya está en su techo la
+            // carrera no le enseña nada, y contar la oferta en vez del cobro taparía justo eso.
+            r.temporada.aprendidoEnCarrera += r.attributes[a] - antes
+            if (r.attributes[a] !== antes)
+              r.movidoElDia.set(a, dia + (season - 1) * DAYS_PER_SEASON)
           }
+          r.temporada.diasDeCarrera += 1
+          /**
+           * LA SALUD TAMBIÉN CORRE (paso 7). Hasta aquí el banco solo tiraba los dados de salud en
+           * los días de ENTRENAMIENTO, igual que le pasaba a producción antes de la v14: en una
+           * temporada con 65 días de carrera, esos 65 días eran inmunidad garantizada. Y como las
+           * grandes vueltas son justo donde se llega a −35 de depósito, el banco no podía ver el
+           * caso que el sobreentrenamiento existe para castigar.
+           */
+          const tsbSalida = r.ctl - r.atl
+          r.strainDays =
+            tsbSalida < HEALTH.strainTsb
+              ? r.strainDays + 1
+              : Math.max(0, r.strainDays - HEALTH.strainRecovery)
+          if (r.health === 'sano' && r.strainDays >= HEALTH.strainToMolestias) {
+            r.health = 'molestias'
+          } else if (r.health === 'molestias' && tsbSalida > HEALTH.molestiasRecoveryTsb) {
+            r.health = 'sano'
+          }
+          if (r.health === 'sano' || r.health === 'molestias') {
+            const frag = effectiveFragility(r.fragility, r.attributes.REC)
+            const dado = seededRng(`${worldSeed}:${r.riderId}:salud:${gameDay}`)
+            if (dado() < raceIllnessProbability(frag, tsbSalida)) {
+              r.health = 'enfermo'
+              r.healthUntilDay = gameDay + 3
+            }
+          }
+          r.illDays = r.health === 'molestias' || r.health === 'enfermo' ? r.illDays + 1 : 0
+
           const carga = applyDailyLoad({ ctl: r.ctl, atl: r.atl }, hoy.tss, r.attributes.REC)
           r.ctl = carga.ctl
           r.atl = carga.atl
           continue
         }
-        // El plan del entrenador mira la VOCACIÓN desde la v53, así que el banco también: si le
-        // diera a todos la semana del completo mediría un mundo que el juego ya no corre.
-        const choice = defaultCoachPlan(gameDay, r.vocation)
+        /**
+         * EL ENTRENADOR v2, con el contexto que el banco sí puede construir. Los días de carrera
+         * están sorteados para toda la temporada, así que «cuántos faltan para la próxima» y
+         * «cuántos llevo desde la última tanda» son lecturas y no dados.
+         */
+        const choice = planDelDia(politica, gameDay, r, corre.get(r.riderId), dia)
         const out = simulateRiderDay(
           {
             attributes: r.attributes,
@@ -360,6 +881,8 @@ export function runWorld(
             morale: r.morale,
             health: r.health,
             healthUntilDay: r.healthUntilDay,
+            strainDays: r.strainDays,
+            illDays: r.illDays,
           },
           {
             gameDay,
@@ -370,17 +893,32 @@ export function runWorld(
             peakAge: r.peakAge,
             declineAge: r.declineAge,
             choice,
-            kInst: 1,
+            /**
+             * LAS INSTALACIONES TAMBIÉN EN EL BANCO (paso 9). Estaban a 1 con el argumento de que
+             * este banco mide el MOTOR de progresión y no la economía de un equipo, y era razonable
+             * mientras la columna no la leyera nadie. Ahora producción sí la lee, así que dejarla a
+             * 1 aquí sería medir un mundo que el juego no corre: un equipo de instalaciones 1,20
+             * entrena un 20 % mejor y eso ensancha la población.
+             */
+            kInst: r.kInst,
             kStaff: 1,
+            trainedLast7: movidosEnLaSemana(r, gameDay),
             rng: seededRng(`${worldSeed}:${r.riderId}:${gameDay}`),
           },
         )
+        for (const a of ATTRIBUTES) {
+          if (out.state.attributes[a] > r.attributes[a]) r.movidoElDia.set(a, gameDay)
+        }
         r.attributes = out.state.attributes
         r.ctl = out.state.ctl
         r.atl = out.state.atl
         r.morale = out.state.morale
         r.health = out.state.health
         r.healthUntilDay = out.state.healthUntilDay
+        r.strainDays = out.state.strainDays ?? 0
+        r.illDays = out.state.illDays ?? 0
+        r.fuertesUltimos7 = choice.intensity === 'fuerte' ? r.fuertesUltimos7 + 1 : 0
+        r.ayer = choice.session
       }
     }
 
@@ -405,25 +943,195 @@ export function runWorld(
       // Reparto por división proporcional al tamaño de cada categoría.
       const d = rng()
       const division: Division = d < 0.4 ? 'WT' : d < 0.75 ? 'PRS' : 'CON'
-      field.push(
-        nace(
-          `${worldSeed}:${id}`,
-          division,
-          neoproAge(seededRng(`${worldSeed}:${id}:edad`)),
-          season,
-        ),
+      const neo = nace(
+        `${worldSeed}:${id}`,
+        division,
+        neoproAge(seededRng(`${worldSeed}:${id}:edad`)),
+        season,
       )
+      // El neopro ficha por ALGÚN equipo, y no se sabe cuál: el banco no guarda plantillas, solo un
+      // pelotón plano. Se le sortean instalaciones de la misma distribución, que es exactamente lo
+      // que le pasaría de media al entrar en un equipo cualquiera.
+      neo.kInst =
+        TRAINING.kInstMin +
+        seededRng(`${worldSeed}:${id}:inst`)() * (TRAINING.kInstMax - TRAINING.kInstMin)
+      field.push(neo)
     }
     filas.push(foto(season, field, retired, neopros))
   }
   return filas
 }
 
+/**
+ * 3) EL ARCO DEL HUMANO: ¿en cuánto tiempo llega a algún sitio un jugador que empieza de cero?
+ *
+ * Es la tercera pregunta del dueño y la que menos se puede contestar mirando al pelotón, porque el
+ * humano NO nace como un bot: `generateRiderGenome` le da techos con sesgo por vocación y valores
+ * iniciales bajos, y desde ahí sube entrenando y corriendo. Los dos extremos son defectos y los dos
+ * se ven aquí: el arco demasiado LENTO —nadie le ficha nunca, el juego no engancha— y el demasiado
+ * RÁPIDO —a los 25 es el mejor del mundo con el plan por defecto, y entonces las decisiones del
+ * jugador no valían nada—.
+ *
+ * Nace a los 18, entrena con el plan del bot y corre 45 días de continental al año, que es lo que
+ * hace un neoprofesional de verdad. Se le mira a los 20, 22 y 25.
+ *
+ * VA POR VOCACIÓN Y NO POR ARQUETIPO, y hay que decirlo: el diseño pide los ocho arquetipos, pero la
+ * génesis que los reparte es del paso 5 y hoy `generateRiderGenome` solo entiende las cinco
+ * vocaciones. Medir «por arquetipo» antes de que el arquetipo exista sería inventarse tres columnas.
+ * Cuando llegue el paso 5 esta función pasa a ocho sin cambiar de forma.
+ */
+export interface ArcoHumano {
+  vocation: Vocation
+  /** Media de atributos físicos a cada edad, y su mejor especialidad al final. */
+  a20: number
+  a22: number
+  a25: number
+  cartaA25: number
+}
+
+export interface ArcoHumanoStats {
+  arcos: ArcoHumano[]
+  /** Las dos referencias contra las que se leen: el suelo del continental y el techo del WT. */
+  p25ConA22: number
+  p90WtA25: number
+}
+
+/** Días de carrera al año de un humano que empieza: menos que un profesional hecho. */
+const DIAS_DE_CARRERA_HUMANO = 45
+
+export function arcoHumano(worldSeed: string): ArcoHumanoStats {
+  const cal = CALENDARIO.CON
+  const arcos: ArcoHumano[] = []
+  for (const vocation of VOCATIONS) {
+    const g = generateRiderGenome(`${worldSeed}:humano:${vocation}`, vocation)
+    const r = seededRng(`${worldSeed}:humano:${vocation}:forma`)
+    const h: WorldRider = {
+      riderId: `humano-${vocation}`,
+      division: 'CON',
+      vocation,
+      age: 18,
+      attributes: { ...g.attributes },
+      ceilings: { ...g.hidden.ceilings },
+      talent: g.hidden.talent,
+      fragility: g.hidden.fragility,
+      peakAge: g.hidden.peakAge,
+      declineAge: g.hidden.declineAge,
+      ctl: 35 + 15 * r(),
+      atl: 30 + 10 * r(),
+      morale: 55 + 20 * r(),
+      health: 'sano',
+      healthUntilDay: null,
+      strainDays: 0,
+      illDays: 0,
+      kInst: 1,
+      fuertesUltimos7: 0,
+      ayer: null,
+      debutSeason: 0,
+      movidoElDia: new Map(),
+      temporada: nuevaTemporada(g.attributes),
+    }
+    const hito = new Map<number, number>()
+    for (let temporada = 0; temporada < 8; temporada++) {
+      const dias = new Map<number, DiaDeCarrera>()
+      const rr = seededRng(`${worldSeed}:humano:${vocation}:cal:${temporada}`)
+      for (let i = 0; i < DIAS_DE_CARRERA_HUMANO; i++) {
+        dias.set(Math.floor(rr() * DAYS_PER_SEASON), cal[Math.floor(rr() * cal.length)]!)
+      }
+      for (let dia = 0; dia < DAYS_PER_SEASON; dia++) {
+        const gameDay = temporada * DAYS_PER_SEASON + dia
+        const hoy = dias.get(dia)
+        if (hoy !== undefined) {
+          const sube = raceLearning({
+            raceClass: hoy.raceClass as never,
+            kind: hoy.kind,
+            attributes: h.attributes,
+            ceilings: h.ceilings,
+          })
+          for (const [attr, delta] of Object.entries(sube)) {
+            const a = attr as Attribute
+            h.attributes[a] = Math.min(h.ceilings[a], h.attributes[a] + (delta ?? 0))
+          }
+          const carga = applyDailyLoad({ ctl: h.ctl, atl: h.atl }, hoy.tss, h.attributes.REC)
+          h.ctl = carga.ctl
+          h.atl = carga.atl
+          continue
+        }
+        const out = simulateRiderDay(
+          {
+            attributes: h.attributes,
+            ctl: h.ctl,
+            atl: h.atl,
+            morale: h.morale,
+            health: h.health,
+            healthUntilDay: h.healthUntilDay,
+          },
+          {
+            gameDay,
+            age: h.age,
+            ceilings: h.ceilings,
+            talent: h.talent,
+            fragility: h.fragility,
+            peakAge: h.peakAge,
+            declineAge: h.declineAge,
+            choice: defaultCoachPlan(gameDay, h.vocation),
+            kInst: 1,
+            kStaff: 1,
+            rng: seededRng(`${worldSeed}:humano:${vocation}:${gameDay}`),
+          },
+        )
+        h.attributes = out.state.attributes
+        h.ctl = out.state.ctl
+        h.atl = out.state.atl
+        h.morale = out.state.morale
+        h.health = out.state.health
+        h.healthUntilDay = out.state.healthUntilDay
+      }
+      h.age += 1
+      if (h.age === 20 || h.age === 22 || h.age === 25) {
+        hito.set(h.age, media(FISICOS.map((a) => h.attributes[a])))
+      }
+    }
+    arcos.push({
+      vocation,
+      a20: hito.get(20) ?? 0,
+      a22: hito.get(22) ?? 0,
+      a25: hito.get(25) ?? 0,
+      cartaA25: cartaDe(h),
+    })
+  }
+
+  /**
+   * LAS REFERENCIAS, y de dónde salen exactamente. Son una muestra de bots RECIÉN GENERADOS a esa
+   * edad, no del pelotón del banco después de correr veinte temporadas. Es la comparación honesta
+   * para esta pregunta —«¿está este humano a la altura de un continental de 22?»— y además la única
+   * estable: la del banco depende de cuántas temporadas lleve corriendo.
+   */
+  const muestra = (division: Division, age: number, n: number): number[] => {
+    const out: number[] = []
+    for (let i = 0; i < n; i++) {
+      const voc = VOCATIONS[i % VOCATIONS.length]!
+      const g = generateNpcRider(`${worldSeed}:ref:${division}:${age}:${i}`, {
+        division,
+        vocation: voc,
+        age,
+        v2: true,
+      })
+      out.push(media(FISICOS.map((a) => g.attributes[a])))
+    }
+    return out
+  }
+  return {
+    arcos,
+    p25ConA22: cuantil(muestra('CON', 22, 400), 0.25),
+    p90WtA25: cuantil(muestra('WT', 25, 400), 0.9),
+  }
+}
+
 /** Varias corridas del mundo, promediadas temporada a temporada: una sola oscila demasiado. */
 export function analyzeWorld(
   runs: number,
   seasons: number,
-  opciones: { sinCarreras?: boolean } = {},
+  opciones: WorldOptions = {},
 ): WorldSeasonRow[] {
   const todas: WorldSeasonRow[][] = []
   for (let i = 0; i < runs; i++) todas.push(runWorld(`mundo-${i}`, seasons, opciones))
@@ -446,6 +1154,46 @@ export function analyzeWorld(
       margenAlTechoPct: media(fila.map((f) => f.margenAlTechoPct)),
       congeladosPct: media(fila.map((f) => f.congeladosPct)),
       edadMedia: media(fila.map((f) => f.edadMedia)),
+
+      cincoEstrellasWTPct: media(fila.map((f) => f.cincoEstrellasWTPct)),
+      cincoEstrellasWTMadurosPct: media(fila.map((f) => f.cincoEstrellasWTMadurosPct)),
+      sinNadaSobre4WTPct: media(fila.map((f) => f.sinNadaSobre4WTPct)),
+      sinNadaSobre4NoGregariosWTPct: media(fila.map((f) => f.sinNadaSobre4NoGregariosWTPct)),
+      arquetiposPct: Object.fromEntries(
+        RIDER_ARCHETYPES.map((a) => [a, media(fila.map((f) => f.arquetiposPct[a]))]),
+      ) as Record<RiderArchetype, number>,
+      purosVelocistasPct: media(fila.map((f) => f.purosVelocistasPct)),
+      purosEscaladoresPct: media(fila.map((f) => f.purosEscaladoresPct)),
+      // Es 0 o 100 en cada mundo: promediarlos da el % de mundos en que los tres mejores están en
+      // su casa, que es justo lo que la fila quiere decir.
+      mejorPorArquetipoOk: media(fila.map((f) => f.mejorPorArquetipoOk)),
+      margenMotorPct: media(fila.map((f) => f.margenMotorPct)),
+      margenOficioPct: media(fila.map((f) => f.margenOficioPct)),
+      margenJovenesPct: media(fila.map((f) => f.margenJovenesPct)),
+      margenMediosPct: media(fila.map((f) => f.margenMediosPct)),
+      margenVeteranosPct: media(fila.map((f) => f.margenVeteranosPct)),
+      jovenesConMargenPct: media(fila.map((f) => f.jovenesConMargenPct)),
+      crecimientoNeoproWT: media(fila.map((f) => f.crecimientoNeoproWT)),
+      techosNeoprosVsGen0: Object.fromEntries(
+        (['WT', 'PRS', 'CON'] as Division[]).map((d) => {
+          const vivos = fila.map((f) => f.techosNeoprosVsGen0[d]).filter((x) => x !== null)
+          return [d, vivos.length === 0 ? null : media(vivos)]
+        }),
+      ) as Record<Division, number | null>,
+      curvaEdadAerobicaJoven: media(fila.map((f) => f.curvaEdadAerobicaJoven)),
+      curvaEdadAerobicaVeterana: media(fila.map((f) => f.curvaEdadAerobicaVeterana)),
+      curvaEdadNeuroJoven: media(fila.map((f) => f.curvaEdadNeuroJoven)),
+      curvaEdadNeuroVeterana: media(fila.map((f) => f.curvaEdadNeuroVeterana)),
+      curvaEdadTAC: media(fila.map((f) => f.curvaEdadTAC)),
+      vets34vs28: media(fila.map((f) => f.vets34vs28)),
+      congeladosJovenesPct: media(fila.map((f) => f.congeladosJovenesPct)),
+      aprendidoJovenes: media(fila.map((f) => f.aprendidoJovenes)),
+      aprendidoMedios: media(fila.map((f) => f.aprendidoMedios)),
+      aprendidoVeteranos: media(fila.map((f) => f.aprendidoVeteranos)),
+      enfermedadesAno: media(fila.map((f) => f.enfermedadesAno)),
+      diasMolestiasAno: media(fila.map((f) => f.diasMolestiasAno)),
+      ganaRESporAno: media(fila.map((f) => f.ganaRESporAno)),
+      ganaTACporAno: media(fila.map((f) => f.ganaTACporAno)),
     })
   }
   return out

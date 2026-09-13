@@ -1555,7 +1555,19 @@ describe('el reagrupamiento se narra (v8)', () => {
     }
   }
 
-  const runs = Array.from({ length: 8 }, (_, i) =>
+  /**
+   * VEINTICUATRO SEMILLAS Y NO OCHO (v64), por el mismo motivo por el que la criba lejos de meta las
+   * subió en la v41: **con ocho, esto era una moneda**. Medido sobre 24, la tasa real de este
+   * recorrido es **23 de 24 (96 %)**, o sea que hay una semilla que no narra reagrupamiento porque
+   * el grupo sube el puerto a tempo y no llega a partirse. Con n = 8 esa semilla simplemente no
+   * tocaba, y la aserción «las ocho» pasaba por suerte.
+   *
+   * No es una sospecha: la historia del propio test ya lo decía sin saberlo. Se ablandó a «al menos
+   * seis de ocho» en la v26, se devolvió a ocho, y el comentario de abajo cuenta que con el puerto
+   * de 12 km eran 7 de 8. Un guardarraíl que ha valido 6, 7 y 8 sobre ocho muestras no está midiendo
+   * la conducta: está arbitrando el dado.
+   */
+  const runs = Array.from({ length: 24 }, (_, i) =>
     simulateStage(
       regroupInput(),
       stageSeed({ worldSeed: `rg-${i}`, raceId: 'rg', stageDay: 1, engineVersion: 1 }),
@@ -1583,11 +1595,13 @@ describe('el reagrupamiento se narra (v8)', () => {
    * puerto moría en el kilómetro exacto en que empieza el desenlace— está arreglado en el motor en
    * esta misma tanda (ver `frontAtLastNotice` fuera del desenlace, en `simulate.ts`).
    */
-  it('cuando el pelotón se recompone hay un evento que lo cuenta', { timeout: 60000 }, () => {
-    for (const out of runs) {
-      const regroups = out.events.filter((e) => e.plantilla === 'peloton_regroup')
-      expect(regroups.length).toBeGreaterThan(0)
-    }
+  it('cuando el pelotón se recompone hay un evento que lo cuenta', { timeout: 180000 }, () => {
+    // 21 de 24 sobre una tasa medida del 96 %: tres semillas de margen para la etapa que sube el
+    // puerto a tempo y no se parte, que es una carrera legítima y no un defecto de narración.
+    const conEvento = runs.filter((out) =>
+      out.events.some((e) => e.plantilla === 'peloton_regroup'),
+    ).length
+    expect(conEvento).toBeGreaterThanOrEqual(21)
   })
 
   it(
@@ -1845,17 +1859,33 @@ describe('el journal de producción de Race Bességes e4 (v21)', () => {
     }
   })
 
-  it('la captura de la fuga dice quiénes eran, cuánto llevaban fuera y dónde acabó', () => {
-    const caught = runs.flatMap((out) =>
-      out.events.filter((e) => e.plantilla === 'breakaway_caught'),
-    )
-    expect(caught.length).toBeGreaterThan(0)
-    for (const e of caught) {
-      expect(Number(e.datos!.size)).toBe(e.protagonistas.length)
-      expect(Number(e.datos!.awayKm)).toBeGreaterThanOrEqual(0)
-      expect(Number(e.datos!.toGo)).toBeGreaterThanOrEqual(0)
-    }
-  })
+  it(
+    'la captura de la fuga dice quiénes eran, cuánto llevaban fuera y dónde acabó',
+    { timeout: 300000 },
+    () => {
+      /**
+       * ESTE TEST CORRE SU PROPIA TANDA, Y MÁS LARGA, porque lo que comprueba es **el contenido de una
+       * frase** y para eso la frase tiene que existir.
+       *
+       * Con las ocho semillas del bloque, la captura salía en **UNA**. Un listón que exige que un
+       * suceso de 1 entre 8 haya caído no está midiendo el motor: está midiendo el dado, y lo vuelca
+       * cualquier cambio que mueva a quién se descuelga aunque no toque la caza —lo tumbó el paso 14
+       * (la colocación) pasando de 1/8 a 0/8, con la captura de la llana canónica intacta en el
+       * 91 %—. Con veinticuatro semillas el suceso es rutina y lo que se vigila vuelve a ser lo que
+       * el nombre del test dice.
+       */
+      const tanda = seedsFor('besseges-captura', 24).map((s) => simulateStage(besseges(), s))
+      const caught = tanda.flatMap((out) =>
+        out.events.filter((e) => e.plantilla === 'breakaway_caught'),
+      )
+      expect(caught.length).toBeGreaterThan(0)
+      for (const e of caught) {
+        expect(Number(e.datos!.size)).toBe(e.protagonistas.length)
+        expect(Number(e.datos!.awayKm)).toBeGreaterThanOrEqual(0)
+        expect(Number(e.datos!.toGo)).toBeGreaterThanOrEqual(0)
+      }
+    },
+  )
 
   it('la criba que decide el final se cuenta aunque el throttle diga que no', () => {
     // El defecto medido: «de 128 a 101» en el km 160 y, dos kilómetros después, 16 corredores en

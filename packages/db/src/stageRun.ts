@@ -23,14 +23,24 @@ import {
   stageLengthKm,
   stagePointsByClass,
   stageSeed,
+  HEALTH,
   raceLearning,
   stageTss,
+  tourSupercompensation,
 } from '@cyclingstar/engine'
-import { ATTRIBUTES, type Attribute, assignLeaderJerseys, seededRng } from '@cyclingstar/shared'
+import {
+  ATTRIBUTES,
+  type Attribute,
+  assignLeaderJerseys,
+  riderAge,
+  seasonPosition,
+  seededRng,
+} from '@cyclingstar/shared'
 import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import { BATCH_ROWS, type BatchValue, inChunks, valuesList } from './batch.js'
 import { awardRacePrizes } from './economy.js'
+import { buildRaceContext } from './raceContext.js'
 import { gcFinishersWhere, gcOrderBy, gcRosterOn } from './gcSort.js'
 import { emitNews } from './news.js'
 import { addSeasonPointsBatch, recordPalmares } from './ranking.js'
@@ -212,6 +222,11 @@ export async function runOneStage(
       riderId: riderHidden.riderId,
       ceilings: riderHidden.ceilings,
       fragility: riderHidden.fragility,
+      // Las tres que `raceLearning` v2 necesita para saber QUIÉN está aprendiendo. Ya se leía esta
+      // tabla: son tres columnas más en la misma consulta, no una consulta nueva.
+      talent: riderHidden.talent,
+      peakAge: riderHidden.peakAge,
+      declineAge: riderHidden.declineAge,
     })
     .from(riderHidden)
     .where(inArray(riderHidden.riderId, riderIds))
@@ -221,6 +236,7 @@ export async function runOneStage(
   // Fragilidad oculta (SPEC 3.4): escala la probabilidad de enfermar en carrera (docs/motor.md
   // §VI.3). Por defecto 1 para los corredores antiguos sin fila en `rider_hidden`.
   const fragilityByRider = new Map(hiddenRows.map((h) => [h.riderId, h.fragility]))
+  const hiddenByRider = new Map(hiddenRows.map((h) => [h.riderId, h]))
 
   const orderRows = await tx
     .select()
@@ -250,7 +266,11 @@ export async function runOneStage(
     if (!rider) continue
     const prevEnergy0 = initialEnergy(row.ctl, row.tsb, rider.health)
     const spent = row.tss / STAGE.tssPerWorkUnit
-    if (isDeepDepleted(Math.max(0, prevEnergy0 - spent), prevEnergy0)) {
+    // El umbral de vaciado profundo va por REC desde la v62: al que recupera bien hay que vaciarlo
+    // mucho más para que lo pague hoy. Sin fila de atributos cae al 50 por defecto, que reproduce
+    // exactamente el umbral plano de antes.
+    const rec = attrsByRider.get(row.riderId)?.REC ?? 50
+    if (isDeepDepleted(Math.max(0, prevEnergy0 - spent), prevEnergy0, rec)) {
       deepDepletedYesterday.add(row.riderId)
     }
   }
@@ -263,6 +283,9 @@ export async function runOneStage(
       ctl: number
       atl: number
       ceilings: Record<Attribute, number>
+      strainDays: number
+      illDays: number
+      health: string
     }
   >()
 
@@ -346,7 +369,15 @@ export async function runOneStage(
       // datos es la única que lo sabe. `null` = agente libre: corre de forma individual.
       teamId: rider.teamId ?? null,
     })
-    riderState.set(riderId, { attributes, ctl: rider.ctl, atl: rider.atl, ceilings })
+    riderState.set(riderId, {
+      attributes,
+      ctl: rider.ctl,
+      atl: rider.atl,
+      ceilings,
+      strainDays: rider.strainDays,
+      illDays: rider.illDays,
+      health: rider.health,
+    })
   }
   if (stageRiders.length === 0) return new Set()
 
@@ -369,6 +400,19 @@ export async function runOneStage(
     stageDay: spec.stageDay,
     engineVersion: ENGINE_VERSION_NUM,
   })
+
+  /**
+   * Las secundarias y la memoria de la carrera, construidas una vez por etapa (no por corredor ni
+   * por bloque). Si algo falla al armarlas, la etapa se corre SIN contexto en vez de no correrse:
+   * hoy no lo lee nadie, así que una carrera sin contexto es exactamente la carrera de siempre.
+   */
+  const raceCtx = await buildRaceContext(
+    tx,
+    spec.raceKey,
+    spec.raceId,
+    spec.stageDay,
+    gameDay,
+  ).catch(() => null)
   const input: StageInput = {
     profile: spec.profile,
     riders: stageRiders,
@@ -377,6 +421,13 @@ export async function runOneStage(
     // así que el clima por país y fecha existía solo en la simulación: en el juego llovía el 20 % de
     // los días en todas partes y hacía la temperatura de un enero templado en agosto en Almería.
     ...(spec.lugar ? { lugar: spec.lugar } : {}),
+    /**
+     * EL CONTEXTO DE CARRERA (docs/tactica.md paso 4). **Nadie lo lee todavía**, y por eso se puede
+     * enchufar ya: `contextoNoLeido.test.ts` comprueba que con él puesto y quitado la etapa sale
+     * idéntica. Enchufarlo ahora es lo que hace que el paso que empiece a leerlo sea un cambio de
+     * UNA cosa y no de dos.
+     */
+    ...(raceCtx ? { race: raceCtx } : {}),
   }
   /*
    * LA RADIO DE CARRERA SE RECOGE MIENTRAS LA ETAPA SE CORRE. El motor lo sabe todo bloque a bloque
@@ -387,7 +438,27 @@ export async function runOneStage(
    * que el jugador quiere mirar.
    */
   const radio = raceRadioCollector(radioKmPoints(stageLengthKm(spec.profile)))
-  const output = simulateStage(input, seed, radio.probe)
+  /**
+   * QUIÉN TRABAJÓ PARA OTRO, leído al vuelo de las fotos que la radio YA toma cada kilómetro.
+   *
+   * La sonda se envuelve en vez de tocar el motor, y es deliberado: el motor no gana ni un campo de
+   * salida por esto. El dato ya viaja en cada foto —hasta ahora solo lo miraba la pantalla— y aquí
+   * se anota de paso antes de pasársela a la radio, que sigue recibiendo exactamente lo mismo.
+   *
+   * Es un MUESTREO y no un continuo, y conviene decirlo: un relevo de menos de un kilómetro puede no
+   * caer en ninguna foto. Se acepta porque esto alimenta un escalón de ×1,3 sobre un solo atributo,
+   * no una integral.
+   */
+  const trabajaronParaOtro = new Set<string>()
+  const output = simulateStage(input, seed, {
+    atKm: radio.probe.atKm,
+    onSnapshot: (km, riders, mainId) => {
+      for (const r of riders) {
+        if (r.pullFor != null) trabajaronParaOtro.add(r.riderId)
+      }
+      radio.probe.onSnapshot?.(km, riders, mainId)
+    },
+  })
   /**
    * LOS TRES MAILLOTS DE LA CARRETERA, que es lo que se veía mal: la radio enseñaba el amarillo y
    * ningún otro. No era un fallo de la vista —el amarillo entraba de rebote, por ser el primero de
@@ -453,6 +524,7 @@ export async function runOneStage(
   const resultValues: (typeof stageResults.$inferInsert)[] = []
   const gcValues: (typeof raceGc.$inferInsert)[] = []
   const loadValues: BatchValue[][] = []
+  const strainValues: BatchValue[][] = []
   const attrValues: BatchValue[][] = []
   const raced = new Set<string>()
   const gcByRider = new Map(gcRows.map((r) => [r.riderId, r]))
@@ -539,6 +611,22 @@ export async function runOneStage(
     if (!state) continue
     const tss = stageTss(output.workUnits.get(result.riderId) ?? 0)
     const load = applyDailyLoad({ ctl: state.ctl, atl: state.atl }, tss, state.attributes.REC)
+    /**
+     * LA TENSIÓN TAMBIÉN CUENTA EL DÍA QUE SE CORRE (docs/entrenamiento.md §5.6), y es justo el caso
+     * que importa: las grandes vueltas son DONDE se llega a −35 de depósito. Contarlo solo en el día
+     * de entrenamiento dejaba fuera las tres semanas en las que un corredor se hunde de verdad.
+     *
+     * Se mira el depósito de SALIDA —el de antes de la etapa— porque es con el que se tomó la
+     * salida; el de después ya lleva el castigo del día y lo contaría dos veces.
+     */
+    const tsbSalida = state.ctl - state.atl
+    const tension =
+      tsbSalida < HEALTH.strainTsb
+        ? state.strainDays + 1
+        : Math.max(0, state.strainDays - HEALTH.strainRecovery)
+    const tocado = state.health === 'molestias' || state.health === 'enfermo'
+    strainValues.push([result.riderId, tension, tocado ? state.illDays + 1 : 0])
+
     loadValues.push([result.riderId, load.ctl, load.atl])
     dailyLogValues.push({
       riderId: result.riderId,
@@ -565,12 +653,46 @@ export async function runOneStage(
      * alcanzarla desde `packages/db`, así que era ciego a la mitad de la progresión de un
      * profesional. Con la regla en el motor, el banco la corre igual que producción.
      */
+    /**
+     * QUIÉN APRENDE, QUÉ HIZO Y CÓMO ACABÓ (v2). Nada de esto necesita un campo de salida nuevo ni
+     * una consulta nueva: los cuatro datos están ya en memoria, en esta misma transacción.
+     *
+     * - el vaciado sale de `output.tank`, que el motor calcula y esta capa no persistía;
+     * - el puesto y el estado, de `result`, que es lo que ya se está recorriendo;
+     * - haber trabajado para otro, de las FOTOS DE LA RADIO que `raceRadioCollector` ya toma cada
+     *   kilómetro. Es un muestreo y no un continuo, y se dice: un relevo de menos de un kilómetro
+     *   puede no caer en ninguna foto. Es aceptable porque esto es un escalón de ×1,3 y no una
+     *   integral, y porque la alternativa —un campo nuevo en la salida del motor— rompería la
+     *   frontera que el diseño hermano fija para la capa táctica.
+     */
+    /**
+     * LO QUE DEJA LA VUELTA ENTERA, al cerrar la última etapa. Tres semanas construyen fondo de una
+     * forma que la suma de veintiún días sueltos no explica —el clásico «llegó del Tour volando»— y
+     * hasta aquí eso no existía: una gran vuelta enseñaba exactamente lo mismo que veintiún
+     * criteriums. Lleva su propio origen en la bitácora para que el informe pueda decir de dónde
+     * salió ese punto y medio.
+     */
+    const suHidden = hiddenByRider.get(result.riderId)
+    const suFila = riderById.get(result.riderId)
+    const edad =
+      suFila === undefined
+        ? undefined
+        : riderAge(suFila.birthSeason, seasonPosition(gameDay).season)
     for (const [attr, delta] of Object.entries(
       raceLearning({
         raceClass: spec.raceClass,
         kind: spec.kind,
         attributes: state.attributes,
         ceilings: state.ceilings,
+        ...(suHidden !== undefined
+          ? { talent: suHidden.talent, declineAge: suHidden.declineAge }
+          : {}),
+        ...(edad !== undefined ? { age: edad } : {}),
+        depletion: output.tank.get(result.riderId)?.depletion ?? 0.5,
+        puesto: result.puesto,
+        trabajoParaOtro: trabajaronParaOtro.has(result.riderId),
+        estado: result.estado,
+        stageIndex: spec.stageDay,
       }),
     )) {
       const a = attr as Attribute
@@ -578,7 +700,47 @@ export async function runOneStage(
       const after = before + (delta ?? 0)
       if (after === before) continue
       attrValues.push([result.riderId, a, after])
-      attrLogValues.push({ riderId: result.riderId, gameDay, attr: a, delta: after - before })
+      /**
+       * ORIGEN `carrera`. Y con la clave primaria nueva esta fila DEJA DE PERDERSE: hasta ahora
+       * chocaba con la del entrenamiento del mismo día y `onConflictDoNothing` la tiraba en
+       * silencio. Los puntos se aplicaban igual —van por otro camino— pero la explicación de por
+       * qué subió ese atributo se borraba, que es justo lo que el informe del bloque necesita.
+       */
+      attrLogValues.push({
+        riderId: result.riderId,
+        gameDay,
+        attr: a,
+        delta: after - before,
+        source: 'carrera',
+      })
+    }
+
+    /**
+     * …Y LA SOBRECOMPENSACIÓN DE LA VUELTA, una sola vez, al cerrar la última etapa. Solo para quien
+     * la TERMINA: el que abandonó en la doce no llegó del Tour volando.
+     */
+    if (spec.isFinal && !isOneDay && result.estado === 'finish') {
+      const gana = tourSupercompensation({
+        stages: spec.stageDay,
+        attributes: state.attributes,
+        ceilings: state.ceilings,
+        ...(suHidden !== undefined
+          ? { talent: suHidden.talent, declineAge: suHidden.declineAge }
+          : {}),
+        ...(edad !== undefined ? { age: edad } : {}),
+      })
+      if (gana > 0) {
+        const antes = state.attributes.RES
+        state.attributes.RES = antes + gana
+        attrValues.push([result.riderId, 'RES', state.attributes.RES])
+        attrLogValues.push({
+          riderId: result.riderId,
+          gameDay,
+          attr: 'RES',
+          delta: gana,
+          source: 'sobrecompensacion',
+        })
+      }
     }
   }
 
@@ -608,6 +770,13 @@ export async function runOneStage(
     await tx.execute(
       sql`update ${riders} set ctl = v.ctl, atl = v.atl
           from ${v} as v(id, ctl, atl) where ${riders.id} = v.id`,
+    )
+  })
+  await inChunks(strainValues, BATCH_ROWS, async (chunk) => {
+    const v = valuesList(chunk, ['uuid', 'int', 'int'])
+    await tx.execute(
+      sql`update ${riders} set strain_days = v.strain, ill_days = v.ill
+          from ${v} as v(id, strain, ill) where ${riders.id} = v.id`,
     )
   })
   await inChunks(attrValues, BATCH_ROWS, async (chunk) => {

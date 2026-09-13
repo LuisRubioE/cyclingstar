@@ -1,4 +1,4 @@
-import type { StageEffort } from '@cyclingstar/engine'
+import type { StageEffort, StageProfile } from '@cyclingstar/engine'
 import { desc, sql } from 'drizzle-orm'
 import {
   boolean,
@@ -162,12 +162,19 @@ export const tickLog = pgTable(
 
 // ---- El ciclista (SPEC 3 y 11), Paso 15 ----
 
+/**
+ * Los OCHO arquetipos. Se AMPLÍA, nunca se recrea: Postgres no borra valores de un enum sin
+ * recrear el tipo, y hay código que compara estos literales en duro.
+ */
 export const archetypeEnum = pgEnum('rider_archetype', [
   'escalada',
   'velocidad',
   'clasicas',
   'crono',
   'fondo',
+  'puncheur',
+  'rodador',
+  'gregario',
 ])
 export const genderEnum = pgEnum('gender', ['M', 'F'])
 export const healthEnum = pgEnum('rider_health', ['sano', 'molestias', 'enfermo', 'lesionado'])
@@ -213,6 +220,12 @@ export const teams = pgTable(
     philosophy: philosophyEnum('philosophy').notNull(),
     jerseySeed: text('jersey_seed').notNull(),
     facilities: real('facilities').notNull().default(1),
+    /**
+     * EL STAFF: médicos, fisios, nutricionistas. Multiplica la ganancia de entrenamiento igual que
+     * las instalaciones, y por eso nace en 0 —«sin staff de más»— y no en 1: es un NIVEL que se
+     * compra, no un multiplicador. `kStaff` lo traduce.
+     */
+    staffLevel: integer('staff_level').notNull().default(0),
     pointsSeason: integer('points_season').notNull().default(0),
   },
   (t) => [index('teams_world_division_idx').on(t.worldId, t.division)],
@@ -223,6 +236,24 @@ export const teams = pgTable(
  * de NPC sobrantes, ver world.ts) deja a sus corredores como AGENTES LIBRES, que es exactamente lo
  * que hacía el código a mano. Ahora la base lo garantiza y no puede quedar un team_id colgando.
  */
+/**
+ * EL MODO DEL PLAN (D0, docs/entrenamiento.md §5.3). Quién decide qué entrena el corredor.
+ *
+ * `entrenador` **no persiste nada**: el servidor aplica `coachPlan` cada día con el TSB REAL, que es
+ * mejor que la foto que el jugador vio hace veintiocho días. `manual` es solo lo que el jugador haya
+ * escrito, y el hueco es descanso activo. `mixto` —el defecto— es el jugador encima del entrenador.
+ */
+/** Los cinco bloques del entrenador (docs/entrenamiento.md §5.4). */
+export const coachBlockEnum = pgEnum('coach_block', [
+  'base',
+  'construccion',
+  'especifico',
+  'afinado',
+  'recuperacion',
+])
+
+export const trainingModeEnum = pgEnum('training_mode', ['entrenador', 'mixto', 'manual'])
+
 export const riders = pgTable(
   'riders',
   {
@@ -243,6 +274,8 @@ export const riders = pgTable(
     archetype: archetypeEnum('archetype').notNull(),
     retiredAt: integer('retired_at'),
     money: integer('money').notNull().default(0),
+    /** Quién decide su entrenamiento (D0, docs/entrenamiento.md §5.3). */
+    trainingMode: trainingModeEnum('training_mode').notNull().default('mixto'),
     /**
      * FAMA: LA COLUMNA NO SE ESCRIBE NUNCA, y hay que decirlo aquí para que nadie vuelva a construir
      * encima (v55). Existe desde la migración 0002 con `DEFAULT 0` y **no hay una sola sentencia en
@@ -263,6 +296,19 @@ export const riders = pgTable(
     teamTrust: real('team_trust').notNull().default(50),
     ctl: real('ctl').notNull().default(0),
     atl: real('atl').notNull().default(0),
+    /**
+     * DÍAS PASADO DE ROSCA y DÍAS SEGUIDOS TOCADO (docs/entrenamiento.md §5.6).
+     *
+     * `strain_days` es el contador que produce las molestias y, a los seis, la lesión por
+     * sobrecarga: sube uno por día con el depósito por debajo de −35 y baja dos por día por encima.
+     * Es un contador y no un dado porque el jugador tiene que poder VER venir la avería.
+     *
+     * `ill_days` son los días SEGUIDOS con molestias o enfermo. Lo define esta sección y lo LEE el
+     * rediseño táctico para decidir en la cuneta: así la secuencia «varios días tocado y luego el
+     * abandono» emerge de un solo modelo de salud en vez de programarse dos veces.
+     */
+    strainDays: integer('strain_days').notNull().default(0),
+    illDays: integer('ill_days').notNull().default(0),
     health: healthEnum('health').notNull().default('sano'),
     healthUntilDay: integer('health_until_day'),
     /** Día de juego hasta el que el corredor está de VIAJE (vuelta de una carrera lejana): no entrena
@@ -307,6 +353,26 @@ export const riderHidden = pgTable('rider_hidden', {
 })
 
 /** Registro de variaciones de atributos: flechas de tendencia; se purga a 60 días (SPEC 11). */
+/**
+ * DE DÓNDE VIENE CADA PUNTO. Hoy se escribía una sola fila por atributo y día con el delta NETO, y
+ * con eso no se puede contestar «¿por qué mejoré?», que es la pregunta que el informe del bloque
+ * existe para responder.
+ *
+ * El enum nace con sus cinco valores aunque hoy solo se escriban dos —`entrenamiento` y `carrera`—
+ * porque ampliar un enum de Postgres es una migración más y los otros tres no dependen de esta capa
+ * sino de que el motor reporte el desglose: `simulateRiderDay` devuelve hoy el estado final y nada
+ * más, así que `declive`, `detraining` y `sobrecompensacion` no se pueden separar sin tocarlo. Se
+ * escriben cuando exista ese desglose; mientras tanto van dentro del neto de su escritor, que es lo
+ * que ya pasaba, y no se finge lo contrario.
+ */
+export const attrLogSourceEnum = pgEnum('attr_log_source', [
+  'entrenamiento',
+  'carrera',
+  'sobrecompensacion',
+  'declive',
+  'detraining',
+])
+
 export const riderAttrLog = pgTable(
   'rider_attr_log',
   {
@@ -316,8 +382,15 @@ export const riderAttrLog = pgTable(
     gameDay: integer('game_day').notNull(),
     attr: attributeEnum('attr').notNull(),
     delta: real('delta').notNull(),
+    source: attrLogSourceEnum('source').notNull().default('entrenamiento'),
   },
-  (t) => [primaryKey({ columns: [t.riderId, t.gameDay, t.attr] })],
+  /**
+   * LA CLAVE LLEVA EL ORIGEN, y eso arregla un defecto silencioso además de permitir el desglose:
+   * con la clave vieja `(rider_id, game_day, attr)`, el día que un corredor corría Y entrenaba —o
+   * corría dos veces— la segunda fila chocaba y `onConflictDoNothing` la tiraba a la basura sin
+   * avisar. Los puntos seguían aplicándose al atributo; lo que se perdía era la explicación.
+   */
+  (t) => [primaryKey({ columns: [t.riderId, t.gameDay, t.attr, t.source] })],
 )
 
 // ---- Entrenamiento (SPEC 5 y 11), Pasos 18-20 ----
@@ -328,6 +401,7 @@ export const sessionEnum = pgEnum('training_session', [
   'fondo',
   'umbral',
   'puertos',
+  'muros',
   'sprint',
   'crono',
   'bajada_paves',
@@ -338,6 +412,38 @@ export const sessionEnum = pgEnum('training_session', [
 export const intensityEnum = pgEnum('training_intensity', ['suave', 'normal', 'fuerte'])
 
 /** Órdenes de entrenamiento encoladas por el jugador (SPEC 5.1, 5.2). */
+
+/**
+ * EL PLAN POR BLOQUES, Y SOLO LO QUE EL JUGADOR TOCÓ (D1-D4, docs/entrenamiento.md §5.3).
+ *
+ * Las cuatro columnas de bloque son NULLABLE a propósito: null significa «de esta semana decide el
+ * entrenador». Hoy el cliente congela los veintiocho días y los manda enteros, así que un plan
+ * guardado hace un mes sigue mandando sobre el entrenador aunque el corredor se haya puesto enfermo
+ * en medio. Guardando solo lo tocado, lo que el jugador no decidió vuelve a decidirlo quien mira el
+ * estado de hoy.
+ */
+export const trainingPlans = pgTable(
+  'training_plans',
+  {
+    riderId: uuid('rider_id')
+      .notNull()
+      .references(() => riders.id, { onDelete: 'cascade' }),
+    /** Primer día del plan de cuatro semanas. */
+    startDay: integer('start_day').notNull(),
+    block1: coachBlockEnum('block_1'),
+    block2: coachBlockEnum('block_2'),
+    block3: coachBlockEnum('block_3'),
+    block4: coachBlockEnum('block_4'),
+    /** El agujero que el jugador quiere tapar (D3); null = la carta de su arquetipo. */
+    focusAttr: attributeEnum('focus_attr'),
+    /** La intensidad del bloque (D4); null = normal. */
+    intensity: intensityEnum('intensity'),
+    /** La carrera objetivo (D1), para que el afinado sepa hacia dónde apuntar. */
+    goalRaceId: text('goal_race_id'),
+  },
+  (t) => [primaryKey({ columns: [t.riderId, t.startDay] })],
+)
+
 export const trainingOrders = pgTable(
   'training_orders',
   {
@@ -387,6 +493,38 @@ export const mentalityEnum = pgEnum('stage_mentality', [
 export const effortEnum = pgEnum('stage_effort', ['ahorrar', 'normal', 'a_tope'])
 
 /** Convocatorias: qué corredores corren una carrera (SPEC 6.11, Paso 29). */
+/**
+ * EL RECORRIDO DE UNA CARRERA, CONGELADO EL DÍA QUE SE CREA (docs/tactica.md paso 1a).
+ *
+ * Hoy el perfil de cada etapa sale de `SEASON_CALENDAR` **en el momento de correrla**, así que es un
+ * dato del CÓDIGO y no del mundo. Eso tiene una consecuencia que nadie había escrito: el día que
+ * alguien toque el generador de recorridos —y el paso 1b lo toca entero—, **las carreras que ya se
+ * corrieron cambian de recorrido retroactivamente**. La crónica de una etapa de hace tres temporadas
+ * pasaría a hablar de un puerto que ya no está donde estaba, y el `checkReplay` que compara
+ * snapshots dejaría de reproducir sin que nadie hubiera tocado un snapshot.
+ *
+ * Con esta tabla el recorrido es del MUNDO: se escribe una vez, al crear la carrera, y el tick lo
+ * lee de aquí. Cambiar el generador cambia las carreras FUTURAS, que es lo que tiene que pasar.
+ *
+ * `profile` va en JSONB porque es exactamente el `StageProfile` que el motor recibe: partirlo en
+ * tablas relacionales sería inventarse un esquema para un dato que solo se lee entero.
+ */
+export const raceRoutes = pgTable(
+  'race_routes',
+  {
+    worldId: uuid('world_id')
+      .notNull()
+      .references(() => worlds.id, { onDelete: 'cascade' }),
+    /** La clave de carrera del mundo (`raceKey`), no el id del calendario: una carrera por temporada. */
+    raceKey: text('race_key').notNull(),
+    stageDay: integer('stage_day').notNull(),
+    profile: jsonb('profile').notNull().$type<StageProfile>(),
+    /** `real` si el recorrido viene de datos verificados; `generado` si lo hizo el generador. */
+    routeSource: text('route_source').notNull().default('generado'),
+  },
+  (t) => [primaryKey({ columns: [t.worldId, t.raceKey, t.stageDay] })],
+)
+
 export const raceRosters = pgTable(
   'race_rosters',
   {

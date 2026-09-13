@@ -297,6 +297,75 @@ describe('engine: esqueleto', () => {
     // líder ataque en el desenlace es la carrera— y el castigo escala con la distancia real en la
     // general. El veto TIRA EL DADO igualmente, así que el flujo `rngTactics` no se corre y las
     // huellas de `attribution.test.ts` y `timetrial.test.ts` salen idénticas dígito a dígito: sus
+    // v64: el generador de recorridos decide el desnivel y el final de una reina, en vez de dejarlos
+    // como consecuencia de sortear puertos. Y `normalize()` deja de meter TODA la diferencia de km en
+    // el ÚLTIMO segmento, que en una reina es el puerto de meta: una etapa de 180 km cuyos segmentos
+    // sumaban 171 se cuadraba alargando NUEVE kilómetros la subida final, con las mismas rampas
+    // dentro. Ahora se reparte proporcional y los tramos se reescalan con su segmento. Una tirada más
+    // de `routeRng` por reina, así que todos los perfiles de montaña del calendario cambian: es a
+    // propósito, y sin la subida `checkReplay` seguiría declarando fieles unos snapshots que ya no
+    // reproducen.
+    // v63: las dos recomendaciones aceptadas que se habían quedado sin aplicar. (25) `SPRINTER_MIN`
+    // deja de ser el 68 absoluto y pasa al **p75 del campo del día**: el 68 estaba calibrado contra
+    // una génesis donde el 20 % del campo eran velocistas, y con la v2 dejaba sin tren de sprint a
+    // media parrilla del WorldTour y al rol entero en ProSeries y Continental. Lo que el 68 quería
+    // decir —«tiene una baza COMPARADA con el pelotón que corre hoy»— es un percentil, y `tactica.md`
+    // §5.2 ya lo implementaba así creyendo heredarlo de aquí. (22) El mejor offset del gregario sube
+    // de RES −4 a −2: es la palanca barata contra «que nadie se quede sin pasar de 4 en nada» sin
+    // tocar su cuota ni convertirlo en otra cosa.
+    // v62: la tanda de etapa de las decisiones 4 y 5 del dueño, los tres cambios juntos. REC entra
+    // en el VACIADO PROFUNDO —umbral 0,06 + 0,12·(1 − REC/100), que en REC 50 da exactamente el 0,12
+    // plano de antes— y en el UMBRAL DE TSB de los cerillos (−25 − 0,2·(REC − 50)); y CRI entra en el
+    // remate `solitario`, que es el único donde se corre contra el crono y contra nadie más. Los tres
+    // van juntos a propósito: la versión anterior del diseño metía el primero SOLO en la
+    // reconstrucción de producción y pasaba `false` en los bancos, o sea un cambio de cerillos en la
+    // carretera real que ninguna banda podía ver.
+    // v61: los bloques del entrenador pasan a ser los de §5.4 de verdad, y dos de los cinco no
+    // hacían lo que su columna prometía. El `afinado` llegaba a TSB +26 —pasarse de fresco, que en
+    // `tsbFactor` ya cuesta rendimiento— cuando su único propósito es llegar a +5/+15; y como la
+    // carta no cuesta lo mismo a todo el mundo (`puertos` 115 TSS, `bajada_paves` 70), el afinado de
+    // un clasicómano salía MÁS pesado que su específico: el orden de los bloques se invertía para
+    // dos de los ocho arquetipos. Lo cazó `projectLoad`, que es la proyección del plan y corre el
+    // mismo Banister que el tick. Entran también el énfasis por agujero y la intensidad de bloque.
+    // v60: las instalaciones y el staff dejan de ser dos columnas de adorno. `teams.facilities` se
+    // sorteaba entre 0,90 y 1,20, se guardaba, y `train.ts` pasaba `kInst: 1` a pelo: la columna
+    // decidía cero cosas y el staff ni columna tenía. El banco de mundo también monta el gimnasio
+    // —una tirada por EQUIPO, en su propio hilo de azar para que el resto del mundo no se corra—,
+    // porque fijarlo a 1 medía un pelotón más estrecho del que se juega.
+    // v59: el entrenador bot deja de ser un ciclo fijo de catorce días que no miraba nada —ni la
+    // frescura, ni la salud, ni la tensión acumulada— y pasa a decidir por bloques y CON RAZONES.
+    // «Razonable, nunca óptimo» era una frase: no era óptimo, pero tampoco razonable, porque le
+    // mandaba series a un corredor fundido. Sigue sin ser óptimo a propósito.
+    // v58: el estado `molestias` deja de estar muerto. Existía en el modelo —el Banister tenía su
+    // multiplicador de 0,96 escrito— y NO LO PRODUCÍA NADIE, así que la única forma de que entrenar
+    // mal costara algo era enfermar, que es un dado. Medido: machacarse en rojo quince temporadas
+    // enfermaba un 1 % más que entrenar bien. Ahora hay un contador de días pasado de rosca que el
+    // jugador puede ver subir, molestias a los cuatro, lesión por sobrecarga a los seis, y la salud
+    // también se juega los días de CARRERA, que es donde se llega a −35 de depósito.
+    // v57: lo que enseña la carrera, v2. Era `base · nivel · margen/30` y nada más: daba igual la
+    // edad, el talento, lo que hiciste ese día y cómo acabaste. Y su comentario afirmaba que
+    // `margen/30` «es el mismo kDim dicho de otra forma», que es falso y de orden distinto: uno es
+    // lineal y el otro superlineal, así que con solo el lineal todo el que corría acababa clavado en
+    // su techo a los 22-24. Ahora los dos frenos se multiplican.
+    // v56: la génesis v2. Antes se sorteaba el ATRIBUTO y se le añadía margen, así que la
+    // distribución de techos del mundo dependía de lo que cada uno hubiera entrenado ya y en la
+    // temporada 25 no se parecía a la de la 1. Ahora se sortea el TECHO —genético, absoluto— y la
+    // edad decide qué parte está realizada. Ocho arquetipos con cuotas de pelotón real, offsets de
+    // techo por arquetipo, presupuesto de dispersión, y nadie nace en su techo.
+    // v55: la intensidad deja de ser gratis. `fuerte` daba ×1,25 de ganancia con el TSS como único
+    // coste, así que mientras el depósito aguantase dominaba siempre y no había decisión que tomar.
+    // Ahora 1,12 de ganancia contra 1,3 de riesgo. La frescura pasa de escalón a rampa (a −29 se
+    // rendía como fresco y a −31 se perdía el 75 % de golpe), entra `muros` —COL solo tenía un
+    // camino— y ninguna sesión que no quepa en la base que uno tiene se absorbe entera.
+    // v54: un solo reloj de edad, pero por CLASE de atributo. `kAge` daba el mismo número al esprint
+    // y al fondo del mismo corredor, y eso no podía representar «mejora en cosas diferentes». Tres
+    // clases: motor rápido (SPR, CRI, COL), motor lento (RES, REC, LLA, MON) y oficio (DES, PAV,
+    // TAC). El declive también va por clase —la punta se va primero— y la amortiguación por haber
+    // entrenado pasa de mirar HOY a mirar la SEMANA, que es lo que el SPEC decía.
+    // v53: el humano nacía sin piernas. `createRider` no escribía `ctl`/`atl`, así que se quedaban
+    // en el defecto de la columna (0) mientras todo NPC nace con 45 y `BANISTER.initialCtl` dice 45:
+    // el jugador arrastraba un multiplicador de depósito de 0,90 en vez de 0,99 desde su primer día.
+    // Es conducta en producción y por eso sube versión, aunque no cambie una línea del motor.
     // escenarios corren SIN general en juego, y este cambio solo mira ahí.
     // v31: la línea del que corre por su cuenta sale donde APARECE, no en el km 0, y dice qué hace.
     // v30: un final en alto tiene que SUBIR, no solo medir. 6 etapas de 1.418 dejan de repartir el
@@ -309,6 +378,6 @@ describe('engine: esqueleto', () => {
     // v11 (atribución del trabajo), la v10 (composición y caza), la v9 (capa táctica), la
     // v8 (tiempos de grupo), la v7 (modelo de final), la v6 (telemetría), la v5 (clásica larga), la
     // v4 (pavé en el recorrido) y la v3 (Cambio 0).
-    expect(ENGINE_VERSION).toBe(52)
+    expect(ENGINE_VERSION).toBe(66)
   })
 })

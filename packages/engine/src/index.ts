@@ -99,6 +99,7 @@ export {
 } from './routes/uci.js'
 export {
   generateNpcRider,
+  sampleArchetype,
   sampleNpcAge,
   type Division,
   type NpcGenome,
@@ -112,7 +113,12 @@ export {
   type AutoOrderStage,
 } from './world/autoOrders.js'
 export { HARD_RETIRE_AGE, neoproAge, shouldRetire } from './world/lifecycle.js'
-export { STAGE_LEARNING_ATTRS, raceLearning, type RaceLearningInput } from './world/learning.js'
+export {
+  STAGE_LEARNING_ATTRS,
+  raceLearning,
+  type RaceLearningInput,
+  tourSupercompensation,
+} from './world/learning.js'
 export { gcPrizes, stagePrize, teamGcPrizes, teamStagePrize } from './world/prizes.js'
 export { AVG_WEEKLY_WAGE, SPONSOR_INCOME_PER_WEEK, npcWageBill } from './world/teamEconomy.js'
 export {
@@ -202,8 +208,10 @@ export {
   effNowAttr,
   erosion,
   depletion,
+  deepDepletionThreshold,
   isDeepDepleted,
   matchCount,
+  matchTsbPenaltyThreshold,
   maxMatchCount,
   rhythm,
   tankState,
@@ -245,6 +253,26 @@ export {
 } from './progression.js'
 export { generateRiderGenome, type RiderGenome, type RiderHidden } from './creation.js'
 export {
+  arrivalLabel,
+  planTss,
+  projectLoad,
+  type ArrivalLabel,
+  type ProjectedDay,
+} from './training/projection.js'
+export {
+  ceilingOpinion,
+  coachNotes,
+  facilitiesTier,
+  isDeclining,
+  COACH_NOTE,
+  OPINION_AGE_EXPERTO,
+  OPINION_SD_JOVEN,
+  OPINION_SD_VETERANO,
+  type CeilingOpinion,
+  type CoachNote,
+  type CoachNotesInput,
+} from './coachView.js'
+export {
   applyDailyLoad,
   eff0,
   fitnessFactor,
@@ -264,4 +292,34 @@ export {
   tsbFactor,
   type Load,
 } from './banister.js'
+export type {
+  CensusGroup,
+  CensusRider,
+  DutyTag,
+  GroupView,
+  MateHere,
+  MateThere,
+  PlanBinding,
+  RaceContext,
+  RaceMemory,
+  RaceShape,
+  RaceView,
+  RoadSignal,
+  SelfView,
+  StandingRow,
+  TacticFlags,
+  TeamContingent,
+  ThreatRow,
+  Turn,
+} from './stage/views.js'
+export { census, myMates } from './stage/views.js'
+export {
+  CLIMB_MIN_KM,
+  FINAL_KIND_CUTS,
+  finalKindOf,
+  kmAfterLastClimb,
+  lastClimbKm,
+  profileKm,
+  type FinalKind,
+} from './routes/finalKind.js'
 export * from './random.js'

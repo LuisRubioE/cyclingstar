@@ -181,15 +181,40 @@ export {
   type BlockedNameRow,
 } from './blocklist.js'
 export {
+  YOUNG_MAX_AGE,
+  getRaceClassifications,
+  standingsByRider,
+  type ClassificationRow,
+  type RaceClassifications,
+} from './classifications.js'
+export { buildRaceContext, raceMemoryOf, raceShapeOf } from './raceContext.js'
+export {
+  backfillRaceRoutes,
+  freezeRaceRoute,
+  getRaceRoute,
+  type RouteSource,
+} from './raceRoutes.js'
+export {
   createRider,
+  getAttrTrend,
+  getBlockReport,
+  getCoachView,
   getCurrentWorld,
   getDailyLog,
+  countRidersForUser,
   getRiderForUser,
   getRiderHealth,
   getRiderSummary,
   getSeasonRank,
   getWorldClock,
   setRiderArchetype,
+  TREND_WINDOW_DAYS,
+  type AttrLogSource,
+  type AttrTrendRow,
+  type BlockReport,
+  type BlockReportRow,
+  type CoachView,
+  type CoachViewRow,
   type CreateRiderInput,
   type DailyLogRow,
   type HealthState,
@@ -198,11 +223,18 @@ export {
   type RiderSummary,
 } from './riders.js'
 export {
+  getPlanForDay,
   getTeamTrainingPlan,
+  getTrainingMode,
   getTrainingOrders,
+  getTrainingPlan,
   setTeamTrainingPlan,
+  setTrainingMode,
   setTrainingOrders,
+  setTrainingPlan,
+  type TrainingMode,
   type TrainingOrderRow,
+  type TrainingPlanRow,
 } from './training.js'
 export {
   getRiderRaceDays,
@@ -239,3 +271,4 @@ export {
   type StageOrderRow,
   type StageRole,
 } from './raceOrders.js'
+export { backfillArchetypes, type BackfillResult } from './scripts/backfillArchetypes.js'

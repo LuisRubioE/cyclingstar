@@ -114,6 +114,23 @@ export interface TeamPlan {
   /** El hombre al que sirve el plan. `null` = el equipo no tiene jefe de filas hoy. */
   leaderId: string | null
   /**
+   * EL HOMBRE DE LA GENERAL, que NO es `leaderId` (v65 · R01.2).
+   *
+   * Y la diferencia no es un matiz: en una llana `leaderId` es «el mejor para ESTE final», o sea el
+   * velocista. Si `jefeEnApuros` mirara ese campo, un equipo dejaría de tirar porque su sprinter se
+   * ha descolgado en un puerto —que es exactamente lo que tiene que pasar, que se descuelgue— y la
+   * huella sellada de la llana canónica se movía **387 segundos**, medido en la v58 §4.
+   *
+   * Por eso aquel arreglo filtró por `purposes` («maillot» o «general»), que funcionaba pero decía
+   * otra cosa: dejaba fuera al hombre de la general de un equipo que no aspira al podio (S-048).
+   * Con este campo la puerta es la que R01.2 escribe —`gcLeaderId ≠ null ∧ hueco ≥ 22 s`— sin mirar
+   * motivos.
+   *
+   * Es el leal con mejor puesto en la general si hay general en juego, y `null` si no la hay: en una
+   * clásica de un día nadie tiene general que defender.
+   */
+  gcLeaderId: string | null
+  /**
    * POR QUÉ gastaría hoy. Puede tener MÁS DE UNO (el equipo del líder que además lleva al mejor
    * rematador del día): ver `teamDrive` y `narratedPurpose` para qué se hace con eso.
    */
@@ -259,6 +276,20 @@ export function buildTeamPlans(
       !wearsJersey &&
       gcDeficitSeconds <= STAGE.gcThreatFraction * STAGE.gcControlLeash
 
+    /**
+     * EL HOMBRE DE LA GENERAL: el leal con MENOS déficit, y solo si hay general en juego.
+     *
+     * Se calcula aquí y no en `simulate.ts` porque es una propiedad del plan del equipo, y porque el
+     * desempate por id tiene que ser el mismo que el del resto del fichero: dos corredores empatados
+     * en la general no pueden dar dos jefes distintos en dos corridas iguales.
+     */
+    const gcLeaderId =
+      gcDeficitSeconds === null
+        ? null
+        : ([...loyal].sort(
+            (a, b) => a.gcDeficitSeconds - b.gcDeficitSeconds || byId(a.riderId, b.riderId),
+          )[0]?.riderId ?? null)
+
     const purposes: TeamPurpose[] = []
     if (hasStageCard) purposes.push('etapa')
     if (wearsJersey) purposes.push('maillot')
@@ -270,6 +301,7 @@ export function buildTeamPlans(
       teamId,
       memberIds: members.map((r) => r.riderId),
       leaderId,
+      gcLeaderId,
       purposes,
       stageCandidateId: hasStageCard && candidate ? candidate.riderId : null,
       quality: candidate ? candidate.finishScore : 0,
@@ -550,7 +582,7 @@ export function teamDrive(stance: TeamStance, spentFraction: number, onTheFront:
  * fuga**, que es de donde salen las fugas de verdad. Un rebelde no pasa por aquí: su decisión manda
  * sobre el plan (§V.1, regla 1).
  */
-export function teamAttackFactor(stance: TeamStance): number {
+export function teamAttackFactor(stance: TeamStance, teamPlayOn = false): number {
   switch (stance.intent) {
     case 'fuga':
       return STAGE.teamAttackUpTheRoad
@@ -559,8 +591,38 @@ export function teamAttackFactor(stance: TeamStance): number {
       return STAGE.teamAttackChasing
     case 'controlar':
     case 'proteger':
-      return STAGE.teamAttackDefending
+      /**
+       * …Y AQUÍ HABÍA UNA INVERSIÓN (R02.12, paso 7), que es la queja 3 del dueño escrita como
+       * número: con el escalar de hoy **el equipo del maillot ataca MÁS que el del segundo**
+       * —`controlar` 0,85 contra `perseguir` 0,70—. Defender la general es lo contrario de atacar, y
+       * el motor lo tenía al revés.
+       *
+       * Con el juego de equipo encendido, defender pesa 0,30: por debajo de perseguir, que es donde
+       * tiene que estar. Apagado se conserva el 0,85 de siempre, dígito a dígito.
+       */
+      return teamPlayOn ? STAGE.teamPlay.attackDefending : STAGE.teamAttackDefending
     default:
       return STAGE.teamAttackFree
   }
+}
+
+/**
+ * LO QUE ATACA EL QUE LLEVA EL MAILLOT (R02.12, la regla aparte).
+ *
+ * Un líder con dos minutos de colchón **no salta seis veces en una etapa**: no tiene nada que ganar
+ * y todo que perder. Con colchón cero ataca como cualquiera —se está jugando el liderato— y a partir
+ * de `jerseyCushionS` no ataca nada.
+ *
+ * La excepción es que se lo estén quitando en la carretera: si el líder VIRTUAL ya es otro, el
+ * colchón no existe y vuelve a valer 1. Esa mitad llega con R04.6 (el traspaso en carretera) y se
+ * deja escrita como parámetro para que quien la encienda no tenga que buscar dónde va.
+ */
+export function jerseyAttackFactor(
+  esPortador: boolean,
+  cushionSeconds: number,
+  leLoEstanQuitando = false,
+): number {
+  if (!esPortador || leLoEstanQuitando) return 1
+  const colchon = Math.max(0, cushionSeconds)
+  return 1 - Math.min(1, colchon / STAGE.teamPlay.jerseyCushionS)
 }

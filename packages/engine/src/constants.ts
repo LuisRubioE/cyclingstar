@@ -715,13 +715,27 @@
  * Campaña canónica de 500 corridas: **los 33 invariantes en verde**. La contrarreloj no se mueve ni
  * un dígito —es el ancla del esfuerzo individual y paga la ley lineal de siempre—.
  */
-export const ENGINE_VERSION = 52 as const
+export const ENGINE_VERSION = 66 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
  * partir de la semilla del corredor.
  */
 export const CREATION = {
+  /**
+   * EL PRESUPUESTO DE DISPERSIÓN (docs/entrenamiento.md §3.3): cuánto puede sobresalir un corredor
+   * por encima de SU PROPIO NIVEL, sumando todos sus atributos físicos.
+   *
+   * Sin esto, el ruido del techo permite que a un mismo corredor le salgan tres o cuatro atributos
+   * muy por encima de su nivel a la vez, y eso es un crack por acumulación de suerte y no por
+   * talento. El presupuesto reparte: se puede ser excepcional en una cosa, o bueno en dos, pero no
+   * excepcional en todo. Y crece con el talento, que es lo que hace que el talento signifique algo
+   * en el techo y no solo en la velocidad de aprendizaje.
+   */
+  talentBudgetBase: 6,
+  talentBudgetSlope: 0.12,
+  /** El suelo de arranque de un humano: 15 estaba cinco puntos por debajo del que la v48 midió. */
+  startFloorMu: 18,
   /**
    * VALORES INICIALES por categoría de la vocación (SPEC 3.5).
    *
@@ -893,6 +907,118 @@ export const NPC = {
   ageMax: 38,
   ageBetaAlpha: 4,
   ageBetaBeta: 4,
+
+  // ───────────────────────────────────────────────────────────────────────────────────────────
+  // GÉNESIS v2 (docs/entrenamiento.md §3.3). Convive con la legacy detrás de una puerta hasta que
+  // el fixture la sella y se borra.
+  //
+  // EL CAMBIO DE FONDO, en una frase: antes se sorteaba el ATRIBUTO y se le añadía un margen; ahora
+  // se sortea HASTA DÓNDE puede llegar un corredor —su techo, genético y absoluto— y después cuánto
+  // de eso ha realizado a su edad. La consecuencia es la que hacía falta: la distribución de techos
+  // del mundo es la misma en la temporada 1 que en la 25, porque no depende de lo que nadie haya
+  // entrenado. Ésa es la razón por la que la banda del dueño se sostiene AQUÍ y no en la velocidad
+  // de aprendizaje: medido tres veces, frenar el aprendizaje solo retrasa la llegada al techo.
+  // ───────────────────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * EL NIVEL: la media del TECHO de la carta, por división. No es lo mismo que el 71/61/53 de la
+   * legacy, que era la media del ATRIBUTO: con el tope de madurez en 0,94 el atributo maduro de un
+   * WT sale 0,94·75 = 70,5, o sea donde está hoy, y PRS y CON conservan las distancias de 10 y 8
+   * que el dueño pidió no estrechar.
+   *
+   * `levelMu.WT` y el tope de madurez SE MUEVEN JUNTOS: bajar uno sin subir el otro encoge el mundo
+   * entero. Y `levelMu.WT` es la perilla de «cuando haya humanos buenos bajaremos eso a 0».
+   */
+  levelMu: { WT: 75, PRS: 65, CON: 57 } as Record<string, number>,
+  levelSd: 7,
+  ceilingNoiseSd: 5,
+  /**
+   * LA RED DEL ARQUETIPO: un atributo que el arquetipo penaliza de verdad (offset ≤ −14) no puede
+   * pasar de aquí por mucho nivel que tenga el corredor. Es lo que impide que el mejor velocista del
+   * mundo sea además un escalador decente por pura estatura de su nivel.
+   */
+  ceilingCapOffTrade: 83,
+  /** La edad mínima de un profesional en v2. Los 18 son del humano, que empieza antes. */
+  ageMinV2: 19,
+
+  /**
+   * CUÁNTO SE DESVÍA UN CORREDOR DE SU PROPIO NIVEL, por clase y edad: qué fracción de su techo ha
+   * realizado ya. Interpolada linealmente entre columnas, con la edad efectiva `edad − madurez`.
+   *
+   * EL TOPE DEL MOTOR ES 0,94 Y NO 0,98, y es una de las decisiones más importantes del rediseño.
+   * Con 0,98 sobre un techo de 72 la base es 70,56 y el redondeo la sube AL TECHO EXACTO en cuanto
+   * el ruido pasa de 0,013 —una de cada tres veces—. En el techo el freno vale 0, así que un tercio
+   * de los atributos de cada corredor maduro nacería congelado de por vida: es el defecto de la v50
+   * que el dueño mandó abrir, reintroducido al 98 % en vez de al 100 %.
+   *
+   * LA COLUMNA DE LOS 19 DE `motor_rapido` NO ES LA DEL DISEÑO (0,78) SINO 0,76, y la razón es una
+   * interacción que el diseño escribió en dos sitios y no compuso. Su criterio dice que la carta a
+   * los 19 tiene que ser ≤ 0,85 de la carta a los 27, y lo dedujo de esta tabla: 0,78/0,94 = 0,830.
+   * Pero la MISMA sección introduce el `C − 2` que garantiza margen, y ese tope muerde mucho más a
+   * los 27 —donde el atributo ya está cerca del techo— que a los 19. Eso baja el denominador y sube
+   * la razón: medido sobre 3.000 genomas, **0,856**, por encima de su propio listón. El mismo efecto
+   * aparece en `motor_lento` (tabla 0,753 → medido 0,787), así que no es ruido: son +0,03 en las dos
+   * clases. Con 0,76 la razón medida cae a 0,835 y el criterio se cumple de verdad.
+   */
+  maturity: {
+    motor_rapido: [0.76, 0.8, 0.85, 0.88, 0.9, 0.92, 0.93, 0.94, 0.94, 0.94, 0.94],
+    motor_lento: [0.7, 0.75, 0.8, 0.84, 0.87, 0.89, 0.91, 0.92, 0.93, 0.94, 0.94],
+    oficio: [0.62, 0.68, 0.74, 0.8, 0.85, 0.89, 0.92, 0.94, 0.96, 0.98, 1.0],
+  } as Record<string, number[]>,
+  /** La primera columna de la tabla de madurez es esta edad; la última cubre 30 en adelante. */
+  maturityAgeFrom: 19,
+
+  /** Un NPC viejo nace con lo que tendría a su edad, no con lo de uno de 28. */
+  veteranDropPerYear: { motor_rapido: 0.04, motor_lento: 0.03, oficio: 0.01 } as Record<
+    string,
+    number
+  >,
+  /** DES y PAV empiezan a caer tres años más tarde que el motor; TAC no cae nunca. */
+  veteranOficioDelay: 3,
+
+  /**
+   * CUÁNTOS DE CADA CLASE NACEN. Un cuarto de gregarios y un sexto de rodadores es la forma de un
+   * pelotón de verdad; el 5 % de cronistas sustituye al 20 % de hoy, que salía de repartir cinco
+   * vocaciones a partes iguales y llenaba el mundo de contrarrelojistas.
+   */
+  archetypeShare: {
+    WT: {
+      escalada: 14,
+      velocidad: 9,
+      puncheur: 9,
+      clasicas: 9,
+      crono: 5,
+      rodador: 16,
+      fondo: 12,
+      gregario: 26,
+    },
+    PRS: {
+      escalada: 13,
+      velocidad: 9,
+      puncheur: 9,
+      clasicas: 10,
+      crono: 5,
+      rodador: 16,
+      fondo: 10,
+      gregario: 28,
+    },
+    CON: {
+      escalada: 12,
+      velocidad: 10,
+      puncheur: 8,
+      clasicas: 10,
+      crono: 4,
+      rodador: 16,
+      fondo: 8,
+      gregario: 32,
+    },
+  } as Record<string, Record<string, number>>,
+
+  /** Cuánto marca el arquetipo a este corredor concreto: no todos son igual de puros. */
+  purityMin: 0.6,
+  purityMax: 0.95,
+  /** Nadie nace con un físico en su techo: siempre le quedan dos puntos por recorrer. */
+  ceilingHeadroom: 2,
 } as const
 
 /** Modelo de Banister: forma como consecuencia contable de la carga (SPEC 4). */
@@ -1023,6 +1149,41 @@ export const RELIEF = {
  * proporciones con que se reparte eso; se miden en docs/balance.md, «v10 — Composición y caza».
  */
 export const ROUTE = {
+  /**
+   * EL DESNIVEL DE UNA ETAPA REINA, DIRIGIDO (v64, docs/tactica.md R28.1 y paso 1b).
+   *
+   * Antes el desnivel de una reina era lo que saliera de sortear puertos: el generador elegía dos o
+   * tres cotas con su longitud y su pendiente, y el desnivel acumulado era la CONSECUENCIA. Con eso,
+   * la distribución del calendario es la que es y nadie la decide.
+   *
+   * Ahora se sortea el OBJETIVO y los puertos se ajustan a él, que es como se diseña una vuelta de
+   * verdad: el director decide cuánto va a subir la etapa y después dibuja por dónde.
+   *
+   * **El 60 / 40 no es un adorno**: `calendarQueens.test.ts` afirma en tres líneas duras que la
+   * banda de <1.500 m NO se queda vacía y que en la montaña blanda la fuga llega más que en la dura.
+   * Si todas las reinas se volvieran duras, esas tres afirmaciones perderían su lado fácil y el
+   * banco dejaría de decir nada. Por eso el 40 % de las reinas sale de una cola BAJA explícita.
+   */
+  queenDplusRange: { min: 2600, max: 4600 },
+  /** Qué parte de las reinas va al rango de arriba; el resto, a la cola baja. */
+  queenHighDplusShare: 0.6,
+  queenLowDplusRange: { min: 1200, max: 2500 },
+
+  /**
+   * DÓNDE CAE LA ÚLTIMA CIMA (R28.2). El generador DECIDE el tipo de final en vez de dejarlo al azar.
+   *
+   * El reparto que el diseño propone es `0,45 · 0,20 · 0,25 · 0,10`, y va contra lo que el calendario
+   * de hoy produce —medido en el paso 0 sobre las 157 reinas: **56,7 % alto · 2,5 % cima_cerca ·
+   * 35,0 % valle_corto · 5,7 % valle_largo**—. O sea que el generador de hoy hace demasiados finales
+   * en alto y casi ninguna cima cerca, que es exactamente la forma de etapa que el aficionado
+   * recuerda: se corona a tres kilómetros y se baja a la meta.
+   *
+   * Se aplica **porque la medida (f) del paso 0 encontró la correlación que R28.2 afirmaba**: el
+   * escalador gana el 72,3 % en final en alto y el 50,0 % en valle largo. Sin esa medida este
+   * reparto no estaría justificado y el paso 1 se habría quedado en `normalize()`.
+   */
+  queenFinalMix: { alto: 0.45, cima_cerca: 0.2, valle_corto: 0.25, valle_largo: 0.1 },
+
   // --- La crono ---------------------------------------------------------------------------
   // Por debajo de estas etapas no cabe: una vuelta de dos días es un fin de semana de carreras.
   ittMinStages: 3,
@@ -1132,6 +1293,46 @@ export const HEALTH = {
   // de la reina 8,33 % (8-14).
   illnessRaceFactor: 0.16,
   illnessRaceMax: 0.0035,
+
+  // ── Sobreentrenamiento, molestias y lesión (docs/entrenamiento.md §5.6) ──────────────────────
+  //
+  // POR QUÉ UN CONTADOR Y NO UN DADO DIARIO. «Llevas cinco días pasado de rosca» es legible y es
+  // determinista salvo el dado final; un `p = 0,06 · fragilidad` por día no se le puede explicar a
+  // nadie. El jugador tiene que poder VER venir la avería y tener tiempo de evitarla.
+
+  /** Por debajo de este TSB el día suma tensión; por encima, resta el doble: recuperarse es rápido. */
+  strainTsb: -35,
+  strainRecovery: 2,
+  /** A partir de aquí aparecen las molestias, y se van cuando el depósito vuelve por encima de −15. */
+  strainToMolestias: 4,
+  molestiasRecoveryTsb: -15,
+  /** Y a partir de aquí hay riesgo de romperse de verdad. */
+  strainToInjury: 6,
+  overuseBase: 0.006,
+  overuseHardFactor: 1.5,
+  overuseDaysMin: 7,
+  overuseDaysMax: 21,
+  /** Dos sesiones que se hacen con el cuerpo y no con el motor: se puede uno romper haciéndolas. */
+  sessionInjuryPaves: 0.0015,
+  sessionInjuryGym: 0.001,
+  sessionInjuryDaysMin: 4,
+  sessionInjuryDaysMax: 12,
+
+  /**
+   * LA FRAGILIDAD EFECTIVA: la del genoma, corregida por lo que el corredor SÍ controla.
+   *
+   * La recuperación pesa —REC 100 la baja un 30 %, REC 20 la sube un 18 %—, que es lo que hace de
+   * REC un atributo con consecuencias y no un número de la ficha. Y el gimnasio protege **aquí**,
+   * dentro de la fragilidad, que es donde el SPEC dice que protege: la versión anterior del diseño
+   * lo metía como un ×0,7 sobre el dado de la lesión y dejaba la fragilidad intacta, así que no
+   * protegía contra ENFERMAR, que es donde la fragilidad pesa de verdad y donde el dado se tira
+   * todos los días.
+   */
+  recFragilityBase: 1.3,
+  recFragilitySlope: 0.6,
+  gymProtection: 0.95,
+  gymSessionsFor: 2,
+  gymWindowDays: 14,
 } as const
 
 /** Moral (SPEC 4.2, 4.4). M_moral = base + scale * MOR/100; regresión diaria a la media. */
@@ -1166,19 +1367,125 @@ export const LEARNING = {
    * aprender más que de un entrenamiento» sea verdad al menos donde tiene que serlo.
    */
   raceClassFactor: { WT: 2, Pro: 1.5, '1': 1.2, '2': 1, NC: 1.2 } as Record<string, number>,
+
+  // ── v2 (docs/entrenamiento.md §4.4) ──────────────────────────────────────────────────────────
+
+  /**
+   * EL TECHO DIARIO. Un día de carrera no puede enseñar más que esto por atributo, por mucho que se
+   * multipliquen los factores. Sin él, un neopro con talento alto en una etapa del Tour se comía
+   * varios puntos de golpe y el arco de una carrera dejaba de tener forma.
+   */
+  raceDailyCap: 0.8,
+  /**
+   * QUÉ HICISTE HOY: 0,7 el que se escondió todo el día, 1,3 el que llegó vacío. Sale del depósito
+   * que el motor ya calcula, así que no hay ningún estado nuevo: la carrera enseña por lo que te
+   * exigió, no por haber estado inscrito.
+   */
+  effortBase: 0.7,
+  effortScale: 0.6,
+  /** El que se bajó corrió media carrera y aprendió media. Enfermedad o lesión, nada. */
+  dnfFactor: 0.5,
+  /** Solo sobre TAC, y se toma el mayor: ganar, entrar arriba, o haber trabajado para otro. */
+  resultTacWin: 1.8,
+  resultTacTop10: 1.4,
+  resultTacWork: 1.3,
+  /** REC se aprende encadenando días, desde la quinta etapa, y a media ración. */
+  recStageIndexMin: 5,
+  recShare: 0.5,
+  /** La vuelta entera deja fondo: 0,10 por etapa, de cinco etapas en adelante. */
+  supercompMinStages: 5,
+  supercompResPerStage: 0.1,
 } as const
+
+/**
+ * CUÁNTO CUESTA UN DÍA DE CARRERA, POR TERRENO, cuando no se simula la etapa.
+ *
+ * Vivía dentro de `sim/world.ts` porque solo la usaba ese banco, y ahí es donde estaba el problema:
+ * el banco de mundo aproxima la carga de un día de competición por su terreno —442 corredores por
+ * 364 días por 25 temporadas no se simulan etapa a etapa— y el rediseño de entrenamiento va a
+ * apoyar en esa misma aproximación dos cosas más, el esfuerzo del día y el índice de etapa. Una
+ * aproximación que alimenta tres medidas y vive escondida en el fichero de una de ellas es la
+ * definición de asimetría entre banco y producción: se toca en un sitio, se olvida en los otros dos,
+ * y el banco empieza a medir un mundo que el juego no corre.
+ *
+ * Aquí no cambia ni un número. Lo que cambia es que ahora tiene un solo dueño y se ve.
+ *
+ * La escala es la del gasto real: una reina cuesta el doble que una crono y algo más que una
+ * clásica. El 130 de reserva es para un terreno que el calendario añada y esta tabla aún no nombre:
+ * cuesta como una etapa del montón en vez de como nada.
+ */
+export const RACE_DAY_TSS: Record<string, number> = {
+  llana: 110,
+  media: 145,
+  reina: 185,
+  cri: 95,
+  clasica: 160,
+}
+
+/** Lo que cuesta un día de carrera en un terreno que la tabla todavía no nombra. */
+export const RACE_DAY_TSS_DEFAULT = 130
 
 /** Progresión por entrenamiento y decaimientos (SPEC 5.2, 5.5). */
 export const TRAINING = {
   // K_talento = base + talento/100, en [0.6, 1.6].
   kTalentBase: 0.6,
   // K_intensidad.
-  kIntSuave: 0.7,
+  /**
+   * LA INTENSIDAD DEJA DE SER GRATIS (docs/entrenamiento.md §5.1).
+   *
+   * `fuerte` daba ×1,25 de ganancia y su único coste era el TSS, así que mientras el depósito
+   * aguantase dominaba SIEMPRE: no había ninguna decisión que tomar, solo apretar. Ahora la ganancia
+   * extra se estrecha (1,12) y el riesgo se ensancha (`kRiesgo` 1,3), que es lo que convierte la
+   * intensidad en un intercambio en vez de en un botón.
+   *
+   * `suave` sube de 0,70 a 0,80 por el otro lado del mismo argumento: afinar antes de una carrera
+   * tiene que costar poco, o nadie afina nunca.
+   */
+  kIntSuave: 0.8,
   kIntNormal: 1.0,
-  kIntFuerte: 1.25,
+  kIntFuerte: 1.12,
+  /** Cuánto multiplica cada intensidad el riesgo de romperse ese día. */
+  kRiesgoSuave: 0.9,
+  kRiesgoNormal: 1.0,
+  kRiesgoFuerte: 1.3,
   // K_ready: entrenar reventado apenas rinde.
+  /**
+   * LA FRESCURA DEJA DE SER UN ESCALÓN. Era un umbral seco en −30: a −29 se rendía igual que a 0 y a
+   * −31 se perdía el 75 % de golpe. Con eso la intensidad no se podía dosificar —no había ninguna
+   * señal entre «bien» y «desastre»— y el jugador solo podía aprender el número de memoria.
+   *
+   * Ahora es una rampa: 1 por encima de −15, bajando lineal hasta 0,4 en −35, y 0,25 por debajo.
+   */
+  kReadyTsbFull: -15,
+  kReadyTsbRamp: -35,
+  kReadyRampEnd: 0.4,
   kReadyTsbThreshold: -30,
   kReadyLow: 0.25,
+  /**
+   * UNA SESIÓN DEMASIADO GRANDE PARA LA BASE QUE UNO TIENE no se absorbe: se sufre. Castiga el
+   * bloque `fuerte` sobre un corredor sin fondo, que es exactamente lo que hace el humano recién
+   * creado cuando descubre que puede apretar todos los días.
+   */
+  /**
+   * LAS INSTALACIONES Y EL STAFF, ENCHUFADOS DE VERDAD (docs/entrenamiento.md §5.7).
+   *
+   * `teams.facilities` se sorteaba al crear el mundo entre 0,90 y 1,20 y **no lo leía nadie**:
+   * `train.ts` pasaba `kInst: 1` a pelo. O sea que la columna existía, se rellenaba, decidía cero
+   * cosas y todo el mundo entrenaba igual. Es el mismo defecto que la v55 encontró en `fame`, y por
+   * eso hay una prueba que vigila las columnas con defecto numérico que nadie escribe.
+   *
+   * El staff es un NIVEL entero que se compra —de ahí que nazca en 0— y se traduce a multiplicador
+   * con un tope: un equipo no puede comprar progresión sin límite.
+   */
+  kInstMin: 0.9,
+  kInstMax: 1.2,
+  kStaffPerLevel: 0.02,
+  kStaffMax: 1.1,
+  kAbsorbFactor: 0.8,
+  kAbsorbCtlWeight: 1.5,
+  kAbsorbCtlOffset: 40,
+  /** Con molestias se entrena a medias; enfermo o lesionado, no se entrena. */
+  kSaludMolestias: 0.5,
   // K_dim: ganancias decrecientes hacia el techo personal.
   kDimCap: 1.2,
   kDimExponent: 1.3,
@@ -1191,6 +1498,76 @@ export const TRAINING = {
   ageDecaySlope: 0.004,
   trainedDecayFactor: 0.4,
   desPavDecayFactor: 0.25,
+
+  /**
+   * EL RELOJ DE EDAD, POR CLASE DE ATRIBUTO (docs/entrenamiento.md §4.1).
+   *
+   * Sustituye a los cinco tramos únicos que tenía `kAge`, que daban el mismo reloj a un esprínter y
+   * a un rodador de la misma edad. Es la frase del dueño puesta en tabla: la contrarreloj «sube muy
+   * rápido cuando eres joven, menos rápido según creces; entre 24 y 27 muy poquito; a partir de los
+   * 27 se estancan», y la táctica «debería mejorar siempre».
+   *
+   * Los tramos son por EDAD EFECTIVA. Hoy la edad efectiva es la edad a secas; el desplazamiento por
+   * madurez —el que madura tarde corre su reloj más tarde— llega con la génesis v2 y se enchufa
+   * aquí sin tocar la tabla.
+   *
+   * El 0,10 del final NO es un cero, y es deliberado: «se estancan» no es «se mueren». Sirve para
+   * MITIGAR el declive de un veterano que sigue entrenando, no para que crezca.
+   *
+   * SELLADO EN EL PASO 12 con lo que el banco mide sobre seis mundos, no con lo que se quería:
+   * `curvaEdadAerobica` 0,88 / 0,98 · `curvaEdadNeuro` 0,92 / 0,95 · `curvaEdadTAC` +9,6 ·
+   * `vets34vs28` −3,26 (sd 1,97). Las cuatro bandas viven en `sim/world.test.ts` a m±2·sd, y las
+   * dos que §7.2 pedía más estrechas —`curvaEdadTAC ≥ 12` y `vets34vs28 ≤ −3`— no se cumplen y
+   * están declaradas en `docs/balance.md` «v59 §12» en vez de forzadas desde aquí.
+   */
+  kAgeByClass: {
+    motor_rapido: {
+      hasta21: 1.25,
+      hasta24: 1.0,
+      hasta27: 0.45,
+      hasta30: 0.15,
+      hastaDeclive: 0.1,
+      despues: 0.1,
+    },
+    motor_lento: {
+      hasta21: 1.15,
+      hasta24: 1.05,
+      hasta27: 0.8,
+      hasta30: 0.4,
+      hastaDeclive: 0.15,
+      despues: 0.1,
+    },
+    oficio: {
+      hasta21: 1.0,
+      hasta24: 1.0,
+      hasta27: 1.0,
+      hasta30: 0.9,
+      hastaDeclive: 0.8,
+      despues: 0.6,
+    },
+  } as Record<
+    string,
+    {
+      hasta21: number
+      hasta24: number
+      hasta27: number
+      hasta30: number
+      hastaDeclive: number
+      despues: number
+    }
+  >,
+
+  /**
+   * CUÁNTO SE PIERDE AL DECAER, POR CLASE. La punta se va primero: un esprínter de 35 conserva el
+   * fondo y pierde el remate, y hasta ahora los dos se iban al mismo ritmo.
+   *
+   * `oficio` a 0,25 es lo que ya hacía `desPavDecayFactor` para DES y PAV; TAC no decae porque TAC
+   * no está entre los atributos que decaen, y eso no cambia.
+   */
+  decayClassFactor: { motor_rapido: 1.25, motor_lento: 1.0, oficio: 0.25 } as Record<
+    string,
+    number
+  >,
   // Enfermedad: días fuera (SPEC 4.3).
   illDaysMin: 2,
   illDaysMax: 6,
@@ -1953,6 +2330,189 @@ export const STAGE = {
   // en el boquete (la caza sigue existiendo) sin regalarle la etapa a la fuga.
   noOwnerCommitFactor: 0.94,
 
+  /**
+   * LAS FASES DE LA CARRERA (R19, docs/tactica.md paso 5). Los umbrales que `phaseOf` consulta.
+   *
+   * `enabled` es el INTERRUPTOR del brazo A/B: apagado, el motor corre exactamente como antes y las
+   * fases se calculan sin decidir nada. Es lo que permite atribuir la diferencia ENTERA a R19 en vez
+   * de a «algo que cambió en el mismo PR».
+   */
+  phases: {
+    enabled: false,
+    /** Km durante los que una captura mantiene la fase `captura`, con su cuerda de ×2,5. */
+    capturaKm: 1,
+    /** Cuánto antes de una cima empieza la aproximación. */
+    approachKm: 6,
+    /** Antes de esto la etapa está «saliendo»: la fuga todavía no ha tenido tiempo de cuajar. */
+    settleKm: 25,
+    /**
+     * LOS KM DE CONTRAATAQUE que siguen a la fase `captura` (R19.5). Durante ellos la fase es la que
+     * toque, pero su `lambdaScale` se SUSTITUYE por el de la fila `captura` y la aduana queda
+     * abierta. **Sustituye, nunca multiplica**: 2,5 × 2,5 en el segundo kilómetro era el error que
+     * la regla se escribió para prohibir.
+     */
+    contraataqueKm: 2,
+    /**
+     * EL FLYER (R19.6). Dentro de los últimos `tacticNoAttackKm` no se atacaba nada; ahora el veto
+     * se recorta hasta `flyerKm` y lo que cabe en medio es un solo movimiento, el del peor rematador
+     * del grupo, con una intensidad de `lambdaFlyer`: el que sabe que a rueda pierde.
+     */
+    flyerKm: 0.8,
+    lambdaFlyer: 0.08,
+    /**
+     * LA ETAPA CORTA DE MONTAÑA (R19.8): por debajo de `shortMountainKm` y con más de
+     * `shortMountainClimbShare` de subida, la carrera se salta las fases `fuga` y `control` y pasa
+     * de `salida` a `decisivo`. No hay etapa para cazar nada, así que nadie da cuerda y los equipos
+     * de la general atacan desde el primer puerto.
+     */
+    shortMountainKm: 145,
+    shortMountainClimbShare: 0.5,
+  },
+
+  /**
+   * LA ADUANA COMO SUBASTA DE TRABAJO (R03) Y LA GENERAL VIRTUAL (R04), docs/tactica.md paso 6.
+   *
+   * `enabled` es el interruptor del A/B, igual que `phases`: apagado, la cuerda la sigue dando
+   * `pelotonAllows` y el motor corre como el paso 5. Encendido, la cuerda la dan los equipos.
+   *
+   * La hipótesis nula está escrita en `stage/customs.ts::pHoy`: **con cero objeciones la aduana
+   * devuelve la fórmula de hoy entera**, rampa y castigo por tamaño incluidos. Sin ese ancla no hay
+   * forma de saber si un movimiento en `flat.breakawayWinPct` viene del voto o de haber tirado la
+   * rampa de arranque por el camino.
+   */
+  customs: {
+    enabled: false,
+    /**
+     * LA PERILLA DEL PASO 6: cuánto pesa el dinero dispuesto a pagar el cierre frente a lo que
+     * cuesta cerrar. Es contra este número contra el que se barre `flat.breakawayWinPct`.
+     */
+    potWeight: 1,
+    /**
+     * Una fuga de nueve cuesta un 72 % más de cerrar que una de tres. DERIVADA de
+     * `tacticAllowSizePenalty` 0,05, reescalada al dominio nuevo: allí era probabilidad, aquí es
+     * precio.
+     */
+    sizeGain: 0.12,
+    /** Con viento de lado cerrar cuesta más. */
+    windGain: 0.4,
+    /**
+     * Un leal cualquiera dentro DESCUENTA la objeción; una CARTA dentro la anula —y eso es un cero,
+     * no un descuento, por eso no se escribe aquí—.
+     */
+    loyalInside: 0.25,
+    /**
+     * «Me puede ganar», que es menos exigente que «es contendiente»: la mitad de
+     * `chaseContenderMaxGap` 12.
+     */
+    rivalGap: 6,
+    /** Tres puestos perdidos en la general virtual = objeción máxima por ese término. */
+    gcPlaces: 3,
+    /** Un equipo paga más por cerrar al que ganó ayer: la memoria va en la PUJA, no en la objeción. */
+    yesterdayWinner: 1.6,
+    /**
+     * EL PRECIO DE CERRAR (R19.4), que es lo que el paso 5 dejó pendiente. Allí se retiró
+     * `closingNow` como veto —mientras el pelotón cierra un intento sin cuerda se sigue atacando— y
+     * se midió lo que cuesta retirarlo sin su precio: las pájaras de Il Lombardia se iban del 11,2 %
+     * al 17,7 % (docs/balance.md «v60 §5»). El precio es éste: el equipo ocupado en cerrar tiene
+     * menos que ofrecer por lo siguiente.
+     */
+    closingBusyDamp: 0.7,
+    /** «Que hagan ellos el trabajo»: un puente que refuerza una fuga que ya me conviene cazar. */
+    bridgePassGain: 0.4,
+    /** Diferencia ABSOLUTA de probabilidad a partir de la cual se re-evalúa `allowed` (R03.3). */
+    revisionMargin: 0.08,
+
+    // --- R04.2: la correa sobre el terreno que QUEDA ---------------------------------------
+    /**
+     * Segundos que se mueve la general por km de puerto ENTRE HOMBRES VECINOS, no entre el mejor y
+     * el peor. [calibrar] sobre `realQueens` en el paso 21.
+     */
+    gcClimbRecoverPerKm: 1.6,
+    /**
+     * Ídem por km de crono, y **no hay derivación honesta**: el ancla más cercana que tiene este
+     * repositorio es `timeTrials.p90MinusP10Seconds` 80-170 s sobre 40 km, o sea 2,0-4,25 s/km, y
+     * eso separa al p10 del p90 —el 80 % del campo—, no a dos hombres consecutivos del top-10. 1,1
+     * es un punto de partida plausible dentro de esa fracción y nada más. Se mide en el paso 21.
+     */
+    gcTtRecoverPerKm: 1.1,
+    /** Lo que se recupera en llano sin abanico es bonificación (10/6/4 acumulables) y poco más. */
+    gcFlatRecoverBase: 25,
+    /** DERIVADA de `gcThreatFraction` 0,6: mismo número y mismo significado. */
+    gcLeashShare: 0.6,
+    /** Por debajo de minuto y medio no se controla, se caza. Se escala con los días que quedan. */
+    gcLeashMinS: 90,
+    /**
+     * Techo de la correa. **Se parece al 900 de `smallTours.flatMoveWorstMarginS` y no se deriva de
+     * él**: aquél es una ALARMA DE PEOR CASO —«la escapada se va a 15 o 20 minutos»— y usar un techo
+     * de alarma como techo de decisión es cambiarle el significado por el camino. Se conserva por
+     * orden de magnitud y se calibra contra el recorrido del colchón en una gran vuelta.
+     */
+    gcLeashMaxS: 900,
+  },
+
+  /**
+   * EL PULSO POR EL FRENTE (R20, docs/tactica.md paso 9). Quién persigue a quién, y quién paga.
+   *
+   * Es la pieza de la que han quedado colgando TRES racimos de esta tanda: R01 (el paso 3, donde
+   * sentar a los que no deben tirar dejaba el frente vacío porque no existía quien lo tomara), R19
+   * (el paso 5, cuyas clásicas se vacían) y R03 (el paso 6, cuyo bote es una intención sin nadie que
+   * la ejecute). Por eso se adelanta a los pasos 7 y 8: un racimo que desbloquea a tres vale más que
+   * dos racimos nuevos apagados.
+   */
+  front: {
+    enabled: false,
+    /**
+     * Banda de empate de la amenaza (R20.1). Dentro de ella dos movimientos se consideran igual de
+     * peligrosos y desempata la carretera: el más cerca de meta, y luego el id menor.
+     */
+    threatTieBand: 0.05,
+    /**
+     * EL HUECO QUE TOLERA UN EQUIPO SIN HOMBRE DE GENERAL (R20.1, la rama que faltaba). Un pelotón
+     * lanzado recorta un minuto cada diez kilómetros. [calibrar] contra `flat.catchKmToFinish`.
+     */
+    closeRateSPerKm: 6,
+    /** Los kilómetros de caza dura que se descuentan de esa cuenta, y a partir de los que no se cede. */
+    chaseHardKm: 20,
+    /** Cuánto vale llegar al sprint con los lanzadores enteros (R20.5). */
+    sitOutGain: 0.35,
+    /** Más de tres lanzadores no montan un tren mejor. */
+    trainMaxLaunchers: 3,
+  },
+
+  /**
+   * EL JUEGO DE EQUIPO (R02 y R18, docs/tactica.md paso 7): el turno como cola, la tabla de ganas de
+   * atacar por intención, y lo que hacen dos compañeros en el mismo grupo.
+   */
+  teamPlay: {
+    enabled: false,
+    /**
+     * CUÁNTO DURA UN TURNO, por terreno (R18.1). En cuesta se releva antes —el esfuerzo es continuo
+     * y no hay rueda que valga tanto— y con viento de lado, antes todavía.
+     */
+    turnPullKm: { llano: 0.6, subida: 0.3, abanico: 0.25 },
+    /**
+     * CUÁNTO SIGUE UN PEÓN A SU PROPIO COMPAÑERO cuando ataca (R02.4). **No es cero**: si el
+     * compañero se va y a mí me conviene ir, voy. El paso 3 lo dejó en cero provisional con su
+     * medida al lado; éste le pone el valor que la regla pide.
+     *
+     * Para la CARTA del equipo y para el co-líder sigue siendo 0: un gregario no le salta a la rueda
+     * a su propio jefe, y eso no es un descuento, es que no pasa.
+     */
+    mateFollowDamp: 0.15,
+    /**
+     * LO QUE ATACA UN EQUIPO QUE DEFIENDE (R02.12). Hoy vale 0,85, **por encima del 0,70 del que
+     * persigue**: el equipo del maillot ataca más que el del segundo, que es la inversión que la
+     * queja 3 del dueño señala. Defender es lo contrario de atacar.
+     */
+    attackDefending: 0.3,
+    /**
+     * EL COLCHÓN A PARTIR DEL CUAL EL MAILLOT DEJA DE ATACAR. Con cero se lo juega y salta como
+     * cualquiera; con dos minutos no tiene nada que ganar. DERIVADA del orden de magnitud de las
+     * bonificaciones acumulables (10/6/4 por etapa: tres etapas de ventaja).
+     */
+    jerseyCushionS: 180,
+  },
+
   // 6.6 — Cerillos (esfuerzos supraumbral discretos).
   // comp = 0.50·max(MON,COL) + 0.30·RES + 0.20·LLA; cerillos = 2 + (comp>=55)+(>=72)+(>=88).
   matchCompMonWeight: 0.5,
@@ -1961,7 +2521,19 @@ export const STAGE = {
   matchBase: 2,
   matchThresholds: [55, 72, 88],
   matchMin: 1,
-  matchTsbPenaltyThreshold: -25,
+  /**
+   * EL UMBRAL DE TSB QUE QUITA UN CERILLO, Y AHORA DEPENDE DE **REC** (v62, decisión 4 del dueño).
+   *
+   * Era un −25 plano, así que la recuperación —el atributo cuyo trabajo es exactamente ése— no
+   * decía nada sobre cuánto aguanta uno yendo cargado. `matchTsbPenaltyThreshold(REC) = −25 −
+   * 0,2·(REC − 50)`: con REC 90 el castigo llega a −33 y con REC 30 a −21.
+   *
+   * Está CENTRADO en 50, que es el REC medio del campo: redistribuye cerillos entre corredores, no
+   * se los quita ni se los da al pelotón entero. Por eso la predicción de §6 es que la cola de la
+   * reina se mueva ±0,5 y no que se desplace.
+   */
+  matchTsbPenaltyBase: -25,
+  matchTsbPenaltyRecScale: 0.2,
   // PENDIENTE DE IMPLEMENTAR (SPEC 6.6): parámetro definido pero sin efecto en la simulación.
   // Gastar un cerillo debería restar energía del tanque; hoy solo activa `matchBonus` durante
   // `matchBonusBlocks` bloques y no cuesta nada.
@@ -2016,10 +2588,22 @@ export const STAGE = {
   sprintRegimeFullTrains: 3,
   sprintRegimeSoloShare: 0.65,
   sprintRegimeMaxGradient: 2,
-  // PENDIENTE DE IMPLEMENTAR (SPEC 6.6): parámetro definido pero sin efecto en la simulación.
-  // Vaciado profundo: quien termina con E < 0.12·E0 debería arrancar la etapa siguiente con un
-  // cerillo menos. `matchCount(..., deepDepleted)` sabe aplicarlo, pero nadie calcula el flag.
-  matchDepletionThreshold: 0.12,
+  /**
+   * VACIADO PROFUNDO, Y TAMBIÉN POR **REC** (v62, decisión 4 del dueño).
+   *
+   * Quien termina por debajo de este umbral de su depósito arranca la etapa siguiente con un
+   * cerillo menos. Era un 0,12 plano —el flag ni siquiera lo calculaba nadie hasta la v47— y ahora
+   * es `0,06 + 0,12·(1 − REC/100)`: REC 50 da 0,12, que es exactamente el valor de antes, REC 90 da
+   * 0,072 y REC 20 da 0,156.
+   *
+   * O sea: al que recupera bien hay que vaciarlo MUCHO más para que lo pague al día siguiente. Es
+   * el mismo atributo diciendo lo mismo en la carretera que en el Banister, y por eso **el umbral
+   * es uno solo para el parte del motor y para producción**: la versión anterior de este diseño lo
+   * metía solo en la reconstrucción de `db/stageRun.ts`, o sea un cambio de cerillos en la carrera
+   * real que ninguna banda podía ver.
+   */
+  matchDepletionBase: 0.06,
+  matchDepletionRecScale: 0.12,
 
   // 6.7 — Erosión por vaciado (durabilidad).
   // depl = clamp(1 - E/E0, 0, 1); umbral = 0.07 + 0.40·RES/100.
@@ -2661,6 +3245,17 @@ export const STAGE = {
   // modelo de final (§12), que para eso ordena el grupo por una mezcla de atributos. Sin este
   // corte, un «ataque» a 1 km de meta nacía con su boquete instantáneo y ganaba la etapa por 15 s
   // sin que a nadie le diera tiempo a responder: el sprint se decidía por un dado, no por piernas.
+  /**
+   * …Y CON LAS FASES ENCENDIDAS YA NO VETA: pasa a ser el SELECTOR DE FLUJO de §2.6 (el
+   * `legacyNoAttackKm` del diseño). Lo que este corte tapaba de más era el flyer —R19.6, el peor
+   * rematador del grupo que sabe que a rueda pierde—, y por eso el veto se recorta hasta
+   * `STAGE.phases.flyerKm`; entre `flyerKm` y este umbral solo cabe el flyer, con su `lambdaFlyer`.
+   *
+   * El nombre NO se cambia a `legacyNoAttackKm` aunque el diseño lo pida: la constante aparece en
+   * catorce documentos de `docs/diseno/` con este nombre, y renombrarla desincroniza el rastro de
+   * diseño a cambio de nada que el motor haga distinto. Lo que importa es la conducta, y está aquí
+   * escrita.
+   */
   tacticNoAttackKm: 3,
   // …y antes del primer kilómetro un intento no tiene FRASE (v21). La crónica de producción de Race
   // Bességes e4 abría con «Attack: … force the pace and open a gap» en el KM 0, y ahí el lector
@@ -2742,8 +3337,21 @@ export const STAGE = {
   // salida y sin desenlace en 31 etapas del día de juego 46. Lo que se abre se cierra.
   // Dos grupos que se juntan solo son noticia si de verdad se junta gente.
   tacticMergeNarrateRiders: 3,
-  // Cuántos movimientos vivos por delante del pelotón como mucho. Más de tres grupos en carretera
-  // no es una carrera, es contabilidad.
+  /**
+   * Cuántos movimientos vivos por delante del pelotón como mucho. Más de tres grupos en carretera
+   * no es una carrera, es contabilidad.
+   *
+   * …SALVO QUE ERA UN CONTADOR DE GRUPOS VIVOS PUESTO POR ENCIMA DE TODA LA CAPA TÁCTICA (R19.3), y
+   * contaba GLOBAL: con la fuga del día, un puente y un contraataque en carretera —una reina
+   * normal— nadie podía saltar en el puerto decisivo, ni desde el pelotón ni desde dentro de la
+   * fuga. Su propio comentario lo tenía medido: cuatro intentos hasta el km 19 de Race Almeria e1 y
+   * ni uno más en los 190 restantes.
+   *
+   * Con las fases el techo es POR FASE y POR GRUPO DE ORIGEN, sobre movimientos VIVOS
+   * (`PHASE_TABLE[fase].maxMoves`), y esta constante queda como el otro selector de flujo de §2.6:
+   * el intento que el motor del paso 4 habría vetado por ella tira de `rngTactics2`. Sobre el
+   * nombre, lo mismo que en `tacticNoAttackKm`.
+   */
   tacticMaxMoves: 3,
   // Boquete (s) a partir del cual un movimiento deja de ser un intento y es LA FUGA DEL DÍA: se
   // narra como tal y el pelotón pasa a controlarla con su leash.
@@ -3435,15 +4043,28 @@ export const STAGE = {
   // - pave: PAV y LLA, que es exactamente el perfil de un clasicómano del Norte, con TAC de
   //   colocación (en el adoquín se pierde la carrera por ir mal situado).
   // - descenso: DES y TAC mandan; el que baja y elige la trazada gana, aunque remate peor.
-  // - solitario: un grupo de uno no disputa nada, pero la fila existe para que el modelo sea total.
+  // - solitario: el que llega solo va contra el crono y contra nadie más, así que CRI entra (v62,
+  //   decisión 5 del dueño). Sale de RES (0,35 → 0,30) y de LLA (0,30 → 0,20), que eran las dos
+  //   que hacían de CRI sin llamarse CRI. Un grupo de uno no disputa un remate: lo que hace es
+  //   sostener un esfuerzo contrarreloj hasta la pancarta, y el atributo que mide eso existe.
   finishWeights: {
     sprint_masivo: { SPR: 0.66, LLA: 0.18, TAC: 0.16 },
     sprint_reducido: { SPR: 0.5, LLA: 0.15, TAC: 0.25, RES: 0.1 },
     puncheur: { COL: 0.4, SPR: 0.28, TAC: 0.2, RES: 0.12 },
+    /**
+     * EL MURO (R17.2, paso 8), DERIVADO de `alto` y `puncheur` y puesto entre los dos: un kilómetro
+     * al 8 % lo gana el que revienta cuesta arriba, no el que llega más rápido. Frente al puncheur,
+     * la punta de velocidad baja de 0,28 a 0,20 y la explosividad sube de 0,40 a 0,55; frente al
+     * alto, el escalador puro deja de mandar porque un muro no se sube, se ataca.
+     *
+     * **Ninguno de los siete pesos de hoy se mueve un dígito**: §1.1 los declara intocables y esta
+     * fila es nueva, no una corrección de las otras.
+     */
+    muro: { COL: 0.55, SPR: 0.2, TAC: 0.15, RES: 0.1 },
     alto: { MON: 0.6, COL: 0.2, RES: 0.15, TAC: 0.05 },
     pave: { PAV: 0.5, LLA: 0.27, TAC: 0.15, SPR: 0.08 },
     descenso: { DES: 0.42, TAC: 0.25, SPR: 0.18, LLA: 0.15 },
-    solitario: { RES: 0.35, LLA: 0.3, TAC: 0.2, MON: 0.15 },
+    solitario: { RES: 0.3, LLA: 0.2, CRI: 0.15, TAC: 0.2, MON: 0.15 },
   },
   /**
    * EL ROL PESA EN EL REMATE, NO SOLO EN EL ATAQUE (v48).
@@ -3487,6 +4108,186 @@ export const STAGE = {
    * Es un factor sobre la puntuación, no un veto: un gregario con un día enorme todavía puede
    * colarse, que es lo que pasa en carretera. Lo que deja de pasar es que sea lo normal.
    */
+  /**
+   * QUÉ ES UN MURO (R17.2): una cota **corta** y **muy empinada**. Corto es lo que lo separa del
+   * puncheur —el Muro de Huy mide 1,4 km y sigue siendo puncheur, que es el ancla que esta regla
+   * respeta— y empinado lo que lo separa de un repecho de arrastre.
+   */
+  /**
+   * CUÁNTOS METROS ANTES ABRE EL SPRINT EL PEOR REMATADOR DEL GRUPO (R17.3, paso 8). El que no gana
+   * a rueda se va de lejos —es su única carta— y el rápido espera, que es la suya.
+   */
+  /**
+   * LAS PANCARTAS (R06, docs/tactica.md paso 10): la cima como punto del recorrido que alguien
+   * DECIDE disputar, y la ventana de alivio que viene después.
+   */
+  banners: {
+    enabled: true,
+    /**
+     * CUÁNTO SE RELAJA EL GRUPO JUSTO DESPUÉS DE UNA PANCARTA (R06.2) y durante cuántos km. «Se
+     * relaja justo después» es una de las cosas que cualquiera que haya visto una carrera espera y
+     * que el motor no hacía: se coronaba y el pelotón seguía al mismo ritmo.
+     */
+    reliefKm: 5,
+    reliefDamp: 0.85,
+    /** …y en esa ventana se ataca MÁS, que es la otra mitad: es cuando salta el contraataque. */
+    reliefLambda: 1.8,
+  },
+
+  /**
+   * LOS DIRECTORES BOT (R24, docs/tactica.md paso 11). Mismos vatios, distinto número en la pizarra.
+   *
+   * Es el racimo más peligroso del plan —desafina TODAS las cazas— y por eso su interruptor no es un
+   * adorno: apagado, el director ve el hueco exacto al instante, que es el motor de siempre.
+   */
+  director: {
+    enabled: false,
+    /**
+     * La calidad media de dirección del campo, y cuánto varía de un equipo a otro. El diseño pide
+     * una base por división (WT 0,85 · PRS 0,65 · CON 0,50); la división no viaja en `StageInput`,
+     * así que de momento manda la media con su dado. Ver `dirQualityOf`.
+     */
+    qualityBase: 0.67,
+    qualitySd: 0.1,
+    /** Km de retraso del número: el coche recibe el tiempo con retraso, y el malo con más. */
+    lagBase: 0.8,
+    lagQuality: 1.2,
+    /** Y cuánto se equivoca además del redondeo de la pizarra. */
+    sdBase: 6,
+    errorSlope: 18,
+    /**
+     * CUÁNTO SE EQUIVOCA UNO LEYENDO EL ESTADO DE OTRO (R24.5), y cuánto le ayuda su TAC. Con TAC 90
+     * el error es de 0,08 y con TAC 40 de 0,19: el que lee la carrera se equivoca la mitad.
+     */
+    signalSdBase: 0.28,
+    signalSdPerTac: 0.0022,
+    /**
+     * A PARTIR DE QUÉ LECTURA SE HUELE LA SANGRE, y cuánto sube el apetito de atacar (R13.1). Es el
+     * contrario nº 9: hoy, el día que el maillot cede, sus rivales atacan MENOS.
+     */
+    bloodThreshold: 0.45,
+    bloodGain: 0.7,
+  },
+
+  /**
+   * LA COLOCACIÓN (R15a, docs/tactica.md paso 14). Un escalar por corredor dentro de su grupo, 0 =
+   * cabeza. Es el estado del que cuelgan el abanico, el sector, el sprint, el tapón y el acordeón, y
+   * que hasta aquí cada uno de esos cinco sitios se inventaba con un dado propio.
+   *
+   * Su interruptor tampoco es un adorno: **apagado, los cinco siguen con su dado** y la etapa sale
+   * dígito a dígito como antes.
+   */
+  placement: {
+    enabled: true,
+    /** Dónde arranca cada uno: 0,5 + N(0, 0,15). El grueso en mitad de la fila. */
+    initialSd: 0.15,
+    /**
+     * SIN HACER NADA BAJAS MEDIO PUNTO POR KM: en 100 km pasas de la primera fila a la cola. Es el
+     * acordeón visto desde dentro. **Era 0,04 en la propuesta y la glosa decía 100 km**: con 0,04 se
+     * llegaba a la cola en 12,5 km, todo el pelotón estaba atrás a la media hora y la media del
+     * grupo —contra la que cobra el acordeón— se saturaba en 1. Manda la glosa, que es la intención.
+     */
+    driftPerKm: 0.005,
+    /** Colocarse una décima cuesta menos de medio kilómetro de esfuerzo. */
+    gainPerKm: 0.25,
+    /** El azar del pelotón, atenuado por TAC. */
+    noise: 0.015,
+    /**
+     * DÓNDE QUIERE ESTAR CADA UNO. No sale del diseño —que deja el `pushing` en manos de R15b, del
+     * paso 15— sino de lo mínimo que hace falta para que el estado no se sature: sin un objetivo,
+     * nadie empuja, todo el mundo deriva a la cola en cien kilómetros y la media del grupo —contra
+     * la que cobra el acordeón— se va a 1. Son cuatro números y son **provisionales con dueño**.
+     */
+    targetMove: 0.15,
+    /**
+     * EL SITIO DE UNA CARTA LO DECIDEN LOS HOMBRES QUE LE QUEDEN: solo, el 0,55 —va donde puede—; con
+     * cuatro, el 0,15 —va donde quiere—. Ver `sitioDeLaCarta`, que explica por qué un sitio FIJO
+     * sacaba al mejor sprinter de banda por arriba.
+     */
+    targetCardAlone: 0.55,
+    targetCardPerHelper: 0.1,
+    targetCardFloor: 0.12,
+    /** Y el que le coloca va justo detrás de él, no delante. */
+    helperBehind: 0.05,
+    targetPack: 0.65,
+    /** Subir cien puestos ≈ un cerillo largo. [calibrar] contra el invariante 18. */
+    pushCost: 0.45,
+    /** Sobre `placement − media del grupo`, NUNCA sobre `placement`. Ver `accordionTerm`. */
+    accordionGain: 0.35,
+    /** DERIVADA de `placementSdMax` 0,07 × 2,6: mismo orden que el dado al que sustituye. */
+    finishMax: 0.18,
+    /**
+     * LO QUE QUEDA DE AZAR EN EL REMATE cuando la colocación ya no es un misterio. Ver el comentario
+     * de `residualLuck` en `finishStage`: el dado viejo hacía DOS trabajos —la colocación y la
+     * suerte— y quitarlo entero dejaba el sprint sin suerte ninguna.
+     *
+     * **Y LO MIDIÓ EN 1**, que es un resultado y no una comodidad: barrido sobre la llana canónica
+     * con 120 semillas, el mejor sprinter gana el 38,3 % con el dado entero y el 40 % con el dado al
+     * 80 %, contra un 40 % de partida y una banda de 30-45. O sea que el dado viejo **no era** un
+     * sustituto de la colocación —si lo fuera, conservarlo entero habría dejado el remate con el
+     * doble de azar—: era la suerte de un remate masivo, y la colocación es un término NUEVO que se
+     * le suma. El paso 21 puede recalibrarlo con las otras [calibrar]; hoy la medida dice 1.
+     */
+    residualLuck: 1,
+    boxedThreshold: 0.55,
+    /**
+     * CUÁNTOS CABEN A LA PAR EN EL ÚLTIMO KILÓMETRO. El diseño lo saca del ancho de la carretera
+     * —`clamp(floor(roadWidth/1,5), 1, 4)`, R15b.4— y **`roadWidth` no existe todavía**: entra con
+     * la carretera del paso 15. Hasta entonces manda el tres, que es el centro de ese rango y el
+     * número de trenes que de verdad caben en una avenida de meta.
+     */
+    lanes: 3,
+    /** DERIVADA del suelo de `launchEffect` 0,7. */
+    boxedEffect: 0.72,
+    /** El último giro: 1,5 km, y los tres primeros salen con 2,5 cuerpos (S-446 da «dos o tres»). */
+    lastTurnKm: 1.5,
+    turnGainM: 2.5,
+    turnWinners: 3,
+    /** DERIVADA de «las 15 primeras posiciones» de S-241 sobre 60. */
+    sectorSafePlace: 0.25,
+    sectorLossS: 8,
+    /** λ_selección = base · (0,4 + 1,2 · placement): el que va delante pasa; el que va 80.º, no. */
+    sectorLambdaBase: 0.4,
+    sectorLambdaSlope: 1.2,
+    /** LA DECISIÓN DE ABRIR EL ABANICO (R15a.3b). Sin ella el invariante 60 no medía nada. */
+    echelonWindMin: 0.45,
+    echelonReadyPlace: 0.25,
+    echelonVictimPlace: 0.45,
+    /** Y a quién se le hace: un rival de la general, no el 140.º de la clasificación. */
+    echelonVictimRank: 20,
+    echelonBudgetMax: 0.6,
+    echelonCommit: 0.92,
+    echelonKm: 6,
+    echelonSpend: 1.4,
+    /** El bajador (R15a.7): DES ≥ 72 y duty de peón, y la carta baja a su rueda. */
+    descenderMin: 72,
+    descentNoHelperS: 20,
+    /** A partir de aquí la bajada selecciona ENTERA y no solo su primer km (S-280). */
+    descentFinalKmToGo: 25,
+    /**
+     * EL AÑO DE CONTRATO (R15a.8): +0,15 de apetito al que se juega el suyo, y una décima menos de
+     * umbral para colocarse. El que YA firmó fuera se guarda la mitad de todo lo que esté por encima
+     * de su deber de rol.
+     */
+    showcaseAppetite: 0.15,
+    showcasePlace: 0.1,
+    quietRetreatDamp: 0.55,
+  },
+
+  /**
+   * EL TOPE DE LOS CINCO MULTIPLICADORES TÁCTICOS DEL COSTE (§9.1bis). La suma no puede mover el
+   * coste de un bloque más de un ±60 %. Sale de que los dos grandes —`pushCost` 0,45 y
+   * `accordionGain` 0,35— coincidan en el peor caso sin volver el bloque incoherente con la erosión
+   * medida. Sin tope, cinco términos [calibrar] sumándose es la forma exacta de mover `erosion.*`
+   * sin que nadie lo vea.
+   */
+  tacticalCostCap: 0.6,
+
+  launchWorstFinisherM: 90,
+
+  muroMaxKm: 1,
+  muroMinGradient: 8,
+
   finishRoleWeight: {
     cazaetapas: 1.0,
     sprinter: 1.0,

@@ -13,12 +13,14 @@ import { useQuery } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
 import { fetchOrders, fetchTeamTraining, saveOrders, saveTeamTraining } from '../api/training'
 import { Panel, SectionBar } from '../components/Panel'
+import { PlanLadder } from '../components/PlanLadder'
 import {
   type DayEdit,
   type DayPlan,
   adoptTeamSuggestions,
   applyEdits,
   buildServerPlan,
+  onlyEdited,
   withEdit,
 } from '../domain/trainingPlan'
 
@@ -62,6 +64,7 @@ export function Training() {
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [teamMsg, setTeamMsg] = useState<string | null>(null)
+  const [diaADia, setDiaADia] = useState(false)
 
   const raceDays = new Set(query.data?.raceDays ?? [])
   const travelByDay = new Map((query.data?.travelDays ?? []).map((t) => [t.gameDay, t]))
@@ -99,7 +102,7 @@ export function Training() {
     setSaving(true)
     setError(null)
     try {
-      await saveOrders(plan)
+      await saveOrders(onlyEdited(plan, edits))
       setSaved(true)
       // Refresca la base con lo que acaba de quedar guardado (las ediciones ya coinciden con ella).
       await query.refetch()
@@ -126,9 +129,11 @@ export function Training() {
     <section className="space-y-4">
       <SectionBar>Training plan</SectionBar>
       <p className="text-sm text-slate-500">
-        Leave your orders for the next {horizonte} days. Without orders, your coach picks a
-        reasonable plan. On race days you rest and race — no training.
+        Pick your month in four blocks and see how you'll arrive at each race. Every day is still
+        yours to edit below. On race days you rest and race — no training.
       </p>
+
+      <PlanLadder />
 
       {team.data && (team.data.plan.length > 0 || team.data.canEdit) && (
         <Panel title="Team training plan">
@@ -161,8 +166,21 @@ export function Training() {
         </Panel>
       )}
 
-      <Panel title="Training plan">
-        <div className="space-y-2">
+      {/*
+        LOS 28 DÍAS SIGUEN AHÍ, y eso es dictado del dueño: la escalera de bloques sube el NIVEL de
+        la decisión, no se la quita a nadie. Van PLEGADOS porque veintiocho filas de desplegables
+        abiertas de golpe son otra vez el muro que la escalera vino a arreglar.
+      */}
+      <Panel title="Edit day by day">
+        <button
+          type="button"
+          onClick={() => setDiaADia((x) => !x)}
+          aria-expanded={diaADia}
+          className="mb-2 text-sm font-medium text-brand-cyan hover:underline"
+        >
+          {diaADia ? 'Hide the 28 days' : 'Show the 28 days'}
+        </button>
+        <div className={diaADia ? 'space-y-2' : 'hidden'}>
           {semanas.map((semana, iSemana) => (
             <div key={iSemana} className="space-y-2">
               {/* Cada semana con su cabecera: con veintiocho días seguidos el jugador no sabe dónde
@@ -287,16 +305,20 @@ export function Training() {
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <button
           type="button"
           onClick={onSave}
-          disabled={saving}
+          disabled={saving || Object.keys(edits).length === 0}
           className="rounded-lg bg-indigo-600 px-4 py-2.5 font-medium text-white transition hover:bg-indigo-500 disabled:opacity-50"
         >
-          {saving ? 'Saving…' : 'Save plan'}
+          {saving ? 'Saving…' : 'Save day edits'}
         </button>
         {saved && <span className="text-sm text-emerald-600">Saved.</span>}
+        <span className="text-xs text-slate-400">
+          Only the days you changed are saved. Anything you leave alone goes back to your blocks —
+          or to your coach.
+        </span>
       </div>
     </section>
   )

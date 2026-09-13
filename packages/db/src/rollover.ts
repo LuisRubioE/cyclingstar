@@ -1,12 +1,15 @@
 import { randomUUID } from 'node:crypto'
 import {
+  BANISTER,
   type Division,
   HARD_RETIRE_AGE,
+  MORALE,
   generateNpcRider,
   neoproAge,
+  sampleArchetype,
   shouldRetire,
 } from '@cyclingstar/engine'
-import { ATTRIBUTES, VOCATIONS, type Vocation, riderAge, seededRng } from '@cyclingstar/shared'
+import { ATTRIBUTES, riderAge, seededRng } from '@cyclingstar/shared'
 import { and, eq, inArray, isNotNull, isNull, lt, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import { generateName } from './names.js'
@@ -119,12 +122,19 @@ async function insertNeopro(
   teamCountry?: string | null,
 ): Promise<void> {
   const rng = seededRng(`${seed}:meta`)
-  const vocation: Vocation = pick(VOCATIONS, rng)
+  /** El arquetipo del neopro, con las cuotas de su división: un cuarto son gregarios. */
+  const archetype = sampleArchetype(rng, division)
   // Núcleo nacional: mayoría del país del equipo cuando ficha para uno (SPEC 7.1).
   const country =
     teamCountry && rng() < NATIONAL_CORE_SHARE[division] ? teamCountry : pick(COUNTRIES, rng)
   const age = neoproAge(rng)
-  const genome = generateNpcRider(`${seed}:genome`, { division, vocation, age })
+  const genome = generateNpcRider(`${seed}:genome`, {
+    division,
+    vocation: 'fondo',
+    age,
+    v2: true,
+    archetype,
+  })
   const name = generateName(`${seed}:name`, { country, gender: 'M' }).fullName
   const id = randomUUID()
   await tx.insert(riders).values({
@@ -138,11 +148,11 @@ async function insertNeopro(
     residence: (teamId ? (teamCountry ?? country) : country) ?? country,
     gender: 'M',
     birthSeason: newSeason - (age - 20),
-    archetype: vocation,
+    archetype,
     faceSeed: `${id}:face`,
-    ctl: 45,
-    atl: 45,
-    morale: 60,
+    ctl: BANISTER.initialCtl,
+    atl: BANISTER.initialAtl,
+    morale: MORALE.mean,
   })
   await tx
     .insert(riderAttrs)

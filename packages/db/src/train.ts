@@ -1,14 +1,20 @@
-import { type RiderDayState, simulateRiderDay } from '@cyclingstar/engine'
+import { HEALTH, type RiderDayState, TRAINING, simulateRiderDay } from '@cyclingstar/engine'
 import {
   ATTRIBUTES,
   type Attribute,
+  type CoachBlock,
+  type Intensity,
   type TrainingChoice,
-  defaultCoachPlan,
+  SESSION_CATALOG,
+  type Session,
+  blockWeek,
+  coachPlan,
   groupTrainingMultiplier,
+  riderAge,
   seasonPosition,
   seededRng,
 } from '@cyclingstar/shared'
-import { and, eq } from 'drizzle-orm'
+import { and, eq, gte, inArray, lt, lte } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import { ridersTravellingOutbound } from './riderSchedule.js'
 import {
@@ -18,8 +24,11 @@ import {
   riderHidden,
   riders,
   teamTrainingOrders,
+  teams,
   trainingOrders,
+  trainingPlans,
 } from './schema.js'
+import type { TrainingMode } from './training.js'
 
 /**
  * El tick entrena (Paso 19, SPEC 5). Por cada día de juego y corredor del mundo aplica la
@@ -27,9 +36,9 @@ import {
  * atributos, estado de forma/salud/moral, el log diario y las variaciones de atributos.
  */
 
-// Edad de debut de un neoprofesional (SPEC 10 no fija la del creado por usuario). Envejece
-// un año por temporada.
-const DEBUT_AGE = 20
+/** La ventana de «esa semana» del SPEC: los siete días anteriores a hoy. */
+const TRAINED_WINDOW_DAYS = 7
+const VACIO: ReadonlySet<Attribute> = new Set()
 
 type Db = ReturnType<typeof drizzle>
 type Tx = Parameters<Parameters<Db['transaction']>[0]>[0]
@@ -111,8 +120,73 @@ export async function trainWorldDay(
     .where(eq(teamTrainingOrders.gameDay, gameDay))
   const teamPlanByTeam = new Map(teamOrderRows.map((o) => [o.teamId, o]))
 
+  /**
+   * EL MODO DEL PLAN Y EL PLAN POR BLOQUES (D0-D4, docs/entrenamiento.md §5.3, paso 11).
+   *
+   * `entrenador` gana a todo lo demás **a propósito**: quien lo elige está diciendo «decide tú cada
+   * día», y el entrenador decide con el TSB de HOY, que es mejor información que la foto que el
+   * jugador vio hace veintiocho días. Por eso ni siquiera se miran sus órdenes viejas.
+   */
+  const modeByRider = new Map(riderRows.map((r) => [r.id, r.trainingMode as TrainingMode]))
+  const planRows = await tx
+    .select()
+    .from(trainingPlans)
+    .where(and(lte(trainingPlans.startDay, gameDay), gte(trainingPlans.startDay, gameDay - 27)))
+  const planByRider = new Map(planRows.map((p) => [p.riderId, p]))
+
+  /**
+   * LAS INSTALACIONES Y EL STAFF DE CADA EQUIPO, que hasta aquí no leía nadie.
+   *
+   * `teams.facilities` se sorteaba al crear el mundo entre 0,90 y 1,20 y `train.ts` pasaba
+   * `kInst: 1` a pelo: la columna se rellenaba, decidía cero cosas, y un equipo con instalaciones de
+   * 1,20 entrenaba exactamente igual que uno con 0,90. Es el mismo defecto que la v55 encontró en
+   * `fame`, y por eso existe la prueba que vigila las columnas con defecto numérico que nadie usa.
+   */
+  const teamRows = await tx
+    .select({ id: teams.id, facilities: teams.facilities, staffLevel: teams.staffLevel })
+    .from(teams)
+    .where(eq(teams.worldId, worldId))
+  const kInstByTeam = new Map(
+    teamRows.map((t) => [
+      t.id,
+      Math.min(TRAINING.kInstMax, Math.max(TRAINING.kInstMin, t.facilities)),
+    ]),
+  )
+  const kStaffByTeam = new Map(
+    teamRows.map((t) => [
+      t.id,
+      Math.min(TRAINING.kStaffMax, 1 + TRAINING.kStaffPerLevel * t.staffLevel),
+    ]),
+  )
+
   // La elección de sesión de cada corredor que entrena hoy: su ORDEN propia, si no el PLAN DE EQUIPO
   // (los del equipo se alinean y ganan el bonus de grupo) y, si no hay ninguno, el plan del entrenador.
+  /** Qué hizo ayer cada uno y cuántas veces apretó en la semana: los dos guardarraíles del bot. */
+  const ayerPorCorredor = new Map<string, Session>()
+  const fuertesRecientes = new Map<string, number>()
+  for (const fila of await tx
+    .select({
+      riderId: riderDailyLog.riderId,
+      gameDay: riderDailyLog.gameDay,
+      activity: riderDailyLog.activity,
+      tss: riderDailyLog.tss,
+    })
+    .from(riderDailyLog)
+    .where(and(gte(riderDailyLog.gameDay, gameDay - 7), lt(riderDailyLog.gameDay, gameDay)))) {
+    const sesion = fila.activity as Session
+    if (fila.gameDay === gameDay - 1) ayerPorCorredor.set(fila.riderId, sesion)
+    /**
+     * SI APRETÓ ESE DÍA, DEDUCIDO DEL TSS. La bitácora no guarda la intensidad —solo la sesión y la
+     * carga—, y sin esto el guardarraíl «nunca fuerte más de un día de cada siete» tendría siempre
+     * un cero de entrada: existiría en el código y no dispararía jamás. El TSS es función pura de
+     * (sesión, intensidad), así que la deducción es exacta y no una estimación.
+     */
+    const cat = SESSION_CATALOG[sesion]
+    if (cat !== undefined && cat.variableIntensity && fila.tss >= cat.tss.fuerte) {
+      fuertesRecientes.set(fila.riderId, (fuertesRecientes.get(fila.riderId) ?? 0) + 1)
+    }
+  }
+
   const choiceByRider = new Map<string, TrainingChoice>()
   for (const rider of riderRows) {
     if (skip.has(rider.id)) continue
@@ -122,18 +196,74 @@ export async function trainWorldDay(
       choiceByRider.set(rider.id, { session: 'viaje', intensity: 'normal' })
       continue
     }
-    const order = ordersByRider.get(rider.id)
-    const teamPlan = rider.teamId ? teamPlanByTeam.get(rider.teamId) : undefined
+    const modo = modeByRider.get(rider.id) ?? 'mixto'
+    const order = modo === 'entrenador' ? undefined : ordersByRider.get(rider.id)
+    const teamPlan = modo === 'mixto' && rider.teamId ? teamPlanByTeam.get(rider.teamId) : undefined
+
+    /**
+     * EL BLOQUE QUE EL JUGADOR ELIGIÓ PARA ESTA SEMANA, si eligió alguno. Un bloque a `null` no es
+     * «sin decidir»: es «de esta semana decide el entrenador», y por eso se cae al `coachPlan` de
+     * abajo en vez de rellenarse con un valor por defecto.
+     */
+    let bloqueDelJugador: TrainingChoice | undefined
+    const fila = modo === 'entrenador' ? undefined : planByRider.get(rider.id)
+    if (fila) {
+      const semana = Math.floor((gameDay - fila.startDay) / 7)
+      const bloque = [fila.block1, fila.block2, fila.block3, fila.block4][semana] as
+        CoachBlock | null | undefined
+      if (bloque) {
+        bloqueDelJugador = blockWeek(
+          bloque,
+          rider.archetype,
+          gameDay,
+          (fila.focusAttr as Attribute | null) ?? null,
+          (fila.intensity as Intensity | null) ?? 'normal',
+        )
+      }
+    }
+
     choiceByRider.set(
       rider.id,
       order
         ? { session: order.session, intensity: order.intensity }
-        : teamPlan
-          ? { session: teamPlan.session, intensity: teamPlan.intensity }
-          : // …Y EL ENTRENADOR MIRA PARA QUÉ ES ESTE CORREDOR (v53). Sin la vocación le daba a todo el
-            // mundo la semana del completo, y un velocista no entrenaba el sprint en su vida.
-            defaultCoachPlan(gameDay, rider.archetype),
+        : bloqueDelJugador
+          ? bloqueDelJugador
+          : teamPlan
+            ? { session: teamPlan.session, intensity: teamPlan.intensity }
+            : /**
+               * EL ENTRENADOR v2 (docs/entrenamiento.md §5.5): decide MIRANDO al corredor —salud,
+               * frescura, tensión acumulada, qué hizo ayer, cuántas veces ha apretado esta semana— en
+               * vez de recorrer un ciclo fijo de catorce días que no miraba nada.
+               *
+               * Lo que el contexto todavía NO trae va dicho en vez de fingido: el calendario del
+               * corredor. `daysToNextRace`, si esa carrera es su objetivo y el objetivo del equipo
+               * salen del roster y del plan de carrera, y eso llega con la pantalla del plan. Sin
+               * ellos el entrenador cae en su mesociclo de tres semanas, que es lo que hacía antes:
+               * no empeora nada y mejora en lo que sí sabe.
+               */
+              coachPlan({
+                gameDay,
+                seasonDay: seasonPosition(gameDay).dayOfSeason,
+                archetype: rider.archetype,
+                tsb: rider.ctl - rider.atl,
+                health: rider.health,
+                strainDays: rider.strainDays,
+                daysToNextRace: null,
+                nextRaceIsGoal: false,
+                nextRaceStages: 1,
+                teamGoalInDays: null,
+                daysSinceBlockEnd: null,
+                lastBlockDays: 0,
+                hardLast7: fuertesRecientes.get(rider.id) ?? 0,
+                yesterday: ayerPorCorredor.get(rider.id) ?? null,
+              }),
     )
+    // En modo `manual` el hueco es descanso activo y no el entrenador: quien elige planificar a mano
+    // está diciendo «lo que yo no escriba, no se entrena». Se aplica al final para no duplicar la
+    // cadena de precedencia de arriba.
+    if (modo === 'manual' && !order && !bloqueDelJugador) {
+      choiceByRider.set(rider.id, { session: 'descanso_activo', intensity: 'normal' })
+    }
   }
   // Pre-paso de entrenamiento en grupo: por equipo y sesión, cuántos compañeros la entrenan hoy.
   // Un corredor gana bonus si varios del MISMO equipo hacen la MISMA sesión de grupo ese día.
@@ -145,6 +275,50 @@ export async function trainWorldDay(
     if (travelling.has(rider.id)) continue
     const key = `${rider.teamId}:${choice.session}`
     teamSessionCount.set(key, (teamSessionCount.get(key) ?? 0) + 1)
+  }
+
+  /**
+   * QUÉ MOVIÓ CADA UNO EN LOS ÚLTIMOS SIETE DÍAS, entrenando o corriendo.
+   *
+   * Amortigua el declive por edad: el SPEC dice «lo que se entrenó esa semana» y el motor miraba
+   * solo el día de hoy, así que un veterano que trabaja un atributo tres veces por semana lo veía
+   * decaer entero los otros cuatro días. `rider_attr_log` ya tenía el dato y nadie lo leía.
+   *
+   * Una sola consulta para todo el mundo y no una por corredor: son 442 corredores por día.
+   */
+  const movidoReciente = new Map<string, Set<Attribute>>()
+  for (const fila of await tx
+    .select({ riderId: riderAttrLog.riderId, attr: riderAttrLog.attr })
+    .from(riderAttrLog)
+    .where(
+      and(
+        gte(riderAttrLog.gameDay, gameDay - TRAINED_WINDOW_DAYS),
+        lt(riderAttrLog.gameDay, gameDay),
+        inArray(riderAttrLog.source, ['entrenamiento', 'carrera']),
+      ),
+    )) {
+    const set = movidoReciente.get(fila.riderId) ?? new Set<Attribute>()
+    set.add(fila.attr)
+    movidoReciente.set(fila.riderId, set)
+  }
+
+  /**
+   * CUÁNTAS SESIONES DE GIMNASIO LLEVA CADA UNO EN DOS SEMANAS. Dos o más bajan su fragilidad
+   * efectiva un 5 %, que es lo que el SPEC promete del gimnasio y hasta ahora no hacía nadie.
+   * Sale de la bitácora diaria, que ya guarda qué hizo cada uno cada día.
+   */
+  const gimnasioReciente = new Map<string, number>()
+  for (const fila of await tx
+    .select({ riderId: riderDailyLog.riderId })
+    .from(riderDailyLog)
+    .where(
+      and(
+        gte(riderDailyLog.gameDay, gameDay - HEALTH.gymWindowDays),
+        lt(riderDailyLog.gameDay, gameDay),
+        eq(riderDailyLog.activity, 'gimnasio'),
+      ),
+    )) {
+    gimnasioReciente.set(fila.riderId, (gimnasioReciente.get(fila.riderId) ?? 0) + 1)
   }
 
   // Los logs se acumulan y se insertan en lote al final.
@@ -161,7 +335,11 @@ export async function trainWorldDay(
       attrsByRider.get(rider.id) ??
       (Object.fromEntries(ATTRIBUTES.map((a) => [a, 0])) as Record<Attribute, number>)
 
-    const choice = choiceByRider.get(rider.id) ?? defaultCoachPlan(gameDay, rider.archetype)
+    // Ya decidido arriba, en el pre-paso que cuenta cuántos entrenan lo mismo hoy.
+    const choice = choiceByRider.get(rider.id) ?? {
+      session: 'fondo' as const,
+      intensity: 'normal' as const,
+    }
     // Compañeros (sin contarse) haciendo la misma sesión hoy → bonus de grupo.
     const mates = rider.teamId
       ? (teamSessionCount.get(`${rider.teamId}:${choice.session}`) ?? 1) - 1
@@ -175,20 +353,24 @@ export async function trainWorldDay(
       morale: rider.morale,
       health: rider.health,
       healthUntilDay: rider.healthUntilDay,
+      strainDays: rider.strainDays,
+      illDays: rider.illDays,
     }
 
     const result = simulateRiderDay(state, {
       gameDay,
-      age: DEBUT_AGE + (currentSeason - rider.birthSeason),
+      age: riderAge(rider.birthSeason, currentSeason),
       ceilings: hidden.ceilings as Record<Attribute, number>,
       talent: hidden.talent,
       fragility: hidden.fragility,
       peakAge: hidden.peakAge,
       declineAge: hidden.declineAge,
       choice,
-      kInst: 1,
-      kStaff: 1,
+      kInst: rider.teamId ? (kInstByTeam.get(rider.teamId) ?? 1) : 1,
+      kStaff: rider.teamId ? (kStaffByTeam.get(rider.teamId) ?? 1) : 1,
       kGroup,
+      trainedLast7: movidoReciente.get(rider.id) ?? VACIO,
+      gymSessionsLast14: gimnasioReciente.get(rider.id) ?? 0,
       rng: seededRng(`${worldSeed}:${rider.id}:${gameDay}`),
     })
 
@@ -200,6 +382,8 @@ export async function trainWorldDay(
         morale: result.state.morale,
         health: result.state.health,
         healthUntilDay: result.state.healthUntilDay,
+        strainDays: result.state.strainDays ?? 0,
+        illDays: result.state.illDays ?? 0,
       })
       .where(eq(riders.id, rider.id))
 
@@ -211,7 +395,19 @@ export async function trainWorldDay(
           .update(riderAttrs)
           .set({ value: after })
           .where(and(eq(riderAttrs.riderId, rider.id), eq(riderAttrs.attr, attr)))
-        attrLogValues.push({ riderId: rider.id, gameDay, attr, delta: after - before })
+        /**
+         * ORIGEN `entrenamiento`, y lo que eso quiere decir HOY con exactitud: este delta es el
+         * NETO del día —ganancia menos declive menos detraining— porque `simulateRiderDay` devuelve
+         * el estado final y no el desglose. El enum tiene `declive` y `detraining` porque los va a
+         * necesitar, pero escribirlos ahora sería repartir un número que nadie ha separado.
+         */
+        attrLogValues.push({
+          riderId: rider.id,
+          gameDay,
+          attr,
+          delta: after - before,
+          source: 'entrenamiento',
+        })
       }
     }
 
