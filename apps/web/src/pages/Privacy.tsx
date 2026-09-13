@@ -21,7 +21,9 @@ export function Privacy() {
           <h2 className="font-semibold text-slate-800">Your IP address</h2>
           <p>
             When you create a rider we may look up your country from your IP to pre-select a flag.
-            The lookup is transient — your IP address is not stored.
+            Our server asks a public IP-to-country service (ipapi.co, ipinfo.io or ipwho.is) for the
+            two-letter country code. The lookup is transient — your IP address is not stored, and
+            the country we guess is always yours to change.
           </p>
         </div>
         <div>

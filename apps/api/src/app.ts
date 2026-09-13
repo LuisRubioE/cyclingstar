@@ -14,11 +14,13 @@ import Fastify, {
 } from 'fastify'
 import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod'
 import type { Auth } from './auth.js'
+import type { GeoIpLookup } from './geoIp.js'
 import { apiError } from './http.js'
 import { adminRoutes } from './routes/admin.js'
 import { authProxyRoutes } from './routes/authProxy.js'
 import { calendarRoutes } from './routes/calendar.js'
 import { type RouteContext, createCurrentUserId } from './routes/context.js'
+import { geoRoutes } from './routes/geo.js'
 import { healthRoutes } from './routes/health.js'
 import { raceRoutes } from './routes/races.js'
 import { rankingRoutes } from './routes/rankings.js'
@@ -46,6 +48,8 @@ export interface AppDeps {
   onAdminTick?: () => Promise<TickSummary>
   /** Avance forzado de N días de juego para pruebas: POST /admin/advance (Paso 32). */
   onAdminAdvance?: (days: number) => Promise<TickSummary>
+  /** Resolución de país por IP; en tests se inyecta un doble para no salir a la red (v59). */
+  geoLookup?: GeoIpLookup
 }
 
 /** Carpeta de la web compilada (apps/web/dist). Vacía de index.html hasta el Paso 8. */
@@ -143,6 +147,9 @@ export function buildApp(deps: AppDeps = {}): FastifyInstance {
       ? { tickIntervalMinutes: deps.tickIntervalMinutes }
       : {}),
   })
+
+  // País por IP (Paso 14): sin sesión ni base de datos, la pide la pantalla de creación de corredor.
+  void app.register(geoRoutes, { ...(deps.geoLookup ? { lookup: deps.geoLookup } : {}) })
 
   // Rutas de admin: necesitan base de datos (lista de bloqueo, censo, premium) y el token.
   if (deps.db) {
