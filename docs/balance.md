@@ -12940,3 +12940,88 @@ medida antes y después.
 
 Las cuatro huellas se re-sellan con su causa escrita y **los cuatro ganadores se conservan** —`spr-6`,
 `spr-0`, `pel-105` y `gc-0`—: la colocación no reparte piernas, reparte sitio.
+
+## v60 §16 — paso 12, la caída como suceso social
+
+`ENGINE_VERSION` **66 → 67**. R12 y R13: `stage/truce.ts` nuevo. Los dos racimos comparten una idea y
+por eso comparten fichero — **lo que pasa en la carretera y lo que el pelotón HACE con ello son dos
+cosas distintas**, y el motor solo tenía la primera.
+
+### La tregua existía en el contrato y no la producía nadie
+
+`phaseOf` sabe devolver `'tregua'` **desde el paso 5**, y hasta hoy ninguna regla la producía: se
+caía la carta de la general de un equipo y la carrera seguía a tope, que es la única cosa que en
+carretera no pasa. Ahora la pide el capitán del equipo del caído —solo si el caído era su carta de la
+general: por un gregario no para nadie, y eso es media regla— y el pelotón concede o niega con cinco
+puertas.
+
+**Y cuando se niega, se dice por qué.** Una tregua negada porque quedaban veinte kilómetros y una
+negada porque el segundo de la general olió el minuto son dos noticias distintas.
+
+### Lo que la medida corrigió: **en juego no está lo que el caído pierde**
+
+Primera versión: pedida en el 4,7 % de las etapas —dentro de su banda de 5-20 %— y concedida en el
+**0 %**, contra una banda de 50-85 %. Con el desglose de motivos delante, 7 de 12 negativas eran
+«emboscada».
+
+El error era de magnitud, no de umbral. Comparaba contra el tiempo que el caído pierde **por
+caerse**, y eso lo pierde igual: se espere o no. Lo que un rival gana apretando es solo la parte que
+el pelotón le puede NEGAR después —el regreso que se le consiente—, y es una fracción. Con el tiempo
+entero como apuesta, cualquier caída de más de medio minuto superaba el umbral y **la emboscada era
+el caso por defecto**, lo que contradice a la propia regla: emboscar «cuesta reputación y
+presupuesto, y por eso no siempre pasa».
+
+| reina con general abierta, 150 semillas | pedidas | concedidas |
+| --------------------------------------- | ------- | ---------- |
+| apuesta = lo que pierde el caído        | 4,7 %   | **0 %**    |
+| apuesta = lo que se le puede negar      | 4,7 %   | **14 %**   |
+
+**Y ahí se para la calibración, con la razón escrita.** El 14 % sigue por debajo del 50-85 %, y no se
+toca `ambushGainShare` para llegar: son **doce sucesos en trescientas etapas**, y afinar una constante
+contra doce tiradas es exactamente lo que esta misma tanda ha llamado dos veces «medir el dado». Y
+falta la mitad de la regla: la reputación (`goodwill`) es de R09 —**paso 16**— y es, por texto de la
+propia regla, lo que decide quién concede. Se recalibra cuando exista.
+
+### Lo que sí se midió: el que tira hasta apagarse
+
+R13.3 dice que «cuando el hombre que tiraba se apaga, el relevo pasa al siguiente del equipo y se
+nota». Hoy el que tira tira hasta meta aunque no le quede nada:
+
+| 12 semillas por escenario | pájaras apagado | pájaras encendido |
+| ------------------------- | --------------- | ----------------- |
+| clásica más dura          | 10,8 %          | **10,2 %**        |
+| Il Lombardia              | 10,8 %          | **10,2 %**        |
+| clásica larga             | 1,3 %           | 1,1 %             |
+
+Baja, y tiene que bajar: sacar del turno al que va vacío es exactamente lo que evita que reviente. Y
+la mediana no se mueve (0,840 → 0,839).
+
+**En la llana canónica el racimo es inerte, y eso también es la medida**: nadie baja del 15 % de
+depósito en una etapa llana y ninguna carta va derivando. Son reglas de días duros. Forzándolas
+—todos apagados, todos viendo sufrir— la fuga se va del 5 % al 20 %, así que el cableado está vivo;
+con los valores de diseño no se activan porque la situación no se da.
+
+### Y una que no se puede afirmar
+
+El diseño señala un defecto con nombre: el rescate solo se dispara si el jefe va en un grupo de
+descolgados, así que **`rescueInMovePct` vale 0 %**. La puerta se quita; el número **sigue siendo
+0 %** en los dos brazos, y la causa es que en este motor un `mov` va SIEMPRE por delante del pelotón
+—los grupos que nacen de un ataque son grupos de cabeza— mientras que `dropOut` siempre crea o une un
+`shed`. O sea que el caso que el diseño describe no existe en este modelo de grupos. El arreglo queda
+puesto y es inerte; **no se apunta una mejora que no se ha medido**.
+
+### Las huellas, contadas fila a fila
+
+`ENGINE_VERSION` 66 → 67, y el movimiento es el predicho: pequeño, en la cola y con los ganadores
+intactos.
+
+| huella        | filas que cambian | qué cambia                                        |
+| ------------- | ----------------- | ------------------------------------------------- |
+| `llana-180-0` | **2** de 176      | los dos últimos entran 90 s antes (14.883→14.793) |
+| `reina-150-1` | **5** de 176      | permutaciones dentro del mismo segundo            |
+| `llana-180-1` | 0                 | ni un dígito                                      |
+| `reina-150-0` | 0                 | ni un dígito                                      |
+
+Los 90 s de la llana son la regla entera en una línea: el que iba tirando del grupeto se apagó y le
+relevó otro. Y que dos de cuatro no se muevan tampoco es un descuido —es que corren **sin general en
+juego**, y sin general nadie pide una tregua.

@@ -45,6 +45,14 @@ import {
   targetSpeed,
 } from './physics.js'
 import { blockProbability, rollHazard } from './hazard.js'
+import {
+  mateSeesTrouble,
+  pullerCollapsed,
+  taponLossS,
+  taponVictim,
+  threeKmRule,
+  truceVerdict,
+} from './truce.js'
 import { type RelayQueue, advanceQueue, emptyQueue } from './relayQueue.js'
 import { believedGap, bloodFactor, dirQualityOf, infoLagKm, readState } from './director.js'
 import { type ChaseCandidate, chaseTargetOf, desiredGapOf, frontClaimOf } from './frontAuction.js'
@@ -687,6 +695,12 @@ function relayTurn(
    */
   cola: RelayQueue | null = null,
   terrenoCola: 'llano' | 'subida' | 'abanico' = 'llano',
+  /**
+   * CUÁNTO SE APARTA ESTE HOMBRE DEL TURNO (R13.2 + R13.3, paso 12). Viene resuelto de fuera porque
+   * las dos preguntas que lo deciden —¿está apagado? ¿su carta está sufriendo?— necesitan el estado
+   * de otros corredores, y esta función solo ve el grupo. Vale 0 con el paso apagado.
+   */
+  seApartaDe: (riderId: string) => number = () => 0,
 ): Set<string> {
   const scored = members.map((m) => {
     const helpers = domestiquesFor.get(m.input.riderId)
@@ -706,6 +720,19 @@ function relayTurn(
      * no lo sea— sale lo que se ve en carretera: tira el equipo que manda y los demás se miran.
      */
     const paraMí = Math.max(0, Math.min(1, 1 - drive))
+    /**
+     * LA PÁJARA DEL QUE TIRA (R13.3, S-206, paso 12): «cuando el hombre que tiraba se apaga, el
+     * relevo pasa al siguiente del equipo **y se nota**».
+     *
+     * Hoy el que tira tira hasta meta aunque no le quede nada: el deber baja con la frescura, sí,
+     * pero baja despacio y nunca le saca del turno. Por debajo del 15 % de depósito uno no está
+     * dando relevos, está aguantando, y el siguiente de su casa se pone delante.
+     *
+     * Y EL GREGARIO SE APARTA AL VER (R13.2, S-259/S-288): un leal que ve a su carta derivando sale
+     * del turno **antes de que el hueco exista**. Es un disparador ADICIONAL al hueco de veintidós
+     * segundos, no una rebaja de ese umbral: bajarlo es otro paso, con su huella delante.
+     */
+    const seAparta = seApartaDe(m.input.riderId)
     return {
       id: m.input.riderId,
       // …y si sus hombres trabajan por él. En un abanico es lo ÚNICO que sigue sacando a alguien del
@@ -718,6 +745,7 @@ function relayTurn(
         // sin esto, el corte de trece hombres a 25 km de meta ponía DOS a rotar —los otros once
         // salían con el deber en negativo por no tener opciones— y los 159 de detrás, que sí ponían
         // veinte, se lo comían.
+        seAparta -
         (enAbanico ? 0 : STAGE.relayNoChanceWeight * paraMí * sinOpciones(m.input.riderId)) -
         /**
          * EL MAILLOT NO DA LA CARA AL VIENTO MIENTRAS HAYA OTRO QUE PUEDA (v57).
@@ -1936,6 +1964,49 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
   const dirOn = input.flags?.director === true || STAGE.director.enabled
   /** ¿Y la colocación del paso 14? Ver `STAGE.placement.enabled`. */
   const colocacionOn = input.flags?.placement === true || STAGE.placement.enabled
+  /** ¿Y la tregua, el rescate y el hundimiento observable del paso 12? Ver `STAGE.truce.enabled`. */
+  const rescateOn = input.flags?.truce === true || STAGE.truce.enabled
+  /**
+   * CUÁNTO SE APARTA DEL TURNO ESTE HOMBRE (R13.2 + R13.3, paso 12). Dos motivos, y los dos son
+   * lectura y no física: **está apagado** —por debajo del 15 % de depósito uno no da relevos,
+   * aguanta— y **ve sufrir a su carta** —un leal que la ve derivando sale del turno antes de que el
+   * hueco de veintidós segundos exista, que es lo que un gregario hace en carretera—.
+   *
+   * Vive aquí y no dentro de `relayTurn` porque las dos preguntas necesitan el estado de OTRO
+   * corredor, y aquella función solo ve su grupo.
+   */
+  /**
+   * HASTA QUÉ KILÓMETRO DURA LA TREGUA (R12.2, S-237), y `null` si no hay ninguna.
+   *
+   * «La tregua no la dispara el terreno: **la pide alguien**, y el pelotón la concede o la niega
+   * según quién pida y cómo se portó antes». Ésa es la frase entera del racimo, y lo que el motor
+   * tenía era lo contrario: nada. Se caía la carta de la general de un equipo y la carrera seguía a
+   * tope, que es la única cosa que en carretera no pasa.
+   */
+  let treguaHasta: number | null = null
+  /**
+   * Y A QUIÉN SE LE CONCEDIÓ. Lo lee la crónica —una tregua sin dueño no es una noticia, es una
+   * bajada de ritmo— y lo leerá R09 el día que la reputación exista: conceder sube el `goodwill` de
+   * los que concedieron y negarla se lo baja al que la negó, y **eso se cobra mañana**.
+   */
+  let treguaDe: string | null = null
+  /** Una por etapa y por equipo: nadie pide tregua dos veces el mismo día. */
+  const treguaPedidaPor = new Set<string>()
+  const seApartaDelTurno = (riderId: string): number => {
+    if (!rescateOn) return 0
+    const m = sims.get(riderId)
+    if (m == null) return 0
+    let peso = 0
+    if (pullerCollapsed(m.energy, m.energy0)) peso += STAGE.truce.stepAsideWeight
+    const suJefe = worksFor.get(riderId)
+    if (suJefe != null) {
+      const jefe = sims.get(suJefe.targetId)
+      if (jefe != null && jefe.groupId === m.groupId && mateSeesTrouble(jefe.driftS)) {
+        peso += STAGE.truce.stepAsideWeight
+      }
+    }
+    return peso
+  }
   /**
    * HASTA QUÉ KILÓMETRO SIGUE ABIERTO EL INTENTO DE ABANICO DE CADA EQUIPO (R15a.3b). Mientras dura,
    * sus leales empujan a tope —y lo pagan—, y R15b.3 (el peón que no cierra el hueco) vale también
@@ -2372,6 +2443,11 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       kmToNextSummit: kmToNextSummit[i]!,
       dayBreakFormed,
       shortMountain,
+      /**
+       * …Y LA TREGUA (R12.2, paso 12), que hasta aquí era un campo del contrato que nadie rellenaba
+       * nunca: `phaseOf` sabía devolver `'tregua'` desde el paso 5 y **ninguna regla la producía**.
+       */
+      truceAlive: treguaHasta !== null && km <= treguaHasta,
     })
     /**
      * LA FILA DE LA FASE, con la VENTANA DE LA CAPTURA ya resuelta (R19.5). Durante los
@@ -2855,9 +2931,22 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
             const jefe = sims.get(leaderId)
             if (!jefe || jefe.finishTs !== null || jefe.abandonedKm !== null) continue
             if (jefe.groupId === bunchNow) continue
-            // Solo se va a por el que se ha QUEDADO. Al que está por delante no hay que rescatarlo.
-            const suGrupo = shed.find((g) => g.id === jefe.groupId)
+            /**
+             * Solo se va a por el que se ha QUEDADO. Al que está por delante no hay que rescatarlo.
+             *
+             * …Y «QUEDADO» ES CUALQUIER GRUPO POR DETRÁS, NO SOLO UN `shed` (R12.4, paso 12). Ésta
+             * era la puerta que fallaba, y falla de una línea: el rescate solo se disparaba si el
+             * jefe iba en un grupo de descolgados. Si quedaba cortado en un `mov` —un grupo de
+             * perseguidores nacido de un ataque, **que es el caso normal con la carrera rota**— no
+             * bajaba nadie, y el diseño lo tenía medido en `rescueInMovePct` = 0 %.
+             */
+            const suGrupo = rescateOn
+              ? (shed.find((g) => g.id === jefe.groupId) ??
+                moves.find((m) => m.g.id === jefe.groupId)?.g)
+              : shed.find((g) => g.id === jefe.groupId)
             if (!suGrupo) continue
+            // Y por delante no se rescata a nadie, vaya en el grupo que vaya.
+            if (suGrupo.tS <= peloton.tS) continue
             /**
              * …Y SOLO POR EL QUE SE HA QUEDADO DE VERDAD. El suelo es la PUERTA del pelotón
              * (`regroupGapSeconds`): por debajo de ella el jefe está en la fila y vuelve solo —es el
@@ -3096,6 +3185,13 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
                 // viaja resuelto a la web sin darlo de alta en ninguna tabla (apps/api/chronicle).
                 jefeId: leaderId,
                 cuantos: van.length,
+                /**
+                 * DE DÓNDE SE LE RESCATA (R12.4, paso 12). El diseño mide `rescueInMovePct` —los
+                 * rescates cuyo jefe iba en un grupo de perseguidores y no en uno de descolgados—,
+                 * que hoy vale 0 % por la puerta de una línea que esta tanda quita. Sin este dato el
+                 * arreglo no se puede vigilar desde fuera.
+                 */
+                enMov: moves.some((mv) => mv.g.id === suGrupo.id) ? 1 : 0,
                 /**
                  * CUÁNTOS SE QUEDAN DELANTE (v47). La regla del dueño para la general es «descolgar
                  * a todo el equipo menos 1», y ese «menos 1» solo existe si queda alguno de los
@@ -3792,6 +3888,17 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       if (fasesOn && !enVentanaCaptura) {
         target = Math.max(target, Math.min(targetDecidido * dosisAplicada, faseFila.commitFloor))
       }
+      /**
+       * …Y LA TREGUA MANDA SOBRE TODO LO DEMÁS (R12.2, paso 12), porque eso es lo que una tregua ES:
+       * el pelotón levanta el pie y espera. Va **al final** y como techo, después de las nueve
+       * amortiguaciones y del suelo de la fase, porque si un suelo pudiera enmendarla no sería una
+       * tregua, sería una recomendación.
+       *
+       * `truceCommit` DERIVADA de `freeRunTarget`: en una tregua no se para la carrera, se rueda.
+       */
+      if (rescateOn && treguaHasta !== null && km <= treguaHasta) {
+        target = Math.min(target, STAGE.truce.commit)
+      }
       peloton = {
         ...peloton,
         compromiso: peloton.compromiso + (target - peloton.compromiso) * STAGE.commitHysteresis,
@@ -4148,6 +4255,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
           : block.tipo === 'subida'
             ? 'subida'
             : 'llano',
+        seApartaDelTurno,
       )
       /**
        * CUÁNTOS SE REPARTEN EL VIENTO AL FRENTE: LOS QUE TIRAN, y punto (v38).
@@ -6697,6 +6805,87 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
 
     // Caídas e incidentes (SPEC 6.14): en pavés, descensos y el embudo final. El caído pierde
     // tiempo y sale del grupo; una lesión se arrastra días (lo consume el tick, no el motor).
+    /**
+     * LA TREGUA SE PIDE (R12.2). La pide el CAPITÁN del equipo del caído, y solo si el caído era su
+     * carta de la general: por un gregario no se para nadie, y ésa es media regla.
+     *
+     * El pelotón concede o niega con las cinco puertas de `truceGranted`, y la más interesante es la
+     * última: **si alguien tiene medio minuto de general sobre la mesa, no hay tregua**. Eso es la
+     * emboscada (R12.3), y que exista es lo que hace que conceder signifique algo.
+     */
+    const pideTregua = (caido: RiderSim, perdidaDelCaido: number): void => {
+      const equipo = teamOf.get(caido.input.riderId)
+      if (equipo == null || treguaPedidaPor.has(equipo)) return
+      const plan = teamPlans.get(equipo)
+      if (plan == null) return
+      if (plan.gcLeaderId !== caido.input.riderId) return
+      if (!plan.purposes.includes('maillot') && !plan.purposes.includes('general')) return
+      treguaPedidaPor.add(equipo)
+      /**
+       * LO QUE HAY SOBRE LA MESA, y **no es el hueco que ya existe en la general: es el que se
+       * abriría hoy**. La primera versión medía el déficit que ya está en la tabla, y con eso
+       * cualquier rival que fuera por delante del caído «tenía cuarenta segundos» y la tregua se
+       * negaba SIEMPRE: medido, pedida en el 5 % de las etapas y concedida en el 0 %, contra una
+       * banda de 50-85 %.
+       *
+       * Lo que un rival gana apretando ahora es **el tiempo que el caído va a perder**, y solo vale
+       * si ese rival está lo bastante cerca en la general como para que ese tiempo le cambie algo.
+       * Al que va a un cuarto de hora no le sirve de nada emboscar a nadie.
+       */
+      let mejorGananciaS = 0
+      for (const otro of teamPlans.values()) {
+        if (otro.teamId === equipo || otro.gcLeaderId === null) continue
+        if (!otro.purposes.includes('maillot') && !otro.purposes.includes('general')) continue
+        const rival = sims.get(otro.gcLeaderId)
+        if (rival == null || rival.abandonedKm !== null) continue
+        const separados = Math.abs(rival.input.gcDeficitSeconds - caido.input.gcDeficitSeconds)
+        if (separados > STAGE.truce.ambushRivalWindowS) continue
+        /**
+         * …Y LO QUE SE GANA APRETANDO **NO ES LO QUE EL CAÍDO PIERDE AL CAERSE**: eso lo pierde
+         * igual, se espere o no. Lo que está en juego es solo la parte que el pelotón le puede
+         * NEGAR después —el regreso que se le consiente o no—, y es una fracción.
+         *
+         * Con el tiempo entero como apuesta, cualquier caída de más de medio minuto superaba el
+         * umbral y la emboscada era el caso por defecto: medido sobre 300 etapas, tregua pedida en el
+         * 4 % y concedida en el **0 %**, con «emboscada» como motivo de 7 de las 12 negativas. Y eso
+         * contradice a la propia regla, que dice que emboscar «cuesta reputación y presupuesto, y por
+         * eso no siempre pasa».
+         */
+        mejorGananciaS = Math.max(mejorGananciaS, perdidaDelCaido * STAGE.truce.ambushGainShare)
+      }
+      const veredicto = truceVerdict({
+        phase: faseAhora,
+        kmToGo: totalKm - km,
+        abanicoAbierto,
+        onClimb,
+        // La reputación es de R09 (paso 16). Sin memoria todavía, todo el mundo parte de cero.
+        goodwill: 0,
+        mejorGananciaS,
+      })
+      const concedida = veredicto === 'concedida'
+      if (concedida) {
+        treguaHasta = km + STAGE.truce.km
+        treguaDe = equipo
+      }
+      log.emit(
+        km,
+        peloton.tS,
+        'tregua',
+        concedida ? 'truce_granted' : 'truce_denied',
+        [caido.input.riderId],
+        {
+          equipo,
+          // Quién la tiene concedida AHORA MISMO: si ya había una viva, ésta no se pidió.
+          ...(treguaDe !== null ? { porEquipo: treguaDe } : {}),
+          toGo: Math.round(totalKm - km),
+          // Lo que había sobre la mesa: sin esto, negar una tregua parece mezquindad y era cálculo.
+          enJuego: Math.round(mejorGananciaS),
+          // Y por qué se negó, que es lo que la crónica necesita para no contarlas todas igual.
+          ...(concedida ? {} : { motivo: veredicto }),
+        },
+      )
+    }
+
     const crashCheck = (group: Group): void => {
       const miembros = membersOf(group.id)
       const yaEnElSuelo = new Set<string>()
@@ -6712,7 +6901,26 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         // …y el percance se apunta SIEMPRE, con su kilómetro: el susto y los rasguños también
         // cuentan para que su equipo decida si baja a por él (v37).
         m.mishapKm = km
-        dropOut(m, group, perdidaS)
+        /**
+         * …Y LA REGLA DE LOS 3 KM (R12.5, S-374, paso 12). El que se va al suelo dentro de los
+         * últimos kilómetros de un final llano **toma el tiempo del grupo en el que iba**: es una
+         * regla del reglamento y existe justamente para que nadie se juegue la general en el
+         * embudo de un sprint. Sigue cayéndose —se hace daño, puede no acabar mañana— pero no
+         * pierde tiempo.
+         *
+         * En meta en alto, en la crono y en un remate en solitario **no se aplica**, y eso no es
+         * una excepción caprichosa: ahí la carrera se está decidiendo en ese mismo metro, y cada
+         * uno se come el suyo.
+         */
+        const reglaTresKm =
+          rescateOn && threeKmRule(totalKm - km, bunchFinish ? 'sprint_masivo' : 'alto')
+        dropOut(m, group, reglaTresKm ? 0 : perdidaS)
+        /**
+         * …Y SI EL QUE SE HA CAÍDO ERA LA CARTA DE LA GENERAL DE ALGUIEN, SU EQUIPO PIDE LA TREGUA
+         * (R12.2, S-237, paso 12). El pelotón la concede o la niega, y las dos cosas se narran: una
+         * tregua concedida es una noticia y una tregua NEGADA es una noticia más grande.
+         */
+        if (rescateOn && treguaHasta === null) pideTregua(m, perdidaS)
       }
       for (const m of miembros) {
         if (yaEnElSuelo.has(m.input.riderId)) continue
@@ -6754,6 +6962,26 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
               ? rollCrashSeverity(rngCrash, otro.input.fragility ?? 1)
               : rollCrashSeverityLight(rngCrash)
             alSuelo(otro, suyo, Math.max(out.perdidaS, suyo.perdidaS))
+          }
+        }
+        /**
+         * …Y DETRÁS DEL MONTÓN SE FORMA EL TAPÓN (R12.6, S-251/S-466, paso 12).
+         *
+         * Los que van justo detrás **no se caen**: se encuentran la carretera cerrada. Pierden medio
+         * minuto, o ponen pie a tierra, y eso **lo decide la posición con la que entraron**, no sus
+         * piernas. Es la diferencia entre un pelotón y una lista: en carretera, el que iba
+         * veinteavo pasa por el hueco y el que iba centésimo se baja de la bici.
+         *
+         * Depende entera de R15 y por eso no existía: hasta el paso 14 el motor no sabía por dónde
+         * iba nadie. Y solo cuenta donde de verdad no se cabe —un sector o una subida—, porque en
+         * una recta ancha el pelotón se abre y pasa.
+         */
+        if (rescateOn && colocacionOn && (onPaves || onClimb)) {
+          for (const otro of miembros) {
+            if (yaEnElSuelo.has(otro.input.riderId)) continue
+            if (otro.groupId !== group.id) continue
+            if (!taponVictim(otro.placement, m.placement)) continue
+            otro.driftS += taponLossS(otro.placement, m.placement)
           }
         }
       }
