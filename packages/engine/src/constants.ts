@@ -715,7 +715,7 @@
  * Campaña canónica de 500 corridas: **los 33 invariantes en verde**. La contrarreloj no se mueve ni
  * un dígito —es el ancla del esfuerzo individual y paga la ley lineal de siempre—.
  */
-export const ENGINE_VERSION = 64 as const
+export const ENGINE_VERSION = 65 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -4117,6 +4117,23 @@ export const STAGE = {
    * CUÁNTOS METROS ANTES ABRE EL SPRINT EL PEOR REMATADOR DEL GRUPO (R17.3, paso 8). El que no gana
    * a rueda se va de lejos —es su única carta— y el rápido espera, que es la suya.
    */
+  /**
+   * LAS PANCARTAS (R06, docs/tactica.md paso 10): la cima como punto del recorrido que alguien
+   * DECIDE disputar, y la ventana de alivio que viene después.
+   */
+  banners: {
+    enabled: true,
+    /**
+     * CUÁNTO SE RELAJA EL GRUPO JUSTO DESPUÉS DE UNA PANCARTA (R06.2) y durante cuántos km. «Se
+     * relaja justo después» es una de las cosas que cualquiera que haya visto una carrera espera y
+     * que el motor no hacía: se coronaba y el pelotón seguía al mismo ritmo.
+     */
+    reliefKm: 5,
+    reliefDamp: 0.85,
+    /** …y en esa ventana se ataca MÁS, que es la otra mitad: es cuando salta el contraataque. */
+    reliefLambda: 1.8,
+  },
+
   launchWorstFinisherM: 90,
 
   muroMaxKm: 1,

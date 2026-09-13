@@ -1377,6 +1377,21 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
   let lastCaptureKm: number | null = null
   /** Cuántas veces la aduana ha CAMBIADO de opinión sobre un movimiento ya nacido (R03.3). */
   let customsRevisions = 0
+  /**
+   * EL KM DE LA ÚLTIMA PANCARTA (R06.2, paso 10). De aquí sale la ventana de alivio: cobrada la
+   * volante o coronada la cima, **el grupo se relaja justo después** —cualquiera que haya visto una
+   * carrera lo espera y el motor no lo hacía: se coronaba y el pelotón seguía al mismo ritmo—. Y en
+   * esa ventana se ataca MÁS, que es la otra mitad: es cuando salta el contraataque.
+   */
+  let lastBannerKm: number | null = null
+  /** ¿Va la carrera dentro de la ventana de alivio de una pancarta? (R06.2). */
+  const enAlivio = (kmAhora: number): boolean =>
+    bannersOn && lastBannerKm !== null && kmAhora - lastBannerKm <= STAGE.banners.reliefKm
+  /** Cuánto afloja el grupo en esa ventana, y cuánto más se ataca. */
+  const alivioPancarta = (kmAhora: number): number =>
+    enAlivio(kmAhora) ? STAGE.banners.reliefDamp : 1
+  const lambdaPancarta = (kmAhora: number): number =>
+    enAlivio(kmAhora) ? STAGE.banners.reliefLambda : 1
 
   const kmAt = (i: number): number => (i + 0.5) * STAGE.dx
 
@@ -1820,6 +1835,8 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
   const frontOn = input.flags?.front === true || STAGE.front.enabled
   /** ¿Está encendido el juego de equipo del paso 7? Ver `STAGE.teamPlay.enabled`. */
   const colaOn = input.flags?.teamPlay === true || STAGE.teamPlay.enabled
+  /** ¿Y las pancartas del paso 10? Ver `STAGE.banners.enabled`. */
+  const bannersOn = input.flags?.banners === true || STAGE.banners.enabled
   /**
    * LAS COLAS DE RELEVOS, una por grupo y viva toda la etapa (R18.1). Se crean a demanda y se
    * quedan: un grupo que se deshace deja su cola huérfana y no cuesta nada, y uno que se rehace con
@@ -3290,7 +3307,10 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         const humor = enCuestaQueCuenta ? 1 : humorDelPeloton
         const dosis = enCuestaQueCuenta ? 1 : dosificacion
         dosisAplicada = dosis
-        target = Math.max(0.1, Math.min(1, target * humor * dosis))
+        // …Y LA VENTANA DE ALIVIO DE LA PANCARTA (R06.2): cobrada la volante o coronada la cima, el
+        // grupo se relaja. Va con las otras amortiguaciones de racimo y por tanto el suelo de fase
+        // la acota, que es lo que R19.2bis manda.
+        target = Math.max(0.1, Math.min(1, target * humor * dosis * alivioPancarta(km)))
       }
       // En los últimos km de una etapa de meta llana los trenes toman la carretera y el pelotón
       // vuela: el controlador de boquete NO puede dejarlo rodar por debajo de eso. Sin este suelo,
@@ -5177,8 +5197,19 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
        * que a rueda no gana—.
        */
       const salta = ventanaFlyer
-        ? dado() < blockProbability(STAGE.phases.lambdaFlyer, STAGE.dx)
-        : rollMoveAttempt(dado, ctx, STAGE.dx, fasesOn ? faseFila : null)
+        ? dado() < blockProbability(STAGE.phases.lambdaFlyer * lambdaPancarta(km), STAGE.dx)
+        : rollMoveAttempt(
+            dado,
+            ctx,
+            STAGE.dx,
+            // La ventana de alivio sube la cuerda igual que una fase (R06.2): el contraataque de
+            // después de la pancarta es un movimiento como otro cualquiera, solo que más probable.
+            fasesOn
+              ? { ...faseFila, lambdaScale: faseFila.lambdaScale * lambdaPancarta(km) }
+              : lambdaPancarta(km) === 1
+                ? null
+                : { ...PHASE_TABLE.control, lambdaScale: lambdaPancarta(km) },
+          )
       if (!salta) return
       lastAttemptKm.set(source.id, km)
       const type = finishType(finishTerrain, members.length)
@@ -6659,6 +6690,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       const front = frontIsMove ? membersOf(head.g.id) : membersOf(PELOTON)
       const frontTs = frontIsMove ? head.g.tS : peloton.tS
       disputeBanner(front, block, km, frontTs, log, rngSprint)
+      lastBannerKm = km
     } else if (block.banner === 'cima') {
       // Cima: puntúan los primeros en coronar en TODO el pelotón, no solo el grupo de cabeza, así
       // la clasificación de la montaña reparte entre varios escaladores (SPEC 6.11).
@@ -6667,6 +6699,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         .filter((g) => g.members.length > 0)
         .sort((a, b) => a.tS - b.tS)
       disputeClimb(groups, block, km, log, rngSprint, komLead)
+      lastBannerKm = km
     }
 
     /**
@@ -6970,14 +7003,34 @@ function disputeClimb(
       .sort((a, b) => b.score - a.score)
     for (const r of ranked) ordered.push(r.m)
   }
-  ordered.forEach((m, idx) => {
+  /**
+   * LA CASILLA DEL JUGADOR TAMBIÉN VALE EN LAS CIMAS (R06.1, docs/tactica.md paso 10).
+   *
+   * `disputeBanner` —la meta volante— lee `contestClimbs`/`contestSprints` desde siempre y solo cae
+   * en «disputan todos» si no hay nadie interesado. **Esta función no leía nada**: ordenaba a la
+   * carrera entera por `max(MON, COL)` y le cobraba la pancarta a quien cayera en puesto de puntos,
+   * hubiera decidido disputarla o no. La casilla que el jugador marca en la pantalla de órdenes
+   * simplemente no existía para los puertos, que es el contrario nº 8 del catálogo (S-031).
+   *
+   * Mismo patrón que la volante, y por el mismo motivo: quien no la disputa **ni puntúa ni paga**.
+   * Y si no hay nadie interesado, la corona quien pasa primero —una cima puntuable siempre reparte
+   * sus puntos—, que es lo que hace la otra función.
+   */
+  const interesados = STAGE.banners.enabled
+    ? ordered.filter((m) => m.input.orders.contestClimbs)
+    : []
+  const disputan = interesados.length > 0 ? interesados : ordered
+  disputan.forEach((m, idx) => {
     const pts = table[idx] ?? 0
     if (pts <= 0) return
     m.energy = Math.max(0, m.energy - STAGE.bannerCost)
     m.parte.gasto.banderas += STAGE.bannerCost
     m.climbPts += pts
   })
-  const winner = ordered[0]
+  // Y el que se lleva la cima es el primero de LOS QUE LA DISPUTAN, que es a quien se le han dado
+  // los puntos tres líneas más arriba. Nombrar al primero en coronar cuando los puntos se los llevó
+  // otro era contar dos carreras distintas en la misma frase.
+  const winner = disputan[0]
   if (winner) {
     // Datos para una crónica informativa: categoría del puerto, puntos que suma el primero, y si con
     // ellos pasa a LIDERAR la clasificación de la montaña (o solo se acerca). `ordered` tiene ya a

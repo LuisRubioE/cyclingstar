@@ -272,7 +272,22 @@ import type { Attribute } from '@cyclingstar/shared'
  * en 22**: el banco del adoquín enseñó que esa puerta es también el mecanismo por el que el fuerte
  * vuelve, y la historia entera está contada en `rejoinGapSeconds`.
  *
- * ————— LO QUE ESTAS HUELLAS VAN A HACER CUANDO LA CAPA TÁCTICA SE ENCIENDA —————
+ * ————— RE-SELLADAS EN LA v65: LAS PANCARTAS (R06, paso 10) —————
+ *
+ * Es el primer racimo de la tanda táctica que se enciende de verdad, y la causa de estas cuatro
+ * huellas es él y solo él: los otros cinco siguen apagados.
+ *
+ * Lo que cambia y por qué: **el grupo se relaja justo después de una pancarta** —cobrada la volante
+ * o coronada la cima— y en esa ventana se ataca más. Es lo que cualquiera que haya visto una carrera
+ * espera y el motor no hacía: se coronaba y el pelotón seguía al mismo ritmo. El efecto en la huella
+ * es pequeño y coherente: `llana-180-0` conserva ganador (`spr-6`) y entra **46 segundos más
+ * despacio** (14.711 → 14.757). Nadie cambia de carrera; el pelotón afloja donde tiene que aflojar.
+ *
+ * Y la otra mitad del racimo no toca la huella porque el banco no la puede ver: la casilla
+ * `contestClimbs` del jugador, que las cimas ignoraban, no existe en un campo sintético que no la
+ * marca.
+ *
+ * ————— LO QUE ESTAS HUELLAS VAN A HACER CUANDO EL RESTO DE LA CAPA SE ENCIENDA —————
  *
  * Está medido, no previsto: se encendieron los cinco racimos —fases (R19), aduana (R03/R04),
  * subasta del frente (R20) y juego de equipo (R02/R18)—, se re-sellaron, y se volvió atrás. Los
@@ -292,91 +307,10 @@ import type { Attribute } from '@cyclingstar/shared'
  * golpe, se reagrupa menos y caza menos—, que es una decisión distinta y no se toma de paso.
  */
 const SEALED_RESULTS: Record<string, string> = {
-  /**
-   * RESELLADO EN LA v40, y esta vez lo que hay que justificar es lo POCO que se mueve. Las cuatro
-   * etapas conservan GANADOR y FORMA —`spr-6`, `spr-0`, `pel-67` y `gc-0`, con sus mismos grupos de
-   * llegada— y el único cambio de reloj es de un segundo en la segunda reina (30 corredores a +587
-   * pasan a +588). Ni un puesto de podio, ni un grupo que aparezca o desaparezca.
-   *
-   * Y es la respuesta correcta a esta tanda, no una casualidad: la v40 arregla el ADOQUÍN (el
-   * sector volvía a juntar lo que había roto), el GENERADOR de recorridos (daba perfil de etapa
-   * reina a las clásicas de un día) y el DIARIO (70 contradicciones medidas, 10 al cerrar). El
-   * banco canónico es sintético, no tiene un metro de adoquín, no sale del generador y no lee la
-   * crónica: tenía que quedarse quieto. Que se moviera habría sido la señal de alarma.
-   *
-   * Lo que sí cambia el segundo de la reina es la regla del descolgado —a cero ya no se pelea
-   * (`shedFightFreshness`)—, que es física y sí toca a la montaña. Un segundo sobre 15.000 en la
-   * cola de la etapa es exactamente el tamaño que le corresponde.
-   *
-   *   llana-180-0  gana spr-6  ·  173 juntos, 2 a +127 s, 1 a +468 s
-   *   llana-180-1  gana spr-0  ·  172 juntos, y 1, 1 y 2 hasta +336 s
-   *   reina-150-0  gana pel-67 ·  11 relojes, 8 delante, el grueso a +477/+592/+615 s
-   *   reina-150-1  gana gc-0   ·  8 relojes, ganador EN SOLITARIO a +92 s del segundo grupo
-   *
-   * La batería sale 1337/1337 y la campaña de 200 corridas, 33 de 33 objetivos en banda.
-   */
-  /**
-   * RESELLADA EN LA v41 (docs/balance.md «v41»), y NO por el viento: las cuatro semillas del banco
-   * salen en CALMA —lateral 0,00, cero cortes—, así que el abanico no toca ni una de ellas. Lo que
-   * las mueve son los dos defectos que el dueño encontró en una carrera de producción y mandó
-   * corregir, y los dos cambian QUIÉN hace qué:
-   *
-   *  - **el que va tirando ya no es el que salta**. Medido: el 2,4 % de los ataques del pelotón los
-   *    lanzaba un hombre que venía de dar la cara, y ahora es el 0,2 %. Cambia quién se va en la
-   *    fuga del día, y con ello la carrera entera.
-   *  - **no se persigue lo propio desde un grupo de caza**. De 234 a 40 casos en la llana y de 191 a
-   *    58 en la media montaña; los que quedan son grupos en los que TODOS tienen un compañero
-   *    delante y alguien tiene que ir en cabeza.
-   *
-   * RESELLADA OTRA VEZ EN LA v42, y por la misma clase de motivo: dos defectos que el dueño encontró
-   * mirando una carrera. El primero no toca esta huella (el maillot amarillo iba dando relevos, y
-   * aquí no hay maillot); el segundo sí, porque cambia quién ataca: al que le cazan tras una fuga
-   * larga se le acabó el día, y eso mueve la llana `llana-180-1` sin cambiar de ganador.
-   *
-   * Por eso esta huella SÍ tenía que moverse: es una tanda que toca la capa táctica, no una de
-   * observación. Lo que se comprueba es que se mueve como debe. En las dos llanas gana el mismo
-   * hombre que antes y el pelotón sigue llegando junto (173 y 174 de 176); la reina, que se decide
-   * entre nueve hombres, cambia de ganador en una de las dos semillas (pel-67 -> pel-105, 67 s), que
-   * es exactamente lo que un cambio de quién ataca le hace a una etapa que deciden un puñado.
-   *
-   *   llana-180-0  gana spr-6   ·  173 juntos, 2 a +127 s, 1 a +468 s
-   *   llana-180-1  gana spr-0   ·  174 juntos, 1 a +180 s, 1 a +208 s
-   *   reina-150-0  gana pel-105 ·  9 relojes, 9 delante, el grueso a +584 s
-   *   reina-150-1  gana gc-0    ·  9 relojes, ganador EN SOLITARIO a +122 s del segundo grupo
-   *
-   * RESELLADA EN LA v46, y esta vez la huella enseña el defecto que se corrigió. El rol pasa a pesar
-   * en el REMATE y no solo en el ataque (`finishRoleWeight`), y el sello lo cuenta mejor que
-   * cualquier explicación: en `llana-180-0` había un corredor de relleno colado en el 10.º puesto que
-   * empujaba a un VELOCISTA al 14.º, y ahora los diez `spr-*` ocupan los diez primeros.
-   *
-   *     antes   …9:spr-7, 10:pel-45, 11:pel-78, 12:pel-43, 13:pel-89, 14:spr-9…
-   *     ahora   …9:spr-7, 10:spr-9,  11:pel-45, 12:pel-78, 13:pel-43, 14:pel-89…
-   *
-   * Y LO QUE NO SE MUEVE, que es lo que dice que el cambio está bien dimensionado: **gana el mismo
-   * hombre en las cuatro semillas**. Un peso por rol reordena a los de detrás —los aguadores dejan de
-   * llevarse medio podio— y no le quita la victoria a quien ya era el mejor. Números en
-   * docs/balance.md «v48».
-   *
-   * RESELLADA EN LA v49 (docs/balance.md «v49»), y lo que la huella enseña es **que la montaña deja
-   * de llegar a escalones**: `reina-150-0` pasa de **9 relojes distintos en meta a 44**. Antes el
-   * campo entraba en nueve bloques, con ciento cincuenta hombres compartiendo tres segundos; ahora
-   * llega repartido. Es exactamente lo que faltaba —que el grupo que lleva la carrera siga perdiendo
-   * gente en el puerto aunque naciera de un descuelgue— y es lo que el dueño vio en la etapa 9 del
-   * Giro: «el que llega en el puesto 150 solo perdió 26 segundos».
-   *
-   * LO QUE NO CAMBIA, y conviene decirlo para que nadie le pida a esta huella algo que no dice: la
-   * etapa la sigue ganando un corredor de relleno del pelotón (`pel-71` en vez de `pel-105`), con
-   * ocho hombres al mismo tiempo en la cabeza. Que la carrera se reparta no la convierte en una
-   * carrera de escaladores; eso es otra pregunta y este sello no la contesta.
-   *
-   * Las dos llanas se mueven en el reloj y apenas en el orden, y eso también es dato: en una llana no
-   * hay puerto que cribar, así que lo único que cambia ahí es el arrastre del arreglo anterior (v48
-   * y el «un equipo no persigue al grupo donde va su líder»). Gana el mismo hombre en las dos.
-   */
   'llana-180-0|llana-180|1|v1':
-    '1:spr-6:14711,2:spr-0:14711,3:spr-1:14711,4:spr-5:14711,5:spr-8:14711,6:spr-2:14711,7:spr-4:14711,8:spr-3:14711,9:spr-7:14711,10:spr-9:14711,11:pel-45:14711,12:pel-78:14711,13:pel-43:14711,14:pel-89:14711,15:brk-3:14711,16:pel-21:14711,17:pel-87:14711,18:pel-139:14711,19:pel-156:14711,20:pel-123:14711,21:pel-130:14711,22:pel-39:14711,23:pel-61:14711,24:pel-133:14711,25:pel-68:14711,26:pel-85:14711,27:pel-118:14711,28:pel-142:14711,29:pel-62:14711,30:pel-94:14711,31:pel-111:14711,32:pel-91:14711,33:pel-149:14711,34:pel-55:14711,35:pel-143:14711,36:pel-16:14711,37:brk-2:14711,38:pel-49:14711,39:pel-98:14711,40:pel-67:14711,41:pel-125:14711,42:brk-4:14711,43:pel-77:14711,44:pel-100:14711,45:pel-17:14711,46:pel-150:14711,47:pel-121:14711,48:pel-32:14711,49:pel-83:14711,50:pel-33:14711,51:pel-141:14711,52:pel-132:14711,53:pel-10:14711,54:pel-70:14711,55:pel-52:14711,56:pel-14:14711,57:pel-8:14711,58:pel-18:14711,59:pel-34:14711,60:pel-51:14711,61:pel-99:14711,62:pel-12:14711,63:pel-147:14711,64:pel-148:14711,65:pel-74:14711,66:pel-109:14711,67:pel-40:14711,68:pel-105:14711,69:pel-127:14711,70:pel-4:14711,71:pel-42:14711,72:pel-146:14711,73:pel-50:14711,74:pel-101:14711,75:pel-131:14711,76:pel-140:14711,77:brk-5:14711,78:pel-59:14711,79:pel-86:14711,80:pel-95:14711,81:pel-102:14711,82:pel-65:14711,83:pel-107:14711,84:pel-6:14711,85:pel-44:14711,86:pel-135:14711,87:pel-145:14711,88:pel-41:14711,89:pel-69:14711,90:pel-37:14711,91:pel-124:14711,92:pel-134:14711,93:pel-54:14711,94:pel-31:14711,95:pel-84:14711,96:pel-154:14711,97:pel-151:14711,98:pel-97:14711,99:pel-116:14711,100:pel-7:14711,101:pel-36:14711,102:pel-159:14711,103:pel-144:14711,104:pel-136:14711,105:pel-76:14711,106:pel-56:14711,107:pel-96:14711,108:pel-93:14711,109:pel-80:14711,110:pel-103:14711,111:pel-30:14711,112:pel-38:14711,113:pel-117:14711,114:pel-13:14711,115:pel-64:14711,116:pel-155:14711,117:pel-106:14711,118:pel-88:14711,119:pel-157:14711,120:pel-79:14711,121:pel-75:14711,122:pel-47:14711,123:pel-90:14711,124:pel-1:14711,125:pel-108:14711,126:pel-72:14711,127:pel-23:14711,128:pel-152:14711,129:pel-92:14711,130:pel-82:14711,131:pel-112:14711,132:pel-60:14711,133:pel-11:14711,134:pel-35:14711,135:pel-119:14711,136:pel-115:14711,137:pel-126:14711,138:pel-19:14711,139:pel-46:14711,140:pel-2:14711,141:pel-9:14711,142:pel-120:14711,143:pel-66:14711,144:pel-137:14711,145:pel-110:14711,146:pel-25:14711,147:pel-138:14711,148:pel-129:14711,149:pel-29:14711,150:pel-81:14711,151:pel-58:14711,152:brk-1:14711,153:pel-15:14711,154:pel-22:14711,155:pel-24:14711,156:pel-27:14711,157:pel-104:14711,158:pel-48:14711,159:pel-28:14711,160:pel-20:14711,161:pel-113:14711,162:pel-122:14711,163:pel-128:14711,164:pel-63:14711,165:pel-73:14711,166:pel-3:14711,167:pel-114:14711,168:pel-26:14711,169:brk-0:14711,170:pel-0:14711,171:pel-53:14711,172:pel-158:14711,173:pel-5:14711,174:pel-71:14838,175:pel-57:14838,176:pel-153:15222',
+    '1:spr-6:14757,2:spr-0:14757,3:spr-1:14757,4:spr-5:14757,5:spr-8:14757,6:spr-2:14757,7:spr-4:14757,8:spr-3:14757,9:spr-7:14757,10:spr-9:14757,11:pel-45:14757,12:pel-78:14757,13:pel-43:14757,14:brk-3:14757,15:pel-89:14757,16:pel-21:14757,17:pel-87:14757,18:pel-139:14757,19:pel-156:14757,20:pel-130:14757,21:pel-39:14757,22:pel-61:14757,23:pel-68:14757,24:pel-85:14757,25:pel-118:14757,26:pel-142:14757,27:pel-94:14757,28:pel-77:14757,29:pel-62:14757,30:pel-133:14757,31:pel-70:14757,32:pel-16:14757,33:pel-100:14757,34:pel-149:14757,35:pel-111:14757,36:pel-123:14757,37:pel-55:14757,38:pel-143:14757,39:pel-49:14757,40:brk-2:14757,41:pel-98:14757,42:pel-125:14757,43:brk-4:14757,44:pel-67:14757,45:pel-91:14757,46:pel-42:14757,47:pel-150:14757,48:pel-32:14757,49:pel-33:14757,50:pel-141:14757,51:pel-132:14757,52:pel-10:14757,53:pel-52:14757,54:pel-14:14757,55:pel-8:14757,56:pel-17:14757,57:pel-121:14757,58:pel-18:14757,59:pel-34:14757,60:pel-51:14757,61:pel-99:14757,62:pel-12:14757,63:pel-147:14757,64:pel-148:14757,65:pel-140:14757,66:pel-74:14757,67:pel-109:14757,68:pel-40:14757,69:pel-136:14757,70:pel-105:14757,71:pel-127:14757,72:pel-146:14757,73:pel-50:14757,74:pel-4:14757,75:pel-131:14757,76:brk-5:14757,77:pel-59:14757,78:pel-86:14757,79:pel-65:14757,80:pel-107:14757,81:pel-6:14757,82:pel-145:14757,83:pel-37:14757,84:pel-124:14757,85:pel-134:14757,86:pel-54:14757,87:pel-31:14757,88:pel-84:14757,89:pel-101:14757,90:pel-154:14757,91:pel-103:14757,92:pel-151:14757,93:pel-97:14757,94:pel-116:14757,95:pel-7:14757,96:pel-92:14757,97:pel-102:14757,98:pel-36:14757,99:pel-44:14757,100:pel-159:14757,101:pel-144:14757,102:pel-76:14757,103:pel-56:14757,104:pel-96:14757,105:pel-93:14757,106:pel-80:14757,107:pel-135:14757,108:pel-30:14757,109:pel-41:14757,110:pel-38:14757,111:pel-69:14757,112:pel-95:14757,113:pel-117:14757,114:pel-13:14757,115:pel-83:14757,116:pel-64:14757,117:pel-88:14757,118:pel-155:14757,119:pel-75:14757,120:pel-90:14757,121:pel-1:14757,122:pel-72:14757,123:pel-152:14757,124:pel-15:14757,125:pel-82:14757,126:pel-112:14757,127:pel-23:14757,128:pel-60:14757,129:pel-11:14757,130:pel-157:14757,131:pel-35:14757,132:pel-119:14757,133:pel-47:14757,134:pel-106:14757,135:pel-108:14757,136:pel-115:14757,137:pel-19:14757,138:pel-46:14757,139:pel-79:14757,140:pel-73:14757,141:pel-2:14757,142:pel-9:14757,143:pel-120:14757,144:pel-66:14757,145:pel-137:14757,146:pel-110:14757,147:pel-138:14757,148:pel-48:14757,149:pel-129:14757,150:pel-29:14757,151:pel-81:14757,152:pel-58:14757,153:brk-1:14757,154:pel-128:14757,155:pel-126:14757,156:pel-24:14757,157:pel-27:14757,158:pel-25:14757,159:pel-104:14757,160:pel-26:14757,161:pel-20:14757,162:pel-28:14757,163:pel-114:14757,164:pel-22:14757,165:pel-122:14757,166:pel-63:14757,167:pel-158:14757,168:pel-113:14757,169:brk-0:14757,170:pel-0:14757,171:pel-3:14757,172:pel-53:14757,173:pel-5:14757,174:pel-71:14883,175:pel-57:14883,176:pel-153:15221',
   'llana-180-1|llana-180|1|v1':
-    '1:spr-0:14748,2:spr-6:14748,3:spr-1:14748,4:spr-2:14748,5:spr-3:14748,6:spr-7:14748,7:spr-8:14748,8:spr-9:14748,9:spr-5:14748,10:spr-4:14748,11:brk-4:14748,12:pel-54:14748,13:brk-0:14748,14:pel-141:14748,15:pel-38:14748,16:pel-113:14748,17:pel-99:14748,18:pel-117:14748,19:pel-91:14748,20:pel-45:14748,21:pel-139:14748,22:pel-63:14748,23:pel-79:14748,24:pel-60:14748,25:brk-2:14748,26:pel-133:14748,27:pel-89:14748,28:pel-129:14748,29:pel-122:14748,30:pel-19:14748,31:pel-61:14748,32:pel-16:14748,33:pel-58:14748,34:pel-40:14748,35:pel-119:14748,36:pel-59:14748,37:pel-115:14748,38:pel-142:14748,39:pel-83:14748,40:pel-87:14748,41:pel-103:14748,42:pel-53:14748,43:pel-100:14748,44:pel-111:14748,45:pel-69:14748,46:pel-20:14748,47:brk-3:14748,48:pel-137:14748,49:pel-36:14748,50:pel-15:14748,51:pel-47:14748,52:pel-6:14748,53:pel-57:14748,54:pel-56:14748,55:pel-72:14748,56:pel-144:14748,57:pel-33:14748,58:pel-62:14748,59:pel-157:14748,60:pel-159:14748,61:pel-30:14748,62:pel-17:14748,63:pel-109:14748,64:pel-21:14748,65:pel-80:14748,66:pel-121:14748,67:pel-18:14748,68:pel-138:14748,69:pel-118:14748,70:pel-13:14748,71:pel-135:14748,72:pel-90:14748,73:pel-82:14748,74:pel-52:14748,75:pel-88:14748,76:pel-29:14748,77:pel-104:14748,78:pel-156:14748,79:pel-75:14748,80:pel-107:14748,81:pel-128:14748,82:pel-10:14748,83:pel-49:14748,84:pel-120:14748,85:pel-105:14748,86:pel-110:14748,87:pel-12:14748,88:pel-93:14748,89:pel-65:14748,90:pel-112:14748,91:pel-149:14748,92:pel-77:14748,93:pel-71:14748,94:pel-124:14748,95:pel-68:14748,96:pel-43:14748,97:pel-37:14748,98:pel-106:14748,99:pel-143:14748,100:pel-101:14748,101:pel-50:14748,102:pel-24:14748,103:pel-5:14748,104:pel-146:14748,105:pel-46:14748,106:pel-155:14748,107:pel-140:14748,108:pel-66:14748,109:pel-126:14748,110:pel-127:14748,111:pel-74:14748,112:pel-102:14748,113:pel-94:14748,114:pel-70:14748,115:pel-11:14748,116:pel-98:14748,117:pel-151:14748,118:pel-95:14748,119:pel-96:14748,120:pel-147:14748,121:pel-153:14748,122:pel-7:14748,123:pel-35:14748,124:brk-1:14748,125:pel-67:14748,126:pel-48:14748,127:pel-158:14748,128:pel-123:14748,129:pel-32:14748,130:pel-152:14748,131:pel-41:14748,132:pel-22:14748,133:pel-44:14748,134:pel-116:14748,135:pel-42:14748,136:pel-84:14748,137:brk-5:14748,138:pel-51:14748,139:pel-92:14748,140:pel-108:14748,141:pel-28:14748,142:pel-64:14748,143:pel-78:14748,144:pel-25:14748,145:pel-145:14748,146:pel-114:14748,147:pel-134:14748,148:pel-97:14748,149:pel-27:14748,150:pel-9:14748,151:pel-34:14748,152:pel-1:14748,153:pel-73:14748,154:pel-2:14748,155:pel-81:14748,156:pel-4:14748,157:pel-31:14748,158:pel-85:14748,159:pel-8:14748,160:pel-86:14748,161:pel-55:14748,162:pel-3:14748,163:pel-23:14748,164:pel-136:14748,165:pel-131:14748,166:pel-130:14748,167:pel-76:14748,168:pel-148:14748,169:pel-39:14748,170:pel-0:14748,171:pel-14:14748,172:pel-154:14748,173:pel-125:14927,174:pel-132:14954,175:pel-26:15146,176:pel-150:15146',
+    '1:spr-0:14742,2:spr-6:14742,3:spr-1:14742,4:spr-2:14742,5:spr-3:14742,6:spr-7:14742,7:spr-8:14742,8:spr-9:14742,9:spr-5:14742,10:spr-4:14742,11:pel-54:14742,12:pel-141:14742,13:pel-38:14742,14:brk-4:14742,15:brk-0:14742,16:brk-2:14742,17:pel-113:14742,18:pel-99:14742,19:pel-117:14742,20:pel-91:14742,21:pel-45:14742,22:pel-139:14742,23:pel-63:14742,24:pel-79:14742,25:pel-60:14742,26:pel-133:14742,27:pel-89:14742,28:pel-129:14742,29:pel-122:14742,30:pel-19:14742,31:pel-61:14742,32:pel-16:14742,33:pel-58:14742,34:pel-40:14742,35:pel-119:14742,36:pel-59:14742,37:pel-115:14742,38:pel-142:14742,39:pel-83:14742,40:pel-87:14742,41:pel-103:14742,42:pel-53:14742,43:pel-100:14742,44:pel-69:14742,45:pel-111:14742,46:pel-20:14742,47:pel-36:14742,48:pel-15:14742,49:pel-47:14742,50:pel-6:14742,51:pel-57:14742,52:pel-56:14742,53:pel-72:14742,54:pel-144:14742,55:pel-33:14742,56:pel-137:14742,57:pel-62:14742,58:pel-157:14742,59:pel-159:14742,60:pel-105:14742,61:pel-30:14742,62:pel-17:14742,63:pel-109:14742,64:pel-21:14742,65:pel-80:14742,66:pel-121:14742,67:pel-18:14742,68:pel-138:14742,69:pel-118:14742,70:brk-3:14742,71:pel-13:14742,72:pel-135:14742,73:brk-1:14742,74:pel-90:14742,75:pel-82:14742,76:pel-52:14742,77:pel-88:14742,78:pel-29:14742,79:pel-156:14742,80:pel-75:14742,81:pel-107:14742,82:pel-128:14742,83:pel-10:14742,84:pel-49:14742,85:pel-120:14742,86:pel-110:14742,87:pel-12:14742,88:pel-93:14742,89:pel-65:14742,90:pel-149:14742,91:pel-112:14742,92:pel-77:14742,93:pel-71:14742,94:pel-124:14742,95:pel-68:14742,96:pel-43:14742,97:pel-37:14742,98:pel-106:14742,99:pel-143:14742,100:pel-101:14742,101:pel-24:14742,102:pel-50:14742,103:pel-5:14742,104:pel-146:14742,105:pel-46:14742,106:pel-155:14742,107:pel-140:14742,108:pel-66:14742,109:pel-126:14742,110:pel-127:14742,111:pel-74:14742,112:pel-70:14742,113:pel-102:14742,114:pel-94:14742,115:pel-11:14742,116:pel-151:14742,117:pel-98:14742,118:pel-95:14742,119:pel-147:14742,120:pel-96:14742,121:pel-153:14742,122:pel-7:14742,123:pel-35:14742,124:pel-48:14742,125:pel-158:14742,126:pel-67:14742,127:pel-123:14742,128:pel-32:14742,129:pel-152:14742,130:pel-22:14742,131:pel-41:14742,132:pel-44:14742,133:pel-116:14742,134:pel-42:14742,135:pel-84:14742,136:pel-51:14742,137:pel-92:14742,138:pel-73:14742,139:pel-108:14742,140:pel-28:14742,141:pel-64:14742,142:pel-145:14742,143:pel-25:14742,144:pel-78:14742,145:pel-114:14742,146:pel-31:14742,147:pel-134:14742,148:pel-97:14742,149:pel-27:14742,150:pel-9:14742,151:pel-34:14742,152:pel-2:14742,153:pel-1:14742,154:pel-81:14742,155:pel-4:14742,156:brk-5:14742,157:pel-85:14742,158:pel-8:14742,159:pel-86:14742,160:pel-55:14742,161:pel-3:14742,162:pel-104:14742,163:pel-23:14742,164:pel-136:14742,165:pel-131:14742,166:pel-76:14742,167:pel-148:14742,168:pel-39:14742,169:pel-0:14742,170:pel-14:14742,171:pel-154:14742,172:pel-130:14742,173:pel-125:14920,174:pel-132:14948,175:pel-26:15143,176:pel-150:15143',
   'reina-150-0|reina-150|1|v1':
     '1:pel-105:14753,2:pel-71:14753,3:pel-67:14753,4:bar-0:14753,5:pel-39:14753,6:pel-137:14753,7:pel-89:14753,8:pel-43:14753,9:pel-112:14753,10:pel-64:14753,11:pel-102:14753,12:bar-5:14810,13:pel-47:14858,14:bar-3:14910,15:gc-3:14916,16:gc-2:14916,17:gc-1:14916,18:gc-0:14979,19:bar-2:15017,20:bar-1:15121,21:bar-4:15121,22:pel-10:15121,23:pel-65:15121,24:pel-61:15121,25:pel-93:15121,26:pel-142:15121,27:pel-2:15121,28:pel-53:15121,29:pel-41:15121,30:pel-38:15121,31:pel-148:15121,32:pel-51:15121,33:pel-52:15121,34:pel-11:15272,35:pel-94:15272,36:pel-30:15272,37:pel-138:15272,38:pel-76:15272,39:pel-97:15272,40:pel-48:15300,41:pel-162:15301,42:pel-107:15301,43:pel-152:15302,44:pel-118:15303,45:pel-62:15303,46:pel-55:15304,47:pel-12:15304,48:pel-82:15304,49:pel-78:15304,50:pel-19:15304,51:pel-31:15305,52:pel-153:15306,53:pel-131:15306,54:pel-154:15308,55:pel-13:15309,56:pel-22:15309,57:pel-34:15310,58:pel-75:15310,59:pel-49:15310,60:pel-143:15312,61:pel-79:15312,62:pel-36:15312,63:pel-119:15313,64:pel-126:15313,65:pel-80:15315,66:pel-70:15315,67:pel-28:15315,68:pel-3:15316,69:pel-73:15316,70:pel-145:15317,71:pel-140:15317,72:pel-17:15319,73:pel-95:15319,74:pel-14:15319,75:pel-5:15319,76:pel-27:15319,77:pel-127:15320,78:pel-160:15392,79:pel-4:15392,80:pel-58:15393,81:pel-116:15393,82:pel-21:15393,83:pel-42:15393,84:pel-6:15393,85:pel-96:15393,86:pel-128:15394,87:pel-161:15394,88:pel-26:15394,89:pel-155:15394,90:pel-32:15395,91:spr-0:15395,92:pel-18:15396,93:pel-33:15396,94:pel-20:15396,95:pel-124:15396,96:pel-40:15397,97:pel-157:15397,98:pel-24:15397,99:pel-35:15398,100:pel-108:15398,101:pel-135:15399,102:pel-113:15399,103:pel-104:15400,104:pel-136:15400,105:pel-141:15400,106:pel-23:15401,107:pel-83:15401,108:pel-133:15401,109:pel-123:15401,110:pel-7:15402,111:pel-86:15402,112:pel-101:15403,113:pel-59:15403,114:pel-90:15403,115:pel-85:15403,116:pel-81:15403,117:pel-60:15403,118:pel-98:15405,119:pel-106:15406,120:pel-54:15408,121:pel-77:15409,122:pel-115:15410,123:pel-72:15410,124:pel-63:15410,125:pel-84:15411,126:pel-9:15418,127:pel-139:15418,128:pel-91:15418,129:pel-125:15418,130:pel-103:15418,131:pel-16:15418,132:pel-151:15418,133:pel-146:15418,134:pel-57:15418,135:pel-1:15418,136:pel-8:15418,137:pel-129:15418,138:pel-45:15418,139:pel-130:15418,140:pel-15:15418,141:pel-37:15418,142:pel-158:15418,143:pel-117:15418,144:pel-100:15418,145:pel-69:15418,146:pel-68:15418,147:pel-56:15418,148:pel-120:15418,149:pel-74:15418,150:pel-156:15418,151:pel-122:15418,152:pel-44:15418,153:pel-149:15418,154:pel-150:15418,155:pel-50:15418,156:pel-92:15418,157:pel-114:15418,158:pel-111:15418,159:pel-159:15418,160:pel-88:15418,161:pel-121:15418,162:spr-2:15418,163:pel-109:15418,164:pel-46:15418,165:pel-147:15418,166:pel-87:15418,167:pel-0:15418,168:pel-144:15418,169:pel-29:15418,170:pel-132:15418,171:pel-134:15418,172:pel-66:15418,173:pel-110:15418,174:pel-99:15418,175:pel-25:15418,176:spr-1:15418',
   'reina-150-1|reina-150|1|v1':

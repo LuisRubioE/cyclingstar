@@ -12706,3 +12706,45 @@ regalar metros abriendo antes de tiempo.
 
 R21 —la estructura de equipo persistente— vive entero en §5 del diseño y depende de la convocatoria,
 que es de `packages/db` y no del motor. No se toca aquí.
+
+## v60 §13 — Las pancartas, y **el primer racimo de la tanda que se enciende**
+
+`ENGINE_VERSION` **64 → 65**. R06 entra **encendido**: pasa los 104 invariantes de los bancos y las
+1.545 pruebas del rápido. Es el primero de seis racimos tácticos que llega a producción.
+
+### Las dos cosas que arregla
+
+**La casilla del jugador no existía en las cimas** (R06.1, contrario nº 8 del catálogo). `disputeBanner`
+—la meta volante— lee `contestSprints`/`contestClimbs` desde siempre y solo cae en «disputan todos»
+si no hay nadie interesado. `disputeClimb` **no leía nada**: ordenaba a la carrera entera por
+`max(MON, COL)` y le cobraba la pancarta a quien cayera en puesto de puntos, la hubiera querido
+disputar o no. O sea que el jugador marcaba la casilla en la pantalla de órdenes y en los puertos no
+pasaba nada.
+
+Ahora es el mismo patrón que la volante: **quien no la disputa ni puntúa ni paga**, y si no hay nadie
+interesado la corona quien pasa primero. Y la crónica nombra al primero de **los que la disputan**,
+que es a quien se le dan los puntos: nombrar al primero en coronar cuando los puntos se los llevó
+otro era contar dos carreras distintas en la misma frase.
+
+**El grupo se relaja justo después** (R06.2). Cobrada la volante o coronada la cima, el pelotón
+aflojaba… nada: seguía al mismo ritmo. Ahora hay cinco kilómetros de alivio con el compromiso al
+0,85 y **la cuerda del ataque a ×1,8**, que es la otra mitad de la regla: la ventana de después de
+la pancarta es cuando salta el contraataque.
+
+El alivio va con las otras amortiguaciones de racimo, así que el suelo de fase lo acota cuando las
+fases se enciendan, que es lo que R19.2bis manda.
+
+### Lo que mueve, y pasa todo
+
+| llana canónica + reina, 120 semillas | apagado |  encendido | banda |
+| ------------------------------------ | ------: | ---------: | ----- |
+| gana la fuga (llano)                 |   9,2 % |      6,7 % | 5-16  |
+| gana el mejor sprinter               |  36,7 % |     40,0 % | 30-45 |
+| captura                              |    89 % |       92 % | > 85  |
+| km de la caza                        |    18,1 |       18,8 | 8-25  |
+| **gana la fuga (reina)**             |  26,7 % | **26,7 %** | 25-45 |
+| intentos por etapa                   |    15,0 |       14,9 | 10-25 |
+
+Las seis dentro, y la reina **no se mueve un dígito**: es el perfil más limpio de toda la tanda, y por
+eso es éste el que se enciende y no otro. Las huellas se re-sellan con su causa declarada —`llana-180-0`
+conserva ganador y entra 46 segundos más despacio— y los 104 invariantes siguen en verde.
