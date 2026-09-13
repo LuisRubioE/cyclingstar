@@ -4051,6 +4051,16 @@ export const STAGE = {
     sprint_masivo: { SPR: 0.66, LLA: 0.18, TAC: 0.16 },
     sprint_reducido: { SPR: 0.5, LLA: 0.15, TAC: 0.25, RES: 0.1 },
     puncheur: { COL: 0.4, SPR: 0.28, TAC: 0.2, RES: 0.12 },
+    /**
+     * EL MURO (R17.2, paso 8), DERIVADO de `alto` y `puncheur` y puesto entre los dos: un kilómetro
+     * al 8 % lo gana el que revienta cuesta arriba, no el que llega más rápido. Frente al puncheur,
+     * la punta de velocidad baja de 0,28 a 0,20 y la explosividad sube de 0,40 a 0,55; frente al
+     * alto, el escalador puro deja de mandar porque un muro no se sube, se ataca.
+     *
+     * **Ninguno de los siete pesos de hoy se mueve un dígito**: §1.1 los declara intocables y esta
+     * fila es nueva, no una corrección de las otras.
+     */
+    muro: { COL: 0.55, SPR: 0.2, TAC: 0.15, RES: 0.1 },
     alto: { MON: 0.6, COL: 0.2, RES: 0.15, TAC: 0.05 },
     pave: { PAV: 0.5, LLA: 0.27, TAC: 0.15, SPR: 0.08 },
     descenso: { DES: 0.42, TAC: 0.25, SPR: 0.18, LLA: 0.15 },
@@ -4098,6 +4108,20 @@ export const STAGE = {
    * Es un factor sobre la puntuación, no un veto: un gregario con un día enorme todavía puede
    * colarse, que es lo que pasa en carretera. Lo que deja de pasar es que sea lo normal.
    */
+  /**
+   * QUÉ ES UN MURO (R17.2): una cota **corta** y **muy empinada**. Corto es lo que lo separa del
+   * puncheur —el Muro de Huy mide 1,4 km y sigue siendo puncheur, que es el ancla que esta regla
+   * respeta— y empinado lo que lo separa de un repecho de arrastre.
+   */
+  /**
+   * CUÁNTOS METROS ANTES ABRE EL SPRINT EL PEOR REMATADOR DEL GRUPO (R17.3, paso 8). El que no gana
+   * a rueda se va de lejos —es su única carta— y el rápido espera, que es la suya.
+   */
+  launchWorstFinisherM: 90,
+
+  muroMaxKm: 1,
+  muroMinGradient: 8,
+
   finishRoleWeight: {
     cazaetapas: 1.0,
     sprinter: 1.0,

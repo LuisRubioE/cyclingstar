@@ -12627,3 +12627,82 @@ verdad, y está localizado con su número.
 
 **Lo que sigue sin ser mío**: si la capa táctica merece sus trece puntos de reagrupamiento narrado y
 sus cuatro cribas. Eso es diseño.
+
+## v60 §12 — El tipo de final, y **un tipo nuevo que el calendario no puede producir**
+
+`ENGINE_VERSION` **64 → 64**. R17: el muro como tipo de final, quién abre el sprint reducido, y la
+ventana del pavé. Dos de las tres cosas tienen predicción declarada, y **una de las dos predicciones
+sale falsa**.
+
+### El muro existe, es correcto, y **no se dispara ni una vez en 1.075 etapas**
+
+`muro` entra como valor de `FinishType` —un cambio de contrato— con sus pesos entre `alto` y
+`puncheur`: frente al puncheur la punta baja de 0,28 a 0,20 y la explosividad sube de 0,40 a 0,55.
+Ninguno de los siete pesos de hoy se mueve un dígito.
+
+**La predicción declarada se cumple**: las cuatro huellas selladas no se mueven, o sea que no había
+ningún `switch` con `default` tratando el tipo nuevo como otra cosa. Y `admitsBunchFinish('muro')`
+= false: en un kilómetro al 8 % no hay tren que valga.
+
+Pero al pasarlo por el calendario entero, **cero etapas de 1.075** tipan `muro`. Y no es que el
+listón esté mal: hay **seis** etapas con cota final de ≤ 1 km y ≥ 8 %, y **las seis coronan entre el
+km 12,3 y el 14,6 de meta**:
+
+| etapa            | cota final        | corona a |
+| ---------------- | ----------------- | -------: |
+| race-flanders e1 | 0,40 km al 13,5 % |  12,3 km |
+| race-burgos e3   | 0,70 km al 11,8 % |  14,3 km |
+| race-colombia e8 | 0,50 km al 11,3 % |  14,5 km |
+| race-langkawi e2 | 0,80 km al 10,9 % |  14,2 km |
+| race-colombia e2 | 0,50 km al 9,9 %  |  14,5 km |
+| race-gila e5     | 0,40 km al 9,2 %  |  14,6 km |
+
+Seis de seis en una franja de dos kilómetros y medio. Eso no es el azar de seis recorridos: es **el
+generador de recorridos, que nunca pone una pared en el último kilómetro**. O sea que el defecto que
+R17.2 viene a arreglar —«un final de muro lo gana un rodador con punta»— **no puede darse hoy, porque
+no hay finales de muro**.
+
+El tipo se queda escrito: es correcto, no cuesta nada, no cambia un dígito, y estará vivo el día que
+los recorridos tengan paredes. Lo que hay que arreglar para que sirva no está en `finish.ts` sino en
+el generador, y eso es de R28. Queda anotado ahí y aquí, que es lo contrario de dejar código muerto
+sin decirlo.
+
+### La ventana del pavé NO se mueve, y la predicción era incompleta
+
+`finishPaveKm` 30 → 10 venía con predicción: «Roubaix sigue tipando `pave`, el Ronde sigue sin
+tiparlo». Medido sobre el calendario:
+
+| ventana | etapas que tipan `pave`                              |
+| ------- | ---------------------------------------------------- |
+| **30**  | race-white-roads, race-across-flanders, race-roubaix |
+| **10**  | race-roubaix                                         |
+
+Roubaix aguanta, que es lo que la predicción pedía. Pero **Strade Bianche y la clásica de Flandes
+pierden su tipado y pasan a `sprint_masivo`**, y eso la predicción no lo contemplaba. Strade Bianche
+es la carrera de los caminos blancos: que su final deje de ser de tierra para pasar a ser un sprint
+masivo no es un efecto colateral aceptable.
+
+Así que **la ventana se queda en 30**, y el defecto que R17.4 señala —un sector que muere a 25 km de
+meta sigue tipando la etapa— se ataca por donde el propio diseño dejó escrita la alternativa
+(`finishPaveFraction`), no recortando la ventana. Una predicción que acierta en lo que miraba y falla
+en lo que no miraba sigue siendo una predicción fallada.
+
+### Quién abre el sprint reducido: estaba invertido, y arreglarlo se nota
+
+`sprintHoldMetres` dice cuánto AGUANTA cada uno, y como el rápido aguanta más, **el rápido abría
+antes**. Como fisiología es correcto; como táctica es lo contrario de lo que pasa en carretera: el
+que no gana a rueda tiene que irse de lejos —es su única carta— y el rápido espera hasta los últimos
+metros precisamente porque esperar es la suya.
+
+Va como **sesgo sobre** lo que aguanta y no en su lugar: un hombre lento no puede sostener un sprint
+de 400 m por mucho que le convenga abrir ahí, y `launchEffect` le cobra el pasarse. Lo que cambia es
+la intención, no la física.
+
+Medido en la llana canónica, 120 semillas: **el mejor sprinter gana el 39,2 % → 40,8 %** de las
+etapas (banda 30-45), y nada más se mueve. Es exactamente lo que tenía que pasar: el favorito deja de
+regalar metros abriendo antes de tiempo.
+
+### Lo que queda del paso 8
+
+R21 —la estructura de equipo persistente— vive entero en §5 del diseño y depende de la convocatoria,
+que es de `packages/db` y no del motor. No se toca aquí.

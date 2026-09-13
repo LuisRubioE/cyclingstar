@@ -7093,6 +7093,23 @@ function finishStage(
      * dispersión), quien lee la carrera se equivoca menos (TAC), y en el duelo de miradas se abre
      * tarde porque nadie quiere ser el primero.
      */
+    /**
+     * EL REMATE DE CADA UNO, Y SU PUESTO DENTRO DEL GRUPO. Se calcula aquí arriba porque lo usan dos
+     * cosas: quién abre antes (R17.3) y quiénes son los aspirantes, unas líneas más abajo.
+     *
+     * `rango` va de 0 (el mejor rematador del grupo) a 1 (el peor), que es la convención de §3.2.
+     */
+    const remates = members.map((m) =>
+      finishScore(
+        effNow(m.input.eff0, erosion(m.energy, m.energy0, m.input.eff0.RES), m.energy <= 0),
+        type,
+      ),
+    )
+    const mejorRemate = Math.max(...remates)
+    const peorRemate = Math.min(...remates)
+    const rangoDe = (i: number): number =>
+      mejorRemate > peorRemate ? (mejorRemate - remates[i]!) / (mejorRemate - peorRemate) : 0
+
     const lanzamientos = members.map((m, i) => {
       const e = erosion(m.energy, m.energy0, m.input.eff0.RES)
       const eff = effNow(m.input.eff0, e, m.energy <= 0)
@@ -7112,7 +7129,22 @@ function finishStage(
         trenes[i]! > 0
           ? 0
           : -STAGE.launchStandoffM * (nadieLanza ? 1 : STAGE.launchNoTrainLateShare)
-      return { aguanta, metros: Math.max(20, normal(rngLaunch, aguanta + sesgo, sd)) }
+      /**
+       * …Y **ABRE ANTES EL QUE PEOR REMATA** (R17.3, paso 8), que hoy está al revés.
+       *
+       * `sprintHoldMetres` dice cuánto AGUANTA cada uno, y como el rápido aguanta más, el rápido
+       * abría antes. Como fisiología es correcto; como táctica es justo lo contrario de lo que pasa
+       * en carretera: el que no gana a rueda tiene que irse de lejos —es su única carta— y el rápido
+       * espera hasta los últimos metros precisamente porque esperar es SU ventaja.
+       *
+       * Va como sesgo sobre lo que aguanta y no en su lugar: un hombre lento no puede sostener un
+       * sprint de 400 m por mucho que le convenga abrir ahí, y `launchEffect` le cobra el pasarse.
+       * Lo que esto cambia es la INTENCIÓN, no la física.
+       */
+      // Se lee del interruptor y no de `input.flags` porque `finishStage` no recibe la entrada: el
+      // banco enciende y apaga por la constante, que es lo que el A/B necesita.
+      const porRemate = STAGE.teamPlay.enabled ? STAGE.launchWorstFinisherM * rangoDe(i) : 0
+      return { aguanta, metros: Math.max(20, normal(rngLaunch, aguanta + sesgo + porRemate, sd)) }
     })
     /**
      * …Y EL QUE ABRE EL SPRINT ES EL PRIMERO DE LOS QUE VAN A POR LA ETAPA, no el primero del grupo.
@@ -7124,13 +7156,7 @@ function finishStage(
      */
     const aspirantes = new Set(
       members
-        .map((m, i) => ({
-          i,
-          v: finishScore(
-            effNow(m.input.eff0, erosion(m.energy, m.energy0, m.input.eff0.RES), m.energy <= 0),
-            type,
-          ),
-        }))
+        .map((_m, i) => ({ i, v: remates[i]! }))
         .sort((a, b) => b.v - a.v)
         .slice(0, STAGE.sprintContenders)
         .map((x) => x.i),
