@@ -206,6 +206,11 @@ no se entiende. Los tres defectos están comprobados contra el código y detalla
    correcta y ya está escrita, pero vive en el texto de ayuda del selector de modo, que está en el
    panel de ARRIBA, así que quien baja a los 28 días no la ve.
 
+**Y una regla transversal que este documento tiene que fijar: la API no puede mandar lo que la
+pantalla no enseña.** Cualquiera abre la pestaña de red del navegador, así que ocultar un dato en la
+interfaz no lo oculta. El caso vivo es el techo del entrenador (§4.20), pero la regla vale para todo
+lo que el diseño quiera mantener en la sombra.
+
 **Y en el mismo examen entran los dos defectos del VIAJE, que son de la misma familia** (§4.19 de
 `agenda.md`). El modelo de viajes es simétrico y correcto: cuesta `k` días ir y `k` días volver (0 en
 casa, 1 continental, 2 intercontinental), y las dos direcciones bloquean el entrenamiento en
@@ -320,6 +325,14 @@ repositorio, así que no se sabe quién hizo qué, no se puede dar moderación a
 el mundo entero, y revocar a una persona obliga a rotar el token para todas. Hacen falta niveles,
 permisos, **registro de auditoría de toda acción administrativa**, y el circuito de denuncia y
 respuesta que la ley europea exige en cuanto haya contenido escrito por usuarios.
+
+**Y un caso concreto que dimensiona el problema: la repesca de genoma.** Un jugador puede crear
+cuentas hasta que le salga un corredor con buen techo, porque el entrenador se lo dice en la primera
+temporada (§4.20). Dentro de una cuenta no hay repesca posible (no existe borrado de corredor y el
+genoma va sembrado con el número de intento), así que el vector es la **cuenta desechable**, que hoy
+es gratis porque no hay verificación de correo y que seguirá siendo barata después porque un correo
+desechable no cuesta nada. Es el mismo hueco que la multicuenta y se defiende con lo mismo: un
+corredor por persona y una cuenta que cueste algo tener.
 
 **Y el catálogo de herramientas que el dueño pidió explícitamente**, que es la parte más mecánica y
 la que más se agradece el día que hace falta: suspender y expulsar con motivo y duración, prohibir y
@@ -493,6 +506,20 @@ decisión. Si el gregario deja de nacer gregario, ese tercio del pelotón nace c
 y acaba de gregario **por nivel y no por destino**, y el requisito deja de chocar con nada. La
 ejecución toca el motor, o sea la otra línea, así que conviene que la decisión esté escrita antes de
 que esa línea termine.
+
+**Y una decisión que corre prisa porque la otra línea está implementando esa pantalla ahora mismo:
+QUÉ SABE EL ENTRENADOR Y CUÁNDO.** Hoy su opinión sobre el techo de cada atributo es el enum
+`z.enum(['tres', 'cuatro', 'cinco'])`, o sea estrellas, por atributo y desde la primera temporada: el
+jugador ve su genoma entero en una pantalla. La regla arquitectónica de la API dice «ningún oculto
+cruza esta frontera» y se cumple en la letra, pero tres códigos llamados `tres`, `cuatro` y `cinco`
+son el número redondeado a tres cajones. El problema de fondo no es el tramposo (§4.20 de `agenda.md`
+mide que el exploit exige cuentas desechables, no corredores, porque no hay borrado): es que un juego
+que promete «empiezas de don nadie y descubres en qué te conviertes» **se convierte en una cuenta
+atrás** si te dice el final en la primera temporada, y deja al entrenador sin nada que decir durante
+quince años. La propuesta: opinión **relativa** («tienes más margen en la montaña que en ninguna otra
+cosa») en vez de absoluta, que **se afine con los años y con las pruebas**, que **pueda equivocarse**,
+y la regla de ingeniería sin la cual lo demás es decorado, que va en E3: **la API no puede mandar lo
+que la pantalla no enseña**. El registro correcto ya existe en el código, en la nota `techo_cerca`.
 
 **Qué leer:** N3 y N4 en `epics.md`, G10 y su nota sobre los NPC sin juventud, `CreateRider.tsx`,
 `packages/db/src/rollover.ts` y `techosPorEdad.test.ts`, y `packages/engine` en lo que toca a `eff0`.

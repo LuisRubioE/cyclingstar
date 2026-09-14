@@ -979,6 +979,73 @@ planificador tocando también la API. Son pequeños los dos. Y una advertencia d
 compruebo contra lo que la otra línea esté escribiendo ahora mismo**, solo contra el código de esta
 rama, así que si esa línea ya lo ha tocado, esto se contrasta antes de arreglar nada.
 
+### 4.20 El entrenador dice tu techo en estrellas, y eso rompe dos cosas
+
+El dueño: el entrenador dice casi desde el primer entrenamiento que tienes potencial para llegar a
+cuatro o a cinco estrellas, y un tramposo podría crear ciclistas hasta que le salga uno de cinco. Su
+propuesta: que el entrenador sea menos explícito y no hable de estrellas.
+
+**Está en lo cierto, y es literal.** En `packages/shared/src/contracts.ts`:
+
+```ts
+export const ceilingOpinionSchema = z.enum(['tres', 'cuatro', 'cinco'])
+```
+
+La opinión del entrenador **sobre cada atributo** es exactamente tres, cuatro o cinco estrellas. Con
+diez atributos, el jugador ve su genoma entero en una pantalla, en su primera temporada.
+
+**Y lo que más me llama la atención es que la regla arquitectónica está escrita y se cumple en la
+letra.** `apps/api/src/routes/riders.ts` encabeza estas rutas con «ningún oculto cruza esta frontera:
+el techo sale como una de tres frases… nada de lo que devuelven permite reconstruir un número
+interno». Es verdad que no cruza el número crudo. Pero **tres códigos que se llaman `tres`, `cuatro`
+y `cinco` SON el número**, redondeado a tres cajones. La frontera se respeta en la forma y se cruza
+en el fondo.
+
+**El exploit, con su tamaño real medido.** Hay dos cosas que lo limitan y conviene decirlas porque
+cambian la urgencia:
+
+- **No se puede borrar un corredor.** No hay ruta de borrado en la API. Dentro de una cuenta no hay
+  repesca: el siguiente corredor llega cuando el actual se retira, y eso cuesta temporadas.
+- **El genoma es reproducible y va sembrado**: `semilla = ${worldSeed}:${userId}:${intento}`, con
+  `intento` contando los corredores que ese usuario ya ha tenido, retirados incluidos.
+
+O sea que el exploit no es «crear y borrar ciclistas», es **crear y tirar CUENTAS**, que hoy es
+gratis porque no hay verificación de correo (E4) y que seguirá siendo barato después, porque un
+correo desechable no cuesta nada. Es el mismo hueco que la multicuenta de E7 y se defiende con lo
+mismo: un corredor por persona y una cuenta que cueste algo tener.
+
+**Pero el argumento de peso NO es el tramposo, y por eso apoyo el cambio aunque el exploit sea
+caro.** Este juego promete que empiezas a los 18 siendo un don nadie y descubres en qué te
+conviertes. Decirle al jugador en su primera temporada que va a ser un cinco estrellas en montaña
+**convierte una carrera deportiva en una cuenta atrás**: ya no hay nada que averiguar, solo esperar a
+que los números suban hasta donde ya sabes. Y de paso deja al entrenador sin nada que decir durante
+quince temporadas, cuando debería ser el personaje que te va conociendo.
+
+**La propuesta, que va más allá de «no digas estrellas»:**
+
+1. **Que la opinión sea RELATIVA y no absoluta.** «Tienes más margen en la montaña que en ninguna
+   otra cosa» es ordinal dentro del propio corredor: sirve para decidir qué entrenar, que es para lo
+   que existe, y no dice el nivel al que vas a llegar. El que compara dos cuentas no saca nada.
+2. **Que se AFINE con el tiempo y con las pruebas.** A los 18 el entrenador solo puede decir dónde
+   parece estar tu sitio; a los 23 cuánto cree que vas a dar; a los 27 ya lo sabe. Es lo realista, le
+   da un arco al personaje, y hace que la lectura temprana no valga para repescar porque es ruidosa.
+3. **Que pueda EQUIVOCARSE.** Un entrenador que a veces falla es mejor personaje y además vuelve la
+   repesca poco rentable: no te puedes fiar de la lectura del primer día.
+4. **Y la regla de ingeniería sin la cual las tres anteriores son decorado: la API no puede mandar lo
+   que la pantalla no enseña.** Hoy el enum cruza la frontera, y cualquiera abre la pestaña de red
+   del navegador y lo lee. Ocultarlo en la interfaz no es ocultarlo.
+
+El modelo a seguir ya existe en el propio código: la nota `techo_cerca` dice «You're close to what
+you can give here. The room is somewhere else». Eso es exactamente el registro correcto, porque es
+accionable sin ser numérico, y el comentario que la acompaña lo dice mejor que yo: «ninguna dice un
+número: todas dicen algo que el jugador puede USAR, que es la diferencia entre informar y decorar».
+
+**Dónde va:** el diseño de qué sabe el entrenador y cuándo, en **E11** (la vida del corredor). La
+defensa contra las cuentas desechables, en **E7**. Y la regla de la frontera de la API, en **E3**. Con
+un aviso de calendario: **esto es una decisión de la pantalla de entrenamiento, que es lo que la otra
+línea está implementando ahora mismo**, así que conviene que le llegue antes de que termine, igual que
+lo del gregario (§4.16.3).
+
 ## 5. El catálogo de diseños
 
 Veinte documentos. Los códigos son nuevos (`D`) para no chocar con los `G` y `N` de `epics.md`. El
