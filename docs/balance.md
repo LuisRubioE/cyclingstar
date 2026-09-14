@@ -13244,3 +13244,39 @@ todo el contexto decide: se parte en dos.
 Lo que el invariante protege de verdad es que un campo nuevo no cambie la conducta **por accidente**
 —por entrar en un orden de iteración, en una clave de mapa o en un `JSON.stringify` que siembre un
 dado—. Lo que cambia a propósito nunca fue lo que vigilaba.
+
+## v60 §20 — paso 17c, una criba sin causa no se puede discutir
+
+`ENGINE_VERSION` **69 → 69, sin subida**, y eso es exactamente lo que se espera: R23 **no toca la
+carrera, solo cuenta lo que ya pasaba**.
+
+Es el racimo más barato después de R01 y el que hace visible todo lo demás: **sin él ninguna regla
+nueva se puede diagnosticar**. Todo lo que el dueño ha cazado este mes lo ha cazado leyendo la radio
+de carrera.
+
+### Tres cosas que el motor sabía y tiraba
+
+**Por qué se rompió el pelotón** (R23.3). El motor lo sabe en el instante en que lo decide —el bloque
+dice si es un puerto, un sector o un día de viento, y el parte de incidentes dice si acaba de haber
+una caída— y no lo contaba, así que las cuatro cribas de una etapa salían con la misma frase. Ahora
+`peloton_split` lleva `causa`, con la caída mandando sobre todo lo demás durante dos kilómetros y
+`caza` como respuesta cuando no hay terreno que lo explique: **alguien está apretando, y eso también
+es una causa**.
+
+**A quién le cuesta un boquete** (R23.2). Dos minutos de ventaja no significan nada hasta que se dice
+cuántos puestos de la general le cuestan a quién. El motor ya hacía esa cuenta —es la general virtual
+con la que R04 decide si persigue— y la tiraba.
+
+**El que tira por sí mismo** (R23.1). Ocho hombres en el último puerto y el favorito delante marcando
+tempo: eso no es «libre» ni «le toca por su papel», que es como salía. El vocabulario de motivos
+tenía diez palabras y la carretera produce quince.
+
+### Y una crónica que miente es peor que una muda
+
+Ése es el criterio con el que se han elegido los cinco motivos nuevos, y no «más detalle». `propio`,
+`infiltrado`, `colocando`, `equipo_puntos` y `equipo_montana` no son matices: son situaciones que la
+crónica venía contando **con la palabra equivocada**, y el que lee no puede saber que le están
+mintiendo.
+
+Las cuatro huellas **no se mueven ni un dígito** con el interruptor puesto, que es la comprobación de
+que el racimo hace lo que promete: contar, no decidir.

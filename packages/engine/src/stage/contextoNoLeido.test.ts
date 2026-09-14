@@ -121,18 +121,27 @@ const huella = (riders: StageRider[], race?: RaceContext): string => {
   return out.results.map((r) => `${r.puesto}:${r.riderId}:${r.tiempoS}`).join(',')
 }
 
+/**
+ * EL MISMO CONTEXTO SIN SU MEMORIA. Se construye quitando la clave y no desestructurando con un
+ * descarte, porque una variable que se declara para no usarla es exactamente lo que el linter del
+ * repositorio prohíbe — y con razón: nombra algo que no existe.
+ */
+function sinMemoria(ctx: RaceContext): RaceContext {
+  const copia: RaceContext = { ...ctx }
+  delete copia.memory
+  return copia
+}
+
 describe('engine: el contexto de carrera viaja y NADIE lo lee', () => {
   it('la etapa sale IDÉNTICA con contexto SIN MEMORIA y sin contexto', () => {
     const riders = campo('ctx')
-    const { memory: _memoria, ...sinMemoria } = CONTEXTO
-    expect(huella(riders, sinMemoria)).toBe(huella(riders))
+    expect(huella(riders, sinMemoria(CONTEXTO))).toBe(huella(riders))
   })
 
   it('…y CON memoria sale distinta, que es el paso 16 funcionando', () => {
     // El control del control, por el otro lado: si esto no cambiara, R09 no estaría haciendo nada.
     const riders = campo('ctx')
-    const { memory: _memoria, ...sinMemoria } = CONTEXTO
-    expect(huella(riders, CONTEXTO)).not.toBe(huella(riders, sinMemoria))
+    expect(huella(riders, CONTEXTO)).not.toBe(huella(riders, sinMemoria(CONTEXTO)))
   })
 
   it('…y también con las clasificaciones metidas en cada corredor', () => {
@@ -151,8 +160,8 @@ describe('engine: el contexto de carrera viaja y NADIE lo lee', () => {
     const riders = campo('ctx')
     // La memoria se deja FUERA de los dos lados: desde el paso 16 sí decide, y mezclarla aquí
     // convertiría el control del control en una comprobación de otra cosa.
-    const { memory: _m, ...base } = CONTEXTO
-    const otro = { ...base, stageDay: 1, standings: new Map() }
-    expect(huella(riders, otro as RaceContext)).toBe(huella(riders, base as RaceContext))
+    const base = sinMemoria(CONTEXTO)
+    const otro: RaceContext = { ...base, stageDay: 1, standings: new Map() }
+    expect(huella(riders, otro)).toBe(huella(riders, base))
   })
 })

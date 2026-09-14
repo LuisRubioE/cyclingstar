@@ -323,6 +323,29 @@ export type PullMotive =
   | 'equipo_general'
   /** Nadie manda al frente: le toca por su papel (gregario, o corredor sin órdenes). */
   | 'rol'
+  /**
+   * --- LOS MOTIVOS QUE EL PASO 17 AÑADE (R23.1, S-434/S-441) ---------------------------------
+   *
+   * El vocabulario tenía diez palabras y la carretera produce quince. Las cinco que faltaban no son
+   * matices: son situaciones que la crónica contaba con la palabra equivocada, y **una crónica que
+   * miente es peor que una crónica muda**, porque el que lee no puede saber que le están mintiendo.
+   */
+  /**
+   * EL JEFE QUE SE HACE SU PROPIO RITMO (S-434). Ocho hombres en el último puerto y el favorito
+   * delante marcando tempo: eso no es «libre», es el motivo más claro que hay. Hasta hoy salía como
+   * `rol`, o sea como si le tocara por turno.
+   */
+  | 'propio'
+  /** …y el que tira por una clasificación secundaria, que es otra carrera dentro de la carrera. */
+  | 'equipo_puntos'
+  | 'equipo_montana'
+  /**
+   * EL INFILTRADO (R03.5), y la gracia es que se narra **como que NO tira**: su equipo le metió ahí
+   * para no tener que perseguir, así que su trabajo es exactamente no hacer ninguno.
+   */
+  | 'infiltrado'
+  /** Y el que va al frente COLOCANDO a su hombre, que es trabajo aunque no sea velocidad (R15). */
+  | 'colocando'
 
 export interface SnapshotRider {
   riderId: string

@@ -4503,6 +4503,25 @@ export const STAGE = {
     relayDebtPenalty: 0.8,
   },
 
+  /**
+   * EL RELATO QUE EXPLICA EL PORQUÉ (R23, docs/tactica.md paso 17). Es el racimo **más barato después
+   * de R01** y el que hace visible todo lo demás: **sin él, ninguna regla nueva se puede
+   * diagnosticar**. Todo lo que el dueño ha cazado este mes lo ha cazado leyendo la radio de
+   * carrera, y una criba sin causa es una criba que no se puede discutir.
+   *
+   * No toca la carrera: **solo cuenta lo que ya pasaba**. Por eso su A/B no es de conducta sino de
+   * vocabulario, y por eso es el único racimo del plan que no puede sacar una banda.
+   */
+  relato: {
+    enabled: true,
+  },
+
+  /**
+   * CUÁNTO DURA «LA CARRERA SE PARTIÓ POR LA CAÍDA» (R23.3, paso 17). Pasados dos kilómetros, el
+   * corte que se abre ya no es del montón: es de lo que venga detrás.
+   */
+  splitCrashCauseKm: 2,
+
   launchWorstFinisherM: 90,
 
   muroMaxKm: 1,

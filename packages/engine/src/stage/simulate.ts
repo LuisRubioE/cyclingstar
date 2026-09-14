@@ -2029,6 +2029,41 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
   const percancesOn = input.flags?.mishap === true || STAGE.mishap.enabled
   /** ¿Y el tren como submotor del paso 15? Ver `STAGE.train.enabled`. */
   const trenOn = input.flags?.train === true || STAGE.train.enabled
+  /** ¿Y el relato del paso 17? Ver `STAGE.relato.enabled`. */
+  const relatoOn = input.flags?.relato === true || STAGE.relato.enabled
+  /**
+   * A QUIÉN LE CUESTA ESTE BOQUETE, Y CUÁNTOS PUESTOS (R23.2). Se cuenta con la misma aritmética con
+   * la que R04 decide si hay que perseguir: si los de delante llegan con `gap` segundos, ¿a cuántos
+   * hombres de la general adelantarían?
+   *
+   * Sale como una lista corta de `equipo:puestos` —el formato del diario es plano— y solo nombra a
+   * los que de verdad pierden algo: un equipo al que le cuesta cero no es noticia.
+   */
+  const cuestaAQuien = (delante: readonly RiderSim[], gapS: number): string => {
+    if (!hasGcContext) return ''
+    const porEquipo = new Map<string, number>()
+    for (const m of delante) {
+      const suDeficit = m.input.gcDeficitSeconds - gapS
+      for (const otro of sims.values()) {
+        if (otro.abandonedKm !== null) continue
+        const suyo = teamOf.get(otro.input.riderId)
+        if (suyo == null || suyo === teamOf.get(m.input.riderId)) continue
+        // Le pasa por delante: el de la fuga estaba detrás y con este boquete se le pone delante.
+        if (
+          m.input.gcDeficitSeconds > otro.input.gcDeficitSeconds &&
+          suDeficit < otro.input.gcDeficitSeconds
+        ) {
+          porEquipo.set(suyo, (porEquipo.get(suyo) ?? 0) + 1)
+        }
+      }
+    }
+    return [...porEquipo]
+      .filter(([, n]) => n > 0)
+      .sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1))
+      .slice(0, STAGE.pullNamesMax)
+      .map(([t, n]) => `${t}:${n}`)
+      .join(',')
+  }
   /**
    * LOS TRENES VIVOS, uno por carta de sprint, **y persistentes**: ésa es la diferencia entre un
    * tren y una foto. Se montan la primera vez que hacen falta y desde ahí llevan su propio estado
@@ -3570,6 +3605,15 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
             // que se lee, que es lo que convierte un número en una situación de carrera.
             chaseKind,
             toGo: Math.round(kmRestantes),
+            /**
+             * …Y **A QUIÉN LE CUESTA** (R23.2, S-219/S-440, paso 17). Es la pregunta que convierte
+             * un boquete en una noticia: dos minutos de ventaja no significan nada hasta que se
+             * dice **cuántos puestos de la general le cuestan a quién**.
+             *
+             * El motor ya lo calcula —la general virtual de R04 hace exactamente esa cuenta para
+             * decidir si persigue— y lo tiraba. Aquí solo se cuenta.
+             */
+            ...(relatoOn ? { cuesta: cuestaAQuien(lead.members, frontGap) } : {}),
           })
           lastGapReportKm = km
           prevGapS = frontGap
@@ -4547,6 +4591,24 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
        */
       const motivoDelRelevo = (m: RiderSim): { motivo: PullMotive; para: string | null } => {
         if (members.length === 1) return { motivo: 'solo', para: null }
+        /**
+         * …Y **EL QUE TIRA POR SÍ MISMO TIENE UN MOTIVO CON NOMBRE** (R23.1, S-434, paso 17).
+         *
+         * Ocho hombres en el último puerto y el favorito delante marcando tempo: eso no es «libre»
+         * ni «le toca por su papel», que es como salía. Es el motivo más claro que hay en una
+         * carrera, y la crónica lo contaba como si fuera un turno.
+         *
+         * Va arriba del todo porque es el más específico: si este hombre ES la carta de su equipo y
+         * está dando la cara, no hay nada más que preguntar.
+         */
+        if (relatoOn) {
+          const suyo = rebels.has(m.input.riderId) ? null : (teamOf.get(m.input.riderId) ?? null)
+          const plan = suyo != null ? teamPlans.get(suyo) : undefined
+          const esSuCarta =
+            plan != null &&
+            (plan.stageCandidateId === m.input.riderId || plan.gcLeaderId === m.input.riderId)
+          if (esSuCarta && !isBunch) return { motivo: 'propio', para: m.input.riderId }
+        }
         if (abanicoAbierto && vientoLateral > 0 && block.tipo === 'llano')
           return { motivo: 'abanico', para: null }
         if (isBunch && kmToGo <= STAGE.sprintTrainKm) {
@@ -5619,6 +5681,23 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
        * absoluta y en fracción del grupo—, y con el mismo suelo de kilómetros que el corte grande,
        * sin escalar: una criba así merece su frase pase lo que pase, y como mucho cada 3 km.
        */
+      /**
+       * LA CAUSA DE LA CRIBA (R23.3). Se lee del bloque en que ocurre y del estado de la carrera, en
+       * este orden: la caída manda sobre todo —si acaba de haber una, la carrera se partió por eso—,
+       * luego el viento con el abanico abierto, luego el terreno, y si nada de eso explica el corte
+       * es que **alguien está cazando**, que también es una causa y hasta hoy no tenía nombre.
+       */
+      const causaDelCorte = (): string => {
+        // «Acaba de haber una caída» se lee del parte de incidentes, que ya lleva su kilómetro.
+        const caidaReciente = incidents.some(
+          (x) => x.tipo === 'caida' && km - x.km <= STAGE.splitCrashCauseKm,
+        )
+        if (caidaReciente) return 'caida'
+        if (abanicoAbierto && vientoLateral > 0) return 'viento'
+        if (block.tipo === 'paves') return 'sector'
+        if (block.tipo === 'subida') return 'puerto'
+        return 'caza'
+      }
       const decisive =
         lost >= STAGE.splitFarMinDropped &&
         lost >= frontAtLastNotice * STAGE.splitFarMinDropFraction &&
@@ -5652,6 +5731,16 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
           // Si la fuga sigue por delante, este grupo NO va en cabeza: es el que persigue. Decir
           // "N left in front" con una fuga en carretera era sencillamente falso.
           chasing: moves.length > 0 ? 1 : 0,
+          /**
+           * …Y **POR QUÉ SE ROMPIÓ** (R23.3, S-441, paso 17). El motor lo sabe en el instante en que
+           * lo decide —el bloque en el que pasa dice si es un puerto, un sector o un día de viento—
+           * y lo tiraba, así que la crónica contaba las mismas cuatro cribas con la misma frase.
+           *
+           * No es adorno: **sin esto ninguna regla nueva se puede diagnosticar**. Todo lo que el
+           * dueño ha cazado este mes lo ha cazado leyendo la radio de carrera, y una criba sin causa
+           * es una criba que no se puede discutir.
+           */
+          causa: causaDelCorte(),
         })
         lastFrontNoticeKm = km
         frontAtLastNotice = front.length
