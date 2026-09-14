@@ -13428,3 +13428,27 @@ invariante 56 lo sustituiría con bandas 0-2 %. **No hace falta**: `fuera de con
 del ganador, o sea varios minutos. La sustitución queda **anotada y sin aplicar**, con su medida
 delante: un invariante no se retira porque un documento lo anuncie, sino porque una medida lo
 contradiga.
+
+### Re-sellado de la huella de la crono (corrección de esta misma nota)
+
+Esta subsección se escribió diciendo que las huellas **no se movían**, y era falso: `pnpm test:rapido`
+se corrió aquí antes de que los percances entraran en `timetrial.ts`, así que el sello de
+`timetrial.test.ts` se quedó con el número de la v68 y la CI lo cazó en el PR #217. La medida buena es
+la de §9.3, que ya lo tenía declarado —«la huella de la crono se mueve en 13 y 19; cambian los tiempos
+de los que sufren un incidente; el especialista sigue ganando»— y se cumple entera:
+
+| `cri-40`, las dos semillas selladas | v68          | v69                                          |
+| ----------------------------------- | ------------ | -------------------------------------------- |
+| semilla 0                           | sin cambios  | **idéntica dígito a dígito**                 |
+| semilla 1, ganador                  | `cri-2` 2888 | `cri-2` 2888                                 |
+| semilla 1, siete primeros           | intactos     | intactos                                     |
+| semilla 1, tiempos movidos          | —            | **2 de 40**: `pel-28` +23 s y `pel-26` +35 s |
+
+Los otros treinta y ocho tiempos son los mismos dígito a dígito; lo único que les cambia es el puesto,
+porque los dos que pincharon les pasan por detrás. Dos de cuarenta en una crono es exactamente el
+0,53 percances por crono de la tabla de arriba, visto en una sola corrida.
+
+**Y la lección de proceso, que es la que vale**: una huella sellada no se comprueba con la tanda que
+se corrió antes del cambio. El orden correcto es cambiar, reconstruir y **después** medir; correrlo al
+revés produce un verde que no significa nada — que es justo de lo que esta bitácora lleva media
+docena de notas avisando.
