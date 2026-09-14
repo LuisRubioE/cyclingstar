@@ -715,7 +715,7 @@
  * Campaña canónica de 500 corridas: **los 33 invariantes en verde**. La contrarreloj no se mueve ni
  * un dígito —es el ancla del esfuerzo individual y paga la ley lineal de siempre—.
  */
-export const ENGINE_VERSION = 66 as const
+export const ENGINE_VERSION = 68 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -4282,6 +4282,143 @@ export const STAGE = {
    * sin que nadie lo vea.
    */
   tacticalCostCap: 0.6,
+
+  /**
+   * LA CAÍDA COMO SUCESO SOCIAL Y EL HUNDIMIENTO COMO ESTADO OBSERVABLE (R12 + R13,
+   * docs/tactica.md paso 12).
+   *
+   * El motor ya tiene lo que PASA —caídas, montón, pájaras—; lo que no tiene es lo que el pelotón
+   * HACE con ello: nadie pide una tregua, nadie la niega, nadie se aparta al ver sufrir a su jefe y
+   * el que tira hasta reventar no le pasa el relevo a nadie.
+   */
+  truce: {
+    enabled: true,
+    /** No se para una carrera que ya se está decidiendo. */
+    minKmToGo: 25,
+    /** DERIVADA de `freeRunTarget`: la tregua es rodar, no pararse. */
+    commit: 0.45,
+    km: 3,
+    /**
+     * LA EMBOSCADA (R12.3). Con treinta segundos sobre la mesa, el que va segundo de la general no
+     * levanta el pie, y eso NO es una anomalía: es una de las noticias más viejas del ciclismo.
+     * `ambushCommit` DERIVADA de `gear.finalDrive` 0,85.
+     */
+    ambushMinGainS: 30,
+    /**
+     * A QUÉ DISTANCIA DE LA GENERAL SIGUE MERECIENDO LA PENA EMBOSCAR. Al que va a un cuarto de hora
+     * el percance del maillot no le cambia nada, así que no aprieta y la tregua sale. DERIVADA de
+     * `gcControlLeash` 700, que es la misma pregunta —«¿está éste lo bastante cerca como para que me
+     * importe?»— hecha desde el otro lado.
+     */
+    ambushRivalWindowS: 700,
+    /**
+     * QUÉ PARTE DEL PERCANCE ESTÁ DE VERDAD EN JUEGO. El caído pierde su tiempo se espere o no; lo
+     * que el pelotón le puede negar es el REGRESO, y eso es la mitad larga de lo perdido. [calibrar]
+     * contra `truceGrantedPct` 50-85 %.
+     */
+    ambushGainShare: 0.5,
+    ambushCommit: 0.88,
+    ambushKm: 8,
+    /** EL RESCATE (R12.4): un hombre por cada treinta y cinco segundos de hueco. */
+    rescuePerManS: 35,
+    /**
+     * DERIVADA de `helpBackStageGapSeconds` 60 × 1,5: una cota descuelga más que un pinchazo, y el
+     * descenso de después devuelve parte de lo perdido.
+     */
+    sprinterClimbRescueGapS: 90,
+    teamsRescueMaxGapS: 45,
+    approachHelpers: 3,
+    /** EL TAPÓN (R12.6): un cuarto del grupo por detrás del caído, y de 30 a 60 s. */
+    taponShare: 0.25,
+    taponLossMinS: 30,
+    taponLossMaxS: 60,
+    /** LA REGLA DE LOS 3 KM (R12.5). Es un dato del recorrido; esto es solo su valor por defecto. */
+    threeKmRuleKm: 3,
+    /**
+     * EL GREGARIO SE APARTA AL VER (R13.2). En segundos de deriva de su carta, y **por debajo** de
+     * `regroupGapSeconds` 22 a propósito: la gracia de la regla es que el leal reacciona ANTES de que
+     * el hueco exista, que es lo que un gregario hace en carretera.
+     */
+    mateWatchDriftS: 7,
+    /** LA PÁJARA DEL QUE TIRA (R13.3). DERIVADA de `matchDepletionThreshold` 0,12. */
+    pullerCollapseFraction: 0.15,
+    /**
+     * CUÁNTO PESA APARTARSE. Es un empujón sobre el deber de relevo, no un veto: si no queda nadie
+     * más, el apagado sigue dando la cara —que también pasa en carretera—. **DERIVADA de
+     * `relayNoChanceWeight` 1 × 0,6**, el otro término que saca a alguien del turno por una razón
+     * que no es su rol; se queda por debajo de él a propósito, porque «no puedo ganar nada» es un
+     * motivo más firme para esconderse que «voy fundido», donde el deber todavía tira.
+     */
+    stepAsideWeight: 0.6,
+    /**
+     * COMER (R13.4). DERIVADA de «las tres primeras horas» de S-147: a 40 km/h son unos 120 km con
+     * dos zonas de avituallamiento, o sea 60 km entre una y otra.
+     */
+    feedMaxKm: 60,
+    feedStarveGain: 2.5,
+    feedZoneDamp: 0.85,
+    /** EL FRÍO (R13.5), como término del coste táctico. Ver `stage/cost.ts` y §9.1bis. */
+    coldCostScale: 0.06,
+    coldStopS: 8,
+  },
+
+  /**
+   * PERCANCES MECÁNICOS Y EL COCHE (R11, docs/tactica.md paso 13). En este motor nadie pinchaba, y
+   * eso bloqueaba el precio de cualquier percance: sin coche que llegue tarde, una avería no cuesta
+   * nada, y sin que cueste nada no hay nada que decidir alrededor.
+   */
+  mishap: {
+    enabled: true,
+    /**
+     * 0,00006/km × 180 km × 176 corredores ≈ **dos percances por etapa llana**, y con el ×20 del
+     * adoquín, treinta en un día de tierra. Es el orden de la carretera real: una clásica de pavés
+     * vive de eso.
+     *
+     * **CALIBRADA A LA BAJA CON LA MEDIDA DELANTE, desde el 0,00008 de la propuesta.** Con 2,9
+     * percances por etapa el mejor velocista del campo ganaba el **45,8 %** de las llanas contra un
+     * techo del 45: cada pinchazo que se lleva a un rival del grupo de cabeza es una etapa que el
+     * mejor gana sin disputarla. Dos y pico por etapa siguen siendo el orden que el diseño declaró
+     * y dejan el remate donde estaba.
+     *
+     * Y su otro listón, el que el diseño pide comprobar aparte: el invariante 44 **no puede subir
+     * por culpa de los pinchazos**, porque un pinchazo no es una baja. Medido: 3,20 caídas por etapa
+     * antes y 3,20 después.
+     */
+    base: 0.00006,
+    /** Y el que manda es el terreno. El ×20 es lo que hace existir «pinchar en el peor sitio». */
+    terrainFactor: { llano: 1, subida: 1.2, descenso: 1.5, paves: 20 } as Record<
+      'llano' | 'subida' | 'descenso' | 'paves',
+      number
+    >,
+    rainGain: 0.6,
+    /** Atrás se pincha más, y no es superstición: delante se ve el agujero. */
+    placementGain: 0.5,
+    /**
+     * EL COCHE (R11.2). `carConvoyRankS` × el puesto en la caravana son **treinta segundos
+     * sistemáticos** entre el hombre del equipo del líder y el del vigésimo. No es mala suerte: es
+     * el reglamento, y cambia cada día con la general.
+     */
+    carBaseS: 25,
+    carPerPlaceS: 0.35,
+    carConvoyRankS: 4,
+    /** Sin caravana —en cabeza, en un puerto cerrado o con la carrera rota— el precio se triplica. */
+    carNoAccessGain: 3,
+    /** Y la rueda neutra encaja peor. */
+    neutralWheelGain: 1.3,
+    /** De cada cinco percances, uno es una avería de verdad y cuatro son un pinchazo. [calibrar] */
+    mechanicalShare: 0.2,
+    changePunctureS: 12,
+    changeMechanicalS: 25,
+    /** EL ASCENSOR (R11.3): volver por el pasillo de los coches es media carrera. */
+    caravanPullS: 12,
+    caravanMaxKm: 6,
+    /** DERIVADA: una talla de cuadro. Por encima de eso, ceder la bici no sirve de nada. */
+    bikeSwapCm: 3,
+    /** Dentro de la fuga se espera por aritmética, no por cortesía. */
+    waitMinGapS: 75,
+    /** Y en la crono también se pincha (R11.6). DERIVADA del objetivo declarado de 1-4 %. */
+    ttLambda: 0.015,
+  },
 
   launchWorstFinisherM: 90,
 

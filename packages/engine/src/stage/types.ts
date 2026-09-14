@@ -248,11 +248,18 @@ export interface StageResult {
   estado: 'finish' | 'abandon' | 'dnf'
 }
 
-/** Incidente físico (caída, lesión) con su severidad (SPEC 6.14). */
+/**
+ * Incidente físico (caída, lesión) con su severidad (SPEC 6.14).
+ *
+ * …Y DESDE EL PASO 13, TAMBIÉN MECÁNICO (R11). `pinchazo` y `averia` viajan por el mismo canal que
+ * la caída porque para todo lo que hay aguas abajo —el parte, la crónica, el rescate del jefe— son
+ * la misma cosa: un hombre que se para en un kilómetro concreto y pierde un tiempo. Lo que los
+ * separa es el precio, y ése lo pone `stage/mishap.ts`.
+ */
 export interface Incident {
   riderId: string
   km: number
-  tipo: 'caida'
+  tipo: 'caida' | 'pinchazo' | 'averia'
   severidad: 'none' | 'scratches' | 'minor' | 'major'
   perdidaS: number
   diasBaja: number
