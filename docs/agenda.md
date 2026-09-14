@@ -443,15 +443,42 @@ el teléfono (lo dice `docs/navegacion.md` §2, principio 3), y los equipos se d
 de maillot**, que es exactamente el peor identificador posible para un daltónico. Un patrón SVG
 paramétrico puede resolverlo bien si se diseña sabiéndolo.
 
-### 4.13 Comunidad, dentro o fuera
+### 4.13 Comunidad, dentro o fuera, y por qué WhatsApp no es la respuesta
 
-Decisión pequeña de consecuencias grandes: foro propio (coste de moderación permanente, obligaciones
-legales, pero contexto de juego) o comunidad externa en Discord (gratis, inmediata, fuera de tu
-control). Mi opinión: **fuera desde el primer día**, y dentro del juego solo lo que necesita el
-contexto del juego (el canal del equipo, la rueda de prensa, el mensaje del mánager). Construir un
-foro propio es adoptar un trabajo a tiempo parcial para siempre.
+La primera versión planteaba la disyuntiva entre foro propio (coste de moderación permanente y
+obligaciones legales, a cambio de contexto de juego) y comunidad externa. El dueño descarta Discord
+porque no le gusta y propone **una comunidad de WhatsApp**. Aquí discrepo, y no por gusto: por tres
+propiedades concretas que WhatsApp no tiene y que una comunidad de juego necesita.
 
----
+1. **Expone el número de teléfono.** En un grupo de WhatsApp, los miembros ven el número de los
+   demás. Pedirle eso a desconocidos que se han apuntado a un juego es un problema de privacidad de
+   verdad, y con edad mínima de 16 es además un problema de protección: el número de teléfono es el
+   dato con el que empieza el acoso cuando hay acoso. Es la razón de peso y no se arregla con
+   ajustes.
+2. **No deja archivo legible.** Quien entra hoy no puede leer lo de ayer, ni buscar «cómo funciona el
+   entrenamiento», ni encontrar el anuncio de la última versión. Todo lo que se escribe se pierde
+   hacia arriba. Para un juego que va a repetir las mismas veinte preguntas mil veces, eso significa
+   contestarlas mil veces.
+3. **No tiene moderación ni estructura.** Ni temas separados, ni hilos, ni herramientas para tratar a
+   quien se porta mal más allá de expulsarlo a mano. Es lo mismo que E6 está resolviendo dentro del
+   juego, tirado a la basura fuera de él.
+
+**Y ahora lo que importa de verdad: esta decisión no hay que tomarla todavía.** Durante la beta por
+invitación habrá un puñado de probadores de confianza, y para eso **un grupo de WhatsApp está
+perfectamente bien**: son pocos, se conocen, el número de teléfono no es un problema entre gente
+elegida, y no hace falta archivo porque el dueño está en la conversación. La decisión solo pesa el día
+que la comunidad la formen desconocidos, y ese día está lejos.
+
+**Cuando llegue, mi recomendación por orden**, sabiendo que Discord está descartado: **Telegram** es
+el que más se parece a lo que hace falta sin los defectos de WhatsApp (identidad por nombre de usuario
+y no por teléfono, grupos grandes, canales separados para anuncios, y búsqueda que funciona).
+Después, un **foro propio de los que se instalan hechos**, que resuelve el archivo y la estructura a
+cambio de un trabajo de moderación para siempre. Y por debajo de los dos, WhatsApp, que es la opción
+que uno elige cuando la comunidad son veinte personas y la que lamenta cuando son dos mil.
+
+**Lo que no cambia con nada de esto:** dentro del juego solo va lo que necesita contexto de juego (el
+canal del equipo, la rueda de prensa, el mensaje del mánager), que es lo que E8 diseña. La comunidad
+general vive fuera, se llame como se llame.
 
 ### 4.14 El rediseño GRÁFICO, que faltaba, y un malentendido que aclarar
 
@@ -610,6 +637,52 @@ guardan fechados desde la v48 y no se borran nunca), y no hay por dónde leerlos
 
 No arregla nada roto, así que no adelanta a nadie en la cola, pero es de lo que más profundidad da por
 hora invertida y es lo que hace que un mundo parezca un mundo. Entra como **E12**.
+
+#### 4.15.5 La regla del mes: buena, y hay que precisarla en cuatro sitios
+
+El dueño la fijó así: **si en un mes real no hace login ni una vez, el corredor se convierte en bot**.
+Es la regla correcta y es el orden de magnitud correcto, así que va escrita. Lo que sigue son las
+cuatro cosas que la regla no dice y que deciden si funciona o si espanta gente.
+
+**1. Un mes real son 120 días de juego, o sea un tercio de temporada.** Conviene tenerlo presente: en
+la vida de una persona, un mes sin entrar a un juego es normal (vacaciones, exámenes, una mudanza, una
+temporada mala). En la vida del mundo es larguísimo. La regla está bien justamente porque el mundo no
+puede esperar, pero eso obliga a lo siguiente.
+
+**2. Reversible, siempre, y sin pedir permiso a nadie.** «Convertirse en bot» tiene que significar
+**que el entrenador y el equipo toman las decisiones que el jugador no está tomando**, no que el
+corredor cambie de dueño. El día que esa persona vuelva a entrar, recupera los mandos en el acto y
+sigue su carrera donde la dejó. Si «pasar a bot» fuera irreversible, la regla dejaría de ser
+mantenimiento del mundo y sería una pena de muerte por ausencia, que es exactamente lo que hace que
+alguien que dudaba si volver ya no vuelva.
+
+**3. Avisar antes, que es donde la regla se convierte en retención.** Un correo a los veinte días
+diciendo «si no entras, tu corredor pasa a manos del entrenador el día tal» es, en la práctica, el
+mejor recordatorio que este juego puede mandar: no es publicidad, es una consecuencia real y suya. La
+regla de mantenimiento y el mecanismo de recuperar jugadores son el mismo correo.
+
+**4. El MÁNAGER es otro caso y necesita reloj propio.** Un corredor ausente se perjudica a sí mismo;
+**un mánager ausente perjudica a otras personas**, que se quedan sin quien decida convocatorias,
+contratos y liderazgos. Ahí el mes es demasiado: propongo un plazo más corto para que el mánager bot
+tome el mando del equipo, con la silla reservada para el humano si vuelve. Y hay que decidir lo
+incómodo: **qué pasa si mientras tanto se le ha dado el equipo a otro**, porque dos personas no pueden
+mandar en el mismo equipo. Mi recomendación es que el equipo pase a mánager bot y no a otro humano
+mientras la silla siga reservada, y que solo se entregue a otra persona cuando la ausencia sea larga
+de verdad (una temporada) y avisada.
+
+**Y dos cosas que hay que resolver para que la regla no rompa otras.** La primera: un humano ausente
+convertido en bot **no puede ser barrido por G8**, que limpia bots con cero puntos según llegan
+humanos. Hace falta distinguir «bot de relleno» de «humano en pausa», o el mundo se comerá corredores
+de gente que iba a volver. La segunda: hace falta decidir el **final del camino**, que la regla del mes
+no cubre. Propongo tres escalones: al mes, el entrenador conduce; al final de la temporada de una
+ausencia larga, el contrato no se renueva y el corredor queda libre, que libera la plaza de plantilla
+sin borrar a nadie; y solo después de mucho tiempo, la retirada, que es reversible en el sentido que
+importa, porque el jugador siempre puede empezar otra carrera deportiva.
+
+**Lo que hay que hacer ya, y es barato:** empezar a **registrar la última visita**. Hoy no existe (ni
+`last_seen` ni equivalente), y es un dato que no se reconstruye hacia atrás: el día que se quiera
+aplicar la regla hará falta un mes de historial que solo existe si se empezó a guardar un mes antes.
+Va en la lista de tareas, no en E6, porque no necesita esperar a ningún diseño.
 
 ### 4.16 Los tres detalles del dueño, que no son tan pequeños
 

@@ -282,7 +282,19 @@ quién lo usó.
 
 **Y una tercera mitad que apareció comprobando el esquema: la POBLACIÓN del mundo.** No existe ni un
 solo rastro de actividad en la base de datos (ni `last_seen`, ni `last_login`, ni equivalente en
-`users` ni en `riders`), así que **el mundo no sabe quién lo ha abandonado**. En un mundo único y
+`users` ni en `riders`), así que **el mundo no sabe quién lo ha abandonado**. **La regla ya está
+decidida por el dueño: un mes real sin entrar ni una vez y el corredor pasa a bot.** Lo que el
+documento tiene que precisar es lo que la regla no dice, que está desarrollado en §4.15.5 de
+`agenda.md` y se resume en cuatro puntos: que «pasar a bot» signifique **que el entrenador y el equipo
+deciden en tu lugar y nunca que el corredor cambia de dueño**, porque el que vuelve tiene que
+recuperar los mandos en el acto; que se **avise por correo antes** de que ocurra, que es donde la
+regla de mantenimiento se convierte en el mejor recordatorio que este juego puede mandar; que el
+**mánager tenga reloj propio y más corto**, porque un corredor ausente se perjudica a sí mismo y un
+mánager ausente perjudica a otras personas, con la silla reservada y la decisión incómoda de qué pasa
+si mientras tanto se le dio el equipo a otro; y que un **humano en pausa no pueda ser barrido por G8**,
+que limpia bots de relleno con cero puntos. Falta además decidir el final del camino, que la regla del
+mes no cubre: propuesta de tres escalones en §4.15.5 (al mes conduce el entrenador, al final de una
+temporada de ausencia el contrato no se renueva y libera la plaza, y solo mucho después la retirada). En un mundo único y
 permanente eso deja un corredor humano ocupando plaza de plantilla para siempre, cobrando salario y
 bloqueando el sitio de alguien que sí juega. G8 (limpiar bots según lleguen humanos) está pensado para
 el caso contrario y no cubre éste. Hay que definir qué es inactividad, qué le pasa al corredor, a su
@@ -547,7 +559,12 @@ Son tareas, y varias tienen fecha límite en el reset:
 - **Guardar país y `Accept-Language` en el registro**, que cuesta una tarde y decide E9 con datos.
 - **Analítica de producto**: cuántos se registran, cuántos crean corredor, cuántos vuelven al
   séptimo día. Sin esto, E5 se diseña a ciegas.
-- **Decidir la comunidad externa**: foro propio (coste de moderación permanente y obligaciones
-  legales, a cambio de contexto de juego) o Discord desde el primer día. Mi recomendación es fuera, y
-  dentro del juego solo lo que necesita contexto de juego, que es lo que E8 diseña.
+- **Empezar a registrar la última visita** (`last_seen`). Hoy no existe, y es un dato que **no se
+  reconstruye hacia atrás**: el día que se quiera aplicar la regla del mes hará falta un mes de
+  historial, que solo existe si se empezó a guardar un mes antes. No depende de ningún diseño.
+- **La comunidad externa NO hay que decidirla todavía.** Durante la beta por invitación, un grupo de
+  WhatsApp está perfectamente bien: son pocos, se conocen y el dueño está dentro. La decisión pesa el
+  día que la comunidad la formen desconocidos, y entonces WhatsApp es mala opción por tres razones
+  concretas (expone el número de teléfono de todos, no deja archivo legible y no tiene moderación ni
+  estructura). Razonamiento y alternativas en §4.13 de `agenda.md`.
 - **La lista de «lo que solo se puede cambiar en el reset»**, abierta desde hoy.
