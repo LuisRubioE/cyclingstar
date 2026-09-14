@@ -29,11 +29,11 @@ forma según ellas.
 | --- | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1   | ¿Qué es «economía real»?       | **La economía INTERNA.** Que el salario le sirva de algo al corredor y, sobre todo, el dinero de los equipos: patrocinadores, premios y todo tipo de gastos |
 | 2   | ¿Un mundo o varios?            | **Uno y para siempre**, con un **reset** al pasar de pruebas a juego de verdad: se reinicia desde la temporada 1                                            |
-| 3   | ¿Los mánagers se eligen?       | **Cuenta premium.** Primero REGALADA a los mejores probadores, comprable más adelante                                                                       |
-| 4   | ¿Qué idiomas?                  | Abierta a recomendación. Traducción 100 % por Claude. Ver D7                                                                                                |
-| 5   | ¿Edad mínima?                  | Abierta a recomendación. Ver §3.7 y D12                                                                                                                     |
-| 6   | ¿Integridad antes que mánager? | Pendiente de entender el coste. Ver §6.1                                                                                                                    |
-| 7   | ¿Qué le debemos al jugador?    | Pendiente. Ver §4.4, que ahora la plantea con opciones                                                                                                      |
+| 3   | ¿Los mánagers se eligen?       | **Cuenta premium.** Regalada a quien MÁS HA APORTADO (no a quien más ha ganado), y solo por invitación hasta que el juego esté implementado y probado       |
+| 4   | ¿Qué idiomas?                  | Primera tanda **con** italiano, alemán y portugués. Ruso aplazado; **chino por delante de danés y polaco**. Ver el anexo a D7                               |
+| 5   | ¿Edad mínima?                  | **16**, declarada y sin verificación documental. Ver §3.7                                                                                                   |
+| 6   | ¿Integridad antes que mánager? | **Sí, y más:** el mánager es por invitación hasta que D5 y D6 estén implementados y probados, no solo diseñados                                             |
+| 7   | ¿Qué le debemos al jugador?    | El dueño sostiene que el motor apenas cambiará tras el reset. Discrepancia razonada en §4.4                                                                 |
 
 La 2 es la que más mueve, y no como se esperaba: **el reset cambia la naturaleza de la mitad de las
 decisiones irreversibles**, porque las vuelve reversibles exactamente una vez. Eso es la sección 3.
@@ -70,13 +70,13 @@ Tu lista mezcla cosas de altitudes muy distintas: «multiidioma» es una decisi�
 con una fecha límite implícita, «mánagers humanos» es un cambio de lo que el juego ES, y
 «tutoriales» es una consecuencia de las dos. Ordenadas por capa:
 
-| Capa                                  | Qué decide                                      | Qué cae aquí de tu lista             | Qué falta                                                                                |
-| ------------------------------------- | ----------------------------------------------- | ------------------------------------ | ---------------------------------------------------------------------------------------- |
-| **Modelo**: qué es el juego           | Las reglas entre personas                       | Mánagers humanos, sociales, economía | Identidad del corredor (N4), el contrato del mundo con el jugador                        |
-| **Integridad**: qué lo hace habitable | Que el modelo no se envenene                    | Admins y moderación, correo          | Anti multicuenta, colusión, auditoría de admin, seguridad de cuenta                      |
-| **Infraestructura**: qué lo sostiene  | Lo que no cambia el juego pero lo hace operable | Multiidioma, economía real (pagos)   | Notificaciones, analítica, escala y archivado, legal y privacidad                        |
-| **Lectura**: qué percibe el jugador   | Que el trabajo del motor se NOTE                | News + radio + journal, UX, tutorial | Accesibilidad y móvil, notas de versión, auditabilidad del resultado                     |
-| **Contenido**: de qué está hecho      | El material sobre el que corre todo             | (nada)                               | Recorridos (G5, G6), selecciones nacionales, fin de temporada y legado, identidad visual |
+| Capa                                  | Qué decide                                      | Qué cae aquí de tu lista             | Qué falta                                                                                           |
+| ------------------------------------- | ----------------------------------------------- | ------------------------------------ | --------------------------------------------------------------------------------------------------- |
+| **Modelo**: qué es el juego           | Las reglas entre personas                       | Mánagers humanos, sociales, economía | Identidad del corredor (N4), el contrato del mundo con el jugador                                   |
+| **Integridad**: qué lo hace habitable | Que el modelo no se envenene                    | Admins y moderación, correo          | Anti multicuenta, colusión, auditoría de admin, seguridad de cuenta                                 |
+| **Infraestructura**: qué lo sostiene  | Lo que no cambia el juego pero lo hace operable | Multiidioma, economía real (pagos)   | Notificaciones, analítica, escala y archivado, legal y privacidad                                   |
+| **Lectura**: qué percibe el jugador   | Que el trabajo del motor se NOTE                | News + radio + journal, UX, tutorial | **El sistema visual** (§4.14), accesibilidad y móvil, notas de versión, auditabilidad del resultado |
+| **Contenido**: de qué está hecho      | El material sobre el que corre todo             | (nada)                               | Recorridos (G5, G6), selecciones nacionales, fin de temporada y legado, identidad visual            |
 
 ### Y la reorganización que de verdad propongo
 
@@ -131,17 +131,26 @@ habrá otro borrado.
 Y el detalle sigue en pie: `users.locale` es `text NOT NULL DEFAULT 'es'` con la interfaz en inglés.
 La columna ya miente.
 
-### 3.2 El dominio de correo: esta el reset NO la indulta
+### 3.2 El dominio de correo: el dueño tiene razón, con dos matices
 
-Sigue siendo la más urgente de todas, y ahora destaca precisamente porque las demás se han relajado.
-**La reputación de envío no vive en tu base de datos**, vive en los servidores de Google y Microsoft,
-y un reset del mundo no la borra. Si durante las pruebas se envía desde un dominio que acumula
-quejas, ese daño cruza el reset intacto.
+La objeción fue: «si después de las pruebas me compro un dominio, no hay problema con la reputación
+de envío, ¿no?». **Correcto.** La reputación se acumula por dominio de envío, así que un dominio
+nuevo empieza limpio y no hereda nada de lo que pasara antes desde otro sitio. Lo que escribí sobre
+que «el daño cruza el reset» valía para el dominio DESDE EL QUE SE ENVÍA, no para el juego.
 
-Recomendación sin cambios respecto a G11: subdominio dedicado en `rubio.pt`
-(`no-reply@cyclingstar.rubio.pt`) para la fase de pruebas, dominio propio para la versión final,
-`hereistand.app` descartado. Y separar desde el primer día el correo TRANSACCIONAL del de
-NOTIFICACIÓN, aunque al principio solo exista el primero.
+Quedan dos matices, y ninguno cambia el plan:
+
+1. **El dominio que se arriesga durante las pruebas es `rubio.pt`, que es tuyo y lleva tu correo
+   personal detrás.** Por eso sigue valiendo el subdominio dedicado
+   (`no-reply@cyclingstar.rubio.pt`): lo que se ensucie se queda en el subdominio en lugar de
+   arrastrar el dominio raíz desde el que escribes tú.
+2. **Un dominio recién comprado tiene reputación CERO, que no es lo mismo que buena.** Los filtros
+   desconfían de un remitente nuevo que de pronto manda mucho. Lo estándar es calentarlo: comprar el
+   dominio unas semanas antes del lanzamiento y empezar a enviar volumen pequeño (tus propias
+   pruebas, los probadores) en vez de estrenarlo el mismo día que llegan mil registros.
+
+Y sigue en pie lo único que de verdad importa aquí: **separar el correo transaccional del de
+notificación** desde el primer día, aunque al principio solo exista el primero.
 
 ### 3.3 La economía es INTERNA: lo que eso simplifica y lo que no
 
@@ -236,6 +245,19 @@ tener chat de equipo, negociación entre personas y un mánager humano con poder
 Moderar eso con menores de doce años dentro es asumir una responsabilidad de otra categoría, con
 obligaciones de protección del menor que ni tú ni yo queremos diseñar ahora.
 
+**¿Hace falta verificar la edad? No.** La pregunta era buena y la respuesta corta es que lo estándar
+es una **fecha de nacimiento declarada** en el registro, más la edad mínima escrita en las
+condiciones, más actuar cuando te enteras de que alguien no la cumple. Nada de documentos, ni
+tarjeta, ni pasarela de verificación. Lo que la ley reprocha no es no haber comprobado un carné, es
+haber diseñado un servicio para menores fingiendo que no, o mirar hacia otro lado cuando ya lo sabes.
+
+Con 16 declarados el flujo es: una casilla de fecha de nacimiento, una línea en las condiciones, y
+un botón de denuncia que ya vas a necesitar por otros motivos (§4.6).
+
+**Sobre Footstar**: no sé qué dicen sus condiciones, no las he leído y no voy a suponerlo. Lo que sí
+diría es que un juego que lleva veinte años en marcha arrastra decisiones tomadas cuando el marco
+legal era otro, así que no es una referencia segura en esto aunque lo sea en casi todo lo demás.
+
 El coste de elegir 16 es real y conviene nombrarlo: **pierdes a los jugadores de 13 a 15**, que en un
 juego de ciclismo no son pocos. Si más adelante quieres bajar, se baja: subir la edad mínima después
 obliga a expulsar cuentas existentes, bajarla no rompe nada. **Empezar alto es la decisión
@@ -322,6 +344,27 @@ la calibración de un atributo.** Los cambios de motor de este proyecto no son c
 y ya hay precedente medido de uno que habría cambiado el resultado de una temporada entera. Un juego
 que recalibra en silencio se gana fama de arbitrario, y esa fama no se quita.
 
+**La objeción del dueño, y por qué no la compro del todo.** «El motor no debe cambiar tanto una vez
+que el juego lo consideremos acabado, testeado, y hagamos el reset.» Ojalá, y es la intención
+correcta. Tres datos de este mismo repositorio dicen que conviene no apostar a ello:
+
+- El motor va por la **versión 68** y las últimas cinco versiones han cambiado cosas grandes (la
+  caída como suceso social, el pinchazo que no existía, la colocación, el clima).
+- El **rediseño táctico está en marcha ahora mismo** y son 6.340 líneas de diseño que aún no han
+  tocado el código. Ningún rediseño de ese tamaño aterriza sin recalibrar lo que toca.
+- `epics.md` tiene **V2 abierta**: mover el suelo de la fuga en montaña a los perfiles reales es «una
+  recalibración táctica del tamaño de la v38», autorizada y sin hacer.
+
+Y hay una razón estructural, no de intención: este motor se valida contra bancos de Montecarlo, y un
+banco solo mide lo que lleva dentro. La lección está escrita dos veces en `epics.md` («lo que el
+banco no lleva, el banco no puede medir, y el defecto vive ahí para siempre»). Los defectos que hoy
+no se ven se verán cuando haya mil jugadores corriendo situaciones que ningún banco reproduce, y
+entonces habrá que tocar.
+
+**Pero lo importante es que esto no es una discusión que haya que ganar**, porque la regla cuesta una
+línea y **si tienes razón no se dispara nunca**. Escribirla es un seguro barato: si el motor no
+cambia, no pasa nada; si cambia, ya está decidido cómo, en frío y sin nadie mirando.
+
 Lo que hay que decidir ahora, y por eso está en esta lista: **si los cambios de motor entran en
 cualquier momento o solo en el rollover**. Es una regla de una línea, cuesta nada escribirla hoy, y
 después de tener jugadores dentro ya no se puede elegir sin quedar mal.
@@ -406,6 +449,51 @@ foro propio es adoptar un trabajo a tiempo parcial para siempre.
 
 ---
 
+### 4.14 El rediseño GRÁFICO, que faltaba, y un malentendido que aclarar
+
+**Primero el malentendido, porque es mío.** En la primera versión escribí que la crónica «está bien
+construida». Me refería al **modelo de datos**: guarda sucesos estructurados en vez de texto, y por
+eso es traducible y re-renderizable. Eso no dice absolutamente nada sobre si la pantalla es buena, y
+leído del tirón parecía que estaba defendiendo la experiencia actual. No lo estaba, y el dueño tiene
+razón en la corrección: **un buen modelo de datos debajo de una pantalla mala sigue siendo una
+pantalla mala**. De hecho es la mejor noticia posible para un rediseño, porque significa que se puede
+tirar la presentación entera sin tocar el motor ni perder la historia ya corrida.
+
+**Y luego el hueco de verdad, que sí era un fallo del catálogo.** La primera versión tenía
+arquitectura de información (D14) y marca (D20), y **no tenía diseño visual**. Son tres cosas
+distintas y confundirlas es exactamente lo que produce un juego que «funciona» y da pena mirar:
+
+| Disciplina                  | Qué decide                                                   | Dónde estaba |
+| --------------------------- | ------------------------------------------------------------ | ------------ |
+| Arquitectura de información | Qué hay y dónde vive                                         | D14          |
+| **Sistema visual**          | Tipografía, color, densidad, jerarquía, componentes, estados | **Faltaba**  |
+| Identidad de marca          | Nombre, logotipo, maillots, tono                             | D20          |
+
+Entra como **D21**, y no en la última oleada.
+
+**El norte que pide el dueño, y es el mejor que podía dar: la retransmisión de televisión.** Es una
+referencia excelente porque no es un gusto estético, es un **conjunto de decisiones de información
+resueltas hace cuarenta años** por gente que tenía que contar una carrera de seis horas a alguien que
+acaba de encender la tele. Lo que una retransmisión enseña, permanentemente y sin que se lo pidas:
+
+- **Cuánto queda** (kilómetros a meta), siempre visible.
+- **La diferencia**, en segundos, cambiando delante de ti. No «hay fuga»: **2' 14"** y si sube o baja.
+- **Quién va en cada grupo**, con nombre y equipo, y cuántos son.
+- **Dónde estamos del perfil**: la altimetría con la posición marcada y el puerto que viene.
+- **El rótulo del momento**: quien ataca sale en pantalla con su nombre y su ficha.
+- **Nada más.** Lo que no ayuda a entender la carrera no está.
+
+El Race Radio de hoy es una lista de frases en orden cronológico. Una retransmisión **no es una
+lista**: es un estado que evoluciona (dónde va cada grupo, con cuánta diferencia) con sucesos
+encima. Ése es el cambio de forma, y es de fondo, no de pintura.
+
+**Y el modo sin destripe deja de ser una opción para ser el modo por defecto de esa pantalla.** Si la
+referencia es la tele, entonces entrar en una etapa es sentarse a verla, no leer el acta. Hoy es
+imposible: llegar al journal sin saber quién ganó no se puede, y eso lo convierte en un archivo en
+vez de en un espectáculo. Con el motor que hay debajo (etapa determinista, sucesos fechados por
+kilómetro y por segundo) **reproducirla a ritmo es técnicamente barato**: los datos ya están, lo que
+falta es no enseñarlos todos de golpe y no filtrarlos desde otra pantalla.
+
 ## 5. El catálogo de diseños
 
 Veinte documentos. Los códigos son nuevos (`D`) para no chocar con los `G` y `N` de `epics.md`. El
@@ -469,19 +557,47 @@ Claude traduce excelentemente una interfaz, y puede **escribir** las plantillas 
 autor nativo, que es lo que de verdad hace falta. Lo que Claude no arregla es lo de después: cada
 suceso nuevo del motor son N idiomas de texto nuevo, para siempre.
 
-**Mi recomendación, y difiere de tu lista en tres sitios:**
+**La recomendación, ya negociada con las objeciones del dueño:**
 
-1. **Añade el neerlandés.** Es la ausencia más llamativa. Bélgica y Países Bajos son el corazón
-   demográfico de este género y de este deporte, y la base de jugadores de los juegos de ciclismo por
-   navegador ha salido históricamente de ahí. Si solo pudieras hacer un idioma además del inglés,
-   discutiría en serio que fuese el neerlandés antes que el español.
-2. **Aplaza el ruso y el chino.** No por desprecio: por coste. Son los dos que rompen el sistema de
-   plantillas, los dos con menos base ciclista relativa, y los dos que **no podrías moderar** (§4.6),
-   porque ni tú ni tus primeros moderadores los leen. Un canal de equipo en un idioma que nadie de la
-   casa entiende es un punto ciego, y con edad mínima de 16 y chat abierto eso pesa.
-3. **Empieza por cuatro, no por siete.** Inglés (ya está), **español**, **neerlandés** y **francés**.
-   Luego italiano, alemán y portugués por este orden. Danés, polaco, esloveno y noruego son los
-   siguientes candidatos naturales del ciclismo y ninguno urge.
+| Tanda | Idiomas                                                             | Por qué                                                                                                                                                                                  |
+| ----- | ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1     | Inglés (ya está), **español, francés, italiano, alemán, portugués** | Los cinco grandes del ciclismo europeo. El dueño los quiere dentro y tiene razón: son la base del deporte y los cinco caben en el mismo sistema de plantillas sin sorpresas gramaticales |
+| 2     | **Neerlandés**                                                      | Discutido en D7.1                                                                                                                                                                        |
+| 3     | **Chino**                                                           | Por delante del danés y el polaco, con la condición de D7.3                                                                                                                              |
+| —     | **Ruso**                                                            | Aplazado sin fecha (D7.2)                                                                                                                                                                |
+| —     | Danés, polaco, esloveno, noruego                                    | Por demanda medida, no por intuición                                                                                                                                                     |
+
+**D7.1 · El neerlandés y el argumento «los holandeses saben inglés».** Es cierto y sigo sin estar de
+acuerdo, aunque acepto que la decisión es tuya y no un error. Saber un idioma y **jugar** en él son
+cosas distintas: uno lee un menú en inglés sin pestañear y abandona un texto largo en inglés cuando
+podía leerlo en el suyo, y este juego es texto largo (crónicas de etapa, noticias, negociaciones).
+Ojo además a la asimetría del argumento: los holandeses saben inglés, **los flamencos también, y los
+italianos bastante menos**, o sea que ese mismo razonamiento pondría el italiano por delante del
+neerlandés, que es justo lo que tú propones. O sea que el argumento es coherente contigo, no conmigo.
+Lo defiendo en la tanda 2 y no peleo más.
+
+**D7.2 · El ruso, aplazado, y no solo por demanda.** Declina los nombres propios. Un sistema que
+interpola cadenas no puede producir ruso correcto sobre nombres generados, así que no es «un idioma
+más»: es reescribir el mecanismo de plantillas para que entienda casos gramaticales.
+
+**D7.3 · El chino: la objeción del dueño es buena y la acepto a medias.** El argumento era que los
+ciclistas chinos son pocos pero los jugadores chinos de internet son muchísimos. Como argumento de
+mercado es correcto y mejor que el mío, así que **retiro «poca base ciclista» como razón principal**:
+pesa, pero no decide.
+
+Lo que sigue en pie son dos obstáculos que no son de demanda:
+
+- **Alcanzabilidad.** Un servicio alojado en Europa y sin presencia dentro de China se sirve lento o
+  no se sirve, y eso no se arregla traduciendo. Antes de invertir en chino hay que comprobar que el
+  juego **se puede jugar** desde allí con latencia decente. Si no, la traducción no sirve de nada.
+- **Moderación.** Con chat de equipo, un idioma que nadie de la casa lee es un punto ciego. Es
+  resoluble, pero se resuelve con una persona, no con una traducción.
+
+Y dos detalles prácticos: hay que elegir entre simplificado y tradicional, y el chino rompe supuestos
+tipográficos de la interfaz (sin espacios entre palabras, corte de línea distinto). Nada insalvable.
+
+Conclusión: **chino sí, por delante del danés y el polaco como pides, en la tanda 3 y después de
+comprobar la alcanzabilidad.**
 
 **Y la manera barata de no equivocarse: mide antes de traducir.** Ya tienes detección de país por IP
 en el servidor (`geoIp.ts`, arreglada en la v14 del calendario) y el navegador manda `Accept-Language`
@@ -491,12 +607,13 @@ tipo de decisión que D11 (analítica) existe para desbloquear.
 
 ### Capa lectura
 
-| Código  | Diseño                  | Qué contesta                                                                         | Cubre         | Depende de | Tamaño |
-| ------- | ----------------------- | ------------------------------------------------------------------------------------ | ------------- | ---------- | ------ |
-| **D13** | La capa de lectura      | Qué es noticia, qué es radio, qué es crónica, qué es informe, y el MODO SIN DESTRIPE | tu punto 6    | 3.1        | L      |
-| **D14** | La experiencia, v4      | Arquitectura de información después de D13, móvil de verdad, accesibilidad           | navegacion.md | D13        | M      |
-| **D15** | Aprender a jugar        | Tutorial, ayuda contextual, y sobre todo los primeros treinta días                   | §4.2          | D13        | M      |
-| **D16** | Transparencia del motor | Notas de versión para jugadores, y «por qué perdí» sobre el replay sellado           | §4.4, §4.5    | D13        | S      |
+| Código  | Diseño                  | Qué contesta                                                                                                                | Cubre             | Depende de | Tamaño |
+| ------- | ----------------------- | --------------------------------------------------------------------------------------------------------------------------- | ----------------- | ---------- | ------ |
+| **D13** | La retransmisión        | Race Radio y journal rehechos con la TELEVISIÓN como norte: estado vivo en vez de lista, y el MODO SIN DESTRIPE por defecto | tu punto 6, §4.14 | 3.1        | L      |
+| **D14** | La experiencia, v4      | Arquitectura de información después de D13, móvil de verdad, accesibilidad                                                  | navegacion.md     | D13        | M      |
+| **D15** | Aprender a jugar        | Tutorial, ayuda contextual, y sobre todo los primeros treinta días                                                          | §4.2              | D13        | M      |
+| **D16** | Transparencia del motor | Notas de versión para jugadores, y «por qué perdí» sobre el replay sellado                                                  | §4.4, §4.5        | D13        | S      |
+| **D21** | El sistema visual       | Tipografía, color, densidad, jerarquía, componentes y estados. El rediseño gráfico general                                  | §4.14             | ninguna    | M      |
 
 ### Capa contenido
 
@@ -531,50 +648,62 @@ decisiones y cambios pequeños, y el reset es el último momento en que salen ba
 8. **Guardar país y `Accept-Language` en el registro.** Una tarde, y dentro de tres meses decide D7
    con datos en vez de con mi intuición (anexo a D7).
 
-### Oleada 1 · La capa de lectura
+### Oleada 1 · La retransmisión y el sistema visual
 
-**D13 → D16 → D15 → D14**, en ese orden. Razón: hay un motor extraordinariamente trabajado cuyo
-detalle no llega al jugador, y el rediseño táctico en curso va a multiplicar lo que hay que contar.
-Es la oleada que hace que todo el trabajo del motor se NOTE, no depende de ninguna decisión difícil
-y es la que más retención compra por hora invertida. Aquí entra tu modo sin destripe, y aviso de que
-es más difícil de lo que parece: exige saber **qué ha visto cada jugador** y que ninguna otra
-pantalla (portada, ranking, feed, notificación) se lo reviente por detrás.
+**D21 y D13 a la vez, luego D16 → D15 → D14.** La primera versión ponía D13 primero y el sistema
+visual ni existía; con el rediseño gráfico dentro, los dos primeros van emparejados a propósito: D21
+sin D13 es repintar pantallas que no se sabe qué cuentan, y D13 sin D21 es rediseñar la información
+para volver a pintarla igual de fea.
 
-### Oleada 2 · El juego entre personas, y qué implica de verdad la inversión
+Sigue siendo la primera oleada por las mismas razones de antes y una más:
+
+- Hay un motor extraordinariamente trabajado **cuyo detalle no llega al jugador**, y el rediseño
+  táctico en curso va a multiplicar lo que hay que contar. Cada versión del motor que pasa sin capa
+  de lectura es trabajo hecho y no cobrado.
+- No depende de ninguna decisión difícil ni de ninguna otra oleada.
+- Es la que más retención compra por hora invertida, y §4.2 dice que la retención es el problema.
+
+Aviso sobre el modo sin destripe, porque es más difícil de lo que parece y no por la pantalla que lo
+enseña: exige saber **qué ha visto cada jugador** y que **ninguna otra pantalla se lo reviente por
+detrás**. Portada, ranking, feed de noticias, clasificaciones, notificación por correo y hasta el
+título de la pestaña del navegador. Es una propiedad del producto entero, no una casilla del journal,
+y por eso va dentro de D13 y no después.
+
+### Oleada 2 · El juego entre personas, y la regla que el dueño ya fijó
 
 **D5 y D6 antes o a la vez que D1 y D2**: integridad y moderación antes que el mánager humano.
 
-La pregunta 6 era qué implica eso, y la respuesta honesta tiene tres partes.
+La pregunta 6 era qué implica eso, y **el dueño la contestó cerrando la discusión con una regla más
+dura que la mía**: el mánager es por invitación **hasta que el juego esté acabado**, o sea hasta que
+D5 y D6 estén **implementados y probados**, no solo diseñados. Con eso la inversión de orden deja de
+ser una discusión y pasa a ser un hecho del calendario, y queda anotado aquí para que nadie la
+reabra dentro de seis meses cuando la tentación de abrir el mando llegue disfrazada de crecimiento.
+
+Lo que sigue valiendo la pena escribir es **qué implica y qué no**, porque es lo que se preguntó:
 
 **Lo que NO implica.** No implica no tocar el mánager. G2 en `epics.md` ya tiene el modelo entero y
 sus quince componentes, y la pieza técnica (`users.premium` y `teamControl.ts`) ya está enchufada. Un
-puñado de probadores de confianza con equipo puede seguir funcionando **mientras sean pocos y
+puñado de probadores de confianza con equipo funciona perfectamente **mientras sean pocos y
 conocidos**, porque ahí el portero eres tú.
 
 **Lo que sí implica, en orden de coste.**
 
-1. **Retrasa la apertura, no el diseño.** El momento que se retrasa es aquel en el que **cualquiera**
-   puede ser mánager: cuando premium sea comprable, o cuando haya suficientes jugadores como para que
-   dejes de conocerlos por su nombre. Hasta ahí, el orden apenas se nota.
+1. **Retrasa la apertura, no el diseño.** El momento que se mueve es aquel en que cualquiera puede
+   ser mánager, que es justo el que el dueño acaba de atar al final de las pruebas.
 2. **Dos diseños medianos por delante del grande.** D5 (integridad) y D6 (administración y
-   moderación) suman aproximadamente lo que `docs/entrenamiento.md` y `docs/navegacion.md` juntos. No
-   son `tactica.md`. Y D6 es en buena parte trabajo mecánico, no invención: convertir el
-   `ADMIN_TOKEN` compartido en roles reales con registro de auditoría.
+   moderación) suman aproximadamente `entrenamiento.md` más `navegacion.md`. No son `tactica.md`. Y
+   D6 es en buena parte trabajo mecánico y no invención: convertir el `ADMIN_TOKEN` compartido en
+   roles reales con registro de auditoría.
 3. **Obliga a decidir reglas antipáticas antes de que haya víctimas.** Un corredor por persona, topes
    de transferencia, ventanas de mercado, qué se considera colusión. Diseñarlas en frío es incómodo y
    abstracto; diseñarlas en caliente, con un caso real y con la gente mirando, es mucho peor, porque
    toda regla nueva parece dirigida contra alguien.
 
-**El coste de NO invertir el orden**, que es la otra mitad de la respuesta: si el mánager humano se
-abre antes, la primera partida de abusos ocurre sin herramientas. Sin auditoría no sabes qué pasó,
-sin roles no puedes delegar la investigación, y sin reglas escritas cualquier sanción es arbitraria.
-Y hay algo peor que el daño: **la primera cohorte fija la cultura** (§3.5), así que un abuso temprano
-sin respuesta no es un incidente, es un precedente.
-
-**Mi propuesta concreta, que creo que te cuesta poco:** mantén el mánager por invitación mientras se
-diseñan D5 y D6, y pon la condición explícita de que **premium no se pone a la venta hasta que
-existan roles de administrador con auditoría**. Así no retrasas nada de lo que estás haciendo hoy y
-no llegas desnudo al día que importa.
+**Lo que hay que añadir a la regla del dueño**, porque no queda cubierto por ella: las herramientas
+de detección de clones (§4.1) **conviene tenerlas funcionando DURANTE las pruebas y no después**. No
+por castigar a nadie en fase de pruebas, sino porque sin haberlas visto funcionar contra datos reales
+no se sabe qué detectan ni cuántos falsos positivos dan, y el día del lanzamiento es el peor momento
+para descubrirlo.
 
 ### Oleada 3 · Lo que sostiene
 
@@ -613,15 +742,113 @@ D18 es la mejor relación entre emoción producida y trabajo invertido de toda l
 
 ## 8. Preguntas: lo contestado y lo que queda
 
-Las siete de la primera versión están en §0.1 con su respuesta. Quedan tres en pie, y son las tres
-que ya no dependen de mí:
+Las siete de la primera versión están contestadas y resumidas en §0.1. Lo que queda abierto es esto:
 
-1. **¿Aceptas 16 como edad mínima** (§3.7), sabiendo que el coste es perder a los jugadores de 13 a
-   15 y que la decisión es reversible hacia abajo pero no hacia arriba?
-2. **¿Empezamos por cuatro idiomas** (inglés, español, neerlandés, francés) **en vez de por siete**, y
-   dejamos que los datos de registro decidan los siguientes (anexo a D7)?
-3. **¿Los cambios de motor entran en cualquier momento o solo en el rollover** (§4.4)? Es una línea y
-   hay que escribirla antes de que el rediseño táctico aterrice.
+1. **El neerlandés**, tanda 1 o tanda 2 (D7.1). Lo defiendo en la 2 y no peleo más.
+2. **Comprobar que el juego se puede jugar desde China** antes de invertir en la traducción (D7.3).
+   Es una prueba de una tarde y decide si esa tanda tiene sentido.
+3. **La regla de cuándo entran los cambios de motor** (§4.4). Sigue siendo una línea, y si el dueño
+   tiene razón en que el motor ya no cambiará, no se dispara nunca. Por eso insisto: es un seguro
+   barato, no una desconfianza.
+4. **D21 y D13 emparejados en la oleada 1**, con el diseño gráfico dentro y no al final.
 
-Y una que no es pregunta sino aviso: **«los mejores probadores» hay que definirlo antes de regalar
-la primera cuenta premium** (§3.5). Quien más ha aportado, no quien mejor ha corrido.
+---
+
+## Apéndice A · El cuadro de entrenamiento, leído de cerca
+
+El dueño señaló tres cosas de la pantalla de entrenamiento ya implementada: que la parte de arriba
+(por semana) y la de abajo (por día) pueden decir cosas distintas sin que se sepa cuál manda, que el
+vocabulario de arriba y el de abajo no coinciden, y que no se entiende la lista de
+`Day 182 · You'll arrive: Rusty`.
+
+Va aquí, y no como incidencia suelta, porque es **el ejemplo perfecto de lo que D13, D15 y D21
+existen para arreglar**: el motor de debajo está bien, las decisiones de diseño están tomadas y
+escritas, y aun así la pantalla no se entiende. Todo lo que sigue está comprobado en el código.
+
+### A.1 ¿Qué manda, la semana o el día? El día
+
+La cadena de precedencia está en `packages/db/src/train.ts:199-266` y es ésta, de mayor a menor:
+
+1. **Viaje** (si el corredor está viajando, entrena `viaje` y no hay más que hablar).
+2. **La orden del día**, o sea lo que el jugador escribió en «Edit day by day».
+3. **El bloque de la semana**, o sea la escalera de arriba.
+4. **El plan del equipo**, y solo en modo `mixto`.
+5. **El entrenador**, que decide mirando salud, frescura y tensión acumulada.
+
+Con una excepción al final: en modo `manual`, un día sin orden y sin bloque **no cae al entrenador**,
+cae a descanso activo, porque quien planifica a mano está diciendo «lo que yo no escriba, no se
+entrena».
+
+**O sea que la regla existe, es correcta y es la intuitiva.** Lo que falla es dónde está escrita:
+vive en el texto de ayuda del selector de modo (`MODE_WHY` en `PlanLadder.tsx`), que está **en el
+panel de arriba**. El jugador que baja al panel de los 28 días no tiene ninguna pista de si lo que
+escribe ahí gana o pierde contra la escalera que acaba de configurar.
+
+**Arreglo, y es pequeño:** el panel «Edit day by day» tiene que decir en su cabecera en qué modo
+está y qué gana. Una línea del tipo «Modo mixto: lo que escribas aquí manda sobre tus bloques; lo que
+dejes en blanco lo decide tu bloque de la semana».
+
+### A.2 Dos vocabularios para lo mismo
+
+Arriba se eligen **bloques** (Base, Build, Specific, Taper, Recovery) con un énfasis y una
+intensidad. Abajo se eligen **sesiones** del catálogo y una intensidad. Son la misma cosa a dos
+granularidades: un bloque se expande a siete sesiones mediante `blockWeek()`.
+
+Pero ese puente es invisible. El jugador elige «Build» arriba y abajo ve siete sesiones con nombres
+que no ha escrito nunca y que no sabe de dónde salen. **Arreglo:** que los días generados por un
+bloque se enseñen marcados como tales («viene de tu bloque Build»), distinguibles de los que él
+escribió. Es la diferencia entre una pantalla que se contradice y una que se explica sola.
+
+### A.3 `You'll arrive: Rusty`, o la lista que no dice de qué habla
+
+Esto no es un error del jugador, son **tres defectos apilados** en la misma lista:
+
+**Primero: falta el nombre de la carrera, y falta por decisión del servidor.** Cada fila de esa lista
+es un **día de carrera** dentro de las cuatro semanas del plan. Y la API la construye así, en
+`apps/api/src/routes/riders.ts:376-383`:
+
+```ts
+return { gameDay: d, raceId: null, tsb, label: arrivalLabel(tsb) }
+```
+
+El campo `raceId` **existe y se manda a `null` siempre**. O sea que la pantalla no puede nombrar la
+carrera ni queriendo: no la recibe. Por eso lees «Day 182» y no «Race Wallonia, etapa 2».
+
+**Segundo: una carrera por etapas inunda la lista.** Los días 182, 183, 184 y 185 son casi con
+seguridad cuatro etapas de la misma carrera, y los 191 a 193 otra. La lista pinta **una fila por
+etapa**, repitiendo la misma palabra cuatro veces, cuando lo que el jugador quiere leer es «a la
+Race X, que empieza el 182, llegas así». Debería agruparse por carrera.
+
+**Tercero: `Rusty` significa lo contrario de lo que parece.** Las cinco etiquetas salen de
+`arrivalLabel(tsb)` en `packages/engine/src/training/projection.ts:75`, y son una escala de frescura
+(TSB) con dos extremos malos y un punto bueno en medio:
+
+| TSB          | Etiqueta    | Qué significa de verdad                                |
+| ------------ | ----------- | ------------------------------------------------------ |
+| más de +25   | **Rusty**   | Demasiado fresco: has entrenado POCO, llegas sin ritmo |
+| +5 a +25     | **Spot on** | El punto óptimo                                        |
+| −10 a +5     | **Fine**    | Bien, con algo de fatiga encima                        |
+| −30 a −10    | **Loaded**  | Cargado de fatiga                                      |
+| menos de −30 | **Cooked**  | Fundido                                                |
+
+Los cortes son correctos y están bien razonados (son los del `tsbFactor` del SPEC 4.1, o sea la misma
+curva con la que el TSB se convierte en rendimiento dentro de la carrera, precisamente para que la
+pantalla no diga «perfecto» de un TSB que la carrera castiga). **El problema es de presentación:**
+cinco palabras sueltas, sin escala y sin orden visible, no comunican que `Rusty` y `Cooked` son los
+dos extremos opuestos y que `Spot on` está en medio. El jugador lee «oxidado» y entiende «voy mal»,
+sin saber si va mal por exceso o por defecto, ni hacia dónde mover el plan.
+
+Y en este caso concreto la respuesta era **por defecto**: un plan con los cuatro bloques a `null`
+entrena poquísimo, el TSB se dispara por encima de +25 y llegas a todas las carreras sin ritmo. La
+pantalla tenía la información exacta para decirlo y no la dijo.
+
+**Arreglo:** una escala visual de cinco tramos con tu posición marcada, en lugar de una palabra
+suelta. Es literalmente el mismo dato pintado de otra forma, y convierte una etiqueta desconcertante
+en una instrucción («estás pasado de fresco, entrena más»).
+
+### A.4 Lo que este apéndice demuestra
+
+Tres defectos de comprensión sobre un motor que está bien, decisiones de diseño que están tomadas y
+documentadas, y una pantalla que aun así no se entiende. Ninguno de los tres se arregla con más
+motor. Los tres son **exactamente** lo que las oleadas 1 y 2 del catálogo existen para arreglar, y
+por eso la capa de lectura va primera.
