@@ -4533,6 +4533,42 @@ export const STAGE = {
    * señales que aquí se leen, `raceRhythm` e `illDays`, se definen allí; el número y lo que hacen en
    * carretera son de aquí.
    */
+  /**
+   * LA CRONO COMO MODO DE CARRERA (R27, docs/tactica.md paso 19). Montado ENCIMA de `timetrial.ts`,
+   * que no se toca: lo que falta no es física, es **que una crono sea una carrera y no un examen**.
+   */
+  timeTrial: {
+    enabled: true,
+    /** LA DOSIFICACIÓN ES UNA APUESTA (R27.1): doce segundos a cambio de más del doble de riesgo. */
+    allOutS: 12,
+    saveS: 10,
+    blowUpGain: 2.2,
+    /** El gregario sin nada que jugarse corre al 70 % DENTRO DEL CORTE, y guarda para mañana. */
+    domestiqueShare: 0.7,
+    /** LAS REFERENCIAS (R27.2): ocho segundos en un parcial y el maillot se pone nervioso. */
+    panicSplitS: 8,
+    panicRiskGain: 1.35,
+    safeRiskDamp: 0.8,
+    /**
+     * EL ALCANCE, ASIMÉTRICO. El alcanzado se hunde; el que alcanza no gana nada salvo la
+     * referencia. Si alcanzar diera ventaja, la crono estaría rota.
+     */
+    caughtPenaltyS: 15,
+    /** MARCAR TIEMPO PARA EL JEFE (R27.4): la única forma de hacer equipo en una prueba individual. */
+    pacerGainS: 5,
+    /** EL CAMBIO DE BICI (R27.3): a veces la decisión correcta es NO cambiar, y por eso decide. */
+    bikeSwapS: 18,
+    bikeGainPerKm: 0.35,
+    /** LA LOTERÍA DEL HORARIO (R27.5): azar CON AVISO, que es otra cosa que azar. */
+    weatherSpreadS: 20,
+    /**
+     * LO QUE TARDA EL COCHE EN UNA CRONO, contra lo que tarda en carretera. Aquí va detrás de TI: no
+     * hay caravana que remontar ni veinte coches por delante, así que llega en una fracción. Lo que
+     * NO hay es quien te devuelva al grupo, porque no hay grupo — y ésa es la mitad cara.
+     */
+    ttCarShare: 0.4,
+  },
+
   entreEtapas: {
     enabled: true,
     /**

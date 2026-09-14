@@ -13377,3 +13377,54 @@ mismo corredor el mismo día.
 `packages/db` todavía no rellena `raceRhythm`, `illDays` ni `bruised`, así que en producción los tres
 llegan ausentes y el motor corre como antes. La mitad que lee está puesta; la que calcula viene
 detrás, y va en `entrenamiento.md`.
+
+## v60 §23 — paso 19, una crono es una carrera, no un examen
+
+`ENGINE_VERSION` **69 → 69, sin subida**. R27: `stage/timeTrialMode.ts` nuevo, montado **encima** de
+`timetrial.ts`, que no se toca — la ley de la crono, el compuesto CRI, el pacing y la rampa de salida
+se quedan como están, y sus dos bandas mejor ancladas (`tailPct` 8-15, `worstStagePct` 0-17) no se
+mueven.
+
+### Lo que faltaba no era física
+
+Hoy una contrarreloj es **un hombre solo contra un cronómetro**, y eso deja fuera todo lo que de
+verdad decide una crono de vuelta: cómo la dosificas, con qué parciales corres, quién te marca el
+tiempo, a qué hora te toca salir y si el cielo cambia entre el primero y el último.
+
+Entran las siete reglas con sus decisiones, y tres merecen decirse enteras:
+
+- **La dosificación es una apuesta.** A tope gana doce segundos esperados **y más que duplica** la
+  probabilidad de hundirse en el último tercio. Conservador pierde diez y no arriesga nada.
+- **El alcance es un castigo asimétrico**: el alcanzado no puede coger la rueda y se hunde; el que
+  alcanza **no gana nada** salvo la referencia. Si alcanzar diera ventaja, la crono estaría rota.
+- **El cambio de bici**: cuesta 18 s y gana 0,35 s/km. **A veces la decisión correcta es no
+  cambiar**, y por eso es una decisión — por debajo de unos cincuenta kilómetros favorables, el
+  director que cambia igualmente pierde la crono en el arcén.
+
+### En la crono también se pincha, y eso despierta una salvaguarda dormida
+
+`simulateTimeTrial` devolvía `incidents: []` a secas, y eso no era una simplificación: era lo que
+dejaba **dormida** la salvaguarda del corte del 25 %, que es como el propio código la llama. Un corte
+que nadie puede rozar no protege de nada.
+
+| crono canónica, 60 semillas | apagado | modo crono |
+| --------------------------- | ------- | ---------- |
+| percances por crono         | 0,00    | **0,53**   |
+| % del campo con incidente   | 0,0 %   | **1,3 %**  |
+| fuera de control            | 0,00 %  | 0,00 %     |
+| brecha p90−p10              | 105 s   | 105 s      |
+| gana el especialista        | 98,3 %  | 98,3 %     |
+
+**Una corrección medida antes de verla**: `ttMishapLambda` 0,015 está DERIVADA del objetivo de 1-4 %
+**por corredor y por crono**, y pasarla por `rollHazard` —que la interpreta por kilómetro y la
+reparte en bloques de cien metros— la dejaba en el **0,1 %**, diez veces por debajo de su propia
+banda.
+
+### Y una predicción del diseño que **no se cumple**, dicha aquí
+
+R11.6 anunciaba que esto rompería el invariante 11 (`outOfTime === 0`, tolerancia cero) y que el
+invariante 56 lo sustituiría con bandas 0-2 %. **No hace falta**: `fuera de control` sigue en
+**0,00 %**, porque un percance de crono cuesta unos treinta segundos y el corte es el 25 % del tiempo
+del ganador, o sea varios minutos. La sustitución queda **anotada y sin aplicar**, con su medida
+delante: un invariante no se retira porque un documento lo anuncie, sino porque una medida lo
+contradiga.
