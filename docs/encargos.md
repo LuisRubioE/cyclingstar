@@ -465,6 +465,16 @@ disponibles: **las selecciones nacionales**, o sea que a un jugador le convoque 
 Mundial o para su campeonato nacional, con los países, las páginas de país y la detección por IP ya
 construidos.
 
+**Y los campeonatos nacionales, que funcionan y aun así dejan tres cosas sobre la mesa.** El dueño vio
+sub-23 corriendo su campeonato y el absoluto en días consecutivos y preguntó si eso pasa en la
+realidad: **pasa, y es lo normal**, y el código lo modela mejor de lo que parece (tres patrones de
+calendario sorteados por país, y un conjunto `busy` que impide dos carreras solapadas pero permite
+días encadenados, a propósito). Lo que el documento tiene que resolver, desarrollado en §4.17 de
+`agenda.md`: que **doblar o guardarse sea una decisión** del corredor y no una inscripción automática,
+que cuando élite y sub-23 comparten día **compartan carrera y no sean dos** (mismo pelotón, dos
+podios, el mejor sub-23 clasificado en la élite es el campeón sub-23, que además cuesta una simulación
+en vez de dos), y que **quién acaba en cuál lo decida un criterio y no el orden del bucle**.
+
 **Y una comprobación que hay que hacer antes de nada: no encontré el Campeonato del Mundo en el
 calendario.** `SPEC.md` §8 lo promete en septiembre y lo que aparece en `routes/calendar.ts` son los
 campeonatos nacionales (`championshipCountry`, clase `NC`). Puede que se me escapara, pero conviene

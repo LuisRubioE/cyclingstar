@@ -791,6 +791,54 @@ cuatro estrellas deja de chocar con nada, porque ya no hay nadie condenado a no 
 y cómo cambia lo que es a lo largo de su carrera. La ejecución toca el motor, o sea la otra línea, y
 por eso conviene que la decisión esté escrita antes de que esa línea termine.
 
+### 4.17 El sub-23 que corre también la élite: no es un fallo, y aun así hay tres cosas que arreglar
+
+La observación del dueño: hay sub-23 que participan en el campeonato sub-23 **y** en el absoluto, a
+veces en días consecutivos, y la duda es si eso pasa en la realidad.
+
+**En la realidad pasa, y es lo normal.** En los campeonatos nacionales, los sub-23 disputan con
+frecuencia su propia prueba y también la élite. En bastantes federaciones la carrera sub-23 se corre
+literalmente **dentro** de la élite: mismo pelotón, mismo recorrido, dos clasificaciones y dos
+campeones. En otras van en días distintos de la misma semana y hay corredores que hacen las dos. Y
+doblar en días consecutivos es corriente: una semana de campeonatos reparte crono y ruta en tres o
+cuatro días.
+
+Donde sí es distinto es en el **Campeonato del Mundo**, que es otra cosa: allí la sub-23 y la élite
+son pruebas separadas y cada federación selecciona a su gente para una o para otra, así que hacer las
+dos no es lo habitual. No afirmo que exista una prohibición formal porque no la he verificado, y de
+todos modos aquí es teórico: no encontré Campeonato del Mundo en este calendario (§4.16.1).
+
+**Y el código está mejor de lo que la observación sugiere.** Comprobado en
+`packages/engine/src/routes/calendar.ts`: los campeonatos nacionales se generan con **tres patrones
+sorteados por país**, que es justo la variedad que existe en la realidad (patrón 0, élite y sub-23
+comparten día por disciplina; patrón 1, la ruta sub-23 el sábado; patrón 2, las cuatro pruebas en
+cuatro días). Y en `packages/db/src/calendarRun.ts` hay un conjunto `busy` (`busyForRaceWindow`) que
+**impide correr dos carreras cuyas ventanas se solapan**, con un comentario que dice explícitamente
+que no impide los días encadenados. O sea que lo que el dueño vio (dos campeonatos en días
+consecutivos) está permitido a propósito y es realista, y lo imposible (dos carreras el mismo día)
+está bloqueado.
+
+**Las tres cosas que sí mejoraría, y ninguna es un fallo de corrección:**
+
+1. **Doblan todos, siempre, y nadie decide nada.** En la carretera, «¿doblo o me guardo para la
+   élite?» es una decisión de verdad, con su coste de fatiga y su recompensa. Aquí la inscripción la
+   hace el sistema y el corredor no elige. Es exactamente el tipo de decisión que el pilar del juego
+   («una decisión significativa por día de juego») pide, y está tirada.
+2. **Cuando comparten día, en la realidad comparten CARRERA, y aquí son dos.** El patrón 0 crea una
+   sub-23 de 180 km y una élite de 220 km el mismo día, así que `busy` manda a cada corredor a una
+   sola y el campeón sub-23 de ese país sale de una carrera **distinta** de la que corrió la élite.
+   Lo realista y además lo barato es una sola carrera con dos podios: el mejor sub-23 clasificado en
+   la élite es el campeón sub-23. Una simulación en vez de dos, y un detalle bonito de contar.
+3. **Quién acaba en cuál lo decide el orden en que se procesan las carreras, no un criterio.** Con el
+   patrón 0 las dos rutas caen el mismo día y `busy` reparte por orden de proceso. Eso no es una
+   regla, es un efecto secundario: debería decidirlo el corredor, su equipo o la federación, y no el
+   orden del bucle.
+
+**Dónde va:** en **E11** (recorridos y calendario), que es donde vive el calendario de campeonatos.
+El punto 1 se toca además con E8, porque «doblar o guardarse» es una decisión que en un equipo la
+negocia alguien. Y la ejecución cae en el motor, o sea en la otra línea, así que conviene que quede
+escrito antes de que termine.
+
 ## 5. El catálogo de diseños
 
 Veinte documentos. Los códigos son nuevos (`D`) para no chocar con los `G` y `N` de `epics.md`. El
