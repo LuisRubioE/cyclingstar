@@ -39,6 +39,7 @@ import { stageRng } from './rng.js'
 import { timeTrialStartOrder } from './startOrder.js'
 import type {
   Block,
+  Incident,
   StageEffort,
   StageInput,
   StageOutput,
@@ -218,10 +219,18 @@ function findCatches(rides: readonly Ride[], blocks: number, dxKm: number): Catc
 export function simulateTimeTrial(input: StageInput, seed: string): StageOutput {
   const streams = stageRng(seed)
   const rngNoise = streams('tt')
+  /**
+   * Subflujo NOMINAL de los percances de la crono (R11.6, SPEC 6.1). Propio, como todos: con el
+   * modo apagado, una crono sale dígito a dígito como antes.
+   */
+  const rngPercance = streams('percance')
   const rngDay = streams('day')
   const blocks = sampleProfile(input.profile)
   const log = new EventLog()
   const workUnits = new Map<string, number>()
+  const incidents: Incident[] = []
+  /** ¿Está encendido el modo crono del paso 19? Ver `STAGE.timeTrial.enabled`. */
+  const cronoOn = input.flags?.timeTrial === true || STAGE.timeTrial.enabled
   const tank = new Map<string, TankState>()
   /**
    * EL PARTE DEL CORREDOR EN UNA CRONO (v47). Aquí el desglose de `StageEffort` es TRIVIAL y así tiene
@@ -277,6 +286,46 @@ export function simulateTimeTrial(input: StageInput, seed: string): StageOutput 
       const cost = timeTrialCost(block, STAGE.ttCommitment)
       energy = Math.max(0, energy - cost)
       work += cost
+    }
+    /**
+     * …Y EN LA CRONO TAMBIÉN SE PINCHA (R11.6, paso 19). Hasta hoy `simulateTimeTrial` devolvía
+     * `incidents: []` a secas, y eso no era una simplificación: era lo que dejaba **dormida** la
+     * salvaguarda del corte del 25 %, que es como el propio código la llama. Un corte que nadie
+     * puede rozar no protege de nada.
+     *
+     * El precio es el de la carretera sin caravana y sin compañeros, porque en una crono no hay ni
+     * una cosa ni la otra: el coche de tu equipo va detrás de TI, así que llega enseguida, pero
+     * nadie te devuelve al grupo porque no hay grupo. Se cobra en el reloj y se apunta en el parte.
+     */
+    /**
+     * `ttLambda` es una probabilidad **por corredor y por crono**, no por kilómetro: está DERIVADA
+     * del objetivo declarado de 1-4 % de incidentes, que se cuenta sobre el campo entero. Pasarla
+     * por `rollHazard` —que la interpreta por kilómetro y la reparte en bloques de cien metros— la
+     * dejaba en el 0,1 %, o sea diez veces por debajo de su propia banda; medido antes de verlo.
+     */
+    if (cronoOn && rngPercance() < STAGE.mishap.ttLambda) {
+      const kind: 'pinchazo' | 'averia' =
+        rngPercance() < STAGE.mishap.mechanicalShare ? 'averia' : 'pinchazo'
+      const perdida =
+        STAGE.mishap.carBaseS * STAGE.timeTrial.ttCarShare +
+        (kind === 'averia' ? STAGE.mishap.changeMechanicalS : STAGE.mishap.changePunctureS)
+      tS += perdida
+      incidents.push({
+        riderId: rider.riderId,
+        km: finishKm(input) / 2,
+        tipo: kind,
+        severidad: 'none',
+        perdidaS: perdida,
+        diasBaja: 0,
+      })
+      log.emit(
+        finishKm(input) / 2,
+        tS,
+        'percance',
+        kind === 'averia' ? 'mechanical' : 'puncture',
+        [rider.riderId],
+        { perdidaS: Math.round(perdida), conCoche: 1 },
+      )
     }
     workUnits.set(rider.riderId, work)
     tank.set(rider.riderId, tankState(energy, rider.energy, eff0.RES, eff0.REC))
@@ -334,7 +383,7 @@ export function simulateTimeTrial(input: StageInput, seed: string): StageOutput 
     events: log.toArray(),
     results,
     workUnits,
-    incidents: [],
+    incidents,
     tank,
     efforts,
     engineVersion: ENGINE_VERSION,

@@ -4457,6 +4457,169 @@ export const STAGE = {
     wheelPickWeight: 0.5,
   },
 
+  /**
+   * LA MEMORIA DE LA CARRERA (R09 + R10, docs/tactica.md paso 16). Hasta aquí cada etapa de una gran
+   * vuelta se corría **como si fuera la primera**, y esa amnesia es la causa directa de una de las
+   * quejas del dueño —«gana dos etapas seguidas»—: al ganador de ayer se le daba hoy exactamente la
+   * misma cuerda que a cualquiera.
+   */
+  memory: {
+    enabled: true,
+    /**
+     * EL HUMOR TIENE CAUSA (R09.1). El día después de la reina el pelotón no sale igual que la
+     * víspera de un descanso. La última etapa lleva su propio signo: se rueda de paseo hasta el
+     * circuito y ahí se enciende.
+     */
+    moodEffect: {
+      ninguno: 0,
+      reina_ayer: -0.12,
+      vispera_reina: -0.08,
+      post_descanso: -0.06,
+      vispera_descanso: 0.05,
+      traslado_largo: -0.05,
+      calor: 0,
+      tregua: -0.1,
+      ultima_etapa: -0.2,
+    } as Record<string, number>,
+    moodHeat: 0.1,
+    /**
+     * Y EL DADO SE ENCOGE A LA MITAD (0,14 → 0,07), no se retira. El dueño pidió con nombre «la
+     * probabilidad de que el pelotón eche la hueva»: un humor sin azar sería otro defecto.
+     */
+    moodSpread: 0.07,
+    /**
+     * LA MEMORIA DE LA ADUANA (R09.2). Van sobre `payable` —lo que uno paga por cerrar— y NO sobre
+     * `objection` —si le molesta—: con la objeción saturada en 1, multiplicarla no movía un dígito
+     * y la queja seguía viva. Son descuentos fuertes, no vetos.
+     */
+    customsYesterdayWinner: 1.6,
+    customsBurnedUs: 1.5,
+    /** LA DESESPERACIÓN (R09.4): quince días sin nada y se mete en todo. */
+    desperationDays: 7,
+    desperationAttackGain: 0.5,
+    /** Y el que ya cumplió guarda a su gente. */
+    wonAlreadyDamp: 0.7,
+    /** LA DEUDA (R09.3): al que ayer no relevó, hoy no se le releva. */
+    relayDebtPenalty: 0.8,
+  },
+
+  /**
+   * EL RELATO QUE EXPLICA EL PORQUÉ (R23, docs/tactica.md paso 17). Es el racimo **más barato después
+   * de R01** y el que hace visible todo lo demás: **sin él, ninguna regla nueva se puede
+   * diagnosticar**. Todo lo que el dueño ha cazado este mes lo ha cazado leyendo la radio de
+   * carrera, y una criba sin causa es una criba que no se puede discutir.
+   *
+   * No toca la carrera: **solo cuenta lo que ya pasaba**. Por eso su A/B no es de conducta sino de
+   * vocabulario, y por eso es el único racimo del plan que no puede sacar una banda.
+   */
+  relato: {
+    enabled: true,
+  },
+
+  /**
+   * LAS ONCE PALANCAS DEL JUGADOR (R22, docs/tactica.md paso 17). Contesta a la queja fundacional
+   * del dueño —**«el resultado es casi lo mismo ponga lo que ponga ahí»**— con mecánica y no con un
+   * aviso en pantalla.
+   *
+   * Y la mitad de esa queja es `effort`, que hoy actúa **en un solo sitio**: un término de ±0,5 en
+   * el deber de relevo. Un botón que mueve una cosa y nada más es, desde el otro lado de la
+   * pantalla, un botón desconectado.
+   */
+  /**
+   * EL DEPÓSITO QUE PERSISTE ENTRE ETAPAS (R08, docs/tactica.md paso 18), en su mitad TÁCTICA.
+   *
+   * La frontera con `entrenamiento.md` es explícita: aquél se queda con la fisiología —el depósito,
+   * los cerillos, la salud— y éste con **cómo el director lee ese estado al planificar**. Las dos
+   * señales que aquí se leen, `raceRhythm` e `illDays`, se definen allí; el número y lo que hacen en
+   * carretera son de aquí.
+   */
+  /**
+   * LA CRONO COMO MODO DE CARRERA (R27, docs/tactica.md paso 19). Montado ENCIMA de `timetrial.ts`,
+   * que no se toca: lo que falta no es física, es **que una crono sea una carrera y no un examen**.
+   */
+  timeTrial: {
+    enabled: true,
+    /** LA DOSIFICACIÓN ES UNA APUESTA (R27.1): doce segundos a cambio de más del doble de riesgo. */
+    allOutS: 12,
+    saveS: 10,
+    blowUpGain: 2.2,
+    /** El gregario sin nada que jugarse corre al 70 % DENTRO DEL CORTE, y guarda para mañana. */
+    domestiqueShare: 0.7,
+    /** LAS REFERENCIAS (R27.2): ocho segundos en un parcial y el maillot se pone nervioso. */
+    panicSplitS: 8,
+    panicRiskGain: 1.35,
+    safeRiskDamp: 0.8,
+    /**
+     * EL ALCANCE, ASIMÉTRICO. El alcanzado se hunde; el que alcanza no gana nada salvo la
+     * referencia. Si alcanzar diera ventaja, la crono estaría rota.
+     */
+    caughtPenaltyS: 15,
+    /** MARCAR TIEMPO PARA EL JEFE (R27.4): la única forma de hacer equipo en una prueba individual. */
+    pacerGainS: 5,
+    /** EL CAMBIO DE BICI (R27.3): a veces la decisión correcta es NO cambiar, y por eso decide. */
+    bikeSwapS: 18,
+    bikeGainPerKm: 0.35,
+    /** LA LOTERÍA DEL HORARIO (R27.5): azar CON AVISO, que es otra cosa que azar. */
+    weatherSpreadS: 20,
+    /**
+     * LO QUE TARDA EL COCHE EN UNA CRONO, contra lo que tarda en carretera. Aquí va detrás de TI: no
+     * hay caravana que remontar ni veinte coches por delante, así que llega en una fracción. Lo que
+     * NO hay es quien te devuelva al grupo, porque no hay grupo — y ésa es la mitad cara.
+     */
+    ttCarShare: 0.4,
+  },
+
+  entreEtapas: {
+    enabled: true,
+    /**
+     * EL PARTE DEL EQUIPO (R08.1). Un equipo que ayer tiró 120 km hoy tiene menos presupuesto y pone
+     * a otros dos; **al cuarto o quinto día de controlar, el equipo del maillot ya no llega y el
+     * maillot cambia de manos**. Ésa es la frase entera del racimo, y es de las más bonitas del
+     * ciclismo por etapas.
+     *
+     * `fitFactor = clamp(0,4 + 0,6·freshness, 0,4, 1)`: ni el más fundido baja del 40 %, porque un
+     * equipo agotado sigue teniendo ocho hombres.
+     */
+    fitFloor: 0.4,
+    fitSlope: 0.6,
+    /** EL QUE LLEGA SIN RITMO (R08.4). Ver §9.1bis: es el tercero de los cinco multiplicadores. */
+    rhythmCostGain: 0.25,
+    /**
+     * Y SOLO EN LA PRIMERA HORA. A 40 km/h son unos cuarenta kilómetros: después, venir de tres
+     * semanas sin dorsal ya no se nota en el gasto, se nota en el final.
+     */
+    rhythmFirstHourKm: 40,
+    /** EL TOCADO (R08.2): no entra al turno, y en un descenso no arriesga. */
+    bruisedCrashGain: 1.4,
+    bruisedGiveUpGain: 1.6,
+    bruisedDutyPenalty: 1.5,
+  },
+
+  ordenes: {
+    enabled: true,
+    /** `a_tope` da un cerillo más; `ahorrar` no quema por no soltarse (S-069, y lo dice la UI). */
+    aTopeExtraMatches: 1,
+    /** Y la reserva se muerde antes o después: ±25 % sobre el umbral de gasto. */
+    reserveThresholdShift: 0.25,
+    /**
+     * EL PRESUPUESTO DEL DÍA, que es donde `effort` de verdad se paga: el que sale a vaciarse gasta
+     * un 40 % más hoy y menos mañana; el que se guarda, un 30 % menos y se lo lleva. Sin R10 —el
+     * plan de varios días— el «mañana» no existe todavía y solo cuenta el de hoy.
+     */
+    aTopeBudget: 1.4,
+    ahorrarBudget: 0.7,
+    /** «CON ÉSOS NO COLABORO» (S-256): se cobra donde duele, en el deber de relevo. */
+    refuseRelayPenalty: 1.2,
+    /** «HOY ME VOY AL GRUPETO»: se deja ir antes, y eso es una orden, no un descuelgue. */
+    grupetoGiveUpKmToGo: 60,
+  },
+
+  /**
+   * CUÁNTO DURA «LA CARRERA SE PARTIÓ POR LA CAÍDA» (R23.3, paso 17). Pasados dos kilómetros, el
+   * corte que se abre ya no es del montón: es de lo que venga detrás.
+   */
+  splitCrashCauseKm: 2,
+
   launchWorstFinisherM: 90,
 
   muroMaxKm: 1,

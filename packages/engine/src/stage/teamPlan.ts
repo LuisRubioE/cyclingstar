@@ -35,7 +35,7 @@
  */
 import { STAGE } from '../constants.js'
 import { clamp } from '../random.js'
-import type { Mentality, StageRole } from './types.js'
+import type { Effort, Mentality, StageRole } from './types.js'
 
 /**
  * POR QUÉ gastaría un equipo hoy. Los tres motivos son los que dictó el dueño, y ninguno es una
@@ -89,6 +89,16 @@ export interface TeamPlanRider {
   finishScore: number
   /** Desventaja en la general (SPEC 6.9). 0 con contexto de general = lleva el maillot. */
   gcDeficitSeconds: number
+  /**
+   * CUÁNTO QUIERE GASTAR HOY ESTE HOMBRE (R22, §6.2, paso 17). Lo necesita el presupuesto del
+   * equipo, que es donde `effort` de verdad se paga: ver `escalaDeEsfuerzo`. Ausente = `normal`.
+   */
+  effort?: Effort
+  /**
+   * CON CUÁNTO LLEGA HOY, en [0,1] (R08.1, paso 18). Es lo que hace que un equipo que lleva cuatro
+   * días controlando la carrera deje de llegar. Ausente = 1. Ver `formaDelEquipo`.
+   */
+  freshness?: number
 }
 
 /** El contexto de la etapa que decide qué motivos existen hoy. */
@@ -307,7 +317,30 @@ export function buildTeamPlans(
       quality: candidate ? candidate.finishScore : 0,
       gcDeficitSeconds,
       sprintFinish: ctx.bunchFinish,
-      budget: STAGE.teamBudgetPerRider * Math.max(1, committed),
+      /**
+       * …Y LA CUARTA PATA DE `effort` (R22, §6.2, paso 17): **el presupuesto del día**.
+       *
+       * Es donde la palanca de verdad se paga. Un equipo cuyos hombres salen a vaciarse puede
+       * sostener el frente mucho más rato; uno que sale a guardarse, mucho menos — y eso decide
+       * quién caza y quién no, que es la pregunta más grande de una etapa llana.
+       *
+       * Se toma la media de los leales y no el máximo: un equipo son ocho hombres, y que uno ponga
+       * «a tope» no convierte al equipo entero en otro equipo.
+       */
+      /**
+       * …Y EL PARTE DEL EQUIPO (R08.1, paso 18). Un equipo que ayer tiró ciento veinte kilómetros
+       * hoy tiene menos presupuesto y pone a otros dos; **al cuarto o quinto día de controlar, el
+       * equipo del maillot ya no llega y el maillot cambia de manos**. Ésa es la frase entera del
+       * racimo, y es de las más bonitas del ciclismo por etapas: la vuelta la gana quien todavía
+       * tiene equipo en la tercera semana.
+       *
+       * El suelo del 40 % no es caridad: un equipo agotado sigue teniendo ocho hombres.
+       */
+      budget:
+        STAGE.teamBudgetPerRider *
+        Math.max(1, committed) *
+        escalaDeEsfuerzo(loyal) *
+        formaDelEquipo(loyal),
       rebelIds,
     })
   }
@@ -625,4 +658,45 @@ export function jerseyAttackFactor(
   if (!esPortador || leLoEstanQuitando) return 1
   const colchon = Math.max(0, cushionSeconds)
   return 1 - Math.min(1, colchon / STAGE.teamPlay.jerseyCushionS)
+}
+
+/**
+ * CUÁNTO GASTA HOY ESTE EQUIPO, según lo que sus hombres hayan puesto en `effort` (R22, §6.2).
+ *
+ * La media, no el máximo, y con el interruptor apagado vale **1 exacto**: un campo sin órdenes de
+ * esfuerzo —o un banco sintético— corre como corría.
+ */
+function escalaDeEsfuerzo(loyal: readonly { effort?: Effort }[]): number {
+  if (!STAGE.ordenes.enabled || loyal.length === 0) return 1
+  let suma = 0
+  for (const r of loyal) {
+    suma +=
+      r.effort === 'a_tope'
+        ? STAGE.ordenes.aTopeBudget
+        : r.effort === 'ahorrar'
+          ? STAGE.ordenes.ahorrarBudget
+          : 1
+  }
+  return suma / loyal.length
+}
+
+/**
+ * CUÁNTO LE QUEDA HOY A ESTE EQUIPO (R08.1, paso 18). `fitFactor(r) = clamp(0,4 + 0,6·freshness)`,
+ * promediado sobre los leales: el equipo no es su mejor hombre ni su peor hombre.
+ *
+ * `freshness` llega ya calculada de fuera —es la mitad fisiológica, que vive en
+ * `entrenamiento.md`—; aquí solo se lee. Con el interruptor apagado, o sin el dato, vale 1 exacto.
+ */
+function formaDelEquipo(loyal: readonly { freshness?: number }[]): number {
+  if (!STAGE.entreEtapas.enabled || loyal.length === 0) return 1
+  let suma = 0
+  for (const r of loyal) {
+    const f = clamp(r.freshness ?? 1, 0, 1)
+    suma += clamp(
+      STAGE.entreEtapas.fitFloor + STAGE.entreEtapas.fitSlope * f,
+      STAGE.entreEtapas.fitFloor,
+      1,
+    )
+  }
+  return suma / loyal.length
 }

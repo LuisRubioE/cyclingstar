@@ -22,6 +22,23 @@ import type { RaceContext } from './views.js'
  *
  * Cuando el paso 6 empiece a leer el contexto, esta prueba **tiene que ponerse roja**, y eso también
  * es información: significará que el contexto por fin decide algo.
+ *
+ * --- Y SE PUSO ROJA EN EL PASO 16, QUE ES EL DÍA QUE LA MEMORIA EMPIEZA A DECIDIR ---------------
+ *
+ * El invariante 74 **se retira en su mitad de la memoria y se conserva en la otra**, porque no son
+ * lo mismo:
+ *
+ *  - `race.memory` **se lee desde el paso 16** (R09): el humor tiene causa, al ganador de ayer se le
+ *    acorta la cuerda y el que lleva quince días sin nada se mete en todo. Que una etapa con memoria
+ *    salga distinta de una sin ella **es el paso funcionando**, no un defecto;
+ *  - el resto del contexto —`shape`, `standings`, `stageDay`— **sigue sin decidir nada**, y eso se
+ *    sigue comprobando abajo con las dos pruebas que quedan intactas.
+ *
+ * Así que la primera prueba deja de comparar «con contexto» contra «sin contexto» y pasa a comparar
+ * **con contexto SIN memoria** contra «sin contexto», que es lo que el invariante protege de verdad:
+ * que un campo nuevo no cambie la conducta **por accidente** —por entrar en un orden de iteración,
+ * en una clave de mapa o en un `JSON.stringify` que siembre un dado—. Lo que cambia a propósito no
+ * es lo que este test vigila.
  */
 
 const PERFIL: StageProfile = {
@@ -104,10 +121,27 @@ const huella = (riders: StageRider[], race?: RaceContext): string => {
   return out.results.map((r) => `${r.puesto}:${r.riderId}:${r.tiempoS}`).join(',')
 }
 
+/**
+ * EL MISMO CONTEXTO SIN SU MEMORIA. Se construye quitando la clave y no desestructurando con un
+ * descarte, porque una variable que se declara para no usarla es exactamente lo que el linter del
+ * repositorio prohíbe — y con razón: nombra algo que no existe.
+ */
+function sinMemoria(ctx: RaceContext): RaceContext {
+  const copia: RaceContext = { ...ctx }
+  delete copia.memory
+  return copia
+}
+
 describe('engine: el contexto de carrera viaja y NADIE lo lee', () => {
-  it('la etapa sale IDÉNTICA con contexto y sin él', () => {
+  it('la etapa sale IDÉNTICA con contexto SIN MEMORIA y sin contexto', () => {
     const riders = campo('ctx')
-    expect(huella(riders, CONTEXTO)).toBe(huella(riders))
+    expect(huella(riders, sinMemoria(CONTEXTO))).toBe(huella(riders))
+  })
+
+  it('…y CON memoria sale distinta, que es el paso 16 funcionando', () => {
+    // El control del control, por el otro lado: si esto no cambiara, R09 no estaría haciendo nada.
+    const riders = campo('ctx')
+    expect(huella(riders, CONTEXTO)).not.toBe(huella(riders, sinMemoria(CONTEXTO)))
   })
 
   it('…y también con las clasificaciones metidas en cada corredor', () => {
@@ -124,12 +158,10 @@ describe('engine: el contexto de carrera viaja y NADIE lo lee', () => {
     // El control del control: si la prueba de arriba pasara porque el contexto es inerte por ser
     // siempre el mismo, esto lo cazaría.
     const riders = campo('ctx')
-    const otro: RaceContext = {
-      ...CONTEXTO,
-      stageDay: 1,
-      memory: { debts: [], winners: [], satisfiedTeams: [] },
-      standings: new Map(),
-    }
-    expect(huella(riders, otro)).toBe(huella(riders, CONTEXTO))
+    // La memoria se deja FUERA de los dos lados: desde el paso 16 sí decide, y mezclarla aquí
+    // convertiría el control del control en una comprobación de otra cosa.
+    const base = sinMemoria(CONTEXTO)
+    const otro: RaceContext = { ...base, stageDay: 1, standings: new Map() }
+    expect(huella(riders, otro)).toBe(huella(riders, base))
   })
 })

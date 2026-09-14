@@ -13169,3 +13169,286 @@ reina no hay tren de sprint que montar — el de montaña es otra pieza y entra 
 La escala, por comparación: mover la ventana **vieja** a quince kilómetros —poner a los veinte
 lanzadores del campo al frente desde el km 15— sí voltea carreras (fuga 5 % → 0 %, captura 94,7 % →
 100 %). El tren de R16 hace lo contrario: pone a **uno por equipo** en vez de a veinte.
+
+## v60 §19 — paso 16, la carrera se acordaba de nada
+
+`ENGINE_VERSION` **69 → 69, sin subida**, y el porqué es la mitad de la nota. R09 + R10:
+`stage/memory.ts` nuevo.
+
+### El defecto
+
+Cada etapa de una gran vuelta se corría **como si fuera la primera**: el pelotón no recordaba quién
+ganó ayer, a quién le robaron la etapa, quién lleva quince días sin nada ni quién le debe un relevo a
+quién. Esa amnesia es la causa directa de una de las quejas del dueño —«gana dos etapas seguidas»—,
+porque al ganador de ayer se le daba hoy exactamente la misma cuerda que a cualquiera.
+
+La memoria **la construye `packages/db`** y el motor la **recibe y no la escribe**. No es una
+comodidad: es lo que mantiene la frontera que hace que ningún banco se rompa, y lo que hace que una
+carrera de un día —donde no hay ayer— corra igual que antes sin una sola guarda especial.
+
+### El humor deja de ser un dado, medido
+
+| llana canónica, 120 semillas   | gana la fuga | gana el mejor sprinter |
+| ------------------------------ | ------------ | ---------------------- |
+| sin memoria                    | 5,8 %        | 40,0 %                 |
+| memoria presente, sin causa    | 12,5 %       | 35,0 %                 |
+| **el día después de la reina** | **10,0 %**   | 40,8 %                 |
+| **víspera de descanso**        | **7,5 %**    | 41,7 %                 |
+
+Las causas mueven la carrera en la dirección que dicen: el día después de la reina el pelotón da más
+cuerda, la víspera de un descanso menos. Y el salto del 5,8 % al 12,5 % es **el encogimiento del
+dado** —de 0,14 a 0,07—, que no es un efecto secundario sino la otra mitad de R09.1: un humor menos
+extremo da más días de cuerda media, que son los días en que una fuga llega.
+
+**El dado no se retira, se encoge.** El dueño lo pidió con nombre —«la probabilidad de que el pelotón
+eche la hueva»— y un humor sin azar sería otro defecto, no un arreglo.
+
+### Y una corrección de dirección, más un hallazgo que hay que decir
+
+**La corrección.** El campo `hasYesterdayWinner` existía desde el paso 6, con su constante y su test
+unitario, y nadie lo rellenaba. Al rellenarlo me equivoqué de lado: lo puse en el EQUIPO, y eso hacía
+que el equipo **del ganador** pagara más por cazarse a sí mismo. Son dos memorias distintas y viven
+en sitios distintos:
+
+- **del movimiento**: dentro va el ganador de ayer, y a ése no se le da otra. Lo piensa el pelotón
+  entero, no su propio equipo;
+- **del equipo**: a éstos la fuga les robó la etapa ayer, y hoy no dan cuerda a nadie.
+
+**El hallazgo.** Con las dos puestas y bien, el número **no se mueve ni un dígito**: fuga 12,5 % con
+y sin el ganador de ayer dentro, y el cazaetapas de ayer se fuga el 15,8 % de las veces en los dos
+brazos. La causa no es la regla: **R09.2 cuelga de la aduana (R03/R04), y ese racimo está apagado**,
+así que `payableOf` no se llama nunca y no hay nada que multiplicar.
+
+Así que la regla queda escrita, cableada y con su medida diciendo exactamente eso: **se enciende el
+día que se encienda la aduana**, y ese día su A/B es de una línea. No se apunta una mejora que no se
+ha medido.
+
+### Por qué no sube la versión
+
+Los cuatro escenarios canónicos **corren sin `race.memory`** —son bancos sintéticos y carreras de un
+día— así que con el interruptor puesto salen dígito a dígito iguales y las huellas no se tocan. La
+capa entra encendida y **solo despierta cuando `packages/db` le da de comer**, que es el PR hermano.
+
+### Y el invariante 74 se retira **en su mitad**, con la causa escrita
+
+«Con el contexto puesto y quitado, la carrera es la misma» (invariante 74) se puso rojo, y su propio
+comentario decía que tenía que ponerse rojo el día que el contexto empezara a decidir algo. Pero no
+todo el contexto decide: se parte en dos.
+
+- `race.memory` **se lee desde hoy**. Que una etapa con memoria salga distinta de una sin ella **es
+  el paso funcionando**, y se comprueba ahora con su prueba propia y de signo contrario: si NO
+  cambiara, R09 no estaría haciendo nada.
+- El resto —`shape`, `standings`, `stageDay`— **sigue sin decidir nada**, y las dos pruebas que lo
+  vigilan quedan intactas.
+
+Lo que el invariante protege de verdad es que un campo nuevo no cambie la conducta **por accidente**
+—por entrar en un orden de iteración, en una clave de mapa o en un `JSON.stringify` que siembre un
+dado—. Lo que cambia a propósito nunca fue lo que vigilaba.
+
+## v60 §20 — paso 17c, una criba sin causa no se puede discutir
+
+`ENGINE_VERSION` **69 → 69, sin subida**, y eso es exactamente lo que se espera: R23 **no toca la
+carrera, solo cuenta lo que ya pasaba**.
+
+Es el racimo más barato después de R01 y el que hace visible todo lo demás: **sin él ninguna regla
+nueva se puede diagnosticar**. Todo lo que el dueño ha cazado este mes lo ha cazado leyendo la radio
+de carrera.
+
+### Tres cosas que el motor sabía y tiraba
+
+**Por qué se rompió el pelotón** (R23.3). El motor lo sabe en el instante en que lo decide —el bloque
+dice si es un puerto, un sector o un día de viento, y el parte de incidentes dice si acaba de haber
+una caída— y no lo contaba, así que las cuatro cribas de una etapa salían con la misma frase. Ahora
+`peloton_split` lleva `causa`, con la caída mandando sobre todo lo demás durante dos kilómetros y
+`caza` como respuesta cuando no hay terreno que lo explique: **alguien está apretando, y eso también
+es una causa**.
+
+**A quién le cuesta un boquete** (R23.2). Dos minutos de ventaja no significan nada hasta que se dice
+cuántos puestos de la general le cuestan a quién. El motor ya hacía esa cuenta —es la general virtual
+con la que R04 decide si persigue— y la tiraba.
+
+**El que tira por sí mismo** (R23.1). Ocho hombres en el último puerto y el favorito delante marcando
+tempo: eso no es «libre» ni «le toca por su papel», que es como salía. El vocabulario de motivos
+tenía diez palabras y la carretera produce quince.
+
+### Y una crónica que miente es peor que una muda
+
+Ése es el criterio con el que se han elegido los cinco motivos nuevos, y no «más detalle». `propio`,
+`infiltrado`, `colocando`, `equipo_puntos` y `equipo_montana` no son matices: son situaciones que la
+crónica venía contando **con la palabra equivocada**, y el que lee no puede saber que le están
+mintiendo.
+
+Las cuatro huellas **no se mueven ni un dígito** con el interruptor puesto, que es la comprobación de
+que el racimo hace lo que promete: contar, no decidir.
+
+## v60 §21 — paso 17a (motor), `effort` era un botón de un solo sitio
+
+`ENGINE_VERSION` **69 → 69, sin subida**: los cuatro escenarios canónicos corren sin órdenes de
+esfuerzo, así que con el interruptor puesto salen dígito a dígito iguales.
+
+### La queja fundacional, contestada con mecánica
+
+«El resultado es casi lo mismo ponga lo que ponga ahí.» La mitad de esa queja es `effort`, que hoy
+actúa **en un solo sitio**: un término de ±0,5 en el deber de relevo. Un botón que mueve una cosa y
+nada más es, desde el otro lado de la pantalla, un botón desconectado.
+
+Pasa a tocar cuatro:
+
+| `effort`  | Turno (ya estaba) | **Cerillos**      | **Reserva**       | **Presupuesto del equipo** |
+| --------- | ----------------- | ----------------- | ----------------- | -------------------------- |
+| `ahorrar` | −0,5 de deber     | como hoy          | aguanta **−25 %** | **× 0,7**                  |
+| `normal`  | 0                 | como hoy          | como hoy          | 1,0                        |
+| `a_tope`  | +0,5 de deber     | **+1 disponible** | aguanta **+25 %** | **× 1,4**                  |
+
+Y con ellas entran las **cuatro palancas nuevas** que completan las once del diseño: `triggerOn` —la
+cita deja de ser solo un kilómetro, que es la única forma de decir «cuándo» que no depende de la
+carrera—, `chasePolicy`, `refuseRelayTeams` («con ésos no colaboro», cobrado donde duele: en el turno
+de relevos) y `dayGoal`.
+
+### Medido, y con una lectura que hay que hacer bien
+
+Poniendo el mismo `effort` a todo el equipo del mejor sprinter, 60 semillas de la llana canónica:
+
+| efecto sobre el mejor sprinter | apagado | encendido |
+| ------------------------------ | ------- | --------- |
+| `a_tope` — puesto medio        | 4,2     | **3,6**   |
+| `ahorrar` — puesto medio       | 3,6     | 3,8       |
+
+El que sale a vaciarse llega **medio puesto más arriba** con las tres patas nuevas puestas: el
+cerillo de más, la reserva que aguanta un cuarto más y el presupuesto de equipo un 40 % mayor.
+
+**Y la lectura que NO hay que hacer**: el win-rate de `a_tope` (36,7 %) sigue por debajo del de
+`ahorrar` (45 %) **en los dos brazos**, así que no lo causa este paso. Y no es necesariamente un
+defecto: un velocista que rueda a tope todo el día llega a meta vacío, que es exactamente lo que la
+física debe hacer. El invariante de dirección de R22 se mide con `ordersBench` sobre la métrica que
+cada palanca declara, no sobre el win-rate de un sprinter — y ese banco, con las once palancas, es el
+PR hermano de éste.
+
+### Lo que este PR NO trae, dicho para que no se dé por hecho
+
+Las cuatro palancas nuevas **viajan en el contrato del motor y nadie las puede poner todavía**: eso
+es `packages/db` (migración de `stage_orders`), la API y la pantalla de órdenes, que son los otros
+tres PR del paso 17. Aquí está la mitad que decide; la mitad que se pulsa viene detrás.
+
+## v60 §22 — paso 18a (motor), la vuelta la gana quien todavía tiene equipo
+
+`ENGINE_VERSION` **69 → 69, sin subida**, y por una razón que vuelve a ser la medida y no la suerte:
+los cuatro escenarios canónicos salen con el depósito **a 100** y sin `raceRhythm`, así que los dos
+términos valen 1 exacto y las huellas no se tocan.
+
+### La frase entera del racimo
+
+«Un equipo que ayer tiró ciento veinte kilómetros hoy tiene menos presupuesto y pone a otros dos; **al
+cuarto o quinto día de controlar, el equipo del maillot ya no llega y el maillot cambia de manos**.»
+Es de las cosas más bonitas del ciclismo por etapas y el motor no la sabía contar: el presupuesto de
+un equipo era el mismo el día 1 que el día 18.
+
+`fitFactor = clamp(0,4 + 0,6·freshness, 0,4, 1)`, promediado sobre los leales — el equipo no es su
+mejor hombre ni su peor hombre. Y el suelo del 40 % no es caridad: un equipo agotado **sigue teniendo
+ocho hombres**.
+
+### Medido, y el brazo que lo enseña es el del campo cansado
+
+| 60 semillas (reina) / 12 (3.ª semana) | apagado | encendido  |
+| ------------------------------------- | ------- | ---------- |
+| reina canónica, campo fresco — fuga   | 28,3 %  | **28,3 %** |
+| tercera semana — erosión mediana      | 0,615   | 0,613      |
+| tercera semana — pájaras              | 1,5 %   | 1,2 %      |
+| **campo al 70 % de depósito — fuga**  | 18,3 %  | **20,0 %** |
+
+Con el campo fresco **no cambia nada**, que es exactamente lo que debe pasar: `fitFactor` vale 1 y no
+hay nada que descontar. Con el campo al 70 % la fuga gana **casi dos puntos más**, porque los equipos
+que tendrían que cazarla ya no llegan. Eso es la regla, y no se ve en ningún banco canónico porque
+todos arrancan a depósito lleno.
+
+### Y el tercero de los cinco multiplicadores
+
+`rhythmCostGain · (1 − raceRhythm)` entra en `stage/cost.ts` **solo en la primera hora**, que es donde
+se nota venir de tres semanas sin dorsal; después ya no se nota en el gasto, se nota en el final. Es
+idéntico para todo el que traiga el mismo dato, así que redistribuye **entre** grupos y no dentro —
+que es lo que lo mantiene inocuo para las cinco bandas de `erosion`.
+
+La señal (`raceRhythm`, `illDays`) se define en `entrenamiento.md` y **no se inventa aquí**: es la
+frontera entre los dos documentos, y respetarla es lo que evita tener dos modelos de forma sobre el
+mismo corredor el mismo día.
+
+### Lo que este PR no trae
+
+`packages/db` todavía no rellena `raceRhythm`, `illDays` ni `bruised`, así que en producción los tres
+llegan ausentes y el motor corre como antes. La mitad que lee está puesta; la que calcula viene
+detrás, y va en `entrenamiento.md`.
+
+## v60 §23 — paso 19, una crono es una carrera, no un examen
+
+`ENGINE_VERSION` **69 → 69, sin subida**. R27: `stage/timeTrialMode.ts` nuevo, montado **encima** de
+`timetrial.ts`, que no se toca — la ley de la crono, el compuesto CRI, el pacing y la rampa de salida
+se quedan como están, y sus dos bandas mejor ancladas (`tailPct` 8-15, `worstStagePct` 0-17) no se
+mueven.
+
+### Lo que faltaba no era física
+
+Hoy una contrarreloj es **un hombre solo contra un cronómetro**, y eso deja fuera todo lo que de
+verdad decide una crono de vuelta: cómo la dosificas, con qué parciales corres, quién te marca el
+tiempo, a qué hora te toca salir y si el cielo cambia entre el primero y el último.
+
+Entran las siete reglas con sus decisiones, y tres merecen decirse enteras:
+
+- **La dosificación es una apuesta.** A tope gana doce segundos esperados **y más que duplica** la
+  probabilidad de hundirse en el último tercio. Conservador pierde diez y no arriesga nada.
+- **El alcance es un castigo asimétrico**: el alcanzado no puede coger la rueda y se hunde; el que
+  alcanza **no gana nada** salvo la referencia. Si alcanzar diera ventaja, la crono estaría rota.
+- **El cambio de bici**: cuesta 18 s y gana 0,35 s/km. **A veces la decisión correcta es no
+  cambiar**, y por eso es una decisión — por debajo de unos cincuenta kilómetros favorables, el
+  director que cambia igualmente pierde la crono en el arcén.
+
+### En la crono también se pincha, y eso despierta una salvaguarda dormida
+
+`simulateTimeTrial` devolvía `incidents: []` a secas, y eso no era una simplificación: era lo que
+dejaba **dormida** la salvaguarda del corte del 25 %, que es como el propio código la llama. Un corte
+que nadie puede rozar no protege de nada.
+
+| crono canónica, 60 semillas | apagado | modo crono |
+| --------------------------- | ------- | ---------- |
+| percances por crono         | 0,00    | **0,53**   |
+| % del campo con incidente   | 0,0 %   | **1,3 %**  |
+| fuera de control            | 0,00 %  | 0,00 %     |
+| brecha p90−p10              | 105 s   | 105 s      |
+| gana el especialista        | 98,3 %  | 98,3 %     |
+
+**Una corrección medida antes de verla**: `ttMishapLambda` 0,015 está DERIVADA del objetivo de 1-4 %
+**por corredor y por crono**, y pasarla por `rollHazard` —que la interpreta por kilómetro y la
+reparte en bloques de cien metros— la dejaba en el **0,1 %**, diez veces por debajo de su propia
+banda.
+
+### Y una predicción del diseño que **no se cumple**, dicha aquí
+
+R11.6 anunciaba que esto rompería el invariante 11 (`outOfTime === 0`, tolerancia cero) y que el
+invariante 56 lo sustituiría con bandas 0-2 %. **No hace falta**: `fuera de control` sigue en
+**0,00 %**, porque un percance de crono cuesta unos treinta segundos y el corte es el 25 % del tiempo
+del ganador, o sea varios minutos. La sustitución queda **anotada y sin aplicar**, con su medida
+delante: un invariante no se retira porque un documento lo anuncie, sino porque una medida lo
+contradiga.
+
+### Re-sellado de la huella de la crono (corrección de esta misma nota)
+
+Esta subsección se escribió diciendo que las huellas **no se movían**, y era falso: `pnpm test:rapido`
+se corrió aquí antes de que los percances entraran en `timetrial.ts`, así que el sello de
+`timetrial.test.ts` se quedó con el número de la v68 y la CI lo cazó en el PR #217. La medida buena es
+la de §9.3, que ya lo tenía declarado —«la huella de la crono se mueve en 13 y 19; cambian los tiempos
+de los que sufren un incidente; el especialista sigue ganando»— y se cumple entera:
+
+| `cri-40`, las dos semillas selladas | v68          | v69                                          |
+| ----------------------------------- | ------------ | -------------------------------------------- |
+| semilla 0                           | sin cambios  | **idéntica dígito a dígito**                 |
+| semilla 1, ganador                  | `cri-2` 2888 | `cri-2` 2888                                 |
+| semilla 1, siete primeros           | intactos     | intactos                                     |
+| semilla 1, tiempos movidos          | —            | **2 de 40**: `pel-28` +23 s y `pel-26` +35 s |
+
+Los otros treinta y ocho tiempos son los mismos dígito a dígito; lo único que les cambia es el puesto,
+porque los dos que pincharon les pasan por detrás. Dos de cuarenta en una crono es exactamente el
+0,53 percances por crono de la tabla de arriba, visto en una sola corrida.
+
+**Y la lección de proceso, que es la que vale**: una huella sellada no se comprueba con la tanda que
+se corrió antes del cambio. El orden correcto es cambiar, reconstruir y **después** medir; correrlo al
+revés produce un verde que no significa nada — que es justo de lo que esta bitácora lleva media
+docena de notas avisando.

@@ -60,12 +60,31 @@ import type { RaceEvent, StageInput, StageOutput, StageRider } from './types.js'
  * contra el reloj— y no ejecuta una sola línea de lo que se ha tocado. Tampoco hay dado nuevo ni
  * subflujo nuevo, así que ninguna secuencia se desplaza. Comprobado, no supuesto: las dos huellas
  * salen dígito a dígito iguales.
+ *
+ * **RE-SELLADA EN LA v60 §23** (paso 19, R27: «una crono es una carrera, no un examen»), y con la
+ * predicción de §9.3 cumplida delante. La causa es UNA y está escrita: en la crono ahora se pincha
+ * —`simulateTimeTrial` tira su propio subflujo `percance` y el que lo sufre para, espera al coche y
+ * pierde el tiempo que se pierde—, y eso es exactamente lo que §9.3 declaró que movería esta huella
+ * («cambian los tiempos de los que sufren un incidente»).
+ *
+ * Lo que se movió, contado:
+ * - **La semilla 0 no se mueve un dígito**: ese día no pincha nadie. Un percance no es un dado que
+ *   se tire en todas las cronos, y que la mitad del sello siga intacto es la prueba.
+ * - **En la semilla 1 se mueven DOS hombres de cuarenta**: `pel-28` de 3031 a 3054 (+23 s) y
+ *   `pel-26` de 3024 a 3059 (+35 s). Los otros treinta y ocho tiempos son los mismos dígito a
+ *   dígito, y lo único que cambia de ellos es el puesto, porque los dos que pincharon les pasan por
+ *   detrás.
+ * - **El especialista sigue ganando**, que es la parte de la predicción que de verdad podía fallar:
+ *   `cri-2` a 2888, idéntico, y los siete primeros puestos intactos.
+ *
+ * O sea: se re-sella porque una regla nueva hizo lo que se declaró que haría, y no porque el número
+ * haya cambiado. Si se hubiera movido el ganador, o los cuarenta tiempos a la vez, la tanda se para.
  */
 const SEALED_ITT: Record<string, string> = {
   'cri-40-0|cri-40|1|v1':
     '1:cri-2:2895,2:cri-3:2920,3:cri-1:2923,4:cri-4:2934,5:cri-0:2935,6:cri-5:2942,7:cri-7:2952,8:cri-6:2966,9:pel-17:2966,10:pel-27:2977,11:pel-28:2978,12:pel-7:2985,13:pel-29:2986,14:pel-9:2987,15:pel-4:2989,16:pel-12:2990,17:pel-25:2994,18:pel-6:2994,19:pel-5:2996,20:pel-16:2998,21:pel-8:3006,22:pel-18:3008,23:pel-15:3018,24:pel-19:3019,25:pel-22:3023,26:pel-31:3023,27:pel-30:3026,28:pel-23:3033,29:pel-20:3033,30:pel-24:3035,31:pel-26:3037,32:pel-21:3039,33:pel-2:3045,34:pel-14:3048,35:pel-11:3049,36:pel-13:3050,37:pel-1:3051,38:pel-3:3053,39:pel-0:3056,40:pel-10:3072',
   'cri-40-1|cri-40|1|v1':
-    '1:cri-2:2888,2:cri-4:2922,3:cri-7:2929,4:cri-6:2949,5:cri-5:2951,6:pel-8:2955,7:cri-3:2965,8:pel-9:2968,9:pel-15:2970,10:pel-29:2975,11:cri-0:2977,12:cri-1:2980,13:pel-19:2982,14:pel-6:2998,15:pel-18:3000,16:pel-7:3000,17:pel-5:3009,18:pel-24:3014,19:pel-23:3023,20:pel-26:3024,21:pel-27:3025,22:pel-16:3027,23:pel-22:3027,24:pel-28:3031,25:pel-13:3031,26:pel-14:3033,27:pel-3:3034,28:pel-1:3034,29:pel-25:3035,30:pel-11:3039,31:pel-31:3040,32:pel-2:3046,33:pel-30:3047,34:pel-12:3049,35:pel-10:3053,36:pel-20:3057,37:pel-4:3059,38:pel-21:3064,39:pel-17:3069,40:pel-0:3079',
+    '1:cri-2:2888,2:cri-4:2922,3:cri-7:2929,4:cri-6:2949,5:cri-5:2951,6:pel-8:2955,7:cri-3:2965,8:pel-9:2968,9:pel-15:2970,10:pel-29:2975,11:cri-0:2977,12:cri-1:2980,13:pel-19:2982,14:pel-6:2998,15:pel-18:3000,16:pel-7:3000,17:pel-5:3009,18:pel-24:3014,19:pel-23:3023,20:pel-27:3025,21:pel-16:3027,22:pel-22:3027,23:pel-13:3031,24:pel-14:3033,25:pel-3:3034,26:pel-1:3034,27:pel-25:3035,28:pel-11:3039,29:pel-31:3040,30:pel-2:3046,31:pel-30:3047,32:pel-12:3049,33:pel-10:3053,34:pel-28:3054,35:pel-20:3057,36:pel-26:3059,37:pel-4:3059,38:pel-21:3064,39:pel-17:3069,40:pel-0:3079',
 }
 
 // --- Campo de pruebas (arriba porque lo usan las constantes de módulo de más abajo) ------------

@@ -46,6 +46,12 @@ export interface CustomsMove {
   kind: MoveKind
   /** ¿Refuerza a una fuga que ya está en carretera? (R03.6). */
   reinforcesFront?: boolean | undefined
+  /**
+   * ¿VA DENTRO EL GANADOR DE AYER? (R09.2, paso 16). Es una propiedad de **quién se ha ido**, no de
+   * quién persigue, y por eso vive aquí: al ganador de ayer no se le da otra, y eso lo piensa el
+   * pelotón entero y no solo su propio equipo.
+   */
+  hasYesterdayWinner?: boolean | undefined
 }
 
 /**
@@ -77,7 +83,13 @@ export interface CustomsTeam {
   quality: number
   /** La correa de este equipo, en segundos (R04.2). */
   leashSeconds: number
-  /** ¿Lleva el ganador de la etapa de ayer? (memoria, R09). */
+  /**
+   * ¿A ESTE EQUIPO LE ROBÓ LA FUGA LA ETAPA AYER? (R09.2, S-106). Hoy no le da cuerda a nadie.
+   *
+   * El campo se llamaba «lleva el ganador de ayer» y ahí estaba el error de dirección: eso es una
+   * propiedad del MOVIMIENTO —de quién se ha ido— y vive en `CustomsMove`. Puesto en el equipo hacía
+   * que el equipo DEL ganador pagara más por cazarse a sí mismo, que es justo lo contrario.
+   */
   hasYesterdayWinner?: boolean | undefined
   /** ¿Está ahora mismo cerrando un movimiento sin cuerda? (R19.4: cerrar es PRECIO). */
   closing?: boolean | undefined
@@ -242,7 +254,21 @@ export function payableOf(t: CustomsTeam, move: CustomsMove): number {
     (t.presentInPeloton / Math.max(1, t.convocados)) *
     (1 - clamp(t.spentFraction, 0, 1)) *
     clamp(t.quality / 100, 0, 1)
-  const memoria = t.hasYesterdayWinner === true ? STAGE.customs.yesterdayWinner : 1
+  /**
+   * LA MEMORIA DE AYER (R09.2, paso 16), **y son dos memorias distintas que se multiplican**:
+   *
+   *  - la del MOVIMIENTO: dentro va el ganador de ayer, y a ése no se le da otra. Es una propiedad
+   *    de quién se ha ido, no de quién persigue, y por eso vive en `move` — ponerla en el equipo era
+   *    el error: hacía que el equipo DEL ganador pagara más por cazarse a sí mismo;
+   *  - la del EQUIPO: a éstos la fuga les robó la etapa ayer, y hoy no dan cuerda a nadie.
+   *
+   * Las dos van sobre lo que se está dispuesto a PAGAR y no sobre si molesta: con la objeción
+   * saturada en 1, multiplicarla no movía un dígito y la queja del dueño —«gana dos etapas
+   * seguidas»— seguía viva.
+   */
+  const memoria =
+    (move.hasYesterdayWinner === true ? STAGE.customs.yesterdayWinner : 1) *
+    (t.hasYesterdayWinner === true ? STAGE.memory.customsBurnedUs : 1)
   const ocupado = t.closing === true ? STAGE.customs.closingBusyDamp : 1
   const refuerzo = move.reinforcesFront === true ? 1 - STAGE.customs.bridgePassGain : 1
   return Math.max(0, base * memoria * ocupado * refuerzo)
