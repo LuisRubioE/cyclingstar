@@ -715,7 +715,7 @@
  * Campaña canónica de 500 corridas: **los 33 invariantes en verde**. La contrarreloj no se mueve ni
  * un dígito —es el ancla del esfuerzo individual y paga la ley lineal de siempre—.
  */
-export const ENGINE_VERSION = 68 as const
+export const ENGINE_VERSION = 69 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -4418,6 +4418,43 @@ export const STAGE = {
     waitMinGapS: 75,
     /** Y en la crono también se pincha (R11.6). DERIVADA del objetivo declarado de 1-4 %. */
     ttLambda: 0.015,
+  },
+
+  /**
+   * EL TREN COMO SUBMOTOR (R16, docs/tactica.md paso 15). Con estado y con `kind`: hay dos trenes
+   * —el de sprint y el de montaña— y el motor solo conocía uno, y ése solo vivía en los últimos tres
+   * kilómetros.
+   */
+  train: {
+    enabled: true,
+    /** DERIVADA de `finalDriveKm` 15: el tren se monta cuando arranca el régimen final. */
+    formKm: 15,
+    /** DERIVADA de la fila (S-351: «dos o tres lanzadores»). */
+    maxLaunchers: 3,
+    /**
+     * CUÁNTO TIRA CADA UNO. El primer relevo es el largo y el último el corto, que es como se hace:
+     * el que entra a mil metros ya solo tiene que aguantar hasta los doscientos. [calibrar]
+     */
+    turnKm: [5, 3, 1.5] as readonly number[],
+    /** Por debajo de esto un lanzador está fundido y le releva el siguiente (R16.2). */
+    spentFreshness: 0.2,
+    /**
+     * EL TREN DE MONTAÑA (R16.9). Se forma al pie del puerto decisivo, no a 15 km de meta, y ordena
+     * por MON **ascendente**: el último que queda antes de la rampa tiene que ser el mejor.
+     */
+    maxClimbHelpers: 4,
+    climbTurnKm: 2.5,
+    /** Y el último se aparta a esta distancia de la cima, tirando con `lastHelperCommit`. */
+    lastHelperKm: 4,
+    /**
+     * DÓNDE SE ABRE, y no es una constante: con viento de cola la rueda vale menos y se abre de
+     * lejos; con viento de cara el primero que abre se muere. Sobre adoquín, más lejos todavía.
+     */
+    tailwindGain: 1.4,
+    headwindDamp: 0.7,
+    paveGain: 1.3,
+    /** Cuánto pesa lo lejos que está el hueco frente a lo que vale el tren (R16.4). */
+    wheelPickWeight: 0.5,
   },
 
   launchWorstFinisherM: 90,
