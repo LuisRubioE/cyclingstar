@@ -190,6 +190,30 @@ export interface StageRider {
   /** Fragilidad oculta (SPEC 3.4): escala la probabilidad de lesión al caer. Por defecto 1. */
   fragility?: number
   /**
+   * --- LO QUE EL PASO 18 LEE, Y QUE SE DEFINE EN `entrenamiento.md` ---------------------------
+   *
+   * La frontera entre los dos documentos: aquél se queda con la mitad **fisiológica** —el depósito,
+   * los cerillos, la salud— y éste con la **táctica**, que es **cómo el director LEE ese estado al
+   * planificar**. Los dos campos vienen calculados de fuera; el motor no los inventa.
+   */
+  /**
+   * EL RITMO DE CARRERA (R08.4, S-468/S-385/S-482), en [0,1]. `clamp(tssDeCarrera(28 d) / (0,25 ·
+   * tssTotal(28 d)), 0, 1)`, definido en `entrenamiento.md` §5.2 — **una sola contabilidad de
+   * carga**. «Días sin dorsal» a secas castigaba igual al que descansó tres semanas por bloque que
+   * al que acababa de correr una vuelta de tres semanas.
+   *
+   * Ausente = 1: el que no trae el dato corre como si llegara con ritmo, que es lo conservador.
+   */
+  raceRhythm?: number
+  /**
+   * DÍAS SEGUIDOS TOCADO (R08.2, S-380/S-381). **No hay dado nuevo ni «enfermo que sigue en
+   * carrera»**: en el motor enfermar ES abandonar, y lo que crece durante días antes es la molestia.
+   * Aquí solo se LEE, para degradar el papel del hombre y para decidir en la cuneta.
+   */
+  illDays?: number
+  /** Y si viene tocado de ayer: no entra al turno y no arriesga en un descenso (S-380). */
+  bruised?: boolean
+  /**
    * EL AÑO DE CONTRATO (R15a.8, S-428). El que se juega el suyo corre de escaparate: ataca más y se
    * conforma menos con ir escondido. **Ausente = no lo sabemos**, y entonces no cambia nada.
    */

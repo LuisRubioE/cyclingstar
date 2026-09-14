@@ -25,6 +25,14 @@ export interface CostTerms {
   push: number
   /** R15a.2, YA relativo a la media del grupo: `accordionGain · (p − media)`. */
   accordion: number
+  /**
+   * R08.4 (paso 18): **el que llega sin ritmo de carrera**. `rhythmCostGain · (1 − raceRhythm)`, y
+   * como es idéntico para todo el que trae el mismo dato, redistribuye **entre** grupos y no dentro
+   * — que es lo que lo mantiene inocuo para las cinco bandas de `erosion`.
+   *
+   * La señal es de `entrenamiento.md` (§5.2) y la palanca es de aquí. Ausente = 0.
+   */
+  rhythm?: number
 }
 
 /**
@@ -38,7 +46,7 @@ export interface CostTerms {
  * el peor caso —el que remonta cien puestos en pleno acordeón— sin volver el bloque incoherente.
  */
 export function tacticalCostMultiplier(t: CostTerms, mediaPush: number): number {
-  const suma = t.push - mediaPush + t.accordion
+  const suma = t.push - mediaPush + t.accordion + (t.rhythm ?? 0)
   return Math.max(-STAGE.tacticalCostCap, Math.min(STAGE.tacticalCostCap, suma))
 }
 

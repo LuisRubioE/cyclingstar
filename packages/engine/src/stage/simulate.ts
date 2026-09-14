@@ -1138,6 +1138,8 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
    * la carrera empiece.
    */
   const ordenesOn = input.flags?.ordenes === true || STAGE.ordenes.enabled
+  /** ¿Y el depósito entre etapas del paso 18? Ver `STAGE.entreEtapas.enabled`. */
+  const entreEtapasOn = input.flags?.entreEtapas === true || STAGE.entreEtapas.enabled
   const rngCrash = streams('crash')
   /**
    * Subflujo NOMINAL de los PERCANCES MECÁNICOS (R11, SPEC 6.1). Mismo motivo que `rngCrash` y por
@@ -1858,6 +1860,12 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       // Lo que ha puesto en «cuánto quiero gastar hoy» (R22, paso 17): decide el presupuesto de su
       // equipo, que es donde esa palanca de verdad se paga.
       ...(r.orders.effort ? { effort: r.orders.effort } : {}),
+      /**
+       * CON CUÁNTO LLEGA HOY (R08.1, paso 18). El depósito de salida contra el nominal de 100, que
+       * es la escala en la que `initialEnergy` lo devuelve: un hombre fresco ronda el 100 y uno que
+       * lleva dos semanas de vuelta baja de ahí. No hay dato nuevo — es el que ya trae.
+       */
+      freshness: r.energy / 100,
     })),
     { bunchFinish, hasGcContext },
   )
@@ -4901,15 +4909,26 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
          * es el único punto donde el coste de un bloque se modula por táctica, y por eso la
          * Frontera 2 se puede COMPROBAR en vez de prometer.
          */
-        const tactico = colocacionOn
-          ? tacticalCostFactor(
-              {
-                push: pushTerm(m.pushing),
-                accordion: hayAcordeon ? accordionTerm(m.placement, mediaPlace) : 0,
-              },
-              mediaPush,
-            )
-          : 1
+        /**
+         * …Y DESDE EL PASO 18, EL TERCER MULTIPLICADOR: **el que llega sin ritmo de carrera**
+         * (R08.4). Solo en la primera hora, que es donde se nota de verdad venir de tres semanas sin
+         * dorsal: después el cuerpo ya está en faena.
+         */
+        const ritmo =
+          entreEtapasOn && km <= STAGE.entreEtapas.rhythmFirstHourKm
+            ? STAGE.entreEtapas.rhythmCostGain * (1 - clamp(m.input.raceRhythm ?? 1, 0, 1))
+            : 0
+        const tactico =
+          colocacionOn || ritmo !== 0
+            ? tacticalCostFactor(
+                {
+                  push: colocacionOn ? pushTerm(m.pushing) : 0,
+                  accordion: hayAcordeon ? accordionTerm(m.placement, mediaPlace) : 0,
+                  rhythm: ritmo,
+                },
+                colocacionOn ? mediaPush : 0,
+              )
+            : 1
         const cost =
           blockCost(block, compromisoReal, pulling, relayers.size, STAGE.dx, arropo) *
           (1 + STAGE.heatCostScale * calor) *

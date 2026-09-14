@@ -13329,3 +13329,51 @@ PR hermano de éste.
 Las cuatro palancas nuevas **viajan en el contrato del motor y nadie las puede poner todavía**: eso
 es `packages/db` (migración de `stage_orders`), la API y la pantalla de órdenes, que son los otros
 tres PR del paso 17. Aquí está la mitad que decide; la mitad que se pulsa viene detrás.
+
+## v60 §22 — paso 18a (motor), la vuelta la gana quien todavía tiene equipo
+
+`ENGINE_VERSION` **69 → 69, sin subida**, y por una razón que vuelve a ser la medida y no la suerte:
+los cuatro escenarios canónicos salen con el depósito **a 100** y sin `raceRhythm`, así que los dos
+términos valen 1 exacto y las huellas no se tocan.
+
+### La frase entera del racimo
+
+«Un equipo que ayer tiró ciento veinte kilómetros hoy tiene menos presupuesto y pone a otros dos; **al
+cuarto o quinto día de controlar, el equipo del maillot ya no llega y el maillot cambia de manos**.»
+Es de las cosas más bonitas del ciclismo por etapas y el motor no la sabía contar: el presupuesto de
+un equipo era el mismo el día 1 que el día 18.
+
+`fitFactor = clamp(0,4 + 0,6·freshness, 0,4, 1)`, promediado sobre los leales — el equipo no es su
+mejor hombre ni su peor hombre. Y el suelo del 40 % no es caridad: un equipo agotado **sigue teniendo
+ocho hombres**.
+
+### Medido, y el brazo que lo enseña es el del campo cansado
+
+| 60 semillas (reina) / 12 (3.ª semana) | apagado | encendido  |
+| ------------------------------------- | ------- | ---------- |
+| reina canónica, campo fresco — fuga   | 28,3 %  | **28,3 %** |
+| tercera semana — erosión mediana      | 0,615   | 0,613      |
+| tercera semana — pájaras              | 1,5 %   | 1,2 %      |
+| **campo al 70 % de depósito — fuga**  | 18,3 %  | **20,0 %** |
+
+Con el campo fresco **no cambia nada**, que es exactamente lo que debe pasar: `fitFactor` vale 1 y no
+hay nada que descontar. Con el campo al 70 % la fuga gana **casi dos puntos más**, porque los equipos
+que tendrían que cazarla ya no llegan. Eso es la regla, y no se ve en ningún banco canónico porque
+todos arrancan a depósito lleno.
+
+### Y el tercero de los cinco multiplicadores
+
+`rhythmCostGain · (1 − raceRhythm)` entra en `stage/cost.ts` **solo en la primera hora**, que es donde
+se nota venir de tres semanas sin dorsal; después ya no se nota en el gasto, se nota en el final. Es
+idéntico para todo el que traiga el mismo dato, así que redistribuye **entre** grupos y no dentro —
+que es lo que lo mantiene inocuo para las cinco bandas de `erosion`.
+
+La señal (`raceRhythm`, `illDays`) se define en `entrenamiento.md` y **no se inventa aquí**: es la
+frontera entre los dos documentos, y respetarla es lo que evita tener dos modelos de forma sobre el
+mismo corredor el mismo día.
+
+### Lo que este PR no trae
+
+`packages/db` todavía no rellena `raceRhythm`, `illDays` ni `bruised`, así que en producción los tres
+llegan ausentes y el motor corre como antes. La mitad que lee está puesta; la que calcula viene
+detrás, y va en `entrenamiento.md`.

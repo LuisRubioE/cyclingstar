@@ -4525,6 +4525,40 @@ export const STAGE = {
    * el deber de relevo. Un botón que mueve una cosa y nada más es, desde el otro lado de la
    * pantalla, un botón desconectado.
    */
+  /**
+   * EL DEPÓSITO QUE PERSISTE ENTRE ETAPAS (R08, docs/tactica.md paso 18), en su mitad TÁCTICA.
+   *
+   * La frontera con `entrenamiento.md` es explícita: aquél se queda con la fisiología —el depósito,
+   * los cerillos, la salud— y éste con **cómo el director lee ese estado al planificar**. Las dos
+   * señales que aquí se leen, `raceRhythm` e `illDays`, se definen allí; el número y lo que hacen en
+   * carretera son de aquí.
+   */
+  entreEtapas: {
+    enabled: true,
+    /**
+     * EL PARTE DEL EQUIPO (R08.1). Un equipo que ayer tiró 120 km hoy tiene menos presupuesto y pone
+     * a otros dos; **al cuarto o quinto día de controlar, el equipo del maillot ya no llega y el
+     * maillot cambia de manos**. Ésa es la frase entera del racimo, y es de las más bonitas del
+     * ciclismo por etapas.
+     *
+     * `fitFactor = clamp(0,4 + 0,6·freshness, 0,4, 1)`: ni el más fundido baja del 40 %, porque un
+     * equipo agotado sigue teniendo ocho hombres.
+     */
+    fitFloor: 0.4,
+    fitSlope: 0.6,
+    /** EL QUE LLEGA SIN RITMO (R08.4). Ver §9.1bis: es el tercero de los cinco multiplicadores. */
+    rhythmCostGain: 0.25,
+    /**
+     * Y SOLO EN LA PRIMERA HORA. A 40 km/h son unos cuarenta kilómetros: después, venir de tres
+     * semanas sin dorsal ya no se nota en el gasto, se nota en el final.
+     */
+    rhythmFirstHourKm: 40,
+    /** EL TOCADO (R08.2): no entra al turno, y en un descenso no arriesga. */
+    bruisedCrashGain: 1.4,
+    bruisedGiveUpGain: 1.6,
+    bruisedDutyPenalty: 1.5,
+  },
+
   ordenes: {
     enabled: true,
     /** `a_tope` da un cerillo más; `ahorrar` no quema por no soltarse (S-069, y lo dice la UI). */
