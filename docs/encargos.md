@@ -3,9 +3,48 @@
 Estado: **lista de encargos.** Cada punto de aquí es UN documento de diseño por escribir, del tamaño
 y con el método de `docs/tactica.md` y `docs/entrenamiento.md`. Ninguno está empezado.
 
+**Los códigos van en el orden en que se van a desarrollar**: E1 primero, E11 último. No es una
+etiqueta arbitraria, es el plan.
+
 El catálogo razonado, con las dependencias y el porqué de cada uno, está en
 [docs/agenda.md](./agenda.md). Esto es la versión operativa: lo que se encarga, en qué orden y qué
 hay que darle a quien lo escriba.
+
+---
+
+## Regla de arranque: aquí todavía no se toca código
+
+Hay **otra línea implementando los cambios de motor que faltan** (la táctica y el entrenamiento
+rediseñados). Hasta que eso esté EN PRODUCCIÓN no se abre ni una de estas épicas en el código, y
+cuando se abra, lo primero es **descargar la última versión de producción** y trabajar sobre ella.
+
+No es prudencia de más: estas once épicas tocan la capa de presentación, la API y el esquema, y la
+línea del motor está moviendo el motor entero y lo que la API expone de él. Empezar antes garantiza
+resolver conflictos sobre código que va a cambiar otra vez.
+
+**Lo que sí se puede hacer ya es ESCRIBIR los diseños**, que es lo que esta lista encarga. Un
+documento de diseño no crea conflictos de fusión.
+
+---
+
+## Equivalencia con la numeración anterior
+
+La primera versión de este documento numeraba por temas y no por orden. Si aparece un código antiguo
+en algún mensaje o rama, es este:
+
+| Antes | Ahora   | Encargo                                |
+| ----- | ------- | -------------------------------------- |
+| E1    | **E1**  | La retransmisión                       |
+| E2    | **E2**  | El sistema visual                      |
+| E7    | **E3**  | La cuenta y el contacto                |
+| E11   | **E4**  | La transparencia del motor             |
+| E3    | **E5**  | La experiencia general y el primer mes |
+| E6    | **E6**  | La integridad y el gobierno del mundo  |
+| E5    | **E7**  | La economía del juego                  |
+| E4    | **E8**  | El juego entre personas                |
+| E8    | **E9**  | El multiidioma                         |
+| E9    | **E10** | La vida del corredor                   |
+| E10   | **E11** | Los recorridos y el calendario         |
 
 ---
 
@@ -71,12 +110,88 @@ daltónico, así que el patrón SVG paramétrico tiene que llevar forma además 
 con E1 a propósito: repintar pantallas sin saber qué cuentan es maquillaje, y rediseñar la
 información para volver a pintarla igual de fea es trabajo perdido.
 
+**Y el encargo lleva un examen práctico obligatorio: el cuadro de entrenamiento.** No como apéndice
+ni como «si da tiempo», sino como la pantalla sobre la que el documento tiene que demostrar que el
+sistema funciona, porque es una pantalla YA implementada, con un motor correcto debajo, que aun así
+no se entiende. Los tres defectos están comprobados contra el código y detallados en el apéndice A de
+`docs/agenda.md`:
+
+1. **La lista de llegadas no dice de qué habla.** Cada fila es un día de carrera y se lee
+   `Day 182 · You'll arrive: Rusty`, sin nombre de carrera, porque la API manda **`raceId: null`
+   siempre** (`apps/api/src/routes/riders.ts`). El campo existe y va vacío. Y una carrera por etapas
+   pinta una fila por etapa repitiendo la misma palabra cuatro veces, cuando lo que el jugador
+   pregunta es «¿cómo llego a la Race X?».
+2. **Cinco etiquetas sueltas no son una escala.** `Rusty`, `Spot on`, `Fine`, `Loaded` y `Cooked`
+   salen de `arrivalLabel(tsb)` y son un eje con **dos extremos malos y el bueno en medio**: `Rusty`
+   es TSB por encima de +25, o sea demasiado FRESCO por haber entrenado poco, que es lo contrario de
+   lo que la palabra sugiere. Los cortes están bien elegidos (son los del `tsbFactor` del SPEC §4.1,
+   la misma curva con la que el TSB se convierte en rendimiento dentro de la carrera). El fallo es de
+   presentación: el mismo dato pintado como escala de cinco tramos con tu posición marcada convierte
+   una etiqueta desconcertante en una instrucción.
+3. **Dos vocabularios y una precedencia invisible.** Arriba se eligen BLOQUES y abajo SESIONES, que
+   son lo mismo a dos granularidades unidas por `blockWeek()`, y ese puente no se ve. Y cuando arriba
+   y abajo dicen cosas distintas, **manda el día**: la cadena real está en
+   `packages/db/src/train.ts` (viaje, orden del día, bloque de la semana, plan de equipo solo en modo
+   mixto, entrenador; y en modo manual el hueco es descanso activo, no entrenador). La regla es
+   correcta y ya está escrita, pero vive en el texto de ayuda del selector de modo, que está en el
+   panel de ARRIBA, así que quien baja a los 28 días no la ve.
+
+Los tres son de presentación y ninguno se arregla con más motor, que es justo lo que este documento
+tiene que demostrar. El punto 3 se solapa con E5 (arquitectura de información) y eso está bien: que
+salga de aquí la solución visual y de allí dónde vive la explicación.
+
 **Qué leer:** `apps/web/src/components/` entero, `apps/web/src/pages/`, la configuración de Tailwind,
 y `docs/navegacion.md`.
 
 ---
 
-## E3 · La experiencia general y el primer mes
+## E3 · La cuenta y el contacto
+
+**Fichero:** `docs/cuenta.md` · **Tamaño esperado:** mediano, y la mitad es ejecución
+
+El agujero más feo del producto ahora mismo, porque **hoy una contraseña perdida es un corredor
+perdido**: `better-auth` corre con correo y contraseña sin enviar un solo correo, no hay recuperación,
+nadie verifica que la dirección sea suya y el cambio de correo desde ajustes se aplica sin confirmar
+el nuevo ni avisar al viejo, que es el camino clásico para secuestrar una cuenta. El documento cubre
+el ciclo entero de la identidad (registro con **fecha de nacimiento**, que hoy no se pide y hace falta
+para la edad mínima de 16, verificación, recuperación, cambio de correo, sesiones, límites de intento)
+y su continuación natural, que son **las notificaciones**: qué se avisa, por dónde, con qué baja, y
+sobre todo el **modo ausencia**, porque con cuatro días de juego por día real un juego sin ausencia
+castiga tener vida. Dos decisiones de infraestructura van dentro y no se saltan: separar el correo
+TRANSACCIONAL del de NOTIFICACIÓN en subdominios distintos desde el primer día (las quejas de spam de
+quien se cansó del juego degradarían la entrega de la recuperación de contraseña, que es el correo que
+menos se puede permitir caer), y calentar el dominio de envío antes del lanzamiento en vez de
+estrenarlo con mil registros de golpe.
+
+**Qué leer:** `apps/api/src/auth.ts`, `apps/web/src/pages/Register.tsx`, `Login.tsx` y `Account.tsx`,
+G11 en `epics.md`, y la tabla `users`.
+
+---
+
+## E4 · La transparencia del motor
+
+**Fichero:** `docs/transparencia.md` · **Tamaño esperado:** pequeño, y es el mejor por hora invertida
+
+El más barato de los once y el que más confianza compra. Dos mecanismos. El primero son las **notas
+de versión para jugadores**: `docs/balance.md` lleva más de diez mil líneas de cambios del motor y el
+jugador no ha visto ni uno, y este juego recalibra su física entre versiones, así que desde fuera un
+corredor que subía bien y de pronto sube peor no se lee como recalibración sino como «el juego está
+roto» o «me han perjudicado». Con un mundo único y permanente no hay borrón y cuenta nueva que lo
+arregle, así que hay que contarlo, en su idioma y en términos de juego. El segundo es **«por qué
+perdí»**, que sale casi gratis por cómo está construido el motor: es puro y determinista, el azar
+viene de un RNG sembrado y las etapas se guardan con snapshot sellado (`checkReplay` ya existe). Eso
+permite ofrecer al jugador la explicación verificable de su carrera: qué orden dio, qué hizo su
+corredor, en qué kilómetro se descolgó y por qué. Es la mejor defensa contra la acusación de que el
+juego hace lo que quiere, y es la misma pieza que hace falta para que el informe de una carrera sirva
+para corregir el plan de la siguiente. El documento tiene que fijar además **la regla de cuándo
+entran los cambios de motor**: en cualquier momento o solo en el rollover.
+
+**Qué leer:** `docs/balance.md` (la cabecera y las últimas versiones), `checkReplay` en
+`packages/engine`, `apps/api/src/routes/admin.ts` en la parte del snapshot, y §4.4 de `agenda.md`.
+
+---
+
+## E5 · La experiencia general y el primer mes
 
 **Fichero:** `docs/experiencia.md` · **Tamaño esperado:** mediano
 
@@ -96,52 +211,6 @@ donde muere el punto de «tutoriales» de la lista original).
 
 **Qué leer:** `docs/navegacion.md` entero, `apps/web/src/pages/Home.tsx`, `CreateRider.tsx`,
 `HowToPlay.tsx`, el bloque G10 de `epics.md` y la tabla de progresión por edad.
-
----
-
-## E4 · El juego entre personas
-
-**Fichero:** `docs/personas.md` · **Tamaño esperado:** el más grande de todos
-
-El mánager humano y todo lo que arrastra, que `epics.md` ya desglosó en quince componentes bajo G2 y
-que **no se puede partir en tres encargos sin que se noten las costuras**: un mánager sin canal de
-comunicación es un tirano mudo, un canal sin nada que negociar es un chat vacío, y lo que se negocia
-es el mando y el dinero. Cubre la plantilla (jerarquía y liderazgos, convocatorias y carga de
-trabajo, promesas y expectativas, disciplina), las personas (moral con motivos humanos, relaciones
-entre corredores, los canales de comunicación que el dueño pidió en G7) y las dos caras del rol: la
-silla del mánager, que también debe responder ante alguien, y **ser mandado**, que es el componente
-que solo existe porque aquí el jugador es un ciclista y no un director. El modelo ya está decidido y
-el documento parte de él: todo jugador es un CICLISTA, unos pocos son ADEMÁS mánager, pagar da
-autoridad y nunca vatios, el mánager es juez y parte a propósito porque es el mejor conflicto que da
-el diseño, y abusar tiene que salir caro por dentro del juego (moral, salidas, reputación) y no por
-una regla que lo prohíba. Y una restricción práctica que condiciona todo: **un mánager no puede tener
-un segundo trabajo**, así que las decisiones tienen que ser políticas y no órdenes manuales diarias.
-
-**Qué leer:** G2 entero en `docs/epics.md`, `packages/db/src/teamControl.ts`, `contracts.ts`,
-`callups.ts`, `teamPlan.ts`, `raceOrders.ts`, y `docs/diseno/mapa-equipo-ordenes-final.md`.
-
----
-
-## E5 · La economía del juego
-
-**Fichero:** `docs/economia.md` · **Tamaño esperado:** grande
-
-Que el dinero signifique algo, en sus dos mitades. La del corredor: que el salario sirva para algo
-más que aparecer en una pantalla, con la estructura de gastos personales que ya existe a medias en
-`economy.ts` (viajes, vivienda, material) y las mejoras de mantenimiento que el SPEC §9 describe y
-nadie ha construido. Y la del equipo, que es la que el dueño señaló como principal: **patrocinadores
-con objetivos**, ingresos por resultados y por visibilidad, el presupuesto de una temporada con todos
-sus gastos, y los premios en metálico, que por costumbre del oficio van al equipo y se reparten con
-toda la estructura, así que repartir mal un bote es un conflicto de vestuario y no solo una
-transferencia. Tiene que resolver también la publicidad y la imagen, que es donde está la mecánica
-buena: el equipo vende con exclusividad por categoría, el corredor puede firmar por su cuenta en las
-categorías que el equipo no pisa, y una estrella es a la vez lo que te trae patrocinio y lo que te
-complica el vestuario. Dos avisos: esto es economía INTERNA y no tiene nada que ver con cobrar dinero
-real, y cualquier mecanismo de transferencia entre jugadores (contratos, cláusulas, primas) es un
-vehículo de fraude, así que este documento y E6 tienen que leerse el uno al otro.
-
-**Qué leer:** SPEC §7.2 y §9, `packages/db/src/economy.ts` y `contracts.ts`, G2.5 a G2.8 en
-`epics.md`, y la tabla `txn_kind` del esquema.
 
 ---
 
@@ -170,30 +239,63 @@ respuesta que la ley europea exige en cuanto haya contenido escrito por usuarios
 
 ---
 
-## E7 · La cuenta y el contacto
+## E7 · La economía del juego
 
-**Fichero:** `docs/cuenta.md` · **Tamaño esperado:** mediano, y la mitad es ejecución
+**Fichero:** `docs/economia.md` · **Tamaño esperado:** grande
 
-El agujero más feo del producto ahora mismo, porque **hoy una contraseña perdida es un corredor
-perdido**: `better-auth` corre con correo y contraseña sin enviar un solo correo, no hay recuperación,
-nadie verifica que la dirección sea suya y el cambio de correo desde ajustes se aplica sin confirmar
-el nuevo ni avisar al viejo, que es el camino clásico para secuestrar una cuenta. El documento cubre
-el ciclo entero de la identidad (registro con **fecha de nacimiento**, que hoy no se pide y hace falta
-para la edad mínima de 16, verificación, recuperación, cambio de correo, sesiones, límites de intento)
-y su continuación natural, que son **las notificaciones**: qué se avisa, por dónde, con qué baja, y
-sobre todo el **modo ausencia**, porque con cuatro días de juego por día real un juego sin ausencia
-castiga tener vida. Dos decisiones de infraestructura van dentro y no se saltan: separar el correo
-TRANSACCIONAL del de NOTIFICACIÓN en subdominios distintos desde el primer día (las quejas de spam de
-quien se cansó del juego degradarían la entrega de la recuperación de contraseña, que es el correo que
-menos se puede permitir caer), y calentar el dominio de envío antes del lanzamiento en vez de
-estrenarlo con mil registros de golpe.
+Que el dinero signifique algo, en sus dos mitades. La del corredor: que el salario sirva para algo
+más que aparecer en una pantalla, con la estructura de gastos personales que ya existe a medias en
+`economy.ts` (viajes, vivienda, material) y las mejoras de mantenimiento que el SPEC §9 describe y
+nadie ha construido. Y la del equipo, que es la que el dueño señaló como principal: **patrocinadores
+con objetivos**, ingresos por resultados y por visibilidad, el presupuesto de una temporada con todos
+sus gastos, y los premios en metálico, que por costumbre del oficio van al equipo y se reparten con
+toda la estructura, así que repartir mal un bote es un conflicto de vestuario y no solo una
+transferencia. Tiene que resolver también la publicidad y la imagen, que es donde está la mecánica
+buena: el equipo vende con exclusividad por categoría, el corredor puede firmar por su cuenta en las
+categorías que el equipo no pisa, y una estrella es a la vez lo que te trae patrocinio y lo que te
+complica el vestuario. Dos avisos: esto es economía INTERNA y no tiene nada que ver con cobrar dinero
+real, y cualquier mecanismo de transferencia entre jugadores (contratos, cláusulas, primas) es un
+vehículo de fraude, así que este documento y E6 tienen que leerse el uno al otro.
 
-**Qué leer:** `apps/api/src/auth.ts`, `apps/web/src/pages/Register.tsx`, `Login.tsx` y `Account.tsx`,
-G11 en `epics.md`, y la tabla `users`.
+**Y una sección final que cierra el único hueco de dinero real que tiene el proyecto:** la cuenta
+premium, que es la llave del mando de un equipo (`users.premium` y `teamControl.ts`) y que algún día
+será comprable. No es una economía, es **un solo producto**, y por eso vive aquí como apartado y no
+como épica propia: qué incluye exactamente, qué NO incluye nunca (rendimiento deportivo, y esa
+frontera no admite una sola excepción porque la primera la cita todo el mundo), cómo se cobra, qué
+pasa con los impuestos y los reembolsos, y qué se le debe a quien pagó si el mundo cambia. Con dos
+reglas ya decididas y que el documento solo tiene que respetar: **premium se regala por invitación
+hasta que el juego esté acabado**, y **no se cobra un euro antes del reset**, porque cobrar por una
+cuenta y luego borrar el mundo que esa cuenta habitaba es el peor estreno posible.
+
+**Qué leer:** SPEC §7.2 y §9, `packages/db/src/economy.ts` y `contracts.ts`, G2.5 a G2.8 en
+`epics.md`, y la tabla `txn_kind` del esquema.
 
 ---
 
-## E8 · El multiidioma
+## E8 · El juego entre personas
+
+**Fichero:** `docs/personas.md` · **Tamaño esperado:** el más grande de todos
+
+El mánager humano y todo lo que arrastra, que `epics.md` ya desglosó en quince componentes bajo G2 y
+que **no se puede partir en tres encargos sin que se noten las costuras**: un mánager sin canal de
+comunicación es un tirano mudo, un canal sin nada que negociar es un chat vacío, y lo que se negocia
+es el mando y el dinero. Cubre la plantilla (jerarquía y liderazgos, convocatorias y carga de
+trabajo, promesas y expectativas, disciplina), las personas (moral con motivos humanos, relaciones
+entre corredores, los canales de comunicación que el dueño pidió en G7) y las dos caras del rol: la
+silla del mánager, que también debe responder ante alguien, y **ser mandado**, que es el componente
+que solo existe porque aquí el jugador es un ciclista y no un director. El modelo ya está decidido y
+el documento parte de él: todo jugador es un CICLISTA, unos pocos son ADEMÁS mánager, pagar da
+autoridad y nunca vatios, el mánager es juez y parte a propósito porque es el mejor conflicto que da
+el diseño, y abusar tiene que salir caro por dentro del juego (moral, salidas, reputación) y no por
+una regla que lo prohíba. Y una restricción práctica que condiciona todo: **un mánager no puede tener
+un segundo trabajo**, así que las decisiones tienen que ser políticas y no órdenes manuales diarias.
+
+**Qué leer:** G2 entero en `docs/epics.md`, `packages/db/src/teamControl.ts`, `contracts.ts`,
+`callups.ts`, `teamPlan.ts`, `raceOrders.ts`, y `docs/diseno/mapa-equipo-ordenes-final.md`.
+
+---
+
+## E9 · El multiidioma
 
 **Fichero:** `docs/idiomas.md` · **Tamaño esperado:** mediano
 
@@ -216,7 +318,7 @@ chino, condicionado a comprobar antes que el juego se puede jugar desde China co
 
 ---
 
-## E9 · La vida del corredor
+## E10 · La vida del corredor
 
 **Fichero:** `docs/vida-corredor.md` · **Tamaño esperado:** mediano
 
@@ -238,7 +340,7 @@ de prestigio) y cómo se sugiere y se dignifica la segunda carrera deportiva.
 
 ---
 
-## E10 · Los recorridos y el calendario
+## E11 · Los recorridos y el calendario
 
 **Fichero:** `docs/recorridos.md` · **Tamaño esperado:** grande, y es más ingeniería que diseño
 
@@ -260,40 +362,40 @@ construidos.
 
 ---
 
-## E11 · La transparencia del motor
+## Cobertura: los ocho puntos originales, uno por uno
 
-**Fichero:** `docs/transparencia.md` · **Tamaño esperado:** pequeño, y es el mejor por hora invertida
+La lista de la que salió todo esto eran ocho puntos del dueño. Ninguno se ha perdido, y tres se
+reparten entre dos épicas porque son dos cosas distintas:
 
-El más barato de los once y el que más confianza compra. Dos mecanismos. El primero son las **notas
-de versión para jugadores**: `docs/balance.md` lleva más de diez mil líneas de cambios del motor y el
-jugador no ha visto ni uno, y este juego recalibra su física entre versiones, así que desde fuera un
-corredor que subía bien y de pronto sube peor no se lee como recalibración sino como «el juego está
-roto» o «me han perjudicado». Con un mundo único y permanente no hay borrón y cuenta nueva que lo
-arregle, así que hay que contarlo, en su idioma y en términos de juego. El segundo es **«por qué
-perdí»**, que sale casi gratis por cómo está construido el motor: es puro y determinista, el azar
-viene de un RNG sembrado y las etapas se guardan con snapshot sellado (`checkReplay` ya existe). Eso
-permite ofrecer al jugador la explicación verificable de su carrera: qué orden dio, qué hizo su
-corredor, en qué kilómetro se descolgó y por qué. Es la mejor defensa contra la acusación de que el
-juego hace lo que quiere, y es la misma pieza que hace falta para que el informe de una carrera sirva
-para corregir el plan de la siguiente. El documento tiene que fijar además **la regla de cuándo
-entran los cambios de motor**: en cualquier momento o solo en el rollover.
-
-**Qué leer:** `docs/balance.md` (la cabecera y las últimas versiones), `checkReplay` en
-`packages/engine`, `apps/api/src/routes/admin.ts` en la parte del snapshot, y §4.4 de `agenda.md`.
+| Punto original                                  | Dónde vive ahora                                                                                                                                                                                            |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Mánagers humanos**                            | **E8** entero. La llave de acceso (premium) se define en **E7**, y las reglas contra el abuso de autoridad en **E6**                                                                                        |
+| **Administradores y moderadores**               | **E6**, las dos mitades: roles reales con auditoría frente al token compartido de hoy, y el circuito de denuncia y respuesta                                                                                |
+| **Confirmación de correos**                     | **E3**, con todo el ciclo de la cuenta: verificar, recuperar, cambiar de correo y la fecha de nacimiento que hoy no se pide                                                                                 |
+| **Interacciones sociales**                      | **E8**, porque los canales son la mecánica con la que se negocia y no un chat aparte. La decisión de comunidad EXTERNA está abajo, en las tareas                                                            |
+| **Economía real**                               | **E7**. La economía interna (salario que sirva, dinero de los equipos, patrocinio, premios, gastos) es el cuerpo del documento; el dinero real es su sección final, que es un solo producto                 |
+| **Multiidioma**                                 | **E9**                                                                                                                                                                                                      |
+| **News + Race Radio + journal, y sin destripe** | **E1** entero, con la retransmisión de televisión como norte y el modo sin destripe por defecto                                                                                                             |
+| **Rediseño general de la experiencia**          | **E2** (cómo se ve: tipografía, color, densidad, componentes, móvil, accesibilidad) y **E5** (dónde vive cada cosa: arquitectura de información v4). Son dos oficios distintos y por eso son dos documentos |
+| **Tutoriales y ayuda**                          | **E5**, junto con los primeros treinta días, que es el problema del que los tutoriales son media solución                                                                                                   |
 
 ---
 
-## El orden en que yo los encargaría
+## El orden ya está en los códigos
 
-| Turno | Encargos     | Por qué ahí                                                                                                        |
-| ----- | ------------ | ------------------------------------------------------------------------------------------------------------------ |
-| 1.º   | **E1 y E2**  | Van emparejados y no dependen de nada. Es lo que hace que todo el trabajo del motor por fin se NOTE                |
-| 2.º   | **E7 y E11** | Los dos más baratos y los dos que más deuda cierran: la cuenta que hoy se puede perder, y la confianza en el motor |
-| 3.º   | **E3**       | Después de E1, porque si el journal cambia de naturaleza cambia medio menú                                         |
-| 4.º   | **E6 y E5**  | Integridad antes o a la vez que el dinero, y los dos antes de abrir el mando                                       |
-| 5.º   | **E4**       | El grande. Cuando haya portero en la puerta                                                                        |
-| 6.º   | **E8 y E9**  | Idiomas cuando los datos de registro digan cuáles, y la vida del corredor cuando E4 haya definido el vestuario     |
-| 7.º   | **E10**      | Contenido, que mejora el mundo pero no cambia lo que el juego es                                                   |
+Ya no hace falta una tabla de turnos: **E1 es el primero y E11 el último**. Lo que sigue valiendo la
+pena recordar es por qué están emparejados los que lo están, porque encargar uno sin el otro
+desperdicia la mitad del trabajo:
+
+- **E1 con E2.** Repintar pantallas sin saber qué cuentan es maquillaje, y rediseñar la información
+  para volver a pintarla igual de fea es trabajo perdido.
+- **E3 con E4.** Los dos más baratos y los dos que más deuda cierran: la cuenta que hoy se puede
+  perder para siempre, y la confianza en un motor que cambia sin avisar.
+- **E5 después de E1**, porque si el journal cambia de naturaleza cambia a dónde lleva medio menú.
+- **E6 antes o a la vez que E7**, y los dos antes de **E8**: integridad y reglas del dinero antes de
+  abrir el mando a cualquiera.
+- **E9 y E10** cuando los datos de registro digan qué idiomas y cuando E8 haya definido el vestuario.
+- **E11** al final: mejora mucho el mundo y no cambia lo que el juego es.
 
 ---
 
@@ -305,7 +407,10 @@ Son tareas, y varias tienen fecha límite en el reset:
 - **Verificar la marca** en EUIPO y USPTO, que SPEC §8 exige antes del lanzamiento.
 - **Escribir las condiciones de uso y la política de privacidad**, con la edad mínima de 16 y, para
   la beta, el aviso explícito de que el motor va a cambiar.
-- **Guardar país y `Accept-Language` en el registro**, que cuesta una tarde y decide E8 con datos.
+- **Guardar país y `Accept-Language` en el registro**, que cuesta una tarde y decide E9 con datos.
 - **Analítica de producto**: cuántos se registran, cuántos crean corredor, cuántos vuelven al
-  séptimo día. Sin esto, E3 se diseña a ciegas.
+  séptimo día. Sin esto, E5 se diseña a ciegas.
+- **Decidir la comunidad externa**: foro propio (coste de moderación permanente y obligaciones
+  legales, a cambio de contexto de juego) o Discord desde el primer día. Mi recomendación es fuera, y
+  dentro del juego solo lo que necesita contexto de juego, que es lo que E8 diseña.
 - **La lista de «lo que solo se puede cambiar en el reset»**, abierta desde hoy.

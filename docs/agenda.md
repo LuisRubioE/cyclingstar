@@ -856,3 +856,9 @@ Tres defectos de comprensión sobre un motor que está bien, decisiones de dise�
 documentadas, y una pantalla que aun así no se entiende. Ninguno de los tres se arregla con más
 motor. Los tres son **exactamente** lo que las oleadas 1 y 2 del catálogo existen para arreglar, y
 por eso la capa de lectura va primera.
+
+**Dónde se arreglan:** este cuadro es el **examen práctico de E2** (el sistema visual) en
+[docs/encargos.md](./encargos.md), por decisión del dueño y con buen criterio: una pantalla ya
+implementada, con el motor correcto debajo, que aun así no se entiende, es el mejor banco de pruebas
+que puede tener un sistema visual. El punto de la precedencia invisible se solapa con E5, y eso está
+bien: de E2 sale la solución visual y de E5 dónde vive la explicación.
