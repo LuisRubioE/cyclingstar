@@ -607,6 +607,9 @@ Son tareas, y varias tienen fecha límite en el reset:
 - **Empezar a registrar la última visita** (`last_seen`). Hoy no existe, y es un dato que **no se
   reconstruye hacia atrás**: el día que se quiera aplicar la regla del mes hará falta un mes de
   historial, que solo existe si se empezó a guardar un mes antes. No depende de ningún diseño.
+- **Captar los primeros probadores**: dónde publicar, con qué mensaje y en qué orden está en
+  [docs/captacion.md](./captacion.md). La única dependencia es que la llamada lleve a una lista de
+  espera y no al registro, porque hoy no hay recuperación de contraseña (E4).
 - **La comunidad externa NO hay que decidirla todavía.** Durante la beta por invitación, un grupo de
   WhatsApp está perfectamente bien: son pocos, se conocen y el dueño está dentro. La decisión pesa el
   día que la comunidad la formen desconocidos, y entonces WhatsApp es mala opción por tres razones
