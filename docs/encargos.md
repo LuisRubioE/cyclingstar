@@ -88,6 +88,12 @@ una etapa a ritmo es barato: los datos están, lo que falta es no enseñarlos to
 arregla un defecto de esquema: las noticias se guardan ya redactadas (`news` guarda `kind` y `text`,
 sin `seed` ni `data`), lo que las hace intraducibles y no re-renderizables, al revés que la crónica.
 
+**Y un requisito concreto del dueño que es puro lenguaje de televisión: cuando se escapan cinco, que
+se vean sus maillots.** No es adorno: es la diferencia entre «se escapan cinco» y «se escapa el
+campeón de Italia con cuatro más», que es una carrera distinta. Necesita las cinco categorías
+resueltas (los tres de clasificación que ya existen, el de campeón que hay que crear en E2 y E11, y
+el del equipo), y es exactamente el rótulo con el que la televisión presenta a cada corredor.
+
 **Qué leer:** `apps/api/src/chronicle.ts` y `raceRadio.ts`, `apps/web/src/domain/narration.ts`,
 `stageJournal.ts` y `newsFeed.ts`, `apps/web/src/pages/StageReplay.tsx` y `News.tsx`,
 `packages/engine/src/world/news.ts`, la tabla `news` y `stages.radio` en `packages/db/src/schema.ts`.
@@ -109,6 +115,22 @@ equipos se distinguen por **color de maillot**, que es el peor identificador pos
 daltónico, así que el patrón SVG paramétrico tiene que llevar forma además de color. Va emparejado
 con E1 a propósito: repintar pantallas sin saber qué cuentan es maquillaje, y rediseñar la
 información para volver a pintarla igual de fea es trabajo perdido.
+
+**Los maillots, que son tres encargos en uno y el más visible del documento.** Primero, **el maillot
+de campeón**, que hoy no existe: `jerseys.ts` define exactamente tres (`gc`, `points`, `kom`) y los
+tres son baratos porque son una consulta sobre la clasificación de hoy. El de campeón nacional o
+mundial es de otra naturaleza, se lleva **un año entero y en todas las carreras**, o sea que es un
+título persistido y no una consulta, con sus reglas de disciplina (el campeón de contrarreloj lleva el
+suyo en las cronos y no en las carreras en línea). Y ojo al choque, que es literal: **`SPEC.md` §8
+prohíbe imitar «el arcoíris del campeón del mundo»**, que es el ejemplo que pone por su nombre. O sea
+que hay que inventarle a este juego su propia señal de campeón, reconocible de un vistazo y que no sea
+el arcoíris. Es de las pocas decisiones de identidad que el jugador va a mirar mil veces. Segundo,
+**el maillot del equipo, que hoy nadie diseña**: `teams.jersey_seed` es una semilla y
+`TeamIdentity.tsx` solo pinta lo que salga de ella, así que el mánager no elige nada. Hace falta un
+editor y un vocabulario visual acotado (formas, franjas, colores) que produzca maillots distinguibles
+entre sí y legibles a tamaño pequeño, que es el tamaño al que se van a ver. Tercero, que ese
+vocabulario sirva también para **lo que un patrocinador compra** cuando E7 le venda sitio en la
+camiseta.
 
 **Y una decisión ya tomada que este documento tiene que ejecutar: la aplicación INSTALABLE.** No hay
 app nativa de Android ni de iOS en el plan (el razonamiento está en §4.15.1 de `agenda.md`: un solo
@@ -248,6 +270,16 @@ el mundo entero, y revocar a una persona obliga a rotar el token para todas. Hac
 permisos, **registro de auditoría de toda acción administrativa**, y el circuito de denuncia y
 respuesta que la ley europea exige en cuanto haya contenido escrito por usuarios.
 
+**Y el catálogo de herramientas que el dueño pidió explícitamente**, que es la parte más mecánica y
+la que más se agradece el día que hace falta: suspender y expulsar con motivo y duración, prohibir y
+revertir nombres de equipo y de corredor (sobre la lista de bloqueo de `blocklist.ts` y la pantalla
+`AdminNames.tsx`, que son el punto de partida), forzar el cambio de un nombre ya aceptado, una cola de
+denuncias con su respuesta, la ficha completa de una cuenta (sesiones, corredores, equipo, historial
+de sanciones), marcar cuentas sospechosas de ser la misma persona, y operar el mundo. **Con el orden
+puesto donde toca**: primero los roles y el registro de auditoría, después las herramientas. Cuantas
+más cosas pueda hacer el token compartido de hoy, peor es que sea uno solo y que no deje rastro de
+quién lo usó.
+
 **Y una tercera mitad que apareció comprobando el esquema: la POBLACIÓN del mundo.** No existe ni un
 solo rastro de actividad en la base de datos (ni `last_seen`, ni `last_login`, ni equivalente en
 `users` ni en `riders`), así que **el mundo no sabe quién lo ha abandonado**. En un mundo único y
@@ -279,6 +311,14 @@ categorías que el equipo no pisa, y una estrella es a la vez lo que te trae pat
 complica el vestuario. Dos avisos: esto es economía INTERNA y no tiene nada que ver con cobrar dinero
 real, y cualquier mecanismo de transferencia entre jugadores (contratos, cláusulas, primas) es un
 vehículo de fraude, así que este documento y E6 tienen que leerse el uno al otro.
+
+**Y una mecánica concreta que el dueño propuso y que es de las mejores del documento: el
+patrocinador compra el maillot.** Que pueda pagar por imponer su color o por llevar su logotipo en el
+sitio bueno convierte la identidad visual del equipo en una **decisión económica con coste real**:
+cobras más y dejas de parecerte a ti mismo. Es exactamente el conflicto que vive un equipo de verdad,
+no hace falta inventar nada para justificarlo, y engancha con G2.7 y G2.8 sin forzar. El vocabulario
+visual que hace eso posible lo define E2; lo que aquí se decide es cuánto paga, qué compra y qué pierde
+el equipo a cambio.
 
 **Y una sección final que cierra el único hueco de dinero real que tiene el proyecto:** la cuenta
 premium, que es la llave del mando de un equipo (`users.premium` y `teamControl.ts`) y que algún día
@@ -376,6 +416,21 @@ delicado de la vida del jugador porque se le acaba el personaje al que dedicó t
 que diseñar la ceremonia de fin de temporada, qué permanece (palmarés, salón de la fama, alguna forma
 de prestigio) y cómo se sugiere y se dignifica la segunda carrera deportiva.
 
+**Y una pregunta de fondo que el dueño planteó y que el motor ya tenía medio abierta: el GREGARIO no
+debería ser un arquetipo de nacimiento.** Nadie es ciclista para ser gregario; uno acaba siéndolo por
+no llegar a líder. Lo bueno es que el jugador **ya no puede elegirlo** (`VOCATIONS` son cinco y
+`gregario` no está entre ellas), y lo malo es que `gregario` vive a la vez en dos vocabularios: es uno
+de los ocho `RiderArchetype` (lo que eres de nacimiento, con penalización de techo en todo) y uno de
+los siete `StageRole` (lo que haces hoy). Sobra en el primero. Y no es teoría: el comentario del
+arquetipo en `rider.ts` deja escrito que el requisito de «que tampoco se quede nadie sin pasar de 4 en
+nada» **choca de frente con un arquetipo que por definición no destaca en nada**, que los gregarios son
+el 26-32 % del pelotón, que hubo que subirles el techo de RES de −4 a −2 como parche, y que la palanca
+de verdad sería «RES a 0 y bajar la cuota de gregarios, y ésa es otra decisión». Es exactamente esta
+decisión. Si el gregario deja de nacer gregario, ese tercio del pelotón nace con una vocación de verdad
+y acaba de gregario **por nivel y no por destino**, y el requisito deja de chocar con nada. La
+ejecución toca el motor, o sea la otra línea, así que conviene que la decisión esté escrita antes de
+que esa línea termine.
+
 **Qué leer:** N3 y N4 en `epics.md`, G10 y su nota sobre los NPC sin juventud, `CreateRider.tsx`,
 `packages/db/src/rollover.ts` y `techosPorEdad.test.ts`, y `packages/engine` en lo que toca a `eff0`.
 
@@ -397,6 +452,14 @@ contenido de calendario, una de las piezas más baratas en emoción por hora de 
 disponibles: **las selecciones nacionales**, o sea que a un jugador le convoque su país para el
 Mundial o para su campeonato nacional, con los países, las páginas de país y la detección por IP ya
 construidos.
+
+**Y una comprobación que hay que hacer antes de nada: no encontré el Campeonato del Mundo en el
+calendario.** `SPEC.md` §8 lo promete en septiembre y lo que aparece en `routes/calendar.ts` son los
+campeonatos nacionales (`championshipCountry`, clase `NC`). Puede que se me escapara, pero conviene
+mirarlo, porque **el maillot de campeón del mundo no puede existir sin la carrera que lo reparte**. Y
+la contrapartida es la buena noticia: los campeonatos nacionales **sí se corren**, o sea que cada
+temporada hay un campeón de Italia y el juego lo olvida al día siguiente. Recordarlo durante un año y
+enseñarlo en su maillot es de lo más barato que queda en toda la agenda.
 
 **Qué leer:** G5 y G6 en `epics.md`, el generador de recorridos en `packages/engine`,
 `docs/fuentes-recorridos.md`, `docs/inventario-recorridos.md`, SPEC §8.

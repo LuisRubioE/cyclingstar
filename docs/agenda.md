@@ -611,6 +611,113 @@ guardan fechados desde la v48 y no se borran nunca), y no hay por dónde leerlos
 No arregla nada roto, así que no adelanta a nadie en la cola, pero es de lo que más profundidad da por
 hora invertida y es lo que hace que un mundo parezca un mundo. Entra como **E12**.
 
+### 4.16 Los tres detalles del dueño, que no son tan pequeños
+
+#### 4.16.1 Maillots: el juego tiene tres y le faltan dos, y una choca con el SPEC
+
+El dueño pide tres cosas distintas que conviene separar, porque una es barata, otra es una mecánica
+buena y la tercera tiene un problema legal que él mismo escribió.
+
+**Lo que hay hoy, comprobado.** `packages/shared/src/jerseys.ts` define exactamente **tres** maillots
+(`JerseyKind = 'gc' | 'points' | 'kom'`), y el propio fichero explica por qué son baratos: «no hay
+dato nuevo que guardar: quién lleva cada maillot es una CONSULTA sobre las clasificaciones que ya
+existen». Eso es cierto para los tres y **es justo lo que NO vale para los que faltan**.
+
+**El maillot de campeón es de otra naturaleza y por eso es trabajo de verdad.** Un campeón nacional o
+mundial lleva su maillot **durante un año entero y en todas las carreras**, o sea que no es una
+consulta sobre la clasificación de la carrera de hoy: es un **título persistido** que hay que guardar,
+caducar al año y consultar en cualquier carrera. Tabla nueva, no función pura. Y con sus reglas de
+disciplina, que el diseño tiene que fijar: el campeón del mundo de contrarreloj lleva el suyo en las
+cronos y no en las carreras en línea, y lo mismo con los nacionales.
+
+**Y la buena noticia: el campeón nacional YA EXISTE y el juego lo olvida.** El calendario corre
+campeonatos nacionales de verdad (`championshipCountry` en `routes/calendar.ts`, clase de carrera
+`NC`), así que cada temporada hay un campeón de Italia y el juego no se acuerda de él al día
+siguiente. Convertir eso en un maillot que se lleva un año es de lo más barato que queda en la lista.
+
+**Lo que NO encontré: el Campeonato del Mundo.** `SPEC.md` §8 lo promete («Campeonato del Mundo en
+septiembre, selecciones NPC en v1») y en el calendario solo aparecen los nacionales. Puede que se me
+haya escapado, pero conviene comprobarlo, porque el maillot arcoíris no puede existir sin la carrera
+que lo reparte. Va con §4.10 (selecciones nacionales) en E11.
+
+**El choque con el SPEC, y es literal.** `SPEC.md` §8 prohíbe «imitar logotipos, tipografías o
+identidades visuales de las carreras reales», y enumera tres ejemplos: «el amarillo con serifa
+característica, el rosa de la corsa, **el arcoíris del campeón del mundo**». O sea que el maillot que
+el dueño pide por su nombre es exactamente uno de los tres que su propia especificación prohíbe
+copiar. Esto **no mata la idea**, la obliga a ser mejor: hay que inventarle al campeón del mundo de
+este juego su propia señal visual, reconocible de un vistazo y que no sea el arcoíris. Es trabajo de
+E2 y es de las pocas decisiones de identidad que el jugador va a mirar mil veces.
+
+**El maillot del equipo: hoy nadie lo diseña, se sortea.** `teams.jersey_seed` es una SEMILLA, y
+`TeamIdentity.tsx` solo pinta `<Jersey seed={...} />`. O sea que el maillot de un equipo es
+procedural y su dueño no elige nada. Que un mánager pueda diseñar el suyo es una de las cosas que
+más apego genera en estos juegos y es trabajo de E2 (el editor y el vocabulario visual) y de E8 (quién
+puede tocarlo y con qué moderación, porque un maillot es contenido de usuario como un nombre).
+
+**Y ceder el maillot a un patrocinador por dinero es la mejor de las tres ideas.** Que un
+patrocinador pague por imponer su color o por llevar su logotipo en el sitio bueno convierte la
+identidad visual en una **decisión económica con coste real**: cobras más y dejas de parecerte a ti
+mismo. Eso es exactamente el conflicto que vive un equipo de verdad, es gratis de justificar y
+engancha con G2.7 y G2.8, que ya están en E7. Va allí, con la parte visual en E2.
+
+**Y la petición que lo une todo, que es de E1:** cuando se escapan cinco, que se vean sus maillots.
+Es literalmente lo que hace la televisión con el rótulo de cada corredor, es la diferencia entre «se
+escapan cinco» y «se escapa el campeón de Italia con cuatro más», y necesita las cinco categorías
+resueltas (los tres de clasificación, el de campeón y el del equipo).
+
+#### 4.16.2 Herramientas de administración: sí, y con una advertencia
+
+Pedido: herramientas buenas y completas de administración, baneo, prohibir nombres de equipos. Va
+entero en **E6**, y el documento tiene que cubrir al menos: suspender y expulsar cuentas con motivo y
+duración, prohibir y revertir nombres (de equipo y de corredor, con la lista de bloqueo que ya existe
+en `blocklist.ts` y la pantalla `AdminNames.tsx` como punto de partida), forzar el cambio de un
+nombre ya aceptado, atender denuncias con su cola y su respuesta, ver la ficha completa de una cuenta
+(sesiones, corredores, equipo, historial de sanciones), fusionar o marcar cuentas sospechosas de ser
+la misma persona, y operar el mundo (tick manual, salud, inspección de una etapa).
+
+**La advertencia:** todo eso hoy está detrás de **un único `ADMIN_TOKEN` compartido por cabecera**, y
+la columna `users.is_admin` no se lee en ninguna consulta del repositorio. Construir más herramientas
+sobre ese cimiento multiplica el riesgo en vez del control: cuantas más cosas pueda hacer el token,
+peor es que sea uno solo, que no deje rastro de quién lo usó y que revocárselo a una persona obligue a
+cambiárselo a todas. **Primero los roles y el registro de auditoría, y encima las herramientas.** Es
+el mismo orden que el resto de E6 y por la misma razón.
+
+#### 4.16.3 El gregario: el dueño tiene razón, y el código ya lo sabía a medias
+
+La duda era si tiene sentido que alguien elija ser gregario al crear su ciclista, «porque
+difícilmente alguien es ciclista PARA ser gregario: otra cosa es que acabe siéndolo porque no llegó a
+ser el líder». **La intuición es correcta y además el código ya está medio de acuerdo**, lo que hace
+la pregunta más interesante y no menos.
+
+**Lo que ya está bien: el jugador NO puede elegirlo.** `VOCATIONS` en `packages/shared/src/rider.ts`
+son cinco (`escalada`, `velocidad`, `clasicas`, `crono`, `fondo`) y `gregario` no está entre ellas.
+`CreateRider.tsx` ofrece esas cinco. O sea que el problema que el dueño teme no existe en la pantalla
+de creación.
+
+**Lo que está mal es más profundo: `gregario` existe en DOS vocabularios a la vez.** Es uno de los
+ocho `RiderArchetype` (lo que ERES, de nacimiento, con sus penalizaciones de techo) y es también uno
+de los siete `StageRole` (lo que HACES hoy, que es lo que el dueño describe como destino y no como
+vocación). Tener la misma palabra en los dos sitios es lo que produce la confusión, y **sobra en el
+primero**: nadie nace gregario, uno acaba siéndolo.
+
+**Y esto no es teoría, el motor ya está pagando el precio y lo tiene escrito.** El comentario del
+arquetipo `gregario` en `rider.ts` dice, con sus números: el requisito del dueño de que «tampoco se
+quede nadie sin pasar de 4 en nada» **choca de frente con un arquetipo que por definición no destaca
+en nada**, los gregarios son el 26-32 % del pelotón, y hubo que subirles el mejor techo de −4 a −2
+para que llegasen a cuatro estrellas en RES el 60 % de las veces en vez del 53 %. El propio comentario
+reconoce que eso **no cierra el requisito** y que la palanca de verdad sería «RES a 0 y bajar la cuota
+de gregarios, y ésa es otra decisión».
+
+**Pues ésa es exactamente la decisión que el dueño acaba de tomar por intuición.** Si el gregario deja
+de ser un arquetipo de nacimiento y pasa a ser solo un ROL, entonces el 26-32 % del pelotón nace con
+una vocación de verdad (escalador flojo, rodador del montón, esprínter que no gana) y acaba de
+gregario **por nivel y no por destino**, que es lo que pasa en la carretera. El requisito de las
+cuatro estrellas deja de chocar con nada, porque ya no hay nadie condenado a no destacar en nada.
+
+**Dónde va:** el diseño en **E10** (la vida del corredor), porque es la pregunta de qué es un corredor
+y cómo cambia lo que es a lo largo de su carrera. La ejecución toca el motor, o sea la otra línea, y
+por eso conviene que la decisión esté escrita antes de que esa línea termine.
+
 ## 5. El catálogo de diseños
 
 Veinte documentos. Los códigos son nuevos (`D`) para no chocar con los `G` y `N` de `epics.md`. El
