@@ -483,18 +483,6 @@ ciclismo pone sus alianzas: entre rivales. El segundo añadido: **la sucesión d
 desaparece sin avisar**, que es como se va la gente de verdad de los juegos, y que G2.14 no cubre
 porque solo contempla la salida voluntaria.
 
-**Y un requisito que salió de preguntarle al creador de Footstar y que no estaba en ninguna parte:
-que los humanos se AGRUPEN.** Su respuesta sobre el arranque: «intentamos diseñar un sistema que
-permitiese crecer por la pirámide de divisiones, haciendo que el juego fuese jugable incluso con solo
-dos equipos humanos en un campeonato; si era el caso, los jugadores acabarían juntándose en esos dos
-equipos». Aquí el problema es peor que allí, porque **un jugador es un ciclista suelto en un mundo de
-1.600 corredores y 57 equipos**: treinta probadores repartidos uno por equipo no se ven nunca, corren
-carreras distintas y no tienen con quién hablar, y eso no se siente como un mundo vivo sino como
-jugar solo rodeado de bots. Hay que elegir palanca (que el mercado prefiera a los humanos, que los
-primeros contratos salgan de unos pocos equipos, que compartan calendario) y engancha con G8 y G9,
-que son el mismo asunto: cómo se comporta un mundo grande con poca gente dentro. Detalle en §4.22.1
-de `agenda.md`.
-
 **Y el CUERPO TÉCNICO (G2.9), que existe a medias y en el peor estado posible: como rasgo de
 nacimiento.** `teams.staff_level` está en el esquema con un comentario que dice «es un NIVEL que se
 compra», multiplica la ganancia de entrenamiento (`kStaff = min(1,10 · 1 + 0,02 · nivel)`) y **lo

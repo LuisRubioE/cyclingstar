@@ -3,6 +3,15 @@
 Estado: **plan operativo.** No es diseño de producto, es qué publicar, dónde y cuándo para conseguir
 la primera base de probadores de la beta por invitación.
 
+**Segunda regla, y ordena el ORDEN: la primera cohorte se recluta por PAÍS, no por idioma.** El juego
+ya agrupa a los humanos por geografía y lo hace solo: las ofertas de contrato van por anillos (mismo
+país, mismo continente, resto), el campeonato nacional mete a los humanos del país antes que a los
+NPC, y las continentales son regionales. Ese mecanismo junta a treinta portugueses y **separa** a un
+belga, un danés, un británico y un colombiano, que corren cada uno su campeonato solos. Y cuidado con
+confundir idioma con país: el español reparte entre una docena de países y el inglés entre cincuenta.
+Consecuencia práctica: **la lusófona primero** (Footstar es sobre todo Portugal), y las comunidades
+internacionales cuando la población aguante la dispersión.
+
 Regla de fondo que ordena todo lo demás: **no buscamos volumen, buscamos treinta personas que
 vuelvan**. Treinta probadores que entren cuatro veces por semana valen infinitamente más que
 trescientos registros que no vuelven, porque lo que hace falta medir es si el juego engancha, y eso

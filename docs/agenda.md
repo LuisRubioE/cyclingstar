@@ -1135,46 +1135,49 @@ años, así que conviene tratarla como lo que es: **evidencia de alguien que lo 
 razonamiento de alguien que no**. Dos de sus respuestas contradicen recomendaciones mías y las
 reviso abajo.
 
-#### 4.22.1 · La lección grande, y no es la de marketing: que los humanos se AGRUPEN
+#### 4.22.1 · Que los humanos se agrupen: la lección es buena, mi conclusión era falsa
 
 Preguntado por cómo resolvieron el arranque con pocos jugadores, Bruno contesta primero lo evidente
 (lo anunciaron en PManager, que tenía cerca de 20.000 jugadores activos, y de ahí se propagó por
-foros), y después suelta lo que de verdad importa:
+foros), y después dice lo que parecía lo importante:
 
 > «tentámos desenhar um sistema que permitisse um crescimento pela pirâmide das divisões, fazendo com
 > que o jogo fosse jogável, mesmo só com 2 equipas humanas num campeonato. Se fosse o caso, os
 > jogadores acabariam por se juntar nessas duas equipas.»
 
-Eso no es una táctica de captación, es un **requisito de diseño** y no está en ninguna parte de esta
-agenda: **el juego tiene que ser jugable con muy pocos humanos, y los pocos humanos que haya tienen
-que JUNTARSE en vez de dispersarse.**
+**Y yo saqué de ahí una conclusión falsa y el dueño la tumbó con razón.** Escribí que treinta
+probadores repartidos en un mundo de 1.600 corredores y 57 equipos «no se verían nunca». Eso es
+sencillamente mentira, y lo desmiente el propio código en tres sitios:
 
-Y aquí este juego tiene un problema que Footstar no tenía, por su propio modelo. En Footstar un
-jugador es un futbolista que pertenece a un equipo, y un campeonato con dos equipos humanos concentra
-a todo el mundo. **Aquí un jugador es un ciclista suelto en un mundo de 1.600 corredores y 57
-equipos.** Si se apuntan treinta probadores, el reparto natural los deja a uno por equipo, sin verse
-nunca, corriendo carreras distintas y sin nadie con quien hablar. La sensación no sería «un mundo
-vivo»: sería jugar solo acompañado de mil seiscientos bots.
+| Lo que yo dije que faltaba                   | Lo que hace el código hoy                                                                                                                                                      |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Que coincidan en carrera                     | **El campeonato nacional los junta a todos, garantizado.** `calendarRun.ts` mete a los humanos del país ANTES que a los NPC en el cupo                                         |
+| Que fichen por equipos donde ya haya humanos | **Las ofertas ya son geográficas.** `contracts.ts` ordena los equipos que ofertan en tres anillos: mismo país, mismo continente, resto                                         |
+| Que se distinga a un humano de un bot        | **Ya se distingue en pantalla.** `RiderName.tsx` pinta a los humanos en negrita y a los bots en cursiva, en la crónica, en la plantilla, en el equipo y en el salón de la fama |
 
-Eso convierte la concentración en un problema de diseño explícito, con varias palancas posibles y
-ninguna elegida todavía:
+O sea que **la agrupación ya está construida, y el mecanismo es la GEOGRAFÍA**. Un corredor español
+recibe ofertas de equipos españoles antes que de nadie, corre el campeonato de España con todos los
+demás españoles, y las continentales .1 y .2 son regionales por diseño («una carrera americana la
+corren, sobre todo, equipos americanos»).
 
-- **Que el mercado prefiera a los humanos.** Si los equipos con humanos ofertan antes a otros humanos,
-  la concentración ocurre sola y por una regla, sin colocar a nadie a mano.
-- **Un puñado de equipos de entrada.** Que los primeros contratos salgan de unos pocos equipos
-  continentales, para que los novatos coincidan.
-- **Un calendario donde se crucen.** Que los humanos compartan carreras aunque el mundo sea grande.
+**Lo único que sobrevive de mi objeción, y no es de diseño sino de captación.** Si el mecanismo que
+agrupa es el país, entonces **solo agrupa a quien comparte país**, y el mismo mecanismo que junta a
+treinta portugueses separa a un belga, un danés, un británico y un colombiano: cada uno corre su
+campeonato nacional solo, rodeado de bots, y ficha por equipos de su país donde no hay nadie.
 
-Y engancha con lo que ya estaba escrito: **G8** (limpiar bots según llegan humanos) y **G9** (que los
-bots sean peores). Los tres son el mismo asunto: cómo se comporta un mundo grande con pocas personas
-dentro. Va a **E9** con la parte de mercado, y a **E6** con la parte de los primeros treinta días,
-porque es exactamente lo que decide si el primer mes se siente solitario.
+Y eso choca con el orden que propone `docs/captacion.md`, que lleva por delante las comunidades
+internacionales (pcmdaily, Cyclingnews, r/peloton). Esas traen gente excelente **y dispersa**. La
+corrección es concreta:
 
-**Y la parte de captación confirma el plan que ya existe**: anunciarlo donde ya están los jugadores de
-un juego parecido es literalmente lo que hizo Footstar con PManager, y es lo que `docs/captacion.md`
-propone con pcmdaily. Con una diferencia a favor: **ahora hay una puerta abierta**. Bruno ha
-contestado con amabilidad, y pedirle que anuncie el juego a la comunidad de Footstar es la jugada de
-PManager aplicada, y probablemente la acción individual de mayor rendimiento que hay disponible hoy.
+- **La primera cohorte se recluta por PAÍS, no por idioma**, precisamente para que el mecanismo
+  geográfico que ya existe haga su trabajo. Footstar es sobre todo Portugal, o sea un país: agrupa.
+- **Y ojo a la trampa del idioma, que no es lo mismo que el país.** El español no agrupa: reparte
+  entre España, México, Colombia, Argentina y ocho más, cada uno con su campeonato nacional. El
+  inglés reparte entre cincuenta.
+- **Las comunidades internacionales entran después**, cuando la población aguante la dispersión.
+
+Lo que NO hay que tocar, porque ya funciona, es el mecanismo. La lección de Bruno sigue siendo buena;
+lo que estaba mal era mi diagnóstico de que aquí faltaba.
 
 #### 4.22.2 · RECTIFICO: la integridad, más pequeña de lo que yo dije
 
