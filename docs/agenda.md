@@ -20,6 +20,24 @@ habla de ellas, la fuente sigue siendo `epics.md`.
 
 ---
 
+## 0.1 Decisiones del dueño (14 de septiembre de 2026)
+
+Siete preguntas planteadas, siete contestadas. Quedan aquí porque la mitad del documento cambia de
+forma según ellas.
+
+| #   | Pregunta                       | Decisión                                                                                                                                                    |
+| --- | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | ¿Qué es «economía real»?       | **La economía INTERNA.** Que el salario le sirva de algo al corredor y, sobre todo, el dinero de los equipos: patrocinadores, premios y todo tipo de gastos |
+| 2   | ¿Un mundo o varios?            | **Uno y para siempre**, con un **reset** al pasar de pruebas a juego de verdad: se reinicia desde la temporada 1                                            |
+| 3   | ¿Los mánagers se eligen?       | **Cuenta premium.** Primero REGALADA a los mejores probadores, comprable más adelante                                                                       |
+| 4   | ¿Qué idiomas?                  | Abierta a recomendación. Traducción 100 % por Claude. Ver D7                                                                                                |
+| 5   | ¿Edad mínima?                  | Abierta a recomendación. Ver §3.7 y D12                                                                                                                     |
+| 6   | ¿Integridad antes que mánager? | Pendiente de entender el coste. Ver §6.1                                                                                                                    |
+| 7   | ¿Qué le debemos al jugador?    | Pendiente. Ver §4.4, que ahora la plantea con opciones                                                                                                      |
+
+La 2 es la que más mueve, y no como se esperaba: **el reset cambia la naturaleza de la mitad de las
+decisiones irreversibles**, porque las vuelve reversibles exactamente una vez. Eso es la sección 3.
+
 ## 1. La objeción, primero: no conviene diseñarlo todo ahora
 
 Lo pides como «ir preparando los diseños para el resto de cosas», y esa frase esconde un riesgo que
@@ -79,93 +97,149 @@ administración, multiidioma, pagos), y sobran huecos que la sección 4 rellena.
 
 ---
 
-## 3. Lo irreversible: seis decisiones que hay que tomar ahora
+## 3. Lo irreversible, releído después del reset
 
-Ninguna de las seis exige construir nada esta semana. Todas se vuelven caras o imposibles si se
-toman tarde.
+La primera versión de esta sección listaba seis decisiones «que hay que tomar ahora». La respuesta 2
+las reordena entera, y conviene decirlo sin adornos porque **corrige algo que escribí con demasiada
+alarma**.
 
-### 3.1 El esquema de las noticias condena el multiidioma, y es de verdad
+**El reset es un indulto de una sola vez.** Si el mundo se reinicia desde la temporada 1 al pasar de
+pruebas a juego de verdad, entonces todo lo que hoy parece irreversible por culpa de los datos
+acumulados deja de serlo: los datos se van a tirar. Lo que el reset NO indulta es lo que vive fuera
+de la base de datos (la reputación de un dominio de correo, una marca registrada por otro, la
+cultura de los primeros jugadores) ni lo que llegue tarde al propio reset.
 
-Esto no es una opinión, está en el código.
+Así que la regla buena no es «decidir ya», es esta: **el reset es la fecha límite, y hay dos listas
+de plazos.**
 
-La **crónica y la radio** guardan SUCESOS, no texto: `stages.radio` es un `jsonb` con
-`{ plantilla, protagonistas, datos }`, y quien convierte eso en prosa es la web, en
-`apps/web/src/domain/narration.ts`. O sea que el día que haya un segundo idioma, **todas las etapas
-ya corridas se traducen solas**: se añade un mapa de plantillas nuevo y la historia entera del mundo
-cambia de idioma. Está bien construido.
+### 3.1 El esquema de las noticias: sigue siendo un defecto, ya no es una hemorragia
 
-Las **noticias hacen justo lo contrario**. `emitNews` en `packages/db/src/news.ts` llama a
-`renderNews(kind, seed, data)` en el momento de escribir y guarda **solo el resultado**: la tabla
-`news` tiene `kind` y `text`, y **ni `seed` ni `data`**. Los datos con los que se redactó el titular
-se tiran. Consecuencia: cada noticia que el mundo escribe desde hoy hasta el día que se cambie eso
-**es intraducible para siempre**, porque no queda nada con lo que volver a redactarla.
+Lo medido no cambia. La **crónica** guarda sucesos (`stages.radio`, `jsonb`, con `plantilla`,
+`protagonistas` y `datos`) y quien los redacta es la web (`narration.ts` y `stageJournal.ts`), así
+que es traducible por construcción y hasta retroactivamente. Las **noticias** hacen lo contrario:
+`emitNews` llama a `renderNews(kind, seed, data)` al ESCRIBIR y la tabla `news` solo guarda `kind` y
+`text`. Los ingredientes se tiran.
 
-Y hay un detalle que lo subraya: `users.locale` existe, es `text NOT NULL DEFAULT 'es'`, y la
-interfaz está en inglés por convención de `Claude.md`. O sea que la columna ya miente.
+**Lo que sí cambia es la urgencia, y lo dije de más.** Escribí que cada titular escrito desde hoy es
+intraducible «para siempre». Con reset, es intraducible **hasta el reset**, y el reset se lo lleva
+por delante. O sea que no hay hemorragia: hay una tarea con fecha.
 
-**Lo que hay que hacer ahora, y no es el diseño de multiidioma:** añadir `seed` y `data` a `news` y
-mover el renderizado al momento de LEER, como ya hace la crónica. Es una migración y unas cuantas
-líneas. El diseño completo de i18n puede esperar un año; esto no, porque cada día que pasa añade
-noticias que nunca se podrán traducir.
+El plazo queda en: **antes del reset**, añadir `seed` y `data` a `news` y mover el renderizado al
+momento de leer. Después del reset, cada noticia escrita sí es definitiva, porque a partir de ahí no
+habrá otro borrado.
 
-### 3.2 El dominio de correo
+Y el detalle sigue en pie: `users.locale` es `text NOT NULL DEFAULT 'es'` con la interfaz en inglés.
+La columna ya miente.
 
-Ya está argumentado en **G11** y la recomendación sigue en pie: subdominio dedicado en `rubio.pt`
-ahora (`no-reply@cyclingstar.rubio.pt`), dominio propio para la versión final, y `hereistand.app`
-descartado. Lo irreversible no es el remitente (cambiarlo es gratis), es **la reputación que se le
-pega a un dominio compartido**.
+### 3.2 El dominio de correo: esta el reset NO la indulta
 
-El matiz que añado: separar desde el primer día el correo TRANSACCIONAL (verificación, recuperación)
-del de NOTIFICACIÓN (tu corredor corrió hoy), aunque al principio solo exista el primero. El día que
-entren las notificaciones, las quejas de spam de quien se cansó del juego degradarían la entrega de
-la recuperación de contraseña, que es el correo que menos se puede permitir caer.
+Sigue siendo la más urgente de todas, y ahora destaca precisamente porque las demás se han relajado.
+**La reputación de envío no vive en tu base de datos**, vive en los servidores de Google y Microsoft,
+y un reset del mundo no la borra. Si durante las pruebas se envía desde un dominio que acumula
+quejas, ese daño cruza el reset intacto.
 
-### 3.3 Dinero real y borrado del mundo, que es la misma decisión
+Recomendación sin cambios respecto a G11: subdominio dedicado en `rubio.pt`
+(`no-reply@cyclingstar.rubio.pt`) para la fase de pruebas, dominio propio para la versión final,
+`hereistand.app` descartado. Y separar desde el primer día el correo TRANSACCIONAL del de
+NOTIFICACIÓN, aunque al principio solo exista el primero.
 
-En cuanto un jugador pague, el mundo deja de poder borrarse con ligereza. No por buena voluntad:
-por derecho de consumo. La ley europea trata el contenido digital de pago con obligaciones de
-información previa, de desistimiento y de continuidad del servicio, y un borrado de temporada se
-convierte en un incidente de reembolsos en lugar de en una decisión de diseño.
+### 3.3 La economía es INTERNA: lo que eso simplifica y lo que no
 
-Así que **antes de cobrar un euro hay que contestar**: ¿este mundo dura para siempre? ¿Hay
-temporadas que se cierran y un archivo? ¿Qué pasa con lo comprado si el mundo se reinicia? Contestar
-eso después de cobrar es contestarlo con las manos atadas.
+Respuesta 1: no hablamos de cobrar, hablamos de que el dinero del juego signifique algo. Eso
+simplifica bastante y aclara el reparto:
 
-Aviso además de que la pieza ya está a medias en el código: `users.premium` existe, y
-`teamControl.ts` la usa para permitir tomar el mando de un equipo. El modelo de G2 («unos pocos, que
-paguen o que elija el dueño, son ADEMÁS mánager») ya está enchufado, y hoy se concede a mano desde
-`/admin`.
+- **D2 sube de importancia.** Es el diseño de las dos mitades que pediste: que el salario del
+  corredor le sirva para algo (hoy `economy.ts` ya modela viajes, vivienda y material, o sea que la
+  mitad del gasto personal existe) y sobre todo **el dinero de los equipos**: patrocinadores con
+  objetivos, premios que entran al bote y se reparten, y la lista entera de gastos de una
+  temporada. Cubre G2.6, G2.7 y G2.8.
+- **D9 no desaparece, encoge y se retrasa.** Porque la respuesta 3 dice que la cuenta premium será
+  comprable «a futuro», y premium es hoy la llave del mando de un equipo (`teamControl.ts`). O sea
+  que sí habrá dinero real algún día, pero será **un solo producto** y no una economía.
 
-### 3.4 Un mundo o varios
+Y queda una cosa que sí hay que ordenar en el tiempo: **cobrar después del reset, nunca antes**.
+Cobrar por una cuenta y luego borrar el mundo que esa cuenta habitaba es el peor estreno posible, y
+es puramente una cuestión de calendario, así que sale gratis hacerlo bien.
 
-Todo el esquema cuelga de `world_id` y nada impide un segundo mundo. Pero el RANKING, el salón de la
-fama, el palmarés y el mercado solo significan algo dentro de un mundo. Si el día que lleguen mil
-jugadores la respuesta es «abrimos el mundo 2», hay que saberlo antes, porque cambia qué es un
-récord, qué es una comparación entre jugadores y qué enseña la portada.
+### 3.4 Un mundo, decidido
 
-Mi opinión: **un solo mundo mientras se pueda**, y es lo que da sentido a G8 (ir limpiando bots
-según lleguen humanos). Un mundo único con 1.600 corredores donde los humanos van sustituyendo al
-relleno es una promesa mucho mejor que doce mundos vacíos. Pero conviene que sea una decisión
-tomada, no una que se tome sola por no haberla mirado.
+Respuesta 2: uno y para siempre, con un reset al salir de pruebas. Es lo que yo recomendaba y es lo
+que da sentido a G8 (ir limpiando bots según lleguen humanos).
 
-### 3.5 El contrato social del mánager
+Las dos consecuencias que conviene escribir para que nadie las descubra tarde:
 
-`epics.md` lo tiene bien planteado (pagar da AUTORIDAD, no vatios) y no lo repito. Lo que añado es
-que **es irreversible en el sentido social, no en el técnico**: la primera cohorte de mánagers fija
-la cultura del juego. Si los primeros veinte son gente que se autoproclama jefe de filas cada
-domingo, eso es lo que el juego será, y ninguna regla posterior lo deshace.
+1. **El reset es el último momento barato para todo cambio de esquema con historia detrás.** Las
+   noticias (§3.1), el formato de los identificadores de carrera, las semillas del mundo, los
+   nombres. Conviene llegar a esa fecha con una lista de «lo que solo se puede cambiar hoy».
+2. **Después del reset no hay red.** Un mundo único y permanente significa que un fallo de
+   calibración que arruine una temporada no se arregla borrando: se arregla conviviendo con él. Eso
+   sube el listón de §4.4 (qué le debes al jugador cuando el motor cambia) de «buena práctica» a
+   «obligación».
 
-Consecuencia práctica: los primeros mánagers **elegidos por el dueño y no comprados**, y el pago
-como puerta solo cuando la norma de conducta ya exista y se vea.
+### 3.5 Premium como llave del mando: decidido, con una advertencia
 
-### 3.6 La marca
+Respuesta 3: los mánagers son cuentas premium, regaladas primero a los mejores probadores y
+comprables más adelante. Coincide con lo que yo recomendaba (elegidos antes que comprados) y encaja
+con la pieza que ya existe en el código.
 
-`SPEC.md` §8 ya obliga a «verificar cada nombre final contra EUIPO y USPTO antes del lanzamiento», y
-eso incluye el nombre del juego. No es una tarea de desarrollo y por eso lleva meses sin aparecer en
-ninguna lista. Es de las pocas cosas que, salidas mal, obligan a rehacer identidad visual, dominio,
-correo y tienda a la vez.
+**La advertencia, y es de diseño, no de implementación.** «Los mejores probadores» tiene dos lecturas
+y solo una es sana:
 
----
+- Si «mejores» significa **quien más ha aportado** (fallos encontrados, opiniones, constancia,
+  saber estar), entonces el mando lo reciben personas que ya han demostrado que cuidan el juego, que
+  es exactamente lo que necesita la primera cohorte según §3.5 original: ellos fijan la cultura.
+- Si «mejores» significa **quien mejores resultados deportivos ha tenido**, se acopla la autoridad
+  al rendimiento. El que ya gana carreras es además el que decide quién lleva el Giro, y en un juego
+  donde el mánager es juez y parte (lo dice G2 con todas las letras) eso concentra dos poderes en la
+  misma persona desde el primer día.
+
+Recomiendo la primera lectura, explícitamente y por escrito en las condiciones del programa de
+pruebas, porque además te da una salida elegante el día que alguien pregunte por qué él no.
+
+**Y una corrección de vocabulario que conviene hacer ahora.** `README.md` promete «cero pay to win».
+Cuando premium sea comprable, el dinero comprará **autoridad sobre otras personas**: quién lleva el
+Giro, quién cobra qué, quién va al Tour. Eso no es rendimiento y es el modelo estándar del género,
+pero llamarlo «cero pay to win» invita a una discusión que se gana sola escribiendo la verdad:
+**no se compra rendimiento**. El corredor de un mánager corre exactamente igual de rápido. Cambiar
+esa línea cuesta diez segundos hoy y cuesta una crisis de confianza el día que alguien la cite.
+
+### 3.6 La marca: el reset tampoco la indulta
+
+`SPEC.md` §8 obliga a verificar cada nombre contra EUIPO y USPTO antes del lanzamiento, y eso incluye
+el nombre del juego. Un reset de mundo no cambia que el nombre esté tomado. Sigue siendo de las pocas
+cosas que, salidas mal, obligan a rehacer identidad visual, dominio, correo y tienda a la vez.
+
+### 3.7 Edad mínima: recomiendo 16, no 12
+
+Respuesta 5: no estaba pensado, y la propuesta de 12 es la que más caro sale de las tres posibles.
+El razonamiento, con el aviso por delante de que **esto hay que confirmarlo con un abogado antes de
+abrir el registro**: lo que sigue es la forma del problema, no un dictamen.
+
+El reglamento europeo de protección de datos fija una edad para que un menor pueda consentir por sí
+mismo el tratamiento de sus datos en servicios de la sociedad de la información, y deja a cada país
+elegirla **dentro de una horquilla de 13 a 16 años**. Por debajo de esa edad hace falta
+**consentimiento verificable de quien tenga la patria potestad**, que no es una casilla: es un flujo
+de verificación real. Y como los países eligen distinto (España y Portugal por lo bajo, Alemania y
+Países Bajos por lo alto, Francia en medio), un servicio abierto a toda Europa con edad mínima baja
+necesita **un flujo distinto por país**.
+
+Las tres opciones, con su coste:
+
+| Edad mínima | Qué implica                                                                                                                                                                                                  |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **12**      | Por debajo del suelo de la horquilla en todos los países y por debajo también del umbral estadounidense. Exige verificación parental en todas partes, y encima con menores de doce años en un juego con chat |
+| **13 a 15** | Legal en varios países y no en otros. Obliga a preguntar el país y a bifurcar el flujo. Mantenible para un equipo con jurista, no para un proyecto de una persona                                            |
+| **16**      | Por encima del techo de la horquilla, así que **no hace falta consentimiento parental en ningún país europeo** y desaparece toda la bifurcación                                                              |
+
+**Recomiendo 16**, y no principalmente por la ley. Es por el punto 4.1 y por G2: este juego va a
+tener chat de equipo, negociación entre personas y un mánager humano con poder sobre otro jugador.
+Moderar eso con menores de doce años dentro es asumir una responsabilidad de otra categoría, con
+obligaciones de protección del menor que ni tú ni yo queremos diseñar ahora.
+
+El coste de elegir 16 es real y conviene nombrarlo: **pierdes a los jugadores de 13 a 15**, que en un
+juego de ciclismo no son pocos. Si más adelante quieres bajar, se baja: subir la edad mínima después
+obliga a expulsar cuentas existentes, bajarla no rompe nada. **Empezar alto es la decisión
+reversible**, y por eso es la correcta ahora.
 
 ## 4. Lo que falta en tu lista
 
@@ -216,19 +290,41 @@ separado del transaccional según 3.2) y **ausentarse sin perder** (que las pol�
 cuando no estás, y que una semana de vacaciones no arruine una temporada). Sin lo segundo, el juego
 castiga tener vida.
 
-### 4.4 Notas de versión y el contrato del mundo con el jugador
+### 4.4 El contrato del mundo con el jugador, que es la pregunta 7
 
-`docs/balance.md` lleva más de diez mil líneas de cambios del motor y el jugador no ve ni uno. Este
-juego **recalibra su física entre versiones**: la v41 cambió los abanicos, la v44 el ritmo en
-montaña, y el rediseño táctico en curso va a mover mucho más. Desde fuera, un corredor que subía
-bien y de pronto sube peor no se lee como «recalibración», se lee como «el juego está roto» o «me
-han perjudicado».
+La pregunta no se entendió, y era culpa mía por plantearla en abstracto. Va con un ejemplo concreto,
+que además va a ocurrir de verdad y pronto.
 
-Hacen falta dos cosas: **notas de versión en el juego**, escritas para jugadores y no para el
-repositorio, y una decisión explícita de **qué se le debe al jugador cuando el motor cambia** bajo
-sus pies. ¿Se reasignan puntos de entrenamiento? ¿Se avisa antes? ¿Hay temporada de transición? Es
-una pregunta de confianza y aparece justo cuando aterrice el trabajo de táctica y entrenamiento que
-ya está en marcha.
+**El caso.** Un jugador pasa tres meses reales entrenando a su corredor para la montaña, porque el
+juego le dice que escalar se entrena así y rinde asá. Entonces aterriza el rediseño táctico que está
+en marcha, o una recalibración como la de la v44 (la que descubrió que en montaña la fuga no gana
+nunca porque el pelotón sube 28,8 segundos por kilómetro más rápido). El motor cambia. Su corredor,
+sin haber hecho nada distinto, **empieza a rendir de otra manera**.
+
+**La pregunta es: ¿qué le debemos a esa persona?** Y no es retórica, porque `docs/balance.md` lleva
+más de diez mil líneas de cambios del motor y el jugador no ha visto ni uno. Desde fuera, un corredor
+que subía bien y de pronto sube peor no se lee como «recalibración»: se lee como «el juego está roto»
+o «me han perjudicado». Con un mundo único y permanente (§3.4) no hay borrón y cuenta nueva que lo
+arregle.
+
+Las opciones, de la más barata a la más cara:
+
+| Opción                      | Qué es                                                                                                    | Coste          |
+| --------------------------- | --------------------------------------------------------------------------------------------------------- | -------------- |
+| **Nada**                    | El motor cambia y el jugador se entera corriendo                                                          | Cero, y caro   |
+| **Notas de versión**        | Se le cuenta antes, en su idioma y en términos de juego: «a partir del día 210 el ritmo en puerto cambia» | Bajo           |
+| **Aviso con antelación**    | Los cambios grandes se anuncian con N días de juego de margen, para que le dé tiempo a reaccionar         | Medio          |
+| **Reasignación gratuita**   | Tras un cambio grande, una ventana para redistribuir entrenamiento sin penalización                       | Medio          |
+| **Temporada de transición** | El cambio entra en el rollover y no a mitad de temporada                                                  | Alto, y limpio |
+
+**Mi recomendación: notas de versión SIEMPRE, y las otras tres reservadas para los cambios que muevan
+la calibración de un atributo.** Los cambios de motor de este proyecto no son cosméticos, son físicos,
+y ya hay precedente medido de uno que habría cambiado el resultado de una temporada entera. Un juego
+que recalibra en silencio se gana fama de arbitrario, y esa fama no se quita.
+
+Lo que hay que decidir ahora, y por eso está en esta lista: **si los cambios de motor entran en
+cualquier momento o solo en el rollover**. Es una regla de una línea, cuesta nada escribirla hoy, y
+después de tener jugadores dentro ya no se puede elegir sin quedar mal.
 
 ### 4.5 Auditabilidad del resultado, o «por qué perdí»
 
@@ -334,14 +430,64 @@ tamaño se mide contra los dos que ya existen: **XL** es `docs/tactica.md` (6.34
 
 ### Capa infraestructura
 
-| Código  | Diseño                     | Qué contesta                                                                             | Cubre          | Depende de | Tamaño |
-| ------- | -------------------------- | ---------------------------------------------------------------------------------------- | -------------- | ---------- | ------ |
-| **D7**  | Multiidioma                | Qué se traduce, quién traduce, cómo se traduce el texto GENERADO, y el arreglo de `news` | §3.1           | 3.1        | M      |
-| **D8**  | Notificaciones y ausencia  | Qué se avisa, por dónde, con qué baja, y qué pasa cuando el jugador no está              | §4.3           | D4, N1     | M      |
-| **D9**  | Pagos y cumplimiento       | Qué se vende, cómo se cobra, impuestos, reembolsos, y qué pasa si el mundo cambia        | §3.3           | D2, 3.3    | M      |
-| **D10** | Escala, mundos y archivado | Un mundo o varios, qué se archiva, qué cuesta un día de juego dentro de dos años         | §3.4, §4.8, N6 | 3.4        | M      |
-| **D11** | Analítica de producto      | Qué se mide, con qué respeto por la privacidad, y qué decisión desbloquea cada medida    | §4.7           | ninguno    | S      |
-| **D12** | Legal y privacidad         | Datos, menores, condiciones, contenido de usuario, marca                                 | SPEC 8, §4.9   | 3.6        | M      |
+| Código  | Diseño                     | Qué contesta                                                                             | Cubre              | Depende de | Tamaño |
+| ------- | -------------------------- | ---------------------------------------------------------------------------------------- | ------------------ | ---------- | ------ |
+| **D7**  | Multiidioma                | Qué se traduce, quién traduce, cómo se traduce el texto GENERADO, y el arreglo de `news` | §3.1               | 3.1        | M      |
+| **D8**  | Notificaciones y ausencia  | Qué se avisa, por dónde, con qué baja, y qué pasa cuando el jugador no está              | §4.3               | D4, N1     | M      |
+| **D9**  | Pagos y cumplimiento       | Qué se vende, cómo se cobra, impuestos, reembolsos, y qué pasa si el mundo cambia        | §3.3               | D2, 3.3    | M      |
+| **D10** | Escala, mundos y archivado | Un mundo o varios, qué se archiva, qué cuesta un día de juego dentro de dos años         | §3.4, §4.8, N6     | 3.4        | M      |
+| **D11** | Analítica de producto      | Qué se mide, con qué respeto por la privacidad, y qué decisión desbloquea cada medida    | §4.7               | ninguno    | S      |
+| **D12** | Legal y privacidad         | Datos, edad mínima y menores, condiciones, contenido de usuario, marca                   | SPEC 8, §3.7, §4.9 | 3.6, 3.7   | M      |
+
+### Anexo a D7: qué idiomas, y por qué no son ocho
+
+Respuesta 4: español, portugués, francés, alemán, italiano, ruso y chino, traducidos por Claude.
+Antes de la recomendación, **el número que cambia la conversación**, medido en el repositorio:
+
+| Superficie             | Tamaño                                                                                                        |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Sucesos de crónica     | **48 tipos** (`EVENT_ORDER` en `apps/api/src/chronicle.ts`)                                                   |
+| Redacciones de crónica | 54 en `narration.ts` (19 tipos) y el resto en `stageJournal.ts`, que solo él tiene **616 literales de texto** |
+| Tipos de noticia       | 11 (`packages/engine/src/world/news.ts`)                                                                      |
+
+O sea que el texto GENERADO ya está en varios cientos de frases, y crece con cada versión del motor.
+Eso está antes de contar una sola etiqueta de interfaz.
+
+**Y aquí va el problema que hace que «traducción 100 % Claude» sea media respuesta.** Las plantillas
+no se traducen, **se reescriben por idioma**, porque meten nombres propios dentro de la frase y cada
+lengua los trata distinto:
+
+- **Género y concordancia.** En español, «ha sido cazado» o «cazada» depende del corredor. En la
+  crónica, el sujeto es un nombre generado por el servicio de nombres del juego, en decenas de países.
+- **El ruso es de otra categoría.** Además del género, **declina los nombres propios**: el mismo
+  corredor aparece en nominativo, genitivo y acusativo según la frase, y eso no es traducir, es
+  morfología por nombre. Un sistema de plantillas que interpola cadenas no puede hacerlo bien.
+- **El chino tiene el problema inverso y también caro**: no hay declinación, pero sí transcripción de
+  nombres occidentales, orden de frase muy distinto y tipografía propia.
+
+Claude traduce excelentemente una interfaz, y puede **escribir** las plantillas de cada idioma como
+autor nativo, que es lo que de verdad hace falta. Lo que Claude no arregla es lo de después: cada
+suceso nuevo del motor son N idiomas de texto nuevo, para siempre.
+
+**Mi recomendación, y difiere de tu lista en tres sitios:**
+
+1. **Añade el neerlandés.** Es la ausencia más llamativa. Bélgica y Países Bajos son el corazón
+   demográfico de este género y de este deporte, y la base de jugadores de los juegos de ciclismo por
+   navegador ha salido históricamente de ahí. Si solo pudieras hacer un idioma además del inglés,
+   discutiría en serio que fuese el neerlandés antes que el español.
+2. **Aplaza el ruso y el chino.** No por desprecio: por coste. Son los dos que rompen el sistema de
+   plantillas, los dos con menos base ciclista relativa, y los dos que **no podrías moderar** (§4.6),
+   porque ni tú ni tus primeros moderadores los leen. Un canal de equipo en un idioma que nadie de la
+   casa entiende es un punto ciego, y con edad mínima de 16 y chat abierto eso pesa.
+3. **Empieza por cuatro, no por siete.** Inglés (ya está), **español**, **neerlandés** y **francés**.
+   Luego italiano, alemán y portugués por este orden. Danés, polaco, esloveno y noruego son los
+   siguientes candidatos naturales del ciclismo y ninguno urge.
+
+**Y la manera barata de no equivocarse: mide antes de traducir.** Ya tienes detección de país por IP
+en el servidor (`geoIp.ts`, arreglada en la v14 del calendario) y el navegador manda `Accept-Language`
+en cada petición. Guardar esos dos datos en el registro cuesta una tarde y dentro de tres meses te
+dice, con tus jugadores de verdad y no con mi intuición, qué idiomas hacen falta. Es exactamente el
+tipo de decisión que D11 (analítica) existe para desbloquear.
 
 ### Capa lectura
 
@@ -365,17 +511,25 @@ tamaño se mide contra los dos que ya existen: **XL** es `docs/tactica.md` (6.34
 
 ## 6. Orden propuesto
 
-### Oleada 0 · Ahora, y casi nada de ello es diseño
+### Oleada 0 · Antes del reset
 
-Son decisiones y cambios pequeños. Su único mérito es que hacerlos después cuesta diez veces más.
+Ya no es «ahora» sino «antes del reset», que es una fecha de verdad y no una prisa vaga. Son
+decisiones y cambios pequeños, y el reset es el último momento en que salen baratos.
 
-1. **Arreglar el esquema de `news`** (guardar `seed` y `data`, renderizar al leer). Una migración.
-2. **Decidir el dominio de correo** y verificarlo en Resend. Un rato.
-3. **Decidir un mundo o varios** (3.4). Una conversación.
-4. **Decidir la política de borrado del mundo antes de cobrar** (3.3). Una conversación.
-5. **Verificar la marca** en EUIPO y USPTO (3.6). Un encargo.
-6. **D4, identidad y cuenta**, que es más ejecución que diseño y hoy es el agujero más feo del
-   producto: sin recuperación de contraseña, una cuenta perdida es un corredor perdido.
+1. **Arreglar el esquema de `news`** (guardar `seed` y `data`, renderizar al leer). Una migración
+   (§3.1).
+2. **Dominio de correo** verificado en Resend, con el subdominio transaccional separado. **Esta no
+   espera al reset**: la reputación de envío lo cruza intacta (§3.2).
+3. **Marca** verificada en EUIPO y USPTO. Tampoco la indulta el reset (§3.6).
+4. **Edad mínima** escrita en las condiciones (§3.7, recomendación: 16).
+5. **La regla de cuándo entran los cambios de motor** (§4.4). Una línea.
+6. **La lista de «lo que solo se puede cambiar en el reset»**, abierta desde hoy y cerrada el día
+   antes (§3.4).
+7. **D4, identidad y cuenta.** Más ejecución que diseño, y hoy el agujero más feo del producto: sin
+   recuperación de contraseña una cuenta perdida es un corredor perdido, y es la primera línea contra
+   las multicuentas (§4.1).
+8. **Guardar país y `Accept-Language` en el registro.** Una tarde, y dentro de tres meses decide D7
+   con datos en vez de con mi intuición (anexo a D7).
 
 ### Oleada 1 · La capa de lectura
 
@@ -386,17 +540,47 @@ y es la que más retención compra por hora invertida. Aquí entra tu modo sin d
 es más difícil de lo que parece: exige saber **qué ha visto cada jugador** y que ninguna otra
 pantalla (portada, ranking, feed, notificación) se lo reviente por detrás.
 
-### Oleada 2 · El juego entre personas
+### Oleada 2 · El juego entre personas, y qué implica de verdad la inversión
 
-**D5 y D6 antes o a la vez que D1 y D2.** Esto es una discrepancia deliberada con el orden natural:
-apetece diseñar al mánager primero porque es lo divertido, y creo que es un error. El mánager humano
-es exactamente lo que activa las multicuentas, la colusión y el abuso de autoridad. Encender el
-modelo social sin integridad ni moderación es abrir el bar antes de contratar al portero.
+**D5 y D6 antes o a la vez que D1 y D2**: integridad y moderación antes que el mánager humano.
+
+La pregunta 6 era qué implica eso, y la respuesta honesta tiene tres partes.
+
+**Lo que NO implica.** No implica no tocar el mánager. G2 en `epics.md` ya tiene el modelo entero y
+sus quince componentes, y la pieza técnica (`users.premium` y `teamControl.ts`) ya está enchufada. Un
+puñado de probadores de confianza con equipo puede seguir funcionando **mientras sean pocos y
+conocidos**, porque ahí el portero eres tú.
+
+**Lo que sí implica, en orden de coste.**
+
+1. **Retrasa la apertura, no el diseño.** El momento que se retrasa es aquel en el que **cualquiera**
+   puede ser mánager: cuando premium sea comprable, o cuando haya suficientes jugadores como para que
+   dejes de conocerlos por su nombre. Hasta ahí, el orden apenas se nota.
+2. **Dos diseños medianos por delante del grande.** D5 (integridad) y D6 (administración y
+   moderación) suman aproximadamente lo que `docs/entrenamiento.md` y `docs/navegacion.md` juntos. No
+   son `tactica.md`. Y D6 es en buena parte trabajo mecánico, no invención: convertir el
+   `ADMIN_TOKEN` compartido en roles reales con registro de auditoría.
+3. **Obliga a decidir reglas antipáticas antes de que haya víctimas.** Un corredor por persona, topes
+   de transferencia, ventanas de mercado, qué se considera colusión. Diseñarlas en frío es incómodo y
+   abstracto; diseñarlas en caliente, con un caso real y con la gente mirando, es mucho peor, porque
+   toda regla nueva parece dirigida contra alguien.
+
+**El coste de NO invertir el orden**, que es la otra mitad de la respuesta: si el mánager humano se
+abre antes, la primera partida de abusos ocurre sin herramientas. Sin auditoría no sabes qué pasó,
+sin roles no puedes delegar la investigación, y sin reglas escritas cualquier sanción es arbitraria.
+Y hay algo peor que el daño: **la primera cohorte fija la cultura** (§3.5), así que un abuso temprano
+sin respuesta no es un incidente, es un precedente.
+
+**Mi propuesta concreta, que creo que te cuesta poco:** mantén el mánager por invitación mientras se
+diseñan D5 y D6, y pon la condición explícita de que **premium no se pone a la venta hasta que
+existan roles de administrador con auditoría**. Así no retrasas nada de lo que estás haciendo hoy y
+no llegas desnudo al día que importa.
 
 ### Oleada 3 · Lo que sostiene
 
-**D7, D8, D9, D10, D11, D12.** Multiidioma completo, notificaciones, pagos, escala, analítica y
-legal. La mayoría depende de decisiones ya tomadas en la oleada 0.
+**D7, D8, D9, D10, D11, D12.** Multiidioma (empezando por cuatro y no por siete, ver el anexo),
+notificaciones, el único producto de pago, escala, analítica y legal. La mayoría depende de
+decisiones ya tomadas en §0.1.
 
 ### Oleada 4 · Contenido
 
@@ -411,26 +595,33 @@ D18 es la mejor relación entre emoción producida y trabajo invertido de toda l
   esperando. G2 en `epics.md` ya tiene el modelo y los quince componentes: eso basta como brújula
   hasta que haya integridad y moderación debajo.
 - **No construiría foro propio.** Ver §4.13.
-- **No monetizaría con ventaja deportiva de ningún tipo**, ni siquiera cosmética con efecto. El
-  pilar de `README.md` es «cero pay to win» y es el único que, una vez roto, no se arregla pidiendo
-  perdón.
-- **No traduciría la interfaz antes de arreglar `news`.** Traducir pantallas mientras el mundo sigue
-  escribiendo historia intraducible es trabajar hacia atrás.
-- **No abriría un segundo mundo** para resolver un problema de escala que todavía no se ha medido.
+- **No monetizaría con ventaja deportiva de ningún tipo**, ni siquiera cosmética con efecto. Lo que
+  premium compra es mando y trabajo, nunca vatios, y esa frontera no admite una sola excepción
+  porque la primera la cita todo el mundo (§3.5).
+- **No pondría premium a la venta antes de que existan roles de administrador con auditoría**
+  (§6, oleada 2). Cobrar por la autoridad y no poder investigar cómo se ejerce es la peor
+  combinación posible.
+- **No cobraría nada antes del reset** (§3.3). Es solo calendario, así que hacerlo bien sale gratis.
+- **No traduciría la interfaz antes de arreglar `news`** ni de saber qué idiomas hablan los
+  jugadores de verdad (anexo a D7).
+- **No abriría siete idiomas de golpe.** El coste no es traducir, es mantener cada suceso nuevo del
+  motor en siete lenguas para siempre, y moderar dos que nadie de la casa lee.
+- **No abriría un segundo mundo.** Decidido en §3.4, y aquí queda como recordatorio para el día que
+  la tentación vuelva disfrazada de problema de escala.
 
 ---
 
-## 8. Preguntas abiertas para el dueño
+## 8. Preguntas: lo contestado y lo que queda
 
-1. **«Economía real»**: ¿te referías a cobrar dinero de verdad, a que la economía interna del juego
-   sea creíble, o a las dos? El documento asume las dos y las separa en D2 y D9, pero el orden
-   cambia mucho según la respuesta.
-2. ¿El mundo es **uno y para siempre**, o habrá temporadas que se cierren y se archiven?
-3. ¿Los primeros mánagers se **eligen** o se **compran**? (Mi recomendación en 3.5: se eligen.)
-4. ¿Qué idiomas, y **quién los escribe**? La parte cara de D7 no es el código, es mantener vivos los
-   textos generados en tres idiomas a la vez.
-5. **Menores**: ¿el juego declara una edad mínima? La respuesta condiciona D12 entero.
-6. ¿Aceptas la inversión de la oleada 2 (integridad antes que mánager), aun sabiendo que retrasa lo
-   más vistoso de todo el proyecto?
-7. Cuando el motor recalibre y un corredor entrenado para escalar rinda distinto, **¿qué le debemos
-   al jugador?** (§4.4). Esta hay que contestarla antes de que aterrice el rediseño táctico.
+Las siete de la primera versión están en §0.1 con su respuesta. Quedan tres en pie, y son las tres
+que ya no dependen de mí:
+
+1. **¿Aceptas 16 como edad mínima** (§3.7), sabiendo que el coste es perder a los jugadores de 13 a
+   15 y que la decisión es reversible hacia abajo pero no hacia arriba?
+2. **¿Empezamos por cuatro idiomas** (inglés, español, neerlandés, francés) **en vez de por siete**, y
+   dejamos que los datos de registro decidan los siguientes (anexo a D7)?
+3. **¿Los cambios de motor entran en cualquier momento o solo en el rollover** (§4.4)? Es una línea y
+   hay que escribirla antes de que el rediseño táctico aterrice.
+
+Y una que no es pregunta sino aviso: **«los mejores probadores» hay que definirlo antes de regalar
+la primera cuenta premium** (§3.5). Quien más ha aportado, no quien mejor ha corrido.
