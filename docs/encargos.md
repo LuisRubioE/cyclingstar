@@ -3,7 +3,7 @@
 Estado: **lista de encargos.** Cada punto de aquí es UN documento de diseño por escribir, del tamaño
 y con el método de `docs/tactica.md` y `docs/entrenamiento.md`. Ninguno está empezado.
 
-**Los códigos van en el orden en que se van a desarrollar**: E1 primero, E11 último. No es una
+**Los códigos van en el orden en que se van a desarrollar**: E1 primero, E12 último. No es una
 etiqueta arbitraria, es el plan.
 
 El catálogo razonado, con las dependencias y el porqué de cada uno, está en
@@ -18,7 +18,7 @@ Hay **otra línea implementando los cambios de motor que faltan** (la táctica y
 rediseñados). Hasta que eso esté EN PRODUCCIÓN no se abre ni una de estas épicas en el código, y
 cuando se abra, lo primero es **descargar la última versión de producción** y trabajar sobre ella.
 
-No es prudencia de más: estas once épicas tocan la capa de presentación, la API y el esquema, y la
+No es prudencia de más: estas doce épicas tocan la capa de presentación, la API y el esquema, y la
 línea del motor está moviendo el motor entero y lo que la API expone de él. Empezar antes garantiza
 resolver conflictos sobre código que va a cambiar otra vez.
 
@@ -110,6 +110,14 @@ daltónico, así que el patrón SVG paramétrico tiene que llevar forma además 
 con E1 a propósito: repintar pantallas sin saber qué cuentan es maquillaje, y rediseñar la
 información para volver a pintarla igual de fea es trabajo perdido.
 
+**Y una decisión ya tomada que este documento tiene que ejecutar: la aplicación INSTALABLE.** No hay
+app nativa de Android ni de iOS en el plan (el razonamiento está en §4.15.1 de `agenda.md`: un solo
+código en vez de tres, sin revisión de tienda, y el aviso por notificación ya no exige nativo). Lo que
+sí hay que hacer es que el juego se pueda **añadir a la pantalla de inicio y comportarse como una
+app**: sin barra de navegador, con su icono, arrancando rápido y sin romperse cuando la red va mal.
+Eso es trabajo de este documento, no de otro, y es además el requisito previo para que la
+notificación de E3 funcione en iPhone.
+
 **Y el encargo lleva un examen práctico obligatorio: el cuadro de entrenamiento.** No como apéndice
 ni como «si da tiempo», sino como la pantalla sobre la que el documento tiene que demostrar que el
 sistema funciona, porque es una pantalla YA implementada, con un motor correcto debajo, que aun así
@@ -162,6 +170,12 @@ TRANSACCIONAL del de NOTIFICACIÓN en subdominios distintos desde el primer día
 quien se cansó del juego degradarían la entrega de la recuperación de contraseña, que es el correo que
 menos se puede permitir caer), y calentar el dominio de envío antes del lanzamiento en vez de
 estrenarlo con mil registros de golpe.
+
+**Dos añadidos que cierran huecos detectados en la segunda pasada.** El primero: la notificación no
+es solo correo, es también **aviso al teléfono** sobre la web instalable que define E2, y es lo que de
+verdad se pedía cuando se pidió una app. El segundo, pequeño y hoy inexistente: **por dónde se queja
+un jugador**. Sin correo de contacto, sin formulario y sin canal, alguien con un problema no tiene a
+dónde ir, y el primero que se quede fuera de su cuenta lo va a descubrir de la peor manera.
 
 **Qué leer:** `apps/api/src/auth.ts`, `apps/web/src/pages/Register.tsx`, `Login.tsx` y `Account.tsx`,
 G11 en `epics.md`, y la tabla `users`.
@@ -234,6 +248,15 @@ el mundo entero, y revocar a una persona obliga a rotar el token para todas. Hac
 permisos, **registro de auditoría de toda acción administrativa**, y el circuito de denuncia y
 respuesta que la ley europea exige en cuanto haya contenido escrito por usuarios.
 
+**Y una tercera mitad que apareció comprobando el esquema: la POBLACIÓN del mundo.** No existe ni un
+solo rastro de actividad en la base de datos (ni `last_seen`, ni `last_login`, ni equivalente en
+`users` ni en `riders`), así que **el mundo no sabe quién lo ha abandonado**. En un mundo único y
+permanente eso deja un corredor humano ocupando plaza de plantilla para siempre, cobrando salario y
+bloqueando el sitio de alguien que sí juega. G8 (limpiar bots según lleguen humanos) está pensado para
+el caso contrario y no cubre éste. Hay que definir qué es inactividad, qué le pasa al corredor, a su
+contrato y a su plaza, y sobre todo **cómo se vuelve**, porque quien regresa después de tres meses
+tiene que poder retomar su carrera deportiva y no encontrarse con que le borraron la vida.
+
 **Qué leer:** `apps/api/src/routes/admin.ts`, `apps/api/src/security.ts`,
 `packages/db/src/blocklist.ts` y `adminStats.ts`, `users` en `schema.ts`, SPEC §7.1.
 
@@ -265,7 +288,11 @@ frontera no admite una sola excepción porque la primera la cita todo el mundo),
 pasa con los impuestos y los reembolsos, y qué se le debe a quien pagó si el mundo cambia. Con dos
 reglas ya decididas y que el documento solo tiene que respetar: **premium se regala por invitación
 hasta que el juego esté acabado**, y **no se cobra un euro antes del reset**, porque cobrar por una
-cuenta y luego borrar el mundo que esa cuenta habitaba es el peor estreno posible.
+cuenta y luego borrar el mundo que esa cuenta habitaba es el peor estreno posible. Y una advertencia que
+no se ve venir: **si premium se vendiera dentro de una app de iOS o de Android, la tienda se queda una
+comisión de cada venta** y obliga a cobrar con su sistema. Hoy no hay app nativa en el plan (§4.15.1
+de `agenda.md`), así que no aplica, pero conviene dejarlo escrito para el día que alguien proponga
+una.
 
 **Qué leer:** SPEC §7.2 y §9, `packages/db/src/economy.ts` y `contracts.ts`, G2.5 a G2.8 en
 `epics.md`, y la tabla `txn_kind` del esquema.
@@ -289,6 +316,20 @@ autoridad y nunca vatios, el mánager es juez y parte a propósito porque es el 
 el diseño, y abusar tiene que salir caro por dentro del juego (moral, salidas, reputación) y no por
 una regla que lo prohíba. Y una restricción práctica que condiciona todo: **un mánager no puede tener
 un segundo trabajo**, así que las decisiones tienen que ser políticas y no órdenes manuales diarias.
+
+**Dos añadidos de la segunda pasada.** El primero: **las amistades y enemistades entre corredores**,
+que el dueño pidió con sus dudas incluidas y que están justificadas. El documento tiene que diseñarlas
+como el dueño intuía pero **no como bonificación declarada**, porque una amistad con botón es una
+casilla que optimizar, se vuelve universal en dos meses y es el vehículo perfecto para las cuentas
+múltiples. La forma que sí funciona está argumentada en §4.15.2 de `agenda.md`: la relación **se gana
+en la carretera y cambia el comportamiento, no los números**, apoyándose en que **la cooperación ya es
+una magnitud simulada** en este motor (`breakawayCommitMin/Max`, el suceso `break_cooperation`). Dos
+que se han dado relevos cooperan mejor la próxima vez que coincidan delante; el que nunca te da un
+relevo se convierte en el que no trabaja contigo aunque os convenga, que es exactamente lo que pasa en
+la carretera de verdad. Y extiende G2.12 más allá del vestuario, al pelotón entero, que es donde el
+ciclismo pone sus alianzas: entre rivales. El segundo añadido: **la sucesión de un equipo cuyo mánager
+desaparece sin avisar**, que es como se va la gente de verdad de los juegos, y que G2.14 no cubre
+porque solo contempla la salida voluntaria.
 
 **Qué leer:** G2 entero en `docs/epics.md`, `packages/db/src/teamControl.ts`, `contracts.ts`,
 `callups.ts`, `teamPlan.ts`, `raceOrders.ts`, y `docs/diseno/mapa-equipo-ordenes-final.md`.
@@ -362,6 +403,29 @@ construidos.
 
 ---
 
+## E12 · La enciclopedia del mundo
+
+**Fichero:** `docs/enciclopedia.md` · **Tamaño esperado:** mediano
+
+Mil seiscientos corredores, cincuenta y siete equipos, sesenta o setenta carreras por temporada y un
+archivo histórico que solo crece, y **hoy no hay buscador**. Ni de corredores, ni de equipos, ni de
+carreras: se navega por índices y por rankings, o no se llega. Y falta con él lo que es media gracia
+de un juego persistente: **comparar dos corredores**, el **cara a cara** entre dos que llevan años
+peleándose, el **palmarés completo** de alguien, la temporada de hace tres años. Los datos están
+todos y bien guardados (desde la v48 cada puntuación se almacena con su fecha, su edición de carrera
+y de qué fue, y no se borra nunca), y no hay por dónde leerlos. El documento tiene que decidir qué se
+busca y cómo, qué es una ficha completa de corredor, de equipo, de carrera y de país, cómo se navega
+el archivo de temporadas pasadas, y qué historias cuenta el mundo sobre sí mismo sin que nadie las
+escriba: rachas, récords, rivalidades, la carrera que siempre gana el mismo. **Va el último a
+propósito**: no arregla nada roto, así que no adelanta a nadie en la cola. Pero es de lo que más
+profundidad da por hora invertida, y si en algún momento sobra una ventana, éste adelanta bien.
+
+**Qué leer:** `apps/web/src/pages/Rankings.tsx`, `Teams.tsx`, `Countries.tsx`, `RiderProfile.tsx`,
+`HallOfFame.tsx` y `RacesIndex.tsx`, `packages/db/src/browse.ts`, `ranking.ts` y `riderResults.ts`,
+y la tabla `rider_points`.
+
+---
+
 ## Cobertura: los ocho puntos originales, uno por uno
 
 La lista de la que salió todo esto eran ocho puntos del dueño. Ninguno se ha perdido, y tres se
@@ -379,6 +443,13 @@ reparten entre dos épicas porque son dos cosas distintas:
 | **Rediseño general de la experiencia**          | **E2** (cómo se ve: tipografía, color, densidad, componentes, móvil, accesibilidad) y **E5** (dónde vive cada cosa: arquitectura de información v4). Son dos oficios distintos y por eso son dos documentos |
 | **Tutoriales y ayuda**                          | **E5**, junto con los primeros treinta días, que es el problema del que los tutoriales son media solución                                                                                                   |
 
+Y los dos que el dueño añadió en la segunda pasada:
+
+| Punto añadido                 | Dónde vive ahora                                                                                                                                                                         |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **App de Android y de Apple** | **Decidido que no, todavía**: web instalable en **E2**, aviso al teléfono en **E3**, y la advertencia de la comisión de tienda en **E7**. El razonamiento está en §4.15.1 de `agenda.md` |
+| **Amistades y enemistades**   | **E8**, pero ganadas en la carretera y cambiando el comportamiento, no como bonificación declarada (§4.15.2)                                                                             |
+
 ---
 
 ## El orden ya está en los códigos
@@ -395,7 +466,10 @@ desperdicia la mitad del trabajo:
 - **E6 antes o a la vez que E7**, y los dos antes de **E8**: integridad y reglas del dinero antes de
   abrir el mando a cualquiera.
 - **E9 y E10** cuando los datos de registro digan qué idiomas y cuando E8 haya definido el vestuario.
-- **E11** al final: mejora mucho el mundo y no cambia lo que el juego es.
+- **E11** casi al final: mejora mucho el mundo y no cambia lo que el juego es.
+- **E12** el último de todos, y por una razón distinta a la de E11: no arregla nada roto. Es el único
+  de los doce que es puro añadido, y por eso es también el único que se puede adelantar sin deuda si
+  en algún momento sobra una ventana.
 
 ---
 

@@ -15,7 +15,7 @@ entras, cómo recuperas tu cuenta, quién manda sobre quién, en qué idioma lee
 carrera de hoy y quién limpia lo que alguien escriba de más.
 
 > **Para encargar el trabajo, ve a [docs/encargos.md](./encargos.md)**, que convierte este catálogo
-> en once documentos de diseño con su párrafo de encargo, qué leer del repositorio y en qué orden.
+> en doce documentos de diseño con su párrafo de encargo, qué leer del repositorio y en qué orden.
 > Aquí está el razonamiento; allí está la lista operativa.
 
 Tres cosas de la lista grande de `epics.md` son en realidad de aquí y no se duplican, se citan: **G2**
@@ -497,6 +497,119 @@ imposible: llegar al journal sin saber quién ganó no se puede, y eso lo convie
 vez de en un espectáculo. Con el motor que hay debajo (etapa determinista, sucesos fechados por
 kilómetro y por segundo) **reproducirla a ritmo es técnicamente barato**: los datos ya están, lo que
 falta es no enseñarlos todos de golpe y no filtrarlos desde otra pantalla.
+
+### 4.15 La segunda pasada: cuatro cosas más
+
+Lo que apareció al volver a mirar con las preguntas del dueño delante. Dos las trajo él y dos salieron
+de comprobar el código.
+
+#### 4.15.1 La app nativa: mi recomendación es que NO, todavía
+
+La pregunta era una app de Android y de Apple para acceder de forma más nativa. Entiendo el impulso y
+creo que la respuesta correcta es **una aplicación web instalable (PWA) primero, y nativa solo si esa
+se queda corta**, por cuatro razones y una trampa.
+
+1. **Un solo código.** Nativo son tres productos (web, Android, iOS) para una persona que todavía
+   está terminando el motor. Cada pantalla de las once épicas habría que hacerla tres veces.
+2. **Lo que de verdad se quiere de una app es el AVISO**, y eso ya no exige nativo: las
+   notificaciones web funcionan en Android desde hace años y en iPhone desde iOS 16.4 para las webs
+   añadidas a la pantalla de inicio. Conviene verificar el estado actual antes de decidir, porque esto
+   se mueve, pero la época de «si quieres notificar, haz app» terminó.
+3. **Sin revisión de tienda.** Este juego va a cambiar mucho y a menudo. Una web se despliega cuando
+   se quiere; una app pasa por revisión cada vez.
+4. **Este juego no necesita el teléfono para nada más.** No usa cámara, ni GPS, ni sensores. Lo que
+   pide es leerse bien en una pantalla pequeña y avisar cuando pasa algo, y las dos cosas las hace una
+   web bien hecha.
+
+**Y la trampa, que es la razón de peso y no se ve venir:** si la cuenta premium se vende DENTRO de una
+app de iOS, Apple obliga a cobrarla con su sistema de compra integrada y se queda una comisión (la
+tarifa general ha sido históricamente del 30 %, con un tramo reducido para desarrolladores pequeños,
+y las reglas están cambiando por la regulación europea y por litigios en Estados Unidos). Google
+aplica un esquema parecido. O sea que **meter la venta de premium en una app puede costar una parte de
+cada cuenta vendida**, y esa decisión hay que tomarla sabiéndolo y no descubrirla después. Como las
+reglas se mueven, hay que mirar cómo están el día que se decida.
+
+**Conclusión:** no es una épica. Es una **decisión tomada** (PWA) y tres requisitos repartidos: la web
+instalable y legible en móvil va en E2, el aviso por notificación va en E3, y la advertencia de la
+comisión va en E7. Se revisa cuando el juego esté acabado y haya datos de uso; si entonces la mitad
+de los jugadores entran desde el teléfono y piden app, se construye con criterio y no por corazonada.
+
+#### 4.15.2 Amistades y enemistades entre corredores: sí, pero NO como bonificación
+
+La otra idea del dueño, con sus dudas incluidas: que un ciclista se haga amigo de otro y entonces
+entrenen mejor juntos y colaboren mejor en carrera, y que se hagan enemigos por cosas que pasan en
+carrera. **Sus dudas están justificadas y la idea es buena.** Las dos cosas a la vez, así que conviene
+separar qué falla y qué se salva.
+
+**Lo que falla es la forma de bonificación declarada.** Si «ser amigo de X» da un porcentaje, pasan
+tres cosas, las tres malas: todo el mundo se hace amigo de todo el mundo y la bonificación se vuelve
+universal, o sea que deja de significar nada; las cuentas múltiples se hacen amigas de sí mismas, que
+es la peor combinación posible con lo que §4.1 ya advierte; y entre jugadores reales se forman
+carteles indistinguibles de la colusión que E6 tiene que perseguir. Una amistad que se declara con un
+botón es una casilla que optimizar.
+
+**Lo que se salva, y es mejor que la idea original, es que la relación se GANE EN LA CARRETERA y
+cambie el COMPORTAMIENTO en vez de los números.** Y aquí este motor tiene una ventaja que casi ningún
+juego del género tiene: **la cooperación ya es una magnitud simulada**. La fuga tiene un nivel de
+cooperación (`breakawayCommitMin/Max`), hay un suceso `break_cooperation` en la crónica, y el motor ya
+sabe quién da relevos y quién se guarda. O sea que la pieza sobre la que montar esto **ya está
+construida**:
+
+- **La amistad no se declara, se acumula.** Dos corredores que han ido juntos en fugas y se han dado
+  relevos cooperan mejor la próxima vez que coincidan delante. No es un porcentaje global: es una
+  disposición ENTRE ESE PAR y solo en las situaciones donde la cooperación existe.
+- **La enemistad es el mismo mecanismo con el signo cambiado, y es mejor drama.** El que nunca te da
+  un relevo, el que te cerró el hueco, el que te tiró al suelo. La consecuencia es que la próxima vez
+  no trabajas con él aunque os convenga a los dos, que es exactamente lo que pasa en el ciclismo real
+  y lo que produce las mejores historias del deporte.
+- **Se pega a lo que ya se está diseñando.** N4 propone rasgos que se descubren corriendo; esto es lo
+  mismo aplicado a pares en vez de a individuos. Y G2.12 (relaciones entre corredores) ya estaba
+  dentro de E8, pero planteado como vestuario de equipo; esto lo extiende al pelotón entero, que es
+  donde el ciclismo pone sus alianzas: **entre rivales**, no entre compañeros.
+
+**Por qué así es mucho más difícil de explotar:** no hay botón que pulsar, hace falta coincidir de
+verdad en carrera muchas veces, el efecto solo existe en situaciones concretas (fuga, persecución,
+abanico) y es visible en la crónica, o sea auditable. Una relación fabricada deja rastro de haberse
+fabricado, que es justo lo que E6 necesita para distinguir amistad de cartel.
+
+**Riesgo que hay que nombrar:** con muy pocos jugadores humanos, dos personas coincidirán en fuga una
+vez cada muchas semanas, así que la mecánica tardará temporadas en encenderse entre humanos. Entre
+humanos y bots funcionaría desde el primer día, y eso está bien: tu rival de siempre puede ser un bot,
+y el jugador no tiene por qué notar la diferencia.
+
+#### 4.15.3 El que se va y no vuelve: el mundo no lo sabe
+
+Comprobado en el esquema: **no hay ni un solo rastro de actividad**. Ni `last_seen`, ni `last_login`,
+ni nada equivalente en `users` ni en `riders`. En un mundo único y permanente eso es un agujero de
+verdad, y no uno estético:
+
+- Un corredor humano abandonado **sigue ocupando una plaza de plantilla** para siempre, cobrando
+  salario, apareciendo en convocatorias y bloqueando el sitio de alguien que sí juega.
+- Peor: **un mánager que desaparece deja un equipo sin nadie al mando**. G2.14 contempla «qué pasa
+  cuando alguien lo deja», que es una salida voluntaria. Lo que no contempla nadie es la salida
+  silenciosa, que es la forma en que la gente se va de verdad de los juegos.
+- Y G8 (limpiar bots según lleguen humanos) está pensado para bots. El humano inactivo es el caso
+  contrario y no tiene política ninguna.
+
+Hay que decidir qué es inactividad, qué le pasa al corredor (¿se congela? ¿lo lleva el entrenador?
+¿se retira?), qué le pasa a su contrato y a su plaza, qué le pasa al equipo de un mánager ausente (la
+sucesión), y sobre todo **cómo se vuelve**: alguien que regresa después de tres meses tiene que poder
+retomar su carrera deportiva, no encontrarse con que le han borrado la vida. Va en E6, que es el
+gobierno del mundo, con la parte de la sucesión del equipo en E8.
+
+#### 4.15.4 No se puede buscar nada
+
+Mil seiscientos corredores, cincuenta y siete equipos, sesenta o setenta carreras por temporada y un
+archivo histórico que solo crece, y **no hay buscador**. Ni de corredores, ni de equipos, ni de
+carreras. Se navega por índices y rankings o no se llega.
+
+Y falta lo que va con él, que es la mitad de la gracia de un juego persistente: **comparar dos
+corredores**, ver el **cara a cara** entre dos que llevan años peleándose, leer el **palmarés
+completo** de alguien, consultar una temporada de hace tres años. Los datos están todos (los puntos se
+guardan fechados desde la v48 y no se borran nunca), y no hay por dónde leerlos.
+
+No arregla nada roto, así que no adelanta a nadie en la cola, pero es de lo que más profundidad da por
+hora invertida y es lo que hace que un mundo parezca un mundo. Entra como **E12**.
 
 ## 5. El catálogo de diseños
 
