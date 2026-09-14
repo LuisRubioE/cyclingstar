@@ -54,12 +54,12 @@ antes a un moderador.
 
 ### Nivel 1: el público exacto
 
-| Sitio                            | Qué es                                                                                                                                                                                                                                                                                                             | Confianza |
-| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------- |
-| **pcmdaily.com**                 | La comunidad de Pro Cycling Manager. Llevan años organizando sus propios juegos de mánager de ciclismo por internet. Es, con diferencia, el público mejor emparejado que existe                                                                                                                                    | Alta      |
-| **La comunidad de Footstar**     | Sus jugadores son el perfil psicológico exacto: gente que disfruta un simulador lento, persistente y de texto. **Su creador ya ha contestado y la puerta está abierta**: falta pedirle anunciarlo en el foro de fuera de tema cuando haya beta cerrada. Es la jugada de PManager aplicada (§4.22.1 de `agenda.md`) | Alta      |
-| **forum.cyclingnews.com**        | Foro de ciclismo profesional de los de toda la vida, con secciones fuera de tema                                                                                                                                                                                                                                   | Alta      |
-| **r/procyclingmanager** (Reddit) | Los jugadores de PCM en Reddit                                                                                                                                                                                                                                                                                     | Media     |
+| Sitio                            | Qué es                                                                                                                                                                                                                                                                                                                                      | Confianza         |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
+| **pcmdaily.com**                 | La comunidad de Pro Cycling Manager. Llevan años organizando sus propios juegos de mánager de ciclismo por internet. Es, con diferencia, el público mejor emparejado que existe                                                                                                                                                             | Alta              |
+| **La comunidad de Footstar**     | Sus jugadores son el perfil psicológico exacto: gente que disfruta un simulador lento, persistente y de texto. **CONFIRMADO**: su creador ha dado permiso expreso para publicar en el foro de fuera de tema buscando probadores. Es la jugada de PManager aplicada (§4.22.1 de `agenda.md`), y además Portugal es UN país, o sea que AGRUPA | **Es la primera** |
+| **forum.cyclingnews.com**        | Foro de ciclismo profesional de los de toda la vida, con secciones fuera de tema                                                                                                                                                                                                                                                            | Alta              |
+| **r/procyclingmanager** (Reddit) | Los jugadores de PCM en Reddit                                                                                                                                                                                                                                                                                                              | Media             |
 
 ### Nivel 2: público amplio, reglas estrictas
 
@@ -167,6 +167,54 @@ los comentarios** durante las primeras 48 horas, que es lo que decide si un hilo
 >
 > Se te soa bem, deixa o teu email aqui e envio te um convite: [ENLACE AL FORMULARIO]
 
+### 3.4.b El post para el foro de fuera de tema de Footstar (permiso ya concedido)
+
+Bruno Pereira dio permiso expreso y sin condiciones. Este texto es distinto del 3.4 a propósito: **a
+esta gente no hay que explicarle qué es un juego persistente por navegador**, lleva años jugando a
+uno. Lo que necesita saber es qué es distinto, en qué estado está y qué se le pide.
+
+Y lleva un argumento que solo funciona en este foro: **que sean varios portugueses no es un detalle,
+es lo que hace que se crucen**, porque las ofertas de contrato van por anillos de país y el
+campeonato nacional los junta a todos. Decirlo es honesto y además es la mejor razón para apuntarse
+en grupo.
+
+> **Título:** Um jogo de ciclismo por navegador onde és um ciclista, não o manager (procuro testers)
+>
+> Olá a todos,
+>
+> Passei os últimos meses a construir um jogo de ciclismo por navegador, e o Footstar foi a
+> inspiração. Falei com o Bruno e ele não viu problema nenhum em eu deixar aqui este post.
+>
+> A ideia é esta: és UM ciclista, não o manager da equipa. Começas aos 18 anos sem nada, ninguém te
+> oferece contrato e tens de o ganhar. Treinas, assinas por uma equipa, recebes um papel que se
+> calhar não querias, envelheces e reformas-te. O mundo anda sozinho, um dia de jogo a cada seis
+> horas reais, por isso as corridas acontecem estejas tu a ver ou não.
+>
+> A parte onde pus mais trabalho é o motor de corrida. Cada etapa é simulada em blocos de 100 metros,
+> com vento e leques, meteorologia, pavé, cooperação na fuga e tática de equipa, e no fim escreve a
+> crónica do que aconteceu quilómetro a quilómetro: quem atacou, onde, quem ficou pelo caminho.
+>
+> E uma coisa que interessa em particular a este fórum: as ofertas de contrato e os campeonatos
+> nacionais funcionam por país. Ou seja, **se formos vários portugueses vamos cruzar-nos nas mesmas
+> corridas e nas mesmas equipas**, em vez de andar cada um perdido num mundo de mil e seiscentos
+> ciclistas. Entrar em grupo muda completamente a experiência.
+>
+> O estado, sem floreados: é uma alpha. O interface está tosco e só em inglês, e neste momento ainda
+> estou a mexer no motor. Não procuro muita gente. Procuro poucas pessoas que joguem a sério durante
+> algumas semanas e me digam o que está mal.
+>
+> Não há nada para vender nem nada para pagar.
+>
+> Quem quiser entrar: [ENLACE]
+>
+> Qualquer dúvida sobre como o motor funciona, perguntem à vontade.
+
+**Cuándo publicarlo, que es lo único que queda por decidir.** El permiso no caduca y el post sí: un
+mensaje que lleva a un juego que todavía se está moviendo se gasta una sola vez. Conviene publicarlo
+**cuando la línea del motor esté en producción y el enlace lleve a algo jugable**. Y un aviso
+operativo: hoy **no hay recuperación de contraseña**, así que con un grupo pequeño se resuelve a mano,
+pero conviene tener E4 antes de que sean cincuenta.
+
 ### 3.5 Foro de ciclismo en español
 
 > **Título:** Llevo meses haciendo un juego de ciclismo por navegador en el que eres un ciclista, no
@@ -195,12 +243,12 @@ los comentarios** durante las primeras 48 horas, que es lo que decide si un hilo
 
 Una comunidad por semana, empezando por las que menos duelen si el mensaje no funciona.
 
-| Semana | Dónde                                        | Por qué ahí                                                         |
-| ------ | -------------------------------------------- | ------------------------------------------------------------------- |
-| 1      | **r/playmygame** y la comunidad de Footstar  | Ensayo general. Bajo riesgo, y el texto se corrige con lo que salga |
-| 2      | **pcmdaily.com** y **forum.cyclingnews.com** | El público exacto, con el mensaje ya pulido                         |
-| 3      | **r/procyclingmanager**                      | Reddit, empezando por el subforo pequeño                            |
-| 4      | **r/peloton**, con permiso pedido antes      | El grande. Solo cuando el mensaje ya esté probado tres veces        |
+| Semana | Dónde                                           | Por qué ahí                                                                                                                           |
+| ------ | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| 1      | **Footstar** (permiso concedido) y r/playmygame | Footstar primero: público exacto, permiso del creador y un solo país, o sea que AGRUPA. r/playmygame de ensayo, que es de bajo riesgo |
+| 2      | **pcmdaily.com** y **forum.cyclingnews.com**    | El público exacto, con el mensaje ya pulido                                                                                           |
+| 3      | **r/procyclingmanager**                         | Reddit, empezando por el subforo pequeño                                                                                              |
+| 4      | **r/peloton**, con permiso pedido antes         | El grande. Solo cuando el mensaje ya esté probado tres veces                                                                          |
 
 ---
 
