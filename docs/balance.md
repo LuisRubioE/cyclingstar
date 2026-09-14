@@ -13025,3 +13025,93 @@ intactos.
 Los 90 s de la llana son la regla entera en una línea: el que iba tirando del grupeto se apagó y le
 relevó otro. Y que dos de cuatro no se muevan tampoco es un descuido —es que corren **sin general en
 juego**, y sin general nadie pide una tregua.
+
+## v60 §17 — paso 13, en este motor nadie pinchaba
+
+`ENGINE_VERSION` **67 → 68**. R11 entero: `stage/mishap.ts` nuevo. Racimo **ausente de los diez a los
+diez**, y el que bloqueaba a los demás: sin coche que llegue tarde, una avería no cuesta nada, y sin
+que cueste nada no hay nada que decidir alrededor.
+
+### El precio no lo pone el azar, lo pone la organización de la carrera
+
+La forma del dado es la de `crash.ts` —por bloque, con radio y precio—, y ahí se acaba el parecido.
+Lo que cuesta un percance depende de **cuánto tarda TU coche**, y eso son tres cosas que no tienen
+nada de aleatorio: por dónde vas en el grupo, qué puesto ocupa tu equipo en la caravana —que sale de
+la general, así que el coche del líder va el primero— y si la carretera deja pasar a alguien.
+
+De ahí sale la injusticia estructural que el ciclismo tiene de verdad: **medio minuto sistemático**
+entre el hombre del equipo del maillot y el del equipo modesto, cada vez que pinchan. No es mala
+suerte; es el reglamento, y cambia cada día.
+
+Y sin caravana —en cabeza de carrera, en un puerto cerrado o con la carrera partida— el precio se
+triplica y aparece la asistencia neutra, que tarda más y da una rueda que encaja peor. Ésa es la
+diferencia entre pinchar en el km 40 y pinchar en el puerto final.
+
+### Medido
+
+| llana canónica, 60 semillas | apagado | percances |
+| --------------------------- | ------- | --------- |
+| percances por etapa         | 0,00    | **2,88**  |
+| pérdida media               | —       | **28 s**  |
+| **caídas por etapa**        | 3,20    | **3,22**  |
+
+Los 2,88 son el orden que el diseño declaró antes de medir (≈2,5 en una llana de 180 km), y **las
+caídas no se mueven**, que es la comprobación explícita que el paso pide: un pinchazo no es una baja
+y el invariante 44 no puede subir por su culpa.
+
+Y el ×20 del adoquín no es decorativo:
+
+| Strade Bianche, 12 semillas | apagado | percances |
+| --------------------------- | ------- | --------- |
+| percances por etapa         | 0,00    | **30,7**  |
+| caídas por etapa            | 61,8    | 62,7      |
+
+Un día de tierra vive de eso, y es lo que hace que «pinchar en el peor sitio» exista de verdad en vez
+de ser una frase del catálogo.
+
+### Los dos defectos que la medida encontró
+
+**Uno: un pinchazo no es una baja, y mi implementación los tiraba de la carrera.** Escrito como
+«saca al hombre del grupo con su tiempo encima», cada percance metía al que pincha en la misma
+maquinaria que termina carreras: un corredor suelto, lejos y solo, que acaba fuera de control. Con
+treinta pinchazos en una clásica de tierra eso no es un detalle. Lo que pasa en carretera es lo
+otro: uno se para, cambia, vuelve por el pasillo de los coches y **casi siempre reengancha**, y eso
+el motor ya sabe contarlo con nombre propio —la DERIVA, segundos cedidos que todavía se recuperan—.
+Solo cuando lo perdido pasa del umbral en que la goma se rompe el hombre sale del grupo, que es
+pinchar en el puerto final sin coche detrás.
+
+**Dos, y es más fino: el invariante del pavé contaba INCIDENTES, no caídas.** Su nombre dice «bajas
+por caída» y su banda de 5-12 % eso mide; el código contaba corredores con cualquier incidente.
+Hasta hoy daba igual, porque `incidents` solo llevaba caídas. Con los percances mecánicos deja de
+dar igual:
+
+| escenario de pavés, 80 semillas | valor                   | ¿qué cuenta?          |
+| ------------------------------- | ----------------------- | --------------------- |
+| antes del paso 13               | 8-11 %                  | caídas (= incidentes) |
+| con percances, contando todo    | **17,3 %** ❌           | caídas + pinchazos    |
+| con percances, contando caídas  | **dentro de 5-12 %** ✅ | caídas                |
+
+Y las caídas **no se movieron**: 3,20 por etapa antes y 3,20 después. El diseño avisaba de esto con
+todas las letras —«los pinchazos no son bajas, y el paso 13 lo comprueba explícitamente»— y el aviso
+se cobró.
+
+### Y una calibración con la medida delante
+
+Con 2,9 percances por etapa, el mejor velocista del campo ganaba el **45,8 %** de las llanas contra
+un techo del 45: cada pinchazo que se lleva a un rival del grupo de cabeza es una etapa que el mejor
+gana sin disputarla. `mishapBase` baja de 0,00008 a **0,00006** —dos y pico por etapa, que sigue
+siendo el orden que el diseño declaró— y el remate vuelve a su sitio. Es una constante [calibrar]
+haciendo lo que su marca dice.
+
+### Las huellas: la partición más limpia de la tanda
+
+| huella        | filas que cambian | ganador       |
+| ------------- | ----------------- | ------------- |
+| `llana-180-0` | **0** de 176      | `spr-6`       |
+| `reina-150-0` | **0** de 176      | `pel-105`     |
+| `llana-180-1` | **174** de 176    | `spr-0`, +1 s |
+| `reina-150-1` | **176** de 176    | `gc-0`, +3 s  |
+
+En dos no pinchó nadie que importara; en las otras dos pinchó alguien pronto y el pelotón entero
+salió reordenado detrás. Es lo que un dado por bloque hace: no reparte un poco a todos, cae o no
+cae. Y los cuatro ganadores se conservan, porque un pinchazo reordena la fila y no reparte piernas.

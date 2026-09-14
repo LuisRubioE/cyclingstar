@@ -715,7 +715,7 @@
  * Campaña canónica de 500 corridas: **los 33 invariantes en verde**. La contrarreloj no se mueve ni
  * un dígito —es el ancla del esfuerzo individual y paga la ley lineal de siempre—.
  */
-export const ENGINE_VERSION = 67 as const
+export const ENGINE_VERSION = 68 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -4360,6 +4360,64 @@ export const STAGE = {
     /** EL FRÍO (R13.5), como término del coste táctico. Ver `stage/cost.ts` y §9.1bis. */
     coldCostScale: 0.06,
     coldStopS: 8,
+  },
+
+  /**
+   * PERCANCES MECÁNICOS Y EL COCHE (R11, docs/tactica.md paso 13). En este motor nadie pinchaba, y
+   * eso bloqueaba el precio de cualquier percance: sin coche que llegue tarde, una avería no cuesta
+   * nada, y sin que cueste nada no hay nada que decidir alrededor.
+   */
+  mishap: {
+    enabled: true,
+    /**
+     * 0,00006/km × 180 km × 176 corredores ≈ **dos percances por etapa llana**, y con el ×20 del
+     * adoquín, treinta en un día de tierra. Es el orden de la carretera real: una clásica de pavés
+     * vive de eso.
+     *
+     * **CALIBRADA A LA BAJA CON LA MEDIDA DELANTE, desde el 0,00008 de la propuesta.** Con 2,9
+     * percances por etapa el mejor velocista del campo ganaba el **45,8 %** de las llanas contra un
+     * techo del 45: cada pinchazo que se lleva a un rival del grupo de cabeza es una etapa que el
+     * mejor gana sin disputarla. Dos y pico por etapa siguen siendo el orden que el diseño declaró
+     * y dejan el remate donde estaba.
+     *
+     * Y su otro listón, el que el diseño pide comprobar aparte: el invariante 44 **no puede subir
+     * por culpa de los pinchazos**, porque un pinchazo no es una baja. Medido: 3,20 caídas por etapa
+     * antes y 3,20 después.
+     */
+    base: 0.00006,
+    /** Y el que manda es el terreno. El ×20 es lo que hace existir «pinchar en el peor sitio». */
+    terrainFactor: { llano: 1, subida: 1.2, descenso: 1.5, paves: 20 } as Record<
+      'llano' | 'subida' | 'descenso' | 'paves',
+      number
+    >,
+    rainGain: 0.6,
+    /** Atrás se pincha más, y no es superstición: delante se ve el agujero. */
+    placementGain: 0.5,
+    /**
+     * EL COCHE (R11.2). `carConvoyRankS` × el puesto en la caravana son **treinta segundos
+     * sistemáticos** entre el hombre del equipo del líder y el del vigésimo. No es mala suerte: es
+     * el reglamento, y cambia cada día con la general.
+     */
+    carBaseS: 25,
+    carPerPlaceS: 0.35,
+    carConvoyRankS: 4,
+    /** Sin caravana —en cabeza, en un puerto cerrado o con la carrera rota— el precio se triplica. */
+    carNoAccessGain: 3,
+    /** Y la rueda neutra encaja peor. */
+    neutralWheelGain: 1.3,
+    /** De cada cinco percances, uno es una avería de verdad y cuatro son un pinchazo. [calibrar] */
+    mechanicalShare: 0.2,
+    changePunctureS: 12,
+    changeMechanicalS: 25,
+    /** EL ASCENSOR (R11.3): volver por el pasillo de los coches es media carrera. */
+    caravanPullS: 12,
+    caravanMaxKm: 6,
+    /** DERIVADA: una talla de cuadro. Por encima de eso, ceder la bici no sirve de nada. */
+    bikeSwapCm: 3,
+    /** Dentro de la fuga se espera por aritmética, no por cortesía. */
+    waitMinGapS: 75,
+    /** Y en la crono también se pincha (R11.6). DERIVADA del objetivo declarado de 1-4 %. */
+    ttLambda: 0.015,
   },
 
   launchWorstFinisherM: 90,

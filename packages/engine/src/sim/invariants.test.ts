@@ -996,7 +996,20 @@ describe('caídas en pavés (6.17)', () => {
         engineVersion: 1,
       })
       const out = simulateStage({ profile, riders: field }, seed)
-      crashedFraction += new Set(out.incidents.map((i) => i.riderId)).size / field.length
+      /**
+       * SOLO LAS CAÍDAS, que es lo que el nombre de este invariante dice y lo que su banda de 5-12 %
+       * mide desde que existe.
+       *
+       * Hasta el paso 13 `incidents` solo llevaba caídas, así que contar incidentes y contar caídas
+       * era lo mismo y nadie tuvo que elegir. Con los percances mecánicos (R11) dejan de serlo: un
+       * pinchazo viaja por el mismo canal —para el parte y la crónica es la misma cosa, un hombre
+       * que se para y pierde tiempo— y **no es una baja**. Medido sin este filtro, el número saltaba
+       * al 17,3 % sin que una sola caída más hubiera ocurrido: 3,20 caídas por etapa antes y 3,20
+       * después. El diseño avisaba de esto con todas las letras y pedía comprobarlo aparte.
+       */
+      crashedFraction +=
+        new Set(out.incidents.filter((i) => i.tipo === 'caida').map((i) => i.riderId)).size /
+        field.length
     }
     const rate = (100 * crashedFraction) / runs
     expect(rate).toBeGreaterThanOrEqual(5)

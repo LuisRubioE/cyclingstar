@@ -45,6 +45,7 @@ import {
   targetSpeed,
 } from './physics.js'
 import { blockProbability, rollHazard } from './hazard.js'
+import { type MishapKind, caravanPullS, mishapLambda, mishapStopS } from './mishap.js'
 import {
   mateSeesTrouble,
   pullerCollapsed,
@@ -1108,6 +1109,12 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
   // igual que en la v13.
   const rngAbandon = streams('abandon')
   const rngCrash = streams('crash')
+  /**
+   * Subflujo NOMINAL de los PERCANCES MECÁNICOS (R11, SPEC 6.1). Mismo motivo que `rngCrash` y por
+   * eso va justo al lado: el dado del pinchazo no puede desplazar el de la caída, o una etapa con
+   * los percances apagados dejaría de salir dígito a dígito como antes.
+   */
+  const rngPercance = streams('percance')
   const rngDay = streams('day')
   /**
    * EL HUMOR DEL PELOTÓN (v38). El dueño: «también la probabilidad de que el pelotón eche la hueva y
@@ -1966,6 +1973,29 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
   const colocacionOn = input.flags?.placement === true || STAGE.placement.enabled
   /** ¿Y la tregua, el rescate y el hundimiento observable del paso 12? Ver `STAGE.truce.enabled`. */
   const rescateOn = input.flags?.truce === true || STAGE.truce.enabled
+  /** ¿Y los percances mecánicos del paso 13? Ver `STAGE.mishap.enabled`. */
+  const percancesOn = input.flags?.mishap === true || STAGE.mishap.enabled
+  /**
+   * EL ORDEN DE LA CARAVANA (R11.2). Los coches van detrás del pelotón **por orden de general**: el
+   * del equipo del líder, primero. No es protocolo: son treinta segundos sistemáticos de ventaja
+   * para su hombre cada vez que pincha, y treinta de castigo para el del equipo modesto. Cambia cada
+   * día con la clasificación, que es lo que lo hace una regla y no una constante.
+   *
+   * Sin general en juego —una clásica, un banco sintético— el orden es el de los ids, que es el
+   * mismo desempate determinista que usa el resto del fichero.
+   */
+  const convoyRank = new Map<string, number>()
+  {
+    const filas = [...teamPlans.values()].map((p) => ({
+      teamId: p.teamId,
+      deficit:
+        p.gcLeaderId !== null
+          ? (sims.get(p.gcLeaderId)?.input.gcDeficitSeconds ?? Number.POSITIVE_INFINITY)
+          : Number.POSITIVE_INFINITY,
+    }))
+    filas.sort((a, b) => a.deficit - b.deficit || (a.teamId < b.teamId ? -1 : 1))
+    filas.forEach((f, i) => convoyRank.set(f.teamId, i + 1))
+  }
   /**
    * CUÁNTO SE APARTA DEL TURNO ESTE HOMBRE (R13.2 + R13.3, paso 12). Dos motivos, y los dos son
    * lectura y no física: **está apagado** —por debajo del 15 % de depósito uno no da relevos,
@@ -6986,8 +7016,94 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         }
       }
     }
+    /**
+     * …Y EL DADO DEL PERCANCE MECÁNICO (R11, paso 13), que hasta hoy no existía: en este motor nadie
+     * pinchaba. Va junto al de la caída porque comparte su forma —un dado por bloque y un precio—,
+     * pero el precio no lo pone el azar: **lo pone la organización de la carrera**. Cuánto tarda TU
+     * coche depende de por dónde vayas, de qué puesto ocupe tu equipo en la caravana y de si la
+     * carretera deja pasar a alguien.
+     */
+    const mishapCheck = (group: Group): void => {
+      if (!percancesOn) return
+      const terreno: 'llano' | 'subida' | 'descenso' | 'paves' =
+        block.tipo === 'paves'
+          ? 'paves'
+          : block.tipo === 'subida'
+            ? 'subida'
+            : block.tipo === 'descenso'
+              ? 'descenso'
+              : 'llano'
+      /**
+       * ¿HAY COCHES AQUÍ? La caravana va detrás del grupo principal y por carretera abierta. En
+       * cabeza de carrera, en un puerto o con la carrera partida **no hay a quién esperar**, y el
+       * mismo pinchazo cuesta minutos en vez de segundos. Ésa es la mitad de la regla.
+       */
+      const hayCaravana = group.id === (mainId ?? PELOTON) && !onClimb
+      for (const m of membersOf(group.id)) {
+        const lambda = mishapLambda(terreno, lluvia, colocacionOn ? m.placement : 0.5)
+        if (!rollHazard(rngPercance, lambda)) continue
+        const kind: MishapKind =
+          rngPercance() < STAGE.mishap.mechanicalShare ? 'averia' : 'pinchazo'
+        const equipo = teamOf.get(m.input.riderId)
+        const acceso = {
+          placement: colocacionOn ? m.placement : 0.5,
+          convoyRank: equipo != null ? (convoyRank.get(equipo) ?? 1) : convoyRank.size + 1,
+          hayCaravana,
+        }
+        /**
+         * Y LO PERDIDO NO ES LO PARADO: volver al pelotón por el pasillo de los coches devuelve
+         * doce segundos por kilómetro durante seis (R11.3). Con caravana, un pinchazo del hombre
+         * del equipo del líder es un susto; sin ella, es el día.
+         */
+        const parado = mishapStopS(kind, acceso)
+        const perdido = Math.max(0, parado - caravanPullS(STAGE.mishap.caravanMaxKm, hayCaravana))
+        incidents.push({
+          riderId: m.input.riderId,
+          km,
+          tipo: kind,
+          severidad: 'none',
+          perdidaS: perdido,
+          diasBaja: 0,
+        })
+        /**
+         * **UN PINCHAZO NO ES UNA BAJA**, y ésta es la corrección que costó la tanda.
+         *
+         * Escrito como `dropOut(m, group, perdido)` —sacar al hombre del grupo con su tiempo
+         * encima—, cada percance metía al que pincha en la misma maquinaria que termina carreras: un
+         * corredor suelto, lejos y solo, que acaba fuera de control. Con treinta pinchazos en una
+         * clásica de tierra eso no es un detalle: medido, **las bajas por caída del pavé saltaban del
+         * 5-12 % al 17,4 %** —el guardarraíl que el propio diseño avisa que este paso no puede mover,
+         * porque «los pinchazos no son bajas»— y de paso se llevaba por delante la fuga de montaña
+         * (24,2 % contra un suelo de 25) y al mejor sprinter (48,3 % contra un techo de 45).
+         *
+         * Lo que pasa en carretera es lo otro: uno se para, cambia, vuelve por el pasillo de los
+         * coches y **casi siempre reengancha**. Eso el motor ya sabe contarlo y tiene nombre: la
+         * DERIVA, segundos cedidos de verdad que todavía se pueden recuperar. Solo cuando lo perdido
+         * pasa del umbral en que la goma se rompe (`driftDropGapSeconds`) el hombre deja de ir en el
+         * grupo, y entonces sí sale — que es pinchar en el puerto final sin coche detrás.
+         */
+        m.mishapKm = km
+        if (perdido > STAGE.driftDropGapSeconds) dropOut(m, group, perdido)
+        else m.driftS += perdido
+        log.emit(
+          km,
+          group.tS,
+          'percance',
+          kind === 'averia' ? 'mechanical' : 'puncture',
+          [m.input.riderId],
+          {
+            perdidaS: Math.round(perdido),
+            conCoche: hayCaravana ? 1 : 0,
+            toGo: Math.round(totalKm - km),
+          },
+        )
+      }
+    }
+
     crashCheck(peloton)
     for (const m of moves) crashCheck(m.g)
+    mishapCheck(peloton)
+    for (const m of moves) mishapCheck(m.g)
     // …y EN LOS GRUPETOS también (v16). El bucle recorría el pelotón y los escapados, y a los
     // descolgados no los miraba nadie: un corredor que se soltaba en el km 40 cruzaba los 20 km de
     // descenso siguientes con probabilidad CERO de caerse. Mientras el descolgado volvía siempre al
@@ -6995,6 +7111,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
     // media etapa, y medido, las lesiones de una gran vuelta caían de 65 a 28 sin que ninguna ley de
     // las caídas hubiera cambiado. Un grupeto que baja un puerto se cae; menos, pero se cae.
     for (const sg of [...shed]) crashCheck(sg)
+    for (const sg of [...shed]) mishapCheck(sg)
 
     // Regla 7: **y a veces no se llega**. Nadie sostiene el esfuerzo de un puente indefinidamente;
     // pasados sus kilómetros, el que saltó baja el ritmo al de un grupo cualquiera y se queda en
