@@ -4457,6 +4457,52 @@ export const STAGE = {
     wheelPickWeight: 0.5,
   },
 
+  /**
+   * LA MEMORIA DE LA CARRERA (R09 + R10, docs/tactica.md paso 16). Hasta aquí cada etapa de una gran
+   * vuelta se corría **como si fuera la primera**, y esa amnesia es la causa directa de una de las
+   * quejas del dueño —«gana dos etapas seguidas»—: al ganador de ayer se le daba hoy exactamente la
+   * misma cuerda que a cualquiera.
+   */
+  memory: {
+    enabled: true,
+    /**
+     * EL HUMOR TIENE CAUSA (R09.1). El día después de la reina el pelotón no sale igual que la
+     * víspera de un descanso. La última etapa lleva su propio signo: se rueda de paseo hasta el
+     * circuito y ahí se enciende.
+     */
+    moodEffect: {
+      ninguno: 0,
+      reina_ayer: -0.12,
+      vispera_reina: -0.08,
+      post_descanso: -0.06,
+      vispera_descanso: 0.05,
+      traslado_largo: -0.05,
+      calor: 0,
+      tregua: -0.1,
+      ultima_etapa: -0.2,
+    } as Record<string, number>,
+    moodHeat: 0.1,
+    /**
+     * Y EL DADO SE ENCOGE A LA MITAD (0,14 → 0,07), no se retira. El dueño pidió con nombre «la
+     * probabilidad de que el pelotón eche la hueva»: un humor sin azar sería otro defecto.
+     */
+    moodSpread: 0.07,
+    /**
+     * LA MEMORIA DE LA ADUANA (R09.2). Van sobre `payable` —lo que uno paga por cerrar— y NO sobre
+     * `objection` —si le molesta—: con la objeción saturada en 1, multiplicarla no movía un dígito
+     * y la queja seguía viva. Son descuentos fuertes, no vetos.
+     */
+    customsYesterdayWinner: 1.6,
+    customsBurnedUs: 1.5,
+    /** LA DESESPERACIÓN (R09.4): quince días sin nada y se mete en todo. */
+    desperationDays: 7,
+    desperationAttackGain: 0.5,
+    /** Y el que ya cumplió guarda a su gente. */
+    wonAlreadyDamp: 0.7,
+    /** LA DEUDA (R09.3): al que ayer no relevó, hoy no se le releva. */
+    relayDebtPenalty: 0.8,
+  },
+
   launchWorstFinisherM: 90,
 
   muroMaxKm: 1,

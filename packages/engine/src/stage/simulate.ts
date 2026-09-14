@@ -46,6 +46,13 @@ import {
 } from './physics.js'
 import { blockProbability, rollHazard } from './hazard.js'
 import { type Train, advanceTrain, orderHelpers, trainSpanKm } from './train.js'
+import {
+  alreadyWonDamp,
+  desperation,
+  desperationAttackGain,
+  moodCentre,
+  moodSpread,
+} from './memory.js'
 import { type MishapKind, caravanPullS, mishapLambda, mishapStopS } from './mishap.js'
 import {
   mateSeesTrouble,
@@ -1142,8 +1149,33 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
    * ocho grandes vueltas de 2024-2026: la fuga gana ~12 % de las etapas llanas (unas 5 de 41), y el
    * motor con el humor centrado en 1 daba 4 %.
    */
+  /**
+   * …Y DESDE EL PASO 16, EL HUMOR TIENE CAUSA (R09.1). El día después de la reina el pelotón no sale
+   * igual que la víspera de un descanso, y eso no lo decide un dado: lo decide el calendario, que
+   * `packages/db` ya conoce y hace viajar en la memoria.
+   *
+   * **El dado no se retira, se encoge a la mitad**, y eso es deliberado: el dueño pidió con nombre
+   * «la probabilidad de que el pelotón eche la hueva». Un humor sin azar sería otro defecto, no un
+   * arreglo. La tirada se consume igual —el subflujo no se desplaza—, cambia su amplitud y su
+   * centro.
+   */
+  const memoriaOn = input.flags?.memory === true || STAGE.memory.enabled
+  const memoria = memoriaOn ? input.race?.memory : undefined
+  /**
+   * ¿ESTE EQUIPO TIENE MOTIVO PARA ACORTAR LA CUERDA HOY? Dos memorias distintas y las dos cuentan:
+   * **lleva al ganador de ayer** —al que no se le da otra— o **es el equipo al que la fuga le robó
+   * la etapa ayer**, que hoy no le da cuerda a nadie.
+   */
+  const llevaAlGanadorDeAyer = (ids: readonly string[]): boolean => {
+    const ganador = memoria?.yesterdayWinnerId ?? null
+    return ganador !== null && ids.includes(ganador)
+  }
+  const tiradaHumor = 2 * streams('mood')() - 1
   const humorDelPeloton =
-    STAGE.pelotonMoodCentre + STAGE.pelotonMoodSpread * (2 * streams('mood')() - 1)
+    memoria != null
+      ? moodCentre(memoria.moodCause, stageWeather(seed, input.lugar).calor) +
+        moodSpread(true) * tiradaHumor
+      : STAGE.pelotonMoodCentre + STAGE.pelotonMoodSpread * tiradaHumor
   /**
    * EL VIENTO DEL DÍA (v41, docs/motor.md §19). Una propiedad de la etapa, como el humor: se sortea
    * una vez, vale para todo el día y no depende de nadie. Lo que se sortea es cuánto pega DE LADO,
@@ -1870,10 +1902,29 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
      */
     const escaparate =
       colocacionOn && sim?.input.contractYear === true ? 1 + STAGE.placement.showcaseAppetite : 1
+    /**
+     * …Y LA DESESPERACIÓN, QUE ES LA OTRA MITAD DEL MISMO RELOJ (R09.4, paso 16): «el que cumplió
+     * guarda a su gente; el que lleva quince días sin nada mete dos hombres en todos los intentos».
+     *
+     * Escala con los días secos en vez de ser un binario, y su contrario también: el equipo que ya
+     * tiene su etapa deja de quemar hombres. Las dos cosas salen de la memoria que `packages/db`
+     * construye, así que en una carrera de un día valen 1 por construcción.
+     */
+    const suEquipo = sim != null ? (teamOf.get(sim.input.riderId) ?? null) : null
+    const humorDeCarrera =
+      memoria != null
+        ? desperationAttackGain(desperation(memoria, suEquipo)) * alreadyWonDamp(memoria, suEquipo)
+        : 1
     const t = teamOf.get(riderId)
-    if (t == null) return deJersey * olfato * escaparate
+    if (t == null) return deJersey * olfato * escaparate * humorDeCarrera
     const stance = teamNow.get(t)
-    return (stance == null ? 1 : teamAttackFactor(stance, colaOn)) * deJersey * olfato * escaparate
+    return (
+      (stance == null ? 1 : teamAttackFactor(stance, colaOn)) *
+      deJersey *
+      olfato *
+      escaparate *
+      humorDeCarrera
+    )
   }
 
   /**
@@ -2297,6 +2348,8 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       })),
       gapSeconds,
       kind,
+      // …Y SI DENTRO VA EL GANADOR DE AYER, AL PELOTÓN ENTERO LE PICA (R09.2, paso 16).
+      hasYesterdayWinner: llevaAlGanadorDeAyer(dentro.map((m) => m.input.riderId)),
     }
   }
 
@@ -2342,6 +2395,16 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         quality: plan.quality,
         leashSeconds: leashAhora,
         closing: cerrandoAhora.has(plan.teamId),
+        /**
+         * …Y LA MEMORIA DE AYER, QUE ES LO QUE FALTABA (R09.2, paso 16). El campo existía desde el
+         * paso 6 con su constante y su test unitario, y **nadie lo rellenaba nunca**: el ganador de
+         * ayer recibía hoy exactamente la misma cuerda que cualquiera, que es la queja del dueño
+         * —«gana dos etapas seguidas»— en su forma más literal.
+         *
+         * Multiplica sobre lo que el equipo está dispuesto a PAGAR por cerrar, no sobre si le
+         * molesta: con la objeción saturada en 1, multiplicarla no movía un dígito.
+         */
+        hasYesterdayWinner: memoria != null && (memoria.burnedTeams ?? []).includes(plan.teamId),
       })
     }
     return out

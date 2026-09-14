@@ -13169,3 +13169,78 @@ reina no hay tren de sprint que montar — el de montaña es otra pieza y entra 
 La escala, por comparación: mover la ventana **vieja** a quince kilómetros —poner a los veinte
 lanzadores del campo al frente desde el km 15— sí voltea carreras (fuga 5 % → 0 %, captura 94,7 % →
 100 %). El tren de R16 hace lo contrario: pone a **uno por equipo** en vez de a veinte.
+
+## v60 §19 — paso 16, la carrera se acordaba de nada
+
+`ENGINE_VERSION` **69 → 69, sin subida**, y el porqué es la mitad de la nota. R09 + R10:
+`stage/memory.ts` nuevo.
+
+### El defecto
+
+Cada etapa de una gran vuelta se corría **como si fuera la primera**: el pelotón no recordaba quién
+ganó ayer, a quién le robaron la etapa, quién lleva quince días sin nada ni quién le debe un relevo a
+quién. Esa amnesia es la causa directa de una de las quejas del dueño —«gana dos etapas seguidas»—,
+porque al ganador de ayer se le daba hoy exactamente la misma cuerda que a cualquiera.
+
+La memoria **la construye `packages/db`** y el motor la **recibe y no la escribe**. No es una
+comodidad: es lo que mantiene la frontera que hace que ningún banco se rompa, y lo que hace que una
+carrera de un día —donde no hay ayer— corra igual que antes sin una sola guarda especial.
+
+### El humor deja de ser un dado, medido
+
+| llana canónica, 120 semillas   | gana la fuga | gana el mejor sprinter |
+| ------------------------------ | ------------ | ---------------------- |
+| sin memoria                    | 5,8 %        | 40,0 %                 |
+| memoria presente, sin causa    | 12,5 %       | 35,0 %                 |
+| **el día después de la reina** | **10,0 %**   | 40,8 %                 |
+| **víspera de descanso**        | **7,5 %**    | 41,7 %                 |
+
+Las causas mueven la carrera en la dirección que dicen: el día después de la reina el pelotón da más
+cuerda, la víspera de un descanso menos. Y el salto del 5,8 % al 12,5 % es **el encogimiento del
+dado** —de 0,14 a 0,07—, que no es un efecto secundario sino la otra mitad de R09.1: un humor menos
+extremo da más días de cuerda media, que son los días en que una fuga llega.
+
+**El dado no se retira, se encoge.** El dueño lo pidió con nombre —«la probabilidad de que el pelotón
+eche la hueva»— y un humor sin azar sería otro defecto, no un arreglo.
+
+### Y una corrección de dirección, más un hallazgo que hay que decir
+
+**La corrección.** El campo `hasYesterdayWinner` existía desde el paso 6, con su constante y su test
+unitario, y nadie lo rellenaba. Al rellenarlo me equivoqué de lado: lo puse en el EQUIPO, y eso hacía
+que el equipo **del ganador** pagara más por cazarse a sí mismo. Son dos memorias distintas y viven
+en sitios distintos:
+
+- **del movimiento**: dentro va el ganador de ayer, y a ése no se le da otra. Lo piensa el pelotón
+  entero, no su propio equipo;
+- **del equipo**: a éstos la fuga les robó la etapa ayer, y hoy no dan cuerda a nadie.
+
+**El hallazgo.** Con las dos puestas y bien, el número **no se mueve ni un dígito**: fuga 12,5 % con
+y sin el ganador de ayer dentro, y el cazaetapas de ayer se fuga el 15,8 % de las veces en los dos
+brazos. La causa no es la regla: **R09.2 cuelga de la aduana (R03/R04), y ese racimo está apagado**,
+así que `payableOf` no se llama nunca y no hay nada que multiplicar.
+
+Así que la regla queda escrita, cableada y con su medida diciendo exactamente eso: **se enciende el
+día que se encienda la aduana**, y ese día su A/B es de una línea. No se apunta una mejora que no se
+ha medido.
+
+### Por qué no sube la versión
+
+Los cuatro escenarios canónicos **corren sin `race.memory`** —son bancos sintéticos y carreras de un
+día— así que con el interruptor puesto salen dígito a dígito iguales y las huellas no se tocan. La
+capa entra encendida y **solo despierta cuando `packages/db` le da de comer**, que es el PR hermano.
+
+### Y el invariante 74 se retira **en su mitad**, con la causa escrita
+
+«Con el contexto puesto y quitado, la carrera es la misma» (invariante 74) se puso rojo, y su propio
+comentario decía que tenía que ponerse rojo el día que el contexto empezara a decidir algo. Pero no
+todo el contexto decide: se parte en dos.
+
+- `race.memory` **se lee desde hoy**. Que una etapa con memoria salga distinta de una sin ella **es
+  el paso funcionando**, y se comprueba ahora con su prueba propia y de signo contrario: si NO
+  cambiara, R09 no estaría haciendo nada.
+- El resto —`shape`, `standings`, `stageDay`— **sigue sin decidir nada**, y las dos pruebas que lo
+  vigilan quedan intactas.
+
+Lo que el invariante protege de verdad es que un campo nuevo no cambie la conducta **por accidente**
+—por entrar en un orden de iteración, en una clave de mapa o en un `JSON.stringify` que siembre un
+dado—. Lo que cambia a propósito nunca fue lo que vigilaba.
