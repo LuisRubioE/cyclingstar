@@ -4,6 +4,11 @@ Lo que falta por hacer, en las palabras del dueño y con lo que el motor sabe ho
 Orden de trabajo acordado: **primero los dos bugs**, luego las tres EPICs delegadas, y por encima
 de todo eso la lista grande, que es la que de verdad decide qué juego es éste.
 
+> **Este documento habla del MOTOR y del MUNDO.** Lo que falta FUERA de la simulación (correo,
+> administración y moderación, multiidioma, pagos, la capa de lectura, el aprendizaje del jugador,
+> la integridad competitiva) vive en [docs/agenda.md](./agenda.md). Tres entradas de la lista grande
+> son en realidad de allí y se citan desde allí sin duplicarse: **G2**, **G7** y **G11**.
+
 ---
 
 ## Bugs abiertos (NO son EPICs)
