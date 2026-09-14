@@ -710,6 +710,10 @@ function relayTurn(
    * de otros corredores, y esta función solo ve el grupo. Vale 0 con el paso apagado.
    */
   seApartaDe: (riderId: string) => number = () => 0,
+  /** ¿Están encendidas las once palancas del paso 17? Ver `STAGE.ordenes.enabled`. */
+  ordenesRef = false,
+  /** Qué equipos van en este grupo, para poder aplicar «con ésos no colaboro». */
+  equiposEnElGrupo: (ids: ReadonlySet<string>) => ReadonlySet<string> = () => new Set<string>(),
 ): Set<string> {
   const scored = members.map((m) => {
     const helpers = domestiquesFor.get(m.input.riderId)
@@ -742,6 +746,17 @@ function relayTurn(
      * segundos, no una rebaja de ese umbral: bajarlo es otro paso, con su huella delante.
      */
     const seAparta = seApartaDe(m.input.riderId)
+    /**
+     * …Y LA SEGUNDA PATA DE `effort` (R22, §6.2, paso 17): **«con ésos no colaboro»** (S-256). Se
+     * cobra donde duele y donde el jugador lo entiende sin que nadie se lo explique —en el deber de
+     * relevo— y solo cuando el rechazado va en este grupo: negarse a relevar a alguien que no está
+     * no significa nada.
+     */
+    const rencor =
+      ordenesRef &&
+      (m.input.orders.refuseRelayTeams ?? []).some((t) => equiposEnElGrupo(idSet).has(t))
+        ? STAGE.ordenes.refuseRelayPenalty
+        : 0
     return {
       id: m.input.riderId,
       // …y si sus hombres trabajan por él. En un abanico es lo ÚNICO que sigue sacando a alguien del
@@ -755,6 +770,7 @@ function relayTurn(
         // salían con el deber en negativo por no tener opciones— y los 159 de detrás, que sí ponían
         // veinte, se lo comían.
         seAparta -
+        rencor -
         (enAbanico ? 0 : STAGE.relayNoChanceWeight * paraMí * sinOpciones(m.input.riderId)) -
         /**
          * EL MAILLOT NO DA LA CARA AL VIENTO MIENTRAS HAYA OTRO QUE PUEDA (v57).
@@ -1116,6 +1132,12 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
   // en montaña. Con subflujo propio, una etapa en la que no se retira nadie sale dígito a dígito
   // igual que en la v13.
   const rngAbandon = streams('abandon')
+  /**
+   * ¿Y LAS ONCE PALANCAS DEL JUGADOR DEL PASO 17? Ver `STAGE.ordenes.enabled`. Va arriba del todo
+   * porque una de ellas —el cerillo de más de `a_tope`— se lee al construir el campo, antes de que
+   * la carrera empiece.
+   */
+  const ordenesOn = input.flags?.ordenes === true || STAGE.ordenes.enabled
   const rngCrash = streams('crash')
   /**
    * Subflujo NOMINAL de los PERCANCES MECÁNICOS (R11, SPEC 6.1). Mismo motivo que `rngCrash` y por
@@ -1279,7 +1301,14 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       bonusS: 0,
       sprintPts: 0,
       climbPts: 0,
-      matches: r.matches,
+      /**
+       * …Y `a_tope` DA UN CERILLO MÁS (R22, §6.2, paso 17). Es la primera de las tres patas nuevas
+       * de una palanca que hasta hoy movía **una sola cosa** —±0,5 en el deber de relevo— y que por
+       * eso se sentía desconectada desde el otro lado de la pantalla.
+       */
+      matches:
+        r.matches +
+        (ordenesOn && r.orders.effort === 'a_tope' ? STAGE.ordenes.aTopeExtraMatches : 0),
       matchBoostS: 0,
       // Subflujo NOMINAL por corredor: el desempate del turno de relevos no depende del orden del
       // array de entrada ni del tamaño del pelotón, solo de la semilla y del id (SPEC 6.1).
@@ -1826,6 +1855,9 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       // nuevo: es `finishScore` sobre `deriveFinishTerrain`, la misma cuenta del sprint.
       finishScore: finishScore(r.eff0, stageFinishType),
       gcDeficitSeconds: r.gcDeficitSeconds,
+      // Lo que ha puesto en «cuánto quiero gastar hoy» (R22, paso 17): decide el presupuesto de su
+      // equipo, que es donde esa palanca de verdad se paga.
+      ...(r.orders.effort ? { effort: r.orders.effort } : {}),
     })),
     { bunchFinish, hasGcContext },
   )
@@ -2152,6 +2184,15 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
   let treguaDe: string | null = null
   /** Una por etapa y por equipo: nadie pide tregua dos veces el mismo día. */
   const treguaPedidaPor = new Set<string>()
+  /** Los equipos representados en un grupo. Lo necesita «con ésos no colaboro» (S-256). */
+  const equiposDe = (ids: ReadonlySet<string>): ReadonlySet<string> => {
+    const out = new Set<string>()
+    for (const id of ids) {
+      const t = teamOf.get(id)
+      if (t != null) out.add(t)
+    }
+    return out
+  }
   const seApartaDelTurno = (riderId: string): number => {
     if (!rescateOn) return 0
     const m = sims.get(riderId)
@@ -4458,6 +4499,8 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
             ? 'subida'
             : 'llano',
         seApartaDelTurno,
+        ordenesOn,
+        equiposDe,
       )
       /**
        * CUÁNTOS SE REPARTEN EL VIENTO AL FRENTE: LOS QUE TIRAN, y punto (v38).
@@ -5245,9 +5288,27 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
           // justo lo que paga la reserva: sin reserva ya no se cubren, y el corredor cae de golpe a
           // su nivel de verdad. Ese escalón ES el hundimiento (v26).
           // …y el MARCADOR mide su deriva contra su objetivo, no contra el grupo (`markedPerfil`).
-          const own =
-            (markedPerfil(m, block) ?? riderPerfil(m, block)) +
-            (m.reserveS > 0 ? STAGE.dropDeficitTolerance : 0)
+          /**
+           * …Y LA TERCERA PATA DE `effort` (R22, §6.2, paso 17): **cuánto aguanta uno apretando los
+           * dientes antes de empezar a ceder de verdad**.
+           *
+           * El que sale a vaciarse se muerde la reserva antes —tolera un 25 % más de déficit— y el
+           * que sale a guardarse, después. Es la diferencia entre «hoy lo doy todo» y «hoy llego»,
+           * dicha en la moneda en que el motor la cobra, y hasta hoy la pantalla la prometía sin que
+           * la carretera la cumpliera.
+           */
+          const aguante =
+            m.reserveS > 0
+              ? STAGE.dropDeficitTolerance *
+                (ordenesOn
+                  ? m.input.orders.effort === 'a_tope'
+                    ? 1 + STAGE.ordenes.reserveThresholdShift
+                    : m.input.orders.effort === 'ahorrar'
+                      ? 1 - STAGE.ordenes.reserveThresholdShift
+                      : 1
+                  : 1)
+              : 0
+          const own = (markedPerfil(m, block) ?? riderPerfil(m, block)) + aguante
           const drift = blockSeconds(targetSpeed(block, own, group.compromiso, turno)) - vPace
           if (drift <= 0) {
             // Va sobrado: recupera reserva y cierra el hueco que llevara abierto. Es la otra mitad

@@ -97,7 +97,45 @@ export interface StageOrders {
   triggerKm?: number | null
   contestSprints: boolean
   contestClimbs: boolean
+  /**
+   * --- LAS CUATRO PALANCAS QUE EL PASO 17 AÑADE (R22, §6.2), TODAS OPCIONALES -----------------
+   *
+   * Las siete de hoy se conservan enteras y el juego pasa a tener **once**, que es el número del
+   * que hablan `ordersBench` y los tres invariantes del racimo. Todas opcionales a propósito: unas
+   * órdenes viejas —o unas de un bot— corren exactamente como antes.
+   */
+  /**
+   * LA CITA DEJA DE SER SOLO UN KILÓMETRO (S-214/S-321/S-322). «Al pie del último puerto», «si salta
+   * Z», «si la fuga pasa de dos minutos», «si llueve»: un kilómetro es la forma más pobre de decir
+   * cuándo, porque es la única que no depende de la carrera.
+   */
+  triggerOn?: TriggerCond | null
+  /** «SI LA FUGA PASA DE DOS MINUTOS, TIRO» (S-215, S-071): la política de caza del equipo. */
+  chasePolicy?: ChasePolicy
+  /** «CON ÉSOS NO COLABORO» (S-256). Se cobra donde duele: en el turno de relevos. */
+  refuseRelayTeams?: string[]
+  /** «HOY ME VOY AL GRUPETO» / «HOY ES MI DÍA» (S-216, S-024, S-030). Declara, no negocia. */
+  dayGoal?: DayGoal
 }
+
+/**
+ * CUÁNDO LANZA SU MOVIMIENTO ESTE HOMBRE (R22, S-214/S-321/S-322). Seis formas de decir «cuándo», y
+ * cinco de ellas dependen de lo que pase en la carretera — que es toda la diferencia entre una cita
+ * y un despertador.
+ */
+export type TriggerCond =
+  | { at: 'km'; km: number }
+  | { at: 'climb'; which: 'last' | 'penultimate'; part: 'pie' | 'duro' | 'cima' }
+  | { at: 'attack'; byRiderId: string }
+  | { at: 'gap'; overS: number }
+  | { at: 'weather'; cond: 'lluvia' | 'viento' }
+  | { at: 'sector'; index: number }
+
+/** Qué hace su equipo con una fuga: nunca perseguir, perseguir si amenaza, o perseguir siempre. */
+export type ChasePolicy = 'nunca' | 'si_amenaza' | 'siempre'
+
+/** A qué sale hoy este hombre. Es una declaración, no una negociación (§6.3). */
+export type DayGoal = 'ganar' | 'general' | 'puntos' | 'montana' | 'grupeto' | 'ahorrar' | 'servir'
 
 /** Un corredor tal como entra al motor (SPEC 6.1, 6.5, 6.6): efectividades ya resueltas. */
 export interface StageRider {

@@ -4517,6 +4517,34 @@ export const STAGE = {
   },
 
   /**
+   * LAS ONCE PALANCAS DEL JUGADOR (R22, docs/tactica.md paso 17). Contesta a la queja fundacional
+   * del dueño —**«el resultado es casi lo mismo ponga lo que ponga ahí»**— con mecánica y no con un
+   * aviso en pantalla.
+   *
+   * Y la mitad de esa queja es `effort`, que hoy actúa **en un solo sitio**: un término de ±0,5 en
+   * el deber de relevo. Un botón que mueve una cosa y nada más es, desde el otro lado de la
+   * pantalla, un botón desconectado.
+   */
+  ordenes: {
+    enabled: true,
+    /** `a_tope` da un cerillo más; `ahorrar` no quema por no soltarse (S-069, y lo dice la UI). */
+    aTopeExtraMatches: 1,
+    /** Y la reserva se muerde antes o después: ±25 % sobre el umbral de gasto. */
+    reserveThresholdShift: 0.25,
+    /**
+     * EL PRESUPUESTO DEL DÍA, que es donde `effort` de verdad se paga: el que sale a vaciarse gasta
+     * un 40 % más hoy y menos mañana; el que se guarda, un 30 % menos y se lo lleva. Sin R10 —el
+     * plan de varios días— el «mañana» no existe todavía y solo cuenta el de hoy.
+     */
+    aTopeBudget: 1.4,
+    ahorrarBudget: 0.7,
+    /** «CON ÉSOS NO COLABORO» (S-256): se cobra donde duele, en el deber de relevo. */
+    refuseRelayPenalty: 1.2,
+    /** «HOY ME VOY AL GRUPETO»: se deja ir antes, y eso es una orden, no un descuelgue. */
+    grupetoGiveUpKmToGo: 60,
+  },
+
+  /**
    * CUÁNTO DURA «LA CARRERA SE PARTIÓ POR LA CAÍDA» (R23.3, paso 17). Pasados dos kilómetros, el
    * corte que se abre ya no es del montón: es de lo que venga detrás.
    */

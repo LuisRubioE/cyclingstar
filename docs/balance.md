@@ -13280,3 +13280,52 @@ mintiendo.
 
 Las cuatro huellas **no se mueven ni un dígito** con el interruptor puesto, que es la comprobación de
 que el racimo hace lo que promete: contar, no decidir.
+
+## v60 §21 — paso 17a (motor), `effort` era un botón de un solo sitio
+
+`ENGINE_VERSION` **69 → 69, sin subida**: los cuatro escenarios canónicos corren sin órdenes de
+esfuerzo, así que con el interruptor puesto salen dígito a dígito iguales.
+
+### La queja fundacional, contestada con mecánica
+
+«El resultado es casi lo mismo ponga lo que ponga ahí.» La mitad de esa queja es `effort`, que hoy
+actúa **en un solo sitio**: un término de ±0,5 en el deber de relevo. Un botón que mueve una cosa y
+nada más es, desde el otro lado de la pantalla, un botón desconectado.
+
+Pasa a tocar cuatro:
+
+| `effort`  | Turno (ya estaba) | **Cerillos**      | **Reserva**       | **Presupuesto del equipo** |
+| --------- | ----------------- | ----------------- | ----------------- | -------------------------- |
+| `ahorrar` | −0,5 de deber     | como hoy          | aguanta **−25 %** | **× 0,7**                  |
+| `normal`  | 0                 | como hoy          | como hoy          | 1,0                        |
+| `a_tope`  | +0,5 de deber     | **+1 disponible** | aguanta **+25 %** | **× 1,4**                  |
+
+Y con ellas entran las **cuatro palancas nuevas** que completan las once del diseño: `triggerOn` —la
+cita deja de ser solo un kilómetro, que es la única forma de decir «cuándo» que no depende de la
+carrera—, `chasePolicy`, `refuseRelayTeams` («con ésos no colaboro», cobrado donde duele: en el turno
+de relevos) y `dayGoal`.
+
+### Medido, y con una lectura que hay que hacer bien
+
+Poniendo el mismo `effort` a todo el equipo del mejor sprinter, 60 semillas de la llana canónica:
+
+| efecto sobre el mejor sprinter | apagado | encendido |
+| ------------------------------ | ------- | --------- |
+| `a_tope` — puesto medio        | 4,2     | **3,6**   |
+| `ahorrar` — puesto medio       | 3,6     | 3,8       |
+
+El que sale a vaciarse llega **medio puesto más arriba** con las tres patas nuevas puestas: el
+cerillo de más, la reserva que aguanta un cuarto más y el presupuesto de equipo un 40 % mayor.
+
+**Y la lectura que NO hay que hacer**: el win-rate de `a_tope` (36,7 %) sigue por debajo del de
+`ahorrar` (45 %) **en los dos brazos**, así que no lo causa este paso. Y no es necesariamente un
+defecto: un velocista que rueda a tope todo el día llega a meta vacío, que es exactamente lo que la
+física debe hacer. El invariante de dirección de R22 se mide con `ordersBench` sobre la métrica que
+cada palanca declara, no sobre el win-rate de un sprinter — y ese banco, con las once palancas, es el
+PR hermano de éste.
+
+### Lo que este PR NO trae, dicho para que no se dé por hecho
+
+Las cuatro palancas nuevas **viajan en el contrato del motor y nadie las puede poner todavía**: eso
+es `packages/db` (migración de `stage_orders`), la API y la pantalla de órdenes, que son los otros
+tres PR del paso 17. Aquí está la mitad que decide; la mitad que se pulsa viene detrás.
