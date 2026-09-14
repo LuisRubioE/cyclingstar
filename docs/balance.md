@@ -13498,19 +13498,28 @@ con su banco y **se escriben en `sim/targets.ts` en el paso 21**, que es el que 
 las bandas nuevas y a sellarlas con su invariante; aquí se declaran medidas, no selladas, y el número
 que las selle será el del paso 21 con el banco de CI delante.
 
-| llana canónica ×200                   | v69 (apagado) | v70 (encendido) | banda   |
+| llana canónica ×600                   | v69 (apagado) | v70 (encendido) | banda   |
 | ------------------------------------- | ------------- | --------------- | ------- |
-| días con abanico                      | 11/200        | 8/200           | —       |
-| **`echelonClosedPct`**                | **0,0 %**     | **50,0 %**      | 30-70 % |
-| aperturas / cierres                   | 27 / 0        | 15 / 4          | —       |
-| **`windDayGapS`**                     | **4,35×**     | **2,60×**       | 1,5-4×  |
-| hombres juntos en meta, día de viento | 24            | **59**          | —       |
+| días con abanico                      | 20/600        | 16/600          | —       |
+| **`echelonClosedPct`**                | **0,0 %**     | **62,5 %**      | 30-70 % |
+| aperturas / cierres                   | 50 / 0        | 28 / 12         | —       |
+| `windDayGapS`                         | 3,53×         | **3,00×**       | 1,5-4×  |
+| hombres juntos en meta, día de viento | 29            | **49**          | —       |
 
-`windDayGapS` **estaba fuera de banda por arriba** (4,35 contra un techo de 4) y entra al cerrarse
-los abanicos: un día de viento seguía siendo el día que más reparte, pero deja de ser una carnicería.
-Y los 24 → 59 hombres juntos en meta son la fila del catálogo que no existía (S-324): **los cortados
+Los 29 → 49 hombres juntos en meta son la fila del catálogo que no existía (S-324): **los cortados
 pueden volver**. No vuelven por decreto —no se les regala un segundo—: vuelven porque su grupo deja de
 calcular su ritmo como una fila de doce y vuelve a repartirse el viento entre todos los que son.
+
+**Y una corrección de esta misma nota, que hay que dejar escrita porque es la lección del racimo.**
+Esta tabla se escribió primero con **200 semillas**, y con 200 el `windDayGapS` de la v69 medía
+**4,35×** —o sea, **fuera de banda por arriba**— y el de la v70, 2,60×. Con 600 salen 3,53× y 3,00×:
+**el motor viejo nunca estuvo fuera de banda, y el número era ruido de muestra pequeña**. El propio
+§4/R14 lo avisa por escrito —«v42 midió que viento, lluvia y calor están **dentro del ruido** con 6
+semillas, así que este banco corre con ×3 semillas o no mide nada»— y aun así el primer barrido se
+hizo corto. Con veinte días de viento sobre seiscientas etapas, una sola carrera rota mueve la
+mediana entera. La afirmación que sobrevive a las seiscientas es la otra, la que de verdad prueba el
+paso: `echelonClosedPct` **0 % → 62,5 %**, que no es una diferencia de muestreo sino una conducta que
+antes no existía.
 
 ### El invariante 43, re-anclado con la causa escrita
 
