@@ -922,6 +922,63 @@ juego es, todos los días y en todas las carreras.
 Es la segunda renumeración de los códigos y **debería ser la última**: propongo congelarlos el día que
 se encargue el primer documento.
 
+### 4.19 El día de vuelta del viaje: existe, y el jugador no puede verlo
+
+El dueño lo reportó así: cuando corres fuera del país hay un día para viajar a la carrera, pero no
+hay un día para volver, y falta. **El modelo sí lo tiene**, y lo que falla es lo que se enseña. Va
+aquí porque el diagnóstico es exactamente el mismo que el del cuadro de entrenamiento (apéndice A):
+motor correcto, pantalla que dice otra cosa.
+
+**Lo que hay, comprobado en los tres sitios donde tenía que estar.** El coste de un desplazamiento se
+paga en dinero y en días, con tres tramos (`TRANSPORT_COST` en `packages/shared/src/travel.ts`): en
+casa 0 días, dentro del continente 1, intercontinental 2. Y esos días se cobran **en las dos
+direcciones**:
+
+- **La ida**: `outboundTravelDays(startGameDay, from, to)` en `packages/db/src/riderSchedule.ts`
+  devuelve los `k` días ANTERIORES a la salida. No se guardan en ninguna columna, se deducen de la
+  convocatoria, que se congela con dos semanas de antelación.
+- **La vuelta**: `calendarRun.ts` escribe `riders.travel_until_day = último día de carrera + k`
+  cuando la carrera termina.
+- **Y las dos bloquean el entrenamiento.** En `packages/db/src/train.ts` el conjunto `travelling` se
+  llena con los dos: primero `if (rider.travelUntilDay != null && rider.travelUntilDay >= gameDay)`,
+  que es la VUELTA, y luego con `ridersTravellingOutbound(...)`, que es la IDA. Quien está en
+  cualquiera de las dos entrena `viaje` y no lo que tuviera planeado.
+- **La vuelta bloquea además la convocatoria**: `homeByStart` en `calendarRun.ts` excluye de una
+  carrera a quien todavía no ha llegado a casa de la anterior, con un comentario que explica que eso
+  se añadió precisamente porque antes se podían apilar carreras encadenadas sobre el mismo corredor.
+
+O sea que el modelo es simétrico y está bien: `k` días para ir y `k` días para volver, con su coste
+en entrenamiento y en disponibilidad.
+
+**Y ahora los dos defectos de verdad, que son de presentación y son reales.**
+
+**Defecto 1: el planificador solo enseña la IDA.** `getRiderTravelDays`, que es lo que alimenta los
+días marcados como «Travel» en el plan, devuelve **solo los días de ida**, y el comentario del propio
+fichero lo dice: «La VUELTA no se deduce aquí, la escribe `calendarRun.ts` en `travel_until_day`
+cuando la carrera termina, porque depende de dónde y cuándo acabó realmente el corredor». Resultado:
+el jugador mira su plan de cuatro semanas, ve un día de viaje **antes** de la carrera y ninguno
+después. Literalmente lo que reportó.
+
+Y la justificación es floja para el caso normal: **el último día de la carrera y el país se conocen
+de antemano igual de bien que la salida**, así que la vuelta se puede predecir con la misma función.
+Lo único que la cambia es un abandono, y un abandono hace que el corredor vuelva ANTES, o sea que la
+corrección va a favor del jugador y se aplica cuando ocurre. Un plan que no ve la mitad del viaje no
+es un plan.
+
+**Defecto 2, y éste es peor porque no omite sino que MIENTE: el número que se enseña es por TRAMO.**
+En `apps/web/src/pages/MyRaces.tsx` se pinta `· {race.travelDays}d`, y ese `travelDays` viene de
+`cost.days`, que es `TRANSPORT_COST[tier].days`, o sea **los días de UN trayecto**. Así que una
+carrera continental se anuncia como «1d» cuando en realidad cuesta **dos** días de entrenamiento (uno
+para ir y otro para volver), y una intercontinental se anuncia como «2d» cuando cuesta **cuatro**. El
+jugador que decide si le compensa inscribirse a una carrera lejana está decidiendo con la mitad del
+precio.
+
+**Dónde se arregla:** los dos son de la misma familia que el cuadro de entrenamiento, así que van con
+él al examen práctico de **E3** (el sistema visual), con la parte de derivar la vuelta en el
+planificador tocando también la API. Son pequeños los dos. Y una advertencia de método: **no lo
+compruebo contra lo que la otra línea esté escribiendo ahora mismo**, solo contra el código de esta
+rama, así que si esa línea ya lo ha tocado, esto se contrasta antes de arreglar nada.
+
 ## 5. El catálogo de diseños
 
 Veinte documentos. Los códigos son nuevos (`D`) para no chocar con los `G` y `N` de `epics.md`. El

@@ -206,7 +206,18 @@ no se entiende. Los tres defectos están comprobados contra el código y detalla
    correcta y ya está escrita, pero vive en el texto de ayuda del selector de modo, que está en el
    panel de ARRIBA, así que quien baja a los 28 días no la ve.
 
-Los tres son de presentación y ninguno se arregla con más motor, que es justo lo que este documento
+**Y en el mismo examen entran los dos defectos del VIAJE, que son de la misma familia** (§4.19 de
+`agenda.md`). El modelo de viajes es simétrico y correcto: cuesta `k` días ir y `k` días volver (0 en
+casa, 1 continental, 2 intercontinental), y las dos direcciones bloquean el entrenamiento en
+`train.ts` y la vuelta bloquea además la convocatoria. Pero **el planificador solo enseña la ida**,
+porque `getRiderTravelDays` deduce únicamente los días previos a la salida y la vuelta solo existe
+como columna después de correr; el jugador ve un día de viaje antes de la carrera y ninguno después,
+que es exactamente lo que reportó el dueño. Y peor, **el número de días que se enseña en `MyRaces` es
+por TRAMO y no por viaje**: una continental se anuncia como «1d» cuando cuesta dos días de
+entrenamiento, y una intercontinental como «2d» cuando cuesta cuatro, así que quien decide si le
+compensa una carrera lejana decide con la mitad del precio.
+
+Los cinco son de presentación y ninguno se arregla con más motor, que es justo lo que este documento
 tiene que demostrar. El punto 3 se solapa con E6 (arquitectura de información) y eso está bien: que
 salga de aquí la solución visual y de allí dónde vive la explicación.
 
