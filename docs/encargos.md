@@ -172,6 +172,15 @@ entre sí y legibles a tamaño pequeño, que es el tamaño al que se van a ver. 
 vocabulario sirva también para **lo que un patrocinador compra** cuando E8 le venda sitio en la
 camiseta.
 
+**Y el móvil sube de exigencia a CRITERIO DE ACEPTACIÓN, por consejo de quien se lo perdió.** El
+creador de Footstar, preguntado por lo que haría distinto tras veinte años: «sobre todo, haber
+lanzado una app en el momento adecuado; haber entendido rápido el cambio de la web al móvil». Así que
+**si no se juega bien en un teléfono, este documento no está terminado**, y la decisión de no hacer
+app nativa (§4.15.1) lleva ahora una prueba en vez de una defensa: cuando la analítica diga qué parte
+entra desde el móvil, si la web instalable no está a la altura se revisa lo de la app nativa en lugar
+de defender lo que decidimos hoy. Su consejo de cierre toca también a este encargo y cambia su
+presupuesto realista: los maillots, los iconos y los elementos de interfaz son material generable.
+
 **Y una decisión ya tomada que este documento tiene que ejecutar: la aplicación INSTALABLE.** No hay
 app nativa de Android ni de iOS en el plan (el razonamiento está en §4.15.1 de `agenda.md`: un solo
 código en vez de tres, sin revisión de tienda, y el aviso por notificación ya no exige nativo). Lo que
@@ -326,6 +335,23 @@ el mundo entero, y revocar a una persona obliga a rotar el token para todas. Hac
 permisos, **registro de auditoría de toda acción administrativa**, y el circuito de denuncia y
 respuesta que la ley europea exige en cuanto haya contenido escrito por usuarios.
 
+**AVISO DE ALCANCE, que viene de fuera y corrige lo que este documento decía.** El creador de
+Footstar, preguntado por las cuentas múltiples tras veinte años de juego: «no vale la pena ser
+paranoico con esto… es tener las herramientas y automatizar lo que se pueda automatizar… no debe ser
+tu foco, el foco debe ser tener un núcleo de funcionalidades que funcione». Así que este encargo
+**encoge** (§4.22.2 de `agenda.md`): su primera mitad —roles de verdad, **registro de auditoría**, un
+corredor por persona, poder suspender, expulsar y revertir nombres— sigue antes de abrir el mando a
+cualquiera, porque es lo que permite investigar cuando pase algo. Su segunda mitad —detección fina de
+colusión, topes de transferencia, patrones de sacrificio anómalos— se escribe **con casos reales
+delante** y no anticipando abusos que aún no han ocurrido.
+
+**Y una decisión que viene del mismo sitio: el SEGUNDO corredor como válvula.** Footstar acabó
+permitiendo controlar más de un jugador para sostener una población que menguaba. Es la misma palanca
+que «un corredor por persona» vista del otro lado: lo que protege de la multicuenta cuando sobra
+gente es lo que ahoga el juego cuando falta. La propuesta: **uno por persona mientras el mundo
+crece**, y el segundo como válvula **declarada y visible** para un mundo pequeño, nunca por defecto y
+nunca en silencio.
+
 **Y un caso concreto que dimensiona el problema: la repesca de genoma.** Un jugador puede crear
 cuentas hasta que le salga un corredor con buen techo, porque el entrenador se lo dice en la primera
 temporada (§4.20). Dentro de una cuenta no hay repesca posible (no existe borrado de corredor y el
@@ -457,6 +483,18 @@ ciclismo pone sus alianzas: entre rivales. El segundo añadido: **la sucesión d
 desaparece sin avisar**, que es como se va la gente de verdad de los juegos, y que G2.14 no cubre
 porque solo contempla la salida voluntaria.
 
+**Y un requisito que salió de preguntarle al creador de Footstar y que no estaba en ninguna parte:
+que los humanos se AGRUPEN.** Su respuesta sobre el arranque: «intentamos diseñar un sistema que
+permitiese crecer por la pirámide de divisiones, haciendo que el juego fuese jugable incluso con solo
+dos equipos humanos en un campeonato; si era el caso, los jugadores acabarían juntándose en esos dos
+equipos». Aquí el problema es peor que allí, porque **un jugador es un ciclista suelto en un mundo de
+1.600 corredores y 57 equipos**: treinta probadores repartidos uno por equipo no se ven nunca, corren
+carreras distintas y no tienen con quién hablar, y eso no se siente como un mundo vivo sino como
+jugar solo rodeado de bots. Hay que elegir palanca (que el mercado prefiera a los humanos, que los
+primeros contratos salgan de unos pocos equipos, que compartan calendario) y engancha con G8 y G9,
+que son el mismo asunto: cómo se comporta un mundo grande con poca gente dentro. Detalle en §4.22.1
+de `agenda.md`.
+
 **Y el CUERPO TÉCNICO (G2.9), que existe a medias y en el peor estado posible: como rasgo de
 nacimiento.** `teams.staff_level` está en el esquema con un comentario que dice «es un NIVEL que se
 compra», multiplica la ganancia de entrenamiento (`kStaff = min(1,10 · 1 + 0,02 · nivel)`) y **lo
@@ -535,6 +573,13 @@ que esa línea termine.
 **Y el MÉDICO del cuerpo técnico entra aquí por la puerta de las lesiones**: sin lesiones con
 duración no hay nada que un buen médico pueda acortar, así que el efecto que G2.9 le pide depende de
 lo que este documento decida sobre la salud (§4.21.3 de `agenda.md`).
+
+**Y una idea mejor que la que teníamos escrita para el final de una carrera deportiva: LOS HIJOS.**
+N2 dice que el jugador que se retira vuelve a empezar con un corredor nuevo. Footstar acabó
+permitiendo tener hijos, y eso hace lo mismo **arrastrando el legado**: heredas un apellido, una
+historia y algo de lo que fuiste, en vez de empezar de cero por segunda vez. Es la diferencia entre
+reiniciar y continuar, y resuelve mucho mejor el momento más delicado de la vida del jugador, que es
+cuando se le acaba el personaje al que dedicó temporadas (§4.22.4 de `agenda.md`).
 
 **Y una decisión que corre prisa porque la otra línea está implementando esa pantalla ahora mismo:
 QUÉ SABE EL ENTRENADOR Y CUÁNDO.** Hoy su opinión sobre el techo de cada atributo es el enum

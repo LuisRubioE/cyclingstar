@@ -1127,6 +1127,150 @@ del corredor en **E8**, y el médico con las lesiones en **E11**. Con un aviso d
 construir staff nuevo, revivir lo que ya hay**, porque `facilities` y `staff_level` llevan versiones
 decidiendo cosas que nadie puede tocar.
 
+### 4.22 Lo que contestó el creador de Footstar, y las dos cosas que me obligan a rectificar
+
+Bruno Pereira, creador de Footstar, contestó por correo a cuatro preguntas del dueño. Es la única
+fuente de primera mano que tiene este proyecto sobre cómo se comporta este género a lo largo de veinte
+años, así que conviene tratarla como lo que es: **evidencia de alguien que lo hizo, frente a
+razonamiento de alguien que no**. Dos de sus respuestas contradicen recomendaciones mías y las
+reviso abajo.
+
+#### 4.22.1 · La lección grande, y no es la de marketing: que los humanos se AGRUPEN
+
+Preguntado por cómo resolvieron el arranque con pocos jugadores, Bruno contesta primero lo evidente
+(lo anunciaron en PManager, que tenía cerca de 20.000 jugadores activos, y de ahí se propagó por
+foros), y después suelta lo que de verdad importa:
+
+> «tentámos desenhar um sistema que permitisse um crescimento pela pirâmide das divisões, fazendo com
+> que o jogo fosse jogável, mesmo só com 2 equipas humanas num campeonato. Se fosse o caso, os
+> jogadores acabariam por se juntar nessas duas equipas.»
+
+Eso no es una táctica de captación, es un **requisito de diseño** y no está en ninguna parte de esta
+agenda: **el juego tiene que ser jugable con muy pocos humanos, y los pocos humanos que haya tienen
+que JUNTARSE en vez de dispersarse.**
+
+Y aquí este juego tiene un problema que Footstar no tenía, por su propio modelo. En Footstar un
+jugador es un futbolista que pertenece a un equipo, y un campeonato con dos equipos humanos concentra
+a todo el mundo. **Aquí un jugador es un ciclista suelto en un mundo de 1.600 corredores y 57
+equipos.** Si se apuntan treinta probadores, el reparto natural los deja a uno por equipo, sin verse
+nunca, corriendo carreras distintas y sin nadie con quien hablar. La sensación no sería «un mundo
+vivo»: sería jugar solo acompañado de mil seiscientos bots.
+
+Eso convierte la concentración en un problema de diseño explícito, con varias palancas posibles y
+ninguna elegida todavía:
+
+- **Que el mercado prefiera a los humanos.** Si los equipos con humanos ofertan antes a otros humanos,
+  la concentración ocurre sola y por una regla, sin colocar a nadie a mano.
+- **Un puñado de equipos de entrada.** Que los primeros contratos salgan de unos pocos equipos
+  continentales, para que los novatos coincidan.
+- **Un calendario donde se crucen.** Que los humanos compartan carreras aunque el mundo sea grande.
+
+Y engancha con lo que ya estaba escrito: **G8** (limpiar bots según llegan humanos) y **G9** (que los
+bots sean peores). Los tres son el mismo asunto: cómo se comporta un mundo grande con pocas personas
+dentro. Va a **E9** con la parte de mercado, y a **E6** con la parte de los primeros treinta días,
+porque es exactamente lo que decide si el primer mes se siente solitario.
+
+**Y la parte de captación confirma el plan que ya existe**: anunciarlo donde ya están los jugadores de
+un juego parecido es literalmente lo que hizo Footstar con PManager, y es lo que `docs/captacion.md`
+propone con pcmdaily. Con una diferencia a favor: **ahora hay una puerta abierta**. Bruno ha
+contestado con amabilidad, y pedirle que anuncie el juego a la comunidad de Footstar es la jugada de
+PManager aplicada, y probablemente la acción individual de mayor rendimiento que hay disponible hoy.
+
+#### 4.22.2 · RECTIFICO: la integridad, más pequeña de lo que yo dije
+
+Preguntado por las cuentas múltiples y la trampa:
+
+> «O que mais aprendemos sobre isto é que não vale a pena ser paranóico quanto a isso. Os cheaters
+> acabam por se revelar com algum pequeno erro, pelo que mais cedo ou mais tarde acabam por
+> apanhados. É ter as ferramentas e automatizar tudo o que seja possível automatizar. […] Não deve
+> ser o teu foco, o foco deve ser em ter um core de funcionalidades que funcione.»
+
+**Esto contradice de frente mi recomendación de diseñar E7 entero antes de abrir E9**, y la evidencia
+de veinte años pesa más que mi razonamiento. Reviso, aunque no del todo, y explico dónde está la
+línea.
+
+Lo que Bruno dice literalmente es «**ten las herramientas**» y «no sea tu foco». No dice «no hagas
+nada». Así que lo que sobrevive de mi posición es el núcleo barato, y lo que se cae es el aparato:
+
+| Se queda (barato, y es «las herramientas»)                                   | Se aplaza hasta tener casos reales                       |
+| ---------------------------------------------------------------------------- | -------------------------------------------------------- |
+| Roles de administrador de verdad y **registro de auditoría**                 | El diseño elaborado de detección de colusión             |
+| Verificación de correo (E4), que además es la puerta de la cuenta desechable | Los topes de transferencia y las reglas de mercado finas |
+| La regla de **un corredor por persona**, que es una línea                    | El análisis de patrones de sacrificio anómalos           |
+| Poder suspender, expulsar y revertir nombres                                 | Todo lo que anticipe un abuso que aún no ha ocurrido     |
+
+**Consecuencia práctica para el orden de los encargos:** E7 no desaparece ni se mueve, pero **encoge**.
+Su primera mitad (roles, auditoría, herramientas, un corredor por persona) sigue antes de abrir el
+mando a cualquiera, porque es lo que permite investigar cuando pase algo. Su segunda mitad (detección
+fina, reglas de mercado contra la colusión) pasa a escribirse **con casos reales delante**, que es
+como se escriben bien estas cosas y como Bruno dice que acaban apareciendo.
+
+#### 4.22.3 · RECTIFICO a medias: el móvil
+
+Preguntado por qué haría distinto:
+
+> «Acima de tudo ter lançado uma app no tempo certo. Ter percebido rapidamente a mudança do web para
+> o mobile. Hoje é óbvio, mas na altura não era assim tanto.»
+
+Es el arrepentimiento número uno de veinte años, y va contra mi «no hagas app nativa todavía» (§4.15.1).
+Matizo en vez de rectificar entero, y digo por qué creo que el matiz es legítimo y no una defensa de
+lo que ya había dicho: **el error que Bruno lamenta es haberse perdido el paso del escritorio al
+móvil**, que ocurrió cuando la web móvil era mala, no existían las aplicaciones instalables y el aviso
+al teléfono exigía una app nativa. Hoy esa misma exigencia se cubre con una web instalable.
+
+Pero la lección de fondo la acepto entera y cambia la prioridad: **el móvil no es un pulido posterior,
+es la plataforma.** Lo que eso mueve, en concreto:
+
+- La mitad móvil de **E3** deja de ser «una exigencia más del sistema visual» y pasa a ser criterio de
+  aceptación: si no se juega bien en un teléfono, E3 no está terminado.
+- La **web instalable y el aviso al teléfono** (E3 y E4) dejan de ser deseables y pasan a ser
+  entregables con fecha.
+- Y hay que ponerle una **prueba a la decisión**, no una defensa: cuando E11 de analítica diga qué
+  porcentaje entra desde el móvil, si la web instalable no está a la altura, **se revisa lo de la app
+  nativa en vez de defender lo que decidimos hoy**.
+
+**Y una confesión suya que conviene no pasar por alto**, porque el dueño tiene exactamente el mismo
+sesgo: «podíamos ter criado modos de jogo diferente, para se tornar um jogo mais rápido, mas,
+sinceramente, eu prefiro jogos lentos e a longo prazo, por isso os meus jogos acabam por ser um
+reflexo disso mesmo». O sea que el ritmo lento fue una **preferencia del autor**, la reconoce como
+tal, y la señala entre las cosas que se podrían haber hecho de otra manera. No es una recomendación de
+cambiar el reloj de seis horas. Es un aviso de que **el ritmo es una palanca de crecimiento y de que
+el autor de este tipo de juegos tiende a no verla**, por la misma razón que la eligió.
+
+#### 4.22.4 · Los hijos, que es mejor que lo que teníamos escrito
+
+Sobre la inactividad y la caída de población:
+
+> «Fomos adicionando funcionalidades que pudesse manter o jogo atraente para um núcleo mais pequeno,
+> como permitir ter filhos e controlar mais do que um jogador. Entre outras, como os bots ativos (dar
+> mais ênfase à posição de manager).»
+
+Tres cosas y las tres tocan esta agenda.
+
+**Los hijos son una idea mejor que la que había escrita.** N2 dice que el jugador que se retira
+«vuelve a empezar» con un corredor nuevo, y que la retirada debe ser una puerta a la siguiente carrera
+deportiva. **Un hijo hace eso y además arrastra el legado**: heredas un apellido, una historia y algo
+de lo que fuiste, en vez de empezar de cero por segunda vez. Es la diferencia entre reiniciar y
+continuar, y resuelve el momento más delicado de la vida del jugador mucho mejor. Va a **E11**.
+
+**Controlar más de un corredor choca de frente con «un corredor por persona»**, y hay que decidirlo
+sabiendo que son la misma palanca vista desde los dos lados: lo que protege de la multicuenta cuando
+sobra gente es lo que ahoga el juego cuando falta. La resolución que propongo: **un corredor por
+persona mientras el mundo crece**, y el segundo corredor como **válvula declarada y visible** para un
+mundo que se queda pequeño, nunca por defecto y nunca en silencio. Va a **E7**.
+
+**Y «bots activos, dar más énfasis a la posición de manager»** confirma lo que G2 ya dice: el mánager
+bot tiene que tomar todas las decisiones de forma creíble, porque la mayoría de los equipos no tendrán
+mánager humano nunca. Es una validación, no una novedad.
+
+#### 4.22.5 · Y el consejo final, que es operativo
+
+> «Utiliza a IA o máximo que puderes, seja para aumentar a velocidade de desenvolvimento, seja para a
+> criação de assets gráficos (UI ou elementos do jogo).»
+
+Lo apunto porque toca **E3** directamente: los maillots, los iconos, la identidad visual y los
+elementos de interfaz son material generable, y eso cambia el presupuesto realista de ese encargo.
+
 ## 5. El catálogo de diseños
 
 Veinte documentos. Los códigos son nuevos (`D`) para no chocar con los `G` y `N` de `epics.md`. El
