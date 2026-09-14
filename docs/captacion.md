@@ -45,12 +45,12 @@ antes a un moderador.
 
 ### Nivel 1: el público exacto
 
-| Sitio                            | Qué es                                                                                                                                                                          | Confianza                |
-| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
-| **pcmdaily.com**                 | La comunidad de Pro Cycling Manager. Llevan años organizando sus propios juegos de mánager de ciclismo por internet. Es, con diferencia, el público mejor emparejado que existe | Alta                     |
-| **La comunidad de Footstar**     | Sus jugadores son el perfil psicológico exacto: gente que disfruta un simulador lento, persistente y de texto. Y el dueño ya la conoce por dentro                               | El dueño sabe más que yo |
-| **forum.cyclingnews.com**        | Foro de ciclismo profesional de los de toda la vida, con secciones fuera de tema                                                                                                | Alta                     |
-| **r/procyclingmanager** (Reddit) | Los jugadores de PCM en Reddit                                                                                                                                                  | Media                    |
+| Sitio                            | Qué es                                                                                                                                                                                                                                                                                                             | Confianza |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------- |
+| **pcmdaily.com**                 | La comunidad de Pro Cycling Manager. Llevan años organizando sus propios juegos de mánager de ciclismo por internet. Es, con diferencia, el público mejor emparejado que existe                                                                                                                                    | Alta      |
+| **La comunidad de Footstar**     | Sus jugadores son el perfil psicológico exacto: gente que disfruta un simulador lento, persistente y de texto. **Su creador ya ha contestado y la puerta está abierta**: falta pedirle anunciarlo en el foro de fuera de tema cuando haya beta cerrada. Es la jugada de PManager aplicada (§4.22.1 de `agenda.md`) | Alta      |
+| **forum.cyclingnews.com**        | Foro de ciclismo profesional de los de toda la vida, con secciones fuera de tema                                                                                                                                                                                                                                   | Alta      |
+| **r/procyclingmanager** (Reddit) | Los jugadores de PCM en Reddit                                                                                                                                                                                                                                                                                     | Media     |
 
 ### Nivel 2: público amplio, reglas estrictas
 
