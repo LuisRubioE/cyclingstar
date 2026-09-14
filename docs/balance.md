@@ -13115,3 +13115,57 @@ haciendo lo que su marca dice.
 En dos no pinchó nadie que importara; en las otras dos pinchó alguien pronto y el pelotón entero
 salió reordenado detrás. Es lo que un dado por bloque hace: no reparte un poco a todos, cae o no
 cae. Y los cuatro ganadores se conservan, porque un pinchazo reordena la fila y no reparte piernas.
+
+## v60 §18 — paso 15, el tren empieza a los quince y no a los tres
+
+`ENGINE_VERSION` **68 → 69**. R16: `stage/train.ts` nuevo, con el tren como **submotor
+con estado** en vez de un `elTren` que a tres kilómetros de meta sustituye la rotación por
+lanzadores.
+
+### Lo que faltaba
+
+Hoy el tren solo existe en los últimos tres kilómetros y **lanzan los tres lanzadores a la vez**, que
+es una cosa que en carretera no pasa: el primero entra lejos, se vacía, se aparta, y entra el
+siguiente. Entre el km 15 y el 3 manda el turno de relevos por deber, y ése es el hueco por el que se
+cuela el defecto que el catálogo llama «el frente de los últimos quince kilómetros se disputa y se
+pierde».
+
+Y el módulo lleva `kind`, **porque hay dos trenes y el motor solo conocía uno**: el de sprint y el de
+montaña. Los dos se ordenan al revés el uno del otro —el de sprint pone delante al más rodador
+porque el primer relevo es el más duro; el de montaña ordena por MON **ascendente**, porque el último
+que queda antes de la rampa tiene que ser el mejor— y el de montaña es además el sitio donde encaja
+`lastHelperCommit`, una constante que existía sin que nadie la aplicara.
+
+### El defecto que la medida encontró: **un tren que se acaba antes de la línea**
+
+Los tres relevos suman 9,5 km, no 15. El tren **se monta** a quince kilómetros y **empieza a tirar**
+más tarde, para que el último hombre se esté vaciando justo en la meta. Arrancando los turnos a los
+quince:
+
+| llana canónica, 120 semillas | apagado | tren desde el km 15 | tren desde su span |
+| ---------------------------- | ------- | ------------------- | ------------------ |
+| gana el mejor sprinter       | 40,0 %  | **26,7 %** ❌       | **40,0 %** ✅      |
+
+El tren se gastaba entero a 5,5 km de meta y el velocista llegaba solo. Un tren que se acaba antes de
+la línea no es un tren, es un despilfarro.
+
+### Mueve los relojes sin voltear una llegada, y las dos cosas son verdad
+
+Los cuatro estadísticos canónicos de la llana salen **idénticos** al brazo apagado —fuga 5,8 %, mejor
+sprinter 40 %, captura 92,9 %, km de la caza 19— **y aun así las huellas se mueven casi enteras**:
+
+| huella        | filas que cambian | ganador   |
+| ------------- | ----------------- | --------- |
+| `llana-180-0` | **175** de 176    | `spr-6`   |
+| `llana-180-1` | **171** de 176    | `spr-0`   |
+| `reina-150-0` | **0** de 176      | `pel-105` |
+| `reina-150-1` | **0** de 176      | `gc-0`    |
+
+No es una contradicción: una huella es el reloj de los 176 y esos cuatro números son agregados de
+**quién gana**. Que el tren mueva los relojes sin voltear una sola llegada es exactamente lo que un
+cambio de reparto del viento hace. Y las dos reinas no se mueven ni un dígito porque en una etapa
+reina no hay tren de sprint que montar — el de montaña es otra pieza y entra con su propio paso.
+
+La escala, por comparación: mover la ventana **vieja** a quince kilómetros —poner a los veinte
+lanzadores del campo al frente desde el km 15— sí voltea carreras (fuga 5 % → 0 %, captura 94,7 % →
+100 %). El tren de R16 hace lo contrario: pone a **uno por equipo** en vez de a veinte.
