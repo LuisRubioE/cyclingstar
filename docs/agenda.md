@@ -1046,6 +1046,87 @@ un aviso de calendario: **esto es una decisión de la pantalla de entrenamiento,
 línea está implementando ahora mismo**, así que conviene que le llegue antes de que termine, igual que
 lo del gregario (§4.16.3).
 
+### 4.21 El staff: existe como ATRIBUTO del equipo, no como DECISIÓN del mánager
+
+Pregunta del dueño: ¿está el staff en alguna parte? Su modelo mental es el correcto (NPC que el
+mánager contrata, paga, de distintos niveles, con ventajas). **Existe media pieza**, y el resto está
+previsto sin construir.
+
+**Lo que hay, comprobado.**
+
+| Pieza                | Qué es                                                                                                                      | Quién la cambia                                                                    |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `teams.staff_level`  | Entero, empieza en 0. El comentario del esquema dice «EL STAFF: médicos, fisios, nutricionistas… es un NIVEL que se compra» | **Nadie.** Solo la génesis del mundo (`world.ts`, `staffBase + rnd(0..2)`, tope 5) |
+| `teams.facilities`   | Real, sorteado entre 0,90 y 1,20 en la génesis                                                                              | **Nadie.** Solo la génesis                                                         |
+| `txn_kind` `'staff'` | Apunte del libro del CORREDOR para el staff personal que promete `SPEC.md` §9                                               | **Nadie lo emite.** Está en el enum y no lo escribe ninguna ruta                   |
+
+**Y el efecto es real pero estrecho**: en `packages/db/src/train.ts` los dos multiplican la ganancia
+de entrenamiento, con `kStaff = min(1,10 · 1 + 0,02 · staffLevel)`. O sea **un 2 % más de ganancia por
+nivel, con tope del 10 %**, y nada más. Ni recuperación, ni lesiones, ni averías, ni decisiones de
+carrera.
+
+**Así que el diagnóstico en una línea: el staff es hoy un RASGO DE NACIMIENTO del equipo.** Se sortea
+al crear el mundo y no se puede tocar. El comentario del esquema dice «es un nivel que se compra» y
+no hay ruta, pantalla ni transacción con la que comprarlo. Es un atributo disfrazado de decisión.
+
+Conviene recordar que este repositorio ya se pilló a sí mismo en esto: `classifications.ts` deja
+escrito que «`fame`, `teamTrust` y `facilities` fueron tres columnas que existían, se rellenaban y no
+decidían nada», y que hay una prueba (`columnasVivas.test.ts`) escrita para que no se repita.
+`staff_level` es el caso de al lado, y en cierto modo peor: **sí decide algo, y nadie puede
+cambiarlo**.
+
+**Lo que el dueño imagina es G2.9**, que está en `epics.md` sin construir y vive en **E9**: «Cuerpo
+técnico. Directores, entrenadores, médicos, mecánicos, masajistas. Su nivel tiene que notarse en algo
+real: en cómo entrena la plantilla, en cómo se recupera, en las decisiones de carrera y en las
+averías.» Lo que sigue es lo que yo añadiría a ese encargo.
+
+**4.21.1 · Un escalar no es un cuerpo técnico.** Un número que sube la ganancia un 2 % es un
+atributo. Lo que hace interesante al staff es que sean **personas con nombre, nivel, sueldo y
+disponibilidad**, que se fichan, se pierden y se las lleva otro equipo. Eso convierte contratar en una
+decisión con coste de oportunidad y abre un **segundo mercado**, el de técnicos, que además puebla el
+mundo con más vida por muy poco trabajo de simulación.
+
+**4.21.2 · El peligro que hay que nombrar antes de diseñarlo: es la vía por la que el dinero podría
+comprar vatios.** La cadena es premium de pago → mánager → mejor staff → sus corredores entrenan
+mejor. Rompe la línea de «no se compra rendimiento» si no se ata. La protección tiene que ser
+explícita y creo que es suficiente: **el staff se paga con el presupuesto del EQUIPO y nunca del
+bolsillo del mánager**, y ese presupuesto sale de resultados y patrocinadores. Así la cadena real es
+dinero → autoridad → repartir un presupuesto que no creó él, y la ventaja la reciben **todos los del
+equipo, incluidos los rivales internos del mánager**. Y conviene conservar el tope que ya existe
+(`kStaffMax = 1,10`): acota cuánto puede comprar el dinero del equipo, y eso es buen diseño, no una
+limitación heredada.
+
+**4.21.3 · Donde está el desperdicio: hoy el staff solo toca el entrenamiento.** G2.9 pide cuatro
+efectos y cada uno es un sistema distinto, así que el documento tiene que decidir cuáles entran:
+
+- **Médico** → duración de las lesiones, que depende de que existan lesiones con duración (N3, que
+  está en E11).
+- **Fisio** → recuperación, o sea la constante de fatiga del Banister. Es motor.
+- **Mecánico** → averías y pinchazos. **Especialmente oportuno**, porque el pinchazo acaba de entrar
+  en el motor (v68, «en este motor nadie pinchaba») y hoy no hay nada que module esa probabilidad.
+- **Director deportivo** → decisiones de carrera. Toca la capa táctica, que es lo más delicado.
+- **Masajista y nutricionista** → cuánta carga aguanta la plantilla.
+
+Eso es lo que convierte un escalar en textura. Y ninguno es caro por separado: lo caro es decidir
+cuántos y con qué tope.
+
+**4.21.4 · Y una asimetría que hay que resolver: ¿el CORREDOR tiene staff propio?** `SPEC.md` §9 lo
+promete con nombres y números (entrenador personal con K_staff 1,05 a 1,15, fisio que recorta medio
+día la fatiga efectiva, nutricionista +3 % de E0, material, vuelos premium sin TSS, todo como gasto
+mensual), **y no está implementado**: el apunte `'staff'` existe en el libro de transacciones y nadie
+lo escribe. Hay además una colisión de nombres que conviene deshacer, porque el `kStaff` que el motor
+usa hoy es el del EQUIPO y no el personal que describe el SPEC.
+
+Y resolverlo bien contesta de paso una pregunta abierta de **E8**: ¿para qué sirve el salario del
+corredor? Pues para esto. **El corredor se paga su propio entrenador y su propio fisio**, y ahí el
+dinero sí compra un poco de rendimiento, pero **es el dinero que ganó corriendo, no dinero real**. Esa
+distinción es la que mantiene en pie la promesa, y hay que escribirla en los dos documentos.
+
+**Dónde va:** el cuerpo técnico del equipo en **E9** (G2.9), el dinero que lo paga y el staff personal
+del corredor en **E8**, y el médico con las lesiones en **E11**. Con un aviso de método: **antes de
+construir staff nuevo, revivir lo que ya hay**, porque `facilities` y `staff_level` llevan versiones
+decidiendo cosas que nadie puede tocar.
+
 ## 5. El catálogo de diseños
 
 Veinte documentos. Los códigos son nuevos (`D`) para no chocar con los `G` y `N` de `epics.md`. El

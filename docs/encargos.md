@@ -388,6 +388,16 @@ complica el vestuario. Dos avisos: esto es economía INTERNA y no tiene nada que
 real, y cualquier mecanismo de transferencia entre jugadores (contratos, cláusulas, primas) es un
 vehículo de fraude, así que este documento y E7 tienen que leerse el uno al otro.
 
+**Y el STAFF PERSONAL DEL CORREDOR, que contesta de paso la pregunta de para qué sirve el salario.**
+`SPEC.md` §9 lo promete con nombres y números (entrenador personal, fisio que recorta la fatiga
+efectiva, nutricionista, material, vuelos premium sin TSS, todo como gasto mensual) y **no está
+implementado**: el apunte `'staff'` existe en el libro de transacciones del corredor y nadie lo
+escribe. Aquí es donde el salario deja de ser un número en una pantalla: **el corredor se paga su
+propio entrenador y su propio fisio**, y ahí el dinero sí compra un poco de rendimiento, pero es el
+dinero que ganó corriendo y no dinero real. Esa distinción sostiene la promesa entera y hay que
+escribirla. Ojo además a una colisión de nombres que conviene deshacer: el `kStaff` que el motor usa
+hoy es el del EQUIPO, no el personal del SPEC (§4.21.4 de `agenda.md`).
+
 **Y una mecánica concreta que el dueño propuso y que es de las mejores del documento: el
 patrocinador compra el maillot.** Que pueda pagar por imponer su color o por llevar su logotipo en el
 sitio bueno convierte la identidad visual del equipo en una **decisión económica con coste real**:
@@ -446,6 +456,21 @@ la carretera de verdad. Y extiende G2.12 más allá del vestuario, al pelotón e
 ciclismo pone sus alianzas: entre rivales. El segundo añadido: **la sucesión de un equipo cuyo mánager
 desaparece sin avisar**, que es como se va la gente de verdad de los juegos, y que G2.14 no cubre
 porque solo contempla la salida voluntaria.
+
+**Y el CUERPO TÉCNICO (G2.9), que existe a medias y en el peor estado posible: como rasgo de
+nacimiento.** `teams.staff_level` está en el esquema con un comentario que dice «es un NIVEL que se
+compra», multiplica la ganancia de entrenamiento (`kStaff = min(1,10 · 1 + 0,02 · nivel)`) y **lo
+escribe solo la génesis del mundo**: no hay ruta, pantalla ni transacción para comprarlo. Igual
+`teams.facilities`, que además ya está en la lista de la vergüenza del propio repositorio
+(`classifications.ts`: «columnas que existían, se rellenaban y no decidían nada»). El encargo, con el
+detalle en §4.21 de `agenda.md`: que el staff sean **personas con nombre, nivel, sueldo y
+disponibilidad** y no un escalar, lo que abre un segundo mercado y convierte contratar en una decisión
+con coste de oportunidad; que se note **más allá del entrenamiento** (médico y duración de lesiones,
+fisio y recuperación, mecánico y averías —oportuno, porque el pinchazo acaba de entrar en el motor en
+la v68—, director deportivo y decisiones de carrera); y que se ate la cadena por la que **el dinero
+podría comprar vatios**: el staff se paga con el presupuesto del EQUIPO y nunca del bolsillo del
+mánager, la ventaja la reciben todos los del equipo incluidos sus rivales internos, y se conserva el
+tope que ya existe. Y antes de construir nada nuevo, **revivir lo que ya hay**.
 
 **Qué leer:** G2 entero en `docs/epics.md`, `packages/db/src/teamControl.ts`, `contracts.ts`,
 `callups.ts`, `teamPlan.ts`, `raceOrders.ts`, y `docs/diseno/mapa-equipo-ordenes-final.md`.
@@ -506,6 +531,10 @@ decisión. Si el gregario deja de nacer gregario, ese tercio del pelotón nace c
 y acaba de gregario **por nivel y no por destino**, y el requisito deja de chocar con nada. La
 ejecución toca el motor, o sea la otra línea, así que conviene que la decisión esté escrita antes de
 que esa línea termine.
+
+**Y el MÉDICO del cuerpo técnico entra aquí por la puerta de las lesiones**: sin lesiones con
+duración no hay nada que un buen médico pueda acortar, así que el efecto que G2.9 le pide depende de
+lo que este documento decida sobre la salud (§4.21.3 de `agenda.md`).
 
 **Y una decisión que corre prisa porque la otra línea está implementando esa pantalla ahora mismo:
 QUÉ SABE EL ENTRENADOR Y CUÁNDO.** Hoy su opinión sobre el techo de cada atributo es el enum
