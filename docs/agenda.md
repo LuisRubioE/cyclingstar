@@ -14,6 +14,10 @@ Este documento es la otra mitad: **el producto alrededor de la simulación**. Qu
 entras, cómo recuperas tu cuenta, quién manda sobre quién, en qué idioma lees, qué te cuentan de la
 carrera de hoy y quién limpia lo que alguien escriba de más.
 
+> **Para encargar el trabajo, ve a [docs/encargos.md](./encargos.md)**, que convierte este catálogo
+> en once documentos de diseño con su párrafo de encargo, qué leer del repositorio y en qué orden.
+> Aquí está el razonamiento; allí está la lista operativa.
+
 Tres cosas de la lista grande de `epics.md` son en realidad de aquí y no se duplican, se citan: **G2**
 (gestión humana de un equipo), **G7** (elementos sociales) y **G11** (correo). Cuando este documento
 habla de ellas, la fuente sigue siendo `epics.md`.
