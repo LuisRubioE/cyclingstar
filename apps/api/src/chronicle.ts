@@ -82,6 +82,12 @@ const EVENT_ORDER: Record<string, number> = {
   // El abanico ocupa el mismo sitio que la criba (v41): es un corte del grupo, contado por el
   // viento en vez de por la rampa, y las dos no coinciden nunca en el mismo kilómetro.
   echelon_split: 4,
+  // …Y EL ABANICO QUE SE CIERRA (v70) comparte sitio con el que se abre: es la misma noticia por el
+  // otro lado —la carrera se rehace— y las dos no coinciden nunca en el mismo kilómetro.
+  echelon_close: 4,
+  // La lluvia que hace subir a un equipo entero al frente (v70) vale lo que un relevo del pelotón:
+  // es trabajo colectivo con una causa, no un corte.
+  rain_front: 2.5,
   // La criba LEJOS de meta (v21) va en el sitio del corte: es la misma noticia contada en el tramo
   // de carretera donde el desenlace todavía no ha empezado.
   peloton_selection: 4,

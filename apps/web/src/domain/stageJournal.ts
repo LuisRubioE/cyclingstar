@@ -1332,6 +1332,34 @@ function chronicleTemplate(e: ChronicleEntry): string {
         `The wind gets across the road and ${dropped} rider${dropped === 1 ? '' : 's'} miss${dropped === 1 ? 'es' : ''} the echelon.`,
       ])
     }
+    /**
+     * …Y EL ABANICO QUE SE CIERRA (R14.1, S-324, v70). Es la fila CONTRARIA del catálogo y la que
+     * faltaba: el viento no sopla siempre desde el mismo sitio respecto a la carretera, y cuando la
+     * carretera gira la fila deja de ser una fila. Que esto tenga línea propia importa, porque para
+     * el lector es la diferencia entre «la carrera se rompió» y «la carrera se rompió y se rehízo».
+     */
+    case 'echelon_close': {
+      const toGo = Number(e.datos?.toGo ?? 0)
+      return pick([
+        `The road swings away from the wind: the echelons are over with ${toGo} km to go, and the groups behind can come back.`,
+        `Shelter at last — the crosswind is gone and what was left of the bunch starts to close the gap.`,
+        `The wind comes off the road with ${toGo} km left. The echelon is just a bunch again.`,
+      ])
+    }
+    /**
+     * LA LLUVIA Y EL EQUIPO QUE SE SUBE AL FRENTE (R14.2, S-204, v70). Lo que el lector tiene que
+     * ver no es que llueva, es lo que la lluvia HACE: ocho hombres de un equipo pasando al frente en
+     * bloque porque con el agua la carrera se parte donde le da la gana.
+     */
+    case 'rain_front': {
+      const squad = e.datos?.equipo == null ? null : String(e.datos.equipo)
+      const toGo = Number(e.datos?.toGo ?? 0)
+      return pick([
+        `It starts to rain. ${squad ?? 'The leader\u2019s team'} moves every rider it has to the front with ${toGo} km to go — and will pay for it tomorrow.`,
+        `Rain on the road: ${squad ?? 'the team in yellow'} takes no chances and lines up at the head of the bunch.`,
+        `The bunch gets nervous in the wet, and ${squad ?? 'the leader\u2019s team'} rides to the front to stay out of trouble.`,
+      ])
+    }
     case 'final_km': {
       const margin = Number(e.datos?.margin ?? 0)
       const field = Number(e.datos?.field ?? 0)

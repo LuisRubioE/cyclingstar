@@ -171,22 +171,38 @@ export function commitmentForSpeed(
   p75Perfil: number,
   kmh: number,
   pullers: number = STAGE.relayPaceReference,
+  vientoFrontal = 0,
 ): number {
-  const v0 = targetSpeed(block, p75Perfil, 0, pullers)
-  const v1 = targetSpeed(block, p75Perfil, 1, pullers)
+  const v0 = targetSpeed(block, p75Perfil, 0, pullers, vientoFrontal)
+  const v1 = targetSpeed(block, p75Perfil, 1, pullers, vientoFrontal)
   if (v1 <= v0) return 0
   return (kmh - v0) / (v1 - v0)
 }
 
+/**
+ * …Y EL VIENTO DE CARA, que es **la única cosa de todo `docs/tactica.md` que mueve la LEY DE
+ * VELOCIDAD** (R14.1, paso 20). Por eso lleva su propio paso, su propio `ENGINE_VERSION` y este
+ * comentario: `targetSpeed × (1 − windAheadScale · vientoFrontal)`, con `vientoFrontal` en [−1,1]
+ * —+1 de cara pleno, −1 de cola pleno—.
+ *
+ * Es el término que el motor no tenía y que cualquiera echa de menos en cuanto ve una etapa de
+ * viento: hasta la v69 el viento solo existía DE LADO, o sea solo como criba, y de cara no frenaba a
+ * nadie. Y frena: la mitad de las escapadas que mueren a veinte kilómetros de meta mueren contra el
+ * viento, no contra el pelotón.
+ *
+ * **Ausente = 0 y el factor vale 1 exacto**, que es el brazo A del A/B: sin viento de cara la ley es
+ * dígito a dígito la de la v69, y por eso los cuatro sellos y el invariante 43 se pueden atribuir.
+ */
 export function targetSpeed(
   block: Block,
   p75Perfil: number,
   c: number,
   pullers: number = STAGE.relayPaceReference,
+  vientoFrontal = 0,
 ): number {
   const base = vRef(block.g, block.tipo)
   const load = Math.pow(relPower(p75Perfil) * relayPaceEdge(block, pullers), loadExponent(block))
-  return base * load * rhythm(c)
+  return base * load * rhythm(c) * (1 - STAGE.weather.windAheadScale * vientoFrontal)
 }
 
 /** Duración en segundos de un bloque de `dx` km a la velocidad actual (Euler explícito, 6.4). */

@@ -85,7 +85,19 @@ import {
   jerseyVetoes,
   leashOf,
 } from './customs.js'
-import { stageWeather } from './weather.js'
+import {
+  belowEchelonThreshold,
+  descentRisk,
+  echelonCloses,
+  heatRoadPrice,
+  materialPerfilBonus,
+  rainBudgetGain,
+  rainPlaceTarget,
+  roadBearings,
+  stageWeather,
+  weatherNow,
+  weatherPlan,
+} from './weather.js'
 import {
   type CrashOutcome,
   crashPile,
@@ -291,6 +303,12 @@ interface RiderSim {
   placement: number
   /** Cuánto está empujando hacia delante AHORA, [0,1]. Lo decide `objetivoDeColocacion` (R15b). */
   pushing: number
+  /**
+   * LOS PUNTOS DE PERFIL QUE LE DA (O LE QUITA) EL MATERIAL DE SU EQUIPO EN ESTE BLOQUE (R14.4). Ya
+   * resuelto contra el parte y el terreno, y **simétrico**: el lenticular un día sin viento resta lo
+   * mismo que suma un día de viento. Sin elección vale 0 exacto.
+   */
+  materialPerfil: number
   /** Segundos cedidos al objetivo marcado sin llegar a soltarse (`gives` de SPEC 6.18). */
   markLossS: number
   /**
@@ -450,6 +468,13 @@ function riderPerfil(sim: RiderSim, block: Block): number {
    * era decir dos veces lo mismo, y mal: dejaba al que ataca en el llano sin nada que gastar.
    */
   if (sim.matchBoostS > 0) perfil += STAGE.matchBonus
+  /**
+   * …Y EL MATERIAL DEL DÍA (R14.4, S-430, paso 20). Se guarda YA RESUELTO en el corredor —bloque a
+   * bloque, contra el parte y el terreno— en vez de recalcularse aquí: así los trece sitios que
+   * preguntan por el perfil de un hombre ven el mismo número sin que haya que pasarles el clima, y
+   * el que marca el ritmo lo lleva puesto igual que el que se descuelga. Vale 0 mientras nadie elija.
+   */
+  perfil += sim.materialPerfil
   return perfil
 }
 
@@ -1212,8 +1237,30 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
    */
   const rngViento = streams('viento')
   const vientoBruto = Math.pow(rngViento(), STAGE.windDayShape)
-  const vientoLateral =
+  /**
+   * …Y DESDE EL PASO 20 ESTE NÚMERO CAMBIA DE OFICIO (R14.1). Hasta la v69 **era** el viento lateral
+   * de toda la etapa: se sorteaba una vez y soplaba de lado durante 180 km, que es la mitad de la
+   * frase. La otra mitad la sabe cualquiera que haya visto una etapa de viento: **la carretera
+   * gira**, y cuando gira el mismo viento pasa a ser de cara, de cola o de nada.
+   *
+   * Así que el sorteo es el mismo dígito a dígito —no se desplaza nada— y lo que cambia es qué
+   * significa: ahora es la FUERZA del viento del día, y el lateral y el frontal salen de ella contra
+   * el rumbo de cada bloque. Con el interruptor apagado, `vientoLateral` se queda en la fuerza del
+   * día y no se mueve nunca, que es exactamente la v69.
+   */
+  const fuerzaDelViento =
     vientoBruto < STAGE.windMin ? 0 : (vientoBruto - STAGE.windMin) / (1 - STAGE.windMin)
+  /**
+   * EL INTERRUPTOR DEL PASO 20, y **se puede APAGAR y no solo encender**, que es la diferencia con
+   * los trece anteriores. Todos ellos se leen `flags?.x === true || STAGE.x.enabled`, o sea que una
+   * vez encendida la constante el brazo A deja de ser ejecutable. Para una capa táctica se puede
+   * vivir con eso; para **la única que mueve la LEY DE VELOCIDAD**, no: el invariante 43 se re-ancla
+   * aquí, y re-anclarlo sin poder volver a correr el brazo A es re-anclarlo a ciegas.
+   */
+  const climaOn = input.flags?.weather ?? STAGE.weather.enabled
+  let vientoLateral = fuerzaDelViento
+  /** El de cara, en [−1,1]. Es el único término de todo este documento que toca la LEY (R14.1). */
+  let vientoFrontal = 0
   /**
    * CUÁNTOS CABEN EN LA FILA. Es la capacidad de la carretera con este viento, y es lo único que un
    * abanico necesita saber: cuántos hombres caben a rebufo en diagonal antes de que el que sigue se
@@ -1221,9 +1268,11 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
    * doce (`windEchelonRiders`). De aquí salen las dos mitades del abanico —el CORTE que parte la
    * carrera y la CUNETA que la mantiene partida— y por eso se calcula una sola vez, para el día.
    */
-  const cabenEnFila = Math.round(
-    STAGE.windEchelonMax * Math.pow(STAGE.windEchelonRiders / STAGE.windEchelonMax, vientoLateral),
-  )
+  const cabenEnFilaCon = (lateral: number): number =>
+    Math.round(
+      STAGE.windEchelonMax * Math.pow(STAGE.windEchelonRiders / STAGE.windEchelonMax, lateral),
+    )
+  let cabenEnFila = cabenEnFilaCon(vientoLateral)
   /**
    * Y ESTO ES «LA CARRETERA YA HA GIRADO» (v41). El viento de lado sopla todo el día, pero muerde en
    * un SITIO —el cruce donde la carretera se pone de cara al viento y un equipo se coloca—, que es
@@ -1256,7 +1305,17 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
    * de correrla. Y puede, porque nunca dependió de la carrera: sale de la semilla, del sitio y de la
    * fecha, que se conocen el día que se publica el calendario.
    */
-  const { lluvia, calor } = stageWeather(seed, input.lugar)
+  const climaDelDia = stageWeather(seed, input.lugar)
+  /**
+   * …Y TAMPOCO LLUEVE IGUAL EN EL KM 5 QUE EN EL 150 (R14.2, paso 20). El parte por segmentos es lo
+   * que permite que el agua entre por el km 90, que es una etapa distinta —el pelotón se pone
+   * nervioso justo donde el recorrido se complica— y lo que el dueño dejó anotado en §20 de
+   * `docs/motor.md` cuando el clima entró siendo un número por día.
+   */
+  let lluvia = climaDelDia.lluvia
+  let calor = climaDelDia.calor
+  /** El frío, que existía en los grados desde la v42 y no lo cobraba nadie (R13.5). */
+  let frio = 0
   /**
    * SER MUCHOS DEJA DE SERVIR, TAMBIÉN PARA EL QUE PERSIGUE (v41). El tamaño de un grupo entra en la
    * física en tres sitios —cuántos reparten el viento en la ley de velocidad, cuánto rebufo hay y a
@@ -1273,6 +1332,47 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
 
   const blocks = sampleProfile(input.profile)
   const totalKm = stageLengthKm(input.profile)
+  /**
+   * EL PARTE DEL DÍA Y EL TRAZADO DE LA CARRETERA (R14, paso 20).
+   *
+   * Dos subflujos NOMINALES nuevos y propios (`parte` y `rumbo`, SPEC 6.1) para lo de siempre: con el
+   * interruptor apagado no se tira ni un dígito y la etapa sale como en la v69. El del viento sigue
+   * siendo el de la v41 y no se toca.
+   *
+   * Y el rumbo es **una suposición declarada, no un dato**: `StageProfile` son kilómetros, pendiente
+   * y terreno, y en todo el repositorio no hay geometría. Se genera determinista por semilla, con un
+   * giro cada `roadTurnKm`. El día que el generador traiga trazado de verdad, se cambia la función y
+   * no se toca nada más.
+   */
+  const parte = climaOn
+    ? weatherPlan(seed, input.lugar, totalKm, fuerzaDelViento)
+    : { reliability: 1, segments: [] }
+  const rumbos = climaOn ? roadBearings(seed, totalKm) : []
+  /**
+   * CUÁNTOS KILÓMETROS SEGUIDOS LLEVA LA CARRETERA AL ABRIGO. Es el único estado que el cierre del
+   * abanico necesita: dos kilómetros por debajo del umbral y la fila se acaba (R14.1, S-324).
+   */
+  let kmAlAbrigo = 0
+  /** Kilómetros de puerto de la etapa: es con lo que se juzga si el desarrollo corto acertó (R14.4). */
+  const kmDePuerto = blocks.filter((b) => b.tipo === 'subida').length * STAGE.dx
+  /**
+   * …Y SI EL EQUIPO HA SUBIDO A TODOS SUS HOMBRES AL FRENTE BAJO EL AGUA (R14.2, S-204). Se apunta
+   * para cobrarlo **mañana**, que es donde el diseño lo pone: el presupuesto del día siguiente.
+   */
+  const subioAlFrenteBajoAgua = new Set<string>()
+  /**
+   * EL KILÓMETRO EN QUE SE CUMPLIÓ LA CITA DEL TIEMPO (R14.3). Se apunta una vez y no se borra: una
+   * cita que se cumple no se «descumple» porque escampe, igual que la del kilómetro no se deshace.
+   */
+  const citaCumplida = new Map<string, number>()
+  /**
+   * LA CITA EFECTIVA DE UN HOMBRE: la del tiempo si ya se cumplió, y si no, la del kilómetro de la
+   * v58. `null` = sin cita, y entonces decide su mentalidad, como siempre.
+   */
+  const citaDe = (m: RiderSim): number | null =>
+    citaCumplida.get(m.input.riderId) ?? m.input.orders.triggerKm ?? null
+  /** Los que pusieron una cita en el tiempo. Normalmente ninguno, y por eso se hace la lista. */
+  const citasDelTiempo: RiderSim[] = []
   const n = blocks.length
   const log = new EventLog()
 
@@ -1321,6 +1421,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
        */
       placement: initialPlacement(normal(streams(`place:${r.riderId}`), 0, 1)),
       pushing: 0,
+      materialPerfil: 0,
       markLossS: 0,
       driftS: 0,
       reserveS: STAGE.reserveSeconds,
@@ -1338,6 +1439,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       pullFor: null,
       parte: parteEnBlanco(),
     })
+    if (r.orders.triggerOn?.at === 'weather') citasDelTiempo.push(sims.get(r.riderId)!)
   }
   /**
    * Los corredores VIVOS de un grupo: ni han llegado a meta ni se han retirado. El que abandona
@@ -2307,8 +2409,27 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       STAGE.placement.targetCardAlone - STAGE.placement.targetCardPerHelper * manos,
     )
   }
+  /**
+   * ¿ESTE EQUIPO DEFIENDE ALGO EN LA GENERAL? Es la condición de R14.2: el que lleva el maillot o
+   * pelea la general sube a todos sus hombres al frente en cuanto empieza a llover; el equipo de un
+   * velocista, no —tiene otras cosas que hacer con sus ocho hombres—.
+   */
+  const defiendeLaGeneral = (teamId: string | null | undefined): boolean => {
+    if (teamId == null) return false
+    const plan = teamPlans.get(teamId)
+    return plan != null && (plan.purposes.includes('maillot') || plan.purposes.includes('general'))
+  }
   const objetivoDeColocacion = (m: RiderSim, bunchId: string): number => {
     if (m.groupId !== bunchId) return STAGE.placement.targetMove
+    /**
+     * EMPIEZA A LLOVER Y EL EQUIPO DEL MAILLOT SUBE A TODOS SUS HOMBRES (R14.2, S-204). No es un
+     * matiz sobre el objetivo de cada papel: es que **todo el equipo** pasa a querer ir delante,
+     * gregarios incluidos, porque con el agua la carrera se parte donde le da la gana. Y **lo
+     * pagan**: queda apuntado para encarecerles el presupuesto de mañana (`rainCostGain`).
+     */
+    if (climaOn && lluvia > 0 && defiendeLaGeneral(teamOf.get(m.input.riderId))) {
+      return rainPlaceTarget(STAGE.placement.targetPack, lluvia, true)
+    }
     /**
      * …Y EL QUE SE JUEGA EL CONTRATO QUIERE QUE SE LE VEA (R15a.8): baja su umbral de colocarse una
      * décima, o sea que pelea un sitio que su papel no le pedía.
@@ -2570,6 +2691,79 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       if (m.abandonedKm === null && m.finishTs === null) grupoAntes.set(m.input.riderId, m.groupId)
     }
     const km = kmAt(i)
+    /**
+     * EL TIEMPO DE ESTE KILÓMETRO, resuelto contra el rumbo de este kilómetro (R14.1/R14.2, paso 20).
+     *
+     * Aquí es donde «el viento del día» se convierte en «el viento de aquí»: el parte dice de dónde
+     * sopla y con qué fuerza, el trazado dice hacia dónde se va, y de las dos cosas salen el lateral
+     * —el que rompe la carrera— y el frontal —el que toca la LEY—.
+     *
+     * Y aquí es donde **el abanico se cierra** (S-324, la fila CONTRARIA del catálogo, la que nadie
+     * había escrito): dos kilómetros seguidos de carretera al abrigo y `abanicoAbierto` vuelve a ser
+     * falso. Los cortados no vuelven por decreto —no se les regala un segundo—: vuelven porque su
+     * grupo deja de calcular su ritmo como una fila de doce y vuelve a repartirse el viento entre
+     * todos los que son, que es lo que de verdad pasa cuando la carretera gira.
+     */
+    if (climaOn) {
+      const ahora = weatherNow(parte, rumbos, km, abanicoAbierto)
+      vientoLateral = ahora.vientoLateral
+      vientoFrontal = ahora.vientoFrontal
+      lluvia = ahora.lluvia
+      calor = ahora.calor
+      frio = ahora.frio
+      cabenEnFila = cabenEnFilaCon(vientoLateral)
+      /**
+       * EL MATERIAL, RESUELTO CONTRA EL PARTE DE ESTE BLOQUE (R14.4, S-430). El día que se eligió el
+       * lenticular era un parte, no una certeza: aquí es donde se cobra el acierto o el fallo, y se
+       * cobra **simétrico**, que es lo que convierte la elección en una apuesta y no en un regalo.
+       */
+      if (input.materiales !== undefined) {
+        for (const m of sims.values()) {
+          const mat = input.materiales[teamOf.get(m.input.riderId) ?? '']
+          m.materialPerfil = materialPerfilBonus(mat, block.tipo, vientoLateral, lluvia, kmDePuerto)
+        }
+      }
+      kmAlAbrigo = belowEchelonThreshold(vientoLateral) ? kmAlAbrigo + STAGE.dx : 0
+      /**
+       * …Y SE APUNTA QUIÉN SUBIÓ A TODOS SUS HOMBRES AL FRENTE BAJO EL AGUA (R14.2, S-204), para
+       * cobrárselo **mañana**. El motor no tiene mañana —una etapa no sabe de la siguiente—, así que
+       * lo que hace es lo único honesto que puede hacer: **decirlo**. El hecho sale en el diario con
+       * el equipo y el recargo (`rainBudgetGain`, 1,15), y quien lleva la cuenta entre etapas lo
+       * aplica. Inventarle aquí un estado de mañana sería mover la frontera de sitio.
+       */
+      if (lluvia > 0) {
+        for (const plan of teamPlans.values()) {
+          if (!defiendeLaGeneral(plan.teamId) || subioAlFrenteBajoAgua.has(plan.teamId)) continue
+          subioAlFrenteBajoAgua.add(plan.teamId)
+          log.emit(km, peloton.tS, 'clima', 'rain_front', [], {
+            equipo: plan.teamId,
+            recargo: Math.round(100 * rainBudgetGain(true)),
+            toGo: Math.round(totalKm - km),
+          })
+        }
+      }
+      /**
+       * …Y SE MIRA SI HOY SE CUMPLE LA CITA QUE ALGUIEN PUSO EN EL TIEMPO (R14.3). Se recorre la
+       * lista de los que PUSIERON una, que normalmente está vacía, y no el pelotón entero: un bucle
+       * de 176 por bloque son trescientas mil vueltas por etapa para no hacer nada.
+       */
+      for (const m of citasDelTiempo) {
+        const cond = m.input.orders.triggerOn
+        if (cond?.at !== 'weather' || citaCumplida.has(m.input.riderId)) continue
+        const cumple =
+          cond.cond === 'lluvia'
+            ? lluvia > 0
+            : abanicoAbierto || !belowEchelonThreshold(vientoLateral)
+        if (cumple) citaCumplida.set(m.input.riderId, km)
+      }
+      if (abanicoAbierto && echelonCloses(kmAlAbrigo)) {
+        abanicoAbierto = false
+        log.emit(km, peloton.tS, 'criba', 'echelon_close', [], {
+          toGo: Math.round(totalKm - km),
+          wind: Math.round(100 * vientoLateral),
+        })
+      }
+    }
     // El principio de esta bajada: se marca al ENTRAR, no en cada bloque de ella (v57).
     if (block.tipo === 'descenso' && tipoBloquePrevio !== 'descenso') descentStartKm = km
     tipoBloquePrevio = block.tipo
@@ -2813,7 +3007,22 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
             riderEff(p).DES >= STAGE.placement.descenderMin
           )
         })
-        jefe.driftS += descentLossS(bajador, false)
+        /**
+         * …Y CON EL PISO MOJADO ES OTRA BAJADA (R14.5, S-281/S-325, paso 20). Dos cosas que estaban
+         * escritas y no se cobraban:
+         *
+         *  - `descentLossS` lleva desde el paso 14 un segundo argumento —`lluvia`, que dobla lo que
+         *    se cede— y **se le pasaba `false` a pelo**, o sea que en este motor todos los descensos
+         *    eran secos aunque estuviera diluviando;
+         *  - y no todo el mundo baja igual. El que lleva la general con colchón baja PROTEGIDO y
+         *    cede a propósito —es la decisión correcta, no un defecto—; el que necesita ganar baja a
+         *    tumba abierta y no cede nada. Eso es `descentRisk`.
+         */
+        const deficit = jefe.input.gcDeficitSeconds ?? 0
+        const riesgo = climaOn
+          ? descentRisk(deficit <= 0, deficit > 0 && plan.gcLeaderId === carta)
+          : 1
+        jefe.driftS += descentLossS(bajador, climaOn && lluvia > 0) * riesgo
       }
     }
 
@@ -3004,7 +3213,17 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
           if (!frontOn || base === 0) return base
           const suyo = equiposAhora.find((e) => e.teamId === plan.teamId)
           if (!suyo) return base
-          return frontClaimOf(suyo, base, gap, kmRestantes)
+          /**
+           * …Y A 38° CERRAR CUESTA MÁS (R14.6, S-238). `frontClaimOf` lleva un `roadPrice` escrito
+           * desde R20.2 —«cerrar en carretera revirada y estrecha cuesta más que en autovía»— que
+           * **no lo pasaba nadie**: el parámetro existía con su valor por defecto y su comentario, y
+           * era letra muerta. El calor es lo primero que lo llena.
+           *
+           * Y no es un sexto multiplicador del coste de bloque: los cinco de §9.1bis están cerrados
+           * y el invariante C1 los vigila uno a uno. Esto es el precio de la carretera, que es otra
+           * cosa y vive en otro sitio.
+           */
+          return frontClaimOf(suyo, base, gap, kmRestantes, climaOn ? heatRoadPrice(calor) : 1)
         }
         const current = frontTeamId ? teamPlans.get(frontTeamId) : undefined
         const relief = [...teamPlans.values()]
@@ -4566,10 +4785,15 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         abanicoAbierto && vientoLateral > 0 && block.tipo === 'llano'
           ? gutterShelter(members.length, cabenEnFila)
           : STAGE.shelterProtected
-      const next = advanceGroup(group, block, p75, Math.min(alFrente, techoAbanico), {
-        isFinal,
-        sprintKmh: régimen,
-      })
+      const next = advanceGroup(
+        group,
+        block,
+        p75,
+        Math.min(alFrente, techoAbanico),
+        { isFinal, sprintKmh: régimen },
+        STAGE.dx,
+        vientoFrontal,
+      )
       /**
        * LO QUE VALE UN RELEVO EN ESTE BLOQUE, MEDIDO POR EL VIENTO Y NO POR LA VELOCIDAD (v26).
        *
@@ -4615,7 +4839,10 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
        */
       const compromisoReal =
         régimen > 0
-          ? Math.max(group.compromiso, commitmentForSpeed(block, p75, next.vActual, alFrente))
+          ? Math.max(
+              group.compromiso,
+              commitmentForSpeed(block, p75, next.vActual, alFrente, vientoFrontal),
+            )
           : group.compromiso
       const workOf = (shelter: number): number =>
         Math.max(0, riderEffort(block, compromisoReal, shelter) - idle) * STAGE.dx
@@ -4918,13 +5145,21 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
           entreEtapasOn && km <= STAGE.entreEtapas.rhythmFirstHourKm
             ? STAGE.entreEtapas.rhythmCostGain * (1 - clamp(m.input.raceRhythm ?? 1, 0, 1))
             : 0
+        /**
+         * …Y DESDE EL PASO 20, EL CUARTO: **el frío** (R13.5). Llega con R14 y no con el paso 13 por
+         * un motivo que hay que decir en voz alta: hasta el parte por segmentos **no había de dónde
+         * sacar un `frio`**. La temperatura del día existe desde la v42, pero solo se leía hacia
+         * arriba —el calor—, así que una etapa a 2° y una a 20° costaban exactamente lo mismo.
+         */
+        const frioTermino = climaOn ? STAGE.truce.coldCostScale * frio : 0
         const tactico =
-          colocacionOn || ritmo !== 0
+          colocacionOn || ritmo !== 0 || frioTermino !== 0
             ? tacticalCostFactor(
                 {
                   push: colocacionOn ? pushTerm(m.pushing) : 0,
                   accordion: hayAcordeon ? accordionTerm(m.placement, mediaPlace) : 0,
                   rhythm: ritmo,
+                  cold: frioTermino,
                 },
                 colocacionOn ? mediaPush : 0,
               )
@@ -5301,7 +5536,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         // Los dos relojes se miden con el MISMO turno (v38): lo que se compara es lo que puede el
         // hombre contra lo que puede el grupo, no un turno contra otro.
         const turno = relayRotation(alive.length, paceFraction)
-        const vPace = blockSeconds(targetSpeed(block, pace, group.compromiso, turno))
+        const vPace = blockSeconds(targetSpeed(block, pace, group.compromiso, turno, vientoFrontal))
         for (const m of alive) {
           // Los `dropDeficitTolerance` puntos son lo que uno cubre APRETANDO LOS DIENTES, y eso es
           // justo lo que paga la reserva: sin reserva ya no se cubren, y el corredor cae de golpe a
@@ -5328,7 +5563,8 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
                   : 1)
               : 0
           const own = (markedPerfil(m, block) ?? riderPerfil(m, block)) + aguante
-          const drift = blockSeconds(targetSpeed(block, own, group.compromiso, turno)) - vPace
+          const drift =
+            blockSeconds(targetSpeed(block, own, group.compromiso, turno, vientoFrontal)) - vPace
           if (drift <= 0) {
             // Va sobrado: recupera reserva y cierra el hueco que llevara abierto. Es la otra mitad
             // de la simetría —un bache de un kilómetro no condena a nadie— y es lo que permite que
@@ -5956,6 +6192,20 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       return true
     }
 
+    /**
+     * «SI LLUEVE EN EL ADOQUÍN, ME COLOCO DELANTE DESDE EL KM 40» (R14.3, S-032 CONTRARIO, paso 20).
+     *
+     * El parte ya estaba en la pantalla de órdenes desde la v42 —con su fiabilidad y su tooltip—, y
+     * `StageOrders.triggerOn` lleva desde el paso 17 declarado con sus seis formas de decir «cuándo».
+     * Lo que faltaba es que el motor las LEYERA: una cita que solo sabe de kilómetros es la única
+     * forma de decir «cuándo» que no depende de la carrera, que es justo lo que R22 venía a arreglar.
+     *
+     * Aquí se enciende **la del tiempo, y solo ésa**, porque es la que R14 cierra. Cuando la
+     * condición se cumple, el kilómetro en que se cumplió PASA A SER la cita, y de ahí en adelante
+     * manda la maquinaria de `triggerKm` de la v58 sin un caso especial. Las otras cinco formas
+     * —el pie del puerto, el ataque de Z, el hueco, el sector— son de R22 y **siguen sin leerse**:
+     * decirlo es mejor que fingir que un `triggerOn` entero funciona.
+     */
     const asMoveRider = (m: RiderSim, type: FinishType, esPeloton: boolean): MoveRider => ({
       // La casa viaja desde la v65 y no la lee nadie todavía (docs/tactica.md paso 2): es el dato
       // del que cuelga R02, y sin él `chooseInstigator` no puede ni enterarse de que dos de los que
@@ -5965,7 +6215,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
       role: m.input.orders.role,
       mentality: m.input.orders.mentality,
       // El kilómetro que el jugador marcó para lanzarse (v58); `null` = decide su mentalidad.
-      triggerKm: m.input.orders.triggerKm ?? null,
+      triggerKm: citaDe(m),
       perfil: riderPerfil(m, block),
       finishScore: finishScore(riderEff(m), type),
       energyFraction: m.energy0 > 0 ? Math.max(0, m.energy / m.energy0) : 0,
@@ -6230,6 +6480,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
               pacemakerP75(quedan, block, fracción),
               source.compromiso,
               relayRotation(quedan.length, fracción),
+              vientoFrontal,
             )
           : 0
       /**
@@ -6249,6 +6500,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         instigator.perfil + STAGE.matchBonus + STAGE.tacticSurgeBonus,
         1,
         relayRotation(Math.max(1, quedan.length), fracción),
+        vientoFrontal,
       )
       const gap = jumpGapSeconds(vAtaque, vGrupo)
       /**

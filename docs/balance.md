@@ -13452,3 +13452,130 @@ porque los dos que pincharon les pasan por detrás. Dos de cuarenta en una crono
 se corrió antes del cambio. El orden correcto es cambiar, reconstruir y **después** medir; correrlo al
 revés produce un verde que no significa nada — que es justo de lo que esta bitácora lleva media
 docena de notas avisando.
+
+## v60 §24 — paso 20, la carretera gira
+
+`ENGINE_VERSION` **69 → 70**. R14, meteorología con previsión: el **único** paso de todo
+`docs/tactica.md` que mueve la **LEY DE VELOCIDAD**, y por eso va solo, el último y con subida propia.
+Mueve las **cuatro** huellas selladas y **re-ancla el invariante 43**, que es lo que §9.3 y §9.2
+declararon antes de medir nada.
+
+### Lo que había era medio viento
+
+Desde la v41 el viento existe, y existe bien: un lateral sorteado una vez al día, los que **caben en
+la fila**, el corte en cascada y la cuneta. Lo que no existía es la otra mitad de la frase, la que
+sabe cualquiera que haya visto una etapa de viento: **la carretera gira**. Con un lateral constante
+durante 180 km pasaban dos cosas falsas a la vez:
+
+- **de cara no frenaba a nadie**, porque el motor no tenía componente frontal. La mitad de las fugas
+  que mueren a veinte kilómetros de meta mueren contra el viento, no contra el pelotón;
+- y **un abanico, una vez abierto, no se cerraba jamás**. `echelonClosedPct` medía **0 %**: «el
+  viento sopla todo el día».
+
+Ahora el viento es un **vector** —la fuerza del día, que es el mismo dado de la v41 dígito a dígito, y
+una dirección— que se resuelve contra el **rumbo de cada bloque**: `lateral = fuerza·|sin Δ|`,
+`frontal = fuerza·cos Δ`, y la ley pasa a ser
+`targetSpeed × (1 − windAheadScale · vientoFrontal)`.
+
+**Y el rumbo es una suposición declarada, no un dato.** `StageProfile` son kilómetros, pendiente y
+terreno: en todo el repositorio no hay una sola coordenada. El trazado se genera determinista por
+semilla, con su propio subflujo nominal (`rumbo`), y el día que el generador traiga geometría de
+verdad se cambia esa función y no se toca nada más.
+
+### El defecto que la primera versión traía, y cómo lo cazó la banda
+
+Escrito como **paseo aleatorio** —el rumbo sale de donde sea y va donde quiera— el
+`echelonClosedPct` medía **100 %** contra una banda de 30-70. Tenía que salir así y no se vio hasta
+medirlo: en 180 km de deriva libre **siempre** aparecen dos kilómetros al abrigo, así que todos los
+abanicos se cerraban. Una etapa no deriva: sale de un sitio, va a otro y serpentea alrededor de esa
+línea. Con el desvío acotado (`roadWanderDeg` 40°) y tirando de vuelta al rumbo general
+(`roadMeanRevert` 0,6), un día de viento **cruzado** lo es de principio a fin —y el abanico aguanta
+hasta meta, que es lo que pasa en Holanda— y uno de viento **oblicuo** se abre y se cierra.
+
+La banda es la que encontró el defecto, y la casa dice lo que hay que hacer con eso: **el que estaba
+mal era el cambio, no la banda**. Las dos bandas —`echelonClosedPct` y `windDayGapS`— se miden aquí
+con su banco y **se escriben en `sim/targets.ts` en el paso 21**, que es el que §9.1 pone a escribir
+las bandas nuevas y a sellarlas con su invariante; aquí se declaran medidas, no selladas, y el número
+que las selle será el del paso 21 con el banco de CI delante.
+
+| llana canónica ×200                   | v69 (apagado) | v70 (encendido) | banda   |
+| ------------------------------------- | ------------- | --------------- | ------- |
+| días con abanico                      | 11/200        | 8/200           | —       |
+| **`echelonClosedPct`**                | **0,0 %**     | **50,0 %**      | 30-70 % |
+| aperturas / cierres                   | 27 / 0        | 15 / 4          | —       |
+| **`windDayGapS`**                     | **4,35×**     | **2,60×**       | 1,5-4×  |
+| hombres juntos en meta, día de viento | 24            | **59**          | —       |
+
+`windDayGapS` **estaba fuera de banda por arriba** (4,35 contra un techo de 4) y entra al cerrarse
+los abanicos: un día de viento seguía siendo el día que más reparte, pero deja de ser una carnicería.
+Y los 24 → 59 hombres juntos en meta son la fila del catálogo que no existía (S-324): **los cortados
+pueden volver**. No vuelven por decreto —no se les regala un segundo—: vuelven porque su grupo deja de
+calcular su ritmo como una fila de doce y vuelve a repartirse el viento entre todos los que son.
+
+### El invariante 43, re-anclado con la causa escrita
+
+| `medianWinnerKmh`, `smallTours` ×3 | v69 (apagado) | v70 (encendido) | guardarraíl           |
+| ---------------------------------- | ------------- | --------------- | --------------------- |
+| llana                              | 42,75         | **42,71**       | ≤ 48                  |
+| media                              | 41,39         | **41,30**       | llana > media > reina |
+| reina                              | 37,53         | **37,39**       | ≥ 32                  |
+
+Se mueve, se mueve **poco** y se mueve **siempre en el mismo sentido**, y ese sentido único es la
+parte que hay que explicar porque es el único sesgo del paso: **de cara y de cola se compensan en
+VELOCIDAD pero no en TIEMPO**. Rodar la mitad de una etapa un 8 % más despacio cuesta más segundos de
+los que la otra mitad ahorra rodando un 8 % más deprisa —media armónica contra media aritmética—, así
+que una etapa con viento cambiante es, en neto, **más lenta**. Cuatro centésimas en la llana y catorce
+en la reina: la ley de velocidad se re-ancla, el orden de los tres tipos se conserva y los dos
+guardarraíles siguen a kilómetros de sus topes.
+
+**C2 se consume aquí y solo aquí.** El invariante de control está redactado desde §7.6 como «la ley no
+se ha movido en NINGUNA tanda táctica **menos el paso 20**», así que este paso no lo rompe: lo gasta.
+Lo que hay que enseñar es la predicción cumplida, y está arriba.
+
+### Las otras cinco filas del racimo
+
+- **R14.2 · la lluvia llega a mitad de etapa.** El parte tiene segmentos de 30 km, y la mitad de los
+  días de lluvia el agua entra por el km 90. Con agua, el equipo que defiende maillot o general sube a
+  **todos** sus hombres al frente (objetivo de colocación ≤ 0,15) y **lo paga mañana** (×1,15). El
+  motor no tiene mañana —una etapa no sabe de la siguiente—, así que hace lo único honesto que puede:
+  **lo dice**, con un evento `rain_front` que lleva el equipo y el recargo, y quien lleva la cuenta
+  entre etapas lo aplica. Inventarle aquí un estado de mañana sería mover la frontera de sitio.
+- **R14.3 · el parte es citable.** `StageOrders.triggerOn` llevaba desde el paso 17 declarado con sus
+  seis formas de decir «cuándo» y **el motor no leía ninguna**. Se enciende la del tiempo —«si llueve,
+  me lanzo»—: cuando la condición se cumple, el kilómetro en que se cumplió pasa a ser la cita y de ahí
+  manda la maquinaria de `triggerKm` de la v58 sin un caso especial. **Las otras cinco siguen sin
+  leerse**, son de R22, y decirlo es mejor que fingir que un `triggerOn` entero funciona.
+- **R14.4 · el material.** Tres opciones, ±2 puntos de perfil en su terreno y **penalización
+  simétrica** si se falla el parte: el lenticular un día sin viento **resta** lo mismo que suma un día
+  de viento. Que sea simétrico es lo que lo convierte en una apuesta y no en un regalo, y lo que hace
+  que valga la pena mirar la previsión. Entra por `StageInput.materiales`, opcional: sin ella nadie
+  elige y el motor corre como antes.
+- **R14.5 · el descenso mojado.** Dos cosas que estaban **escritas y no se cobraban**. `descentLossS`
+  lleva desde el paso 14 un segundo argumento —`lluvia`, que dobla lo que se cede— y se le pasaba
+  `false` **a pelo**, o sea que en este motor todos los descensos eran secos aunque estuviera
+  diluviando. Y no todo el mundo baja igual: el que lleva la general con colchón baja protegido y cede
+  a propósito (×0,3), el que necesita ganar baja a tumba abierta (×1,0).
+- **R14.6 · el calor.** `frontClaimOf` lleva un `roadPrice` escrito desde R20.2 —«cerrar en carretera
+  revirada cuesta más que en autovía»— que **no lo pasaba nadie**: el parámetro existía con su valor
+  por defecto y su comentario, y era letra muerta. El calor es lo primero que lo llena: a 38°, cerrar
+  cuesta un 20 % más. Y **no** es un sexto multiplicador del coste de bloque —los cinco de §9.1bis
+  están cerrados y C1 los vigila uno a uno—: es el precio de la carretera, que es otra cosa y vive en
+  otro sitio.
+
+### Y el cuarto multiplicador táctico, que llega tarde y con motivo
+
+`coldCostScale` (0,06) estaba declarado en §9.1bis desde el paso 13 y **no se cobraba**, porque hasta
+R14 **no había de dónde sacar un `frio`**: la temperatura del día existe desde la v42 pero solo se
+leía hacia arriba —el calor—, así que una etapa a 2° y una a 20° costaban exactamente lo mismo. Con el
+parte por segmentos el término pasa de declarado a cobrado, y como el clima es del **bloque** y no del
+hombre, es idéntico para todo el grupo: redistribuye entre grupos y no dentro, que es lo que lo
+mantiene inocuo para las cinco bandas de `erosion`.
+
+### Una diferencia de interruptor, dicha porque es deliberada
+
+Los trece interruptores anteriores se leen `flags?.x === true || STAGE.x.enabled`, o sea que **una vez
+encendida la constante el brazo A deja de ser ejecutable**. Para una capa táctica se puede vivir con
+eso; para la única que mueve la LEY, no: el invariante 43 se re-ancla aquí, y re-anclarlo sin poder
+volver a correr el brazo A es re-anclarlo a ciegas. Por eso éste se lee `flags?.weather ??
+STAGE.weather.enabled` y **se puede apagar desde el banco**, que es como están medidas las dos tablas
+de arriba.
