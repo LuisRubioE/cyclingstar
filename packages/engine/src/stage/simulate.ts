@@ -45,6 +45,7 @@ import {
   targetSpeed,
 } from './physics.js'
 import { blockProbability, rollHazard } from './hazard.js'
+import { type Train, advanceTrain, orderHelpers, trainSpanKm } from './train.js'
 import { type MishapKind, caravanPullS, mishapLambda, mishapStopS } from './mishap.js'
 import {
   mateSeesTrouble,
@@ -1975,6 +1976,49 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
   const rescateOn = input.flags?.truce === true || STAGE.truce.enabled
   /** ¿Y los percances mecánicos del paso 13? Ver `STAGE.mishap.enabled`. */
   const percancesOn = input.flags?.mishap === true || STAGE.mishap.enabled
+  /** ¿Y el tren como submotor del paso 15? Ver `STAGE.train.enabled`. */
+  const trenOn = input.flags?.train === true || STAGE.train.enabled
+  /**
+   * LOS TRENES VIVOS, uno por carta de sprint, **y persistentes**: ésa es la diferencia entre un
+   * tren y una foto. Se montan la primera vez que hacen falta y desde ahí llevan su propio estado
+   * —quién tira, cuánto lleva tirando, si se ha roto— hasta meta.
+   *
+   * Se guardan por el id de la CARTA y no por el del equipo porque un equipo puede llevar dos cartas
+   * (R16.5) y cada una es su propio tren.
+   */
+  const trenes = new Map<string, Train>()
+  const trenDe = (cardId: string, enElGrupo: ReadonlySet<string>): Train | null => {
+    const vivo = trenes.get(cardId)
+    if (vivo != null) return vivo.state === 'roto' ? null : vivo
+    const equipo = teamOf.get(cardId)
+    if (equipo == null) return null
+    const candidatos = (leadOutFor.get(cardId) ?? [])
+      .map((id) => sims.get(id))
+      .filter(
+        (p): p is RiderSim =>
+          p != null &&
+          p.abandonedKm === null &&
+          p.finishTs === null &&
+          enElGrupo.has(p.input.riderId),
+      )
+      .map((p) => ({
+        riderId: p.input.riderId,
+        motor: riderEff(p).LLA,
+        freshness: p.energy0 > 0 ? p.energy / p.energy0 : 0,
+      }))
+    if (candidatos.length === 0) return null
+    const nuevo: Train = {
+      teamId: equipo,
+      cardId,
+      kind: 'sprint',
+      helpers: orderHelpers('sprint', candidatos),
+      index: 0,
+      turnKm: 0,
+      state: 'formando',
+    }
+    trenes.set(cardId, nuevo)
+    return nuevo
+  }
   /**
    * EL ORDEN DE LA CARAVANA (R11.2). Los coches van detrás del pelotón **por orden de general**: el
    * del equipo del líder, primero. No es protocolo: son treinta segundos sistemáticos de ventaja
@@ -4268,9 +4312,30 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
          * el de siempre: se guarda para los últimos tres kilómetros.
          */
         (riderId) => {
-          if (!isBunch || kmToGo > STAGE.sprintTrainKm) return false
+          /**
+           * …Y DESDE EL PASO 15, EL TREN EMPIEZA A LOS QUINCE KILÓMETROS Y TIRA DE UNO EN UNO
+           * (R16.1). Hasta aquí el tren solo existía en los últimos tres y **lanzaban los tres
+           * lanzadores a la vez**, que es una cosa que en carretera no pasa: el primero entra a
+           * quince kilómetros, se vacía, se aparta, y entra el siguiente.
+           *
+           * Entre el 15 y el 3 mandaba el turno de relevos por deber, y ése es el hueco por el que
+           * se colaba el defecto que el catálogo llama «el frente de los últimos quince kilómetros
+           * se disputa y se pierde»: un tren se funde y otro lo hereda, uno llega tarde, un
+           * contraataque obliga a rehacerlo, y hay días en que a ocho kilómetros no manda nadie.
+           */
+          if (!isBunch) return false
           const suJefe = lanzaPara.get(riderId)
-          return suJefe != null && idSet.has(suJefe)
+          if (suJefe == null || !idSet.has(suJefe)) return false
+          if (!trenOn) return kmToGo <= STAGE.sprintTrainKm
+          if (kmToGo > STAGE.train.formKm) return false
+          const tren = trenDe(suJefe, idSet)
+          if (tren === null) return false
+          // En los últimos tres kilómetros lanza el que quede, como siempre: ahí ya no hay relevos.
+          if (kmToGo <= STAGE.sprintTrainKm) return true
+          // Y ANTES DE ESO, SOLO CUANDO LE TOCA AL TREN: ver `trainSpanKm`. El tren se monta a los
+          // quince y empieza a tirar a los nueve y medio, para acabarse EN la meta y no antes.
+          if (kmToGo > trainSpanKm(tren)) return false
+          return tren.helpers[tren.index] === riderId
         },
         abanicoAbierto && vientoLateral > 0 && block.tipo === 'llano',
         /**
@@ -7097,6 +7162,33 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
             toGo: Math.round(totalKm - km),
           },
         )
+      }
+    }
+
+    /**
+     * LOS TRENES AVANZAN, UNA VEZ POR BLOQUE (R16.2). Dos cosas pasan el turno al siguiente: que se
+     * agote —cinco kilómetros el primero, tres el segundo, kilómetro y medio el tercero— o **que se
+     * funda**, que es lo que de verdad rompe un tren en carretera. Cuando no queda ninguno el tren
+     * no desaparece: queda `roto`, la carta se ha quedado sola, y eso es un estado que se puede
+     * contar.
+     */
+    if (trenOn) {
+      for (const [cardId, t] of trenes) {
+        if (t.state === 'roto') continue
+        const actual = t.helpers[t.index]
+        const p = actual != null ? sims.get(actual) : undefined
+        const fresco =
+          p == null ||
+          p.abandonedKm !== null ||
+          p.finishTs !== null ||
+          p.groupId !== sims.get(cardId)?.groupId
+            ? 0
+            : p.energy0 > 0
+              ? p.energy / p.energy0
+              : 0
+        // El turno solo corre cuando el tren está de verdad tirando (ver `trainSpanKm`).
+        if (totalKm - km > trainSpanKm(t)) continue
+        trenes.set(cardId, advanceTrain(t, STAGE.dx, fresco))
       }
     }
 
