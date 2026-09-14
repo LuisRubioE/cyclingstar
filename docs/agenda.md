@@ -15,7 +15,7 @@ entras, cómo recuperas tu cuenta, quién manda sobre quién, en qué idioma lee
 carrera de hoy y quién limpia lo que alguien escriba de más.
 
 > **Para encargar el trabajo, ve a [docs/encargos.md](./encargos.md)**, que convierte este catálogo
-> en doce documentos de diseño con su párrafo de encargo, qué leer del repositorio y en qué orden.
+> en trece documentos de diseño con su párrafo de encargo, qué leer del repositorio y en qué orden.
 > Aquí está el razonamiento; allí está la lista operativa.
 
 Tres cosas de la lista grande de `epics.md` son en realidad de aquí y no se duplican, se citan: **G2**
@@ -460,7 +460,7 @@ propiedades concretas que WhatsApp no tiene y que una comunidad de juego necesit
    hacia arriba. Para un juego que va a repetir las mismas veinte preguntas mil veces, eso significa
    contestarlas mil veces.
 3. **No tiene moderación ni estructura.** Ni temas separados, ni hilos, ni herramientas para tratar a
-   quien se porta mal más allá de expulsarlo a mano. Es lo mismo que E6 está resolviendo dentro del
+   quien se porta mal más allá de expulsarlo a mano. Es lo mismo que E7 está resolviendo dentro del
    juego, tirado a la basura fuera de él.
 
 **Y ahora lo que importa de verdad: esta decisión no hay que tomarla todavía.** Durante la beta por
@@ -477,7 +477,7 @@ cambio de un trabajo de moderación para siempre. Y por debajo de los dos, Whats
 que uno elige cuando la comunidad son veinte personas y la que lamenta cuando son dos mil.
 
 **Lo que no cambia con nada de esto:** dentro del juego solo va lo que necesita contexto de juego (el
-canal del equipo, la rueda de prensa, el mensaje del mánager), que es lo que E8 diseña. La comunidad
+canal del equipo, la rueda de prensa, el mensaje del mánager), que es lo que E9 diseña. La comunidad
 general vive fuera, se llame como se llame.
 
 ### 4.14 El rediseño GRÁFICO, que faltaba, y un malentendido que aclarar
@@ -557,8 +557,8 @@ cada cuenta vendida**, y esa decisión hay que tomarla sabiéndolo y no descubri
 reglas se mueven, hay que mirar cómo están el día que se decida.
 
 **Conclusión:** no es una épica. Es una **decisión tomada** (PWA) y tres requisitos repartidos: la web
-instalable y legible en móvil va en E2, el aviso por notificación va en E3, y la advertencia de la
-comisión va en E7. Se revisa cuando el juego esté acabado y haya datos de uso; si entonces la mitad
+instalable y legible en móvil va en E3, el aviso por notificación va en E4, y la advertencia de la
+comisión va en E8. Se revisa cuando el juego esté acabado y haya datos de uso; si entonces la mitad
 de los jugadores entran desde el teléfono y piden app, se construye con criterio y no por corazonada.
 
 #### 4.15.2 Amistades y enemistades entre corredores: sí, pero NO como bonificación
@@ -572,7 +572,7 @@ separar qué falla y qué se salva.
 tres cosas, las tres malas: todo el mundo se hace amigo de todo el mundo y la bonificación se vuelve
 universal, o sea que deja de significar nada; las cuentas múltiples se hacen amigas de sí mismas, que
 es la peor combinación posible con lo que §4.1 ya advierte; y entre jugadores reales se forman
-carteles indistinguibles de la colusión que E6 tiene que perseguir. Una amistad que se declara con un
+carteles indistinguibles de la colusión que E7 tiene que perseguir. Una amistad que se declara con un
 botón es una casilla que optimizar.
 
 **Lo que se salva, y es mejor que la idea original, es que la relación se GANE EN LA CARRETERA y
@@ -591,13 +591,13 @@ construida**:
   y lo que produce las mejores historias del deporte.
 - **Se pega a lo que ya se está diseñando.** N4 propone rasgos que se descubren corriendo; esto es lo
   mismo aplicado a pares en vez de a individuos. Y G2.12 (relaciones entre corredores) ya estaba
-  dentro de E8, pero planteado como vestuario de equipo; esto lo extiende al pelotón entero, que es
+  dentro de E9, pero planteado como vestuario de equipo; esto lo extiende al pelotón entero, que es
   donde el ciclismo pone sus alianzas: **entre rivales**, no entre compañeros.
 
 **Por qué así es mucho más difícil de explotar:** no hay botón que pulsar, hace falta coincidir de
 verdad en carrera muchas veces, el efecto solo existe en situaciones concretas (fuga, persecución,
 abanico) y es visible en la crónica, o sea auditable. Una relación fabricada deja rastro de haberse
-fabricado, que es justo lo que E6 necesita para distinguir amistad de cartel.
+fabricado, que es justo lo que E7 necesita para distinguir amistad de cartel.
 
 **Riesgo que hay que nombrar:** con muy pocos jugadores humanos, dos personas coincidirán en fuga una
 vez cada muchas semanas, así que la mecánica tardará temporadas en encenderse entre humanos. Entre
@@ -621,8 +621,8 @@ verdad, y no uno estético:
 Hay que decidir qué es inactividad, qué le pasa al corredor (¿se congela? ¿lo lleva el entrenador?
 ¿se retira?), qué le pasa a su contrato y a su plaza, qué le pasa al equipo de un mánager ausente (la
 sucesión), y sobre todo **cómo se vuelve**: alguien que regresa después de tres meses tiene que poder
-retomar su carrera deportiva, no encontrarse con que le han borrado la vida. Va en E6, que es el
-gobierno del mundo, con la parte de la sucesión del equipo en E8.
+retomar su carrera deportiva, no encontrarse con que le han borrado la vida. Va en E7, que es el
+gobierno del mundo, con la parte de la sucesión del equipo en E9.
 
 #### 4.15.4 No se puede buscar nada
 
@@ -636,7 +636,7 @@ completo** de alguien, consultar una temporada de hace tres años. Los datos est
 guardan fechados desde la v48 y no se borran nunca), y no hay por dónde leerlos.
 
 No arregla nada roto, así que no adelanta a nadie en la cola, pero es de lo que más profundidad da por
-hora invertida y es lo que hace que un mundo parezca un mundo. Entra como **E12**.
+hora invertida y es lo que hace que un mundo parezca un mundo. Entra como **E13**.
 
 #### 4.15.5 La regla del mes: buena, y hay que precisarla en cuatro sitios
 
@@ -682,7 +682,7 @@ importa, porque el jugador siempre puede empezar otra carrera deportiva.
 **Lo que hay que hacer ya, y es barato:** empezar a **registrar la última visita**. Hoy no existe (ni
 `last_seen` ni equivalente), y es un dato que no se reconstruye hacia atrás: el día que se quiera
 aplicar la regla hará falta un mes de historial que solo existe si se empezó a guardar un mes antes.
-Va en la lista de tareas, no en E6, porque no necesita esperar a ningún diseño.
+Va en la lista de tareas, no en E7, porque no necesita esperar a ningún diseño.
 
 ### 4.16 Los tres detalles del dueño, que no son tan pequeños
 
@@ -711,7 +711,7 @@ siguiente. Convertir eso en un maillot que se lleva un año es de lo más barato
 **Lo que NO encontré: el Campeonato del Mundo.** `SPEC.md` §8 lo promete («Campeonato del Mundo en
 septiembre, selecciones NPC en v1») y en el calendario solo aparecen los nacionales. Puede que se me
 haya escapado, pero conviene comprobarlo, porque el maillot arcoíris no puede existir sin la carrera
-que lo reparte. Va con §4.10 (selecciones nacionales) en E11.
+que lo reparte. Va con §4.10 (selecciones nacionales) en E12.
 
 **El choque con el SPEC, y es literal.** `SPEC.md` §8 prohíbe «imitar logotipos, tipografías o
 identidades visuales de las carreras reales», y enumera tres ejemplos: «el amarillo con serifa
@@ -719,21 +719,21 @@ característica, el rosa de la corsa, **el arcoíris del campeón del mundo**».
 el dueño pide por su nombre es exactamente uno de los tres que su propia especificación prohíbe
 copiar. Esto **no mata la idea**, la obliga a ser mejor: hay que inventarle al campeón del mundo de
 este juego su propia señal visual, reconocible de un vistazo y que no sea el arcoíris. Es trabajo de
-E2 y es de las pocas decisiones de identidad que el jugador va a mirar mil veces.
+E3 y es de las pocas decisiones de identidad que el jugador va a mirar mil veces.
 
 **El maillot del equipo: hoy nadie lo diseña, se sortea.** `teams.jersey_seed` es una SEMILLA, y
 `TeamIdentity.tsx` solo pinta `<Jersey seed={...} />`. O sea que el maillot de un equipo es
 procedural y su dueño no elige nada. Que un mánager pueda diseñar el suyo es una de las cosas que
-más apego genera en estos juegos y es trabajo de E2 (el editor y el vocabulario visual) y de E8 (quién
+más apego genera en estos juegos y es trabajo de E3 (el editor y el vocabulario visual) y de E9 (quién
 puede tocarlo y con qué moderación, porque un maillot es contenido de usuario como un nombre).
 
 **Y ceder el maillot a un patrocinador por dinero es la mejor de las tres ideas.** Que un
 patrocinador pague por imponer su color o por llevar su logotipo en el sitio bueno convierte la
 identidad visual en una **decisión económica con coste real**: cobras más y dejas de parecerte a ti
 mismo. Eso es exactamente el conflicto que vive un equipo de verdad, es gratis de justificar y
-engancha con G2.7 y G2.8, que ya están en E7. Va allí, con la parte visual en E2.
+engancha con G2.7 y G2.8, que ya están en E8. Va allí, con la parte visual en E3.
 
-**Y la petición que lo une todo, que es de E1:** cuando se escapan cinco, que se vean sus maillots.
+**Y la petición que lo une todo, que es de E2:** cuando se escapan cinco, que se vean sus maillots.
 Es literalmente lo que hace la televisión con el rótulo de cada corredor, es la diferencia entre «se
 escapan cinco» y «se escapa el campeón de Italia con cuatro más», y necesita las cinco categorías
 resueltas (los tres de clasificación, el de campeón y el del equipo).
@@ -741,7 +741,7 @@ resueltas (los tres de clasificación, el de campeón y el del equipo).
 #### 4.16.2 Herramientas de administración: sí, y con una advertencia
 
 Pedido: herramientas buenas y completas de administración, baneo, prohibir nombres de equipos. Va
-entero en **E6**, y el documento tiene que cubrir al menos: suspender y expulsar cuentas con motivo y
+entero en **E7**, y el documento tiene que cubrir al menos: suspender y expulsar cuentas con motivo y
 duración, prohibir y revertir nombres (de equipo y de corredor, con la lista de bloqueo que ya existe
 en `blocklist.ts` y la pantalla `AdminNames.tsx` como punto de partida), forzar el cambio de un
 nombre ya aceptado, atender denuncias con su cola y su respuesta, ver la ficha completa de una cuenta
@@ -753,7 +753,7 @@ la columna `users.is_admin` no se lee en ninguna consulta del repositorio. Const
 sobre ese cimiento multiplica el riesgo en vez del control: cuantas más cosas pueda hacer el token,
 peor es que sea uno solo, que no deje rastro de quién lo usó y que revocárselo a una persona obligue a
 cambiárselo a todas. **Primero los roles y el registro de auditoría, y encima las herramientas.** Es
-el mismo orden que el resto de E6 y por la misma razón.
+el mismo orden que el resto de E7 y por la misma razón.
 
 #### 4.16.3 El gregario: el dueño tiene razón, y el código ya lo sabía a medias
 
@@ -787,7 +787,7 @@ una vocación de verdad (escalador flojo, rodador del montón, esprínter que no
 gregario **por nivel y no por destino**, que es lo que pasa en la carretera. El requisito de las
 cuatro estrellas deja de chocar con nada, porque ya no hay nadie condenado a no destacar en nada.
 
-**Dónde va:** el diseño en **E10** (la vida del corredor), porque es la pregunta de qué es un corredor
+**Dónde va:** el diseño en **E11** (la vida del corredor), porque es la pregunta de qué es un corredor
 y cómo cambia lo que es a lo largo de su carrera. La ejecución toca el motor, o sea la otra línea, y
 por eso conviene que la decisión esté escrita antes de que esa línea termine.
 
@@ -834,10 +834,93 @@ está bloqueado.
    regla, es un efecto secundario: debería decidirlo el corredor, su equipo o la federación, y no el
    orden del bucle.
 
-**Dónde va:** en **E11** (recorridos y calendario), que es donde vive el calendario de campeonatos.
-El punto 1 se toca además con E8, porque «doblar o guardarse» es una decisión que en un equipo la
+**Dónde va:** en **E12** (el calendario y las carreras reales), que es donde vive el calendario de campeonatos.
+El punto 1 se toca además con E9, porque «doblar o guardarse» es una decisión que en un equipo la
 negocia alguien. Y la ejecución cae en el motor, o sea en la otra línea, así que conviene que quede
 escrito antes de que termine.
+
+#### 4.17.1 ¿Decide el ciclista o el equipo? El ciclista, y aquí está la gracia
+
+La pregunta es mejor de lo que parece, porque el campeonato nacional es **la única carrera del año en
+la que el equipo no tiene la llave**. En todas las demás el equipo convoca: decide quién va al Giro y
+quién se queda en casa, y el corredor lo sufre (eso es G2.2 y G2.15). En el campeonato de su país, en
+cambio, el corredor entra por ser de ese país, no por ser de ese equipo, y la inscripción no pasa por
+su director.
+
+Por eso mi recomendación es: **decide el corredor, y el equipo presiona.**
+
+- **El corredor elige** si dobla o se guarda, tenga equipo o no. Es su título, su maillot y su país.
+- **El equipo puede fijar una preferencia** («preferimos que te guardes para la Vuelta al País
+  Vasco»), y desoírla tiene un coste, no una prohibición. La pieza ya existe: `team_trust` está en el
+  SPEC §6.18 y pesa en la probabilidad de convocatoria. O sea que ignorar a tu director te cuesta
+  convocatorias futuras, que es exactamente como funciona en la carretera.
+- **El agente libre y el corredor sin equipo deciden solos**, sin nadie a quien dar explicaciones.
+
+Y ahí está lo bonito de dárselo al jugador: es un **momento de agencia temprana y barata**. El chaval
+de 19 años que nadie ficha, que no elige su calendario porque no tiene equipo y que corre de agente
+libre, sí elige esto. En un juego donde el primer mes es hostil (§4.2), una decisión propia y con
+consecuencias en la primera temporada vale más de lo que cuesta.
+
+### 4.18 El generador de recorridos: el dueño tiene razón y es literal
+
+La objeción: los perfiles de las carreras continentales son penosos, siempre son los mismos tres o
+cuatro modelos, y ¿no se puede hacer un generador en condiciones **antes** y dejar para más tarde lo
+de ampliar la base de recorridos reales? **Sí, y hay que hacerlo.** Lo que sigue es por qué, con tres
+hallazgos del código que refuerzan la queja.
+
+**Hallazgo 1: los tres modelos son literales.** En `packages/engine/src/routes/calendar.ts`, una
+vuelta por etapas compone sus etapas sobre `type MixTerrain = 'flat' | 'hilly' | 'mountain'`, con un
+comentario que lo dice sin rodeos: «los tres terrenos que sabe componer una vuelta por etapas (el
+resto se reduce a ellos)». Para las carreras de un día hay seis formas (`flat`, `hilly`, `classic`,
+`cobbles`, `mountain`, `itt`). O sea que la percepción del dueño no es percepción: son tres y seis.
+
+**Hallazgo 2: el azar está en los DETALLES y no en la ARQUITECTURA.** `profileGen.ts` es bueno en lo
+que hace y su cabecera lo explica: el llano ondula en vez de ser una recta, y cada puerto se parte en
+rampas de pendiente variable. Pero la semilla mueve **cuánto mide cada rampa y cuánto pica**, no
+**cómo está construida la carrera**. Y la identidad de una carrera real es justamente su
+arquitectura: dos puertos en los primeros sesenta kilómetros y luego cien de llano; un circuito que
+se repite cinco veces; un muro en el kilómetro 180; un sector de adoquines a mitad de etapa. Como el
+esqueleto siempre es el mismo, dos «clásicas» distintas se parecen aunque sus rampas no coincidan en
+un solo número.
+
+**Hallazgo 3, y es el más gordo: el generador es CIEGO A LA GEOGRAFÍA.** La definición de carrera
+tiene un campo `country`, y **no llega al generador**: la función que elige el perfil es
+`oneDaySpec(terrain, km, seed)` y no recibe el país por ninguna parte. Consecuencia directa: una .2
+en los Países Bajos y una .2 en Colombia salen de las mismas seis funciones con distinta semilla. Eso
+por sí solo explica buena parte de la sensación de que el calendario continental es un molde repetido:
+**el mundo tiene sitios y el generador no lo sabe**.
+
+#### Y el argumento que decide el ORDEN, que no es estético
+
+Esto no es un problema de que las carreras se vean sosas. **Los perfiles son la ENTRADA de la
+calibración táctica**, y este repositorio ya tiene la demostración escrita de lo que pasa cuando se
+calibra contra un perfil que no existe: `epics.md` E3 paso 4 documenta que la etapa reina canónica del
+banco (`reina-150`) «no es una etapa reina fácil: es media montaña con la etiqueta cambiada», y que
+sobre ella el motor llevaba **cinco versiones certificando** que la fuga gana en montaña el 27-30 % de
+las veces, mientras en las etapas reina de verdad ganaba el 3,3 % y en gran vuelta el 0 %.
+
+Un generador que produce perfiles falsos es el mismo problema **extendido a todo el calendario**. Cada
+versión del motor que pasa se calibra contra ese calendario, así que cuanto más se tarde en arreglarlo,
+más trabajo de calibración habrá que rehacer. Eso convierte al generador en lo contrario de una tarea
+cosmética aplazable: es **infraestructura de la que depende la corrección de todo lo demás**.
+
+#### Consecuencia: se parte en dos y el generador se va al principio
+
+**Cambio mi recomendación anterior, y digo por qué**: yo había puesto los recorridos al final porque
+los trataba como contenido, o sea «mejora el mundo y no cambia lo que el juego es». Con el hallazgo 3
+y con el argumento de la calibración, eso deja de ser cierto: el generador **sí** cambia lo que el
+juego es, todos los días y en todas las carreras.
+
+- **El generador de etapas pasa a ser E1**, el primero de todos. Es además el que mejor encaja justo
+  después de la línea del motor, porque es trabajo de motor y el dueño saldrá de ahí con el código
+  fresco en la cabeza.
+- **Ampliar la base de recorridos reales se queda al final**, ahora como E12, junto con los
+  campeonatos, el Mundial que falta y las selecciones nacionales. Eso sí es contenido y sí puede
+  esperar: cada recorrido real que se añade mejora una carrera, mientras que el generador mejora
+  todas las que nunca tendrán recorrido real, que son la mayoría.
+
+Es la segunda renumeración de los códigos y **debería ser la última**: propongo congelarlos el día que
+se encargue el primer documento.
 
 ## 5. El catálogo de diseños
 
@@ -1198,8 +1281,8 @@ documentadas, y una pantalla que aun así no se entiende. Ninguno de los tres se
 motor. Los tres son **exactamente** lo que las oleadas 1 y 2 del catálogo existen para arreglar, y
 por eso la capa de lectura va primera.
 
-**Dónde se arreglan:** este cuadro es el **examen práctico de E2** (el sistema visual) en
+**Dónde se arreglan:** este cuadro es el **examen práctico de E3** (el sistema visual) en
 [docs/encargos.md](./encargos.md), por decisión del dueño y con buen criterio: una pantalla ya
 implementada, con el motor correcto debajo, que aun así no se entiende, es el mejor banco de pruebas
-que puede tener un sistema visual. El punto de la precedencia invisible se solapa con E5, y eso está
-bien: de E2 sale la solución visual y de E5 dónde vive la explicación.
+que puede tener un sistema visual. El punto de la precedencia invisible se solapa con E6, y eso está
+bien: de E3 sale la solución visual y de E6 dónde vive la explicación.

@@ -3,7 +3,7 @@
 Estado: **lista de encargos.** Cada punto de aquí es UN documento de diseño por escribir, del tamaño
 y con el método de `docs/tactica.md` y `docs/entrenamiento.md`. Ninguno está empezado.
 
-**Los códigos van en el orden en que se van a desarrollar**: E1 primero, E12 último. No es una
+**Los códigos van en el orden en que se van a desarrollar**: E2 primero, E13 último. No es una
 etiqueta arbitraria, es el plan.
 
 El catálogo razonado, con las dependencias y el porqué de cada uno, está en
@@ -18,7 +18,7 @@ Hay **otra línea implementando los cambios de motor que faltan** (la táctica y
 rediseñados). Hasta que eso esté EN PRODUCCIÓN no se abre ni una de estas épicas en el código, y
 cuando se abra, lo primero es **descargar la última versión de producción** y trabajar sobre ella.
 
-No es prudencia de más: estas doce épicas tocan la capa de presentación, la API y el esquema, y la
+No es prudencia de más: estas trece épicas tocan la capa de presentación, la API y el esquema, y la
 línea del motor está moviendo el motor entero y lo que la API expone de él. Empezar antes garantiza
 resolver conflictos sobre código que va a cambiar otra vez.
 
@@ -27,26 +27,27 @@ documento de diseño no crea conflictos de fusión.
 
 ---
 
-## Equivalencia con la numeración anterior
+## Equivalencia con las numeraciones anteriores
 
-La primera versión de este documento numeraba por temas y no por orden. Si aparece un código antiguo
-en algún mensaje o rama, es este:
+Segunda y **última** renumeración: propongo **congelar los códigos el día que se encargue el primer
+documento**. La v1 numeraba por temas, la v2 por orden de desarrollo, y la v3 saca el generador de
+recorridos de la última épica y lo pone el primero (§4.18 de `agenda.md`).
 
-| Antes | Ahora   | Encargo                                |
-| ----- | ------- | -------------------------------------- |
-| E1    | **E1**  | La retransmisión                       |
-| E2    | **E2**  | El sistema visual                      |
-| E7    | **E3**  | La cuenta y el contacto                |
-| E11   | **E4**  | La transparencia del motor             |
-| E3    | **E5**  | La experiencia general y el primer mes |
-| E6    | **E6**  | La integridad y el gobierno del mundo  |
-| E5    | **E7**  | La economía del juego                  |
-| E4    | **E8**  | El juego entre personas                |
-| E8    | **E9**  | El multiidioma                         |
-| E9    | **E10** | La vida del corredor                   |
-| E10   | **E11** | Los recorridos y el calendario         |
-
----
+| v1  | v2  | **Ahora** | Encargo                                                                      |
+| --- | --- | --------- | ---------------------------------------------------------------------------- |
+| —   | —   | **E1**    | El generador de recorridos (sale de la antigua épica de recorridos)          |
+| E1  | E1  | **E2**    | La retransmisión                                                             |
+| E2  | E2  | **E3**    | El sistema visual                                                            |
+| E7  | E3  | **E4**    | La cuenta y el contacto                                                      |
+| E11 | E4  | **E5**    | La transparencia del motor                                                   |
+| E3  | E5  | **E6**    | La experiencia general y el primer mes                                       |
+| E6  | E6  | **E7**    | La integridad y el gobierno del mundo                                        |
+| E5  | E7  | **E8**    | La economía del juego                                                        |
+| E4  | E8  | **E9**    | El juego entre personas                                                      |
+| E8  | E9  | **E10**   | El multiidioma                                                               |
+| E9  | E10 | **E11**   | La vida del corredor                                                         |
+| E10 | E11 | **E12**   | El calendario y las carreras reales (lo que queda tras sacarle el generador) |
+| —   | E12 | **E13**   | La enciclopedia del mundo                                                    |
 
 ## Antes de la lista: tres avisos que ahorran trabajo
 
@@ -69,7 +70,46 @@ abajo va la lista mínima.
 
 ---
 
-## E1 · La retransmisión
+## E1 · El generador de recorridos
+
+**Fichero:** `docs/generador.md` · **Tamaño esperado:** grande
+
+El veredicto del dueño sobre esto es el más duro de todo el proyecto («para las que no se puedan nunca
+reproducir, el generador es una basura») y está confirmado con un caso concreto: el generador le dio a
+una carrera de un día de montaña el perfil de una etapa reina de gran vuelta, con final en alto de
+catorce kilómetros, algo que no existe en el calendario real, y eso dejó al 82 % del pelotón con el
+tanque a cero. Se arregló ese caso y el generador entero sigue sin revisar.
+
+**Y las tres cosas que hay que arreglar están identificadas y comprobadas** (§4.18 de `agenda.md`).
+Primera: **los modelos son literalmente tres**. Una vuelta por etapas compone sus etapas sobre
+`type MixTerrain = 'flat' | 'hilly' | 'mountain'`, con un comentario que dice «el resto se reduce a
+ellos», y las carreras de un día tienen seis formas. Segunda: **el azar está en los detalles y no en
+la arquitectura**. `profileGen.ts` hace bien lo suyo (el llano ondula, cada puerto se parte en rampas
+de pendiente variable), pero la semilla mueve cuánto mide cada rampa, no cómo está construida la
+carrera, y la identidad de una carrera real es su arquitectura: dos puertos en los primeros sesenta
+kilómetros y cien de llano después, un circuito repetido cinco veces, un muro en el kilómetro 180, un
+sector de adoquines a mitad de etapa. Tercera, y la más gorda: **el generador es ciego a la
+geografía**. La carrera tiene un campo `country` que **no llega al generador** (`oneDaySpec(terrain,
+km, seed)` no lo recibe), así que una .2 neerlandesa y una .2 colombiana salen de las mismas seis
+funciones con distinta semilla. El mundo tiene sitios y el generador no lo sabe.
+
+**Por qué va el primero y no el último, que es donde yo lo había puesto.** Porque los perfiles son la
+ENTRADA de la calibración táctica, y este repositorio ya tiene escrito lo que pasa cuando se calibra
+contra un perfil que no existe: `epics.md` E3 documenta que la etapa reina canónica del banco «es media
+montaña con la etiqueta cambiada» y que sobre ella el motor llevó **cinco versiones certificando** que
+la fuga gana en montaña el 27-30 % de las veces, cuando en las reinas de verdad ganaba el 3,3 %. Un
+generador que produce perfiles falsos es ese mismo problema extendido a todo el calendario, así que
+cada versión del motor que pase sin arreglarlo es calibración que habrá que rehacer. No es contenido
+aplazable: es infraestructura de la que depende la corrección de lo demás. Y encaja justo después de
+la línea del motor, con ese código todavía fresco.
+
+**Qué leer:** `packages/engine/src/routes/profileGen.ts` entero, `calendar.ts` (`oneDaySpec`,
+`stageMix`, `MixTerrain`), `stageKind.ts`, `finalKind.ts`, `featureProfile.ts` y `altimetry.ts`,
+`docs/motor.md` en lo que toca al perfil, y G6 en `docs/epics.md`.
+
+---
+
+## E2 · La retransmisión
 
 **Fichero:** `docs/retransmision.md` · **Tamaño esperado:** grande (como `tactica.md`)
 
@@ -91,7 +131,7 @@ sin `seed` ni `data`), lo que las hace intraducibles y no re-renderizables, al r
 **Y un requisito concreto del dueño que es puro lenguaje de televisión: cuando se escapan cinco, que
 se vean sus maillots.** No es adorno: es la diferencia entre «se escapan cinco» y «se escapa el
 campeón de Italia con cuatro más», que es una carrera distinta. Necesita las cinco categorías
-resueltas (los tres de clasificación que ya existen, el de campeón que hay que crear en E2 y E11, y
+resueltas (los tres de clasificación que ya existen, el de campeón que hay que crear en E3 y E12, y
 el del equipo), y es exactamente el rótulo con el que la televisión presenta a cada corredor.
 
 **Qué leer:** `apps/api/src/chronicle.ts` y `raceRadio.ts`, `apps/web/src/domain/narration.ts`,
@@ -100,7 +140,7 @@ el del equipo), y es exactamente el rótulo con el que la televisión presenta a
 
 ---
 
-## E2 · El sistema visual
+## E3 · El sistema visual
 
 **Fichero:** `docs/visual.md` · **Tamaño esperado:** mediano
 
@@ -113,7 +153,7 @@ exigencias que el documento no puede saltarse: **el teléfono es el dispositivo 
 (lo dice `docs/navegacion.md` §2, principio 3, y hoy hay pantallas que son tablas anchas), y los
 equipos se distinguen por **color de maillot**, que es el peor identificador posible para un
 daltónico, así que el patrón SVG paramétrico tiene que llevar forma además de color. Va emparejado
-con E1 a propósito: repintar pantallas sin saber qué cuentan es maquillaje, y rediseñar la
+con E2 a propósito: repintar pantallas sin saber qué cuentan es maquillaje, y rediseñar la
 información para volver a pintarla igual de fea es trabajo perdido.
 
 **Los maillots, que son tres encargos en uno y el más visible del documento.** Primero, **el maillot
@@ -129,7 +169,7 @@ el arcoíris. Es de las pocas decisiones de identidad que el jugador va a mirar 
 `TeamIdentity.tsx` solo pinta lo que salga de ella, así que el mánager no elige nada. Hace falta un
 editor y un vocabulario visual acotado (formas, franjas, colores) que produzca maillots distinguibles
 entre sí y legibles a tamaño pequeño, que es el tamaño al que se van a ver. Tercero, que ese
-vocabulario sirva también para **lo que un patrocinador compra** cuando E7 le venda sitio en la
+vocabulario sirva también para **lo que un patrocinador compra** cuando E8 le venda sitio en la
 camiseta.
 
 **Y una decisión ya tomada que este documento tiene que ejecutar: la aplicación INSTALABLE.** No hay
@@ -138,7 +178,7 @@ código en vez de tres, sin revisión de tienda, y el aviso por notificación ya
 sí hay que hacer es que el juego se pueda **añadir a la pantalla de inicio y comportarse como una
 app**: sin barra de navegador, con su icono, arrancando rápido y sin romperse cuando la red va mal.
 Eso es trabajo de este documento, no de otro, y es además el requisito previo para que la
-notificación de E3 funcione en iPhone.
+notificación de E4 funcione en iPhone.
 
 **Y el encargo lleva un examen práctico obligatorio: el cuadro de entrenamiento.** No como apéndice
 ni como «si da tiempo», sino como la pantalla sobre la que el documento tiene que demostrar que el
@@ -167,7 +207,7 @@ no se entiende. Los tres defectos están comprobados contra el código y detalla
    panel de ARRIBA, así que quien baja a los 28 días no la ve.
 
 Los tres son de presentación y ninguno se arregla con más motor, que es justo lo que este documento
-tiene que demostrar. El punto 3 se solapa con E5 (arquitectura de información) y eso está bien: que
+tiene que demostrar. El punto 3 se solapa con E6 (arquitectura de información) y eso está bien: que
 salga de aquí la solución visual y de allí dónde vive la explicación.
 
 **Qué leer:** `apps/web/src/components/` entero, `apps/web/src/pages/`, la configuración de Tailwind,
@@ -175,7 +215,7 @@ y `docs/navegacion.md`.
 
 ---
 
-## E3 · La cuenta y el contacto
+## E4 · La cuenta y el contacto
 
 **Fichero:** `docs/cuenta.md` · **Tamaño esperado:** mediano, y la mitad es ejecución
 
@@ -194,7 +234,7 @@ menos se puede permitir caer), y calentar el dominio de envío antes del lanzami
 estrenarlo con mil registros de golpe.
 
 **Dos añadidos que cierran huecos detectados en la segunda pasada.** El primero: la notificación no
-es solo correo, es también **aviso al teléfono** sobre la web instalable que define E2, y es lo que de
+es solo correo, es también **aviso al teléfono** sobre la web instalable que define E3, y es lo que de
 verdad se pedía cuando se pidió una app. El segundo, pequeño y hoy inexistente: **por dónde se queja
 un jugador**. Sin correo de contacto, sin formulario y sin canal, alguien con un problema no tiene a
 dónde ir, y el primero que se quede fuera de su cuenta lo va a descubrir de la peor manera.
@@ -204,7 +244,7 @@ G11 en `epics.md`, y la tabla `users`.
 
 ---
 
-## E4 · La transparencia del motor
+## E5 · La transparencia del motor
 
 **Fichero:** `docs/transparencia.md` · **Tamaño esperado:** pequeño, y es el mejor por hora invertida
 
@@ -227,12 +267,12 @@ entran los cambios de motor**: en cualquier momento o solo en el rollover.
 
 ---
 
-## E5 · La experiencia general y el primer mes
+## E6 · La experiencia general y el primer mes
 
 **Fichero:** `docs/experiencia.md` · **Tamaño esperado:** mediano
 
 Dos cosas que son la misma: la arquitectura de información **v4** (la v3 está implementada y descrita
-en `docs/navegacion.md`, y hay que revisarla después de E1, porque si el journal cambia de naturaleza
+en `docs/navegacion.md`, y hay que revisarla después de E2, porque si el journal cambia de naturaleza
 cambia a dónde lleva medio menú) y, sobre todo, **los primeros treinta días del jugador**, que es la
 pregunta de retención del proyecto y hoy no tiene diseño ninguno. El dato que lo justifica está
 medido en el propio `epics.md`: un jugador nuevo entra a los 18 años con un `rating` de 0,21 contra un
@@ -250,7 +290,7 @@ donde muere el punto de «tutoriales» de la lista original).
 
 ---
 
-## E6 · La integridad y el gobierno del mundo
+## E7 · La integridad y el gobierno del mundo
 
 **Fichero:** `docs/integridad.md` · **Tamaño esperado:** grande
 
@@ -306,7 +346,7 @@ tiene que poder retomar su carrera deportiva y no encontrarse con que le borraro
 
 ---
 
-## E7 · La economía del juego
+## E8 · La economía del juego
 
 **Fichero:** `docs/economia.md` · **Tamaño esperado:** grande
 
@@ -322,14 +362,14 @@ buena: el equipo vende con exclusividad por categoría, el corredor puede firmar
 categorías que el equipo no pisa, y una estrella es a la vez lo que te trae patrocinio y lo que te
 complica el vestuario. Dos avisos: esto es economía INTERNA y no tiene nada que ver con cobrar dinero
 real, y cualquier mecanismo de transferencia entre jugadores (contratos, cláusulas, primas) es un
-vehículo de fraude, así que este documento y E6 tienen que leerse el uno al otro.
+vehículo de fraude, así que este documento y E7 tienen que leerse el uno al otro.
 
 **Y una mecánica concreta que el dueño propuso y que es de las mejores del documento: el
 patrocinador compra el maillot.** Que pueda pagar por imponer su color o por llevar su logotipo en el
 sitio bueno convierte la identidad visual del equipo en una **decisión económica con coste real**:
 cobras más y dejas de parecerte a ti mismo. Es exactamente el conflicto que vive un equipo de verdad,
 no hace falta inventar nada para justificarlo, y engancha con G2.7 y G2.8 sin forzar. El vocabulario
-visual que hace eso posible lo define E2; lo que aquí se decide es cuánto paga, qué compra y qué pierde
+visual que hace eso posible lo define E3; lo que aquí se decide es cuánto paga, qué compra y qué pierde
 el equipo a cambio.
 
 **Y una sección final que cierra el único hueco de dinero real que tiene el proyecto:** la cuenta
@@ -351,7 +391,7 @@ una.
 
 ---
 
-## E8 · El juego entre personas
+## E9 · El juego entre personas
 
 **Fichero:** `docs/personas.md` · **Tamaño esperado:** el más grande de todos
 
@@ -388,7 +428,7 @@ porque solo contempla la salida voluntaria.
 
 ---
 
-## E9 · El multiidioma
+## E10 · El multiidioma
 
 **Fichero:** `docs/idiomas.md` · **Tamaño esperado:** mediano
 
@@ -411,7 +451,7 @@ chino, condicionado a comprobar antes que el juego se puede jugar desde China co
 
 ---
 
-## E10 · La vida del corredor
+## E11 · La vida del corredor
 
 **Fichero:** `docs/vida-corredor.md` · **Tamaño esperado:** mediano
 
@@ -448,47 +488,38 @@ que esa línea termine.
 
 ---
 
-## E11 · Los recorridos y el calendario
+## E12 · El calendario y las carreras reales
 
-**Fichero:** `docs/recorridos.md` · **Tamaño esperado:** grande, y es más ingeniería que diseño
+**Fichero:** `docs/calendario.md` · **Tamaño esperado:** mediano, y es más contenido que diseño
 
-El material sobre el que corre todo lo demás, y donde el dueño ya dio el veredicto más duro de todo
-el proyecto: «para las que no se puedan nunca reproducir, el generador es una basura». Está
-confirmado con un caso concreto: el generador le dio a una carrera de un día de montaña el perfil de
-una etapa reina de gran vuelta, con final en alto de catorce kilómetros, algo que no existe en el
-calendario real, y eso dejó al 82 % del pelotón con el tanque a cero. Se arregló ese caso y el
-generador entero sigue sin revisar, produciendo recorridos que nadie ha mirado. El documento tiene
-que decidir de dónde sale un perfil honesto cuando no hay recorrido real autorizado, cómo se valida
-antes de entrar al calendario, y cómo se distingue lo real de lo generado. Y entra aquí, porque es
-contenido de calendario, una de las piezas más baratas en emoción por hora de trabajo que quedan
-disponibles: **las selecciones nacionales**, o sea que a un jugador le convoque su país para el
-Mundial o para su campeonato nacional, con los países, las páginas de país y la detección por IP ya
-construidos.
+Lo que queda de recorridos una vez que E1 ha arreglado el generador: **ampliar al máximo la base de
+carreras con perfil REAL autorizado**, que es lo que da autenticidad a las carreras que el jugador
+reconoce. El documento tiene que decidir de dónde sale ese material, cómo se atribuye (hay ya un
+`docs/fuentes-recorridos.md` y un inventario generado), cómo se valida antes de entrar al calendario,
+y **cómo se distingue en la interfaz lo real de lo generado**, que es una promesa al jugador y no un
+detalle. Cada recorrido real que se añade mejora UNA carrera, y por eso esto va al final: el
+generador mejora todas las demás, que son la mayoría.
 
-**Y los campeonatos nacionales, que funcionan y aun así dejan tres cosas sobre la mesa.** El dueño vio
-sub-23 corriendo su campeonato y el absoluto en días consecutivos y preguntó si eso pasa en la
-realidad: **pasa, y es lo normal**, y el código lo modela mejor de lo que parece (tres patrones de
-calendario sorteados por país, y un conjunto `busy` que impide dos carreras solapadas pero permite
-días encadenados, a propósito). Lo que el documento tiene que resolver, desarrollado en §4.17 de
-`agenda.md`: que **doblar o guardarse sea una decisión** del corredor y no una inscripción automática,
-que cuando élite y sub-23 comparten día **compartan carrera y no sean dos** (mismo pelotón, dos
-podios, el mejor sub-23 clasificado en la élite es el campeón sub-23, que además cuesta una simulación
-en vez de dos), y que **quién acaba en cuál lo decida un criterio y no el orden del bucle**.
+Y con ello, tres cosas de calendario que aparecieron por el camino. **El Campeonato del Mundo**, que
+`SPEC.md` §8 promete en septiembre y que no encontré en `routes/calendar.ts`, donde solo aparecen los
+nacionales (`championshipCountry`, clase `NC`): sin esa carrera no hay maillot de campeón del mundo
+que repartir. **Las selecciones nacionales**, o sea que a un jugador le convoque su país, que con los
+países, las páginas de país y la detección por IP ya construidos es de las piezas más baratas en
+emoción por hora de trabajo que quedan. Y **los campeonatos nacionales**, que funcionan bien y aun así
+dejan tres cosas sobre la mesa (§4.17 de `agenda.md`): que **doblar o guardarse sea una decisión del
+corredor** y no una inscripción automática, con el equipo presionando y no decidiendo, porque el
+campeonato nacional es la única carrera del año en la que el equipo no tiene la llave (§4.17.1); que
+cuando élite y sub-23 comparten día **compartan carrera y no sean dos** (mismo pelotón, dos podios, el
+mejor sub-23 clasificado en la élite es el campeón sub-23, y encima cuesta una simulación en vez de
+dos); y que **quién acaba en cuál lo decida un criterio y no el orden del bucle**.
 
-**Y una comprobación que hay que hacer antes de nada: no encontré el Campeonato del Mundo en el
-calendario.** `SPEC.md` §8 lo promete en septiembre y lo que aparece en `routes/calendar.ts` son los
-campeonatos nacionales (`championshipCountry`, clase `NC`). Puede que se me escapara, pero conviene
-mirarlo, porque **el maillot de campeón del mundo no puede existir sin la carrera que lo reparte**. Y
-la contrapartida es la buena noticia: los campeonatos nacionales **sí se corren**, o sea que cada
-temporada hay un campeón de Italia y el juego lo olvida al día siguiente. Recordarlo durante un año y
-enseñarlo en su maillot es de lo más barato que queda en toda la agenda.
-
-**Qué leer:** G5 y G6 en `epics.md`, el generador de recorridos en `packages/engine`,
-`docs/fuentes-recorridos.md`, `docs/inventario-recorridos.md`, SPEC §8.
+**Qué leer:** `docs/fuentes-recorridos.md`, `docs/inventario-recorridos.md`,
+`packages/engine/src/routes/calendar.ts` y `raceRoutes.ts`, `packages/db/src/calendarRun.ts`,
+SPEC §8, y G5 en `docs/epics.md`.
 
 ---
 
-## E12 · La enciclopedia del mundo
+## E13 · La enciclopedia del mundo
 
 **Fichero:** `docs/enciclopedia.md` · **Tamaño esperado:** mediano
 
@@ -518,43 +549,47 @@ reparten entre dos épicas porque son dos cosas distintas:
 
 | Punto original                                  | Dónde vive ahora                                                                                                                                                                                            |
 | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Mánagers humanos**                            | **E8** entero. La llave de acceso (premium) se define en **E7**, y las reglas contra el abuso de autoridad en **E6**                                                                                        |
-| **Administradores y moderadores**               | **E6**, las dos mitades: roles reales con auditoría frente al token compartido de hoy, y el circuito de denuncia y respuesta                                                                                |
-| **Confirmación de correos**                     | **E3**, con todo el ciclo de la cuenta: verificar, recuperar, cambiar de correo y la fecha de nacimiento que hoy no se pide                                                                                 |
-| **Interacciones sociales**                      | **E8**, porque los canales son la mecánica con la que se negocia y no un chat aparte. La decisión de comunidad EXTERNA está abajo, en las tareas                                                            |
-| **Economía real**                               | **E7**. La economía interna (salario que sirva, dinero de los equipos, patrocinio, premios, gastos) es el cuerpo del documento; el dinero real es su sección final, que es un solo producto                 |
-| **Multiidioma**                                 | **E9**                                                                                                                                                                                                      |
-| **News + Race Radio + journal, y sin destripe** | **E1** entero, con la retransmisión de televisión como norte y el modo sin destripe por defecto                                                                                                             |
-| **Rediseño general de la experiencia**          | **E2** (cómo se ve: tipografía, color, densidad, componentes, móvil, accesibilidad) y **E5** (dónde vive cada cosa: arquitectura de información v4). Son dos oficios distintos y por eso son dos documentos |
-| **Tutoriales y ayuda**                          | **E5**, junto con los primeros treinta días, que es el problema del que los tutoriales son media solución                                                                                                   |
+| **Mánagers humanos**                            | **E9** entero. La llave de acceso (premium) se define en **E8**, y las reglas contra el abuso de autoridad en **E7**                                                                                        |
+| **Administradores y moderadores**               | **E7**, las dos mitades: roles reales con auditoría frente al token compartido de hoy, y el circuito de denuncia y respuesta                                                                                |
+| **Confirmación de correos**                     | **E4**, con todo el ciclo de la cuenta: verificar, recuperar, cambiar de correo y la fecha de nacimiento que hoy no se pide                                                                                 |
+| **Interacciones sociales**                      | **E9**, porque los canales son la mecánica con la que se negocia y no un chat aparte. La decisión de comunidad EXTERNA está abajo, en las tareas                                                            |
+| **Economía real**                               | **E8**. La economía interna (salario que sirva, dinero de los equipos, patrocinio, premios, gastos) es el cuerpo del documento; el dinero real es su sección final, que es un solo producto                 |
+| **Multiidioma**                                 | **E10**                                                                                                                                                                                                     |
+| **News + Race Radio + journal, y sin destripe** | **E2** entero, con la retransmisión de televisión como norte y el modo sin destripe por defecto                                                                                                             |
+| **Rediseño general de la experiencia**          | **E3** (cómo se ve: tipografía, color, densidad, componentes, móvil, accesibilidad) y **E6** (dónde vive cada cosa: arquitectura de información v4). Son dos oficios distintos y por eso son dos documentos |
+| **Tutoriales y ayuda**                          | **E6**, junto con los primeros treinta días, que es el problema del que los tutoriales son media solución                                                                                                   |
 
 Y los dos que el dueño añadió en la segunda pasada:
 
 | Punto añadido                 | Dónde vive ahora                                                                                                                                                                         |
 | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **App de Android y de Apple** | **Decidido que no, todavía**: web instalable en **E2**, aviso al teléfono en **E3**, y la advertencia de la comisión de tienda en **E7**. El razonamiento está en §4.15.1 de `agenda.md` |
-| **Amistades y enemistades**   | **E8**, pero ganadas en la carretera y cambiando el comportamiento, no como bonificación declarada (§4.15.2)                                                                             |
+| **App de Android y de Apple** | **Decidido que no, todavía**: web instalable en **E3**, aviso al teléfono en **E4**, y la advertencia de la comisión de tienda en **E8**. El razonamiento está en §4.15.1 de `agenda.md` |
+| **Amistades y enemistades**   | **E9**, pero ganadas en la carretera y cambiando el comportamiento, no como bonificación declarada (§4.15.2)                                                                             |
 
 ---
 
 ## El orden ya está en los códigos
 
-Ya no hace falta una tabla de turnos: **E1 es el primero y E11 el último**. Lo que sigue valiendo la
-pena recordar es por qué están emparejados los que lo están, porque encargar uno sin el otro
-desperdicia la mitad del trabajo:
+**E1 es el primero y E13 el último.** Lo que sigue valiendo la pena recordar es por qué están
+emparejados los que lo están, porque encargar uno sin el otro desperdicia la mitad del trabajo:
 
-- **E1 con E2.** Repintar pantallas sin saber qué cuentan es maquillaje, y rediseñar la información
+- **E1 el primero, y es un cambio respecto de la versión anterior.** Los perfiles son la entrada de la
+  calibración táctica, así que cada versión del motor que pase con el generador roto es calibración
+  que habrá que rehacer. Además es trabajo de motor, y va justo después de la línea del motor, con ese
+  código todavía fresco.
+- **E2 con E3.** Repintar pantallas sin saber qué cuentan es maquillaje, y rediseñar la información
   para volver a pintarla igual de fea es trabajo perdido.
-- **E3 con E4.** Los dos más baratos y los dos que más deuda cierran: la cuenta que hoy se puede
+- **E4 con E5.** Los dos más baratos y los dos que más deuda cierran: la cuenta que hoy se puede
   perder para siempre, y la confianza en un motor que cambia sin avisar.
-- **E5 después de E1**, porque si el journal cambia de naturaleza cambia a dónde lleva medio menú.
-- **E6 antes o a la vez que E7**, y los dos antes de **E8**: integridad y reglas del dinero antes de
+- **E6 después de E2**, porque si el journal cambia de naturaleza cambia a dónde lleva medio menú.
+- **E7 antes o a la vez que E8**, y los dos antes de **E9**: integridad y reglas del dinero antes de
   abrir el mando a cualquiera.
-- **E9 y E10** cuando los datos de registro digan qué idiomas y cuando E8 haya definido el vestuario.
-- **E11** casi al final: mejora mucho el mundo y no cambia lo que el juego es.
-- **E12** el último de todos, y por una razón distinta a la de E11: no arregla nada roto. Es el único
-  de los doce que es puro añadido, y por eso es también el único que se puede adelantar sin deuda si
-  en algún momento sobra una ventana.
+- **E10 y E11** cuando los datos de registro digan qué idiomas y cuando E9 haya definido el vestuario.
+- **E12** casi al final: cada recorrido real añadido mejora UNA carrera, mientras que E1 mejoró todas
+  las demás, que son la mayoría.
+- **E13** el último de todos, y por una razón distinta: no arregla nada roto. Es el único de los trece
+  que es puro añadido, y por eso también el único que se puede adelantar sin deuda si en algún momento
+  sobra una ventana.
 
 ---
 
@@ -566,9 +601,9 @@ Son tareas, y varias tienen fecha límite en el reset:
 - **Verificar la marca** en EUIPO y USPTO, que SPEC §8 exige antes del lanzamiento.
 - **Escribir las condiciones de uso y la política de privacidad**, con la edad mínima de 16 y, para
   la beta, el aviso explícito de que el motor va a cambiar.
-- **Guardar país y `Accept-Language` en el registro**, que cuesta una tarde y decide E9 con datos.
+- **Guardar país y `Accept-Language` en el registro**, que cuesta una tarde y decide E10 con datos.
 - **Analítica de producto**: cuántos se registran, cuántos crean corredor, cuántos vuelven al
-  séptimo día. Sin esto, E5 se diseña a ciegas.
+  séptimo día. Sin esto, E6 se diseña a ciegas.
 - **Empezar a registrar la última visita** (`last_seen`). Hoy no existe, y es un dato que **no se
   reconstruye hacia atrás**: el día que se quiera aplicar la regla del mes hará falta un mes de
   historial, que solo existe si se empezó a guardar un mes antes. No depende de ningún diseño.
