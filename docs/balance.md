@@ -13588,3 +13588,77 @@ eso; para la única que mueve la LEY, no: el invariante 43 se re-ancla aquí, y 
 volver a correr el brazo A es re-anclarlo a ciegas. Por eso éste se lee `flags?.weather ??
 STAGE.weather.enabled` y **se puede apagar desde el banco**, que es como están medidas las dos tablas
 de arriba.
+
+## v70.1 — un hombre parado no es una velocidad
+
+**Sin subida de `ENGINE_VERSION`**: es capa de OBSERVACIÓN, como la v21. No se toca un dado, ni un
+compromiso, ni un reloj; la carrera sale dígito a dígito igual y las cuatro huellas no se mueven. Lo
+que cambia es lo que la radio ENSEÑA de ella.
+
+### La foto
+
+El dueño, en el campeonato de Marruecos en carretera, km 139: **el líder en solitario marcado a 16,1
+km/h** mientras el grupo de caza iba a 42,1 y el pelotón a 41,2.
+
+Ese número no puede salir de la ley. En el km 139 el terreno es llano al **+1,3 %**, y el suelo
+absoluto de `targetSpeed` ahí —un hombre solo (`pullers` 1), el peor perfil del campo, compromiso
+cero— son **29,90 km/h**. Por debajo la ley no llega.
+
+Sale de la radio, que no LEE la velocidad de un grupo: la DERIVA, dividiendo el kilómetro entre lo
+que tardaron sus hombres en cubrirlo. Y la cuenta encaja sola: 16,1 km/h en 1 km son **224 s** de
+reloj contra los ~88 que cuesta rodarlo. Sobran **136 s**, que es exactamente lo que cuesta un
+pinchazo yendo solo en cabeza: `carBaseS` 25 s **× `carNoAccessGain` 3** —delante en solitario no hay
+caravana detrás, y eso es el reglamento, no mala suerte (R11.2)— más el cambio y el regreso.
+
+**O sea que la carrera hizo lo correcto y la radio lo contó como velocidad.** El hombre no iba lento:
+estaba de pie.
+
+### Es el defecto simétrico de uno que ya se arregló una vez
+
+En la v58, el dueño: «¿qué me dices de este tercer grupo que va a **94 km/h** cuando están _just
+riding_?». Se diagnosticó bien —un reloj que salta no es una velocidad— y se le puso **techo**
+(`radioMaxKmh`). Se puso techo y **no se puso suelo**, y el suelo hacía falta por el otro motivo: no
+un reloj que salta, sino un reloj que corre mientras la carretera no avanza.
+
+Y no se vio antes por una razón que conviene anotar: **en un pelotón la mediana ya se lo tragaba**.
+Veinte hombres a 80 s y uno a 200 dan 80. El número solo sale a la pantalla donde no hay mediana que
+lo tape, o sea **en un grupo de uno** — que es justo el grupo que el jugador mira.
+
+### Qué se hace
+
+El que pierde tiempo de pie **no mide ese kilómetro**: se le saca de la cuenta de la velocidad de su
+grupo. Si no queda nadie que la mida, el grupo no enseña velocidad — enseña **el percance**, que es la
+noticia: `Puncture — 2:16 lost`.
+
+La lista de percances ya existía (`StageOutput.incidents`, desde la v68) y no la miraba nadie fuera
+del resultado. Entra por `RaceRadioOptions.incidents`, opcional: una etapa corrida antes de esto se
+lee exactamente igual.
+
+| llana con un pinchazo   | antes       | ahora                                          |
+| ----------------------- | ----------- | ---------------------------------------------- |
+| solitario que pincha    | «16,1 km/h» | sin velocidad · **`pinchazo`, 136 s perdidos** |
+| grupo de 21, uno pincha | 45 km/h     | 45 km/h · y el percance, contado aparte        |
+| sin percances           | igual       | **idéntico**                                   |
+
+### Y el hueco de cero, que era la otra mitad de la queja
+
+La segunda foto del dueño: el tercer grupo a «5:13 detrás de los líderes **y** 5:13 detrás del grupo
+de delante», con los dos huecos del grupo de en medio en blanco. Eso solo cuadra si el de caza está a
+**0:00** del líder, y ahí estaba: `radioGap` pintaba `—` para todo hueco **≤ 0**, y la radio guarda el
+hueco **redondeado a segundos enteros** (`gapS: Math.round(g.gapS)`). Un grupo a cuatro décimas se
+guardaba como 0 y salía vacío. Estar a menos de un segundo es una respuesta, así que se dice:
+**`0:00`**. El `—` se reserva para lo que de verdad no se sabe (un hueco negativo, que sería un
+defecto).
+
+### Lo que NO se arregla aquí, y hay que decirlo
+
+Que esos dos grupos estén a cero y **sigan dibujados aparte** no es de la radio: el motor solo fusiona
+cuando el de detrás **alcanza el reloj** del de delante (`detras.tS <= delante.tS`), no cuando está
+cerca. `captureGapSeconds` (5 s) existe y decide si un adelantamiento merece línea, pero **no
+fusiona**. Así que dos grupos separados por medio segundo pueden rodar así hasta meta.
+
+Eso **sí es conducta del motor** —cambia quién va con quién, y por tanto quién reparte viento y quién
+remata—, así que mueve las cuatro huellas y las bandas. Va en su propio PR, medido y con predicción
+declarada antes. Queda **anotado como deuda, no resuelto**, que es lo honesto: arreglarlo de tapadillo
+dentro de un cambio de observación sería exactamente lo que esta bitácora lleva media docena de notas
+persiguiendo.

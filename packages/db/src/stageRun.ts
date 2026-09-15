@@ -509,7 +509,10 @@ export async function runOneStage(
       // …y los TRES MAILLOTS con prioridad sobre el corte de la vista: sin esto el tope de 24
       // nombres por grupo caía encima de ellos y solo salía uno, al azar (v47).
       radio: radioForStorage(
-        radio.radio(),
+        // LOS PERCANCES ENTRAN AQUÍ (v70.1) y no al armar el colector, porque la lista solo existe
+        // cuando la etapa ya ha corrido. Sin ellos, el kilómetro en que un hombre se para a cambiar
+        // una rueda se leía como una velocidad —y un solitario salía «a 16,1 km/h» estando parado—.
+        radio.radio({ incidents: output.incidents }),
         radioWatchList,
         [jerseys.gc, jerseys.points, jerseys.kom].filter((id): id is string => id !== null),
       ) as unknown,

@@ -293,6 +293,75 @@ describe('radioForStorage: la velocidad de un grupo la miden SUS HOMBRES', () =>
   })
 })
 
+describe('radioForStorage: un hombre PARADO no es una velocidad', () => {
+  /**
+   * EL DEFECTO, VISTO EN PRODUCCIÓN (v70.1). El dueño, en el campeonato de Marruecos en carretera:
+   * el líder EN SOLITARIO marcado a **16,1 km/h** mientras el grupo de caza iba a 42,1 y el pelotón
+   * a 41,2. Y 16,1 km/h ahí es imposible por la LEY: en llano al 1,3 % el suelo de `targetSpeed`
+   * para un hombre solo, con el peor perfil del campo y compromiso cero, son **29,9 km/h**.
+   *
+   * No iba lento: estaba **de pie**, cambiando una rueda. Y a un hombre solo en cabeza el coche le
+   * cuesta el TRIPLE (`carNoAccessGain`) porque no lleva caravana detrás, o sea dos minutos largos.
+   * La radio dividía el kilómetro entre el tiempo que estuvo parado y llamaba a eso velocidad.
+   *
+   * Es el defecto SIMÉTRICO del de la v58 —«¿qué me dices de este tercer grupo que va a 94 km/h?»—:
+   * entonces se puso TECHO (`radioMaxKmh`) y no se puso suelo. En un pelotón la mediana ya se tragaba
+   * al que pinchaba; en un grupo de UNO no hay mediana que lo tape, y por eso salía a la pantalla.
+   */
+  const pinchazo = (riderId: string, lostS: number) =>
+    new Map([[riderId, { tipo: 'pinchazo' as const, lostS }]])
+
+  it('al que pincha yendo solo no se le inventa una velocidad: se dice el percance', () => {
+    // Un hombre solo en cabeza. Su kilómetro le cuesta 224 s (88 de rodar + 136 parado).
+    const aqui = radioKmFrom(
+      139,
+      [rider('lider', 'mov-1', 9000, { pulling: true })],
+      1,
+      undefined,
+      null,
+      undefined,
+      pinchazo('lider', 136),
+    )
+    const luego = radioKmFrom(140, [rider('lider', 'mov-1', 9224)], 1)
+    const stored = radioForStorage({ starters: 1, kms: [aqui, luego] }, new Set())
+    const g = stored.kms[0]!.groups[0]!
+    // Con la cuenta vieja: 3600/224 = 16,1 km/h, que es el número de la foto del dueño.
+    expect(g.speedKmh).toBeNull()
+    expect(g.mishap).toEqual({ tipo: 'pinchazo', lostS: 136 })
+  })
+
+  it('en un grupo grande el que pincha no arrastra la velocidad de los demás', () => {
+    // Veinte a 80 s el kilómetro (45 km/h) y uno que se para dos minutos.
+    const aqui = radioKmFrom(
+      50,
+      Array.from({ length: 21 }, (_, i) => rider(`r-${i}`, 'peloton', 3000)),
+      21,
+      undefined,
+      null,
+      undefined,
+      pinchazo('r-20', 120),
+    )
+    const luego = radioKmFrom(
+      51,
+      Array.from({ length: 21 }, (_, i) => rider(`r-${i}`, 'peloton', i < 20 ? 3080 : 3200)),
+      21,
+    )
+    const stored = radioForStorage({ starters: 21, kms: [aqui, luego] }, new Set())
+    const g = stored.kms[0]!.groups[0]!
+    expect(g.speedKmh).toBeCloseTo(45, 1)
+    // …y el percance se cuenta igual, que es la noticia aunque el grupo siga rodando a 45.
+    expect(g.mishap).toEqual({ tipo: 'pinchazo', lostS: 120 })
+  })
+
+  it('sin percances la radio se comporta exactamente como antes', () => {
+    const aqui = radioKmFrom(10, [rider('a', 'peloton', 1000)], 1)
+    const luego = radioKmFrom(11, [rider('a', 'peloton', 1080)], 1)
+    const stored = radioForStorage({ starters: 1, kms: [aqui, luego] }, new Set())
+    expect(stored.kms[0]!.groups[0]!.speedKmh).toBeCloseTo(45, 1)
+    expect(stored.kms[0]!.groups[0]!.mishap).toBeNull()
+  })
+})
+
 describe('radioForStorage: el que releva nunca sale como que va a rueda', () => {
   it('un relevista que no entra en el corte se queda sin nombrar, pero NO se pinta guarecido', () => {
     // El «símbolo de tirar que no sale en algunos que tiran»: `inPull` se calculaba sobre el corte

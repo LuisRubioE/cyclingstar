@@ -1268,6 +1268,16 @@ const storedRaceRadioSchema = z.object({
           size: z.number(),
           gapS: z.number(),
           speedKmh: z.number().nullable(),
+          /**
+           * EL PERCANCE DE ESTE KILÓMETRO (v70.1). Opcional a propósito: las etapas corridas antes
+           * no lo traen y su radio tiene que seguir leyéndose igual.
+           */
+          mishap: z
+            .object({
+              tipo: z.enum(['caida', 'pinchazo', 'averia']),
+              lostS: z.number(),
+            })
+            .nullish(),
           pulling: z.array(z.number()),
           /**
            * PARA QUÉ tira cada uno de `pulling`, en el mismo orden (v47). Con `default` a propósito:
@@ -1350,6 +1360,7 @@ export function buildRaceRadio(stored: unknown, names: ChronicleNames): RaceRadi
             gapS: g.gapS,
             gapToPrevS,
             speedKmh: g.speedKmh,
+            mishap: g.mishap ?? null,
             riders: shown,
             unnamed: Math.max(0, g.size - shown.length),
           }
