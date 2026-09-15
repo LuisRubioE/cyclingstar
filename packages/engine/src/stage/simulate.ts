@@ -7583,11 +7583,49 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
               ? 'descenso'
               : 'llano'
       /**
-       * ¿HAY COCHES AQUÍ? La caravana va detrás del grupo principal y por carretera abierta. En
-       * cabeza de carrera, en un puerto o con la carrera partida **no hay a quién esperar**, y el
-       * mismo pinchazo cuesta minutos en vez de segundos. Ésa es la mitad de la regla.
+       * ¿HAY COCHES AQUÍ? Y **LA FUGA SÍ LOS TIENE** (corrección de la v70, medida en producción).
+       *
+       * Esto decía «la caravana va detrás del grupo principal; en cabeza de carrera no hay a quién
+       * esperar», y estaba copiado al pie de la letra de la primera mitad de R11.2. El problema es
+       * que **R11.2 se contradice a sí mismo dos líneas más abajo**, y la segunda mitad es la
+       * carretera: «la caravana SE REORDENA cuando la carrera se parte: los comisarios suben los
+       * coches de los equipos con hombres delante. **Colar a uno en la fuga compra además coche,
+       * ruedas y bidones donde se decide la etapa**».
+       *
+       * El dueño lo cazó mirando una foto: «perder 2:19 en un pinchazo cuando vas en frente y tienes
+       * el coche detrás justo, ¿no es demasiado? Te cambian de bici y ya. No es como que tengas que
+       * irte atrás del grupo: estás solo en cabeza». Y tiene razón — es que en cabeza de carrera es
+       * donde MEJOR asistido se está: el coche va a diez metros y no hay ciento setenta hombres en
+       * medio. Con el ×3 y la rueda neutra encima, un pinchazo del escapado costaba 139 s cuando lo
+       * que cuesta de verdad es un cambio de rueda con el mecánico ya fuera del coche.
+       *
+       * Así que el que se queda sin coche no es el de delante: es **el que va en tierra de nadie**
+       * —un descolgado entre dos grupos, al que la caravana ya ha dejado atrás— y el que pincha en
+       * un puerto, donde la carretera no deja pasar a nadie. Eso es lo que queda aquí.
        */
-      const hayCaravana = group.id === (mainId ?? PELOTON) && !onClimb
+      const esMovimiento = moves.some((mv) => mv.g.id === group.id)
+      const hayCaravana = (group.id === (mainId ?? PELOTON) || esMovimiento) && !onClimb
+      /**
+       * …Y LA CARAVANA SE REORDENA (R11.2, segunda mitad). «Los comisarios suben los coches de los
+       * equipos con hombres delante», así que el puesto en la fila de un fugado **no es el que le da
+       * la general**: es el que le da estar delante. De ahí sale la frase entera de la regla —colar
+       * a uno en la fuga compra coche, ruedas y bidones donde se decide la etapa— y sin esto era
+       * letra muerta, porque el escapado del equipo vigésimo seguía esperando como el vigésimo.
+       *
+       * El orden entre los que van delante sigue siendo el de la general: la reordenación sube a los
+       * de la fuga por encima del pelotón, no borra el escalafón entre ellos.
+       */
+      const rangoEnLaFuga = new Map<string, number>()
+      if (esMovimiento) {
+        const equipos = [
+          ...new Set(
+            membersOf(group.id)
+              .map((m) => teamOf.get(m.input.riderId))
+              .filter((t): t is string => t != null),
+          ),
+        ].sort((a, b) => (convoyRank.get(a) ?? 99) - (convoyRank.get(b) ?? 99) || (a < b ? -1 : 1))
+        equipos.forEach((t, i) => rangoEnLaFuga.set(t, i + 1))
+      }
       for (const m of membersOf(group.id)) {
         const lambda = mishapLambda(terreno, lluvia, colocacionOn ? m.placement : 0.5)
         if (!rollHazard(rngPercance, lambda)) continue
@@ -7596,7 +7634,10 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         const equipo = teamOf.get(m.input.riderId)
         const acceso = {
           placement: colocacionOn ? m.placement : 0.5,
-          convoyRank: equipo != null ? (convoyRank.get(equipo) ?? 1) : convoyRank.size + 1,
+          convoyRank:
+            equipo != null
+              ? (rangoEnLaFuga.get(equipo) ?? convoyRank.get(equipo) ?? 1)
+              : convoyRank.size + 1,
           hayCaravana,
         }
         /**
