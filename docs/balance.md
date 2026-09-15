@@ -13734,7 +13734,7 @@ justo lo que el paso 21 viene a hacer.
 
 `reina-150` —135 km de llano y un puerto de 15 km al 8 %, **1.200 m**— deja de ser el escenario
 canónico de montaña. Se conserva con su nombre de verdad, **`media-150`**, porque eso es lo que es y
-`targets.ts` lleva llamándolo «una caricatura» desde la v44. En su sitio entra **`reina-real`**: 158
+`targets.ts` lleva llamándolo «una caricatura» desde la v44. En su sitio entra **`reina-canonica`**: 158
 km, **2.933 m**, dos puertos —13 km al 7 % medio y 12 km al 7,5 % con el remate al 9 %— y final en
 alto.
 
@@ -13762,18 +13762,33 @@ por saturar el depósito — y nadie cruzó las dos páginas.
 una reina **dura** —un 45 % por encima de la mediana— y no una etapa media disfrazada, que es el
 defecto que había que arreglar. Sustituir una caricatura por la contraria no habría sido un arreglo.
 
+### Se llama `reina-canonica` y no `reina-real`, porque ese nombre ya estaba cogido
+
+El documento la bautizó `reina-real`, y al escribirlo saltó una colisión que hay que dejar anotada:
+**`realQueenThirdWeekScenario()` se llama `reina-real-s3` desde la v15** y corre sobre un recorrido de
+VERDAD (Race France e18, 185 km reales). Poner `reina-real` a la sintética habría dado dos escenarios
+distintos compartiendo prefijo de semilla, y `reina-real-s3` habría pasado a nombrar **dos corridas a
+la vez** — que es exactamente la clase de defecto que las huellas selladas existen para impedir.
+
+Así que la sintética es la **canónica** (`reina-canonica`, `reina-canonica-s3`) y la del recorrido
+sigue siendo la **real** (`reina-real-s3`), que además es lo que cada una es. A la del recorrido no se
+le toca ni una semilla.
+
 ### Las huellas: una baja y un alta, no un re-sellado
 
 Las dos de `reina-150` se **retiran** —el escenario deja de ser canónico, así que no hay nada que
-re-sellar (§9.3)— y las dos de `reina-real` se **sellan por primera vez**. Los criterios de aceptación
-de una reina, y lo que dan:
+re-sellar (§9.3)— y las dos de `reina-canonica` se **sellan por primera vez**. Los criterios de
+aceptación de una reina, y lo que dan:
 
-|                             | `reina-real-0`           | `reina-real-1`  |
-| --------------------------- | ------------------------ | --------------- |
-| no gana un velocista        | `pel-20` (desde la fuga) | `bar-0`         |
-| dónde acaban los `spr-*`    | puestos 174-176          | puestos 174-176 |
-| el campo llega deshilachado | **42** relojes distintos | **37**          |
-| hueco al segundo            | +53 s                    | +3 s            |
+|                                    | `reina-canonica-0`                               | `reina-canonica-1` |
+| ---------------------------------- | ------------------------------------------------ | ------------------ |
+| no gana un velocista ni un relleno | **`gc-3`**, con `gc-1` y `gc-2` al mismo segundo | **`bar-5`**        |
+| dónde acaba el mejor `spr-*`       | puesto **173**                                   | puesto **174**     |
+| el campo llega deshilachado        | **35** relojes distintos                         | **43**             |
+
+El ganador de la primera es la fila que §9.3 pedía con todas las letras sobre la vieja —«hoy gana un
+corredor de relleno (`pel-105`)… con R17 y R02 tiene que ganar uno de los `gc-*` o `bar-*`»—, y ahora
+la gana un `gc-*` con dos compañeros de general a rueda.
 
 ### Lo que esto mueve, y las dos cosas que NO mueve
 
@@ -13796,15 +13811,15 @@ describe lo que el grupeto AHORRA, que es conducta del motor y no del perfil.
 
 **Lo que NO se mueve, y es lo que da confianza en el cambio:**
 
-- **la ley de velocidad.** `reina-real` se gana a **35,9 km/h** contra el suelo de 32 del invariante 43. La reina de 4.101 m que se descartó caía a 30,9 y lo habría roto;
+- **la ley de velocidad.** `reina-canonica` se gana a **35,9 km/h** contra el suelo de 32 del invariante 43. La reina de 4.101 m que se descartó caía a 30,9 y lo habría roto;
 - **`erosion.queenThirdWeek`**, que además **puede volver a casa**. La banda es 0,60-0,85;
   `reina-150-s3` mide **0,364** —fuera por abajo, y por eso la v15 tuvo que llevarse el objetivo a
-  otro banco (Race France e18)— y `reina-real-s3` mide **0,700**, dentro. El escenario nuevo permite
+  otro banco (Race France e18)— y `reina-canonica-s3` mide **0,700**, dentro. El escenario nuevo permite
   devolver la medida a su sitio; hacerlo es trabajo aparte y queda anotado.
 
 **Todas las cifras de esta nota son de 120 semillas**, que es el tamaño de la campaña de CI. Se dice
 porque la primera pasada se hizo con 40 y daba **0,706** en esa última casilla y **27,5 %** en la fuga
-de `reina-real` —contra el 25,8 % de las 120—, y ese 27,5 me llevó a escribir que
+de la reina nueva —contra el 25,8 % de las 120—, y ese 27,5 me llevó a escribir que
 `mountain.breakawayWinPct` no había que tocarla. Con la muestra buena está pegada al suelo de 25 y hay
 que re-anclarla. Es la misma lección de la v60 §24 con el viento, dos notas más arriba: **una banda no
 se sella con la muestra pequeña**.
