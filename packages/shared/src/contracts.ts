@@ -1322,8 +1322,19 @@ export const radioGroupSchema = z.object({
   gapS: z.number(),
   /** Hueco al grupo INMEDIATAMENTE ANTERIOR, en segundos. 0 en el de cabeza. */
   gapToPrevS: z.number(),
-  /** Velocidad media en este kilómetro (km/h). `null` en el último punto: no hay km siguiente. */
+  /**
+   * Velocidad media en este kilómetro (km/h). `null` en el último punto —no hay km siguiente— y
+   * también cuando el único que podía medirla se PARÓ: un hombre cambiando una rueda gasta reloj sin
+   * cubrir carretera, y dividir el kilómetro entre su tiempo no da una velocidad, da un disparate
+   * (v70.1: el líder en solitario del campeonato de Marruecos marcado a «16,1 km/h»). Cuando pasa
+   * eso, lo que el grupo enseña es `mishap`.
+   */
   speedKmh: z.number().nullable(),
+  /** Qué le pasó a este grupo en este kilómetro y cuántos segundos perdió de pie. */
+  mishap: z
+    .object({ tipo: z.enum(['caida', 'pinchazo', 'averia']), lostS: z.number() })
+    .nullable()
+    .default(null),
   /**
    * A quién se nombra: primero los que TIRAN (todos), luego los que hay que ver aunque vayan a
    * rueda —maillots y jefes de filas—. El resto se cuenta en `unnamed`, no se esconde.

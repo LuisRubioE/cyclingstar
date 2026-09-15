@@ -111,9 +111,24 @@ const KIND_DOT: Record<RadioGroupKind, string> = {
 
 /** `m:ss`. El líder de carrera no lleva hueco: va a raya. */
 export function radioGap(seconds: number): string {
-  if (seconds <= 0) return '—'
+  /**
+   * CERO SEGUNDOS NO ES «NO SE SABE» (v70.1). Esto pintaba `—` para todo hueco ≤ 0, y la radio
+   * guarda el hueco REDONDEADO a segundos enteros: un grupo a cuatro décimas del de delante se
+   * guardaba como 0 y salía con los dos huecos en blanco, que es lo que el dueño vio —un tercer
+   * grupo «5:13 detrás del líder y 5:13 detrás del grupo de delante», o sea el de en medio a cero—.
+   * Estar a menos de un segundo es una respuesta, y se dice.
+   */
+  if (seconds < 0) return '—'
+  if (seconds === 0) return '0:00'
   const s = Math.round(seconds)
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
+}
+
+/** Cómo se llama en pantalla lo que le ha pasado a un grupo (UI en inglés). */
+const MISHAP_LABEL: Record<'caida' | 'pinchazo' | 'averia', string> = {
+  caida: 'Crash',
+  pinchazo: 'Puncture',
+  averia: 'Mechanical',
 }
 
 /** Cómo va este hombre: o tira o no tira. */
@@ -252,9 +267,19 @@ function GroupCard({ g, position, racing }: { g: RadioGroup; position: number; r
         <span className="text-sm text-slate-500">
           {g.size} rider{g.size === 1 ? '' : 's'}
         </span>
-        {g.speedKmh !== null && (
+        {/*
+          LA VELOCIDAD, O LO QUE LA SUSTITUYE (v70.1). Un grupo cuyo único hombre se paró a cambiar
+          una rueda no tiene velocidad que enseñar: tiene un percance, y ésa es la noticia. Antes
+          salía el kilómetro dividido entre el tiempo que estuvo de pie —«16,1 km/h» para un líder
+          en solitario que en realidad estaba parado— y eso no era lento: era falso.
+        */}
+        {g.speedKmh !== null ? (
           <span className="ml-auto font-mono text-sm text-slate-600">{g.speedKmh} km/h</span>
-        )}
+        ) : g.mishap ? (
+          <span className="ml-auto text-sm font-medium text-rose-600">
+            {MISHAP_LABEL[g.mishap.tipo]} — {radioGap(g.mishap.lostS)} lost
+          </span>
+        ) : null}
       </div>
 
       {/* Los DOS huecos, cada uno dicho por su nombre: era la queja exacta. */}
