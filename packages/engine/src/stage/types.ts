@@ -6,6 +6,7 @@
  * Paso 21: andamiaje. La física (6.4-6.14) llega a partir del Paso 22.
  */
 import type { Attribute } from '@cyclingstar/shared'
+import type { StageMaterial } from './weather.js'
 import type { RaceContext, StandingRow, TacticFlags } from './views.js'
 
 /** Terreno tal como lo escribe el autor del recorrido (SPEC 6.2). */
@@ -272,6 +273,17 @@ export interface StageInput {
   flags?: TacticFlags
   /** CRI/cronoescalada: grupos de un corredor, sin drafting ni hazards (SPEC 6.13). */
   timeTrial?: boolean
+  /**
+   * EL MATERIAL QUE HA ELEGIDO CADA EQUIPO PARA HOY (R14.4, S-430, paso 20), por `teamId`.
+   *
+   * Tres opciones —lenticular con viento, presión baja en el pavé, desarrollo corto en la reina—,
+   * ±2 puntos de perfil en el terreno que corresponda y **penalización simétrica si se falla el
+   * parte**: elegir lenticular un día sin viento no es neutro, es ir peor. Que sea simétrico es lo
+   * que convierte la elección en una apuesta, y lo que hace que valga la pena mirar la previsión.
+   *
+   * OPCIONAL a propósito: sin ella nadie elige material y el motor corre exactamente como antes.
+   */
+  materiales?: Record<string, StageMaterial>
   /**
    * DÓNDE Y CUÁNDO SE CORRE (v42). Lo único que el motor necesita para saber qué clima le toca a
    * esta etapa, y es la petición del dueño en una línea: «el clima debería depender del país y del

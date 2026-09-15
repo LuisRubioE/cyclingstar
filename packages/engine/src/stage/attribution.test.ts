@@ -370,6 +370,33 @@ import type { Attribute } from '@cyclingstar/shared'
  * general en juego, y sin general nadie pide una tregua. Donde el racimo sí vive —la clásica más
  * dura y Il Lombardia— las pájaras bajan del 10,8 % al 10,2 % (docs/balance.md «v60 §16»).
  *
+ * --- RE-SELLADO DEL PASO 20: LA CARRETERA GIRA (v70, R14) --------------------------------------
+ *
+ * **Una causa, y es LA LEY**: `targetSpeed × (1 − windAheadScale · vientoFrontal)`. Es el único
+ * re-sellado de los dieciséis en que lo que se mueve no es una decisión sino la física, y por eso el
+ * paso va solo. Las cuatro predicciones de §9.3 se comprueban una a una, y las cuatro se cumplen:
+ *
+ * | huella        | exigido                                   | medido                                  |
+ * | ------------- | ----------------------------------------- | --------------------------------------- |
+ * | `llana-180-0` | gana un `spr-*`; ≥ 170 de 176 al mismo seg | `spr-6`; **173** al mismo seg, 3 relojes |
+ * | `llana-180-1` | ídem                                       | `spr-0`; **171** al mismo seg, 5 relojes |
+ * | `reina-150-0` | gana relleno o `gc-*`/`bar-*`; ≥ 40 relojes| `pel-105`; 11 al mismo seg, **47**       |
+ * | `reina-150-1` | gana un `gc-*`; ≥ 40 relojes               | `gc-0`+`gc-3`; 2 al mismo seg, **43**    |
+ *
+ * **Y lo que de verdad hay que mirar es el RELOJ, no el orden**: `llana-180-0` pasa de 14.711 a
+ * 14.756 —cuarenta y cinco segundos más lenta en 180 km—, `llana-180-1` de 14.748 a 14.742,
+ * `reina-150-1` de 14.525 a 14.529. El sentido no es el mismo en las cuatro y eso es correcto: de
+ * cara se pierde y de cola se gana, y cada semilla tiene su viento.
+ *
+ * Lo que sí tiene sentido único, y hay que decirlo porque es el único sesgo del paso, es que **la
+ * media sale algo más lenta**: de cara y de cola se compensan en VELOCIDAD pero no en TIEMPO. Rodar
+ * la mitad de una etapa un 8 % más despacio cuesta más segundos de los que la otra mitad ahorra al
+ * 8 % más deprisa —es la media armónica contra la aritmética—, y por eso `medianWinnerKmh` baja
+ * 0,04-0,14 km/h en los tres tipos de etapa (v60 §24) sin sacar de banda el invariante 43.
+ *
+ * `reina-150-0` conserva ganador, tiempo y hueco al segundo grupo dígito a dígito: lo único que se
+ * mueve son los relojes de la cola (45 → 47). No es raro — ese día no hay viento que valga.
+ *
  * --- Y LO ANTERIOR, DEL PASO 14 (LA COLOCACIÓN) ------------------------------------------------
  *
  * Y así sale. `llana-180-0` conserva a `spr-6` y no se mueve ni un segundo; `llana-180-1` conserva a

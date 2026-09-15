@@ -80,6 +80,12 @@ export function advanceGroup(
   pullers: number = STAGE.relayPaceReference,
   opts: AccOptions = {},
   dx: number = STAGE.dx,
+  /**
+   * EL VIENTO DE CARA, en [−1,1] (R14.1, paso 20). Es **el único término de todo `docs/tactica.md`
+   * que mueve la LEY DE VELOCIDAD**, y entra aquí porque aquí es donde la ley se evalúa. Ausente = 0
+   * y la ley es dígito a dígito la de la v69.
+   */
+  vientoFrontal = 0,
 ): Group {
   /**
    * …Y EN EL REMATE MANDA EL RÉGIMEN DE SPRINT (v39, `finish.ts::sprintRegimeKmh`). La ley de
@@ -90,7 +96,7 @@ export function advanceGroup(
    * el pelotón SUBE a esa velocidad.
    */
   const vObjetivo = Math.max(
-    targetSpeed(block, p75Perfil, group.compromiso, pullers),
+    targetSpeed(block, p75Perfil, group.compromiso, pullers, vientoFrontal),
     opts.sprintKmh ?? 0,
   )
   // `dt de entrada`: la cota de aceleración usa la velocidad de entrada al bloque (SPEC 6.4).

@@ -715,7 +715,20 @@
  * Campaña canónica de 500 corridas: **los 33 invariantes en verde**. La contrarreloj no se mueve ni
  * un dígito —es el ancla del esfuerzo individual y paga la ley lineal de siempre—.
  */
-export const ENGINE_VERSION = 69 as const
+/**
+ * **v70 — LA CARRETERA GIRA** (docs/tactica.md paso 20, R14). El único cambio de todo el plan
+ * táctico que mueve **la LEY DE VELOCIDAD**, y por eso va solo, el último y con su propia subida:
+ * `targetSpeed × (1 − windAheadScale · vientoFrontal)`.
+ *
+ * Lo que había hasta aquí era medio viento: un lateral sorteado una vez y soplando igual durante 180
+ * km. Con R14 el viento pasa a ser un vector —fuerza del día y dirección— que se resuelve contra el
+ * rumbo de cada bloque, y de ahí salen las dos cosas que faltaban: que **de cara frene de verdad**, y
+ * que **el abanico se cierre** cuando la carretera gira, con los cortados pudiendo volver. Con ellas
+ * entran el parte por segmentos (la lluvia que llega en el km 90), el frío como cuarto multiplicador
+ * táctico, el calor en el precio del cierre, el descenso mojado, el material del día y la cita de las
+ * órdenes puesta en el tiempo.
+ */
+export const ENGINE_VERSION = 70 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -3775,6 +3788,15 @@ export const STAGE = {
   heatFromC: 26,
   heatFullC: 38,
   /**
+   * …Y LO MISMO POR EL OTRO LADO (R13.5, paso 20). El frío no se sorteaba: la temperatura del día
+   * existía desde la v42 y solo se leía hacia arriba, así que una etapa a 2° y una a 20° costaban lo
+   * mismo. Por debajo de `coldFromC` empieza a contar y en `coldFullC` es el día del que se habla
+   * durante años. `coldCostScale` (0,06) es lo que cobra, y es el cuarto de los cinco
+   * multiplicadores tácticos del coste de bloque (§9.1bis).
+   */
+  coldFromC: 10,
+  coldFullC: -2,
+  /**
    * LO QUE CUESTA EL CALOR. No es velocidad ni selección: es DEPÓSITO. A la misma potencia, con 38°
    * el cuerpo gasta en refrigerarse lo que no gasta a 20, y eso sale del mismo sitio del que sale
    * todo lo demás.
@@ -4567,6 +4589,124 @@ export const STAGE = {
      * NO hay es quien te devuelva al grupo, porque no hay grupo — y ésa es la mitad cara.
      */
     ttCarShare: 0.4,
+  },
+
+  /**
+   * EL TIEMPO CON DIRECCIÓN Y CON SEGMENTOS (R14, docs/tactica.md paso 20).
+   *
+   * Éste es **el único racimo de todo el documento que mueve la LEY DE VELOCIDAD**, y por eso va solo
+   * y el último: el viento de cara frena de verdad, y frenar de verdad es `targetSpeed`. Lo que hasta
+   * hoy existía era un viento LATERAL sorteado una vez y soplando igual durante 180 km; lo que
+   * faltaba es la otra mitad de la frase que cualquiera que haya visto una etapa de viento conoce:
+   * **la carretera gira**. Cuando gira, el lateral se convierte en frontal o en trasero, y el abanico
+   * que partió la carrera hace diez kilómetros **se cierra** y los cortados vuelven.
+   *
+   * `enabled` es el interruptor del A/B: apagado, el motor corre exactamente como en la v69 —el
+   * viento sigue siendo el de un día entero, `targetSpeed` no lleva término de viento y el abanico no
+   * se cierra nunca—, y los dos subflujos nuevos (`rumbo`, `parte`) no tiran un solo dígito.
+   */
+  weather: {
+    enabled: true,
+    /**
+     * LO QUE FRENA EL VIENTO DE CARA, y lo que empuja el de cola. `targetSpeed × (1 −
+     * windAheadScale · vientoFrontal)`, con `vientoFrontal` en [−1,1]: a viento pleno de cara se
+     * rueda un 8 % más despacio, y a viento pleno de cola un 8 % más deprisa.
+     *
+     * El número es contenido a propósito y el motivo está medido dos veces en esta bitácora (v41 con
+     * el llano y v42 con el calor): **la ley de velocidad tiene un invariante encima** —llana ≤ 48
+     * km/h > media > reina ≥ 32— y un término de viento con mano ancha lo rompe sin que nadie sepa
+     * si lo que falla es el cambio o el invariante. Y como la carretera gira, de cara y de cola se
+     * compensan a lo largo de una etapa: lo que este término cambia de verdad no es la media del día,
+     * es **dónde** se sufre.
+     */
+    windAheadScale: 0.08,
+    /**
+     * CUÁNDO DEJA DE HABER ABANICO. Por debajo de este lateral la carretera ya no da cuneta: se rueda
+     * en fila normal y el que se quedó fuera puede volver.
+     *
+     * La versión anterior del diseño lo declaraba DERIVADO de `POS.vientoMinimo`, y `POS` **no existe
+     * en el repositorio** —grep en `packages` y `apps`, cero resultados—. La puerta real que ABRE el
+     * abanico hoy es la de `corte()` con `windRaceCommit` 0,82 y `windEchelonGapSeconds` 15; el
+     * umbral con que se CIERRA no tiene ancla y se calibra, y decirlo es más honesto que inventarle
+     * una.
+     */
+    echelonCloseThreshold: 0.35,
+    /**
+     * …Y CUÁNTO TIENE QUE DURAR. Dos kilómetros de carretera al abrigo, no un bloque suelto: un
+     * abanico no se cierra porque la carretera haga una curva, se cierra porque ha cambiado de rumbo.
+     */
+    echelonCloseKm: 2,
+    /**
+     * CADA CUÁNTO GIRA LA CARRETERA, y cuánto gira. **Esto es una suposición declarada, no un dato**:
+     * el recorrido de este juego no tiene geometría —`StageProfile` son kilómetros, pendiente y
+     * terreno, y no hay un solo rumbo en todo el repositorio—, así que el rumbo se genera
+     * determinista por semilla de etapa, con un giro medio cada `roadTurnKm` kilómetros. Es lo mínimo
+     * que hace falta para que «la carretera gira» sea un HECHO del día y no una palabra, y el día que
+     * el generador traiga trazado de verdad, esta función se cambia por él sin tocar nada más.
+     */
+    roadTurnKm: 5,
+    roadTurnDeg: 35,
+    /**
+     * …Y CUÁNTO SE SEPARA DEL RUMBO GENERAL, y con cuánta fuerza vuelve. Una etapa **no deriva**: va
+     * de una ciudad a otra y serpentea alrededor de esa línea. Escrito como paseo aleatorio —que es
+     * como salió a la primera— el `echelonClosedPct` medía **100 %** contra una banda de 30-70,
+     * porque en 180 km de deriva libre siempre aparecen dos kilómetros al abrigo.
+     */
+    roadWanderDeg: 40,
+    roadMeanRevert: 0.6,
+    /** Cada cuánto cambia el parte, en km: el tiempo tampoco es el mismo en el km 10 y en el 150. */
+    segmentKm: 30,
+    /** Y cuánto rola el viento de un segmento al siguiente, en grados. */
+    windVeerDeg: 12,
+    /**
+     * EL VIENTO PLENO, en km/h. Es la unidad con la que el parte se puede enseñar en una pantalla —un
+     * parte que dijera «viento 0,62» no es un parte—, y la única cuenta que hace: `fuerza =
+     * windKmh / windFullKmh`.
+     */
+    windFullKmh: 60,
+    /**
+     * LA LLUVIA QUE LLEGA A MITAD DE ETAPA (R14.2, S-205). Un día de lluvia no siempre amanece
+     * lloviendo: la mitad de las veces el agua entra por el km 90, y eso es una etapa distinta —el
+     * pelotón se pone nervioso justo donde el recorrido se complica—.
+     */
+    rainLateProb: 0.5,
+    rainFromFrac: 0.25,
+    rainToFrac: 0.75,
+    /**
+     * Y LO QUE CUESTA SUBIR A TODOS LOS HOMBRES AL FRENTE CUANDO EMPIEZA A LLOVER (R14.2, S-204). El
+     * equipo del maillot lo hace siempre, y **lo paga mañana**: su presupuesto del día siguiente sube
+     * un 15 %.
+     */
+    rainPlaceTarget: 0.15,
+    rainCostGain: 1.15,
+    /**
+     * EL CALOR ENCARECE EL CIERRE (R14.6, S-238). No es un sexto multiplicador del coste del bloque
+     * —los cinco de §9.1bis están cerrados y el invariante C1 los vigila—: es el **precio de la
+     * carretera** de la subasta del frente, el parámetro `roadPrice` de `frontClaimOf`, que estaba
+     * escrito desde R20.2 y no lo pasaba nadie. A 38° cerrar un hueco cuesta un 20 % más.
+     */
+    calorGain: 1.2,
+    /**
+     * CÓMO SE BAJA UN PUERTO MOJADO (R14.5, S-281/S-325). El que lleva la general y tiene colchón baja
+     * PROTEGIDO y cede a propósito; el que necesita ganar baja a tumba abierta. Es un multiplicador
+     * sobre lo que un descenso cuesta en segundos, no un dado nuevo.
+     */
+    descentRiskCushion: 0.3,
+    descentRiskMustWin: 1,
+    /**
+     * EL MATERIAL DEL DÍA (R14.4, S-430). Tres opciones, ±2 puntos de perfil en el terreno que
+     * corresponda y **penalización simétrica si se falla el parte**: elegir lenticular un día sin
+     * viento no es neutro, es ir peor. Que sea simétrico es lo que convierte la elección en una
+     * apuesta y no en un regalo.
+     */
+    materialPerfilPoints: 2,
+    /**
+     * Y CUÁNDO CUENTA QUE «HAY» VIENTO, LLUVIA O PUERTO para juzgar si el material acertó. Por debajo
+     * de estos listones el día no era ése y la elección se cobra.
+     */
+    materialWindMin: 0.35,
+    materialRainMin: 0.3,
+    materialClimbKmMin: 20,
   },
 
   entreEtapas: {

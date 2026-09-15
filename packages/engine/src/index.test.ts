@@ -3,6 +3,18 @@ import { ENGINE_VERSION } from './index.js'
 
 describe('engine: esqueleto', () => {
   it('expone una engine_version sellada', () => {
+    // v70: LA CARRETERA GIRA (docs/tactica.md paso 20, R14; docs/balance.md «v60 §24»). El ÚNICO
+    // cambio de todo el plan táctico que mueve la LEY DE VELOCIDAD, y por eso va solo y el último:
+    // `targetSpeed × (1 − windAheadScale · vientoFrontal)`. Hasta aquí el viento era medio viento —un
+    // lateral sorteado una vez y soplando igual durante 180 km—, así que de cara no frenaba a nadie y
+    // el abanico, una vez abierto, no se cerraba jamás. Ahora el viento es un vector que se resuelve
+    // contra el RUMBO de cada bloque: de cara frena, de cola empuja, y dos kilómetros de carretera al
+    // abrigo cierran el abanico y dejan volver a los cortados. Con él entran el parte por segmentos
+    // (la lluvia que llega en el km 90), el frío como cuarto multiplicador táctico —existía en los
+    // grados desde la v42 y no lo cobraba nadie—, el calor en el precio del cierre, el descenso
+    // mojado (al que se le pasaba `lluvia: false` a pelo), el material del día con penalización
+    // simétrica y la cita de las órdenes puesta en el tiempo. Mueve las CUATRO huellas selladas y
+    // re-ancla el invariante 43, que es exactamente lo que el diseño declaró antes de medirlo.
     // v21: LA CRIBA QUE DECIDE LA ETAPA, Y LA FUGA QUE SE HUNDE (docs/motor.md §16,
     // docs/balance.md «v21»). El corte del pelotón solo se narraba dentro de los últimos
     // `climbRaceKmToGo` km, y la etapa se decide a veces mucho antes: en Race Great Ocean el grupo
@@ -378,6 +390,6 @@ describe('engine: esqueleto', () => {
     // v11 (atribución del trabajo), la v10 (composición y caza), la v9 (capa táctica), la
     // v8 (tiempos de grupo), la v7 (modelo de final), la v6 (telemetría), la v5 (clásica larga), la
     // v4 (pavé en el recorrido) y la v3 (Cambio 0).
-    expect(ENGINE_VERSION).toBe(69)
+    expect(ENGINE_VERSION).toBe(70)
   })
 })
