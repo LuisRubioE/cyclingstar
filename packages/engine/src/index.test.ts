@@ -3,6 +3,16 @@ import { ENGINE_VERSION } from './index.js'
 
 describe('engine: esqueleto', () => {
   it('expone una engine_version sellada', () => {
+    // v71: EL FUGADO TIENE COCHE (correccion de R11.2, docs/balance.md «v71»). El paso 13 implemento
+    // la primera mitad de R11.2 al pie de la letra —«en cabeza de carrera x carNoAccessGain (3)»— y
+    // dejo la segunda en letra muerta, sin ver que la regla SE CONTRADICE A SI MISMA dos lineas mas
+    // abajo: «la caravana se reordena; colar a uno en la fuga compra ademas coche, ruedas y bidones
+    // donde se decide la etapa». La segunda mitad es la carretera: en cabeza es donde MEJOR asistido
+    // se esta —el coche va a diez metros y no hay 170 hombres en medio— y se le cobraba el triple mas
+    // rueda neutra al hombre con el mejor servicio de la carrera. Un pinchazo del escapado costaba
+    // 139 s; cuesta 37. Y la caravana se reordena de verdad: el puesto en la fila de un fugado ya no
+    // es el que le da la general sino el que le da ir delante. El que sigue sin coche es el de tierra
+    // de nadie y el que pincha en un puerto, que es donde la carretera no deja pasar.
     // v70: LA CARRETERA GIRA (docs/tactica.md paso 20, R14; docs/balance.md «v60 §24»). El ÚNICO
     // cambio de todo el plan táctico que mueve la LEY DE VELOCIDAD, y por eso va solo y el último:
     // `targetSpeed × (1 − windAheadScale · vientoFrontal)`. Hasta aquí el viento era medio viento —un
@@ -390,6 +400,6 @@ describe('engine: esqueleto', () => {
     // v11 (atribución del trabajo), la v10 (composición y caza), la v9 (capa táctica), la
     // v8 (tiempos de grupo), la v7 (modelo de final), la v6 (telemetría), la v5 (clásica larga), la
     // v4 (pavé en el recorrido) y la v3 (Cambio 0).
-    expect(ENGINE_VERSION).toBe(70)
+    expect(ENGINE_VERSION).toBe(71)
   })
 })

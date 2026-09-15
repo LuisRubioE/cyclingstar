@@ -13662,3 +13662,67 @@ remata—, así que mueve las cuatro huellas y las bandas. Va en su propio PR, m
 declarada antes. Queda **anotado como deuda, no resuelto**, que es lo honesto: arreglarlo de tapadillo
 dentro de un cambio de observación sería exactamente lo que esta bitácora lleva media docena de notas
 persiguiendo.
+
+## v71 — el fugado tiene coche
+
+`ENGINE_VERSION` **70 → 71**. Corrección de R11.2 con la medida delante, reportada por el dueño
+mirando una carrera de producción:
+
+> «Perder 2:19 en un pinchazo cuando vas en frente y tienes el coche detrás justo, ¿no es demasiado?
+> O sea, te cambian de bici y ya, es súper rápido. No es como que tengas que irte atrás del grupo:
+> estás solo en cabeza».
+
+Tiene razón, y el defecto es peor que un número mal calibrado: **R11.2 se contradice a sí misma dentro
+del mismo párrafo**. Primero dice «en cabeza de carrera, en un puerto cerrado o con la carrera partida
+× `carNoAccessGain` (3)», y dos líneas después dice lo contrario:
+
+> «Y LA CARAVANA SE REORDENA cuando la carrera se parte: los comisarios suben los coches de los
+> equipos con hombres delante. **Colar a uno en la fuga compra además coche, ruedas y bidones donde se
+> decide la etapa**».
+
+El paso 13 implementó la primera mitad al pie de la letra y dejó la segunda en letra muerta. Y la
+segunda es la carretera: **en cabeza es donde mejor asistido se está** —el coche va a diez metros y no
+hay ciento setenta hombres en medio—, así que se le estaba cobrando el triple, más rueda neutra, al
+hombre con el mejor servicio de toda la carrera.
+
+### Dos cambios, que son la misma regla
+
+1. **El fugado tiene coche.** El que se queda sin él no es el de delante: es el que va en **tierra de
+   nadie** —un descolgado entre dos grupos, al que la caravana ya dejó atrás— y el que pincha **en un
+   puerto**, donde la carretera no deja pasar a nadie.
+2. **La caravana se reordena de verdad.** El puesto en la fila de un fugado ya no es el que le da la
+   general, es el que le da ir delante (el orden entre los de delante sigue siendo el de la general:
+   la reordenación los sube por encima del pelotón, no borra el escalafón entre ellos). Sin esto, el
+   escapado del equipo vigésimo seguía esperando como un vigésimo y la frase de R11.2 no significaba
+   nada.
+
+### La medida
+
+|                              | antes     | ahora                  |
+| ---------------------------- | --------- | ---------------------- |
+| **escapado en solitario**    | **139 s** | **37 s**               |
+| 3.º de una fuga de seis      | 152 s     | 45 s                   |
+| 6.º de una fuga de seis      | 175 s     | 57 s                   |
+| pinchazo en un puerto        | 175 s     | **175 s** (sin cambio) |
+| pinchazo en el pelotón, neto | 0-25 s    | **sin cambio**         |
+
+Y en agregado, sobre 60 etapas de cada escenario canónico:
+
+|                                         | regla vieja | ahora    |
+| --------------------------------------- | ----------- | -------- |
+| `llana-180`, media perdida por percance | 65 s        | 62 s     |
+| `reina-150`, media perdida por percance | 80 s        | **73 s** |
+| `reina-150`, el peor del banco          | 375 s       | 361 s    |
+
+**Que el agregado apenas se mueva es la comprobación, no una decepción**: la mayoría de los pinchazos
+ocurren en el pelotón, donde no cambia nada, y los peores ocurren en un puerto, donde tampoco. Lo que
+se mueve es el caso concreto que estaba mal, y se mueve **3,8×**. Un arreglo que hubiera bajado la
+media general sería un descuento, no una corrección.
+
+### Las cuatro huellas NO se mueven, y eso también se predijo
+
+La predicción declarada antes de medir: «solo cambian las etapas en que alguien **de la fuga** pincha;
+en las dos llanas el ganador no debe cambiar». Las cuatro corridas selladas salen **idénticas dígito a
+dígito**, porque en esas cuatro semillas ningún fugado pincha. La versión sube igual —la conducta ha
+cambiado y `checkReplay` tiene que saberlo—, pero **no hay re-sellado**: no se re-sella una huella que
+no se ha movido.

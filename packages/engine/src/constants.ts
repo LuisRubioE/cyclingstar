@@ -728,7 +728,25 @@
  * táctico, el calor en el precio del cierre, el descenso mojado, el material del día y la cita de las
  * órdenes puesta en el tiempo.
  */
-export const ENGINE_VERSION = 70 as const
+/**
+ * **v71 — EL FUGADO TIENE COCHE** (corrección de R11.2, medida en producción).
+ *
+ * El paso 13 implementó la primera mitad de R11.2 al pie de la letra —«en cabeza de carrera ×
+ * `carNoAccessGain` (3)»— y dejó la segunda en letra muerta, sin ver que **la regla se contradice a
+ * sí misma dos líneas más abajo**: «la caravana SE REORDENA cuando la carrera se parte: los
+ * comisarios suben los coches de los equipos con hombres delante; colar a uno en la fuga compra
+ * además coche, ruedas y bidones donde se decide la etapa».
+ *
+ * La segunda mitad es la carretera. **En cabeza es donde mejor asistido se está**: el coche va a diez
+ * metros y no hay ciento setenta hombres en medio. Y se le cobraba el triple, más rueda neutra, al
+ * hombre con el mejor servicio de la carrera: un pinchazo del escapado costaba **139 s** cuando lo que
+ * cuesta es un cambio de rueda con el mecánico ya fuera del coche — **37 s**.
+ *
+ * El que de verdad se queda sin coche no es el de delante: es el que va en TIERRA DE NADIE —un
+ * descolgado entre dos grupos, al que la caravana ya dejó atrás— y el que pincha EN UN PUERTO, donde
+ * la carretera no deja pasar a nadie. Eso no cambia.
+ */
+export const ENGINE_VERSION = 71 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a

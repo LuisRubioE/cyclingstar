@@ -732,4 +732,49 @@ export const TARGETS = {
       unit: '%',
     },
   },
+  /**
+   * EL VIENTO CON DIRECCIÓN (R14, paso 20). Las dos bandas que el paso 20 dejó **medidas y sin
+   * sellar**, y aquí es donde el paso 21 las escribe.
+   *
+   * **No las vigila la CI, y el motivo es de coste, no de pereza.** Un día de viento ocurre en el
+   * 3-4 % de las etapas, así que para ver veinte de ellos hay que correr **seiscientas** llanas
+   * canónicas: cuarenta minutos largos por brazo, sobre un trabajo de bancos que ya son 45-57. El
+   * precedente es `calendarQueens`, que vive aquí por la misma razón.
+   *
+   * Y que hagan falta seiscientas no es una excusa: es **el dato**. La primera versión de la tabla
+   * de la v60 §24 se hizo con doscientas y dio un `windDayGapS` de 4,35× —fuera de banda por
+   * arriba— que con seiscientas resultó ser 3,53×. Con veinte días de viento sobre seiscientas
+   * etapas, una sola carrera rota mueve la mediana entera; con siete, la inventa. El propio §4/R14
+   * lo avisa por escrito: este banco corre con ×3 semillas o no mide nada.
+   */
+  weather: {
+    /**
+     * CUÁNTOS ABANICOS SE CIERRAN ANTES DE META. Es la fila CONTRARIA del catálogo (S-324) y la que
+     * no existía: hasta la v69 medía **0 %**, porque el viento soplaba igual durante 180 km y un
+     * abanico abierto no se cerraba jamás. Con el rumbo de la carretera, **62,5 %** sobre 600.
+     *
+     * La banda tiene las dos puntas por un motivo cada una: por abajo, que un abanico no se cierre
+     * nunca es el motor de la v69; por arriba, que se cierren TODOS es lo que medía la primera
+     * versión del rumbo —un paseo aleatorio, con el que en 180 km de deriva libre siempre aparecen
+     * dos kilómetros al abrigo—. Un día de viento cruzado de verdad aguanta hasta meta.
+     */
+    echelonClosedPct: {
+      label: 'Abanicos que se cierran antes de meta',
+      min: 30,
+      max: 70,
+      unit: '%',
+    },
+    /**
+     * CUÁNTO MÁS REPARTE UN DÍA DE VIENTO que uno normal, en brecha del primero al último. Medido
+     * **3,00×** sobre 600, contra 3,53× del motor de la v69: los abanicos que se cierran dejan
+     * volver a los cortados, así que el día de viento sigue siendo el que más reparte pero deja de
+     * ser una carnicería.
+     */
+    windDayGapS: {
+      label: 'Brecha del día de viento contra la de un día normal',
+      min: 1.5,
+      max: 4,
+      unit: '×',
+    },
+  },
 } as const satisfies Record<string, Record<string, Target>>
