@@ -13726,3 +13726,78 @@ en las dos llanas el ganador no debe cambiar». Las cuatro corridas selladas sal
 dígito**, porque en esas cuatro semillas ningún fugado pincha. La versión sube igual —la conducta ha
 cambiado y `checkReplay` tiene que saberlo—, pero **no hay re-sellado**: no se re-sella una huella que
 no se ha movido.
+
+## v60 §25 — paso 21, la reina de verdad
+
+**Sin subida de `ENGINE_VERSION`**: no se toca el motor. Lo que cambia es **dónde se mide**, que es
+justo lo que el paso 21 viene a hacer.
+
+`reina-150` —135 km de llano y un puerto de 15 km al 8 %, **1.200 m**— deja de ser el escenario
+canónico de montaña. Se conserva con su nombre de verdad, **`media-150`**, porque eso es lo que es y
+`targets.ts` lleva llamándolo «una caricatura» desde la v44. En su sitio entra **`reina-real`**: 158
+km, **2.933 m**, dos puertos —13 km al 7 % medio y 12 km al 7,5 % con el remate al 9 %— y final en
+alto.
+
+### No son los 3.500-4.500 m que pedía la decisión 5, y el motivo está medido
+
+Se barrió el desnivel **antes** de elegir, y a partir de 3.300 la etapa deja de tener carrera:
+
+| m+        | m/km     | gana la fuga | erosión   | pájaras    |
+| --------- | -------- | ------------ | --------- | ---------- |
+| 1.200     | 8,0      | 29,2 %       | 0,266     | 0,0 %      |
+| **2.933** | **18,6** | **25,8 %**   | **0,566** | **0,3 %**  |
+| 3.339     | 20,6     | 20,8 %       | 0,733     | 1,3 %      |
+| 3.742     | 22,5     | 4,2 %        | 0,882     | 11,3 %     |
+| 4.101     | 24,0     | **0,0 %**    | **0,920** | **51,2 %** |
+
+Y hay dos avales, uno de esta bitácora y otro del calendario del juego.
+
+**El primero es que la v15 ya lo había medido, y lo dejó escrito en `targets.ts`**: «con 4.500 m y el
+depósito así de mermado, el 100 % del campo entraba en pájara y la erosión topaba en 0,920, es decir,
+**el modelo dejaba de discriminar**». El barrido de arriba reproduce ese **0,920 clavado**. O sea que
+la decisión 5 pedía exactamente el escenario que esta casa había descartado cincuenta versiones antes
+por saturar el depósito — y nadie cruzó las dos páginas.
+
+**El segundo es que las etapas reina del calendario tienen una mediana de 2.023 m.** Con 2.933 esto es
+una reina **dura** —un 45 % por encima de la mediana— y no una etapa media disfrazada, que es el
+defecto que había que arreglar. Sustituir una caricatura por la contraria no habría sido un arreglo.
+
+### Las huellas: una baja y un alta, no un re-sellado
+
+Las dos de `reina-150` se **retiran** —el escenario deja de ser canónico, así que no hay nada que
+re-sellar (§9.3)— y las dos de `reina-real` se **sellan por primera vez**. Los criterios de aceptación
+de una reina, y lo que dan:
+
+|                             | `reina-real-0`           | `reina-real-1`  |
+| --------------------------- | ------------------------ | --------------- |
+| no gana un velocista        | `pel-20` (desde la fuga) | `bar-0`         |
+| dónde acaban los `spr-*`    | puestos 174-176          | puestos 174-176 |
+| el campo llega deshilachado | **42** relojes distintos | **37**          |
+| hueco al segundo            | +53 s                    | +3 s            |
+
+### Lo que esto mueve, y las dos cosas que NO mueve
+
+**`mountain.breakawayWinPct`: 25-45 → 15-40.** La banda vieja no se afloja, **se declara inválida**
+(decisión 23 del dueño): estaba medida sobre la caricatura, y una banda medida sobre una caricatura
+describe la caricatura, no la montaña. Sobre el escenario nuevo la fuga gana **25,8 %** con 120
+semillas.
+
+Y la banda se escribe **con hueco, no pegada a la medida**, que es la lección del defecto V1 de esta
+casa —«la banda sentada encima de su suelo»—. Con 120 corridas, σ ≈ 4,0 puntos para una proporción del
+26 %: dejar el suelo en 25 haría que el invariante cayera del lado malo **la mitad de las veces**, o
+sea un guardarraíl que decide a cara o cruz. El 15-40 deja ~2,7σ por abajo y ~3,5σ por arriba.
+
+**`erosion.queenFresh`: techo 0,50 → 0,62.** Y esta casilla **se había predicho a sí misma** desde la
+v16: «se comprobó re-anclar el objetivo sobre la etapa reina REAL … habría exigido mover el TECHO en
+vez del suelo, porque la reina real erosiona 0,51». Entonces se prefirió conservar el punto de medida;
+el paso 21 lo cambia, así que la deuda vence. Medido 0,566 con un 0,3 % de pájaras: el campo sufre sin
+que el modelo deje de discriminar, que es la condición. **El suelo de 0,18 se conserva** porque
+describe lo que el grupeto AHORRA, que es conducta del motor y no del perfil.
+
+**Lo que NO se mueve, y es lo que da confianza en el cambio:**
+
+- **la ley de velocidad.** `reina-real` se gana a **35,9 km/h** contra el suelo de 32 del invariante 43. La reina de 4.101 m que se descartó caía a 30,9 y lo habría roto;
+- **`erosion.queenThirdWeek`**, que además **puede volver a casa**. La banda es 0,60-0,85;
+  `reina-150-s3` mide **0,364** —fuera por abajo, y por eso la v15 tuvo que llevarse el objetivo a
+  otro banco (Race France e18)— y `reina-real-s3` mide **0,706**, dentro. El escenario nuevo permite
+  devolver la medida a su sitio; hacerlo es trabajo aparte y queda anotado.

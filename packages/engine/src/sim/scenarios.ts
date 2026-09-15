@@ -7,7 +7,7 @@ import type { Attribute } from '@cyclingstar/shared'
 import { initialEnergy } from '../banister.js'
 import { SEASON_CALENDAR } from '../routes/calendar.js'
 import { stageSeed } from '../stage/rng.js'
-import type { StageInput, StageOrders, StageRider } from '../stage/types.js'
+import type { StageInput, StageOrders, StageProfile, StageRider } from '../stage/types.js'
 
 /**
  * Estado del pelotón en la TERCERA SEMANA de una gran vuelta, para el escenario fatigado. No son
@@ -326,8 +326,122 @@ export function queenScenario(): Scenario {
     riders.push(rider(`pel-${i}`, { eff0: eff(55, { MON: 54 + (i % 12), LLA: 60 }) }))
   }
   return {
-    name: 'reina-150',
+    name: 'reina-real',
     input: {
+      /**
+       * LA REINA DE VERDAD (paso 21, decisión 5 del dueño). **158 km, 2.933 m, dos puertos y final
+       * en alto**, en lugar de los 135 km de llano y un puerto —1.200 m— que este escenario tenía y
+       * que `targets.ts` lleva llamando «una caricatura» desde la v44.
+       *
+       * **Y NO son los 3.500-4.500 m que la decisión 5 pedía, por una medida y con dos avales.** Se
+       * barrió el desnivel antes de elegir, y a partir de 3.300 la etapa deja de tener carrera:
+       *
+       *     m+     m/km   gana la fuga   erosión   pájaras
+       *     1.200   8,0       29,2 %      0,266     0,0 %     ← la caricatura de antes
+       *     2.933  18,6       25,8 %      0,566     0,3 %     ← ésta
+       *     3.339  20,6       20,8 %      0,733     1,3 %
+       *     3.742  22,5        4,2 %      0,882    11,3 %
+       *     4.101  24,0        0,0 %      0,920    51,2 %
+       *
+       * El primer aval es de la casa: **la v15 ya había medido esto y lo dejó escrito** en
+       * `targets.ts`, cinco docenas de versiones antes — «con 4.500 m y el depósito así de mermado,
+       * el 100 % del campo entraba en pájara y la erosión topaba en 0,920, es decir, **el modelo
+       * dejaba de discriminar**». El barrido de arriba reproduce ese 0,920 clavado. La decisión 5
+       * pedía justo el escenario que esta bitácora había descartado por saturar.
+       *
+       * El segundo es del calendario del propio juego: sus etapas reina tienen una mediana de
+       * **2.023 m**. Con 2.933 esto es una reina DURA —un 45 % por encima de la mediana—, no una
+       * etapa media disfrazada, que es lo que había que arreglar.
+       *
+       * Sustituir una caricatura por la contraria no habría sido un arreglo.
+       */
+      profile: REINA_REAL_PROFILE,
+      riders: inTeams(riders, 8),
+    },
+    bestSprinterId: 'gc-3',
+  }
+}
+
+/**
+ * EL PERFIL DE LA REINA DE VERDAD. Dos puertos que rompen —13 km al 7 % medio y 12 km al 7,5 % con
+ * el remate al 9 %— separados por una bajada larga y un valle, con la apertura rompepiernas donde un
+ * equipo se gasta antes de que empiece lo serio. Final en alto, que es la mitad de la definición.
+ */
+const REINA_REAL_PROFILE: StageProfile = {
+  segments: [
+    {
+      km: 24,
+      tipo: 'rompepiernas',
+      tramos: [
+        { km: 6, g: 3 },
+        { km: 6, g: -2.8 },
+        { km: 6, g: 3.2 },
+        { km: 6, g: -2.8 },
+      ],
+    },
+    {
+      km: 26,
+      tipo: 'rompepiernas',
+      tramos: [
+        { km: 7, g: 3.2 },
+        { km: 6, g: -2.8 },
+        { km: 7, g: 3 },
+        { km: 6, g: -2.8 },
+      ],
+    },
+    {
+      km: 13,
+      tipo: 'puerto',
+      tramos: [
+        { km: 5.2, g: 6.2 },
+        { km: 4.55, g: 7 },
+        { km: 3.25, g: 8.2 },
+      ],
+    },
+    { km: 18, tipo: 'descenso', tramos: [{ km: 18, g: -8 }] },
+    { km: 40, tipo: 'llano' },
+    {
+      km: 25,
+      tipo: 'rompepiernas',
+      tramos: [
+        { km: 7, g: 2.6 },
+        { km: 6, g: -2.4 },
+        { km: 6, g: 2.6 },
+        { km: 6, g: -2.4 },
+      ],
+    },
+    {
+      km: 12,
+      tipo: 'puerto',
+      tramos: [
+        { km: 4.8, g: 6.5 },
+        { km: 3.96, g: 7.5 },
+        { km: 3.24, g: 9 },
+      ],
+    },
+  ],
+  banners: [
+    { km: 63, tipo: 'cima' },
+    { km: 158, tipo: 'cima' },
+  ],
+}
+
+/**
+ * LA QUE ERA `reina-150`, con su nombre de verdad: **`media-150`** (paso 21, decisión 5). 135 km de
+ * llano y un puerto de 15 km al 8 % no son una etapa reina y `targets.ts` lo venía diciendo desde la
+ * v44; lo que son es una etapa MEDIA con final en alto, y como tal se conserva —el escenario no se
+ * tira, se llama por su nombre—.
+ *
+ * Su huella sellada **se retira** en vez de re-sellarse: deja de ser canónica, así que no hay nada
+ * que re-sellar (§9.3). Sigue corriendo como banco de forma.
+ */
+export function mediaScenario(): Scenario {
+  const base = queenScenario()
+  return {
+    ...base,
+    name: 'media-150',
+    input: {
+      ...base.input,
       profile: {
         segments: [
           { km: 135, tipo: 'llano' },
@@ -335,9 +449,7 @@ export function queenScenario(): Scenario {
         ],
         banners: [{ km: 150, tipo: 'cima' }],
       },
-      riders: inTeams(riders, 8),
     },
-    bestSprinterId: 'gc-3',
   }
 }
 
@@ -352,7 +464,7 @@ export function queenThirdWeekScenario(): Scenario {
   const energy = initialEnergy(THIRD_WEEK_CTL, THIRD_WEEK_TSB, 'sano')
   return {
     ...base,
-    name: 'reina-150-s3',
+    name: 'reina-real-s3',
     input: {
       ...base.input,
       riders: base.input.riders.map((r) => ({ ...r, energy, tsb: THIRD_WEEK_TSB })),
