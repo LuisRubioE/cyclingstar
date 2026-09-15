@@ -13799,5 +13799,12 @@ describe lo que el grupeto AHORRA, que es conducta del motor y no del perfil.
 - **la ley de velocidad.** `reina-real` se gana a **35,9 km/h** contra el suelo de 32 del invariante 43. La reina de 4.101 m que se descartó caía a 30,9 y lo habría roto;
 - **`erosion.queenThirdWeek`**, que además **puede volver a casa**. La banda es 0,60-0,85;
   `reina-150-s3` mide **0,364** —fuera por abajo, y por eso la v15 tuvo que llevarse el objetivo a
-  otro banco (Race France e18)— y `reina-real-s3` mide **0,706**, dentro. El escenario nuevo permite
+  otro banco (Race France e18)— y `reina-real-s3` mide **0,700**, dentro. El escenario nuevo permite
   devolver la medida a su sitio; hacerlo es trabajo aparte y queda anotado.
+
+**Todas las cifras de esta nota son de 120 semillas**, que es el tamaño de la campaña de CI. Se dice
+porque la primera pasada se hizo con 40 y daba **0,706** en esa última casilla y **27,5 %** en la fuga
+de `reina-real` —contra el 25,8 % de las 120—, y ese 27,5 me llevó a escribir que
+`mountain.breakawayWinPct` no había que tocarla. Con la muestra buena está pegada al suelo de 25 y hay
+que re-anclarla. Es la misma lección de la v60 §24 con el viento, dos notas más arriba: **una banda no
+se sella con la muestra pequeña**.
