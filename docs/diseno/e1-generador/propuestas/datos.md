@@ -1,787 +1,711 @@
-# Propuesta E1 (ángulo «aprender de lo real»): un generador de recorridos por ARQUETIPOS extraídos de los recorridos reales del repositorio
+# Propuesta E1 (ángulo «aprender de lo real»): un generador de recorridos por ARQUETIPOS extraídos del corpus real
 
-Lo que sigue es un diseño completo e implementable del generador de recorridos, escrito desde una sola idea: **el repositorio ya tiene 177 etapas con relieve real y 384 etapas de edición con distancia, ciudades y terreno verificados; que lo generado sea una variación controlada de lo real, y que se pueda medir cuánto se le parece.** Se ha escrito tras leer los siete mapas de `scratchpad/e1/mapas/` y comprobando en el código todo lo que aquí se afirma de él. Donde se cita una línea es de la versión actual (`ENGINE_VERSION` 69, `constants.ts` l. 718).
+Propuesta de diseño para `docs/generador.md`. Escrita tras leer entero `packages/engine/src/routes/profileGen.ts` (514 l.), `stageKind.ts`, `finalKind.ts`, los tramos de `calendar.ts` que construyen etapas (l. 86-260, 370-560, 886-929), las cabeceras y tipos de `editions.ts`, `raceRoutes.ts`, `classicRoutes.ts`, `stageFeatures.ts` y `featureProfile.ts`, `stage/types.ts`, `stage/rng.ts`, `stage/sample.ts`, `stage/finish.ts` (l. 60-198), el bloque `ROUTE`/`RELIEF` de `constants.ts` (l. 1115-1246), y los siete mapas de `scratchpad/e1/mapas/`. Los números marcados «medido aquí» salen de un script propio (`scratchpad/e1/medir-real.mjs`) corrido contra el `dist` del motor de hoy (`ENGINE_VERSION` 69, `constants.ts` l. 718) sobre las 1.418 etapas de `SEASON_CALENDAR` y las 177 con rasgos reales de `STAGE_FEATURES`. Los demás números citan el mapa o la línea de donde salen.
 
-Convención: «real» es una etapa con rasgos en `STAGE_FEATURES` (`routes/stageFeatures.ts` l. 15); «edición» es una etapa de `RACE_EDITIONS` sin rasgos (`routes/editions.ts` l. 25); «generada» es todo lo demás. El inventario cuenta 177, 226 y 1.015 respectivamente (`docs/inventario-recorridos.md` l. 20-26).
+La idea en una frase: **el repositorio ya tiene 177 etapas reales autorizadas y 41 carreras con procedencia; el generador nuevo no inventa formas, las aprende de ahí**. Cada carrera generada es una variación controlada de un arquetipo (una familia de recorridos reales con una arquitectura común), sorteada dentro de las bandas que el corpus real observa, colocada en la región geográfica que le toca, y estable de una edición a la siguiente. Lo que se mide para saber si el generador nuevo es mejor no es una etapa, es la distribución: la geometría de lo generado tiene que parecerse estadísticamente a la geometría de lo real.
 
 ---
 
-## 1. Diagnóstico: qué falla hoy, con citas al código
+## 1. Diagnóstico: qué falla hoy, con el código delante
 
-### 1.1 Los moldes son ocho y la semilla no elige ninguno
+### 1.1 La arquitectura es fija y la semilla solo mueve el detalle
 
-`routes/profileGen.ts` tiene ocho constructores `xxxSegments(km, seed)` (l. 236-514) y `routes/calendar.ts` los reparte por un `switch` de seis terrenos (`oneDaySpec`, l. 400-408) o por tres papeles de vuelta (`stageMix`, l. 546-561, sobre `type MixTerrain = 'flat' | 'hilly' | 'mountain'`, l. 411). Dentro de cada constructor la ARQUITECTURA es una constante del kilometraje, no de la semilla:
+`profileGen.ts` tiene ocho constructores (`flatSegments` l. 236, `hillySegments` l. 243, `hillyUphillSegments` l. 269, `mountainSegments` l. 337, `mountainClassicSegments` l. 443, `classicSegments` l. 473, `cobblesSegments` l. 493, `ittSegments` l. 510) y todos siguen el mismo esqueleto: sortear las dificultades, calcular el relleno, repartirlo con `split` (l. 52-65) en `n+1` huecos, intercalar `rolling`/`climb`/`descent`, y `normalize` (l. 141-177). Lo que **no** depende de la semilla:
 
-- `hillySegments` (l. 243-261): `nClimbs = km > 170 ? 3 : 2`; siempre relleno tras la última cota, que corona a 26-68 km de meta (medido en el mapa 01 §2.2: `valle_largo` en 1.500 de 1.500).
-- `hillyUphillSegments` (l. 269-297): `nClimbs = km > 170 ? 2 : 1` más una cota final de 4-7,5 km al 5-7,5 %, recortada a 8,4 km por `garantizaPuerto` (l. 296).
-- `mountainSegments` (l. 337-414): `midClimbs = km > 165 ? 3 : 2`, final de 9-15 km al 7,5-9,5 %, nunca por debajo de 8,6 (l. 381). Es el único constructor que sortea dos decisiones de forma: el brazo de desnivel (`ROUTE.queenHighDplusShare`, `constants.ts` l. 1169) y el `finalKind` (`sampleFinalKind`, l. 417-424).
-- `mountainClassicSegments` (l. 443-470): mismos intermedios, final 4-8 km al 7,5-10 % y `runIn` 13-22 km. Ningún test de `routes/` lo importa (`stageKind.test.ts` l. 2-10) y dibuja 51 de las 157 reinas del calendario (mapa 06 §1).
-- `classicSegments` (l. 473-490): `nWalls = km > 200 ? 5 : 4` muros de 1-2,5 km al 8-12 %, sin adoquín, con el último a 16 km o más de meta.
-- `cobblesSegments` (l. 493-507): `sectors = [3, 5, 4]` estrellas, literal y fijo: tres sectores siempre, en ese orden, el último a unos 40 km de meta.
-- `flatSegments` (l. 236-240) e `ittSegments` (l. 510-514): el mismo cuerpo, `rolling` y `normalize`.
+- El **número** de dificultades: `nClimbs = km > 170 ? 3 : 2` (l. 245, 271), `midClimbs = km > 165 ? 3 : 2` (l. 339, 445), `nWalls = km > 200 ? 5 : 4` (l. 475), `sectors = [3, 5, 4]` literal (l. 495). Es un umbral de kilometraje, no una decisión de forma.
+- El **orden**: relleno, dificultad, bajada, relleno. Nunca dos puertos encadenados sin valle, nunca un circuito, nunca un sector a 15 km de meta (el último de `cobblesSegments` cae a un cuarto del relleno de la meta: unos 40 km, mapa 01 §2.7).
+- Los **rangos**, escritos como literales dentro de las funciones y no en `ROUTE` (mapa 01 §3: de `ROUTE` solo entran cuatro claves en `profileGen.ts`).
+- Las **únicas dos decisiones de forma sorteadas** están en `mountainSegments`: el brazo de desnivel (l. 345) y el `finalKind` (l. 355). En las otras siete formas no se sortea ninguna.
 
-Todos los rangos (3-7 km, 4,5-6,5 %, 6-11, 9-15, 1-2,5, 8-12, 2-4…) son literales dentro de las funciones; de `ROUTE` solo entran cuatro claves (`queenDplusRange`, `queenHighDplusShare`, `queenLowDplusRange`, `queenFinalMix`, `constants.ts` l. 1167-1189). Cambiar «una cota de media montaña mide de 3 a 7 km» es editar `profileGen.ts` l. 247. El dueño no percibe tres o cuatro modelos: los cuenta bien (`docs/agenda.md` §4.18, hallazgo 1).
+Medido en el mapa 01 sobre 1.500 etapas por forma: `hillySegments` corona su última cota a 26-68 km de meta en el 100 % de los casos (`valle_largo` siempre), `flatSegments` e `ittSegments` son la misma función, y `classicSegments` produce 4-5 muros cuando una Ronde tiene 16-19 y una Amstel 33 (mapa 07 §1.3).
 
-### 1.2 El azar mueve el detalle, la arquitectura es del nombre de la función
+### 1.2 Los modelos son tres para componer y seis para un día
 
-`split` (l. 52-65) reparte el relleno con pesos `U(0,7; 1,3)`, así que cada hueco vale entre 0,54 y 1,86 veces la media: las dificultades caen siempre repartidas «a intervalos parecidos». `climb` (l. 72-82) pone la rampa más dura arriba en todos los puertos (`prog · 1,6`), cuando el Kwaremont es más duro abajo y el Angliru tiene su rampa a tres kilómetros de la cima. `rolling` (l. 100-122) alterna subida y bajada por paridad del índice. Lo que ninguna semilla dará hoy (mapa 01 §4): un puerto largo con cien kilómetros de llano antes, dos puertos encadenados sin valle, un circuito, un muro en el último kilómetro (0 finales `muro` en 1.075 etapas, `docs/balance.md` v60 §12), treinta sectores de adoquín, una reina de 130 km con cinco puertos.
+`type MixTerrain = 'flat' | 'hilly' | 'mountain'` (`calendar.ts` l. 410) con el comentario «los tres terrenos que sabe componer una vuelta por etapas (el resto se reduce a ellos)»; `mixTerrain` (l. 416-420) manda `cobbles` e `itt` a `flat` y `classic` a `hilly`. `oneDaySpec` (l. 400-408) es un `switch` de seis ramas. Medido aquí: las 72 vueltas compuestas por `stageMix` producen 47 secuencias de papeles distintas, la más repetida cinco veces (`[l m m^ c l]`), y las 158 carreras de un día generadas miden 210 km en la mediana de las tres clases (`row.km ?? 210`, `calendar.ts` l. 917): 66 de 66 carreras .1 de un día están en p10 = p50 = p90 = 210.
 
-### 1.3 El generador no sabe dónde está
+### 1.3 El país no llega al generador
 
-`CalendarRace.country` existe (`calendar.ts` l. 69-72) y lo llevan las 842 carreras (`calendar.test.ts` l. 197-201), pero las tres ramas de `buildRace` (l. 899-929) pasan al generador `row.stages`, `row.terrain`, `row.km` y `row.id`; `oneDaySpec(terrain, km, seed)` (l. 400) y `stageMix(n, terrain, seedBase)` (l. 546) no tienen dónde recibirlo. El país solo llega a `stagePlace` para el clima (`schedule.ts` l. 27-32, `world/climate.ts` l. 165) y a `packages/db` para viajes. Consecuencia literal: `nc-nl-road` y `nc-co-road` salen los dos de `classic(220, id)` (`calendar.ts` l. 316-367); Race Rutland (`terrain: 'cobbles'`, l. 2390) y una hipotética .2 andaluza de adoquín se dibujarían igual.
+Firmas leídas (mapa 02 §6): `oneDaySpec(terrain, km, seed)`, `stageMix(n, terrain, seedBase)`, `stagesFromEdition(id, edition)` con semilla `${s.from}|${s.to}|${s.km}` (l. 221), y los ocho `xxxSegments(km, seed)`. `buildRace` calcula `country` en l. 889 y lo copia a `common`, y de ahí no va a ninguna rama de construcción. Medido aquí: hay etapas generadas en 55 países, y en **41 de ellos no existe ni una etapa real** (VE, SA, CO, TR, RW, GR, HR, CY, TW, SI, TH, PL, BA, DZ, RS, GB, BJ, US, GT, AT, DK, JP, AZ, HU, LU, AL, LT, MU, CM, EE, CZ, AD, RO, BG, KR, XK, EC, MA, SK, MY, BF). Las 177 etapas reales caen en 15 países (ES 44, IT 37, FR 36, CH 11, BE 8, AE 7, AU 6, DE 6, IN 5, PT 5, OM 4, NO 4, CA 2, NL 1, CN 1).
 
-### 1.4 El generador es la entrada de la calibración, y ya ha calibrado en falso
+### 1.4 Lo generado no se parece a lo real, y ahora está medido
 
-`docs/epics.md` E3 pasos 3-4: `mountain.breakawayWinPct` (25-45 %) estuvo cinco versiones en verde sobre `reina-150` (135 km de llano y un puerto de 15 km al 8 %, 1.200 m) mientras las reinas reales daban 3,3 % y la gran vuelta 0 %; después el paso 7 midió que el calendario generado tiene reinas de mediana 2.023 m (hoy 2.053 tras la v64, `balance.md` v60 §1b) contra 3.500-5.000 reales, y la fuga gana el 18,1 %. El caso v40 (`balance.md` l. 8102-8125): `mountainSegments` dio a Race Jura (`calendar.ts` l. 2303, un día, `.1`, `terrain: 'mountain'`) un final en alto de 9-15 km, «algo que no existe en el calendario real», y el 82 % del pelotón acabó a cero. Se arregló ese caso con un noveno molde; el problema de fondo (el generador inventa formas que la carretera no tiene) sigue.
+Medido aquí sobre las 177 etapas con rasgos (146 con puertos publicados, 130 con altimetría muestreada, 6 con pavé, 101 con sprints):
 
-### 1.5 Lo que sí funciona y hay que conservar
+| Rasgo                                      | Real (p10 / p50 / p90)                                         | Generador de hoy (mapa 01 §8)                                                                  |
+| ------------------------------------------ | -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Reina: nº de puertos publicados            | 2 / 4 / 6 (máx. 11)                                            | 3 o 4 fijos por km (`mountainSegments`)                                                        |
+| Reina: puerto final (km)                   | 3,3 / 9,7 / 17,1                                               | 9-15 antes de escalar, suelo 8,6                                                               |
+| Reina: `finalKindOf`                       | alto 37 · valle_largo 7 · valle_corto 6 · cima_cerca 4 (de 54) | 44 / 11 / 29 / 16 %                                                                            |
+| Reina: km de puerto a más de 60 km de meta | 0 / 13,2 / 43,0                                                | «puerto a 60 km de meta y luego llano» no sale (mapa 01 §4)                                    |
+| Media: km de la última cota a meta         | 0 / 15 / 59                                                    | 26-68 siempre (`hillySegments`)                                                                |
+| Media: nº de puertos                       | 1 / 3 / 6 (máx. 36)                                            | 2 o 3 fijos                                                                                    |
+| Un día: nº de cotas                        | 4 / 11 / 34 (18 carreras)                                      | 4 o 5 muros (`classicSegments`)                                                                |
+| Un día: última cota (km) y km a meta       | 0,5 / 1,0 / 2,1 y 0 / 7,8 / 20,8                               | muro 1-2,5 km a ≥ 16 km (`classicSegments`); puerto 4-8 km a 13-22 (`mountainClassicSegments`) |
+| Un día: puertos publicados ≤ 3 km          | 234 de 259                                                     | ninguno en `mountainClassicSegments`                                                           |
+| Pavé: sectores por carrera                 | 5, 6, 8, 9, 15, 31                                             | 3 fijos                                                                                        |
+| Llana real: km de la última cota a meta    | 20 / 43 / 149                                                  | no hay cota (`flatSegments` es `rolling` puro)                                                 |
 
-- `Segment`/`Ramp`/`StageProfile` (`stage/types.ts` l. 17-47) son un buen contrato de autoría y el motor solo lee de ellos `g`, `tipo`, `estrellas` y `banner` por bloque de 100 m (mapa 03 §1.1). Todo lo que se diseñe tiene que terminar en eso.
-- `stageKindOf` (`stageKind.ts` l. 71-98) y `finalKindOf` (`finalKind.ts` l. 78-85) son lectores puros del perfil; sus umbrales (`WALL_MAX_KM` 3, `PASS_MIN_KM` 8,5, `QUEEN_MIN_CLIMB_METRES` 3.200, `FINAL_KIND_CUTS` 0,5/5/20, `CLIMB_MIN_KM` 1,5) son la vara del banco y no hay razón para moverlos.
-- `buildFeatureProfile` (`featureProfile.ts` l. 362-375) reconstruye bien un recorrido real desde `climbs`, `cobbles`, `sprints` y `elevation`. La forma interna de un puerto real (`climbRamps`, l. 121-133: 30/40/30 % con 0,8/1,3/0,85) es un buen punto de partida para las piezas.
-- `normalize` (l. 141-177) cuadra los km sin deformar la forma, `garantizaPuerto` (l. 192-233) sujeta las puertas del clasificador, y `race_routes` (`packages/db/src/raceRoutes.ts` l. 17-55) congela el recorrido de una carrera el día de su etapa 1, de modo que cambiar el generador solo alcanza a carreras futuras.
-- `routeRng` (`profileGen.ts` l. 30-44, FNV-1a más mulberry32) es determinista y puro.
+Dos cosas más que el corpus dice y el generador no sabe: **el circuito existe** (18 de 54 reinas reales y 11 de 59 medias tienen al menos una cota repetida; Montréal repite 34 veces) y **la crono no es siempre llana** (13 cronos reales, entre ellas la de Barcelona de `race-france` e1 con altimetría muestreada y 100 m de desnivel en 20 km, `stageFeatures.ts` l. 19-31).
+
+### 1.5 El clasificador está calibrado contra el generador y no contra la carretera
+
+`stageKind.ts` l. 44-58 lo dice: los umbrales «se calibran contra los propios generadores». Medido aquí sobre las etapas reales: `stageKindOf` llama `media` a 11 de las 54 reinas reales y `reina` a 16 de las 59 medias reales; a 7 de 22 llanas reales con cota las llama `clasica` y a 3 `reina`. No es un defecto del clasificador de hoy (hace lo que promete), es la prueba de que las familias del generador y las de la realidad no coinciden. El comentario l. 49-54 además está desfasado desde la v64 (mapa 01 §5.1: reinas hasta 26,7 km de cota).
+
+### 1.6 Lo que ya funciona y hay que conservar
+
+`normalize` proporcional (l. 141-177), `climb`/`descent`/`rolling` como primitivas de dibujo (l. 72-122), `garantizaPuerto` como patrón de «garantía de clase después de normalizar» (l. 192-233), `MountainOptions` como precedente de arquitectura fijada desde fuera (l. 319-322), `finalKindOf` con sus cortes (`finalKind.ts` l. 30), `race_routes` como sello (mapa 03 §8), y la doctrina de `fuentes-recorridos.md` (nada se inventa, un puerto sin km+longitud+pendiente se descarta).
 
 ---
 
 ## 2. Principios
 
-1. **Lo real manda y lo generado imita lo real.** La distribución de lo generado, familia a familia, tiene que parecerse a la de las etapas reales que ya están en el repositorio; donde no hay dato real, a las bandas del mapa 07, marcadas como curadas y no como medidas.
-2. **La arquitectura se elige, el detalle se sortea.** Cada etapa generada nace de un ARQUETIPO (un esqueleto de motivos con bandas de posición y tamaño) elegido por tipo, formato, clase y región; la semilla decide qué arquetipo y cómo se realiza, no solo cuánto mide cada rampa.
-3. **La geografía es una firma, no un adorno.** El país (y, cuando se sepa, la región) decide qué familias de arquetipo son posibles, cuánto miden los puertos, si hay adoquín o tierra y hasta dónde sube la carretera.
-4. **Una carrera se parece a sí misma.** Los motivos ancla de una carrera son estables para siempre; lo que cambia de temporada en temporada es una variación deliberada (una variante entre dos o tres, más un desplazamiento pequeño), nunca un rearranque del sorteo.
-5. **Nada copia una carrera real.** Ni nombres, ni posiciones exactas: bandas anchas, jitter obligatorio y una prueba geométrica que lo vigila.
-6. **Todo lo que salga tiene que poder existir.** Reglas de veto escritas y comprobadas por test, con el caso v40 como primer ejemplo.
-7. **Determinista, puro y con subflujos nominales**, como el motor de etapa (`stage/rng.ts` l. 27-29).
-8. **Contrato intacto hacia abajo**: el resultado es `StageProfile`; ni `sample.ts`, ni `stageKind.ts`, ni `finalKind.ts` cambian de umbrales.
-9. **Se mide antes de sellar.** Ninguna banda nueva nace en rojo; las que se muevan a propósito se remiden y se anotan en `docs/balance.md`.
+1. **Lo real manda y lo generado lo imita.** Una etapa con rasgos en `STAGE_FEATURES` no pasa por el generador (hoy ya es así, `calendar.ts` l. 223). Todo lo demás se genera como variación de un arquetipo cuyas bandas salen del corpus real; donde el corpus no llega, de una tabla manual con la fuente escrita (mapa 07).
+2. **Primero la arquitectura, después el detalle.** El sorteo decide qué motivos tiene la etapa, cuántos, en qué orden y a qué distancia de meta, antes de dibujar una sola rampa. Las rampas siguen siendo `climb`/`descent`/`rolling`.
+3. **El sitio decide qué puede existir.** La región (derivada del país y, cuando se conoce, de la ciudad de `raceRoutes.ts`) filtra los arquetipos permitidos y acota sus parámetros: no hay adoquín en Colombia ni cima a 2.500 m en Bélgica (mapa 07 §3, consecuencias 1-3).
+4. **Identidad estable, variación deliberada.** La arquitectura de una carrera es función del `id` de la carrera; el detalle es función del `id` y de la temporada. La misma carrera el año que viene se parece a sí misma.
+5. **Nada que el motor no vea.** La salida sigue siendo `StageProfile { segments: Segment[], banners }` (`stage/types.ts` l. 32-48). La metadata de origen y arquetipo va en `CalendarStage`, no en el perfil. El generador no emite `rompepiernas` (el muestreo lo colapsa a llano con g = 1,5 e ignora sus tramos, `sample.ts` l. 100-101).
+6. **Se mide la distribución, no la etapa.** El criterio de «mejor» es que ocho rasgos geométricos por familia se parezcan a los del corpus real, y que dos etapas de la misma familia no sean la misma desplazada.
+7. **Determinista, puro, con subflujos nominales.** Cada decisión pide su RNG por nombre (`routeRng(`${seed}::${nombre}`)`), como hace `stage/rng.ts` l. 26-29 con el motor. Añadir una decisión no rebaraja las demás, que es exactamente lo que `profileGen.ts` l. 316-317 hoy no puede prometer.
+8. **Lo sellado no se toca.** El perfil de una etapa corrida vive en `stage_snapshots.input` y el de una carrera en `race_routes` (mapa 03 §8); el generador nuevo alcanza carreras futuras y sube `ENGINE_VERSION`.
+9. **Toda constante con intención, en `constants.ts`.** Los literales de `profileGen.ts` (l. 247-248, 280-281, 359-363, 452-454, 477-478, 496) migran a `ARCHETYPES`/`ROUTE` con comentario.
 
 ---
 
 ## 3. El modelo
 
-### 3.1 Piezas, motivos, arquetipos
+### 3.1 Vocabulario
 
-Tres niveles. Una **pieza** es lo que se dibuja (un puerto, un muro, un sector, una bajada, un tramo de valle). Un **motivo** es una pieza con bandas: dónde cae, cuánto mide, cuánto pica, y si es opcional. Un **arquetipo** es una lista ordenada de motivos más el tipo de final, el kilometraje y desnivel esperados, las regiones y clases donde existe y su procedencia (extraído de datos reales o curado a mano).
+- **Motivo** (`Motif`): la unidad de arquitectura. Un puerto, un muro, un sector, un valle, un circuito. Tiene parámetros con bandas y se traduce a uno o varios `Segment`.
+- **Esqueleto** (`Skeleton`): la lista ordenada de huecos (`Slot`) que una etapa de una familia tiene, cada uno con su motivo y su banda de posición medida **desde la meta**, porque la identidad de una etapa real se ancla en cómo acaba (mapa 07 §4.3).
+- **Arquetipo** (`Archetype`): un esqueleto con bandas numéricas, su procedencia (qué etapas reales lo sostienen), sus regiones permitidas, su clase de etapa esperada y sus vetos propios.
+- **Firma geográfica** (`GeoSignature`): lo que una región permite y prohíbe.
+- **Identidad de carrera** (`RaceIdentity`): las decisiones de arquitectura fijadas para una carrera del calendario, que no cambian con la temporada.
+
+### 3.2 Tipos
 
 ```ts
-// packages/engine/src/routes/archetypes/types.ts
+// packages/engine/src/routes/gen/types.ts
 
-/** Banda cerrada [min, max]; se muestrea uniforme salvo que se diga lo contrario. */
-export type Band = readonly [min: number, max: number]
-
-/** Regiones geográficas con firma propia (§5). No es el país: Francia tiene seis. */
-export type GeoRegion =
+/** Región geográfica con firma propia (§5). `generico` es la red para países sin firma escrita. */
+export type RegionId =
   | 'flandes'
   | 'ardenas'
-  | 'norte-fr'
-  | 'bretana'
-  | 'macizo-central'
-  | 'vosgos-jura'
+  | 'bretana_normandia'
+  | 'macizo_central_jura'
   | 'alpes'
-  | 'pirineos'
   | 'provenza'
-  | 'dolomitas'
-  | 'prealpes-it'
-  | 'italia-centro'
+  | 'pirineos'
   | 'cantabrico'
   | 'meseta'
   | 'andalucia'
-  | 'levante'
+  | 'levante_baleares'
   | 'portugal'
-  | 'mittelgebirge'
-  | 'alpes-este'
+  | 'italia_norte'
+  | 'italia_centro'
+  | 'dolomitas'
+  | 'centroeuropa'
   | 'escandinavia'
-  | 'islas-britanicas'
-  | 'balcanes'
+  | 'islas_britanicas'
+  | 'balcanes_turquia'
   | 'andes'
-  | 'cono-sur'
+  | 'cono_sur'
   | 'norteamerica'
   | 'australia'
-  | 'asia-oriental'
-  | 'golfo'
-  | 'tropico'
+  | 'asia_oriental'
+  | 'golfo_arabia_malasia'
+  | 'generico'
 
+/** Los motivos que sabe dibujar el generador. Cada uno se traduce a segmentos (§3.4). */
 export type MotifKind =
-  | 'puerto' // subida de >= 3 km: segmento `puerto` con tramos
-  | 'muro' // subida de 0,3-3 km al >= 7 %: segmento `puerto` con 1-3 tramos
-  | 'cota' // repecho de 0,4-3 km al 3-7 %: segmento `puerto` corto
-  | 'sector' // pavé o sterrato llano: segmento `paves` con estrellas
-  | 'bajada' // segmento `descenso`
-  | 'valle' // relleno entre dificultades: `llano` con tramos, amplitud por región
-  | 'circuito' // un bucle de `lapKm` repetido `vueltas` veces con sus motivos por vuelta
-  | 'remate' // cota tardía dentro del run-in (San Fermo, Colle Aperto)
+  | 'puerto' // subida de 3 km o más, con forma interna (progresiva, irregular, tendida)
+  | 'cota' // subida de 1,5 a 3 km: cuenta como puerto para el motor, categoría 4/3
+  | 'muro' // 0,3 a 1,5 km a 8-14 %: tipo `puerto`, activa COL (g >= 8) y el final `muro`
+  | 'repecho' // menos de 1,5 km a 3-7 %: tipo `llano` con tramos, NO suma kmSubida
+  | 'sector_paves' // segmento `paves` con estrellas 1-5, pendiente 0
+  | 'sector_tierra' // sterrato: `paves` con estrellas 2-4 (así lo codifica Strade, classicRoutes.ts l. 594)
+  | 'bajada' // `descenso`, pierde una fracción de lo subido
+  | 'valle' // relleno `llano` de amplitud regional
+  | 'circuito' // repite un sub-esqueleto N veces al final de la etapa
 
-/** Forma interna de una subida (SPEC 6.17 exige que la irregular seleccione más que la regular). */
-export type ClimbShape = 'regular' | 'progresivo' | 'irregular' | 'muro-arriba' | 'muro-abajo'
-
-export interface Motif {
-  kind: MotifKind
-  /**
-   * Dónde acaba el motivo (cima, fin del sector, fin del valle). Fracción de la etapa en [0,1],
-   * o km hasta meta si `desdeMeta` (los finales se anclan a la meta, no a la salida).
-   */
-  at: Band
-  desdeMeta?: boolean
-  /** Longitud en km. Para `circuito` es la longitud de UNA vuelta. */
-  km: Band
-  /** Pendiente media en %. Ausente en `sector`, `valle`, `circuito`. */
-  g?: Band
-  shape?: ClimbShape
-  /** Estrellas del pavé (1-5). Solo `sector`. */
-  estrellas?: Band
-  /** Cuántas veces se repite el motivo dentro de su ventana `at` (cadena de muros, ristra de sectores). */
-  n?: Band
-  /** Solo `circuito`: vueltas y motivos por vuelta, con `at` medido desde la línea de cada vuelta. */
-  vueltas?: Band
-  porVuelta?: Motif[]
-  /** Probabilidad de que el motivo aparezca (1 si falta). Los opcionales son lo que varía entre ediciones. */
-  p?: number
-  /** Ancla: se fija en la identidad de la carrera y no cambia entre ediciones (§6). */
-  ancla?: boolean
+/** Banda numérica cerrada, con su procedencia. */
+export interface Band {
+  min: number
+  max: number
+  /** p50 observado, para el arquetipo canónico (§4.7) y para el sorteo triangular. */
+  mode: number
 }
 
-export type ArchetypeFamily =
-  | 'llana'
-  | 'llana-cota'
-  | 'circuito'
-  | 'muro-final'
-  | 'muros'
-  | 'adoquin'
-  | 'ardenas'
-  | 'montana-un-dia'
-  | 'media'
-  | 'media-alto'
-  | 'reina-alto'
-  | 'reina-alto-corto'
-  | 'reina-valle'
-  | 'reina-corta'
-  | 'cri'
-  | 'cri-cuesta'
-  | 'prologo'
+/** Un hueco del esqueleto. La posición es la de la CIMA o el FIN del motivo, en km desde meta. */
+export interface Slot {
+  motif: MotifKind
+  /** km desde meta a los que acaba el motivo; `{min:0,max:0}` es «muere en la línea». */
+  toFinishKm: Band
+  lengthKm: Band
+  /** Pendiente media (%); negativa en `bajada`. Ausente en sectores y valle. */
+  gradient?: Band
+  /** Estrellas de un sector. */
+  stars?: Band
+  /** Forma interna de un puerto: cómo se reparten las rampas. */
+  shape?: 'progresiva' | 'irregular' | 'tendida' | 'pared_final'
+  /** Probabilidad de que el hueco exista en una instancia (1 = obligatorio). */
+  presence: number
+  /** Sub-esqueleto de un `circuito` y cuántas vueltas. */
+  loop?: { slots: Slot[]; laps: Band; lapKm: Band }
+}
 
-export type FinalShape =
-  'sprint' | 'muro' | 'alto' | 'cima_cerca' | 'valle_corto' | 'valle_largo' | 'sector'
+export type ArchFamily =
+  // un día
+  | 'muros_encadenados'
+  | 'adoquin_densidad'
+  | 'sterrato'
+  | 'circuito_cotas'
+  | 'muro_final'
+  | 'montana_un_dia'
+  | 'esprint_costa'
+  | 'criterium'
+  // vuelta por etapas
+  | 'reina_alto_largo'
+  | 'reina_alto_corto'
+  | 'reina_cima_cerca'
+  | 'reina_valle'
+  | 'reina_corta'
+  | 'media_valle'
+  | 'media_alto'
+  | 'media_circuito'
+  | 'media_muro_final'
+  | 'llana_pura'
+  | 'llana_repecho'
+  | 'llana_circuito'
+  | 'cri_llana'
+  | 'cri_ondulada'
+  | 'cronoescalada'
+  | 'prologo'
 
 export interface Archetype {
   id: string
-  family: ArchetypeFamily
-  /** Lo que el calendario etiqueta: `kind` para `StageSpec.kind` y `label` para la web. */
+  family: ArchFamily
+  /** La clase que `stageKindOf` TIENE que devolver para toda instancia (garantía de clase, §4.6). */
   kind: StageKind
-  label: string
-  km: Band
-  /** Desnivel positivo esperado de la etapa entera (puertos más relleno), para el veto y la fidelidad. */
-  dPlus: Band
-  motifs: Motif[]
-  final: FinalShape
-  formats: ('un-dia' | 'etapa' | 'gran-vuelta')[]
-  classes: RaceClass[] | 'todas'
-  regions: GeoRegion[] | 'todas'
-  /** Peso relativo dentro de su familia al sortear. */
-  peso: number
-  /** `extraido`: sale del extractor sobre etapas reales; `curado`: escrito a mano desde el mapa 07. */
-  origen: 'extraido' | 'curado'
-  /** Ids de carrera (y etapa) reales de las que se extrajo, o «mapa-07 §x.y». Solo documentación. */
-  refs: string[]
-}
-```
-
-### 3.2 La petición y el resultado
-
-```ts
-// packages/engine/src/routes/archetypes/generate.ts
-
-export interface StageRequest {
-  raceId: string
-  /** 1-based, como `CalendarStage.index`. */
-  stageIndex: number
-  /** Temporada del mundo. 0 para el calendario canónico de tests. */
-  season: number
-  format: 'un-dia' | 'etapa' | 'gran-vuelta'
-  raceClass: RaceClass
-  country: string
-  /** Regiones declaradas en la fila (`RaceRow.geo`); si faltan, las del país (§5.2). */
-  geo?: GeoRegion[]
-  /** Papel pedido por la composición o terreno de la fila; `auto` deja elegir a la geografía. */
-  role: MixRole | 'prologo' | RouteTerrain | 'auto'
-  /** Km pedidos; si faltan, los da el arquetipo dentro de su banda y de la clase (§8). */
-  km?: number
-  last?: boolean
   timeTrial?: boolean
-}
-
-export interface RouteIdentity {
-  archetypeId: string
-  geo: GeoRegion
-  /** Realización fijada de los motivos ancla: índice en `archetype.motifs`, posición y tamaño. */
-  anclas: { motif: number; at: number; km: number; g?: number }[]
-  /** Cuántas variantes rota la carrera entre temporadas (1..3). */
-  variantes: number
-}
-
-export interface GeneratedStage extends StageSpec {
-  routeSource: 'generado'
-  identity: RouteIdentity
-  /** Qué motivos opcionales entraron y con qué desplazamiento: para la ficha y para los tests. */
-  variante: number
-}
-```
-
-`StageSpec` (`calendar.ts` l. 33-39) gana dos campos opcionales que también se ponen para lo real:
-
-```ts
-export interface StageSpec {
-  kind: StageKind
+  /** Etiqueta del calendario (`TERRAIN_KIND`), para no cambiar la web. */
   label: string
-  profile: StageProfile
-  timeTrial?: boolean
-  /** De dónde sale el recorrido (§10). `real` = rasgos en STAGE_FEATURES; `edicion` = km y ciudades reales, relieve generado. */
-  routeSource?: 'real' | 'edicion' | 'generado'
-  /** Solo si `routeSource !== 'real'`: qué arquetipo y región lo dibujaron. */
-  archetypeId?: string
-  geo?: GeoRegion
+  kmBand: Band
+  /** Desnivel total esperado (puertos + relleno), para el veto de plausibilidad. */
+  dPlusBand: Band
+  /** Cubetas de `finalKindOf` admitidas, con su peso. */
+  finalMix: Partial<Record<FinalKind, number>>
+  skeleton: Slot[]
+  /** Amplitud del relleno (escala de `RELIEF.rollingAmplitude`), si el arquetipo la fija. */
+  fillAmplitude?: number
+  /** Regiones donde puede salir. Vacío = cualquiera cuya firma no lo vete. */
+  regions: RegionId[]
+  /** Clases de carrera (`RaceClass`) donde puede salir y con qué peso. */
+  classWeight: Partial<Record<RaceClass, number>>
+  /** De dónde salen las bandas. `extraido` exige >= 3 fuentes; `manual` cita el mapa o la doc. */
+  provenance:
+    | { kind: 'extraido'; sources: { raceId: string; stageIndex: number }[] }
+    | { kind: 'manual'; cite: string }
 }
-```
-
-### 3.3 Cómo una pieza se convierte en `Segment` y `Ramp`
-
-Cada motivo instanciado produce uno o varios `Segment` (`stage/types.ts` l. 36-41), y solo cuatro tipos de segmento: `puerto`, `descenso`, `paves`, `llano`. **Nunca `rompepiernas`**: el muestreo lo colapsa a llano con `g` fijo de 1,5 % e ignora sus tramos (`stage/sample.ts` l. 100-101, mapa 03 §2), así que hoy es un tipo muerto que solo estorba a la altimetría.
-
-| Motivo                   | Segmentos                                            | Tramos                                                                 | Por qué así                                                                                                                                                               |
-| ------------------------ | ---------------------------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `puerto` (≥ 3 km)        | un `puerto`                                          | `n = max(2, round(km / 2,2))` rampas; la forma la da `shape` (§4.5)    | `climbSize` de `stageKind.ts` (l. 36-42) suma los tramos con `g > 0` del segmento: un puerto es UN segmento para que su longitud se lea entera                            |
-| `muro` (0,3-3 km, ≥ 7 %) | un `puerto`                                          | 1-3 rampas, la más dura donde diga `shape` (`muro-arriba` por defecto) | `finish.ts` decide muro por bloque (`g >= 8`, mapa 03 §2); `auto()` le pone pancarta `cima` (l. 93-102) y así cuenta como última cota aunque mida menos de `CLIMB_MIN_KM` |
-| `cota` (0,4-3 km, 3-7 %) | un `puerto`                                          | 1-2 rampas                                                             | mide ≥ 0,4 km al ≥ 3 % para que `deriveFinishTerrain` la vea (mapa 03 §10.4) y cuenta en `kmSubida`                                                                       |
-| `sector`                 | un `paves` con `estrellas`                           | sin tramos si es llano; con tramos si la región es ondulada            | `sample.ts` l. 105 solo cobra estrellas en `paves`                                                                                                                        |
-| `bajada`                 | un `descenso`                                        | `round(km / 3)` rampas a `−max(2, g ± 1,5)`                            | igual que `descent` hoy (l. 85-93); pendiente topada a −12 % como `featureProfile.ts` l. 142                                                                              |
-| `valle`                  | 1..k `llano`                                         | rampas de `1,4 + U·2,2` km a `±(0,4 + U·2,4) · amplitud`               | es `rollingFill` (`featureProfile.ts` l. 158-176) con la amplitud de la REGIÓN, no del terreno                                                                            |
-| `circuito`               | la concatenación de sus `porVuelta`, `vueltas` veces | los de cada motivo                                                     | el motor no sabe qué es un circuito; le basta el patrón periódico                                                                                                         |
-| `remate`                 | un `puerto` corto                                    | 1-2 rampas                                                             | es una `cota` con `desdeMeta`                                                                                                                                             |
-
-Los banners los sigue poniendo `auto()`: una `cima` al final de cada `puerto`. Un muro de 400 m a 300 m de meta produce una pancarta en `Math.round(cum)`; `finalKindOf` mide desde ella y con el corte 0,5 (`FINAL_KIND_CUTS.alto`) lo lee como `alto`, que es lo que hoy hace con cualquier final en cota (mapa 01 §5.2).
-
-### 3.4 La firma geográfica
-
-```ts
-// packages/engine/src/routes/archetypes/geo.ts
 
 export interface GeoSignature {
-  region: GeoRegion
-  /** Longitud y pendiente de un puerto normal aquí. Recorta las bandas de los motivos `puerto`. */
-  puertoKm: Band
-  puertoG: Band
-  /** Muros: si no existen aquí, `null`. */
-  muroKm: Band | null
-  muroG: Band | null
-  /** Altitud máxima verosímil de una cima. Veto de plausibilidad (§9), no física. */
-  cimaMaxM: number
-  adoquin: 'nunca' | 'urbano' | 'masivo'
-  sterrato: 'nunca' | 'raro' | 'masivo'
-  /** Amplitud del valle (multiplica `RELIEF.rollingAmplitude`, `constants.ts` l. 1127-1134). */
-  valle: number
-  /** Forma típica de las subidas: qué `shape` sale si el motivo no lo fija. */
-  shape: ClimbShape
-  /** Familias que NO existen en esta región. Veto duro. */
-  veta: ArchetypeFamily[]
-  /** Peso del viento en llano, 0..1. Hoy solo documenta; ver §5.4. */
-  viento: number
+  region: RegionId
+  /** Cota más larga que puede existir (km). Flandes 3, Ardenas 5, Alpes 30. */
+  maxClimbKm: number
+  /** Metros que puede sumar un solo puerto (proxy de altitud de cima: sin cima > 1.800 m no hay 1.500 m seguidos). */
+  maxClimbGainM: number
+  climbGradient: Band
+  cobbles: 'no' | 'urbano' | 'sectores'
+  sterrato: boolean
+  /** Fracción de llano expuesto: sube el peso de arquetipos llanos y baja la amplitud del relleno. */
+  wind: 'poco' | 'moderado' | 'fuerte'
+  /** Altitud de base: en los Andes no hay etapa a nivel del mar. Solo veta arquetipos, no entra en la física. */
+  baseAltitudeM: Band
+  fillAmplitude: number
+  /** Familias que la región no admite aunque el terreno de la fila lo pida. */
+  forbids: ArchFamily[]
+}
+
+/** Lo que el generador necesita saber de la etapa que va a dibujar. */
+export interface GenInput {
+  raceId: string
+  stageIndex: number
+  nStages: number
+  raceClass: RaceClass
+  format: RaceFormat
+  country: string
+  /** Región resuelta (§5.2). */
+  region: RegionId
+  /** Papel dentro de la vuelta, o terreno de la fila si es un día. */
+  role: MixRole | RouteTerrain
+  km: number
+  /** Temporada (0 = identidad pura; ver §6). */
+  season: number
+}
+
+export interface RouteMeta {
+  source: 'real' | 'mixto' | 'generado'
+  archetypeId?: string
+  region: RegionId
+  /** Los motivos instanciados, con su km de fin: es lo que la ficha puede enseñar y el banco medir. */
+  motifs?: { motif: MotifKind; endKm: number; lengthKm: number; gradient?: number }[]
+}
+
+export interface GeneratedStage {
+  profile: StageProfile
+  meta: RouteMeta
 }
 ```
 
-### 3.5 El esqueleto de una vuelta
+`CalendarStage` (`calendar.ts` l. 42-46) gana un campo `route: RouteMeta`. `StageProfile` no cambia: el motor sigue viendo solo `segments` y `banners` (mapa 03 §1).
+
+### 3.3 Cómo encaja con `Segment` y `Ramp`
+
+| Motivo                           | `Segment.tipo` | `tramos`                                                                     | Qué lee el motor (mapa 03 §3-4)                                                                                          |
+| -------------------------------- | -------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `puerto`                         | `puerto`       | `climb(rand, len, g, shape)`: 2 a `round(len/2,2)` rampas, forma por `shape` | `subida`: suma a `kmSubida`, deriva, `climbRaceKmToGo`, categoría por `deriveClimbCategory`                              |
+| `cota`                           | `puerto`       | idem, mínimo 2 rampas                                                        | igual; cat4/cat3                                                                                                         |
+| `muro`                           | `puerto`       | 1-3 rampas con g ≥ 8 en al menos una                                         | `subida` con COL (`riderPerfil`, g ≥ 8); si muere en meta y mide ≤ 1 km, `finishType` da `muro` (`finish.ts` l. 183-188) |
+| `repecho`                        | `llano`        | 1-2 rampas a 3-7 %                                                           | pendiente sí, selección no (`selectionFactor('llano')` = 0); no suma `kmSubida`                                          |
+| `sector_paves` / `sector_tierra` | `paves`        | ninguno (g = 0)                                                              | `estrellas` en coste y selección; percances ×20                                                                          |
+| `bajada`                         | `descenso`     | `descent(rand, len, g)`                                                      | selecciona solo si g ≤ −4 y en su primer km, o entera a ≤ 25 km de meta                                                  |
+| `valle`                          | `llano`        | `rolling` con amplitud regional, sin `rompepiernas`                          | único terreno del abanico                                                                                                |
+| `circuito`                       | (compuesto)    | repite los segmentos del sub-esqueleto N veces                               | nada especial: el motor ve N pasos por la misma cota                                                                     |
+
+Reglas de tipado que resuelven R28.1(c) (mapa 05 §9): toda subida de ≥ 1,5 km a ≥ 3 % se emite como `puerto`; de ≥ 0,3 km con algún tramo ≥ 8 % y ≤ 1,5 km, como `puerto` (muro); lo demás que sube, como `llano` con tramos. Y el relleno tiene la amplitud topada a 2,4 % de pendiente máxima para que **nunca** cumpla la regla del puerto por accidente (hoy `rolling` en `bumpy` llega a 3,2 %, l. 105).
+
+---
+
+## 4. El algoritmo
+
+Todo vive en `packages/engine/src/routes/gen/` y es puro. Un solo punto de entrada:
 
 ```ts
-// packages/engine/src/routes/archetypes/tours.ts
+export function generateStage(input: GenInput): GeneratedStage
+```
 
-export type SlotRole = MixRole | 'prologo' | 'muros' | 'circuito-final'
+### 4.1 Subflujos del RNG
 
-export interface TourSlot {
-  role: SlotRole
-  /** Familias admitidas para dibujar esta etapa; si falta, la familia por defecto del papel. */
-  families?: ArchetypeFamily[]
-  /** Km de la etapa; si falta, la banda de la clase (§8). */
-  km?: Band
-  p?: number
-}
-
-export interface TourSkeleton {
-  id: string
-  n: Band
-  formats: ('etapa' | 'gran-vuelta')[]
-  classes: RaceClass[] | 'todas'
-  /** Terreno dominante de la fila al que sirve. */
-  terrains: MixTerrain[]
-  slots: TourSlot[]
-  /** Descansos, solo gran vuelta: `[9, 15]` como `editions.ts` l. 27. */
-  restAfter?: number[]
-  peso: number
-  origen: 'extraido' | 'curado'
-  refs: string[]
+```ts
+// routes/gen/rng.ts
+export function genRng(seed: string): (subflow: string) => () => number {
+  return (subflow) => routeRng(`${seed}::${subflow}`) // mulberry32 sobre FNV-1a, profileGen.ts l. 15-44
 }
 ```
 
-### 3.6 Dónde vive cada cosa
+Dos semillas por etapa:
 
+- **Semilla de identidad** `idSeed = `${raceId}|${stageIndex}`` (para vueltas) o `raceId` (un día). Para las etapas de edición sin rasgos se conserva la de hoy, `${from}|${to}|${km}` (`calendar.ts` l. 221), concatenada con el `raceId` para que dos carreras con la misma salida y meta no dibujen lo mismo (defecto anotado en mapa 02 §7).
+- **Semilla de edición** `edSeed = `${idSeed}|s${season}``.
+
+| Decisión            | Subflujo   | Semilla   | Qué sortea                                                                             |
+| ------------------- | ---------- | --------- | -------------------------------------------------------------------------------------- |
+| Arquetipo           | `arch`     | identidad | uno entre los admitidos, con peso                                                      |
+| Firma de la carrera | `firma`    | identidad | presencia de cada hueco opcional, número de vueltas de circuito, cubeta de `finalKind` |
+| Posiciones          | `slots`    | edición   | `toFinishKm` de cada hueco dentro de su banda                                          |
+| Parámetros          | `params`   | edición   | longitud, pendiente, estrellas, forma                                                  |
+| Rampas              | `ramps`    | edición   | el ruido de `climb`/`descent`                                                          |
+| Relleno             | `fill`     | edición   | `rolling` entre motivos                                                                |
+| Reparación          | `repair:k` | edición   | reintento k-ésimo si un veto salta                                                     |
+
+Con `season = 0` la semilla de edición es `idSeed|s0`: determinista y distinta de la identidad, pero fija. Nada del motor entra aquí (el perfil no entra en `stageSeed`, `stage/rng.ts` l. 22-24).
+
+### 4.2 Paso 1: resolver el contexto
+
+`region = regionOf(raceId, country)` (§5.2). `family` se deriva del papel: `reina` → una de las cinco `reina_*` según el peso de la firma regional y del formato; `media-alto` → `media_alto` o `media_muro_final`; `media` → `media_valle`, `media_circuito`; `llana` → `llana_*`; `cri` → `cri_llana`, `cri_ondulada`, `prologo` (si `km ≤ 8`), `cronoescalada` (solo si la firma tiene `maxClimbKm ≥ 8` y con peso bajo); un día → por `RouteTerrain` de la fila: `cobbles` → `adoquin_densidad` o `muros_encadenados` (si la región es `flandes`), `classic` → `muros_encadenados`, `circuito_cotas`, `muro_final`; `mountain` → `montana_un_dia`; `hilly` → `circuito_cotas`, `muros_encadenados`, `media_valle`; `flat` → `esprint_costa`, `llana_circuito`.
+
+### 4.3 Paso 2: elegir el arquetipo
+
+```ts
+const candidatos = ARCHETYPES.filter(
+  (a) =>
+    familiesFor(input).includes(a.family) &&
+    (a.regions.length === 0 || a.regions.includes(input.region)) &&
+    !SIGNATURES[input.region].forbids.includes(a.family) &&
+    a.classWeight[input.raceClass] !== undefined &&
+    input.km >= a.kmBand.min * 0.85 &&
+    input.km <= a.kmBand.max * 1.15,
+)
+const arch = pickWeighted(candidatos, (a) => a.classWeight[input.raceClass]!, rng('arch')())
 ```
-packages/engine/src/routes/
-  profileGen.ts            → queda con las primitivas (rng, split, normalize, garantizaPuerto) y con los ocho
-                              constructores hasta el paso 7 del plan, en que se borran
-  archetypes/
-    types.ts               → §3.1-3.2
-    geo.ts                 → GeoRegion, GeoSignature, GEO_SIGNATURES, COUNTRY_GEO (§5)
-    pieces.ts              → puerto(), muro(), cota(), sector(), bajada(), valle(), circuito() → Segment[]
-    catalog.ts             → ARCHETYPES: los extraídos (regenerados por script) y los curados (a mano)
-    catalog.extracted.ts   → SALIDA del extractor, «NO editar a mano», como editions.ts l. 8
-    tours.ts               → TOUR_SKELETONS y composeTour()
-    identity.ts            → routeIdentity(), variantOf() (§6)
-    generate.ts            → generateStage(req): GeneratedStage (§4)
-    vetoes.ts              → las reglas de §9, cada una como función pura con nombre
-    reference.ts           → REFERENCE_STATS: cuantiles por familia de lo real (extractor) y del mapa 07 (curado)
-scripts/
-  extraer-arquetipos.mjs   → lee STAGE_FEATURES/CLASSIC_FEATURES/RACE_EDITIONS, escribe catalog.extracted.ts y reference.ts
-```
+
+Si `candidatos` queda vacío (una región muy restrictiva con un terreno de fila absurdo), se cae al arquetipo `generico` de la familia, y `RouteMeta` lo anota (`archetypeId: 'fallback:<family>'`) para que un test lo cuente y el calendario lo corrija a mano. Preferencia dentro de los candidatos: los arquetipos `extraido` con fuentes de la misma región pesan ×2 sobre los de otras regiones y ×3 sobre los `manual`.
+
+### 4.4 Paso 3: instanciar el esqueleto (la arquitectura)
+
+Con `rng('firma')` se decide qué huecos opcionales existen (`presence`), cuántas vueltas da un circuito y en qué cubeta de `finalMix` cae la etapa. Con `rng('slots')` se sortea la posición de cada hueco dentro de su banda, con sorteo triangular centrado en `mode`. Después se ordenan por `toFinishKm` decreciente y se aplican tres reglas de separación:
+
+1. Entre el fin de un motivo y el inicio del siguiente hay al menos `ARCH.minGapKm` (0,8 km) salvo dentro de un `puerto` seguido de `bajada`, que van pegados.
+2. Un `puerto` de más de `ARCH.linkedClimbMaxGapKm` (3 km) de hueco con el siguiente lleva `bajada` obligatoria (la regla del 85 % de `featureProfile.ts` l. 391-400, topada a −12 %).
+3. Si la suma de longitudes supera `km · ARCH.maxDifficultyShare` (0,75), se recortan proporcionalmente las longitudes de los motivos no obligatorios y, si no basta, se elimina el hueco opcional más lejano de meta.
+
+Con `rng('params')` se sortean longitud, pendiente, estrellas y forma dentro de las bandas, **topadas por la firma regional** (`min(slot.lengthKm.max, sig.maxClimbKm)`, pendiente dentro de `sig.climbGradient`).
+
+### 4.5 Paso 4: dibujar (el detalle)
+
+Cada motivo se traduce con las primitivas de `profileGen.ts`, que se conservan y se mueven a `routes/gen/draw.ts`: `climb` (l. 72-82) gana un parámetro `shape` (`progresiva`: la de hoy, más dura arriba; `irregular`: rampas con ruido ±2,5 y una al menos ≥ g+3, la del Cantábrico; `tendida`: ruido ±0,6; `pared_final`: último cuarto a g+4, los últimos 4 km al 12 % de Fedaia o Tre Cime), `descent` (l. 85-93) y `rolling` (l. 100-122) sin la rama `rompepiernas` y con amplitud `sig.fillAmplitude · arch.fillAmplitude`. Un `circuito` dibuja su sub-esqueleto `laps` veces con las **mismas** longitudes y pendientes (es el mismo asfalto) y distinto relleno.
+
+Luego `normalize(segments, km)` (l. 141-177, sin cambios) y `garantizaClase` (§4.6).
+
+### 4.6 Paso 5: garantías, vetos y reparación
+
+`garantizaClase(segments, arch)` generaliza `garantizaPuerto` (l. 192-233): comprueba `stageKindOf(auto(segments), arch.timeTrial).kind === arch.kind` y `finalKindOf ∈ keys(arch.finalMix)`, y si no, mueve al puerto que decide (el más largo para `reina`, el final para `media_alto`) al borde con la holgura `ARCH.classMarginKm` (0,3 km, que cubre el borde sin holgura de 8,5 medido en mapa 01 §5.1), compensando en el llano más largo. Después corren los vetos de §9. Si alguno salta, se repite el paso 3 con `rng('repair:k')`, k = 1..`ARCH.maxRepairs` (4). Si los cuatro reintentos fallan, se instancia el **arquetipo canónico**: cada banda en su `mode`, sin sorteo, que por construcción pasa todos los vetos (test de §12 paso 5). Es determinista y siempre termina.
+
+### 4.7 Paso 6: pancartas y salida
+
+`auto(segments)` (`calendar.ts` l. 93-102) sigue poniendo una `cima` al final de cada `puerto`, porque `lastClimbKm` (`finalKind.ts` l. 46-48) mira primero las pancartas. Las metas volantes generadas son decisión del dueño (§14, D1): si se aprueban, cada arquetipo `extraido` lleva la banda de posiciones de los sprints de sus fuentes (101 de 177 etapas reales los publican) y se emiten con `rng('firma')`. `RouteMeta.motifs` recoge la lista instanciada con km de fin, longitud y pendiente: es lo que el banco de §11 mide sin simular.
+
+### 4.8 Coste
+
+Una Ronde generada tiene ~16 muros, ~6 sectores y ~70 tramos de relleno: 90-120 segmentos. `sampleProfile` es O(bloques × segmentos) una vez por etapa (mapa 03 §2), y con 2.700 bloques y 120 segmentos son 324.000 comparaciones, despreciable frente al bucle de simulación (mapa 03 §7). La generación del calendario entero (1.418 etapas) sigue en el arranque del módulo, como hoy.
 
 ---
 
-## 4. El algoritmo, paso a paso
+## 5. La geografía
 
-### 4.1 Semillas y subflujos
+### 5.1 La firma regional
 
-Toda la generación de una etapa sale de UNA semilla de identidad y UNA de temporada, con subflujos nominales como hace `stageRng` (`stage/rng.ts` l. 27-29):
+Los valores salen del mapa 07 §3 (25 firmas) fundidas en 25 regiones más `generico`. Tabla resumida; la completa va en `constants.ts::GEO_SIGNATURES` con la fila del mapa citada en el comentario.
 
-```
-idSeed   = `${raceId}|e${stageIndex}`                      // no lleva temporada: es la identidad
-varSeed  = `${raceId}|e${stageIndex}|t${season}`            // lleva temporada: es la variación
-rng(seed)(subflow) = routeRng(`${seed}::${subflow}`)
-```
+| Región               | `maxClimbKm`              | `maxClimbGainM` | `climbGradient`   | `cobbles` | `sterrato`   | `wind`   | `fillAmplitude` | `forbids`                                                              |
+| -------------------- | ------------------------- | --------------- | ----------------- | --------- | ------------ | -------- | --------------- | ---------------------------------------------------------------------- |
+| flandes              | 2,5                       | 150             | 4-13              | sectores  | no           | fuerte   | 0,7             | todas las `reina_*`, `montana_un_dia`, `cronoescalada`                 |
+| ardenas              | 4,5                       | 350             | 5-12              | urbano    | no           | moderado | 1,0             | `reina_alto_largo`, `adoquin_densidad`                                 |
+| bretana_normandia    | 2,5                       | 200             | 5-8               | urbano    | sí (ribinoù) | fuerte   | 0,8             | `reina_*`, `sterrato` fuera de `tro_bro`                               |
+| macizo_central_jura  | 17                        | 1.100           | 5-9               | no        | no           | moderado | 1,1             | `adoquin_densidad`, `muros_encadenados`                                |
+| alpes                | 30                        | 1.800           | 5-9               | no        | no           | poco     | 1,15            | `adoquin_densidad`, `muros_encadenados`, `sterrato`                    |
+| pirineos             | 17                        | 1.400           | 6-8,5             | no        | no           | poco     | 1,15            | idem                                                                   |
+| dolomitas            | 14                        | 1.300           | 7-12              | no        | no           | poco     | 1,15            | idem                                                                   |
+| cantabrico           | 15                        | 1.200           | 7-10 (rampas 20+) | no        | no           | moderado | 1,0             | `adoquin_densidad`, `llana_pura` con más de 40 km seguidos de llano    |
+| meseta               | 10                        | 700             | 4-6               | no        | no           | fuerte   | 0,55            | `muros_encadenados`, `adoquin_densidad`                                |
+| andalucia            | 20                        | 1.500           | 6-8               | no        | no           | moderado | 0,85            | `adoquin_densidad`, `muros_encadenados`                                |
+| levante_baleares     | 22                        | 1.200           | 5-12              | no        | no           | moderado | 0,85            | idem                                                                   |
+| portugal             | 30                        | 1.400           | 5-7               | urbano    | no           | fuerte   | 0,85            | `adoquin_densidad`                                                     |
+| italia_norte         | 13                        | 900             | 6-8 (muros 15+)   | no        | no           | poco     | 1,0             | `adoquin_densidad`, `reina_alto_largo`                                 |
+| italia_centro        | 8                         | 600             | 6-12              | no        | sí           | moderado | 1,0             | `adoquin_densidad`, `reina_alto_largo`                                 |
+| centroeuropa         | 12                        | 1.000           | 4-8               | urbano    | no           | moderado | 0,85            | `adoquin_densidad`, `sterrato`                                         |
+| escandinavia         | 10                        | 800             | 5-9               | urbano    | no           | fuerte   | 0,6             | `reina_alto_largo`, `sterrato`                                         |
+| islas_britanicas     | 9                         | 500             | 6-10 (rampas 25)  | urbano    | no           | fuerte   | 0,85            | `reina_alto_largo`, `sterrato`                                         |
+| balcanes_turquia     | 23                        | 1.500           | 5-7               | no        | no           | fuerte   | 0,85            | `adoquin_densidad`, `muros_encadenados`                                |
+| andes                | 80                        | 2.500           | 4-7               | no        | no           | poco     | 1,15            | `adoquin_densidad`, `muros_encadenados`, `esprint_costa`, `llana_pura` |
+| cono_sur             | 30                        | 1.500           | 5-6               | no        | no           | fuerte   | 0,55            | `adoquin_densidad`, `muros_encadenados`                                |
+| norteamerica         | 30                        | 1.800           | 4-9               | no        | no           | fuerte   | 0,85            | `adoquin_densidad`, `sterrato`                                         |
+| australia            | 3 (30 en Falls Creek, .1) | 900             | 7-11              | no        | no           | fuerte   | 0,7             | `reina_alto_largo` salvo peso 0,05, `adoquin_densidad`                 |
+| asia_oriental        | 20                        | 1.200           | 3-10              | no        | no           | poco     | 0,7             | `adoquin_densidad`, `muros_encadenados`                                |
+| golfo_arabia_malasia | 20                        | 1.300           | 5-9               | no        | no           | fuerte   | 0,45            | `adoquin_densidad`, `muros_encadenados`, `media_circuito`              |
+| generico             | 12                        | 900             | 4-8               | no        | no           | moderado | 0,85            | `adoquin_densidad`, `sterrato`                                         |
 
-Para las etapas de edición (`stagesFromEdition`, `calendar.ts` l. 216-231) la semilla de hoy es `${from}|${to}|${km}` (l. 224); se conserva como `idSeed` de esas etapas (dos etapas de carreras distintas con la misma salida, meta y km seguirían dibujándose igual, lo que hoy ya pasa y no ha molestado) y se le añade `|t${season}` para la variación.
-
-| Decisión                               | Subflujo     | Semilla | Por qué ahí                         |
-| -------------------------------------- | ------------ | ------- | ----------------------------------- |
-| región geográfica de la etapa          | `geo`        | idSeed  | una carrera no cambia de cordillera |
-| arquetipo                              | `arquetipo`  | idSeed  | la arquitectura es la identidad     |
-| realización de los motivos ancla       | `anclas`     | idSeed  | lo que se reconoce de un año a otro |
-| cuántas variantes rota (1..3)          | `variantes`  | idSeed  |                                     |
-| qué motivos opcionales entran          | `opcionales` | varSeed | es la variación deliberada          |
-| posiciones y tamaños de los no ancla   | `motivos`    | varSeed |                                     |
-| desplazamiento de las anclas (±jitter) | `deriva`     | varSeed |                                     |
-| rampas de cada subida                  | `rampas`     | varSeed |                                     |
-| relleno de los valles                  | `relleno`    | varSeed |                                     |
-| reintentos tras un veto                | `reintento`  | varSeed | contador por intento, ver §4.7      |
-
-Cada subflujo es un RNG independiente, así que añadir una tirada en `relleno` no mueve las rampas ni el arquetipo (la lección del comentario de `profileGen.ts` l. 316-317: «una tirada más y todos los perfiles de montaña cambian»).
-
-### 4.2 Paso 1: región
-
-`geoOf(req, rng('geo'))`: si `req.geo` trae regiones, se sortea una con pesos iguales; si no, `COUNTRY_GEO[country]` da la lista con pesos del país (§5.2); si el país no está en la tabla, la región es `'tropico'`, `'norteamerica'`, `'asia-oriental'`, `'cono-sur'` o `'balcanes'` según su continente (`packages/shared/src/regions.ts` l. 7-12) con la firma más conservadora de cada continente. Sin excepciones: toda etapa tiene región.
-
-### 4.3 Paso 2: familia y arquetipo
-
-`familyFor(role, format, signature)`: el papel pedido se traduce a familias admitidas:
-
-| `role`              | Familias                                                                       | Nota                                                                                |
-| ------------------- | ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------- |
-| `llana` / `flat`    | `llana`, `llana-cota`                                                          | `llana-cota` (Sanremo, Copenhague: una cota testimonial lejos de meta) con peso 0,3 |
-| `media` / `hilly`   | `media`, `muros` (solo si `signature.muroKm`), `circuito` (un día)             |                                                                                     |
-| `media-alto`        | `media-alto`, `muro-final`                                                     | `muro-final` solo si `signature.muroKm`                                             |
-| `reina` (etapa)     | `reina-alto`, `reina-alto-corto`, `reina-valle`, `reina-corta`                 | reparto por `ROUTE.queenFinalMix` reinterpretado (§8)                               |
-| `mountain` (un día) | `montana-un-dia`; `reina-alto` solo como rareza (§9 veto 1)                    | el caso v40                                                                         |
-| `classic`           | `muros`, `ardenas`, `circuito`, `muro-final`                                   | según región: Flandes → `muros`; Ardenas → `ardenas`; resto → `circuito`            |
-| `cobbles`           | `adoquin` (solo si `signature.adoquin !== 'nunca'` o `sterrato !== 'nunca'`)   | si la región lo veta, cae a `muros` con log de veto                                 |
-| `cri` / `itt`       | `cri`, `cri-cuesta` (p 0,15 si la región tiene puertos), `prologo` (si km ≤ 8) |                                                                                     |
-| `auto`              | todas las que la firma admita                                                  | los campeonatos nacionales y las filas sin terreno                                  |
-
-Después `pickArchetype(families, req, signature, rng('arquetipo'))` filtra `ARCHETYPES` por familia, formato, clase y región (`regions === 'todas'` o contiene la región) y sortea por `peso`. Si el filtro se queda vacío (una `.2` de `cri-cuesta` en `golfo`), se relaja en este orden: clase → región → familia siguiente de la lista. Nunca devuelve nada: el último recurso es `llana` con `regions: 'todas'`, que existe por construcción.
-
-### 4.4 Paso 3: kilometraje
-
-`kmOf(req, archetype, signature)`: si `req.km` viene (una fila con `km`, una edición, o la composición ya lo decidió), se usa tal cual y se cuadra al décimo con `normalize`. Si no, uniforme en `archetype.km ∩ ROUTE.kmByClass[raceClass][format]` (§8); si la intersección es vacía, manda la clase (una `.2` no corre 240 km aunque el arquetipo de Sanremo lo pida).
-
-### 4.5 Paso 4: instanciar los motivos
-
-Para cada motivo `m` del arquetipo, en orden:
-
-1. **¿Entra?** Si `m.p < 1`: entra si el arquetipo lo marca en la variante activa (§6) y, si no está en ninguna variante, con `rng('opcionales') < m.p`.
-2. **Cuántos**: `n = round(U(m.n))` si hay `n`, si no 1.
-3. **Dónde**: para cada repetición, `at = U(m.at)` en fracción de etapa (o km desde meta si `desdeMeta`), con `rng('motivos')`; si el motivo es ancla, `at` viene de la identidad y solo se desplaza `±ARCHETYPE.anchorJitter` con `rng('deriva')`. Las `n` repeticiones se ordenan y se separan al menos `ARCHETYPE.minGapKm` (por defecto 1,5 km, en `muros` 0,8); si no caben, se reduce `n`.
-4. **Cuánto**: `km = U(m.km)` y `g = U(m.g)`, recortados a la firma: para `puerto`, `km` se recorta a `signature.puertoKm` y `g` a `signature.puertoG`; para `muro`, a `muroKm` y `muroG` (si son `null`, el motivo se convierte en `cota`); para `sector`, si `adoquin === 'nunca'` y `sterrato === 'nunca'`, el motivo se descarta.
-5. **Forma**: `shape = m.shape ?? signature.shape`. Las rampas salen de `rampsFor(km, g, shape, rng('rampas'))`:
-   - `regular`: `n` rampas a `g ± 0,6`;
-   - `progresivo`: lo que hoy hace `climb` (l. 72-82), `prog · 1,6 ± 1,2`;
-   - `irregular`: alterna rampas a `g − 2,5` y `g + 3`, con una al `g + 5` en posición sorteada (Angliru, Machucos);
-   - `muro-arriba` / `muro-abajo`: 2-3 rampas, la más dura (`g + 4`) en la cima o en el pie.
-     Todas cuadran la media ponderada a `g` exacto como `climbRamps` (`featureProfile.ts` l. 129-132), así el desnivel del motivo es `km · g · 10` sin deriva.
-6. **Circuito**: `vueltas = round(U(m.vueltas))`, `lapKm = U(m.km)`; los `porVuelta` se instancian una vez (son las mismas cotas cada vuelta, con `at` medido desde la línea) y se repiten `vueltas` veces al final de la etapa; la parte lineal previa es un `valle`.
-
-Resultado: una lista de **dificultades colocadas** `{ kind, fin: km absoluto, km, g, shape, estrellas }` ordenada por `fin`. Una cota real sale entera de aquí; ningún paso posterior le cambia longitud ni pendiente, solo `normalize` la escala con toda la etapa (factor ≈ 1 porque `kmOf` ya cuadró).
-
-### 4.6 Paso 5: tender la carretera
-
-`layout(dificultades, km, signature, archetype.final, rng('relleno'))` recorre las dificultades y rellena:
-
-- Entre dos dificultades: si la anterior era `puerto` o `muro`, primero una `bajada` que pierde el 85 % de lo subido con pendiente topada a −12 % (la regla de `featureProfile.ts` l. 391-435 y l. 142, ya calibrada contra Lombardía) y como mucho el 65 % del hueco; el resto, un `valle` con amplitud `RELIEF.rollingAmplitude[terreno] · signature.valle`. Dos puertos encadenados (hueco < 1,5 km) no llevan valle: solo la bajada corta o nada (Stelvio-Gavia, Crocetta-Zambla).
-- Tras la última dificultad, según `archetype.final`: `alto` nada (el último segmento es el `puerto`); `muro` nada (el muro es la meta); `cima_cerca` bajada de 1,5-5 km; `valle_corto` bajada más valle hasta 6-20; `valle_largo` 22-45; `sprint` valle hasta meta; `sector` el sector es lo último y detrás quedan ≤ 1,5 km de `llano`. Las bandas van con la holgura que el mapa 01 §2.5 echa en falta: `cima_cerca` 1,5-4,6, `valle_corto` 6-19,5, `valle_largo` 21-45, para que un estirón de `normalize` no cruce un corte de `FINAL_KIND_CUTS`.
-- Antes de la primera dificultad: `valle`.
-
-Después `normalize(segs, km)` (l. 141-177, sin cambios) y, si el arquetipo es de familia `reina-*`, `garantizaPuerto(…, 8.6, null)`; si es `media-alto`, `garantizaPuerto(…, null, 8.0)` (8,0 y no 8,4: el mapa 01 §5.1 midió 2 de 1.500 cruces con 8,4 porque `climbSize` suma tramos redondeados y `garantizaPuerto` mira `segment.km`).
-
-### 4.7 Paso 6: vetos y reintento
-
-`vetoes(profile, req, archetype, signature)` devuelve la lista de reglas de §9 que fallan. Si está vacía, fin. Si no, se reintenta con los mismos subflujos de identidad y con `rng('reintento')` mezclado en `motivos`, `rampas` y `relleno` (`routeRng(`${varSeed}::motivos::${intento}`)`), hasta `ARCHETYPE.maxAttempts` (6). Si sigue fallando, se pasa al siguiente arquetipo de la lista filtrada (§4.3) y se anota en `GeneratedStage.identity` el `archetypeId` final. Nunca se devuelve un perfil vetado: el último recurso (`llana`, `regions: 'todas'`) no tiene vetos que puedan fallar salvo los estructurales (km > 0, banners en rango), que se cumplen por construcción.
-
-Coste: cada intento es O(motivos + segmentos); con 1.418 etapas al cargar el módulo y una media medida de intentos que el paso 4 del plan tiene que dejar por debajo de 1,3, el arranque no se nota. El coste de simulación no cambia: `sampleProfile` produce los mismos `round(km / 0,1)` bloques (`sample.ts` l. 70), y el número de segmentos solo encarece el muestreo, que es O(n · segmentos) una vez por etapa (mapa 03 §7). Se pone un tope de seguridad, `ARCHETYPE.maxSegments` = 120, como veto estructural (Roubaix real tiene 31 sectores y unos 70 segmentos tras `applyCobbles`).
-
-### 4.8 Paso 7: etiquetar
-
-`kind` y `label` NO se copian del arquetipo: se derivan con `stageKindOf(profile, timeTrial)` (`stageKind.ts` l. 71) y se comprueba que coinciden con lo que el arquetipo prometió; si no, es un veto (§9, regla 12) y se reintenta. Así el calendario y `apps/api/src/stageHistory.ts` dicen lo mismo de la misma etapa por construcción, y la cifra literal de `stageHistory.test.ts` l. 199 (49 etapas cuya etiqueta cambia) baja a las que cambien SOLO por `SUMMIT_RUN_IN_KM` (l. 73): un final `cima_cerca` de ≤ 5 km sigue etiquetado «Summit finish» por el etiquetador y «Mountains» por el calendario, y ésa es la única fuente de diferencia que queda. Es lo que R28.1(b) pedía (`docs/tactica.md`, según mapa 05 §9) y no se hizo.
-
----
-
-## 5. La geografía: cómo entra el país
-
-### 5.1 Las firmas
-
-`GEO_SIGNATURES: Record<GeoRegion, GeoSignature>` se escribe a mano desde el mapa 07 §3 (25 filas) y se marca `curado`: no hay dato del repositorio que la sustituya y el mapa 07 lo dice («los números son orientativos y se dan siempre como rangos»). Extracto, con los valores propuestos:
-
-| Región           | `puertoKm` | `puertoG` | `muroKm` × `muroG`   | `cimaMaxM` | adoquín | sterrato       | `valle` | `shape`     | `veta`                                                            |
-| ---------------- | ---------- | --------- | -------------------- | ---------- | ------- | -------------- | ------- | ----------- | ----------------------------------------------------------------- |
-| flandes          | [1, 2,5]   | [3, 6]    | [0,3; 2,2] × [5, 13] | 350        | masivo  | raro           | 0,7     | muro-abajo  | reina-*, montana-un-dia, media-alto, cri-cuesta                   |
-| ardenas          | [1, 4,5]   | [5, 9]    | [0,8; 2] × [8, 12]   | 700        | urbano  | nunca          | 1,0     | progresivo  | reina-*, adoquin                                                  |
-| norte-fr         | [0,5; 2]   | [3, 6]    | [0,3; 1,5] × [5, 10] | 250        | masivo  | raro           | 0,55    | regular     | reina-*, montana-un-dia, media-alto                               |
-| bretana          | [0,5; 2]   | [4, 8]    | [0,5; 2] × [6, 10]   | 400        | urbano  | raro (ribinoù) | 0,85    | muro-arriba | reina-*, montana-un-dia                                           |
-| macizo-central   | [5, 13]    | [5, 8]    | [1, 2] × [8, 12]     | 1.900      | nunca   | nunca          | 1,15    | progresivo  | adoquin, llana (una llana del Macizo suma 2.500 m, mapa 07 §3.14) |
-| vosgos-jura      | [5, 17]    | [6, 9]    | [1, 2] × [8, 14]     | 1.900      | nunca   | nunca          | 1,15    | irregular   | adoquin                                                           |
-| alpes            | [12, 25]   | [5,5; 9]  | null                 | 2.800      | nunca   | nunca          | 1,15    | regular     | adoquin, muros, muro-final                                        |
-| pirineos         | [10, 17]   | [7, 8,7]  | null                 | 2.400      | nunca   | nunca          | 1,15    | progresivo  | adoquin, muros, muro-final                                        |
-| provenza         | [8, 22]    | [6, 8]    | [1, 2] × [7, 9]      | 1.900      | nunca   | nunca          | 1,0     | regular     | adoquin                                                           |
-| dolomitas        | [7, 14]    | [7,5; 12] | null                 | 2.300      | nunca   | nunca          | 1,15    | muro-arriba | adoquin, muros, llana                                             |
-| prealpes-it      | [4, 13]    | [6, 8]    | [1, 2] × [10, 16]    | 1.400      | nunca   | nunca          | 1,0     | irregular   | adoquin, reina-alto (largo)                                       |
-| italia-centro    | [1, 6]     | [6, 12]   | [0,5; 2] × [10, 20]  | 1.700      | urbano  | masivo         | 1,0     | muro-arriba | adoquin                                                           |
-| cantabrico       | [5, 15]    | [7, 10]   | [1, 4] × [10, 15]    | 1.800      | nunca   | nunca          | 1,15    | irregular   | adoquin, llana (> 40 km de llano)                                 |
-| meseta           | [3, 8]     | [4, 6]    | null                 | 2.250      | nunca   | nunca          | 0,55    | regular     | adoquin, muros                                                    |
-| andalucia        | [7, 20]    | [6, 8]    | null                 | 2.500      | nunca   | nunca          | 0,85    | regular     | adoquin, muros                                                    |
-| levante          | [3, 22]    | [5, 12]   | [1, 4] × [10, 12]    | 1.550      | nunca   | nunca          | 0,85    | irregular   | adoquin                                                           |
-| portugal         | [3, 30]    | [5, 7]    | [1, 2,6] × [8, 10]   | 2.000      | urbano  | nunca          | 1,0     | regular     | adoquin                                                           |
-| mittelgebirge    | [2, 12]    | [4, 7,5]  | [0,5; 1,5] × [7, 10] | 1.600      | urbano  | nunca          | 0,85    | regular     | reina-alto (largo), adoquin                                       |
-| alpes-este       | [7, 20]    | [6, 11]   | null                 | 2.700      | nunca   | nunca          | 1,15    | progresivo  | adoquin, muros                                                    |
-| escandinavia     | [0,3; 10]  | [5, 9]    | [0,3; 1] × [5, 8]    | 1.200      | urbano  | nunca          | 0,7     | regular     | reina-*, adoquin (masivo)                                         |
-| islas-britanicas | [1, 9]     | [6, 10]   | [0,25; 2] × [10, 20] | 650        | urbano  | nunca          | 1,0     | muro-arriba | reina-alto, adoquin                                               |
-| balcanes         | [10, 25]   | [5,5; 7]  | null                 | 2.100      | nunca   | nunca          | 1,0     | regular     | adoquin, muros                                                    |
-| andes            | [15, 40]   | [4, 7]    | null                 | 3.700      | nunca   | nunca          | 1,15    | regular     | adoquin, muros, llana (a nivel del mar)                           |
-| cono-sur         | [10, 30]   | [4, 6]    | null                 | 2.600      | nunca   | nunca          | 0,55    | regular     | adoquin, muros, media (húmeda)                                    |
-| norteamerica     | [5, 30]    | [4, 9]    | [1, 2] × [8, 12]     | 3.700      | nunca   | raro (gravel)  | 0,85    | regular     | adoquin                                                           |
-| australia        | [1,5; 3]   | [7, 11]   | [1, 3] × [7, 11]     | 1.600      | nunca   | nunca          | 0,85    | muro-arriba | reina-*, adoquin                                                  |
-| asia-oriental    | [5, 40]    | [3, 10]   | [1, 2] × [6, 8]      | 3.800      | nunca   | nunca          | 0,7     | regular     | adoquin, muros                                                    |
-| golfo            | [5, 20]    | [5, 10]   | [1, 3] × [6, 8]      | 1.900      | nunca   | nunca          | 0,4     | regular     | adoquin, muros, media, ardenas                                    |
-| tropico          | [5, 20]    | [4, 8]    | [1, 2] × [6, 9]      | 2.000      | nunca   | nunca          | 0,85    | regular     | adoquin, muros                                                    |
-
-`veta` recoge las reglas negativas 3, 4, 5 y 9 del mapa 07 §4.4 como datos y no como código. `cimaMaxM` no entra en la física (el perfil no tiene altitud, mapa 03 §1) pero sí en un veto: un arquetipo de reina con `dPlus` > `cimaMaxM · 2,2` no se instancia en esa región (una etapa de 4.800 m en Flandes no existe ni encadenando todos los bergs).
+`maxClimbGainM` es el proxy de altitud: el perfil no lleva altitud (mapa 03 §1) y el motor no la usa, así que la firma solo prohíbe que una etapa belga acumule 1.500 m en un solo puerto. `wind` no entra en la física (el viento es un número por etapa desde la semilla, mapa 03 §5.1); aquí solo sube el peso de las familias llanas y baja la amplitud del relleno. Que el motor lea una exposición al viento del perfil es una promesa abierta de `motor.md` §19.5 y queda fuera de E1 (§13).
 
 ### 5.2 Del país a la región
 
-`COUNTRY_GEO: Record<string, [GeoRegion, peso][]>` se escribe a mano para los 56 países de las carreras de equipos (mapa 02 §10) y los 133 de `COUNTRIES` (`packages/shared/src/countries.ts` l. 13), siguiendo el patrón de `PAIS_ZONA` en `world/climate.ts` l. 63-135, que hoy ya es la única tabla país → zona del motor. Ejemplos:
+Dos tablas en `routes/gen/regions.ts`:
 
-```ts
-FR: [
-  ['norte-fr', 2],
-  ['bretana', 2],
-  ['macizo-central', 2],
-  ['vosgos-jura', 1],
-  ['alpes', 2],
-  ['pirineos', 1],
-  ['provenza', 1],
-]
-BE: [
-  ['flandes', 3],
-  ['ardenas', 2],
-]
-ES: [
-  ['cantabrico', 2],
-  ['meseta', 2],
-  ['andalucia', 1],
-  ['levante', 2],
-  ['pirineos', 1],
-]
-IT: [
-  ['prealpes-it', 2],
-  ['italia-centro', 2],
-  ['dolomitas', 1],
-  ['alpes', 1],
-]
-NL: [['flandes', 1]] // Limburgo es «flandes» a estos efectos: bergs de 1-2 km y pólder
-CO: [['andes', 1]]
-AE: [['golfo', 1]]
-```
+1. `COUNTRY_REGION: Record<string, RegionId>`: un valor por defecto por país para los 136 códigos de `COUNTRIES` (`packages/shared/src/countries.ts`). FR → `macizo_central_jura`, ES → `meseta`, IT → `italia_norte`, BE → `flandes`, NL → `flandes`, GB/IE → `islas_britanicas`, CO/EC/VE → `andes`, AE/SA/OM/QA/MY → `golfo_arabia_malasia`, AU/NZ → `australia`, JP/CN/TW/KR/TH → `asia_oriental`, US/CA → `norteamerica`, AR/CL → `cono_sur`, TR/GR/HR/SI/RS/BA/AL/XK/RO/BG/CY → `balcanes_turquia`, DE/AT/CZ/SK/PL/HU/LU/CH → `centroeuropa`, DK/NO/SE/FI/EE/LT/LV → `escandinavia`, PT → `portugal`; el resto → `generico`. Test: los 136 resuelven.
+2. `RACE_REGION: Record<string, RegionId>`: la región concreta de cada una de las 310 carreras de equipos, curada a mano a partir de las ciudades de `raceRoutes.ts` (que ya son reales aunque el relieve no lo sea, mapa 02 §8): `race-ain` → `macizo_central_jura` (Grand Colombier), `race-abruzzo` → `italia_centro` (Blockhaus), `race-alentejo` → `portugal`, `race-flanders` → `flandes`, y así las 310. Es contenido, no diseño: cabe en una tarde con `raceRoutes.ts` abierto, y el test exige que ninguna carrera de equipos caiga a `COUNTRY_REGION`. Los 532 nacionales usan `COUNTRY_REGION` (un nacional belga sale de `flandes`, uno colombiano de `andes`: lo que `motor.md` §V.3 pedía, mapa 05 §2).
 
-Con un solo país por carrera (`CalendarRace.country`, l. 69-72: «se abstrae a un solo país») la región se sortea UNA vez por carrera con `rng('geo')` sobre `${raceId}` y se hereda en todas sus etapas, salvo gran vuelta, donde se sortea por bloques de etapas (§7.3). Además `RaceRow` (l. 381-398) gana un campo opcional `geo?: GeoRegion[]` para curar a mano las carreras cuyo nombre lo dice (`race-jura` → `['vosgos-jura']`, `race-tramuntana` → `['levante']`, `race-mercantour` → `['alpes']`, `race-jaen` → `['andalucia']`, `race-rutland` → `['islas-britanicas']`). Es una tabla de 310 filas que se rellena en el paso 1 del plan para las que sean obvias y se deja vacía en el resto (cae a `COUNTRY_GEO`). Las ciudades de `RACE_ROUTES` (`raceRoutes.ts`) no se parsean: es un dato de presentación sin fuente (mapa 02 §8) y sacar geografía de un nombre sería inventar.
+`regionOf(raceId, country) = RACE_REGION[raceId] ?? COUNTRY_REGION[country] ?? 'generico'`.
 
-### 5.3 Qué hace la región, en concreto
+### 5.3 Qué hace la región, en orden
 
-1. Recorta las bandas de longitud y pendiente de cada motivo `puerto` y `muro` (§4.5.4). Una `reina-alto` en `andes` sale con puertos de 15-40 km al 4-7 %; la misma en `pirineos`, 10-17 km al 7-8,7 %; en `cantabrico`, 5-15 al 7-10 % e `irregular`.
-2. Filtra las familias (`veta`) antes de sortear el arquetipo. `nc-nl-road` ya no puede ser una clásica de muros de 2,5 km al 12 %: será `circuito` o `muros` flamencos con `muroKm` ≤ 2,2.
-3. Decide si hay `sector` y de qué: `adoquin: 'masivo'` admite `adoquin` completo (Roubaix, Flandes); `urbano` solo 1-2 sectores cortos en un `circuito` o `muros`; `sterrato: 'masivo'` (Toscana) convierte los sectores en tierra (mismo `paves` con estrellas; el motor no distingue firmes, `classicRoutes.ts` l. 594 ya codifica Strade así).
-4. Da la amplitud del valle y la forma por defecto de las subidas.
-5. Da el prior de composición de una vuelta (§7.2): en `golfo` los esqueletos con dos finales en alto y cuatro llanas; en `andes`, ninguno con etapa llana.
-
-### 5.4 Lo que la geografía NO hace en E1, y queda dicho
-
-El viento y el clima son propiedades de la etapa sorteadas de la semilla y de `StageInput.lugar` (mapa 03 §5), no del perfil: `signature.viento` se guarda en `GeneratedStage.geo` para que un encargo posterior (el de táctica que trate el abanico) pueda darle al motor un prior de viento por etapa, pero en E1 no cambia nada del motor. La altitud tampoco: no hay campo en `Segment` y no se propone añadirlo aquí (§13).
+1. **Filtra** arquetipos por `regions` y `forbids` (§4.3).
+2. **Topa** longitud y pendiente de cada motivo (§4.4).
+3. **Fija** la amplitud del relleno.
+4. **Reparte** familias por defecto para los nacionales y para las filas con `terrain` ausente (`calendar.ts` l. 916, hoy `'flat'`): la región decide con `GEO_DEFAULT_TERRAIN[region]` (flandes → `cobbles`/`classic`, andes → `mountain`, golfo → `flat`).
+5. **Acota** el kilometraje por clase (§7.4) con el factor regional `kmFactor` (andes 0,9 por la altitud, golfo 1,0).
 
 ---
 
 ## 6. La identidad entre ediciones
 
-### 6.1 Qué es la identidad de una carrera generada
+### 6.1 Lo que no existe hoy
 
-`routeIdentity(req)` calcula, solo con `idSeed`, la región, el arquetipo, la realización de los motivos ancla y cuántas variantes rota la carrera. Los ancla los declara el arquetipo (`Motif.ancla`): en `montana-un-dia` son el puerto largo del día y el muro final; en `adoquin`, los sectores de cinco estrellas; en `reina-alto`, el puerto de meta; en `circuito`, el circuito entero. Es lo que el aficionado reconoce: «la carrera del muro a cinco de meta», «la del puerto de 18 km a sesenta».
+`SEASON_CALENDAR` es una constante de módulo sin temporada (mapa 02 §11): la misma carrera es idéntica todos los años. Y `recorridoDelMundo.test.ts` ya prueba «clave por temporada» en `race_routes` (mapa 06 §3.5), así que el sello de base está preparado para que el recorrido cambie de año en año.
 
-### 6.2 Qué cambia de temporada en temporada
+### 6.2 Qué es fijo y qué varía
 
-`variantOf(identity, season)`: `variante = season % identity.variantes` decide qué motivos opcionales (`p < 1`) entran (cada variante lleva una máscara fija sorteada con `rng('variantes')` en la identidad); `rng('deriva')` desplaza las anclas `±ARCHETYPE.anchorJitter` (0,02 de la etapa: 4 km en 200) y `rng('motivos')` recoloca los no ancla dentro de su banda. El kilometraje se mueve `±ARCHETYPE.kmSeasonJitter` (3 %) salvo que venga fijado por edición o fila. Nunca cambia el arquetipo, la región, ni el número ni el orden de las anclas.
+`RaceIdentity` es lo que sale de los subflujos `arch` y `firma` con la semilla de identidad: arquetipo, presencia de cada hueco opcional, número de vueltas, cubeta de final. Es **la carrera**: si Race Ain tiene un final en alto largo en el Jura, lo tiene cada año.
 
-Con `identity.variantes = 1` la carrera es idéntica cada año salvo la deriva pequeña, que es el caso de Roubaix o Huy; con 3, rota tres trazados como hacen Lombardía (Como / Bérgamo) o el Amstel. El sorteo de `variantes` da 1 con 0,5, 2 con 0,3 y 3 con 0,2 (`ARCHETYPE.variantMix`).
+Con la temporada, y solo con ella, varían (`rng('slots')`, `rng('params')`, `rng('ramps')`, `rng('fill')` sobre `edSeed`):
 
-### 6.3 Cómo entra la temporada en el calendario
+| Nivel            | Qué cambia                                                                                                                                             | Cuánto                                                                                                                                | Constante                       |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------- |
+| 0 (`season = 0`) | nada: identidad pura, es el comportamiento de hoy                                                                                                      | 0                                                                                                                                     |                                 |
+| 1                | posiciones dentro de la banda, longitudes ±, rampas y relleno                                                                                          | posiciones ±`EDITION.slotJitter` (0,25 de la banda), longitudes ±`EDITION.lengthJitter` (0,15), km totales ±`EDITION.kmJitter` (0,05) | `EDITION.level` = 1 por defecto |
+| 2                | además, **un hueco rotatorio**: el arquetipo puede declarar `alternates: Slot[][]` y la edición elige una alternativa por `season % alternates.length` | determinista por año                                                                                                                  | activado por arquetipo          |
 
-`SEASON_CALENDAR` es una constante de módulo (`calendar.ts` l. 3643-3648) y no hay temporada en ningún sitio del motor (mapa 02 §11). Propuesta mínima:
+El nivel 2 es lo que hace que Il Lombardia alterne Como y Bérgamo (mapa 07 §1.6) o que la Vuelta alterne Angliru y Lagos: el arquetipo lo declara y el año lo elige. Con `EDITION.level = 1` la arquitectura no cambia jamás; con 2 cambia según lo escrito, no según el azar.
 
-```ts
-export function calendarFor(season: number): CalendarRace[] // memoizado por temporada
-export const SEASON_CALENDAR = calendarFor(0) // lo que todos los consumidores importan hoy
-```
+### 6.3 Fontanería
 
-`buildRace(row, season)` pasa `season` a `generateStage`; las etapas reales y de edición con rasgos no dependen de ella. `freezeRaceRoute` (`db/raceRoutes.ts` l. 35-55) recibe la temporada del mundo (el implementador la toma donde `calendarRun.ts` l. 1603 la llama; la clave `race_key` ya la lleva según `recorridoDelMundo.test.ts`, mapa 06 §3.5) y congela `calendarFor(season)`. Todo lo que hoy lee `SEASON_CALENDAR` (bancos, tests, `world.ts`, la API para etapas no corridas) sigue leyendo la temporada 0 y no cambia de conducta. La API de la ficha (`apps/api/src/routes/calendar.ts` l. 91-105) pasa a leer `calendarFor(temporadaDelMundo)` para etapas no corridas, con lo que además se cierra el punto 4 del mapa 03 §9 (la altimetría de una etapa futura enseñaba el código de hoy y no lo congelado).
+`SEASON_CALENDAR` pasa a `seasonCalendar(season: number): CalendarRace[]` con memoización por temporada, y `SEASON_CALENDAR` queda como `seasonCalendar(0)` para no tocar a los ~40 consumidores de golpe. `packages/db/src/calendarRun.ts` pide `seasonCalendar(world.season)` cuando congela `race_routes` el día de la etapa 1 (mapa 03 §8). Las carreras reales (`RACE_EDITIONS` y `STAGE_FEATURES`) no varían con la temporada: son la edición que son.
 
-### 6.4 Lo real no varía
-
-Una etapa con rasgos en `STAGE_FEATURES` es la edición que se cargó (`classicRoutes.ts` l. 15-22: «la edición usada se anota siempre») y se repite temporada tras temporada tal cual. Las de edición sin rasgos conservan km, ciudades y terreno, y varían solo el relieve generado con la regla de arriba. Cambiar esto (por ejemplo, rotar entre dos ediciones cargadas de Lombardía) es contenido y va a E12.
+Coste: 1.418 etapas por temporada generadas una vez y memoizadas; el arranque no cambia.
 
 ---
 
 ## 7. Vueltas por etapas: la composición
 
-### 7.1 Lo que se extrae de `RACE_EDITIONS`
+### 7.1 Lo que se conserva de `mixRoles`
 
-Las 57 ediciones por etapas de `editions.ts` (3 grandes vueltas y 54 de una semana, mapa 02 §7) son secuencias verificadas de `EditionTerrain` por etapa (l. 10-17), con `km` y `restAfter`. El extractor (§11.4) las agrupa por `(n, terreno dominante)` y produce `TOUR_SKELETONS` con `origen: 'extraido'`: para cada `n` observado, la lista de secuencias con su frecuencia, traducida a `SlotRole` (`itt` → `cri` o `prologo` si km ≤ 8; `mountain` → `reina`; `hilly` con última etapa → `media-alto` si la fila lo era; `cobbles` → `muros`). Ejemplo real (Race France 2026, l. 26-48): `cri(20) · media · media · media · llana · reina · llana · llana · media │ reina · llana · llana · media · reina · reina · cri(26) · media · reina · reina · reina · llana`, descansos tras la 9 y la 15.
+El orden de decisión de `mixRoles` (`calendar.ts` l. 445-455: crono, última etapa, las de en medio, garantías) es correcto y las seis garantías que `calendar.test.ts` l. 184-246 sella (crono posible en 5 etapas, crono siempre en llana de 4+, cinco llanas no son cinco sprints, nadie sin crono ni final en alto, primera llana, última decisiva o paseo) se mantienen como invariantes.
 
-Para los `n` sin edición (2, 9, 11: mapa 02 §2) y para las `.2` de 3-5 días, se curan esqueletos desde el mapa 07 §2.2-2.3 con `origen: 'curado'`: por ejemplo `.2` de 4 etapas: `[prologo|llana, media, media-alto|reina-corta, llana|circuito-final]`, con crono el día 1 o ninguna, nunca dos.
+### 7.2 Lo que cambia: plantillas de vuelta en vez de sorteo etapa a etapa
 
-### 7.2 `composeTour(req)`: cómo se elige y se realiza
+`pickRole` (l. 434-443) sortea cada etapa independientemente, y por eso ni sabe de bloques ni de dónde va la reina (mapa 07 §2.1). Se sustituye por `TOUR_TEMPLATES`, una tabla por número de etapas (3, 4, 5, 6, 7, 8, 9-11) y terreno dominante, extraída de las 54 ediciones de una semana de `editions.ts` (mapa 02 §7: 163 hilly, 95 flat, 95 mountain, 26 itt) más las 15 carreras del mapa 07 §2.2. Una plantilla es una lista de papeles con huecos flexibles:
 
-1. Filtrar `TOUR_SKELETONS` por `n`, formato, clase y terreno de la fila; sortear por `peso` con `rng('esqueleto')` sobre `${raceId}` (identidad: una vuelta no cambia de estructura entre temporadas).
-2. Cada `slot` con `p < 1` entra o no por la variante de la temporada (§6.2), con la regla de que la crono y el último día no son opcionales.
-3. Km por slot: `slot.km ?? ROUTE.kmByClass[raceClass].etapa[role]` (§8), última etapa × `lastStageKmFactor` como hoy.
-4. Cada slot llama a `generateStage` con `role`, `families` del slot y la región de la carrera. En gran vuelta las regiones se sortean por bloques: el esqueleto marca `bloques` (semana 1, semana 2, semana 3) y cada bloque recibe una región de `COUNTRY_GEO` distinta si el país tiene varias (Bretaña, Macizo, Alpes en Francia).
-5. **Garantías, ahora como vetos de composición** (§9, reglas 13-16): las de `mixRoles` (l. 457-519) se conservan como comprobación y no como constructor: ninguna vuelta sin crono ni final en alto; mínimo de selectivas por terreno; una vuelta de 4+ con al menos un final en alto; la primera etapa no es `reina` (se relaja «siempre llana»: Limone 2025 fue la 2 y Tagliacozzo la 7, mapa 07 §2.1, y los esqueletos extraídos empiezan a veces por `cri` o `media`). Un esqueleto que las viole no entra en el catálogo: `tours.test.ts` lo comprueba sobre el catálogo entero, no sobre 120 semillas.
+```ts
+interface TourTemplate {
+  nStages: number
+  terrain: MixTerrain
+  /** Papel por etapa; `'*'` es «lo que el sorteo de pesos diga». */
+  roles: (MixRole | '*')[]
+  /** Reglas duras que el sorteo de los `'*'` tiene que cumplir. */
+  rules: {
+    maxConsecutive: Partial<Record<MixRole, number>> // reina 2, llana 3
+    queenAfterFraction: number // la reina más dura a partir del 0,6 de la vuelta
+    maxUphill: number // finales en alto totales (una semana: 3)
+    ittKm: Band // 8-35 en una semana; prólogo 3-8 si `roles[0] === 'cri'`
+  }
+  provenance: Archetype['provenance']
+  weight: number
+}
+```
 
-### 7.3 Lo que corrige respecto a `stageMix`
+Ejemplo (una semana, 7 etapas, terreno montaña, extraído de Catalunya, Dauphiné y Suiza): `['llana', '*', 'media-alto', 'reina', '*', 'cri', 'media']` con `maxConsecutive.reina = 2`, `queenAfterFraction = 0,4`, `maxUphill = 3`. Los `'*'` se sortean con `ROUTE.mixWeights` (que se conservan) y las garantías de §7.1 se aplican después, como hoy.
 
-- `mixWeights.mountain = [0,16; 0,26; 0,18; 0,40]` (`constants.ts` l. 1224) da un 40 % de reinas; una gran vuelta real lleva 4-6 de alta montaña con final en alto sobre 21 (mapa 07 §2.1). Los esqueletos extraídos dan la proporción real por construcción; `mixWeights` deja de usarse.
-- Existen bloques de montaña de 2-3 días con transiciones, la reina en la 15-20 y el descanso tras la 9 y la 15 (`restAfter` del esqueleto, hoy solo lo llevan cuatro ediciones, mapa 02 §1).
-- Una vuelta `cobbles` deja de componerse como `flat` (`mixTerrain`, l. 416-420): tiene esqueleto propio (`benelux`: llanas con viento, crono corta, final en muros).
-- Km por clase: una `.2` de 5 etapas hoy sale con etapas de 165-195 km (`kmFlat` [165, 30], l. 1240), «la vuelta .2 más larga de Europa» (mapa 07 §4.1). Con `kmByClass` una `.2` corre 100-160.
-- Las 142 carreras de un día sin `km` en la fila miden 210 clavados (`row.km ?? 210`, l. 917): pasan a la banda del arquetipo cortada por la clase.
+### 7.3 Arquetipo por etapa dentro de la vuelta
+
+Cada etapa de la vuelta llama a `generateStage` con su papel, y dos reglas de diversidad por carrera, decididas con `rng('firma')` sobre la semilla de la carrera: no se repite el mismo `archetypeId` en dos etapas consecutivas, y como mucho una etapa de `media_circuito`/`llana_circuito` por vuelta (el circuito final de Niza o Montjuïc). La reina más dura de la vuelta (la de mayor `dPlusBand.mode`) es la que ocupa el hueco `queenAfterFraction`.
+
+### 7.4 Kilometraje por clase
+
+`mixKm` (l. 522-543) da 145-195 km a cualquier clase, y una .2 de cinco etapas sale con etapas de 165-195 km, «la vuelta .2 más larga de Europa» (mapa 07 §4.1). Nueva tabla `ROUTE.kmByClass`:
+
+| Clase | llana   | media   | media-alto | reina   | cri (una semana) | un día                           |
+| ----- | ------- | ------- | ---------- | ------- | ---------------- | -------------------------------- |
+| WT    | 165-230 | 150-200 | 140-185    | 120-200 | 8-35             | 175-295                          |
+| Pro   | 150-200 | 140-180 | 130-170    | 120-180 | 8-30             | 170-240                          |
+| .1    | 140-190 | 130-170 | 120-165    | 110-170 | 8-25             | 160-220                          |
+| .2    | 100-165 | 100-160 | 100-150    | 100-150 | 3-20             | 140-180                          |
+| .NC   |         |         |            |         | 25-45            | 180-260 (ruta), 120-180 (sub-23) |
+
+Con estas bandas desaparece el 210 fijo de las 142 carreras de un día sin `km` (mapa 02 §1): el km de una carrera de un día sin dato sale de `rng('firma')` sobre la banda de su clase, estable entre ediciones salvo el ±5 % del nivel 1. Las 36 carreras que declaran `km` lo conservan.
+
+### 7.5 Lo que no pasa por aquí
+
+Las tres grandes vueltas y las 57 vueltas con edición (`RACE_EDITIONS`) conservan su composición real: número de etapas, km, terreno y descansos. Solo el **dibujo** de sus 226 etapas sin rasgos pasa por `generateStage` con el papel derivado del `EditionTerrain` de la etapa (`mountain` → `reina_*` según posición y formato, `hilly` → `media_*`, `flat` → `llana_*`, `itt` → `cri_*`, `cobbles` → `adoquin_densidad`). La región se resuelve por `RACE_REGION`, así que la etapa 6 de `race-france` (Pau a Gavarnie-Gèdre, `editions.ts` l. 33) se dibuja con `pirineos` aunque el país sea `FR`. Esto exige que `RACE_REGION` admita una región por etapa para las grandes vueltas: `RACE_REGION['race-france'] = { default: 'macizo_central_jura', stages: { 6: 'pirineos', 10: 'macizo_central_jura', 14: 'macizo_central_jura', 15: 'alpes', 18: 'alpes', 19: 'alpes', 20: 'alpes' } }`. Es contenido de las 60 ediciones y se hace con `editions.ts` abierto.
 
 ---
 
 ## 8. Constantes
 
-Todas en `constants.ts`, bloque nuevo `ARCHETYPE` junto a `ROUTE` (l. 1151), cada una con su comentario de intención. Las de `ROUTE` que dejan de usarse (`mixWeights`, `selectiveMinFraction`, `lastDecisiveChance`, `lastSummitShare`, `kmFlat/kmHilly/kmUphill/kmSummit`) se borran en el paso 7 del plan con nota en `balance.md`; las de la crono (`ittMinStages`, `ittChance*`, `ittKm*`) pasan a ser vetos y bandas de esqueleto.
+Todas en `constants.ts`, con comentario de intención. Los rangos que hoy son literales en `profileGen.ts` migran a las bandas de los arquetipos (`ARCHETYPES`, fichero generado más el manual) y los umbrales de mecanismo a `ARCH`, `GEO_SIGNATURES`, `EDITION` y `ROUTE.kmByClass`.
 
-| Nombre                            | Valor                                                                                                                                                               | Intención                                                                            | En qué se apoya                                                                                        |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------ |
-| `ARCHETYPE.maxAttempts`           | 6                                                                                                                                                                   | reintentos por veto antes de pasar al siguiente arquetipo                            | coste de arranque acotado; el paso 4 mide la media                                                     |
-| `ARCHETYPE.maxSegments`           | 120                                                                                                                                                                 | tope estructural de segmentos por etapa                                              | Roubaix real ≈ 70 tras `applyCobbles`; no hay tope hoy (mapa 03 §7)                                    |
-| `ARCHETYPE.minGapKm`              | 1,5 (`muros`: 0,8)                                                                                                                                                  | separación mínima entre dificultades repetidas                                       | Flandes tiene bergs a 1,7 km (Kwaremont-Paterberg, `classicRoutes.ts` l. 456-457)                      |
-| `ARCHETYPE.anchorJitter`          | 0,02                                                                                                                                                                | deriva de una ancla entre temporadas, en fracción de etapa                           | 4 km en 200: se reconoce y no se repite al metro                                                       |
-| `ARCHETYPE.kmSeasonJitter`        | 0,03                                                                                                                                                                | variación del kilometraje entre temporadas                                           | Omloop 202,2 → 207,2 entre ediciones (`fuentes-recorridos.md` regla 1)                                 |
-| `ARCHETYPE.variantMix`            | {1: 0,5; 2: 0,3; 3: 0,2}                                                                                                                                            | cuántas variantes rota una carrera                                                   | Roubaix/Huy fijas, Lombardía y Amstel rotan                                                            |
-| `ARCHETYPE.oneDaySummitMaxKm`     | 5                                                                                                                                                                   | subida final máxima de una carrera de un día que muera arriba                        | mapa 07 §1.2: 0,3-5 km, «ninguna llega a 6»; caso v40                                                  |
-| `ARCHETYPE.oneDayLongSummitShare` | 0,02                                                                                                                                                                | frecuencia con que una `.1` de un día puede morir en un puerto largo                 | Ventoux, Mercan'Tour: «tres carreras sobre doscientas»                                                 |
-| `ARCHETYPE.wallMaxKm`             | 3                                                                                                                                                                   | un muro mide como mucho esto                                                         | `WALL_MAX_KM` de `stageKind.ts` l. 60; se cita, no se duplica                                          |
-| `ARCHETYPE.wallMinGrade`          | 7                                                                                                                                                                   | pendiente media mínima de un muro                                                    | Kemmelberg 9, Kwaremont 4 (ése es `cota`); `finish.ts` cuenta muro por bloque ≥ 8                      |
-| `ARCHETYPE.queenFinalKm`          | [8,6; 22]                                                                                                                                                           | banda del puerto de meta de una reina larga                                          | gran vuelta 8-22 km al 6,5-9 % en el 70-80 % (mapa 07 §4.3); suelo 8,6 de `garantizaPuerto`            |
-| `ARCHETYPE.queenShortFinalKm`     | [4, 7]                                                                                                                                                              | banda del puerto de meta de `reina-alto-corto`                                       | Planche 5,9 × 8,5; Xorret 3,9 × 11,4; Tre Cime 7,2                                                     |
-| `ARCHETYPE.queenShortFinalG`      | [8, 12]                                                                                                                                                             | idem pendiente                                                                       | ídem                                                                                                   |
-| `ARCHETYPE.queenShortFinalShare`  | 0,25                                                                                                                                                                | qué parte de las `reina-alto` es corta y empinada                                    | «el resto» del 70-80 %                                                                                 |
-| `ARCHETYPE.queenFamilyMix`        | {alto: 0,45; cima_cerca: 0,20; valle_corto: 0,25; valle_largo: 0,10}                                                                                                | reparto de familias de reina en etapa                                                | es `ROUTE.queenFinalMix` (l. 1189) trasladado; se conserva porque `docs/tactica.md` l. 5580 lo compara |
-| `ARCHETYPE.queenDplus`            | gran vuelta [3.200; 5.200], una semana [2.400; 4.200], `.2` [2.000; 3.500]                                                                                          | desnivel objetivo por formato y clase, uniforme en logaritmo                         | mapa 07 §4.1; sustituye `queenDplusRange` 60/40 (§11.2 explica qué pasa con la cola baja)              |
-| `ARCHETYPE.fillDplusShare`        | 0,25                                                                                                                                                                | qué parte del `dPlus` objetivo se deja al relleno                                    | medido hoy: el relleno «bumpy» pone ~1.017 m sobre 2.840 de puertos (mapa 01 §1)                       |
-| `ROUTE.kmByClass`                 | WT {unDia [200, 260], etapa [150, 200]}, Pro {[180, 230], [140, 185]}, 1 {[160, 210], [130, 175]}, 2 {[140, 180], [100, 160]}, NC {road [180, 240], u23 [140, 180]} | bandas de kilometraje por clase y formato                                            | mapa 07 §4.1; hoy no hay banda por clase                                                               |
-| `ROUTE.ittByClass`                | WT [14, 40], Pro [12, 32], 1 [10, 28], 2 [5, 20], NC [30, 45]                                                                                                       | crono por clase                                                                      | Dauphiné 30-35, prólogos 3-8, NC 38 hoy                                                                |
-| `ARCHETYPE.prologueMaxKm`         | 8                                                                                                                                                                   | por debajo, la crono es prólogo                                                      | Romandía, Dauphiné                                                                                     |
-| `ARCHETYPE.cobbleSectorsByFamily` | adoquin {n [18, 31], km [0,3; 3,7], estrellas [1, 5]}, muros {n [3, 8], km [0,5; 2,5], estrellas [2, 3]}                                                            | densidad de sectores                                                                 | Roubaix 29-31 y 54-57 km; Flandes 5-7 (mapa 07 §1.3-1.4); hoy `[3, 5, 4]` fijo                         |
-| `ARCHETYPE.copyMaxCorr`           | 0,85                                                                                                                                                                | correlación máxima admitida entre una generada y cualquier real de su familia (test) | §11.5; no es runtime                                                                                   |
-| `ARCHETYPE.copyMaxPositionHits`   | 0,6                                                                                                                                                                 | fracción máxima de dificultades a ±1 % de las de una misma real                      | ídem                                                                                                   |
-| `ARCHETYPE.fidelityTol`           | 0,15                                                                                                                                                                | tolerancia relativa por cuantil entre generado y referencia                          | §11.4                                                                                                  |
-| `ARCHETYPE.minRealForExtracted`   | 3                                                                                                                                                                   | etapas reales necesarias para que una familia tenga arquetipo `extraido`             | por debajo se cura a mano y se ensancha ±25 %                                                          |
+| Nombre                                                                 | Valor                                                                                                                                                                                                                                                                       | Intención                                                                                | En qué se apoya                                                                                                                                                                                              |
+| ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `ARCH.minGapKm`                                                        | 0,8                                                                                                                                                                                                                                                                         | separación mínima entre motivos: dos muros a menos de 800 m son un solo muro con rellano | Kwaremont-Paterberg (1,7 km entre cimas) es el par más pegado del corpus (`classicRoutes.ts` l. 451-452)                                                                                                     |
+| `ARCH.linkedClimbMaxGapKm`                                             | 3                                                                                                                                                                                                                                                                           | por encima de este hueco tras un puerto hay bajada obligatoria                           | regla del 85 % de `featureProfile.ts` l. 391-400                                                                                                                                                             |
+| `ARCH.descentLossShare`                                                | 0,85                                                                                                                                                                                                                                                                        | fracción de lo subido que pierde la bajada                                               | idem, y `MAX_DESCENT_GRADIENT` −12 (l. 142)                                                                                                                                                                  |
+| `ARCH.maxDifficultyShare`                                              | 0,75                                                                                                                                                                                                                                                                        | los motivos no pueden sumar más de tres cuartos de la etapa                              | Catalunya e4 real: 38 de los últimos 50 km son puerto (`realQueens.ts` l. 75), y es el extremo                                                                                                               |
+| `ARCH.fillMaxGradient`                                                 | 2,4                                                                                                                                                                                                                                                                         | el relleno nunca alcanza el 3 % que tipa puerto                                          | R28.1(c); hoy `rolling` bumpy llega a 3,2 (`profileGen.ts` l. 105)                                                                                                                                           |
+| `ARCH.climbMinKm`                                                      | 1,5                                                                                                                                                                                                                                                                         | puerta de «esto es un puerto»                                                            | `CLIMB_MIN_KM` (`finalKind.ts` l. 33), R28.1(c)                                                                                                                                                              |
+| `ARCH.wallMaxKm`                                                       | 1,5                                                                                                                                                                                                                                                                         | un muro mide hasta esto                                                                  | Huy 1,3, San Luca 2,1 (mapa 07 §1.2); `muroMaxKm` del motor es 1,0 (`constants.ts` l. 4462), así que un muro de 1,0-1,5 sale `puncheur`, que es lo que hoy hace Huy y «es correcto» (`finish.ts` l. 147-148) |
+| `ARCH.wallMinGradient`                                                 | 8                                                                                                                                                                                                                                                                           | pendiente mínima de un muro                                                              | `STAGE.wallMinGradient` 8 (l. 1594)                                                                                                                                                                          |
+| `ARCH.classMarginKm`                                                   | 0,3                                                                                                                                                                                                                                                                         | holgura sobre `PASS_MIN_KM` al garantizar clase                                          | 3 de 1.500 clasificaciones cruzadas en el borde de 8,5 (mapa 01 §5.1)                                                                                                                                        |
+| `ARCH.maxRepairs`                                                      | 4                                                                                                                                                                                                                                                                           | reintentos deterministas antes del canónico                                              | presupuesto; un arquetipo bien acotado repara en 0-1                                                                                                                                                         |
+| `ARCH.extractMinSources`                                               | 3                                                                                                                                                                                                                                                                           | fuentes mínimas para que el extractor cree un arquetipo                                  | evita la copia: una banda de una sola etapa ES esa etapa                                                                                                                                                     |
+| `ARCH.regionalWeight` / `familyWeight` / `manualWeight`                | 3 / 2 / 1                                                                                                                                                                                                                                                                   | preferencia regional > familia > manual                                                  | §4.3                                                                                                                                                                                                         |
+| `ARCH.cloneMaxCorrelation`                                             | 0,85 (provisional)                                                                                                                                                                                                                                                          | ninguna instancia puede correlacionar más con una fuente                                 | se calibra en §11.4 con pares reales de la misma familia                                                                                                                                                     |
+| `ARCH.sprintBannerChance`                                              | 0 (D1)                                                                                                                                                                                                                                                                      | metas volantes generadas                                                                 | `auto()` no las fabrica a propósito (`calendar.ts` l. 88-91)                                                                                                                                                 |
+| `EDITION.level`                                                        | 1                                                                                                                                                                                                                                                                           | cuánto varía una carrera de año en año                                                   | §6.2                                                                                                                                                                                                         |
+| `EDITION.slotJitter`                                                   | 0,25                                                                                                                                                                                                                                                                        | fracción de la banda de posición que mueve un año                                        | Ronde: Paterberg a 13 km todos los años, cotas intermedias bailan 5-10 km                                                                                                                                    |
+| `EDITION.lengthJitter`                                                 | 0,15                                                                                                                                                                                                                                                                        | idem longitud de motivo                                                                  | Omloop 202 → 207 km entre 2024 y 2026 (`fuentes-recorridos.md` regla 1)                                                                                                                                      |
+| `EDITION.kmJitter`                                                     | 0,05                                                                                                                                                                                                                                                                        | idem km totales                                                                          | idem                                                                                                                                                                                                         |
+| `ROUTE.kmByClass`                                                      | tabla §7.4                                                                                                                                                                                                                                                                  | km por clase y papel                                                                     | mapa 07 §4.1                                                                                                                                                                                                 |
+| `ROUTE.mixWeights`                                                     | sin cambio                                                                                                                                                                                                                                                                  | pesos de los huecos `'*'`                                                                | v10                                                                                                                                                                                                          |
+| `ROUTE.queenFinalMix`                                                  | pasa a `finalMix` por arquetipo: `reina_alto_largo` {alto 1}, `reina_alto_corto` {alto 1}, `reina_cima_cerca` {cima_cerca 1}, `reina_valle` {valle_corto 0,7, valle_largo 0,3}; pesos de familia por formato: gran vuelta 0,45/0,15/0,15/0,25, una semana 0,4/0,25/0,15/0,2 | el reparto es propiedad de la familia, no una tirada                                     | medido real aquí: 37/4/6/7 de 54 (69 % alto); mapa 07 §2.1: Vuelta 8-10 de 21                                                                                                                                |
+| `ROUTE.queenDplusRange` / `queenLowDplusRange` / `queenHighDplusShare` | se retiran: el desnivel es consecuencia de las bandas del arquetipo (`dPlusBand`) y de su firma regional                                                                                                                                                                    | el objetivo dirigido nació para un test (mapa 06 §6.3)                                   | D5                                                                                                                                                                                                           |
+| `GEO_SIGNATURES`                                                       | tabla §5.1                                                                                                                                                                                                                                                                  | qué existe en cada sitio                                                                 | mapa 07 §3                                                                                                                                                                                                   |
+| `GEO_DEFAULT_TERRAIN`                                                  | por región                                                                                                                                                                                                                                                                  | terreno de fila ausente                                                                  | `calendar.ts` l. 916                                                                                                                                                                                         |
+| `TOUR_TEMPLATES`                                                       | §7.2                                                                                                                                                                                                                                                                        | plantillas de vuelta                                                                     | `editions.ts`, mapa 07 §2.2                                                                                                                                                                                  |
+| `RELIEF.rollingAmplitude`                                              | se conserva para `featureProfile.ts`                                                                                                                                                                                                                                        |                                                                                          |                                                                                                                                                                                                              |
+
+Lo que **no** cambia: `FINAL_KIND_CUTS` (0,5 / 5 / 20), `CLIMB_MIN_KM` (1,5), `PASS_MIN_KM` (8,5), `QUEEN_MIN_CLIMB_METRES` (3.200), `WALL_MAX_KM` (3), `STAGE.dx` y todo `STAGE.finish*`. La razón: son la vara con que el banco lee las reinas y con que `stageHistory.ts` reetiqueta etapas corridas (mapa 06 §2.3 y §5); moverlas es una decisión aparte (§14, D2), y el generador nuevo se calibra para caer dentro de ellas con holgura.
 
 ---
 
 ## 9. Reglas de veto y plausibilidad
 
-Cada regla es una función pura en `vetoes.ts` con nombre, y `vetoes.test.ts` la prueba con un perfil que la viola y otro que no. Las de perfil se evalúan sobre el `StageProfile` ya normalizado; las de composición, sobre la lista de `StageSpec` de la vuelta.
+Cada veto es una función pura `(segments, arch, sig, input) → string | null` en `routes/gen/vetos.ts`, y el nombre del veto que salta se anota en el test de reparación para saber cuál dispara más. Un arquetipo canónico (§4.6) tiene que pasar los doce por construcción.
 
-**De perfil (una etapa):**
+| #   | Veto                           | Regla                                                                                                                                                           | Por qué (caso real)                                                                                                                                                                                                                          |
+| --- | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| V1  | Final largo en un día          | en `format = 'un-dia'`, si el último segmento es `puerto`, mide ≤ 2,5 km; excepción: arquetipo `montana_un_dia:ventoux` con `classWeight` solo `.1` y peso 0,02 | **El caso v40**: Race Jura con final en alto de 14 km, 82 % del pelotón a cero (`profileGen.ts` l. 427-438; `balance.md` l. 8102-8125). En el WT de un día la última subida mide 0,4-4,2 km y muere arriba solo si es un muro (mapa 07 §4.3) |
+| V2  | Reina que no es reina          | `kind = 'reina'` exige puerto ≥ 8,5 km **o** ≥ 3.200 m; y además al menos un puerto de ≥ 6 km a más de 30 km de meta                                            | regla negativa 2 del mapa 07 §4.4; v43 §7: subida fuera de los últimos 30 km separa canónica (0 %) de reales (6-38 %)                                                                                                                        |
+| V3  | Adoquín fuera de sitio         | `sector_paves` solo si `sig.cobbles = 'sectores'`; `'urbano'` admite un sector ≤ 0,6 km                                                                         | mapa 07 §3 consecuencia 1; hoy las 20 filas `cobbles` ya caen bien (mapa 07 §3), el veto impide que un nacional lo estropee                                                                                                                  |
+| V4  | Sterrato fuera de sitio        | `sector_tierra` solo si `sig.sterrato`                                                                                                                          | consecuencia 2                                                                                                                                                                                                                               |
+| V5  | Altitud imposible              | ningún puerto sube más de `sig.maxClimbGainM` ni mide más de `sig.maxClimbKm`                                                                                   | consecuencia 3                                                                                                                                                                                                                               |
+| V6  | Muros en Sanremo               | familia `esprint_costa` no admite `muro` ni pendiente > 5 % en los últimos 30 km                                                                                | mapa 07 §1.5                                                                                                                                                                                                                                 |
+| V7  | Llana con demasiado desnivel   | `kind = 'llana'` con `dPlus` > 1.800 m sin `cota` de ≥ 3 km es media                                                                                            | regla negativa 10                                                                                                                                                                                                                            |
+| V8  | Puertos encadenados sin bajada | dos `puerto` consecutivos con hueco > 3 km sin `bajada`                                                                                                         | `featureProfile.ts` l. 391-400                                                                                                                                                                                                               |
+| V9  | Relleno que tipa               | ningún tramo de `valle` con g ≥ 3 en ≥ 1,5 km                                                                                                                   | `ARCH.fillMaxGradient`                                                                                                                                                                                                                       |
+| V10 | Sector en la salida            | ningún `paves` en el primer tercio de la etapa salvo `adoquin_densidad` de más de 20 sectores                                                                   | Roubaix: primer sector en el km 96 de 258 (`classicRoutes.ts` l. 405)                                                                                                                                                                        |
+| V11 | Demanda fuera de banda         | `Σ costBase·dx` (mapa 03 §4.1) dentro de `[0,6; 1,1] × arch.demandBand` (calculada al extraer sobre las fuentes)                                                | Lombardía 102,2 es el techo de un día y Jura lo superaba «sin ser más dura» (`profileGen.ts` l. 436)                                                                                                                                         |
+| V12 | Clase y final                  | `stageKindOf(...).kind === arch.kind` y `finalKindOf ∈ arch.finalMix`                                                                                           | garantía de clase, `stageKind.test.ts`                                                                                                                                                                                                       |
 
-1. **`unDiaNoMuereEnPuertoLargo`** (el caso v40): si `format === 'un-dia'` y el último segmento es `puerto` con `climbSize(...).km > ARCHETYPE.oneDaySummitMaxKm` (5), veto, salvo que el arquetipo sea `reina-alto` marcado `rareza` y la carrera sea `.1` y `rng('arquetipo')` lo haya admitido con `oneDayLongSummitShare` (0,02). Con el catálogo de hoy Race Jura (`.1`, `mountain`, un día) saldría `montana-un-dia` con muro final de 1,3-4,2 km a 5-17 km de meta el 98 % de las veces, y una vez cada cincuenta un Ventoux declarado como tal.
-2. **`reinaEsReina`**: familia `reina-*` ⇒ `stageKindOf(profile, false).kind === 'reina'`. Sujeta lo que hoy sujetan `garantizaPuerto(…, 8.6, null)` (l. 413) y el test de `stageKind.test.ts` l. 66-92. En `reina-alto-corto` obliga a un intermedio ≥ 9 km o a ≥ 3.200 m; el arquetipo lo declara y el veto lo comprueba.
-3. **`mediaEsMedia`**: familia `media`, `media-alto` ⇒ `kind === 'media'`, ninguna cota ≥ 8,5 km y < 3.200 m acumulados. Es la regla negativa 2 del mapa 07 §4.4 leída al revés.
-4. **`muroEsMuro`**: todo motivo `muro` instanciado mide ≤ 3 km (`WALL_MAX_KM`) y ≥ 7 % de media; `clasica` de muros ⇒ cota más larga ≤ 3 km (`stageKind.ts` l. 86).
-5. **`adoquinDondeLoHay`**: ningún `paves` si `signature.adoquin === 'nunca' && signature.sterrato === 'nunca'`. Las 20 filas `cobbles` del calendario caen en BE, FR, GB e IT (mapa 07 §3, consecuencia 1), así que hoy no se dispara; existe para las filas futuras.
-6. **`cimaVerosimil`**: `dPlus` de la etapa ≤ `signature.cimaMaxM · 2,2` y cota más larga ≤ `signature.puertoKm[1] · 1,2`. Una reina de 25 km de puerto no sale en `cantabrico`; una de 4.800 m no sale en `flandes`.
-7. **`finalDeclarado`**: `finalKindOf(profile)` coincide con `archetype.final` cuando éste es `alto`, `cima_cerca`, `valle_corto` o `valle_largo`; `sprint` ⇒ `finalKindOf === null` o `valle_largo`; `muro` ⇒ último segmento `puerto` de ≤ 1,5 km al ≥ 8 %; `sector` ⇒ último `paves` a ≤ 1,5 km de meta.
-8. **`sinRompepiernas`**: ningún segmento `rompepiernas` (tipo muerto, mapa 03 §2 punto 4).
-9. **`kmExactos`**: `Σ km === req.km` al décimo (lo que `calendar.test.ts` l. 162-174 exige para las ediciones) y todo segmento ≥ 0,5 km, todo banner en `[0, round(total)]` (l. 108-121).
-10. **`segmentosAcotados`**: ≤ `ARCHETYPE.maxSegments`.
-11. **`valleConHolgura`**: km tras la última cota a más de 0,3 km de cualquier corte de `FINAL_KIND_CUTS` (0,5 / 5 / 20): cierra los cruces de cubeta medidos en el mapa 01 §2.5.
-12. **`etiquetaCoherente`**: `stageKindOf(profile, timeTrial)` da el `kind` y `label` que el arquetipo promete (§4.8).
-13. **`llanaEsLlana`**: familia `llana` ⇒ `dPlus` ≤ 1.800 m y ningún `puerto` ≥ 3 km (regla negativa 10); `llana-cota` admite una `cota` ≤ 6 km a ≥ 40 km de meta (Cipressa).
-14. **`cronoSinPuertoSalvoCuesta`**: `cri` ⇒ ningún `puerto`; `cri-cuesta` ⇒ exactamente uno, el último, ≤ 12 km.
+Plausibilidad blanda (no veta, se mide en §11): distancia de cada rasgo de la instancia al p5-p95 de las fuentes del arquetipo.
 
-**De composición (una vuelta):**
-
-15. **`algoQueMorder`**: crono o final en alto (`isUphill`) en toda vuelta de ≥ 3 etapas; en 4+, al menos un final en alto (`uphillFinishMinStages` hoy, l. 1236).
-16. **`sinDosCronosLargas`**: ≤ 1 crono > 20 km en una semana; `.2` de 3-5: ≤ 1 crono y ninguna > 20; gran vuelta: 1-2 cronos, la segunda ≥ 8 km y fuera de la etapa 1 solo si es prólogo (regla negativa 6).
-17. **`bloquesDeMontana`**: ninguna racha de > 3 reinas seguidas ni de > 4 llanas seguidas (mapa 07 §2.1 regla 4); gran vuelta: ≤ 7 etapas de alta montaña, reina de más desnivel en la 13-20, descansos tras la 9 y la 15.
-18. **`primeraNoReina`** y **`ultimaCoherente`**: la etapa 1 no es `reina`; la última de una gran vuelta es `llana` o `cri` salvo esqueleto que declare lo contrario.
-19. **`kmPorClase`**: toda etapa dentro de `ROUTE.kmByClass` y ninguna `.2` > 180 km (regla negativa 8).
-
-Los vetos se comprueban también sobre el catálogo entero en `catalog.test.ts`: cada arquetipo se instancia 300 veces en su banda de km y en cada región que admite, y ninguna instancia puede fallar más de `maxAttempts` veces seguidas. Un arquetipo que no pase no entra.
+Dos vetos que se aplican a la **composición** (§7): una vuelta de ≤ 5 etapas no lleva dos cronos ni etapas de más de 180 km en clase .2 (regla 8), y una gran vuelta generada (hoy ninguna: las tres son reales) no lleva reina en la primera semana ni más de 7 de alta montaña (regla 6).
 
 ---
 
 ## 10. Lo real frente a lo generado
 
-### 10.1 Prioridad, sin cambios de fondo
+### 10.1 Prioridad de fuentes, en orden
 
-`buildRace` (l. 899-929) conserva el orden: (1) rasgos en `STAGE_FEATURES` ⇒ `buildFeatureProfile`, `routeSource: 'real'`; (2) edición sin rasgos ⇒ km, ciudades y terreno de `RACE_EDITIONS`, relieve por arquetipo con el terreno como `role` y la región de la carrera, `routeSource: 'edicion'`; (3) resto ⇒ arquetipo, `routeSource: 'generado'`. Lo real no pasa por ningún veto ni recorte de firma: la carretera manda sobre la tabla (Sassotetto es 13 km al 7,7 % en la fuente y 10,4 al 3,3 % cargado, `balance.md` v22 §4 según mapa 05 §5; si hay que arreglarlo, se arregla el dato).
+1. `STAGE_FEATURES[id][i]` con rasgos → `buildFeatureProfile` (sin cambios). `RouteMeta.source = 'real'`.
+2. `RACE_EDITIONS[id]` sin rasgos para esa etapa → ciudades, km y terreno reales; relieve por `generateStage`. `source = 'mixto'` (el 🟡 del inventario, mapa 05 §7).
+3. Fila de tabla sin edición, o nacional → todo por `generateStage`. `source = 'generado'`.
 
-### 10.2 El campo llega a la base y a la interfaz
+Ninguna regla de este diseño toca `featureProfile.ts`, `classicRoutes.ts` ni `editions.ts`. La doctrina de `fuentes-recorridos.md` (un puerto sin km+longitud+pendiente se descarta, nada se rellena a ojo) se hereda tal cual: el extractor de §11.1 lee **solo** lo publicado, y una etapa real sin `climbs` no aporta bandas de puertos aunque tenga `elevation`.
 
-`freezeRaceRoute` (`db/raceRoutes.ts` l. 43-52) escribe hoy `routeSource: 'generado'` para todo, con un comentario que espera «el campo que lo dice». Ese campo es `StageSpec.routeSource` (§3.2); el tipo `RouteSource` de la base (l. 29) gana el valor `'edicion'`. La API de la ficha (`apps/api/src/routes/calendar.ts` l. 91-105, `planFrom`) añade a cada etapa `routeSource`, `archetypeId` y `geo`; la web (`apps/web/src/pages/Race.tsx`, que ya dibuja la altimetría) muestra tres marcas con el mismo significado que el inventario: «Recorrido real (fuente citada)», «Ciudades y distancia reales, relieve generado», «Recorrido generado». Es la promesa de `docs/encargos.md` E12 («se distingue en la interfaz lo real de lo generado, que es una promesa al jugador y no un detalle», mapa 05 §8), y E1 pone el dato para que E12 solo tenga que dibujarlo.
+### 10.2 Cómo se evita la copia reconocible
 
-### 10.3 Lo generado no nombra
+- Un arquetipo `extraido` necesita ≥ 3 fuentes (`ARCH.extractMinSources`), y sus bandas son el p10-p90 **agregado** de las fuentes, no los valores de una. Una familia con menos de tres fuentes (Roubaix, Strade, Flèche) se completa con la tabla del mapa 07 (que da rangos de varias carreras de la misma familia) y se marca `manual` con la cita.
+- Las posiciones se sortean dentro de bandas; las longitudes y pendientes también; los nombres no existen (las ciudades ya son neutras y vienen de `raceRoutes.ts`, y el nombre de la carrera es «Race + Geografía», `calendar.ts` l. 2-7).
+- **Test anti-clon** (`routes/gen/clone.test.ts`): para cada instancia generada se muestrea `g` a 1 km, se normaliza el eje a [0,1] desde la meta, y se calcula la correlación de Pearson con cada fuente de su arquetipo; ninguna supera `ARCH.cloneMaxCorrelation`. El umbral se calibra antes de fijarlo (§11.4): se mide la misma correlación entre pares **reales** de la misma familia (Ronde contra E3, Amstel contra Brabant, Lombardía contra Lieja) y se pone el tope en el p90 de esos pares, que es «tan parecido como dos carreras reales distintas, no más».
+- Un circuito generado no repite el número exacto de vueltas de una fuente concreta si el arquetipo tiene solo esa fuente para ese dato: `laps` es banda.
 
-Ningún motivo lleva nombre real. Las pancartas generadas se llaman por su km («Cota km 143»); un arquetipo cita en `refs` de qué carrera real se extrajo, y eso vive en el código y en `docs/generador.md`, nunca en la ficha del jugador. Si un día se quieren nombres inventados, es un generador de topónimos y va aparte.
+### 10.3 Distinción en la interfaz
+
+`race_routes.route_source` ya existe y hoy todo entra como `generado` (`packages/db/src/raceRoutes.ts` l. 48-51, mapa 03 §9.5). Pasa a tomar `RouteMeta.source` con tres valores (`real`, `mixto`, `generado`) y se congela con el perfil. La API del calendario (`apps/api/src/routes/calendar.ts` l. 97) expone `route: { source, region, archetypeLabel }`, donde `archetypeLabel` es el nombre de la **familia** en lenguaje de aficionado («clásica de muros», «etapa de montaña con final en alto largo», «crono ondulada»), nunca el nombre de una carrera real. La web pinta la marca junto a la altimetría: ✅ Recorrido real (con la fuente, que `classicRoutes.ts` ya lleva), 🟡 Ciudades y distancia reales, relieve generado, 🔴 Recorrido generado. Es la promesa al jugador que E12 pide (mapa 05 §8) y que E1 puede cumplir porque el dato ya está en la fila.
 
 ---
 
-## 11. El banco: qué cambia, qué se mueve a propósito, cómo se mide que es mejor
+## 11. El banco
 
-### 11.1 Lo que se rompe seguro y se re-sella con la causa escrita (mapa 06 §4)
+### 11.1 El extractor: `scripts/extraer-arquetipos.mjs` → `routes/gen/extraidos.ts`
 
-| Test                                                                       | Qué se hace                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `index.test.ts` l. 381 (`ENGINE_VERSION` 69)                               | 69 → 70 en el paso 6, una sola subida para toda la sustitución                                                                                                                                                                                                                                                                                                                                                                                       |
-| `routes/stageKind.test.ts`                                                 | se reescribe por familia: 300 instancias por arquetipo (60 semillas × 5 km de `KM_ROAD`) y por región admitida; se añaden `montana-un-dia` (hoy sin vigilar, mapa 06 §6.1) y `cri-cuesta`; la exigencia «existen las dos etiquetas de reina» pasa a «cada familia `reina-*` produce su `finalKind`». El comentario de umbrales de `stageKind.ts` l. 44-58 se re-mide con la tabla nueva (hoy dice 9,1-15,0 y las reinas llegan a 26,7, mapa 01 §5.1) |
-| `routes/calendar.test.ts` l. 162-174 (km exactos)                          | sigue igual: `normalize` no cambia                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| `routes/calendar.test.ts` l. 184-277 (`stageMix`)                          | los tests de garantías pasan a `tours.test.ts` sobre el catálogo de esqueletos; el de «primera etapa llana» se relaja a «no reina»; el de `race-sharjah` (crono y final en alto, l. 260-277) se conserva sobre `composeTour`                                                                                                                                                                                                                         |
-| `apps/api/src/stageHistory.test.ts` l. 199 (`cambian === 49`)              | se re-mide y se sella la cifra nueva; por §4.8 debería bajar a las `cima_cerca` de ≤ 5 km, y el test anota por qué                                                                                                                                                                                                                                                                                                                                   |
-| `sim/calendarQueens.test.ts`                                               | ver §11.2                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| `sim/invariants.test.ts` «carreras PEQUEÑAS» (l. 855-955)                  | re-medir las nueve bandas de `smallTours` con 8 semillas; 7 de las 10 carreras son generadas (mapa 06 §3.2)                                                                                                                                                                                                                                                                                                                                          |
-| `sim/invariants.test.ts` «cola en las reinas REALES» (l. 770-844)          | las tres generadas (`race-colombia` e5, `race-guatemala` e9, `race-tachira` e6) se sustituyen por perfiles LITERALES congelados en `realQueens.ts` con la forma que su `why` describe (Colombia: «último puerto a 62 km de meta y 47 rodadores», que hoy ya no es lo que corre, mapa 06 §3.2); así la lista cerrada vuelve a ser cerrada de verdad                                                                                                   |
-| `sim/invariants.test.ts` saturación (l. 511-552)                           | se re-eligen las 8 más exigentes del calendario nuevo (`costBase` integrado) y se re-mide; el techo 0,96 / 14 % no se toca                                                                                                                                                                                                                                                                                                                           |
-| `sim/coherence.test.ts` Race Jaén, `stage/journal.test.ts` Race Tramuntana | se re-corren; si aflora una contradicción es del motor y se arregla, no se afloja el cero                                                                                                                                                                                                                                                                                                                                                            |
-| `routes/raceRoutes.test.ts`                                                | rompe si un esqueleto cambia el `n` de una carrera: no lo hace (`n` viene de la fila)                                                                                                                                                                                                                                                                                                                                                                |
+Determinista, sin RNG, regenerable como `inventario-recorridos.md` («si algo aquí no cuadra, el que miente es el documento y se regenera»). Pasos:
 
-### 11.2 Lo que se mueve a propósito
+1. Para cada etapa real con `climbs` (146) o `cobbles` (6): calcular el vector de rasgos `F = { km, nClimbs, nWalls (≤1,5 km), nCotas (1,5-3), nPuertos (≥3), maxLen, lastLen, lastG, lastToFinish, climbKmLast30, climbKmBefore60, firstPos, repeats, nSectors, cobblesKm, lastSectorToFinish, dPlusPub, finalKindOf, stageKindOf }`. Es exactamente lo que `medir-real.mjs` ya calcula.
+2. Asignar familia con reglas escritas: `format = un-dia` y `nSectors ≥ 15` → `adoquin_densidad`; `un-dia` y `cobbles` con estrellas 2-4 y sin puertos → `sterrato`; `un-dia` y `repeats ≥ 3` → `circuito_cotas`; `un-dia` y `lastToFinish ≤ 0,5` y `lastLen ≤ 2,5` → `muro_final`; `un-dia` y `maxLen ≥ 4` → `montana_un_dia`; `un-dia` y `nClimbs ≥ 8` → `muros_encadenados`; `un-dia` resto → `esprint_costa`. Para vueltas: `kind = reina` y `finalKindOf = alto` y `lastLen ≥ 8` → `reina_alto_largo`; `alto` y `lastLen < 8` → `reina_alto_corto`; `cima_cerca` → `reina_cima_cerca`; resto de reinas → `reina_valle`; `km < 140` y `reina` → también `reina_corta`; `media` con `alto` → `media_alto`; `media` con `repeats ≥ 2` → `media_circuito`; `media` con `lastToFinish ≤ 0,5` y `lastLen ≤ 1,5` → `media_muro_final`; resto de medias → `media_valle`; `llana` sin `climbs` → `llana_pura`; con cota a > 20 km → `llana_repecho`; con `repeats` → `llana_circuito`; cronos por `dPlus/km`: < 5 m/km `cri_llana`, 5-25 `cri_ondulada`, > 25 `cronoescalada`, `km ≤ 8` `prologo`.
+3. Para cada (familia, formato) con ≥ 3 etapas: bandas p10/p50/p90 de cada rasgo y, para el esqueleto, las posiciones **por rango desde la meta** (la última cota, la penúltima, ...) con su longitud y pendiente. Los huecos más allá de la mediana de `nClimbs` reciben `presence` = fracción de fuentes que los tienen.
+4. Anotar `provenance.sources` y la región de cada fuente (`RACE_REGION`); si ≥ 3 fuentes comparten región, se emite además un arquetipo regional.
+5. Escribir `extraidos.ts` con un comentario de cabecera con la fecha, el número de fuentes y el hash del corpus.
 
-1. **`calendarQueens`**: la muestra se recalcula sola (`calendarQueens.ts` l. 22-27) y el desnivel de 25 de sus 27 reinas cambia. Con `ARCHETYPE.queenDplus` la mediana de las reinas del calendario sube (hoy 2.053 m) y la cola < 1.500 m se vacía, que es lo que `calendarQueens.test.ts` l. 62-64 prohíbe («facil.races > 0» y «facil > dura + 10»). **Decisión de diseño, no del test**: la cola blanda de montaña existe en la realidad como `media-alto` y `reina-corta` de `.2`, no como reina de gran vuelta; las reinas de `.2` y una semana tienen banda [2.000; 3.500] y [2.400; 4.200], así que la cubeta 1.500-2.500 sigue poblada y la < 1.500 se queda con las `reina-corta` (120-140 km, 2-3 puertos, `dPlus` [1.800; 3.000]) de clase `.2`. El test se reescribe con cubetas por FORMATO (gran vuelta / una semana / un día / `.2`) y la afirmación «el desnivel decide» se mide entre la cubeta más blanda y la más dura que sigan pobladas, con 12 semillas y no 4 antes de sellar. La banda 6-30 % se re-mide; si sale fuera se lleva al dueño con la cifra (su «está bien así» era sobre el 18,1 %).
-2. **`mountain.breakawayWinPct` y `top10GapSeconds`** sobre `reina-150`: no se tocan (son control de forma, `targets.ts` l. 79-85); se añade en `scenarios.ts` una `reina-real-175` generada con el arquetipo `reina-alto` fijado (`archetypeId` y `identity` literales) de 3.800 m y se imprime sin banda hasta tener sigma.
-3. **`REAL_QUEENS`**: además de congelar las tres generadas (§11.1), se añade un test barato: `finalKindOf(stage.profile)` y `desnivelDe` contra lo que cada `why` dice, para que el nombre no sobreviva a la forma.
-4. **`grandTour.queenLastGroupPct`**: no se mueve (20 de 21 etapas de `race-france` son reales, mapa 06 §1) pero se parte por `finalKindOf` como el mapa 04 §4.3 pide, porque ahora hay reinas generadas de todas las cubetas para compararlo.
-5. **`smallTours.photoRepeat*`**: se separa la parte de composición: se imprime cuántos pares de llegadas agrupadas trae cada carrera del esqueleto y se compara pareado viejo/nuevo.
-6. **`medianLeadGroupRiders`** (sin banda): se mide por `finalKind` sobre la muestra sistemática y se le pone banda solo donde no nazca en rojo.
+Medido aquí, lo que el corpus da hoy: `reina_alto_largo` (≥ 20 fuentes: p50 de última subida 10 km al 7,1 %), `reina_valle` (13), `media_valle` (44), `media_alto` (9), `llana_repecho` (22), `muros_encadenados` (7: Ronde, Omloop, E3, Dwars, Amstel, Brabant, Wevelgem), `circuito_cotas` (5: Québec, Montréal, Hamburgo, Frankfurt, Great Ocean), `montana_un_dia` (3: Lombardía, Lieja, San Sebastián), `cri_*` (13). Quedan en `manual` con la cita del mapa 07: `adoquin_densidad` (1 fuente, §1.4), `sterrato` (1, §1.3), `muro_final` (1, §1.2), `esprint_costa` (§1.5), `criterium` (§1.7), `reina_corta` (§2.1 regla 5), `cronoescalada`, `prologo` (§2.2), y todo lo de regiones sin fuente.
 
-### 11.3 Invariantes que NO deben moverse (la red)
+### 11.2 Lo que cambia en los tests, y cómo
 
-Las cuatro huellas selladas (`attribution.test.ts`, `timetrial.test.ts`, `raceRadio.test.ts`), los 6.17 sintéticos, `grandTour`, `featureProfile.test.ts`, `classicRoutes.test.ts`, `finalKind.test.ts`, `altimetry`, `schedule`, `uci`, `recorridoDelMundo.test.ts` (mapa 06 §5). Si alguna se mueve, el cambio ha tocado el motor y no el generador, y se para.
+Del mapa 06 §4, con la decisión de este diseño para cada uno:
 
-### 11.4 Métricas de realismo (fidelidad estadística)
+| Test                                                                                               | Qué pasa                                                                | Decisión                                                                                                                                                                                                                                                                                                                                                                        |
+| -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `index.test.ts` l. 381                                                                             | `ENGINE_VERSION` 69 → 70                                                | se sube en el paso 8 de §12                                                                                                                                                                                                                                                                                                                                                     |
+| `apps/api/src/stageHistory.test.ts` l. 199 (`cambian === 49`)                                      | la cifra cambia                                                         | se re-mide y se escribe la causa («el generador nuevo dibuja por arquetipos: N etapas de edición cambian de etiqueta»); la mitad que vigila (`spec.kind === stage.kind`) se mantiene en verde por la garantía de clase V12                                                                                                                                                      |
+| `routes/stageKind.test.ts`                                                                         | los ocho generadores desaparecen                                        | se reescribe contra `ARCHETYPES`: 300 instancias por arquetipo (60 semillas × 5 km de su `kmBand`) devuelven `arch.kind`; incluye por fin `montana_un_dia` (hoy `mountainClassicSegments` no está vigilado, mapa 06 §6.1); y las reinas siguen exigiendo las dos etiquetas                                                                                                      |
+| `routes/calendar.test.ts` l. 162-174 (km exactos de ediciones)                                     | `normalize` se conserva                                                 | sigue verde; se añade al test que `route.source === 'mixto'` en esas etapas                                                                                                                                                                                                                                                                                                     |
+| `routes/calendar.test.ts` l. 269-277 (`Uphill finish` acaba en `puerto`)                           | `media_alto` lo garantiza (V12 con `finalMix {alto: 1}`)                | sigue verde                                                                                                                                                                                                                                                                                                                                                                     |
+| `routes/calendar.test.ts` l. 184-246 (garantías de `mixRoles`)                                     | se conservan                                                            | siguen verdes; se añaden bloques, `queenAfterFraction`, km por clase                                                                                                                                                                                                                                                                                                            |
+| `routes/raceRoutes.test.ts` (n etapas = n rutas)                                                   | la composición conserva `n`                                             | verde                                                                                                                                                                                                                                                                                                                                                                           |
+| `routes/finalKind.test.ts`, `featureProfile.test.ts`, `classicRoutes.test.ts`, `altimetry.test.ts` | no leen el generador                                                    | sin tocar                                                                                                                                                                                                                                                                                                                                                                       |
+| `sim/calendarQueens.test.ts`                                                                       | cambia la muestra (25 de 27 no reales) y el desnivel                    | se re-mide con 12 semillas fuera de CI antes de tocar bandas; el «desnivel decide» (`facil > dura + 10`) debe seguir, porque las reinas de `andes`/`generico` en .2 (`reina_valle`, `reina_corta`) pueblan la banda < 1.500 sin necesidad del 40 % dirigido (D5)                                                                                                                |
+| `sim/invariants.test.ts` «carreras pequeñas»                                                       | 7 de 10 generadas                                                       | se re-miden las nueve bandas pareadas (viejo/nuevo, mismas semillas); `media.stages > 40` se conserva porque las plantillas mantienen la proporción de medias                                                                                                                                                                                                                   |
+| `sim/invariants.test.ts` «reinas reales»                                                           | 3 de 9 son generadas y su `why` ya no describe el perfil (mapa 06 §3.2) | las tres (`race-colombia` e5, `race-guatemala` e9, `race-tachira` e6) se **congelan** como perfiles literales en `sim/frozenQueens.ts` con la instancia de hoy, para que el banco siga siendo comparable entre versiones; y se añaden tres instancias del generador nuevo de las familias `reina_valle` (andes), `reina_alto_largo` (andes) y `reina_corta` con su `why` medido |
+| `sim/invariants.test.ts` «saturación de un día»                                                    | las 8 más duras cambian                                                 | se re-mide; el criterio (0 saturan, techo Lombardía) es el mismo                                                                                                                                                                                                                                                                                                                |
+| `sim/coherence.test.ts` Jaén, `stage/journal.test.ts` Tramuntana                                   | listones de cero sobre perfiles generados                               | se re-corren; si aflora una contradicción, es del motor y se arregla, no se afloja (mapa 06 §4.10)                                                                                                                                                                                                                                                                              |
+| `db/recorridoDelMundo.test.ts`                                                                     | auto-consistente                                                        | verde; garantiza que el generador nuevo solo alcanza carreras futuras                                                                                                                                                                                                                                                                                                           |
 
-`reference.ts` guarda, por familia, los cuantiles p10/p50/p90 de siete medidas sobre las etapas REALES de esa familia (`origen: 'extraido'`) o del mapa 07 (`origen: 'curado'`, con la fila citada):
+Lo que sigue verde sin tocar: las cuatro huellas selladas, los 6.17 sintéticos, `grandTour` (20 de 21 reales), los perfiles reales (mapa 06 §5).
 
-| Medida                                                   | Cómo se calcula (función pura, sin simular)                                     |
-| -------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| `dPlus`                                                  | `desnivelDe` de `calendarQueens.ts` l. 55-59 (bloques `subida`)                 |
-| cota más larga                                           | `climbSize` de `stageKind.ts` l. 36-42                                          |
-| km tras la última cota                                   | `kmAfterLastClimb` (`finalKind.ts` l. 69-73)                                    |
-| nº de dificultades (`puerto` ≥ 0,4 km o `paves`)         | recuento de segmentos                                                           |
-| posición de la primera dificultad (fracción)             | acumulado                                                                       |
-| km de `subida` fuera de los últimos 30 km sobre el total | la variable que separó canónica de reales en `balance.md` v43 §7 (mapa 04 §3.2) |
-| km de `paves` y nº de sectores                           | suma                                                                            |
+### 11.3 Lo que se mueve a propósito
 
-`fidelity.test.ts` (rápido, en cada push) instancia 300 etapas por familia y región admitida y exige, para cada medida con referencia `extraido`, `|q_gen − q_ref| ≤ ARCHETYPE.fidelityTol · (p90_ref − p10_ref)` en p10, p50 y p90; para las `curado`, solo que p10 y p90 generados caigan dentro de la banda del mapa. Además, sobre el CALENDARIO entero (`calendarFor(0)`), imprime la tabla por familia y formato (como `queenGeometry`, l. 184-200) y sella: mediana de `dPlus` de reina de gran vuelta generada ≥ 3.200; p90 de km tras la última cota en `montana-un-dia` en [12, 25]; ninguna reina generada con 0 % de subida fuera de los últimos 30 km; `queenFamilyMix` del calendario dentro de ±0,08 (lo que `docs/tactica.md` l. 5580 quería y nunca se selló, mapa 06 §6.2).
+1. `mountain.breakawayWinPct` y `mountain.top10GapSeconds` sobre `reina-150`: no se mueven (no ven el generador) y se les cambia la clave a `canonQueen.*` para que nadie vuelva a leerlas como «la montaña» (mapa 04 §4.3.1).
+2. `calendarQueens.breakawayWinPct` 6-30: se re-mide con el calendario nuevo; se propone al dueño una banda por cubeta de desnivel (D5), como el mapa 04 §4.3.2 pide.
+3. `grandTour.queenLastGroupPct`: las siete reinas de `race-france` son reales; no se mueve. Se añade la partición por `finalKindOf` como impresión sin banda.
+4. `smallTours.photoRepeat*`: se separa la parte de composición (pares de agrupadas) de la de motor, imprimiendo ambas.
 
-Lo que la fidelidad NO puede afirmar, y se escribe en el test: solo hay 177 etapas reales y 139 son WorldTour; para `.1`, `.2` y nacionales la referencia es curada, así que «se parece a lo real» significa «se parece a lo que el mapa 07 dice de lo real».
+### 11.4 Métricas de fidelidad y de variedad (nuevo `sim/routeFidelity.ts`, geométrico, corre en `test:rapido`)
 
-### 11.5 Métricas de variedad y de no copia
+**Fidelidad** (por familia con ≥ 5 fuentes reales; sobre todas las instancias del calendario generado de esa familia, o 300 semillas si son menos de 30):
 
-En el mismo `fidelity.test.ts`, sobre el calendario entero:
+| Rasgo                                                  | Criterio de banda (nace impreso; se sella cuando tenga σ)                    | Referencia real medida aquí                                      |
+| ------------------------------------------------------ | ---------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `nClimbs`                                              | p10-p90 generado dentro de p5-p95 real ±1                                    | reina 2-6, media 1-6, un día 4-34                                |
+| `lastLen`                                              | idem ±20 %                                                                   | reina alto 5,0-17,1; media 1,0-14,2; un día 0,5-2,1              |
+| `lastToFinish`                                         | idem ±3 km                                                                   | reina 0-21; media 0-59; un día 0-21                              |
+| `maxLen`                                               | idem ±20 %                                                                   | reina 7,3-24; media 2,5-26,5                                     |
+| `climbKmBefore60`                                      | idem                                                                         | reina 0-43; nunca 0 en el 100 % de una familia de reina (v43 §7) |
+| `dPlus` (`desnivelDe` de `calendarQueens.ts` l. 55-59) | p50 de reina de gran vuelta ≥ 3.000 m; cubeta < 1.500 no vacía               | mapa 04 §5.1                                                     |
+| `finalKindOf` por familia                              | dentro de ±0,08 del `finalMix` del arquetipo (por fin sellado, mapa 06 §6.2) | real 69 % alto                                                   |
+| `nSectors`, `cobblesKm`                                | `adoquin_densidad` 20-31 sectores y 40-57 km                                 | Roubaix 31 / 54,8                                                |
+| distancia de Kolmogorov `D` por rasgo                  | se imprime; se sella cuando `D` tenga dueño                                  |                                                                  |
 
-- **No copia**: para cada etapa generada de una familia `extraido`, correlación de Pearson entre su vector de `g` remuestreado a 200 puntos (fracción de etapa) y el de cada etapa real de la familia ≤ `copyMaxCorr` (0,85); y fracción de dificultades a ±1 % de posición de las de una misma real ≤ `copyMaxPositionHits` (0,6). Coste: 1.241 × 177 × 200 ≈ 44 millones de multiplicaciones, menos de 2 s; se corre en test, nunca al cargar el módulo (§4.7).
-- **Distancia entre iguales**: mediana de correlación entre pares de etapas generadas del mismo `kind` y km ±10 % < 0,8 (mapa 04 §5.2); con los moldes de hoy este número es alto por construcción (mismo esqueleto, mismas proporciones de `split`), y es la medida que responde al dueño.
-- **Entropía de arquetipo** por `(kind, clase)`: ninguna combinación con un solo arquetipo que pese > 60 % de sus etapas.
-- **Entropía de `finalKind` dentro de cada vuelta** con ≥ 2 reinas: ninguna gran vuelta generada con todas sus reinas `alto`.
-- **Composición**: ninguna secuencia de papeles > 25 % de las vueltas de 5 etapas.
-- **Pareado con el motor**: `distinctWinnerPct` por `kind` y `photoRepeatTopFive` sobre `smallTours`, mismo `worldSeed`, generador viejo contra nuevo (el viejo se conserva en el scratchpad de la tanda hasta cerrar el paso 8, como hizo el mapa 01 para medir). Un generador que baje la variedad de ganadores con el mismo motor ha empeorado.
+**Variedad**:
+
+| Métrica                                                                                       | Criterio                                                    |
+| --------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| Arquetipos distintos usados por familia en el calendario                                      | ≥ 3 donde existan ≥ 3                                       |
+| Correlación mediana de `g` por km entre pares de instancias de la misma familia y ±10 % de km | < 0,8 (mapa 04 §5.2)                                        |
+| Correlación máxima instancia-fuente                                                           | < `ARCH.cloneMaxCorrelation`, calibrado sobre pares reales  |
+| Secuencias de papeles en vueltas de 5                                                         | ninguna > 15 % (hoy 7 %)                                    |
+| Entropía de `finalKind` por vuelta con ≥ 2 reinas                                             | ninguna con todas `alto`                                    |
+| Km de un día por clase                                                                        | desviación típica > 15 km en .1 y .2 (hoy 0)                |
+| Cobertura regional                                                                            | ninguna región con `fallback:` en más del 2 % de sus etapas |
+
+**Método** (mapa 04 §5.3): todo pareado con las mismas semillas, geometría en `test:rapido`, simulación en `test:bancos`, y ninguna banda nueva nace en rojo: primero se imprime en `pnpm sim`, después se sella.
 
 ---
 
 ## 12. Plan de implementación
 
-Reglas comunes a todos los pasos: tests primero; `pnpm typecheck && pnpm test:rapido` en verde antes de cerrar cada paso; los bancos (`test:bancos`) se corren al cerrar los pasos 6 y 7; toda constante nueva con comentario de intención; una sola subida de `ENGINE_VERSION` (paso 6); una sola nota en `docs/balance.md` («v70 §1: el generador por arquetipos», con subsecciones por paso, como v60 §1b) que se va escribiendo paso a paso; `docs/generador.md` se escribe con el paso 9 y cita este diseño. Nada de `Date.now` ni `Math.random`: todo azar sale de `routeRng` con subflujo nominal.
+Regla de la casa: tests primero, `typecheck && test` en verde antes de cerrar cada paso, presupuesto de reloj ≥ 4× el coste medido en CI. `ENGINE_VERSION` sube **una sola vez**, en el paso 8, que es cuando cambia lo que el juego corre; los pasos 1-7 construyen en paralelo sin tocar `calendar.ts`. Cada paso deja su nota en `docs/balance.md` bajo «v70», con las tablas pareadas.
 
-**Paso 0. Congelar lo vivo.** Correr `backfillRaceRoutes` (`db/raceRoutes.ts` l. 91-109) en todo mundo vivo ANTES de tocar `routes/` (mapa 03 §9, caso 3). El mundo se reinicia antes del lanzamiento, así que no hay migración de perfiles, pero el backfill cuesta un comando y evita que una vuelta a medias cambie de recorrido en el entorno de pruebas.
+| Paso | Qué                                                                                                                                                                                                                                                                                   | Tests primero                                                                                                                                                                                                                                                    | Ficheros                                                                                                                                   |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| 0    | Confirmar que no hay mundos vivos que necesiten `backfillRaceRoutes` (el mundo se reinicia antes del lanzamiento; si hubiera, correrlo ANTES de cambiar el generador, `raceRoutes.ts` l. 88-89)                                                                                       | ninguno                                                                                                                                                                                                                                                          | `packages/db`                                                                                                                              |
+| 1    | `routes/gen/rng.ts`: `genRng(seed)(subflow)`                                                                                                                                                                                                                                          | determinista; dos subflujos independientes (cambiar el número de tiradas de uno no mueve el otro); misma cadena que `routeRng` para `subflow = ''`                                                                                                               | nuevo                                                                                                                                      |
+| 2    | `routes/gen/draw.ts`: mover `climb`, `descent`, `rolling`, `normalize`, `split`, `between` desde `profileGen.ts`; `climb` gana `shape`; `rolling` pierde `rompepiernas` y gana amplitud; nuevo `wall`, `sector`, `loop`                                                               | km exactos al décimo; suma de tramos = km del segmento; ningún `rompepiernas`; `fillMaxGradient`; `pared_final` produce al menos un tramo ≥ g+3; `isWall` (`sample.ts` l. 146-154) verdadero para todo `wall`                                                    | nuevo, `profileGen.ts` importa de aquí (sin cambio de conducta: prueba de huella sobre 300 semillas de cada `xxxSegments` antes y después) |
+| 3    | `routes/gen/regions.ts` + `constants.ts::GEO_SIGNATURES`, `GEO_DEFAULT_TERRAIN`, `COUNTRY_REGION`, `RACE_REGION`                                                                                                                                                                      | los 136 códigos resuelven; las 310 carreras de equipos tienen `RACE_REGION`; las 20 filas `cobbles` caen en regiones con `cobbles = 'sectores'` o `'urbano'`; toda firma tiene `min < max`                                                                       | nuevo                                                                                                                                      |
+| 4    | `scripts/extraer-arquetipos.mjs` → `routes/gen/extraidos.ts`; `routes/gen/manual.ts`; `routes/gen/archetypes.ts` los une                                                                                                                                                              | el extractor es idempotente (dos corridas, mismo fichero); todo `extraido` tiene ≥ 3 fuentes; todo `manual` cita; cada familia tiene ≥ 1 arquetipo; el canónico de cada arquetipo pasa los doce vetos; `kmBand` compatible con `ROUTE.kmByClass` de alguna clase | nuevo, `package.json` script `arquetipos`                                                                                                  |
+| 5    | `routes/gen/skeleton.ts` + `vetos.ts` + `garantizaClase`                                                                                                                                                                                                                              | por arquetipo, 60 semillas × 5 km: V1-V12 en verde, `stageKindOf` = `arch.kind`, `finalKindOf ∈ finalMix`, km exacto, ≤ 1 reparación en el p90, 0 canónicos forzados en el p99; registro de qué veto dispara                                                     | nuevo                                                                                                                                      |
+| 6    | `routes/gen/generate.ts`: `generateStage`; `sim/routeFidelity.ts` + `routes/gen/fidelity.test.ts` + `clone.test.ts`                                                                                                                                                                   | determinismo; `season` 0 y 1 comparten `archetypeId`, `finalKind` y número de motivos y difieren en posiciones; fidelidad §11.4 impresa, variedad §11.4 sellada donde ya se cumpla; anti-clon con el umbral calibrado sobre pares reales                         | nuevo                                                                                                                                      |
+| 7    | `routes/gen/tour.ts`: `TOUR_TEMPLATES`, `composeTour(n, terrain, region, raceClass, seed)`                                                                                                                                                                                            | todas las garantías de `calendar.test.ts` l. 184-246 portadas; `maxConsecutive`; `queenAfterFraction`; `kmByClass`; ninguna secuencia > 15 % en 72 vueltas; `n` se conserva (para `raceRoutes.test.ts`)                                                          | nuevo                                                                                                                                      |
+| 8    | **El cambio**: `calendar.ts` usa `generateStage` y `composeTour` en `oneDaySpec`, `stageMix`, `stagesFromEdition` (rama sin rasgos) y `nationalChampionships`; `CalendarStage.route`; `ENGINE_VERSION` 70; `profileGen.ts` queda exportado como `legacy/` una versión para el pareado | `stageKind.test.ts` reescrito; `stageHistory.test.ts` re-sellado con causa; `calendar.test.ts` ampliado (`route.source`); `index.test.ts` 70; `recorridoDelMundo` verde                                                                                          | `calendar.ts`, `constants.ts`, `index.ts`                                                                                                  |
+| 9    | Bancos: re-medir pareado `calendarQueens` (12 semillas), `smallTours`, `realQueens` (congelar las tres generadas en `sim/frozenQueens.ts` y añadir tres nuevas), saturación top-8, Jaén, Tramuntana, cronos reales (3 de 5 generadas)                                                 | los del mapa 06 §4.5-4.10, con las bandas que el dueño decida en D5                                                                                                                                                                                              | `sim/*`                                                                                                                                    |
+| 10   | Interfaz: `race_routes.route_source` toma `RouteMeta.source`; API expone `route`; web pinta la marca                                                                                                                                                                                  | `apps/api` test de que cada etapa del calendario lleva `route.source` y que las de `STAGE_FEATURES` son `real`; `db/raceRoutes.test` congela `mixto`                                                                                                             | `packages/db/src/raceRoutes.ts` l. 48-51, `apps/api/src/routes/calendar.ts`, web                                                           |
+| 11   | Temporada: `seasonCalendar(season)`, `calendarRun.ts` congela con la temporada del mundo; `EDITION.level` 1                                                                                                                                                                           | dos temporadas de la misma carrera: misma identidad, distinto detalle; `race_routes` sella por temporada; `SEASON_CALENDAR === seasonCalendar(0)`                                                                                                                | `calendar.ts`, `packages/db`                                                                                                               |
+| 12   | Limpieza: borrar `legacy/profileGen.ts`, actualizar `stageKind.ts` l. 45-58 con la tabla re-medida, `motor.md` §V.3 y §10, `SPEC.md` §8 (nota), regenerar `inventario-recorridos.md` con la columna de arquetipo, escribir `docs/generador.md` a partir de este documento             | la suite entera                                                                                                                                                                                                                                                  | docs                                                                                                                                       |
 
-**Paso 1. Geografía.** Tests: `geo.test.ts` (todo país de `COUNTRIES` y de `RACE_COUNTRY` resuelve a ≥ 1 región; toda región tiene firma; las 20 filas `cobbles` caen en región con adoquín o sterrato; `veta` no deja a ninguna combinación `(role, región)` sin familia posible). Código: `archetypes/geo.ts` con `GEO_SIGNATURES`, `COUNTRY_GEO`, `geoOf`; `RaceRow.geo` opcional y su relleno para las filas obvias. Sin `engine_version` (no cambia ningún perfil todavía).
-
-**Paso 2. Extractor y catálogo.** Tests: `catalog.test.ts` (todo arquetipo tiene `refs`, bandas con `min ≤ max`, `at` creciente entre motivos no `desdeMeta`, `final` coherente con el último motivo; todo `extraido` cita ≥ `minRealForExtracted` etapas; `reference.ts` tiene cuantiles para toda familia). Código: `scripts/extraer-arquetipos.mjs`, que lee `STAGE_FEATURES` y `RACE_EDITIONS`, clasifica cada etapa real en una familia (por `stageKindOf`, `finalKindOf`, formato, y nº y talla de dificultades), calcula posiciones normalizadas y talla de cada dificultad, agrupa por familia y escribe `catalog.extracted.ts` (motivos con bandas p10-p90 de cada grupo, ensanchadas ±25 % si el grupo tiene < 3 etapas de carreras distintas) y `reference.ts`. `catalog.ts` une lo extraído con lo curado (las familias sin dato: `circuito` nacional, `.2` de 3-5 días, `golfo`, `andes`, `prologo`, `cri-cuesta`, `reina-corta`, `llana-cota`), cada uno con su fila del mapa 07 en `refs`. El extractor es determinista y se documenta como `editions.ts` l. 8 («NO editar a mano»).
-
-**Paso 3. Piezas.** Tests: `pieces.test.ts` (un `puerto` de 12 km al 7 % produce un `Segment` `puerto` cuya `climbSize` es 12,0 y cuya media ponderada de `g` es 7,0 ± 0,05 con las cinco `shape`; un `muro` mide ≤ 3 km y `deriveFinishTerrain` lo ve; un `sector` es `paves` con estrellas; una `bajada` no baja de −12 %; un `valle` de 30 km con amplitud 0,55 suma < 250 m; un `circuito` de 12 km × 8 con una cota produce 8 pancartas separadas 12 km; ningún `rompepiernas`). Código: `archetypes/pieces.ts`, reutilizando `split`, `descent`, la lógica de `rollingFill` y `climbRamps`, que se exportan desde donde viven.
-
-**Paso 4. Generación de una etapa.** Tests: `generate.test.ts` (determinismo: misma `StageRequest` ⇒ mismo perfil, byte a byte; independencia de subflujos: cambiar `season` no cambia `identity`; 300 instancias por familia y región ⇒ cero vetos tras `maxAttempts`, media de intentos < 1,3; `stageKindOf` coincide con la promesa; el caso v40 explícito: `format: 'un-dia', role: 'mountain', raceClass: '1', country: 'FR'` × 300 semillas ⇒ ninguna muere en un puerto > 5 km salvo ≤ 2 % marcadas `rareza`); `vetoes.test.ts` (cada regla con un perfil que la viola y otro que no). Código: `archetypes/generate.ts`, `vetoes.ts`, `identity.ts`. Todavía no se conecta al calendario.
-
-**Paso 5. Composición.** Tests: `tours.test.ts` (los esqueletos del catálogo cumplen los vetos 15-19 para todo `n` de su banda y toda clase; `composeTour` es determinista; `race-sharjah` sigue con crono y final en alto; ninguna secuencia > 25 % en `n = 5`). Código: `archetypes/tours.ts` con el extractor de secuencias añadido al script del paso 2.
-
-**Paso 6. Conectar y subir versión.** Tests primero: re-sellar `stageKind.test.ts`, `calendar.test.ts` (km exactos se mantienen; garantías a `tours.test.ts`; «primera llana» → «primera no reina»), `stageHistory.test.ts` (cifra nueva con causa), `index.test.ts` (`ENGINE_VERSION` 70), `fidelity.test.ts` (§11.4-11.5) nuevo. Código: `calendar.ts` pasa a `calendarFor(season)` y `buildRace(row, season)` llama a `generateStage`/`composeTour`; `StageSpec.routeSource/archetypeId/geo`; `stagesFromEdition` conserva `idSeed = from|to|km`; `nationalChampionships` pide `role: 'auto'` con `format: 'un-dia'` y la clase `NC`; `freezeRaceRoute` escribe `routeSource` real y recibe `season`. Nota en `balance.md` con la tabla de fidelidad y variedad antes/después sobre el calendario entero.
-
-**Paso 7. El banco.** Re-medir con las semillas de `pnpm sim` (no las de CI) y anotar cifra a cifra en `balance.md`: `calendarQueens` con cubetas por formato (12 semillas), `smallTours` (8), `realQueens` con las tres congeladas (6), saturación de las 8 más duras (12 si salta), `timeTrials` (la crono sigue siendo `cri` llana salvo `cri-cuesta`, que hoy no entra en el banco), coherencia Jaén y diario Tramuntana. Mover bandas solo con la medida delante y con el dueño donde §14 lo diga. Actualizar los comentarios de `targets.ts` que citan cifras del generador viejo (l. 79-84 «mediana de 2.023»).
-
-**Paso 8. Borrar lo viejo.** Quitar los ocho `*Segments` y `mountainClassicSegments` de `profileGen.ts` y las claves muertas de `ROUTE` (§8); `profileGen.ts` queda como `routes/rng.ts` + primitivas o se funde en `pieces.ts`. Test: `grep` en CI de que nadie importa los nombres borrados. Sin `engine_version` (los perfiles ya cambiaron en el paso 6).
-
-**Paso 9. Interfaz y documento.** API: `routeSource`, `archetypeId`, `geo` en la ficha; web: las tres marcas de §10.2. `docs/generador.md` con: el catálogo (tabla de arquetipos con familia, regiones, `refs`), las firmas, los vetos, cómo se regenera el catálogo, la tabla de fidelidad medida y qué decidió el dueño de §14.
-
-Orden y dependencias: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9; el 0 antes de todo; el 9 puede solaparse con el 7.
+Pasos 1-7 caben sin subir versión y sin riesgo; el 8 es una tarde con los tests ya escritos; el 9 es el más largo (cada re-medida cuesta minutos de banco) y el 11 puede ir en una versión posterior si el dueño prefiere lanzar sin temporada (D4).
 
 ---
 
 ## 13. Riesgos y lo que se sacrifica
 
-1. **La referencia real está sesgada al WorldTour** (139 de 177 etapas reales; `.1` 4, `.2` 5, NC 0, mapa 02 §9). Los arquetipos de `.2` y nacionales son curados; la fidelidad allí es fidelidad al mapa 07, no a un dato. Mitigación: marcar `origen` en el catálogo y en el test; E12 sustituye curado por extraído a medida que cargue.
-2. **El extractor agrupa por familia con un criterio escrito, y ese criterio puede meter Lieja y Lombardía en el mismo saco.** Mitigación: las familias `ardenas` y `montana-un-dia` se separan por cota más larga (≤ 4,5 km contra ≥ 8) y el test del paso 2 imprime la asignación etapa a etapa para revisarla a mano una vez.
-3. **Coste de arranque.** 1.418 etapas con vetos y reintentos al cargar el módulo; con media de intentos < 1,3 es comparable a hoy, pero un catálogo mal calibrado (bandas que chocan con firmas) dispara reintentos. Mitigación: la media de intentos es un test (paso 4) y `maxAttempts` acota el peor caso.
-4. **Los bancos se mueven en bloque.** `smallTours`, `calendarQueens`, saturación y coherencia cambian de contenido a la vez; el paso 7 será largo y hay que aceptar que alguna banda salga fuera y haya que decidir. Se sacrifica la comparabilidad directa con v69 de esas bandas; se recupera con las medidas pareadas de §11.5 sobre el generador viejo guardado.
-5. **La cola < 1.500 m de `calendarQueens` se vacía a propósito** (§11.2.1). Se pierde una afirmación del test tal cual está («facil.races > 0» en < 1.500) a cambio de reinas de gran vuelta con desnivel de gran vuelta. Es una decisión del dueño (§14.3).
-6. **La temporada entra en el calendario** y toca `db` (`freezeRaceRoute`) y la API. Es poco código pero es el único punto del diseño fuera de `packages/engine/src/routes/`. Si se quiere posponer, `variantes = 1` y `season = 0` siempre reproducen el diseño sin variación entre ediciones y todo lo demás sigue en pie.
-7. **El motor no sabe de circuitos ni de viento por tramo.** Un `circuito` es un patrón periódico y nada más; la geografía guarda `viento` y no lo usa. Se sacrifica a sabiendas para no tocar `stage/` en E1.
-8. **`rompepiernas` deja de escribirse.** La altimetría de las medias montañas generadas pierde el tono «rompepiernas» del relleno (hoy con p 0,35); la física no lo notará porque ya lo colapsaba (mapa 03 §2 punto 4).
-9. **Ediciones sin rasgos.** Conservan `idSeed = from|to|km`, así que su identidad no gana geografía por semilla sino por región de la carrera; dos etapas de carreras distintas con la misma salida, meta y km seguirán iguales. Es el comportamiento de hoy y no se arregla aquí.
-10. **Sobreajuste al catálogo**: los tests de fidelidad comparan lo generado con la referencia de la que salen las bandas; una fidelidad alta es en parte tautológica. Lo que no es tautológico, y es lo que vale, son los vetos, la no copia, la variedad y las medidas de simulación pareadas.
+1. **El corpus es pequeño y sesgado al WorldTour europeo**: 177 etapas, 15 países, 41 carreras. Los arquetipos `extraido` cubren bien reinas, medias y clásicas del norte; todo lo demás es `manual` con la cita del mapa 07, que a su vez es conocimiento de calendario y no dato verificado. El diseño lo dice en la procedencia de cada arquetipo y la interfaz nunca presenta lo generado como real; pero un jugador colombiano verá una `reina_valle` de familia, no de los Andes, hasta que E12 cargue una Vuelta a Colombia. Mitigación: `regionalWeight` favorece lo regional en cuanto exista, y el extractor se re-corre con cada carga.
+2. **El clasificador no se recalibra** en E1 (D2): `stageKindOf` seguirá llamando `media` a 11 de 54 reinas reales. Los arquetipos se acotan para caer en su clase, así que lo generado será coherente con la etiqueta; lo real seguirá con la discrepancia que ya tiene hoy.
+3. **Más segmentos, más dificultades, más demanda en un día**: una `muros_encadenados` generada con 14 muros y 6 sectores es más dura que la `classicSegments` de hoy, y la saturación (`SATURATION_DEPLETION` 0,96) puede saltar en carreras .1 flamencas con campo continental. V11 acota la demanda a la banda de las fuentes y el paso 9 la mide; si salta, es el motor (dosificación) el que tiene que aguantar una Ronde de .1, no el generador el que tiene que ablandarla.
+4. **Las bandas de `smallTours` y `calendarQueens` se moverán**, y hay que decidirlas con el dueño (D5), no dejar que un test las decida (mapa 06 §6.3). El riesgo es repetir la v60 §1b: bandas que siguen verdes sin remedición anotada. Por eso el paso 9 exige tablas pareadas en `balance.md`.
+5. **`RACE_REGION` es contenido curado a mano** (310 carreras + regiones por etapa de 60 ediciones): cuesta una o dos tardes y puede tener errores; el test solo comprueba que existe, no que sea correcto. Un error de región produce una etapa plausible en un sitio equivocado, que es el defecto de hoy en todas partes.
+6. **El viento sigue sin estar en el perfil**: `wind` de la firma solo cambia pesos y amplitud. Una «clásica de viento» generada en Flandes es llana y el abanico lo decide la semilla del motor (mapa 03 §5.1). Se sacrifica a propósito: meter exposición en el perfil es un cambio del contrato del motor (`Block`), fuera de E1.
+7. **Las metas volantes generadas** quedan a 0 (D1): los perfiles generados siguen sin sprints intermedios, como hoy. El corpus permitiría hacerlo (101 de 177 los publican) y el motor las consume (2 de depósito y 5 km de alivio por pancarta, mapa 03 §4.2), pero cambia el ritmo de todas las llanas generadas y merece su propia medida.
+8. **Se retira el objetivo de desnivel dirigido** (`queenDplusRange`, 60/40) a favor de las bandas de cada familia. Si el dueño quiere conservar la palanca explícita, el `dPlusBand` del arquetipo la sustituye (D5).
+9. **Coste de arranque**: 1.418 etapas por temporada con reparaciones; con `maxRepairs` 4 y p90 ≤ 1 reparación, el orden de magnitud es el de hoy multiplicado por dos. Se mide en el paso 8.
+10. **El anti-clon mide correlación de pendiente**, no forma «reconocible» para un aficionado: una Ronde con Kwaremont-Paterberg al final a 17 y 13 km es reconocible aunque las 14 cotas anteriores bailen. Se acepta: el sitio de las dos últimas cotas es la familia, no la copia, y el nombre no existe.
 
 ---
 
 ## 14. Decisiones que son del dueño
 
-1. **¿Se cierra el catálogo de firmas geográficas con los valores del §5.1?** Son curados desde el mapa 07; el dueño conoce el ciclismo mejor que el mapa y puede querer otra banda para el Cantábrico o para Colombia.
-2. **¿Cuántas variantes rota una carrera generada y con qué mezcla?** Propuesto {1: 0,5; 2: 0,3; 3: 0,2}. Alternativa: todas con 1 (calendario fijo como hoy, solo deriva pequeña) o todas con 3.
-3. **La cola blanda de la montaña.** ¿Reinas de gran vuelta siempre ≥ 3.200 m (vaciando la cubeta < 1.500 de `calendarQueens` y reescribiendo su test por formato), o se conserva el 60/40 de hoy con reinas «que no son reinas» para que el test siga igual? El diseño propone lo primero.
-4. **La rareza del final en puerto largo en un día** (`oneDayLongSummitShare` 0,02, solo `.1`): ¿se admite o se prohíbe del todo (0)?
-5. **Metas volantes generadas.** `auto()` no las fabrica a propósito (l. 88-91). Los arquetipos podrían declararlas (1-2 por etapa, a 40-120 km de meta) porque mueven puntos, coste y alivio (mapa 03 §4.2). Propuesto: no, hasta que E12 decida qué carreras las tienen.
-6. **Nombres.** ¿Pancartas «Cota km 143» o un generador de topónimos por región? Propuesto: sin nombres en E1.
-7. **La banda 6-30 % de `calendarQueens`** se re-mide sobre el calendario nuevo; si sale fuera, ¿se recentra con la cifra nueva («está bien así» era sobre 18,1) o se calibra el motor hacia 18?
-8. **Km de las carreras de un día sin `km` en la fila** (142 de 178 a 210 km hoy): ¿banda por clase y arquetipo (propuesto) o se mantienen los 210 hasta que E12 cargue distancias reales?
-9. **`primera etapa llana`** se relaja a «no reina» para que los esqueletos extraídos (Tour 2026 abre con crono; Giro con llana en Bulgaria) quepan. ¿De acuerdo?
-10. **¿Se expone `archetypeId` al jugador** (como texto tipo «clásica de muros flamenca») o solo la marca real/edición/generado? Propuesto: solo la marca en E1; el texto es de E12.
+- **D1 · Metas volantes generadas.** `ARCH.sprintBannerChance` 0 (hoy) o bandas por arquetipo. Cambia el ritmo de las llanas y hay que medirlo; recomendación: 0 en E1, medir en una versión aparte.
+- **D2 · Recalibrar `stageKindOf` a la realidad.** Los umbrales 8,5 km / 3.200 m / 3 km están calibrados contra el generador viejo y clasifican mal 27 de 113 reinas y medias reales (medido aquí). Mover los umbrales cambia la etiqueta de etapas corridas (`stageHistory.ts`) y la muestra de `calendarQueens`. Recomendación: no en E1; abrir tras el paso 12 con la tabla re-medida.
+- **D3 · Peso de las familias por clase.** Cuántas .2 de montaña, cuántos nacionales de circuito, si el critérium existe como carrera puntuable (mapa 07 §1.7 recomienda que no). La tabla `classWeight` de cada arquetipo nace del corpus y del mapa 07, y el dueño la ajusta.
+- **D4 · Identidad entre ediciones.** `EDITION.level` 0 (idéntica cada año, lo de hoy), 1 (detalle) o 2 (rotación declarada). Recomendación: 1, y 2 solo en los arquetipos que declaren alternativas. Y si el paso 11 entra antes del lanzamiento o después.
+- **D5 · Las bandas de montaña.** Con el desnivel como consecuencia de la familia, `calendarQueens.breakawayWinPct` 6-30 se re-mide y se propone partirla por cubeta; el «está bien así» del 18,1 % (balance v44 cierre) se midió sobre el generador viejo. Hay que decidir si la cola < 1.500 m se mantiene por diseño (`reina_corta`, `reina_valle` en .2) o si se retira el test que la exige.
+- **D6 · Qué se enseña.** «Recorrido generado (clásica de muros, Flandes)» o solo la marca de origen. Recomendación: la familia y la región, nunca una carrera real.
+- **D7 · Kilometraje de un día por clase.** Romper el 210 fijo (`ROUTE.kmByClass`) cambia 142 carreras de golpe. Recomendación: sí, es el defecto más visible después de la arquitectura.
+- **D8 · Prólogos y cronoescaladas.** Hoy no existen (`ittSegments` = `flatSegments`). `prologo` (3-8 km) y `cronoescalada` (peso bajo, solo en regiones con `maxClimbKm ≥ 8`) tocan `timeTrials.*` del banco (3 de 5 cronos son generadas).
+- **D9 · Composición de los nacionales por región.** Que el nacional belga sea de adoquín y el colombiano de montaña (`GEO_DEFAULT_TERRAIN`), o que sigan siendo cuatro `classic`/`itt` iguales con distinta semilla. Recomendación: por región; es literalmente lo que `motor.md` §V.3 aceptó.
+- **D10 · Excepciones nombradas.** Si existe el arquetipo `montana_un_dia:ventoux` (final en alto largo en un día, clase .1, peso 0,02), que es la única forma en que la regla V1 admite excepción.
