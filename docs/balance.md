@@ -14067,3 +14067,68 @@ viajado tres PR sin pasar por «Bancos». Cuando por fin corrió, encontró en u
 narración que llevaba ahí desde que existe el parte de cabeza, y que ninguna etapa del calendario
 sintético podía producir. El banco caro es caro porque mira donde los demás no llegan; meterlo en la
 misma rama que un arreglo urgente convierte su hallazgo en un rehén.
+
+### v73 (continuación) — el segundo `frenteSinExplicar`, y un error de método mío
+
+El PR volvió a salir rojo por el mismo invariante, y **la culpa de no haberlo visto es mía y es de
+método**. El banco de coherencia construye sus semillas con **la ETIQUETA del caso**, no con el
+nombre del escenario:
+
+```ts
+const worst = worstPerStage(caso.scenario, campaignSeeds(caso.name, caso.seeds))
+```
+
+La etiqueta sigue siendo `'reina-150'` aunque el escenario ya sea `reina-canonica`. Yo validé 40
+semillas derivadas de `'reina-canonica'` y **la CI corre otras 40**, derivadas de `'reina-150'`.
+Cuando escribí «8 → 0 en las 40 semillas de la reina» era cierto, y era sobre un conjunto de etapas
+que la CI no mira. **Una medida sobre el banco equivocado no es una medida.**
+
+Con las semillas buenas queda **un** defecto, de la otra rama del detector: en `reina-150-14`, km 59,
+«`pel-78` desaparece del grupo de cabeza sin decirlo».
+
+La traza, instrumentando el motor en `dist` (que está fuera de git):
+
+```
+km 54.1  front_group  entran=7 size=7   [gc-2 bar-0 pel-117 pel-20 pel-44 pel-149 pel-78]
+km 55.1  size=7 last=7  entran=0 salen=0      <- no emite, no toca memoria
+km 56.1  size=7 last=7  entran=0 salen=0      <- idem
+km 57.1  size=6 last=6                        <- la memoria ha bajado a SEIS sin emitir nada
+km 59.1  front_group  salen=4 size=2   [gc-2 bar-0]
+```
+
+Entre el km 56,1 y el 57,1 la memoria del frente pierde un hombre **sin que se emita nada**. La causa
+es la confirmación de la fuga del día:
+
+```ts
+log.emit(m.bornKm, m.bornTs, 'fuga_formada', 'breakaway_formed', ids)
+…
+lastFrontIds = ids
+```
+
+`breakaway_formed` se emite **retrofechado** a `m.bornKm` —la fuga se fecha en el km en que salió, no
+en el que se confirma que ha cuajado, y eso es correcto y está escrito—, pero **la asignación corre en
+el kilómetro de la confirmación**. Aquí: el parte de cabeza del km 54,1 dice SIETE, la fuga se
+confirma en el km 57 con SEIS —el séptimo iba delante sin estar en el movimiento— y esa línea rebaja
+la memoria a seis sin una frase. Cinco kilómetros después el parte declara «salen: 4» habiéndose ido
+cinco, y `pel-78` **desaparece de la historia**.
+
+La frase de la fuga sí fija el frente para el lector cuando es lo último que ha leído. Lo que no
+puede es **retroceder sobre un parte posterior**, y eso es la guarda: `if (lastFrontReportKm <
+m.bornKm)`.
+
+Medido, esta vez con las etiquetas que la prueba usa de verdad:
+
+| Banco (etiqueta real)                                 | Resultado                                                        |
+| ----------------------------------------------------- | ---------------------------------------------------------------- |
+| `llana-180`, 40 semillas                              | los cinco invariantes en **0**                                   |
+| `reina-150` (escenario `reina-canonica`), 40 semillas | `frenteSinExplicar` **1 → 0**; `ataqueSinCerrar=1`, tolerancia 2 |
+| `clásica larga (Flandes)`, 20 semillas                | `frenteSinExplicar=0`; `ataqueSinCerrar=1`                       |
+| `Race Jaén`, 40 semillas                              | `frenteSinExplicar=0`; `ataqueSinCerrar=1`                       |
+
+Las cuatro huellas **siguen sin moverse**: esto toca la contabilidad de lo que se narra, no el
+reparto de tiempos.
+
+**Y la etiqueta se queda como está.** `'reina-150'` nombrando al escenario `reina-canonica` es
+confuso y habría que corregirlo, pero cambiarla **cambia las semillas**, o sea cambia qué etapas se
+miden — y hacerlo en el mismo PR en que el banco acaba de encontrar dos defectos se leería, con
+razón, como esquivar el fallo. Va en su propio cambio, declarado, cuando esté verde.
