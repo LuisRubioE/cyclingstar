@@ -326,7 +326,7 @@ export function queenScenario(): Scenario {
     riders.push(rider(`pel-${i}`, { eff0: eff(55, { MON: 54 + (i % 12), LLA: 60 }) }))
   }
   return {
-    name: 'reina-canonica',
+    name: 'reina-real',
     input: {
       /**
        * LA REINA DE VERDAD (paso 21, decisión 5 del dueño). **158 km, 2.933 m, dos puertos y final
@@ -354,18 +354,8 @@ export function queenScenario(): Scenario {
        * etapa media disfrazada, que es lo que había que arreglar.
        *
        * Sustituir una caricatura por la contraria no habría sido un arreglo.
-       *
-       * **Y NO SE LLAMA `reina-real`, que es como el documento la bautizó, porque ese nombre YA
-       * ESTABA COGIDO** — y por quien tiene mejor derecho a él: `realQueenThirdWeekScenario()` se
-       * llama `reina-real-s3` desde la v15 y corre sobre un recorrido de VERDAD (Race France e18,
-       * 185 km reales). Bautizar a ésta `reina-real` habría dado dos escenarios distintos con el
-       * mismo prefijo de semilla y `reina-real-s3` habría pasado a nombrar dos corridas a la vez,
-       * que es exactamente la clase de defecto que las huellas selladas existen para que no ocurra.
-       *
-       * Así que la sintética es la CANÓNICA y la del recorrido es la REAL, que además es lo que
-       * cada una es.
        */
-      profile: REINA_CANONICA_PROFILE,
+      profile: REINA_REAL_PROFILE,
       riders: inTeams(riders, 8),
     },
     bestSprinterId: 'gc-3',
@@ -373,11 +363,11 @@ export function queenScenario(): Scenario {
 }
 
 /**
- * EL PERFIL DE LA REINA CANÓNICA. Dos puertos que rompen —13 km al 7 % medio y 12 km al 7,5 % con
+ * EL PERFIL DE LA REINA DE VERDAD. Dos puertos que rompen —13 km al 7 % medio y 12 km al 7,5 % con
  * el remate al 9 %— separados por una bajada larga y un valle, con la apertura rompepiernas donde un
  * equipo se gasta antes de que empiece lo serio. Final en alto, que es la mitad de la definición.
  */
-const REINA_CANONICA_PROFILE: StageProfile = {
+const REINA_REAL_PROFILE: StageProfile = {
   segments: [
     {
       km: 24,
@@ -474,7 +464,7 @@ export function queenThirdWeekScenario(): Scenario {
   const energy = initialEnergy(THIRD_WEEK_CTL, THIRD_WEEK_TSB, 'sano')
   return {
     ...base,
-    name: 'reina-canonica-s3',
+    name: 'reina-real-s3',
     input: {
       ...base.input,
       riders: base.input.riders.map((r) => ({ ...r, energy, tsb: THIRD_WEEK_TSB })),
