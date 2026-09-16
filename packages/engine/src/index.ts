@@ -241,7 +241,9 @@ export type {
   Block,
   PullMotive,
   BlockTerrain,
+  ChasePolicy,
   ClimbCategory,
+  DayGoal,
   Incident,
   Mentality,
   RaceEvent,
@@ -258,6 +260,7 @@ export type {
   StageEffort,
   StageSpend,
   TankState,
+  TriggerCond,
 } from './stage/types.js'
 export {
   simulateRiderDay,

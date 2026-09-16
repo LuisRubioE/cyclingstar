@@ -2,7 +2,7 @@ import { ATTRIBUTES, assignLeaderJerseys } from '@cyclingstar/shared'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { getGcThroughStage, getKomClassification, getPointsClassification } from './results.js'
 import { raceRosters, riderAttrs, riders, stageResults, teams, worlds } from './schema.js'
-import { gcDeficitTable } from './stageRun.js'
+import { gcDeficitTable, stageOrdersFrom } from './stageRun.js'
 import { type TestDb, startTestDb } from './testDb.js'
 
 /**
@@ -244,5 +244,90 @@ describe('el déficit en la general de quien no tiene fila', () => {
   it('antes de la primera etapa no hay general y el déficit de todos es cero', () => {
     const deficit = gcDeficitTable([])
     expect(deficit('cualquiera')).toBe(0)
+  })
+})
+
+/**
+ * LAS CUATRO PALANCAS DEL PASO 17a, Y LA LECCIÓN DE LA v58.
+ *
+ * `stage_orders` gana `trigger_on`, `chase_policy`, `refuse_relay_teams` y `day_goal`. La migración
+ * las crea NULLABLE y no rellena ni una fila, porque NULL es «no hay preferencia» y eso es letra por
+ * letra la conducta de hoy: una vuelta de veintiuna etapas que vaya por la doce el día del
+ * despliegue no ve cambiar nada.
+ *
+ * Lo que estas pruebas vigilan no es la migración sino lo OTRO, que es lo que ya falló una vez: en
+ * la v58 el jugador rellenaba el esfuerzo y el kilómetro del ataque, la base los guardaba **y
+ * `stageRun.ts` los tiraba**. Dos de las cinco palancas de la pantalla no llegaban a la carretera y
+ * nadie se enteró, porque una columna que no se lee no rompe nada: solo miente en la pantalla.
+ */
+describe('las cuatro palancas nuevas de la hoja de órdenes', () => {
+  const hoja = {
+    riderId: 'r1',
+    raceId: 'race-x',
+    stageDay: 1,
+    role: 'lider' as const,
+    mentality: 'combativo' as const,
+    effort: 'a_tope' as const,
+    triggerKm: null,
+    targetRiderId: null,
+    contestSprints: true,
+    contestClimbs: false,
+    triggerOn: { at: 'climb', which: 'last', part: 'pie' } as const,
+    chasePolicy: 'si_amenaza' as const,
+    refuseRelayTeams: ['equipo-rival'],
+    dayGoal: 'general' as const,
+  }
+
+  it('las cuatro llegan al motor cuando la hoja las trae', () => {
+    const orders = stageOrdersFrom(hoja, undefined)
+    expect(orders.triggerOn).toEqual({ at: 'climb', which: 'last', part: 'pie' })
+    expect(orders.chasePolicy).toBe('si_amenaza')
+    expect(orders.refuseRelayTeams).toEqual(['equipo-rival'])
+    expect(orders.dayGoal).toBe('general')
+    // Y las cinco viejas siguen viajando: esto es lo que la v58 rompió.
+    expect(orders.effort).toBe('a_tope')
+    expect(orders.contestSprints).toBe(true)
+  })
+
+  /**
+   * NULL NO ES UN VALOR, ES LA AUSENCIA DE PREFERENCIA. Si alguna de las cuatro llegase al motor
+   * como `null` en vez de ausente, una hoja guardada antes de la migración pasaría a DECIR algo —y
+   * la promesa de «cero relleno, cero cambio de conducta» sería falsa.
+   */
+  it('una hoja anterior a la migración no declara ninguna de las cuatro', () => {
+    const vieja = {
+      ...hoja,
+      triggerOn: null,
+      chasePolicy: null,
+      refuseRelayTeams: null,
+      dayGoal: null,
+    }
+    const orders = stageOrdersFrom(vieja, undefined)
+    expect('triggerOn' in orders).toBe(false)
+    expect('chasePolicy' in orders).toBe(false)
+    expect('refuseRelayTeams' in orders).toBe(false)
+    expect('dayGoal' in orders).toBe(false)
+  })
+
+  /** Una lista de vetos VACÍA tampoco es un veto: «con nadie dejo de colaborar» es no declarar nada. */
+  it('una lista de vetos vacía no viaja', () => {
+    const orders = stageOrdersFrom({ ...hoja, refuseRelayTeams: [] }, undefined)
+    expect('refuseRelayTeams' in orders).toBe(false)
+  })
+
+  it('sin hoja manda el piloto automático, y sin ninguno de los dos se corre suelto', () => {
+    const auto = {
+      role: 'gregario',
+      mentality: 'reservon',
+      contestSprints: false,
+      contestClimbs: true,
+    } as const
+    expect(stageOrdersFrom(undefined, auto)).toEqual(auto)
+    expect(stageOrdersFrom(undefined, undefined)).toEqual({
+      role: 'libre',
+      mentality: 'reservon',
+      contestSprints: false,
+      contestClimbs: false,
+    })
   })
 })

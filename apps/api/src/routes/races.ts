@@ -37,8 +37,11 @@ import {
   DAYS_PER_SEASON,
   NO_LEADERS,
   type RaceLeaders,
+  chasePolicySchema,
   currentSeason,
+  dayGoalSchema,
   raceLeaders,
+  triggerCondSchema,
 } from '@cyclingstar/shared'
 import { z } from 'zod'
 import {
@@ -65,6 +68,17 @@ const stageOrderSchema = z.object({
   triggerKm: z.number().int().nonnegative().nullable(),
   contestSprints: z.boolean(),
   contestClimbs: z.boolean(),
+  /**
+   * LAS CUATRO DEL PASO 17a. `.nullish()` por las dos puntas: la hoja guardada antes de la migración
+   * las trae a `null`, y un cliente que aún no se ha desplegado no las manda. Las dos cosas
+   * significan «no hay preferencia», que es la conducta de hoy. Esta validación es la de ENTRADA y
+   * por eso es más estricta que el contrato: aquí sí se acotan los identificadores a UUID y los
+   * vetos a un número razonable de equipos, porque esto lo escribe un cliente cualquiera.
+   */
+  triggerOn: triggerCondSchema.nullish(),
+  chasePolicy: chasePolicySchema.nullish(),
+  refuseRelayTeams: z.array(z.string().uuid()).max(30).nullish(),
+  dayGoal: dayGoalSchema.nullish(),
 })
 const putStageOrdersSchema = z.object({
   orders: z.array(stageOrderSchema).max(TEST_TOUR.length),

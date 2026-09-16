@@ -137,6 +137,54 @@ export function gcDeficitTable(
   return (riderId) => (tiempos.get(riderId) ?? ultimo) - lider
 }
 
+/**
+ * Una fila de `stage_orders` tal como sale de la base. Se toma del ESQUEMA, no se reescribe a mano:
+ * un tipo copiado se separa del `schema.ts` en cuanto alguien añade una columna, y el compilador deja
+ * de avisar justo cuando más falta hace.
+ */
+type StageOrderRow = typeof stageOrders.$inferSelect
+
+/**
+ * LA HOJA DE ÓRDENES DEL JUGADOR, TAL COMO ENTRA AL MOTOR. Sin hoja manda el piloto automático, y
+ * sin ninguno de los dos se corre suelto y reservón, que es lo que hace un corredor al que nadie le
+ * ha dicho nada.
+ *
+ * Esta función existe aparte por una lección cara, la de la v58: el jugador rellenaba el esfuerzo y
+ * el kilómetro del ataque, la base los guardaba **y aquí se tiraban**, así que dos de las cinco
+ * palancas de la pantalla no llegaban a la carretera. Una columna que no se lee es peor que no
+ * tenerla, porque miente en la pantalla. Estando suelta y sellada, añadir una palanca sin conectarla
+ * deja de ser un descuido silencioso.
+ *
+ * Las cuatro del paso 17a se pasan **solo cuando la hoja las trae**: `undefined` significa «no hay
+ * preferencia» y decide el motor, que es letra por letra la conducta de las hojas guardadas antes de
+ * la migración. Por eso las columnas son nullable y no hubo que rellenar ni una fila.
+ */
+export function stageOrdersFrom(
+  o: StageOrderRow | undefined,
+  auto: StageOrders | undefined,
+): StageOrders {
+  if (!o) {
+    return (
+      auto ?? { role: 'libre', mentality: 'reservon', contestSprints: false, contestClimbs: false }
+    )
+  }
+  return {
+    role: o.role,
+    mentality: o.mentality,
+    effort: o.effort,
+    triggerKm: o.triggerKm,
+    contestSprints: o.contestSprints,
+    contestClimbs: o.contestClimbs,
+    ...(o.targetRiderId ? { targetRiderId: o.targetRiderId } : {}),
+    ...(o.triggerOn ? { triggerOn: o.triggerOn } : {}),
+    ...(o.chasePolicy ? { chasePolicy: o.chasePolicy } : {}),
+    ...(o.refuseRelayTeams && o.refuseRelayTeams.length > 0
+      ? { refuseRelayTeams: o.refuseRelayTeams }
+      : {}),
+    ...(o.dayGoal ? { dayGoal: o.dayGoal } : {}),
+  }
+}
+
 /** Corre una etapa de una carrera cualquiera desde su roster. Devuelve los corredores que corrieron. */
 export async function runOneStage(
   tx: Tx,
@@ -341,27 +389,7 @@ export async function runOneStage(
     for (const attr of ATTRIBUTES) {
       effResolved[attr] = eff0(attributes[attr], rider.ctl, tsb, rider.health, rider.morale)
     }
-    const o = ordersByRider.get(riderId)
-    const auto = autoOrders.get(riderId)
-    const orders: StageOrders = o
-      ? {
-          role: o.role,
-          mentality: o.mentality,
-          // …Y EL ESFUERZO Y EL KILÓMETRO DEL ATAQUE (v58). El jugador los rellenaba, la base los
-          // guardaba y AQUÍ se tiraban: el contrato del motor no los tenía, así que dos de las cinco
-          // palancas de la pantalla de órdenes no llegaban a la carretera.
-          effort: o.effort,
-          triggerKm: o.triggerKm,
-          contestSprints: o.contestSprints,
-          contestClimbs: o.contestClimbs,
-          ...(o.targetRiderId ? { targetRiderId: o.targetRiderId } : {}),
-        }
-      : (auto ?? {
-          role: 'libre',
-          mentality: 'reservon',
-          contestSprints: false,
-          contestClimbs: false,
-        })
+    const orders: StageOrders = stageOrdersFrom(ordersByRider.get(riderId), autoOrders.get(riderId))
     // Depósito inicial dependiente del ESTADO (docs/motor.md §VI.1): forma (CTL), frescura (TSB) y
     // salud. Antes era `energy: 100` para todos, y por eso la erosión no se activaba jamás y la
     // etapa 18 de una gran vuelta se corría con el mismo tanque que la 1.ª. El arrastre entre etapas

@@ -1026,6 +1026,42 @@ export const teamRacePlanResponseSchema = z.object({ plan: teamRacePlanSchema.nu
 
 // --- Órdenes de etapa (/api/races/test-tour y /api/my-orders) -------------------------------
 
+/**
+ * CUÁNDO LANZA SU MOVIMIENTO ESTE HOMBRE (paso 17a, R22 · S-214/S-321/S-322). Seis formas de decir
+ * «cuándo», y cinco dependen de lo que pase en la carretera — que es toda la diferencia entre una
+ * cita y un despertador. El caso `km` es el `triggerKm` de siempre, que se queda porque las hojas ya
+ * guardadas lo usan y porque a veces un kilómetro es lo que el jugador quiere decir.
+ */
+export const triggerCondSchema = z.discriminatedUnion('at', [
+  z.object({ at: z.literal('km'), km: z.number().int().nonnegative() }),
+  z.object({
+    at: z.literal('climb'),
+    which: z.enum(['last', 'penultimate']),
+    part: z.enum(['pie', 'duro', 'cima']),
+  }),
+  z.object({ at: z.literal('attack'), byRiderId: z.string() }),
+  z.object({ at: z.literal('gap'), overS: z.number().int().nonnegative() }),
+  z.object({ at: z.literal('weather'), cond: z.enum(['lluvia', 'viento']) }),
+  z.object({ at: z.literal('sector'), index: z.number().int().nonnegative() }),
+])
+export type TriggerCond = z.infer<typeof triggerCondSchema>
+
+/** Qué hace su equipo con una fuga (paso 17a · S-215, S-071). */
+export const chasePolicySchema = z.enum(['nunca', 'si_amenaza', 'siempre'])
+export type ChasePolicy = z.infer<typeof chasePolicySchema>
+
+/** A qué sale hoy este hombre (paso 17a · S-216, S-024, S-030). Declara, no negocia. */
+export const dayGoalSchema = z.enum([
+  'ganar',
+  'general',
+  'puntos',
+  'montana',
+  'grupeto',
+  'ahorrar',
+  'servir',
+])
+export type DayGoal = z.infer<typeof dayGoalSchema>
+
 export const stageOrderSchema = z.object({
   stageDay: z.number().int(),
   role: stageRoleSchema,
@@ -1035,6 +1071,19 @@ export const stageOrderSchema = z.object({
   triggerKm: z.number().nullable(),
   contestSprints: z.boolean(),
   contestClimbs: z.boolean(),
+  /**
+   * --- LAS CUATRO PALANCAS DEL PASO 17a --------------------------------------------------------
+   *
+   * Las cuatro son `.nullish()` y NO obligatorias, por las dos puntas a la vez: una hoja guardada
+   * antes de la migración las trae a `null`, y un cliente que aún no se ha desplegado no las manda
+   * en absoluto. Las dos cosas significan lo mismo —«no hay preferencia»— y el motor decide, que es
+   * la conducta de hoy. Si fueran obligatorias, desplegar la API antes que la web rompería la
+   * pantalla de órdenes entera.
+   */
+  triggerOn: triggerCondSchema.nullish(),
+  chasePolicy: chasePolicySchema.nullish(),
+  refuseRelayTeams: z.array(z.string()).nullish(),
+  dayGoal: dayGoalSchema.nullish(),
 })
 export type StageOrder = z.infer<typeof stageOrderSchema>
 
