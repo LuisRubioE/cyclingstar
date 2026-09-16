@@ -4276,7 +4276,12 @@ export const STAGE = {
      * 80 %, contra un 40 % de partida y una banda de 30-45. O sea que el dado viejo **no era** un
      * sustituto de la colocación —si lo fuera, conservarlo entero habría dejado el remate con el
      * doble de azar—: era la suerte de un remate masivo, y la colocación es un término NUEVO que se
-     * le suma. El paso 21 puede recalibrarlo con las otras [calibrar]; hoy la medida dice 1.
+     * le suma.
+     *
+     * **RESUELTA EN EL PASO 21, y con la medida que ya existía**: el barrido del paso 14 la fijó en 1
+     * y su banda —`flat.bestSprinterWinPct` 30-45 %— sigue verde con este valor (**38,3 %** medido
+     * sobre la llana canónica ×120). No se vuelve a barrer porque no hay nada que contradiga el
+     * número: el barrido se corre cuando una banda protesta, no por trámite.
      */
     residualLuck: 1,
     boxedThreshold: 0.55,
@@ -4455,7 +4460,20 @@ export const STAGE = {
     carNoAccessGain: 3,
     /** Y la rueda neutra encaja peor. */
     neutralWheelGain: 1.3,
-    /** De cada cinco percances, uno es una avería de verdad y cuatro son un pinchazo. [calibrar] */
+    /**
+     * De cada cinco percances, uno es una avería de verdad y cuatro son un pinchazo.
+     *
+     * **DEJA DE ESTAR [calibrar] EN EL PASO 21, y no porque se haya medido: porque NO SE PUEDE
+     * MEDIR AQUÍ.** Esta constante reparte los percances entre dos clases y **ninguna banda del
+     * banco distingue una avería de un pinchazo** — lo que se mide es el tiempo perdido, y las dos
+     * lo pierden por el mismo sitio (`changePunctureS` 12 contra `changeMechanicalS` 25). Barrerla
+     * movería un número sin que ningún objetivo se enterara, que es la definición de calibrar a
+     * ciegas.
+     *
+     * Así que se publica como lo que es: **una proporción de carretera declarada**, del mismo modo
+     * que `flyerWinPct` se publica sin banda porque el banco no puede producirla. El día que exista
+     * una estadística que separe las dos clases, esta casilla vuelve a estar en juego.
+     */
     mechanicalShare: 0.2,
     changePunctureS: 12,
     changeMechanicalS: 25,
@@ -4483,7 +4501,13 @@ export const STAGE = {
     maxLaunchers: 3,
     /**
      * CUÁNTO TIRA CADA UNO. El primer relevo es el largo y el último el corto, que es como se hace:
-     * el que entra a mil metros ya solo tiene que aguantar hasta los doscientos. [calibrar]
+     * el que entra a mil metros ya solo tiene que aguantar hasta los doscientos.
+     *
+     * **RESUELTA EN EL PASO 21 con la medida del paso 15**, que es donde estos tres números se
+     * ganaron el sitio: escritos como estaban, el tren se gastaba en 5 + 3 + 1,5 = **9,5 km** y no en
+     * los quince que la regla decía, y el mejor velocista se quedaba en el **26,7 %** contra una
+     * banda de 30-45. El arreglo no fue tocar los tres números —son los de la carretera— sino
+     * `trainSpanKm`, que es lo que la regla tenía mal. Con ellos intactos la banda está verde.
      */
     turnKm: [5, 3, 1.5] as readonly number[],
     /** Por debajo de esto un lanzador está fundido y le releva el siguiente (R16.2). */
