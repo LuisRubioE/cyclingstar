@@ -14237,3 +14237,71 @@ porque apagar un interruptor no deshace un cambio de indicador compilado en el m
 **La regla que queda**: un brazo «apagado» solo es la línea base si el código es el de la línea base.
 Y una banda que se mueve al encender algo no acusa a lo que encendiste hasta que la has medido con
 eso apagado.
+
+## v73.2 — la puerta del parte de relevos tiene DOS mitades, y la cola rompe las dos
+
+Investigación cerrada del indicador que la v73.1 dejó abierto, y **corrige dos cosas que yo mismo
+publiqué**. Las dos correcciones vienen de medir las cuatro celdas que el propio criterio de cierre
+pedía y que no había hecho.
+
+### La matriz completa, con la cola ENCENDIDA (que es la configuración que se quiere enviar)
+
+| listón  | ATRIB media (2,5-6,5) | ATRIB peor (≤9) | VOZ partes (>50) | VOZ frente (1,8-4) |
+| ------- | --------------------- | --------------- | ---------------- | ------------------ |
+| 1,5     | 10,00 ❌              | 13 ❌           | 267 ✅           | 2,92 ✅            |
+| 2,5     | 8,33 ❌               | 11 ❌           | 219 ✅           | 2,60 ✅            |
+| 3,5     | 6,75 ❌               | 10 ❌           | 152 ✅           | **2,00 ✅**        |
+| 4,0     | 5,96 ✅               | 10 ❌           | 116 ✅           | 1,60 ❌            |
+| **4,5** | 5,38 ✅               | **9 ✅**        | 76 ✅            | 0,88 ❌            |
+| 5,0     | 4,54 ✅               | 9 ✅            | 49 ❌            | 0,75 ❌            |
+
+Atribución necesita **≥ 4,5** y la voz **≤ 3,5**: **no se solapan**. Con la cola APAGADA sí se solapan
+(1,5-3,5 pasa los dos con holgura), y ahí está la pista.
+
+**Corrección 1.** La v73.1 dijo que el problema era que `pull.total` no es invariante de escala y
+que la forma buena sería dividir por el tamaño del grupo. **Falso, y ya se midió**: el banco de la voz
+tiene el grupo más grande y el total más pequeño. Pero la conclusión que acompañaba —«no existe un
+valor que valga para los dos»— **sí era correcta**, aunque por un motivo distinto del que escribí. Se
+puede tener razón con un razonamiento equivocado, y eso no es tener razón.
+
+### El dato que lo explica
+
+Al encender la cola, **atribución pasa de 4,46 a 10,00 partes por etapa con el mismo listón, y la voz
+pasa de 264 a 267 — o sea, nada**. Contando por qué dispara cada parte:
+
+|                                 | partes  | por CAMBIO DE NOMBRES | por tope de km |
+| ------------------------------- | ------- | --------------------- | -------------- |
+| cola apagada · atribución       | 54      | 20 (37 %)             | 34             |
+| cola apagada · voz              | 93      | 83 (89 %)             | 10             |
+| **cola encendida · atribución** | **141** | **141 (100 %)**       | **0**          |
+| cola encendida · voz            | 91      | 85 (93 %)             | 6              |
+
+Con la cola encendida, atribución dispara **el 100 %** de sus partes porque han cambiado los nombres.
+
+### Las dos mitades
+
+La puerta pregunta dos cosas, y el turno convertido en cola rompe **las dos, en sentidos opuestos**:
+
+1. **«¿HAY TRABAJO?»** — `best` mide al que lleva más rato delante, y con una rotación de verdad la
+   respuesta es «nadie» aunque tiren todos. La v64 lo diagnosticó bien y recetó medir el **trabajo
+   total**. Esa mitad es correcta y se queda.
+2. **«¿ESTO ES NOTICIA?»** — el trío que tira cambia de nombres cada kilómetro, así que el parte
+   siempre parece nuevo. En un campo CON equipos la identidad del equipo lo amortigua —el equipo no
+   rota aunque roten sus hombres—; en uno de **agentes libres** no hay nada que lo amortigüe, y el
+   banco de atribución es exactamente eso. **Esta mitad no la había visto nadie.**
+
+**Corrección 2, y es la que importa**: subir el listón «funcionaba» en atribución porque estaba
+**compensando el sobre-disparo de la segunda mitad apretando la primera**. Por eso mataba el banco de
+la voz, donde la segunda mitad no está rota y solo llegaba el apretón. Calibrar el listón nunca iba a
+resolver esto: estaba curando un síntoma con la palanca del otro problema.
+
+### Lo que queda por hacer, y su criterio
+
+Arreglar la segunda mitad: **un cambio de nombres bajo rotación no es noticia**. Lo que es noticia es
+que cambie quién manda, y en un campo sin equipos eso no puede medirse con la lista de tres nombres.
+Con esa mitad arreglada, el listón del trabajo total debería poder bajar a la zona donde los dos
+bancos pasan holgados (1,5-3,5), en vez de vivir en el filo.
+
+**Criterio de cierre, el mismo de antes y ahora con las seis celdas medidas de base**: un solo valor,
+en banda en los dos bancos, con la cola encendida y apagada. Y esta vez la propuesta se mide **antes**
+de escribirla.
