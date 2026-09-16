@@ -14194,10 +14194,29 @@ escala**. `best` preguntaba por un hombre; sumar el trabajo de todos ata el núm
 grupo, y los dos bancos corren campos distintos —20 corredores contra 40—.
 
 La nota de la v64 acertaba en que había que medir el trabajo total: eso es lo que hace la pregunta
-invariante a **cómo se reparta**. Lo que no vio —y yo tampoco— es que eso la vuelve sensible a **entre
-cuántos**. La forma que sí sería invariante a las dos cosas es **el trabajo total dividido por el
-tamaño del grupo**, y eso es un rediseño con su propia calibración en los dos bancos, no un cambio de
-valor. Queda anotado aquí y se hace antes de volver a encender `teamPlay`.
+invariante a **cómo se reparta**. Lo que no vio —y yo tampoco— es que no lo es a otra cosa.
+
+**Y aquí escribí una hipótesis y la medí después, que es el orden correcto**: dije que la forma buena
+sería «el total dividido por el tamaño del grupo», suponiendo que el total escalaba con el campo.
+**Es falso.** Instrumentando el motor en los dos bancos, con todas las capas apagadas:
+
+| Banco      | grupo | `total` mediana | `best` mediana | `total`/grupo |
+| ---------- | ----- | --------------- | -------------- | ------------- |
+| atribución | 29    | **3,065**       | 0,437          | 0,1136        |
+| voz        | 34    | **1,966**       | 0,625          | 0,0606        |
+
+El banco de la voz tiene el grupo **más grande** y el total **más pequeño**, así que dividir por el
+tamaño del grupo **empeora** la discrepancia: la razón entre bancos pasa de 1,56 a 1,87.
+
+Lo que de verdad difiere no es el tamaño del campo sino **entre cuántos se reparte el trabajo**: en el
+banco de la voz `best` es MÁS alto (0,625 contra 0,437) con un total MÁS bajo —ocho equipos
+organizados: tiran pocos y mucho—, y en el de atribución tiran muchos y poco. `best` y `total` miden
+esa dimensión en sentidos opuestos, y por eso cada banco prefiere uno.
+
+**La forma correcta sigue abierta**, y esta nota se queda sin proponer otra: la anterior sonaba bien,
+estaba escrita con aplomo y la medida la tumbó en diez minutos. Lo que sí queda fijado es el criterio
+que tendrá que cumplir: **un solo valor, en banda en los DOS bancos, con la cola encendida y
+apagada** — cuatro celdas, no una.
 
 ### El error de método, por tercera vez en la misma sesión
 
