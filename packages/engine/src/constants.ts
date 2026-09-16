@@ -2509,7 +2509,24 @@ export const STAGE = {
     threatTieBand: 0.05,
     /**
      * EL HUECO QUE TOLERA UN EQUIPO SIN HOMBRE DE GENERAL (R20.1, la rama que faltaba). Un pelotón
-     * lanzado recorta un minuto cada diez kilómetros. [calibrar] contra `flat.catchKmToFinish`.
+     * lanzado recorta un minuto cada diez kilómetros.
+     *
+     * **SIGUE [calibrar], Y EL PASO 21 DEJA ESCRITO POR QUÉ NO SE PUEDE CERRAR HOY: la capa que la
+     * lee está APAGADA.** Se barrió contra su banda (`flat.catchKmToFinish`, llana canónica ×120) de
+     * 3 a 10 —un recorrido de 3,3×— y **los cinco valores dan el mismo resultado dígito a dígito**:
+     *
+     *     closeRateSPerKm   3     4,5    6      8      10
+     *     catchKmToFinish   19,0  19,0   19,0   19,0   19,0
+     *     gana la fuga      5,0 % 5,0 %  5,0 %  5,0 %  5,0 %
+     *
+     * No es que sea poco sensible: es que **no muerde**. La única función que la lee es
+     * `desiredGapOf`, a la que solo se llega desde `frontClaimOf` con la subasta encendida, y
+     * `front.enabled` es **false**. Mientras siga así, cualquier número que se escriba aquí es
+     * indistinguible de cualquier otro, y ponerle uno «medido» sería presentar como calibración algo
+     * que ningún banco puede contradecir.
+     *
+     * Así que se queda marcada, con la medida del barrido delante y la condición para cerrarla: **se
+     * calibra el día que se encienda R20**, y ese día el barrido es el de arriba otra vez.
      */
     closeRateSPerKm: 6,
     /** Los kilómetros de caza dura que se descuentan de esa cuenta, y a partir de los que no se cede. */
