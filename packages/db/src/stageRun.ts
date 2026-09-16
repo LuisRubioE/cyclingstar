@@ -114,6 +114,29 @@ function isOneDayRace(spec: StageRunSpec): boolean {
   return spec.isFinal && spec.stageDay === 1
 }
 
+/**
+ * EL DÉFICIT EN LA GENERAL de cada corredor, y —lo que importa aquí— el que le toca a QUIEN NO TIENE
+ * FILA en ella.
+ *
+ * La misma trampa que `gcMissingStage.test.ts` documenta para la clasificación: sin fila, el tiempo
+ * acumulado se leía como cero, **y la ausencia hacía líder**. Aquí salía un déficit NEGATIVO, que es
+ * peor que inútil: el motor lo compara contra cero para saber quién manda en la general, así que un
+ * corredor sin fila entraba al plan del día como el mejor de su equipo —y hasta como líder de la
+ * carrera— por no estar clasificado.
+ *
+ * Quien no está en la general no la lidera: se le da el déficit del ÚLTIMO clasificado. Antes de la
+ * primera etapa no hay filas, todos valen 0, y el motor sabe que ahí no hay general que defender.
+ */
+export function gcDeficitTable(
+  rows: readonly { riderId: string; tiempoTotalS: number }[],
+): (riderId: string) => number {
+  if (rows.length === 0) return () => 0
+  const tiempos = new Map(rows.map((r) => [r.riderId, r.tiempoTotalS]))
+  const lider = Math.min(...rows.map((r) => r.tiempoTotalS))
+  const ultimo = Math.max(...rows.map((r) => r.tiempoTotalS))
+  return (riderId) => (tiempos.get(riderId) ?? ultimo) - lider
+}
+
 /** Corre una etapa de una carrera cualquiera desde su roster. Devuelve los corredores que corrieron. */
 export async function runOneStage(
   tx: Tx,
@@ -194,9 +217,8 @@ export async function runOneStage(
     .leftJoin(raceRosters, gcRosterOn())
     .where(gcFinishersWhere(spec.raceKey))
     .orderBy(...gcOrderBy())
-  const gcTime = new Map(gcRows.map((r) => [r.riderId, r.tiempoTotalS]))
   const gcRank = new Map(gcRows.map((r, i) => [r.riderId, i + 1]))
-  const gcLeader = gcRows.length > 0 ? Math.min(...gcRows.map((r) => r.tiempoTotalS)) : 0
+  const gcDeficit = gcDeficitTable(gcRows)
 
   // Lecturas en lote: corredores, atributos, genoma y órdenes de la etapa.
   const riderRows = await tx.select().from(riders).where(inArray(riders.id, riderIds))
@@ -355,7 +377,7 @@ export async function runOneStage(
       matches: matchCount(effResolved, tsb, deepDepletedYesterday.has(riderId)),
       tsb,
       orders,
-      gcDeficitSeconds: (gcTime.get(riderId) ?? 0) - gcLeader,
+      gcDeficitSeconds: gcDeficit(riderId),
       // EL PUESTO EN LA GENERAL (v19): lo necesita el orden inverso de salida de la contrarreloj,
       // porque el déficit es un tiempo y los empates son la norma. Sale del MISMO orden que la
       // general que ve el jugador (`gcOrderBy`), así que no puede discrepar de ella. `null` antes de

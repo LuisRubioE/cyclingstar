@@ -2,6 +2,7 @@ import { ATTRIBUTES, assignLeaderJerseys } from '@cyclingstar/shared'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { getGcThroughStage, getKomClassification, getPointsClassification } from './results.js'
 import { raceRosters, riderAttrs, riders, stageResults, teams, worlds } from './schema.js'
+import { gcDeficitTable } from './stageRun.js'
 import { type TestDb, startTestDb } from './testDb.js'
 
 /**
@@ -206,5 +207,42 @@ describe('db: faltar a una etapa no puede hacerte líder de la general', () => {
     expect(maillots.gc).toBe(s.completos[0])
     expect(maillots.gc).not.toBe(s.ausente)
     expect(maillots.gc).not.toBe(s.abandonado)
+  })
+})
+
+/**
+ * LA MISMA TRAMPA, UN PISO MÁS ABAJO: el déficit que viaja al motor.
+ *
+ * Arriba se arregló la clasificación que ve el jugador. Pero el plan del día se construye con otro
+ * número, `gcDeficitSeconds`, y ahí seguía viva la misma lectura: sin fila en `race_gc`, el tiempo
+ * acumulado valía cero y el déficit salía NEGATIVO. El motor lo compara contra cero para saber
+ * quién manda en la general, así que ese corredor entraba en la etapa como el mejor de su equipo
+ * —y como líder de la carrera— precisamente por no estar clasificado. Es el defecto hermano del que
+ * el dueño vio en el diario de la etapa 4 de la Race Solidarnosc: gente quedándose atrás por una
+ * «baza de la general» que no lo era.
+ */
+describe('el déficit en la general de quien no tiene fila', () => {
+  const filas = [
+    { riderId: 'lider', tiempoTotalS: 10_000 },
+    { riderId: 'medio', tiempoTotalS: 10_120 },
+    { riderId: 'ultimo', tiempoTotalS: 10_500 },
+  ]
+
+  it('mide a los clasificados contra el líder', () => {
+    const deficit = gcDeficitTable(filas)
+    expect(deficit('lider')).toBe(0)
+    expect(deficit('medio')).toBe(120)
+    expect(deficit('ultimo')).toBe(500)
+  })
+
+  it('al que no está en la general le da el déficit del último, nunca uno negativo', () => {
+    const deficit = gcDeficitTable(filas)
+    expect(deficit('sin-fila')).toBe(500)
+    expect(deficit('sin-fila')).toBeGreaterThan(0)
+  })
+
+  it('antes de la primera etapa no hay general y el déficit de todos es cero', () => {
+    const deficit = gcDeficitTable([])
+    expect(deficit('cualquiera')).toBe(0)
   })
 })

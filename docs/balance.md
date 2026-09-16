@@ -13896,3 +13896,32 @@ cosas se le rescata **por la etapa**, con dos hombres y si el hueco da.
 sin general en juego, así que ahí `porLaGeneral` ya era falso. La medida vive en el banco que monta el
 caso a mano —jefe de filas a 300 s, compañero a 20— y **se comprobó contra el código viejo antes de
 darlo por bueno**: con la regla anterior la prueba falla con `expected 'general' not to be 'general'`.
+
+### 3. …y el defecto hermano, que nadie ha visto todavía porque está un piso más abajo
+
+Buscando el segundo apareció un tercero, del mismo linaje que el falso líder de Race Colombia
+(`gcMissingStage.test.ts`): **la ausencia hacía líder**, otra vez.
+
+`stageRun.ts` armaba el déficit así:
+
+```ts
+gcDeficitSeconds: (gcTime.get(riderId) ?? 0) - gcLeader
+```
+
+Un corredor **sin fila en `race_gc`** no tiene tiempo acumulado, así que el `?? 0` le daba cero, y el
+resultado era un déficit **negativo**: minutos _por delante_ del líder. Y el motor no lee ese número
+como un adorno, lo compara contra cero para saber quién manda —la propia regla que acaba de
+arreglarse en el punto 2 pregunta `gcDeficitSeconds <= 0`—. O sea: **no estar clasificado te convertía
+en la baza de la general de tu equipo, y en líder de la carrera**.
+
+Dos líneas más abajo, el puesto ya lo hacía bien: `gcRank.get(riderId) ?? null`, «no lo sé». El
+déficit no puede ser nulo —el contrato lo pide número—, así que se responde lo único honesto que es
+un número: **quien no está en la general no la lidera**, y se le da el déficit del **último
+clasificado**. Sin filas (antes de la primera etapa, o carrera de un día) todos valen 0, que es lo que
+ya valían y lo que el motor entiende como «aquí no hay general que defender».
+
+Va en una función pura y sellada, `gcDeficitTable`, con las tres medidas: los clasificados contra el
+líder, el que no tiene fila al final, y el cero de la etapa 1.
+
+**No mueve ninguna huella** y no cambia ni una etapa de las que ya se corrieron bien: solo toca al
+corredor que hoy salía con un número imposible.
