@@ -1299,6 +1299,25 @@ export const pullMotiveSchema = z.enum([
   'equipo_maillot',
   'equipo_general',
   'rol',
+  /**
+   * --- LOS CINCO QUE EL PASO 17c AÑADIÓ AL MOTOR Y AQUÍ FALTABAN (R23.1) ------------------------
+   *
+   * **Y su ausencia costó una radio entera en producción.** El paso 17c amplió `PullMotive` en
+   * `packages/engine` de diez palabras a quince, y este enum —que es contra el que `buildRaceRadio`
+   * VALIDA lo guardado— se quedó con las diez. Resultado: en cuanto un corredor tiraba con uno de
+   * los cinco nuevos, `storedRaceRadioSchema.safeParse` fallaba, `buildRaceRadio` devolvía `null` y
+   * la pantalla decía «esta etapa se corrió antes de que se grabara la radio» — que es **falso**: la
+   * radio estaba guardada entera, con sus ciento ochenta y siete kilómetros.
+   *
+   * El dueño lo vio en Race Solidarnosc, donde `propio` sale ya en el primer kilómetro del banco.
+   * Y explicaba lo que parecía un misterio: unas carreras tenían radio y otras no, el mismo día,
+   * porque solo se rompen las etapas donde alguno de los cinco llega a dispararse.
+   */
+  'propio',
+  'equipo_puntos',
+  'equipo_montana',
+  'infiltrado',
+  'colocando',
 ])
 export type PullMotive = z.infer<typeof pullMotiveSchema>
 

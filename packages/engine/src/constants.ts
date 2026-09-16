@@ -746,7 +746,17 @@
  * descolgado entre dos grupos, al que la caravana ya dejó atrás— y el que pincha EN UN PUERTO, donde
  * la carretera no deja pasar a nadie. Eso no cambia.
  */
-export const ENGINE_VERSION = 71 as const
+/**
+ * **v72 — EL RESCATE POR LA GENERAL ES DEL HOMBRE DE LA GENERAL** (corrección de producción).
+ *
+ * «Los suyos se dejan caer a por él» (v36) preguntaba si el EQUIPO tenía motivo de general, y el
+ * hombre al que rescata es el jefe de filas del día, que se elige por votos de los gregarios o por
+ * rol y calidad — no por la general. Cuando son personas distintas —el caso del **jugador humano
+ * que se pone de líder cuando su equipo ya tiene uno**, que este motor ya tenía descrito— el equipo
+ * entero bajaba a por quien no era su baza, y la crónica lo contaba como un compromiso con la
+ * general que nadie había tomado.
+ */
+export const ENGINE_VERSION = 72 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a

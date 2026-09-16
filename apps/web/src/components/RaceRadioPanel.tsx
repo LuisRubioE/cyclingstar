@@ -189,6 +189,27 @@ function motiveLabel(motivo: string, para: string | null): string | undefined {
       return para ? `riding the GC for ${para}` : 'his team rides for the GC'
     case 'rol':
       return 'his job in the team'
+    /**
+     * --- LOS CINCO DEL PASO 17c (R23.1) ---------------------------------------------------------
+     *
+     * El vocabulario tenía diez palabras y la carretera produce quince. Sin estas cinco frases, los
+     * motivos nuevos caían en el `default` y el corredor salía SIN explicación: el motor sabía por
+     * qué tiraba y la pantalla no lo decía.
+     */
+    case 'propio':
+      // S-434: ocho hombres en el último puerto y el favorito delante marcando tempo. Eso no es
+      // «le toca por su papel»: es el motivo más claro que hay en una carrera.
+      return 'setting his own tempo'
+    case 'equipo_puntos':
+      return para ? `riding the points jersey for ${para}` : 'his team rides for the points jersey'
+    case 'equipo_montana':
+      return para ? `riding the mountains jersey for ${para}` : 'his team rides for the KOM'
+    case 'infiltrado':
+      // R03.5, y la gracia es que se narra como que NO tira: su equipo le metió ahí para no tener
+      // que perseguir, así que su trabajo es exactamente no hacer ninguno.
+      return 'sitting on — his team has no reason to chase'
+    case 'colocando':
+      return para ? `keeping ${para} out of trouble` : 'keeping his leader out of trouble'
     default:
       return undefined
   }

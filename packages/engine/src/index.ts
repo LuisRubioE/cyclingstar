@@ -239,6 +239,7 @@ export type {
   Banner,
   BannerType,
   Block,
+  PullMotive,
   BlockTerrain,
   ClimbCategory,
   Incident,

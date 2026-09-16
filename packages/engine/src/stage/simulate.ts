@@ -3395,8 +3395,37 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
              */
             const gap = suGrupo.tS - peloton.tS
             if (gap < STAGE.regroupGapSeconds || gap > STAGE.helpBackMaxGapSeconds) continue
+            /**
+             * ¿SE BAJA POR LA GENERAL? Y LA PREGUNTA ES POR **ESTE HOMBRE**, NO POR EL EQUIPO
+             * (corrección de producción, v72).
+             *
+             * Esto preguntaba solo si el EQUIPO tenía motivo de general —`purposes`—, y el hombre al
+             * que se rescata es `plan.leaderId`, que se elige por **votos de los gregarios o por
+             * rol y calidad** (`pickLeader`) y no tiene nada que ver con la general. Los dos pueden
+             * ser personas distintas, y cuando lo son el motor se equivocaba dos veces:
+             *
+             *  - **en la conducta**, que es lo caro: con `porLaGeneral` bajan TODOS los disponibles
+             *    menos uno, contra dos por la etapa. O sea que el equipo entero se sacrificaba por
+             *    un hombre que no era su baza de la general, mientras el que sí lo era seguía
+             *    delante sin nadie;
+             *  - **en la crónica**, que es donde se vio: «the team commits to the general
+             *    classification: N riders drop out of the bunch to drag X back» con una X que no
+             *    figuraba ni entre los mejores de su equipo en la general.
+             *
+             * Lo cazó el dueño en su propio equipo: «dice que hay gente que se queda atrás para
+             * ayudarme porque soy su baza de la general… pero yo ni sabía que era la baza de la
+             * general del equipo; es más, ni siquiera era el mejor en la general de mi equipo antes
+             * de iniciar la etapa 4». Y es exactamente el caso que este fichero ya tenía descrito en
+             * otro sitio: **el jugador humano se pone de líder cuando su equipo ya tiene uno**.
+             *
+             * Así que el motivo de general se le reconoce al hombre de la general: el que lleva el
+             * maillot, o el que el plan señala como su baza (`gcLeaderId`). Al jefe de filas del día
+             * que no es ninguna de las dos cosas se le rescata por la ETAPA, con dos hombres y si el
+             * hueco da, que es lo que un director hace de verdad.
+             */
             const porLaGeneral =
-              plan.purposes.includes('maillot') || plan.purposes.includes('general')
+              (plan.purposes.includes('maillot') || plan.purposes.includes('general')) &&
+              (plan.gcLeaderId === leaderId || (hasGcContext && jefe.input.gcDeficitSeconds <= 0))
             /**
              * …Y POR LA ETAPA CASI NUNCA (v37). El dueño corrigió la v36: «por la etapa yo creo que
              * nadie debería bajarse… salvo que sea un pinchazo/caída y la distancia sea pequeña, y

@@ -13823,3 +13823,76 @@ de la reina nueva —contra el 25,8 % de las 120—, y ese 27,5 me llevó a escr
 `mountain.breakawayWinPct` no había que tocarla. Con la muestra buena está pegada al suelo de 25 y hay
 que re-anclarla. Es la misma lección de la v60 §24 con el viento, dos notas más arriba: **una banda no
 se sella con la muestra pequeña**.
+
+## v72 — dos defectos que el dueño cazó mirando Race Solidarnosc
+
+### 1. La radio que estaba guardada y la pantalla decía que no existía
+
+`ENGINE_VERSION` **no sube por esto**: es un contrato, no conducta.
+
+> «Una carrera que se acaba de correr hace unos minutos, la Race Solidarnosc… sale este error, y las
+> otras del mismo día o anteriores sí tienen Race Radio.»
+
+El mensaje era: «this stage was raced before the race radio was recorded, so there is nothing to
+replay». **Y era falso.** La radio estaba guardada entera, con sus ciento ochenta y siete kilómetros.
+
+La causa: `buildRaceRadio` **valida** lo guardado contra `pullMotiveSchema`, y el **paso 17c** amplió
+`PullMotive` en el motor de diez palabras a quince —`propio`, `equipo_puntos`, `equipo_montana`,
+`infiltrado`, `colocando`— **sin ampliar el contrato**. En cuanto un corredor tiraba con uno de los
+cinco nuevos, el `safeParse` fallaba entero y la función devolvía `null`; la vista, que solo sabe
+distinguir «hay radio» de «no hay radio», decía lo único que sabe decir.
+
+Y explica lo que parecía un misterio —unas carreras con radio y otras sin ella, el mismo día—:
+**solo se rompen las etapas donde alguno de los cinco llega a dispararse**. En Solidarnosc, `propio`
+sale en las cuatro. Reproducido y verificado etapa por etapa:
+
+| Race Solidarnosc     | antes                 | ahora  |
+| -------------------- | --------------------- | ------ |
+| e1 (187 km de radio) | `safeParse` **FALLA** | **OK** |
+| e2 (186 km)          | **FALLA**             | **OK** |
+| e3 (182 km)          | **FALLA**             | **OK** |
+| e4 (135 km)          | **FALLA**             | **OK** |
+
+**Se arreglan dos cosas, no una.** El enum, sí — pero el enum volverá a quedarse corto el día que el
+motor crezca otra vez, así que lo que de verdad había que arreglar es **la fragilidad**: `motivos`
+pasa a `pullMotiveSchema.nullable().catch(null)`, y un motivo que el contrato no entienda se degrada a
+«no lo sé» —el corredor sale sin frase— en vez de llevarse por delante la etapa entera. Un valor
+desconocido en un campo decorativo no puede costar la radio.
+
+Y queda un guardarraíl **de tipos**, que falla al compilar y no en producción seis meses después: una
+comprobación de que todo `PullMotive` del motor cabe en el del contrato y al revés. Si el motor añade
+una palabra y el contrato no, `pnpm typecheck` se pone rojo.
+
+### 2. El rescate por la general, a nombre de quien no era la baza
+
+`ENGINE_VERSION` **71 → 72**: esto sí es conducta.
+
+> «Dice que hay gente que se queda atrás para ayudarme porque soy su baza de la general… pero yo ni
+> sabía que era la baza de la general del equipo; es más, **ni siquiera era el mejor en la general de
+> mi equipo** antes de iniciar la etapa 4.»
+
+«Los suyos se dejan caer a por él» (v36) rescata a `plan.leaderId` —el jefe de filas del día, que sale
+de los **votos de los gregarios** o del rol y la calidad (`pickLeader`)— y decidía el motivo mirando
+si el **EQUIPO** tenía `purposes` de general, que se calcula sobre `gcLeaderId`. **Dos personas
+distintas**, y el motor no las distinguía.
+
+Cuando lo eran, se equivocaba dos veces:
+
+- **en la conducta**, que es lo caro: con el motivo «general» bajan **todos los disponibles menos
+  uno**, contra **dos** por la etapa. El equipo entero se sacrificaba por un hombre que no era su
+  baza, mientras el que sí lo era seguía delante sin nadie;
+- **en la crónica**, que es donde se vio: «the team commits to the general classification: N riders
+  drop out of the bunch to drag X back», con una X que no figuraba ni entre los mejores de su equipo.
+
+Es **exactamente el caso que este motor ya tenía descrito** en `teamPlan.ts`: «el jugador humano se
+pone de líder cuando su equipo ya tiene uno». Estaba escrito, y aun así la regla del rescate no lo
+miraba.
+
+El motivo de general se le reconoce ahora al hombre de la general: el que lleva el maillot, o el que
+el plan señala como su baza (`gcLeaderId`). Al jefe de filas del día que no es ninguna de las dos
+cosas se le rescata **por la etapa**, con dos hombres y si el hueco da.
+
+**Las cuatro huellas no se mueven**, y es la consecuencia correcta: los escenarios canónicos corren
+sin general en juego, así que ahí `porLaGeneral` ya era falso. La medida vive en el banco que monta el
+caso a mano —jefe de filas a 300 s, compañero a 20— y **se comprobó contra el código viejo antes de
+darlo por bueno**: con la regla anterior la prueba falla con `expected 'general' not to be 'general'`.
