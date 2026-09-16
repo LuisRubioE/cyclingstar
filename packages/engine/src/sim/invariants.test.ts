@@ -364,19 +364,38 @@ describe('desgaste (docs/motor.md §VI.1)', () => {
     },
   )
 
-  // Es el ÚNICO que corre DOS campañas —60 semillas de la sintética más 12 de la real—, así que es
-  // el más caro de la familia de la erosión: 259 s medidos en el nocturno instrumentado. Con la
-  // regla de las cuatro veces, 1.200 s. (Antes 300, que ya venía de arreglar un 30 heredado que
-  // tuvo a CI diez commits en rojo mientras en local salía verde.) No se toca nada de lo que MIDE.
+  /**
+   * LA REINA SINTÉTICA YA NO ES UNA CARICATURA, ASÍ QUE EL INVARIANTE CAMBIA DE PREGUNTA.
+   *
+   * Hasta aquí esto pedía que la sintética erosionara MENOS que la real, y el motivo estaba escrito:
+   * «1.200 m de desnivel no son una etapa reina… la caricatura tiene que quedar por debajo». Era un
+   * control de ORDEN sobre un escenario que nadie defendía como bueno.
+   *
+   * La decisión 5 del dueño abolió esa premisa: la reina sintética pasa a ser una reina de verdad
+   * —`reina-canonica`, 158 km y 2.933 m con dos puertos y final en alto—, y entonces «queda por
+   * debajo de la real» deja de ser una garantía y pasa a ser un defecto si se cumple. Re-apuntar un
+   * guardarraíl es un cambio con nombre propio, así que va con su medida delante y no de tapadillo:
+   * la canónica de tercera semana mide **0,704** y la real **0,613**, y el orden viejo se rompe
+   * porque la canónica es MÁS DURA, que es exactamente lo que se pidió.
+   *
+   * Lo que se pregunta ahora es más fuerte que el orden: que el banco sintético caiga **en la misma
+   * banda que la carrera real** (0,60-0,85) y que **no sature**. Un banco que no se parece a lo que
+   * simula no vale para calibrar nada, y una erosión de 0,80 con el depósito a cero no es una
+   * erosión de 0,80: es un techo, y bajo un techo el modelo deja de discriminar.
+   *
+   * Y de paso deja de correr DOS campañas: la real ya la mide el caso de arriba con su propia banda,
+   * así que las 12 semillas de `reina-real-s3` que se corrían aquí eran una segunda pasada del banco
+   * más caro de esta familia para volver a medir lo ya medido. 259 s en el nocturno instrumentado,
+   * ahora solo la campaña sintética.
+   */
   it(
-    'y la reina SINTÉTICA erosiona menos que ella, que es lo que debe',
+    'y la reina CANÓNICA erosiona como una reina real: en su banda y sin saturar',
     { timeout: 1200000 },
     () => {
-      // 1.200 m de desnivel no son una etapa reina. Este escenario deja de ser el objetivo y pasa a
-      // ser el control de que el ORDEN se respeta: la caricatura tiene que quedar por debajo.
       const synth = analyzeErosion(tired, campaignSeeds(tired.name, 60))
-      const real = analyzeErosion(realQueenThirdWeekScenario(), campaignSeeds('reina-real-s3', 12))
-      expect(synth.medianErosion).toBeLessThan(real.medianErosion)
+      expectInRange(synth.medianErosion, TARGETS.erosion.queenThirdWeek)
+      expect(synth.medianDepletion).toBeLessThanOrEqual(SATURATION_DEPLETION)
+      expect(synth.bonkPct).toBeLessThanOrEqual(SATURATION_BONK_PCT)
     },
   )
 

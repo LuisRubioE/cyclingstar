@@ -3825,7 +3825,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
               // lector pueda seguir a un grupo que se recompone por dentro. Van por NÚMERO y no por
               // nombre porque los nombres ya están todos en la propia lista de protagonistas: lo que
               // falta no es quiénes van delante, es qué ha cambiado desde la última vez que se dijo.
-              ...(lastFrontIds.length > 0 && entran.length > 0 ? { entran: entran.length } : {}),
+              ...(entran.length > 0 ? { entran: entran.length } : {}),
               // …y los que YA NO ESTÁN cuentan aunque el frente haya cambiado de manos entero: es el
               // caso del hombre que iba solo delante y al que se traga la carrera (v40).
 
@@ -7961,7 +7961,23 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
                 cooperating: m.g.compromiso >= STAGE.breakCoopThreshold ? 1 : 0,
               })
             }
-            lastFrontIds = ids
+            /**
+             * …PERO NO PISA UN PARTE DE CABEZA MÁS NUEVO (v73). `breakaway_formed` se emite
+             * RETROFECHADO a `m.bornKm` —la fuga se fecha en el km en que salió, no en el que se
+             * confirma que ha cuajado, y eso está tres líneas más arriba y es correcto—, pero esta
+             * asignación corre en el kilómetro de la CONFIRMACIÓN, que puede ser mucho más tarde.
+             *
+             * Medido en `reina-150-14`: el parte de cabeza del km 54,1 dice SIETE, la fuga se
+             * confirma en el km 57 con SEIS —el séptimo iba delante sin estar en el movimiento— y
+             * esta línea rebajaba la memoria de siete a seis sin decir nada. Cinco kilómetros
+             * después el parte declaraba «salen: 4» habiéndose ido cinco, y `pel-78` desaparecía de
+             * la historia sin una frase. El auditor lo cazó: «desaparece del grupo de cabeza sin
+             * decirlo».
+             *
+             * La frase de la fuga SÍ fija el frente para el lector cuando es lo último que ha leído.
+             * Lo que no puede es retroceder sobre un parte posterior.
+             */
+            if (lastFrontReportKm < m.bornKm) lastFrontIds = ids
             frontAtLastNotice = membersOf(PELOTON).length
           } else if (km - m.bornKm <= STAGE.tacticStickWindowKm) {
             // Solo se cuenta como «el ataque cuaja» lo que cuaja PRONTO. Un grupo que lleva 80 km
