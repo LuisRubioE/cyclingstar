@@ -140,7 +140,16 @@ describe('engine: la tabla de fase', () => {
     expect(phaseOf({ ...corta, kmToGo: 8 })).toBe('desenlace')
   })
 
-  it('el interruptor está ENCENDIDO, con toda la capa táctica y con su medida delante', () => {
+  /**
+   * EL SELLO DICE LO QUE AFIRMA (v74). Hasta aquí este caso se llamaba como si la capa estuviera
+   * ENCENDIDA y afirmaba que estaba apagada. No es una errata: los tres sellos de la v65 —éste, el
+   * de la aduana y el del juego de equipo— quedaron con el nombre del intento de encendido conjunto
+   * que la v60 §9 echó atrás, y el interruptor volvió a `false` sin que el nombre volviera con él.
+   *
+   * El efecto es la forma más barata que tiene un repositorio de mentirse: la lista de pruebas en
+   * verde se lee como si la capa corriera. Corría en el repositorio y no en la carretera.
+   */
+  it('el interruptor nace APAGADO, y se encenderá con su medida delante', () => {
     /**
      * R19 está entero, escrito y medido. Encendido, hace lo que promete —los intentos suben de 15,0
      * a 16,9, los de después del km 100 de 8,3 a 9,1 y el contraataque tras la captura de 16 % a

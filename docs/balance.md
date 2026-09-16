@@ -14132,3 +14132,149 @@ reparto de tiempos.
 confuso y habría que corregirlo, pero cambiarla **cambia las semillas**, o sea cambia qué etapas se
 miden — y hacerlo en el mismo PR en que el banco acaba de encontrar dos defectos se leería, con
 razón, como esquivar el fallo. Va en su propio cambio, declarado, cuando esté verde.
+
+## v74 — se enciende el juego de equipo, y el encendido saca una banda que yo no había declarado
+
+`teamPlay` (R01/R02 + R18, paso 3) pasa a `enabled: true`. Estaba **construida, probada y mezclada
+desde el paso 3, y corriendo apagada**: o sea, el juego de equipo existía en el repositorio y no en
+la carretera. Es la primera de las cinco capas en esa situación.
+
+### El A/B, con los criterios escritos ANTES de medir
+
+240 semillas **por brazo**. Los criterios se declararon antes de correr nada: «la fuga en la llana
+debe quedarse en 5-16 %, el mejor velocista en 30-45 %, y la erosión de la reina dentro de
+0,18-0,62. Si alguna se sale, el que está mal es el encendido».
+
+```
+APAGADA    llana: fuga 9,2 % | mejor spr 36,3 % | captura 18,4 km || reina: fuga 26,7 % | 1º-10º 106s | eros 0,567
+ENCENDIDA  llana: fuga 7,5 % | mejor spr 40,4 % | captura 18,0 km || reina: fuga 33,8 % | 1º-10º 130s | eros 0,567
+```
+
+Las tres pasan, y también las dos bandas publicadas que toca: `mountain.breakawayWinPct` 15-40 →
+**33,8 %**, y `top10GapSeconds` 40-360 → **130 s**. Lo que mueve, declarado: la fuga de la reina
+**+7,1 puntos**, que es justo lo que la capa _es_ —equipos que mandan hombres a la fuga—, y el hueco
+1.º-10.º **+24 s**. La fuga de la llana baja 1,7 puntos, dentro del ruido a 240 semillas (σ ≈ 1,8).
+
+**La erosión es idéntica en los dos brazos, 0,567**: la capa no toca el depósito, que es lo que debe
+pasar. Y ese número clavado es además la prueba de que los dos brazos corrieron configuraciones
+distintas de verdad: si se hubieran mezclado, coincidirían los seis números y no uno.
+
+**Una corrección de método, porque me equivoqué antes de acertar**: el primer A/B fue de 60 semillas
+por brazo y dio 1,7 % de fuga en la llana con la capa apagada, y dije que eso estaba «fuera de banda
+por abajo». Era falso: una medida de 120 semillas hecha antes en esta misma sesión daba 5,8 % para
+la misma configuración, y 60 semillas no distinguen 1,7 % de 5,8 % (σ ≈ 2,8 puntos). A 240 salió
+**9,2 %**. La regla que queda escrita: **ninguna afirmación sobre una banda sale de menos de 120
+semillas por brazo, y si contradice una medida mayor anterior, manda la mayor.**
+
+### Y entonces el encendido sacó una banda que NO estaba en mis tres criterios
+
+Los partes de «quién tira del pelotón» caían a **1,875 por etapa** contra un suelo de 2,5. Yo había
+declarado tres criterios y este guardarraíl no era ninguno de los tres: lo cazó el banco, no yo.
+
+**No se tocó la banda.** El motor ya tenía escrito, desde la v64 y con la medida delante, que el
+indicador estaba mal hecho:
+
+> «`pullMinWork` mide un síntoma del defecto que la cola arregla. Con el turno convertido en cola un
+> hombre da la cara 600 metros y se va al final de la fila, así que **nadie acumula** […] el parte
+> pasa de 24 etapas de 24 a 0 de 24. No es que nadie tire —tiran todos, y por turnos, que es lo que
+> se quería—: es que el indicador pregunta quién lleva mucho rato delante, y una rotación de verdad
+> hace que la respuesta sea "nadie". El arreglo NO es bajar el 0,35 […] Lo que hay que medir es **el
+> trabajo total al frente**, que es invariante a cómo se reparta […] **se hace cuando la cola se
+> encienda, no antes**.»
+
+Se encendió. Se hizo. `pull.total` sustituye a `pull.best`, y `pullMinTotalWork` sustituye a
+`pullMinWork`, **calibrada en los dos brazos** con el barrido publicado (24 semillas por celda):
+
+```
+  listón   cola apagada         cola encendida
+  0,35     4,88  peor 8         11,46  peor 14    <- el listón viejo, sin traducir
+  3,0      3,58  peor 5          7,67  peor 11
+  4,0      3,04  peor 5          5,96  peor 10    <- se sale por el peor caso
+  4,5      3,04  peor 5          5,38  peor 9
+  5,0      3,00  peor 5          4,54  peor 9     <- ELEGIDO
+  6,0      2,50  peor 5          3,46  peor 9     <- la apagada toca el suelo
+```
+
+Se elige **5,0** porque centra el brazo ENCENDIDO —4,54, mitad justa de 3-6—, que es la
+configuración a la que va el motor. Por debajo de 4,0 el peor caso del encendido se va a 10 y rompe
+el tope, que es lo que acota la ventana por abajo.
+
+### Las cuatro huellas se mueven, y la causa es UNA sola
+
+```
+llana-180-0        ganador 14.756 → 14.735  (−21 s)
+llana-180-1        ganador 14.742 → 14.537  (−205 s)
+reina-canonica-0   ganador 15.744 → 15.699  (−45 s)
+reina-canonica-1   ganador 16.576 → 16.549  (−27 s)
+```
+
+Las mueve **el encendido**, no el cambio de indicador: la huella cifra `puesto:riderId:tiempoS` —
+resultados, no sucesos—, y `pullMinTotalWork` solo cambia qué se narra. Las dos causas quedan
+separadas por construcción, no por promesa.
+
+**Y una comprobación que no estaba pedida y que hice porque el sello olía raro**: en
+`reina-canonica-0` el ganador pasa de `gc-3` a `pel-10`, con los tres primeros anónimos. En un final
+en alto eso no cuadra. Medido sobre 60 semillas quién gana la reina:
+
+|           | `gc`     | `bar` | `pel`    |
+| --------- | -------- | ----- | -------- |
+| Apagada   | 43 %     | 20 %  | **37 %** |
+| Encendida | **52 %** | 25 %  | **23 %** |
+
+Con la capa encendida **ganan más los hombres de la general y menos los anónimos**, que es la
+dirección correcta. Esa semilla suelta es una del 23 %, y con la capa apagada ya caía dentro de un
+37 %. El sello se mueve, pero la conducta mejora.
+
+### Y la validación que faltaba: los cinco tapones de la v60 §9, con la capa encendida
+
+El A/B mide bandas de balance. Lo que hundió el encendido conjunto de la v60 §9 **no fueron bandas de
+balance** —«las nueve estadísticas canónicas pasan»— sino **cinco guardarraíles de la crónica**. Así
+que medir solo el A/B habría repetido el error de entonces con otro disfraz.
+
+Corridos con `teamPlay` **encendida**:
+
+| Guardarraíl de la v60 §9                                   | Entonces (las cinco capas a la vez) | Ahora (solo `teamPlay`)                                               |
+| ---------------------------------------------------------- | ----------------------------------- | --------------------------------------------------------------------- |
+| el parte de relevos no depende de que cuaje la fuga        | **0 partes**                        | **pasa** — es el que cayó a 1,875 y el que `pullMinTotalWork` arregla |
+| un corte grande se cuenta cuando pasa                      | mayor caída 2 (listón 12)           | **pasa**                                                              |
+| cuando el pelotón se recompone hay un evento que lo cuenta | **0 reagrupamientos**               | **pasa**                                                              |
+| la criba lejos de meta tiene evento propio                 | 11 (listón 12)                      | **pasa**                                                              |
+| la captura de la fuga dice quiénes eran                    | **0 capturas**                      | **pasa**                                                              |
+
+126 pruebas de `journal.test.ts` y `simulate.test.ts` en verde, y los cuatro bancos de coherencia con
+sus etiquetas reales limpios (`frenteSinExplicar=0` en los cuatro; `ataqueSinCerrar` 0 o 1, con
+tolerancia 2).
+
+**Lo que esto dice del plan**: de los cinco tapones, **uno era de `teamPlay`** —y está arreglado—. Los
+otros cuatro no aparecen con esta capa sola, así que vendrán de `phases`, `customs`, `front` o
+`director`. Encendidas a la vez, los cinco fallos llegaron juntos y no había forma de saber cuál
+venía de cuál; de una en una, cada tapón trae su capa escrita en la frente.
+
+### Y de paso, cómo se llega a tener cinco capas apagadas con la CI en verde
+
+Encendiendo `teamPlay` había que tocar su sello, y al tocarlo salió esto:
+
+| Capa       | Cómo se llamaba su prueba                                                             | Qué afirmaba      |
+| ---------- | ------------------------------------------------------------------------------------- | ----------------- |
+| `teamPlay` | «el juego de equipo **está encendido** (v65)»                                         | `false`           |
+| `phases`   | «el interruptor **está ENCENDIDO**, con toda la capa táctica y con su medida delante» | `false`           |
+| `customs`  | «**está encendida**: la aduana decide la cuerda junto al resto de la capa (v65)»      | `false`           |
+| `director` | «nace **apagado**»                                                                    | `false` — honesto |
+| `front`    | **no tenía sello ninguno**                                                            | —                 |
+
+**Tres de los cinco sellos se llamaban como si la capa estuviera corriendo mientras afirmaban que no
+lo estaba.** No es una errata: son los nombres del encendido conjunto que la v60 §9 echó atrás. El
+interruptor volvió a `false` y el nombre no volvió con él.
+
+El efecto es la forma más barata que tiene un repositorio de mentirse: **la lista de pruebas en verde
+se lee como si las capas corrieran**. Y es, literalmente, cómo se llega a la situación que el dueño
+describe —«están construidas, probadas y mezcladas, pero no corren en mi juego»— sin que nadie esté
+haciendo nada mal en ningún commit concreto.
+
+Los tres nombres pasan a decir lo que afirman, `teamPlay` pasa a afirmar `true` porque ahora es
+verdad, y `front` **gana el sello que no tenía**: un interruptor sin prueba se puede dejar apagado
+para siempre sin que nada lo cuente.
+
+**La regla que queda**: encender una capa incluye que su sello diga la verdad, y ningún interruptor
+se queda sin sello. Un nombre que promete lo que la afirmación niega es peor que no tener prueba,
+porque cuesta lo mismo leerlo y engaña al que lo lee.

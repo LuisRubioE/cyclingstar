@@ -154,3 +154,23 @@ describe('engine: el que se sienta (R20.5)', () => {
     expect(sitsOut(equipo(), mov, 8, 3, true)).toBe(false)
   })
 })
+
+/**
+ * EL INTERRUPTOR DEL PASO 9, QUE NO TENÍA SELLO (añadido en la v74).
+ *
+ * De las cinco capas tácticas, cuatro tenían una prueba que fijaba su interruptor y ésta no tenía
+ * ninguna. Un interruptor sin sello se puede encender —o dejar apagado— sin que nada lo cuente, que
+ * es precisamente cómo se llega a tener una capa construida, probada y mezclada que no corre.
+ *
+ * Y las otras cuatro no eran mucho mejores: **tres de ellas se llamaban como si la capa estuviera
+ * encendida mientras afirmaban que estaba apagada** (docs/balance.md «v74»), herencia del encendido
+ * conjunto que la v60 §9 echó atrás. Corregidas en la misma tanda.
+ *
+ * Éste nace apagado y con el porqué escrito en `constants.ts`: de esta pieza cuelgan tres racimos
+ * —R01, R19 y R03—, así que su encendido no es uno más de la lista y se mide aparte.
+ */
+describe('engine: el interruptor del paso 9', () => {
+  it('nace apagado, y el sello existe para que encenderlo sea una decisión y no un descuido', () => {
+    expect(STAGE.front.enabled).toBe(false)
+  })
+})

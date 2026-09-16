@@ -3,6 +3,24 @@ import { ENGINE_VERSION } from './index.js'
 
 describe('engine: esqueleto', () => {
   it('expone una engine_version sellada', () => {
+    // v74: SE ENCIENDE EL JUEGO DE EQUIPO (`teamPlay`, paso 3, docs/balance.md «v74»). La capa
+    // estaba construida, probada y mezclada, y corria con `enabled: false`: existia en el
+    // repositorio y no en la carretera. El A/B, 240 semillas POR BRAZO y con los criterios escritos
+    // antes de medir: la fuga de la llana 9,2 -> 7,5 % (banda 5-16, y la bajada esta dentro del
+    // ruido, sigma ~1,8 puntos), el mejor velocista 36,3 -> 40,4 % (banda 30-45), la fuga de la
+    // reina 26,7 -> 33,8 % (banda 15-40) y el hueco 1.o-10.o 106 -> 130 s (banda 40-360). La
+    // EROSION es identica en los dos brazos, 0,567: la capa no toca el deposito, que es lo que
+    // debe pasar, y de paso prueba que los dos brazos corrieron configuraciones distintas.
+    //
+    // Y EL ENCENDIDO SACO UNA BANDA QUE NO ESTABA EN ESOS CRITERIOS: los partes de «quien tira»
+    // caian a 1,875 por etapa contra un suelo de 2,5. No se toco la banda, porque el motor ya tenia
+    // escrito desde la v64, con la medida delante, que el indicador estaba mal hecho: `pullMinWork`
+    // preguntaba quien lleva mucho rato delante, y con el turno convertido en cola la respuesta
+    // honesta es «nadie» aunque esten tirando todos. La nota decia tambien cual era el arreglo
+    // —medir el TRABAJO TOTAL al frente, invariante a como se reparta— y cuando hacerlo: «el dia que
+    // la cola se encienda, no antes». Hecho: `pullMinTotalWork`, calibrada EN LOS DOS BRAZOS con el
+    // barrido publicado, valor 5,0 (apagada 3,00 partes por etapa, encendida 4,54, las dos dentro
+    // de 3-6 y con el peor caso en 5 y 9 contra el tope de 9).
     // v73: LA REINA CANONICA VUELVE, Y CON EL DEFECTO QUE ELLA MISMA DESTAPO ARREGLADO
     // (docs/balance.md «v73»). El escenario sintetico pasa a ser una reina de verdad —158 km y
     // 2.933 m, dos puertos y final en alto, decision 5 del dueno— y al correr por primera vez el
@@ -422,6 +440,6 @@ describe('engine: esqueleto', () => {
     // v11 (atribución del trabajo), la v10 (composición y caza), la v9 (capa táctica), la
     // v8 (tiempos de grupo), la v7 (modelo de final), la v6 (telemetría), la v5 (clásica larga), la
     // v4 (pavé en el recorrido) y la v3 (Cambio 0).
-    expect(ENGINE_VERSION).toBe(73)
+    expect(ENGINE_VERSION).toBe(74)
   })
 })

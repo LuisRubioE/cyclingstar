@@ -756,7 +756,7 @@
  * entero bajaba a por quien no era su baza, y la crónica lo contaba como un compromiso con la
  * general que nadie había tomado.
  */
-export const ENGINE_VERSION = 73 as const
+export const ENGINE_VERSION = 74 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -2542,7 +2542,12 @@ export const STAGE = {
    * atacar por intención, y lo que hacen dos compañeros en el mismo grupo.
    */
   teamPlay: {
-    enabled: false,
+    /**
+     * ENCENDIDA en la v74, con su A/B de 240 semillas por brazo y los criterios declarados ANTES de
+     * medir (docs/balance.md «v74»). Estaba construida, probada y mezclada desde el paso 3, y
+     * apagada: o sea, el juego de equipo existía en el repositorio y no en la carretera.
+     */
+    enabled: true,
     /**
      * CUÁNTO DURA UN TURNO, por terreno (R18.1). En cuesta se releva antes —el esfuerzo es continuo
      * y no hay rueda que valga tanto— y con viento de lado, antes todavía.
@@ -3966,9 +3971,37 @@ export const STAGE = {
   // así el parte dice «X y Z» cuando de verdad tiran dos y «X» cuando tira uno solo.
   pullNamesMax: 3,
   pullNamesMinShare: 0.55,
-  // Trabajo mínimo del que más ha tirado en la ventana para que haya parte. Es lo que impide narrar
-  // «tiran fulano y mengano» de un pelotón que va de paseo detrás de una fuga consentida.
-  pullMinWork: 0.35,
+  /**
+   * TRABAJO MÍNIMO AL FRENTE, SUMADO, para que haya parte. Es lo que impide narrar «tiran fulano y
+   * mengano» de un pelotón que va de paseo detrás de una fuga consentida.
+   *
+   * SUSTITUYE A `pullMinWork` 0,35 (v74), que medía **al mejor hombre** y era un indicador con
+   * fecha de caducidad escrita: la v64 ya dejó anotado, con la medida delante, que en cuanto el
+   * turno se convirtiera en cola «un hombre da la cara 600 metros y se va al final de la fila, así
+   * que nadie acumula», y el parte pasaba de 24 etapas de 24 a 0 de 24. No es que nadie tire
+   * —tiran todos, y por turnos, que es lo que se quería—: es que la pregunta estaba mal hecha.
+   *
+   * `total` pregunta si SE ESTÁ TIRANDO, y es invariante a cómo se reparta el trabajo. Calibrada en
+   * LOS DOS BRAZOS, con la cola apagada y encendida, contra la misma banda de siempre —3-6 partes
+   * por etapa, comprobada como 2,5-6,5 de media y un peor caso ≤ 9—. El barrido, 24 semillas del
+   * banco de atribución por celda:
+   *
+   * ```
+   *   listón   cola apagada            cola encendida
+   *   0,35     4,88  peor 8            11,46  peor 14      <- el listón viejo, sin traducir
+   *   3,0      3,58  peor 5             7,67  peor 11
+   *   4,0      3,04  peor 5             5,96  peor 10      <- se sale por el peor caso
+   *   4,5      3,04  peor 5             5,38  peor 9
+   *   5,0      3,00  peor 5             4,54  peor 9       <- ELEGIDO
+   *   6,0      2,50  peor 5             3,46  peor 9       <- la apagada toca el suelo
+   * ```
+   *
+   * Se elige 5,0 y no 4,5 porque centra el brazo ENCENDIDO —4,54, mitad justa de 3-6—, que es la
+   * configuración a la que va el motor; la apagada queda en 3,00, en el suelo del objetivo pero
+   * holgada sobre el listón de la prueba (2,5). Por debajo de 4,0 el peor caso del brazo encendido
+   * se va a 10 y rompe el tope, que es lo que acota la ventana por abajo.
+   */
+  pullMinTotalWork: 5,
   // Throttle del parte: nunca dos partes en menos de `Min` km aunque cambie quién manda, y como
   // mucho uno cada `pullReportKmGap` km aunque no cambie nadie. Medido (60 semillas por escenario):
   // con 9/30 salían 5,4 por etapa en la llana y 6,3 en Flandes; con 12/36 la mediana queda en 4-5 y
