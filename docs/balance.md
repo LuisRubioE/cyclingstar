@@ -13726,3 +13726,260 @@ en las dos llanas el ganador no debe cambiar». Las cuatro corridas selladas sal
 dígito**, porque en esas cuatro semillas ningún fugado pincha. La versión sube igual —la conducta ha
 cambiado y `checkReplay` tiene que saberlo—, pero **no hay re-sellado**: no se re-sella una huella que
 no se ha movido.
+
+## v60 §25 — paso 21, la reina de verdad
+
+**Sin subida de `ENGINE_VERSION`**: no se toca el motor. Lo que cambia es **dónde se mide**, que es
+justo lo que el paso 21 viene a hacer.
+
+`reina-150` —135 km de llano y un puerto de 15 km al 8 %, **1.200 m**— deja de ser el escenario
+canónico de montaña. Se conserva con su nombre de verdad, **`media-150`**, porque eso es lo que es y
+`targets.ts` lleva llamándolo «una caricatura» desde la v44. En su sitio entra **`reina-real`**: 158
+km, **2.933 m**, dos puertos —13 km al 7 % medio y 12 km al 7,5 % con el remate al 9 %— y final en
+alto.
+
+### No son los 3.500-4.500 m que pedía la decisión 5, y el motivo está medido
+
+Se barrió el desnivel **antes** de elegir, y a partir de 3.300 la etapa deja de tener carrera:
+
+| m+        | m/km     | gana la fuga | erosión   | pájaras    |
+| --------- | -------- | ------------ | --------- | ---------- |
+| 1.200     | 8,0      | 29,2 %       | 0,266     | 0,0 %      |
+| **2.933** | **18,6** | **25,8 %**   | **0,566** | **0,3 %**  |
+| 3.339     | 20,6     | 20,8 %       | 0,733     | 1,3 %      |
+| 3.742     | 22,5     | 4,2 %        | 0,882     | 11,3 %     |
+| 4.101     | 24,0     | **0,0 %**    | **0,920** | **51,2 %** |
+
+Y hay dos avales, uno de esta bitácora y otro del calendario del juego.
+
+**El primero es que la v15 ya lo había medido, y lo dejó escrito en `targets.ts`**: «con 4.500 m y el
+depósito así de mermado, el 100 % del campo entraba en pájara y la erosión topaba en 0,920, es decir,
+**el modelo dejaba de discriminar**». El barrido de arriba reproduce ese **0,920 clavado**. O sea que
+la decisión 5 pedía exactamente el escenario que esta casa había descartado cincuenta versiones antes
+por saturar el depósito — y nadie cruzó las dos páginas.
+
+**El segundo es que las etapas reina del calendario tienen una mediana de 2.023 m.** Con 2.933 esto es
+una reina **dura** —un 45 % por encima de la mediana— y no una etapa media disfrazada, que es el
+defecto que había que arreglar. Sustituir una caricatura por la contraria no habría sido un arreglo.
+
+### Las huellas: una baja y un alta, no un re-sellado
+
+Las dos de `reina-150` se **retiran** —el escenario deja de ser canónico, así que no hay nada que
+re-sellar (§9.3)— y las dos de `reina-real` se **sellan por primera vez**. Los criterios de aceptación
+de una reina, y lo que dan:
+
+|                             | `reina-real-0`           | `reina-real-1`  |
+| --------------------------- | ------------------------ | --------------- |
+| no gana un velocista        | `pel-20` (desde la fuga) | `bar-0`         |
+| dónde acaban los `spr-*`    | puestos 174-176          | puestos 174-176 |
+| el campo llega deshilachado | **42** relojes distintos | **37**          |
+| hueco al segundo            | +53 s                    | +3 s            |
+
+### Lo que esto mueve, y las dos cosas que NO mueve
+
+**`mountain.breakawayWinPct`: 25-45 → 15-40.** La banda vieja no se afloja, **se declara inválida**
+(decisión 23 del dueño): estaba medida sobre la caricatura, y una banda medida sobre una caricatura
+describe la caricatura, no la montaña. Sobre el escenario nuevo la fuga gana **25,8 %** con 120
+semillas.
+
+Y la banda se escribe **con hueco, no pegada a la medida**, que es la lección del defecto V1 de esta
+casa —«la banda sentada encima de su suelo»—. Con 120 corridas, σ ≈ 4,0 puntos para una proporción del
+26 %: dejar el suelo en 25 haría que el invariante cayera del lado malo **la mitad de las veces**, o
+sea un guardarraíl que decide a cara o cruz. El 15-40 deja ~2,7σ por abajo y ~3,5σ por arriba.
+
+**`erosion.queenFresh`: techo 0,50 → 0,62.** Y esta casilla **se había predicho a sí misma** desde la
+v16: «se comprobó re-anclar el objetivo sobre la etapa reina REAL … habría exigido mover el TECHO en
+vez del suelo, porque la reina real erosiona 0,51». Entonces se prefirió conservar el punto de medida;
+el paso 21 lo cambia, así que la deuda vence. Medido 0,566 con un 0,3 % de pájaras: el campo sufre sin
+que el modelo deje de discriminar, que es la condición. **El suelo de 0,18 se conserva** porque
+describe lo que el grupeto AHORRA, que es conducta del motor y no del perfil.
+
+**Lo que NO se mueve, y es lo que da confianza en el cambio:**
+
+- **la ley de velocidad.** `reina-real` se gana a **35,9 km/h** contra el suelo de 32 del invariante 43. La reina de 4.101 m que se descartó caía a 30,9 y lo habría roto;
+- **`erosion.queenThirdWeek`**, que además **puede volver a casa**. La banda es 0,60-0,85;
+  `reina-150-s3` mide **0,364** —fuera por abajo, y por eso la v15 tuvo que llevarse el objetivo a
+  otro banco (Race France e18)— y `reina-real-s3` mide **0,700**, dentro. El escenario nuevo permite
+  devolver la medida a su sitio; hacerlo es trabajo aparte y queda anotado.
+
+**Todas las cifras de esta nota son de 120 semillas**, que es el tamaño de la campaña de CI. Se dice
+porque la primera pasada se hizo con 40 y daba **0,706** en esa última casilla y **27,5 %** en la fuga
+de `reina-real` —contra el 25,8 % de las 120—, y ese 27,5 me llevó a escribir que
+`mountain.breakawayWinPct` no había que tocarla. Con la muestra buena está pegada al suelo de 25 y hay
+que re-anclarla. Es la misma lección de la v60 §24 con el viento, dos notas más arriba: **una banda no
+se sella con la muestra pequeña**.
+
+## v72 — dos defectos que el dueño cazó mirando Race Solidarnosc
+
+### 1. La radio que estaba guardada y la pantalla decía que no existía
+
+`ENGINE_VERSION` **no sube por esto**: es un contrato, no conducta.
+
+> «Una carrera que se acaba de correr hace unos minutos, la Race Solidarnosc… sale este error, y las
+> otras del mismo día o anteriores sí tienen Race Radio.»
+
+El mensaje era: «this stage was raced before the race radio was recorded, so there is nothing to
+replay». **Y era falso.** La radio estaba guardada entera, con sus ciento ochenta y siete kilómetros.
+
+La causa: `buildRaceRadio` **valida** lo guardado contra `pullMotiveSchema`, y el **paso 17c** amplió
+`PullMotive` en el motor de diez palabras a quince —`propio`, `equipo_puntos`, `equipo_montana`,
+`infiltrado`, `colocando`— **sin ampliar el contrato**. En cuanto un corredor tiraba con uno de los
+cinco nuevos, el `safeParse` fallaba entero y la función devolvía `null`; la vista, que solo sabe
+distinguir «hay radio» de «no hay radio», decía lo único que sabe decir.
+
+Y explica lo que parecía un misterio —unas carreras con radio y otras sin ella, el mismo día—:
+**solo se rompen las etapas donde alguno de los cinco llega a dispararse**. En Solidarnosc, `propio`
+sale en las cuatro. Reproducido y verificado etapa por etapa:
+
+| Race Solidarnosc     | antes                 | ahora  |
+| -------------------- | --------------------- | ------ |
+| e1 (187 km de radio) | `safeParse` **FALLA** | **OK** |
+| e2 (186 km)          | **FALLA**             | **OK** |
+| e3 (182 km)          | **FALLA**             | **OK** |
+| e4 (135 km)          | **FALLA**             | **OK** |
+
+**Se arreglan dos cosas, no una.** El enum, sí — pero el enum volverá a quedarse corto el día que el
+motor crezca otra vez, así que lo que de verdad había que arreglar es **la fragilidad**: `motivos`
+pasa a `pullMotiveSchema.nullable().catch(null)`, y un motivo que el contrato no entienda se degrada a
+«no lo sé» —el corredor sale sin frase— en vez de llevarse por delante la etapa entera. Un valor
+desconocido en un campo decorativo no puede costar la radio.
+
+Y queda un guardarraíl **de tipos**, que falla al compilar y no en producción seis meses después: una
+comprobación de que todo `PullMotive` del motor cabe en el del contrato y al revés. Si el motor añade
+una palabra y el contrato no, `pnpm typecheck` se pone rojo.
+
+### 2. El rescate por la general, a nombre de quien no era la baza
+
+`ENGINE_VERSION` **71 → 72**: esto sí es conducta.
+
+> «Dice que hay gente que se queda atrás para ayudarme porque soy su baza de la general… pero yo ni
+> sabía que era la baza de la general del equipo; es más, **ni siquiera era el mejor en la general de
+> mi equipo** antes de iniciar la etapa 4.»
+
+«Los suyos se dejan caer a por él» (v36) rescata a `plan.leaderId` —el jefe de filas del día, que sale
+de los **votos de los gregarios** o del rol y la calidad (`pickLeader`)— y decidía el motivo mirando
+si el **EQUIPO** tenía `purposes` de general, que se calcula sobre `gcLeaderId`. **Dos personas
+distintas**, y el motor no las distinguía.
+
+Cuando lo eran, se equivocaba dos veces:
+
+- **en la conducta**, que es lo caro: con el motivo «general» bajan **todos los disponibles menos
+  uno**, contra **dos** por la etapa. El equipo entero se sacrificaba por un hombre que no era su
+  baza, mientras el que sí lo era seguía delante sin nadie;
+- **en la crónica**, que es donde se vio: «the team commits to the general classification: N riders
+  drop out of the bunch to drag X back», con una X que no figuraba ni entre los mejores de su equipo.
+
+Es **exactamente el caso que este motor ya tenía descrito** en `teamPlan.ts`: «el jugador humano se
+pone de líder cuando su equipo ya tiene uno». Estaba escrito, y aun así la regla del rescate no lo
+miraba.
+
+El motivo de general se le reconoce ahora al hombre de la general: el que lleva el maillot, o el que
+el plan señala como su baza (`gcLeaderId`). Al jefe de filas del día que no es ninguna de las dos
+cosas se le rescata **por la etapa**, con dos hombres y si el hueco da.
+
+**Las cuatro huellas no se mueven**, y es la consecuencia correcta: los escenarios canónicos corren
+sin general en juego, así que ahí `porLaGeneral` ya era falso. La medida vive en el banco que monta el
+caso a mano —jefe de filas a 300 s, compañero a 20— y **se comprobó contra el código viejo antes de
+darlo por bueno**: con la regla anterior la prueba falla con `expected 'general' not to be 'general'`.
+
+### 3. …y el defecto hermano, que nadie ha visto todavía porque está un piso más abajo
+
+Buscando el segundo apareció un tercero, del mismo linaje que el falso líder de Race Colombia
+(`gcMissingStage.test.ts`): **la ausencia hacía líder**, otra vez.
+
+`stageRun.ts` armaba el déficit así:
+
+```ts
+gcDeficitSeconds: (gcTime.get(riderId) ?? 0) - gcLeader
+```
+
+Un corredor **sin fila en `race_gc`** no tiene tiempo acumulado, así que el `?? 0` le daba cero, y el
+resultado era un déficit **negativo**: minutos _por delante_ del líder. Y el motor no lee ese número
+como un adorno, lo compara contra cero para saber quién manda —la propia regla que acaba de
+arreglarse en el punto 2 pregunta `gcDeficitSeconds <= 0`—. O sea: **no estar clasificado te convertía
+en la baza de la general de tu equipo, y en líder de la carrera**.
+
+Dos líneas más abajo, el puesto ya lo hacía bien: `gcRank.get(riderId) ?? null`, «no lo sé». El
+déficit no puede ser nulo —el contrato lo pide número—, así que se responde lo único honesto que es
+un número: **quien no está en la general no la lidera**, y se le da el déficit del **último
+clasificado**. Sin filas (antes de la primera etapa, o carrera de un día) todos valen 0, que es lo que
+ya valían y lo que el motor entiende como «aquí no hay general que defender».
+
+Va en una función pura y sellada, `gcDeficitTable`, con las tres medidas: los clasificados contra el
+líder, el que no tiene fila al final, y el cero de la etapa 1.
+
+**No mueve ninguna huella** y no cambia ni una etapa de las que ya se corrieron bien: solo toca al
+corredor que hoy salía con un número imposible.
+
+## Paso 21 — las tres `[calibrar]` que quedan, y por qué ninguna se puede anclar hoy
+
+Quedaban tres constantes marcadas `[calibrar]` en `constants.ts` con dueño y banco declarados:
+`gcClimbRecoverPerKm` 1,6, `pushCost` 0,45 y `ambushGainShare` 0,5. Antes de barrer nada hay que
+comprobar lo que cada comentario promete, porque **una constante no queda anclada porque su
+comentario nombre un banco: queda anclada cuando ese banco mide la pregunta que la constante
+contesta**. Las tres fallan esa comprobación, cada una de una manera distinta.
+
+| Constante                 | Ancla que declara                             | Qué hay de verdad en el repositorio                                                                                                                                                                                                                                                                                                                                   |
+| ------------------------- | --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ambushGainShare` 0,5     | «[calibrar] contra `truceGrantedPct` 50-85 %» | **La medida no existe**, y el propio documento lo dice: la tabla de `tactica.md` §6564 apunta `truceGrantedPct` con la columna «no existe». Cero apariciones en `sim/targets.ts` y en `sim/analyze.ts`.                                                                                                                                                               |
+| `gcClimbRecoverPerKm` 1,6 | «[calibrar] sobre `realQueens` en el paso 21» | **El banco existe y no mide esto.** `analyzeRealQueens` publica dos estadísticos, `lastGroupPct` y `worstStagePct` —el tamaño de la cola—. La constante son «segundos que se mueve la general por km de puerto **entre hombres vecinos**», y eso no está en el banco.                                                                                                 |
+| `pushCost` 0,45           | «[calibrar] contra el invariante 18»          | **La referencia no se puede resolver.** Los invariantes de este motor están **nombrados, no numerados**: `invariants.test.ts` los agrupa por tema (llano, fases, montaña, crono, desgaste, abandonos, pavé…). El «18» sale de la numeración suelta de `tactica.md`, que ahí es una fila del **plan de trabajo** (R08 + R28, el depósito entre etapas), no una medida. |
+
+Es el tercer caso del mismo patrón en este documento, y por eso se anota como patrón y no como
+anécdota: **`POS.abanicoCommit`**, que se citaba como ancla de `satelliteTowCommit` y no existe en el
+repositorio; **`mechanicalShare`**, retirada porque ningún banco puede distinguir una avería de un
+pinchazo; y ahora estas tres. En los tres casos la salida fácil era la misma —correr un barrido,
+elegir el valor del medio y escribir un número con pinta de medido— y en los tres es la salida
+equivocada.
+
+### Lo que sí se puede preguntar, y es lo que se va a barrer
+
+La pregunta «¿qué valor es el bueno?» no tiene respuesta hoy para ninguna de las tres. La que sí la
+tiene es la otra: **¿mueve esta constante alguna banda que exista?** Cada una contra tres valores —el
+de hoy y dos vecinos— sobre las medidas vivas: fuga y mejor velocista en la llana, kilómetro de
+captura, fuga y hueco 1.º-10.º de la reina canónica, erosión, y la cola de `realQueens`.
+
+- Si mueve una banda medida, **ahí queda anclada** y deja de ser `[calibrar]`.
+- Si no mueve ninguna, **sigue `[calibrar]` con el barrido publicado como motivo**, exactamente como
+  `closeRateSPerKm`: la marca no es una deuda que se tacha, es la afirmación de que hoy no hay
+  instrumento, y borrarla sin instrumento sería mentir en una tabla.
+
+**Nota de método, aprendida a golpes en esta misma sesión**: el barrido parchea
+`packages/engine/dist/constants.js`, igual que el arnés de A/B de capas. **Los dos no pueden correr a
+la vez**: se pisan el fichero y cada uno restaura encima del otro. Van en cola, nunca en paralelo.
+
+## v72.2 — la reina canónica se aplaza, y el motivo es que «Bancos» la cazó
+
+La reina canónica (decisión 5 del dueño: 3.500-4.500 m, dos puertos, final en alto) se sacó de esta
+rama y se volverá a meter en su propio PR. No es un cambio de opinión sobre la decisión: es que el
+banco de simulación encontró **dos cosas que no estaban medidas**, y una de ellas es un defecto de
+verdad.
+
+`packages/engine/src/sim/scenarios.ts` no había pasado nunca por el job «Bancos» —el arreglo de la
+reina viajaba en la misma rama que el de la Race Radio—, y cuando por fin corrió, con el Tour ya
+empezado y la radio rota en producción, salieron dos fallos:
+
+| Fallo                                                                           | Qué dice                                                                                                    | Qué es                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| ------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `coherence.test.ts`: `frenteSinExplicar=1`                                      | Una etapa de la campaña tiene a alguien que entra o sale del grupo de cabeza **sin que la crónica lo diga** | **Un defecto real.** La tolerancia es CERO y está escrita así: «el listón está donde está el motor de hoy: si sube, algo se ha roto». Y encaja con la deuda anotada en la v70.1: **fundir dos grupos por PROXIMIDAD y no solo por adelantamiento de reloj**. Una reina con final en alto produce justo ese roce, y la reina vieja no llegaba a producirlo                                                                                                  |
+| `invariants.test.ts`: la reina sintética erosiona 0,704 contra 0,613 de la real | El invariante pide que la sintética quede **por debajo**                                                    | **La premisa del guardarraíl la abolió la propia decisión 5.** El invariante dice de sí mismo: «1.200 m de desnivel no son una etapa reina… la caricatura tiene que quedar por debajo». Sustituir la caricatura por una reina de verdad es exactamente lo que se pidió, así que el orden «sintética < real» deja de tener sentido. Pero **re-apuntar un guardarraíl es un cambio con nombre propio y se declara en su PR**, no de tapadillo dentro de otro |
+
+### Por qué se aplaza en vez de arreglarse aquí
+
+El arreglo de la Race Radio lleva toda la sesión esperando y el Tour de Francia está en marcha sin
+ella. Cada vuelta de CI de esta rama cuesta ~70 minutos, y el primero de los dos fallos **no se
+arregla con una banda**: hay que fundir grupos por proximidad, que mueve las cuatro huellas y es una
+tanda entera con su propia medición.
+
+Así que se separa lo que no tenía por qué ir junto. Los tres ficheros de la reina
+—`scenarios.ts`, `targets.ts` y `attribution.test.ts`— quedan **byte a byte idénticos a `main`**, o
+sea en el estado que ya estaba verde, y lo comprobado es eso y no una opinión: `git diff origin/main`
+da cero líneas en los tres.
+
+Lo que se lleva por delante, y vuelve con ella: las dos bandas re-ancladas
+(`mountain.breakawayWinPct` 15-40 y `erosion.queenFresh` 0,62), las dos huellas nuevas de
+`reina-canonica` y la baja de las dos de `reina-150`.
+
+**La lección, que es más grande que el aplazamiento**: un escenario nuevo no está medido hasta que
+corre el banco que lo mide, y meterlo en la misma rama que un arreglo urgente convierte un hallazgo
+del banco en un rehén. Los bancos caros van en su propio PR precisamente porque tardan.

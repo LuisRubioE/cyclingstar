@@ -297,6 +297,47 @@ describe('los suyos se dejan caer a por él (v36, §V.1)', () => {
     }
   })
 
+  /**
+   * …Y EL RESCATE POR LA GENERAL ES DEL HOMBRE DE LA GENERAL (v72, defecto de producción).
+   *
+   * El dueño, mirando la etapa 4 de Race Solidarnosc con su propio equipo: «dice que hay gente que
+   * se queda atrás para ayudarme porque soy su baza de la general… pero yo ni sabía que era la baza
+   * de la general del equipo; es más, **ni siquiera era el mejor en la general de mi equipo** antes
+   * de iniciar la etapa 4».
+   *
+   * Tenía razón, y el defecto era doble. El hombre al que se rescata es `plan.leaderId`, que sale de
+   * los VOTOS de los gregarios o del rol y la calidad (`pickLeader`); el motivo `porLaGeneral` se
+   * leía del EQUIPO (`purposes`), que se calcula sobre `gcLeaderId`. Dos personas distintas. Cuando
+   * lo eran, **bajaban todos los disponibles menos uno** —contra dos por la etapa— a por quien no
+   * era la baza, y la crónica lo llamaba un compromiso con la general que nadie había tomado.
+   *
+   * Es exactamente el caso que este motor ya tenía descrito en `teamPlan.ts`: el jugador humano que
+   * se pone de líder cuando su equipo ya tiene uno.
+   *
+   * El banco lo monta a mano: el jefe de filas por votos va a 300 s en la general y un compañero
+   * suyo va a 20 s. El equipo tiene motivo de general **por el compañero**, no por él.
+   */
+  it('si el jefe de filas NO es la baza de la general, no baja el equipo entero', () => {
+    const input: StageInput = {
+      ...conJefeQueSeCae(true),
+      riders: conJefeQueSeCae(true).riders.map((r) =>
+        r.riderId === 'jefe'
+          ? { ...r, gcDeficitSeconds: 300 }
+          : r.riderId === 'greg-0'
+            ? { ...r, gcDeficitSeconds: 20 }
+            : r,
+      ),
+    }
+    const avisos = partes(input, 'ayuda-gc-jefe-no-es-la-baza')
+    // La regla sigue existiendo: al jefe se le rescata. Lo que cambia es CON QUÉ MOTIVO y CON CUÁNTOS.
+    for (const e of avisos) {
+      if (e.datos?.jefeId !== 'jefe') continue
+      expect(e.datos?.porQue).not.toBe('general')
+      // Por la etapa bajan dos, no «todos menos uno»: con cinco gregarios, el defecto daba cuatro.
+      expect(Number(e.datos!.cuantos)).toBeLessThanOrEqual(STAGE.helpBackStageHelpers)
+    }
+  })
+
   it('EL QUE LLEVA EL MAILLOT no baja a por nadie (v51)', () => {
     /**
      * El dueño, leyendo la crónica de la etapa 14 del Race Italy: «km 55, 107 Isaac Clark (Beacon

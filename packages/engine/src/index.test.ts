@@ -3,6 +3,15 @@ import { ENGINE_VERSION } from './index.js'
 
 describe('engine: esqueleto', () => {
   it('expone una engine_version sellada', () => {
+    // v72: EL RESCATE POR LA GENERAL ES DEL HOMBRE DE LA GENERAL (docs/balance.md «v72»). «Los suyos
+    // se dejan caer a por el» (v36) preguntaba si el EQUIPO tenia motivo de general, y el hombre al
+    // que rescata es `plan.leaderId` —el jefe de filas del dia, elegido por VOTOS de los gregarios o
+    // por rol y calidad (`pickLeader`), no por la general—. Cuando son personas distintas, el motor
+    // se equivocaba dos veces: bajaban TODOS los disponibles menos uno (contra dos por la etapa) a
+    // por quien no era la baza del equipo, y la cronica lo contaba como «the team commits to the
+    // general classification». Lo cazo el dueno en su propio equipo: «ni siquiera era el mejor en la
+    // general de mi equipo antes de iniciar la etapa 4». Es el caso que este motor ya tenia escrito
+    // en otro sitio: el jugador humano que se pone de lider cuando su equipo ya tiene uno.
     // v71: EL FUGADO TIENE COCHE (correccion de R11.2, docs/balance.md «v71»). El paso 13 implemento
     // la primera mitad de R11.2 al pie de la letra —«en cabeza de carrera x carNoAccessGain (3)»— y
     // dejo la segunda en letra muerta, sin ver que la regla SE CONTRADICE A SI MISMA dos lineas mas
@@ -400,6 +409,6 @@ describe('engine: esqueleto', () => {
     // v11 (atribución del trabajo), la v10 (composición y caza), la v9 (capa táctica), la
     // v8 (tiempos de grupo), la v7 (modelo de final), la v6 (telemetría), la v5 (clásica larga), la
     // v4 (pavé en el recorrido) y la v3 (Cambio 0).
-    expect(ENGINE_VERSION).toBe(71)
+    expect(ENGINE_VERSION).toBe(72)
   })
 })

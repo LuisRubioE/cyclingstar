@@ -9,6 +9,17 @@ export type StageRole =
 export type Mentality = 'reservon' | 'oportunista' | 'combativo' | 'supercombativo'
 export type Effort = 'ahorrar' | 'normal' | 'a_tope'
 
+/** Cuándo lanza su movimiento este hombre (paso 17a). El caso `km` es el `triggerKm` de siempre. */
+export type TriggerCond =
+  | { at: 'km'; km: number }
+  | { at: 'climb'; which: 'last' | 'penultimate'; part: 'pie' | 'duro' | 'cima' }
+  | { at: 'attack'; byRiderId: string }
+  | { at: 'gap'; overS: number }
+  | { at: 'weather'; cond: 'lluvia' | 'viento' }
+  | { at: 'sector'; index: number }
+export type ChasePolicy = 'nunca' | 'si_amenaza' | 'siempre'
+export type DayGoal = 'ganar' | 'general' | 'puntos' | 'montana' | 'grupeto' | 'ahorrar' | 'servir'
+
 export interface StageOrderRow {
   stageDay: number
   role: StageRole
@@ -18,6 +29,15 @@ export interface StageOrderRow {
   triggerKm: number | null
   contestSprints: boolean
   contestClimbs: boolean
+  /**
+   * LAS CUATRO DEL PASO 17a. `null` = no hay preferencia y decide el motor, que es la conducta de las
+   * hojas anteriores a la migración. Opcionales además de nullables porque un cliente sin desplegar
+   * no las manda: si fueran obligatorias, desplegar la API antes que la web rompería la pantalla.
+   */
+  triggerOn?: TriggerCond | null | undefined
+  chasePolicy?: ChasePolicy | null | undefined
+  refuseRelayTeams?: string[] | null | undefined
+  dayGoal?: DayGoal | null | undefined
 }
 
 /** Compañeros de EQUIPO del corredor que están en el roster de la carrera (posibles objetivos de orden). */
@@ -102,6 +122,10 @@ export async function getStageOrders(
       triggerKm: stageOrders.triggerKm,
       contestSprints: stageOrders.contestSprints,
       contestClimbs: stageOrders.contestClimbs,
+      triggerOn: stageOrders.triggerOn,
+      chasePolicy: stageOrders.chasePolicy,
+      refuseRelayTeams: stageOrders.refuseRelayTeams,
+      dayGoal: stageOrders.dayGoal,
     })
     .from(stageOrders)
     .where(and(eq(stageOrders.raceId, raceId), eq(stageOrders.riderId, riderId)))
@@ -131,6 +155,10 @@ export async function setStageOrders(
           triggerKm: o.triggerKm,
           contestSprints: o.contestSprints,
           contestClimbs: o.contestClimbs,
+          triggerOn: o.triggerOn ?? null,
+          chasePolicy: o.chasePolicy ?? null,
+          refuseRelayTeams: o.refuseRelayTeams ?? null,
+          dayGoal: o.dayGoal ?? null,
         })),
       )
     }

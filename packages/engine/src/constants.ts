@@ -746,7 +746,17 @@
  * descolgado entre dos grupos, al que la caravana ya dejó atrás— y el que pincha EN UN PUERTO, donde
  * la carretera no deja pasar a nadie. Eso no cambia.
  */
-export const ENGINE_VERSION = 71 as const
+/**
+ * **v72 — EL RESCATE POR LA GENERAL ES DEL HOMBRE DE LA GENERAL** (corrección de producción).
+ *
+ * «Los suyos se dejan caer a por él» (v36) preguntaba si el EQUIPO tenía motivo de general, y el
+ * hombre al que rescata es el jefe de filas del día, que se elige por votos de los gregarios o por
+ * rol y calidad — no por la general. Cuando son personas distintas —el caso del **jugador humano
+ * que se pone de líder cuando su equipo ya tiene uno**, que este motor ya tenía descrito— el equipo
+ * entero bajaba a por quien no era su baza, y la crónica lo contaba como un compromiso con la
+ * general que nadie había tomado.
+ */
+export const ENGINE_VERSION = 72 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -2499,7 +2509,24 @@ export const STAGE = {
     threatTieBand: 0.05,
     /**
      * EL HUECO QUE TOLERA UN EQUIPO SIN HOMBRE DE GENERAL (R20.1, la rama que faltaba). Un pelotón
-     * lanzado recorta un minuto cada diez kilómetros. [calibrar] contra `flat.catchKmToFinish`.
+     * lanzado recorta un minuto cada diez kilómetros.
+     *
+     * **SIGUE [calibrar], Y EL PASO 21 DEJA ESCRITO POR QUÉ NO SE PUEDE CERRAR HOY: la capa que la
+     * lee está APAGADA.** Se barrió contra su banda (`flat.catchKmToFinish`, llana canónica ×120) de
+     * 3 a 10 —un recorrido de 3,3×— y **los cinco valores dan el mismo resultado dígito a dígito**:
+     *
+     *     closeRateSPerKm   3     4,5    6      8      10
+     *     catchKmToFinish   19,0  19,0   19,0   19,0   19,0
+     *     gana la fuga      5,0 % 5,0 %  5,0 %  5,0 %  5,0 %
+     *
+     * No es que sea poco sensible: es que **no muerde**. La única función que la lee es
+     * `desiredGapOf`, a la que solo se llega desde `frontClaimOf` con la subasta encendida, y
+     * `front.enabled` es **false**. Mientras siga así, cualquier número que se escriba aquí es
+     * indistinguible de cualquier otro, y ponerle uno «medido» sería presentar como calibración algo
+     * que ningún banco puede contradecir.
+     *
+     * Así que se queda marcada, con la medida del barrido delante y la condición para cerrarla: **se
+     * calibra el día que se encienda R20**, y ese día el barrido es el de arriba otra vez.
      */
     closeRateSPerKm: 6,
     /** Los kilómetros de caza dura que se descuentan de esa cuenta, y a partir de los que no se cede. */
@@ -4266,7 +4293,12 @@ export const STAGE = {
      * 80 %, contra un 40 % de partida y una banda de 30-45. O sea que el dado viejo **no era** un
      * sustituto de la colocación —si lo fuera, conservarlo entero habría dejado el remate con el
      * doble de azar—: era la suerte de un remate masivo, y la colocación es un término NUEVO que se
-     * le suma. El paso 21 puede recalibrarlo con las otras [calibrar]; hoy la medida dice 1.
+     * le suma.
+     *
+     * **RESUELTA EN EL PASO 21, y con la medida que ya existía**: el barrido del paso 14 la fijó en 1
+     * y su banda —`flat.bestSprinterWinPct` 30-45 %— sigue verde con este valor (**38,3 %** medido
+     * sobre la llana canónica ×120). No se vuelve a barrer porque no hay nada que contradiga el
+     * número: el barrido se corre cuando una banda protesta, no por trámite.
      */
     residualLuck: 1,
     boxedThreshold: 0.55,
@@ -4445,7 +4477,20 @@ export const STAGE = {
     carNoAccessGain: 3,
     /** Y la rueda neutra encaja peor. */
     neutralWheelGain: 1.3,
-    /** De cada cinco percances, uno es una avería de verdad y cuatro son un pinchazo. [calibrar] */
+    /**
+     * De cada cinco percances, uno es una avería de verdad y cuatro son un pinchazo.
+     *
+     * **DEJA DE ESTAR [calibrar] EN EL PASO 21, y no porque se haya medido: porque NO SE PUEDE
+     * MEDIR AQUÍ.** Esta constante reparte los percances entre dos clases y **ninguna banda del
+     * banco distingue una avería de un pinchazo** — lo que se mide es el tiempo perdido, y las dos
+     * lo pierden por el mismo sitio (`changePunctureS` 12 contra `changeMechanicalS` 25). Barrerla
+     * movería un número sin que ningún objetivo se enterara, que es la definición de calibrar a
+     * ciegas.
+     *
+     * Así que se publica como lo que es: **una proporción de carretera declarada**, del mismo modo
+     * que `flyerWinPct` se publica sin banda porque el banco no puede producirla. El día que exista
+     * una estadística que separe las dos clases, esta casilla vuelve a estar en juego.
+     */
     mechanicalShare: 0.2,
     changePunctureS: 12,
     changeMechanicalS: 25,
@@ -4473,7 +4518,13 @@ export const STAGE = {
     maxLaunchers: 3,
     /**
      * CUÁNTO TIRA CADA UNO. El primer relevo es el largo y el último el corto, que es como se hace:
-     * el que entra a mil metros ya solo tiene que aguantar hasta los doscientos. [calibrar]
+     * el que entra a mil metros ya solo tiene que aguantar hasta los doscientos.
+     *
+     * **RESUELTA EN EL PASO 21 con la medida del paso 15**, que es donde estos tres números se
+     * ganaron el sitio: escritos como estaban, el tren se gastaba en 5 + 3 + 1,5 = **9,5 km** y no en
+     * los quince que la regla decía, y el mejor velocista se quedaba en el **26,7 %** contra una
+     * banda de 30-45. El arreglo no fue tocar los tres números —son los de la carretera— sino
+     * `trainSpanKm`, que es lo que la regla tenía mal. Con ellos intactos la banda está verde.
      */
     turnKm: [5, 3, 1.5] as readonly number[],
     /** Por debajo de esto un lanzador está fundido y le releva el siguiente (R16.2). */

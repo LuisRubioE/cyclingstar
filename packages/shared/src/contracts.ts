@@ -1026,6 +1026,42 @@ export const teamRacePlanResponseSchema = z.object({ plan: teamRacePlanSchema.nu
 
 // --- Órdenes de etapa (/api/races/test-tour y /api/my-orders) -------------------------------
 
+/**
+ * CUÁNDO LANZA SU MOVIMIENTO ESTE HOMBRE (paso 17a, R22 · S-214/S-321/S-322). Seis formas de decir
+ * «cuándo», y cinco dependen de lo que pase en la carretera — que es toda la diferencia entre una
+ * cita y un despertador. El caso `km` es el `triggerKm` de siempre, que se queda porque las hojas ya
+ * guardadas lo usan y porque a veces un kilómetro es lo que el jugador quiere decir.
+ */
+export const triggerCondSchema = z.discriminatedUnion('at', [
+  z.object({ at: z.literal('km'), km: z.number().int().nonnegative() }),
+  z.object({
+    at: z.literal('climb'),
+    which: z.enum(['last', 'penultimate']),
+    part: z.enum(['pie', 'duro', 'cima']),
+  }),
+  z.object({ at: z.literal('attack'), byRiderId: z.string() }),
+  z.object({ at: z.literal('gap'), overS: z.number().int().nonnegative() }),
+  z.object({ at: z.literal('weather'), cond: z.enum(['lluvia', 'viento']) }),
+  z.object({ at: z.literal('sector'), index: z.number().int().nonnegative() }),
+])
+export type TriggerCond = z.infer<typeof triggerCondSchema>
+
+/** Qué hace su equipo con una fuga (paso 17a · S-215, S-071). */
+export const chasePolicySchema = z.enum(['nunca', 'si_amenaza', 'siempre'])
+export type ChasePolicy = z.infer<typeof chasePolicySchema>
+
+/** A qué sale hoy este hombre (paso 17a · S-216, S-024, S-030). Declara, no negocia. */
+export const dayGoalSchema = z.enum([
+  'ganar',
+  'general',
+  'puntos',
+  'montana',
+  'grupeto',
+  'ahorrar',
+  'servir',
+])
+export type DayGoal = z.infer<typeof dayGoalSchema>
+
 export const stageOrderSchema = z.object({
   stageDay: z.number().int(),
   role: stageRoleSchema,
@@ -1035,6 +1071,19 @@ export const stageOrderSchema = z.object({
   triggerKm: z.number().nullable(),
   contestSprints: z.boolean(),
   contestClimbs: z.boolean(),
+  /**
+   * --- LAS CUATRO PALANCAS DEL PASO 17a --------------------------------------------------------
+   *
+   * Las cuatro son `.nullish()` y NO obligatorias, por las dos puntas a la vez: una hoja guardada
+   * antes de la migración las trae a `null`, y un cliente que aún no se ha desplegado no las manda
+   * en absoluto. Las dos cosas significan lo mismo —«no hay preferencia»— y el motor decide, que es
+   * la conducta de hoy. Si fueran obligatorias, desplegar la API antes que la web rompería la
+   * pantalla de órdenes entera.
+   */
+  triggerOn: triggerCondSchema.nullish(),
+  chasePolicy: chasePolicySchema.nullish(),
+  refuseRelayTeams: z.array(z.string()).nullish(),
+  dayGoal: dayGoalSchema.nullish(),
 })
 export type StageOrder = z.infer<typeof stageOrderSchema>
 
@@ -1299,6 +1348,25 @@ export const pullMotiveSchema = z.enum([
   'equipo_maillot',
   'equipo_general',
   'rol',
+  /**
+   * --- LOS CINCO QUE EL PASO 17c AÑADIÓ AL MOTOR Y AQUÍ FALTABAN (R23.1) ------------------------
+   *
+   * **Y su ausencia costó una radio entera en producción.** El paso 17c amplió `PullMotive` en
+   * `packages/engine` de diez palabras a quince, y este enum —que es contra el que `buildRaceRadio`
+   * VALIDA lo guardado— se quedó con las diez. Resultado: en cuanto un corredor tiraba con uno de
+   * los cinco nuevos, `storedRaceRadioSchema.safeParse` fallaba, `buildRaceRadio` devolvía `null` y
+   * la pantalla decía «esta etapa se corrió antes de que se grabara la radio» — que es **falso**: la
+   * radio estaba guardada entera, con sus ciento ochenta y siete kilómetros.
+   *
+   * El dueño lo vio en Race Solidarnosc, donde `propio` sale ya en el primer kilómetro del banco.
+   * Y explicaba lo que parecía un misterio: unas carreras tenían radio y otras no, el mismo día,
+   * porque solo se rompen las etapas donde alguno de los cinco llega a dispararse.
+   */
+  'propio',
+  'equipo_puntos',
+  'equipo_montana',
+  'infiltrado',
+  'colocando',
 ])
 export type PullMotive = z.infer<typeof pullMotiveSchema>
 

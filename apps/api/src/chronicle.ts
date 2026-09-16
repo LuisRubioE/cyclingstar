@@ -1283,7 +1283,21 @@ const storedRaceRadioSchema = z.object({
            * PARA QUÉ tira cada uno de `pulling`, en el mismo orden (v47). Con `default` a propósito:
            * las etapas corridas antes de la v47 no lo traen y su radio tiene que seguir leyéndose.
            */
-          motivos: z.array(pullMotiveSchema.nullable()).default([]),
+          /**
+           * …Y UN MOTIVO DESCONOCIDO NO PUEDE COSTAR LA RADIO ENTERA (corrección de producción).
+           *
+           * Esto era `pullMotiveSchema.nullable()` a secas, y con eso **un solo valor que el
+           * contrato no conociera tiraba abajo los ciento ochenta y siete kilómetros de la etapa**:
+           * `safeParse` falla, `buildRaceRadio` devuelve `null` y la pantalla dice «se corrió antes
+           * de que se grabara la radio», que además es mentira.
+           *
+           * Pasó de verdad: el paso 17c añadió cinco motivos al motor y no los añadió aquí. Se
+           * arregla el enum, sí — pero el enum volverá a quedarse corto la próxima vez que el motor
+           * crezca, así que lo que hay que arreglar es la FRAGILIDAD: con `.catch(null)` un motivo
+           * que no se entienda se degrada a «no lo sé» y el corredor sale sin frase, en vez de
+           * llevarse la etapa por delante. La vista ya sabe no decir nada cuando el motivo es nulo.
+           */
+          motivos: z.array(pullMotiveSchema.nullable().catch(null)).default([]),
           /**
            * …y PARA QUIÉN, en el mismo orden (v57). Con `default` por lo mismo: las etapas
            * anteriores no lo traen y su radio tiene que seguir leyéndose igual.
