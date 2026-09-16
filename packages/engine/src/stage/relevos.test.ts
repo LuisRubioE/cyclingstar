@@ -78,7 +78,18 @@ describe('engine: la cola del turno de relevos', () => {
     expect(max / min).toBeLessThan(1.15)
   })
 
-  it('el juego de equipo está encendido (v65)', () => {
+  /**
+   * EL SELLO DEL INTERRUPTOR, Y EL NOMBRE QUE POR FIN DICE LA VERDAD.
+   *
+   * Desde la v65 este caso se llamaba «el juego de equipo está encendido» y afirmaba `false`: el
+   * nombre decía una cosa y el cuerpo la contraria, así que leyendo la lista de pruebas en verde
+   * cualquiera —yo incluido— concluía que la capa corría. No corría. Es la forma más barata que
+   * tiene un repositorio de mentirse: un nombre que promete lo que la afirmación niega.
+   *
+   * Aquí no se enciende nada: lo que se arregla es el NOMBRE, para que la lista de pruebas en verde
+   * deje de leerse como si la capa corriera. El encendido va aparte, con su medida.
+   */
+  it('el juego de equipo nace APAGADO, y el nombre ya no dice lo contrario', () => {
     expect(STAGE.teamPlay.enabled).toBe(false)
   })
 })
