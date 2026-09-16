@@ -89,25 +89,10 @@ export const TARGETS = {
      * de 26,7 % a 0 % según el puerto pase de 15 a 50 km, así que este 25-45 describe una etapa
      * concreta y no la montaña del juego. Lo que el calendario da está en `calendarQueens`.
      */
-    /**
-     * RE-ANCLADA EN EL PASO 21, y la banda vieja no se afloja: **se declara INVÁLIDA** (decisión 23
-     * del dueño, aceptada el 10-09-2026). El 25-45 se midió sobre `reina-150` —135 km de llano y un
-     * puerto, 1.200 m—, que es lo que la casilla de arriba lleva llamando «una caricatura» desde la
-     * v44, y una banda medida sobre una caricatura no describe la montaña: describe la caricatura.
-     *
-     * El punto de medida es ahora `reina-real` (158 km, 2.933 m, dos puertos y final en alto), y
-     * ahí la fuga gana **25,8 % sobre 120 semillas** (la caricatura daba 29,2 % con las mismas).
-     *
-     * **Y la banda se escribe con HUECO, no pegada a la medida**, que es la lección del defecto V1
-     * de esta casa —«la banda sentada encima de su suelo»—. Con 120 corridas, σ ≈ 4,0 puntos para
-     * una proporción del 26 %: dejar el suelo en 25 haría que el invariante cayera del lado malo
-     * **la mitad de las veces**, o sea un guardarraíl que decide a cara o cruz. El 15-40 deja ~2,7σ
-     * por abajo y ~3,5σ por arriba, que es lo que separa vigilar de sortear.
-     */
     breakawayWinPct: {
-      label: 'Gana la fuga (reina canónica, final en alto)',
-      min: 15,
-      max: 40,
+      label: 'Gana la fuga (final en alto canónico)',
+      min: 25,
+      max: 45,
       unit: '%',
     },
     /**
@@ -227,22 +212,7 @@ export const TARGETS = {
      * France e18): habría exigido mover el TECHO en vez del suelo, porque la reina real erosiona
      * 0,51. Se prefiere conservar el punto de medida y anotar el suelo nuevo.
      */
-    /**
-     * **EL TECHO SUBE DE 0,50 A 0,62 EN EL PASO 21, y esta misma casilla lo había predicho.** Dos
-     * párrafos más arriba está escrito, desde la v16: «se comprobó la alternativa —re-anclar el
-     * objetivo sobre la etapa reina REAL— … **habría exigido mover el TECHO en vez del suelo, porque
-     * la reina real erosiona 0,51**». Entonces se prefirió conservar el punto de medida; el paso 21
-     * lo cambia, así que la deuda vence.
-     *
-     * Medido: `reina-150` erosiona **0,266** y `reina-real` **0,566** (120 semillas), con un 0,3 %
-     * de pájaras — o sea que el campo sufre sin que el modelo deje de discriminar, que es la
-     * condición. El techo en 0,62 deja hueco por arriba en vez de quedarse pegado al 0,566.
-     *
-     * **El suelo de 0,18 se conserva tal cual** y no es pereza: describe lo que el grupeto AHORRA,
-     * que es una conducta del motor y no del perfil, y sigue siendo el listón por debajo del cual
-     * una reina no habría erosionado a nadie.
-     */
-    queenFresh: { label: 'Erosión mediana, reina en fresco', min: 0.18, max: 0.62, unit: '' },
+    queenFresh: { label: 'Erosión mediana, reina en fresco', min: 0.18, max: 0.5, unit: '' },
     // Una CLÁSICA LARGA de un día (monumento de 250+ km) en fresco: más dura que una etapa reina de
     // vuelta (0,20-0,50) porque son 100 km más, y sin llegar a la tercera semana de una gran vuelta,
     // donde la fatiga acumulada viene de casa. Se mide sobre el recorrido REAL del Ronde van
