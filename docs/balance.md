@@ -13983,3 +13983,87 @@ Lo que se lleva por delante, y vuelve con ella: las dos bandas re-ancladas
 **La lección, que es más grande que el aplazamiento**: un escenario nuevo no está medido hasta que
 corre el banco que lo mide, y meterlo en la misma rama que un arreglo urgente convierte un hallazgo
 del banco en un rehén. Los bancos caros van en su propio PR precisamente porque tardan.
+
+## v73 — la reina canónica vuelve, y trae arreglado el defecto que ella misma destapó
+
+La reina sintética pasa a ser una reina de verdad: `reina-canonica`, **158 km y 2.933 m**, dos
+puertos y final en alto (decisión 5 del dueño). Volvió aplazada de la v72.2 con dos fallos de
+«Bancos» encima, y vuelve con los dos resueltos —cada uno de una manera distinta, porque **no eran la
+misma clase de problema**.
+
+### 1. El defecto de verdad: una criba de puerto que nadie narraba
+
+Reproducido sobre la semilla que lo destapó, `reina-canonica-3`:
+
+```
+km 52.1  time_gap               []
+km 53.1  front_group            [gc-2 gc-3 gc-0 bar-5 gc-1 bar-2 bar-1 bar-3]
+```
+
+Los ocho `frenteSinExplicar` **no eran ocho incidentes: eran uno**, todos en el mismo kilómetro. El
+perfil son 50 km de rompepiernas y luego **13 km de puerto**; tres kilómetros dentro de la subida el
+motor **anuncia el resultado** —«estos ocho van delante»— sin haber anunciado nunca **la selección que
+lo produjo**. Entre el km 51 y el 54 se emiten catorce `no_help_for_leader`: la criba está pasando, y
+la crónica la cuenta como «a éste no le ayuda nadie» en vez de como que la carrera se ha partido.
+
+Y no la explica `peloton_selection`, que es quien debería: ese parte **espera a que la sangría pare**
+(`splitFarSettleKm`), y hace bien —«contar en el fondo del agujero es contar un espejismo»—, pero en
+un puerto de 13 km la sangría no para nunca mientras dura.
+
+**La causa está en una guarda de más**, en el parte de cabeza:
+
+```ts
+...(lastFrontIds.length > 0 && entran.length > 0 ? { entran: entran.length } : {}),
+```
+
+Cuando el frente era el pelotón entero, el motor **borra la lista a propósito** para que el primer
+parte de una fuga de ocho no salga con «salen: 118». Está razonado y es correcto. Pero al borrarla
+suprime también `entran`, y entonces el auditor lee cero y marca a los ocho. **La guarda protege de
+lo que no debe**: existe por `salen` —que no la lleva, y tiene su motivo escrito al lado— y es
+`entran` quien la arrastra sin causa. Cuando el frente pasa del pelotón a un grupo pequeño, los ocho
+**son** nuevos para la cabeza del lector, y ese es justo el número que hay que decir.
+
+Se le quita a `entran`. Es una línea, y está medida entera:
+
+| Comprobación                                 | Resultado                                                                                                     |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `reina-canonica`, 40 semillas                | `frenteSinExplicar` **8 → 0**                                                                                 |
+| `llana-180`, `reina-150`, Flandes, Race Jaén | los cinco invariantes en **0**, salvo `ataqueSinCerrar=1` en dos, que tiene tolerancia 2 y es el valor de hoy |
+| Las cuatro huellas selladas                  | **no se mueven**                                                                                              |
+
+Que no se muevan era la predicción _antes_ de correrlas, y la razón es estructural: el cambio solo
+añade un campo a `datos`, y la huella cifra `puesto:riderId:tiempoS`. `ENGINE_VERSION` sube igual a
+**73**, porque la crónica emitida cambia y el replay se compara contra ella.
+
+Por qué la reina vieja no lo destapó nunca: allí el grupo de cabeza nacía de un **ataque**
+(`attack_go`, que sí es un evento de entrada). Hace falta un puerto largo que criba sin que nadie
+ataque para que el parte hable antes que la explicación.
+
+### 2. El otro no era un defecto: era un guardarraíl al que la decisión 5 le quitó la premisa
+
+`invariants.test.ts` pedía que la reina sintética erosionara **menos** que la real, y decía por qué:
+«1.200 m de desnivel no son una etapa reina… la caricatura tiene que quedar por debajo». Era un
+control de ORDEN sobre un escenario que nadie defendía como bueno.
+
+Sustituir la caricatura por una reina de verdad es exactamente lo que la decisión 5 pedía, así que
+«queda por debajo de la real» deja de ser una garantía y pasa a ser **un defecto si se cumple**.
+Medido: la canónica de tercera semana da **0,704** y la real **0,613** — el orden se rompe porque la
+canónica es **más dura**, que es el objetivo.
+
+Re-apuntar un guardarraíl es un cambio con nombre propio, y aquí va con su medida delante. La
+pregunta nueva es **más fuerte** que el orden: que el banco sintético caiga **en la misma banda que la
+carrera real** (`queenThirdWeek` 0,60-0,85, y 0,704 está dentro) y que **no sature**. Un banco que no
+se parece a lo que simula no vale para calibrar nada, y una erosión de 0,80 con el depósito a cero no
+es una erosión de 0,80: es un techo, y bajo un techo el modelo deja de discriminar.
+
+De paso el caso deja de correr **dos** campañas: la real ya la mide el invariante de encima con su
+propia banda, así que las 12 semillas de `reina-real-s3` que se corrían aquí eran una segunda pasada
+del banco más caro de esta familia para volver a medir lo ya medido.
+
+### Lo que esto deja dicho, más allá de la reina
+
+Un escenario nuevo **no está medido hasta que corre el banco que lo mide**, y `scenarios.ts` había
+viajado tres PR sin pasar por «Bancos». Cuando por fin corrió, encontró en una tarde un defecto de
+narración que llevaba ahí desde que existe el parte de cabeza, y que ninguna etapa del calendario
+sintético podía producir. El banco caro es caro porque mira donde los demás no llegan; meterlo en la
+misma rama que un arreglo urgente convierte su hallazgo en un rehén.

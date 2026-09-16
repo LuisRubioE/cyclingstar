@@ -3825,7 +3825,7 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
               // lector pueda seguir a un grupo que se recompone por dentro. Van por NÚMERO y no por
               // nombre porque los nombres ya están todos en la propia lista de protagonistas: lo que
               // falta no es quiénes van delante, es qué ha cambiado desde la última vez que se dijo.
-              ...(lastFrontIds.length > 0 && entran.length > 0 ? { entran: entran.length } : {}),
+              ...(entran.length > 0 ? { entran: entran.length } : {}),
               // …y los que YA NO ESTÁN cuentan aunque el frente haya cambiado de manos entero: es el
               // caso del hombre que iba solo delante y al que se traga la carrera (v40).
 

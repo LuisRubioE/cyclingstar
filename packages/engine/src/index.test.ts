@@ -3,6 +3,19 @@ import { ENGINE_VERSION } from './index.js'
 
 describe('engine: esqueleto', () => {
   it('expone una engine_version sellada', () => {
+    // v73: LA REINA CANONICA VUELVE, Y CON EL DEFECTO QUE ELLA MISMA DESTAPO ARREGLADO
+    // (docs/balance.md «v73»). El escenario sintetico pasa a ser una reina de verdad —158 km y
+    // 2.933 m, dos puertos y final en alto, decision 5 del dueno— y al correr por primera vez el
+    // banco de coherencia saco un defecto que la reina vieja no llegaba a producir: ocho hombres
+    // «aparecen delante sin haber entrado» en el km 53, todos de golpe. No eran ocho incidentes,
+    // era uno: la criba de un puerto de 13 km forma un grupo de cabeza y el motor ANUNCIA EL
+    // RESULTADO sin haber anunciado nunca la seleccion. La causa es una guarda de mas en el parte
+    // de cabeza: `entran` solo se emitia si habia lista anterior, y la lista anterior se borra a
+    // proposito cuando el frente era el peloton entero (para no decir «salen: 118»). Esa guarda
+    // protege de lo que no debe —`salen` no la lleva, y tiene su motivo escrito—, asi que se le
+    // quita a `entran`. Medido: `frenteSinExplicar` 8 -> 0 en las 40 semillas de la reina, los
+    // cinco invariantes en 0 en los cuatro bancos, y LAS CUATRO HUELLAS NO SE MUEVEN, porque el
+    // cambio solo anade un campo a `datos` y la huella cifra `puesto:riderId:tiempoS`.
     // v72: EL RESCATE POR LA GENERAL ES DEL HOMBRE DE LA GENERAL (docs/balance.md «v72»). «Los suyos
     // se dejan caer a por el» (v36) preguntaba si el EQUIPO tenia motivo de general, y el hombre al
     // que rescata es `plan.leaderId` —el jefe de filas del dia, elegido por VOTOS de los gregarios o
@@ -409,6 +422,6 @@ describe('engine: esqueleto', () => {
     // v11 (atribución del trabajo), la v10 (composición y caza), la v9 (capa táctica), la
     // v8 (tiempos de grupo), la v7 (modelo de final), la v6 (telemetría), la v5 (clásica larga), la
     // v4 (pavé en el recorrido) y la v3 (Cambio 0).
-    expect(ENGINE_VERSION).toBe(72)
+    expect(ENGINE_VERSION).toBe(73)
   })
 })
