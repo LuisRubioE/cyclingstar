@@ -14132,3 +14132,108 @@ reparto de tiempos.
 confuso y habría que corregirlo, pero cambiarla **cambia las semillas**, o sea cambia qué etapas se
 miden — y hacerlo en el mismo PR en que el banco acaba de encontrar dos defectos se leería, con
 razón, como esquivar el fallo. Va en su propio cambio, declarado, cuando esté verde.
+
+## v73.1 — los cinco sellos dicen la verdad, y el encendido de `teamPlay` vuelve atrás
+
+Dos cosas salieron de intentar encender la primera capa. Una se queda y la otra se retira, y conviene
+contarlas juntas porque la segunda es un error mío que la primera ayudó a encontrar.
+
+### Lo que se queda: cómo se llega a tener cinco capas apagadas con la CI en verde
+
+| Capa       | Cómo se llamaba su prueba                                                             | Qué afirmaba      |
+| ---------- | ------------------------------------------------------------------------------------- | ----------------- |
+| `teamPlay` | «el juego de equipo **está encendido** (v65)»                                         | `false`           |
+| `phases`   | «el interruptor **está ENCENDIDO**, con toda la capa táctica y con su medida delante» | `false`           |
+| `customs`  | «**está encendida**: la aduana decide la cuerda junto al resto de la capa (v65)»      | `false`           |
+| `director` | «nace **apagado**»                                                                    | `false` — honesto |
+| `front`    | **no tenía sello ninguno**                                                            | —                 |
+
+**Tres de los cinco sellos se llamaban como si la capa estuviera corriendo mientras afirmaban que no
+lo estaba.** No es una errata: son los nombres del encendido conjunto que la v60 §9 echó atrás. El
+interruptor volvió a `false` y el nombre no volvió con él.
+
+Es la forma más barata que tiene un repositorio de mentirse: **la lista de pruebas en verde se lee
+como si las capas corrieran**, y así se llega a «están construidas, probadas y mezcladas, pero no
+corren en mi juego» sin que ningún commit concreto esté mal.
+
+Los tres nombres pasan a decir lo que afirman y `front` gana el sello que no tenía. **Ninguna conducta
+cambia**: `ENGINE_VERSION` se queda en 73 porque aquí no se toca el motor.
+
+### Lo que se retira: `pullMinTotalWork`, y por qué el error es de FORMA y no de valor
+
+Encender `teamPlay` sacó una banda que no estaba en mis criterios: los partes de «quién tira» caían a
+1,875 contra un suelo de 2,5. El motor ya tenía escrito desde la v64 que el indicador estaba mal
+hecho —`pullMinWork` pregunta _quién lleva mucho rato delante_, y con el turno en cola la respuesta
+honesta es «nadie» aunque tiren todos— y que el arreglo era medir **el trabajo total al frente**.
+
+Se hizo, se calibró a 5,0 sobre el banco de atribución… y **rompió otro banco**:
+
+| Configuración                                         | partes  | voz de equipo | equipos al frente |
+| ----------------------------------------------------- | ------- | ------------- | ----------------- |
+| `main` (v73)                                          | **275** | 72,7 %        | **2,88** ✅       |
+| con el indicador nuevo y **todas las capas apagadas** | **49**  | 65,3 %        | **0,75** ❌       |
+
+Con `teamPlay` apagada el destrozo ya está ahí: **el causante era el indicador, no la capa**. Se
+llevaba el 82 % de los partes de relevo del banco de la voz, y con ellos el relevo del frente
+(`frontTeamsAvg` se cuenta sobre los partes).
+
+Y el barrido demuestra que no es cuestión de afinar el número:
+
+```
+listón   banco de la voz            banco de atribución (teamPlay on)
+0,35     partes 297 | frente 3,05   media 11,46 | peor 14
+1,5      partes 267 | frente 2,92
+2,5      partes 219 | frente 2,60
+4,5                                 media  5,38 | peor 9
+5,0      partes  49 | frente 0,75   media  4,54 | peor 9
+```
+
+El banco de la voz quiere **≤ 2,5**; el de atribución quiere **≥ 4,5**. **No existe un valor que
+satisfaga a los dos**, y la razón es la forma del indicador: **`pull.total` no es invariante de
+escala**. `best` preguntaba por un hombre; sumar el trabajo de todos ata el número al tamaño del
+grupo, y los dos bancos corren campos distintos —20 corredores contra 40—.
+
+La nota de la v64 acertaba en que había que medir el trabajo total: eso es lo que hace la pregunta
+invariante a **cómo se reparta**. Lo que no vio —y yo tampoco— es que no lo es a otra cosa.
+
+**Y aquí escribí una hipótesis y la medí después, que es el orden correcto**: dije que la forma buena
+sería «el total dividido por el tamaño del grupo», suponiendo que el total escalaba con el campo.
+**Es falso.** Instrumentando el motor en los dos bancos, con todas las capas apagadas:
+
+| Banco      | grupo | `total` mediana | `best` mediana | `total`/grupo |
+| ---------- | ----- | --------------- | -------------- | ------------- |
+| atribución | 29    | **3,065**       | 0,437          | 0,1136        |
+| voz        | 34    | **1,966**       | 0,625          | 0,0606        |
+
+El banco de la voz tiene el grupo **más grande** y el total **más pequeño**, así que dividir por el
+tamaño del grupo **empeora** la discrepancia: la razón entre bancos pasa de 1,56 a 1,87.
+
+Lo que de verdad difiere no es el tamaño del campo sino **entre cuántos se reparte el trabajo**: en el
+banco de la voz `best` es MÁS alto (0,625 contra 0,437) con un total MÁS bajo —ocho equipos
+organizados: tiran pocos y mucho—, y en el de atribución tiran muchos y poco. `best` y `total` miden
+esa dimensión en sentidos opuestos, y por eso cada banco prefiere uno.
+
+**La forma correcta sigue abierta**, y esta nota se queda sin proponer otra: la anterior sonaba bien,
+estaba escrita con aplomo y la medida la tumbó en diez minutos. Lo que sí queda fijado es el criterio
+que tendrá que cumplir: **un solo valor, en banda en los DOS bancos, con la cola encendida y
+apagada** — cuatro celdas, no una.
+
+### El error de método, por tercera vez en la misma sesión
+
+Las tres veces la forma es idéntica: **medir sobre un banco y afirmar sobre todos**.
+
+1. Un A/B de 60 semillas contradiciendo una medida propia de 120, resuelto a 240.
+2. Un arreglo validado con las semillas de `'reina-canonica'` cuando el banco las deriva de la
+   etiqueta `'reina-150'`.
+3. Éste: un listón calibrado en el banco de atribución y aplicado a uno con el doble de campo.
+
+Y hubo una cuarta trampa que estuvo a punto de colarse: al ver `frontTeamsAvg` en 0,75 la explicación
+que encajaba era la que el repositorio ya tenía escrita —que R01 cuelga de R20, «sentar a los que no
+deben tirar dejaba el frente vacío porque no existía quien lo tomara»—. Encajaba perfectamente, estaba
+documentada, y **era falsa**: la línea base con todo apagado ya daba 0,75. Lo que la desmontó fue
+medir `main` de verdad en vez de suponer que el brazo apagado del arnés era `main` — no lo era,
+porque apagar un interruptor no deshace un cambio de indicador compilado en el mismo `dist`.
+
+**La regla que queda**: un brazo «apagado» solo es la línea base si el código es el de la línea base.
+Y una banda que se mueve al encender algo no acusa a lo que encendiste hasta que la has medido con
+eso apagado.
