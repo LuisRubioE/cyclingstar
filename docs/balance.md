@@ -13947,3 +13947,39 @@ captura, fuga y hueco 1.º-10.º de la reina canónica, erosión, y la cola de `
 **Nota de método, aprendida a golpes en esta misma sesión**: el barrido parchea
 `packages/engine/dist/constants.js`, igual que el arnés de A/B de capas. **Los dos no pueden correr a
 la vez**: se pisan el fichero y cada uno restaura encima del otro. Van en cola, nunca en paralelo.
+
+## v72.2 — la reina canónica se aplaza, y el motivo es que «Bancos» la cazó
+
+La reina canónica (decisión 5 del dueño: 3.500-4.500 m, dos puertos, final en alto) se sacó de esta
+rama y se volverá a meter en su propio PR. No es un cambio de opinión sobre la decisión: es que el
+banco de simulación encontró **dos cosas que no estaban medidas**, y una de ellas es un defecto de
+verdad.
+
+`packages/engine/src/sim/scenarios.ts` no había pasado nunca por el job «Bancos» —el arreglo de la
+reina viajaba en la misma rama que el de la Race Radio—, y cuando por fin corrió, con el Tour ya
+empezado y la radio rota en producción, salieron dos fallos:
+
+| Fallo                                                                           | Qué dice                                                                                                    | Qué es                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| ------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `coherence.test.ts`: `frenteSinExplicar=1`                                      | Una etapa de la campaña tiene a alguien que entra o sale del grupo de cabeza **sin que la crónica lo diga** | **Un defecto real.** La tolerancia es CERO y está escrita así: «el listón está donde está el motor de hoy: si sube, algo se ha roto». Y encaja con la deuda anotada en la v70.1: **fundir dos grupos por PROXIMIDAD y no solo por adelantamiento de reloj**. Una reina con final en alto produce justo ese roce, y la reina vieja no llegaba a producirlo                                                                                                  |
+| `invariants.test.ts`: la reina sintética erosiona 0,704 contra 0,613 de la real | El invariante pide que la sintética quede **por debajo**                                                    | **La premisa del guardarraíl la abolió la propia decisión 5.** El invariante dice de sí mismo: «1.200 m de desnivel no son una etapa reina… la caricatura tiene que quedar por debajo». Sustituir la caricatura por una reina de verdad es exactamente lo que se pidió, así que el orden «sintética < real» deja de tener sentido. Pero **re-apuntar un guardarraíl es un cambio con nombre propio y se declara en su PR**, no de tapadillo dentro de otro |
+
+### Por qué se aplaza en vez de arreglarse aquí
+
+El arreglo de la Race Radio lleva toda la sesión esperando y el Tour de Francia está en marcha sin
+ella. Cada vuelta de CI de esta rama cuesta ~70 minutos, y el primero de los dos fallos **no se
+arregla con una banda**: hay que fundir grupos por proximidad, que mueve las cuatro huellas y es una
+tanda entera con su propia medición.
+
+Así que se separa lo que no tenía por qué ir junto. Los tres ficheros de la reina
+—`scenarios.ts`, `targets.ts` y `attribution.test.ts`— quedan **byte a byte idénticos a `main`**, o
+sea en el estado que ya estaba verde, y lo comprobado es eso y no una opinión: `git diff origin/main`
+da cero líneas en los tres.
+
+Lo que se lleva por delante, y vuelve con ella: las dos bandas re-ancladas
+(`mountain.breakawayWinPct` 15-40 y `erosion.queenFresh` 0,62), las dos huellas nuevas de
+`reina-canonica` y la baja de las dos de `reina-150`.
+
+**La lección, que es más grande que el aplazamiento**: un escenario nuevo no está medido hasta que
+corre el banco que lo mide, y meterlo en la misma rama que un arreglo urgente convierte un hallazgo
+del banco en un rehén. Los bancos caros van en su propio PR precisamente porque tardan.
