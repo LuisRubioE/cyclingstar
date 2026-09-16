@@ -13925,3 +13925,40 @@ líder, el que no tiene fila al final, y el cero de la etapa 1.
 
 **No mueve ninguna huella** y no cambia ni una etapa de las que ya se corrieron bien: solo toca al
 corredor que hoy salía con un número imposible.
+
+## Paso 21 — las tres `[calibrar]` que quedan, y por qué ninguna se puede anclar hoy
+
+Quedaban tres constantes marcadas `[calibrar]` en `constants.ts` con dueño y banco declarados:
+`gcClimbRecoverPerKm` 1,6, `pushCost` 0,45 y `ambushGainShare` 0,5. Antes de barrer nada hay que
+comprobar lo que cada comentario promete, porque **una constante no queda anclada porque su
+comentario nombre un banco: queda anclada cuando ese banco mide la pregunta que la constante
+contesta**. Las tres fallan esa comprobación, cada una de una manera distinta.
+
+| Constante                 | Ancla que declara                             | Qué hay de verdad en el repositorio                                                                                                                                                                                                                                                                                                                                   |
+| ------------------------- | --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ambushGainShare` 0,5     | «[calibrar] contra `truceGrantedPct` 50-85 %» | **La medida no existe**, y el propio documento lo dice: la tabla de `tactica.md` §6564 apunta `truceGrantedPct` con la columna «no existe». Cero apariciones en `sim/targets.ts` y en `sim/analyze.ts`.                                                                                                                                                               |
+| `gcClimbRecoverPerKm` 1,6 | «[calibrar] sobre `realQueens` en el paso 21» | **El banco existe y no mide esto.** `analyzeRealQueens` publica dos estadísticos, `lastGroupPct` y `worstStagePct` —el tamaño de la cola—. La constante son «segundos que se mueve la general por km de puerto **entre hombres vecinos**», y eso no está en el banco.                                                                                                 |
+| `pushCost` 0,45           | «[calibrar] contra el invariante 18»          | **La referencia no se puede resolver.** Los invariantes de este motor están **nombrados, no numerados**: `invariants.test.ts` los agrupa por tema (llano, fases, montaña, crono, desgaste, abandonos, pavé…). El «18» sale de la numeración suelta de `tactica.md`, que ahí es una fila del **plan de trabajo** (R08 + R28, el depósito entre etapas), no una medida. |
+
+Es el tercer caso del mismo patrón en este documento, y por eso se anota como patrón y no como
+anécdota: **`POS.abanicoCommit`**, que se citaba como ancla de `satelliteTowCommit` y no existe en el
+repositorio; **`mechanicalShare`**, retirada porque ningún banco puede distinguir una avería de un
+pinchazo; y ahora estas tres. En los tres casos la salida fácil era la misma —correr un barrido,
+elegir el valor del medio y escribir un número con pinta de medido— y en los tres es la salida
+equivocada.
+
+### Lo que sí se puede preguntar, y es lo que se va a barrer
+
+La pregunta «¿qué valor es el bueno?» no tiene respuesta hoy para ninguna de las tres. La que sí la
+tiene es la otra: **¿mueve esta constante alguna banda que exista?** Cada una contra tres valores —el
+de hoy y dos vecinos— sobre las medidas vivas: fuga y mejor velocista en la llana, kilómetro de
+captura, fuga y hueco 1.º-10.º de la reina canónica, erosión, y la cola de `realQueens`.
+
+- Si mueve una banda medida, **ahí queda anclada** y deja de ser `[calibrar]`.
+- Si no mueve ninguna, **sigue `[calibrar]` con el barrido publicado como motivo**, exactamente como
+  `closeRateSPerKm`: la marca no es una deuda que se tacha, es la afirmación de que hoy no hay
+  instrumento, y borrarla sin instrumento sería mentir en una tabla.
+
+**Nota de método, aprendida a golpes en esta misma sesión**: el barrido parchea
+`packages/engine/dist/constants.js`, igual que el arnés de A/B de capas. **Los dos no pueden correr a
+la vez**: se pisan el fichero y cada uno restaura encima del otro. Van en cola, nunca en paralelo.
