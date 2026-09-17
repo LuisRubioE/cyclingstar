@@ -8,6 +8,7 @@ import {
   formStars,
   freshnessBar,
   gcPointsByClass,
+  overlappingRaces,
   raceLastDay,
   raceLeadScore,
   raceOngoingBefore,
@@ -1088,11 +1089,9 @@ async function assignBibs(tx: Tx, race: CalendarRace, season: number): Promise<v
 
 /** Corredores ya comprometidos con otra carrera cuya ventana se solapa con la de `race` (misma temporada). */
 async function busyForRaceWindow(tx: Tx, race: CalendarRace, season: number): Promise<Set<string>> {
-  const start = race.startDay
-  const end = raceLastDay(race)
-  const overlappingKeys = SEASON_CALENDAR.filter(
-    (r) => r.id !== race.id && r.startDay <= end && start <= raceLastDay(r),
-  ).map((r) => `${r.id}:s${season}`)
+  // La cuenta de qué se solapa con qué vive en el motor y está sellada allí (`solapes.test.ts`):
+  // aquí se LLAMA, no se repite. Una regla escrita dos veces se arregla una sola.
+  const overlappingKeys = overlappingRaces(race, SEASON_CALENDAR).map((r) => `${r.id}:s${season}`)
   const busy = new Set<string>()
   if (overlappingKeys.length === 0) return busy
   const rows = await tx

@@ -65,9 +65,9 @@ export function analyzeFlat(scenario: Scenario, seeds: string[]): FlatStats {
 
 export interface MountainStats {
   runs: number
-  /** % de etapas que gana la fuga en montaña (objetivo 25-45%). */
+  /** % de etapas que gana la fuga en montaña. La banda vive en `sim/targets.ts`, no aquí. */
   breakawayWinPct: number
-  /** Brecha mediana entre el 1º y el 10º del día, en segundos (objetivo 60-240). */
+  /** Brecha mediana entre el 1º y el 10º del día, en segundos. Banda en `sim/targets.ts`. */
   medianTop10GapSeconds: number
 }
 
@@ -128,7 +128,7 @@ export function analyzeErosion(scenario: Scenario, seeds: string[]): ErosionStat
 
 export interface TimeTrialStats {
   runs: number
-  /** Brecha percentil 90 a 10 del campo, mediana en segundos (objetivo 120-240). */
+  /** Brecha percentil 90 a 10 del campo, mediana en segundos. Banda en `sim/targets.ts`. */
   medianP90MinusP10Seconds: number
   /** % de cronos que gana un especialista (id que empieza por "cri-"). */
   specialistWinPct: number

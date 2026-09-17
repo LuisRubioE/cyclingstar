@@ -142,6 +142,77 @@ export function hayGeneralEnJuego(
 }
 
 /**
+ * QUÉ ÚLTIMA ETAPA ES ÉSTA (paso 18b, R28.4 · S-075, S-270).
+ *
+ * La última etapa de una vuelta no es un martes cualquiera, y son **dos etapas distintas** según
+ * dónde acabe. El diseño las escribe una debajo de la otra:
+ *
+ * - **general DECIDIDA** — «paseo hasta el circuito (compromiso ≤ 0,45), sin fugas serias ni ataques
+ *   de general durante ~80 km, y el sprint del circuito DE VERDAD».
+ * - **última etapa DECISIVA** (final en alto o crono final) — «todo o nada: se ataca desde el
+ *   PENÚLTIMO puerto, los equipos se funden enteros y el maillot no deja ir nada».
+ *
+ * Y LO QUE LAS SEPARA NO ES UN DATO NUEVO: es dónde acaba la etapa. Una última etapa que termina al
+ * sprint no puede cambiar la general —por eso se pasea— y una que termina en alto es justamente la
+ * que sí puede. El motor ya sabe las dos cosas: `race.stageDay`/`totalStages` desde el paso 2 y el
+ * tipo de final desde que existe `deriveFinishTerrain`.
+ *
+ * En una carrera de un día no hay «última etapa»: hay una etapa. Devuelve `'ninguno'` y nada de esto
+ * se enciende, que es lo que hace que ningún escenario canónico lo note.
+ *
+ * **Y LA CRONO FINAL NO SE OLVIDA: es que no pasa por aquí.** El diseño mete «final en alto o crono
+ * final» en el mismo brazo, y una contrarreloj sale de `simulateStage` por su propia puerta antes de
+ * que nada de esto exista. Tiene sentido: en una crono no hay pelotón al que dar o quitar cuerda, ni
+ * ataques que dosificar. El «todo o nada» de una crono final es la crono.
+ */
+export type UltimoDia = 'ninguno' | 'paseo' | 'decisiva'
+
+export function ultimoDiaDeVuelta(
+  race: { stageDay?: number; totalStages?: number } | undefined,
+  bunchFinish: boolean,
+): UltimoDia {
+  const total = race?.totalStages ?? 1
+  if (total <= 1 || race?.stageDay !== total) return 'ninguno'
+  return bunchFinish ? 'paseo' : 'decisiva'
+}
+
+/**
+ * DÓNDE EMPIEZA EL TODO O NADA de una última etapa decisiva, en km desde la salida (R28.4).
+ *
+ * «Se ataca desde el PENÚLTIMO puerto», dice el diseño. Y no dice qué pasa si la última etapa tiene
+ * **un solo puerto**, que es un final en alto perfectamente normal y justo el caso más decisivo que
+ * hay. Dejarlo en `null` —que es lo que hacía la primera versión— apagaba el brazo decisivo entero
+ * en esas etapas **sin que nadie se enterara**: el hueco silencioso de siempre.
+ *
+ * Con un solo puerto, el penúltimo ES el último, porque la frase quiere decir «desde que empieza la
+ * parte que decide» y con una sola subida esa parte empieza ahí. Sin ningún puerto no hay nada que
+ * resolver y devuelve `null`: una última etapa decisiva sin puertos no existe —sería un sprint, o
+ * sea un paseo—, pero si llegara, inventarle un kilómetro sería peor que no tocarla.
+ *
+ * Ojo con la diferencia respecto a `kmDeLaCita`, que para el penúltimo puerto de una etapa con uno
+ * solo devuelve `null` a propósito. No se contradicen: allí es la ORDEN de un jugador, y una cita
+ * que él no puede haber querido no se le inventa; aquí es una regla sobre la etapa.
+ */
+export function kmDelTodoONada(puertos: readonly { desdeKm: number }[]): number | null {
+  if (puertos.length === 0) return null
+  return (puertos.at(-2) ?? puertos.at(-1))!.desdeKm
+}
+
+/**
+ * DÓNDE SE ACABA EL PASEO Y EMPIEZA EL CIRCUITO, en km desde la salida (R28.4, paso 18b).
+ *
+ * El diseño dice «sin fugas serias ni ataques de general durante ~80 km», y ese ~80 es **cuánto dura
+ * el paseo**, no cuánto falta para meta: el paseo va del km 0 al circuito, y el circuito es el resto.
+ *
+ * Y SIEMPRE HAY CIRCUITO. Las últimas etapas son cortas —el calendario las acorta a propósito— y un
+ * paseo de 80 km se comería entera una de 90. El paseo se para antes si hace falta, porque la otra
+ * mitad de la frase del diseño es «y el sprint del circuito DE VERDAD».
+ */
+export function finDelPaseo(totalKm: number, paseoKm: number, circuitoMinKm: number): number {
+  return Math.min(paseoKm, Math.max(0, totalKm - circuitoMinKm))
+}
+
+/**
  * LA ALTITUD DE CADA BLOQUE, integrando las pendientes desde la cota de salida (R28.7, paso 18d).
  *
  * Un bloque de `dx` km al `g` % sube `g · dx · 10` metros. Es aritmética, no un modelo: la única

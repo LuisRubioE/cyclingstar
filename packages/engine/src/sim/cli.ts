@@ -175,8 +175,13 @@ function main(): void {
   )
 
   // ABANDONOS (docs/motor.md §VI.3): la única medida del banco que no sale de una etapa suelta.
-  // Correr una gran vuelta de 21 etapas con 176 corredores cuesta ~22 s, así que el número de
-  // vueltas no escala con `runs`: son unas pocas y su MEDIA, que es lo que el objetivo mide.
+  //
+  // El número de vueltas NO escala con `runs`: son unas pocas y su MEDIA, que es lo que el objetivo
+  // mide. El motivo es el coste — correr una gran vuelta entera son 21 etapas de 176 corredores—, y
+  // aquí había un «~22 s» que ya no vale: `diseno/mapa-bancos.md` §8 anota que el motor se ha ido
+  // encareciendo tanda a tanda (Flandes ×5 pasó de 14,0 s en la v38 a 20,7 s en la v40) y de ahí
+  // salieron los presupuestos ×4 de los nocturnos. Un número de coste sin fecha de medida no
+  // informa: dice «esto es barato» de un motor que ya no es ése.
   const tourRuns = Math.max(4, Math.min(12, Math.round(runs / 60)))
   const gt = analyzeGrandTour(tourRuns)
   // El REPARTO de causas (v20, docs/motor.md §VI.3), agrupado como lo agrupan las listas de

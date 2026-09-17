@@ -14388,13 +14388,18 @@ de correr la medida —los escenarios canónicos son de un día y no traen `tota
 | Banco                   | Con el cambio | Banda  |
 | ----------------------- | ------------- | ------ |
 | reina · fuga            | 23,3 %        | 15-40  |
-| reina · hueco 1.º-10.º  | 95 s          | 40-360 |
+| reina · hueco 1.º-10.º  | 95 s          | 40-300 |
 | reina · erosión         | 0,567         | —      |
 | llana · fuga            | 5,0 %         | —      |
 | llana · mejor velocista | 38,3 %        | —      |
 
 Cifra por cifra las mismas que la v76.1. 14 pruebas nuevas en `nacionales.test.ts` fijan la tabla de
 arriba, y `ENGINE_VERSION` sube 76 → **77** porque esto sí cambia resultados en una vuelta.
+
+**Corrección de una etiqueta, no de una medida**: el commit de esta nota escribe el hueco 1.º-10.º
+«(40-360)». La banda **viva** en `targets.ts` es **40-300**; 40-360 es la que §9.1 fila 22 del plan
+PROPONE y que todavía no se ha escrito. Los 95 s medidos están holgadamente dentro de las dos, así
+que la conclusión no cambia — pero una banda mal citada es una banda mal citada, y se dice.
 
 ### La lección de método, que es la del revert
 
@@ -14403,3 +14408,157 @@ medida se escribió como predicción ANTES de correrla y luego no se cumplió. E
 etapa 3 sólo entran los que de verdad se juegan el podio» y la medida decía «entran 7 de 8, igual que
 en la 18». Un commit que afirma lo que su medida no sostiene se revierte aunque el código compile y
 las pruebas pasen, porque lo que queda en el repositorio no es el código: es la afirmación.
+
+## Paso 21 (segunda parte) — SPEC §6 reescrito a lo implementado, y los comentarios que mentían
+
+El paso 21 pide tres cosas de documentación además del barrido: **SPEC §6 reescrito a lo
+implementado**, **los comentarios desfasados que `diseno/mapa-bancos.md` §8 enumera** retirados, y el
+**Apéndice B re-sumado**. Las dos primeras están hechas; la tercera no, y el motivo se dice abajo.
+
+### Lo que SPEC §6 decía y ya no era verdad
+
+No es que estuviera vagamente anticuado: tenía **números concretos que contradicen al motor**, y un
+documento que cita bandas caducadas no documenta el motor de hoy, documenta el de hace dos años con
+más autoridad de la que merece.
+
+| Sección | Decía                                                                             | Es                                                                                                                              |
+| ------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| §6.1    | `simulateStage(input, seed)` devuelve cuatro claves                               | Devuelve ocho, y acepta un tercer parámetro (`probe`) que es **solo observación**                                               |
+| §6.1    | «subflujos `hazard`, `sprint`, `crash`»                                           | Son **catorce**, uno por decisión. La lista se nombra pero no se copia: copiarla era otra cosa que envejece                     |
+| §6.9    | El controlador vive dentro de «hay fuga»                                          | Regula **siempre**. Dentro del `if` el pelotón rodaba la etapa entera a `commitIdle`: 39 minutos medidos en una llana de 180 km |
+| §6.9    | «los sprinters» como binario                                                      | La **fuerza** de la caza cuenta trenes, rematadores y compañeros. Antes un solo SPR ≥ 70 ponía a cazar a una continental entera |
+| §6.9    | Se persigue al de delante                                                         | Se persigue **al que hace daño** (`chaseTargetOf`), que es el contrario nº 1 de las veinte más graves                           |
+| §6.10   | La fuga consolida con el compromiso bajo 2 km                                     | Y **dos condiciones más**, sin las cuales la crónica decía «the peloton concedes» en el km 10 en cinco de siete carreras        |
+| §6.12   | «los 20 bloques finales»                                                          | El desenlace empieza en `finalDriveKm` (15 km) y tiene **tres ventanas encajadas**, con el flyer como excepción con nombre      |
+| §6.16   | Un bucle con «grupos» y «la fuga»                                                 | Por delante puede haber a la vez fuga, contraataque y puente; por detrás, varios grupos de descolgados con ritmos distintos     |
+| §6.17   | Seis bandas a mano: llana 2-8 %, montaña 25-45 %, 1.º-10.º 1-4 min, crono 2-4 min | **5-16 %**, **15-40 %**, **40-300 s**, **80-170 s** — y la llana «con 3 sprinters» monta diez desde la v38                      |
+| §6.18   | «atacar en el km X» como único disparador                                         | `triggerOn` con **seis formas**, más `dayGoal`, `chasePolicy` y `refuseRelayTeams`                                              |
+
+**Y §6.17 ya no lleva números.** Es la tercera vez que este repositorio duplica las bandas: estuvieron
+dentro de `invariants.test.ts` con valores más laxos que los del simulador y **CI pasaba en verde
+mientras `pnpm sim` fallaba**. La fuente es `sim/targets.ts` y solo ella; SPEC dice **qué se vigila y
+por qué**, que es lo que una especificación aporta y una tabla de números copiada no.
+
+**Lo que se comprobó y estaba bien**: §6.4 (la ley de velocidad) casa línea a línea con `physics.ts`
+—`w(g)`, los cuatro límites de inercia, `finalBlocks` 20—, y la corrección de la v19 está escrita
+donde toca. Las secciones de física no se han tocado porque no lo necesitaban, y eso también es un
+resultado: **lo que se desincronizó fue la parte táctica**, que es justamente la que este documento
+viene a rehacer.
+
+### Los comentarios de `mapa-bancos.md` §8, retirados
+
+`analyze.ts` citaba tres objetivos viejos («2-8 %», «60-240», «120-240»): ahora nombra
+`sim/targets.ts` y no repite el número. La cabecera de `invariants.test.ts` decía «de la etapa llana»
+y hace mucho que ahí viven también la reina, la crono, el desgaste, los abandonos, el pavé y las
+fases. `grandTour.ts` decía que los escenarios canónicos son «etapas sueltas de 40 corredores»: son
+de 176 desde la v38, y lo que los descalifica no es el tamaño sino que son **de un día**.
+`targets.ts` y `smallTours.ts` describían `llana-180` con tres velocistas empatados a 84-86; ahora
+dicen que fueron tres y que desde la v38 son diez en degradado, porque el banco de las carreras
+pequeñas **nació contra aquel campo de tres** y borrarlo dejaría su razón de ser sin sentido.
+
+### Las tres `[calibrar]`, con su ancla corregida en el código
+
+La primera parte del paso 21 ya dejó escrito que las tres marcas —`gcClimbRecoverPerKm`, `pushCost`,
+`ambushGainShare`— **citan anclas que no existen**. Lo que faltaba era arreglarlo donde se lee, que es
+`constants.ts`, y no solo donde se anota. Las tres siguen `[calibrar]`, y ahora cada una dice **por
+qué** en vez de apuntar a un banco que no la mide, a un invariante numerado que no existe o a una
+estadística que no está en el repositorio. Citar un ancla irresoluble es peor que no citar ninguna:
+el que venga detrás cree que hay una medida esperándole.
+
+### El Apéndice B: por qué NO se publica un re-sumado
+
+Se intentó mecánicamente —extraer los nombres de constante de cada bloque «Constantes nuevas» de §4 y
+cruzarlos contra `constants.ts`— y **el extractor no es fiable**: los racimos declaran sus constantes
+en dos formas incompatibles (R01-R04 en tabla markdown, el resto en prosa), y el resultado daba 38
+para R03 donde el Apéndice cuenta 16, y 46 para R15 donde cuenta 35. O sea, sobre-captura.
+
+Publicar ese 426 contra 143 habría sido exactamente el error que esta sesión lleva todo el día
+evitando: **un número que parece medido y no lo está**. Queda como deuda con su causa escrita, que es
+más útil que un total inventado: el Apéndice B no se puede re-sumar a máquina mientras §4 declare sus
+constantes de dos maneras, y unificarlas es la tarea, no contar mal más deprisa.
+
+## Paso 18b (R28.4) — la última etapa de una vuelta deja de correrse como un martes
+
+El diseño escribe dos etapas debajo de la misma cabecera y el motor las corría las dos igual:
+
+> **general DECIDIDA**: paseo hasta el circuito (compromiso ≤ 0,45), sin fugas serias ni ataques de
+> general durante ~80 km, y el sprint del circuito DE VERDAD.
+> **última etapa DECISIVA** (final en alto o crono final): todo o nada — se ataca desde el PENÚLTIMO
+> puerto, los equipos se funden enteros y el maillot no deja ir nada.
+
+Lo que las separa **no es un dato nuevo**: es dónde acaba la etapa. Una última etapa al sprint no
+puede cambiar la general —por eso se pasea— y una que acaba en alto es justo la que sí puede. El
+motor ya sabía las dos cosas. Y la **crono final no se olvida: es que no pasa por aquí**, porque una
+contrarreloj sale de `simulateStage` por su propia puerta antes de que nada de esto exista. En una
+crono no hay pelotón al que dar o quitar cuerda: el todo o nada de una crono final es la crono.
+
+### Tres versiones, y las dos primeras estaban mal por motivos distintos y medibles
+
+**1. El techo de compromiso 0,45 que dice el diseño → la fuga ganó el 70 % de las llanas.** Con el
+pelotón sujeto cien kilómetros no había forma de recuperar lo que se iba, y el resultado es el
+contrario del que la regla busca. Al mirar por qué, la respuesta estaba escrita en el propio
+`constants.ts`: **`truce.commit` vale 0,45 y se documenta «DERIVADA de `freeRunTarget`»**. O sea, 0,45
+ES el tempo del pelotón cuando no tiene nada que cazar. El número del diseño no pedía un freno extra:
+describía lo que el motor ya hace. Puesto como techo POR ENCIMA de la caza, rompía la carrera.
+
+**2. La ley metida por el apetito de cada corredor → efecto CERO, exacto.** `MoveRider.teamAttack`
+parecía el sitio natural. No lo es: `chooseInstigator` **normaliza** los apetitos entre sí
+(`pick = rng() * total`), así que un factor que multiplica a TODOS por igual **se cancela**. La medida
+no dejó margen de interpretación: **14,8 intentos por etapa con el paseo encendido y 14,8 sin él.**
+
+**3. Al moverla a la λ, un efecto colateral que habría hecho lo contrario de lo que se quiere.** La
+tentación es llevar el multiplicador dentro de la fila de fase, como hace la pancarta. Pero
+`moveLambda` solo aplica el refuerzo de **ataque tardío** `if (fase == null)`, así que colar una fila
+falsa para transportar un número **apaga la ventana de ataques tardíos** — justo en la última etapa
+decisiva, que es donde más falta hace. El factor va por un parámetro propio de `rollMoveAttempt` y no
+toca la fila.
+
+### Medido, 40 semillas, con los intentos partidos por la frontera del paseo
+
+```
+LLANA                       intentos km<80   km>=80   gana la fuga   captura km
+  etapa 10 de 21                     5,2      9,5        2,5 %         161,2
+  etapa 21 de 21 (PASEO)             2,8     10,1        5,0 %         161,6
+
+REINA                       intentos km<80   km>=80   gana la fuga   captura km
+  etapa 10 de 21                    10,5      6,3        7,5 %         131,4
+  etapa 21 de 21 (DECISIVA)         11,1      6,7        7,5 %         145,2
+```
+
+**El paseo funciona y se ve: 5,2 → 2,8 intentos en su zona, un 46 % menos**, y lo que no sale allí
+sale después (9,5 → 10,1), que es exactamente «el sprint del circuito DE VERDAD».
+
+**Y no baja diez veces aunque la cuerda sea diez veces menor, que es la parte que hay que explicar en
+vez de esconder.** Los intentos no los limita solo el dado: los limita `tacticMaxMoves` **3**, el cupo
+de movimientos vivos a la vez. Con el cupo tocando, bajar la λ **retrasa** los intentos más que los
+elimina. Es una propiedad medida de la maquinaria, no un fallo de la palanca — pero significa que
+`paseoAttack` **no se puede leer como «queda el 10 % de los ataques»**, y por eso sigue `[calibrar]`.
+
+**El brazo decisivo mueve poco, y eso también se dice.** Los intentos apenas cambian (10,5 → 11,1 y
+6,3 → 6,7: el mismo techo del cupo) y lo único que se mueve de verdad es **dónde se caza la fuga, de
+131 a 145 km**. Sobre 40 semillas, el resto está dentro del ruido.
+
+### Y la mitad que HOY NO CORRE, dicha en vez de disimulada
+
+«El maillot no deja ir nada» se implementa apagándole el freno del colchón el último día: administrar
+tiene sentido cuando quedan etapas, y cuando no queda ninguna administrar es perder. **Pero el freno
+del colchón entero vive dentro de `STAGE.teamPlay.enabled`, que está en `false`.** Así que esa línea
+no cambia ni un segundo de ninguna carrera de hoy.
+
+Va puesta igualmente y a propósito: lo que se encendería sin ella, el día que `teamPlay` se encienda,
+es un maillot que la última etapa sigue guardando para un mañana que no existe. Lo que **no** se puede
+es contarla como medida. No lo es, y por eso el efecto medido del brazo decisivo es solo el de la
+cuerda.
+
+### Por qué ninguna banda se mueve, y por qué eso no es tranquilizador
+
+Ninguna. **Y el motivo es que ningún banco de este repositorio pasa contexto de carrera**: ni
+`grandTour` ni `smallTours` ni los escenarios canónicos mandan `race`, así que `ultimoDiaDeVuelta`
+devuelve `'ninguno'` en los 1.670 tests y en los 107 bancos. Esta ley **solo vive en producción**,
+donde `buildRaceContext` sí la manda.
+
+Es la misma situación que la v75 y la v77, y por tercera vez conviene decirlo entero: una ley que
+ningún banco puede ver es una ley que CI no vigila. Lo que la sujeta hoy son sus pruebas de unidad
+—`ultimoDiaDeVuelta` y `finDelPaseo`, nueve aserciones— y esta medida hecha a mano. **El banco que
+falta es uno que corra etapas CON contexto de carrera**, y queda anotado como deuda con nombre: sin
+él, los pasos 18b y 21 seguirán entregando reglas que solo el dueño puede ver fallar.

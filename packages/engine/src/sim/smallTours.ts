@@ -3,8 +3,10 @@
  * pregunta que a la batería le faltaban.
  *
  * **Por qué existe.** El invariante que medía el sprint —`flat.bestSprinterWinPct` sobre
- * `llana-180`— monta **tres sprinters con SPR 84, 85 y 86** y mide el 36 %, cómodamente dentro de su
- * 30-45 %. Un campo así no existe en producción: el planificador de órdenes que corre el juego
+ * `llana-180`— montaba **tres velocistas con SPR 84, 85 y 86** y medía el 36 %, cómodamente dentro
+ * de su 30-45 %. (Desde la v38 `llana-180` monta diez en degradado, SPR 88 a 70; el banco de las
+ * carreras pequeñas nació contra aquel campo de tres y por eso lo cita.) Un campo así no existe en
+ * producción: el planificador de órdenes que corre el juego
  * (`world/autoOrders.ts`) nombra sprinter al mejor de cada equipo solo si pasa de 68 de SPR, y en un
  * campo generado de verdad **el mejor le saca 2,7 puntos de SPR efectivo al segundo** (y 5 al
  * tercero), no uno. Con tres rematadores

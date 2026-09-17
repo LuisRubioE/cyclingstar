@@ -773,7 +773,14 @@
  * Cuando te pasa, la pregunta ya no es cuánto se te acerca sino **cuánto te saca y si puedes
  * devolvérselo**. Ver `gcRecoverablePerStage`.
  */
-export const ENGINE_VERSION = 77 as const
+/**
+ * **v78 — LA ÚLTIMA ETAPA DE UNA VUELTA NO ES UN MARTES** (R28.4, paso 18b · S-075, S-270).
+ *
+ * Y son dos etapas distintas según dónde acabe: al sprint se pasea hasta el circuito y allí se
+ * esprinta de verdad; en alto es todo o nada desde el penúltimo puerto. Lo que las separa es el tipo
+ * de final, que el motor ya calculaba. Ver `ultimaEtapa` y `ultimoDiaDeVuelta`.
+ */
+export const ENGINE_VERSION = 78 as const
 
 /**
  * Constantes de creación del ciclista (SPEC 3.4 y 3.5). El muestreo es determinista a
@@ -2483,7 +2490,17 @@ export const STAGE = {
     // --- R04.2: la correa sobre el terreno que QUEDA ---------------------------------------
     /**
      * Segundos que se mueve la general por km de puerto ENTRE HOMBRES VECINOS, no entre el mejor y
-     * el peor. [calibrar] sobre `realQueens` en el paso 21.
+     * el peor.
+     *
+     * **SIGUE [calibrar], Y EL PASO 21 DEJA ESCRITO POR QUÉ.** Este comentario decía «[calibrar]
+     * sobre `realQueens` en el paso 21», y al ir a hacerlo resultó que **ese banco existe y no mide
+     * esto**: `analyzeRealQueens` publica `lastGroupPct` y `worstStagePct`, o sea el TAMAÑO DE LA
+     * COLA. La cola no dice nada de cuánto se separan dos hombres consecutivos del top-10, que es lo
+     * que esta constante cuenta.
+     *
+     * Una constante no queda anclada porque su comentario nombre un banco: queda anclada cuando ese
+     * banco mide **la pregunta que la constante contesta**. Hasta que exista ese estadístico, la
+     * marca se queda, y se queda diciendo la verdad en vez de apuntar a un ancla que no sostiene.
      */
     gcClimbRecoverPerKm: 1.6,
     /**
@@ -3626,6 +3643,45 @@ export const STAGE = {
    * cuenta como recuperable SIN TENER QUE HACER NADA HOY, que es la pregunta que se está haciendo.
    */
   gcRecoverablePerStage: 15,
+  /**
+   * LA ÚLTIMA ETAPA DE UNA VUELTA (R28.4, paso 18b · S-075, S-270), que son DOS ETAPAS DISTINTAS
+   * según dónde acabe, y hasta aquí el motor las corría las dos igual que un martes cualquiera.
+   *
+   * Si la última acaba **al sprint**, la general está decidida y todo el mundo lo sabe: se pasea
+   * hasta el circuito y allí se esprinta de verdad. Si acaba **en alto o en crono**, es todo o nada
+   * y se ataca desde el penúltimo puerto. Son las dos frases del diseño, y la que las separa es el
+   * tipo de final, que el motor ya calcula.
+   *
+   * `paseoCommit` y `circuitoKm` son **DERIVADAS del diseño**: R28.4 escribe «compromiso ≤ 0,45» y
+   * «~80 km» con esas palabras. Los dos factores de ataque son **[calibrar]** y hoy no tienen
+   * banco: ningún banco de este repositorio pasa contexto de carrera —`grandTour` y `smallTours` no
+   * mandan `race`—, así que esta ley **solo vive en producción**. Se dice en vez de disimularse.
+   */
+  ultimaEtapa: {
+    /**
+     * CUÁNTO DURA EL PASEO, en km desde la salida. El diseño escribe «sin fugas serias ni ataques de
+     * general durante ~80 km», y ese ~80 es **la longitud del paseo**, no lo que falta para meta: el
+     * paseo va del km 0 al circuito, y el circuito es el resto. DERIVADA del diseño.
+     */
+    paseoKm: 80,
+    /**
+     * …Y SIEMPRE HAY CIRCUITO. Si la última etapa es corta —y lo son: el calendario las acorta con
+     * `lastStageKmFactor`— un paseo de 80 km se la comería entera, y el diseño pide justo lo
+     * contrario: «el sprint del circuito DE VERDAD». El paseo se para aquí aunque no haya llegado a
+     * sus 80 km. DERIVADA de `finalDriveKm` × 2,5: el circuito tiene que dar para el tren y para lo
+     * que se juega antes del tren.
+     */
+    circuitoMinKm: 40,
+    /**
+     * Cuánta cuerda queda para saltarse durante el paseo. [calibrar] — y el 0,25 con que se midió
+     * primero se quedaba corto para lo que el diseño llama «sin fugas serias»: bajaba los intentos
+     * de 14,8 a 12,6 por etapa, un 15 %, porque la mayor parte de los intentos de una llana caen
+     * fuera del paseo de todos modos.
+     */
+    paseoAttack: 0.1,
+    /** Y cuánta se da en la decisiva, desde el penúltimo puerto. [calibrar] */
+    decisivaAttack: 1.4,
+  },
   // Ritmo del pelotón cuando NO hay nada que cazar por delante (sin fuga, o ya cazada). Antes esto
   // no existía: el controlador vivía dentro de `if (breakaway && !caught)` y el pelotón se quedaba
   // en `commitIdle` toda la etapa. Un pelotón rueda a tempo de carretera, no a paseo.
@@ -4304,7 +4360,18 @@ export const STAGE = {
     /** Y el que le coloca va justo detrás de él, no delante. */
     helperBehind: 0.05,
     targetPack: 0.65,
-    /** Subir cien puestos ≈ un cerillo largo. [calibrar] contra el invariante 18. */
+    /**
+     * Subir cien puestos ≈ un cerillo largo.
+     *
+     * **SIGUE [calibrar], Y SU ANCLA ANTERIOR NO SE PODÍA RESOLVER.** Decía «[calibrar] contra el
+     * invariante 18», y los invariantes de este motor están **nombrados, no numerados**:
+     * `invariants.test.ts` los agrupa por tema (llano, fases, montaña, crono, desgaste, abandonos,
+     * pavé). El «18» venía de la numeración suelta de `docs/tactica.md`, donde esa fila es una del
+     * PLAN DE TRABAJO —R08 + R28, el depósito entre etapas— y no una medida.
+     *
+     * Citar un ancla que no se puede resolver es peor que no citar ninguna, porque el que venga
+     * detrás cree que hay una medida esperándole. No la hay.
+     */
     pushCost: 0.45,
     /** Sobre `placement − media del grupo`, NUNCA sobre `placement`. Ver `accordionTerm`. */
     accordionGain: 0.35,
@@ -4425,8 +4492,12 @@ export const STAGE = {
     ambushRivalWindowS: 700,
     /**
      * QUÉ PARTE DEL PERCANCE ESTÁ DE VERDAD EN JUEGO. El caído pierde su tiempo se espere o no; lo
-     * que el pelotón le puede negar es el REGRESO, y eso es la mitad larga de lo perdido. [calibrar]
-     * contra `truceGrantedPct` 50-85 %.
+     * que el pelotón le puede negar es el REGRESO, y eso es la mitad larga de lo perdido.
+     *
+     * **SIGUE [calibrar], Y LA MEDIDA QUE CITABA NO EXISTE.** Decía «[calibrar] contra
+     * `truceGrantedPct` 50-85 %», y `truceGrantedPct` **no está en este repositorio**: cero
+     * apariciones en `sim/targets.ts` y en `sim/analyze.ts`, y la propia tabla de `docs/tactica.md`
+     * la lista con la columna «no existe». La banda 50-85 % es del diseño, no del banco.
      */
     ambushGainShare: 0.5,
     ambushCommit: 0.88,

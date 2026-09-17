@@ -293,13 +293,14 @@ Los techos (3.5) son ocultos; se revelan por tres canales, siempre en lenguaje d
 ### 6.1 Principios y contrato
 
 ```
-simulateStage(input: StageInput, seed: string) -> { events: RaceEvent[], results: StageResult[],
-                                                     workUnits: Map<riderId, Units>, incidents: Incident[] }
+simulateStage(input: StageInput, seed: string, probe?: StageProbe)
+  -> { events, results, workUnits, incidents, tank, efforts, engineVersion, customsRevisions }
 ```
 
-- Paso de integración fijo: `dx = 0.1 km`. Una etapa de 180 km son 1,800 bloques; con 160 corredores, del orden de 3·10^5 evaluaciones elementales por etapa: milisegundos en Node. La resolución no se paga en rendimiento; se paga en disciplina matemática (6.8).
+- Paso de integración fijo: `dx = 0.1 km`. Una etapa de 180 km son 1.800 bloques; con 176 corredores, del orden de 3·10^5 evaluaciones elementales por etapa. La resolución no se paga en rendimiento; se paga en disciplina matemática (6.8).
 - Función pura y determinista. Prohibido `Date.now()`, `Math.random()` y todo acceso a base de datos.
-- RNG mulberry32 con subflujos nominales: `rng("hazard")`, `rng("sprint")`, `rng("crash")`. Refactorizar una fase no altera las demás.
+- El tercer parámetro, `probe`, es **solo observación**: no altera nada —ni un dado, ni un compromiso, ni un reloj—. En producción va ausente.
+- RNG mulberry32 con **subflujos nominales**, uno por decisión, para que refactorizar una fase no desplace el flujo de las demás. Hoy son catorce: `breakaway`, `tactics`, `pizarra`, `colocacion`, `sprint`, `placement`, `launch`, `rough`, `abandon`, `crash`, `percance`, `day`, `viento` y el del propio muestreo. **La lista vive en `stage/simulate.ts` y crece**: repetirla cerrada aquí era otra copia que envejece, así que se dice el principio y se nombra el sitio.
 - `seed = sha256(worldSeed, raceId, stageDay, engineVersion)`.
 - El replay no se guarda: se guarda el snapshot de entrada (`stage_snapshots`) y se regenera bajo demanda. Los resultados sí se materializan.
 
@@ -326,8 +327,13 @@ La simulación mueve grupos, no puntos. Cada grupo es un cursor sobre el recorri
 Grupo = { riders[], t_s (crono acumulado), v_actual (km/h, arranca en 35 tras la salida neutralizada),
           compromiso [0,1], coop, tension, relevadores[] }
 gap entre dos grupos en el bloque i = diferencia de sus t_s al cruzarlo
-captura si gap <= 5 s  -> fusion de grupos
+captura si gap <= captureGapSeconds  -> fusion de grupos
 ```
+
+**Y fundirse no regala segundos.** El reloj de un corredor ES el de su grupo, así que al absorber un
+grupo sus hombres adoptarían de golpe el reloj del otro y el hueco desaparecería para todos a la vez.
+La fusión cambia la ETIQUETA del grupo, no el reloj de la gente: a cada uno se le devuelve en
+`driftS` lo que el cambio de referencia le habría regalado o quitado, **a los dos lados**.
 
 Consecuencia central del cambio: los boquetes ya no se estiman, se integran. Un descolgado rueda a su propia velocidad y su pérdida es la integral de la diferencia de ritmos, bloque a bloque. Las fórmulas cerradas de v0.4 (pérdida `0.45·g·|m|·km`, cierre `6.5·compromiso·...`) quedan derogadas: eran aproximaciones de lo que ahora se calcula de verdad.
 
@@ -499,9 +505,37 @@ El actuador se desgasta: esa es la fisica de la caza fallida.
 
 El cierre ya no es fórmula sino consecuencia: emerge de la diferencia entre `v_peloton` y `v_fuga`. La vieja regla empírica del minuto por cada 10 km pasa de ecuación a objetivo de calibración (6.17).
 
+**Cuatro cosas que este bloque escribió como números y hoy son constantes con nombre**, para que no
+vuelva a haber dos verdades: el `10` de «cada 10 bloques» es `decisionEveryBlocks`, el `0,40` de la
+histéresis es `commitHysteresis`, el `0,6` de los equipos de la general es `gcThreatFraction` (y la
+desventaja contra la que se compara, `gcControlLeash`), y el `0,10` de rodar es `commitIdle`.
+
+**Y tres cosas que este bloque decía y ya no son verdad:**
+
+1. **El controlador regula SIEMPRE**, haya fuga, la hayan cazado o no se haya formado nunca. Vivía
+   dentro de `if (breakaway && !caught)`, de modo que sin fuga el pelotón rodaba la etapa entera a
+   `commitIdle` —39 minutos de diferencia medidos en una llana de 180 km— y, al capturar, el
+   compromiso quedaba congelado hasta meta. Sin nada que cazar el pelotón rueda a `freeRunTarget`,
+   que es el tempo de carretera, no un paseo.
+2. **No todos los campos cazan igual.** «Los sprinters» no es un binario: la fuerza de la caza
+   (`stage/chase.ts`) cuenta cuántos trenes hay, cómo de bueno es cada rematador y con cuántos
+   compañeros cuenta. Antes bastaba UN corredor con SPR ≥ 70 para que el pelotón entero persiguiera a
+   tope, en una continental modesta igual que en una gran vuelta.
+3. **Y no se caza desde el kilómetro veinte.** Lo que decide si un boquete es peligroso no es su
+   tamaño sino su tamaño **contra lo que queda**: la caza se organiza cuando el hueco deja de ser
+   recuperable al tempo (`teamChaseSecondsPerKm` por km restante), y por debajo de
+   `teamChaseMinGapSeconds` no se organiza nada porque se cierra solo.
+
+**A QUIÉN se persigue** tampoco es «al de delante»: es al que hace daño. El objetivo lo elige
+`chaseTargetOf` sobre lo que cada movimiento le cuesta al equipo que **paga** la caza —general, etapa
+y secundarias—. Si delante van tres irrelevantes y un poco más atrás el segundo de la general,
+perseguir a los tres irrelevantes es apuntar al sitio equivocado.
+
 ### 6.10 La fuga y su sociología
 
-Formación emergente: durante la fase inicial, la intensidad alta de ataques (6.8) forma y deshace grupos; la fuga consolida cuando el compromiso del pelotón permanece bajo 0.25 durante 2 km seguidos (evento narrado: el pelotón da su brazo a torcer). Candidatos: órdenes cazaetapas y mentalidad supercombativa, más NPC con roll de combatividad; score `0.4·effNow(TAC) + 0.3·effNow(LLA) + 0.3·100·rng`. Los amenazados en la general tienen veto de facto: el pelotón no concede.
+Formación emergente: durante la fase inicial, la intensidad alta de ataques (6.8) forma y deshace grupos; la fuga consolida cuando el compromiso del pelotón permanece bajo `breakawayCommitThreshold` durante `breakawayConsolidateKm` **y además** la carrera lleva un trecho hecho (`concedeMinRouteFrac`) y la fuga tiene una ventaja de verdad (`concedeMinGapSeconds`) (evento narrado: el pelotón da su brazo a torcer).
+
+**Las dos condiciones de más no son adorno.** Con el umbral a secas, el compromiso baja de 0,25 a los diez kilómetros de carrera —cuando el pelotón sencillamente **aún no ha empezado a trabajar**— y en cinco de siete carreras de producción la crónica decía «the peloton concedes» en el km 10 y «the break is caught» en el 126. Eso no es conceder: es no haber empezado. Y el contador de kilómetros consentidos solo corre mientras se cumplen las otras dos, para que el paseo del arranque no vaya sumando crédito. Candidatos: órdenes cazaetapas y mentalidad supercombativa, más NPC con roll de combatividad; score `0.4·effNow(TAC) + 0.3·effNow(LLA) + 0.3·100·rng`. Los amenazados en la general tienen veto de facto: el pelotón no concede.
 
 Cooperación y tensión, por kilómetro:
 
@@ -529,13 +563,14 @@ Que la fuga barra las metas volantes no es una regla: es la consecuencia de pasa
 
 ### 6.12 Los últimos 2 kilómetros y los finales
 
-Los 20 bloques finales activan lógica propia:
+El desenlace no empieza a 2 km: empieza a `finalDriveKm` (15), que es donde el tren se lanza pase lo que pase, y de ahí a meta hay tres ventanas encajadas, no una.
 
-- Trenes y colocación (grupo > 25, meta llana): `leadout` y `pos` como en v0.4; `sprintScore_i = effNow(SPR) * (1 + bonusPos/100) * N(1, 0.045)`; mismo tiempo para el grupo. La erosión (6.7) sigue siendo el árbitro silencioso.
-- Ataques tardíos: `λ_ataque = 0.5 /km` en los últimos 3 km si el grupo es < 25 o la meta no es llana pura (territorio de COL).
-- Meta en repecho (<= 3 km, >= 5%): sprint con COL. Final en alto: no requiere fórmula de gaps; la ley de velocidad integra las diferencias sola.
-- Fuga superviviente: entre fugados, hazard alto de ataques desde 20 km y sprint reducido si llegan juntos.
-- `λ_caida` elevada en los bloques finales de llegadas masivas (6.14).
+- **De `finalDriveKm` a meta**: trenes y colocación (grupo grande, meta que admite sprint masivo). `leadout` y `pos`; la erosión (6.7) sigue siendo el árbitro silencioso, y el régimen de remate (`sprintRegimeKmh`) es lo que explica la velocidad, no el compromiso a secas.
+- **Hasta `tacticNoAttackKm` (3 km) se ataca**; por debajo, para el grupo entero, eso ES el sprint y no se ataca.
+- **…SALVO EL FLYER**, que es la excepción con nombre: entre `phases.flyerKm` y `tacticNoAttackKm` cabe **un solo** movimiento, con su propia intensidad (`phases.lambdaFlyer`) y su propio protagonista, que **no se sortea**: es el **peor rematador del grupo**. Porque eso es exactamente quién se tira a dos kilómetros cuando sabe que a rueda pierde. Y solo cabe si la carretera se empina o el final no es un sprint de manual.
+- **El tipo de final se calcula por GRUPO y lo dibuja el recorrido** (`deriveFinishTerrain`): no hay «meta en repecho» como etiqueta de etapa, hay una última cota que dura lo que dura y muere donde muere. El clasificador descarta las rachas cortas —1 km al 3 % en la línea no convierte una llegada masiva en un final de escaladores—, y esa lección la enseñó el GP de Québec con su circuito real.
+- **Fuga superviviente**: entre fugados se ataca desde mucho antes y el sprint se resuelve reducido si llegan juntos.
+- **`λ_caída` elevada** en los bloques finales de llegadas masivas (6.14).
 
 ### 6.13 Contrarreloj, cronoescalada y CRE: el mismo motor
 
@@ -625,40 +660,84 @@ tres que puntúan cambian cada día. Una carrera de un día tiene la clasificaci
 ### 6.16 Pseudocódigo del bucle
 
 ```
-function simulateStage(input, seed):
-  rng     = mulberry32(seed)
-  bloques = sampleProfile(input.stage, 0.1)
-  grupos  = [pelotonInicial]
+function simulateStage(input, seed, probe?):
+  streams = subflujos(seed)                        // uno por decision (6.1)
+  bloques = sampleProfile(input.stage, dx)
+  planes  = buildTeamPlans(riders, { bunchFinish, hasGcContext })   // el plan de equipo
+  peloton = grupo(todos, { compromiso: commitIdle })
+  moves   = []                                     // lo que va POR DELANTE: fuga, contraataque, puente
+  shed    = []                                     // y lo que va por detras, cada uno a su ritmo
   for i in 0..N-1:
-    if i % 10 == 0: decisiones(grupos, i)          // controlador con histeresis (6.9)
-    for g in grupos:
+    if i % decisionEveryBlocks == 0:
+      posturas(planes, carretera)                  // que hace cada equipo y por que (6.9)
+      objetivo = aQuienSePersigue(moves, planes)   // al que hace dano, no al de delante
+      controlador(peloton, objetivo)               // con histeresis y con presupuesto
+    for g in [peloton, ...moves, ...shed]:
       vObj  = leyVelocidad(g, bloques[i])          // 6.4
-      g.v   = limitaInercia(g.v, vObj, bloques[i]) // 6.4: aceleraciones acotadas, cerillo x2.5
-      g.t_s += 3600 * 0.1 / g.v
-      costes(g, bloques[i])                        // 6.5 + erosion 6.7
-      hazards(g, bloques[i], rng)                  // 6.8: ataques, puentes, descuelgues, caidas
-    fusionesYCapturas(grupos)                      // gap <= 5 s
-    if bloques[i].banner: disputaBanner(grupos, i) // 6.11
-    if N - i <= 20: logicaFinal(grupos, i)         // 6.12
-  return { events, results, workUnits, incidents }
+      g.v   = limitaInercia(g.v, vObj, bloques[i]) // 6.4: aceleraciones acotadas
+      g.t_s += 3600 * dx / g.v
+      costes(g, bloques[i])                        // 6.5 + erosion 6.7 + los cinco factores tacticos
+      intentos(g, bloques[i], streams.tactics)     // 6.8: lambda por fase, pancarta y dia de carrera
+      percances(g, bloques[i], streams.percance)   // 6.8
+      descuelgues(g, bloques[i], streams.rough)    // 6.8
+    fusionesYCapturas()                            // gap <= captureGapSeconds, SIN regalar segundos
+    if bloques[i].banner: disputaBanner(i)         // 6.11
+    if N - i <= finalDriveKm / dx: logicaFinal(i)  // 6.12
+  return { events, results, workUnits, incidents, tank, efforts, engineVersion, customsRevisions }
 ```
+
+**Cuatro cosas que el pseudocódigo anterior no decía y son la mitad de lo que pasa hoy**: (1) el
+grupo de cabeza **no es «la fuga»** sino el más adelantado de los movimientos que haya —puede haber a
+la vez una fuga, un contraataque y un puente que se quedó a medias—; (2) los descolgados **no son un
+grupo**, son varios, cada uno con su compromiso y su ritmo; (3) el controlador regula **siempre**, no
+solo cuando hay algo delante; y (4) antes de nada se monta el **plan de equipo**, que es lo que
+convierte «el pelotón» en veintidós equipos con motivos distintos.
 
 ### 6.17 Invariantes de balance (Montecarlo, `pnpm sim`)
 
-Sobre 1,000 simulaciones por escenario, el CI valida rangos objetivo (ajustables):
+**LAS BANDAS NO VIVEN AQUÍ.** Viven en `packages/engine/src/sim/targets.ts`, que es la MISMA fuente
+que leen los invariantes de CI (`sim/invariants.test.ts`) y `pnpm sim`. Esta sección dice **qué se
+vigila y por qué**; el número lo dice `targets.ts`.
 
-- Invariancia de resolución: `dx = 0.1` contra `dx = 0.05` produce medias de ataques, capturas y brechas dentro del 5%.
-- Etapa llana: gana la fuga entre 2% y 8%; el mejor sprinter entre 30% y 45% con 3 sprinters de nivel; captura mediana de la fuga entre el km 25 y el km 8 a meta cuando los sprinters cazan.
-- Pelotón comprometido en llano: cierra entre 50 y 75 segundos por cada 10 km (la vieja regla empírica, ahora objetivo de calibración).
-- Alta montaña: fuga entre 25% y 45%; brecha mediana entre primero y décimo del día entre 1 y 4 minutos.
-- Metas volantes: con fuga consolidada, la fuga captura más del 80% de los puntos de la volante.
-- Pavés: 5% a 12% de bajas por caída; Spearman entre `PAV` y puesto superior a 0.5.
-- CRI de 40 km: brecha percentil 90 a 10 de especialistas entre 2 y 4 minutos.
-- Ningún atributo con correlación negativa con el rendimiento en su terreno.
-- Marcaje: marcar al favorito reduce su probabilidad de victoria entre 8 y 20 puntos porcentuales; el marcador termina con `effNow(SPR)` inferior al de un escenario sin marcaje.
-- Pendiente: dos puertos con la misma media (6%), uno regular y otro con rampas al 11%, producen en el irregular una brecha mediana al menos 1.5 veces mayor.
-- Ataques en montaña: al menos el 60% se lanza en el decil de tramos más empinados.
-- Inercia: fuera de impulsos de cerillo y de bloques con `g <= -2`, ningún grupo varía su velocidad más de 4 km/h entre bloques consecutivos; el tren del sprint tarda al menos 300 metros en pasar de 48 a 62 km/h.
+No es una preferencia de estilo: es el defecto que este repositorio ya pagó una vez. Los rangos
+estuvieron duplicados dentro de `invariants.test.ts` con valores más laxos que los del simulador, y
+**CI pasaba en verde mientras `pnpm sim` fallaba**. Esta sección los tenía duplicados por tercera
+vez, y en la revisión del paso 21 seis de ellos estaban caducados: la llana decía «2 % a 8 %» contra
+5-16 vivo, la montaña «25 % a 45 %» contra 15-40, la brecha 1.º-10.º «1 a 4 minutos» contra 40-300 s,
+la crono «2 a 4 minutos» contra 80-170 s, y la llana se describía «con 3 sprinters de nivel» cuando
+desde la v38 monta diez en degradado (SPR 88 a 70). Un documento que cita bandas caducadas no
+documenta el motor: documenta el motor de hace dos años, y con más autoridad de la que merece.
+
+Tampoco son «1.000 simulaciones por escenario»: el número de semillas lo fija cada banco y está en
+`sim/cli.ts` y en los invariantes, porque el coste en CI es parte de la decisión.
+
+**Qué se vigila**, cada uno con su banco:
+
+- **Invariancia de resolución**: `dx = 0,1` contra `dx = 0,05` produce las mismas medias de ataques,
+  capturas y brechas dentro de la tolerancia declarada. Es el único invariante que no mide balance
+  sino que la física no depende del paso de integración.
+- **Etapa llana** (`llana-180`): cuánto gana la fuga, cuánto gana el mejor velocista, y dónde cae la
+  captura. El campo es de diez velocistas en degradado y 176 corredores en 22 equipos — la forma del
+  juego, no una caricatura de 40.
+- **Alta montaña** (`reina-canonica`, 158 km y 2.933 m, dos puertos y final en alto): cuánto gana la
+  fuga y qué brecha hay entre el 1.º y el 10.º del día.
+- **Erosión**: cuánto se estira el campo, que es lo que separa una etapa dura de una etapa larga.
+- **Contrarreloj** (`cri-40`): la brecha central del campo y cuánto gana un especialista.
+- **Pavés**: bajas por caída y correlación entre `PAV` y puesto.
+- **Pancartas**: con fuga consolidada, qué parte de los puntos de la volante se lleva la fuga.
+- **Marcaje**: cuánto baja marcar la probabilidad de victoria del marcado, y a qué precio para el
+  marcador.
+- **Pendiente**: dos puertos con la misma media, uno regular y otro con rampas, y el irregular tiene
+  que seleccionar más. Es la comprobación de que la ley lee la carretera y no su promedio.
+- **Ataques en montaña**: qué parte se lanza en los tramos más empinados.
+- **Inercia**: fuera de los cerillos y de los descensos, ningún grupo cambia de velocidad a saltos, y
+  el tren del sprint tarda una distancia mínima en alcanzar su régimen.
+- **Carreras reales** (`realQueens`, `smallTours`, `calendarQueens`, `grandTour`, `timeTrials`,
+  `smallRaces`): lo que los escenarios sintéticos **no pueden** decir — el tamaño de la cola en una
+  reina de verdad, los abandonos de tres semanas, el reparto de victorias en una vuelta pequeña. Es
+  la lección que este motor aprendió tres veces: lo que no se mide sobre carreras reales, no se mide.
+- **Correlación de atributos**: ningún atributo correlaciona negativamente con el rendimiento en su
+  propio terreno.
 
 ### 6.18 Órdenes de etapa: el piloto automático
 
@@ -680,7 +759,29 @@ multiplicador de λ_ataque personal: reservon 0 | oportunista 0.5 | combativo 1.
 supercombativo puntua ademas como cazaetapas en la fase de fuga (6.10) aunque su rol sea libre
 ```
 
-Capa 3, disparadores y disputas: atacar en el km X, atacar en el tramo más duro del último puerto, esperar al sprint, disputar metas volantes (sí/no), disputar cimas puntuables (sí/no).
+Capa 3, **la cita y las tres declaraciones** (implementadas en el paso 17). La cita ya no es «el km X»: es una condición con seis formas, y el «atacar en el km X» de la versión anterior es una de las seis.
+
+```
+triggerOn:
+  { at: 'km',      km }                                   // el kilómetro de siempre
+  { at: 'climb',   which: last|penultimate,
+                   part: pie|duro|cima }                  // posicional: se resuelve sobre el perfil
+  { at: 'sector',  index }                                // ídem, sobre los sectores de pavés
+  { at: 'gap',     overS }                                // depende de los demás: vive en el bucle
+  { at: 'attack',  byRiderId }                            // ídem
+  { at: 'weather', cond: lluvia|viento }                  // ídem
+
+chasePolicy:       nunca | si_amenaza | siempre           // qué hace su equipo con una fuga
+refuseRelayTeams:  [teamId]                               // a quién no se le da un relevo
+dayGoal:           ganar | general | puntos | montana | grupeto | ahorrar | servir
+contestSprints / contestClimbs:  sí/no                    // y `dayGoal` los ENCIENDE, nunca los apaga
+```
+
+**Las posicionales se resuelven ANTES de empezar** (`stage/citas.ts`): el puerto y el sector no dependen de lo que hagan los demás, así que se convierten en un kilómetro y de ahí manda la maquinaria de `triggerKm` sin un caso especial más en el bucle. «Al pie» es el principio; «en lo más duro», el bloque de mayor pendiente —no el del medio—; «cerca de la cima», el último quinto. **Una cita que no se puede cumplir no se inventa**: pedir el penúltimo puerto de una etapa con uno solo devuelve `null` y el hombre corre con su mentalidad.
+
+**`dayGoal` declara, no negocia**: se resuelve una vez al cargar al corredor y solo **enciende** casillas y solo **sube** el esfuerzo. Una declaración no es un veto sobre lo que el mismo hombre pidió en la línea de al lado.
+
+**Lo que NO está en la carretera, dicho en vez de fingido**: `chasePolicy`, que es una decisión de **equipo** y vive en el pulso por el frente (R20), hoy apagado. Con él apagado no hay dónde engancharla sin inventarse un sitio que no es el suyo.
 
 Capa 4, marcaje. El marcador intenta vivir en la rueda del rival:
 

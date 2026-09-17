@@ -17,10 +17,13 @@ import {
 import { chaseField, chaseForce, isFinisher, lerp } from './chase.js'
 import {
   altitudesDelPerfil,
+  finDelPaseo,
   hayGeneralEnJuego,
   kmDeLaCita,
+  kmDelTodoONada,
   metasDelDia,
   tramosDelPerfil,
+  ultimoDiaDeVuelta,
 } from './citas.js'
 import { EventLog, announceRebels } from './events.js'
 import {
@@ -1931,6 +1934,16 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
    */
   const bunchFinish = admitsBunchFinish(stageFinishType)
   /**
+   * QUÉ ÚLTIMA ETAPA ES ÉSTA (R28.4, paso 18b · S-075, S-270). Ver `ultimoDiaDeVuelta`: la última de
+   * una vuelta no es un martes cualquiera, y son dos etapas distintas según dónde acabe.
+   *
+   * `'ninguno'` en toda carrera de un día y en cualquier etapa que no sea la última, que es lo que
+   * hace que ningún escenario canónico ni ningún banco lo note: **ninguno pasa `race`**.
+   */
+  const ultimoDia = ultimoDiaDeVuelta(input.race, bunchFinish)
+  /** DÓNDE EMPIEZA EL TODO O NADA, en km desde la salida. Ver `kmDelTodoONada`. */
+  const kmTodoONada = ultimoDia === 'decisiva' ? kmDelTodoONada(tramosDeHoy.puertos) : null
+  /**
    * LA FUERZA DE LA CAZA (`stage/chase.ts`): cuántos trenes tiene el campo, cómo de bueno es su
    * rematador y con cuántos compañeros cuenta. Antes bastaba UN corredor con SPR ≥ 70 para que el
    * pelotón entero persiguiera a tope, en una continental modesta igual que en una gran vuelta.
@@ -2067,9 +2080,26 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
      * veces»— y su colchón es lo que la contesta.
      */
     const sim = sims.get(riderId)
+    /**
+     * …Y EL ÚLTIMO DÍA DECISIVO EL COLCHÓN NO FRENA A NADIE (R28.4, paso 18b): «el maillot no deja
+     * ir nada». El freno del colchón existe porque quedan etapas que administrar; cuando no queda
+     * ninguna, administrar es perder. Es el mismo caso que `leLoEstanQuitando` —el colchón deja de
+     * protegerle— por un motivo distinto: allí porque se lo están quitando, aquí porque se acaba.
+     *
+     * **Y ESTO HOY NO CORRE, dicho en vez de disimulado**: el freno del colchón entero vive dentro de
+     * `colaOn`, o sea de `STAGE.teamPlay.enabled`, que está en `false`. Así que esta línea no cambia
+     * ni un segundo de ninguna carrera de hoy. Va puesta igualmente y a propósito: el día que se
+     * encienda `teamPlay`, lo que se encendería sin ella es un maillot que la última etapa sigue
+     * administrando para un mañana que no existe. Lo que no se puede es contarla como medida —no lo
+     * es—, y por eso el efecto medido del brazo decisivo es **solo el de la cuerda**.
+     */
     const deJersey =
       colaOn && sim
-        ? jerseyAttackFactor(hasGcContext && sim.input.gcRank === 1, gcCushionOf(riderId))
+        ? jerseyAttackFactor(
+            hasGcContext && sim.input.gcRank === 1,
+            gcCushionOf(riderId),
+            ultimoDia === 'decisiva',
+          )
         : 1
     /**
      * …Y **EL DÍA QUE EL MAILLOT CEDE, SUS RIVALES ATACAN MÁS** (R13.1, el contrario nº 9).
@@ -6325,6 +6355,32 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
     })
 
     /**
+     * LA CUERDA DE LA ÚLTIMA ETAPA (R28.4, paso 18b), que multiplica la intensidad de los intentos.
+     *
+     * En el **paseo** casi nadie se salta: «sin fugas serias ni ataques de general durante ~80 km».
+     * No es cero —siempre hay quien lo intenta, y el diseño dice «serias», no «ninguna»—. Y el paseo
+     * son los ~80 km PRIMEROS, no los que faltan: va del km 0 al circuito, y el circuito es el
+     * resto, donde la cuerda vuelve a 1 y el sprint es el de cualquier día («DE VERDAD»).
+     *
+     * En la **decisiva** es al revés y empieza donde el diseño dice que empieza: el penúltimo
+     * puerto. Antes de ahí no cambia nada — una última etapa con final en alto tampoco se ataca
+     * desde el km 0.
+     */
+    const finPaseo = finDelPaseo(
+      totalKm,
+      STAGE.ultimaEtapa.paseoKm,
+      STAGE.ultimaEtapa.circuitoMinKm,
+    )
+    const cuerdaDelUltimoDia =
+      ultimoDia === 'paseo'
+        ? km < finPaseo
+          ? STAGE.ultimaEtapa.paseoAttack
+          : 1
+        : ultimoDia === 'decisiva' && kmTodoONada !== null && km >= kmTodoONada
+          ? STAGE.ultimaEtapa.decisivaAttack
+          : 1
+
+    /**
      * Un intento de movimiento desde `source`. Puede no salir, salir y fracasar, o salir y cuajar.
      *
      * `cerrando` es el cuarto selector de flujo de §2.6: el pelotón que está cerrando un movimiento
@@ -6440,8 +6496,22 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
        * cuerda sino otra clase de movimiento —uno solo, a un kilómetro y pico de meta, del que sabe
        * que a rueda no gana—.
        */
+      /**
+       * LA ÚLTIMA ETAPA ENTRA POR LA INTENSIDAD, Y ESO SE APRENDIÓ MIDIENDO. El primer sitio en que
+       * se puso fue `MoveRider.teamAttack`, que es el apetito de CADA UNO… y ahí es **inerte**:
+       * `chooseInstigator` normaliza los apetitos entre sí (`pick = rng() * total`), así que un
+       * factor que multiplica a TODOS por igual se cancela exacto. La medida lo dijo sin margen de
+       * interpretación: 14,8 intentos por etapa con el paseo encendido y 14,8 sin él.
+       *
+       * Lo que decide CUÁNTOS movimientos salen es la λ, y por eso el paseo y el todo o nada entran
+       * por el mismo sitio que la fase y la pancarta: multiplicando la cuerda.
+       */
       const salta = ventanaFlyer
-        ? dado() < blockProbability(STAGE.phases.lambdaFlyer * lambdaPancarta(km), STAGE.dx)
+        ? dado() <
+          blockProbability(
+            STAGE.phases.lambdaFlyer * lambdaPancarta(km) * cuerdaDelUltimoDia,
+            STAGE.dx,
+          )
         : rollMoveAttempt(
             dado,
             ctx,
@@ -6453,6 +6523,8 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
               : lambdaPancarta(km) === 1
                 ? null
                 : { ...PHASE_TABLE.control, lambdaScale: lambdaPancarta(km) },
+            // …y la última etapa va POR FUERA de la fila, a propósito: ver `rollMoveAttempt`.
+            cuerdaDelUltimoDia,
           )
       if (!salta) return
       lastAttemptKm.set(source.id, km)

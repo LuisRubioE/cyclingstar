@@ -245,8 +245,17 @@ export function rollMoveAttempt(
   ctx: MoveContext,
   dx: number = STAGE.dx,
   fase?: PhaseRow | null,
+  /**
+   * FACTOR EXTRA SOBRE LA INTENSIDAD, y existe por un motivo concreto (R28.4, paso 18b). La última
+   * etapa de una vuelta da o quita cuerda —el paseo y el todo o nada—, y la tentación es meterlo por
+   * la fila de fase como hace la pancarta. **No se puede**: `moveLambda` solo aplica el refuerzo de
+   * ataque tardío `if (fase == null)`, así que colar una fila falsa para llevar un multiplicador
+   * APAGA la ventana de ataques tardíos, y en la última etapa decisiva eso es justo lo contrario de
+   * lo que se quiere. El factor va aparte y no toca la fila.
+   */
+  escala = 1,
 ): boolean {
-  return rng() < blockProbability(moveLambda(ctx, fase), dx)
+  return rng() < blockProbability(moveLambda(ctx, fase) * escala, dx)
 }
 
 // --- 2. ¿Quién lo intenta? -----------------------------------------------------------------
