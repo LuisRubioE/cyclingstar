@@ -121,3 +121,22 @@ export function metasDelDia(orders: {
     ...(effort ? { effort } : {}),
   }
 }
+
+/**
+ * ¿HAY GENERAL EN JUEGO HOY? (paso 18b, R28.5 · S-074, S-388, S-158).
+ *
+ * En la etapa 1 de una vuelta y en toda carrera de un día TODOS llegan con `gcDeficitSeconds` = 0,
+ * así que mirando solo los déficits los dos casos son idénticos y el motor deducía «no hay general»
+ * en ambos. En el día 1 de una vuelta eso **apaga los tres frenos del maillot justo cuando la cuerda
+ * es la más larga de la carrera**: nadie controla, nadie se cuida y nadie mira a una fuga que, si
+ * llega, se viste el primer maillot con minutos. Es lo contrario de lo que pasa en carretera.
+ *
+ * Lo que separa los dos casos no son los déficits: es **si mañana hay otra etapa**.
+ */
+export function hayGeneralEnJuego(
+  riders: readonly { gcDeficitSeconds: number }[],
+  race?: { stageDay?: number; totalStages?: number },
+): boolean {
+  if (riders.some((r) => r.gcDeficitSeconds > 0)) return true
+  return race?.stageDay === 1 && (race?.totalStages ?? 1) > 1
+}

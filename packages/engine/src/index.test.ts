@@ -3,6 +3,17 @@ import { ENGINE_VERSION } from './index.js'
 
 describe('engine: esqueleto', () => {
   it('expone una engine_version sellada', () => {
+    // v75: EL PASO 18b — LA ETAPA 1 DE UNA VUELTA TIENE GENERAL (R28.5, S-074/S-388/S-158).
+    // En la etapa 1 y en una carrera de un dia TODOS llegan con `gcDeficitSeconds` = 0, asi que
+    // mirando solo los deficits los dos casos son identicos y el motor deducia «no hay general» en
+    // ambos. En el dia 1 de una vuelta eso APAGABA LOS TRES FRENOS DEL MAILLOT justo cuando la
+    // cuerda es la mas larga de la carrera: nadie controlaba, nadie se cuidaba y nadie miraba a una
+    // fuga que, si llega, se viste el primer maillot con MINUTOS. Es lo contrario de lo que pasa en
+    // carretera, donde el dia 1 se corre nerviosisimo precisamente porque la general esta por
+    // estrenar. Lo que separa los dos casos no son los deficits —son identicos— sino SI MANANA HAY
+    // OTRA ETAPA, y eso ya viajaba desde el paso 2 (`race.stageDay`, `race.totalStages`) sin que
+    // nadie lo mirase para esto. Las cuatro huellas NO se mueven: los escenarios canonicos son de
+    // un dia y no traen contexto de carrera.
     // v74: EL PASO 17b — EL MOTOR LEE LAS PALANCAS NUEVAS DE LA HOJA DE ORDENES (R22).
     // `triggerOn` llevaba desde el 17a con sus seis formas de decir «cuando» y el motor solo leia
     // la del tiempo; las otras cinco eran letra muerta. Ahora se resuelven las POSICIONALES —el
@@ -433,6 +444,6 @@ describe('engine: esqueleto', () => {
     // v11 (atribución del trabajo), la v10 (composición y caza), la v9 (capa táctica), la
     // v8 (tiempos de grupo), la v7 (modelo de final), la v6 (telemetría), la v5 (clásica larga), la
     // v4 (pavé en el recorrido) y la v3 (Cambio 0).
-    expect(ENGINE_VERSION).toBe(74)
+    expect(ENGINE_VERSION).toBe(75)
   })
 })

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { hayGeneralEnJuego } from './citas.js'
 import { buildTeamPlans, type TeamPlanRider } from './teamPlan.js'
 
 /**
@@ -107,5 +108,48 @@ describe('el campeonato nacional agrupa por equipo de origen (R28.6)', () => {
     )
     expect(sinPapeles.get('equipo-mudo')?.memberIds).toHaveLength(6)
     expect(sinPapeles.get('equipo-mudo')?.leaderId).toBeNull()
+  })
+})
+
+/**
+ * LA ETAPA 1 DE UNA VUELTA SÍ TIENE GENERAL (paso 18b, R28.5 · S-074, S-388, S-158).
+ *
+ * En la etapa 1 y en una carrera de un día todos llegan con `gcDeficitSeconds` = 0, así que el motor
+ * deducía «no hay general» en los dos casos. En el día 1 de una vuelta eso **apagaba los tres frenos
+ * del maillot justo cuando la cuerda es la más larga de la carrera**: nadie controlaba, nadie se
+ * cuidaba y nadie miraba a una fuga que, si llega, se viste el primer maillot con minutos. Es lo
+ * contrario de lo que pasa en carretera, donde el día 1 se corre nerviosísimo precisamente porque la
+ * general está por estrenar.
+ *
+ * La diferencia entre los dos casos no está en los déficits —son idénticos— sino en **si mañana hay
+ * otra etapa**, y eso el motor ya lo sabía: `race.stageDay` y `race.totalStages` viajan desde el
+ * paso 2 y nadie los miraba para esto.
+ */
+describe('la etapa 1 de una vuelta tiene general, y la de un día no', () => {
+  /** Nadie tiene diferencia todavía: es el caso que importa, y el que los dos formatos comparten. */
+  const todosACero = [{ gcDeficitSeconds: 0 }, { gcDeficitSeconds: 0 }]
+
+  it('el día 1 de una vuelta de 21 etapas: hay general que estrenar', () => {
+    expect(hayGeneralEnJuego(todosACero, { stageDay: 1, totalStages: 21 })).toBe(true)
+  })
+
+  it('una carrera de un día: no hay general, y no la puede haber', () => {
+    expect(hayGeneralEnJuego(todosACero, { stageDay: 1, totalStages: 1 })).toBe(false)
+    expect(hayGeneralEnJuego(todosACero, undefined)).toBe(false)
+  })
+
+  /**
+   * Y NO SE ENCIENDE SOLA EN CUALQUIER ETAPA SIN DIFERENCIAS: a partir del día 2 la general existe
+   * porque hay déficits de verdad, no porque el motor se la invente. Esta rama es solo para el día
+   * en que todavía no los hay.
+   */
+  it('a partir del día 2 esta rama no interviene', () => {
+    expect(hayGeneralEnJuego(todosACero, { stageDay: 2, totalStages: 21 })).toBe(false)
+  })
+
+  it('con diferencias de verdad hay general, venga de donde venga la etapa', () => {
+    const conDiferencias = [{ gcDeficitSeconds: 0 }, { gcDeficitSeconds: 42 }]
+    expect(hayGeneralEnJuego(conDiferencias, { stageDay: 9, totalStages: 21 })).toBe(true)
+    expect(hayGeneralEnJuego(conDiferencias, undefined)).toBe(true)
   })
 })

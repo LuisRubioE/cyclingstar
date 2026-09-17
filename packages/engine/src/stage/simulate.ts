@@ -15,7 +15,7 @@ import {
   timeCutFraction,
 } from './abandon.js'
 import { chaseField, chaseForce, isFinisher, lerp } from './chase.js'
-import { kmDeLaCita, metasDelDia, tramosDelPerfil } from './citas.js'
+import { hayGeneralEnJuego, kmDeLaCita, metasDelDia, tramosDelPerfil } from './citas.js'
 import { EventLog, announceRebels } from './events.js'
 import {
   type Group,
@@ -1959,11 +1959,23 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
     [...input.riders].filter(isFinisher).sort((a, b) => b.eff0.SPR - a.eff0.SPR)[0]?.riderId ?? null
 
   /**
-   * ¿Hay general en juego? En la etapa 1 de una vuelta y en toda carrera de un día, TODOS llegan
-   * con `gcDeficitSeconds` = 0: leído literalmente, el pelotón entero sería el líder y cualquier
-   * movimiento una amenaza mortal. No hay general que defender hasta que hay diferencias.
+   * ¿HAY GENERAL EN JUEGO? En toda carrera de un día TODOS llegan con `gcDeficitSeconds` = 0: leído
+   * literalmente, el pelotón entero sería el líder y cualquier movimiento una amenaza mortal. No hay
+   * general que defender hasta que hay diferencias.
+   *
+   * …PERO LA ETAPA 1 DE UNA VUELTA SÍ TIENE GENERAL (paso 18b, R28.5 · S-074, S-388, S-158). Ahí
+   * también llegan todos a cero, y hasta aquí eso APAGABA LOS TRES FRENOS DEL MAILLOT justo el día
+   * en que la cuerda es la más larga de la carrera: nadie controlaba, nadie se cuidaba y nadie
+   * miraba a una fuga que, si llega, **se viste el primer maillot con minutos**. Es exactamente lo
+   * que no pasa en carretera: el día 1 de una vuelta se corre nerviosísimo precisamente porque la
+   * general está por estrenar.
+   *
+   * La diferencia entre los dos casos no está en los déficits —son idénticos, todos a cero— sino en
+   * si MAÑANA hay otra etapa. Eso el motor ya lo sabe: `race.stageDay` y `race.totalStages` viajan
+   * desde el paso 2. Con general en juego y todos a cero, el «líder virtual» sale del boquete, que
+   * es lo que R28.5 pide.
    */
-  const hasGcContext = input.riders.some((r) => r.gcDeficitSeconds > 0)
+  const hasGcContext = hayGeneralEnJuego(input.riders, input.race)
 
   // --- EL PLAN DE EQUIPO (v15, docs/motor.md §V.1) -----------------------------------------
   // El motor ya conoce los equipos. Aquí se monta el plan de cada uno y el estado que se GASTA: el
