@@ -1069,40 +1069,6 @@ export function pullReason(
 }
 
 /**
- * LA IDENTIDAD DE UN PARTE DE RELEVOS (v79), que es lo que decide si el siguiente es noticia.
- *
- * Éste era el defecto que tenía bloqueadas las cinco capas tácticas, y estaba en una sola expresión:
- *
- *     [why.targetId ?? pull.ids[0] ?? '', why.kind, effort, ahead]
- *
- * `pullReason` deja `targetId` **indefinido en dos casos** —`'libre'`, un campo sin equipos, y
- * `'alianza'`, varios equipos tirando para jefes distintos, que es lo normal en una llana— y en los
- * dos la identidad caía en **el primer nombre de una lista que rota cada kilómetro**. Con la
- * rotación de relevos encendida eso convierte cada kilómetro en noticia: medido, el banco de
- * atribución disparaba el **100 %** de sus partes por cambio de nombres y el de la voz el **93 %**.
- *
- * Lo que hace noticia a un parte no es que roten los hombres —eso es precisamente lo que una
- * rotación hace— sino que cambie **quién manda**. Y quién manda, por orden de lo que el lector lee:
- *
- *  1. el JEFE al que se sirve, si hay uno solo;
- *  2. si no, las CASAS que están tirando, que no rotan aunque roten sus hombres;
- *  3. y si no hay casas —un campo de agentes libres— ni eso: queda la clase de trabajo, el esfuerzo
- *     y si hay algo delante que cazar, que es lo único que ahí significa algo.
- */
-export function pullIdentity(
-  why: { kind: string; targetId?: string },
-  teams: Iterable<string>,
-  effort: string,
-  ahead: boolean,
-): string {
-  const casas = [...teams]
-    .filter((t) => t !== '')
-    .sort()
-    .join('+')
-  return [why.targetId ?? casas, why.kind, effort, ahead ? 1 : 0].join('/')
-}
-
-/**
  * `probe` es OBSERVACIÓN PURA (v26): pide una foto del orden de la carrera en unos kilómetros dados
  * y no altera nada —ni un dado, ni un compromiso, ni un reloj—. Sin él, y es el caso de producción,
  * el motor corre exactamente igual que antes. La CONTRARRELOJ lo ignora a propósito: allí cada
@@ -1760,24 +1726,17 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
     ledger: Iterable<[string, number]>,
     max: number,
     minShare: number,
-  ): { ids: string[]; best: number; total: number } => {
+  ): { ids: string[]; best: number } => {
     const ranked = [...ledger]
       .filter(([, w]) => w > 0)
       .sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))
     const best = ranked[0]?.[1] ?? 0
-    /**
-     * …Y EL TRABAJO TOTAL, que es lo único que no depende de cómo se reparta (v64). `best` mide al
-     * que lleva más rato delante, y con una rotación de verdad la respuesta a esa pregunta es
-     * «nadie»: cada uno da la cara seiscientos metros y se va al final de la fila. El total es el
-     * mismo trabajo se haga por turnos o a pecho descubierto.
-     */
     return {
       ids: ranked
         .slice(0, max)
         .filter(([, w]) => w >= best * minShare)
         .map(([id]) => id),
       best,
-      total: ranked.reduce((acc, [, w]) => acc + w, 0),
     }
   }
 
@@ -4083,26 +4042,9 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         const why = pullReason(pull.ids, worksFor)
         const effort =
           c <= STAGE.pullEffortTempoMax ? 'tempo' : c >= STAGE.pullEffortFullMin ? 'tope' : 'firme'
-        const pullTeams = new Set(pull.ids.map((id) => teamOf.get(id) ?? ''))
-        const pullTeam = pullTeams.size === 1 ? ([...pullTeams][0] ?? '') : ''
-        /**
-         * …Y LA IDENTIDAD NO PUEDE SER UN NOMBRE QUE ROTA (v79). Éste es el defecto que tenía
-         * bloqueadas las cinco capas, y estaba a la vista en esta misma línea:
-         *
-         *     [why.targetId ?? pull.ids[0] ?? '', ...]
-         *
-         * `pullReason` deja `targetId` INDEFINIDO en dos casos —`'libre'`, un campo sin equipos, y
-         * `'alianza'`, varios equipos tirando para jefes distintos, que es lo normal en una llana—
-         * y en los dos la identidad caía en **el primer nombre de una lista que rota cada
-         * kilómetro**. Medido: con la cola encendida, el banco de atribución disparaba el **100 %**
-         * de sus partes por cambio de nombres, y el de la voz el 93 %.
-         *
-         * Lo que hace noticia a un parte no es que roten los hombres: es que cambie **quién manda**.
-         * Sin un jefe único al que servir, quien manda es el conjunto de CASAS que están tirando
-         * —estable mientras tiren los mismos equipos, roten o no sus hombres—; y sin equipos, ni
-         * eso: lo que queda es la clase de trabajo, el esfuerzo y si hay algo delante.
-         */
-        const identidad = pullIdentity(why, pullTeams, effort, ahead)
+        const identidad = [why.targetId ?? pull.ids[0] ?? '', why.kind, effort, ahead ? 1 : 0].join(
+          '/',
+        )
         /**
          * …Y LAS DOS COSAS TIENEN QUE CAMBIAR, no una u otra. El lector lee nombres Y significado,
          * así que un parte solo merece la pena si le trae algo nuevo de alguno de los dos lados: o
@@ -4114,27 +4056,28 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
          */
         const nombres = pull.ids.join()
         /**
-         * ————— LA PUERTA PREGUNTA DOS COSAS, Y LA COLA ROMPÍA LAS DOS (v79) —————
+         * ————— `pullMinWork` MIDE UN SÍNTOMA DEL DEFECTO QUE LA COLA ARREGLA (v64) —————
          *
-         * Esta condición decide si la crónica cuenta quién tira, y de ella cuelgan las cinco capas
-         * tácticas: con ella rota, encender la rotación de relevos deja la carrera sin narrar.
+         * `pull.best` es el trabajo acumulado por **UN HOMBRE** en la ventana que se olvida cada
+         * kilómetro, y el listón de 0,35 está calibrado contra un motor en el que **los mismos
+         * hombres iban al frente todo el día**: por eso uno solo llegaba a acumular tanto.
          *
-         * **«¿HAY TRABAJO?»** — era `pull.best`, el trabajo de UN hombre, y con una rotación de
-         * verdad la respuesta es «nadie»: cada uno da la cara seiscientos metros y se va al final de
-         * la fila. Ahora es `pull.total`, que es el mismo trabajo se reparta como se reparta. Ver
-         * `pullMinTotalWork`.
+         * Con el turno convertido en cola (R18.1, docs/tactica.md paso 7) un hombre da la cara 600
+         * metros y se va al final de la fila, así que **nadie acumula**. Medido en el km 100 de una
+         * etapa sin fuga con la cola encendida: el mejor lleva **0,066** contra el listón de 0,35, y
+         * el parte de relevos pasa de **24 etapas de 24 a 0 de 24**. No es que nadie tire —tiran
+         * todos, y por turnos, que es lo que se quería—: es que el indicador pregunta quién lleva
+         * mucho rato delante, y una rotación de verdad hace que la respuesta sea «nadie».
          *
-         * **«¿ESTO ES NOTICIA?»** — era la identidad, y la identidad caía en un NOMBRE QUE ROTA
-         * siempre que no hubiera un jefe único al que servir. Ver `identidad` unas líneas arriba.
-         *
-         * Las dos mitades tiraban en sentidos opuestos, y por eso ninguna de las seis propuestas
-         * anteriores funcionaba: subir el listón «arreglaba» la atribución compensando el
-         * sobre-disparo de la segunda mitad apretando la primera, y por eso mataba el banco de la
-         * voz, donde la segunda mitad no estaba rota y solo llegaba el apretón.
+         * El arreglo NO es bajar el 0,35, y tampoco medirlo por equipos: se probó, y en el campo de
+         * este banco —que no tiene `teamId`— la suma por casa da exactamente lo mismo que el mejor
+         * hombre. Lo que hay que medir es **el trabajo total al frente**, que es invariante a cómo
+         * se reparta, y eso lleva su propia calibración en los dos brazos. Queda escrito aquí y en
+         * docs/balance.md «v60 §11»; se hace cuando la cola se encienda, no antes.
          */
         if (
           pull.ids.length > 0 &&
-          pull.total >= STAGE.pullMinTotalWork &&
+          pull.best >= STAGE.pullMinWork &&
           km - lastPullReportKm >= STAGE.pullReportMinKmGap &&
           ((identidad !== lastPullLeader && nombres !== lastPullNames) ||
             km - lastPullReportKm >= STAGE.pullReportKmGap)
@@ -4143,6 +4086,8 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
           // solo saber qué equipo(s) participan de la persecución… también es saber POR QUÉ». Solo
           // se dice cuando los que tiran son TODOS del mismo equipo: si es una alianza, el motivo
           // de cada uno es distinto y una sola palabra mentiría.
+          const pullTeams = new Set(pull.ids.map((id) => teamOf.get(id) ?? ''))
+          const pullTeam = pullTeams.size === 1 ? ([...pullTeams][0] ?? '') : ''
           const porQue = pullTeam !== '' ? purposeOfTeam(pullTeam) : null
           log.emit(km, peloton.tS, 'tiran', 'peloton_pull', pull.ids, {
             commit: Math.round(100 * c) / 100,
