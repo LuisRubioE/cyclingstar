@@ -3599,6 +3599,13 @@ export const STAGE = {
   // castigo, y cuánto castigo hay depende de lo cerca que esté el hombre del maillot. Era una
   // puerta y por eso el líder de la general y un rival a 4:10 recibían exactamente el mismo trato.
   gcThreatFraction: 0.6,
+  /**
+   * EL SUELO DE LA VENTANA DE AMENAZA EN LOS PRIMEROS DÍAS (v76.2). Ver `ventanaDeAmenaza`: la misma
+   * fuga no vale lo mismo en la etapa 3 que en la 18, porque lo que se pierde hoy al principio se
+   * recupera y al final no. El suelo existe porque un equipo de general nunca es del todo
+   * indiferente: con 0,35, en la etapa 3 de 21 la ventana queda en 90 s en vez de 258.
+   */
+  gcThreatEarlyFloor: 0.35,
   // Ritmo del pelotón cuando NO hay nada que cazar por delante (sin fuga, o ya cazada). Antes esto
   // no existía: el controlador vivía dentro de `if (breakaway && !caught)` y el pelotón se quedaba
   // en `commitIdle` toda la etapa. Un pelotón rueda a tempo de carretera, no a paseo.

@@ -6416,6 +6416,10 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
         onClimb,
         tension: source.tension,
         hasGcContext,
+        // EL DÍA DE CARRERA (v76.2): la misma fuga no vale lo mismo en la etapa 3 que en la 18. Ver
+        // `ventanaDeAmenaza`.
+        ...(input.race?.stageDay !== undefined ? { stageDay: input.race.stageDay } : {}),
+        ...(input.race?.totalStages !== undefined ? { totalStages: input.race.totalStages } : {}),
         breakAppeal,
         // Quién defiende la general AQUÍ y con cuánto colchón (v46). Se calcula sobre los que van en
         // este grupo y no sobre el pelotón entero, porque un líder solo puede responder a los
@@ -6785,6 +6789,8 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
           onClimb,
           tension: m.g.tension,
           hasGcContext,
+          ...(input.race?.stageDay !== undefined ? { stageDay: input.race.stageDay } : {}),
+          ...(input.race?.totalStages !== undefined ? { totalStages: input.race.totalStages } : {}),
           breakAppeal,
           ...gcDefence(
             party.map((r) => ({
