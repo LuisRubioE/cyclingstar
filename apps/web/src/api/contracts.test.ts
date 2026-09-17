@@ -309,7 +309,8 @@ describe('contratos: órdenes de etapa', () => {
    * caería por un campo que solo sirve para una palanca.
    */
   it('una respuesta sin `teams` sigue valiendo, y la lista sale vacía', () => {
-    const { teams: _omitido, ...viejo } = payload
+    const viejo: Record<string, unknown> = { ...payload }
+    delete viejo.teams
     expect(raceOrdersResponseSchema.parse(viejo).teams).toEqual([])
   })
 
