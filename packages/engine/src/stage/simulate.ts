@@ -7451,10 +7451,43 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
           }
           const mem = membersOf(detras.g.id)
           if (mem.length === 0) continue
+          /**
+           * FUNDIRSE NO REGALA NI ROBA SEGUNDOS (v76.1).
+           *
+           * El dueño lo vio en la etapa 3 del Tour: en el km 130 un grupo de 37 iba a **0:25**, en el
+           * 131 estaban reunificados, y esos 25 segundos habían desaparecido. Y en esa misma foto el
+           * grupo salía **sin velocidad**, con el hueco en blanco.
+           *
+           * Los dos síntomas son UNO. El reloj de un corredor ES EL DE SU GRUPO —la radio lo
+           * construye como `reloj del grupo + markLossS + driftS`—, así que al absorber un grupo sus
+           * hombres adoptaban de golpe el reloj del otro: el hueco dejaba de existir para todos a la
+           * vez, y al medirles el kilómetro siguiente aparecían cubriéndolo 25 s más rápido de lo que
+           * lo cubrieron. Eso son ~92 km/h, `radioMaxKmh` los rechazaba a todos —con razón: no es una
+           * velocidad, es aritmética de otro grupo— y sin ni uno que contar el grupo se quedaba sin
+           * velocidad que enseñar. El hueco en blanco no era un fallo de la radio: era la radio
+           * negándose a enseñar un número imposible.
+           *
+           * La fusión cambia la ETIQUETA del grupo, no el reloj de la gente. El grupo resultante toma
+           * un reloj común y a cada uno se le devuelve en `driftS` exactamente lo que ese cambio de
+           * referencia le habría regalado o quitado. Es la misma pieza con la que el motor ya lleva
+           * los segundos cedidos sin soltarse, usada para lo que es: la diferencia entre el reloj del
+           * grupo y el del hombre.
+           *
+           * Se corrige a LOS DOS LADOS. Solo uno de los ajustes es distinto de cero —el del grupo
+           * cuyo reloj no se conserva— pero escribirlo simétrico es lo que hace imposible que la
+           * cuenta dependa de quién alcanzó a quién.
+           */
+          const relojDelante = delante.g.tS
+          const relojDetras = detras.g.tS
+          const comun = Math.min(relojDelante, relojDetras)
+          if (relojDetras !== comun) for (const m of mem) m.driftS += relojDetras - comun
+          if (relojDelante !== comun) {
+            for (const m of membersOf(delante.g.id)) m.driftS += relojDelante - comun
+          }
           for (const m of mem) m.groupId = delante.g.id
           delante.g.riderIds = [...delante.g.riderIds, ...detras.g.riderIds]
           // El grupo resultante va al reloj del que iba delante: alcanzarle no adelanta a nadie.
-          delante.g.tS = Math.min(delante.g.tS, detras.g.tS)
+          delante.g.tS = comun
           detras.g.riderIds = []
           absorbidos.add(detras.g.id)
           const mv = moves.find((m) => m.g.id === detras.g.id)

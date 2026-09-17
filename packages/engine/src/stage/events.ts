@@ -108,5 +108,17 @@ function doingOf(plantilla: string): string {
     return 'ataca'
   if (plantilla === 'peloton_pull' || plantilla === 'chase_work' || plantilla === 'break_share')
     return 'tira'
+  /**
+   * …Y EL CASO QUE FALTABA: EL REMATE (v76.1). El dueño lo cazó en el diario de una etapa del Tour:
+   * «km 157 — Stefan Krüger is out of his team's plan today, by his own choice», y justo debajo,
+   * el mismo hombre disputando el sprint. La frase caía al texto genérico porque la primera vez que
+   * el rebelde APARECE es en el remate, y `doingOf` no tenía qué decir de eso.
+   *
+   * Y es justo el caso más elocuente de los tres: no es que ande suelto por ahí, es que **está
+   * disputando la victoria para él mientras su equipo tiene otro jefe**. Sin este caso, la línea que
+   * mejor se explica sola era la única que salía sin explicar.
+   */
+  if (plantilla === 'bunch_sprint' || plantilla === 'final_km' || plantilla.startsWith('sprint'))
+    return 'remata'
   return 'aparece'
 }
