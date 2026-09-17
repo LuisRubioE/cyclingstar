@@ -14562,3 +14562,294 @@ ningún banco puede ver es una ley que CI no vigila. Lo que la sujeta hoy son su
 —`ultimoDiaDeVuelta` y `finDelPaseo`, nueve aserciones— y esta medida hecha a mano. **El banco que
 falta es uno que corra etapas CON contexto de carrera**, y queda anotado como deuda con nombre: sin
 él, los pasos 18b y 21 seguirán entregando reglas que solo el dueño puede ver fallar.
+
+## Paso 18b (R28.6, S-431) — la semietapa, y su problema de verdad no está en el calendario
+
+«Dos `StageInput` el mismo día, con depósito encadenado (R08.5).» La frase parece de calendario y no
+lo es.
+
+### La mitad fácil: el dato no se podía ni expresar
+
+El calendario sabía **meter** un día entre dos etapas (`restAfter`, las jornadas de descanso de una
+gran vuelta) y no sabía **quitarlo**. `stageDayOfSeason` era `startDay + (i − 1) + descansosAntes`, y
+con esa cuenta dos etapas no pueden caer el mismo día por construcción.
+
+Entra `doubleAfter`, que es el espejo exacto de `restAfter` —la lista de etapas tras las cuales la
+siguiente se corre el mismo día— y va al otro lado de la misma suma. Y entra
+`scheduledStageIndices`, que devuelve **las** etapas del día en vez de **la** etapa: el singular se
+conserva para preguntar «¿corre hoy esta carrera?», que es lo que hace, pero quien lo use para correr
+la jornada **no correría nunca la segunda mitad y nadie se enteraría**. Eso último está sellado con su
+prueba, porque es justo la clase de hueco que este documento lleva todo el día cazando.
+
+### La mitad difícil, que es la que importa: `applyDailyLoad` es un paso POR DÍA
+
+```
+atl = prev.atl + (tss − prev.atl) / tauFatigue(recovery)
+ctl = prev.ctl + (tss − prev.ctl) / tauFitness
+```
+
+Eso es **un día de Banister**. Correr dos etapas el mismo día llamándolo dos veces no encadena nada:
+aplica **dos días de fisiología**, y el corredor termina la jornada partida con una jornada entera de
+forma y de recuperación **que no ha pasado**. Y el parte diario, que va por `(corredor, día)`,
+tendría dos filas para un solo día.
+
+O sea: la frase del diseño —«con depósito encadenado»— no describe un efecto bonito que sale solo.
+Describe **la única parte de la semietapa que hay que programar**, y si no se programa el defecto
+entra en silencio y no lo caza ninguna banda, porque ninguna banda mira el ATL de un corredor.
+
+Así que en una jornada partida la carga se aplica **una vez, con el TSS de las dos mitades**: la
+primera lo APUNTA en `cargaDelDia.banked` y no toca ni la carga ni el parte; la última suma y aplica
+un paso. El depósito se encadena solo, porque la segunda mitad lee el estado que dejó la primera y
+entre ellas no hay noche.
+
+**Y lo que NO espera al cierre del día: lo que se aprende corriendo.** Eso sí es por etapa —la mitad
+de la mañana de una semietapa es una carrera— y meterlo en el mismo saco le cobraría al corredor
+media jornada de aprendizaje por correr dos veces.
+
+### Medido contra Postgres, con su control del control
+
+Una jornada partida de verdad, corrida en el banco de datos:
+
+| Qué                                 | Resultado                                   |
+| ----------------------------------- | ------------------------------------------- |
+| Partes diarios tras la mañana       | **0** — el día no ha cerrado                |
+| Trabajo apuntado tras la mañana     | **> 0** — está ahí, esperando a la tarde    |
+| Partes diarios tras la tarde        | **1**, no dos                               |
+| TSS del parte                       | el de las **dos** mitades                   |
+| ATL resultante contra **un** paso   | casa a seis cifras (57,38927 vs 57,389272)  |
+| ATL resultante contra **dos** pasos | **no casa**, y las dos cuentas distan > 0,5 |
+
+La última fila es la que convierte esto en una prueba. Sin ella, la penúltima podría estar pasando
+por casualidad —si un paso y dos dieran lo mismo, no estaría comprobando nada—, que es exactamente
+el defecto que este documento le señaló a media docena de sellos esta misma sesión.
+
+### Lo que NO se hace, dicho en vez de fingido
+
+**Ninguna carrera del calendario declara una semietapa.** Poner una de verdad mueve resultados de
+producción y es una decisión de calendario, o sea del dueño. Lo que esta rama trae es que el motor y
+el tick **sepan correrla cuando la haya**, con la aritmética del depósito resuelta y sellada, en vez
+de que el dato no se pueda ni escribir.
+
+Es la diferencia entre una capa apagada y una capa que no existe: ésta existe, está probada, y espera
+a que alguien escriba `doubleAfter: [2]` en una carrera.
+
+## Paso 18b (R28.6, S-227) — el circuito, que es una sola frase del diseño
+
+> «CIRCUITO: la criba se ACUMULA vuelta a vuelta, la fuga se caza en el penúltimo paso y el ataque
+> decisivo sale en el último. **La carrera arranca «a dos vueltas».**»
+
+Los tres trozos hablan de lo mismo —cuántas vueltas quedan— así que caben en una cuenta:
+
+```
+con más de dos vueltas por delante   ->  no pasa nada serio        (antesDeDosVueltas)
+en la penúltima                      ->  se corre normal: se caza  (1)
+en la última                         ->  sale el ataque decisivo   (ultimaVuelta)
+```
+
+**Y «la criba se acumula vuelta a vuelta» no necesita código**: sale sola de pasar varias veces por
+los mismos puertos, porque el recorrido los lleva ya desplegados. Escribirla habría sido inventar un
+mecanismo para un efecto que la física ya produce.
+
+### Dónde vive `laps`, y por qué no en el calendario
+
+En el **recorrido** (`StageProfile.laps`), no en `CalendarStage`. Dos motivos: el motor tiene que
+poder correr un circuito le venga de donde le venga, y el banco tiene que poder montar uno sin tocar
+`SEASON_CALENDAR`. Y **no cambia el recorrido**: `segments` sigue siendo la etapa entera, con sus
+vueltas desplegadas, y la física no se entera de nada. Es un dato táctico.
+
+### Se multiplica con el paseo, no compite con él
+
+La última etapa de una gran vuelta **suele acabar dando vueltas a un circuito** —los Campos Elíseos
+son exactamente eso—, así que las dos reglas se aplican a la vez y dicen lo mismo por dos caminos: el
+paseo de R28.4 y «la carrera arranca a dos vueltas» de R28.6. Que se refuercen es la respuesta
+correcta; elegir una sería tirar media regla.
+
+### Lo que NO se hace, y su precio dicho
+
+**Ningún recorrido del calendario declara `laps`.** Y aquí el precio es mayor que en la semietapa,
+así que conviene decirlo con el número delante: R28.6 dice que el campeonato nacional se corre en
+circuito, y los nacionales son **532 de las 1.418 etapas del calendario**. Declararlos circuito
+cambiaría de golpe los resultados de **más de un tercio de la temporada**.
+
+Eso no es una tanda de tácticas: es una decisión de calendario con su propia medición, y es del
+dueño. Lo que esta rama deja hecho es que el motor sepa correr un circuito, con su regla sellada y
+sus dos constantes marcadas `[calibrar]` —porque hoy no las cobra nadie y por tanto no hay con qué
+calibrarlas—.
+
+### Por qué esto NO sube `ENGINE_VERSION`
+
+Ni el circuito ni la semietapa cambian **nada** para ninguna entrada existente: sin `laps` la cuerda
+vale 1 exacto, y sin `doubleAfter` la cuenta de días y la carga son las de siempre, línea por línea.
+
+Subir la versión por costumbre tendría un coste real y silencioso: `ENGINE_VERSION` es lo que decide
+si una etapa guardada se puede volver a leer, y moverla **tira todas las crónicas guardadas** que
+seguían siendo perfectamente válidas. La regla de la casa es «cada cambio de conducta sube la
+versión»; aquí no hay cambio de conducta, hay capacidad nueva que nadie usa todavía.
+
+## v79 revertida — el indicador del parte de relevos, séptima refutación (y la más útil)
+
+El criterio estaba escrito desde la v73 y no se relajó: **un solo valor, en banda en los DOS bancos,
+con la cola encendida y apagada. Cuatro celdas, no una.** No existe ese valor, así que el arreglo se
+revierte. Lo que sí queda es lo que la medida enseñó, que es más de lo que dejaron las seis
+refutaciones anteriores juntas.
+
+### El diagnóstico, que era coherente, estaba leído en el código, y era falso
+
+La puerta que decide si la crónica cuenta quién tira hace dos preguntas:
+
+```ts
+pull.best >= pullMinWork && // ¿hay trabajo?
+  ((identidad !== lastPullLeader && nombres !== lastPullNames) || // ¿es noticia?
+    km - lastPullReportKm >= pullReportKmGap) // …o ha caducado
+```
+
+Y la identidad tenía esto:
+
+```ts
+;[why.targetId ?? pull.ids[0] ?? '', why.kind, effort, ahead]
+```
+
+`pullReason` deja `targetId` **indefinido en dos casos** —`'libre'` (campo sin equipos) y
+`'alianza'` (varios equipos tirando para jefes distintos, que es lo normal en una llana)— y en los
+dos la identidad caía en **el primer nombre de una lista que rota cada kilómetro**. Eso es cierto, se
+lee en el código, y explicaba perfectamente el «100 % de partes por cambio de nombres» de la v73.2.
+
+**Y no cambia nada.** Medido en un árbol con SOLO esa mitad arreglada y `pull.best` intacto:
+
+| Solo la identidad arreglada | atribución            | v78 (referencia) |
+| --------------------------- | --------------------- | ---------------- |
+| cola apagada                | 5 partes · **77 %**   | 5 · 80 %         |
+| cola encendida              | 5,5 partes · **57 %** | 5,5 · **57 %**   |
+
+Idéntico en la celda que importa.
+
+### Por qué no cambia nada, con la aritmética delante
+
+`llana-180` mide **180 km** y `pullReportKmGap` son **36**. 180 ÷ 36 = **5,0 partes por etapa solo
+por el tope de caducidad**. La mediana medida es **5**.
+
+**Los partes no los dispara la identidad: los dispara el tope de kilómetros.** La condición de
+identidad casi nunca llega a decidir nada, así que arreglarla no puede cambiar cuántos partes salen.
+Seis intentos —y éste— apuntaban a una puerta que estaba casi siempre abierta por otro sitio.
+
+### Dos correcciones a la bitácora que esto arrastra
+
+1. **El «100 % de los partes por cambio de nombres» (v73.2) no dice lo que parecía decir.** Contaba
+   **qué condición era cierta**, no cuál provocó la emisión. Con el tope de 36 km vencido las dos son
+   ciertas casi siempre, y atribuírselo a los nombres es arbitrario.
+2. **El «el parte pasa de 24 etapas de 24 a 0 de 24» (v64) no se reproduce.** Medido aquí, con
+   `pull.best` intacto y la cola encendida salen **5,5 partes por etapa**, no cero. Lo que sí se
+   reproduce es una degradación real de la narración: **la ventana 3-6 cae del 80 % al 57 %** de las
+   etapas.
+
+### Las once celdas
+
+| Motor                        | atribución            | voz: partes · equipo · frentes |
+| ---------------------------- | --------------------- | ------------------------------ |
+| **v78** · cola apagada       | 5 partes · **80 %**   | 6,9 · 74,3 % · 2,83            |
+| **v78** · cola encendida     | 5,5 partes · **57 %** | 6,8 · 73,7 % · 2,93            |
+| v79 · apagada · listón 1,5   | 6 partes · 57 %       | 6,6 · 72,6 % · 2,73            |
+| v79 · apagada · listón 2,5   | 6 partes · 63 %       | 5,3 · 73,6 % · 2,43            |
+| v79 · apagada · listón 3,5   | 5 partes · **83 %**   | 4,0 · 67,2 % · **2,07**        |
+| v79 · encendida · listón 1,5 | 9 partes · 20 %       | 6,7 · 71,6 % · 2,87            |
+| v79 · encendida · listón 2,5 | 8 partes · 30 %       | 5,6 · 68,0 % · 2,63            |
+| v79 · encendida · listón 3,5 | 7 partes · **43 %**   | 3,9 · 65,0 % · **2,07**        |
+| solo identidad · apagada     | 5 partes · 77 %       | 6,9 · 73,9 % · 2,83            |
+| solo identidad · encendida   | 5,5 partes · 57 %     | 6,8 · 74,5 % · 2,93            |
+
+En el listón 3,5 la cola apagada **mejora** el punto de partida (83 % contra 80 %) y la encendida se
+queda en **43 %, peor que el 57 % de la v78**. Subir más el listón no es salida: en 3,5 la voz ya
+tiene los frentes en **2,07 contra un suelo de 1,8**, que es exactamente el modo de fallo de las seis
+veces anteriores — **apretar un banco matando el otro**.
+
+### Y un defecto de método que casi me lo oculta
+
+**Cambié las dos mitades a la vez.** La tabla de ocho celdas no puede culpar a ninguna, y de no
+haberlo aislado en un tercer árbol habría publicado «el arreglo empeora la cola» sin saber cuál de
+las dos mitades lo hacía — o peor, habría atribuido la mejora de la cola apagada a la identidad,
+que no tiene nada que ver.
+
+**Y el primer arnés no variaba nada.** Le puse una query para invalidar la caché al importar
+`tactics.js`, pero ese módulo importa `constants.js` **sin** la query, así que Node servía el
+`constants.js` de la primera vez: las seis celdas midieron la misma configuración. Lo cazó el
+síntoma —seis filas idénticas— y no una revisión. Es el tercer error del día con la misma forma
+(creer que estoy variando algo que no varío), después del `dist` reconstruido bajo el barrido y del
+factor inerte en `chooseInstigator`. **Las filas idénticas se miran, no se celebran.**
+
+### Lo que esta medida deja para el siguiente intento
+
+1. **La palanca no es la identidad.** Es la **cadencia** (`pullReportKmGap`) y, en segundo lugar, la
+   puerta del trabajo. Cualquier propuesta que empiece por la identidad ya está refutada.
+2. **`pull.total` con un listón fijo sí mueve la cosa**, y en la dirección buena con la cola apagada.
+   Con la cola encendida hace falta un listón más alto, y ahí choca con los frentes de la voz.
+3. Por tanto **el listón no puede ser una constante**: o escala con lo que la rotación le hace al
+   trabajo por hombre, o la cadencia deja de ser un número fijo de kilómetros. Cualquiera de las dos
+   es una tanda propia con su medición.
+
+**Se conserva** la ventana 3-6 declarada en `targets.ts`: ese cambio es correcto por su cuenta, y es
+lo que permitió ver todo esto.
+
+## v79 — el maillot no se va en la fuga del día, y el freno estaba roto por dos sitios
+
+El dueño, mirando el Tour:
+
+> «El que tiene maillot amarillo debería ser suuuper extraño que se fugue o que entre en una fuga…
+> otra cosa es que en la montaña ataque para irse solo, o que su equipo haga una selección y luego él
+> remate. Pero lo normal es que él siempre vaya a rueda, protegido, a la defensiva, tal vez
+> respondiendo a ataques en la montaña de sus enemigos. Pero en el llano entrar en una fuga, eso
+> debería ser mucho más raro de lo que ocurre… ocurre demasiado a menudo.»
+
+### No era una constante mal puesta: eran dos agujeros
+
+**1. El freno que existe no corre.** `jerseyAttackFactor` está escrito desde el paso 7 (R02.12) y es
+la respuesta a una queja anterior del mismo dueño —«el maillot salta seis veces»—. Se aplica dentro
+de `colaOn`, o sea de `STAGE.teamPlay.enabled`, **que está en `false`**. No ha frenado nada en
+ninguna carrera de producción, nunca.
+
+**2. Y aunque corriera, solo frena ATACAR.** Entrar en una fuga es casi siempre **saltar a la rueda**
+del que se va, y `followProbability` no tenía **una sola línea** sobre el maillot: el líder saltaba
+con la misma probabilidad que cualquiera de su rol y sus piernas. Esa mitad no estaba rota — es que
+no se había escrito.
+
+Es el tercer caso del mismo patrón en esta sesión, y ya no es anécdota: **algo que existe, parece que
+funciona, y nadie lo comprueba.** Los otros dos fueron `gcClimbRecoverPerKm` —incalibrable porque su
+capa está apagada— y la mitad de R28.4 que cuelga de esa misma capa.
+
+### La distinción del dueño es de CLASE de movimiento, no de terreno
+
+El maillot no se va **a por la etapa** —la fuga del día, el contraataque, el puente— y sí se va **a
+por la carrera** —ataca en el puerto, responde a un rival, remata la selección de los suyos—. Por eso
+`ataque_grupo` y `ataque_final` **no se tocan**: ésos son su oficio, y quien los dosifica es el
+colchón (`jerseyCushionS`), que es otra regla y otra queja.
+
+El terreno solo **gradúa lo primero**: en el llano irse con la fuga del día es noticia de portada; en
+un puerto, un contraataque suyo puede ser carrera de general y no caza de etapa.
+
+### Medido, contra un árbol sin la regla
+
+40 semillas, campo de ocho equipos con general de verdad (el líder a 0 y el resto escalonado):
+
+| Escenario | maillot en el grupo de cabeza | gana la etapa   |
+| --------- | ----------------------------- | --------------- |
+| **llana** | 12,5 % → **0,0 %**            | 12,5 % → 12,5 % |
+| **reina** | 25,0 % → **7,5 %**            | 2,5 % → 2,5 %   |
+
+En el llano **desaparece**; en la reina baja un 70 % y **sigue pasando**, que es exactamente la
+distinción que el dueño hace. Y **sus victorias de etapa no cambian**: no se le quitan opciones, se
+le quita la fuga del día.
+
+**Las bandas canónicas no se mueven, y era la predicción escrita antes de medir**: los escenarios
+canónicos son carreras de un día, todos llegan con déficit cero, sin general en juego no hay maillot
+y `esMaillot` sale `false` para todo el mundo. Medido: reina fuga 23,3 % (15-40), hueco 95 s (40-300),
+erosión 0,567; llana fuga 5,0 %, mejor velocista 38,3 %. Cifra por cifra las de la v77.
+
+### Y un fallo de mi medida, dicho porque casi me lo trago
+
+La estadística que elegí primero —«¿sale nombrado en el evento de fuga formada?»— da **cero en los
+dos brazos**, porque ese evento nombra dos o tres protagonistas y el líder metido en una fuga de diez
+no aparece ahí. De no haber mirado la segunda columna habría publicado «de 0 % a 0 %» como si fuera
+un resultado, cuando lo que tenía era un instrumento ciego.
+
+Es la misma familia de error que las otras tres de hoy —creer que estoy midiendo algo que no mido— y
+el remedio también: **una medida que no distingue los dos brazos no es una medida**, y la forma de
+cazarlo es mirar si el ANTES da un número que tenga sentido.

@@ -76,6 +76,20 @@ export interface CalendarRace {
   stages: CalendarStage[]
   /** Descansos tras estas etapas (solo grandes vueltas). */
   restAfter?: number[]
+  /**
+   * SEMIETAPAS (R28.6, S-431 · paso 18b): tras estas etapas, la SIGUIENTE se corre **el mismo día**.
+   *
+   * Es el espejo exacto de `restAfter` —aquél mete un día entre dos etapas, éste lo quita—, y por eso
+   * se escribe igual: la lista de etapas tras las cuales pasa. Una jornada partida en dos mitades
+   * —la clásica mañana en línea, tarde en crono— son dos `StageInput` el mismo día, con el depósito
+   * encadenado: la segunda mitad se corre con lo que dejó la primera, porque no hay noche en medio.
+   *
+   * HOY NO LA USA NINGUNA CARRERA DEL CALENDARIO, y se dice aquí en vez de disimularse. Poner una
+   * semietapa de verdad es una decisión de calendario que mueve resultados de producción, y ésa es
+   * del dueño; lo que esta rama trae es que el motor y el tick SEPAN correrla cuando la haya, con su
+   * prueba, en vez de que el dato no se pueda ni expresar.
+   */
+  doubleAfter?: number[]
 }
 
 /** Quién puede inscribirse según el nivel de la carrera: los inferiores entran como invitados. */

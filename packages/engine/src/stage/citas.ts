@@ -177,6 +177,37 @@ export function ultimoDiaDeVuelta(
 }
 
 /**
+ * LA CUERDA DE UN CIRCUITO (R28.6, S-227 · paso 18b), que es una frase del diseño escrita en código:
+ * **«la carrera arranca a dos vueltas»**.
+ *
+ * Un circuito no se corre como una etapa de un sitio a otro. El diseño lo dice en tres trozos y los
+ * tres caben en la misma cuenta, porque los tres hablan de CUÁNTAS VUELTAS QUEDAN:
+ *
+ * - con más de dos por delante no pasa nada serio —es el «arranca a dos vueltas»—;
+ * - en la penúltima **se caza la fuga**, o sea se corre normal: ni se frena ni se dispara;
+ * - y en la última **sale el ataque decisivo**.
+ *
+ * «La criba se ACUMULA vuelta a vuelta» no necesita código: sale sola de pasar por los mismos
+ * puertos varias veces, porque el recorrido ya los lleva desplegados.
+ *
+ * Sin `laps`, o con una sola, devuelve 1 y no toca nada: es el caso de todo el calendario de hoy.
+ */
+export function cuerdaDelCircuito(
+  km: number,
+  totalKm: number,
+  laps: number | undefined,
+  antesDeDosVueltas: number,
+  ultimaVuelta: number,
+): number {
+  if (!laps || laps < 2 || totalKm <= 0) return 1
+  const vuelta = totalKm / laps
+  const quedan = totalKm - km
+  if (quedan > 2 * vuelta) return antesDeDosVueltas
+  if (quedan <= vuelta) return ultimaVuelta
+  return 1
+}
+
+/**
  * DÓNDE EMPIEZA EL TODO O NADA de una última etapa decisiva, en km desde la salida (R28.4).
  *
  * «Se ataca desde el PENÚLTIMO puerto», dice el diseño. Y no dice qué pasa si la última etapa tiene

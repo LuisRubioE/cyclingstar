@@ -57,6 +57,20 @@ export interface StageProfile {
    * altitudes por etapa, que es peor que no tenerlas.
    */
   startM?: number
+  /**
+   * CUÁNTAS VUELTAS AL MISMO CIRCUITO (R28.6, S-227 · paso 18b). Ausente o 1 = de un sitio a otro,
+   * que es como corre todo el calendario de hoy.
+   *
+   * **NO cambia el recorrido**: `segments` sigue siendo la etapa ENTERA, con sus vueltas ya
+   * desplegadas, y la física no se entera de nada. Es un dato TÁCTICO, y lo que dice es que el
+   * pelotón pasa `laps` veces por los mismos sitios — que es lo que convierte una carrera en un
+   * circuito: «la criba se ACUMULA vuelta a vuelta… la carrera arranca a dos vueltas».
+   *
+   * Poner esto en el recorrido y no en el calendario es a propósito: el motor tiene que poder correr
+   * un circuito le venga de donde le venga, y el banco tiene que poder montar uno sin tocar
+   * `SEASON_CALENDAR`.
+   */
+  laps?: number
 }
 
 /** Un bloque de 100 metros ya muestreado, listo para la física (SPEC 6.2, 6.16). */
