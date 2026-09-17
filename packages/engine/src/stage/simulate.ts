@@ -15,7 +15,7 @@ import {
   timeCutFraction,
 } from './abandon.js'
 import { chaseField, chaseForce, isFinisher, lerp } from './chase.js'
-import { kmDeLaCita, tramosDelPerfil } from './citas.js'
+import { kmDeLaCita, metasDelDia, tramosDelPerfil } from './citas.js'
 import { EventLog, announceRebels } from './events.js'
 import {
   type Group,
@@ -1395,7 +1395,14 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
   const log = new EventLog()
 
   const sims = new Map<string, RiderSim>()
-  for (const r of input.riders) {
+  for (const r0 of input.riders) {
+    /**
+     * «HOY ES MI DÍA» / «HOY ME VOY AL GRUPETO» (paso 17b, R22 · S-216, S-024, S-030). `dayGoal`
+     * DECLARA, así que se resuelve UNA VEZ aquí y no en los siete sitios que leen las casillas y el
+     * esfuerzo: normalizar la hoja al entrar es lo que evita que una palanca nueva llegue a unos
+     * sitios y a otros no, que es de lo que este paso viene escarmentado.
+     */
+    const r = { ...r0, orders: { ...r0.orders, ...metasDelDia(r0.orders) } }
     // Piernas del día: un factor por corredor y etapa (acotado a ±3σ) escala su nivel efectivo, así
     // un corredor algo inferior puede ganarle a uno mejor que tiene un mal día (SPEC 6.7).
     const dayFactor = Math.max(

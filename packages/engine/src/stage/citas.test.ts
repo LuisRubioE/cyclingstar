@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { kmDeLaCita, tramosDelPerfil } from './citas.js'
+import { kmDeLaCita, metasDelDia, tramosDelPerfil } from './citas.js'
 import type { Block } from './types.js'
 
 /**
@@ -93,5 +93,54 @@ describe('las citas que solo dependen del recorrido', () => {
   it('sin cita, no hay cita', () => {
     expect(kmDeLaCita(null, tramos)).toBeNull()
     expect(kmDeLaCita(undefined, tramos)).toBeNull()
+  })
+})
+
+/**
+ * «HOY ES MI DÍA» / «HOY ME VOY AL GRUPETO» (paso 17b, R22 · S-216, S-024, S-030).
+ *
+ * `dayGoal` DECLARA: el jugador dice a qué sale y su hoja se ordena alrededor. Lo que estas medidas
+ * fijan es la mitad incómoda —**lo que NO hace**—, porque es donde una derivación se convierte en
+ * un secuestro de las órdenes del jugador.
+ */
+describe('a qué sale hoy este hombre', () => {
+  const hoja = { contestSprints: false, contestClimbs: false, effort: 'normal' as const }
+
+  it('sin declaración no toca nada', () => {
+    expect(metasDelDia(hoja)).toEqual(hoja)
+    expect(metasDelDia({ ...hoja, dayGoal: null })).toEqual(hoja)
+  })
+
+  it('ir a por los puntos es disputar los volantes, sin marcarlo dos veces', () => {
+    expect(metasDelDia({ ...hoja, dayGoal: 'puntos' }).contestSprints).toBe(true)
+    expect(metasDelDia({ ...hoja, dayGoal: 'puntos' }).contestClimbs).toBe(false)
+  })
+
+  it('ir a por la montaña es disputar las cimas', () => {
+    expect(metasDelDia({ ...hoja, dayGoal: 'montana' }).contestClimbs).toBe(true)
+    expect(metasDelDia({ ...hoja, dayGoal: 'montana' }).contestSprints).toBe(false)
+  })
+
+  it('salir a ganar o a defender la general se corre a tope', () => {
+    expect(metasDelDia({ ...hoja, dayGoal: 'ganar' }).effort).toBe('a_tope')
+    expect(metasDelDia({ ...hoja, dayGoal: 'general' }).effort).toBe('a_tope')
+  })
+
+  /**
+   * LO QUE NO HACE, y es la mitad que importa: las casillas solo se ENCIENDEN y el esfuerzo solo
+   * SUBE. Si alguien dice «hoy al grupeto» y marca las cimas, el motor no está para decidir cuál de
+   * las dos cosas quiso decir de verdad: una declaración es una intención, no un veto sobre lo que
+   * el mismo hombre pidió en la línea de al lado.
+   */
+  it('no apaga lo que el jugador encendió, ni baja el esfuerzo que pidió', () => {
+    const contradictorio = { contestSprints: true, contestClimbs: true, effort: 'a_tope' as const }
+    expect(metasDelDia({ ...contradictorio, dayGoal: 'grupeto' })).toEqual(contradictorio)
+    expect(metasDelDia({ ...contradictorio, dayGoal: 'ahorrar' })).toEqual(contradictorio)
+  })
+
+  /** Y el esfuerzo ausente sigue ausente: escribirlo a `undefined` BORRARÍA la palanca al fusionar. */
+  it('una hoja sin esfuerzo no gana un esfuerzo nulo', () => {
+    const r = metasDelDia({ contestSprints: false, contestClimbs: false, dayGoal: 'puntos' })
+    expect('effort' in r).toBe(false)
   })
 })

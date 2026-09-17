@@ -1,4 +1,4 @@
-import type { Block, TriggerCond } from './types.js'
+import type { Block, DayGoal, Effort, TriggerCond } from './types.js'
 
 /**
  * LAS CITAS DE R22, RESUELTAS SOBRE EL PERFIL (paso 17b).
@@ -87,4 +87,37 @@ export function kmDeLaCita(
     return p.desdeKm + 0.8 * (p.hastaKm - p.desdeKm)
   }
   return null
+}
+
+/**
+ * A QUÉ SALE HOY ESTE HOMBRE, aplicado (paso 17b, R22 · S-216, S-024, S-030).
+ *
+ * `dayGoal` **declara, no negocia**: el jugador dice a qué va y el resto de su hoja se ordena
+ * alrededor. Por eso no es un modificador más sino una derivación — «hoy voy a por la montaña»
+ * implica disputar las cimas, y tener que marcar además la casilla sería pedirle al jugador que
+ * diga dos veces lo mismo y castigarle si se le olvida una.
+ *
+ * LO QUE NO HACE: quitar nada que el jugador haya puesto. Las casillas solo se ENCIENDEN, nunca se
+ * apagan, y el esfuerzo solo SUBE. Una declaración es una intención, no un veto sobre lo que el
+ * mismo hombre pidió en la línea de al lado; si alguien dice «hoy al grupeto» y marca las cimas, el
+ * motor no está para decidir cuál de las dos cosas quiso decir de verdad.
+ *
+ * El grupeto es la única que no enciende nada: ir al grupeto es precisamente no disputar.
+ */
+export function metasDelDia(orders: {
+  dayGoal?: DayGoal | null
+  effort?: Effort
+  contestSprints: boolean
+  contestClimbs: boolean
+}): { contestSprints: boolean; contestClimbs: boolean; effort?: Effort } {
+  const g = orders.dayGoal
+  const aTope = g === 'ganar' || g === 'general'
+  const effort: Effort | undefined = aTope ? 'a_tope' : orders.effort
+  return {
+    contestSprints: orders.contestSprints || g === 'puntos',
+    contestClimbs: orders.contestClimbs || g === 'montana',
+    // El esfuerzo va con propagación condicional y no como `effort: undefined`: escribirlo a
+    // `undefined` BORRA la palanca en la hoja al fusionarla, que es lo contrario de no tocarla.
+    ...(effort ? { effort } : {}),
+  }
 }
