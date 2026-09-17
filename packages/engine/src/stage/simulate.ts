@@ -15,6 +15,7 @@ import {
   timeCutFraction,
 } from './abandon.js'
 import { chaseField, chaseForce, isFinisher, lerp } from './chase.js'
+import { kmDeLaCita, tramosDelPerfil } from './citas.js'
 import { EventLog, announceRebels } from './events.js'
 import {
   type Group,
@@ -1369,8 +1370,25 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
    * LA CITA EFECTIVA DE UN HOMBRE: la del tiempo si ya se cumplió, y si no, la del kilómetro de la
    * v58. `null` = sin cita, y entonces decide su mentalidad, como siempre.
    */
+  /**
+   * LAS CITAS POSICIONALES, resueltas una vez sobre el perfil (paso 17b, `citas.ts`). El puerto y el
+   * sector no dependen de lo que hagan los demás, así que se convierten en un kilómetro antes de
+   * empezar y no cuestan nada en el bucle.
+   */
+  const tramosDeHoy = tramosDelPerfil(blocks, STAGE.dx)
+  /**
+   * LA CITA EFECTIVA DE UN HOMBRE, por orden de precedencia: la que ya se CUMPLIÓ en carretera —el
+   * tiempo (R14.3)—, luego la POSICIONAL del perfil —el puerto, el sector, el kilómetro de
+   * `triggerOn`— y por último el `triggerKm` de la v58. `null` = sin cita, y entonces decide su
+   * mentalidad, como siempre.
+   *
+   * El orden importa: una cita cumplida en carretera manda sobre una posicional, porque ya ocurrió.
+   */
   const citaDe = (m: RiderSim): number | null =>
-    citaCumplida.get(m.input.riderId) ?? m.input.orders.triggerKm ?? null
+    citaCumplida.get(m.input.riderId) ??
+    kmDeLaCita(m.input.orders.triggerOn, tramosDeHoy) ??
+    m.input.orders.triggerKm ??
+    null
   /** Los que pusieron una cita en el tiempo. Normalmente ninguno, y por eso se hace la lista. */
   const citasDelTiempo: RiderSim[] = []
   const n = blocks.length
