@@ -3,6 +3,40 @@ import { ENGINE_VERSION } from './index.js'
 
 describe('engine: esqueleto', () => {
   it('expone una engine_version sellada', () => {
+    // v76: EL PASO 18d — LA ALTITUD (R28.7, S-479). El quinto multiplicador del coste del bloque,
+    // y el UNICO QUE NO ES DE SUMA CERO POR GRUPO: los otros cuatro redistribuyen —el que empuja
+    // paga, el que se esconde ahorra— y este encarece a todo el que sube. Por eso va en PR propio,
+    // con subida propia y con tope propio (0,18, lo que cuesta el Stelvio al que peor sube).
+    // Va con DOS SUSTITUTOS DECLARADOS, porque los datos que la regla pide no existen aqui: no hay
+    // altitud absoluta —el calendario guarda pendientes, no cotas— asi que entra `startM` con
+    // defecto 0; y no hay peso de corredor, asi que la carga sale de la capacidad de subir
+    // invertida. Es un sustituto, no el dato.
+    // CON LOS RECORRIDOS DE HOY EL TERMINO VALE CERO: ninguno trae cota y un perfil que arranca en
+    // el mar no llega a 2.000 m (el desnivel ACUMULADO no es la altitud). La ley esta puesta y
+    // dormida, no puesta y funcionando a medias, y despierta sola cuando el calendario traiga las
+    // cotas. Por eso ni las cuatro huellas ni el invariante 43 se mueven, y eso se declaro ANTES.
+    // v75: EL PASO 18b — LA ETAPA 1 DE UNA VUELTA TIENE GENERAL (R28.5, S-074/S-388/S-158).
+    // En la etapa 1 y en una carrera de un dia TODOS llegan con `gcDeficitSeconds` = 0, asi que
+    // mirando solo los deficits los dos casos son identicos y el motor deducia «no hay general» en
+    // ambos. En el dia 1 de una vuelta eso APAGABA LOS TRES FRENOS DEL MAILLOT justo cuando la
+    // cuerda es la mas larga de la carrera: nadie controlaba, nadie se cuidaba y nadie miraba a una
+    // fuga que, si llega, se viste el primer maillot con MINUTOS. Es lo contrario de lo que pasa en
+    // carretera, donde el dia 1 se corre nerviosisimo precisamente porque la general esta por
+    // estrenar. Lo que separa los dos casos no son los deficits —son identicos— sino SI MANANA HAY
+    // OTRA ETAPA, y eso ya viajaba desde el paso 2 (`race.stageDay`, `race.totalStages`) sin que
+    // nadie lo mirase para esto. Las cuatro huellas NO se mueven: los escenarios canonicos son de
+    // un dia y no traen contexto de carrera.
+    // v74: EL PASO 17b — EL MOTOR LEE LAS PALANCAS NUEVAS DE LA HOJA DE ORDENES (R22).
+    // `triggerOn` llevaba desde el 17a con sus seis formas de decir «cuando» y el motor solo leia
+    // la del tiempo; las otras cinco eran letra muerta. Ahora se resuelven las POSICIONALES —el
+    // puerto («al pie», «en lo mas duro», «cerca de la cima») y el sector de pave— convirtiendolas
+    // en un kilometro antes de empezar, de donde manda la maquinaria de `triggerKm` de la v58. Y
+    // `dayGoal` DECLARA: ir a por los puntos es disputar los volantes sin marcarlo dos veces, salir
+    // a ganar se corre a tope. Solo ENCIENDE casillas y solo SUBE el esfuerzo: una declaracion no
+    // es un veto sobre lo que el mismo hombre pidio en la linea de al lado.
+    // Quedan fuera, y se dice: el hueco y el ataque de Z (dependen de los demas, no son
+    // posicionales) y `chasePolicy`, que es una decision DE EQUIPO y vive en R20, apagada.
+    // Las cuatro huellas NO se mueven: los escenarios canonicos no ponen ninguna de las dos.
     // v73: LA REINA CANONICA VUELVE, Y CON EL DEFECTO QUE ELLA MISMA DESTAPO ARREGLADO
     // (docs/balance.md «v73»). El escenario sintetico pasa a ser una reina de verdad —158 km y
     // 2.933 m, dos puertos y final en alto, decision 5 del dueno— y al correr por primera vez el
@@ -422,6 +456,6 @@ describe('engine: esqueleto', () => {
     // v11 (atribución del trabajo), la v10 (composición y caza), la v9 (capa táctica), la
     // v8 (tiempos de grupo), la v7 (modelo de final), la v6 (telemetría), la v5 (clásica larga), la
     // v4 (pavé en el recorrido) y la v3 (Cambio 0).
-    expect(ENGINE_VERSION).toBe(73)
+    expect(ENGINE_VERSION).toBe(78)
   })
 })

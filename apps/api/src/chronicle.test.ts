@@ -950,3 +950,64 @@ describe('v25 · la crónica no se contradice', () => {
     expect(out.find((e) => e.plantilla === 'chase_work')?.datos?.pegado).toBe(1)
   })
 })
+
+/**
+ * EL INFORME DEJA DE RE-SIMULAR (paso 17d, R23.5).
+ *
+ * El criterio de «hecho» de este paso, escrito en `docs/tactica.md`, es una frase: **un informe de
+ * la v52 se lee igual con el motor de la v74**. Hasta aquí el replay de la vuelta de prueba
+ * ejecutaba el motor de HOY sobre la entrada de AYER para «regenerar» los eventos, y con
+ * `ENGINE_VERSION` moviéndose 52 → 74 en esta tanda eso no regenera nada: cuenta una carrera
+ * DISTINTA de la que está en la hoja de resultados, con los mismos corredores y otro desenlace. El
+ * jugador ve un diario que no casa con la clasificación de al lado y no puede saber cuál miente.
+ *
+ * Es el mismo defecto que el dueño vio en la Race Radio. La regla es la misma, y esto la fija: **lo
+ * que se corrió se lee, no se vuelve a correr.**
+ */
+describe('paso 17d · el informe se lee, no se re-simula', () => {
+  /** La decisión, aislada de Fastify y de la base: qué eventos sirve el replay. */
+  const eventosDelReplay = (
+    snapshot: { events: ChronicleEvent[] | null; engineVersion: number },
+    motorDeHoy: number,
+    reSimular: () => ChronicleEvent[],
+  ): ChronicleEvent[] => {
+    const guardados = snapshot.events
+    if (guardados && guardados.length > 0) return guardados
+    return snapshot.engineVersion === motorDeHoy ? reSimular() : []
+  }
+
+  const guardado: ChronicleEvent = {
+    km: 10,
+    tS: 100,
+    tipo: 'ataque',
+    plantilla: 'attack_go',
+    protagonistas: ['r1'],
+  }
+  const inventado: ChronicleEvent = { ...guardado, km: 99, protagonistas: ['r2'] }
+
+  it('con eventos guardados se leen ésos, aunque el motor haya cambiado', () => {
+    let reSimulado = false
+    const out = eventosDelReplay({ events: [guardado], engineVersion: 52 }, 74, () => {
+      reSimulado = true
+      return [inventado]
+    })
+    expect(out).toEqual([guardado])
+    // Y lo que de verdad importa: NI SE INTENTA. Re-simular y descartar seguiría costando una etapa
+    // entera de CPU por cada visita a la pestaña.
+    expect(reSimulado).toBe(false)
+  })
+
+  it('sin eventos guardados y con OTRO motor, la crónica sale vacía en vez de inventada', () => {
+    const out = eventosDelReplay({ events: null, engineVersion: 52 }, 74, () => [inventado])
+    expect(out).toEqual([])
+  })
+
+  /**
+   * Y la única circunstancia en la que volver a correr devuelve la MISMA carrera: mismo motor. Es
+   * el puente para los snapshots anteriores a que se guardaran los eventos, y se acaba solo.
+   */
+  it('sin eventos guardados y con el MISMO motor, se puede re-simular', () => {
+    const out = eventosDelReplay({ events: null, engineVersion: 74 }, 74, () => [inventado])
+    expect(out).toEqual([inventado])
+  })
+})

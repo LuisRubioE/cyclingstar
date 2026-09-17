@@ -15,6 +15,16 @@ import {
   timeCutFraction,
 } from './abandon.js'
 import { chaseField, chaseForce, isFinisher, lerp } from './chase.js'
+import {
+  altitudesDelPerfil,
+  finDelPaseo,
+  hayGeneralEnJuego,
+  kmDeLaCita,
+  kmDelTodoONada,
+  metasDelDia,
+  tramosDelPerfil,
+  ultimoDiaDeVuelta,
+} from './citas.js'
 import { EventLog, announceRebels } from './events.js'
 import {
   type Group,
@@ -65,7 +75,7 @@ import {
 import { type RelayQueue, advanceQueue, emptyQueue } from './relayQueue.js'
 import { believedGap, bloodFactor, dirQualityOf, infoLagKm, readState } from './director.js'
 import { type ChaseCandidate, chaseTargetOf, desiredGapOf, frontClaimOf } from './frontAuction.js'
-import { tacticalCostFactor } from './cost.js'
+import { altitudeCost, tacticalCostFactor } from './cost.js'
 import {
   accordionActive,
   accordionTerm,
@@ -1369,15 +1379,41 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
    * LA CITA EFECTIVA DE UN HOMBRE: la del tiempo si ya se cumplió, y si no, la del kilómetro de la
    * v58. `null` = sin cita, y entonces decide su mentalidad, como siempre.
    */
+  /**
+   * LAS CITAS POSICIONALES, resueltas una vez sobre el perfil (paso 17b, `citas.ts`). El puerto y el
+   * sector no dependen de lo que hagan los demás, así que se convierten en un kilómetro antes de
+   * empezar y no cuestan nada en el bucle.
+   */
+  const tramosDeHoy = tramosDelPerfil(blocks, STAGE.dx)
+  /** La altitud al final de cada bloque (R28.7, paso 18d). Sin cota de salida, todo a nivel del mar. */
+  const altitudesDeHoy = altitudesDelPerfil(blocks, STAGE.dx, input.profile.startM ?? 0)
+  /**
+   * LA CITA EFECTIVA DE UN HOMBRE, por orden de precedencia: la que ya se CUMPLIÓ en carretera —el
+   * tiempo (R14.3)—, luego la POSICIONAL del perfil —el puerto, el sector, el kilómetro de
+   * `triggerOn`— y por último el `triggerKm` de la v58. `null` = sin cita, y entonces decide su
+   * mentalidad, como siempre.
+   *
+   * El orden importa: una cita cumplida en carretera manda sobre una posicional, porque ya ocurrió.
+   */
   const citaDe = (m: RiderSim): number | null =>
-    citaCumplida.get(m.input.riderId) ?? m.input.orders.triggerKm ?? null
+    citaCumplida.get(m.input.riderId) ??
+    kmDeLaCita(m.input.orders.triggerOn, tramosDeHoy) ??
+    m.input.orders.triggerKm ??
+    null
   /** Los que pusieron una cita en el tiempo. Normalmente ninguno, y por eso se hace la lista. */
   const citasDelTiempo: RiderSim[] = []
   const n = blocks.length
   const log = new EventLog()
 
   const sims = new Map<string, RiderSim>()
-  for (const r of input.riders) {
+  for (const r0 of input.riders) {
+    /**
+     * «HOY ES MI DÍA» / «HOY ME VOY AL GRUPETO» (paso 17b, R22 · S-216, S-024, S-030). `dayGoal`
+     * DECLARA, así que se resuelve UNA VEZ aquí y no en los siete sitios que leen las casillas y el
+     * esfuerzo: normalizar la hoja al entrar es lo que evita que una palanca nueva llegue a unos
+     * sitios y a otros no, que es de lo que este paso viene escarmentado.
+     */
+    const r = { ...r0, orders: { ...r0.orders, ...metasDelDia(r0.orders) } }
     // Piernas del día: un factor por corredor y etapa (acotado a ±3σ) escala su nivel efectivo, así
     // un corredor algo inferior puede ganarle a uno mejor que tiene un mal día (SPEC 6.7).
     const dayFactor = Math.max(
@@ -1898,6 +1934,16 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
    */
   const bunchFinish = admitsBunchFinish(stageFinishType)
   /**
+   * QUÉ ÚLTIMA ETAPA ES ÉSTA (R28.4, paso 18b · S-075, S-270). Ver `ultimoDiaDeVuelta`: la última de
+   * una vuelta no es un martes cualquiera, y son dos etapas distintas según dónde acabe.
+   *
+   * `'ninguno'` en toda carrera de un día y en cualquier etapa que no sea la última, que es lo que
+   * hace que ningún escenario canónico ni ningún banco lo note: **ninguno pasa `race`**.
+   */
+  const ultimoDia = ultimoDiaDeVuelta(input.race, bunchFinish)
+  /** DÓNDE EMPIEZA EL TODO O NADA, en km desde la salida. Ver `kmDelTodoONada`. */
+  const kmTodoONada = ultimoDia === 'decisiva' ? kmDelTodoONada(tramosDeHoy.puertos) : null
+  /**
    * LA FUERZA DE LA CAZA (`stage/chase.ts`): cuántos trenes tiene el campo, cómo de bueno es su
    * rematador y con cuántos compañeros cuenta. Antes bastaba UN corredor con SPR ≥ 70 para que el
    * pelotón entero persiguiera a tope, en una continental modesta igual que en una gran vuelta.
@@ -1934,11 +1980,23 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
     [...input.riders].filter(isFinisher).sort((a, b) => b.eff0.SPR - a.eff0.SPR)[0]?.riderId ?? null
 
   /**
-   * ¿Hay general en juego? En la etapa 1 de una vuelta y en toda carrera de un día, TODOS llegan
-   * con `gcDeficitSeconds` = 0: leído literalmente, el pelotón entero sería el líder y cualquier
-   * movimiento una amenaza mortal. No hay general que defender hasta que hay diferencias.
+   * ¿HAY GENERAL EN JUEGO? En toda carrera de un día TODOS llegan con `gcDeficitSeconds` = 0: leído
+   * literalmente, el pelotón entero sería el líder y cualquier movimiento una amenaza mortal. No hay
+   * general que defender hasta que hay diferencias.
+   *
+   * …PERO LA ETAPA 1 DE UNA VUELTA SÍ TIENE GENERAL (paso 18b, R28.5 · S-074, S-388, S-158). Ahí
+   * también llegan todos a cero, y hasta aquí eso APAGABA LOS TRES FRENOS DEL MAILLOT justo el día
+   * en que la cuerda es la más larga de la carrera: nadie controlaba, nadie se cuidaba y nadie
+   * miraba a una fuga que, si llega, **se viste el primer maillot con minutos**. Es exactamente lo
+   * que no pasa en carretera: el día 1 de una vuelta se corre nerviosísimo precisamente porque la
+   * general está por estrenar.
+   *
+   * La diferencia entre los dos casos no está en los déficits —son idénticos, todos a cero— sino en
+   * si MAÑANA hay otra etapa. Eso el motor ya lo sabe: `race.stageDay` y `race.totalStages` viajan
+   * desde el paso 2. Con general en juego y todos a cero, el «líder virtual» sale del boquete, que
+   * es lo que R28.5 pide.
    */
-  const hasGcContext = input.riders.some((r) => r.gcDeficitSeconds > 0)
+  const hasGcContext = hayGeneralEnJuego(input.riders, input.race)
 
   // --- EL PLAN DE EQUIPO (v15, docs/motor.md §V.1) -----------------------------------------
   // El motor ya conoce los equipos. Aquí se monta el plan de cada uno y el estado que se GASTA: el
@@ -2022,9 +2080,26 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
      * veces»— y su colchón es lo que la contesta.
      */
     const sim = sims.get(riderId)
+    /**
+     * …Y EL ÚLTIMO DÍA DECISIVO EL COLCHÓN NO FRENA A NADIE (R28.4, paso 18b): «el maillot no deja
+     * ir nada». El freno del colchón existe porque quedan etapas que administrar; cuando no queda
+     * ninguna, administrar es perder. Es el mismo caso que `leLoEstanQuitando` —el colchón deja de
+     * protegerle— por un motivo distinto: allí porque se lo están quitando, aquí porque se acaba.
+     *
+     * **Y ESTO HOY NO CORRE, dicho en vez de disimulado**: el freno del colchón entero vive dentro de
+     * `colaOn`, o sea de `STAGE.teamPlay.enabled`, que está en `false`. Así que esta línea no cambia
+     * ni un segundo de ninguna carrera de hoy. Va puesta igualmente y a propósito: el día que se
+     * encienda `teamPlay`, lo que se encendería sin ella es un maillot que la última etapa sigue
+     * administrando para un mañana que no existe. Lo que no se puede es contarla como medida —no lo
+     * es—, y por eso el efecto medido del brazo decisivo es **solo el de la cuerda**.
+     */
     const deJersey =
       colaOn && sim
-        ? jerseyAttackFactor(hasGcContext && sim.input.gcRank === 1, gcCushionOf(riderId))
+        ? jerseyAttackFactor(
+            hasGcContext && sim.input.gcRank === 1,
+            gcCushionOf(riderId),
+            ultimoDia === 'decisiva',
+          )
         : 1
     /**
      * …Y **EL DÍA QUE EL MAILLOT CEDE, SUS RIVALES ATACAN MÁS** (R13.1, el contrario nº 9).
@@ -3187,6 +3262,12 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
               // EL BOQUETE DE HOY (v38): la postura se decide mirando la carretera, no solo la
               // general de ayer. Sin nada delante vale `null` y no hay nada que cazar.
               gapSeconds: front ? gap : null,
+              // EL DÍA DE CARRERA (v76.2): un minuto en la etapa 3 se recupera y en la 18 es el
+              // podio. Ver `isThreatened`.
+              ...(input.race?.stageDay !== undefined ? { stageDay: input.race.stageDay } : {}),
+              ...(input.race?.totalStages !== undefined
+                ? { totalStages: input.race.totalStages }
+                : {}),
             }),
           )
         }
@@ -5181,14 +5262,26 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
          * arriba —el calor—, así que una etapa a 2° y una a 20° costaban exactamente lo mismo.
          */
         const frioTermino = climaOn ? STAGE.truce.coldCostScale * frio : 0
+        /**
+         * …Y EL QUINTO, DESDE EL PASO 18d: **la altitud** (R28.7, S-479). Por encima de 2.000 m un
+         * puerto criba distinto que uno idéntico a 900, y el que peor sube lo paga más.
+         *
+         * Es el único de los cinco que **no es de suma cero por grupo**: los otros cuatro
+         * redistribuyen —el que empuja paga, el que se esconde ahorra— y éste encarece a todo el que
+         * sube. Con los recorridos de hoy vale **0 exacto**, porque ninguno trae cota de salida y un
+         * perfil que arranca a nivel del mar no llega a 2.000 m: la ley está puesta y dormida, y
+         * despierta sola el día que el calendario traiga las cotas.
+         */
+        const alturaTermino = altitudeCost(altitudesDeHoy[i] ?? 0, m.input.eff0.MON)
         const tactico =
-          colocacionOn || ritmo !== 0 || frioTermino !== 0
+          colocacionOn || ritmo !== 0 || frioTermino !== 0 || alturaTermino !== 0
             ? tacticalCostFactor(
                 {
                   push: colocacionOn ? pushTerm(m.pushing) : 0,
                   accordion: hayAcordeon ? accordionTerm(m.placement, mediaPlace) : 0,
                   rhythm: ritmo,
                   cold: frioTermino,
+                  altitude: alturaTermino,
                 },
                 colocacionOn ? mediaPush : 0,
               )
@@ -6262,6 +6355,32 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
     })
 
     /**
+     * LA CUERDA DE LA ÚLTIMA ETAPA (R28.4, paso 18b), que multiplica la intensidad de los intentos.
+     *
+     * En el **paseo** casi nadie se salta: «sin fugas serias ni ataques de general durante ~80 km».
+     * No es cero —siempre hay quien lo intenta, y el diseño dice «serias», no «ninguna»—. Y el paseo
+     * son los ~80 km PRIMEROS, no los que faltan: va del km 0 al circuito, y el circuito es el
+     * resto, donde la cuerda vuelve a 1 y el sprint es el de cualquier día («DE VERDAD»).
+     *
+     * En la **decisiva** es al revés y empieza donde el diseño dice que empieza: el penúltimo
+     * puerto. Antes de ahí no cambia nada — una última etapa con final en alto tampoco se ataca
+     * desde el km 0.
+     */
+    const finPaseo = finDelPaseo(
+      totalKm,
+      STAGE.ultimaEtapa.paseoKm,
+      STAGE.ultimaEtapa.circuitoMinKm,
+    )
+    const cuerdaDelUltimoDia =
+      ultimoDia === 'paseo'
+        ? km < finPaseo
+          ? STAGE.ultimaEtapa.paseoAttack
+          : 1
+        : ultimoDia === 'decisiva' && kmTodoONada !== null && km >= kmTodoONada
+          ? STAGE.ultimaEtapa.decisivaAttack
+          : 1
+
+    /**
      * Un intento de movimiento desde `source`. Puede no salir, salir y fracasar, o salir y cuajar.
      *
      * `cerrando` es el cuarto selector de flujo de §2.6: el pelotón que está cerrando un movimiento
@@ -6377,8 +6496,22 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
        * cuerda sino otra clase de movimiento —uno solo, a un kilómetro y pico de meta, del que sabe
        * que a rueda no gana—.
        */
+      /**
+       * LA ÚLTIMA ETAPA ENTRA POR LA INTENSIDAD, Y ESO SE APRENDIÓ MIDIENDO. El primer sitio en que
+       * se puso fue `MoveRider.teamAttack`, que es el apetito de CADA UNO… y ahí es **inerte**:
+       * `chooseInstigator` normaliza los apetitos entre sí (`pick = rng() * total`), así que un
+       * factor que multiplica a TODOS por igual se cancela exacto. La medida lo dijo sin margen de
+       * interpretación: 14,8 intentos por etapa con el paseo encendido y 14,8 sin él.
+       *
+       * Lo que decide CUÁNTOS movimientos salen es la λ, y por eso el paseo y el todo o nada entran
+       * por el mismo sitio que la fase y la pancarta: multiplicando la cuerda.
+       */
       const salta = ventanaFlyer
-        ? dado() < blockProbability(STAGE.phases.lambdaFlyer * lambdaPancarta(km), STAGE.dx)
+        ? dado() <
+          blockProbability(
+            STAGE.phases.lambdaFlyer * lambdaPancarta(km) * cuerdaDelUltimoDia,
+            STAGE.dx,
+          )
         : rollMoveAttempt(
             dado,
             ctx,
@@ -6390,6 +6523,8 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
               : lambdaPancarta(km) === 1
                 ? null
                 : { ...PHASE_TABLE.control, lambdaScale: lambdaPancarta(km) },
+            // …y la última etapa va POR FUERA de la fila, a propósito: ver `rollMoveAttempt`.
+            cuerdaDelUltimoDia,
           )
       if (!salta) return
       lastAttemptKm.set(source.id, km)
@@ -7394,10 +7529,43 @@ export function simulateStage(entrada: StageInput, seed: string, probe?: StagePr
           }
           const mem = membersOf(detras.g.id)
           if (mem.length === 0) continue
+          /**
+           * FUNDIRSE NO REGALA NI ROBA SEGUNDOS (v76.1).
+           *
+           * El dueño lo vio en la etapa 3 del Tour: en el km 130 un grupo de 37 iba a **0:25**, en el
+           * 131 estaban reunificados, y esos 25 segundos habían desaparecido. Y en esa misma foto el
+           * grupo salía **sin velocidad**, con el hueco en blanco.
+           *
+           * Los dos síntomas son UNO. El reloj de un corredor ES EL DE SU GRUPO —la radio lo
+           * construye como `reloj del grupo + markLossS + driftS`—, así que al absorber un grupo sus
+           * hombres adoptaban de golpe el reloj del otro: el hueco dejaba de existir para todos a la
+           * vez, y al medirles el kilómetro siguiente aparecían cubriéndolo 25 s más rápido de lo que
+           * lo cubrieron. Eso son ~92 km/h, `radioMaxKmh` los rechazaba a todos —con razón: no es una
+           * velocidad, es aritmética de otro grupo— y sin ni uno que contar el grupo se quedaba sin
+           * velocidad que enseñar. El hueco en blanco no era un fallo de la radio: era la radio
+           * negándose a enseñar un número imposible.
+           *
+           * La fusión cambia la ETIQUETA del grupo, no el reloj de la gente. El grupo resultante toma
+           * un reloj común y a cada uno se le devuelve en `driftS` exactamente lo que ese cambio de
+           * referencia le habría regalado o quitado. Es la misma pieza con la que el motor ya lleva
+           * los segundos cedidos sin soltarse, usada para lo que es: la diferencia entre el reloj del
+           * grupo y el del hombre.
+           *
+           * Se corrige a LOS DOS LADOS. Solo uno de los ajustes es distinto de cero —el del grupo
+           * cuyo reloj no se conserva— pero escribirlo simétrico es lo que hace imposible que la
+           * cuenta dependa de quién alcanzó a quién.
+           */
+          const relojDelante = delante.g.tS
+          const relojDetras = detras.g.tS
+          const comun = Math.min(relojDelante, relojDetras)
+          if (relojDetras !== comun) for (const m of mem) m.driftS += relojDetras - comun
+          if (relojDelante !== comun) {
+            for (const m of membersOf(delante.g.id)) m.driftS += relojDelante - comun
+          }
           for (const m of mem) m.groupId = delante.g.id
           delante.g.riderIds = [...delante.g.riderIds, ...detras.g.riderIds]
           // El grupo resultante va al reloj del que iba delante: alcanzarle no adelanta a nadie.
-          delante.g.tS = Math.min(delante.g.tS, detras.g.tS)
+          delante.g.tS = comun
           detras.g.riderIds = []
           absorbidos.add(detras.g.id)
           const mv = moves.find((m) => m.g.id === detras.g.id)

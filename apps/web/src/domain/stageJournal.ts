@@ -527,9 +527,14 @@ function chronicleTemplate(e: ChronicleEntry): string {
           `${who} is putting in that work for himself, not for his team leader.`,
           `That is ${who} riding his own race: his team's plan has another man at the front of it.`,
         ])
+      if (doing === 'remata')
+        return pick([
+          `${who} is sprinting for himself: his team's plan has another man as its card today.`,
+          `Note who is contesting this: ${who}, riding his own finish, not his team leader's.`,
+        ])
       return pick([
         `${who} has other ideas today: he is riding for himself, not for his team leader.`,
-        `${who} is out of his team's plan today, by his own choice.`,
+        `${who} is racing his own race today — his team named someone else as its leader.`,
       ])
     }
     case 'rider_bonks': {

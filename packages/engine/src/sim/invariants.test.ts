@@ -1,5 +1,7 @@
 /**
- * Invariantes de balance de la etapa llana (SPEC 6.17), que corren en CI. Todo es determinista
+ * Invariantes de balance que corren en CI (SPEC 6.17). Empezaron siendo solo de la etapa llana y
+ * hace mucho que no lo son: aquí viven también la reina, la crono, el desgaste, los abandonos, el
+ * pavé y las fases. Todo es determinista
  * (semillas fijas, sin reloj ni Math.random), así que los rangos se validan de forma reproducible
  * bit a bit. La campaña completa de calibración se lanza con `pnpm sim`.
  *

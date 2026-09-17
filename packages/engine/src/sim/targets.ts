@@ -431,10 +431,11 @@ export const TARGETS = {
    * LAS CARRERAS PEQUEÑAS (v23, `sim/smallTours.ts`). El banco con FORMA DE PRODUCCIÓN, y la
    * tercera vez que la batería aprende la misma lección.
    *
-   * POR QUÉ EXISTE SI YA ESTABA `flat.bestSprinterWinPct`. Porque aquél mide `llana-180`, que monta
-   * **tres sprinters con SPR 84, 85 y 86** —un empate a tres— y con eso el ganador lo decide el
-   * ruido: mide 36 % y pasa su 30-45 % sin enterarse de nada. Los campos de producción no tienen esa
-   * forma. El planificador que corre el juego (`world/autoOrders.ts`) nombra sprinter al mejor de
+   * POR QUÉ EXISTE SI YA ESTABA `flat.bestSprinterWinPct`. Porque aquél mide `llana-180`, cuyo campo
+   * de velocistas es **plano por arriba**: desde la v38 son diez en degradado (SPR 88, 82, 80,5 …
+   * 70), o sea un mejor claro y un pelotón de rematadores detrás, y antes de la v38 eran tres
+   * empatados a 84-86. En las dos formas el estadístico sale bonito por motivos que no son los del
+   * juego, y los campos de producción no tienen ninguna de las dos. El planificador que corre el juego (`world/autoOrders.ts`) nombra sprinter al mejor de
    * cada equipo solo si pasa de 68 de SPR, y en un campo generado de verdad **el mejor le saca 2,7
    * puntos de SPR efectivo al segundo**, no uno. Con un mejor claro, en el día de juego 46, Race
    * Arabia dio **cinco victorias del mismo corredor en cinco etapas** y Sharjah 4 de 5, mientras CI

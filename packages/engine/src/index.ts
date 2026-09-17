@@ -97,6 +97,7 @@ export {
 } from './routes/calendar.js'
 export {
   raceLastDay,
+  overlappingRaces,
   raceOngoingBefore,
   scheduledStageIndex,
   stageDayOfSeason,

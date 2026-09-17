@@ -375,6 +375,12 @@ export interface TeamSituation {
    * que cazar, o aunque el que fuera delante estuviera a quince segundos y se cazara solo.
    */
   gapSeconds: number | null
+  /**
+   * EN QUÉ DÍA DE LA CARRERA ESTAMOS (v76.2). Lo pide `isThreatened`: un minuto en la etapa 3 se
+   * recupera y en la 18 es el podio. Ausentes = carrera de un día, y entonces no se resta nada.
+   */
+  stageDay?: number
+  totalStages?: number
 }
 
 /** Lo que un equipo está haciendo AHORA y por qué. */
@@ -403,8 +409,43 @@ function isThreatened(plan: TeamPlan, sit: TeamSituation): boolean {
    * o sea su desventaja MENOS lo que lleva ganado hoy— contra la de nuestro hombre.
    */
   const virtual = sit.frontThreatDeficit - (sit.gapSeconds ?? 0)
-  // Si al de delante le dan la cuerda entera, ¿se pone por delante de nuestro hombre?
-  return virtual - plan.gcDeficitSeconds <= STAGE.gcThreatFraction * STAGE.gcControlLeash
+  /**
+   * …Y LA OTRA MITAD DE LA PREGUNTA: ¿Y PUEDO RECUPERARLO? (v76.2)
+   *
+   * La cuenta de arriba pregunta «¿se me pone por delante?» y se queda ahí. El dueño, mirando la
+   * etapa 3 del Tour: «se escapa un ciclista peligroso para la general pero solo tiene 1 minuto… no
+   * veo que alguien que quizás acabe luchando por el podio tenga que desgastar a su equipo por eso.
+   * Otra cosa sería si va sacando 20 minutos, o si es la etapa 18».
+   *
+   * Tiene razón, y el motivo es que en la etapa 3 la general está comprimida a SEGUNDOS: cualquier
+   * fugado que se lleve un minuto se pone por delante de medio pelotón, así que medio pelotón se
+   * siente amenazado y se pone a tirar. En la 18 ese mismo minuto es el podio.
+   *
+   * La diferencia no está en quién va delante ni en lo cerca que esté: está en **cuánta carrera
+   * queda para devolverle ese minuto**. Con dieciocho etapas por delante se devuelve en cualquier
+   * puerto de la segunda semana, y quemar el equipo hoy es exactamente cómo se pierde la tercera.
+   *
+   * Así que al listón se le resta lo que todavía es recuperable. En una carrera de un día, o sin
+   * saber en qué día estamos, no se resta nada y la cuenta es la de siempre.
+   */
+  const quedan = Math.max(0, (sit.totalStages ?? 1) - (sit.stageDay ?? 1))
+  const recuperable = STAGE.gcRecoverablePerStage * quedan
+  const ventana = STAGE.gcThreatFraction * STAGE.gcControlLeash
+  /**
+   * …Y HAY DOS PREGUNTAS DISTINTAS, no una (v76.2). La cuenta de siempre —«¿se me acerca?»— vale
+   * mientras el de delante siga POR DETRÁS de nuestro hombre en la general virtual. En cuanto le
+   * PASA, esa misma cuenta responde que sí para cualquier hueco, de un minuto o de veinte, y por eso
+   * medio pelotón se ponía a tirar en la etapa 3: con la general comprimida a segundos, cualquier
+   * fuga que se lleve un minuto adelanta a media parrilla.
+   *
+   * Cuando te pasa, la pregunta ya no es cuánto se te acerca sino **cuánto te saca y si puedes
+   * devolvérselo**. Un minuto en la etapa 3, con dieciocho por delante, se devuelve en cualquier
+   * puerto de la segunda semana; veinte minutos no se devuelven nunca; y en la etapa 18 no se
+   * devuelve ni el minuto.
+   */
+  const ventaja = plan.gcDeficitSeconds - virtual
+  if (ventaja > 0) return ventaja > recuperable
+  return virtual - plan.gcDeficitSeconds <= ventana
 }
 
 /**

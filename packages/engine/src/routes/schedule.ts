@@ -50,3 +50,24 @@ export function raceLastDay(race: CalendarRace): number {
 export function raceOngoingBefore(race: CalendarRace, dayOfSeason: number): boolean {
   return race.startDay < dayOfSeason && dayOfSeason <= raceLastDay(race)
 }
+
+/**
+ * LAS CARRERAS QUE SE SOLAPAN CON ÉSTA (R28.6, S-470 · paso 18b).
+ *
+ * «Dos carreras la misma semana: la convocatoria de una RESTA de la otra; un cambio de última hora
+ * en la grande deja a la pequeña sin ningún hombre para el frente.» La resta ya la hacía
+ * `packages/db` al congelar las escuadras —al que está apuntado a una carrera solapada no se le
+ * convoca en la otra—, pero **la cuenta de qué se solapa con qué vivía dentro de una consulta y no
+ * la comprobaba nadie**. Aquí sale a función pura para poder sellarla.
+ *
+ * Dos carreras se solapan si sus ventanas —de la salida al último día, **contando los descansos**—
+ * se tocan. Una carrera no se solapa consigo misma.
+ */
+export function overlappingRaces(
+  race: CalendarRace,
+  calendar: readonly CalendarRace[],
+): CalendarRace[] {
+  const start = race.startDay
+  const end = raceLastDay(race)
+  return calendar.filter((r) => r.id !== race.id && r.startDay <= end && start <= raceLastDay(r))
+}
